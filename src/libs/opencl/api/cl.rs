@@ -261,7 +261,7 @@ use crate::prelude::CLDevice;
 
 impl Mem {
     pub fn release(&mut self) {
-        release_mem_object(self).unwrap();
+        release_mem_object(self.0).unwrap();
     }
     #[cfg(not(feature = "nocache"))]
     pub fn as_cloned(&self) -> Mem {
@@ -300,7 +300,7 @@ impl Drop for Mem {
 
 //impl HashMapMemory for Mem {}
 
-pub fn create_buffer<T>(context: &Context, flag: u64, size: usize, data: Option<&[T]>) -> Result<Mem, OCLError>{
+pub fn create_buffer<T>(context: &Context, flag: u64, size: usize, data: Option<&[T]>) -> Result<*mut c_void, OCLError>{
     let mut err = 0;
     let host_ptr = match data {
         Some(d) => {d.as_ptr() as cl_mem},
@@ -312,14 +312,14 @@ pub fn create_buffer<T>(context: &Context, flag: u64, size: usize, data: Option<
         return Err(OCLError::with_kind(OCLErrorKind::from_value(err)));
     }
     #[cfg(not(feature = "nocache"))]
-    return Ok(Mem(r));
+    return Ok(r);
     #[cfg(feature = "nocache")]
     Ok(Mem(r, true))
     
 }
 
-pub fn release_mem_object(mem: &mut Mem) -> Result<(), OCLError>{
-    let value = unsafe {clReleaseMemObject(mem.0)};
+pub fn release_mem_object(ptr: *mut c_void) -> Result<(), OCLError>{
+    let value = unsafe {clReleaseMemObject(ptr)};
     if value != 0 {
         return Err(OCLError::with_kind(OCLErrorKind::from_value(value)));
     }

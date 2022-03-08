@@ -1,2 +1,2 @@
 
-mod opencl;
+pub mod opencl;

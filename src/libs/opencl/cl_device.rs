@@ -1,4 +1,6 @@
-use super::api::{Device, Context, CommandQueue, OCLError, create_context, create_command_queue};
+use crate::{buffer::Alloc, libs::opencl::api::{MemFlags, create_buffer}};
+
+use super::{api::{Device, Context, CommandQueue, OCLError, create_context, create_command_queue}, CL_DEVICES};
 
 
 #[derive(Debug,)]
@@ -20,6 +22,11 @@ impl CLDevice {
         })
         
     }
+
+    pub fn get<'a>(device_idx: usize) -> Result<&'a mut CLDevice, OCLError>{
+        unsafe {CL_DEVICES.get_current(device_idx)}
+    }
+
     pub fn get_ctx(&self) -> &Context {
         &self.ctx
     }
@@ -34,5 +41,23 @@ impl CLDevice {
     }
     pub fn get_name(&self) -> Result<String, OCLError> {
         Ok(self.device.get_name()?)
+    }
+}
+
+impl Alloc for CLDevice {
+    fn alloc<T>(&self, len: usize) -> *mut T {
+        create_buffer::<T>(&self.get_ctx(), MemFlags::MemReadWrite as u64, len, None).unwrap() as *mut T
+    }
+}
+
+impl Alloc for &mut CLDevice {
+    fn alloc<T>(&self, len: usize) -> *mut T {
+        create_buffer::<T>(&self.get_ctx(), MemFlags::MemReadWrite as u64, len, None).unwrap() as *mut T
+    }
+}
+
+impl Alloc for &CLDevice {
+    fn alloc<T>(&self, len: usize) -> *mut T {
+        create_buffer::<T>(&self.get_ctx(), MemFlags::MemReadWrite as u64, len, None).unwrap() as *mut T
     }
 }

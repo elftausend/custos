@@ -1,16 +1,6 @@
 
 pub trait Alloc {
-    fn alloc<T>() -> *mut T;
-}
-
-pub struct OpenCL {
-
-}
-
-impl Alloc for OpenCL {
-    fn alloc<T>() -> *mut T {
-        todo!()
-    }
+    fn alloc<T>(&self, len: usize) -> *mut T;
 }
 
 pub struct Buffer<T> {
@@ -19,7 +9,11 @@ pub struct Buffer<T> {
 }
 
 impl <T>Buffer<T> {
-    pub fn new() {
-
+    pub fn new<A: Alloc>(alloc: A, len: usize) -> Buffer<T> {
+        Buffer {
+            ptr: alloc.alloc::<T>(len),
+            len,
+        }
+        
     }
 }
