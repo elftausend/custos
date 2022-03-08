@@ -1,5 +1,5 @@
 
-pub trait Alloc {
+pub trait Device {
     fn alloc<T>(&self, len: usize) -> *mut T;
 }
 
@@ -9,9 +9,9 @@ pub struct Buffer<T> {
 }
 
 impl <T>Buffer<T> {
-    pub fn new<A: Alloc>(alloc: A, len: usize) -> Buffer<T> {
+    pub fn new<D: Device>(device: D, len: usize) -> Buffer<T> {
         Buffer {
-            ptr: alloc.alloc::<T>(len),
+            ptr: device.alloc::<T>(len),
             len,
         }
         

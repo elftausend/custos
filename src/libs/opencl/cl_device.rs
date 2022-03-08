@@ -1,17 +1,17 @@
-use crate::{buffer::Alloc, libs::opencl::api::{MemFlags, create_buffer}};
+use crate::{buffer::Device, libs::opencl::api::{MemFlags, create_buffer}};
 
-use super::{api::{Device, Context, CommandQueue, OCLError, create_context, create_command_queue}, CL_DEVICES};
+use super::{api::{Context, CommandQueue, OCLError, create_context, create_command_queue, CLIntDevice}, CL_DEVICES};
 
 
 #[derive(Debug,)]
 pub struct CLDevice {
-    pub device: Device,
+    pub device: CLIntDevice,
     pub ctx: Context,
     pub queue: CommandQueue,
 }
 
 impl CLDevice {
-    pub fn new(device: Device) -> Result<CLDevice, OCLError> {
+    pub fn new(device: CLIntDevice) -> Result<CLDevice, OCLError> {
         let ctx = create_context(&[device])?;
         let queue = create_command_queue(&ctx, device)?;
 
@@ -44,19 +44,19 @@ impl CLDevice {
     }
 }
 
-impl Alloc for CLDevice {
+impl Device for CLDevice {
     fn alloc<T>(&self, len: usize) -> *mut T {
         create_buffer::<T>(&self.get_ctx(), MemFlags::MemReadWrite as u64, len, None).unwrap() as *mut T
     }
 }
 
-impl Alloc for &mut CLDevice {
+impl Device for &mut CLDevice {
     fn alloc<T>(&self, len: usize) -> *mut T {
         create_buffer::<T>(&self.get_ctx(), MemFlags::MemReadWrite as u64, len, None).unwrap() as *mut T
     }
 }
 
-impl Alloc for &CLDevice {
+impl Device for &CLDevice {
     fn alloc<T>(&self, len: usize) -> *mut T {
         create_buffer::<T>(&self.get_ctx(), MemFlags::MemReadWrite as u64, len, None).unwrap() as *mut T
     }

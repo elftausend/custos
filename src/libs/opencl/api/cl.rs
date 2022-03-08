@@ -82,9 +82,9 @@ pub enum DeviceInfo {
     VERSION =         0x102F,
 }
 #[derive(Clone, Copy, Debug, Hash)]
-pub struct Device(pub cl_device_id);
+pub struct CLIntDevice(pub cl_device_id);
 
-impl Device {
+impl CLIntDevice {
     pub fn get_name(self) -> Result<String, OCLError> {
         Ok(get_device_info(self, DeviceInfo::NAME)?.string)
     }
@@ -100,7 +100,7 @@ impl Device {
 }
 
 
-pub fn get_device_ids(platform: Platform, device_type: &u64) -> Result<Vec<Device>, OCLError> {
+pub fn get_device_ids(platform: Platform, device_type: &u64) -> Result<Vec<CLIntDevice>, OCLError> {
     let mut num_devices: cl_uint = 0;
     let value = unsafe {clGetDeviceIDs(platform.0, *device_type, 0, std::ptr::null_mut(), &mut num_devices)};
     if value != 0 {
@@ -110,9 +110,9 @@ pub fn get_device_ids(platform: Platform, device_type: &u64) -> Result<Vec<Devic
     let mut vec: Vec<usize> = vec![0; num_devices as usize];
     let (ptr, len, cap) = (vec.as_mut_ptr(), vec.len(), vec.capacity());
 
-    let mut devices: Vec<Device> = unsafe {
+    let mut devices: Vec<CLIntDevice> = unsafe {
         core::mem::forget(vec);
-        Vec::from_raw_parts(ptr as *mut Device, len, cap)
+        Vec::from_raw_parts(ptr as *mut CLIntDevice, len, cap)
     };
 
     let value = unsafe {clGetDeviceIDs(platform.0, DeviceType::GPU as u64, num_devices, devices.as_mut_ptr() as *mut cl_device_id, std::ptr::null_mut())};
@@ -127,7 +127,7 @@ pub struct DeviceReturnInfo {
     pub size: u64,
 }
 
-pub fn get_device_info(device: Device, param_name: DeviceInfo) -> Result<DeviceReturnInfo, OCLError> {
+pub fn get_device_info(device: CLIntDevice, param_name: DeviceInfo) -> Result<DeviceReturnInfo, OCLError> {
     let mut size: size_t = 0;
     let value = unsafe {clGetDeviceInfo(device.0, param_name as cl_device_info, 0, std::ptr::null_mut(), &mut size)};
     if value != 0 {
@@ -156,7 +156,7 @@ impl Context {
 }
 
 
-pub fn create_context(devices: &[Device]) -> Result<Context, OCLError> {
+pub fn create_context(devices: &[CLIntDevice]) -> Result<Context, OCLError> {
     let mut err = 0;
     let r = unsafe {clCreateContext(std::ptr::null(), devices.len() as u32, devices.as_ptr() as *const *mut c_void, std::ptr::null_mut(), std::ptr::null_mut(), &mut err)};
     if err != 0 {
@@ -178,7 +178,7 @@ impl CommandQueue {
     }
 }
 
-pub fn create_command_queue(context: &Context, device: Device) -> Result<CommandQueue, OCLError> {
+pub fn create_command_queue(context: &Context, device: CLIntDevice) -> Result<CommandQueue, OCLError> {
     let mut err = 0;
     let r = unsafe {clCreateCommandQueue(context.0, device.0, 0, &mut err)};
     //error("clCreateCommandQueue", err);
@@ -417,7 +417,7 @@ pub fn create_program_with_source(context: &Context, src: &str) -> Result<Progra
     Ok(Program(r))
 }
 
-pub fn build_program(program: &Program, devices: &[Device], options: Option<&str>) -> Result<(), OCLError> {
+pub fn build_program(program: &Program, devices: &[CLIntDevice], options: Option<&str>) -> Result<(), OCLError> {
     let len = devices.len();
 
     let err;
