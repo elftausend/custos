@@ -1,6 +1,8 @@
-use crate::{buffer::Device, libs::opencl::api::{MemFlags, create_buffer}};
+use std::ffi::c_void;
 
-use super::{api::{Context, CommandQueue, OCLError, create_context, create_command_queue, CLIntDevice}, CL_DEVICES};
+use crate::{buffer::Device, libs::opencl::api::{MemFlags, create_buffer}, VecRead};
+
+use super::{api::{Context, CommandQueue, OCLError, create_context, create_command_queue, CLIntDevice, wait_for_event, enqueue_read_buffer}, CL_DEVICES};
 
 
 #[derive(Debug,)]
@@ -48,11 +50,19 @@ impl Device for CLDevice {
     fn alloc<T>(&self, len: usize) -> *mut T {
         create_buffer::<T>(&self.get_ctx(), MemFlags::MemReadWrite as u64, len, None).unwrap() as *mut T
     }
+
+    fn from_data<T>(&self, data: &[T]) -> *mut T {
+        create_buffer::<T>(&self.get_ctx(), MemFlags::MemReadWrite as u64, data.len(), Some(data)).unwrap() as *mut T
+    }
 }
 
 impl Device for &mut CLDevice {
     fn alloc<T>(&self, len: usize) -> *mut T {
         create_buffer::<T>(&self.get_ctx(), MemFlags::MemReadWrite as u64, len, None).unwrap() as *mut T
+    }
+
+    fn from_data<T>(&self, data: &[T]) -> *mut T {
+        create_buffer::<T>(&self.get_ctx(), MemFlags::MemReadWrite as u64, data.len(), Some(data)).unwrap() as *mut T
     }
 }
 
@@ -60,4 +70,18 @@ impl Device for &CLDevice {
     fn alloc<T>(&self, len: usize) -> *mut T {
         create_buffer::<T>(&self.get_ctx(), MemFlags::MemReadWrite as u64, len, None).unwrap() as *mut T
     }
+
+    fn from_data<T>(&self, data: &[T]) -> *mut T {
+        create_buffer::<T>(&self.get_ctx(), MemFlags::MemReadWrite as u64, data.len(), Some(data)).unwrap() as *mut T
+    }
 }
+
+impl <T: Default+Copy>VecRead<T> for &CLDevice {
+    fn read(&self, buf: &crate::Buffer<T>) -> Vec<T> {
+        let mut read = vec![T::default(); buf.len];
+        let event = enqueue_read_buffer(&self.get_queue(), buf.ptr as *mut c_void, &mut read, true).unwrap();
+        wait_for_event(event).unwrap();
+        read
+    }
+}
+

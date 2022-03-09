@@ -333,28 +333,25 @@ pub fn retain_mem_object(mem: Mem) -> Result<(), OCLError>{
     }
     Ok(())
 }
-
-pub fn enqueue_read_buffer<T>(cq: &CommandQueue, mem: &Mem, data: &mut [T], block: bool) -> Result<Event, OCLError> {
-    let mut events = vec![std::ptr::null_mut();1];
-    let value = unsafe {clEnqueueReadBuffer(cq.0, mem.0, block as u32, 0, data.len()*core::mem::size_of::<T>(), data.as_ptr() as *mut c_void, 0, std::ptr::null(), events.as_mut_ptr() as *mut cl_event)};
-    if value != 0 {
-        return Err(OCLError::with_kind(OCLErrorKind::from_value(value)));
-    }
-    Ok(Event(events[0]))
-
-}
-
-pub fn enqueue_write_buffer<T>(cq: &CommandQueue, mem: &mut Mem, data: &[T], block: bool) -> Result<Event, OCLError> {
+pub fn enqueue_write_buffer<T>(cq: &CommandQueue, mem: *mut c_void, data: &[T], block: bool) -> Result<Event, OCLError> {
     let mut events = vec![std::ptr::null_mut();1];
     
-    let value = unsafe {clEnqueueWriteBuffer(cq.0, mem.0, block as u32, 0, data.len()*core::mem::size_of::<T>(), data.as_ptr() as *mut c_void, 0, std::ptr::null(), events.as_mut_ptr() as *mut cl_event)};
+    let value = unsafe {clEnqueueWriteBuffer(cq.0, mem, block as u32, 0, data.len()*core::mem::size_of::<T>(), data.as_ptr() as *mut c_void, 0, std::ptr::null(), events.as_mut_ptr() as *mut cl_event)};
+    if value != 0 {
+        return Err(OCLError::with_kind(OCLErrorKind::from_value(value)));
+    }
+    Ok(Event(events[0]))
+}
+
+pub fn enqueue_read_buffer<T>(cq: &CommandQueue, mem: *mut c_void, data: &mut [T], block: bool) -> Result<Event, OCLError> {
+    let mut events = vec![std::ptr::null_mut();1];
+    let value = unsafe {clEnqueueReadBuffer(cq.0, mem, block as u32, 0, data.len()*core::mem::size_of::<T>(), data.as_ptr() as *mut c_void, 0, std::ptr::null(), events.as_mut_ptr() as *mut cl_event)};
     if value != 0 {
         return Err(OCLError::with_kind(OCLErrorKind::from_value(value)));
     }
     Ok(Event(events[0]))
 
 }
-
 pub fn enqueue_copy_buffer(cq: &CommandQueue, src_mem: &Mem, dst_mem: &Mem, size: usize) -> Result<(), OCLError>{
     let mut events = vec![std::ptr::null_mut();1];
     let value = unsafe {clEnqueueCopyBuffer(cq.0, src_mem.0, dst_mem.0, 0, 0, size*4, 0, std::ptr::null(), events.as_mut_ptr() as *mut cl_event)};
