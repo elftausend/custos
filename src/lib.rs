@@ -7,14 +7,13 @@ use libs::{opencl::CLDevice, cpu::CPU};
 
 pub struct Dev {
     cl_device: Option<CLDevice>,
-    cpu: Option<CPU>,
 }
 
 pub trait AsDev {
     fn as_dev(&self) -> Dev;
 }
 
-pub static mut GLOBAL_DEVICE: Dev = Dev { cl_device: None, cpu: None };
+pub static mut GLOBAL_DEVICE: Dev = Dev { cl_device: None };
 
 /*
 pub fn get_device() -> impl Device {
@@ -26,15 +25,19 @@ pub fn get_device() -> impl Device {
 */
 
 pub fn get_device<T>() -> Box<dyn BaseDevice<T>> {
-    match unsafe {GLOBAL_DEVICE.cl_device.clone()} {
-        Some(cl_device) => Box::new(cl_device),
-        None => Box::new(CPU)
+    unsafe {
+        match GLOBAL_DEVICE.cl_device.clone() {
+            Some(cl_device) => Box::new(cl_device),
+            None => Box::new(CPU)
+        }
     }
+    
+    
 }
 
 impl Dev {
-    pub fn new(cl_device: Option<CLDevice>, cpu: Option<CPU>) -> Dev {
-        Dev { cl_device, cpu }
+    pub fn new(cl_device: Option<CLDevice>) -> Dev {
+        Dev { cl_device}
     }
     pub fn get() -> () {
         todo!()

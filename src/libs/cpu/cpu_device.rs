@@ -21,7 +21,7 @@ impl <T>BaseDevice<T> for CPU {
 
 impl AsDev for CPU {
     fn as_dev(&self) -> crate::Dev {
-        crate::Dev::new(None, Some(CPU))
+        crate::Dev::new(None)
     }
 }
 

@@ -8,7 +8,8 @@ pub trait BaseDevice<T> {
 pub trait Device {
     fn alloc<T: Default+Copy>(&self, len: usize) -> *mut T;
     fn from_data<T: Clone>(&self, data: &[T]) -> *mut T;
-    fn select<T>(self) -> Self where Self: AsDev+Clone {
+    ///selects global device
+    fn select(self) -> Self where Self: AsDev+Clone {
         let dev = self.as_dev();
         unsafe {
             GLOBAL_DEVICE = dev;

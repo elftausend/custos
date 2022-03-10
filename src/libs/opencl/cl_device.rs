@@ -48,13 +48,13 @@ impl CLDevice {
 
 impl <T>BaseDevice<T> for CLDevice {
     fn add(&self, lhs: crate::Buffer<T>, rhs: crate::Buffer<T>) {
-        todo!()
+        println!("add {:?} with {:?}", lhs.ptr, rhs.ptr);
     }
 }
 
 impl AsDev for CLDevice {
     fn as_dev(&self) -> crate::Dev {
-        crate::Dev::new(Some(self.clone()), None)
+        crate::Dev::new(Some(self.clone()))
     }
 }
 
