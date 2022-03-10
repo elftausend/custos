@@ -52,7 +52,7 @@ impl Device for CLDevice {
     }
 
     fn from_data<T>(&self, data: &[T]) -> *mut T {
-        create_buffer::<T>(&self.get_ctx(), MemFlags::MemReadWrite as u64, data.len(), Some(data)).unwrap() as *mut T
+        create_buffer::<T>(&self.get_ctx(), MemFlags::MemReadWrite | MemFlags::MemCopyHostPtr, data.len(), Some(data)).unwrap() as *mut T
     }
 }
 
@@ -62,7 +62,7 @@ impl Device for &mut CLDevice {
     }
 
     fn from_data<T>(&self, data: &[T]) -> *mut T {
-        create_buffer::<T>(&self.get_ctx(), MemFlags::MemReadWrite as u64, data.len(), Some(data)).unwrap() as *mut T
+        create_buffer::<T>(&self.get_ctx(), MemFlags::MemReadWrite | MemFlags::MemCopyHostPtr, data.len(), Some(data)).unwrap() as *mut T
     }
 }
 
@@ -72,11 +72,20 @@ impl Device for &CLDevice {
     }
 
     fn from_data<T>(&self, data: &[T]) -> *mut T {
-        create_buffer::<T>(&self.get_ctx(), MemFlags::MemReadWrite as u64, data.len(), Some(data)).unwrap() as *mut T
+        create_buffer::<T>(&self.get_ctx(), MemFlags::MemReadWrite | MemFlags::MemCopyHostPtr, data.len(), Some(data)).unwrap() as *mut T
     }
 }
 
 impl <T: Default+Copy>VecRead<T> for &CLDevice {
+    fn read(&self, buf: &crate::Buffer<T>) -> Vec<T> {
+        let mut read = vec![T::default(); buf.len];
+        let event = enqueue_read_buffer(&self.get_queue(), buf.ptr as *mut c_void, &mut read, true).unwrap();
+        wait_for_event(event).unwrap();
+        read
+    }
+}
+
+impl <T: Default+Copy>VecRead<T> for &mut CLDevice {
     fn read(&self, buf: &crate::Buffer<T>) -> Vec<T> {
         let mut read = vec![T::default(); buf.len];
         let event = enqueue_read_buffer(&self.get_queue(), buf.ptr as *mut c_void, &mut read, true).unwrap();

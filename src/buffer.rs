@@ -18,8 +18,8 @@ impl <T: Default+Copy>Buffer<T> {
     }
 }
 
-impl <D: Device, T: Clone>From<(D, &[T])> for Buffer<T> {
-    fn from(device_slice: (D, &[T])) -> Self {
+impl <D: Device, T: Clone, const N: usize>From<(&D, &[T; N])> for Buffer<T> {
+    fn from(device_slice: (&D, &[T; N])) -> Self {
         Buffer {
             ptr: device_slice.0.from_data(device_slice.1),
             len: device_slice.1.len()
