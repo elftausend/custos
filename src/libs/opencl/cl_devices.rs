@@ -8,7 +8,7 @@ pub struct CLDevices {
 }
 
 impl CLDevices {
-    pub fn get_current(&mut self, device_idx: usize) -> Result<&mut CLDevice, OCLError> {
+    pub fn get_current_mut(&mut self, device_idx: usize) -> Result<&mut CLDevice, OCLError> {
         self.sync_current()?;
         
         if device_idx < self.current_devices.len() {
@@ -16,8 +16,18 @@ impl CLDevices {
         } else {
             Err(OCLError::with_kind(OCLErrorKind::InvalidDeviceIdx))
         }
-        
     }
+
+    pub fn get_current(&mut self, device_idx: usize) -> Result<CLDevice, OCLError> {
+        self.sync_current()?;
+        
+        if device_idx < self.current_devices.len() {
+            Ok(self.current_devices[device_idx])
+        } else {
+            Err(OCLError::with_kind(OCLErrorKind::InvalidDeviceIdx))
+        }
+    }
+
     pub fn sync_current(&mut self) -> Result<(), OCLError>{
         if self.current_devices.len() == 0 {
             

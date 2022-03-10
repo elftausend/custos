@@ -1,11 +1,11 @@
 use std::ffi::c_void;
 
-use crate::{buffer::Device, libs::opencl::api::{MemFlags, create_buffer}, VecRead, BaseDevice};
+use crate::{buffer::Device, libs::opencl::api::{MemFlags, create_buffer}, VecRead, BaseDevice, AsDev};
 
 use super::{api::{Context, CommandQueue, OCLError, create_context, create_command_queue, CLIntDevice, wait_for_event, enqueue_read_buffer}, CL_DEVICES};
 
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub struct CLDevice {
     pub device: CLIntDevice,
     pub ctx: Context,
@@ -25,7 +25,7 @@ impl CLDevice {
         
     }
 
-    pub fn get<'a>(device_idx: usize) -> Result<&'a mut CLDevice, OCLError>{
+    pub fn get(device_idx: usize) -> Result<CLDevice, OCLError>{
         unsafe {CL_DEVICES.get_current(device_idx)}
     }
 
@@ -50,7 +50,9 @@ impl <T>BaseDevice<T> for CLDevice {
     fn add(&self, lhs: crate::Buffer<T>, rhs: crate::Buffer<T>) {
         todo!()
     }
+}
 
+impl AsDev for CLDevice {
     fn as_dev(&self) -> crate::Dev {
         crate::Dev::new(Some(self.clone()), None)
     }
@@ -86,7 +88,7 @@ impl Device for &CLDevice {
     }
 }
 
-impl <T: Default+Copy>VecRead<T> for &CLDevice {
+impl <T: Default+Copy>VecRead<T> for CLDevice {
     fn read(&self, buf: &crate::Buffer<T>) -> Vec<T> {
         let mut read = vec![T::default(); buf.len];
         let event = enqueue_read_buffer(&self.get_queue(), buf.ptr as *mut c_void, &mut read, true).unwrap();

@@ -8,7 +8,10 @@ use libs::{opencl::CLDevice, cpu::CPU};
 pub struct Dev {
     cl_device: Option<CLDevice>,
     cpu: Option<CPU>,
+}
 
+pub trait AsDev {
+    fn as_dev(&self) -> Dev;
 }
 
 pub static mut GLOBAL_DEVICE: Dev = Dev { cl_device: None, cpu: None };
