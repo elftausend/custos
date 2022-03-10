@@ -1,4 +1,8 @@
+use std::fmt::Debug;
+
 use crate::{Device, VecRead, Buffer, BaseDevice};
+
+#[derive(Debug, Clone, Copy)]
 pub struct CPU;
 
 impl CPU {
@@ -11,7 +15,7 @@ impl CPU {
 
 impl <T>BaseDevice<T> for CPU {
     fn add(&self, lhs: Buffer<T>, rhs: Buffer<T>) {
-        todo!()
+        println!("add {:?} with {:?}", lhs.ptr, rhs.ptr);
     }
     fn as_dev(&self) -> crate::Dev {
         crate::Dev::new(None, Some(CPU))

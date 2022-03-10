@@ -33,7 +33,7 @@ impl Dev {
     pub fn new(cl_device: Option<CLDevice>, cpu: Option<CPU>) -> Dev {
         Dev { cl_device, cpu }
     }
-    pub fn get<D>() -> () {
+    pub fn get() -> () {
         todo!()
     }
 }
