@@ -7,7 +7,7 @@ use crate::prelude::{Tensor, OpenCL};
 use super::{error::OCLError, extern_cl::*, OCLErrorKind};
 
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub struct Platform(cl_platform_id); 
 
 impl Platform { 
@@ -146,7 +146,7 @@ pub fn get_device_info(device: CLIntDevice, param_name: DeviceInfo) -> Result<De
     })
 }
 
-#[derive(Debug, Hash)]
+#[derive(Debug, Hash, Clone, Copy)]
 pub struct Context(pub cl_context);
 
 impl Context {

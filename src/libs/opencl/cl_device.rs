@@ -1,11 +1,11 @@
 use std::ffi::c_void;
 
-use crate::{buffer::Device, libs::opencl::api::{MemFlags, create_buffer}, VecRead};
+use crate::{buffer::Device, libs::opencl::api::{MemFlags, create_buffer}, VecRead, BaseDevice};
 
 use super::{api::{Context, CommandQueue, OCLError, create_context, create_command_queue, CLIntDevice, wait_for_event, enqueue_read_buffer}, CL_DEVICES};
 
 
-#[derive(Debug,)]
+#[derive(Debug, Clone)]
 pub struct CLDevice {
     pub device: CLIntDevice,
     pub ctx: Context,
@@ -43,6 +43,16 @@ impl CLDevice {
     }
     pub fn get_name(&self) -> Result<String, OCLError> {
         Ok(self.device.get_name()?)
+    }
+}
+
+impl <T>BaseDevice<T> for CLDevice {
+    fn add(&self, lhs: crate::Buffer<T>, rhs: crate::Buffer<T>) {
+        todo!()
+    }
+
+    fn as_dev(&self) -> crate::Dev {
+        crate::Dev::new(Some(self.clone()), None)
     }
 }
 

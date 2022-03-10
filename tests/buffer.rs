@@ -18,6 +18,18 @@ pub fn read<T, D: Device>(device: D, buf: &Buffer<T>) -> Vec<T> where D: VecRead
     device.read(buf)
 }
 
+pub fn add() {
+    
+}
+
+#[test]
+fn devices() -> Result<(), OCLError> {
+    let device = CLDevice::get(0)?;
+    println!("{}",  device.get_name()?);
+
+    Ok(())
+}
+
 #[test]
 fn buffer_alloc() -> Result<(), OCLError> {
     let mut buf = Buffer::<u8>::new(CPU, 10);

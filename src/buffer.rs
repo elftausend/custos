@@ -1,7 +1,20 @@
+use crate::{GLOBAL_DEVICE, Dev};
+
+
+pub trait BaseDevice<T> {
+    fn add(&self, lhs: Buffer<T>, rhs: Buffer<T>);
+    fn as_dev(&self) -> Dev;
+}
 
 pub trait Device {
     fn alloc<T: Default+Copy>(&self, len: usize) -> *mut T;
     fn from_data<T: Clone>(&self, data: &[T]) -> *mut T;
+    fn select<T>(&self) where Self: BaseDevice<T> {
+        let dev = self.as_dev();
+        unsafe {
+            GLOBAL_DEVICE = dev;
+        }
+    }
 }
 
 pub struct Buffer<T> {

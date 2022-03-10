@@ -1,4 +1,4 @@
-use crate::{Device, VecRead, Buffer};
+use crate::{Device, VecRead, Buffer, BaseDevice};
 pub struct CPU;
 
 impl CPU {
@@ -6,6 +6,15 @@ impl CPU {
         unsafe {    
             drop(Box::from_raw(buf.ptr));
         }
+    }
+}
+
+impl <T>BaseDevice<T> for CPU {
+    fn add(&self, lhs: Buffer<T>, rhs: Buffer<T>) {
+        todo!()
+    }
+    fn as_dev(&self) -> crate::Dev {
+        crate::Dev::new(None, Some(CPU))
     }
 }
 
