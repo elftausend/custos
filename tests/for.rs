@@ -1,6 +1,6 @@
 use std::ops::Range;
 
-use custos::{libs::opencl::{CLCACHE_COUNT, CLDevice}, Matrix, AsDev, VecRead};
+use custos::{libs::opencl::{CLCACHE_COUNT, CLDevice}, Matrix, AsDev, VecRead, range};
 
 #[test]
 fn counting() {
