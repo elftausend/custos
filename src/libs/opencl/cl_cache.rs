@@ -57,7 +57,7 @@ impl OCLCache {
             OCL_CACHE.output_nodes.as_ref().unwrap().get(&node)
         };
         match matrix_info_option {
-            Some(matrix_info) => Matrix::from_ptr(matrix_info.0 as *mut T, matrix_info.1),
+            Some(matrix_info) => Matrix::from((matrix_info.0 as *mut T, matrix_info.1)),
             None => unsafe {OCL_CACHE.add_node(node)}
         }
     }

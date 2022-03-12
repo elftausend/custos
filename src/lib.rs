@@ -6,6 +6,8 @@ mod matrix;
 
 //pub use libs::*;
 pub use buffer::*;
+pub use matrix::*;
+
 use libs::{opencl::{CLDevice, GenericOCL}, cpu::CPU};
 
 pub struct Dev {

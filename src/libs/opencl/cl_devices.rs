@@ -1,4 +1,4 @@
-use super::{cl_device::CLDevice, api::{OCLError, OCLErrorKind, get_platforms, get_device_ids, DeviceType}};
+use super::{cl_device::CLDevice, api::{OCLError, OCLErrorKind, get_platforms, get_device_ids, DeviceType}, OCL_CACHE};
 
 pub static mut CL_DEVICES: CLDevices = CLDevices {current_devices: Vec::new()};
 
@@ -30,6 +30,9 @@ impl CLDevices {
 
     pub fn sync_current(&mut self) -> Result<(), OCLError>{
         if self.current_devices.len() == 0 {
+            unsafe {
+                OCL_CACHE.sync()
+            }
             
             let platform = get_platforms()?[0];
 

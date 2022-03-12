@@ -1,6 +1,6 @@
 use std::ops::Add;
 
-use custos::{libs::{cpu::CPU, opencl::{CLDevice, api::OCLError}}, Buffer, AsDev};
+use custos::{libs::{cpu::CPU, opencl::{CLDevice, api::OCLError}}, Buffer, AsDev, Matrix};
 
 
 /* 
@@ -27,3 +27,14 @@ fn add() -> Result<(), OCLError> {
     Ok(())   
 }
 */
+
+#[test]
+fn add() {
+    CLDevice::get(0).unwrap().select();
+
+    let a = Matrix::from(( (1, 3), &[1., 4., 2.,] ));
+    let b = Matrix::from(( (1, 3), &[1., 4., 2.,] ));
+
+    let c = a + b;
+
+}
