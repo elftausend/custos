@@ -25,6 +25,10 @@ impl <T: GenericOCL>Matrix<T> {
     pub fn size(&self) -> usize {
         self.dims.0 * self.dims.1
     }
+
+    pub fn data(&self) -> Buffer<T> {
+        self.data
+    }
 }
 
 impl <T>From<(*mut T, (usize, usize))> for Matrix<T> {

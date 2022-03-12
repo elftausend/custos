@@ -18,8 +18,6 @@ pub use cl_cache::*;
 
 use crate::number::Number;
 
-
-
 pub trait GenericOCL: Number {
     fn as_ocl_type_str() -> &'static str;
 }

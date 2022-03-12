@@ -1,6 +1,6 @@
 use std::ops::Add;
 
-use custos::{libs::{cpu::CPU, opencl::{CLDevice, api::OCLError}}, Buffer, AsDev, Matrix};
+use custos::{libs::{cpu::CPU, opencl::{CLDevice, api::OCLError, CLCACHE_COUNT}}, Buffer, AsDev, Matrix, Device, VecRead};
 
 
 /* 
@@ -28,13 +28,35 @@ fn add() -> Result<(), OCLError> {
 }
 */
 
+pub fn read<T, D: Device<T>>(device: D, buf: &Buffer<T>) -> Vec<T> where D: VecRead<T> {
+    device.read(buf)
+}
+
 #[test]
 fn add() {
-    CLDevice::get(0).unwrap().select();
+    let device = CLDevice::get(0).unwrap().select();
 
-    let a = Matrix::from(( (1, 3), &[1., 4., 2.,] ));
-    let b = Matrix::from(( (1, 3), &[1., 4., 2.,] ));
+    let a = Matrix::from(( (1, 4), &[1, 4, 2, 9] ));
+    let b = Matrix::from(( (1, 4), &[1, 4, 2, 9] ));
 
-    let c = a + b;
+    for _ in 0..1000 {
+        let c = a + b;
+        assert_eq!(vec![2, 8, 4, 18], device.read(&c.data()));
+        unsafe {CLCACHE_COUNT = 0};
+    }
+    
+}
 
+#[test]
+fn big_add() {
+    let device = CLDevice::get(0).unwrap().select();
+
+    let a = Matrix::from(( (1000, 500), &[1.543f32; 1000*500] ));
+    let b = Matrix::from(( (1000, 500), &[9.34123f32; 1000*500] ));
+
+    for _ in 0..100000 {
+        let c = a + b;
+        unsafe {CLCACHE_COUNT = 0};
+    }
+    
 }

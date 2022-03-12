@@ -1,6 +1,6 @@
 use std::{collections::HashMap, ffi::c_void, any::TypeId};
 
-use crate::{matrix::Matrix, number::Number};
+use crate::matrix::Matrix;
 
 use super::{api::{Kernel, create_program_with_source, build_program, create_kernels_in_program, set_kernel_arg}, CLDevice, GenericOCL};
 
@@ -14,7 +14,7 @@ pub struct Node {
     //rhs_mem: Mem,
 }
 
-static mut CLCACHE_COUNT: usize = 0;
+pub static mut CLCACHE_COUNT: usize = 0;
 
 impl Node {
     pub fn new(out_dims: (usize, usize)) -> Node {
