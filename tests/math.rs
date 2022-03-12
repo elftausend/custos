@@ -46,17 +46,3 @@ fn add() {
     }
     
 }
-
-#[test]
-fn big_add() {
-    let device = CLDevice::get(0).unwrap().select();
-
-    let a = Matrix::from(( (1000, 500), &[1.543f32; 1000*500] ));
-    let b = Matrix::from(( (1000, 500), &[9.34123f32; 1000*500] ));
-
-    for _ in 0..100000 {
-        let c = a + b;
-        unsafe {CLCACHE_COUNT = 0};
-    }
-    
-}
