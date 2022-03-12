@@ -13,6 +13,14 @@ pub struct Dev {
 
 pub trait AsDev {
     fn as_dev(&self) -> Dev;
+    ///selects self as global device
+    fn select(self) -> Self where Self: AsDev+Clone {
+        let dev = self.as_dev();
+        unsafe {
+            GLOBAL_DEVICE = dev;
+        }
+        self
+    }
 }
 
 pub static mut GLOBAL_DEVICE: Dev = Dev { cl_device: None };
@@ -48,6 +56,6 @@ impl Dev {
 
 
 
-pub trait VecRead<T>: Device {
+pub trait VecRead<T>: Device<T> {
     fn read(&self, buf: &Buffer<T>) -> Vec<T>;
 }

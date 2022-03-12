@@ -13,7 +13,7 @@ pub fn get_slice<'a, T>(buf: &Buffer<T>) -> &'a [T] {
     }
 }
 
-pub fn read<T, D: Device>(device: D, buf: &Buffer<T>) -> Vec<T> where D: VecRead<T> {
+pub fn read<T, D: Device<T>>(device: D, buf: &Buffer<T>) -> Vec<T> where D: VecRead<T> {
     device.read(buf)
 }
 

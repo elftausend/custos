@@ -1,6 +1,6 @@
 use std::ops::Add;
 
-use custos::{libs::{cpu::CPU, opencl::{CLDevice, api::OCLError}}, Device, Buffer};
+use custos::{libs::{cpu::CPU, opencl::{CLDevice, api::OCLError}}, Buffer, AsDev};
 
 
 

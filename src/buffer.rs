@@ -1,10 +1,11 @@
 use crate::{GLOBAL_DEVICE, get_device, AsDev};
 
 
-pub trait BaseDevice<T>: Device2<T> {
+pub trait BaseDevice<T>: Device<T> {
     fn add(&self, lhs: Buffer<T>, rhs: Buffer<T>);
 }
 
+/* 
 pub trait Device {
     fn alloc<T: Default+Copy>(&self, len: usize) -> *mut T;
     fn from_data<T: Clone>(&self, data: &[T]) -> *mut T;
@@ -17,18 +18,12 @@ pub trait Device {
         self
     }
 }
+*/
 
-pub trait Device2<T> {
+pub trait Device<T> {
     fn alloc(&self, len: usize) -> *mut T;
     fn from_data(&self, data: &[T]) -> *mut T;
-    ///selects self as global device
-    fn select(self) -> Self where Self: AsDev+Clone {
-        let dev = self.as_dev();
-        unsafe {
-            GLOBAL_DEVICE = dev;
-        }
-        self
-    }
+
 }
 
 #[derive(Debug)]
@@ -38,15 +33,15 @@ pub struct Buffer<T> {
 }
 
 impl <T: Default+Copy>Buffer<T> {
-    pub fn new<D: Device>(device: D, len: usize) -> Buffer<T> {
+    pub fn new<D: Device<T>>(device: D, len: usize) -> Buffer<T> {
         Buffer {
-            ptr: device.alloc::<T>(len),
+            ptr: device.alloc(len),
             len,
         }
     }
 }
 
-impl <D: Device, T: Clone, const N: usize>From<(&D, &[T; N])> for Buffer<T> {
+impl <T: Clone, D: Device<T>, const N: usize>From<(&D, &[T; N])> for Buffer<T> {
     fn from(device_slice: (&D, &[T; N])) -> Self {
         Buffer {
             ptr: device_slice.0.from_data(device_slice.1),
@@ -56,7 +51,7 @@ impl <D: Device, T: Clone, const N: usize>From<(&D, &[T; N])> for Buffer<T> {
     }
 }
 
-impl <D: Device, T: Clone, const N: usize>From<(&D, [T; N])> for Buffer<T> {
+impl <T: Clone, D: Device<T>,  const N: usize>From<(&D, [T; N])> for Buffer<T> {
     fn from(device_slice: (&D, [T; N])) -> Self {
         Buffer {
             ptr: device_slice.0.from_data(&device_slice.1),
