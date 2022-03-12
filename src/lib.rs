@@ -1,6 +1,7 @@
 pub mod libs;
 mod buffer;
 
+pub mod number;
 mod matrix;
 
 //pub use libs::*;

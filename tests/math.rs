@@ -14,6 +14,8 @@ fn add() -> Result<(), OCLError> {
 
     let native = lhs + rhs;
 
+
+
     let device = CLDevice::get(0)?.select();
     
     let lhs = Buffer::from((&device, [4., 1., 2.,]));

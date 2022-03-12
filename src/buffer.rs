@@ -26,7 +26,7 @@ pub trait Device<T> {
 
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct Buffer<T> {
     pub ptr: *mut T,
     pub len: usize,

@@ -1,6 +1,7 @@
 use crate::{Buffer, get_device};
 
 
+#[derive(Debug, Clone, Copy)]
 pub struct Matrix<T> {
     data: Buffer<T>,
     dims: (usize, usize)
