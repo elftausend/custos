@@ -1,4 +1,3 @@
-use std::alloc::Layout;
 
 use custos::{libs::{opencl::{CLDevice, api::OCLError}, cpu::CPU}, Buffer, Device, VecRead};
 

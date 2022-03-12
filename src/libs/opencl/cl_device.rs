@@ -1,6 +1,6 @@
 use std::ffi::c_void;
 
-use crate::{buffer::Device, libs::opencl::api::{MemFlags, create_buffer}, VecRead, BaseDevice, AsDev};
+use crate::{buffer::Device, libs::opencl::api::{MemFlags, create_buffer}, VecRead, BaseDevice, AsDev, Device2};
 
 use super::{api::{Context, CommandQueue, OCLError, create_context, create_command_queue, CLIntDevice, wait_for_event, enqueue_read_buffer}, CL_DEVICES};
 
@@ -51,6 +51,19 @@ impl <T>BaseDevice<T> for CLDevice {
         println!("add {:?} with {:?}", lhs.ptr, rhs.ptr);
     }
 }
+
+
+impl <T>Device2<T> for CLDevice {
+    fn alloc(&self, len: usize) -> *mut T {
+        create_buffer::<T>(&self.get_ctx(), MemFlags::MemReadWrite as u64, len, None).unwrap() as *mut T
+    }
+
+    fn from_data(&self, data: &[T]) -> *mut T {
+        create_buffer::<T>(&self.get_ctx(), MemFlags::MemReadWrite | MemFlags::MemCopyHostPtr, data.len(), Some(data)).unwrap() as *mut T
+    }
+}
+
+
 
 impl AsDev for CLDevice {
     fn as_dev(&self) -> crate::Dev {

@@ -1,6 +1,8 @@
 pub mod libs;
 mod buffer;
 
+mod matrix;
+
 //pub use libs::*;
 pub use buffer::*;
 use libs::{opencl::CLDevice, cpu::CPU};
@@ -24,15 +26,15 @@ pub fn get_device() -> impl Device {
 }
 */
 
-pub fn get_device<T>() -> Box<dyn BaseDevice<T>> {
+
+
+pub fn get_device<T: Copy+Default>() -> Box<dyn BaseDevice<T>> {
     unsafe {
         match GLOBAL_DEVICE.cl_device.clone() {
             Some(cl_device) => Box::new(cl_device),
             None => Box::new(CPU)
         }
     }
-    
-    
 }
 
 impl Dev {

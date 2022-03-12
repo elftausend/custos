@@ -1,6 +1,6 @@
 use std::fmt::Debug;
 
-use crate::{Device, VecRead, Buffer, BaseDevice, AsDev};
+use crate::{Device, VecRead, Buffer, BaseDevice, AsDev, Device2};
 
 #[derive(Debug, Clone, Copy)]
 pub struct CPU;
@@ -13,7 +13,7 @@ impl CPU {
     }
 }
 
-impl <T>BaseDevice<T> for CPU {
+impl <T: Default+Copy>BaseDevice<T> for CPU {
     fn add(&self, lhs: Buffer<T>, rhs: Buffer<T>) {
         println!("add {:?} with {:?}", lhs.ptr, rhs.ptr);
     }
@@ -24,6 +24,19 @@ impl AsDev for CPU {
         crate::Dev::new(None)
     }
 }
+
+//------------DEVICE2 trait
+
+impl <T: Default+Copy>Device2<T> for CPU {
+    fn alloc(&self, len: usize) -> *mut T {
+        Box::into_raw(vec![T::default(); len].into_boxed_slice()) as *mut T
+    }
+
+    fn from_data(&self, data: &[T]) -> *mut T {
+        Box::into_raw(data.to_vec().into_boxed_slice()) as *mut T
+    }
+}
+
 
 impl Device for CPU {
     fn alloc<T: Default+Copy>(&self, len: usize) -> *mut T {

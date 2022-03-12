@@ -1,14 +1,27 @@
-use crate::{GLOBAL_DEVICE, Dev, get_device, AsDev};
+use crate::{GLOBAL_DEVICE, get_device, AsDev};
 
 
-pub trait BaseDevice<T> {
+pub trait BaseDevice<T>: Device2<T> {
     fn add(&self, lhs: Buffer<T>, rhs: Buffer<T>);
 }
 
 pub trait Device {
     fn alloc<T: Default+Copy>(&self, len: usize) -> *mut T;
     fn from_data<T: Clone>(&self, data: &[T]) -> *mut T;
-    ///selects global device
+    ///selects self as global device
+    fn select(self) -> Self where Self: AsDev+Clone {
+        let dev = self.as_dev();
+        unsafe {
+            GLOBAL_DEVICE = dev;
+        }
+        self
+    }
+}
+
+pub trait Device2<T> {
+    fn alloc(&self, len: usize) -> *mut T;
+    fn from_data(&self, data: &[T]) -> *mut T;
+    ///selects self as global device
     fn select(self) -> Self where Self: AsDev+Clone {
         let dev = self.as_dev();
         unsafe {
@@ -53,11 +66,11 @@ impl <D: Device, T: Clone, const N: usize>From<(&D, [T; N])> for Buffer<T> {
     }
 }
 
-impl <T>core::ops::Add for Buffer<T> {
+impl <T: Copy+Default>core::ops::Add for Buffer<T> {
     type Output = f32;
 
     fn add(self, rhs: Self) -> Self::Output {
-        let device = get_device::<T>();
+        let device = get_device();
         device.add(self, rhs);
         0.
     }
