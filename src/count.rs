@@ -2,9 +2,44 @@ use std::ops::Range;
 
 use crate::libs::opencl::CLCACHE_COUNT;
 
+pub trait AsRangeArg {
+    fn start(&self) -> usize;
+    fn end(&self) -> usize;
+}
 
-pub fn range(range: Range<usize>) -> Count {
-    Count(range.start, range.end)
+impl AsRangeArg for Range<usize> {
+    fn start(&self) -> usize {
+        self.start
+    }
+
+    fn end(&self) -> usize {
+        self.end
+    }
+}
+
+impl AsRangeArg for usize {
+    fn start(&self) -> usize {
+        0
+    }
+
+    fn end(&self) -> usize {
+        *self
+    }
+}
+
+impl AsRangeArg for (usize, usize) {
+    fn start(&self) -> usize {
+        self.0
+    }
+
+    fn end(&self) -> usize {
+        self.1
+    }
+}
+
+//inclusive range
+pub fn range<R: AsRangeArg>(range: R) -> Count {
+    Count(range.start(), range.end())
 }
 
 pub struct Count(usize, usize);
