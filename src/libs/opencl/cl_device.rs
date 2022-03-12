@@ -1,8 +1,8 @@
 use std::ffi::c_void;
 
-use crate::{buffer::Device, libs::opencl::api::{MemFlags, create_buffer}, VecRead, BaseDevice, AsDev};
+use crate::{buffer::Device, libs::opencl::api::{MemFlags, create_buffer}, VecRead, BaseDevice, AsDev, matrix::Matrix};
 
-use super::{api::{Context, CommandQueue, OCLError, create_context, create_command_queue, CLIntDevice, wait_for_event, enqueue_read_buffer}, CL_DEVICES};
+use super::{api::{Context, CommandQueue, OCLError, create_context, create_command_queue, CLIntDevice, wait_for_event, enqueue_read_buffer}, CL_DEVICES, tew, GenericOCL};
 
 
 #[derive(Debug, Clone, Copy)]
@@ -46,9 +46,9 @@ impl CLDevice {
     }
 }
 
-impl <T>BaseDevice<T> for CLDevice {
-    fn add(&self, lhs: crate::Buffer<T>, rhs: crate::Buffer<T>) {
-        println!("add {:?} with {:?}", lhs.ptr, rhs.ptr);
+impl <T: GenericOCL>BaseDevice<T> for CLDevice {
+    fn add(&self, lhs: Matrix<T>, rhs: Matrix<T>) -> Matrix<T> {
+        tew(*self, lhs, rhs, "+").unwrap()
     }
 }
 

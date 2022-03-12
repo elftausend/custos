@@ -1,6 +1,6 @@
 use std::fmt::Debug;
 
-use crate::{Device, VecRead, Buffer, BaseDevice, AsDev};
+use crate::{Device, VecRead, Buffer, BaseDevice, AsDev, matrix::Matrix};
 
 #[derive(Debug, Clone, Copy)]
 pub struct CPU;
@@ -13,11 +13,15 @@ impl CPU {
     }
 }
 
+
 impl <T: Default+Copy>BaseDevice<T> for CPU {
-    fn add(&self, lhs: Buffer<T>, rhs: Buffer<T>) {
-        println!("add {:?} with {:?}", lhs.ptr, rhs.ptr);
+    fn add(&self, lhs: Matrix<T>, rhs: Matrix<T>) -> Matrix<T> {
+        //println!("add {:?} with {:?}", lhs.ptr, rhs.ptr);
+
+        todo!()
     }
 }
+
 
 impl AsDev for CPU {
     fn as_dev(&self) -> crate::Dev {

@@ -3,7 +3,7 @@ use std::ops::Add;
 use custos::{libs::{cpu::CPU, opencl::{CLDevice, api::OCLError}}, Buffer, AsDev};
 
 
-
+/* 
 #[test]
 fn add() -> Result<(), OCLError> {
     
@@ -26,3 +26,4 @@ fn add() -> Result<(), OCLError> {
     assert_eq!(opencl, native);
     Ok(())   
 }
+*/

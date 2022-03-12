@@ -1,9 +1,7 @@
 use crate::{matrix::Matrix, number::Number};
 
-use super::{api::{set_kernel_arg, enqueue_nd_range_kernel, OCLError}, cl_cache::{OCL_CACHE, OCLCache, Node}, CLDevice};
+use super::{api::{set_kernel_arg, enqueue_nd_range_kernel, OCLError}, cl_cache::{OCL_CACHE, OCLCache, Node}, CLDevice, GenericOCL};
 
-
- 
 pub struct KernelArg<T> {
     tensor: Option<Matrix<T>>,
     number: Option<T>,
@@ -66,7 +64,7 @@ pub struct KernelOptions<'a, T> {
     device: CLDevice,
 }
 
-impl <'a,T: Number>KernelOptions<'a, T> {
+impl <'a,T: GenericOCL>KernelOptions<'a, T> {
     pub fn new(device: CLDevice, lhs: Matrix<T>, gws: [usize; 3], src: &'a str) -> KernelOptions<'a, T> {
         let wd;
         if gws[0] == 0 {

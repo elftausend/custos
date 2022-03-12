@@ -1,8 +1,8 @@
-use crate::{GLOBAL_DEVICE, get_device, AsDev};
+use crate::{GLOBAL_DEVICE, get_device, AsDev, matrix::Matrix};
 
 
 pub trait BaseDevice<T>: Device<T> {
-    fn add(&self, lhs: Buffer<T>, rhs: Buffer<T>);
+    fn add(&self, lhs: Matrix<T>, rhs: Matrix<T>) -> Matrix<T>;
 }
 
 /* 
@@ -61,6 +61,7 @@ impl <T: Clone, D: Device<T>,  const N: usize>From<(&D, [T; N])> for Buffer<T> {
     }
 }
 
+/* 
 impl <T: Copy+Default>core::ops::Add for Buffer<T> {
     type Output = f32;
 
@@ -70,3 +71,4 @@ impl <T: Copy+Default>core::ops::Add for Buffer<T> {
         0.
     }
 }
+*/

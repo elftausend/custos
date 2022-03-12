@@ -2,7 +2,7 @@ use std::{collections::HashMap, ffi::c_void, any::TypeId};
 
 use crate::{matrix::Matrix, number::Number};
 
-use super::{api::{Kernel, create_program_with_source, build_program, create_kernels_in_program, set_kernel_arg}, CLDevice};
+use super::{api::{Kernel, create_program_with_source, build_program, create_kernels_in_program, set_kernel_arg}, CLDevice, GenericOCL};
 
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
 pub struct Node {
@@ -46,13 +46,13 @@ impl OCLCache {
             self.arg_kernel_cache = Some(HashMap::new());
         }
     }
-    pub fn add_node<T: Default+Copy>(&mut self, node: Node) -> Matrix<T> {
+    pub fn add_node<T: GenericOCL>(&mut self, node: Node) -> Matrix<T> {
         let out = Matrix::new(node.out_dims);
         self.output_nodes.as_mut().unwrap().insert(node, (out.ptr() as *mut c_void, out.dims()));
         out
 
     }
-    pub fn get<T: Default+Copy>(node: Node) -> Matrix<T> {
+    pub fn get<T: GenericOCL>(node: Node) -> Matrix<T> {
         let matrix_info_option = unsafe {
             OCL_CACHE.output_nodes.as_ref().unwrap().get(&node)
         };
@@ -62,7 +62,7 @@ impl OCLCache {
         }
     }
 
-    pub fn arg_kernel_cache<'a, T: Number>(&mut self, device: CLDevice, tensors: &'a [(Matrix<T>, usize)], numbers: &'a [(T, usize)], output: Option<Matrix<T>>, src: String) -> Kernel {
+    pub fn arg_kernel_cache<'a, T: GenericOCL>(&mut self, device: CLDevice, tensors: &'a [(Matrix<T>, usize)], numbers: &'a [(T, usize)], output: Option<Matrix<T>>, src: String) -> Kernel {
         
         let mut mems = Vec::new();
         let type_ids = vec![TypeId::of::<T>(); numbers.len()];
