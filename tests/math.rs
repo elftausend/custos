@@ -153,5 +153,14 @@ fn test_larger_gemm() {
 
     roughly_equal(&device.read(&c.data()), should);
 
+    CPU.sync().select();
+
+    let a = Matrix::from(((5, 7), arr1));
+    let b = Matrix::from(((7, 10), arr2));
+
+    let cpu_c = a.gemm(b);
+
+    roughly_equal(&device.read(&c.data()), &CPU.read(&cpu_c.data()));
+
 
 }

@@ -28,7 +28,7 @@ impl <T: TBlas+GenericOCL>Gemm<T> for CPU {
         let n = rhs.dims().1;
 
         let mut c = CPUCache::get(Node::new((m, n)));
-        T::gemm(m, n, k, lhs.as_cpu_slice(), k, rhs.as_cpu_slice(), n, c.as_cpu_slice_mut(), n);
+        T::gemm(m, n, k, lhs.as_cpu_slice(), rhs.as_cpu_slice(), c.as_cpu_slice_mut());
         c
     }
 }
