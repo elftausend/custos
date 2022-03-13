@@ -1,6 +1,6 @@
 use std::fmt::Debug;
 
-use crate::{Device, VecRead, Buffer, BaseDevice, AsDev, matrix::Matrix};
+use crate::{Device, VecRead, Buffer, BaseDevice, AsDev, matrix::Matrix, libs::{cpu::{CPUCache, Node, ops::{element_wise_op_mut}}, opencl::GenericOCL}};
 
 #[derive(Debug, Clone, Copy)]
 pub struct CPU;
@@ -14,11 +14,11 @@ impl CPU {
 }
 
 
-impl <T: Default+Copy>BaseDevice<T> for CPU {
+impl <T: GenericOCL>BaseDevice<T> for CPU {
     fn add(&self, lhs: Matrix<T>, rhs: Matrix<T>) -> Matrix<T> {
-        //println!("add {:?} with {:?}", lhs.ptr, rhs.ptr);
-
-        todo!()
+        let mut out = CPUCache::get::<T>(Node::new(lhs.dims()));
+        element_wise_op_mut(lhs.as_cpu_slice(), rhs.as_cpu_slice(), out.as_cpu_slice_mut(), |x, y| x + y);
+        out
     }
 }
 

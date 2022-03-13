@@ -31,15 +31,15 @@ impl Node {
     }
 }
 
-pub static mut OCL_CACHE: OCLCache = OCLCache { output_nodes: None, arg_kernel_cache: None};
+pub static mut CL_CACHE: CLCache = CLCache { output_nodes: None, arg_kernel_cache: None};
 
 #[derive(Debug)]
-pub struct OCLCache {
+pub struct CLCache {
     output_nodes: Option<HashMap<Node, (*mut c_void, (usize, usize))>>,
     pub arg_kernel_cache: Option<HashMap<(Vec<*mut c_void>, Vec<TypeId>, Option<*mut c_void>, String), Kernel>>,
 }
 
-impl OCLCache {
+impl CLCache {
     pub fn sync(&mut self) {
         if self.output_nodes.is_none() {
             self.output_nodes = Some(HashMap::new());
@@ -54,11 +54,11 @@ impl OCLCache {
     }
     pub fn get<T: GenericOCL>(node: Node) -> Matrix<T> {
         let matrix_info_option = unsafe {
-            OCL_CACHE.output_nodes.as_ref().unwrap().get(&node)
+            CL_CACHE.output_nodes.as_ref().unwrap().get(&node)
         };
         match matrix_info_option {
             Some(matrix_info) => Matrix::from((matrix_info.0 as *mut T, matrix_info.1)),
-            None => unsafe {OCL_CACHE.add_node(node)}
+            None => unsafe {CL_CACHE.add_node(node)}
         }
     }
 

@@ -1,6 +1,6 @@
 use crate::{matrix::Matrix, number::Number};
 
-use super::{api::{set_kernel_arg, enqueue_nd_range_kernel, OCLError}, cl_cache::{OCL_CACHE, OCLCache, Node}, CLDevice, GenericOCL};
+use super::{api::{set_kernel_arg, enqueue_nd_range_kernel, OCLError}, cl_cache::{Node}, CLDevice, GenericOCL, CLCache, CL_CACHE};
 
 pub struct KernelArg<T> {
     tensor: Option<Matrix<T>>,
@@ -130,7 +130,7 @@ impl <'a,T: GenericOCL>KernelOptions<'a, T> {
         
     }
     pub fn with_output(&mut self, out_dims: (usize, usize)) -> &mut KernelOptions<'a, T> {
-        self.output = Some(OCLCache::get(Node::new(out_dims)));
+        self.output = Some(CLCache::get(Node::new(out_dims)));
 
         /* 
         match self.rhs {
@@ -148,15 +148,13 @@ impl <'a,T: GenericOCL>KernelOptions<'a, T> {
     pub fn run(&'a mut self) -> Result<Matrix<T>, OCLError> {
         let device = self.device;
         
-        let kernel = unsafe {OCL_CACHE.arg_kernel_cache(self.device, &self.tensor_args, &self.number_args, self.output, self.src.to_string())};
+        let kernel = unsafe {CL_CACHE.arg_kernel_cache(self.device, &self.tensor_args, &self.number_args, self.output, self.src.to_string())};
         
         
         for index in 0..self.number_args.len() {
             let arg = self.number_args.get(index).unwrap();
             set_kernel_arg(&kernel, arg.1, &arg.0)
         }
-
-        
 
         enqueue_nd_range_kernel(&device.get_queue(), &kernel, self.wd, &self.gws, self.lws.as_ref(), None)?;
         

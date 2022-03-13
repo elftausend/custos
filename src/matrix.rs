@@ -29,6 +29,18 @@ impl <T: GenericOCL>Matrix<T> {
     pub fn data(&self) -> Buffer<T> {
         self.data
     }
+
+    pub fn as_cpu_slice(&self) -> &[T] {
+        unsafe {
+            std::slice::from_raw_parts(self.data.ptr, self.data.len)
+        }
+    }
+
+    pub fn as_cpu_slice_mut(&mut self) -> &mut [T] {
+        unsafe {
+            std::slice::from_raw_parts_mut(self.data.ptr, self.data.len)
+        }
+    }
 }
 
 impl <T>From<(*mut T, (usize, usize))> for Matrix<T> {
