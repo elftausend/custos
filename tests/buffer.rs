@@ -17,8 +17,6 @@ pub fn read<T, D: Device<T>>(device: D, buf: &Buffer<T>) -> Vec<T> where D: VecR
     device.read(buf)
 }
 
-
-
 #[test]
 fn devices() -> Result<(), OCLError> {
     

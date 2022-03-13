@@ -110,7 +110,7 @@ fn roughly_equal<T: Float>(lhs: &[T], rhs: &[T]) {
     for (idx, value) in lhs.iter().enumerate() {
         let diff = (*value-rhs[idx]).abs();
         if diff > T::as_generic(1E-3) {
-            panic!("Vectors are not roughly equal! lhs: {}, rhs: {}", value, rhs[idx])
+            panic!("Slices are not roughly equal! lhs: {}, rhs: {}", value, rhs[idx])
         }
     }
 }

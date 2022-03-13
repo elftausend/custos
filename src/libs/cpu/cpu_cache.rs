@@ -46,7 +46,8 @@ impl CPUCache {
         out
 
     }
-    pub fn get<T: GenericOCL>(node: Node) -> Matrix<T> {
+    pub fn get<T: GenericOCL>(out_dims: (usize, usize)) -> Matrix<T> {
+        let node = Node::new(out_dims);
         let matrix_info_option = unsafe {
             CPU_CACHE.nodes.as_ref().unwrap().get(&node)
         };

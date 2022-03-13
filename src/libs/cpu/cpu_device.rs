@@ -1,6 +1,6 @@
 use std::fmt::Debug;
 
-use crate::{Device, VecRead, Buffer, BaseDevice, AsDev, matrix::Matrix, libs::{cpu::{CPUCache, Node, ops::{element_wise_op_mut}}, opencl::GenericOCL}, BaseOps, Gemm};
+use crate::{Device, VecRead, Buffer, BaseDevice, AsDev, matrix::Matrix, libs::{cpu::{CPUCache, ops::{element_wise_op_mut}}, opencl::GenericOCL}, BaseOps, Gemm};
 
 use super::{CPU_CACHE, TBlas};
 
@@ -27,7 +27,7 @@ impl <T: TBlas+GenericOCL>Gemm<T> for CPU {
         let k = lhs.dims().1;
         let n = rhs.dims().1;
 
-        let mut c = CPUCache::get(Node::new((m, n)));
+        let mut c = CPUCache::get((m, n));
         T::gemm(m, n, k, lhs.as_cpu_slice(), rhs.as_cpu_slice(), c.as_cpu_slice_mut());
         c
     }
@@ -38,7 +38,7 @@ impl <T: GenericOCL>BaseDevice<T> for CPU {}
 
 impl <T: GenericOCL>BaseOps<T> for CPU {
     fn add(&self, lhs: Matrix<T>, rhs: Matrix<T>) -> Matrix<T> {
-        let mut out = CPUCache::get::<T>(Node::new(lhs.dims()));
+        let mut out = CPUCache::get::<T>(lhs.dims());
         element_wise_op_mut(lhs.as_cpu_slice(), rhs.as_cpu_slice(), out.as_cpu_slice_mut(), |x, y| x + y);
         out
     }

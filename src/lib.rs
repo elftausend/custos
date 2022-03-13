@@ -65,11 +65,9 @@ pub fn get_gemm<T: GenericOCL+TBlas>() -> Box<dyn Gemm<T>> {
 
 impl Dev {
     pub fn new(cl_device: Option<CLDevice>) -> Dev {
-        Dev { cl_device}
+        Dev { cl_device }
     }
 }
-
-
 
 pub trait VecRead<T>: Device<T> {
     fn read(&self, buf: &Buffer<T>) -> Vec<T>;
