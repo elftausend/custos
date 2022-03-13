@@ -1,4 +1,4 @@
-use crate::{matrix::Matrix, Gemm};
+use crate::matrix::Matrix;
 
 
 pub trait BaseDevice<T>: Device<T> + BaseOps<T> {}

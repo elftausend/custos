@@ -88,11 +88,19 @@ fn test_gemm() {
     let a = Matrix::from(( (1, 4), &[1., 4., 2., 9.] ));
     let b = Matrix::from(( (4, 1), &[1., 4., 2., 9.] ));
 
+    let device = CLDevice::get(0).unwrap();
+
+    let a_cl = Matrix::from(( (1, 4), &[1., 4., 2., 9.] ));
+    let b_cl = Matrix::from(( (4, 1), &[1., 4., 2., 9.] ));
+
     for _ in range(0..1000) {
         let c1 = CPU.gemm(a, b);
         let c2 = a.gemm(b);
 
+        let c3 = device.gemm(a_cl, b_cl);
+
         assert_eq!(CPU.read(&c1.data()), CPU.read(&c2.data()));
+        assert_eq!(CPU.read(&c1.data()), device.read(&c3.data()));
         
     }
 }

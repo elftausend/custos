@@ -2,7 +2,7 @@ use std::ffi::c_void;
 
 use crate::{buffer::Device, libs::opencl::api::{MemFlags, create_buffer}, VecRead, BaseDevice, AsDev, matrix::Matrix, BaseOps, Gemm};
 
-use super::{api::{Context, CommandQueue, OCLError, create_context, create_command_queue, CLIntDevice, wait_for_event, enqueue_read_buffer}, CL_DEVICES, tew, GenericOCL};
+use super::{api::{Context, CommandQueue, OCLError, create_context, create_command_queue, CLIntDevice, wait_for_event, enqueue_read_buffer}, CL_DEVICES, tew, GenericOCL, ocl_gemm};
 
 
 #[derive(Debug, Clone, Copy)]
@@ -46,9 +46,9 @@ impl CLDevice {
     }
 }
 
-impl <T>Gemm<T> for CLDevice {
+impl <T: GenericOCL>Gemm<T> for CLDevice {
     fn gemm(&self, lhs: Matrix<T>, rhs: Matrix<T>) -> Matrix<T> {
-        todo!()
+        ocl_gemm(*self, rhs, lhs).unwrap()
     }
 }
 
