@@ -75,6 +75,17 @@ impl <T: GenericOCL, const N: usize>From<((usize, usize), &[T; N])> for Matrix<T
     }
 }
 
+impl <T: GenericOCL, D: Device<T>, const N: usize>From<(D, (usize, usize), &[T; N])> for Matrix<T> {
+    fn from(dims_slice: (D, (usize, usize), &[T; N])) -> Self {
+        let buffer = Buffer::from((&dims_slice.0, dims_slice.2));
+        Matrix {
+            data: buffer,
+            dims: dims_slice.1
+        }        
+    }
+}
+
+
 
 impl <T: GenericOCL>core::ops::Add for Matrix<T> {
     type Output = Matrix<T>;

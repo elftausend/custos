@@ -90,8 +90,8 @@ fn test_gemm() {
 
     let device = CLDevice::get(0).unwrap();
 
-    let a_cl = Matrix::from(( (1, 4), &[1., 4., 2., 9.] ));
-    let b_cl = Matrix::from(( (4, 1), &[1., 4., 2., 9.] ));
+    let a_cl = Matrix::from(( device, (1, 4), &[1., 4., 2., 9.] ));
+    let b_cl = Matrix::from(( device, (4, 1), &[1., 4., 2., 9.] ));
 
     for _ in range(0..1000) {
         let c1 = CPU.gemm(a, b);
