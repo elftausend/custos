@@ -148,7 +148,7 @@ impl <'a, T: GenericOCL>KernelOptions<'a, T> {
     pub fn run(&'a mut self) -> Result<Matrix<T>, OCLError> {
         let device = self.device;
         
-        let kernel = unsafe {CL_CACHE.arg_kernel_cache(self.device, &self.tensor_args, &self.number_args, self.output, self.src.to_string())};
+        let kernel = unsafe {CL_CACHE.arg_kernel_cache(device, &self.tensor_args, &self.number_args, self.output, self.src.to_string())};
         
         
         for index in 0..self.number_args.len() {

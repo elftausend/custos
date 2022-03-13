@@ -54,6 +54,7 @@ impl <T: Clone, const N: usize>From<(Box<dyn BaseDevice<T>>, &[T; N])> for Buffe
     }
 }
 
+
 impl <T: Clone, D: Device<T>, const N: usize>From<(&D, &[T; N])> for Buffer<T> {
     fn from(device_slice: (&D, &[T; N])) -> Self {
         Buffer {
@@ -64,7 +65,7 @@ impl <T: Clone, D: Device<T>, const N: usize>From<(&D, &[T; N])> for Buffer<T> {
     }
 }
 
-impl <T: Clone, D: Device<T>,  const N: usize>From<(&D, [T; N])> for Buffer<T> {
+impl <T: Clone, D: Device<T>,const N: usize>From<(&D, [T; N])> for Buffer<T> {
     fn from(device_slice: (&D, [T; N])) -> Self {
         Buffer {
             ptr: device_slice.0.from_data(&device_slice.1),

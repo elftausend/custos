@@ -48,7 +48,8 @@ impl CLDevice {
 
 impl <T: GenericOCL>Gemm<T> for CLDevice {
     fn gemm(&self, lhs: Matrix<T>, rhs: Matrix<T>) -> Matrix<T> {
-        ocl_gemm(*self, rhs, lhs).unwrap()
+        //ocl_gemm(*self, rhs, lhs).unwrap()
+        tew(*self, lhs, rhs, "+").unwrap()
     }
 }
 
