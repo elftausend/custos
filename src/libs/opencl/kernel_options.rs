@@ -2,52 +2,39 @@ use crate::{matrix::Matrix, number::Number};
 
 use super::{api::{set_kernel_arg, enqueue_nd_range_kernel, OCLError}, cl_cache::{Node}, CLDevice, GenericOCL, CLCache, CL_CACHE};
 
-pub struct KernelArg<T> {
-    tensor: Option<Matrix<T>>,
-    number: Option<T>,
-}
-impl <T>KernelArg<T> {
-    pub fn new(tensor: Option<Matrix<T>>, number: Option<T>) -> KernelArg<T> {
-        KernelArg {
-            tensor,
-            number
-        }
-    }
-}
-
-pub trait TKernelArg<T> {
-    fn is_number(&self) -> bool;
-    fn as_karg(&self) -> KernelArg<T>;
+pub trait KernelArg<T> {
+    fn matrix(&self) -> Option<Matrix<T>>;
+    fn number(&self) -> Option<T>;
 }
 
 
-impl <T: Copy>TKernelArg<T> for Matrix<T> {
-    fn is_number(&self) -> bool {
-        false
+impl <T: Copy>KernelArg<T> for Matrix<T> {
+    fn matrix(&self) -> Option<Matrix<T>> {
+        Some(*self)
     }
 
-    fn as_karg(&self) -> KernelArg<T> {
-        KernelArg::new(Some(*self), None)
-    }
-}
-
-impl <T: Copy>TKernelArg<T> for &Matrix<T> {
-    fn is_number(&self) -> bool {
-        false
-    }
-
-    fn as_karg(&self) -> KernelArg<T> {
-        KernelArg::new(Some(**self), None)
+    fn number(&self) -> Option<T> {
+        None
     }
 }
 
-impl <T: Number>TKernelArg<T> for T {
-    fn is_number(&self) -> bool {
-        true
+impl <T: Copy>KernelArg<T> for &Matrix<T> {
+    fn matrix(&self) -> Option<Matrix<T>> {
+        Some(**self)
     }
 
-    fn as_karg(&self) -> KernelArg<T> {
-        KernelArg::new(None, Some(*self))
+    fn number(&self) -> Option<T> {
+        None
+    }
+}
+
+impl <T: Number>KernelArg<T> for T {
+    fn matrix(&self) -> Option<Matrix<T>> {
+        None
+    }
+
+    fn number(&self) -> Option<T> {
+        Some(*self)
     }
 }
 
@@ -99,31 +86,13 @@ impl <'a, T: GenericOCL>KernelOptions<'a, T> {
         self.rhs = Some(rhs);
         self
     }
-    /*
-    pub fn with_pre_output(&mut self, output: &'a Tensor<T>) -> &mut KernelOptions<'a, T> {
-        let output = output.copy_or_move();
-        /* 
-        let mem = Box::new(*output.get_mem().downcast_ref::<Mem>().unwrap());
-        let output = Tensor {
-            ts: output.ts,
-            mem,
-            backend: output.backend.clone(),
-            _pd: PhantomData,
-        };
-        */
-        self.output = Some(output);
-        self
-
-    }
-    */
-    pub fn add_arg<A: TKernelArg<T>>(&'a mut self, arg: &'a A) -> &mut KernelOptions<'a, T> {
+    
+    pub fn add_arg<A: KernelArg<T>>(&'a mut self, arg: &'a A) -> &mut KernelOptions<'a, T> {
         let idx = self.number_args.len()+self.tensor_args.len();
-        let karg = arg.as_karg();
-        //could be checked with is_some on karg.number, or match
-        if arg.is_number() {
-            self.number_args.push((karg.number.unwrap(), idx));
-        } else {
-            self.tensor_args.push((karg.tensor.unwrap(), idx));
+        
+        match arg.number() {
+            Some(number) => self.number_args.push((number, idx)),
+            None => self.tensor_args.push((arg.matrix().unwrap(), idx)),
         }
 
         self
@@ -131,18 +100,6 @@ impl <'a, T: GenericOCL>KernelOptions<'a, T> {
     }
     pub fn with_output(&mut self, out_dims: (usize, usize)) -> &mut KernelOptions<'a, T> {
         self.output = Some(CLCache::get(self.device, Node::new(out_dims)));
-
-        /* 
-        match self.rhs {
-            Some(rhs) => {
-                let output = OCLCache::get(Node::new(out_dims));
-                self.output = Some(output)
-            },
-            None => {
-                self.output = Some(OCLCache::get_output_cache(self.backend.clone(), self.lhs, self.lhs, with_op_or_not));
-            },
-        }
-        */
         self
     }
     pub fn run(&'a mut self) -> Result<Matrix<T>, OCLError> {
