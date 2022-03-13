@@ -46,7 +46,7 @@ pub fn get_device() -> impl Device {
 
 pub fn get_device<T: GenericOCL>() -> Box<dyn BaseDevice<T>> {
     unsafe {
-        match GLOBAL_DEVICE.cl_device.clone() {
+        match GLOBAL_DEVICE.cl_device {
             Some(cl_device) => Box::new(cl_device),
             None => Box::new(CPU)
         }
@@ -55,7 +55,7 @@ pub fn get_device<T: GenericOCL>() -> Box<dyn BaseDevice<T>> {
 
 pub fn get_gemm<T: GenericOCL+TBlas>() -> Box<dyn Gemm<T>> {
     unsafe {
-        match GLOBAL_DEVICE.cl_device.clone() {
+        match GLOBAL_DEVICE.cl_device {
             Some(cl_device) => Box::new(cl_device),
             None => Box::new(CPU)
         }
@@ -66,9 +66,6 @@ pub fn get_gemm<T: GenericOCL+TBlas>() -> Box<dyn Gemm<T>> {
 impl Dev {
     pub fn new(cl_device: Option<CLDevice>) -> Dev {
         Dev { cl_device}
-    }
-    pub fn get() -> () {
-        todo!()
     }
 }
 

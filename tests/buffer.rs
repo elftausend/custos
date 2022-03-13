@@ -21,9 +21,9 @@ pub fn read<T, D: Device<T>>(device: D, buf: &Buffer<T>) -> Vec<T> where D: VecR
 
 #[test]
 fn devices() -> Result<(), OCLError> {
+    
     let device = CLDevice::get(0)?;
-    println!("{}",  device.get_name()?);
-
+    println!("{}", device.get_name()?);    
     Ok(())
 }
 

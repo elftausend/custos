@@ -37,7 +37,7 @@ impl AsRangeArg for (usize, usize) {
     }
 }
 
-//inclusive range
+///inclusive range
 pub fn range<R: AsRangeArg>(range: R) -> Count {
     Count(range.start(), range.end())
 }

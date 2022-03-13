@@ -152,7 +152,7 @@ impl OCLErrorKind {
             OCLErrorKind::Unknown => "Unkwown OpenCL Error",
             OCLErrorKind::GetPlatformIDs => todo!(),
             OCLErrorKind::GetDeviceIDs => todo!(),
-            OCLErrorKind::InvalidDeviceIdx => "Invalid device idx, specific OpenCL index not found",
+            OCLErrorKind::InvalidDeviceIdx => "Invalid device idx, specific OpenCL device not found",
             OCLErrorKind::GetDeviceInfo => todo!(),
             OCLErrorKind::CreateContext => todo!(),
             OCLErrorKind::CreateCommandQueue => todo!(),

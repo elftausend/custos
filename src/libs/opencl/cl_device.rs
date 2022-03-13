@@ -17,11 +17,7 @@ impl CLDevice {
         let ctx = create_context(&[device])?;
         let queue = create_command_queue(&ctx, device)?;
 
-        Ok(CLDevice {
-                device,
-                ctx,
-                queue
-        })
+        Ok(CLDevice { device, ctx, queue })
         
     }
 
@@ -42,7 +38,7 @@ impl CLDevice {
         Ok(self.device.get_max_mem_alloc()? as f64 * 10f64.powi(-9))
     }
     pub fn get_name(&self) -> Result<String, OCLError> {
-        Ok(self.device.get_name()?)
+        self.device.get_name()
     }
 }
 
@@ -63,11 +59,11 @@ impl <T: GenericOCL>BaseOps<T> for CLDevice {
 
 impl <T>Device<T> for CLDevice {
     fn alloc(&self, len: usize) -> *mut T {
-        create_buffer::<T>(&self.get_ctx(), MemFlags::MemReadWrite as u64, len, None).unwrap() as *mut T
+        create_buffer::<T>(self.get_ctx(), MemFlags::MemReadWrite as u64, len, None).unwrap() as *mut T
     }
 
-    fn from_data(&self, data: &[T]) -> *mut T {
-        create_buffer::<T>(&self.get_ctx(), MemFlags::MemReadWrite | MemFlags::MemCopyHostPtr, data.len(), Some(data)).unwrap() as *mut T
+    fn with_data(&self, data: &[T]) -> *mut T {
+        create_buffer::<T>(self.get_ctx(), MemFlags::MemReadWrite | MemFlags::MemCopyHostPtr, data.len(), Some(data)).unwrap() as *mut T
     }
 }
 
@@ -75,7 +71,7 @@ impl <T>Device<T> for CLDevice {
 
 impl AsDev for CLDevice {
     fn as_dev(&self) -> crate::Dev {
-        crate::Dev::new(Some(self.clone()))
+        crate::Dev::new(Some(*self))
     }
 }
 

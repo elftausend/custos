@@ -30,7 +30,7 @@ pub fn ocl_gemm<T: GenericOCL>(device: CLDevice, lhs: Matrix<T>, rhs: Matrix<T>)
 
     let f = (((m/mw) as f32).floor()) as usize;
     let s = (((n/nw) as f32).floor()) as usize;
-    //testing code for gemm - currently stolen from litenn
+    //'testing'/excellent code for gemm - 'currently' stolen from litenn
     //forever !
     
     let mut float_mw = String::new();

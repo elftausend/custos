@@ -20,8 +20,6 @@ impl <T: GenericOCL>Matrix<T> {
     }
 }
 
-
-
 impl <T: GenericOCL+TBlas>Matrix<T> {
     pub fn gemm(self, rhs: Matrix<T>) -> Matrix<T> {
         let device = get_gemm::<T>();

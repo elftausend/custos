@@ -33,10 +33,13 @@ impl Node {
 
 pub static mut CL_CACHE: CLCache = CLCache { output_nodes: None, arg_kernel_cache: None};
 
+type RawInfo = (*mut c_void, (usize, usize));
+type KernelIdent = (Vec<*mut c_void>, Vec<TypeId>, Option<*mut c_void>, String);
+
 #[derive(Debug)]
 pub struct CLCache {
-    output_nodes: Option<HashMap<Node, (*mut c_void, (usize, usize))>>,
-    pub arg_kernel_cache: Option<HashMap<(Vec<*mut c_void>, Vec<TypeId>, Option<*mut c_void>, String), Kernel>>,
+    output_nodes: Option<HashMap<Node, RawInfo>>,
+    pub arg_kernel_cache: Option<HashMap<KernelIdent, Kernel>>,
 }
 
 impl CLCache {
@@ -81,7 +84,7 @@ impl CLCache {
             },
             None => {
                 
-                let program = create_program_with_source(&device.get_ctx(), &src).unwrap();
+                let program = create_program_with_source(device.get_ctx(), &src).unwrap();
                 build_program(&program, &[device.device], Some("-cl-std=CL1.2")).unwrap(); //-cl-single-precision-constant
                 let kernel = &create_kernels_in_program(&program).unwrap()[0];
                 for (number, idx) in numbers {

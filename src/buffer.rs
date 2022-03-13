@@ -25,7 +25,7 @@ pub trait Device {
 
 pub trait Device<T> {
     fn alloc(&self, len: usize) -> *mut T;
-    fn from_data(&self, data: &[T]) -> *mut T;
+    fn with_data(&self, data: &[T]) -> *mut T;
 
 }
 
@@ -47,7 +47,7 @@ impl <T: Default+Copy>Buffer<T> {
 impl <T: Clone, const N: usize>From<(Box<dyn BaseDevice<T>>, &[T; N])> for Buffer<T> {
     fn from(device_slice: (Box<dyn BaseDevice<T>>, &[T; N])) -> Self {
         Buffer {
-            ptr: device_slice.0.from_data(device_slice.1),
+            ptr: device_slice.0.with_data(device_slice.1),
             len: device_slice.1.len()
         }
         
@@ -58,7 +58,7 @@ impl <T: Clone, const N: usize>From<(Box<dyn BaseDevice<T>>, &[T; N])> for Buffe
 impl <T: Clone, D: Device<T>, const N: usize>From<(&D, &[T; N])> for Buffer<T> {
     fn from(device_slice: (&D, &[T; N])) -> Self {
         Buffer {
-            ptr: device_slice.0.from_data(device_slice.1),
+            ptr: device_slice.0.with_data(device_slice.1),
             len: device_slice.1.len()
         }
         
@@ -68,7 +68,7 @@ impl <T: Clone, D: Device<T>, const N: usize>From<(&D, &[T; N])> for Buffer<T> {
 impl <T: Clone, D: Device<T>,const N: usize>From<(&D, [T; N])> for Buffer<T> {
     fn from(device_slice: (&D, [T; N])) -> Self {
         Buffer {
-            ptr: device_slice.0.from_data(&device_slice.1),
+            ptr: device_slice.0.with_data(&device_slice.1),
             len: device_slice.1.len()
         }
         

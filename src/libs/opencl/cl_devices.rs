@@ -29,13 +29,12 @@ impl CLDevices {
     }
 
     pub fn sync_current(&mut self) -> Result<(), OCLError>{
-        if self.current_devices.len() == 0 {
+        if self.current_devices.is_empty() {
             unsafe {
                 CL_CACHE.sync()
             }
             
             let platform = get_platforms()?[0];
-
             let devices = get_device_ids(platform, &(DeviceType::GPU as u64))?;
         
             for device in devices {

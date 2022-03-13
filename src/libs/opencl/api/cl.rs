@@ -1,9 +1,6 @@
 #![allow(dead_code)]
 use std::{ffi::{CString, c_void}, usize, vec};
 
-#[cfg(feature = "nocache")]
-use crate::prelude::{Tensor, OpenCL};
-
 use super::{error::OCLError, extern_cl::*, OCLErrorKind};
 
 
@@ -246,60 +243,6 @@ impl core::ops::BitOr for MemFlags {
     }
 }
 
-
-#[cfg(not(feature = "nocache"))]
-#[derive(Clone, Debug, Hash, Copy, Eq, PartialEq,)]
-pub struct Mem(pub cl_mem);
-
-
-#[cfg(feature = "nocache")]
-#[derive(Debug, Hash, Eq, PartialEq,)]
-pub struct Mem(pub cl_mem, bool);
-
-#[cfg(feature = "nocache")]
-use crate::prelude::CLDevice;
-
-impl Mem {
-    pub fn release(&mut self) {
-        release_mem_object(self.0).unwrap();
-    }
-    #[cfg(not(feature = "nocache"))]
-    pub fn as_cloned(&self) -> Mem {
-        Mem(self.0)
-    }
-    
-    #[cfg(feature = "nocache")]
-    pub fn as_cloned<T>(&self, tensor: &Tensor<T>, device: CLDevice) -> Result<Mem, OCLError> {
-
-        let mem = create_buffer::<T>(&device.get_ctx(), MemFlags::MemReadWrite as u64, tensor.ts.size, None)?;
-        enqueue_copy_buffer(&device.get_queue(), self, &mem, tensor.ts.size)?;
-        Ok(mem)
-    }
-     
-    #[cfg(feature = "nocache")]
-    pub fn as_cloned_no_drop(&mut self) -> Mem {
-        self.1 = false;
-        Mem(self.0, true)
-    }
-    
-}
-
- 
-
-#[cfg(feature = "nocache")]
-impl Drop for Mem {
-    fn drop(&mut self) {
-        if self.1 {
-            self.release()
-        }
-        
-    }
-}
-
-//impl TMemory for Mem {}
-
-//impl HashMapMemory for Mem {}
-
 pub fn create_buffer<T>(context: &Context, flag: u64, size: usize, data: Option<&[T]>) -> Result<*mut c_void, OCLError>{
     let mut err = 0;
     let host_ptr = match data {
@@ -326,8 +269,8 @@ pub fn release_mem_object(ptr: *mut c_void) -> Result<(), OCLError>{
     Ok(())
 }
 
-pub fn retain_mem_object(mem: Mem) -> Result<(), OCLError>{
-    let value = unsafe {clRetainMemObject(mem.0)};
+pub fn retain_mem_object(mem: *mut c_void) -> Result<(), OCLError>{
+    let value = unsafe {clRetainMemObject(mem)};
     if value != 0 {
         return Err(OCLError::with_kind(OCLErrorKind::from_value(value)));
     }
@@ -352,9 +295,9 @@ pub fn enqueue_read_buffer<T>(cq: &CommandQueue, mem: *mut c_void, data: &mut [T
     Ok(Event(events[0]))
 
 }
-pub fn enqueue_copy_buffer(cq: &CommandQueue, src_mem: &Mem, dst_mem: &Mem, size: usize) -> Result<(), OCLError>{
+pub fn enqueue_copy_buffer(cq: &CommandQueue, src_mem: *mut c_void, dst_mem: *mut c_void, size: usize) -> Result<(), OCLError>{
     let mut events = vec![std::ptr::null_mut();1];
-    let value = unsafe {clEnqueueCopyBuffer(cq.0, src_mem.0, dst_mem.0, 0, 0, size*4, 0, std::ptr::null(), events.as_mut_ptr() as *mut cl_event)};
+    let value = unsafe {clEnqueueCopyBuffer(cq.0, src_mem, dst_mem, 0, 0, size*4, 0, std::ptr::null(), events.as_mut_ptr() as *mut cl_event)};
     if value != 0 {
         return Err(OCLError::with_kind(OCLErrorKind::from_value(value)));
     }
@@ -417,14 +360,14 @@ pub fn create_program_with_source(context: &Context, src: &str) -> Result<Progra
 pub fn build_program(program: &Program, devices: &[CLIntDevice], options: Option<&str>) -> Result<(), OCLError> {
     let len = devices.len();
 
-    let err;
-    if let Some(x) = options {
+    
+    let err = if let Some(x) = options {
         let cstring = CString::new(x).unwrap();
-        err = unsafe {clBuildProgram(program.0, len as u32, devices.as_ptr() as *const *mut c_void, cstring.as_ptr(), std::ptr::null_mut(), std::ptr::null_mut())};
+        unsafe {clBuildProgram(program.0, len as u32, devices.as_ptr() as *const *mut c_void, cstring.as_ptr(), std::ptr::null_mut(), std::ptr::null_mut())}
 
     } else {
-        err = unsafe {clBuildProgram(program.0, len as u32, devices.as_ptr() as *const *mut c_void, std::ptr::null(), std::ptr::null_mut(), std::ptr::null_mut())};
-    }
+        unsafe {clBuildProgram(program.0, len as u32, devices.as_ptr() as *const *mut c_void, std::ptr::null(), std::ptr::null_mut(), std::ptr::null_mut())}
+    };
     if err != 0 {
         return Err(OCLError::with_kind(OCLErrorKind::from_value(err)));
     }

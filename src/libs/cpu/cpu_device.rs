@@ -56,7 +56,7 @@ impl <T: Default+Copy>Device<T> for CPU {
         Box::into_raw(vec![T::default(); len].into_boxed_slice()) as *mut T
     }
 
-    fn from_data(&self, data: &[T]) -> *mut T {
+    fn with_data(&self, data: &[T]) -> *mut T {
         Box::into_raw(data.to_vec().into_boxed_slice()) as *mut T
     }
 }
