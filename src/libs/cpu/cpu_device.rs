@@ -1,11 +1,19 @@
 use std::fmt::Debug;
 
-use crate::{Device, VecRead, Buffer, BaseDevice, AsDev, matrix::Matrix, libs::{cpu::{CPUCache, Node, ops::{element_wise_op_mut}}, opencl::GenericOCL}};
+use crate::{Device, VecRead, Buffer, BaseDevice, AsDev, matrix::Matrix, libs::{cpu::{CPUCache, Node, ops::{element_wise_op_mut}}, opencl::GenericOCL}, BaseOps};
+
+use super::CPU_CACHE;
 
 #[derive(Debug, Clone, Copy)]
 pub struct CPU;
 
 impl CPU {
+    pub fn sync(self) -> CPU {
+        unsafe {
+            CPU_CACHE.sync()
+        }
+        self
+    }
     pub fn drop<T>(buf: Buffer<T>) {
         unsafe {    
             drop(Box::from_raw(buf.ptr));
@@ -13,8 +21,10 @@ impl CPU {
     }
 }
 
+impl <T: GenericOCL>BaseDevice<T> for CPU {}
 
-impl <T: GenericOCL>BaseDevice<T> for CPU {
+
+impl <T: GenericOCL>BaseOps<T> for CPU {
     fn add(&self, lhs: Matrix<T>, rhs: Matrix<T>) -> Matrix<T> {
         let mut out = CPUCache::get::<T>(Node::new(lhs.dims()));
         element_wise_op_mut(lhs.as_cpu_slice(), rhs.as_cpu_slice(), out.as_cpu_slice_mut(), |x, y| x + y);

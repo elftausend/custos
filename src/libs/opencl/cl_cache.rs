@@ -14,19 +14,19 @@ pub struct Node {
     //rhs_mem: Mem,
 }
 
-pub static mut CLCACHE_COUNT: usize = 0;
+pub static mut CACHE_COUNT: usize = 0;
 
 impl Node {
     pub fn new(out_dims: (usize, usize)) -> Node {
         let node = Node {
-            idx: unsafe {CLCACHE_COUNT},
+            idx: unsafe {CACHE_COUNT},
             out_dims,
             //lhs_dims: lhs.dims,
             //lhs_mem: lhs.data,
             //rhs_dims: rhs.dims,
             //rhs_mem: rhs.data
         };
-        unsafe {CLCACHE_COUNT+=1};
+        unsafe {CACHE_COUNT+=1};
         node
     }
 }

@@ -53,6 +53,16 @@ pub fn get_device<T: GenericOCL>() -> Box<dyn BaseDevice<T>> {
     }
 }
 
+pub fn get_device2<T: GenericOCL>() -> Box<dyn Device<T>> {
+    unsafe {
+        match GLOBAL_DEVICE.cl_device.clone() {
+            Some(cl_device) => Box::new(cl_device),
+            None => Box::new(CPU)
+        }
+    }
+}
+
+
 impl Dev {
     pub fn new(cl_device: Option<CLDevice>) -> Dev {
         Dev { cl_device}

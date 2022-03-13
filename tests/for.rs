@@ -1,4 +1,3 @@
-
 use custos::{libs::opencl::{CLDevice}, Matrix, AsDev, VecRead, range};
 
 #[test]

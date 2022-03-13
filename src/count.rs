@@ -1,6 +1,6 @@
 use std::ops::Range;
 
-use crate::libs::opencl::CLCACHE_COUNT;
+use crate::libs::opencl::CACHE_COUNT;
 
 pub trait AsRangeArg {
     fn start(&self) -> usize;
@@ -54,7 +54,7 @@ impl Iterator for CountIntoIter {
     type Item = usize;
 
     fn next(&mut self) -> Option<Self::Item> {
-        unsafe { CLCACHE_COUNT = self.idx };
+        unsafe { CACHE_COUNT = self.idx };
         if self.epoch > self.end {
             return None;
         }
@@ -72,7 +72,7 @@ impl IntoIterator for Count {
     fn into_iter(self) -> Self::IntoIter {
         CountIntoIter {
             epoch: self.0,
-            idx: unsafe { CLCACHE_COUNT },
+            idx: unsafe { CACHE_COUNT },
             end: self.1
         }
     }

@@ -1,4 +1,4 @@
-use custos::{libs::{cpu::CPU, opencl::{CLDevice, api::OCLError, CLCACHE_COUNT}}, Buffer, AsDev, Matrix, Device, VecRead};
+use custos::{libs::{cpu::CPU, opencl::{CLDevice, CACHE_COUNT}}, Buffer, AsDev, Matrix, Device, VecRead, range};
 
 
 /* 
@@ -31,16 +31,52 @@ pub fn read<T, D: Device<T>>(device: D, buf: &Buffer<T>) -> Vec<T> where D: VecR
 }
 
 #[test]
-fn test_element_wise_add() {
+fn test_element_wise_add_cl() {
+    let device = CLDevice::get(0).unwrap().select();
+
+    let a = Matrix::from(( (1, 4), &[1, 4, 2, 9] ));
+    let b = Matrix::from(( (1, 4), &[1, 4, 2, 9] ));
+    
+    for _ in 0..1000 {
+        let c = a + b;
+        assert_eq!(vec![2, 8, 4, 18], device.read(&c.data()));
+        unsafe {CACHE_COUNT = 0};
+    }
+}
+
+#[test]
+fn test_element_wise_add_cpu() {
+    CPU.sync().select();
+
+    let a = Matrix::from(( (1, 4), &[1, 4, 2, 9] ));
+    let b = Matrix::from(( (1, 4), &[1, 4, 2, 9] ));
+
+    for _ in range(0..1000) {
+        let c = a + b;
+        assert_eq!(vec![2, 8, 4, 18], CPU.read(&c.data()));   
+    }
+}
+
+#[test]
+fn test_ew_add_cpu_a_cl() {
+    CPU.sync().select();
+
+    let a = Matrix::from(( (1, 4), &[1, 4, 2, 9] ));
+    let b = Matrix::from(( (1, 4), &[1, 4, 2, 9] ));
+
+    for _ in range(0..1000) {
+        let c = a + b;
+        assert_eq!(vec![2, 8, 4, 18], CPU.read(&c.data()));   
+    }
+
     let device = CLDevice::get(0).unwrap().select();
 
     let a = Matrix::from(( (1, 4), &[1, 4, 2, 9] ));
     let b = Matrix::from(( (1, 4), &[1, 4, 2, 9] ));
 
-    for _ in 0..1000 {
+    for _ in range(0..1000) {
         let c = a + b;
         assert_eq!(vec![2, 8, 4, 18], device.read(&c.data()));
-        unsafe {CLCACHE_COUNT = 0};
+        
     }
-    
 }
