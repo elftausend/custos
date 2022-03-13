@@ -46,19 +46,19 @@ impl CLCache {
             self.arg_kernel_cache = Some(HashMap::new());
         }
     }
-    pub fn add_node<T: GenericOCL>(&mut self, node: Node) -> Matrix<T> {
-        let out = Matrix::new(node.out_dims);
+    pub fn add_node<T: GenericOCL>(&mut self, device: CLDevice, node: Node) -> Matrix<T> {
+        let out = Matrix::new(device, node.out_dims);
         self.output_nodes.as_mut().unwrap().insert(node, (out.ptr() as *mut c_void, out.dims()));
         out
 
     }
-    pub fn get<T: GenericOCL>(node: Node) -> Matrix<T> {
+    pub fn get<T: GenericOCL>(device: CLDevice, node: Node) -> Matrix<T> {
         let matrix_info_option = unsafe {
             CL_CACHE.output_nodes.as_ref().unwrap().get(&node)
         };
         match matrix_info_option {
             Some(matrix_info) => Matrix::from((matrix_info.0 as *mut T, matrix_info.1)),
-            None => unsafe {CL_CACHE.add_node(node)}
+            None => unsafe {CL_CACHE.add_node(device, node)}
         }
     }
 

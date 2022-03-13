@@ -130,7 +130,7 @@ impl <'a, T: GenericOCL>KernelOptions<'a, T> {
         
     }
     pub fn with_output(&mut self, out_dims: (usize, usize)) -> &mut KernelOptions<'a, T> {
-        self.output = Some(CLCache::get(Node::new(out_dims)));
+        self.output = Some(CLCache::get(self.device, Node::new(out_dims)));
 
         /* 
         match self.rhs {

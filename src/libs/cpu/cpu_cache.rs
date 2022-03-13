@@ -2,6 +2,8 @@ use std::collections::HashMap;
 
 use crate::{Matrix, libs::opencl::{GenericOCL, CACHE_COUNT}};
 
+use super::CPU;
+
 
 //pub static mut CPUCACHE_COUNT: usize = 0;
 
@@ -37,7 +39,7 @@ impl CPUCache {
         }
     }
     pub fn add_node<T: GenericOCL>(&mut self, node: Node) -> Matrix<T> {
-        let out = Matrix::new(node.out_dims);
+        let out = Matrix::new(CPU, node.out_dims);
         self.nodes.as_mut().unwrap().insert(node, (out.ptr() as *mut usize, out.dims()));
         out
 

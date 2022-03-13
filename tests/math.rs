@@ -93,8 +93,8 @@ fn test_gemm() {
     unsafe {
         //GLOBAL_DEVICE = dev;
     };
-    let a_cl = Matrix::from(( device, (1, 4), &[1., 4., 2., 9.] ));
-    let b_cl = Matrix::from(( device, (4, 1), &[5., 4., 2., 9.] ));
+    let a_cl = Matrix::from(( device, (1, 4), &[1, 4, 2, 9] ));
+    let b_cl = Matrix::from(( device, (4, 1), &[5, 4, 2, 9] ));
     
     let c3 = device.gemm(a_cl, b_cl);
     

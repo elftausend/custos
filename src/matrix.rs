@@ -1,4 +1,4 @@
-use crate::{Buffer, get_device, libs::{opencl::GenericOCL, cpu::TBlas}, BaseDevice, Gemm, get_gemm, Device};
+use crate::{Buffer, get_device, libs::{opencl::GenericOCL, cpu::TBlas}, get_gemm, Device};
 
 
 #[derive(Debug, Clone, Copy)]
@@ -8,8 +8,8 @@ pub struct Matrix<T> {
 }
 
 impl <T: GenericOCL>Matrix<T> {
-    pub fn new(dims: (usize, usize)) -> Matrix<T> {
-        let device = get_device::<T>();
+    pub fn new<D: Device<T>>(device: D, dims: (usize, usize)) -> Matrix<T> {
+
         Matrix {
             data: Buffer { ptr: device.alloc(dims.0*dims.1), len: dims.0*dims.1 },
             dims,
@@ -77,7 +77,6 @@ impl <T: GenericOCL, const N: usize>From<((usize, usize), &[T; N])> for Matrix<T
 
 impl <T: GenericOCL, D: Device<T>, const N: usize>From<(D, (usize, usize), &[T; N])> for Matrix<T> {
     fn from(dims_slice: (D, (usize, usize), &[T; N])) -> Self {
-        println!("sers");
         let buffer = Buffer::from((&dims_slice.0, dims_slice.2));
         Matrix {
             data: buffer,
