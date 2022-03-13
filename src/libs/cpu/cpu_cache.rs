@@ -25,7 +25,6 @@ impl Node {
 
 pub static mut CPU_CACHE: CPUCache = CPUCache { nodes: None };
 
-
 #[derive(Debug)]
 pub struct CPUCache {
     nodes: Option<HashMap<Node, (*mut usize, (usize, usize))>>,

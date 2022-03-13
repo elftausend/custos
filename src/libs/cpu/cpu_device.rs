@@ -1,8 +1,8 @@
 use std::fmt::Debug;
 
-use crate::{Device, VecRead, Buffer, BaseDevice, AsDev, matrix::Matrix, libs::{cpu::{CPUCache, Node, ops::{element_wise_op_mut}}, opencl::GenericOCL}, BaseOps};
+use crate::{Device, VecRead, Buffer, BaseDevice, AsDev, matrix::Matrix, libs::{cpu::{CPUCache, Node, ops::{element_wise_op_mut}}, opencl::GenericOCL}, BaseOps, Gemm};
 
-use super::CPU_CACHE;
+use super::{CPU_CACHE, TBlas};
 
 #[derive(Debug, Clone, Copy)]
 pub struct CPU;
@@ -18,6 +18,18 @@ impl CPU {
         unsafe {    
             drop(Box::from_raw(buf.ptr));
         }
+    }
+}
+
+impl <T: TBlas+GenericOCL>Gemm<T> for CPU {
+    fn gemm(&self, lhs: Matrix<T>, rhs: Matrix<T>) -> Matrix<T> {
+        let m = lhs.dims().0;
+        let k = lhs.dims().1;
+        let n = rhs.dims().1;
+
+        let mut c = CPUCache::get(Node::new((m, n)));
+        T::gemm(m, n, k, lhs.as_cpu_slice(), k, rhs.as_cpu_slice(), n, c.as_cpu_slice_mut(), n);
+        c
     }
 }
 

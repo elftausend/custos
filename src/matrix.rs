@@ -15,7 +15,13 @@ impl <T: GenericOCL>Matrix<T> {
             dims,
         }
     }
+    pub fn data(&self) -> Buffer<T> {
+        self.data
+    }
 
+}
+
+impl <T>Matrix<T> {
     pub fn ptr(&self) -> *mut T {
         self.data.ptr
     }
@@ -24,10 +30,6 @@ impl <T: GenericOCL>Matrix<T> {
     }
     pub fn size(&self) -> usize {
         self.dims.0 * self.dims.1
-    }
-
-    pub fn data(&self) -> Buffer<T> {
-        self.data
     }
 
     pub fn as_cpu_slice(&self) -> &[T] {

@@ -6,3 +6,6 @@ pub use cpu_cache::*;
 
 mod ops;
 pub use ops::*;
+
+mod blas;
+pub use blas::*;

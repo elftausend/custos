@@ -1,7 +1,6 @@
 use core::{cmp::Ordering, ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign}};
 use rand::distributions::uniform::SampleUniform;
 
-
 pub enum Arithmetic {
     Add,
     Sub,

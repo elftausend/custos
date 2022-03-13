@@ -64,7 +64,7 @@ pub struct KernelOptions<'a, T> {
     device: CLDevice,
 }
 
-impl <'a,T: GenericOCL>KernelOptions<'a, T> {
+impl <'a, T: GenericOCL>KernelOptions<'a, T> {
     pub fn new(device: CLDevice, lhs: Matrix<T>, gws: [usize; 3], src: &'a str) -> KernelOptions<'a, T> {
         let wd;
         if gws[0] == 0 {
