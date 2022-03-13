@@ -17,9 +17,7 @@ pub fn read<T, D: Device<T>>(device: D, buf: &Buffer<T>) -> Vec<T> where D: VecR
     device.read(buf)
 }
 
-pub fn add() {
-    
-}
+
 
 #[test]
 fn devices() -> Result<(), OCLError> {
@@ -30,7 +28,17 @@ fn devices() -> Result<(), OCLError> {
 }
 
 #[test]
-fn buffer_alloc() -> Result<(), OCLError> {
+fn test_buffer_from_read() -> Result<(), OCLError> {
+    let buf = Buffer::<f32>::from((&CLDevice::get(0)?, &[3.13, 3., 1., 8.]));
+    assert_eq!(read(CLDevice::get(0)?, &buf), vec![3.13, 3., 1., 8.,]);
+
+    let buf = Buffer::<f32>::from((&CPU, &[3.13, 3., 1., 8.]));
+    assert_eq!(read(CPU, &buf), vec![3.13, 3., 1., 8.,]);
+    Ok(())
+}
+
+#[test]
+fn test_buffer_alloc_and_read() -> Result<(), OCLError> {
     let mut buf = Buffer::<u8>::new(CPU, 10);
     
     

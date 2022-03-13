@@ -1,5 +1,3 @@
-use std::ops::Add;
-
 use custos::{libs::{cpu::CPU, opencl::{CLDevice, api::OCLError, CLCACHE_COUNT}}, Buffer, AsDev, Matrix, Device, VecRead};
 
 
@@ -33,7 +31,7 @@ pub fn read<T, D: Device<T>>(device: D, buf: &Buffer<T>) -> Vec<T> where D: VecR
 }
 
 #[test]
-fn add() {
+fn test_element_wise_add() {
     let device = CLDevice::get(0).unwrap().select();
 
     let a = Matrix::from(( (1, 4), &[1, 4, 2, 9] ));
