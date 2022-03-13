@@ -83,36 +83,27 @@ fn test_ew_add_cpu_a_cl() {
 
 #[test]
 fn test_gemm() {
-    //CPU.sync().select();
+    CPU.sync().select();
 
-    //let a = Matrix::from(( (1, 4), &[1., 4., 2., 9.] ));
-    //let b = Matrix::from(( (4, 1), &[1., 4., 2., 9.] ));
+    let a = Matrix::from(( (1, 4), &[1., 4., 2., 9.] ));
+    let b = Matrix::from(( (4, 1), &[5., 4., 2., 9.] ));
 
     let device = CLDevice::get(0).unwrap();
-    let dev = device.as_dev();
-    unsafe {
-        //GLOBAL_DEVICE = dev;
-    };
-    let a_cl = Matrix::from(( device, (1, 4), &[1, 4, 2, 9] ));
-    let b_cl = Matrix::from(( device, (4, 1), &[5, 4, 2, 9] ));
     
-    let c3 = device.gemm(a_cl, b_cl);
+    let a_cl = Matrix::from(( device, (1, 4), &[1f32, 4., 2., 9.] ));
+    let b_cl = Matrix::from(( device, (4, 1), &[5., 4., 2., 9.] ));
     
-    //println!("s: {:?}", device.read(&a_cl.data()));
-    //println!("s: {:?}", device.read(&b_cl.data()));
-
-    /* 
-    for _ in range(0..1000) {
-
+    
+    
+    for _ in range(0..100000) {
         
         let c1 = CPU.gemm(a, b);
+        let c3 = device.gemm(a_cl, b_cl);
         let c2 = a.gemm(b);
 
-        
-
         assert_eq!(CPU.read(&c1.data()), CPU.read(&c2.data()));
-        //assert_eq!(CPU.read(&c1.data()), device.read(&c3.data()));
+        assert_eq!(CPU.read(&c1.data()), device.read(&c3.data()));
         
     }
-    */
+
 }
