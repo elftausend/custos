@@ -1,6 +1,6 @@
 use std::ffi::c_void;
 
-use crate::{buffer::Device, libs::opencl::api::{MemFlags, create_buffer}, VecRead, BaseDevice, AsDev, matrix::Matrix, BaseOps};
+use crate::{buffer::Device, libs::opencl::api::{MemFlags, create_buffer}, VecRead, BaseDevice, AsDev, matrix::Matrix, BaseOps, Gemm};
 
 use super::{api::{Context, CommandQueue, OCLError, create_context, create_command_queue, CLIntDevice, wait_for_event, enqueue_read_buffer}, CL_DEVICES, tew, GenericOCL};
 
@@ -43,6 +43,12 @@ impl CLDevice {
     }
     pub fn get_name(&self) -> Result<String, OCLError> {
         Ok(self.device.get_name()?)
+    }
+}
+
+impl <T>Gemm<T> for CLDevice {
+    fn gemm(&self, lhs: Matrix<T>, rhs: Matrix<T>) -> Matrix<T> {
+        todo!()
     }
 }
 

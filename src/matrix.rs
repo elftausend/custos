@@ -1,4 +1,4 @@
-use crate::{Buffer, get_device, libs::opencl::GenericOCL};
+use crate::{Buffer, get_device, libs::{opencl::GenericOCL, cpu::TBlas}, BaseDevice, Gemm, get_gemm, Device};
 
 
 #[derive(Debug, Clone, Copy)]
@@ -18,7 +18,15 @@ impl <T: GenericOCL>Matrix<T> {
     pub fn data(&self) -> Buffer<T> {
         self.data
     }
+}
 
+
+
+impl <T: GenericOCL+TBlas>Matrix<T> {
+    pub fn gemm(self, rhs: Matrix<T>) -> Matrix<T> {
+        let device = get_gemm::<T>();
+        device.gemm(self, rhs)
+    }
 }
 
 impl <T>Matrix<T> {

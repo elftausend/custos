@@ -1,7 +1,8 @@
-use crate::matrix::Matrix;
+use crate::{matrix::Matrix, Gemm};
 
 
-pub trait BaseDevice<T>: Device<T>+BaseOps<T> {}
+pub trait BaseDevice<T>: Device<T> + BaseOps<T> {}
+
 
 pub trait BaseOps<T> {
     fn add(&self, lhs: Matrix<T>, rhs: Matrix<T>) -> Matrix<T>;

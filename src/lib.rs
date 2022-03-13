@@ -13,7 +13,7 @@ pub use matrix::*;
 
 
 
-use libs::{opencl::{CLDevice, GenericOCL}, cpu::CPU};
+use libs::{opencl::{CLDevice, GenericOCL}, cpu::{CPU, TBlas}};
 
 pub struct Dev {
     cl_device: Option<CLDevice>,
@@ -52,6 +52,16 @@ pub fn get_device<T: GenericOCL>() -> Box<dyn BaseDevice<T>> {
         }
     }
 }
+
+pub fn get_gemm<T: GenericOCL+TBlas>() -> Box<dyn Gemm<T>> {
+    unsafe {
+        match GLOBAL_DEVICE.cl_device.clone() {
+            Some(cl_device) => Box::new(cl_device),
+            None => Box::new(CPU)
+        }
+    }
+}
+
 
 impl Dev {
     pub fn new(cl_device: Option<CLDevice>) -> Dev {

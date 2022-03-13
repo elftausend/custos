@@ -1,4 +1,4 @@
-use custos::{libs::{cpu::CPU, opencl::{CLDevice, CACHE_COUNT}}, Buffer, AsDev, Matrix, Device, VecRead, range};
+use custos::{libs::{cpu::CPU, opencl::{CLDevice, CACHE_COUNT}}, Buffer, AsDev, Matrix, Device, VecRead, range, Gemm};
 
 
 /* 
@@ -77,6 +77,22 @@ fn test_ew_add_cpu_a_cl() {
     for _ in range(0..1000) {
         let c = a + b;
         assert_eq!(vec![2, 8, 4, 18], device.read(&c.data()));
+        
+    }
+}
+
+#[test]
+fn test_gemm() {
+    CPU.sync().select();
+
+    let a = Matrix::from(( (1, 4), &[1., 4., 2., 9.] ));
+    let b = Matrix::from(( (4, 1), &[1., 4., 2., 9.] ));
+
+    for _ in range(0..1000) {
+        let c1 = CPU.gemm(a, b);
+        let c2 = a.gemm(b);
+
+        assert_eq!(CPU.read(&c1.data()), CPU.read(&c2.data()));
         
     }
 }
