@@ -13,7 +13,7 @@ pub fn get_slice<'a, T>(buf: &Buffer<T>) -> &'a [T] {
     }
 }
 
-pub fn read<T, D: Device<T>>(device: D, buf: &Buffer<T>) -> Vec<T> where D: VecRead<T> {
+pub fn read<T, D: Device<T>>(device: D, buf: Buffer<T>) -> Vec<T> where D: VecRead<T> {
     device.read(buf)
 }
 
@@ -28,10 +28,10 @@ fn devices() -> Result<(), OCLError> {
 #[test]
 fn test_buffer_from_read() -> Result<(), OCLError> {
     let buf = Buffer::<f32>::from((&CLDevice::get(0)?, &[3.13, 3., 1., 8.]));
-    assert_eq!(read(CLDevice::get(0)?, &buf), vec![3.13, 3., 1., 8.,]);
+    assert_eq!(read(CLDevice::get(0)?, buf), vec![3.13, 3., 1., 8.,]);
 
     let buf = Buffer::<f32>::from((&CPU, &[3.13, 3., 1., 8.]));
-    assert_eq!(read(CPU, &buf), vec![3.13, 3., 1., 8.,]);
+    assert_eq!(read(CPU, buf), vec![3.13, 3., 1., 8.,]);
     Ok(())
 }
 
@@ -48,11 +48,11 @@ fn test_buffer_alloc_and_read() -> Result<(), OCLError> {
     
     
     let buf = Buffer::<f32>::from((&CLDevice::get(0)?, &[3.13, 3., 1., 8.]));
-    let buf_read = read(CLDevice::get(0)?, &buf);
+    let buf_read = read(CLDevice::get(0)?, buf);
     assert_eq!(&[3.13, 3., 1., 8.], buf_read.as_slice());
 
     let buf = Buffer::<f32>::from((&CPU, &[3.13, 3., 1., 8.]));
-    let buf_read = read(CPU, &buf);
+    let buf_read = read(CPU, buf);
     assert_eq!(&[3.13, 3., 1., 8.], buf_read.as_slice());
 
     let buf_read = get_slice(&buf);

@@ -26,7 +26,7 @@ fn add() -> Result<(), OCLError> {
 }
 */
 
-pub fn read<T, D: Device<T>>(device: D, buf: &Buffer<T>) -> Vec<T> where D: VecRead<T> {
+pub fn read<T, D: Device<T>>(device: D, buf: Buffer<T>) -> Vec<T> where D: VecRead<T> {
     device.read(buf)
 }
 
@@ -39,7 +39,7 @@ fn test_element_wise_add_cl() {
     
     for _ in 0..1000 {
         let c = a + b;
-        assert_eq!(vec![2, 8, 4, 18], device.read(&c.data()));
+        assert_eq!(vec![2, 8, 4, 18], device.read(c.data()));
         unsafe {CACHE_COUNT = 0};
     }
 }
@@ -53,7 +53,7 @@ fn test_element_wise_add_cpu() {
 
     for _ in range(1000) {
         let c = a + b;
-        assert_eq!(vec![2, 8, 4, 18], CPU.read(&c.data()));   
+        assert_eq!(vec![2, 8, 4, 18], CPU.read(c.data()));   
     }
 }
 
@@ -66,7 +66,7 @@ fn test_ew_add_cpu_a_cl() {
 
     for _ in range(0..500) {
         let c = a + b;
-        assert_eq!(vec![2, 8, 4, 18], CPU.read(&c.data()));   
+        assert_eq!(vec![2, 8, 4, 18], CPU.read(c.data()));   
     }
 
     let device = CLDevice::get(0).unwrap().select();
@@ -76,7 +76,7 @@ fn test_ew_add_cpu_a_cl() {
 
     for _ in range((0, 500)) {
         let c = a + b;
-        assert_eq!(vec![2, 8, 4, 18], device.read(&c.data()));
+        assert_eq!(vec![2, 8, 4, 18], device.read(c.data()));
         
     }
 }
@@ -99,8 +99,8 @@ fn test_gemm() {
         let c3 = device.gemm(a_cl, b_cl);
         let c2 = a.gemm(b);
 
-        assert_eq!(CPU.read(&c1.data()), CPU.read(&c2.data()));
-        assert_eq!(CPU.read(&c1.data()), device.read(&c3.data()));
+        assert_eq!(CPU.read(c1.data()), CPU.read(c2.data()));
+        assert_eq!(CPU.read(c1.data()), device.read(c3.data()));
         
     }
 
@@ -151,7 +151,7 @@ fn test_larger_gemm() {
 
     let c = a.gemm(b);
 
-    roughly_equal(&device.read(&c.data()), should);
+    roughly_equal(&device.read(c.data()), should);
 
     CPU.sync().select();
 
@@ -160,7 +160,7 @@ fn test_larger_gemm() {
 
     let cpu_c = a.gemm(b);
 
-    roughly_equal(&device.read(&c.data()), &CPU.read(&cpu_c.data()));
+    roughly_equal(&device.read(c.data()), &CPU.read(cpu_c.data()));
 
 
 }

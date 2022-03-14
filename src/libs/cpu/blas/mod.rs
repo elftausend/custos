@@ -1,9 +1,6 @@
 pub mod level3;
 pub use level3::*;
 
-mod values;
-pub use values::*;
-
 #[repr(C)]
 pub enum Order {
     RowMajor=101,

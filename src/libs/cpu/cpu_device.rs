@@ -74,7 +74,7 @@ impl Device for CPU {
 */
 
 impl <T: Copy+Default>VecRead<T> for CPU {
-    fn read(&self, buf: &crate::Buffer<T>) -> Vec<T> {
+    fn read(&self, buf: crate::Buffer<T>) -> Vec<T> {
         unsafe {
             std::slice::from_raw_parts(buf.ptr, buf.len).to_vec()
         }

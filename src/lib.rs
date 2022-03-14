@@ -16,7 +16,7 @@ pub use matrix::*;
 use libs::{opencl::{CLDevice, GenericOCL}, cpu::{CPU, TBlas}};
 
 pub struct Dev {
-    cl_device: Option<CLDevice>,
+    pub cl_device: Option<CLDevice>,
 }
 
 pub trait AsDev {
@@ -42,7 +42,7 @@ pub fn get_device() -> impl Device {
 }
 */
 
-
+/* 
 
 pub fn get_device<T: GenericOCL>() -> Box<dyn BaseDevice<T>> {
     unsafe {
@@ -53,6 +53,8 @@ pub fn get_device<T: GenericOCL>() -> Box<dyn BaseDevice<T>> {
     }
 }
 
+*/
+
 pub fn get_gemm<T: GenericOCL+TBlas>() -> Box<dyn Gemm<T>> {
     unsafe {
         match GLOBAL_DEVICE.cl_device {
@@ -62,6 +64,25 @@ pub fn get_gemm<T: GenericOCL+TBlas>() -> Box<dyn Gemm<T>> {
     }
 }
 
+#[macro_export]
+macro_rules! get_device {
+    
+    ($t:ident, $g:ident) => {    
+        {
+            use crate::{GLOBAL_DEVICE, CPU};
+            let a: Box<dyn $t<$g>> = unsafe {
+                match GLOBAL_DEVICE.cl_device {
+                    Some(cl_device) => Box::new(cl_device),
+                    None => Box::new(CPU)
+                }
+            };
+            a
+        }
+
+    }
+}
+
+//pub(crate) use get_device;
 
 impl Dev {
     pub fn new(cl_device: Option<CLDevice>) -> Dev {
@@ -70,7 +91,7 @@ impl Dev {
 }
 
 pub trait VecRead<T>: Device<T> {
-    fn read(&self, buf: &Buffer<T>) -> Vec<T>;
+    fn read(&self, buf: Buffer<T>) -> Vec<T>;
 }
 
 pub trait Gemm<T>: Device<T> {

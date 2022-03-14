@@ -110,7 +110,7 @@ impl Device for &CLDevice {
 */
 
 impl <T: Default+Copy>VecRead<T> for CLDevice {
-    fn read(&self, buf: &crate::Buffer<T>) -> Vec<T> {
+    fn read(&self, buf: crate::Buffer<T>) -> Vec<T> {
         let mut read = vec![T::default(); buf.len];
         let event = enqueue_read_buffer(&self.get_queue(), buf.ptr as *mut c_void, &mut read, true).unwrap();
         wait_for_event(event).unwrap();
