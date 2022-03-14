@@ -1,11 +1,19 @@
 pub mod level3;
 pub use level3::*;
 
-pub mod level1;
-pub use level1::*;
-
 mod values;
 pub use values::*;
+
+#[repr(C)]
+pub enum Order {
+    RowMajor=101,
+    ColMajor=102,
+}
+#[repr(C)]
+pub enum Transpose {
+    NoTranspose=111,
+    Transpose=112,
+}
 
 pub trait TBlas where Self: Sized {
     fn gemm(m: usize, n: usize, k:usize, a: &[Self], b: &[Self], c: &mut [Self]);
