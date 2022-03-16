@@ -1,4 +1,4 @@
-use custos::{libs::opencl::{CLDevice}, Matrix, AsDev, VecRead, range};
+use custos::{libs::{opencl::{CLDevice, CACHE_COUNT}, cpu::CPU}, Matrix, AsDev, VecRead, range};
 
 #[test]
 fn test_range() {
@@ -26,6 +26,8 @@ fn test_use_range_for_ew_add() {
         //unsafe {CLCACHE_COUNT = 0};
     }
 
+    assert!(unsafe {CACHE_COUNT == 0});
+
     let a = Matrix::from(( (1, 5), &[1, 4, 2, 9, 1] ));
     let b = Matrix::from(( (1, 5), &[1, 4, 2, 9, 1] ));
 
@@ -36,6 +38,24 @@ fn test_use_range_for_ew_add() {
         assert_eq!(vec![2, 8, 4, 18, 2], device.read(c.data()));
         let d = c + z;
         assert_eq!(vec![3, 10, 7, 22, 7], device.read(d.data()));
+        assert!(unsafe {CACHE_COUNT == 2});
 
+    }
+}
+
+#[test]
+fn test_nested_for() {
+    CPU.sync().select();
+
+    let a = Matrix::from(( (1, 5), &[1, 4, 2, 9, 1] ));
+    let b = Matrix::from(( (1, 5), &[1, 4, 2, 9, 1] ));   
+
+    for _ in range(100) {
+        let c = a + b;
+        for _ in range(200) {
+            let _ = c + b;
+            assert!(unsafe {CACHE_COUNT == 2});
+        }
+        assert!(unsafe {CACHE_COUNT == 1})
     }
 }
