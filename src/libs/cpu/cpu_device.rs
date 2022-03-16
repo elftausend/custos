@@ -33,7 +33,7 @@ impl <T: TBlas+GenericOCL>Gemm<T> for CPU {
     }
 }
 
-impl <T: GenericOCL>BaseDevice<T> for CPU {}
+impl <T: GenericOCL+TBlas>BaseDevice<T> for CPU {}
 
 
 impl <T: GenericOCL>BaseOps<T> for CPU {

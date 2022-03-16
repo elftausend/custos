@@ -82,6 +82,9 @@ macro_rules! get_device {
     }
 }
 
+///All base traits?
+pub trait BaseDevice<T>: Device<T> + BaseOps<T> + VecRead<T> + Gemm<T> {}
+
 //pub(crate) use get_device;
 
 impl Dev {

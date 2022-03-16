@@ -1,9 +1,5 @@
 use crate::matrix::Matrix;
 
-
-pub trait BaseDevice<T>: Device<T> + BaseOps<T> {}
-
-
 pub trait BaseOps<T> {
     fn add(&self, lhs: Matrix<T>, rhs: Matrix<T>) -> Matrix<T>;
 }
@@ -44,8 +40,8 @@ impl <T: Default+Copy>Buffer<T> {
     }
 }
 
-impl <T: Clone, const N: usize>From<(Box<dyn BaseDevice<T>>, &[T; N])> for Buffer<T> {
-    fn from(device_slice: (Box<dyn BaseDevice<T>>, &[T; N])) -> Self {
+impl <T: Clone, const N: usize>From<(Box<dyn Device<T>>, &[T; N])> for Buffer<T> {
+    fn from(device_slice: (Box<dyn Device<T>>, &[T; N])) -> Self {
         Buffer {
             ptr: device_slice.0.with_data(device_slice.1),
             len: device_slice.1.len()

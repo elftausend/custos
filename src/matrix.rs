@@ -1,4 +1,4 @@
-use crate::{Buffer, get_device, libs::{opencl::GenericOCL, cpu::TBlas}, get_gemm, Device, BaseDevice, VecRead};
+use crate::{Buffer, get_device, libs::{opencl::GenericOCL, cpu::TBlas}, get_gemm, Device, VecRead, BaseOps};
 
 
 #[derive(Debug, Clone, Copy)]
@@ -73,7 +73,7 @@ impl <T>From<(*mut T, (usize, usize))> for Matrix<T> {
 impl <T: GenericOCL, const N: usize>From<((usize, usize), &[T; N])> for Matrix<T> {
     fn from(dims_slice: ((usize, usize), &[T; N])) -> Self {
         //let device = get_device::<T>();
-        let device = get_device!(BaseDevice, T);
+        let device = get_device!(Device, T);
         
         let buffer = Buffer::from((device, dims_slice.1));
         Matrix {
@@ -100,7 +100,7 @@ impl <T: GenericOCL>core::ops::Add for Matrix<T> {
 
     fn add(self, rhs: Self) -> Self::Output {
         //let device = get_device::<T>();
-        let device = get_device!(BaseDevice, T);
+        let device = get_device!(BaseOps, T);
         device.add(self, rhs)
     }
 }
