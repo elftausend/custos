@@ -64,19 +64,39 @@ fn test_ew_add_cpu_a_cl() {
     let a = Matrix::from(( (1, 4), &[1, 4, 2, 9] ));
     let b = Matrix::from(( (1, 4), &[1, 4, 2, 9] ));
 
+    let c = a + b;
+    assert_eq!(vec![2, 8, 4, 18], CPU.read(c.data()));   
+
+    CLDevice::get(0).unwrap().select();
+
+    let a = Matrix::from(( (1, 4), &[1, 4, 2, 9] ));
+    let b = Matrix::from(( (1, 4), &[1, 4, 2, 9] ));
+
+    let c = a + b;
+    assert_eq!(vec![2, 8, 4, 18], c.read());
+        
+}
+
+#[test]
+fn test_ew_mul_cpu_a_cl() {
+    CPU.sync().select();
+
+    let a = Matrix::from(( (1, 4), &[1, 4, 2, 9] ));
+    let b = Matrix::from(( (1, 4), &[1, 4, 2, 9] ));
+
     for _ in range(0..500) {
-        let c = a + b;
-        assert_eq!(vec![2, 8, 4, 18], CPU.read(c.data()));   
+        let c = a * b;
+        assert_eq!(vec![1, 16, 4, 81], CPU.read(c.data()));   
     }
 
-    let device = CLDevice::get(0).unwrap().select();
+    CLDevice::get(0).unwrap().select();
 
     let a = Matrix::from(( (1, 4), &[1, 4, 2, 9] ));
     let b = Matrix::from(( (1, 4), &[1, 4, 2, 9] ));
 
     for _ in range((0, 500)) {
-        let c = a + b;
-        assert_eq!(vec![2, 8, 4, 18], device.read(c.data()));
+        let c = a * b;
+        assert_eq!(vec![1, 16, 4, 81], c.read());
         
     }
 }
@@ -161,6 +181,4 @@ fn test_larger_gemm() {
     let cpu_c = a.gemm(b);
 
     roughly_equal(&device.read(c.data()), &CPU.read(cpu_c.data()));
-
-
 }

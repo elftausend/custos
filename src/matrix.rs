@@ -99,11 +99,30 @@ impl <T: GenericOCL>core::ops::Add for Matrix<T> {
     type Output = Matrix<T>;
 
     fn add(self, rhs: Self) -> Self::Output {
-        //let device = get_device::<T>();
         let device = get_device!(BaseOps, T);
         device.add(self, rhs)
     }
 }
+
+impl <T: GenericOCL>core::ops::Sub for Matrix<T> {
+    type Output = Matrix<T>;
+
+    fn sub(self, rhs: Self) -> Self::Output {
+        let device = get_device!(BaseOps, T);
+        device.sub(self, rhs)
+    }
+}
+
+impl <T: GenericOCL>core::ops::Mul for Matrix<T> {
+    type Output = Matrix<T>;
+
+    fn mul(self, rhs: Self) -> Self::Output {
+        let device = get_device!(BaseOps, T);
+        device.mul(self, rhs)
+    }
+}
+
+
 
 
 
