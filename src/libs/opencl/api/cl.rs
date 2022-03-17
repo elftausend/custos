@@ -68,7 +68,7 @@ pub enum DeviceType {
     CPU =         (1 << 1),
     GPU =         (1 << 2),
     ACCELERATOR = (1 << 3),
-    ALL =         0xFFFFFFFF
+    //ALL =         0xFFFFFFFF
 }
 
 #[derive(Copy, Clone)]
@@ -254,29 +254,27 @@ pub fn create_buffer<T>(context: &Context, flag: u64, size: usize, data: Option<
     if err != 0 {
         return Err(OCLError::with_kind(OCLErrorKind::from_value(err)));
     }
-    #[cfg(not(feature = "nocache"))]
-    return Ok(r);
-    #[cfg(feature = "nocache")]
-    Ok(Mem(r, true))
-    
+    Ok(r)
 }
-
-pub fn release_mem_object(ptr: *mut c_void) -> Result<(), OCLError>{
-    let value = unsafe {clReleaseMemObject(ptr)};
+/*
+pub unsafe fn release_mem_object(ptr: *mut c_void) -> Result<(), OCLError>{
+    let value = clReleaseMemObject(ptr);
     if value != 0 {
         return Err(OCLError::with_kind(OCLErrorKind::from_value(value)));
     }
     Ok(())
 }
 
-pub fn retain_mem_object(mem: *mut c_void) -> Result<(), OCLError>{
-    let value = unsafe {clRetainMemObject(mem)};
+pub unsafe fn retain_mem_object(mem: *mut c_void) -> Result<(), OCLError>{
+    let value = clRetainMemObject(mem);
     if value != 0 {
         return Err(OCLError::with_kind(OCLErrorKind::from_value(value)));
     }
     Ok(())
 }
-pub fn enqueue_write_buffer<T>(cq: &CommandQueue, mem: *mut c_void, data: &[T], block: bool) -> Result<Event, OCLError> {
+*/
+
+pub(crate) fn enqueue_write_buffer<T>(cq: &CommandQueue, mem: *mut c_void, data: &[T], block: bool) -> Result<Event, OCLError> {
     let mut events = vec![std::ptr::null_mut();1];
     
     let value = unsafe {clEnqueueWriteBuffer(cq.0, mem, block as u32, 0, data.len()*core::mem::size_of::<T>(), data.as_ptr() as *mut c_void, 0, std::ptr::null(), events.as_mut_ptr() as *mut cl_event)};
@@ -286,7 +284,7 @@ pub fn enqueue_write_buffer<T>(cq: &CommandQueue, mem: *mut c_void, data: &[T], 
     Ok(Event(events[0]))
 }
 
-pub fn enqueue_read_buffer<T>(cq: &CommandQueue, mem: *mut c_void, data: &mut [T], block: bool) -> Result<Event, OCLError> {
+pub(crate) fn enqueue_read_buffer<T>(cq: &CommandQueue, mem: *mut c_void, data: &mut [T], block: bool) -> Result<Event, OCLError> {
     let mut events = vec![std::ptr::null_mut();1];
     let value = unsafe {clEnqueueReadBuffer(cq.0, mem, block as u32, 0, data.len()*core::mem::size_of::<T>(), data.as_ptr() as *mut c_void, 0, std::ptr::null(), events.as_mut_ptr() as *mut cl_event)};
     if value != 0 {
@@ -295,7 +293,7 @@ pub fn enqueue_read_buffer<T>(cq: &CommandQueue, mem: *mut c_void, data: &mut [T
     Ok(Event(events[0]))
 
 }
-pub fn enqueue_copy_buffer(cq: &CommandQueue, src_mem: *mut c_void, dst_mem: *mut c_void, size: usize) -> Result<(), OCLError>{
+pub(crate) fn enqueue_copy_buffer(cq: &CommandQueue, src_mem: *mut c_void, dst_mem: *mut c_void, size: usize) -> Result<(), OCLError>{
     let mut events = vec![std::ptr::null_mut();1];
     let value = unsafe {clEnqueueCopyBuffer(cq.0, src_mem, dst_mem, 0, 0, size*4, 0, std::ptr::null(), events.as_mut_ptr() as *mut cl_event)};
     if value != 0 {
