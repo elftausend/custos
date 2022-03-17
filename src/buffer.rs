@@ -2,6 +2,8 @@ use crate::matrix::Matrix;
 
 pub trait BaseOps<T> {
     fn add(&self, lhs: Matrix<T>, rhs: Matrix<T>) -> Matrix<T>;
+    fn sub(&self, lhs: Matrix<T>, rhs: Matrix<T>) -> Matrix<T>;
+    fn mul(&self, lhs: Matrix<T>, rhs: Matrix<T>) -> Matrix<T>;
 }
 
 /* 

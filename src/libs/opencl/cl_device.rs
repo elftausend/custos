@@ -54,6 +54,14 @@ impl <T: GenericOCL>BaseOps<T> for CLDevice {
     fn add(&self, lhs: Matrix<T>, rhs: Matrix<T>) -> Matrix<T> {
         tew(*self, lhs, rhs, "+").unwrap()
     }
+
+    fn sub(&self, lhs: Matrix<T>, rhs: Matrix<T>) -> Matrix<T> {
+        tew(*self, lhs, rhs, "-").unwrap()
+    }
+
+    fn mul(&self, lhs: Matrix<T>, rhs: Matrix<T>) -> Matrix<T> {
+        tew(*self, lhs, rhs, "*").unwrap()
+    }
 }
 
 

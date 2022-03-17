@@ -35,12 +35,23 @@ impl <T: TBlas+GenericOCL>Gemm<T> for CPU {
 
 impl <T: GenericOCL+TBlas>BaseDevice<T> for CPU {}
 
+pub fn ew_op<T: GenericOCL, F: Fn(T, T) -> T>(lhs: Matrix<T>, rhs: Matrix<T>, f: F) -> Matrix<T> {
+    let mut out = CPUCache::get::<T>(lhs.dims());
+    element_wise_op_mut(lhs.as_cpu_slice(), rhs.as_cpu_slice(), out.as_cpu_slice_mut(), f);
+    out
+}
 
 impl <T: GenericOCL>BaseOps<T> for CPU {
     fn add(&self, lhs: Matrix<T>, rhs: Matrix<T>) -> Matrix<T> {
-        let mut out = CPUCache::get::<T>(lhs.dims());
-        element_wise_op_mut(lhs.as_cpu_slice(), rhs.as_cpu_slice(), out.as_cpu_slice_mut(), |x, y| x + y);
-        out
+        ew_op(lhs, rhs, | x, y| x+y)
+    }
+
+    fn sub(&self, lhs: Matrix<T>, rhs: Matrix<T>) -> Matrix<T> {
+        ew_op(lhs, rhs, | x, y| x-y)
+    }
+
+    fn mul(&self, lhs: Matrix<T>, rhs: Matrix<T>) -> Matrix<T> {
+        ew_op(lhs, rhs, | x, y| x*y)
     }
 }
 
