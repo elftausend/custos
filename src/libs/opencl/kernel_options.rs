@@ -113,13 +113,8 @@ impl <'a, T: GenericOCL>KernelOptions<'a, T> {
         enqueue_nd_range_kernel(&self.device.get_queue(), &kernel, self.wd, &self.gws, self.lws.as_ref(), None)?;
         
         match self.output {
-            Some(out) => {
-                Ok(out)
-            },
-            None => {
-                Ok(self.lhs)
-                
-            },
+            Some(out) => Ok(out),
+            None => Ok(self.lhs),
         }
     
     }

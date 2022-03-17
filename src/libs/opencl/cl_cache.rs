@@ -65,36 +65,32 @@ impl CLCache {
         }
     }
 
-    pub fn arg_kernel_cache<'a, T: GenericOCL>(&mut self, device: CLDevice, tensors: &'a [(Matrix<T>, usize)], numbers: &'a [(T, usize)], output: Option<Matrix<T>>, src: String) -> Kernel {
-        
-        let mut mems = Vec::new();
+    pub fn arg_kernel_cache<T: GenericOCL>(&mut self, device: CLDevice, matrices: &[(Matrix<T>, usize)], numbers: &[(T, usize)], output: Option<Matrix<T>>, src: String) -> Kernel {
         let type_ids = vec![TypeId::of::<T>(); numbers.len()];
         
-        for tensor in tensors {
-            mems.push(tensor.0.ptr() as *mut c_void)
-        }
+        let mems: Vec<*mut c_void> = matrices.iter()
+            .map(|matrix| matrix.0.ptr() as *mut c_void)
+            .collect();
+
 
         let cache = self.arg_kernel_cache.as_mut().unwrap();
         let outputmem = output.map(|output| output.ptr() as *mut c_void);
         
         let kernel = cache.get(&(mems.clone(), type_ids.clone(), outputmem, src.clone()));
         match kernel {
-            Some(kernel) => {
-                kernel.clone()
-            },
-            None => {
-                
+            Some(kernel) => kernel.clone(),
+            None => {             
                 let program = create_program_with_source(device.get_ctx(), &src).unwrap();
                 build_program(&program, &[device.device], Some("-cl-std=CL1.2")).unwrap(); //-cl-single-precision-constant
                 let kernel = &create_kernels_in_program(&program).unwrap()[0];
+                
                 for (number, idx) in numbers {
                     set_kernel_arg(kernel, *idx, number)
                 }
-                for (tensor, idx) in tensors {
-                    set_kernel_arg(kernel, *idx, &(tensor.ptr() as *mut c_void));
+                for (matrix, idx) in matrices {
+                    set_kernel_arg(kernel, *idx, &(matrix.ptr() as *mut c_void));
                 }
                 if let Some(mem) = outputmem {
-                    
                     set_kernel_arg(kernel, mems.len()+type_ids.len(), &mem);
                 }
 
