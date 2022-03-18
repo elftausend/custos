@@ -7,18 +7,7 @@ pub struct CLDevices {
 }
 
 impl CLDevices {
-    pub fn get_current(&self, device_idx: usize) -> Result<CLDevice, OCLError> {
-        if device_idx < self.current_devices.len() {
-            Ok(self.current_devices[device_idx])
-        } else {
-            Err(OCLError::with_kind(OCLErrorKind::InvalidDeviceIdx))
-        }
-    }
-}
-
-
-lazy_static::lazy_static! {
-    pub static ref CL_DEVICES: CLDevices = {
+    pub fn new() -> CLDevices {
         let mut current_devices = Vec::new();
         unsafe {
             CL_CACHE.sync()
@@ -31,5 +20,24 @@ lazy_static::lazy_static! {
             current_devices.push(CLDevice::new(device).unwrap())
         }
         CLDevices { current_devices }
-    };
+    }
+
+    pub fn get_current(&self, device_idx: usize) -> Result<CLDevice, OCLError> {
+        if device_idx < self.current_devices.len() {
+            Ok(self.current_devices[device_idx])
+        } else {
+            Err(OCLError::with_kind(OCLErrorKind::InvalidDeviceIdx))
+        }
+    }
+}
+
+impl Default for CLDevices {
+    fn default() -> Self {
+        Self { current_devices: Default::default() }
+    }
+}
+
+
+lazy_static::lazy_static! {
+    pub static ref CL_DEVICES: CLDevices = CLDevices::new();
 }
