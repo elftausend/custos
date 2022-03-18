@@ -2,18 +2,12 @@ use std::fmt::Debug;
 
 use crate::{AsDev, BaseDevice, BaseOps, Buffer, Device, Gemm, libs::{cpu::{CPUCache, ops::element_wise_op_mut}, opencl::GenericOCL}, matrix::Matrix, VecRead};
 
-use super::{CPU_CACHE, TBlas};
+use super::TBlas;
 
 #[derive(Debug, Clone, Copy)]
 pub struct CPU;
 
 impl CPU {
-    pub fn sync(self) -> CPU {
-        unsafe {
-            CPU_CACHE.sync()
-        }
-        self
-    }
     pub fn drop<T>(buf: Buffer<T>) {
         unsafe {    
             drop(Box::from_raw(buf.ptr));

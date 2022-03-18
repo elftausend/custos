@@ -2,7 +2,7 @@ use custos::{AsDev, BaseDevice, get_device, GLOBAL_DEVICE, libs::{cpu::CPU, open
 
 #[test]
 fn test_matrix_read() {
-    CPU.sync().select();
+    CPU.select();
 
     let read = get_device!(VecRead, f32);
 

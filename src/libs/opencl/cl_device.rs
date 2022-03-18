@@ -11,9 +11,7 @@ pub struct CLDevice {
     pub queue: CommandQueue,
 }
 
-unsafe impl Sync for CLDevice {
-    
-}
+unsafe impl Sync for CLDevice {}
 
 impl CLDevice {
     pub fn new(device: CLIntDevice) -> Result<CLDevice, OCLError> {

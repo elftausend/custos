@@ -48,7 +48,7 @@ fn test_use_range_for_ew_add() {
 
 #[test]
 fn test_nested_for() {
-    CPU.sync().select();
+    CPU.select();
     
     let a = Matrix::from(( (1, 5), &[1, 4, 2, 9, 1] ));
     let b = Matrix::from(( (1, 5), &[1, 4, 2, 9, 1] ));   

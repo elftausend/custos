@@ -45,7 +45,7 @@ fn test_element_wise_add_cl() {
 
 #[test]
 fn test_element_wise_add_cpu() {
-    CPU.sync().select();
+    CPU.select();
 
     let a = Matrix::from(( (1, 4), &[1, 4, 2, 9] ));
     let b = Matrix::from(( (1, 4), &[1, 4, 2, 9] ));
@@ -58,7 +58,7 @@ fn test_element_wise_add_cpu() {
 
 #[test]
 fn test_ew_add_cpu_a_cl() {
-    CPU.sync().select();
+    CPU.select();
 
     let a = Matrix::from(( (1, 4), &[1, 4, 2, 9] ));
     let b = Matrix::from(( (1, 4), &[1, 4, 2, 9] ));
@@ -78,7 +78,7 @@ fn test_ew_add_cpu_a_cl() {
 
 #[test]
 fn test_ew_sub_cpu_a_cl() {
-    CPU.sync().select();
+    CPU.select();
 
     let a = Matrix::from(( (1, 4), &[1u32, 4, 2, 9] ));
     let b = Matrix::from(( (1, 4), &[1, 4, 2, 9] ));
@@ -98,7 +98,7 @@ fn test_ew_sub_cpu_a_cl() {
 
 #[test]
 fn test_ew_mul_cpu_a_cl() {
-    CPU.sync().select();
+    CPU.select();
 
     let a = Matrix::from(( (1, 4), &[1, 4, 2, 9] ));
     let b = Matrix::from(( (1, 4), &[1, 4, 2, 9] ));
@@ -122,7 +122,7 @@ fn test_ew_mul_cpu_a_cl() {
 
 #[test]
 fn test_gemm() {
-    CPU.sync().select();
+    CPU.select();
 
     let a = Matrix::from(( (1, 4), &[1., 4., 2., 9.] ));
     let b = Matrix::from(( (4, 1), &[5., 4., 2., 9.] ));
@@ -192,7 +192,7 @@ fn test_larger_gemm() {
 
     roughly_equal(&device.read(c.data()), should);
 
-    CPU.sync().select();
+    CPU.select();
 
     let a = Matrix::from(((5, 7), arr1));
     let b = Matrix::from(((7, 10), arr2));

@@ -1,6 +1,10 @@
 
 use super::{api::{DeviceType, get_device_ids, get_platforms, OCLError, OCLErrorKind}, CL_CACHE, cl_device::CLDevice};
 
+lazy_static::lazy_static! {
+    pub static ref CL_DEVICES: CLDevices = CLDevices::new();
+}
+
 #[derive(Debug)]
 pub struct CLDevices {
     pub current_devices: Vec<CLDevice>,
@@ -35,9 +39,4 @@ impl Default for CLDevices {
     fn default() -> Self {
         Self { current_devices: Default::default() }
     }
-}
-
-
-lazy_static::lazy_static! {
-    pub static ref CL_DEVICES: CLDevices = CLDevices::new();
 }

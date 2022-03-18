@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, sync::Mutex};
 
 use crate::{libs::opencl::{CACHE_COUNT, GenericOCL}, Matrix};
 
@@ -26,35 +26,39 @@ impl Node {
     }
 }
 
-pub static mut CPU_CACHE: CPUCache = CPUCache { nodes: None };
+lazy_static::lazy_static! {
+    pub static ref CPU_CACHE: Mutex<CPUCache> = Mutex::new(CPUCache { nodes: HashMap::new() });
+}
 
-type RawInfo = (*mut usize, (usize, usize));
+
+#[derive(Debug, Clone, Copy)]
+pub struct CpuPtr(*mut usize);
+
+unsafe impl Sync for CpuPtr {}
+unsafe impl Send for CpuPtr {}
+
+type RawInfo = (CpuPtr, (usize, usize));
 
 #[derive(Debug)]
 pub struct CPUCache {
-    nodes: Option<HashMap<Node, RawInfo>>,
+    nodes: HashMap<Node, RawInfo>,
 }
 
 impl CPUCache {
-    pub fn sync(&mut self) {
-        if self.nodes.is_none() {
-            self.nodes = Some(HashMap::new())
-        }
-    }
     pub fn add_node<T: GenericOCL>(&mut self, node: Node) -> Matrix<T> {
         let out = Matrix::new(CPU, node.out_dims);
-        self.nodes.as_mut().unwrap().insert(node, (out.ptr() as *mut usize, out.dims()));
+        self.nodes.insert(node, ( CpuPtr(out.ptr() as *mut usize), out.dims() ));
         out
 
     }
     pub fn get<T: GenericOCL>(out_dims: (usize, usize)) -> Matrix<T> {
+        let mut cache = CPU_CACHE.lock().unwrap();
+
         let node = Node::new(out_dims);
-        let matrix_info_option = unsafe {
-            CPU_CACHE.nodes.as_ref().unwrap().get(&node)
-        };
+        let matrix_info_option = cache.nodes.get(&node);
         match matrix_info_option {
-            Some(matrix_info) => Matrix::from((matrix_info.0 as *mut T, matrix_info.1)),
-            None => unsafe {CPU_CACHE.add_node(node)}
+            Some(matrix_info) => Matrix::from((matrix_info.0.0 as *mut T, matrix_info.1)),
+            None => cache.add_node(node)
         }
     }
 }
