@@ -382,6 +382,10 @@ impl Kernel {
         release_kernel(self).unwrap();
     }
 }
+
+unsafe impl Send for Kernel {}
+unsafe impl Sync for Kernel {}
+
 pub fn create_kernel(program: &Program, str: &str) -> Result<Kernel, OCLError> {
     let mut err = 0;
     let cstring = CString::new(str).unwrap();

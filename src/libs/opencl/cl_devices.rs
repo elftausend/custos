@@ -1,5 +1,5 @@
 
-use super::{api::{DeviceType, get_device_ids, get_platforms, OCLError, OCLErrorKind}, CL_CACHE, cl_device::CLDevice};
+use super::{api::{DeviceType, get_device_ids, get_platforms, OCLError, OCLErrorKind}, cl_device::CLDevice};
 
 lazy_static::lazy_static! {
     pub static ref CL_DEVICES: CLDevices = CLDevices::new();
@@ -13,9 +13,6 @@ pub struct CLDevices {
 impl CLDevices {
     pub fn new() -> CLDevices {
         let mut current_devices = Vec::new();
-        unsafe {
-            CL_CACHE.sync()
-        }
         
         let platform = get_platforms().unwrap()[0];
         let devices = get_device_ids(platform, &(DeviceType::GPU as u64)).unwrap();

@@ -1,4 +1,4 @@
-use std::{any::TypeId, collections::HashMap, ffi::c_void};
+use std::{any::TypeId, collections::HashMap, ffi::c_void, sync::Mutex};
 
 use crate::matrix::Matrix;
 
@@ -27,50 +27,54 @@ impl Node {
     }
 }
 
-pub static mut CL_CACHE: CLCache = CLCache { output_nodes: None, arg_kernel_cache: None};
+lazy_static::lazy_static! {
+    pub static ref CL_CACHE: Mutex<CLCache> = Mutex::new(CLCache { output_nodes: HashMap::new(), arg_kernel_cache: HashMap::new() });
+}
 
-type RawInfo = (*mut c_void, (usize, usize));
-type KernelIdent = (std::thread::ThreadId, Vec<*mut c_void>, Vec<TypeId>, Option<*mut c_void>, String);
+#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
+pub struct OclPtr(*mut c_void);
+
+unsafe impl Send for OclPtr {}
+unsafe impl Sync for OclPtr {}
+
+//pub static mut CL_CACHE: CLCache = CLCache { output_nodes: None, arg_kernel_cache: None};
+
+type RawInfo = (OclPtr, (usize, usize));
+type KernelIdent = (std::thread::ThreadId, Vec<OclPtr>, Vec<TypeId>, Option<OclPtr>, String);
 
 #[derive(Debug)]
 pub struct CLCache {
-    output_nodes: Option<HashMap<Node, RawInfo>>,
-    pub arg_kernel_cache: Option<HashMap<KernelIdent, Kernel>>,
+    output_nodes: HashMap<Node, RawInfo>,
+    pub arg_kernel_cache: HashMap<KernelIdent, Kernel>,
 }
 
 impl CLCache {
-    pub fn sync(&mut self) {
-        if self.output_nodes.is_none() {
-            self.output_nodes = Some(HashMap::new());
-            self.arg_kernel_cache = Some(HashMap::new());
-        }
-    }
     pub fn add_node<T: GenericOCL>(&mut self, device: CLDevice, node: Node) -> Matrix<T> {
         let out = Matrix::new(device, node.out_dims);
-        self.output_nodes.as_mut().unwrap().insert(node, (out.ptr() as *mut c_void, out.dims()));
+        self.output_nodes.insert(node, ( OclPtr(out.ptr() as *mut c_void), out.dims() ));
         out
 
     }
     pub fn get<T: GenericOCL>(device: CLDevice, node: Node) -> Matrix<T> {
-        let matrix_info_option = unsafe {
-            CL_CACHE.output_nodes.as_ref().unwrap().get(&node)
-        };
+        let mut cache = CL_CACHE.lock().unwrap();
+
+        let matrix_info_option = cache.output_nodes.get(&node);
+    
         match matrix_info_option {
-            Some(matrix_info) => Matrix::from((matrix_info.0 as *mut T, matrix_info.1)),
-            None => unsafe {CL_CACHE.add_node(device, node)}
+            Some(matrix_info) => Matrix::from(( matrix_info.0.0 as *mut T, matrix_info.1 )),
+            None => cache.add_node(device, node)
         }
     }
 
     pub fn arg_kernel_cache<T: GenericOCL>(&mut self, device: CLDevice, matrices: &[(Matrix<T>, usize)], numbers: &[(T, usize)], output: Option<Matrix<T>>, src: String) -> Kernel {
         let type_ids = vec![TypeId::of::<T>(); numbers.len()];
         
-        let mems: Vec<*mut c_void> = matrices.iter()
-            .map(|matrix| matrix.0.ptr() as *mut c_void)
+        let mems: Vec<OclPtr> = matrices.iter()
+            .map(|matrix| OclPtr(matrix.0.ptr() as *mut c_void))
             .collect();
 
-
-        let cache = self.arg_kernel_cache.as_mut().unwrap();
-        let outputmem = output.map(|output| output.ptr() as *mut c_void);
+        let cache = &mut self.arg_kernel_cache;
+        let outputmem = output.map(|output| OclPtr(output.ptr() as *mut c_void));
         
         let kernel = cache.get(&(std::thread::current().id(), mems.clone(), type_ids.clone(), outputmem, src.clone()));
         match kernel {
