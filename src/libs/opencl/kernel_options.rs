@@ -1,6 +1,6 @@
 use crate::{matrix::Matrix, number::Number};
 
-use super::{api::{set_kernel_arg, enqueue_nd_range_kernel, OCLError}, cl_cache::{Node}, CLDevice, GenericOCL, CLCache, CL_CACHE};
+use super::{api::{enqueue_nd_range_kernel, OCLError, set_kernel_arg}, CL_CACHE, cl_cache::Node, CLCache, CLDevice, GenericOCL};
 
 pub trait KernelArg<T> {
     fn matrix(&self) -> Option<Matrix<T>>;

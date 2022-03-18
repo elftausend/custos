@@ -1,11 +1,9 @@
-mod cpu_device;
-pub use cpu_device::*;
-
-mod cpu_cache;
+pub use blas::*;
 pub use cpu_cache::*;
-
-mod ops;
+pub use cpu_device::*;
 pub use ops::*;
 
+mod cpu_device;
+mod cpu_cache;
+mod ops;
 mod blas;
-pub use blas::*;

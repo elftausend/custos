@@ -1,8 +1,8 @@
 #![allow(dead_code)]
-use std::{ffi::{CString, c_void}, usize, vec};
+
+use std::{ffi::{c_void, CString}, usize, vec};
 
 use super::{error::OCLError, extern_cl::*, OCLErrorKind};
-
 
 #[derive(Clone, Copy, Debug)]
 pub struct Platform(cl_platform_id); 

@@ -1,3 +1,3 @@
+pub use externc::*;
 
 pub mod externc;
-pub use externc::*;

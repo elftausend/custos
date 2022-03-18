@@ -1,9 +1,8 @@
 use std::collections::HashMap;
 
-use crate::{Matrix, libs::opencl::{GenericOCL, CACHE_COUNT}};
+use crate::{libs::opencl::{CACHE_COUNT, GenericOCL}, Matrix};
 
 use super::CPU;
-
 
 //pub static mut CPUCACHE_COUNT: usize = 0;
 
@@ -12,6 +11,7 @@ use super::CPU;
 pub struct Node {
     idx: usize,
     out_dims: (usize, usize),
+    thread_id: std::thread::ThreadId,
 }
 
 impl Node {
@@ -19,6 +19,7 @@ impl Node {
         let node = Node {
             idx: unsafe {CACHE_COUNT},
             out_dims,
+            thread_id: std::thread::current().id(),
         };
         unsafe {CACHE_COUNT+=1};
         node

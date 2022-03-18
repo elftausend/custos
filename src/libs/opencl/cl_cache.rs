@@ -1,17 +1,14 @@
-use std::{collections::HashMap, ffi::c_void, any::TypeId};
+use std::{any::TypeId, collections::HashMap, ffi::c_void};
 
 use crate::matrix::Matrix;
 
-use super::{api::{Kernel, create_program_with_source, build_program, create_kernels_in_program, set_kernel_arg}, CLDevice, GenericOCL};
+use super::{api::{build_program, create_kernels_in_program, create_program_with_source, Kernel, set_kernel_arg}, CLDevice, GenericOCL};
 
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
 pub struct Node {
     idx: usize,
     out_dims: (usize, usize),
-    //lhs_dims: (usize, usize),
-    //lhs_mem: Mem,
-    //rhs_dims: (usize, usize),
-    //rhs_mem: Mem,
+    thread_id: std::thread::ThreadId,
 }
 
 pub static mut CACHE_COUNT: usize = 0;
@@ -21,10 +18,8 @@ impl Node {
         let node = Node {
             idx: unsafe {CACHE_COUNT},
             out_dims,
-            //lhs_dims: lhs.dims,
-            //lhs_mem: lhs.data,
-            //rhs_dims: rhs.dims,
-            //rhs_mem: rhs.data
+            thread_id: std::thread::current().id(),
+            
         };
         unsafe {CACHE_COUNT+=1};
         node
@@ -34,7 +29,7 @@ impl Node {
 pub static mut CL_CACHE: CLCache = CLCache { output_nodes: None, arg_kernel_cache: None};
 
 type RawInfo = (*mut c_void, (usize, usize));
-type KernelIdent = (Vec<*mut c_void>, Vec<TypeId>, Option<*mut c_void>, String);
+type KernelIdent = (std::thread::ThreadId, Vec<*mut c_void>, Vec<TypeId>, Option<*mut c_void>, String);
 
 #[derive(Debug)]
 pub struct CLCache {
@@ -76,7 +71,7 @@ impl CLCache {
         let cache = self.arg_kernel_cache.as_mut().unwrap();
         let outputmem = output.map(|output| output.ptr() as *mut c_void);
         
-        let kernel = cache.get(&(mems.clone(), type_ids.clone(), outputmem, src.clone()));
+        let kernel = cache.get(&(std::thread::current().id(), mems.clone(), type_ids.clone(), outputmem, src.clone()));
         match kernel {
             Some(kernel) => kernel.clone(),
             None => {             
@@ -94,7 +89,7 @@ impl CLCache {
                     set_kernel_arg(kernel, mems.len()+type_ids.len(), &mem);
                 }
 
-                cache.insert((mems, type_ids, outputmem, src), kernel.clone());
+                cache.insert((std::thread::current().id(), mems, type_ids, outputmem, src), kernel.clone());
                 kernel.clone()
             },
         }

@@ -1,17 +1,16 @@
+//pub use libs::*;
+pub use buffer::*;
+pub use count::*;
+use libs::{cpu::CPU, opencl::CLDevice};
+pub use matrix::*;
+
 pub mod libs;
 
 mod count;
-pub use count::*;
 mod buffer;
 
 pub mod number;
 mod matrix;
-
-//pub use libs::*;
-pub use buffer::*;
-pub use matrix::*;
-
-use libs::{opencl::CLDevice, cpu::CPU};
 
 pub struct Dev {
     pub cl_device: Option<CLDevice>,

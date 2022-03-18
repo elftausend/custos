@@ -1,6 +1,6 @@
 use std::fmt::Debug;
 
-use crate::{Device, VecRead, Buffer, BaseDevice, AsDev, matrix::Matrix, libs::{cpu::{CPUCache, ops::{element_wise_op_mut}}, opencl::GenericOCL}, BaseOps, Gemm};
+use crate::{AsDev, BaseDevice, BaseOps, Buffer, Device, Gemm, libs::{cpu::{CPUCache, ops::element_wise_op_mut}, opencl::GenericOCL}, matrix::Matrix, VecRead};
 
 use super::{CPU_CACHE, TBlas};
 

@@ -1,4 +1,4 @@
-use custos::{libs::{opencl::{CLDevice, CACHE_COUNT}, cpu::CPU}, Matrix, AsDev, VecRead, range};
+use custos::{AsDev, libs::{cpu::CPU, opencl::{CACHE_COUNT, CLDevice}}, Matrix, range, VecRead};
 
 #[test]
 fn test_range() {

@@ -1,5 +1,4 @@
-
-use custos::{libs::{opencl::{CLDevice, api::OCLError}, cpu::CPU}, Buffer, Device, VecRead};
+use custos::{Buffer, Device, libs::{cpu::CPU, opencl::{api::OCLError, CLDevice}}, VecRead};
 
 pub fn get_mut_slice<'a, T>(buf: &mut Buffer<T>) -> &'a mut [T] {
     unsafe {

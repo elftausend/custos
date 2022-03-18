@@ -1,7 +1,6 @@
 use std::fmt::Write;
 
-use crate::{libs::opencl::{GenericOCL, CLDevice, KernelOptions, api::OCLError}, Matrix};
-
+use crate::{libs::opencl::{api::OCLError, CLDevice, GenericOCL, KernelOptions}, Matrix};
 
 pub fn ocl_gemm<T: GenericOCL>(device: CLDevice, lhs: Matrix<T>, rhs: Matrix<T>) -> Result<Matrix<T>, OCLError> {
     let mut src = String::new();

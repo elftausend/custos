@@ -1,7 +1,6 @@
 use std::fmt::Write;
 
-use crate::{libs::opencl::{GenericOCL, KernelOptions, CLDevice, api::OCLError}, matrix::Matrix};
-
+use crate::{libs::opencl::{api::OCLError, CLDevice, GenericOCL, KernelOptions}, matrix::Matrix};
 
 trait Both {
     fn as_str<'a, >() -> &'a str;

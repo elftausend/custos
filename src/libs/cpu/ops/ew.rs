@@ -1,6 +1,7 @@
+extern crate alloc;
+
 use alloc::vec::Vec;
 
-extern crate alloc;
 
 pub fn element_wise_op<T: Copy+Default, F>(lhs: &[T], rhs: &[T], f: F) -> Vec<T> 
 where F: Fn(T, T) -> T {

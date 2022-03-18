@@ -1,9 +1,8 @@
 use std::ffi::c_void;
 
-use crate::{buffer::Device, libs::opencl::api::{MemFlags, create_buffer}, VecRead, BaseDevice, AsDev, matrix::Matrix, BaseOps, Gemm};
+use crate::{AsDev, BaseDevice, BaseOps, buffer::Device, Gemm, libs::opencl::api::{create_buffer, MemFlags}, matrix::Matrix, VecRead};
 
-use super::{api::{Context, CommandQueue, OCLError, create_context, create_command_queue, CLIntDevice, wait_for_event, enqueue_read_buffer}, CL_DEVICES, tew, GenericOCL, ocl_gemm};
-
+use super::{api::{CLIntDevice, CommandQueue, Context, create_command_queue, create_context, enqueue_read_buffer, OCLError, wait_for_event}, CL_DEVICES, GenericOCL, ocl_gemm, tew};
 
 #[derive(Debug, Clone, Copy)]
 pub struct CLDevice {

@@ -1,7 +1,8 @@
 //#[cfg_attr(link(name = "BLAS", kind = "framework"))]
 //#[cfg_attr(target_os = "windows", link(name = "BLAS"))] ??
 
-use crate::libs::cpu::{Transpose, Order};
+use crate::libs::cpu::{Order, Transpose};
+
 #[link(name="blas")]
 //#[cfg_attr(target_os = "macos", link(name = "blas"))]
 //#[cfg_attr(target_os = "linux", link(name = "openblas"))]

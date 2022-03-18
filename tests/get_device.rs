@@ -1,4 +1,4 @@
-use custos::{Matrix, get_device, VecRead, libs::{cpu::CPU, opencl::CLDevice}, AsDev, GLOBAL_DEVICE, BaseDevice};
+use custos::{AsDev, BaseDevice, get_device, GLOBAL_DEVICE, libs::{cpu::CPU, opencl::CLDevice}, Matrix, VecRead};
 
 #[test]
 fn test_matrix_read() {

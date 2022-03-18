@@ -1,5 +1,4 @@
-use crate::{Buffer, get_device, libs::{opencl::GenericOCL, cpu::TBlas}, Device, VecRead, BaseOps, Gemm};
-
+use crate::{BaseOps, Buffer, Device, Gemm, get_device, libs::{cpu::TBlas, opencl::GenericOCL}, VecRead};
 
 #[derive(Debug, Clone, Copy)]
 pub struct Matrix<T> {

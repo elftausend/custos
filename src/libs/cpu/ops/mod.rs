@@ -1,2 +1,3 @@
-mod ew;
 pub use ew::*;
+
+mod ew;

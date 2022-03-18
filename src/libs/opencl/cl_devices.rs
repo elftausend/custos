@@ -1,4 +1,4 @@
-use super::{cl_device::CLDevice, api::{OCLError, OCLErrorKind, get_platforms, get_device_ids, DeviceType}, CL_CACHE};
+use super::{api::{DeviceType, get_device_ids, get_platforms, OCLError, OCLErrorKind}, CL_CACHE, cl_device::CLDevice};
 
 pub static mut CL_DEVICES: CLDevices = CLDevices {current_devices: Vec::new()};
 
@@ -8,16 +8,6 @@ pub struct CLDevices {
 }
 
 impl CLDevices {
-    pub fn get_current_mut(&mut self, device_idx: usize) -> Result<&mut CLDevice, OCLError> {
-        self.sync_current()?;
-        
-        if device_idx < self.current_devices.len() {
-            Ok(&mut self.current_devices[device_idx])    
-        } else {
-            Err(OCLError::with_kind(OCLErrorKind::InvalidDeviceIdx))
-        }
-    }
-
     pub fn get_current(&mut self, device_idx: usize) -> Result<CLDevice, OCLError> {
         self.sync_current()?;
         

@@ -1,24 +1,18 @@
+pub use cl_cache::*;
+pub use cl_device::CLDevice;
+pub use cl_devices::*;
+pub use kernel_options::*;
+pub use ops::*;
+
+use crate::number::Number;
 
 pub mod api;
 
 pub mod ops;
-pub use ops::*;
-
 pub mod cl_device;
-pub use cl_device::CLDevice;
-
 pub mod cl_devices;
-pub use cl_devices::*;
-
 mod kernel_options;
-pub use kernel_options::*;
-
 mod cl_cache;
-pub use cl_cache::*;
-
-use crate::number::Number;
-
-
 
 pub trait GenericOCL: Number {
     fn as_ocl_type_str() -> &'static str;

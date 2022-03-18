@@ -1,7 +1,6 @@
-use custos::{libs::{cpu::CPU, opencl::{CLDevice, CACHE_COUNT}}, Buffer, AsDev, Matrix, Device, VecRead, range, Gemm, number::Float};
+use custos::{AsDev, Buffer, Device, Gemm, libs::{cpu::CPU, opencl::{CACHE_COUNT, CLDevice}}, Matrix, number::Float, range, VecRead};
 
-
-/* 
+/*
 #[test]
 fn add() -> Result<(), OCLError> {
     
@@ -75,6 +74,26 @@ fn test_ew_add_cpu_a_cl() {
     let c = a + b;
     assert_eq!(vec![2, 8, 4, 18], c.read());
         
+}
+
+#[test]
+fn test_ew_sub_cpu_a_cl() {
+    CPU.sync().select();
+
+    let a = Matrix::from(( (1, 4), &[1u32, 4, 2, 9] ));
+    let b = Matrix::from(( (1, 4), &[1, 4, 2, 9] ));
+
+    let c = a - b;
+    assert_eq!(vec![0, 0, 0, 0], c.read());
+
+    CLDevice::get(0).unwrap().select();
+
+    let a = Matrix::from(( (1, 4), &[1u32, 4, 2, 9] ));
+    let b = Matrix::from(( (1, 4), &[1, 4, 2, 9] ));
+
+    let c = a - b;
+    assert_eq!(vec![0, 0, 0, 0], c.read());
+
 }
 
 #[test]
