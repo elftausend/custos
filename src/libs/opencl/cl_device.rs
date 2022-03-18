@@ -2,13 +2,17 @@ use std::ffi::c_void;
 
 use crate::{AsDev, BaseDevice, BaseOps, buffer::Device, Gemm, libs::opencl::api::{create_buffer, MemFlags}, matrix::Matrix, VecRead};
 
-use super::{api::{CLIntDevice, CommandQueue, Context, create_command_queue, create_context, enqueue_read_buffer, OCLError, wait_for_event}, CL_DEVICES, GenericOCL, ocl_gemm, tew};
+use super::{api::{CLIntDevice, CommandQueue, Context, create_command_queue, create_context, enqueue_read_buffer, OCLError, wait_for_event}, GenericOCL, ocl_gemm, tew, CL_DEVICES};
 
 #[derive(Debug, Clone, Copy)]
 pub struct CLDevice {
     pub device: CLIntDevice,
     pub ctx: Context,
     pub queue: CommandQueue,
+}
+
+unsafe impl Sync for CLDevice {
+    
 }
 
 impl CLDevice {
@@ -20,8 +24,9 @@ impl CLDevice {
         
     }
 
-    pub fn get(device_idx: usize) -> Result<CLDevice, OCLError>{
-        unsafe {CL_DEVICES.get_current(device_idx)}
+    pub fn get(device_idx: usize) -> Result<CLDevice, OCLError> {
+        CL_DEVICES.get_current(device_idx)
+        
     }
 
     pub fn get_ctx(&self) -> &Context {

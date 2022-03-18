@@ -11,6 +11,7 @@ pub struct Node {
     thread_id: std::thread::ThreadId,
 }
 
+// TODO Multithreading
 pub static mut CACHE_COUNT: usize = 0;
 
 impl Node {
