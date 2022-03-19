@@ -12,6 +12,7 @@ pub struct CLDevice {
 }
 
 unsafe impl Sync for CLDevice {}
+unsafe impl Send for CLDevice {}
 
 impl CLDevice {
     pub fn new(device: CLIntDevice) -> Result<CLDevice, OCLError> {
@@ -40,6 +41,10 @@ impl CLDevice {
     pub fn get_name(&self) -> Result<String, OCLError> {
         self.device.get_name()
     }
+    pub fn get_version(&self) -> Result<String, OCLError> {
+        self.device.get_version()
+    }
+    
 }
 
 impl <T: GenericOCL>Gemm<T> for CLDevice {
@@ -74,8 +79,6 @@ impl <T>Device<T> for CLDevice {
         create_buffer::<T>(self.get_ctx(), MemFlags::MemReadWrite | MemFlags::MemCopyHostPtr, data.len(), Some(data)).unwrap() as *mut T
     }
 }
-
-
 
 impl AsDev for CLDevice {
     fn as_dev(&self) -> crate::Dev {

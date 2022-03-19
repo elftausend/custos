@@ -17,10 +17,24 @@ pub fn read<T, D: Device<T>>(device: D, buf: Buffer<T>) -> Vec<T> where D: VecRe
 }
 
 #[test]
-fn devices() -> Result<(), OCLError> {
-    
+fn test_cldevice_name() -> Result<(), OCLError> {
     let device = CLDevice::get(0)?;
     println!("{}", device.get_name()?);
+    Ok(())
+}
+
+#[test]
+fn test_cldevice_version() -> Result<(), OCLError> {
+    let device = CLDevice::get(0)?;
+    println!("{}", device.get_version()?);
+    Ok(())
+}
+
+#[test]
+fn test_cldevice_mem() -> Result<(), OCLError> {
+    let device = CLDevice::get(0)?;
+    println!("get_global_mem_size_in_gb: {}", device.get_global_mem_size_in_gb()?);
+    println!("get_max_mem_alloc_in_gb: {}", device.get_max_mem_alloc_in_gb()?);
     Ok(())
 }
 
@@ -38,13 +52,11 @@ fn test_buffer_from_read() -> Result<(), OCLError> {
 fn test_buffer_alloc_and_read() -> Result<(), OCLError> {
     let mut buf = Buffer::<u8>::new(CPU, 10);
     
-    
     let buf_slice = get_mut_slice(&mut buf);
     buf_slice.copy_from_slice(&[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
     assert_eq!(&[0, 1, 2, 3, 4, 5, 6, 7, 8, 9], buf_slice);
     
     CPU::drop(buf);
-    
     
     let buf = Buffer::<f32>::from((&CLDevice::get(0)?, &[3.13, 3., 1., 8.]));
     let buf_read = read(CLDevice::get(0)?, buf);

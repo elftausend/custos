@@ -121,6 +121,21 @@ fn test_ew_mul_cpu_a_cl() {
 }
 
 #[test]
+fn test_gemm_cpu() {
+    CPU.select();
+
+    let a = Matrix::from(( (1, 4), &[1f64, 4., 2., 9.] ));
+    let b = Matrix::from(( (4, 1), &[5., 4., 2., 9.] ));
+
+    for _ in range(500) {
+                
+        let c2 = a.gemm(b);
+        assert_eq!(c2.read(), vec![106.])
+    }
+
+}
+
+#[test]
 fn test_gemm() {
     CPU.select();
 

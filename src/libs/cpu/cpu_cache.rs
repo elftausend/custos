@@ -28,15 +28,6 @@ impl Node {
             out_dims,
             thread_id,
         }
-        /* 
-        let node = Node {
-            idx: unsafe {CACHE_COUNT},
-            out_dims,
-            thread_id: std::thread::current().id(),
-        };
-        unsafe {CACHE_COUNT+=1};
-        node
-        */
     }
 }
 

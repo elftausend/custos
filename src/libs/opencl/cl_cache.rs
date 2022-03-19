@@ -35,17 +35,6 @@ impl Node {
         let count = *guard.get(&thread_id).unwrap_or(&0);
         guard.insert(thread_id, count+1);
         
-        /* 
-        let count = match guard.get_mut(&thread_id) {
-            Some(count) => {
-                let c = *count;
-                *count += 1;
-                c
-            },
-            None => { guard.insert(thread_id, 0); 0},
-        };
-        */
-        
         Node {
             idx: count,
             out_dims,
