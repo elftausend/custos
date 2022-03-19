@@ -1,6 +1,6 @@
 use std::{collections::HashMap, sync::Mutex};
 
-use crate::{libs::opencl::{CACHE_COUNT, GenericOCL}, Matrix};
+use crate::{libs::opencl::{GenericOCL, COUNT}, Matrix};
 
 use super::CPU;
 
@@ -16,6 +16,19 @@ pub struct Node {
 
 impl Node {
     pub fn new(out_dims: (usize, usize)) -> Node {
+        let thread_id = std::thread::current().id();
+
+        let mut guard = COUNT.lock().unwrap();
+
+        let count = *guard.get(&thread_id).unwrap_or(&0);
+        guard.insert(thread_id, count+1);
+        
+        Node {
+            idx: count,
+            out_dims,
+            thread_id,
+        }
+        /* 
         let node = Node {
             idx: unsafe {CACHE_COUNT},
             out_dims,
@@ -23,6 +36,7 @@ impl Node {
         };
         unsafe {CACHE_COUNT+=1};
         node
+        */
     }
 }
 

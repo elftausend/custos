@@ -18,13 +18,11 @@ impl CLDevice {
         let ctx = create_context(&[device])?;
         let queue = create_command_queue(&ctx, device)?;
 
-        Ok(CLDevice { device, ctx, queue })
-        
+        Ok(CLDevice { device, ctx, queue }) 
     }
 
     pub fn get(device_idx: usize) -> Result<CLDevice, OCLError> {
         CL_DEVICES.get_current(device_idx)
-        
     }
 
     pub fn get_ctx(&self) -> &Context {

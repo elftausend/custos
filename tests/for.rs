@@ -1,4 +1,4 @@
-use custos::{AsDev, libs::{cpu::CPU, opencl::{CACHE_COUNT, CLDevice}}, Matrix, range, VecRead};
+use custos::{AsDev, libs::{cpu::CPU, opencl::{CLDevice, get_count}}, Matrix, range, VecRead};
 
 #[test]
 fn test_range() {
@@ -24,10 +24,10 @@ fn test_use_range_for_ew_add() {
         let d = c + z;
         assert_eq!(vec![3, 10, 7, 22], device.read(d.data()));
         
-        assert!(unsafe {CACHE_COUNT == 2});
+        assert!(get_count() == 2);
     }
 
-    assert!(unsafe {CACHE_COUNT == 0});
+    assert!(get_count() == 0);
 
     let a = Matrix::from(( (1, 5), &[1, 4, 2, 9, 1] ));
     let b = Matrix::from(( (1, 5), &[1, 4, 2, 9, 1] ));
@@ -40,10 +40,10 @@ fn test_use_range_for_ew_add() {
         let d = c + z;
         assert_eq!(vec![3, 10, 7, 22, 7], device.read(d.data()));
 
-        assert!(unsafe {CACHE_COUNT == 2});
+        assert!(get_count() == 2);
 
     }
-    assert!(unsafe {CACHE_COUNT == 0});
+    assert!(get_count() == 0);
 }
 
 #[test]
@@ -58,16 +58,16 @@ fn test_nested_for() {
         for _ in range(200) {
             let d = c + b;
             let e =  a + b + c + d;
-            assert!(unsafe {CACHE_COUNT == 5});
+            assert!(get_count() == 5);
 
             for _ in range(10) {
                 let _ = d + e;
-                assert!(unsafe {CACHE_COUNT == 6});
+                assert!(get_count() == 6);
             }
 
         }
-        assert!(unsafe {CACHE_COUNT == 1})
+        assert!(get_count() == 1)
     }
 
-    assert!(unsafe {CACHE_COUNT == 0});
+    assert!(get_count() == 0);
 }

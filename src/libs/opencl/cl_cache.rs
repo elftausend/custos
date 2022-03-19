@@ -11,19 +11,46 @@ pub struct Node {
     thread_id: std::thread::ThreadId,
 }
 
-// TODO Multithreading
-pub static mut CACHE_COUNT: usize = 0;
+lazy_static::lazy_static! {
+    #[derive(Debug)]
+    pub static ref COUNT: Mutex<HashMap<std::thread::ThreadId, usize>> = Mutex::new(HashMap::new());
+}
+
+pub fn set_count(count: usize) {
+    let mut guard = COUNT.lock().unwrap();
+    guard.insert(std::thread::current().id(), count);
+}
+
+pub fn get_count() -> usize {
+    let guard = COUNT.lock().unwrap();
+    *guard.get(&std::thread::current().id()).unwrap_or(&0)
+}
 
 impl Node {
     pub fn new(out_dims: (usize, usize)) -> Node {
-        let node = Node {
-            idx: unsafe {CACHE_COUNT},
-            out_dims,
-            thread_id: std::thread::current().id(),
-            
+        let thread_id = std::thread::current().id();
+
+        let mut guard = COUNT.lock().unwrap();
+
+        let count = *guard.get(&thread_id).unwrap_or(&0);
+        guard.insert(thread_id, count+1);
+        
+        /* 
+        let count = match guard.get_mut(&thread_id) {
+            Some(count) => {
+                let c = *count;
+                *count += 1;
+                c
+            },
+            None => { guard.insert(thread_id, 0); 0},
         };
-        unsafe {CACHE_COUNT+=1};
-        node
+        */
+        
+        Node {
+            idx: count,
+            out_dims,
+            thread_id,
+        }
     }
 }
 
@@ -37,10 +64,8 @@ pub struct OclPtr(*mut c_void);
 unsafe impl Send for OclPtr {}
 unsafe impl Sync for OclPtr {}
 
-//pub static mut CL_CACHE: CLCache = CLCache { output_nodes: None, arg_kernel_cache: None};
-
 type RawInfo = (OclPtr, (usize, usize));
-type KernelIdent = (std::thread::ThreadId, Vec<OclPtr>, Vec<TypeId>, Option<OclPtr>, String);
+type KernelIdent = (Vec<OclPtr>, Vec<TypeId>, Option<OclPtr>, String);
 
 #[derive(Debug)]
 pub struct CLCache {
@@ -76,10 +101,10 @@ impl CLCache {
         let cache = &mut self.arg_kernel_cache;
         let outputmem = output.map(|output| OclPtr(output.ptr() as *mut c_void));
         
-        let kernel = cache.get(&(std::thread::current().id(), mems.clone(), type_ids.clone(), outputmem, src.clone()));
-        match kernel {
+        let kernel = cache.get(&(mems.clone(), type_ids.clone(), outputmem, src.clone()));
+        match kernel { 
             Some(kernel) => kernel.clone(),
-            None => {             
+            None => {    
                 let program = create_program_with_source(device.get_ctx(), &src).unwrap();
                 build_program(&program, &[device.device], Some("-cl-std=CL1.2")).unwrap(); //-cl-single-precision-constant
                 let kernel = &create_kernels_in_program(&program).unwrap()[0];
@@ -87,14 +112,16 @@ impl CLCache {
                 for (number, idx) in numbers {
                     set_kernel_arg(kernel, *idx, number)
                 }
+
                 for (matrix, idx) in matrices {
                     set_kernel_arg(kernel, *idx, &(matrix.ptr() as *mut c_void));
                 }
+
                 if let Some(mem) = outputmem {
                     set_kernel_arg(kernel, mems.len()+type_ids.len(), &mem);
                 }
 
-                cache.insert((std::thread::current().id(), mems, type_ids, outputmem, src), kernel.clone());
+                cache.insert((mems, type_ids, outputmem, src), kernel.clone());
                 kernel.clone()
             },
         }

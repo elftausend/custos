@@ -1,4 +1,4 @@
-use custos::{AsDev, Buffer, Device, Gemm, libs::{cpu::CPU, opencl::{CACHE_COUNT, CLDevice}}, Matrix, number::Float, range, VecRead};
+use custos::{AsDev, Buffer, Device, Gemm, libs::{cpu::CPU, opencl::{CLDevice, set_count}}, Matrix, number::Float, range, VecRead};
 
 /*
 #[test]
@@ -39,7 +39,7 @@ fn test_element_wise_add_cl() {
     for _ in 0..500 {
         let c = a + b;
         assert_eq!(vec![2, 8, 4, 18], device.read(c.data()));
-        unsafe {CACHE_COUNT = 0};
+        set_count(0);
     }
 }
 
