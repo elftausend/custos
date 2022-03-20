@@ -256,15 +256,15 @@ pub fn create_buffer<T>(context: &Context, flag: u64, size: usize, data: Option<
     }
     Ok(r)
 }
-/*
-pub unsafe fn release_mem_object(ptr: *mut c_void) -> Result<(), OCLError>{
-    let value = clReleaseMemObject(ptr);
+
+pub(crate) fn release_mem_object(ptr: *mut c_void) -> Result<(), OCLError>{
+    let value = unsafe {clReleaseMemObject(ptr)};
     if value != 0 {
         return Err(OCLError::with_kind(OCLErrorKind::from_value(value)));
     }
     Ok(())
 }
-
+/* 
 pub unsafe fn retain_mem_object(mem: *mut c_void) -> Result<(), OCLError>{
     let value = clRetainMemObject(mem);
     if value != 0 {

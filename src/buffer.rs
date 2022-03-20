@@ -24,7 +24,6 @@ pub trait Device {
 pub trait Device<T> {
     fn alloc(&self, len: usize) -> *mut T;
     fn with_data(&self, data: &[T]) -> *mut T;
-
 }
 
 #[derive(Debug, Clone, Copy)]

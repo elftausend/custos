@@ -1,4 +1,4 @@
-use std::sync::Mutex;
+use std::{sync::Mutex, marker::PhantomData};
 
 //pub use libs::*;
 pub use buffer::*;
@@ -13,6 +13,22 @@ mod buffer;
 
 pub mod number;
 mod matrix;
+
+#[derive(Debug, Clone)]
+pub struct Threaded<T, D: Device<T>> {
+    device: D,
+    _pd: PhantomData<T>,
+}
+
+impl <T, D: Device<T>>Threaded<T, D> {
+    pub fn new(device: D) -> Threaded<T, D> {
+        Threaded {
+            device,
+            _pd: PhantomData
+        }
+    }
+}
+
 
 #[derive(Debug, Clone, Copy)]
 pub struct Dev {
@@ -41,8 +57,6 @@ pub trait AsDev {
     }
 }
 
-//pub static mut GLOBAL_DEVICE: Dev = Dev { cl_device: None };
-
 #[macro_export]
 macro_rules! get_device {
     
@@ -60,24 +74,6 @@ macro_rules! get_device {
     }
 }
 
-
-#[macro_export]
-macro_rules! get_device2 {
-    
-    ($t:ident, $g:ident) => {    
-        {
-            use crate::{GLOBAL_DEVICE, CPU};
-            let a: Box<dyn $t<$g>> = unsafe {
-                match GLOBAL_DEVICE.cl_device {
-                    Some(cl_device) => Box::new(cl_device),
-                    None => Box::new(CPU)
-                }
-            };
-            a
-        }
-    }
-}
-
 ///All 'base' traits?
 pub trait BaseDevice<T>: Device<T> + BaseOps<T> + VecRead<T> + Gemm<T> {}
 
@@ -87,4 +83,8 @@ pub trait VecRead<T>: Device<T> {
 
 pub trait Gemm<T>: Device<T> {
     fn gemm(&self, lhs: Matrix<T>, rhs: Matrix<T>) -> Matrix<T>;
+}
+
+pub trait Dealloc<T>: Device<T> {
+    fn dealloc_cache(&self);
 }

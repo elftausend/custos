@@ -1,8 +1,8 @@
 use std::fmt::Debug;
 
-use crate::{AsDev, BaseDevice, BaseOps, Buffer, Device, Gemm, libs::{cpu::{CPUCache, ops::element_wise_op_mut}, opencl::GenericOCL}, matrix::Matrix, VecRead, number::Number};
+use crate::{AsDev, BaseDevice, BaseOps, Buffer, Device, Gemm, libs::{cpu::{CPUCache, ops::element_wise_op_mut}, opencl::GenericOCL}, matrix::Matrix, VecRead, number::Number, Dealloc};
 
-use super::TBlas;
+use super::{TBlas, CPU_CACHE};
 
 #[derive(Debug, Clone, Copy)]
 pub struct CPU;
@@ -83,5 +83,16 @@ impl <T: Copy+Default>VecRead<T> for CPU {
         unsafe {
             std::slice::from_raw_parts(buf.ptr, buf.len).to_vec()
         }
+    }
+}
+
+impl <T: Copy+Default>Dealloc<T> for CPU {
+    fn dealloc_cache(&self) {
+        for entry in &CPU_CACHE.lock().unwrap().nodes {
+            if entry.0.thread_id == std::thread::current().id() {
+                let ptr = (entry.1).0;
+                unsafe { Box::from_raw(ptr.0) };
+           }
+        };
     }
 }

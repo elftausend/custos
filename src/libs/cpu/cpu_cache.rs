@@ -11,7 +11,7 @@ use super::CPU;
 pub struct Node {
     idx: usize,
     out_dims: (usize, usize),
-    thread_id: std::thread::ThreadId,
+    pub thread_id: std::thread::ThreadId,
 }
 
 impl Node {
@@ -36,7 +36,7 @@ lazy_static::lazy_static! {
 }
 
 #[derive(Debug, Clone, Copy)]
-pub struct CpuPtr(*mut usize);
+pub struct CpuPtr(pub *mut usize);
 
 unsafe impl Sync for CpuPtr {}
 unsafe impl Send for CpuPtr {}
@@ -45,7 +45,7 @@ type RawInfo = (CpuPtr, (usize, usize));
 
 #[derive(Debug)]
 pub struct CPUCache {
-    nodes: HashMap<Node, RawInfo>,
+    pub nodes: HashMap<Node, RawInfo>,
 }
 
 impl CPUCache {

@@ -8,7 +8,7 @@ use super::{api::{build_program, create_kernels_in_program, create_program_with_
 pub struct Node {
     idx: usize,
     out_dims: (usize, usize),
-    thread_id: std::thread::ThreadId,
+    pub thread_id: std::thread::ThreadId,
 }
 
 lazy_static::lazy_static! {
@@ -48,7 +48,7 @@ lazy_static::lazy_static! {
 }
 
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
-pub struct OclPtr(*mut c_void);
+pub struct OclPtr(pub *mut c_void);
 
 unsafe impl Send for OclPtr {}
 unsafe impl Sync for OclPtr {}
@@ -58,7 +58,7 @@ type KernelIdent = (Vec<OclPtr>, Vec<TypeId>, Option<OclPtr>, String);
 
 #[derive(Debug)]
 pub struct CLCache {
-    output_nodes: HashMap<Node, RawInfo>,
+    pub output_nodes: HashMap<Node, RawInfo>,
     pub arg_kernel_cache: HashMap<KernelIdent, Kernel>,
 }
 

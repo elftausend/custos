@@ -1,8 +1,8 @@
 use std::ffi::c_void;
 
-use crate::{AsDev, BaseDevice, BaseOps, buffer::Device, Gemm, libs::opencl::api::{create_buffer, MemFlags}, matrix::Matrix, VecRead};
+use crate::{AsDev, BaseDevice, BaseOps, buffer::Device, Gemm, libs::opencl::api::{create_buffer, MemFlags}, matrix::Matrix, VecRead, Dealloc};
 
-use super::{api::{CLIntDevice, CommandQueue, Context, create_command_queue, create_context, enqueue_read_buffer, OCLError, wait_for_event}, GenericOCL, ocl_gemm, tew, CL_DEVICES};
+use super::{api::{CLIntDevice, CommandQueue, Context, create_command_queue, create_context, enqueue_read_buffer, OCLError, wait_for_event, release_mem_object}, GenericOCL, ocl_gemm, tew, CL_DEVICES, CL_CACHE};
 
 #[derive(Debug, Clone, Copy)]
 pub struct CLDevice {
@@ -26,6 +26,10 @@ impl CLDevice {
         CL_DEVICES.get_current(device_idx)
     }
 
+    pub fn drop<T>(buffer: crate::Buffer<T>) {
+        release_mem_object(buffer.ptr as *mut c_void).unwrap();
+    }
+
     pub fn get_ctx(&self) -> &Context {
         &self.ctx
     }
@@ -45,6 +49,17 @@ impl CLDevice {
         self.device.get_version()
     }
     
+}
+
+impl <T: Copy+Default>Dealloc<T> for CLDevice {
+    fn dealloc_cache(&self) {
+        for entry in &CL_CACHE.lock().unwrap().output_nodes {
+            if entry.0.thread_id == std::thread::current().id() {
+                let ptr = (entry.1).0;
+                release_mem_object(ptr.0).unwrap();
+           }
+        };
+    }
 }
 
 impl <T: GenericOCL>Gemm<T> for CLDevice {
