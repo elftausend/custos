@@ -6,7 +6,7 @@ pub struct Matrix<T> {
     dims: (usize, usize)
 }
 
-impl <T: GenericOCL>Matrix<T> {
+impl <T>Matrix<T> {
     pub fn new<D: Device<T>>(device: D, dims: (usize, usize)) -> Matrix<T> {
 
         Matrix {
@@ -14,16 +14,6 @@ impl <T: GenericOCL>Matrix<T> {
             dims,
         }
     }
-}
-
-impl <T: GenericOCL+TBlas>Matrix<T> {
-    pub fn gemm(self, rhs: Matrix<T>) -> Matrix<T> {
-        let device = get_device!(Gemm, T);
-        device.gemm(self, rhs)
-    }
-}
-
-impl <T>Matrix<T> {
     pub fn ptr(&self) -> *mut T {
         self.data.ptr
     }
@@ -47,6 +37,14 @@ impl <T>Matrix<T> {
     }
 }
 
+impl <T: GenericOCL+TBlas>Matrix<T> {
+    pub fn gemm(self, rhs: Matrix<T>) -> Matrix<T> {
+        let device = get_device!(Gemm, T);
+        device.gemm(self, rhs)
+    }
+}
+
+
 impl <T: Copy+Default>Matrix<T> {
     pub fn data(&self) -> Buffer<T> {
         self.data
@@ -69,7 +67,7 @@ impl <T>From<(*mut T, (usize, usize))> for Matrix<T> {
     }
 }
 
-impl <T: GenericOCL, const N: usize>From<((usize, usize), &[T; N])> for Matrix<T> {
+impl <T: Copy+Default, const N: usize>From<((usize, usize), &[T; N])> for Matrix<T> {
     fn from(dims_slice: ((usize, usize), &[T; N])) -> Self {
         //let device = get_device::<T>();
         let device = get_device!(Device, T);
@@ -82,7 +80,7 @@ impl <T: GenericOCL, const N: usize>From<((usize, usize), &[T; N])> for Matrix<T
     }
 }
 
-impl <T: GenericOCL, D: Device<T>, const N: usize>From<(D, (usize, usize), &[T; N])> for Matrix<T> {
+impl <T: Copy, D: Device<T>, const N: usize>From<(D, (usize, usize), &[T; N])> for Matrix<T> {
     fn from(dims_slice: (D, (usize, usize), &[T; N])) -> Self {
         let buffer = Buffer::from((&dims_slice.0, dims_slice.2));
         Matrix {

@@ -1,6 +1,6 @@
 use std::{collections::HashMap, sync::Mutex};
 
-use crate::{libs::opencl::{GenericOCL, COUNT}, Matrix};
+use crate::{libs::opencl::COUNT, Matrix};
 
 use super::CPU;
 
@@ -49,13 +49,13 @@ pub struct CPUCache {
 }
 
 impl CPUCache {
-    pub fn add_node<T: GenericOCL>(&mut self, node: Node) -> Matrix<T> {
+    pub fn add_node<T: Default+Copy>(&mut self, node: Node) -> Matrix<T> {
         let out = Matrix::new(CPU, node.out_dims);
         self.nodes.insert(node, ( CpuPtr(out.ptr() as *mut usize), out.dims() ));
         out
 
     }
-    pub fn get<T: GenericOCL>(out_dims: (usize, usize)) -> Matrix<T> {
+    pub fn get<T: Default+Copy>(out_dims: (usize, usize)) -> Matrix<T> {
         let mut cache = CPU_CACHE.lock().unwrap();
 
         let node = Node::new(out_dims);
