@@ -1,10 +1,3 @@
-# custos
-
-A 'testing' library for matrix operations that are calculated on the CPU or OpenCL devices.
-
-## Example
-
-```rust
 use custos::{libs::{cpu::CPU, opencl::{CLDevice, api::OCLError}}, AsDev, Matrix, BaseOps, VecRead};
 
 fn main() -> Result<(), OCLError> {
@@ -36,4 +29,3 @@ fn main() -> Result<(), OCLError> {
 
     Ok(())
 }
-```

@@ -1,4 +1,4 @@
-use custos::{libs::{opencl::{CLDevice, api::OCLError, CL_CACHE}, cpu::{CPU, CPU_CACHE}}, AsDev, Matrix, range, VecRead, BaseOps, Threaded};
+use custos::{libs::{opencl::{CLDevice, api::OCLError, CL_CACHE}, cpu::{CPU, CPU_CACHE}}, AsDev, Matrix, Threaded};
 
 /* 
 #[test]
@@ -62,6 +62,30 @@ fn test_threaded_drop() -> Result<(), OCLError> {
     }
     assert!(CL_CACHE.lock().unwrap().output_nodes.len() == 0);
     
-
     Ok(())
+}
+
+#[test]
+fn test_threaded_drop_2() {
+    std::thread::spawn(|| {
+        let device = CLDevice::get(0).unwrap().select();
+        let threaded = Threaded::<f32, _>::new(device);
+        
+        let a = Matrix::<f32>::new(threaded.device, (100, 100));
+        let b = Matrix::<f32>::new(threaded.device, (100, 100));
+    
+        let c = a + b;
+        let _ = a * c + b;
+    });
+    assert!(CPU_CACHE.lock().unwrap().nodes.len() == 0);
+    std::thread::spawn(|| {
+        let threaded = Threaded::<f32, _>::new(CPU.select());
+        let d = Matrix::<f32>::new(threaded.device, (50, 12));
+        let e = Matrix::<f32>::new(threaded.device, (50, 12));
+
+        let f = d + e * d;
+        let _ = f - e * f;
+        assert!(CPU_CACHE.lock().unwrap().nodes.len() == 4);
+    });
+    assert!(CPU_CACHE.lock().unwrap().nodes.len() == 0);
 }

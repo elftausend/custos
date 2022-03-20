@@ -39,22 +39,6 @@ fn test_cldevice_mem() -> Result<(), OCLError> {
 }
 
 #[test]
-fn test_ptr() -> Result<(), OCLError> {
-    //let device = CLDevice::get(0)?;
-    let device = CPU;
-    let buffer = Buffer::<f32>::from((&device, &[1., 2., 3., 4.,]));
-    
-    let ptr = buffer.ptr;
-    
-    //CPU::drop(buffer);
-    println!("read: {:?}", unsafe {ptr.read_volatile()});
-
-    let buffer = Buffer::<f32>::new(device, 100);
-    
-    Ok(())
-}
-
-#[test]
 fn test_buffer_from_read() -> Result<(), OCLError> {
     let buf = Buffer::<f32>::from((&CLDevice::get(0)?, &[3.13, 3., 1., 8.]));
     assert_eq!(read(CLDevice::get(0)?, buf), vec![3.13, 3., 1., 8.,]);
