@@ -15,17 +15,24 @@ pub mod number;
 mod matrix;
 
 #[derive(Debug, Clone)]
-pub struct Threaded<T, D: Device<T>> {
-    device: D,
+pub struct Threaded<T, D: Dealloc<T>> {
+    pub device: D,
     _pd: PhantomData<T>,
 }
 
-impl <T, D: Device<T>>Threaded<T, D> {
+impl <T, D: Dealloc<T>>Threaded<T, D> {
     pub fn new(device: D) -> Threaded<T, D> {
         Threaded {
             device,
             _pd: PhantomData
         }
+    }
+    
+}
+
+impl <T, D: Dealloc<T>>Drop for Threaded<T, D> {
+    fn drop(&mut self) {
+        self.device.dealloc_cache();
     }
 }
 

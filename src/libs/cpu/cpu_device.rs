@@ -1,6 +1,6 @@
 use std::fmt::Debug;
 
-use crate::{AsDev, BaseDevice, BaseOps, Buffer, Device, Gemm, libs::{cpu::{CPUCache, ops::element_wise_op_mut}, opencl::GenericOCL}, matrix::Matrix, VecRead, number::Number, Dealloc};
+use crate::{AsDev, BaseDevice, BaseOps, Buffer, Device, Gemm, libs::{cpu::{CPUCache, ops::element_wise_op_mut}, opencl::GenericOCL}, matrix::Matrix, VecRead, number::Number, Dealloc, Threaded};
 
 use super::{TBlas, CPU_CACHE};
 
@@ -12,6 +12,9 @@ impl CPU {
         unsafe {    
             drop(Box::from_raw(buf.ptr));
         }
+    }
+    pub fn mt<T: Default+Copy>(self) -> (Self, Threaded<T, CPU>) {
+        (self, Threaded::new(self))
     }
 }
 
@@ -88,11 +91,16 @@ impl <T: Copy+Default>VecRead<T> for CPU {
 
 impl <T: Copy+Default>Dealloc<T> for CPU {
     fn dealloc_cache(&self) {
-        for entry in &CPU_CACHE.lock().unwrap().nodes {
-            if entry.0.thread_id == std::thread::current().id() {
+        let mut cache = CPU_CACHE.lock().unwrap();
+        
+        let contents = cache.nodes.clone();
+
+        contents.into_iter()
+            .filter(|entry| entry.0.thread_id == std::thread::current().id())
+            .for_each(|entry| {
                 let ptr = (entry.1).0;
                 unsafe { Box::from_raw(ptr.0) };
-           }
-        };
+                cache.nodes.remove(&entry.0);
+        });
     }
 }

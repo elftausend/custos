@@ -44,6 +44,7 @@ impl Node {
 }
 
 lazy_static::lazy_static! {
+    #[derive(Debug)]
     pub static ref CL_CACHE: Mutex<CLCache> = Mutex::new(CLCache { output_nodes: HashMap::new(), arg_kernel_cache: HashMap::new() });
 }
 
