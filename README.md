@@ -1,6 +1,6 @@
 # custos
 
-A 'testing' library for matrix operations that are calculated on the CPU or OpenCL devices.
+An experimental library for matrix operations that are calculated on the CPU or OpenCL devices.
 
 ## Example
 
