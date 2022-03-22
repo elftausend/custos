@@ -1,4 +1,6 @@
-use custos::{AsDev, libs::{cpu::CPU, opencl::{api::OCLError, CLDevice}}, Matrix, BaseOps, VecRead};
+use std::{rc::Rc, cell::RefCell};
+
+use custos::{AsDev, libs::{cpu::CPU, opencl::{api::OCLError, CLDevice}}, Matrix, BaseOps, VecRead, Buffer};
 
 #[test]
 fn test_matrix_read() {
@@ -42,3 +44,49 @@ fn test_simple() -> Result<(), OCLError> {
     Ok(())
 }
 
+#[derive(Debug, Clone)]
+pub struct RcCPU {
+    ptrs: Vec<*mut usize>
+}
+
+impl RcCPU {
+    pub fn new() -> Rc<RefCell<RcCPU>> {
+        Rc::new(RefCell::new(RcCPU { ptrs: Vec::new() }))
+    }
+
+    pub fn buffer(&mut self, len: usize) -> Buffer<f32> {
+        let buffer =  Buffer::<f32>::from( (&CPU, vec![1.12; len]) );
+        let ptr = buffer.ptr as *mut usize;
+        self.ptrs.push(ptr);
+        buffer
+    }
+}
+
+impl Drop for RcCPU {
+    fn drop(&mut self) {
+        for ptr in &self.ptrs {
+            unsafe {    
+                drop(Box::from_raw(*ptr));
+            }
+        }
+        self.ptrs.clear()
+    }
+}
+
+fn buffer<>(device: Rc<RefCell<RcCPU>>, len: usize) -> Buffer<f32> {
+    device.borrow_mut().buffer(len)
+}
+
+#[test]
+fn test_rccpu() {
+    let device = RcCPU::new();
+    
+    let _ = buffer::<>(device.clone(), 10000000);
+    let _ = buffer::<>(device.clone(), 1000000);
+
+    drop(device);
+
+    loop {
+        
+    }
+}
