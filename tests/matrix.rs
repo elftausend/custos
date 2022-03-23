@@ -1,6 +1,6 @@
 use std::{rc::Rc, cell::RefCell};
 
-use custos::{AsDev, libs::{cpu::CPU, opencl::{api::OCLError, CLDevice}}, Matrix, BaseOps, VecRead, Buffer, Device, number::Number, range};
+use custos::{AsDev, libs::{cpu::CPU, opencl::{api::OCLError, CLDevice}}, Matrix, BaseOps, VecRead, Buffer, Device, number::Number, range, Dealloc};
 
 #[test]
 fn test_matrix_read() {
@@ -112,6 +112,7 @@ impl <T: Number>BaseOps<T> for A {
 
 impl Drop for RcCPU {
     fn drop(&mut self) {
+        CPU.dealloc_cache();
         for ptr in &self.ptrs {
             unsafe {    
                 drop(Box::from_raw(*ptr));
@@ -128,12 +129,17 @@ impl Drop for RcCPU {
 fn test_rccpu() {
     let device = RcCPU::new();
     
-    let a = Matrix::<f32>::from( (device.clone(), (2, 3), &[1., 2., 3., 4., 5., 6.,]) );
-    let b = Matrix::<f32>::from( (device.clone(), (2, 3), &[1., 2., 3., 4., 5., 6.,]) );
+    //let a = Matrix::<f32>::from( (device.clone(), (2, 3), &[1., 2., 3., 4., 5., 6.,]) );
+    //let b = Matrix::<f32>::from( (device.clone(), (2, 3), &[1., 2., 3., 4., 5., 6.,]) );
+    let a = Matrix::<i128>::new(device.clone(), (10000, 1000));
+    let b = Matrix::new(device.clone(), (10000, 1000));
 
     for _ in range(100) {
         device.add(a, b);
     }
+    println!("fin");
+    drop(device);
+
 
     /*
 

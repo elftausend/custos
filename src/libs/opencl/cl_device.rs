@@ -26,7 +26,7 @@ impl CLDevice {
         CL_DEVICES.get_current(device_idx)
     }
 
-    pub fn mt<T: Default+Copy>(device_idx: usize) -> Result<(Self, Threaded<T, CLDevice>), OCLError> {
+    pub fn mt<T: Default+Copy>(device_idx: usize) -> Result<(Self, Threaded<CLDevice>), OCLError> {
         let device = CLDevice::get(device_idx)?;
         Ok((device, Threaded::new(device)))
     }
@@ -55,7 +55,7 @@ impl CLDevice {
     
 }
 
-impl <T: Copy+Default>Dealloc<T> for CLDevice {
+impl Dealloc for CLDevice {
     fn dealloc_cache(&self) {
         let mut cache = CL_CACHE.lock().unwrap();
         

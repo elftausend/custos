@@ -1,4 +1,4 @@
-use std::{sync::Mutex, marker::PhantomData};
+use std::sync::Mutex;
 
 //pub use libs::*;
 pub use buffer::*;
@@ -15,22 +15,20 @@ pub mod number;
 mod matrix;
 
 #[derive(Debug, Clone)]
-pub struct Threaded<T, D: Dealloc<T>> {
+pub struct Threaded<D: Dealloc> {
     pub device: D,
-    _pd: PhantomData<T>,
 }
 
-impl <T, D: Dealloc<T>>Threaded<T, D> {
-    pub fn new(device: D) -> Threaded<T, D> {
+impl <D: Dealloc>Threaded<D> {
+    pub fn new(device: D) -> Threaded<D> {
         Threaded {
             device,
-            _pd: PhantomData
         }
     }
     
 }
 
-impl <T, D: Dealloc<T>>Drop for Threaded<T, D> {
+impl <D: Dealloc>Drop for Threaded<D> {
     fn drop(&mut self) {
         self.device.dealloc_cache();
     }
@@ -92,6 +90,6 @@ pub trait Gemm<T>: Device<T> {
     fn gemm(&self, lhs: Matrix<T>, rhs: Matrix<T>) -> Matrix<T>;
 }
 
-pub trait Dealloc<T>: Device<T> {
+pub trait Dealloc {
     fn dealloc_cache(&self);
 }

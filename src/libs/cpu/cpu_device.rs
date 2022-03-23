@@ -13,7 +13,7 @@ impl CPU {
             drop(Box::from_raw(buf.ptr));
         }
     }
-    pub fn mt<T: Default+Copy>(self) -> (Self, Threaded<T, CPU>) {
+    pub fn mt<T: Default+Copy>(self) -> (Self, Threaded<CPU>) {
         (self, Threaded::new(self))
     }
 }
@@ -89,7 +89,7 @@ impl <T: Copy+Default>VecRead<T> for CPU {
     }
 }
 
-impl <T: Copy+Default>Dealloc<T> for CPU {
+impl Dealloc for CPU {
     fn dealloc_cache(&self) {
         let mut cache = CPU_CACHE.lock().unwrap();
         
