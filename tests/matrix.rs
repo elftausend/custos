@@ -1,6 +1,6 @@
 use std::{rc::Rc, cell::RefCell};
 
-use custos::{AsDev, libs::{cpu::CPU, opencl::{api::OCLError, CLDevice}}, Matrix, BaseOps, VecRead, Buffer};
+use custos::{AsDev, libs::{cpu::CPU, opencl::{api::OCLError, CLDevice}}, Matrix, BaseOps, VecRead, Buffer, Device, number::Number, range};
 
 #[test]
 fn test_matrix_read() {
@@ -45,22 +45,70 @@ fn test_simple() -> Result<(), OCLError> {
 }
 
 #[derive(Debug, Clone)]
+pub struct A {
+    pub cpu: Rc<RefCell<RcCPU>>
+}
+impl A {
+    pub fn new(cpu: Rc<RefCell<RcCPU>>) -> A {
+        A { cpu }
+    }
+}
+
+#[derive(Debug, Clone)]
 pub struct RcCPU {
-    ptrs: Vec<*mut usize>
+    pub ptrs: Vec<*mut usize>
 }
 
 impl RcCPU {
-    pub fn new() -> Rc<RefCell<RcCPU>> {
-        Rc::new(RefCell::new(RcCPU { ptrs: Vec::new() }))
+    pub fn new() -> A {
+        A::new(Rc::new(RefCell::new(RcCPU { ptrs: Vec::new() })))
     }
 
     pub fn buffer(&mut self, len: usize) -> Buffer<f32> {
-        let buffer =  Buffer::<f32>::from( (&CPU, vec![1.12; len]) );
+        let buffer = Buffer::<f32>::from( (&CPU, vec![1.12; len]) );
         let ptr = buffer.ptr as *mut usize;
         self.ptrs.push(ptr);
         buffer
     }
+    pub fn read(&self, buf: Buffer<f32>) -> Vec<f32> {
+        CPU.read(buf)
+    }
 }
+
+impl <T: Copy+Default>Device<T> for A {
+    fn alloc(&self, len: usize) -> *mut T {
+        let ptr = CPU.alloc(len);
+        self.cpu.borrow_mut().ptrs.push(ptr as *mut usize);
+        ptr
+    }
+
+    fn with_data(&self, data: &[T]) -> *mut T {
+        let ptr = CPU.with_data(data);
+        self.cpu.borrow_mut().ptrs.push(ptr as *mut usize);
+        ptr
+    }
+}
+
+impl <T: Copy+Default>VecRead<T> for A {
+    fn read(&self, buf: Buffer<T>) -> Vec<T> {
+        CPU.read(buf)
+    }
+}
+
+impl <T: Number>BaseOps<T> for A {
+    fn add(&self, lhs: Matrix<T>, rhs: Matrix<T>) -> Matrix<T> {
+        CPU.add(lhs, rhs)
+    }
+
+    fn sub(&self, lhs: Matrix<T>, rhs: Matrix<T>) -> Matrix<T> {
+        CPU.sub(lhs, rhs)
+    }
+
+    fn mul(&self, lhs: Matrix<T>, rhs: Matrix<T>) -> Matrix<T> {
+        CPU.mul(lhs, rhs)
+    }
+}
+
 
 impl Drop for RcCPU {
     fn drop(&mut self) {
@@ -69,24 +117,34 @@ impl Drop for RcCPU {
                 drop(Box::from_raw(*ptr));
             }
         }
-        self.ptrs.clear()
+        self.ptrs.clear();
+        println!("self: {}", self.ptrs.len())
     }
 }
 
-fn buffer<>(device: Rc<RefCell<RcCPU>>, len: usize) -> Buffer<f32> {
-    device.borrow_mut().buffer(len)
-}
+
 
 #[test]
 fn test_rccpu() {
     let device = RcCPU::new();
     
-    let _ = buffer::<>(device.clone(), 10000000);
+    let a = Matrix::<f32>::from( (device.clone(), (2, 3), &[1., 2., 3., 4., 5., 6.,]) );
+    let b = Matrix::<f32>::from( (device.clone(), (2, 3), &[1., 2., 3., 4., 5., 6.,]) );
+
+    for _ in range(100) {
+        device.add(a, b);
+    }
+
+    /*
+
+    let a = buffer::<>(device.clone(), 10000000);
     let _ = buffer::<>(device.clone(), 1000000);
 
-    drop(device);
+    //drop(device);
 
-    loop {
-        
+    for _ in 0..1000 {
+        device.borrow().read(a);
     }
+
+    */
 }

@@ -70,6 +70,16 @@ impl <T: Clone, D: Device<T>,const N: usize>From<(&D, [T; N])> for Buffer<T> {
     }
 }
 
+impl <T: Clone, D: Device<T>>From<(&D, &[T])> for Buffer<T> {
+    fn from(device_slice: (&D, &[T])) -> Self {
+        Buffer {
+            ptr: device_slice.0.with_data(&device_slice.1),
+            len: device_slice.1.len()
+        }
+        
+    }
+}
+
 impl <T: Clone, D: Device<T>>From<(&D, Vec<T>)> for Buffer<T> {
     fn from(device_slice: (&D, Vec<T>)) -> Self {
         Buffer {
