@@ -42,8 +42,6 @@ fn test_simple() -> Result<(), OCLError> {
     assert_eq!(CPU.read(c_cpu.data()), c_cl.read());
 
     Ok(())
-
-
 }
 
 #[derive(Debug, Clone)]
@@ -205,7 +203,7 @@ impl AsDev2 for Cldev {
     }
 }
 
-#[test]
+
 fn test_rccpu() {
     let device = RcCPU::new();
     
@@ -222,13 +220,14 @@ fn test_rccpu() {
     
 }
 
+
 fn test_rccpu_2() {
     let device = RcCPU::new().select();
 
     let a = Matrix::<i128>::new(device.clone(), (10000, 1000));
     let b = Matrix::<i128>::new(device.clone(), (10000, 1000));
 
+    let dev = get_device2!(BaseOps, i128);
+    dev.add(a, b);
     
-
-
 }

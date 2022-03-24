@@ -1,6 +1,6 @@
-use std::{collections::HashMap, sync::Mutex};
+use std::{collections::HashMap, sync::Mutex, cell::RefCell};
 
-use crate::{libs::opencl::COUNT, Matrix};
+use crate::{libs::opencl::{COUNT}, Matrix};
 
 use super::CPU;
 
@@ -11,24 +11,24 @@ use super::CPU;
 pub struct Node {
     idx: usize,
     out_dims: (usize, usize),
-    pub thread_id: std::thread::ThreadId,
 }
 
 impl Node {
     pub fn new(out_dims: (usize, usize)) -> Node {
-        let thread_id = std::thread::current().id();
-
-        let mut guard = COUNT.lock().unwrap();
-
-        let count = *guard.get(&thread_id).unwrap_or(&0);
-        guard.insert(thread_id, count+1);
-        
-        Node {
-            idx: count,
-            out_dims,
-            thread_id,
-        }
+        COUNT.with(|count| {
+            let node = Node {
+                idx: *count.borrow(),
+                out_dims,
+                
+            };
+            *count.borrow_mut() += 1;
+            node
+        })
     }
+}
+
+thread_local! {
+    pub static CPU_CACHE2: RefCell<CPUCache> = RefCell::new(CPUCache { nodes: HashMap::new() });
 }
 
 lazy_static::lazy_static! {

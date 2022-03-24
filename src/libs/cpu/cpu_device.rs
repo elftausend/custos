@@ -2,7 +2,7 @@ use std::fmt::Debug;
 
 use crate::{AsDev, BaseDevice, BaseOps, Buffer, Device, Gemm, libs::{cpu::{CPUCache, ops::element_wise_op_mut}, opencl::GenericOCL}, matrix::Matrix, VecRead, number::Number, Dealloc, Threaded};
 
-use super::{TBlas, CPU_CACHE};
+use super::TBlas;
 
 #[derive(Debug, Clone, Copy)]
 pub struct CPU;
@@ -91,6 +91,7 @@ impl <T: Copy+Default>VecRead<T> for CPU {
 
 impl Dealloc for CPU {
     fn dealloc_cache(&self) {
+        /* 
         let mut cache = CPU_CACHE.lock().unwrap();
         
         let contents = cache.nodes.clone();
@@ -102,5 +103,6 @@ impl Dealloc for CPU {
                 unsafe { Box::from_raw(ptr.0) };
                 cache.nodes.remove(&entry.0);
         });
+        */
     }
 }

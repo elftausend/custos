@@ -1,4 +1,4 @@
-use std::{any::TypeId, collections::HashMap, ffi::c_void, sync::Mutex};
+use std::{any::TypeId, collections::HashMap, ffi::c_void, sync::Mutex, cell::RefCell};
 
 use crate::matrix::Matrix;
 
@@ -8,38 +8,33 @@ use super::{api::{build_program, create_kernels_in_program, create_program_with_
 pub struct Node {
     idx: usize,
     out_dims: (usize, usize),
-    pub thread_id: std::thread::ThreadId,
+    //pub thread_id: std::thread::ThreadId,
 }
 
-lazy_static::lazy_static! {
-    #[derive(Debug)]
-    pub static ref COUNT: Mutex<HashMap<std::thread::ThreadId, usize>> = Mutex::new(HashMap::new());
+thread_local! {
+    pub static COUNT: RefCell<usize> = RefCell::new(0);
 }
+
 
 pub fn set_count(count: usize) {
-    let mut guard = COUNT.lock().unwrap();
-    guard.insert(std::thread::current().id(), count);
+    COUNT.with(|c| *c.borrow_mut() = count);
 }
 
 pub fn get_count() -> usize {
-    let guard = COUNT.lock().unwrap();
-    *guard.get(&std::thread::current().id()).unwrap_or(&0)
+    COUNT.with(|c| *c.borrow())
 }
 
 impl Node {
     pub fn new(out_dims: (usize, usize)) -> Node {
-        let thread_id = std::thread::current().id();
-
-        let mut guard = COUNT.lock().unwrap();
-
-        let count = *guard.get(&thread_id).unwrap_or(&0);
-        guard.insert(thread_id, count+1);
-        
-        Node {
-            idx: count,
-            out_dims,
-            thread_id,
-        }
+        COUNT.with(|count| {
+            let node = Node {
+                idx: *count.borrow(),
+                out_dims,
+                
+            };
+            *count.borrow_mut() += 1;
+            node
+        })
     }
 }
 

@@ -57,6 +57,7 @@ impl CLDevice {
 
 impl Dealloc for CLDevice {
     fn dealloc_cache(&self) {
+        /*
         let mut cache = CL_CACHE.lock().unwrap();
         
         let contents = cache.output_nodes.clone();
@@ -67,6 +68,7 @@ impl Dealloc for CLDevice {
                 cache.output_nodes.remove(&entry.0);
            }    
         };
+        */
     }
 }
 

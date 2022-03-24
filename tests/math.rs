@@ -36,7 +36,7 @@ fn test_element_wise_add_cl() {
     let a = Matrix::from(( (1, 4), &[1, 4, 2, 9] ));
     let b = Matrix::from(( (1, 4), &[1, 4, 2, 9] ));
     
-    for _ in 0..500 {
+    for _ in 0..5000000 {
         let c = a + b;
         assert_eq!(vec![2, 8, 4, 18], device.read(c.data()));
         set_count(0);
