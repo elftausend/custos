@@ -1,4 +1,4 @@
-use std::{rc::Rc, cell::RefCell};
+use std::{rc::Rc, cell::RefCell, sync::Mutex};
 
 use custos::{AsDev, libs::{cpu::CPU, opencl::{api::OCLError, CLDevice}}, Matrix, BaseOps, VecRead, Buffer, Device, number::Number, range, Dealloc};
 
@@ -42,15 +42,32 @@ fn test_simple() -> Result<(), OCLError> {
     assert_eq!(CPU.read(c_cpu.data()), c_cl.read());
 
     Ok(())
+
+
 }
 
 #[derive(Debug, Clone)]
-pub struct A {
+pub struct Cldev {
+    pub cl: Rc<RefCell<RcCL>>
+}
+impl Cldev {
+    pub fn new(cl: Rc<RefCell<RcCL>>) -> Cldev {
+         Cldev { cl }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct RcCL {
+    pub ptrs: Vec<*mut usize>
+}
+
+#[derive(Debug, Clone)]
+pub struct Cpu {
     pub cpu: Rc<RefCell<RcCPU>>
 }
-impl A {
-    pub fn new(cpu: Rc<RefCell<RcCPU>>) -> A {
-        A { cpu }
+impl Cpu {
+    pub fn new(cpu: Rc<RefCell<RcCPU>>) -> Cpu {
+        Cpu { cpu }
     }
 }
 
@@ -60,8 +77,8 @@ pub struct RcCPU {
 }
 
 impl RcCPU {
-    pub fn new() -> A {
-        A::new(Rc::new(RefCell::new(RcCPU { ptrs: Vec::new() })))
+    pub fn new() -> Cpu {
+        Cpu::new(Rc::new(RefCell::new(RcCPU { ptrs: Vec::new() })))
     }
 
     pub fn buffer(&mut self, len: usize) -> Buffer<f32> {
@@ -75,7 +92,7 @@ impl RcCPU {
     }
 }
 
-impl <T: Copy+Default>Device<T> for A {
+impl <T: Copy+Default>Device<T> for Cpu {
     fn alloc(&self, len: usize) -> *mut T {
         let ptr = CPU.alloc(len);
         self.cpu.borrow_mut().ptrs.push(ptr as *mut usize);
@@ -89,13 +106,13 @@ impl <T: Copy+Default>Device<T> for A {
     }
 }
 
-impl <T: Copy+Default>VecRead<T> for A {
+impl <T: Copy+Default>VecRead<T> for Cpu {
     fn read(&self, buf: Buffer<T>) -> Vec<T> {
         CPU.read(buf)
     }
 }
 
-impl <T: Number>BaseOps<T> for A {
+impl <T: Number>BaseOps<T> for Cpu {
     fn add(&self, lhs: Matrix<T>, rhs: Matrix<T>) -> Matrix<T> {
         CPU.add(lhs, rhs)
     }
@@ -124,6 +141,69 @@ impl Drop for RcCPU {
 }
 
 
+#[derive(Debug, Clone)]
+pub struct Dev2 {
+    pub cl_device: Option<Cldev>,
+    pub cpu: Option<Cpu>,
+}   
+
+impl Dev2 {
+    pub fn new(cl_device: Option<Cldev>, cpu: Option<Cpu>) -> Dev2 {
+        Dev2 { cl_device, cpu }
+    }
+}
+
+thread_local! {
+    pub static GDEVICE: RefCell<Dev2> = RefCell::new(Dev2 { cl_device: None, cpu: None });
+}
+
+pub trait AsDev2 {
+    fn as_dev(&self) -> Dev2;
+    ///selects self as global device
+    fn select(self) -> Self where Self: AsDev2+Clone {
+        let dev = self.as_dev();
+        GDEVICE.with(|d| *d.borrow_mut() = dev);        
+        self
+    }
+}
+
+pub fn get_device<T: Default+Copy>() -> Box<dyn Device<T>> {
+    GDEVICE.with(|d| {
+        let dev = d.borrow();
+        match &dev.cl_device {
+            Some(cl) => todo!()/*Box::new(cl.clone())*/,
+            None => Box::new(dev.cpu.clone().unwrap()),
+    }})
+}
+
+#[macro_export]
+macro_rules! get_device2 {
+    
+    ($t:ident, $g:ident) => {    
+        {     
+            let dev: Box<dyn $t<$g>> = GDEVICE.with(|d| {
+                let dev = d.borrow();
+                match &dev.cl_device {
+                    Some(_) => todo!()/*Box::new(cl.clone())*/,
+                    None => Box::new(dev.cpu.clone().unwrap()),
+                }
+            });
+            dev
+        }
+    }
+}
+
+impl AsDev2 for Cpu {
+    fn as_dev(&self) -> Dev2 {
+        Dev2::new(None, Some(self.clone()))
+    }
+}
+
+impl AsDev2 for Cldev {
+    fn as_dev(&self) -> Dev2 {
+        Dev2::new(Some(self.clone()), None)
+    }
+}
 
 #[test]
 fn test_rccpu() {
@@ -134,23 +214,21 @@ fn test_rccpu() {
     let a = Matrix::<i128>::new(device.clone(), (10000, 1000));
     let b = Matrix::new(device.clone(), (10000, 1000));
 
-    for _ in range(100) {
+    for _ in range(50) {
         device.add(a, b);
     }
-    println!("fin");
+
     drop(device);
+    
+}
+
+fn test_rccpu_2() {
+    let device = RcCPU::new().select();
+
+    let a = Matrix::<i128>::new(device.clone(), (10000, 1000));
+    let b = Matrix::<i128>::new(device.clone(), (10000, 1000));
+
+    
 
 
-    /*
-
-    let a = buffer::<>(device.clone(), 10000000);
-    let _ = buffer::<>(device.clone(), 1000000);
-
-    //drop(device);
-
-    for _ in 0..1000 {
-        device.borrow().read(a);
-    }
-
-    */
 }

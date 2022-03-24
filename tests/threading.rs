@@ -40,7 +40,7 @@ fn test_threading() {
 fn test_threaded_drop() -> Result<(), OCLError> {
     {
         let device = CLDevice::get(0)?.select();
-        let threaded = Threaded::< _>::new(device);
+        let threaded = Threaded::new(device);
         
         let a = Matrix::<f32>::new(threaded.device, (100, 100));
         let b = Matrix::<f32>::new(threaded.device, (100, 100));
@@ -49,7 +49,7 @@ fn test_threaded_drop() -> Result<(), OCLError> {
         let _ = a * c + b;
 
         {
-            let threaded = Threaded::<_>::new(CPU.select());
+            let threaded = Threaded::new(CPU.select());
             let d = Matrix::<f32>::new(threaded.device, (50, 12));
             let e = Matrix::<f32>::new(threaded.device, (50, 12));
 
@@ -79,7 +79,7 @@ fn test_threaded_drop_2() {
     });
     assert!(CPU_CACHE.lock().unwrap().nodes.len() == 0);
     std::thread::spawn(|| {
-        let threaded = Threaded::<_>::new(CPU.select());
+        let threaded = Threaded::new(CPU.select());
         let d = Matrix::<f32>::new(threaded.device, (50, 12));
         let e = Matrix::<f32>::new(threaded.device, (50, 12));
 
