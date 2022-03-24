@@ -36,6 +36,7 @@ fn test_threading() {
 }
 */
 
+
 #[test]
 fn test_threaded_drop() -> Result<(), OCLError> {
     {
@@ -55,19 +56,24 @@ fn test_threaded_drop() -> Result<(), OCLError> {
 
             let f = d + e * d;
             let _ = f - e * f;
-            assert!(CPU_CACHE.lock().unwrap().nodes.len() == 4);
+            CPU_CACHE.with(|f| assert!(f.borrow().nodes.len() == 4));
+
+            //assert!(CPU_CACHE.lock().unwrap().nodes.len() == 4);
         }
         //assert!(CPU_CACHE.lock().unwrap().nodes.len() == 0);
-        assert!(CL_CACHE.lock().unwrap().output_nodes.len() == 3);
+        CL_CACHE.with(|f| assert!(f.borrow().output_nodes.len() == 3));
     }
-    assert!(CL_CACHE.lock().unwrap().output_nodes.len() == 0);
+    //when Threaded drops:
+    //CL_CACHE.with(|f| assert!(f.borrow().output_nodes.len() == 0));
     
     Ok(())
 }
 
+
+
 #[test]
 fn test_threaded_drop_2() {
-    std::thread::spawn(|| {
+    let th1 = std::thread::spawn(|| {
         let device = CLDevice::get(0).unwrap().select();
         let threaded = Threaded::<_>::new(device);
         
@@ -77,15 +83,21 @@ fn test_threaded_drop_2() {
         let c = a + b;
         let _ = a * c + b;
     });
-    assert!(CPU_CACHE.lock().unwrap().nodes.len() == 0);
-    std::thread::spawn(|| {
+    th1.join().unwrap();
+
+    println!("{}", CPU_CACHE.with(|f| f.borrow().nodes.len()));
+
+    CPU_CACHE.with(|f| assert!(f.borrow().nodes.len() == 0));
+    let th2 = std::thread::spawn(|| {
         let threaded = Threaded::new(CPU.select());
         let d = Matrix::<f32>::new(threaded.device, (50, 12));
         let e = Matrix::<f32>::new(threaded.device, (50, 12));
 
         let f = d + e * d;
         let _ = f - e * f;
-        assert!(CPU_CACHE.lock().unwrap().nodes.len() == 4);
+        CPU_CACHE.with(|f| assert!(f.borrow().nodes.len() == 4));
     });
-    assert!(CPU_CACHE.lock().unwrap().nodes.len() == 0);
+    th2.join().unwrap();
+    
+    CPU_CACHE.with(|f| assert!(f.borrow().nodes.len() == 0));
 }

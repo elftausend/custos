@@ -1,12 +1,10 @@
-use std::{collections::HashMap, sync::Mutex, cell::RefCell};
+use std::{collections::HashMap, cell::RefCell};
 
-use crate::{libs::opencl::{COUNT}, Matrix};
+use crate::{libs::opencl::COUNT, Matrix};
 
 use super::CPU;
 
 //pub static mut CPUCACHE_COUNT: usize = 0;
-
-
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
 pub struct Node {
     idx: usize,
@@ -28,11 +26,7 @@ impl Node {
 }
 
 thread_local! {
-    pub static CPU_CACHE2: RefCell<CPUCache> = RefCell::new(CPUCache { nodes: HashMap::new() });
-}
-
-lazy_static::lazy_static! {
-    pub static ref CPU_CACHE: Mutex<CPUCache> = Mutex::new(CPUCache { nodes: HashMap::new() });
+    pub static CPU_CACHE: RefCell<CPUCache> = RefCell::new(CPUCache { nodes: HashMap::new() });
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -53,11 +47,25 @@ impl CPUCache {
         let out = Matrix::new(CPU, node.out_dims);
         self.nodes.insert(node, ( CpuPtr(out.ptr() as *mut usize), out.dims() ));
         out
-
     }
+    
     pub fn get<T: Default+Copy>(out_dims: (usize, usize)) -> Matrix<T> {
-        let mut cache = CPU_CACHE.lock().unwrap();
 
+        CPU_CACHE.with(|cache| {
+            let mut cache = cache.borrow_mut();
+            let node = Node::new(out_dims);
+            let matrix_info_option = cache.nodes.get(&node);
+
+            match matrix_info_option {
+                Some(matrix_info) => Matrix::from((matrix_info.0.0 as *mut T, matrix_info.1)),
+                None => cache.add_node(node)
+            }
+        })
+
+        /* 
+
+        let mut cache = CPU_CACHE.lock().unwrap();
+        
         let node = Node::new(out_dims);
         let matrix_info_option = cache.nodes.get(&node);
 
@@ -65,5 +73,7 @@ impl CPUCache {
             Some(matrix_info) => Matrix::from((matrix_info.0.0 as *mut T, matrix_info.1)),
             None => cache.add_node(node)
         }
+
+        */
     }
 }

@@ -1,6 +1,16 @@
 use std::{rc::Rc, cell::RefCell, sync::Mutex};
 
-use custos::{AsDev, libs::{cpu::CPU, opencl::{api::OCLError, CLDevice}}, Matrix, BaseOps, VecRead, Buffer, Device, number::Number, range, Dealloc};
+use custos::{AsDev, libs::{cpu::{CPU, ew_op, CPU2}, opencl::{api::OCLError, CLDevice}}, Matrix, BaseOps, VecRead, Buffer, Device, number::Number, range, Dealloc};
+
+#[test]
+fn test_dealloc_cpu() {
+    let device = CPU2::new();
+    
+    let a = Matrix::from( (device.clone(), (2, 2), &[0.25, 0.5, 0.75, 1.] ) );
+    let b = Matrix::from( (device.clone(), (2, 2), &[1., 2., 3., 4.,] ) );
+
+    device.add(a, b);
+}
 
 #[test]
 fn test_matrix_read() {
@@ -85,6 +95,7 @@ impl RcCPU {
         self.ptrs.push(ptr);
         buffer
     }
+
     pub fn read(&self, buf: Buffer<f32>) -> Vec<f32> {
         CPU.read(buf)
     }
@@ -112,7 +123,7 @@ impl <T: Copy+Default>VecRead<T> for Cpu {
 
 impl <T: Number>BaseOps<T> for Cpu {
     fn add(&self, lhs: Matrix<T>, rhs: Matrix<T>) -> Matrix<T> {
-        CPU.add(lhs, rhs)
+        ew_op(lhs, rhs, | x, y| x+y)
     }
 
     fn sub(&self, lhs: Matrix<T>, rhs: Matrix<T>) -> Matrix<T> {
@@ -127,7 +138,7 @@ impl <T: Number>BaseOps<T> for Cpu {
 
 impl Drop for RcCPU {
     fn drop(&mut self) {
-        CPU.dealloc_cache();
+        CPU::dealloc_cache();
         for ptr in &self.ptrs {
             unsafe {    
                 drop(Box::from_raw(*ptr));
@@ -220,14 +231,16 @@ fn test_rccpu() {
     
 }
 
-
+#[test]
 fn test_rccpu_2() {
     let device = RcCPU::new().select();
 
-    let a = Matrix::<i128>::new(device.clone(), (10000, 1000));
-    let b = Matrix::<i128>::new(device.clone(), (10000, 1000));
+    let a = Matrix::<f32>::from( (device.clone(), (2, 3), &[1., 2., 3., 4., 5., 6.,]) );
+    let b = Matrix::<f32>::from( (device.clone(), (2, 3), &[1., 2., 3., 4., 5., 6.,]) );
 
-    let dev = get_device2!(BaseOps, i128);
-    dev.add(a, b);
+    let dev = get_device2!(BaseOps, f32);
+    let result = dev.add(a, b);
+
+    assert_eq!(device.read(result.data()), &[2., 4., 6., 8., 10., 12.]);
     
 }

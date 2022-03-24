@@ -1,9 +1,10 @@
-use std::{sync::Mutex, cell::RefCell, rc::Rc};
+use std::sync::Mutex;
+use std::cell::RefCell;
 
 //pub use libs::*;
 pub use buffer::*;
 pub use count::*;
-use libs::{cpu::CPU, opencl::CLDevice};
+use libs::{cpu::{CPU, InternCPU}, opencl::{CLDevice, cl_device::InternCLDevice}};
 pub use matrix::*;
 
 pub mod libs;
@@ -30,7 +31,7 @@ impl <D: Dealloc>Threaded<D> {
 
 impl <D: Dealloc>Drop for Threaded<D> {
     fn drop(&mut self) {
-        self.device.dealloc_cache();
+        D::dealloc_cache();
     }
 }
 
@@ -90,5 +91,52 @@ pub trait Gemm<T>: Device<T> {
 }
 
 pub trait Dealloc {
-    fn dealloc_cache(&self);
+    fn dealloc_cache();
+}
+
+
+
+
+#[derive(Debug, Clone)]
+pub struct Dev2 {
+    pub cl_device: Option<InternCLDevice>,
+    pub cpu: Option<InternCPU>,
+}   
+
+impl Dev2 {
+    pub fn new(cl_device: Option<InternCLDevice>, cpu: Option<InternCPU>) -> Dev2 {
+        Dev2 { cl_device, cpu }
+    }
+}
+
+thread_local! {
+    pub static GDEVICE: RefCell<Dev2> = RefCell::new(Dev2 { cl_device: None, cpu: None });
+}
+
+pub trait AsDev2 {
+    fn as_dev(&self) -> Dev2;
+    ///selects self as global device
+    fn select(self) -> Self where Self: AsDev2+Clone {
+        let dev = self.as_dev();
+        GDEVICE.with(|d| *d.borrow_mut() = dev);        
+        self
+    }
+}
+    
+
+#[macro_export]
+macro_rules! get_device2 {
+    
+    ($t:ident, $g:ident) => {    
+        {     
+            let dev: Box<dyn $t<$g>> = GDEVICE.with(|d| {
+                let dev = d.borrow();
+                match &dev.cl_device {
+                    Some(_) => Box::new(cl.clone()),
+                    None => Box::new(dev.cpu.clone().unwrap()),
+                }
+            });
+            dev
+        }
+    }
 }

@@ -1,8 +1,23 @@
-use std::ffi::c_void;
+use std::{ffi::c_void, rc::Rc, cell::RefCell};
 
 use crate::{AsDev, BaseDevice, BaseOps, buffer::Device, Gemm, libs::opencl::api::{create_buffer, MemFlags}, matrix::Matrix, VecRead, Dealloc, Threaded};
 
 use super::{api::{CLIntDevice, CommandQueue, Context, create_command_queue, create_context, enqueue_read_buffer, OCLError, wait_for_event, release_mem_object}, GenericOCL, ocl_gemm, tew, CL_DEVICES, CL_CACHE};
+
+#[derive(Debug, Clone)]
+pub struct InternCLDevice {
+    pub cl: Rc<RefCell<CLDevice2>>
+}
+impl InternCLDevice {
+    pub fn new(cl: Rc<RefCell<CLDevice2>>) -> InternCLDevice {
+         InternCLDevice { cl }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct CLDevice2 {
+    pub ptrs: Vec<*mut usize>
+}
 
 #[derive(Debug, Clone, Copy)]
 pub struct CLDevice {
@@ -56,7 +71,16 @@ impl CLDevice {
 }
 
 impl Dealloc for CLDevice {
-    fn dealloc_cache(&self) {
+    fn dealloc_cache() {
+        CL_CACHE.with(|cache| {
+            let contents = cache.borrow().output_nodes.clone();
+            contents.into_iter()
+                .for_each(|entry| {
+                    let ptr = (entry.1).0;
+                    release_mem_object(ptr.0).unwrap();
+                    cache.borrow_mut().output_nodes.remove(&entry.0);
+                });
+        });
         /*
         let mut cache = CL_CACHE.lock().unwrap();
         

@@ -1,4 +1,4 @@
-use std::{any::TypeId, collections::HashMap, ffi::c_void, sync::Mutex, cell::RefCell};
+use std::{any::TypeId, collections::HashMap, ffi::c_void, cell::RefCell};
 
 use crate::matrix::Matrix;
 
@@ -14,7 +14,6 @@ pub struct Node {
 thread_local! {
     pub static COUNT: RefCell<usize> = RefCell::new(0);
 }
-
 
 pub fn set_count(count: usize) {
     COUNT.with(|c| *c.borrow_mut() = count);
@@ -38,9 +37,14 @@ impl Node {
     }
 }
 
+/*
 lazy_static::lazy_static! {
     #[derive(Debug)]
     pub static ref CL_CACHE: Mutex<CLCache> = Mutex::new(CLCache { output_nodes: HashMap::new(), arg_kernel_cache: HashMap::new() });
+}*/
+
+thread_local! {
+    pub static CL_CACHE: RefCell<CLCache> = RefCell::new(CLCache { output_nodes: HashMap::new(), arg_kernel_cache: HashMap::new() })
 }
 
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
@@ -66,6 +70,16 @@ impl CLCache {
 
     }
     pub fn get<T: GenericOCL>(device: CLDevice, node: Node) -> Matrix<T> {
+        CL_CACHE.with(|cache| {
+            let mut cache = cache.borrow_mut();
+            let matrix_info_option = cache.output_nodes.get(&node);
+    
+            match matrix_info_option {
+                Some(matrix_info) => Matrix::from(( matrix_info.0.0 as *mut T, matrix_info.1 )),
+                None => cache.add_node(device, node)
+            }
+        })
+        /*
         let mut cache = CL_CACHE.lock().unwrap();
 
         let matrix_info_option = cache.output_nodes.get(&node);
@@ -74,6 +88,7 @@ impl CLCache {
             Some(matrix_info) => Matrix::from(( matrix_info.0.0 as *mut T, matrix_info.1 )),
             None => cache.add_node(device, node)
         }
+        */
     }
 
     pub fn arg_kernel_cache<T: GenericOCL>(&mut self, device: CLDevice, matrices: &[(Matrix<T>, usize)], numbers: &[(T, usize)], output: Option<Matrix<T>>, src: String) -> Kernel {
