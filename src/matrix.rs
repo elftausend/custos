@@ -44,7 +44,6 @@ impl <T: GenericOCL+TBlas>Matrix<T> {
     }
 }
 
-
 impl <T: Copy+Default>Matrix<T> {
     pub fn data(&self) -> Buffer<T> {
         self.data

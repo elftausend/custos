@@ -2,7 +2,7 @@ use std::{ffi::c_void, rc::Rc, cell::RefCell};
 
 use crate::{buffer::Device, libs::opencl::api::{create_buffer, MemFlags}, BaseOps, Matrix, AsDev, Gemm, VecRead, BaseDevice};
 
-use super::{api::{CLIntDevice, CommandQueue, Context, create_command_queue, create_context, OCLError, enqueue_read_buffer, wait_for_event}, CL_DEVICES2, GenericOCL, tew, ocl_gemm};
+use super::{api::{CLIntDevice, CommandQueue, Context, create_command_queue, create_context, OCLError, enqueue_read_buffer, wait_for_event, release_mem_object}, CL_DEVICES2, GenericOCL, tew, ocl_gemm, CL_CACHE};
 
 #[derive(Debug, Clone)]
 pub struct InternCLDevice {
@@ -119,6 +119,33 @@ impl CLDevice {
         Ok(InternCLDevice::new(CL_DEVICES2.get_current(device_idx)?))
     }
 }
+
+impl Drop for CLDevice {
+    fn drop(&mut self) {
+        let contents = CL_CACHE.with(|cache| {
+           cache.borrow().output_nodes.clone()         
+        });
+
+        for ptr in self.ptrs.iter() {
+
+            release_mem_object(*ptr).unwrap();
+
+            contents.iter()
+                .for_each(|entry| {
+                    let hm_ptr = ((entry.1).0).0;
+
+                    if &hm_ptr == ptr {
+                        CL_CACHE.with(|cache| {
+                            cache.borrow_mut().output_nodes.remove(&entry.0);
+                        });                        
+                    }
+                });
+        }
+
+        self.ptrs.clear();
+    }
+}
+
 
 /* 
 
