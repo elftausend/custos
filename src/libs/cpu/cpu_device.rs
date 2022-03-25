@@ -1,6 +1,6 @@
 use std::{fmt::Debug, cell::RefCell, rc::Rc};
 
-use crate::{AsDev, BaseDevice, BaseOps, Buffer, Device, Gemm, libs::{cpu::{CPUCache, ops::element_wise_op_mut}, opencl::GenericOCL}, matrix::Matrix, VecRead, number::Number, Dealloc, Threaded};
+use crate::{AsDev, BaseDevice, BaseOps, Buffer, Device, Gemm, libs::{cpu::{CPUCache, ops::element_wise_op_mut}, opencl::GenericOCL}, matrix::Matrix, VecRead, number::Number, Dealloc, Threaded, AsDev2};
 
 use super::{TBlas, CPU_CACHE};
 
@@ -98,6 +98,12 @@ pub struct CPU2 {
 impl CPU2 {
     pub fn new() -> InternCPU {
         InternCPU::new(Rc::new(RefCell::new(CPU2 { ptrs: Vec::new() })))
+    }
+}
+
+impl AsDev2 for InternCPU {
+    fn as_dev(&self) -> crate::Dev2 {
+        crate::Dev2::new(None, Some(self.clone()))
     }
 }
 

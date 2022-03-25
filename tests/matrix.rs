@@ -1,4 +1,4 @@
-use std::{rc::Rc, cell::RefCell, sync::Mutex};
+use std::{rc::Rc, cell::RefCell};
 
 use custos::{AsDev, libs::{cpu::{CPU, ew_op, CPU2}, opencl::{api::OCLError, CLDevice}}, Matrix, BaseOps, VecRead, Buffer, Device, number::Number, range, Dealloc};
 
@@ -241,6 +241,5 @@ fn test_rccpu_2() {
     let dev = get_device2!(BaseOps, f32);
     let result = dev.add(a, b);
 
-    assert_eq!(device.read(result.data()), &[2., 4., 6., 8., 10., 12.]);
-    
+    assert_eq!(device.read(result.data()), &[2., 4., 6., 8., 10., 12.]);   
 }

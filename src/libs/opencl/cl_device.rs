@@ -2,21 +2,42 @@ use std::{ffi::c_void, rc::Rc, cell::RefCell};
 
 use crate::{AsDev, BaseDevice, BaseOps, buffer::Device, Gemm, libs::opencl::api::{create_buffer, MemFlags}, matrix::Matrix, VecRead, Dealloc, Threaded};
 
-use super::{api::{CLIntDevice, CommandQueue, Context, create_command_queue, create_context, enqueue_read_buffer, OCLError, wait_for_event, release_mem_object}, GenericOCL, ocl_gemm, tew, CL_DEVICES, CL_CACHE};
+use super::{api::{CLIntDevice, CommandQueue, Context, create_command_queue, create_context, enqueue_read_buffer, OCLError, wait_for_event, release_mem_object}, GenericOCL, ocl_gemm, tew, CL_DEVICES, CL_CACHE, CL_DEVICES2};
 
 #[derive(Debug, Clone)]
 pub struct InternCLDevice {
     pub cl: Rc<RefCell<CLDevice2>>
 }
+
 impl InternCLDevice {
-    pub fn new(cl: Rc<RefCell<CLDevice2>>) -> InternCLDevice {
+    pub fn new(cl: CLDevice2) -> InternCLDevice {
+        let cl = Rc::new(RefCell::new(cl));
          InternCLDevice { cl }
     }
 }
 
 #[derive(Debug, Clone)]
 pub struct CLDevice2 {
-    pub ptrs: Vec<*mut usize>
+    pub ptrs: Vec<*mut c_void>,
+    pub device: CLIntDevice,
+    pub ctx: Context,
+    pub queue: CommandQueue,
+}
+
+unsafe impl Sync for CLDevice2 {}
+unsafe impl Send for CLDevice2 {}
+
+impl CLDevice2 {
+    pub fn new(device: CLIntDevice) -> Result<CLDevice2, OCLError> {
+        let ctx = create_context(&[device])?;
+        let queue = create_command_queue(&ctx, device)?;
+
+        Ok(CLDevice2 { ptrs: Vec::new(), device, ctx, queue }) 
+    }
+
+    pub fn get(device_idx: usize) -> Result<InternCLDevice, OCLError> {
+        Ok(InternCLDevice::new(CL_DEVICES2.get_current(device_idx)?))
+    }
 }
 
 #[derive(Debug, Clone, Copy)]

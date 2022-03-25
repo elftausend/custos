@@ -129,10 +129,11 @@ macro_rules! get_device2 {
     
     ($t:ident, $g:ident) => {    
         {     
+            use crate::{GDEVICE};
             let dev: Box<dyn $t<$g>> = GDEVICE.with(|d| {
                 let dev = d.borrow();
                 match &dev.cl_device {
-                    Some(_) => Box::new(cl.clone()),
+                    Some(_) => todo!() /*Box::new(cl.clone())*/,
                     None => Box::new(dev.cpu.clone().unwrap()),
                 }
             });
