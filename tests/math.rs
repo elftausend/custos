@@ -1,6 +1,6 @@
-use custos::{AsDev, Buffer, Device, Gemm, libs::{cpu::CPU, opencl::{CLDevice, set_count}}, Matrix, number::Float, range, VecRead};
+ use custos::{AsDev, Buffer, Device, Gemm, libs::{cpu::CPU, opencl::{CLDevice, set_count}}, Matrix, number::Float, range, VecRead};
 
-/*
+/* 
 #[test]
 fn add() -> Result<(), OCLError> {
     
@@ -45,26 +45,26 @@ fn test_element_wise_add_cl() {
 
 #[test]
 fn test_element_wise_add_cpu() {
-    CPU.select();
+    CPU::new().select();
 
     let a = Matrix::from(( (1, 4), &[1, 4, 2, 9] ));
     let b = Matrix::from(( (1, 4), &[1, 4, 2, 9] ));
 
     for _ in range(500) {
         let c = a + b;
-        assert_eq!(vec![2, 8, 4, 18], CPU.read(c.data()));   
+        assert_eq!(vec![2, 8, 4, 18], c.read());   
     }
 }
 
 #[test]
 fn test_ew_add_cpu_a_cl() {
-    CPU.select();
+    CPU::new().select();
 
     let a = Matrix::from(( (1, 4), &[1, 4, 2, 9] ));
     let b = Matrix::from(( (1, 4), &[1, 4, 2, 9] ));
 
     let c = a + b;
-    assert_eq!(vec![2, 8, 4, 18], CPU.read(c.data()));   
+    assert_eq!(vec![2, 8, 4, 18], c.read());   
 
     CLDevice::get(0).unwrap().select();
 
@@ -78,7 +78,7 @@ fn test_ew_add_cpu_a_cl() {
 
 #[test]
 fn test_ew_sub_cpu_a_cl() {
-    CPU.select();
+    CPU::new().select();
 
     let a = Matrix::from(( (1, 4), &[1u32, 4, 2, 9] ));
     let b = Matrix::from(( (1, 4), &[1, 4, 2, 9] ));
@@ -98,14 +98,14 @@ fn test_ew_sub_cpu_a_cl() {
 
 #[test]
 fn test_ew_mul_cpu_a_cl() {
-    CPU.select();
+    let device = CPU::new().select();
 
     let a = Matrix::from(( (1, 4), &[1, 4, 2, 9] ));
     let b = Matrix::from(( (1, 4), &[1, 4, 2, 9] ));
 
     for _ in range(0..500) {
         let c = a * b;
-        assert_eq!(vec![1, 16, 4, 81], CPU.read(c.data()));   
+        assert_eq!(vec![1, 16, 4, 81], device.read(c.data()));   
     }
 
     CLDevice::get(0).unwrap().select();
@@ -122,7 +122,7 @@ fn test_ew_mul_cpu_a_cl() {
 
 #[test]
 fn test_gemm_cpu() {
-    CPU.select();
+    CPU::new().select();
 
     let a = Matrix::from(( (1, 4), &[1f64, 4., 2., 9.] ));
     let b = Matrix::from(( (4, 1), &[5., 4., 2., 9.] ));
@@ -137,24 +137,24 @@ fn test_gemm_cpu() {
 
 #[test]
 fn test_gemm() {
-    CPU.select();
+    let cpu = CPU::new().select();
 
     let a = Matrix::from(( (1, 4), &[1., 4., 2., 9.] ));
     let b = Matrix::from(( (4, 1), &[5., 4., 2., 9.] ));
 
     let device = CLDevice::get(0).unwrap();
     
-    let a_cl = Matrix::from(( device, (1, 4), &[1f32, 4., 2., 9.] ));
-    let b_cl = Matrix::from(( device, (4, 1), &[5., 4., 2., 9.] ));
+    let a_cl = Matrix::from(( &device, (1, 4), [1f32, 4., 2., 9.] ));
+    let b_cl = Matrix::from(( &device, (4, 1), [5., 4., 2., 9.] ));
     
     for _ in range(500) {
         
-        let c1 = CPU.gemm(a, b);
+        let c1 = cpu.gemm(a, b);
         let c3 = device.gemm(a_cl, b_cl);
         let c2 = a.gemm(b);
 
-        assert_eq!(CPU.read(c1.data()), CPU.read(c2.data()));
-        assert_eq!(CPU.read(c1.data()), device.read(c3.data()));
+        assert_eq!(cpu.read(c1.data()), cpu.read(c2.data()));
+        assert_eq!(cpu.read(c1.data()), device.read(c3.data()));
         
     }
 
@@ -207,12 +207,13 @@ fn test_larger_gemm() {
 
     roughly_equal(&device.read(c.data()), should);
 
-    CPU.select();
+    let cpu = CPU::new().select();
 
     let a = Matrix::from(((5, 7), arr1));
     let b = Matrix::from(((7, 10), arr2));
 
     let cpu_c = a.gemm(b);
 
-    roughly_equal(&device.read(c.data()), &CPU.read(cpu_c.data()));
+    roughly_equal(&device.read(c.data()), &cpu.read(cpu_c.data()));
 }
+

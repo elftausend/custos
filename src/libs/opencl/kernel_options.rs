@@ -1,6 +1,6 @@
 use crate::{matrix::Matrix, number::Number};
 
-use super::{api::{enqueue_nd_range_kernel, OCLError, set_kernel_arg}, CL_CACHE, cl_cache::Node, CLCache, CLDevice, GenericOCL};
+use super::{api::{enqueue_nd_range_kernel, OCLError, set_kernel_arg}, CL_CACHE, cl_cache::Node, CLCache, GenericOCL, cl_device::InternCLDevice};
 
 pub trait KernelArg<T> {
     fn matrix(&self) -> Option<Matrix<T>>;
@@ -48,11 +48,11 @@ pub struct KernelOptions<'a, T> {
     gws: [usize; 3],
     lws: Option<[usize; 3]>,
     wd: usize,
-    device: CLDevice,
+    device: InternCLDevice,
 }
 
 impl <'a, T: GenericOCL>KernelOptions<'a, T> {
-    pub fn new(device: CLDevice, lhs: Matrix<T>, gws: [usize; 3], src: &'a str) -> KernelOptions<'a, T> {
+    pub fn new(device: InternCLDevice, lhs: Matrix<T>, gws: [usize; 3], src: &'a str) -> KernelOptions<'a, T> {
         let wd;
         if gws[0] == 0 {
             panic!("wrong gws")
@@ -99,11 +99,11 @@ impl <'a, T: GenericOCL>KernelOptions<'a, T> {
         
     }
     pub fn with_output(&mut self, out_dims: (usize, usize)) -> &mut KernelOptions<'a, T> {
-        self.output = Some(CLCache::get(self.device, Node::new(out_dims)));
+        self.output = Some(CLCache::get(self.device.clone(), Node::new(out_dims)));
         self
     }
     pub fn run(&'a mut self) -> Result<Matrix<T>, OCLError> {
-        let kernel = CL_CACHE.with(|cache| cache.borrow_mut().arg_kernel_cache(self.device, &self.tensor_args, &self.number_args, self.output, self.src.to_string()));
+        let kernel = CL_CACHE.with(|cache| cache.borrow_mut().arg_kernel_cache(self.device.clone(), &self.tensor_args, &self.number_args, self.output, self.src.to_string()));
                
         for index in 0..self.number_args.len() {
             let arg = self.number_args.get(index).unwrap();

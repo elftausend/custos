@@ -1,13 +1,26 @@
-use custos::{libs::cpu::CPU2, AsDev2, Matrix};
+use custos::{libs::{cpu::CPU, opencl::cl_device::CLDevice}, AsDev, Matrix, range};
 
 
 #[test]
 fn test_rc_get_dev() {
-    CPU2::new().select();
+    
+    {
+        CPU::new().select();
+        let a = Matrix::from( ( (2, 3), &[1., 2., 3., 4., 5., 6.,]) );
+        let b = Matrix::from( ( (2, 3), &[6., 5., 4., 3., 2., 1.,]) );
 
-    let a = Matrix::from( ((2, 3), &[1., 2., 3., 4., 5., 6.,]) );
-    let b = Matrix::from( ((2, 3), &[6., 5., 4., 3., 2., 1.,]) );
+        for _ in range(100) {
+            let c = a + b;
+            assert_eq!(&[7., 7., 7., 7., 7., 7.,], c.as_cpu_slice());
+        }
+        
+    }
+    CLDevice::get(0).unwrap().select();
 
-    let c = a+b;   
+    let a = Matrix::from( ( (2, 3), &[1f32, 2., 3., 4., 5., 6.,]) );
+    let b = Matrix::from( ( (2, 3), &[6., 5., 4., 3., 2., 1.,]) );
+
+    let c = a+b;
+    println!("{:?}", c.read());
     
 }

@@ -1,10 +1,9 @@
-use std::sync::Mutex;
 use std::cell::RefCell;
 
 //pub use libs::*;
 pub use buffer::*;
 pub use count::*;
-use libs::{cpu::{CPU, InternCPU}, opencl::{CLDevice, cl_device::InternCLDevice}};
+use libs::{cpu::{InternCPU}, opencl::{cl_device::InternCLDevice}};
 pub use matrix::*;
 
 pub mod libs;
@@ -15,6 +14,8 @@ mod buffer;
 pub mod number;
 mod matrix;
 
+
+/*
 #[derive(Debug, Clone)]
 pub struct Threaded<D: Dealloc> {
     pub device: D,
@@ -79,6 +80,8 @@ macro_rules! get_device {
     }
 }
 
+*/
+
 ///All 'base' traits?
 pub trait BaseDevice<T>: Device<T> + BaseOps<T> + VecRead<T> + Gemm<T> {}
 
@@ -94,48 +97,45 @@ pub trait Dealloc {
     fn dealloc_cache();
 }
 
-
-
-
 #[derive(Debug, Clone)]
-pub struct Dev2 {
+pub struct Dev {
     pub cl_device: Option<InternCLDevice>,
     pub cpu: Option<InternCPU>,
 }   
 
-impl Dev2 {
-    pub fn new(cl_device: Option<InternCLDevice>, cpu: Option<InternCPU>) -> Dev2 {
-        Dev2 { cl_device, cpu }
+impl Dev {
+    pub fn new(cl_device: Option<InternCLDevice>, cpu: Option<InternCPU>) -> Dev {
+        Dev { cl_device, cpu }
     }
 }
 
 thread_local! {
-    pub static GDEVICE: RefCell<Dev2> = RefCell::new(Dev2 { cl_device: None, cpu: None });
+    pub static GLOBAL_DEVICE: RefCell<Dev> = RefCell::new(Dev { cl_device: None, cpu: None });
 }
 
-pub trait AsDev2 {
-    fn as_dev(&self) -> Dev2;
+pub trait AsDev {
+    fn as_dev(&self) -> Dev;
     ///selects self as global device
-    fn select(self) -> Self where Self: AsDev2+Clone {
+    fn select(self) -> Self where Self: AsDev+Clone {
         let dev = self.as_dev();
-        GDEVICE.with(|d| *d.borrow_mut() = dev);        
+        GLOBAL_DEVICE.with(|d| *d.borrow_mut() = dev);        
         self
     }
 }
     
-
 #[macro_export]
-macro_rules! get_device2 {
+macro_rules! get_device {
     
     ($t:ident, $g:ident) => {    
         {     
-            use crate::{GDEVICE};
-            let dev: Box<dyn $t<$g>> = GDEVICE.with(|d| {
+            use crate::{GLOBAL_DEVICE};
+            let dev: Box<dyn $t<$g>> = GLOBAL_DEVICE.with(|d| {
                 let dev = d.borrow();
-                match &dev.cl_device {
-                    Some(_) => todo!() /*Box::new(cl.clone())*/,
-                    None => Box::new(dev.cpu.clone().unwrap()),
-                }
+                let dev: Box<dyn $t<$g>> = match &dev.cl_device {
+                    Some(cl) => Box::new(cl.clone()),
+                    None => Box::new(dev.cpu.clone().expect("No device selected")),
+                };
+                dev
             });
             dev
         }

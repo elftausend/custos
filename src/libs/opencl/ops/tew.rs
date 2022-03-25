@@ -1,6 +1,6 @@
 use std::fmt::Write;
 
-use crate::{libs::opencl::{api::OCLError, CLDevice, GenericOCL, KernelOptions}, matrix::Matrix};
+use crate::{libs::opencl::{api::OCLError, GenericOCL, KernelOptions, cl_device::InternCLDevice}, matrix::Matrix};
 
 trait Both {
     fn as_str<'a, >() -> &'a str;
@@ -25,7 +25,7 @@ impl <T: !GenericOCL>Both for T {
 //std::any::TypeId::of::<T>() ... check all impl
 
 
-pub fn tew<T: GenericOCL>(device: CLDevice, lhs: Matrix<T>, rhs: Matrix<T>, op: &str) -> Result<Matrix<T>, OCLError> {
+pub fn tew<T: GenericOCL>(device: InternCLDevice, lhs: Matrix<T>, rhs: Matrix<T>, op: &str) -> Result<Matrix<T>, OCLError> {
     let mut src = String::new();
     
     write!(&mut src, r#"

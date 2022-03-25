@@ -1,8 +1,9 @@
-use custos::{AsDev, BaseDevice, get_device, GLOBAL_DEVICE, libs::{cpu::CPU, opencl::CLDevice}, Matrix, VecRead};
+
+use custos::{AsDev, BaseDevice, get_device, GLOBAL_DEVICE, libs::{cpu::CPU, opencl::CLDevice}, Matrix, VecRead, Device};
 
 #[test]
 fn test_matrix_read() {
-    CPU.select();
+    CPU::new().select();
 
     let read = get_device!(VecRead, f32);
 

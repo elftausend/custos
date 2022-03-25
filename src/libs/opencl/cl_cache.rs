@@ -2,7 +2,7 @@ use std::{any::TypeId, collections::HashMap, ffi::c_void, cell::RefCell};
 
 use crate::matrix::Matrix;
 
-use super::{api::{build_program, create_kernels_in_program, create_program_with_source, Kernel, set_kernel_arg}, CLDevice, GenericOCL};
+use super::{api::{build_program, create_kernels_in_program, create_program_with_source, Kernel, set_kernel_arg}, GenericOCL, cl_device::InternCLDevice};
 
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
 pub struct Node {
@@ -63,13 +63,13 @@ pub struct CLCache {
 }
 
 impl CLCache {
-    pub fn add_node<T: GenericOCL>(&mut self, device: CLDevice, node: Node) -> Matrix<T> {
+    pub fn add_node<T: GenericOCL>(&mut self, device: InternCLDevice, node: Node) -> Matrix<T> {
         let out = Matrix::new(device, node.out_dims);
         self.output_nodes.insert(node, ( OclPtr(out.ptr() as *mut c_void), out.dims() ));
         out
 
     }
-    pub fn get<T: GenericOCL>(device: CLDevice, node: Node) -> Matrix<T> {
+    pub fn get<T: GenericOCL>(device: InternCLDevice, node: Node) -> Matrix<T> {
         CL_CACHE.with(|cache| {
             let mut cache = cache.borrow_mut();
             let matrix_info_option = cache.output_nodes.get(&node);
@@ -91,7 +91,7 @@ impl CLCache {
         */
     }
 
-    pub fn arg_kernel_cache<T: GenericOCL>(&mut self, device: CLDevice, matrices: &[(Matrix<T>, usize)], numbers: &[(T, usize)], output: Option<Matrix<T>>, src: String) -> Kernel {
+    pub fn arg_kernel_cache<T: GenericOCL>(&mut self, device: InternCLDevice, matrices: &[(Matrix<T>, usize)], numbers: &[(T, usize)], output: Option<Matrix<T>>, src: String) -> Kernel {
         let type_ids = vec![TypeId::of::<T>(); numbers.len()];
         
         let mems: Vec<OclPtr> = matrices.iter()
@@ -105,8 +105,8 @@ impl CLCache {
         match kernel { 
             Some(kernel) => kernel.clone(),
             None => {    
-                let program = create_program_with_source(device.get_ctx(), &src).unwrap();
-                build_program(&program, &[device.device], Some("-cl-std=CL1.2")).unwrap(); //-cl-single-precision-constant
+                let program = create_program_with_source(&device.get_ctx(), &src).unwrap();
+                build_program(&program, &[device.device()], Some("-cl-std=CL1.2")).unwrap(); //-cl-single-precision-constant
                 let kernel = &create_kernels_in_program(&program).unwrap()[0];
                 
                 for (number, idx) in numbers {

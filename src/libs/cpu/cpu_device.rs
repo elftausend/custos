@@ -1,15 +1,15 @@
 use std::{fmt::Debug, cell::RefCell, rc::Rc};
 
-use crate::{AsDev, BaseDevice, BaseOps, Buffer, Device, Gemm, libs::{cpu::{CPUCache, ops::element_wise_op_mut}, opencl::GenericOCL}, matrix::Matrix, VecRead, number::Number, Dealloc, Threaded, AsDev2};
+use crate::{BaseOps, Buffer, Device, Gemm, libs::{cpu::{CPUCache, ops::element_wise_op_mut}, opencl::GenericOCL}, matrix::Matrix, VecRead, number::Number, Dealloc, AsDev, BaseDevice};
 
 use super::{TBlas, CPU_CACHE};
 
 #[derive(Debug, Clone)]
 pub struct InternCPU {
-    pub cpu: Rc<RefCell<CPU2>>
+    pub cpu: Rc<RefCell<CPU>>
 }
 impl InternCPU {
-    pub fn new(cpu: Rc<RefCell<CPU2>>) -> InternCPU {
+    pub fn new(cpu: Rc<RefCell<CPU>>) -> InternCPU {
         InternCPU { cpu }
     }
 }
@@ -38,15 +38,15 @@ impl <T: Copy+Default>VecRead<T> for InternCPU {
 
 impl <T: Number>BaseOps<T> for InternCPU {
     fn add(&self, lhs: Matrix<T>, rhs: Matrix<T>) -> Matrix<T> {
-        ew_op(lhs, rhs, | x, y| x+y)
+        ew_op(self.clone(), lhs, rhs, | x, y| x+y)
     }
 
     fn sub(&self, lhs: Matrix<T>, rhs: Matrix<T>) -> Matrix<T> {
-        ew_op(lhs, rhs, | x, y| x-y)
+        ew_op(self.clone(), lhs, rhs, | x, y| x-y)
     }
 
     fn mul(&self, lhs: Matrix<T>, rhs: Matrix<T>) -> Matrix<T> {
-        ew_op(lhs, rhs, | x, y| x*y)
+        ew_op(self.clone(), lhs, rhs, | x, y| x*y)
     }
 }
 
@@ -71,41 +71,67 @@ impl <T: TBlas+Default+Copy>Gemm<T> for InternCPU {
         let k = lhs.dims().1;
         let n = rhs.dims().1;
 
-        let mut c = CPUCache::get((m, n));
+        let mut c = CPUCache::get(self.clone(),(m, n));
         T::gemm(m, n, k, lhs.as_cpu_slice(), rhs.as_cpu_slice(), c.as_cpu_slice_mut());
         c
     }
 }
 
-impl Drop for CPU2 {
+impl Drop for CPU {
     fn drop(&mut self) {
-        InternCPU::dealloc_cache();
-        for ptr in &self.ptrs {
+        let contents = CPU_CACHE.with(|cache| {
+           cache.borrow().nodes.clone()         
+        });
+
+        for ptr in self.ptrs.iter() {
+
             unsafe {    
                 drop(Box::from_raw(*ptr));
             }
+
+            contents.iter()
+                .for_each(|entry| {
+                    let hm_ptr = ((entry.1).0).0;
+
+                    if &hm_ptr == ptr {
+                        CPU_CACHE.with(|cache| {
+                            cache.borrow_mut().nodes.remove(&entry.0);
+                        });                        
+                    }
+                });
         }
+
         self.ptrs.clear();
     }
 }
 
 
 #[derive(Debug, Clone)]
-pub struct CPU2 {
+pub struct CPU {
     pub ptrs: Vec<*mut usize>
 }
 
-impl CPU2 {
+impl CPU {
     pub fn new() -> InternCPU {
-        InternCPU::new(Rc::new(RefCell::new(CPU2 { ptrs: Vec::new() })))
+        InternCPU::new(Rc::new(RefCell::new(CPU { ptrs: Vec::new() })))
     }
 }
 
-impl AsDev2 for InternCPU {
-    fn as_dev(&self) -> crate::Dev2 {
-        crate::Dev2::new(None, Some(self.clone()))
+impl AsDev for InternCPU {
+    fn as_dev(&self) -> crate::Dev {
+        crate::Dev::new(None, Some(self.clone()))
     }
 }
+
+impl <T: GenericOCL+TBlas>BaseDevice<T> for InternCPU {}
+
+pub fn ew_op<T: Copy+Default, F: Fn(T, T) -> T>(device: InternCPU, lhs: Matrix<T>, rhs: Matrix<T>, f: F) -> Matrix<T> {
+    let mut out = CPUCache::get::<T>(device, lhs.dims());
+    element_wise_op_mut(lhs.as_cpu_slice(), rhs.as_cpu_slice(), out.as_cpu_slice_mut(), f);
+    out
+}
+
+/* 
 
 #[derive(Debug, Clone, Copy)]
 pub struct CPU;
@@ -135,11 +161,7 @@ impl <T: TBlas+Default+Copy>Gemm<T> for CPU {
 
 impl <T: GenericOCL+TBlas>BaseDevice<T> for CPU {}
 
-pub fn ew_op<T: Copy+Default, F: Fn(T, T) -> T>(lhs: Matrix<T>, rhs: Matrix<T>, f: F) -> Matrix<T> {
-    let mut out = CPUCache::get::<T>(lhs.dims());
-    element_wise_op_mut(lhs.as_cpu_slice(), rhs.as_cpu_slice(), out.as_cpu_slice_mut(), f);
-    out
-}
+
 
 impl <T: Number>BaseOps<T> for CPU {
     fn add(&self, lhs: Matrix<T>, rhs: Matrix<T>) -> Matrix<T> {
@@ -205,3 +227,4 @@ impl Dealloc for CPU {
         });
     }
 }
+*/
