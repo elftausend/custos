@@ -14,10 +14,10 @@ fn test_range() {
 fn test_use_range_for_ew_add() {
     let device = CLDevice::get(0).unwrap().select();
 
-    let a = Matrix::from(( (1, 4), &[1, 4, 2, 9] ));
-    let b = Matrix::from(( (1, 4), &[1, 4, 2, 9] ));
+    let a = Matrix::from(( &device, (1, 4), [1, 4, 2, 9] ));
+    let b = Matrix::from(( &device, (1, 4), [1, 4, 2, 9] ));
 
-    let z = Matrix::from(( (1, 4), &[1, 2, 3, 4] ));
+    let z = Matrix::from(( &device, (1, 4), [1, 2, 3, 4] ));
 
     for _ in range(100) {
         let c = a + b;
@@ -30,10 +30,10 @@ fn test_use_range_for_ew_add() {
 
     assert!(get_count() == 0);
 
-    let a = Matrix::from(( (1, 5), &[1, 4, 2, 9, 1] ));
-    let b = Matrix::from(( (1, 5), &[1, 4, 2, 9, 1] ));
+    let a = Matrix::from(( &device, (1, 5), [1, 4, 2, 9, 1] ));
+    let b = Matrix::from(( &device, (1, 5), [1, 4, 2, 9, 1] ));
 
-    let z = Matrix::from(( (1, 5), &[1, 2, 3, 4, 5] ));
+    let z = Matrix::from(( &device, (1, 5), [1, 2, 3, 4, 5] ));
 
     for _ in range(100) {
         let c = a + b;
@@ -49,10 +49,10 @@ fn test_use_range_for_ew_add() {
 
 #[test]
 fn test_nested_for() {
-    CPU::new().select();
+    let device = CPU::new().select();
     
-    let a = Matrix::from(( (1, 5), &[1, 4, 2, 9, 1] ));
-    let b = Matrix::from(( (1, 5), &[1, 4, 2, 9, 1] ));   
+    let a = Matrix::from(( &device, (1, 5), [1, 4, 2, 9, 1] ));
+    let b = Matrix::from(( &device, (1, 5), [1, 4, 2, 9, 1] ));   
 
     for _ in range(100) {
         let c = a + b;

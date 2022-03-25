@@ -1,21 +1,21 @@
 
-use custos::{AsDev, BaseDevice, get_device, GLOBAL_DEVICE, libs::{cpu::CPU, opencl::CLDevice}, Matrix, VecRead, Device};
+use custos::{AsDev, BaseDevice, get_device, GLOBAL_DEVICE, libs::{cpu::{CPU, InternCPU}, opencl::{CLDevice, cl_device::InternCLDevice}}, Matrix, VecRead, Device};
 
 #[test]
 fn test_matrix_read() {
-    CPU::new().select();
+    let device = CPU::new().select();
 
     let read = get_device!(VecRead, f32);
 
-    let matrix = Matrix::from(((2, 3), &[1.51, 6.123, 7., 5.21, 8.62, 4.765]));
+    let matrix = Matrix::from(( &device, (2, 3), [1.51, 6.123, 7., 5.21, 8.62, 4.765]));
     let read = read.read(matrix.data());
     assert_eq!(&read, &[1.51, 6.123, 7., 5.21, 8.62, 4.765]);
 
-    CLDevice::get(0).unwrap().select();
+    let device = CLDevice::get(0).unwrap().select();
 
     let read = get_device!(VecRead, f32);
 
-    let matrix = Matrix::from(((2, 3), &[1.51, 6.123, 7., 5.21, 8.62, 4.765]));
+    let matrix = Matrix::from(( &device, (2, 3), [1.51, 6.123, 7., 5.21, 8.62, 4.765]));
     let read = read.read(matrix.data());
     assert_eq!(&read, &[1.51, 6.123, 7., 5.21, 8.62, 4.765]);
     

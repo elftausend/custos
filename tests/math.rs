@@ -33,8 +33,8 @@ pub fn read<T, D: Device<T>>(device: D, buf: Buffer<T>) -> Vec<T> where D: VecRe
 fn test_element_wise_add_cl() {
     let device = CLDevice::get(0).unwrap().select();
 
-    let a = Matrix::from(( (1, 4), &[1, 4, 2, 9] ));
-    let b = Matrix::from(( (1, 4), &[1, 4, 2, 9] ));
+    let a = Matrix::from(( &device, (1, 4), [1, 4, 2, 9] ));
+    let b = Matrix::from(( &device,  (1, 4), [1, 4, 2, 9] ));
     
     for _ in 0..500 {
         let c = a + b;
@@ -45,10 +45,10 @@ fn test_element_wise_add_cl() {
 
 #[test]
 fn test_element_wise_add_cpu() {
-    CPU::new().select();
+    let device = CPU::new().select();
 
-    let a = Matrix::from(( (1, 4), &[1, 4, 2, 9] ));
-    let b = Matrix::from(( (1, 4), &[1, 4, 2, 9] ));
+    let a = Matrix::from(( &device, (1, 4), [1, 4, 2, 9] ));
+    let b = Matrix::from(( &device, (1, 4), [1, 4, 2, 9] ));
 
     for _ in range(500) {
         let c = a + b;
@@ -58,18 +58,18 @@ fn test_element_wise_add_cpu() {
 
 #[test]
 fn test_ew_add_cpu_a_cl() {
-    CPU::new().select();
+    let device = CPU::new().select();
 
-    let a = Matrix::from(( (1, 4), &[1, 4, 2, 9] ));
-    let b = Matrix::from(( (1, 4), &[1, 4, 2, 9] ));
+    let a = Matrix::from(( &device, (1, 4), [1, 4, 2, 9] ));
+    let b = Matrix::from(( &device, (1, 4), [1, 4, 2, 9] ));
 
     let c = a + b;
     assert_eq!(vec![2, 8, 4, 18], c.read());   
 
-    CLDevice::get(0).unwrap().select();
+    let device = CLDevice::get(0).unwrap().select();
 
-    let a = Matrix::from(( (1, 4), &[1, 4, 2, 9] ));
-    let b = Matrix::from(( (1, 4), &[1, 4, 2, 9] ));
+    let a = Matrix::from(( &device, (1, 4), [1, 4, 2, 9] ));
+    let b = Matrix::from(( &device, (1, 4), [1, 4, 2, 9] ));
 
     let c = a + b;
     assert_eq!(vec![2, 8, 4, 18], c.read());
@@ -78,18 +78,18 @@ fn test_ew_add_cpu_a_cl() {
 
 #[test]
 fn test_ew_sub_cpu_a_cl() {
-    CPU::new().select();
+    let device = CPU::new().select();
 
-    let a = Matrix::from(( (1, 4), &[1u32, 4, 2, 9] ));
-    let b = Matrix::from(( (1, 4), &[1, 4, 2, 9] ));
+    let a = Matrix::from(( &device, (1, 4), [1u32, 4, 2, 9] ));
+    let b = Matrix::from(( &device, (1, 4), [1, 4, 2, 9] ));
 
     let c = a - b;
     assert_eq!(vec![0, 0, 0, 0], c.read());
 
-    CLDevice::get(0).unwrap().select();
+    let device = CLDevice::get(0).unwrap().select();
 
-    let a = Matrix::from(( (1, 4), &[1u32, 4, 2, 9] ));
-    let b = Matrix::from(( (1, 4), &[1, 4, 2, 9] ));
+    let a = Matrix::from(( &device, (1, 4), [1u32, 4, 2, 9] ));
+    let b = Matrix::from(( &device, (1, 4), [1, 4, 2, 9] ));
 
     let c = a - b;
     assert_eq!(vec![0, 0, 0, 0], c.read());
@@ -100,18 +100,18 @@ fn test_ew_sub_cpu_a_cl() {
 fn test_ew_mul_cpu_a_cl() {
     let device = CPU::new().select();
 
-    let a = Matrix::from(( (1, 4), &[1, 4, 2, 9] ));
-    let b = Matrix::from(( (1, 4), &[1, 4, 2, 9] ));
+    let a = Matrix::from(( &device, (1, 4), [1, 4, 2, 9] ));
+    let b = Matrix::from(( &device, (1, 4), [1, 4, 2, 9] ));
 
     for _ in range(0..500) {
         let c = a * b;
         assert_eq!(vec![1, 16, 4, 81], device.read(c.data()));   
     }
 
-    CLDevice::get(0).unwrap().select();
+    let device = CLDevice::get(0).unwrap().select();
 
-    let a = Matrix::from(( (1, 4), &[1, 4, 2, 9] ));
-    let b = Matrix::from(( (1, 4), &[1, 4, 2, 9] ));
+    let a = Matrix::from(( &device, (1, 4), [1, 4, 2, 9] ));
+    let b = Matrix::from(( &device, (1, 4), [1, 4, 2, 9] ));
 
     for _ in range((0, 500)) {
         let c = a * b;
@@ -122,10 +122,10 @@ fn test_ew_mul_cpu_a_cl() {
 
 #[test]
 fn test_gemm_cpu() {
-    CPU::new().select();
+    let device = CPU::new().select();
 
-    let a = Matrix::from(( (1, 4), &[1f64, 4., 2., 9.] ));
-    let b = Matrix::from(( (4, 1), &[5., 4., 2., 9.] ));
+    let a = Matrix::from(( &device, (1, 4), [1f64, 4., 2., 9.] ));
+    let b = Matrix::from(( &device, (4, 1), [5., 4., 2., 9.] ));
 
     for _ in range(500) {
                 
@@ -139,8 +139,8 @@ fn test_gemm_cpu() {
 fn test_gemm() {
     let cpu = CPU::new().select();
 
-    let a = Matrix::from(( (1, 4), &[1., 4., 2., 9.] ));
-    let b = Matrix::from(( (4, 1), &[5., 4., 2., 9.] ));
+    let a = Matrix::from(( &cpu, (1, 4), [1., 4., 2., 9.] ));
+    let b = Matrix::from(( &cpu, (4, 1), [5., 4., 2., 9.] ));
 
     let device = CLDevice::get(0).unwrap();
     
@@ -172,7 +172,7 @@ fn roughly_equal<T: Float>(lhs: &[T], rhs: &[T]) {
 #[test]
 fn test_larger_gemm() {
     //5x7 
-    let arr1 = &[
+    let arr1 = [
         9., 1., 3., 6., 7., 3., 63f32,
         93., 51., 23., 36., 87., 3., 63.,
         9., 1., 43., 46.3, 7., 3., 63.,
@@ -181,7 +181,7 @@ fn test_larger_gemm() {
     ];
 
     //7x10
-    let arr2 = &[
+    let arr2 = [
         1f32, 2., 3., 44., 55., 6., 7., 8., 95., 103.,
         14., 2., 33., 4., 75., 6., 37., 8., 9., 120.,
         31., 2., 3., 4., 5., 6.51, 7.45, 8., 9., 10.,
@@ -191,7 +191,7 @@ fn test_larger_gemm() {
         1., 2.91, 3.909, 4., 5.634, 36., 7., 8., 9., 130.
     ];
 
-    let should = &[2237.0f32, 1693.33, 366.2938, 728.0, 
+    let should = [2237.0f32, 1693.33, 366.2938, 728.0, 
                 1264.742, 2713.53, 1271.35, 1186.0, 1662.0, 11026.0, 14711.0, 9481.33, 2692.886, 
                 5144.0, 10308.742, 4307.73, 10668.35, 6898.0, 11262.0, 37628.0, 16090.899, 11606.53, 607.1938, 1049.2, 1698.482, 3215.73, 
                 2657.45, 3440.4, 2384.7, 15496.3, 5246.9, 2034.53, 1189.1938, 1265.2, 6916.482, 
@@ -200,17 +200,17 @@ fn test_larger_gemm() {
 
     let device = CLDevice::get(0).unwrap().select();
 
-    let a = Matrix::from(((5, 7), arr1));
-    let b = Matrix::from(((7, 10), arr2));
+    let a = Matrix::from(( &device, (5, 7), arr1));
+    let b = Matrix::from(( &device, (7, 10), arr2));
 
     let c = a.gemm(b);
 
-    roughly_equal(&device.read(c.data()), should);
+    roughly_equal(&device.read(c.data()), &should);
 
     let cpu = CPU::new().select();
 
-    let a = Matrix::from(((5, 7), arr1));
-    let b = Matrix::from(((7, 10), arr2));
+    let a = Matrix::from(( &cpu, (5, 7), arr1));
+    let b = Matrix::from(( &cpu, (7, 10), arr2));
 
     let cpu_c = a.gemm(b);
 

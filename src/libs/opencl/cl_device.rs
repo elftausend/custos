@@ -9,6 +9,12 @@ pub struct InternCLDevice {
     pub cl: Rc<RefCell<CLDevice>>
 }
 
+impl From<Rc<RefCell<CLDevice>>> for InternCLDevice {
+    fn from(cl: Rc<RefCell<CLDevice>>) -> Self {
+        InternCLDevice { cl }
+    }
+}
+
 impl InternCLDevice {
     pub fn new(cl: CLDevice) -> InternCLDevice {
         let cl = Rc::new(RefCell::new(cl));
@@ -83,7 +89,7 @@ impl <T: Default+Copy>VecRead<T> for InternCLDevice {
 
 impl AsDev for InternCLDevice {
     fn as_dev(&self) -> crate::Dev {
-        crate::Dev::new(Some(self.clone()), None)
+        crate::Dev::new(Some(Rc::downgrade(&self.cl)), None)
     }
 }
 

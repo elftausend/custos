@@ -67,6 +67,8 @@ impl <T>From<(*mut T, (usize, usize))> for Matrix<T> {
     }
 }
 
+//no Weak ptr:
+/*
 impl <T: Copy+Default, const N: usize>From<((usize, usize), &[T; N])> for Matrix<T> {
     fn from(dims_slice: ((usize, usize), &[T; N])) -> Self {
         //let device = get_device::<T>();
@@ -79,6 +81,7 @@ impl <T: Copy+Default, const N: usize>From<((usize, usize), &[T; N])> for Matrix
         }        
     }
 }
+*/
 
 impl <T: Copy, D: Device<T>, const N: usize>From<(&D, (usize, usize), [T; N])> for Matrix<T> {
     fn from(dims_slice: (&D, (usize, usize), [T; N])) -> Self {

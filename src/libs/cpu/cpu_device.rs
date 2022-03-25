@@ -119,7 +119,7 @@ impl CPU {
 
 impl AsDev for InternCPU {
     fn as_dev(&self) -> crate::Dev {
-        crate::Dev::new(None, Some(self.clone()))
+        crate::Dev::new(None, Some(Rc::downgrade(&self.cpu)))
     }
 }
 

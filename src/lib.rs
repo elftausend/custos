@@ -1,9 +1,9 @@
-use std::cell::RefCell;
+use std::{cell::RefCell, rc::Weak};
 
 //pub use libs::*;
 pub use buffer::*;
 pub use count::*;
-use libs::{cpu::{InternCPU}, opencl::{cl_device::InternCLDevice}};
+use libs::{cpu::{InternCPU, CPU}, opencl::{cl_device::InternCLDevice, CLDevice}};
 pub use matrix::*;
 
 pub mod libs;
@@ -99,12 +99,12 @@ pub trait Dealloc {
 
 #[derive(Debug, Clone)]
 pub struct Dev {
-    pub cl_device: Option<InternCLDevice>,
-    pub cpu: Option<InternCPU>,
+    pub cl_device: Option<Weak<RefCell<CLDevice>>>,
+    pub cpu: Option<Weak<RefCell<CPU>>>,
 }   
 
 impl Dev {
-    pub fn new(cl_device: Option<InternCLDevice>, cpu: Option<InternCPU>) -> Dev {
+    pub fn new(cl_device: Option<Weak<RefCell<CLDevice>>>, cpu: Option<Weak<RefCell<CPU>>>) -> Dev {
         Dev { cl_device, cpu }
     }
 }
@@ -128,12 +128,12 @@ macro_rules! get_device {
     
     ($t:ident, $g:ident) => {    
         {     
-            use crate::{GLOBAL_DEVICE};
+            use crate::{GLOBAL_DEVICE, InternCLDevice, InternCPU};
             let dev: Box<dyn $t<$g>> = GLOBAL_DEVICE.with(|d| {
                 let dev = d.borrow();
                 let dev: Box<dyn $t<$g>> = match &dev.cl_device {
-                    Some(cl) => Box::new(cl.clone()),
-                    None => Box::new(dev.cpu.clone().expect("No device selected")),
+                    Some(cl) => Box::new(InternCLDevice::from(cl.clone().upgrade().expect("No device selected"))),
+                    None => Box::new(InternCPU::new(dev.cpu.as_ref().expect("No device selected").upgrade().expect("No device selected"))),
                 };
                 dev
             });
