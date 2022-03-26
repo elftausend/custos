@@ -105,7 +105,6 @@ pub struct CLDevice {
 }
 
 unsafe impl Sync for CLDevice {}
-unsafe impl Send for CLDevice {}
 
 impl CLDevice {
     pub fn new(device: CLIntDevice) -> Result<CLDevice, OCLError> {
