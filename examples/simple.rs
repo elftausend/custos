@@ -1,7 +1,6 @@
+use custos::{libs::{cpu::CPU, opencl::CLDevice}, AsDev, Matrix, BaseOps, VecRead, Error};
 
-use custos::{libs::{cpu::CPU, opencl::{CLDevice, api::OCLError}}, AsDev, Matrix, BaseOps, VecRead};
-
-fn main() -> Result<(), OCLError> {
+fn main() -> Result<(), Error> {
     //select() ... sets CPU as 'global device' 
     // -> when device is not specified in an operation, the 'global device' is used
     let cpu = CPU::new().select();

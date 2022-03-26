@@ -1,3 +1,5 @@
+use crate::Error;
+
 pub enum OCLErrorKind {
     GetPlatformIDs,
     GetDeviceIDs,
@@ -234,20 +236,18 @@ impl core::fmt::Debug for OCLErrorKind {
     }
 }
 
-
-pub struct OCLError {
-    error: OCLErrorKind,
-}
-impl core::fmt::Debug for OCLError {
+impl core::fmt::Display for OCLErrorKind {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:?}", self.error)?;
+        write!(f, "{}", self.as_str())?;
         Ok(())
     }
 }
 
-
-impl OCLError {
-    pub fn with_kind(kind: OCLErrorKind) -> OCLError {
-        OCLError { error: kind }
+impl From<OCLErrorKind> for Error {
+    fn from(error: OCLErrorKind) -> Self {
+        Error { error: Box::new(error) }
     }
 }
+
+impl std::error::Error for OCLErrorKind {}
+

@@ -1,5 +1,5 @@
 
-use custos::{Buffer, Device, libs::{cpu::CPU, opencl::{api::OCLError, CLDevice}}, VecRead};
+use custos::{Buffer, Device, libs::{cpu::CPU, opencl::CLDevice}, VecRead, Error};
 
 pub fn get_mut_slice<T>(buf: &mut Buffer<T>) -> &mut [T] {
     unsafe {
@@ -18,21 +18,26 @@ pub fn read<T, D: Device<T>>(device: &D, buf: Buffer<T>) -> Vec<T> where D: VecR
 }
 
 #[test]
-fn test_cldevice_name() -> Result<(), OCLError> {
+fn test_cldevice_name() -> Result<(), Error> {
     let device = CLDevice::get(0)?;
     println!("{}", device.get_name()?);
     Ok(())
 }
 
 #[test]
-fn test_cldevice_version() -> Result<(), OCLError> {
+fn test_cldevice_version() -> Result<(), Error> {
     let device = CLDevice::get(0)?;
     println!("{}", device.get_version()?);
     Ok(())
 }
 
 #[test]
-fn test_cldevice_mem() -> Result<(), OCLError> {
+fn test_error() -> Result<(), Box<dyn std::error::Error>> {
+    Ok(())
+}
+
+#[test]
+fn test_cldevice_mem() -> Result<(), Error> {
     let device = CLDevice::get(0)?;
     println!("get_global_mem_size_in_gb: {}", device.get_global_mem_size_in_gb()?);
     println!("get_max_mem_alloc_in_gb: {}", device.get_max_mem_alloc_in_gb()?);
@@ -40,7 +45,7 @@ fn test_cldevice_mem() -> Result<(), OCLError> {
 }
 
 #[test]
-fn test_buffer_from_read() -> Result<(), OCLError> {
+fn test_buffer_from_read() -> Result<(), Error> {
     let device = CLDevice::get(0)?;
 
     let buf = Buffer::<f32>::from((&device, [3.13, 3., 1., 8.]));
@@ -54,7 +59,7 @@ fn test_buffer_from_read() -> Result<(), OCLError> {
 }
 
 #[test]
-fn test_buffer_alloc_and_read() -> Result<(), OCLError> {
+fn test_buffer_alloc_and_read() -> Result<(), Error> {
     let device = CPU::new();
 
     let mut buf = Buffer::<u8>::new(&device, 10);

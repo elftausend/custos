@@ -1,8 +1,8 @@
 use std::{ffi::c_void, rc::Rc, cell::RefCell};
 
-use crate::{buffer::Device, libs::opencl::api::{create_buffer, MemFlags}, BaseOps, Matrix, AsDev, Gemm, VecRead, BaseDevice};
+use crate::{buffer::Device, libs::opencl::api::{create_buffer, MemFlags}, BaseOps, Matrix, AsDev, Gemm, VecRead, BaseDevice, Error};
 
-use super::{api::{CLIntDevice, CommandQueue, Context, create_command_queue, create_context, OCLError, enqueue_read_buffer, wait_for_event, release_mem_object}, CL_DEVICES, GenericOCL, tew, ocl_gemm, CL_CACHE};
+use super::{api::{CLIntDevice, CommandQueue, Context, create_command_queue, create_context, enqueue_read_buffer, wait_for_event, release_mem_object}, CL_DEVICES, GenericOCL, tew, ocl_gemm, CL_CACHE};
 
 #[derive(Debug, Clone)]
 pub struct InternCLDevice {
@@ -33,16 +33,16 @@ impl InternCLDevice {
         self.cl.borrow().device
     }
 
-    pub fn get_global_mem_size_in_gb(&self) -> Result<f64, OCLError> {
+    pub fn get_global_mem_size_in_gb(&self) -> Result<f64, Error> {
         Ok(self.device().get_global_mem()? as f64 * 10f64.powi(-9))
     }
-    pub fn get_max_mem_alloc_in_gb(&self) -> Result<f64, OCLError> {
+    pub fn get_max_mem_alloc_in_gb(&self) -> Result<f64, Error> {
         Ok(self.device().get_max_mem_alloc()? as f64 * 10f64.powi(-9))
     }
-    pub fn get_name(&self) -> Result<String, OCLError> {
+    pub fn get_name(&self) -> Result<String, Error> {
         self.device().get_name()
     }
-    pub fn get_version(&self) -> Result<String, OCLError> {
+    pub fn get_version(&self) -> Result<String, Error> {
         self.device().get_version()
     }
 }
@@ -107,14 +107,14 @@ pub struct CLDevice {
 unsafe impl Sync for CLDevice {}
 
 impl CLDevice {
-    pub fn new(device: CLIntDevice) -> Result<CLDevice, OCLError> {
+    pub fn new(device: CLIntDevice) -> Result<CLDevice, Error> {
         let ctx = create_context(&[device])?;
         let queue = create_command_queue(&ctx, device)?;
 
         Ok(CLDevice { ptrs: Vec::new(), device, ctx, queue }) 
     }
 
-    pub fn get(device_idx: usize) -> Result<InternCLDevice, OCLError> {
+    pub fn get(device_idx: usize) -> Result<InternCLDevice, Error> {
         Ok(InternCLDevice::new(CL_DEVICES.get_current(device_idx)?))
     }
 }

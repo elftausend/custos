@@ -1,6 +1,6 @@
-use crate::{matrix::Matrix, number::Number};
+use crate::{matrix::Matrix, number::Number, Error};
 
-use super::{api::{enqueue_nd_range_kernel, OCLError, set_kernel_arg}, CL_CACHE, cl_cache::Node, CLCache, GenericOCL, cl_device::InternCLDevice};
+use super::{api::{enqueue_nd_range_kernel, set_kernel_arg}, CL_CACHE, cl_cache::Node, CLCache, GenericOCL, cl_device::InternCLDevice};
 
 pub trait KernelArg<T> {
     fn matrix(&self) -> Option<Matrix<T>>;
@@ -102,7 +102,7 @@ impl <'a, T: GenericOCL>KernelOptions<'a, T> {
         self.output = Some(CLCache::get(self.device.clone(), Node::new(out_dims)));
         self
     }
-    pub fn run(&'a mut self) -> Result<Matrix<T>, OCLError> {
+    pub fn run(&'a mut self) -> Result<Matrix<T>, Error> {
         let kernel = CL_CACHE.with(|cache| cache.borrow_mut().arg_kernel_cache(self.device.clone(), &self.tensor_args, &self.number_args, self.output, self.src.to_string()));
                
         for index in 0..self.number_args.len() {

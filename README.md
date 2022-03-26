@@ -5,9 +5,9 @@ An experimental library for matrix operations that are calculated on the CPU or 
 ## Example
 
 ```rust
-use custos::{libs::{cpu::CPU, opencl::{CLDevice, api::OCLError}}, AsDev, Matrix, BaseOps, VecRead};
+use custos::{libs::{cpu::CPU, opencl::CLDevice}, AsDev, Matrix, BaseOps, VecRead, Error};
 
-fn main() -> Result<(), OCLError> {
+fn main() -> Result<(), Error> {
     //select() ... sets CPU as 'global device' 
     // -> when device is not specified in an operation, the 'global device' is used
     let cpu = CPU::new().select();
@@ -36,4 +36,5 @@ fn main() -> Result<(), OCLError> {
 
     Ok(())
 }
+
 ```

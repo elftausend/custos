@@ -1,5 +1,7 @@
 
-use super::{api::{DeviceType, get_device_ids, get_platforms, OCLError, OCLErrorKind}, cl_device::CLDevice};
+use crate::Error;
+
+use super::{api::{DeviceType, get_device_ids, get_platforms, OCLErrorKind}, cl_device::CLDevice};
 
 
 lazy_static::lazy_static! {
@@ -24,11 +26,11 @@ impl CLDevices {
         CLDevices { current_devices }
     }
 
-    pub fn get_current(&self, device_idx: usize) -> Result<CLDevice, OCLError> {
+    pub fn get_current(&self, device_idx: usize) -> Result<CLDevice, Error> {
         if device_idx < self.current_devices.len() {
             Ok(self.current_devices[device_idx].clone())
         } else {
-            Err(OCLError::with_kind(OCLErrorKind::InvalidDeviceIdx))
+            Err(Error::from(OCLErrorKind::InvalidDeviceIdx))
         }
     }
 }

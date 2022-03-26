@@ -14,6 +14,25 @@ mod buffer;
 pub mod number;
 mod matrix;
 
+pub struct Error {
+    error: Box<dyn std::error::Error>,
+}
+
+impl core::fmt::Debug for Error {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}", self.error)?;
+        Ok(())
+    }
+}
+
+impl core::fmt::Display for Error {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}", self.error)?;
+        Ok(())
+    }
+}
+
+
 
 ///All 'base' traits?
 pub trait BaseDevice<T>: Device<T> + BaseOps<T> + VecRead<T> + Gemm<T> {}
