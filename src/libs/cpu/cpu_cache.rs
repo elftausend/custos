@@ -4,7 +4,6 @@ use crate::{libs::opencl::COUNT, Matrix};
 
 use super::InternCPU;
 
-//pub static mut CPUCACHE_COUNT: usize = 0;
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
 pub struct Node {
     idx: usize,
@@ -31,9 +30,6 @@ thread_local! {
 
 #[derive(Debug, Clone, Copy)]
 pub struct CpuPtr(pub *mut usize);
-
-unsafe impl Sync for CpuPtr {}
-unsafe impl Send for CpuPtr {}
 
 type RawInfo = (CpuPtr, (usize, usize));
 
@@ -63,18 +59,5 @@ impl CPUCache {
             }
         })
 
-        /* 
-
-        let mut cache = CPU_CACHE.lock().unwrap();
-        
-        let node = Node::new(out_dims);
-        let matrix_info_option = cache.nodes.get(&node);
-
-        match matrix_info_option {
-            Some(matrix_info) => Matrix::from((matrix_info.0.0 as *mut T, matrix_info.1)),
-            None => cache.add_node(node)
-        }
-
-        */
     }
 }

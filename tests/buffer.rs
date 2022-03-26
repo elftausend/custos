@@ -1,13 +1,13 @@
 
 use custos::{Buffer, Device, libs::{cpu::CPU, opencl::{api::OCLError, CLDevice}}, VecRead};
 
-pub fn get_mut_slice<'a, T>(buf: &mut Buffer<T>) -> &'a mut [T] {
+pub fn get_mut_slice<T>(buf: &mut Buffer<T>) -> &mut [T] {
     unsafe {
         std::slice::from_raw_parts_mut(buf.ptr, buf.len)
     }
 }
 
-pub fn get_slice<'a, T>(buf: &Buffer<T>) -> &'a [T] {
+pub fn get_slice<T>(buf: &Buffer<T>) -> &[T] {
     unsafe {
         std::slice::from_raw_parts(buf.ptr, buf.len)
     }

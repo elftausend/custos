@@ -4,7 +4,7 @@ use custos::{libs::{opencl::{CL_CACHE, CLDevice}, cpu::{CPU, CPU_CACHE}}, Matrix
 fn test_threading() {
     let device = CLDevice::get(0).unwrap().select();
 
-    let th1 = std::thread::spawn(|| {
+    let th1_cl = std::thread::spawn(|| {
         let device = CLDevice::get(0).unwrap().select();
         
         let a = Matrix::from( ( &device, (3, 2), [3f32, 2., 1., 5., 6., 4.]) );
@@ -31,6 +31,36 @@ fn test_threading() {
         assert_eq!(34., e.read()[0]);
         CL_CACHE.with(|f| assert!(f.borrow().output_nodes.len() == 8));
     });
+
+
+    let th1_cpu = std::thread::spawn(|| {
+        let device = CPU::new().select();
+        
+        let a = Matrix::from( ( &device, (3, 2), [3f32, 2., 1., 5., 6., 4.]) );
+        let b = Matrix::from( ( &device, (2, 3), [1., 3., 2., 6., 5., 4.]) );
+        
+        for _ in range(500) {
+            
+            let c = a * b;
+            assert_eq!(device.read(c.data()), vec![3., 6., 2., 30., 30., 16.]);
+        }
+        CPU_CACHE.with(|f| assert!(f.borrow().nodes.len() == 1));
+
+        for _ in range(500) {
+            let c = a - b;
+            let d = a + b + c;
+            let e = a * b - c + d * d - a;
+            assert_eq!(34., e.read()[0]);    
+        }
+        CPU_CACHE.with(|f| assert!(f.borrow().nodes.len() == 8));
+
+        let c = a - b;
+        let d = a + b + c;
+        let e = a * b - c + d * d - a;
+        assert_eq!(34., e.read()[0]);
+        CPU_CACHE.with(|f| assert!(f.borrow().nodes.len() == 8));
+    });
+
 
     let th2 = std::thread::spawn(|| {
         {
@@ -69,7 +99,8 @@ fn test_threading() {
 
     CL_CACHE.with(|f| assert!(f.borrow().output_nodes.len() == 1));
 
-    th1.join().unwrap();
+    th1_cl.join().unwrap();
+    th1_cpu.join().unwrap();
     th2.join().unwrap();
 
 }

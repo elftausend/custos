@@ -6,21 +6,6 @@ pub trait BaseOps<T> {
     fn mul(&self, lhs: Matrix<T>, rhs: Matrix<T>) -> Matrix<T>;
 }
 
-/* 
-pub trait Device {
-    fn alloc<T: Default+Copy>(&self, len: usize) -> *mut T;
-    fn from_data<T: Clone>(&self, data: &[T]) -> *mut T;
-    ///selects self as global device
-    fn select(self) -> Self where Self: AsDev+Clone {
-        let dev = self.as_dev();
-        unsafe {
-            GLOBAL_DEVICE = dev;
-        }
-        self
-    }
-}
-*/
-
 pub trait Device<T> {
     fn alloc(&self, len: usize) -> *mut T;
     fn with_data(&self, data: &[T]) -> *mut T;
@@ -80,15 +65,3 @@ impl <T: Clone, D: Device<T>>From<(&D, Vec<T>)> for Buffer<T> {
         
     }
 }
-
-/* 
-impl <T: Copy+Default>core::ops::Add for Buffer<T> {
-    type Output = f32;
-
-    fn add(self, rhs: Self) -> Self::Output {
-        let device = get_device();
-        device.add(self, rhs);
-        0.
-    }
-}
-*/

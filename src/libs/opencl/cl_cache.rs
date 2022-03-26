@@ -37,12 +37,6 @@ impl Node {
     }
 }
 
-/*
-lazy_static::lazy_static! {
-    #[derive(Debug)]
-    pub static ref CL_CACHE: Mutex<CLCache> = Mutex::new(CLCache { output_nodes: HashMap::new(), arg_kernel_cache: HashMap::new() });
-}*/
-
 thread_local! {
     pub static CL_CACHE: RefCell<CLCache> = RefCell::new(CLCache { output_nodes: HashMap::new(), arg_kernel_cache: HashMap::new() })
 }
@@ -79,16 +73,6 @@ impl CLCache {
                 None => cache.add_node(device, node)
             }
         })
-        /*
-        let mut cache = CL_CACHE.lock().unwrap();
-
-        let matrix_info_option = cache.output_nodes.get(&node);
-    
-        match matrix_info_option {
-            Some(matrix_info) => Matrix::from(( matrix_info.0.0 as *mut T, matrix_info.1 )),
-            None => cache.add_node(device, node)
-        }
-        */
     }
 
     pub fn arg_kernel_cache<T: GenericOCL>(&mut self, device: InternCLDevice, matrices: &[(Matrix<T>, usize)], numbers: &[(T, usize)], output: Option<Matrix<T>>, src: String) -> Kernel {
