@@ -1,6 +1,6 @@
 use std::{ffi::c_void, rc::Rc, cell::RefCell};
 
-use crate::{buffer::Device, libs::opencl::api::{create_buffer, MemFlags}, BaseOps, Matrix, AsDev, Gemm, VecRead, BaseDevice, Error};
+use crate::{libs::opencl::api::{create_buffer, MemFlags}, BaseOps, Matrix, AsDev, Gemm, VecRead, BaseDevice, Error, Device};
 
 use super::{api::{CLIntDevice, CommandQueue, Context, create_command_queue, create_context, enqueue_read_buffer, wait_for_event, release_mem_object}, CL_DEVICES, GenericOCL, tew, ocl_gemm, CL_CACHE};
 
@@ -95,7 +95,6 @@ impl AsDev for InternCLDevice {
 }
 
 impl <T: GenericOCL>BaseDevice<T> for InternCLDevice {}
-
 
 #[derive(Debug, Clone)]
 pub struct CLDevice {

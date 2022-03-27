@@ -32,10 +32,22 @@ impl core::fmt::Display for Error {
     }
 }
 
-
+pub trait Device<T> {
+    fn alloc(&self, len: usize) -> *mut T;
+    fn with_data(&self, data: &[T]) -> *mut T;
+    fn alloc_with_vec(&self, vec: Vec<T>) -> *mut T {
+        self.with_data(&vec)
+    }
+}
 
 ///All 'base' traits?
 pub trait BaseDevice<T>: Device<T> + BaseOps<T> + VecRead<T> + Gemm<T> {}
+
+pub trait BaseOps<T> {
+    fn add(&self, lhs: Matrix<T>, rhs: Matrix<T>) -> Matrix<T>;
+    fn sub(&self, lhs: Matrix<T>, rhs: Matrix<T>) -> Matrix<T>;
+    fn mul(&self, lhs: Matrix<T>, rhs: Matrix<T>) -> Matrix<T>;
+}
 
 pub trait VecRead<T>: Device<T> {
     fn read(&self, buf: Buffer<T>) -> Vec<T>;
@@ -104,17 +116,6 @@ impl From<DeviceError> for Error {
 
 impl std::error::Error for DeviceError {}
 
-pub fn get_device() -> Result<Box<dyn Device<f32>>, Error> {
-    let device: Result<Box<dyn Device<f32>>, Error> = GLOBAL_DEVICE.with(|d| {
-        let dev: Result<Box<dyn Device<f32>>, Error> = match &d.borrow().cl_device {
-            Some(cl) => Ok(Box::new(InternCLDevice::from(cl.clone().upgrade().ok_or_else(|| Error::from(DeviceError::NoDeviceSelected))?))),    
-            None => Ok(Box::new(InternCPU::new(d.borrow().cpu.as_ref().ok_or_else(|| Error::from(DeviceError::NoDeviceSelected))?.upgrade().ok_or_else(|| Error::from(DeviceError::NoDeviceSelected))?)))
-        };
-        dev
-    });
-    device
-}
-    
 #[macro_export]
 macro_rules! get_device {
     

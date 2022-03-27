@@ -26,6 +26,11 @@ impl <T: Copy+Default>Device<T> for InternCPU {
         self.cpu.borrow_mut().ptrs.push(ptr as *mut usize);
         ptr
     }
+    fn alloc_with_vec(&self, vec: Vec<T>) -> *mut T {
+        let ptr = Box::into_raw(vec.into_boxed_slice()) as *mut T;
+        self.cpu.borrow_mut().ptrs.push(ptr as *mut usize);
+        ptr
+    }
 }
 
 impl <T: Copy+Default>VecRead<T> for InternCPU {

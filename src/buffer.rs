@@ -1,15 +1,4 @@
-use crate::matrix::Matrix;
-
-pub trait BaseOps<T> {
-    fn add(&self, lhs: Matrix<T>, rhs: Matrix<T>) -> Matrix<T>;
-    fn sub(&self, lhs: Matrix<T>, rhs: Matrix<T>) -> Matrix<T>;
-    fn mul(&self, lhs: Matrix<T>, rhs: Matrix<T>) -> Matrix<T>;
-}
-
-pub trait Device<T> {
-    fn alloc(&self, len: usize) -> *mut T;
-    fn with_data(&self, data: &[T]) -> *mut T;
-}
+use crate::Device;
 
 #[derive(Debug, Clone, Copy)]
 pub struct Buffer<T> {
@@ -58,9 +47,10 @@ impl <T: Clone, D: Device<T>>From<(&D, &[T])> for Buffer<T> {
 
 impl <T: Clone, D: Device<T>>From<(&D, Vec<T>)> for Buffer<T> {
     fn from(device_slice: (&D, Vec<T>)) -> Self {
+        let len = device_slice.1.len();
         Buffer {
-            ptr: device_slice.0.with_data(&device_slice.1),
-            len: device_slice.1.len()
+            ptr: device_slice.0.alloc_with_vec(device_slice.1),
+            len
         }
         
     }
