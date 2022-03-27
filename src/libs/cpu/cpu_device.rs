@@ -95,7 +95,7 @@ impl Drop for CPU {
 
                     if &hm_ptr == ptr {
                         CPU_CACHE.with(|cache| {
-                            cache.borrow_mut().nodes.remove(&entry.0);
+                            cache.borrow_mut().nodes.remove(entry.0);
                         });                        
                     }
                 });
@@ -112,6 +112,7 @@ pub struct CPU {
 }
 
 impl CPU {
+    #[must_use]
     pub fn new() -> InternCPU {
         InternCPU::new(Rc::new(RefCell::new(CPU { ptrs: Vec::new() })))
     }

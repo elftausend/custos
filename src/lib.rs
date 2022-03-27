@@ -15,7 +15,7 @@ pub mod number;
 mod matrix;
 
 pub struct Error {
-    error: Box<dyn std::error::Error>,
+    pub error: Box<dyn std::error::Error>,
 }
 
 impl core::fmt::Debug for Error {
@@ -68,6 +68,7 @@ thread_local! {
 pub trait AsDev {
     fn as_dev(&self) -> Dev;
     ///selects self as global device
+    #[must_use]
     fn select(self) -> Self where Self: AsDev+Clone {
         let dev = self.as_dev();
         GLOBAL_DEVICE.with(|d| *d.borrow_mut() = dev);        
@@ -106,8 +107,8 @@ impl std::error::Error for DeviceError {}
 pub fn get_device() -> Result<Box<dyn Device<f32>>, Error> {
     let device: Result<Box<dyn Device<f32>>, Error> = GLOBAL_DEVICE.with(|d| {
         let dev: Result<Box<dyn Device<f32>>, Error> = match &d.borrow().cl_device {
-            Some(cl) => Ok(Box::new(InternCLDevice::from(cl.clone().upgrade().ok_or(Error::from(DeviceError::NoDeviceSelected))?))),    
-            None => Ok(Box::new(InternCPU::new(d.borrow().cpu.as_ref().ok_or(Error::from(DeviceError::NoDeviceSelected))?.upgrade().ok_or(Error::from(DeviceError::NoDeviceSelected))?)))
+            Some(cl) => Ok(Box::new(InternCLDevice::from(cl.clone().upgrade().ok_or_else(|| Error::from(DeviceError::NoDeviceSelected))?))),    
+            None => Ok(Box::new(InternCPU::new(d.borrow().cpu.as_ref().ok_or_else(|| Error::from(DeviceError::NoDeviceSelected))?.upgrade().ok_or_else(|| Error::from(DeviceError::NoDeviceSelected))?)))
         };
         dev
     });

@@ -34,3 +34,9 @@ impl CLDevices {
         }
     }
 }
+
+impl Default for CLDevices {
+    fn default() -> Self {
+        Self::new()
+    }
+}

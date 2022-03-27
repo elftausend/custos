@@ -1,4 +1,4 @@
-use custos::{libs::cpu::CPU, AsDev, Matrix, BaseOps, VecRead};
+use custos::{libs::cpu::CPU, AsDev, Matrix};
 
 #[test]
 fn test_matrix_read() {

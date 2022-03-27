@@ -16,6 +16,7 @@ impl From<Rc<RefCell<CLDevice>>> for InternCLDevice {
 }
 
 impl InternCLDevice {
+    #[must_use]
     pub fn new(cl: CLDevice) -> InternCLDevice {
         let cl = Rc::new(RefCell::new(cl));
          InternCLDevice { cl }
@@ -135,7 +136,7 @@ impl Drop for CLDevice {
 
                     if &hm_ptr == ptr {
                         CL_CACHE.with(|cache| {
-                            cache.borrow_mut().output_nodes.remove(&entry.0);
+                            cache.borrow_mut().output_nodes.remove(entry.0);
                         });                        
                     }
                 });
