@@ -14,6 +14,7 @@ fn test_threading() {
             
             let c = a * b;
             assert_eq!(device.read(c.data()), vec![3., 6., 2., 30., 30., 16.]);
+
         }
         CL_CACHE.with(|f| assert!(f.borrow().output_nodes.len() == 1));
 
@@ -102,8 +103,6 @@ fn test_threading() {
     th1_cl.join().unwrap();
     th1_cpu.join().unwrap();
     th2.join().unwrap();
+    
 
 }
-
-
-

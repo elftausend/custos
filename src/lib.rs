@@ -74,22 +74,60 @@ pub trait AsDev {
         self
     }
 }
+
+#[derive(Debug)]
+pub enum DeviceError {
+    NoDeviceSelected
+}
+
+impl DeviceError {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            DeviceError::NoDeviceSelected => "No device selected, .select() was not called before get_device! call in current scope",
+        }
+    }
+}
+
+impl core::fmt::Display for DeviceError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.as_str())?;
+        Ok(())
+    }
+}
+
+impl From<DeviceError> for Error {
+    fn from(error: DeviceError) -> Self {
+        Error { error: Box::new(error) }
+    }
+}
+
+impl std::error::Error for DeviceError {}
+
+pub fn get_device() -> Result<Box<dyn Device<f32>>, Error> {
+    let device: Result<Box<dyn Device<f32>>, Error> = GLOBAL_DEVICE.with(|d| {
+        let dev: Result<Box<dyn Device<f32>>, Error> = match &d.borrow().cl_device {
+            Some(cl) => Ok(Box::new(InternCLDevice::from(cl.clone().upgrade().ok_or(Error::from(DeviceError::NoDeviceSelected))?))),    
+            None => Ok(Box::new(InternCPU::new(d.borrow().cpu.as_ref().ok_or(Error::from(DeviceError::NoDeviceSelected))?.upgrade().ok_or(Error::from(DeviceError::NoDeviceSelected))?)))
+        };
+        dev
+    });
+    device
+}
     
 #[macro_export]
 macro_rules! get_device {
     
     ($t:ident, $g:ident) => {    
         {     
-            use crate::{GLOBAL_DEVICE, InternCLDevice, InternCPU};
-            let dev: Box<dyn $t<$g>> = GLOBAL_DEVICE.with(|d| {
-                let dev = d.borrow();
-                let dev: Box<dyn $t<$g>> = match &dev.cl_device {
-                    Some(cl) => Box::new(InternCLDevice::from(cl.clone().upgrade().expect("No device selected"))),
-                    None => Box::new(InternCPU::new(dev.cpu.as_ref().expect("No device selected").upgrade().expect("No device selected"))),
+            use crate::{GLOBAL_DEVICE, InternCLDevice, InternCPU, Error, DeviceError};
+            let device: Result<Box<dyn $t<$g>>, Error> = GLOBAL_DEVICE.with(|d| {
+                let dev: Result<Box<dyn $t<$g>>, Error> = match &d.borrow().cl_device {
+                    Some(cl) => Ok(Box::new(InternCLDevice::from(cl.clone().upgrade().ok_or(Error::from(DeviceError::NoDeviceSelected))?))),    
+                    None => Ok(Box::new(InternCPU::new(d.borrow().cpu.as_ref().ok_or(Error::from(DeviceError::NoDeviceSelected))?.upgrade().ok_or(Error::from(DeviceError::NoDeviceSelected))?)))
                 };
                 dev
             });
-            dev
+            device
         }
     }
 }

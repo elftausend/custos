@@ -39,7 +39,7 @@ impl <T>Matrix<T> {
 
 impl <T: GenericOCL+TBlas>Matrix<T> {
     pub fn gemm(self, rhs: Matrix<T>) -> Matrix<T> {
-        let device = get_device!(Gemm, T);
+        let device = get_device!(Gemm, T).unwrap();
         device.gemm(self, rhs)
     }
 }
@@ -51,7 +51,7 @@ impl <T: Copy+Default>Matrix<T> {
 
     ///Uses VecRead and current global device to read Matrix
     pub fn read(&self) -> Vec<T> {
-        let device = get_device!(VecRead, T);
+        let device = get_device!(VecRead, T).unwrap();
         device.read(self.data())
     }
 }
@@ -96,7 +96,7 @@ impl <T: GenericOCL>core::ops::Add for Matrix<T> {
     type Output = Matrix<T>;
 
     fn add(self, rhs: Self) -> Self::Output {
-        let device = get_device!(BaseOps, T);
+        let device = get_device!(BaseOps, T).unwrap();
         device.add(self, rhs)
     }
 }
@@ -105,7 +105,7 @@ impl <T: GenericOCL>core::ops::Sub for Matrix<T> {
     type Output = Matrix<T>;
 
     fn sub(self, rhs: Self) -> Self::Output {
-        let device = get_device!(BaseOps, T);
+        let device = get_device!(BaseOps, T).unwrap();
         device.sub(self, rhs)
     }
 }
@@ -114,7 +114,7 @@ impl <T: GenericOCL>core::ops::Mul for Matrix<T> {
     type Output = Matrix<T>;
 
     fn mul(self, rhs: Self) -> Self::Output {
-        let device = get_device!(BaseOps, T);
+        let device = get_device!(BaseOps, T).unwrap();
         device.mul(self, rhs)
     }
 }
