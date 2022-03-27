@@ -87,7 +87,7 @@ impl Drop for CPU {
         let contents = CPU_CACHE.with(|cache| {
            cache.borrow().nodes.clone()         
         });
-
+        
         for ptr in self.ptrs.iter() {
 
             unsafe {    

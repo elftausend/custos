@@ -50,11 +50,15 @@ impl InternCLDevice {
 
 impl <T>Device<T> for InternCLDevice {
     fn alloc(&self, len: usize) -> *mut T {
-        create_buffer::<T>(&self.get_ctx(), MemFlags::MemReadWrite as u64, len, None).unwrap() as *mut T
+        let ptr = create_buffer::<T>(&self.get_ctx(), MemFlags::MemReadWrite as u64, len, None).unwrap() as *mut T;
+        self.cl.borrow_mut().ptrs.push(ptr as *mut c_void);
+        ptr
     }
 
     fn with_data(&self, data: &[T]) -> *mut T {
-        create_buffer::<T>(&self.get_ctx(), MemFlags::MemReadWrite | MemFlags::MemCopyHostPtr, data.len(), Some(data)).unwrap() as *mut T
+        let ptr = create_buffer::<T>(&self.get_ctx(), MemFlags::MemReadWrite | MemFlags::MemCopyHostPtr, data.len(), Some(data)).unwrap() as *mut T;
+        self.cl.borrow_mut().ptrs.push(ptr as *mut c_void);
+        ptr
     }
 }
 
@@ -124,9 +128,9 @@ impl Drop for CLDevice {
         let contents = CL_CACHE.with(|cache| {
            cache.borrow().output_nodes.clone()         
         });
-
+        
         for ptr in self.ptrs.iter() {
-
+            
             release_mem_object(*ptr).unwrap();
 
             contents.iter()
