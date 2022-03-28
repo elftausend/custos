@@ -137,8 +137,8 @@ pub fn ew_op<T: Copy+Default, F: Fn(T, T) -> T>(device: InternCPU, lhs: Matrix<T
     out
 }
 
-pub fn each_op<T: Copy+Default, F: Fn(T) -> T>(device: InternCPU, x: Matrix<T>, f: F) -> Matrix<T> {
-    let mut y = CPUCache::get::<T>(device, x.dims());
+pub fn each_op<T: Copy+Default, F: Fn(T) -> T>(device: &InternCPU, x: Matrix<T>, f: F) -> Matrix<T> {
+    let mut y = CPUCache::get::<T>(device.clone(), x.dims());
     let x = x.as_cpu_slice();
     for (idx, value) in y.as_cpu_slice_mut().iter_mut().enumerate() {
         *value = f(x[idx]);
