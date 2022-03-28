@@ -3,7 +3,9 @@ use std::{cell::RefCell, rc::Weak};
 //pub use libs::*;
 pub use buffer::*;
 pub use count::*;
-use libs::{cpu::{InternCPU, CPU}, opencl::{cl_device::InternCLDevice, CLDevice}};
+pub use libs::*;
+
+use libs::{opencl::{CLDevice, InternCLDevice}, cpu::{CPU, InternCPU}};
 pub use matrix::*;
 
 pub mod libs;

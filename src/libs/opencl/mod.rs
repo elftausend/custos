@@ -1,5 +1,5 @@
 pub use cl_cache::*;
-pub use cl_device::CLDevice;
+pub use cl_device::*;
 pub use cl_devices::*;
 pub use kernel_options::*;
 pub use ops::*;
