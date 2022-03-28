@@ -32,11 +32,6 @@ fn test_cldevice_version() -> Result<(), Error> {
 }
 
 #[test]
-fn test_error() -> Result<(), Box<dyn std::error::Error>> {
-    Ok(())
-}
-
-#[test]
 fn test_cldevice_mem() -> Result<(), Error> {
     let device = CLDevice::get(0)?;
     println!("get_global_mem_size_in_gb: {}", device.get_global_mem_size_in_gb()?);
