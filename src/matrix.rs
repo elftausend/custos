@@ -22,6 +22,15 @@ impl <T>Matrix<T> {
     pub fn dims(&self) -> (usize, usize) {
         self.dims
     }
+
+    pub fn rows(&self) -> usize {
+        self.dims.0
+    }
+
+    pub fn cols(&self) -> usize {
+        self.dims.1
+    }
+
     pub fn size(&self) -> usize {
         self.dims.0 * self.dims.1
     }
