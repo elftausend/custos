@@ -82,6 +82,7 @@ impl <T: GenericOCL>BaseOps<T> for InternCLDevice {
 
 impl <T: GenericOCL>Gemm<T> for InternCLDevice {
     fn gemm(&self, lhs: Matrix<T>, rhs: Matrix<T>) -> Matrix<T> {
+        assert!(lhs.dims().1 == rhs.dims().0);
         ocl_gemm(self.clone(), rhs, lhs).unwrap()   
     }
 }

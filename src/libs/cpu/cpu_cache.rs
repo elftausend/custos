@@ -47,7 +47,7 @@ impl CPUCache {
     }
     
     pub fn get<T: Default+Copy>(device: InternCPU, out_dims: (usize, usize)) -> Matrix<T> {
-
+        assert!(!device.cpu.borrow().ptrs.is_empty(), "no cpu allocations");
         CPU_CACHE.with(|cache| {
             let mut cache = cache.borrow_mut();
             let node = Node::new(out_dims);

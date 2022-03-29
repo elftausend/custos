@@ -64,6 +64,8 @@ impl CLCache {
 
     }
     pub fn get<T: GenericOCL>(device: InternCLDevice, node: Node) -> Matrix<T> {
+        assert!(!device.cl.borrow().ptrs.is_empty(), "no OpenCL allocations");
+
         CL_CACHE.with(|cache| {
             let mut cache = cache.borrow_mut();
             let matrix_info_option = cache.output_nodes.get(&node);

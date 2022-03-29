@@ -9,7 +9,6 @@ fn test_device_switching() -> Result<(), custos::Error> {
     for _ in range(500) {
         let c = a + b;
     
-    
         let cpu = CPU::new();
         let c = Matrix::from( (&cpu, c.dims(), c.read()) );
         let d_cpu = cpu.add(c, c);

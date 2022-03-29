@@ -72,6 +72,7 @@ impl Dealloc for InternCPU {
 
 impl <T: TBlas+Default+Copy>Gemm<T> for InternCPU {
     fn gemm(&self, lhs: Matrix<T>, rhs: Matrix<T>) -> Matrix<T> {
+        assert!(lhs.dims().1 == rhs.dims().0);
         let m = lhs.dims().0;
         let k = lhs.dims().1;
         let n = rhs.dims().1;
