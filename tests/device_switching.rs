@@ -1,8 +1,7 @@
 use custos::{opencl::CLDevice, AsDev, Matrix, range, cpu::CPU, BaseOps};
 
-
 #[test]
-fn test_device_switching() -> Result<(), custos::Error>{
+fn test_device_switching() -> Result<(), custos::Error> {
     let device = CLDevice::get(0)?.select();
     let a = Matrix::from(( &device, (2, 3), [1.51f32, 6.123, 7., 5.21, 8.62, 4.765]));
     let b = Matrix::from(( &device, (2, 3), [1.51f32, 6.123, 7., 5.21, 8.62, 4.765]));
@@ -16,9 +15,7 @@ fn test_device_switching() -> Result<(), custos::Error>{
         let d_cpu = cpu.add(c, c);
     
         let d = Matrix::from( (&device, d_cpu) );
-        assert_eq!(vec![6.04, 24.492, 28., 20.84, 34.48, 19.06], d.read());
-        
+        assert_eq!(vec![6.04, 24.492, 28., 20.84, 34.48, 19.06], d.read());   
     }
-
     Ok(())
 }

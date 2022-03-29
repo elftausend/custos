@@ -1,8 +1,8 @@
 use std::ffi::c_void;
 
-use crate::{BaseOps, Buffer, Device, Gemm, get_device, libs::{cpu::TBlas, opencl::GenericOCL}, VecRead, opencl::{InternCLDevice, CLCache, Node, api::{enqueue_write_buffer, wait_for_event}}};
+use crate::{BaseOps, Buffer, Device, Gemm, get_device, libs::{cpu::TBlas, opencl::GenericOCL}, VecRead, opencl::{InternCLDevice, CLCache, Node, api::{enqueue_write_buffer, wait_for_event}}, number::Number};
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Clone, Copy)]
 pub struct Matrix<T> {
     data: Buffer<T>,
     dims: (usize, usize)
@@ -140,7 +140,29 @@ impl <T: GenericOCL>core::ops::Mul for Matrix<T> {
     }
 }
 
+impl <'a, T: Clone+Default+Number+Copy+core::fmt::Debug>core::fmt::Debug for Matrix<T> {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        let data = self.read();
+        let mut count = 0;
+        writeln!(f, "{:?}", self.dims).unwrap();
+        write!(f, "[").unwrap();
+        let max = self.dims.0*self.dims.1;
 
-
+        for i in 0..data.len() {
+            write!(f, "{:?}, ", data[i]).unwrap();
+            count+=1;
+            if count == max {
+                write!(f, "datatype={}]", core::any::type_name::<T>()).unwrap();
+            }
+            if count % self.dims.1 == 0 {
+                //count = 0;
+                writeln!(f).unwrap();   
+            }
+    
+        }
+        write!(f, "")
+        
+    }
+}
 
 
