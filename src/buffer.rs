@@ -51,7 +51,6 @@ impl <T: Clone, D: Device<T>>From<(&D, Vec<T>)> for Buffer<T> {
         Buffer {
             ptr: device_slice.0.alloc_with_vec(device_slice.1),
             len
-        }
-        
+        }       
     }
 }

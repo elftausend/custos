@@ -1,4 +1,6 @@
-use crate::{BaseOps, Buffer, Device, Gemm, get_device, libs::{cpu::TBlas, opencl::GenericOCL}, VecRead};
+use std::ffi::c_void;
+
+use crate::{BaseOps, Buffer, Device, Gemm, get_device, libs::{cpu::TBlas, opencl::GenericOCL}, VecRead, opencl::{InternCLDevice, CLCache, Node, api::{enqueue_write_buffer, wait_for_event}}};
 
 #[derive(Debug, Clone, Copy)]
 pub struct Matrix<T> {
@@ -81,6 +83,15 @@ impl <T: Copy+Default, const N: usize>From<((usize, usize), &[T; N])> for Matrix
     }
 }
 */
+
+impl <T: GenericOCL>From<(&InternCLDevice, Matrix<T>)> for Matrix<T> {
+    fn from(device_matrix: (&InternCLDevice, Matrix<T>)) -> Self {
+        let y = CLCache::get::<T>(device_matrix.0.clone(), Node::new(device_matrix.1.dims()));
+        let event = enqueue_write_buffer(&device_matrix.0.get_queue(), y.ptr() as *mut c_void, device_matrix.1.as_cpu_slice(), true).unwrap();
+        wait_for_event(event).unwrap();
+        y
+    }
+}
 
 impl <T: Copy, D: Device<T>, const N: usize>From<(&D, (usize, usize), [T; N])> for Matrix<T> {
     fn from(dims_slice: (&D, (usize, usize), [T; N])) -> Self {

@@ -160,11 +160,11 @@ fn test_gemm() {
 
 }
 
-fn roughly_equal<T: Float>(lhs: &[T], rhs: &[T]) {
-    for (idx, value) in lhs.iter().enumerate() {
-        let diff = (*value-rhs[idx]).abs();
-        if diff > T::as_generic(1E-3) {
-            panic!("Slices are not roughly equal! lhs: {}, rhs: {}", value, rhs[idx])
+pub fn roughly_equals<T: Float>(lhs: &[T], rhs: &[T], diff: T) {
+    for (a, b) in lhs.iter().zip(rhs) {
+        let abs = (*a - *b).abs();
+        if abs > diff {
+            panic!("\n left: '{:?}',\n right: '{:?}', \n left elem.: {} != right elem. {}", lhs, rhs, a, b)
         }
     }
 }
@@ -205,7 +205,7 @@ fn test_larger_gemm() {
 
     let c = a.gemm(b);
 
-    roughly_equal(&device.read(c.data()), &should);
+    roughly_equals(&device.read(c.data()), &should, 1e-5);
 
     let cpu = CPU::new().select();
 
@@ -214,6 +214,6 @@ fn test_larger_gemm() {
 
     let cpu_c = a.gemm(b);
 
-    roughly_equal(&device.read(c.data()), &cpu.read(cpu_c.data()));
+    roughly_equals(&device.read(c.data()), &cpu.read(cpu_c.data()), 1e-5);
 }
 

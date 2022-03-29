@@ -37,12 +37,15 @@ impl InternCLDevice {
     pub fn get_global_mem_size_in_gb(&self) -> Result<f64, Error> {
         Ok(self.device().get_global_mem()? as f64 * 10f64.powi(-9))
     }
+
     pub fn get_max_mem_alloc_in_gb(&self) -> Result<f64, Error> {
         Ok(self.device().get_max_mem_alloc()? as f64 * 10f64.powi(-9))
     }
+
     pub fn get_name(&self) -> Result<String, Error> {
         self.device().get_name()
     }
+
     pub fn get_version(&self) -> Result<String, Error> {
         self.device().get_version()
     }
