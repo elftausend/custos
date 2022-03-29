@@ -3,11 +3,9 @@ use std::fmt::Write;
 use crate::{libs::opencl::{GenericOCL, KernelOptions, cl_device::InternCLDevice}, Matrix, Error};
 
 pub fn ocl_gemm<T: GenericOCL>(device: InternCLDevice, lhs: Matrix<T>, rhs: Matrix<T>) -> Result<Matrix<T>, Error> {
-    let mut src = String::new();
-
-    let m = lhs.dims().1;
-    let k = lhs.dims().0;
-    let n = rhs.dims().0;
+    let m = lhs.cols();
+    let k = lhs.rows();
+    let n = rhs.rows();
 
     let mut mw = 1;
     for x in &[16, 8, 4, 2, 1] {
@@ -45,16 +43,16 @@ pub fn ocl_gemm<T: GenericOCL>(device: InternCLDevice, lhs: Matrix<T>, rhs: Matr
     } else {
         write!(&mut float_kw, "{}{}", T::as_ocl_type_str(), kw).unwrap();
     }
-    write!(&mut src, r#"
-        #define K {0}
-        #define N {1}
-        #define MW {2}     // M tile Width
-        #define NW {3}     // N tile Width  -- NW & KW should be the same !
-        #define KW {4}     // K tile Width
-        #define MT {5}  // MT is max for 'mt' (M tile count)
-        #define KT {6}  // KT is max for 'kt' (K tile count)
-        #define floatMW {7}
-        #define floatKW {8}
+    let src = format!("
+        #define K {k}
+        #define N {n}
+        #define MW {mw}     // M tile Width
+        #define NW {nw}     // N tile Width  -- NW & KW should be the same !
+        #define KW {kw}     // K tile Width
+        #define MT {mt}  // MT is max for 'mt' (M tile count)
+        #define KT {kt}  // KT is max for 'kt' (K tile count)
+        #define floatMW {float_mw}
+        #define floatKW {float_kw}
         __kernel void GeMM(const __global floatMW* restrict A, const __global floatKW* restrict B, __global floatMW* C)
             {{
                 size_t mt = get_global_id(0);    //global M-tile id
@@ -90,14 +88,13 @@ pub fn ocl_gemm<T: GenericOCL>(device: InternCLDevice, lhs: Matrix<T>, rhs: Matr
                 #pragma unroll
                 for (uint n=0; n<NW; ++n)
                     C[(nc*NW + n)*MT + mt] = *( (floatMW*) CT[n]);
-            }}
-    "#, k, n, mw, nw, kw, mt, kt, float_mw, float_kw).unwrap();
+            }}");
 
     let gws = [f, s, 0];
     
     KernelOptions::new(device, lhs, gws, &src)
         .with_rhs(rhs)
-        .with_output((rhs.dims().0, lhs.dims().1))
+        .with_output((rhs.rows(), lhs.cols()))
         .run()
 
     
