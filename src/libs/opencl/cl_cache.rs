@@ -1,6 +1,6 @@
 use std::{any::TypeId, collections::HashMap, ffi::c_void, cell::RefCell};
 
-use crate::matrix::Matrix;
+use crate::{matrix::Matrix, Error};
 
 use super::{api::{build_program, create_kernels_in_program, create_program_with_source, Kernel, set_kernel_arg}, GenericOCL, cl_device::InternCLDevice};
 
@@ -75,7 +75,7 @@ impl CLCache {
         })
     }
 
-    pub fn arg_kernel_cache<T: GenericOCL>(&mut self, device: InternCLDevice, matrices: &[(Matrix<T>, usize)], numbers: &[(T, usize)], output: Option<Matrix<T>>, src: String) -> Kernel {
+    pub fn arg_kernel_cache<T: GenericOCL>(&mut self, device: InternCLDevice, matrices: &[(Matrix<T>, usize)], numbers: &[(T, usize)], output: Option<Matrix<T>>, src: String) -> Result<Kernel, Error> {
         let type_ids = vec![TypeId::of::<T>(); numbers.len()];
         
         let mems: Vec<OclPtr> = matrices.iter()
@@ -87,11 +87,11 @@ impl CLCache {
         
         let kernel = cache.get(&(mems.clone(), type_ids.clone(), outputmem, src.clone()));
         match kernel { 
-            Some(kernel) => kernel.clone(),
+            Some(kernel) => Ok(kernel.clone()),
             None => {    
-                let program = create_program_with_source(&device.get_ctx(), &src).unwrap();
-                build_program(&program, &[device.device()], Some("-cl-std=CL1.2")).unwrap(); //-cl-single-precision-constant
-                let kernel = &create_kernels_in_program(&program).unwrap()[0];
+                let program = create_program_with_source(&device.get_ctx(), &src)?;
+                build_program(&program, &[device.device()], Some("-cl-std=CL1.2"))?; //-cl-single-precision-constant
+                let kernel = &create_kernels_in_program(&program)?[0];
                 
                 for (number, idx) in numbers {
                     set_kernel_arg(kernel, *idx, number)
@@ -106,7 +106,7 @@ impl CLCache {
                 }
 
                 cache.insert((mems, type_ids, outputmem, src), kernel.clone());
-                kernel.clone()
+                Ok(kernel.clone())
             },
         }
         

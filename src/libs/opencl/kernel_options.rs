@@ -103,7 +103,7 @@ impl <'a, T: GenericOCL>KernelOptions<'a, T> {
         self
     }
     pub fn run(&'a mut self) -> Result<Matrix<T>, Error> {
-        let kernel = CL_CACHE.with(|cache| cache.borrow_mut().arg_kernel_cache(self.device.clone(), &self.tensor_args, &self.number_args, self.output, self.src.to_string()));
+        let kernel = CL_CACHE.with(|cache| cache.borrow_mut().arg_kernel_cache(self.device.clone(), &self.tensor_args, &self.number_args, self.output, self.src.to_string()))?;
                
         for index in 0..self.number_args.len() {
             let arg = self.number_args.get(index).unwrap();
