@@ -5,7 +5,7 @@ pub use buffer::*;
 pub use count::*;
 pub use libs::*;
 
-use libs::{opencl::{CLDevice, InternCLDevice}, cpu::{CPU, InternCPU}};
+pub use libs::{opencl::{CLDevice, InternCLDevice}, cpu::{CPU, InternCPU}};
 pub use matrix::*;
 
 pub mod libs;
@@ -51,11 +51,11 @@ pub trait BaseOps<T> {
     fn mul(&self, lhs: Matrix<T>, rhs: Matrix<T>) -> Matrix<T>;
 }
 
-pub trait VecRead<T>: Device<T> {
+pub trait VecRead<T> {
     fn read(&self, buf: Buffer<T>) -> Vec<T>;
 }
 
-pub trait Gemm<T>: Device<T> {
+pub trait Gemm<T> {
     fn gemm(&self, lhs: Matrix<T>, rhs: Matrix<T>) -> Matrix<T>;
 }
 
@@ -123,7 +123,7 @@ macro_rules! get_device {
     
     ($t:ident, $g:ident) => {    
         {     
-            use crate::{GLOBAL_DEVICE, InternCLDevice, InternCPU, Error, DeviceError};
+            use $crate::{GLOBAL_DEVICE, InternCLDevice, InternCPU, Error, DeviceError};
             let device: Result<Box<dyn $t<$g>>, Error> = GLOBAL_DEVICE.with(|d| {
                 let dev: Result<Box<dyn $t<$g>>, Error> = match &d.borrow().cl_device {
                     Some(cl) => Ok(Box::new(InternCLDevice::from(cl.clone().upgrade().ok_or(Error::from(DeviceError::NoDeviceSelected))?))),    

@@ -13,6 +13,19 @@ impl <T: Default+Copy>Buffer<T> {
             len,
         }
     }
+
+    pub fn item(&self) -> T {
+        if self.len == 0 {
+            return unsafe { *self.ptr };
+        }
+        T::default()
+    }
+}
+
+impl <T: Copy>From<T> for Buffer<T> {
+    fn from(val: T) -> Self {
+        Buffer { ptr: Box::into_raw(Box::new(val)), len: 0 }
+    }
 }
 
 impl <T: Clone, const N: usize>From<(&Box<dyn Device<T>>, &[T; N])> for Buffer<T> {

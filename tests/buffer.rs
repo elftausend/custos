@@ -79,3 +79,15 @@ fn test_buffer_alloc_and_read() -> Result<(), Error> {
     Ok(())   
 }
 
+#[test]
+fn test_use_number() {
+    let num = Box::into_raw(Box::new(10));
+
+    let buffer = Buffer { ptr: num, len: 1};
+
+    let num = unsafe {
+        Box::from_raw(buffer.ptr)
+    };
+
+    assert_eq!(num, Box::new(10));
+}

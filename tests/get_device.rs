@@ -1,5 +1,5 @@
 
-use custos::{AsDev, BaseDevice, get_device, GLOBAL_DEVICE, libs::{cpu::{CPU, InternCPU}, opencl::{CLDevice, cl_device::InternCLDevice}}, Matrix, VecRead, Error, DeviceError, BaseOps};
+use custos::{AsDev, BaseDevice, get_device, libs::{cpu::CPU, opencl::CLDevice}, Matrix, VecRead, Error, BaseOps};
 
 #[test]
 fn test_matrix_read() -> Result<(), Error> {
