@@ -2,7 +2,7 @@ use std::{ffi::c_void, rc::Rc, cell::RefCell};
 
 use crate::{libs::opencl::api::{create_buffer, MemFlags}, BaseOps, Matrix, AsDev, Gemm, VecRead, BaseDevice, Error, Device};
 
-use super::{api::{CLIntDevice, CommandQueue, Context, create_command_queue, create_context, enqueue_read_buffer, wait_for_event, release_mem_object}, CL_DEVICES, GenericOCL, tew, ocl_gemm, CL_CACHE};
+use super::{api::{CLIntDevice, CommandQueue, Context, create_command_queue, create_context, enqueue_read_buffer, wait_for_event, release_mem_object, enqueue_write_buffer}, CL_DEVICES, GenericOCL, tew, ocl_gemm, CL_CACHE};
 
 #[derive(Debug, Clone)]
 pub struct InternCLDevice {
@@ -90,6 +90,11 @@ impl <T: GenericOCL>Gemm<T> for InternCLDevice {
         ocl_gemm(self.clone(), rhs, lhs).unwrap()   
     }
 }
+
+pub fn cl_write<T>(device: &InternCLDevice, x: &mut Matrix<T>, data: &[T]) {
+    let event = enqueue_write_buffer(&device.get_queue(), x.ptr() as *mut c_void, &data, true).unwrap();
+    wait_for_event(event).unwrap();
+} 
 
 impl <T: Default+Copy>VecRead<T> for InternCLDevice {
     fn read(&self, buf: crate::Buffer<T>) -> Vec<T> {

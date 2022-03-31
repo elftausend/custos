@@ -37,6 +37,15 @@ impl <T: Clone, const N: usize>From<(&Box<dyn Device<T>>, &[T; N])> for Buffer<T
     }
 }
 
+impl <T: Clone>From<(&Box<dyn Device<T>>, usize)> for Buffer<T> {
+    fn from(device_len: (&Box<dyn Device<T>>, usize)) -> Self {
+        Buffer {
+            ptr: device_len.0.alloc(device_len.1),
+            len: device_len.1
+        }
+    }
+}
+
 
 impl <T: Clone, D: Device<T>, const N: usize>From<(&D, [T; N])> for Buffer<T> {
     fn from(device_slice: (&D, [T; N])) -> Self {

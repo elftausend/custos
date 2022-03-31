@@ -77,11 +77,10 @@ impl <T>From<(*mut T, (usize, usize))> for Matrix<T> {
 }
 
 //no Weak ptr:
-/*
 impl <T: Copy+Default, const N: usize>From<((usize, usize), &[T; N])> for Matrix<T> {
     fn from(dims_slice: ((usize, usize), &[T; N])) -> Self {
         //let device = get_device::<T>();
-        let device = get_device!(Device, T);
+        let device = get_device!(Device, T).unwrap();
         
         let buffer = Buffer::from((&device, dims_slice.1));
         Matrix {
@@ -90,7 +89,19 @@ impl <T: Copy+Default, const N: usize>From<((usize, usize), &[T; N])> for Matrix
         }        
     }
 }
-*/
+
+impl <T: Copy+Default>From<(usize, usize)> for Matrix<T> {
+    fn from(dims: (usize, usize)) -> Self {
+        let device = get_device!(Device, T).unwrap();
+        let buffer = Buffer::<T>::from((&device, dims.0*dims.1));
+        
+        Matrix {
+            data: buffer,
+            dims
+        }        
+    }
+}
+
 
 impl <T: GenericOCL>From<(&InternCLDevice, Matrix<T>)> for Matrix<T> {
     fn from(device_matrix: (&InternCLDevice, Matrix<T>)) -> Self {
