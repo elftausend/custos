@@ -10,7 +10,6 @@ pub struct Matrix<T> {
 
 impl <T>Matrix<T> {
     pub fn new<D: Device<T>>(device: D, dims: (usize, usize)) -> Matrix<T> {
-
         Matrix {
             data: Buffer { ptr: device.alloc(dims.0*dims.1), len: dims.0*dims.1 },
             dims,

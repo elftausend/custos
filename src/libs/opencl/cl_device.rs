@@ -78,6 +78,10 @@ impl <T: GenericOCL>BaseOps<T> for InternCLDevice {
     fn mul(&self, lhs: Matrix<T>, rhs: Matrix<T>) -> Matrix<T> {
         tew(self.clone(), lhs, rhs, "*").unwrap()
     }
+
+    fn div(&self, lhs: Matrix<T>, rhs: Matrix<T>) -> Matrix<T> {
+        tew(self.clone(), lhs, rhs, "/").unwrap()
+    }
 }
 
 impl <T: GenericOCL>Gemm<T> for InternCLDevice {

@@ -56,6 +56,10 @@ impl <T: Number>BaseOps<T> for InternCPU {
     fn mul(&self, lhs: Matrix<T>, rhs: Matrix<T>) -> Matrix<T> {
         ew_op(self.clone(), lhs, rhs, | x, y| x*y)
     }
+
+    fn div(&self, lhs: Matrix<T>, rhs: Matrix<T>) -> Matrix<T> {
+        ew_op(self.clone(), lhs, rhs, | x, y| x/y)
+    }
 }
 
 impl Dealloc for InternCPU {
