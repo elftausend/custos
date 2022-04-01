@@ -1,8 +1,8 @@
 use std::{ffi::c_void, rc::Rc, cell::RefCell};
 
-use crate::{libs::opencl::api::{create_buffer, MemFlags}, BaseOps, Matrix, AsDev, Gemm, VecRead, BaseDevice, Error, Device};
+use crate::{libs::opencl::api::{create_buffer, MemFlags}, BaseOps, Matrix, AsDev, Gemm, VecRead, BaseDevice, Error, Device, AssignOps};
 
-use super::{api::{CLIntDevice, CommandQueue, Context, create_command_queue, create_context, enqueue_read_buffer, wait_for_event, release_mem_object, enqueue_write_buffer}, CL_DEVICES, GenericOCL, tew, ocl_gemm, CL_CACHE};
+use super::{api::{CLIntDevice, CommandQueue, Context, create_command_queue, create_context, enqueue_read_buffer, wait_for_event, release_mem_object, enqueue_write_buffer}, CL_DEVICES, GenericOCL, tew, ocl_gemm, CL_CACHE, tew_self};
 
 #[derive(Debug, Clone)]
 pub struct InternCLDevice {
@@ -81,6 +81,12 @@ impl <T: GenericOCL>BaseOps<T> for InternCLDevice {
 
     fn div(&self, lhs: Matrix<T>, rhs: Matrix<T>) -> Matrix<T> {
         tew(self.clone(), lhs, rhs, "/").unwrap()
+    }
+}
+
+impl <T: GenericOCL>AssignOps<T> for InternCLDevice {
+    fn sub_assign(&self, lhs: &mut Matrix<T>, rhs: Matrix<T>) {
+        tew_self(self.clone(), lhs, rhs, "-").unwrap()
     }
 }
 

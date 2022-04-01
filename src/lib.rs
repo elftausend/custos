@@ -49,6 +49,10 @@ pub trait OpBounds {
 ///All 'base' traits?
 pub trait BaseDevice<T>: Device<T> + BaseOps<T> + VecRead<T> + Gemm<T> {}
 
+pub trait AssignOps<T> {
+    fn sub_assign(&self, lhs: &mut Matrix<T>, rhs: Matrix<T>);
+}
+
 pub trait BaseOps<T> {
     fn add(&self, lhs: Matrix<T>, rhs: Matrix<T>) -> Matrix<T>;
     fn sub(&self, lhs: Matrix<T>, rhs: Matrix<T>) -> Matrix<T>;

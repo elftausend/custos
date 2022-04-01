@@ -1,5 +1,5 @@
 pub use gemm::ocl_gemm;
-pub use tew::tew;
+pub use tew::*;
 
 mod tew;
 mod gemm;

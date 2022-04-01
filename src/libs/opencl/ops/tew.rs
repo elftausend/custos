@@ -37,3 +37,19 @@ pub fn tew<T: GenericOCL>(device: InternCLDevice, lhs: Matrix<T>, rhs: Matrix<T>
         .with_output(lhs.dims())
         .run()
 }
+
+pub fn tew_self<T: GenericOCL>(device: InternCLDevice, lhs: &mut Matrix<T>, rhs: Matrix<T>, op: &str) -> Result<(), Error> {
+    let src = format!("
+        __kernel void eop_self(__global {datatype}* self, __global const {datatype}* rhs) {{
+            size_t id = get_global_id(0);
+            self[id] = self[id]{op}rhs[id];
+        }}
+    ", datatype=T::as_ocl_type_str());
+
+    let gws = [lhs.size(), 0, 0];
+    KernelOptions::<T>::new(device, *lhs, gws, &src)
+        .with_rhs(rhs)
+        .with_output(lhs.dims())
+        .run().unwrap();
+    Ok(())
+}

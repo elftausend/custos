@@ -1,4 +1,4 @@
-use custos::{libs::cpu::{CPU, each_op}, AsDev, Matrix};
+use custos::{libs::cpu::{CPU, each_op}, AsDev, Matrix, CLDevice};
 
 #[test]
 fn test_matrix_read() {
@@ -24,4 +24,24 @@ fn test_print() {
 
     let x = Matrix::from((&device, (2, 3), [1, 2, 3, 4, 5, 6]));
     println!("x: {:?}", x);
+}
+
+#[test]
+fn test_sub_assign() {
+    let device = CPU::new().select();
+
+    let mut x = Matrix::from((&device, (2, 3), [1, 2, 3, 4, 5, 6]));
+    let y = Matrix::from((&device, (2, 3), [3, 4, 5, 6, 7, 8]));
+    
+    x -= y;
+    assert_eq!(x.read(), vec![-2, -2, -2, -2, -2, -2]);
+
+
+    let device = CLDevice::get(0).unwrap().select();
+
+    let mut x = Matrix::from((&device, (2, 3), [1, 2, 3, 4, 5, 6]));
+    let y = Matrix::from((&device, (2, 3), [3, 4, 5, 6, 7, 8]));
+    
+    x -= y;
+    assert_eq!(x.read(), vec![-2, -2, -2, -2, -2, -2])
 }

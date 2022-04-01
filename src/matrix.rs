@@ -1,6 +1,6 @@
 use std::ffi::c_void;
 
-use crate::{BaseOps, Buffer, Device, Gemm, get_device, libs::{cpu::TBlas, opencl::GenericOCL}, VecRead, opencl::{InternCLDevice, CLCache, Node, api::{enqueue_write_buffer, wait_for_event}}, number::Number, cpu::CPU_CACHE};
+use crate::{BaseOps, Buffer, Device, Gemm, get_device, libs::{cpu::TBlas, opencl::GenericOCL}, VecRead, opencl::{InternCLDevice, CLCache, Node, api::{enqueue_write_buffer, wait_for_event}}, number::Number, AssignOps};
 
 #[derive(Clone, Copy)]
 pub struct Matrix<T> {
@@ -157,6 +157,13 @@ impl <T: GenericOCL>core::ops::Mul for Matrix<T> {
     fn mul(self, rhs: Self) -> Self::Output {
         let device = get_device!(BaseOps, T).unwrap();
         device.mul(self, rhs)
+    }
+}
+
+impl <T: GenericOCL>core::ops::SubAssign for Matrix<T> {
+    fn sub_assign(&mut self, rhs: Self) {
+        let device = get_device!(AssignOps, T).unwrap();
+        device.sub_assign(self, rhs)
     }
 }
 

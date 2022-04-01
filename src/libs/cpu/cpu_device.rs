@@ -1,8 +1,8 @@
 use std::{fmt::Debug, cell::RefCell, rc::Rc};
 
-use crate::{BaseOps, Buffer, Device, Gemm, libs::{cpu::{CPUCache, ops::element_wise_op_mut}, opencl::GenericOCL}, matrix::Matrix, VecRead, number::Number, Dealloc, AsDev, BaseDevice};
+use crate::{BaseOps, Buffer, Device, Gemm, libs::{cpu::{CPUCache, ops::element_wise_op_mut}, opencl::GenericOCL}, matrix::Matrix, VecRead, number::Number, Dealloc, AsDev, BaseDevice, AssignOps};
 
-use super::{TBlas, CPU_CACHE};
+use super::{TBlas, CPU_CACHE, assign_to_lhs};
 
 #[derive(Debug, Clone)]
 pub struct InternCPU {
@@ -41,6 +41,12 @@ impl <T: Copy+Default>VecRead<T> for InternCPU {
         unsafe {
             std::slice::from_raw_parts(buf.ptr, buf.len).to_vec()
         }
+    }
+}
+
+impl <T: Number>AssignOps<T> for InternCPU {
+    fn sub_assign(&self, lhs: &mut Matrix<T>, rhs: Matrix<T>) {
+        assign_op(lhs, rhs, |x, y| *x -= y)
     }
 }
 
@@ -138,6 +144,10 @@ impl AsDev for InternCPU {
 }
 
 impl <T: GenericOCL+TBlas>BaseDevice<T> for InternCPU {}
+
+pub fn assign_op<T: Copy+Default, F: Fn(&mut T, T)>(lhs: &mut Matrix<T>, rhs: Matrix<T>, f: F) {
+    assign_to_lhs(lhs.as_cpu_slice_mut(), rhs.as_cpu_slice(), f)
+}
 
 pub fn ew_op<T: Copy+Default, F: Fn(T, T) -> T>(device: InternCPU, lhs: Matrix<T>, rhs: Matrix<T>, f: F) -> Matrix<T> {
     let mut out = CPUCache::get::<T>(device, lhs.dims());
