@@ -1,5 +1,7 @@
 pub use level3::*;
 
+use crate::number::Float;
+
 pub mod level3;
 
 #[repr(C)]
@@ -13,7 +15,7 @@ pub enum Transpose {
     Transpose=112,
 }
 
-pub trait TBlas where Self: Sized {
+pub trait TBlas where Self: Sized+Float {
     fn gemm(m: usize, n: usize, k:usize, a: &[Self], b: &[Self], c: &mut [Self]);
 }
 
