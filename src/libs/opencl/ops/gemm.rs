@@ -92,7 +92,7 @@ pub fn ocl_gemm<T: GenericOCL>(device: InternCLDevice, lhs: Matrix<T>, rhs: Matr
 
     let gws = [f, s, 0];
     
-    KernelOptions::new(device, lhs, gws, &src)
+    KernelOptions::new(&device, lhs, gws, &src)
         .with_rhs(rhs)
         .with_output((rhs.rows(), lhs.cols()))
         .run()

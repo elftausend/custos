@@ -47,12 +47,13 @@ pub struct KernelOptions<'a, T> {
     number_args: Vec<(T, usize)>,
     gws: [usize; 3],
     lws: Option<[usize; 3]>,
+    offset: Option<[usize; 3]>,
     wd: usize,
     device: InternCLDevice,
 }
 
 impl <'a, T: GenericOCL>KernelOptions<'a, T> {
-    pub fn new(device: InternCLDevice, lhs: Matrix<T>, gws: [usize; 3], src: &'a str) -> KernelOptions<'a, T> {
+    pub fn new(device: &InternCLDevice, lhs: Matrix<T>, gws: [usize; 3], src: &'a str) -> KernelOptions<'a, T> {
         let wd;
         if gws[0] == 0 {
             panic!("wrong gws")
@@ -73,14 +74,21 @@ impl <'a, T: GenericOCL>KernelOptions<'a, T> {
             number_args: Vec::new(),
             gws,
             lws: None,
+            offset: None,
             wd,
-            device,
+            device: device.clone(),
         }
     }
     pub fn with_lws(&mut self, lws: [usize; 3]) -> &mut KernelOptions<'a, T> {
         self.lws = Some(lws);
         self
     }
+
+    pub fn with_offset(&mut self, offset: [usize; 3]) -> &mut Self {
+        self.offset = Some(offset);
+        self
+    }
+
     pub fn with_rhs(&mut self, rhs: Matrix<T>) -> &mut KernelOptions<'a, T> {
         self.tensor_args.push((rhs, 1));
         self.rhs = Some(rhs);
@@ -110,7 +118,7 @@ impl <'a, T: GenericOCL>KernelOptions<'a, T> {
             set_kernel_arg(&kernel, arg.1, &arg.0)
         }
 
-        enqueue_nd_range_kernel(&self.device.get_queue(), &kernel, self.wd, &self.gws, self.lws.as_ref(), None)?;
+        enqueue_nd_range_kernel(&self.device.get_queue(), &kernel, self.wd, &self.gws, self.lws.as_ref(), self.offset)?;
         
         match self.output {
             Some(out) => Ok(out),
