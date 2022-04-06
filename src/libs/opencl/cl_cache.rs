@@ -1,41 +1,9 @@
 use std::{any::TypeId, collections::HashMap, ffi::c_void, cell::RefCell};
 
-use crate::{matrix::Matrix, Error};
+use crate::{matrix::Matrix, Error, Node};
 
 use super::{api::{build_program, create_kernels_in_program, create_program_with_source, Kernel, set_kernel_arg}, GenericOCL, cl_device::InternCLDevice};
 
-#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
-pub struct Node {
-    idx: usize,
-    out_dims: (usize, usize),
-    //pub thread_id: std::thread::ThreadId,
-}
-
-thread_local! {
-    pub static COUNT: RefCell<usize> = RefCell::new(0);
-}
-
-pub fn set_count(count: usize) {
-    COUNT.with(|c| *c.borrow_mut() = count);
-}
-
-pub fn get_count() -> usize {
-    COUNT.with(|c| *c.borrow())
-}
-
-impl Node {
-    pub fn new(out_dims: (usize, usize)) -> Node {
-        COUNT.with(|count| {
-            let node = Node {
-                idx: *count.borrow(),
-                out_dims,
-                
-            };
-            *count.borrow_mut() += 1;
-            node
-        })
-    }
-}
 
 thread_local! {
     pub static CL_CACHE: RefCell<CLCache> = RefCell::new(CLCache { output_nodes: HashMap::new(), arg_kernel_cache: HashMap::new() })

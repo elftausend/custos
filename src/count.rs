@@ -1,6 +1,6 @@
 use std::ops::Range;
 
-use crate::libs::opencl::{set_count, get_count};
+use crate::{set_count, get_count};
 
 pub trait AsRangeArg {
     fn start(&self) -> usize;

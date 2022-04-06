@@ -125,10 +125,7 @@ macro_rules! float_apply {
 float_apply!(f32);
 float_apply!(f64);
 
-#[cfg(feature="opencl")]
-pub trait Float:
-            Neg + Number + TGenericOCL
-    {
+pub trait Float: Neg + Number {
     fn negate(&self) -> Self;
     fn squared(lhs: Self) -> Self;
     fn exp(&self) -> Self;
@@ -142,23 +139,4 @@ pub trait Float:
     fn sqrt(&self) -> Self;
     fn ln(&self) -> Self;
     fn abs(&self) -> Self;
-}
-#[cfg(not(feature="opencl"))]
-pub trait Float:
-            Neg + Number
-    {
-    fn negate(&self) -> Self;
-    fn squared(lhs: Self) -> Self;
-    fn exp(&self) -> Self;
-    fn powf(&self, rhs: Self) -> Self;
-    fn powi(&self, rhs: i32) -> Self;
-    fn comp(lhs: Self, rhs: Self) -> Option<Ordering>;
-    //fn from_usize(value: usize) -> Self;
-    fn tanh(&self) -> Self;
-    fn sin(&self) -> Self;
-    fn as_generic(value: f64) -> Self;
-    fn sqrt(&self) -> Self;
-    fn ln(&self) -> Self;
-    fn abs(&self) -> Self;
-    
 }

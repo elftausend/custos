@@ -1,28 +1,7 @@
 use std::{collections::HashMap, cell::RefCell};
-
-use crate::{libs::opencl::COUNT, Matrix};
-
+use crate::{Matrix, Node};
 use super::InternCPU;
 
-#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
-pub struct Node {
-    idx: usize,
-    out_dims: (usize, usize),
-}
-
-impl Node {
-    pub fn new(out_dims: (usize, usize)) -> Node {
-        COUNT.with(|count| {
-            let node = Node {
-                idx: *count.borrow(),
-                out_dims,
-                
-            };
-            *count.borrow_mut() += 1;
-            node
-        })
-    }
-}
 
 thread_local! {
     pub static CPU_CACHE: RefCell<CPUCache> = RefCell::new(CPUCache { nodes: HashMap::new() });

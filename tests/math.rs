@@ -1,4 +1,4 @@
- use custos::{AsDev, Buffer, Device, Gemm, libs::{cpu::CPU, opencl::{CLDevice, set_count}}, Matrix, number::Float, range, VecRead};
+ use custos::{AsDev, Buffer, Device, Gemm, libs::{cpu::CPU, opencl::CLDevice}, Matrix, number::Float, range, VecRead, set_count};
 
 /* 
 #[test]
@@ -57,15 +57,18 @@ fn test_element_wise_add_cpu() {
 }
 
 #[test]
-fn test_ew_add_cpu_a_cl() {
+fn test_ew_add_cpu() {
     let device = CPU::new().select();
 
     let a = Matrix::from(( &device, (1, 4), [1, 4, 2, 9] ));
     let b = Matrix::from(( &device, (1, 4), [1, 4, 2, 9] ));
 
     let c = a + b;
-    assert_eq!(vec![2, 8, 4, 18], c.read());   
+    assert_eq!(vec![2, 8, 4, 18], c.read());       
+}
 
+#[test]
+fn test_ew_add_cl() {
     let device = CLDevice::get(0).unwrap().select();
 
     let a = Matrix::from(( &device, (1, 4), [1, 4, 2, 9] ));
@@ -73,11 +76,10 @@ fn test_ew_add_cpu_a_cl() {
 
     let c = a + b;
     assert_eq!(vec![2, 8, 4, 18], c.read());
-        
 }
 
 #[test]
-fn test_ew_sub_cpu_a_cl() {
+fn test_ew_sub_cpu() {
     let device = CPU::new().select();
 
     let a = Matrix::from(( &device, (1, 4), [1u32, 4, 2, 9] ));
@@ -85,7 +87,10 @@ fn test_ew_sub_cpu_a_cl() {
 
     let c = a - b;
     assert_eq!(vec![0, 0, 0, 0], c.read());
+}
 
+#[test]
+fn test_ew_sub_cl() {
     let device = CLDevice::get(0).unwrap().select();
 
     let a = Matrix::from(( &device, (1, 4), [1u32, 4, 2, 9] ));
@@ -93,7 +98,6 @@ fn test_ew_sub_cpu_a_cl() {
 
     let c = a - b;
     assert_eq!(vec![0, 0, 0, 0], c.read());
-
 }
 
 #[test]

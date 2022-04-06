@@ -1,7 +1,7 @@
-use custos::{opencl::KernelOptions, CLDevice, Error, AsDev, Matrix};
+//use custos::{opencl::KernelOptions, CLDevice, Error, AsDev, Matrix};
 
 
-
+/* 
 #[test]
 fn test_cl_offset() -> Result<(), Error> {
     let device = CLDevice::get(0)?.select();
@@ -34,3 +34,4 @@ fn test_cl_offset() -> Result<(), Error> {
     assert_eq!(out.read(), vec![0., 0., 0., 6., 7.5, 9.]);
     Ok(())
 }
+*/

@@ -8,3 +8,9 @@ edition = "2021"
 [dependencies]
 rand = "*"
 lazy_static = "1.4.0"
+
+[features]
+default = ["all"]
+all = ["cpu", "opencl"]
+cpu = []
+opencl = []
