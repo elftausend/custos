@@ -76,3 +76,13 @@ impl <T: Clone, D: Device<T>>From<(&D, Vec<T>)> for Buffer<T> {
         }       
     }
 }
+
+impl <T: Clone, D: Device<T>>From<(&D, &Vec<T>)> for Buffer<T> {
+    fn from(device_slice: (&D, &Vec<T>)) -> Self {
+        let len = device_slice.1.len();
+        Buffer {
+            ptr: device_slice.0.with_data(device_slice.1),
+            len
+        }       
+    }
+}
