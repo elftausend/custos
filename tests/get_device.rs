@@ -1,5 +1,6 @@
-
-use custos::{AsDev, BaseDevice, get_device, libs::{cpu::CPU, opencl::CLDevice}, Matrix, VecRead, Error, BaseOps};
+#[cfg(feature="opencl")]
+use custos::{BaseDevice, libs::opencl::CLDevice};
+use custos::{AsDev, get_device, libs::cpu::CPU, Matrix, VecRead, Error, BaseOps};
 
 #[test]
 fn test_matrix_read_cpu() -> Result<(), Error> {
@@ -13,6 +14,7 @@ fn test_matrix_read_cpu() -> Result<(), Error> {
     Ok(())
 }
 
+#[cfg(feature="opencl")]
 #[test]
 fn test_matrix_read_cl() -> Result<(), Error> {
     let device = CLDevice::get(0)?.select();

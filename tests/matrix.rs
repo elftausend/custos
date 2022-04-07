@@ -1,4 +1,6 @@
-use custos::{libs::cpu::{CPU, each_op}, AsDev, Matrix, CLDevice};
+use custos::{libs::cpu::{CPU, each_op}, AsDev, Matrix};
+#[cfg(feature="opencl")]
+use custos::CLDevice;
 
 #[test]
 fn test_matrix_read() {
@@ -27,7 +29,7 @@ fn test_print() {
 }
 
 #[test]
-fn test_sub_assign() {
+fn test_sub_assign_cpu() {
     let device = CPU::new().select();
 
     let mut x = Matrix::from((&device, (2, 3), [1, 2, 3, 4, 5, 6]));
@@ -35,8 +37,11 @@ fn test_sub_assign() {
     
     x -= y;
     assert_eq!(x.read(), vec![-2, -2, -2, -2, -2, -2]);
+}
 
-
+#[cfg(feature="opencl")]
+#[test]
+fn test_sub_assign_cl() {
     let device = CLDevice::get(0).unwrap().select();
 
     let mut x = Matrix::from((&device, (2, 3), [1, 2, 3, 4, 5, 6]));

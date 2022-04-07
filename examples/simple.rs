@@ -1,6 +1,10 @@
-
+#[cfg(feature="opencl")]
 use custos::{libs::{cpu::CPU, opencl::CLDevice}, AsDev, Matrix, BaseOps, VecRead, Error};
 
+#[cfg(not(feature="opencl"))]
+fn main() {}
+
+#[cfg(feature="opencl")]
 fn main() -> Result<(), Error> {
     //select() ... sets CPU as 'global device' 
     // -> when device is not specified in an operation, the 'global device' is used

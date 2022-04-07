@@ -1,5 +1,7 @@
 
-use custos::{AsDev, libs::{cpu::CPU, opencl::CLDevice}, Matrix, range, VecRead, get_count};
+use custos::{AsDev, libs::cpu::CPU, Matrix, range, get_count};
+#[cfg(feature="opencl")]
+use custos::{VecRead, libs::opencl::CLDevice};
 
 #[test]
 fn test_range() {
@@ -10,6 +12,7 @@ fn test_range() {
     }
 }
 
+#[cfg(feature="opencl")]
 #[test]
 fn test_use_range_for_ew_add() {
     let device = CLDevice::get(0).unwrap().select();

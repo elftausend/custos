@@ -2,7 +2,14 @@
 
 An experimental library for matrix operations that are calculated on the CPU or on OpenCL devices.
 
-## Example
+Add "custos" as a dependency:
+```toml
+[dependencies]
+custos = {git = "https://github.com/elftausend/custos.git", features=["opencl"]}
+```
+If you do not need any OpenCL features, you can remove 'features=["opencl"]' entirely.
+
+## Example (with OpenCL)
 
 ```rust
 use custos::{libs::{cpu::CPU, opencl::CLDevice}, AsDev, Matrix, BaseOps, VecRead, Error};

@@ -1,6 +1,7 @@
 #[cfg(feature="opencl")]
 use custos::{opencl::CLDevice, AsDev, Matrix, range, cpu::CPU, BaseOps};
 
+#[cfg(feature="opencl")]
 #[test]
 fn test_device_switching() -> Result<(), custos::Error> {
     let device = CLDevice::get(0)?.select();
