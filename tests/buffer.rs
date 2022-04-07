@@ -1,5 +1,7 @@
 
-use custos::{Buffer, Device, libs::{cpu::CPU, opencl::CLDevice}, VecRead, Error};
+use custos::{Buffer, Device, libs::cpu::CPU, VecRead, Error};
+#[cfg(feature="opencl")]
+use custos::libs::opencl::CLDevice;
 
 pub fn get_mut_slice<T>(buf: &mut Buffer<T>) -> &mut [T] {
     unsafe {
@@ -17,6 +19,7 @@ pub fn read<T, D: Device<T>>(device: &D, buf: Buffer<T>) -> Vec<T> where D: VecR
     device.read(buf)
 }
 
+#[cfg(feature="opencl")]
 #[test]
 fn test_cldevice_name() -> Result<(), Error> {
     let device = CLDevice::get(0)?;
@@ -24,6 +27,7 @@ fn test_cldevice_name() -> Result<(), Error> {
     Ok(())
 }
 
+#[cfg(feature="opencl")]
 #[test]
 fn test_cldevice_version() -> Result<(), Error> {
     let device = CLDevice::get(0)?;
@@ -31,6 +35,7 @@ fn test_cldevice_version() -> Result<(), Error> {
     Ok(())
 }
 
+#[cfg(feature="opencl")]
 #[test]
 fn test_cldevice_mem() -> Result<(), Error> {
     let device = CLDevice::get(0)?;
@@ -39,6 +44,7 @@ fn test_cldevice_mem() -> Result<(), Error> {
     Ok(())
 }
 
+#[cfg(feature="opencl")]
 #[test]
 fn test_buffer_from_read() -> Result<(), Error> {
     let device = CLDevice::get(0)?;
@@ -53,6 +59,7 @@ fn test_buffer_from_read() -> Result<(), Error> {
     Ok(())
 }
 
+#[cfg(feature="all")]
 #[test]
 fn test_buffer_alloc_and_read() -> Result<(), Error> {
     let device = CPU::new();

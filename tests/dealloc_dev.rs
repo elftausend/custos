@@ -1,5 +1,6 @@
-use custos::{libs::{cpu::CPU, opencl::cl_device::CLDevice}, AsDev, Matrix, range};
-
+use custos::{libs::cpu::CPU, AsDev, Matrix, range};
+#[cfg(feature="opencl")]
+use custos::opencl::cl_device::CLDevice;
 
 #[test]
 fn test_rc_get_dev() {
@@ -17,6 +18,7 @@ fn test_rc_get_dev() {
     }    
 }
 
+#[cfg(feature="opencl")]
 #[test]
 fn test_ocl_dealloc() {
     let device = CLDevice::get(0).unwrap().select();

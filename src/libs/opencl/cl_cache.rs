@@ -1,8 +1,8 @@
 use std::{any::TypeId, collections::HashMap, ffi::c_void, cell::RefCell};
 
-use crate::{matrix::Matrix, Error, Node};
+use crate::{matrix::Matrix, Error, Node, GenericOCL};
 
-use super::{api::{build_program, create_kernels_in_program, create_program_with_source, Kernel, set_kernel_arg}, GenericOCL, cl_device::InternCLDevice};
+use super::{api::{build_program, create_kernels_in_program, create_program_with_source, Kernel, set_kernel_arg}, cl_device::InternCLDevice};
 
 
 thread_local! {

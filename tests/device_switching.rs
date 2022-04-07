@@ -1,3 +1,4 @@
+#[cfg(feature="opencl")]
 use custos::{opencl::CLDevice, AsDev, Matrix, range, cpu::CPU, BaseOps};
 
 #[test]

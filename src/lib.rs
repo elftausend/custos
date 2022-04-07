@@ -5,7 +5,9 @@ pub use buffer::*;
 pub use count::*;
 pub use libs::*;
 
-pub use libs::{opencl::{CLDevice, InternCLDevice}, cpu::{CPU, InternCPU}};
+#[cfg(feature="opencl")]
+pub use libs::opencl::{CLDevice, InternCLDevice};
+pub use libs::cpu::{CPU, InternCPU};
 pub use matrix::*;
 
 pub mod libs;
@@ -79,9 +81,11 @@ pub struct Dev {
 }   
 
 impl Dev {
+
     pub fn new(cl_device: Option<Weak<RefCell<CLDevice>>>, cpu: Option<Weak<RefCell<CPU>>>) -> Dev {
         Dev { cl_device, cpu }
     }
+    
 }
 
 thread_local! {
@@ -127,6 +131,7 @@ impl From<DeviceError> for Error {
 
 impl std::error::Error for DeviceError {}
 
+#[cfg(feature="opencl")]
 #[macro_export]
 macro_rules! get_device {
     
@@ -136,6 +141,25 @@ macro_rules! get_device {
             let device: Result<Box<dyn $t<$g>>, Error> = GLOBAL_DEVICE.with(|d| {
                 let dev: Result<Box<dyn $t<$g>>, Error> = match &d.borrow().cl_device {
                     Some(cl) => Ok(Box::new(InternCLDevice::from(cl.clone().upgrade().ok_or(Error::from(DeviceError::NoDeviceSelected))?))),    
+                    None => Ok(Box::new(InternCPU::new(d.borrow().cpu.as_ref().ok_or(Error::from(DeviceError::NoDeviceSelected))?.upgrade().ok_or(Error::from(DeviceError::NoDeviceSelected))?)))
+                };
+                dev
+            });
+            device
+        }
+    }
+}
+
+#[cfg(not(feature="opencl"))]
+#[macro_export]
+macro_rules! get_device {
+    
+    ($t:ident, $g:ident) => {    
+        {     
+            use $crate::{GLOBAL_DEVICE, InternCPU, Error, DeviceError};
+            let device: Result<Box<dyn $t<$g>>, Error> = GLOBAL_DEVICE.with(|d| {
+                let dev: Result<Box<dyn $t<$g>>, Error> = match &d.borrow().cl_device {
+                    Some(_) => Err(Error::from(DeviceError::NoDeviceSelected)),
                     None => Ok(Box::new(InternCPU::new(d.borrow().cpu.as_ref().ok_or(Error::from(DeviceError::NoDeviceSelected))?.upgrade().ok_or(Error::from(DeviceError::NoDeviceSelected))?)))
                 };
                 dev

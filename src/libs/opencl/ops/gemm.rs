@@ -1,6 +1,6 @@
 use std::fmt::Write;
 
-use crate::{libs::opencl::{GenericOCL, KernelOptions, cl_device::InternCLDevice}, Matrix, Error};
+use crate::{libs::opencl::{KernelOptions, cl_device::InternCLDevice}, Matrix, Error, GenericOCL};
 
 pub fn ocl_gemm<T: GenericOCL>(device: InternCLDevice, lhs: Matrix<T>, rhs: Matrix<T>) -> Result<Matrix<T>, Error> {
     let m = lhs.cols();

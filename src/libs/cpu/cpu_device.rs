@@ -1,6 +1,6 @@
 use std::{fmt::Debug, cell::RefCell, rc::Rc};
 
-use crate::{BaseOps, Buffer, Device, Gemm, libs::{cpu::{CPUCache, ops::element_wise_op_mut}, opencl::GenericOCL}, matrix::Matrix, VecRead, number::Number, Dealloc, AsDev, BaseDevice, AssignOps};
+use crate::{BaseOps, Buffer, Device, Gemm, libs::cpu::{CPUCache, ops::element_wise_op_mut}, matrix::Matrix, VecRead, number::Number, Dealloc, AsDev, BaseDevice, AssignOps, GenericOCL};
 
 use super::{TBlas, CPU_CACHE, assign_to_lhs};
 

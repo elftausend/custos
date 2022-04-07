@@ -1,3 +1,4 @@
+
 use custos::{libs::{cpu::CPU, opencl::CLDevice}, AsDev, Matrix, BaseOps, VecRead, Error};
 
 fn main() -> Result<(), Error> {

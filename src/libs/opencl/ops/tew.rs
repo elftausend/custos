@@ -1,4 +1,4 @@
-use crate::{libs::opencl::{GenericOCL, KernelOptions, cl_device::InternCLDevice}, matrix::Matrix, Error};
+use crate::{libs::opencl::{KernelOptions, cl_device::InternCLDevice}, matrix::Matrix, Error, GenericOCL};
 
 trait Both {
     fn as_str<'a, >() -> &'a str;

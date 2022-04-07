@@ -1,6 +1,11 @@
+#[cfg(feature="opencl")]
 use std::ffi::c_void;
+#[cfg(feature="opencl")]
+use crate::opencl::{InternCLDevice, CLCache, api::{enqueue_write_buffer, wait_for_event}};
+#[cfg(feature="opencl")]
+use crate::Node;
 
-use crate::{BaseOps, Buffer, Device, Gemm, get_device, libs::{cpu::TBlas, opencl::GenericOCL}, VecRead, opencl::{InternCLDevice, CLCache, api::{enqueue_write_buffer, wait_for_event}}, number::Number, AssignOps, Node};
+use crate::{BaseOps, Buffer, Device, Gemm, get_device, libs::cpu::TBlas, VecRead, number::Number, AssignOps, GenericOCL};
 
 #[derive(Clone, Copy)]
 pub struct Matrix<T> {
@@ -102,6 +107,7 @@ impl <T: Copy+Default>From<(usize, usize)> for Matrix<T> {
     }
 }
 
+#[cfg(feature="opencl")]
 impl <T: GenericOCL>From<(&InternCLDevice, Matrix<T>)> for Matrix<T> {
     fn from(device_matrix: (&InternCLDevice, Matrix<T>)) -> Self {
         //assert!(CPU_CACHE.with(|cache| !cache.borrow().nodes.is_empty()), "no allocations");
@@ -211,5 +217,3 @@ impl <'a, T: Clone+Default+Number+Copy+core::fmt::Debug>core::fmt::Debug for Mat
         
     }
 }
-
-

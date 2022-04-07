@@ -19,7 +19,6 @@ pub struct CPUCache {
 
 impl CPUCache {
     pub fn add_node<T: Default+Copy>(&mut self, device: InternCPU, node: Node) -> Matrix<T> {
-        //use device, not CPU
         let out = Matrix::new(device, node.out_dims);
         self.nodes.insert(node, ( CpuPtr(out.ptr() as *mut usize), out.dims() ));
         out
