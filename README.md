@@ -16,7 +16,6 @@ For non-copy matrices and buffers (safer):
 custos = {git = "https://github.com/elftausend/custos.git", features=["safe"]}
 ```
 
-
 ## Example (with OpenCL)
 
 ```rust
@@ -51,5 +50,4 @@ fn main() -> Result<(), Error> {
 
     Ok(())
 }
-
 ```

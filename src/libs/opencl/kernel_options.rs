@@ -3,11 +3,19 @@ use crate::{matrix::Matrix, number::Number, Error, Node, GenericOCL};
 use super::{api::{enqueue_nd_range_kernel, set_kernel_arg}, CL_CACHE, CLCache, cl_device::InternCLDevice};
 
 pub trait KernelArg<'a, T> {
-    fn matrix(&self) -> Option<&'a Matrix<T>>;
+    fn matrix(&'a self) -> Option<&'a Matrix<T>>;
     fn number(&self) -> Option<T>;
 }
 
+impl <'a, T: Copy>KernelArg<'a, T> for Matrix<T> {
+    fn matrix(&'a self) -> Option<&'a Matrix<T>> {
+        Some(self)
+    }
 
+    fn number(&self) -> Option<T> {
+        None
+    }
+}
 
 impl <'a, T: Copy>KernelArg<'a, T> for &'a Matrix<T> {
     fn matrix(&self) -> Option<&'a Matrix<T>> {
