@@ -44,7 +44,7 @@ fn test_no_device() {
         let a = Matrix::from(( &device, (2, 3), [1.51, 6.123, 7., 5.21, 8.62, 4.765]));
         let b = Matrix::from(( &device, (2, 3), [1.51, 6.123, 7., 5.21, 8.62, 4.765]));
     
-        let c = device.add(a, b);
+        let c = device.add(&a, &b);
         assert_eq!(c.read(), vec![3.02, 12.246, 14., 10.42, 17.24, 9.53]);
 
         let device = get_device!(BaseOps, f32);

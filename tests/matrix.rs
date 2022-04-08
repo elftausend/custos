@@ -35,7 +35,7 @@ fn test_sub_assign_cpu() {
     let mut x = Matrix::from((&device, (2, 3), [1, 2, 3, 4, 5, 6]));
     let y = Matrix::from((&device, (2, 3), [3, 4, 5, 6, 7, 8]));
     
-    x -= y;
+    x -= &y;
     assert_eq!(x.read(), vec![-2, -2, -2, -2, -2, -2]);
 }
 
@@ -47,6 +47,6 @@ fn test_sub_assign_cl() {
     let mut x = Matrix::from((&device, (2, 3), [1, 2, 3, 4, 5, 6]));
     let y = Matrix::from((&device, (2, 3), [3, 4, 5, 6, 7, 8]));
     
-    x -= y;
+    x -= &y;
     assert_eq!(x.read(), vec![-2, -2, -2, -2, -2, -2])
 }

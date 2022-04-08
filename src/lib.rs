@@ -42,6 +42,8 @@ pub trait Device<T> {
     fn alloc_with_vec(&self, vec: Vec<T>) -> *mut T {
         self.with_data(&vec)
     }
+    #[cfg(feature="safe")]
+    fn dealloc_type(&self) -> DeallocType;
 }
 
 pub trait OpBounds {
@@ -52,26 +54,30 @@ pub trait OpBounds {
 pub trait BaseDevice<T>: Device<T> + BaseOps<T> + VecRead<T> + Gemm<T> {}
 
 pub trait AssignOps<T> {
-    fn sub_assign(&self, lhs: &mut Matrix<T>, rhs: Matrix<T>);
+    fn sub_assign(&self, lhs: &mut Matrix<T>, rhs: &Matrix<T>);
 }
 
 pub trait BaseOps<T> {
-    fn add(&self, lhs: Matrix<T>, rhs: Matrix<T>) -> Matrix<T>;
-    fn sub(&self, lhs: Matrix<T>, rhs: Matrix<T>) -> Matrix<T>;
-    fn mul(&self, lhs: Matrix<T>, rhs: Matrix<T>) -> Matrix<T>;
-    fn div(&self, lhs: Matrix<T>, rhs: Matrix<T>) -> Matrix<T>;
+    fn add(&self, lhs: &Matrix<T>, rhs: &Matrix<T>) -> Matrix<T>;
+    fn sub(&self, lhs: &Matrix<T>, rhs: &Matrix<T>) -> Matrix<T>;
+    fn mul(&self, lhs: &Matrix<T>, rhs: &Matrix<T>) -> Matrix<T>;
+    fn div(&self, lhs: &Matrix<T>, rhs: &Matrix<T>) -> Matrix<T>;
 }
 
 pub trait VecRead<T> {
-    fn read(&self, buf: Buffer<T>) -> Vec<T>;
+    fn read(&self, buf: &Buffer<T>) -> Vec<T>;
 }
 
 pub trait Gemm<T> {
-    fn gemm(&self, lhs: Matrix<T>, rhs: Matrix<T>) -> Matrix<T>;
+    fn gemm(&self, lhs: &Matrix<T>, rhs: &Matrix<T>) -> Matrix<T>;
 }
 
 pub trait Dealloc {
     fn dealloc_cache();
+}
+
+pub trait DropBuf<T> {
+    fn drop_buf(&self, buf: &mut Buffer<T>);
 }
 
 #[derive(Debug, Clone)]
@@ -81,7 +87,6 @@ pub struct Dev {
 }   
 
 impl Dev {
-
     pub fn new(cl_device: Option<Weak<RefCell<CLDevice>>>, cpu: Option<Weak<RefCell<CPU>>>) -> Dev {
         Dev { cl_device, cpu }
     }

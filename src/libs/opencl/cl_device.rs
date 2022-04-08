@@ -1,6 +1,6 @@
 use std::{ffi::c_void, rc::Rc, cell::RefCell};
 
-use crate::{libs::opencl::api::{create_buffer, MemFlags}, BaseOps, Matrix, AsDev, Gemm, VecRead, BaseDevice, Error, Device, AssignOps, GenericOCL};
+use crate::{libs::opencl::api::{create_buffer, MemFlags}, BaseOps, Matrix, AsDev, Gemm, VecRead, BaseDevice, Error, Device, AssignOps, GenericOCL, DropBuf};
 
 use super::{api::{CLIntDevice, CommandQueue, Context, create_command_queue, create_context, enqueue_read_buffer, wait_for_event, release_mem_object, enqueue_write_buffer}, CL_DEVICES, tew, ocl_gemm, CL_CACHE, tew_self};
 
@@ -51,6 +51,7 @@ impl InternCLDevice {
     }
 }
 
+#[cfg(not(feature="safe"))]
 impl <T>Device<T> for InternCLDevice {
     fn alloc(&self, len: usize) -> *mut T {
         let ptr = create_buffer::<T>(&self.get_ctx(), MemFlags::MemReadWrite as u64, len, None).unwrap() as *mut T;
@@ -65,33 +66,56 @@ impl <T>Device<T> for InternCLDevice {
     }
 }
 
-
-impl <T: GenericOCL>BaseOps<T> for InternCLDevice {
-    fn add(&self, lhs: Matrix<T>, rhs: Matrix<T>) -> Matrix<T> {
-        tew(self.clone(), lhs, rhs, "+").unwrap()
+#[cfg(feature="safe")]
+impl <T>Device<T> for InternCLDevice {
+    fn alloc(&self, len: usize) -> *mut T {
+        create_buffer::<T>(&self.get_ctx(), MemFlags::MemReadWrite as u64, len, None).unwrap() as *mut T
     }
 
-    fn sub(&self, lhs: Matrix<T>, rhs: Matrix<T>) -> Matrix<T> {
+    fn with_data(&self, data: &[T]) -> *mut T {
+        create_buffer::<T>(&self.get_ctx(), MemFlags::MemReadWrite | MemFlags::MemCopyHostPtr, data.len(), Some(data)).unwrap() as *mut T
+    }
+
+    fn dealloc_type(&self) -> crate::DeallocType {
+        crate::DeallocType::CL
+    }
+}
+
+impl <T>DropBuf<T> for InternCLDevice {
+    fn drop_buf(&self, buf: &mut crate::Buffer<T>) {
+        release_mem_object(buf.ptr as *mut c_void).unwrap();
+    }
+}
+
+
+
+
+impl <T: GenericOCL>BaseOps<T> for InternCLDevice {
+    fn add(&self, lhs: &Matrix<T>, rhs: &Matrix<T>) -> Matrix<T> {
+        tew(self.clone(), &lhs, &rhs, "+").unwrap()
+    }
+
+    fn sub(&self, lhs: &Matrix<T>, rhs: &Matrix<T>) -> Matrix<T> {
         tew(self.clone(), lhs, rhs, "-").unwrap()
     }
 
-    fn mul(&self, lhs: Matrix<T>, rhs: Matrix<T>) -> Matrix<T> {
+    fn mul(&self, lhs: &Matrix<T>, rhs: &Matrix<T>) -> Matrix<T> {
         tew(self.clone(), lhs, rhs, "*").unwrap()
     }
 
-    fn div(&self, lhs: Matrix<T>, rhs: Matrix<T>) -> Matrix<T> {
+    fn div(&self, lhs: &Matrix<T>, rhs: &Matrix<T>) -> Matrix<T> {
         tew(self.clone(), lhs, rhs, "/").unwrap()
     }
 }
 
 impl <T: GenericOCL>AssignOps<T> for InternCLDevice {
-    fn sub_assign(&self, lhs: &mut Matrix<T>, rhs: Matrix<T>) {
+    fn sub_assign(&self, lhs: &mut Matrix<T>, rhs: &Matrix<T>) {
         tew_self(self.clone(), lhs, rhs, "-").unwrap()
     }
 }
 
 impl <T: GenericOCL>Gemm<T> for InternCLDevice {
-    fn gemm(&self, lhs: Matrix<T>, rhs: Matrix<T>) -> Matrix<T> {
+    fn gemm(&self, lhs: &Matrix<T>, rhs: &Matrix<T>) -> Matrix<T> {
         assert!(lhs.dims().1 == rhs.dims().0);
         ocl_gemm(self.clone(), rhs, lhs).unwrap()   
     }
@@ -103,7 +127,7 @@ pub fn cl_write<T>(device: &InternCLDevice, x: &mut Matrix<T>, data: &[T]) {
 } 
 
 impl <T: Default+Copy>VecRead<T> for InternCLDevice {
-    fn read(&self, buf: crate::Buffer<T>) -> Vec<T> {
+    fn read(&self, buf: &crate::Buffer<T>) -> Vec<T> {
         let mut read = vec![T::default(); buf.len];
         let event = enqueue_read_buffer(&self.get_queue(), buf.ptr as *mut c_void, &mut read, true).unwrap();
         wait_for_event(event).unwrap();
