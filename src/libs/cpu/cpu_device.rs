@@ -115,7 +115,7 @@ impl Drop for CPU {
                     if &hm_ptr == ptr {
                         CPU_CACHE.with(|cache| {
                             cache.borrow_mut().nodes.remove(entry.0);
-                        });                        
+                        });                     
                     }
                 });
         }
