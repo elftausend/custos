@@ -7,7 +7,15 @@ Add "custos" as a dependency:
 [dependencies]
 custos = {git = "https://github.com/elftausend/custos.git", features=["opencl"]}
 ```
+
 If you do not need any OpenCL features, you can remove 'features=["opencl"]' entirely.
+
+For non-copy matrices and buffers (safer): 
+```toml
+[dependencies]
+custos = {git = "https://github.com/elftausend/custos.git", features=["safe"]}
+```
+
 
 ## Example (with OpenCL)
 

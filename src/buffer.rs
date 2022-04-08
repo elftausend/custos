@@ -22,6 +22,11 @@ pub struct Buffer<T> {
     pub dealloc_type: DeallocType,
 }
 
+#[cfg(feature="safe")]
+unsafe impl<T> Send for Buffer<T> {}
+#[cfg(feature="safe")]
+unsafe impl<T> Sync for Buffer<T> {}
+
 
 #[cfg(feature="safe")]
 impl <T>Clone for Buffer<T> {
