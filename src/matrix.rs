@@ -24,7 +24,11 @@ pub struct Matrix<T> {
 impl <T>Matrix<T> {
     pub fn new<D: Device<T>>(device: D, dims: (usize, usize)) -> Matrix<T> {
         Matrix {
-            data: Buffer { ptr: device.alloc(dims.0*dims.1), len: dims.0*dims.1, dealloc_type: device.dealloc_type() },
+            data: Buffer { 
+                ptr: device.alloc(dims.0*dims.1), 
+                len: dims.0*dims.1, 
+                #[cfg(feature="safe")]
+                dealloc_type: device.dealloc_type() },
             dims,
         }
     }
@@ -83,7 +87,11 @@ impl <T>From<(*mut T, (usize, usize))> for Matrix<T> {
     fn from(ptr_dims: (*mut T, (usize, usize))) -> Self {
         let dims = ptr_dims.1;
         Matrix {
-            data: Buffer {ptr: ptr_dims.0, len: dims.0*dims.1, dealloc_type: crate::DeallocType::CPU},
+            data: Buffer {
+                ptr: ptr_dims.0, 
+                len: dims.0*dims.1, 
+                #[cfg(feature="safe")]
+                dealloc_type: crate::DeallocType::CPU},
             dims
         }
     }

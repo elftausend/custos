@@ -35,10 +35,6 @@ impl <T: Copy+Default>Device<T> for InternCPU {
         self.cpu.borrow_mut().ptrs.push(ptr as *mut usize);
         ptr
     }
-
-    fn dealloc_type(&self) -> crate::DeallocType {
-        crate::DeallocType::CPU
-    }
 }
 
 #[cfg(feature="safe")]

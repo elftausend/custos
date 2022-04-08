@@ -42,6 +42,7 @@ pub trait Device<T> {
     fn alloc_with_vec(&self, vec: Vec<T>) -> *mut T {
         self.with_data(&vec)
     }
+    #[cfg(feature="safe")]
     fn dealloc_type(&self) -> DeallocType;
 }
 
@@ -86,7 +87,6 @@ pub struct Dev {
 }   
 
 impl Dev {
-
     pub fn new(cl_device: Option<Weak<RefCell<CLDevice>>>, cpu: Option<Weak<RefCell<CPU>>>) -> Dev {
         Dev { cl_device, cpu }
     }

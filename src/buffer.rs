@@ -4,7 +4,10 @@ use std::ffi::c_void;
 #[cfg(feature="safe")]
 use crate::opencl::api::{release_mem_object, clRetainMemObject};
 use crate::Device;
-#[derive(Debug, Clone, Copy)]
+
+
+#[cfg(feature="safe")]
+#[derive(Debug, Clone)]
 pub enum DeallocType {
     CPU,
     CL,
@@ -18,6 +21,7 @@ pub struct Buffer<T> {
     pub len: usize,
     pub dealloc_type: DeallocType,
 }
+
 
 #[cfg(feature="safe")]
 impl <T>Clone for Buffer<T> {
@@ -48,7 +52,6 @@ impl<T> Drop for Buffer<T> {
 pub struct Buffer<T> {
     pub ptr: *mut T,
     pub len: usize,
-    pub dealloc_type: DeallocType,
 }
 
 impl <T: Default+Copy>Buffer<T> {
@@ -56,6 +59,7 @@ impl <T: Default+Copy>Buffer<T> {
         Buffer {
             ptr: device.alloc(len),
             len,
+            #[cfg(feature="safe")]
             dealloc_type: device.dealloc_type()
         }
     }
@@ -70,7 +74,11 @@ impl <T: Default+Copy>Buffer<T> {
 
 impl <T: Copy>From<T> for Buffer<T> {
     fn from(val: T) -> Self {
-        Buffer { ptr: Box::into_raw(Box::new(val)), len: 0, dealloc_type: DeallocType::Item }
+        Buffer { 
+            ptr: Box::into_raw(Box::new(val)), 
+            len: 0, 
+            #[cfg(feature="safe")]
+            dealloc_type: DeallocType::Item }
     }
 }
 
@@ -79,6 +87,7 @@ impl <T: Clone, const N: usize>From<(&Box<dyn Device<T>>, &[T; N])> for Buffer<T
         Buffer {
             ptr: device_slice.0.with_data(device_slice.1),
             len: device_slice.1.len(),
+            #[cfg(feature="safe")]
             dealloc_type: device_slice.0.dealloc_type()
         }
     }
@@ -89,6 +98,7 @@ impl <T: Clone>From<(&Box<dyn Device<T>>, usize)> for Buffer<T> {
         Buffer {
             ptr: device_len.0.alloc(device_len.1),
             len: device_len.1,
+            #[cfg(feature="safe")]
             dealloc_type: device_len.0.dealloc_type()
         }
     }
@@ -100,6 +110,7 @@ impl <T: Clone, D: Device<T>, const N: usize>From<(&D, [T; N])> for Buffer<T> {
         Buffer {
             ptr: device_slice.0.with_data(&device_slice.1),
             len: device_slice.1.len(),
+            #[cfg(feature="safe")]
             dealloc_type: device_slice.0.dealloc_type()
         }
         
@@ -111,6 +122,7 @@ impl <T: Clone, D: Device<T>>From<(&D, &[T])> for Buffer<T> {
         Buffer {
             ptr: device_slice.0.with_data(device_slice.1),
             len: device_slice.1.len(),
+            #[cfg(feature="safe")]
             dealloc_type: device_slice.0.dealloc_type()
         }
         
@@ -123,6 +135,7 @@ impl <T: Clone, D: Device<T>>From<(&D, Vec<T>)> for Buffer<T> {
         Buffer {
             ptr: device_slice.0.alloc_with_vec(device_slice.1),
             len,
+            #[cfg(feature="safe")]
             dealloc_type: device_slice.0.dealloc_type()
         }       
     }
@@ -134,6 +147,7 @@ impl <T: Clone, D: Device<T>>From<(&D, &Vec<T>)> for Buffer<T> {
         Buffer {
             ptr: device_slice.0.with_data(device_slice.1),
             len,
+            #[cfg(feature="safe")]
             dealloc_type: device_slice.0.dealloc_type()
         }       
     }

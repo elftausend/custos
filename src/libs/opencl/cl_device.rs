@@ -64,9 +64,6 @@ impl <T>Device<T> for InternCLDevice {
         self.cl.borrow_mut().ptrs.push(ptr as *mut c_void);
         ptr
     }
-    fn dealloc_type(&self) -> crate::DeallocType {
-        crate::DeallocType::CL
-    }
 }
 
 #[cfg(feature="safe")]
