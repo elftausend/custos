@@ -24,6 +24,7 @@ impl CPUCache {
         out
     }
     
+    #[cfg(not(feature="safe"))]
     pub fn get<T: Default+Copy>(device: InternCPU, out_dims: (usize, usize)) -> Matrix<T> {
         //assert!(!device.cpu.borrow().ptrs.is_empty(), "no cpu allocations");
         CPU_CACHE.with(|cache| {
@@ -36,6 +37,9 @@ impl CPUCache {
                 None => cache.add_node(device, node)
             }
         })
-
+    }
+    #[cfg(feature="safe")]
+    pub fn get<T: Default+Copy>(device: InternCPU, out_dims: (usize, usize)) -> Matrix<T> {
+        Matrix::new(device, out_dims)
     }
 }

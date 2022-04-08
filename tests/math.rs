@@ -27,7 +27,7 @@ fn add() -> Result<(), OCLError> {
 */
 
 pub fn read<T, D: Device<T>>(device: D, buf: Buffer<T>) -> Vec<T> where D: VecRead<T> {
-    device.read(buf)
+    device.read(&buf)
 }
 
 #[cfg(feature="opencl")]
@@ -39,7 +39,7 @@ fn test_element_wise_add_cl() {
     let b = Matrix::from(( &device,  (1, 4), [1, 4, 2, 9] ));
     
     for _ in 0..500 {
-        let c = a + b;
+        let c = &a + &b;
         assert_eq!(vec![2, 8, 4, 18], device.read(c.data()));
         set_count(0);
     }
@@ -53,7 +53,7 @@ fn test_element_wise_add_cpu() {
     let b = Matrix::from(( &device, (1, 4), [1, 4, 2, 9] ));
 
     for _ in range(500) {
-        let c = a + b;
+        let c = &a + &b;
         assert_eq!(vec![2, 8, 4, 18], c.read());   
     }
 }
@@ -113,7 +113,7 @@ fn test_ew_mul_cpu_a_cl() {
     let b = Matrix::from(( &device, (1, 4), [1, 4, 2, 9] ));
 
     for _ in range(0..500) {
-        let c = a * b;
+        let c = &a * &b;
         assert_eq!(vec![1, 16, 4, 81], device.read(c.data()));   
     }
 
@@ -123,7 +123,7 @@ fn test_ew_mul_cpu_a_cl() {
     let b = Matrix::from(( &device, (1, 4), [1, 4, 2, 9] ));
 
     for _ in range((0, 500)) {
-        let c = a * b;
+        let c = &a * &b;
         assert_eq!(vec![1, 16, 4, 81], c.read());
         
     }
@@ -138,7 +138,7 @@ fn test_gemm_cpu() {
 
     for _ in range(500) {
                 
-        let c2 = a.gemm(b);
+        let c2 = a.gemm(&b);
         assert_eq!(c2.read(), vec![106.])
     }
 
@@ -159,9 +159,9 @@ fn test_gemm() {
     
     for _ in range(500) {
         
-        let c1 = cpu.gemm(a, b);
-        let c3 = device.gemm(a_cl, b_cl);
-        let c2 = a.gemm(b);
+        let c1 = cpu.gemm(&a, &b);
+        let c3 = device.gemm(&a_cl, &b_cl);
+        let c2 = a.gemm(&b);
 
         assert_eq!(cpu.read(c1.data()), cpu.read(c2.data()));
         assert_eq!(cpu.read(c1.data()), device.read(c3.data()));
@@ -214,7 +214,7 @@ fn test_larger_gemm_cl() {
     let a = Matrix::from(( &device, (5, 7), arr1));
     let b = Matrix::from(( &device, (7, 10), arr2));
 
-    let c = a.gemm(b);
+    let c = a.gemm(&b);
 
     roughly_equals(&device.read(c.data()), &should, 1e-5);
 }
@@ -255,7 +255,7 @@ fn test_larger_gemm() {
     let a = Matrix::from(( &cpu, (5, 7), arr1));
     let b = Matrix::from(( &cpu, (7, 10), arr2));
 
-    let cpu_c = a.gemm(b);
+    let cpu_c = a.gemm(&b);
     roughly_equals(&cpu.read(cpu_c.data()), &should, 0.);
     
 }

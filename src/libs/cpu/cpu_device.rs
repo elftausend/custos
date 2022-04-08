@@ -1,6 +1,6 @@
 use std::{fmt::Debug, cell::RefCell, rc::Rc};
 
-use crate::{BaseOps, Buffer, Device, Gemm, libs::cpu::{CPUCache, ops::element_wise_op_mut}, matrix::Matrix, VecRead, number::Number, Dealloc, AsDev, BaseDevice, AssignOps, GenericOCL};
+use crate::{BaseOps, Buffer, Device, Gemm, libs::cpu::{CPUCache, ops::element_wise_op_mut}, matrix::Matrix, VecRead, number::Number, Dealloc, AsDev, BaseDevice, AssignOps, GenericOCL, DropBuf};
 
 use super::{TBlas, CPU_CACHE, assign_to_lhs};
 
@@ -14,6 +14,7 @@ impl InternCPU {
     }
 }
 
+#[cfg(not(feature="safe"))]
 impl <T: Copy+Default>Device<T> for InternCPU {
     fn alloc(&self, len: usize) -> *mut T {
         assert!(len > 0, "invalid buffer len: 0");
@@ -34,10 +35,43 @@ impl <T: Copy+Default>Device<T> for InternCPU {
         self.cpu.borrow_mut().ptrs.push(ptr as *mut usize);
         ptr
     }
+
+    fn dealloc_type(&self) -> crate::DeallocType {
+        crate::DeallocType::CPU
+    }
+}
+
+#[cfg(feature="safe")]
+impl <T: Copy+Default>Device<T> for InternCPU {
+    fn alloc(&self, len: usize) -> *mut T {
+        assert!(len > 0, "invalid buffer len: 0");
+        Box::into_raw(vec![T::default(); len].into_boxed_slice()) as *mut T    
+    }
+
+    fn with_data(&self, data: &[T]) -> *mut T {
+        assert!(data.len() > 0, "invalid buffer len: 0");
+        Box::into_raw(data.to_vec().into_boxed_slice()) as *mut T
+    }
+    fn alloc_with_vec(&self, vec: Vec<T>) -> *mut T {
+        assert!(vec.len() > 0, "invalid buffer len: 0");
+        Box::into_raw(vec.into_boxed_slice()) as *mut T
+    }
+
+    fn dealloc_type(&self) -> crate::DeallocType {
+        crate::DeallocType::CPU
+    }
+}
+
+impl <T>DropBuf<T> for InternCPU {
+    fn drop_buf(&self, buf: &mut crate::Buffer<T>) {
+        unsafe {
+            Box::from_raw(buf.ptr);
+        }
+    }
 }
 
 impl <T: Copy+Default>VecRead<T> for InternCPU {
-    fn read(&self, buf: Buffer<T>) -> Vec<T> {
+    fn read(&self, buf: &Buffer<T>) -> Vec<T> {
         unsafe {
             std::slice::from_raw_parts(buf.ptr, buf.len).to_vec()
         }
@@ -45,25 +79,25 @@ impl <T: Copy+Default>VecRead<T> for InternCPU {
 }
 
 impl <T: Number>AssignOps<T> for InternCPU {
-    fn sub_assign(&self, lhs: &mut Matrix<T>, rhs: Matrix<T>) {
+    fn sub_assign(&self, lhs: &mut Matrix<T>, rhs: &Matrix<T>) {
         assign_op(lhs, rhs, |x, y| *x -= y)
     }
 }
 
 impl <T: Number>BaseOps<T> for InternCPU {
-    fn add(&self, lhs: Matrix<T>, rhs: Matrix<T>) -> Matrix<T> {
+    fn add(&self, lhs: &Matrix<T>, rhs: &Matrix<T>) -> Matrix<T> {
         ew_op(self.clone(), lhs, rhs, | x, y| x+y)
     }
 
-    fn sub(&self, lhs: Matrix<T>, rhs: Matrix<T>) -> Matrix<T> {
+    fn sub(&self, lhs: &Matrix<T>, rhs: &Matrix<T>) -> Matrix<T> {
         ew_op(self.clone(), lhs, rhs, | x, y| x-y)
     }
 
-    fn mul(&self, lhs: Matrix<T>, rhs: Matrix<T>) -> Matrix<T> {
+    fn mul(&self, lhs: &Matrix<T>, rhs: &Matrix<T>) -> Matrix<T> {
         ew_op(self.clone(), lhs, rhs, | x, y| x*y)
     }
 
-    fn div(&self, lhs: Matrix<T>, rhs: Matrix<T>) -> Matrix<T> {
+    fn div(&self, lhs: &Matrix<T>, rhs: &Matrix<T>) -> Matrix<T> {
         ew_op(self.clone(), lhs, rhs, | x, y| x/y)
     }
 }
@@ -84,7 +118,7 @@ impl Dealloc for InternCPU {
 
 
 impl <T: TBlas+Default+Copy>Gemm<T> for InternCPU {
-    fn gemm(&self, lhs: Matrix<T>, rhs: Matrix<T>) -> Matrix<T> {
+    fn gemm(&self, lhs: &Matrix<T>, rhs: &Matrix<T>) -> Matrix<T> {
         assert!(lhs.dims().1 == rhs.dims().0);
         let m = lhs.dims().0;
         let k = lhs.dims().1;
@@ -145,11 +179,11 @@ impl AsDev for InternCPU {
 
 impl <T: GenericOCL+TBlas>BaseDevice<T> for InternCPU {}
 
-pub fn assign_op<T: Copy+Default, F: Fn(&mut T, T)>(lhs: &mut Matrix<T>, rhs: Matrix<T>, f: F) {
+pub fn assign_op<T: Copy+Default, F: Fn(&mut T, T)>(lhs: &mut Matrix<T>, rhs: &Matrix<T>, f: F) {
     assign_to_lhs(lhs.as_cpu_slice_mut(), rhs.as_cpu_slice(), f)
 }
 
-pub fn ew_op<T: Copy+Default, F: Fn(T, T) -> T>(device: InternCPU, lhs: Matrix<T>, rhs: Matrix<T>, f: F) -> Matrix<T> {
+pub fn ew_op<T: Copy+Default, F: Fn(T, T) -> T>(device: InternCPU, lhs: &Matrix<T>, rhs: &Matrix<T>, f: F) -> Matrix<T> {
     let mut out = CPUCache::get::<T>(device, lhs.dims());
     element_wise_op_mut(lhs.as_cpu_slice(), rhs.as_cpu_slice(), out.as_cpu_slice_mut(), f);
     out

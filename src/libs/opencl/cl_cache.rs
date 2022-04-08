@@ -31,6 +31,8 @@ impl CLCache {
         out
 
     }
+
+    #[cfg(not(feature="safe"))]
     pub fn get<T: GenericOCL>(device: InternCLDevice, node: Node) -> Matrix<T> {
         assert!(!device.cl.borrow().ptrs.is_empty(), "no OpenCL allocations");
 
@@ -45,7 +47,12 @@ impl CLCache {
         })
     }
 
-    pub fn arg_kernel_cache<T: GenericOCL>(&mut self, device: InternCLDevice, matrices: &[(Matrix<T>, usize)], numbers: &[(T, usize)], output: Option<Matrix<T>>, src: String) -> Result<Kernel, Error> {
+    #[cfg(feature="safe")]
+    pub fn get<T: GenericOCL>(device: InternCLDevice, node: Node) -> Matrix<T> {
+        Matrix::new(device, node.out_dims)
+    }
+
+    pub fn arg_kernel_cache<T: GenericOCL>(&mut self, device: InternCLDevice, matrices: &[(&Matrix<T>, usize)], numbers: &[(T, usize)], output: Option<&Matrix<T>>, src: String) -> Result<Kernel, Error> {
         let type_ids = vec![TypeId::of::<T>(); numbers.len()];
         
         let mems: Vec<OclPtr> = matrices.iter()

@@ -24,7 +24,7 @@ pub struct Matrix<T> {
 impl <T>Matrix<T> {
     pub fn new<D: Device<T>>(device: D, dims: (usize, usize)) -> Matrix<T> {
         Matrix {
-            data: Buffer { ptr: device.alloc(dims.0*dims.1), len: dims.0*dims.1 },
+            data: Buffer { ptr: device.alloc(dims.0*dims.1), len: dims.0*dims.1, dealloc_type: device.dealloc_type() },
             dims,
         }
     }
@@ -61,15 +61,15 @@ impl <T>Matrix<T> {
 }
 
 impl <T: GenericOCL+TBlas>Matrix<T> {
-    pub fn gemm(self, rhs: Matrix<T>) -> Matrix<T> {
+    pub fn gemm(&self, rhs: &Matrix<T>) -> Matrix<T> {
         let device = get_device!(Gemm, T).unwrap();
         device.gemm(self, rhs)
     }
 }
 
 impl <T: Copy+Default>Matrix<T> {
-    pub fn data(&self) -> Buffer<T> {
-        self.data
+    pub fn data(&self) -> &Buffer<T> {
+        &self.data
     }
 
     ///Uses VecRead and current global device to read Matrix
@@ -83,7 +83,7 @@ impl <T>From<(*mut T, (usize, usize))> for Matrix<T> {
     fn from(ptr_dims: (*mut T, (usize, usize))) -> Self {
         let dims = ptr_dims.1;
         Matrix {
-            data: Buffer {ptr: ptr_dims.0, len: dims.0*dims.1},
+            data: Buffer {ptr: ptr_dims.0, len: dims.0*dims.1, dealloc_type: crate::DeallocType::CPU},
             dims
         }
     }
@@ -168,7 +168,7 @@ impl <T: Copy, D: Device<T>>From<(&D, (usize, usize), &Vec<T>)> for Matrix<T> {
 }
 
 
-impl <T: GenericOCL>core::ops::Add for Matrix<T> {
+impl <T: GenericOCL>core::ops::Add<Self> for &Matrix<T> {
     type Output = Matrix<T>;
 
     fn add(self, rhs: Self) -> Self::Output {
@@ -177,7 +177,34 @@ impl <T: GenericOCL>core::ops::Add for Matrix<T> {
     }
 }
 
-impl <T: GenericOCL>core::ops::Sub for Matrix<T> {
+impl <T: GenericOCL>core::ops::Add<Self> for Matrix<T> {
+    type Output = Matrix<T>;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        let device = get_device!(BaseOps, T).unwrap();
+        device.add(&self, &rhs)
+    }
+}
+
+impl <T: GenericOCL>core::ops::Add<&Self> for Matrix<T> {
+    type Output = Matrix<T>;
+
+    fn add(self, rhs: &Self) -> Self::Output {
+        let device = get_device!(BaseOps, T).unwrap();
+        device.add(&self, &rhs)
+    }
+}
+
+impl <T: GenericOCL>core::ops::Add<Matrix<T>> for &Matrix<T> {
+    type Output = Matrix<T>;
+
+    fn add(self, rhs: Matrix<T>) -> Self::Output {
+        let device = get_device!(BaseOps, T).unwrap();
+        device.add(&self, &rhs)
+    }
+}
+
+impl <T: GenericOCL>core::ops::Sub<Self> for &Matrix<T> {
     type Output = Matrix<T>;
 
     fn sub(self, rhs: Self) -> Self::Output {
@@ -186,7 +213,34 @@ impl <T: GenericOCL>core::ops::Sub for Matrix<T> {
     }
 }
 
-impl <T: GenericOCL>core::ops::Mul for Matrix<T> {
+impl <T: GenericOCL>core::ops::Sub<Self> for Matrix<T> {
+    type Output = Matrix<T>;
+
+    fn sub(self, rhs: Self) -> Self::Output {
+        let device = get_device!(BaseOps, T).unwrap();
+        device.sub(&self, &rhs)
+    }
+}
+
+impl <T: GenericOCL>core::ops::Sub<&Self> for Matrix<T> {
+    type Output = Matrix<T>;
+
+    fn sub(self, rhs: &Self) -> Self::Output {
+        let device = get_device!(BaseOps, T).unwrap();
+        device.sub(&self, &rhs)
+    }
+}
+
+impl <T: GenericOCL>core::ops::Sub<Matrix<T>> for &Matrix<T> {
+    type Output = Matrix<T>;
+
+    fn sub(self, rhs: Matrix<T>) -> Self::Output {
+        let device = get_device!(BaseOps, T).unwrap();
+        device.sub(&self, &rhs)
+    }
+}
+
+impl <T: GenericOCL>core::ops::Mul<Self> for &Matrix<T> {
     type Output = Matrix<T>;
 
     fn mul(self, rhs: Self) -> Self::Output {
@@ -195,8 +249,26 @@ impl <T: GenericOCL>core::ops::Mul for Matrix<T> {
     }
 }
 
-impl <T: GenericOCL>core::ops::SubAssign for Matrix<T> {
-    fn sub_assign(&mut self, rhs: Self) {
+impl <T: GenericOCL>core::ops::Mul<Self> for Matrix<T> {
+    type Output = Matrix<T>;
+
+    fn mul(self, rhs: Self) -> Self::Output {
+        let device = get_device!(BaseOps, T).unwrap();
+        device.mul(&self, &rhs)
+    }
+}
+
+impl <T: GenericOCL>core::ops::Mul<&Self> for Matrix<T> {
+    type Output = Matrix<T>;
+
+    fn mul(self, rhs: &Self) -> Self::Output {
+        let device = get_device!(BaseOps, T).unwrap();
+        device.mul(&self, &rhs)
+    }
+}
+
+impl <T: GenericOCL>core::ops::SubAssign<&Matrix<T>> for Matrix<T> {
+    fn sub_assign(&mut self, rhs: &Matrix<T>) {
         let device = get_device!(AssignOps, T).unwrap();
         device.sub_assign(self, rhs)
     }

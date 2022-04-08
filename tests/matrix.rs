@@ -1,4 +1,4 @@
-use custos::{libs::cpu::{CPU, each_op}, AsDev, Matrix};
+use custos::{libs::cpu::{CPU, each_op}, AsDev, Matrix, VecRead};
 #[cfg(feature="opencl")]
 use custos::CLDevice;
 
@@ -35,7 +35,7 @@ fn test_sub_assign_cpu() {
     let mut x = Matrix::from((&device, (2, 3), [1, 2, 3, 4, 5, 6]));
     let y = Matrix::from((&device, (2, 3), [3, 4, 5, 6, 7, 8]));
     
-    x -= y;
+    x -= &y;
     assert_eq!(x.read(), vec![-2, -2, -2, -2, -2, -2]);
 }
 
@@ -47,6 +47,19 @@ fn test_sub_assign_cl() {
     let mut x = Matrix::from((&device, (2, 3), [1, 2, 3, 4, 5, 6]));
     let y = Matrix::from((&device, (2, 3), [3, 4, 5, 6, 7, 8]));
     
-    x -= y;
+    x -= &y;
     assert_eq!(x.read(), vec![-2, -2, -2, -2, -2, -2])
+}
+
+
+#[test]
+fn test_alloc_big() {
+    let device = CPU::new();
+
+    for _ in 0..100000000 {
+        let buf = Matrix::<i128>::new(device.clone(), (1000, 1000));
+        let a = device.read(buf.data());
+        drop(buf);
+        
+    }
 }

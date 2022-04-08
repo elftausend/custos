@@ -15,8 +15,8 @@ pub fn get_slice<T>(buf: &Buffer<T>) -> &[T] {
     }
 }
 
-pub fn read<T, D: Device<T>>(device: &D, buf: Buffer<T>) -> Vec<T> where D: VecRead<T> {
-    device.read(buf)
+pub fn read<T, D: Device<T>>(device: &D, buf: &Buffer<T>) -> Vec<T> where D: VecRead<T> {
+    device.read(&buf)
 }
 
 #[cfg(feature="opencl")]
@@ -47,22 +47,26 @@ fn test_cldevice_mem() -> Result<(), Error> {
 #[cfg(feature="opencl")]
 #[test]
 fn test_buffer_from_read() -> Result<(), Error> {
-    let device = CLDevice::get(0)?;
+    use custos::AsDev;
+
+    let device = CLDevice::get(0)?.select();
 
     let buf = Buffer::<f32>::from((&device, [3.13, 3., 1., 8.]));
-    assert_eq!(read(&device, buf), vec![3.13, 3., 1., 8.,]);
+    assert_eq!(read(&device, &buf), vec![3.13, 3., 1., 8.,]);
 
-    let device = CPU::new();
+    let device = CPU::new().select();
 
     let buf = Buffer::<f32>::from((&device, [3.13, 3., 1., 8.]));
-    assert_eq!(read(&device, buf), vec![3.13, 3., 1., 8.,]);
+    assert_eq!(read(&device, &buf), vec![3.13, 3., 1., 8.,]);
     Ok(())
 }
 
-#[cfg(feature="all")]
+#[cfg(feature="opencl")]
 #[test]
 fn test_buffer_alloc_and_read() -> Result<(), Error> {
-    let device = CPU::new();
+    use custos::AsDev;
+
+    let device = CPU::new().select();
 
     let mut buf = Buffer::<u8>::new(&device, 10);
     
@@ -70,14 +74,14 @@ fn test_buffer_alloc_and_read() -> Result<(), Error> {
     buf_slice.copy_from_slice(&[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
     assert_eq!(&[0, 1, 2, 3, 4, 5, 6, 7, 8, 9], buf_slice);
     
-    let cl = CLDevice::get(0)?;
+    let cl = CLDevice::get(0)?.select();
 
     let buf = Buffer::<f32>::from((&cl, [3.13, 3., 1., 8.]));
-    let buf_read = read(&cl, buf);
+    let buf_read = read(&cl, &buf);
     assert_eq!(&[3.13, 3., 1., 8.], buf_read.as_slice());
 
     let buf = Buffer::<f32>::from((&device, [3.13, 3., 1., 8.]));
-    let buf_read = read(&device, buf);
+    let buf_read = read(&device, &buf);
     assert_eq!(&[3.13, 3., 1., 8.], buf_read.as_slice());
 
     let buf_read = get_slice(&buf);
@@ -90,10 +94,8 @@ fn test_buffer_alloc_and_read() -> Result<(), Error> {
 fn test_use_number() {
     let num = Box::into_raw(Box::new(10));
 
-    let buffer = Buffer { ptr: num, len: 1};
-
     let num = unsafe {
-        Box::from_raw(buffer.ptr)
+        Box::from_raw(num)
     };
 
     assert_eq!(num, Box::new(10));

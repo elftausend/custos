@@ -2,15 +2,16 @@ use crate::{matrix::Matrix, number::Number, Error, Node, GenericOCL};
 
 use super::{api::{enqueue_nd_range_kernel, set_kernel_arg}, CL_CACHE, CLCache, cl_device::InternCLDevice};
 
-pub trait KernelArg<T> {
-    fn matrix(&self) -> Option<Matrix<T>>;
+pub trait KernelArg<'a, T> {
+    fn matrix(&self) -> Option<&'a Matrix<T>>;
     fn number(&self) -> Option<T>;
 }
 
 
-impl <T: Copy>KernelArg<T> for Matrix<T> {
-    fn matrix(&self) -> Option<Matrix<T>> {
-        Some(*self)
+
+impl <'a, T: Copy>KernelArg<'a, T> for &'a Matrix<T> {
+    fn matrix(&self) -> Option<&'a Matrix<T>> {
+        Some(self)
     }
 
     fn number(&self) -> Option<T> {
@@ -18,18 +19,8 @@ impl <T: Copy>KernelArg<T> for Matrix<T> {
     }
 }
 
-impl <T: Copy>KernelArg<T> for &Matrix<T> {
-    fn matrix(&self) -> Option<Matrix<T>> {
-        Some(**self)
-    }
-
-    fn number(&self) -> Option<T> {
-        None
-    }
-}
-
-impl <T: Number>KernelArg<T> for T {
-    fn matrix(&self) -> Option<Matrix<T>> {
+impl <'a, T: Number>KernelArg<'a, T> for T {
+    fn matrix(&self) -> Option<&'a Matrix<T>> {
         None
     }
 
@@ -40,10 +31,10 @@ impl <T: Number>KernelArg<T> for T {
 
 pub struct KernelOptions<'a, T> {
     src: &'a str,
-    lhs: Matrix<T>,
-    rhs: Option<Matrix<T>>,
+    lhs: &'a Matrix<T>,
+    rhs: Option<&'a Matrix<T>>,
     output: Option<Matrix<T>>,
-    tensor_args: Vec<(Matrix<T>, usize)>,
+    tensor_args: Vec<(&'a Matrix<T>, usize)>,
     number_args: Vec<(T, usize)>,
     gws: [usize; 3],
     lws: Option<[usize; 3]>,
@@ -53,7 +44,7 @@ pub struct KernelOptions<'a, T> {
 }
 
 impl <'a, T: GenericOCL>KernelOptions<'a, T> {
-    pub fn new(device: &InternCLDevice, lhs: Matrix<T>, gws: [usize; 3], src: &'a str) -> KernelOptions<'a, T> {
+    pub fn new(device: &InternCLDevice, lhs: &'a Matrix<T>, gws: [usize; 3], src: &'a str) -> KernelOptions<'a, T> {
         let wd;
         if gws[0] == 0 {
             panic!("wrong gws")
@@ -89,13 +80,13 @@ impl <'a, T: GenericOCL>KernelOptions<'a, T> {
         self
     }
 
-    pub fn with_rhs(&mut self, rhs: Matrix<T>) -> &mut KernelOptions<'a, T> {
+    pub fn with_rhs(&mut self, rhs: &'a Matrix<T>) -> &mut KernelOptions<'a, T> {
         self.tensor_args.push((rhs, 1));
         self.rhs = Some(rhs);
         self
     }
     
-    pub fn add_arg<A: KernelArg<T>>(&'a mut self, arg: &'a A) -> &mut KernelOptions<'a, T> {
+    pub fn add_arg<A: KernelArg<'a, T>>(&'a mut self, arg: &'a A) -> &mut KernelOptions<'a, T> {
         let idx = self.number_args.len()+self.tensor_args.len();
         
         match arg.number() {
@@ -111,7 +102,7 @@ impl <'a, T: GenericOCL>KernelOptions<'a, T> {
         self
     }
     pub fn run(&'a mut self) -> Result<Matrix<T>, Error> {
-        let kernel = CL_CACHE.with(|cache| cache.borrow_mut().arg_kernel_cache(self.device.clone(), &self.tensor_args, &self.number_args, self.output, self.src.to_string()))?;
+        let kernel = CL_CACHE.with(|cache| cache.borrow_mut().arg_kernel_cache(self.device.clone(), &self.tensor_args, &self.number_args, self.output.as_ref(), self.src.to_string()))?;
                
         for index in 0..self.number_args.len() {
             let arg = self.number_args.get(index).unwrap();
@@ -120,9 +111,10 @@ impl <'a, T: GenericOCL>KernelOptions<'a, T> {
 
         enqueue_nd_range_kernel(&self.device.get_queue(), &kernel, self.wd, &self.gws, self.lws.as_ref(), self.offset)?;
         
-        match self.output {
-            Some(out) => Ok(out),
-            None => Ok(self.lhs),
+
+        match &self.output {
+            Some(out) => Ok(out.clone()),
+            None => Ok(self.lhs.clone()),
         }
     
     }
