@@ -7,6 +7,14 @@ use crate::Node;
 
 use crate::{BaseOps, Buffer, Device, Gemm, get_device, libs::cpu::TBlas, VecRead, number::Number, AssignOps, GenericOCL};
 
+#[cfg(feature="safe")]
+#[derive(Clone,)]
+pub struct Matrix<T> {
+    data: Buffer<T>,
+    dims: (usize, usize)
+}
+
+#[cfg(not(feature="safe"))]
 #[derive(Clone, Copy)]
 pub struct Matrix<T> {
     data: Buffer<T>,
@@ -148,13 +156,14 @@ impl <T: Copy, D: Device<T>>From<(&D, (usize, usize), &[T])> for Matrix<T> {
         }        
     }
 }
+
 impl <T: Copy, D: Device<T>>From<(&D, (usize, usize), &Vec<T>)> for Matrix<T> {
     fn from(dims_slice: (&D, (usize, usize), &Vec<T>)) -> Self {
         let buffer = Buffer::from((dims_slice.0, dims_slice.2));
         Matrix {
             data: buffer,
             dims: dims_slice.1
-        }        
+        }
     }
 }
 

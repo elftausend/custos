@@ -1,5 +1,20 @@
 use crate::Device;
 
+#[cfg(feature="safe")]
+#[derive(Debug, Clone)]
+pub struct Buffer<T> {
+    pub ptr: *mut T,
+    pub len: usize,
+}
+
+#[cfg(feature="safe")]
+impl<T> Drop for Buffer<T> {
+    fn drop(&mut self) {
+        todo!()
+    }
+}
+
+#[cfg(not(feature="safe"))]
 #[derive(Debug, Clone, Copy)]
 pub struct Buffer<T> {
     pub ptr: *mut T,
