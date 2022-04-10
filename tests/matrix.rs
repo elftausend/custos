@@ -16,7 +16,7 @@ fn test_each_op() {
     let device = CPU::new().select();
 
     let x = Matrix::from((&device, (2, 3), [1, 2, 3, 4, 5, 6]));
-    let res = each_op(&device, x, |x| x+1);
+    let res = each_op(&device, &x, |x| x+1);
     assert_eq!(res.read(), vec![2, 3, 4, 5, 6, 7])
 }
 

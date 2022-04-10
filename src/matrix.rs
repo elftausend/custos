@@ -175,6 +175,7 @@ impl <T: Copy, D: Device<T>>From<(&D, (usize, usize), &Vec<T>)> for Matrix<T> {
     }
 }
 
+//-------------Add-------------
 
 impl <T: GenericOCL>core::ops::Add<Self> for &Matrix<T> {
     type Output = Matrix<T>;
@@ -212,6 +213,8 @@ impl <T: GenericOCL>core::ops::Add<Matrix<T>> for &Matrix<T> {
     }
 }
 
+//-------------Sub-------------
+
 impl <T: GenericOCL>core::ops::Sub<Self> for &Matrix<T> {
     type Output = Matrix<T>;
 
@@ -248,6 +251,8 @@ impl <T: GenericOCL>core::ops::Sub<Matrix<T>> for &Matrix<T> {
     }
 }
 
+//-------------Mul-------------
+
 impl <T: GenericOCL>core::ops::Mul<Self> for &Matrix<T> {
     type Output = Matrix<T>;
 
@@ -274,6 +279,8 @@ impl <T: GenericOCL>core::ops::Mul<&Self> for Matrix<T> {
         device.mul(&self, &rhs)
     }
 }
+
+
 
 impl <T: GenericOCL>core::ops::SubAssign<&Matrix<T>> for Matrix<T> {
     fn sub_assign(&mut self, rhs: &Matrix<T>) {
