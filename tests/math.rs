@@ -142,6 +142,7 @@ fn test_ew_mul_cpu_a_cl() {
     }
 }
 
+#[cfg(any(not(target_os="macos"), not(feature="opencl")))]
 #[test]
 fn test_gemm_cpu() {
     let device = CPU::new().select();

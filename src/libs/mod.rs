@@ -46,7 +46,7 @@ pub trait GenericOCL: Number {
     fn as_ocl_type_str() -> &'static str;
 }
 
-#[cfg(not(target_os="macos"))]
+#[cfg(any(not(target_os="macos"), not(feature="opencl")))]
 impl GenericOCL for f64 {
     fn as_ocl_type_str() -> &'static str {
         "double"

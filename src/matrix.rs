@@ -7,15 +7,8 @@ use crate::Node;
 
 use crate::{BaseOps, Buffer, Device, Gemm, get_device, libs::cpu::TBlas, VecRead, number::Number, AssignOps, GenericOCL};
 
-#[cfg(feature="safe")]
-#[derive(Clone,)]
-pub struct Matrix<T> {
-    data: Buffer<T>,
-    dims: (usize, usize)
-}
-
-#[cfg(not(feature="safe"))]
-#[derive(Clone, Copy)]
+#[cfg_attr(not(feature="safe"), derive(Copy))]
+#[derive(Clone)]
 pub struct Matrix<T> {
     data: Buffer<T>,
     dims: (usize, usize)
