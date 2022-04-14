@@ -57,6 +57,12 @@ impl <T>Matrix<T> {
     }
 }
 
+impl<T> Default for Matrix<T> {
+    fn default() -> Self {
+        Self { data: Default::default(), dims: Default::default() }
+    }
+}
+
 impl <T: GenericOCL+TBlas>Matrix<T> {
     pub fn gemm(&self, rhs: &Matrix<T>) -> Matrix<T> {
         let device = get_device!(Gemm, T).unwrap();

@@ -77,6 +77,12 @@ impl <T: Default+Copy>Buffer<T> {
     }
 }
 
+impl<T> Default for Buffer<T> {
+    fn default() -> Self {
+        Self { ptr: std::ptr::null_mut(), len: Default::default() }
+    }
+}
+
 impl <T: Copy>From<T> for Buffer<T> {
     fn from(val: T) -> Self {
         Buffer { 
