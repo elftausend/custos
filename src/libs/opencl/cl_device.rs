@@ -52,7 +52,7 @@ impl InternCLDevice {
 }
 
 #[cfg(not(feature="safe"))]
-impl <T>Device<T> for InternCLDevice {
+impl<T> Device<T> for InternCLDevice {
     fn alloc(&self, len: usize) -> *mut T {
         let ptr = create_buffer::<T>(&self.get_ctx(), MemFlags::MemReadWrite as u64, len, None).unwrap() as *mut T;
         self.cl.borrow_mut().ptrs.push(ptr as *mut c_void);
@@ -67,7 +67,7 @@ impl <T>Device<T> for InternCLDevice {
 }
 
 #[cfg(feature="safe")]
-impl <T>Device<T> for InternCLDevice {
+impl<T> Device<T> for InternCLDevice {
     fn alloc(&self, len: usize) -> *mut T {
         create_buffer::<T>(&self.get_ctx(), MemFlags::MemReadWrite as u64, len, None).unwrap() as *mut T
     }
@@ -81,7 +81,7 @@ impl <T>Device<T> for InternCLDevice {
     }
 }
 
-impl <T>DropBuf<T> for InternCLDevice {
+impl<T> DropBuf<T> for InternCLDevice {
     fn drop_buf(&self, buf: &mut crate::Buffer<T>) {
         release_mem_object(buf.ptr as *mut c_void).unwrap();
     }
@@ -90,7 +90,7 @@ impl <T>DropBuf<T> for InternCLDevice {
 
 
 
-impl <T: GenericOCL>BaseOps<T> for InternCLDevice {
+impl<T: GenericOCL> BaseOps<T> for InternCLDevice {
     fn add(&self, lhs: &Matrix<T>, rhs: &Matrix<T>) -> Matrix<T> {
         tew(self.clone(), &lhs, &rhs, "+").unwrap()
     }
@@ -108,13 +108,13 @@ impl <T: GenericOCL>BaseOps<T> for InternCLDevice {
     }
 }
 
-impl <T: GenericOCL>AssignOps<T> for InternCLDevice {
+impl<T: GenericOCL> AssignOps<T> for InternCLDevice {
     fn sub_assign(&self, lhs: &mut Matrix<T>, rhs: &Matrix<T>) {
         tew_self(self.clone(), lhs, rhs, "-").unwrap()
     }
 }
 
-impl <T: GenericOCL>Gemm<T> for InternCLDevice {
+impl<T: GenericOCL> Gemm<T> for InternCLDevice {
     fn gemm(&self, lhs: &Matrix<T>, rhs: &Matrix<T>) -> Matrix<T> {
         assert!(lhs.dims().1 == rhs.dims().0);
         ocl_gemm(self.clone(), rhs, lhs).unwrap()   
@@ -126,7 +126,7 @@ pub fn cl_write<T>(device: &InternCLDevice, x: &mut Matrix<T>, data: &[T]) {
     wait_for_event(event).unwrap();
 } 
 
-impl <T: Default+Copy>VecRead<T> for InternCLDevice {
+impl<T: Default+Copy> VecRead<T> for InternCLDevice {
     fn read(&self, buf: &crate::Buffer<T>) -> Vec<T> {
         let mut read = vec![T::default(); buf.len];
         let event = enqueue_read_buffer(&self.get_queue(), buf.ptr as *mut c_void, &mut read, true).unwrap();
@@ -141,7 +141,7 @@ impl AsDev for InternCLDevice {
     }
 }
 
-impl <T: GenericOCL>BaseDevice<T> for InternCLDevice {}
+impl<T: GenericOCL> BaseDevice<T> for InternCLDevice {}
 
 #[derive(Debug, Clone)]
 pub struct CLDevice {

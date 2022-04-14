@@ -7,7 +7,7 @@ pub trait KernelArg<'a, T> {
     fn number(&self) -> Option<T>;
 }
 
-impl <'a, T: Copy>KernelArg<'a, T> for Matrix<T> {
+impl<'a, T: Copy> KernelArg<'a, T> for Matrix<T> {
     fn matrix(&'a self) -> Option<&'a Matrix<T>> {
         Some(self)
     }
@@ -17,7 +17,7 @@ impl <'a, T: Copy>KernelArg<'a, T> for Matrix<T> {
     }
 }
 
-impl <'a, T: Copy>KernelArg<'a, T> for &'a Matrix<T> {
+impl<'a, T: Copy> KernelArg<'a, T> for &'a Matrix<T> {
     fn matrix(&self) -> Option<&'a Matrix<T>> {
         Some(self)
     }
@@ -27,7 +27,7 @@ impl <'a, T: Copy>KernelArg<'a, T> for &'a Matrix<T> {
     }
 }
 
-impl <'a, T: Number>KernelArg<'a, T> for T {
+impl<'a, T: Number> KernelArg<'a, T> for T {
     fn matrix(&self) -> Option<&'a Matrix<T>> {
         None
     }
@@ -51,7 +51,7 @@ pub struct KernelOptions<'a, T> {
     device: InternCLDevice,
 }
 
-impl <'a, T: GenericOCL>KernelOptions<'a, T> {
+impl<'a, T: GenericOCL> KernelOptions<'a, T> {
     pub fn new(device: &InternCLDevice, lhs: &'a Matrix<T>, gws: [usize; 3], src: &'a str) -> KernelOptions<'a, T> {
         let wd;
         if gws[0] == 0 {

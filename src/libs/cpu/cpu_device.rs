@@ -15,7 +15,7 @@ impl InternCPU {
 }
 
 #[cfg(not(feature="safe"))]
-impl <T: Copy+Default>Device<T> for InternCPU {
+impl<T: Copy+Default> Device<T> for InternCPU {
     fn alloc(&self, len: usize) -> *mut T {
         assert!(len > 0, "invalid buffer len: 0");
         let ptr = Box::into_raw(vec![T::default(); len].into_boxed_slice()) as *mut T;
@@ -38,7 +38,7 @@ impl <T: Copy+Default>Device<T> for InternCPU {
 }
 
 #[cfg(feature="safe")]
-impl <T: Copy+Default>Device<T> for InternCPU {
+impl<T: Copy+Default> Device<T> for InternCPU {
     fn alloc(&self, len: usize) -> *mut T {
         assert!(len > 0, "invalid buffer len: 0");
         Box::into_raw(vec![T::default(); len].into_boxed_slice()) as *mut T    
@@ -58,7 +58,7 @@ impl <T: Copy+Default>Device<T> for InternCPU {
     }
 }
 
-impl <T>DropBuf<T> for InternCPU {
+impl<T> DropBuf<T> for InternCPU {
     fn drop_buf(&self, buf: &mut crate::Buffer<T>) {
         unsafe {
             Box::from_raw(buf.ptr);
@@ -66,7 +66,7 @@ impl <T>DropBuf<T> for InternCPU {
     }
 }
 
-impl <T: Copy+Default>VecRead<T> for InternCPU {
+impl<T: Copy+Default> VecRead<T> for InternCPU {
     fn read(&self, buf: &Buffer<T>) -> Vec<T> {
         unsafe {
             std::slice::from_raw_parts(buf.ptr, buf.len).to_vec()
@@ -74,13 +74,13 @@ impl <T: Copy+Default>VecRead<T> for InternCPU {
     }
 }
 
-impl <T: Number>AssignOps<T> for InternCPU {
+impl<T: Number> AssignOps<T> for InternCPU {
     fn sub_assign(&self, lhs: &mut Matrix<T>, rhs: &Matrix<T>) {
         assign_op(lhs, rhs, |x, y| *x -= y)
     }
 }
 
-impl <T: Number>BaseOps<T> for InternCPU {
+impl<T: Number> BaseOps<T> for InternCPU {
     fn add(&self, lhs: &Matrix<T>, rhs: &Matrix<T>) -> Matrix<T> {
         ew_op(self.clone(), lhs, rhs, | x, y| x+y)
     }
@@ -113,7 +113,7 @@ impl Dealloc for InternCPU {
 }
 
 
-impl <T: TBlas+Default+Copy>Gemm<T> for InternCPU {
+impl<T: TBlas+Default+Copy> Gemm<T> for InternCPU {
     fn gemm(&self, lhs: &Matrix<T>, rhs: &Matrix<T>) -> Matrix<T> {
         assert!(lhs.dims().1 == rhs.dims().0);
         let m = lhs.dims().0;
@@ -173,7 +173,7 @@ impl AsDev for InternCPU {
     }
 }
 
-impl <T: GenericOCL+TBlas>BaseDevice<T> for InternCPU {}
+impl<T: GenericOCL+TBlas> BaseDevice<T> for InternCPU {}
 
 pub fn assign_op<T: Copy+Default, F: Fn(&mut T, T)>(lhs: &mut Matrix<T>, rhs: &Matrix<T>, f: F) {
     assign_to_lhs(lhs.as_cpu_slice_mut(), rhs.as_cpu_slice(), f)

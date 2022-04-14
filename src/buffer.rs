@@ -29,7 +29,7 @@ unsafe impl<T> Sync for Buffer<T> {}
 
 
 #[cfg(feature="safe")]
-impl <T>Clone for Buffer<T> {
+impl<T> Clone for Buffer<T> {
     fn clone(&self) -> Self {
         match self.dealloc_type {
             DeallocType::CL => unsafe {clRetainMemObject(self.ptr as *mut c_void);},
@@ -59,7 +59,7 @@ pub struct Buffer<T> {
     pub len: usize,
 }
 
-impl <T: Default+Copy>Buffer<T> {
+impl<T: Default+Copy> Buffer<T> {
     pub fn new<D: Device<T>>(device: &D, len: usize) -> Buffer<T> {
         Buffer {
             ptr: device.alloc(len),
@@ -79,11 +79,11 @@ impl <T: Default+Copy>Buffer<T> {
 
 impl<T> Default for Buffer<T> {
     fn default() -> Self {
-        Self { ptr: std::ptr::null_mut(), len: Default::default() }
+        Self { ptr: std::ptr::null_mut(), len: Default::default(), #[cfg(feature="safe")]dealloc_type: DeallocType::Item }
     }
 }
 
-impl <T: Copy>From<T> for Buffer<T> {
+impl<T: Copy> From<T> for Buffer<T> {
     fn from(val: T) -> Self {
         Buffer { 
             ptr: Box::into_raw(Box::new(val)), 
@@ -93,7 +93,7 @@ impl <T: Copy>From<T> for Buffer<T> {
     }
 }
 
-impl <T: Clone, const N: usize>From<(&Box<dyn Device<T>>, &[T; N])> for Buffer<T> {
+impl<T: Clone, const N: usize> From<(&Box<dyn Device<T>>, &[T; N])> for Buffer<T> {
     fn from(device_slice: (&Box<dyn Device<T>>, &[T; N])) -> Self {
         Buffer {
             ptr: device_slice.0.with_data(device_slice.1),
@@ -104,7 +104,7 @@ impl <T: Clone, const N: usize>From<(&Box<dyn Device<T>>, &[T; N])> for Buffer<T
     }
 }
 
-impl <T: Clone>From<(&Box<dyn Device<T>>, usize)> for Buffer<T> {
+impl<T: Clone> From<(&Box<dyn Device<T>>, usize)> for Buffer<T> {
     fn from(device_len: (&Box<dyn Device<T>>, usize)) -> Self {
         Buffer {
             ptr: device_len.0.alloc(device_len.1),
@@ -116,7 +116,7 @@ impl <T: Clone>From<(&Box<dyn Device<T>>, usize)> for Buffer<T> {
 }
 
 
-impl <T: Clone, D: Device<T>, const N: usize>From<(&D, [T; N])> for Buffer<T> {
+impl<T: Clone, D: Device<T>, const N: usize> From<(&D, [T; N])> for Buffer<T> {
     fn from(device_slice: (&D, [T; N])) -> Self {
         Buffer {
             ptr: device_slice.0.with_data(&device_slice.1),
@@ -128,7 +128,7 @@ impl <T: Clone, D: Device<T>, const N: usize>From<(&D, [T; N])> for Buffer<T> {
     }
 }
 
-impl <T: Clone, D: Device<T>>From<(&D, &[T])> for Buffer<T> {
+impl<T: Clone, D: Device<T>> From<(&D, &[T])> for Buffer<T> {
     fn from(device_slice: (&D, &[T])) -> Self {
         Buffer {
             ptr: device_slice.0.with_data(device_slice.1),
@@ -140,7 +140,7 @@ impl <T: Clone, D: Device<T>>From<(&D, &[T])> for Buffer<T> {
     }
 }
 
-impl <T: Clone, D: Device<T>>From<(&D, Vec<T>)> for Buffer<T> {
+impl<T: Clone, D: Device<T>> From<(&D, Vec<T>)> for Buffer<T> {
     fn from(device_slice: (&D, Vec<T>)) -> Self {
         let len = device_slice.1.len();
         Buffer {
@@ -152,7 +152,7 @@ impl <T: Clone, D: Device<T>>From<(&D, Vec<T>)> for Buffer<T> {
     }
 }
 
-impl <T: Clone, D: Device<T>>From<(&D, &Vec<T>)> for Buffer<T> {
+impl<T: Clone, D: Device<T>> From<(&D, &Vec<T>)> for Buffer<T> {
     fn from(device_slice: (&D, &Vec<T>)) -> Self {
         let len = device_slice.1.len();
         Buffer {

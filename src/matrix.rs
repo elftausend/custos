@@ -14,7 +14,7 @@ pub struct Matrix<T> {
     dims: (usize, usize)
 }
 
-impl <T>Matrix<T> {
+impl<T> Matrix<T> {
     pub fn new<D: Device<T>>(device: D, dims: (usize, usize)) -> Matrix<T> {
         Matrix {
             data: Buffer { 
@@ -63,14 +63,14 @@ impl<T> Default for Matrix<T> {
     }
 }
 
-impl <T: GenericOCL+TBlas>Matrix<T> {
+impl<T: GenericOCL+TBlas> Matrix<T> {
     pub fn gemm(&self, rhs: &Matrix<T>) -> Matrix<T> {
         let device = get_device!(Gemm, T).unwrap();
         device.gemm(self, rhs)
     }
 }
 
-impl <T: Copy+Default>Matrix<T> {
+impl<T: Copy+Default> Matrix<T> {
     pub fn data(&self) -> &Buffer<T> {
         &self.data
     }
@@ -82,7 +82,7 @@ impl <T: Copy+Default>Matrix<T> {
     }
 }
 
-impl <T>From<(*mut T, (usize, usize))> for Matrix<T> {
+impl<T> From<(*mut T, (usize, usize))> for Matrix<T> {
     fn from(ptr_dims: (*mut T, (usize, usize))) -> Self {
         let dims = ptr_dims.1;
         Matrix {
@@ -97,7 +97,7 @@ impl <T>From<(*mut T, (usize, usize))> for Matrix<T> {
 }
 
 //no Weak ptr:
-impl <T: Copy+Default, const N: usize>From<((usize, usize), &[T; N])> for Matrix<T> {
+impl<T: Copy+Default, const N: usize> From<((usize, usize), &[T; N])> for Matrix<T> {
     fn from(dims_slice: ((usize, usize), &[T; N])) -> Self {
         //let device = get_device::<T>();
         let device = get_device!(Device, T).unwrap();
@@ -110,7 +110,7 @@ impl <T: Copy+Default, const N: usize>From<((usize, usize), &[T; N])> for Matrix
     }
 }
 
-impl <T: Copy+Default>From<(usize, usize)> for Matrix<T> {
+impl<T: Copy+Default> From<(usize, usize)> for Matrix<T> {
     fn from(dims: (usize, usize)) -> Self {
         let device = get_device!(Device, T).unwrap();
         let buffer = Buffer::<T>::from((&device, dims.0*dims.1));
@@ -123,7 +123,7 @@ impl <T: Copy+Default>From<(usize, usize)> for Matrix<T> {
 }
 
 #[cfg(feature="opencl")]
-impl <T: GenericOCL>From<(&InternCLDevice, Matrix<T>)> for Matrix<T> {
+impl<T: GenericOCL> From<(&InternCLDevice, Matrix<T>)> for Matrix<T> {
     fn from(device_matrix: (&InternCLDevice, Matrix<T>)) -> Self {
         //assert!(CPU_CACHE.with(|cache| !cache.borrow().nodes.is_empty()), "no allocations");
         let y = CLCache::get::<T>(device_matrix.0.clone(), Node::new(device_matrix.1.dims()));
@@ -133,7 +133,7 @@ impl <T: GenericOCL>From<(&InternCLDevice, Matrix<T>)> for Matrix<T> {
     }
 }
 
-impl <T: Copy, D: Device<T>, const N: usize>From<(&D, (usize, usize), [T; N])> for Matrix<T> {
+impl<T: Copy, D: Device<T>, const N: usize> From<(&D, (usize, usize), [T; N])> for Matrix<T> {
     fn from(dims_slice: (&D, (usize, usize), [T; N])) -> Self {
         let buffer = Buffer::from((dims_slice.0, dims_slice.2));
         Matrix {
@@ -143,7 +143,7 @@ impl <T: Copy, D: Device<T>, const N: usize>From<(&D, (usize, usize), [T; N])> f
     }
 }
 
-impl <T: Copy, D: Device<T>>From<(&D, (usize, usize), Vec<T>)> for Matrix<T> {
+impl<T: Copy, D: Device<T>> From<(&D, (usize, usize), Vec<T>)> for Matrix<T> {
     fn from(dims_slice: (&D, (usize, usize), Vec<T>)) -> Self {
         let buffer = Buffer::from((dims_slice.0, dims_slice.2));
         Matrix {
@@ -154,7 +154,7 @@ impl <T: Copy, D: Device<T>>From<(&D, (usize, usize), Vec<T>)> for Matrix<T> {
 }
 
 
-impl <T: Copy, D: Device<T>>From<(&D, (usize, usize), &[T])> for Matrix<T> {
+impl<T: Copy, D: Device<T>> From<(&D, (usize, usize), &[T])> for Matrix<T> {
     fn from(dims_slice: (&D, (usize, usize), &[T])) -> Self {
         let buffer = Buffer::from((dims_slice.0, dims_slice.2));
         Matrix {
@@ -164,7 +164,7 @@ impl <T: Copy, D: Device<T>>From<(&D, (usize, usize), &[T])> for Matrix<T> {
     }
 }
 
-impl <T: Copy, D: Device<T>>From<(&D, (usize, usize), &Vec<T>)> for Matrix<T> {
+impl<T: Copy, D: Device<T>> From<(&D, (usize, usize), &Vec<T>)> for Matrix<T> {
     fn from(dims_slice: (&D, (usize, usize), &Vec<T>)) -> Self {
         let buffer = Buffer::from((dims_slice.0, dims_slice.2));
         Matrix {
@@ -176,7 +176,7 @@ impl <T: Copy, D: Device<T>>From<(&D, (usize, usize), &Vec<T>)> for Matrix<T> {
 
 //-------------Add-------------
 
-impl <T: GenericOCL>core::ops::Add<Self> for &Matrix<T> {
+impl<T: GenericOCL> core::ops::Add<Self> for &Matrix<T> {
     type Output = Matrix<T>;
 
     fn add(self, rhs: Self) -> Self::Output {
@@ -185,7 +185,7 @@ impl <T: GenericOCL>core::ops::Add<Self> for &Matrix<T> {
     }
 }
 
-impl <T: GenericOCL>core::ops::Add<Self> for Matrix<T> {
+impl<T: GenericOCL> core::ops::Add<Self> for Matrix<T> {
     type Output = Matrix<T>;
 
     fn add(self, rhs: Self) -> Self::Output {
@@ -194,7 +194,7 @@ impl <T: GenericOCL>core::ops::Add<Self> for Matrix<T> {
     }
 }
 
-impl <T: GenericOCL>core::ops::Add<&Self> for Matrix<T> {
+impl<T: GenericOCL> core::ops::Add<&Self> for Matrix<T> {
     type Output = Matrix<T>;
 
     fn add(self, rhs: &Self) -> Self::Output {
@@ -203,7 +203,7 @@ impl <T: GenericOCL>core::ops::Add<&Self> for Matrix<T> {
     }
 }
 
-impl <T: GenericOCL>core::ops::Add<Matrix<T>> for &Matrix<T> {
+impl<T: GenericOCL> core::ops::Add<Matrix<T>> for &Matrix<T> {
     type Output = Matrix<T>;
 
     fn add(self, rhs: Matrix<T>) -> Self::Output {
@@ -214,7 +214,7 @@ impl <T: GenericOCL>core::ops::Add<Matrix<T>> for &Matrix<T> {
 
 //-------------Sub-------------
 
-impl <T: GenericOCL>core::ops::Sub<Self> for &Matrix<T> {
+impl<T: GenericOCL> core::ops::Sub<Self> for &Matrix<T> {
     type Output = Matrix<T>;
 
     fn sub(self, rhs: Self) -> Self::Output {
@@ -223,7 +223,7 @@ impl <T: GenericOCL>core::ops::Sub<Self> for &Matrix<T> {
     }
 }
 
-impl <T: GenericOCL>core::ops::Sub<Self> for Matrix<T> {
+impl<T: GenericOCL> core::ops::Sub<Self> for Matrix<T> {
     type Output = Matrix<T>;
 
     fn sub(self, rhs: Self) -> Self::Output {
@@ -232,7 +232,7 @@ impl <T: GenericOCL>core::ops::Sub<Self> for Matrix<T> {
     }
 }
 
-impl <T: GenericOCL>core::ops::Sub<&Self> for Matrix<T> {
+impl<T: GenericOCL> core::ops::Sub<&Self> for Matrix<T> {
     type Output = Matrix<T>;
 
     fn sub(self, rhs: &Self) -> Self::Output {
@@ -241,7 +241,7 @@ impl <T: GenericOCL>core::ops::Sub<&Self> for Matrix<T> {
     }
 }
 
-impl <T: GenericOCL>core::ops::Sub<Matrix<T>> for &Matrix<T> {
+impl<T: GenericOCL> core::ops::Sub<Matrix<T>> for &Matrix<T> {
     type Output = Matrix<T>;
 
     fn sub(self, rhs: Matrix<T>) -> Self::Output {
@@ -252,7 +252,7 @@ impl <T: GenericOCL>core::ops::Sub<Matrix<T>> for &Matrix<T> {
 
 //-------------Mul-------------
 
-impl <T: GenericOCL>core::ops::Mul<Self> for &Matrix<T> {
+impl<T: GenericOCL> core::ops::Mul<Self> for &Matrix<T> {
     type Output = Matrix<T>;
 
     fn mul(self, rhs: Self) -> Self::Output {
@@ -261,7 +261,7 @@ impl <T: GenericOCL>core::ops::Mul<Self> for &Matrix<T> {
     }
 }
 
-impl <T: GenericOCL>core::ops::Mul<Self> for Matrix<T> {
+impl<T: GenericOCL> core::ops::Mul<Self> for Matrix<T> {
     type Output = Matrix<T>;
 
     fn mul(self, rhs: Self) -> Self::Output {
@@ -270,7 +270,7 @@ impl <T: GenericOCL>core::ops::Mul<Self> for Matrix<T> {
     }
 }
 
-impl <T: GenericOCL>core::ops::Mul<&Self> for Matrix<T> {
+impl<T: GenericOCL> core::ops::Mul<&Self> for Matrix<T> {
     type Output = Matrix<T>;
 
     fn mul(self, rhs: &Self) -> Self::Output {
@@ -281,14 +281,14 @@ impl <T: GenericOCL>core::ops::Mul<&Self> for Matrix<T> {
 
 
 
-impl <T: GenericOCL>core::ops::SubAssign<&Matrix<T>> for Matrix<T> {
+impl<T: GenericOCL> core::ops::SubAssign<&Matrix<T>> for Matrix<T> {
     fn sub_assign(&mut self, rhs: &Matrix<T>) {
         let device = get_device!(AssignOps, T).unwrap();
         device.sub_assign(self, rhs)
     }
 }
 
-impl <'a, T: Clone+Default+Number+Copy+core::fmt::Debug>core::fmt::Debug for Matrix<T> {
+impl<'a, T: Number> core::fmt::Debug for Matrix<T> {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         let data = self.read();
         let mut count = 0;
