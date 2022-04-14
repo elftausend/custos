@@ -43,6 +43,9 @@ pub fn ocl_gemm<T: GenericOCL>(device: InternCLDevice, lhs: &Matrix<T>, rhs: &Ma
     } else {
         write!(&mut float_kw, "{}{}", T::as_ocl_type_str(), kw).unwrap();
     }
+
+    let dt = T::as_ocl_type_str();
+
     let src = format!("
         #define K {k}
         #define N {n}
@@ -58,13 +61,13 @@ pub fn ocl_gemm<T: GenericOCL>(device: InternCLDevice, lhs: &Matrix<T>, rhs: &Ma
                 size_t mt = get_global_id(0);    //global M-tile id
                 size_t nc = get_global_id(1);    //global N-tile id
 
-                float AT[KW][MW]; // sub tiles
-                float BT[NW][KW];
-                float CT[NW][MW];
+                {dt} AT[KW][MW]; // sub tiles
+                {dt} BT[NW][KW];
+                {dt} CT[NW][MW];
 
                 #pragma unroll
                 for (uint i=0; i<NW*MW; ++i) // zero CT tile
-                    ((float*) CT)[i] = 0.0;
+                    (({dt }*) CT)[i] = 0.0;
 
                 for (uint kt=0; kt<KT; ++kt)  // iterate over K-dim tiles
                 {{
