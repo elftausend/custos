@@ -24,13 +24,13 @@ impl<T: Copy+Default> Device<T> for InternCPU {
     }
 
     fn with_data(&self, data: &[T]) -> *mut T {
-        assert!(data.len() > 0, "invalid buffer len: 0");
+        assert!(!data.is_empty(), "invalid buffer len: 0");
         let ptr = Box::into_raw(data.to_vec().into_boxed_slice()) as *mut T;
         self.cpu.borrow_mut().ptrs.push(ptr as *mut usize);
         ptr
     }
     fn alloc_with_vec(&self, vec: Vec<T>) -> *mut T {
-        assert!(vec.len() > 0, "invalid buffer len: 0");
+        assert!(!vec.is_empty(), "invalid buffer len: 0");
         let ptr = Box::into_raw(vec.into_boxed_slice()) as *mut T;
         self.cpu.borrow_mut().ptrs.push(ptr as *mut usize);
         ptr
@@ -45,11 +45,11 @@ impl<T: Copy+Default> Device<T> for InternCPU {
     }
 
     fn with_data(&self, data: &[T]) -> *mut T {
-        assert!(data.len() > 0, "invalid buffer len: 0");
+        assert!(!data.is_empty(), "invalid buffer len: 0");
         Box::into_raw(data.to_vec().into_boxed_slice()) as *mut T
     }
     fn alloc_with_vec(&self, vec: Vec<T>) -> *mut T {
-        assert!(vec.len() > 0, "invalid buffer len: 0");
+        assert!(!vec.is_empty(), "invalid buffer len: 0");
         Box::into_raw(vec.into_boxed_slice()) as *mut T
     }
 

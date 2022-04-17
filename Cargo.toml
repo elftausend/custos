@@ -2,7 +2,9 @@
 name = "custos"
 version = "0.1.0"
 edition = "2021"
-
+license = "MIT"
+description = "A library for matrix operations calculated on CPU and OpenCL devices"
+repository = "https://github.com/elftausend/custos"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]

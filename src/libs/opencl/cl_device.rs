@@ -92,7 +92,7 @@ impl<T> DropBuf<T> for InternCLDevice {
 
 impl<T: GenericOCL> BaseOps<T> for InternCLDevice {
     fn add(&self, lhs: &Matrix<T>, rhs: &Matrix<T>) -> Matrix<T> {
-        tew(self.clone(), &lhs, &rhs, "+").unwrap()
+        tew(self.clone(), lhs, rhs, "+").unwrap()
     }
 
     fn sub(&self, lhs: &Matrix<T>, rhs: &Matrix<T>) -> Matrix<T> {
@@ -122,7 +122,7 @@ impl<T: GenericOCL> Gemm<T> for InternCLDevice {
 }
 
 pub fn cl_write<T>(device: &InternCLDevice, x: &mut Matrix<T>, data: &[T]) {
-    let event = enqueue_write_buffer(&device.get_queue(), x.ptr() as *mut c_void, &data, true).unwrap();
+    let event = enqueue_write_buffer(&device.get_queue(), x.ptr() as *mut c_void, data, true).unwrap();
     wait_for_event(event).unwrap();
 } 
 

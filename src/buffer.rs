@@ -7,7 +7,7 @@ use crate::Device;
 
 
 #[cfg(feature="safe")]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub enum DeallocType {
     CPU,
     CL,
@@ -31,11 +31,12 @@ unsafe impl<T> Sync for Buffer<T> {}
 #[cfg(feature="safe")]
 impl<T> Clone for Buffer<T> {
     fn clone(&self) -> Self {
-        match self.dealloc_type {
-            DeallocType::CL => unsafe {clRetainMemObject(self.ptr as *mut c_void);},
-            _ => {}
-        }
-        Self { ptr: self.ptr.clone(), len: self.len.clone(), dealloc_type: self.dealloc_type.clone() }
+        if let DeallocType::CL = self.dealloc_type { 
+            unsafe {
+                clRetainMemObject(self.ptr as *mut c_void);
+            }
+        };
+        Self { ptr: self.ptr, len: self.len, dealloc_type: self.dealloc_type }
     }
 }
 

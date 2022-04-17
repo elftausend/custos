@@ -199,7 +199,7 @@ impl<T: GenericOCL> core::ops::Add<&Self> for Matrix<T> {
 
     fn add(self, rhs: &Self) -> Self::Output {
         let device = get_device!(BaseOps, T).unwrap();
-        device.add(&self, &rhs)
+        device.add(&self, rhs)
     }
 }
 
@@ -208,7 +208,7 @@ impl<T: GenericOCL> core::ops::Add<Matrix<T>> for &Matrix<T> {
 
     fn add(self, rhs: Matrix<T>) -> Self::Output {
         let device = get_device!(BaseOps, T).unwrap();
-        device.add(&self, &rhs)
+        device.add(self, &rhs)
     }
 }
 
@@ -237,7 +237,7 @@ impl<T: GenericOCL> core::ops::Sub<&Self> for Matrix<T> {
 
     fn sub(self, rhs: &Self) -> Self::Output {
         let device = get_device!(BaseOps, T).unwrap();
-        device.sub(&self, &rhs)
+        device.sub(&self, rhs)
     }
 }
 
@@ -246,7 +246,7 @@ impl<T: GenericOCL> core::ops::Sub<Matrix<T>> for &Matrix<T> {
 
     fn sub(self, rhs: Matrix<T>) -> Self::Output {
         let device = get_device!(BaseOps, T).unwrap();
-        device.sub(&self, &rhs)
+        device.sub(self, &rhs)
     }
 }
 
@@ -275,7 +275,7 @@ impl<T: GenericOCL> core::ops::Mul<&Self> for Matrix<T> {
 
     fn mul(self, rhs: &Self) -> Self::Output {
         let device = get_device!(BaseOps, T).unwrap();
-        device.mul(&self, &rhs)
+        device.mul(&self, rhs)
     }
 }
 
@@ -296,8 +296,8 @@ impl<'a, T: Number> core::fmt::Debug for Matrix<T> {
         write!(f, "[").unwrap();
         let max = self.dims.0*self.dims.1;
 
-        for i in 0..data.len() {
-            write!(f, "{:?}, ", data[i]).unwrap();
+        for value in &data {
+            write!(f, "{:?}, ", value).unwrap();
             count+=1;
             if count == max {
                 write!(f, "datatype={}]", core::any::type_name::<T>()).unwrap();
