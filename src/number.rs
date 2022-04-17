@@ -1,7 +1,5 @@
 use core::{cmp::Ordering, ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign}};
 
-use rand::distributions::uniform::SampleUniform;
-
 macro_rules! number_apply {
     ($t:ident) => {
         impl Number for $t {
@@ -63,9 +61,8 @@ pub trait Number: Sized+Default+Clone+Copy+
                     Div<&'static Self, Output = Self>+
                     Mul<&'static Self, Output = Self>+
                     AddAssign<Self> + SubAssign<Self>+
-                    MulAssign<Self> + DivAssign<Self>+
-                    SampleUniform + PartialOrd+
-                    PartialEq +
+                    MulAssign<Self> + DivAssign<Self>
+                    + PartialOrd + PartialEq +
                     'static + core::fmt::Debug + core::fmt::Display + {
 
         fn from_usize(value: usize) -> Self;
