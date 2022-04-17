@@ -3,12 +3,12 @@ name = "custos"
 version = "0.1.0"
 edition = "2021"
 license = "MIT"
-description = "A library for matrix operations calculated on CPU and OpenCL devices"
+description = "A library for matrix operations calculated on the CPU and OpenCL devices"
 repository = "https://github.com/elftausend/custos"
+readme = "README.md"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-#rand = "*"
 lazy_static = "1.4.0"
 
 [features]
@@ -19,7 +19,6 @@ safe = []
 
 [dev-dependencies]
 criterion = "0.3"
-
 
 [[bench]]
 name = "safe_vs_cache"

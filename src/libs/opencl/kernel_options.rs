@@ -101,10 +101,9 @@ impl<'a, T: GenericOCL> KernelOptions<'a, T> {
             Some(number) => self.number_args.push((number, idx)),
             None => self.tensor_args.push((arg.matrix().unwrap(), idx)),
         }
-
         self
-        
     }
+    
     pub fn with_output(&mut self, out_dims: (usize, usize)) -> &mut KernelOptions<'a, T> {
         self.output = Some(CLCache::get(self.device.clone(), Node::new(out_dims)));
         self

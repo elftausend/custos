@@ -5,6 +5,8 @@ use crate::{BaseOps, Buffer, Device, Gemm, libs::cpu::{CPUCache, ops::element_wi
 use super::{TBlas, CPU_CACHE, assign_to_lhs};
 
 #[derive(Debug, Clone)]
+/// All traits related to mathematical operations need to be implemented for this struct in order to use them.
+/// This struct is should be only created via the [CPU] struct.
 pub struct InternCPU {
     pub cpu: Rc<RefCell<CPU>>
 }
@@ -126,6 +128,38 @@ impl<T: TBlas+Default+Copy> Gemm<T> for InternCPU {
     }
 }
 
+#[derive(Debug, Clone)]
+/// If the 'safe' feature isn't used, pointers are stored in the 'ptrs' field.
+/// It is used to get an [InternCPU], which gives you access to all functions that were implemented for the InternCPU struct.
+/// 
+/// # Note / Safety
+/// 
+/// If the 'safe' feature isn't used, all pointers will get invalid when the drop code for a CPU object is run as that deallocates the memory previously pointed at by the pointers stored in 'ptrs'.
+/// 
+/// # Example
+/// ```
+/// use custos::{CPU, BaseOps, VecRead, Matrix};
+/// 
+/// let device = CPU::new();
+/// let a = Matrix::<f32>::new(device.clone(), (5, 5));
+/// let b = Matrix::from((&device, (5, 5), vec![1.3; 5*5]));
+/// 
+/// let out = device.add(&a, &b);
+/// 
+/// assert_eq!(device.read(out.data()), vec![1.3; 5*5]);
+/// ```
+pub struct CPU {
+    pub ptrs: Vec<*mut usize>
+}
+
+impl CPU {
+    #[must_use]
+    /// Creates an [InternCPU] object with an CPU that holds an empty vector of pointers.
+    pub fn new() -> InternCPU {
+        InternCPU::new(Rc::new(RefCell::new(CPU { ptrs: Vec::new() })))
+    }
+}
+
 impl Drop for CPU {
     fn drop(&mut self) {
         let contents = CPU_CACHE.with(|cache| {
@@ -155,17 +189,6 @@ impl Drop for CPU {
 }
 
 
-#[derive(Debug, Clone)]
-pub struct CPU {
-    pub ptrs: Vec<*mut usize>
-}
-
-impl CPU {
-    #[must_use]
-    pub fn new() -> InternCPU {
-        InternCPU::new(Rc::new(RefCell::new(CPU { ptrs: Vec::new() })))
-    }
-}
 
 impl AsDev for InternCPU {
     fn as_dev(&self) -> crate::Dev {

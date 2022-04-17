@@ -59,3 +59,17 @@ fn test_no_device() {
         Err(_) => {},
     };
 }
+
+#[test]
+fn test_baseops() -> Result<(), Error> {
+    let device = CPU::new().select();
+
+    let matrix = Matrix::from(( &device, (2, 3), [1.51, 6.123, 7., 5.21, 8.62, 4.765]));
+    let b = Matrix::from(( &device, (2, 3), [1., 1., 1., 1., 1., 1.]));
+
+    let base_ops = get_device!(BaseOps, f32)?;
+    let out = base_ops.add(&matrix, &b);
+
+    assert_eq!(out.read(), vec![2.51, 7.123, 8., 6.21, 9.62, 5.765]);
+    Ok(())
+}

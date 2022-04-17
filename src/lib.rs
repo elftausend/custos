@@ -99,7 +99,22 @@ thread_local! {
 
 pub trait AsDev {
     fn as_dev(&self) -> Dev;
-    ///selects self as global device
+    /// Selects self as a global device. Therefore being able to use functions for matrices without specifying a compute device.
+    /// When the device is dropped, the global device is no longer available.
+    /// 
+    /// # Example
+    /// ```
+    /// use custos::{CPU, BaseOps, VecRead, Matrix, AsDev};
+    /// 
+    /// let device = CPU::new().select();
+    /// 
+    /// let a = Matrix::from((&device, (5, 5), vec![1.5; 5*5]));
+    /// let b = Matrix::from((&device, (5, 5), vec![1.3; 5*5]));
+    /// 
+    /// let out = a + b;
+    /// 
+    /// assert_eq!(out.read(), vec![2.8; 5*5]);
+    /// ```
     #[must_use]
     fn select(self) -> Self where Self: AsDev+Clone {
         let dev = self.as_dev();
@@ -138,6 +153,33 @@ impl std::error::Error for DeviceError {}
 
 #[cfg(feature="opencl")]
 #[macro_export]
+/// If a device is selected, it returns the device thus giving access to the functions implemented by the trait.
+/// Therfore the trait needs to be implemented for the device.
+/// 
+/// # Errors
+/// 
+/// If no device is selected, a "NoDeviceSelected" error will be returned.
+/// 
+/// # Example
+/// ```
+/// use custos::{Error, CPU, get_device, Matrix, VecRead, AsDev, BaseOps};
+/// 
+/// fn main() -> Result<(), Error> {
+///     let device = CPU::new().select();
+///     let read = get_device!(VecRead, f32)?;
+/// 
+///     let matrix = Matrix::from(( &device, (2, 3), [1.51, 6.123, 7., 5.21, 8.62, 4.765]));
+///     let read = read.read(matrix.data());
+/// 
+///     assert_eq!(&read, &[1.51, 6.123, 7., 5.21, 8.62, 4.765]);
+///     let b = Matrix::from(( &device, (2, 3), [1., 1., 1., 1., 1., 1.]));
+/// 
+///     let base_ops = get_device!(BaseOps, f32)?;
+///     let out = base_ops.add(&matrix, &b);
+///     assert_eq!(out.read(), vec![2.51, 7.123, 8., 6.21, 9.62, 5.765]);
+///     Ok(())
+/// }
+/// ```
 macro_rules! get_device {
     
     ($t:ident, $g:ident) => {    
@@ -157,6 +199,33 @@ macro_rules! get_device {
 
 #[cfg(not(feature="opencl"))]
 #[macro_export]
+/// If a device is selected, it returns the device thus giving access to the functions implemented by the trait.
+/// Therfore the trait needs to be implemented for the device.
+/// 
+/// # Errors
+/// 
+/// If no device is selected, a "NoDeviceSelected" error will be returned.
+/// 
+/// # Example
+/// ```
+/// use custos::{Error, CPU, get_device, Matrix, VecRead, AsDev, BaseOps};
+/// 
+/// fn main() -> Result<(), Error> {
+///     let device = CPU::new().select();
+///     let read = get_device!(VecRead, f32)?;
+/// 
+///     let matrix = Matrix::from(( &device, (2, 3), [1.51, 6.123, 7., 5.21, 8.62, 4.765]));
+///     let read = read.read(matrix.data());
+/// 
+///     assert_eq!(&read, &[1.51, 6.123, 7., 5.21, 8.62, 4.765]);
+///     let b = Matrix::from(( &device, (2, 3), [1., 1., 1., 1., 1., 1.]));
+/// 
+///     let base_ops = get_device!(BaseOps, f32)?;
+///     let out = base_ops.add(&matrix, &b);
+///     assert_eq!(out.read(), vec![2.51, 7.123, 8., 6.21, 9.62, 5.765]);
+///     Ok(())
+/// }
+/// ```
 macro_rules! get_device {
     
     ($t:ident, $g:ident) => {    
