@@ -2,6 +2,7 @@ use std::fmt::Write;
 
 use crate::{libs::opencl::{KernelOptions, cl_device::InternCLDevice}, Matrix, Error, GenericOCL};
 
+/// OpenCL GEMM
 pub fn ocl_gemm<T: GenericOCL>(device: InternCLDevice, lhs: &Matrix<T>, rhs: &Matrix<T>) -> Result<Matrix<T>, Error> {
     let m = lhs.cols();
     let k = lhs.rows();
@@ -28,8 +29,7 @@ pub fn ocl_gemm<T: GenericOCL>(device: InternCLDevice, lhs: &Matrix<T>, rhs: &Ma
     let f = (((m/mw) as f32).floor()) as usize;
     let s = (((n/nw) as f32).floor()) as usize;
     //'testing'/excellent code for gemm - 'currently' stolen from litenn
-    //forever !
-    
+
     let mut float_mw = String::new();
     if mw == 1 {
         write!(&mut float_mw, "{}", T::as_ocl_type_str()).unwrap();

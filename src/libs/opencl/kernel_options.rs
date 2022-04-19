@@ -36,7 +36,42 @@ impl<'a, T: Number> KernelArg<'a, T> for T {
         Some(*self)
     }
 }
-
+/// Provides an API to run and cache OpenCL kernels.
+/// 
+/// # Errors
+/// OpenCL related errors
+/// 
+/// # Note
+/// 
+/// if with_output(...) is not provided, the output matrix is the lhs matrix.
+/// 
+/// # Example
+/// ```
+/// use custos::{opencl::KernelOptions, Matrix, CLDevice, Error, GenericOCL, VecRead};
+/// 
+/// fn main() -> Result<(), Error> {
+///     let device = CLDevice::get(0)?;
+/// 
+///     let lhs = Matrix::from((&device, (2, 3), [1, 5, 3, 2, 7, 8]));
+///     let rhs = Matrix::from((&device, (2, 3), [-2, -6, -4, -3, -8, -9]));
+/// 
+///     let src = format!("
+///         __kernel void add(__global {datatype}* self, __global const {datatype}* rhs, __global {datatype}* out) {{
+///             size_t id = get_global_id(0);
+///             out[id] = self[id]+rhs[id];
+///         }}
+///     ", datatype=i32::as_ocl_type_str());
+///
+///     let gws = [lhs.size(), 0, 0];
+///     let out = KernelOptions::<i32>::new(&device, &lhs, gws, &src)
+///         .with_rhs(&rhs)
+///         .with_output(lhs.dims())
+///         .run()?;
+/// 
+///     assert_eq!(device.read(out.data()), vec![-1, -1, -1, -1, -1, -1]);
+///     Ok(())
+/// }
+/// ```
 pub struct KernelOptions<'a, T> {
     src: &'a str,
     lhs: &'a Matrix<T>,
@@ -88,12 +123,13 @@ impl<'a, T: GenericOCL> KernelOptions<'a, T> {
         self
     }
 
+    /// Sets matrix to index 1 for the kernel argument list
     pub fn with_rhs(&mut self, rhs: &'a Matrix<T>) -> &mut KernelOptions<'a, T> {
         self.tensor_args.push((rhs, 1));
         self.rhs = Some(rhs);
         self
     }
-    
+    /// Adds value (Matrix<T> or T) to the kernel argument list
     pub fn add_arg<A: KernelArg<'a, T>>(&'a mut self, arg: &'a A) -> &mut KernelOptions<'a, T> {
         let idx = self.number_args.len()+self.tensor_args.len();
         
@@ -103,11 +139,14 @@ impl<'a, T: GenericOCL> KernelOptions<'a, T> {
         }
         self
     }
-    
+
+    /// Adds output
     pub fn with_output(&mut self, out_dims: (usize, usize)) -> &mut KernelOptions<'a, T> {
         self.output = Some(CLCache::get(self.device.clone(), Node::new(out_dims)));
         self
     }
+
+    /// Runs the kernel with argumenths
     pub fn run(&'a mut self) -> Result<Matrix<T>, Error> {
         let kernel = CL_CACHE.with(|cache| cache.borrow_mut().arg_kernel_cache(self.device.clone(), &self.tensor_args, &self.number_args, self.output.as_ref(), self.src.to_string()))?;
                
@@ -117,12 +156,10 @@ impl<'a, T: GenericOCL> KernelOptions<'a, T> {
         }
 
         enqueue_nd_range_kernel(&self.device.get_queue(), &kernel, self.wd, &self.gws, self.lws.as_ref(), self.offset)?;
-        
-
+    
         match &self.output {
             Some(out) => Ok(out.clone()),
             None => Ok(self.lhs.clone()),
         }
-    
     }
 }

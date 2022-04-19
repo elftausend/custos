@@ -141,7 +141,7 @@ impl<T: TBlas+Default+Copy> Gemm<T> for InternCPU {
 /// use custos::{CPU, BaseOps, VecRead, Matrix};
 /// 
 /// let device = CPU::new();
-/// let a = Matrix::<f32>::new(device.clone(), (5, 5));
+/// let a = Matrix::<f32>::new(&device, (5, 5));
 /// let b = Matrix::from((&device, (5, 5), vec![1.3; 5*5]));
 /// 
 /// let out = device.add(&a, &b);
@@ -154,7 +154,7 @@ pub struct CPU {
 
 impl CPU {
     #[must_use]
-    /// Creates an [InternCPU] object with an CPU that holds an empty vector of pointers.
+    /// Creates an [InternCPU] instance with an CPU that holds an empty vector of pointers.
     pub fn new() -> InternCPU {
         InternCPU::new(Rc::new(RefCell::new(CPU { ptrs: Vec::new() })))
     }

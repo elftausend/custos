@@ -37,11 +37,29 @@ impl AsRangeArg for (usize, usize) {
     }
 }
 
-///inclusive range
+/// inclusive range
+/// used to reset the cache count in loops as every operation increases the cache count, which would break the "cache cycle".
+/// 
+/// # Example
+/// ```
+/// use custos::{CPU, AsDev, Matrix, get_count, range};
+/// 
+/// let device = CPU::new().select();
+/// let a = Matrix::from((&device, (2, 2), [2, 4, 5, 6]));
+/// let b = Matrix::from((&device, (2, 2), [1, 2, 3, 4]));
+/// 
+/// for _ in range(100) {
+///     let c = a + b;
+///     assert_eq!(c.read(), vec![3, 6, 8, 10]);
+///     assert!(get_count() == 1);
+/// }
+/// assert!(get_count() == 0);
+/// ```
 pub fn range<R: AsRangeArg>(range: R) -> Count {
     Count(range.start(), range.end())
 }
 
+/// used to reset the cache count
 pub struct Count(usize, usize);
 
 pub struct CountIntoIter {

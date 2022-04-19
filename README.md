@@ -2,6 +2,8 @@
 
 An experimental library for matrix operations that are calculated on the CPU or on OpenCL devices. Breaking changes will occur.
 
+## Installation
+
 Add "custos" as a dependency:
 ```toml
 [dependencies]

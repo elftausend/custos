@@ -57,6 +57,23 @@ pub trait AssignOps<T> {
     fn sub_assign(&self, lhs: &mut Matrix<T>, rhs: &Matrix<T>);
 }
 
+/// Base operations for matrices
+/// 
+/// # Examples
+/// ```
+/// use custos::{CPU, Matrix, AsDev};
+/// 
+/// let device = CPU::new().select();
+/// let a = Matrix::from((&device, (2, 3), [2, 4, 6, 8, 10, 12]));
+/// let b = Matrix::from((&device, (2, 3), [12, 4, 3, 1, -5, -3]));
+/// 
+/// let c = a + b;
+/// assert_eq!(c.read(), vec![14, 8, 9, 9, 5, 9]);
+/// 
+/// use custos::BaseOps;
+/// let sub = device.sub(&a, &b);
+/// assert_eq!(sub.read(), vec![-10, 0, 3, 7, 15, 15]);
+/// ```
 pub trait BaseOps<T> {
     fn add(&self, lhs: &Matrix<T>, rhs: &Matrix<T>) -> Matrix<T>;
     fn sub(&self, lhs: &Matrix<T>, rhs: &Matrix<T>) -> Matrix<T>;

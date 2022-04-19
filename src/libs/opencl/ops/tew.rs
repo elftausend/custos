@@ -22,7 +22,6 @@ impl <T: !GenericOCL>Both for T {
 
 //std::any::TypeId::of::<T>() ... check all impl
 
-
 pub fn tew<T: GenericOCL>(device: InternCLDevice, lhs: &Matrix<T>, rhs: &Matrix<T>, op: &str) -> Result<Matrix<T>, Error> {
     let src = format!("
         __kernel void eop(__global {datatype}* self, __global const {datatype}* rhs, __global {datatype}* out) {{

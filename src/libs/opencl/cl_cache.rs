@@ -19,6 +19,7 @@ type RawInfo = (OclPtr, (usize, usize));
 type KernelIdent = (Vec<OclPtr>, Vec<TypeId>, Option<OclPtr>, String);
 
 #[derive(Debug)]
+/// Stores kernels and outputs
 pub struct CLCache {
     pub output_nodes: HashMap<Node, RawInfo>,
     pub arg_kernel_cache: HashMap<KernelIdent, Kernel>,
@@ -26,10 +27,9 @@ pub struct CLCache {
 
 impl CLCache {
     pub fn add_node<T: GenericOCL>(&mut self, device: InternCLDevice, node: Node) -> Matrix<T> {
-        let out = Matrix::new(device, node.out_dims);
+        let out = Matrix::new(&device, node.out_dims);
         self.output_nodes.insert(node, ( OclPtr(out.ptr() as *mut c_void), out.dims() ));
         out
-
     }
 
     #[cfg(not(feature="safe"))]

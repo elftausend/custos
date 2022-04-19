@@ -5,6 +5,8 @@ use crate::{libs::opencl::api::{create_buffer, MemFlags}, BaseOps, Matrix, AsDev
 use super::{api::{CLIntDevice, CommandQueue, Context, create_command_queue, create_context, enqueue_read_buffer, wait_for_event, release_mem_object, enqueue_write_buffer}, CL_DEVICES, tew, ocl_gemm, CL_CACHE, tew_self};
 
 #[derive(Debug, Clone)]
+/// All traits related to mathematical operations need to be implemented for this struct in order to use them.
+/// This struct is should be only created via the [CLDevice] struct.
 pub struct InternCLDevice {
     pub cl: Rc<RefCell<CLDevice>>
 }
@@ -87,9 +89,6 @@ impl<T> DropBuf<T> for InternCLDevice {
     }
 }
 
-
-
-
 impl<T: GenericOCL> BaseOps<T> for InternCLDevice {
     fn add(&self, lhs: &Matrix<T>, rhs: &Matrix<T>) -> Matrix<T> {
         tew(self.clone(), lhs, rhs, "+").unwrap()
@@ -144,6 +143,29 @@ impl AsDev for InternCLDevice {
 impl<T: GenericOCL> BaseDevice<T> for InternCLDevice {}
 
 #[derive(Debug, Clone)]
+/// If the 'safe' feature isn't used, pointers are stored in the 'ptrs' field.
+/// It is used to get an [InternCLDevice], which gives you access to all functions that were implemented for the InternCLDevice struct.
+/// 
+/// # Note / Safety
+/// 
+/// If the 'safe' feature isn't used, all pointers will get invalid when the drop code for a CLDevice object is run as that deallocates the memory previously pointed at by the pointers stored in 'ptrs'.
+/// 
+/// # Example
+/// ```
+/// use custos::{CLDevice, BaseOps, VecRead, Matrix, Error};
+/// 
+/// fn main() -> Result<(), Error> {
+///     let device = CLDevice::get(0)?;
+///     
+///     let a = Matrix::<f32>::new(&device, (5, 5));
+///     let b = Matrix::from((&device, (5, 5), vec![1.3; 5*5]));
+///     
+///     let out = device.add(&a, &b);
+///     
+///     assert_eq!(device.read(out.data()), vec![1.3; 5*5]);
+///     Ok(())
+/// }
+/// ```
 pub struct CLDevice {
     pub ptrs: Vec<*mut c_void>,
     pub device: CLIntDevice,
@@ -160,7 +182,10 @@ impl CLDevice {
 
         Ok(CLDevice { ptrs: Vec::new(), device, ctx, queue }) 
     }
-
+    /// Returns an [InternCLDevice] at the specified device index.
+    /// # Errors
+    /// - No device is found at the given device index
+    /// - some other OpenCL related errors
     pub fn get(device_idx: usize) -> Result<InternCLDevice, Error> {
         Ok(InternCLDevice::new(CL_DEVICES.get_current(device_idx)?))
     }

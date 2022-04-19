@@ -14,15 +14,19 @@ thread_local! {
     pub static COUNT: RefCell<usize> = RefCell::new(0);
 }
 
+/// Sets current cache identifier / index.
+/// This function is usually called after an iteration in a loop -> [Count] or [range]
 pub fn set_count(count: usize) {
     COUNT.with(|c| *c.borrow_mut() = count);
 }
 
+/// Returns current cache identifier / index
 pub fn get_count() -> usize {
     COUNT.with(|c| *c.borrow())
 }
 
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
+/// A Node is used to identify a cached pointer.
 pub struct Node {
     idx: usize,
     out_dims: (usize, usize),
