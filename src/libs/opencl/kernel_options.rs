@@ -155,7 +155,7 @@ impl<'a, T: GenericOCL> KernelOptions<'a, T> {
             set_kernel_arg(&kernel, arg.1, &arg.0)
         }
 
-        enqueue_nd_range_kernel(&self.device.get_queue(), &kernel, self.wd, &self.gws, self.lws.as_ref(), self.offset)?;
+        enqueue_nd_range_kernel(&self.device.queue(), &kernel, self.wd, &self.gws, self.lws.as_ref(), self.offset)?;
     
         match &self.output {
             Some(out) => Ok(out.clone()),

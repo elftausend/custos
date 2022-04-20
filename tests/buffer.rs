@@ -23,7 +23,7 @@ pub fn read<T, D: Device<T>>(device: &D, buf: &Buffer<T>) -> Vec<T> where D: Vec
 #[test]
 fn test_cldevice_name() -> Result<(), Error> {
     let device = CLDevice::get(0)?;
-    println!("{}", device.get_name()?);
+    println!("{}", device.name()?);
     Ok(())
 }
 
@@ -31,7 +31,7 @@ fn test_cldevice_name() -> Result<(), Error> {
 #[test]
 fn test_cldevice_version() -> Result<(), Error> {
     let device = CLDevice::get(0)?;
-    println!("{}", device.get_version()?);
+    println!("{}", device.version()?);
     Ok(())
 }
 
@@ -39,8 +39,8 @@ fn test_cldevice_version() -> Result<(), Error> {
 #[test]
 fn test_cldevice_mem() -> Result<(), Error> {
     let device = CLDevice::get(0)?;
-    println!("get_global_mem_size_in_gb: {}", device.get_global_mem_size_in_gb()?);
-    println!("get_max_mem_alloc_in_gb: {}", device.get_max_mem_alloc_in_gb()?);
+    println!("get_global_mem_size_in_gb: {}", device.global_mem_size_in_gb()?);
+    println!("get_max_mem_alloc_in_gb: {}", device.max_mem_alloc_in_gb()?);
     Ok(())
 }
 

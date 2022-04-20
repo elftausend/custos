@@ -66,7 +66,7 @@ impl CLCache {
         match kernel { 
             Some(kernel) => Ok(kernel.clone()),
             None => {    
-                let program = create_program_with_source(&device.get_ctx(), &src)?;
+                let program = create_program_with_source(&device.ctx(), &src)?;
                 build_program(&program, &[device.device()], Some("-cl-std=CL1.2"))?; //-cl-single-precision-constant
                 let kernel = &create_kernels_in_program(&program)?[0];
                 

@@ -24,11 +24,11 @@ impl InternCLDevice {
          InternCLDevice { cl }
     }
 
-    pub fn get_ctx(&self) -> Context {
+    pub fn ctx(&self) -> Context {
         self.cl.borrow().ctx
     }
 
-    pub fn get_queue(&self) -> CommandQueue {
+    pub fn queue(&self) -> CommandQueue {
         self.cl.borrow().queue
     }
 
@@ -36,19 +36,19 @@ impl InternCLDevice {
         self.cl.borrow().device
     }
 
-    pub fn get_global_mem_size_in_gb(&self) -> Result<f64, Error> {
+    pub fn global_mem_size_in_gb(&self) -> Result<f64, Error> {
         Ok(self.device().get_global_mem()? as f64 * 10f64.powi(-9))
     }
 
-    pub fn get_max_mem_alloc_in_gb(&self) -> Result<f64, Error> {
+    pub fn max_mem_alloc_in_gb(&self) -> Result<f64, Error> {
         Ok(self.device().get_max_mem_alloc()? as f64 * 10f64.powi(-9))
     }
 
-    pub fn get_name(&self) -> Result<String, Error> {
+    pub fn name(&self) -> Result<String, Error> {
         self.device().get_name()
     }
 
-    pub fn get_version(&self) -> Result<String, Error> {
+    pub fn version(&self) -> Result<String, Error> {
         self.device().get_version()
     }
 }
@@ -56,13 +56,13 @@ impl InternCLDevice {
 #[cfg(not(feature="safe"))]
 impl<T> Device<T> for InternCLDevice {
     fn alloc(&self, len: usize) -> *mut T {
-        let ptr = create_buffer::<T>(&self.get_ctx(), MemFlags::MemReadWrite as u64, len, None).unwrap() as *mut T;
+        let ptr = create_buffer::<T>(&self.ctx(), MemFlags::MemReadWrite as u64, len, None).unwrap() as *mut T;
         self.cl.borrow_mut().ptrs.push(ptr as *mut c_void);
         ptr
     }
 
     fn with_data(&self, data: &[T]) -> *mut T {
-        let ptr = create_buffer::<T>(&self.get_ctx(), MemFlags::MemReadWrite | MemFlags::MemCopyHostPtr, data.len(), Some(data)).unwrap() as *mut T;
+        let ptr = create_buffer::<T>(&self.ctx(), MemFlags::MemReadWrite | MemFlags::MemCopyHostPtr, data.len(), Some(data)).unwrap() as *mut T;
         self.cl.borrow_mut().ptrs.push(ptr as *mut c_void);
         ptr
     }
@@ -121,14 +121,14 @@ impl<T: GenericOCL> Gemm<T> for InternCLDevice {
 }
 
 pub fn cl_write<T>(device: &InternCLDevice, x: &mut Matrix<T>, data: &[T]) {
-    let event = enqueue_write_buffer(&device.get_queue(), x.ptr() as *mut c_void, data, true).unwrap();
+    let event = enqueue_write_buffer(&device.queue(), x.ptr() as *mut c_void, data, true).unwrap();
     wait_for_event(event).unwrap();
 } 
 
 impl<T: Default+Copy> VecRead<T> for InternCLDevice {
     fn read(&self, buf: &crate::Buffer<T>) -> Vec<T> {
         let mut read = vec![T::default(); buf.len];
-        let event = enqueue_read_buffer(&self.get_queue(), buf.ptr as *mut c_void, &mut read, true).unwrap();
+        let event = enqueue_read_buffer(&self.queue(), buf.ptr as *mut c_void, &mut read, true).unwrap();
         wait_for_event(event).unwrap();
         read
     }
