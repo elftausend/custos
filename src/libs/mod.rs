@@ -28,7 +28,7 @@ pub fn get_count() -> usize {
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
 /// A Node is used to identify a cached pointer.
 pub struct Node {
-    idx: usize,
+    pub idx: usize,
     out_dims: (usize, usize),
 }
 
