@@ -38,7 +38,6 @@ impl Node {
             let node = Node {
                 idx: *count.borrow(),
                 out_dims,
-                
             };
             *count.borrow_mut() += 1;
             node

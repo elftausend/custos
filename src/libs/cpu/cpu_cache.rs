@@ -2,7 +2,6 @@ use std::{collections::HashMap, cell::RefCell};
 use crate::{Matrix, Node};
 use super::InternCPU;
 
-
 thread_local! {
     pub static CPU_CACHE: RefCell<CPUCache> = RefCell::new(CPUCache { nodes: HashMap::new() });
 }
@@ -13,6 +12,21 @@ pub struct CpuPtr(pub *mut usize);
 type RawInfo = (CpuPtr, (usize, usize));
 
 #[derive(Debug)]
+/// stores output pointers
+/// 
+/// # Example
+/// ```
+/// use custos::{Matrix, CPU, AsDev, cpu::CPU_CACHE};
+/// 
+/// let device = CPU::new().select();
+/// 
+/// let a = Matrix::<i16>::new(&device, (100, 100));
+/// let b = Matrix::<i16>::new(&device, (100, 100));
+/// 
+/// let out = a + b;
+/// let info = CPU_CACHE.with(|cache| cache.borrow().nodes.get(Node::new(0, (100, 100)));
+/// assert!(nodes_len == 1);
+/// ```
 pub struct CPUCache {
     pub nodes: HashMap<Node, RawInfo>,
 }
