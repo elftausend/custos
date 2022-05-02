@@ -59,6 +59,6 @@ impl CPUCache {
     }
     #[cfg(feature="safe")]
     pub fn get<T: Default+Copy>(device: InternCPU, out_dims: (usize, usize)) -> Matrix<T> {
-        Matrix::new(device, out_dims)
+        Matrix::new(&device, out_dims)
     }
 }

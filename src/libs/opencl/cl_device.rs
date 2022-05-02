@@ -75,11 +75,11 @@ impl<T> Device<T> for InternCLDevice {
 #[cfg(feature="safe")]
 impl<T> Device<T> for InternCLDevice {
     fn alloc(&self, len: usize) -> *mut T {
-        create_buffer::<T>(&self.get_ctx(), MemFlags::MemReadWrite as u64, len, None).unwrap() as *mut T
+        create_buffer::<T>(&self.ctx(), MemFlags::MemReadWrite as u64, len, None).unwrap() as *mut T
     }
 
     fn with_data(&self, data: &[T]) -> *mut T {
-        create_buffer::<T>(&self.get_ctx(), MemFlags::MemReadWrite | MemFlags::MemCopyHostPtr, data.len(), Some(data)).unwrap() as *mut T
+        create_buffer::<T>(&self.ctx(), MemFlags::MemReadWrite | MemFlags::MemCopyHostPtr, data.len(), Some(data)).unwrap() as *mut T
     }
 
     fn dealloc_type(&self) -> crate::DeallocType {
@@ -132,7 +132,7 @@ pub fn cl_write<T>(device: &InternCLDevice, x: &mut Matrix<T>, data: &[T]) {
 impl<T: Default+Copy> VecRead<T> for InternCLDevice {
     fn read(&self, buf: &crate::Buffer<T>) -> Vec<T> {
         let mut read = vec![T::default(); buf.len];
-        let event = enqueue_read_buffer(&self.queue(), buf.ptr as *mut c_void, &mut read, true).unwrap();
+        let event = unsafe {enqueue_read_buffer(&self.queue(), buf.ptr as *mut c_void, &mut read, true).unwrap()};
         wait_for_event(event).unwrap();
         read
     }

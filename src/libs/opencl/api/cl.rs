@@ -293,16 +293,16 @@ pub(crate) fn enqueue_write_buffer<T>(cq: &CommandQueue, mem: *mut c_void, data:
     Ok(Event(events[0]))
 }
 
-pub(crate) fn enqueue_read_buffer<T>(cq: &CommandQueue, mem: *mut c_void, data: &mut [T], block: bool) -> Result<Event, Error> {
+pub unsafe fn enqueue_read_buffer<T>(cq: &CommandQueue, mem: *mut c_void, data: &mut [T], block: bool) -> Result<Event, Error> {
     let mut events = vec![std::ptr::null_mut();1];
-    let value = unsafe {clEnqueueReadBuffer(cq.0, mem, block as u32, 0, data.len()*core::mem::size_of::<T>(), data.as_ptr() as *mut c_void, 0, std::ptr::null(), events.as_mut_ptr() as *mut cl_event)};
+    let value = clEnqueueReadBuffer(cq.0, mem, block as u32, 0, data.len()*core::mem::size_of::<T>(), data.as_ptr() as *mut c_void, 0, std::ptr::null(), events.as_mut_ptr() as *mut cl_event);
     if value != 0 {
         return Err(Error::from(OCLErrorKind::from_value(value)));
     }
     Ok(Event(events[0]))
 
 }
-pub(crate) fn enqueue_copy_buffer(cq: &CommandQueue, src_mem: *mut c_void, dst_mem: *mut c_void, size: usize) -> Result<(), Error>{
+pub(crate) fn enqueue_copy_buffer(cq: &CommandQueue, src_mem: *mut c_void, dst_mem: *mut c_void, size: usize) -> Result<(), Error> {
     let mut events = vec![std::ptr::null_mut();1];
     let value = unsafe {clEnqueueCopyBuffer(cq.0, src_mem, dst_mem, 0, 0, size*4, 0, std::ptr::null(), events.as_mut_ptr() as *mut cl_event)};
     if value != 0 {
@@ -312,8 +312,38 @@ pub(crate) fn enqueue_copy_buffer(cq: &CommandQueue, src_mem: *mut c_void, dst_m
     
 }
 
-pub fn enqueue_map_buffer() {
+/// map_flags: Read: 1, Write: 2, 
+pub unsafe fn enqueue_map_buffer<T>(
+    cq: &CommandQueue, 
+    buffer: *mut c_void, 
+    block: bool, 
+    map_flags: u64, 
+    offset: usize, 
+    len: usize, 
+) -> Result<*mut c_void, Error> {
     
+    let offset = offset * core::mem::size_of::<T>();
+    let size = len * core::mem::size_of::<T>();
+
+    let mut event = vec![std::ptr::null_mut(); 1];
+
+    let mut err = 0;
+    if err != 0 {
+        return Err(Error::from(OCLErrorKind::from_value(err)));
+    }
+    
+    let ptr = clEnqueueMapBuffer(cq.0, 
+        buffer, 
+        block as u32, 
+        map_flags, offset, size, 
+        0, 
+        std::ptr::null(), 
+        event.as_mut_ptr() as *mut cl_event, 
+        &mut err);
+
+    let e = Event(event[0]);
+    wait_for_event(e)?;
+    Ok(ptr)
 }
 /*
 pub fn enqueue_fill_buffer<T>(cq: &CommandQueue, mem: &Mem, pattern: Vec<T>) -> Event {

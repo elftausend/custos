@@ -29,6 +29,7 @@ pub type cl_context_properties              = isize;
 pub type cl_mem_flags                       = cl_bitfield;
 pub type cl_program_info                    = cl_uint;
 pub type cl_program_build_info              = cl_uint;
+pub type cl_map_flags                       = cl_bitfield;
 
 
 
@@ -121,6 +122,17 @@ extern "system" {
         num_events_in_wait_list: cl_uint,
         event_wait_list: *const cl_event,
         event: *mut cl_event) -> cl_int;
+
+    pub fn clEnqueueMapBuffer(command_queue: cl_command_queue,
+        buffer: cl_mem,
+        blocking_map: cl_bool,
+        map_flags: cl_map_flags,
+        offset: size_t,
+        size: size_t,
+        num_events_in_wait_list: cl_uint,
+        event_wait_list: *const cl_event,
+        event: *mut cl_event,
+        errorcode_ret: *mut cl_int) -> *mut c_void;
     
     pub fn clEnqueueFillBuffer(command_queue: cl_command_queue,
         buffer: cl_mem,

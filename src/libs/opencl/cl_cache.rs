@@ -49,7 +49,7 @@ impl CLCache {
 
     #[cfg(feature="safe")]
     pub fn get<T: GenericOCL>(device: InternCLDevice, node: Node) -> Matrix<T> {
-        Matrix::new(device, node.out_dims)
+        Matrix::new(&device, node.out_dims)
     }
 
     pub fn arg_kernel_cache<T: GenericOCL>(&mut self, device: InternCLDevice, matrices: &[(&Matrix<T>, usize)], numbers: &[(T, usize)], output: Option<&Matrix<T>>, src: String) -> Result<Kernel, Error> {
