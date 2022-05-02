@@ -51,6 +51,10 @@ impl InternCLDevice {
     pub fn version(&self) -> Result<String, Error> {
         self.device().get_version()
     }
+
+    pub fn unified_mem(&self) -> Result<bool, Error> {
+        self.device().unified_mem()
+    }
 }
 
 #[cfg(not(feature="safe"))]

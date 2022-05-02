@@ -75,10 +75,11 @@ pub enum DeviceType {
 
 #[derive(Copy, Clone)]
 pub enum DeviceInfo {
-    MaxMemAllocSize = 0x1010,
-    GlobalMemSize =   0x101F,
-    NAME =            0x102B,
-    VERSION =         0x102F,
+    MaxMemAllocSize =   0x1010,
+    GlobalMemSize =     0x101F,
+    NAME =              0x102B,
+    VERSION =           0x102F,
+    HostUnifiedMemory = 0x1035,
 }
 #[derive(Clone, Copy, Debug, Hash)]
 pub struct CLIntDevice(pub cl_device_id);
@@ -95,6 +96,9 @@ impl CLIntDevice {
     }
     pub fn get_max_mem_alloc(self) -> Result<u64, Error> {
         Ok(get_device_info(self, DeviceInfo::MaxMemAllocSize)?.size)
+    }
+    pub fn unified_mem(self) -> Result<bool, Error> {
+        Ok(get_device_info(self, DeviceInfo::HostUnifiedMemory)?.size != 0)
     }
 }
 
@@ -124,6 +128,7 @@ pub fn get_device_ids(platform: Platform, device_type: &u64) -> Result<Vec<CLInt
 pub struct DeviceReturnInfo {
     pub string: String,
     pub size: u64,
+    pub data: Vec<u8>,
 }
 
 pub fn get_device_info(device: CLIntDevice, param_name: DeviceInfo) -> Result<DeviceReturnInfo, Error> {
@@ -139,9 +144,11 @@ pub fn get_device_info(device: CLIntDevice, param_name: DeviceInfo) -> Result<De
     }
     let string = String::from_utf8_lossy(&param_value).to_string();
     let size = param_value.iter().fold(0, |x, &i| x << 4 | i as u64);
+
     Ok(DeviceReturnInfo {
         string,
-        size
+        size,
+        data: param_value
     })
 }
 
