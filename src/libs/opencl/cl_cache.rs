@@ -1,5 +1,5 @@
 use std::{any::TypeId, collections::HashMap, ffi::c_void, cell::RefCell};
-use crate::{matrix::Matrix, Error, GenericOCL};
+use crate::{Error, GenericOCL};
 use super::{api::{build_program, create_kernels_in_program, create_program_with_source, Kernel, set_kernel_arg}, cl_device::InternCLDevice};
 
 #[cfg(feature="opencl")]
@@ -74,15 +74,15 @@ impl CLCache {
         Matrix::new(&device, node.out_dims)
     }
 
-    pub fn arg_kernel_cache<T: GenericOCL>(&mut self, device: InternCLDevice, matrices: &[(&Matrix<T>, usize)], numbers: &[(T, usize)], output: Option<&Matrix<T>>, src: String) -> Result<Kernel, Error> {
+    pub fn arg_kernel_cache<T: GenericOCL>(&mut self, device: InternCLDevice, buffers: &[(&Buffer<T>, usize)], numbers: &[(T, usize)], output: Option<&Buffer<T>>, src: String) -> Result<Kernel, Error> {
         let type_ids = vec![TypeId::of::<T>(); numbers.len()];
         
-        let mems: Vec<OclPtr> = matrices.iter()
-            .map(|matrix| OclPtr(matrix.0.ptr() as *mut c_void))
+        let mems: Vec<OclPtr> = buffers.iter()
+            .map(|matrix| OclPtr(matrix.0.ptr as *mut c_void))
             .collect();
 
         let cache = &mut self.arg_kernel_cache;
-        let outputmem = output.map(|output| OclPtr(output.ptr() as *mut c_void));
+        let outputmem = output.map(|output| OclPtr(output.ptr as *mut c_void));
         
         let kernel = cache.get(&(mems.clone(), type_ids.clone(), outputmem, src.clone()));
         match kernel { 
@@ -96,8 +96,8 @@ impl CLCache {
                     set_kernel_arg(kernel, *idx, number)
                 }
 
-                for (matrix, idx) in matrices {
-                    set_kernel_arg(kernel, *idx, &(matrix.ptr() as *mut c_void));
+                for (buf, idx) in buffers {
+                    set_kernel_arg(kernel, *idx, &(buf.ptr as *mut c_void));
                 }
 
                 if let Some(mem) = outputmem {

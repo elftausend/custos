@@ -2,8 +2,9 @@
 use std::ffi::c_void;
 #[cfg(feature="opencl")]
 use crate::opencl::{InternCLDevice, CLCache, api::{enqueue_write_buffer, wait_for_event}};
+
 #[cfg(feature="opencl")]
-use crate::Node;
+use crate::opencl::Node;
 
 use crate::{BaseOps, Buffer, Device, Gemm, get_device, libs::cpu::TBlas, VecRead, number::Number, AssignOps, GenericOCL};
 
@@ -32,6 +33,11 @@ impl<T> Matrix<T> {
     pub fn data(&self) -> &Buffer<T> {
         &self.data
     }
+
+    pub fn data_mut(&mut self) -> &mut Buffer<T> {
+        &mut self.data
+    }
+
     pub fn dims(&self) -> (usize, usize) {
         self.dims
     }
@@ -82,6 +88,16 @@ impl<T: Copy+Default> Matrix<T> {
     }
 }
 
+impl<T> From<(Buffer<T>, (usize, usize))> for Matrix<T> {
+    fn from(ptr_dims: (Buffer<T>, (usize, usize))) -> Self {
+        let dims = ptr_dims.1;
+        Matrix {
+            data: ptr_dims.0,
+            dims
+        }
+    }
+}
+
 impl<T> From<(*mut T, (usize, usize))> for Matrix<T> {
     fn from(ptr_dims: (*mut T, (usize, usize))) -> Self {
         let dims = ptr_dims.1;
@@ -126,10 +142,10 @@ impl<T: Copy+Default> From<(usize, usize)> for Matrix<T> {
 impl<T: GenericOCL> From<(&InternCLDevice, Matrix<T>)> for Matrix<T> {
     fn from(device_matrix: (&InternCLDevice, Matrix<T>)) -> Self {
         //assert!(CPU_CACHE.with(|cache| !cache.borrow().nodes.is_empty()), "no allocations");
-        let y = CLCache::get::<T>(device_matrix.0.clone(), Node::new(device_matrix.1.dims()));
-        let event = enqueue_write_buffer(&device_matrix.0.queue(), y.ptr() as *mut c_void, device_matrix.1.as_cpu_slice(), true).unwrap();
+        let y = CLCache::get::<T>(device_matrix.0.clone(), Node::new(device_matrix.1.size()));
+        let event = enqueue_write_buffer(&device_matrix.0.queue(), y.ptr as *mut c_void, device_matrix.1.as_cpu_slice(), true).unwrap();
         wait_for_event(event).unwrap();
-        y
+        Matrix::from((y.ptr, device_matrix.1.dims()))
     }
 }
 

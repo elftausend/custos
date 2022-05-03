@@ -13,7 +13,7 @@ fn test_unified_mem_bool() -> Result<(), Error> {
 #[cfg(feature="opencl")]
 #[test]
 fn test_unified_mem() -> Result<(), Error> {
-    const TIMES: usize = 1000000;
+    const TIMES: usize = 1000;
     use std::time::Instant;
 
     use custos::opencl::api::{create_buffer, MemFlags, enqueue_map_buffer, release_mem_object};

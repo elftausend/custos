@@ -1,4 +1,4 @@
-pub use gemm::ocl_gemm;
+pub use gemm::*;
 pub use tew::*;
 
 mod tew;

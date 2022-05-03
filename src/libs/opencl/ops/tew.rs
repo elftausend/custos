@@ -1,4 +1,4 @@
-use crate::{libs::opencl::{KernelOptions, cl_device::InternCLDevice}, matrix::Matrix, Error, GenericOCL, Buffer};
+use crate::{libs::opencl::{KernelOptions, cl_device::InternCLDevice}, Error, GenericOCL, Buffer};
 
 trait Both {
     fn as_str<'a, >() -> &'a str;
@@ -22,7 +22,7 @@ impl <T: !GenericOCL>Both for T {
 
 //std::any::TypeId::of::<T>() ... check all impl
 
-pub fn tew_buf<T: GenericOCL>(device: InternCLDevice, lhs: &Buffer<T>, rhs: &Buffer<T>, op: &str) -> Result<Matrix<T>, Error> {
+pub fn tew<T: GenericOCL>(device: InternCLDevice, lhs: &Buffer<T>, rhs: &Buffer<T>, op: &str) -> Result<Buffer<T>, Error> {
     let src = format!("
         __kernel void eop(__global {datatype}* self, __global const {datatype}* rhs, __global {datatype}* out) {{
             size_t id = get_global_id(0);
@@ -33,10 +33,27 @@ pub fn tew_buf<T: GenericOCL>(device: InternCLDevice, lhs: &Buffer<T>, rhs: &Buf
     let gws = [lhs.len, 0, 0];
     KernelOptions::<T>::new(&device, lhs, gws, &src)
         .with_rhs(rhs)
-        .with_output(lhs.dims())
+        .with_output(lhs.len)
         .run()
 }
 
+pub fn tew_self<T: GenericOCL>(device: InternCLDevice, lhs: &mut Buffer<T>, rhs: &Buffer<T>, op: &str) -> Result<(), Error> {
+    let src = format!("
+        __kernel void eop_self(__global {datatype}* self, __global const {datatype}* rhs) {{
+            size_t id = get_global_id(0);
+            self[id] = self[id]{op}rhs[id];
+        }}
+    ", datatype=T::as_ocl_type_str());
+
+    let gws = [lhs.len, 0, 0];
+    KernelOptions::<T>::new(&device, lhs, gws, &src)
+        .with_rhs(rhs)
+        .with_output(lhs.len)
+        .run().unwrap();
+    Ok(())
+}
+
+/*
 pub fn tew<T: GenericOCL>(device: InternCLDevice, lhs: &Matrix<T>, rhs: &Matrix<T>, op: &str) -> Result<Matrix<T>, Error> {
     let src = format!("
         __kernel void eop(__global {datatype}* self, __global const {datatype}* rhs, __global {datatype}* out) {{
@@ -67,3 +84,4 @@ pub fn tew_self<T: GenericOCL>(device: InternCLDevice, lhs: &mut Matrix<T>, rhs:
         .run().unwrap();
     Ok(())
 }
+*/
