@@ -52,8 +52,8 @@ impl InternCLDevice {
         self.device().get_version()
     }
 
-    pub fn unified_mem(&self) -> Result<bool, Error> {
-        self.device().unified_mem()
+    pub fn unified_mem(&self) -> bool {
+        self.cl.borrow().unified_mem
     }
 }
 
@@ -184,6 +184,7 @@ pub struct CLDevice {
     pub device: CLIntDevice,
     pub ctx: Context,
     pub queue: CommandQueue,
+    pub unified_mem: bool,
 }
 
 unsafe impl Sync for CLDevice {}
@@ -192,8 +193,9 @@ impl CLDevice {
     pub fn new(device: CLIntDevice) -> Result<CLDevice, Error> {
         let ctx = create_context(&[device])?;
         let queue = create_command_queue(&ctx, device)?;
+        let unified_mem = device.unified_mem()?;
 
-        Ok(CLDevice { ptrs: Vec::new(), device, ctx, queue }) 
+        Ok(CLDevice { ptrs: Vec::new(), device, ctx, queue, unified_mem }) 
     }
     /// Returns an [InternCLDevice] at the specified device index.
     /// # Errors

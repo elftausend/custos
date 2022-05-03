@@ -186,6 +186,8 @@ impl<T> From<(*mut T, usize)> for Buffer<T> {
         Buffer {
             ptr: info.0,
             len: info.1,
+            #[cfg(feature="safe")]
+            dealloc_type: DeallocType::Item
         } 
     }
 }

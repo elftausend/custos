@@ -69,8 +69,8 @@ impl CLCache {
     }
 
     #[cfg(feature="safe")]
-    pub fn get<T: GenericOCL>(device: InternCLDevice, node: Node) -> Matrix<T> {
-        Matrix::new(&device, node.out_dims)
+    pub fn get<T: GenericOCL>(device: InternCLDevice, node: Node) -> Buffer<T> {
+        Buffer::new(&device, node.len)
     }
 
     pub fn arg_kernel_cache<T: GenericOCL>(&mut self, device: InternCLDevice, buffers: &[(&Buffer<T>, usize)], numbers: &[(T, usize)], output: Option<&Buffer<T>>, src: String) -> Result<Kernel, Error> {
