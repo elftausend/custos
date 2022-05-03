@@ -89,7 +89,9 @@ impl<T> Device<T> for InternCLDevice {
 
 impl<T> DropBuf<T> for InternCLDevice {
     fn drop_buf(&self, buf: &mut crate::Buffer<T>) {
-        release_mem_object(buf.ptr as *mut c_void).unwrap();
+        unsafe {
+            release_mem_object(buf.ptr as *mut c_void).unwrap();
+        }
     }
 }
 
@@ -203,7 +205,7 @@ impl Drop for CLDevice {
         
         for ptr in self.ptrs.iter() {
             
-            release_mem_object(*ptr).unwrap();
+            unsafe { release_mem_object(*ptr).unwrap() };
 
             contents.iter()
                 .for_each(|entry| {

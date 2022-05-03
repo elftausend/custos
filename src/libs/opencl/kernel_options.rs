@@ -1,37 +1,41 @@
-use crate::{matrix::Matrix, number::Number, Error, Node, GenericOCL};
+use crate::{matrix::Matrix, number::Number, Error, GenericOCL, Buffer};
 
-use super::{api::{enqueue_nd_range_kernel, set_kernel_arg}, CL_CACHE, CLCache, cl_device::InternCLDevice};
+use super::{api::{enqueue_nd_range_kernel, set_kernel_arg}, CL_CACHE, CLCache, cl_device::InternCLDevice, Node};
 
 pub trait KernelArg<'a, T> {
-    fn matrix(&'a self) -> Option<&'a Matrix<T>>;
-    fn number(&self) -> Option<T>;
+    fn buf(&'a self) -> Option<&'a Buffer<T>> {
+        None
+    }
+    fn number(&self) -> Option<T> {
+        None
+    }
 }
 
 impl<'a, T: Copy> KernelArg<'a, T> for Matrix<T> {
-    fn matrix(&'a self) -> Option<&'a Matrix<T>> {
-        Some(self)
-    }
-
-    fn number(&self) -> Option<T> {
-        None
+    fn buf(&'a self) -> Option<&'a Buffer<T>> {
+        Some(self.data())
     }
 }
 
 impl<'a, T: Copy> KernelArg<'a, T> for &'a Matrix<T> {
-    fn matrix(&self) -> Option<&'a Matrix<T>> {
+    fn buf(&self) -> Option<&'a Buffer<T>> {
+        Some(self.data())
+    }
+}
+
+impl<'a, T: Copy> KernelArg<'a, T> for Buffer<T> {
+    fn buf(&'a self) -> Option<&'a Buffer<T>> {
         Some(self)
     }
+}
 
-    fn number(&self) -> Option<T> {
-        None
+impl<'a, T: Copy> KernelArg<'a, T> for &'a Buffer<T> {
+    fn buf(&self) -> Option<&'a Buffer<T>> {
+        Some(self)
     }
 }
 
 impl<'a, T: Number> KernelArg<'a, T> for T {
-    fn matrix(&self) -> Option<&'a Matrix<T>> {
-        None
-    }
-
     fn number(&self) -> Option<T> {
         Some(*self)
     }
@@ -74,10 +78,10 @@ impl<'a, T: Number> KernelArg<'a, T> for T {
 /// ```
 pub struct KernelOptions<'a, T> {
     src: &'a str,
-    lhs: &'a Matrix<T>,
-    rhs: Option<&'a Matrix<T>>,
-    output: Option<Matrix<T>>,
-    tensor_args: Vec<(&'a Matrix<T>, usize)>,
+    lhs: &'a Buffer<T>,
+    rhs: Option<&'a Buffer<T>>,
+    output: Option<Buffer<T>>,
+    tensor_args: Vec<(&'a Buffer<T>, usize)>,
     number_args: Vec<(T, usize)>,
     gws: [usize; 3],
     lws: Option<[usize; 3]>,
@@ -87,7 +91,7 @@ pub struct KernelOptions<'a, T> {
 }
 
 impl<'a, T: GenericOCL> KernelOptions<'a, T> {
-    pub fn new(device: &InternCLDevice, lhs: &'a Matrix<T>, gws: [usize; 3], src: &'a str) -> KernelOptions<'a, T> {
+    pub fn new(device: &InternCLDevice, lhs: &'a Buffer<T>, gws: [usize; 3], src: &'a str) -> KernelOptions<'a, T> {
         let wd;
         if gws[0] == 0 {
             panic!("wrong gws")
@@ -123,8 +127,8 @@ impl<'a, T: GenericOCL> KernelOptions<'a, T> {
         self
     }
 
-    /// Sets matrix to index 1 for the kernel argument list
-    pub fn with_rhs(&mut self, rhs: &'a Matrix<T>) -> &mut KernelOptions<'a, T> {
+    /// Sets buffer to index 1 for the kernel argument list
+    pub fn with_rhs(&mut self, rhs: &'a Buffer<T>) -> &mut KernelOptions<'a, T> {
         self.tensor_args.push((rhs, 1));
         self.rhs = Some(rhs);
         self
@@ -135,19 +139,19 @@ impl<'a, T: GenericOCL> KernelOptions<'a, T> {
         
         match arg.number() {
             Some(number) => self.number_args.push((number, idx)),
-            None => self.tensor_args.push((arg.matrix().unwrap(), idx)),
+            None => self.tensor_args.push((arg.buf().unwrap(), idx)),
         }
         self
     }
 
     /// Adds output
-    pub fn with_output(&mut self, out_dims: (usize, usize)) -> &mut KernelOptions<'a, T> {
-        self.output = Some(CLCache::get(self.device.clone(), Node::new(out_dims)));
+    pub fn with_output(&mut self, out_len: usize) -> &mut KernelOptions<'a, T> {
+        self.output = Some(CLCache::get(self.device.clone(), Node::new(out_len)));
         self
     }
 
     /// Runs the kernel with argumenths
-    pub fn run(&'a mut self) -> Result<Matrix<T>, Error> {
+    pub fn run(&'a mut self) -> Result<Buffer<T>, Error> {
         let kernel = CL_CACHE.with(|cache| cache.borrow_mut().arg_kernel_cache(self.device.clone(), &self.tensor_args, &self.number_args, self.output.as_ref(), self.src.to_string()))?;
                
         for index in 0..self.number_args.len() {

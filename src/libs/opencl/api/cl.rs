@@ -266,8 +266,8 @@ pub fn create_buffer<T>(context: &Context, flag: u64, size: usize, data: Option<
     Ok(r)
 }
 
-pub(crate) fn release_mem_object(ptr: *mut c_void) -> Result<(), Error> {
-    let value = unsafe {clReleaseMemObject(ptr)};
+pub unsafe fn release_mem_object(ptr: *mut c_void) -> Result<(), Error> {
+    let value = clReleaseMemObject(ptr);
     if value != 0 {
         return Err(Error::from(OCLErrorKind::from_value(value)));
     }

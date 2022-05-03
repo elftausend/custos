@@ -1,13 +1,34 @@
 use std::{any::TypeId, collections::HashMap, ffi::c_void, cell::RefCell};
-
-use crate::{matrix::Matrix, Error, Node, GenericOCL};
-
+use crate::{matrix::Matrix, Error, GenericOCL};
 use super::{api::{build_program, create_kernels_in_program, create_program_with_source, Kernel, set_kernel_arg}, cl_device::InternCLDevice};
 
+#[cfg(feature="opencl")]
+use crate::Buffer;
 
 thread_local! {
     pub static CL_CACHE: RefCell<CLCache> = RefCell::new(CLCache { output_nodes: HashMap::new(), arg_kernel_cache: HashMap::new() })
 }
+
+#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
+/// A Node is used to identify a cached pointer.
+pub struct Node {
+    pub idx: usize,
+    len: usize,
+}
+
+impl Node {
+    pub fn new(len: usize) -> Node {
+        crate::COUNT.with(|count| {
+            let node = Node {
+                idx: *count.borrow(),
+                len,
+            };
+            *count.borrow_mut() += 1;
+            node
+        })
+    }
+}
+
 
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
 pub struct OclPtr(pub *mut c_void);
@@ -15,7 +36,7 @@ pub struct OclPtr(pub *mut c_void);
 unsafe impl Send for OclPtr {}
 unsafe impl Sync for OclPtr {}
 
-type RawInfo = (OclPtr, (usize, usize));
+type RawInfo = (OclPtr, usize);
 type KernelIdent = (Vec<OclPtr>, Vec<TypeId>, Option<OclPtr>, String);
 
 #[derive(Debug)]
@@ -26,22 +47,23 @@ pub struct CLCache {
 }
 
 impl CLCache {
-    pub fn add_node<T: GenericOCL>(&mut self, device: InternCLDevice, node: Node) -> Matrix<T> {
-        let out = Matrix::new(&device, node.out_dims);
-        self.output_nodes.insert(node, ( OclPtr(out.ptr() as *mut c_void), out.dims() ));
+    pub fn add_node<T: GenericOCL>(&mut self, device: InternCLDevice, node: Node) -> Buffer<T> {
+        let out = Buffer::new(&device, node.len);
+        self.output_nodes.insert(node, ( OclPtr(out.ptr as *mut c_void), out.len ));
         out
     }
 
     #[cfg(not(feature="safe"))]
-    pub fn get<T: GenericOCL>(device: InternCLDevice, node: Node) -> Matrix<T> {
+    pub fn get<T: GenericOCL>(device: InternCLDevice, node: Node) -> Buffer<T> {
+
         assert!(!device.cl.borrow().ptrs.is_empty(), "no OpenCL allocations");
 
         CL_CACHE.with(|cache| {
             let mut cache = cache.borrow_mut();
-            let matrix_info_option = cache.output_nodes.get(&node);
+            let buf_info_option = cache.output_nodes.get(&node);
     
-            match matrix_info_option {
-                Some(matrix_info) => Matrix::from(( matrix_info.0.0 as *mut T, matrix_info.1 )),
+            match buf_info_option {
+                Some(buf_info) => Buffer::from(( buf_info.0.0 as *mut T, buf_info.1 )),
                 None => cache.add_node(device, node)
             }
         })

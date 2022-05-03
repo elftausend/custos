@@ -28,6 +28,10 @@ impl<T> Matrix<T> {
     pub fn ptr(&self) -> *mut T {
         self.data.ptr
     }
+
+    pub fn data(&self) -> &Buffer<T> {
+        &self.data
+    }
     pub fn dims(&self) -> (usize, usize) {
         self.dims
     }
@@ -71,10 +75,6 @@ impl<T: GenericOCL+TBlas> Matrix<T> {
 }
 
 impl<T: Copy+Default> Matrix<T> {
-    pub fn data(&self) -> &Buffer<T> {
-        &self.data
-    }
-
     ///Uses VecRead and current global device to read Matrix
     pub fn read(&self) -> Vec<T> {
         let device = get_device!(VecRead, T).unwrap();

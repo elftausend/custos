@@ -47,7 +47,9 @@ impl<T> Drop for Buffer<T> {
             DeallocType::CPU => unsafe {
                 Box::from_raw(self.ptr);
             },
-            DeallocType::CL => release_mem_object(self.ptr as *mut c_void).unwrap(),
+            DeallocType::CL => unsafe {
+                release_mem_object(self.ptr as *mut c_void).unwrap()
+            },
             _ => {}
         }
     }
@@ -164,3 +166,13 @@ impl<T: Clone, D: Device<T>> From<(&D, &Vec<T>)> for Buffer<T> {
         }       
     }
 }
+
+impl<T> From<(*mut T, usize)> for Buffer<T> {
+    fn from(info: (*mut T, usize)) -> Self {
+        Buffer {
+            ptr: info.0,
+            len: info.1,
+        } 
+    }
+}
+
