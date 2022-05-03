@@ -55,7 +55,6 @@ impl CLCache {
 
     #[cfg(not(feature="safe"))]
     pub fn get<T: GenericOCL>(device: InternCLDevice, node: Node) -> Buffer<T> {
-
         assert!(!device.cl.borrow().ptrs.is_empty(), "no OpenCL allocations");
 
         CL_CACHE.with(|cache| {

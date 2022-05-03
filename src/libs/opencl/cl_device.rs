@@ -97,30 +97,30 @@ impl<T> DropBuf<T> for InternCLDevice {
 
 impl<T: GenericOCL> BaseOps<T> for InternCLDevice {
     fn add(&self, lhs: &Matrix<T>, rhs: &Matrix<T>) -> Matrix<T> {
-        let buf = tew(self.clone(), lhs.data(), rhs.data(), "+").unwrap();
+        let buf = tew(self, lhs.data(), rhs.data(), "+").unwrap();
         (buf, lhs.dims()).into()
 
     }
 
     fn sub(&self, lhs: &Matrix<T>, rhs: &Matrix<T>) -> Matrix<T> {
-        let buf = tew(self.clone(), lhs.data(), rhs.data(), "-").unwrap();
+        let buf = tew(self, lhs.data(), rhs.data(), "-").unwrap();
         (buf, lhs.dims()).into()
     }
 
     fn mul(&self, lhs: &Matrix<T>, rhs: &Matrix<T>) -> Matrix<T> {
-        let buf = tew(self.clone(), lhs.data(), rhs.data(), "*").unwrap();
+        let buf = tew(self, lhs.data(), rhs.data(), "*").unwrap();
         (buf, lhs.dims()).into()
     }
 
     fn div(&self, lhs: &Matrix<T>, rhs: &Matrix<T>) -> Matrix<T> {
-        let buf = tew(self.clone(), lhs.data(), rhs.data(), "/").unwrap();
+        let buf = tew(self, lhs.data(), rhs.data(), "/").unwrap();
         (buf, lhs.dims()).into()
     }
 }
 
 impl<T: GenericOCL> AssignOps<T> for InternCLDevice {
     fn sub_assign(&self, lhs: &mut Matrix<T>, rhs: &Matrix<T>) {
-        tew_self(self.clone(), lhs.data_mut(), rhs.data(), "-").unwrap()
+        tew_self(self, lhs.data_mut(), rhs.data(), "-").unwrap()
     }
 }
 

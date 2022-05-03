@@ -94,9 +94,7 @@ pub fn ocl_gemm<T: GenericOCL>(device: InternCLDevice, m: usize, k: usize, n: us
     KernelOptions::new(&device, lhs, gws, &src)
         .with_rhs(rhs)
         .with_output(n*m)
-        .run()
-
-    
+        .run()    
 }
 
 

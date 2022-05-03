@@ -252,17 +252,6 @@ impl core::ops::BitOr for MemFlags {
     }
 }
 
-pub fn unified_mem<T>(context: Context, ptr: &mut [T]) -> Result<*mut c_void, Error>{
-    let mut err = 0;
-
-    let r = unsafe {clCreateBuffer(context.0, MemFlags::MemReadWrite | MemFlags::MemCopyHostPtr, ptr.len()*core::mem::size_of::<T>(), ptr.as_mut_ptr() as *mut c_void, &mut err)};
-
-    if err != 0 {
-        return Err(Error::from(OCLErrorKind::from_value(err)));
-    }
-    Ok(r)
-}
-
 pub fn create_buffer<T>(context: &Context, flag: u64, size: usize, data: Option<&[T]>) -> Result<*mut c_void, Error>{
     let mut err = 0;
     let host_ptr = match data {
@@ -322,8 +311,10 @@ pub(crate) fn enqueue_copy_buffer(cq: &CommandQueue, src_mem: *mut c_void, dst_m
     wait_for_event(Event(events[0]))
 }
 
-pub fn unified_ptr<T>(cq: CommandQueue, buf: crate::Buffer<T>) {
-    
+pub fn unified_ptr<T>(cq: CommandQueue, buf: crate::Buffer<T>) -> Result<*mut c_void, Error> {
+    unsafe {
+        enqueue_map_buffer::<T>(&cq, buf.ptr as *mut c_void, true, 2 | 1, 0, buf.len)
+    }
 
 }
 

@@ -1,6 +1,23 @@
-use custos::{CPU, Buffer, opencl::{tew, api::{unified_mem, enqueue_map_buffer}}};
+use std::ffi::c_void;
+
+use custos::{CPU, Buffer, opencl::{tew, api::{enqueue_map_buffer, unified_ptr, clCreateBuffer, MemFlags, OCLErrorKind}, CL_CACHE, Node, OclPtr}, InternCLDevice};
 #[cfg(feature="opencl")]
 use custos::{CLDevice, Error};
+
+
+pub fn unified_mem<T>(device: &InternCLDevice, ptr: &mut [T]) -> Result<*mut c_void, Error>{
+    let mut err = 0;
+
+    let r = unsafe {clCreateBuffer(device.ctx().0, MemFlags::MemReadWrite | MemFlags::MemCopyHostPtr, ptr.len()*core::mem::size_of::<T>(), ptr.as_mut_ptr() as *mut c_void, &mut err)};
+    
+    device.cl.borrow_mut().ptrs.push(r);
+
+    if err != 0 {
+        return Err(Error::from(OCLErrorKind::from_value(err)));
+    }
+    Ok(r)
+}
+
 
 #[cfg(feature="opencl")]
 #[test]
@@ -83,13 +100,18 @@ fn test_unified_calc() -> Result<(), Error> {
     let cl = CLDevice::get(0)?;
     
     let a = Buffer {
-        ptr: unified_mem(cl.ctx(), a.as_slice_mut())? as *mut f32,
+        ptr: unified_mem(&cl, a.as_slice_mut())? as *mut f32,
         len
     };
     let b = Buffer {
-        ptr: unified_mem(cl.ctx(), b.as_slice_mut())? as *mut f32,
+        ptr: unified_mem(&cl, b.as_slice_mut())? as *mut f32,
         len,
     };
+
+    tew(&cl, &a, &b, "+")?;
+
+//    let ptr = unified_ptr(cl.queue(), a)?;
+//    let ptr = unified_ptr(cl.queue(), a)?;
     
 
     Ok(())
