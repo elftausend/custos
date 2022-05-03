@@ -55,15 +55,11 @@ impl<T> Matrix<T> {
     }
 
     pub fn as_cpu_slice(&self) -> &[T] {
-        unsafe {
-            std::slice::from_raw_parts(self.data.ptr, self.data.len)
-        }
+        self.data.as_slice()
     }
 
     pub fn as_cpu_slice_mut(&mut self) -> &mut [T] {
-        unsafe {
-            std::slice::from_raw_parts_mut(self.data.ptr, self.data.len)
-        }
+        self.data_mut().as_slice_mut()
     }
 }
 

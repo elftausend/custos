@@ -1,3 +1,4 @@
+use custos::{CPU, Buffer, opencl::{tew, api::{unified_mem, enqueue_map_buffer}}};
 #[cfg(feature="opencl")]
 use custos::{CLDevice, Error};
 
@@ -16,7 +17,7 @@ fn test_unified_mem() -> Result<(), Error> {
     const TIMES: usize = 1000;
     use std::time::Instant;
 
-    use custos::opencl::api::{create_buffer, MemFlags, enqueue_map_buffer, release_mem_object};
+    use custos::{opencl::api::{create_buffer, MemFlags, enqueue_map_buffer, release_mem_object}, Buffer};
 
     let len = 2000;
 
@@ -67,7 +68,30 @@ fn test_unified_mem() -> Result<(), Error> {
     }
     let after = Instant::now();
     println!("copy host ptr: {:?}", (after-before) / TIMES as u32);
+    Ok(())
+}
+
+#[test]
+fn test_unified_calc() -> Result<(), Error> {
+
+    let len = 100;
     
+    let device = CPU::new();
+    let mut a = Buffer::<f32>::new(&device, len);
+    let mut b = Buffer::<f32>::from((&device, vec![1.; len]));
+
+    let cl = CLDevice::get(0)?;
+    
+    let a = Buffer {
+        ptr: unified_mem(cl.ctx(), a.as_slice_mut())? as *mut f32,
+        len
+    };
+    let b = Buffer {
+        ptr: unified_mem(cl.ctx(), b.as_slice_mut())? as *mut f32,
+        len,
+    };
+    
+
     Ok(())
 }
 
