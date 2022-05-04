@@ -12,7 +12,7 @@ fn test_rc_get_dev() {
 
         for _ in range(100) {
             let c = &a + &b;
-            assert_eq!(&[7., 7., 7., 7., 7., 7.,], c.as_cpu_slice());
+            assert_eq!(&[7., 7., 7., 7., 7., 7.,], c.as_slice());
         }
         
     }    

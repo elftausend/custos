@@ -68,7 +68,7 @@ impl<T> Buffer<T> {
         }
     }
 
-    pub fn as_slice_mut(&mut self) -> &mut [T] {
+    pub fn as_mut_slice(&mut self) -> &mut [T] {
         unsafe {
             std::slice::from_raw_parts_mut(self.ptr, self.len)
         }

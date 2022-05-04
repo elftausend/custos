@@ -107,12 +107,12 @@ impl<T> Matrix<T> {
         self.dims.0 * self.dims.1
     }
 
-    pub fn as_cpu_slice(&self) -> &[T] {
+    pub fn as_slice(&self) -> &[T] {
         self.data.as_slice()
     }
 
-    pub fn as_cpu_slice_mut(&mut self) -> &mut [T] {
-        self.data_mut().as_slice_mut()
+    pub fn as_mut_slice(&mut self) -> &mut [T] {
+        self.data_mut().as_mut_slice()
     }
 }
 
@@ -217,7 +217,7 @@ impl<T: GenericOCL> From<(&InternCLDevice, Matrix<T>)> for Matrix<T> {
     fn from(device_matrix: (&InternCLDevice, Matrix<T>)) -> Self {
         //assert!(CPU_CACHE.with(|cache| !cache.borrow().nodes.is_empty()), "no allocations");
         let y = CLCache::get::<T>(device_matrix.0.clone(), Node::new(device_matrix.1.size()));
-        let event = unsafe {enqueue_write_buffer(&device_matrix.0.queue(), y.ptr as *mut c_void, device_matrix.1.as_cpu_slice(), true).unwrap()};
+        let event = unsafe {enqueue_write_buffer(&device_matrix.0.queue(), y.ptr as *mut c_void, device_matrix.1.as_slice(), true).unwrap()};
         wait_for_event(event).unwrap();
         Matrix::from((y, device_matrix.1.dims()))
     }
