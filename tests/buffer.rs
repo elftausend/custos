@@ -100,8 +100,3 @@ fn test_use_number() {
 
     assert_eq!(num, Box::new(10));
 }
-
-fn f() {
-    let vec = vec![3];
-    
-}

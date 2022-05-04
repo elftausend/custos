@@ -22,6 +22,22 @@ impl <T: !GenericOCL>Both for T {
 
 //std::any::TypeId::of::<T>() ... check all impl
 
+/// Elementwise operations. The op/operation is usually "+", "-", "*", "/".
+/// 
+/// # Example
+/// ```
+/// use custos::{CLDevice, Buffer, VecRead, opencl::tew};
+/// 
+/// fn main() -> Result<(), custos::Error> {
+///     let device = CLDevice::get(0)?;
+///     let lhs = Buffer::<i16>::from((&device, [15, 30, 21, 5, 8]));
+///     let rhs = Buffer::<i16>::from((&device, [10, 9, 8, 6, 3]));
+/// 
+///     let result = tew(&device, &lhs, &rhs, "+")?;
+///     assert_eq!(vec![25, 39, 29, 11, 11], device.read(&result));
+///     Ok(())
+/// }
+/// ```
 pub fn tew<T: GenericOCL>(device: &InternCLDevice, lhs: &Buffer<T>, rhs: &Buffer<T>, op: &str) -> Result<Buffer<T>, Error> {
     let src = format!("
         __kernel void eop(__global {datatype}* self, __global const {datatype}* rhs, __global {datatype}* out) {{

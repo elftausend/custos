@@ -57,7 +57,7 @@ pub trait AssignOps<T> {
     fn sub_assign(&self, lhs: &mut Matrix<T>, rhs: &Matrix<T>);
 }
 
-/// Base operations for matrices
+/// +, -, *, / operations for matrices.
 /// 
 /// # Examples
 /// ```
@@ -81,10 +81,34 @@ pub trait BaseOps<T> {
     fn div(&self, lhs: &Matrix<T>, rhs: &Matrix<T>) -> Matrix<T>;
 }
 
+/// Trait for reading buffers.
+/// 
+/// # Example
+/// ```
+/// use custos::{CPU, Buffer, VecRead};
+/// 
+/// let device = CPU::new();
+/// let a = Buffer::from((&device, [1., 2., 3., 3., 2., 1.,]));
+/// let read = device.read(&a);
+/// assert_eq!(vec![1., 2., 3., 3., 2., 1.,], read);
+/// ```
 pub trait VecRead<T> {
     fn read(&self, buf: &Buffer<T>) -> Vec<T>;
 }
 
+/// Matrix multiplication. Uses provided device.
+/// # Example
+/// ```
+/// use custos::{CPU, Matrix, Gemm, VecRead};
+/// let device = CPU::new();
+///
+/// let a = Matrix::from((&device, (2, 3), [1., 2., 3., 4., 5., 6.,]));
+/// let b = Matrix::from((&device, (3, 2), [6., 5., 4., 3., 2., 1.,]));
+///
+/// let c = device.gemm(&a, &b);
+///
+/// assert_eq!(device.read(c.data()), vec![20., 14., 56., 41.,]);
+/// ```
 pub trait Gemm<T> {
     fn gemm(&self, lhs: &Matrix<T>, rhs: &Matrix<T>) -> Matrix<T>;
 }

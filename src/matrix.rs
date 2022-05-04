@@ -43,6 +43,15 @@ impl<T> Matrix<T> {
     }
 
     /// Returns a reference to the underlying buffer.
+    /// # Example
+    /// ```
+    /// use custos::{CPU, Matrix, VecRead};
+    /// 
+    /// let device = CPU::new();
+    /// let a = Matrix::from((&device, (2, 3), [1., 2., 3., 3., 2., 1.,]));
+    /// let read = device.read(a.data());
+    /// assert_eq!(vec![1., 2., 3., 3., 2., 1.,], read);
+    /// ```
     pub fn data(&self) -> &Buffer<T> {
         &self.data
     }
