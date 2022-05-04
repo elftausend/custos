@@ -1,9 +1,8 @@
-#[cfg(feature="safe")]
 use std::ffi::c_void;
 
 #[cfg(feature="safe")]
 use crate::opencl::api::{release_mem_object, clRetainMemObject};
-use crate::Device;
+use crate::{Device, number::Number};
 
 
 #[cfg(feature="safe")]
@@ -100,7 +99,7 @@ impl<T> Default for Buffer<T> {
     }
 }
 
-impl<T: Copy> From<T> for Buffer<T> {
+impl<T: Number> From<T> for Buffer<T> {
     fn from(val: T) -> Self {
         Buffer { 
             ptr: Box::into_raw(Box::new(val)), 
@@ -181,10 +180,21 @@ impl<T: Clone, D: Device<T>> From<(&D, &Vec<T>)> for Buffer<T> {
     }
 }
 
-impl<T> From<(*mut T, usize)> for Buffer<T> {
+impl<T: Number> From<(*mut T, usize)> for Buffer<T> {
     fn from(info: (*mut T, usize)) -> Self {
         Buffer {
             ptr: info.0,
+            len: info.1,
+            #[cfg(feature="safe")]
+            dealloc_type: DeallocType::Item
+        } 
+    }
+}
+
+impl<T> From<(*mut c_void, usize)> for Buffer<T> {
+    fn from(info: (*mut c_void, usize)) -> Self {
+        Buffer {
+            ptr: info.0 as *mut T,
             len: info.1,
             #[cfg(feature="safe")]
             dealloc_type: DeallocType::Item

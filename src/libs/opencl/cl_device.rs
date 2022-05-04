@@ -134,7 +134,7 @@ impl<T: GenericOCL> Gemm<T> for InternCLDevice {
 }
 
 pub fn cl_write<T>(device: &InternCLDevice, x: &mut Matrix<T>, data: &[T]) {
-    let event = enqueue_write_buffer(&device.queue(), x.ptr() as *mut c_void, data, true).unwrap();
+    let event = unsafe {enqueue_write_buffer(&device.queue(), x.ptr() as *mut c_void, data, true).unwrap()};
     wait_for_event(event).unwrap();
 } 
 

@@ -139,9 +139,9 @@ impl<T: GenericOCL> From<(&InternCLDevice, Matrix<T>)> for Matrix<T> {
     fn from(device_matrix: (&InternCLDevice, Matrix<T>)) -> Self {
         //assert!(CPU_CACHE.with(|cache| !cache.borrow().nodes.is_empty()), "no allocations");
         let y = CLCache::get::<T>(device_matrix.0.clone(), Node::new(device_matrix.1.size()));
-        let event = enqueue_write_buffer(&device_matrix.0.queue(), y.ptr as *mut c_void, device_matrix.1.as_cpu_slice(), true).unwrap();
+        let event = unsafe {enqueue_write_buffer(&device_matrix.0.queue(), y.ptr as *mut c_void, device_matrix.1.as_cpu_slice(), true).unwrap()};
         wait_for_event(event).unwrap();
-        Matrix::from((y.ptr, device_matrix.1.dims()))
+        Matrix::from((y, device_matrix.1.dims()))
     }
 }
 

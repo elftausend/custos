@@ -283,10 +283,10 @@ pub unsafe fn retain_mem_object(mem: *mut c_void) -> Result<(), Error>{
 }
 */
 
-pub(crate) fn enqueue_write_buffer<T>(cq: &CommandQueue, mem: *mut c_void, data: &[T], block: bool) -> Result<Event, Error> {
+pub unsafe fn enqueue_write_buffer<T>(cq: &CommandQueue, mem: *mut c_void, data: &[T], block: bool) -> Result<Event, Error> {
     let mut events = vec![std::ptr::null_mut();1];
     
-    let value = unsafe {clEnqueueWriteBuffer(cq.0, mem, block as u32, 0, data.len()*core::mem::size_of::<T>(), data.as_ptr() as *mut c_void, 0, std::ptr::null(), events.as_mut_ptr() as *mut cl_event)};
+    let value = clEnqueueWriteBuffer(cq.0, mem, block as u32, 0, data.len()*core::mem::size_of::<T>(), data.as_ptr() as *mut c_void, 0, std::ptr::null(), events.as_mut_ptr() as *mut cl_event);
     if value != 0 {
         return Err(Error::from(OCLErrorKind::from_value(value)));
     }
@@ -311,9 +311,9 @@ pub(crate) fn enqueue_copy_buffer(cq: &CommandQueue, src_mem: *mut c_void, dst_m
     wait_for_event(Event(events[0]))
 }
 
-pub fn unified_ptr<T>(cq: CommandQueue, buf: crate::Buffer<T>) -> Result<*mut c_void, Error> {
+pub fn unified_ptr<T>(cq: CommandQueue, buf: crate::Buffer<T>) -> Result<*mut T, Error> {
     unsafe {
-        enqueue_map_buffer::<T>(&cq, buf.ptr as *mut c_void, true, 2 | 1, 0, buf.len)
+        enqueue_map_buffer::<T>(&cq, buf.ptr as *mut c_void, true, 2 | 1, 0, buf.len).map(|ptr| ptr as *mut T)
     }
 
 }

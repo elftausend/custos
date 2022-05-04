@@ -1,6 +1,8 @@
 use std::ffi::c_void;
 
-use custos::{CPU, Buffer, opencl::{tew, api::{clCreateBuffer, MemFlags, OCLErrorKind}}, InternCLDevice};
+#[cfg(not(feature="safe"))]
+use custos::{CPU, Buffer, opencl::tew};
+use custos::{opencl::api::{clCreateBuffer, MemFlags, OCLErrorKind}, InternCLDevice};
 #[cfg(feature="opencl")]
 use custos::{CLDevice, Error};
 
@@ -34,7 +36,7 @@ fn test_unified_mem() -> Result<(), Error> {
     const TIMES: usize = 10000;
     use std::time::Instant;
 
-    use custos::opencl::api::{create_buffer, MemFlags, enqueue_map_buffer, release_mem_object};
+    use custos::opencl::api::{create_buffer, MemFlags, release_mem_object, unified_ptr};
 
     let len = 20000;
 
@@ -48,7 +50,8 @@ fn test_unified_mem() -> Result<(), Error> {
             //std::thread::sleep(std::time::Duration::from_secs(1));
             
             let buf = create_buffer(&device.ctx(), MemFlags::MemReadWrite | MemFlags::MemUseHostPtr, len, Some(&data))?;
-            let ptr = unsafe { enqueue_map_buffer::<f32>(&device.queue(), buf, true, 2, 0, len)}? as *mut f32;
+            
+            let ptr = unified_ptr::<f32>(device.queue(), (buf, len).into())?;
             let slice = unsafe {std::slice::from_raw_parts_mut(ptr, len)};
             
             for idx in 20..100 {
@@ -73,7 +76,7 @@ fn test_unified_mem() -> Result<(), Error> {
         let before = Instant::now();
         for _ in 0..TIMES {        
             let buf = create_buffer(&device.ctx(), MemFlags::MemReadWrite | MemFlags::MemCopyHostPtr, len, Some(&data))?;
-            let ptr = unsafe { enqueue_map_buffer::<f32>(&device.queue(), buf, true, 2, 0, len)}? as *mut f32;
+            let ptr = unified_ptr::<f32>(device.queue(), (buf, len).into())?;
             let slice = unsafe {std::slice::from_raw_parts_mut(ptr, len)};
             
             for idx in 20..100 {
