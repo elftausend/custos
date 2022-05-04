@@ -1,5 +1,7 @@
+#[cfg(feature="opencl")]
 use custos::{opencl::KernelOptions, CLDevice, Error, GenericOCL, VecRead, Buffer};
 
+#[cfg(feature="opencl")]
 fn main() -> Result<(), Error> {
     let device = CLDevice::get(0)?;
 
@@ -22,3 +24,6 @@ fn main() -> Result<(), Error> {
     assert_eq!(device.read(&out), vec![-1, -1, -1, -1, -1, -1]);
     Ok(())
 }
+
+#[cfg(not(feature="opencl"))]
+fn main() {}

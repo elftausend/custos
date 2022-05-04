@@ -1,12 +1,16 @@
+#[cfg(feature="opencl")]
 use std::ffi::c_void;
 
+#[cfg(feature="opencl")]
 #[cfg(not(feature="safe"))]
 use custos::{CPU, Buffer, opencl::tew};
+#[cfg(feature="opencl")]
 use custos::{opencl::api::{clCreateBuffer, MemFlags, OCLErrorKind}, InternCLDevice};
 #[cfg(feature="opencl")]
 use custos::{CLDevice, Error};
 
 
+#[cfg(feature="opencl")]
 pub fn unified_mem<T>(device: &InternCLDevice, ptr: &mut [T]) -> Result<*mut c_void, Error>{
     let mut err = 0;
 

@@ -16,6 +16,17 @@ pub struct Matrix<T> {
 }
 
 impl<T> Matrix<T> {
+    /// Returns an empty matrix with the specified dimensions (rows, cols).
+    /// # Example
+    /// ```
+    /// use custos::{CPU, Matrix, AsDev};
+    /// 
+    /// let device = CPU::new().select();
+    /// let m = Matrix::<f64>::new(&device, (20, 10));
+    /// 
+    /// assert_eq!(m.size(), 20*10);
+    /// assert_eq!(m.read(), vec![0.0; 20*10])
+    /// ```
     pub fn new<D: Device<T>>(device: &D, dims: (usize, usize)) -> Matrix<T> {
         Matrix {
             data: Buffer { 
@@ -26,14 +37,17 @@ impl<T> Matrix<T> {
             dims,
         }
     }
+
     pub fn ptr(&self) -> *mut T {
         self.data.ptr
     }
 
+    /// Returns a reference to the underlying buffer.
     pub fn data(&self) -> &Buffer<T> {
         &self.data
     }
 
+    /// Returns a mutable reference to the underlying buffer.
     pub fn data_mut(&mut self) -> &mut Buffer<T> {
         &mut self.data
     }
@@ -42,14 +56,44 @@ impl<T> Matrix<T> {
         self.dims
     }
 
+    /// Returns the column count of the matrix.
+    /// 
+    /// # Example
+    /// ```
+    /// use custos::{CPU, AsDev, Matrix};
+    /// 
+    /// let device = CPU::new().select();
+    /// let matrix = Matrix::<i32>::new(&device, (2, 5));
+    /// assert_eq!(matrix.rows(), 2)
+    /// ```
     pub fn rows(&self) -> usize {
         self.dims.0
     }
 
+    /// Returns the column count of the matrix.
+    /// 
+    /// # Example
+    /// ```
+    /// use custos::{CPU, AsDev, Matrix};
+    /// 
+    /// let device = CPU::new().select();
+    /// let matrix = Matrix::<i32>::new(&device, (2, 5));
+    /// assert_eq!(matrix.cols(), 5)
+    /// ```
     pub fn cols(&self) -> usize {
         self.dims.1
     }
 
+    /// Returns the number of elements in the matrix: rows * cols
+    /// 
+    /// # Example
+    /// ```
+    /// use custos::{CPU, AsDev, Matrix};
+    /// 
+    /// let device = CPU::new().select();
+    /// let matrix = Matrix::<u16>::new(&device, (4, 12));
+    /// assert_eq!(matrix.size(), 48)
+    /// ```
     pub fn size(&self) -> usize {
         self.dims.0 * self.dims.1
     }
@@ -70,6 +114,20 @@ impl<T> Default for Matrix<T> {
 }
 
 impl<T: GenericOCL+TBlas> Matrix<T> {
+    /// Matrix multiplication. Uses current global device.
+    /// # Example
+    /// ```
+    /// use custos::{CPU, AsDev, Matrix};
+    /// let device = CPU::new().select();
+    ///
+    /// let a = Matrix::from((&device, (2, 3), [1., 2., 3., 4., 5., 6.,]));
+    /// let b = Matrix::from((&device, (3, 2), [6., 5., 4., 3., 2., 1.,]));
+    ///
+    /// let c = a.gemm(&b);
+    /// println!("c: {c:?}");
+    ///
+    /// assert_eq!(c.read(), vec![20., 14., 56., 41.,]);
+    /// ```
     pub fn gemm(&self, rhs: &Matrix<T>) -> Matrix<T> {
         let device = get_device!(Gemm, T).unwrap();
         device.gemm(self, rhs)
@@ -77,7 +135,18 @@ impl<T: GenericOCL+TBlas> Matrix<T> {
 }
 
 impl<T: Copy+Default> Matrix<T> {
-    ///Uses VecRead and current global device to read Matrix
+    /// Uses VecRead and current global device to read Matrix
+    /// 
+    /// # Example
+    /// ```
+    /// use custos::{CPU, AsDev, Matrix};
+    /// fn main() {
+    /// let device = CPU::new().select();
+    ///
+    /// let a = Matrix::from((&device, (2, 2), [5, 7, 2, 10,]));
+    /// assert_eq!(a.read(), vec![5, 7, 2, 10])
+    /// }
+    /// ```
     pub fn read(&self) -> Vec<T> {
         let device = get_device!(VecRead, T).unwrap();
         device.read(self.data())

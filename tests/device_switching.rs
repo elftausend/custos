@@ -1,8 +1,10 @@
+#[cfg(feature="opencl")]
 use std::ffi::c_void;
 
-use custos::opencl::{CLCache, Node, api::{enqueue_write_buffer, wait_for_event}};
 #[cfg(feature="opencl")]
 use custos::{opencl::CLDevice, AsDev, Matrix, range, cpu::CPU, BaseOps};
+#[cfg(feature="opencl")]
+use custos::opencl::{CLCache, Node, api::{enqueue_write_buffer, wait_for_event}};
 
 #[cfg(feature="opencl")]
 #[test]
@@ -24,7 +26,7 @@ fn test_device_switching() -> Result<(), custos::Error> {
     Ok(())
 }
 
-
+#[cfg(feature="opencl")]
 #[test]
 fn test_device_switching_s() -> Result<(), custos::Error>{
     let device = CLDevice::get(0)?.select();
