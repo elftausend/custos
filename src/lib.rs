@@ -32,6 +32,12 @@ impl <E: std::error::Error + PartialEq + 'static>PartialEq<E> for Error {
     }
 }
 
+impl From<Error> for Box<dyn std::error::Error> {
+    fn from(e: Error) -> Self {
+        e.error
+    }
+}
+
 impl Error {
     pub fn kind<E: std::error::Error + PartialEq + 'static>(&self) -> Option<&E> {
         self.error.downcast_ref::<E>()
@@ -47,7 +53,7 @@ impl core::fmt::Debug for Error {
 
 impl core::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:?}", self.error)?;
+        write!(f, "{}", self.error)?;
         Ok(())
     }
 }
