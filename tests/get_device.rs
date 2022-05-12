@@ -73,3 +73,21 @@ fn test_baseops() -> Result<(), Error> {
     assert_eq!(out.read(), vec![2.51, 7.123, 8., 6.21, 9.62, 5.765]);
     Ok(())
 }
+
+#[cfg(feature="opencl")]
+#[test]
+fn test_error() {
+    use custos::opencl::api::OCLErrorKind;
+
+    let device = CLDevice::get(10000);
+        
+    match device {
+        Ok(_) => println!("ok?"),
+        Err(e) => {
+            match e.kind::<OCLErrorKind>().unwrap() {
+                OCLErrorKind::InvalidDeviceIdx => println!("correct"),
+                _ => panic!("wrong error kind"),
+            }
+        },
+    }
+}

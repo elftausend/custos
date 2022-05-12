@@ -22,6 +22,22 @@ pub struct Error {
     pub error: Box<dyn std::error::Error>,
 }
 
+impl <E: std::error::Error + PartialEq + 'static>PartialEq<E> for Error {
+    fn eq(&self, other: &E) -> bool {
+        let e = self.error.downcast_ref::<E>();
+        if let Some(e) = e {
+            return e == other;
+        }
+        false
+    }
+}
+
+impl Error {
+    pub fn kind<E: std::error::Error + PartialEq + 'static>(&self) -> Option<&E> {
+        self.error.downcast_ref::<E>()
+    }
+}
+
 impl core::fmt::Debug for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{:?}", self.error)?;
@@ -164,7 +180,7 @@ pub trait AsDev {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub enum DeviceError {
     NoDeviceSelected
 }

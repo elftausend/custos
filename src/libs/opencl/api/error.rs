@@ -1,5 +1,6 @@
 use crate::Error;
 
+#[derive(Clone, Copy, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub enum OCLErrorKind {
     GetPlatformIDs,
     GetDeviceIDs,

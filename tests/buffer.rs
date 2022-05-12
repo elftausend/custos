@@ -97,6 +97,5 @@ fn test_use_number() {
     let num = unsafe {
         Box::from_raw(num)
     };
-
     assert_eq!(num, Box::new(10));
 }
