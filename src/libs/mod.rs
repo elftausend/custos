@@ -29,15 +29,15 @@ pub fn get_count() -> usize {
 /// A Node is used to identify a cached pointer.
 pub struct Node {
     pub idx: usize,
-    out_dims: (usize, usize),
+    pub len: usize,
 }
 
 impl Node {
-    pub fn new(out_dims: (usize, usize)) -> Node {
-        COUNT.with(|count| {
+    pub fn new(len: usize) -> Node {
+        crate::COUNT.with(|count| {
             let node = Node {
                 idx: *count.borrow(),
-                out_dims,
+                len,
             };
             *count.borrow_mut() += 1;
             node

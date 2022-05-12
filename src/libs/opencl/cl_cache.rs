@@ -1,33 +1,14 @@
 use std::{any::TypeId, collections::HashMap, ffi::c_void, cell::RefCell};
-use crate::{Error, GenericOCL};
+use crate::{Error, GenericOCL, Node};
 use super::{api::{build_program, create_kernels_in_program, create_program_with_source, Kernel, set_kernel_arg}, cl_device::InternCLDevice};
 
 #[cfg(feature="opencl")]
 use crate::Buffer;
 
 thread_local! {
-    pub static CL_CACHE: RefCell<CLCache> = RefCell::new(CLCache { output_nodes: HashMap::new(), arg_kernel_cache: HashMap::new() })
+    pub static CL_CACHE: RefCell<CLCache> = RefCell::new(CLCache { nodes: HashMap::new(), arg_kernel_cache: HashMap::new() })
 }
 
-#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
-/// A Node is used to identify a cached pointer.
-pub struct Node {
-    pub idx: usize,
-    len: usize,
-}
-
-impl Node {
-    pub fn new(len: usize) -> Node {
-        crate::COUNT.with(|count| {
-            let node = Node {
-                idx: *count.borrow(),
-                len,
-            };
-            *count.borrow_mut() += 1;
-            node
-        })
-    }
-}
 
 
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
@@ -42,14 +23,14 @@ type KernelIdent = (Vec<OclPtr>, Vec<TypeId>, Option<OclPtr>, String);
 #[derive(Debug)]
 /// Stores kernels and outputs
 pub struct CLCache {
-    pub output_nodes: HashMap<Node, RawInfo>,
+    pub nodes: HashMap<Node, RawInfo>,
     pub arg_kernel_cache: HashMap<KernelIdent, Kernel>,
 }
 
 impl CLCache {
     pub fn add_node<T: GenericOCL>(&mut self, device: InternCLDevice, node: Node) -> Buffer<T> {
         let out = Buffer::new(&device, node.len);
-        self.output_nodes.insert(node, ( OclPtr(out.ptr as *mut c_void), out.len ));
+        self.nodes.insert(node, ( OclPtr(out.ptr as *mut c_void), out.len ));
         out
     }
 
@@ -59,7 +40,7 @@ impl CLCache {
 
         CL_CACHE.with(|cache| {
             let mut cache = cache.borrow_mut();
-            let buf_info_option = cache.output_nodes.get(&node);
+            let buf_info_option = cache.nodes.get(&node);
     
             match buf_info_option {
                 Some(buf_info) => Buffer::from(( buf_info.0.0 as *mut T, buf_info.1 )),

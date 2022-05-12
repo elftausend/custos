@@ -21,7 +21,6 @@ fn test_error() {
 fn test_questionmark() -> Result<(), Box<dyn std::error::Error>> {
     use custos::CLDevice;
 
-    let _device = CLDevice::get(10000)?;
-    
+    let _device = CLDevice::get(0)?;  
     Ok(())
 }

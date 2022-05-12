@@ -209,7 +209,7 @@ impl CLDevice {
 impl Drop for CLDevice {
     fn drop(&mut self) {
         let contents = CL_CACHE.with(|cache| {
-           cache.borrow().output_nodes.clone()         
+           cache.borrow().nodes.clone()         
         });
         
         for ptr in self.ptrs.iter() {
@@ -222,7 +222,7 @@ impl Drop for CLDevice {
 
                     if &hm_ptr == ptr {
                         CL_CACHE.with(|cache| {
-                            cache.borrow_mut().output_nodes.remove(entry.0);
+                            cache.borrow_mut().nodes.remove(entry.0);
                         });                        
                     }
                 });

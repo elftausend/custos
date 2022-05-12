@@ -131,7 +131,7 @@ fn test_threading_cl_a() {
             assert_eq!(device.read(c.data()), vec![3., 6., 2., 30., 30., 16.]);
 
         }
-        CL_CACHE.with(|f| assert!(f.borrow().output_nodes.len() == 1));
+        CL_CACHE.with(|f| assert!(f.borrow().nodes.len() == 1));
 
         for _ in range(500) {
             let c = a - b;
@@ -139,13 +139,13 @@ fn test_threading_cl_a() {
             let e = a * b - c + d * d - a;
             assert_eq!(34., e.read()[0]);    
         }
-        CL_CACHE.with(|f| assert!(f.borrow().output_nodes.len() == 8));
+        CL_CACHE.with(|f| assert!(f.borrow().nodes.len() == 8));
 
         let c = a - b;
         let d = a + b + c;
         let e = a * b - c + d * d - a;
         assert_eq!(34., e.read()[0]);
-        CL_CACHE.with(|f| assert!(f.borrow().output_nodes.len() == 8));
+        CL_CACHE.with(|f| assert!(f.borrow().nodes.len() == 8));
     });
 
 

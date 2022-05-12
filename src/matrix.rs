@@ -4,7 +4,7 @@ use std::ffi::c_void;
 use crate::opencl::{InternCLDevice, CLCache, api::{enqueue_write_buffer, wait_for_event}};
 
 #[cfg(feature="opencl")]
-use crate::opencl::Node;
+use crate::Node;
 
 use crate::{BaseOps, Buffer, Device, Gemm, get_device, libs::cpu::TBlas, VecRead, number::Number, AssignOps, GenericOCL};
 

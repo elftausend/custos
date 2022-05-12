@@ -122,9 +122,9 @@ impl<T: TBlas+Default+Copy> Gemm<T> for InternCPU {
         let k = lhs.dims().1;
         let n = rhs.dims().1;
 
-        let mut c = CPUCache::get(self.clone(),(m, n));
+        let mut c = CPUCache::get(self.clone(), m*n);
         T::gemm(m, n, k, lhs.as_slice(), rhs.as_slice(), c.as_mut_slice());
-        c
+        (c, (m, n)).into()
     }
 }
 
@@ -203,16 +203,16 @@ pub fn assign_op<T: Copy+Default, F: Fn(&mut T, T)>(lhs: &mut Matrix<T>, rhs: &M
 }
 
 pub fn ew_op<T: Copy+Default, F: Fn(T, T) -> T>(device: InternCPU, lhs: &Matrix<T>, rhs: &Matrix<T>, f: F) -> Matrix<T> {
-    let mut out = CPUCache::get::<T>(device, lhs.dims());
+    let mut out = CPUCache::get::<T>(device, lhs.size());
     element_wise_op_mut(lhs.as_slice(), rhs.as_slice(), out.as_mut_slice(), f);
-    out
+    (out, lhs.dims()).into()
 }
 
 pub fn each_op<T: Copy+Default, F: Fn(T) -> T>(device: &InternCPU, x: &Matrix<T>, f: F) -> Matrix<T> {
-    let mut y = CPUCache::get::<T>(device.clone(), x.dims());
-    let x = x.as_slice();
+    let mut y = CPUCache::get::<T>(device.clone(), x.size());
+    let slice = x.as_slice();
     for (idx, value) in y.as_mut_slice().iter_mut().enumerate() {
-        *value = f(x[idx]);
+        *value = f(slice[idx]);
     }
-    y
+    (y, x.dims()).into()
 }

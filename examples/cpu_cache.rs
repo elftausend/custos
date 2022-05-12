@@ -9,7 +9,7 @@ fn main() {
     let out = a + b;
     let info = CPU_CACHE.with(|cache| {
         let cache = cache.borrow();
-        let mut node = Node::new((100, 100));
+        let mut node = Node::new(100*100);
         node.idx = 0;
         *cache.nodes.get(&node).unwrap()
      });
