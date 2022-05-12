@@ -172,6 +172,16 @@ impl<T> From<(Buffer<T>, (usize, usize))> for Matrix<T> {
     }
 }
 
+impl<T> From<(Buffer<T>, usize, usize)> for Matrix<T> {
+    fn from(ptr_dims: (Buffer<T>, usize, usize)) -> Self {
+        let dims = (ptr_dims.1, ptr_dims.2);
+        Matrix {
+            data: ptr_dims.0,
+            dims
+        }
+    }
+}
+
 impl<T> From<(*mut T, (usize, usize))> for Matrix<T> {
     fn from(ptr_dims: (*mut T, (usize, usize))) -> Self {
         let dims = ptr_dims.1;
@@ -393,10 +403,8 @@ impl<'a, T: Number> core::fmt::Debug for Matrix<T> {
                 write!(f, "datatype={}]", core::any::type_name::<T>()).unwrap();
             }
             if count % self.dims.1 == 0 {
-                //count = 0;
                 writeln!(f).unwrap();   
             }
-    
         }
         write!(f, "")
         

@@ -1,3 +1,7 @@
+
+#[cfg(feature="safe")]
+use std::ffi::c_void;
+
 #[cfg(feature="safe")]
 use crate::opencl::api::{release_mem_object, clRetainMemObject};
 use crate::{Device, number::Number};

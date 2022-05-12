@@ -60,16 +60,14 @@ impl CPUCache {
             
             match buf_info_option {
                 Some(buf_info) => {
-                    let x =  Buffer::from(( buf_info.0.0 as *mut T, buf_info.1));
-                    x
-                    //Buffer::from(( buf_info.0.0 as *mut T, buf_info.1 ));
+                    Buffer::from(( buf_info.0.0 as *mut T, buf_info.1 ))
                 },
                 None => cache.add_node(device, node)
             }
         })
     }
     #[cfg(feature="safe")]
-    pub fn get<T: Default+Copy>(device: InternCPU, out_dims: (usize, usize)) -> Matrix<T> {
-        Matrix::new(&device, out_dims)
+    pub fn get<T: Default+Copy>(device: InternCPU, len: usize) -> Buffer<T> {
+        Buffer::new(&device, len)
     }
 }
