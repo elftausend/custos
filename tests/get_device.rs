@@ -1,6 +1,6 @@
 #[cfg(feature="opencl")]
 use custos::{BaseDevice, libs::opencl::CLDevice};
-use custos::{AsDev, get_device, libs::cpu::CPU, Matrix, VecRead, Error, BaseOps};
+use custos::{AsDev, get_device, libs::cpu::CPU, Matrix, VecRead, Error, BaseOps, DeviceError};
 
 #[test]
 fn test_matrix_read_cpu() -> Result<(), Error> {
@@ -33,9 +33,9 @@ fn test_matrix_read_cl() -> Result<(), Error> {
 #[test]
 fn test_no_device() {
     let device = get_device!(BaseOps, f32);
-    match device {
+    match &device {
         Ok(_) => panic!("Should not panic, as no device is selected"),
-        Err(_) => {},
+        Err(e) => assert!(e.kind() == Some(&DeviceError::NoDeviceSelected)),
     };
 
     {

@@ -1,6 +1,13 @@
-use custos::{libs::cpu::{CPU, each_op}, AsDev, Matrix};
+use custos::{libs::cpu::{CPU, each_op}, AsDev, Matrix, VecRead};
 #[cfg(feature="opencl")]
 use custos::CLDevice;
+
+#[test]
+fn test_matrix() {
+    let device = CPU::new();
+    let matrix = Matrix::<f32>::new(&device, (10, 10));
+    assert_eq!(device.read(matrix.data()), vec![0.; 10*10]);
+}
 
 #[test]
 fn test_matrix_read() {

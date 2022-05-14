@@ -1,3 +1,5 @@
+use custos::{Error, DeviceError};
+
 #[cfg(feature="opencl")]
 #[test]
 fn test_error() {
@@ -8,6 +10,11 @@ fn test_error() {
     match device {
         Ok(_) => println!("ok?"),
         Err(e) => {
+            if e.kind() == Some(&OCLErrorKind::InvalidDeviceIdx) {
+                println!("correct");
+            } else {
+                panic!("wrong error kind")
+            }
             match e.kind::<OCLErrorKind>().unwrap() {
                 OCLErrorKind::InvalidDeviceIdx => println!("correct"),
                 _ => panic!("wrong error kind"),
@@ -23,4 +30,29 @@ fn test_questionmark() -> Result<(), Box<dyn std::error::Error>> {
 
     let _device = CLDevice::get(0)?;  
     Ok(())
+}
+
+#[test]
+fn test_print_error() {
+    let err = Error::from(DeviceError::NoDeviceSelected);
+    assert_eq!("No device selected, .select() was not called before get_device! call in current scope", &format!("{err}"));
+    assert_eq!("NoDeviceSelected", &format!("{err:?}"));
+}
+
+#[test]
+fn test_std_err() {
+    let err = Error::from(DeviceError::NoDeviceSelected);
+    let e: Box<dyn std::error::Error> = err.into();
+    assert_eq!(e.downcast_ref::<DeviceError>(), Some(&DeviceError::NoDeviceSelected));
+}
+
+#[cfg(feature="opencl")]
+#[test]
+fn test_ocl_errors() {
+    use custos::opencl::api::OCLErrorKind;
+
+    for i in -70..=-1 {
+        let err = OCLErrorKind::from_value(i);
+        println!("err: {err}");
+    }
 }

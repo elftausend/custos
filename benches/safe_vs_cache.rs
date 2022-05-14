@@ -1,3 +1,4 @@
+/* 
 use criterion::{Criterion, criterion_main, criterion_group};
 use custos::{CPU, AsDev, Matrix, set_count};
 
@@ -21,3 +22,5 @@ pub fn bench_gemm(c: &mut Criterion) {
 
 criterion_group!(benches, bench_gemm);
 criterion_main!(benches);
+*/
+fn main() {}
