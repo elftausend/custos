@@ -7,6 +7,18 @@ use super::{TBlas, CPU_CACHE, assign_to_lhs};
 #[derive(Debug, Clone)]
 /// All traits related to mathematical operations need to be implemented for this struct in order to use them.
 /// This struct is should be only created via the [CPU] struct.
+/// # Example
+/// ```
+/// use custos::{CPU, BaseOps, VecRead, Matrix};
+/// 
+/// let device = CPU::new();
+/// let a = Matrix::<f32>::new(&device, (5, 5));
+/// let b = Matrix::from((&device, (5, 5), vec![1.3; 5*5]));
+/// 
+/// let out = device.add(&a, &b);
+/// 
+/// assert_eq!(device.read(out.data()), vec![1.3; 5*5]);
+/// ```
 pub struct InternCPU {
     pub cpu: Rc<RefCell<CPU>>
 }
@@ -167,7 +179,6 @@ impl Drop for CPU {
         });
         
         for ptr in self.ptrs.iter() {
-
             unsafe {    
                 drop(Box::from_raw(*ptr));
             }

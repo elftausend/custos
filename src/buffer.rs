@@ -170,6 +170,18 @@ impl<T: Clone, D: Device<T>> From<(&D, Vec<T>)> for Buffer<T> {
     }
 }
 
+impl<T: Clone> From<(Box<dyn Device<T>>, Vec<T>)> for Buffer<T> {
+    fn from(device_slice: (Box<dyn Device<T>>, Vec<T>)) -> Self {
+        let len = device_slice.1.len();
+        Buffer {
+            ptr: device_slice.0.alloc_with_vec(device_slice.1),
+            len,
+            #[cfg(feature="safe")]
+            dealloc_type: device_slice.0.dealloc_type()
+        }       
+    }
+}
+
 impl<T: Clone, D: Device<T>> From<(&D, &Vec<T>)> for Buffer<T> {
     fn from(device_slice: (&D, &Vec<T>)) -> Self {
         let len = device_slice.1.len();

@@ -222,6 +222,18 @@ impl<T: Copy+Default> From<(usize, usize)> for Matrix<T> {
     }
 }
 
+impl<T: Copy+Default> From<(usize, usize, Vec<T>)> for Matrix<T> {
+    fn from(dims_data: (usize, usize, Vec<T>)) -> Self {
+        let device = get_device!(Device, T).unwrap();
+        let buffer = Buffer::<T>::from((device, dims_data.2));
+        
+        Matrix {
+            data: buffer,
+            dims: (dims_data.0, dims_data.1)
+        }        
+    }
+}
+
 #[cfg(feature="opencl")]
 impl<T: GenericOCL> From<(&InternCLDevice, Matrix<T>)> for Matrix<T> {
     fn from(device_matrix: (&InternCLDevice, Matrix<T>)) -> Self {
