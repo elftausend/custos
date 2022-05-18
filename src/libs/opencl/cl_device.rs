@@ -1,6 +1,6 @@
 use std::{ffi::c_void, rc::Rc, cell::RefCell};
 
-use crate::{libs::opencl::api::{create_buffer, MemFlags}, BaseOps, Matrix, AsDev, Gemm, VecRead, BaseDevice, Error, Device, AssignOps, GenericOCL, DropBuf};
+use crate::{libs::opencl::api::{create_buffer, MemFlags}, BaseOps, Matrix, AsDev, Gemm, VecRead, BaseDevice, Error, Device, AssignOps, GenericOCL, DropBuf, Buffer, remove_ptr};
 
 use super::{api::{CLIntDevice, CommandQueue, Context, create_command_queue, create_context, enqueue_read_buffer, wait_for_event, release_mem_object, enqueue_write_buffer}, CL_DEVICES, tew, ocl_gemm, CL_CACHE, tew_self};
 
@@ -69,6 +69,14 @@ impl<T> Device<T> for InternCLDevice {
         let ptr = create_buffer::<T>(&self.ctx(), MemFlags::MemReadWrite | MemFlags::MemCopyHostPtr, data.len(), Some(data)).unwrap();
         self.cl.borrow_mut().ptrs.push(ptr as *mut c_void);
         (std::ptr::null_mut(), ptr)
+    }
+
+    fn drop(&mut self, buf: Buffer<T>) {
+        let ptrs = &mut self.cl.borrow_mut().ptrs;
+        remove_ptr(ptrs, buf.ptr.1);
+        unsafe {
+            release_mem_object(buf.ptr.1).unwrap();
+        }
     }
 }
 

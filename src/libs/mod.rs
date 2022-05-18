@@ -108,3 +108,12 @@ impl GenericOCL for u64 {
         "ulong"
     }
 }
+
+pub fn remove_ptr<T>(ptrs: &mut Vec<*mut T>, match_ptr: *mut T) {
+    for (idx, ptr) in ptrs.iter_mut().enumerate() {
+        if *ptr == match_ptr {
+            ptrs.remove(idx);
+            return;
+        }
+    }
+}

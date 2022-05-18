@@ -4,47 +4,8 @@ use std::{ffi::c_void, ptr::null_mut};
 use crate::opencl::api::{release_mem_object, clRetainMemObject};
 use crate::{Device, number::Number, GenericOCL};
 
-#[cfg(feature="safe")]
-#[derive(Debug)]
-pub struct Buffer<T> {
-    pub ptr: (*mut T, *mut c_void),
-    pub len: usize,
-}
-
-#[cfg(feature="safe")]
-unsafe impl<T> Send for Buffer<T> {}
-#[cfg(feature="safe")]
-unsafe impl<T> Sync for Buffer<T> {}
-
-
-#[cfg(feature="safe")]
-impl<T> Clone for Buffer<T> {
-    fn clone(&self) -> Self {
-        if !self.ptr.1.is_null() { 
-            unsafe {
-                clRetainMemObject(self.ptr.1);
-            }
-        };
-        Self { ptr: self.ptr, len: self.len}
-    }
-}
-
-#[cfg(feature="safe")]
-impl<T> Drop for Buffer<T> {
-    fn drop(&mut self) {
-        unsafe {
-            if !self.ptr.0.is_null() {
-                Box::from_raw(self.ptr.0);
-            }
-            if !self.ptr.1.is_null() {
-                release_mem_object(self.ptr.1).unwrap()
-            }
-        }
-    }
-}
-
-#[cfg(not(feature="safe"))]
-#[derive(Debug, Clone, Copy)]
+#[cfg_attr(not(feature = "safe"), derive(Debug, Clone, Copy))]
+#[cfg_attr(feature = "safe", derive(Debug))]
 pub struct Buffer<T> {
     pub ptr: (*mut T, *mut c_void),
     pub len: usize,
@@ -77,6 +38,39 @@ impl<T: Default+Copy> Buffer<T> {
             return unsafe { *self.ptr.0 };
         }
         T::default()
+    }
+}
+
+
+#[cfg(feature="safe")]
+unsafe impl<T> Send for Buffer<T> {}
+#[cfg(feature="safe")]
+unsafe impl<T> Sync for Buffer<T> {}
+
+
+#[cfg(feature="safe")]
+impl<T> Clone for Buffer<T> {
+    fn clone(&self) -> Self {
+        if !self.ptr.1.is_null() { 
+            unsafe {
+                clRetainMemObject(self.ptr.1);
+            }
+        };
+        Self { ptr: self.ptr, len: self.len}
+    }
+}
+
+#[cfg(feature="safe")]
+impl<T> Drop for Buffer<T> {
+    fn drop(&mut self) {
+        unsafe {
+            if !self.ptr.0.is_null() {
+                Box::from_raw(self.ptr.0);
+            }
+            if !self.ptr.1.is_null() {
+                release_mem_object(self.ptr.1).unwrap()
+            }
+        }
     }
 }
 

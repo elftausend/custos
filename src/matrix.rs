@@ -59,7 +59,7 @@ impl<T> Matrix<T> {
     pub fn data_mut(&mut self) -> &mut Buffer<T> {
         &mut self.data
     }
-
+    
     pub fn dims(&self) -> (usize, usize) {
         self.dims
     }
@@ -419,8 +419,4 @@ impl<'a, T: Number> core::fmt::Debug for Matrix<T> {
         write!(f, "")
         
     }
-}
-
-pub fn drop_matrix() {
-
 }

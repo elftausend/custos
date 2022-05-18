@@ -1,6 +1,6 @@
 use std::{fmt::Debug, cell::RefCell, rc::Rc, ffi::c_void};
 
-use crate::{BaseOps, Buffer, Device, Gemm, libs::cpu::{CPUCache, ops::element_wise_op_mut}, matrix::Matrix, VecRead, number::Number, Dealloc, AsDev, BaseDevice, AssignOps, GenericOCL, DropBuf};
+use crate::{BaseOps, Buffer, Device, Gemm, libs::cpu::{CPUCache, ops::element_wise_op_mut}, matrix::Matrix, VecRead, number::Number, Dealloc, AsDev, BaseDevice, AssignOps, GenericOCL, DropBuf, remove_ptr};
 
 use super::{TBlas, CPU_CACHE, assign_to_lhs};
 
@@ -48,6 +48,14 @@ impl<T: Copy+Default> Device<T> for InternCPU {
         let ptr = Box::into_raw(vec.into_boxed_slice()) as *mut T;
         self.cpu.borrow_mut().ptrs.push(ptr as *mut usize);
         (ptr, std::ptr::null_mut())
+    }
+
+    fn drop(&mut self, buf: Buffer<T>) {
+        let ptrs = &mut self.cpu.borrow_mut().ptrs;
+        remove_ptr(ptrs, buf.ptr.0 as *mut usize);
+        unsafe {
+            Box::from_raw(buf.ptr.0);
+        }
     }
 }
 
