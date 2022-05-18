@@ -6,7 +6,7 @@ use custos::CLDevice;
 fn test_matrix() {
     let device = CPU::new();
     let matrix = Matrix::<f32>::new(&device, (10, 10));
-    assert_eq!(device.read(matrix.data()), vec![0.; 10*10]);
+    assert_eq!(device.read(matrix.as_buf()), vec![0.; 10*10]);
 }
 
 #[test]

@@ -9,7 +9,7 @@ fn test_matrix_read_cpu() -> Result<(), Error> {
     let read = get_device!(VecRead, f32)?;
 
     let matrix = Matrix::from(( &device, (2, 3), [1.51, 6.123, 7., 5.21, 8.62, 4.765]));
-    let read = read.read(matrix.data());
+    let read = read.read(matrix.as_buf());
     assert_eq!(&read, &[1.51, 6.123, 7., 5.21, 8.62, 4.765]);
     Ok(())
 }
@@ -22,11 +22,11 @@ fn test_matrix_read_cl() -> Result<(), Error> {
     let read = get_device!(VecRead, f32)?;
 
     let matrix = Matrix::from(( &device, (2, 3), [1.51, 6.123, 7., 5.21, 8.62, 4.765]));
-    let read = read.read(matrix.data());
+    let read = read.read(matrix.as_buf());
     assert_eq!(&read, &[1.51, 6.123, 7., 5.21, 8.62, 4.765]);
     
     let base_device = get_device!(BaseDevice, f32)?;
-    assert_eq!(&read, &base_device.read(matrix.data()));
+    assert_eq!(&read, &base_device.read(matrix.as_buf()));
     Ok(())
 }
 

@@ -38,7 +38,7 @@ fn test_element_wise_add_cl() {
     
     for _ in 0..500 {
         let c = &a + &b;
-        assert_eq!(vec![2, 8, 4, 18], device.read(c.data()));
+        assert_eq!(vec![2, 8, 4, 18], device.read(c.as_buf()));
         set_count(0);
     }
 }
@@ -125,7 +125,7 @@ fn test_ew_mul_cpu_a_cl() {
 
     for _ in range(0..500) {
         let c = &a * &b;
-        assert_eq!(vec![1, 16, 4, 81], device.read(c.data()));   
+        assert_eq!(vec![1, 16, 4, 81], device.read(c.as_buf()));   
     }
 
     let device = CLDevice::get(0).unwrap().select();
@@ -175,8 +175,8 @@ fn test_gemm() {
         let c3 = device.gemm(&a_cl, &b_cl);
         let c2 = a.gemm(&b);
 
-        assert_eq!(cpu.read(c1.data()), cpu.read(c2.data()));
-        assert_eq!(cpu.read(c1.data()), device.read(c3.data()));
+        assert_eq!(cpu.read(c1.as_buf()), cpu.read(c2.as_buf()));
+        assert_eq!(cpu.read(c1.as_buf()), device.read(c3.as_buf()));
         
     }
 
@@ -231,7 +231,7 @@ fn test_larger_gemm_cl_f64() {
 
     let _c = a.gemm(&b);
 
-    //roughly_equals(&device.read(c.data()), &should, 1e-5);
+    //roughly_equals(&device.read(c.as_buf()), &should, 1e-5);
 }
 
 
@@ -272,7 +272,7 @@ fn test_larger_gemm_cl() {
 
     let c = a.gemm(&b);
 
-    roughly_equals(&device.read(c.data()), &should, 1e-5);
+    roughly_equals(&device.read(c.as_buf()), &should, 1e-5);
 }
 
 #[test]
@@ -312,7 +312,7 @@ fn test_larger_gemm() {
     let b = Matrix::from(( &cpu, (7, 10), arr2));
 
     let cpu_c = a.gemm(&b);
-    roughly_equals(&cpu.read(cpu_c.data()), &should, 0.);
+    roughly_equals(&cpu.read(cpu_c.as_buf()), &should, 0.);
     
 }
 

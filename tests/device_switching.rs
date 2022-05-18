@@ -42,7 +42,7 @@ fn test_device_switching_s() -> Result<(), custos::Error>{
     let d_cpu = cpu.add(&c, &c);
 
     let y = CLCache::get::<f32>(device.clone(), Node::new(d_cpu.size()));
-    let event = unsafe {enqueue_write_buffer(&device.queue(), y.ptr as *mut c_void, d_cpu.as_slice(), true)?};
+    let event = unsafe {enqueue_write_buffer(&device.queue(), y.ptr.1 as *mut c_void, d_cpu.as_slice(), true)?};
     wait_for_event(event)?;
     let m = Matrix::from((y, d_cpu.dims()));
     assert_eq!(vec![6.04, 24.492, 28., 20.84, 34.48, 19.06], m.read());   

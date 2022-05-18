@@ -1,6 +1,6 @@
-use std::{fmt::Debug, cell::RefCell, rc::Rc};
+use std::{fmt::Debug, cell::RefCell, rc::Rc, ffi::c_void};
 
-use crate::{BaseOps, Buffer, Device, Gemm, libs::cpu::{CPUCache, ops::element_wise_op_mut}, matrix::Matrix, VecRead, number::Number, Dealloc, AsDev, BaseDevice, AssignOps, GenericOCL, DropBuf};
+use crate::{BaseOps, Buffer, Device, Gemm, libs::cpu::{CPUCache, ops::element_wise_op_mut}, matrix::Matrix, VecRead, number::Number, Dealloc, AsDev, BaseDevice, AssignOps, GenericOCL, DropBuf, remove_ptr};
 
 use super::{TBlas, CPU_CACHE, assign_to_lhs};
 
@@ -17,7 +17,7 @@ use super::{TBlas, CPU_CACHE, assign_to_lhs};
 /// 
 /// let out = device.add(&a, &b);
 /// 
-/// assert_eq!(device.read(out.data()), vec![1.3; 5*5]);
+/// assert_eq!(device.read(out.as_buf()), vec![1.3; 5*5]);
 /// ```
 pub struct InternCPU {
     pub cpu: Rc<RefCell<CPU>>
@@ -30,52 +30,56 @@ impl InternCPU {
 
 #[cfg(not(feature="safe"))]
 impl<T: Copy+Default> Device<T> for InternCPU {
-    fn alloc(&self, len: usize) -> *mut T {
+    fn alloc(&self, len: usize) -> (*mut T, *mut c_void) {
         assert!(len > 0, "invalid buffer len: 0");
         let ptr = Box::into_raw(vec![T::default(); len].into_boxed_slice()) as *mut T;
         self.cpu.borrow_mut().ptrs.push(ptr as *mut usize);
-        ptr
+        (ptr, std::ptr::null_mut())
     }
 
-    fn with_data(&self, data: &[T]) -> *mut T {
+    fn with_data(&self, data: &[T]) -> (*mut T, *mut c_void) {
         assert!(!data.is_empty(), "invalid buffer len: 0");
         let ptr = Box::into_raw(data.to_vec().into_boxed_slice()) as *mut T;
         self.cpu.borrow_mut().ptrs.push(ptr as *mut usize);
-        ptr
+        (ptr, std::ptr::null_mut())
     }
-    fn alloc_with_vec(&self, vec: Vec<T>) -> *mut T {
+    fn alloc_with_vec(&self, vec: Vec<T>) -> (*mut T, *mut c_void) {
         assert!(!vec.is_empty(), "invalid buffer len: 0");
         let ptr = Box::into_raw(vec.into_boxed_slice()) as *mut T;
         self.cpu.borrow_mut().ptrs.push(ptr as *mut usize);
-        ptr
+        (ptr, std::ptr::null_mut())
+    }
+
+    fn drop(&mut self, buf: Buffer<T>) {
+        let ptrs = &mut self.cpu.borrow_mut().ptrs;
+        remove_ptr(ptrs, buf.ptr.0 as *mut usize);
+        self.drop_buf(buf)
     }
 }
 
 #[cfg(feature="safe")]
 impl<T: Copy+Default> Device<T> for InternCPU {
-    fn alloc(&self, len: usize) -> *mut T {
+    fn alloc(&self, len: usize) -> (*mut T, *mut c_void) {
         assert!(len > 0, "invalid buffer len: 0");
-        Box::into_raw(vec![T::default(); len].into_boxed_slice()) as *mut T    
+        (Box::into_raw(vec![T::default(); len].into_boxed_slice()) as *mut T, std::ptr::null_mut())
     }
 
-    fn with_data(&self, data: &[T]) -> *mut T {
+    fn with_data(&self, data: &[T]) -> (*mut T, *mut c_void) {
         assert!(!data.is_empty(), "invalid buffer len: 0");
-        Box::into_raw(data.to_vec().into_boxed_slice()) as *mut T
-    }
-    fn alloc_with_vec(&self, vec: Vec<T>) -> *mut T {
-        assert!(!vec.is_empty(), "invalid buffer len: 0");
-        Box::into_raw(vec.into_boxed_slice()) as *mut T
+        (Box::into_raw(data.to_vec().into_boxed_slice()) as *mut T, std::ptr::null_mut())
     }
 
-    fn dealloc_type(&self) -> crate::DeallocType {
-        crate::DeallocType::CPU
+    fn alloc_with_vec(&self, vec: Vec<T>) -> (*mut T, *mut c_void) {
+        assert!(!vec.is_empty(), "invalid buffer len: 0");
+        (Box::into_raw(vec.into_boxed_slice()) as *mut T, std::ptr::null_mut())
     }
+
 }
 
 impl<T> DropBuf<T> for InternCPU {
-    fn drop_buf(&self, buf: &mut crate::Buffer<T>) {
+    fn drop_buf(&self, buf: Buffer<T>) {
         unsafe {
-            Box::from_raw(buf.ptr);
+            Box::from_raw(buf.ptr.0);
         }
     }
 }
@@ -83,7 +87,7 @@ impl<T> DropBuf<T> for InternCPU {
 impl<T: Copy+Default> VecRead<T> for InternCPU {
     fn read(&self, buf: &Buffer<T>) -> Vec<T> {
         unsafe {
-            std::slice::from_raw_parts(buf.ptr, buf.len).to_vec()
+            std::slice::from_raw_parts(buf.ptr.0, buf.len).to_vec()
         }
     }
 }
@@ -158,7 +162,7 @@ impl<T: TBlas+Default+Copy> Gemm<T> for InternCPU {
 /// 
 /// let out = device.add(&a, &b);
 /// 
-/// assert_eq!(device.read(out.data()), vec![1.3; 5*5]);
+/// assert_eq!(device.read(out.as_buf()), vec![1.3; 5*5]);
 /// ```
 pub struct CPU {
     pub ptrs: Vec<*mut usize>

@@ -1,4 +1,4 @@
-use std::{cell::RefCell, rc::Weak};
+use std::{cell::RefCell, rc::Weak, ffi::c_void};
 
 //pub use libs::*;
 pub use buffer::*;
@@ -59,13 +59,12 @@ impl core::fmt::Display for Error {
 }
 
 pub trait Device<T> {
-    fn alloc(&self, len: usize) -> *mut T;
-    fn with_data(&self, data: &[T]) -> *mut T;
-    fn alloc_with_vec(&self, vec: Vec<T>) -> *mut T {
+    fn alloc(&self, len: usize) -> (*mut T, *mut c_void);
+    fn with_data(&self, data: &[T]) -> (*mut T, *mut c_void);
+    fn alloc_with_vec(&self, vec: Vec<T>) -> (*mut T, *mut c_void) {
         self.with_data(&vec)
     }
-    #[cfg(feature="safe")]
-    fn dealloc_type(&self) -> DeallocType;
+    fn drop(&mut self, buf: Buffer<T>);
 }
 
 pub trait OpBounds {
@@ -129,7 +128,7 @@ pub trait VecRead<T> {
 ///
 /// let c = device.gemm(&a, &b);
 ///
-/// assert_eq!(device.read(c.data()), vec![20., 14., 56., 41.,]);
+/// assert_eq!(device.read(c.as_buf()), vec![20., 14., 56., 41.,]);
 /// ```
 pub trait Gemm<T> {
     fn gemm(&self, lhs: &Matrix<T>, rhs: &Matrix<T>) -> Matrix<T>;
@@ -139,8 +138,8 @@ pub trait Dealloc {
     fn dealloc_cache();
 }
 
-pub trait DropBuf<T> {
-    fn drop_buf(&self, buf: &mut Buffer<T>);
+trait DropBuf<T> {
+    fn drop_buf(&self, buf: Buffer<T>);
 }
 
 #[derive(Debug, Clone)]
@@ -232,7 +231,7 @@ impl std::error::Error for DeviceError {}
 ///     let read = get_device!(VecRead, f32)?;
 /// 
 ///     let matrix = Matrix::from(( &device, (2, 3), [1.51, 6.123, 7., 5.21, 8.62, 4.765]));
-///     let read = read.read(matrix.data());
+///     let read = read.read(matrix.as_buf());
 /// 
 ///     assert_eq!(&read, &[1.51, 6.123, 7., 5.21, 8.62, 4.765]);
 ///     let b = Matrix::from(( &device, (2, 3), [1., 1., 1., 1., 1., 1.]));

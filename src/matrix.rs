@@ -31,14 +31,13 @@ impl<T> Matrix<T> {
         Matrix {
             data: Buffer { 
                 ptr: device.alloc(dims.0*dims.1), 
-                len: dims.0*dims.1, 
-                #[cfg(feature="safe")]
-                dealloc_type: device.dealloc_type() },
+                len: dims.0*dims.1,  
+                },
             dims,
         }
     }
 
-    pub fn ptr(&self) -> *mut T {
+    pub fn ptr(&self) -> (*mut T, *mut c_void) {
         self.data.ptr
     }
 
@@ -49,15 +48,19 @@ impl<T> Matrix<T> {
     /// 
     /// let device = CPU::new();
     /// let a = Matrix::from((&device, (2, 3), [1., 2., 3., 3., 2., 1.,]));
-    /// let read = device.read(a.data());
+    /// let read = device.read(a.as_buf());
     /// assert_eq!(vec![1., 2., 3., 3., 2., 1.,], read);
     /// ```
-    pub fn data(&self) -> &Buffer<T> {
+    pub fn as_buf(&self) -> &Buffer<T> {
         &self.data
     }
 
+    pub fn to_buf(self) -> Buffer<T> {
+        self.data
+    }
+
     /// Returns a mutable reference to the underlying buffer.
-    pub fn data_mut(&mut self) -> &mut Buffer<T> {
+    pub fn as_mut_buf(&mut self) -> &mut Buffer<T> {
         &mut self.data
     }
 
@@ -112,7 +115,7 @@ impl<T> Matrix<T> {
     }
 
     pub fn as_mut_slice(&mut self) -> &mut [T] {
-        self.data_mut().as_mut_slice()
+        self.as_mut_buf().as_mut_slice()
     }
 }
 
@@ -149,16 +152,15 @@ impl<T: Copy+Default> Matrix<T> {
     /// # Example
     /// ```
     /// use custos::{CPU, AsDev, Matrix};
-    /// fn main() {
+    /// 
     /// let device = CPU::new().select();
     ///
     /// let a = Matrix::from((&device, (2, 2), [5, 7, 2, 10,]));
     /// assert_eq!(a.read(), vec![5, 7, 2, 10])
-    /// }
     /// ```
     pub fn read(&self) -> Vec<T> {
         let device = get_device!(VecRead, T).unwrap();
-        device.read(self.data())
+        device.read(self.as_buf())
     }
 }
 
@@ -187,10 +189,9 @@ impl<T> From<(*mut T, (usize, usize))> for Matrix<T> {
         let dims = ptr_dims.1;
         Matrix {
             data: Buffer {
-                ptr: ptr_dims.0, 
+                ptr: (ptr_dims.0, std::ptr::null_mut()), 
                 len: dims.0*dims.1, 
-                #[cfg(feature="safe")]
-                dealloc_type: crate::DeallocType::CPU},
+                },
             dims
         }
     }
@@ -239,7 +240,7 @@ impl<T: GenericOCL> From<(&InternCLDevice, Matrix<T>)> for Matrix<T> {
     fn from(device_matrix: (&InternCLDevice, Matrix<T>)) -> Self {
         //assert!(CPU_CACHE.with(|cache| !cache.borrow().nodes.is_empty()), "no allocations");
         let y = CLCache::get::<T>(device_matrix.0.clone(), Node::new(device_matrix.1.size()));
-        let event = unsafe {enqueue_write_buffer(&device_matrix.0.queue(), y.ptr as *mut c_void, device_matrix.1.as_slice(), true).unwrap()};
+        let event = unsafe {enqueue_write_buffer(&device_matrix.0.queue(), y.ptr.1, device_matrix.1.as_slice(), true).unwrap()};
         wait_for_event(event).unwrap();
         Matrix::from((y, device_matrix.1.dims()))
     }
