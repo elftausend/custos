@@ -9,6 +9,9 @@ use custos::{opencl::api::{clCreateBuffer, MemFlags, OCLErrorKind}, InternCLDevi
 #[cfg(feature="opencl")]
 use custos::{CLDevice, Error};
 
+#[cfg(feature="opencl")]
+use std::ptr::null_mut;
+
 
 #[cfg(feature="opencl")]
 pub fn unified_mem<T>(device: &InternCLDevice, ptr: &mut [T]) -> Result<*mut c_void, Error>{
@@ -53,9 +56,11 @@ fn test_unified_mem() -> Result<(), Error> {
         for _ in 0..TIMES {
             //std::thread::sleep(std::time::Duration::from_secs(1));
             
+            
             let buf = create_buffer(&device.ctx(), MemFlags::MemReadWrite | MemFlags::MemUseHostPtr, len, Some(&data))?;
             
-            let ptr = unified_ptr::<f32>(device.queue(), (buf as *mut f32, len).into())?;
+            let ptr = unified_ptr::<f32>(device.queue(), (buf, len).into())?;
+
             let slice = unsafe {std::slice::from_raw_parts_mut(ptr, len)};
             
             for idx in 20..100 {
@@ -67,6 +72,8 @@ fn test_unified_mem() -> Result<(), Error> {
             }
             // 'data' vec is not freed
             assert_eq!(slice[25], 4.);
+
+
             /* 
             let mut read = vec![0f32; len];
             let event = unsafe { custos::opencl::api::enqueue_read_buffer(&device.queue(), buf, &mut read, true)}?;
@@ -74,13 +81,15 @@ fn test_unified_mem() -> Result<(), Error> {
             println!("read: {read:?}");
             */
         }
+
+
         let after = Instant::now();
         println!("use host ptr: {:?}", (after-before) / TIMES as u32);
             
         let before = Instant::now();
         for _ in 0..TIMES {        
             let buf = create_buffer(&device.ctx(), MemFlags::MemReadWrite | MemFlags::MemCopyHostPtr, len, Some(&data))?;
-            let ptr = unified_ptr::<f32>(device.queue(), (buf as *mut f32, len).into())?;
+            let ptr = unified_ptr::<f32>(device.queue(), (buf, len).into())?;
             let slice = unsafe {std::slice::from_raw_parts_mut(ptr, len)};
             
             for idx in 20..100 {
@@ -96,6 +105,7 @@ fn test_unified_mem() -> Result<(), Error> {
     
     }
     
+    /* 
     let before = Instant::now();
     for _ in 0..TIMES {        
         let buf = create_buffer::<f32>(&device.ctx(), MemFlags::MemReadWrite as u64, len, None)?;
@@ -104,8 +114,11 @@ fn test_unified_mem() -> Result<(), Error> {
             release_mem_object(buf)?;
         }
     }
+
     let after = Instant::now();
     println!("alloc: {:?}", (after-before) / TIMES as u32);
+    */
+    
     Ok(())
 }
 
@@ -122,12 +135,12 @@ fn test_unified_calc() -> Result<(), Error> {
 
     let cl = CLDevice::get(0)?;
     
-    let a = Buffer {
-        ptr: unified_mem(&cl, a.as_mut_slice())? as *mut f32,
+    let a: Buffer<f32> = Buffer {
+        ptr: (null_mut(), unified_mem(&cl, a.as_mut_slice())?),
         len
     };
     let b = Buffer {
-        ptr: unified_mem(&cl, b.as_mut_slice())? as *mut f32,
+        ptr: (null_mut(), unified_mem(&cl, b.as_mut_slice())?),
         len,
     };
 
@@ -136,7 +149,6 @@ fn test_unified_calc() -> Result<(), Error> {
 //    let ptr = unified_ptr(cl.queue(), a)?;
 //    let ptr = unified_ptr(cl.queue(), a)?;
     
-
     Ok(())
 }
 

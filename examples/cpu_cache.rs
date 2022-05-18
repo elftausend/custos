@@ -13,5 +13,5 @@ fn main() {
         node.idx = 0;
         *cache.nodes.get(&node).unwrap()
      });
-     assert!(info.0.0 == out.data().ptr as *mut usize);
+     assert!(info.0.0 == out.data().ptr.0 as *mut usize);
 }

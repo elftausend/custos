@@ -59,16 +59,16 @@ impl InternCLDevice {
 
 #[cfg(not(feature="safe"))]
 impl<T> Device<T> for InternCLDevice {
-    fn alloc(&self, len: usize) -> *mut T {
-        let ptr = create_buffer::<T>(&self.ctx(), MemFlags::MemReadWrite as u64, len, None).unwrap() as *mut T;
-        self.cl.borrow_mut().ptrs.push(ptr as *mut c_void);
-        ptr
+    fn alloc(&self, len: usize) -> (*mut T, *mut c_void) {
+        let ptr = create_buffer::<T>(&self.ctx(), MemFlags::MemReadWrite as u64, len, None).unwrap();
+        self.cl.borrow_mut().ptrs.push(ptr);
+        (std::ptr::null_mut(), ptr)
     }
 
-    fn with_data(&self, data: &[T]) -> *mut T {
-        let ptr = create_buffer::<T>(&self.ctx(), MemFlags::MemReadWrite | MemFlags::MemCopyHostPtr, data.len(), Some(data)).unwrap() as *mut T;
+    fn with_data(&self, data: &[T]) -> (*mut T, *mut c_void) {
+        let ptr = create_buffer::<T>(&self.ctx(), MemFlags::MemReadWrite | MemFlags::MemCopyHostPtr, data.len(), Some(data)).unwrap();
         self.cl.borrow_mut().ptrs.push(ptr as *mut c_void);
-        ptr
+        (std::ptr::null_mut(), ptr)
     }
 }
 
@@ -90,7 +90,7 @@ impl<T> Device<T> for InternCLDevice {
 impl<T> DropBuf<T> for InternCLDevice {
     fn drop_buf(&self, buf: &mut crate::Buffer<T>) {
         unsafe {
-            release_mem_object(buf.ptr as *mut c_void).unwrap();
+            release_mem_object(buf.ptr.1).unwrap();
         }
     }
 }
@@ -134,14 +134,14 @@ impl<T: GenericOCL> Gemm<T> for InternCLDevice {
 }
 
 pub fn cl_write<T>(device: &InternCLDevice, x: &mut Matrix<T>, data: &[T]) {
-    let event = unsafe {enqueue_write_buffer(&device.queue(), x.ptr() as *mut c_void, data, true).unwrap()};
+    let event = unsafe {enqueue_write_buffer(&device.queue(), x.ptr().1, data, true).unwrap()};
     wait_for_event(event).unwrap();
 } 
 
 impl<T: Default+Copy> VecRead<T> for InternCLDevice {
     fn read(&self, buf: &crate::Buffer<T>) -> Vec<T> {
         let mut read = vec![T::default(); buf.len];
-        let event = unsafe {enqueue_read_buffer(&self.queue(), buf.ptr as *mut c_void, &mut read, true).unwrap()};
+        let event = unsafe {enqueue_read_buffer(&self.queue(), buf.ptr.1, &mut read, true).unwrap()};
         wait_for_event(event).unwrap();
         read
     }

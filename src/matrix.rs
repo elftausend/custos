@@ -38,7 +38,7 @@ impl<T> Matrix<T> {
         }
     }
 
-    pub fn ptr(&self) -> *mut T {
+    pub fn ptr(&self) -> (*mut T, *mut c_void) {
         self.data.ptr
     }
 
@@ -187,7 +187,7 @@ impl<T> From<(*mut T, (usize, usize))> for Matrix<T> {
         let dims = ptr_dims.1;
         Matrix {
             data: Buffer {
-                ptr: ptr_dims.0, 
+                ptr: (ptr_dims.0, std::ptr::null_mut()), 
                 len: dims.0*dims.1, 
                 #[cfg(feature="safe")]
                 dealloc_type: crate::DeallocType::CPU},
@@ -239,7 +239,7 @@ impl<T: GenericOCL> From<(&InternCLDevice, Matrix<T>)> for Matrix<T> {
     fn from(device_matrix: (&InternCLDevice, Matrix<T>)) -> Self {
         //assert!(CPU_CACHE.with(|cache| !cache.borrow().nodes.is_empty()), "no allocations");
         let y = CLCache::get::<T>(device_matrix.0.clone(), Node::new(device_matrix.1.size()));
-        let event = unsafe {enqueue_write_buffer(&device_matrix.0.queue(), y.ptr as *mut c_void, device_matrix.1.as_slice(), true).unwrap()};
+        let event = unsafe {enqueue_write_buffer(&device_matrix.0.queue(), y.ptr.1, device_matrix.1.as_slice(), true).unwrap()};
         wait_for_event(event).unwrap();
         Matrix::from((y, device_matrix.1.dims()))
     }
@@ -421,4 +421,8 @@ impl<'a, T: Number> core::fmt::Debug for Matrix<T> {
         write!(f, "")
         
     }
+}
+
+pub fn drop_matrix() {
+
 }

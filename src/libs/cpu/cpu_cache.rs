@@ -30,7 +30,7 @@ type RawInfo = (CpuPtr, usize);
 ///     node.idx = 0;
 ///     *cache.nodes.get(&node).unwrap()
 /// });
-/// assert!(info.0.0 == out.data().ptr as *mut usize);
+/// assert!(info.0.0 == out.data().ptr.0 as *mut usize);
 /// ```
 pub struct CPUCache {
     pub nodes: HashMap<Node, RawInfo>,
@@ -45,7 +45,7 @@ impl CPUCache {
 
     pub fn add_node<T: Default+Copy>(&mut self, device: InternCPU, node: Node) -> Buffer<T> {
         let out = Buffer::new(&device, node.len);
-        self.nodes.insert(node, ( CpuPtr(out.ptr as *mut usize), out.len ));
+        self.nodes.insert(node, ( CpuPtr(out.ptr.0 as *mut usize), out.len ));
         out
     }
     

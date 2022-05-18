@@ -30,7 +30,7 @@ pub struct CLCache {
 impl CLCache {
     pub fn add_node<T: GenericOCL>(&mut self, device: InternCLDevice, node: Node) -> Buffer<T> {
         let out = Buffer::new(&device, node.len);
-        self.nodes.insert(node, ( OclPtr(out.ptr as *mut c_void), out.len ));
+        self.nodes.insert(node, ( OclPtr(out.ptr.1), out.len ));
         out
     }
 
@@ -43,7 +43,7 @@ impl CLCache {
             let buf_info_option = cache.nodes.get(&node);
     
             match buf_info_option {
-                Some(buf_info) => Buffer::from(( buf_info.0.0 as *mut T, buf_info.1 )),
+                Some(buf_info) => Buffer::from(( buf_info.0.0, buf_info.1 )),
                 None => cache.add_node(device, node)
             }
         })
@@ -58,11 +58,11 @@ impl CLCache {
         let type_ids = vec![TypeId::of::<T>(); numbers.len()];
         
         let mems: Vec<OclPtr> = buffers.iter()
-            .map(|matrix| OclPtr(matrix.0.ptr as *mut c_void))
+            .map(|matrix| OclPtr(matrix.0.ptr.1))
             .collect();
 
         let cache = &mut self.arg_kernel_cache;
-        let outputmem = output.map(|output| OclPtr(output.ptr as *mut c_void));
+        let outputmem = output.map(|output| OclPtr(output.ptr.1));
         
         let kernel = cache.get(&(mems.clone(), type_ids.clone(), outputmem, src.clone()));
         match kernel { 
@@ -77,7 +77,7 @@ impl CLCache {
                 }
 
                 for (buf, idx) in buffers {
-                    set_kernel_arg(kernel, *idx, &(buf.ptr as *mut c_void));
+                    set_kernel_arg(kernel, *idx, &(buf.ptr.1));
                 }
 
                 if let Some(mem) = outputmem {

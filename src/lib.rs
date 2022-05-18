@@ -1,4 +1,4 @@
-use std::{cell::RefCell, rc::Weak};
+use std::{cell::RefCell, rc::Weak, ffi::c_void};
 
 //pub use libs::*;
 pub use buffer::*;
@@ -59,9 +59,9 @@ impl core::fmt::Display for Error {
 }
 
 pub trait Device<T> {
-    fn alloc(&self, len: usize) -> *mut T;
-    fn with_data(&self, data: &[T]) -> *mut T;
-    fn alloc_with_vec(&self, vec: Vec<T>) -> *mut T {
+    fn alloc(&self, len: usize) -> (*mut T, *mut c_void);
+    fn with_data(&self, data: &[T]) -> (*mut T, *mut c_void);
+    fn alloc_with_vec(&self, vec: Vec<T>) -> (*mut T, *mut c_void) {
         self.with_data(&vec)
     }
     #[cfg(feature="safe")]

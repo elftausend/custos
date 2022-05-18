@@ -5,13 +5,13 @@ use custos::{libs::{opencl::CLDevice, cpu::CPU}, Error};
 
 pub fn get_mut_slice<T>(buf: &mut Buffer<T>) -> &mut [T] {
     unsafe {
-        std::slice::from_raw_parts_mut(buf.ptr, buf.len)
+        std::slice::from_raw_parts_mut(buf.ptr.0, buf.len)
     }
 }
 
 pub fn get_slice<T>(buf: &Buffer<T>) -> &[T] {
     unsafe {
-        std::slice::from_raw_parts(buf.ptr, buf.len)
+        std::slice::from_raw_parts(buf.ptr.0, buf.len)
     }
 }
 
