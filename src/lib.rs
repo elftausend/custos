@@ -138,8 +138,8 @@ pub trait Dealloc {
     fn dealloc_cache();
 }
 
-pub trait DropBuf<T> {
-    fn drop_buf(&self, buf: &mut Buffer<T>);
+trait DropBuf<T> {
+    fn drop_buf(&self, buf: Buffer<T>);
 }
 
 #[derive(Debug, Clone)]

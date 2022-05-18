@@ -53,9 +53,7 @@ impl<T: Copy+Default> Device<T> for InternCPU {
     fn drop(&mut self, buf: Buffer<T>) {
         let ptrs = &mut self.cpu.borrow_mut().ptrs;
         remove_ptr(ptrs, buf.ptr.0 as *mut usize);
-        unsafe {
-            Box::from_raw(buf.ptr.0);
-        }
+        self.drop_buf(buf)
     }
 }
 
@@ -79,7 +77,7 @@ impl<T: Copy+Default> Device<T> for InternCPU {
 }
 
 impl<T> DropBuf<T> for InternCPU {
-    fn drop_buf(&self, buf: &mut crate::Buffer<T>) {
+    fn drop_buf(&self, buf: Buffer<T>) {
         unsafe {
             Box::from_raw(buf.ptr.0);
         }

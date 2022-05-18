@@ -10,7 +10,7 @@ fn main() -> Result<(), Error> {
 
     let out = device.add(&a, &b);
 
-    assert_eq!(device.read(out.data()), vec![1.3; 5*5]);
+    assert_eq!(device.read(out.as_buf()), vec![1.3; 5*5]);
     Ok(())
 }
 

@@ -74,9 +74,7 @@ impl<T> Device<T> for InternCLDevice {
     fn drop(&mut self, buf: Buffer<T>) {
         let ptrs = &mut self.cl.borrow_mut().ptrs;
         remove_ptr(ptrs, buf.ptr.1);
-        unsafe {
-            release_mem_object(buf.ptr.1).unwrap();
-        }
+        self.drop_buf(buf)
     }
 }
 
@@ -92,7 +90,7 @@ impl<T> Device<T> for InternCLDevice {
 }
 
 impl<T> DropBuf<T> for InternCLDevice {
-    fn drop_buf(&self, buf: &mut crate::Buffer<T>) {
+    fn drop_buf(&self, buf: crate::Buffer<T>) {
         unsafe {
             release_mem_object(buf.ptr.1).unwrap();
         }
@@ -101,30 +99,30 @@ impl<T> DropBuf<T> for InternCLDevice {
 
 impl<T: GenericOCL> BaseOps<T> for InternCLDevice {
     fn add(&self, lhs: &Matrix<T>, rhs: &Matrix<T>) -> Matrix<T> {
-        let buf = tew(self, lhs.data(), rhs.data(), "+").unwrap();
+        let buf = tew(self, lhs.as_buf(), rhs.as_buf(), "+").unwrap();
         (buf, lhs.dims()).into()
 
     }
 
     fn sub(&self, lhs: &Matrix<T>, rhs: &Matrix<T>) -> Matrix<T> {
-        let buf = tew(self, lhs.data(), rhs.data(), "-").unwrap();
+        let buf = tew(self, lhs.as_buf(), rhs.as_buf(), "-").unwrap();
         (buf, lhs.dims()).into()
     }
 
     fn mul(&self, lhs: &Matrix<T>, rhs: &Matrix<T>) -> Matrix<T> {
-        let buf = tew(self, lhs.data(), rhs.data(), "*").unwrap();
+        let buf = tew(self, lhs.as_buf(), rhs.as_buf(), "*").unwrap();
         (buf, lhs.dims()).into()
     }
 
     fn div(&self, lhs: &Matrix<T>, rhs: &Matrix<T>) -> Matrix<T> {
-        let buf = tew(self, lhs.data(), rhs.data(), "/").unwrap();
+        let buf = tew(self, lhs.as_buf(), rhs.as_buf(), "/").unwrap();
         (buf, lhs.dims()).into()
     }
 }
 
 impl<T: GenericOCL> AssignOps<T> for InternCLDevice {
     fn sub_assign(&self, lhs: &mut Matrix<T>, rhs: &Matrix<T>) {
-        tew_self(self, lhs.data_mut(), rhs.data(), "-").unwrap()
+        tew_self(self, lhs.as_mut_buf(), rhs.as_buf(), "-").unwrap()
     }
 }
 
@@ -132,7 +130,7 @@ impl<T: GenericOCL> Gemm<T> for InternCLDevice {
     fn gemm(&self, lhs: &Matrix<T>, rhs: &Matrix<T>) -> Matrix<T> {
         assert!(lhs.dims().1 == rhs.dims().0);
         //crate::opencl::ops::ocl_gemm1(self.clone(), rhs, lhs).unwrap()
-        let buf = ocl_gemm(self.clone(), rhs.cols(), rhs.rows(), lhs.rows(), rhs.data(), lhs.data()).unwrap();
+        let buf = ocl_gemm(self.clone(), rhs.cols(), rhs.rows(), lhs.rows(), rhs.as_buf(), lhs.as_buf()).unwrap();
         (buf, (lhs.rows(), rhs.cols())).into()
     }
 }

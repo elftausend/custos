@@ -13,13 +13,13 @@ pub trait KernelArg<'a, T> {
 
 impl<'a, T: Copy> KernelArg<'a, T> for Matrix<T> {
     fn buf(&'a self) -> Option<&'a Buffer<T>> {
-        Some(self.data())
+        Some(self.as_buf())
     }
 }
 
 impl<'a, T: Copy> KernelArg<'a, T> for &'a Matrix<T> {
     fn buf(&self) -> Option<&'a Buffer<T>> {
-        Some(self.data())
+        Some(self.as_buf())
     }
 }
 

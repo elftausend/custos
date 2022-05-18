@@ -51,15 +51,15 @@ impl<T> Matrix<T> {
     /// let read = device.read(a.data());
     /// assert_eq!(vec![1., 2., 3., 3., 2., 1.,], read);
     /// ```
-    pub fn data(&self) -> &Buffer<T> {
+    pub fn as_buf(&self) -> &Buffer<T> {
         &self.data
     }
 
     /// Returns a mutable reference to the underlying buffer.
-    pub fn data_mut(&mut self) -> &mut Buffer<T> {
+    pub fn as_mut_buf(&mut self) -> &mut Buffer<T> {
         &mut self.data
     }
-    
+
     pub fn dims(&self) -> (usize, usize) {
         self.dims
     }
@@ -111,7 +111,7 @@ impl<T> Matrix<T> {
     }
 
     pub fn as_mut_slice(&mut self) -> &mut [T] {
-        self.data_mut().as_mut_slice()
+        self.as_mut_buf().as_mut_slice()
     }
 }
 
@@ -157,7 +157,7 @@ impl<T: Copy+Default> Matrix<T> {
     /// ```
     pub fn read(&self) -> Vec<T> {
         let device = get_device!(VecRead, T).unwrap();
-        device.read(self.data())
+        device.read(self.as_buf())
     }
 }
 
