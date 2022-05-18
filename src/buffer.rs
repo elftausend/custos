@@ -1,7 +1,4 @@
-
 use std::{ffi::c_void, ptr::null_mut};
-#[cfg(feature="safe")]
-use std::ffi::c_void;
 
 #[cfg(feature="safe")]
 use crate::opencl::api::{release_mem_object, clRetainMemObject};
@@ -19,7 +16,7 @@ pub enum DeallocType {
 #[cfg(feature="safe")]
 #[derive(Debug)]
 pub struct Buffer<T> {
-    pub ptr: *mut T,
+    pub ptr: (*mut T, *mut c_void),
     pub len: usize,
     pub dealloc_type: DeallocType,
 }
@@ -35,7 +32,7 @@ impl<T> Clone for Buffer<T> {
     fn clone(&self) -> Self {
         if let DeallocType::CL = self.dealloc_type { 
             unsafe {
-                clRetainMemObject(self.ptr as *mut c_void);
+                clRetainMemObject(self.ptr.1);
             }
         };
         Self { ptr: self.ptr, len: self.len, dealloc_type: self.dealloc_type }
@@ -47,10 +44,10 @@ impl<T> Drop for Buffer<T> {
     fn drop(&mut self) {
         match self.dealloc_type {
             DeallocType::CPU => unsafe {
-                Box::from_raw(self.ptr);
+                Box::from_raw(self.ptr.0);
             },
             DeallocType::CL => unsafe {
-                release_mem_object(self.ptr as *mut c_void).unwrap()
+                release_mem_object(self.ptr.1).unwrap()
             },
             _ => {}
         }

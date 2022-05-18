@@ -9,6 +9,7 @@ use custos::{opencl::api::{clCreateBuffer, MemFlags, OCLErrorKind}, InternCLDevi
 #[cfg(feature="opencl")]
 use custos::{CLDevice, Error};
 
+#[cfg(not(feature="safe"))]
 #[cfg(feature="opencl")]
 use std::ptr::null_mut;
 

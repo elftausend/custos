@@ -74,12 +74,12 @@ impl<T> Device<T> for InternCLDevice {
 
 #[cfg(feature="safe")]
 impl<T> Device<T> for InternCLDevice {
-    fn alloc(&self, len: usize) -> *mut T {
-        create_buffer::<T>(&self.ctx(), MemFlags::MemReadWrite as u64, len, None).unwrap() as *mut T
+    fn alloc(&self, len: usize) -> (*mut T, *mut c_void) {
+        (std::ptr::null_mut(), create_buffer::<T>(&self.ctx(), MemFlags::MemReadWrite as u64, len, None).unwrap())
     }
 
-    fn with_data(&self, data: &[T]) -> *mut T {
-        create_buffer::<T>(&self.ctx(), MemFlags::MemReadWrite | MemFlags::MemCopyHostPtr, data.len(), Some(data)).unwrap() as *mut T
+    fn with_data(&self, data: &[T]) -> (*mut T, *mut c_void) {
+        (std::ptr::null_mut(), create_buffer::<T>(&self.ctx(), MemFlags::MemReadWrite | MemFlags::MemCopyHostPtr, data.len(), Some(data)).unwrap())
     }
 
     fn dealloc_type(&self) -> crate::DeallocType {
