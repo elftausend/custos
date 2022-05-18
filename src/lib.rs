@@ -128,7 +128,7 @@ pub trait VecRead<T> {
 ///
 /// let c = device.gemm(&a, &b);
 ///
-/// assert_eq!(device.read(c.data()), vec![20., 14., 56., 41.,]);
+/// assert_eq!(device.read(c.as_buf()), vec![20., 14., 56., 41.,]);
 /// ```
 pub trait Gemm<T> {
     fn gemm(&self, lhs: &Matrix<T>, rhs: &Matrix<T>) -> Matrix<T>;
@@ -231,7 +231,7 @@ impl std::error::Error for DeviceError {}
 ///     let read = get_device!(VecRead, f32)?;
 /// 
 ///     let matrix = Matrix::from(( &device, (2, 3), [1.51, 6.123, 7., 5.21, 8.62, 4.765]));
-///     let read = read.read(matrix.data());
+///     let read = read.read(matrix.as_buf());
 /// 
 ///     assert_eq!(&read, &[1.51, 6.123, 7., 5.21, 8.62, 4.765]);
 ///     let b = Matrix::from(( &device, (2, 3), [1., 1., 1., 1., 1., 1.]));

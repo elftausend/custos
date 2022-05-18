@@ -48,11 +48,15 @@ impl<T> Matrix<T> {
     /// 
     /// let device = CPU::new();
     /// let a = Matrix::from((&device, (2, 3), [1., 2., 3., 3., 2., 1.,]));
-    /// let read = device.read(a.data());
+    /// let read = device.read(a.as_buf());
     /// assert_eq!(vec![1., 2., 3., 3., 2., 1.,], read);
     /// ```
     pub fn as_buf(&self) -> &Buffer<T> {
         &self.data
+    }
+
+    pub fn to_buf(self) -> Buffer<T> {
+        self.data
     }
 
     /// Returns a mutable reference to the underlying buffer.
@@ -148,12 +152,11 @@ impl<T: Copy+Default> Matrix<T> {
     /// # Example
     /// ```
     /// use custos::{CPU, AsDev, Matrix};
-    /// fn main() {
+    /// 
     /// let device = CPU::new().select();
     ///
     /// let a = Matrix::from((&device, (2, 2), [5, 7, 2, 10,]));
     /// assert_eq!(a.read(), vec![5, 7, 2, 10])
-    /// }
     /// ```
     pub fn read(&self) -> Vec<T> {
         let device = get_device!(VecRead, T).unwrap();

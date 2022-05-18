@@ -30,7 +30,7 @@ type RawInfo = (CpuPtr, usize);
 ///     node.idx = 0;
 ///     *cache.nodes.get(&node).unwrap()
 /// });
-/// assert!(info.0.0 == out.data().ptr.0 as *mut usize);
+/// assert!(info.0.0 == out.as_buf().ptr.0 as *mut usize);
 /// ```
 pub struct CPUCache {
     pub nodes: HashMap<Node, RawInfo>,

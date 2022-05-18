@@ -17,7 +17,7 @@ use super::{TBlas, CPU_CACHE, assign_to_lhs};
 /// 
 /// let out = device.add(&a, &b);
 /// 
-/// assert_eq!(device.read(out.data()), vec![1.3; 5*5]);
+/// assert_eq!(device.read(out.as_buf()), vec![1.3; 5*5]);
 /// ```
 pub struct InternCPU {
     pub cpu: Rc<RefCell<CPU>>
@@ -162,7 +162,7 @@ impl<T: TBlas+Default+Copy> Gemm<T> for InternCPU {
 /// 
 /// let out = device.add(&a, &b);
 /// 
-/// assert_eq!(device.read(out.data()), vec![1.3; 5*5]);
+/// assert_eq!(device.read(out.as_buf()), vec![1.3; 5*5]);
 /// ```
 pub struct CPU {
     pub ptrs: Vec<*mut usize>
