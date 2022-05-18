@@ -311,7 +311,7 @@ pub(crate) fn enqueue_copy_buffer(cq: &CommandQueue, src_mem: *mut c_void, dst_m
     wait_for_event(Event(events[0]))
 }
 
-pub fn unified_ptr<T>(cq: CommandQueue, buf: crate::Buffer<T>) -> Result<*mut T, Error> {
+pub fn unified_ptr<T>(cq: CommandQueue, buf: &crate::Buffer<T>) -> Result<*mut T, Error> {
     unsafe {
         enqueue_map_buffer::<T>(&cq, buf.ptr.1, true, 2 | 1, 0, buf.len).map(|ptr| ptr as *mut T)
     }

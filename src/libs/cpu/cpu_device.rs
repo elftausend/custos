@@ -62,14 +62,12 @@ impl<T: Copy+Default> Device<T> for InternCPU {
         assert!(!data.is_empty(), "invalid buffer len: 0");
         (Box::into_raw(data.to_vec().into_boxed_slice()) as *mut T, std::ptr::null_mut())
     }
+
     fn alloc_with_vec(&self, vec: Vec<T>) -> (*mut T, *mut c_void) {
         assert!(!vec.is_empty(), "invalid buffer len: 0");
         (Box::into_raw(vec.into_boxed_slice()) as *mut T, std::ptr::null_mut())
     }
 
-    fn dealloc_type(&self) -> crate::DeallocType {
-        crate::DeallocType::CPU
-    }
 }
 
 impl<T> DropBuf<T> for InternCPU {

@@ -38,6 +38,7 @@ fn test_unified_mem_bool() -> Result<(), Error> {
     Ok(())
 }
 
+#[cfg(not(feature="safe"))]
 #[cfg(feature="opencl")]
 #[test]
 fn test_unified_mem() -> Result<(), Error> {
@@ -56,24 +57,24 @@ fn test_unified_mem() -> Result<(), Error> {
         let before = Instant::now();
         for _ in 0..TIMES {
             //std::thread::sleep(std::time::Duration::from_secs(1));
-            
-            
+  
             let buf = create_buffer(&device.ctx(), MemFlags::MemReadWrite | MemFlags::MemUseHostPtr, len, Some(&data))?;
-            
-            let ptr = unified_ptr::<f32>(device.queue(), (buf, len).into())?;
+  
+            let buffer = (buf, len).into();
+            let ptr = unified_ptr::<f32>(device.queue(), &buffer)?;
 
             let slice = unsafe {std::slice::from_raw_parts_mut(ptr, len)};
-            
+
             for idx in 20..100 {
                 slice[idx] = 4.;
             }
-    
+
             unsafe { 
                 release_mem_object(buf)?;
             }
+
             // 'data' vec is not freed
             assert_eq!(slice[25], 4.);
-
 
             /* 
             let mut read = vec![0f32; len];
@@ -90,7 +91,7 @@ fn test_unified_mem() -> Result<(), Error> {
         let before = Instant::now();
         for _ in 0..TIMES {        
             let buf = create_buffer(&device.ctx(), MemFlags::MemReadWrite | MemFlags::MemCopyHostPtr, len, Some(&data))?;
-            let ptr = unified_ptr::<f32>(device.queue(), (buf, len).into())?;
+            let ptr = unified_ptr::<f32>(device.queue(), &(buf, len).into())?;
             let slice = unsafe {std::slice::from_raw_parts_mut(ptr, len)};
             
             for idx in 20..100 {

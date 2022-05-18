@@ -81,10 +81,6 @@ impl<T> Device<T> for InternCLDevice {
     fn with_data(&self, data: &[T]) -> (*mut T, *mut c_void) {
         (std::ptr::null_mut(), create_buffer::<T>(&self.ctx(), MemFlags::MemReadWrite | MemFlags::MemCopyHostPtr, data.len(), Some(data)).unwrap())
     }
-
-    fn dealloc_type(&self) -> crate::DeallocType {
-        crate::DeallocType::CL
-    }
 }
 
 impl<T> DropBuf<T> for InternCLDevice {

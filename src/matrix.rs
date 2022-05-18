@@ -31,9 +31,8 @@ impl<T> Matrix<T> {
         Matrix {
             data: Buffer { 
                 ptr: device.alloc(dims.0*dims.1), 
-                len: dims.0*dims.1, 
-                #[cfg(feature="safe")]
-                dealloc_type: device.dealloc_type() },
+                len: dims.0*dims.1,  
+                },
             dims,
         }
     }
@@ -189,8 +188,7 @@ impl<T> From<(*mut T, (usize, usize))> for Matrix<T> {
             data: Buffer {
                 ptr: (ptr_dims.0, std::ptr::null_mut()), 
                 len: dims.0*dims.1, 
-                #[cfg(feature="safe")]
-                dealloc_type: crate::DeallocType::CPU},
+                },
             dims
         }
     }

@@ -64,8 +64,6 @@ pub trait Device<T> {
     fn alloc_with_vec(&self, vec: Vec<T>) -> (*mut T, *mut c_void) {
         self.with_data(&vec)
     }
-    #[cfg(feature="safe")]
-    fn dealloc_type(&self) -> DeallocType;
 }
 
 pub trait OpBounds {
