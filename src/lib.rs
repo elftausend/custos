@@ -75,6 +75,7 @@ pub trait OpBounds {
 pub trait BaseDevice<T>: Device<T> + BaseOps<T> + VecRead<T> + Gemm<T> {}
 
 pub trait AssignOps<T> {
+    fn add_assign(&self, lhs: &mut Matrix<T>, rhs: &Matrix<T>);
     fn sub_assign(&self, lhs: &mut Matrix<T>, rhs: &Matrix<T>);
 }
 
@@ -100,6 +101,7 @@ pub trait BaseOps<T> {
     fn sub(&self, lhs: &Matrix<T>, rhs: &Matrix<T>) -> Matrix<T>;
     fn mul(&self, lhs: &Matrix<T>, rhs: &Matrix<T>) -> Matrix<T>;
     fn div(&self, lhs: &Matrix<T>, rhs: &Matrix<T>) -> Matrix<T>;
+    fn clear(&self, matrix: &mut Matrix<T>);
 }
 
 /// Trait for reading buffers.
@@ -138,9 +140,15 @@ pub trait Dealloc {
     fn dealloc_cache();
 }
 
-trait DropBuf<T> {
+trait ManualMem<T> {
     fn drop_buf(&self, buf: Buffer<T>);
 }
+
+pub trait CacheBuf<T> {
+    fn cached_buf(&self, len: usize) -> Buffer<T>;
+}
+
+
 
 #[derive(Debug, Clone)]
 pub struct Dev {

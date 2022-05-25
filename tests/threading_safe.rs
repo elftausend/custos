@@ -19,7 +19,7 @@ fn test_threading_cpu() {
         for _ in range(500) {
             
             let c = &a * &b;
-            assert_eq!(device.read(c.data()), vec![3., 6., 2., 30., 30., 16.]);
+            assert_eq!(device.read(c.as_buf()), vec![3., 6., 2., 30., 30., 16.]);
 
         }
         //CPU_CACHE.with(|f| assert!(f.borrow().nodes.len() == 1));
@@ -49,7 +49,7 @@ fn test_threading_cpu() {
         for _ in range(500) {
             
             let c = &a * &b;
-            assert_eq!(device.read(c.data()), vec![3., 6., 2., 30., 30., 16.]);
+            assert_eq!(device.read(c.as_buf()), vec![3., 6., 2., 30., 30., 16.]);
         }
      //   CPU_CACHE.with(|f| assert!(f.borrow().nodes.len() == 1));
 
@@ -79,7 +79,7 @@ fn test_threading_cpu() {
             for _ in range(500) {
                 
                 let c = &a + &b;
-                assert_eq!(device.read(c.data()), vec![4., 5., 3., 11., 11., 8.]);
+                assert_eq!(device.read(c.as_buf()), vec![4., 5., 3., 11., 11., 8.]);
 
 
                 for _ in range(5) {
@@ -126,7 +126,7 @@ fn test_threading_cl_a() {
         for _ in range(500) {
             
             let c = &a * &b;
-            assert_eq!(device.read(c.data()), vec![3., 6., 2., 30., 30., 16.]);
+            assert_eq!(device.read(c.as_buf()), vec![3., 6., 2., 30., 30., 16.]);
 
         }
   //      CL_CACHE.with(|f| assert!(f.borrow().output_nodes.len() == 1));
@@ -156,7 +156,7 @@ fn test_threading_cl_a() {
         for _ in range(500) {
             
             let c = &a * &b;
-            assert_eq!(device.read(c.data()), vec![3., 6., 2., 30., 30., 16.]);
+            assert_eq!(device.read(c.as_buf()), vec![3., 6., 2., 30., 30., 16.]);
         }
      //   CPU_CACHE.with(|f| assert!(f.borrow().nodes.len() == 1));
 
@@ -186,7 +186,7 @@ fn test_threading_cl_a() {
             for _ in range(500) {
                 
                 let c = &a + &b;
-                assert_eq!(device.read(c.data()), vec![4., 5., 3., 11., 11., 8.]);
+                assert_eq!(device.read(c.as_buf()), vec![4., 5., 3., 11., 11., 8.]);
 
 
                 for _ in range(5) {

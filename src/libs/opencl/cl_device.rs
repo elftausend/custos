@@ -1,8 +1,8 @@
 use std::{ffi::c_void, rc::Rc, cell::RefCell};
 
-use crate::{libs::opencl::api::{create_buffer, MemFlags}, BaseOps, Matrix, AsDev, Gemm, VecRead, BaseDevice, Error, Device, AssignOps, GenericOCL, DropBuf, Buffer, remove_ptr};
+use crate::{libs::opencl::api::{create_buffer, MemFlags}, BaseOps, Matrix, AsDev, Gemm, VecRead, BaseDevice, Error, Device, AssignOps, GenericOCL, ManualMem, Buffer, remove_ptr, CacheBuf, Node};
 
-use super::{api::{CLIntDevice, CommandQueue, Context, create_command_queue, create_context, enqueue_read_buffer, wait_for_event, release_mem_object, enqueue_write_buffer}, CL_DEVICES, tew, ocl_gemm, CL_CACHE, tew_self};
+use super::{api::{CLIntDevice, CommandQueue, Context, create_command_queue, create_context, enqueue_read_buffer, wait_for_event, release_mem_object, enqueue_write_buffer}, CL_DEVICES, tew, ocl_gemm, CL_CACHE, tew_self, CLCache, cl_clear};
 
 #[derive(Debug, Clone)]
 /// All traits related to mathematical operations need to be implemented for this struct in order to use them.
@@ -87,13 +87,25 @@ impl<T> Device<T> for InternCLDevice {
     fn with_data(&self, data: &[T]) -> (*mut T, *mut c_void) {
         (std::ptr::null_mut(), create_buffer::<T>(&self.ctx(), MemFlags::MemReadWrite | MemFlags::MemCopyHostPtr, data.len(), Some(data)).unwrap())
     }
+
+    fn drop(&mut self, buf: Buffer<T>) {
+        let ptrs = &mut self.cl.borrow_mut().ptrs;
+        remove_ptr(ptrs, buf.ptr.1);
+        self.drop_buf(buf)
+    }
 }
 
-impl<T> DropBuf<T> for InternCLDevice {
+impl<T> ManualMem<T> for InternCLDevice {
     fn drop_buf(&self, buf: crate::Buffer<T>) {
         unsafe {
             release_mem_object(buf.ptr.1).unwrap();
         }
+    }
+}
+
+impl<T: GenericOCL> CacheBuf<T> for InternCLDevice {
+    fn cached_buf(&self, len: usize) -> Buffer<T> {
+        CLCache::get::<T>(self.clone(), Node::new(len))
     }
 }
 
@@ -118,9 +130,17 @@ impl<T: GenericOCL> BaseOps<T> for InternCLDevice {
         let buf = tew(self, lhs.as_buf(), rhs.as_buf(), "/").unwrap();
         (buf, lhs.dims()).into()
     }
+
+    fn clear(&self, matrix: &mut Matrix<T>) {
+        cl_clear(self, matrix.as_mut_buf()).unwrap();
+    }
 }
 
 impl<T: GenericOCL> AssignOps<T> for InternCLDevice {
+    fn add_assign(&self, lhs: &mut Matrix<T>, rhs: &Matrix<T>) {
+        tew_self(self, lhs.as_mut_buf(), rhs.as_buf(), "+").unwrap()
+    }
+
     fn sub_assign(&self, lhs: &mut Matrix<T>, rhs: &Matrix<T>) {
         tew_self(self, lhs.as_mut_buf(), rhs.as_buf(), "-").unwrap()
     }

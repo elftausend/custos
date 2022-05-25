@@ -146,6 +146,20 @@ impl<T: GenericOCL+TBlas> Matrix<T> {
     }
 }
 
+impl<T: GenericOCL> Matrix<T> {
+    /// Sets all elements to zero.
+    /// # Example
+    /// ```
+    /// use custos::{CPU, AsDev, Matrix};
+    /// 
+    /// let device = CPU::new().select();
+    /// ```
+    pub fn clear(&mut self) {
+        let device = get_device!(BaseOps, T).unwrap();
+        device.clear(self)
+    }
+}
+
 impl<T: Copy+Default> Matrix<T> {
     /// Uses VecRead and current global device to read Matrix
     /// 
@@ -392,7 +406,12 @@ impl<T: GenericOCL> core::ops::Mul<&Self> for Matrix<T> {
     }
 }
 
-
+impl<T: GenericOCL> core::ops::AddAssign<&Matrix<T>> for Matrix<T> {
+    fn add_assign(&mut self, rhs: &Matrix<T>) {
+        let device = get_device!(AssignOps, T).unwrap();
+        device.add_assign(self, rhs)
+    }
+}
 
 impl<T: GenericOCL> core::ops::SubAssign<&Matrix<T>> for Matrix<T> {
     fn sub_assign(&mut self, rhs: &Matrix<T>) {

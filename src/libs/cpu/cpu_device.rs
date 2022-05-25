@@ -1,6 +1,6 @@
 use std::{fmt::Debug, cell::RefCell, rc::Rc, ffi::c_void};
 
-use crate::{BaseOps, Buffer, Device, Gemm, libs::cpu::{CPUCache, ops::element_wise_op_mut}, matrix::Matrix, VecRead, number::Number, Dealloc, AsDev, BaseDevice, AssignOps, GenericOCL, DropBuf, remove_ptr};
+use crate::{BaseOps, Buffer, Device, Gemm, libs::cpu::{CPUCache, ops::element_wise_op_mut}, matrix::Matrix, VecRead, number::Number, Dealloc, AsDev, BaseDevice, AssignOps, GenericOCL, ManualMem, remove_ptr, CacheBuf};
 
 use super::{TBlas, CPU_CACHE, assign_to_lhs};
 
@@ -73,14 +73,25 @@ impl<T: Copy+Default> Device<T> for InternCPU {
         assert!(!vec.is_empty(), "invalid buffer len: 0");
         (Box::into_raw(vec.into_boxed_slice()) as *mut T, std::ptr::null_mut())
     }
+    fn drop(&mut self, buf: Buffer<T>) {
+        let ptrs = &mut self.cpu.borrow_mut().ptrs;
+        remove_ptr(ptrs, buf.ptr.0 as *mut usize);
+        self.drop_buf(buf)
+    }
 
 }
 
-impl<T> DropBuf<T> for InternCPU {
+impl<T> ManualMem<T> for InternCPU {
     fn drop_buf(&self, buf: Buffer<T>) {
         unsafe {
             Box::from_raw(buf.ptr.0);
         }
+    }
+}
+
+impl<T: Copy+Default> CacheBuf<T> for InternCPU {
+    fn cached_buf(&self, len: usize) -> Buffer<T> {
+        CPUCache::get::<T>(self.clone(), len)
     }
 }
 
@@ -93,6 +104,10 @@ impl<T: Copy+Default> VecRead<T> for InternCPU {
 }
 
 impl<T: Number> AssignOps<T> for InternCPU {
+    fn add_assign(&self, lhs: &mut Matrix<T>, rhs: &Matrix<T>) {
+        assign_op(lhs, rhs, |x, y| *x += y)
+    }
+
     fn sub_assign(&self, lhs: &mut Matrix<T>, rhs: &Matrix<T>) {
         assign_op(lhs, rhs, |x, y| *x -= y)
     }
@@ -113,6 +128,12 @@ impl<T: Number> BaseOps<T> for InternCPU {
 
     fn div(&self, lhs: &Matrix<T>, rhs: &Matrix<T>) -> Matrix<T> {
         ew_op(self.clone(), lhs, rhs, | x, y| x/y)
+    }
+
+    fn clear(&self, matrix: &mut Matrix<T>) {
+        for value in matrix.as_mut_slice() {
+            *value = T::zero();
+        }
     }
 }
 

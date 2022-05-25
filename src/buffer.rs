@@ -2,7 +2,12 @@ use std::{ffi::c_void, ptr::null_mut};
 
 #[cfg(feature="safe")]
 use crate::opencl::api::{release_mem_object, clRetainMemObject};
-use crate::{Device, number::Number, GenericOCL};
+use crate::{Device, number::Number, GenericOCL, get_device, CacheBuf};
+
+pub fn cached<T: GenericOCL>(len: usize) -> Buffer<T> {
+    let device = get_device!(CacheBuf, T).unwrap();
+    device.cached_buf(len)
+}
 
 #[cfg_attr(not(feature = "safe"), derive(Debug, Clone, Copy))]
 #[cfg_attr(feature = "safe", derive(Debug))]
