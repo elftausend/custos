@@ -14,7 +14,7 @@ pub struct CLDevices {
 }
 
 impl CLDevices {
-    pub fn new() -> CLDevices {
+    fn new() -> CLDevices {
         let mut current_devices = Vec::new();
         
         let platform = get_platforms().unwrap()[0];
@@ -26,7 +26,7 @@ impl CLDevices {
         CLDevices { current_devices }
     }
 
-    pub fn get_current(&self, device_idx: usize) -> Result<CLDevice, Error> {
+    pub fn current(&self, device_idx: usize) -> Result<CLDevice, Error> {
         if device_idx < self.current_devices.len() {
             Ok(self.current_devices[device_idx].clone())
         } else {

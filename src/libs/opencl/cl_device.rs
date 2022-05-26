@@ -21,7 +21,7 @@ impl InternCLDevice {
     #[must_use]
     pub fn new(cl: CLDevice) -> InternCLDevice {
         let cl = Rc::new(RefCell::new(cl));
-         InternCLDevice { cl }
+        InternCLDevice { cl }
     }
 
     pub fn ctx(&self) -> Context {
@@ -224,7 +224,7 @@ impl CLDevice {
     /// - No device is found at the given device index
     /// - some other OpenCL related errors
     pub fn get(device_idx: usize) -> Result<InternCLDevice, Error> {
-        Ok(InternCLDevice::new(CL_DEVICES.get_current(device_idx)?))
+        Ok(InternCLDevice::new(CL_DEVICES.current(device_idx)?))
     }
 }
 

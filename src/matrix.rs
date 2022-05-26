@@ -153,6 +153,11 @@ impl<T: GenericOCL> Matrix<T> {
     /// use custos::{CPU, AsDev, Matrix};
     /// 
     /// let device = CPU::new().select();
+    /// let mut matrix = Matrix::from((&device, 3, 2, [4, 3, 2, 6, 9, 2,]));
+    /// assert_eq!(matrix.read(), vec![4, 3, 2, 6, 9, 2]);
+    /// 
+    /// matrix.clear();
+    /// assert_eq!(matrix.read(), vec![0; 6]);
     /// ```
     pub fn clear(&mut self) {
         let device = get_device!(BaseOps, T).unwrap();
@@ -178,6 +183,8 @@ impl<T: Copy+Default> Matrix<T> {
     }
 }
 
+// From conversions
+
 impl<T> From<(Buffer<T>, (usize, usize))> for Matrix<T> {
     fn from(ptr_dims: (Buffer<T>, (usize, usize))) -> Self {
         let dims = ptr_dims.1;
@@ -188,6 +195,7 @@ impl<T> From<(Buffer<T>, (usize, usize))> for Matrix<T> {
     }
 }
 
+// no tuple for dims
 impl<T> From<(Buffer<T>, usize, usize)> for Matrix<T> {
     fn from(ptr_dims: (Buffer<T>, usize, usize)) -> Self {
         let dims = (ptr_dims.1, ptr_dims.2);
@@ -207,6 +215,19 @@ impl<T> From<(*mut T, (usize, usize))> for Matrix<T> {
                 len: dims.0*dims.1, 
                 },
             dims
+        }
+    }
+}
+
+// no tuple for dims
+impl<T> From<(*mut T, usize, usize)> for Matrix<T> {
+    fn from(ptr_dims: (*mut T, usize, usize)) -> Self {
+        Matrix {
+            data: Buffer {
+                ptr: (ptr_dims.0, std::ptr::null_mut()), 
+                len: ptr_dims.1*ptr_dims.2, 
+                },
+            dims: (ptr_dims.1,ptr_dims.2)
         }
     }
 }
@@ -270,12 +291,34 @@ impl<T: Copy, D: Device<T>, const N: usize> From<(&D, (usize, usize), [T; N])> f
     }
 }
 
+// no tuple for dims
+impl<T: Copy, D: Device<T>, const N: usize> From<(&D, usize, usize, [T; N])> for Matrix<T> {
+    fn from(dims_slice: (&D, usize, usize, [T; N])) -> Self {
+        let buffer = Buffer::from((dims_slice.0, dims_slice.3));
+        Matrix {
+            data: buffer,
+            dims: (dims_slice.1, dims_slice.2)
+        }        
+    }
+}
+
 impl<T: Copy, D: Device<T>> From<(&D, (usize, usize), Vec<T>)> for Matrix<T> {
     fn from(dims_slice: (&D, (usize, usize), Vec<T>)) -> Self {
         let buffer = Buffer::from((dims_slice.0, dims_slice.2));
         Matrix {
             data: buffer,
             dims: dims_slice.1
+        }        
+    }
+}
+
+// no tuple for dims
+impl<T: Copy, D: Device<T>> From<(&D, usize, usize, Vec<T>)> for Matrix<T> {
+    fn from(dims_slice: (&D, usize, usize, Vec<T>)) -> Self {
+        let buffer = Buffer::from((dims_slice.0, dims_slice.3));
+        Matrix {
+            data: buffer,
+            dims: (dims_slice.1, dims_slice.2)
         }        
     }
 }
@@ -287,6 +330,17 @@ impl<T: Copy, D: Device<T>> From<(&D, (usize, usize), &[T])> for Matrix<T> {
         Matrix {
             data: buffer,
             dims: dims_slice.1
+        }        
+    }
+}
+
+// no tuple for dims
+impl<T: Copy, D: Device<T>> From<(&D, usize, usize, &[T])> for Matrix<T> {
+    fn from(dims_slice: (&D, usize, usize, &[T])) -> Self {
+        let buffer = Buffer::from((dims_slice.0, dims_slice.3));
+        Matrix {
+            data: buffer,
+            dims: (dims_slice.1, dims_slice.2)
         }        
     }
 }
