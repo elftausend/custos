@@ -37,6 +37,7 @@ impl AsRangeArg for (usize, usize) {
     }
 }
 
+#[cfg_attr(feature = "safe", doc = "```ignore")]
 /// inclusive range
 /// used to reset the cache count in loops as every operation increases the cache count, which would break the "cache cycle".
 /// 

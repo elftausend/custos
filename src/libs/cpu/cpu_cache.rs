@@ -11,6 +11,7 @@ pub struct CpuPtr(pub *mut usize);
 
 type RawInfo = (CpuPtr, usize);
 
+#[cfg_attr(feature = "safe", doc = "```ignore")]
 #[derive(Debug)]
 /// stores output pointers
 /// 

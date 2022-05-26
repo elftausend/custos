@@ -1,5 +1,6 @@
 use std::{ffi::c_void, ptr::null_mut};
 
+#[cfg(feature="opencl")]
 #[cfg(feature="safe")]
 use crate::opencl::api::{release_mem_object, clRetainMemObject};
 use crate::{Device, number::Number, GenericOCL, get_device, CacheBuf};
@@ -56,6 +57,7 @@ unsafe impl<T> Sync for Buffer<T> {}
 #[cfg(feature="safe")]
 impl<T> Clone for Buffer<T> {
     fn clone(&self) -> Self {
+        #[cfg(feature="opencl")]
         if !self.ptr.1.is_null() { 
             unsafe {
                 clRetainMemObject(self.ptr.1);
@@ -72,6 +74,7 @@ impl<T> Drop for Buffer<T> {
             if !self.ptr.0.is_null() {
                 Box::from_raw(self.ptr.0);
             }
+            #[cfg(feature="opencl")]
             if !self.ptr.1.is_null() {
                 release_mem_object(self.ptr.1).unwrap()
             }

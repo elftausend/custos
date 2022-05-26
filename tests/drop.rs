@@ -1,5 +1,7 @@
+#[cfg(not(feature="safe"))]
 use custos::{CPU, Device, Buffer};
 
+#[cfg(not(feature="safe"))]
 #[test]
 fn test_drop_cpu() {
     let mut device = CPU::new();
@@ -12,6 +14,7 @@ fn test_drop_cpu() {
 }
 
 
+#[cfg(not(feature="safe"))]
 #[cfg(feature="opencl")]
 #[test]
 fn test_drop_cl() -> Result<(), custos::Error> {

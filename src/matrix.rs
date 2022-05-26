@@ -1,5 +1,5 @@
-#[cfg(feature="opencl")]
 use std::ffi::c_void;
+
 #[cfg(feature="opencl")]
 use crate::opencl::{InternCLDevice, CLCache, api::{enqueue_write_buffer, wait_for_event}};
 

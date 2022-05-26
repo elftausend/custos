@@ -58,17 +58,38 @@ impl core::fmt::Display for Error {
     }
 }
 
-/// Device
+/// ```
 pub trait Device<T> {
     /// Allocate memory
     /// # Example
     /// ```
-    /// use custos::{CPU, Device};
+    /// use custos::{CPU, Device, Buffer, VecRead};
     /// 
     /// let device = CPU::new();
     /// let ptrs: (*mut f32, *mut std::ffi::c_void) = device.alloc(12);
+    /// 
+    /// let buf = Buffer {
+    ///     ptr: ptrs,
+    ///     len: 12
+    /// };
+    /// assert_eq!(vec![0.; 12], device.read(&buf));
     /// ```
     fn alloc(&self, len: usize) -> (*mut T, *mut c_void);
+
+    /// Allocate new memory with data
+    /// # Example
+    /// ```
+    /// use custos::{CPU, Device, Buffer, VecRead};
+    /// 
+    /// let device = CPU::new();
+    /// let ptrs: (*mut u8, *mut std::ffi::c_void) = device.with_data(&[1, 5, 4, 3, 6, 9, 0, 4]);
+    /// 
+    /// let buf = Buffer {
+    ///     ptr: ptrs,
+    ///     len: 8
+    /// };
+    /// assert_eq!(vec![1, 5, 4, 3, 6, 9, 0, 4], device.read(&buf));
+    /// ```
     fn with_data(&self, data: &[T]) -> (*mut T, *mut c_void);
     fn alloc_with_vec(&self, vec: Vec<T>) -> (*mut T, *mut c_void) {
         self.with_data(&vec)
@@ -77,18 +98,30 @@ pub trait Device<T> {
     fn drop(&mut self, buf: Buffer<T>);
 }
 
-pub trait OpBounds {
-    
-}
-
 ///All 'base' traits?
 pub trait BaseDevice<T>: Device<T> + BaseOps<T> + VecRead<T> + Gemm<T> {}
 
+/// Assignment operations
+/// # Examples
+/// ```
+/// use custos::{CPU, Matrix, AssignOps, VecRead};
+/// 
+/// let device = CPU::new();
+/// let mut lhs = Matrix::from((&device, 2, 2, [3, 5, 4, 1]));
+/// let rhs = Matrix::from((&device, 2, 2, [1, 8, 6, 2]));
+/// 
+/// device.add_assign(&mut lhs, &rhs);
+/// assert_eq!(vec![4, 13, 10, 3], device.read(lhs.as_buf()));
+/// 
+/// device.sub_assign(&mut lhs, &rhs);
+/// assert_eq!(vec![3, 5, 4, 1], device.read(lhs.as_buf()));
+/// ```
 pub trait AssignOps<T> {
     fn add_assign(&self, lhs: &mut Matrix<T>, rhs: &Matrix<T>);
     fn sub_assign(&self, lhs: &mut Matrix<T>, rhs: &Matrix<T>);
 }
 
+#[cfg_attr(feature = "safe", doc = "```ignore")]
 /// Element-wise +, -, *, / operations for matrices.
 /// 
 /// # Examples
@@ -221,8 +254,6 @@ trait ManualMem<T> {
 pub trait CacheBuf<T> {
     fn cached_buf(&self, len: usize) -> Buffer<T>;
 }
-
-
 
 #[derive(Debug, Clone)]
 pub struct Dev {
@@ -366,7 +397,7 @@ macro_rules! get_device {
 ///     let read = get_device!(VecRead, f32)?;
 /// 
 ///     let matrix = Matrix::from(( &device, (2, 3), [1.51, 6.123, 7., 5.21, 8.62, 4.765]));
-///     let read = read.read(matrix.data());
+///     let read = read.read(matrix.as_buf());
 /// 
 ///     assert_eq!(&read, &[1.51, 6.123, 7., 5.21, 8.62, 4.765]);
 ///     let b = Matrix::from(( &device, (2, 3), [1., 1., 1., 1., 1., 1.]));
