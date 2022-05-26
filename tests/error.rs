@@ -5,7 +5,7 @@ use custos::{Error, DeviceError};
 fn test_error() {
     use custos::{opencl::api::OCLErrorKind, CLDevice};
 
-    let device = CLDevice::get(10000);
+    let device = CLDevice::get(100000);
         
     match device {
         Ok(_) => println!("ok?"),
@@ -35,8 +35,8 @@ fn test_questionmark() -> Result<(), Box<dyn std::error::Error>> {
 #[test]
 fn test_print_error() {
     let err = Error::from(DeviceError::NoDeviceSelected);
-    assert_eq!("No device selected, .select() was not called before get_device! call in current scope", &format!("{err}"));
-    assert_eq!("NoDeviceSelected", &format!("{err:?}"));
+    assert_eq!("No device selected, .select() on a device was not called before get_device! call", &format!("{err}"));
+    assert_eq!("No device selected, .select() on a device was not called before get_device! call", &format!("{err:?}"));
 }
 
 #[test]

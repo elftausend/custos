@@ -1,5 +1,5 @@
 
-use custos::{Buffer, Device, VecRead};
+use custos::{Buffer, Device, VecRead, cached, AsDev, get_count, set_count};
 #[cfg(feature="opencl")]
 use custos::{libs::{opencl::CLDevice, cpu::CPU}, Error};
 
@@ -100,3 +100,60 @@ fn test_use_number() {
     };
     assert_eq!(num, Box::new(10));
 }
+
+#[test]
+fn test_cached_cpu() {
+    let device = CPU::new().select();
+    
+    assert_eq!(0, get_count());
+    
+    let mut buf = cached::<f32>(10);
+    
+    assert_eq!(1, get_count());
+    
+    for value in buf.as_mut_slice() {
+        *value = 1.5;
+    }
+
+    let new_buf = cached::<i32>(10);
+    assert_eq!(device.read(&new_buf), vec![0; 10]);
+    assert_eq!(2, get_count());
+
+    set_count(0);
+    let buf = cached::<f32>(10);
+    
+    assert_eq!(device.read(&buf), vec![1.5; 10]);
+}
+
+/* 
+#[cfg(not(feature="safe"))]
+#[cfg(feature="opencl")]
+#[test]
+fn test_cached_cl() -> Result<(), custos::Error> {
+    use custos::opencl::api::{enqueue_write_buffer, wait_for_event};
+
+    let device = CLDevice::get(0)?.select();
+    let _ = Buffer::<f32>::new(&device, 1);
+
+    assert_eq!(0, get_count());
+    
+    let buf = cached::<f32>(10);
+    
+    assert_eq!(1, get_count());
+    
+    unsafe {
+        let event = enqueue_write_buffer(&device.queue(), buf.ptr.1, &[0.1; 10], true)?;
+     //   wait_for_event(event)?
+    }
+    
+    let new_buf = cached::<i32>(10);
+    assert_eq!(device.read(&new_buf), vec![0; 10]);
+    assert_eq!(2, get_count());
+    
+    set_count(0);
+    let buf = cached::<f32>(10);
+    
+    assert_eq!(device.read(&buf), vec![0.1; 10]);
+    Ok(())
+}
+*/

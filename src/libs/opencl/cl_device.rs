@@ -2,7 +2,7 @@ use std::{ffi::c_void, rc::Rc, cell::RefCell};
 
 use crate::{libs::opencl::api::{create_buffer, MemFlags}, BaseOps, Matrix, AsDev, Gemm, VecRead, BaseDevice, Error, Device, AssignOps, GenericOCL, ManualMem, Buffer, remove_ptr, CacheBuf, Node};
 
-use super::{api::{CLIntDevice, CommandQueue, Context, create_command_queue, create_context, enqueue_read_buffer, wait_for_event, release_mem_object, enqueue_write_buffer}, CL_DEVICES, tew, ocl_gemm, CL_CACHE, tew_self, CLCache, cl_clear};
+use super::{api::{CLIntDevice, CommandQueue, Context, create_command_queue, create_context, enqueue_read_buffer, wait_for_event, release_mem_object, enqueue_write_buffer}, CL_DEVICES, cl_tew, cl_gemm, CL_CACHE, cl_tew_self, CLCache, cl_clear};
 
 #[derive(Debug, Clone)]
 /// All traits related to mathematical operations need to be implemented for this struct in order to use them.
@@ -111,23 +111,23 @@ impl<T: GenericOCL> CacheBuf<T> for InternCLDevice {
 
 impl<T: GenericOCL> BaseOps<T> for InternCLDevice {
     fn add(&self, lhs: &Matrix<T>, rhs: &Matrix<T>) -> Matrix<T> {
-        let buf = tew(self, lhs.as_buf(), rhs.as_buf(), "+").unwrap();
+        let buf = cl_tew(self, lhs.as_buf(), rhs.as_buf(), "+").unwrap();
         (buf, lhs.dims()).into()
 
     }
 
     fn sub(&self, lhs: &Matrix<T>, rhs: &Matrix<T>) -> Matrix<T> {
-        let buf = tew(self, lhs.as_buf(), rhs.as_buf(), "-").unwrap();
+        let buf = cl_tew(self, lhs.as_buf(), rhs.as_buf(), "-").unwrap();
         (buf, lhs.dims()).into()
     }
 
     fn mul(&self, lhs: &Matrix<T>, rhs: &Matrix<T>) -> Matrix<T> {
-        let buf = tew(self, lhs.as_buf(), rhs.as_buf(), "*").unwrap();
+        let buf = cl_tew(self, lhs.as_buf(), rhs.as_buf(), "*").unwrap();
         (buf, lhs.dims()).into()
     }
 
     fn div(&self, lhs: &Matrix<T>, rhs: &Matrix<T>) -> Matrix<T> {
-        let buf = tew(self, lhs.as_buf(), rhs.as_buf(), "/").unwrap();
+        let buf = cl_tew(self, lhs.as_buf(), rhs.as_buf(), "/").unwrap();
         (buf, lhs.dims()).into()
     }
 
@@ -138,11 +138,11 @@ impl<T: GenericOCL> BaseOps<T> for InternCLDevice {
 
 impl<T: GenericOCL> AssignOps<T> for InternCLDevice {
     fn add_assign(&self, lhs: &mut Matrix<T>, rhs: &Matrix<T>) {
-        tew_self(self, lhs.as_mut_buf(), rhs.as_buf(), "+").unwrap()
+        cl_tew_self(self, lhs.as_mut_buf(), rhs.as_buf(), "+").unwrap()
     }
 
     fn sub_assign(&self, lhs: &mut Matrix<T>, rhs: &Matrix<T>) {
-        tew_self(self, lhs.as_mut_buf(), rhs.as_buf(), "-").unwrap()
+        cl_tew_self(self, lhs.as_mut_buf(), rhs.as_buf(), "-").unwrap()
     }
 }
 
@@ -150,7 +150,7 @@ impl<T: GenericOCL> Gemm<T> for InternCLDevice {
     fn gemm(&self, lhs: &Matrix<T>, rhs: &Matrix<T>) -> Matrix<T> {
         assert!(lhs.dims().1 == rhs.dims().0);
         //crate::opencl::ops::ocl_gemm1(self.clone(), rhs, lhs).unwrap()
-        let buf = ocl_gemm(self.clone(), rhs.cols(), rhs.rows(), lhs.rows(), rhs.as_buf(), lhs.as_buf()).unwrap();
+        let buf = cl_gemm(self.clone(), rhs.cols(), rhs.rows(), lhs.rows(), rhs.as_buf(), lhs.as_buf()).unwrap();
         (buf, (lhs.rows(), rhs.cols())).into()
     }
 }

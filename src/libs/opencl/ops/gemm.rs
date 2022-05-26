@@ -2,7 +2,7 @@ use std::fmt::Write;
 use crate::{libs::opencl::{KernelOptions, cl_device::InternCLDevice}, Error, GenericOCL, Buffer};
 
 
-pub fn ocl_gemm<T: GenericOCL>(device: InternCLDevice, m: usize, k: usize, n: usize, lhs: &Buffer<T>, rhs: &Buffer<T>) -> Result<Buffer<T>, Error> {
+pub fn cl_gemm<T: GenericOCL>(device: InternCLDevice, m: usize, k: usize, n: usize, lhs: &Buffer<T>, rhs: &Buffer<T>) -> Result<Buffer<T>, Error> {
     let mut mw = 1;
     for x in &[16, 8, 4, 2, 1] {
         if m % x == 0 {

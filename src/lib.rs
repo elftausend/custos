@@ -58,12 +58,22 @@ impl core::fmt::Display for Error {
     }
 }
 
+/// Device
 pub trait Device<T> {
+    /// Allocate memory
+    /// # Example
+    /// ```
+    /// use custos::{CPU, Device};
+    /// 
+    /// let device = CPU::new();
+    /// let ptrs: (*mut f32, *mut std::ffi::c_void) = device.alloc(12);
+    /// ```
     fn alloc(&self, len: usize) -> (*mut T, *mut c_void);
     fn with_data(&self, data: &[T]) -> (*mut T, *mut c_void);
     fn alloc_with_vec(&self, vec: Vec<T>) -> (*mut T, *mut c_void) {
         self.with_data(&vec)
     }
+    /// Frees the specified buffer. The pointer is removed from the pointers vector of a device.
     fn drop(&mut self, buf: Buffer<T>);
 }
 
@@ -79,7 +89,7 @@ pub trait AssignOps<T> {
     fn sub_assign(&self, lhs: &mut Matrix<T>, rhs: &Matrix<T>);
 }
 
-/// +, -, *, / operations for matrices.
+/// Element-wise +, -, *, / operations for matrices.
 /// 
 /// # Examples
 /// ```
@@ -97,25 +107,89 @@ pub trait AssignOps<T> {
 /// assert_eq!(sub.read(), vec![-10, 0, 3, 7, 15, 15]);
 /// ```
 pub trait BaseOps<T> {
+    /// Element-wise addition
+    /// # Example
+    /// ```
+    /// use custos::{CPU, Matrix, AsDev};
+    /// 
+    /// let device = CPU::new().select();
+    /// let a = Matrix::from((&device, 2, 3, [2, 4, 6, 8, 10, 12]));
+    /// let b = Matrix::from((&device, 2, 3, [12, 4, 3, 1, -5, -3]));
+    /// 
+    /// let c = a + b;
+    /// assert_eq!(c.read(), vec![14, 8, 9, 9, 5, 9]);
+    /// ```
     fn add(&self, lhs: &Matrix<T>, rhs: &Matrix<T>) -> Matrix<T>;
+    
+    /// Element-wise subtraction
+    /// # Example
+    /// ```
+    /// use custos::{CPU, Matrix, AsDev, BaseOps};
+    /// 
+    /// let device = CPU::new().select();
+    /// let a = Matrix::from((&device, 2, 3, [2, 4, 6, 8, 10, 12]));
+    /// let b = Matrix::from((&device, 2, 3, [12, 4, 3, 1, -5, -3]));
+    /// 
+    /// let sub = device.sub(&a, &b);
+    /// assert_eq!(sub.read(), vec![-10, 0, 3, 7, 15, 15]);
+    /// ```
     fn sub(&self, lhs: &Matrix<T>, rhs: &Matrix<T>) -> Matrix<T>;
+
+    /// Element-wise multiplication
+    /// # Example
+    /// ```
+    /// use custos::{CPU, Matrix, AsDev, BaseOps};
+    /// 
+    /// let device = CPU::new().select();
+    /// let a = Matrix::from((&device, 2, 3, [2, 4, 6, 8, 10, 12]));
+    /// let b = Matrix::from((&device, 2, 3, [12, 4, 3, 1, -5, -3]));
+    /// 
+    /// let mul = device.mul(&a, &b);
+    /// assert_eq!(mul.read(), vec![24, 16, 18, 8, -50, -36]);
+    /// ```
     fn mul(&self, lhs: &Matrix<T>, rhs: &Matrix<T>) -> Matrix<T>;
+
+    /// Element-wise division
+    /// # Example
+    /// ```
+    /// use custos::{CPU, Matrix, AsDev, BaseOps};
+    /// 
+    /// let device = CPU::new().select();
+    /// let a = Matrix::from((&device, 2, 3, [2, 4, 6, 8, 10, 12]));
+    /// let b = Matrix::from((&device, 2, 3, [12, 4, 3, 1, -5, -3]));
+    /// 
+    /// let div = device.div(&a, &b);
+    /// assert_eq!(div.read(), vec![0, 1, 2, 8, -2, -4]);
+    /// ```
     fn div(&self, lhs: &Matrix<T>, rhs: &Matrix<T>) -> Matrix<T>;
+
+    /// Sets all elements of the matrix to zero.
+    /// # Example
+    /// ```
+    /// use custos::{CPU, Matrix, AsDev, BaseOps};
+    /// 
+    /// let device = CPU::new().select();
+    /// let mut a = Matrix::from((&device, 2, 3, [2, 4, 6, 8, 10, 12]));
+    /// assert_eq!(a.read(), vec![2, 4, 6, 8, 10, 12]);
+    /// 
+    /// device.clear(&mut a);
+    /// assert_eq!(a.read(), vec![0; 6]);
+    /// ```
     fn clear(&self, matrix: &mut Matrix<T>);
 }
 
 /// Trait for reading buffers.
-/// 
-/// # Example
-/// ```
-/// use custos::{CPU, Buffer, VecRead};
-/// 
-/// let device = CPU::new();
-/// let a = Buffer::from((&device, [1., 2., 3., 3., 2., 1.,]));
-/// let read = device.read(&a);
-/// assert_eq!(vec![1., 2., 3., 3., 2., 1.,], read);
-/// ```
 pub trait VecRead<T> {
+    /// Read the data of a buffer into a vector
+    /// # Example
+    /// ```
+    /// use custos::{CPU, Buffer, VecRead};
+    /// 
+    /// let device = CPU::new();
+    /// let a = Buffer::from((&device, [1., 2., 3., 3., 2., 1.,]));
+    /// let read = device.read(&a);
+    /// assert_eq!(vec![1., 2., 3., 3., 2., 1.,], read);
+    /// ```
     fn read(&self, buf: &Buffer<T>) -> Vec<T>;
 }
 
@@ -193,7 +267,7 @@ pub trait AsDev {
     }
 }
 
-#[derive(Debug, Clone, Copy, Eq, Hash, Ord, PartialEq, PartialOrd)]
+#[derive(Clone, Copy, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub enum DeviceError {
     NoDeviceSelected
 }
@@ -201,8 +275,15 @@ pub enum DeviceError {
 impl DeviceError {
     pub fn as_str(&self) -> &'static str {
         match self {
-            DeviceError::NoDeviceSelected => "No device selected, .select() was not called before get_device! call in current scope",
+            DeviceError::NoDeviceSelected => "No device selected, .select() on a device was not called before get_device! call",
         }
+    }
+}
+
+impl core::fmt::Debug for DeviceError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.as_str())?;
+        Ok(())
     }
 }
 

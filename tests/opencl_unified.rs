@@ -3,7 +3,7 @@ use std::ffi::c_void;
 
 #[cfg(feature="opencl")]
 #[cfg(not(feature="safe"))]
-use custos::{CPU, Buffer, opencl::tew};
+use custos::{CPU, Buffer, opencl::cl_tew};
 #[cfg(feature="opencl")]
 use custos::{opencl::api::{clCreateBuffer, MemFlags, OCLErrorKind}, InternCLDevice};
 #[cfg(feature="opencl")]
@@ -146,7 +146,7 @@ fn test_unified_calc() -> Result<(), Error> {
         len,
     };
 
-    tew(&cl, &a, &b, "+")?;
+    cl_tew(&cl, &a, &b, "+")?;
 
 //    let ptr = unified_ptr(cl.queue(), a)?;
 //    let ptr = unified_ptr(cl.queue(), a)?;
