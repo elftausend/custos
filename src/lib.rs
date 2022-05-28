@@ -177,7 +177,7 @@ pub trait BaseOps<T> {
     /// let a = Matrix::from((&device, 2, 3, [2, 4, 6, 8, 10, 12]));
     /// let b = Matrix::from((&device, 2, 3, [12, 4, 3, 1, -5, -3]));
     /// 
-    /// let mul = device.mul(&a, &b);
+    /// let mul = a * b;
     /// assert_eq!(mul.read(), vec![24, 16, 18, 8, -50, -36]);
     /// ```
     fn mul(&self, lhs: &Matrix<T>, rhs: &Matrix<T>) -> Matrix<T>;
@@ -252,6 +252,26 @@ trait ManualMem<T> {
 }
 
 pub trait CacheBuf<T> {
+    #[cfg_attr(feature = "safe", doc = "```ignore")]
+    /// Adds a buffer to the cache. Following calls will return this buffer, if the corresponding internal count matches with the id used in the cache.
+    /// # Example
+    /// ```
+    /// use custos::{CPU, AsDev, VecRead, set_count, get_count, CacheBuf};
+    /// 
+    /// let device = CPU::new().select();
+    /// assert_eq!(0, get_count());
+    ///
+    /// let mut buf = CacheBuf::<f32>::cached_buf(&device, 10);
+    /// assert_eq!(1, get_count());
+    ///
+    /// for value in buf.as_mut_slice() {
+    ///     *value = 1.5;
+    /// }
+    ///    
+    /// set_count(0);
+    /// let buf = CacheBuf::<f32>::cached_buf(&device, 10);
+    /// assert_eq!(device.read(&buf), vec![1.5; 10]);
+    /// ```
     fn cached_buf(&self, len: usize) -> Buffer<T>;
 }
 

@@ -5,10 +5,6 @@ use std::{ffi::c_void, ptr::null_mut};
 use crate::opencl::api::{release_mem_object, clRetainMemObject};
 use crate::{Device, number::Number, GenericOCL, get_device, CacheBuf};
 
-pub fn cached<T: GenericOCL>(len: usize) -> Buffer<T> {
-    let device = get_device!(CacheBuf, T).unwrap();
-    device.cached_buf(len)
-}
 
 #[cfg_attr(not(feature = "safe"), derive(Debug, Clone, Copy))]
 #[cfg_attr(feature = "safe", derive(Debug))]
@@ -184,3 +180,36 @@ impl<T: GenericOCL> From<(*mut c_void, usize)> for Buffer<T> {
     }
 }
 
+#[cfg_attr(feature = "safe", doc = "```ignore")]
+/// Adds a buffer to the "cache chain". 
+/// Following calls will return this buffer, 
+/// if the corresponding internal count matches with the id used in the cache.
+/// 
+/// # 'safe' feature
+/// An empty buffer with the specified len is returned.
+/// 
+/// # Example
+/// ```
+/// use custos::{CPU, AsDev, cached, VecRead, set_count, get_count};
+/// 
+/// let device = CPU::new().select();
+/// assert_eq!(0, get_count());
+///
+/// let mut buf = cached::<f32>(10);
+/// assert_eq!(1, get_count());
+///
+/// for value in buf.as_mut_slice() {
+///     *value = 1.5;
+/// }
+///    
+/// let new_buf = cached::<i32>(10);
+/// assert_eq!(2, get_count());
+///
+/// set_count(0);
+/// let buf = cached::<f32>(10);
+/// assert_eq!(device.read(&buf), vec![1.5; 10]);
+/// ```
+pub fn cached<T: GenericOCL>(len: usize) -> Buffer<T> {
+    let device = get_device!(CacheBuf, T).unwrap();
+    device.cached_buf(len)
+}

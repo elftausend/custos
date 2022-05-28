@@ -1,5 +1,9 @@
 
-use custos::{Buffer, Device, VecRead, CPU, AsDev};
+
+#[cfg(not(feature="safe"))]
+use custos::{AsDev, CPU};
+
+use custos::{Buffer, Device, VecRead};
 #[cfg(feature="opencl")]
 use custos::{libs::opencl::CLDevice, Error};
 
@@ -47,6 +51,10 @@ fn test_cldevice_mem() -> Result<(), Error> {
     println!("get_max_mem_alloc_in_gb: {}", device.max_mem_alloc_in_gb()?);
     Ok(())
 }
+
+#[cfg(feature="opencl")]
+#[cfg(feature="safe")]
+use custos::CPU;
 
 #[cfg(feature="opencl")]
 #[test]
