@@ -474,25 +474,21 @@ impl<T: GenericOCL> core::ops::SubAssign<&Matrix<T>> for Matrix<T> {
     }
 }
 
-impl<'a, T: Number> core::fmt::Debug for Matrix<T> {
+impl<T: Number> core::fmt::Debug for Matrix<T> {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         let data = self.read();
-        let mut count = 0;
-        writeln!(f, "{:?}", self.dims).unwrap();
-        write!(f, "[").unwrap();
-        let max = self.dims.0*self.dims.1;
 
-        for value in &data {
-            write!(f, "{:?}, ", value).unwrap();
-            count+=1;
-            if count == max {
-                write!(f, "datatype={}]", core::any::type_name::<T>()).unwrap();
-            }
-            if count % self.dims.1 == 0 {
-                writeln!(f).unwrap();   
-            }
-        }
-        write!(f, "")
+        writeln!(f, "dims={:?}", self.dims)?;
+        write!(f, "[")?;
         
+        let max = self.dims.0*self.dims.1;
+        for (count, value) in data.iter().enumerate() {
+            write!(f, "{:?}, ", value)?;
+        
+            if (count+1) % self.dims.1 == 0 && count+1 != max {
+                writeln!(f)?;
+            }            
+        }       
+        write!(f, ":datatype={}]", core::any::type_name::<T>())
     }
 }

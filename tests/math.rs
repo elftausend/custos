@@ -191,8 +191,6 @@ pub fn roughly_equals<T: Float>(lhs: &[T], rhs: &[T], diff: T) {
     }
 }
 
-
-// not working
 #[cfg(not(target_os="macos"))]
 #[cfg(feature="opencl")]
 #[test]
@@ -272,7 +270,7 @@ fn test_larger_gemm_cl() {
 
     let c = a.gemm(&b);
 
-    roughly_equals(&device.read(c.as_buf()), &should, 1e-5);
+    roughly_equals(&device.read(c.as_buf()), &should, 1e-3);
 }
 
 #[test]
@@ -312,7 +310,7 @@ fn test_larger_gemm() {
     let b = Matrix::from(( &cpu, (7, 10), arr2));
 
     let cpu_c = a.gemm(&b);
-    roughly_equals(&cpu.read(cpu_c.as_buf()), &should, 0.);
+    roughly_equals(&cpu.read(cpu_c.as_buf()), &should, 1e-3);
     
 }
 

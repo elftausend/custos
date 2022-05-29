@@ -50,28 +50,29 @@ number_apply!(u128);
 number_apply!(usize);
 
 
-pub trait Number: Sized+Default+Clone+Copy+
-                    Add<Self, Output = Self>+
-                    Sub<Self, Output = Self>+
-                    Div<Self, Output = Self>+
-                    Mul<Self, Output = Self>+
+pub trait Number: 
+    Sized+Default+Copy+
+    Add<Self, Output = Self>+
+    Sub<Self, Output = Self>+
+    Div<Self, Output = Self>+
+    Mul<Self, Output = Self>+
 
-                    Add<&'static Self, Output = Self>+
-                    Sub<&'static Self, Output = Self>+
-                    Div<&'static Self, Output = Self>+
-                    Mul<&'static Self, Output = Self>+
-                    AddAssign<Self> + SubAssign<Self>+
-                    MulAssign<Self> + DivAssign<Self>
-                    + PartialOrd + PartialEq +
-                    'static + core::fmt::Debug + core::fmt::Display + {
-
-        fn from_usize(value: usize) -> Self;
-        fn from_u64(value: u64) -> Self;
-        fn as_usize(&self) -> usize;
-        fn as_f64(&self) -> f64;
-        fn zero() -> Self;
-        fn one() -> Self;
-        fn two() -> Self;
+    Add<&'static Self, Output = Self>+
+    Sub<&'static Self, Output = Self>+
+    Div<&'static Self, Output = Self>+
+    Mul<&'static Self, Output = Self>+
+    AddAssign<Self> + SubAssign<Self>+
+    MulAssign<Self> + DivAssign<Self>
+    + PartialOrd + PartialEq +
+    'static + core::fmt::Debug + core::fmt::Display + 
+{
+    fn from_usize(value: usize) -> Self;
+    fn from_u64(value: u64) -> Self;
+    fn as_usize(&self) -> usize;
+    fn as_f64(&self) -> f64;
+    fn zero() -> Self;
+    fn one() -> Self;
+    fn two() -> Self;
 }
 
 macro_rules! float_apply {

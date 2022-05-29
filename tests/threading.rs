@@ -117,6 +117,7 @@ use custos::cpu::CPU_CACHE;
 #[cfg(feature="opencl")]
 #[test]
 fn test_threading_cl_a() {
+    use custos::{opencl::CL_CACHE, cpu::CPU_CACHE};
     let device = CLDevice::get(0).unwrap().select();
 
     let th1_cl = std::thread::spawn(|| {
@@ -215,7 +216,7 @@ fn test_threading_cl_a() {
 
    // CL_CACHE.with(|f| assert!(f.borrow().output_nodes.len() == 1));
 
-use custos::{opencl::CL_CACHE, cpu::CPU_CACHE};
+    
 
     th1_cl.join().unwrap();
     th1_cpu.join().unwrap();

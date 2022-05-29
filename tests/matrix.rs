@@ -57,3 +57,12 @@ fn test_sub_assign_cl() {
     x -= &y;
     assert_eq!(x.read(), vec![-2, -2, -2, -2, -2, -2])
 }
+
+#[test]
+fn test_debug_fmt() {
+    let device = CPU::new().select();
+
+    let x = Matrix::<i32>::from((&device, (2, 3), [1, 2, 3, 4, 5, 6]));    
+    println!("{x:?}");
+    println!("x");
+}

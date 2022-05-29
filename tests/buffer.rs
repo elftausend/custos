@@ -146,7 +146,7 @@ fn test_cached_cl() -> Result<(), custos::Error> {
 
     let device = CLDevice::get(0)?.select();
     let _ = Buffer::<f32>::new(&device, 1);
-
+    
     assert_eq!(0, get_count());
     
     let buf = cached::<f32>(10);
