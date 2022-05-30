@@ -61,9 +61,9 @@ impl CLCache {
             .map(|matrix| OclPtr(matrix.0.ptr.1))
             .collect();
 
-        let cache = &mut self.arg_kernel_cache;
         let outputmem = output.map(|output| OclPtr(output.ptr.1));
         
+        let cache = &mut self.arg_kernel_cache;
         let kernel = cache.get(&(mems.clone(), type_ids.clone(), outputmem, src.clone()));
         match kernel { 
             Some(kernel) => Ok(kernel.clone()),

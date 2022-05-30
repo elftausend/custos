@@ -153,12 +153,11 @@ impl<'a, T: GenericOCL> KernelOptions<'a, T> {
     /// Runs the kernel with argumenths
     pub fn run(&'a mut self) -> Result<Buffer<T>, Error> {
         let kernel = CL_CACHE.with(|cache| cache.borrow_mut().arg_kernel_cache(self.device.clone(), &self.tensor_args, &self.number_args, self.output.as_ref(), self.src.to_string()))?;
-               
-        for index in 0..self.number_args.len() {
-            let arg = self.number_args.get(index).unwrap();
+        
+        for arg in &self.number_args {
             set_kernel_arg(&kernel, arg.1, &arg.0)
         }
-
+    
         enqueue_nd_range_kernel(&self.device.queue(), &kernel, self.wd, &self.gws, self.lws.as_ref(), self.offset)?;
     
         match &self.output {
