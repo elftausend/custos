@@ -58,6 +58,8 @@ impl core::fmt::Display for Error {
     }
 }
 
+pub type Result<T> = std::result::Result<T, Error>;
+
 /// ```
 pub trait Device<T> {
     /// Allocate memory

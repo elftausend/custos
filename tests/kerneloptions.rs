@@ -16,7 +16,7 @@ fn test_kernel_options() -> Result<(), Error> {
     ", datatype=i32::as_ocl_type_str());
 
     let gws = [lhs.len, 0, 0];
-    let out = KernelOptions::<i32>::new(&device, &lhs, gws, &src)
+    let out = KernelOptions::<i32>::new(&device, &lhs, gws, &src)?
         .with_rhs(&rhs)
         .with_output(lhs.len)
         .run()?;
@@ -39,7 +39,7 @@ fn test_kernel_options_num_arg() -> Result<(), Error> {
     ", datatype=i32::as_ocl_type_str());
 
     let gws = [lhs.len, 0, 0];
-    let out = KernelOptions::<i32>::new(&device, &lhs, gws, &src)
+    let out = KernelOptions::<i32>::new(&device, &lhs, gws, &src)?
         .add_arg(&3)
         .with_output(lhs.len)
         .run()?;

@@ -73,15 +73,15 @@ impl CLCache {
                 let kernel = &create_kernels_in_program(&program)?[0];
                 
                 for (number, idx) in numbers {
-                    set_kernel_arg(kernel, *idx, number)
+                    set_kernel_arg(kernel, *idx, number)?
                 }
 
                 for (buf, idx) in buffers {
-                    set_kernel_arg(kernel, *idx, &(buf.ptr.1));
+                    set_kernel_arg(kernel, *idx, &(buf.ptr.1))?;
                 }
 
                 if let Some(mem) = outputmem {
-                    set_kernel_arg(kernel, mems.len()+type_ids.len(), &mem);
+                    set_kernel_arg(kernel, mems.len()+type_ids.len(), &mem)?;
                 }
 
                 cache.insert((mems, type_ids, outputmem, src), kernel.clone());

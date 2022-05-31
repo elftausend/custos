@@ -90,7 +90,7 @@ pub fn cl_gemm<T: GenericOCL>(device: InternCLDevice, m: usize, k: usize, n: usi
 
     let gws = [f, s, 0];
     
-    KernelOptions::new(&device, lhs, gws, &src)
+    KernelOptions::new(&device, lhs, gws, &src)?
         .with_rhs(rhs)
         .with_output(n*m)
         .run()    

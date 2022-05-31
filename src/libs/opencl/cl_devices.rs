@@ -30,7 +30,7 @@ impl CLDevices {
         if device_idx < self.current_devices.len() {
             Ok(self.current_devices[device_idx].clone())
         } else {
-            Err(Error::from(OCLErrorKind::InvalidDeviceIdx))
+            Err(OCLErrorKind::InvalidDeviceIdx.into())
         }
     }
 }

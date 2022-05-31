@@ -469,11 +469,13 @@ pub fn release_kernel(kernel: &mut Kernel) -> Result<(), Error>{
     Ok(())
 }
 
-pub fn set_kernel_arg<T>(kernel: &Kernel, index: usize, arg: &T) {
+pub fn set_kernel_arg<T>(kernel: &Kernel, index: usize, arg: &T) -> Result<(), Error> {
+    println!("index: {index}");
     let value = unsafe {clSetKernelArg(kernel.0, index as u32, core::mem::size_of::<T>(), arg as *const T as *const c_void)};
     if value != 0 {
-        let _ = Error::from(OCLErrorKind::from_value(value));
+        return Err(Error::from(OCLErrorKind::from_value(value)));
     }
+    Ok(())
 }
 /* 
 pub fn set_kernel_arg_c(kernel: &Kernel, index: usize, arg: *const c_void, size: usize) {

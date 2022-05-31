@@ -168,3 +168,12 @@ fn test_cached_cl() -> Result<(), custos::Error> {
     assert_eq!(device.read(&buf), vec![0.1; 10]);
     Ok(())
 }
+
+
+#[test]
+fn test_size_buf() {
+    let _device = CPU::new();
+
+    let x = core::mem::size_of::<Buffer<i8>>();
+    println!("x: {x}");
+}

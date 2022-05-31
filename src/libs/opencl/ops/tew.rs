@@ -48,7 +48,7 @@ pub fn cl_tew<T: GenericOCL>(device: &InternCLDevice, lhs: &Buffer<T>, rhs: &Buf
     ", datatype=T::as_ocl_type_str());
 
     let gws = [lhs.len, 0, 0];
-    KernelOptions::<T>::new(device, lhs, gws, &src)
+    KernelOptions::<T>::new(device, lhs, gws, &src)?
         .with_rhs(rhs)
         .with_output(lhs.len)
         .run()
@@ -79,9 +79,8 @@ pub fn cl_tew_self<T: GenericOCL>(device: &InternCLDevice, lhs: &mut Buffer<T>, 
     ", datatype=T::as_ocl_type_str());
 
     let gws = [lhs.len, 0, 0];
-    KernelOptions::<T>::new(device, lhs, gws, &src)
+    KernelOptions::<T>::new(device, lhs, gws, &src)?
         .with_rhs(rhs)
-        .with_output(lhs.len)
         .run()?;
     Ok(())
     

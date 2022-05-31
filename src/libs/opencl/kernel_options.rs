@@ -1,6 +1,6 @@
 use crate::{matrix::Matrix, number::Number, Error, GenericOCL, Buffer, Node};
 
-use super::{api::{enqueue_nd_range_kernel, set_kernel_arg}, CL_CACHE, CLCache, cl_device::InternCLDevice};
+use super::{api::{enqueue_nd_range_kernel, set_kernel_arg, OCLErrorKind}, CL_CACHE, CLCache, cl_device::InternCLDevice};
 
 pub trait KernelArg<'a, T> {
     fn buf(&'a self) -> Option<&'a Buffer<T>> {
@@ -67,7 +67,7 @@ impl<'a, T: Number> KernelArg<'a, T> for T {
 ///     ", datatype=i32::as_ocl_type_str());
 /// 
 ///     let gws = [lhs.len, 0, 0];
-///     let out = KernelOptions::<i32>::new(&device, &lhs, gws, &src)
+///     let out = KernelOptions::<i32>::new(&device, &lhs, gws, &src)?
 ///         .with_rhs(&rhs)
 ///         .with_output(lhs.len)
 ///         .run()?;
@@ -91,10 +91,11 @@ pub struct KernelOptions<'a, T> {
 }
 
 impl<'a, T: GenericOCL> KernelOptions<'a, T> {
-    pub fn new(device: &InternCLDevice, lhs: &'a Buffer<T>, gws: [usize; 3], src: &'a str) -> KernelOptions<'a, T> {
+    pub fn new(device: &InternCLDevice, lhs: &'a Buffer<T>, gws: [usize; 3], src: &'a str) -> crate::Result<KernelOptions<'a, T>> {
+
         let wd;
         if gws[0] == 0 {
-            panic!("wrong gws")
+            return Err(OCLErrorKind::InvalidGlobalWorkSize.into());
         } else if gws[1] == 0 {
             wd=1;
         } else if gws[2] == 0 {
@@ -103,7 +104,7 @@ impl<'a, T: GenericOCL> KernelOptions<'a, T> {
             wd=3;
         }
         let tensor_args = vec![(lhs, 0)];
-        KernelOptions {
+        Ok(KernelOptions {
             src,
             lhs,
             rhs: None,
@@ -115,7 +116,7 @@ impl<'a, T: GenericOCL> KernelOptions<'a, T> {
             offset: None,
             wd,
             device: device.clone(),
-        }
+        })
     }
     pub fn with_lws(&mut self, lws: [usize; 3]) -> &mut KernelOptions<'a, T> {
         self.lws = Some(lws);
@@ -150,12 +151,12 @@ impl<'a, T: GenericOCL> KernelOptions<'a, T> {
         self
     }
 
-    /// Runs the kernel with argumenths
+    /// Runs the kernel
     pub fn run(&'a mut self) -> Result<Buffer<T>, Error> {
         let kernel = CL_CACHE.with(|cache| cache.borrow_mut().arg_kernel_cache(self.device.clone(), &self.tensor_args, &self.number_args, self.output.as_ref(), self.src.to_string()))?;
         
         for arg in &self.number_args {
-            set_kernel_arg(&kernel, arg.1, &arg.0)
+            set_kernel_arg(&kernel, arg.1, &arg.0)?
         }
     
         enqueue_nd_range_kernel(&self.device.queue(), &kernel, self.wd, &self.gws, self.lws.as_ref(), self.offset)?;

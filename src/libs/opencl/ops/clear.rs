@@ -24,6 +24,6 @@ pub fn cl_clear<T: GenericOCL>(device: &InternCLDevice, lhs: &mut Buffer<T>) -> 
     ", datatype=T::as_ocl_type_str());
 
     let gws = [lhs.len, 0, 0];
-    KernelOptions::<T>::new(device, lhs, gws, &src)
+    KernelOptions::<T>::new(device, lhs, gws, &src)?
         .run()
 }

@@ -24,7 +24,7 @@ fn test_cl_offset() -> Result<(), Error> {
     let skip = 1 * 3; // 1 * cols
 
     let gws = [lhs.len-skip, 0, 0];
-    let out = KernelOptions::<f32>::new(&device, &lhs, gws, &src)
+    let out = KernelOptions::<f32>::new(&device, &lhs, gws, &src)?
         .with_rhs(&rhs)
         .with_output(lhs.len)
         .with_offset([skip, 0, 0])
