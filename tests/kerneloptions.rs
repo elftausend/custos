@@ -1,4 +1,4 @@
-use custos::{Error, CLDevice, Buffer, GenericOCL, opencl::KernelOptions, VecRead};
+use custos::{Error, CLDevice, Buffer, GenericOCL, opencl::{KernelOptions, KernelRunner}, VecRead};
 
 
 #[test]
@@ -32,15 +32,15 @@ fn test_kernel_options_num_arg() -> Result<(), Error> {
     let lhs = Buffer::<i32>::from((&device, [1, 5, 3, 2, 7, 8]));
 
     let src = format!("
-        __kernel void add_scalar(__global {datatype}* self, {datatype} rhs, __global {datatype}* out) {{
+        __kernel void add_scalar(__global {datatype}* self, float rhs, __global {datatype}* out) {{
             size_t id = get_global_id(0);
             out[id] = self[id]+rhs;
         }}
     ", datatype=i32::as_ocl_type_str());
 
     let gws = [lhs.len, 0, 0];
-    let out = KernelOptions::<i32>::new(&device, &lhs, gws, &src)?
-        .add_arg(&3)
+    let out = KernelRunner::<i32>::new(&device, &lhs, gws, &src)?
+        .add_arg(&3f32)
         .with_output(lhs.len)
         .run()?;
 

@@ -22,7 +22,6 @@ where F: Fn(T, T) -> T {
 
 pub fn element_wise_op_mut<T: Copy, F>(lhs: &[T], rhs: &[T], out: &mut [T], f: F) where F: Fn(T, T) -> T 
 {
-    
     let len = core::cmp::min(lhs.len(), rhs.len());
     let lhs = &lhs[..len];
     let rhs = &rhs[..len];
@@ -32,5 +31,4 @@ pub fn element_wise_op_mut<T: Copy, F>(lhs: &[T], rhs: &[T], out: &mut [T], f: F
     for idx in 0..len {
         out_slice[idx] = f(lhs[idx], rhs[idx])
     }
-
 }

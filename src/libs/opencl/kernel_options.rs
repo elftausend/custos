@@ -1,6 +1,8 @@
+use std::ffi::c_void;
+
 use crate::{matrix::Matrix, number::Number, Error, GenericOCL, Buffer, Node};
 
-use super::{api::{enqueue_nd_range_kernel, set_kernel_arg, OCLErrorKind}, CL_CACHE, CLCache, cl_device::InternCLDevice};
+use super::{api::{enqueue_nd_range_kernel, set_kernel_arg, OCLErrorKind, set_kernel_arg_ptr}, CL_CACHE, CLCache, cl_device::InternCLDevice};
 
 pub trait KernelArg<'a, T> {
     fn buf(&'a self) -> Option<&'a Buffer<T>> {
@@ -88,12 +90,9 @@ impl<'a, T: Number> KernelArg<'a, T> for T {
 pub struct KernelOptions<'a, T> {
     src: &'a str,
     lhs: &'a Buffer<T>,
-    rhs: Option<&'a Buffer<T>>,
     output: Option<Buffer<T>>,
     tensor_args: Vec<(&'a Buffer<T>, usize)>,
     number_args: Vec<(T, usize)>,
-    _buf_args: Vec<(*mut usize, usize)>,
-    _num_args: Vec<(*mut usize, usize, usize)>,
     gws: [usize; 3],
     lws: Option<[usize; 3]>,
     offset: Option<[usize; 3]>,
@@ -118,10 +117,7 @@ impl<'a, T: GenericOCL> KernelOptions<'a, T> {
         Ok(KernelOptions {
             src,
             lhs,
-            rhs: None,
             output: None,
-            _buf_args: vec![(lhs.ptr.1 as *mut usize, 1)],
-            _num_args: Vec::new(),
             tensor_args,
             number_args: Vec::new(),
             gws,
@@ -144,7 +140,6 @@ impl<'a, T: GenericOCL> KernelOptions<'a, T> {
     /// Sets buffer to index 1 for the kernel argument list
     pub fn with_rhs(&mut self, rhs: &'a Buffer<T>) -> &mut KernelOptions<'a, T> {
         self.tensor_args.push((rhs, 1));
-        self.rhs = Some(rhs);
         self
     }
     /// Adds value (Matrix<T> or T) to the kernel argument list
@@ -154,16 +149,6 @@ impl<'a, T: GenericOCL> KernelOptions<'a, T> {
         match arg.number() {
             Some(number) => self.number_args.push((number, idx)),
             None => self.tensor_args.push((arg.buf().unwrap(), idx)),
-        }
-        self
-    }
-
-    pub fn add_arg1<U: 'a, A: KernelArg<'a, U>>(&'a mut self, _arg: &'a A) -> &mut KernelOptions<'a, T> {
-        let _idx = self._buf_args.len() + self._num_args.len();
-        
-        match _arg.as_number() {
-            Some(number) => self._num_args.push((number as *const U as *mut usize, _idx, core::mem::size_of::<U>())),
-            None => self._buf_args.push((_arg.buf().unwrap().ptr.1 as *mut usize, _idx)),
         }
         self
     }
@@ -182,6 +167,97 @@ impl<'a, T: GenericOCL> KernelOptions<'a, T> {
             set_kernel_arg(&kernel, arg.1, &arg.0)?
         }
     
+        enqueue_nd_range_kernel(&self.device.queue(), &kernel, self.wd, &self.gws, self.lws.as_ref(), self.offset)?;
+    
+        match &self.output {
+            Some(out) => Ok(out.clone()),
+            None => Ok(self.lhs.clone()),
+        }
+    }
+}
+
+type ValueIdxSize = (*mut usize, usize, usize);
+
+pub struct KernelRunner<'a, T> {
+    src: &'a str,
+    lhs: &'a Buffer<T>,
+    output: Option<Buffer<T>>,
+    buf_args: Vec<(*mut c_void, usize)>,
+    num_args: Vec<ValueIdxSize>,
+    gws: [usize; 3],
+    lws: Option<[usize; 3]>,
+    offset: Option<[usize; 3]>,
+    wd: usize,
+    device: InternCLDevice,
+}
+
+impl<'a, T: GenericOCL> KernelRunner<'a, T> {
+    pub fn new(device: &InternCLDevice, lhs: &'a Buffer<T>, gws: [usize; 3], src: &'a str) -> crate::Result<KernelRunner<'a, T>> {
+
+        let wd;
+        if gws[0] == 0 {
+            return Err(OCLErrorKind::InvalidGlobalWorkSize.into());
+        } else if gws[1] == 0 {
+            wd=1;
+        } else if gws[2] == 0 {
+            wd=2;
+        } else {
+            wd=3;
+        }
+        
+        Ok(KernelRunner {
+            src,
+            lhs,
+            output: None,
+            buf_args: vec![(lhs.ptr.1, 0)],
+            num_args: Vec::new(),
+            gws,
+            lws: None,
+            offset: None,
+            wd,
+            device: device.clone(),
+        })
+    }
+    pub fn with_lws(&mut self, lws: [usize; 3]) -> &mut KernelRunner<'a, T> {
+        self.lws = Some(lws);
+        self
+    }
+
+    pub fn with_offset(&mut self, offset: [usize; 3]) -> &mut Self {
+        self.offset = Some(offset);
+        self
+    }
+
+    /// Sets buffer to index 1 for the kernel argument list
+    pub fn with_rhs(&mut self, rhs: &'a Buffer<T>) -> &mut KernelRunner<'a, T> {
+        self.buf_args.push((rhs.ptr.1, 1));
+        self
+    }
+    /// Adds value (Matrix<T> or T) to the kernel argument list
+    pub fn add_arg<U: 'a, A: KernelArg<'a, U>>(&'a mut self, _arg: &'a A) -> &mut KernelRunner<'a, T> {
+        let _idx = self.buf_args.len() + self.num_args.len();
+
+        match _arg.as_number() {
+            Some(number) => self.num_args.push((number as *const U as *mut usize, _idx, core::mem::size_of::<U>())),
+            None => self.buf_args.push((_arg.buf().unwrap().ptr.1, _idx)),
+        }
+        self
+    }
+
+    /// Adds output
+    pub fn with_output(&mut self, out_len: usize) -> &mut KernelRunner<'a, T> {
+        self.output = Some(CLCache::get(self.device.clone(), Node::new(out_len)));
+        self
+    }
+
+    /// Runs the kernel
+    pub fn run(&'a mut self) -> Result<Buffer<T>, Error> {
+        let kernel = CL_CACHE.with(|cache| cache.borrow_mut().arg_kernel_cache1(self.device.clone(), &self.buf_args, &self.num_args, self.output.as_ref(), self.src.to_string()))?;
+        
+        for arg in &self.num_args {
+            set_kernel_arg_ptr(&kernel, arg.1, arg.0, arg.2)?
+        }
+
         enqueue_nd_range_kernel(&self.device.queue(), &kernel, self.wd, &self.gws, self.lws.as_ref(), self.offset)?;
     
         match &self.output {
