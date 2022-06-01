@@ -9,6 +9,9 @@ pub trait KernelArg<'a, T> {
     fn number(&self) -> Option<T> {
         None
     }
+    fn as_number(&'a self) -> Option<&'a T> {
+        None
+    }
 }
 
 impl<'a, T: Copy> KernelArg<'a, T> for Matrix<T> {
@@ -39,7 +42,13 @@ impl<'a, T: Number> KernelArg<'a, T> for T {
     fn number(&self) -> Option<T> {
         Some(*self)
     }
+
+    fn as_number(&'a self) -> Option<&'a T> {
+        Some(self)
+    }
 }
+
+
 /// Provides an API to run and cache OpenCL kernels.
 /// 
 /// # Errors
@@ -83,6 +92,8 @@ pub struct KernelOptions<'a, T> {
     output: Option<Buffer<T>>,
     tensor_args: Vec<(&'a Buffer<T>, usize)>,
     number_args: Vec<(T, usize)>,
+    _buf_args: Vec<(*mut usize, usize)>,
+    _num_args: Vec<(*mut usize, usize, usize)>,
     gws: [usize; 3],
     lws: Option<[usize; 3]>,
     offset: Option<[usize; 3]>,
@@ -109,6 +120,8 @@ impl<'a, T: GenericOCL> KernelOptions<'a, T> {
             lhs,
             rhs: None,
             output: None,
+            _buf_args: vec![(lhs.ptr.1 as *mut usize, 1)],
+            _num_args: Vec::new(),
             tensor_args,
             number_args: Vec::new(),
             gws,
@@ -141,6 +154,16 @@ impl<'a, T: GenericOCL> KernelOptions<'a, T> {
         match arg.number() {
             Some(number) => self.number_args.push((number, idx)),
             None => self.tensor_args.push((arg.buf().unwrap(), idx)),
+        }
+        self
+    }
+
+    pub fn add_arg1<U: 'a, A: KernelArg<'a, U>>(&'a mut self, _arg: &'a A) -> &mut KernelOptions<'a, T> {
+        let _idx = self._buf_args.len() + self._num_args.len();
+        
+        match _arg.as_number() {
+            Some(number) => self._num_args.push((number as *const U as *mut usize, _idx, core::mem::size_of::<U>())),
+            None => self._buf_args.push((_arg.buf().unwrap().ptr.1 as *mut usize, _idx)),
         }
         self
     }

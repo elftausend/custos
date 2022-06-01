@@ -470,13 +470,21 @@ pub fn release_kernel(kernel: &mut Kernel) -> Result<(), Error>{
 }
 
 pub fn set_kernel_arg<T>(kernel: &Kernel, index: usize, arg: &T) -> Result<(), Error> {
-    println!("index: {index}");
     let value = unsafe {clSetKernelArg(kernel.0, index as u32, core::mem::size_of::<T>(), arg as *const T as *const c_void)};
     if value != 0 {
         return Err(Error::from(OCLErrorKind::from_value(value)));
     }
     Ok(())
 }
+
+pub(crate) fn set_kernel_arg_ptr(kernel: &Kernel, index: usize, arg: *mut usize, arg_size: usize) -> Result<(), Error> {
+    let value = unsafe {clSetKernelArg(kernel.0, index as u32, arg_size, arg as *const c_void)};
+    if value != 0 {
+        return Err(Error::from(OCLErrorKind::from_value(value)));
+    }
+    Ok(())
+}
+
 /* 
 pub fn set_kernel_arg_c(kernel: &Kernel, index: usize, arg: *const c_void, size: usize) {
     error("clSetKernelArg", unsafe {clSetKernelArg(kernel.0, index as u32, size, arg)});
