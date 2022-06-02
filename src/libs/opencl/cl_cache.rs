@@ -1,6 +1,6 @@
 use std::{any::TypeId, collections::HashMap, ffi::c_void, cell::RefCell};
 use crate::{Error, GenericOCL, Node};
-use super::{api::{build_program, create_kernels_in_program, create_program_with_source, Kernel, set_kernel_arg, set_kernel_arg_ptr}, cl_device::InternCLDevice};
+use super::{api::{build_program, create_kernels_in_program, create_program_with_source, Kernel, set_kernel_arg, set_kernel_arg_ptr}, cl_device::InternCLDevice, PtrIdxSize, PtrIdxLen};
 
 #[cfg(feature="opencl")]
 use crate::Buffer;
@@ -91,7 +91,7 @@ impl CLCache {
         
     }
 
-    pub fn arg_kernel_cache1<T: GenericOCL>(&mut self, device: InternCLDevice, buffers: &[(*mut c_void, usize)], numbers: &[(*mut usize, usize, usize)], output: Option<&Buffer<T>>, src: String) -> Result<Kernel, Error> {
+    pub fn arg_kernel_cache1<T: GenericOCL>(&mut self, device: InternCLDevice, buffers: &[PtrIdxLen], numbers: &[PtrIdxSize], output: Option<&Buffer<T>>, src: String) -> Result<Kernel, Error> {
         let type_ids = vec![TypeId::of::<T>(); numbers.len()];
         
         let mems: Vec<OclPtr> = buffers.iter()
@@ -114,7 +114,7 @@ impl CLCache {
                     set_kernel_arg_ptr(kernel, *idx, *number, *arg_size)?
                 }
 
-                for (buf, idx) in buffers {
+                for (buf, idx, _) in buffers {
                     set_kernel_arg(kernel, *idx, buf)?;
                 }
 

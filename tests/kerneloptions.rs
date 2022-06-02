@@ -1,6 +1,8 @@
+
+#[cfg(feature="opencl")] 
 use custos::{Error, CLDevice, Buffer, GenericOCL, opencl::{KernelOptions, KernelRunner}, VecRead};
 
-
+#[cfg(feature="opencl")] 
 #[test]
 fn test_kernel_options() -> Result<(), Error> {
     let device = CLDevice::get(0)?;
@@ -25,11 +27,12 @@ fn test_kernel_options() -> Result<(), Error> {
     Ok(())
 }
 
+#[cfg(feature="opencl")] 
 #[test]
 fn test_kernel_options_num_arg() -> Result<(), Error> {
     let device = CLDevice::get(0)?;
 
-    let lhs = Buffer::<i32>::from((&device, [1, 5, 3, 2, 7, 8]));
+    let mut lhs = Buffer::<i32>::from((&device, [1, 5, 3, 2, 7, 8]));
 
     let src = format!("
         __kernel void add_scalar(__global {datatype}* self, float rhs, __global {datatype}* out) {{
@@ -39,11 +42,34 @@ fn test_kernel_options_num_arg() -> Result<(), Error> {
     ", datatype=i32::as_ocl_type_str());
 
     let gws = [lhs.len, 0, 0];
-    let out = KernelRunner::<i32>::new(&device, &lhs, gws, &src)?
-        .add_arg(&3f32)
-        .with_output(lhs.len)
-        .run()?;
+    let out = KernelRunner::<i32>::new(&device, &mut lhs, gws, &src)?
+        .add_arg(&mut 3f32)
+        .with_output(gws[0])
+        .run()?.unwrap();
 
     assert_eq!(device.read(&out), vec![4, 8, 6, 5, 10, 11]);
+    Ok(())
+}
+
+#[cfg(feature="opencl")] 
+#[test]
+fn test_kernel_options_num_arg_assign() -> Result<(), Error> {
+    let device = CLDevice::get(0)?;
+
+    let mut lhs = Buffer::<i32>::from((&device, [1, 5, 3, 2, 7, 8]));
+
+    let src = format!("
+        __kernel void add_assign_scalar(__global {datatype}* self, float rhs) {{
+            size_t id = get_global_id(0);
+            self[id] += rhs;
+        }}
+    ", datatype=i32::as_ocl_type_str());
+
+    let gws = [lhs.len, 0, 0];
+    KernelRunner::<i32>::new(&device, &mut lhs, gws, &src)?
+        .add_arg(&mut 3f32)
+        .run()?;
+
+    assert_eq!(device.read(&lhs), vec![4, 8, 6, 5, 10, 11]);
     Ok(())
 }

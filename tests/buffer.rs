@@ -172,8 +172,6 @@ fn test_cached_cl() -> Result<(), custos::Error> {
 
 #[test]
 fn test_size_buf() {
-    let _device = CPU::new();
-
     let x = core::mem::size_of::<Buffer<i8>>();
     println!("x: {x}");
 }
