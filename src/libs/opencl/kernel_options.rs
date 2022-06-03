@@ -229,7 +229,7 @@ impl<'a, T: GenericOCL> KernelRunner<'a, T> {
         self.offset = Some(offset);
         self
     }
-
+    
     /// Adds value (Matrix<U> or Buffer<U> or U) to the kernel argument list
     pub fn add_arg<U: 'a, A: KernelArg<'a, U>>(&'a mut self, arg: &'a mut A) -> &mut KernelRunner<'a, T> {
         let idx = self.buf_args.len() + self.num_args.len();
