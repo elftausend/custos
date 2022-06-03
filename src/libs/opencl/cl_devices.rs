@@ -5,7 +5,7 @@ use super::{api::{DeviceType, get_device_ids, get_platforms, OCLErrorKind}, cl_d
 
 
 lazy_static::lazy_static! {
-    pub static ref CL_DEVICES: CLDevices = CLDevices::new();
+    pub static ref CL_DEVICES: CLDevices = CLDevices::new().unwrap();
 }
 
 #[derive(Debug)]
@@ -14,16 +14,16 @@ pub struct CLDevices {
 }
 
 impl CLDevices {
-    fn new() -> CLDevices {
+    fn new() -> Result<CLDevices, crate::Error> {
         let mut current_devices = Vec::new();
         
-        let platform = get_platforms().unwrap()[0];
-        let devices = get_device_ids(platform, &(DeviceType::GPU as u64)).unwrap();
+        let platform = get_platforms()?[0];
+        let devices = get_device_ids(platform, &(DeviceType::GPU as u64))?;
     
         for device in devices {
-            current_devices.push(CLDevice::new(device).unwrap())
+            current_devices.push(CLDevice::new(device)?)
         }
-        CLDevices { current_devices }
+        Ok(CLDevices { current_devices })
     }
 
     pub fn current(&self, device_idx: usize) -> Result<CLDevice, Error> {
@@ -37,6 +37,6 @@ impl CLDevices {
 
 impl Default for CLDevices {
     fn default() -> Self {
-        Self::new()
+        Self::new().unwrap()
     }
 }

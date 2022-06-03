@@ -264,6 +264,5 @@ impl<'a, T: GenericOCL> KernelRunner<'a, T> {
             return Ok(Some(output));
         }
         Ok(None)
-        
     }
 }

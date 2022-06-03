@@ -238,18 +238,16 @@ impl Drop for CLDevice {
             
             unsafe { release_mem_object(*ptr).unwrap() };
 
-            contents.iter()
-                .for_each(|entry| {
-                    let hm_ptr = ((entry.1).0).0;
+            for entry in &contents {
+                let hm_ptr = ((entry.1).0).0;
 
-                    if &hm_ptr == ptr {
-                        CL_CACHE.with(|cache| {
-                            cache.borrow_mut().nodes.remove(entry.0);
-                        });                        
-                    }
-                });
+                if &hm_ptr == ptr {
+                    CL_CACHE.with(|cache| {
+                        cache.borrow_mut().nodes.remove(entry.0);
+                    });
+                }
+            }
         }
-
         self.ptrs.clear();
     }
 }
