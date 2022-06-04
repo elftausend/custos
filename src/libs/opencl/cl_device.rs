@@ -95,11 +95,23 @@ impl<T> Device<T> for InternCLDevice {
 #[cfg(feature="safe")]
 impl<T> Device<T> for InternCLDevice {
     fn alloc(&self, len: usize) -> (*mut T, *mut c_void) {
-        (std::ptr::null_mut(), create_buffer::<T>(&self.ctx(), MemFlags::MemReadWrite as u64, len, None).unwrap())
+        let ptr = create_buffer::<T>(&self.ctx(), MemFlags::MemReadWrite as u64, len, None).unwrap();
+        let cpu_ptr = if self.unified_mem() {
+            unified_ptr::<T>(self.queue(), ptr, len).unwrap()
+        } else {
+            std::ptr::null_mut()
+        };
+        (cpu_ptr, ptr)
     }
 
     fn with_data(&self, data: &[T]) -> (*mut T, *mut c_void) {
-        (std::ptr::null_mut(), create_buffer::<T>(&self.ctx(), MemFlags::MemReadWrite | MemFlags::MemCopyHostPtr, data.len(), Some(data)).unwrap())
+        let ptr = create_buffer::<T>(&self.ctx(), MemFlags::MemReadWrite | MemFlags::MemCopyHostPtr, data.len(), Some(data)).unwrap();
+        let cpu_ptr = if self.unified_mem() {
+            unified_ptr::<T>(self.queue(), ptr, data.len()).unwrap()
+        } else {
+            std::ptr::null_mut()
+        };
+        (cpu_ptr, ptr)
     }
 
     fn drop(&mut self, buf: Buffer<T>) {

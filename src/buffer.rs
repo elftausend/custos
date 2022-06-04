@@ -3,7 +3,10 @@ use std::{ffi::c_void, ptr::null_mut};
 #[cfg(feature="opencl")]
 #[cfg(feature="safe")]
 use crate::opencl::api::{release_mem_object, clRetainMemObject};
-use crate::{Device, number::Number, GenericOCL, get_device, CacheBuf};
+use crate::{Device, GenericOCL, get_device, CacheBuf};
+
+#[cfg(not(feature="safe"))]
+use crate::number::Number;
 
 
 #[cfg_attr(not(feature = "safe"), derive(Debug, Clone, Copy))]
@@ -48,6 +51,7 @@ impl<T: Default+Copy> Buffer<T> {
         }
     }
 
+    #[cfg(not(feature="safe"))]
     /// Used if the buffer contains only a single value.
     /// 
     /// # Example
@@ -92,9 +96,10 @@ impl<T> Clone for Buffer<T> {
 impl<T> Drop for Buffer<T> {
     fn drop(&mut self) {
         unsafe {
-            if !self.ptr.0.is_null() {
+            if !self.ptr.0.is_null() && self.ptr.1.is_null() {
                 Box::from_raw(self.ptr.0);
             }
+            
             #[cfg(feature="opencl")]
             if !self.ptr.1.is_null() {
                 release_mem_object(self.ptr.1).unwrap()
@@ -139,7 +144,7 @@ impl<T> std::ops::DerefMut for Buffer<T> {
     }
 }
 
-
+#[cfg(not(feature="safe"))]
 impl<T: Number> From<T> for Buffer<T> {
     fn from(val: T) -> Self {
         Buffer { 
@@ -218,6 +223,7 @@ impl<T: Clone, D: Device<T>> From<(&D, &Vec<T>)> for Buffer<T> {
     }
 }
 
+#[cfg(not(feature="safe"))]
 impl<T: Copy> From<(*mut T, usize)> for Buffer<T> {
     fn from(info: (*mut T, usize)) -> Self {
         Buffer {
@@ -227,6 +233,7 @@ impl<T: Copy> From<(*mut T, usize)> for Buffer<T> {
     }
 }
 
+#[cfg(not(feature="safe"))]
 impl<const N: usize, T> From<&mut [T; N]> for Buffer<T> where T: Copy {
     fn from(arr: &mut [T; N]) -> Self {
         Buffer { 

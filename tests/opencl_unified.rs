@@ -1,9 +1,12 @@
 #[cfg(feature="opencl")]
 use std::ffi::c_void;
 
+
+
+use custos::{Buffer, VecRead};
 #[cfg(feature="opencl")]
 #[cfg(not(feature="safe"))]
-use custos::{CPU, Buffer, opencl::cl_tew};
+use custos::{CPU, opencl::cl_tew};
 #[cfg(feature="opencl")]
 use custos::{opencl::api::{clCreateBuffer, MemFlags, OCLErrorKind}, InternCLDevice};
 #[cfg(feature="opencl")]
@@ -15,10 +18,10 @@ use std::ptr::null_mut;
 
 
 #[cfg(feature="opencl")]
-pub fn unified_mem<T>(device: &InternCLDevice, ptr: &mut [T]) -> Result<*mut c_void, Error>{
+pub fn unified_mem<T>(device: &InternCLDevice, arr: &mut [T]) -> Result<*mut c_void, Error>{
     let mut err = 0;
 
-    let r = unsafe {clCreateBuffer(device.ctx().0, MemFlags::MemReadWrite | MemFlags::MemCopyHostPtr, ptr.len()*core::mem::size_of::<T>(), ptr.as_mut_ptr() as *mut c_void, &mut err)};
+    let r = unsafe {clCreateBuffer(device.ctx().0, MemFlags::MemReadWrite | MemFlags::MemCopyHostPtr, arr.len()*core::mem::size_of::<T>(), arr.as_mut_ptr() as *mut c_void, &mut err)};
     
     device.cl.borrow_mut().ptrs.push(r);
 
@@ -153,4 +156,25 @@ fn test_unified_calc() -> Result<(), Error> {
     Ok(())
 }
 
+fn slice_add<T: Copy + std::ops::Add<Output = T>>(a: &[T], b: &[T], c: &mut [T]) {
+    custos::cpu::element_wise_op_mut(a, b, c, |a, b| a+b)
+}
+#[test]
+fn test_unified_mem_ops() -> Result<(), custos::Error> {
+    let device = CLDevice::get(0)?;
+
+    if device.unified_mem() {
+        let a = Buffer::from((&device, [1, 4, 3, 2, 7, 9]));
+        assert!(a.ptr.0 != std::ptr::null_mut());
+         
+        let b = Buffer::from((&device, [2, 1, 7, 4, 3, 2]));
+        let mut c = Buffer::from((&device, [0; 6]));
+        
+        slice_add(&a, &b, &mut c);
+    
+        let res = device.read(&c);
+        assert_eq!(res, c.as_slice().to_vec());
+    }
+    Ok(())
+}
 

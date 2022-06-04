@@ -141,12 +141,11 @@ impl Dealloc for InternCPU {
     fn dealloc_cache() {
         CPU_CACHE.with(|cache| {
             let contents = cache.borrow().nodes.clone();
-            contents.into_iter()
-                .for_each(|entry| {
-                    let ptr = (entry.1).0;
-                    unsafe { Box::from_raw(ptr.0) };
-                    cache.borrow_mut().nodes.remove(&entry.0);
-                });
+            for entry in contents {
+                let ptr = (entry.1).0;
+                unsafe { Box::from_raw(ptr.0) };
+                cache.borrow_mut().nodes.remove(&entry.0);
+            }
         });
     }
 }
@@ -206,24 +205,19 @@ impl Drop for CPU {
             unsafe {    
                 drop(Box::from_raw(*ptr));
             }
-
-            contents.iter()
-                .for_each(|entry| {
-                    let hm_ptr = ((entry.1).0).0;
-
-                    if &hm_ptr == ptr {
-                        CPU_CACHE.with(|cache| {
-                            cache.borrow_mut().nodes.remove(entry.0);
-                        });                     
-                    }
-                });
+            for entry in &contents {
+                let hm_ptr = ((entry.1).0).0;
+                if &hm_ptr == ptr {
+                    CPU_CACHE.with(|cache| {
+                        cache.borrow_mut().nodes.remove(entry.0);
+                    });                     
+                }
+            }
         }
 
         self.ptrs.clear();
     }
 }
-
-
 
 impl AsDev for InternCPU {
     fn as_dev(&self) -> crate::Dev {

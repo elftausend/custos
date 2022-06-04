@@ -1,10 +1,14 @@
 use criterion::{Criterion, criterion_main, criterion_group};
-use custos::{cpu::element_wise_op_mut, Buffer, CPU, AsDev, Matrix, set_count};
+#[cfg(not(feature="safe"))]
+use custos::{cpu::element_wise_op_mut, Buffer};
+use custos::{CPU, AsDev, Matrix, set_count};
 
+#[cfg(not(feature="safe"))]
 fn slice_add<T: Copy + std::ops::Add<Output = T>>(a: &[T], b: &[T], c: &mut [T]) {
     element_wise_op_mut(a, b, c, |a, b| a+b)
 }
 
+#[cfg(not(feature="safe"))]
 pub fn bench_fixed(ben: &mut Criterion) {
     let a: Buffer<f32> = (&mut [3.123; 1000]).into();
     let b: Buffer<f32> = (&mut [4.523; 1000]).into();
@@ -26,5 +30,7 @@ pub fn bench_vec(ben: &mut Criterion) {
     }));
 }
 
+#[cfg(not(feature="safe"))]
 criterion_group!(benches, bench_vec, bench_fixed);
+criterion_group!(benches, bench_vec);
 criterion_main!(benches);

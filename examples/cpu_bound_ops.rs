@@ -1,11 +1,14 @@
+#[cfg(not(feature="safe"))]
 use std::time::Instant;
 
+#[cfg(not(feature="safe"))]
 use custos::{Buffer, Matrix, CPU, AsDev, cpu::element_wise_op_mut, range};
 
+#[cfg(not(feature="safe"))]
 fn slice_add<T: Copy + std::ops::Add<Output = T>>(a: &[T], b: &[T], c: &mut [T]) {
     element_wise_op_mut(a, b, c, |a, b| a+b)
 }
-
+#[cfg(not(feature="safe"))]
 fn main() {
     let device = CPU::new().select();
 
@@ -39,3 +42,6 @@ fn main() {
     println!("duration: {:?}", start.elapsed());
     
 }
+
+#[cfg(feature="safe")]
+fn main() {}

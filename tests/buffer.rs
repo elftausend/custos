@@ -1,11 +1,10 @@
-
-
+#[cfg(not(feature="safe"))]
 use std::ffi::c_void;
 
 #[cfg(not(feature="safe"))]
-use custos::{AsDev, CPU};
+use custos::{AsDev, CPU, cpu::element_wise_op_mut};
 
-use custos::{Buffer, Device, VecRead, cpu::element_wise_op_mut};
+use custos::{Buffer, Device, VecRead};
 #[cfg(feature="opencl")]
 use custos::{libs::opencl::CLDevice, Error};
 
@@ -114,6 +113,7 @@ fn test_use_number() {
     assert_eq!(num, Box::new(10));
 }
 
+#[cfg(not(feature="safe"))]
 #[test]
 fn test_item() {
     let x: Buffer<f32> = 7f32.into();
@@ -182,18 +182,18 @@ fn test_cached_cl() -> Result<(), custos::Error> {
     Ok(())
 }
 
+#[cfg(not(feature="safe"))]
 #[test]
 fn test_from_ptrs() {
-    let mut value = 4.;
-    let ptr: *mut c_void = &mut value as *mut f64 as *mut c_void;
+    let mut value = 4f32;
+    let ptr: *mut c_void = &mut value as *mut f32 as *mut c_void;
 
-    let buf = Buffer::<f64>::from((ptr, 5));
+    let buf = Buffer::<f32>::from((ptr, 5));
     assert_eq!(buf.ptr.0, std::ptr::null_mut());
 
-    let ptr: *mut f64 = &mut value as *mut f64;
-    let buf = Buffer::<f64>::from((ptr, 5));
+    let ptr: *mut f32 = &mut value as *mut f32;
+    let buf = Buffer::<f32>::from((ptr, 5));
     assert_eq!(buf.ptr.1, std::ptr::null_mut());
-    
 }
 
 
@@ -203,10 +203,12 @@ fn test_size_buf() {
     println!("x: {x}");
 }
 
+#[cfg(not(feature="safe"))]
 fn slice_add<T: Copy + std::ops::Add<Output = T>>(a: &[T], b: &[T], c: &mut [T]) {
     element_wise_op_mut(a, b, c, |a, b| a+b)
 }
 
+#[cfg(not(feature="safe"))]
 #[test]
 fn test_use_in_slice() {
     let a: Buffer<f32> = (&mut [3.123; 1000]).into();
