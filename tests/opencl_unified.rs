@@ -60,8 +60,7 @@ fn test_unified_mem() -> Result<(), Error> {
   
             let buf = create_buffer(&device.ctx(), MemFlags::MemReadWrite | MemFlags::MemUseHostPtr, len, Some(&data))?;
             
-            let buffer = (buf, len).into();
-            let ptr = unified_ptr::<f32>(device.queue(), &buffer)?;
+            let ptr = unified_ptr::<f32>(device.queue(), buf, len)?;
 
             let slice = unsafe {std::slice::from_raw_parts_mut(ptr, len)};
 
@@ -91,7 +90,7 @@ fn test_unified_mem() -> Result<(), Error> {
         let before = Instant::now();
         for _ in 0..TIMES {        
             let buf = create_buffer(&device.ctx(), MemFlags::MemReadWrite | MemFlags::MemCopyHostPtr, len, Some(&data))?;
-            let ptr = unified_ptr::<f32>(device.queue(), &(buf, len).into())?;
+            let ptr = unified_ptr::<f32>(device.queue(), buf, len)?;
             let slice = unsafe {std::slice::from_raw_parts_mut(ptr, len)};
             
             for idx in 20..100 {

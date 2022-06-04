@@ -2,7 +2,7 @@ use std::{ffi::c_void, rc::Rc, cell::RefCell};
 
 use crate::{libs::opencl::api::{create_buffer, MemFlags}, BaseOps, Matrix, AsDev, Gemm, VecRead, BaseDevice, Error, Device, AssignOps, GenericOCL, ManualMem, Buffer, remove_ptr, CacheBuf, Node};
 
-use super::{api::{CLIntDevice, CommandQueue, Context, create_command_queue, create_context, enqueue_read_buffer, wait_for_event, release_mem_object, enqueue_write_buffer}, CL_DEVICES, cl_tew, cl_gemm, CL_CACHE, cl_tew_self, CLCache, cl_clear};
+use super::{api::{CLIntDevice, CommandQueue, Context, create_command_queue, create_context, enqueue_read_buffer, wait_for_event, release_mem_object, enqueue_write_buffer, unified_ptr}, CL_DEVICES, cl_tew, cl_gemm, CL_CACHE, cl_tew_self, CLCache, cl_clear};
 
 #[derive(Debug, Clone)]
 /// All traits related to mathematical operations need to be implemented for this struct in order to use them.
@@ -62,13 +62,27 @@ impl<T> Device<T> for InternCLDevice {
     fn alloc(&self, len: usize) -> (*mut T, *mut c_void) {
         let ptr = create_buffer::<T>(&self.ctx(), MemFlags::MemReadWrite as u64, len, None).unwrap();
         self.cl.borrow_mut().ptrs.push(ptr);
-        (std::ptr::null_mut(), ptr)
+
+        let cpu_ptr = if self.unified_mem() {
+            unified_ptr::<T>(self.queue(), ptr, len).unwrap()
+        } else {
+            std::ptr::null_mut()
+        };
+
+        (cpu_ptr, ptr)
     }
 
     fn with_data(&self, data: &[T]) -> (*mut T, *mut c_void) {
         let ptr = create_buffer::<T>(&self.ctx(), MemFlags::MemReadWrite | MemFlags::MemCopyHostPtr, data.len(), Some(data)).unwrap();
         self.cl.borrow_mut().ptrs.push(ptr as *mut c_void);
-        (std::ptr::null_mut(), ptr)
+
+        let cpu_ptr = if self.unified_mem() {
+            unified_ptr::<T>(self.queue(), ptr, data.len()).unwrap()
+        } else {
+            std::ptr::null_mut()
+        };
+
+        (cpu_ptr, ptr)
     }
 
     fn drop(&mut self, buf: Buffer<T>) {
