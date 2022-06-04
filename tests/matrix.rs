@@ -66,3 +66,16 @@ fn test_debug_fmt() {
     println!("{x:?}");
     println!("x");
 }
+
+fn slice_fn<T>(x: &[T]) -> &T {
+    &x[0]
+}
+
+#[test]
+fn test_deref() {
+    let device = CPU::new().select();
+
+    let x = Matrix::<i32>::from((&device, (1, 3), [9, 3, 4]));
+    let item = *slice_fn(&x);
+    assert_eq!(9, item);
+}

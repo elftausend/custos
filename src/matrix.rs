@@ -183,6 +183,14 @@ impl<T: Copy+Default> Matrix<T> {
     }
 }
 
+impl<T> std::ops::Deref for Matrix<T> {
+    type Target = Buffer<T>;
+
+    fn deref(&self) -> &Self::Target {
+        self.as_buf()
+    }
+}
+
 // From conversions
 
 impl<T> From<(Buffer<T>, (usize, usize))> for Matrix<T> {

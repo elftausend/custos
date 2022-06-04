@@ -59,7 +59,7 @@ fn test_unified_mem() -> Result<(), Error> {
             //std::thread::sleep(std::time::Duration::from_secs(1));
   
             let buf = create_buffer(&device.ctx(), MemFlags::MemReadWrite | MemFlags::MemUseHostPtr, len, Some(&data))?;
-  
+            
             let buffer = (buf, len).into();
             let ptr = unified_ptr::<f32>(device.queue(), &buffer)?;
 
