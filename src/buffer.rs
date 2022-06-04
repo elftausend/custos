@@ -28,6 +28,19 @@ impl<T> Buffer<T> {
 }
 
 impl<T: Default+Copy> Buffer<T> {
+    /// Creates an empty buffer with the given length on the specified device.
+    /// ```
+    /// use custos::{CPU, Buffer};
+    /// 
+    /// let device = CPU::new();
+    /// let buffer = Buffer::<i32>::new(&device, 6);
+    /// 
+    /// // this works only with cpu buffers
+    /// let slice = buffer.as_slice();
+    /// 
+    /// assert_eq!(slice, &[0; 6]);
+    /// 
+    /// ```
     pub fn new<D: Device<T>>(device: &D, len: usize) -> Buffer<T> {
         Buffer {
             ptr: device.alloc(len),
@@ -35,6 +48,19 @@ impl<T: Default+Copy> Buffer<T> {
         }
     }
 
+    /// Used if the buffer contains only a single value.
+    /// 
+    /// # Example
+    /// 
+    /// ```
+    /// use custos::Buffer;
+    /// 
+    /// let x: Buffer<f32> = 7f32.into();
+    /// assert_eq!(x.item(), 7.);
+    ///
+    /// let x: Buffer<f32> = (&mut [5., 4., 8.]).into();
+    /// assert_eq!(x.item(), 0.);
+    /// ```
     pub fn item(&self) -> T {
         if self.len == 0 {
             return unsafe { *self.ptr.0 };
@@ -42,7 +68,6 @@ impl<T: Default+Copy> Buffer<T> {
         T::default()
     }
 }
-
 
 #[cfg(feature="safe")]
 unsafe impl<T> Send for Buffer<T> {}
@@ -83,6 +108,37 @@ impl<T> Default for Buffer<T> {
         Self { ptr: (null_mut(), null_mut()), len: Default::default() }
     }
 }
+
+impl<T> AsRef<[T]> for Buffer<T> {
+    fn as_ref(&self) -> &[T] {
+        if self.ptr.0 == null_mut() {
+            panic!("would dereference a null pointer")
+        }
+        self.as_slice()
+    }
+}
+
+impl<T> std::ops::Deref for Buffer<T> {
+    type Target = [T];
+
+    fn deref(&self) -> &Self::Target {
+        if self.ptr.0 == null_mut() {
+            panic!("would dereference a null pointer")
+        }
+        self.as_slice()
+    }
+}
+
+impl<T> std::ops::DerefMut for Buffer<T> {
+
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        if self.ptr.0 == null_mut() {
+            panic!("would dereference a null pointer")
+        }
+        self.as_mut_slice()
+    }
+}
+
 
 impl<T: Number> From<T> for Buffer<T> {
     fn from(val: T) -> Self {
@@ -162,7 +218,7 @@ impl<T: Clone, D: Device<T>> From<(&D, &Vec<T>)> for Buffer<T> {
     }
 }
 
-impl<T: Default+Copy> From<(*mut T, usize)> for Buffer<T> {
+impl<T: Copy> From<(*mut T, usize)> for Buffer<T> {
     fn from(info: (*mut T, usize)) -> Self {
         Buffer {
             ptr: (info.0, null_mut()),
@@ -170,6 +226,16 @@ impl<T: Default+Copy> From<(*mut T, usize)> for Buffer<T> {
         } 
     }
 }
+
+impl<const N: usize, T> From<&mut [T; N]> for Buffer<T> where T: Copy {
+    fn from(arr: &mut [T; N]) -> Self {
+        Buffer { 
+            ptr: (arr.as_mut_ptr(), null_mut()), 
+            len: N
+        }
+    }
+}
+
 
 impl<T: GenericOCL> From<(*mut c_void, usize)> for Buffer<T> {
     fn from(info: (*mut c_void, usize)) -> Self {

@@ -12,14 +12,18 @@ readme = "README.md"
 lazy_static = "1.4.0"
 
 [features]
-default = ["opencl"]
+default = ["opencl",]
 opencl = []
 safe = []
 
 
 [dev-dependencies]
-#criterion = "0.3"
+criterion = "0.3"
 
 [[bench]]
 name = "safe_vs_cache"
+harness = false
+
+[[bench]]
+name = "fixed_size_vs_vec"
 harness = false

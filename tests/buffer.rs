@@ -1,9 +1,11 @@
 
 
+use std::ffi::c_void;
+
 #[cfg(not(feature="safe"))]
 use custos::{AsDev, CPU};
 
-use custos::{Buffer, Device, VecRead};
+use custos::{Buffer, Device, VecRead, cpu::element_wise_op_mut};
 #[cfg(feature="opencl")]
 use custos::{libs::opencl::CLDevice, Error};
 
@@ -112,6 +114,15 @@ fn test_use_number() {
     assert_eq!(num, Box::new(10));
 }
 
+#[test]
+fn test_item() {
+    let x: Buffer<f32> = 7f32.into();
+    assert_eq!(x.item(), 7.);
+
+    let x: Buffer<f32> = (&mut [5., 4., 8.]).into();
+    assert_eq!(x.item(), 0.);
+}
+
 #[cfg(not(feature="safe"))]
 #[test]
 fn test_cached_cpu() {
@@ -138,6 +149,7 @@ fn test_cached_cpu() {
 }
 
 
+#[cfg(not(target_os="linux"))]
 #[cfg(not(feature="safe"))]
 #[cfg(feature="opencl")]
 #[test]
@@ -145,7 +157,7 @@ fn test_cached_cl() -> Result<(), custos::Error> {
     use custos::opencl::api::{enqueue_write_buffer, wait_for_event};
 
     let device = CLDevice::get(0)?.select();
-    let _ = Buffer::<f32>::new(&device, 1);
+    let _k = Buffer::<f32>::new(&device, 1);
     
     assert_eq!(0, get_count());
     
@@ -159,6 +171,7 @@ fn test_cached_cl() -> Result<(), custos::Error> {
     }
     
     let new_buf = cached::<i32>(10);
+    println!("new_buf: {new_buf:?}");
     assert_eq!(device.read(&new_buf), vec![0; 10]);
     assert_eq!(2, get_count());
     
@@ -169,9 +182,39 @@ fn test_cached_cl() -> Result<(), custos::Error> {
     Ok(())
 }
 
+#[test]
+fn test_from_ptrs() {
+    let mut value = 4.;
+    let ptr: *mut c_void = &mut value as *mut f64 as *mut c_void;
+
+    let buf = Buffer::<f64>::from((ptr, 5));
+    assert_eq!(buf.ptr.0, std::ptr::null_mut());
+
+    let ptr: *mut f64 = &mut value as *mut f64;
+    let buf = Buffer::<f64>::from((ptr, 5));
+    assert_eq!(buf.ptr.1, std::ptr::null_mut());
+    
+}
+
 
 #[test]
 fn test_size_buf() {
     let x = core::mem::size_of::<Buffer<i8>>();
     println!("x: {x}");
+}
+
+fn slice_add<T: Copy + std::ops::Add<Output = T>>(a: &[T], b: &[T], c: &mut [T]) {
+    element_wise_op_mut(a, b, c, |a, b| a+b)
+}
+
+#[test]
+fn test_use_in_slice() {
+    let a: Buffer<f32> = (&mut [3.123; 1000]).into();
+    let b: Buffer<f32> = (&mut [1.1; 1000]).into();
+
+    let mut c: Buffer<f32> = (&mut [0.; 1000]).into();
+
+    slice_add(&a, &b, &mut c);
+
+    assert_eq!(&[4.223; 1000], c.as_ref());
 }

@@ -260,8 +260,8 @@ impl<'a, T: GenericOCL> KernelRunner<'a, T> {
 
         enqueue_nd_range_kernel(&self.device.queue(), &kernel, self.wd, &self.gws, self.lws.as_ref(), self.offset)?;
     
-        if let Some(output) = self.output {
-            return Ok(Some(output));
+        if let Some(output) = &self.output {
+            return Ok(Some(output.clone()));
         }
         Ok(None)
     }
