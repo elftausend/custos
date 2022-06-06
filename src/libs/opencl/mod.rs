@@ -1,3 +1,5 @@
+use std::ffi::c_void;
+
 pub use cl_cache::*;
 pub use cl_device::*;
 pub use cl_devices::*;
@@ -14,6 +16,30 @@ mod cl_cache;
 use crate::{Matrix, GenericOCL, CPU, Node, Buffer, VecRead};
 use self::api::{create_buffer, MemFlags, release_mem_object};
 
+pub fn to_unified<T>(device: &InternCLDevice ,no_drop: Matrix<T>) -> crate::Result<*mut c_void> {
+    // use the host pointer to create an OpenCL buffer
+    let cl_ptr = create_buffer(
+        &device.ctx(), 
+        MemFlags::MemReadWrite | MemFlags::MemUseHostPtr,
+        no_drop.size(), 
+        Some(&no_drop)
+    )?;
+
+    let old_ptr = CL_CACHE.with(|cache| {
+        // add created buffer to the "caching chain"
+        cache.borrow_mut().nodes.insert(Node::new(no_drop.size()), (OclPtr(cl_ptr), no_drop.size()))
+    });
+
+    // this pointer was overwritten, hence it can be deallocated
+    if let Some(old) = old_ptr {
+        unsafe {
+            release_mem_object(old.0.0)?;
+        }
+    };
+
+    Ok(cl_ptr)
+}
+
 pub fn cpu_exec<T, F>(device: &InternCLDevice, matrix: &Matrix<T>, f: F) -> crate::Result<Matrix<T>> 
 where 
     F: Fn(&crate::InternCPU, Matrix<T>) -> Matrix<T>,
@@ -21,30 +47,12 @@ where
 {
     let cpu = CPU::new();
 
-    if device.unified_mem() && !cfg!(feature="safe"){
+    if device.unified_mem() && !cfg!(feature="safe") { 
 
         // host ptr matrix
         let no_drop = f(&cpu, *matrix);
 
-        // use the host pointer to create an OpenCL buffer
-        let cl_ptr = create_buffer(
-            &device.ctx(), 
-            MemFlags::MemReadWrite | MemFlags::MemUseHostPtr,
-            no_drop.size(), 
-            Some(&no_drop)
-        )?;
-
-        let old_ptr = CL_CACHE.with(|cache| {
-            // add created buffer to the "caching chain"
-            cache.borrow_mut().nodes.insert(Node::new(no_drop.size()), (OclPtr(cl_ptr), no_drop.size()))
-        });
-
-        // this pointer was overwritten, hence it can be deallocated
-        if let Some(old) = old_ptr {
-            unsafe {
-                release_mem_object(old.0.0)?;
-            }
-        }
+        let cl_ptr = to_unified(device, no_drop)?;
         
         // TODO: When should the buffer be freed, if the "safe" feature is used?
 
@@ -68,4 +76,41 @@ where
     };
     
     Ok(Matrix::from((device, f(&cpu, x))))
+}
+
+pub fn cpu_exec_lhs_rhs<T, F>(device: &InternCLDevice, lhs: &Matrix<T>, rhs: &Matrix<T>, f: F) -> crate::Result<Matrix<T>> 
+where 
+    F: Fn(&crate::InternCPU, &Matrix<T>, &Matrix<T>) -> Matrix<T>,
+    T: GenericOCL
+{
+    let cpu = CPU::new();
+
+    if device.unified_mem() && !cfg!(feature="safe") { 
+        let no_drop = f(&cpu, lhs, rhs);
+
+        let cl_ptr = to_unified(device, no_drop)?;
+        
+        // TODO: Deallocate cpu buffer? This may leak memory.
+        cpu.cpu.borrow_mut().ptrs.clear(); // default mode
+        
+        let buf = Buffer {
+            ptr: (no_drop.ptr.0, cl_ptr),
+            len: no_drop.size(),
+        };
+        return Ok(Matrix::from((buf, no_drop.dims())));
+    }
+
+    let (lhs, rhs) = if device.unified_mem() {
+        (lhs.clone(), rhs.clone())
+    } else {
+        // Read buffer that is allocated on an OpenCL device and create a new cpu matrix.
+        (
+            Matrix::from((&cpu, lhs.dims(), device.read(lhs.as_buf()))),
+            Matrix::from((&cpu, rhs.dims(), device.read(rhs.as_buf())))
+        )
+    };
+
+    Ok(Matrix::from((device, f(&cpu, &lhs, &rhs))))
+
+
 }
