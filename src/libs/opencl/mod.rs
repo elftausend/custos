@@ -13,10 +13,10 @@ pub mod cl_devices;
 mod kernel_options;
 mod cl_cache;
 
-use crate::{Matrix, GenericOCL, CPU, Node, Buffer, VecRead};
+use crate::{Matrix, GenericOCL, CPU, Node, Buffer, VecRead, number::Number};
 use self::api::{create_buffer, MemFlags, release_mem_object};
 
-pub fn to_unified<T>(device: &InternCLDevice ,no_drop: Matrix<T>) -> crate::Result<*mut c_void> {
+pub fn to_unified<T>(device: &InternCLDevice, no_drop: Matrix<T>) -> crate::Result<*mut c_void> {
     // use the host pointer to create an OpenCL buffer
     let cl_ptr = create_buffer(
         &device.ctx(), 
@@ -106,6 +106,20 @@ where
     };
 
     Ok(Matrix::from((device, f(&cpu, &lhs, &rhs))))
+}
 
+pub fn cpu_exec_scalar<T, F>(device: &InternCLDevice, matrix: &Matrix<T>, f: F) -> T 
+where 
+    F: Fn(&crate::InternCPU, Matrix<T>) -> T,
+    T: Number
+{
+    let cpu = CPU::new();
+    let x = if device.unified_mem() {
+        matrix.clone()
+    } else {
+        // Read buffer that is allocated on an OpenCL device and create a new cpu matrix.
+        Matrix::from((&cpu, matrix.dims(), device.read(matrix.as_buf())))
+    };
+    f(&cpu, x)
 
 }
