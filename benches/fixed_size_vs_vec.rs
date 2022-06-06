@@ -32,5 +32,6 @@ pub fn bench_vec(ben: &mut Criterion) {
 
 #[cfg(not(feature="safe"))]
 criterion_group!(benches, bench_vec, bench_fixed);
+#[cfg(feature="safe")]
 criterion_group!(benches, bench_vec);
 criterion_main!(benches);

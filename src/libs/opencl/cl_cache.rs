@@ -36,6 +36,8 @@ impl CLCache {
 
     #[cfg(not(feature="safe"))]
     pub fn get<T: GenericOCL>(device: InternCLDevice, node: Node) -> Buffer<T> {
+        use crate::opencl::api::unified_ptr;
+
         assert!(!device.cl.borrow().ptrs.is_empty(), "no OpenCL allocations");
 
         CL_CACHE.with(|cache| {
@@ -43,7 +45,20 @@ impl CLCache {
             let buf_info_option = cache.nodes.get(&node);
     
             match buf_info_option {
-                Some(buf_info) => Buffer::from(( buf_info.0.0, buf_info.1 )),
+                Some(buf_info) => {
+                    let unified_ptr = 
+                    if device.unified_mem() {
+                        unified_ptr::<T>(device.queue(), buf_info.0.0, buf_info.1).unwrap()
+                    } else {
+                        std::ptr::null_mut()
+                    };
+
+                    Buffer {
+                        ptr: (unified_ptr, buf_info.0.0),
+                        len: buf_info.1
+                    }
+                    //Buffer::from(( buf_info.0.0, buf_info.1 ))
+                }
                 None => cache.add_node(device, node)
             }
         })

@@ -3,7 +3,7 @@ use std::ffi::c_void;
 
 
 
-use custos::{Buffer, VecRead};
+use custos::{Buffer, VecRead, Matrix, opencl::cpu_exec};
 #[cfg(feature="opencl")]
 #[cfg(not(feature="safe"))]
 use custos::{CPU, opencl::cl_tew};
@@ -175,6 +175,17 @@ fn test_unified_mem_ops() -> Result<(), custos::Error> {
         let res = device.read(&c);
         assert_eq!(res, c.as_slice().to_vec());
     }
+    Ok(())
+}
+
+#[test]
+fn test_unified_mem_device_switch() -> custos::Result<()> {
+    let device = CLDevice::get(0)?;
+
+    let a = Matrix::from((&device, 2, 3, [1, 2, 3, 4, 5, 6,]));
+
+    let m = cpu_exec(&device, &a, |cpu, m| m)?;
+
     Ok(())
 }
 

@@ -79,3 +79,5 @@ fn test_deref() {
     let item = *slice_fn(&x);
     assert_eq!(9, item);
 }
+
+
