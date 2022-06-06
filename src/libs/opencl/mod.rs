@@ -40,6 +40,24 @@ pub fn to_unified<T>(device: &InternCLDevice ,no_drop: Matrix<T>) -> crate::Resu
     Ok(cl_ptr)
 }
 
+pub fn construct_buffer<T>(device: &InternCLDevice, cpu: &crate::InternCPU, no_drop: Matrix<T>) -> crate::Result<Matrix<T>>  {
+    let (host_ptr, no_drop_dims) = (no_drop.ptr.0, no_drop.dims());
+
+    let cl_ptr = to_unified(device, no_drop)?;
+    // TODO: When should the buffer be freed, if the "safe" feature is used?
+
+    // Both lines prevent the deallocation of the underlying buffer.
+    //Box::into_raw(Box::new(no_drop)); // "safe" mode
+    // TODO: Deallocate cpu buffer? This may leak memory.
+    cpu.cpu.borrow_mut().ptrs.clear(); // default mode
+    
+    let buf = Buffer {
+        ptr: (host_ptr, cl_ptr),
+        len: no_drop_dims.0 * no_drop_dims.1,
+    };
+    Ok(Matrix::from((buf, no_drop_dims)))
+}
+
 pub fn cpu_exec<T, F>(device: &InternCLDevice, matrix: &Matrix<T>, f: F) -> crate::Result<Matrix<T>> 
 where 
     F: Fn(&crate::InternCPU, Matrix<T>) -> Matrix<T>,
@@ -51,21 +69,7 @@ where
 
         // host ptr matrix
         let no_drop = f(&cpu, *matrix);
-
-        let cl_ptr = to_unified(device, no_drop)?;
-        
-        // TODO: When should the buffer be freed, if the "safe" feature is used?
-
-        // Both lines prevent the deallocation of the underlying buffer.
-        //Box::into_raw(Box::new(no_drop)); // "safe" mode
-        // TODO: Deallocate cpu buffer? This may leak memory.
-        cpu.cpu.borrow_mut().ptrs.clear(); // default mode
-        
-        let buf = Buffer {
-            ptr: (no_drop.ptr.0, cl_ptr),
-            len: no_drop.size(),
-        };
-        return Ok(Matrix::from((buf, no_drop.dims())));
+        return construct_buffer(device, &cpu, no_drop);
     }
     
     let x = if device.unified_mem() {
@@ -86,18 +90,9 @@ where
     let cpu = CPU::new();
 
     if device.unified_mem() && !cfg!(feature="safe") { 
+        
         let no_drop = f(&cpu, lhs, rhs);
-
-        let cl_ptr = to_unified(device, no_drop)?;
-        
-        // TODO: Deallocate cpu buffer? This may leak memory.
-        cpu.cpu.borrow_mut().ptrs.clear(); // default mode
-        
-        let buf = Buffer {
-            ptr: (no_drop.ptr.0, cl_ptr),
-            len: no_drop.size(),
-        };
-        return Ok(Matrix::from((buf, no_drop.dims())));
+        return construct_buffer(device, &cpu, no_drop);
     }
 
     let (lhs, rhs) = if device.unified_mem() {
