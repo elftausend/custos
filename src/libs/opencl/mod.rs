@@ -30,7 +30,7 @@ pub fn to_unified<T>(device: &InternCLDevice, no_drop: Matrix<T>) -> crate::Resu
         cache.borrow_mut().nodes.insert(Node::new(no_drop.size()), (OclPtr(cl_ptr), no_drop.size()))
     });
 
-    // this pointer was overwritten, hence it can be deallocated
+    // this pointer was overwritten previously, hence it can be deallocated
     if let Some(old) = old_ptr {
         unsafe {
             release_mem_object(old.0.0)?;
@@ -75,7 +75,7 @@ where
     let x = if device.unified_mem() {
         matrix.clone()
     } else {
-        // Read buffer that is allocated on an OpenCL device and create a new cpu matrix.
+        // convert an OpenCL buffer to a cpu buffer
         Matrix::from((&cpu, matrix.dims(), device.read(matrix.as_buf())))
     };
     
@@ -98,7 +98,7 @@ where
     let (lhs, rhs) = if device.unified_mem() {
         (lhs.clone(), rhs.clone())
     } else {
-        // Read buffer that is allocated on an OpenCL device and create a new cpu matrix.
+        // convert an OpenCL buffer to a cpu buffer
         (
             Matrix::from((&cpu, lhs.dims(), device.read(lhs.as_buf()))),
             Matrix::from((&cpu, rhs.dims(), device.read(rhs.as_buf())))
@@ -117,7 +117,7 @@ where
     let x = if device.unified_mem() {
         matrix.clone()
     } else {
-        // Read buffer that is allocated on an OpenCL device and create a new cpu matrix.
+        // convert an OpenCL buffer to a cpu buffer
         Matrix::from((&cpu, matrix.dims(), device.read(matrix.as_buf())))
     };
     f(&cpu, x)

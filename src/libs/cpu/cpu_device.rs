@@ -17,7 +17,7 @@ use super::{TBlas, CPU_CACHE, assign_to_lhs};
 /// 
 /// let out = device.add(&a, &b);
 /// 
-/// assert_eq!(device.read(out.as_buf()), vec![1.3; 5*5]);
+/// assert_eq!(device.read(&out), vec![1.3; 5*5]);
 /// ```
 pub struct InternCPU {
     pub cpu: Rc<RefCell<CPU>>
@@ -158,7 +158,7 @@ impl<T: TBlas+Default+Copy> Gemm<T> for InternCPU {
         let n = rhs.dims().1;
 
         let mut c = CPUCache::get(self.clone(), m*n);
-        T::gemm(m, n, k, lhs.as_slice(), rhs.as_slice(), c.as_mut_slice());
+        T::gemm(m, n, k, lhs, rhs, &mut c);
         (c, (m, n)).into()
     }
 }
@@ -181,7 +181,7 @@ impl<T: TBlas+Default+Copy> Gemm<T> for InternCPU {
 /// 
 /// let out = device.add(&a, &b);
 /// 
-/// assert_eq!(device.read(out.as_buf()), vec![1.3; 5*5]);
+/// assert_eq!(device.read(&out), vec![1.3; 5*5]);
 /// ```
 pub struct CPU {
     pub ptrs: Vec<*mut usize>
@@ -228,20 +228,20 @@ impl AsDev for InternCPU {
 impl<T: GenericOCL+TBlas> BaseDevice<T> for InternCPU {}
 
 pub fn assign_op<T: Copy+Default, F: Fn(&mut T, T)>(lhs: &mut Matrix<T>, rhs: &Matrix<T>, f: F) {
-    assign_to_lhs(lhs.as_mut_slice(), rhs.as_slice(), f)
+    assign_to_lhs(lhs, rhs, f)
 }
 
 pub fn ew_op<T: Copy+Default, F: Fn(T, T) -> T>(device: InternCPU, lhs: &Matrix<T>, rhs: &Matrix<T>, f: F) -> Matrix<T> {
     let mut out = CPUCache::get::<T>(device, lhs.size());
-    element_wise_op_mut(lhs.as_slice(), rhs.as_slice(), out.as_mut_slice(), f);
+    element_wise_op_mut(lhs, rhs, &mut out, f);
     (out, lhs.dims()).into()
 }
 
 pub fn each_op<T: Copy+Default, F: Fn(T) -> T>(device: &InternCPU, x: &Matrix<T>, f: F) -> Matrix<T> {
     let mut y = CPUCache::get::<T>(device.clone(), x.size());
-    let slice = x.as_slice();
-    for (idx, value) in y.as_mut_slice().iter_mut().enumerate() {
-        *value = f(slice[idx]);
+    
+    for (idx, value) in y.iter_mut().enumerate() {
+        *value = f(x[idx]);
     }
     (y, x.dims()).into()
 }

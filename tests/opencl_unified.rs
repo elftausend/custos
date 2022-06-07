@@ -183,8 +183,7 @@ fn test_unified_mem_device_switch() -> custos::Result<()> {
     let device = CLDevice::get(0)?;
 
     let a = Matrix::from((&device, 2, 3, [1, 2, 3, 4, 5, 6,]));
-
-    let m = cpu_exec(&device, &a, |cpu, m| m)?;
+    let _m = cpu_exec(&device, &a, |_cpu, m| m)?;
 
     Ok(())
 }

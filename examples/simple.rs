@@ -18,7 +18,7 @@ fn main() -> Result<(), Error> {
     let b = Matrix::from( ( &cpu, (2, 2), [1., 2., 3., 4.,] ));
 
     let c_cpu = cpu.mul(&a, &b);
-    assert_eq!(cpu.read(c_cpu.as_buf()), vec![0.25, 1., 2.25,  4.,]);
+    assert_eq!(cpu.read(&c_cpu), vec![0.25, 1., 2.25,  4.,]);
 
     
     //OpenCL device (GPU)
@@ -28,7 +28,7 @@ fn main() -> Result<(), Error> {
     let b = Matrix::from(( &cl, (2, 2), [1., 2., 3., 4.,] ));
 
     let c_cl = &a * &b;
-    assert_eq!(cpu.read(c_cpu.as_buf()), c_cl.read());
+    assert_eq!(cpu.read(&c_cpu), c_cl.read());
 
     Ok(())
 }
