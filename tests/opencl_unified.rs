@@ -3,12 +3,11 @@ use std::ffi::c_void;
 
 
 
-use custos::{Buffer, VecRead, Matrix, opencl::cpu_exec};
 #[cfg(feature="opencl")]
 #[cfg(not(feature="safe"))]
-use custos::{CPU, opencl::cl_tew};
+use custos::{CPU, opencl::{cl_tew, cpu_exec}};
 #[cfg(feature="opencl")]
-use custos::{opencl::api::{clCreateBuffer, MemFlags, OCLErrorKind}, InternCLDevice};
+use custos::{Buffer, VecRead, Matrix, opencl::api::{clCreateBuffer, MemFlags, OCLErrorKind}, InternCLDevice};
 #[cfg(feature="opencl")]
 use custos::{CLDevice, Error};
 
@@ -156,28 +155,58 @@ fn test_unified_calc() -> Result<(), Error> {
     Ok(())
 }
 
+#[cfg(feature="opencl")]
 fn slice_add<T: Copy + std::ops::Add<Output = T>>(a: &[T], b: &[T], c: &mut [T]) {
     custos::cpu::element_wise_op_mut(a, b, c, |a, b| a+b)
 }
+
+#[cfg(feature="opencl")]
 #[test]
 fn test_unified_mem_ops() -> Result<(), custos::Error> {
     let device = CLDevice::get(0)?;
 
-    if device.unified_mem() {
-        let a = Buffer::from((&device, [1, 4, 3, 2, 7, 9]));
-        assert!(a.ptr.0 != std::ptr::null_mut());
-         
-        let b = Buffer::from((&device, [2, 1, 7, 4, 3, 2]));
-        let mut c = Buffer::from((&device, [0; 6]));
-        
-        slice_add(&a, &b, &mut c);
-    
-        let res = device.read(&c);
-        assert_eq!(res, c.as_slice().to_vec());
+    if !device.unified_mem() {
+        return Ok(());
     }
+
+    let a = Buffer::from((&device, [1, 4, 3, 2, 7, 9]));
+    assert!(a.ptr.0 != std::ptr::null_mut());
+        
+    let b = Buffer::from((&device, [2, 1, 7, 4, 3, 2]));
+    let mut c = Buffer::from((&device, [0; 6]));
+    
+    slice_add(&a, &b, &mut c);
+
+    let res = device.read(&c);
+    assert_eq!(res, c.as_slice().to_vec());
+
     Ok(())
 }
 
+#[cfg(feature="opencl")]
+#[test]
+fn test_unified_mem_iterate() -> custos::Result<()> {
+    let device = CLDevice::get(0)?;
+
+    if !device.unified_mem() {
+        println!("CLDevice uses own memory");
+        return Ok(())
+    }
+
+    let mut a = Buffer::from((&device, [1, 2, 3, 4, 5]));
+
+    for value in &mut a {
+        *value += 2;
+    }
+
+    let cl_data = device.read(&a);
+    assert_eq!(a.as_slice(), &cl_data);
+    assert_eq!(&cl_data, &[3, 4, 5, 6, 7,]);
+
+    Ok(())
+}
+
+#[cfg(feature="opencl")]
 #[test]
 fn test_unified_mem_device_switch() -> custos::Result<()> {
     let device = CLDevice::get(0)?;

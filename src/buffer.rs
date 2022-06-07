@@ -17,13 +17,17 @@ pub struct Buffer<T> {
 }
 
 impl<T> Buffer<T> {
+    /// Returns a CPU slice.
     pub fn as_slice(&self) -> &[T] {
+        assert!(self.ptr.0 != std::ptr::null_mut(), "called as_slice() on a non CPU buffer (this would dereference a null pointer)");
         unsafe {
             std::slice::from_raw_parts(self.ptr.0, self.len)
         }
     }
-
+    
+    /// Returns a mutable CPU slice.
     pub fn as_mut_slice(&mut self) -> &mut [T] {
+        assert!(self.ptr.0 != std::ptr::null_mut(), "called as_mut_slice() on a non CPU buffer (this would dereference a null pointer)");
         unsafe {
             std::slice::from_raw_parts_mut(self.ptr.0, self.len)
         }
@@ -116,9 +120,6 @@ impl<T> Default for Buffer<T> {
 
 impl<T> AsRef<[T]> for Buffer<T> {
     fn as_ref(&self) -> &[T] {
-        if self.ptr.0 == null_mut() {
-            panic!("would dereference a null pointer")
-        }
         self.as_slice()
     }
 }
@@ -127,22 +128,36 @@ impl<T> std::ops::Deref for Buffer<T> {
     type Target = [T];
 
     fn deref(&self) -> &Self::Target {
-        if self.ptr.0 == null_mut() {
-            panic!("would dereference a null pointer")
-        }
         self.as_slice()
     }
 }
 
 impl<T> std::ops::DerefMut for Buffer<T> {
-
     fn deref_mut(&mut self) -> &mut Self::Target {
-        if self.ptr.0 == null_mut() {
-            panic!("would dereference a null pointer")
-        }
         self.as_mut_slice()
     }
 }
+
+impl<'a, T> std::iter::IntoIterator for &'a Buffer<T> {
+    type Item = &'a T;
+
+    type IntoIter = std::slice::Iter<'a, T>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter()
+    }
+}
+
+impl<'a, T> std::iter::IntoIterator for &'a mut Buffer<T> {
+    type Item = &'a mut T;
+
+    type IntoIter = std::slice::IterMut<'a, T>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter_mut()
+    }
+}
+
 
 #[cfg(not(feature="safe"))]
 impl<T: Number> From<T> for Buffer<T> {

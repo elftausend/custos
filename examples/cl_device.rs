@@ -1,7 +1,5 @@
-#[cfg(feature="opencl")]
 use custos::{BaseOps, VecRead, Matrix, Error, CLDevice};
 
-#[cfg(feature="opencl")]
 fn main() -> Result<(), Error> {
     let device = CLDevice::get(0)?;
     
@@ -13,6 +11,3 @@ fn main() -> Result<(), Error> {
     assert_eq!(device.read(&out), vec![1.3; 5*5]);
     Ok(())
 }
-
-#[cfg(not(feature="opencl"))]
-fn main() {}

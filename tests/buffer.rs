@@ -220,3 +220,15 @@ fn test_use_in_slice() {
 
     assert_eq!(&[4.223; 1000], c.as_ref());
 }
+
+#[test]
+fn test_iterate() {
+    let cmp = [1f32, 2., 3.3];
+
+    let a: Buffer<f32> = (&mut [1., 2., 3.3]).into();
+
+    for (x, y) in a.into_iter().zip(cmp) {
+        assert!(*x == y)
+    }
+
+}
