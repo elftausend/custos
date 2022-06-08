@@ -12,7 +12,7 @@ readme = "README.md"
 lazy_static = "1.4.0"
 
 [features]
-default = ["opencl"]
+default = ["opencl", "safe"]
 opencl = []
 safe = []
 
@@ -43,4 +43,8 @@ harness = false
 
 [[bench]]
 name = "fixed_size_vs_vec"
+harness = false
+
+[[bench]]
+name = "remove_value"
 harness = false

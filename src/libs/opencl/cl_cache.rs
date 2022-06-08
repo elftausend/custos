@@ -46,8 +46,7 @@ impl CLCache {
     
             match buf_info_option {
                 Some(buf_info) => {
-                    let unified_ptr = 
-                    if device.unified_mem() {
+                    let unified_ptr = if device.unified_mem() {
                         unified_ptr::<T>(device.queue(), buf_info.0.0, buf_info.1).unwrap()
                     } else {
                         std::ptr::null_mut()

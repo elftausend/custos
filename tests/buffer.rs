@@ -221,6 +221,7 @@ fn test_use_in_slice() {
     assert_eq!(&[4.223; 1000], c.as_ref());
 }
 
+#[cfg(not(feature="safe"))]
 #[test]
 fn test_iterate() {
     let cmp = [1f32, 2., 3.3];

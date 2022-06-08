@@ -1,6 +1,6 @@
 use std::{fmt::Debug, cell::RefCell, rc::Rc, ffi::c_void};
 
-use crate::{BaseOps, Buffer, Device, Gemm, libs::cpu::{CPUCache, ops::element_wise_op_mut}, matrix::Matrix, VecRead, number::Number, Dealloc, AsDev, BaseDevice, AssignOps, GenericOCL, ManualMem, remove_ptr, CacheBuf};
+use crate::{BaseOps, Buffer, Device, Gemm, libs::cpu::{CPUCache, ops::element_wise_op_mut}, matrix::Matrix, VecRead, number::Number, Dealloc, AsDev, BaseDevice, AssignOps, GenericOCL, ManualMem, remove_value, CacheBuf};
 
 use super::{TBlas, CPU_CACHE, assign_to_lhs};
 
@@ -52,7 +52,7 @@ impl<T: Copy+Default> Device<T> for InternCPU {
 
     fn drop(&mut self, buf: Buffer<T>) {
         let ptrs = &mut self.cpu.borrow_mut().ptrs;
-        remove_ptr(ptrs, buf.ptr.0 as *mut usize);
+        remove_value(ptrs, &(buf.ptr.0 as *mut usize)).unwrap();
         self.drop_buf(buf)
     }
 }
@@ -75,7 +75,7 @@ impl<T: Copy+Default> Device<T> for InternCPU {
     }
     fn drop(&mut self, buf: Buffer<T>) {
         let ptrs = &mut self.cpu.borrow_mut().ptrs;
-        remove_ptr(ptrs, buf.ptr.0 as *mut usize);
+        remove_value(ptrs, &(buf.ptr.0 as *mut usize)).unwrap();
         self.drop_buf(buf)
     }
 

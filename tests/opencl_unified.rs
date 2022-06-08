@@ -5,9 +5,9 @@ use std::ffi::c_void;
 
 #[cfg(feature="opencl")]
 #[cfg(not(feature="safe"))]
-use custos::{CPU, opencl::{cl_tew, cpu_exec}};
+use custos::{CPU, opencl::{cl_tew}};
 #[cfg(feature="opencl")]
-use custos::{Buffer, VecRead, Matrix, opencl::api::{clCreateBuffer, MemFlags, OCLErrorKind}, InternCLDevice};
+use custos::{Buffer, VecRead, Matrix, opencl::api::{clCreateBuffer, MemFlags, OCLErrorKind}, InternCLDevice, opencl::cpu_exec};
 #[cfg(feature="opencl")]
 use custos::{CLDevice, Error};
 

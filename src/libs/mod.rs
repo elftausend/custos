@@ -109,11 +109,8 @@ impl GenericOCL for u64 {
     }
 }
 
-pub fn remove_ptr<T>(ptrs: &mut Vec<*mut T>, match_ptr: *mut T) {
-    for (idx, ptr) in ptrs.iter_mut().enumerate() {
-        if *ptr == match_ptr {
-            ptrs.remove(idx);
-            return;
-        }
-    }
+pub fn remove_value<T: Ord>(values: &mut Vec<T>, match_value: &T) -> Result<(), usize> {
+    let idx = values.binary_search(match_value)?;
+    values.swap_remove(idx);
+    Ok(())
 }

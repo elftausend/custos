@@ -1,8 +1,5 @@
-
 use crate::Error;
-
 use super::{api::{DeviceType, get_device_ids, get_platforms, OCLErrorKind}, cl_device::CLDevice};
-
 
 lazy_static::lazy_static! {
     pub static ref CL_DEVICES: CLDevices = CLDevices::new().unwrap();
@@ -27,11 +24,11 @@ impl CLDevices {
     }
 
     pub fn current(&self, device_idx: usize) -> Result<CLDevice, Error> {
-        if device_idx < self.current_devices.len() {
-            Ok(self.current_devices[device_idx].clone())
-        } else {
-            Err(OCLErrorKind::InvalidDeviceIdx.into())
-        }
+        if device_idx >= self.current_devices.len() {
+            return Err(OCLErrorKind::InvalidDeviceIdx.into());
+        } 
+        Ok(self.current_devices[device_idx].clone())
+        
     }
 }
 

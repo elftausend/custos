@@ -315,7 +315,6 @@ pub fn unified_ptr<T>(cq: CommandQueue, ptr: *mut c_void, len: usize) -> Result<
     unsafe {
         enqueue_map_buffer::<T>(&cq, ptr, true, 2 | 1, 0, len).map(|ptr| ptr as *mut T)
     }
-
 }
 
 /// map_flags: Read: 1, Write: 2, 
@@ -334,9 +333,6 @@ pub unsafe fn enqueue_map_buffer<T>(
     let mut event = vec![std::ptr::null_mut(); 1];
 
     let mut err = 0;
-    if err != 0 {
-        return Err(Error::from(OCLErrorKind::from_value(err)));
-    }
     
     let ptr = clEnqueueMapBuffer(cq.0, 
         buffer, 
@@ -347,6 +343,10 @@ pub unsafe fn enqueue_map_buffer<T>(
         event.as_mut_ptr() as *mut cl_event, 
         &mut err);
 
+    if err != 0 {
+        return Err(Error::from(OCLErrorKind::from_value(err)));
+    }
+    
     let e = Event(event[0]);
     wait_for_event(e)?;
     Ok(ptr)
@@ -403,7 +403,6 @@ pub fn create_program_with_source(context: &Context, src: &str) -> Result<Progra
 pub fn build_program(program: &Program, devices: &[CLIntDevice], options: Option<&str>) -> Result<(), Error> {
     let len = devices.len();
 
-    
     let err = if let Some(x) = options {
         let cstring = CString::new(x).unwrap();
         unsafe {clBuildProgram(program.0, len as u32, devices.as_ptr() as *const *mut c_void, cstring.as_ptr(), std::ptr::null_mut(), std::ptr::null_mut())}

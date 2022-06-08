@@ -1,7 +1,6 @@
 use std::ffi::c_void;
 
 use crate::{matrix::Matrix, number::Number, Error, GenericOCL, Buffer, Node};
-
 use super::{api::{enqueue_nd_range_kernel, set_kernel_arg, OCLErrorKind, set_kernel_arg_ptr}, CL_CACHE, CLCache, cl_device::InternCLDevice};
 
 pub trait KernelArg<'a, T> {
