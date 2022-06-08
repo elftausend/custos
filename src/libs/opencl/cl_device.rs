@@ -257,7 +257,10 @@ impl CLDevice {
 impl Drop for CLDevice {
     fn drop(&mut self) {
         let contents = CL_CACHE.with(|cache| {
-           cache.borrow().nodes.clone()         
+            for (_, kernel) in &mut cache.borrow_mut().arg_kernel_cache {
+                kernel.release()
+            }
+            cache.borrow().nodes.clone()  
         });
         
         for ptr in self.ptrs.iter() {

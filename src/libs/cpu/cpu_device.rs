@@ -205,16 +205,16 @@ impl Drop for CPU {
             unsafe {    
                 drop(Box::from_raw(*ptr));
             }
+
             for entry in &contents {
                 let hm_ptr = ((entry.1).0).0;
                 if &hm_ptr == ptr {
                     CPU_CACHE.with(|cache| {
                         cache.borrow_mut().nodes.remove(entry.0);
-                    });                     
+                    });
                 }
             }
         }
-
         self.ptrs.clear();
     }
 }

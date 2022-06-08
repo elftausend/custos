@@ -391,8 +391,16 @@ macro_rules! get_device {
             use $crate::{GLOBAL_DEVICE, InternCLDevice, InternCPU, Error, DeviceError};
             let device: Result<Box<dyn $t<$g>>, Error> = GLOBAL_DEVICE.with(|d| {
                 let dev: Result<Box<dyn $t<$g>>, Error> = match &d.borrow().cl_device {
-                    Some(cl) => Ok(Box::new(InternCLDevice::from(cl.clone().upgrade().ok_or(Error::from(DeviceError::NoDeviceSelected))?))),    
-                    None => Ok(Box::new(InternCPU::new(d.borrow().cpu.as_ref().ok_or(Error::from(DeviceError::NoDeviceSelected))?.upgrade().ok_or(Error::from(DeviceError::NoDeviceSelected))?)))
+                    Some(cl) => Ok(
+                        Box::new(InternCLDevice::from(cl.clone().upgrade()
+                        .ok_or(Error::from(DeviceError::NoDeviceSelected))?))
+                    ),    
+                    None => Ok(
+                        Box::new(InternCPU::new(d.borrow().cpu.as_ref()
+                            .ok_or(Error::from(DeviceError::NoDeviceSelected))?
+                            .upgrade()
+                            .ok_or(Error::from(DeviceError::NoDeviceSelected))?))
+                        )
                 };
                 dev
             });

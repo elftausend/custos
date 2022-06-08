@@ -256,7 +256,7 @@ impl<'a, T: GenericOCL> KernelRunner<'a, T> {
         for arg in &self.num_args {
             set_kernel_arg_ptr(&kernel, arg.1, arg.0, arg.2)?
         }
-
+        
         enqueue_nd_range_kernel(&self.device.queue(), &kernel, self.wd, &self.gws, self.lws.as_ref(), self.offset)?;
     
         if let Some(output) = &self.output {

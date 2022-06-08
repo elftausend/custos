@@ -418,7 +418,7 @@ pub fn build_program(program: &Program, devices: &[CLIntDevice], options: Option
 }
 
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub struct Kernel(pub cl_kernel);
 
 impl Kernel {

@@ -66,7 +66,6 @@ where
     let cpu = CPU::new();
 
     if device.unified_mem() && !cfg!(feature="safe") { 
-
         // host ptr matrix
         let no_drop = f(&cpu, matrix.clone());
         return construct_buffer(device, &cpu, no_drop);
