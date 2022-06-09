@@ -28,9 +28,10 @@ type KernelIdent1 = (Vec<OclPtr>, Option<OclPtr>, String);
 #[derive(Debug)]
 /// Stores kernels and outputs
 pub struct CLCache {
+    // TODO: Instead of a hashmap: vec
     pub nodes: HashMap<Node, RawInfo>,
-    pub arg_kernel_cache: HashMap<KernelIdent, Kernel>,
-    pub kernel_cache: HashMap<KernelIdent1, Kernel>,
+    pub(crate) arg_kernel_cache: HashMap<KernelIdent, Kernel>,
+    pub(crate) kernel_cache: HashMap<KernelIdent1, Kernel>,
 }
 
 impl CLCache {
@@ -73,7 +74,7 @@ impl CLCache {
         Buffer::new(&device, node.len)
     }
 
-    pub fn arg_kernel_cache<T: GenericOCL>(&mut self, device: InternCLDevice, buffers: &[(&Buffer<T>, usize)], numbers: &[(T, usize)], output: Option<&Buffer<T>>, src: String) -> Result<Kernel, Error> {
+    pub(crate) fn arg_kernel_cache<T: GenericOCL>(&mut self, device: InternCLDevice, buffers: &[(&Buffer<T>, usize)], numbers: &[(T, usize)], output: Option<&Buffer<T>>, src: String) -> Result<Kernel, Error> {
         let type_ids = vec![TypeId::of::<T>(); numbers.len()];
         
         let mems: Vec<OclPtr> = buffers.iter()
@@ -110,7 +111,7 @@ impl CLCache {
         
     }
 
-    pub fn arg_kernel_cache1<T: GenericOCL>(&mut self, device: InternCLDevice, buffers: &[PtrIdxLen], numbers: &[PtrIdxSize], output: Option<&Buffer<T>>, src: String) -> Result<Kernel, Error> {        
+    pub(crate) fn arg_kernel_cache1<T: GenericOCL>(&mut self, device: InternCLDevice, buffers: &[PtrIdxLen], numbers: &[PtrIdxSize], output: Option<&Buffer<T>>, src: String) -> Result<Kernel, Error> {        
         let mems: Vec<OclPtr> = buffers.iter()
             .map(|ptrs| OclPtr(ptrs.0))
             .collect();

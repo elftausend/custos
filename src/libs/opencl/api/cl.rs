@@ -419,7 +419,7 @@ pub fn build_program(program: &Program, devices: &[CLIntDevice], options: Option
 
 
 #[derive(Debug, Clone, Copy)]
-pub struct Kernel(pub cl_kernel);
+pub(crate) struct Kernel(pub cl_kernel);
 
 impl Kernel {
     pub fn release(&mut self) {
@@ -430,7 +430,7 @@ impl Kernel {
 unsafe impl Send for Kernel {}
 unsafe impl Sync for Kernel {}
 
-pub fn create_kernel(program: &Program, str: &str) -> Result<Kernel, Error> {
+pub(crate) fn create_kernel(program: &Program, str: &str) -> Result<Kernel, Error> {
     let mut err = 0;
     let cstring = CString::new(str).unwrap();
     let kernel = unsafe { clCreateKernel(program.0, cstring.as_ptr(),&mut err)};
@@ -439,7 +439,7 @@ pub fn create_kernel(program: &Program, str: &str) -> Result<Kernel, Error> {
     }
     Ok(Kernel(kernel))
 }
-pub fn create_kernels_in_program(program: &Program) -> Result<Vec<Kernel>, Error> {
+pub(crate) fn create_kernels_in_program(program: &Program) -> Result<Vec<Kernel>, Error> {
     let mut n_kernels: u32 = 0;
     let value = unsafe {clCreateKernelsInProgram(program.0, 0, std::ptr::null_mut(), &mut n_kernels)};
     if value != 0 {
@@ -460,7 +460,7 @@ pub fn create_kernels_in_program(program: &Program) -> Result<Vec<Kernel>, Error
     Ok(kernels)
 }
 
-pub fn release_kernel(kernel: &mut Kernel) -> Result<(), Error>{
+pub(crate) fn release_kernel(kernel: &mut Kernel) -> Result<(), Error>{
     let value = unsafe {clReleaseKernel(kernel.0)};
     if value != 0 {
         return Err(Error::from(OCLErrorKind::from_value(value)));
@@ -468,7 +468,7 @@ pub fn release_kernel(kernel: &mut Kernel) -> Result<(), Error>{
     Ok(())
 }
 
-pub fn set_kernel_arg<T>(kernel: &Kernel, index: usize, arg: &T) -> Result<(), Error> {
+pub(crate) fn set_kernel_arg<T>(kernel: &Kernel, index: usize, arg: &T) -> Result<(), Error> {
     let value = unsafe {clSetKernelArg(kernel.0, index as u32, core::mem::size_of::<T>(), arg as *const T as *const c_void)};
     if value != 0 {
         return Err(Error::from(OCLErrorKind::from_value(value)));
@@ -489,7 +489,7 @@ pub fn set_kernel_arg_c(kernel: &Kernel, index: usize, arg: *const c_void, size:
     error("clSetKernelArg", unsafe {clSetKernelArg(kernel.0, index as u32, size, arg)});
 }
 */
-pub fn enqueue_nd_range_kernel(cq: &CommandQueue, kernel: &Kernel, wd: usize, gws: &[usize; 3], lws: Option<&[usize;3]>, offset: Option<[usize; 3]>) -> Result<(), Error> {
+pub(crate) fn enqueue_nd_range_kernel(cq: &CommandQueue, kernel: &Kernel, wd: usize, gws: &[usize; 3], lws: Option<&[usize;3]>, offset: Option<[usize; 3]>) -> Result<(), Error> {
     let mut events = vec![std::ptr::null_mut();1];
     let lws = match lws {
         Some(lws) => lws.as_ptr(),
