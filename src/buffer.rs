@@ -1,40 +1,21 @@
-use std::{ffi::c_void, ptr::null_mut};
+use std::{ffi::c_void, ptr::null_mut, fmt::Debug};
 
 #[cfg(feature="opencl")]
 #[cfg(feature="safe")]
 use crate::opencl::api::release_mem_object;
-use crate::{Device, GenericOCL, get_device, CacheBuf, opencl::api::retain_mem_object};
+use crate::{Device, GenericOCL, get_device, CacheBuf, opencl::api::retain_mem_object, VecRead};
 
 #[cfg(not(feature="safe"))]
 use crate::number::Number;
 
 
 #[cfg_attr(not(feature = "safe"), derive(Debug, Clone, Copy))]
-#[cfg_attr(feature = "safe", derive(Debug))]
 pub struct Buffer<T> {
     pub ptr: (*mut T, *mut c_void),
     pub len: usize,
 }
 
 impl<T> Buffer<T> {
-    /// Returns a CPU slice.
-    pub fn as_slice(&self) -> &[T] {
-        assert!(self.ptr.0 != std::ptr::null_mut(), "called as_slice() on a non CPU buffer (this would dereference a null pointer)");
-        unsafe {
-            std::slice::from_raw_parts(self.ptr.0, self.len)
-        }
-    }
-    
-    /// Returns a mutable CPU slice.
-    pub fn as_mut_slice(&mut self) -> &mut [T] {
-        assert!(self.ptr.0 != std::ptr::null_mut(), "called as_mut_slice() on a non CPU buffer (this would dereference a null pointer)");
-        unsafe {
-            std::slice::from_raw_parts_mut(self.ptr.0, self.len)
-        }
-    }
-}
-
-impl<T: Default+Copy> Buffer<T> {
     /// Creates an empty buffer with the given length on the specified device.
     /// ```
     /// use custos::{CPU, Buffer};
@@ -52,6 +33,22 @@ impl<T: Default+Copy> Buffer<T> {
         Buffer {
             ptr: device.alloc(len),
             len,
+        }
+    }
+
+    /// Returns a CPU slice.
+    pub fn as_slice(&self) -> &[T] {
+        assert!(self.ptr.0 != std::ptr::null_mut(), "called as_slice() on a non CPU buffer (this would dereference a null pointer)");
+        unsafe {
+            std::slice::from_raw_parts(self.ptr.0, self.len)
+        }
+    }
+    
+    /// Returns a mutable CPU slice.
+    pub fn as_mut_slice(&mut self) -> &mut [T] {
+        assert!(self.ptr.0 != std::ptr::null_mut(), "called as_mut_slice() on a non CPU buffer (this would dereference a null pointer)");
+        unsafe {
+            std::slice::from_raw_parts_mut(self.ptr.0, self.len)
         }
     }
 
@@ -133,6 +130,58 @@ impl<T> std::ops::Deref for Buffer<T> {
 impl<T> std::ops::DerefMut for Buffer<T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         self.as_mut_slice()
+    }
+}
+
+impl<T: Debug + Default + Copy> Debug for Buffer<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Buffer").field("ptr (CPU, OpenCL)", &self.ptr).field("len", &self.len);
+        writeln!(f, ",")?;
+        if self.ptr.0 != null_mut() {
+            writeln!(f, "CPU:    {:?}", self.as_slice())?; 
+        }
+
+        if self.ptr.1 != null_mut() {
+            let read = get_device!(VecRead, T).unwrap();
+            write!(f, "OpenCL: {:?}, ", read.read(self))?; 
+        }
+
+        write!(f, "datatype={} }}", std::any::type_name::<T>())
+    }
+}
+
+pub struct IntoIter<T> {
+    _ptr: *mut T,
+}
+
+impl<T> Iterator for IntoIter<T> {
+    type Item = T;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        todo!()
+    }
+}
+
+impl<T> std::iter::IntoIterator for Buffer<T> {
+    type Item = T;
+
+    type IntoIter = IntoIter<T>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        assert!(self.ptr.0 != std::ptr::null_mut(), "called as_slice() on a non CPU buffer (this would dereference a null pointer)");
+        unsafe {
+            let ptr = self.ptr.0;
+            let _end = if core::mem::size_of::<T>() == 0 {
+                (ptr as *const i8).wrapping_offset(self.len() as isize) as *const T
+                
+            } else {
+                ptr.add(self.len()) as *const T
+            };
+
+            IntoIter {
+                _ptr: ptr
+            }
+        }
     }
 }
 

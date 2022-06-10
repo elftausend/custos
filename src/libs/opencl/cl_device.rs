@@ -54,7 +54,6 @@ impl InternCLDevice {
 
     pub fn unified_mem(&self) -> bool {
         // TODO: "true" for every device?
-        //true
         self.cl.borrow().unified_mem
     }
 }

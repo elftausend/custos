@@ -25,10 +25,7 @@ impl<T> Matrix<T> {
     /// ```
     pub fn new<D: Device<T>>(device: &D, dims: (usize, usize)) -> Matrix<T> {
         Matrix {
-            data: Buffer { 
-                ptr: device.alloc(dims.0*dims.1), 
-                len: dims.0*dims.1,  
-                },
+            data: Buffer::new(device, dims.0*dims.1),
             dims,
         }
     }
@@ -264,7 +261,7 @@ impl<T: Copy+Default> From<(usize, usize)> for Matrix<T> {
         Matrix {
             data: buffer,
             dims
-        }        
+        }
     }
 }
 
@@ -276,7 +273,7 @@ impl<T: Copy+Default> From<(usize, usize, Vec<T>)> for Matrix<T> {
         Matrix {
             data: buffer,
             dims: (dims_data.0, dims_data.1)
-        }        
+        }
     }
 }
 

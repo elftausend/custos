@@ -13,8 +13,6 @@ thread_local! {
     })
 }
 
-
-
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
 pub struct OclPtr(pub *mut c_void);
 
@@ -28,7 +26,7 @@ type KernelIdent1 = (Vec<OclPtr>, Option<OclPtr>, String);
 #[derive(Debug)]
 /// Stores kernels and outputs
 pub struct CLCache {
-    // TODO: Instead of a hashmap: vec
+    // TODO: Instead of a hashmap: vec?
     pub nodes: HashMap<Node, RawInfo>,
     pub(crate) arg_kernel_cache: HashMap<KernelIdent, Kernel>,
     pub(crate) kernel_cache: HashMap<KernelIdent1, Kernel>,

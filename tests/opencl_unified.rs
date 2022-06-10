@@ -1,8 +1,7 @@
 #[cfg(feature="opencl")]
 use std::ffi::c_void;
 
-
-
+use custos::AsDev;
 #[cfg(feature="opencl")]
 #[cfg(not(feature="safe"))]
 use custos::{CPU, opencl::{cl_tew}};
@@ -214,6 +213,28 @@ fn test_unified_mem_device_switch() -> custos::Result<()> {
     let a = Matrix::from((&device, 2, 3, [1, 2, 3, 4, 5, 6,]));
     let _m = cpu_exec(&device, &a, |_cpu, m| m)?;
 
+    Ok(())
+}
+
+#[test]
+fn test_unified_opencl() -> custos::Result<()> {
+    let device = CLDevice::get(0)?.select();
+
+    if !device.unified_mem() {
+        return Ok(());
+    }
+
+    let mut a = Matrix::from((&device, 2, 3, [1, 2, 3, 4, 5, 6,]));
+
+    for (i, value)  in a.as_mut_buf().iter_mut().enumerate() {
+        *value += i as i32;
+    }
+
+    //let slice = unsafe { std::slice::from_raw_parts(a.as_buf().ptr.0, a.size()) };
+    //println!("slice: {slice:?}");
+
+    println!("a: {:?}", a.as_buf());
+    //println!("a: {a:?}");
     Ok(())
 }
 

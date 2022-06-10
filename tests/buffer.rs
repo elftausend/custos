@@ -4,7 +4,7 @@ use std::ffi::c_void;
 #[cfg(not(feature="safe"))]
 use custos::{AsDev, CPU, cpu::element_wise_op_mut};
 
-use custos::{Buffer, Device, VecRead};
+use custos::{Buffer, Device, VecRead, AsDev};
 #[cfg(feature="opencl")]
 use custos::{libs::opencl::CLDevice, Error};
 
@@ -231,5 +231,18 @@ fn test_iterate() {
     for (x, y) in a.into_iter().zip(cmp) {
         assert!(*x == y)
     }
+}
 
+
+
+
+
+#[test]
+fn test_debug_print_buf() -> custos::Result<()> {
+    let device = CLDevice::get(0)?.select();
+
+    let a = Buffer::from((&device, [1, 2, 3, 4, 5, 6,]));
+
+    println!("a: {a:?}");
+    Ok(())
 }
