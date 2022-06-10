@@ -2,7 +2,7 @@
 use std::ffi::c_void;
 
 #[cfg(not(feature="safe"))]
-use custos::{AsDev, CPU, cpu::element_wise_op_mut};
+use custos::{CPU, cpu::element_wise_op_mut};
 
 use custos::{Buffer, Device, VecRead, AsDev};
 #[cfg(feature="opencl")]

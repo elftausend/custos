@@ -2,14 +2,14 @@ use std::{ffi::c_void, ptr::null_mut, fmt::Debug};
 
 #[cfg(feature="opencl")]
 #[cfg(feature="safe")]
-use crate::opencl::api::release_mem_object;
-use crate::{Device, GenericOCL, get_device, CacheBuf, opencl::api::retain_mem_object, VecRead};
+use crate::opencl::api::{release_mem_object, retain_mem_object};
+use crate::{Device, GenericOCL, get_device, CacheBuf, VecRead};
 
 #[cfg(not(feature="safe"))]
 use crate::number::Number;
 
 
-#[cfg_attr(not(feature = "safe"), derive(Debug, Clone, Copy))]
+#[cfg_attr(not(feature = "safe"), derive(Clone, Copy))]
 pub struct Buffer<T> {
     pub ptr: (*mut T, *mut c_void),
     pub len: usize,
@@ -52,6 +52,9 @@ impl<T> Buffer<T> {
         }
     }
 
+}
+
+impl<T: Default + Copy> Buffer<T> {
     #[cfg(not(feature="safe"))]
     /// Used if the buffer contains only a single value.
     /// 
@@ -150,6 +153,7 @@ impl<T: Debug + Default + Copy> Debug for Buffer<T> {
     }
 }
 
+/* 
 pub struct IntoIter<T> {
     _ptr: *mut T,
 }
@@ -184,6 +188,7 @@ impl<T> std::iter::IntoIterator for Buffer<T> {
         }
     }
 }
+*/
 
 impl<'a, T> std::iter::IntoIterator for &'a Buffer<T> {
     type Item = &'a T;
