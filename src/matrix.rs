@@ -2,10 +2,6 @@ use std::ffi::c_void;
 
 #[cfg(feature="opencl")]
 use crate::opencl::{InternCLDevice, CLCache, api::{enqueue_write_buffer, wait_for_event}};
-
-#[cfg(feature="opencl")]
-use crate::Node;
-
 use crate::{BaseOps, Buffer, Device, Gemm, get_device, libs::cpu::TBlas, VecRead, number::Number, AssignOps, GenericOCL};
 
 #[cfg_attr(not(feature="safe"), derive(Copy))]
@@ -288,7 +284,7 @@ impl<T: Copy+Default> From<(usize, usize, Vec<T>)> for Matrix<T> {
 impl<T: GenericOCL> From<(&InternCLDevice, Matrix<T>)> for Matrix<T> {
     fn from(device_matrix: (&InternCLDevice, Matrix<T>)) -> Self {
         //assert!(CPU_CACHE.with(|cache| !cache.borrow().nodes.is_empty()), "no allocations");
-        let y = CLCache::get::<T>(device_matrix.0.clone(), Node::new(device_matrix.1.size()));
+        let y = CLCache::get::<T>(device_matrix.0.clone(), device_matrix.1.size());
         let event = unsafe {enqueue_write_buffer(&device_matrix.0.queue(), y.ptr.1, device_matrix.1.as_slice(), true).unwrap()};
         wait_for_event(event).unwrap();
         Matrix::from((y, device_matrix.1.dims()))

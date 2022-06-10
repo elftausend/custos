@@ -245,10 +245,6 @@ pub trait Gemm<T> {
     fn gemm(&self, lhs: &Matrix<T>, rhs: &Matrix<T>) -> Matrix<T>;
 }
 
-pub trait Dealloc {
-    fn dealloc_cache();
-}
-
 trait ManualMem<T> {
     fn drop_buf(&self, buf: Buffer<T>);
 }

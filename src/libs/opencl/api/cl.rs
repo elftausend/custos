@@ -18,7 +18,7 @@ impl Platform {
 pub fn get_platforms() -> Result<Vec<Platform>, Error> {
     let mut platforms: cl_uint = 0;
     let value = unsafe { clGetPlatformIDs(0, std::ptr::null_mut(), &mut platforms)};
-    //ocl_error(OCLErrorKind::GetPlatformIDs, unsafe { clGetPlatformIDs(0, std::ptr::null_mut(), &mut platforms)});
+
     if value != 0 {
         return Err(Error::from(OCLErrorKind::from_value(value)));
     }
@@ -187,7 +187,7 @@ impl CommandQueue {
 pub fn create_command_queue(context: &Context, device: CLIntDevice) -> Result<CommandQueue, Error> {
     let mut err = 0;
     let r = unsafe {clCreateCommandQueue(context.0, device.0, 0, &mut err)};
-    //error("clCreateCommandQueue", err);
+    
     if err != 0 {
         return Err(Error::from(OCLErrorKind::from_value(err)));
     }
@@ -215,7 +215,7 @@ impl Event {
 
 pub fn wait_for_event(event: Event) -> Result<(), Error> {
     let event_vec: Vec<Event> = vec![event];
-    //event_vec.push(event);
+
     let value = unsafe {clWaitForEvents(1, event_vec.as_ptr() as *mut cl_event)};
     if value != 0 {
         return Err(Error::from(OCLErrorKind::from_value(value)));
@@ -259,7 +259,7 @@ pub fn create_buffer<T>(context: &Context, flag: u64, size: usize, data: Option<
         None => std::ptr::null_mut(),
     };
     let r = unsafe {clCreateBuffer(context.0, flag as u64, size*core::mem::size_of::<T>(), host_ptr, &mut err)};
-    //error("clCreateBuffer", err);
+
     if err != 0 {
         return Err(Error::from(OCLErrorKind::from_value(err)));
     }
@@ -273,15 +273,17 @@ pub unsafe fn release_mem_object(ptr: *mut c_void) -> Result<(), Error> {
     }
     Ok(())
 }
-/* 
-pub unsafe fn retain_mem_object(mem: *mut c_void) -> Result<(), Error>{
-    let value = clRetainMemObject(mem);
+
+pub(crate) fn retain_mem_object(mem: *mut c_void) -> Result<(), Error>{
+    let value = unsafe {
+        clRetainMemObject(mem)
+    };
     if value != 0 {
         return Err(Error::from(OCLErrorKind::from_value(value)));
     }
     Ok(())
 }
-*/
+
 
 pub unsafe fn enqueue_write_buffer<T>(cq: &CommandQueue, mem: *mut c_void, data: &[T], block: bool) -> Result<Event, Error> {
     let mut events = vec![std::ptr::null_mut();1];
@@ -484,11 +486,6 @@ pub(crate) fn set_kernel_arg_ptr(kernel: &Kernel, index: usize, arg: *mut usize,
     Ok(())
 }
 
-/* 
-pub fn set_kernel_arg_c(kernel: &Kernel, index: usize, arg: *const c_void, size: usize) {
-    error("clSetKernelArg", unsafe {clSetKernelArg(kernel.0, index as u32, size, arg)});
-}
-*/
 pub(crate) fn enqueue_nd_range_kernel(cq: &CommandQueue, kernel: &Kernel, wd: usize, gws: &[usize; 3], lws: Option<&[usize;3]>, offset: Option<[usize; 3]>) -> Result<(), Error> {
     let mut events = vec![std::ptr::null_mut();1];
     let lws = match lws {

@@ -1,6 +1,6 @@
 use std::{ffi::c_void, rc::Rc, cell::RefCell};
 
-use crate::{libs::opencl::api::{create_buffer, MemFlags}, BaseOps, Matrix, AsDev, Gemm, VecRead, BaseDevice, Error, Device, AssignOps, GenericOCL, ManualMem, Buffer, remove_value, CacheBuf, Node};
+use crate::{libs::opencl::api::{create_buffer, MemFlags}, BaseOps, Matrix, AsDev, Gemm, VecRead, BaseDevice, Error, Device, AssignOps, GenericOCL, ManualMem, Buffer, remove_value, CacheBuf};
 
 use super::{api::{CLIntDevice, CommandQueue, Context, create_command_queue, create_context, enqueue_read_buffer, wait_for_event, release_mem_object, enqueue_write_buffer, unified_ptr}, CL_DEVICES, cl_tew, cl_gemm, CL_CACHE, cl_tew_self, CLCache, cl_clear};
 
@@ -53,6 +53,8 @@ impl InternCLDevice {
     }
 
     pub fn unified_mem(&self) -> bool {
+        // TODO: "true" for every device?
+        //true
         self.cl.borrow().unified_mem
     }
 }
@@ -131,7 +133,7 @@ impl<T> ManualMem<T> for InternCLDevice {
 
 impl<T: GenericOCL> CacheBuf<T> for InternCLDevice {
     fn cached_buf(&self, len: usize) -> Buffer<T> {
-        CLCache::get::<T>(self.clone(), Node::new(len))
+        CLCache::get::<T>(self.clone(), len)
     }
 }
 

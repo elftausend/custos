@@ -42,10 +42,10 @@ impl CLCache {
     }
 
     #[cfg(not(feature="safe"))]
-    pub fn get<T: GenericOCL>(device: InternCLDevice, node: Node) -> Buffer<T> {
+    pub fn get<T: GenericOCL>(device: InternCLDevice, len: usize) -> Buffer<T> {
         use crate::opencl::api::unified_ptr;
-
         assert!(!device.cl.borrow().ptrs.is_empty(), "no OpenCL allocations");
+        let node = Node::new(len);
 
         CL_CACHE.with(|cache| {
             let mut cache = cache.borrow_mut();
@@ -70,8 +70,8 @@ impl CLCache {
     }
 
     #[cfg(feature="safe")]
-    pub fn get<T: GenericOCL>(device: InternCLDevice, node: Node) -> Buffer<T> {
-        Buffer::new(&device, node.len)
+    pub fn get<T: GenericOCL>(device: InternCLDevice, len: usize) -> Buffer<T> {
+        Buffer::new(&device, len)
     }
 
     pub(crate) fn arg_kernel_cache<T: GenericOCL>(&mut self, device: InternCLDevice, buffers: &[(&Buffer<T>, usize)], numbers: &[(T, usize)], output: Option<&Buffer<T>>, src: String) -> Result<Kernel, Error> {

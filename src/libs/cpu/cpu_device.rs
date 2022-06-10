@@ -1,6 +1,6 @@
 use std::{fmt::Debug, cell::RefCell, rc::Rc, ffi::c_void};
 
-use crate::{BaseOps, Buffer, Device, Gemm, libs::cpu::{CPUCache, ops::element_wise_op_mut}, matrix::Matrix, VecRead, number::Number, Dealloc, AsDev, BaseDevice, AssignOps, GenericOCL, ManualMem, remove_value, CacheBuf};
+use crate::{BaseOps, Buffer, Device, Gemm, libs::cpu::{CPUCache, ops::element_wise_op_mut}, matrix::Matrix, VecRead, number::Number, AsDev, BaseDevice, AssignOps, GenericOCL, ManualMem, remove_value, CacheBuf};
 
 use super::{TBlas, CPU_CACHE, assign_to_lhs};
 
@@ -137,19 +137,6 @@ impl<T: Number> BaseOps<T> for InternCPU {
     }
 }
 
-impl Dealloc for InternCPU {
-    fn dealloc_cache() {
-        CPU_CACHE.with(|cache| {
-            let contents = cache.borrow().nodes.clone();
-            for entry in contents {
-                let ptr = (entry.1).0;
-                unsafe { Box::from_raw(ptr.0) };
-                cache.borrow_mut().nodes.remove(&entry.0);
-            }
-        });
-    }
-}
-
 impl<T: TBlas+Default+Copy> Gemm<T> for InternCPU {
     fn gemm(&self, lhs: &Matrix<T>, rhs: &Matrix<T>) -> Matrix<T> {
         assert!(lhs.dims().1 == rhs.dims().0);
@@ -205,7 +192,7 @@ impl Drop for CPU {
             unsafe {    
                 drop(Box::from_raw(*ptr));
             }
-
+            
             for entry in &contents {
                 let hm_ptr = ((entry.1).0).0;
                 if &hm_ptr == ptr {

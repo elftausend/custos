@@ -2,8 +2,8 @@ use std::{ffi::c_void, ptr::null_mut};
 
 #[cfg(feature="opencl")]
 #[cfg(feature="safe")]
-use crate::opencl::api::{release_mem_object, clRetainMemObject};
-use crate::{Device, GenericOCL, get_device, CacheBuf};
+use crate::opencl::api::release_mem_object;
+use crate::{Device, GenericOCL, get_device, CacheBuf, opencl::api::retain_mem_object};
 
 #[cfg(not(feature="safe"))]
 use crate::number::Number;
@@ -88,9 +88,7 @@ impl<T> Clone for Buffer<T> {
     fn clone(&self) -> Self {
         #[cfg(feature="opencl")]
         if !self.ptr.1.is_null() { 
-            unsafe {
-                clRetainMemObject(self.ptr.1);
-            }
+            retain_mem_object(self.ptr.1).unwrap();
         };
         Self { ptr: self.ptr, len: self.len}
     }

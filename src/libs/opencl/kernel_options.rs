@@ -1,6 +1,6 @@
 use std::ffi::c_void;
 
-use crate::{matrix::Matrix, number::Number, Error, GenericOCL, Buffer, Node};
+use crate::{matrix::Matrix, number::Number, Error, GenericOCL, Buffer};
 use super::{api::{enqueue_nd_range_kernel, set_kernel_arg, OCLErrorKind, set_kernel_arg_ptr}, CL_CACHE, CLCache, cl_device::InternCLDevice};
 
 pub trait KernelArg<'a, T> {
@@ -153,7 +153,7 @@ impl<'a, T: GenericOCL> KernelOptions<'a, T> {
 
     /// Adds output
     pub fn with_output(&mut self, out_len: usize) -> &mut KernelOptions<'a, T> {
-        self.output = Some(CLCache::get(self.device.clone(), Node::new(out_len)));
+        self.output = Some(CLCache::get(self.device.clone(), out_len));
         self
     }
 
@@ -180,7 +180,7 @@ pub(crate) type PtrIdxSize = (*mut usize, usize, usize);
 /// for buffers
 pub(crate) type PtrIdxLen = (*mut c_void, usize, usize);
 
-// TODO: Use this instead of the current KernelOptions implementation?
+// TODO: (No, invalid arg size error) Use this instead of the current KernelOptions implementation? 
 pub struct KernelRunner<'a, T> {
     src: &'a str,
     output: Option<Buffer<T>>,
@@ -246,7 +246,7 @@ impl<'a, T: GenericOCL> KernelRunner<'a, T> {
 
     /// Adds output
     pub fn with_output(&mut self, out_len: usize) -> &mut KernelRunner<'a, T> {
-        self.output = Some(CLCache::get(self.device.clone(), Node::new(out_len)));
+        self.output = Some(CLCache::get(self.device.clone(), out_len));
         self
     }
 
