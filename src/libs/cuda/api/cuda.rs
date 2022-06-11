@@ -1,6 +1,6 @@
-use std::ptr::null_mut;
+use std::{ptr::null_mut, ffi::c_void};
 
-use super::{extern_c::{CudaPtr, cuMemAlloc_v2}, error::{CudaResult, CudaErrorKind}, cuInit, CUcontext, CUdevice, cuDeviceGet, cuCtxCreate_v2, cuMemFree_v2};
+use super::{extern_c::{CUdeviceptr, cuMemAlloc_v2}, error::{CudaResult, CudaErrorKind}, cuInit, CUcontext, CUdevice, cuDeviceGet, cuCtxCreate_v2, cuMemFree_v2, cuDeviceGetCount, cuMemcpyHtoD_v2};
 
 pub fn cinit(flags: u32) -> CudaResult<()> {
     unsafe { cuInit(flags).into() }
@@ -8,12 +8,20 @@ pub fn cinit(flags: u32) -> CudaResult<()> {
 
 pub struct CudaIntDevice(CUdevice);
 
+pub fn device_count() -> CudaResult<i32> {
+    let mut count = 0;
+    unsafe { cuDeviceGetCount(&mut count as *mut i32) }.to_result()?;
+    Ok(count)
+}
+
 pub fn device(ordinal: i32) -> CudaResult<CudaIntDevice> {
-    unsafe {
-        let mut device = CudaIntDevice(0);
-        cuDeviceGet(&mut device.0 as *mut i32, ordinal);
-        Ok(device)
-    }
+    if ordinal >= device_count()? {
+        return Err(CudaErrorKind::InvalidDeviceIdx)
+    } 
+
+    let mut device = CudaIntDevice(0);
+    unsafe { cuDeviceGet(&mut device.0 as *mut i32, ordinal) };
+    Ok(device)
 }
 
 pub struct Context(CUcontext);
@@ -29,7 +37,7 @@ pub fn create_context(device: CudaIntDevice) -> CudaResult<Context> {
 
 pub struct CudaMem(*mut *mut u64);
 
-pub unsafe fn cmalloc<T>(len: usize) -> CudaResult<*mut CudaPtr> {
+pub fn cumalloc<T>(len: usize) -> CudaResult<*mut CUdeviceptr> {
     let bytesize = len * core::mem::size_of::<T>();
 
     if bytesize == 0 {
@@ -37,10 +45,16 @@ pub unsafe fn cmalloc<T>(len: usize) -> CudaResult<*mut CudaPtr> {
     }
 
     let mut ptr = null_mut();
-    cuMemAlloc_v2(&mut ptr as *mut *mut u64 as *mut u64 , bytesize).to_result()?;
+    unsafe { cuMemAlloc_v2(&mut ptr as *mut *mut u64 as *mut u64 , bytesize).to_result()? };
     Ok(ptr)
 }
 
-pub unsafe fn cfree(ptr: *mut CudaPtr) -> CudaResult<()> {
+pub fn cuwrite<T>(dst: *mut CUdeviceptr, src_host: &T) -> CudaResult<()> {
+    let bytes_to_copy = std::mem::size_of::<T>();
+    unsafe { cuMemcpyHtoD_v2(dst as u64, src_host as *const T as *const c_void, bytes_to_copy) }.to_result()?;
+    Ok(())
+}
+
+pub unsafe fn cfree(ptr: *mut CUdeviceptr) -> CudaResult<()> {
     cuMemFree_v2(ptr).to_result()
 }

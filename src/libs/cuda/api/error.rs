@@ -3,14 +3,16 @@ use crate::Error;
 pub type CudaResult<T> = std::result::Result<T, CudaErrorKind>;
 
 pub enum CudaErrorKind {
-    Test,
-    InvalidAllocSize
+    InvalidAllocSize,
+    InvalidDeviceIdx,
+    Unknown
 }
 
 impl CudaErrorKind {
     pub fn as_str(&self) -> &'static str {
         match self {
-            _ => "Test"
+            CudaErrorKind::InvalidDeviceIdx => "Invalid device idx, specific CUDA device not found",
+            _ => "Unknown"
         }
     }
 }
@@ -19,7 +21,7 @@ impl From<u32> for CudaErrorKind {
     fn from(value: u32) -> Self {
         println!("value: {value}");
         match value {
-            _ => CudaErrorKind::Test
+            _ => CudaErrorKind::Unknown
         }
     }
 }
