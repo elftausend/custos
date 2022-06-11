@@ -152,6 +152,7 @@ pub fn get_device_info(device: CLIntDevice, param_name: DeviceInfo) -> Result<De
     })
 }
 
+// TODO: implement drop
 #[derive(Debug, Hash, Clone, Copy)]
 pub struct Context(pub cl_context);
 
@@ -175,6 +176,7 @@ fn release_context(context: Context) {
     unsafe {clReleaseContext(context.0)};
 }
 
+// TODO: implement drop
 #[derive(Clone, Copy, Debug)]
 pub struct CommandQueue(pub cl_command_queue);
 
@@ -364,6 +366,7 @@ pub fn enqueue_fill_buffer<T>(cq: &CommandQueue, mem: &Mem, pattern: Vec<T>) -> 
     Event(events[0])
 }
 */
+// TODO: implement drop
 pub struct Program(pub cl_program);
 
 impl Program {

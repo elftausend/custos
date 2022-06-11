@@ -4,6 +4,9 @@ use super::error::{CudaResult, CudaErrorKind};
 pub type CudaPtr = std::os::raw::c_ulonglong;
 pub type CUdevice    = std::os::raw::c_int;
 
+pub enum StructCUctxst { }
+pub type CUcontext = *mut StructCUctxst;
+
 #[repr(u32)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
 #[allow(non_camel_case_types)]
@@ -108,6 +111,8 @@ impl CUresult {
 #[link(name = "cuda")]
 extern "C" {
     pub fn cuInit(flags: u32) -> CUresult;
+    pub fn cuDeviceGet(device: *mut CUdevice, ordinal: i32) -> CUresult;
+    pub fn cuCtxCreate_v2(context: *mut CUcontext, flags: u32, device: CUdevice) -> CUresult;
     pub fn cuMemAlloc_v2(ptr: *mut CudaPtr, size: usize) -> CUresult;
     pub fn cuMemFree_v2(ptr: *mut CudaPtr) -> CUresult;
 }
