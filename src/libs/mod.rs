@@ -4,6 +4,8 @@ use crate::number::Number;
 
 #[cfg(feature="opencl")]
 pub mod opencl;
+#[cfg(feature="cuda")]
+pub mod cuda;
 pub mod cpu;
 
 #[cfg(not(feature="opencl"))]

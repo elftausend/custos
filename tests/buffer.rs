@@ -233,10 +233,6 @@ fn test_iterate() {
     }
 }
 
-
-
-
-
 #[test]
 fn test_debug_print_buf() -> custos::Result<()> {
     let device = CLDevice::get(0)?.select();

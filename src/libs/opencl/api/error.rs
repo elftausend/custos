@@ -251,4 +251,3 @@ impl From<OCLErrorKind> for Error {
 }
 
 impl std::error::Error for OCLErrorKind {}
-
