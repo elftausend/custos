@@ -1,4 +1,5 @@
 #![allow(dead_code)]
+#![allow(non_camel_case_types)]
 
 use std::ffi::c_void;
 
@@ -6,8 +7,9 @@ use super::error::{CudaResult, CudaErrorKind};
 pub type CUdeviceptr = std::os::raw::c_ulonglong;
 pub type CUdevice    = std::os::raw::c_int;
 
-pub enum StructCUctxst { }
-pub type CUcontext = *mut StructCUctxst;
+
+pub enum CUctx_st {}
+pub type CUcontext = *mut CUctx_st;
 
 #[repr(u32)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]

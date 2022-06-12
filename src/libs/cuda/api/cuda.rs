@@ -31,34 +31,33 @@ pub fn create_context(device: CudaIntDevice) -> CudaResult<Context> {
     let mut context = Context(null_mut());
     unsafe {
         // TODO: Flags
-        cuCtxCreate_v2(&mut context.0 as *mut CUcontext, 0x00 | 0x08 , device.0).to_result()?;
+        cuCtxCreate_v2(&mut context.0 as *mut CUcontext, 0 , device.0).to_result()?;
     }
     Ok(context)
 }
 
-pub struct CudaMem(*mut *mut u64);
 
-pub fn cumalloc<T>(len: usize) -> CudaResult<*mut CUdeviceptr> {
+pub fn cumalloc<T>(len: usize) -> CudaResult<CUdeviceptr> {
     let bytes = len * core::mem::size_of::<T>();
 
     if bytes == 0 {
         return Err(CudaErrorKind::InvalidAllocSize)
     }
 
-    let mut ptr = null_mut();
-    unsafe { cuMemAlloc_v2(&mut ptr as *mut *mut u64 as *mut u64 , bytes).to_result()? };
+    let mut ptr: CUdeviceptr = 0;
+    unsafe { cuMemAlloc_v2(&mut ptr , bytes).to_result()? };
     Ok(ptr)
 }
 
-pub fn cuwrite<T>(dst: *mut CUdeviceptr, src_host: &T) -> CudaResult<()> {
-    let bytes_to_copy = std::mem::size_of::<T>();
-    unsafe { cuMemcpyHtoD_v2(dst as u64, src_host as *const T as *const c_void, bytes_to_copy) }.to_result()?;
+pub fn cuwrite<T>(dst: CUdeviceptr, src_host: &[T]) -> CudaResult<()> {
+    let bytes_to_copy = src_host.len() * std::mem::size_of::<T>();
+    unsafe { cuMemcpyHtoD_v2(dst, src_host.as_ptr() as *const c_void, bytes_to_copy) }.to_result()?;
     Ok(())
 }
 
-pub fn curead<T>(dst_host: &mut T, src: *mut CUdeviceptr,) -> CudaResult<()> {
-    let bytes_to_copy = std::mem::size_of::<T>();
-    unsafe { cuMemcpyDtoH_v2(dst_host as *mut T as *mut c_void, src as u64, bytes_to_copy) }.to_result()?;
+pub fn curead<T>(dst_host: &mut [T], src: CUdeviceptr,) -> CudaResult<()> {
+    let bytes_to_copy = dst_host.len() * std::mem::size_of::<T>();
+    unsafe { cuMemcpyDtoH_v2(dst_host.as_mut_ptr() as *mut c_void, src, bytes_to_copy) }.to_result()?;
     Ok(())
 }
 
