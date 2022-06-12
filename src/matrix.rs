@@ -2,7 +2,7 @@ use std::ffi::c_void;
 
 #[cfg(feature="opencl")]
 use crate::opencl::{InternCLDevice, CLCache, api::{enqueue_write_buffer, wait_for_event}};
-use crate::{BaseOps, Buffer, Device, Gemm, get_device, libs::cpu::TBlas, VecRead, number::Number, AssignOps, GenericOCL, cuda::api::CUdeviceptr};
+use crate::{BaseOps, Buffer, Device, Gemm, get_device, VecRead, number::Number, AssignOps, GenericOCL, cuda::api::CUdeviceptr, GenericBlas};
 
 #[cfg_attr(not(feature="safe"), derive(Copy))]
 #[derive(Clone)]
@@ -118,7 +118,7 @@ impl<T> Default for Matrix<T> {
     }
 }
 
-impl<T: GenericOCL+TBlas> Matrix<T> {
+impl<T: GenericOCL+GenericBlas> Matrix<T> {
     /// Matrix multiplication. Uses current global device.
     /// # Example
     /// ```

@@ -6,7 +6,7 @@ pub use ffi::*;
 use self::error::CublasResult;
 
 #[derive(Debug)]
-pub struct CublasHandle(*mut cublasContext);
+pub struct CublasHandle(pub *mut cublasContext);
 
 pub fn create_handle() -> CublasResult<CublasHandle> {
     let mut handle: CublasHandle = CublasHandle(std::ptr::null_mut());

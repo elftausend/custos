@@ -1,8 +1,8 @@
 use std::{fmt::Debug, cell::RefCell, rc::Rc, ffi::c_void};
 
-use crate::{BaseOps, Buffer, Device, Gemm, libs::cpu::{CPUCache, ops::element_wise_op_mut}, matrix::Matrix, VecRead, number::Number, AsDev, BaseDevice, AssignOps, GenericOCL, ManualMem, remove_value, CacheBuf};
+use crate::{BaseOps, Buffer, Device, Gemm, libs::cpu::{CPUCache, ops::element_wise_op_mut}, matrix::Matrix, VecRead, number::Number, AsDev, BaseDevice, AssignOps, GenericOCL, ManualMem, remove_value, CacheBuf, GenericBlas};
 
-use super::{TBlas, CPU_CACHE, assign_to_lhs};
+use super::{CPU_CACHE, assign_to_lhs};
 
 #[derive(Debug, Clone)]
 /// All traits related to mathematical operations need to be implemented for this struct in order to use them.
@@ -137,7 +137,7 @@ impl<T: Number> BaseOps<T> for InternCPU {
     }
 }
 
-impl<T: TBlas+Default+Copy> Gemm<T> for InternCPU {
+impl<T: GenericBlas+Default+Copy> Gemm<T> for InternCPU {
     fn gemm(&self, lhs: &Matrix<T>, rhs: &Matrix<T>) -> Matrix<T> {
         assert!(lhs.dims().1 == rhs.dims().0);
         let m = lhs.dims().0;
@@ -212,7 +212,7 @@ impl AsDev for InternCPU {
     }
 }
 
-impl<T: GenericOCL+TBlas> BaseDevice<T> for InternCPU {}
+impl<T: GenericOCL+GenericBlas> BaseDevice<T> for InternCPU {}
 
 pub fn assign_op<T: Copy+Default, F: Fn(&mut T, T)>(lhs: &mut Matrix<T>, rhs: &Matrix<T>, f: F) {
     assign_to_lhs(lhs, rhs, f)

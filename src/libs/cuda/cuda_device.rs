@@ -1,6 +1,6 @@
 use std::{cell::RefCell, rc::Rc, ptr::null_mut};
 
-use crate::{Device, remove_value, VecRead, CacheBuf, Gemm, BaseOps, AssignOps, BaseDevice};
+use crate::{Device, remove_value, VecRead, CacheBuf, Gemm, BaseOps, AssignOps, BaseDevice, GenericBlas, GenericOCL};
 
 use super::api::{device, create_context, CudaIntDevice, Context, cublas::{create_handle, CublasHandle}, cuInit, CUdeviceptr, cufree, cumalloc, cuwrite, curead};
 
@@ -60,8 +60,18 @@ impl<T> CacheBuf<T> for InternCudaDevice {
     }
 }
 
-impl<T> Gemm<T> for InternCudaDevice {
+impl<T: GenericBlas> Gemm<T> for InternCudaDevice {
     fn gemm(&self, lhs: &crate::Matrix<T>, rhs: &crate::Matrix<T>) -> crate::Matrix<T> {
+        assert!(lhs.rows() == rhs.cols(), "wrong dims for matrix multiplication");
+        T::cugemm(
+            &self.cuda.borrow().handle, 
+            lhs.rows(), 
+            rhs.cols(), 
+            lhs.cols(), 
+            lhs.as_buf().ptr.2, 
+            rhs.as_buf().ptr.2, 
+            rhs.as_buf().ptr.2
+        ).unwrap();
         todo!()
     }
 }
@@ -99,7 +109,7 @@ impl<T> BaseOps<T> for InternCudaDevice {
     }
 }
 
-impl<T: Default + Copy> BaseDevice<T> for InternCudaDevice {}
+impl<T: GenericOCL + GenericBlas> BaseDevice<T> for InternCudaDevice {}
 
 #[derive(Debug)]
 pub struct CudaDevice {

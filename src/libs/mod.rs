@@ -1,6 +1,8 @@
 use std::cell::RefCell;
 
-use crate::number::Number;
+use crate::number::{Number, Float};
+
+use self::{cpu::{level3, Order, Transpose}, cuda::api::{CUdeviceptr, cublas::{cublasOperation_t, CublasHandle, cublasSgemm_v2, cublasDgemm_v2}}};
 
 #[cfg(feature="opencl")]
 pub mod opencl;
@@ -110,6 +112,55 @@ impl GenericOCL for u64 {
         "ulong"
     }
 }
+
+pub trait GenericBlas where Self: Sized+Float {
+    fn gemm(m: usize, n: usize, k:usize, a: &[Self], b: &[Self], c: &mut [Self]);
+    fn cugemm(handle: &CublasHandle, m: usize, n: usize, k:usize, a: CUdeviceptr, b: CUdeviceptr, c: CUdeviceptr) -> crate::Result<()>;
+}
+
+impl GenericBlas for f32 {
+    fn gemm(m: usize, n: usize, k:usize, a: &[Self], b: &[Self], c: &mut [Self]) {
+        unsafe {level3::cblas_sgemm(Order::RowMajor, Transpose::NoTranspose, Transpose::NoTranspose, m, n, k, 1.0, a.as_ptr(), k, b.as_ptr(), n, 0.0, c.as_mut_ptr(), n)};
+    }
+
+    fn cugemm(handle: &CublasHandle, m: usize, n: usize, k:usize, a: CUdeviceptr, b: CUdeviceptr, c: CUdeviceptr) -> crate::Result<()> {
+        unsafe { cublasSgemm_v2(
+            handle.0, 
+            cublasOperation_t::CUBLAS_OP_N,
+            cublasOperation_t::CUBLAS_OP_N, 
+            n as i32, m as i32, k as i32, 
+            &1f32 as *const f32,
+            b as *const u64 as *const f32, n as i32,
+            a as *const u64 as *const f32, k as i32, 
+            &0f32 as *const f32, 
+            c as *mut u64 as *mut f32, n as i32
+        )}.to_result()?;
+        Ok(())
+    }
+}
+
+impl GenericBlas for f64 {
+    fn gemm(m: usize, n: usize, k:usize, a: &[Self], b: &[Self], c: &mut [Self]) {
+        unsafe {level3::cblas_dgemm(Order::RowMajor, Transpose::NoTranspose, Transpose::NoTranspose, m, n, k, 1.0, a.as_ptr(), k, b.as_ptr(), n, 0.0, c.as_mut_ptr(), n)};
+    }
+
+    fn cugemm(handle: &CublasHandle, m: usize, n: usize, k:usize, a: CUdeviceptr, b: CUdeviceptr, c: CUdeviceptr) -> crate::Result<()> {
+        unsafe { cublasDgemm_v2(
+            handle.0, 
+            cublasOperation_t::CUBLAS_OP_N,
+            cublasOperation_t::CUBLAS_OP_N, 
+            n as i32, m as i32, k as i32, 
+            &1f64 as *const f64,
+            b as *const u64 as *const f64, n as i32,
+            a as *const u64 as *const f64, k as i32, 
+            &0f64 as *const f64, 
+            c as *mut u64 as *mut f64, n as i32
+        )}.to_result()?;
+        Ok(())
+    }
+}
+
+
 
 pub fn remove_value<T: Ord>(values: &mut Vec<T>, match_value: &T) -> Result<(), usize> {
     let idx = values.binary_search(match_value)?;
