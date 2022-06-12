@@ -1,6 +1,6 @@
 #[cfg(feature="opencl")]
 use custos::{BaseDevice, libs::opencl::CLDevice};
-use custos::{AsDev, get_device, libs::cpu::CPU, Matrix, VecRead, Error, BaseOps, DeviceError};
+use custos::{AsDev, get_device, libs::cpu::CPU, Matrix, VecRead, Error, BaseOps, DeviceError, Device};
 
 #[test]
 fn test_matrix_read_cpu() -> Result<(), Error> {
@@ -72,4 +72,10 @@ fn test_baseops() -> Result<(), Error> {
 
     assert_eq!(out.read(), vec![2.51, 7.123, 8., 6.21, 9.62, 5.765]);
     Ok(())
+}
+
+#[test]
+fn test_get_dev2() {
+    let _device = CPU::new().select();
+    let _dev = get_device!(Device, f32).unwrap();
 }

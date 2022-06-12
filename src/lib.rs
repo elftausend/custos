@@ -5,6 +5,7 @@ pub use buffer::*;
 pub use count::*;
 pub use libs::*;
 
+pub use libs::cuda::{CudaDevice, InternCudaDevice};
 #[cfg(feature="opencl")]
 pub use libs::opencl::{CLDevice, InternCLDevice};
 pub use libs::cpu::{CPU, InternCPU};
@@ -273,21 +274,29 @@ pub trait CacheBuf<T> {
     fn cached_buf(&self, len: usize) -> Buffer<T>;
 }
 
+
 #[derive(Debug, Clone)]
 pub struct Dev {
     pub cl_device: Option<Weak<RefCell<CLDevice>>>,
     pub cpu: Option<Weak<RefCell<CPU>>>,
-}   
-
-impl Dev {
-    pub fn new(cl_device: Option<Weak<RefCell<CLDevice>>>, cpu: Option<Weak<RefCell<CPU>>>) -> Dev {
-        Dev { cl_device, cpu }
-    }
-    
+    pub cuda: Option<Weak<RefCell<CudaDevice>>>,
 }
 
+impl Dev {
+    pub fn new(
+        cl_device: Option<Weak<RefCell<CLDevice>>>, 
+        cpu: Option<Weak<RefCell<CPU>>>, 
+        cuda: Option<Weak<RefCell<CudaDevice>>>
+) -> Dev 
+    {
+        Dev { cl_device, cpu, cuda }
+    }
+}
+
+
 thread_local! {
-    pub static GLOBAL_DEVICE: RefCell<Dev> = RefCell::new(Dev { cl_device: None, cpu: None });
+    pub static GLOBAL_DEVICE: RefCell<Dev> = RefCell::new(Dev { cl_device: None, cpu: None, cuda: None });
+
 }
 
 pub trait AsDev {
@@ -351,7 +360,7 @@ impl From<DeviceError> for Error {
 
 impl std::error::Error for DeviceError {}
 
-#[cfg(feature="opencl")]
+//#[cfg(feature="opencl")]
 #[macro_export]
 /// If a device is selected, it returns the device thus giving access to the functions implemented by the trait.
 /// Therfore the trait needs to be implemented for the device.
@@ -383,20 +392,33 @@ impl std::error::Error for DeviceError {}
 macro_rules! get_device {
     
     ($t:ident, $g:ident) => {    
-        {     
-            use $crate::{GLOBAL_DEVICE, InternCLDevice, InternCPU, Error, DeviceError};
-            let device: Result<Box<dyn $t<$g>>, Error> = GLOBAL_DEVICE.with(|d| {
-                let dev: Result<Box<dyn $t<$g>>, Error> = match &d.borrow().cl_device {
-                    Some(cl) => Ok(
-                        Box::new(InternCLDevice::from(cl.clone().upgrade()
-                        .ok_or(Error::from(DeviceError::NoDeviceSelected))?))
-                    ),    
-                    None => Ok(
-                        Box::new(InternCPU::new(d.borrow().cpu.as_ref()
-                            .ok_or(Error::from(DeviceError::NoDeviceSelected))?
-                            .upgrade()
-                            .ok_or(Error::from(DeviceError::NoDeviceSelected))?))
-                        )
+        {   
+
+            use $crate::{GLOBAL_DEVICE, InternCPU, Error, DeviceError};
+            let device: Result<Box<dyn $t<$g>>, Error> = GLOBAL_DEVICE.with(|device| {
+                let device = device.borrow();
+        
+                let mut dev: Result<Box<dyn $t<$g>>, Error> = Err(Error::from(DeviceError::NoDeviceSelected)); 
+                
+                #[cfg(feature="opencl")]
+                if let Some(cl) = &device.cl_device {
+                    use $crate::InternCLDevice;
+                    dev = Ok(Box::new(InternCLDevice::from(cl.upgrade()
+                        .ok_or(Error::from(DeviceError::NoDeviceSelected))?)))
+                };
+
+                /* 
+                #[cfg(feature="cuda")]
+                if let Some(cuda) = &device.cuda {
+                    use $crate::InternCudaDevice;
+                    dev = Ok(Box::new(InternCudaDevice::from(cuda.upgrade()
+                        .ok_or(Error::from(DeviceError::NoDeviceSelected))?)))
+                };
+                */
+        
+                if let Some(cpu) = &device.cpu {
+                    dev = Ok(Box::new(InternCPU::new(cpu.upgrade()
+                        .ok_or(Error::from(DeviceError::NoDeviceSelected))?)))
                 };
                 dev
             });
@@ -405,6 +427,7 @@ macro_rules! get_device {
     }
 }
 
+/*
 #[cfg(not(feature="opencl"))]
 #[macro_export]
 /// If a device is selected, it returns the device thus giving access to the functions implemented by the trait.
@@ -450,3 +473,4 @@ macro_rules! get_device {
         }
     }
 }
+*/

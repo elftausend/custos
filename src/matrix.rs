@@ -2,7 +2,7 @@ use std::ffi::c_void;
 
 #[cfg(feature="opencl")]
 use crate::opencl::{InternCLDevice, CLCache, api::{enqueue_write_buffer, wait_for_event}};
-use crate::{BaseOps, Buffer, Device, Gemm, get_device, libs::cpu::TBlas, VecRead, number::Number, AssignOps, GenericOCL};
+use crate::{BaseOps, Buffer, Device, Gemm, get_device, libs::cpu::TBlas, VecRead, number::Number, AssignOps, GenericOCL, cuda::api::CUdeviceptr};
 
 #[cfg_attr(not(feature="safe"), derive(Copy))]
 #[derive(Clone)]
@@ -30,7 +30,7 @@ impl<T> Matrix<T> {
         }
     }
 
-    pub fn ptr(&self) -> (*mut T, *mut c_void, u64) {
+    pub fn ptr(&self) -> (*mut T, *mut c_void, CUdeviceptr) {
         self.data.ptr
     }
 

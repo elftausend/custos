@@ -26,6 +26,7 @@ pub fn device(ordinal: i32) -> CudaResult<CudaIntDevice> {
     Ok(device)
 }
 
+#[derive(Debug)]
 pub struct Context(CUcontext);
 
 pub fn create_context(device: &CudaIntDevice) -> CudaResult<Context> {

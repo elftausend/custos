@@ -95,24 +95,24 @@ impl<T> Device<T> for InternCLDevice {
 
 #[cfg(feature="safe")]
 impl<T> Device<T> for InternCLDevice {
-    fn alloc(&self, len: usize) -> (*mut T, *mut c_void) {
+    fn alloc(&self, len: usize) -> (*mut T, *mut c_void, u64) {
         let ptr = create_buffer::<T>(&self.ctx(), MemFlags::MemReadWrite as u64, len, None).unwrap();
         let cpu_ptr = if self.unified_mem() {
             unified_ptr::<T>(self.queue(), ptr, len).unwrap()
         } else {
             std::ptr::null_mut()
         };
-        (cpu_ptr, ptr)
+        (cpu_ptr, ptr, 0)
     }
 
-    fn with_data(&self, data: &[T]) -> (*mut T, *mut c_void) {
+    fn with_data(&self, data: &[T]) -> (*mut T, *mut c_void, u64) {
         let ptr = create_buffer::<T>(&self.ctx(), MemFlags::MemReadWrite | MemFlags::MemCopyHostPtr, data.len(), Some(data)).unwrap();
         let cpu_ptr = if self.unified_mem() {
             unified_ptr::<T>(self.queue(), ptr, data.len()).unwrap()
         } else {
             std::ptr::null_mut()
         };
-        (cpu_ptr, ptr)
+        (cpu_ptr, ptr, 0)
     }
 
     fn drop(&mut self, buf: Buffer<T>) {
@@ -198,7 +198,7 @@ impl<T: Default+Copy> VecRead<T> for InternCLDevice {
 
 impl AsDev for InternCLDevice {
     fn as_dev(&self) -> crate::Dev {
-        crate::Dev::new(Some(Rc::downgrade(&self.cl)), None)
+        crate::Dev::new(Some(Rc::downgrade(&self.cl)), None, None)
     }
 }
 

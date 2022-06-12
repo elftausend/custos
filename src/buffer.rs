@@ -3,7 +3,7 @@ use std::{ffi::c_void, ptr::null_mut, fmt::Debug};
 #[cfg(feature="opencl")]
 #[cfg(feature="safe")]
 use crate::opencl::api::{release_mem_object, retain_mem_object};
-use crate::{Device, GenericOCL, get_device, CacheBuf, VecRead};
+use crate::{Device, GenericOCL, get_device, CacheBuf};
 
 #[cfg(not(feature="safe"))]
 use crate::number::Number;
@@ -144,7 +144,9 @@ impl<T: Debug + Default + Copy> Debug for Buffer<T> {
             writeln!(f, "CPU:    {:?}", self.as_slice())?; 
         }
 
+        #[cfg(feature="opencl")]
         if self.ptr.1 != null_mut() {
+            use crate::VecRead;
             let read = get_device!(VecRead, T).unwrap();
             write!(f, "OpenCL: {:?}, ", read.read(self))?; 
         }

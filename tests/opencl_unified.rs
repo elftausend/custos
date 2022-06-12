@@ -1,10 +1,12 @@
 #[cfg(feature="opencl")]
 use std::ffi::c_void;
 
+#[cfg(feature="opencl")]
 use custos::AsDev;
+
 #[cfg(feature="opencl")]
 #[cfg(not(feature="safe"))]
-use custos::{CPU, opencl::{cl_tew}};
+use custos::{CPU, opencl::cl_tew,};
 #[cfg(feature="opencl")]
 use custos::{Buffer, VecRead, Matrix, opencl::api::{clCreateBuffer, MemFlags, OCLErrorKind}, InternCLDevice, opencl::cpu_exec};
 #[cfg(feature="opencl")]
@@ -216,6 +218,7 @@ fn test_unified_mem_device_switch() -> custos::Result<()> {
     Ok(())
 }
 
+#[cfg(feature="opencl")]
 #[test]
 fn test_unified_opencl() -> custos::Result<()> {
     let device = CLDevice::new(0)?.select();

@@ -1,6 +1,8 @@
-use std::{cell::RefCell, rc::Rc};
+use std::{cell::RefCell, rc::Rc, ptr::null_mut};
 
-use super::api::{device, create_context, CudaIntDevice, Context, cublas::{create_handle, CublasHandle}, cuInit, CUdeviceptr, cufree};
+use crate::{Device, remove_value};
+
+use super::api::{device, create_context, CudaIntDevice, Context, cublas::{create_handle, CublasHandle}, cuInit, CUdeviceptr, cufree, cumalloc, cuwrite};
 
 pub struct InternCudaDevice {
     pub cuda: Rc<RefCell<CudaDevice>>
@@ -20,6 +22,31 @@ impl InternCudaDevice {
     }
 }
 
+impl<T> Device<T> for InternCudaDevice {
+    fn alloc(&self, len: usize) -> (*mut T, *mut std::ffi::c_void, u64) {
+        let ptr = cumalloc::<T>(len).unwrap();
+        self.cuda.borrow_mut().ptrs.push(ptr);
+        // TODO: use unified mem if available -> i can't test this
+        (null_mut(), null_mut(), ptr)
+    }
+
+    fn with_data(&self, data: &[T]) -> (*mut T, *mut std::ffi::c_void, u64) {
+        let ptr = cumalloc::<T>(data.len()).unwrap();
+        self.cuda.borrow_mut().ptrs.push(ptr);
+        cuwrite(ptr, data).unwrap();
+        (null_mut(), null_mut(), ptr)
+    }
+
+    fn drop(&mut self, buf: crate::Buffer<T>) {
+        let ptrs = &mut self.cuda.borrow_mut().ptrs;
+        remove_value(ptrs, &buf.ptr.2).unwrap();
+        unsafe {
+            cufree(buf.ptr.2).unwrap();
+        }
+    }
+}
+
+#[derive(Debug)]
 pub struct CudaDevice {
     pub ptrs: Vec<CUdeviceptr>,
     device: CudaIntDevice,

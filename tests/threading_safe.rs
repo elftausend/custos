@@ -115,10 +115,10 @@ fn test_threading_cpu() {
 #[cfg(feature="opencl")]
 #[test]
 fn test_threading_cl_a() {
-    let device = CLDevice::get(0).unwrap().select();
+    let device = CLDevice::new(0).unwrap().select();
 
     let th1_cl = std::thread::spawn(|| {
-        let device = CLDevice::get(0).unwrap().select();
+        let device = CLDevice::new(0).unwrap().select();
         
         let a = Matrix::from( ( &device, (3, 2), [3f32, 2., 1., 5., 6., 4.]) );
         let b = Matrix::from( ( &device, (2, 3), [1., 3., 2., 6., 5., 4.]) );

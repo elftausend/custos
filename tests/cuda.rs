@@ -140,8 +140,10 @@ fn test_ffi_cuda() {
 
 #[cfg(feature="cuda")]
 #[test]
-fn test_cuda_device() {
-    use custos::cuda::CudaDevice;
+fn test_cuda_device() -> custos::Result<()> {
+    use custos::{cuda::CudaDevice, Buffer};
 
-    let device = CudaDevice::new(0).unwrap();
+    let device = CudaDevice::new(0)?;
+    let _a = Buffer::<f32>::new(&device, 10);
+    Ok(())
 }

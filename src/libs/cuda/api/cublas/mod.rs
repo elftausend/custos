@@ -5,6 +5,7 @@ pub use ffi::*;
 
 use self::error::CublasResult;
 
+#[derive(Debug)]
 pub struct CublasHandle(*mut cublasContext);
 
 pub fn create_handle() -> CublasResult<CublasHandle> {

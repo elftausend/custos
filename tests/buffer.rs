@@ -211,6 +211,7 @@ fn test_iterate() {
     }
 }
 
+#[cfg(feature="opencl")]
 #[test]
 fn test_debug_print_buf() -> custos::Result<()> {
     let device = CLDevice::new(0)?.select();
