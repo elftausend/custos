@@ -33,7 +33,7 @@ pub fn unified_mem<T>(device: &InternCLDevice, arr: &mut [T]) -> Result<*mut c_v
 #[cfg(feature="opencl")]
 #[test]
 fn test_unified_mem_bool() -> Result<(), Error> {
-    let device = CLDevice::get(0)?;
+    let device = CLDevice::new(0)?;
     let um = device.unified_mem();
     println!("um: {um}");
     Ok(())
@@ -52,7 +52,7 @@ fn test_unified_mem() -> Result<(), Error> {
 
     let data = vec![1f32; len];
 
-    let device = CLDevice::get(0)?;
+    let device = CLDevice::new(0)?;
     
     if device.unified_mem() {
         let before = Instant::now();
@@ -135,7 +135,7 @@ fn test_unified_calc() -> Result<(), Error> {
     let mut a = Buffer::<f32>::new(&device, len);
     let mut b = Buffer::<f32>::from((&device, vec![1.; len]));
 
-    let cl = CLDevice::get(0)?;
+    let cl = CLDevice::new(0)?;
     
     let a: Buffer<f32> = Buffer {
         ptr: (null_mut(), unified_mem(&cl, a.as_mut_slice())?),
@@ -162,7 +162,7 @@ fn slice_add<T: Copy + std::ops::Add<Output = T>>(a: &[T], b: &[T], c: &mut [T])
 #[cfg(feature="opencl")]
 #[test]
 fn test_unified_mem_ops() -> Result<(), custos::Error> {
-    let device = CLDevice::get(0)?;
+    let device = CLDevice::new(0)?;
 
     if !device.unified_mem() {
         return Ok(());
@@ -185,7 +185,7 @@ fn test_unified_mem_ops() -> Result<(), custos::Error> {
 #[cfg(feature="opencl")]
 #[test]
 fn test_unified_mem_iterate() -> custos::Result<()> {
-    let device = CLDevice::get(0)?;
+    let device = CLDevice::new(0)?;
 
     if !device.unified_mem() {
         println!("CLDevice uses own memory");
@@ -208,7 +208,7 @@ fn test_unified_mem_iterate() -> custos::Result<()> {
 #[cfg(feature="opencl")]
 #[test]
 fn test_unified_mem_device_switch() -> custos::Result<()> {
-    let device = CLDevice::get(0)?;
+    let device = CLDevice::new(0)?;
 
     let a = Matrix::from((&device, 2, 3, [1, 2, 3, 4, 5, 6,]));
     let _m = cpu_exec(&device, &a, |_cpu, m| m)?;
@@ -218,7 +218,7 @@ fn test_unified_mem_device_switch() -> custos::Result<()> {
 
 #[test]
 fn test_unified_opencl() -> custos::Result<()> {
-    let device = CLDevice::get(0)?.select();
+    let device = CLDevice::new(0)?.select();
 
     if !device.unified_mem() {
         return Ok(());

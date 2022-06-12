@@ -1,7 +1,7 @@
 use custos::{CLDevice, Buffer, VecRead};
 
 fn main() -> custos::Result<()> {
-    let device = CLDevice::get(0)?;
+    let device = CLDevice::new(0)?;
 
     if !device.unified_mem() {
         println!("CLDevice uses own memory");

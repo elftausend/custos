@@ -136,6 +136,12 @@ fn test_ffi_cuda() {
         cuMemcpyDtoH_v2(out.as_mut_ptr() as *mut c_void, a_d, N * size_of::<f32>()).to_result().unwrap();
         println!("out: {out:?}");
     };
-    
+}
 
+#[cfg(feature="cuda")]
+#[test]
+fn test_cuda_device() {
+    use custos::cuda::CudaDevice;
+
+    let device = CudaDevice::new(0).unwrap();
 }

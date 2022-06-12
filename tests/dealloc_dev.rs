@@ -21,7 +21,7 @@ fn test_rc_get_dev() {
 #[cfg(feature="opencl")]
 #[test]
 fn test_ocl_dealloc() {
-    let device = CLDevice::get(0).unwrap().select();
+    let device = CLDevice::new(0).unwrap().select();
 
     let a = Matrix::from(( &device, (2, 3), [1f32, 2., 3., 4., 5., 6.,]));
     let b = Matrix::from(( &device, (2, 3), [6., 5., 4., 3., 2., 1.,]));

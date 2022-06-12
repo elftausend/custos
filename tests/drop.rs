@@ -20,7 +20,7 @@ fn test_drop_cpu() {
 fn test_drop_cl() -> Result<(), custos::Error> {
     use custos::CLDevice;
 
-    let mut device = CLDevice::get(0)?;
+    let mut device = CLDevice::new(0)?;
     let buf = Buffer::from((&device, [4, 3, 1, 7, 8]));
     
     assert_eq!(device.cl.borrow().ptrs.len(), 1);

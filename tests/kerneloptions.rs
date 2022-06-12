@@ -5,7 +5,7 @@ use custos::{Error, CLDevice, Buffer, GenericOCL, opencl::{KernelOptions, Kernel
 #[cfg(feature="opencl")] 
 #[test]
 fn test_kernel_options() -> Result<(), Error> {
-    let device = CLDevice::get(0)?;
+    let device = CLDevice::new(0)?;
 
     let lhs = Buffer::<i32>::from((&device, [1, 5, 3, 2, 7, 8]));
     let rhs = Buffer::<i32>::from((&device, [-2, -6, -4, -3, -8, -9]));
@@ -30,7 +30,7 @@ fn test_kernel_options() -> Result<(), Error> {
 #[cfg(feature="opencl")] 
 #[test]
 fn test_kernel_options_num_arg() -> Result<(), Error> {
-    let device = CLDevice::get(0)?;
+    let device = CLDevice::new(0)?;
 
     let mut lhs = Buffer::<i32>::from((&device, [1, 5, 3, 2, 7, 8]));
 
@@ -54,7 +54,7 @@ fn test_kernel_options_num_arg() -> Result<(), Error> {
 #[cfg(feature="opencl")] 
 #[test]
 fn test_kernel_options_num_arg_assign() -> Result<(), Error> {
-    let device = CLDevice::get(0)?;
+    let device = CLDevice::new(0)?;
 
     let mut lhs = Buffer::<i32>::from((&device, [1, 5, 3, 2, 7, 8]));
 

@@ -5,7 +5,7 @@ use custos::{Error, DeviceError};
 fn test_error() {
     use custos::{opencl::api::OCLErrorKind, CLDevice};
 
-    let device = CLDevice::get(100000);
+    let device = CLDevice::new(100000);
         
     match device {
         Ok(_) => println!("ok?"),
@@ -28,7 +28,7 @@ fn test_error() {
 fn test_questionmark() -> Result<(), Box<dyn std::error::Error>> {
     use custos::CLDevice;
 
-    let _device = CLDevice::get(0)?;  
+    let _device = CLDevice::new(0)?;  
     Ok(())
 }
 

@@ -15,7 +15,7 @@ fn test_clear_cpu() {
 fn test_clear_cl() -> Result<(), custos::Error> {
     use custos::CLDevice;
 
-    let device = CLDevice::get(0)?.select();
+    let device = CLDevice::new(0)?.select();
     
     let mut matrix = Matrix::from((&device, (2, 3), [1., 2., 3., 4., 5., 6.,]));
     assert_eq!(matrix.read(), vec![1., 2., 3., 4., 5., 6.,]);

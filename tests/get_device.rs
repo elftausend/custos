@@ -17,7 +17,7 @@ fn test_matrix_read_cpu() -> Result<(), Error> {
 #[cfg(feature="opencl")]
 #[test]
 fn test_matrix_read_cl() -> Result<(), Error> {
-    let device = CLDevice::get(0)?.select();
+    let device = CLDevice::new(0)?.select();
 
     let read = get_device!(VecRead, f32)?;
 

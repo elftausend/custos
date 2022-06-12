@@ -6,6 +6,7 @@ pub fn cinit(flags: u32) -> CudaResult<()> {
     unsafe { cuInit(flags).into() }
 }
 
+#[derive(Debug)]
 pub struct CudaIntDevice(CUdevice);
 
 pub fn device_count() -> CudaResult<i32> {

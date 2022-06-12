@@ -217,7 +217,7 @@ impl<T: GenericOCL> BaseDevice<T> for InternCLDevice {}
 /// use custos::{CLDevice, BaseOps, VecRead, Matrix, Error};
 /// 
 /// fn main() -> Result<(), Error> {
-///     let device = CLDevice::get(0)?;
+///     let device = CLDevice::new(0)?;
 ///     
 ///     let a = Matrix::<f32>::new(&device, (5, 5));
 ///     let b = Matrix::from((&device, (5, 5), vec![1.3; 5*5]));
@@ -239,7 +239,7 @@ pub struct CLDevice {
 unsafe impl Sync for CLDevice {}
 
 impl CLDevice {
-    pub fn new(device: CLIntDevice) -> Result<CLDevice, Error> {
+    pub fn get(device: CLIntDevice) -> Result<CLDevice, Error> {
         let ctx = create_context(&[device])?;
         let queue = create_command_queue(&ctx, device)?;
         let unified_mem = device.unified_mem()?;
@@ -250,7 +250,8 @@ impl CLDevice {
     /// # Errors
     /// - No device is found at the given device index
     /// - some other OpenCL related errors
-    pub fn get(device_idx: usize) -> Result<InternCLDevice, Error> {
+    #[must_use]
+    pub fn new(device_idx: usize) -> Result<InternCLDevice, Error> {
         Ok(InternCLDevice::new(CL_DEVICES.current(device_idx)?))
     }
 }

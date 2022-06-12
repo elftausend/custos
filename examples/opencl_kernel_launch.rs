@@ -3,7 +3,7 @@ use custos::{opencl::KernelOptions, CLDevice, Error, GenericOCL, VecRead, Buffer
 
 #[cfg(feature="opencl")]
 fn main() -> Result<(), Error> {
-    let device = CLDevice::get(0)?;
+    let device = CLDevice::new(0)?;
 
     let lhs = Buffer::<i32>::from((&device, [1, 5, 3, 2, 7, 8]));
     let rhs = Buffer::<i32>::from((&device, [-2, -6, -4, -3, -8, -9]));

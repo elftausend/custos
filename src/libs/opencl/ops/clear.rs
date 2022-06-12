@@ -6,7 +6,7 @@ use crate::{GenericOCL, InternCLDevice, Buffer, opencl::KernelOptions, Error};
 /// use custos::{CLDevice, Buffer, VecRead, opencl::cl_clear};
 /// 
 /// fn main() -> Result<(), custos::Error> {
-///     let device = CLDevice::get(0)?;
+///     let device = CLDevice::new(0)?;
 ///     let mut lhs = Buffer::<i16>::from((&device, [15, 30, 21, 5, 8]));
 ///     assert_eq!(device.read(&lhs), vec![15, 30, 21, 5, 8]);
 /// 

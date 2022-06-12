@@ -18,7 +18,7 @@ impl CLDevices {
         let devices = get_device_ids(platform, &(DeviceType::GPU as u64))?;
     
         for device in devices {
-            current_devices.push(CLDevice::new(device)?)
+            current_devices.push(CLDevice::get(device)?)
         }
         Ok(CLDevices { current_devices })
     }

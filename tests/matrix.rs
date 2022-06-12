@@ -49,7 +49,7 @@ fn test_sub_assign_cpu() {
 #[cfg(feature="opencl")]
 #[test]
 fn test_sub_assign_cl() {
-    let device = CLDevice::get(0).unwrap().select();
+    let device = CLDevice::new(0).unwrap().select();
 
     let mut x = Matrix::from((&device, (2, 3), [1, 2, 3, 4, 5, 6]));
     let y = Matrix::from((&device, (2, 3), [3, 4, 5, 6, 7, 8]));

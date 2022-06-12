@@ -9,7 +9,7 @@ use custos::opencl::{CLCache, api::{enqueue_write_buffer, wait_for_event}};
 #[cfg(feature="opencl")]
 #[test]
 fn test_device_switching() -> Result<(), custos::Error> {
-    let device = CLDevice::get(0)?.select();
+    let device = CLDevice::new(0)?.select();
     let a = Matrix::from(( &device, (2, 3), [1.51f32, 6.123, 7., 5.21, 8.62, 4.765]));
     let b = Matrix::from(( &device, (2, 3), [1.51f32, 6.123, 7., 5.21, 8.62, 4.765]));
     
@@ -29,7 +29,7 @@ fn test_device_switching() -> Result<(), custos::Error> {
 #[cfg(feature="opencl")]
 #[test]
 fn test_device_switching_s() -> Result<(), custos::Error>{
-    let device = CLDevice::get(0)?.select();
+    let device = CLDevice::new(0)?.select();
     let a = Matrix::from(( &device, (2, 3), [1.51f32, 6.123, 7., 5.21, 8.62, 4.765]));
     let b = Matrix::from(( &device, (2, 3), [1.51f32, 6.123, 7., 5.21, 8.62, 4.765]));
     

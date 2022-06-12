@@ -12,7 +12,7 @@ fn add() -> Result<(), OCLError> {
 
     let native = lhs + rhs;
 
-    let device = CLDevice::get(0)?.select();
+    let device = CLDevice::new(0)?.select();
     
     let lhs = Buffer::from((&device, [4., 1., 2.,]));
     let rhs = Buffer::from((&device, [4., 1., 2.,]));
@@ -31,7 +31,7 @@ pub fn read<T, D: Device<T>>(device: D, buf: Buffer<T>) -> Vec<T> where D: VecRe
 #[cfg(feature="opencl")]
 #[test]
 fn test_element_wise_add_cl() {
-    let device = CLDevice::get(0).unwrap().select();
+    let device = CLDevice::new(0).unwrap().select();
 
     let a = Matrix::from(( &device, (1, 4), [1, 4, 2, 9] ));
     let b = Matrix::from(( &device,  (1, 4), [1, 4, 2, 9] ));
@@ -70,7 +70,7 @@ fn test_ew_add_cpu() {
 #[cfg(feature="opencl")]
 #[test]
 fn test_ew_add_cl() {
-    let device = CLDevice::get(0).unwrap().select();
+    let device = CLDevice::new(0).unwrap().select();
 
     let a = Matrix::from(( &device, (1, 4), [1, 4, 2, 9] ));
     let b = Matrix::from(( &device, (1, 4), [1, 4, 2, 9] ));
@@ -83,7 +83,7 @@ fn test_ew_add_cl() {
 #[cfg(feature="opencl")]
 #[test]
 fn test_ew_add_cl_f64() {
-    let device = CLDevice::get(0).unwrap().select();
+    let device = CLDevice::new(0).unwrap().select();
 
     let a = Matrix::from(( &device, (1, 4), [1., 4., 2., 9.] ));
     let b = Matrix::from(( &device, (1, 4), [1., 4., 2., 9.] ));
@@ -106,7 +106,7 @@ fn test_ew_sub_cpu() {
 #[cfg(feature="opencl")]
 #[test]
 fn test_ew_sub_cl() {
-    let device = CLDevice::get(0).unwrap().select();
+    let device = CLDevice::new(0).unwrap().select();
 
     let a = Matrix::from(( &device, (1, 4), [1u32, 4, 2, 9] ));
     let b = Matrix::from(( &device, (1, 4), [1, 4, 2, 9] ));
@@ -128,7 +128,7 @@ fn test_ew_mul_cpu_a_cl() {
         assert_eq!(vec![1, 16, 4, 81], device.read(c.as_buf()));   
     }
 
-    let device = CLDevice::get(0).unwrap().select();
+    let device = CLDevice::new(0).unwrap().select();
 
     let a = Matrix::from(( &device, (1, 4), [1, 4, 2, 9] ));
     let b = Matrix::from(( &device, (1, 4), [1, 4, 2, 9] ));
@@ -164,7 +164,7 @@ fn test_gemm() {
     let a = Matrix::from(( &cpu, (1, 4), [1., 4., 2., 9.] ));
     let b = Matrix::from(( &cpu, (4, 1), [5., 4., 2., 9.] ));
 
-    let device = CLDevice::get(0).unwrap();
+    let device = CLDevice::new(0).unwrap();
     
     let a_cl = Matrix::from(( &device, (1, 4), [1f32, 4., 2., 9.] ));
     let b_cl = Matrix::from(( &device, (4, 1), [5., 4., 2., 9.] ));
@@ -222,7 +222,7 @@ fn test_larger_gemm_cl_f64() {
                 8055.0303, 2668.95, 2272.4, 3870.7, 19936.3, 2737.0, 1893.33, 666.29376, 3528.0, 7964.7417, 
                 6913.5303, 1971.35, 1986.0, 8522.0, 22406.0];
 
-    let device = CLDevice::get(0).unwrap().select();
+    let device = CLDevice::new(0).unwrap().select();
 
     let a = Matrix::from(( &device, (5, 7), arr1));
     let b = Matrix::from(( &device, (7, 10), arr2));
@@ -263,7 +263,7 @@ fn test_larger_gemm_cl() {
                 8055.0303, 2668.95, 2272.4, 3870.7, 19936.3, 2737.0, 1893.33, 666.29376, 3528.0, 7964.7417, 
                 6913.5303, 1971.35, 1986.0, 8522.0, 22406.0];
 
-    let device = CLDevice::get(0).unwrap().select();
+    let device = CLDevice::new(0).unwrap().select();
 
     let a = Matrix::from(( &device, (5, 7), arr1));
     let b = Matrix::from(( &device, (7, 10), arr2));

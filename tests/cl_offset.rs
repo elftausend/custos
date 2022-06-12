@@ -4,7 +4,7 @@ use custos::{opencl::KernelOptions, CLDevice, Error, AsDev};
 #[cfg(feature="opencl")]
 #[test]
 fn test_cl_offset() -> Result<(), Error> {
-    let device = CLDevice::get(0)?.select();
+    let device = CLDevice::new(0)?.select();
 
     let lhs = Buffer::from((&device, 
         [1., 2., 3., 

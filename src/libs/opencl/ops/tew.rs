@@ -30,7 +30,7 @@ impl <T: !GenericOCL>Both for T {
 /// use custos::{CLDevice, Buffer, VecRead, opencl::cl_tew};
 /// 
 /// fn main() -> Result<(), custos::Error> {
-///     let device = CLDevice::get(0)?;
+///     let device = CLDevice::new(0)?;
 ///     let lhs = Buffer::<i16>::from((&device, [15, 30, 21, 5, 8]));
 ///     let rhs = Buffer::<i16>::from((&device, [10, 9, 8, 6, 3]));
 /// 
@@ -61,7 +61,7 @@ pub fn cl_tew<T: GenericOCL>(device: &InternCLDevice, lhs: &Buffer<T>, rhs: &Buf
 /// use custos::{CLDevice, Buffer, VecRead, opencl::cl_tew_self};
 /// 
 /// fn main() -> Result<(), custos::Error> {
-///     let device = CLDevice::get(0)?;
+///     let device = CLDevice::new(0)?;
 ///     let mut lhs = Buffer::<i16>::from((&device, [15, 30, 21, 5, 8]));
 ///     let rhs = Buffer::<i16>::from((&device, [10, 9, 8, 6, 3]));
 /// 

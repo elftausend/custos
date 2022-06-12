@@ -30,7 +30,7 @@ fn specify_device(cpu: &InternCPU) {
 
 fn using_opencl() -> custos::Result<()> {
     //OpenCL device (GPU)
-    let cl = CLDevice::get(0)?.select();
+    let cl = CLDevice::new(0)?.select();
 
     let a = Matrix::from(( &cl, (2, 2), [0.25f32, 0.5, 0.75, 1.] ));
     let b = Matrix::from(( &cl, (2, 2), [1., 2., 3., 4.] ));

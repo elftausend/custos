@@ -17,7 +17,7 @@ fn test_range() {
 #[test]
 fn test_use_range_for_ew_add() {
     use custos::get_count;
-    let device = CLDevice::get(0).unwrap().select();
+    let device = CLDevice::new(0).unwrap().select();
 
     let a = Matrix::from(( &device, (1, 4), [1i32, 4, 2, 9] ));
     let b = Matrix::from(( &device, (1, 4), [1, 4, 2, 9] ));
