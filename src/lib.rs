@@ -406,15 +406,13 @@ macro_rules! get_device {
                     dev = Ok(Box::new(InternCLDevice::from(cl.upgrade()
                         .ok_or(Error::from(DeviceError::NoDeviceSelected))?)))
                 };
-
-                /* 
+    
                 #[cfg(feature="cuda")]
                 if let Some(cuda) = &device.cuda {
                     use $crate::InternCudaDevice;
                     dev = Ok(Box::new(InternCudaDevice::from(cuda.upgrade()
                         .ok_or(Error::from(DeviceError::NoDeviceSelected))?)))
                 };
-                */
         
                 if let Some(cpu) = &device.cpu {
                     dev = Ok(Box::new(InternCPU::new(cpu.upgrade()
@@ -426,51 +424,3 @@ macro_rules! get_device {
         }
     }
 }
-
-/*
-#[cfg(not(feature="opencl"))]
-#[macro_export]
-/// If a device is selected, it returns the device thus giving access to the functions implemented by the trait.
-/// Therfore the trait needs to be implemented for the device.
-/// 
-/// # Errors
-/// 
-/// If no device is selected, a "NoDeviceSelected" error will be returned.
-/// 
-/// # Example
-/// ```
-/// use custos::{Error, CPU, get_device, Matrix, VecRead, AsDev, BaseOps};
-/// 
-/// fn main() -> Result<(), Error> {
-///     let device = CPU::new().select();
-///     let read = get_device!(VecRead, f32)?;
-/// 
-///     let matrix = Matrix::from(( &device, (2, 3), [1.51, 6.123, 7., 5.21, 8.62, 4.765]));
-///     let read = read.read(matrix.as_buf());
-/// 
-///     assert_eq!(&read, &[1.51, 6.123, 7., 5.21, 8.62, 4.765]);
-///     let b = Matrix::from(( &device, (2, 3), [1., 1., 1., 1., 1., 1.]));
-/// 
-///     let base_ops = get_device!(BaseOps, f32)?;
-///     let out = base_ops.add(&matrix, &b);
-///     assert_eq!(out.read(), vec![2.51, 7.123, 8., 6.21, 9.62, 5.765]);
-///     Ok(())
-/// }
-/// ```
-macro_rules! get_device {
-    
-    ($t:ident, $g:ident) => {    
-        {     
-            use $crate::{GLOBAL_DEVICE, InternCPU, Error, DeviceError};
-            let device: Result<Box<dyn $t<$g>>, Error> = GLOBAL_DEVICE.with(|d| {
-                let dev: Result<Box<dyn $t<$g>>, Error> = match &d.borrow().cl_device {
-                    Some(_) => Err(Error::from(DeviceError::NoDeviceSelected)),
-                    None => Ok(Box::new(InternCPU::new(d.borrow().cpu.as_ref().ok_or(Error::from(DeviceError::NoDeviceSelected))?.upgrade().ok_or(Error::from(DeviceError::NoDeviceSelected))?)))
-                };
-                dev
-            });
-            device
-        }
-    }
-}
-*/

@@ -250,7 +250,6 @@ impl CLDevice {
     /// # Errors
     /// - No device is found at the given device index
     /// - some other OpenCL related errors
-    #[must_use]
     pub fn new(device_idx: usize) -> Result<InternCLDevice, Error> {
         Ok(InternCLDevice::new(CL_DEVICES.current(device_idx)?))
     }
@@ -260,7 +259,7 @@ impl Drop for CLDevice {
     fn drop(&mut self) {
         let contents = CL_CACHE.with(|cache| {
             // TODO: better kernel cache release
-            for (_, kernel) in &mut cache.borrow_mut().arg_kernel_cache {
+            for kernel in &mut cache.borrow_mut().arg_kernel_cache.values_mut() {
                 kernel.release()
             }
             cache.borrow().nodes.clone()  

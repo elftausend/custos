@@ -1,8 +1,8 @@
 use std::{cell::RefCell, rc::Rc, ptr::null_mut};
 
-use crate::{Device, remove_value};
+use crate::{Device, remove_value, VecRead, CacheBuf, Gemm, BaseOps, AssignOps, BaseDevice};
 
-use super::api::{device, create_context, CudaIntDevice, Context, cublas::{create_handle, CublasHandle}, cuInit, CUdeviceptr, cufree, cumalloc, cuwrite};
+use super::api::{device, create_context, CudaIntDevice, Context, cublas::{create_handle, CublasHandle}, cuInit, CUdeviceptr, cufree, cumalloc, cuwrite, curead};
 
 pub struct InternCudaDevice {
     pub cuda: Rc<RefCell<CudaDevice>>
@@ -45,6 +45,61 @@ impl<T> Device<T> for InternCudaDevice {
         }
     }
 }
+
+impl<T: Default + Copy> VecRead<T> for InternCudaDevice {
+    fn read(&self, buf: &crate::Buffer<T>) -> Vec<T> {
+        let mut read = vec![T::default(); buf.len];
+        curead(&mut read, buf.ptr.2).unwrap();
+        read
+    }
+}
+
+impl<T> CacheBuf<T> for InternCudaDevice {
+    fn cached_buf(&self, len: usize) -> crate::Buffer<T> {
+        todo!()
+    }
+}
+
+impl<T> Gemm<T> for InternCudaDevice {
+    fn gemm(&self, lhs: &crate::Matrix<T>, rhs: &crate::Matrix<T>) -> crate::Matrix<T> {
+        todo!()
+    }
+}
+
+impl<T> AssignOps<T> for InternCudaDevice {
+    fn add_assign(&self, lhs: &mut crate::Matrix<T>, rhs: &crate::Matrix<T>) {
+        todo!()
+    }
+
+    fn sub_assign(&self, lhs: &mut crate::Matrix<T>, rhs: &crate::Matrix<T>) {
+        todo!()
+    }
+}
+
+
+impl<T> BaseOps<T> for InternCudaDevice {
+    fn add(&self, lhs: &crate::Matrix<T>, rhs: &crate::Matrix<T>) -> crate::Matrix<T> {
+        todo!()
+    }
+
+    fn sub(&self, lhs: &crate::Matrix<T>, rhs: &crate::Matrix<T>) -> crate::Matrix<T> {
+        todo!()
+    }
+
+    fn mul(&self, lhs: &crate::Matrix<T>, rhs: &crate::Matrix<T>) -> crate::Matrix<T> {
+        todo!()
+    }
+
+    fn div(&self, lhs: &crate::Matrix<T>, rhs: &crate::Matrix<T>) -> crate::Matrix<T> {
+        todo!()
+    }
+
+    fn clear(&self, matrix: &mut crate::Matrix<T>) {
+        todo!()
+    }
+}
+
+impl<T: Default + Copy> BaseDevice<T> for InternCudaDevice {}
 
 #[derive(Debug)]
 pub struct CudaDevice {

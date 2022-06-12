@@ -36,9 +36,17 @@ impl<T> Buffer<T> {
         }
     }
 
+    pub fn len(&self) -> usize {
+        self.len
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.len == 0
+    }
+
     /// Returns a CPU slice.
     pub fn as_slice(&self) -> &[T] {
-        assert!(self.ptr.0 != std::ptr::null_mut(), "called as_slice() on a non CPU buffer (this would dereference a null pointer)");
+        assert!(!self.ptr.0.is_null(), "called as_slice() on a non CPU buffer (this would dereference a null pointer)");
         unsafe {
             std::slice::from_raw_parts(self.ptr.0, self.len)
         }
@@ -46,7 +54,7 @@ impl<T> Buffer<T> {
     
     /// Returns a mutable CPU slice.
     pub fn as_mut_slice(&mut self) -> &mut [T] {
-        assert!(self.ptr.0 != std::ptr::null_mut(), "called as_mut_slice() on a non CPU buffer (this would dereference a null pointer)");
+        assert!(!self.ptr.0.is_null(), "called as_mut_slice() on a non CPU buffer (this would dereference a null pointer)");
         unsafe {
             std::slice::from_raw_parts_mut(self.ptr.0, self.len)
         }
@@ -140,12 +148,12 @@ impl<T: Debug + Default + Copy> Debug for Buffer<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Buffer").field("ptr (CPU, OpenCL)", &self.ptr).field("len", &self.len);
         writeln!(f, ",")?;
-        if self.ptr.0 != null_mut() {
+        if !self.ptr.0.is_null() {
             writeln!(f, "CPU:    {:?}", self.as_slice())?; 
         }
 
         #[cfg(feature="opencl")]
-        if self.ptr.1 != null_mut() {
+        if !self.ptr.1.is_null() {
             use crate::VecRead;
             let read = get_device!(VecRead, T).unwrap();
             write!(f, "OpenCL: {:?}, ", read.read(self))?; 

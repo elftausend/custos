@@ -108,6 +108,7 @@ fn test_cublas() -> custos::Result<()> {
     Ok(())
 }
 
+#[cfg(feature="cuda")]
 const N: usize = 100;
 
 #[cfg(feature="cuda")]
