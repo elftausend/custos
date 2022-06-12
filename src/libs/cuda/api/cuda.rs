@@ -1,6 +1,6 @@
 use std::{ptr::null_mut, ffi::c_void};
 
-use super::{extern_c::{CUdeviceptr, cuMemAlloc_v2}, error::{CudaResult, CudaErrorKind}, cuInit, CUcontext, CUdevice, cuDeviceGet, cuCtxCreate_v2, cuMemFree_v2, cuDeviceGetCount, cuMemcpyHtoD_v2};
+use super::{extern_c::{CUdeviceptr, cuMemAlloc_v2}, error::{CudaResult, CudaErrorKind}, cuInit, CUcontext, CUdevice, cuDeviceGet, cuCtxCreate_v2, cuMemFree_v2, cuDeviceGetCount, cuMemcpyHtoD_v2, cuMemcpyDtoH_v2};
 
 pub fn cinit(flags: u32) -> CudaResult<()> {
     unsafe { cuInit(flags).into() }
@@ -14,6 +14,7 @@ pub fn device_count() -> CudaResult<i32> {
     Ok(count)
 }
 
+// TODO: cuda set device
 pub fn device(ordinal: i32) -> CudaResult<CudaIntDevice> {
     if ordinal >= device_count()? {
         return Err(CudaErrorKind::InvalidDeviceIdx)
@@ -30,7 +31,7 @@ pub fn create_context(device: CudaIntDevice) -> CudaResult<Context> {
     let mut context = Context(null_mut());
     unsafe {
         // TODO: Flags
-        cuCtxCreate_v2(&mut context.0 as *mut CUcontext, 0, device.0).to_result()?;
+        cuCtxCreate_v2(&mut context.0 as *mut CUcontext, 0x00 | 0x08 , device.0).to_result()?;
     }
     Ok(context)
 }
@@ -38,20 +39,26 @@ pub fn create_context(device: CudaIntDevice) -> CudaResult<Context> {
 pub struct CudaMem(*mut *mut u64);
 
 pub fn cumalloc<T>(len: usize) -> CudaResult<*mut CUdeviceptr> {
-    let bytesize = len * core::mem::size_of::<T>();
+    let bytes = len * core::mem::size_of::<T>();
 
-    if bytesize == 0 {
+    if bytes == 0 {
         return Err(CudaErrorKind::InvalidAllocSize)
     }
 
     let mut ptr = null_mut();
-    unsafe { cuMemAlloc_v2(&mut ptr as *mut *mut u64 as *mut u64 , bytesize).to_result()? };
+    unsafe { cuMemAlloc_v2(&mut ptr as *mut *mut u64 as *mut u64 , bytes).to_result()? };
     Ok(ptr)
 }
 
 pub fn cuwrite<T>(dst: *mut CUdeviceptr, src_host: &T) -> CudaResult<()> {
     let bytes_to_copy = std::mem::size_of::<T>();
     unsafe { cuMemcpyHtoD_v2(dst as u64, src_host as *const T as *const c_void, bytes_to_copy) }.to_result()?;
+    Ok(())
+}
+
+pub fn curead<T>(dst_host: &mut T, src: *mut CUdeviceptr,) -> CudaResult<()> {
+    let bytes_to_copy = std::mem::size_of::<T>();
+    unsafe { cuMemcpyDtoH_v2(dst_host as *mut T as *mut c_void, src as u64, bytes_to_copy) }.to_result()?;
     Ok(())
 }
 

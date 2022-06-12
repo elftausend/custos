@@ -30,14 +30,20 @@ fn test_cuda_alloc2() -> custos::Result<()> {
 #[cfg(feature="cuda")]
 #[test]
 fn test_cuda_write() -> custos::Result<()> {
-    use custos::cuda::api::{cumalloc, cuInit, device, create_context, cuwrite};
+    use custos::cuda::api::{cumalloc, cuInit, device, create_context, cuwrite, curead};
 
     unsafe { cuInit(0) };
 
-    let device = device(0)?;
-    let _ctx = create_context(device)?;
+    let device = device(0).unwrap();
+    let _ctx = create_context(device).unwrap();
 
-    let x = cumalloc::<f32>(10)?;
-    cuwrite(x, &[4f32, 1., 2., 4., 5.,]);
+    let x = cumalloc::<f32>(10).unwrap();
+    cuwrite(x, &[4f32;10]).unwrap();
+    
+
+    let mut read = vec![0f32; 10];
+    curead(&mut read, x).unwrap();
+    println!("read: {read:?}");
+
     Ok(())
 }
