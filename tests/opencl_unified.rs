@@ -138,11 +138,11 @@ fn test_unified_calc() -> Result<(), Error> {
     let cl = CLDevice::new(0)?;
     
     let a: Buffer<f32> = Buffer {
-        ptr: (null_mut(), unified_mem(&cl, a.as_mut_slice())?),
+        ptr: (null_mut(), unified_mem(&cl, a.as_mut_slice())?, 0),
         len
     };
     let b = Buffer {
-        ptr: (null_mut(), unified_mem(&cl, b.as_mut_slice())?),
+        ptr: (null_mut(), unified_mem(&cl, b.as_mut_slice())?, 0),
         len,
     };
 

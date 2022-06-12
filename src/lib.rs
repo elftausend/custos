@@ -68,7 +68,7 @@ pub trait Device<T> {
     /// use custos::{CPU, Device, Buffer, VecRead};
     /// 
     /// let device = CPU::new();
-    /// let ptrs: (*mut f32, *mut std::ffi::c_void) = device.alloc(12);
+    /// let ptrs: (*mut f32, *mut std::ffi::c_void, u64) = device.alloc(12);
     /// 
     /// let buf = Buffer {
     ///     ptr: ptrs,
@@ -76,7 +76,7 @@ pub trait Device<T> {
     /// };
     /// assert_eq!(vec![0.; 12], device.read(&buf));
     /// ```
-    fn alloc(&self, len: usize) -> (*mut T, *mut c_void);
+    fn alloc(&self, len: usize) -> (*mut T, *mut c_void, u64);
 
     /// Allocate new memory with data
     /// # Example
@@ -84,7 +84,7 @@ pub trait Device<T> {
     /// use custos::{CPU, Device, Buffer, VecRead};
     /// 
     /// let device = CPU::new();
-    /// let ptrs: (*mut u8, *mut std::ffi::c_void) = device.with_data(&[1, 5, 4, 3, 6, 9, 0, 4]);
+    /// let ptrs: (*mut u8, *mut std::ffi::c_void, u64) = device.with_data(&[1, 5, 4, 3, 6, 9, 0, 4]);
     /// 
     /// let buf = Buffer {
     ///     ptr: ptrs,
@@ -92,8 +92,8 @@ pub trait Device<T> {
     /// };
     /// assert_eq!(vec![1, 5, 4, 3, 6, 9, 0, 4], device.read(&buf));
     /// ```
-    fn with_data(&self, data: &[T]) -> (*mut T, *mut c_void);
-    fn alloc_with_vec(&self, vec: Vec<T>) -> (*mut T, *mut c_void) {
+    fn with_data(&self, data: &[T]) -> (*mut T, *mut c_void, u64);
+    fn alloc_with_vec(&self, vec: Vec<T>) -> (*mut T, *mut c_void, u64) {
         self.with_data(&vec)
     }
     /// Frees the specified buffer. The pointer is removed from the pointers vector of a device.

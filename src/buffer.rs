@@ -11,7 +11,7 @@ use crate::number::Number;
 
 #[cfg_attr(not(feature = "safe"), derive(Clone, Copy))]
 pub struct Buffer<T> {
-    pub ptr: (*mut T, *mut c_void),
+    pub ptr: (*mut T, *mut c_void, u64),
     pub len: usize,
 }
 
@@ -112,7 +112,7 @@ impl<T> Drop for Buffer<T> {
 
 impl<T> Default for Buffer<T> {
     fn default() -> Self {
-        Self { ptr: (null_mut(), null_mut()), len: Default::default() }
+        Self { ptr: (null_mut(), null_mut(), 0), len: Default::default() }
     }
 }
 
@@ -215,7 +215,7 @@ impl<'a, T> std::iter::IntoIterator for &'a mut Buffer<T> {
 impl<T: Number> From<T> for Buffer<T> {
     fn from(val: T) -> Self {
         Buffer { 
-            ptr: ( Box::into_raw(Box::new(val)), null_mut() ), 
+            ptr: ( Box::into_raw(Box::new(val)), null_mut(), 0 ), 
             len: 0, 
         }
     }
@@ -294,7 +294,7 @@ impl<T: Clone, D: Device<T>> From<(&D, &Vec<T>)> for Buffer<T> {
 impl<T: Copy> From<(*mut T, usize)> for Buffer<T> {
     fn from(info: (*mut T, usize)) -> Self {
         Buffer {
-            ptr: (info.0, null_mut()),
+            ptr: (info.0, null_mut(), 0),
             len: info.1,
         } 
     }
@@ -303,7 +303,7 @@ impl<T: Copy> From<(*mut T, usize)> for Buffer<T> {
 impl<T: GenericOCL> From<(*mut c_void, usize)> for Buffer<T> {
     fn from(info: (*mut c_void, usize)) -> Self {
         Buffer {
-            ptr: (null_mut(), info.0),
+            ptr: (null_mut(), info.0, 0),
             len: info.1,
         } 
     }

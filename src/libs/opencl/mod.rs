@@ -52,7 +52,7 @@ pub fn construct_buffer<T>(device: &InternCLDevice, cpu: &crate::InternCPU, no_d
     cpu.cpu.borrow_mut().ptrs.clear(); // default mode
     
     let buf = Buffer {
-        ptr: (host_ptr, cl_ptr),
+        ptr: (host_ptr, cl_ptr, 0),
         len: no_drop_dims.0 * no_drop_dims.1,
     };
     Ok(Matrix::from((buf, no_drop_dims)))

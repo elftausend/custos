@@ -62,6 +62,6 @@ pub fn curead<T>(dst_host: &mut [T], src: CUdeviceptr,) -> CudaResult<()> {
     Ok(())
 }
 
-pub unsafe fn cfree(ptr: *mut CUdeviceptr) -> CudaResult<()> {
+pub unsafe fn cufree(ptr: CUdeviceptr) -> CudaResult<()> {
     cuMemFree_v2(ptr).to_result()
 }

@@ -30,7 +30,7 @@ impl<T> Matrix<T> {
         }
     }
 
-    pub fn ptr(&self) -> (*mut T, *mut c_void) {
+    pub fn ptr(&self) -> (*mut T, *mut c_void, u64) {
         self.data.ptr
     }
 
@@ -218,7 +218,7 @@ impl<T> From<(*mut T, (usize, usize))> for Matrix<T> {
         let dims = ptr_dims.1;
         Matrix {
             data: Buffer {
-                ptr: (ptr_dims.0, std::ptr::null_mut()), 
+                ptr: (ptr_dims.0, std::ptr::null_mut(), 0), 
                 len: dims.0*dims.1, 
                 },
             dims
@@ -231,7 +231,7 @@ impl<T> From<(*mut T, usize, usize)> for Matrix<T> {
     fn from(ptr_dims: (*mut T, usize, usize)) -> Self {
         Matrix {
             data: Buffer {
-                ptr: (ptr_dims.0, std::ptr::null_mut()), 
+                ptr: (ptr_dims.0, std::ptr::null_mut(), 0), 
                 len: ptr_dims.1*ptr_dims.2, 
                 },
             dims: (ptr_dims.1,ptr_dims.2)

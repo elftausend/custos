@@ -119,7 +119,7 @@ extern "C" {
     pub fn cuDeviceGet(device: *mut CUdevice, ordinal: i32) -> CUresult;
     pub fn cuCtxCreate_v2(context: *mut CUcontext, flags: u32, device: CUdevice) -> CUresult;
     pub fn cuMemAlloc_v2(ptr: *mut CUdeviceptr, size: usize) -> CUresult;
-    pub fn cuMemFree_v2(ptr: *mut CUdeviceptr) -> CUresult;
+    pub fn cuMemFree_v2(ptr: CUdeviceptr) -> CUresult;
     pub fn cuMemcpyHtoD_v2(dst_device: CUdeviceptr, src_host: *const c_void, bytes_to_copy: usize) -> CUresult;
     pub fn cuMemcpyDtoH_v2(dst_host: *mut c_void, src_device: CUdeviceptr, bytes_to_copy: usize) -> CUresult;
 }

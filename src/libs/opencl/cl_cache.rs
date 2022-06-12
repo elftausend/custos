@@ -58,7 +58,7 @@ impl CLCache {
                     };
 
                     Buffer {
-                        ptr: (unified_ptr, buf_info.0.0),
+                        ptr: (unified_ptr, buf_info.0.0, 0),
                         len: buf_info.1
                     }
                 }

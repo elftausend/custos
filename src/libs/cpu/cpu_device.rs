@@ -30,24 +30,24 @@ impl InternCPU {
 
 #[cfg(not(feature="safe"))]
 impl<T: Copy+Default> Device<T> for InternCPU {
-    fn alloc(&self, len: usize) -> (*mut T, *mut c_void) {
+    fn alloc(&self, len: usize) -> (*mut T, *mut c_void, u64) {
         assert!(len > 0, "invalid buffer len: 0");
         let ptr = Box::into_raw(vec![T::default(); len].into_boxed_slice()) as *mut T;
         self.cpu.borrow_mut().ptrs.push(ptr as *mut usize);
-        (ptr, std::ptr::null_mut())
+        (ptr, std::ptr::null_mut(), 0)
     }
 
-    fn with_data(&self, data: &[T]) -> (*mut T, *mut c_void) {
+    fn with_data(&self, data: &[T]) -> (*mut T, *mut c_void, u64) {
         assert!(!data.is_empty(), "invalid buffer len: 0");
         let ptr = Box::into_raw(data.to_vec().into_boxed_slice()) as *mut T;
         self.cpu.borrow_mut().ptrs.push(ptr as *mut usize);
-        (ptr, std::ptr::null_mut())
+        (ptr, std::ptr::null_mut(), 0)
     }
-    fn alloc_with_vec(&self, vec: Vec<T>) -> (*mut T, *mut c_void) {
+    fn alloc_with_vec(&self, vec: Vec<T>) -> (*mut T, *mut c_void, u64) {
         assert!(!vec.is_empty(), "invalid buffer len: 0");
         let ptr = Box::into_raw(vec.into_boxed_slice()) as *mut T;
         self.cpu.borrow_mut().ptrs.push(ptr as *mut usize);
-        (ptr, std::ptr::null_mut())
+        (ptr, std::ptr::null_mut(), 0)
     }
 
     fn drop(&mut self, buf: Buffer<T>) {
