@@ -1,3 +1,4 @@
+/* 
 use criterion::{Criterion, criterion_main, criterion_group};
 #[cfg(not(feature="safe"))]
 use custos::{cpu::element_wise_op_mut, Buffer};
@@ -35,3 +36,6 @@ criterion_group!(benches, bench_vec, bench_fixed);
 #[cfg(feature="safe")]
 criterion_group!(benches, bench_vec);
 criterion_main!(benches);
+
+*/
+fn main() {}

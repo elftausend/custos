@@ -6,7 +6,6 @@ use crate::libs::cpu::{Order, Transpose};
 #[link(name="blas")]
 //#[cfg_attr(target_os = "macos", link(name = "blas"))]
 //#[cfg_attr(target_os = "linux", link(name = "openblas"))]
-
 extern "C" {
 
     pub fn cblas_sgemm(

@@ -4,7 +4,7 @@ use std::{ffi::{c_void, CString}, usize, vec};
 
 use crate::Error;
 
-use super::{extern_cl::*, OCLErrorKind};
+use super::{ffi::*, OCLErrorKind};
 
 #[derive(Clone, Copy, Debug)]
 pub struct Platform(cl_platform_id); 

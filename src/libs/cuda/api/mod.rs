@@ -1,7 +1,8 @@
-mod extern_c;
+mod ffi;
 mod cuda;
 mod error;
+pub mod cublas;
 
 pub use cuda::*;
-pub use extern_c::*;
+pub use ffi::*;
 

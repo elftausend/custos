@@ -1,7 +1,7 @@
 pub use cl::*;
 pub use error::*;
-pub use extern_cl::*;
+pub use ffi::*;
 
-mod extern_cl;
+mod ffi;
 mod cl;
 mod error;

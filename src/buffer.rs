@@ -300,17 +300,6 @@ impl<T: Copy> From<(*mut T, usize)> for Buffer<T> {
     }
 }
 
-#[cfg(not(feature="safe"))]
-impl<const N: usize, T> From<&mut [T; N]> for Buffer<T> where T: Copy {
-    fn from(arr: &mut [T; N]) -> Self {
-        Buffer { 
-            ptr: (arr.as_mut_ptr(), null_mut()), 
-            len: N
-        }
-    }
-}
-
-
 impl<T: GenericOCL> From<(*mut c_void, usize)> for Buffer<T> {
     fn from(info: (*mut c_void, usize)) -> Self {
         Buffer {

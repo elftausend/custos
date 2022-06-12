@@ -230,10 +230,10 @@ impl<T: GenericOCL> BaseDevice<T> for InternCLDevice {}
 /// ```
 pub struct CLDevice {
     pub ptrs: Vec<*mut c_void>,
-    pub device: CLIntDevice,
-    pub ctx: Context,
-    pub queue: CommandQueue,
-    pub unified_mem: bool,
+    device: CLIntDevice,
+    ctx: Context,
+    queue: CommandQueue,
+    unified_mem: bool,
 }
 
 unsafe impl Sync for CLDevice {}

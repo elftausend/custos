@@ -115,16 +115,6 @@ fn test_use_number() {
 
 #[cfg(not(feature="safe"))]
 #[test]
-fn test_item() {
-    let x: Buffer<f32> = 7f32.into();
-    assert_eq!(x.item(), 7.);
-
-    let x: Buffer<f32> = (&mut [5., 4., 8.]).into();
-    assert_eq!(x.item(), 0.);
-}
-
-#[cfg(not(feature="safe"))]
-#[test]
 fn test_cached_cpu() {
     let device = CPU::new().select();
     
@@ -204,21 +194,8 @@ fn test_size_buf() {
 }
 
 #[cfg(not(feature="safe"))]
-fn slice_add<T: Copy + std::ops::Add<Output = T>>(a: &[T], b: &[T], c: &mut [T]) {
+fn _slice_add<T: Copy + std::ops::Add<Output = T>>(a: &[T], b: &[T], c: &mut [T]) {
     element_wise_op_mut(a, b, c, |a, b| a+b)
-}
-
-#[cfg(not(feature="safe"))]
-#[test]
-fn test_use_in_slice() {
-    let a: Buffer<f32> = (&mut [3.123; 1000]).into();
-    let b: Buffer<f32> = (&mut [1.1; 1000]).into();
-
-    let mut c: Buffer<f32> = (&mut [0.; 1000]).into();
-
-    slice_add(&a, &b, &mut c);
-
-    assert_eq!(&[4.223; 1000], c.as_ref());
 }
 
 #[cfg(not(feature="safe"))]
@@ -226,9 +203,10 @@ fn test_use_in_slice() {
 fn test_iterate() {
     let cmp = [1f32, 2., 3.3];
 
-    let a: Buffer<f32> = (&mut [1., 2., 3.3]).into();
-
-    for (x, y) in a.into_iter().zip(cmp) {
+    let device = CPU::new();
+    let x = Buffer::from((&device, [1., 2., 3.3]));
+    
+    for (x, y) in x.iter().zip(cmp) {
         assert!(*x == y)
     }
 }

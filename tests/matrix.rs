@@ -80,4 +80,22 @@ fn test_deref() {
     assert_eq!(9, item);
 }
 
+#[test]
+fn test_range_gemm() {
+
+    let m = 3;
+    let k = 2;
+    let n = 3;
+
+    let device = CPU::new().select();
+
+    let a = Matrix::from((&device, m, k, (0..m*k).map(|x| x as f32).collect::<Vec<_>>()));
+    let b = Matrix::from((&device, k, m, (0..k*n).rev().map(|x| x as f32).collect::<Vec<_>>()));
+
+    let c = a.gemm(&b);
+
+    // [2.0, 1.0, 0.0, 16.0, 11.0, 6.0, 30.0, 21.0, 12.0]
+    println!("{c:?}");
+}
+
 

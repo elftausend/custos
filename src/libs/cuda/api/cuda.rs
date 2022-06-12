@@ -1,6 +1,6 @@
 use std::{ptr::null_mut, ffi::c_void};
 
-use super::{extern_c::{CUdeviceptr, cuMemAlloc_v2}, error::{CudaResult, CudaErrorKind}, cuInit, CUcontext, CUdevice, cuDeviceGet, cuCtxCreate_v2, cuMemFree_v2, cuDeviceGetCount, cuMemcpyHtoD_v2, cuMemcpyDtoH_v2};
+use super::{ffi::{CUdeviceptr, cuMemAlloc_v2}, error::{CudaResult, CudaErrorKind}, cuInit, CUcontext, CUdevice, cuDeviceGet, cuCtxCreate_v2, cuMemFree_v2, cuDeviceGetCount, cuMemcpyHtoD_v2, cuMemcpyDtoH_v2};
 
 pub fn cinit(flags: u32) -> CudaResult<()> {
     unsafe { cuInit(flags).into() }
@@ -27,7 +27,7 @@ pub fn device(ordinal: i32) -> CudaResult<CudaIntDevice> {
 
 pub struct Context(CUcontext);
 
-pub fn create_context(device: CudaIntDevice) -> CudaResult<Context> {
+pub fn create_context(device: &CudaIntDevice) -> CudaResult<Context> {
     let mut context = Context(null_mut());
     unsafe {
         // TODO: Flags
