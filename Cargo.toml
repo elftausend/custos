@@ -49,3 +49,8 @@ harness = false
 [[bench]]
 name = "remove_value"
 harness = false
+
+[[bench]]
+name = "gemm"
+harness = false
+required-features = ["opencl", "cuda"]

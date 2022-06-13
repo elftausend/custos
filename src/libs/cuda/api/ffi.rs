@@ -127,12 +127,13 @@ extern "C" {
     pub fn cuDeviceGetCount(count: *mut i32) -> CUresult;
     pub fn cuDeviceGet(device: *mut CUdevice, ordinal: i32) -> CUresult;
     pub fn cuCtxCreate_v2(context: *mut CUcontext, flags: u32, device: CUdevice) -> CUresult;
+    pub fn cuCtxDestroy(context: CUcontext);
     pub fn cuMemAlloc_v2(ptr: *mut CUdeviceptr, size: usize) -> CUresult;
     pub fn cuMemFree_v2(ptr: CUdeviceptr) -> CUresult;
     pub fn cuMemcpyHtoD_v2(dst_device: CUdeviceptr, src_host: *const c_void, bytes_to_copy: usize) -> CUresult;
     pub fn cuMemcpyDtoH_v2(dst_host: *mut c_void, src_device: CUdeviceptr, bytes_to_copy: usize) -> CUresult;
     // TODO: fname: *const u8?
-    pub fn cuModuleLoad(module: *mut CUmodule, fname: *const u32) -> CUresult;
+    pub fn cuModuleLoad(module: *mut CUmodule, fname: *const i8) -> CUresult;
     // TODO: function name: *const u8?
     pub fn cuModuleGetFunction(hfunc: *mut CUfunction, module: CUmodule, fn_name: *const u32) -> CUresult;
     pub fn cuLaunchKernel(

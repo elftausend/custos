@@ -1,4 +1,4 @@
-use std::{ptr::null_mut, ffi::c_void};
+use std::{ptr::null_mut, ffi::{c_void, CStr, CString}};
 
 use crate::CUdeviceptr;
 
@@ -29,7 +29,7 @@ pub fn device(ordinal: i32) -> CudaResult<CudaIntDevice> {
 }
 
 #[derive(Debug)]
-pub struct Context(CUcontext);
+pub struct Context(pub CUcontext);
 
 pub fn create_context(device: &CudaIntDevice) -> CudaResult<Context> {
     let mut context = Context(null_mut());
@@ -76,19 +76,22 @@ pub fn curead<T>(dst_host: &mut [T], src: CUdeviceptr,) -> CudaResult<()> {
 }
 
 #[derive(Debug)]
-pub struct Module(CUmodule);
+pub struct Module(pub CUmodule);
 
 pub fn load_module(fname: &str) -> CudaResult<Module> {
+    let fname = CString::new(fname).unwrap();
+    //let fname: &CStr = &fname;
+    
     let mut module = Module(null_mut());
 
     // TODO: &mut module.0 as *mut CUmodule
     // TODO: use u8 instead of u32?
-    unsafe { cuModuleLoad(&mut module.0, fname.as_ptr() as *const u32) }.to_result()?;
+    unsafe { cuModuleLoad(&mut module.0, fname.as_ptr()) }.to_result()?;
     Ok(module)
 }
 
 #[derive(Debug)]
-pub struct FnHandle(CUfunction);
+pub struct FnHandle(pub CUfunction);
 
 pub fn module_get_fn(module: Module, fn_name: &str) -> CudaResult<FnHandle> {
     let mut handle = FnHandle(null_mut());
@@ -99,7 +102,6 @@ pub fn module_get_fn(module: Module, fn_name: &str) -> CudaResult<FnHandle> {
 }
 
 pub fn launch_kernel(f: FnHandle, gws: [u32; 3], lws: [u32; 3], lhs: CUdeviceptr) {
-
     let mut params = [lhs as *mut c_void];
 
     unsafe { cuLaunchKernel(

@@ -1,6 +1,6 @@
 use std::{cell::RefCell, rc::Rc, ptr::null_mut};
-use crate::{Device, remove_value, VecRead, CacheBuf, Gemm, BaseOps, AssignOps, BaseDevice, GenericBlas, GenericOCL, Buffer, Matrix, CUdeviceptr};
-use super::{api::{device, create_context, CudaIntDevice, Context, cublas::{create_handle, CublasHandle}, cuInit, cufree, cumalloc, cuwrite, curead}, CudaCache};
+use crate::{Device, remove_value, VecRead, CacheBuf, Gemm, BaseOps, AssignOps, BaseDevice, GenericBlas, GenericOCL, Buffer, Matrix, CUdeviceptr, AsDev};
+use super::{api::{device, create_context, CudaIntDevice, Context, cublas::{create_handle, CublasHandle}, cuInit, cufree, cumalloc, cuwrite, curead, cuCtxDestroy}, CudaCache};
 
 #[derive(Debug, Clone)]
 pub struct InternCudaDevice {
@@ -108,6 +108,12 @@ impl<T> BaseOps<T> for InternCudaDevice {
     }
 }
 
+impl AsDev for InternCudaDevice {
+    fn as_dev(&self) -> crate::Dev {
+        crate::Dev::new(None, None, Some(Rc::downgrade(&self.cuda)))
+    }
+}
+
 impl<T: GenericOCL + GenericBlas> BaseDevice<T> for InternCudaDevice {}
 
 #[derive(Debug)]
@@ -155,5 +161,7 @@ impl Drop for CudaDevice {
                 cufree(*ptr).unwrap();
             }
         }
+
+        unsafe { cuCtxDestroy(self.ctx.0) }
     }
 }
