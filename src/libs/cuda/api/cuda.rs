@@ -107,6 +107,6 @@ pub fn launch_kernel(f: FnHandle, gws: [u32; 3], lws: [u32; 3], lhs: CUdeviceptr
         gws[1], gws[2], 
         lws[0], lws[1], 
         lws[2], 0, 
-        std::ptr::null_mut(), params.as_mut_ptr(), std::ptr::null_mut()) 
-    };
+        std::ptr::null_mut(), params.as_mut_ptr(), std::ptr::null_mut()
+    )};
 }
