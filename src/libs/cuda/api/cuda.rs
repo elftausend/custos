@@ -1,6 +1,8 @@
 use std::{ptr::null_mut, ffi::c_void};
 
-use super::{ffi::{CUdeviceptr, cuMemAlloc_v2}, error::{CudaResult, CudaErrorKind}, cuInit, CUcontext, CUdevice, cuDeviceGet, cuCtxCreate_v2, cuMemFree_v2, cuDeviceGetCount, cuMemcpyHtoD_v2, cuMemcpyDtoH_v2};
+use crate::CUdeviceptr;
+
+use super::{ffi::cuMemAlloc_v2, error::{CudaResult, CudaErrorKind}, cuInit, CUcontext, CUdevice, cuDeviceGet, cuCtxCreate_v2, cuMemFree_v2, cuDeviceGetCount, cuMemcpyHtoD_v2, cuMemcpyDtoH_v2};
 
 pub fn cinit(flags: u32) -> CudaResult<()> {
     unsafe { cuInit(flags).into() }

@@ -1,9 +1,8 @@
 use std::{cell::RefCell, rc::Rc, ptr::null_mut};
+use crate::{Device, remove_value, VecRead, CacheBuf, Gemm, BaseOps, AssignOps, BaseDevice, GenericBlas, GenericOCL, Buffer, Matrix, CUdeviceptr};
+use super::{api::{device, create_context, CudaIntDevice, Context, cublas::{create_handle, CublasHandle}, cuInit, cufree, cumalloc, cuwrite, curead}, CudaCache};
 
-use crate::{Device, remove_value, VecRead, CacheBuf, Gemm, BaseOps, AssignOps, BaseDevice, GenericBlas, GenericOCL};
-
-use super::api::{device, create_context, CudaIntDevice, Context, cublas::{create_handle, CublasHandle}, cuInit, CUdeviceptr, cufree, cumalloc, cuwrite, curead};
-
+#[derive(Debug, Clone)]
 pub struct InternCudaDevice {
     pub cuda: Rc<RefCell<CudaDevice>>
 }
@@ -56,13 +55,14 @@ impl<T: Default + Copy> VecRead<T> for InternCudaDevice {
 
 impl<T> CacheBuf<T> for InternCudaDevice {
     fn cached_buf(&self, len: usize) -> crate::Buffer<T> {
-        todo!()
+        CudaCache::get::<T>(self.clone(), len)
     }
 }
 
 impl<T: GenericBlas> Gemm<T> for InternCudaDevice {
-    fn gemm(&self, lhs: &crate::Matrix<T>, rhs: &crate::Matrix<T>) -> crate::Matrix<T> {
-        assert!(lhs.rows() == rhs.cols(), "wrong dims for matrix multiplication");
+    fn gemm(&self, lhs: &Matrix<T>, rhs: &Matrix<T>) -> Matrix<T> {
+        assert!(lhs.cols() == rhs.rows(), "wrong dims for matrix multiplication");
+        let out: Buffer<T> = self.cached_buf(lhs.rows() * rhs.cols());
         T::cugemm(
             &self.cuda.borrow().handle, 
             lhs.rows(), 
@@ -70,9 +70,9 @@ impl<T: GenericBlas> Gemm<T> for InternCudaDevice {
             lhs.cols(), 
             lhs.as_buf().ptr.2, 
             rhs.as_buf().ptr.2, 
-            rhs.as_buf().ptr.2
+            out.ptr.2
         ).unwrap();
-        todo!()
+        (out, lhs.rows(), rhs.cols()).into()
     }
 }
 
@@ -85,7 +85,6 @@ impl<T> AssignOps<T> for InternCudaDevice {
         todo!()
     }
 }
-
 
 impl<T> BaseOps<T> for InternCudaDevice {
     fn add(&self, lhs: &crate::Matrix<T>, rhs: &crate::Matrix<T>) -> crate::Matrix<T> {

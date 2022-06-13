@@ -3,10 +3,10 @@
 
 use std::ffi::c_void;
 
-use super::error::{CudaResult, CudaErrorKind};
-pub type CUdeviceptr = std::os::raw::c_ulonglong;
-pub type CUdevice    = std::os::raw::c_int;
+use crate::CUdeviceptr;
 
+use super::error::{CudaResult, CudaErrorKind};
+pub type CUdevice    = std::os::raw::c_int;
 
 pub enum CUctx_st {}
 pub type CUcontext = *mut CUctx_st;

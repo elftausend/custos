@@ -2,7 +2,8 @@ use std::ffi::c_void;
 
 #[cfg(feature="opencl")]
 use crate::opencl::{InternCLDevice, CLCache, api::{enqueue_write_buffer, wait_for_event}};
-use crate::{BaseOps, Buffer, Device, Gemm, get_device, VecRead, number::Number, AssignOps, GenericOCL, cuda::api::CUdeviceptr, GenericBlas};
+
+use crate::{BaseOps, Buffer, Device, Gemm, get_device, VecRead, number::Number, AssignOps, GenericOCL, GenericBlas, CUdeviceptr};
 
 #[cfg_attr(not(feature="safe"), derive(Copy))]
 #[derive(Clone)]

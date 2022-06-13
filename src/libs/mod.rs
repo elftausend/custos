@@ -2,7 +2,10 @@ use std::cell::RefCell;
 
 use crate::number::{Number, Float};
 
-use self::{cpu::{level3, Order, Transpose}, cuda::api::{CUdeviceptr, cublas::{cublasOperation_t, CublasHandle, cublasSgemm_v2, cublasDgemm_v2}}};
+use self::cpu::{level3, Order, Transpose};
+
+#[cfg(feature="cuda")]
+use cuda::api::cublas::{cublasOperation_t, CublasHandle, cublasSgemm_v2, cublasDgemm_v2};
 
 #[cfg(feature="opencl")]
 pub mod opencl;
@@ -10,9 +13,15 @@ pub mod opencl;
 pub mod cuda;
 pub mod cpu;
 
+pub type CUdeviceptr = std::os::raw::c_ulonglong;
+
 #[cfg(not(feature="opencl"))]
 #[derive(Debug)]
 pub struct CLDevice;
+
+#[cfg(not(feature="cuda"))]
+#[derive(Debug)]
+pub struct CudaDevice;
 
 thread_local! {
     pub static COUNT: RefCell<usize> = RefCell::new(0);
@@ -115,6 +124,7 @@ impl GenericOCL for u64 {
 
 pub trait GenericBlas where Self: Sized+Float {
     fn gemm(m: usize, n: usize, k:usize, a: &[Self], b: &[Self], c: &mut [Self]);
+    #[cfg(feature="cuda")]
     fn cugemm(handle: &CublasHandle, m: usize, n: usize, k:usize, a: CUdeviceptr, b: CUdeviceptr, c: CUdeviceptr) -> crate::Result<()>;
 }
 
@@ -122,7 +132,7 @@ impl GenericBlas for f32 {
     fn gemm(m: usize, n: usize, k:usize, a: &[Self], b: &[Self], c: &mut [Self]) {
         unsafe {level3::cblas_sgemm(Order::RowMajor, Transpose::NoTranspose, Transpose::NoTranspose, m, n, k, 1.0, a.as_ptr(), k, b.as_ptr(), n, 0.0, c.as_mut_ptr(), n)};
     }
-
+    #[cfg(feature="cuda")]
     fn cugemm(handle: &CublasHandle, m: usize, n: usize, k:usize, a: CUdeviceptr, b: CUdeviceptr, c: CUdeviceptr) -> crate::Result<()> {
         unsafe { cublasSgemm_v2(
             handle.0, 
@@ -143,7 +153,7 @@ impl GenericBlas for f64 {
     fn gemm(m: usize, n: usize, k:usize, a: &[Self], b: &[Self], c: &mut [Self]) {
         unsafe {level3::cblas_dgemm(Order::RowMajor, Transpose::NoTranspose, Transpose::NoTranspose, m, n, k, 1.0, a.as_ptr(), k, b.as_ptr(), n, 0.0, c.as_mut_ptr(), n)};
     }
-
+    #[cfg(feature="cuda")]
     fn cugemm(handle: &CublasHandle, m: usize, n: usize, k:usize, a: CUdeviceptr, b: CUdeviceptr, c: CUdeviceptr) -> crate::Result<()> {
         unsafe { cublasDgemm_v2(
             handle.0, 

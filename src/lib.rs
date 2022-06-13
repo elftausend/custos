@@ -5,6 +5,7 @@ pub use buffer::*;
 pub use count::*;
 pub use libs::*;
 
+#[cfg(feature="cuda")]
 pub use libs::cuda::{CudaDevice, InternCudaDevice};
 #[cfg(feature="opencl")]
 pub use libs::opencl::{CLDevice, InternCLDevice};

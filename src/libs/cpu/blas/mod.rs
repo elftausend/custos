@@ -1,7 +1,5 @@
 pub use level3::*;
 
-use crate::number::Float;
-
 pub mod level3;
 
 #[repr(C)]

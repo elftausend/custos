@@ -116,7 +116,7 @@ const N: usize = 100;
 fn test_ffi_cuda() {
     use std::{ffi::c_void, mem::size_of};
 
-    use custos::cuda::api::{cuInit, cuDeviceGet, cuCtxCreate_v2, CUctx_st, cuMemAlloc_v2, CUdeviceptr, cuMemcpyHtoD_v2, cuMemcpyDtoH_v2};
+    use custos::{cuda::api::{cuInit, cuDeviceGet, cuCtxCreate_v2, CUctx_st, cuMemAlloc_v2, cuMemcpyHtoD_v2, cuMemcpyDtoH_v2}, CUdeviceptr};
 
     unsafe { 
         let mut device = 0;
