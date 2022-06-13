@@ -11,6 +11,15 @@ pub type CUdevice    = std::os::raw::c_int;
 pub enum CUctx_st {}
 pub type CUcontext = *mut CUctx_st;
 
+pub enum CUmod_st {}
+pub type CUmodule = *mut CUmod_st;
+
+pub enum CUfunc_st {}
+pub type CUfunction = *mut CUfunc_st;
+
+pub enum CUstream_st {}
+pub type CUstream =  *mut CUstream_st;
+
 #[repr(u32)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
 #[allow(non_camel_case_types)]
@@ -122,4 +131,16 @@ extern "C" {
     pub fn cuMemFree_v2(ptr: CUdeviceptr) -> CUresult;
     pub fn cuMemcpyHtoD_v2(dst_device: CUdeviceptr, src_host: *const c_void, bytes_to_copy: usize) -> CUresult;
     pub fn cuMemcpyDtoH_v2(dst_host: *mut c_void, src_device: CUdeviceptr, bytes_to_copy: usize) -> CUresult;
+    // TODO: fname: *const u8?
+    pub fn cuModuleLoad(module: *mut CUmodule, fname: *const u32) -> CUresult;
+    // TODO: function name: *const u8?
+    pub fn cuModuleGetFunction(hfunc: *mut CUfunction, module: CUmodule, fn_name: *const u32) -> CUresult;
+    pub fn cuLaunchKernel(
+        f: CUfunction, gridDimX: u32, 
+        gridDimY: u32, gridDimZ: u32, 
+        blockDimX: u32, blockDimY: u32, 
+        blockDimZ: u32, sharedMemBytes: u32, 
+        hStream: CUstream, kernelParams: *mut *mut c_void, 
+        extra: *mut *mut c_void
+    );
 }

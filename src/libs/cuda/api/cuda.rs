@@ -2,7 +2,7 @@ use std::{ptr::null_mut, ffi::c_void};
 
 use crate::CUdeviceptr;
 
-use super::{ffi::cuMemAlloc_v2, error::{CudaResult, CudaErrorKind}, cuInit, CUcontext, CUdevice, cuDeviceGet, cuCtxCreate_v2, cuMemFree_v2, cuDeviceGetCount, cuMemcpyHtoD_v2, cuMemcpyDtoH_v2};
+use super::{ffi::cuMemAlloc_v2, error::{CudaResult, CudaErrorKind}, cuInit, CUcontext, CUdevice, cuDeviceGet, cuCtxCreate_v2, cuMemFree_v2, cuDeviceGetCount, cuMemcpyHtoD_v2, cuMemcpyDtoH_v2, cuModuleLoad, CUmodule, CUfunction, cuModuleGetFunction, cuLaunchKernel};
 
 pub fn cinit(flags: u32) -> CudaResult<()> {
     unsafe { cuInit(flags).into() }
@@ -40,7 +40,6 @@ pub fn create_context(device: &CudaIntDevice) -> CudaResult<Context> {
     Ok(context)
 }
 
-
 pub fn cumalloc<T>(len: usize) -> CudaResult<CUdeviceptr> {
     let bytes = len * core::mem::size_of::<T>();
 
@@ -53,18 +52,61 @@ pub fn cumalloc<T>(len: usize) -> CudaResult<CUdeviceptr> {
     Ok(ptr)
 }
 
+pub unsafe fn cufree(ptr: CUdeviceptr) -> CudaResult<()> {
+    cuMemFree_v2(ptr).into()
+}
+
 pub fn cuwrite<T>(dst: CUdeviceptr, src_host: &[T]) -> CudaResult<()> {
     let bytes_to_copy = src_host.len() * std::mem::size_of::<T>();
-    unsafe { cuMemcpyHtoD_v2(dst, src_host.as_ptr() as *const c_void, bytes_to_copy) }.to_result()?;
-    Ok(())
+    unsafe { cuMemcpyHtoD_v2(
+        dst, 
+        src_host.as_ptr() as *const c_void, 
+        bytes_to_copy) 
+    }.into()
 }
 
 pub fn curead<T>(dst_host: &mut [T], src: CUdeviceptr,) -> CudaResult<()> {
     let bytes_to_copy = dst_host.len() * std::mem::size_of::<T>();
-    unsafe { cuMemcpyDtoH_v2(dst_host.as_mut_ptr() as *mut c_void, src, bytes_to_copy) }.to_result()?;
-    Ok(())
+    unsafe { cuMemcpyDtoH_v2(
+        dst_host.as_mut_ptr() as *mut c_void, 
+        src, 
+        bytes_to_copy) 
+    }.into()
+    
 }
 
-pub unsafe fn cufree(ptr: CUdeviceptr) -> CudaResult<()> {
-    cuMemFree_v2(ptr).to_result()
+#[derive(Debug)]
+pub struct Module(CUmodule);
+
+pub fn load_module(fname: &str) -> CudaResult<Module> {
+    let mut module = Module(null_mut());
+
+    // TODO: &mut module.0 as *mut CUmodule
+    // TODO: use u8 instead of u32?
+    unsafe { cuModuleLoad(&mut module.0, fname.as_ptr() as *const u32) }.to_result()?;
+    Ok(module)
+}
+
+#[derive(Debug)]
+pub struct FnHandle(CUfunction);
+
+pub fn module_get_fn(module: Module, fn_name: &str) -> CudaResult<FnHandle> {
+    let mut handle = FnHandle(null_mut());
+    // TODO: &mut handle.0 as *mut CUfunction 
+    // TODO: use u8 instead of u32?
+    unsafe { cuModuleGetFunction(&mut handle.0, module.0, fn_name.as_ptr() as *const u32) }.to_result()?;
+    Ok(handle)
+}
+
+pub fn launch_kernel(f: FnHandle, gws: [u32; 3], lws: [u32; 3], lhs: CUdeviceptr) {
+
+    let mut params = [lhs as *mut c_void];
+
+    unsafe { cuLaunchKernel(
+        f.0, gws[0], 
+        gws[1], gws[2], 
+        lws[0], lws[1], 
+        lws[2], 0, 
+        std::ptr::null_mut(), params.as_mut_ptr(), std::ptr::null_mut()) 
+    };
 }
