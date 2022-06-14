@@ -33,8 +33,8 @@ impl nvrtcResult {
 
 #[link(name="nvrtc")]
 extern "C" {
-    pub fn nvrtcCreateProgram(prog: *mut nvrtcProgram, src: *const i8, name: *const i8, numHeaders: i32, headers: *const *const i8, includeNames: *const *const i8);
-    pub fn nvrtcCompileProgram(prog: nvrtcProgram, numOptions: i32, options: *const *const i8);
-    pub fn nvrtcDestroyProgram(prog: *mut nvrtcProgram);
-    pub fn nvrtcGetPTX(prog: nvrtcProgram, ptx: *mut i8);
+    pub fn nvrtcCreateProgram(prog: *mut nvrtcProgram, src: *const i8, name: *const i8, numHeaders: i32, headers: *const *const i8, includeNames: *const *const i8) -> nvrtcResult;
+    pub fn nvrtcCompileProgram(prog: nvrtcProgram, numOptions: i32, options: *const *const i8) -> nvrtcResult;
+    pub fn nvrtcDestroyProgram(prog: *mut nvrtcProgram) -> nvrtcResult;
+    pub fn nvrtcGetPTX(prog: nvrtcProgram, ptx: *mut i8) -> nvrtcResult;
 }

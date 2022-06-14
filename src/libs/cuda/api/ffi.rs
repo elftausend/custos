@@ -143,5 +143,8 @@ extern "C" {
         blockDimZ: u32, sharedMemBytes: u32, 
         hStream: CUstream, kernelParams: *mut *mut c_void, 
         extra: *mut *mut c_void
-    );
+    ) -> CUresult;
+    pub fn cuStreamCreate(ph_stream: *mut CUstream, flags: u32) -> CUresult;
+    pub fn cuStreamDestroy(hstream: *mut CUstream) -> CUresult;
+
 }

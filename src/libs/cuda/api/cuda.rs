@@ -2,7 +2,7 @@ use std::{ptr::null_mut, ffi::{c_void, CString}};
 
 use crate::CUdeviceptr;
 
-use super::{ffi::cuMemAlloc_v2, error::{CudaResult, CudaErrorKind}, cuInit, CUcontext, CUdevice, cuDeviceGet, cuCtxCreate_v2, cuMemFree_v2, cuDeviceGetCount, cuMemcpyHtoD_v2, cuMemcpyDtoH_v2, cuModuleLoad, CUmodule, CUfunction, cuModuleGetFunction, cuLaunchKernel};
+use super::{ffi::cuMemAlloc_v2, error::{CudaResult, CudaErrorKind}, cuInit, CUcontext, CUdevice, cuDeviceGet, cuCtxCreate_v2, cuMemFree_v2, cuDeviceGetCount, cuMemcpyHtoD_v2, cuMemcpyDtoH_v2, cuModuleLoad, CUmodule, CUfunction, cuModuleGetFunction, cuLaunchKernel, CUstream, cuStreamCreate};
 
 pub fn cinit(flags: u32) -> CudaResult<()> {
     unsafe { cuInit(flags).into() }
@@ -97,12 +97,20 @@ pub fn module_get_fn(module: Module, fn_name: &str) -> CudaResult<FnHandle> {
     Ok(handle)
 }
 
-pub fn launch_kernel(f: FnHandle, gws: [u32; 3], lws: [u32; 3], params: &mut [*mut c_void]) {
+pub struct Stream(pub CUstream);
+
+pub fn create_stream() -> CudaResult<Stream> {
+    let mut ph_stream = Stream(null_mut());
+    unsafe { cuStreamCreate(&mut ph_stream.0, 0) }.to_result()?;
+    Ok(ph_stream)
+}
+
+pub fn launch_kernel(f: &FnHandle, gws: [u32; 3], lws: [u32; 3], stream: &mut Stream, params: &[*mut c_void]) -> CudaResult<()> {
     unsafe { cuLaunchKernel(
         f.0, gws[0], 
         gws[1], gws[2], 
         lws[0], lws[1], 
         lws[2], 0, 
-        std::ptr::null_mut(), params.as_mut_ptr(), std::ptr::null_mut()
-    )};
+        stream.0, params.as_ptr() as *mut _, std::ptr::null_mut()
+    )}.to_result()
 }
