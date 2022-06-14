@@ -37,4 +37,5 @@ extern "C" {
     pub fn nvrtcCompileProgram(prog: nvrtcProgram, numOptions: i32, options: *const *const i8) -> nvrtcResult;
     pub fn nvrtcDestroyProgram(prog: *mut nvrtcProgram) -> nvrtcResult;
     pub fn nvrtcGetPTX(prog: nvrtcProgram, ptx: *mut i8) -> nvrtcResult;
+    pub fn nvrtcGetPTXSize(prog: nvrtcProgram, ptx_size: *mut isize) -> nvrtcResult;
 }

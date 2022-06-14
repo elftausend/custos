@@ -1,1 +1,1 @@
-mod cuda_kernels;
+mod cuda;

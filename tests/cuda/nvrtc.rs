@@ -1,11 +1,9 @@
+use std::ffi::c_void;
+use custos::{cuda::api::{nvrtc::create_program, load_module_data, module_get_fn, create_stream, launch_kernel}, CudaDevice, VecRead, Buffer};
 
-#[cfg(feature="cuda")]
+
 #[test]
-fn test_add_cuda() -> custos::Result<()> {
-    use std::ffi::c_void;
-
-    use custos::{CudaDevice, Buffer, cuda::api::{load_module, module_get_fn, launch_kernel, create_stream}, VecRead};
-
+fn test_nvrtc() -> custos::Result<()> {
     let device = CudaDevice::new(0)?;
 
     let a = Buffer::from((&device, [1, 2, 3, 4, 5,]));
@@ -13,10 +11,17 @@ fn test_add_cuda() -> custos::Result<()> {
 
     let c = Buffer::<i32>::new(&device, a.len);
 
-    println!("a: {a:?}");
-    println!("b: {b:?}");
+    let src = r#"
+        extern "C" __global__ void add(int *a, int *b, int *c)
+            {
+                int idx = blockIdx.x;
+                c[idx] = a[idx] + b[idx];
+    }"#;
 
-    let module = load_module("tests/cuda_kernels/add.ptx")?;
+    let x = create_program(src, "add")?;
+    x.compile()?;
+    let module = load_module_data(x.ptx()?)?;
+    
     let function = module_get_fn(module, "add")?;
     let mut stream = create_stream()?;
 
@@ -27,6 +32,5 @@ fn test_add_cuda() -> custos::Result<()> {
 
     let read = device.read(&c);
     println!("read: {read:?}");
-
     Ok(())
 }

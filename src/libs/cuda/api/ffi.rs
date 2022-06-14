@@ -132,10 +132,10 @@ extern "C" {
     pub fn cuMemFree_v2(ptr: CUdeviceptr) -> CUresult;
     pub fn cuMemcpyHtoD_v2(dst_device: CUdeviceptr, src_host: *const c_void, bytes_to_copy: usize) -> CUresult;
     pub fn cuMemcpyDtoH_v2(dst_host: *mut c_void, src_device: CUdeviceptr, bytes_to_copy: usize) -> CUresult;
-    // TODO: fname: *const u8?
     pub fn cuModuleLoad(module: *mut CUmodule, fname: *const i8) -> CUresult;
-    // TODO: function name: *const u8?
+    pub fn cuModuleLoadData(module: *mut CUmodule, data: *const c_void) -> CUresult;
     pub fn cuModuleGetFunction(hfunc: *mut CUfunction, module: CUmodule, fn_name: *const i8) -> CUresult;
+    pub fn cuModuleUnload(module: CUmodule) -> CUresult;
     pub fn cuLaunchKernel(
         f: CUfunction, gridDimX: u32, 
         gridDimY: u32, gridDimZ: u32, 
