@@ -1,4 +1,4 @@
-use std::{ptr::null_mut, ffi::{c_void, CStr, CString}};
+use std::{ptr::null_mut, ffi::{c_void, CString}};
 
 use crate::CUdeviceptr;
 
@@ -80,12 +80,8 @@ pub struct Module(pub CUmodule);
 
 pub fn load_module(fname: &str) -> CudaResult<Module> {
     let fname = CString::new(fname).unwrap();
-    //let fname: &CStr = &fname;
     
     let mut module = Module(null_mut());
-
-    // TODO: &mut module.0 as *mut CUmodule
-    // TODO: use u8 instead of u32?
     unsafe { cuModuleLoad(&mut module.0, fname.as_ptr()) }.to_result()?;
     Ok(module)
 }
@@ -94,16 +90,14 @@ pub fn load_module(fname: &str) -> CudaResult<Module> {
 pub struct FnHandle(pub CUfunction);
 
 pub fn module_get_fn(module: Module, fn_name: &str) -> CudaResult<FnHandle> {
+    let fn_name = CString::new(fn_name).unwrap();
+
     let mut handle = FnHandle(null_mut());
-    // TODO: &mut handle.0 as *mut CUfunction 
-    // TODO: use u8 instead of u32?
-    unsafe { cuModuleGetFunction(&mut handle.0, module.0, fn_name.as_ptr() as *const u32) }.to_result()?;
+    unsafe { cuModuleGetFunction(&mut handle.0, module.0, fn_name.as_ptr()) }.to_result()?;
     Ok(handle)
 }
 
-pub fn launch_kernel(f: FnHandle, gws: [u32; 3], lws: [u32; 3], lhs: CUdeviceptr) {
-    let mut params = [lhs as *mut c_void];
-
+pub fn launch_kernel(f: FnHandle, gws: [u32; 3], lws: [u32; 3], params: &mut [*mut c_void]) {
     unsafe { cuLaunchKernel(
         f.0, gws[0], 
         gws[1], gws[2], 

@@ -135,7 +135,7 @@ extern "C" {
     // TODO: fname: *const u8?
     pub fn cuModuleLoad(module: *mut CUmodule, fname: *const i8) -> CUresult;
     // TODO: function name: *const u8?
-    pub fn cuModuleGetFunction(hfunc: *mut CUfunction, module: CUmodule, fn_name: *const u32) -> CUresult;
+    pub fn cuModuleGetFunction(hfunc: *mut CUfunction, module: CUmodule, fn_name: *const i8) -> CUresult;
     pub fn cuLaunchKernel(
         f: CUfunction, gridDimX: u32, 
         gridDimY: u32, gridDimZ: u32, 
