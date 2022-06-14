@@ -361,20 +361,24 @@ fn test_larger_gemm_cuda() -> custos::Result<()> {
 #[test]
 fn test_cuda_gemm_speed() -> custos::Result<()> {
     use std::time::Instant;
+    use custos::cuda::api::{create_stream, cublas::cublasSetStream_v2};
 
     const ROWS: usize = 4000; 
     const COLS: usize = ROWS;
 
     let device = custos::CudaDevice::new(0)?.select();
 
+    let stream = create_stream()?;
+    unsafe {cublasSetStream_v2(device.cuda.borrow().handle().0, stream.0)}.to_result()?;
+
     let a = Matrix::from((&device, (ROWS, COLS), vec![2.3f32; ROWS*COLS]));
     let b = Matrix::from((&device, (COLS, ROWS), vec![1.9; ROWS*COLS]));
 
-    let d = a.gemm(&b);
+    let _d = a.gemm(&b);
 
     let start = Instant::now();
-    //let _d = a.gemm(&b);
-    d.read();
+    let _d = a.gemm(&b);
+    stream.sync()?;
     println!("duration: {:?}", start.elapsed());
 
     Ok(())

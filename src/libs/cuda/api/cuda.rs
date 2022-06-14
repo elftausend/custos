@@ -2,7 +2,7 @@ use std::{ptr::null_mut, ffi::{c_void, CString}};
 
 use crate::CUdeviceptr;
 
-use super::{ffi::cuMemAlloc_v2, error::{CudaResult, CudaErrorKind}, cuInit, CUcontext, CUdevice, cuDeviceGet, cuCtxCreate_v2, cuMemFree_v2, cuDeviceGetCount, cuMemcpyHtoD_v2, cuMemcpyDtoH_v2, cuModuleLoad, CUmodule, CUfunction, cuModuleGetFunction, cuLaunchKernel, CUstream, cuStreamCreate};
+use super::{ffi::cuMemAlloc_v2, error::{CudaResult, CudaErrorKind}, cuInit, CUcontext, CUdevice, cuDeviceGet, cuCtxCreate_v2, cuMemFree_v2, cuDeviceGetCount, cuMemcpyHtoD_v2, cuMemcpyDtoH_v2, cuModuleLoad, CUmodule, CUfunction, cuModuleGetFunction, cuLaunchKernel, CUstream, cuStreamCreate, cuStreamSynchronize};
 
 pub fn cinit(flags: u32) -> CudaResult<()> {
     unsafe { cuInit(flags).into() }
@@ -97,7 +97,14 @@ pub fn module_get_fn(module: Module, fn_name: &str) -> CudaResult<FnHandle> {
     Ok(handle)
 }
 
+#[derive(Debug)]
 pub struct Stream(pub CUstream);
+
+impl Stream {
+    pub fn sync(&self) -> CudaResult<()> {
+        unsafe { cuStreamSynchronize(self.0) }.to_result()
+    }
+} 
 
 pub fn create_stream() -> CudaResult<Stream> {
     let mut ph_stream = Stream(null_mut());

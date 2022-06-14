@@ -145,6 +145,7 @@ extern "C" {
         extra: *mut *mut c_void
     ) -> CUresult;
     pub fn cuStreamCreate(ph_stream: *mut CUstream, flags: u32) -> CUresult;
-    pub fn cuStreamDestroy(hstream: *mut CUstream) -> CUresult;
+    pub fn cuStreamDestroy(hstream: CUstream) -> CUresult;
+    pub fn cuStreamSynchronize(stream: CUstream) -> CUresult;
 
 }

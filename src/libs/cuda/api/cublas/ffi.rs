@@ -1,5 +1,7 @@
 #![allow(non_camel_case_types, dead_code)]
 
+use crate::cuda::api::CUstream_st;
+
 use super::error::{CublasResult, CublasErrorKind};
 
 pub enum cublasContext { }
@@ -37,6 +39,7 @@ pub enum cublasOperation_t { CUBLAS_OP_N = 0, CUBLAS_OP_T = 1, CUBLAS_OP_C = 2, 
 extern "C" {
     pub fn cublasCreate_v2(handle: *mut cublasHandle_t) -> cublasStatus_t;
     pub fn cublasDestroy_v2(handle: cublasHandle_t) -> cublasStatus_t;
+    pub fn cublasSetStream_v2(handle: cublasHandle_t, stream: *mut CUstream_st) -> cublasStatus_t;
     pub fn cublasSgemm_v2(handle: cublasHandle_t, transa: cublasOperation_t,
         transb: cublasOperation_t, m: i32,
         n: i32, k: i32,

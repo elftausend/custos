@@ -1,6 +1,6 @@
 use std::{cell::RefCell, rc::Rc, ptr::null_mut};
 use crate::{Device, remove_value, VecRead, CacheBuf, Gemm, BaseOps, AssignOps, BaseDevice, GenericBlas, GenericOCL, Buffer, Matrix, CUdeviceptr, AsDev};
-use super::{api::{device, create_context, CudaIntDevice, Context, cublas::{create_handle, CublasHandle}, cuInit, cufree, cumalloc, cuwrite, curead, cuCtxDestroy}, CudaCache};
+use super::{api::{device, create_context, CudaIntDevice, Context, cublas::{create_handle, CublasHandle, cublasSetStream_v2}, cuInit, cufree, cumalloc, cuwrite, curead, cuCtxDestroy, Stream, create_stream}, CudaCache};
 
 #[derive(Debug, Clone)]
 pub struct InternCudaDevice {
@@ -121,21 +121,25 @@ pub struct CudaDevice {
     pub ptrs: Vec<CUdeviceptr>,
     device: CudaIntDevice,
     ctx: Context,
-    handle: CublasHandle
+    stream: Stream,
+    handle: CublasHandle,
 
 }
 
 impl CudaDevice {
     pub fn new(idx: usize) -> crate::Result<InternCudaDevice> {
-        unsafe {cuInit(0) };
+        unsafe {cuInit(0) }.to_result()?;
         let device = device(idx as i32)?;
         let ctx = create_context(&device)?;
-        let handle = create_handle().unwrap();
-
+        let handle = create_handle()?;
+        let stream = create_stream()?;
+        unsafe {cublasSetStream_v2(handle.0, stream.0)}.to_result()?;
+        
         let device = CudaDevice {
             ptrs: vec![],
             device,
             ctx,
+            stream,
             handle,
         };
         Ok(InternCudaDevice::new(device))
@@ -152,6 +156,10 @@ impl CudaDevice {
     pub fn handle(&self) -> &CublasHandle {
         &self.handle
     }
+
+    pub fn stream(&self) -> &Stream {
+        &self.stream
+    }
 }
 
 impl Drop for CudaDevice {
@@ -161,7 +169,6 @@ impl Drop for CudaDevice {
                 cufree(*ptr).unwrap();
             }
         }
-
         unsafe { cuCtxDestroy(self.ctx.0) }
     }
 }
