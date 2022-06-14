@@ -1,7 +1,7 @@
 use std::ffi::c_void;
-use custos::{cuda::api::{nvrtc::create_program, load_module_data, module_get_fn, create_stream, launch_kernel}, CudaDevice, VecRead, Buffer};
+use custos::{cuda::api::{nvrtc::create_program, load_module_data, launch_kernel}, CudaDevice, VecRead, Buffer};
 
-
+#[cfg(feature="cuda")]
 #[test]
 fn test_nvrtc() -> custos::Result<()> {
     let device = CudaDevice::new(0)?;
@@ -21,16 +21,14 @@ fn test_nvrtc() -> custos::Result<()> {
     let x = create_program(src, "add")?;
     x.compile()?;
     let module = load_module_data(x.ptx()?)?;
+    let function = module.function("add")?;
     
-    let function = module_get_fn(module, "add")?;
-    let mut stream = create_stream()?;
-
     launch_kernel(
         &function, [a.len as u32, 1, 1], 
-        [1, 1, 1], &mut stream, &mut [&a.ptr.2 as *const u64 as *mut c_void, &b.ptr.2 as *const u64 as *mut c_void, &c.ptr.2 as *const u64 as *mut c_void]
+        [1, 1, 1], &mut device.stream(), &mut [&a.ptr.2 as *const u64 as *mut c_void, &b.ptr.2 as *const u64 as *mut c_void, &c.ptr.2 as *const u64 as *mut c_void]
     )?;
 
     let read = device.read(&c);
-    println!("read: {read:?}");
+    assert_eq!(vec![5, 3, 10, 10, 14], read);
     Ok(())
 }

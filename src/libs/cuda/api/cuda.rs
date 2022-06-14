@@ -78,6 +78,12 @@ pub fn curead<T>(dst_host: &mut [T], src: CUdeviceptr,) -> CudaResult<()> {
 #[derive(Debug)]
 pub struct Module(pub CUmodule);
 
+impl Module {
+    pub fn function(&self, fn_name: &str) -> CudaResult<FnHandle> {
+        module_get_fn(self, fn_name)
+    }
+}
+
 pub fn load_module(fname: &str) -> CudaResult<Module> {
     let fname = CString::new(fname).unwrap();
     
@@ -95,7 +101,7 @@ pub fn load_module_data(src: CString) -> CudaResult<Module> {
 #[derive(Debug)]
 pub struct FnHandle(pub CUfunction);
 
-pub fn module_get_fn(module: Module, fn_name: &str) -> CudaResult<FnHandle> {
+pub fn module_get_fn(module: &Module, fn_name: &str) -> CudaResult<FnHandle> {
     let fn_name = CString::new(fn_name).unwrap();
 
     let mut handle = FnHandle(null_mut());
@@ -125,5 +131,9 @@ pub fn launch_kernel(f: &FnHandle, gws: [u32; 3], lws: [u32; 3], stream: &mut St
         lws[0], lws[1], 
         lws[2], 0, 
         stream.0, params.as_ptr() as *mut _, std::ptr::null_mut()
-    )}.to_result()
+    )}.to_result()?;
+
+    // TODO: sync here or elsewhere?
+    stream.sync()?;
+    Ok(())
 }

@@ -1,4 +1,4 @@
-use std::{cell::RefCell, rc::Rc, ptr::null_mut};
+use std::{cell::{RefCell, Ref, RefMut}, rc::Rc, ptr::null_mut};
 use crate::{Device, remove_value, VecRead, CacheBuf, Gemm, BaseOps, AssignOps, BaseDevice, GenericBlas, GenericOCL, Buffer, Matrix, CUdeviceptr, AsDev};
 use super::{api::{device, create_context, CudaIntDevice, Context, cublas::{create_handle, CublasHandle, cublasSetStream_v2}, cuInit, cufree, cumalloc, cuwrite, curead, cuCtxDestroy, Stream, create_stream}, CudaCache};
 
@@ -18,6 +18,16 @@ impl InternCudaDevice {
     pub fn new(cuda: CudaDevice) -> InternCudaDevice {
         let cuda = Rc::new(RefCell::new(cuda));
         InternCudaDevice { cuda }
+    }
+
+    pub fn handle(&self) -> Ref<CublasHandle> {
+        let borrow = self.cuda.borrow();
+        Ref::map(borrow, |x| &x.handle)    
+    }
+
+    pub fn stream(&self) -> RefMut<Stream> {
+        let borrow = self.cuda.borrow_mut();
+        RefMut::map(borrow, |x| &mut x.stream)    
     }
 }
 
