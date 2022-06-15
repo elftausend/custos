@@ -1,8 +1,11 @@
 use std::{collections::HashMap, cell::RefCell};
-use crate::{Node, InternCudaDevice, Buffer};
+use crate::{Node, InternCudaDevice, Buffer, Error};
+
+use super::api::{FnHandle, nvrtc::create_program, load_module_data};
 
 thread_local! {
     pub static CUDA_CACHE: RefCell<CudaCache> = RefCell::new(CudaCache { 
+        kernels: HashMap::new(),
         nodes: HashMap::new(), 
     })
 }
@@ -16,6 +19,7 @@ unsafe impl Sync for CudaPtr {}
 type RawInfo = (CudaPtr, usize);
 
 pub struct CudaCache {
+    pub kernels: HashMap<String, FnHandle>,
     pub nodes: HashMap<Node, RawInfo>,
 }
 
@@ -39,7 +43,6 @@ impl CudaCache {
     
             match buf_info_option {
                 Some(buf_info) => {
-            
                     Buffer {
                         ptr: (null_mut(), null_mut(), buf_info.0.0),
                         len: buf_info.1
@@ -53,6 +56,22 @@ impl CudaCache {
     #[cfg(feature="safe")]
     pub fn get<T: GenericOCL>(device: InternCLDevice, len: usize) -> Buffer<T> {
         Buffer::new(&device, len)
+    }
+
+    pub fn kernel(&mut self, src: String) -> Result<FnHandle, Error> {
+        let kernel = self.kernels.get(&src);
+
+        if let Some(kernel) = kernel {
+            return Ok(*kernel);
+        }
+
+        let x = create_program(&src, "add")?;
+        x.compile()?;
+        let module = load_module_data(x.ptx()?)?;
+        let function = module.function("add")?;
+
+        self.kernels.insert(src, function);
+        Ok(function)
     }
 }
 

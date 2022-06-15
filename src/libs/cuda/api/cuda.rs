@@ -98,7 +98,7 @@ pub fn load_module_data(src: CString) -> CudaResult<Module> {
     Ok(module)
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct FnHandle(pub CUfunction);
 
 pub fn module_get_fn(module: &Module, fn_name: &str) -> CudaResult<FnHandle> {
