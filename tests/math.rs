@@ -67,6 +67,21 @@ fn test_ew_add_cpu() {
     assert_eq!(vec![2, 8, 4, 18], c.read());       
 }
 
+#[cfg(feature="cuda")]
+#[test]
+fn test_ew_add_cuda() -> custos::Result<()> {
+    use custos::CudaDevice;
+
+    let device = CudaDevice::new(0)?.select();
+
+    let a = Matrix::from(( &device, (1, 4), [1, 4, 2, 9] ));
+    let b = Matrix::from(( &device, (1, 4), [1, 4, 2, 9] ));
+
+    let c = a + b;
+    assert_eq!(vec![2, 8, 4, 18], c.read());
+    Ok(())       
+}
+
 #[cfg(feature="opencl")]
 #[test]
 fn test_ew_add_cl() {
@@ -115,6 +130,21 @@ fn test_ew_sub_cl() {
     assert_eq!(vec![0, 0, 0, 0], c.read());
 }
 
+#[cfg(feature="cuda")]
+#[test]
+fn test_ew_sub_cuda() -> custos::Result<()> {
+    use custos::CudaDevice;
+
+    let device = CudaDevice::new(0)?.select();
+
+    let a = Matrix::from(( &device, (1, 4), [1f32, 4., 2., 9.] ));
+    let b = Matrix::from(( &device, (1, 4), [1., 4., 2., 9.] ));
+
+    let c = a - b;
+    assert_eq!(vec![0., 0., 0., 0.], c.read());
+    Ok(())
+}
+
 #[cfg(feature="opencl")]
 #[test]
 fn test_ew_mul_cpu_a_cl() {
@@ -134,6 +164,23 @@ fn test_ew_mul_cpu_a_cl() {
     let b = Matrix::from(( &device, (1, 4), [1, 4, 2, 9] ));
 
     for _ in range((0, 500)) {
+        let c = &a * &b;
+        assert_eq!(vec![1, 16, 4, 81], c.read());
+        
+    }
+}
+
+#[cfg(feature="cuda")]
+#[test]
+fn test_ew_mul_cuda() {
+    use custos::CudaDevice;
+
+    let device = CudaDevice::new(0).unwrap().select();
+
+    let a = Matrix::from(( &device, (1, 4), [1, 4, 2, 9] ));
+    let b = Matrix::from(( &device, (1, 4), [1, 4, 2, 9] ));
+
+    for _ in range(500) {
         let c = &a * &b;
         assert_eq!(vec![1, 16, 4, 81], c.read());
         

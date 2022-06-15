@@ -17,7 +17,7 @@ impl NvrtcErrorKind {
 
 impl From<u32> for NvrtcErrorKind {
     fn from(value: u32) -> Self {
-        println!("value: {value}");
+        println!("nvrtc value: {value}");
         match value {
             _ => NvrtcErrorKind::Unknown
         }

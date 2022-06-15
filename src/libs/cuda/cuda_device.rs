@@ -1,6 +1,6 @@
 use std::{cell::{RefCell, Ref, RefMut}, rc::Rc, ptr::null_mut};
 use crate::{Device, remove_value, VecRead, CacheBuf, Gemm, BaseOps, AssignOps, BaseDevice, GenericBlas, CDatatype, Buffer, Matrix, CUdeviceptr, AsDev};
-use super::{api::{device, create_context, CudaIntDevice, Context, cublas::{create_handle, CublasHandle, cublasSetStream_v2}, cuInit, cufree, cumalloc, cuwrite, curead, cuCtxDestroy, Stream, create_stream}, CudaCache, cu_clear};
+use super::{api::{device, create_context, CudaIntDevice, Context, cublas::{create_handle, CublasHandle, cublasSetStream_v2}, cuInit, cufree, cumalloc, cuwrite, curead, cuCtxDestroy, Stream, create_stream}, CudaCache, cu_clear, cu_ew};
 
 #[derive(Debug, Clone)]
 pub struct InternCudaDevice {
@@ -65,7 +65,7 @@ impl<T: Default + Copy> VecRead<T> for InternCudaDevice {
 
 impl<T> CacheBuf<T> for InternCudaDevice {
     fn cached_buf(&self, len: usize) -> crate::Buffer<T> {
-        CudaCache::get::<T>(self.clone(), len)
+        CudaCache::get::<T>(self, len)
     }
 }
 
@@ -98,19 +98,23 @@ impl<T> AssignOps<T> for InternCudaDevice {
 
 impl<T: CDatatype> BaseOps<T> for InternCudaDevice {
     fn add(&self, lhs: &crate::Matrix<T>, rhs: &crate::Matrix<T>) -> crate::Matrix<T> {
-        todo!()
+        let buf = cu_ew(self, lhs, rhs, "+").unwrap();
+        (buf, lhs.dims()).into()
     }
 
     fn sub(&self, lhs: &crate::Matrix<T>, rhs: &crate::Matrix<T>) -> crate::Matrix<T> {
-        todo!()
+        let buf = cu_ew(self, lhs, rhs, "-").unwrap();
+        (buf, lhs.dims()).into()
     }
 
     fn mul(&self, lhs: &crate::Matrix<T>, rhs: &crate::Matrix<T>) -> crate::Matrix<T> {
-        todo!()
+        let buf = cu_ew(self, lhs, rhs, "*").unwrap();
+        (buf, lhs.dims()).into()
     }
 
     fn div(&self, lhs: &crate::Matrix<T>, rhs: &crate::Matrix<T>) -> crate::Matrix<T> {
-        todo!()
+        let buf = cu_ew(self, lhs, rhs, "/").unwrap();
+        (buf, lhs.dims()).into()
     }
 
     fn clear(&self, matrix: &mut crate::Matrix<T>) {

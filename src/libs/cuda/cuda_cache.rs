@@ -24,14 +24,14 @@ pub struct CudaCache {
 }
 
 impl CudaCache {
-    pub fn add_node<T:>(&mut self, device: InternCudaDevice, node: Node) -> Buffer<T> {
-        let out = Buffer::new(&device, node.len);
+    pub fn add_node<T:>(&mut self, device: &InternCudaDevice, node: Node) -> Buffer<T> {
+        let out = Buffer::new(device, node.len);
         self.nodes.insert(node, ( CudaPtr(out.ptr.2), out.len ));
         out
     }
 
     #[cfg(not(feature="safe"))]
-    pub fn get<T: >(device: InternCudaDevice, len: usize) -> Buffer<T> {
+    pub fn get<T: >(device: &InternCudaDevice, len: usize) -> Buffer<T> {
         use std::ptr::null_mut;
         
         assert!(!device.cuda.borrow().ptrs.is_empty(), "no Cuda allocations");

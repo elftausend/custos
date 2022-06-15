@@ -17,7 +17,7 @@ impl CublasErrorKind {
 
 impl From<u32> for CublasErrorKind {
     fn from(value: u32) -> Self {
-        println!("value: {value}");
+        println!("cublas value: {value}");
         match value {
             _ => CublasErrorKind::Unknown
         }
