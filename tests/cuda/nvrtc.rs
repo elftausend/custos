@@ -1,7 +1,6 @@
 use std::ffi::c_void;
 use custos::{cuda::api::{nvrtc::create_program, load_module_data, launch_kernel}, CudaDevice, VecRead, Buffer};
 
-#[cfg(feature="cuda")]
 #[test]
 fn test_nvrtc() -> custos::Result<()> {
     let device = CudaDevice::new(0)?;

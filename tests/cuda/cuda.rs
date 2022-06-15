@@ -1,5 +1,3 @@
-
-#[cfg(feature="cuda")]
 #[test]
 fn test_cuda_alloc() {
     use custos::cuda::api::{cumalloc, cuInit, device, create_context};
@@ -11,7 +9,7 @@ fn test_cuda_alloc() {
     let _x = cumalloc::<f32>(10).unwrap();
 
 }
-#[cfg(feature="cuda")]
+
 #[test]
 fn test_cuda_alloc2() -> custos::Result<()> {
     use custos::cuda::api::{cumalloc, cuInit, device, create_context, device_count};
@@ -27,7 +25,6 @@ fn test_cuda_alloc2() -> custos::Result<()> {
     Ok(())
 }
 
-#[cfg(feature="cuda")]
 #[test]
 fn test_cuda_write() -> custos::Result<()> {
     use custos::cuda::api::{cumalloc, cuInit, device, create_context, cuwrite, curead};
@@ -50,7 +47,6 @@ fn test_cuda_write() -> custos::Result<()> {
     Ok(())
 }
 
-#[cfg(feature="cuda")]
 #[test]
 fn test_cublas() -> custos::Result<()> {
     use std::ptr::null_mut;
@@ -103,15 +99,11 @@ fn test_cublas() -> custos::Result<()> {
         println!("read: {read:?}");
 
     }
-    
-
     Ok(())
 }
 
-#[cfg(feature="cuda")]
 const N: usize = 100;
 
-#[cfg(feature="cuda")]
 #[test]
 fn test_ffi_cuda() {
     use std::{ffi::c_void, mem::size_of};
@@ -139,7 +131,6 @@ fn test_ffi_cuda() {
     };
 }
 
-#[cfg(feature="cuda")]
 #[test]
 fn test_cuda_device() -> custos::Result<()> {
     use custos::{cuda::CudaDevice, Buffer};

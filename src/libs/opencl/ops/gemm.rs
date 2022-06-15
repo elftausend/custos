@@ -1,8 +1,8 @@
 use std::fmt::Write;
-use crate::{libs::opencl::{KernelOptions, cl_device::InternCLDevice}, Error, GenericOCL, Buffer};
+use crate::{libs::opencl::{KernelOptions, cl_device::InternCLDevice}, Error, CDatatype, Buffer};
 
 
-pub fn cl_gemm<T: GenericOCL>(device: InternCLDevice, m: usize, k: usize, n: usize, lhs: &Buffer<T>, rhs: &Buffer<T>) -> Result<Buffer<T>, Error> {
+pub fn cl_gemm<T: CDatatype>(device: InternCLDevice, m: usize, k: usize, n: usize, lhs: &Buffer<T>, rhs: &Buffer<T>) -> Result<Buffer<T>, Error> {
     let mut mw = 1;
     for x in &[16, 8, 4, 2, 1] {
         if m % x == 0 {
@@ -27,19 +27,19 @@ pub fn cl_gemm<T: GenericOCL>(device: InternCLDevice, m: usize, k: usize, n: usi
 
     let mut float_mw = String::new();
     if mw == 1 {
-        write!(&mut float_mw, "{}", T::as_ocl_type_str()).unwrap();
+        write!(&mut float_mw, "{}", T::as_c_type_str()).unwrap();
     } else {
-        write!(&mut float_mw, "{}{}", T::as_ocl_type_str(), mw).unwrap();
+        write!(&mut float_mw, "{}{}", T::as_c_type_str(), mw).unwrap();
     }
 
     let mut float_kw = String::new();
     if kw == 1 {
-        write!(&mut float_kw, "{}", T::as_ocl_type_str()).unwrap();
+        write!(&mut float_kw, "{}", T::as_c_type_str()).unwrap();
     } else {
-        write!(&mut float_kw, "{}{}", T::as_ocl_type_str(), kw).unwrap();
+        write!(&mut float_kw, "{}{}", T::as_c_type_str(), kw).unwrap();
     }
 
-    let dt = T::as_ocl_type_str();
+    let dt = T::as_c_type_str();
 
     let src = format!("
         #define K {k}

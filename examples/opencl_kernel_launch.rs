@@ -1,5 +1,5 @@
 #[cfg(feature="opencl")]
-use custos::{opencl::KernelOptions, CLDevice, Error, GenericOCL, VecRead, Buffer};
+use custos::{opencl::KernelOptions, CLDevice, Error, CDatatype, VecRead, Buffer};
 
 #[cfg(feature="opencl")]
 fn main() -> Result<(), Error> {
@@ -13,7 +13,7 @@ fn main() -> Result<(), Error> {
             size_t id = get_global_id(0);
             out[id] = self[id]+rhs[id];
         }}
-    ", datatype=i32::as_ocl_type_str());
+    ", datatype=i32::as_c_type_str());
 
     let gws = [lhs.len, 0, 0];
     let out = KernelOptions::<i32>::new(&device, &lhs, gws, &src)?

@@ -1,6 +1,6 @@
 use std::{cell::{RefCell, Ref, RefMut}, rc::Rc, ptr::null_mut};
-use crate::{Device, remove_value, VecRead, CacheBuf, Gemm, BaseOps, AssignOps, BaseDevice, GenericBlas, GenericOCL, Buffer, Matrix, CUdeviceptr, AsDev};
-use super::{api::{device, create_context, CudaIntDevice, Context, cublas::{create_handle, CublasHandle, cublasSetStream_v2}, cuInit, cufree, cumalloc, cuwrite, curead, cuCtxDestroy, Stream, create_stream}, CudaCache};
+use crate::{Device, remove_value, VecRead, CacheBuf, Gemm, BaseOps, AssignOps, BaseDevice, GenericBlas, CDatatype, Buffer, Matrix, CUdeviceptr, AsDev};
+use super::{api::{device, create_context, CudaIntDevice, Context, cublas::{create_handle, CublasHandle, cublasSetStream_v2}, cuInit, cufree, cumalloc, cuwrite, curead, cuCtxDestroy, Stream, create_stream}, CudaCache, cu_clear};
 
 #[derive(Debug, Clone)]
 pub struct InternCudaDevice {
@@ -96,7 +96,7 @@ impl<T> AssignOps<T> for InternCudaDevice {
     }
 }
 
-impl<T> BaseOps<T> for InternCudaDevice {
+impl<T: CDatatype> BaseOps<T> for InternCudaDevice {
     fn add(&self, lhs: &crate::Matrix<T>, rhs: &crate::Matrix<T>) -> crate::Matrix<T> {
         todo!()
     }
@@ -114,7 +114,7 @@ impl<T> BaseOps<T> for InternCudaDevice {
     }
 
     fn clear(&self, matrix: &mut crate::Matrix<T>) {
-        todo!()
+        cu_clear(self, matrix).unwrap();
     }
 }
 
@@ -124,7 +124,7 @@ impl AsDev for InternCudaDevice {
     }
 }
 
-impl<T: GenericOCL + GenericBlas> BaseDevice<T> for InternCudaDevice {}
+impl<T: CDatatype + GenericBlas> BaseDevice<T> for InternCudaDevice {}
 
 #[derive(Debug)]
 pub struct CudaDevice {

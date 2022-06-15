@@ -1,6 +1,6 @@
 use std::{fmt::Debug, cell::RefCell, rc::Rc, ffi::c_void};
 
-use crate::{BaseOps, Buffer, Device, Gemm, libs::cpu::{CPUCache, ops::element_wise_op_mut}, matrix::Matrix, VecRead, number::Number, AsDev, BaseDevice, AssignOps, GenericOCL, ManualMem, remove_value, CacheBuf, GenericBlas};
+use crate::{BaseOps, Buffer, Device, Gemm, libs::cpu::{CPUCache, ops::element_wise_op_mut}, matrix::Matrix, VecRead, number::Number, AsDev, BaseDevice, AssignOps, CDatatype, ManualMem, remove_value, CacheBuf, GenericBlas};
 
 use super::{CPU_CACHE, assign_to_lhs};
 
@@ -212,7 +212,7 @@ impl AsDev for InternCPU {
     }
 }
 
-impl<T: GenericOCL+GenericBlas> BaseDevice<T> for InternCPU {}
+impl<T: CDatatype+GenericBlas> BaseDevice<T> for InternCPU {}
 
 pub fn assign_op<T: Copy+Default, F: Fn(&mut T, T)>(lhs: &mut Matrix<T>, rhs: &Matrix<T>, f: F) {
     assign_to_lhs(lhs, rhs, f)

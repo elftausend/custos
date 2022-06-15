@@ -1,11 +1,8 @@
-
-#[cfg(feature="cuda")]
 #[test]
 fn test_add_cuda() -> custos::Result<()> {
     use std::ffi::c_void;
 
     use custos::{CudaDevice, Buffer, cuda::api::{load_module, launch_kernel, create_stream}, VecRead};
-
     let device = CudaDevice::new(0)?;
 
     let a = Buffer::from((&device, [1, 2, 3, 4, 5,]));
@@ -15,8 +12,9 @@ fn test_add_cuda() -> custos::Result<()> {
 
     println!("a: {a:?}");
     println!("b: {b:?}");
-
-    let module = load_module("tests/cuda/cuda_kernels/add.ptx")?;
+    
+    let ptx_path = format!("{}/tests/cuda/cuda_kernels/add.ptx", std::env::var("CARGO_MANIFEST_DIR").unwrap());
+    let module = load_module(&ptx_path)?;
     let function = module.function("add")?;
     let mut stream = create_stream()?;
 

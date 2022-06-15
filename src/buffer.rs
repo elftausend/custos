@@ -3,7 +3,7 @@ use std::{ffi::c_void, ptr::null_mut, fmt::Debug};
 #[cfg(feature="opencl")]
 #[cfg(feature="safe")]
 use crate::opencl::api::{release_mem_object, retain_mem_object};
-use crate::{Device, GenericOCL, get_device, CacheBuf};
+use crate::{Device, CDatatype, get_device, CacheBuf};
 
 #[cfg(not(feature="safe"))]
 use crate::number::Number;
@@ -310,7 +310,7 @@ impl<T: Copy> From<(*mut T, usize)> for Buffer<T> {
     }
 }
 
-impl<T: GenericOCL> From<(*mut c_void, usize)> for Buffer<T> {
+impl<T: CDatatype> From<(*mut c_void, usize)> for Buffer<T> {
     fn from(info: (*mut c_void, usize)) -> Self {
         Buffer {
             ptr: (null_mut(), info.0, 0),
@@ -348,7 +348,7 @@ impl<T: GenericOCL> From<(*mut c_void, usize)> for Buffer<T> {
 /// let buf = cached::<f32>(10);
 /// assert_eq!(device.read(&buf), vec![1.5; 10]);
 /// ```
-pub fn cached<T: GenericOCL>(len: usize) -> Buffer<T> {
+pub fn cached<T: CDatatype>(len: usize) -> Buffer<T> {
     let device = get_device!(CacheBuf, T).unwrap();
     device.cached_buf(len)
 }

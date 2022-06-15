@@ -13,7 +13,7 @@ pub mod cl_devices;
 mod kernel_options;
 mod cl_cache;
 
-use crate::{Matrix, GenericOCL, CPU, Node, Buffer, VecRead, number::Number};
+use crate::{Matrix, CDatatype, CPU, Node, Buffer, VecRead, number::Number};
 use self::api::{create_buffer, MemFlags, release_mem_object};
 
 pub fn to_unified<T>(device: &InternCLDevice, no_drop: Matrix<T>) -> crate::Result<*mut c_void> {
@@ -61,7 +61,7 @@ pub fn construct_buffer<T>(device: &InternCLDevice, cpu: &crate::InternCPU, no_d
 pub fn cpu_exec<T, F>(device: &InternCLDevice, matrix: &Matrix<T>, f: F) -> crate::Result<Matrix<T>> 
 where 
     F: Fn(&crate::InternCPU, Matrix<T>) -> Matrix<T>,
-    T: GenericOCL
+    T: CDatatype
 {
     let cpu = CPU::new();
 
@@ -84,7 +84,7 @@ where
 pub fn cpu_exec_lhs_rhs<T, F>(device: &InternCLDevice, lhs: &Matrix<T>, rhs: &Matrix<T>, f: F) -> crate::Result<Matrix<T>> 
 where 
     F: Fn(&crate::InternCPU, &Matrix<T>, &Matrix<T>) -> Matrix<T>,
-    T: GenericOCL
+    T: CDatatype
 {
     let cpu = CPU::new();
 

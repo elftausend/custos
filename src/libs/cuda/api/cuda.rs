@@ -124,7 +124,7 @@ pub fn create_stream() -> CudaResult<Stream> {
     Ok(ph_stream)
 }
 
-pub fn launch_kernel(f: &FnHandle, gws: [u32; 3], lws: [u32; 3], stream: &mut Stream, params: &[*mut c_void]) -> CudaResult<()> {
+pub fn launch_kernel(f: &FnHandle, gws: [u32; 3], lws: [u32; 3], stream: &Stream, params: &[*mut c_void]) -> CudaResult<()> {
     unsafe { cuLaunchKernel(
         f.0, gws[0], 
         gws[1], gws[2], 

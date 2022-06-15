@@ -1,6 +1,6 @@
 use std::{ffi::c_void, rc::Rc, cell::RefCell};
 
-use crate::{libs::opencl::api::{create_buffer, MemFlags}, BaseOps, Matrix, AsDev, Gemm, VecRead, BaseDevice, Error, Device, AssignOps, GenericOCL, ManualMem, Buffer, remove_value, CacheBuf};
+use crate::{libs::opencl::api::{create_buffer, MemFlags}, BaseOps, Matrix, AsDev, Gemm, VecRead, BaseDevice, Error, Device, AssignOps, CDatatype, ManualMem, Buffer, remove_value, CacheBuf};
 
 use super::{api::{CLIntDevice, CommandQueue, Context, create_command_queue, create_context, enqueue_read_buffer, wait_for_event, release_mem_object, enqueue_write_buffer, unified_ptr}, CL_DEVICES, cl_tew, cl_gemm, CL_CACHE, cl_tew_self, CLCache, cl_clear};
 
@@ -130,13 +130,13 @@ impl<T> ManualMem<T> for InternCLDevice {
     }
 }
 
-impl<T: GenericOCL> CacheBuf<T> for InternCLDevice {
+impl<T: CDatatype> CacheBuf<T> for InternCLDevice {
     fn cached_buf(&self, len: usize) -> Buffer<T> {
         CLCache::get::<T>(self.clone(), len)
     }
 }
 
-impl<T: GenericOCL> BaseOps<T> for InternCLDevice {
+impl<T: CDatatype> BaseOps<T> for InternCLDevice {
     fn add(&self, lhs: &Matrix<T>, rhs: &Matrix<T>) -> Matrix<T> {
         let buf = cl_tew(self, lhs, rhs, "+").unwrap();
         (buf, lhs.dims()).into()
@@ -163,7 +163,7 @@ impl<T: GenericOCL> BaseOps<T> for InternCLDevice {
     }
 }
 
-impl<T: GenericOCL> AssignOps<T> for InternCLDevice {
+impl<T: CDatatype> AssignOps<T> for InternCLDevice {
     fn add_assign(&self, lhs: &mut Matrix<T>, rhs: &Matrix<T>) {
         cl_tew_self(self, lhs, rhs, "+").unwrap()
     }
@@ -173,7 +173,7 @@ impl<T: GenericOCL> AssignOps<T> for InternCLDevice {
     }
 }
 
-impl<T: GenericOCL> Gemm<T> for InternCLDevice {
+impl<T: CDatatype> Gemm<T> for InternCLDevice {
     fn gemm(&self, lhs: &Matrix<T>, rhs: &Matrix<T>) -> Matrix<T> {
         assert!(lhs.dims().1 == rhs.dims().0);
         //crate::opencl::ops::ocl_gemm1(self.clone(), rhs, lhs).unwrap()
@@ -202,7 +202,7 @@ impl AsDev for InternCLDevice {
     }
 }
 
-impl<T: GenericOCL> BaseDevice<T> for InternCLDevice {}
+impl<T: CDatatype> BaseDevice<T> for InternCLDevice {}
 
 #[derive(Debug, Clone)]
 /// If the 'safe' feature isn't used, pointers are stored in the 'ptrs' field.

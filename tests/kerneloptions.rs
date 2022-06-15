@@ -1,6 +1,6 @@
 
 #[cfg(feature="opencl")] 
-use custos::{Error, CLDevice, Buffer, GenericOCL, opencl::{KernelOptions, KernelRunner}, VecRead};
+use custos::{Error, CLDevice, Buffer, CDatatype, opencl::{KernelOptions, KernelRunner}, VecRead};
 
 #[cfg(feature="opencl")] 
 #[test]
@@ -15,7 +15,7 @@ fn test_kernel_options() -> Result<(), Error> {
             size_t id = get_global_id(0);
             out[id] = self[id]+rhs[id];
         }}
-    ", datatype=i32::as_ocl_type_str());
+    ", datatype=i32::as_c_type_str());
 
     let gws = [lhs.len, 0, 0];
     let out = KernelOptions::<i32>::new(&device, &lhs, gws, &src)?
@@ -39,7 +39,7 @@ fn test_kernel_options_num_arg() -> Result<(), Error> {
             size_t id = get_global_id(0);
             out[id] = self[id]+rhs;
         }}
-    ", datatype=i32::as_ocl_type_str());
+    ", datatype=i32::as_c_type_str());
 
     let gws = [lhs.len, 0, 0];
     let out = KernelRunner::<i32>::new(&device, &mut lhs, gws, &src)?
@@ -63,7 +63,7 @@ fn test_kernel_options_num_arg_assign() -> Result<(), Error> {
             size_t id = get_global_id(0);
             self[id] += rhs;
         }}
-    ", datatype=i32::as_ocl_type_str());
+    ", datatype=i32::as_c_type_str());
 
     let gws = [lhs.len, 0, 0];
     KernelRunner::<i32>::new(&device, &mut lhs, gws, &src)?

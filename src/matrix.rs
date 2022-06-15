@@ -2,9 +2,22 @@ use std::ffi::c_void;
 
 #[cfg(feature="opencl")]
 use crate::opencl::{InternCLDevice, CLCache, api::{enqueue_write_buffer, wait_for_event}};
+use crate::{BaseOps, Buffer, Device, Gemm, get_device, VecRead, number::Number, AssignOps, CDatatype, GenericBlas, CUdeviceptr};
 
-use crate::{BaseOps, Buffer, Device, Gemm, get_device, VecRead, number::Number, AssignOps, GenericOCL, GenericBlas, CUdeviceptr};
-
+/// A matrix using [Buffer] described with rows and columns
+/// # Example
+/// The following example creates an empty Matrix with the given dimensions.
+/// ```
+/// use custos::{CPU, Matrix, AsDev};
+/// 
+/// let device = CPU::new().select();
+/// let m = Matrix::<i32>::new(&device, (5, 8));
+/// 
+/// assert_eq!(m.rows(), 5);
+/// assert_eq!(m.cols(), 8);
+/// assert_eq!(m.size(), 5*8);
+/// assert_eq!(m.read(), vec![0; 5*8])
+/// ```
 #[cfg_attr(not(feature="safe"), derive(Copy))]
 #[derive(Clone)]
 pub struct Matrix<T> {
@@ -119,7 +132,7 @@ impl<T> Default for Matrix<T> {
     }
 }
 
-impl<T: GenericOCL+GenericBlas> Matrix<T> {
+impl<T: CDatatype+GenericBlas> Matrix<T> {
     /// Matrix multiplication. Uses current global device.
     /// # Example
     /// ```
@@ -140,7 +153,7 @@ impl<T: GenericOCL+GenericBlas> Matrix<T> {
     }
 }
 
-impl<T: GenericOCL> Matrix<T> {
+impl<T: CDatatype> Matrix<T> {
     /// Sets all elements to zero.
     /// # Example
     /// ```
@@ -243,7 +256,6 @@ impl<T> From<(*mut T, usize, usize)> for Matrix<T> {
 //no Weak ptr:
 impl<T: Copy+Default, const N: usize> From<((usize, usize), &[T; N])> for Matrix<T> {
     fn from(dims_slice: ((usize, usize), &[T; N])) -> Self {
-        //let device = get_device::<T>();
         let device = get_device!(Device, T).unwrap();
         
         let buffer = Buffer::from((&device, dims_slice.1));
@@ -279,7 +291,7 @@ impl<T: Copy+Default> From<(usize, usize, Vec<T>)> for Matrix<T> {
 }
 
 #[cfg(feature="opencl")]
-impl<T: GenericOCL> From<(&InternCLDevice, Matrix<T>)> for Matrix<T> {
+impl<T: CDatatype> From<(&InternCLDevice, Matrix<T>)> for Matrix<T> {
     fn from(device_matrix: (&InternCLDevice, Matrix<T>)) -> Self {
         //assert!(CPU_CACHE.with(|cache| !cache.borrow().nodes.is_empty()), "no allocations");
         let y = CLCache::get::<T>(device_matrix.0.clone(), device_matrix.1.size());
@@ -365,7 +377,7 @@ impl<T: Copy, D: Device<T>> From<(&D, (usize, usize), &Vec<T>)> for Matrix<T> {
 
 //-------------Add-------------
 
-impl<T: GenericOCL> core::ops::Add<Self> for &Matrix<T> {
+impl<T: CDatatype> core::ops::Add<Self> for &Matrix<T> {
     type Output = Matrix<T>;
 
     fn add(self, rhs: Self) -> Self::Output {
@@ -374,7 +386,7 @@ impl<T: GenericOCL> core::ops::Add<Self> for &Matrix<T> {
     }
 }
 
-impl<T: GenericOCL> core::ops::Add<Self> for Matrix<T> {
+impl<T: CDatatype> core::ops::Add<Self> for Matrix<T> {
     type Output = Matrix<T>;
 
     fn add(self, rhs: Self) -> Self::Output {
@@ -383,7 +395,7 @@ impl<T: GenericOCL> core::ops::Add<Self> for Matrix<T> {
     }
 }
 
-impl<T: GenericOCL> core::ops::Add<&Self> for Matrix<T> {
+impl<T: CDatatype> core::ops::Add<&Self> for Matrix<T> {
     type Output = Matrix<T>;
 
     fn add(self, rhs: &Self) -> Self::Output {
@@ -392,7 +404,7 @@ impl<T: GenericOCL> core::ops::Add<&Self> for Matrix<T> {
     }
 }
 
-impl<T: GenericOCL> core::ops::Add<Matrix<T>> for &Matrix<T> {
+impl<T: CDatatype> core::ops::Add<Matrix<T>> for &Matrix<T> {
     type Output = Matrix<T>;
 
     fn add(self, rhs: Matrix<T>) -> Self::Output {
@@ -403,7 +415,7 @@ impl<T: GenericOCL> core::ops::Add<Matrix<T>> for &Matrix<T> {
 
 //-------------Sub-------------
 
-impl<T: GenericOCL> core::ops::Sub<Self> for &Matrix<T> {
+impl<T: CDatatype> core::ops::Sub<Self> for &Matrix<T> {
     type Output = Matrix<T>;
 
     fn sub(self, rhs: Self) -> Self::Output {
@@ -412,7 +424,7 @@ impl<T: GenericOCL> core::ops::Sub<Self> for &Matrix<T> {
     }
 }
 
-impl<T: GenericOCL> core::ops::Sub<Self> for Matrix<T> {
+impl<T: CDatatype> core::ops::Sub<Self> for Matrix<T> {
     type Output = Matrix<T>;
 
     fn sub(self, rhs: Self) -> Self::Output {
@@ -421,7 +433,7 @@ impl<T: GenericOCL> core::ops::Sub<Self> for Matrix<T> {
     }
 }
 
-impl<T: GenericOCL> core::ops::Sub<&Self> for Matrix<T> {
+impl<T: CDatatype> core::ops::Sub<&Self> for Matrix<T> {
     type Output = Matrix<T>;
 
     fn sub(self, rhs: &Self) -> Self::Output {
@@ -430,7 +442,7 @@ impl<T: GenericOCL> core::ops::Sub<&Self> for Matrix<T> {
     }
 }
 
-impl<T: GenericOCL> core::ops::Sub<Matrix<T>> for &Matrix<T> {
+impl<T: CDatatype> core::ops::Sub<Matrix<T>> for &Matrix<T> {
     type Output = Matrix<T>;
 
     fn sub(self, rhs: Matrix<T>) -> Self::Output {
@@ -441,7 +453,7 @@ impl<T: GenericOCL> core::ops::Sub<Matrix<T>> for &Matrix<T> {
 
 //-------------Mul-------------
 
-impl<T: GenericOCL> core::ops::Mul<Self> for &Matrix<T> {
+impl<T: CDatatype> core::ops::Mul<Self> for &Matrix<T> {
     type Output = Matrix<T>;
 
     fn mul(self, rhs: Self) -> Self::Output {
@@ -450,7 +462,7 @@ impl<T: GenericOCL> core::ops::Mul<Self> for &Matrix<T> {
     }
 }
 
-impl<T: GenericOCL> core::ops::Mul<Self> for Matrix<T> {
+impl<T: CDatatype> core::ops::Mul<Self> for Matrix<T> {
     type Output = Matrix<T>;
 
     fn mul(self, rhs: Self) -> Self::Output {
@@ -459,7 +471,7 @@ impl<T: GenericOCL> core::ops::Mul<Self> for Matrix<T> {
     }
 }
 
-impl<T: GenericOCL> core::ops::Mul<&Self> for Matrix<T> {
+impl<T: CDatatype> core::ops::Mul<&Self> for Matrix<T> {
     type Output = Matrix<T>;
 
     fn mul(self, rhs: &Self) -> Self::Output {
@@ -468,14 +480,14 @@ impl<T: GenericOCL> core::ops::Mul<&Self> for Matrix<T> {
     }
 }
 
-impl<T: GenericOCL> core::ops::AddAssign<&Matrix<T>> for Matrix<T> {
+impl<T: CDatatype> core::ops::AddAssign<&Matrix<T>> for Matrix<T> {
     fn add_assign(&mut self, rhs: &Matrix<T>) {
         let device = get_device!(AssignOps, T).unwrap();
         device.add_assign(self, rhs)
     }
 }
 
-impl<T: GenericOCL> core::ops::SubAssign<&Matrix<T>> for Matrix<T> {
+impl<T: CDatatype> core::ops::SubAssign<&Matrix<T>> for Matrix<T> {
     fn sub_assign(&mut self, rhs: &Matrix<T>) {
         let device = get_device!(AssignOps, T).unwrap();
         device.sub_assign(self, rhs)

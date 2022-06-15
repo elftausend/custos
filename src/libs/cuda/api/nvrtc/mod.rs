@@ -13,6 +13,7 @@ impl NvrtcProgram {
     pub fn compile(&self) -> NvrtcResult<()> {
         compile_program(self)
     }
+    
     pub fn ptx(&self) -> NvrtcResult<CString> {
         get_ptx(self)
     }

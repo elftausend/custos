@@ -1,6 +1,6 @@
 use std::ffi::c_void;
 
-use crate::{matrix::Matrix, number::Number, Error, GenericOCL, Buffer};
+use crate::{matrix::Matrix, number::Number, Error, CDatatype, Buffer};
 use super::{api::{enqueue_nd_range_kernel, set_kernel_arg, OCLErrorKind, set_kernel_arg_ptr}, CL_CACHE, CLCache, cl_device::InternCLDevice};
 
 pub trait KernelArg<'a, T> {
@@ -61,7 +61,7 @@ impl<'a, T: Number> KernelArg<'a, T> for T {
 /// 
 /// # Example
 /// ```
-/// use custos::{opencl::KernelOptions, CLDevice, Error, GenericOCL, VecRead, Buffer};
+/// use custos::{opencl::KernelOptions, CLDevice, Error, CDatatype, VecRead, Buffer};
 /// 
 /// fn main() -> Result<(), Error> {
 ///     let device = CLDevice::new(0)?;
@@ -74,7 +74,7 @@ impl<'a, T: Number> KernelArg<'a, T> for T {
 ///             size_t id = get_global_id(0);
 ///             out[id] = self[id]+rhs[id];
 ///         }}
-///     ", datatype=i32::as_ocl_type_str());
+///     ", datatype=i32::as_c_type_str());
 /// 
 ///     let gws = [lhs.len, 0, 0];
 ///     let out = KernelOptions::<i32>::new(&device, &lhs, gws, &src)?
@@ -98,7 +98,7 @@ pub struct KernelOptions<'a, T> {
     device: InternCLDevice,
 }
 
-impl<'a, T: GenericOCL> KernelOptions<'a, T> {
+impl<'a, T: CDatatype> KernelOptions<'a, T> {
     pub fn new(device: &InternCLDevice, lhs: &'a Buffer<T>, gws: [usize; 3], src: &'a str) -> crate::Result<KernelOptions<'a, T>> {
 
         let wd;
@@ -193,7 +193,7 @@ pub struct KernelRunner<'a, T> {
     device: InternCLDevice,
 }
 
-impl<'a, T: GenericOCL> KernelRunner<'a, T> {
+impl<'a, T: CDatatype> KernelRunner<'a, T> {
     pub fn new(device: &InternCLDevice, lhs: &'a mut Buffer<T>, gws: [usize; 3], src: &'a str) -> crate::Result<KernelRunner<'a, T>> {
 
         let wd;

@@ -4,7 +4,6 @@ use custos::opencl::cl_device::CLDevice;
 
 #[test]
 fn test_rc_get_dev() {
-    
     {
         let device = CPU::new().select();
         let a = Matrix::from(( &device, (2, 3), [1., 2., 3., 4., 5., 6.,]));
