@@ -58,6 +58,36 @@ fn test_sub_assign_cl() {
     assert_eq!(x.read(), vec![-2, -2, -2, -2, -2, -2])
 }
 
+#[cfg(feature="cuda")]
+#[test]
+fn test_sub_assign_cuda() -> custos::Result<()> {
+    use custos::CudaDevice;
+
+    let device = CudaDevice::new(0)?.select();
+
+    let mut x = Matrix::from((&device, (2, 3), [1, 2, 3, 4, 5, 6]));
+    let y = Matrix::from((&device, (2, 3), [3, 4, 5, 6, 7, 8]));
+    
+    x -= &y;
+    assert_eq!(x.read(), vec![-2, -2, -2, -2, -2, -2]);
+    Ok(())
+}
+
+#[cfg(feature="cuda")]
+#[test]
+fn test_add_assign_cuda() -> custos::Result<()> {
+    use custos::CudaDevice;
+
+    let device = CudaDevice::new(0)?.select();
+
+    let mut x = Matrix::from((&device, (2, 3), [1, 2, 3, 4, 5, 6]));
+    let y = Matrix::from((&device, (2, 3),     [3, 4, 5, 6, 7, 8]));
+    
+    x += &y;
+    assert_eq!(x.read(), vec![4, 6, 8, 10, 12, 14]);
+    Ok(())
+}
+
 #[test]
 fn test_debug_fmt() {
     let device = CPU::new().select();

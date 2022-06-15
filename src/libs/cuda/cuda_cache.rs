@@ -1,7 +1,7 @@
 use std::{collections::HashMap, cell::RefCell};
 use crate::{Node, InternCudaDevice, Buffer, Error};
 
-use super::api::{FnHandle, nvrtc::create_program, load_module_data};
+use super::api::{FnHandle, nvrtc::{create_program, nvrtcDestroyProgram}, load_module_data};
 
 thread_local! {
     pub static CUDA_CACHE: RefCell<CudaCache> = RefCell::new(CudaCache { 
@@ -58,27 +58,30 @@ impl CudaCache {
         Buffer::new(&device, len)
     }
 
-    pub fn kernel(&mut self, src: &str, fn_name: &str) -> Result<FnHandle, Error> {
+    pub fn kernel(&mut self, device: &InternCudaDevice, src: &str, fn_name: &str) -> Result<FnHandle, Error> {
         let kernel = self.kernels.get(src);
 
         if let Some(kernel) = kernel {
             return Ok(*kernel);
         }
 
-        let x = create_program(&src, "")?;
+        let mut x = create_program(&src, "")?;
         x.compile()?;
         let module = load_module_data(x.ptx()?)?;
         let function = module.function(fn_name)?;
 
+        device.cuda.borrow_mut().modules.push(module);
+
         self.kernels.insert(src.into(), function);
+        unsafe { nvrtcDestroyProgram(&mut x.0).to_result()? };
         Ok(function)
     }
 }
 
 
-pub fn fn_cache(src: &str, fn_name: &str) -> crate::Result<FnHandle> {
+pub fn fn_cache(device: &InternCudaDevice, src: &str, fn_name: &str) -> crate::Result<FnHandle> {
     CUDA_CACHE.with(|cache| {
-        cache.borrow_mut().kernel(src, fn_name)
+        cache.borrow_mut().kernel(device, src, fn_name)
     })
 }   
 

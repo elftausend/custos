@@ -12,7 +12,7 @@ pub fn cu_ew<T: CDatatype>(device: &InternCudaDevice, lhs: &Buffer<T>, rhs: &Buf
 
     let out = CudaCache::get(device, lhs.len);
 
-    let function = fn_cache(&src, "ew")?;
+    let function = fn_cache(device, &src, "ew")?;
     launch_kernel(
         &function, [lhs.len as u32, 1, 1], 
         [1, 1, 1], &mut device.stream(), 
@@ -36,7 +36,7 @@ pub fn cu_ew_self<T: CDatatype>(device: &InternCudaDevice, lhs: &mut Buffer<T>, 
     "#, datatype=T::as_c_type_str());
 
     
-    let function = fn_cache(&src, "ew_self")?;
+    let function = fn_cache(device, &src, "ew_self")?;
     launch_kernel(
         &function, [lhs.len as u32, 1, 1], 
         [1, 1, 1], &mut device.stream(), 

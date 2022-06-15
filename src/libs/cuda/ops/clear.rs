@@ -11,7 +11,7 @@ pub fn cu_clear<T: CDatatype>(device: &InternCudaDevice, buf: &mut Buffer<T>) ->
             }}
     "#, datatype=T::as_c_type_str());
 
-    let function = fn_cache(&src, "clear")?;
+    let function = fn_cache(device, &src, "clear")?;
     launch_kernel(
         &function, [buf.len as u32, 1, 1], 
         [1, 1, 1], &mut device.stream(), 

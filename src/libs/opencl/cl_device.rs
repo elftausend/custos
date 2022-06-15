@@ -258,10 +258,13 @@ impl CLDevice {
 impl Drop for CLDevice {
     fn drop(&mut self) {
         let contents = CL_CACHE.with(|cache| {
+            /* 
+            // FIXME: releases all kernels, even if it is used by another device?
             // TODO: better kernel cache release
             for kernel in &mut cache.borrow_mut().arg_kernel_cache.values_mut() {
                 kernel.release()
             }
+            */
             cache.borrow().nodes.clone()  
         });
         

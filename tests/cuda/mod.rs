@@ -24,14 +24,14 @@ fn test_cached_kernel_launch() -> custos::Result<()> {
     "#;
 
     for _ in 0..1000 {
-        fn_cache(src, "add")?;
+        fn_cache(&device, src, "add")?;
         
         CUDA_CACHE.with(|cache| {
             let len = cache.borrow().kernels.len();
             assert_eq!(len, 1)
         });
     }
-    let function = fn_cache(src, "add")?;
+    let function = fn_cache(&device, src, "add")?;
 
     launch_kernel(
         &function, [a.len as u32, 1, 1], 

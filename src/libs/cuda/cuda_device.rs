@@ -1,6 +1,6 @@
 use std::{cell::{RefCell, Ref, RefMut}, rc::Rc, ptr::null_mut};
 use crate::{Device, remove_value, VecRead, CacheBuf, Gemm, BaseOps, AssignOps, BaseDevice, GenericBlas, CDatatype, Buffer, Matrix, CUdeviceptr, AsDev};
-use super::{api::{device, create_context, CudaIntDevice, Context, cublas::{create_handle, CublasHandle, cublasSetStream_v2}, cuInit, cufree, cumalloc, cuwrite, curead, cuCtxDestroy, Stream, create_stream}, CudaCache, cu_clear, cu_ew};
+use super::{api::{device, create_context, CudaIntDevice, Context, cublas::{create_handle, CublasHandle, cublasSetStream_v2, cublasDestroy_v2}, cuInit, cufree, cumalloc, cuwrite, curead, cuCtxDestroy, Stream, create_stream, cuStreamDestroy, Module, cuModuleUnload}, CudaCache, cu_clear, cu_ew, cu_ew_self};
 
 #[derive(Debug, Clone)]
 pub struct InternCudaDevice {
@@ -86,13 +86,13 @@ impl<T: GenericBlas> Gemm<T> for InternCudaDevice {
     }
 }
 
-impl<T> AssignOps<T> for InternCudaDevice {
+impl<T: CDatatype> AssignOps<T> for InternCudaDevice {
     fn add_assign(&self, lhs: &mut crate::Matrix<T>, rhs: &crate::Matrix<T>) {
-        todo!()
+        cu_ew_self(self, lhs, rhs, "+").unwrap();
     }
 
     fn sub_assign(&self, lhs: &mut crate::Matrix<T>, rhs: &crate::Matrix<T>) {
-        todo!()
+        cu_ew_self(self, lhs, rhs, "-").unwrap();
     }
 }
 
@@ -133,6 +133,7 @@ impl<T: CDatatype + GenericBlas> BaseDevice<T> for InternCudaDevice {}
 #[derive(Debug)]
 pub struct CudaDevice {
     pub ptrs: Vec<CUdeviceptr>,
+    pub modules: Vec<Module>,
     device: CudaIntDevice,
     ctx: Context,
     stream: Stream,
@@ -151,6 +152,7 @@ impl CudaDevice {
         
         let device = CudaDevice {
             ptrs: vec![],
+            modules: vec![],
             device,
             ctx,
             stream,
@@ -178,11 +180,21 @@ impl CudaDevice {
 
 impl Drop for CudaDevice {
     fn drop(&mut self) {
-        for ptr in &mut self.ptrs {
-            unsafe {
+        unsafe {
+            for ptr in &mut self.ptrs {
                 cufree(*ptr).unwrap();
             }
-        }
-        unsafe { cuCtxDestroy(self.ctx.0) }
+
+            cublasDestroy_v2(self.handle.0);
+
+            for module in &self.modules {
+                cuModuleUnload(module.0);
+            }
+
+            cuStreamDestroy(self.stream.0);
+            cuCtxDestroy(self.ctx.0);
+            
+
+        }    
     }
 }
