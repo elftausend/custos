@@ -1,6 +1,5 @@
 use std::{collections::HashMap, cell::RefCell};
 use crate::{Node, InternCudaDevice, Buffer, Error};
-
 use super::api::{FnHandle, nvrtc::{create_program, nvrtcDestroyProgram}, load_module_data};
 
 thread_local! {
@@ -31,7 +30,7 @@ impl CudaCache {
     }
 
     #[cfg(not(feature="safe"))]
-    pub fn get<T: >(device: &InternCudaDevice, len: usize) -> Buffer<T> {
+    pub fn get<T>(device: &InternCudaDevice, len: usize) -> Buffer<T> {
         use std::ptr::null_mut;
         
         assert!(!device.cuda.borrow().ptrs.is_empty(), "no Cuda allocations");
@@ -54,8 +53,8 @@ impl CudaCache {
     }
 
     #[cfg(feature="safe")]
-    pub fn get<T: GenericOCL>(device: InternCLDevice, len: usize) -> Buffer<T> {
-        Buffer::new(&device, len)
+    pub fn get<T>(device: &InternCudaDevice, len: usize) -> Buffer<T> {
+        Buffer::new(device, len)
     }
 
     pub fn kernel(&mut self, device: &InternCudaDevice, src: &str, fn_name: &str) -> Result<FnHandle, Error> {
