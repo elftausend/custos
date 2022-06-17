@@ -1,4 +1,4 @@
-use std::{collections::HashMap, cell::RefCell};
+use std::{collections::HashMap, cell::RefCell, ffi::CString};
 use crate::{Node, InternCudaDevice, Buffer, Error};
 use super::api::{FnHandle, nvrtc::{create_program, nvrtcDestroyProgram}, load_module_data};
 
@@ -65,7 +65,15 @@ impl CudaCache {
         }
 
         let mut x = create_program(&src, "")?;
-        x.compile()?;
+        
+        //x.compile(None)?;
+         
+        x.compile(Some(vec![
+            CString::new("--gpu-architecture=compute_75").unwrap(),
+            CString::new("--fmad=false").unwrap(),
+        ]))?;
+        
+
         let module = load_module_data(x.ptx()?)?;
         let function = module.function(fn_name)?;
 

@@ -14,7 +14,7 @@ pub fn cu_ew<T: CDatatype>(device: &InternCudaDevice, lhs: &Buffer<T>, rhs: &Buf
 
     let function = fn_cache(device, &src, "ew")?;
     launch_kernel(
-        &function, [lhs.len as u32, 1, 1], 
+        &function, [(lhs.len) as u32, 1, 1], 
         [1, 1, 1], &mut device.stream(), 
         &mut [
             &lhs.ptr.2 as *const u64 as *mut c_void,
