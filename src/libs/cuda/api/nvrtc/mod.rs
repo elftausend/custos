@@ -1,7 +1,7 @@
 mod ffi;
 mod error;
 
-use std::{ptr::null_mut, ffi::CString};
+use std::{ptr::{null_mut, null}, ffi::CString};
 
 pub use ffi::*;
 
@@ -10,8 +10,8 @@ use self::error::NvrtcResult;
 pub struct NvrtcProgram(pub nvrtcProgram);
 
 impl NvrtcProgram {
-    pub fn compile(&self) -> NvrtcResult<()> {
-        compile_program(self)
+    pub fn compile(&self, options: Option<Vec<CString>>) -> NvrtcResult<()> {
+        compile_program(self, options)
     }
     
     pub fn ptx(&self) -> NvrtcResult<CString> {
@@ -27,8 +27,22 @@ pub fn create_program(src: &str, name: &str) -> NvrtcResult<NvrtcProgram> {
     unsafe { nvrtcCreateProgram(&mut prog.0, src.as_ptr(), name.as_ptr(), 0, null_mut(), null_mut()) }.to_result()?;
     Ok(prog)
 }
-pub fn compile_program(prog: &NvrtcProgram) -> NvrtcResult<()> {
-    unsafe { nvrtcCompileProgram(prog.0, 0, null_mut()) }.to_result()
+pub fn compile_program(prog: &NvrtcProgram, options: Option<Vec<CString>>) -> NvrtcResult<()> {
+
+    /*
+    let (num_options, options) = match options {
+        Some(options) => (options.len(), options.as_ptr()),
+        None => (0, null()),
+    };
+    */
+    match options {
+        Some(options) => {
+            let options = options.iter().map(|option| option.as_ptr()).collect::<Vec<*const i8>>();
+            unsafe { nvrtcCompileProgram(prog.0, options.len() as i32, options.as_ptr()) }.to_result()    
+        },
+        None => unsafe { nvrtcCompileProgram(prog.0, 0, null()) }.to_result(),
+    }
+    //unsafe { nvrtcCompileProgram(prog.0, num_options as i32, options as *const *const i8) }.to_result()
 } 
 
 pub fn get_ptx(prog: &NvrtcProgram) -> NvrtcResult<CString> {

@@ -18,7 +18,7 @@ fn test_nvrtc() -> custos::Result<()> {
     }"#;
 
     let x = create_program(src, "add")?;
-    x.compile()?;
+    x.compile(None)?;
     let module = load_module_data(x.ptx()?)?;
     let function = module.function("add")?;
     

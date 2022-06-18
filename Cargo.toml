@@ -12,7 +12,7 @@ readme = "README.md"
 lazy_static = "1.4.0"
 
 [features]
-default = ["opencl"]
+default = ["opencl", "cuda"]
 opencl = []
 cuda = []
 safe = []
@@ -52,5 +52,10 @@ harness = false
 
 [[bench]]
 name = "gemm"
+harness = false
+required-features = ["opencl", "cuda"]
+
+[[bench]]
+name = "cuda_vs_opencl"
 harness = false
 required-features = ["opencl", "cuda"]

@@ -1,6 +1,5 @@
-use std::{collections::HashMap, cell::RefCell};
+use std::{collections::HashMap, cell::RefCell, ffi::CString};
 use crate::{Node, InternCudaDevice, Buffer, Error};
-
 use super::api::{FnHandle, nvrtc::{create_program, nvrtcDestroyProgram}, load_module_data};
 
 thread_local! {
@@ -31,7 +30,7 @@ impl CudaCache {
     }
 
     #[cfg(not(feature="safe"))]
-    pub fn get<T: >(device: &InternCudaDevice, len: usize) -> Buffer<T> {
+    pub fn get<T>(device: &InternCudaDevice, len: usize) -> Buffer<T> {
         use std::ptr::null_mut;
         
         assert!(!device.cuda.borrow().ptrs.is_empty(), "no Cuda allocations");
@@ -54,8 +53,8 @@ impl CudaCache {
     }
 
     #[cfg(feature="safe")]
-    pub fn get<T: GenericOCL>(device: InternCLDevice, len: usize) -> Buffer<T> {
-        Buffer::new(&device, len)
+    pub fn get<T>(device: &InternCudaDevice, len: usize) -> Buffer<T> {
+        Buffer::new(device, len)
     }
 
     pub fn kernel(&mut self, device: &InternCudaDevice, src: &str, fn_name: &str) -> Result<FnHandle, Error> {
@@ -66,7 +65,15 @@ impl CudaCache {
         }
 
         let mut x = create_program(&src, "")?;
-        x.compile()?;
+        
+        //x.compile(None)?;
+         
+        x.compile(Some(vec![
+            CString::new("--gpu-architecture=compute_75").unwrap(),
+            CString::new("--fmad=false").unwrap(),
+        ]))?;
+        
+
         let module = load_module_data(x.ptx()?)?;
         let function = module.function(fn_name)?;
 

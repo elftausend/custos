@@ -128,6 +128,7 @@ extern "C" {
     pub fn cuDeviceGet(device: *mut CUdevice, ordinal: i32) -> CUresult;
     pub fn cuCtxCreate_v2(context: *mut CUcontext, flags: u32, device: CUdevice) -> CUresult;
     pub fn cuCtxDestroy(context: CUcontext);
+    pub fn cuCtxSynchronize() -> CUresult;
     pub fn cuMemAlloc_v2(ptr: *mut CUdeviceptr, size: usize) -> CUresult;
     pub fn cuMemFree_v2(ptr: CUdeviceptr) -> CUresult;
     pub fn cuMemcpyHtoD_v2(dst_device: CUdeviceptr, src_host: *const c_void, bytes_to_copy: usize) -> CUresult;
@@ -147,5 +148,5 @@ extern "C" {
     pub fn cuStreamCreate(ph_stream: *mut CUstream, flags: u32) -> CUresult;
     pub fn cuStreamDestroy(hstream: CUstream) -> CUresult;
     pub fn cuStreamSynchronize(stream: CUstream) -> CUresult;
-
+    pub fn cuOccupancyMaxPotentialBlockSize(min_grid_size: *mut i32, block_size: *mut i32, func: CUfunction, block_size_to_dyn_b2d_size: usize, dyn_smem_size: usize, block_size_limit: i32) -> CUresult;
 }

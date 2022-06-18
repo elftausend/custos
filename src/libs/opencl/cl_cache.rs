@@ -33,14 +33,14 @@ pub struct CLCache {
 }
 
 impl CLCache {
-    pub fn add_node<T: CDatatype>(&mut self, device: InternCLDevice, node: Node) -> Buffer<T> {
+    pub fn add_node<T>(&mut self, device: InternCLDevice, node: Node) -> Buffer<T> {
         let out = Buffer::new(&device, node.len);
         self.nodes.insert(node, ( OclPtr(out.ptr.1), out.len ));
         out
     }
 
     #[cfg(not(feature="safe"))]
-    pub fn get<T: CDatatype>(device: InternCLDevice, len: usize) -> Buffer<T> {
+    pub fn get<T>(device: InternCLDevice, len: usize) -> Buffer<T> {
         use crate::opencl::api::unified_ptr;
         assert!(!device.cl.borrow().ptrs.is_empty(), "no OpenCL allocations");
         let node = Node::new(len);
@@ -68,7 +68,7 @@ impl CLCache {
     }
 
     #[cfg(feature="safe")]
-    pub fn get<T: CDatatype>(device: InternCLDevice, len: usize) -> Buffer<T> {
+    pub fn get<T>(device: InternCLDevice, len: usize) -> Buffer<T> {
         Buffer::new(&device, len)
     }
 

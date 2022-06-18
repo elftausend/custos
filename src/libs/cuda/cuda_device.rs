@@ -1,5 +1,5 @@
 use std::{cell::{RefCell, Ref, RefMut}, rc::Rc, ptr::null_mut};
-use crate::{Device, remove_value, VecRead, CacheBuf, Gemm, BaseOps, AssignOps, BaseDevice, GenericBlas, CDatatype, Buffer, Matrix, CUdeviceptr, AsDev};
+use crate::{Device, VecRead, CacheBuf, Gemm, BaseOps, AssignOps, BaseDevice, GenericBlas, CDatatype, Buffer, Matrix, CUdeviceptr, AsDev};
 use super::{api::{device, create_context, CudaIntDevice, Context, cublas::{create_handle, CublasHandle, cublasSetStream_v2, cublasDestroy_v2}, cuInit, cufree, cumalloc, cuwrite, curead, cuCtxDestroy, Stream, create_stream, cuStreamDestroy, Module, cuModuleUnload}, CudaCache, cu_clear, cu_ew, cu_ew_self};
 
 #[derive(Debug, Clone)]
@@ -31,6 +31,7 @@ impl InternCudaDevice {
     }
 }
 
+#[cfg(not(feature="safe"))]
 impl<T> Device<T> for InternCudaDevice {
     fn alloc(&self, len: usize) -> (*mut T, *mut std::ffi::c_void, u64) {
         let ptr = cumalloc::<T>(len).unwrap();
@@ -48,7 +49,26 @@ impl<T> Device<T> for InternCudaDevice {
 
     fn drop(&mut self, buf: crate::Buffer<T>) {
         let ptrs = &mut self.cuda.borrow_mut().ptrs;
-        remove_value(ptrs, &buf.ptr.2).unwrap();
+        crate::remove_value(ptrs, &buf.ptr.2).unwrap();
+        unsafe {
+            cufree(buf.ptr.2).unwrap();
+        }
+    }
+}
+
+#[cfg(feature="safe")]
+impl<T> Device<T> for InternCudaDevice {
+    fn alloc(&self, len: usize) -> (*mut T, *mut std::ffi::c_void, u64) {
+        (null_mut(), null_mut(), cumalloc::<T>(len).unwrap())
+    }
+
+    fn with_data(&self, data: &[T]) -> (*mut T, *mut std::ffi::c_void, u64) {
+        let ptr = cumalloc::<T>(data.len()).unwrap();
+        cuwrite(ptr, data).unwrap();
+        (null_mut(), null_mut(), ptr)
+    }
+
+    fn drop(&mut self, buf: crate::Buffer<T>) {
         unsafe {
             cufree(buf.ptr.2).unwrap();
         }
