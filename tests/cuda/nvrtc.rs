@@ -11,10 +11,12 @@ fn test_nvrtc() -> custos::Result<()> {
     let c = Buffer::<i32>::new(&device, a.len);
 
     let src = r#"
-        extern "C" __global__ void add(int *a, int *b, int *c)
-            {
-                int idx = blockIdx.x;
+        extern "C" __global__ void add(int *a, int *b, int *c, int numElements)
+        {
+            int idx = blockDim.x * blockIdx.x + threadIdx.x;
+            if (idx < numElements) {
                 c[idx] = a[idx] + b[idx];
+            }
     }"#;
 
     let x = create_program(src, "add")?;
@@ -24,7 +26,13 @@ fn test_nvrtc() -> custos::Result<()> {
     
     launch_kernel(
         &function, [a.len as u32, 1, 1], 
-        [1, 1, 1], &mut device.stream(), &mut [&a.ptr.2 as *const u64 as *mut c_void, &b.ptr.2 as *const u64 as *mut c_void, &c.ptr.2 as *const u64 as *mut c_void]
+        [1, 1, 1], &mut device.stream(), 
+        &mut [
+            &a.ptr.2 as *const u64 as *mut c_void, 
+            &b.ptr.2 as *const u64 as *mut c_void, 
+            &c.ptr.2 as *const u64 as *mut c_void,
+            &a.len as *const usize as *mut c_void
+        ]
     )?;
 
     let read = device.read(&c);

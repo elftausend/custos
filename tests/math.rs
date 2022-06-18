@@ -82,6 +82,21 @@ fn test_ew_add_cuda() -> custos::Result<()> {
     Ok(())       
 }
 
+#[cfg(feature="cuda")]
+#[test]
+fn test_ew_add_large_cuda() -> custos::Result<()> {
+    use custos::CudaDevice;
+
+    let device = CudaDevice::new(0)?.select();
+
+    let a = Matrix::from(( &device, (1, 1000), [1.; 1000] ));
+    let b = Matrix::from(( &device, (1, 1000), [1.5; 1000] ));
+
+    let c = a + b;
+    assert_eq!(vec![2.5; 1000], c.read());
+    Ok(())       
+}
+
 #[cfg(feature="opencl")]
 #[test]
 fn test_ew_add_cl() {
