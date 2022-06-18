@@ -189,6 +189,8 @@ pub fn cl_write<T>(device: &InternCLDevice, x: &mut Matrix<T>, data: &[T]) {
 
 impl<T: Default+Copy> VecRead<T> for InternCLDevice {
     fn read(&self, buf: &crate::Buffer<T>) -> Vec<T> {
+        // TODO: check null?
+        assert!(!buf.ptr.1.is_null(), "called VecRead::read(..) on a non OpenCL buffer (this would read out a null pointer)");
         let mut read = vec![T::default(); buf.len];
         let event = unsafe {enqueue_read_buffer(&self.queue(), buf.ptr.1, &mut read, false).unwrap()};
         wait_for_event(event).unwrap();

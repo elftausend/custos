@@ -75,6 +75,10 @@ impl<T> Matrix<T> {
         self.dims
     }
 
+    pub fn reshape(&mut self, dims: (usize, usize)) {
+        self.dims = dims;
+    }
+
     /// Returns the column count of the matrix.
     /// 
     /// # Example

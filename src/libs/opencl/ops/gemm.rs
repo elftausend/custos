@@ -1,7 +1,6 @@
 use std::fmt::Write;
 use crate::{libs::opencl::{KernelOptions, cl_device::InternCLDevice}, Error, CDatatype, Buffer};
 
-
 pub fn cl_gemm<T: CDatatype>(device: InternCLDevice, m: usize, k: usize, n: usize, lhs: &Buffer<T>, rhs: &Buffer<T>) -> Result<Buffer<T>, Error> {
     let mut mw = 1;
     for x in &[16, 8, 4, 2, 1] {
