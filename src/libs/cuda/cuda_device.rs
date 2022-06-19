@@ -212,9 +212,7 @@ impl Drop for CudaDevice {
             }
 
             cuStreamDestroy(self.stream.0);
-            cuCtxDestroy(self.ctx.0);
-            
-
+            cuCtxDestroy(self.ctx.0);        
         }    
     }
 }

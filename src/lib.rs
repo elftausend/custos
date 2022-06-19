@@ -394,7 +394,6 @@ macro_rules! get_device {
     
     ($t:ident, $g:ident) => {    
         {   
-
             use $crate::{GLOBAL_DEVICE, InternCPU, Error, DeviceError};
             let device: Result<Box<dyn $t<$g>>, Error> = GLOBAL_DEVICE.with(|device| {
                 let device = device.borrow();

@@ -5,7 +5,7 @@ use custos::{Error, DeviceError};
 fn test_error() {
     use custos::{opencl::api::OCLErrorKind, CLDevice};
 
-    let device = CLDevice::new(100000);
+    let device = CLDevice::new(1000000000000000000);
         
     match device {
         Ok(_) => println!("ok?"),
@@ -21,6 +21,15 @@ fn test_error() {
             }
         },
     }
+}
+
+#[cfg(feature="opencl")]
+#[test]
+#[should_panic]
+fn test_error_panics() {
+    use custos::CLDevice;
+    CLDevice::new(10000000000000000).unwrap();
+    
 }
 
 #[cfg(feature="opencl")]

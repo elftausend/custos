@@ -35,10 +35,28 @@ impl<T> Buffer<T> {
         }
     }
 
+    /// Returns the number of elements contained in the buffer.
+    /// # Example
+    /// ```
+    /// use custos::{CPU, Buffer};
+    /// 
+    /// let device = CPU::new();
+    /// let a = Buffer::<i32>::new(&device, 10);
+    /// assert_eq!(a.len(), 10)
+    /// ```
     pub fn len(&self) -> usize {
         self.len
     }
 
+    /// Returns `true` if the buffer is created without a slice.
+    /// # Example
+    /// ```
+    /// use custos::{CPU, Buffer};
+    /// 
+    /// let device = CPU::new();
+    /// let a = Buffer::<i32>::from(5);
+    /// assert!(a.is_empty())
+    /// ```
     pub fn is_empty(&self) -> bool {
         self.len == 0
     }
@@ -134,6 +152,27 @@ impl<T> AsRef<[T]> for Buffer<T> {
     }
 }
 
+impl<T> AsMut<[T]> for Buffer<T> {
+    fn as_mut(&mut self) -> &mut [T] {
+        self.as_mut_slice()
+    }
+}
+
+/// A buffer dereferences into a slice.
+/// 
+/// # Examples
+/// 
+/// ```
+/// use custos::{Buffer, CPU, cpu::element_wise_op};
+/// 
+/// let device = CPU::new();
+/// 
+/// let a = Buffer::from((&device, [1., 2., 3., 4.,]));
+/// let b = Buffer::from((&device, [2., 3., 4., 5.,]));
+/// 
+/// let c = element_wise_op(&a, &b, |a, b| a+b);
+/// assert_eq!(c.as_slice(), &[3., 5., 7., 9.,]);
+/// ```
 impl<T> std::ops::Deref for Buffer<T> {
     type Target = [T];
 
@@ -142,6 +181,22 @@ impl<T> std::ops::Deref for Buffer<T> {
     }
 }
 
+/// A buffer dereferences into a slice.
+/// 
+/// # Examples
+/// 
+/// ```
+/// use custos::{Buffer, CPU, cpu::element_wise_op_mut};
+///  
+/// let device = CPU::new();
+/// 
+/// let a = Buffer::from((&device, [4., 2., 3., 4.,]));
+/// let b = Buffer::from((&device, [2., 3., 6., 5.,]));
+/// let mut c = Buffer::from((&device, [0.; 4]));
+/// 
+/// element_wise_op_mut(&a, &b, &mut c, |a, b| a+b);
+/// assert_eq!(c.as_slice(), &[6., 5., 9., 9.,]);
+/// ```
 impl<T> std::ops::DerefMut for Buffer<T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         self.as_mut_slice()
