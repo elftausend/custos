@@ -18,10 +18,10 @@ pub fn cu_ew<T: CDatatype>(device: &InternCudaDevice, lhs: &Buffer<T>, rhs: &Buf
     launch_kernel1d(
         lhs.len, device, 
         &src, "ew", 
-        &[lhs, rhs, &out, &lhs.len],
+        vec![lhs, rhs, &out, &lhs.len],
     )?;
-
-    /* 
+    
+    /*
     let function = fn_cache(device, &src, "ew")?;
     culaunch_kernel(
         &function, [lhs.len as u32, 1, 1], 
@@ -31,6 +31,7 @@ pub fn cu_ew<T: CDatatype>(device: &InternCudaDevice, lhs: &Buffer<T>, rhs: &Buf
             &rhs.ptr.2 as *const u64 as *mut c_void,
             &out.ptr.2 as *const u64 as *mut c_void,
             &lhs.len as *const usize as *mut c_void,
+            
         ]
     )?;*/
     Ok(out)

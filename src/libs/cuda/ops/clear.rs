@@ -1,6 +1,4 @@
-use std::ffi::c_void;
-
-use crate::{CDatatype, cuda::{fn_cache, api::culaunch_kernel}, Buffer, InternCudaDevice};
+use crate::{CDatatype, cuda::launch_kernel1d, Buffer, InternCudaDevice};
 
 pub fn cu_clear<T: CDatatype>(device: &InternCudaDevice, buf: &mut Buffer<T>) -> crate::Result<()> {
     let src = format!(
@@ -14,11 +12,11 @@ pub fn cu_clear<T: CDatatype>(device: &InternCudaDevice, buf: &mut Buffer<T>) ->
             }}
     "#, datatype=T::as_c_type_str());
 
-    let function = fn_cache(device, &src, "clear")?;
-    culaunch_kernel(
-        &function, [buf.len as u32, 1, 1], 
-        [1, 1, 1], &mut device.stream(), 
-        &mut [&buf.ptr.2 as *const u64 as *mut c_void, &buf.len as *const usize as *mut c_void]
+    launch_kernel1d(
+        buf.len, device, 
+        &src, "clear", 
+        vec![buf, &buf.len],
     )?;
+
     Ok(())
 }

@@ -133,7 +133,7 @@ pub fn culaunch_kernel(f: &FnHandle, grid: [u32; 3], blocks: [u32; 3], stream: &
             blocks[2], 0, 
             stream.0, params.as_ptr() as *mut _, std::ptr::null_mut()
         )}.to_result()?;
-    println!("launched");
+
     // TODO: sync here or elsewhere?
     stream.sync()?;
 
