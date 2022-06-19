@@ -20,7 +20,9 @@ impl CublasErrorKind {
         match self {
             CublasErrorKind::NotInitialized => "CUBLAS_STATUS_NOT_INITIALIZED",
             CublasErrorKind::AllocFailed => "CUBLAS_STATUS_ALLOC_FAILED",
-            CublasErrorKind::InvalidValue => "CUBLAS_STATUS_INVALID_VALUE",
+            CublasErrorKind::InvalidValue => "CUBLAS_STATUS_INVALID_VALUE  	
+            An unsupported value or parameter was passed to the function (a negative vector size, for example).
+            To correct: ensure that all the parameters being passed have valid values.",
             CublasErrorKind::ArchMismatch => "CUBLAS_STATUS_ARCH_MISMATCH",
             CublasErrorKind::MappingError => "CUBLAS_STATUS_MAPPING_ERROR",
             CublasErrorKind::ExecutionFailed => "CUBLAS_STATUS_EXECUTION_FAILED",
