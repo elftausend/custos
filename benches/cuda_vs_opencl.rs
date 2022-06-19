@@ -1,11 +1,10 @@
-
 use criterion::{Criterion, criterion_main, criterion_group};
 use custos::{AsDev, Matrix, set_count};
 
-pub fn bench_add_cl(c: &mut Criterion) {
-    const ROWS: usize = 9000; 
-    const COLS: usize = ROWS;
+const ROWS: usize = 9000; 
+const COLS: usize = ROWS;
 
+pub fn bench_add_cl(c: &mut Criterion) {
     //let device = custos::CPU::new().select();    
     let device = custos::CLDevice::new(0).unwrap().select();
 
@@ -19,9 +18,6 @@ pub fn bench_add_cl(c: &mut Criterion) {
 }
 
 pub fn bench_add_cuda(c: &mut Criterion) {
-    const ROWS: usize = 9000; 
-    const COLS: usize = ROWS;
-
     //let device = custos::CPU::new().select();    
     let device = custos::CudaDevice::new(0).unwrap().select();
 

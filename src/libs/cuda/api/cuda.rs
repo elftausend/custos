@@ -1,6 +1,6 @@
 use std::{ptr::null_mut, ffi::{c_void, CString}};
 
-use crate::{CUdeviceptr, cuda::api::cuOccupancyMaxPotentialBlockSize};
+use crate::CUdeviceptr;
 
 use super::{ffi::cuMemAlloc_v2, error::{CudaResult, CudaErrorKind}, cuInit, CUcontext, CUdevice, cuDeviceGet, cuCtxCreate_v2, cuMemFree_v2, cuDeviceGetCount, cuMemcpyHtoD_v2, cuMemcpyDtoH_v2, cuModuleLoad, CUmodule, CUfunction, cuModuleGetFunction, cuLaunchKernel, CUstream, cuStreamCreate, cuStreamSynchronize, cuModuleLoadData};
 
@@ -124,27 +124,16 @@ pub fn create_stream() -> CudaResult<Stream> {
     Ok(ph_stream)
 }
 
-pub fn launch_kernel(f: &FnHandle, grid: [u32; 3], blocks: [u32; 3], stream: &Stream, params: &[*mut c_void]) -> CudaResult<()> {
+pub fn culaunch_kernel(f: &FnHandle, grid: [u32; 3], blocks: [u32; 3], stream: &Stream, params: &[*mut c_void]) -> CudaResult<()> {
     unsafe {
-         
-        let mut min_grid_size = 0;
-        let mut block_size = 0;
-        cuOccupancyMaxPotentialBlockSize(&mut min_grid_size, &mut block_size, f.0, 0, 0, grid[0] as i32).to_result()?;
-        let grid_size = (grid[0] as i32 + block_size - 1) / block_size;
-        
-        
-        /*println!("min_grid: {min_grid_size}");
-        println!("block size: {block_size}");
-        println!("grid_size: {grid_size}");*/
-
         cuLaunchKernel(
-            f.0, grid_size as u32, 
+            f.0, grid[0], 
             grid[1], grid[2], 
-            block_size as u32, blocks[1], 
+            blocks[0], blocks[1], 
             blocks[2], 0, 
             stream.0, params.as_ptr() as *mut _, std::ptr::null_mut()
         )}.to_result()?;
-
+    println!("launched");
     // TODO: sync here or elsewhere?
     stream.sync()?;
 

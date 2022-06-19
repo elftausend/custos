@@ -1,5 +1,5 @@
 use std::ffi::c_void;
-use custos::{cuda::api::{nvrtc::create_program, load_module_data, launch_kernel}, CudaDevice, VecRead, Buffer};
+use custos::{cuda::api::{nvrtc::create_program, load_module_data, culaunch_kernel}, CudaDevice, VecRead, Buffer};
 
 #[test]
 fn test_nvrtc() -> custos::Result<()> {
@@ -24,7 +24,7 @@ fn test_nvrtc() -> custos::Result<()> {
     let module = load_module_data(x.ptx()?)?;
     let function = module.function("add")?;
     
-    launch_kernel(
+    culaunch_kernel(
         &function, [a.len as u32, 1, 1], 
         [1, 1, 1], &mut device.stream(), 
         &mut [

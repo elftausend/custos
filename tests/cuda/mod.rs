@@ -1,6 +1,6 @@
 use std::ffi::c_void;
 
-use custos::{CudaDevice, Buffer, cuda::{api::launch_kernel, fn_cache, CUDA_CACHE}, VecRead, AsDev};
+use custos::{CudaDevice, Buffer, cuda::{api::culaunch_kernel, fn_cache, CUDA_CACHE}, VecRead, AsDev};
 
 mod cuda_kernels;
 mod cuda;
@@ -36,7 +36,7 @@ fn test_cached_kernel_launch() -> custos::Result<()> {
     }
     let function = fn_cache(&device, src, "add")?;
 
-    launch_kernel(
+    culaunch_kernel(
         &function, [a.len as u32, 1, 1], 
         [1, 1, 1], &mut device.stream(), 
         &mut [

@@ -2,7 +2,7 @@
 fn test_add_cuda() -> custos::Result<()> {
     use std::ffi::c_void;
 
-    use custos::{CudaDevice, Buffer, cuda::api::{load_module, launch_kernel, create_stream}, VecRead};
+    use custos::{CudaDevice, Buffer, cuda::api::{load_module, culaunch_kernel, create_stream}, VecRead};
     let device = CudaDevice::new(0)?;
 
     let a = Buffer::from((&device, [1, 2, 3, 4, 5,]));
@@ -18,7 +18,7 @@ fn test_add_cuda() -> custos::Result<()> {
     let function = module.function("add")?;
     let mut stream = create_stream()?;
 
-    launch_kernel(
+    culaunch_kernel(
         &function, [a.len as u32, 1, 1], 
         [1, 1, 1], &mut stream, &mut [&a.ptr.2 as *const u64 as *mut c_void, &b.ptr.2 as *const u64 as *mut c_void, &c.ptr.2 as *const u64 as *mut c_void]
     )?;

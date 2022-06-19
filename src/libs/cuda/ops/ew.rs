@@ -1,5 +1,5 @@
 use std::ffi::c_void;
-use crate::{CDatatype, Buffer, cuda::{fn_cache, api::launch_kernel, CudaCache}, InternCudaDevice};
+use crate::{CDatatype, Buffer, cuda::{fn_cache, api::culaunch_kernel, CudaCache, launch_kernel1d}, InternCudaDevice};
 
 pub fn cu_ew<T: CDatatype>(device: &InternCudaDevice, lhs: &Buffer<T>, rhs: &Buffer<T>, op: &str) -> crate::Result<Buffer<T>> {
     let src = format!(
@@ -13,10 +13,17 @@ pub fn cu_ew<T: CDatatype>(device: &InternCudaDevice, lhs: &Buffer<T>, rhs: &Buf
             }}
     "#, datatype=T::as_c_type_str());
 
-    let out = CudaCache::get(device, lhs.len);
+    let out: Buffer<T> = CudaCache::get(device, lhs.len);
 
+    launch_kernel1d(
+        lhs.len, device, 
+        &src, "ew", 
+        &[lhs, rhs, &out, &lhs.len],
+    )?;
+
+    /* 
     let function = fn_cache(device, &src, "ew")?;
-    launch_kernel(
+    culaunch_kernel(
         &function, [lhs.len as u32, 1, 1], 
         [1, 1, 1], &mut device.stream(), 
         &mut [
@@ -25,7 +32,7 @@ pub fn cu_ew<T: CDatatype>(device: &InternCudaDevice, lhs: &Buffer<T>, rhs: &Buf
             &out.ptr.2 as *const u64 as *mut c_void,
             &lhs.len as *const usize as *mut c_void,
         ]
-    )?;
+    )?;*/
     Ok(out)
 }
 
@@ -43,7 +50,7 @@ pub fn cu_ew_self<T: CDatatype>(device: &InternCudaDevice, lhs: &mut Buffer<T>, 
 
     
     let function = fn_cache(device, &src, "ew_self")?;
-    launch_kernel(
+    culaunch_kernel(
         &function, [lhs.len as u32, 1, 1], 
         [1, 1, 1], &mut device.stream(), 
         &mut [
