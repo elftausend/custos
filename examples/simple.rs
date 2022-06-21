@@ -1,4 +1,4 @@
-use custos::{libs::{cpu::CPU, opencl::CLDevice}, AsDev, Matrix, BaseOps, VecRead, InternCPU};
+use custos::{libs::{cpu::CPU, opencl::CLDevice}, AsDev, Matrix, BaseOps, VecRead};
 
 fn main() -> custos::Result<()> {
     //select() ... sets CPU as 'global device' 
@@ -11,7 +11,7 @@ fn main() -> custos::Result<()> {
     using_opencl()
 }
 
-fn with_select(cpu: &InternCPU) {
+fn with_select(cpu: &CPU) {
     let a: Matrix<i32> = Matrix::from(( cpu, (2, 3), [1, 2, 3, 4, 5, 6]));
     let b = Matrix::from(( cpu, (2, 3), [6, 5, 4, 3, 2, 1]));
 
@@ -19,7 +19,7 @@ fn with_select(cpu: &InternCPU) {
     assert_eq!(c.read(), vec![7, 7, 7, 7, 7, 7]);
 }
 
-fn specify_device(cpu: &InternCPU) {
+fn specify_device(cpu: &CPU) {
     //device is specified in every operation
     let a = Matrix::from( ( cpu, (2, 2), [0.25f32, 0.5, 0.75, 1.] ));
     let b = Matrix::from( ( cpu, (2, 2), [1., 2., 3., 4.,] ));

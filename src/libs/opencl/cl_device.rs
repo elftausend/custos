@@ -156,17 +156,17 @@ impl<T: CDatatype> BaseOps<T> for InternCLDevice {
         (buf, lhs.dims()).into()
     }
 
-    fn clear(&self, matrix: &mut Matrix<T>) {
-        cl_clear(self, matrix).unwrap();
+    fn clear(&self, buf: &mut Buffer<T>) {
+        cl_clear(self, buf).unwrap();
     }
 }
 
 impl<T: CDatatype> AssignOps<T> for InternCLDevice {
-    fn add_assign(&self, lhs: &mut Matrix<T>, rhs: &Matrix<T>) {
+    fn add_assign(&self, lhs: &mut Buffer<T>, rhs: &Buffer<T>) {
         cl_tew_self(self, lhs, rhs, "+").unwrap()
     }
 
-    fn sub_assign(&self, lhs: &mut Matrix<T>, rhs: &Matrix<T>) {
+    fn sub_assign(&self, lhs: &mut Buffer<T>, rhs: &Buffer<T>) {
         cl_tew_self(self, lhs, rhs, "-").unwrap()
     }
 }

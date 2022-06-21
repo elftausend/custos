@@ -5,11 +5,12 @@ pub use buffer::*;
 pub use count::*;
 pub use libs::*;
 
+use libs::cpu::InternCPU;
 #[cfg(feature="cuda")]
 pub use libs::cuda::{CudaDevice, InternCudaDevice};
 #[cfg(feature="opencl")]
 pub use libs::opencl::{CLDevice, InternCLDevice};
-pub use libs::cpu::{CPU, InternCPU};
+pub use libs::cpu::CPU;
 pub use matrix::*;
 
 pub mod libs;
@@ -21,7 +22,7 @@ pub mod number;
 mod matrix;
 
 pub struct Error {
-    pub error: Box<dyn std::error::Error>,
+    pub error: Box<dyn std::error::Error + Send>,
 }
 
 impl <E: std::error::Error + PartialEq + 'static>PartialEq<E> for Error {
@@ -121,8 +122,23 @@ pub trait BaseDevice<T>: Device<T> + BaseOps<T> + VecRead<T> + Gemm<T> {}
 /// assert_eq!(vec![3, 5, 4, 1], device.read(lhs.as_buf()));
 /// ```
 pub trait AssignOps<T> {
-    fn add_assign(&self, lhs: &mut Matrix<T>, rhs: &Matrix<T>);
-    fn sub_assign(&self, lhs: &mut Matrix<T>, rhs: &Matrix<T>);
+    /// Add assign
+    /// # Examples
+    /// ```
+    /// use custos::{CPU, Matrix, AssignOps, VecRead};
+    /// 
+    /// let device = CPU::new();
+    /// let mut lhs = Matrix::from((&device, 2, 2, [3, 5, 4, 1]));
+    /// let rhs = Matrix::from((&device, 2, 2, [1, 8, 6, 2]));
+    /// 
+    /// device.add_assign(&mut lhs, &rhs);
+    /// assert_eq!(vec![4, 13, 10, 3], device.read(lhs.as_buf()));
+    /// 
+    /// device.sub_assign(&mut lhs, &rhs);
+    /// assert_eq!(vec![3, 5, 4, 1], device.read(lhs.as_buf()));
+    /// ```
+    fn add_assign(&self, lhs: &mut Buffer<T>, rhs: &Buffer<T>);
+    fn sub_assign(&self, lhs: &mut Buffer<T>, rhs: &Buffer<T>);
 }
 
 #[cfg_attr(feature = "safe", doc = "```ignore")]
@@ -212,7 +228,7 @@ pub trait BaseOps<T> {
     /// device.clear(&mut a);
     /// assert_eq!(a.read(), vec![0; 6]);
     /// ```
-    fn clear(&self, matrix: &mut Matrix<T>);
+    fn clear(&self, matrix: &mut Buffer<T>);
 }
 
 /// Trait for reading buffers.
@@ -279,14 +295,14 @@ pub trait CacheBuf<T> {
 #[derive(Debug, Clone)]
 pub struct Dev {
     pub cl_device: Option<Weak<RefCell<CLDevice>>>,
-    pub cpu: Option<Weak<RefCell<CPU>>>,
+    pub cpu: Option<Weak<RefCell<InternCPU>>>,
     pub cuda: Option<Weak<RefCell<CudaDevice>>>,
 }
 
 impl Dev {
     pub fn new(
         cl_device: Option<Weak<RefCell<CLDevice>>>, 
-        cpu: Option<Weak<RefCell<CPU>>>, 
+        cpu: Option<Weak<RefCell<InternCPU>>>, 
         cuda: Option<Weak<RefCell<CudaDevice>>>
 ) -> Dev 
     {
@@ -394,7 +410,7 @@ macro_rules! get_device {
     
     ($t:ident, $g:ident) => {    
         {   
-            use $crate::{GLOBAL_DEVICE, InternCPU, Error, DeviceError};
+            use $crate::{GLOBAL_DEVICE, CPU, Error, DeviceError};
             let device: Result<Box<dyn $t<$g>>, Error> = GLOBAL_DEVICE.with(|device| {
                 let device = device.borrow();
         
@@ -404,7 +420,7 @@ macro_rules! get_device {
                 if let Some(cl) = &device.cl_device {
                     use $crate::InternCLDevice;
                     dev = Ok(Box::new(InternCLDevice::from(cl.upgrade()
-                        .ok_or(Error::from(DeviceError::NoDeviceSelected))?)))
+                        .ok_or(Error::from(DeviceError::NoDeviceSelected))?)));
                 };
     
                 #[cfg(feature="cuda")]
@@ -415,7 +431,7 @@ macro_rules! get_device {
                 };
         
                 if let Some(cpu) = &device.cpu {
-                    dev = Ok(Box::new(InternCPU::new(cpu.upgrade()
+                    dev = Ok(Box::new(CPU::from(cpu.upgrade()
                         .ok_or(Error::from(DeviceError::NoDeviceSelected))?)))
                 };
                 dev

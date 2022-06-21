@@ -40,7 +40,7 @@ pub fn to_unified<T>(device: &InternCLDevice, no_drop: Matrix<T>) -> crate::Resu
     Ok(cl_ptr)
 }
 
-pub fn construct_buffer<T>(device: &InternCLDevice, cpu: &crate::InternCPU, no_drop: Matrix<T>) -> crate::Result<Matrix<T>>  {
+pub fn construct_buffer<T>(device: &InternCLDevice, cpu: &crate::CPU, no_drop: Matrix<T>) -> crate::Result<Matrix<T>>  {
     let (host_ptr, no_drop_dims) = (no_drop.ptr.0, no_drop.dims());
 
     let cl_ptr = to_unified(device, no_drop)?;
@@ -49,7 +49,7 @@ pub fn construct_buffer<T>(device: &InternCLDevice, cpu: &crate::InternCPU, no_d
     // Both lines prevent the deallocation of the underlying buffer.
     //Box::into_raw(Box::new(no_drop)); // "safe" mode
     // TODO: Deallocate cpu buffer? This may leak memory.
-    cpu.cpu.borrow_mut().ptrs.clear(); // default mode
+    cpu.inner.borrow_mut().ptrs.clear(); // default mode
     
     let buf = Buffer {
         ptr: (host_ptr, cl_ptr, 0),
@@ -60,7 +60,7 @@ pub fn construct_buffer<T>(device: &InternCLDevice, cpu: &crate::InternCPU, no_d
 
 pub fn cpu_exec<T, F>(device: &InternCLDevice, matrix: &Matrix<T>, f: F) -> crate::Result<Matrix<T>> 
 where 
-    F: Fn(&crate::InternCPU, Matrix<T>) -> Matrix<T>,
+    F: Fn(&crate::CPU, Matrix<T>) -> Matrix<T>,
     T: CDatatype
 {
     let cpu = CPU::new();
@@ -83,7 +83,7 @@ where
 
 pub fn cpu_exec_lhs_rhs<T, F>(device: &InternCLDevice, lhs: &Matrix<T>, rhs: &Matrix<T>, f: F) -> crate::Result<Matrix<T>> 
 where 
-    F: Fn(&crate::InternCPU, &Matrix<T>, &Matrix<T>) -> Matrix<T>,
+    F: Fn(&crate::CPU, &Matrix<T>, &Matrix<T>) -> Matrix<T>,
     T: CDatatype
 {
     let cpu = CPU::new();
@@ -109,7 +109,7 @@ where
 
 pub fn cpu_exec_scalar<T, F>(device: &InternCLDevice, matrix: &Matrix<T>, f: F) -> T 
 where 
-    F: Fn(&crate::InternCPU, Matrix<T>) -> T,
+    F: Fn(&crate::CPU, Matrix<T>) -> T,
     T: Number
 {
     let cpu = CPU::new();

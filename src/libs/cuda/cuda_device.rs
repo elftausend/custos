@@ -2,6 +2,7 @@ use std::{cell::{RefCell, Ref, RefMut}, rc::Rc, ptr::null_mut};
 use crate::{Device, VecRead, CacheBuf, Gemm, BaseOps, AssignOps, BaseDevice, GenericBlas, CDatatype, Buffer, Matrix, CUdeviceptr, AsDev};
 use super::{api::{device, create_context, CudaIntDevice, Context, cublas::{create_handle, CublasHandle, cublasSetStream_v2, cublasDestroy_v2}, cuInit, cufree, cumalloc, cuwrite, curead, cuCtxDestroy, Stream, create_stream, cuStreamDestroy, Module, cuModuleUnload}, CudaCache, cu_clear, cu_ew, cu_ew_self};
 
+/// Used to perform calculations on a [CudaDevice]
 #[derive(Debug, Clone)]
 pub struct InternCudaDevice {
     pub cuda: Rc<RefCell<CudaDevice>>
@@ -107,11 +108,11 @@ impl<T: GenericBlas> Gemm<T> for InternCudaDevice {
 }
 
 impl<T: CDatatype> AssignOps<T> for InternCudaDevice {
-    fn add_assign(&self, lhs: &mut crate::Matrix<T>, rhs: &crate::Matrix<T>) {
+    fn add_assign(&self, lhs: &mut crate::Buffer<T>, rhs: &crate::Buffer<T>) {
         cu_ew_self(self, lhs, rhs, "+").unwrap();
     }
 
-    fn sub_assign(&self, lhs: &mut crate::Matrix<T>, rhs: &crate::Matrix<T>) {
+    fn sub_assign(&self, lhs: &mut crate::Buffer<T>, rhs: &crate::Buffer<T>) {
         cu_ew_self(self, lhs, rhs, "-").unwrap();
     }
 }
@@ -137,8 +138,8 @@ impl<T: CDatatype> BaseOps<T> for InternCudaDevice {
         (buf, lhs.dims()).into()
     }
 
-    fn clear(&self, matrix: &mut crate::Matrix<T>) {
-        cu_clear(self, matrix).unwrap();
+    fn clear(&self, buf: &mut crate::Buffer<T>) {
+        cu_clear(self, buf).unwrap();
     }
 }
 
