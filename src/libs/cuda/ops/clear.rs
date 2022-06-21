@@ -1,4 +1,4 @@
-use crate::{CDatatype, cuda::launch_kernel1d, Buffer, InternCudaDevice};
+use crate::{CDatatype, cuda::launch_kernel1d, Buffer, CudaDevice};
 
 /// Sets the elements of a CUDA Buffer to zero.
 /// # Example
@@ -15,7 +15,7 @@ use crate::{CDatatype, cuda::launch_kernel1d, Buffer, InternCudaDevice};
 ///     Ok(())
 /// }
 /// ```
-pub fn cu_clear<T: CDatatype>(device: &InternCudaDevice, buf: &mut Buffer<T>) -> crate::Result<()> {
+pub fn cu_clear<T: CDatatype>(device: &CudaDevice, buf: &mut Buffer<T>) -> crate::Result<()> {
     let src = format!(
         r#"extern "C" __global__ void clear({datatype}* self, int numElements)
             {{

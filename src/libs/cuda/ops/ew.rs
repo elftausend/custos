@@ -1,4 +1,4 @@
-use crate::{CDatatype, Buffer, cuda::{CudaCache, launch_kernel1d}, InternCudaDevice};
+use crate::{CDatatype, Buffer, cuda::{CudaCache, launch_kernel1d}, CudaDevice};
 
 /// Element-wise operations. The op/operation is usually "+", "-", "*", "/".
 /// 
@@ -16,7 +16,7 @@ use crate::{CDatatype, Buffer, cuda::{CudaCache, launch_kernel1d}, InternCudaDev
 ///     Ok(())
 /// }
 /// ```
-pub fn cu_ew<T: CDatatype>(device: &InternCudaDevice, lhs: &Buffer<T>, rhs: &Buffer<T>, op: &str) -> crate::Result<Buffer<T>> {
+pub fn cu_ew<T: CDatatype>(device: &CudaDevice, lhs: &Buffer<T>, rhs: &Buffer<T>, op: &str) -> crate::Result<Buffer<T>> {
     let src = format!(
         r#"extern "C" __global__ void ew({datatype}* lhs, {datatype}* rhs, {datatype}* out, int numElements)
             {{
@@ -68,7 +68,7 @@ pub fn cu_ew<T: CDatatype>(device: &InternCudaDevice, lhs: &Buffer<T>, rhs: &Buf
 ///     Ok(())
 /// }
 /// ```
-pub fn cu_ew_self<T: CDatatype>(device: &InternCudaDevice, lhs: &mut Buffer<T>, rhs: &Buffer<T>, op: &str) -> crate::Result<()> {
+pub fn cu_ew_self<T: CDatatype>(device: &CudaDevice, lhs: &mut Buffer<T>, rhs: &Buffer<T>, op: &str) -> crate::Result<()> {
     let src = format!(
         r#"extern "C" __global__ void ew_self({datatype}* lhs, {datatype}* rhs, int numElements)
             {{  

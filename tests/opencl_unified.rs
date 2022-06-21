@@ -8,7 +8,7 @@ use custos::AsDev;
 #[cfg(not(feature="safe"))]
 use custos::{CPU, opencl::cl_tew,};
 #[cfg(feature="opencl")]
-use custos::{Buffer, VecRead, Matrix, opencl::api::{clCreateBuffer, MemFlags, OCLErrorKind}, InternCLDevice, opencl::cpu_exec};
+use custos::{Buffer, VecRead, Matrix, opencl::api::{clCreateBuffer, MemFlags, OCLErrorKind}, opencl::cpu_exec};
 #[cfg(feature="opencl")]
 use custos::{CLDevice, Error};
 
@@ -18,12 +18,12 @@ use std::ptr::null_mut;
 
 
 #[cfg(feature="opencl")]
-pub fn unified_mem<T>(device: &InternCLDevice, arr: &mut [T]) -> Result<*mut c_void, Error>{
+pub fn unified_mem<T>(device: &CLDevice, arr: &mut [T]) -> Result<*mut c_void, Error>{
     let mut err = 0;
 
     let r = unsafe {clCreateBuffer(device.ctx().0, MemFlags::MemReadWrite | MemFlags::MemCopyHostPtr, arr.len()*core::mem::size_of::<T>(), arr.as_mut_ptr() as *mut c_void, &mut err)};
     
-    device.cl.borrow_mut().ptrs.push(r);
+    device.inner.borrow_mut().ptrs.push(r);
 
     if err != 0 {
         return Err(Error::from(OCLErrorKind::from_value(err)));

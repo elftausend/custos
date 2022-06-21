@@ -1,5 +1,5 @@
 use std::{collections::HashMap, cell::RefCell};
-use crate::{Node, InternCudaDevice, Buffer, Error};
+use crate::{Node, Buffer, Error, CudaDevice};
 use super::api::{FnHandle, nvrtc::{create_program, nvrtcDestroyProgram}, load_module_data};
 
 thread_local! {
@@ -23,17 +23,17 @@ pub struct CudaCache {
 }
 
 impl CudaCache {
-    pub fn add_node<T:>(&mut self, device: &InternCudaDevice, node: Node) -> Buffer<T> {
+    pub fn add_node<T:>(&mut self, device: &CudaDevice, node: Node) -> Buffer<T> {
         let out = Buffer::new(device, node.len);
         self.nodes.insert(node, ( CudaPtr(out.ptr.2), out.len ));
         out
     }
 
     #[cfg(not(feature="safe"))]
-    pub fn get<T>(device: &InternCudaDevice, len: usize) -> Buffer<T> {
+    pub fn get<T>(device: &CudaDevice, len: usize) -> Buffer<T> {
         use std::ptr::null_mut;
         
-        assert!(!device.cuda.borrow().ptrs.is_empty(), "no Cuda allocations");
+        assert!(!device.inner.borrow().ptrs.is_empty(), "no Cuda allocations");
         let node = Node::new(len);
 
         CUDA_CACHE.with(|cache| {
@@ -53,11 +53,11 @@ impl CudaCache {
     }
 
     #[cfg(feature="safe")]
-    pub fn get<T>(device: &InternCudaDevice, len: usize) -> Buffer<T> {
+    pub fn get<T>(device: &CudaDevice, len: usize) -> Buffer<T> {
         Buffer::new(device, len)
     }
 
-    pub fn kernel(&mut self, device: &InternCudaDevice, src: &str, fn_name: &str) -> Result<FnHandle, Error> {
+    pub fn kernel(&mut self, device: &CudaDevice, src: &str, fn_name: &str) -> Result<FnHandle, Error> {
         let kernel = self.kernels.get(src);
 
         if let Some(kernel) = kernel {
@@ -70,7 +70,7 @@ impl CudaCache {
         let module = load_module_data(x.ptx()?)?;
         let function = module.function(fn_name)?;
 
-        device.cuda.borrow_mut().modules.push(module);
+        device.inner.borrow_mut().modules.push(module);
 
         self.kernels.insert(src.into(), function);
         unsafe { nvrtcDestroyProgram(&mut x.0).to_result()? };
@@ -79,7 +79,7 @@ impl CudaCache {
 }
 
 
-pub fn fn_cache(device: &InternCudaDevice, src: &str, fn_name: &str) -> crate::Result<FnHandle> {
+pub fn fn_cache(device: &CudaDevice, src: &str, fn_name: &str) -> crate::Result<FnHandle> {
     CUDA_CACHE.with(|cache| {
         cache.borrow_mut().kernel(device, src, fn_name)
     })

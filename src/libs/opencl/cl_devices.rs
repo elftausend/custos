@@ -1,5 +1,5 @@
-use crate::Error;
-use super::{api::{DeviceType, get_device_ids, get_platforms, OCLErrorKind}, cl_device::CLDevice};
+use crate::{Error, InternCLDevice};
+use super::api::{DeviceType, get_device_ids, get_platforms, OCLErrorKind};
 
 lazy_static::lazy_static! {
     pub static ref CL_DEVICES: CLDevices = CLDevices::new().unwrap();
@@ -7,7 +7,7 @@ lazy_static::lazy_static! {
 
 #[derive(Debug)]
 pub struct CLDevices {
-    pub current_devices: Vec<CLDevice>,
+    pub current_devices: Vec<InternCLDevice>,
 }
 
 impl CLDevices {
@@ -18,12 +18,12 @@ impl CLDevices {
         let devices = get_device_ids(platform, &(DeviceType::GPU as u64))?;
     
         for device in devices {
-            current_devices.push(CLDevice::get(device)?)
+            current_devices.push(InternCLDevice::new(device)?)
         }
         Ok(CLDevices { current_devices })
     }
 
-    pub fn current(&self, device_idx: usize) -> Result<CLDevice, Error> {
+    pub fn current(&self, device_idx: usize) -> Result<InternCLDevice, Error> {
         if device_idx >= self.current_devices.len() {
             return Err(OCLErrorKind::InvalidDeviceIdx.into());
         } 

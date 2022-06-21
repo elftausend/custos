@@ -1,4 +1,4 @@
-use crate::{libs::opencl::{KernelOptions, cl_device::InternCLDevice}, Error, CDatatype, Buffer};
+use crate::{libs::opencl::KernelOptions, Error, CDatatype, Buffer, CLDevice};
 
 trait Both {
     fn as_str<'a, >() -> &'a str;
@@ -39,7 +39,7 @@ impl <T: !GenericOCL>Both for T {
 ///     Ok(())
 /// }
 /// ```
-pub fn cl_tew<T: CDatatype>(device: &InternCLDevice, lhs: &Buffer<T>, rhs: &Buffer<T>, op: &str) -> Result<Buffer<T>, Error> {
+pub fn cl_tew<T: CDatatype>(device: &CLDevice, lhs: &Buffer<T>, rhs: &Buffer<T>, op: &str) -> Result<Buffer<T>, Error> {
     let src = format!("
         __kernel void eop(__global {datatype}* self, __global const {datatype}* rhs, __global {datatype}* out) {{
             size_t id = get_global_id(0);
@@ -70,7 +70,7 @@ pub fn cl_tew<T: CDatatype>(device: &InternCLDevice, lhs: &Buffer<T>, rhs: &Buff
 ///     Ok(())
 /// }
 /// ```
-pub fn cl_tew_self<T: CDatatype>(device: &InternCLDevice, lhs: &mut Buffer<T>, rhs: &Buffer<T>, op: &str) -> Result<(), Error> {
+pub fn cl_tew_self<T: CDatatype>(device: &CLDevice, lhs: &mut Buffer<T>, rhs: &Buffer<T>, op: &str) -> Result<(), Error> {
     let src = format!("
         __kernel void eop_self(__global {datatype}* self, __global const {datatype}* rhs) {{
             size_t id = get_global_id(0);

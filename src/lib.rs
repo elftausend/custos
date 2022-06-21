@@ -294,16 +294,16 @@ pub trait CacheBuf<T> {
 
 #[derive(Debug, Clone)]
 pub struct Dev {
-    pub cl_device: Option<Weak<RefCell<CLDevice>>>,
+    pub cl_device: Option<Weak<RefCell<InternCLDevice>>>,
     pub cpu: Option<Weak<RefCell<InternCPU>>>,
-    pub cuda: Option<Weak<RefCell<CudaDevice>>>,
+    pub cuda: Option<Weak<RefCell<InternCudaDevice>>>,
 }
 
 impl Dev {
     pub fn new(
-        cl_device: Option<Weak<RefCell<CLDevice>>>, 
+        cl_device: Option<Weak<RefCell<InternCLDevice>>>, 
         cpu: Option<Weak<RefCell<InternCPU>>>, 
-        cuda: Option<Weak<RefCell<CudaDevice>>>
+        cuda: Option<Weak<RefCell<InternCudaDevice>>>
 ) -> Dev 
     {
         Dev { cl_device, cpu, cuda }
@@ -418,15 +418,15 @@ macro_rules! get_device {
                 
                 #[cfg(feature="opencl")]
                 if let Some(cl) = &device.cl_device {
-                    use $crate::InternCLDevice;
-                    dev = Ok(Box::new(InternCLDevice::from(cl.upgrade()
+                    use $crate::CLDevice;
+                    dev = Ok(Box::new(CLDevice::from(cl.upgrade()
                         .ok_or(Error::from(DeviceError::NoDeviceSelected))?)));
                 };
     
                 #[cfg(feature="cuda")]
                 if let Some(cuda) = &device.cuda {
-                    use $crate::InternCudaDevice;
-                    dev = Ok(Box::new(InternCudaDevice::from(cuda.upgrade()
+                    use $crate::CudaDevice;
+                    dev = Ok(Box::new(CudaDevice::from(cuda.upgrade()
                         .ok_or(Error::from(DeviceError::NoDeviceSelected))?)))
                 };
         

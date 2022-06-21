@@ -16,7 +16,7 @@ mod cl_cache;
 use crate::{Matrix, CDatatype, CPU, Node, Buffer, VecRead, number::Number};
 use self::api::{create_buffer, MemFlags, release_mem_object};
 
-pub fn to_unified<T>(device: &InternCLDevice, no_drop: Matrix<T>) -> crate::Result<*mut c_void> {
+pub fn to_unified<T>(device: &CLDevice, no_drop: Matrix<T>) -> crate::Result<*mut c_void> {
     // use the host pointer to create an OpenCL buffer
     let cl_ptr = create_buffer(
         &device.ctx(), 
@@ -40,7 +40,7 @@ pub fn to_unified<T>(device: &InternCLDevice, no_drop: Matrix<T>) -> crate::Resu
     Ok(cl_ptr)
 }
 
-pub fn construct_buffer<T>(device: &InternCLDevice, cpu: &crate::CPU, no_drop: Matrix<T>) -> crate::Result<Matrix<T>>  {
+pub fn construct_buffer<T>(device: &CLDevice, cpu: &crate::CPU, no_drop: Matrix<T>) -> crate::Result<Matrix<T>>  {
     let (host_ptr, no_drop_dims) = (no_drop.ptr.0, no_drop.dims());
 
     let cl_ptr = to_unified(device, no_drop)?;
@@ -58,7 +58,7 @@ pub fn construct_buffer<T>(device: &InternCLDevice, cpu: &crate::CPU, no_drop: M
     Ok(Matrix::from((buf, no_drop_dims)))
 }
 
-pub fn cpu_exec<T, F>(device: &InternCLDevice, matrix: &Matrix<T>, f: F) -> crate::Result<Matrix<T>> 
+pub fn cpu_exec<T, F>(device: &CLDevice, matrix: &Matrix<T>, f: F) -> crate::Result<Matrix<T>> 
 where 
     F: Fn(&crate::CPU, Matrix<T>) -> Matrix<T>,
     T: CDatatype
@@ -81,7 +81,7 @@ where
     Ok(Matrix::from((device, f(&cpu, x))))
 }
 
-pub fn cpu_exec_lhs_rhs<T, F>(device: &InternCLDevice, lhs: &Matrix<T>, rhs: &Matrix<T>, f: F) -> crate::Result<Matrix<T>> 
+pub fn cpu_exec_lhs_rhs<T, F>(device: &CLDevice, lhs: &Matrix<T>, rhs: &Matrix<T>, f: F) -> crate::Result<Matrix<T>> 
 where 
     F: Fn(&crate::CPU, &Matrix<T>, &Matrix<T>) -> Matrix<T>,
     T: CDatatype
@@ -107,7 +107,7 @@ where
     Ok(Matrix::from((device, f(&cpu, &lhs, &rhs))))
 }
 
-pub fn cpu_exec_scalar<T, F>(device: &InternCLDevice, matrix: &Matrix<T>, f: F) -> T 
+pub fn cpu_exec_scalar<T, F>(device: &CLDevice, matrix: &Matrix<T>, f: F) -> T 
 where 
     F: Fn(&crate::CPU, Matrix<T>) -> T,
     T: Number

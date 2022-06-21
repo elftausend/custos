@@ -1,4 +1,4 @@
-use crate::{CDatatype, InternCLDevice, Buffer, opencl::KernelOptions, Error};
+use crate::{CDatatype, Buffer, opencl::KernelOptions, Error, CLDevice};
 
 /// Sets the elements of an OpenCL Buffer to zero.
 /// # Example
@@ -15,7 +15,7 @@ use crate::{CDatatype, InternCLDevice, Buffer, opencl::KernelOptions, Error};
 ///     Ok(())
 /// }
 /// ```
-pub fn cl_clear<T: CDatatype>(device: &InternCLDevice, lhs: &mut Buffer<T>) -> Result<Buffer<T>, Error> {
+pub fn cl_clear<T: CDatatype>(device: &CLDevice, lhs: &mut Buffer<T>) -> Result<Buffer<T>, Error> {
     let src = format!("
         __kernel void clear(__global {datatype}* self) {{
             size_t id = get_global_id(0);

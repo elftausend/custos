@@ -1,5 +1,5 @@
 use std::ffi::c_void;
-use crate::{Buffer, InternCudaDevice, number::Number};
+use crate::{Buffer, number::Number, CudaDevice};
 
 use super::{fn_cache, api::{culaunch_kernel, cuOccupancyMaxPotentialBlockSize}};
 
@@ -26,7 +26,7 @@ impl<T: Number> AsCudaCvoidPtr for T {
 }
 
 /// uses calculated occupancy as launch configuration to launch a CUDA kernel
-pub fn launch_kernel1d(len: usize, device: &InternCudaDevice, src: &str, fn_name: &str, params: Vec<&dyn AsCudaCvoidPtr>) -> crate::Result<()> {
+pub fn launch_kernel1d(len: usize, device: &CudaDevice, src: &str, fn_name: &str, params: Vec<&dyn AsCudaCvoidPtr>) -> crate::Result<()> {
     let params = params.into_iter()
         .map(|param| param.as_cvoid_ptr())
         .collect::<Vec<_>>();

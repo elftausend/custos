@@ -1,7 +1,7 @@
 use std::ffi::c_void;
 
-use crate::{matrix::Matrix, number::Number, Error, CDatatype, Buffer};
-use super::{api::{enqueue_nd_range_kernel, set_kernel_arg, OCLErrorKind, set_kernel_arg_ptr}, CL_CACHE, CLCache, cl_device::InternCLDevice};
+use crate::{matrix::Matrix, number::Number, Error, CDatatype, Buffer, CLDevice};
+use super::{api::{enqueue_nd_range_kernel, set_kernel_arg, OCLErrorKind, set_kernel_arg_ptr}, CL_CACHE, CLCache};
 
 pub trait KernelArg<'a, T> {
     fn buf(&'a self) -> Option<&'a Buffer<T>> {
@@ -95,11 +95,11 @@ pub struct KernelOptions<'a, T> {
     lws: Option<[usize; 3]>,
     offset: Option<[usize; 3]>,
     wd: usize,
-    device: InternCLDevice,
+    device: CLDevice,
 }
 
 impl<'a, T: CDatatype> KernelOptions<'a, T> {
-    pub fn new(device: &InternCLDevice, lhs: &'a Buffer<T>, gws: [usize; 3], src: &'a str) -> crate::Result<KernelOptions<'a, T>> {
+    pub fn new(device: &CLDevice, lhs: &'a Buffer<T>, gws: [usize; 3], src: &'a str) -> crate::Result<KernelOptions<'a, T>> {
 
         let wd;
         if gws[0] == 0 {
@@ -153,13 +153,13 @@ impl<'a, T: CDatatype> KernelOptions<'a, T> {
 
     /// Adds output
     pub fn with_output(&mut self, out_len: usize) -> &mut KernelOptions<'a, T> {
-        self.output = Some(CLCache::get(self.device.clone(), out_len));
+        self.output = Some(CLCache::get(&self.device, out_len));
         self
     }
 
     /// Runs the kernel
     pub fn run(&'a mut self) -> Result<Buffer<T>, Error> {
-        let kernel = CL_CACHE.with(|cache| cache.borrow_mut().arg_kernel_cache(self.device.clone(), &self.buf_args, &self.number_args, self.output.as_ref(), self.src.to_string()))?;
+        let kernel = CL_CACHE.with(|cache| cache.borrow_mut().arg_kernel_cache(&self.device.clone(), &self.buf_args, &self.number_args, self.output.as_ref(), self.src.to_string()))?;
         
         for arg in &self.number_args {
             set_kernel_arg(&kernel, arg.1, &arg.0)?
@@ -190,11 +190,11 @@ pub struct KernelRunner<'a, T> {
     lws: Option<[usize; 3]>,
     offset: Option<[usize; 3]>,
     wd: usize,
-    device: InternCLDevice,
+    device: CLDevice,
 }
 
 impl<'a, T: CDatatype> KernelRunner<'a, T> {
-    pub fn new(device: &InternCLDevice, lhs: &'a mut Buffer<T>, gws: [usize; 3], src: &'a str) -> crate::Result<KernelRunner<'a, T>> {
+    pub fn new(device: &CLDevice, lhs: &'a mut Buffer<T>, gws: [usize; 3], src: &'a str) -> crate::Result<KernelRunner<'a, T>> {
 
         let wd;
         if gws[0] == 0 {
@@ -246,13 +246,13 @@ impl<'a, T: CDatatype> KernelRunner<'a, T> {
 
     /// Adds output
     pub fn with_output(&mut self, out_len: usize) -> &mut KernelRunner<'a, T> {
-        self.output = Some(CLCache::get(self.device.clone(), out_len));
+        self.output = Some(CLCache::get(&self.device, out_len));
         self
     }
 
     /// Runs the kernel
     pub fn run(&'a mut self) -> Result<Option<Buffer<T>>, Error> {
-        let kernel = CL_CACHE.with(|cache| cache.borrow_mut().arg_kernel_cache1(self.device.clone(), &self.buf_args, &self.num_args, self.output.as_ref(), self.src.to_string()))?;
+        let kernel = CL_CACHE.with(|cache| cache.borrow_mut().arg_kernel_cache1(&self.device, &self.buf_args, &self.num_args, self.output.as_ref(), self.src.to_string()))?;
         
         for arg in &self.num_args {
             set_kernel_arg_ptr(&kernel, arg.1, arg.0, arg.2)?

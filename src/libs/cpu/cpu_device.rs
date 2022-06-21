@@ -2,41 +2,6 @@ use std::{fmt::Debug, cell::RefCell, rc::Rc, ffi::c_void};
 use crate::{BaseOps, Buffer, Device, Gemm, libs::cpu::{CPUCache, ops::element_wise_op_mut}, matrix::Matrix, VecRead, number::Number, AsDev, BaseDevice, AssignOps, CDatatype, ManualMem, CacheBuf, GenericBlas};
 use super::{CPU_CACHE, assign_to_lhs};
 
-
-/// Used to store pointers.
-/// 
-/// Note / Safety
-/// 
-/// If the 'safe' feature isn't used, all pointers will get invalid when the drop code for an InternCPU runs as that deallocates the memory previously pointed at by the pointers stored in 'ptrs'.
-#[derive(Debug)]
-pub struct InternCPU {
-    pub ptrs: Vec<*mut usize>,
-}
-
-impl Drop for InternCPU {
-    fn drop(&mut self) {
-        let contents = CPU_CACHE.with(|cache| {
-           cache.borrow().nodes.clone()         
-        });
-        
-        for ptr in self.ptrs.iter() {
-            unsafe {    
-                drop(Box::from_raw(*ptr));
-            }
-            
-            for entry in &contents {
-                let hm_ptr = ((entry.1).0).0;
-                if &hm_ptr == ptr {
-                    CPU_CACHE.with(|cache| {
-                        cache.borrow_mut().nodes.remove(entry.0);
-                    });
-                }
-            }
-        }
-        self.ptrs.clear();
-    }
-}
-
 #[derive(Debug, Clone)]
 /// A CPU is used to perform calculations on the host CPU.
 /// To make new calculations invocable, a trait providing new operations should be implemented for the CPU.
@@ -92,6 +57,33 @@ impl<T: Copy+Default> Device<T> for CPU {
         assert!(!vec.is_empty(), "invalid buffer len: 0");
         let ptr = Box::into_raw(vec.into_boxed_slice()) as *mut T;
         self.inner.borrow_mut().ptrs.push(ptr as *mut usize);
+        (ptr, std::ptr::null_mut(), 0)
+    }
+
+    fn drop(&mut self, buf: Buffer<T>) {
+        let ptrs = &mut self.inner.borrow_mut().ptrs;
+        crate::remove_value(ptrs, &(buf.ptr.0 as *mut usize)).unwrap();
+        self.drop_buf(buf)
+    }
+}
+
+
+#[cfg(feature="safe")]
+impl<T: Copy+Default> Device<T> for CPU {
+    fn alloc(&self, len: usize) -> (*mut T, *mut c_void, u64) {
+        assert!(len > 0, "invalid buffer len: 0");
+        let ptr = Box::into_raw(vec![T::default(); len].into_boxed_slice()) as *mut T;
+        (ptr, std::ptr::null_mut(), 0)
+    }
+
+    fn with_data(&self, data: &[T]) -> (*mut T, *mut c_void, u64) {
+        assert!(!data.is_empty(), "invalid buffer len: 0");
+        let ptr = Box::into_raw(data.to_vec().into_boxed_slice()) as *mut T;
+        (ptr, std::ptr::null_mut(), 0)
+    }
+    fn alloc_with_vec(&self, vec: Vec<T>) -> (*mut T, *mut c_void, u64) {
+        assert!(!vec.is_empty(), "invalid buffer len: 0");
+        let ptr = Box::into_raw(vec.into_boxed_slice()) as *mut T;
         (ptr, std::ptr::null_mut(), 0)
     }
 
@@ -198,4 +190,38 @@ pub fn each_op<T: Copy+Default, F: Fn(T) -> T>(device: &CPU, x: &Matrix<T>, f: F
         *value = f(x[idx]);
     }
     (y, x.dims()).into()
+}
+
+/// Used to store pointers.
+/// 
+/// Note / Safety
+/// 
+/// If the 'safe' feature isn't used, all pointers will get invalid when the drop code for an InternCPU runs as that deallocates the memory previously pointed at by the pointers stored in 'ptrs'.
+#[derive(Debug)]
+pub struct InternCPU {
+    pub ptrs: Vec<*mut usize>,
+}
+
+impl Drop for InternCPU {
+    fn drop(&mut self) {
+        let contents = CPU_CACHE.with(|cache| {
+           cache.borrow().nodes.clone()         
+        });
+        
+        for ptr in self.ptrs.iter() {
+            unsafe {    
+                drop(Box::from_raw(*ptr));
+            }
+            
+            for entry in &contents {
+                let hm_ptr = ((entry.1).0).0;
+                if &hm_ptr == ptr {
+                    CPU_CACHE.with(|cache| {
+                        cache.borrow_mut().nodes.remove(entry.0);
+                    });
+                }
+            }
+        }
+        self.ptrs.clear();
+    }
 }

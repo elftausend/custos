@@ -1,8 +1,8 @@
 use std::ffi::c_void;
 
 #[cfg(feature="opencl")]
-use crate::opencl::{InternCLDevice, CLCache, api::{enqueue_write_buffer, wait_for_event}};
-use crate::{BaseOps, Buffer, Device, Gemm, get_device, VecRead, number::Number, AssignOps, CDatatype, GenericBlas, CUdeviceptr};
+use crate::opencl::{CLCache, api::{enqueue_write_buffer, wait_for_event}};
+use crate::{BaseOps, Buffer, Device, Gemm, get_device, VecRead, number::Number, AssignOps, CDatatype, GenericBlas, CUdeviceptr, CLDevice};
 
 /// A matrix using [Buffer] described with rows and columns
 /// # Example
@@ -295,10 +295,10 @@ impl<T: Copy+Default> From<(usize, usize, Vec<T>)> for Matrix<T> {
 }
 
 #[cfg(feature="opencl")]
-impl<T: CDatatype> From<(&InternCLDevice, Matrix<T>)> for Matrix<T> {
-    fn from(device_matrix: (&InternCLDevice, Matrix<T>)) -> Self {
+impl<T: CDatatype> From<(&CLDevice, Matrix<T>)> for Matrix<T> {
+    fn from(device_matrix: (&CLDevice, Matrix<T>)) -> Self {
         //assert!(CPU_CACHE.with(|cache| !cache.borrow().nodes.is_empty()), "no allocations");
-        let y = CLCache::get::<T>(device_matrix.0.clone(), device_matrix.1.size());
+        let y = CLCache::get::<T>(device_matrix.0, device_matrix.1.size());
         let event = unsafe {enqueue_write_buffer(&device_matrix.0.queue(), y.ptr.1, device_matrix.1.as_slice(), true).unwrap()};
         wait_for_event(event).unwrap();
         Matrix::from((y, device_matrix.1.dims()))
