@@ -1,6 +1,6 @@
 use crate::{CDatatype, InternCLDevice, Buffer, opencl::KernelOptions, Error};
 
-/// Sets all the elements of an OpenCL Buffer to zero.
+/// Sets the elements of an OpenCL Buffer to zero.
 /// # Example
 /// ```
 /// use custos::{CLDevice, Buffer, VecRead, opencl::cl_clear};

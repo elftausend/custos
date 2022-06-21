@@ -175,7 +175,7 @@ impl<T: CDatatype> Gemm<T> for InternCLDevice {
     fn gemm(&self, lhs: &Matrix<T>, rhs: &Matrix<T>) -> Matrix<T> {
         assert!(lhs.dims().1 == rhs.dims().0);
         //crate::opencl::ops::ocl_gemm1(self.clone(), rhs, lhs).unwrap()
-        let buf = cl_gemm(self.clone(), rhs.cols(), rhs.rows(), lhs.rows(), rhs, lhs).unwrap();
+        let buf = cl_gemm(self, rhs.cols(), rhs.rows(), lhs.rows(), rhs, lhs).unwrap();
         (buf, (lhs.rows(), rhs.cols())).into()
     }
 }

@@ -445,3 +445,17 @@ fn test_cuda_gemm_speed() -> custos::Result<()> {
 
     Ok(())
 }
+
+#[cfg(feature="opencl")]
+#[test]
+fn test_small_gemm_cl() -> Result<(), custos::Error> {
+    use custos::opencl::cl_gemm;
+
+    let device = CLDevice::new(0)?;
+    let lhs = Buffer::<i16>::from((&device, [15, 30, 21, 5, 8, 5]));
+    let rhs = Buffer::<i16>::from((&device, [3, 2, 7, 1, 9, 20]));
+    
+    let out = cl_gemm(&device, 2, 3, 2, &rhs, &lhs)?;
+    assert_eq!(device.read(&out), vec![444, 480, 116, 118]);
+    Ok(())
+}

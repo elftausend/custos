@@ -1,2 +1,3 @@
-#[cfg(any(feature="cuda", not(target_os="macos")))]
+#[cfg(not(target_os = "macos"))]
+#[cfg(feature="cuda")]
 mod cuda;

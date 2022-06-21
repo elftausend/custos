@@ -6,7 +6,7 @@ use crate::{BaseOps, Buffer, Device, Gemm, get_device, VecRead, number::Number, 
 
 /// A matrix using [Buffer] described with rows and columns
 /// # Example
-/// The following example creates an empty Matrix with the given dimensions.
+/// The following example creates a zeroed (or values set to default) Matrix with the given dimensions.
 /// ```
 /// use custos::{CPU, Matrix, AsDev};
 /// 
@@ -79,7 +79,7 @@ impl<T> Matrix<T> {
         self.dims = dims;
     }
 
-    /// Returns the column count of the matrix.
+    /// Returns the row count of the matrix.
     /// 
     /// # Example
     /// ```

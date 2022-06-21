@@ -1,7 +1,22 @@
 use std::fmt::Write;
 use crate::{libs::opencl::{KernelOptions, cl_device::InternCLDevice}, Error, CDatatype, Buffer};
 
-pub fn cl_gemm<T: CDatatype>(device: InternCLDevice, m: usize, k: usize, n: usize, lhs: &Buffer<T>, rhs: &Buffer<T>) -> Result<Buffer<T>, Error> {
+/// OpenCL matrix multiplication of two buffers / matrices.
+/// # Example
+/// ```
+/// use custos::{CLDevice, Buffer, VecRead, opencl::cl_gemm};
+/// 
+/// fn main() -> Result<(), custos::Error> {
+///     let device = CLDevice::new(0)?;
+///     let lhs = Buffer::<i16>::from((&device, [15, 30, 21, 5, 8, 5]));
+///     let rhs = Buffer::<i16>::from((&device, [3, 2, 7, 1, 9, 20]));
+///     
+///     let out = cl_gemm(&device, 2, 3, 2, &rhs, &lhs)?;
+///     assert_eq!(device.read(&out), vec![444, 480, 116, 118]);
+///     Ok(())
+/// }
+/// ```
+pub fn cl_gemm<T: CDatatype>(device: &InternCLDevice, m: usize, k: usize, n: usize, lhs: &Buffer<T>, rhs: &Buffer<T>) -> Result<Buffer<T>, Error> {
     let mut mw = 1;
     for x in &[16, 8, 4, 2, 1] {
         if m % x == 0 {

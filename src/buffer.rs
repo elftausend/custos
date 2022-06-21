@@ -15,7 +15,7 @@ pub struct Buffer<T> {
 }
 
 impl<T> Buffer<T> {
-    /// Creates an empty buffer with the given length on the specified device.
+    /// Creates a zeroed (or values set to default) buffer with the given length on the specified device.
     /// ```
     /// use custos::{CPU, Buffer};
     /// 
@@ -384,7 +384,7 @@ impl<T: CDatatype> From<(*mut c_void, usize)> for Buffer<T> {
 /// if the corresponding internal count matches with the id used in the cache.
 /// 
 /// # 'safe' feature
-/// An empty buffer with the specified len is returned.
+/// An zeroed buffer with the specified len is returned.
 /// 
 /// # Example
 /// ```
