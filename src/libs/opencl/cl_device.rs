@@ -1,37 +1,78 @@
 use std::{ffi::c_void, rc::Rc, cell::RefCell};
-
 use crate::{libs::opencl::api::{create_buffer, MemFlags}, BaseOps, Matrix, AsDev, Gemm, VecRead, BaseDevice, Error, Device, AssignOps, CDatatype, ManualMem, Buffer, CacheBuf};
-
 use super::{api::{CLIntDevice, CommandQueue, Context, create_command_queue, create_context, enqueue_read_buffer, wait_for_event, release_mem_object, enqueue_write_buffer, unified_ptr}, CL_DEVICES, cl_tew, cl_gemm, CL_CACHE, cl_tew_self, CLCache, cl_clear};
 
 #[derive(Debug, Clone)]
-/// All traits related to mathematical operations need to be implemented for this struct in order to use them.
-/// This struct should only be created via the [CLDevice] struct.
-pub struct InternCLDevice {
-    pub ptrs: Vec<*mut c_void>,
-    device: CLIntDevice,
-    ctx: Context,
-    queue: CommandQueue,
-    unified_mem: bool,
+/// Used to perform calculations with an OpenCL capable device.
+/// To make new calculations invocable, a trait providing new operations should be implemented for [CLDevice].
+/// # Example
+/// ```
+/// use custos::{CLDevice, BaseOps, VecRead, Matrix, Error};
+/// 
+/// fn main() -> Result<(), Error> {
+///     let device = CLDevice::new(0)?;
+///     
+///     let a = Matrix::<f32>::new(&device, (5, 5));
+///     let b = Matrix::from((&device, (5, 5), vec![1.3; 5*5]));
+///     
+///     let out = device.add(&a, &b);
+///     
+///     assert_eq!(device.read(&out), vec![1.3; 5*5]);
+///     Ok(())
+/// }
+/// ```
+pub struct CLDevice {
+    pub inner: Rc<RefCell<InternCLDevice>>
 }
 
-impl From<Rc<RefCell<InternCLDevice>>> for CLDevice {
-    fn from(inner: Rc<RefCell<InternCLDevice>>) -> Self {
-        CLDevice { inner }
+unsafe impl Sync for InternCLDevice {}
+
+impl CLDevice {
+    /// Returns an [CLDevice] at the specified device index.
+    /// # Errors
+    /// - No device is found at the given device index
+    /// - some other OpenCL related errors
+    pub fn new(device_idx: usize) -> Result<CLDevice, Error> {
+        let inner = Rc::new(RefCell::new(CL_DEVICES.current(device_idx)?));
+        Ok(
+            CLDevice { inner }
+        )
+    }
+
+    pub fn ctx(&self) -> Context {
+        self.inner.borrow().ctx
+    }
+
+    pub fn queue(&self) -> CommandQueue {
+        self.inner.borrow().queue
+    }
+
+    pub fn device(&self) -> CLIntDevice {
+        self.inner.borrow().device
+    }
+
+    pub fn global_mem_size_in_gb(&self) -> Result<f64, Error> {
+        Ok(self.device().get_global_mem()? as f64 * 10f64.powi(-9))
+    }
+
+    pub fn max_mem_alloc_in_gb(&self) -> Result<f64, Error> {
+        Ok(self.device().get_max_mem_alloc()? as f64 * 10f64.powi(-9))
+    }
+
+    pub fn name(&self) -> Result<String, Error> {
+        self.device().get_name()
+    }
+
+    pub fn version(&self) -> Result<String, Error> {
+        self.device().get_version()
+    }
+
+    pub fn unified_mem(&self) -> bool {
+        // TODO: "true" for every device?
+        self.inner.borrow().unified_mem
     }
 }
 
-impl InternCLDevice {
-    #[must_use]
-    pub fn new(device: CLIntDevice) -> crate::Result<InternCLDevice> {
-        let ctx = create_context(&[device])?;
-        let queue = create_command_queue(&ctx, device)?;
-        let unified_mem = device.unified_mem()?;
-
-        Ok(InternCLDevice { ptrs: Vec::new(), device, ctx, queue, unified_mem })    
-    }
-
-}
 
 #[cfg(not(feature="safe"))]
 impl<T> Device<T> for CLDevice {
@@ -179,81 +220,36 @@ impl AsDev for CLDevice {
 
 impl<T: CDatatype> BaseDevice<T> for CLDevice {}
 
+
 #[derive(Debug, Clone)]
-/// If the 'safe' feature isn't used, pointers are stored in the 'ptrs' field.
-/// It is used to get an [InternCLDevice], which gives you access to all functions that were implemented for the InternCLDevice struct.
-/// 
+/// Internal representation of an OpenCL Device with the capability of storing pointers.
 /// # Note / Safety
 /// 
 /// If the 'safe' feature isn't used, all pointers will get invalid when the drop code for a CLDevice object is run as that deallocates the memory previously pointed at by the pointers stored in 'ptrs'.
-/// 
-/// # Example
-/// ```
-/// use custos::{CLDevice, BaseOps, VecRead, Matrix, Error};
-/// 
-/// fn main() -> Result<(), Error> {
-///     let device = CLDevice::new(0)?;
-///     
-///     let a = Matrix::<f32>::new(&device, (5, 5));
-///     let b = Matrix::from((&device, (5, 5), vec![1.3; 5*5]));
-///     
-///     let out = device.add(&a, &b);
-///     
-///     assert_eq!(device.read(&out), vec![1.3; 5*5]);
-///     Ok(())
-/// }
-/// ```
-pub struct CLDevice {
-    pub inner: Rc<RefCell<InternCLDevice>>
+pub struct InternCLDevice {
+    pub ptrs: Vec<*mut c_void>,
+    device: CLIntDevice,
+    ctx: Context,
+    queue: CommandQueue,
+    unified_mem: bool,
 }
 
-unsafe impl Sync for InternCLDevice {}
+impl From<Rc<RefCell<InternCLDevice>>> for CLDevice {
+    fn from(inner: Rc<RefCell<InternCLDevice>>) -> Self {
+        CLDevice { inner }
+    }
+}
 
-impl CLDevice {
-    /// Returns an [CLDevice] at the specified device index.
-    /// # Errors
-    /// - No device is found at the given device index
-    /// - some other OpenCL related errors
-    pub fn new(device_idx: usize) -> Result<CLDevice, Error> {
-        let inner = Rc::new(RefCell::new(CL_DEVICES.current(device_idx)?));
-        Ok(
-            CLDevice { inner }
-        )
-        //Ok(InternCLDevice::new(CL_DEVICES.current(device_idx)?))
+impl InternCLDevice {
+    #[must_use]
+    pub fn new(device: CLIntDevice) -> crate::Result<InternCLDevice> {
+        let ctx = create_context(&[device])?;
+        let queue = create_command_queue(&ctx, device)?;
+        let unified_mem = device.unified_mem()?;
+
+        Ok(InternCLDevice { ptrs: Vec::new(), device, ctx, queue, unified_mem })    
     }
 
-    pub fn ctx(&self) -> Context {
-        self.inner.borrow().ctx
-    }
-
-    pub fn queue(&self) -> CommandQueue {
-        self.inner.borrow().queue
-    }
-
-    pub fn device(&self) -> CLIntDevice {
-        self.inner.borrow().device
-    }
-
-    pub fn global_mem_size_in_gb(&self) -> Result<f64, Error> {
-        Ok(self.device().get_global_mem()? as f64 * 10f64.powi(-9))
-    }
-
-    pub fn max_mem_alloc_in_gb(&self) -> Result<f64, Error> {
-        Ok(self.device().get_max_mem_alloc()? as f64 * 10f64.powi(-9))
-    }
-
-    pub fn name(&self) -> Result<String, Error> {
-        self.device().get_name()
-    }
-
-    pub fn version(&self) -> Result<String, Error> {
-        self.device().get_version()
-    }
-
-    pub fn unified_mem(&self) -> bool {
-        // TODO: "true" for every device?
-        self.inner.borrow().unified_mem
-    }
 }
 
 impl Drop for InternCLDevice {

@@ -4,7 +4,7 @@ use super::{CPU_CACHE, assign_to_lhs};
 
 #[derive(Debug, Clone)]
 /// A CPU is used to perform calculations on the host CPU.
-/// To make new calculations invocable, a trait providing new operations should be implemented for the CPU.
+/// To make new calculations invocable, a trait providing new operations should be implemented for [CPU].
 /// 
 /// # Example
 /// ```

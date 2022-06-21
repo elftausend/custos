@@ -2,80 +2,8 @@ use std::{cell::{RefCell, Ref, RefMut}, rc::Rc, ptr::null_mut};
 use crate::{Device, VecRead, CacheBuf, Gemm, BaseOps, AssignOps, BaseDevice, GenericBlas, CDatatype, Buffer, Matrix, CUdeviceptr, AsDev};
 use super::{api::{device, create_context, CudaIntDevice, Context, cublas::{create_handle, CublasHandle, cublasSetStream_v2, cublasDestroy_v2}, cuInit, cufree, cumalloc, cuwrite, curead, cuCtxDestroy, Stream, create_stream, cuStreamDestroy, Module, cuModuleUnload}, CudaCache, cu_clear, cu_ew, cu_ew_self};
 
-/// Used to perform calculations on a [CudaDevice]
-#[derive(Debug)]
-pub struct InternCudaDevice {
-    pub ptrs: Vec<CUdeviceptr>,
-    pub modules: Vec<Module>,
-    device: CudaIntDevice,
-    ctx: Context,
-    stream: Stream,
-    handle: CublasHandle,
-}
-
-impl From<Rc<RefCell<InternCudaDevice>>> for CudaDevice {
-    fn from(inner: Rc<RefCell<InternCudaDevice>>) -> Self {
-        CudaDevice { inner }
-    }
-}
-
-impl InternCudaDevice {
-    #[must_use]
-    pub fn new(idx: usize) -> crate::Result<InternCudaDevice> {
-        unsafe {cuInit(0) }.to_result()?;
-        let device = device(idx as i32)?;
-        let ctx = create_context(&device)?;
-        let handle = create_handle()?;
-        let stream = create_stream()?;
-        unsafe {cublasSetStream_v2(handle.0, stream.0)}.to_result()?;
-        
-        Ok(InternCudaDevice {
-            ptrs: vec![],
-            modules: vec![],
-            device,
-            ctx,
-            stream,
-            handle,
-        })
-    }
-
-    pub fn device(&self) -> &CudaIntDevice {
-        &self.device
-    }
-
-    pub fn ctx(&self) -> &Context {
-        &self.ctx
-    }
-
-    pub fn handle(&self) -> &CublasHandle {
-        &self.handle
-    }
-
-    pub fn stream(&self) -> &Stream {
-        &self.stream
-    }
-}
-
-
-impl Drop for InternCudaDevice {
-    fn drop(&mut self) {
-        unsafe {
-            for ptr in &mut self.ptrs {
-                cufree(*ptr).unwrap();
-            }
-
-            cublasDestroy_v2(self.handle.0);
-
-            for module in &self.modules {
-                cuModuleUnload(module.0);
-            }
-
-            cuStreamDestroy(self.stream.0);
-            cuCtxDestroy(self.ctx.0);        
-        }    
-    }
-}
-
+/// Used to perform calculations with a CUDA capable device.
+/// To make new calculations invocable, a trait providing new operations should be implemented for [CudaDevice].
 #[derive(Debug, Clone)]
 pub struct CudaDevice {
     pub inner: Rc<RefCell<InternCudaDevice>>
@@ -143,8 +71,6 @@ impl<T> Device<T> for CudaDevice {
         }
     }
 }
-
-
 
 impl<T: Default + Copy> VecRead<T> for CudaDevice {
     fn read(&self, buf: &crate::Buffer<T>) -> Vec<T> {
@@ -220,3 +146,76 @@ impl AsDev for CudaDevice {
 }
 
 impl<T: CDatatype + GenericBlas> BaseDevice<T> for CudaDevice {}
+
+#[derive(Debug)]
+pub struct InternCudaDevice {
+    pub ptrs: Vec<CUdeviceptr>,
+    pub modules: Vec<Module>,
+    device: CudaIntDevice,
+    ctx: Context,
+    stream: Stream,
+    handle: CublasHandle,
+}
+
+impl From<Rc<RefCell<InternCudaDevice>>> for CudaDevice {
+    fn from(inner: Rc<RefCell<InternCudaDevice>>) -> Self {
+        CudaDevice { inner }
+    }
+}
+
+impl InternCudaDevice {
+    #[must_use]
+    pub fn new(idx: usize) -> crate::Result<InternCudaDevice> {
+        unsafe {cuInit(0) }.to_result()?;
+        let device = device(idx as i32)?;
+        let ctx = create_context(&device)?;
+        let handle = create_handle()?;
+        let stream = create_stream()?;
+        unsafe {cublasSetStream_v2(handle.0, stream.0)}.to_result()?;
+        
+        Ok(InternCudaDevice {
+            ptrs: vec![],
+            modules: vec![],
+            device,
+            ctx,
+            stream,
+            handle,
+        })
+    }
+
+    pub fn device(&self) -> &CudaIntDevice {
+        &self.device
+    }
+
+    pub fn ctx(&self) -> &Context {
+        &self.ctx
+    }
+
+    pub fn handle(&self) -> &CublasHandle {
+        &self.handle
+    }
+
+    pub fn stream(&self) -> &Stream {
+        &self.stream
+    }
+}
+
+
+impl Drop for InternCudaDevice {
+    fn drop(&mut self) {
+        unsafe {
+            for ptr in &mut self.ptrs {
+                cufree(*ptr).unwrap();
+            }
+
+            cublasDestroy_v2(self.handle.0);
+
+            for module in &self.modules {
+                cuModuleUnload(module.0);
+            }
+
+            cuStreamDestroy(self.stream.0);
+            cuCtxDestroy(self.ctx.0);        
+        }    
+    }
+}
