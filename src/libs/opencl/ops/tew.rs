@@ -48,10 +48,10 @@ pub fn cl_tew<T: CDatatype>(device: &CLDevice, lhs: &Buffer<T>, rhs: &Buffer<T>,
     ", datatype=T::as_c_type_str());
 
     let gws = [lhs.len, 0, 0];
-    KernelOptions::<T>::new(device, lhs, gws, &src)?
+    Ok(KernelOptions::<T>::new(device, lhs, gws, &src)?
         .with_rhs(rhs)
         .with_output(lhs.len)
-        .run()
+        .run()?.unwrap())
 }
 
 /// Element-wise "assign" operations. The op/operation is usually "+", "-", "*", "/".

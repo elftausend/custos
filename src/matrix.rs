@@ -231,6 +231,8 @@ impl<T> From<(Buffer<T>, usize, usize)> for Matrix<T> {
     }
 }
 
+// TODO: unsafe from raw parts?
+#[cfg(not(feature="safe"))]
 impl<T> From<(*mut T, (usize, usize))> for Matrix<T> {
     fn from(ptr_dims: (*mut T, (usize, usize))) -> Self {
         let dims = ptr_dims.1;
@@ -244,7 +246,8 @@ impl<T> From<(*mut T, (usize, usize))> for Matrix<T> {
     }
 }
 
-// no tuple for dims
+// TODO: unsafe from raw parts?
+#[cfg(not(feature="safe"))]
 impl<T> From<(*mut T, usize, usize)> for Matrix<T> {
     fn from(ptr_dims: (*mut T, usize, usize)) -> Self {
         Matrix {

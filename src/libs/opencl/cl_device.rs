@@ -68,7 +68,6 @@ impl CLDevice {
     }
 
     pub fn unified_mem(&self) -> bool {
-        // TODO: "true" for every device?
         self.inner.borrow().unified_mem
     }
 }

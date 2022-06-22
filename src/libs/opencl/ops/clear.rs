@@ -15,7 +15,7 @@ use crate::{CDatatype, Buffer, opencl::KernelOptions, Error, CLDevice};
 ///     Ok(())
 /// }
 /// ```
-pub fn cl_clear<T: CDatatype>(device: &CLDevice, lhs: &mut Buffer<T>) -> Result<Buffer<T>, Error> {
+pub fn cl_clear<T: CDatatype>(device: &CLDevice, lhs: &mut Buffer<T>) -> Result<(), Error> {
     let src = format!("
         __kernel void clear(__global {datatype}* self) {{
             size_t id = get_global_id(0);
@@ -25,5 +25,6 @@ pub fn cl_clear<T: CDatatype>(device: &CLDevice, lhs: &mut Buffer<T>) -> Result<
 
     let gws = [lhs.len, 0, 0];
     KernelOptions::<T>::new(device, lhs, gws, &src)?
-        .run()
+        .run()?;
+    Ok(())
 }

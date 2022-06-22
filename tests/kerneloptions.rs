@@ -21,7 +21,7 @@ fn test_kernel_options() -> Result<(), Error> {
     let out = KernelOptions::<i32>::new(&device, &lhs, gws, &src)?
         .with_rhs(&rhs)
         .with_output(lhs.len)
-        .run()?;
+        .run()?.unwrap();
 
     assert_eq!(device.read(&out), vec![-1, -1, -1, -1, -1, -1]);
     Ok(())

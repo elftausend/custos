@@ -28,7 +28,7 @@ fn test_cl_offset() -> Result<(), Error> {
         .with_rhs(&rhs)
         .with_output(lhs.len)
         .with_offset([skip, 0, 0])
-        .run()?;
+        .run()?.unwrap();
     
     use custos::{VecRead, Buffer};
     let _out_data = device.read(&out);

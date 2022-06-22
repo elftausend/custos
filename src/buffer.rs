@@ -48,6 +48,7 @@ impl<T> Buffer<T> {
         self.len
     }
 
+    #[cfg_attr(feature = "safe", doc = "```ignore")]
     /// Returns `true` if the buffer is created without a slice.
     /// # Example
     /// ```
@@ -109,12 +110,30 @@ unsafe impl<T> Sync for Buffer<T> {}
 
 // TODO: Safe mode and cuda clone | cuda ptr reference counted?
 #[cfg(feature="safe")]
-impl<T> Clone for Buffer<T> {
+impl<T: Clone> Clone for Buffer<T> {
     fn clone(&self) -> Self {
+        if !self.ptr.0.is_null() && self.ptr.1.is_null() {
+            // using this to prevent the introduction of the Default trait bound for T
+            // FIXME: is there a better way to implement this?
+            let mut data = Vec::<T>::with_capacity(self.len);
+            for value in self {
+                data.push(value.clone())
+            }
+            let mut ptr = self.ptr;
+            ptr.0 = Box::into_raw(data.into_boxed_slice()) as *mut T;
+            return Self { ptr, len: self.len };
+        }
+
         #[cfg(feature="opencl")]
         if !self.ptr.1.is_null() { 
             retain_mem_object(self.ptr.1).unwrap();
+        }
+
+        #[cfg(feature="cuda")]
+        if !self.ptr.2.is_null() { 
+            unimplemented!("At the moment, cloning a CUDA Buffer is undefined");
         };
+
         Self { ptr: self.ptr, len: self.len}
     }
 }
@@ -287,7 +306,6 @@ impl<'a, T> std::iter::IntoIterator for &'a mut Buffer<T> {
     }
 }
 
-
 #[cfg(not(feature="safe"))]
 impl<T: Number> From<T> for Buffer<T> {
     fn from(val: T) -> Self {
@@ -367,6 +385,7 @@ impl<T: Clone, D: Device<T>> From<(&D, &Vec<T>)> for Buffer<T> {
     }
 }
 
+// TODO: unsafe from raw parts fn?
 #[cfg(not(feature="safe"))]
 impl<T: Copy> From<(*mut T, usize)> for Buffer<T> {
     fn from(info: (*mut T, usize)) -> Self {

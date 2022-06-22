@@ -1,3 +1,44 @@
+//! custos is a minimal OpenCL, CUDA and host CPU array manipulation engine / framework.
+//! It provides some matrix / buffer operations: matrix multiplication (BLAS, cuBLAS), element-wise arithmetic (vector addition, ...), set all elements to zero (or default value).
+//! To use more operations: [custos-math]
+//! 
+//! [custos-math]: https://github.com/elftausend/custos-math
+//! 
+//! ## [Examples]
+//! 
+//! [examples]: https://github.com/elftausend/custos/tree/main/examples
+//! 
+//! Using the host CPU as the compute device:
+//! 
+//! [cpu_readme.rs]
+//! 
+//! [cpu_readme.rs]: https://github.com/elftausend/custos/blob/main/examples/cpu_readme.rs
+//! 
+//! ```rust
+//! use custos::{CPU, AsDev, Matrix, BaseOps, VecRead};
+//! 
+//! fn main() {
+//!     let device = CPU::new();
+//!     let a = Matrix::from(( &device, 2, 3, [1, 2, 3, 4, 5, 6]));
+//!     let b = Matrix::from(( &device, (2, 3), [6, 5, 4, 3, 2, 1]));
+//!     
+//!     // specify device for operation
+//!     let c = device.add(&a, &b);
+//!     assert_eq!(device.read(&c), [7, 7, 7, 7, 7, 7]);
+//! 
+//!     // select() ... sets CPU as 'global device' 
+//!     // -> when device is not specified in an operation, the 'global device' is used
+//!     let device = CPU::new().select();
+//! 
+//!     let a = Matrix::from(( &device, 2, 3, [1, 2, 3, 4, 5, 6]));
+//!     let b = Matrix::from(( &device, 2, 3, [6, 5, 4, 3, 2, 1]));
+//! 
+//!     let c = a + b;
+//!     assert_eq!(c.read(), vec![7, 7, 7, 7, 7, 7]);
+//! }
+//! ```
+
+
 use std::{cell::RefCell, rc::Weak, ffi::c_void};
 
 //pub use libs::*;

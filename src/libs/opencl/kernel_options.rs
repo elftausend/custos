@@ -80,7 +80,7 @@ impl<'a, T: Number> KernelArg<'a, T> for T {
 ///     let out = KernelOptions::<i32>::new(&device, &lhs, gws, &src)?
 ///         .with_rhs(&rhs)
 ///         .with_output(lhs.len)
-///         .run()?;
+///         .run()?.unwrap();
 /// 
 ///     assert_eq!(device.read(&out), vec![-1, -1, -1, -1, -1, -1]);
 ///     Ok(())
@@ -125,23 +125,23 @@ impl<'a, T: CDatatype> KernelOptions<'a, T> {
         })
     }
 
-    pub fn with_lws(&mut self, lws: [usize; 3]) -> &mut KernelOptions<'a, T> {
+    pub fn with_lws(mut self, lws: [usize; 3]) -> KernelOptions<'a, T> {
         self.lws = Some(lws);
         self
     }
 
-    pub fn with_offset(&mut self, offset: [usize; 3]) -> &mut Self {
+    pub fn with_offset(mut self, offset: [usize; 3]) -> Self {
         self.offset = Some(offset);
         self
     }
 
     /// Sets buffer to index 1 for the kernel argument list
-    pub fn with_rhs(&mut self, rhs: &'a Buffer<T>) -> &mut KernelOptions<'a, T> {
+    pub fn with_rhs(mut self, rhs: &'a Buffer<T>) -> KernelOptions<'a, T> {
         self.buf_args.push((rhs, 1));
         self
     }
     /// Adds value (Matrix<T> or T) to the kernel argument list
-    pub fn add_arg<A: KernelArg<'a, T>>(&'a mut self, arg: &'a A) -> &mut KernelOptions<'a, T> {
+    pub fn add_arg<A: KernelArg<'a, T>>(mut self, arg: &'a A) -> KernelOptions<'a, T> {
         let idx = self.number_args.len()+self.buf_args.len();
         
         match arg.number() {
@@ -152,13 +152,13 @@ impl<'a, T: CDatatype> KernelOptions<'a, T> {
     }
 
     /// Adds output
-    pub fn with_output(&mut self, out_len: usize) -> &mut KernelOptions<'a, T> {
+    pub fn with_output(mut self, out_len: usize) -> KernelOptions<'a, T> {
         self.output = Some(CLCache::get(&self.device, out_len));
         self
     }
 
     /// Runs the kernel
-    pub fn run(&'a mut self) -> Result<Buffer<T>, Error> {
+    pub fn run(self) -> crate::Result<Option<Buffer<T>>> {
         let kernel = CL_CACHE.with(|cache| cache.borrow_mut().arg_kernel_cache(&self.device.clone(), &self.buf_args, &self.number_args, self.output.as_ref(), self.src.to_string()))?;
         
         for arg in &self.number_args {
@@ -166,11 +166,11 @@ impl<'a, T: CDatatype> KernelOptions<'a, T> {
         }
     
         enqueue_nd_range_kernel(&self.device.queue(), &kernel, self.wd, &self.gws, self.lws.as_ref(), self.offset)?;
-    
-        match &self.output {
-            Some(out) => Ok(out.clone()),
-            None => Ok(self.buf_args[0].0.clone()),
+        
+        if let Some(output) = self.output {
+            return Ok(Some(output));
         }
+        Ok(None)
     }
 }
 
@@ -251,7 +251,7 @@ impl<'a, T: CDatatype> KernelRunner<'a, T> {
     }
 
     /// Runs the kernel
-    pub fn run(&'a mut self) -> Result<Option<Buffer<T>>, Error> {
+    pub fn run(&mut self) -> Result<Option<Buffer<T>>, Error> {
         let kernel = CL_CACHE.with(|cache| cache.borrow_mut().arg_kernel_cache1(&self.device, &self.buf_args, &self.num_args, self.output.as_ref(), self.src.to_string()))?;
         
         for arg in &self.num_args {
@@ -261,8 +261,10 @@ impl<'a, T: CDatatype> KernelRunner<'a, T> {
         enqueue_nd_range_kernel(&self.device.queue(), &kernel, self.wd, &self.gws, self.lws.as_ref(), self.offset)?;
     
         if let Some(output) = &self.output {
+            // TODO: Make owned, therefore takt self not ref
             return Ok(Some(output.clone()));
         }
+        
         Ok(None)
     }
 }

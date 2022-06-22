@@ -3,7 +3,7 @@ name = "custos"
 version = "0.1.0"
 edition = "2021"
 license = "MIT"
-description = "A library for matrix operations calculated on the CPU and OpenCL devices"
+description = "A minimal OpenCL, CUDA and host CPU array manipulation engine / framework."
 repository = "https://github.com/elftausend/custos"
 readme = "README.md"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -12,7 +12,7 @@ readme = "README.md"
 lazy_static = "1.4.0"
 
 [features]
-default = ["opencl"]
+default = ["opencl", "safe"]
 opencl = []
 cuda = []
 safe = []

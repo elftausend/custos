@@ -16,6 +16,7 @@ mod cl_cache;
 use crate::{Matrix, CDatatype, CPU, Node, Buffer, VecRead, number::Number};
 use self::api::{create_buffer, MemFlags, release_mem_object};
 
+/// Returns an OpenCL pointer that is bound to the host pointer stored in the specified matrix.
 pub fn to_unified<T>(device: &CLDevice, no_drop: Matrix<T>) -> crate::Result<*mut c_void> {
     // use the host pointer to create an OpenCL buffer
     let cl_ptr = create_buffer(
@@ -30,7 +31,7 @@ pub fn to_unified<T>(device: &CLDevice, no_drop: Matrix<T>) -> crate::Result<*mu
         cache.borrow_mut().nodes.insert(Node::new(no_drop.size()), (OclPtr(cl_ptr), no_drop.size()))
     });
 
-    // this pointer was overwritten previously, hence it can be deallocated
+    // this pointer was overwritten previously, hence can it be deallocated
     if let Some(old) = old_ptr {
         unsafe {
             release_mem_object(old.0.0)?;
@@ -40,6 +41,7 @@ pub fn to_unified<T>(device: &CLDevice, no_drop: Matrix<T>) -> crate::Result<*mu
     Ok(cl_ptr)
 }
 
+/// Converts an 'only' CPU matrix into an OpenCL + CPU matrix.
 pub fn construct_buffer<T>(device: &CLDevice, cpu: &crate::CPU, no_drop: Matrix<T>) -> crate::Result<Matrix<T>>  {
     let (host_ptr, no_drop_dims) = (no_drop.ptr.0, no_drop.dims());
 
@@ -58,6 +60,21 @@ pub fn construct_buffer<T>(device: &CLDevice, cpu: &crate::CPU, no_drop: Matrix<
     Ok(Matrix::from((buf, no_drop_dims)))
 }
 
+/// Compute operations on the CPU even though the matrix was created with an OpenCL device.
+/// There were some optimizations implemented regarding unified memory architectures.
+/// 
+/// # Example
+/// ```
+/// use custos::{CLDevice, Matrix, VecRead, BaseOps, opencl::cpu_exec};
+/// 
+/// fn main() -> custos::Result<()> {
+///     let device = CLDevice::new(0)?;
+///     let a = Matrix::<i32>::from((&device, 2, 2, [1, 2, 3, 4]));
+///     let res = cpu_exec(&device, &a, |cpu, mut x| {cpu.clear(&mut x); x})?;
+///     assert_eq!(device.read(&res), vec![0, 0, 0, 0]);
+///     Ok(())
+/// }
+/// ```
 pub fn cpu_exec<T, F>(device: &CLDevice, matrix: &Matrix<T>, f: F) -> crate::Result<Matrix<T>> 
 where 
     F: Fn(&crate::CPU, Matrix<T>) -> Matrix<T>,
@@ -68,6 +85,7 @@ where
     if device.unified_mem() && !cfg!(feature="safe") { 
         // host ptr matrix
         let no_drop = f(&cpu, matrix.clone());
+        // convert host ptr / CPU matrix into a host ptr + OpenCL ptr matrix
         return construct_buffer(device, &cpu, no_drop);
     }
     
@@ -91,6 +109,7 @@ where
     if device.unified_mem() && !cfg!(feature="safe") { 
         
         let no_drop = f(&cpu, lhs, rhs);
+        // convert host ptr / CPU matrix into a host ptr + OpenCL ptr matrix
         return construct_buffer(device, &cpu, no_drop);
     }
 
