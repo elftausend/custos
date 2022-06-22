@@ -1,23 +1,13 @@
-#[cfg(feature="opencl")]
 use std::ffi::c_void;
+use custos::{Buffer, VecRead, Matrix, opencl::api::{clCreateBuffer, MemFlags, OCLErrorKind, CommandQueue, enqueue_map_buffer}, opencl::cpu_exec, CLDevice, Error};
 
-#[cfg(feature="opencl")]
-use custos::AsDev;
-
-#[cfg(feature="opencl")]
 #[cfg(not(feature="safe"))]
 use custos::{CPU, opencl::cl_tew,};
-#[cfg(feature="opencl")]
-use custos::{Buffer, VecRead, Matrix, opencl::api::{clCreateBuffer, MemFlags, OCLErrorKind}, opencl::cpu_exec};
-#[cfg(feature="opencl")]
-use custos::{CLDevice, Error};
-
 #[cfg(not(feature="safe"))]
-#[cfg(feature="opencl")]
 use std::ptr::null_mut;
 
 
-#[cfg(feature="opencl")]
+
 pub fn unified_mem<T>(device: &CLDevice, arr: &mut [T]) -> Result<*mut c_void, Error>{
     let mut err = 0;
 
@@ -31,6 +21,12 @@ pub fn unified_mem<T>(device: &CLDevice, arr: &mut [T]) -> Result<*mut c_void, E
     Ok(r)
 }
 
+pub fn unified_ptr<T>(cq: CommandQueue, ptr: *mut c_void, len: usize) -> Result<*mut T, Error> {
+
+    unsafe {
+        enqueue_map_buffer::<T>(&cq, ptr, true, 2 | 1, 0, len).map(|ptr| ptr as *mut T)
+    }
+}
 
 #[cfg(feature="opencl")]
 #[test]
@@ -48,7 +44,7 @@ fn test_unified_mem() -> Result<(), Error> {
     const TIMES: usize = 10000;
     use std::time::Instant;
 
-    use custos::opencl::api::{create_buffer, MemFlags, release_mem_object, unified_ptr};
+    use custos::opencl::api::{create_buffer, MemFlags, release_mem_object};
 
     let len = 20000;
 
@@ -221,6 +217,8 @@ fn test_unified_mem_device_switch() -> custos::Result<()> {
 #[cfg(feature="opencl")]
 #[test]
 fn test_unified_opencl() -> custos::Result<()> {
+    use custos::AsDev;
+
     let device = CLDevice::new(0)?.select();
 
     if !device.unified_mem() {
@@ -236,7 +234,7 @@ fn test_unified_opencl() -> custos::Result<()> {
     //let slice = unsafe { std::slice::from_raw_parts(a.as_buf().ptr.0, a.size()) };
     //println!("slice: {slice:?}");
 
-    println!("a: {:?}", a.as_buf());
+    assert_eq!(a.read(), vec![1, 3, 5, 7, 9, 11]);
     //println!("a: {a:?}");
     Ok(())
 }

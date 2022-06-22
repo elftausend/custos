@@ -2,7 +2,7 @@ use std::{fmt::Debug, cell::RefCell, rc::Rc, ffi::c_void};
 use crate::{BaseOps, Buffer, Device, Gemm, libs::cpu::{CPUCache, ops::element_wise_op_mut}, matrix::Matrix, VecRead, number::Number, AsDev, BaseDevice, AssignOps, CDatatype, ManualMem, CacheBuf, GenericBlas};
 use super::{CPU_CACHE, assign_to_lhs};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 /// A CPU is used to perform calculations on the host CPU.
 /// To make new calculations invocable, a trait providing new operations should be implemented for [CPU].
 /// 
@@ -197,7 +197,7 @@ pub fn each_op<T: Copy+Default, F: Fn(T) -> T>(device: &CPU, x: &Matrix<T>, f: F
 /// Note / Safety
 /// 
 /// If the 'safe' feature isn't used, all pointers will get invalid when the drop code for an InternCPU runs as that deallocates the memory previously pointed at by the pointers stored in 'ptrs'.
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct InternCPU {
     pub ptrs: Vec<*mut usize>,
 }

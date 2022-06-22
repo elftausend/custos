@@ -1,7 +1,5 @@
 use std::cell::RefCell;
-
 use crate::number::{Number, Float};
-
 use self::cpu::{level3, Order, Transpose};
 
 #[cfg(feature="cuda")]
@@ -17,11 +15,11 @@ pub type CUdeviceptr = std::os::raw::c_ulonglong;
 
 #[cfg(not(feature="opencl"))]
 #[derive(Debug)]
-pub struct CLDevice;
+pub struct InternCLDevice;
 
 #[cfg(not(feature="cuda"))]
 #[derive(Debug)]
-pub struct CudaDevice;
+pub struct InternCudaDevice;
 
 thread_local! {
     pub static COUNT: RefCell<usize> = RefCell::new(0);

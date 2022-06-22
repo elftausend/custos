@@ -12,7 +12,7 @@ readme = "README.md"
 lazy_static = "1.4.0"
 
 [features]
-default = ["opencl", "cuda"]
+default = ["opencl"]
 opencl = []
 cuda = []
 safe = []
@@ -34,6 +34,9 @@ required-features = ["opencl"]
 name = "cl_device"
 required-features = ["opencl"]
 
+[[test]]
+name = "opencl_unified"
+required-features = ["opencl"]
 
 [dev-dependencies]
 criterion = "0.3"

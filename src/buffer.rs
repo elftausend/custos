@@ -205,7 +205,7 @@ impl<T> std::ops::DerefMut for Buffer<T> {
 
 impl<T: Debug + Default + Copy> Debug for Buffer<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("Buffer").field("ptr (CPU, OpenCL)", &self.ptr).field("len", &self.len);
+        f.debug_struct("Buffer").field("ptr (CPU, CL, CU)", &self.ptr).field("len", &self.len);
         writeln!(f, ",")?;
         if !self.ptr.0.is_null() {
             writeln!(f, "CPU:    {:?}", self.as_slice())?; 
@@ -216,6 +216,13 @@ impl<T: Debug + Default + Copy> Debug for Buffer<T> {
             use crate::VecRead;
             let read = get_device!(VecRead, T).unwrap();
             write!(f, "OpenCL: {:?}, ", read.read(self))?; 
+        }
+
+        #[cfg(feature="cuda")]
+        if self.ptr.2 != 0 {
+            use crate::VecRead;
+            let read = get_device!(VecRead, T).unwrap();
+            write!(f, "CUDA: {:?}, ", read.read(self))?; 
         }
 
         write!(f, "datatype={} }}", std::any::type_name::<T>())

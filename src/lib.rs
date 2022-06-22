@@ -310,10 +310,8 @@ impl Dev {
     }
 }
 
-
 thread_local! {
-    pub static GLOBAL_DEVICE: RefCell<Dev> = RefCell::new(Dev { cl_device: None, cpu: None, cuda: None });
-
+    pub static GLOBAL_DEVICE: RefCell<Dev> = RefCell::new(Dev::new(None, None, None));
 }
 
 pub trait AsDev {

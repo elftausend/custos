@@ -268,6 +268,8 @@ pub fn create_buffer<T>(context: &Context, flag: u64, size: usize, data: Option<
     Ok(r)
 }
 
+/// # Safety
+/// valid mem object
 pub unsafe fn release_mem_object(ptr: *mut c_void) -> Result<(), Error> {
     let value = clReleaseMemObject(ptr);
     if value != 0 {
@@ -286,7 +288,8 @@ pub(crate) fn retain_mem_object(mem: *mut c_void) -> Result<(), Error>{
     Ok(())
 }
 
-
+/// # Safety
+/// valid mem object
 pub unsafe fn enqueue_write_buffer<T>(cq: &CommandQueue, mem: *mut c_void, data: &[T], block: bool) -> Result<Event, Error> {
     let mut events = vec![std::ptr::null_mut();1];
     
@@ -297,6 +300,8 @@ pub unsafe fn enqueue_write_buffer<T>(cq: &CommandQueue, mem: *mut c_void, data:
     Ok(Event(events[0]))
 }
 
+/// # Safety
+/// valid mem object
 pub unsafe fn enqueue_read_buffer<T>(cq: &CommandQueue, mem: *mut c_void, data: &mut [T], block: bool) -> Result<Event, Error> {
     let mut events = vec![std::ptr::null_mut();1];
     let value = clEnqueueReadBuffer(cq.0, mem, block as u32, 0, data.len()*core::mem::size_of::<T>(), data.as_ptr() as *mut c_void, 0, std::ptr::null(), events.as_mut_ptr() as *mut cl_event);
@@ -315,13 +320,15 @@ pub(crate) fn enqueue_copy_buffer(cq: &CommandQueue, src_mem: *mut c_void, dst_m
     wait_for_event(Event(events[0]))
 }
 
-pub fn unified_ptr<T>(cq: CommandQueue, ptr: *mut c_void, len: usize) -> Result<*mut T, Error> {
+pub(crate) fn unified_ptr<T>(cq: CommandQueue, ptr: *mut c_void, len: usize) -> Result<*mut T, Error> {
     unsafe {
         enqueue_map_buffer::<T>(&cq, ptr, true, 2 | 1, 0, len).map(|ptr| ptr as *mut T)
     }
 }
 
 /// map_flags: Read: 1, Write: 2, 
+/// # Safety
+/// valid mem object
 pub unsafe fn enqueue_map_buffer<T>(
     cq: &CommandQueue, 
     buffer: *mut c_void, 

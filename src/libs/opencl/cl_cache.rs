@@ -84,26 +84,26 @@ impl CLCache {
         let cache = &mut self.arg_kernel_cache;
         let kernel = cache.get(&(mems.clone(), type_ids.clone(), outputmem, src.clone()));
         match kernel { 
-            Some(kernel) => Ok(kernel.clone()),
+            Some(kernel) => Ok(*kernel),
             None => {    
                 let program = create_program_with_source(&device.ctx(), &src)?;
                 build_program(&program, &[device.device()], Some("-cl-std=CL1.2"))?; //-cl-single-precision-constant
-                let kernel = &create_kernels_in_program(&program)?[0];
+                let kernel = create_kernels_in_program(&program)?[0];
                 
                 for (number, idx) in numbers {
-                    set_kernel_arg(kernel, *idx, number)?
+                    set_kernel_arg(&kernel, *idx, number)?
                 }
 
                 for (buf, idx) in buffers {
-                    set_kernel_arg(kernel, *idx, &(buf.ptr.1))?;
+                    set_kernel_arg(&kernel, *idx, &(buf.ptr.1))?;
                 }
 
                 if let Some(mem) = outputmem {
-                    set_kernel_arg(kernel, mems.len()+type_ids.len(), &mem)?;
+                    set_kernel_arg(&kernel, mems.len()+type_ids.len(), &mem)?;
                 }
 
-                cache.insert((mems, type_ids, outputmem, src), kernel.clone());
-                Ok(kernel.clone())
+                cache.insert((mems, type_ids, outputmem, src), kernel);
+                Ok(kernel)
             },
         }
         

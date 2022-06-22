@@ -20,6 +20,7 @@ fn test_matrix_read() {
 
 #[test]
 fn test_each_op() {
+    CLDevice::new(0).unwrap();
     let device = CPU::new().select();
 
     let x = Matrix::from((&device, (2, 3), [1, 2, 3, 4, 5, 6]));

@@ -1,8 +1,8 @@
-use std::{ffi::c_void, rc::Rc, cell::RefCell};
+use std::{ffi::c_void, rc::Rc, cell::RefCell, fmt::Debug};
 use crate::{libs::opencl::api::{create_buffer, MemFlags}, BaseOps, Matrix, AsDev, Gemm, VecRead, BaseDevice, Error, Device, AssignOps, CDatatype, ManualMem, Buffer, CacheBuf};
 use super::{api::{CLIntDevice, CommandQueue, Context, create_command_queue, create_context, enqueue_read_buffer, wait_for_event, release_mem_object, enqueue_write_buffer, unified_ptr}, CL_DEVICES, cl_tew, cl_gemm, CL_CACHE, cl_tew_self, CLCache, cl_clear};
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 /// Used to perform calculations with an OpenCL capable device.
 /// To make new calculations invocable, a trait providing new operations should be implemented for [CLDevice].
 /// # Example
@@ -73,6 +73,16 @@ impl CLDevice {
     }
 }
 
+impl Debug for CLDevice {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "CLDevice {{
+            name: {name:?},
+            version: {version:?},
+            max_mem_alloc_in_gb: {max_mem:?},
+            unified_mem: {unified_mem},
+        }}", name=self.name(), version=self.version(), unified_mem=self.unified_mem(), max_mem=self.max_mem_alloc_in_gb())
+    }
+}
 
 #[cfg(not(feature="safe"))]
 impl<T> Device<T> for CLDevice {
@@ -241,7 +251,6 @@ impl From<Rc<RefCell<InternCLDevice>>> for CLDevice {
 }
 
 impl InternCLDevice {
-    #[must_use]
     pub fn new(device: CLIntDevice) -> crate::Result<InternCLDevice> {
         let ctx = create_context(&[device])?;
         let queue = create_command_queue(&ctx, device)?;

@@ -104,7 +104,7 @@ pub fn cl_gemm<T: CDatatype>(device: &CLDevice, m: usize, k: usize, n: usize, lh
 
     let gws = [f, s, 0];
     
-    KernelOptions::new(&device, lhs, gws, &src)?
+    KernelOptions::new(device, lhs, gws, &src)?
         .with_rhs(rhs)
         .with_output(n*m)
         .run()    
