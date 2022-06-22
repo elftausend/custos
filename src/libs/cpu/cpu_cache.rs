@@ -60,7 +60,7 @@ impl CPUCache {
         })
     }
     #[cfg(feature="safe")]
-    pub fn get<T: Default+Copy>(device: InternCPU, len: usize) -> Buffer<T> {
-        Buffer::new(&device, len)
+    pub fn get<T: Default+Copy>(device: &CPU, len: usize) -> Buffer<T> {
+        Buffer::new(device, len)
     }
 }

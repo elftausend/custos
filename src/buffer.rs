@@ -2,7 +2,7 @@ use std::{ffi::c_void, ptr::null_mut, fmt::Debug};
 
 #[cfg(feature="opencl")]
 #[cfg(feature="safe")]
-use crate::{opencl::api::{release_mem_object, retain_mem_object}, cuda::api::cufree};
+use crate::opencl::api::{release_mem_object, retain_mem_object};
 use crate::{Device, CDatatype, get_device, CacheBuf};
 
 #[cfg(not(feature="safe"))]
@@ -107,7 +107,7 @@ unsafe impl<T> Send for Buffer<T> {}
 #[cfg(feature="safe")]
 unsafe impl<T> Sync for Buffer<T> {}
 
-// TODO: Safe mode and cuda clone
+// TODO: Safe mode and cuda clone | cuda ptr reference counted?
 #[cfg(feature="safe")]
 impl<T> Clone for Buffer<T> {
     fn clone(&self) -> Self {
@@ -134,6 +134,7 @@ impl<T> Drop for Buffer<T> {
 
             #[cfg(feature="cuda")]
             if self.ptr.2 != 0 {
+                use cuda::api::cufree;
                 cufree(self.ptr.2).unwrap();
             }
         }

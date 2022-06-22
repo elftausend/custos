@@ -68,8 +68,8 @@ impl CLCache {
     }
 
     #[cfg(feature="safe")]
-    pub fn get<T>(device: InternCLDevice, len: usize) -> Buffer<T> {
-        Buffer::new(&device, len)
+    pub fn get<T>(device: &CLDevice, len: usize) -> Buffer<T> {
+        Buffer::new(device, len)
     }
 
     pub(crate) fn arg_kernel_cache<T: CDatatype>(&mut self, device: &CLDevice, buffers: &[(&Buffer<T>, usize)], numbers: &[(T, usize)], output: Option<&Buffer<T>>, src: String) -> Result<Kernel, Error> {

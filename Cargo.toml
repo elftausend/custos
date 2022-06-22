@@ -17,6 +17,13 @@ opencl = []
 cuda = []
 safe = []
 
+[[example]]
+name = "cuda_readme"
+required-features = ["cuda"]
+
+[[example]]
+name = "cl_readme"
+required-features = ["opencl"]
 
 [[example]]
 name = "unified_memory"
