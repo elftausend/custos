@@ -1,4 +1,4 @@
-use crate::{CDatatype, Buffer, opencl::KernelOptions, Error, CLDevice};
+use crate::{CDatatype, Buffer, opencl::enqueue_kernel, Error, CLDevice};
 
 /// Sets the elements of an OpenCL Buffer to zero.
 /// # Example
@@ -24,7 +24,8 @@ pub fn cl_clear<T: CDatatype>(device: &CLDevice, lhs: &mut Buffer<T>) -> Result<
     ", datatype=T::as_c_type_str());
 
     let gws = [lhs.len, 0, 0];
-    KernelOptions::<T>::new(device, lhs, gws, &src)?
+    /*KernelOptions::<T>::new(device, lhs, gws, &src)?
         .run()?;
-    Ok(())
+    Ok(())*/
+    enqueue_kernel::<T>(device, &src, gws, None, &[lhs])
 }

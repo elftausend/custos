@@ -488,8 +488,8 @@ pub(crate) fn set_kernel_arg<T>(kernel: &Kernel, index: usize, arg: &T) -> Resul
     Ok(())
 }
 
-pub(crate) fn set_kernel_arg_ptr(kernel: &Kernel, index: usize, arg: *mut usize, arg_size: usize) -> Result<(), Error> {
-    let value = unsafe {clSetKernelArg(kernel.0, index as u32, arg_size, arg as *mut c_void)};
+pub(crate) fn set_kernel_arg_ptr<T>(kernel: &Kernel, index: usize, arg: &T, arg_size: usize) -> Result<(), Error> {
+    let value = unsafe {clSetKernelArg(kernel.0, index as u32, arg_size, arg as *const T as *const c_void)};
     if value != 0 {
         return Err(Error::from(OCLErrorKind::from_value(value)));
     }

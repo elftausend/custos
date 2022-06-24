@@ -252,19 +252,74 @@ impl<'a, T: CDatatype> KernelRunner<'a, T> {
 
     /// Runs the kernel
     pub fn run(&mut self) -> Result<Option<Buffer<T>>, Error> {
-        let kernel = CL_CACHE.with(|cache| cache.borrow_mut().arg_kernel_cache1(&self.device, &self.buf_args, &self.num_args, self.output.as_ref(), self.src.to_string()))?;
+        let kernel = CL_CACHE.with(|cache| 
+            cache.borrow_mut().arg_kernel_cache1(&self.device, self.src.to_string())
+        )?;
         
         for arg in &self.num_args {
-            set_kernel_arg_ptr(&kernel, arg.1, arg.0, arg.2)?
+            set_kernel_arg_ptr(&kernel, arg.1, &(arg.0 as *mut c_void), arg.2)?
         }
 
         enqueue_nd_range_kernel(&self.device.queue(), &kernel, self.wd, &self.gws, self.lws.as_ref(), self.offset)?;
     
         if let Some(output) = &self.output {
-            // TODO: Make owned, therefore takt self not ref
+            // TODO: Make owned, therefore take self not ref
             return Ok(Some(output.clone()));
         }
         
         Ok(None)
     }
+}
+
+pub trait AsClCvoidPtr {
+    fn as_cvoid_ptr(&self) -> *mut c_void;
+    fn size(&self) -> usize {
+        std::mem::size_of::<*mut c_void>()
+    }
+}
+
+impl<T> AsClCvoidPtr for &Buffer<T> {
+    fn as_cvoid_ptr(&self) -> *mut c_void {
+        self.ptr.1
+    }
+}
+
+impl<T> AsClCvoidPtr for Buffer<T> {
+    fn as_cvoid_ptr(&self) -> *mut c_void {
+        self.ptr.1
+    }
+}
+
+impl<T: Number> AsClCvoidPtr for T {
+    fn as_cvoid_ptr(&self) -> *mut c_void {
+        self as *const T as *mut c_void
+    }
+    
+    fn size(&self) -> usize {
+        std::mem::size_of::<T>()
+    }
+}
+
+pub fn enqueue_kernel<T: CDatatype>(device: &CLDevice, src: &str, gws: [usize; 3], lws: Option<[usize; 3]>, args: &[&dyn AsClCvoidPtr]) -> crate::Result<()> {
+    let kernel = CL_CACHE.with(|cache| 
+        cache.borrow_mut().arg_kernel_cache1(device, src.to_string())
+    )?;
+
+    let wd;
+    if gws[0] == 0 {
+        return Err(OCLErrorKind::InvalidGlobalWorkSize.into());
+    } else if gws[1] == 0 {
+        wd=1;
+    } else if gws[2] == 0 {
+        wd=2;
+    } else {
+        wd=3;
+    }
+
+    for (idx, arg) in args.into_iter().enumerate() {
+        set_kernel_arg_ptr(&kernel, idx, &arg.as_cvoid_ptr(), arg.size())?;
+    }
+    
+    enqueue_nd_range_kernel(&device.queue(), &kernel, wd, &gws, lws.as_ref(), None)?;
+    Ok(())
 }

@@ -1,6 +1,6 @@
 use std::{any::TypeId, collections::HashMap, ffi::c_void, cell::RefCell};
 use crate::{Error, CDatatype, Node, CLDevice};
-use super::{api::{build_program, create_kernels_in_program, create_program_with_source, Kernel, set_kernel_arg}, PtrIdxSize, PtrIdxLen};
+use super::api::{build_program, create_kernels_in_program, create_program_with_source, Kernel, set_kernel_arg};
 
 #[cfg(feature="opencl")]
 use crate::Buffer;
@@ -21,7 +21,6 @@ unsafe impl Sync for OclPtr {}
 
 type RawInfo = (OclPtr, usize);
 type KernelIdent = (Vec<OclPtr>, Vec<TypeId>, Option<OclPtr>, String);
-type KernelIdent1 = (Vec<OclPtr>, Option<OclPtr>, String);
 
 #[derive(Debug)]
 /// Stores kernels and outputs
@@ -29,7 +28,7 @@ pub struct CLCache {
     // TODO: Instead of a hashmap: vec?
     pub nodes: HashMap<Node, RawInfo>,
     pub(crate) arg_kernel_cache: HashMap<KernelIdent, Kernel>,
-    pub(crate) kernel_cache: HashMap<KernelIdent1, Kernel>,
+    pub(crate) kernel_cache: HashMap<String, Kernel>,
 }
 
 impl CLCache {
@@ -109,14 +108,8 @@ impl CLCache {
         
     }
 
-    pub(crate) fn arg_kernel_cache1<T: CDatatype>(&mut self, device: &CLDevice, buffers: &[PtrIdxLen], numbers: &[PtrIdxSize], output: Option<&Buffer<T>>, src: String) -> Result<Kernel, Error> {        
-        let mems: Vec<OclPtr> = buffers.iter()
-            .map(|ptrs| OclPtr(ptrs.0))
-            .collect();
-
-        let output = output.map(|output| OclPtr(output.ptr.1));
-        
-        let kernel = self.kernel_cache.get(&(mems.clone(), output, src.clone()));
+    pub(crate) fn arg_kernel_cache1(&mut self, device: &CLDevice, src: String) -> Result<Kernel, Error> {        
+        let kernel = self.kernel_cache.get(&src);
 
         if let Some(kernel) = kernel {
             return Ok(*kernel);
@@ -125,15 +118,8 @@ impl CLCache {
         let program = create_program_with_source(&device.ctx(), &src)?;
         build_program(&program, &[device.device()], Some("-cl-std=CL1.2"))?; //-cl-single-precision-constant
         let kernel = create_kernels_in_program(&program)?[0];
-
-        for (buf, idx, _) in buffers {
-            set_kernel_arg(&kernel, *idx, buf)?;
-        }
-
-        if let Some(mem) = output {
-            set_kernel_arg(&kernel, buffers.len()+numbers.len(), &mem)?;
-        }
-        self.kernel_cache.insert((mems, output, src), kernel);
+    
+        self.kernel_cache.insert(src, kernel);
         Ok(kernel)
         
     }

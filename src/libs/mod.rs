@@ -56,6 +56,7 @@ impl Node {
     }
 }
 
+/// enables easy generic kernel creation
 pub trait CDatatype: Number + 'static {
     fn as_c_type_str() -> &'static str;
 }
