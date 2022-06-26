@@ -73,7 +73,7 @@ fn test_kernel_options_num_arg_assign() -> Result<(), Error> {
     assert_eq!(device.read(&lhs), vec![4, 8, 6, 5, 10, 11]);
     Ok(())
 }*/
-
+/* 
 #[cfg(feature="opencl")] 
 #[test]
 fn test_enqueue_kernel_num() -> Result<(), Error> {
@@ -96,4 +96,4 @@ fn test_enqueue_kernel_num() -> Result<(), Error> {
     enqueue_kernel(&device, &src, gws, None, vec![&lhs, &out, &&x])?;
     assert_eq!(device.read(&out), vec![4, 8, 6, 5, 10, 11]);
     Ok(())
-}
+}*/

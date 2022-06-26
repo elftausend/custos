@@ -1,8 +1,8 @@
 use std::ffi::c_void;
 
 #[cfg(feature="opencl")]
-use crate::opencl::{CLCache, api::{enqueue_write_buffer, wait_for_event}};
-use crate::{BaseOps, Buffer, Device, Gemm, get_device, VecRead, number::Number, AssignOps, CDatatype, GenericBlas, CUdeviceptr, CLDevice};
+use crate::{CLDevice, opencl::{CLCache, api::{enqueue_write_buffer, wait_for_event}}};
+use crate::{BaseOps, Buffer, Device, Gemm, get_device, VecRead, number::Number, AssignOps, CDatatype, GenericBlas, CUdeviceptr};
 
 /// A matrix using [Buffer] described with rows and columns
 /// # Example

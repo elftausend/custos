@@ -1,4 +1,4 @@
-use custos::{libs::cpu::{CPU, each_op}, AsDev, Matrix, VecRead};
+use custos::{libs::cpu::CPU, AsDev, Matrix, VecRead};
 #[cfg(feature="opencl")]
 use custos::CLDevice;
 
@@ -18,8 +18,10 @@ fn test_matrix_read() {
     assert_eq!(&read, &[1.51, 6.123, 7., 5.21, 8.62, 4.765]);
 }
 
+#[cfg(feature="opencl")]
 #[test]
 fn test_each_op() {
+    use custos::libs::cpu::each_op;
     CLDevice::new(0).unwrap();
     let device = CPU::new().select();
 
