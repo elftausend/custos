@@ -27,5 +27,5 @@ pub fn cl_clear<T: CDatatype>(device: &CLDevice, lhs: &mut Buffer<T>) -> Result<
     /*KernelOptions::<T>::new(device, lhs, gws, &src)?
         .run()?;
     Ok(())*/
-    enqueue_kernel::<T>(device, &src, gws, None, &[lhs])
+    enqueue_kernel(device, &src, gws, None, vec![lhs])
 }

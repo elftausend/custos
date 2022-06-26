@@ -1,6 +1,6 @@
 
 #[cfg(feature="opencl")] 
-use custos::{Error, CLDevice, Buffer, CDatatype, opencl::{KernelOptions, KernelRunner}, VecRead};
+use custos::{Error, CLDevice, Buffer, CDatatype, opencl::KernelOptions, VecRead};
 
 #[cfg(feature="opencl")] 
 #[test]
@@ -27,7 +27,7 @@ fn test_kernel_options() -> Result<(), Error> {
     Ok(())
 }
 
-#[cfg(feature="opencl")] 
+/*#[cfg(feature="opencl")] 
 #[test]
 fn test_kernel_options_num_arg() -> Result<(), Error> {
     let device = CLDevice::new(0)?;
@@ -49,9 +49,9 @@ fn test_kernel_options_num_arg() -> Result<(), Error> {
 
     assert_eq!(device.read(&out), vec![4, 8, 6, 5, 10, 11]);
     Ok(())
-}
+}*/
 
-#[cfg(feature="opencl")] 
+/*#[cfg(feature="opencl")] 
 #[test]
 fn test_kernel_options_num_arg_assign() -> Result<(), Error> {
     let device = CLDevice::new(0)?;
@@ -71,5 +71,29 @@ fn test_kernel_options_num_arg_assign() -> Result<(), Error> {
         .run()?;
 
     assert_eq!(device.read(&lhs), vec![4, 8, 6, 5, 10, 11]);
+    Ok(())
+}*/
+
+#[cfg(feature="opencl")] 
+#[test]
+fn test_enqueue_kernel_num() -> Result<(), Error> {
+    use custos::opencl::{CLCache, enqueue_kernel};
+
+    let device = CLDevice::new(0)?;
+
+    let lhs = Buffer::<i32>::from((&device, [1, 5, 3, 2, 7, 8]));
+
+    let src = format!("
+        __kernel void add_assign_scalar(__global {i32}* lhs, __global {i32}* out, {i32} rhs) {{
+            size_t id = get_global_id(0);
+            out[id] += lhs[id] + rhs;
+        }}
+    ", i32=i32::as_c_type_str());
+
+    let gws = [lhs.len, 0, 0];
+    let out = CLCache::get::<i32>(&device, lhs.len);
+    let x = 1i32;
+    enqueue_kernel(&device, &src, gws, None, vec![&lhs, &out, &&x])?;
+    assert_eq!(device.read(&out), vec![4, 8, 6, 5, 10, 11]);
     Ok(())
 }

@@ -71,8 +71,3 @@ required-features = ["opencl", "cuda"]
 name = "cuda_vs_opencl"
 harness = false
 required-features = ["opencl", "cuda"]
-
-[[bench]]
-name = "cl_set_kernel_arg"
-harness = false
-required-features = ["opencl"]

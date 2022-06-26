@@ -431,7 +431,7 @@ pub fn build_program(program: &Program, devices: &[CLIntDevice], options: Option
 
 
 #[derive(Debug, Clone, Copy)]
-pub(crate) struct Kernel(pub cl_kernel);
+pub/*(crate)*/ struct Kernel(pub cl_kernel);
 
 impl Kernel {
     pub fn release(&mut self) {
@@ -480,7 +480,7 @@ pub(crate) fn release_kernel(kernel: &mut Kernel) -> Result<(), Error>{
     Ok(())
 }
 
-pub(crate) fn set_kernel_arg<T>(kernel: &Kernel, index: usize, arg: &T) -> Result<(), Error> {
+pub/*(crate)*/ fn set_kernel_arg<T>(kernel: &Kernel, index: usize, arg: &T) -> Result<(), Error> {
     let value = unsafe {clSetKernelArg(kernel.0, index as u32, core::mem::size_of::<T>(), arg as *const T as *const c_void)};
     if value != 0 {
         return Err(Error::from(OCLErrorKind::from_value(value)));
@@ -488,8 +488,8 @@ pub(crate) fn set_kernel_arg<T>(kernel: &Kernel, index: usize, arg: &T) -> Resul
     Ok(())
 }
 
-pub(crate) fn set_kernel_arg_ptr<T>(kernel: &Kernel, index: usize, arg: &T, arg_size: usize) -> Result<(), Error> {
-    let value = unsafe {clSetKernelArg(kernel.0, index as u32, arg_size, arg as *const T as *const c_void)};
+pub(crate) fn set_kernel_arg_ptr(kernel: &Kernel, index: usize, arg: *mut c_void, arg_size: usize) -> Result<(), Error> {
+    let value = unsafe {clSetKernelArg(kernel.0, index as u32, arg_size, arg as *const _ as *mut c_void)};
     if value != 0 {
         return Err(Error::from(OCLErrorKind::from_value(value)));
     }

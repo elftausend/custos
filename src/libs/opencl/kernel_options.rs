@@ -1,6 +1,6 @@
 use std::ffi::c_void;
 
-use crate::{matrix::Matrix, number::Number, Error, CDatatype, Buffer, CLDevice};
+use crate::{matrix::Matrix, number::Number, CDatatype, Buffer, CLDevice};
 use super::{api::{enqueue_nd_range_kernel, set_kernel_arg, OCLErrorKind, set_kernel_arg_ptr}, CL_CACHE, CLCache};
 
 pub trait KernelArg<'a, T> {
@@ -181,6 +181,7 @@ pub(crate) type PtrIdxSize = (*mut usize, usize, usize);
 pub(crate) type PtrIdxLen = (*mut c_void, usize, usize);
 
 // TODO: (No, invalid arg size error) Use this instead of the current KernelOptions implementation? 
+#[allow(dead_code)]
 pub struct KernelRunner<'a, T> {
     src: &'a str,
     output: Option<Buffer<T>>,
@@ -250,12 +251,16 @@ impl<'a, T: CDatatype> KernelRunner<'a, T> {
         self
     }
 
-    /// Runs the kernel
+    /*/// Runs the kernel
     pub fn run(&mut self) -> Result<Option<Buffer<T>>, Error> {
         let kernel = CL_CACHE.with(|cache| 
             cache.borrow_mut().arg_kernel_cache1(&self.device, self.src.to_string())
         )?;
         
+        for arg in &self.buf_args {
+            set_kernel_arg_ptr(&kernel, arg.1, &(arg.0 as *mut c_void), arg.2)?
+        }
+
         for arg in &self.num_args {
             set_kernel_arg_ptr(&kernel, arg.1, &(arg.0 as *mut c_void), arg.2)?
         }
@@ -268,7 +273,7 @@ impl<'a, T: CDatatype> KernelRunner<'a, T> {
         }
         
         Ok(None)
-    }
+    }*/
 }
 
 pub trait AsClCvoidPtr {
@@ -290,9 +295,9 @@ impl<T> AsClCvoidPtr for Buffer<T> {
     }
 }
 
-impl<T: Number> AsClCvoidPtr for T {
+impl<T: Number> AsClCvoidPtr for &T {
     fn as_cvoid_ptr(&self) -> *mut c_void {
-        self as *const T as *mut c_void
+        *self as *const T as *mut c_void
     }
     
     fn size(&self) -> usize {
@@ -300,7 +305,8 @@ impl<T: Number> AsClCvoidPtr for T {
     }
 }
 
-pub fn enqueue_kernel<T: CDatatype>(device: &CLDevice, src: &str, gws: [usize; 3], lws: Option<[usize; 3]>, args: &[&dyn AsClCvoidPtr]) -> crate::Result<()> {
+// TODO: use this fn instead of KernelOptions
+pub fn enqueue_kernel(device: &CLDevice, src: &str, gws: [usize; 3], lws: Option<[usize; 3]>, args: Vec<&dyn AsClCvoidPtr>) -> crate::Result<()> {
     let kernel = CL_CACHE.with(|cache| 
         cache.borrow_mut().arg_kernel_cache1(device, src.to_string())
     )?;
@@ -317,9 +323,10 @@ pub fn enqueue_kernel<T: CDatatype>(device: &CLDevice, src: &str, gws: [usize; 3
     }
 
     for (idx, arg) in args.into_iter().enumerate() {
-        set_kernel_arg_ptr(&kernel, idx, &arg.as_cvoid_ptr(), arg.size())?;
+        set_kernel_arg_ptr(&kernel, idx, arg.as_cvoid_ptr(), arg.size())?;
+        unsafe {let x = *(arg.as_cvoid_ptr() as *const i32); println!("{x}")}
     }
-    
+
     enqueue_nd_range_kernel(&device.queue(), &kernel, wd, &gws, lws.as_ref(), None)?;
     Ok(())
 }
