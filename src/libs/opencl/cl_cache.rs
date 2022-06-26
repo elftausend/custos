@@ -108,7 +108,7 @@ impl CLCache {
         
     }
 
-    pub(crate) fn arg_kernel_cache1(&mut self, device: &CLDevice, src: String) -> Result<Kernel, Error> {        
+    pub fn arg_kernel_cache1(&mut self, device: &CLDevice, src: String) -> Result<Kernel, Error> {        
         let kernel = self.kernel_cache.get(&src);
 
         if let Some(kernel) = kernel {

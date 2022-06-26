@@ -73,7 +73,7 @@ fn test_kernel_options_num_arg_assign() -> Result<(), Error> {
     assert_eq!(device.read(&lhs), vec![4, 8, 6, 5, 10, 11]);
     Ok(())
 }*/
-/* 
+
 #[cfg(feature="opencl")] 
 #[test]
 fn test_enqueue_kernel_num() -> Result<(), Error> {
@@ -92,8 +92,18 @@ fn test_enqueue_kernel_num() -> Result<(), Error> {
 
     let gws = [lhs.len, 0, 0];
     let out = CLCache::get::<i32>(&device, lhs.len);
-    let x = 1i32;
-    enqueue_kernel(&device, &src, gws, None, vec![&lhs, &out, &&x])?;
+    let x = 3i32;
+    enqueue_kernel(&device, &src, gws, None, vec![&lhs, &out, &x])?;
+    /*let kernel = custos::opencl::CL_CACHE.with(|cache| 
+        cache.borrow_mut().arg_kernel_cache1(&device, src.to_string())
+    )?;
+    
+    custos::opencl::api::set_kernel_arg_ptr(&kernel, 0, &lhs.as_cvoid_ptr(), std::mem::size_of::<*mut c_void>())?;
+    custos::opencl::api::set_kernel_arg_ptr(&kernel, 1, &out.as_cvoid_ptr(), std::mem::size_of::<*mut c_void>())?;
+    custos::opencl::api::set_kernel_arg_ptr(&kernel, 2, &x , 4)?;
+    
+    custos::opencl::api::enqueue_nd_range_kernel(&device.queue(), &kernel, 1, &gws, None, None)?;*/
+
     assert_eq!(device.read(&out), vec![4, 8, 6, 5, 10, 11]);
     Ok(())
-}*/
+}
