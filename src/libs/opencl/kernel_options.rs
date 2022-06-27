@@ -276,54 +276,36 @@ impl<'a, T: CDatatype> KernelRunner<'a, T> {
     }*/
 }
 
-pub trait AsClCvoidPtr<T> {
+pub trait AsClCvoidPtr {
     fn as_cvoid_ptr(&self) -> *mut c_void;
     fn is_num(&self) -> bool {
         false
-    }
-    fn num(&self) -> &T {
-        unimplemented!("")
     }
     fn size(&self) -> usize {
         std::mem::size_of::<*mut c_void>()
     }
 }
 
-impl<T> AsClCvoidPtr<T> for &Buffer<T> {
+impl<T> AsClCvoidPtr for &Buffer<T> {
     fn as_cvoid_ptr(&self) -> *mut c_void {
         self.ptr.1
     }
 }
 
-impl<T> AsClCvoidPtr<T> for Buffer<T> {
+impl<T> AsClCvoidPtr for Buffer<T> {
     fn as_cvoid_ptr(&self) -> *mut c_void {
         self.ptr.1
     }
 }
 
-impl<T: Number> AsClCvoidPtr<T> for T {
+impl<T> AsClCvoidPtr for Matrix<T> {
     fn as_cvoid_ptr(&self) -> *mut c_void {
-        unimplemented!("cant invoke .as_cvoid_ptr() on a number")
+        self.ptr.1
     }
-
-    fn is_num(&self) -> bool {
-        true
-    }
-
-    fn num(&self) -> &T 
-    where T: Number 
-    {
-        self
-    }
-    
-    fn size(&self) -> usize {
-        std::mem::size_of::<T>()
-    }
-
 }
 
 // TODO: use this fn instead of KernelOptions
-pub fn enqueue_kernel<T>(device: &CLDevice, src: &str, gws: [usize; 3], lws: Option<[usize; 3]>, args: Vec<&dyn AsClCvoidPtr<T>>) -> crate::Result<()> {
+pub fn enqueue_kernel(device: &CLDevice, src: &str, gws: [usize; 3], lws: Option<[usize; 3]>, args: Vec<&dyn AsClCvoidPtr>) -> crate::Result<()> {
     let kernel = CL_CACHE.with(|cache| 
         cache.borrow_mut().arg_kernel_cache1(device, src.to_string())
     )?;
@@ -341,14 +323,9 @@ pub fn enqueue_kernel<T>(device: &CLDevice, src: &str, gws: [usize; 3], lws: Opt
 
     for (idx, arg) in args.into_iter().enumerate() {
         // TODO: IMPROVE
-        if arg.is_num() {
-            set_kernel_arg_ptr(&kernel, idx, arg.num(), arg.size())?;
-        } else {
-            set_kernel_arg_ptr(&kernel, idx, &arg.as_cvoid_ptr(), arg.size())?;
-        }
+        set_kernel_arg_ptr(&kernel, idx, &arg.as_cvoid_ptr(), arg.size())?;
         
     }
-
     enqueue_nd_range_kernel(&device.queue(), &kernel, wd, &gws, lws.as_ref(), None)?;
     Ok(())
 }

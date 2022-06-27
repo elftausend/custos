@@ -128,15 +128,7 @@ impl<T> Matrix<T> {
     pub fn as_mut_slice(&mut self) -> &mut [T] {
         self.as_mut_buf().as_mut_slice()
     }
-}
 
-impl<T> Default for Matrix<T> {
-    fn default() -> Self {
-        Self { data: Default::default(), dims: Default::default() }
-    }
-}
-
-impl<T: CDatatype+GenericBlas> Matrix<T> {
     /// Matrix multiplication. Uses current global device.
     /// # Example
     /// ```
@@ -151,13 +143,13 @@ impl<T: CDatatype+GenericBlas> Matrix<T> {
     ///
     /// assert_eq!(c.read(), vec![20., 14., 56., 41.,]);
     /// ```
-    pub fn gemm(&self, rhs: &Matrix<T>) -> Matrix<T> {
+    pub fn gemm(&self, rhs: &Matrix<T>) -> Matrix<T> 
+    where T: CDatatype + GenericBlas
+    {
         let device = get_device!(Gemm, T).unwrap();
         device.gemm(self, rhs)
     }
-}
 
-impl<T: CDatatype> Matrix<T> {
     /// Sets all elements to zero.
     /// # Example
     /// ```
@@ -170,13 +162,13 @@ impl<T: CDatatype> Matrix<T> {
     /// matrix.clear();
     /// assert_eq!(matrix.read(), vec![0; 6]);
     /// ```
-    pub fn clear(&mut self) {
+    pub fn clear(&mut self) 
+    where T: CDatatype
+    {
         let device = get_device!(BaseOps, T).unwrap();
         device.clear(self)
     }
-}
 
-impl<T: Copy+Default> Matrix<T> {
     /// Uses VecRead and current global device to read Matrix
     /// 
     /// # Example
@@ -188,9 +180,17 @@ impl<T: Copy+Default> Matrix<T> {
     /// let a = Matrix::from((&device, (2, 2), [5, 7, 2, 10,]));
     /// assert_eq!(a.read(), vec![5, 7, 2, 10])
     /// ```
-    pub fn read(&self) -> Vec<T> {
+    pub fn read(&self) -> Vec<T> 
+    where T: Default + Copy 
+    {
         let device = get_device!(VecRead, T).unwrap();
         device.read(self.as_buf())
+    }
+}
+
+impl<T> Default for Matrix<T> {
+    fn default() -> Self {
+        Self { data: Default::default(), dims: Default::default() }
     }
 }
 

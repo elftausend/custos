@@ -78,9 +78,6 @@ impl<T> Buffer<T> {
         }
     }
 
-}
-
-impl<T: Default + Copy> Buffer<T> {
     #[cfg(not(feature="safe"))]
     /// Used if the buffer contains only a single value.
     /// 
@@ -95,12 +92,15 @@ impl<T: Default + Copy> Buffer<T> {
     /// //let x: Buffer<f32> = (&mut [5., 4., 8.]).into();
     /// //assert_eq!(x.item(), 0.);
     /// ```
-    pub fn item(&self) -> T {
+    pub fn item(&self) -> T 
+    where T: Default + Copy
+    {
         if self.len == 0 {
             return unsafe { *self.ptr.0 };
         }
         T::default()
     }
+
 }
 
 #[cfg(feature="safe")]

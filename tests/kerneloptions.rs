@@ -77,7 +77,9 @@ fn test_kernel_options_num_arg_assign() -> Result<(), Error> {
 #[cfg(feature="opencl")] 
 #[test]
 fn test_enqueue_kernel_num() -> Result<(), Error> {
-    use custos::opencl::{CLCache, enqueue_kernel};
+    use std::ffi::c_void;
+
+    use custos::opencl::{CLCache, AsClCvoidPtr};
 
     let device = CLDevice::new(0)?;
 
@@ -86,23 +88,26 @@ fn test_enqueue_kernel_num() -> Result<(), Error> {
     let src = format!("
         __kernel void add_assign_scalar(__global {i32}* lhs, __global {i32}* out, {i32} rhs) {{
             size_t id = get_global_id(0);
-            out[id] += lhs[id] + rhs;
+            out[id] += lhs[id] + (int) rhs;
         }}
     ", i32=i32::as_c_type_str());
 
     let gws = [lhs.len, 0, 0];
     let out = CLCache::get::<i32>(&device, lhs.len);
-    let x = 3i32;
-    enqueue_kernel(&device, &src, gws, None, vec![&lhs, &out, &x])?;
-    /*let kernel = custos::opencl::CL_CACHE.with(|cache| 
+
+    // TODO: get this to work......
+    //enqueue_kernel(&device, &src, gws, None, vec![&lhs, &out, &3i64])?;
+    let kernel = custos::opencl::CL_CACHE.with(|cache| 
         cache.borrow_mut().arg_kernel_cache1(&device, src.to_string())
     )?;
     
+    let x = 3;
     custos::opencl::api::set_kernel_arg_ptr(&kernel, 0, &lhs.as_cvoid_ptr(), std::mem::size_of::<*mut c_void>())?;
     custos::opencl::api::set_kernel_arg_ptr(&kernel, 1, &out.as_cvoid_ptr(), std::mem::size_of::<*mut c_void>())?;
-    custos::opencl::api::set_kernel_arg_ptr(&kernel, 2, &x , 4)?;
+    let value = x as *mut c_void;
+    custos::opencl::api::set_kernel_arg_ptr(&kernel, 2, &value , 4)?;
     
-    custos::opencl::api::enqueue_nd_range_kernel(&device.queue(), &kernel, 1, &gws, None, None)?;*/
+    custos::opencl::api::enqueue_nd_range_kernel(&device.queue(), &kernel, 1, &gws, None, None)?;
 
     assert_eq!(device.read(&out), vec![4, 8, 6, 5, 10, 11]);
     Ok(())
