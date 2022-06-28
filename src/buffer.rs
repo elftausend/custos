@@ -143,7 +143,8 @@ impl<T> Drop for Buffer<T> {
     fn drop(&mut self) {
         unsafe {
             if !self.ptr.0.is_null() && self.ptr.1.is_null() {
-                Box::from_raw(self.ptr.0);
+                let ptr = std::slice::from_raw_parts_mut(self.ptr.0, self.len);
+                Box::from_raw(ptr);
             }
             
             #[cfg(feature="opencl")]

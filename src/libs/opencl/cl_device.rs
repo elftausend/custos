@@ -139,10 +139,6 @@ impl<T> Device<T> for CLDevice {
         };
         (cpu_ptr, ptr, 0)
     }
-
-    fn drop(&mut self, buf: Buffer<T>) {
-        self.drop_buf(buf)
-    }
 }
 
 impl<T> ManualMem<T> for CLDevice {

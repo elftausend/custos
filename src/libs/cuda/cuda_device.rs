@@ -64,12 +64,6 @@ impl<T> Device<T> for CudaDevice {
         cuwrite(ptr, data).unwrap();
         (null_mut(), null_mut(), ptr)
     }
-
-    fn drop(&mut self, buf: crate::Buffer<T>) {
-        unsafe {
-            cufree(buf.ptr.2).unwrap();
-        }
-    }
 }
 
 impl<T: Default + Copy> VecRead<T> for CudaDevice {

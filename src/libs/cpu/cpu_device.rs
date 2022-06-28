@@ -1,4 +1,4 @@
-use std::{fmt::Debug, cell::RefCell, rc::Rc, ffi::c_void, mem::size_of};
+use std::{fmt::Debug, cell::RefCell, rc::Rc, ffi::c_void};
 use crate::{BaseOps, Buffer, Device, Gemm, libs::cpu::{CPUCache, ops::element_wise_op_mut}, matrix::Matrix, VecRead, number::Number, AsDev, BaseDevice, AssignOps, CDatatype, ManualMem, CacheBuf, GenericBlas};
 use super::{CPU_CACHE, assign_to_lhs};
 
@@ -44,20 +44,20 @@ impl<T: Copy+Default> Device<T> for CPU {
         assert!(len > 0, "invalid buffer len: 0");
         let ptr = Box::into_raw(vec![T::default(); len].into_boxed_slice());
         //let size = std::mem::size_of::<T>() * len;
-        self.inner.borrow_mut().ptrs.push(StoredCPUPtr::new(ptr as *mut [u8], size_of::<T>()));
+        self.inner.borrow_mut().ptrs.push(StoredCPUPtr::new(ptr as *mut [u8], std::mem::size_of::<T>()));
         (ptr as *mut T, std::ptr::null_mut(), 0)
     }
 
     fn with_data(&self, data: &[T]) -> (*mut T, *mut c_void, u64) {
         assert!(!data.is_empty(), "invalid buffer len: 0");
         let ptr = Box::into_raw(data.to_vec().into_boxed_slice());
-        self.inner.borrow_mut().ptrs.push(StoredCPUPtr::new(ptr as *mut [u8], size_of::<T>()));
+        self.inner.borrow_mut().ptrs.push(StoredCPUPtr::new(ptr as *mut [u8], std::mem::size_of::<T>()));
         (ptr as *mut T, std::ptr::null_mut(), 0)
     }
     fn alloc_with_vec(&self, vec: Vec<T>) -> (*mut T, *mut c_void, u64) {
         assert!(!vec.is_empty(), "invalid buffer len: 0");
         let ptr = Box::into_raw(vec.into_boxed_slice());
-        self.inner.borrow_mut().ptrs.push(StoredCPUPtr::new(ptr as *mut [u8], size_of::<T>()));
+        self.inner.borrow_mut().ptrs.push(StoredCPUPtr::new(ptr as *mut [u8], std::mem::size_of::<T>()));
         (ptr as *mut T, std::ptr::null_mut(), 0)
     }
 
@@ -65,11 +65,16 @@ impl<T: Copy+Default> Device<T> for CPU {
         let ptrs = &mut self.inner.borrow_mut().ptrs;
         let slice = unsafe { std::slice::from_raw_parts_mut(buf.ptr.0, buf.len) };
         
-        crate::remove_value(ptrs, &(StoredCPUPtr::new(slice as *mut [T] as *mut [u8], size_of::<T>()))).unwrap();
+        crate::remove_value(
+        ptrs, 
+    &StoredCPUPtr::new(
+            slice as *mut [T] as *mut [u8], 
+            std::mem::size_of::<T>()
+                )
+        ).unwrap();
         self.drop_buf(buf)
     }
 }
-
 
 #[cfg(feature="safe")]
 impl<T: Clone+Default> Device<T> for CPU {
@@ -88,12 +93,6 @@ impl<T: Clone+Default> Device<T> for CPU {
         assert!(!vec.is_empty(), "invalid buffer len: 0");
         let ptr = Box::into_raw(vec.into_boxed_slice()) as *mut T;
         (ptr, std::ptr::null_mut(), 0)
-    }
-
-    fn drop(&mut self, buf: Buffer<T>) {
-        let ptrs = &mut self.inner.borrow_mut().ptrs;
-        crate::remove_value(ptrs, &(buf.ptr.0 as *mut usize)).unwrap();
-        self.drop_buf(buf)
     }
 }
 
@@ -230,12 +229,12 @@ impl Drop for InternCPU {
             unsafe {
                 let len = (&*ptr.fat_ptr).len();
                 let slice = std::slice::from_raw_parts_mut(ptr.fat_ptr as *mut u8, len*ptr.type_size);
+                drop(Box::from_raw(slice));
                 //println!("u8 slice: {slice:?}");
                 //let layout = Layout::new::<u8>();
                 //dealloc(slice as *mut [u8] as *mut u8, layout);
                 //let slice = slice.align_to_mut::<i32>();
-                //println!("slice.1: {:?}", slice.1);
-                drop(Box::from_raw(slice));
+                //println!("slice.1: {:?}", slice.1);                
                 //drop(Box::from_raw(ptr.fat_ptr as *mut usize));
             }
             

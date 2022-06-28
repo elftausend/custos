@@ -154,6 +154,7 @@ pub trait Device<T> {
     fn alloc_with_vec(&self, vec: Vec<T>) -> (*mut T, *mut c_void, u64) {
         self.with_data(&vec)
     }
+    #[cfg(not(feature="safe"))]
     /// Frees the specified buffer. The pointer is removed from the pointers vector of a device.
     fn drop(&mut self, buf: Buffer<T>);
 }

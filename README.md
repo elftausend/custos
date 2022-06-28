@@ -1,7 +1,7 @@
 # custos
 
 [![Crates.io version](https://img.shields.io/crates/v/custos.svg)](https://crates.io/crates/custos)
-[![Docs](https://docs.rs/custos/badge.svg?version=0.1.0)](https://docs.rs/custos/0.1.0/custos/)
+[![Docs](https://docs.rs/custos/badge.svg?version=0.1.1)](https://docs.rs/custos/0.1.1/custos/)
 
 A minimal OpenCL, CUDA and host CPU array manipulation engine / framework.
 It provides some matrix / buffer operations: matrix multiplication (BLAS, cuBLAS), element-wise arithmetic (vector addition, ...), set all elements to zero (or default value).
@@ -14,7 +14,10 @@ This library demonstrates how more operations can be implemented for the compute
 Add "custos" as a dependency:
 ```toml
 [dependencies]
-custos = {version = "0.1.0", features=["opencl"]}
+custos = "0.1.1"
+
+# to disable the default features (cuda, opencl):
+#custos = {version = "0.1.1", default-features=false, features=["opencl", "safe"]}
 ```
 
 Available features: 
