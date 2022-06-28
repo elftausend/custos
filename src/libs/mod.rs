@@ -26,7 +26,7 @@ thread_local! {
 }
 
 /// Sets current cache identifier / index.
-/// This function is usually called after an iteration in a loop -> [Count] or [range]
+/// This function is usually called after an iteration in a loop -> [Count](crate::Count) or [range](crate::range)
 pub fn set_count(count: usize) {
     COUNT.with(|c| *c.borrow_mut() = count);
 }

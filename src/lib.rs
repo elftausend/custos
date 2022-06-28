@@ -104,6 +104,20 @@ impl core::fmt::Display for Error {
 
 pub type Result<T> = std::result::Result<T, Error>;
 
+/// Manage device memory
+/// 
+/// # Example
+/// ```
+/// use custos::{CPU, Device, Buffer, VecRead};
+/// 
+/// let device = CPU::new();
+/// let ptrs: (*mut f32, *mut std::ffi::c_void, u64) = device.alloc(12);
+/// 
+/// let buf = Buffer {
+///     ptr: ptrs,
+///     len: 12
+/// };
+/// assert_eq!(vec![0.; 12], device.read(&buf));
 /// ```
 pub trait Device<T> {
     /// Allocate memory

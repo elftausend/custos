@@ -1,4 +1,4 @@
-use std::{fmt::Debug, cell::RefCell, rc::Rc, ffi::c_void};
+use std::{fmt::Debug, cell::RefCell, rc::Rc, ffi::c_void, mem::size_of};
 use crate::{BaseOps, Buffer, Device, Gemm, libs::cpu::{CPUCache, ops::element_wise_op_mut}, matrix::Matrix, VecRead, number::Number, AsDev, BaseDevice, AssignOps, CDatatype, ManualMem, CacheBuf, GenericBlas};
 use super::{CPU_CACHE, assign_to_lhs};
 
@@ -42,27 +42,30 @@ impl From<Rc<RefCell<InternCPU>>> for CPU {
 impl<T: Copy+Default> Device<T> for CPU {
     fn alloc(&self, len: usize) -> (*mut T, *mut c_void, u64) {
         assert!(len > 0, "invalid buffer len: 0");
-        let ptr = Box::into_raw(vec![T::default(); len].into_boxed_slice()) as *mut T;
-        self.inner.borrow_mut().ptrs.push(ptr as *mut usize);
-        (ptr, std::ptr::null_mut(), 0)
+        let ptr = Box::into_raw(vec![T::default(); len].into_boxed_slice());
+        //let size = std::mem::size_of::<T>() * len;
+        self.inner.borrow_mut().ptrs.push(StoredCPUPtr::new(ptr as *mut [u8], size_of::<T>()));
+        (ptr as *mut T, std::ptr::null_mut(), 0)
     }
 
     fn with_data(&self, data: &[T]) -> (*mut T, *mut c_void, u64) {
         assert!(!data.is_empty(), "invalid buffer len: 0");
-        let ptr = Box::into_raw(data.to_vec().into_boxed_slice()) as *mut T;
-        self.inner.borrow_mut().ptrs.push(ptr as *mut usize);
-        (ptr, std::ptr::null_mut(), 0)
+        let ptr = Box::into_raw(data.to_vec().into_boxed_slice());
+        self.inner.borrow_mut().ptrs.push(StoredCPUPtr::new(ptr as *mut [u8], size_of::<T>()));
+        (ptr as *mut T, std::ptr::null_mut(), 0)
     }
     fn alloc_with_vec(&self, vec: Vec<T>) -> (*mut T, *mut c_void, u64) {
         assert!(!vec.is_empty(), "invalid buffer len: 0");
-        let ptr = Box::into_raw(vec.into_boxed_slice()) as *mut T;
-        self.inner.borrow_mut().ptrs.push(ptr as *mut usize);
-        (ptr, std::ptr::null_mut(), 0)
+        let ptr = Box::into_raw(vec.into_boxed_slice());
+        self.inner.borrow_mut().ptrs.push(StoredCPUPtr::new(ptr as *mut [u8], size_of::<T>()));
+        (ptr as *mut T, std::ptr::null_mut(), 0)
     }
 
     fn drop(&mut self, buf: Buffer<T>) {
         let ptrs = &mut self.inner.borrow_mut().ptrs;
-        crate::remove_value(ptrs, &(buf.ptr.0 as *mut usize)).unwrap();
+        let slice = unsafe { std::slice::from_raw_parts_mut(buf.ptr.0, buf.len) };
+        
+        crate::remove_value(ptrs, &(StoredCPUPtr::new(slice as *mut [T] as *mut [u8], size_of::<T>()))).unwrap();
         self.drop_buf(buf)
     }
 }
@@ -93,7 +96,6 @@ impl<T: Clone+Default> Device<T> for CPU {
         self.drop_buf(buf)
     }
 }
-
 
 impl AsDev for CPU {
     fn as_dev(&self) -> crate::Dev {
@@ -192,6 +194,20 @@ pub fn each_op<T: Copy+Default, F: Fn(T) -> T>(device: &CPU, x: &Matrix<T>, f: F
     (y, x.dims()).into()
 }
 
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub struct StoredCPUPtr {
+    fat_ptr: *mut [u8],
+    type_size: usize,
+}
+
+impl StoredCPUPtr {
+    pub fn new(fat_ptr: *mut [u8], type_size: usize) -> StoredCPUPtr {
+        StoredCPUPtr {
+            fat_ptr, type_size
+        }
+    }
+}
+
 /// Used to store pointers.
 /// 
 /// Note / Safety
@@ -199,8 +215,9 @@ pub fn each_op<T: Copy+Default, F: Fn(T) -> T>(device: &CPU, x: &Matrix<T>, f: F
 /// If the 'safe' feature isn't used, all pointers will get invalid when the drop code for an InternCPU runs as that deallocates the memory previously pointed at by the pointers stored in 'ptrs'.
 #[derive(Debug, Default)]
 pub struct InternCPU {
-    pub ptrs: Vec<*mut usize>,
+    pub ptrs: Vec<StoredCPUPtr>,
 }
+
 
 impl Drop for InternCPU {
     fn drop(&mut self) {
@@ -209,13 +226,22 @@ impl Drop for InternCPU {
         });
         
         for ptr in self.ptrs.iter() {
-            unsafe {    
-                drop(Box::from_raw(*ptr));
+            
+            unsafe {
+                let len = (&*ptr.fat_ptr).len();
+                let slice = std::slice::from_raw_parts_mut(ptr.fat_ptr as *mut u8, len*ptr.type_size);
+                //println!("u8 slice: {slice:?}");
+                //let layout = Layout::new::<u8>();
+                //dealloc(slice as *mut [u8] as *mut u8, layout);
+                //let slice = slice.align_to_mut::<i32>();
+                //println!("slice.1: {:?}", slice.1);
+                drop(Box::from_raw(slice));
+                //drop(Box::from_raw(ptr.fat_ptr as *mut usize));
             }
             
             for entry in &contents {
                 let hm_ptr = ((entry.1).0).0;
-                if &hm_ptr == ptr {
+                if hm_ptr == ptr.fat_ptr as *mut usize {
                     CPU_CACHE.with(|cache| {
                         cache.borrow_mut().nodes.remove(entry.0);
                     });
