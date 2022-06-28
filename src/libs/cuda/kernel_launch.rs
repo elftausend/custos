@@ -19,7 +19,6 @@ impl<T> AsCudaCvoidPtr for Buffer<T> {
     }
 }
 
-// TODO: does this work?
 impl<T: Number> AsCudaCvoidPtr for T {
     fn as_cvoid_ptr(&self) -> *mut c_void {
         self as *const T as *mut c_void

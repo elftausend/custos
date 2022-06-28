@@ -1,11 +1,11 @@
 use std::ffi::c_void;
-
 use custos::{CudaDevice, Buffer, cuda::{api::culaunch_kernel, fn_cache, CUDA_CACHE}, VecRead, AsDev};
 
 mod cuda_kernels;
 mod cuda;
 mod nvrtc;
 mod occupancy;
+mod scalar_ops;
 
 #[test]
 fn test_cached_kernel_launch() -> custos::Result<()> {
