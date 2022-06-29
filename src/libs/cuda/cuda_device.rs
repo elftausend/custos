@@ -1,6 +1,6 @@
 use std::{cell::{RefCell, Ref, RefMut}, rc::Rc, ptr::null_mut};
 use crate::{Device, VecRead, CacheBuf, Gemm, BaseOps, AssignOps, BaseDevice, GenericBlas, CDatatype, Buffer, Matrix, CUdeviceptr, AsDev};
-use super::{api::{device, create_context, CudaIntDevice, Context, cublas::{create_handle, CublasHandle, cublasSetStream_v2, cublasDestroy_v2}, cuInit, cufree, cumalloc, cuwrite, curead, cuCtxDestroy, Stream, create_stream, cuStreamDestroy, Module, cuModuleUnload}, CudaCache, cu_clear, cu_ew, cu_ew_self};
+use super::{api::{device, create_context, CudaIntDevice, Context, cublas::{create_handle, CublasHandle, cublasSetStream_v2, cublasDestroy_v2}, cuInit, cufree, cumalloc, cu_write, cu_read, cuCtxDestroy, Stream, create_stream, cuStreamDestroy, Module, cuModuleUnload}, CudaCache, cu_clear, cu_ew, cu_ew_self};
 
 /// Used to perform calculations with a CUDA capable device.
 /// To make new calculations invocable, a trait providing new operations should be implemented for [CudaDevice].
@@ -40,7 +40,7 @@ impl<T> Device<T> for CudaDevice {
     fn with_data(&self, data: &[T]) -> (*mut T, *mut std::ffi::c_void, u64) {
         let ptr = cumalloc::<T>(data.len()).unwrap();
         self.inner.borrow_mut().ptrs.push(ptr);
-        cuwrite(ptr, data).unwrap();
+        cu_write(ptr, data).unwrap();
         (null_mut(), null_mut(), ptr)
     }
 
@@ -61,7 +61,7 @@ impl<T> Device<T> for CudaDevice {
 
     fn with_data(&self, data: &[T]) -> (*mut T, *mut std::ffi::c_void, u64) {
         let ptr = cumalloc::<T>(data.len()).unwrap();
-        cuwrite(ptr, data).unwrap();
+        cu_write(ptr, data).unwrap();
         (null_mut(), null_mut(), ptr)
     }
 }
@@ -69,7 +69,7 @@ impl<T> Device<T> for CudaDevice {
 impl<T: Default + Copy> VecRead<T> for CudaDevice {
     fn read(&self, buf: &crate::Buffer<T>) -> Vec<T> {
         let mut read = vec![T::default(); buf.len];
-        curead(&mut read, buf.ptr.2).unwrap();
+        cu_read(&mut read, buf.ptr.2).unwrap();
         read
     }
 }

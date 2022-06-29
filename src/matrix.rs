@@ -309,13 +309,13 @@ impl<T: CDatatype> From<(&CLDevice, Matrix<T>)> for Matrix<T> {
 }
 
 #[cfg(feature="cuda")]
-use crate::{CudaDevice, cuda::{CudaCache, api::cuwrite}};
+use crate::{CudaDevice, cuda::{CudaCache, api::cu_write}};
 
 #[cfg(feature="cuda")]
 impl<T: CDatatype> From<(&CudaDevice, Matrix<T>)> for Matrix<T> {
     fn from(device_matrix: (&CudaDevice, Matrix<T>)) -> Self {
         let dst = CudaCache::get::<T>(device_matrix.0, device_matrix.1.size());
-        cuwrite(dst.ptr.2, &device_matrix.1).unwrap();
+        cu_write(dst.ptr.2, &device_matrix.1).unwrap();
         Matrix::from((dst, device_matrix.1.dims()))
     }
 }
