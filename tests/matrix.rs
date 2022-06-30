@@ -130,27 +130,3 @@ fn test_range_gemm() {
     // [2.0, 1.0, 0.0, 16.0, 11.0, 6.0, 30.0, 21.0, 12.0]
     println!("{c:?}");
 }
-
-#[test]
-fn test_miri() {
-    use custos::Buffer;
-    let device = CPU::new().select();
-
-
-    //let x = (0..4*5).map(|x| x as f32).collect::<Vec<_>>();
-    //let x = vec![4; 2*1];
-    
-    let a = Buffer::from((&device, vec![1i32, 1333289418, 3, 4, 6]));
-    drop(device);
-    
-    let x = a.as_slice();
-    println!("x: {x:?}");
-
-    let mut vec = vec![1i32, 1333289418, 3, 4, 6];
-    let ptr = vec.as_mut_ptr();
-    drop(vec);
-    unsafe {
-        let slice = std::slice::from_raw_parts_mut(ptr, 5);
-        println!("slice: {slice:?}");
-    }
-}

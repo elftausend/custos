@@ -196,13 +196,13 @@ pub fn each_op<T: Copy+Default, F: Fn(T) -> T>(device: &CPU, x: &Matrix<T>, f: F
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct StoredCPUPtr {
     fat_ptr: *mut [u8],
-    type_size: usize,
+    align: usize,
 }
 
 impl StoredCPUPtr {
-    pub fn new(fat_ptr: *mut [u8], type_size: usize) -> StoredCPUPtr {
+    pub fn new(fat_ptr: *mut [u8], align: usize) -> StoredCPUPtr {
         StoredCPUPtr {
-            fat_ptr, type_size
+            fat_ptr, align
         }
     }
 }
@@ -217,7 +217,6 @@ pub struct InternCPU {
     pub ptrs: Vec<StoredCPUPtr>,
 }
 
-
 impl Drop for InternCPU {
     fn drop(&mut self) {
         let contents = CPU_CACHE.with(|cache| {
@@ -228,14 +227,8 @@ impl Drop for InternCPU {
             
             unsafe {
                 let len = (&*ptr.fat_ptr).len();
-                let slice = std::slice::from_raw_parts_mut(ptr.fat_ptr as *mut u8, len*ptr.type_size);
+                let slice = std::slice::from_raw_parts_mut(ptr.fat_ptr as *mut u8, len*ptr.align);
                 drop(Box::from_raw(slice));
-                //println!("u8 slice: {slice:?}");
-                //let layout = Layout::new::<u8>();
-                //dealloc(slice as *mut [u8] as *mut u8, layout);
-                //let slice = slice.align_to_mut::<i32>();
-                //println!("slice.1: {:?}", slice.1);                
-                //drop(Box::from_raw(ptr.fat_ptr as *mut usize));
             }
             
             for entry in &contents {

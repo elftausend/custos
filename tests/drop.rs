@@ -42,3 +42,20 @@ fn test_drop_clone_safe() {
     drop(a);
     assert_eq!(device.read(&b), vec![4, 3, 1, 7, 8]);
 }
+
+/*
+#[test]
+fn test_free_buffer() {
+    let device = CPU::new();
+
+    let a = Buffer::<f32>::from((&device, vec![3.12; 1000*10000]));
+    assert_eq!(vec![3.12; a.len], a.as_slice());
+    let vec: Vec<u16> = vec![1, 2, 5, 2, 9, 4];
+    std::thread::sleep(std::time::Duration::from_secs_f32(2.5));
+    
+    drop(device);
+    assert_eq!(vec![1, 2, 5, 2, 9, 4], vec);
+    drop(vec);
+    std::thread::sleep(std::time::Duration::from_secs_f32(5.4));
+}
+*/

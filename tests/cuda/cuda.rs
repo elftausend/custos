@@ -27,7 +27,7 @@ fn test_cuda_alloc2() -> custos::Result<()> {
 
 #[test]
 fn test_cuda_write() -> custos::Result<()> {
-    use custos::cuda::api::{cumalloc, cuInit, device, create_context, cuwrite, curead};
+    use custos::cuda::api::{cumalloc, cuInit, device, create_context, cu_write, cu_read};
 
     unsafe { cuInit(0) };
 
@@ -37,10 +37,10 @@ fn test_cuda_write() -> custos::Result<()> {
     let x = cumalloc::<f32>(100)?;
     
     let write = [4f32; 10];
-    cuwrite(x, &write)?;
+    cu_write(x, &write)?;
 
     let mut read = vec![0f32; 10];
-    curead(&mut read, x)?;
+    cu_read(&mut read, x)?;
     
     assert_eq!(&[4.0; 10], read.as_slice());
 
@@ -50,7 +50,7 @@ fn test_cuda_write() -> custos::Result<()> {
 #[test]
 fn test_cublas() -> custos::Result<()> {
     use std::ptr::null_mut;
-    use custos::cuda::api::{cumalloc, cuInit, device, create_context, cuwrite, curead, cublas::{cublasCreate_v2, cublasSgemm_v2, cublasOperation_t, cublasContext}};
+    use custos::cuda::api::{cumalloc, cuInit, device, create_context, cu_write, cu_read, cublas::{cublasCreate_v2, cublasSgemm_v2, cublasOperation_t, cublasContext}};
 
     let m = 3;
     let k = 2;
@@ -64,12 +64,12 @@ fn test_cublas() -> custos::Result<()> {
     let a = cumalloc::<f32>(m*k)?;
     
     let write = (0..m*k).map(|x| x as f32).collect::<Vec<f32>>();
-    cuwrite(a, &write)?;
+    cu_write(a, &write)?;
 
     let b = cumalloc::<f32>(k*n)?;
     
     let write = (0..k*n).rev().map(|x| x as f32).collect::<Vec<f32>>();
-    cuwrite(b, &write)?;
+    cu_write(b, &write)?;
 
     let c = cumalloc::<f32>(m*n)?;
 
@@ -95,7 +95,7 @@ fn test_cublas() -> custos::Result<()> {
             println!("cublas gemm")
         }
         let mut read = vec![0f32; n*m];
-        curead(&mut read, c)?;
+        cu_read(&mut read, c)?;
         println!("read: {read:?}");
 
     }
