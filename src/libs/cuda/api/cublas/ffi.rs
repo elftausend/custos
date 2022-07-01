@@ -56,6 +56,22 @@ extern "C" {
             A: *const f64, lda: i32,
             B: *const f64, ldb: i32,
             beta: *const f64,
-            C: *mut f64, ldc: i32)
-    -> cublasStatus_t;
+            C: *mut f64, ldc: i32
+    ) -> cublasStatus_t;
+
+    pub fn cublasSgeam(
+        handle: cublasHandle_t, transa: cublasOperation_t, 
+        transb: cublasOperation_t, m: i32, n: i32,
+        alpha: *const f32, a: *const f32, lda: i32,
+        beta: *const f32, b: *const f32, ldb: i32,
+        c: *mut f32, ldc: i32,
+    ) -> cublasStatus_t;
+
+    pub fn cublasDgeam(
+        handle: cublasHandle_t, transa: cublasOperation_t,
+        transb: cublasOperation_t, m: i32, n: i32,
+        alpha: *const f64, a: *const f64, lda: i32,
+        beta: *const f64, b: *const f64, ldb: i32,
+        c: *mut f64, ldc: i32,
+    ) -> cublasStatus_t;
 }
