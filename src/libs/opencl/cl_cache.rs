@@ -1,5 +1,5 @@
 use std::{any::TypeId, collections::HashMap, ffi::c_void, cell::RefCell};
-use crate::{Error, CDatatype, Node, CLDevice};
+use crate::{Error, Node, CLDevice};
 use super::api::{build_program, create_kernels_in_program, create_program_with_source, Kernel, set_kernel_arg};
 
 #[cfg(feature="opencl")]
@@ -71,7 +71,7 @@ impl CLCache {
         Buffer::new(device, len)
     }
 
-    pub(crate) fn arg_kernel_cache<T: CDatatype>(&mut self, device: &CLDevice, buffers: &[(&Buffer<T>, usize)], numbers: &[(T, usize)], output: Option<&Buffer<T>>, src: String) -> Result<Kernel, Error> {
+    pub(crate) fn arg_kernel_cache<T: 'static>(&mut self, device: &CLDevice, buffers: &[(&Buffer<T>, usize)], numbers: &[(T, usize)], output: Option<&Buffer<T>>, src: String) -> Result<Kernel, Error> {
         let type_ids = vec![TypeId::of::<T>(); numbers.len()];
         
         let mems: Vec<OclPtr> = buffers.iter()

@@ -62,6 +62,12 @@ impl<T> Buffer<T> {
         self.len == 0
     }
 
+    // TODO: replace buf.ptr.2 with this fn, do the same with cl, cpu
+    pub fn cu_ptr(&self) -> u64 {
+        assert!(self.ptr.2 != 0, "");
+        self.ptr.2
+    }
+
     /// Returns a CPU slice.
     pub fn as_slice(&self) -> &[T] {
         assert!(!self.ptr.0.is_null(), "called as_slice() on a non CPU buffer (this would dereference a null pointer)");

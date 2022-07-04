@@ -68,6 +68,7 @@ impl<T> Device<T> for CudaDevice {
 
 impl<T: Default + Copy> VecRead<T> for CudaDevice {
     fn read(&self, buf: &crate::Buffer<T>) -> Vec<T> {
+        assert!(!buf.ptr.1.is_null(), "called VecRead::read(..) on a non OpenCL buffer");
         let mut read = vec![T::default(); buf.len];
         cu_read(&mut read, buf.ptr.2).unwrap();
         read

@@ -298,7 +298,7 @@ impl<T: Copy+Default> From<(usize, usize, Vec<T>)> for Matrix<T> {
 }
 
 #[cfg(feature="opencl")]
-impl<T: CDatatype> From<(&CLDevice, Matrix<T>)> for Matrix<T> {
+impl<T> From<(&CLDevice, Matrix<T>)> for Matrix<T> {
     fn from(device_matrix: (&CLDevice, Matrix<T>)) -> Self {
         //assert!(CPU_CACHE.with(|cache| !cache.borrow().nodes.is_empty()), "no allocations");
         let y = CLCache::get::<T>(device_matrix.0, device_matrix.1.size());
@@ -312,7 +312,7 @@ impl<T: CDatatype> From<(&CLDevice, Matrix<T>)> for Matrix<T> {
 use crate::{CudaDevice, cuda::{CudaCache, api::cu_write}};
 
 #[cfg(feature="cuda")]
-impl<T: CDatatype> From<(&CudaDevice, Matrix<T>)> for Matrix<T> {
+impl<T> From<(&CudaDevice, Matrix<T>)> for Matrix<T> {
     fn from(device_matrix: (&CudaDevice, Matrix<T>)) -> Self {
         let dst = CudaCache::get::<T>(device_matrix.0, device_matrix.1.size());
         cu_write(dst.ptr.2, &device_matrix.1).unwrap();

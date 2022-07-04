@@ -13,7 +13,7 @@ pub mod cl_devices;
 mod kernel_options;
 mod cl_cache;
 
-use crate::{Matrix, CDatatype, CPU, Node, Buffer, VecRead, number::Number};
+use crate::{Matrix, CPU, Node, Buffer, VecRead};
 use self::api::{create_buffer, MemFlags, release_mem_object};
 
 /// Returns an OpenCL pointer that is bound to the host pointer stored in the specified matrix.
@@ -78,7 +78,7 @@ pub fn construct_buffer<T>(device: &CLDevice, cpu: &crate::CPU, no_drop: Matrix<
 pub fn cpu_exec<T, F>(device: &CLDevice, matrix: &Matrix<T>, f: F) -> crate::Result<Matrix<T>> 
 where 
     F: Fn(&crate::CPU, Matrix<T>) -> Matrix<T>,
-    T: CDatatype
+    T: Copy+Default
 {
     let cpu = CPU::new();
 
@@ -102,7 +102,7 @@ where
 pub fn cpu_exec_lhs_rhs<T, F>(device: &CLDevice, lhs: &Matrix<T>, rhs: &Matrix<T>, f: F) -> crate::Result<Matrix<T>> 
 where 
     F: Fn(&crate::CPU, &Matrix<T>, &Matrix<T>) -> Matrix<T>,
-    T: CDatatype
+    T: Copy+Default
 {
     let cpu = CPU::new();
 
@@ -129,7 +129,7 @@ where
 pub fn cpu_exec_scalar<T, F>(device: &CLDevice, matrix: &Matrix<T>, f: F) -> T 
 where 
     F: Fn(&crate::CPU, Matrix<T>) -> T,
-    T: Number
+    T: Copy+Default
 {
     let cpu = CPU::new();
     let x = if device.unified_mem() {
