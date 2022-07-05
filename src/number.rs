@@ -25,12 +25,6 @@ macro_rules! number_apply {
                 fn two() -> $t {
                     2 as $t
                 }
-                /* 
-                fn one() -> $t {
-                    1 as $t
-                }
-                */
-    
             }
         )*
         

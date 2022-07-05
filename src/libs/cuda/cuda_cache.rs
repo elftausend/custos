@@ -1,4 +1,4 @@
-use std::{collections::HashMap, cell::RefCell};
+use std::{collections::HashMap, cell::RefCell, ffi::CString};
 use crate::{Node, Buffer, Error, CudaDevice};
 use super::api::{FnHandle, nvrtc::{create_program, nvrtcDestroyProgram}, load_module_data};
 
@@ -65,7 +65,10 @@ impl CudaCache {
         }
 
         let mut x = create_program(&src, "")?;
-        x.compile(None)?;
+
+        x.compile(Some(vec![
+            CString::new("--use_fast_math").unwrap(),
+        ]))?;
             
         let module = load_module_data(x.ptx()?)?;
         let function = module.function(fn_name)?;
