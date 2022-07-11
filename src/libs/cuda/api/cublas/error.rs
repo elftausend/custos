@@ -1,5 +1,3 @@
-use crate::Error;
-
 pub enum CublasErrorKind {
     NotInitialized,
     AllocFailed,
@@ -63,12 +61,6 @@ impl core::fmt::Display for CublasErrorKind {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.as_str())?;
         Ok(())
-    }
-}
-
-impl From<CublasErrorKind> for Error {
-    fn from(error: CublasErrorKind) -> Self {
-        Error { error: Box::new(error) }
     }
 }
 

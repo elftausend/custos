@@ -129,7 +129,7 @@ where
 pub fn cpu_exec_scalar<T, F>(device: &CLDevice, matrix: &Matrix<T>, f: F) -> T 
 where 
     F: Fn(&crate::CPU, Matrix<T>) -> T,
-    T: Copy+Default
+    T: Copy + Default
 {
     let cpu = CPU::new();
     let x = if device.unified_mem() {

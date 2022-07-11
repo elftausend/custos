@@ -1,5 +1,3 @@
-use crate::Error;
-
 #[derive(Clone, Copy, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub enum OCLErrorKind {
     GetPlatformIDs,
@@ -241,12 +239,6 @@ impl core::fmt::Display for OCLErrorKind {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.as_str())?;
         Ok(())
-    }
-}
-
-impl From<OCLErrorKind> for Error {
-    fn from(error: OCLErrorKind) -> Self {
-        Error { error: Box::new(error) }
     }
 }
 

@@ -1,5 +1,3 @@
-use crate::Error;
-
 pub type CudaResult<T> = std::result::Result<T, CudaErrorKind>;
 
 pub enum CudaErrorKind {
@@ -80,12 +78,6 @@ impl core::fmt::Display for CudaErrorKind {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.as_str())?;
         Ok(())
-    }
-}
-
-impl From<CudaErrorKind> for Error {
-    fn from(error: CudaErrorKind) -> Self {
-        Error { error: Box::new(error) }
     }
 }
 

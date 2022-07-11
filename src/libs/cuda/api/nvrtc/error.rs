@@ -1,6 +1,3 @@
-use crate::Error;
-
-
 pub enum NvrtcErrorKind {
     OutOfMemory,
     ProgramCreationFailure,
@@ -67,12 +64,6 @@ impl core::fmt::Display for NvrtcErrorKind {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.as_str())?;
         Ok(())
-    }
-}
-
-impl From<NvrtcErrorKind> for Error {
-    fn from(error: NvrtcErrorKind) -> Self {
-        Error { error: Box::new(error) }
     }
 }
 

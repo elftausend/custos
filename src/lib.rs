@@ -88,6 +88,12 @@ impl Error {
     }
 }
 
+impl<T: std::error::Error + Send + 'static> From<T> for Error {
+    fn from(error: T) -> Self {
+        Error { error: Box::new(error) }
+    }
+}
+
 impl core::fmt::Debug for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{:?}", self.error)?;
@@ -423,11 +429,11 @@ impl core::fmt::Display for DeviceError {
     }
 }
 
-impl From<DeviceError> for Error {
+/*impl From<DeviceError> for Error {
     fn from(error: DeviceError) -> Self {
         Error { error: Box::new(error) }
     }
-}
+}*/
 
 impl std::error::Error for DeviceError {}
 
