@@ -54,20 +54,20 @@ criterion = "0.3"
 name = "safe_vs_cache"
 harness = false
 
-[[bench]]
-name = "fixed_size_vs_vec"
-harness = false
+#[[bench]]
+#name = "fixed_size_vs_vec"
+#harness = false
 
 [[bench]]
 name = "remove_value"
 harness = false
 
-[[bench]]
-name = "gemm"
-harness = false
-required-features = ["opencl", "cuda"]
+#[[bench]]
+#name = "gemm"
+#harness = false
+#required-features = ["opencl", "cuda"]
 
-[[bench]]
-name = "cuda_vs_opencl"
-harness = false
-required-features = ["opencl", "cuda"]
+#[[bench]]
+#name = "cuda_vs_opencl"
+#harness = false
+#required-features = ["opencl", "cuda"]

@@ -3,7 +3,7 @@ use std::{ffi::c_void, ptr::null_mut, fmt::Debug};
 #[cfg(feature="opencl")]
 #[cfg(feature="safe")]
 use crate::opencl::api::{release_mem_object, retain_mem_object};
-use crate::{Device, CDatatype, get_device, CacheBuf};
+use crate::{Device, CDatatype, get_device, CacheBuf, ClearBuf, VecRead};
 
 #[cfg(not(feature="safe"))]
 use crate::number::Number;
@@ -62,7 +62,14 @@ impl<T> Buffer<T> {
         self.len == 0
     }
 
+    /// Returns a non null host pointer
+    pub fn host_ptr(&self) -> *mut T {
+        assert!(!self.ptr.0.is_null(), "");
+        self.ptr.0
+    }
+
     // TODO: replace buf.ptr.2 with this fn, do the same with cl, cpu
+    /// Returns a non null CUDA pointer
     pub fn cu_ptr(&self) -> u64 {
         assert!(self.ptr.2 != 0, "");
         self.ptr.2
@@ -105,6 +112,16 @@ impl<T> Buffer<T> {
             return unsafe { *self.ptr.0 };
         }
         T::default()
+    }
+
+    pub fn clear(&mut self) where T: CDatatype {
+        let device = get_device!(ClearBuf, T).unwrap();
+        device.clear(self)
+    }
+
+    pub fn read(&self) -> Vec<T> where T: Copy+Default {
+        let device = get_device!(VecRead, T).unwrap();
+        device.read(self)
     }
 
 }
@@ -190,14 +207,22 @@ impl<T> AsMut<[T]> for Buffer<T> {
 /// # Examples
 /// 
 /// ```
-/// use custos::{Buffer, CPU, cpu::element_wise_op};
+/// use custos::{Buffer, CPU};
 /// 
 /// let device = CPU::new();
 /// 
 /// let a = Buffer::from((&device, [1., 2., 3., 4.,]));
 /// let b = Buffer::from((&device, [2., 3., 4., 5.,]));
 /// 
-/// let c = element_wise_op(&a, &b, |a, b| a+b);
+/// let mut c = Buffer::from((&device, [0.; 4]));
+/// 
+/// let slice_add = |a: &[f64], b: &[f64], c: &mut [f64]| {
+///     for i in 0..c.len() {
+///         c[i] = a[i] + b[i];
+///     }
+/// };
+/// 
+/// slice_add(&a, &b, &mut c);
 /// assert_eq!(c.as_slice(), &[3., 5., 7., 9.,]);
 /// ```
 impl<T> std::ops::Deref for Buffer<T> {
@@ -213,7 +238,7 @@ impl<T> std::ops::Deref for Buffer<T> {
 /// # Examples
 /// 
 /// ```
-/// use custos::{Buffer, CPU, cpu::element_wise_op_mut};
+/// use custos::{Buffer, CPU};
 ///  
 /// let device = CPU::new();
 /// 
@@ -221,7 +246,12 @@ impl<T> std::ops::Deref for Buffer<T> {
 /// let b = Buffer::from((&device, [2., 3., 6., 5.,]));
 /// let mut c = Buffer::from((&device, [0.; 4]));
 /// 
-/// element_wise_op_mut(&a, &b, &mut c, |a, b| a+b);
+/// let slice_add = |a: &[f64], b: &[f64], c: &mut [f64]| {
+///     for i in 0..c.len() {
+///         c[i] = a[i] + b[i];
+///     }
+/// };
+/// slice_add(&a, &b, &mut c);
 /// assert_eq!(c.as_slice(), &[6., 5., 9., 9.,]);
 /// ```
 impl<T> std::ops::DerefMut for Buffer<T> {
@@ -240,14 +270,12 @@ impl<T: Debug + Default + Copy> Debug for Buffer<T> {
 
         #[cfg(feature="opencl")]
         if !self.ptr.1.is_null() {
-            use crate::VecRead;
             let read = get_device!(VecRead, T).unwrap();
             write!(f, "OpenCL: {:?}, ", read.read(self))?; 
         }
 
         #[cfg(feature="cuda")]
         if self.ptr.2 != 0 {
-            use crate::VecRead;
             let read = get_device!(VecRead, T).unwrap();
             write!(f, "CUDA: {:?}, ", read.read(self))?; 
         }

@@ -1,7 +1,7 @@
-use custos::{CPU, AsDev, Matrix, BaseOps, VecRead};
+//use custos::{CPU, AsDev, Matrix, BaseOps, VecRead};
 
 fn main() {
-    let device = CPU::new();
+    /*let device = CPU::new();
     let a = Matrix::from(( &device, (2, 3), [1, 2, 3, 4, 5, 6]));
     let b = Matrix::from(( &device, (2, 3), [6, 5, 4, 3, 2, 1]));
     
@@ -17,5 +17,5 @@ fn main() {
     let b = Matrix::from(( &device, (2, 3), [6, 5, 4, 3, 2, 1]));
 
     let c = a + b;
-    assert_eq!(c.read(), vec![7, 7, 7, 7, 7, 7]);
+    assert_eq!(c.read(), vec![7, 7, 7, 7, 7, 7]);*/
 }

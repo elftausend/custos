@@ -1,23 +1,21 @@
 use std::{ffi::c_void, rc::Rc, cell::RefCell, fmt::Debug};
-use crate::{libs::opencl::api::{create_buffer, MemFlags}, BaseOps, Matrix, AsDev, Gemm, VecRead, BaseDevice, Error, Device, AssignOps, CDatatype, ManualMem, Buffer, CacheBuf};
-use super::{api::{CLIntDevice, CommandQueue, Context, create_command_queue, create_context, enqueue_read_buffer, wait_for_event, release_mem_object, enqueue_write_buffer, unified_ptr}, CL_DEVICES, cl_tew, cl_gemm, CL_CACHE, cl_tew_self, CLCache, cl_clear};
+use crate::{libs::opencl::api::{create_buffer, MemFlags}, AsDev, VecRead, BaseDevice, Error, Device, CDatatype, ManualMem, Buffer, CacheBuf, ClearBuf};
+use super::{api::{CLIntDevice, CommandQueue, Context, create_command_queue, create_context, enqueue_read_buffer, wait_for_event, release_mem_object, unified_ptr}, CL_DEVICES, CL_CACHE, CLCache, cl_clear};
 
 #[derive(Clone)]
 /// Used to perform calculations with an OpenCL capable device.
 /// To make new calculations invocable, a trait providing new operations should be implemented for [CLDevice].
 /// # Example
 /// ```
-/// use custos::{CLDevice, BaseOps, VecRead, Matrix, Error};
+/// use custos::{CLDevice, VecRead, Buffer, Error};
 /// 
 /// fn main() -> Result<(), Error> {
 ///     let device = CLDevice::new(0)?;
 ///     
-///     let a = Matrix::<f32>::new(&device, (5, 5));
-///     let b = Matrix::from((&device, (5, 5), vec![1.3; 5*5]));
+///     let a = Buffer::from((&device, [1.3; 25]));
+///     let out = device.read(&a);
 ///     
-///     let out = device.add(&a, &b);
-///     
-///     assert_eq!(device.read(&out), vec![1.3; 5*5]);
+///     assert_eq!(out, vec![1.3; 5*5]);
 ///     Ok(())
 /// }
 /// ```
@@ -155,56 +153,11 @@ impl<T: CDatatype> CacheBuf<T> for CLDevice {
     }
 }
 
-impl<T: CDatatype> BaseOps<T> for CLDevice {
-    fn add(&self, lhs: &Matrix<T>, rhs: &Matrix<T>) -> Matrix<T> {
-        let buf = cl_tew(self, lhs, rhs, "+").unwrap();
-        (buf, lhs.dims()).into()
-
-    }
-
-    fn sub(&self, lhs: &Matrix<T>, rhs: &Matrix<T>) -> Matrix<T> {
-        let buf = cl_tew(self, lhs, rhs, "-").unwrap();
-        (buf, lhs.dims()).into()
-    }
-
-    fn mul(&self, lhs: &Matrix<T>, rhs: &Matrix<T>) -> Matrix<T> {
-        let buf = cl_tew(self, lhs, rhs, "*").unwrap();
-        (buf, lhs.dims()).into()
-    }
-
-    fn div(&self, lhs: &Matrix<T>, rhs: &Matrix<T>) -> Matrix<T> {
-        let buf = cl_tew(self, lhs, rhs, "/").unwrap();
-        (buf, lhs.dims()).into()
-    }
-
+impl<T: CDatatype> ClearBuf<T> for CLDevice {
     fn clear(&self, buf: &mut Buffer<T>) {
-        cl_clear(self, buf).unwrap();
+        cl_clear(self, buf).unwrap()
     }
 }
-
-impl<T: CDatatype> AssignOps<T> for CLDevice {
-    fn add_assign(&self, lhs: &mut Buffer<T>, rhs: &Buffer<T>) {
-        cl_tew_self(self, lhs, rhs, "+").unwrap()
-    }
-
-    fn sub_assign(&self, lhs: &mut Buffer<T>, rhs: &Buffer<T>) {
-        cl_tew_self(self, lhs, rhs, "-").unwrap()
-    }
-}
-
-impl<T: CDatatype> Gemm<T> for CLDevice {
-    fn gemm(&self, lhs: &Matrix<T>, rhs: &Matrix<T>) -> Matrix<T> {
-        assert!(lhs.dims().1 == rhs.dims().0);
-        //crate::opencl::ops::ocl_gemm1(self.clone(), rhs, lhs).unwrap()
-        let buf = cl_gemm(self, rhs.cols(), rhs.rows(), lhs.rows(), rhs, lhs).unwrap();
-        (buf, (lhs.rows(), rhs.cols())).into()
-    }
-}
-
-pub fn cl_write<T>(device: &CLDevice, x: &mut Matrix<T>, data: &[T]) {
-    let event = unsafe {enqueue_write_buffer(&device.queue(), x.ptr().1, data, true).unwrap()};
-    wait_for_event(event).unwrap();
-} 
 
 impl<T: Default+Copy> VecRead<T> for CLDevice {
     fn read(&self, buf: &crate::Buffer<T>) -> Vec<T> {

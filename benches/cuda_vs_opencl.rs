@@ -1,5 +1,7 @@
+// TODO: move to custos_math
+/* 
 use criterion::{Criterion, criterion_main, criterion_group};
-use custos::{AsDev, Matrix, set_count};
+use custos::{AsDev, set_count};
 
 const ROWS: usize = 9000; 
 const COLS: usize = ROWS;
@@ -32,3 +34,5 @@ pub fn bench_add_cuda(c: &mut Criterion) {
 
 criterion_group!(benches, bench_add_cl, bench_add_cuda);
 criterion_main!(benches);
+*/
+fn main() {}

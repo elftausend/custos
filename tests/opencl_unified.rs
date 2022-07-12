@@ -1,12 +1,5 @@
 use std::ffi::c_void;
-use custos::{Buffer, VecRead, Matrix, opencl::api::{clCreateBuffer, MemFlags, OCLErrorKind, CommandQueue, enqueue_map_buffer}, opencl::cpu_exec, CLDevice, Error};
-
-#[cfg(not(feature="safe"))]
-use custos::{CPU, opencl::cl_tew,};
-#[cfg(not(feature="safe"))]
-use std::ptr::null_mut;
-
-
+use custos::{Buffer, VecRead, opencl::api::{clCreateBuffer, MemFlags, OCLErrorKind, CommandQueue, enqueue_map_buffer}, CLDevice, Error};
 
 pub fn unified_mem<T>(device: &CLDevice, arr: &mut [T]) -> Result<*mut c_void, Error>{
     let mut err = 0;
@@ -122,39 +115,11 @@ fn test_unified_mem() -> Result<(), Error> {
     Ok(())
 }
 
-#[cfg(not(feature="safe"))]
-#[cfg(feature="opencl")]
-#[test]
-fn test_unified_calc() -> Result<(), Error> {
-
-    let len = 100;
-    
-    let device = CPU::new();
-    let mut a = Buffer::<f32>::new(&device, len);
-    let mut b = Buffer::<f32>::from((&device, vec![1.; len]));
-
-    let cl = CLDevice::new(0)?;
-    
-    let a: Buffer<f32> = Buffer {
-        ptr: (null_mut(), unified_mem(&cl, a.as_mut_slice())?, 0),
-        len
-    };
-    let b = Buffer {
-        ptr: (null_mut(), unified_mem(&cl, b.as_mut_slice())?, 0),
-        len,
-    };
-
-    cl_tew(&cl, &a, &b, "+")?;
-
-//    let ptr = unified_ptr(cl.queue(), a)?;
-//    let ptr = unified_ptr(cl.queue(), a)?;
-    
-    Ok(())
-}
-
 #[cfg(feature="opencl")]
 fn slice_add<T: Copy + std::ops::Add<Output = T>>(a: &[T], b: &[T], c: &mut [T]) {
-    custos::cpu::element_wise_op_mut(a, b, c, |a, b| a+b)
+    for i in 0..c.len() {
+        c[i] = a[i] + b[i]
+    }
 }
 
 #[cfg(feature="opencl")]
@@ -202,40 +167,3 @@ fn test_unified_mem_iterate() -> custos::Result<()> {
 
     Ok(())
 }
-
-#[cfg(feature="opencl")]
-#[test]
-fn test_unified_mem_device_switch() -> custos::Result<()> {
-    let device = CLDevice::new(0)?;
-
-    let a = Matrix::from((&device, 2, 3, [1, 2, 3, 4, 5, 6,]));
-    let _m = cpu_exec(&device, &a, |_cpu, m| m)?;
-
-    Ok(())
-}
-
-#[cfg(feature="opencl")]
-#[test]
-fn test_unified_opencl() -> custos::Result<()> {
-    use custos::AsDev;
-
-    let device = CLDevice::new(0)?.select();
-
-    if !device.unified_mem() {
-        return Ok(());
-    }
-
-    let mut a = Matrix::from((&device, 2, 3, [1, 2, 3, 4, 5, 6,]));
-
-    for (i, value)  in a.as_mut_buf().iter_mut().enumerate() {
-        *value += i as i32;
-    }
-
-    //let slice = unsafe { std::slice::from_raw_parts(a.as_buf().ptr.0, a.size()) };
-    //println!("slice: {slice:?}");
-
-    assert_eq!(a.read(), vec![1, 3, 5, 7, 9, 11]);
-    //println!("a: {a:?}");
-    Ok(())
-}
-

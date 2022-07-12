@@ -1,6 +1,6 @@
 use std::ffi::c_void;
 
-use crate::{matrix::Matrix, number::Number, CDatatype, Buffer, CLDevice};
+use crate::{number::Number, CDatatype, Buffer, CLDevice};
 use super::{api::{enqueue_nd_range_kernel, set_kernel_arg, OCLErrorKind, set_kernel_arg_ptr}, CL_CACHE, CLCache};
 
 pub trait KernelArg<'a, T> {
@@ -15,7 +15,8 @@ pub trait KernelArg<'a, T> {
     }
 }
 
-impl<'a, T: Copy> KernelArg<'a, T> for Matrix<T> {
+// TODO: implement in custos-math?
+/*impl<'a, T: Copy> KernelArg<'a, T> for Matrix<T> {
     fn buf(&'a self) -> Option<&'a Buffer<T>> {
         Some(self.as_buf())
     }
@@ -25,7 +26,7 @@ impl<'a, T: Copy> KernelArg<'a, T> for &'a Matrix<T> {
     fn buf(&self) -> Option<&'a Buffer<T>> {
         Some(self.as_buf())
     }
-}
+}*/
 
 impl<'a, T: Copy> KernelArg<'a, T> for Buffer<T> {
     fn buf(&'a self) -> Option<&'a Buffer<T>> {
@@ -298,11 +299,12 @@ impl<T> AsClCvoidPtr for Buffer<T> {
     }
 }
 
-impl<T> AsClCvoidPtr for Matrix<T> {
+// TODO: implement in custos-math?
+/*impl<T> AsClCvoidPtr for Matrix<T> {
     fn as_cvoid_ptr(&self) -> *mut c_void {
         self.ptr.1
     }
-}
+}*/
 
 // TODO: use this fn instead of KernelOptions
 pub fn enqueue_kernel(device: &CLDevice, src: &str, gws: [usize; 3], lws: Option<[usize; 3]>, args: Vec<&dyn AsClCvoidPtr>) -> crate::Result<()> {

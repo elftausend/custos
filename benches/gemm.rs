@@ -1,4 +1,5 @@
-
+// TODO: move to custos_math
+/* 
 use criterion::{Criterion, criterion_main, criterion_group};
 use custos::{AsDev, Matrix, set_count};
 
@@ -36,3 +37,5 @@ pub fn bench_gemm_cuda(c: &mut Criterion) {
 
 criterion_group!(benches, /*bench_gemm_cl,*/ bench_gemm_cuda);
 criterion_main!(benches);
+*/
+fn main() {}

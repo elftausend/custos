@@ -1,6 +1,6 @@
 use std::{fmt::Debug, cell::RefCell, rc::Rc, ffi::c_void};
-use crate::{BaseOps, Buffer, Device, Gemm, libs::cpu::{CPUCache, ops::element_wise_op_mut}, matrix::Matrix, VecRead, number::Number, AsDev, BaseDevice, AssignOps, CDatatype, ManualMem, CacheBuf, GenericBlas};
-use super::{CPU_CACHE, assign_to_lhs};
+use crate::{Buffer, Device, libs::cpu::CPUCache, VecRead, AsDev, BaseDevice, CDatatype, ManualMem, CacheBuf, GenericBlas, ClearBuf, number::Number};
+use super::CPU_CACHE;
 
 #[derive(Debug, Clone, Default)]
 /// A CPU is used to perform calculations on the host CPU.
@@ -8,15 +8,14 @@ use super::{CPU_CACHE, assign_to_lhs};
 /// 
 /// # Example
 /// ```
-/// use custos::{CPU, BaseOps, VecRead, Matrix};
+/// use custos::{CPU, VecRead, Buffer};
 /// 
 /// let device = CPU::new();
-/// let a = Matrix::<f32>::new(&device, (5, 5));
-/// let b = Matrix::from((&device, (5, 5), vec![1.3; 5*5]));
+/// let a = Buffer::from((&device, [1, 2, 3]));
 /// 
-/// let out = device.add(&a, &b);
+/// let out = device.read(&a);
 /// 
-/// assert_eq!(device.read(&out), vec![1.3; 5*5]);
+/// assert_eq!(out, vec![1, 2, 3]);
 /// ```
 pub struct CPU {
     pub inner: Rc<RefCell<InternCPU>>,
@@ -124,33 +123,7 @@ impl<T: Copy+Default> VecRead<T> for CPU {
     }
 }
 
-impl<T: Number> AssignOps<T> for CPU {
-    fn add_assign(&self, lhs: &mut Buffer<T>, rhs: &Buffer<T>) {
-        assign_op(lhs, rhs, |x, y| *x += y)
-    }
-
-    fn sub_assign(&self, lhs: &mut Buffer<T>, rhs: &Buffer<T>) {
-        assign_op(lhs, rhs, |x, y| *x -= y)
-    }
-}
-
-impl<T: Number> BaseOps<T> for CPU {
-    fn add(&self, lhs: &Matrix<T>, rhs: &Matrix<T>) -> Matrix<T> {
-        ew_op(self, lhs, rhs, | x, y| x+y)
-    }
-
-    fn sub(&self, lhs: &Matrix<T>, rhs: &Matrix<T>) -> Matrix<T> {
-        ew_op(self, lhs, rhs, | x, y| x-y)
-    }
-
-    fn mul(&self, lhs: &Matrix<T>, rhs: &Matrix<T>) -> Matrix<T> {
-        ew_op(self, lhs, rhs, | x, y| x*y)
-    }
-
-    fn div(&self, lhs: &Matrix<T>, rhs: &Matrix<T>) -> Matrix<T> {
-        ew_op(self, lhs, rhs, | x, y| x/y)
-    }
-
+impl<T: Number> ClearBuf<T> for CPU {
     fn clear(&self, buf: &mut Buffer<T>) {
         for value in buf.as_mut_slice() {
             *value = T::zero();
@@ -158,40 +131,13 @@ impl<T: Number> BaseOps<T> for CPU {
     }
 }
 
-impl<T: GenericBlas+Default+Copy> Gemm<T> for CPU {
-    fn gemm(&self, lhs: &Matrix<T>, rhs: &Matrix<T>) -> Matrix<T> {
-        assert!(lhs.dims().1 == rhs.dims().0);
-        let m = lhs.dims().0;
-        let k = lhs.dims().1;
-        let n = rhs.dims().1;
-
-        let mut c = CPUCache::get(self, m*n);
-        T::gemm(m, n, k, lhs, rhs, &mut c);
-        (c, (m, n)).into()
-    }
-}
-
 
 impl<T: CDatatype+GenericBlas> BaseDevice<T> for CPU {}
 
-pub fn assign_op<T: Copy+Default, F: Fn(&mut T, T)>(lhs: &mut Buffer<T>, rhs: &Buffer<T>, f: F) {
+// TODO: remove
+/*pub fn assign_op<T: Copy+Default, F: Fn(&mut T, T)>(lhs: &mut Buffer<T>, rhs: &Buffer<T>, f: F) {
     assign_to_lhs(lhs, rhs, f)
-}
-
-pub fn ew_op<T: Copy+Default, F: Fn(T, T) -> T>(device: &CPU, lhs: &Matrix<T>, rhs: &Matrix<T>, f: F) -> Matrix<T> {
-    let mut out = CPUCache::get::<T>(device, lhs.size());
-    element_wise_op_mut(lhs, rhs, &mut out, f);
-    (out, lhs.dims()).into()
-}
-
-pub fn each_op<T: Copy+Default, F: Fn(T) -> T>(device: &CPU, x: &Matrix<T>, f: F) -> Matrix<T> {
-    let mut y = CPUCache::get::<T>(device, x.size());
-    
-    for (idx, value) in y.iter_mut().enumerate() {
-        *value = f(x[idx]);
-    }
-    (y, x.dims()).into()
-}
+}*/
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct StoredCPUPtr {

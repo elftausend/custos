@@ -15,26 +15,24 @@
 //! [cpu_readme.rs]: https://github.com/elftausend/custos/blob/main/examples/cpu_readme.rs
 //! 
 //! ```rust
-//! use custos::{CPU, AsDev, Matrix, BaseOps, VecRead};
+//! use custos::{CPU, AsDev, ClearBuf, VecRead, Buffer};
 //! 
 //! fn main() {
 //!     let device = CPU::new();
-//!     let a = Matrix::from(( &device, 2, 3, [1, 2, 3, 4, 5, 6]));
-//!     let b = Matrix::from(( &device, (2, 3), [6, 5, 4, 3, 2, 1]));
+//!     let mut a = Buffer::from(( &device, [1, 2, 3, 4, 5, 6]));
 //!     
 //!     // specify device for operation
-//!     let c = device.add(&a, &b);
-//!     assert_eq!(device.read(&c), [7, 7, 7, 7, 7, 7]);
+//!     device.clear(&mut a);
+//!     assert_eq!(device.read(&a), [0; 6]);
 //! 
 //!     // select() ... sets CPU as 'global device' 
 //!     // -> when device is not specified in an operation, the 'global device' is used
 //!     let device = CPU::new().select();
 //! 
-//!     let a = Matrix::from(( &device, 2, 3, [1, 2, 3, 4, 5, 6]));
-//!     let b = Matrix::from(( &device, 2, 3, [6, 5, 4, 3, 2, 1]));
+//!     let mut a = Buffer::from(( &device, [1, 2, 3, 4, 5, 6]));
+//!     a.clear();
 //! 
-//!     let c = a + b;
-//!     assert_eq!(c.read(), vec![7, 7, 7, 7, 7, 7]);
+//!     assert_eq!(a.read(), vec![0; 6]);
 //! }
 //! ```
 
@@ -52,7 +50,6 @@ pub use libs::cuda::{CudaDevice, InternCudaDevice};
 #[cfg(feature="opencl")]
 pub use libs::opencl::{CLDevice, InternCLDevice};
 pub use libs::cpu::CPU;
-pub use matrix::*;
 
 pub mod libs;
 
@@ -60,7 +57,7 @@ mod count;
 mod buffer;
 
 pub mod number;
-mod matrix;
+
 
 pub struct Error {
     pub error: Box<dyn std::error::Error + Send>,
@@ -166,131 +163,22 @@ pub trait Device<T> {
 }
 
 ///All 'base' traits?
-pub trait BaseDevice<T>: Device<T> + BaseOps<T> + VecRead<T> + Gemm<T> {}
+pub trait BaseDevice<T>: Device<T> + VecRead<T> {}
 
-/// Assignment operations
-/// # Examples
-/// ```
-/// use custos::{CPU, Matrix, AssignOps, VecRead};
-/// 
-/// let device = CPU::new();
-/// let mut lhs = Matrix::from((&device, 2, 2, [3, 5, 4, 1]));
-/// let rhs = Matrix::from((&device, 2, 2, [1, 8, 6, 2]));
-/// 
-/// device.add_assign(&mut lhs, &rhs);
-/// assert_eq!(vec![4, 13, 10, 3], device.read(lhs.as_buf()));
-/// 
-/// device.sub_assign(&mut lhs, &rhs);
-/// assert_eq!(vec![3, 5, 4, 1], device.read(lhs.as_buf()));
-/// ```
-pub trait AssignOps<T> {
-    /// Add assign
-    /// # Examples
-    /// ```
-    /// use custos::{CPU, Matrix, AssignOps, VecRead};
-    /// 
-    /// let device = CPU::new();
-    /// let mut lhs = Matrix::from((&device, 2, 2, [3, 5, 4, 1]));
-    /// let rhs = Matrix::from((&device, 2, 2, [1, 8, 6, 2]));
-    /// 
-    /// device.add_assign(&mut lhs, &rhs);
-    /// assert_eq!(vec![4, 13, 10, 3], device.read(lhs.as_buf()));
-    /// 
-    /// device.sub_assign(&mut lhs, &rhs);
-    /// assert_eq!(vec![3, 5, 4, 1], device.read(lhs.as_buf()));
-    /// ```
-    fn add_assign(&self, lhs: &mut Buffer<T>, rhs: &Buffer<T>);
-    fn sub_assign(&self, lhs: &mut Buffer<T>, rhs: &Buffer<T>);
-}
-
-#[cfg_attr(feature = "safe", doc = "```ignore")]
-/// Element-wise +, -, *, / operations for matrices.
-/// 
-/// # Examples
-/// ```
-/// use custos::{CPU, Matrix, AsDev};
-/// 
-/// let device = CPU::new().select();
-/// let a = Matrix::from((&device, (2, 3), [2, 4, 6, 8, 10, 12]));
-/// let b = Matrix::from((&device, (2, 3), [12, 4, 3, 1, -5, -3]));
-/// 
-/// let c = a + b;
-/// assert_eq!(c.read(), vec![14, 8, 9, 9, 5, 9]);
-/// 
-/// use custos::BaseOps;
-/// let sub = device.sub(&a, &b);
-/// assert_eq!(sub.read(), vec![-10, 0, 3, 7, 15, 15]);
-/// ```
-pub trait BaseOps<T> {
-    /// Element-wise addition
-    /// # Example
-    /// ```
-    /// use custos::{CPU, Matrix, AsDev};
-    /// 
-    /// let device = CPU::new().select();
-    /// let a = Matrix::from((&device, 2, 3, [2, 4, 6, 8, 10, 12]));
-    /// let b = Matrix::from((&device, 2, 3, [12, 4, 3, 1, -5, -3]));
-    /// 
-    /// let c = a + b;
-    /// assert_eq!(c.read(), vec![14, 8, 9, 9, 5, 9]);
-    /// ```
-    fn add(&self, lhs: &Matrix<T>, rhs: &Matrix<T>) -> Matrix<T>;
-    
-    /// Element-wise subtraction
-    /// # Example
-    /// ```
-    /// use custos::{CPU, Matrix, AsDev, BaseOps};
-    /// 
-    /// let device = CPU::new().select();
-    /// let a = Matrix::from((&device, 2, 3, [2, 4, 6, 8, 10, 12]));
-    /// let b = Matrix::from((&device, 2, 3, [12, 4, 3, 1, -5, -3]));
-    /// 
-    /// let sub = device.sub(&a, &b);
-    /// assert_eq!(sub.read(), vec![-10, 0, 3, 7, 15, 15]);
-    /// ```
-    fn sub(&self, lhs: &Matrix<T>, rhs: &Matrix<T>) -> Matrix<T>;
-
-    /// Element-wise multiplication
-    /// # Example
-    /// ```
-    /// use custos::{CPU, Matrix, AsDev, BaseOps};
-    /// 
-    /// let device = CPU::new().select();
-    /// let a = Matrix::from((&device, 2, 3, [2, 4, 6, 8, 10, 12]));
-    /// let b = Matrix::from((&device, 2, 3, [12, 4, 3, 1, -5, -3]));
-    /// 
-    /// let mul = a * b;
-    /// assert_eq!(mul.read(), vec![24, 16, 18, 8, -50, -36]);
-    /// ```
-    fn mul(&self, lhs: &Matrix<T>, rhs: &Matrix<T>) -> Matrix<T>;
-
-    /// Element-wise division
-    /// # Example
-    /// ```
-    /// use custos::{CPU, Matrix, AsDev, BaseOps};
-    /// 
-    /// let device = CPU::new().select();
-    /// let a = Matrix::from((&device, 2, 3, [2, 4, 6, 8, 10, 12]));
-    /// let b = Matrix::from((&device, 2, 3, [12, 4, 3, 1, -5, -3]));
-    /// 
-    /// let div = device.div(&a, &b);
-    /// assert_eq!(div.read(), vec![0, 1, 2, 8, -2, -4]);
-    /// ```
-    fn div(&self, lhs: &Matrix<T>, rhs: &Matrix<T>) -> Matrix<T>;
-
+pub trait ClearBuf<T> {
     /// Sets all elements of the matrix to zero.
     /// # Example
     /// ```
-    /// use custos::{CPU, Matrix, AsDev, BaseOps};
+    /// use custos::{CPU, AsDev, ClearBuf, Buffer};
     /// 
     /// let device = CPU::new().select();
-    /// let mut a = Matrix::from((&device, 2, 3, [2, 4, 6, 8, 10, 12]));
+    /// let mut a = Buffer::from((&device, [2, 4, 6, 8, 10, 12]));
     /// assert_eq!(a.read(), vec![2, 4, 6, 8, 10, 12]);
     /// 
     /// device.clear(&mut a);
     /// assert_eq!(a.read(), vec![0; 6]);
     /// ```
-    fn clear(&self, matrix: &mut Buffer<T>);
+    fn clear(&self, buf: &mut Buffer<T>);
 }
 
 /// Trait for reading buffers.
@@ -306,23 +194,6 @@ pub trait VecRead<T> {
     /// assert_eq!(vec![1., 2., 3., 3., 2., 1.,], read);
     /// ```
     fn read(&self, buf: &Buffer<T>) -> Vec<T>;
-}
-
-/// Matrix multiplication. Uses provided device.
-/// # Example
-/// ```
-/// use custos::{CPU, Matrix, Gemm, VecRead};
-/// let device = CPU::new();
-///
-/// let a = Matrix::from((&device, (2, 3), [1., 2., 3., 4., 5., 6.,]));
-/// let b = Matrix::from((&device, (3, 2), [6., 5., 4., 3., 2., 1.,]));
-///
-/// let c = device.gemm(&a, &b);
-///
-/// assert_eq!(device.read(c.as_buf()), vec![20., 14., 56., 41.,]);
-/// ```
-pub trait Gemm<T> {
-    fn gemm(&self, lhs: &Matrix<T>, rhs: &Matrix<T>) -> Matrix<T>;
 }
 
 trait ManualMem<T> {
@@ -383,16 +254,15 @@ pub trait AsDev {
     /// 
     /// # Example
     /// ```
-    /// use custos::{CPU, BaseOps, VecRead, Matrix, AsDev};
+    /// use custos::{CPU, VecRead, Buffer, AsDev, ClearBuf};
     /// 
     /// let device = CPU::new().select();
     /// 
-    /// let a = Matrix::from((&device, (5, 5), vec![1.5; 5*5]));
-    /// let b = Matrix::from((&device, (5, 5), vec![1.3; 5*5]));
+    /// let mut a = Buffer::from((&device, vec![1.5; 5*5]));
     /// 
-    /// let out = a + b;
+    /// a.clear();
     /// 
-    /// assert_eq!(out.read(), vec![2.8; 5*5]);
+    /// assert_eq!(a.read(), vec![0.; 5*5]);
     /// ```
     #[must_use]
     fn select(self) -> Self where Self: AsDev+Clone {
@@ -448,21 +318,15 @@ impl std::error::Error for DeviceError {}
 /// 
 /// # Example
 /// ```
-/// use custos::{Error, CPU, get_device, Matrix, VecRead, AsDev, BaseOps};
+/// use custos::{Error, CPU, get_device, VecRead, AsDev, Buffer};
 /// 
 /// fn main() -> Result<(), Error> {
 ///     let device = CPU::new().select();
 ///     let read = get_device!(VecRead, f32)?;
 /// 
-///     let matrix = Matrix::from(( &device, (2, 3), [1.51, 6.123, 7., 5.21, 8.62, 4.765]));
-///     let read = read.read(matrix.as_buf());
-/// 
-///     assert_eq!(&read, &[1.51, 6.123, 7., 5.21, 8.62, 4.765]);
-///     let b = Matrix::from(( &device, (2, 3), [1., 1., 1., 1., 1., 1.]));
-/// 
-///     let base_ops = get_device!(BaseOps, f32)?;
-///     let out = base_ops.add(&matrix, &b);
-///     assert_eq!(out.read(), vec![2.51, 7.123, 8., 6.21, 9.62, 5.765]);
+///     let buf = Buffer::from(( &device, [1.51, 6.123, 7., 5.21, 8.62, 4.765]));
+///     let read = read.read(&buf);
+///     assert_eq!(read, vec![1.51, 6.123, 7., 5.21, 8.62, 4.765]);
 ///     Ok(())
 /// }
 /// ```

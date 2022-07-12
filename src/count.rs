@@ -43,15 +43,10 @@ impl AsRangeArg for (usize, usize) {
 /// 
 /// # Example
 /// ```
-/// use custos::{CPU, AsDev, Matrix, get_count, range};
-/// 
-/// let device = CPU::new().select();
-/// let a = Matrix::from((&device, (2, 2), [2, 4, 5, 6]));
-/// let b = Matrix::from((&device, (2, 2), [1, 2, 3, 4]));
+/// use custos::{get_count, range, Node};
 /// 
 /// for _ in range(100) {
-///     let c = a + b;
-///     assert_eq!(c.read(), vec![3, 6, 8, 10]);
+///     Node::new(10); // a 'Node' is created if a Buffer is retrieved from cache.
 ///     assert!(get_count() == 1);
 /// }
 /// assert!(get_count() == 0);

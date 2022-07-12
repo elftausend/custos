@@ -1,4 +1,4 @@
-use custos::{libs::cpu::CPU, AsDev, Matrix, range};
+use custos::{libs::cpu::CPU, AsDev, range, Buffer};
 #[cfg(feature="opencl")]
 use custos::opencl::cl_device::CLDevice;
 
@@ -6,12 +6,11 @@ use custos::opencl::cl_device::CLDevice;
 fn test_rc_get_dev() {
     {
         let device = CPU::new().select();
-        let a = Matrix::from(( &device, (2, 3), [1., 2., 3., 4., 5., 6.,]));
-        let b = Matrix::from(( &device, (2, 3), [6., 5., 4., 3., 2., 1.,]));
+        let mut a = Buffer::from(( &device, [1., 2., 3., 4., 5., 6.,]));
 
         for _ in range(100) {
-            let c = &a + &b;
-            assert_eq!(&[7., 7., 7., 7., 7., 7.,], c.as_slice());
+            a.clear();
+            assert_eq!(&[0.; 6], a.as_slice());
         }
         
     }    
@@ -19,12 +18,12 @@ fn test_rc_get_dev() {
 
 #[cfg(feature="opencl")]
 #[test]
-fn test_ocl_dealloc() {
+fn test_dealloc_cl() {
     let device = CLDevice::new(0).unwrap().select();
 
-    let a = Matrix::from(( &device, (2, 3), [1f32, 2., 3., 4., 5., 6.,]));
-    let b = Matrix::from(( &device, (2, 3), [6., 5., 4., 3., 2., 1.,]));
+    let _a = Buffer::from(( &device, [1f32, 2., 3., 4., 5., 6.,]));
+    let _b = Buffer::from(( &device, [6., 5., 4., 3., 2., 1.,]));
 
-    let c = &a + &b;
-    println!("{:?}", c.read());
+    drop(device);
+
 }

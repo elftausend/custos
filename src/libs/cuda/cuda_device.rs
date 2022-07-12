@@ -1,6 +1,6 @@
 use std::{cell::{RefCell, Ref, RefMut}, rc::Rc, ptr::null_mut};
-use crate::{Device, VecRead, CacheBuf, Gemm, BaseOps, AssignOps, BaseDevice, GenericBlas, CDatatype, Buffer, Matrix, CUdeviceptr, AsDev};
-use super::{api::{device, create_context, CudaIntDevice, Context, cublas::{create_handle, CublasHandle, cublasSetStream_v2, cublasDestroy_v2}, cuInit, cufree, cumalloc, cu_write, cu_read, cuCtxDestroy, Stream, create_stream, cuStreamDestroy, Module, cuModuleUnload}, CudaCache, cu_clear, cu_ew, cu_ew_self};
+use crate::{Device, ClearBuf, VecRead, CacheBuf, BaseDevice, GenericBlas, CDatatype, CUdeviceptr, AsDev};
+use super::{api::{device, create_context, CudaIntDevice, Context, cublas::{create_handle, CublasHandle, cublasSetStream_v2, cublasDestroy_v2}, cuInit, cufree, cumalloc, cu_write, cu_read, cuCtxDestroy, Stream, create_stream, cuStreamDestroy, Module, cuModuleUnload}, CudaCache, cu_clear};
 
 /// Used to perform calculations with a CUDA capable device.
 /// To make new calculations invocable, a trait providing new operations should be implemented for [CudaDevice].
@@ -75,62 +75,15 @@ impl<T: Default + Copy> VecRead<T> for CudaDevice {
     }
 }
 
+impl<T: CDatatype> ClearBuf<T> for CudaDevice {
+    fn clear(&self, buf: &mut crate::Buffer<T>) {
+        cu_clear(self, buf).unwrap()
+    }
+}
+
 impl<T> CacheBuf<T> for CudaDevice {
     fn cached_buf(&self, len: usize) -> crate::Buffer<T> {
         CudaCache::get::<T>(self, len)
-    }
-}
-
-impl<T: GenericBlas> Gemm<T> for CudaDevice {
-    fn gemm(&self, lhs: &Matrix<T>, rhs: &Matrix<T>) -> Matrix<T> {
-        assert!(lhs.cols() == rhs.rows(), "wrong dims for matrix multiplication");
-        let out: Buffer<T> = self.cached_buf(lhs.rows() * rhs.cols());
-        T::cugemm(
-            &self.inner.borrow().handle, 
-            lhs.rows(), 
-            rhs.cols(), 
-            lhs.cols(), 
-            lhs.as_buf().ptr.2, 
-            rhs.as_buf().ptr.2, 
-            out.ptr.2
-        ).unwrap();
-        (out, lhs.rows(), rhs.cols()).into()
-    }
-}
-
-impl<T: CDatatype> AssignOps<T> for CudaDevice {
-    fn add_assign(&self, lhs: &mut crate::Buffer<T>, rhs: &crate::Buffer<T>) {
-        cu_ew_self(self, lhs, rhs, "+").unwrap();
-    }
-
-    fn sub_assign(&self, lhs: &mut crate::Buffer<T>, rhs: &crate::Buffer<T>) {
-        cu_ew_self(self, lhs, rhs, "-").unwrap();
-    }
-}
-
-impl<T: CDatatype> BaseOps<T> for CudaDevice {
-    fn add(&self, lhs: &crate::Matrix<T>, rhs: &crate::Matrix<T>) -> crate::Matrix<T> {
-        let buf = cu_ew(self, lhs, rhs, "+").unwrap();
-        (buf, lhs.dims()).into()
-    }
-
-    fn sub(&self, lhs: &crate::Matrix<T>, rhs: &crate::Matrix<T>) -> crate::Matrix<T> {
-        let buf = cu_ew(self, lhs, rhs, "-").unwrap();
-        (buf, lhs.dims()).into()
-    }
-
-    fn mul(&self, lhs: &crate::Matrix<T>, rhs: &crate::Matrix<T>) -> crate::Matrix<T> {
-        let buf = cu_ew(self, lhs, rhs, "*").unwrap();
-        (buf, lhs.dims()).into()
-    }
-
-    fn div(&self, lhs: &crate::Matrix<T>, rhs: &crate::Matrix<T>) -> crate::Matrix<T> {
-        let buf = cu_ew(self, lhs, rhs, "/").unwrap();
-        (buf, lhs.dims()).into()
-    }
-
-    fn clear(&self, buf: &mut crate::Buffer<T>) {
-        cu_clear(self, buf).unwrap();
     }
 }
 

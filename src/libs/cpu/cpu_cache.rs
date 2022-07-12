@@ -12,6 +12,8 @@ type RawInfo = (CpuPtr, usize);
 
 #[cfg_attr(feature = "safe", doc = "```ignore")]
 #[derive(Debug)]
+// TODO: unignore : think of a good test
+/// ```ignore 
 /// stores output pointers
 /// 
 /// # Example

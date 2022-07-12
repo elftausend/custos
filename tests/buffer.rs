@@ -2,7 +2,7 @@
 use std::ffi::c_void;
 
 #[cfg(not(feature="safe"))]
-use custos::{CPU, cpu::element_wise_op_mut};
+use custos::CPU;
 
 use custos::{Buffer, Device, VecRead, AsDev};
 #[cfg(feature="opencl")]
@@ -195,7 +195,9 @@ fn test_size_buf() {
 
 #[cfg(not(feature="safe"))]
 fn _slice_add<T: Copy + std::ops::Add<Output = T>>(a: &[T], b: &[T], c: &mut [T]) {
-    element_wise_op_mut(a, b, c, |a, b| a+b)
+    for i in 0..c.len() {
+        c[i] = a[i] + b[i]
+    }
 }
 
 #[cfg(not(feature="safe"))]

@@ -1,13 +1,13 @@
-use custos::{CPU, AsDev, Matrix};
+use custos::{CPU, AsDev, Buffer};
 
 #[test]
 fn test_clear_cpu() {
     let device = CPU::new().select();
     
-    let mut matrix = Matrix::from((&device, (2, 3), [1., 2., 3., 4., 5., 6.,]));
-    assert_eq!(matrix.read(), vec![1., 2., 3., 4., 5., 6.,]);
-    matrix.clear();
-    assert_eq!(matrix.read(), vec![0.; 6]);
+    let mut buf = Buffer::from((&device, [1., 2., 3., 4., 5., 6.,]));
+    assert_eq!(buf.read(), vec![1., 2., 3., 4., 5., 6.,]);
+    buf.clear();
+    assert_eq!(buf.read(), vec![0.; 6]);
 }
 
 #[cfg(feature="opencl")]
@@ -17,10 +17,10 @@ fn test_clear_cl() -> Result<(), custos::Error> {
 
     let device = CLDevice::new(0)?.select();
     
-    let mut matrix = Matrix::from((&device, (2, 3), [1., 2., 3., 4., 5., 6.,]));
-    assert_eq!(matrix.read(), vec![1., 2., 3., 4., 5., 6.,]);
-    matrix.clear();
-    assert_eq!(matrix.read(), vec![0.; 6]);
+    let mut buf = Buffer::from((&device, [1., 2., 3., 4., 5., 6.,]));
+    assert_eq!(buf.read(), vec![1., 2., 3., 4., 5., 6.,]);
+    buf.clear();
+    assert_eq!(buf.read(), vec![0.; 6]);
     Ok(())
 }
 
@@ -31,9 +31,9 @@ fn test_clear_cuda() -> Result<(), custos::Error> {
 
     let device = CudaDevice::new(0)?.select();
     
-    let mut matrix = Matrix::from((&device, (2, 3), [1., 2., 3., 4., 5., 6.,]));
-    assert_eq!(matrix.read(), vec![1., 2., 3., 4., 5., 6.,]);
-    matrix.clear();
-    assert_eq!(matrix.read(), vec![0.; 6]);
+    let mut buf = Buffer::from((&device, [1., 2., 3., 4., 5., 6.,]));
+    assert_eq!(buf.read(), vec![1., 2., 3., 4., 5., 6.,]);
+    buf.clear();
+    assert_eq!(buf.read(), vec![0.; 6]);
     Ok(())
 }

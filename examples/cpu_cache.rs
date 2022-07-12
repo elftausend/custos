@@ -1,7 +1,7 @@
-use custos::{Matrix, CPU, AsDev, cpu::CPU_CACHE, Node};
+//use custos::{CPU, AsDev, cpu::CPU_CACHE, Node};
 
 fn main() {
-    let device = CPU::new().select();
+    /*let device = CPU::new().select();
 
     let a = Matrix::<i16>::new(&device, (100, 100));
     let b = Matrix::<i16>::new(&device, (100, 100));
@@ -13,5 +13,5 @@ fn main() {
         node.idx = 0;
         *cache.nodes.get(&node).unwrap()
      });
-     assert!(info.0.0 == out.as_buf().ptr.0 as *mut usize);
+     assert!(info.0.0 == out.as_buf().ptr.0 as *mut usize);*/
 }

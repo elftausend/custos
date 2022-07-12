@@ -1,4 +1,5 @@
-
+// TODO: move to custos_math
+/* 
 use std::ptr::null_mut;
 
 use criterion::{Criterion, criterion_main, criterion_group};
@@ -47,3 +48,5 @@ pub fn bench_vec(ben: &mut Criterion) {
 
 criterion_group!(benches, bench_fixed, bench_vec);
 criterion_main!(benches);
+*/
+fn main() {}
