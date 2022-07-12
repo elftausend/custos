@@ -35,3 +35,5 @@ jobs:
 
     - name: Run tests
       run: cargo test --verbose --no-default-features
+    - name: Run tests - 'safe' mode
+      run: cargo test --verbose --no-default-features --features safe
