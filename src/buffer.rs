@@ -153,7 +153,7 @@ impl<T: Clone> Clone for Buffer<T> {
         }
 
         #[cfg(feature="cuda")]
-        if !self.ptr.2.is_null() { 
+        if self.ptr.2 != 0 { 
             unimplemented!("At the moment, cloning a CUDA Buffer is undefined");
         };
 
@@ -177,7 +177,7 @@ impl<T> Drop for Buffer<T> {
 
             #[cfg(feature="cuda")]
             if self.ptr.2 != 0 {
-                use cuda::api::cufree;
+                use crate::cuda::api::cufree;
                 cufree(self.ptr.2).unwrap();
             }
         }

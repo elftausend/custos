@@ -1,6 +1,6 @@
 [package]
 name = "custos"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2021"
 license = "MIT"
 description = "A minimal OpenCL, CUDA and host CPU array manipulation engine / framework."
@@ -14,7 +14,7 @@ readme = "README.md"
 lazy_static = "1.4.0"
 
 [features]
-default = ["opencl"]
+default = ["opencl", "cuda"]
 opencl = []
 cuda = []
 safe = []
@@ -32,15 +32,7 @@ name = "unified_memory"
 required-features = ["opencl"]
 
 [[example]]
-name = "simple"
-required-features = ["opencl"]
-
-[[example]]
 name = "opencl_kernel_launch"
-required-features = ["opencl"]
-
-[[example]]
-name = "cl_device"
 required-features = ["opencl"]
 
 [[test]]

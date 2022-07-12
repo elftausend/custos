@@ -1,21 +1,20 @@
-//use custos::{CPU, AsDev, Matrix, BaseOps, VecRead};
+use custos::{CPU, AsDev, VecRead, Buffer, ClearBuf};
 
 fn main() {
-    /*let device = CPU::new();
-    let a = Matrix::from(( &device, (2, 3), [1, 2, 3, 4, 5, 6]));
-    let b = Matrix::from(( &device, (2, 3), [6, 5, 4, 3, 2, 1]));
+    let device = CPU::new();
+    let mut a = Buffer::from(( &device, [1, 2, 3, 4, 5, 6]));
     
     // specify device for operation
-    let c = device.add(&a, &b);
-    assert_eq!(device.read(&c), [7, 7, 7, 7, 7, 7]);
+    device.clear(&mut a);
+    assert_eq!(device.read(&a), [0; 6]);
 
     // select() ... sets CPU as 'global device' 
     // -> when device is not specified in an operation, the 'global device' is used
     let device = CPU::new().select();
 
-    let a = Matrix::from(( &device, (2, 3), [1, 2, 3, 4, 5, 6]));
-    let b = Matrix::from(( &device, (2, 3), [6, 5, 4, 3, 2, 1]));
+    let mut a = Buffer::from(( &device, [1, 2, 3, 4, 5, 6]));
 
-    let c = a + b;
-    assert_eq!(c.read(), vec![7, 7, 7, 7, 7, 7]);*/
+    // no need to specify the device
+    a.clear();
+    assert_eq!(a.read(), vec![0; 6]);
 }
