@@ -322,7 +322,7 @@ impl std::error::Error for DeviceError {}
 ///
 /// fn main() -> Result<(), Error> {
 ///     let device = CPU::new().select();
-///     let read = get_device!(VecRead, f32)?;
+///     let read = get_device!(VecRead<f32>)?;
 ///
 ///     let buf = Buffer::from(( &device, [1.51, 6.123, 7., 5.21, 8.62, 4.765]));
 ///     let read = read.read(&buf);
@@ -332,38 +332,25 @@ impl std::error::Error for DeviceError {}
 /// ```
 macro_rules! get_device {
     ($t:ident<$g:ident>) => {{
-        use $crate::{DeviceError, Error, CPU, GLOBAL_DEVICE};
+        use $crate::{DeviceError, Error, GLOBAL_DEVICE, is_cuda_selected, cuda_dev, is_cl_selected, cl_dev, is_cpu_selected, cpu_dev};
         let device: Result<Box<dyn $t<$g>>, Error> = GLOBAL_DEVICE.with(|device| {
             let device = device.borrow();
 
-            let mut dev: Result<Box<dyn $t<$g>>, Error> =
-                Err(Error::from(DeviceError::NoDeviceSelected));
+            let mut dev: Option<Box<dyn $t<$g>>> = None;
+            
+            if is_cpu_selected(&device) {
+                dev = Some(cpu_dev(&device)?)
+            }
 
-            #[cfg(feature = "opencl")]
-            if let Some(cl) = &device.cl_device {
-                use $crate::CLDevice;
-                dev = Ok(Box::new(CLDevice::from(
-                    cl.upgrade()
-                        .ok_or(Error::from(DeviceError::NoDeviceSelected))?,
-                )));
-            };
+            if is_cl_selected(&device) {
+                dev = Some(cl_dev(&device)?);
+            }
 
-            #[cfg(feature = "cuda")]
-            if let Some(cuda) = &device.cuda {
-                use $crate::CudaDevice;
-                dev = Ok(Box::new(CudaDevice::from(
-                    cuda.upgrade()
-                        .ok_or(Error::from(DeviceError::NoDeviceSelected))?,
-                )))
-            };
+            if is_cuda_selected(&device) {
+                dev = Some(cuda_dev(&device)?); 
+            }
 
-            if let Some(cpu) = &device.cpu {
-                dev = Ok(Box::new(CPU::from(
-                    cpu.upgrade()
-                        .ok_or(Error::from(DeviceError::NoDeviceSelected))?,
-                )))
-            };
-            dev
+            dev.ok_or(Error::from(DeviceError::NoDeviceSelected))
         });
         device
     }};
@@ -374,4 +361,51 @@ pub fn is_cuda_selected(dev: &Dev) -> bool {
         Some(_) => true && cfg!(feature="cuda"),
         None => false,
     }
+}
+
+#[cfg(not(feature="cuda"))]
+pub fn cuda_dev(_: &Dev) -> Result<Box<CPU>> {
+    Err(Error::from(DeviceError::NoDeviceSelected))
+}
+
+#[cfg(feature="cuda")]
+pub fn cuda_dev(dev: &Dev) -> Result<Box<CudaDevice>> {
+    return Ok(Box::new(CudaDevice::from(
+        dev.cuda.as_ref().unwrap().upgrade()
+            .ok_or(Error::from(DeviceError::NoDeviceSelected))?,
+    )));
+}
+
+pub fn is_cl_selected(dev: &Dev) -> bool {
+    match dev.cl_device {
+        Some(_) => true && cfg!(feature="opencl"),
+        None => false,
+    }
+}
+
+#[cfg(not(feature="opencl"))]
+pub fn cl_dev(_: &Dev) -> Result<Box<CPU>> {
+    Err(Error::from(DeviceError::NoDeviceSelected))
+}
+
+pub fn cl_dev(dev: &Dev) -> Result<Box<CLDevice>> {
+    #[cfg(feature="opencl")]
+    return Ok(Box::new(CLDevice::from(
+        dev.cl_device.as_ref().unwrap().upgrade()
+            .ok_or(Error::from(DeviceError::NoDeviceSelected))?,
+    )));
+}
+
+pub fn is_cpu_selected(dev: &Dev) -> bool {
+    if let Some(_) = dev.cpu {
+        return true;
+    }
+    false
+}
+
+pub fn cpu_dev(dev: &Dev) -> Result<Box<CPU>> {
+    Ok(Box::new(CPU::from(
+        dev.cpu.as_ref().unwrap().upgrade()
+            .ok_or(Error::from(DeviceError::NoDeviceSelected))?,
+    )))
 }

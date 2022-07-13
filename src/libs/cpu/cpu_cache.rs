@@ -17,11 +17,11 @@ type RawInfo = (CpuPtr, usize);
 ///
 /// # Example
 /// ```
-/// use custos::{Matrix, CPU, AsDev, cpu::CPU_CACHE, Node};
+/// use custos::{CPU, AsDev, Node, cpu::{CPU_CACHE, CPUCache}};
 ///
 /// let device = CPU::new().select();
 ///
-/// let out = CPUCache::<i16>::get(&device, 100*100);
+/// let out = CPUCache::get::<i16>(&device, 100*100);
 ///
 /// let info = CPU_CACHE.with(|cache| {
 ///     let cache = cache.borrow();
@@ -29,7 +29,7 @@ type RawInfo = (CpuPtr, usize);
 ///     node.idx = 0; // to get the pointer of "out"
 ///     *cache.nodes.get(&node).unwrap()
 /// });
-/// assert!(info.0.0 == out.as_buf().ptr.0 as *mut usize);
+/// assert!(info.0.0 == out.ptr.0 as *mut usize);
 /// ```
 pub struct CPUCache {
     pub nodes: HashMap<Node, RawInfo>,

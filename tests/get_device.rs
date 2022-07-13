@@ -33,7 +33,7 @@ fn get_device_test_cu() -> custos::Result<()> {
 
     let buf = Buffer::from((&device, [1., 1.5, 0.14]));
 
-    let read_device = get_device!(VecRead, f32).unwrap();
+    let read_device = get_device!(VecRead<f32>).unwrap();
     assert_eq!(vec![1., 1.5, 0.14], read_device.read(&buf));
     Ok(())
 }

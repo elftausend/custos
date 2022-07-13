@@ -292,7 +292,7 @@ impl<T: Debug + Default + Copy> Debug for Buffer<T> {
 
         #[cfg(feature = "cuda")]
         if self.ptr.2 != 0 {
-            let read = get_device!(VecRead, T).unwrap();
+            let read = get_device!(VecRead<T>).unwrap();
             write!(f, "CUDA: {:?}, ", read.read(self))?;
         }
 
