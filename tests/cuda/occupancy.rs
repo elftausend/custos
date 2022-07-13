@@ -1,13 +1,18 @@
 use std::{ffi::c_void, time::Instant};
 
-use custos::{cuda::api::{load_module_data, nvrtc::create_program, cuOccupancyMaxPotentialBlockSize, cuLaunchKernel}, CudaDevice, Buffer, VecRead};
+use custos::{
+    cuda::api::{
+        cuLaunchKernel, cuOccupancyMaxPotentialBlockSize, load_module_data, nvrtc::create_program,
+    },
+    Buffer, CudaDevice, VecRead,
+};
 
 #[test]
 fn test_occupancy() -> custos::Result<()> {
     let device = CudaDevice::new(0)?;
 
-    let a = Buffer::from((&device, [1, 2, 3, 4, 5,]));
-    let b = Buffer::from((&device, [4, 1, 7, 6, 9,]));
+    let a = Buffer::from((&device, [1, 2, 3, 4, 5]));
+    let b = Buffer::from((&device, [4, 1, 7, 6, 9]));
 
     let c = Buffer::<i32>::new(&device, a.len);
 
@@ -24,7 +29,7 @@ fn test_occupancy() -> custos::Result<()> {
     x.compile(None)?;
     let module = load_module_data(x.ptx()?)?;
     let function = module.function("add")?;
-    
+
     //const ROWS: usize = 30;
     //const COLS: usize = 1;
 
@@ -39,7 +44,15 @@ fn test_occupancy() -> custos::Result<()> {
     let mut block_size = 0;
 
     unsafe {
-        cuOccupancyMaxPotentialBlockSize(&mut min_grid_size, &mut block_size, function.0, 0, 0, len as i32).to_result()?;
+        cuOccupancyMaxPotentialBlockSize(
+            &mut min_grid_size,
+            &mut block_size,
+            function.0,
+            0,
+            0,
+            len as i32,
+        )
+        .to_result()?;
     }
 
     let grid_size = (len as i32 + block_size - 1) / block_size;
@@ -51,21 +64,31 @@ fn test_occupancy() -> custos::Result<()> {
     //let threads_per_block = 256;
     //let blocks_per_grid = (a.len + threads_per_block - 1) / threads_per_block;
 
-
     let start = Instant::now();
 
     unsafe {
-        let params = &mut [&a.ptr.2 as *const u64 as *mut c_void, &b.ptr.2 as *const u64 as *mut c_void, &c.ptr.2 as *const u64 as *mut c_void, &len as *const usize as *mut c_void];
+        let params = &mut [
+            &a.ptr.2 as *const u64 as *mut c_void,
+            &b.ptr.2 as *const u64 as *mut c_void,
+            &c.ptr.2 as *const u64 as *mut c_void,
+            &len as *const usize as *mut c_void,
+        ];
         cuLaunchKernel(
-            function.0, grid_size as u32, 
-            1, 1, 
-            block_size as u32, 1, 
-            1, 0, 
-            device.stream().0, params.as_ptr() as *mut _, std::ptr::null_mut()
-        ).to_result()?;
-
+            function.0,
+            grid_size as u32,
+            1,
+            1,
+            block_size as u32,
+            1,
+            1,
+            0,
+            device.stream().0,
+            params.as_ptr() as *mut _,
+            std::ptr::null_mut(),
+        )
+        .to_result()?;
     };
-    
+
     println!("end: {:?}", start.elapsed());
 
     let read = device.read(&c);

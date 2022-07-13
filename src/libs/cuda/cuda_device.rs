@@ -1,34 +1,46 @@
-use std::{cell::{RefCell, Ref, RefMut}, rc::Rc, ptr::null_mut};
-use crate::{Device, ClearBuf, VecRead, CacheBuf, BaseDevice, GenericBlas, CDatatype, CUdeviceptr, AsDev};
-use super::{api::{device, create_context, CudaIntDevice, Context, cublas::{create_handle, CublasHandle, cublasSetStream_v2, cublasDestroy_v2}, cuInit, cufree, cumalloc, cu_write, cu_read, cuCtxDestroy, Stream, create_stream, cuStreamDestroy, Module, cuModuleUnload}, CudaCache, cu_clear};
+use super::{
+    api::{
+        create_context, create_stream, cuCtxDestroy, cuInit, cuModuleUnload, cuStreamDestroy,
+        cu_read, cu_write,
+        cublas::{create_handle, cublasDestroy_v2, cublasSetStream_v2, CublasHandle},
+        cufree, cumalloc, device, Context, CudaIntDevice, Module, Stream,
+    },
+    cu_clear, CudaCache,
+};
+use crate::{
+    AsDev, BaseDevice, CDatatype, CUdeviceptr, CacheBuf, ClearBuf, Device, GenericBlas, VecRead,
+};
+use std::{
+    cell::{Ref, RefCell, RefMut},
+    ptr::null_mut,
+    rc::Rc,
+};
 
 /// Used to perform calculations with a CUDA capable device.
 /// To make new calculations invocable, a trait providing new operations should be implemented for [CudaDevice].
 #[derive(Debug, Clone)]
 pub struct CudaDevice {
-    pub inner: Rc<RefCell<InternCudaDevice>>
+    pub inner: Rc<RefCell<InternCudaDevice>>,
 }
 
 impl CudaDevice {
     pub fn new(idx: usize) -> crate::Result<CudaDevice> {
         let inner = Rc::new(RefCell::new(InternCudaDevice::new(idx)?));
-        Ok(
-            CudaDevice { inner }
-        )
+        Ok(CudaDevice { inner })
     }
 
     pub fn handle(&self) -> Ref<CublasHandle> {
         let borrow = self.inner.borrow();
-        Ref::map(borrow, |x| &x.handle)    
+        Ref::map(borrow, |x| &x.handle)
     }
 
     pub fn stream(&self) -> RefMut<Stream> {
         let borrow = self.inner.borrow_mut();
-        RefMut::map(borrow, |x| &mut x.stream)    
+        RefMut::map(borrow, |x| &mut x.stream)
     }
 }
 
-#[cfg(not(feature="safe"))]
+#[cfg(not(feature = "safe"))]
 impl<T> Device<T> for CudaDevice {
     fn alloc(&self, len: usize) -> (*mut T, *mut std::ffi::c_void, u64) {
         let ptr = cumalloc::<T>(len).unwrap();
@@ -53,7 +65,7 @@ impl<T> Device<T> for CudaDevice {
     }
 }
 
-#[cfg(feature="safe")]
+#[cfg(feature = "safe")]
 impl<T> Device<T> for CudaDevice {
     fn alloc(&self, len: usize) -> (*mut T, *mut std::ffi::c_void, u64) {
         (null_mut(), null_mut(), cumalloc::<T>(len).unwrap())
@@ -68,7 +80,10 @@ impl<T> Device<T> for CudaDevice {
 
 impl<T: Default + Copy> VecRead<T> for CudaDevice {
     fn read(&self, buf: &crate::Buffer<T>) -> Vec<T> {
-        assert!(buf.ptr.2 != 0, "called VecRead::read(..) on a non CUDA buffer");
+        assert!(
+            buf.ptr.2 != 0,
+            "called VecRead::read(..) on a non CUDA buffer"
+        );
         let mut read = vec![T::default(); buf.len];
         cu_read(&mut read, buf.ptr.2).unwrap();
         read
@@ -114,13 +129,13 @@ impl From<Rc<RefCell<InternCudaDevice>>> for CudaDevice {
 impl InternCudaDevice {
     #[must_use]
     pub fn new(idx: usize) -> crate::Result<InternCudaDevice> {
-        unsafe {cuInit(0) }.to_result()?;
+        unsafe { cuInit(0) }.to_result()?;
         let device = device(idx as i32)?;
         let ctx = create_context(&device)?;
         let handle = create_handle()?;
         let stream = create_stream()?;
-        unsafe {cublasSetStream_v2(handle.0, stream.0)}.to_result()?;
-        
+        unsafe { cublasSetStream_v2(handle.0, stream.0) }.to_result()?;
+
         Ok(InternCudaDevice {
             ptrs: vec![],
             modules: vec![],
@@ -148,7 +163,6 @@ impl InternCudaDevice {
     }
 }
 
-
 impl Drop for InternCudaDevice {
     fn drop(&mut self) {
         unsafe {
@@ -163,7 +177,7 @@ impl Drop for InternCudaDevice {
             }
 
             cuStreamDestroy(self.stream.0);
-            cuCtxDestroy(self.ctx.0);        
-        }    
+            cuCtxDestroy(self.ctx.0);
+        }
     }
 }

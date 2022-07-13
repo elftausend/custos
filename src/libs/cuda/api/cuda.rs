@@ -1,6 +1,16 @@
-use std::{ptr::null_mut, ffi::{c_void, CString}};
+use super::{
+    cuCtxCreate_v2, cuDeviceGet, cuDeviceGetCount, cuInit, cuLaunchKernel, cuMemFree_v2,
+    cuMemcpyDtoH_v2, cuMemcpyHtoD_v2, cuModuleGetFunction, cuModuleLoad, cuModuleLoadData,
+    cuStreamCreate, cuStreamSynchronize,
+    error::{CudaErrorKind, CudaResult},
+    ffi::cuMemAlloc_v2,
+    CUcontext, CUdevice, CUfunction, CUmodule, CUstream,
+};
 use crate::CUdeviceptr;
-use super::{ffi::cuMemAlloc_v2, error::{CudaResult, CudaErrorKind}, cuInit, CUcontext, CUdevice, cuDeviceGet, cuCtxCreate_v2, cuMemFree_v2, cuDeviceGetCount, cuMemcpyHtoD_v2, cuMemcpyDtoH_v2, cuModuleLoad, CUmodule, CUfunction, cuModuleGetFunction, cuLaunchKernel, CUstream, cuStreamCreate, cuStreamSynchronize, cuModuleLoadData};
+use std::{
+    ffi::{c_void, CString},
+    ptr::null_mut,
+};
 
 pub fn cinit(flags: u32) -> CudaResult<()> {
     unsafe { cuInit(flags).into() }
@@ -18,8 +28,8 @@ pub fn device_count() -> CudaResult<i32> {
 // TODO: cuda set device
 pub fn device(ordinal: i32) -> CudaResult<CudaIntDevice> {
     if ordinal >= device_count()? {
-        return Err(CudaErrorKind::InvalidDeviceIdx)
-    } 
+        return Err(CudaErrorKind::InvalidDeviceIdx);
+    }
 
     let mut device = CudaIntDevice(0);
     unsafe { cuDeviceGet(&mut device.0 as *mut i32, ordinal) };
@@ -33,7 +43,7 @@ pub fn create_context(device: &CudaIntDevice) -> CudaResult<Context> {
     let mut context = Context(null_mut());
     unsafe {
         // TODO: Flags
-        cuCtxCreate_v2(&mut context.0 as *mut CUcontext, 0 , device.0).to_result()?;
+        cuCtxCreate_v2(&mut context.0 as *mut CUcontext, 0, device.0).to_result()?;
     }
     Ok(context)
 }
@@ -42,11 +52,11 @@ pub fn cumalloc<T>(len: usize) -> CudaResult<CUdeviceptr> {
     let bytes = len * core::mem::size_of::<T>();
 
     if bytes == 0 {
-        return Err(CudaErrorKind::InvalidAllocSize)
+        return Err(CudaErrorKind::InvalidAllocSize);
     }
 
     let mut ptr: CUdeviceptr = 0;
-    unsafe { cuMemAlloc_v2(&mut ptr , bytes).to_result()? };
+    unsafe { cuMemAlloc_v2(&mut ptr, bytes).to_result()? };
     Ok(ptr)
 }
 
@@ -56,21 +66,12 @@ pub unsafe fn cufree(ptr: CUdeviceptr) -> CudaResult<()> {
 
 pub fn cu_write<T>(dst: CUdeviceptr, src_host: &[T]) -> CudaResult<()> {
     let bytes_to_copy = src_host.len() * std::mem::size_of::<T>();
-    unsafe { cuMemcpyHtoD_v2(
-        dst, 
-        src_host.as_ptr() as *const c_void, 
-        bytes_to_copy) 
-    }.into()
+    unsafe { cuMemcpyHtoD_v2(dst, src_host.as_ptr() as *const c_void, bytes_to_copy) }.into()
 }
 
-pub fn cu_read<T>(dst_host: &mut [T], src: CUdeviceptr,) -> CudaResult<()> {
+pub fn cu_read<T>(dst_host: &mut [T], src: CUdeviceptr) -> CudaResult<()> {
     let bytes_to_copy = dst_host.len() * std::mem::size_of::<T>();
-    unsafe { cuMemcpyDtoH_v2(
-        dst_host.as_mut_ptr() as *mut c_void, 
-        src, 
-        bytes_to_copy) 
-    }.into()
-    
+    unsafe { cuMemcpyDtoH_v2(dst_host.as_mut_ptr() as *mut c_void, src, bytes_to_copy) }.into()
 }
 
 #[derive(Debug)]
@@ -84,7 +85,7 @@ impl Module {
 
 pub fn load_module(fname: &str) -> CudaResult<Module> {
     let fname = CString::new(fname).unwrap();
-    
+
     let mut module = Module(null_mut());
     unsafe { cuModuleLoad(&mut module.0, fname.as_ptr()) }.to_result()?;
     Ok(module)
@@ -114,7 +115,7 @@ impl Stream {
     pub fn sync(&self) -> CudaResult<()> {
         unsafe { cuStreamSynchronize(self.0) }.to_result()
     }
-} 
+}
 
 pub fn create_stream() -> CudaResult<Stream> {
     let mut ph_stream = Stream(null_mut());
@@ -122,20 +123,34 @@ pub fn create_stream() -> CudaResult<Stream> {
     Ok(ph_stream)
 }
 
-pub fn culaunch_kernel(f: &FnHandle, grid: [u32; 3], blocks: [u32; 3], stream: &Stream, params: &[*mut c_void]) -> CudaResult<()> {
+pub fn culaunch_kernel(
+    f: &FnHandle,
+    grid: [u32; 3],
+    blocks: [u32; 3],
+    stream: &Stream,
+    params: &[*mut c_void],
+) -> CudaResult<()> {
     unsafe {
         cuLaunchKernel(
-            f.0, grid[0], 
-            grid[1], grid[2], 
-            blocks[0], blocks[1], 
-            blocks[2], 0, 
-            stream.0, params.as_ptr() as *mut _, std::ptr::null_mut()
-        )}.to_result()?;
+            f.0,
+            grid[0],
+            grid[1],
+            grid[2],
+            blocks[0],
+            blocks[1],
+            blocks[2],
+            0,
+            stream.0,
+            params.as_ptr() as *mut _,
+            std::ptr::null_mut(),
+        )
+    }
+    .to_result()?;
 
     // TODO: sync here or elsewhere?
     stream.sync()?;
 
-//    unsafe {cuCtxSynchronize().to_result()?};
+    //    unsafe {cuCtxSynchronize().to_result()?};
 
     Ok(())
 }

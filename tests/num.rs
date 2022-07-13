@@ -1,5 +1,5 @@
+use custos::number::{Float, Number};
 use std::any::{Any, TypeId};
-use custos::number::{Number, Float};
 
 #[test]
 fn test_num() {
@@ -14,7 +14,7 @@ fn test_num() {
     assert_eq!(zero, 0.);
 
     assert_eq!(num.as_usize().type_id(), TypeId::of::<usize>());
-    
+
     let x: u8 = Number::from_u64(10);
     assert_eq!(x, 10u8);
 
@@ -28,7 +28,7 @@ fn test_num() {
 #[test]
 fn test_float() {
     let x = 6f32;
-    
+
     assert_eq!(x.negate(), -x);
     assert_eq!(Float::powi(&x, 2), x.powi(2));
     assert_eq!(Float::powf(&x, 2.5), x.powf(2.5));

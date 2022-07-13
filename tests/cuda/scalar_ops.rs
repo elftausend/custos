@@ -1,4 +1,7 @@
-use custos::{cuda::{launch_kernel1d, CudaCache}, Buffer, CudaDevice, AsDev, CDatatype, VecRead};
+use custos::{
+    cuda::{launch_kernel1d, CudaCache},
+    AsDev, Buffer, CDatatype, CudaDevice, VecRead,
+};
 
 #[test]
 fn test_scalar_op_cuda() -> custos::Result<()> {
@@ -13,17 +16,21 @@ fn test_scalar_op_cuda() -> custos::Result<()> {
                 }}
               
             }}
-    "#, datatype=f32::as_c_type_str());
+    "#,
+        datatype = f32::as_c_type_str()
+    );
 
-    let lhs = Buffer::from((&device, [1f32, 2., 3., 4., 5.,]));
+    let lhs = Buffer::from((&device, [1f32, 2., 3., 4., 5.]));
     let out: Buffer<f32> = CudaCache::get(&device, lhs.len);
 
     launch_kernel1d(
-        lhs.len, &device, 
-        &src, "scalar_add", 
+        lhs.len,
+        &device,
+        &src,
+        "scalar_add",
         vec![&lhs, &3f32, &out, &lhs.len],
     )?;
 
     assert_eq!(vec![4., 5., 6., 7., 8.], device.read(&out));
-    Ok(())   
+    Ok(())
 }

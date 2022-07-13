@@ -1,18 +1,17 @@
 #[test]
 fn test_cuda_alloc() {
-    use custos::cuda::api::{cumalloc, cuInit, device, create_context};
+    use custos::cuda::api::{create_context, cuInit, cumalloc, device};
 
     unsafe { cuInit(0) };
     let device = device(0).unwrap();
     let _ctx = create_context(&device).unwrap();
 
     let _x = cumalloc::<f32>(10).unwrap();
-
 }
 
 #[test]
 fn test_cuda_alloc2() -> custos::Result<()> {
-    use custos::cuda::api::{cumalloc, cuInit, device, create_context, device_count};
+    use custos::cuda::api::{create_context, cuInit, cumalloc, device, device_count};
 
     unsafe { cuInit(0) };
     println!("count: {}", device_count()?);
@@ -27,7 +26,7 @@ fn test_cuda_alloc2() -> custos::Result<()> {
 
 #[test]
 fn test_cuda_write() -> custos::Result<()> {
-    use custos::cuda::api::{cumalloc, cuInit, device, create_context, cu_write, cu_read};
+    use custos::cuda::api::{create_context, cuInit, cu_read, cu_write, cumalloc, device};
 
     unsafe { cuInit(0) };
 
@@ -35,13 +34,13 @@ fn test_cuda_write() -> custos::Result<()> {
     let _ctx = create_context(&device)?;
 
     let x = cumalloc::<f32>(100)?;
-    
+
     let write = [4f32; 10];
     cu_write(x, &write)?;
 
     let mut read = vec![0f32; 10];
     cu_read(&mut read, x)?;
-    
+
     assert_eq!(&[4.0; 10], read.as_slice());
 
     Ok(())
@@ -49,8 +48,12 @@ fn test_cuda_write() -> custos::Result<()> {
 
 #[test]
 fn test_cublas() -> custos::Result<()> {
+    use custos::cuda::api::{
+        create_context, cuInit, cu_read, cu_write,
+        cublas::{cublasContext, cublasCreate_v2, cublasOperation_t, cublasSgemm_v2},
+        cumalloc, device,
+    };
     use std::ptr::null_mut;
-    use custos::cuda::api::{cumalloc, cuInit, device, create_context, cu_write, cu_read, cublas::{cublasCreate_v2, cublasSgemm_v2, cublasOperation_t, cublasContext}};
 
     let m = 3;
     let k = 2;
@@ -61,17 +64,17 @@ fn test_cublas() -> custos::Result<()> {
     let device = device(0)?;
     let _ctx = create_context(&device)?;
 
-    let a = cumalloc::<f32>(m*k)?;
-    
-    let write = (0..m*k).map(|x| x as f32).collect::<Vec<f32>>();
+    let a = cumalloc::<f32>(m * k)?;
+
+    let write = (0..m * k).map(|x| x as f32).collect::<Vec<f32>>();
     cu_write(a, &write)?;
 
-    let b = cumalloc::<f32>(k*n)?;
-    
-    let write = (0..k*n).rev().map(|x| x as f32).collect::<Vec<f32>>();
+    let b = cumalloc::<f32>(k * n)?;
+
+    let write = (0..k * n).rev().map(|x| x as f32).collect::<Vec<f32>>();
     cu_write(b, &write)?;
 
-    let c = cumalloc::<f32>(m*n)?;
+    let c = cumalloc::<f32>(m * n)?;
 
     unsafe {
         let mut handle: *mut cublasContext = null_mut();
@@ -81,23 +84,27 @@ fn test_cublas() -> custos::Result<()> {
         }
 
         let res = cublasSgemm_v2(
-            handle, 
+            handle,
             cublasOperation_t::CUBLAS_OP_N,
-            cublasOperation_t::CUBLAS_OP_N, 
-            n as i32, m as i32, k as i32, 
+            cublasOperation_t::CUBLAS_OP_N,
+            n as i32,
+            m as i32,
+            k as i32,
             &1f32 as *const f32,
-            b as *const u64 as *const f32, n as i32,
-            a as *const u64 as *const f32, k as i32, 
-            &0f32 as *const f32, 
-            c as *mut u64 as *mut f32, n as i32
+            b as *const u64 as *const f32,
+            n as i32,
+            a as *const u64 as *const f32,
+            k as i32,
+            &0f32 as *const f32,
+            c as *mut u64 as *mut f32,
+            n as i32,
         );
         if res as u32 != 0 {
             println!("cublas gemm")
         }
-        let mut read = vec![0f32; n*m];
+        let mut read = vec![0f32; n * m];
         cu_read(&mut read, c)?;
         println!("read: {read:?}");
-
     }
     Ok(())
 }
@@ -108,9 +115,15 @@ const N: usize = 100;
 fn test_ffi_cuda() {
     use std::{ffi::c_void, mem::size_of};
 
-    use custos::{cuda::api::{cuInit, cuDeviceGet, cuCtxCreate_v2, CUctx_st, cuMemAlloc_v2, cuMemcpyHtoD_v2, cuMemcpyDtoH_v2}, CUdeviceptr};
+    use custos::{
+        cuda::api::{
+            cuCtxCreate_v2, cuDeviceGet, cuInit, cuMemAlloc_v2, cuMemcpyDtoH_v2, cuMemcpyHtoD_v2,
+            CUctx_st,
+        },
+        CUdeviceptr,
+    };
 
-    unsafe { 
+    unsafe {
         let mut device = 0;
         let mut context: *mut CUctx_st = std::ptr::null_mut();
 
@@ -125,8 +138,12 @@ fn test_ffi_cuda() {
 
         cuMemAlloc_v2(&mut a_d, N * size_of::<f32>());
 
-        cuMemcpyHtoD_v2(a_d, a.as_ptr() as *const c_void, N * size_of::<f32>()).to_result().unwrap();
-        cuMemcpyDtoH_v2(out.as_mut_ptr() as *mut c_void, a_d, N * size_of::<f32>()).to_result().unwrap();
+        cuMemcpyHtoD_v2(a_d, a.as_ptr() as *const c_void, N * size_of::<f32>())
+            .to_result()
+            .unwrap();
+        cuMemcpyDtoH_v2(out.as_mut_ptr() as *mut c_void, a_d, N * size_of::<f32>())
+            .to_result()
+            .unwrap();
         println!("out: {out:?}");
     };
 }

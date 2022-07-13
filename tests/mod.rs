@@ -1,8 +1,8 @@
 //#[cfg(not(target_os = "macos"))]
-#[cfg(feature="cuda")]
+#[cfg(feature = "cuda")]
 mod cuda;
 
-#[cfg(feature="opencl")]
+#[cfg(feature = "opencl")]
 #[test]
 fn test_debug_fmt_cl_dev() -> custos::Result<()> {
     use custos::CLDevice;

@@ -74,7 +74,6 @@ pub enum OCLErrorKind {
     InvalidDeviceQueue,
     PlatformNotFoundKHR,
     Unknown,
-    
 }
 
 impl OCLErrorKind {
@@ -143,7 +142,6 @@ impl OCLErrorKind {
             -1001 => OCLErrorKind::PlatformNotFoundKHR,
             _ => OCLErrorKind::Unknown,
         }
-            
     }
 }
 
@@ -153,7 +151,9 @@ impl OCLErrorKind {
             OCLErrorKind::Unknown => "Unkwown OpenCL Error",
             OCLErrorKind::GetPlatformIDs => "",
             OCLErrorKind::GetDeviceIDs => "",
-            OCLErrorKind::InvalidDeviceIdx => "Invalid device idx, specific OpenCL device not found",
+            OCLErrorKind::InvalidDeviceIdx => {
+                "Invalid device idx, specific OpenCL device not found"
+            }
             OCLErrorKind::GetDeviceInfo => "",
             OCLErrorKind::CreateContext => "",
             OCLErrorKind::CreateCommandQueue => "",
@@ -164,11 +164,21 @@ impl OCLErrorKind {
             OCLErrorKind::EnqueueNDRangeKernel => "",
             OCLErrorKind::CreateBuffer => "",
             OCLErrorKind::DeviceNotFound => "(-1 DeviceNotFound) No OpenCL device found",
-            OCLErrorKind::DeviceNotAvailable => "(-2 DeviceNotAvailAble) OpenCL device is currently not available",
-            OCLErrorKind::CompilerNotAvailable => "(-3 CompilerNotAvailable) Compiler is not available",
-            OCLErrorKind::MemObjectAllocationFailure => "(-4 MemObjectAllocationFailure) Memory for buffer object could not be allocated",
-            OCLErrorKind::OutOfResources => "(-5 OutOfResources) Allocation of resources failed on the OpenCL device",
-            OCLErrorKind::OutOfHostMemory => "(-6 OutOfHostMemory) Allocation of resources failed on the host device",
+            OCLErrorKind::DeviceNotAvailable => {
+                "(-2 DeviceNotAvailAble) OpenCL device is currently not available"
+            }
+            OCLErrorKind::CompilerNotAvailable => {
+                "(-3 CompilerNotAvailable) Compiler is not available"
+            }
+            OCLErrorKind::MemObjectAllocationFailure => {
+                "(-4 MemObjectAllocationFailure) Memory for buffer object could not be allocated"
+            }
+            OCLErrorKind::OutOfResources => {
+                "(-5 OutOfResources) Allocation of resources failed on the OpenCL device"
+            }
+            OCLErrorKind::OutOfHostMemory => {
+                "(-6 OutOfHostMemory) Allocation of resources failed on the host device"
+            }
             OCLErrorKind::ProfilingInfoNotAvailable => "(-7 ProfilingInfoNotAvailable)",
             OCLErrorKind::MemCopyOverlap => "(-8 MemCopyOverlap)",
             OCLErrorKind::ImageFormatMismatch => "(-9 ImageFormatMismatch)",
@@ -176,7 +186,9 @@ impl OCLErrorKind {
             OCLErrorKind::BuildProgramFailures => "(-11 BuildProgramFailures)",
             OCLErrorKind::MapFailure => "(-12 MapFailure)",
             OCLErrorKind::MisalignedSubBufferOffset => "(-13 MisalignedSubBufferOffset)",
-            OCLErrorKind::ExecStatusErrorForEventsInWaitList => "(-14 ExecStatusErrorForEventsInWaitList)",
+            OCLErrorKind::ExecStatusErrorForEventsInWaitList => {
+                "(-14 ExecStatusErrorForEventsInWaitList)"
+            }
             OCLErrorKind::CompileProgramFailure => "(-15 CompileProgramFailure)",
             OCLErrorKind::LinkerNotAvailable => "(-16 LinkerNotAvailable)",
             OCLErrorKind::LinkProgramFailure => "(-17 LinkProgramFailure)",

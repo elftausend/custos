@@ -1,4 +1,4 @@
-use custos::{opencl::KernelOptions, CLDevice, Error, CDatatype, VecRead, Buffer};
+use custos::{opencl::KernelOptions, Buffer, CDatatype, CLDevice, Error, VecRead};
 
 fn main() -> Result<(), Error> {
     let device = CLDevice::new(0)?;
@@ -17,7 +17,8 @@ fn main() -> Result<(), Error> {
     let out = KernelOptions::<i32>::new(&device, &lhs, gws, &src)?
         .with_rhs(&rhs)
         .with_output(lhs.len)
-        .run()?.unwrap();
+        .run()?
+        .unwrap();
 
     assert_eq!(device.read(&out), vec![-1, -1, -1, -1, -1, -1]);
     Ok(())

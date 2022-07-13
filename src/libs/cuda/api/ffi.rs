@@ -5,8 +5,8 @@ use std::ffi::c_void;
 
 use crate::CUdeviceptr;
 
-use super::error::{CudaResult, CudaErrorKind};
-pub type CUdevice    = std::os::raw::c_int;
+use super::error::{CudaErrorKind, CudaResult};
+pub type CUdevice = std::os::raw::c_int;
 
 pub enum CUctx_st {}
 pub type CUcontext = *mut CUctx_st;
@@ -18,7 +18,7 @@ pub enum CUfunc_st {}
 pub type CUfunction = *mut CUfunc_st;
 
 pub enum CUstream_st {}
-pub type CUstream =  *mut CUstream_st;
+pub type CUstream = *mut CUstream_st;
 
 #[repr(u32)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
@@ -106,7 +106,7 @@ impl Into<CudaResult<()>> for CUresult {
     fn into(self) -> CudaResult<()> {
         match self {
             CUresult::CUDA_SUCCESS => Ok(()),
-            _ => Err(CudaErrorKind::from(self as u32))
+            _ => Err(CudaErrorKind::from(self as u32)),
         }
     }
 }
@@ -115,11 +115,10 @@ impl CUresult {
     pub fn to_result(self) -> CudaResult<()> {
         match self {
             CUresult::CUDA_SUCCESS => Ok(()),
-            _ => Err(CudaErrorKind::from(self as u32))
+            _ => Err(CudaErrorKind::from(self as u32)),
         }
     }
 }
-
 
 #[link(name = "cuda")]
 extern "C" {
@@ -131,22 +130,46 @@ extern "C" {
     pub fn cuCtxSynchronize() -> CUresult;
     pub fn cuMemAlloc_v2(ptr: *mut CUdeviceptr, size: usize) -> CUresult;
     pub fn cuMemFree_v2(ptr: CUdeviceptr) -> CUresult;
-    pub fn cuMemcpyHtoD_v2(dst_device: CUdeviceptr, src_host: *const c_void, bytes_to_copy: usize) -> CUresult;
-    pub fn cuMemcpyDtoH_v2(dst_host: *mut c_void, src_device: CUdeviceptr, bytes_to_copy: usize) -> CUresult;
+    pub fn cuMemcpyHtoD_v2(
+        dst_device: CUdeviceptr,
+        src_host: *const c_void,
+        bytes_to_copy: usize,
+    ) -> CUresult;
+    pub fn cuMemcpyDtoH_v2(
+        dst_host: *mut c_void,
+        src_device: CUdeviceptr,
+        bytes_to_copy: usize,
+    ) -> CUresult;
     pub fn cuModuleLoad(module: *mut CUmodule, fname: *const i8) -> CUresult;
     pub fn cuModuleLoadData(module: *mut CUmodule, data: *const c_void) -> CUresult;
-    pub fn cuModuleGetFunction(hfunc: *mut CUfunction, module: CUmodule, fn_name: *const i8) -> CUresult;
+    pub fn cuModuleGetFunction(
+        hfunc: *mut CUfunction,
+        module: CUmodule,
+        fn_name: *const i8,
+    ) -> CUresult;
     pub fn cuModuleUnload(module: CUmodule) -> CUresult;
     pub fn cuLaunchKernel(
-        f: CUfunction, gridDimX: u32, 
-        gridDimY: u32, gridDimZ: u32, 
-        blockDimX: u32, blockDimY: u32, 
-        blockDimZ: u32, sharedMemBytes: u32, 
-        hStream: CUstream, kernelParams: *mut *mut c_void, 
-        extra: *mut *mut c_void
+        f: CUfunction,
+        gridDimX: u32,
+        gridDimY: u32,
+        gridDimZ: u32,
+        blockDimX: u32,
+        blockDimY: u32,
+        blockDimZ: u32,
+        sharedMemBytes: u32,
+        hStream: CUstream,
+        kernelParams: *mut *mut c_void,
+        extra: *mut *mut c_void,
     ) -> CUresult;
     pub fn cuStreamCreate(ph_stream: *mut CUstream, flags: u32) -> CUresult;
     pub fn cuStreamDestroy(hstream: CUstream) -> CUresult;
     pub fn cuStreamSynchronize(stream: CUstream) -> CUresult;
-    pub fn cuOccupancyMaxPotentialBlockSize(min_grid_size: *mut i32, block_size: *mut i32, func: CUfunction, block_size_to_dyn_b2d_size: usize, dyn_smem_size: usize, block_size_limit: i32) -> CUresult;
+    pub fn cuOccupancyMaxPotentialBlockSize(
+        min_grid_size: *mut i32,
+        block_size: *mut i32,
+        func: CUfunction,
+        block_size_to_dyn_b2d_size: usize,
+        dyn_smem_size: usize,
+        block_size_limit: i32,
+    ) -> CUresult;
 }

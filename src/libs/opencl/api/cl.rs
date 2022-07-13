@@ -1,15 +1,18 @@
 #![allow(dead_code)]
 
-use std::{ffi::{c_void, CString}, usize, vec};
+use std::{
+    ffi::{c_void, CString},
+    usize, vec,
+};
 
 use crate::Error;
 
 use super::{ffi::*, OCLErrorKind};
 
 #[derive(Clone, Copy, Debug)]
-pub struct Platform(cl_platform_id); 
+pub struct Platform(cl_platform_id);
 
-impl Platform { 
+impl Platform {
     pub fn as_ptr(self) -> *mut cl_platform_id {
         self.0 as *mut cl_platform_id
     }
@@ -17,7 +20,7 @@ impl Platform {
 
 pub fn get_platforms() -> Result<Vec<Platform>, Error> {
     let mut platforms: cl_uint = 0;
-    let value = unsafe { clGetPlatformIDs(0, std::ptr::null_mut(), &mut platforms)};
+    let value = unsafe { clGetPlatformIDs(0, std::ptr::null_mut(), &mut platforms) };
 
     if value != 0 {
         return Err(Error::from(OCLErrorKind::from_value(value)));
@@ -31,8 +34,10 @@ pub fn get_platforms() -> Result<Vec<Platform>, Error> {
     };
 
     let value = unsafe {
-        clGetPlatformIDs(platforms, platforms_vec.as_mut_ptr() as *mut cl_platform_id,
-    std::ptr::null_mut()
+        clGetPlatformIDs(
+            platforms,
+            platforms_vec.as_mut_ptr() as *mut cl_platform_id,
+            std::ptr::null_mut(),
         )
     };
     if value != 0 {
@@ -47,38 +52,46 @@ pub enum PlatformInfo {
 }
 pub fn get_platform_info(platform: Platform, param_name: PlatformInfo) -> String {
     let mut size: size_t = 0;
-    unsafe {clGetPlatformInfo(platform.0, 
-                            param_name as cl_platform_info, 
-                       0, 
-                           std::ptr::null_mut(), 
-                    &mut size);};
+    unsafe {
+        clGetPlatformInfo(
+            platform.0,
+            param_name as cl_platform_info,
+            0,
+            std::ptr::null_mut(),
+            &mut size,
+        );
+    };
 
     let mut param_value = vec![32u8; size];
 
-    unsafe {clGetPlatformInfo(platform.0, 
-                            param_name as cl_platform_info, 
-                       size, 
-                           param_value.as_mut_ptr() as *mut c_void, 
-                    std::ptr::null_mut());};
+    unsafe {
+        clGetPlatformInfo(
+            platform.0,
+            param_name as cl_platform_info,
+            size,
+            param_value.as_mut_ptr() as *mut c_void,
+            std::ptr::null_mut(),
+        );
+    };
 
     println!("param value: {:?}", param_value);
     String::from_utf8_lossy(&param_value).to_string()
 }
 
 pub enum DeviceType {
-    DEFAULT =     (1 << 0),
-    CPU =         (1 << 1),
-    GPU =         (1 << 2),
+    DEFAULT = (1 << 0),
+    CPU = (1 << 1),
+    GPU = (1 << 2),
     ACCELERATOR = (1 << 3),
     //ALL =         0xFFFFFFFF
 }
 
 #[derive(Copy, Clone)]
 pub enum DeviceInfo {
-    MaxMemAllocSize =   0x1010,
-    GlobalMemSize =     0x101F,
-    NAME =              0x102B,
-    VERSION =           0x102F,
+    MaxMemAllocSize = 0x1010,
+    GlobalMemSize = 0x101F,
+    NAME = 0x102B,
+    VERSION = 0x102F,
     HostUnifiedMemory = 0x1035,
 }
 #[derive(Clone, Copy, Debug, Hash)]
@@ -102,10 +115,17 @@ impl CLIntDevice {
     }
 }
 
-
 pub fn get_device_ids(platform: Platform, device_type: &u64) -> Result<Vec<CLIntDevice>, Error> {
     let mut num_devices: cl_uint = 0;
-    let value = unsafe {clGetDeviceIDs(platform.0, *device_type, 0, std::ptr::null_mut(), &mut num_devices)};
+    let value = unsafe {
+        clGetDeviceIDs(
+            platform.0,
+            *device_type,
+            0,
+            std::ptr::null_mut(),
+            &mut num_devices,
+        )
+    };
     if value != 0 {
         return Err(Error::from(OCLErrorKind::from_value(value)));
     }
@@ -118,7 +138,15 @@ pub fn get_device_ids(platform: Platform, device_type: &u64) -> Result<Vec<CLInt
         Vec::from_raw_parts(ptr as *mut CLIntDevice, len, cap)
     };
 
-    let value = unsafe {clGetDeviceIDs(platform.0, DeviceType::GPU as u64, num_devices, devices.as_mut_ptr() as *mut cl_device_id, std::ptr::null_mut())};
+    let value = unsafe {
+        clGetDeviceIDs(
+            platform.0,
+            DeviceType::GPU as u64,
+            num_devices,
+            devices.as_mut_ptr() as *mut cl_device_id,
+            std::ptr::null_mut(),
+        )
+    };
     if value != 0 {
         return Err(Error::from(OCLErrorKind::from_value(value)));
     }
@@ -131,14 +159,33 @@ pub struct DeviceReturnInfo {
     pub data: Vec<u8>,
 }
 
-pub fn get_device_info(device: CLIntDevice, param_name: DeviceInfo) -> Result<DeviceReturnInfo, Error> {
+pub fn get_device_info(
+    device: CLIntDevice,
+    param_name: DeviceInfo,
+) -> Result<DeviceReturnInfo, Error> {
     let mut size: size_t = 0;
-    let value = unsafe {clGetDeviceInfo(device.0, param_name as cl_device_info, 0, std::ptr::null_mut(), &mut size)};
+    let value = unsafe {
+        clGetDeviceInfo(
+            device.0,
+            param_name as cl_device_info,
+            0,
+            std::ptr::null_mut(),
+            &mut size,
+        )
+    };
     if value != 0 {
         return Err(Error::from(OCLErrorKind::from_value(value)));
     }
     let mut param_value = vec![0; size];
-    let value = unsafe {clGetDeviceInfo(device.0, param_name as cl_device_info, size, param_value.as_mut_ptr() as *mut c_void, std::ptr::null_mut())};
+    let value = unsafe {
+        clGetDeviceInfo(
+            device.0,
+            param_name as cl_device_info,
+            size,
+            param_value.as_mut_ptr() as *mut c_void,
+            std::ptr::null_mut(),
+        )
+    };
     if value != 0 {
         return Err(Error::from(OCLErrorKind::from_value(value)));
     }
@@ -148,7 +195,7 @@ pub fn get_device_info(device: CLIntDevice, param_name: DeviceInfo) -> Result<De
     Ok(DeviceReturnInfo {
         string,
         size,
-        data: param_value
+        data: param_value,
     })
 }
 
@@ -162,10 +209,18 @@ impl Context {
     }
 }
 
-
 pub fn create_context(devices: &[CLIntDevice]) -> Result<Context, Error> {
     let mut err = 0;
-    let r = unsafe {clCreateContext(std::ptr::null(), devices.len() as u32, devices.as_ptr() as *const *mut c_void, std::ptr::null_mut(), std::ptr::null_mut(), &mut err)};
+    let r = unsafe {
+        clCreateContext(
+            std::ptr::null(),
+            devices.len() as u32,
+            devices.as_ptr() as *const *mut c_void,
+            std::ptr::null_mut(),
+            std::ptr::null_mut(),
+            &mut err,
+        )
+    };
     if err != 0 {
         return Err(Error::from(OCLErrorKind::from_value(err)));
     }
@@ -173,7 +228,7 @@ pub fn create_context(devices: &[CLIntDevice]) -> Result<Context, Error> {
 }
 
 fn release_context(context: Context) {
-    unsafe {clReleaseContext(context.0)};
+    unsafe { clReleaseContext(context.0) };
 }
 
 // TODO: implement drop
@@ -188,8 +243,8 @@ impl CommandQueue {
 
 pub fn create_command_queue(context: &Context, device: CLIntDevice) -> Result<CommandQueue, Error> {
     let mut err = 0;
-    let r = unsafe {clCreateCommandQueue(context.0, device.0, 0, &mut err)};
-    
+    let r = unsafe { clCreateCommandQueue(context.0, device.0, 0, &mut err) };
+
     if err != 0 {
         return Err(Error::from(OCLErrorKind::from_value(err)));
     }
@@ -197,17 +252,17 @@ pub fn create_command_queue(context: &Context, device: CLIntDevice) -> Result<Co
 }
 
 pub fn finish(cq: CommandQueue) {
-    unsafe {clFinish(cq.0)};
+    unsafe { clFinish(cq.0) };
 }
 
 fn release_command_queue(cq: CommandQueue) {
-    unsafe {clReleaseCommandQueue(cq.0)};
+    unsafe { clReleaseCommandQueue(cq.0) };
 }
 #[derive(Debug, Clone, Copy)]
 pub struct Event(pub cl_event);
 
 impl Event {
-     pub fn wait(self) -> Result<(), Error> {
+    pub fn wait(self) -> Result<(), Error> {
         wait_for_event(self)
     }
     pub fn release(self) {
@@ -218,7 +273,7 @@ impl Event {
 pub fn wait_for_event(event: Event) -> Result<(), Error> {
     let event_vec: Vec<Event> = vec![event];
 
-    let value = unsafe {clWaitForEvents(1, event_vec.as_ptr() as *mut cl_event)};
+    let value = unsafe { clWaitForEvents(1, event_vec.as_ptr() as *mut cl_event) };
     if value != 0 {
         return Err(Error::from(OCLErrorKind::from_value(value)));
     }
@@ -226,8 +281,8 @@ pub fn wait_for_event(event: Event) -> Result<(), Error> {
     Ok(())
 }
 
-pub fn release_event(event: Event) -> Result<(), Error>{
-    let value = unsafe {clReleaseEvent(event.0)};
+pub fn release_event(event: Event) -> Result<(), Error> {
+    let value = unsafe { clReleaseEvent(event.0) };
     if value != 0 {
         return Err(Error::from(OCLErrorKind::from_value(value)));
     }
@@ -254,13 +309,26 @@ impl core::ops::BitOr for MemFlags {
     }
 }
 
-pub fn create_buffer<T>(context: &Context, flag: u64, size: usize, data: Option<&[T]>) -> Result<*mut c_void, Error>{
+pub fn create_buffer<T>(
+    context: &Context,
+    flag: u64,
+    size: usize,
+    data: Option<&[T]>,
+) -> Result<*mut c_void, Error> {
     let mut err = 0;
     let host_ptr = match data {
-        Some(d) => {d.as_ptr() as cl_mem},
+        Some(d) => d.as_ptr() as cl_mem,
         None => std::ptr::null_mut(),
     };
-    let r = unsafe {clCreateBuffer(context.0, flag as u64, size*core::mem::size_of::<T>(), host_ptr, &mut err)};
+    let r = unsafe {
+        clCreateBuffer(
+            context.0,
+            flag as u64,
+            size * core::mem::size_of::<T>(),
+            host_ptr,
+            &mut err,
+        )
+    };
 
     if err != 0 {
         return Err(Error::from(OCLErrorKind::from_value(err)));
@@ -278,10 +346,8 @@ pub unsafe fn release_mem_object(ptr: *mut c_void) -> Result<(), Error> {
     Ok(())
 }
 
-pub(crate) fn retain_mem_object(mem: *mut c_void) -> Result<(), Error>{
-    let value = unsafe {
-        clRetainMemObject(mem)
-    };
+pub(crate) fn retain_mem_object(mem: *mut c_void) -> Result<(), Error> {
+    let value = unsafe { clRetainMemObject(mem) };
     if value != 0 {
         return Err(Error::from(OCLErrorKind::from_value(value)));
     }
@@ -290,10 +356,25 @@ pub(crate) fn retain_mem_object(mem: *mut c_void) -> Result<(), Error>{
 
 /// # Safety
 /// valid mem object
-pub unsafe fn enqueue_write_buffer<T>(cq: &CommandQueue, mem: *mut c_void, data: &[T], block: bool) -> Result<Event, Error> {
-    let mut events = vec![std::ptr::null_mut();1];
-    
-    let value = clEnqueueWriteBuffer(cq.0, mem, block as u32, 0, data.len()*core::mem::size_of::<T>(), data.as_ptr() as *mut c_void, 0, std::ptr::null(), events.as_mut_ptr() as *mut cl_event);
+pub unsafe fn enqueue_write_buffer<T>(
+    cq: &CommandQueue,
+    mem: *mut c_void,
+    data: &[T],
+    block: bool,
+) -> Result<Event, Error> {
+    let mut events = vec![std::ptr::null_mut(); 1];
+
+    let value = clEnqueueWriteBuffer(
+        cq.0,
+        mem,
+        block as u32,
+        0,
+        data.len() * core::mem::size_of::<T>(),
+        data.as_ptr() as *mut c_void,
+        0,
+        std::ptr::null(),
+        events.as_mut_ptr() as *mut cl_event,
+    );
     if value != 0 {
         return Err(Error::from(OCLErrorKind::from_value(value)));
     }
@@ -302,62 +383,98 @@ pub unsafe fn enqueue_write_buffer<T>(cq: &CommandQueue, mem: *mut c_void, data:
 
 /// # Safety
 /// valid mem object
-pub unsafe fn enqueue_read_buffer<T>(cq: &CommandQueue, mem: *mut c_void, data: &mut [T], block: bool) -> Result<Event, Error> {
-    let mut events = vec![std::ptr::null_mut();1];
-    let value = clEnqueueReadBuffer(cq.0, mem, block as u32, 0, data.len()*core::mem::size_of::<T>(), data.as_ptr() as *mut c_void, 0, std::ptr::null(), events.as_mut_ptr() as *mut cl_event);
+pub unsafe fn enqueue_read_buffer<T>(
+    cq: &CommandQueue,
+    mem: *mut c_void,
+    data: &mut [T],
+    block: bool,
+) -> Result<Event, Error> {
+    let mut events = vec![std::ptr::null_mut(); 1];
+    let value = clEnqueueReadBuffer(
+        cq.0,
+        mem,
+        block as u32,
+        0,
+        data.len() * core::mem::size_of::<T>(),
+        data.as_ptr() as *mut c_void,
+        0,
+        std::ptr::null(),
+        events.as_mut_ptr() as *mut cl_event,
+    );
     if value != 0 {
         return Err(Error::from(OCLErrorKind::from_value(value)));
     }
     Ok(Event(events[0]))
-
 }
-pub(crate) fn enqueue_copy_buffer(cq: &CommandQueue, src_mem: *mut c_void, dst_mem: *mut c_void, size: usize) -> Result<(), Error> {
-    let mut events = vec![std::ptr::null_mut();1];
-    let value = unsafe {clEnqueueCopyBuffer(cq.0, src_mem, dst_mem, 0, 0, size*4, 0, std::ptr::null(), events.as_mut_ptr() as *mut cl_event)};
+pub(crate) fn enqueue_copy_buffer(
+    cq: &CommandQueue,
+    src_mem: *mut c_void,
+    dst_mem: *mut c_void,
+    size: usize,
+) -> Result<(), Error> {
+    let mut events = vec![std::ptr::null_mut(); 1];
+    let value = unsafe {
+        clEnqueueCopyBuffer(
+            cq.0,
+            src_mem,
+            dst_mem,
+            0,
+            0,
+            size * 4,
+            0,
+            std::ptr::null(),
+            events.as_mut_ptr() as *mut cl_event,
+        )
+    };
     if value != 0 {
         return Err(Error::from(OCLErrorKind::from_value(value)));
     }
     wait_for_event(Event(events[0]))
 }
 
-pub(crate) fn unified_ptr<T>(cq: CommandQueue, ptr: *mut c_void, len: usize) -> Result<*mut T, Error> {
-    unsafe {
-        enqueue_map_buffer::<T>(&cq, ptr, true, 2 | 1, 0, len).map(|ptr| ptr as *mut T)
-    }
+pub(crate) fn unified_ptr<T>(
+    cq: CommandQueue,
+    ptr: *mut c_void,
+    len: usize,
+) -> Result<*mut T, Error> {
+    unsafe { enqueue_map_buffer::<T>(&cq, ptr, true, 2 | 1, 0, len).map(|ptr| ptr as *mut T) }
 }
 
-/// map_flags: Read: 1, Write: 2, 
+/// map_flags: Read: 1, Write: 2,
 /// # Safety
 /// valid mem object
 pub unsafe fn enqueue_map_buffer<T>(
-    cq: &CommandQueue, 
-    buffer: *mut c_void, 
-    block: bool, 
-    map_flags: u64, 
-    offset: usize, 
-    len: usize, 
+    cq: &CommandQueue,
+    buffer: *mut c_void,
+    block: bool,
+    map_flags: u64,
+    offset: usize,
+    len: usize,
 ) -> Result<*mut c_void, Error> {
-    
     let offset = offset * core::mem::size_of::<T>();
     let size = len * core::mem::size_of::<T>();
 
     let mut event = vec![std::ptr::null_mut(); 1];
 
     let mut err = 0;
-    
-    let ptr = clEnqueueMapBuffer(cq.0, 
-        buffer, 
-        block as u32, 
-        map_flags, offset, size, 
-        0, 
-        std::ptr::null(), 
-        event.as_mut_ptr() as *mut cl_event, 
-        &mut err);
+
+    let ptr = clEnqueueMapBuffer(
+        cq.0,
+        buffer,
+        block as u32,
+        map_flags,
+        offset,
+        size,
+        0,
+        std::ptr::null(),
+        event.as_mut_ptr() as *mut cl_event,
+        &mut err,
+    );
 
     if err != 0 {
         return Err(Error::from(OCLErrorKind::from_value(err)));
     }
-    
+
     let e = Event(event[0]);
     wait_for_event(e)?;
     Ok(ptr)
@@ -384,16 +501,16 @@ impl Program {
 
 enum ProgramInfo {
     BinarySizes = 0x1165,
-    Binaries =    0x1166
+    Binaries = 0x1166,
 }
 
 enum ProgramBuildInfo {
-    Status    = 0x1181,
-    BuildLog = 0x1183
+    Status = 0x1181,
+    BuildLog = 0x1183,
 }
 
-pub fn release_program(program: &mut Program) -> Result<(), Error>{
-    let value = unsafe {clReleaseProgram(program.0)};
+pub fn release_program(program: &mut Program) -> Result<(), Error> {
+    let value = unsafe { clReleaseProgram(program.0) };
     if value != 0 {
         return Err(Error::from(OCLErrorKind::from_value(value)));
     }
@@ -405,33 +522,60 @@ pub fn create_program_with_source(context: &Context, src: &str) -> Result<Progra
     let cs = CString::new(src).expect("No cstring for you!");
     let lens = vec![cs.as_bytes().len()];
     let cstring: Vec<*const _> = vec![cs.as_ptr()];
-    let r = unsafe {clCreateProgramWithSource(context.0, 1, cstring.as_ptr() as *const *const _, lens.as_ptr() as *const usize, &mut err)};
+    let r = unsafe {
+        clCreateProgramWithSource(
+            context.0,
+            1,
+            cstring.as_ptr() as *const *const _,
+            lens.as_ptr() as *const usize,
+            &mut err,
+        )
+    };
     if err != 0 {
         return Err(Error::from(OCLErrorKind::from_value(err)));
     }
     Ok(Program(r))
 }
 
-pub fn build_program(program: &Program, devices: &[CLIntDevice], options: Option<&str>) -> Result<(), Error> {
+pub fn build_program(
+    program: &Program,
+    devices: &[CLIntDevice],
+    options: Option<&str>,
+) -> Result<(), Error> {
     let len = devices.len();
 
     let err = if let Some(x) = options {
         let cstring = CString::new(x).unwrap();
-        unsafe {clBuildProgram(program.0, len as u32, devices.as_ptr() as *const *mut c_void, cstring.as_ptr(), std::ptr::null_mut(), std::ptr::null_mut())}
-
+        unsafe {
+            clBuildProgram(
+                program.0,
+                len as u32,
+                devices.as_ptr() as *const *mut c_void,
+                cstring.as_ptr(),
+                std::ptr::null_mut(),
+                std::ptr::null_mut(),
+            )
+        }
     } else {
-        unsafe {clBuildProgram(program.0, len as u32, devices.as_ptr() as *const *mut c_void, std::ptr::null(), std::ptr::null_mut(), std::ptr::null_mut())}
+        unsafe {
+            clBuildProgram(
+                program.0,
+                len as u32,
+                devices.as_ptr() as *const *mut c_void,
+                std::ptr::null(),
+                std::ptr::null_mut(),
+                std::ptr::null_mut(),
+            )
+        }
     };
     if err != 0 {
         return Err(Error::from(OCLErrorKind::from_value(err)));
     }
     Ok(())
-    
 }
 
-
 #[derive(Debug, Clone, Copy)]
-pub/*(crate)*/ struct Kernel(pub cl_kernel);
+pub /*(crate)*/ struct Kernel(pub cl_kernel);
 
 impl Kernel {
     pub fn release(&mut self) {
@@ -445,7 +589,7 @@ unsafe impl Sync for Kernel {}
 pub(crate) fn create_kernel(program: &Program, str: &str) -> Result<Kernel, Error> {
     let mut err = 0;
     let cstring = CString::new(str).unwrap();
-    let kernel = unsafe { clCreateKernel(program.0, cstring.as_ptr(),&mut err)};
+    let kernel = unsafe { clCreateKernel(program.0, cstring.as_ptr(), &mut err) };
     if err != 0 {
         return Err(Error::from(OCLErrorKind::from_value(err)));
     }
@@ -453,7 +597,8 @@ pub(crate) fn create_kernel(program: &Program, str: &str) -> Result<Kernel, Erro
 }
 pub(crate) fn create_kernels_in_program(program: &Program) -> Result<Vec<Kernel>, Error> {
     let mut n_kernels: u32 = 0;
-    let value = unsafe {clCreateKernelsInProgram(program.0, 0, std::ptr::null_mut(), &mut n_kernels)};
+    let value =
+        unsafe { clCreateKernelsInProgram(program.0, 0, std::ptr::null_mut(), &mut n_kernels) };
     if value != 0 {
         return Err(Error::from(OCLErrorKind::from_value(value)));
     }
@@ -465,54 +610,97 @@ pub(crate) fn create_kernels_in_program(program: &Program) -> Result<Vec<Kernel>
         core::mem::forget(vec);
         Vec::from_raw_parts(ptr as *mut Kernel, len, cap)
     };
-    let value = unsafe {clCreateKernelsInProgram(program.0, n_kernels, kernels.as_mut_ptr() as *mut cl_kernel, std::ptr::null_mut())};
+    let value = unsafe {
+        clCreateKernelsInProgram(
+            program.0,
+            n_kernels,
+            kernels.as_mut_ptr() as *mut cl_kernel,
+            std::ptr::null_mut(),
+        )
+    };
     if value != 0 {
         return Err(Error::from(OCLErrorKind::from_value(value)));
     }
     Ok(kernels)
 }
 
-pub(crate) fn release_kernel(kernel: &mut Kernel) -> Result<(), Error>{
-    let value = unsafe {clReleaseKernel(kernel.0)};
+pub(crate) fn release_kernel(kernel: &mut Kernel) -> Result<(), Error> {
+    let value = unsafe { clReleaseKernel(kernel.0) };
     if value != 0 {
         return Err(Error::from(OCLErrorKind::from_value(value)));
     }
     Ok(())
 }
 
-pub/*(crate)*/ fn set_kernel_arg<T>(kernel: &Kernel, index: usize, arg: &T) -> Result<(), Error> {
-    let value = unsafe {clSetKernelArg(kernel.0, index as u32, core::mem::size_of::<T>(), arg as *const T as *const c_void)};
+pub fn set_kernel_arg<T>(kernel: &Kernel, index: usize, arg: &T) -> Result<(), Error> {
+    let value = unsafe {
+        clSetKernelArg(
+            kernel.0,
+            index as u32,
+            core::mem::size_of::<T>(),
+            arg as *const T as *const c_void,
+        )
+    };
     if value != 0 {
         return Err(Error::from(OCLErrorKind::from_value(value)));
     }
     Ok(())
 }
 
-pub/*(crate)*/ fn set_kernel_arg_ptr<T>(kernel: &Kernel, index: usize, arg: &T, arg_size: usize) -> Result<(), Error> {
-    let value = unsafe {clSetKernelArg(kernel.0, index as u32, arg_size, arg as *const T as *mut c_void)};
+pub fn set_kernel_arg_ptr<T>(
+    kernel: &Kernel,
+    index: usize,
+    arg: &T,
+    arg_size: usize,
+) -> Result<(), Error> {
+    let value = unsafe {
+        clSetKernelArg(
+            kernel.0,
+            index as u32,
+            arg_size,
+            arg as *const T as *mut c_void,
+        )
+    };
     if value != 0 {
         return Err(Error::from(OCLErrorKind::from_value(value)));
     }
     Ok(())
 }
 
-pub/*(crate)*/ fn enqueue_nd_range_kernel(cq: &CommandQueue, kernel: &Kernel, wd: usize, gws: &[usize; 3], lws: Option<&[usize;3]>, offset: Option<[usize; 3]>) -> Result<(), Error> {
-    let mut events = vec![std::ptr::null_mut();1];
+pub fn enqueue_nd_range_kernel(
+    cq: &CommandQueue,
+    kernel: &Kernel,
+    wd: usize,
+    gws: &[usize; 3],
+    lws: Option<&[usize; 3]>,
+    offset: Option<[usize; 3]>,
+) -> Result<(), Error> {
+    let mut events = vec![std::ptr::null_mut(); 1];
     let lws = match lws {
         Some(lws) => lws.as_ptr(),
-        None => std::ptr::null()
+        None => std::ptr::null(),
     };
     let offset = match offset {
         Some(offset) => offset.as_ptr(),
-        None => std::ptr::null()
+        None => std::ptr::null(),
     };
 
-    let value = unsafe {clEnqueueNDRangeKernel(cq.0, kernel.0, wd as u32, offset, gws.as_ptr(), lws, 0, std::ptr::null(), events.as_mut_ptr() as *mut cl_event)};
+    let value = unsafe {
+        clEnqueueNDRangeKernel(
+            cq.0,
+            kernel.0,
+            wd as u32,
+            offset,
+            gws.as_ptr(),
+            lws,
+            0,
+            std::ptr::null(),
+            events.as_mut_ptr() as *mut cl_event,
+        )
+    };
     if value != 0 {
         return Err(Error::from(OCLErrorKind::from_value(value)));
     }
     let e = Event(events[0]);
     wait_for_event(e)
 }
-
-

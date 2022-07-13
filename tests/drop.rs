@@ -1,28 +1,27 @@
-#[cfg(not(feature="safe"))]
-use custos::{CPU, Device, Buffer};
+#[cfg(not(feature = "safe"))]
+use custos::{Buffer, Device, CPU};
 
-#[cfg(not(feature="safe"))]
+#[cfg(not(feature = "safe"))]
 #[test]
 fn test_drop_cpu() {
     let mut device = CPU::new();
     let buf = Buffer::from((&device, [4, 3, 1, 7, 8]));
-    
+
     assert_eq!(device.inner.borrow().ptrs.len(), 1);
 
     device.drop(buf);
     assert_eq!(device.inner.borrow().ptrs.len(), 0);
 }
 
-
-#[cfg(not(feature="safe"))]
-#[cfg(feature="opencl")]
+#[cfg(not(feature = "safe"))]
+#[cfg(feature = "opencl")]
 #[test]
 fn test_drop_cl() -> Result<(), custos::Error> {
     use custos::CLDevice;
 
     let mut device = CLDevice::new(0)?;
     let buf = Buffer::from((&device, [4, 3, 1, 7, 8]));
-    
+
     assert_eq!(device.inner.borrow().ptrs.len(), 1);
 
     device.drop(buf);
@@ -30,10 +29,10 @@ fn test_drop_cl() -> Result<(), custos::Error> {
     Ok(())
 }
 
-#[cfg(feature="safe")]
+#[cfg(feature = "safe")]
 #[test]
 fn test_drop_clone_safe() {
-    use custos::{CPU, Buffer, VecRead};
+    use custos::{Buffer, VecRead, CPU};
 
     let device = CPU::new();
     let a = Buffer::from((&device, [4, 3, 1, 7, 8]));
@@ -52,7 +51,7 @@ fn test_free_buffer() {
     assert_eq!(vec![3.12; a.len], a.as_slice());
     let vec: Vec<u16> = vec![1, 2, 5, 2, 9, 4];
     std::thread::sleep(std::time::Duration::from_secs_f32(2.5));
-    
+
     drop(device);
     assert_eq!(vec![1, 2, 5, 2, 9, 4], vec);
     drop(vec);

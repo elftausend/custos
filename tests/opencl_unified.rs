@@ -1,11 +1,22 @@
+use custos::{
+    opencl::api::{clCreateBuffer, enqueue_map_buffer, CommandQueue, MemFlags, OCLErrorKind},
+    Buffer, CLDevice, Error, VecRead,
+};
 use std::ffi::c_void;
-use custos::{Buffer, VecRead, opencl::api::{clCreateBuffer, MemFlags, OCLErrorKind, CommandQueue, enqueue_map_buffer}, CLDevice, Error};
 
-pub fn unified_mem<T>(device: &CLDevice, arr: &mut [T]) -> Result<*mut c_void, Error>{
+pub fn unified_mem<T>(device: &CLDevice, arr: &mut [T]) -> Result<*mut c_void, Error> {
     let mut err = 0;
 
-    let r = unsafe {clCreateBuffer(device.ctx().0, MemFlags::MemReadWrite | MemFlags::MemCopyHostPtr, arr.len()*core::mem::size_of::<T>(), arr.as_mut_ptr() as *mut c_void, &mut err)};
-    
+    let r = unsafe {
+        clCreateBuffer(
+            device.ctx().0,
+            MemFlags::MemReadWrite | MemFlags::MemCopyHostPtr,
+            arr.len() * core::mem::size_of::<T>(),
+            arr.as_mut_ptr() as *mut c_void,
+            &mut err,
+        )
+    };
+
     device.inner.borrow_mut().ptrs.push(r);
 
     if err != 0 {
@@ -15,13 +26,10 @@ pub fn unified_mem<T>(device: &CLDevice, arr: &mut [T]) -> Result<*mut c_void, E
 }
 
 pub fn unified_ptr<T>(cq: CommandQueue, ptr: *mut c_void, len: usize) -> Result<*mut T, Error> {
-
-    unsafe {
-        enqueue_map_buffer::<T>(&cq, ptr, true, 2 | 1, 0, len).map(|ptr| ptr as *mut T)
-    }
+    unsafe { enqueue_map_buffer::<T>(&cq, ptr, true, 2 | 1, 0, len).map(|ptr| ptr as *mut T) }
 }
 
-#[cfg(feature="opencl")]
+#[cfg(feature = "opencl")]
 #[test]
 fn test_unified_mem_bool() -> Result<(), Error> {
     let device = CLDevice::new(0)?;
@@ -30,44 +38,49 @@ fn test_unified_mem_bool() -> Result<(), Error> {
     Ok(())
 }
 
-#[cfg(not(feature="safe"))]
-#[cfg(feature="opencl")]
+#[cfg(not(feature = "safe"))]
+#[cfg(feature = "opencl")]
 #[test]
 fn test_unified_mem() -> Result<(), Error> {
     const TIMES: usize = 10000;
     use std::time::Instant;
 
-    use custos::opencl::api::{create_buffer, MemFlags, release_mem_object};
+    use custos::opencl::api::{create_buffer, release_mem_object, MemFlags};
 
     let len = 20000;
 
     let data = vec![1f32; len];
 
     let device = CLDevice::new(0)?;
-    
+
     if device.unified_mem() {
         let before = Instant::now();
         for _ in 0..TIMES {
             //std::thread::sleep(std::time::Duration::from_secs(1));
-  
-            let buf = create_buffer(&device.ctx(), MemFlags::MemReadWrite | MemFlags::MemUseHostPtr, len, Some(&data))?;
-            
+
+            let buf = create_buffer(
+                &device.ctx(),
+                MemFlags::MemReadWrite | MemFlags::MemUseHostPtr,
+                len,
+                Some(&data),
+            )?;
+
             let ptr = unified_ptr::<f32>(device.queue(), buf, len)?;
 
-            let slice = unsafe {std::slice::from_raw_parts_mut(ptr, len)};
+            let slice = unsafe { std::slice::from_raw_parts_mut(ptr, len) };
 
             for idx in 20..100 {
                 slice[idx] = 4.;
             }
 
-            unsafe { 
+            unsafe {
                 release_mem_object(buf)?;
             }
 
             // 'data' vec is not freed
             assert_eq!(slice[25], 4.);
 
-            /* 
+            /*
             let mut read = vec![0f32; len];
             let event = unsafe { custos::opencl::api::enqueue_read_buffer(&device.queue(), buf, &mut read, true)}?;
             custos::opencl::api::wait_for_event(event)?;
@@ -75,35 +88,38 @@ fn test_unified_mem() -> Result<(), Error> {
             */
         }
 
-
         let after = Instant::now();
-        println!("use host ptr: {:?}", (after-before) / TIMES as u32);
-            
+        println!("use host ptr: {:?}", (after - before) / TIMES as u32);
+
         let before = Instant::now();
-        for _ in 0..TIMES {        
-            let buf = create_buffer(&device.ctx(), MemFlags::MemReadWrite | MemFlags::MemCopyHostPtr, len, Some(&data))?;
+        for _ in 0..TIMES {
+            let buf = create_buffer(
+                &device.ctx(),
+                MemFlags::MemReadWrite | MemFlags::MemCopyHostPtr,
+                len,
+                Some(&data),
+            )?;
             let ptr = unified_ptr::<f32>(device.queue(), buf, len)?;
-            let slice = unsafe {std::slice::from_raw_parts_mut(ptr, len)};
-            
+            let slice = unsafe { std::slice::from_raw_parts_mut(ptr, len) };
+
             for idx in 20..100 {
                 slice[idx] = 4.;
             }
-    
-            unsafe { 
+
+            unsafe {
                 release_mem_object(buf)?;
             }
         }
         let after = Instant::now();
-        println!("copy host ptr: {:?}", (after-before) / TIMES as u32);
-    
+        println!("copy host ptr: {:?}", (after - before) / TIMES as u32);
     }
-    
-    /* 
+
+    /*
     let before = Instant::now();
-    for _ in 0..TIMES {        
+    for _ in 0..TIMES {
         let buf = create_buffer::<f32>(&device.ctx(), MemFlags::MemReadWrite as u64, len, None)?;
-        
-        unsafe { 
+
+        unsafe {
             release_mem_object(buf)?;
         }
     }
@@ -111,18 +127,18 @@ fn test_unified_mem() -> Result<(), Error> {
     let after = Instant::now();
     println!("alloc: {:?}", (after-before) / TIMES as u32);
     */
-    
+
     Ok(())
 }
 
-#[cfg(feature="opencl")]
+#[cfg(feature = "opencl")]
 fn slice_add<T: Copy + std::ops::Add<Output = T>>(a: &[T], b: &[T], c: &mut [T]) {
     for i in 0..c.len() {
         c[i] = a[i] + b[i]
     }
 }
 
-#[cfg(feature="opencl")]
+#[cfg(feature = "opencl")]
 #[test]
 fn test_unified_mem_ops() -> Result<(), custos::Error> {
     let device = CLDevice::new(0)?;
@@ -133,10 +149,10 @@ fn test_unified_mem_ops() -> Result<(), custos::Error> {
 
     let a = Buffer::from((&device, [1, 4, 3, 2, 7, 9]));
     assert!(a.ptr.0 != std::ptr::null_mut());
-        
+
     let b = Buffer::from((&device, [2, 1, 7, 4, 3, 2]));
     let mut c = Buffer::from((&device, [0; 6]));
-    
+
     slice_add(&a, &b, &mut c);
 
     let res = device.read(&c);
@@ -145,14 +161,14 @@ fn test_unified_mem_ops() -> Result<(), custos::Error> {
     Ok(())
 }
 
-#[cfg(feature="opencl")]
+#[cfg(feature = "opencl")]
 #[test]
 fn test_unified_mem_iterate() -> custos::Result<()> {
     let device = CLDevice::new(0)?;
 
     if !device.unified_mem() {
         println!("CLDevice uses own memory");
-        return Ok(())
+        return Ok(());
     }
 
     let mut a = Buffer::from((&device, [1, 2, 3, 4, 5]));

@@ -10,7 +10,7 @@ pub enum NvrtcErrorKind {
     NoLoweredNamesBeforeCompilation,
     NameExpressionNotValid,
     InternalError,
-    Unknown
+    Unknown,
 }
 
 pub type NvrtcResult<T> = std::result::Result<T, NvrtcErrorKind>;
@@ -25,8 +25,12 @@ impl NvrtcErrorKind {
             NvrtcErrorKind::InvalidOption => "NVRTC_ERROR_INVALID_OPTION ",
             NvrtcErrorKind::Compilation => "NVRTC_ERROR_COMPILATION",
             NvrtcErrorKind::BuiltinOperationFailure => "NVRTC_ERROR_BUILTIN_OPERATION_FAILURE",
-            NvrtcErrorKind::NoNameExpressionsAfterCompilation => "NVRTC_ERROR_NO_NAME_EXPRESSIONS_AFTER_COMPILATION",
-            NvrtcErrorKind::NoLoweredNamesBeforeCompilation => "NVRTC_ERROR_NO_LOWERED_NAMES_BEFORE_COMPILATION",
+            NvrtcErrorKind::NoNameExpressionsAfterCompilation => {
+                "NVRTC_ERROR_NO_NAME_EXPRESSIONS_AFTER_COMPILATION"
+            }
+            NvrtcErrorKind::NoLoweredNamesBeforeCompilation => {
+                "NVRTC_ERROR_NO_LOWERED_NAMES_BEFORE_COMPILATION"
+            }
             NvrtcErrorKind::NameExpressionNotValid => "NVRTC_ERROR_NAME_EXPRESSION_NOT_VALID",
             NvrtcErrorKind::InternalError => "NVRTC_ERROR_INTERNAL_ERROR",
             NvrtcErrorKind::Unknown => "Unknown NVRTC error",
@@ -48,7 +52,7 @@ impl From<u32> for NvrtcErrorKind {
             9 => NvrtcErrorKind::NoLoweredNamesBeforeCompilation,
             10 => NvrtcErrorKind::NameExpressionNotValid,
             11 => NvrtcErrorKind::InternalError,
-            _ => NvrtcErrorKind::Unknown
+            _ => NvrtcErrorKind::Unknown,
         }
     }
 }

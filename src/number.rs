@@ -1,4 +1,7 @@
-use core::{cmp::Ordering, ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign}};
+use core::{
+    cmp::Ordering,
+    ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign},
+};
 
 macro_rules! number_apply {
     ($($t:ident),*) => {
@@ -27,26 +30,31 @@ macro_rules! number_apply {
                 }
             }
         )*
-        
+
     };
 }
 
 number_apply! {
-    f32, f64, i8, i16, i32, i64, i128, 
+    f32, f64, i8, i16, i32, i64, i128,
     isize, u8, u16, u32, u64, u128, usize
 }
 
-pub trait Number: 
-    Sized+Default+Copy+
-    Add<Self, Output = Self>+
-    Sub<Self, Output = Self>+
-    Div<Self, Output = Self>+
-    Mul<Self, Output = Self>+
-
-    AddAssign<Self> + SubAssign<Self>+
-    MulAssign<Self> + DivAssign<Self>
-    + PartialOrd + PartialEq +
-    core::fmt::Debug + core::fmt::Display + 
+pub trait Number:
+    Sized
+    + Default
+    + Copy
+    + Add<Self, Output = Self>
+    + Sub<Self, Output = Self>
+    + Div<Self, Output = Self>
+    + Mul<Self, Output = Self>
+    + AddAssign<Self>
+    + SubAssign<Self>
+    + MulAssign<Self>
+    + DivAssign<Self>
+    + PartialOrd
+    + PartialEq
+    + core::fmt::Debug
+    + core::fmt::Display
 {
     fn from_usize(value: usize) -> Self;
     fn from_u64(value: u64) -> Self;
@@ -64,14 +72,14 @@ macro_rules! float_apply {
                 fn negate(&self) -> $t {
                     use core::ops::Neg;
                     self.neg()
-                    
+
                 }
                 fn squared(lhs: $t) -> $t {
                     lhs*lhs
                 }
                 fn exp(&self) -> $t {
                     $t::exp(*self)
-                } 
+                }
                 fn powf(&self, rhs: $t) -> $t {
                     $t::powf(*self, rhs)
                 }
@@ -98,7 +106,7 @@ macro_rules! float_apply {
                 }
                 fn abs(&self) -> $t {
                     $t::abs(*self)
-                }            
+                }
             }
         )*
     };

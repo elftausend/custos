@@ -8,7 +8,7 @@ pub enum CublasErrorKind {
     InternalError,
     NotSupported,
     LicenseError,
-    Unknown
+    Unknown,
 }
 
 pub type CublasResult<T> = std::result::Result<T, CublasErrorKind>;
@@ -34,7 +34,6 @@ impl CublasErrorKind {
 
 impl From<u32> for CublasErrorKind {
     fn from(value: u32) -> Self {
-        
         match value {
             1 => CublasErrorKind::NotInitialized,
             3 => CublasErrorKind::AllocFailed,
@@ -44,8 +43,8 @@ impl From<u32> for CublasErrorKind {
             13 => CublasErrorKind::ExecutionFailed,
             14 => CublasErrorKind::InternalError,
             15 => CublasErrorKind::NotSupported,
-            16 => CublasErrorKind::LicenseError,            
-            _ => CublasErrorKind::Unknown
+            16 => CublasErrorKind::LicenseError,
+            _ => CublasErrorKind::Unknown,
         }
     }
 }

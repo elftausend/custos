@@ -1,5 +1,5 @@
-mod ffi;
 mod error;
+mod ffi;
 
 pub use ffi::*;
 

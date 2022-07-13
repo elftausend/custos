@@ -1,12 +1,15 @@
+use custos::{
+    cuda::api::{culaunch_kernel, load_module_data, nvrtc::create_program},
+    Buffer, CudaDevice, VecRead,
+};
 use std::ffi::c_void;
-use custos::{cuda::api::{nvrtc::create_program, load_module_data, culaunch_kernel}, CudaDevice, VecRead, Buffer};
 
 #[test]
 fn test_nvrtc() -> custos::Result<()> {
     let device = CudaDevice::new(0)?;
 
-    let a = Buffer::from((&device, [1, 2, 3, 4, 5,]));
-    let b = Buffer::from((&device, [4, 1, 7, 6, 9,]));
+    let a = Buffer::from((&device, [1, 2, 3, 4, 5]));
+    let b = Buffer::from((&device, [4, 1, 7, 6, 9]));
 
     let c = Buffer::<i32>::new(&device, a.len);
 
@@ -23,16 +26,18 @@ fn test_nvrtc() -> custos::Result<()> {
     x.compile(None)?;
     let module = load_module_data(x.ptx()?)?;
     let function = module.function("add")?;
-    
+
     culaunch_kernel(
-        &function, [a.len as u32, 1, 1], 
-        [1, 1, 1], &mut device.stream(), 
+        &function,
+        [a.len as u32, 1, 1],
+        [1, 1, 1],
+        &mut device.stream(),
         &mut [
-            &a.ptr.2 as *const u64 as *mut c_void, 
-            &b.ptr.2 as *const u64 as *mut c_void, 
+            &a.ptr.2 as *const u64 as *mut c_void,
+            &b.ptr.2 as *const u64 as *mut c_void,
             &c.ptr.2 as *const u64 as *mut c_void,
-            &a.len as *const usize as *mut c_void
-        ]
+            &a.len as *const usize as *mut c_void,
+        ],
     )?;
 
     let read = device.read(&c);

@@ -1,7 +1,10 @@
-mod ffi;
 mod error;
+mod ffi;
 
-use std::{ptr::{null_mut, null}, ffi::CString};
+use std::{
+    ffi::CString,
+    ptr::{null, null_mut},
+};
 
 pub use ffi::*;
 
@@ -13,7 +16,7 @@ impl NvrtcProgram {
     pub fn compile(&self, options: Option<Vec<CString>>) -> NvrtcResult<()> {
         compile_program(self, options)
     }
-    
+
     pub fn ptx(&self) -> NvrtcResult<CString> {
         get_ptx(self)
     }
@@ -24,11 +27,20 @@ pub fn create_program(src: &str, name: &str) -> NvrtcResult<NvrtcProgram> {
     let name = CString::new(name).unwrap();
 
     let mut prog = NvrtcProgram(null_mut());
-    unsafe { nvrtcCreateProgram(&mut prog.0, src.as_ptr(), name.as_ptr(), 0, null_mut(), null_mut()) }.to_result()?;
+    unsafe {
+        nvrtcCreateProgram(
+            &mut prog.0,
+            src.as_ptr(),
+            name.as_ptr(),
+            0,
+            null_mut(),
+            null_mut(),
+        )
+    }
+    .to_result()?;
     Ok(prog)
 }
 pub fn compile_program(prog: &NvrtcProgram, options: Option<Vec<CString>>) -> NvrtcResult<()> {
-
     /*
     let (num_options, options) = match options {
         Some(options) => (options.len(), options.as_ptr()),
@@ -37,13 +49,17 @@ pub fn compile_program(prog: &NvrtcProgram, options: Option<Vec<CString>>) -> Nv
     */
     match options {
         Some(options) => {
-            let options = options.iter().map(|option| option.as_ptr()).collect::<Vec<*const i8>>();
-            unsafe { nvrtcCompileProgram(prog.0, options.len() as i32, options.as_ptr()) }.to_result()    
-        },
+            let options = options
+                .iter()
+                .map(|option| option.as_ptr())
+                .collect::<Vec<*const i8>>();
+            unsafe { nvrtcCompileProgram(prog.0, options.len() as i32, options.as_ptr()) }
+                .to_result()
+        }
         None => unsafe { nvrtcCompileProgram(prog.0, 0, null()) }.to_result(),
     }
     //unsafe { nvrtcCompileProgram(prog.0, num_options as i32, options as *const *const i8) }.to_result()
-} 
+}
 
 pub fn get_ptx(prog: &NvrtcProgram) -> NvrtcResult<CString> {
     unsafe {
@@ -53,5 +69,4 @@ pub fn get_ptx(prog: &NvrtcProgram) -> NvrtcResult<CString> {
         nvrtcGetPTX(prog.0, src.as_mut_ptr() as *mut i8).to_result()?;
         Ok(CString::from_vec_with_nul_unchecked(src))
     }
-
 }

@@ -46,14 +46,14 @@ pub enum CudaErrorKind {
     LaunchOutOfResources,
     LaunchTimeout,
     LaunchIncompatibleTexturing,
-    Unknown
+    Unknown,
 }
 
 impl CudaErrorKind {
     pub fn as_str(&self) -> &'static str {
         match self {
             CudaErrorKind::InvalidDeviceIdx => "Invalid device idx, specific CUDA device not found",
-            _ => "Unknown"
+            _ => "Unknown",
         }
     }
 }
@@ -62,7 +62,7 @@ impl From<u32> for CudaErrorKind {
     fn from(value: u32) -> Self {
         println!("cuda value: {value}");
         match value {
-            _ => CudaErrorKind::Unknown
+            _ => CudaErrorKind::Unknown,
         }
     }
 }

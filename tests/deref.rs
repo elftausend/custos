@@ -1,4 +1,4 @@
-use custos::{CPU, Buffer};
+use custos::{Buffer, CPU};
 
 fn slice_add<T: Copy + std::ops::Add<Output = T>>(a: &[T], b: &[T], c: &mut [T]) {
     for i in 0..c.len() {
@@ -9,8 +9,8 @@ fn slice_add<T: Copy + std::ops::Add<Output = T>>(a: &[T], b: &[T], c: &mut [T])
 #[test]
 fn test_deref_cpu() {
     let device = CPU::new();
-    let a = Buffer::from((&device, [1., 2., 3., 4.,]));
-    let b = Buffer::from((&device, [2., 3., 4., 5.,]));
+    let a = Buffer::from((&device, [1., 2., 3., 4.]));
+    let b = Buffer::from((&device, [2., 3., 4., 5.]));
     let mut c = Buffer::from((&device, [0.; 4]));
 
     slice_add(&a, &b, &mut c);
@@ -18,7 +18,7 @@ fn test_deref_cpu() {
     assert_eq!(c.as_slice(), &[3., 5., 7., 9.,]);
 }
 
-#[cfg(feature="opencl")]
+#[cfg(feature = "opencl")]
 #[test]
 #[should_panic]
 fn test_deref_opencl() {
@@ -28,8 +28,8 @@ fn test_deref_opencl() {
     if device.unified_mem() {
         panic!("the cpu ptr needs to be null")
     }
-    let a = Buffer::from((&device, [1., 2., 3., 4.,]));
-    let b = Buffer::from((&device, [2., 3., 4., 5.,]));
+    let a = Buffer::from((&device, [1., 2., 3., 4.]));
+    let b = Buffer::from((&device, [2., 3., 4., 5.]));
     let mut c = Buffer::from((&device, [0.; 4]));
 
     slice_add(&a, &b, &mut c);
@@ -37,16 +37,16 @@ fn test_deref_opencl() {
     assert_eq!(c.as_slice(), &[3., 5., 7., 9.,]);
 }
 
-#[cfg(feature="cuda")]
+#[cfg(feature = "cuda")]
 #[test]
 #[should_panic]
 fn test_deref_cuda() {
     use custos::CudaDevice;
 
     let device = CudaDevice::new(0).unwrap();
-    
-    let a = Buffer::from((&device, [1., 2., 3., 4.,]));
-    let b = Buffer::from((&device, [2., 3., 4., 5.,]));
+
+    let a = Buffer::from((&device, [1., 2., 3., 4.]));
+    let b = Buffer::from((&device, [2., 3., 4., 5.]));
     let mut c = Buffer::from((&device, [0.; 4]));
 
     slice_add(&a, &b, &mut c);

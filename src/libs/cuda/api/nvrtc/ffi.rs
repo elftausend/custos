@@ -26,15 +26,26 @@ impl nvrtcResult {
     pub fn to_result(self) -> NvrtcResult<()> {
         match self {
             nvrtcResult::NVRTC_SUCCESS => Ok(()),
-            _ => Err(NvrtcErrorKind::from(self as u32))
+            _ => Err(NvrtcErrorKind::from(self as u32)),
         }
     }
 }
 
-#[link(name="nvrtc")]
+#[link(name = "nvrtc")]
 extern "C" {
-    pub fn nvrtcCreateProgram(prog: *mut nvrtcProgram, src: *const i8, name: *const i8, numHeaders: i32, headers: *const *const i8, includeNames: *const *const i8) -> nvrtcResult;
-    pub fn nvrtcCompileProgram(prog: nvrtcProgram, numOptions: i32, options: *const *const i8) -> nvrtcResult;
+    pub fn nvrtcCreateProgram(
+        prog: *mut nvrtcProgram,
+        src: *const i8,
+        name: *const i8,
+        numHeaders: i32,
+        headers: *const *const i8,
+        includeNames: *const *const i8,
+    ) -> nvrtcResult;
+    pub fn nvrtcCompileProgram(
+        prog: nvrtcProgram,
+        numOptions: i32,
+        options: *const *const i8,
+    ) -> nvrtcResult;
     pub fn nvrtcDestroyProgram(prog: *mut nvrtcProgram) -> nvrtcResult;
     pub fn nvrtcGetPTX(prog: nvrtcProgram, ptx: *mut i8) -> nvrtcResult;
     pub fn nvrtcGetPTXSize(prog: nvrtcProgram, ptx_size: *mut isize) -> nvrtcResult;

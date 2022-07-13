@@ -1,20 +1,23 @@
-use std::{fmt::Debug, cell::RefCell, rc::Rc, ffi::c_void};
-use crate::{Buffer, Device, libs::cpu::CPUCache, VecRead, AsDev, BaseDevice, CDatatype, ManualMem, CacheBuf, GenericBlas, ClearBuf, number::Number};
 use super::CPU_CACHE;
+use crate::{
+    libs::cpu::CPUCache, number::Number, AsDev, BaseDevice, Buffer, CDatatype, CacheBuf, ClearBuf,
+    Device, GenericBlas, ManualMem, VecRead,
+};
+use std::{cell::RefCell, ffi::c_void, fmt::Debug, rc::Rc};
 
 #[derive(Debug, Clone, Default)]
 /// A CPU is used to perform calculations on the host CPU.
 /// To make new calculations invocable, a trait providing new operations should be implemented for [CPU].
-/// 
+///
 /// # Example
 /// ```
 /// use custos::{CPU, VecRead, Buffer};
-/// 
+///
 /// let device = CPU::new();
 /// let a = Buffer::from((&device, [1, 2, 3]));
-/// 
+///
 /// let out = device.read(&a);
-/// 
+///
 /// assert_eq!(out, vec![1, 2, 3]);
 /// ```
 pub struct CPU {
@@ -25,8 +28,8 @@ impl CPU {
     #[must_use]
     /// Creates an [CPU] with an InternCPU that holds an empty vector of pointers.
     pub fn new() -> CPU {
-        CPU { 
-            inner: Rc::new(RefCell::new(InternCPU {ptrs: Vec::new()})),
+        CPU {
+            inner: Rc::new(RefCell::new(InternCPU { ptrs: Vec::new() })),
         }
     }
 }
@@ -37,46 +40,53 @@ impl From<Rc<RefCell<InternCPU>>> for CPU {
     }
 }
 
-#[cfg(not(feature="safe"))]
-impl<T: Copy+Default> Device<T> for CPU {
+#[cfg(not(feature = "safe"))]
+impl<T: Clone + Default> Device<T> for CPU {
     fn alloc(&self, len: usize) -> (*mut T, *mut c_void, u64) {
         assert!(len > 0, "invalid buffer len: 0");
-        let ptr = Box::into_raw(vec![T::default(); len].into_boxed_slice());
+        let ptr = Box::into_raw(vec![T::default().clone(); len].into_boxed_slice());
         //let size = std::mem::size_of::<T>() * len;
-        self.inner.borrow_mut().ptrs.push(StoredCPUPtr::new(ptr as *mut [u8], std::mem::size_of::<T>()));
+        self.inner.borrow_mut().ptrs.push(StoredCPUPtr::new(
+            ptr as *mut [u8],
+            std::mem::size_of::<T>(),
+        ));
         (ptr as *mut T, std::ptr::null_mut(), 0)
     }
 
     fn with_data(&self, data: &[T]) -> (*mut T, *mut c_void, u64) {
         assert!(!data.is_empty(), "invalid buffer len: 0");
         let ptr = Box::into_raw(data.to_vec().into_boxed_slice());
-        self.inner.borrow_mut().ptrs.push(StoredCPUPtr::new(ptr as *mut [u8], std::mem::size_of::<T>()));
+        self.inner.borrow_mut().ptrs.push(StoredCPUPtr::new(
+            ptr as *mut [u8],
+            std::mem::size_of::<T>(),
+        ));
         (ptr as *mut T, std::ptr::null_mut(), 0)
     }
     fn alloc_with_vec(&self, vec: Vec<T>) -> (*mut T, *mut c_void, u64) {
         assert!(!vec.is_empty(), "invalid buffer len: 0");
         let ptr = Box::into_raw(vec.into_boxed_slice());
-        self.inner.borrow_mut().ptrs.push(StoredCPUPtr::new(ptr as *mut [u8], std::mem::size_of::<T>()));
+        self.inner.borrow_mut().ptrs.push(StoredCPUPtr::new(
+            ptr as *mut [u8],
+            std::mem::size_of::<T>(),
+        ));
         (ptr as *mut T, std::ptr::null_mut(), 0)
     }
 
     fn drop(&mut self, buf: Buffer<T>) {
         let ptrs = &mut self.inner.borrow_mut().ptrs;
         let slice = unsafe { std::slice::from_raw_parts_mut(buf.ptr.0, buf.len) };
-        
+
         crate::remove_value(
-        ptrs, 
-    &StoredCPUPtr::new(
-            slice as *mut [T] as *mut [u8], 
-            std::mem::size_of::<T>()
-                )
-        ).unwrap();
+            ptrs,
+            &StoredCPUPtr::new(slice as *mut [T] as *mut [u8], std::mem::size_of::<T>()),
+        )
+        .unwrap();
         self.drop_buf(buf)
     }
 }
 
-#[cfg(feature="safe")]
-impl<T: Clone+Default> Device<T> for CPU {
+#[cfg(feature = "safe")]
+impl<T: Clone + Default> Device<T> for CPU {
     fn alloc(&self, len: usize) -> (*mut T, *mut c_void, u64) {
         assert!(len > 0, "invalid buffer len: 0");
         let ptr = Box::into_raw(vec![T::default(); len].into_boxed_slice()) as *mut T;
@@ -109,17 +119,15 @@ impl<T> ManualMem<T> for CPU {
     }
 }
 
-impl<T: Copy+Default> CacheBuf<T> for CPU {
+impl<T: Copy + Default> CacheBuf<T> for CPU {
     fn cached_buf(&self, len: usize) -> Buffer<T> {
         CPUCache::get::<T>(self, len)
     }
 }
 
-impl<T: Copy+Default> VecRead<T> for CPU {
+impl<T: Copy + Default> VecRead<T> for CPU {
     fn read(&self, buf: &Buffer<T>) -> Vec<T> {
-        unsafe {
-            std::slice::from_raw_parts(buf.ptr.0, buf.len).to_vec()
-        }
+        unsafe { std::slice::from_raw_parts(buf.ptr.0, buf.len).to_vec() }
     }
 }
 
@@ -131,8 +139,7 @@ impl<T: Number> ClearBuf<T> for CPU {
     }
 }
 
-
-impl<T: CDatatype+GenericBlas> BaseDevice<T> for CPU {}
+impl<T: CDatatype + GenericBlas> BaseDevice<T> for CPU {}
 
 // TODO: remove
 /*pub fn assign_op<T: Copy+Default, F: Fn(&mut T, T)>(lhs: &mut Buffer<T>, rhs: &Buffer<T>, f: F) {
@@ -147,16 +154,14 @@ pub struct StoredCPUPtr {
 
 impl StoredCPUPtr {
     pub fn new(fat_ptr: *mut [u8], align: usize) -> StoredCPUPtr {
-        StoredCPUPtr {
-            fat_ptr, align
-        }
+        StoredCPUPtr { fat_ptr, align }
     }
 }
 
 /// Used to store pointers.
-/// 
+///
 /// Note / Safety
-/// 
+///
 /// If the 'safe' feature isn't used, all pointers will get invalid when the drop code for an InternCPU runs as that deallocates the memory previously pointed at by the pointers stored in 'ptrs'.
 #[derive(Debug, Default)]
 pub struct InternCPU {
@@ -165,18 +170,15 @@ pub struct InternCPU {
 
 impl Drop for InternCPU {
     fn drop(&mut self) {
-        let contents = CPU_CACHE.with(|cache| {
-           cache.borrow().nodes.clone()         
-        });
-        
+        let contents = CPU_CACHE.with(|cache| cache.borrow().nodes.clone());
+
         for ptr in self.ptrs.iter() {
-            
             unsafe {
                 let len = (&*ptr.fat_ptr).len();
-                let slice = std::slice::from_raw_parts_mut(ptr.fat_ptr as *mut u8, len*ptr.align);
+                let slice = std::slice::from_raw_parts_mut(ptr.fat_ptr as *mut u8, len * ptr.align);
                 drop(Box::from_raw(slice));
             }
-            
+
             for entry in &contents {
                 let hm_ptr = ((entry.1).0).0;
                 if hm_ptr == ptr.fat_ptr as *mut usize {

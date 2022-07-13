@@ -1,6 +1,6 @@
 use std::ops::Range;
 
-use crate::{set_count, get_count};
+use crate::{get_count, set_count};
 
 pub trait AsRangeArg {
     fn start(&self) -> usize;
@@ -40,11 +40,11 @@ impl AsRangeArg for (usize, usize) {
 #[cfg_attr(feature = "safe", doc = "```ignore")]
 /// inclusive range
 /// used to reset the cache count in loops as every operation increases the cache count, which would break the "cache cycle".
-/// 
+///
 /// # Example
 /// ```
 /// use custos::{get_count, range, Node};
-/// 
+///
 /// for _ in range(100) {
 ///     Node::new(10); // a 'Node' is created if a Buffer is retrieved from cache.
 ///     assert!(get_count() == 1);
@@ -87,7 +87,7 @@ impl IntoIterator for Count {
         CountIntoIter {
             epoch: self.0,
             idx: get_count(),
-            end: self.1
+            end: self.1,
         }
     }
 }

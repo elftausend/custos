@@ -1,5 +1,5 @@
 // TODO: move to custos_math
-/* 
+/*
 use std::ptr::null_mut;
 
 use criterion::{Criterion, criterion_main, criterion_group};
@@ -30,7 +30,7 @@ pub fn bench_fixed(ben: &mut Criterion) {
         ptr: (slice_c.as_mut_ptr(), null_mut(), 0),
         len: slice_c.len()
     };
-    
+
     ben.bench_function("bench fixed", |bench| bench.iter(|| {
         slice_add(&a, &b, &mut c);
     }));
