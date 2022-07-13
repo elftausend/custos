@@ -388,8 +388,8 @@ pub fn cl_dev(_: &Dev) -> Result<Box<CPU>> {
     Err(Error::from(DeviceError::NoDeviceSelected))
 }
 
+#[cfg(feature="opencl")]
 pub fn cl_dev(dev: &Dev) -> Result<Box<CLDevice>> {
-    #[cfg(feature="opencl")]
     return Ok(Box::new(CLDevice::from(
         dev.cl_device.as_ref().unwrap().upgrade()
             .ok_or(Error::from(DeviceError::NoDeviceSelected))?,
