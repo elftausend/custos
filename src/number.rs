@@ -3,6 +3,32 @@ use core::{
     ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign},
 };
 
+pub trait Number:
+    Sized
+    + Default
+    + Copy
+    + Add<Self, Output = Self>
+    + Sub<Self, Output = Self>
+    + Div<Self, Output = Self>
+    + Mul<Self, Output = Self>
+    + AddAssign<Self>
+    + SubAssign<Self>
+    + MulAssign<Self>
+    + DivAssign<Self>
+    + PartialOrd
+    + PartialEq
+    + core::fmt::Debug
+    + core::fmt::Display
+{
+    fn from_usize(value: usize) -> Self;
+    fn from_u64(value: u64) -> Self;
+    fn as_usize(&self) -> usize;
+    fn as_f64(&self) -> f64;
+    fn zero() -> Self;
+    fn one() -> Self;
+    fn two() -> Self;
+}
+
 macro_rules! number_apply {
     ($($t:ident),*) => {
         $(
@@ -39,30 +65,20 @@ number_apply! {
     isize, u8, u16, u32, u64, u128, usize
 }
 
-pub trait Number:
-    Sized
-    + Default
-    + Copy
-    + Add<Self, Output = Self>
-    + Sub<Self, Output = Self>
-    + Div<Self, Output = Self>
-    + Mul<Self, Output = Self>
-    + AddAssign<Self>
-    + SubAssign<Self>
-    + MulAssign<Self>
-    + DivAssign<Self>
-    + PartialOrd
-    + PartialEq
-    + core::fmt::Debug
-    + core::fmt::Display
-{
-    fn from_usize(value: usize) -> Self;
-    fn from_u64(value: u64) -> Self;
-    fn as_usize(&self) -> usize;
-    fn as_f64(&self) -> f64;
-    fn zero() -> Self;
-    fn one() -> Self;
-    fn two() -> Self;
+pub trait Float: Neg + Number {
+    fn negate(&self) -> Self;
+    fn squared(lhs: Self) -> Self;
+    fn exp(&self) -> Self;
+    fn powf(&self, rhs: Self) -> Self;
+    fn powi(&self, rhs: i32) -> Self;
+    fn comp(lhs: Self, rhs: Self) -> Option<Ordering>;
+    //fn from_usize(value: usize) -> Self;
+    fn tanh(&self) -> Self;
+    fn sin(&self) -> Self;
+    fn as_generic(value: f64) -> Self;
+    fn sqrt(&self) -> Self;
+    fn ln(&self) -> Self;
+    fn abs(&self) -> Self;
 }
 
 macro_rules! float_apply {
@@ -113,19 +129,3 @@ macro_rules! float_apply {
 }
 
 float_apply!(f32, f64);
-
-pub trait Float: Neg + Number {
-    fn negate(&self) -> Self;
-    fn squared(lhs: Self) -> Self;
-    fn exp(&self) -> Self;
-    fn powf(&self, rhs: Self) -> Self;
-    fn powi(&self, rhs: i32) -> Self;
-    fn comp(lhs: Self, rhs: Self) -> Option<Ordering>;
-    //fn from_usize(value: usize) -> Self;
-    fn tanh(&self) -> Self;
-    fn sin(&self) -> Self;
-    fn as_generic(value: f64) -> Self;
-    fn sqrt(&self) -> Self;
-    fn ln(&self) -> Self;
-    fn abs(&self) -> Self;
-}

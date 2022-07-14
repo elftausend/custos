@@ -20,18 +20,43 @@ impl<T> Buffer<T> {
     /// use custos::{CPU, Buffer};
     ///
     /// let device = CPU::new();
-    /// let buffer = Buffer::<i32>::new(&device, 6);
+    /// let mut buffer = Buffer::<i32>::new(&device, 6);
     ///
-    /// // this works only with cpu buffers
-    /// let slice = buffer.as_slice();
-    ///
-    /// assert_eq!(slice, &[0; 6]);
+    /// // this works only with cpu buffers (this creates a slice with the host pointer)
+    /// for value in &mut buffer {
+    ///     *value = 2;
+    /// }
+    /// 
+    /// assert_eq!(buffer.as_slice(), &[2; 6]);
     ///
     /// ```
     pub fn new<D: Device<T>>(device: &D, len: usize) -> Buffer<T> {
         Buffer {
             ptr: device.alloc(len),
             len,
+        }
+    }
+
+    /// Constructs a Buffer with a host pointer and a length.
+    /// # Example
+    /// ```
+    /// use custos::{Buffer, Device, CPU, VecRead};
+    /// use std::ffi::c_void;
+    /// 
+    /// let device = CPU::new();
+    /// let ptrs: (*mut f32, *mut c_void, u64) = device.alloc(10);
+    /// let mut buf = unsafe {
+    ///     Buffer::from_raw_host(ptrs.0, 10)
+    /// };
+    /// for (idx, value) in buf.iter_mut().enumerate() {
+    ///     *value += idx as f32;
+    /// }
+    /// assert_eq!(buf.as_slice(), &[0., 1., 2., 3., 4., 5., 6., 7., 8., 9.,])
+    /// ```
+    pub unsafe fn from_raw_host(ptr: *mut T, len: usize) -> Buffer<T> {
+        Buffer {
+            ptr: (ptr, null_mut(), 0),
+            len
         }
     }
 
@@ -169,6 +194,17 @@ impl<T: Clone> Clone for Buffer<T> {
             ptr: self.ptr,
             len: self.len,
         }
+    }
+}
+
+impl<A: Clone + Default> FromIterator<A> for Buffer<A> {
+    fn from_iter<T: IntoIterator<Item = A>>(iter: T) -> Self {
+        let device = get_device!(Device<A>).unwrap();
+        let from_iter = Vec::from_iter(iter);
+        Buffer {
+            len: from_iter.len(),
+            ptr: device.alloc_with_vec(from_iter),
+        }        
     }
 }
 
