@@ -48,6 +48,7 @@ impl<T: Clone + Default> Device<T> for CPU {
         //let size = std::mem::size_of::<T>() * len;
         self.inner.borrow_mut().ptrs.push(StoredCPUPtr::new(
             ptr as *mut [u8],
+            // TODO: use align of?
             std::mem::size_of::<T>(),
         ));
         (ptr as *mut T, std::ptr::null_mut(), 0)
@@ -140,11 +141,6 @@ impl<T: Number> ClearBuf<T> for CPU {
 }
 
 impl<T: CDatatype + GenericBlas> BaseDevice<T> for CPU {}
-
-// TODO: remove
-/*pub fn assign_op<T: Copy+Default, F: Fn(&mut T, T)>(lhs: &mut Buffer<T>, rhs: &Buffer<T>, f: F) {
-    assign_to_lhs(lhs, rhs, f)
-}*/
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct StoredCPUPtr {

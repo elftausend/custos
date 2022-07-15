@@ -518,7 +518,7 @@ impl<T: CDatatype> From<(*mut c_void, usize)> for Buffer<T> {
 /// let buf = cached::<f32>(10);
 /// assert_eq!(device.read(&buf), vec![1.5; 10]);
 /// ```
-pub fn cached<T: CDatatype>(len: usize) -> Buffer<T> {
+pub fn cached<T: Default+Copy>(len: usize) -> Buffer<T> {
     let device = get_device!(CacheBuf<T>).unwrap();
     device.cached_buf(len)
 }

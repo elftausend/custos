@@ -175,7 +175,7 @@ impl<T> ManualMem<T> for CLDevice {
     }
 }
 
-impl<T: CDatatype> CacheBuf<T> for CLDevice {
+impl<T> CacheBuf<T> for CLDevice {
     fn cached_buf(&self, len: usize) -> Buffer<T> {
         CLCache::get::<T>(self, len)
     }
