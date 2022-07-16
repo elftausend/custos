@@ -196,6 +196,22 @@ pub trait VecRead<T> {
     fn read(&self, buf: &Buffer<T>) -> Vec<T>;
 }
 
+/// Trait for writing data to buffers.
+pub trait WriteBuf<T> {
+    /// Write data to the buffer.
+    /// # Example
+    /// ```
+    /// use custos::{CPU, Buffer, WriteBuf};
+    /// 
+    /// let device = CPU::new();
+    /// let mut buf = Buffer::new(&device, 4);
+    /// device.write(&mut buf, &[9, 3, 2, -4]);
+    /// assert_eq!(buf.as_slice(), &[9, 3, 2, -4])
+    /// 
+    /// ```
+    fn write(&self, buf: &mut Buffer<T>, data: &[T]);
+}
+
 trait ManualMem<T> {
     fn drop_buf(&self, buf: Buffer<T>);
 }

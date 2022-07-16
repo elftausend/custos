@@ -1,13 +1,13 @@
 use super::{
     api::{
         create_command_queue, create_context, enqueue_read_buffer, release_mem_object, unified_ptr,
-        wait_for_event, CLIntDevice, CommandQueue, Context,
+        wait_for_event, CLIntDevice, CommandQueue, Context, enqueue_write_buffer,
     },
     cl_clear, CLCache, CL_CACHE, CL_DEVICES,
 };
 use crate::{
     libs::opencl::api::{create_buffer, MemFlags},
-    AsDev, BaseDevice, Buffer, CDatatype, CacheBuf, ClearBuf, Device, Error, ManualMem, VecRead,
+    AsDev, BaseDevice, Buffer, CDatatype, CacheBuf, ClearBuf, Device, Error, ManualMem, VecRead, WriteBuf,
 };
 use std::{cell::RefCell, ffi::c_void, fmt::Debug, rc::Rc};
 
@@ -184,6 +184,13 @@ impl<T> CacheBuf<T> for CLDevice {
 impl<T: CDatatype> ClearBuf<T> for CLDevice {
     fn clear(&self, buf: &mut Buffer<T>) {
         cl_clear(self, buf).unwrap()
+    }
+}
+
+impl<T> WriteBuf<T> for CLDevice {
+    fn write(&self, buf: &mut Buffer<T>, data: &[T]) {
+        let event = unsafe { enqueue_write_buffer(&self.queue(), buf.ptr.1, data, false).unwrap() };
+        wait_for_event(event).unwrap();
     }
 }
 

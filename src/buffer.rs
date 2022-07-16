@@ -3,7 +3,7 @@ use std::{ffi::c_void, fmt::Debug, ptr::null_mut};
 #[cfg(feature = "opencl")]
 #[cfg(feature = "safe")]
 use crate::opencl::api::{release_mem_object, retain_mem_object};
-use crate::{get_device, CDatatype, CacheBuf, ClearBuf, Device, VecRead};
+use crate::{get_device, CDatatype, CacheBuf, ClearBuf, Device, VecRead, WriteBuf};
 
 #[cfg(not(feature = "safe"))]
 use crate::number::Number;
@@ -100,7 +100,7 @@ impl<T> Buffer<T> {
         self.ptr.2
     }
 
-    /// Returns a CPU slice.
+    /// Returns a CPU slice. This does not work with CUDA or OpenCL buffers.
     pub fn as_slice(&self) -> &[T] {
         assert!(
             !self.ptr.0.is_null(),
@@ -150,12 +150,23 @@ impl<T> Buffer<T> {
         device.clear(self)
     }
 
+    /// Reads the contents of the buffer into a vector.
+    /// If it is certain whether a CPU, or an unified CPU + OpenCL Buffer, is used, calling `.as_slice()` (or deref/mut to `&/mut [&T]`) is probably preferred.
     pub fn read(&self) -> Vec<T>
     where
         T: Copy + Default,
     {
         let device = get_device!(VecRead<T>).unwrap();
         device.read(self)
+    }
+
+    /// Writes a slice to the vector.
+    /// With a CPU buffer, the slice is just copied to the slice of the buffer.
+    pub fn write(&mut self, data: &[T]) 
+    where
+        T: Copy
+    {
+        get_device!(WriteBuf<T>).unwrap().write(self, data)
     }
 }
 

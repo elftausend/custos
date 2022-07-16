@@ -1,7 +1,7 @@
 use super::CPU_CACHE;
 use crate::{
     libs::cpu::CPUCache, number::Number, AsDev, BaseDevice, Buffer, CDatatype, CacheBuf, ClearBuf,
-    Device, GenericBlas, ManualMem, VecRead,
+    Device, GenericBlas, ManualMem, VecRead, WriteBuf,
 };
 use std::{cell::RefCell, ffi::c_void, fmt::Debug, rc::Rc};
 
@@ -134,9 +134,15 @@ impl<T: Copy + Default> VecRead<T> for CPU {
 
 impl<T: Number> ClearBuf<T> for CPU {
     fn clear(&self, buf: &mut Buffer<T>) {
-        for value in buf.as_mut_slice() {
+        for value in buf {
             *value = T::zero();
         }
+    }
+}
+
+impl<T: Copy> WriteBuf<T> for CPU {
+    fn write(&self, buf: &mut Buffer<T>, data: &[T]) {
+        buf.copy_from_slice(data)
     }
 }
 

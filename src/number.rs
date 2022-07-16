@@ -65,7 +65,7 @@ number_apply! {
     isize, u8, u16, u32, u64, u128, usize
 }
 
-pub trait Float: Neg + Number {
+pub trait Float: Neg<Output = Self> + Number {
     fn negate(&self) -> Self;
     fn squared(lhs: Self) -> Self;
     fn exp(&self) -> Self;

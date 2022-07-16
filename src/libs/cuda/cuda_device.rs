@@ -8,7 +8,7 @@ use super::{
     cu_clear, CudaCache,
 };
 use crate::{
-    AsDev, BaseDevice, CDatatype, CUdeviceptr, CacheBuf, ClearBuf, Device, GenericBlas, VecRead,
+    AsDev, BaseDevice, CDatatype, CUdeviceptr, CacheBuf, ClearBuf, Device, GenericBlas, VecRead, WriteBuf,
 };
 use std::{
     cell::{Ref, RefCell, RefMut},
@@ -93,6 +93,12 @@ impl<T: Default + Copy> VecRead<T> for CudaDevice {
 impl<T: CDatatype> ClearBuf<T> for CudaDevice {
     fn clear(&self, buf: &mut crate::Buffer<T>) {
         cu_clear(self, buf).unwrap()
+    }
+}
+
+impl<T> WriteBuf<T> for CudaDevice {
+    fn write(&self, buf: &mut crate::Buffer<T>, data: &[T]) {
+        cu_write(buf.cu_ptr(), data).unwrap();
     }
 }
 

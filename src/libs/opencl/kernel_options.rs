@@ -7,7 +7,7 @@ use super::{
 use crate::{number::Number, Buffer, CDatatype, CLDevice};
 
 pub trait KernelArg<'a, T> {
-    fn buf(&'a self) -> Option<&'a Buffer<T>> {
+    fn some_buf(&'a self) -> Option<&'a Buffer<T>> {
         None
     }
     fn number(&self) -> Option<T> {
@@ -19,13 +19,13 @@ pub trait KernelArg<'a, T> {
 }
 
 impl<'a, T: Copy> KernelArg<'a, T> for Buffer<T> {
-    fn buf(&'a self) -> Option<&'a Buffer<T>> {
+    fn some_buf(&'a self) -> Option<&'a Buffer<T>> {
         Some(self)
     }
 }
 
 impl<'a, T: Copy> KernelArg<'a, T> for &'a Buffer<T> {
-    fn buf(&self) -> Option<&'a Buffer<T>> {
+    fn some_buf(&self) -> Option<&'a Buffer<T>> {
         Some(self)
     }
 }
@@ -140,7 +140,7 @@ impl<'a, T: CDatatype> KernelOptions<'a, T> {
 
         match arg.number() {
             Some(number) => self.number_args.push((number, idx)),
-            None => self.buf_args.push((arg.buf().unwrap(), idx)),
+            None => self.buf_args.push((arg.some_buf().unwrap(), idx)),
         }
         self
     }
@@ -258,7 +258,7 @@ impl<'a, T: CDatatype> KernelRunner<'a, T> {
                 core::mem::size_of::<U>(),
             )),
             None => {
-                let buf = arg.buf().unwrap();
+                let buf = arg.some_buf().unwrap();
                 self.buf_args.push((buf.ptr.1, idx, buf.len));
             }
         }
