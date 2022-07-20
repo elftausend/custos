@@ -57,6 +57,13 @@ mod count;
 
 pub mod number;
 
+#[cfg(not(target_env = "msvc"))]
+use tikv_jemallocator::Jemalloc;
+
+#[cfg(not(target_env = "msvc"))]
+#[global_allocator]
+static GLOBAL: Jemalloc = Jemalloc;
+
 pub struct Error {
     pub error: Box<dyn std::error::Error + Send>,
 }
@@ -210,6 +217,11 @@ pub trait WriteBuf<T> {
     /// 
     /// ```
     fn write(&self, buf: &mut Buffer<T>, data: &[T]);
+    /// Write data from <Device> Buffer to other <Device> Buffer.
+    // TODO: implement, change name of fn? -> set_.. ?
+    fn write_buf(&self, _dst: &mut Buffer<T>, _src: &Buffer<T>) {
+        unimplemented!()
+    }
 }
 
 trait ManualMem<T> {

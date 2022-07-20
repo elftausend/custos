@@ -16,7 +16,7 @@ Add "custos" as a dependency:
 [dependencies]
 custos = "0.1.4"
 
-# to disable the default features (cuda, opencl):
+# to disable the default features (cuda, opencl) and use an own set of features:
 #custos = {version = "0.1.4", default-features=false, features=["opencl", "safe"]}
 ```
 

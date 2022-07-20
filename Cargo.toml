@@ -14,10 +14,13 @@ readme = "README.md"
 lazy_static = "1.4.0"
 
 [features]
-default = ["opencl", "cuda"]
+default = ["opencl"]
 opencl = []
 cuda = []
 safe = []
+
+[target.'cfg(not(target_env = "msvc"))'.dependencies]
+tikv-jemallocator = "0.5"
 
 [[example]]
 name = "cuda_readme"
