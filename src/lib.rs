@@ -57,13 +57,6 @@ mod count;
 
 pub mod number;
 
-#[cfg(not(target_env = "msvc"))]
-use tikv_jemallocator::Jemalloc;
-
-#[cfg(not(target_env = "msvc"))]
-#[global_allocator]
-static GLOBAL: Jemalloc = Jemalloc;
-
 pub struct Error {
     pub error: Box<dyn std::error::Error + Send>,
 }

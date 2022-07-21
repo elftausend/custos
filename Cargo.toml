@@ -1,6 +1,6 @@
 [package]
 name = "custos"
-version = "0.1.4"
+version = "0.1.5"
 edition = "2021"
 license = "MIT"
 description = "A minimal OpenCL, CUDA and host CPU array manipulation engine / framework."
@@ -14,13 +14,10 @@ readme = "README.md"
 lazy_static = "1.4.0"
 
 [features]
-default = ["opencl"]
+default = ["opencl", "cuda"]
 opencl = []
 cuda = []
 safe = []
-
-[target.'cfg(not(target_env = "msvc"))'.dependencies]
-tikv-jemallocator = "0.5"
 
 [[example]]
 name = "cuda_readme"

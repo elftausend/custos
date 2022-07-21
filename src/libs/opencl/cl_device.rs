@@ -75,6 +75,10 @@ impl CLDevice {
     pub fn unified_mem(&self) -> bool {
         self.inner.borrow().unified_mem
     }
+
+    pub fn set_unified_mem(&self, unified_mem: bool) {
+        self.inner.borrow_mut().unified_mem = unified_mem;
+    }
 }
 
 impl Debug for CLDevice {
