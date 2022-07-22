@@ -99,11 +99,12 @@ impl Debug for CLDevice {
     }
 }
 
-#[cfg(not(feature = "safe"))]
 impl<T> Device<T> for CLDevice {
     fn alloc(&self, len: usize) -> (*mut T, *mut c_void, u64) {
         let ptr =
             create_buffer::<T>(&self.ctx(), MemFlags::MemReadWrite as u64, len, None).unwrap();
+
+        #[cfg(not(feature = "safe"))]
         self.inner.borrow_mut().ptrs.push(ptr);
 
         let cpu_ptr = if self.unified_mem() {
@@ -123,6 +124,8 @@ impl<T> Device<T> for CLDevice {
             Some(data),
         )
         .unwrap();
+
+        #[cfg(not(feature = "safe"))]
         self.inner.borrow_mut().ptrs.push(ptr as *mut c_void);
 
         let cpu_ptr = if self.unified_mem() {
@@ -134,40 +137,11 @@ impl<T> Device<T> for CLDevice {
         (cpu_ptr, ptr, 0)
     }
 
+    #[cfg(not(feature = "safe"))]
     fn drop(&mut self, buf: Buffer<T>) {
         let ptrs = &mut self.inner.borrow_mut().ptrs;
         crate::remove_value(ptrs, &buf.ptr.1).unwrap();
         self.drop_buf(buf)
-    }
-}
-
-#[cfg(feature = "safe")]
-impl<T> Device<T> for CLDevice {
-    fn alloc(&self, len: usize) -> (*mut T, *mut c_void, u64) {
-        let ptr =
-            create_buffer::<T>(&self.ctx(), MemFlags::MemReadWrite as u64, len, None).unwrap();
-        let cpu_ptr = if self.unified_mem() {
-            unified_ptr::<T>(self.queue(), ptr, len).unwrap()
-        } else {
-            std::ptr::null_mut()
-        };
-        (cpu_ptr, ptr, 0)
-    }
-
-    fn with_data(&self, data: &[T]) -> (*mut T, *mut c_void, u64) {
-        let ptr = create_buffer::<T>(
-            &self.ctx(),
-            MemFlags::MemReadWrite | MemFlags::MemCopyHostPtr,
-            data.len(),
-            Some(data),
-        )
-        .unwrap();
-        let cpu_ptr = if self.unified_mem() {
-            unified_ptr::<T>(self.queue(), ptr, data.len()).unwrap()
-        } else {
-            std::ptr::null_mut()
-        };
-        (cpu_ptr, ptr, 0)
     }
 }
 

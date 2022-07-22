@@ -290,7 +290,7 @@ pub trait AsDev {
     #[must_use]
     fn select(self) -> Self
     where
-        Self: AsDev + Clone,
+        Self: AsDev + Sized,
     {
         let dev = self.as_dev();
         GLOBAL_DEVICE.with(|d| *d.borrow_mut() = dev);
@@ -377,6 +377,8 @@ macro_rules! get_device {
     }};
 }
 
+// these functions exist because: if this macro is expanded in another crate, the #[cfg(feature="...")] will not look for the feature ... in custos.
+
 pub fn is_cuda_selected(dev: &Dev) -> bool {
     match dev.cuda {
         Some(_) => true && cfg!(feature="cuda"),
@@ -384,11 +386,13 @@ pub fn is_cuda_selected(dev: &Dev) -> bool {
     }
 }
 
+#[doc(hidden)]
 #[cfg(not(feature="cuda"))]
 pub fn cuda_dev(_: &Dev) -> Result<Box<CPU>> {
     Err(Error::from(DeviceError::NoDeviceSelected))
 }
 
+#[doc(hidden)]
 #[cfg(feature="cuda")]
 pub fn cuda_dev(dev: &Dev) -> Result<Box<CudaDevice>> {
     return Ok(Box::new(CudaDevice::from(
@@ -404,11 +408,13 @@ pub fn is_cl_selected(dev: &Dev) -> bool {
     }
 }
 
+#[doc(hidden)]
 #[cfg(not(feature="opencl"))]
 pub fn cl_dev(_: &Dev) -> Result<Box<CPU>> {
     Err(Error::from(DeviceError::NoDeviceSelected))
 }
 
+#[doc(hidden)]
 #[cfg(feature="opencl")]
 pub fn cl_dev(dev: &Dev) -> Result<Box<CLDevice>> {
     return Ok(Box::new(CLDevice::from(
@@ -424,6 +430,7 @@ pub fn is_cpu_selected(dev: &Dev) -> bool {
     false
 }
 
+#[doc(hidden)]
 pub fn cpu_dev(dev: &Dev) -> Result<Box<CPU>> {
     Ok(Box::new(CPU::from(
         dev.cpu.as_ref().unwrap().upgrade()

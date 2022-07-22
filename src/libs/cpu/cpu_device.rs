@@ -40,12 +40,14 @@ impl From<Rc<RefCell<InternCPU>>> for CPU {
     }
 }
 
-#[cfg(not(feature = "safe"))]
+
 impl<T: Clone + Default> Device<T> for CPU {
     fn alloc(&self, len: usize) -> (*mut T, *mut c_void, u64) {
         assert!(len > 0, "invalid buffer len: 0");
         let ptr = Box::into_raw(vec![T::default().clone(); len].into_boxed_slice());
         //let size = std::mem::size_of::<T>() * len;
+        
+        #[cfg(not(feature = "safe"))]
         self.inner.borrow_mut().ptrs.push(StoredCPUPtr::new(
             ptr as *mut [u8],
             // TODO: use align of?
@@ -57,6 +59,8 @@ impl<T: Clone + Default> Device<T> for CPU {
     fn with_data(&self, data: &[T]) -> (*mut T, *mut c_void, u64) {
         assert!(!data.is_empty(), "invalid buffer len: 0");
         let ptr = Box::into_raw(data.to_vec().into_boxed_slice());
+
+        #[cfg(not(feature = "safe"))]
         self.inner.borrow_mut().ptrs.push(StoredCPUPtr::new(
             ptr as *mut [u8],
             std::mem::size_of::<T>(),
@@ -66,6 +70,8 @@ impl<T: Clone + Default> Device<T> for CPU {
     fn alloc_with_vec(&self, vec: Vec<T>) -> (*mut T, *mut c_void, u64) {
         assert!(!vec.is_empty(), "invalid buffer len: 0");
         let ptr = Box::into_raw(vec.into_boxed_slice());
+
+        #[cfg(not(feature = "safe"))]
         self.inner.borrow_mut().ptrs.push(StoredCPUPtr::new(
             ptr as *mut [u8],
             std::mem::size_of::<T>(),
@@ -73,6 +79,7 @@ impl<T: Clone + Default> Device<T> for CPU {
         (ptr as *mut T, std::ptr::null_mut(), 0)
     }
 
+    #[cfg(not(feature = "safe"))]
     fn drop(&mut self, buf: Buffer<T>) {
         let ptrs = &mut self.inner.borrow_mut().ptrs;
         let slice = unsafe { std::slice::from_raw_parts_mut(buf.ptr.0, buf.len) };
@@ -83,26 +90,6 @@ impl<T: Clone + Default> Device<T> for CPU {
         )
         .unwrap();
         self.drop_buf(buf)
-    }
-}
-
-#[cfg(feature = "safe")]
-impl<T: Clone + Default> Device<T> for CPU {
-    fn alloc(&self, len: usize) -> (*mut T, *mut c_void, u64) {
-        assert!(len > 0, "invalid buffer len: 0");
-        let ptr = Box::into_raw(vec![T::default(); len].into_boxed_slice()) as *mut T;
-        (ptr, std::ptr::null_mut(), 0)
-    }
-
-    fn with_data(&self, data: &[T]) -> (*mut T, *mut c_void, u64) {
-        assert!(!data.is_empty(), "invalid buffer len: 0");
-        let ptr = Box::into_raw(data.to_vec().into_boxed_slice()) as *mut T;
-        (ptr, std::ptr::null_mut(), 0)
-    }
-    fn alloc_with_vec(&self, vec: Vec<T>) -> (*mut T, *mut c_void, u64) {
-        assert!(!vec.is_empty(), "invalid buffer len: 0");
-        let ptr = Box::into_raw(vec.into_boxed_slice()) as *mut T;
-        (ptr, std::ptr::null_mut(), 0)
     }
 }
 
