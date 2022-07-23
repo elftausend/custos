@@ -3,7 +3,7 @@ use super::{
         create_command_queue, create_context, enqueue_read_buffer, release_mem_object, unified_ptr,
         wait_for_event, CLIntDevice, CommandQueue, Context, enqueue_write_buffer,
     },
-    cl_clear, CLCache, CL_CACHE, CL_DEVICES,
+    cl_clear, CLCache, CL_CACHE, CL_DEVICES, get_cl_device_count,
 };
 use crate::{
     libs::opencl::api::{create_buffer, MemFlags},
@@ -40,6 +40,9 @@ impl CLDevice {
     /// - No device is found at the given device index
     /// - some other OpenCL related errors
     pub fn new(device_idx: usize) -> Result<CLDevice, Error> {
+        unsafe {
+            *get_cl_device_count() += 1;
+        }
         let inner = Rc::new(RefCell::new(CL_DEVICES.current(device_idx)?));
         Ok(CLDevice { inner })
     }
@@ -226,7 +229,15 @@ impl InternCLDevice {
 
 impl Drop for InternCLDevice {
     fn drop(&mut self) {
-        let contents = CL_CACHE.with(|cache| {
+        unsafe {
+            let count = get_cl_device_count();
+            *count -= 1;
+            if *count != 0 {
+                return;
+            }    
+        }
+        
+        CL_CACHE.with(|cache| {
             /*
             // FIXME: releases all kernels, even if it is used by another device?
             // TODO: better kernel cache release
@@ -234,22 +245,10 @@ impl Drop for InternCLDevice {
                 kernel.release()
             }
             */
-            cache.borrow().nodes.clone()
+            cache.borrow_mut().nodes.clear();
         });
 
-        for ptr in self.ptrs.iter() {
-            /*unsafe { release_mem_object(*ptr).unwrap() };
-
-            for entry in &contents {
-                let hm_ptr = ((entry.1).0).0;
-
-                if &hm_ptr == ptr {
-                    CL_CACHE.with(|cache| {
-                        cache.borrow_mut().nodes.remove(entry.0);
-                    });
-                }
-            }*/
-        }
+        // TODO: remove
         self.ptrs.clear();
     }
 }

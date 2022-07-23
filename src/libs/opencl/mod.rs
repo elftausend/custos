@@ -30,13 +30,13 @@ pub fn to_unified<T>(device: &CLDevice, no_drop: Buffer<T>) -> crate::Result<*mu
         cache
             .borrow_mut()
             .nodes
-            .insert(Node::new(no_drop.len), (OclPtr(cl_ptr), no_drop.len))
+            .insert(Node::new(no_drop.len), RawCL { ptr: cl_ptr, len: no_drop.len })
     });
 
     // this pointer was overwritten previously, hence it can be deallocated
     if let Some(old) = old_ptr {
         unsafe {
-            release_mem_object(old.0.0)?;
+            release_mem_object(old.ptr)?;
         }
     };
 

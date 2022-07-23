@@ -1,9 +1,8 @@
 use std::{ffi::c_void, fmt::Debug, ptr::null_mut};
 
 #[cfg(feature = "opencl")]
-
-use crate::opencl::api::{release_mem_object, retain_mem_object};
-use crate::{get_device, CDatatype, CacheBuf, ClearBuf, Device, VecRead, WriteBuf};
+use crate::opencl::api::release_mem_object;
+use crate::{get_device, CDatatype, CacheBuf, ClearBuf, Device, VecRead, WriteBuf, cpu::CPUCache, opencl::CLCache};
 
 #[cfg(not(feature = "safe"))]
 use crate::number::Number;
@@ -14,7 +13,6 @@ pub enum BufFlag {
     Cache = 1,
 }
 
-#[cfg_attr(not(feature = "safe"), derive(Clone))]
 pub struct Buffer<T> {
     pub ptr: (*mut T, *mut c_void, u64),
     pub len: usize,
@@ -98,8 +96,19 @@ impl<T> Buffer<T> {
 
     /// Returns a non null host pointer
     pub fn host_ptr(&self) -> *mut T {
-        assert!(!self.ptr.0.is_null(), "");
+        assert!(
+            !self.ptr.0.is_null() && !(self.flag == BufFlag::Cache && CPUCache::count() == 0 && self.ptr.1.is_null()),
+            "called host_ptr() on an invalid CPU buffer"
+        );
         self.ptr.0
+    }
+
+    pub fn cl_ptr(&self) -> *mut c_void {
+        assert!(
+            !self.ptr.1.is_null() && !(self.flag == BufFlag::Cache && CLCache::count() == 0 && self.ptr.1.is_null()),
+            "called cl_ptr() on an invalid OpenCL buffer"
+        );
+        self.ptr.1
     }
 
     // TODO: replace buf.ptr.2 with this fn, do the same with cl, cpu
@@ -112,8 +121,8 @@ impl<T> Buffer<T> {
     /// Returns a CPU slice. This does not work with CUDA or OpenCL buffers.
     pub fn as_slice(&self) -> &[T] {
         assert!(
-            !self.ptr.0.is_null(),
-            "called as_slice() on a non CPU buffer (this would dereference a null pointer)"
+            !self.ptr.0.is_null() && !(self.flag == BufFlag::Cache && CPUCache::count() == 0 && self.ptr.1.is_null()),
+            "called as_slice() on an invalid CPU buffer (this would dereference an invalid pointer)"
         );
         unsafe { std::slice::from_raw_parts(self.ptr.0, self.len) }
     }
@@ -121,7 +130,7 @@ impl<T> Buffer<T> {
     /// Returns a mutable CPU slice.
     pub fn as_mut_slice(&mut self) -> &mut [T] {
         assert!(
-            !self.ptr.0.is_null(),
+            !self.ptr.0.is_null() && !(self.flag == BufFlag::Cache && CPUCache::count() == 0 && self.ptr.1.is_null()),
             "called as_mut_slice() on a non CPU buffer (this would dereference a null pointer)"
         );
         unsafe { std::slice::from_raw_parts_mut(self.ptr.0, self.len) }
@@ -184,37 +193,12 @@ unsafe impl<T> Send for Buffer<T> {}
 #[cfg(feature = "safe")]
 unsafe impl<T> Sync for Buffer<T> {}
 
-// TODO: Safe mode and cuda clone | cuda ptr reference counted?
-#[cfg(feature = "safe")]
-impl<T: Clone> Clone for Buffer<T> {
+
+impl<T> Clone for Buffer<T> {
     fn clone(&self) -> Self {
-        if !self.ptr.0.is_null() && self.ptr.1.is_null() {
-            // using this to prevent the introduction of the Default trait bound for T
-            // FIXME: is there a better way to implement this?
-            let mut data = Vec::<T>::with_capacity(self.len);
-            for value in self {
-                data.push(value.clone())
-            }
-            let mut ptr = self.ptr;
-            ptr.0 = Box::into_raw(data.into_boxed_slice()) as *mut T;
-            return Self { ptr, len: self.len, flag: BufFlag::None };
-        }
+        assert_eq!(self.flag, BufFlag::Cache, "Called .clone() on a non-cache buffer. Use a reference counted approach instead.");
 
-        #[cfg(feature = "opencl")]
-        if !self.ptr.1.is_null() {
-            retain_mem_object(self.ptr.1).unwrap();
-        }
-
-        #[cfg(feature = "cuda")]
-        if self.ptr.2 != 0 {
-            unimplemented!("At the moment, cloning a CUDA Buffer is undefined");
-        };
-
-        Self {
-            ptr: self.ptr,
-            len: self.len,
-            flag: BufFlag::None
-        }
+        Self { ptr: self.ptr.clone(), len: self.len.clone(), flag: self.flag.clone() }
     }
 }
 

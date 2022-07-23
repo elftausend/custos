@@ -1,4 +1,4 @@
-use super::CPU_CACHE;
+use super::{CPU_CACHE, get_cpu_device_count};
 use crate::{
     libs::cpu::CPUCache, number::Number, AsDev, BaseDevice, Buffer, CDatatype, CacheBuf, ClearBuf,
     Device, GenericBlas, ManualMem, VecRead, WriteBuf,
@@ -28,6 +28,10 @@ impl CPU {
     #[must_use]
     /// Creates an [CPU] with an InternCPU that holds an empty vector of pointers.
     pub fn new() -> CPU {
+        unsafe {
+            *get_cpu_device_count() += 1;
+        }
+
         CPU {
             inner: Rc::new(RefCell::new(InternCPU { ptrs: Vec::new() })),
         }
@@ -146,25 +150,19 @@ pub struct InternCPU {
 
 impl Drop for InternCPU {
     fn drop(&mut self) {
-        let contents = CPU_CACHE.with(|cache| cache.borrow().nodes.clone());
-
-        for ptr in self.ptrs.iter() {
-            /*unsafe {
-                let len = (&*ptr.fat_ptr).len();
-                let slice = std::slice::from_raw_parts_mut(ptr.fat_ptr as *mut u8, len * ptr.align);
-                drop(Box::from_raw(slice));
-            }*/
-
-            /* 
-            for entry in &contents {
-                let hm_ptr = ((entry.1).0).0;
-                if hm_ptr == ptr.fat_ptr as *mut usize {
-                    CPU_CACHE.with(|cache| {
-                        cache.borrow_mut().nodes.remove(entry.0);
-                    });
-                }
-            }*/
+        unsafe {
+            let count = get_cpu_device_count();
+            *count -= 1;
+            if *count != 0 {
+                return;
+            }    
         }
+        
+        CPU_CACHE.with(|cache| { 
+            cache.borrow_mut().nodes.clear();
+        });
+        
+        // TODO: remove this
         self.ptrs.clear();
     }
 }

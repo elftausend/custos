@@ -1,14 +1,31 @@
 use crate::{Buffer, Node, CPU, Device, BufFlag};
-use std::{cell::RefCell, collections::HashMap};
+use std::{cell::RefCell, collections::HashMap, mem::align_of};
 
 thread_local! {
     pub static CPU_CACHE: RefCell<CPUCache> = RefCell::new(CPUCache { nodes: HashMap::new() });
+    pub static CPU_DEVICE_COUNT: RefCell<usize> = RefCell::new(0);
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub struct CpuPtr(pub *mut usize);
+pub fn get_cpu_device_count() -> *mut usize {
+    CPU_DEVICE_COUNT.with(|c| c.as_ptr())
+}
 
-type RawInfo = (CpuPtr, usize);
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub struct RawCpu {
+    pub ptr: *mut usize,
+    pub len: usize,
+    pub align: usize,
+}
+
+impl Drop for RawCpu {
+    fn drop(&mut self) {
+        unsafe {
+            let slice = std::slice::from_raw_parts_mut(self.ptr as *mut u8, self.len * self.align);
+            Box::from_raw(slice);
+        }
+    }
+}
+
 
 #[cfg_attr(feature = "safe", doc = "```ignore")]
 #[derive(Debug)]
@@ -22,19 +39,23 @@ type RawInfo = (CpuPtr, usize);
 ///
 /// let out = CPUCache::get::<i16>(&device, 100*100);
 ///
-/// let info = CPU_CACHE.with(|cache| {
+/// let ptr = CPU_CACHE.with(|cache| {
 ///     let cache = cache.borrow();
 ///     let mut node = Node::new(100*100);
 ///     node.idx = 0; // to get the pointer of "out"
-///     *cache.nodes.get(&node).unwrap()
+///     cache.nodes.get(&node).unwrap().ptr
 /// });
-/// assert!(info.0.0 == out.ptr.0 as *mut usize);
+/// assert!(ptr == out.ptr.0 as *mut usize);
 /// ```
 pub struct CPUCache {
-    pub nodes: HashMap<Node, RawInfo>,
+    pub nodes: HashMap<Node, RawCpu>,
 }
 
 impl CPUCache {
+    pub fn count() -> usize {
+        CPU_CACHE.with(|cache| cache.borrow().nodes.len())
+    }
+
     pub fn add_node<T: Default + Copy>(&mut self, device: &CPU, node: Node) -> Buffer<T> {
         let out = Buffer {
             ptr: device.alloc(node.len),
@@ -42,7 +63,8 @@ impl CPUCache {
             flag: BufFlag::Cache,
         };
         self.nodes
-            .insert(node, (CpuPtr(out.ptr.0 as *mut usize), out.len));
+            .insert(node, RawCpu { ptr: out.ptr.0 as *mut usize, len: out.len, align: align_of::<T>() });
+        
         out
     }
 
@@ -58,8 +80,8 @@ impl CPUCache {
 
             match buf_info_option {
                 Some(buf_info) => Buffer {
-                    ptr: (buf_info.0.0 as *mut T, null_mut(), 0),
-                    len: buf_info.1,
+                    ptr: (buf_info.ptr as *mut T, null_mut(), 0),
+                    len: buf_info.len,
                     flag: BufFlag::Cache,  
                 },
                 None => cache.add_node(device, node),
