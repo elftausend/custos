@@ -12,10 +12,10 @@ pub mod cl_device;
 pub mod cl_devices;
 mod kernel_options;
 
-use self::api::{create_buffer, release_mem_object, MemFlags};
+use self::api::{create_buffer, MemFlags};
 use crate::{BufFlag, Buffer, CDatatype, Node};
 
-/// Returns an OpenCL pointer that is bound to the host pointer stored in the specified matrix.
+/// Returns an OpenCL pointer that is bound to the host pointer stored in the specified buffer.
 pub fn to_unified<T>(device: &CLDevice, no_drop: Buffer<T>) -> crate::Result<*mut c_void> {
     // use the host pointer to create an OpenCL buffer
     let cl_ptr = create_buffer(
@@ -37,11 +37,8 @@ pub fn to_unified<T>(device: &CLDevice, no_drop: Buffer<T>) -> crate::Result<*mu
     });
 
     // this pointer was overwritten previously, hence it can be deallocated
-    if let Some(old) = old_ptr {
-        unsafe {
-            release_mem_object(old.ptr)?;
-        }
-    };
+    // this line can be removed, however it shows that deallocating the old pointer makes sense
+    drop(old_ptr);
 
     Ok(cl_ptr)
 }
@@ -52,6 +49,7 @@ pub fn construct_buffer<T>(
     cpu: &crate::CPU,
     no_drop: Buffer<T>,
 ) -> crate::Result<Buffer<T>> {
+    assert_eq!(no_drop.flag, BufFlag::Cache, "Only a non-drop buffer can be converted to a CPU+OpenCL buffer");
     let (host_ptr, len) = (no_drop.host_ptr(), no_drop.len);
     let cl_ptr = to_unified(device, no_drop)?;
     // TODO: When should the buffer be freed, if the "safe" feature is used?

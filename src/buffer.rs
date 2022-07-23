@@ -517,6 +517,7 @@ impl<T: Copy> From<(*mut T, usize)> for Buffer<T> {
     }
 }
 
+// TODO: unsafe? 
 /// A slice is wrapped into a buffer, hence buffer operations can be executed. 
 /// During these operations, the wrapped slice is updated. (which violates the safety rules / borrow checker of rust)
 impl<T> From<&mut [T]> for Buffer<T> {
@@ -529,6 +530,7 @@ impl<T> From<&mut [T]> for Buffer<T> {
     }
 }
 
+// TODO: unsafe? 
 impl<T, const N: usize> From<&mut [T; N]> for Buffer<T> {
     fn from(slice: &mut [T; N]) -> Self {
         Buffer {
