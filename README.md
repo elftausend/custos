@@ -5,7 +5,7 @@
 
 A minimal OpenCL, CUDA and host CPU array manipulation engine / framework.
 It provides the tools needed to execute array operations with the CPU, as well as with CUDA and OpenCL devices.
-This library demonstrates how the operations can be implemented for the compute devices: [custos-math]
+This library demonstrates how operations can be implemented for the compute devices: [custos-math]
 
 [custos-math]: https://github.com/elftausend/custos-math
 
@@ -17,13 +17,13 @@ Add "custos" as a dependency:
 custos = "0.2.0"
 
 # to disable the default features (cuda, opencl) and use an own set of features:
-#custos = {version = "0.2.0", default-features=false, features=["opencl", "safe"]}
+#custos = {version = "0.2.0", default-features=false, features=["opencl"]}
 ```
 
 Available features: 
 - "opencl" ... adds OpenCL features, where the CLDevice (feature) is the most important one.
 - "cuda" ... adds CUDA features. (CudaDevice)
-- "safe" ... non-copy matrix and buffer. (safer)
+- using no features at all ... CPU with BLAS
 
 ## [Examples]
 
@@ -96,3 +96,5 @@ fn main() -> custos::Result<()> {
     Ok(())
 }
 ```
+
+A lot more examples can be found in the tests and examples folder.

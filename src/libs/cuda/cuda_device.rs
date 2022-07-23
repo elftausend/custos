@@ -44,35 +44,20 @@ impl CudaDevice {
     }
 }
 
-#[cfg(not(feature = "safe"))]
 impl<T> Device<T> for CudaDevice {
     fn alloc(&self, len: usize) -> (*mut T, *mut std::ffi::c_void, u64) {
         let ptr = cumalloc::<T>(len).unwrap();
-        self.inner.borrow_mut().ptrs.push(ptr);
         // TODO: use unified mem if available -> i can't test this
         (null_mut(), null_mut(), ptr)
     }
 
     fn with_data(&self, data: &[T]) -> (*mut T, *mut std::ffi::c_void, u64) {
         let ptr = cumalloc::<T>(data.len()).unwrap();
-        self.inner.borrow_mut().ptrs.push(ptr);
         cu_write(ptr, data).unwrap();
         (null_mut(), null_mut(), ptr)
     }
 }
 
-#[cfg(feature = "safe")]
-impl<T> Device<T> for CudaDevice {
-    fn alloc(&self, len: usize) -> (*mut T, *mut std::ffi::c_void, u64) {
-        (null_mut(), null_mut(), cumalloc::<T>(len).unwrap())
-    }
-
-    fn with_data(&self, data: &[T]) -> (*mut T, *mut std::ffi::c_void, u64) {
-        let ptr = cumalloc::<T>(data.len()).unwrap();
-        cu_write(ptr, data).unwrap();
-        (null_mut(), null_mut(), ptr)
-    }
-}
 
 impl<T: Default + Copy> VecRead<T> for CudaDevice {
     fn read(&self, buf: &crate::Buffer<T>) -> Vec<T> {
@@ -129,7 +114,6 @@ impl From<Rc<RefCell<InternCudaDevice>>> for CudaDevice {
 }
 
 impl InternCudaDevice {
-    #[must_use]
     pub fn new(idx: usize) -> crate::Result<InternCudaDevice> {
         unsafe { cuInit(0) }.to_result()?;
         let device = device(idx as i32)?;

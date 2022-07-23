@@ -56,7 +56,6 @@ impl CudaCache {
         out
     }
 
-    #[cfg(not(feature = "safe"))]
     pub fn get<T>(device: &CudaDevice, len: usize) -> Buffer<T> {
         use std::ptr::null_mut;
 
@@ -81,12 +80,6 @@ impl CudaCache {
             }
         })
     }
-
-    #[cfg(feature = "safe")]
-    pub fn get<T>(device: &CudaDevice, len: usize) -> Buffer<T> {
-        Buffer::new(device, len)
-    }
-
     pub fn kernel(
         &mut self,
         device: &CudaDevice,

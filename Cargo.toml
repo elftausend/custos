@@ -6,7 +6,7 @@ license = "MIT"
 description = "A minimal OpenCL, CUDA and host CPU array manipulation engine / framework."
 repository = "https://github.com/elftausend/custos"
 keywords = ["CUDA", "OpenCL", "arrays", "deep-learning", "array-manipulation"]
-categories = ["mathematics", "memory-management", "external-ffi-bindings"]
+categories = ["science", "mathematics", "memory-management", "external-ffi-bindings"]
 readme = "README.md"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -17,7 +17,6 @@ lazy_static = "1.4.0"
 default = ["opencl", "cuda"]
 opencl = []
 cuda = []
-safe = []
 
 [[example]]
 name = "cuda_readme"

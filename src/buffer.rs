@@ -4,7 +4,6 @@ use std::{ffi::c_void, fmt::Debug, ptr::null_mut};
 use crate::opencl::api::release_mem_object;
 use crate::{cpu::CPUCache, get_device, CDatatype, CacheBuf, ClearBuf, Device, VecRead, WriteBuf};
 
-#[cfg(not(feature = "safe"))]
 use crate::number::Number;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -81,7 +80,6 @@ impl<T> Buffer<T> {
         self.len
     }
 
-    #[cfg_attr(feature = "safe", doc = "```ignore")]
     /// Returns `true` if the buffer is created without a slice.
     /// # Example
     /// ```
@@ -146,7 +144,6 @@ impl<T> Buffer<T> {
         unsafe { std::slice::from_raw_parts_mut(self.ptr.0, self.len) }
     }
 
-    #[cfg(not(feature = "safe"))]
     /// Used if the buffer contains only a single value.
     ///
     /// # Example
@@ -198,10 +195,10 @@ impl<T> Buffer<T> {
     }
 }
 
-#[cfg(feature = "safe")]
+/*#[cfg(feature = "safe")]
 unsafe impl<T> Send for Buffer<T> {}
 #[cfg(feature = "safe")]
-unsafe impl<T> Sync for Buffer<T> {}
+unsafe impl<T> Sync for Buffer<T> {}*/
 
 impl<T> Clone for Buffer<T> {
     fn clone(&self) -> Self {
@@ -421,7 +418,7 @@ impl<'a, T> std::iter::IntoIterator for &'a mut Buffer<T> {
     }
 }
 
-#[cfg(not(feature = "safe"))]
+/// TODO: test if working correctly (no safe mode)
 impl<T: Number> From<T> for Buffer<T> {
     fn from(val: T) -> Self {
         Buffer {
@@ -506,7 +503,6 @@ impl<T: Clone, D: Device<T>> From<(&D, &Vec<T>)> for Buffer<T> {
 }
 
 // TODO: unsafe from raw parts fn?
-#[cfg(not(feature = "safe"))]
 impl<T: Copy> From<(*mut T, usize)> for Buffer<T> {
     fn from(info: (*mut T, usize)) -> Self {
         Buffer {

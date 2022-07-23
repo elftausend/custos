@@ -1,15 +1,10 @@
-#[cfg(not(feature = "safe"))]
 use std::ffi::c_void;
-
-#[cfg(not(feature = "safe"))]
-use custos::CPU;
 
 #[cfg(feature = "opencl")]
 use custos::{libs::opencl::CLDevice, Error};
 use custos::{AsDev, Buffer, Device, VecRead};
 
-#[cfg(not(feature = "safe"))]
-use custos::{cached, get_count, set_count};
+use custos::{cached, get_count, set_count, CPU};
 
 pub fn get_mut_slice<T>(buf: &mut Buffer<T>) -> &mut [T] {
     unsafe { std::slice::from_raw_parts_mut(buf.ptr.0, buf.len) }
@@ -54,10 +49,6 @@ fn test_cldevice_mem() -> Result<(), Error> {
     println!("get_max_mem_alloc_in_gb: {}", device.max_mem_alloc_in_gb()?);
     Ok(())
 }
-
-#[cfg(feature = "opencl")]
-#[cfg(feature = "safe")]
-use custos::CPU;
 
 #[cfg(feature = "opencl")]
 #[test]
@@ -113,7 +104,6 @@ fn test_use_number() {
     assert_eq!(num, Box::new(10));
 }
 
-#[cfg(not(feature = "safe"))]
 #[test]
 fn test_cached_cpu() {
     let device = CPU::new().select();
@@ -139,7 +129,6 @@ fn test_cached_cpu() {
 }
 
 #[cfg(not(target_os = "linux"))]
-#[cfg(not(feature = "safe"))]
 #[cfg(feature = "opencl")]
 #[test]
 fn test_cached_cl() -> Result<(), custos::Error> {
@@ -171,7 +160,6 @@ fn test_cached_cl() -> Result<(), custos::Error> {
     Ok(())
 }
 
-#[cfg(not(feature = "safe"))]
 #[test]
 fn test_from_ptrs() {
     let mut value = 4f32;
@@ -191,14 +179,12 @@ fn test_size_buf() {
     println!("x: {x}");
 }
 
-#[cfg(not(feature = "safe"))]
 fn _slice_add<T: Copy + std::ops::Add<Output = T>>(a: &[T], b: &[T], c: &mut [T]) {
     for i in 0..c.len() {
         c[i] = a[i] + b[i]
     }
 }
 
-#[cfg(not(feature = "safe"))]
 #[test]
 fn test_iterate() {
     let cmp = [1f32, 2., 3.3];

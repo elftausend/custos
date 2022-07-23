@@ -66,7 +66,6 @@ impl CLCache {
         out
     }
 
-    #[cfg(not(feature = "safe"))]
     pub fn get<T>(device: &CLDevice, len: usize) -> Buffer<T> {
         use crate::opencl::api::unified_ptr;
 
@@ -97,11 +96,6 @@ impl CLCache {
                 None => cache.add_node(device, node),
             }
         })
-    }
-
-    #[cfg(feature = "safe")]
-    pub fn get<T>(device: &CLDevice, len: usize) -> Buffer<T> {
-        Buffer::new(device, len)
     }
 
     pub(crate) fn arg_kernel_cache<T: 'static>(

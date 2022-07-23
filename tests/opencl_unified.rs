@@ -38,7 +38,6 @@ fn test_unified_mem_bool() -> Result<(), Error> {
     Ok(())
 }
 
-#[cfg(not(feature = "safe"))]
 #[cfg(feature = "opencl")]
 #[test]
 fn test_unified_mem() -> Result<(), Error> {

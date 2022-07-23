@@ -109,9 +109,6 @@ impl<T> Device<T> for CLDevice {
         let ptr =
             create_buffer::<T>(&self.ctx(), MemFlags::MemReadWrite as u64, len, None).unwrap();
 
-        #[cfg(not(feature = "safe"))]
-        self.inner.borrow_mut().ptrs.push(ptr);
-
         let cpu_ptr = if self.unified_mem() {
             unified_ptr::<T>(self.queue(), ptr, len).unwrap()
         } else {
@@ -129,9 +126,6 @@ impl<T> Device<T> for CLDevice {
             Some(data),
         )
         .unwrap();
-
-        #[cfg(not(feature = "safe"))]
-        self.inner.borrow_mut().ptrs.push(ptr as *mut c_void);
 
         let cpu_ptr = if self.unified_mem() {
             unified_ptr::<T>(self.queue(), ptr, data.len()).unwrap()

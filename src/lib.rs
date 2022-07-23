@@ -220,7 +220,6 @@ trait ManualMem<T> {
 }
 
 pub trait CacheBuf<T> {
-    #[cfg_attr(feature = "safe", doc = "```ignore")]
     /// Adds a buffer to the cache. Following calls will return this buffer, if the corresponding internal count matches with the id used in the cache.
     /// # Example
     /// ```
