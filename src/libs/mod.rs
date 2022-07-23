@@ -35,8 +35,8 @@ pub fn get_device_count() -> *mut usize {
     DEVICE_COUNT.with(|c| c.as_ptr())
 }
 
-pub fn deallocate_cache(count: usize) {
-    if count != 0 {
+pub fn deallocate_cache(device_count: usize) {
+    if device_count != 0 {
         return;
     }
 

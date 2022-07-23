@@ -46,7 +46,7 @@ impl From<Rc<RefCell<InternCPU>>> for CPU {
 impl<T: Clone + Default> Device<T> for CPU {
     fn alloc(&self, len: usize) -> (*mut T, *mut c_void, u64) {
         assert!(len > 0, "invalid buffer len: 0");
-        let ptr = Box::into_raw(vec![T::default().clone(); len].into_boxed_slice());
+        let ptr = Box::into_raw(vec![T::default(); len].into_boxed_slice());
         //let size = std::mem::size_of::<T>() * len;
 
         #[cfg(not(feature = "safe"))]

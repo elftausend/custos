@@ -11,6 +11,7 @@ use crate::number::Number;
 pub enum BufFlag {
     None = 0,
     Cache = 1,
+    Wrapper = 2
 }
 
 pub struct Buffer<T> {
@@ -97,8 +98,7 @@ impl<T> Buffer<T> {
     /// Returns a non null host pointer
     pub fn host_ptr(&self) -> *mut T {
         assert!(
-            !self.ptr.0.is_null()
-                && !(self.flag == BufFlag::Cache && CPUCache::count() == 0 && self.ptr.1.is_null()),
+            !(self.ptr.0.is_null() || self.flag == BufFlag::Cache && CPUCache::count() == 0 && self.ptr.1.is_null()),
             "called host_ptr() on an invalid CPU buffer"
         );
         self.ptr.0
@@ -108,7 +108,7 @@ impl<T> Buffer<T> {
     pub fn cl_ptr(&self) -> *mut c_void {
         use crate::opencl::CLCache;
         assert!(
-            !self.ptr.1.is_null() && !(self.flag == BufFlag::Cache && CLCache::count() == 0),
+            !(self.ptr.1.is_null() || self.flag == BufFlag::Cache && CLCache::count() == 0),
             "called cl_ptr() on an invalid OpenCL buffer"
         );
         self.ptr.1
@@ -129,7 +129,8 @@ impl<T> Buffer<T> {
     /// Returns a CPU slice. This does not work with CUDA or OpenCL buffers.
     pub fn as_slice(&self) -> &[T] {
         assert!(
-            !self.ptr.0.is_null() && !(self.flag == BufFlag::Cache && CPUCache::count() == 0 && self.ptr.1.is_null()),
+            self.flag == BufFlag::Wrapper ||
+            !(self.ptr.0.is_null() || self.flag == BufFlag::Cache && CPUCache::count() == 0 && self.ptr.1.is_null()),
             "called as_slice() on an invalid CPU buffer (this would dereference an invalid pointer)"
         );
         unsafe { std::slice::from_raw_parts(self.ptr.0, self.len) }
@@ -138,8 +139,8 @@ impl<T> Buffer<T> {
     /// Returns a mutable CPU slice.
     pub fn as_mut_slice(&mut self) -> &mut [T] {
         assert!(
-            !self.ptr.0.is_null()
-                && !(self.flag == BufFlag::Cache && CPUCache::count() == 0 && self.ptr.1.is_null()),
+            self.flag == BufFlag::Wrapper || !(self.ptr.0.is_null()
+                || self.flag == BufFlag::Cache && CPUCache::count() == 0 && self.ptr.1.is_null()),
             "called as_mut_slice() on a non CPU buffer (this would dereference a null pointer)"
         );
         unsafe { std::slice::from_raw_parts_mut(self.ptr.0, self.len) }
@@ -211,9 +212,9 @@ impl<T> Clone for Buffer<T> {
         );
 
         Self {
-            ptr: self.ptr.clone(),
-            len: self.len.clone(),
-            flag: self.flag.clone(),
+            ptr: self.ptr,
+            len: self.len,
+            flag: self.flag,
         }
     }
 }
@@ -233,7 +234,7 @@ impl<A: Clone + Default> FromIterator<A> for Buffer<A> {
 
 impl<T> Drop for Buffer<T> {
     fn drop(&mut self) {
-        if self.flag == BufFlag::Cache {
+        if self.flag == BufFlag::Cache || self.flag == BufFlag::Wrapper {
             return;
         }
 
@@ -516,10 +517,42 @@ impl<T: Copy> From<(*mut T, usize)> for Buffer<T> {
     }
 }
 
+/// A slice is wrapped into a buffer, hence buffer operations can be executed. 
+/// During these operations, the wrapped slice is updated. (which violates the safety rules / borrow checker of rust)
+impl<T> From<&mut [T]> for Buffer<T> {
+    fn from(slice: &mut [T]) -> Self {
+        Buffer {
+            ptr: (slice.as_mut_ptr(), null_mut(), 0),
+            len: slice.len(),
+            flag: BufFlag::Wrapper,
+        }
+    }
+}
+
+impl<T, const N: usize> From<&mut [T; N]> for Buffer<T> {
+    fn from(slice: &mut [T; N]) -> Self {
+        Buffer {
+            ptr: (slice.as_mut_ptr(), null_mut(), 0),
+            len: slice.len(),
+            flag: BufFlag::Wrapper,
+        }
+    }
+}
+
 impl<T: CDatatype> From<(*mut c_void, usize)> for Buffer<T> {
     fn from(info: (*mut c_void, usize)) -> Self {
         Buffer {
             ptr: (null_mut(), info.0, 0),
+            len: info.1,
+            flag: BufFlag::Cache,
+        }
+    }
+}
+
+impl<T: CDatatype> From<(u64, usize)> for Buffer<T> {
+    fn from(info: (u64, usize)) -> Self {
+        Buffer {
+            ptr: (null_mut(), null_mut(), info.0),
             len: info.1,
             flag: BufFlag::Cache,
         }

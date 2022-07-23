@@ -17,23 +17,21 @@
 //! ```rust
 //! use custos::{CPU, AsDev, ClearBuf, VecRead, Buffer};
 //!
-//! fn main() {
-//!     let device = CPU::new();
-//!     let mut a = Buffer::from(( &device, [1, 2, 3, 4, 5, 6]));
+//! let device = CPU::new();
+//! let mut a = Buffer::from(( &device, [1, 2, 3, 4, 5, 6]));
 //!     
-//!     // specify device for operation
-//!     device.clear(&mut a);
-//!     assert_eq!(device.read(&a), [0; 6]);
+//! // specify device for operation
+//! device.clear(&mut a);
+//! assert_eq!(device.read(&a), [0; 6]);
 //!
-//!     // select() ... sets CPU as 'global device'
-//!     // -> when device is not specified in an operation, the 'global device' is used
-//!     let device = CPU::new().select();
+//! // select() ... sets CPU as 'global device'
+//! // -> when device is not specified in an operation, the 'global device' is used
+//! let device = CPU::new().select();
 //!
-//!     let mut a = Buffer::from(( &device, [1, 2, 3, 4, 5, 6]));
-//!     a.clear();
+//! let mut a = Buffer::from(( &device, [1, 2, 3, 4, 5, 6]));
+//! a.clear();
 //!
-//!     assert_eq!(a.read(), vec![0; 6]);
-//! }
+//! assert_eq!(a.read(), vec![0; 6]);
 //! ```
 
 use std::{cell::RefCell, ffi::c_void, rc::Weak};
@@ -383,10 +381,7 @@ macro_rules! get_device {
 // these functions exist because: if this macro is expanded in another crate, the #[cfg(feature="...")] will not look for the feature ... in custos.
 
 pub fn is_cuda_selected(dev: &Dev) -> bool {
-    match dev.cuda {
-        Some(_) => true && cfg!(feature = "cuda"),
-        None => false,
-    }
+    dev.cuda.is_some() && cfg!(feature = "cuda")
 }
 
 #[doc(hidden)]
@@ -398,20 +393,18 @@ pub fn cuda_dev(_: &Dev) -> Result<Box<CPU>> {
 #[doc(hidden)]
 #[cfg(feature = "cuda")]
 pub fn cuda_dev(dev: &Dev) -> Result<Box<CudaDevice>> {
-    return Ok(Box::new(CudaDevice::from(
+    Ok(Box::new(CudaDevice::from(
         dev.cuda
             .as_ref()
             .unwrap()
             .upgrade()
-            .ok_or(Error::from(DeviceError::NoDeviceSelected))?,
-    )));
+            .ok_or_else(|| Error::from(DeviceError::NoDeviceSelected))?,
+    )))
 }
 
 pub fn is_cl_selected(dev: &Dev) -> bool {
-    match dev.cl_device {
-        Some(_) => true && cfg!(feature = "opencl"),
-        None => false,
-    }
+    dev.cl_device.is_some() && cfg!(feature = "opencl")
+
 }
 
 #[doc(hidden)]
@@ -423,20 +416,17 @@ pub fn cl_dev(_: &Dev) -> Result<Box<CPU>> {
 #[doc(hidden)]
 #[cfg(feature = "opencl")]
 pub fn cl_dev(dev: &Dev) -> Result<Box<CLDevice>> {
-    return Ok(Box::new(CLDevice::from(
+    Ok(Box::new(CLDevice::from(
         dev.cl_device
             .as_ref()
             .unwrap()
             .upgrade()
-            .ok_or(Error::from(DeviceError::NoDeviceSelected))?,
-    )));
+            .ok_or_else(|| Error::from(DeviceError::NoDeviceSelected))?,
+    )))
 }
 
 pub fn is_cpu_selected(dev: &Dev) -> bool {
-    if let Some(_) = dev.cpu {
-        return true;
-    }
-    false
+    dev.cpu.is_some()
 }
 
 #[doc(hidden)]
@@ -446,6 +436,6 @@ pub fn cpu_dev(dev: &Dev) -> Result<Box<CPU>> {
             .as_ref()
             .unwrap()
             .upgrade()
-            .ok_or(Error::from(DeviceError::NoDeviceSelected))?,
+            .ok_or_else(|| Error::from(DeviceError::NoDeviceSelected))?,
     )))
 }
