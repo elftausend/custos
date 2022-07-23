@@ -1,17 +1,23 @@
 use std::{ffi::c_void, fmt::Debug, ptr::null_mut};
 
 #[cfg(feature = "opencl")]
-#[cfg(feature = "safe")]
-use crate::opencl::api::{release_mem_object, retain_mem_object};
-use crate::{get_device, CDatatype, CacheBuf, ClearBuf, Device, VecRead, WriteBuf};
+use crate::opencl::api::release_mem_object;
+use crate::{cpu::CPUCache, get_device, CDatatype, CacheBuf, ClearBuf, Device, VecRead, WriteBuf};
 
 #[cfg(not(feature = "safe"))]
 use crate::number::Number;
 
-#[cfg_attr(not(feature = "safe"), derive(Clone, Copy))]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum BufFlag {
+    None = 0,
+    Cache = 1,
+    Wrapper = 2
+}
+
 pub struct Buffer<T> {
     pub ptr: (*mut T, *mut c_void, u64),
     pub len: usize,
+    pub flag: BufFlag,
 }
 
 impl<T> Buffer<T> {
@@ -26,7 +32,7 @@ impl<T> Buffer<T> {
     /// for value in &mut buffer {
     ///     *value = 2;
     /// }
-    /// 
+    ///
     /// assert_eq!(buffer.as_slice(), &[2; 6]);
     ///
     /// ```
@@ -34,6 +40,7 @@ impl<T> Buffer<T> {
         Buffer {
             ptr: device.alloc(len),
             len,
+            flag: BufFlag::None,
         }
     }
 
@@ -42,7 +49,7 @@ impl<T> Buffer<T> {
     /// ```
     /// use custos::{Buffer, Device, CPU, VecRead};
     /// use std::ffi::c_void;
-    /// 
+    ///
     /// let device = CPU::new();
     /// let ptrs: (*mut f32, *mut c_void, u64) = device.alloc(10);
     /// let mut buf = unsafe {
@@ -56,7 +63,8 @@ impl<T> Buffer<T> {
     pub unsafe fn from_raw_host(ptr: *mut T, len: usize) -> Buffer<T> {
         Buffer {
             ptr: (ptr, null_mut(), 0),
-            len
+            len,
+            flag: BufFlag::None,
         }
     }
 
@@ -89,22 +97,41 @@ impl<T> Buffer<T> {
 
     /// Returns a non null host pointer
     pub fn host_ptr(&self) -> *mut T {
-        assert!(!self.ptr.0.is_null(), "");
+        assert!(
+            !(self.ptr.0.is_null() || self.flag == BufFlag::Cache && CPUCache::count() == 0 && self.ptr.1.is_null()),
+            "called host_ptr() on an invalid CPU buffer"
+        );
         self.ptr.0
+    }
+
+    #[cfg(feature = "opencl")]
+    pub fn cl_ptr(&self) -> *mut c_void {
+        use crate::opencl::CLCache;
+        assert!(
+            !(self.ptr.1.is_null() || self.flag == BufFlag::Cache && CLCache::count() == 0),
+            "called cl_ptr() on an invalid OpenCL buffer"
+        );
+        self.ptr.1
     }
 
     // TODO: replace buf.ptr.2 with this fn, do the same with cl, cpu
     /// Returns a non null CUDA pointer
+    #[cfg(feature = "cuda")]
     pub fn cu_ptr(&self) -> u64 {
-        assert!(self.ptr.2 != 0, "");
+        use crate::cuda::CudaCache;
+        assert!(
+            self.ptr.2 != 0 && !(self.flag == BufFlag::Cache && CudaCache::count() == 0),
+            "called cu_ptr() on an invalid CUDA buffer"
+        );
         self.ptr.2
     }
 
     /// Returns a CPU slice. This does not work with CUDA or OpenCL buffers.
     pub fn as_slice(&self) -> &[T] {
         assert!(
-            !self.ptr.0.is_null(),
-            "called as_slice() on a non CPU buffer (this would dereference a null pointer)"
+            self.flag == BufFlag::Wrapper ||
+            !(self.ptr.0.is_null() || self.flag == BufFlag::Cache && CPUCache::count() == 0 && self.ptr.1.is_null()),
+            "called as_slice() on an invalid CPU buffer (this would dereference an invalid pointer)"
         );
         unsafe { std::slice::from_raw_parts(self.ptr.0, self.len) }
     }
@@ -112,7 +139,8 @@ impl<T> Buffer<T> {
     /// Returns a mutable CPU slice.
     pub fn as_mut_slice(&mut self) -> &mut [T] {
         assert!(
-            !self.ptr.0.is_null(),
+            self.flag == BufFlag::Wrapper || !(self.ptr.0.is_null()
+                || self.flag == BufFlag::Cache && CPUCache::count() == 0 && self.ptr.1.is_null()),
             "called as_mut_slice() on a non CPU buffer (this would dereference a null pointer)"
         );
         unsafe { std::slice::from_raw_parts_mut(self.ptr.0, self.len) }
@@ -162,9 +190,9 @@ impl<T> Buffer<T> {
 
     /// Writes a slice to the vector.
     /// With a CPU buffer, the slice is just copied to the slice of the buffer.
-    pub fn write(&mut self, data: &[T]) 
+    pub fn write(&mut self, data: &[T])
     where
-        T: Copy
+        T: Copy,
     {
         get_device!(WriteBuf<T>).unwrap().write(self, data)
     }
@@ -175,29 +203,18 @@ unsafe impl<T> Send for Buffer<T> {}
 #[cfg(feature = "safe")]
 unsafe impl<T> Sync for Buffer<T> {}
 
-// TODO: Safe mode and cuda clone | cuda ptr reference counted?
-#[cfg(feature = "safe")]
-impl<T: Clone> Clone for Buffer<T> {
+impl<T> Clone for Buffer<T> {
     fn clone(&self) -> Self {
-        if !self.ptr.0.is_null() && self.ptr.1.is_null() {
-            let mut ptr = self.ptr;
-            ptr.0 = Box::into_raw(self.as_slice().to_vec().into_boxed_slice()) as *mut T;
-            return Self { ptr, len: self.len };
-        }
-
-        #[cfg(feature = "opencl")]
-        if !self.ptr.1.is_null() {
-            retain_mem_object(self.ptr.1).unwrap();
-        }
-
-        #[cfg(feature = "cuda")]
-        if self.ptr.2 != 0 {
-            unimplemented!("At the moment, cloning a CUDA Buffer is undefined");
-        };
+        assert_eq!(
+            self.flag,
+            BufFlag::Cache,
+            "Called .clone() on a non-cache buffer. Use a reference counted approach instead."
+        );
 
         Self {
             ptr: self.ptr,
             len: self.len,
+            flag: self.flag,
         }
     }
 }
@@ -206,16 +223,21 @@ impl<A: Clone + Default> FromIterator<A> for Buffer<A> {
     fn from_iter<T: IntoIterator<Item = A>>(iter: T) -> Self {
         let device = get_device!(Device<A>).unwrap();
         let from_iter = Vec::from_iter(iter);
+
         Buffer {
             len: from_iter.len(),
             ptr: device.alloc_with_vec(from_iter),
-        }        
+            flag: BufFlag::None,
+        }
     }
 }
 
-#[cfg(feature = "safe")]
 impl<T> Drop for Buffer<T> {
     fn drop(&mut self) {
+        if self.flag == BufFlag::Cache || self.flag == BufFlag::Wrapper {
+            return;
+        }
+
         unsafe {
             if !self.ptr.0.is_null() && self.ptr.1.is_null() {
                 let ptr = std::slice::from_raw_parts_mut(self.ptr.0, self.len);
@@ -241,6 +263,7 @@ impl<T> Default for Buffer<T> {
         Self {
             ptr: (null_mut(), null_mut(), 0),
             len: Default::default(),
+            flag: BufFlag::None,
         }
     }
 }
@@ -404,6 +427,7 @@ impl<T: Number> From<T> for Buffer<T> {
         Buffer {
             ptr: (Box::into_raw(Box::new(val)), null_mut(), 0),
             len: 0,
+            flag: BufFlag::None,
         }
     }
 }
@@ -413,6 +437,7 @@ impl<T: Clone, const N: usize> From<(&Box<dyn Device<T>>, &[T; N])> for Buffer<T
         Buffer {
             ptr: device_slice.0.with_data(device_slice.1),
             len: device_slice.1.len(),
+            flag: BufFlag::None,
         }
     }
 }
@@ -422,6 +447,7 @@ impl<T: Clone> From<(&Box<dyn Device<T>>, usize)> for Buffer<T> {
         Buffer {
             ptr: device_len.0.alloc(device_len.1),
             len: device_len.1,
+            flag: BufFlag::None,
         }
     }
 }
@@ -431,6 +457,7 @@ impl<T: Clone, D: Device<T>, const N: usize> From<(&D, [T; N])> for Buffer<T> {
         Buffer {
             ptr: device_slice.0.with_data(&device_slice.1),
             len: device_slice.1.len(),
+            flag: BufFlag::None,
         }
     }
 }
@@ -440,6 +467,7 @@ impl<T: Clone, D: Device<T>> From<(&D, &[T])> for Buffer<T> {
         Buffer {
             ptr: device_slice.0.with_data(device_slice.1),
             len: device_slice.1.len(),
+            flag: BufFlag::None,
         }
     }
 }
@@ -450,6 +478,7 @@ impl<T: Clone, D: Device<T>> From<(&D, Vec<T>)> for Buffer<T> {
         Buffer {
             ptr: device_slice.0.alloc_with_vec(device_slice.1),
             len,
+            flag: BufFlag::None,
         }
     }
 }
@@ -460,6 +489,7 @@ impl<T: Clone> From<(Box<dyn Device<T>>, Vec<T>)> for Buffer<T> {
         Buffer {
             ptr: device_slice.0.alloc_with_vec(device_slice.1),
             len,
+            flag: BufFlag::None,
         }
     }
 }
@@ -470,6 +500,7 @@ impl<T: Clone, D: Device<T>> From<(&D, &Vec<T>)> for Buffer<T> {
         Buffer {
             ptr: device_slice.0.with_data(device_slice.1),
             len,
+            flag: BufFlag::None,
         }
     }
 }
@@ -481,6 +512,31 @@ impl<T: Copy> From<(*mut T, usize)> for Buffer<T> {
         Buffer {
             ptr: (info.0, null_mut(), 0),
             len: info.1,
+            flag: BufFlag::Cache,
+        }
+    }
+}
+
+// TODO: unsafe? 
+/// A slice is wrapped into a buffer, hence buffer operations can be executed. 
+/// During these operations, the wrapped slice is updated. (which violates the safety rules / borrow checker of rust)
+impl<T> From<&mut [T]> for Buffer<T> {
+    fn from(slice: &mut [T]) -> Self {
+        Buffer {
+            ptr: (slice.as_mut_ptr(), null_mut(), 0),
+            len: slice.len(),
+            flag: BufFlag::Wrapper,
+        }
+    }
+}
+
+// TODO: unsafe? 
+impl<T, const N: usize> From<&mut [T; N]> for Buffer<T> {
+    fn from(slice: &mut [T; N]) -> Self {
+        Buffer {
+            ptr: (slice.as_mut_ptr(), null_mut(), 0),
+            len: slice.len(),
+            flag: BufFlag::Wrapper,
         }
     }
 }
@@ -490,6 +546,17 @@ impl<T: CDatatype> From<(*mut c_void, usize)> for Buffer<T> {
         Buffer {
             ptr: (null_mut(), info.0, 0),
             len: info.1,
+            flag: BufFlag::Cache,
+        }
+    }
+}
+
+impl<T: CDatatype> From<(u64, usize)> for Buffer<T> {
+    fn from(info: (u64, usize)) -> Self {
+        Buffer {
+            ptr: (null_mut(), null_mut(), info.0),
+            len: info.1,
+            flag: BufFlag::Cache,
         }
     }
 }
@@ -523,7 +590,7 @@ impl<T: CDatatype> From<(*mut c_void, usize)> for Buffer<T> {
 /// let buf = cached::<f32>(10);
 /// assert_eq!(device.read(&buf), vec![1.5; 10]);
 /// ```
-pub fn cached<T: Default+Copy>(len: usize) -> Buffer<T> {
+pub fn cached<T: Default + Copy>(len: usize) -> Buffer<T> {
     let device = get_device!(CacheBuf<T>).unwrap();
     device.cached_buf(len)
 }

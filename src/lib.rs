@@ -17,23 +17,21 @@
 //! ```rust
 //! use custos::{CPU, AsDev, ClearBuf, VecRead, Buffer};
 //!
-//! fn main() {
-//!     let device = CPU::new();
-//!     let mut a = Buffer::from(( &device, [1, 2, 3, 4, 5, 6]));
+//! let device = CPU::new();
+//! let mut a = Buffer::from(( &device, [1, 2, 3, 4, 5, 6]));
 //!     
-//!     // specify device for operation
-//!     device.clear(&mut a);
-//!     assert_eq!(device.read(&a), [0; 6]);
+//! // specify device for operation
+//! device.clear(&mut a);
+//! assert_eq!(device.read(&a), [0; 6]);
 //!
-//!     // select() ... sets CPU as 'global device'
-//!     // -> when device is not specified in an operation, the 'global device' is used
-//!     let device = CPU::new().select();
+//! // select() ... sets CPU as 'global device'
+//! // -> when device is not specified in an operation, the 'global device' is used
+//! let device = CPU::new().select();
 //!
-//!     let mut a = Buffer::from(( &device, [1, 2, 3, 4, 5, 6]));
-//!     a.clear();
+//! let mut a = Buffer::from(( &device, [1, 2, 3, 4, 5, 6]));
+//! a.clear();
 //!
-//!     assert_eq!(a.read(), vec![0; 6]);
-//! }
+//! assert_eq!(a.read(), vec![0; 6]);
 //! ```
 
 use std::{cell::RefCell, ffi::c_void, rc::Weak};
@@ -111,14 +109,15 @@ pub type Result<T> = std::result::Result<T, Error>;
 ///
 /// # Example
 /// ```
-/// use custos::{CPU, Device, Buffer, VecRead};
+/// use custos::{CPU, Device, Buffer, VecRead, BufFlag};
 ///
 /// let device = CPU::new();
 /// let ptrs: (*mut f32, *mut std::ffi::c_void, u64) = device.alloc(12);
 ///
 /// let buf = Buffer {
 ///     ptr: ptrs,
-///     len: 12
+///     len: 12,
+///     flag: BufFlag::None
 /// };
 /// assert_eq!(vec![0.; 12], device.read(&buf));
 /// ```
@@ -126,14 +125,15 @@ pub trait Device<T> {
     /// Allocate memory
     /// # Example
     /// ```
-    /// use custos::{CPU, Device, Buffer, VecRead};
+    /// use custos::{CPU, Device, Buffer, VecRead, BufFlag};
     ///
     /// let device = CPU::new();
     /// let ptrs: (*mut f32, *mut std::ffi::c_void, u64) = device.alloc(12);
     ///
     /// let buf = Buffer {
     ///     ptr: ptrs,
-    ///     len: 12
+    ///     len: 12,
+    ///     flag: BufFlag::None
     /// };
     /// assert_eq!(vec![0.; 12], device.read(&buf));
     /// ```
@@ -142,14 +142,15 @@ pub trait Device<T> {
     /// Allocate new memory with data
     /// # Example
     /// ```
-    /// use custos::{CPU, Device, Buffer, VecRead};
+    /// use custos::{CPU, Device, Buffer, VecRead, BufFlag};
     ///
     /// let device = CPU::new();
     /// let ptrs: (*mut u8, *mut std::ffi::c_void, u64) = device.with_data(&[1, 5, 4, 3, 6, 9, 0, 4]);
     ///
     /// let buf = Buffer {
     ///     ptr: ptrs,
-    ///     len: 8
+    ///     len: 8,
+    ///     flag: BufFlag::None
     /// };
     /// assert_eq!(vec![1, 5, 4, 3, 6, 9, 0, 4], device.read(&buf));
     /// ```
@@ -157,9 +158,6 @@ pub trait Device<T> {
     fn alloc_with_vec(&self, vec: Vec<T>) -> (*mut T, *mut c_void, u64) {
         self.with_data(&vec)
     }
-    #[cfg(not(feature = "safe"))]
-    /// Frees the specified buffer. The pointer is removed from the pointers vector of a device.
-    fn drop(&mut self, buf: Buffer<T>);
 }
 
 ///All 'base' traits?
@@ -202,12 +200,12 @@ pub trait WriteBuf<T> {
     /// # Example
     /// ```
     /// use custos::{CPU, Buffer, WriteBuf};
-    /// 
+    ///
     /// let device = CPU::new();
     /// let mut buf = Buffer::new(&device, 4);
     /// device.write(&mut buf, &[9, 3, 2, -4]);
     /// assert_eq!(buf.as_slice(), &[9, 3, 2, -4])
-    /// 
+    ///
     /// ```
     fn write(&self, buf: &mut Buffer<T>, data: &[T]);
     /// Write data from <Device> Buffer to other <Device> Buffer.
@@ -353,12 +351,15 @@ impl std::error::Error for DeviceError {}
 /// ```
 macro_rules! get_device {
     ($t:ident<$g:ident>) => {{
-        use $crate::{DeviceError, Error, GLOBAL_DEVICE, is_cuda_selected, cuda_dev, is_cl_selected, cl_dev, is_cpu_selected, cpu_dev};
+        use $crate::{
+            cl_dev, cpu_dev, cuda_dev, is_cl_selected, is_cpu_selected, is_cuda_selected,
+            DeviceError, Error, GLOBAL_DEVICE,
+        };
         let device: Result<Box<dyn $t<$g>>, Error> = GLOBAL_DEVICE.with(|device| {
             let device = device.borrow();
 
             let mut dev: Option<Box<dyn $t<$g>>> = None;
-            
+
             if is_cpu_selected(&device) {
                 dev = Some(cpu_dev(&device)?)
             }
@@ -368,7 +369,7 @@ macro_rules! get_device {
             }
 
             if is_cuda_selected(&device) {
-                dev = Some(cuda_dev(&device)?); 
+                dev = Some(cuda_dev(&device)?);
             }
 
             dev.ok_or(Error::from(DeviceError::NoDeviceSelected))
@@ -380,60 +381,61 @@ macro_rules! get_device {
 // these functions exist because: if this macro is expanded in another crate, the #[cfg(feature="...")] will not look for the feature ... in custos.
 
 pub fn is_cuda_selected(dev: &Dev) -> bool {
-    match dev.cuda {
-        Some(_) => true && cfg!(feature="cuda"),
-        None => false,
-    }
+    dev.cuda.is_some() && cfg!(feature = "cuda")
 }
 
 #[doc(hidden)]
-#[cfg(not(feature="cuda"))]
+#[cfg(not(feature = "cuda"))]
 pub fn cuda_dev(_: &Dev) -> Result<Box<CPU>> {
     Err(Error::from(DeviceError::NoDeviceSelected))
 }
 
 #[doc(hidden)]
-#[cfg(feature="cuda")]
+#[cfg(feature = "cuda")]
 pub fn cuda_dev(dev: &Dev) -> Result<Box<CudaDevice>> {
-    return Ok(Box::new(CudaDevice::from(
-        dev.cuda.as_ref().unwrap().upgrade()
-            .ok_or(Error::from(DeviceError::NoDeviceSelected))?,
-    )));
+    Ok(Box::new(CudaDevice::from(
+        dev.cuda
+            .as_ref()
+            .unwrap()
+            .upgrade()
+            .ok_or_else(|| Error::from(DeviceError::NoDeviceSelected))?,
+    )))
 }
 
 pub fn is_cl_selected(dev: &Dev) -> bool {
-    match dev.cl_device {
-        Some(_) => true && cfg!(feature="opencl"),
-        None => false,
-    }
+    dev.cl_device.is_some() && cfg!(feature = "opencl")
+
 }
 
 #[doc(hidden)]
-#[cfg(not(feature="opencl"))]
+#[cfg(not(feature = "opencl"))]
 pub fn cl_dev(_: &Dev) -> Result<Box<CPU>> {
     Err(Error::from(DeviceError::NoDeviceSelected))
 }
 
 #[doc(hidden)]
-#[cfg(feature="opencl")]
+#[cfg(feature = "opencl")]
 pub fn cl_dev(dev: &Dev) -> Result<Box<CLDevice>> {
-    return Ok(Box::new(CLDevice::from(
-        dev.cl_device.as_ref().unwrap().upgrade()
-            .ok_or(Error::from(DeviceError::NoDeviceSelected))?,
-    )));
+    Ok(Box::new(CLDevice::from(
+        dev.cl_device
+            .as_ref()
+            .unwrap()
+            .upgrade()
+            .ok_or_else(|| Error::from(DeviceError::NoDeviceSelected))?,
+    )))
 }
 
 pub fn is_cpu_selected(dev: &Dev) -> bool {
-    if let Some(_) = dev.cpu {
-        return true;
-    }
-    false
+    dev.cpu.is_some()
 }
 
 #[doc(hidden)]
 pub fn cpu_dev(dev: &Dev) -> Result<Box<CPU>> {
     Ok(Box::new(CPU::from(
-        dev.cpu.as_ref().unwrap().upgrade()
-            .ok_or(Error::from(DeviceError::NoDeviceSelected))?,
+        dev.cpu
+            .as_ref()
+            .unwrap()
+            .upgrade()
+            .ok_or_else(|| Error::from(DeviceError::NoDeviceSelected))?,
     )))
 }

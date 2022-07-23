@@ -1,6 +1,6 @@
-use custos::{CPU, WriteBuf, Buffer};
+use custos::{Buffer, WriteBuf, CPU};
 
-#[cfg(any(feature="cuda", feature="opencl"))]
+#[cfg(any(feature = "cuda", feature = "opencl"))]
 use custos::VecRead;
 
 #[test]
@@ -11,7 +11,7 @@ fn test_write_cpu() {
     assert_eq!(buf.as_slice(), &[1., 2., 3., 4., 5.])
 }
 
-#[cfg(feature="opencl")]
+#[cfg(feature = "opencl")]
 #[test]
 fn test_write_cl() -> custos::Result<()> {
     let device = custos::CLDevice::new(0)?;
@@ -21,7 +21,7 @@ fn test_write_cl() -> custos::Result<()> {
     Ok(())
 }
 
-#[cfg(feature="cuda")]
+#[cfg(feature = "cuda")]
 #[test]
 fn test_write_cuda() -> custos::Result<()> {
     let device = custos::CudaDevice::new(0)?;

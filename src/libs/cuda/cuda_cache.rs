@@ -1,16 +1,16 @@
 use super::api::{
-    load_module_data,
+    cufree, load_module_data,
     nvrtc::{create_program, nvrtcDestroyProgram},
     FnHandle,
 };
-use crate::{Buffer, CudaDevice, Error, Node};
+use crate::{BufFlag, Buffer, CudaDevice, Device, Error, Node};
 use std::{cell::RefCell, collections::HashMap, ffi::CString};
 
 thread_local! {
     pub static CUDA_CACHE: RefCell<CudaCache> = RefCell::new(CudaCache {
         kernels: HashMap::new(),
         nodes: HashMap::new(),
-    })
+    });
 }
 
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
@@ -19,17 +19,40 @@ pub struct CudaPtr(pub u64);
 unsafe impl Send for CudaPtr {}
 unsafe impl Sync for CudaPtr {}
 
-type RawInfo = (CudaPtr, usize);
+pub struct RawCUDA {
+    pub ptr: u64,
+    pub len: usize,
+}
+
+impl Drop for RawCUDA {
+    fn drop(&mut self) {
+        unsafe { cufree(self.ptr).unwrap() }
+    }
+}
 
 pub struct CudaCache {
     pub kernels: HashMap<String, FnHandle>,
-    pub nodes: HashMap<Node, RawInfo>,
+    pub nodes: HashMap<Node, RawCUDA>,
 }
 
 impl CudaCache {
+    pub fn count() -> usize {
+        CUDA_CACHE.with(|cache| cache.borrow().nodes.len())
+    }
+
     pub fn add_node<T>(&mut self, device: &CudaDevice, node: Node) -> Buffer<T> {
-        let out = Buffer::new(device, node.len);
-        self.nodes.insert(node, (CudaPtr(out.ptr.2), out.len));
+        let out = Buffer {
+            ptr: device.alloc(node.len),
+            len: node.len,
+            flag: BufFlag::Cache,
+        };
+        self.nodes.insert(
+            node,
+            RawCUDA {
+                ptr: out.ptr.2,
+                len: out.len,
+            },
+        );
         out
     }
 
@@ -37,10 +60,11 @@ impl CudaCache {
     pub fn get<T>(device: &CudaDevice, len: usize) -> Buffer<T> {
         use std::ptr::null_mut;
 
-        assert!(
+        /*assert!(
             !device.inner.borrow().ptrs.is_empty(),
             "no Cuda allocations"
-        );
+        );*/
+
         let node = Node::new(len);
 
         CUDA_CACHE.with(|cache| {
@@ -49,8 +73,9 @@ impl CudaCache {
 
             match buf_info_option {
                 Some(buf_info) => Buffer {
-                    ptr: (null_mut(), null_mut(), buf_info.0 .0),
-                    len: buf_info.1,
+                    ptr: (null_mut(), null_mut(), buf_info.ptr),
+                    len: buf_info.len,
+                    flag: BufFlag::Cache,
                 },
                 None => cache.add_node(device, node),
             }

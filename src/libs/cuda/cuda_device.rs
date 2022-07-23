@@ -3,12 +3,13 @@ use super::{
         create_context, create_stream, cuCtxDestroy, cuInit, cuModuleUnload, cuStreamDestroy,
         cu_read, cu_write,
         cublas::{create_handle, cublasDestroy_v2, cublasSetStream_v2, CublasHandle},
-        cufree, cumalloc, device, Context, CudaIntDevice, Module, Stream,
+        cumalloc, device, Context, CudaIntDevice, Module, Stream,
     },
     cu_clear, CudaCache,
 };
 use crate::{
-    AsDev, BaseDevice, CDatatype, CUdeviceptr, CacheBuf, ClearBuf, Device, GenericBlas, VecRead, WriteBuf,
+    deallocate_cache, get_device_count, AsDev, BaseDevice, CDatatype, CUdeviceptr, CacheBuf,
+    ClearBuf, Device, GenericBlas, VecRead, WriteBuf,
 };
 use std::{
     cell::{Ref, RefCell, RefMut},
@@ -25,6 +26,9 @@ pub struct CudaDevice {
 
 impl CudaDevice {
     pub fn new(idx: usize) -> crate::Result<CudaDevice> {
+        unsafe {
+            *get_device_count() += 1;
+        }
         let inner = Rc::new(RefCell::new(InternCudaDevice::new(idx)?));
         Ok(CudaDevice { inner })
     }
@@ -54,14 +58,6 @@ impl<T> Device<T> for CudaDevice {
         self.inner.borrow_mut().ptrs.push(ptr);
         cu_write(ptr, data).unwrap();
         (null_mut(), null_mut(), ptr)
-    }
-
-    fn drop(&mut self, buf: crate::Buffer<T>) {
-        let ptrs = &mut self.inner.borrow_mut().ptrs;
-        crate::remove_value(ptrs, &buf.ptr.2).unwrap();
-        unsafe {
-            cufree(buf.ptr.2).unwrap();
-        }
     }
 }
 
@@ -172,17 +168,21 @@ impl InternCudaDevice {
 impl Drop for InternCudaDevice {
     fn drop(&mut self) {
         unsafe {
-            for ptr in &mut self.ptrs {
-                cufree(*ptr).unwrap();
-            }
+            let count = get_device_count();
+            *count -= 1;
+            deallocate_cache(*count);
 
+            //TODO: Implement Drop
             cublasDestroy_v2(self.handle.0);
 
+            //TODO: Implement Drop
             for module in &self.modules {
                 cuModuleUnload(module.0);
             }
 
+            //TODO: Implement Drop
             cuStreamDestroy(self.stream.0);
+            //TODO: Implement Drop
             cuCtxDestroy(self.ctx.0);
         }
     }

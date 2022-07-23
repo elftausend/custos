@@ -1,7 +1,6 @@
-use super::CPU_CACHE;
 use crate::{
-    libs::cpu::CPUCache, number::Number, AsDev, BaseDevice, Buffer, CDatatype, CacheBuf, ClearBuf,
-    Device, GenericBlas, ManualMem, VecRead, WriteBuf,
+    deallocate_cache, get_device_count, libs::cpu::CPUCache, number::Number, AsDev, BaseDevice,
+    Buffer, CDatatype, CacheBuf, ClearBuf, Device, GenericBlas, ManualMem, VecRead, WriteBuf,
 };
 use std::{cell::RefCell, ffi::c_void, fmt::Debug, rc::Rc};
 
@@ -28,6 +27,10 @@ impl CPU {
     #[must_use]
     /// Creates an [CPU] with an InternCPU that holds an empty vector of pointers.
     pub fn new() -> CPU {
+        unsafe {
+            *get_device_count() += 1;
+        }
+
         CPU {
             inner: Rc::new(RefCell::new(InternCPU { ptrs: Vec::new() })),
         }
@@ -40,13 +43,12 @@ impl From<Rc<RefCell<InternCPU>>> for CPU {
     }
 }
 
-
 impl<T: Clone + Default> Device<T> for CPU {
     fn alloc(&self, len: usize) -> (*mut T, *mut c_void, u64) {
         assert!(len > 0, "invalid buffer len: 0");
-        let ptr = Box::into_raw(vec![T::default().clone(); len].into_boxed_slice());
+        let ptr = Box::into_raw(vec![T::default(); len].into_boxed_slice());
         //let size = std::mem::size_of::<T>() * len;
-        
+
         #[cfg(not(feature = "safe"))]
         self.inner.borrow_mut().ptrs.push(StoredCPUPtr::new(
             ptr as *mut [u8],
@@ -77,19 +79,6 @@ impl<T: Clone + Default> Device<T> for CPU {
             std::mem::size_of::<T>(),
         ));
         (ptr as *mut T, std::ptr::null_mut(), 0)
-    }
-
-    #[cfg(not(feature = "safe"))]
-    fn drop(&mut self, buf: Buffer<T>) {
-        let ptrs = &mut self.inner.borrow_mut().ptrs;
-        let slice = unsafe { std::slice::from_raw_parts_mut(buf.ptr.0, buf.len) };
-
-        crate::remove_value(
-            ptrs,
-            &StoredCPUPtr::new(slice as *mut [T] as *mut [u8], std::mem::size_of::<T>()),
-        )
-        .unwrap();
-        self.drop_buf(buf)
     }
 }
 
@@ -159,24 +148,10 @@ pub struct InternCPU {
 
 impl Drop for InternCPU {
     fn drop(&mut self) {
-        let contents = CPU_CACHE.with(|cache| cache.borrow().nodes.clone());
-
-        for ptr in self.ptrs.iter() {
-            unsafe {
-                let len = (&*ptr.fat_ptr).len();
-                let slice = std::slice::from_raw_parts_mut(ptr.fat_ptr as *mut u8, len * ptr.align);
-                drop(Box::from_raw(slice));
-            }
-
-            for entry in &contents {
-                let hm_ptr = ((entry.1).0).0;
-                if hm_ptr == ptr.fat_ptr as *mut usize {
-                    CPU_CACHE.with(|cache| {
-                        cache.borrow_mut().nodes.remove(entry.0);
-                    });
-                }
-            }
+        unsafe {
+            let count = get_device_count();
+            *count -= 1;
+            deallocate_cache(*count);
         }
-        self.ptrs.clear();
     }
 }

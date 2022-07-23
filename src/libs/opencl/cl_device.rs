@@ -1,13 +1,15 @@
 use super::{
     api::{
-        create_command_queue, create_context, enqueue_read_buffer, release_mem_object, unified_ptr,
-        wait_for_event, CLIntDevice, CommandQueue, Context, enqueue_write_buffer,
+        create_command_queue, create_context, enqueue_read_buffer, enqueue_write_buffer,
+        release_mem_object, unified_ptr, wait_for_event, CLIntDevice, CommandQueue, Context,
     },
-    cl_clear, CLCache, CL_CACHE, CL_DEVICES,
+    cl_clear, CLCache, CL_DEVICES,
 };
 use crate::{
+    deallocate_cache, get_device_count,
     libs::opencl::api::{create_buffer, MemFlags},
-    AsDev, BaseDevice, Buffer, CDatatype, CacheBuf, ClearBuf, Device, Error, ManualMem, VecRead, WriteBuf,
+    AsDev, BaseDevice, Buffer, CDatatype, CacheBuf, ClearBuf, Device, Error, ManualMem, VecRead,
+    WriteBuf,
 };
 use std::{cell::RefCell, ffi::c_void, fmt::Debug, rc::Rc};
 
@@ -40,6 +42,9 @@ impl CLDevice {
     /// - No device is found at the given device index
     /// - some other OpenCL related errors
     pub fn new(device_idx: usize) -> Result<CLDevice, Error> {
+        unsafe {
+            *get_device_count() += 1;
+        }
         let inner = Rc::new(RefCell::new(CL_DEVICES.current(device_idx)?));
         Ok(CLDevice { inner })
     }
@@ -136,13 +141,6 @@ impl<T> Device<T> for CLDevice {
 
         (cpu_ptr, ptr, 0)
     }
-
-    #[cfg(not(feature = "safe"))]
-    fn drop(&mut self, buf: Buffer<T>) {
-        let ptrs = &mut self.inner.borrow_mut().ptrs;
-        crate::remove_value(ptrs, &buf.ptr.1).unwrap();
-        self.drop_buf(buf)
-    }
 }
 
 impl<T> ManualMem<T> for CLDevice {
@@ -232,30 +230,10 @@ impl InternCLDevice {
 
 impl Drop for InternCLDevice {
     fn drop(&mut self) {
-        let contents = CL_CACHE.with(|cache| {
-            /*
-            // FIXME: releases all kernels, even if it is used by another device?
-            // TODO: better kernel cache release
-            for kernel in &mut cache.borrow_mut().arg_kernel_cache.values_mut() {
-                kernel.release()
-            }
-            */
-            cache.borrow().nodes.clone()
-        });
-
-        for ptr in self.ptrs.iter() {
-            unsafe { release_mem_object(*ptr).unwrap() };
-
-            for entry in &contents {
-                let hm_ptr = ((entry.1).0).0;
-
-                if &hm_ptr == ptr {
-                    CL_CACHE.with(|cache| {
-                        cache.borrow_mut().nodes.remove(entry.0);
-                    });
-                }
-            }
+        unsafe {
+            let count = get_device_count();
+            *count -= 1;
+            deallocate_cache(*count);
         }
-        self.ptrs.clear();
     }
 }
