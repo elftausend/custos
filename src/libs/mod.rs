@@ -1,4 +1,4 @@
-use self::cpu::{level3, Order, Transpose};
+use self::cpu::{level3, Order, Transpose, CPU_CACHE};
 use crate::number::{Float, Number};
 use std::cell::RefCell;
 
@@ -23,12 +23,39 @@ pub struct InternCudaDevice;
 
 thread_local! {
     pub static COUNT: RefCell<usize> = RefCell::new(0);
+    /// Using a common device count to keep track on device creations.
+    /// These device creations are used to know when to deallocate the cached memory.
+    /// A seperate count for each device type could be used, however this is a problem for nested device creations.
+    /// (Especially for unified memory and device switching)
     pub static DEVICE_COUNT: RefCell<usize> = RefCell::new(0);
 }
 
 #[inline]
 pub fn get_device_count() -> *mut usize {
     DEVICE_COUNT.with(|c| c.as_ptr())
+}
+
+pub fn deallocate_cache(count: usize) {
+    if count != 0 {
+        return;
+    }
+
+    CPU_CACHE.with(|cache| cache.borrow_mut().nodes.clear());
+
+    #[cfg(feature = "opencl")]
+    crate::opencl::CL_CACHE.with(|cache| {
+        /*
+        // FIXME: releases all kernels, even if it is used by another device?
+        // TODO: better kernel cache release
+        for kernel in &mut cache.borrow_mut().arg_kernel_cache.values_mut() {
+            kernel.release()
+        }
+        */
+        cache.borrow_mut().nodes.clear();
+    });
+
+    #[cfg(feature = "cuda")]
+    crate::cuda::CUDA_CACHE.with(|cache| cache.borrow_mut().nodes.clear());
 }
 
 /// Sets current cache identifier / index.

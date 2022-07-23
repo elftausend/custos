@@ -1,9 +1,9 @@
 use super::api::{
-    load_module_data,
+    cufree, load_module_data,
     nvrtc::{create_program, nvrtcDestroyProgram},
-    FnHandle, cufree,
+    FnHandle,
 };
-use crate::{Buffer, CudaDevice, Error, Node, Device, BufFlag};
+use crate::{BufFlag, Buffer, CudaDevice, Device, Error, Node};
 use std::{cell::RefCell, collections::HashMap, ffi::CString};
 
 thread_local! {
@@ -26,9 +26,7 @@ pub struct RawCUDA {
 
 impl Drop for RawCUDA {
     fn drop(&mut self) {
-        unsafe {
-            cufree(self.ptr).unwrap()
-        }
+        unsafe { cufree(self.ptr).unwrap() }
     }
 }
 
@@ -46,9 +44,15 @@ impl CudaCache {
         let out = Buffer {
             ptr: device.alloc(node.len),
             len: node.len,
-            flag: BufFlag::Cache
+            flag: BufFlag::Cache,
         };
-        self.nodes.insert(node, RawCUDA { ptr: out.ptr.2, len: out.len });
+        self.nodes.insert(
+            node,
+            RawCUDA {
+                ptr: out.ptr.2,
+                len: out.len,
+            },
+        );
         out
     }
 
@@ -71,7 +75,7 @@ impl CudaCache {
                 Some(buf_info) => Buffer {
                     ptr: (null_mut(), null_mut(), buf_info.ptr),
                     len: buf_info.len,
-                    flag: BufFlag::Cache
+                    flag: BufFlag::Cache,
                 },
                 None => cache.add_node(device, node),
             }

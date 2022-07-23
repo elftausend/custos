@@ -5,10 +5,11 @@ use super::{
         cublas::{create_handle, cublasDestroy_v2, cublasSetStream_v2, CublasHandle},
         cumalloc, device, Context, CudaIntDevice, Module, Stream,
     },
-    cu_clear, CudaCache, CUDA_CACHE
+    cu_clear, CudaCache,
 };
 use crate::{
-    AsDev, BaseDevice, CDatatype, CUdeviceptr, CacheBuf, ClearBuf, Device, GenericBlas, VecRead, WriteBuf, get_device_count,
+    deallocate_cache, get_device_count, AsDev, BaseDevice, CDatatype, CUdeviceptr, CacheBuf,
+    ClearBuf, Device, GenericBlas, VecRead, WriteBuf,
 };
 use std::{
     cell::{Ref, RefCell, RefMut},
@@ -169,11 +170,7 @@ impl Drop for InternCudaDevice {
         unsafe {
             let count = get_device_count();
             *count -= 1;
-            if *count != 0 {
-                return;
-            }    
-
-            CUDA_CACHE.with(|cache| cache.borrow_mut().nodes.clear());
+            deallocate_cache(*count);
 
             //TODO: Implement Drop
             cublasDestroy_v2(self.handle.0);

@@ -1,13 +1,15 @@
 use super::{
     api::{
-        create_command_queue, create_context, enqueue_read_buffer, release_mem_object, unified_ptr,
-        wait_for_event, CLIntDevice, CommandQueue, Context, enqueue_write_buffer,
+        create_command_queue, create_context, enqueue_read_buffer, enqueue_write_buffer,
+        release_mem_object, unified_ptr, wait_for_event, CLIntDevice, CommandQueue, Context,
     },
-    cl_clear, CLCache, CL_CACHE, CL_DEVICES,
+    cl_clear, CLCache, CL_DEVICES,
 };
 use crate::{
+    deallocate_cache, get_device_count,
     libs::opencl::api::{create_buffer, MemFlags},
-    AsDev, BaseDevice, Buffer, CDatatype, CacheBuf, ClearBuf, Device, Error, ManualMem, VecRead, WriteBuf, get_device_count,
+    AsDev, BaseDevice, Buffer, CDatatype, CacheBuf, ClearBuf, Device, Error, ManualMem, VecRead,
+    WriteBuf,
 };
 use std::{cell::RefCell, ffi::c_void, fmt::Debug, rc::Rc};
 
@@ -139,7 +141,6 @@ impl<T> Device<T> for CLDevice {
 
         (cpu_ptr, ptr, 0)
     }
-
 }
 
 impl<T> ManualMem<T> for CLDevice {
@@ -232,23 +233,7 @@ impl Drop for InternCLDevice {
         unsafe {
             let count = get_device_count();
             *count -= 1;
-            if *count != 0 {
-                return;
-            }    
+            deallocate_cache(*count);
         }
-        
-        CL_CACHE.with(|cache| {
-            /*
-            // FIXME: releases all kernels, even if it is used by another device?
-            // TODO: better kernel cache release
-            for kernel in &mut cache.borrow_mut().arg_kernel_cache.values_mut() {
-                kernel.release()
-            }
-            */
-            cache.borrow_mut().nodes.clear();
-        });
-
-        // TODO: remove
-        self.ptrs.clear();
     }
 }

@@ -1,6 +1,6 @@
 #[cfg(feature = "opencl")]
 use custos::opencl::cl_device::CLDevice;
-use custos::{libs::cpu::CPU, range, AsDev, Buffer, cpu::CPUCache, cached};
+use custos::{cached, cpu::CPUCache, libs::cpu::CPU, range, AsDev, Buffer};
 
 #[test]
 fn test_rc_get_dev() {

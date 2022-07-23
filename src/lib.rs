@@ -202,12 +202,12 @@ pub trait WriteBuf<T> {
     /// # Example
     /// ```
     /// use custos::{CPU, Buffer, WriteBuf};
-    /// 
+    ///
     /// let device = CPU::new();
     /// let mut buf = Buffer::new(&device, 4);
     /// device.write(&mut buf, &[9, 3, 2, -4]);
     /// assert_eq!(buf.as_slice(), &[9, 3, 2, -4])
-    /// 
+    ///
     /// ```
     fn write(&self, buf: &mut Buffer<T>, data: &[T]);
     /// Write data from <Device> Buffer to other <Device> Buffer.
@@ -353,12 +353,15 @@ impl std::error::Error for DeviceError {}
 /// ```
 macro_rules! get_device {
     ($t:ident<$g:ident>) => {{
-        use $crate::{DeviceError, Error, GLOBAL_DEVICE, is_cuda_selected, cuda_dev, is_cl_selected, cl_dev, is_cpu_selected, cpu_dev};
+        use $crate::{
+            cl_dev, cpu_dev, cuda_dev, is_cl_selected, is_cpu_selected, is_cuda_selected,
+            DeviceError, Error, GLOBAL_DEVICE,
+        };
         let device: Result<Box<dyn $t<$g>>, Error> = GLOBAL_DEVICE.with(|device| {
             let device = device.borrow();
 
             let mut dev: Option<Box<dyn $t<$g>>> = None;
-            
+
             if is_cpu_selected(&device) {
                 dev = Some(cpu_dev(&device)?)
             }
@@ -368,7 +371,7 @@ macro_rules! get_device {
             }
 
             if is_cuda_selected(&device) {
-                dev = Some(cuda_dev(&device)?); 
+                dev = Some(cuda_dev(&device)?);
             }
 
             dev.ok_or(Error::from(DeviceError::NoDeviceSelected))
@@ -381,44 +384,50 @@ macro_rules! get_device {
 
 pub fn is_cuda_selected(dev: &Dev) -> bool {
     match dev.cuda {
-        Some(_) => true && cfg!(feature="cuda"),
+        Some(_) => true && cfg!(feature = "cuda"),
         None => false,
     }
 }
 
 #[doc(hidden)]
-#[cfg(not(feature="cuda"))]
+#[cfg(not(feature = "cuda"))]
 pub fn cuda_dev(_: &Dev) -> Result<Box<CPU>> {
     Err(Error::from(DeviceError::NoDeviceSelected))
 }
 
 #[doc(hidden)]
-#[cfg(feature="cuda")]
+#[cfg(feature = "cuda")]
 pub fn cuda_dev(dev: &Dev) -> Result<Box<CudaDevice>> {
     return Ok(Box::new(CudaDevice::from(
-        dev.cuda.as_ref().unwrap().upgrade()
+        dev.cuda
+            .as_ref()
+            .unwrap()
+            .upgrade()
             .ok_or(Error::from(DeviceError::NoDeviceSelected))?,
     )));
 }
 
 pub fn is_cl_selected(dev: &Dev) -> bool {
     match dev.cl_device {
-        Some(_) => true && cfg!(feature="opencl"),
+        Some(_) => true && cfg!(feature = "opencl"),
         None => false,
     }
 }
 
 #[doc(hidden)]
-#[cfg(not(feature="opencl"))]
+#[cfg(not(feature = "opencl"))]
 pub fn cl_dev(_: &Dev) -> Result<Box<CPU>> {
     Err(Error::from(DeviceError::NoDeviceSelected))
 }
 
 #[doc(hidden)]
-#[cfg(feature="opencl")]
+#[cfg(feature = "opencl")]
 pub fn cl_dev(dev: &Dev) -> Result<Box<CLDevice>> {
     return Ok(Box::new(CLDevice::from(
-        dev.cl_device.as_ref().unwrap().upgrade()
+        dev.cl_device
+            .as_ref()
+            .unwrap()
+            .upgrade()
             .ok_or(Error::from(DeviceError::NoDeviceSelected))?,
     )));
 }
@@ -433,7 +442,10 @@ pub fn is_cpu_selected(dev: &Dev) -> bool {
 #[doc(hidden)]
 pub fn cpu_dev(dev: &Dev) -> Result<Box<CPU>> {
     Ok(Box::new(CPU::from(
-        dev.cpu.as_ref().unwrap().upgrade()
+        dev.cpu
+            .as_ref()
+            .unwrap()
+            .upgrade()
             .ok_or(Error::from(DeviceError::NoDeviceSelected))?,
     )))
 }

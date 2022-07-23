@@ -1,4 +1,4 @@
-use custos::{CPU, cached, AsDev, Buffer, ClearBuf};
+use custos::{cached, AsDev, Buffer, ClearBuf, CPU};
 
 #[test]
 #[should_panic]
@@ -30,7 +30,7 @@ fn test_host_ptr_no_device() {
     buf.host_ptr();
 }
 
-#[cfg(feature="opencl")]
+#[cfg(feature = "opencl")]
 #[test]
 #[should_panic]
 fn test_cl_ptr_no_device() {
@@ -43,7 +43,7 @@ fn test_cl_ptr_no_device() {
     buf.cl_ptr();
 }
 
-#[cfg(feature="cuda")]
+#[cfg(feature = "cuda")]
 #[test]
 #[should_panic]
 fn test_cu_ptr_no_device() {

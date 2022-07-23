@@ -1,4 +1,4 @@
-use custos::{CPU, AsDev, Buffer};
+use custos::{AsDev, Buffer, CPU};
 
 #[test]
 fn test_from_iter() {
@@ -7,7 +7,7 @@ fn test_from_iter() {
     assert_eq!(buf.as_slice(), &[0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
 }
 
-#[cfg(feature="opencl")]
+#[cfg(feature = "opencl")]
 #[test]
 fn test_collect_cl() -> custos::Result<()> {
     let _device = custos::CLDevice::new(0)?.select();

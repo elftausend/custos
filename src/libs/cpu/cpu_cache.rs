@@ -1,4 +1,4 @@
-use crate::{Buffer, Node, CPU, Device, BufFlag};
+use crate::{BufFlag, Buffer, Device, Node, CPU};
 use std::{cell::RefCell, collections::HashMap, mem::align_of};
 
 thread_local! {
@@ -20,7 +20,6 @@ impl Drop for RawCpu {
         }
     }
 }
-
 
 #[cfg_attr(feature = "safe", doc = "```ignore")]
 #[derive(Debug)]
@@ -57,9 +56,15 @@ impl CPUCache {
             len: node.len,
             flag: BufFlag::Cache,
         };
-        self.nodes
-            .insert(node, RawCpu { ptr: out.ptr.0 as *mut usize, len: out.len, align: align_of::<T>() });
-        
+        self.nodes.insert(
+            node,
+            RawCpu {
+                ptr: out.ptr.0 as *mut usize,
+                len: out.len,
+                align: align_of::<T>(),
+            },
+        );
+
         out
     }
 
@@ -77,7 +82,7 @@ impl CPUCache {
                 Some(buf_info) => Buffer {
                     ptr: (buf_info.ptr as *mut T, null_mut(), 0),
                     len: buf_info.len,
-                    flag: BufFlag::Cache,  
+                    flag: BufFlag::Cache,
                 },
                 None => cache.add_node(device, node),
             }

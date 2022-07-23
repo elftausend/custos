@@ -1,6 +1,6 @@
 use std::ptr::null_mut;
 
-use custos::{CPU, Buffer, cached, AsDev, range, cpu::CPU_CACHE};
+use custos::{cached, cpu::CPU_CACHE, range, AsDev, Buffer, CPU};
 
 fn cached_add(a: &[f32], b: &[f32]) -> Buffer<f32> {
     let mut out = cached(a.len());

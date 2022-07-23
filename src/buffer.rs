@@ -2,7 +2,7 @@ use std::{ffi::c_void, fmt::Debug, ptr::null_mut};
 
 #[cfg(feature = "opencl")]
 use crate::opencl::api::release_mem_object;
-use crate::{get_device, CDatatype, CacheBuf, ClearBuf, Device, VecRead, WriteBuf, cpu::CPUCache};
+use crate::{cpu::CPUCache, get_device, CDatatype, CacheBuf, ClearBuf, Device, VecRead, WriteBuf};
 
 #[cfg(not(feature = "safe"))]
 use crate::number::Number;
@@ -31,7 +31,7 @@ impl<T> Buffer<T> {
     /// for value in &mut buffer {
     ///     *value = 2;
     /// }
-    /// 
+    ///
     /// assert_eq!(buffer.as_slice(), &[2; 6]);
     ///
     /// ```
@@ -39,7 +39,7 @@ impl<T> Buffer<T> {
         Buffer {
             ptr: device.alloc(len),
             len,
-            flag: BufFlag::None
+            flag: BufFlag::None,
         }
     }
 
@@ -48,7 +48,7 @@ impl<T> Buffer<T> {
     /// ```
     /// use custos::{Buffer, Device, CPU, VecRead};
     /// use std::ffi::c_void;
-    /// 
+    ///
     /// let device = CPU::new();
     /// let ptrs: (*mut f32, *mut c_void, u64) = device.alloc(10);
     /// let mut buf = unsafe {
@@ -97,13 +97,14 @@ impl<T> Buffer<T> {
     /// Returns a non null host pointer
     pub fn host_ptr(&self) -> *mut T {
         assert!(
-            !self.ptr.0.is_null() && !(self.flag == BufFlag::Cache && CPUCache::count() == 0 && self.ptr.1.is_null()),
+            !self.ptr.0.is_null()
+                && !(self.flag == BufFlag::Cache && CPUCache::count() == 0 && self.ptr.1.is_null()),
             "called host_ptr() on an invalid CPU buffer"
         );
         self.ptr.0
     }
 
-    #[cfg(feature="opencl")]
+    #[cfg(feature = "opencl")]
     pub fn cl_ptr(&self) -> *mut c_void {
         use crate::opencl::CLCache;
         assert!(
@@ -115,7 +116,7 @@ impl<T> Buffer<T> {
 
     // TODO: replace buf.ptr.2 with this fn, do the same with cl, cpu
     /// Returns a non null CUDA pointer
-    #[cfg(feature="cuda")]
+    #[cfg(feature = "cuda")]
     pub fn cu_ptr(&self) -> u64 {
         use crate::cuda::CudaCache;
         assert!(
@@ -137,7 +138,8 @@ impl<T> Buffer<T> {
     /// Returns a mutable CPU slice.
     pub fn as_mut_slice(&mut self) -> &mut [T] {
         assert!(
-            !self.ptr.0.is_null() && !(self.flag == BufFlag::Cache && CPUCache::count() == 0 && self.ptr.1.is_null()),
+            !self.ptr.0.is_null()
+                && !(self.flag == BufFlag::Cache && CPUCache::count() == 0 && self.ptr.1.is_null()),
             "called as_mut_slice() on a non CPU buffer (this would dereference a null pointer)"
         );
         unsafe { std::slice::from_raw_parts_mut(self.ptr.0, self.len) }
@@ -187,9 +189,9 @@ impl<T> Buffer<T> {
 
     /// Writes a slice to the vector.
     /// With a CPU buffer, the slice is just copied to the slice of the buffer.
-    pub fn write(&mut self, data: &[T]) 
+    pub fn write(&mut self, data: &[T])
     where
-        T: Copy
+        T: Copy,
     {
         get_device!(WriteBuf<T>).unwrap().write(self, data)
     }
@@ -200,12 +202,19 @@ unsafe impl<T> Send for Buffer<T> {}
 #[cfg(feature = "safe")]
 unsafe impl<T> Sync for Buffer<T> {}
 
-
 impl<T> Clone for Buffer<T> {
     fn clone(&self) -> Self {
-        assert_eq!(self.flag, BufFlag::Cache, "Called .clone() on a non-cache buffer. Use a reference counted approach instead.");
+        assert_eq!(
+            self.flag,
+            BufFlag::Cache,
+            "Called .clone() on a non-cache buffer. Use a reference counted approach instead."
+        );
 
-        Self { ptr: self.ptr.clone(), len: self.len.clone(), flag: self.flag.clone() }
+        Self {
+            ptr: self.ptr.clone(),
+            len: self.len.clone(),
+            flag: self.flag.clone(),
+        }
     }
 }
 
@@ -213,15 +222,14 @@ impl<A: Clone + Default> FromIterator<A> for Buffer<A> {
     fn from_iter<T: IntoIterator<Item = A>>(iter: T) -> Self {
         let device = get_device!(Device<A>).unwrap();
         let from_iter = Vec::from_iter(iter);
-       
+
         Buffer {
             len: from_iter.len(),
             ptr: device.alloc_with_vec(from_iter),
-            flag: BufFlag::None
-        }        
+            flag: BufFlag::None,
+        }
     }
 }
-
 
 impl<T> Drop for Buffer<T> {
     fn drop(&mut self) {
@@ -254,7 +262,7 @@ impl<T> Default for Buffer<T> {
         Self {
             ptr: (null_mut(), null_mut(), 0),
             len: Default::default(),
-            flag: BufFlag::None
+            flag: BufFlag::None,
         }
     }
 }
@@ -418,7 +426,7 @@ impl<T: Number> From<T> for Buffer<T> {
         Buffer {
             ptr: (Box::into_raw(Box::new(val)), null_mut(), 0),
             len: 0,
-            flag: BufFlag::None
+            flag: BufFlag::None,
         }
     }
 }
@@ -428,7 +436,7 @@ impl<T: Clone, const N: usize> From<(&Box<dyn Device<T>>, &[T; N])> for Buffer<T
         Buffer {
             ptr: device_slice.0.with_data(device_slice.1),
             len: device_slice.1.len(),
-            flag: BufFlag::None
+            flag: BufFlag::None,
         }
     }
 }
@@ -438,7 +446,7 @@ impl<T: Clone> From<(&Box<dyn Device<T>>, usize)> for Buffer<T> {
         Buffer {
             ptr: device_len.0.alloc(device_len.1),
             len: device_len.1,
-            flag: BufFlag::None
+            flag: BufFlag::None,
         }
     }
 }
@@ -448,7 +456,7 @@ impl<T: Clone, D: Device<T>, const N: usize> From<(&D, [T; N])> for Buffer<T> {
         Buffer {
             ptr: device_slice.0.with_data(&device_slice.1),
             len: device_slice.1.len(),
-            flag: BufFlag::None
+            flag: BufFlag::None,
         }
     }
 }
@@ -458,7 +466,7 @@ impl<T: Clone, D: Device<T>> From<(&D, &[T])> for Buffer<T> {
         Buffer {
             ptr: device_slice.0.with_data(device_slice.1),
             len: device_slice.1.len(),
-            flag: BufFlag::None
+            flag: BufFlag::None,
         }
     }
 }
@@ -469,7 +477,7 @@ impl<T: Clone, D: Device<T>> From<(&D, Vec<T>)> for Buffer<T> {
         Buffer {
             ptr: device_slice.0.alloc_with_vec(device_slice.1),
             len,
-            flag: BufFlag::None
+            flag: BufFlag::None,
         }
     }
 }
@@ -480,7 +488,7 @@ impl<T: Clone> From<(Box<dyn Device<T>>, Vec<T>)> for Buffer<T> {
         Buffer {
             ptr: device_slice.0.alloc_with_vec(device_slice.1),
             len,
-            flag: BufFlag::None
+            flag: BufFlag::None,
         }
     }
 }
@@ -491,7 +499,7 @@ impl<T: Clone, D: Device<T>> From<(&D, &Vec<T>)> for Buffer<T> {
         Buffer {
             ptr: device_slice.0.with_data(device_slice.1),
             len,
-            flag: BufFlag::None
+            flag: BufFlag::None,
         }
     }
 }
@@ -503,7 +511,7 @@ impl<T: Copy> From<(*mut T, usize)> for Buffer<T> {
         Buffer {
             ptr: (info.0, null_mut(), 0),
             len: info.1,
-            flag: BufFlag::Cache
+            flag: BufFlag::Cache,
         }
     }
 }
@@ -513,7 +521,7 @@ impl<T: CDatatype> From<(*mut c_void, usize)> for Buffer<T> {
         Buffer {
             ptr: (null_mut(), info.0, 0),
             len: info.1,
-            flag: BufFlag::Cache
+            flag: BufFlag::Cache,
         }
     }
 }
@@ -547,7 +555,7 @@ impl<T: CDatatype> From<(*mut c_void, usize)> for Buffer<T> {
 /// let buf = cached::<f32>(10);
 /// assert_eq!(device.read(&buf), vec![1.5; 10]);
 /// ```
-pub fn cached<T: Default+Copy>(len: usize) -> Buffer<T> {
+pub fn cached<T: Default + Copy>(len: usize) -> Buffer<T> {
     let device = get_device!(CacheBuf<T>).unwrap();
     device.cached_buf(len)
 }

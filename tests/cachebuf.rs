@@ -16,4 +16,3 @@ fn test_cpu_cache() {
     let upgrade = weak.upgrade().unwrap();
     let x = Rc::as_ptr(&x) as *mut f64;
 }*/
-
