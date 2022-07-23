@@ -1,17 +1,24 @@
 use std::{ffi::c_void, fmt::Debug, ptr::null_mut};
 
 #[cfg(feature = "opencl")]
-#[cfg(feature = "safe")]
+
 use crate::opencl::api::{release_mem_object, retain_mem_object};
 use crate::{get_device, CDatatype, CacheBuf, ClearBuf, Device, VecRead, WriteBuf};
 
 #[cfg(not(feature = "safe"))]
 use crate::number::Number;
 
-#[cfg_attr(not(feature = "safe"), derive(Clone, Copy))]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum BufFlag {
+    None = 0,
+    Cache = 1,
+}
+
+#[cfg_attr(not(feature = "safe"), derive(Clone))]
 pub struct Buffer<T> {
     pub ptr: (*mut T, *mut c_void, u64),
     pub len: usize,
+    pub flag: BufFlag,
 }
 
 impl<T> Buffer<T> {
@@ -34,6 +41,7 @@ impl<T> Buffer<T> {
         Buffer {
             ptr: device.alloc(len),
             len,
+            flag: BufFlag::None
         }
     }
 
@@ -56,7 +64,8 @@ impl<T> Buffer<T> {
     pub unsafe fn from_raw_host(ptr: *mut T, len: usize) -> Buffer<T> {
         Buffer {
             ptr: (ptr, null_mut(), 0),
-            len
+            len,
+            flag: BufFlag::None,
         }
     }
 
@@ -188,7 +197,7 @@ impl<T: Clone> Clone for Buffer<T> {
             }
             let mut ptr = self.ptr;
             ptr.0 = Box::into_raw(data.into_boxed_slice()) as *mut T;
-            return Self { ptr, len: self.len };
+            return Self { ptr, len: self.len, flag: BufFlag::None };
         }
 
         #[cfg(feature = "opencl")]
@@ -204,6 +213,7 @@ impl<T: Clone> Clone for Buffer<T> {
         Self {
             ptr: self.ptr,
             len: self.len,
+            flag: BufFlag::None
         }
     }
 }
@@ -212,16 +222,22 @@ impl<A: Clone + Default> FromIterator<A> for Buffer<A> {
     fn from_iter<T: IntoIterator<Item = A>>(iter: T) -> Self {
         let device = get_device!(Device<A>).unwrap();
         let from_iter = Vec::from_iter(iter);
+       
         Buffer {
             len: from_iter.len(),
             ptr: device.alloc_with_vec(from_iter),
+            flag: BufFlag::None
         }        
     }
 }
 
-#[cfg(feature = "safe")]
+
 impl<T> Drop for Buffer<T> {
     fn drop(&mut self) {
+        if self.flag == BufFlag::Cache {
+            return;
+        }
+
         unsafe {
             if !self.ptr.0.is_null() && self.ptr.1.is_null() {
                 let ptr = std::slice::from_raw_parts_mut(self.ptr.0, self.len);
@@ -247,6 +263,7 @@ impl<T> Default for Buffer<T> {
         Self {
             ptr: (null_mut(), null_mut(), 0),
             len: Default::default(),
+            flag: BufFlag::None
         }
     }
 }
@@ -410,6 +427,7 @@ impl<T: Number> From<T> for Buffer<T> {
         Buffer {
             ptr: (Box::into_raw(Box::new(val)), null_mut(), 0),
             len: 0,
+            flag: BufFlag::None
         }
     }
 }
@@ -419,6 +437,7 @@ impl<T: Clone, const N: usize> From<(&Box<dyn Device<T>>, &[T; N])> for Buffer<T
         Buffer {
             ptr: device_slice.0.with_data(device_slice.1),
             len: device_slice.1.len(),
+            flag: BufFlag::None
         }
     }
 }
@@ -428,6 +447,7 @@ impl<T: Clone> From<(&Box<dyn Device<T>>, usize)> for Buffer<T> {
         Buffer {
             ptr: device_len.0.alloc(device_len.1),
             len: device_len.1,
+            flag: BufFlag::None
         }
     }
 }
@@ -437,6 +457,7 @@ impl<T: Clone, D: Device<T>, const N: usize> From<(&D, [T; N])> for Buffer<T> {
         Buffer {
             ptr: device_slice.0.with_data(&device_slice.1),
             len: device_slice.1.len(),
+            flag: BufFlag::None
         }
     }
 }
@@ -446,6 +467,7 @@ impl<T: Clone, D: Device<T>> From<(&D, &[T])> for Buffer<T> {
         Buffer {
             ptr: device_slice.0.with_data(device_slice.1),
             len: device_slice.1.len(),
+            flag: BufFlag::None
         }
     }
 }
@@ -456,6 +478,7 @@ impl<T: Clone, D: Device<T>> From<(&D, Vec<T>)> for Buffer<T> {
         Buffer {
             ptr: device_slice.0.alloc_with_vec(device_slice.1),
             len,
+            flag: BufFlag::None
         }
     }
 }
@@ -466,6 +489,7 @@ impl<T: Clone> From<(Box<dyn Device<T>>, Vec<T>)> for Buffer<T> {
         Buffer {
             ptr: device_slice.0.alloc_with_vec(device_slice.1),
             len,
+            flag: BufFlag::None
         }
     }
 }
@@ -476,6 +500,7 @@ impl<T: Clone, D: Device<T>> From<(&D, &Vec<T>)> for Buffer<T> {
         Buffer {
             ptr: device_slice.0.with_data(device_slice.1),
             len,
+            flag: BufFlag::None
         }
     }
 }
@@ -487,6 +512,7 @@ impl<T: Copy> From<(*mut T, usize)> for Buffer<T> {
         Buffer {
             ptr: (info.0, null_mut(), 0),
             len: info.1,
+            flag: BufFlag::Cache
         }
     }
 }
@@ -496,6 +522,7 @@ impl<T: CDatatype> From<(*mut c_void, usize)> for Buffer<T> {
         Buffer {
             ptr: (null_mut(), info.0, 0),
             len: info.1,
+            flag: BufFlag::Cache
         }
     }
 }

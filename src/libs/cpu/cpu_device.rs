@@ -78,19 +78,6 @@ impl<T: Clone + Default> Device<T> for CPU {
         ));
         (ptr as *mut T, std::ptr::null_mut(), 0)
     }
-
-    #[cfg(not(feature = "safe"))]
-    fn drop(&mut self, buf: Buffer<T>) {
-        let ptrs = &mut self.inner.borrow_mut().ptrs;
-        let slice = unsafe { std::slice::from_raw_parts_mut(buf.ptr.0, buf.len) };
-
-        crate::remove_value(
-            ptrs,
-            &StoredCPUPtr::new(slice as *mut [T] as *mut [u8], std::mem::size_of::<T>()),
-        )
-        .unwrap();
-        self.drop_buf(buf)
-    }
 }
 
 impl AsDev for CPU {
@@ -162,12 +149,13 @@ impl Drop for InternCPU {
         let contents = CPU_CACHE.with(|cache| cache.borrow().nodes.clone());
 
         for ptr in self.ptrs.iter() {
-            unsafe {
+            /*unsafe {
                 let len = (&*ptr.fat_ptr).len();
                 let slice = std::slice::from_raw_parts_mut(ptr.fat_ptr as *mut u8, len * ptr.align);
                 drop(Box::from_raw(slice));
-            }
+            }*/
 
+            /* 
             for entry in &contents {
                 let hm_ptr = ((entry.1).0).0;
                 if hm_ptr == ptr.fat_ptr as *mut usize {
@@ -175,7 +163,7 @@ impl Drop for InternCPU {
                         cache.borrow_mut().nodes.remove(entry.0);
                     });
                 }
-            }
+            }*/
         }
         self.ptrs.clear();
     }

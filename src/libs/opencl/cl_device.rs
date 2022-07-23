@@ -137,12 +137,6 @@ impl<T> Device<T> for CLDevice {
         (cpu_ptr, ptr, 0)
     }
 
-    #[cfg(not(feature = "safe"))]
-    fn drop(&mut self, buf: Buffer<T>) {
-        let ptrs = &mut self.inner.borrow_mut().ptrs;
-        crate::remove_value(ptrs, &buf.ptr.1).unwrap();
-        self.drop_buf(buf)
-    }
 }
 
 impl<T> ManualMem<T> for CLDevice {
@@ -244,7 +238,7 @@ impl Drop for InternCLDevice {
         });
 
         for ptr in self.ptrs.iter() {
-            unsafe { release_mem_object(*ptr).unwrap() };
+            /*unsafe { release_mem_object(*ptr).unwrap() };
 
             for entry in &contents {
                 let hm_ptr = ((entry.1).0).0;
@@ -254,7 +248,7 @@ impl Drop for InternCLDevice {
                         cache.borrow_mut().nodes.remove(entry.0);
                     });
                 }
-            }
+            }*/
         }
         self.ptrs.clear();
     }

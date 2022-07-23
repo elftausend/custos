@@ -13,7 +13,7 @@ pub mod cl_devices;
 mod kernel_options;
 
 use self::api::{create_buffer, release_mem_object, MemFlags};
-use crate::{Buffer, Node, CDatatype};
+use crate::{Buffer, Node, CDatatype, BufFlag};
 
 /// Returns an OpenCL pointer that is bound to the host pointer stored in the specified matrix.
 pub fn to_unified<T>(device: &CLDevice, no_drop: Buffer<T>) -> crate::Result<*mut c_void> {
@@ -61,6 +61,7 @@ pub fn construct_buffer<T>(
     Ok(Buffer {
         ptr: (host_ptr, cl_ptr, 0),
         len,
+        flag: BufFlag::Cache,
     })
 }
 

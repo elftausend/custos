@@ -1,7 +1,7 @@
 use super::api::{
     build_program, create_kernels_in_program, create_program_with_source, set_kernel_arg, Kernel,
 };
-use crate::{CLDevice, Error, Node};
+use crate::{CLDevice, Error, Node, Device, BufFlag};
 use std::{any::TypeId, cell::RefCell, collections::HashMap, ffi::c_void};
 
 #[cfg(feature = "opencl")]
@@ -35,14 +35,19 @@ pub struct CLCache {
 
 impl CLCache {
     pub fn add_node<T>(&mut self, device: &CLDevice, node: Node) -> Buffer<T> {
-        let out = Buffer::new(device, node.len);
+        let out = Buffer {
+            ptr: device.alloc(node.len),
+            len: node.len,
+            flag: BufFlag::Cache
+        };
+
         self.nodes.insert(node, (OclPtr(out.ptr.1), out.len));
         out
     }
 
     #[cfg(not(feature = "safe"))]
     pub fn get<T>(device: &CLDevice, len: usize) -> Buffer<T> {
-        use crate::opencl::api::unified_ptr;
+        use crate::{opencl::api::unified_ptr};
         assert!(
             !device.inner.borrow().ptrs.is_empty(),
             "no OpenCL allocations"
@@ -64,6 +69,7 @@ impl CLCache {
                     Buffer {
                         ptr: (unified_ptr, buf_info.0 .0, 0),
                         len: buf_info.1,
+                        flag: BufFlag::Cache
                     }
                 }
                 None => cache.add_node(device, node),

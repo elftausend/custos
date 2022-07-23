@@ -3,7 +3,7 @@ use super::api::{
     nvrtc::{create_program, nvrtcDestroyProgram},
     FnHandle,
 };
-use crate::{Buffer, CudaDevice, Error, Node};
+use crate::{Buffer, CudaDevice, Error, Node, Device, BufFlag};
 use std::{cell::RefCell, collections::HashMap, ffi::CString};
 
 thread_local! {
@@ -28,7 +28,11 @@ pub struct CudaCache {
 
 impl CudaCache {
     pub fn add_node<T>(&mut self, device: &CudaDevice, node: Node) -> Buffer<T> {
-        let out = Buffer::new(device, node.len);
+        let out = Buffer {
+            ptr: device.alloc(node.len),
+            len: node.len,
+            flag: BufFlag::Cache
+        };
         self.nodes.insert(node, (CudaPtr(out.ptr.2), out.len));
         out
     }
@@ -51,6 +55,7 @@ impl CudaCache {
                 Some(buf_info) => Buffer {
                     ptr: (null_mut(), null_mut(), buf_info.0 .0),
                     len: buf_info.1,
+                    flag: BufFlag::Cache
                 },
                 None => cache.add_node(device, node),
             }

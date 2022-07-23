@@ -1,4 +1,4 @@
-use crate::{Buffer, Node, CPU};
+use crate::{Buffer, Node, CPU, Device, BufFlag};
 use std::{cell::RefCell, collections::HashMap};
 
 thread_local! {
@@ -36,7 +36,11 @@ pub struct CPUCache {
 
 impl CPUCache {
     pub fn add_node<T: Default + Copy>(&mut self, device: &CPU, node: Node) -> Buffer<T> {
-        let out = Buffer::new(device, node.len);
+        let out = Buffer {
+            ptr: device.alloc(node.len),
+            len: node.len,
+            flag: BufFlag::Cache,
+        };
         self.nodes
             .insert(node, (CpuPtr(out.ptr.0 as *mut usize), out.len));
         out
@@ -45,13 +49,19 @@ impl CPUCache {
     #[cfg(not(feature = "safe"))]
     pub fn get<T: Default + Copy>(device: &CPU, len: usize) -> Buffer<T> {
         //assert!(!device.cpu.borrow().ptrs.is_empty(), "no cpu allocations");
+
+        use std::ptr::null_mut;
         let node = Node::new(len);
         CPU_CACHE.with(|cache| {
             let mut cache = cache.borrow_mut();
             let buf_info_option = cache.nodes.get(&node);
 
             match buf_info_option {
-                Some(buf_info) => Buffer::from((buf_info.0 .0 as *mut T, buf_info.1)),
+                Some(buf_info) => Buffer {
+                    ptr: (buf_info.0.0 as *mut T, null_mut(), 0),
+                    len: buf_info.1,
+                    flag: BufFlag::Cache,  
+                },
                 None => cache.add_node(device, node),
             }
         })
