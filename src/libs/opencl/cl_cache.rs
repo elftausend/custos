@@ -13,11 +13,6 @@ thread_local! {
         arg_kernel_cache: HashMap::new(),
         kernel_cache: HashMap::new()
     });
-    pub static CL_DEVICE_COUNT: RefCell<usize> = RefCell::new(0);
-}
-
-pub fn get_cl_device_count() -> *mut usize {
-    CL_DEVICE_COUNT.with(|c| c.as_ptr())
 }
 
 
@@ -69,10 +64,10 @@ impl CLCache {
     pub fn get<T>(device: &CLDevice, len: usize) -> Buffer<T> {
         use crate::{opencl::api::unified_ptr};
         
-        assert!(
+        /*assert!(
             !device.inner.borrow().ptrs.is_empty(),
             "no OpenCL allocations"
-        );
+        );*/
         let node = Node::new(len);
 
         CL_CACHE.with(|cache| {

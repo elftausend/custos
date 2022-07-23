@@ -2,7 +2,7 @@ use std::{ffi::c_void, fmt::Debug, ptr::null_mut};
 
 #[cfg(feature = "opencl")]
 use crate::opencl::api::release_mem_object;
-use crate::{get_device, CDatatype, CacheBuf, ClearBuf, Device, VecRead, WriteBuf, cpu::CPUCache, opencl::CLCache};
+use crate::{get_device, CDatatype, CacheBuf, ClearBuf, Device, VecRead, WriteBuf, cpu::CPUCache};
 
 #[cfg(not(feature = "safe"))]
 use crate::number::Number;
@@ -103,9 +103,11 @@ impl<T> Buffer<T> {
         self.ptr.0
     }
 
+    #[cfg(feature="opencl")]
     pub fn cl_ptr(&self) -> *mut c_void {
+        use crate::opencl::CLCache;
         assert!(
-            !self.ptr.1.is_null() && !(self.flag == BufFlag::Cache && CLCache::count() == 0 && self.ptr.1.is_null()),
+            !self.ptr.1.is_null() && !(self.flag == BufFlag::Cache && CLCache::count() == 0),
             "called cl_ptr() on an invalid OpenCL buffer"
         );
         self.ptr.1
@@ -113,9 +115,11 @@ impl<T> Buffer<T> {
 
     // TODO: replace buf.ptr.2 with this fn, do the same with cl, cpu
     /// Returns a non null CUDA pointer
+    #[cfg(feature="cuda")]
     pub fn cu_ptr(&self) -> u64 {
+        use crate::cuda::CudaCache;
         assert!(
-            self.ptr.2 != 0 && !(self.flag == BufFlag::Cache && CLCache::count() == 0 && self.ptr.1.is_null()),
+            self.ptr.2 != 0 && !(self.flag == BufFlag::Cache && CudaCache::count() == 0),
             "called cu_ptr() on an invalid CUDA buffer"
         );
         self.ptr.2

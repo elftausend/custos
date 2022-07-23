@@ -3,11 +3,6 @@ use std::{cell::RefCell, collections::HashMap, mem::align_of};
 
 thread_local! {
     pub static CPU_CACHE: RefCell<CPUCache> = RefCell::new(CPUCache { nodes: HashMap::new() });
-    pub static CPU_DEVICE_COUNT: RefCell<usize> = RefCell::new(0);
-}
-
-pub fn get_cpu_device_count() -> *mut usize {
-    CPU_DEVICE_COUNT.with(|c| c.as_ptr())
 }
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]

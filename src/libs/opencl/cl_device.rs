@@ -3,11 +3,11 @@ use super::{
         create_command_queue, create_context, enqueue_read_buffer, release_mem_object, unified_ptr,
         wait_for_event, CLIntDevice, CommandQueue, Context, enqueue_write_buffer,
     },
-    cl_clear, CLCache, CL_CACHE, CL_DEVICES, get_cl_device_count,
+    cl_clear, CLCache, CL_CACHE, CL_DEVICES,
 };
 use crate::{
     libs::opencl::api::{create_buffer, MemFlags},
-    AsDev, BaseDevice, Buffer, CDatatype, CacheBuf, ClearBuf, Device, Error, ManualMem, VecRead, WriteBuf,
+    AsDev, BaseDevice, Buffer, CDatatype, CacheBuf, ClearBuf, Device, Error, ManualMem, VecRead, WriteBuf, get_device_count,
 };
 use std::{cell::RefCell, ffi::c_void, fmt::Debug, rc::Rc};
 
@@ -41,7 +41,7 @@ impl CLDevice {
     /// - some other OpenCL related errors
     pub fn new(device_idx: usize) -> Result<CLDevice, Error> {
         unsafe {
-            *get_cl_device_count() += 1;
+            *get_device_count() += 1;
         }
         let inner = Rc::new(RefCell::new(CL_DEVICES.current(device_idx)?));
         Ok(CLDevice { inner })
@@ -230,7 +230,7 @@ impl InternCLDevice {
 impl Drop for InternCLDevice {
     fn drop(&mut self) {
         unsafe {
-            let count = get_cl_device_count();
+            let count = get_device_count();
             *count -= 1;
             if *count != 0 {
                 return;

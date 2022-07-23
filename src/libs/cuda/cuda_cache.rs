@@ -11,11 +11,6 @@ thread_local! {
         kernels: HashMap::new(),
         nodes: HashMap::new(),
     });
-    pub static CUDA_DEVICE_COUNT: RefCell<usize> = RefCell::new(0);
-}
-
-pub fn get_cu_device_count() -> *mut usize {
-    CUDA_DEVICE_COUNT.with(|c| c.as_ptr())
 }
 
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
@@ -43,6 +38,10 @@ pub struct CudaCache {
 }
 
 impl CudaCache {
+    pub fn count() -> usize {
+        CUDA_CACHE.with(|cache| cache.borrow().nodes.len())
+    }
+
     pub fn add_node<T>(&mut self, device: &CudaDevice, node: Node) -> Buffer<T> {
         let out = Buffer {
             ptr: device.alloc(node.len),

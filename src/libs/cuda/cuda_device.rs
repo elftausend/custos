@@ -5,10 +5,10 @@ use super::{
         cublas::{create_handle, cublasDestroy_v2, cublasSetStream_v2, CublasHandle},
         cumalloc, device, Context, CudaIntDevice, Module, Stream,
     },
-    cu_clear, CudaCache, CUDA_CACHE, get_cu_device_count,
+    cu_clear, CudaCache, CUDA_CACHE
 };
 use crate::{
-    AsDev, BaseDevice, CDatatype, CUdeviceptr, CacheBuf, ClearBuf, Device, GenericBlas, VecRead, WriteBuf,
+    AsDev, BaseDevice, CDatatype, CUdeviceptr, CacheBuf, ClearBuf, Device, GenericBlas, VecRead, WriteBuf, get_device_count,
 };
 use std::{
     cell::{Ref, RefCell, RefMut},
@@ -26,7 +26,7 @@ pub struct CudaDevice {
 impl CudaDevice {
     pub fn new(idx: usize) -> crate::Result<CudaDevice> {
         unsafe {
-            *get_cu_device_count() += 1;
+            *get_device_count() += 1;
         }
         let inner = Rc::new(RefCell::new(InternCudaDevice::new(idx)?));
         Ok(CudaDevice { inner })
@@ -167,7 +167,7 @@ impl InternCudaDevice {
 impl Drop for InternCudaDevice {
     fn drop(&mut self) {
         unsafe {
-            let count = get_cu_device_count();
+            let count = get_device_count();
             *count -= 1;
             if *count != 0 {
                 return;

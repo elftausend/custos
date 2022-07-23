@@ -23,15 +23,23 @@ pub struct InternCudaDevice;
 
 thread_local! {
     pub static COUNT: RefCell<usize> = RefCell::new(0);
+    pub static DEVICE_COUNT: RefCell<usize> = RefCell::new(0);
+}
+
+#[inline]
+pub fn get_device_count() -> *mut usize {
+    DEVICE_COUNT.with(|c| c.as_ptr())
 }
 
 /// Sets current cache identifier / index.
 /// This function is usually called after an iteration in a loop -> [Count](crate::Count) or [range](crate::range)
+#[inline]
 pub fn set_count(count: usize) {
     COUNT.with(|c| *c.borrow_mut() = count);
 }
 
 /// Returns current cache identifier / index
+#[inline]
 pub fn get_count() -> usize {
     COUNT.with(|c| *c.borrow())
 }

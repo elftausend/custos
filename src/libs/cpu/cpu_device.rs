@@ -1,7 +1,7 @@
-use super::{CPU_CACHE, get_cpu_device_count};
+use super::CPU_CACHE;
 use crate::{
     libs::cpu::CPUCache, number::Number, AsDev, BaseDevice, Buffer, CDatatype, CacheBuf, ClearBuf,
-    Device, GenericBlas, ManualMem, VecRead, WriteBuf,
+    Device, GenericBlas, ManualMem, VecRead, WriteBuf, get_device_count,
 };
 use std::{cell::RefCell, ffi::c_void, fmt::Debug, rc::Rc};
 
@@ -29,7 +29,7 @@ impl CPU {
     /// Creates an [CPU] with an InternCPU that holds an empty vector of pointers.
     pub fn new() -> CPU {
         unsafe {
-            *get_cpu_device_count() += 1;
+            *get_device_count() += 1;
         }
 
         CPU {
@@ -151,7 +151,7 @@ pub struct InternCPU {
 impl Drop for InternCPU {
     fn drop(&mut self) {
         unsafe {
-            let count = get_cpu_device_count();
+            let count = get_device_count();
             *count -= 1;
             if *count != 0 {
                 return;
