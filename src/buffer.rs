@@ -114,7 +114,10 @@ impl<T> Buffer<T> {
     // TODO: replace buf.ptr.2 with this fn, do the same with cl, cpu
     /// Returns a non null CUDA pointer
     pub fn cu_ptr(&self) -> u64 {
-        assert!(self.ptr.2 != 0, "");
+        assert!(
+            self.ptr.2 != 0 && !(self.flag == BufFlag::Cache && CLCache::count() == 0 && self.ptr.1.is_null()),
+            "called cu_ptr() on an invalid CUDA buffer"
+        );
         self.ptr.2
     }
 

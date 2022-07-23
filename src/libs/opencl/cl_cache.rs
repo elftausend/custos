@@ -68,6 +68,7 @@ impl CLCache {
     #[cfg(not(feature = "safe"))]
     pub fn get<T>(device: &CLDevice, len: usize) -> Buffer<T> {
         use crate::{opencl::api::unified_ptr};
+        
         assert!(
             !device.inner.borrow().ptrs.is_empty(),
             "no OpenCL allocations"

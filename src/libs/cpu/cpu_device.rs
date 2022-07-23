@@ -157,10 +157,8 @@ impl Drop for InternCPU {
                 return;
             }    
         }
-        
-        CPU_CACHE.with(|cache| { 
-            cache.borrow_mut().nodes.clear();
-        });
+
+        CPU_CACHE.with(|cache| cache.borrow_mut().nodes.clear());
         
         // TODO: remove this
         self.ptrs.clear();

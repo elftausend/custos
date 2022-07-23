@@ -1,7 +1,7 @@
 use super::api::{
     load_module_data,
     nvrtc::{create_program, nvrtcDestroyProgram},
-    FnHandle,
+    FnHandle, cufree,
 };
 use crate::{Buffer, CudaDevice, Error, Node, Device, BufFlag};
 use std::{cell::RefCell, collections::HashMap, ffi::CString};
@@ -10,7 +10,12 @@ thread_local! {
     pub static CUDA_CACHE: RefCell<CudaCache> = RefCell::new(CudaCache {
         kernels: HashMap::new(),
         nodes: HashMap::new(),
-    })
+    });
+    pub static CUDA_DEVICE_COUNT: RefCell<usize> = RefCell::new(0);
+}
+
+pub fn get_cu_device_count() -> *mut usize {
+    CUDA_DEVICE_COUNT.with(|c| c.as_ptr())
 }
 
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
@@ -19,11 +24,22 @@ pub struct CudaPtr(pub u64);
 unsafe impl Send for CudaPtr {}
 unsafe impl Sync for CudaPtr {}
 
-type RawInfo = (CudaPtr, usize);
+pub struct RawCUDA {
+    pub ptr: u64,
+    pub len: usize,
+}
+
+impl Drop for RawCUDA {
+    fn drop(&mut self) {
+        unsafe {
+            cufree(self.ptr).unwrap()
+        }
+    }
+}
 
 pub struct CudaCache {
     pub kernels: HashMap<String, FnHandle>,
-    pub nodes: HashMap<Node, RawInfo>,
+    pub nodes: HashMap<Node, RawCUDA>,
 }
 
 impl CudaCache {
@@ -33,7 +49,7 @@ impl CudaCache {
             len: node.len,
             flag: BufFlag::Cache
         };
-        self.nodes.insert(node, (CudaPtr(out.ptr.2), out.len));
+        self.nodes.insert(node, RawCUDA { ptr: out.ptr.2, len: out.len });
         out
     }
 
@@ -41,10 +57,11 @@ impl CudaCache {
     pub fn get<T>(device: &CudaDevice, len: usize) -> Buffer<T> {
         use std::ptr::null_mut;
 
-        assert!(
+        /*assert!(
             !device.inner.borrow().ptrs.is_empty(),
             "no Cuda allocations"
-        );
+        );*/
+
         let node = Node::new(len);
 
         CUDA_CACHE.with(|cache| {
@@ -53,8 +70,8 @@ impl CudaCache {
 
             match buf_info_option {
                 Some(buf_info) => Buffer {
-                    ptr: (null_mut(), null_mut(), buf_info.0 .0),
-                    len: buf_info.1,
+                    ptr: (null_mut(), null_mut(), buf_info.ptr),
+                    len: buf_info.len,
                     flag: BufFlag::Cache
                 },
                 None => cache.add_node(device, node),
