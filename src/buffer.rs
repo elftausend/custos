@@ -180,14 +180,8 @@ unsafe impl<T> Sync for Buffer<T> {}
 impl<T: Clone> Clone for Buffer<T> {
     fn clone(&self) -> Self {
         if !self.ptr.0.is_null() && self.ptr.1.is_null() {
-            // using this to prevent the introduction of the Default trait bound for T
-            // FIXME: is there a better way to implement this?
-            let mut data = Vec::<T>::with_capacity(self.len);
-            for value in self {
-                data.push(value.clone())
-            }
             let mut ptr = self.ptr;
-            ptr.0 = Box::into_raw(data.into_boxed_slice()) as *mut T;
+            ptr.0 = Box::into_raw(self.as_slice().to_vec().into_boxed_slice()) as *mut T;
             return Self { ptr, len: self.len };
         }
 
