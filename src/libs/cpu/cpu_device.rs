@@ -1,6 +1,6 @@
 use crate::{
     deallocate_cache, get_device_count, libs::cpu::CPUCache, number::Number, AsDev, BaseDevice,
-    Buffer, CDatatype, CacheBuf, ClearBuf, Device, GenericBlas, ManualMem, VecRead, WriteBuf,
+    Buffer, CDatatype, CacheBuf, ClearBuf, Device, GenericBlas, ManualMem, VecRead, WriteBuf, CacheBuffer,
 };
 use std::{cell::RefCell, ffi::c_void, fmt::Debug, rc::Rc};
 
@@ -77,7 +77,7 @@ impl<T> ManualMem<T> for CPU {
 }
 
 impl<T: Copy + Default> CacheBuf<T> for CPU {
-    fn cached_buf(&self, len: usize) -> Buffer<T> {
+    fn cached_buf(&self, len: usize) -> CacheBuffer<T> {
         CPUCache::get::<T>(self, len)
     }
 }

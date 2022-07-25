@@ -24,6 +24,7 @@ pub struct RawCUDA {
     pub len: usize,
 }
 
+
 impl Drop for RawCUDA {
     fn drop(&mut self) {
         unsafe { cufree(self.ptr).unwrap() }

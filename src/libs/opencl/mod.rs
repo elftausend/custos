@@ -1,4 +1,4 @@
-use std::ffi::c_void;
+use std::{ffi::c_void, ptr::null_mut};
 
 pub use cl_cache::*;
 pub use cl_device::*;
@@ -31,6 +31,7 @@ pub fn to_unified<T>(device: &CLDevice, no_drop: Buffer<T>) -> crate::Result<*mu
             Node::new(no_drop.len),
             RawCL {
                 ptr: cl_ptr,
+                host_ptr: null_mut(),
                 len: no_drop.len,
             },
         )

@@ -3,13 +3,13 @@ use super::{
         create_command_queue, create_context, enqueue_read_buffer, enqueue_write_buffer,
         release_mem_object, unified_ptr, wait_for_event, CLIntDevice, CommandQueue, Context,
     },
-    cl_clear, CLCache, CL_DEVICES,
+    cl_clear, CL_DEVICES,
 };
 use crate::{
     deallocate_cache, get_device_count,
     libs::opencl::api::{create_buffer, MemFlags},
     AsDev, BaseDevice, Buffer, CDatatype, CacheBuf, ClearBuf, Device, Error, ManualMem, VecRead,
-    WriteBuf,
+    WriteBuf, CacheBuffer,
 };
 use std::{cell::RefCell, ffi::c_void, fmt::Debug, rc::Rc};
 
@@ -146,8 +146,9 @@ impl<T> ManualMem<T> for CLDevice {
 }
 
 impl<T> CacheBuf<T> for CLDevice {
-    fn cached_buf(&self, len: usize) -> Buffer<T> {
-        CLCache::get::<T>(self, len)
+    fn cached_buf(&self, len: usize) -> CacheBuffer<T> {
+        todo!()
+        //CLCache::get::<T>(self, len)
     }
 }
 

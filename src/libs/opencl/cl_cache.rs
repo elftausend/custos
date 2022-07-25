@@ -2,8 +2,8 @@ use super::api::{
     build_program, create_kernels_in_program, create_program_with_source, release_mem_object,
     set_kernel_arg, Kernel,
 };
-use crate::{BufFlag, CLDevice, Device, Error, Node};
-use std::{any::TypeId, cell::RefCell, collections::HashMap, ffi::c_void};
+use crate::{BufFlag, CLDevice, Device, Error, Node, CacheBuffer, Valid};
+use std::{any::TypeId, cell::RefCell, collections::HashMap, ffi::c_void, rc::Rc, ptr::null_mut};
 
 #[cfg(feature = "opencl")]
 use crate::Buffer;
@@ -25,6 +25,7 @@ unsafe impl Sync for OclPtr {}
 #[derive(Debug)]
 pub struct RawCL {
     pub ptr: *mut c_void,
+    pub host_ptr: *mut usize,
     pub len: usize,
 }
 
@@ -36,74 +37,58 @@ impl Drop for RawCL {
 
 type KernelIdent = (Vec<OclPtr>, Vec<TypeId>, Option<OclPtr>, String);
 
+
 #[derive(Debug)]
 /// Stores kernels and outputs
 pub struct CLCache {
     // TODO: Instead of a hashmap: vec?
-    pub nodes: HashMap<Node, RawCL>,
+    pub nodes: HashMap<Node, (RawCL, Rc<Valid>)>,
     pub(crate) arg_kernel_cache: HashMap<KernelIdent, Kernel>,
     pub(crate) kernel_cache: HashMap<String, Kernel>,
 }
 
 impl CLCache {
-    pub fn count() -> usize {
-        CL_CACHE.with(|cache| cache.borrow().nodes.len())
-    }
+    pub fn add_node<T: Default + Copy>(&mut self, device: &CLDevice, node: Node) -> CacheBuffer<T> {
+        let ptr: (*mut T, *mut c_void, _) = device.alloc(node.len);
 
-    pub fn add_node<T>(&mut self, device: &CLDevice, node: Node) -> Buffer<T> {
-        let out = Buffer {
-            ptr: device.alloc(node.len),
+        let valid = Rc::new(Valid);
+        let cb = CacheBuffer::new(ptr, node.len, Rc::downgrade(&valid));
+
+        self.nodes.insert(node, (RawCL {
+            ptr: ptr.1,
+            host_ptr: ptr.0 as *mut usize,
             len: node.len,
-            flag: BufFlag::Cache,
-        };
-        self.nodes.insert(
-            node,
-            RawCL {
-                ptr: out.ptr.1,
-                len: out.len,
-            },
-        );
-        out
+        }, valid));
+
+        cb
     }
 
-    pub fn get<T>(device: &CLDevice, len: usize) -> Buffer<T> {
-        use crate::opencl::api::unified_ptr;
-
-        /*assert!(
-            !device.inner.borrow().ptrs.is_empty(),
-            "no OpenCL allocations"
-        );*/
+    pub fn get<T: Default+Copy>(device: &CLDevice, len: usize) -> CacheBuffer<T> {
         let node = Node::new(len);
 
         CL_CACHE.with(|cache| {
             let mut cache = cache.borrow_mut();
             let buf_info_option = cache.nodes.get(&node);
-
             match buf_info_option {
-                Some(buf_info) => {
-                    let unified_ptr = if device.unified_mem() {
-                        unified_ptr::<T>(device.queue(), buf_info.ptr, buf_info.len).unwrap()
-                    } else {
-                        std::ptr::null_mut()
-                    };
-
-                    Buffer {
-                        ptr: (unified_ptr, buf_info.ptr, 0),
-                        len: buf_info.len,
-                        flag: BufFlag::Cache,
-                    }
-                }
+                Some(buf_info) => CacheBuffer::new(
+                    (buf_info.0.host_ptr as *mut T, buf_info.0.ptr, 0), 
+                    len, 
+                    Rc::downgrade(&buf_info.1)
+                ),
                 None => cache.add_node(device, node),
             }
         })
+        
     }
+
+    
 
     pub(crate) fn arg_kernel_cache<T: 'static>(
         &mut self,
         device: &CLDevice,
         buffers: &[(&Buffer<T>, usize)],
         numbers: &[(T, usize)],
-        output: Option<&Buffer<T>>,
+        output: Option<&CacheBuffer<T>>,
         src: String,
     ) -> Result<Kernel, Error> {
         let type_ids = vec![TypeId::of::<T>(); numbers.len()];

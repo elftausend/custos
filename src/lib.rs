@@ -37,6 +37,7 @@ use std::{cell::RefCell, ffi::c_void, rc::Weak};
 
 //pub use libs::*;
 pub use buffer::*;
+pub use cache_buffer::*;
 pub use count::*;
 pub use libs::*;
 
@@ -50,6 +51,7 @@ pub use libs::opencl::{CLDevice, InternCLDevice};
 pub mod libs;
 
 mod buffer;
+mod cache_buffer;
 mod count;
 
 pub mod number;
@@ -238,7 +240,7 @@ pub trait CacheBuf<T> {
     /// let buf = CacheBuf::<f32>::cached_buf(&device, 10);
     /// assert_eq!(device.read(&buf), vec![1.5; 10]);
     /// ```
-    fn cached_buf(&self, len: usize) -> Buffer<T>;
+    fn cached_buf(&self, len: usize) -> CacheBuffer<T>;
 }
 
 #[derive(Debug, Clone)]

@@ -1,9 +1,8 @@
 use std::{ffi::c_void, fmt::Debug, ptr::null_mut};
 
-use crate::get_device_count;
 #[cfg(feature = "opencl")]
 use crate::opencl::api::release_mem_object;
-use crate::{cpu::CPUCache, get_device, CDatatype, CacheBuf, ClearBuf, Device, VecRead, WriteBuf};
+use crate::{ get_device, CDatatype, CacheBuf, ClearBuf, Device, VecRead, WriteBuf, CacheBuffer};
 
 use crate::number::Number;
 
@@ -97,8 +96,7 @@ impl<T> Buffer<T> {
     /// Returns a non null host pointer
     pub fn host_ptr(&self) -> *mut T {
         assert!(
-            !(self.ptr.0.is_null()
-                || self.flag == BufFlag::Cache && CPUCache::count() == 0 && self.ptr.1.is_null()),
+            !self.ptr.0.is_null(),
             "called host_ptr() on an invalid CPU buffer"
         );
         self.ptr.0
@@ -108,7 +106,7 @@ impl<T> Buffer<T> {
     pub fn cl_ptr(&self) -> *mut c_void {
         use crate::opencl::CLCache;
         assert!(
-            !(self.ptr.1.is_null() || self.flag == BufFlag::Cache && CLCache::count() == 0),
+            !(self.ptr.1.is_null() || self.flag == BufFlag::Cache && false),
             "called cl_ptr() on an invalid OpenCL buffer"
         );
         self.ptr.1
@@ -120,7 +118,7 @@ impl<T> Buffer<T> {
     pub fn cu_ptr(&self) -> u64 {
         use crate::cuda::CudaCache;
         assert!(
-            self.ptr.2 != 0 && !(self.flag == BufFlag::Cache && CudaCache::count() == 0),
+            self.ptr.2 != 0 && !(self.flag == BufFlag::Cache && false),
             "called cu_ptr() on an invalid CUDA buffer"
         );
         self.ptr.2
@@ -130,7 +128,7 @@ impl<T> Buffer<T> {
     pub fn as_slice(&self) -> &[T] {
         assert!(
             self.flag == BufFlag::Wrapper ||
-            !(self.ptr.0.is_null() || self.flag == BufFlag::Cache && unsafe {*get_device_count() == 0} /*CPUCache::count() == 0*/ && self.ptr.1.is_null()),
+            !(self.ptr.0.is_null() || self.flag == BufFlag::Cache && false /*unsafe {*get_device_count() == 0}*/ /*CPUCache::count() == 0*/ && self.ptr.1.is_null()),
             "called as_slice() on an invalid CPU buffer (this would dereference an invalid pointer)"
         );
         unsafe { std::slice::from_raw_parts(self.ptr.0, self.len) }
@@ -141,7 +139,7 @@ impl<T> Buffer<T> {
         assert!(
             self.flag == BufFlag::Wrapper
                 || !(self.ptr.0.is_null()
-                    || self.flag == BufFlag::Cache && unsafe {*get_device_count() == 0} /*CPUCache::count() == 0*/ && self.ptr.1.is_null()),
+                    || self.flag == BufFlag::Cache && false /*unsafe {*get_device_count() == 0}*/ /*CPUCache::count() == 0*/ && self.ptr.1.is_null()),
             "called as_mut_slice() on a non CPU buffer (this would dereference a null pointer)"
         );
         unsafe { std::slice::from_raw_parts_mut(self.ptr.0, self.len) }
@@ -589,7 +587,7 @@ impl<T: CDatatype> From<(u64, usize)> for Buffer<T> {
 /// let buf = cached::<f32>(10);
 /// assert_eq!(device.read(&buf), vec![1.5; 10]);
 /// ```
-pub fn cached<T: Default + Copy>(len: usize) -> Buffer<T> {
+pub fn cached<T: Default + Copy>(len: usize) -> CacheBuffer<T> {
     let device = get_device!(CacheBuf<T>).unwrap();
     device.cached_buf(len)
 }

@@ -194,7 +194,7 @@ fn test_cpu_to_unified() -> custos::Result<()> {
     buf.copy_from_slice(&[1, 2, 3, 4, 5, 6]);
 
     let cl_dev = CLDevice::new(0)?.select();
-    let cl_cpu_buf = construct_buffer(&cl_dev, &device, buf)?;
+    let cl_cpu_buf = construct_buffer(&cl_dev, &device, buf.to_buf())?;
 
     assert_eq!(cl_cpu_buf.as_slice(), &[1, 2, 3, 4, 5, 6]);
     assert_eq!(cl_cpu_buf.read(), &[1, 2, 3, 4, 5, 6]);
