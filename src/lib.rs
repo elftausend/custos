@@ -240,7 +240,7 @@ pub trait CacheBuf<T> {
     /// let buf = CacheBuf::<f32>::cached_buf(&device, 10);
     /// assert_eq!(device.read(&buf), vec![1.5; 10]);
     /// ```
-    fn cached_buf(&self, len: usize) -> CacheBuffer<T>;
+    fn cached_buf(&self, len: usize) -> Buffer<T>;
 }
 
 #[derive(Debug, Clone)]

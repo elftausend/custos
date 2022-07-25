@@ -1,4 +1,4 @@
-use crate::{Device, Node, CPU, CacheBuffer, Valid};
+use crate::{Device, Node, CPU, Valid, Buffer, BufFlag};
 use std::{
     cell::RefCell,
     collections::HashMap,
@@ -31,11 +31,16 @@ pub struct CPUCache {
 }
 
 impl CPUCache {
-    pub fn add_node<T: Default + Copy>(&mut self, device: &CPU, node: Node) -> CacheBuffer<T> {
+    pub fn add_node<T: Default + Copy>(&mut self, device: &CPU, node: Node) -> Buffer<T> {
         let ptr: (*mut T, _, _) = device.alloc(node.len);
 
         let valid = Rc::new(Valid);
-        let cb = CacheBuffer::new(ptr, node.len, Rc::downgrade(&valid));
+
+        let buf = Buffer {
+            ptr,
+            len: node.len,
+            flag: BufFlag::Cache2(Rc::downgrade(&valid))
+        };
 
         self.nodes.insert(node, (RawCpu {
             ptr: ptr.0 as *mut usize,
@@ -43,10 +48,10 @@ impl CPUCache {
             align: align_of::<T>(),
         }, valid));
 
-        cb
+        buf
     }
 
-    pub fn get<T: Default + Copy>(device: &CPU, len: usize) -> CacheBuffer<T> {
+    pub fn get<T: Default + Copy>(device: &CPU, len: usize) -> Buffer<T> {
         //assert!(!device.cpu.borrow().ptrs.is_empty(), "no cpu allocations");
 
         let node = Node::new(len);
@@ -56,7 +61,11 @@ impl CPUCache {
 
             match buf_info_option {
                 Some(buf_info) => {
-                    CacheBuffer::new((buf_info.0.ptr as *mut T, null_mut(), 0), buf_info.0.len, Rc::downgrade(&buf_info.1))
+                    Buffer {
+                        ptr: (buf_info.0.ptr as *mut T, null_mut(), 0),
+                        len: buf_info.0.len,
+                        flag: BufFlag::Cache2(Rc::downgrade(&buf_info.1))
+                    }                    
                 }
                 None => cache.add_node(device, node),
             }

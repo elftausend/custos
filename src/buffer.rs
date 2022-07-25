@@ -1,16 +1,18 @@
+use std::rc::Weak;
 use std::{ffi::c_void, fmt::Debug, ptr::null_mut};
 
 #[cfg(feature = "opencl")]
 use crate::opencl::api::release_mem_object;
-use crate::{ get_device, CDatatype, CacheBuf, ClearBuf, Device, VecRead, WriteBuf, CacheBuffer};
+use crate::{ get_device, CDatatype, CacheBuf, ClearBuf, Device, VecRead, WriteBuf, CacheBuffer, Valid};
 
 use crate::number::Number;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone)]
 pub enum BufFlag {
-    None = 0,
-    Cache = 1,
-    Wrapper = 2,
+    None,
+    Cache,
+    Cache2(Weak<Valid>),
+    Wrapper,
 }
 
 pub struct Buffer<T> {
@@ -106,7 +108,7 @@ impl<T> Buffer<T> {
     pub fn cl_ptr(&self) -> *mut c_void {
         use crate::opencl::CLCache;
         assert!(
-            !(self.ptr.1.is_null() || self.flag == BufFlag::Cache && false),
+            !(self.ptr.1.is_null() /*|| self.flag == BufFlag::Cache && false*/), // TODO: check if valid
             "called cl_ptr() on an invalid OpenCL buffer"
         );
         self.ptr.1
@@ -127,8 +129,9 @@ impl<T> Buffer<T> {
     /// Returns a CPU slice. This does not work with CUDA or OpenCL buffers.
     pub fn as_slice(&self) -> &[T] {
         assert!(
-            self.flag == BufFlag::Wrapper ||
-            !(self.ptr.0.is_null() || self.flag == BufFlag::Cache && false /*unsafe {*get_device_count() == 0}*/ /*CPUCache::count() == 0*/ && self.ptr.1.is_null()),
+            // TODO: check if valid
+            /*self.flag == BufFlag::Wrapper ||*/
+            !self.ptr.0.is_null(), 
             "called as_slice() on an invalid CPU buffer (this would dereference an invalid pointer)"
         );
         unsafe { std::slice::from_raw_parts(self.ptr.0, self.len) }
@@ -137,9 +140,9 @@ impl<T> Buffer<T> {
     /// Returns a mutable CPU slice.
     pub fn as_mut_slice(&mut self) -> &mut [T] {
         assert!(
-            self.flag == BufFlag::Wrapper
-                || !(self.ptr.0.is_null()
-                    || self.flag == BufFlag::Cache && false /*unsafe {*get_device_count() == 0}*/ /*CPUCache::count() == 0*/ && self.ptr.1.is_null()),
+            // TODO: check if valid
+            //self.flag == BufFlag::Wrapper
+            !self.ptr.0.is_null(),
             "called as_mut_slice() on a non CPU buffer (this would dereference a null pointer)"
         );
         unsafe { std::slice::from_raw_parts_mut(self.ptr.0, self.len) }
@@ -203,16 +206,17 @@ unsafe impl<T> Sync for Buffer<T> {}*/
 
 impl<T> Clone for Buffer<T> {
     fn clone(&self) -> Self {
-        assert_eq!(
+        // TODO: check if cache
+        /*assert_eq!(
             self.flag,
             BufFlag::Cache,
             "Called .clone() on a non-cache buffer. Use a reference counted approach instead."
-        );
+        );*/
 
         Self {
             ptr: self.ptr,
             len: self.len,
-            flag: self.flag,
+            flag: self.flag.clone(),
         }
     }
 }
@@ -232,9 +236,10 @@ impl<A: Clone + Default> FromIterator<A> for Buffer<A> {
 
 impl<T> Drop for Buffer<T> {
     fn drop(&mut self) {
-        if self.flag == BufFlag::Cache || self.flag == BufFlag::Wrapper {
+        // TODO: check if none
+        /*if self.flag == BufFlag::Cache || self.flag == BufFlag::Wrapper {
             return;
-        }
+        }*/
 
         unsafe {
             if !self.ptr.0.is_null() && self.ptr.1.is_null() {
@@ -587,7 +592,7 @@ impl<T: CDatatype> From<(u64, usize)> for Buffer<T> {
 /// let buf = cached::<f32>(10);
 /// assert_eq!(device.read(&buf), vec![1.5; 10]);
 /// ```
-pub fn cached<T: Default + Copy>(len: usize) -> CacheBuffer<T> {
+pub fn cached<T: Default + Copy>(len: usize) -> Buffer<T> {
     let device = get_device!(CacheBuf<T>).unwrap();
     device.cached_buf(len)
 }

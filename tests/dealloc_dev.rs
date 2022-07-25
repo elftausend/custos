@@ -40,7 +40,8 @@ fn test_dealloc_device_cache_cpu() {
     assert_eq!(CPUCache::count(), 0);
 }*/
 
-#[cfg(feature = "opencl")]
+// TODO: new test / access thread local in test
+/*#[cfg(feature = "opencl")]
 #[test]
 fn test_dealloc_device_cache_cl() -> custos::Result<()> {
     use custos::opencl::CLCache;
@@ -53,7 +54,7 @@ fn test_dealloc_device_cache_cl() -> custos::Result<()> {
     drop(device);
     assert_eq!(CLCache::count(), 0);
     Ok(())
-}
+}*/
 
 #[cfg(feature = "cuda")]
 #[test]

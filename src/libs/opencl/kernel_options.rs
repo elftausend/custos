@@ -4,7 +4,7 @@ use super::{
     api::{enqueue_nd_range_kernel, set_kernel_arg, set_kernel_arg_ptr, OCLErrorKind},
     CLCache, CL_CACHE,
 };
-use crate::{number::Number, Buffer, CDatatype, CLDevice, CacheBuffer};
+use crate::{number::Number, Buffer, CDatatype, CLDevice};
 
 pub trait KernelArg<'a, T> {
     fn some_buf(&'a self) -> Option<&'a Buffer<T>> {
@@ -78,7 +78,7 @@ impl<'a, T: Number> KernelArg<'a, T> for T {
 /// ```
 pub struct KernelOptions<'a, T> {
     src: &'a str,
-    output: Option<CacheBuffer<T>>,
+    output: Option<Buffer<T>>,
     buf_args: Vec<(&'a Buffer<T>, usize)>,
     number_args: Vec<(T, usize)>,
     gws: [usize; 3],
@@ -177,7 +177,7 @@ impl<'a, T: CDatatype> KernelOptions<'a, T> {
         )?;
 
         if let Some(output) = self.output {
-            return Ok(Some(output.to_buf()));
+            return Ok(Some(output));
         }
         Ok(None)
     }
@@ -267,7 +267,7 @@ impl<'a, T: CDatatype> KernelRunner<'a, T> {
 
     /// Adds output
     pub fn with_output(&mut self, out_len: usize) -> &mut KernelRunner<'a, T> {
-        self.output = Some(CLCache::get(&self.device, out_len).to_buf());
+        self.output = Some(CLCache::get(&self.device, out_len));
         self
     }
 

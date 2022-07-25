@@ -77,7 +77,7 @@ impl<T> ManualMem<T> for CPU {
 }
 
 impl<T: Copy + Default> CacheBuf<T> for CPU {
-    fn cached_buf(&self, len: usize) -> CacheBuffer<T> {
+    fn cached_buf(&self, len: usize) -> Buffer<T> {
         CPUCache::get::<T>(self, len)
     }
 }
