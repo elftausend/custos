@@ -1,6 +1,10 @@
 use custos::{
-    opencl::{api::{clCreateBuffer, enqueue_map_buffer, CommandQueue, MemFlags, OCLErrorKind}, construct_buffer},
-    Buffer, CLDevice, Error, VecRead, CPU, AsDev, cpu::CPUCache,
+    cpu::CPUCache,
+    opencl::{
+        api::{clCreateBuffer, enqueue_map_buffer, CommandQueue, MemFlags, OCLErrorKind},
+        construct_buffer,
+    },
+    AsDev, Buffer, CLDevice, Error, VecRead, CPU,
 };
 use std::ffi::c_void;
 
@@ -188,11 +192,11 @@ fn test_cpu_to_unified() -> custos::Result<()> {
     let device = CPU::new();
     let mut buf = CPUCache::get::<i32>(&device, 6);
     buf.copy_from_slice(&[1, 2, 3, 4, 5, 6]);
-    
+
     let cl_dev = CLDevice::new(0)?.select();
     let cl_cpu_buf = construct_buffer(&cl_dev, &device, buf)?;
 
-    assert_eq!(cl_cpu_buf.as_slice(), &[1, 2, 3, 4, 5, 6]);    
+    assert_eq!(cl_cpu_buf.as_slice(), &[1, 2, 3, 4, 5, 6]);
     assert_eq!(cl_cpu_buf.read(), &[1, 2, 3, 4, 5, 6]);
 
     Ok(())

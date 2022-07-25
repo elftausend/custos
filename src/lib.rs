@@ -33,7 +33,6 @@
 //!
 //! assert_eq!(a.read(), vec![0; 6]);
 //! ```
-
 use std::{cell::RefCell, ffi::c_void, rc::Weak};
 
 //pub use libs::*;
@@ -403,7 +402,6 @@ pub fn cuda_dev(dev: &Dev) -> Result<Box<CudaDevice>> {
 
 pub fn is_cl_selected(dev: &Dev) -> bool {
     dev.cl_device.is_some() && cfg!(feature = "opencl")
-
 }
 
 #[doc(hidden)]

@@ -58,7 +58,6 @@ impl<T> Device<T> for CudaDevice {
     }
 }
 
-
 impl<T: Default + Copy> VecRead<T> for CudaDevice {
     fn read(&self, buf: &crate::Buffer<T>) -> Vec<T> {
         assert!(

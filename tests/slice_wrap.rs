@@ -1,4 +1,4 @@
-use custos::{CPU, AsDev, Buffer};
+use custos::{AsDev, Buffer, CPU};
 
 #[test]
 fn test_wrap_slice() {

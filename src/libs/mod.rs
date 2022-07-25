@@ -1,6 +1,6 @@
 use self::cpu::{level3, Order, Transpose, CPU_CACHE};
 use crate::number::{Float, Number};
-use std::cell::RefCell;
+use std::cell::{Cell, RefCell};
 
 #[cfg(feature = "cuda")]
 use cuda::api::cublas::{cublasDgemm_v2, cublasOperation_t, cublasSgemm_v2, CublasHandle};
@@ -27,7 +27,7 @@ thread_local! {
     /// These device creations are used to know when to deallocate the cached memory.
     /// A seperate count for each device type could be used, however this is a problem for nested device creations.
     /// (Especially for unified memory and device switching)
-    pub static DEVICE_COUNT: RefCell<usize> = RefCell::new(0);
+    pub static DEVICE_COUNT: Cell<usize> = Cell::new(0);
 }
 
 #[inline]

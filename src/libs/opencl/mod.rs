@@ -49,7 +49,11 @@ pub fn construct_buffer<T>(
     cpu: &crate::CPU,
     no_drop: Buffer<T>,
 ) -> crate::Result<Buffer<T>> {
-    assert_eq!(no_drop.flag, BufFlag::Cache, "Only a non-drop buffer can be converted to a CPU+OpenCL buffer");
+    assert_eq!(
+        no_drop.flag,
+        BufFlag::Cache,
+        "Only a non-drop buffer can be converted to a CPU+OpenCL buffer"
+    );
     let (host_ptr, len) = (no_drop.host_ptr(), no_drop.len);
     let cl_ptr = to_unified(device, no_drop)?;
     // TODO: When should the buffer be freed, if the "safe" feature is used?

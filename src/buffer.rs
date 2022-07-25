@@ -1,5 +1,6 @@
 use std::{ffi::c_void, fmt::Debug, ptr::null_mut};
 
+use crate::get_device_count;
 #[cfg(feature = "opencl")]
 use crate::opencl::api::release_mem_object;
 use crate::{cpu::CPUCache, get_device, CDatatype, CacheBuf, ClearBuf, Device, VecRead, WriteBuf};
@@ -10,7 +11,7 @@ use crate::number::Number;
 pub enum BufFlag {
     None = 0,
     Cache = 1,
-    Wrapper = 2
+    Wrapper = 2,
 }
 
 pub struct Buffer<T> {
@@ -96,7 +97,8 @@ impl<T> Buffer<T> {
     /// Returns a non null host pointer
     pub fn host_ptr(&self) -> *mut T {
         assert!(
-            !(self.ptr.0.is_null() || self.flag == BufFlag::Cache && CPUCache::count() == 0 && self.ptr.1.is_null()),
+            !(self.ptr.0.is_null()
+                || self.flag == BufFlag::Cache && CPUCache::count() == 0 && self.ptr.1.is_null()),
             "called host_ptr() on an invalid CPU buffer"
         );
         self.ptr.0
@@ -128,7 +130,7 @@ impl<T> Buffer<T> {
     pub fn as_slice(&self) -> &[T] {
         assert!(
             self.flag == BufFlag::Wrapper ||
-            !(self.ptr.0.is_null() || self.flag == BufFlag::Cache && CPUCache::count() == 0 && self.ptr.1.is_null()),
+            !(self.ptr.0.is_null() || self.flag == BufFlag::Cache && unsafe {*get_device_count() == 0} /*CPUCache::count() == 0*/ && self.ptr.1.is_null()),
             "called as_slice() on an invalid CPU buffer (this would dereference an invalid pointer)"
         );
         unsafe { std::slice::from_raw_parts(self.ptr.0, self.len) }
@@ -137,8 +139,9 @@ impl<T> Buffer<T> {
     /// Returns a mutable CPU slice.
     pub fn as_mut_slice(&mut self) -> &mut [T] {
         assert!(
-            self.flag == BufFlag::Wrapper || !(self.ptr.0.is_null()
-                || self.flag == BufFlag::Cache && CPUCache::count() == 0 && self.ptr.1.is_null()),
+            self.flag == BufFlag::Wrapper
+                || !(self.ptr.0.is_null()
+                    || self.flag == BufFlag::Cache && unsafe {*get_device_count() == 0} /*CPUCache::count() == 0*/ && self.ptr.1.is_null()),
             "called as_mut_slice() on a non CPU buffer (this would dereference a null pointer)"
         );
         unsafe { std::slice::from_raw_parts_mut(self.ptr.0, self.len) }
@@ -513,8 +516,8 @@ impl<T: Copy> From<(*mut T, usize)> for Buffer<T> {
     }
 }
 
-// TODO: unsafe? 
-/// A slice is wrapped into a buffer, hence buffer operations can be executed. 
+// TODO: unsafe?
+/// A slice is wrapped into a buffer, hence buffer operations can be executed.
 /// During these operations, the wrapped slice is updated. (which violates the safety rules / borrow checker of rust)
 impl<T> From<&mut [T]> for Buffer<T> {
     fn from(slice: &mut [T]) -> Self {
@@ -526,7 +529,7 @@ impl<T> From<&mut [T]> for Buffer<T> {
     }
 }
 
-// TODO: unsafe? 
+// TODO: unsafe?
 impl<T, const N: usize> From<&mut [T; N]> for Buffer<T> {
     fn from(slice: &mut [T; N]) -> Self {
         Buffer {
