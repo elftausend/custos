@@ -39,7 +39,7 @@ impl CPUCache {
         let buf = Buffer {
             ptr,
             len: node.len,
-            flag: BufFlag::Cache2(Rc::downgrade(&valid))
+            flag: BufFlag::Cache(Rc::downgrade(&valid))
         };
 
         self.nodes.insert(node, (RawCpu {
@@ -64,7 +64,7 @@ impl CPUCache {
                     Buffer {
                         ptr: (buf_info.0.ptr as *mut T, null_mut(), 0),
                         len: buf_info.0.len,
-                        flag: BufFlag::Cache2(Rc::downgrade(&buf_info.1))
+                        flag: BufFlag::Cache(Rc::downgrade(&buf_info.1))
                     }                    
                 }
                 None => cache.add_node(device, node),

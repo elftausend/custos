@@ -1,4 +1,4 @@
-use std::{ffi::c_void, ptr::null_mut};
+use std::{ffi::c_void, ptr::null_mut, rc::Weak};
 
 pub use cl_cache::*;
 pub use cl_device::*;
@@ -69,7 +69,8 @@ pub fn construct_buffer<T>(
     Ok(Buffer {
         ptr: (host_ptr, cl_ptr, 0),
         len,
-        flag: BufFlag::Cache,
+        // TODO: mind weak, think of getting a valid weak
+        flag: BufFlag::Cache(Weak::new()),
     })
 }
 

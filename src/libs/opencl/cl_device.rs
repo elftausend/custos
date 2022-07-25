@@ -9,7 +9,7 @@ use crate::{
     deallocate_cache, get_device_count,
     libs::opencl::api::{create_buffer, MemFlags},
     AsDev, BaseDevice, Buffer, CDatatype, CacheBuf, ClearBuf, Device, Error, ManualMem, VecRead,
-    WriteBuf, CacheBuffer,
+    WriteBuf,
 };
 use std::{cell::RefCell, ffi::c_void, fmt::Debug, rc::Rc};
 

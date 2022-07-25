@@ -37,7 +37,6 @@ use std::{cell::RefCell, ffi::c_void, rc::Weak};
 
 //pub use libs::*;
 pub use buffer::*;
-pub use cache_buffer::*;
 pub use count::*;
 pub use libs::*;
 
@@ -51,7 +50,6 @@ pub use libs::opencl::{CLDevice, InternCLDevice};
 pub mod libs;
 
 mod buffer;
-mod cache_buffer;
 mod count;
 
 pub mod number;

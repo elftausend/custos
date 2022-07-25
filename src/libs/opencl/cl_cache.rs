@@ -2,8 +2,8 @@ use super::api::{
     build_program, create_kernels_in_program, create_program_with_source, release_mem_object,
     set_kernel_arg, Kernel,
 };
-use crate::{BufFlag, CLDevice, Device, Error, Node, CacheBuffer, Valid};
-use std::{any::TypeId, cell::RefCell, collections::HashMap, ffi::c_void, rc::Rc, ptr::null_mut};
+use crate::{BufFlag, CLDevice, Device, Error, Node, Valid};
+use std::{any::TypeId, cell::RefCell, collections::HashMap, ffi::c_void, rc::{Rc, Weak}, ptr::null_mut};
 
 #[cfg(feature = "opencl")]
 use crate::Buffer;
@@ -50,27 +50,13 @@ pub struct CLCache {
 }
 
 impl CLCache {
-    pub fn add_node1<T: Default + Copy>(&mut self, device: &CLDevice, node: Node) -> CacheBuffer<T> {
-        let ptr: (*mut T, *mut c_void, _) = device.alloc(node.len);
-
-        let valid = Rc::new(Valid);
-        let cb = CacheBuffer::new(ptr, node.len, Rc::downgrade(&valid));
-
-        self.nodes1.insert(node, (RawCL {
-            ptr: ptr.1,
-            host_ptr: ptr.0 as *mut usize,
-            len: node.len,
-        }, valid));
-
-        cb
-    }
-
 
     pub fn add_node<T>(&mut self, device: &CLDevice, node: Node) -> Buffer<T> {
         let out = Buffer {
             ptr: device.alloc(node.len),
             len: node.len,
-            flag: BufFlag::Cache,
+            // TODO: Mind weak
+            flag: BufFlag::Cache(Weak::new()),
         };
         self.nodes.insert(
             node,
@@ -107,7 +93,8 @@ impl CLCache {
                     Buffer {
                         ptr: (unified_ptr, buf_info.ptr, 0),
                         len: buf_info.len,
-                        flag: BufFlag::Cache,
+                        // TODO: mind Weak
+                        flag: BufFlag::Cache(Weak::new()),
                     }
                 }
                 None => cache.add_node(device, node),
