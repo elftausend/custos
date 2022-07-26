@@ -81,7 +81,7 @@ impl CLCache {
             match buf_info_option {
                 Some(buf_info) => Buffer {
                     ptr: (buf_info.0.host_ptr as *mut T, buf_info.0.ptr, 0),
-                    len: node.len,
+                    len,
                     flag: BufFlag::Cache(Rc::downgrade(&buf_info.1))
                 },
                 None => cache.add_node(device, node),

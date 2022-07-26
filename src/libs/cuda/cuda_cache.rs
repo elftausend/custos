@@ -3,8 +3,8 @@ use super::api::{
     nvrtc::{create_program, nvrtcDestroyProgram},
     FnHandle,
 };
-use crate::{BufFlag, Buffer, CudaDevice, Device, Error, Node};
-use std::{cell::RefCell, collections::HashMap, ffi::CString};
+use crate::{BufFlag, Buffer, CudaDevice, Device, Error, Node, Valid};
+use std::{cell::RefCell, collections::HashMap, ffi::CString, rc::Rc};
 
 thread_local! {
     pub static CUDA_CACHE: RefCell<CudaCache> = RefCell::new(CudaCache {
@@ -21,7 +21,6 @@ unsafe impl Sync for CudaPtr {}
 
 pub struct RawCUDA {
     pub ptr: u64,
-    pub len: usize,
 }
 
 
@@ -33,7 +32,7 @@ impl Drop for RawCUDA {
 
 pub struct CudaCache {
     pub kernels: HashMap<String, FnHandle>,
-    pub nodes: HashMap<Node, RawCUDA>,
+    pub nodes: HashMap<Node, (RawCUDA, Rc<Valid>)>,
 }
 
 impl CudaCache {
@@ -42,17 +41,18 @@ impl CudaCache {
     }
 
     pub fn add_node<T>(&mut self, device: &CudaDevice, node: Node) -> Buffer<T> {
+        let valid = Rc::new(Valid);
+
         let out = Buffer {
             ptr: device.alloc(node.len),
             len: node.len,
-            flag: BufFlag::Cache,
+            flag: BufFlag::Cache(Rc::downgrade(&valid)),
         };
         self.nodes.insert(
             node,
-            RawCUDA {
+            (RawCUDA {
                 ptr: out.ptr.2,
-                len: out.len,
-            },
+            }, valid),
         );
         out
     }
@@ -73,9 +73,9 @@ impl CudaCache {
 
             match buf_info_option {
                 Some(buf_info) => Buffer {
-                    ptr: (null_mut(), null_mut(), buf_info.ptr),
-                    len: buf_info.len,
-                    flag: BufFlag::Cache,
+                    ptr: (null_mut(), null_mut(), buf_info.0.ptr),
+                    len,
+                    flag: BufFlag::Cache(Rc::downgrade(&buf_info.1)),
                 },
                 None => cache.add_node(device, node),
             }
@@ -93,7 +93,7 @@ impl CudaCache {
             return Ok(*kernel);
         }
 
-        let mut x = create_program(&src, "")?;
+        let mut x = create_program(src, "")?;
 
         x.compile(Some(vec![CString::new("--use_fast_math").unwrap()]))?;
 

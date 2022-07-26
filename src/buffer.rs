@@ -18,16 +18,8 @@ pub enum BufFlag {
 }
 
 impl PartialEq for BufFlag {
-    fn ne(&self, other: &Self) -> bool {
-        match (self, other) {
-            _ => core::mem::discriminant(self) != core::mem::discriminant(other),
-        }
-    }
-
     fn eq(&self, other: &Self) -> bool {
-        match (self, other) {
-            _ => core::mem::discriminant(self) == core::mem::discriminant(other),
-        }
+        core::mem::discriminant(self) == core::mem::discriminant(other)
     }
 }
 
@@ -144,9 +136,8 @@ impl<T> Buffer<T> {
     #[cfg(feature = "cuda")]
     #[inline]
     pub fn cu_ptr(&self) -> u64 {
-        use crate::cuda::CudaCache;
         assert!(
-            self.ptr.2 != 0 && is_buf_valid(&self.flag)
+            self.ptr.2 != 0 && is_buf_valid(&self.flag),
             "called cu_ptr() on an invalid CUDA buffer"
         );
         self.ptr.2
