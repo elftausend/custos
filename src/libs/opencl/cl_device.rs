@@ -3,13 +3,13 @@ use super::{
         create_command_queue, create_context, enqueue_read_buffer, enqueue_write_buffer,
         release_mem_object, unified_ptr, wait_for_event, CLIntDevice, CommandQueue, Context,
     },
-    cl_clear, CL_DEVICES,
+    cl_clear, CL_DEVICES, CLCache,
 };
 use crate::{
     deallocate_cache, get_device_count,
     libs::opencl::api::{create_buffer, MemFlags},
     AsDev, BaseDevice, Buffer, CDatatype, CacheBuf, ClearBuf, Device, Error, ManualMem, VecRead,
-    WriteBuf,
+    WriteBuf, is_buf_valid,
 };
 use std::{cell::RefCell, ffi::c_void, fmt::Debug, rc::Rc};
 
@@ -77,6 +77,7 @@ impl CLDevice {
         self.device().get_version()
     }
 
+    #[inline]
     pub fn unified_mem(&self) -> bool {
         self.inner.borrow().unified_mem
     }
@@ -147,8 +148,7 @@ impl<T> ManualMem<T> for CLDevice {
 
 impl<T> CacheBuf<T> for CLDevice {
     fn cached_buf(&self, len: usize) -> Buffer<T> {
-        todo!()
-        //CLCache::get::<T>(self, len)
+        CLCache::get::<T>(self, len)
     }
 }
 
@@ -167,9 +167,8 @@ impl<T> WriteBuf<T> for CLDevice {
 
 impl<T: Default + Copy> VecRead<T> for CLDevice {
     fn read(&self, buf: &crate::Buffer<T>) -> Vec<T> {
-        // TODO: check null?
         assert!(
-            !buf.ptr.1.is_null(),
+            !buf.ptr.1.is_null() && is_buf_valid(&buf.flag),
             "called VecRead::read(..) on a non OpenCL buffer (this would read out a null pointer)"
         );
         let mut read = vec![T::default(); buf.len];

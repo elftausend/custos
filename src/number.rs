@@ -2,6 +2,7 @@ use core::{
     cmp::Ordering,
     ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign},
 };
+use std::iter::Sum;
 
 pub trait Number:
     Sized
@@ -19,6 +20,7 @@ pub trait Number:
     + PartialEq
     + core::fmt::Debug
     + core::fmt::Display
+    + Sum<Self>
 {
     fn from_usize(value: usize) -> Self;
     fn from_u64(value: u64) -> Self;

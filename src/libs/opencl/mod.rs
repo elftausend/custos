@@ -1,4 +1,4 @@
-use std::{ffi::c_void, ptr::null_mut, rc::Weak};
+use std::{ffi::c_void, ptr::null_mut, rc::Rc};
 
 pub use cl_cache::*;
 pub use cl_device::*;
@@ -6,17 +6,16 @@ pub use cl_devices::*;
 pub use kernel_options::*;
 
 pub mod api;
-// TODO: remove ops (mind clear op)
 mod cl_cache;
 pub mod cl_device;
 pub mod cl_devices;
 mod kernel_options;
 
 use self::api::{create_buffer, MemFlags};
-use crate::{BufFlag, Buffer, CDatatype, Node};
+use crate::{BufFlag, Buffer, CDatatype, Node, Valid};
 
 /// Returns an OpenCL pointer that is bound to the host pointer stored in the specified buffer.
-pub fn to_unified<T>(device: &CLDevice, no_drop: Buffer<T>) -> crate::Result<*mut c_void> {
+pub fn to_unified<T>(device: &CLDevice, no_drop: Buffer<T>) -> crate::Result<(*mut c_void, Rc<Valid>)> {
     // use the host pointer to create an OpenCL buffer
     let cl_ptr = create_buffer(
         &device.ctx(),
@@ -25,15 +24,16 @@ pub fn to_unified<T>(device: &CLDevice, no_drop: Buffer<T>) -> crate::Result<*mu
         Some(&no_drop),
     )?;
 
+    let valid = Rc::new(Valid);
+
     let old_ptr = CL_CACHE.with(|cache| {
         // add created buffer to the "caching chain"
         cache.borrow_mut().nodes.insert(
             Node::new(no_drop.len),
-            RawCL {
+            (RawCL {
                 ptr: cl_ptr,
                 host_ptr: null_mut(),
-                len: no_drop.len,
-            },
+            }, valid.clone()),
         )
     });
 
@@ -41,7 +41,7 @@ pub fn to_unified<T>(device: &CLDevice, no_drop: Buffer<T>) -> crate::Result<*mu
     // this line can be removed, however it shows that deallocating the old pointer makes sense
     drop(old_ptr);
 
-    Ok(cl_ptr)
+    Ok((cl_ptr, valid))
 }
 
 /// Converts an 'only' CPU buffer into an OpenCL + CPU (unified memory) buffer.
@@ -51,14 +51,13 @@ pub fn construct_buffer<T>(
     no_drop: Buffer<T>,
 ) -> crate::Result<Buffer<T>> {
 
-    // TODO: check if cache
-    /*assert_eq!(
-        no_drop.flag,
-        BufFlag::Cache,
-        "Only a non-drop buffer can be converted to a CPU+OpenCL buffer"
-    );*/
+    // return Err
+    if no_drop.flag == BufFlag::None || no_drop.flag == BufFlag::Wrapper {
+        panic!("Only a non-drop buffer can be converted to a CPU+OpenCL buffer")
+    }
+
     let (host_ptr, len) = (no_drop.host_ptr(), no_drop.len);
-    let cl_ptr = to_unified(device, no_drop)?;
+    let (cl_ptr, valid) = to_unified(device, no_drop)?;
     // TODO: When should the buffer be freed, if the "safe" feature is used?
 
     // Both lines prevent the deallocation of the underlying buffer.
@@ -69,8 +68,7 @@ pub fn construct_buffer<T>(
     Ok(Buffer {
         ptr: (host_ptr, cl_ptr, 0),
         len,
-        // TODO: mind weak, think of getting a valid weak
-        flag: BufFlag::Cache(Weak::new()),
+        flag: BufFlag::Cache(Rc::downgrade(&valid)),
     })
 }
 

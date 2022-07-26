@@ -17,7 +17,6 @@ pub enum BufFlag {
     Wrapper,
 }
 
-
 impl PartialEq for BufFlag {
     fn ne(&self, other: &Self) -> bool {
         match (self, other) {
@@ -32,7 +31,7 @@ impl PartialEq for BufFlag {
     }
 }
 
-#[inline(always)]
+#[inline]
 pub fn is_buf_valid(flag: &BufFlag) -> bool {
     if let BufFlag::Cache(valid) = flag {
         return valid.upgrade() != None;
@@ -121,6 +120,7 @@ impl<T> Buffer<T> {
     }
 
     /// Returns a non null host pointer
+    #[inline]
     pub fn host_ptr(&self) -> *mut T {
         assert!(
             !self.ptr.0.is_null() && is_buf_valid(&self.flag),
@@ -130,6 +130,7 @@ impl<T> Buffer<T> {
     }
 
     #[cfg(feature = "opencl")]
+    #[inline]
     pub fn cl_ptr(&self) -> *mut c_void {
         assert!(
             !self.ptr.1.is_null() && is_buf_valid(&self.flag),
@@ -141,6 +142,7 @@ impl<T> Buffer<T> {
     // TODO: replace buf.ptr.2 with this fn, do the same with cl, cpu
     /// Returns a non null CUDA pointer
     #[cfg(feature = "cuda")]
+    #[inline]
     pub fn cu_ptr(&self) -> u64 {
         use crate::cuda::CudaCache;
         assert!(
@@ -151,9 +153,9 @@ impl<T> Buffer<T> {
     }
 
     /// Returns a CPU slice. This does not work with CUDA or OpenCL buffers.
+    #[inline]
     pub fn as_slice(&self) -> &[T] {
         assert!(
-            // TODO: check if valid
             /*self.flag == BufFlag::Wrapper ||*/
             !self.ptr.0.is_null() && is_buf_valid(&self.flag), 
             "called as_slice() on an invalid CPU buffer (this would dereference an invalid pointer)"
@@ -162,9 +164,9 @@ impl<T> Buffer<T> {
     }
 
     /// Returns a mutable CPU slice.
+    #[inline]
     pub fn as_mut_slice(&mut self) -> &mut [T] {
         assert!(
-            // TODO: check if valid
             //self.flag == BufFlag::Wrapper
             !self.ptr.0.is_null() && is_buf_valid(&self.flag),
             "called as_mut_slice() on a non CPU buffer (this would dereference a null pointer)"
@@ -230,15 +232,8 @@ unsafe impl<T> Sync for Buffer<T> {}*/
 
 impl<T> Clone for Buffer<T> {
     fn clone(&self) -> Self {
-        // TODO: check if cache
-        /*assert_eq!(
-            self.flag,
-            BufFlag::Cache,
-            "Called .clone() on a non-cache buffer. Use a reference counted approach instead."
-        );*/
         assert!(is_buf_valid(&self.flag), "Called .clone() on a non-cache buffer. Use a reference counted approach instead.");
     
-
         Self {
             ptr: self.ptr,
             len: self.len,

@@ -378,6 +378,7 @@ macro_rules! get_device {
 
 // these functions exist because: if this macro is expanded in another crate, the #[cfg(feature="...")] will not look for the feature ... in custos.
 
+#[inline]
 pub fn is_cuda_selected(dev: &Dev) -> bool {
     dev.cuda.is_some() && cfg!(feature = "cuda")
 }
@@ -400,6 +401,7 @@ pub fn cuda_dev(dev: &Dev) -> Result<Box<CudaDevice>> {
     )))
 }
 
+#[inline]
 pub fn is_cl_selected(dev: &Dev) -> bool {
     dev.cl_device.is_some() && cfg!(feature = "opencl")
 }
@@ -422,6 +424,7 @@ pub fn cl_dev(dev: &Dev) -> Result<Box<CLDevice>> {
     )))
 }
 
+#[inline]
 pub fn is_cpu_selected(dev: &Dev) -> bool {
     dev.cpu.is_some()
 }
