@@ -1,9 +1,10 @@
-use crate::{BufFlag, Buffer, Device, Node, CPU};
-use std::{cell::RefCell, collections::HashMap, mem::align_of};
-
-thread_local! {
-    pub static CPU_CACHE: RefCell<CPUCache> = RefCell::new(CPUCache { nodes: HashMap::new() });
-}
+use crate::{Device, Node, CPU, Valid, Buffer, BufFlag};
+use std::{
+    cell::RefCell,
+    collections::HashMap,
+    mem::align_of,
+    rc::Rc, ptr::null_mut,
+};
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct RawCpu {
@@ -20,6 +21,59 @@ impl Drop for RawCpu {
         }
     }
 }
+
+thread_local! {
+    pub static CPU_CACHE: RefCell<CPUCache> = RefCell::new(CPUCache {nodes: HashMap::new()});
+}
+
+pub struct CPUCache {
+    pub nodes: HashMap<Node, (RawCpu, Rc<Valid>)>,
+}
+
+impl CPUCache {
+    pub fn add_node<T: Default + Copy>(&mut self, device: &CPU, node: Node) -> Buffer<T> {
+        let ptr: (*mut T, _, _) = device.alloc(node.len);
+
+        let valid = Rc::new(Valid);
+
+        let buf = Buffer {
+            ptr,
+            len: node.len,
+            flag: BufFlag::Cache(Rc::downgrade(&valid))
+        };
+
+        self.nodes.insert(node, (RawCpu {
+            ptr: ptr.0 as *mut usize,
+            len: node.len,
+            align: align_of::<T>(),
+        }, valid));
+
+        buf
+    }
+
+    pub fn get<T: Default + Copy>(device: &CPU, len: usize) -> Buffer<T> {
+        //assert!(!device.cpu.borrow().ptrs.is_empty(), "no cpu allocations");
+
+        let node = Node::new(len);
+        CPU_CACHE.with(|cache| {
+            let mut cache = cache.borrow_mut();
+            let buf_info_option = cache.nodes.get(&node);
+
+            match buf_info_option {
+                Some(buf_info) => {
+                    Buffer {
+                        ptr: (buf_info.0.ptr as *mut T, null_mut(), 0),
+                        len: buf_info.0.len,
+                        flag: BufFlag::Cache(Rc::downgrade(&buf_info.1))
+                    }                    
+                }
+                None => cache.add_node(device, node),
+            }
+        })
+    }
+}
+
+/*
 
 #[derive(Debug)]
 /// stores output pointers
@@ -69,8 +123,7 @@ impl CPUCache {
 
     pub fn get<T: Default + Copy>(device: &CPU, len: usize) -> Buffer<T> {
         //assert!(!device.cpu.borrow().ptrs.is_empty(), "no cpu allocations");
-
-        use std::ptr::null_mut;
+        
         let node = Node::new(len);
         CPU_CACHE.with(|cache| {
             let mut cache = cache.borrow_mut();
@@ -87,3 +140,4 @@ impl CPUCache {
         })
     }
 }
+*/

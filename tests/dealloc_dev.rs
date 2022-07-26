@@ -1,6 +1,6 @@
 #[cfg(feature = "opencl")]
 use custos::opencl::cl_device::CLDevice;
-use custos::{cached, cpu::CPUCache, libs::cpu::CPU, range, AsDev, Buffer};
+use custos::{cached, libs::cpu::CPU, range, AsDev, Buffer, cpu::CPU_CACHE};
 
 #[test]
 fn test_rc_get_dev() {
@@ -28,29 +28,33 @@ fn test_dealloc_cl() -> custos::Result<()> {
     Ok(())
 }
 
+// TODO: new test
 #[test]
 fn test_dealloc_device_cache_cpu() {
     let device = CPU::new().select();
 
+    assert_eq!(CPU_CACHE.with(|cache| cache.borrow().nodes.len()), 0);
     let _a = cached::<f32>(10);
-    assert_eq!(CPUCache::count(), 1);
+    assert_eq!(CPU_CACHE.with(|cache| cache.borrow().nodes.len()), 1);
 
     drop(device);
-    assert_eq!(CPUCache::count(), 0);
+    assert_eq!(CPU_CACHE.with(|cache| cache.borrow().nodes.len()), 0);
 }
 
+// TODO: new test / access thread local in test
 #[cfg(feature = "opencl")]
 #[test]
 fn test_dealloc_device_cache_cl() -> custos::Result<()> {
-    use custos::opencl::CLCache;
+    use custos::opencl::CL_CACHE;
 
     let device = CLDevice::new(0)?.select();
 
+    assert_eq!(CL_CACHE.with(|cache| cache.borrow().nodes.len()), 0);
     let _a = cached::<f32>(10);
-    assert_eq!(CLCache::count(), 1);
+    assert_eq!(CL_CACHE.with(|cache| cache.borrow().nodes.len()), 1);
 
     drop(device);
-    assert_eq!(CLCache::count(), 0);
+    assert_eq!(CL_CACHE.with(|cache| cache.borrow().nodes.len()), 0);
     Ok(())
 }
 

@@ -1,16 +1,34 @@
+use std::rc::Weak;
 use std::{ffi::c_void, fmt::Debug, ptr::null_mut};
 
 #[cfg(feature = "opencl")]
 use crate::opencl::api::release_mem_object;
-use crate::{cpu::CPUCache, get_device, CDatatype, CacheBuf, ClearBuf, Device, VecRead, WriteBuf};
+use crate::{get_device, CDatatype, CacheBuf, ClearBuf, Device, VecRead, WriteBuf};
 
 use crate::number::Number;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
+pub struct Valid;
+
+#[derive(Debug, Clone)]
 pub enum BufFlag {
-    None = 0,
-    Cache = 1,
-    Wrapper = 2
+    None,
+    Cache(Weak<Valid>),
+    Wrapper,
+}
+
+impl PartialEq for BufFlag {
+    fn eq(&self, other: &Self) -> bool {
+        core::mem::discriminant(self) == core::mem::discriminant(other)
+    }
+}
+
+#[inline]
+pub fn is_buf_valid(flag: &BufFlag) -> bool {
+    if let BufFlag::Cache(valid) = flag {
+        return valid.upgrade() != None;
+    }
+    true
 }
 
 pub struct Buffer<T> {
@@ -94,19 +112,20 @@ impl<T> Buffer<T> {
     }
 
     /// Returns a non null host pointer
+    #[inline]
     pub fn host_ptr(&self) -> *mut T {
         assert!(
-            !(self.ptr.0.is_null() || self.flag == BufFlag::Cache && CPUCache::count() == 0 && self.ptr.1.is_null()),
+            !self.ptr.0.is_null() && is_buf_valid(&self.flag),
             "called host_ptr() on an invalid CPU buffer"
         );
         self.ptr.0
     }
 
     #[cfg(feature = "opencl")]
+    #[inline]
     pub fn cl_ptr(&self) -> *mut c_void {
-        use crate::opencl::CLCache;
         assert!(
-            !(self.ptr.1.is_null() || self.flag == BufFlag::Cache && CLCache::count() == 0),
+            !self.ptr.1.is_null() && is_buf_valid(&self.flag),
             "called cl_ptr() on an invalid OpenCL buffer"
         );
         self.ptr.1
@@ -115,30 +134,32 @@ impl<T> Buffer<T> {
     // TODO: replace buf.ptr.2 with this fn, do the same with cl, cpu
     /// Returns a non null CUDA pointer
     #[cfg(feature = "cuda")]
+    #[inline]
     pub fn cu_ptr(&self) -> u64 {
-        use crate::cuda::CudaCache;
         assert!(
-            self.ptr.2 != 0 && !(self.flag == BufFlag::Cache && CudaCache::count() == 0),
+            self.ptr.2 != 0 && is_buf_valid(&self.flag),
             "called cu_ptr() on an invalid CUDA buffer"
         );
         self.ptr.2
     }
 
     /// Returns a CPU slice. This does not work with CUDA or OpenCL buffers.
+    #[inline]
     pub fn as_slice(&self) -> &[T] {
         assert!(
-            self.flag == BufFlag::Wrapper ||
-            !(self.ptr.0.is_null() || self.flag == BufFlag::Cache && CPUCache::count() == 0 && self.ptr.1.is_null()),
+            /*self.flag == BufFlag::Wrapper ||*/
+            !self.ptr.0.is_null() && is_buf_valid(&self.flag), 
             "called as_slice() on an invalid CPU buffer (this would dereference an invalid pointer)"
         );
         unsafe { std::slice::from_raw_parts(self.ptr.0, self.len) }
     }
 
     /// Returns a mutable CPU slice.
+    #[inline]
     pub fn as_mut_slice(&mut self) -> &mut [T] {
         assert!(
-            self.flag == BufFlag::Wrapper || !(self.ptr.0.is_null()
-                || self.flag == BufFlag::Cache && CPUCache::count() == 0 && self.ptr.1.is_null()),
+            //self.flag == BufFlag::Wrapper
+            !self.ptr.0.is_null() && is_buf_valid(&self.flag),
             "called as_mut_slice() on a non CPU buffer (this would dereference a null pointer)"
         );
         unsafe { std::slice::from_raw_parts_mut(self.ptr.0, self.len) }
@@ -202,16 +223,12 @@ unsafe impl<T> Sync for Buffer<T> {}*/
 
 impl<T> Clone for Buffer<T> {
     fn clone(&self) -> Self {
-        assert_eq!(
-            self.flag,
-            BufFlag::Cache,
-            "Called .clone() on a non-cache buffer. Use a reference counted approach instead."
-        );
-
+        assert!(is_buf_valid(&self.flag), "Called .clone() on a non-cache buffer. Use a reference counted approach instead.");
+    
         Self {
             ptr: self.ptr,
             len: self.len,
-            flag: self.flag,
+            flag: self.flag.clone(),
         }
     }
 }
@@ -231,10 +248,10 @@ impl<A: Clone + Default> FromIterator<A> for Buffer<A> {
 
 impl<T> Drop for Buffer<T> {
     fn drop(&mut self) {
-        if self.flag == BufFlag::Cache || self.flag == BufFlag::Wrapper {
+        if self.flag != BufFlag::None {
             return;
         }
-
+    
         unsafe {
             if !self.ptr.0.is_null() && self.ptr.1.is_null() {
                 let ptr = std::slice::from_raw_parts_mut(self.ptr.0, self.len);
@@ -502,19 +519,20 @@ impl<T: Clone, D: Device<T>> From<(&D, &Vec<T>)> for Buffer<T> {
     }
 }
 
+// TODO: check if Wrapper flag fits
 // TODO: unsafe from raw parts fn?
 impl<T: Copy> From<(*mut T, usize)> for Buffer<T> {
     fn from(info: (*mut T, usize)) -> Self {
         Buffer {
             ptr: (info.0, null_mut(), 0),
             len: info.1,
-            flag: BufFlag::Cache,
+            flag: BufFlag::Wrapper,
         }
     }
 }
 
-// TODO: unsafe? 
-/// A slice is wrapped into a buffer, hence buffer operations can be executed. 
+// TODO: unsafe?
+/// A slice is wrapped into a buffer, hence buffer operations can be executed.
 /// During these operations, the wrapped slice is updated. (which violates the safety rules / borrow checker of rust)
 impl<T> From<&mut [T]> for Buffer<T> {
     fn from(slice: &mut [T]) -> Self {
@@ -526,7 +544,7 @@ impl<T> From<&mut [T]> for Buffer<T> {
     }
 }
 
-// TODO: unsafe? 
+// TODO: unsafe?
 impl<T, const N: usize> From<&mut [T; N]> for Buffer<T> {
     fn from(slice: &mut [T; N]) -> Self {
         Buffer {
@@ -537,22 +555,24 @@ impl<T, const N: usize> From<&mut [T; N]> for Buffer<T> {
     }
 }
 
+// TODO: check if Wrapper flag fits
 impl<T: CDatatype> From<(*mut c_void, usize)> for Buffer<T> {
     fn from(info: (*mut c_void, usize)) -> Self {
         Buffer {
             ptr: (null_mut(), info.0, 0),
             len: info.1,
-            flag: BufFlag::Cache,
+            flag: BufFlag::Wrapper,
         }
     }
 }
 
+// TODO: check if Wrapper flag fits
 impl<T: CDatatype> From<(u64, usize)> for Buffer<T> {
     fn from(info: (u64, usize)) -> Self {
         Buffer {
             ptr: (null_mut(), null_mut(), info.0),
             len: info.1,
-            flag: BufFlag::Cache,
+            flag: BufFlag::Wrapper,
         }
     }
 }

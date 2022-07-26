@@ -1,6 +1,6 @@
 use crate::{
     deallocate_cache, get_device_count, libs::cpu::CPUCache, number::Number, AsDev, BaseDevice,
-    Buffer, CDatatype, CacheBuf, ClearBuf, Device, GenericBlas, ManualMem, VecRead, WriteBuf,
+    Buffer, CDatatype, CacheBuf, ClearBuf, Device, GenericBlas, ManualMem, VecRead, WriteBuf
 };
 use std::{cell::RefCell, ffi::c_void, fmt::Debug, rc::Rc};
 

@@ -102,11 +102,11 @@ pub enum CUresult {
     CUDA_ERROR_UNKNOWN = 999,
 }
 
-impl Into<CudaResult<()>> for CUresult {
-    fn into(self) -> CudaResult<()> {
-        match self {
+impl From<CUresult> for CudaResult<()> {
+    fn from(result: CUresult) -> Self {
+        match result {
             CUresult::CUDA_SUCCESS => Ok(()),
-            _ => Err(CudaErrorKind::from(self as u32)),
+            _ => Err(CudaErrorKind::from(result as u32)),
         }
     }
 }

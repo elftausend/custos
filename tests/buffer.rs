@@ -123,6 +123,7 @@ fn test_cached_cpu() {
     assert_eq!(2, get_count());
 
     set_count(0);
+    assert_eq!(0, get_count());
     let buf = cached::<f32>(10);
 
     assert_eq!(device.read(&buf), vec![1.5; 10]);
@@ -147,15 +148,17 @@ fn test_cached_cl() -> Result<(), custos::Error> {
         let event = enqueue_write_buffer(&device.queue(), buf.ptr.1, &[0.1f32; 10], true)?;
         wait_for_event(event)?
     }
+    assert_eq!(device.read(&buf), vec![0.1; 10]);
 
     let new_buf = cached::<i32>(10);
-    println!("new_buf: {new_buf:?}");
+    
     assert_eq!(device.read(&new_buf), vec![0; 10]);
     assert_eq!(2, get_count());
 
     set_count(0);
+    assert_eq!(0, get_count());
     let buf = cached::<f32>(10);
-
+    println!("new_buf: {buf:?}");
     assert_eq!(device.read(&buf), vec![0.1; 10]);
     Ok(())
 }
