@@ -36,10 +36,6 @@ pub struct CudaCache {
 }
 
 impl CudaCache {
-    pub fn count() -> usize {
-        CUDA_CACHE.with(|cache| cache.borrow().nodes.len())
-    }
-
     pub fn add_node<T>(&mut self, device: &CudaDevice, node: Node) -> Buffer<T> {
         let valid = Rc::new(Valid);
 

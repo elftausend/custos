@@ -28,7 +28,6 @@ fn test_dealloc_cl() -> custos::Result<()> {
     Ok(())
 }
 
-// TODO: new test
 #[test]
 fn test_dealloc_device_cache_cpu() {
     let device = CPU::new().select();
@@ -41,7 +40,6 @@ fn test_dealloc_device_cache_cpu() {
     assert_eq!(CPU_CACHE.with(|cache| cache.borrow().nodes.len()), 0);
 }
 
-// TODO: new test / access thread local in test
 #[cfg(feature = "opencl")]
 #[test]
 fn test_dealloc_device_cache_cl() -> custos::Result<()> {
@@ -61,14 +59,15 @@ fn test_dealloc_device_cache_cl() -> custos::Result<()> {
 #[cfg(feature = "cuda")]
 #[test]
 fn test_dealloc_device_cache_cu() -> custos::Result<()> {
-    use custos::{cuda::CudaCache, CudaDevice};
+    use custos::{cuda::CUDA_CACHE, CudaDevice};
 
     let device = CudaDevice::new(0)?.select();
 
+    assert_eq!(CUDA_CACHE.with(|cache| cache.borrow().nodes.len()), 0);
     let _a = cached::<f32>(10);
-    assert_eq!(CudaCache::count(), 1);
+    assert_eq!(CUDA_CACHE.with(|cache| cache.borrow().nodes.len()), 1);
 
     drop(device);
-    assert_eq!(CudaCache::count(), 0);
+    assert_eq!(CUDA_CACHE.with(|cache| cache.borrow().nodes.len()), 0);
     Ok(())
 }

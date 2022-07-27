@@ -24,8 +24,9 @@ impl PartialEq for BufFlag {
 }
 
 #[inline]
-pub fn is_buf_valid(flag: &BufFlag) -> bool {
-    if let BufFlag::Cache(valid) = flag {
+pub fn is_buf_valid(_flag: &BufFlag) -> bool {
+    #[cfg(not(feature="realloc"))]
+    if let BufFlag::Cache(valid) = _flag {
         return valid.upgrade() != None;
     }
     true

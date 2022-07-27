@@ -35,3 +35,19 @@ jobs:
 
     - name: Run tests
       run: cargo test --verbose --no-default-features
+  bench:
+  
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+
+    - uses: actions-rs/toolchain@v1
+      with:
+        profile: minimal
+        toolchain: stable
+
+    - uses: Swatinem/rust-cache@v1
+
+    - name: Run benchmarks
+      run: cargo bench --verbose --no-default-features

@@ -12,7 +12,7 @@ pub mod cl_devices;
 mod kernel_options;
 
 use self::api::{create_buffer, MemFlags};
-use crate::{BufFlag, Buffer, CDatatype, Node, Valid};
+use crate::{BufFlag, Buffer, CDatatype, Node, Valid, DeviceError};
 
 /// Returns an OpenCL pointer that is bound to the host pointer stored in the specified buffer.
 pub fn to_unified<T>(device: &CLDevice, no_drop: Buffer<T>) -> crate::Result<(*mut c_void, Rc<Valid>)> {
@@ -47,24 +47,16 @@ pub fn to_unified<T>(device: &CLDevice, no_drop: Buffer<T>) -> crate::Result<(*m
 /// Converts an 'only' CPU buffer into an OpenCL + CPU (unified memory) buffer.
 pub fn construct_buffer<T>(
     device: &CLDevice,
-    cpu: &crate::CPU,
     no_drop: Buffer<T>,
 ) -> crate::Result<Buffer<T>> {
 
-    // return Err
     if no_drop.flag == BufFlag::None || no_drop.flag == BufFlag::Wrapper {
-        panic!("Only a non-drop buffer can be converted to a CPU+OpenCL buffer")
+        return Err(DeviceError::ConstructError.into())
     }
 
     let (host_ptr, len) = (no_drop.host_ptr(), no_drop.len);
     let (cl_ptr, valid) = to_unified(device, no_drop)?;
-    // TODO: When should the buffer be freed, if the "safe" feature is used?
-
-    // Both lines prevent the deallocation of the underlying buffer.
-    //Box::into_raw(Box::new(no_drop)); // "safe" mode
-    // TODO: Deallocate cpu buffer? This may leak memory.
-    cpu.inner.borrow_mut().ptrs.clear(); // default mode
-
+    
     Ok(Buffer {
         ptr: (host_ptr, cl_ptr, 0),
         len,

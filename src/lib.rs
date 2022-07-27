@@ -297,6 +297,7 @@ pub trait AsDev {
 #[derive(Clone, Copy, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub enum DeviceError {
     NoDeviceSelected,
+    ConstructError,
 }
 
 impl DeviceError {
@@ -304,6 +305,9 @@ impl DeviceError {
         match self {
             DeviceError::NoDeviceSelected => {
                 "No device selected, .select() on a device was not called before get_device! call"
+            }
+            DeviceError::ConstructError => {
+                "Only a non-drop buffer can be converted to a CPU+OpenCL buffer"
             }
         }
     }

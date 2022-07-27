@@ -14,9 +14,10 @@ readme = "README.md"
 lazy_static = "1.4.0"
 
 [features]
-default = ["opencl", "cuda"]
+default = ["opencl"]
 opencl = []
 cuda = []
+realloc = []
 
 [[example]]
 name = "cuda_readme"
@@ -50,7 +51,7 @@ harness = false
 #harness = false
 
 [[bench]]
-name = "remove_value"
+name = "cache_adv"
 harness = false
 
 #[[bench]]
