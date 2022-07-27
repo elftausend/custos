@@ -1,9 +1,9 @@
-use crate::{Device, Node, CPU, Valid, Buffer, BufFlag};
+use crate::{Device, Node, CPU, Buffer, BufFlag};
 use std::{
     cell::RefCell,
     collections::HashMap,
     mem::align_of,
-    rc::Rc, ptr::null_mut,
+    ptr::null_mut,
 };
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
@@ -11,11 +11,13 @@ pub struct RawCpu {
     pub ptr: *mut usize,
     pub len: usize,
     pub align: usize,
+    pub valid: *mut bool,
 }
 
 impl Drop for RawCpu {
     fn drop(&mut self) {
         unsafe {
+            *self.valid = false;
             let slice = std::slice::from_raw_parts_mut(self.ptr as *mut u8, self.len * self.align);
             Box::from_raw(slice);
         }
@@ -27,26 +29,27 @@ thread_local! {
 }
 
 pub struct CPUCache {
-    pub nodes: HashMap<Node, (RawCpu, Rc<Valid>)>,
+    pub nodes: HashMap<Node, RawCpu>,
 }
 
 impl CPUCache {
     pub fn add_node<T: Default + Copy>(&mut self, device: &CPU, node: Node) -> Buffer<T> {
         let ptr: (*mut T, _, _) = device.alloc(node.len);
 
-        let valid = Rc::new(Valid);
+        let valid = Box::leak(Box::new(true));
 
         let buf = Buffer {
             ptr,
             len: node.len,
-            flag: BufFlag::Cache(Rc::downgrade(&valid))
+            flag: BufFlag::Cache2(valid as *const bool)
         };
 
-        self.nodes.insert(node, (RawCpu {
+        self.nodes.insert(node, RawCpu {
             ptr: ptr.0 as *mut usize,
             len: node.len,
             align: align_of::<T>(),
-        }, valid));
+            valid: valid as *mut bool
+        });
 
         buf
     }
@@ -63,9 +66,9 @@ impl CPUCache {
             match buf_info_option {
                 Some(buf_info) => {
                     Buffer {
-                        ptr: (buf_info.0.ptr as *mut T, null_mut(), 0),
-                        len: buf_info.0.len,
-                        flag: BufFlag::Cache(Rc::downgrade(&buf_info.1))
+                        ptr: (buf_info.ptr as *mut T, null_mut(), 0),
+                        len: buf_info.len,
+                        flag: BufFlag::Cache2(buf_info.valid as *const bool)
                     }                    
                 }
                 None => cache.add_node(device, node),

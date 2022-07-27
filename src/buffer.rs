@@ -14,6 +14,7 @@ pub struct Valid;
 pub enum BufFlag {
     None,
     Cache(Weak<Valid>),
+    Cache2(*const bool),
     Wrapper,
 }
 
@@ -26,8 +27,8 @@ impl PartialEq for BufFlag {
 #[inline]
 pub fn is_buf_valid(_flag: &BufFlag) -> bool {
     #[cfg(not(feature="realloc"))]
-    if let BufFlag::Cache(valid) = _flag {
-        return valid.upgrade() != None;
+    if let BufFlag::Cache2(valid) = _flag {
+        unsafe {return **valid};
     }
     true
 }
@@ -249,6 +250,17 @@ impl<A: Clone + Default> FromIterator<A> for Buffer<A> {
 
 impl<T> Drop for Buffer<T> {
     fn drop(&mut self) {
+        #[cfg(not(feature="realloc"))]
+        if let BufFlag::Cache2(valid) = self.flag {
+            unsafe {
+                if *valid {
+                    return;
+                }
+                Box::from_raw(valid as *mut bool);
+            }
+            return;
+        }
+
         if self.flag != BufFlag::None {
             return;
         }
