@@ -13,9 +13,10 @@ fn add_cached<T: Default+Copy+Add<Output=T>>(device: &CPU, lhs: &[T], rhs: &[T])
     }
 }
 
-fn add<T: Default+Copy+Add<Output=T>>(lhs: &Buffer<T>, rhs: &Buffer<T>) {
+fn add<T: Default+Copy+Add<Output=T>>(device: &CPU, lhs: &Buffer<T>, rhs: &Buffer<T>) {
     let len = std::cmp::min(lhs.len, rhs.len);
-    let mut out = vec![T::default(); SIZE];
+    //let mut out = vec![T::default(); SIZE];
+    let mut out = Buffer::new(device, SIZE);
 
     for i in 0..len {
         out[i] = lhs[i] + rhs[i];
@@ -30,6 +31,9 @@ pub fn bench_buf_slice_cached(c: &mut Criterion) {
     
     c.bench_function("bench buf slice cached", |bench| bench.iter(|| {
         add_cached(&device, &lhs, &rhs);
+        add_cached(&device, &lhs, &rhs);
+        add_cached(&device, &lhs, &rhs);
+        add_cached(&device, &lhs, &rhs);
         set_count(0);
     }));
 }
@@ -41,7 +45,10 @@ pub fn bench_buf_slice(c: &mut Criterion) {
     let rhs = Buffer::from((&device, vec![0.9; SIZE]));
     
     c.bench_function("bench buf slice", |bench| bench.iter(|| {
-        add(&lhs, &rhs);
+        add(&device, &lhs, &rhs);
+        add(&device, &lhs, &rhs);
+        add(&device, &lhs, &rhs);
+        add(&device, &lhs, &rhs);
     }));
 }
 

@@ -54,6 +54,10 @@ harness = false
 name = "cache_adv"
 harness = false
 
+[[bench]]
+name = "alloc"
+harness = false
+
 #[[bench]]
 #name = "gemm"
 #harness = false

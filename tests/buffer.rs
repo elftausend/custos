@@ -210,3 +210,11 @@ fn test_debug_print_buf() -> custos::Result<()> {
     println!("a: {a:?}");
     Ok(())
 }
+
+#[test]
+fn test_slice() {
+    let device = CPU::new();
+
+    let buf = Buffer::from((&device, [1, 2, 3, 4, 5, 6,]));
+    println!("buf: {:?}", buf.as_slice());
+}

@@ -8,6 +8,7 @@ use std::{
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct RawCpu {
+    // TODO: change to *mut u8
     pub ptr: *mut usize,
     pub len: usize,
     pub align: usize,

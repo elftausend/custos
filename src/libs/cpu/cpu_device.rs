@@ -2,7 +2,7 @@ use crate::{
     deallocate_cache, get_device_count, libs::cpu::CPUCache, number::Number, AsDev, BaseDevice,
     Buffer, CDatatype, CacheBuf, ClearBuf, Device, GenericBlas, ManualMem, VecRead, WriteBuf
 };
-use std::{cell::RefCell, ffi::c_void, fmt::Debug, rc::Rc};
+use std::{cell::RefCell, ffi::c_void, fmt::Debug, rc::Rc, alloc::Layout};
 
 #[derive(Debug, Clone, Default)]
 /// A CPU is used to perform calculations on the host CPU.
@@ -46,19 +46,26 @@ impl From<Rc<RefCell<InternCPU>>> for CPU {
 impl<T: Clone + Default> Device<T> for CPU {
     fn alloc(&self, len: usize) -> (*mut T, *mut c_void, u64) {
         assert!(len > 0, "invalid buffer len: 0");
-        let ptr = Box::into_raw(vec![T::default(); len].into_boxed_slice());
+        let layout = Layout::array::<T>(len).unwrap();
+        let ptr = unsafe {
+            std::alloc::alloc(layout)
+        };
         (ptr as *mut T, std::ptr::null_mut(), 0)
     }
 
     fn with_data(&self, data: &[T]) -> (*mut T, *mut c_void, u64) {
         assert!(!data.is_empty(), "invalid buffer len: 0");
-        let ptr = Box::into_raw(data.to_vec().into_boxed_slice());
-        (ptr as *mut T, std::ptr::null_mut(), 0)
+        let (ptr, _, _) = self.alloc(data.len());
+        let slice = unsafe {std::slice::from_raw_parts_mut(ptr, data.len())};
+        slice.clone_from_slice(data);
+        (ptr, std::ptr::null_mut(), 0)
     }
-    fn alloc_with_vec(&self, vec: Vec<T>) -> (*mut T, *mut c_void, u64) {
+    fn alloc_with_vec(&self, mut vec: Vec<T>) -> (*mut T, *mut c_void, u64) {
         assert!(!vec.is_empty(), "invalid buffer len: 0");
-        let ptr = Box::into_raw(vec.into_boxed_slice());
-        (ptr as *mut T, std::ptr::null_mut(), 0)
+    
+        let ptr = vec.as_mut_ptr();
+        std::mem::forget(vec);
+        (ptr, std::ptr::null_mut(), 0)
     }
 }
 

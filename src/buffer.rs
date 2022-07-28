@@ -1,3 +1,4 @@
+use std::alloc::Layout;
 use std::rc::Weak;
 use std::{ffi::c_void, fmt::Debug, ptr::null_mut};
 
@@ -267,8 +268,8 @@ impl<T> Drop for Buffer<T> {
     
         unsafe {
             if !self.ptr.0.is_null() && self.ptr.1.is_null() {
-                let ptr = std::slice::from_raw_parts_mut(self.ptr.0, self.len);
-                Box::from_raw(ptr);
+                let layout = Layout::array::<T>(self.len).unwrap();
+                std::alloc::dealloc(self.ptr.0 as *mut u8, layout);
             }
 
             #[cfg(feature = "opencl")]
