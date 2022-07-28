@@ -98,7 +98,7 @@ impl<T: Copy + Default> VecRead<T> for CPU {
 impl<T: Number> ClearBuf<T> for CPU {
     fn clear(&self, buf: &mut Buffer<T>) {
         for value in buf {
-            *value = T::zero();
+            *value = T::default();
         }
     }
 }

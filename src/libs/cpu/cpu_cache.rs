@@ -8,11 +8,10 @@ use std::{
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct RawCpu {
-    // TODO: change to *mut u8
-    pub ptr: *mut usize,
+    pub ptr: *mut u8,
     pub len: usize,
     pub align: usize,
-    pub valid: *mut bool,
+    valid: *mut bool,
 }
 
 impl Drop for RawCpu {
@@ -42,14 +41,14 @@ impl CPUCache {
         let buf = Buffer {
             ptr,
             len: node.len,
-            flag: BufFlag::Cache2(valid as *const bool)
+            flag: BufFlag::Cache(valid as *const bool)
         };
 
         self.nodes.insert(node, RawCpu {
-            ptr: ptr.0 as *mut usize,
+            ptr: ptr.0 as *mut u8,
             len: node.len,
             align: align_of::<T>(),
-            valid: valid as *mut bool
+            valid
         });
 
         buf
@@ -69,7 +68,7 @@ impl CPUCache {
                     Buffer {
                         ptr: (buf_info.ptr as *mut T, null_mut(), 0),
                         len: buf_info.len,
-                        flag: BufFlag::Cache2(buf_info.valid as *const bool)
+                        flag: BufFlag::Cache(buf_info.valid)
                     }                    
                 }
                 None => cache.add_node(device, node),

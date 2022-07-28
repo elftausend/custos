@@ -1,4 +1,4 @@
-use std::{ffi::c_void, ptr::null_mut, rc::Rc};
+use std::{ffi::c_void, ptr::null_mut};
 
 pub use cl_cache::*;
 pub use cl_device::*;
@@ -12,10 +12,10 @@ pub mod cl_devices;
 mod kernel_options;
 
 use self::api::{create_buffer, MemFlags};
-use crate::{BufFlag, Buffer, CDatatype, Node, Valid, DeviceError};
+use crate::{BufFlag, Buffer, CDatatype, Node, DeviceError};
 
 /// Returns an OpenCL pointer that is bound to the host pointer stored in the specified buffer.
-pub fn to_unified<T>(device: &CLDevice, no_drop: Buffer<T>) -> crate::Result<(*mut c_void, Rc<Valid>)> {
+pub fn to_unified<T>(device: &CLDevice, no_drop: Buffer<T>) -> crate::Result<(*mut c_void, *const bool)> {
     // use the host pointer to create an OpenCL buffer
     let cl_ptr = create_buffer(
         &device.ctx(),
@@ -24,16 +24,17 @@ pub fn to_unified<T>(device: &CLDevice, no_drop: Buffer<T>) -> crate::Result<(*m
         Some(&no_drop),
     )?;
 
-    let valid = Rc::new(Valid);
+    let valid = Box::leak(Box::new(true));
 
     let old_ptr = CL_CACHE.with(|cache| {
         // add created buffer to the "caching chain"
         cache.borrow_mut().nodes.insert(
             Node::new(no_drop.len),
-            (RawCL {
+            RawCL {
                 ptr: cl_ptr,
                 host_ptr: null_mut(),
-            }, valid.clone()),
+                valid
+            },
         )
     });
 
@@ -60,7 +61,7 @@ pub fn construct_buffer<T>(
     Ok(Buffer {
         ptr: (host_ptr, cl_ptr, 0),
         len,
-        flag: BufFlag::Cache(Rc::downgrade(&valid)),
+        flag: BufFlag::Cache(valid),
     })
 }
 

@@ -10,9 +10,6 @@ fn test_num() {
     let one: i32 = Number::one();
     assert_eq!(one, 1i32);
 
-    let zero: f32 = Number::zero();
-    assert_eq!(zero, 0.);
-
     assert_eq!(num.as_usize().type_id(), TypeId::of::<usize>());
 
     let x: u8 = Number::from_u64(10);

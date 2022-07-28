@@ -1,5 +1,4 @@
 use std::alloc::Layout;
-use std::rc::Weak;
 use std::{ffi::c_void, fmt::Debug, ptr::null_mut};
 
 #[cfg(feature = "opencl")]
@@ -8,14 +7,10 @@ use crate::{get_device, CDatatype, CacheBuf, ClearBuf, Device, VecRead, WriteBuf
 
 use crate::number::Number;
 
-#[derive(Debug, PartialEq, Eq)]
-pub struct Valid;
-
 #[derive(Debug, Clone)]
 pub enum BufFlag {
     None,
-    Cache(Weak<Valid>),
-    Cache2(*const bool),
+    Cache(*const bool),
     Wrapper,
 }
 
@@ -28,7 +23,7 @@ impl PartialEq for BufFlag {
 #[inline]
 pub fn is_buf_valid(_flag: &BufFlag) -> bool {
     #[cfg(not(feature="realloc"))]
-    if let BufFlag::Cache2(valid) = _flag {
+    if let BufFlag::Cache(valid) = _flag {
         unsafe {return **valid};
     }
     true
@@ -252,7 +247,7 @@ impl<A: Clone + Default> FromIterator<A> for Buffer<A> {
 impl<T> Drop for Buffer<T> {
     fn drop(&mut self) {
         #[cfg(not(feature="realloc"))]
-        if let BufFlag::Cache2(valid) = self.flag {
+        if let BufFlag::Cache(valid) = self.flag {
             unsafe {
                 if *valid {
                     return;
