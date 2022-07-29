@@ -11,7 +11,7 @@ use crate::{
     AsDev, BaseDevice, Buffer, CDatatype, CacheBuf, ClearBuf, Device, Error, ManualMem, VecRead,
     WriteBuf, is_buf_valid,
 };
-use std::{cell::RefCell, ffi::c_void, fmt::Debug, rc::Rc};
+use std::{cell::{RefCell, Ref}, ffi::c_void, fmt::Debug, rc::Rc};
 
 #[derive(Clone)]
 /// Used to perform calculations with an OpenCL capable device.
@@ -49,12 +49,14 @@ impl CLDevice {
         Ok(CLDevice { inner })
     }
 
-    pub fn ctx(&self) -> Context {
-        self.inner.borrow().ctx
+    pub fn ctx(&self) -> Ref<Context> {
+        let borrow = self.inner.borrow();
+        Ref::map(borrow, |device| &device.ctx)
     }
 
-    pub fn queue(&self) -> CommandQueue {
-        self.inner.borrow().queue
+    pub fn queue(&self) -> Ref<CommandQueue> {
+        let borrow = self.inner.borrow();
+        Ref::map(borrow, |device| &device.queue)
     }
 
     pub fn device(&self) -> CLIntDevice {
@@ -111,7 +113,7 @@ impl<T> Device<T> for CLDevice {
             create_buffer::<T>(&self.ctx(), MemFlags::MemReadWrite as u64, len, None).unwrap();
 
         let cpu_ptr = if self.unified_mem() {
-            unified_ptr::<T>(self.queue(), ptr, len).unwrap()
+            unified_ptr::<T>(&self.queue(), ptr, len).unwrap()
         } else {
             std::ptr::null_mut()
         };
@@ -129,7 +131,7 @@ impl<T> Device<T> for CLDevice {
         .unwrap();
 
         let cpu_ptr = if self.unified_mem() {
-            unified_ptr::<T>(self.queue(), ptr, data.len()).unwrap()
+            unified_ptr::<T>(&self.queue(), ptr, data.len()).unwrap()
         } else {
             std::ptr::null_mut()
         };
@@ -187,11 +189,11 @@ impl AsDev for CLDevice {
 
 impl<T: CDatatype> BaseDevice<T> for CLDevice {}
 
-#[derive(Debug, Clone)]
 /// Internal representation of an OpenCL Device with the capability of storing pointers.
 /// # Note / Safety
 ///
 /// If the 'safe' feature isn't used, all pointers will get invalid when the drop code for a CLDevice object is run as that deallocates the memory previously pointed at by the pointers stored in 'ptrs'.
+#[derive(Debug, Clone)]
 pub struct InternCLDevice {
     pub ptrs: Vec<*mut c_void>,
     device: CLIntDevice,

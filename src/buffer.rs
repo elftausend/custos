@@ -1,4 +1,4 @@
-use std::rc::Weak;
+use std::alloc::Layout;
 use std::{ffi::c_void, fmt::Debug, ptr::null_mut};
 
 #[cfg(feature = "opencl")]
@@ -7,13 +7,10 @@ use crate::{get_device, CDatatype, CacheBuf, ClearBuf, Device, VecRead, WriteBuf
 
 use crate::number::Number;
 
-#[derive(Debug, PartialEq, Eq)]
-pub struct Valid;
-
 #[derive(Debug, Clone)]
 pub enum BufFlag {
     None,
-    Cache(Weak<Valid>),
+    Cache(*const bool),
     Wrapper,
 }
 
@@ -27,7 +24,7 @@ impl PartialEq for BufFlag {
 pub fn is_buf_valid(_flag: &BufFlag) -> bool {
     #[cfg(not(feature="realloc"))]
     if let BufFlag::Cache(valid) = _flag {
-        return valid.upgrade() != None;
+        unsafe {return **valid};
     }
     true
 }
@@ -249,14 +246,25 @@ impl<A: Clone + Default> FromIterator<A> for Buffer<A> {
 
 impl<T> Drop for Buffer<T> {
     fn drop(&mut self) {
+        #[cfg(not(feature="realloc"))]
+        if let BufFlag::Cache(valid) = self.flag {
+            unsafe {
+                if *valid {
+                    return;
+                }
+                drop(Box::from_raw(valid as *mut bool));
+            }
+            return;
+        }
+
         if self.flag != BufFlag::None {
             return;
         }
     
         unsafe {
             if !self.ptr.0.is_null() && self.ptr.1.is_null() {
-                let ptr = std::slice::from_raw_parts_mut(self.ptr.0, self.len);
-                Box::from_raw(ptr);
+                let layout = Layout::array::<T>(self.len).unwrap();
+                std::alloc::dealloc(self.ptr.0 as *mut u8, layout);
             }
 
             #[cfg(feature = "opencl")]
@@ -436,7 +444,8 @@ impl<'a, T> std::iter::IntoIterator for &'a mut Buffer<T> {
     }
 }
 
-/// TODO: test if working correctly (no safe mode)
+// TODO: test if working correctly (no safe mode)
+// mind deallocation
 impl<T: Number> From<T> for Buffer<T> {
     fn from(val: T) -> Self {
         Buffer {

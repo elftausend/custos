@@ -35,24 +35,37 @@ macro_rules! number_apply {
     ($($t:ident),*) => {
         $(
             impl Number for $t {
+                #[inline]
                 fn from_usize(value: usize) -> $t {
                     value as $t
                 }
+
+                #[inline]
                 fn from_u64(value: u64) -> $t {
                     value as $t
                 }
+
+                #[inline]
                 fn as_usize(&self) -> usize {
                     *self as usize
                 }
+
+                #[inline]
                 fn as_f64(&self) -> f64 {
                     *self as f64
                 }
+
+                #[inline]
                 fn zero() -> $t {
                     0 as $t
                 }
+
+                #[inline]
                 fn one() -> $t {
                     1 as $t
                 }
+
+                #[inline]
                 fn two() -> $t {
                     2 as $t
                 }
@@ -87,41 +100,53 @@ macro_rules! float_apply {
     ($($t:ident),*) => {
         $(
             impl Float for $t {
+                #[inline]
                 fn negate(&self) -> $t {
                     use core::ops::Neg;
                     self.neg()
 
                 }
+                #[inline]
                 fn squared(lhs: $t) -> $t {
                     lhs*lhs
                 }
+                #[inline]
                 fn exp(&self) -> $t {
                     $t::exp(*self)
                 }
+                #[inline]
                 fn powf(&self, rhs: $t) -> $t {
                     $t::powf(*self, rhs)
                 }
+                #[inline]
                 fn powi(&self, rhs: i32) -> $t {
                     $t::powi(*self, rhs)
                 }
+                #[inline]
                 fn comp(lhs: $t, rhs: $t) -> Option<Ordering> {
                     lhs.partial_cmp(&rhs)
                 }
+                #[inline]
                 fn tanh(&self) -> $t {
                     $t::tanh(*self)
                 }
+                #[inline]
                 fn sin(&self) -> $t {
                     $t::sin(*self)
                 }
+                #[inline]
                 fn as_generic(value: f64) -> $t {
                     value as $t
                 }
+                #[inline]
                 fn sqrt(&self) -> $t {
                     $t::sqrt(*self)
                 }
+                #[inline]
                 fn ln(&self) -> $t {
                     $t::ln(*self)
                 }
+                #[inline]
                 fn abs(&self) -> $t {
                     $t::abs(*self)
                 }

@@ -3,8 +3,8 @@ use super::api::{
     nvrtc::{create_program, nvrtcDestroyProgram},
     FnHandle,
 };
-use crate::{BufFlag, Buffer, CudaDevice, Device, Error, Node, Valid};
-use std::{cell::RefCell, collections::HashMap, ffi::CString, rc::Rc};
+use crate::{BufFlag, Buffer, CudaDevice, Device, Error, Node};
+use std::{cell::RefCell, collections::HashMap, ffi::CString};
 
 thread_local! {
     pub static CUDA_CACHE: RefCell<CudaCache> = RefCell::new(CudaCache {
@@ -21,34 +21,38 @@ unsafe impl Sync for CudaPtr {}
 
 pub struct RawCUDA {
     pub ptr: u64,
+    valid: *mut bool,
 }
-
 
 impl Drop for RawCUDA {
     fn drop(&mut self) {
-        unsafe { cufree(self.ptr).unwrap() }
+        unsafe { 
+            *self.valid = false;
+            cufree(self.ptr).unwrap() 
+        }
     }
 }
 
 pub struct CudaCache {
     pub kernels: HashMap<String, FnHandle>,
-    pub nodes: HashMap<Node, (RawCUDA, Rc<Valid>)>,
+    pub nodes: HashMap<Node, RawCUDA>,
 }
 
 impl CudaCache {
     pub fn add_node<T>(&mut self, device: &CudaDevice, node: Node) -> Buffer<T> {
-        let valid = Rc::new(Valid);
+        let valid = Box::leak(Box::new(true));
 
         let out = Buffer {
             ptr: device.alloc(node.len),
             len: node.len,
-            flag: BufFlag::Cache(Rc::downgrade(&valid)),
+            flag: BufFlag::Cache(valid),
         };
         self.nodes.insert(
             node,
-            (RawCUDA {
+            RawCUDA {
                 ptr: out.ptr.2,
-            }, valid),
+                valid
+            },
         );
         out
     }
@@ -69,9 +73,9 @@ impl CudaCache {
 
             match buf_info_option {
                 Some(buf_info) => Buffer {
-                    ptr: (null_mut(), null_mut(), buf_info.0.ptr),
+                    ptr: (null_mut(), null_mut(), buf_info.ptr),
                     len,
-                    flag: BufFlag::Cache(Rc::downgrade(&buf_info.1)),
+                    flag: BufFlag::Cache(buf_info.valid),
                 },
                 None => cache.add_node(device, node),
             }

@@ -7,11 +7,11 @@ fn test_num() {
     let num_f64 = num.as_f64();
     assert_eq!(num_f64.type_id(), TypeId::of::<f64>());
 
+    let zero: i32 = Number::zero();
+    assert_eq!(zero, 0i32);
+
     let one: i32 = Number::one();
     assert_eq!(one, 1i32);
-
-    let zero: f32 = Number::zero();
-    assert_eq!(zero, 0.);
 
     assert_eq!(num.as_usize().type_id(), TypeId::of::<usize>());
 
@@ -39,6 +39,7 @@ fn test_float() {
     assert_eq!(Float::exp(&x), x.exp());
     assert_eq!(Float::tanh(&x), x.tanh());
     assert_eq!(Float::comp(x, 8.), Some(core::cmp::Ordering::Less));
+    assert_eq!(Float::abs(&-5.), 5.);
 
     assert_eq!(x.negate().abs(), x);
 

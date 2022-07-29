@@ -29,7 +29,7 @@ pub fn unified_mem<T>(device: &CLDevice, arr: &mut [T]) -> Result<*mut c_void, E
     Ok(r)
 }
 
-pub fn unified_ptr<T>(cq: CommandQueue, ptr: *mut c_void, len: usize) -> Result<*mut T, Error> {
+pub fn unified_ptr<T>(cq: &CommandQueue, ptr: *mut c_void, len: usize) -> Result<*mut T, Error> {
     unsafe { enqueue_map_buffer::<T>(&cq, ptr, true, 2 | 1, 0, len).map(|ptr| ptr as *mut T) }
 }
 
@@ -68,7 +68,7 @@ fn test_unified_mem() -> Result<(), Error> {
                 Some(&data),
             )?;
 
-            let ptr = unified_ptr::<f32>(device.queue(), buf, len)?;
+            let ptr = unified_ptr::<f32>(&device.queue(), buf, len)?;
 
             let slice = unsafe { std::slice::from_raw_parts_mut(ptr, len) };
 
@@ -102,7 +102,7 @@ fn test_unified_mem() -> Result<(), Error> {
                 len,
                 Some(&data),
             )?;
-            let ptr = unified_ptr::<f32>(device.queue(), buf, len)?;
+            let ptr = unified_ptr::<f32>(&device.queue(), buf, len)?;
             let slice = unsafe { std::slice::from_raw_parts_mut(ptr, len) };
 
             for idx in 20..100 {

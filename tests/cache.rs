@@ -29,3 +29,15 @@ fn test_caching_cpu() {
         assert_eq!(len, 1);
     }
 }
+
+#[test]
+fn test_cloned_cpu() {
+    let buf = {
+        let _device = CPU::new().select();
+        cached::<f32>(10)
+    };
+    //let buf_cloned = buf.clone();
+
+    //drop(buf_cloned);
+    drop(buf);
+}
