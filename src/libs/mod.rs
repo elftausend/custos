@@ -48,7 +48,7 @@ pub fn deallocate_cache(device_count: usize) {
         // FIXM'E: releases all kernels, even if it is used by another device?
         // TOD'O: better kernel cache release
         // -> this is only called if there is no device
-        for kernel in &mut cache.arg_kernel_cache.values_mut() {
+        for kernel in &mut cache.kernel_cache.values_mut() {
             kernel.release()
         }    
         cache.nodes.clear();

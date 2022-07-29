@@ -1,7 +1,7 @@
 # custos
 
 [![Crates.io version](https://img.shields.io/crates/v/custos.svg)](https://crates.io/crates/custos)
-[![Docs](https://docs.rs/custos/badge.svg?version=0.2.1)](https://docs.rs/custos/0.2.1/custos/)
+[![Docs](https://docs.rs/custos/badge.svg?version=0.3.0)](https://docs.rs/custos/0.3.0/custos/)
 
 A minimal OpenCL, CUDA and host CPU array manipulation engine / framework.
 It provides the tools needed to execute array operations with the CPU, as well as with CUDA and OpenCL devices.
@@ -14,15 +14,16 @@ This library demonstrates how operations can be implemented for the compute devi
 Add "custos" as a dependency:
 ```toml
 [dependencies]
-custos = "0.2.1"
+custos = "0.3.0"
 
 # to disable the default features (cuda, opencl) and use an own set of features:
-#custos = {version = "0.2.1", default-features=false, features=["opencl"]}
+#custos = {version = "0.3.0", default-features=false, features=["opencl"]}
 ```
 
 Available features: 
 - "opencl" ... adds OpenCL features, where the CLDevice (feature) is the most important one.
 - "cuda" ... adds CUDA features. (CudaDevice)
+- "realloc" ... disables caching for CPU.
 - using no features at all ... CPU with BLAS
 
 ## [Examples]

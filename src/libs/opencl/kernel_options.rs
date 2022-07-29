@@ -1,8 +1,6 @@
 use std::{mem::size_of, ffi::c_void};
-
 use crate::{CLDevice, number::Number, Buffer};
-
-use super::{CL_CACHE, api::{OCLErrorKind, set_kernel_arg_both, enqueue_nd_range_kernel}};
+use super::{CL_CACHE, api::{OCLErrorKind, set_kernel_arg, enqueue_nd_range_kernel}};
 
 pub trait AsClCvoidPtr {
     fn as_cvoid_ptr(&self) -> *const c_void;
@@ -64,8 +62,8 @@ pub fn enqueue_kernel(
         wd = 3;
     }
 
-    for (idx, arg) in args.into_iter().enumerate() {
-        set_kernel_arg_both(&kernel, idx, arg.as_cvoid_ptr(), arg.size(), arg.is_num()).unwrap();    
+    for (idx, arg) in args.iter().enumerate() {
+        set_kernel_arg(&kernel, idx, arg.as_cvoid_ptr(), arg.size(), arg.is_num()).unwrap();    
     }
     enqueue_nd_range_kernel(&device.queue(), &kernel, wd, &gws, lws.as_ref(), None)?;
     Ok(())

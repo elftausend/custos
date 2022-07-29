@@ -434,7 +434,7 @@ pub(crate) fn unified_ptr<T>(
     ptr: *mut c_void,
     len: usize,
 ) -> Result<*mut T, Error> {
-    unsafe { enqueue_map_buffer::<T>(&cq, ptr, true, 2 | 1, 0, len).map(|ptr| ptr as *mut T) }
+    unsafe { enqueue_map_buffer::<T>(cq, ptr, true, 2 | 1, 0, len).map(|ptr| ptr as *mut T) }
 }
 
 /// map_flags: Read: 1, Write: 2,
@@ -629,23 +629,7 @@ pub(crate) fn release_kernel(kernel: &mut Kernel) -> Result<(), Error> {
     Ok(())
 }
 
-pub fn set_kernel_arg<T>(kernel: &Kernel, index: usize, arg: &T) -> Result<(), Error> {
-    let value = unsafe {
-        clSetKernelArg(
-            kernel.0,
-            index as u32,
-            core::mem::size_of::<T>(),
-            arg as *const T as *const c_void,
-        )
-    };
-    if value != 0 {
-        return Err(Error::from(OCLErrorKind::from_value(value)));
-    }
-    Ok(())
-}
-
-
-pub fn set_kernel_arg_both(
+pub fn set_kernel_arg(
     kernel: &Kernel,
     index: usize,
     arg: *const c_void,
@@ -665,74 +649,6 @@ pub fn set_kernel_arg_both(
             index as u32,
             arg_size,
             ptr
-        )
-    };
-    if value != 0 {
-        return Err(Error::from(OCLErrorKind::from_value(value)));
-    }
-    Ok(())
-}
-
-
-pub fn set_kernel_arg_cvoid(
-    kernel: &Kernel,
-    index: usize,
-    arg: &*const c_void,
-    arg_size: usize,
-) -> Result<(), Error> {
-
-    println!("arg ptr: {arg:?}");
-    
-    let value = unsafe {
-        clSetKernelArg(
-            kernel.0,
-            index as u32,
-            arg_size,
-            arg as *const *const c_void as *const c_void
-        )
-    };
-    if value != 0 {
-        return Err(Error::from(OCLErrorKind::from_value(value)));
-    }
-    Ok(())
-}
-
-pub fn set_kernel_arg_num(
-    kernel: &Kernel,
-    index: usize,
-    arg: *const u8,
-    arg_size: usize,
-) -> Result<(), Error> {
-
-    println!("arg ptr: {arg:?}");
-    
-    let value = unsafe {
-        clSetKernelArg(
-            kernel.0,
-            index as u32,
-            arg_size,
-            arg as *const c_void
-        )
-    };
-    if value != 0 {
-        return Err(Error::from(OCLErrorKind::from_value(value)));
-    }
-    Ok(())
-}
-
-pub fn set_kernel_arg_ptr<T>(
-    kernel: &Kernel,
-    index: usize,
-    arg: &T,
-    arg_size: usize,
-) -> Result<(), Error> {
-
-    let value = unsafe {
-        clSetKernelArg(
-            kernel.0,
-            index as u32,
-            arg_size,
-            arg as *const T as *mut c_void,
         )
     };
     if value != 0 {

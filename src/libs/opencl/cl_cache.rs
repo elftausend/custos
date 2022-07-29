@@ -2,7 +2,7 @@ use super::api::{
     build_program, create_kernels_in_program, create_program_with_source, release_mem_object, Kernel
 };
 use crate::{BufFlag, CLDevice, Device, Error, Node};
-use std::{any::TypeId, cell::RefCell, collections::HashMap, ffi::c_void};
+use std::{cell::RefCell, collections::HashMap, ffi::c_void};
 
 #[cfg(feature = "opencl")]
 use crate::Buffer;
@@ -10,7 +10,6 @@ use crate::Buffer;
 thread_local! {
     pub static CL_CACHE: RefCell<CLCache> = RefCell::new(CLCache {
         nodes: HashMap::new(),
-        arg_kernel_cache: HashMap::new(),
         kernel_cache: HashMap::new()
     });
 }
@@ -37,15 +36,11 @@ impl Drop for RawCL {
     }
 }
 
-type KernelIdent = (Vec<OclPtr>, Vec<TypeId>, Option<OclPtr>, String);
-
-
 #[derive(Debug)]
 /// Stores kernels and outputs
 pub struct CLCache {
     // TODO: Instead of a hashmap: vec?
     pub nodes: HashMap<Node, RawCL>,
-    pub(crate) arg_kernel_cache: HashMap<KernelIdent, Kernel>,
     pub(crate) kernel_cache: HashMap<String, Kernel>,
 }
 
