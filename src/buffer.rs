@@ -252,7 +252,7 @@ impl<T> Drop for Buffer<T> {
                 if *valid {
                     return;
                 }
-                Box::from_raw(valid as *mut bool);
+                drop(Box::from_raw(valid as *mut bool));
             }
             return;
         }

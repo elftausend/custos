@@ -2,7 +2,7 @@ use crate::{
     deallocate_cache, get_device_count, libs::cpu::CPUCache, number::Number, AsDev, BaseDevice,
     Buffer, CDatatype, CacheBuf, ClearBuf, Device, GenericBlas, ManualMem, VecRead, WriteBuf
 };
-use std::{cell::RefCell, ffi::c_void, fmt::Debug, rc::Rc, alloc::Layout};
+use std::{cell::RefCell, ffi::c_void, fmt::Debug, rc::Rc, alloc::{Layout, handle_alloc_error}, mem::size_of};
 
 #[derive(Debug, Clone, Default)]
 /// A CPU is used to perform calculations on the host CPU.
@@ -50,6 +50,15 @@ impl<T: Clone + Default> Device<T> for CPU {
         let ptr = unsafe {
             std::alloc::alloc(layout)
         };
+
+        // initialize block of memory
+        for element in unsafe {std::slice::from_raw_parts_mut(ptr, len*size_of::<T>())} {
+            *element = 0;
+        }
+
+        if ptr.is_null() {
+            handle_alloc_error(layout);
+        }
         (ptr as *mut T, std::ptr::null_mut(), 0)
     }
 
@@ -78,7 +87,7 @@ impl AsDev for CPU {
 impl<T> ManualMem<T> for CPU {
     fn drop_buf(&self, buf: Buffer<T>) {
         unsafe {
-            Box::from_raw(buf.ptr.0);
+            drop(Box::from_raw(buf.ptr.0));
         }
     }
 }
@@ -91,7 +100,7 @@ impl<T: Copy + Default> CacheBuf<T> for CPU {
 
 impl<T: Copy + Default> VecRead<T> for CPU {
     fn read(&self, buf: &Buffer<T>) -> Vec<T> {
-        unsafe { std::slice::from_raw_parts(buf.ptr.0, buf.len).to_vec() }
+        buf.as_slice().to_vec()
     }
 }
 

@@ -98,59 +98,69 @@ pub trait CDatatype: Number + 'static {
 
 #[cfg(any(not(target_os = "macos"), not(feature = "opencl")))]
 impl CDatatype for f64 {
+    #[inline]
     fn as_c_type_str() -> &'static str {
         "double"
     }
 }
 
 impl CDatatype for f32 {
+    #[inline]
     fn as_c_type_str() -> &'static str {
         "float"
     }
 }
 
 impl CDatatype for i32 {
+    #[inline]
     fn as_c_type_str() -> &'static str {
         "int"
     }
 }
 
 impl CDatatype for u32 {
+    #[inline]
     fn as_c_type_str() -> &'static str {
         "uint"
     }
 }
 
 impl CDatatype for i8 {
+    #[inline]
     fn as_c_type_str() -> &'static str {
         "char"
     }
 }
 
 impl CDatatype for u8 {
+    #[inline]
     fn as_c_type_str() -> &'static str {
         "uchar"
     }
 }
 
 impl CDatatype for i16 {
+    #[inline]
     fn as_c_type_str() -> &'static str {
         "short"
     }
 }
 impl CDatatype for u16 {
+    #[inline]
     fn as_c_type_str() -> &'static str {
         "ushort"
     }
 }
 
 impl CDatatype for i64 {
+    #[inline]
     fn as_c_type_str() -> &'static str {
         "long"
     }
 }
 
 impl CDatatype for u64 {
+    #[inline]
     fn as_c_type_str() -> &'static str {
         "ulong"
     }
@@ -174,6 +184,7 @@ where
 }
 
 impl GenericBlas for f32 {
+    #[inline]
     fn gemm(m: usize, n: usize, k: usize, a: &[Self], b: &[Self], c: &mut [Self]) {
         unsafe {
             level3::cblas_sgemm(
@@ -195,6 +206,7 @@ impl GenericBlas for f32 {
         };
     }
     #[cfg(feature = "cuda")]
+    #[inline]
     fn cugemm(
         handle: &CublasHandle,
         m: usize,
@@ -228,6 +240,7 @@ impl GenericBlas for f32 {
 }
 
 impl GenericBlas for f64 {
+    #[inline]
     fn gemm(m: usize, n: usize, k: usize, a: &[Self], b: &[Self], c: &mut [Self]) {
         unsafe {
             level3::cblas_dgemm(
@@ -249,6 +262,7 @@ impl GenericBlas for f64 {
         };
     }
     #[cfg(feature = "cuda")]
+    #[inline]
     fn cugemm(
         handle: &CublasHandle,
         m: usize,

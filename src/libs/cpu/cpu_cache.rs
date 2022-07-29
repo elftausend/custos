@@ -2,15 +2,16 @@ use crate::{Device, Node, CPU, Buffer, BufFlag};
 use std::{
     cell::RefCell,
     collections::HashMap,
-    mem::align_of,
-    ptr::null_mut,
+    mem::{align_of, size_of},
+    ptr::null_mut, alloc::Layout,
 };
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct RawCpu {
     pub ptr: *mut u8,
-    pub len: usize,
-    pub align: usize,
+    len: usize,
+    align: usize,
+    size: usize,
     valid: *mut bool,
 }
 
@@ -18,8 +19,11 @@ impl Drop for RawCpu {
     fn drop(&mut self) {
         unsafe {
             *self.valid = false;
-            let slice = std::slice::from_raw_parts_mut(self.ptr as *mut u8, self.len * self.align);
-            Box::from_raw(slice);
+            let layout = Layout::array::<u8>(self.len*self.size)
+                .unwrap().align_to(self.align).unwrap();
+            std::alloc::dealloc(self.ptr, layout);
+            //let slice = std::slice::from_raw_parts_mut(self.ptr as *mut u8, self.len * self.align);
+            //Box::from_raw(slice);
         }
     }
 }
@@ -41,13 +45,14 @@ impl CPUCache {
         let buf = Buffer {
             ptr,
             len: node.len,
-            flag: BufFlag::Cache(valid as *const bool)
+            flag: BufFlag::Cache(valid)
         };
 
         self.nodes.insert(node, RawCpu {
             ptr: ptr.0 as *mut u8,
             len: node.len,
             align: align_of::<T>(),
+            size: size_of::<T>(),
             valid
         });
 

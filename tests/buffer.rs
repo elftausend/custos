@@ -106,6 +106,7 @@ fn test_use_number() {
 
 #[test]
 fn test_cached_cpu() {
+    std::env::set_var("RUST_BACKTRACE", "1");
     let device = CPU::new().select();
 
     assert_eq!(0, get_count());
@@ -217,4 +218,15 @@ fn test_slice() {
 
     let buf = Buffer::from((&device, [1, 2, 3, 4, 5, 6,]));
     println!("buf: {:?}", buf.as_slice());
+}
+
+#[test]
+fn test_alloc() {
+    let _device = CPU::new().select();
+    let buf = cached::<f32>(100);
+    assert_eq!(buf.read(), vec![0.; 100]);
+
+    let buf = cached::<f32>(100);
+    assert_eq!(buf.read(), vec![0.; 100]);
+    drop(buf);
 }
