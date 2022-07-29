@@ -44,14 +44,14 @@ pub fn deallocate_cache(device_count: usize) {
 
     #[cfg(feature = "opencl")]
     crate::opencl::CL_CACHE.with(|cache| {
-        /*
-        // FIXME: releases all kernels, even if it is used by another device?
-        // TODO: better kernel cache release
-        for kernel in &mut cache.borrow_mut().arg_kernel_cache.values_mut() {
+        let mut cache = cache.borrow_mut();
+        // FIXM'E: releases all kernels, even if it is used by another device?
+        // TOD'O: better kernel cache release
+        // -> this is only called if there is no device
+        for kernel in &mut cache.arg_kernel_cache.values_mut() {
             kernel.release()
-        }
-        */
-        cache.borrow_mut().nodes.clear();
+        }    
+        cache.nodes.clear();
     });
 
     #[cfg(feature = "cuda")]

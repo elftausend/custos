@@ -200,14 +200,14 @@ pub fn get_device_info(
 }
 
 // TODO: implement drop
-#[derive(Debug, Hash, Clone, Copy)]
+#[derive(Debug, Hash, Clone)]
 pub struct Context(pub cl_context);
 
-impl Context {
-    pub fn release(self) {
-        release_context(self);
+/*impl Drop for Context {
+    fn drop(&mut self) {
+        unsafe { clReleaseContext(self.0) };
     }
-}
+}*/
 
 pub fn create_context(devices: &[CLIntDevice]) -> Result<Context, Error> {
     let mut err = 0;
@@ -227,19 +227,16 @@ pub fn create_context(devices: &[CLIntDevice]) -> Result<Context, Error> {
     Ok(Context(r))
 }
 
-fn release_context(context: Context) {
-    unsafe { clReleaseContext(context.0) };
-}
 
 // TODO: implement drop
-#[derive(Clone, Copy, Debug)]
+#[derive(Debug, Clone)]
 pub struct CommandQueue(pub cl_command_queue);
 
-impl CommandQueue {
+/*impl CommandQueue {
     pub fn release(self) {
         release_command_queue(self);
     }
-}
+}*/
 
 pub fn create_command_queue(context: &Context, device: CLIntDevice) -> Result<CommandQueue, Error> {
     let mut err = 0;
@@ -433,7 +430,7 @@ pub(crate) fn enqueue_copy_buffer(
 }
 
 pub(crate) fn unified_ptr<T>(
-    cq: CommandQueue,
+    cq: &CommandQueue,
     ptr: *mut c_void,
     len: usize,
 ) -> Result<*mut T, Error> {

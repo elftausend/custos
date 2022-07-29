@@ -4,7 +4,7 @@ use super::{
     cuStreamCreate, cuStreamSynchronize,
     error::{CudaErrorKind, CudaResult},
     ffi::cuMemAlloc_v2,
-    CUcontext, CUdevice, CUfunction, CUmodule, CUstream,
+    CUcontext, CUdevice, CUfunction, CUmodule, CUstream, cuModuleUnload, cuCtxDestroy,
 };
 use crate::CUdeviceptr;
 use std::{
@@ -38,6 +38,14 @@ pub fn device(ordinal: i32) -> CudaResult<CudaIntDevice> {
 
 #[derive(Debug)]
 pub struct Context(pub CUcontext);
+
+impl Drop for Context {
+    fn drop(&mut self) {
+        unsafe {
+            cuCtxDestroy(self.0);
+        }
+    }
+}
 
 pub fn create_context(device: &CudaIntDevice) -> CudaResult<Context> {
     let mut context = Context(null_mut());
@@ -80,6 +88,15 @@ pub struct Module(pub CUmodule);
 impl Module {
     pub fn function(&self, fn_name: &str) -> CudaResult<FnHandle> {
         module_get_fn(self, fn_name)
+    }
+}
+
+impl Drop for Module {
+    fn drop(&mut self) {
+        unsafe {
+            cuModuleUnload(self.0).to_result().unwrap();
+        }
+        
     }
 }
 

@@ -1,6 +1,6 @@
 use super::{
     api::{
-        create_context, create_stream, cuCtxDestroy, cuInit, cuModuleUnload, cuStreamDestroy,
+        create_context, create_stream, cuInit, cuStreamDestroy,
         cu_read, cu_write,
         cublas::{create_handle, cublasDestroy_v2, cublasSetStream_v2, CublasHandle},
         cumalloc, device, Context, CudaIntDevice, Module, Stream,
@@ -117,8 +117,8 @@ impl InternCudaDevice {
         unsafe { cuInit(0) }.to_result()?;
         let device = device(idx as i32)?;
         let ctx = create_context(&device)?;
-        let handle = create_handle()?;
         let stream = create_stream()?;
+        let handle = create_handle()?;
         unsafe { cublasSetStream_v2(handle.0, stream.0) }.to_result()?;
 
         Ok(InternCudaDevice {
@@ -155,18 +155,8 @@ impl Drop for InternCudaDevice {
             *count -= 1;
             deallocate_cache(*count);
 
-            //TODO: Implement Drop
             cublasDestroy_v2(self.handle.0);
-
-            //TODO: Implement Drop
-            for module in &self.modules {
-                cuModuleUnload(module.0);
-            }
-
-            //TODO: Implement Drop
             cuStreamDestroy(self.stream.0);
-            //TODO: Implement Drop
-            cuCtxDestroy(self.ctx.0);
         }
     }
 }

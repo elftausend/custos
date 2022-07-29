@@ -444,7 +444,8 @@ impl<'a, T> std::iter::IntoIterator for &'a mut Buffer<T> {
     }
 }
 
-/// TODO: test if working correctly (no safe mode)
+// TODO: test if working correctly (no safe mode)
+// mind deallocation
 impl<T: Number> From<T> for Buffer<T> {
     fn from(val: T) -> Self {
         Buffer {
