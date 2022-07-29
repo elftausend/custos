@@ -92,7 +92,7 @@ pub fn cl_clear<T: CDatatype>(device: &CLDevice, lhs: &mut Buffer<T>) -> crate::
     );
 
     let gws = [lhs.len, 0, 0];
-    KernelOptions::<T>::new(device, lhs, gws, &src)?.run()?;
+    enqueue_kernel(&device, &src, gws, None, &[lhs])?;
     Ok(())
     //enqueue_kernel(device, &src, gws, None, vec![lhs])
 }

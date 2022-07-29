@@ -1,6 +1,5 @@
 use super::api::{
-    build_program, create_kernels_in_program, create_program_with_source, release_mem_object,
-    set_kernel_arg, Kernel,
+    build_program, create_kernels_in_program, create_program_with_source, release_mem_object, Kernel
 };
 use crate::{BufFlag, CLDevice, Device, Error, Node};
 use std::{any::TypeId, cell::RefCell, collections::HashMap, ffi::c_void};
@@ -94,51 +93,7 @@ impl CLCache {
         })
     }
 
-    pub(crate) fn arg_kernel_cache<T: 'static>(
-        &mut self,
-        device: &CLDevice,
-        buffers: &[(&Buffer<T>, usize)],
-        numbers: &[(T, usize)],
-        output: Option<&Buffer<T>>,
-        src: String,
-    ) -> Result<Kernel, Error> {
-        let type_ids = vec![TypeId::of::<T>(); numbers.len()];
-
-        let mems: Vec<OclPtr> = buffers
-            .iter()
-            .map(|matrix| OclPtr(matrix.0.ptr.1))
-            .collect();
-
-        let outputmem = output.map(|output| OclPtr(output.ptr.1));
-
-        let cache = &mut self.arg_kernel_cache;
-        let kernel = cache.get(&(mems.clone(), type_ids.clone(), outputmem, src.clone()));
-        match kernel {
-            Some(kernel) => Ok(*kernel),
-            None => {
-                let program = create_program_with_source(&device.ctx(), &src)?;
-                build_program(&program, &[device.device()], Some("-cl-std=CL1.2"))?; //-cl-single-precision-constant
-                let kernel = create_kernels_in_program(&program)?[0];
-
-                for (number, idx) in numbers {
-                    set_kernel_arg(&kernel, *idx, number)?
-                }
-
-                for (buf, idx) in buffers {
-                    set_kernel_arg(&kernel, *idx, &(buf.ptr.1))?;
-                }
-
-                if let Some(mem) = outputmem {
-                    set_kernel_arg(&kernel, mems.len() + type_ids.len(), &mem)?;
-                }
-
-                cache.insert((mems, type_ids, outputmem, src), kernel);
-                Ok(kernel)
-            }
-        }
-    }
-
-    pub fn arg_kernel_cache1(&mut self, device: &CLDevice, src: String) -> Result<Kernel, Error> {
+    pub fn arg_kernel_cache(&mut self, device: &CLDevice, src: String) -> Result<Kernel, Error> {
         let kernel = self.kernel_cache.get(&src);
 
         if let Some(kernel) = kernel {

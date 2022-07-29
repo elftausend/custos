@@ -644,12 +644,89 @@ pub fn set_kernel_arg<T>(kernel: &Kernel, index: usize, arg: &T) -> Result<(), E
     Ok(())
 }
 
+
+pub fn set_kernel_arg_both(
+    kernel: &Kernel,
+    index: usize,
+    arg: *const c_void,
+    arg_size: usize,
+    is_num: bool,
+) -> Result<(), Error> {
+
+    let ptr = if is_num {
+        arg
+    } else {
+        &arg as *const *const c_void as *const c_void  
+    };
+    
+    let value = unsafe {
+        clSetKernelArg(
+            kernel.0,
+            index as u32,
+            arg_size,
+            ptr
+        )
+    };
+    if value != 0 {
+        return Err(Error::from(OCLErrorKind::from_value(value)));
+    }
+    Ok(())
+}
+
+
+pub fn set_kernel_arg_cvoid(
+    kernel: &Kernel,
+    index: usize,
+    arg: &*const c_void,
+    arg_size: usize,
+) -> Result<(), Error> {
+
+    println!("arg ptr: {arg:?}");
+    
+    let value = unsafe {
+        clSetKernelArg(
+            kernel.0,
+            index as u32,
+            arg_size,
+            arg as *const *const c_void as *const c_void
+        )
+    };
+    if value != 0 {
+        return Err(Error::from(OCLErrorKind::from_value(value)));
+    }
+    Ok(())
+}
+
+pub fn set_kernel_arg_num(
+    kernel: &Kernel,
+    index: usize,
+    arg: *const u8,
+    arg_size: usize,
+) -> Result<(), Error> {
+
+    println!("arg ptr: {arg:?}");
+    
+    let value = unsafe {
+        clSetKernelArg(
+            kernel.0,
+            index as u32,
+            arg_size,
+            arg as *const c_void
+        )
+    };
+    if value != 0 {
+        return Err(Error::from(OCLErrorKind::from_value(value)));
+    }
+    Ok(())
+}
+
 pub fn set_kernel_arg_ptr<T>(
     kernel: &Kernel,
     index: usize,
     arg: &T,
     arg_size: usize,
 ) -> Result<(), Error> {
+
     let value = unsafe {
         clSetKernelArg(
             kernel.0,

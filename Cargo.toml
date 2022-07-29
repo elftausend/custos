@@ -39,6 +39,10 @@ required-features = ["opencl"]
 name = "opencl_unified"
 required-features = ["opencl"]
 
+[[test]]
+name = "cl_kernel_launch"
+required-features = ["opencl"]
+
 [dev-dependencies]
 criterion = "0.3"
 

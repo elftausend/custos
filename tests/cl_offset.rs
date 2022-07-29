@@ -1,3 +1,4 @@
+/* 
 #[cfg(feature = "opencl")]
 use custos::{opencl::KernelOptions, AsDev, CLDevice, Error};
 
@@ -29,4 +30,4 @@ fn test_cl_offset() -> Result<(), Error> {
     let _out_data = device.read(&out);
     //assert_eq!(out_data, vec![0., 0., 0., 6., 7.5, 9.]);
     Ok(())
-}
+}*/

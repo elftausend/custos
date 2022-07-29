@@ -1,7 +1,7 @@
-use custos::{opencl::KernelOptions, Buffer, CDatatype, CLDevice, Error, VecRead};
+use custos::{Buffer, CDatatype, CLDevice, Error, opencl::{CLCache, enqueue_kernel}, AsDev};
 
 fn main() -> Result<(), Error> {
-    let device = CLDevice::new(0)?;
+    let device = CLDevice::new(0)?.select();
 
     let lhs = Buffer::<i32>::from((&device, [1, 5, 3, 2, 7, 8]));
     let rhs = Buffer::<i32>::from((&device, [-2, -6, -4, -3, -8, -9]));
@@ -14,12 +14,9 @@ fn main() -> Result<(), Error> {
     ", datatype=i32::as_c_type_str());
 
     let gws = [lhs.len, 0, 0];
-    let out = KernelOptions::<i32>::new(&device, &lhs, gws, &src)?
-        .with_rhs(&rhs)
-        .with_output(lhs.len)
-        .run()?
-        .unwrap();
 
-    assert_eq!(device.read(&out), vec![-1, -1, -1, -1, -1, -1]);
+    let out = CLCache::get::<i32>(&device, lhs.len);
+    enqueue_kernel(&device, &src, gws, None, &[&lhs, &rhs, &out])?;
+    assert_eq!(out.read(), vec![-1, -1, -1, -1, -1, -1]);
     Ok(())
 }
