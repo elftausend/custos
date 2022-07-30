@@ -98,7 +98,7 @@ impl<'a, T: Copy + Default> CacheBuf<'a, T> for CPU {
     }
 }
 
-pub fn cpu_cached<T: Copy+Default>(device: &CPU, len: usize) -> Buffer<T> {
+pub fn cpu_cached<'a, T: Copy+Default>(device: &'a CPU, len: usize) -> Buffer<'a, T> {
     device.cached(len)
 }
 

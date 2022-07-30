@@ -35,22 +35,20 @@ pub struct CPUCache {
 impl CPUCache {
     pub fn add_node<'a, T: Default + Copy>(&mut self, device: &'a CPU, node: Node) -> Buffer<'a, T> {
         let ptr: (*mut T, _, _) = device.alloc(node.len);
-
-        let buf = Buffer {
-            ptr,
-            len: node.len,
-            flag: BufFlag::Cache,
-            p: PhantomData,
-        };
-
+        
         self.nodes.insert(node, RawCpu {
             ptr: ptr.0 as *mut u8,
             len: node.len,
             align: align_of::<T>(),
             size: size_of::<T>(),
         });
-
-        buf
+        
+        Buffer {
+            ptr,
+            len: node.len,
+            flag: BufFlag::Cache,
+            p: PhantomData,
+        }
     }
 
     #[cfg(not(feature="realloc"))]
@@ -67,7 +65,7 @@ impl CPUCache {
                     Buffer {
                         ptr: (buf_info.ptr as *mut T, null_mut(), 0),
                         len: buf_info.len,
-                        flag: BufFlag::Cache,
+                        flag: BufFlag::Wrapper,
                         p: PhantomData,
                     }                    
                 }

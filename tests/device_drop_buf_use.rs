@@ -18,7 +18,7 @@ fn test_return_buf() {
 fn test_return_cache_buf() {
     let mut buf = {
         let device = CPU::new().select();
-        cpu_cached::<i32>(&device, 100)
+        custos::cpu::cpu_cached::<i32>(&device, 100)
         
     };
     assert_eq!(buf.as_slice(), vec![1, 2, 4, 6, -4]);
