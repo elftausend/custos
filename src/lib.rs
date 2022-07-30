@@ -116,7 +116,8 @@ pub type Result<T> = std::result::Result<T, Error>;
 /// let buf = Buffer {
 ///     ptr: ptrs,
 ///     len: 12,
-///     flag: BufFlag::None
+///     flag: BufFlag::None,
+///     p: std::marker::PhantomData
 /// };
 /// assert_eq!(vec![0.; 12], device.read(&buf));
 /// ```
@@ -132,7 +133,8 @@ pub trait Device<T> {
     /// let buf = Buffer {
     ///     ptr: ptrs,
     ///     len: 12,
-    ///     flag: BufFlag::None
+    ///     flag: BufFlag::None,
+    ///     p: std::marker::PhantomData
     /// };
     /// assert_eq!(vec![0.; 12], device.read(&buf));
     /// ```
@@ -149,7 +151,8 @@ pub trait Device<T> {
     /// let buf = Buffer {
     ///     ptr: ptrs,
     ///     len: 8,
-    ///     flag: BufFlag::None
+    ///     flag: BufFlag::None,
+    ///     p: std::marker::PhantomData
     /// };
     /// assert_eq!(vec![1, 5, 4, 3, 6, 9, 0, 4], device.read(&buf));
     /// ```
@@ -218,7 +221,7 @@ trait ManualMem<T> {
     fn drop_buf(&self, buf: Buffer<T>);
 }
 
-pub trait CacheBuf<T> {
+pub trait CacheBuf<'a, T> {
     /// Adds a buffer to the cache. Following calls will return this buffer, if the corresponding internal count matches with the id used in the cache.
     /// # Example
     /// ```
@@ -227,7 +230,7 @@ pub trait CacheBuf<T> {
     /// let device = CPU::new().select();
     /// assert_eq!(0, get_count());
     ///
-    /// let mut buf = CacheBuf::<f32>::cached_buf(&device, 10);
+    /// let mut buf = CacheBuf::<f32>::cached(&device, 10);
     /// assert_eq!(1, get_count());
     ///
     /// for value in buf.as_mut_slice() {
@@ -235,10 +238,10 @@ pub trait CacheBuf<T> {
     /// }
     ///    
     /// set_count(0);
-    /// let buf = CacheBuf::<f32>::cached_buf(&device, 10);
+    /// let buf = CacheBuf::<f32>::cached(&device, 10);
     /// assert_eq!(device.read(&buf), vec![1.5; 10]);
     /// ```
-    fn cached_buf(&self, len: usize) -> Buffer<T>;
+    fn cached(&'a self, len: usize) -> Buffer<'a, T>;
 }
 
 #[derive(Debug, Clone)]

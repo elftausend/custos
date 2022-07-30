@@ -1,5 +1,5 @@
 use crate::{
-    deallocate_cache, get_device_count, libs::cpu::CPUCache, number::Number, AsDev, BaseDevice,
+    deallocate_cache, get_device_count, libs::cpu::CPUCache, AsDev, BaseDevice,
     Buffer, CDatatype, CacheBuf, ClearBuf, Device, GenericBlas, ManualMem, VecRead, WriteBuf
 };
 use std::{cell::RefCell, ffi::c_void, fmt::Debug, rc::Rc, alloc::{Layout, handle_alloc_error}, mem::size_of};
@@ -92,10 +92,14 @@ impl<T> ManualMem<T> for CPU {
     }
 }
 
-impl<T: Copy + Default> CacheBuf<T> for CPU {
-    fn cached_buf(&self, len: usize) -> Buffer<T> {
+impl<'a, T: Copy + Default> CacheBuf<'a, T> for CPU {
+    fn cached(&'a self, len: usize) -> Buffer<'a, T> {
         CPUCache::get::<T>(self, len)
     }
+}
+
+pub fn cpu_cached<T: Copy+Default>(device: &CPU, len: usize) -> Buffer<T> {
+    device.cached(len)
 }
 
 impl<T: Copy + Default> VecRead<T> for CPU {
@@ -104,7 +108,7 @@ impl<T: Copy + Default> VecRead<T> for CPU {
     }
 }
 
-impl<T: Number> ClearBuf<T> for CPU {
+impl<T: Default> ClearBuf<T> for CPU {
     fn clear(&self, buf: &mut Buffer<T>) {
         for value in buf {
             *value = T::default();

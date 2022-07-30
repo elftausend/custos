@@ -1,6 +1,6 @@
 #[cfg(feature = "opencl")]
 use custos::opencl::cl_device::CLDevice;
-use custos::{cached, libs::cpu::CPU, range, AsDev, Buffer, cpu::CPU_CACHE};
+use custos::{libs::cpu::CPU, range, AsDev, Buffer, cpu::{CPU_CACHE, cpu_cached}};
 
 #[test]
 fn test_rc_get_dev() {
@@ -33,9 +33,10 @@ fn test_dealloc_device_cache_cpu() {
     let device = CPU::new().select();
 
     assert_eq!(CPU_CACHE.with(|cache| cache.borrow().nodes.len()), 0);
-    let _a = cached::<f32>(10);
+    let a = cpu_cached::<f32>(&device, 10);
     assert_eq!(CPU_CACHE.with(|cache| cache.borrow().nodes.len()), 1);
 
+    drop(a);
     drop(device);
     assert_eq!(CPU_CACHE.with(|cache| cache.borrow().nodes.len()), 0);
 }

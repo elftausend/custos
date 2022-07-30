@@ -1,16 +1,17 @@
 use std::ffi::c_void;
 
+use custos::cpu::cpu_cached;
 #[cfg(feature = "opencl")]
 use custos::{libs::opencl::CLDevice, Error};
 use custos::{AsDev, Buffer, Device, VecRead};
 
-use custos::{cached, get_count, set_count, CPU};
+use custos::{get_count, set_count, CPU};
 
-pub fn get_mut_slice<T>(buf: &mut Buffer<T>) -> &mut [T] {
+pub fn get_mut_slice<'a, T>(buf: &'a mut Buffer<T>) -> &'a mut [T] {
     unsafe { std::slice::from_raw_parts_mut(buf.ptr.0, buf.len) }
 }
 
-pub fn get_slice<T>(buf: &Buffer<T>) -> &[T] {
+pub fn get_slice<'a, T>(buf: &'a Buffer<T>) -> &'a [T] {
     unsafe { std::slice::from_raw_parts(buf.ptr.0, buf.len) }
 }
 
@@ -111,7 +112,7 @@ fn test_cached_cpu() {
 
     assert_eq!(0, get_count());
 
-    let mut buf = cached::<f32>(10);
+    let mut buf = cpu_cached::<f32>(&device, 10);
 
     assert_eq!(1, get_count());
 
@@ -119,13 +120,13 @@ fn test_cached_cpu() {
         *value = 1.5;
     }
 
-    let new_buf = cached::<i32>(10);
+    let new_buf = cpu_cached::<i32>(&device, 10);
     assert_eq!(device.read(&new_buf), vec![0; 10]);
     assert_eq!(2, get_count());
 
     set_count(0);
     assert_eq!(0, get_count());
-    let buf = cached::<f32>(10);
+    let buf = cpu_cached::<f32>(&device, 10);
 
     assert_eq!(device.read(&buf), vec![1.5; 10]);
 }
@@ -222,11 +223,11 @@ fn test_slice() {
 
 #[test]
 fn test_alloc() {
-    let _device = CPU::new().select();
-    let buf = cached::<f32>(100);
+    let device = CPU::new().select();
+    let buf = cpu_cached::<f32>(&device, 100);
     assert_eq!(buf.read(), vec![0.; 100]);
 
-    let buf = cached::<f32>(100);
+    let buf = cpu_cached::<f32>(&device, 100);
     assert_eq!(buf.read(), vec![0.; 100]);
     drop(buf);
 }
