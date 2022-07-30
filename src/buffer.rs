@@ -4,7 +4,7 @@ use std::{ffi::c_void, fmt::Debug, ptr::null_mut};
 
 #[cfg(feature = "opencl")]
 use crate::opencl::api::release_mem_object;
-use crate::{get_device, CDatatype, ClearBuf, Device, VecRead, WriteBuf};
+use crate::{get_device, CDatatype, ClearBuf, Alloc, VecRead, WriteBuf, Device};
 
 use crate::number::Number;
 
@@ -24,6 +24,7 @@ impl PartialEq for BufFlag {
 pub struct Buffer<'a, T> {
     pub ptr: (*mut T, *mut c_void, u64),
     pub len: usize,
+    pub device: Device,
     pub flag: BufFlag,
     pub p: PhantomData<&'a T>,
 }
@@ -44,10 +45,11 @@ impl<'a, T> Buffer<'a, T> {
     /// assert_eq!(buffer.as_slice(), &[2; 6]);
     ///
     /// ```
-    pub fn new<'b, D: Device<T>>(device: &'b D, len: usize) -> Buffer<'a, T> {
+    pub fn new<'b, D: Alloc<T>>(device: &'b D, len: usize) -> Buffer<'a, T> {
         Buffer {
             ptr: device.alloc(len),
             len,
+            device: device.as_dev(),
             flag: BufFlag::None,
             p: PhantomData,
             
@@ -57,7 +59,7 @@ impl<'a, T> Buffer<'a, T> {
     /// Constructs a Buffer with a host pointer and a length.
     /// # Example
     /// ```
-    /// use custos::{Buffer, Device, CPU, VecRead};
+    /// use custos::{Buffer, Alloc, CPU, VecRead};
     /// use std::ffi::c_void;
     ///
     /// let device = CPU::new();
@@ -74,6 +76,7 @@ impl<'a, T> Buffer<'a, T> {
         Buffer {
             ptr: (ptr, null_mut(), 0),
             len,
+            device: Device::default(),
             flag: BufFlag::None,
             p: PhantomData,
         }
@@ -186,7 +189,7 @@ impl<'a, T> Buffer<'a, T> {
     where
         T: CDatatype,
     {
-        let device = get_device!(ClearBuf<T>).unwrap();
+        let device = get_device!(self.device, ClearBuf<T>);
         device.clear(self)
     }
 
@@ -196,7 +199,7 @@ impl<'a, T> Buffer<'a, T> {
     where
         T: Copy + Default,
     {
-        let device = get_device!(VecRead<T>).unwrap();
+        let device = get_device!(self.device, VecRead<T>);
         device.read(self)
     }
 
@@ -206,7 +209,7 @@ impl<'a, T> Buffer<'a, T> {
     where
         T: Copy,
     {
-        get_device!(WriteBuf<T>).unwrap().write(self, data)
+        get_device!(self.device, WriteBuf<T>).write(self, data)
     }
 }
 
@@ -222,25 +225,28 @@ impl<T> Clone for Buffer<'_, T> {
         Self {
             ptr: self.ptr,
             len: self.len,
+            device: self.device,
             flag: self.flag.clone(),
             p: PhantomData,
         }
     }
 }
 
-impl<A: Clone + Default> FromIterator<A> for Buffer<'_, A> {
+// TODO: get somehow a device for get_device!
+/*impl<A: Clone + Default> FromIterator<A> for Buffer<'_, A> {
     fn from_iter<T: IntoIterator<Item = A>>(iter: T) -> Self {
-        let device = get_device!(Device<A>).unwrap();
+        let device = get_device!(Alloc<A>).unwrap();
         let from_iter = Vec::from_iter(iter);
 
         Buffer {
             len: from_iter.len(),
             ptr: device.alloc_with_vec(from_iter),
+            device: device.as_device(),
             flag: BufFlag::None,
             p: PhantomData,
         }
     }
-}
+}*/
 
 impl<T> Drop for Buffer<'_, T> {
     fn drop(&mut self) {
@@ -273,6 +279,7 @@ impl<T> Default for Buffer<'_, T> {
         Self {
             ptr: (null_mut(), null_mut(), 0),
             len: Default::default(),
+            device: Default::default(),
             flag: BufFlag::None,
             p: PhantomData,
         }
@@ -402,86 +409,94 @@ impl<T: Number> From<T> for Buffer<'_, T> {
         Buffer {
             ptr: (Box::into_raw(Box::new(val)), null_mut(), 0),
             len: 0,
+            device: Device::default(),
             flag: BufFlag::None,
             p: PhantomData,
         }
     }
 }
 
-impl<T: Clone, const N: usize> From<(&Box<dyn Device<T>>, &[T; N])> for Buffer<'_, T> {
-    fn from(device_slice: (&Box<dyn Device<T>>, &[T; N])) -> Self {
+impl<T: Clone, const N: usize> From<(&Box<dyn Alloc<T>>, &[T; N])> for Buffer<'_, T> {
+    fn from(device_slice: (&Box<dyn Alloc<T>>, &[T; N])) -> Self {
         Buffer {
             ptr: device_slice.0.with_data(device_slice.1),
             len: device_slice.1.len(),
+            device: device_slice.0.as_dev(),
             flag: BufFlag::None,
             p: PhantomData,
         }
     }
 }
 
-impl<T: Clone> From<(&Box<dyn Device<T>>, usize)> for Buffer<'_, T> {
-    fn from(device_len: (&Box<dyn Device<T>>, usize)) -> Self {
+impl<T: Clone> From<(&Box<dyn Alloc<T>>, usize)> for Buffer<'_, T> {
+    fn from(device_len: (&Box<dyn Alloc<T>>, usize)) -> Self {
         Buffer {
             ptr: device_len.0.alloc(device_len.1),
             len: device_len.1,
+            device: device_len.0.as_dev(),
             flag: BufFlag::None,
             p: PhantomData,
         }
     }
 }
 
-impl<T: Clone, D: Device<T>, const N: usize> From<(&D, [T; N])> for Buffer<'_, T> {
+impl<T: Clone, D: Alloc<T>, const N: usize> From<(&D, [T; N])> for Buffer<'_, T> {
     fn from(device_slice: (&D, [T; N])) -> Self {
         Buffer {
             ptr: device_slice.0.with_data(&device_slice.1),
             len: device_slice.1.len(),
+            device: device_slice.0.as_dev(),
             flag: BufFlag::None,
             p: PhantomData,
         }
     }
 }
 
-impl<T: Clone, D: Device<T>> From<(&D, &[T])> for Buffer<'_, T> {
+impl<T: Clone, D: Alloc<T>> From<(&D, &[T])> for Buffer<'_, T> {
     fn from(device_slice: (&D, &[T])) -> Self {
         Buffer {
             ptr: device_slice.0.with_data(device_slice.1),
             len: device_slice.1.len(),
+            device: device_slice.0.as_dev(),
             flag: BufFlag::None,
             p: PhantomData,
         }
     }
 }
 
-impl<T: Clone, D: Device<T>> From<(&D, Vec<T>)> for Buffer<'_, T> {
+impl<T: Clone, D: Alloc<T>> From<(&D, Vec<T>)> for Buffer<'_, T> {
     fn from(device_slice: (&D, Vec<T>)) -> Self {
         let len = device_slice.1.len();
         Buffer {
             ptr: device_slice.0.alloc_with_vec(device_slice.1),
             len,
+            device: device_slice.0.as_dev(),
             flag: BufFlag::None,
             p: PhantomData,
         }
     }
 }
 
-impl<T: Clone> From<(Box<dyn Device<T>>, Vec<T>)> for Buffer<'_, T> {
-    fn from(device_slice: (Box<dyn Device<T>>, Vec<T>)) -> Self {
+impl<T: Clone> From<(Box<dyn Alloc<T>>, Vec<T>)> for Buffer<'_, T> {
+    fn from(device_slice: (Box<dyn Alloc<T>>, Vec<T>)) -> Self {
         let len = device_slice.1.len();
         Buffer {
             ptr: device_slice.0.alloc_with_vec(device_slice.1),
             len,
+            device: device_slice.0.as_dev(),
             flag: BufFlag::None,
             p: PhantomData,
         }
     }
 }
 
-impl<T: Clone, D: Device<T>> From<(&D, &Vec<T>)> for Buffer<'_, T> {
+impl<T: Clone, D: Alloc<T>> From<(&D, &Vec<T>)> for Buffer<'_, T> {
     fn from(device_slice: (&D, &Vec<T>)) -> Self {
         let len = device_slice.1.len();
         Buffer {
             ptr: device_slice.0.with_data(device_slice.1),
             len,
+            device: device_slice.0.as_dev(),
             flag: BufFlag::None,
             p: PhantomData,
         }
@@ -495,6 +510,8 @@ impl<'a, T: Copy> From<(*mut T, usize)> for Buffer<'a, T> {
         Buffer {
             ptr: (info.0, null_mut(), 0),
             len: info.1,
+            // TODO: use static CPU device or add CPU device to tuple
+            device: Device::default(),
             flag: BufFlag::Wrapper,
             p: PhantomData,
         }
@@ -509,6 +526,8 @@ impl<'a, T> From<&mut [T]> for Buffer<'a, T> {
         Buffer {
             ptr: (slice.as_mut_ptr(), null_mut(), 0),
             len: slice.len(),
+            // TODO: use static CPU device or add CPU device to tuple
+            device: Device::default(),
             flag: BufFlag::Wrapper,
             p: PhantomData,
         }
@@ -521,6 +540,8 @@ impl<'a, T, const N: usize> From<&mut [T; N]> for Buffer<'a, T> {
         Buffer {
             ptr: (slice.as_mut_ptr(), null_mut(), 0),
             len: slice.len(),
+            // TODO: use static CPU device or add CPU device to tuple
+            device: Device::default(),
             flag: BufFlag::Wrapper,
             p: PhantomData,
         }
@@ -533,6 +554,8 @@ impl<'a, T: CDatatype> From<(*mut c_void, usize)> for Buffer<'a, T> {
         Buffer {
             ptr: (null_mut(), info.0, 0),
             len: info.1,
+            // TODO: use static CPU device or add CPU device to tuple
+            device: Device::default(),
             flag: BufFlag::Wrapper,
             p: PhantomData,
         }
@@ -545,43 +568,10 @@ impl<'a, T: CDatatype> From<(u64, usize)> for Buffer<'a, T> {
         Buffer {
             ptr: (null_mut(), null_mut(), info.0),
             len: info.1,
+            // TODO: use static CPU device or add CPU device to tuple
+            device: Device::default(),
             flag: BufFlag::Wrapper,
             p: PhantomData,
         }
     }
 }
-
-/* 
-#[cfg_attr(feature = "safe", doc = "```ignore")]
-/// Adds a buffer to the "cache chain".
-/// Following calls will return this buffer,
-/// if the corresponding internal count matches with the id used in the cache.
-///
-/// # 'safe' feature
-/// An zeroed buffer with the specified len is returned.
-///
-/// # Example
-/// ```
-/// use custos::{CPU, AsDev, cached, VecRead, set_count, get_count};
-///
-/// let device = CPU::new().select();
-/// assert_eq!(0, get_count());
-///
-/// let mut buf = cached::<f32>(10);
-/// assert_eq!(1, get_count());
-///
-/// for value in buf.as_mut_slice() {
-///     *value = 1.5;
-/// }
-///    
-/// let new_buf = cached::<i32>(10);
-/// assert_eq!(2, get_count());
-///
-/// set_count(0);
-/// let buf = cached::<f32>(10);
-/// assert_eq!(device.read(&buf), vec![1.5; 10]);
-/// ```
-pub fn cached<'a, T: Default + Copy>(len: usize) -> Buffer<'a, T> {
-    let device = get_device!(CacheBuf<T>).unwrap();
-    device.cached_buf(len)
-}*/

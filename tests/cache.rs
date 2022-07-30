@@ -1,6 +1,6 @@
 use std::ptr::null_mut;
 
-use custos::{cpu::{CPU_CACHE, cpu_cached}, range, AsDev, Buffer, CPU};
+use custos::{cpu::{CPU_CACHE, cpu_cached}, range, Buffer, CPU};
 
 
 fn cached_add<'a>(device: &'a CPU, a: &[f32], b: &[f32]) -> Buffer<'a, f32> {
@@ -13,7 +13,7 @@ fn cached_add<'a>(device: &'a CPU, a: &[f32], b: &[f32]) -> Buffer<'a, f32> {
 
 #[test]
 fn test_caching_cpu() {
-    let device = CPU::new().select();
+    let device = CPU::new();
 
     let a = Buffer::<f32>::new(&device, 100);
     let b = Buffer::<f32>::new(&device, 100);

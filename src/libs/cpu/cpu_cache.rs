@@ -1,4 +1,4 @@
-use crate::{Device, Node, CPU, Buffer, BufFlag};
+use crate::{Alloc, Node, CPU, Buffer, BufFlag};
 use std::{
     cell::RefCell,
     collections::HashMap,
@@ -46,6 +46,7 @@ impl CPUCache {
         Buffer {
             ptr,
             len: node.len,
+            device: Alloc::<T>::as_dev(device),
             flag: BufFlag::Cache,
             p: PhantomData,
         }
@@ -65,6 +66,7 @@ impl CPUCache {
                     Buffer {
                         ptr: (buf_info.ptr as *mut T, null_mut(), 0),
                         len: buf_info.len,
+                        device: Alloc::<T>::as_dev(device),
                         flag: BufFlag::Wrapper,
                         p: PhantomData,
                     }                    

@@ -1,8 +1,8 @@
-use custos::{AsDev, Buffer, CPU};
+use custos::{Buffer, CPU};
 
 #[test]
 fn test_clear_cpu() {
-    let device = CPU::new().select();
+    let device = CPU::new();
 
     let mut buf = Buffer::from((&device, [1., 2., 3., 4., 5., 6.]));
     assert_eq!(buf.read(), vec![1., 2., 3., 4., 5., 6.,]);
@@ -15,7 +15,7 @@ fn test_clear_cpu() {
 fn test_clear_cl() -> Result<(), custos::Error> {
     use custos::CLDevice;
 
-    let device = CLDevice::new(0)?.select();
+    let device = CLDevice::new(0)?;
 
     let mut buf = Buffer::from((&device, [1., 2., 3., 4., 5., 6.]));
     assert_eq!(buf.read(), vec![1., 2., 3., 4., 5., 6.,]);
@@ -29,7 +29,7 @@ fn test_clear_cl() -> Result<(), custos::Error> {
 fn test_clear_cuda() -> Result<(), custos::Error> {
     use custos::CudaDevice;
 
-    let device = CudaDevice::new(0)?.select();
+    let device = CudaDevice::new(0)?;
 
     let mut buf = Buffer::from((&device, [1., 2., 3., 4., 5., 6.]));
     assert_eq!(buf.read(), vec![1., 2., 3., 4., 5., 6.,]);
