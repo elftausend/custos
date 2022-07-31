@@ -101,7 +101,7 @@ impl CudaCache {
         let module = load_module_data(x.ptx()?)?;
         let function = module.function(fn_name)?;
 
-        device.inner.borrow_mut().modules.push(module);
+        device.modules.borrow_mut().push(module);
 
         self.kernels.insert(src.into(), function);
         unsafe { nvrtcDestroyProgram(&mut x.0).to_result()? };

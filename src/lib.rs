@@ -42,7 +42,7 @@ pub use libs::*;
 
 pub use libs::cpu::CPU;
 #[cfg(feature = "cuda")]
-pub use libs::cuda::{CudaDevice, InternCudaDevice};
+pub use libs::cuda::CudaDevice;
 #[cfg(feature = "opencl")]
 pub use libs::opencl::{CLDevice, InternCLDevice};
 

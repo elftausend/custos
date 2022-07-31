@@ -49,16 +49,19 @@ impl CLDevice {
         Ok(CLDevice { inner })
     }
 
+    #[inline]
     pub fn ctx(&self) -> Ref<Context> {
         let borrow = self.inner.borrow();
         Ref::map(borrow, |device| &device.ctx)
     }
 
+    #[inline]
     pub fn queue(&self) -> Ref<CommandQueue> {
         let borrow = self.inner.borrow();
         Ref::map(borrow, |device| &device.queue)
     }
 
+    #[inline]
     pub fn device(&self) -> CLIntDevice {
         self.inner.borrow().device
     }

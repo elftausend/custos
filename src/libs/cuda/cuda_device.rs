@@ -8,20 +8,20 @@ use super::{
     cu_clear, CudaCache,
 };
 use crate::{
-    deallocate_cache, get_device_count, AsDev, BaseDevice, CDatatype, CUdeviceptr, CacheBuf,
+    deallocate_cache, get_device_count, AsDev, BaseDevice, CDatatype, CacheBuf,
     ClearBuf, Device, GenericBlas, VecRead, WriteBuf, Alloc, DeviceType, Buffer,
 };
-use std::{
-    cell::{Ref, RefCell, RefMut},
-    ptr::null_mut,
-    rc::Rc,
-};
+use std::{ptr::null_mut, cell::RefCell};
 
 /// Used to perform calculations with a CUDA capable device.
 /// To make new calculations invocable, a trait providing new operations should be implemented for [CudaDevice].
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct CudaDevice {
-    pub inner: Rc<RefCell<InternCudaDevice>>,
+    pub modules: RefCell<Vec<Module>>,
+    device: CudaIntDevice,
+    ctx: Context,
+    stream: Stream,
+    handle: CublasHandle,
 }
 
 impl CudaDevice {
@@ -29,18 +29,50 @@ impl CudaDevice {
         unsafe {
             *get_device_count() += 1;
         }
-        let inner = Rc::new(RefCell::new(InternCudaDevice::new(idx)?));
-        Ok(CudaDevice { inner })
+
+        unsafe { cuInit(0) }.to_result()?;
+        let device = device(idx as i32)?;
+        let ctx = create_context(&device)?;
+        let stream = create_stream()?;
+        let handle = create_handle()?;
+        unsafe { cublasSetStream_v2(handle.0, stream.0) }.to_result()?;
+
+        Ok(CudaDevice { 
+            modules: RefCell::new(vec![]),
+            device,
+            ctx,
+            stream,
+            handle,
+        })
     }
 
-    pub fn handle(&self) -> Ref<CublasHandle> {
-        let borrow = self.inner.borrow();
-        Ref::map(borrow, |x| &x.handle)
+    pub fn device(&self) -> &CudaIntDevice {
+        &self.device
     }
 
-    pub fn stream(&self) -> RefMut<Stream> {
-        let borrow = self.inner.borrow_mut();
-        RefMut::map(borrow, |x| &mut x.stream)
+    pub fn ctx(&self) -> &Context {
+        &self.ctx
+    }
+
+    pub fn handle(&self) -> &CublasHandle {
+        &self.handle
+    }
+
+    pub fn stream(&self) -> &Stream {
+        &self.stream
+    }
+}
+
+impl Drop for CudaDevice {
+    fn drop(&mut self) {
+        unsafe {
+            let count = get_device_count();
+            *count -= 1;
+            deallocate_cache(*count);
+
+            cublasDestroy_v2(self.handle.0);
+            cuStreamDestroy(self.stream.0);
+        }
     }
 }
 
@@ -102,68 +134,3 @@ pub fn cu_cached<'a, T: Copy+Default>(device: &'a CudaDevice, len: usize) -> Buf
 impl AsDev for CudaDevice {}
 
 impl<T: CDatatype + GenericBlas> BaseDevice<T> for CudaDevice {}
-
-#[derive(Debug)]
-pub struct InternCudaDevice {
-    pub ptrs: Vec<CUdeviceptr>,
-    pub modules: Vec<Module>,
-    device: CudaIntDevice,
-    ctx: Context,
-    stream: Stream,
-    handle: CublasHandle,
-}
-
-impl From<Rc<RefCell<InternCudaDevice>>> for CudaDevice {
-    fn from(inner: Rc<RefCell<InternCudaDevice>>) -> Self {
-        CudaDevice { inner }
-    }
-}
-
-impl InternCudaDevice {
-    pub fn new(idx: usize) -> crate::Result<InternCudaDevice> {
-        unsafe { cuInit(0) }.to_result()?;
-        let device = device(idx as i32)?;
-        let ctx = create_context(&device)?;
-        let stream = create_stream()?;
-        let handle = create_handle()?;
-        unsafe { cublasSetStream_v2(handle.0, stream.0) }.to_result()?;
-
-        Ok(InternCudaDevice {
-            ptrs: vec![],
-            modules: vec![],
-            device,
-            ctx,
-            stream,
-            handle,
-        })
-    }
-
-    pub fn device(&self) -> &CudaIntDevice {
-        &self.device
-    }
-
-    pub fn ctx(&self) -> &Context {
-        &self.ctx
-    }
-
-    pub fn handle(&self) -> &CublasHandle {
-        &self.handle
-    }
-
-    pub fn stream(&self) -> &Stream {
-        &self.stream
-    }
-}
-
-impl Drop for InternCudaDevice {
-    fn drop(&mut self) {
-        unsafe {
-            let count = get_device_count();
-            *count -= 1;
-            deallocate_cache(*count);
-
-            cublasDestroy_v2(self.handle.0);
-            cuStreamDestroy(self.stream.0);
-        }
-    }
-}
