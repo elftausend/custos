@@ -19,16 +19,18 @@ use std::{ffi::c_void, fmt::Debug, alloc::{Layout, handle_alloc_error}, mem::siz
 ///
 /// assert_eq!(out, vec![1, 2, 3]);
 /// ```
-pub struct CPU;
+pub struct CPU {
+    _create_with_new: ()
+}
 
 impl CPU {
-    #[must_use]
     /// Creates an [CPU] with an InternCPU that holds an empty vector of pointers.
+    #[must_use]
     pub fn new() -> CPU {
         unsafe {
             *get_device_count() += 1;
         }
-        CPU
+        CPU { _create_with_new: () }
     }
 }
 
@@ -37,7 +39,7 @@ impl Clone for CPU {
         unsafe {
             *get_device_count() += 1;
         }
-        Self {  }
+        CPU { _create_with_new: () }
     }
 }
 

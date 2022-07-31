@@ -49,7 +49,7 @@ impl CudaCache {
         Buffer {
             ptr,
             len: node.len,
-            device: AsDev::as_dev(device),
+            device: AsDev::dev(device),
             flag: BufFlag::Cache,
             p: PhantomData
         }
@@ -57,11 +57,6 @@ impl CudaCache {
 
     pub fn get<T>(device: &CudaDevice, len: usize) -> Buffer<T> {
         use std::ptr::null_mut;
-
-        /*assert!(
-            !device.inner.borrow().ptrs.is_empty(),
-            "no Cuda allocations"
-        );*/
 
         let node = Node::new(len);
 
@@ -73,7 +68,7 @@ impl CudaCache {
                 Some(buf_info) => Buffer {
                     ptr: (null_mut(), null_mut(), buf_info.ptr),
                     len,
-                    device: AsDev::as_dev(device),
+                    device: AsDev::dev(device),
                     flag: BufFlag::Cache,
                     p: PhantomData
                 },

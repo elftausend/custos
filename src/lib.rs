@@ -24,8 +24,6 @@
 //! device.clear(&mut a);
 //! assert_eq!(device.read(&a), [0; 6]);
 //!
-//! // select() ... sets CPU as 'global device'
-//! // -> when device is not specified in an operation, the 'global device' is used
 //! let device = CPU::new();
 //!
 //! let mut a = Buffer::from(( &device, [1, 2, 3, 4, 5, 6]));
@@ -73,6 +71,10 @@ impl Default for Device {
     fn default() -> Self {
         Self { device_type: DeviceType::None, device: null_mut() }
     }
+}
+
+lazy_static::lazy_static! {
+    pub static ref GLOBAL_CPU: CPU = CPU::new();
 }
 
 pub struct Error {
@@ -137,7 +139,7 @@ pub type Result<T> = std::result::Result<T, Error>;
 /// let buf = Buffer {
 ///     ptr: ptrs,
 ///     len: 12,
-///     device: AsDev::as_dev(&device),
+///     device: AsDev::dev(&device),
 ///     flag: BufFlag::None,
 ///     p: std::marker::PhantomData
 /// };
@@ -155,7 +157,7 @@ pub trait Alloc<T> {
     /// let buf = Buffer {
     ///     ptr: ptrs,
     ///     len: 12,
-    ///     device: AsDev::as_dev(&device),
+    ///     device: AsDev::dev(&device),
     ///     flag: BufFlag::None,
     ///     p: std::marker::PhantomData
     /// };
@@ -174,7 +176,7 @@ pub trait Alloc<T> {
     /// let buf = Buffer {
     ///     ptr: ptrs,
     ///     len: 8,
-    ///     device: AsDev::as_dev(&device),
+    ///     device: AsDev::dev(&device),
     ///     flag: BufFlag::None,
     ///     p: std::marker::PhantomData
     /// };
@@ -270,7 +272,7 @@ pub trait CacheBuf<'a, T> {
 }
 
 pub trait AsDev {
-    fn as_dev(&self) -> Device 
+    fn dev(&self) -> Device 
     where
         Self: Alloc<u8> + Sized,
     {
@@ -322,7 +324,7 @@ impl std::error::Error for DeviceError {}
 ///
 /// fn main() -> Result<(), Error> {
 ///     let device = CPU::new();
-///     let read = get_device!(device.as_dev(), VecRead<f32>);
+///     let read = get_device!(device.dev(), VecRead<f32>);
 ///
 ///     let buf = Buffer::from(( &device, [1.51, 6.123, 7., 5.21, 8.62, 4.765]));
 ///     let read = read.read(&buf);
@@ -343,9 +345,11 @@ macro_rules! get_device {
                 #[cfg(feature="opencl")]
                 DeviceType::CL => &*($device.device as *mut $crate::CLDevice),
                 // TODO: convert to error
-                _ => panic!("No device found to execute this operation with. 
-                            If you are using get_device! in your own crate, 
-                            you need to add 'opencl' and 'cuda' as features to your Cargo.toml."),
+                _ => panic!(
+                    "No device found to execute this operation with. 
+                    If you are using get_device! in your own crate, 
+                    you need to add 'opencl' and 'cuda' as features in your Cargo.toml."
+                ),
             }
         };
         device

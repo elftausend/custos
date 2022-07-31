@@ -7,6 +7,5 @@ fn main() -> custos::Result<()> {
     a.clear();
 
     assert_eq!(a.read(), [0; 6]);
-
     Ok(())
 }

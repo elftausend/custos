@@ -1,7 +1,7 @@
 # custos
 
 [![Crates.io version](https://img.shields.io/crates/v/custos.svg)](https://crates.io/crates/custos)
-[![Docs](https://docs.rs/custos/badge.svg?version=0.3.0)](https://docs.rs/custos/0.3.0/custos/)
+[![Docs](https://docs.rs/custos/badge.svg?version=0.4.0)](https://docs.rs/custos/0.4.0/custos/)
 
 A minimal OpenCL, CUDA and host CPU array manipulation engine / framework.
 It provides the tools needed to execute array operations with the CPU, as well as with CUDA and OpenCL devices.
@@ -14,10 +14,10 @@ This library demonstrates how operations can be implemented for the compute devi
 Add "custos" as a dependency:
 ```toml
 [dependencies]
-custos = "0.3.0"
+custos = "0.4.0"
 
 # to disable the default features (cuda, opencl) and use an own set of features:
-#custos = {version = "0.3.0", default-features=false, features=["opencl"]}
+#custos = {version = "0.4.0", default-features=false, features=["opencl"]}
 ```
 
 Available features: 
@@ -36,21 +36,19 @@ Using the host CPU as the compute device:
 
 [cpu_readme.rs]: https://github.com/elftausend/custos/blob/main/examples/cpu_readme.rs
 ```rust
-use custos::{CPU, AsDev, VecRead, Buffer, ClearBuf};
+use custos::{Buffer, ClearBuf, VecRead, CPU};
 
 fn main() {
     let device = CPU::new();
-    let mut a = Buffer::from(( &device, [1, 2, 3, 4, 5, 6]));
-    
+    let mut a = Buffer::from((&device, [1, 2, 3, 4, 5, 6]));
+
     // specify device for operation
     device.clear(&mut a);
     assert_eq!(device.read(&a), [0; 6]);
 
-    // select() ... sets CPU as 'global device' 
-    // -> when device is not specified in an operation, the 'global device' is used
-    let device = CPU::new().select();
+    let device = CPU::new();
 
-    let mut a = Buffer::from(( &device, [1, 2, 3, 4, 5, 6]));
+    let mut a = Buffer::from((&device, [1, 2, 3, 4, 5, 6]));
 
     // no need to specify the device
     a.clear();
@@ -64,18 +62,18 @@ Using an OpenCL device as the compute device:
 
 [cl_readme.rs]: https://github.com/elftausend/custos/blob/main/examples/cl_readme.rs
 ```rust
-use custos::{AsDev, Buffer, CLDevice};
+use custos::{Buffer, CLDevice};
 
 fn main() -> custos::Result<()> {
-    let device = CLDevice::new(0)?.select();
-    
+    let device = CLDevice::new(0)?;
+
     let mut a = Buffer::from((&device, [5, 3, 2, 4, 6, 2]));
     a.clear();
 
     assert_eq!(a.read(), [0; 6]);
-    
     Ok(())
 }
+
 ```
 
 Using a CUDA device as the compute device:
@@ -84,18 +82,17 @@ Using a CUDA device as the compute device:
 
 [cuda_readme.rs]: https://github.com/elftausend/custos/blob/main/examples/cuda_readme.rs
 ```rust
-use custos::{CudaDevice, AsDev, Buffer};
+use custos::{Buffer, CudaDevice};
 
 fn main() -> custos::Result<()> {
-    let device = CudaDevice::new(0)?.select();
-    
+    let device = CudaDevice::new(0)?;
+
     let mut a = Buffer::from((&device, [5, 3, 2, 4, 6, 2]));
     a.clear();
 
     assert_eq!(a.read(), [0; 6]);
-    
     Ok(())
 }
 ```
 
-A lot more examples can be found in the tests and examples folder.
+A lot more examples can be found in the 'tests' and 'examples' folder.

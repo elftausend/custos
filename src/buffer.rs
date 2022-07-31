@@ -4,7 +4,7 @@ use std::{ffi::c_void, fmt::Debug, ptr::null_mut};
 
 #[cfg(feature = "opencl")]
 use crate::opencl::api::release_mem_object;
-use crate::{get_device, CDatatype, ClearBuf, Alloc, VecRead, WriteBuf, Device};
+use crate::{get_device, CDatatype, ClearBuf, Alloc, VecRead, WriteBuf, Device, GLOBAL_CPU, AsDev};
 
 use crate::number::Number;
 
@@ -232,21 +232,20 @@ impl<T> Clone for Buffer<'_, T> {
     }
 }
 
-// TODO: get somehow a device for get_device!
-/*impl<A: Clone + Default> FromIterator<A> for Buffer<'_, A> {
+impl<A: Clone + Default> FromIterator<A> for Buffer<'_, A> {
     fn from_iter<T: IntoIterator<Item = A>>(iter: T) -> Self {
-        let device = get_device!(Alloc<A>).unwrap();
+        let device = &GLOBAL_CPU;
         let from_iter = Vec::from_iter(iter);
-
+    
         Buffer {
             len: from_iter.len(),
             ptr: device.alloc_with_vec(from_iter),
-            device: device.as_device(),
+            device: device.dev(),
             flag: BufFlag::None,
             p: PhantomData,
         }
     }
-}*/
+}
 
 impl<T> Drop for Buffer<'_, T> {
     fn drop(&mut self) {
@@ -378,7 +377,7 @@ impl<T: Debug + Default + Copy> Debug for Buffer<'_, T> {
             write!(f, "CUDA: {:?}, ", read.read(self))?;
         }
 
-        write!(f, "datatype={} }}", std::any::type_name::<T>())
+        write!(f, "datatype={}, device={device:?} }}", std::any::type_name::<T>(), device=self.device.device_type)
     }
 }
 

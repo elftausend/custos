@@ -55,17 +55,13 @@ impl CLCache {
         Buffer {
             ptr,
             len: node.len,
-            device: AsDev::as_dev(device),
+            device: AsDev::dev(device),
             flag: BufFlag::Cache,
             p: PhantomData
         }
     }
 
     pub fn get<T>(device: &CLDevice, len: usize) -> Buffer<T> {
-        /*assert!(
-            !device.inner.borrow().ptrs.is_empty(),
-            "no OpenCL allocations"
-        );*/
         let node = Node::new(len);
 
         CL_CACHE.with(|cache| {
@@ -76,7 +72,7 @@ impl CLCache {
                 Some(buf_info) => Buffer {
                     ptr: (buf_info.host_ptr as *mut T, buf_info.ptr, 0),
                     len,
-                    device: AsDev::as_dev(device),
+                    device: AsDev::dev(device),
                     flag: BufFlag::Cache,
                     p: PhantomData
                 },
