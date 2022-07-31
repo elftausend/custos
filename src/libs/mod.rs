@@ -1,4 +1,4 @@
-use self::cpu::{level3, Order, Transpose, CPU_CACHE};
+use self::cpu::{Order, Transpose, CPU_CACHE, api::{cblas_sgemm, cblas_dgemm}};
 use crate::number::{Float, Number};
 use std::cell::{Cell, RefCell};
 
@@ -187,7 +187,7 @@ impl GenericBlas for f32 {
     #[inline]
     fn gemm(m: usize, n: usize, k: usize, a: &[Self], b: &[Self], c: &mut [Self]) {
         unsafe {
-            level3::cblas_sgemm(
+            cblas_sgemm(
                 Order::RowMajor,
                 Transpose::NoTranspose,
                 Transpose::NoTranspose,
@@ -243,7 +243,7 @@ impl GenericBlas for f64 {
     #[inline]
     fn gemm(m: usize, n: usize, k: usize, a: &[Self], b: &[Self], c: &mut [Self]) {
         unsafe {
-            level3::cblas_dgemm(
+            cblas_dgemm(
                 Order::RowMajor,
                 Transpose::NoTranspose,
                 Transpose::NoTranspose,
