@@ -54,8 +54,6 @@ fn test_cldevice_mem() -> Result<(), Error> {
 #[cfg(feature = "opencl")]
 #[test]
 fn test_buffer_from_read() -> Result<(), Error> {
-    use custos::AsDev;
-
     let device = CLDevice::new(0)?;
 
     let buf = Buffer::<f32>::from((&device, [3.13, 3., 1., 8.]));
@@ -71,8 +69,6 @@ fn test_buffer_from_read() -> Result<(), Error> {
 #[cfg(feature = "opencl")]
 #[test]
 fn test_buffer_alloc_and_read() -> Result<(), Error> {
-    use custos::AsDev;
-
     let device = CPU::new();
 
     let mut buf = Buffer::<u8>::new(&device, 10);
@@ -135,14 +131,14 @@ fn test_cached_cpu() {
 #[cfg(feature = "opencl")]
 #[test]
 fn test_cached_cl() -> Result<(), custos::Error> {
-    use custos::opencl::api::{enqueue_write_buffer, wait_for_event};
+    use custos::opencl::{api::{enqueue_write_buffer, wait_for_event}, cl_cached};
 
     let device = CLDevice::new(0)?;
     let _k = Buffer::<f32>::new(&device, 1);
 
     assert_eq!(0, get_count());
 
-    let buf = cached::<f32>(10);
+    let buf = cl_cached::<f32>(&device, 10);
 
     assert_eq!(1, get_count());
 
@@ -152,14 +148,14 @@ fn test_cached_cl() -> Result<(), custos::Error> {
     }
     assert_eq!(device.read(&buf), vec![0.1; 10]);
 
-    let new_buf = cached::<i32>(10);
+    let new_buf = cl_cached::<i32>(&device, 10);
     
     assert_eq!(device.read(&new_buf), vec![0; 10]);
     assert_eq!(2, get_count());
 
     set_count(0);
     assert_eq!(0, get_count());
-    let buf = cached::<f32>(10);
+    let buf = cl_cached::<f32>(&device, 10);
     println!("new_buf: {buf:?}");
     assert_eq!(device.read(&buf), vec![0.1; 10]);
     Ok(())

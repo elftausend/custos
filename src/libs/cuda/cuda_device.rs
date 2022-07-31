@@ -9,7 +9,7 @@ use super::{
 };
 use crate::{
     deallocate_cache, get_device_count, AsDev, BaseDevice, CDatatype, CUdeviceptr, CacheBuf,
-    ClearBuf, Device, GenericBlas, VecRead, WriteBuf,
+    ClearBuf, Device, GenericBlas, VecRead, WriteBuf, Alloc, DeviceType, Buffer,
 };
 use std::{
     cell::{Ref, RefCell, RefMut},
@@ -44,7 +44,7 @@ impl CudaDevice {
     }
 }
 
-impl<T> Device<T> for CudaDevice {
+impl<T> Alloc<T> for CudaDevice {
     fn alloc(&self, len: usize) -> (*mut T, *mut std::ffi::c_void, u64) {
         let ptr = cumalloc::<T>(len).unwrap();
         // TODO: use unified mem if available -> i can't test this
@@ -56,10 +56,17 @@ impl<T> Device<T> for CudaDevice {
         cu_write(ptr, data).unwrap();
         (null_mut(), null_mut(), ptr)
     }
+
+    fn as_dev(&self) -> Device {
+        Device {
+            device_type: DeviceType::CUDA,
+            device: self as *const CudaDevice as *mut u8
+        }
+    }
 }
 
 impl<T: Default + Copy> VecRead<T> for CudaDevice {
-    fn read(&self, buf: &crate::Buffer<T>) -> Vec<T> {
+    fn read(&self, buf: &Buffer<T>) -> Vec<T> {
         assert!(
             buf.ptr.2 != 0,
             "called VecRead::read(..) on a non CUDA buffer"
@@ -71,28 +78,28 @@ impl<T: Default + Copy> VecRead<T> for CudaDevice {
 }
 
 impl<T: CDatatype> ClearBuf<T> for CudaDevice {
-    fn clear(&self, buf: &mut crate::Buffer<T>) {
+    fn clear(&self, buf: &mut Buffer<T>) {
         cu_clear(self, buf).unwrap()
     }
 }
 
 impl<T> WriteBuf<T> for CudaDevice {
-    fn write(&self, buf: &mut crate::Buffer<T>, data: &[T]) {
+    fn write(&self, buf: &mut Buffer<T>, data: &[T]) {
         cu_write(buf.cu_ptr(), data).unwrap();
     }
 }
 
-impl<T> CacheBuf<T> for CudaDevice {
-    fn cached_buf(&self, len: usize) -> crate::Buffer<T> {
+impl<'a, T> CacheBuf<'a, T> for CudaDevice {
+    fn cached(&self, len: usize) -> Buffer<T> {
         CudaCache::get::<T>(self, len)
     }
 }
 
-impl AsDev for CudaDevice {
-    fn as_dev(&self) -> crate::Dev {
-        crate::Dev::new(None, None, Some(Rc::downgrade(&self.inner)))
-    }
+pub fn cu_cached<'a, T: Copy+Default>(device: &'a CudaDevice, len: usize) -> Buffer<'a, T> {
+    device.cached(len)
 }
+
+impl AsDev for CudaDevice {}
 
 impl<T: CDatatype + GenericBlas> BaseDevice<T> for CudaDevice {}
 

@@ -51,7 +51,6 @@ impl Drop for CPU {
     }
 }
 
-
 impl<T: Clone + Default> Alloc<T> for CPU {
     fn alloc(&self, len: usize) -> (*mut T, *mut c_void, u64) {
         assert!(len > 0, "invalid buffer len: 0");

@@ -1,7 +1,7 @@
-use custos::{Buffer, CDatatype, CLDevice, Error, opencl::{CLCache, enqueue_kernel}, AsDev};
+use custos::{Buffer, CDatatype, CLDevice, Error, opencl::{CLCache, enqueue_kernel}};
 
 fn main() -> Result<(), Error> {
-    let device = CLDevice::new(0)?.select();
+    let device = CLDevice::new(0)?;
 
     let lhs = Buffer::<i32>::from((&device, [1, 5, 3, 2, 7, 8]));
     let rhs = Buffer::<i32>::from((&device, [-2, -6, -4, -3, -8, -9]));
