@@ -164,7 +164,7 @@ impl<'a, T> CacheBuf<'a, T> for CLDevice {
     }
 }
 
-pub fn cl_cached<'a, T: Copy+Default>(device: &'a CLDevice, len: usize) -> Buffer<'a, T> {
+pub fn cl_cached<T: Copy+Default>(device: &CLDevice, len: usize) -> Buffer<T> {
     device.cached(len)
 }
 

@@ -53,7 +53,7 @@ impl CPUCache {
     }
 
     #[cfg(not(feature="realloc"))]
-    pub fn get<'a, T: Default + Copy>(device: &'a CPU, len: usize) -> Buffer<'a, T> {
+    pub fn get<T: Default + Copy>(device: &CPU, len: usize) -> Buffer<T> {
         //assert!(!device.cpu.borrow().ptrs.is_empty(), "no cpu allocations");
 
         let node = Node::new(len);

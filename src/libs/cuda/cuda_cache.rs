@@ -46,17 +46,16 @@ impl CudaCache {
                 ptr: ptr.2,
             },
         );
-        let out = Buffer {
+        Buffer {
             ptr,
             len: node.len,
             device: AsDev::as_dev(device),
             flag: BufFlag::Cache,
             p: PhantomData
-        };
-        out
+        }
     }
 
-    pub fn get<'a, T>(device: &'a CudaDevice, len: usize) -> Buffer<'a, T> {
+    pub fn get<T>(device: &CudaDevice, len: usize) -> Buffer<T> {
         use std::ptr::null_mut;
 
         /*assert!(

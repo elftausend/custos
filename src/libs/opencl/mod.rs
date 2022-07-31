@@ -48,7 +48,7 @@ pub fn construct_buffer<'a, T>(
     no_drop: Buffer<T>,
 ) -> crate::Result<Buffer<'a, T>> {
 
-    if no_drop.flag == BufFlag::None || no_drop.flag == BufFlag::Wrapper {
+    if no_drop.flag == BufFlag::None {
         return Err(DeviceError::ConstructError.into())
     }
 

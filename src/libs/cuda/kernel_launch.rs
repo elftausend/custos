@@ -64,7 +64,7 @@ pub fn launch_kernel1d(
         &func,
         [grid_size as u32, 1, 1],
         [block_size as u32, 1, 1],
-        &device.stream(),
+        device.stream(),
         &params,
     )?;
     Ok(())

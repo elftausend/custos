@@ -127,7 +127,7 @@ impl<'a, T> CacheBuf<'a, T> for CudaDevice {
     }
 }
 
-pub fn cu_cached<'a, T: Copy+Default>(device: &'a CudaDevice, len: usize) -> Buffer<'a, T> {
+pub fn cu_cached<T: Copy+Default>(device: &CudaDevice, len: usize) -> Buffer<T> {
     device.cached(len)
 }
 

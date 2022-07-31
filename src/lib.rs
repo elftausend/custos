@@ -343,7 +343,9 @@ macro_rules! get_device {
                 #[cfg(feature="opencl")]
                 DeviceType::CL => &*($device.device as *mut $crate::CLDevice),
                 // TODO: convert to error
-                DeviceType::None => panic!("No device found to execute this operation with."),
+                _ => panic!("No device found to execute this operation with. 
+                            If you are using get_device! in your own crate, 
+                            you need to add 'opencl' and 'cuda' as features to your Cargo.toml."),
             }
         };
         device

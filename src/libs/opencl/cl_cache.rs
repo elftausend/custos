@@ -61,7 +61,7 @@ impl CLCache {
         }
     }
 
-    pub fn get<'a, T>(device: &'a CLDevice, len: usize) -> Buffer<'a, T> {
+    pub fn get<T>(device: &CLDevice, len: usize) -> Buffer<T> {
         /*assert!(
             !device.inner.borrow().ptrs.is_empty(),
             "no OpenCL allocations"
