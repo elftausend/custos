@@ -139,7 +139,7 @@ pub type Result<T> = std::result::Result<T, Error>;
 /// let buf = Buffer {
 ///     ptr: ptrs,
 ///     len: 12,
-///     device: AsDev::as_dev(&device),
+///     device: AsDev::dev(&device),
 ///     flag: BufFlag::None,
 ///     p: std::marker::PhantomData
 /// };
@@ -157,7 +157,7 @@ pub trait Alloc<T> {
     /// let buf = Buffer {
     ///     ptr: ptrs,
     ///     len: 12,
-    ///     device: AsDev::as_dev(&device),
+    ///     device: AsDev::dev(&device),
     ///     flag: BufFlag::None,
     ///     p: std::marker::PhantomData
     /// };
@@ -176,7 +176,7 @@ pub trait Alloc<T> {
     /// let buf = Buffer {
     ///     ptr: ptrs,
     ///     len: 8,
-    ///     device: AsDev::as_dev(&device),
+    ///     device: AsDev::dev(&device),
     ///     flag: BufFlag::None,
     ///     p: std::marker::PhantomData
     /// };
@@ -324,7 +324,7 @@ impl std::error::Error for DeviceError {}
 ///
 /// fn main() -> Result<(), Error> {
 ///     let device = CPU::new();
-///     let read = get_device!(device.as_dev(), VecRead<f32>);
+///     let read = get_device!(device.dev(), VecRead<f32>);
 ///
 ///     let buf = Buffer::from(( &device, [1.51, 6.123, 7., 5.21, 8.62, 4.765]));
 ///     let read = read.read(&buf);
