@@ -1,9 +1,10 @@
 use std::ptr::null_mut;
 
-use custos::{cached, cpu::CPU_CACHE, range, AsDev, Buffer, CPU};
+use custos::{cpu::{CPU_CACHE, cpu_cached}, range, Buffer, CPU};
 
-fn cached_add(a: &[f32], b: &[f32]) -> Buffer<f32> {
-    let mut out = cached(a.len());
+
+fn cached_add<'a>(device: &'a CPU, a: &[f32], b: &[f32]) -> Buffer<'a, f32> {
+    let mut out = cpu_cached(device, a.len());
     for i in 0..out.len {
         out[i] = a[i] + b[i];
     }
@@ -12,7 +13,7 @@ fn cached_add(a: &[f32], b: &[f32]) -> Buffer<f32> {
 
 #[test]
 fn test_caching_cpu() {
-    let device = CPU::new().select();
+    let device = CPU::new();
 
     let a = Buffer::<f32>::new(&device, 100);
     let b = Buffer::<f32>::new(&device, 100);
@@ -20,7 +21,7 @@ fn test_caching_cpu() {
     let mut old_ptr = null_mut();
 
     for _ in range(100) {
-        let out = cached_add(&a, &b);
+        let out = cached_add(&device, &a, &b);
         if out.host_ptr() != old_ptr && !old_ptr.is_null() {
             panic!("Should be the same pointer!");
         }
@@ -28,16 +29,4 @@ fn test_caching_cpu() {
         let len = CPU_CACHE.with(|cache| cache.borrow().nodes.len());
         assert_eq!(len, 1);
     }
-}
-
-#[test]
-fn test_cloned_cpu() {
-    let buf = {
-        let _device = CPU::new().select();
-        cached::<f32>(10)
-    };
-    //let buf_cloned = buf.clone();
-
-    //drop(buf_cloned);
-    drop(buf);
 }

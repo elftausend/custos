@@ -1,8 +1,8 @@
 use super::api::{
     build_program, create_kernels_in_program, create_program_with_source, release_mem_object, Kernel
 };
-use crate::{BufFlag, CLDevice, Device, Error, Node};
-use std::{cell::RefCell, collections::HashMap, ffi::c_void};
+use crate::{BufFlag, CLDevice, Error, Node, Alloc, AsDev};
+use std::{cell::RefCell, collections::HashMap, ffi::c_void, marker::PhantomData};
 
 #[cfg(feature = "opencl")]
 use crate::Buffer;
@@ -24,13 +24,11 @@ unsafe impl Sync for OclPtr {}
 pub struct RawCL {
     pub ptr: *mut c_void,
     pub host_ptr: *mut u8,
-    pub valid: *mut bool
 }
 
 impl Drop for RawCL {
     fn drop(&mut self) {
         unsafe { 
-            *self.valid = false;
             release_mem_object(self.ptr).unwrap() 
         };
     }
@@ -45,25 +43,22 @@ pub struct CLCache {
 }
 
 impl CLCache {
-    pub fn add_node<T>(&mut self, device: &CLDevice, node: Node) -> Buffer<T> {
+    pub fn add_node<'a, T>(&mut self, device: &'a CLDevice, node: Node) -> Buffer<'a, T> {
         let ptr: (*mut T, *mut c_void, _) = device.alloc(node.len);
-
-        let valid = Box::leak(Box::new(true));
-
-        let out = Buffer {
-            ptr,
-            len: node.len,
-            flag: BufFlag::Cache(valid as *const bool),
-        };
 
         self.nodes.insert(node,
             RawCL {
                 ptr: ptr.1,
                 host_ptr: ptr.0 as *mut u8,
-                valid
             }
         );
-        out
+        Buffer {
+            ptr,
+            len: node.len,
+            device: AsDev::as_dev(device),
+            flag: BufFlag::Cache,
+            p: PhantomData
+        }
     }
 
     pub fn get<T>(device: &CLDevice, len: usize) -> Buffer<T> {
@@ -81,7 +76,9 @@ impl CLCache {
                 Some(buf_info) => Buffer {
                     ptr: (buf_info.host_ptr as *mut T, buf_info.ptr, 0),
                     len,
-                    flag: BufFlag::Cache(buf_info.valid)
+                    device: AsDev::as_dev(device),
+                    flag: BufFlag::Cache,
+                    p: PhantomData
                 },
                 None => cache.add_node(device, node),
             }

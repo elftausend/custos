@@ -1,5 +1,3 @@
-use custos::AsDev;
-
 #[test]
 fn test_add_cuda() -> custos::Result<()> {
     use std::ffi::c_void;
@@ -8,7 +6,7 @@ fn test_add_cuda() -> custos::Result<()> {
         cuda::api::{create_stream, culaunch_kernel, load_module},
         Buffer, CudaDevice, VecRead,
     };
-    let device = CudaDevice::new(0)?.select();
+    let device = CudaDevice::new(0)?;
 
     let a = Buffer::from((&device, [1, 2, 3, 4, 5]));
     let b = Buffer::from((&device, [4, 1, 7, 6, 9]));

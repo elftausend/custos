@@ -9,7 +9,7 @@ use crate::{
     deallocate_cache, get_device_count,
     libs::opencl::api::{create_buffer, MemFlags},
     AsDev, BaseDevice, Buffer, CDatatype, CacheBuf, ClearBuf, Device, Error, ManualMem, VecRead,
-    WriteBuf, is_buf_valid,
+    WriteBuf, Alloc, DeviceType,
 };
 use std::{cell::{RefCell, Ref}, ffi::c_void, fmt::Debug, rc::Rc};
 
@@ -49,16 +49,19 @@ impl CLDevice {
         Ok(CLDevice { inner })
     }
 
+    #[inline]
     pub fn ctx(&self) -> Ref<Context> {
         let borrow = self.inner.borrow();
         Ref::map(borrow, |device| &device.ctx)
     }
 
+    #[inline]
     pub fn queue(&self) -> Ref<CommandQueue> {
         let borrow = self.inner.borrow();
         Ref::map(borrow, |device| &device.queue)
     }
 
+    #[inline]
     pub fn device(&self) -> CLIntDevice {
         self.inner.borrow().device
     }
@@ -107,7 +110,7 @@ impl Debug for CLDevice {
     }
 }
 
-impl<T> Device<T> for CLDevice {
+impl<T> Alloc<T> for CLDevice {
     fn alloc(&self, len: usize) -> (*mut T, *mut c_void, u64) {
         let ptr =
             create_buffer::<T>(&self.ctx(), MemFlags::MemReadWrite as u64, len, None).unwrap();
@@ -138,6 +141,13 @@ impl<T> Device<T> for CLDevice {
 
         (cpu_ptr, ptr, 0)
     }
+
+    fn as_dev(&self) -> Device {
+        Device {
+            device_type: DeviceType::CL,
+            device: self as *const CLDevice as *mut u8
+        }
+    }
 }
 
 impl<T> ManualMem<T> for CLDevice {
@@ -148,10 +158,14 @@ impl<T> ManualMem<T> for CLDevice {
     }
 }
 
-impl<T> CacheBuf<T> for CLDevice {
-    fn cached_buf(&self, len: usize) -> Buffer<T> {
+impl<'a, T> CacheBuf<'a, T> for CLDevice {
+    fn cached(&'a self, len: usize) -> Buffer<'a, T> {
         CLCache::get::<T>(self, len)
     }
+}
+
+pub fn cl_cached<T: Copy+Default>(device: &CLDevice, len: usize) -> Buffer<T> {
+    device.cached(len)
 }
 
 impl<T: CDatatype> ClearBuf<T> for CLDevice {
@@ -170,7 +184,7 @@ impl<T> WriteBuf<T> for CLDevice {
 impl<T: Default + Copy> VecRead<T> for CLDevice {
     fn read(&self, buf: &crate::Buffer<T>) -> Vec<T> {
         assert!(
-            !buf.ptr.1.is_null() && is_buf_valid(&buf.flag),
+            !buf.ptr.1.is_null(),
             "called VecRead::read(..) on a non OpenCL buffer (this would read out a null pointer)"
         );
         let mut read = vec![T::default(); buf.len];
@@ -181,11 +195,7 @@ impl<T: Default + Copy> VecRead<T> for CLDevice {
     }
 }
 
-impl AsDev for CLDevice {
-    fn as_dev(&self) -> crate::Dev {
-        crate::Dev::new(Some(Rc::downgrade(&self.inner)), None, None)
-    }
-}
+impl AsDev for CLDevice {}
 
 impl<T: CDatatype> BaseDevice<T> for CLDevice {}
 

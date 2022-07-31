@@ -1,20 +1,21 @@
 use std::ffi::c_void;
 
+use custos::cpu::cpu_cached;
 #[cfg(feature = "opencl")]
 use custos::{libs::opencl::CLDevice, Error};
-use custos::{AsDev, Buffer, Device, VecRead};
+use custos::{Buffer, Alloc, VecRead};
 
-use custos::{cached, get_count, set_count, CPU};
+use custos::{get_count, set_count, CPU};
 
-pub fn get_mut_slice<T>(buf: &mut Buffer<T>) -> &mut [T] {
+pub fn get_mut_slice<'a, T>(buf: &'a mut Buffer<T>) -> &'a mut [T] {
     unsafe { std::slice::from_raw_parts_mut(buf.ptr.0, buf.len) }
 }
 
-pub fn get_slice<T>(buf: &Buffer<T>) -> &[T] {
+pub fn get_slice<'a, T>(buf: &'a Buffer<T>) -> &'a [T] {
     unsafe { std::slice::from_raw_parts(buf.ptr.0, buf.len) }
 }
 
-pub fn read<T, D: Device<T>>(device: &D, buf: &Buffer<T>) -> Vec<T>
+pub fn read<T, D: Alloc<T>>(device: &D, buf: &Buffer<T>) -> Vec<T>
 where
     D: VecRead<T>,
 {
@@ -53,14 +54,12 @@ fn test_cldevice_mem() -> Result<(), Error> {
 #[cfg(feature = "opencl")]
 #[test]
 fn test_buffer_from_read() -> Result<(), Error> {
-    use custos::AsDev;
-
-    let device = CLDevice::new(0)?.select();
+    let device = CLDevice::new(0)?;
 
     let buf = Buffer::<f32>::from((&device, [3.13, 3., 1., 8.]));
     assert_eq!(read(&device, &buf), vec![3.13, 3., 1., 8.,]);
 
-    let device = CPU::new().select();
+    let device = CPU::new();
 
     let buf = Buffer::<f32>::from((&device, [3.13, 3., 1., 8.]));
     assert_eq!(read(&device, &buf), vec![3.13, 3., 1., 8.,]);
@@ -70,9 +69,7 @@ fn test_buffer_from_read() -> Result<(), Error> {
 #[cfg(feature = "opencl")]
 #[test]
 fn test_buffer_alloc_and_read() -> Result<(), Error> {
-    use custos::AsDev;
-
-    let device = CPU::new().select();
+    let device = CPU::new();
 
     let mut buf = Buffer::<u8>::new(&device, 10);
 
@@ -80,7 +77,7 @@ fn test_buffer_alloc_and_read() -> Result<(), Error> {
     buf_slice.copy_from_slice(&[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
     assert_eq!(&[0, 1, 2, 3, 4, 5, 6, 7, 8, 9], buf_slice);
 
-    let cl = CLDevice::new(0)?.select();
+    let cl = CLDevice::new(0)?;
 
     let buf = Buffer::<f32>::from((&cl, [3.13, 3., 1., 8.]));
     let buf_read = read(&cl, &buf);
@@ -107,11 +104,11 @@ fn test_use_number() {
 #[test]
 fn test_cached_cpu() {
     std::env::set_var("RUST_BACKTRACE", "1");
-    let device = CPU::new().select();
+    let device = CPU::new();
 
     assert_eq!(0, get_count());
 
-    let mut buf = cached::<f32>(10);
+    let mut buf = cpu_cached::<f32>(&device, 10);
 
     assert_eq!(1, get_count());
 
@@ -119,13 +116,13 @@ fn test_cached_cpu() {
         *value = 1.5;
     }
 
-    let new_buf = cached::<i32>(10);
+    let new_buf = cpu_cached::<i32>(&device, 10);
     assert_eq!(device.read(&new_buf), vec![0; 10]);
     assert_eq!(2, get_count());
 
     set_count(0);
     assert_eq!(0, get_count());
-    let buf = cached::<f32>(10);
+    let buf = cpu_cached::<f32>(&device, 10);
 
     assert_eq!(device.read(&buf), vec![1.5; 10]);
 }
@@ -134,14 +131,14 @@ fn test_cached_cpu() {
 #[cfg(feature = "opencl")]
 #[test]
 fn test_cached_cl() -> Result<(), custos::Error> {
-    use custos::opencl::api::{enqueue_write_buffer, wait_for_event};
+    use custos::opencl::{api::{enqueue_write_buffer, wait_for_event}, cl_cached};
 
-    let device = CLDevice::new(0)?.select();
+    let device = CLDevice::new(0)?;
     let _k = Buffer::<f32>::new(&device, 1);
 
     assert_eq!(0, get_count());
 
-    let buf = cached::<f32>(10);
+    let buf = cl_cached::<f32>(&device, 10);
 
     assert_eq!(1, get_count());
 
@@ -151,14 +148,14 @@ fn test_cached_cl() -> Result<(), custos::Error> {
     }
     assert_eq!(device.read(&buf), vec![0.1; 10]);
 
-    let new_buf = cached::<i32>(10);
+    let new_buf = cl_cached::<i32>(&device, 10);
     
     assert_eq!(device.read(&new_buf), vec![0; 10]);
     assert_eq!(2, get_count());
 
     set_count(0);
     assert_eq!(0, get_count());
-    let buf = cached::<f32>(10);
+    let buf = cl_cached::<f32>(&device, 10);
     println!("new_buf: {buf:?}");
     assert_eq!(device.read(&buf), vec![0.1; 10]);
     Ok(())
@@ -204,7 +201,7 @@ fn test_iterate() {
 #[cfg(feature = "opencl")]
 #[test]
 fn test_debug_print_buf() -> custos::Result<()> {
-    let device = CLDevice::new(0)?.select();
+    let device = CLDevice::new(0)?;
 
     let a = Buffer::from((&device, [1, 2, 3, 4, 5, 6]));
 
@@ -222,11 +219,11 @@ fn test_slice() {
 
 #[test]
 fn test_alloc() {
-    let _device = CPU::new().select();
-    let buf = cached::<f32>(100);
+    let device = CPU::new();
+    let buf = cpu_cached::<f32>(&device, 100);
     assert_eq!(buf.read(), vec![0.; 100]);
 
-    let buf = cached::<f32>(100);
+    let buf = cpu_cached::<f32>(&device, 100);
     assert_eq!(buf.read(), vec![0.; 100]);
     drop(buf);
 }

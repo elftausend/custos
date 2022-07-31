@@ -1,6 +1,6 @@
 use std::ffi::c_void;
 
-use custos::{opencl::{AsClCvoidPtr, CLCache, enqueue_kernel}, CLDevice, Buffer, AsDev, CDatatype};
+use custos::{opencl::{AsClCvoidPtr, CLCache, enqueue_kernel}, CLDevice, Buffer, CDatatype};
 
 
 #[test]
@@ -19,7 +19,7 @@ fn test_as_cl_cvoid() -> custos::Result<()> {
 
 #[test]
 fn test_kernel_launch() -> custos::Result<()> {
-    let device = CLDevice::new(0)?.select();
+    let device = CLDevice::new(0)?;
 
     let src_add = "
         __kernel void operation(__global const float* lhs, __global float* out, const float add) {
@@ -42,7 +42,7 @@ fn test_kernel_launch() -> custos::Result<()> {
 
 #[test]
 fn test_kernel_launch_diff_datatype() -> custos::Result<()> {
-    let device = CLDevice::new(0)?.select();
+    let device = CLDevice::new(0)?;
 
     let src_add = "
         __kernel void operation(__global const float* lhs, __global float* out, const int add) {
@@ -65,7 +65,7 @@ fn test_kernel_launch_diff_datatype() -> custos::Result<()> {
 
 #[test]
 fn test_kernel_launch_2() -> custos::Result<()>{
-    let device = CLDevice::new(0)?.select();
+    let device = CLDevice::new(0)?;
 
     let lhs = Buffer::<i32>::from((&device, [1, 5, 3, 2, 7, 8]));
     let rhs = Buffer::<i32>::from((&device, [-2, -6, -4, -3, -8, -9]));

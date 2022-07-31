@@ -1,11 +1,11 @@
 use custos::{
     cuda::{launch_kernel1d, CudaCache},
-    AsDev, Buffer, CDatatype, CudaDevice, VecRead,
+    Buffer, CDatatype, CudaDevice, VecRead,
 };
 
 #[test]
 fn test_scalar_op_cuda() -> custos::Result<()> {
-    let device = CudaDevice::new(0)?.select();
+    let device = CudaDevice::new(0)?;
 
     let src = format!(
         r#"extern "C" __global__ void scalar_add({datatype}* lhs, {datatype} rhs, {datatype}* out, int numElements)

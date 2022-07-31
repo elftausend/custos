@@ -3,8 +3,8 @@ use super::api::{
     nvrtc::{create_program, nvrtcDestroyProgram},
     FnHandle,
 };
-use crate::{BufFlag, Buffer, CudaDevice, Device, Error, Node};
-use std::{cell::RefCell, collections::HashMap, ffi::CString};
+use crate::{BufFlag, Buffer, CudaDevice, Error, Node, AsDev, Alloc};
+use std::{cell::RefCell, collections::HashMap, ffi::CString, marker::PhantomData};
 
 thread_local! {
     pub static CUDA_CACHE: RefCell<CudaCache> = RefCell::new(CudaCache {
@@ -21,13 +21,11 @@ unsafe impl Sync for CudaPtr {}
 
 pub struct RawCUDA {
     pub ptr: u64,
-    valid: *mut bool,
 }
 
 impl Drop for RawCUDA {
     fn drop(&mut self) {
         unsafe { 
-            *self.valid = false;
             cufree(self.ptr).unwrap() 
         }
     }
@@ -39,22 +37,22 @@ pub struct CudaCache {
 }
 
 impl CudaCache {
-    pub fn add_node<T>(&mut self, device: &CudaDevice, node: Node) -> Buffer<T> {
-        let valid = Box::leak(Box::new(true));
-
-        let out = Buffer {
-            ptr: device.alloc(node.len),
-            len: node.len,
-            flag: BufFlag::Cache(valid),
-        };
+    pub fn add_node<'a, T>(&mut self, device: &'a CudaDevice, node: Node) -> Buffer<'a, T> {
+        let ptr = device.alloc(node.len);
+        
         self.nodes.insert(
             node,
             RawCUDA {
-                ptr: out.ptr.2,
-                valid
+                ptr: ptr.2,
             },
         );
-        out
+        Buffer {
+            ptr,
+            len: node.len,
+            device: AsDev::as_dev(device),
+            flag: BufFlag::Cache,
+            p: PhantomData
+        }
     }
 
     pub fn get<T>(device: &CudaDevice, len: usize) -> Buffer<T> {
@@ -75,7 +73,9 @@ impl CudaCache {
                 Some(buf_info) => Buffer {
                     ptr: (null_mut(), null_mut(), buf_info.ptr),
                     len,
-                    flag: BufFlag::Cache(buf_info.valid),
+                    device: AsDev::as_dev(device),
+                    flag: BufFlag::Cache,
+                    p: PhantomData
                 },
                 None => cache.add_node(device, node),
             }
@@ -100,7 +100,7 @@ impl CudaCache {
         let module = load_module_data(x.ptx()?)?;
         let function = module.function(fn_name)?;
 
-        device.inner.borrow_mut().modules.push(module);
+        device.modules.borrow_mut().push(module);
 
         self.kernels.insert(src.into(), function);
         unsafe { nvrtcDestroyProgram(&mut x.0).to_result()? };

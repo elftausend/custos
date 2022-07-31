@@ -1,4 +1,4 @@
-use std::{ffi::c_void, ptr::null_mut};
+use std::{ffi::c_void, ptr::null_mut, marker::PhantomData};
 
 pub use cl_cache::*;
 pub use cl_device::*;
@@ -12,10 +12,10 @@ pub mod cl_devices;
 mod kernel_options;
 
 use self::api::{create_buffer, MemFlags};
-use crate::{BufFlag, Buffer, CDatatype, Node, DeviceError};
+use crate::{BufFlag, Buffer, CDatatype, Node, DeviceError, AsDev};
 
 /// Returns an OpenCL pointer that is bound to the host pointer stored in the specified buffer.
-pub fn to_unified<T>(device: &CLDevice, no_drop: Buffer<T>) -> crate::Result<(*mut c_void, *const bool)> {
+pub fn to_unified<T>(device: &CLDevice, no_drop: Buffer<T>) -> crate::Result<*mut c_void> {
     // use the host pointer to create an OpenCL buffer
     let cl_ptr = create_buffer(
         &device.ctx(),
@@ -24,8 +24,6 @@ pub fn to_unified<T>(device: &CLDevice, no_drop: Buffer<T>) -> crate::Result<(*m
         Some(&no_drop),
     )?;
 
-    let valid = Box::leak(Box::new(true));
-
     let old_ptr = CL_CACHE.with(|cache| {
         // add created buffer to the "caching chain"
         cache.borrow_mut().nodes.insert(
@@ -33,7 +31,6 @@ pub fn to_unified<T>(device: &CLDevice, no_drop: Buffer<T>) -> crate::Result<(*m
             RawCL {
                 ptr: cl_ptr,
                 host_ptr: null_mut(),
-                valid
             },
         )
     });
@@ -42,26 +39,28 @@ pub fn to_unified<T>(device: &CLDevice, no_drop: Buffer<T>) -> crate::Result<(*m
     // this line can be removed, however it shows that deallocating the old pointer makes sense
     drop(old_ptr);
 
-    Ok((cl_ptr, valid))
+    Ok(cl_ptr)
 }
 
 /// Converts an 'only' CPU buffer into an OpenCL + CPU (unified memory) buffer.
-pub fn construct_buffer<T>(
-    device: &CLDevice,
+pub fn construct_buffer<'a, T>(
+    device: &'a CLDevice,
     no_drop: Buffer<T>,
-) -> crate::Result<Buffer<T>> {
+) -> crate::Result<Buffer<'a, T>> {
 
-    if no_drop.flag == BufFlag::None || no_drop.flag == BufFlag::Wrapper {
+    if no_drop.flag == BufFlag::None {
         return Err(DeviceError::ConstructError.into())
     }
 
     let (host_ptr, len) = (no_drop.host_ptr(), no_drop.len);
-    let (cl_ptr, valid) = to_unified(device, no_drop)?;
+    let cl_ptr = to_unified(device, no_drop)?;
     
     Ok(Buffer {
         ptr: (host_ptr, cl_ptr, 0),
         len,
-        flag: BufFlag::Cache(valid),
+        device: device.as_dev(),
+        flag: BufFlag::Cache,
+        p: PhantomData
     })
 }
 

@@ -1,11 +1,11 @@
 #[cfg(feature = "opencl")]
 use custos::opencl::cl_device::CLDevice;
-use custos::{cached, libs::cpu::CPU, range, AsDev, Buffer, cpu::CPU_CACHE};
+use custos::{libs::cpu::CPU, range, Buffer, cpu::{CPU_CACHE, cpu_cached}};
 
 #[test]
 fn test_rc_get_dev() {
     {
-        let device = CPU::new().select();
+        let device = CPU::new();
         let mut a = Buffer::from((&device, [1., 2., 3., 4., 5., 6.]));
 
         for _ in range(100) {
@@ -18,7 +18,7 @@ fn test_rc_get_dev() {
 #[cfg(feature = "opencl")]
 #[test]
 fn test_dealloc_cl() -> custos::Result<()> {
-    let device = CLDevice::new(0)?.select();
+    let device = CLDevice::new(0)?;
 
     let _a = Buffer::from((&device, [1f32, 2., 3., 4., 5., 6.]));
     let _b = Buffer::from((&device, [6., 5., 4., 3., 2., 1.]));
@@ -30,12 +30,13 @@ fn test_dealloc_cl() -> custos::Result<()> {
 
 #[test]
 fn test_dealloc_device_cache_cpu() {
-    let device = CPU::new().select();
+    let device = CPU::new();
 
     assert_eq!(CPU_CACHE.with(|cache| cache.borrow().nodes.len()), 0);
-    let _a = cached::<f32>(10);
+    let a = cpu_cached::<f32>(&device, 10);
     assert_eq!(CPU_CACHE.with(|cache| cache.borrow().nodes.len()), 1);
 
+    drop(a);
     drop(device);
     assert_eq!(CPU_CACHE.with(|cache| cache.borrow().nodes.len()), 0);
 }
@@ -43,14 +44,15 @@ fn test_dealloc_device_cache_cpu() {
 #[cfg(feature = "opencl")]
 #[test]
 fn test_dealloc_device_cache_cl() -> custos::Result<()> {
-    use custos::opencl::CL_CACHE;
+    use custos::opencl::{CL_CACHE, cl_cached};
 
-    let device = CLDevice::new(0)?.select();
+    let device = CLDevice::new(0)?;
 
     assert_eq!(CL_CACHE.with(|cache| cache.borrow().nodes.len()), 0);
-    let _a = cached::<f32>(10);
+    let a = cl_cached::<f32>(&device, 10);
     assert_eq!(CL_CACHE.with(|cache| cache.borrow().nodes.len()), 1);
 
+    drop(a);
     drop(device);
     assert_eq!(CL_CACHE.with(|cache| cache.borrow().nodes.len()), 0);
     Ok(())
@@ -59,14 +61,15 @@ fn test_dealloc_device_cache_cl() -> custos::Result<()> {
 #[cfg(feature = "cuda")]
 #[test]
 fn test_dealloc_device_cache_cu() -> custos::Result<()> {
-    use custos::{cuda::CUDA_CACHE, CudaDevice};
+    use custos::{cuda::{CUDA_CACHE, cu_cached}, CudaDevice};
 
-    let device = CudaDevice::new(0)?.select();
+    let device = CudaDevice::new(0)?;
 
     assert_eq!(CUDA_CACHE.with(|cache| cache.borrow().nodes.len()), 0);
-    let _a = cached::<f32>(10);
+    let a = cu_cached::<f32>(&device, 10);
     assert_eq!(CUDA_CACHE.with(|cache| cache.borrow().nodes.len()), 1);
 
+    drop(a);
     drop(device);
     assert_eq!(CUDA_CACHE.with(|cache| cache.borrow().nodes.len()), 0);
     Ok(())
