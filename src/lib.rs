@@ -24,8 +24,6 @@
 //! device.clear(&mut a);
 //! assert_eq!(device.read(&a), [0; 6]);
 //!
-//! // select() ... sets CPU as 'global device'
-//! // -> when device is not specified in an operation, the 'global device' is used
 //! let device = CPU::new();
 //!
 //! let mut a = Buffer::from(( &device, [1, 2, 3, 4, 5, 6]));
@@ -73,6 +71,10 @@ impl Default for Device {
     fn default() -> Self {
         Self { device_type: DeviceType::None, device: null_mut() }
     }
+}
+
+lazy_static::lazy_static! {
+    pub static ref GLOBAL_CPU: CPU = CPU::new();
 }
 
 pub struct Error {
@@ -270,7 +272,7 @@ pub trait CacheBuf<'a, T> {
 }
 
 pub trait AsDev {
-    fn as_dev(&self) -> Device 
+    fn dev(&self) -> Device 
     where
         Self: Alloc<u8> + Sized,
     {
@@ -343,9 +345,11 @@ macro_rules! get_device {
                 #[cfg(feature="opencl")]
                 DeviceType::CL => &*($device.device as *mut $crate::CLDevice),
                 // TODO: convert to error
-                _ => panic!("No device found to execute this operation with. 
-                            If you are using get_device! in your own crate, 
-                            you need to add 'opencl' and 'cuda' as features to your Cargo.toml."),
+                _ => panic!(
+                    "No device found to execute this operation with. 
+                    If you are using get_device! in your own crate, 
+                    you need to add 'opencl' and 'cuda' as features in your Cargo.toml."
+                ),
             }
         };
         device

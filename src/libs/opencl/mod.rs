@@ -3,13 +3,13 @@ use std::{ffi::c_void, ptr::null_mut, marker::PhantomData};
 pub use cl_cache::*;
 pub use cl_device::*;
 pub use cl_devices::*;
-pub use kernel_options::*;
+pub use enqueue_kernel::*;
 
 pub mod api;
 mod cl_cache;
 pub mod cl_device;
 pub mod cl_devices;
-mod kernel_options;
+mod enqueue_kernel;
 
 use self::api::{create_buffer, MemFlags};
 use crate::{BufFlag, Buffer, CDatatype, Node, DeviceError, AsDev};
@@ -58,7 +58,7 @@ pub fn construct_buffer<'a, T>(
     Ok(Buffer {
         ptr: (host_ptr, cl_ptr, 0),
         len,
-        device: device.as_dev(),
+        device: device.dev(),
         flag: BufFlag::Cache,
         p: PhantomData
     })
@@ -93,5 +93,4 @@ pub fn cl_clear<T: CDatatype>(device: &CLDevice, lhs: &mut Buffer<T>) -> crate::
     let gws = [lhs.len, 0, 0];
     enqueue_kernel(device, &src, gws, None, &[lhs])?;
     Ok(())
-    //enqueue_kernel(device, &src, gws, None, vec![lhs])
 }

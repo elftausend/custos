@@ -6,7 +6,7 @@ fn get_device_test_cpu() {
 
     let buf = Buffer::from((&device, [1., 1.5, 0.14]));
 
-    let read_device = get_device!(device.as_dev(), VecRead<f32>);
+    let read_device = get_device!(device.dev(), VecRead<f32>);
     assert_eq!(vec![1., 1.5, 0.14], read_device.read(&buf));
 }
 
@@ -19,7 +19,7 @@ fn get_device_test_cl() -> custos::Result<()> {
 
     let buf = Buffer::from((&device, [1., 1.5, 0.14]));
 
-    let read_device = get_device!(device.as_dev(), VecRead<f32>);
+    let read_device = get_device!(device.dev(), VecRead<f32>);
     assert_eq!(vec![1., 1.5, 0.14], read_device.read(&buf));
     Ok(())
 }
@@ -33,7 +33,7 @@ fn get_device_test_cu() -> custos::Result<()> {
 
     let buf = Buffer::from((&device, [1., 1.5, 0.14]));
 
-    let read_device = get_device!(device.as_dev(), VecRead<f32>);
+    let read_device = get_device!(device.dev(), VecRead<f32>);
     assert_eq!(vec![1., 1.5, 0.14], read_device.read(&buf));
     Ok(())
 }
