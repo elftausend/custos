@@ -4,13 +4,6 @@ use super::api::{
 use crate::{CLDevice, Error, libs::cache::CacheType};
 use std::{collections::HashMap, ffi::c_void};
 
-
-#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
-pub struct OclPtr(pub *mut c_void);
-
-unsafe impl Send for OclPtr {}
-unsafe impl Sync for OclPtr {}
-
 #[derive(Debug)]
 pub struct RawCL {
     pub ptr: *mut c_void,
@@ -38,16 +31,13 @@ impl Drop for RawCL {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 /// Stores kernels and outputs
-pub struct KernelCache {
+pub struct KernelCacheCL {
     pub(crate) kernel_cache: HashMap<String, Kernel>,
 }
 
-impl KernelCache {
-    pub fn new() -> KernelCache {
-        KernelCache { kernel_cache: HashMap::new() }
-    }
+impl KernelCacheCL {
     pub fn kernel_cache(&mut self, device: &CLDevice, src: &str) -> Result<Kernel, Error> {
         let kernel = self.kernel_cache.get(src);
 
@@ -64,7 +54,7 @@ impl KernelCache {
     }
 }
 
-impl Drop for KernelCache {
+impl Drop for KernelCacheCL {
     fn drop(&mut self) {
         // FIXME:
         // TODO:  not really safe

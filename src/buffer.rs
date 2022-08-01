@@ -4,7 +4,7 @@ use std::{ffi::c_void, fmt::Debug, ptr::null_mut};
 
 #[cfg(feature = "opencl")]
 use crate::opencl::api::release_mem_object;
-use crate::{get_device, CDatatype, ClearBuf, Alloc, VecRead, WriteBuf, Device, CacheBuf};
+use crate::{get_device, CDatatype, ClearBuf, Alloc, VecRead, WriteBuf, Device, CacheBuf, GLOBAL_CPU, AsDev};
 
 use crate::number::Number;
 
@@ -232,21 +232,22 @@ impl<T> Clone for Buffer<'_, T> {
     }
 }
 
-// TODO: reenable if cache deallocation happens differently
-/*impl<A: Clone + Default> FromIterator<A> for Buffer<'_, A> {
+
+impl<A: Clone + Default> FromIterator<A> for Buffer<'_, A> {
     fn from_iter<T: IntoIterator<Item = A>>(iter: T) -> Self {
-        let device = &GLOBAL_CPU;
-        let from_iter = Vec::from_iter(iter);
+        GLOBAL_CPU.with(|device| {
+            let from_iter = Vec::from_iter(iter);
     
-        Buffer {
-            len: from_iter.len(),
-            ptr: device.alloc_with_vec(from_iter),
-            device: device.dev(),
-            flag: BufFlag::None,
-            p: PhantomData,
-        }
+            Buffer {
+                len: from_iter.len(),
+                ptr: device.alloc_with_vec(from_iter),
+                device: device.dev(),
+                flag: BufFlag::None,
+                p: PhantomData,
+            }
+        })
     }
-}*/
+}
 
 impl<T> Drop for Buffer<'_, T> {
     fn drop(&mut self) {
@@ -603,7 +604,7 @@ impl<'a, T: CDatatype> From<(u64, usize)> for Buffer<'a, T> {
 /// let buf = cached::<f32>(&dev, 10);
 /// assert_eq!(device.read(&buf), vec![1.5; 10]);
 /// ```
-pub fn cached<'a, T: Default + Copy>(device: &'a Device, len: usize) -> Buffer<'a, T> {
+pub fn cached<T: Default + Copy>(device: &Device, len: usize) -> Buffer<T> {
     let device = get_device!(device, CacheBuf<T>);
     device.cached(len)
 }

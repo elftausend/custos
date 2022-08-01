@@ -1,6 +1,6 @@
 use custos::{
-    cuda::{launch_kernel1d, CudaCache},
-    Buffer, CDatatype, CudaDevice, VecRead,
+    cuda::{launch_kernel1d},
+    Buffer, CDatatype, CudaDevice, VecRead, cache::Cache,
 };
 
 #[test]
@@ -21,7 +21,7 @@ fn test_scalar_op_cuda() -> custos::Result<()> {
     );
 
     let lhs = Buffer::from((&device, [1f32, 2., 3., 4., 5.]));
-    let out: Buffer<f32> = CudaCache::get(&device, lhs.len);
+    let out: Buffer<f32> = Cache::get(&device, lhs.len);
 
     launch_kernel1d(
         lhs.len,

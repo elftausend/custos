@@ -12,7 +12,7 @@ pub mod cl_devices;
 mod kernel_enqueue;
 
 use self::api::{create_buffer, MemFlags};
-use crate::{BufFlag, Buffer, CDatatype, Node, DeviceError, AsDev, CPU};
+use crate::{BufFlag, Buffer, CDatatype, Node, DeviceError, AsDev};
 
 /// Returns an OpenCL pointer that is bound to the host pointer stored in the specified buffer.
 pub fn to_unified<T>(device: &CLDevice, no_drop: Buffer<T>) -> crate::Result<*mut c_void> {

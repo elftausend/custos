@@ -3,7 +3,7 @@ use super::{
         create_command_queue, create_context, enqueue_read_buffer, enqueue_write_buffer,
         release_mem_object, unified_ptr, wait_for_event, CLIntDevice, CommandQueue, Context,
     },
-    cl_clear, CL_DEVICES, RawCL, KernelCache,
+    cl_clear, CL_DEVICES, RawCL, KernelCacheCL,
 };
 use crate::{
     libs::opencl::api::{create_buffer, MemFlags},
@@ -30,7 +30,7 @@ use std::{cell::{RefCell, Ref}, ffi::c_void, fmt::Debug, rc::Rc};
 /// }
 /// ```
 pub struct CLDevice {
-    pub kernel_cache: RefCell<KernelCache>,
+    pub kernel_cache: RefCell<KernelCacheCL>,
     pub cache: RefCell<Cache<RawCL>>,
     pub inner: Rc<RefCell<InternCLDevice>>,
 }
@@ -45,8 +45,8 @@ impl CLDevice {
     pub fn new(device_idx: usize) -> Result<CLDevice, Error> {
         let inner = Rc::new(RefCell::new(CL_DEVICES.current(device_idx)?));
         Ok(CLDevice { 
-            kernel_cache: RefCell::new(KernelCache::new()),
-            cache: RefCell::new(Cache::new()),
+            kernel_cache: RefCell::new(KernelCacheCL::default()),
+            cache: RefCell::new(Cache::default()),
             inner,
         })
     }

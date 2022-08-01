@@ -5,11 +5,11 @@ use super::{
         cublas::{create_handle, cublasDestroy_v2, cublasSetStream_v2, CublasHandle},
         cumalloc, device, Context, CudaIntDevice, Module, Stream,
     },
-    cu_clear, CudaCache,
+    cu_clear, RawCUBuf, KernelCacheCU,
 };
 use crate::{
-    deallocate_cache, get_device_count, AsDev, BaseDevice, CDatatype, CacheBuf,
-    ClearBuf, Device, GenericBlas, VecRead, WriteBuf, Alloc, DeviceType, Buffer,
+    AsDev, BaseDevice, CDatatype, CacheBuf,
+    ClearBuf, Device, GenericBlas, VecRead, WriteBuf, Alloc, DeviceType, Buffer, cache::{CacheReturn, Cache},
 };
 use std::{ptr::null_mut, cell::RefCell};
 
@@ -17,6 +17,8 @@ use std::{ptr::null_mut, cell::RefCell};
 /// To make new calculations invocable, a trait providing new operations should be implemented for [CudaDevice].
 #[derive(Debug)]
 pub struct CudaDevice {
+    pub cache: RefCell<Cache<RawCUBuf>>,
+    pub kernel_cache: RefCell<KernelCacheCU>,
     pub modules: RefCell<Vec<Module>>,
     device: CudaIntDevice,
     ctx: Context,
@@ -26,10 +28,6 @@ pub struct CudaDevice {
 
 impl CudaDevice {
     pub fn new(idx: usize) -> crate::Result<CudaDevice> {
-        unsafe {
-            *get_device_count() += 1;
-        }
-
         unsafe { cuInit(0) }.to_result()?;
         let device = device(idx as i32)?;
         let ctx = create_context(&device)?;
@@ -38,6 +36,8 @@ impl CudaDevice {
         unsafe { cublasSetStream_v2(handle.0, stream.0) }.to_result()?;
 
         Ok(CudaDevice { 
+            cache: RefCell::new(Cache::default()),
+            kernel_cache: RefCell::new(KernelCacheCU::default()),
             modules: RefCell::new(vec![]),
             device,
             ctx,
@@ -66,10 +66,6 @@ impl CudaDevice {
 impl Drop for CudaDevice {
     fn drop(&mut self) {
         unsafe {
-            let count = get_device_count();
-            *count -= 1;
-            deallocate_cache(*count);
-
             cublasDestroy_v2(self.handle.0);
             cuStreamDestroy(self.stream.0);
         }
@@ -121,12 +117,21 @@ impl<T> WriteBuf<T> for CudaDevice {
     }
 }
 
-impl<'a, T> CacheBuf<'a, T> for CudaDevice {
-    fn cached(&self, len: usize) -> Buffer<T> {
-        CudaCache::get::<T>(self, len)
+impl CacheReturn<RawCUBuf> for CudaDevice {
+    #[inline]
+    fn cache(&self) -> std::cell::RefMut<Cache<RawCUBuf>> {
+        self.cache.borrow_mut()
     }
 }
 
+impl<'a, T> CacheBuf<'a, T> for CudaDevice {
+    #[inline]
+    fn cached(&self, len: usize) -> Buffer<T> {
+        Cache::get(self, len)
+    }
+}
+
+#[inline]
 pub fn cu_cached<T: Copy+Default>(device: &CudaDevice, len: usize) -> Buffer<T> {
     device.cached(len)
 }

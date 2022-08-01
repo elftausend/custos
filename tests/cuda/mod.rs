@@ -1,5 +1,5 @@
 use custos::{
-    cuda::{api::culaunch_kernel, fn_cache, CUDA_CACHE},
+    cuda::{api::culaunch_kernel, fn_cache},
     Buffer, CudaDevice, VecRead,
 };
 use std::ffi::c_void;
@@ -31,10 +31,8 @@ fn test_cached_kernel_launch() -> custos::Result<()> {
     for _ in 0..1000 {
         fn_cache(&device, src, "add")?;
 
-        CUDA_CACHE.with(|cache| {
-            let len = cache.borrow().kernels.len();
-            assert_eq!(len, 1)
-        });
+        assert_eq!(device.kernel_cache.borrow().kernels.len(), 1);
+
     }
     let function = fn_cache(&device, src, "add")?;
 

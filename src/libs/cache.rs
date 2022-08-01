@@ -16,11 +16,13 @@ pub struct Cache<P: CacheType> {
     pub nodes: HashMap<Node, P>
 }
 
-impl<P: CacheType> Cache<P> {
-    pub fn new() -> Cache<P> {
-        Cache { nodes: HashMap::new() }
+impl<P: CacheType> Default for Cache<P> {
+    fn default() -> Self {
+        Self { nodes: Default::default() }
     }
+}
 
+impl<P: CacheType> Cache<P> {
     pub fn add_node<'a, T, D: Alloc<T>>(&mut self, device: &'a D, node: Node) -> Buffer<'a, T> {
         let ptr: (*mut T, *mut c_void, _) = device.alloc(node.len);
 

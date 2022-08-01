@@ -73,10 +73,9 @@ impl Default for Device {
     }
 }
 
-// TODO: reenable if cache deallocation happens differently
-/*lazy_static::lazy_static! {
-    pub static ref GLOBAL_CPU: CPU = CPU::new();
-}*/
+thread_local! {
+    pub static GLOBAL_CPU: CPU = CPU::new();
+}
 
 pub struct Error {
     pub error: Box<dyn std::error::Error + Send>,

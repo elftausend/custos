@@ -1,14 +1,14 @@
 use crate::{
-    libs::{cache::{Cache, CacheReturn}}, AsDev, BaseDevice,
+    libs::cache::{Cache, CacheReturn}, AsDev, BaseDevice,
     Buffer, CDatatype, CacheBuf, ClearBuf, Alloc, GenericBlas, ManualMem, VecRead, WriteBuf, Device, DeviceType
 };
 use std::{ffi::c_void, fmt::Debug, alloc::{Layout, handle_alloc_error}, mem::size_of, cell::RefCell};
 
 use super::RawCpuBuf;
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 /// A CPU is used to perform calculations on the host CPU.
-/// To make new calculations invocable, a trait providing new operations should be implemented for [CPU].
+/// To make new operations invocable, a trait providing new functions should be implemented for [CPU].
 ///
 /// # Example
 /// ```
@@ -30,7 +30,7 @@ impl CPU {
     #[must_use]
     pub fn new() -> CPU {
         CPU {
-            cache: RefCell::new(Cache::new()),
+            cache: RefCell::new(Cache::default()),
         }
     }
 }

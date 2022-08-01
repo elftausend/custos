@@ -5,7 +5,7 @@ use custos::{
     },
     Buffer, CLDevice, Error, VecRead, CPU, cache::Cache, range, set_count,
 };
-use std::{ffi::c_void, mem::ManuallyDrop, collections::HashMap};
+use std::{ffi::c_void, collections::HashMap};
 
 pub fn unified_mem<T>(device: &CLDevice, arr: &mut [T]) -> Result<*mut c_void, Error> {
     let mut err = 0;
@@ -207,7 +207,7 @@ fn test_cpu_to_unified_leak() -> custos::Result<()> {
 
     set_count(0);
 
-    for _ in range(1000000) {
+    for _ in range(10) {
         let cl_cpu_buf = {
             let cpu = CPU::new();
             let mut buf = Cache::get::<i32, CPU>(&cpu, 6);
@@ -225,7 +225,5 @@ fn test_cpu_to_unified_leak() -> custos::Result<()> {
         assert_eq!(cl_cpu_buf.as_slice(), &[1, 2, 3, 4, 5, 6]);
         assert_eq!(cl_cpu_buf.read(), &[1, 2, 3, 4, 5, 6]);
     }
-    
-
     Ok(())
 }
