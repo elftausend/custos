@@ -1,12 +1,12 @@
 use std::ops::Add;
 use criterion::{criterion_group, criterion_main, Criterion};
-use custos::{CPU, Buffer, set_count, cpu::CPUCache};
+use custos::{CPU, Buffer, set_count, cache::Cache};
 
 const SIZE: usize = 10000000;
 
 fn add_cached<T: Default+Copy+Add<Output=T>>(device: &CPU, lhs: &[T], rhs: &[T]) {
     let len = std::cmp::min(lhs.len(), rhs.len());
-    let mut out = CPUCache::get::<T>(device, len);
+    let mut out = Cache::get::<T, CPU>(device, len);
 
     for i in 0..len {
         out[i] = lhs[i] + rhs[i];

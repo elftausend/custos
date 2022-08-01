@@ -3,17 +3,16 @@ use super::{
         create_command_queue, create_context, enqueue_read_buffer, enqueue_write_buffer,
         release_mem_object, unified_ptr, wait_for_event, CLIntDevice, CommandQueue, Context,
     },
-    cl_clear, CL_DEVICES, CLCache,
+    cl_clear, CL_DEVICES, RawCL, KernelCache,
 };
 use crate::{
-    deallocate_cache, get_device_count,
     libs::opencl::api::{create_buffer, MemFlags},
     AsDev, BaseDevice, Buffer, CDatatype, CacheBuf, ClearBuf, Device, Error, ManualMem, VecRead,
-    WriteBuf, Alloc, DeviceType,
+    WriteBuf, Alloc, DeviceType, cache::{Cache, CacheReturn},
 };
 use std::{cell::{RefCell, Ref}, ffi::c_void, fmt::Debug, rc::Rc};
 
-#[derive(Clone)]
+
 /// Used to perform calculations with an OpenCL capable device.
 /// To make new calculations invocable, a trait providing new operations should be implemented for [CLDevice].
 /// # Example
@@ -31,6 +30,8 @@ use std::{cell::{RefCell, Ref}, ffi::c_void, fmt::Debug, rc::Rc};
 /// }
 /// ```
 pub struct CLDevice {
+    pub kernel_cache: RefCell<KernelCache>,
+    pub cache: RefCell<Cache<RawCL>>,
     pub inner: Rc<RefCell<InternCLDevice>>,
 }
 
@@ -42,11 +43,12 @@ impl CLDevice {
     /// - No device is found at the given device index
     /// - some other OpenCL related errors
     pub fn new(device_idx: usize) -> Result<CLDevice, Error> {
-        unsafe {
-            *get_device_count() += 1;
-        }
         let inner = Rc::new(RefCell::new(CL_DEVICES.current(device_idx)?));
-        Ok(CLDevice { inner })
+        Ok(CLDevice { 
+            kernel_cache: RefCell::new(KernelCache::new()),
+            cache: RefCell::new(Cache::new()),
+            inner,
+        })
     }
 
     #[inline]
@@ -159,16 +161,27 @@ impl<T> ManualMem<T> for CLDevice {
 }
 
 impl<'a, T> CacheBuf<'a, T> for CLDevice {
+    #[inline]
     fn cached(&'a self, len: usize) -> Buffer<'a, T> {
-        CLCache::get::<T>(self, len)
+        Cache::get(self, len)
     }
 }
 
+impl CacheReturn<RawCL> for CLDevice {
+    #[inline]
+    fn cache(&self) -> std::cell::RefMut<Cache<RawCL>> {
+        self.cache.borrow_mut()
+    }
+}
+
+#[inline]
 pub fn cl_cached<T: Copy+Default>(device: &CLDevice, len: usize) -> Buffer<T> {
     device.cached(len)
 }
 
+
 impl<T: CDatatype> ClearBuf<T> for CLDevice {
+    #[inline]
     fn clear(&self, buf: &mut Buffer<T>) {
         cl_clear(self, buf).unwrap()
     }
@@ -212,12 +225,6 @@ pub struct InternCLDevice {
     unified_mem: bool,
 }
 
-impl From<Rc<RefCell<InternCLDevice>>> for CLDevice {
-    fn from(inner: Rc<RefCell<InternCLDevice>>) -> Self {
-        CLDevice { inner }
-    }
-}
-
 impl InternCLDevice {
     pub fn new(device: CLIntDevice) -> crate::Result<InternCLDevice> {
         let ctx = create_context(&[device])?;
@@ -231,15 +238,5 @@ impl InternCLDevice {
             queue,
             unified_mem,
         })
-    }
-}
-
-impl Drop for InternCLDevice {
-    fn drop(&mut self) {
-        unsafe {
-            let count = get_device_count();
-            *count -= 1;
-            deallocate_cache(*count);
-        }
     }
 }

@@ -1,6 +1,6 @@
 use std::ffi::c_void;
 
-use custos::{opencl::{AsClCvoidPtr, CLCache, enqueue_kernel}, CLDevice, Buffer, CDatatype};
+use custos::{opencl::{AsClCvoidPtr, enqueue_kernel}, CLDevice, Buffer, CDatatype, cache::Cache};
 
 
 #[test]
@@ -29,7 +29,7 @@ fn test_kernel_launch() -> custos::Result<()> {
     ";
 
     let lhs = Buffer::<f32>::from((&device, [1., 3., 6., 4., 1., 4.,]));
-    let out = CLCache::get::<f32>(&device, lhs.len);
+    let out = Cache::get::<f32, _>(&device, lhs.len);
 
     let gws = [lhs.len, 0, 0];
     enqueue_kernel(&device, src_add, gws, None, 
@@ -52,7 +52,7 @@ fn test_kernel_launch_diff_datatype() -> custos::Result<()> {
     ";
 
     let lhs = Buffer::<f32>::from((&device, [1., 3., 6., 4., 1., 4.,]));
-    let out = CLCache::get::<f32>(&device, lhs.len);
+    let out = Cache::get::<f32, _>(&device, lhs.len);
 
     let gws = [lhs.len, 0, 0];
     enqueue_kernel(&device, src_add, gws, None, 
@@ -79,7 +79,7 @@ fn test_kernel_launch_2() -> custos::Result<()>{
 
     let gws = [lhs.len, 0, 0];
 
-    let out = CLCache::get::<i32>(&device, lhs.len);
+    let out = Cache::get::<i32, _>(&device, lhs.len);
     enqueue_kernel(&device, &src, gws, None, &[&lhs, &rhs, &out])?;
     assert_eq!(out.read(), vec![-1, -1, -1, -1, -1, -1]);
     Ok(())

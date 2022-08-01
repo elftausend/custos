@@ -1,10 +1,11 @@
-use self::cpu::{Order, Transpose, CPU_CACHE, api::{cblas_sgemm, cblas_dgemm}};
+use self::cpu::{Order, Transpose, api::{cblas_sgemm, cblas_dgemm}};
 use crate::number::{Float, Number};
-use std::cell::{Cell, RefCell};
+use std::cell::RefCell;
 
 #[cfg(feature = "cuda")]
 use cuda::api::cublas::{cublasDgemm_v2, cublasOperation_t, cublasSgemm_v2, CublasHandle};
 
+pub mod cache;
 pub mod cpu;
 #[cfg(feature = "cuda")]
 pub mod cuda;
@@ -23,13 +24,14 @@ pub struct InternCudaDevice;
 
 thread_local! {
     pub static COUNT: RefCell<usize> = RefCell::new(0);
-    /// Using a common device count to keep track on device creations.
+    /*/// Using a common device count to keep track on device creations.
     /// These device creations are used to know when to deallocate the cached memory.
     /// A seperate count for each device type could be used, however this is a problem for nested device creations.
     /// (Especially for unified memory and device switching)
-    pub static DEVICE_COUNT: Cell<usize> = Cell::new(0);
+    pub static DEVICE_COUNT: Cell<usize> = Cell::new(0);*/
 }
 
+/* 
 #[inline]
 pub fn get_device_count() -> *mut usize {
     DEVICE_COUNT.with(|c| c.as_ptr())
@@ -40,7 +42,7 @@ pub fn deallocate_cache(device_count: usize) {
         return;
     }
 
-    CPU_CACHE.with(|cache| cache.borrow_mut().nodes.clear());
+    //CPU_CACHE.with(|cache| cache.borrow_mut().nodes.clear());
 
     #[cfg(feature = "opencl")]
     crate::opencl::CL_CACHE.with(|cache| {
@@ -56,7 +58,7 @@ pub fn deallocate_cache(device_count: usize) {
 
     #[cfg(feature = "cuda")]
     crate::cuda::CUDA_CACHE.with(|cache| cache.borrow_mut().nodes.clear());
-}
+}*/
 
 /// Sets current cache identifier / index.
 /// This function is usually called after an iteration in a loop -> [Count](crate::Count) or [range](crate::range)

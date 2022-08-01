@@ -1,12 +1,11 @@
 use custos::{
-    cpu::CPUCache,
     opencl::{
         api::{clCreateBuffer, enqueue_map_buffer, CommandQueue, MemFlags, OCLErrorKind},
         construct_buffer,
     },
-    Buffer, CLDevice, Error, VecRead, CPU,
+    Buffer, CLDevice, Error, VecRead, CPU, cache::Cache, range, set_count,
 };
-use std::ffi::c_void;
+use std::{ffi::c_void, mem::ManuallyDrop, collections::HashMap};
 
 pub fn unified_mem<T>(device: &CLDevice, arr: &mut [T]) -> Result<*mut c_void, Error> {
     let mut err = 0;
@@ -190,14 +189,43 @@ fn test_unified_mem_iterate() -> custos::Result<()> {
 #[test]
 fn test_cpu_to_unified() -> custos::Result<()> {
     let device = CPU::new();
-    let mut buf = CPUCache::get::<i32>(&device, 6);
+    let mut buf = Cache::get::<i32, CPU>(&device, 6);
     buf.copy_from_slice(&[1, 2, 3, 4, 5, 6]);
 
     let cl_dev = CLDevice::new(0)?;
-    let cl_cpu_buf = construct_buffer(&cl_dev, buf)?;
+    let cl_cpu_buf = unsafe { construct_buffer(&cl_dev, buf)? };
 
     assert_eq!(cl_cpu_buf.as_slice(), &[1, 2, 3, 4, 5, 6]);
     assert_eq!(cl_cpu_buf.read(), &[1, 2, 3, 4, 5, 6]);
+
+    Ok(())
+}
+
+#[test]
+fn test_cpu_to_unified_leak() -> custos::Result<()> {
+    let cl_dev = CLDevice::new(0)?;
+
+    set_count(0);
+
+    for _ in range(1000000) {
+        let cl_cpu_buf = {
+            let cpu = CPU::new();
+            let mut buf = Cache::get::<i32, CPU>(&cpu, 6);
+            buf.copy_from_slice(&[1, 2, 3, 4, 5, 6]);
+
+            let cl_cpu_buf = unsafe { construct_buffer(&cl_dev, buf)? };
+            let mut hm = HashMap::new();
+            std::mem::swap(&mut cpu.cache.borrow_mut().nodes, &mut hm);
+            for value in hm {
+                let mut ptr = value.1;
+                ptr.ptr = std::ptr::null_mut();
+            }
+            cl_cpu_buf
+        };
+        assert_eq!(cl_cpu_buf.as_slice(), &[1, 2, 3, 4, 5, 6]);
+        assert_eq!(cl_cpu_buf.read(), &[1, 2, 3, 4, 5, 6]);
+    }
+    
 
     Ok(())
 }

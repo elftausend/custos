@@ -1,6 +1,6 @@
 use std::{mem::size_of, ffi::c_void};
 use crate::{CLDevice, number::Number, Buffer};
-use super::{CL_CACHE, api::{OCLErrorKind, set_kernel_arg, enqueue_nd_range_kernel}};
+use super::{api::{OCLErrorKind, set_kernel_arg, enqueue_nd_range_kernel}};
 
 pub trait AsClCvoidPtr {
     fn as_cvoid_ptr(&self) -> *const c_void;
@@ -45,11 +45,10 @@ pub fn enqueue_kernel(
     lws: Option<[usize; 3]>,
     args: &[&dyn AsClCvoidPtr],
 ) -> crate::Result<()> {
-    let kernel = CL_CACHE.with(|cache| {
-        cache
-            .borrow_mut()
-            .arg_kernel_cache(device, src.to_string())
-    })?;
+
+    let kernel = device.kernel_cache
+        .borrow_mut()
+        .kernel_cache(device, src)?;
 
     let wd;
     if gws[0] == 0 {

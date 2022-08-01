@@ -1,6 +1,6 @@
 use std::ptr::null_mut;
 
-use custos::{cpu::{CPU_CACHE, cpu_cached}, range, Buffer, CPU};
+use custos::{cpu::cpu_cached, range, Buffer, CPU};
 
 
 fn cached_add<'a>(device: &'a CPU, a: &[f32], b: &[f32]) -> Buffer<'a, f32> {
@@ -26,7 +26,8 @@ fn test_caching_cpu() {
             panic!("Should be the same pointer!");
         }
         old_ptr = out.host_ptr();
-        let len = CPU_CACHE.with(|cache| cache.borrow().nodes.len());
+        let len = device.cache.borrow().nodes.len();
+        //let len = CPU_CACHE.with(|cache| cache.borrow().nodes.len());
         assert_eq!(len, 1);
     }
 }

@@ -1,4 +1,4 @@
-use custos::{Buffer, CDatatype, CLDevice, Error, opencl::{CLCache, enqueue_kernel}};
+use custos::{Buffer, CDatatype, CLDevice, Error, opencl::enqueue_kernel, cache::Cache};
 
 fn main() -> Result<(), Error> {
     let device = CLDevice::new(0)?;
@@ -15,7 +15,7 @@ fn main() -> Result<(), Error> {
 
     let gws = [lhs.len, 0, 0];
 
-    let out = CLCache::get::<i32>(&device, lhs.len);
+    let out = Cache::get::<i32, _>(&device, lhs.len);
     enqueue_kernel(&device, &src, gws, None, &[&lhs, &rhs, &out])?;
     assert_eq!(out.read(), vec![-1, -1, -1, -1, -1, -1]);
     Ok(())

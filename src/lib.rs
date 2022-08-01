@@ -73,9 +73,10 @@ impl Default for Device {
     }
 }
 
-lazy_static::lazy_static! {
+// TODO: reenable if cache deallocation happens differently
+/*lazy_static::lazy_static! {
     pub static ref GLOBAL_CPU: CPU = CPU::new();
-}
+}*/
 
 pub struct Error {
     pub error: Box<dyn std::error::Error + Send>,
@@ -278,7 +279,6 @@ pub trait AsDev {
     {
         Alloc::as_dev(self)
     }
-    
 }
 
 #[derive(Clone, Copy, Eq, Hash, Ord, PartialEq, PartialOrd)]
@@ -338,6 +338,7 @@ macro_rules! get_device {
         use $crate::{ DeviceType, CPU };
 
         let device: &dyn $t<$g> = unsafe {
+            //&*($device.device as *mut CPU)
             match $device.device_type {
                 DeviceType::CPU => &*($device.device as *mut CPU),
                 #[cfg(feature="cuda")]
@@ -351,6 +352,7 @@ macro_rules! get_device {
                     you need to add 'opencl' and 'cuda' as features in your Cargo.toml."
                 ),
             }
+            
         };
         device
     }}

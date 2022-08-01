@@ -1,18 +1,18 @@
-use std::{ffi::c_void, ptr::null_mut, marker::PhantomData};
+use std::{ffi::c_void, ptr::null_mut, marker::PhantomData, fmt::Debug};
 
-pub use cl_cache::*;
+pub use kernel_cache::*;
 pub use cl_device::*;
 pub use cl_devices::*;
-pub use enqueue_kernel::*;
+pub use kernel_enqueue::*;
 
 pub mod api;
-mod cl_cache;
+mod kernel_cache;
 pub mod cl_device;
 pub mod cl_devices;
-mod enqueue_kernel;
+mod kernel_enqueue;
 
 use self::api::{create_buffer, MemFlags};
-use crate::{BufFlag, Buffer, CDatatype, Node, DeviceError, AsDev};
+use crate::{BufFlag, Buffer, CDatatype, Node, DeviceError, AsDev, CPU};
 
 /// Returns an OpenCL pointer that is bound to the host pointer stored in the specified buffer.
 pub fn to_unified<T>(device: &CLDevice, no_drop: Buffer<T>) -> crate::Result<*mut c_void> {
@@ -24,18 +24,15 @@ pub fn to_unified<T>(device: &CLDevice, no_drop: Buffer<T>) -> crate::Result<*mu
         Some(&no_drop),
     )?;
 
-    let old_ptr = CL_CACHE.with(|cache| {
-        // add created buffer to the "caching chain"
-        cache.borrow_mut().nodes.insert(
-            Node::new(no_drop.len),
-            RawCL {
-                ptr: cl_ptr,
-                host_ptr: null_mut(),
-            },
-        )
-    });
-
-    // this pointer was overwritten previously, hence it can be deallocated
+    let old_ptr = device.cache.borrow_mut().nodes.insert(
+        Node::new(no_drop.len),
+        RawCL {
+            ptr: cl_ptr,
+            host_ptr: null_mut(),
+        },
+    );
+    
+    // this pointer was overwritten previously, hence can it be deallocated
     // this line can be removed, however it shows that deallocating the old pointer makes sense
     drop(old_ptr);
 
@@ -43,7 +40,9 @@ pub fn to_unified<T>(device: &CLDevice, no_drop: Buffer<T>) -> crate::Result<*mu
 }
 
 /// Converts an 'only' CPU buffer into an OpenCL + CPU (unified memory) buffer.
-pub fn construct_buffer<'a, T>(
+/// # Safety
+/// The pointer of the no_drop Buffer must be valid for the entire lifetime of the returned Buffer.
+pub unsafe fn construct_buffer<'a, T: Copy + Default + Debug>(
     device: &'a CLDevice,
     no_drop: Buffer<T>,
 ) -> crate::Result<Buffer<'a, T>> {
@@ -54,13 +53,13 @@ pub fn construct_buffer<'a, T>(
 
     let (host_ptr, len) = (no_drop.host_ptr(), no_drop.len);
     let cl_ptr = to_unified(device, no_drop)?;
-    
+
     Ok(Buffer {
         ptr: (host_ptr, cl_ptr, 0),
         len,
         device: device.dev(),
         flag: BufFlag::Cache,
-        p: PhantomData
+        p: PhantomData 
     })
 }
 

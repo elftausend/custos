@@ -1,10 +1,12 @@
 use crate::{
-    deallocate_cache, get_device_count, libs::cpu::CPUCache, AsDev, BaseDevice,
+    libs::{cache::{Cache, CacheReturn}}, AsDev, BaseDevice,
     Buffer, CDatatype, CacheBuf, ClearBuf, Alloc, GenericBlas, ManualMem, VecRead, WriteBuf, Device, DeviceType
 };
-use std::{ffi::c_void, fmt::Debug, alloc::{Layout, handle_alloc_error}, mem::size_of};
+use std::{ffi::c_void, fmt::Debug, alloc::{Layout, handle_alloc_error}, mem::size_of, cell::RefCell};
 
-#[derive(Debug, Default)]
+use super::RawCpuBuf;
+
+#[derive(Debug)]
 /// A CPU is used to perform calculations on the host CPU.
 /// To make new calculations invocable, a trait providing new operations should be implemented for [CPU].
 ///
@@ -20,35 +22,15 @@ use std::{ffi::c_void, fmt::Debug, alloc::{Layout, handle_alloc_error}, mem::siz
 /// assert_eq!(out, vec![1, 2, 3]);
 /// ```
 pub struct CPU {
-    _create_with_new: ()
+    pub cache: RefCell<Cache<RawCpuBuf>>
 }
 
 impl CPU {
     /// Creates an [CPU] with an InternCPU that holds an empty vector of pointers.
     #[must_use]
     pub fn new() -> CPU {
-        unsafe {
-            *get_device_count() += 1;
-        }
-        CPU { _create_with_new: () }
-    }
-}
-
-impl Clone for CPU {
-    fn clone(&self) -> Self {
-        unsafe {
-            *get_device_count() += 1;
-        }
-        CPU { _create_with_new: () }
-    }
-}
-
-impl Drop for CPU {
-    fn drop(&mut self) {
-        unsafe {
-            let count = get_device_count();
-            *count -= 1;
-            deallocate_cache(*count);
+        CPU {
+            cache: RefCell::new(Cache::new()),
         }
     }
 }
@@ -105,12 +87,21 @@ impl<T> ManualMem<T> for CPU {
     }
 }
 
-impl<'a, T: Copy + Default> CacheBuf<'a, T> for CPU {
-    fn cached(&'a self, len: usize) -> Buffer<'a, T> {
-        CPUCache::get::<T>(self, len)
+impl CacheReturn<RawCpuBuf> for CPU {
+    #[inline]
+    fn cache(&self) -> std::cell::RefMut<Cache<RawCpuBuf>> {
+        self.cache.borrow_mut()
     }
 }
 
+impl<'a, T: Copy + Default> CacheBuf<'a, T> for CPU {
+    #[inline]
+    fn cached(&'a self, len: usize) -> Buffer<'a, T> {
+        Cache::get::<T, CPU>(self, len)
+    }
+}
+
+#[inline]
 pub fn cpu_cached<T: Copy+Default>(device: &CPU, len: usize) -> Buffer<T> {
     device.cached(len)
 }

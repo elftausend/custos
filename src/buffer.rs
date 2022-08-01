@@ -4,7 +4,7 @@ use std::{ffi::c_void, fmt::Debug, ptr::null_mut};
 
 #[cfg(feature = "opencl")]
 use crate::opencl::api::release_mem_object;
-use crate::{get_device, CDatatype, ClearBuf, Alloc, VecRead, WriteBuf, Device, GLOBAL_CPU, AsDev};
+use crate::{get_device, CDatatype, ClearBuf, Alloc, VecRead, WriteBuf, Device, CacheBuf};
 
 use crate::number::Number;
 
@@ -232,7 +232,8 @@ impl<T> Clone for Buffer<'_, T> {
     }
 }
 
-impl<A: Clone + Default> FromIterator<A> for Buffer<'_, A> {
+// TODO: reenable if cache deallocation happens differently
+/*impl<A: Clone + Default> FromIterator<A> for Buffer<'_, A> {
     fn from_iter<T: IntoIterator<Item = A>>(iter: T) -> Self {
         let device = &GLOBAL_CPU;
         let from_iter = Vec::from_iter(iter);
@@ -245,7 +246,7 @@ impl<A: Clone + Default> FromIterator<A> for Buffer<'_, A> {
             p: PhantomData,
         }
     }
-}
+}*/
 
 impl<T> Drop for Buffer<'_, T> {
     fn drop(&mut self) {
@@ -573,4 +574,36 @@ impl<'a, T: CDatatype> From<(u64, usize)> for Buffer<'a, T> {
             p: PhantomData,
         }
     }
+}
+
+/// Adds a buffer to the "cache chain".
+/// Following calls will return this buffer,
+/// if the corresponding internal count matches with the id used in the cache.
+///
+///
+/// # Example
+/// ```
+/// use custos::{CPU, AsDev, cached, VecRead, set_count, get_count};
+///
+/// let device = CPU::new();
+/// let dev = device.dev();
+/// assert_eq!(0, get_count());
+///
+/// let mut buf = cached::<f32>(&dev, 10);
+/// assert_eq!(1, get_count());
+///
+/// for value in buf.as_mut_slice() {
+///     *value = 1.5;
+/// }
+///    
+/// let new_buf = cached::<i32>(&dev, 10);
+/// assert_eq!(2, get_count());
+///
+/// set_count(0);
+/// let buf = cached::<f32>(&dev, 10);
+/// assert_eq!(device.read(&buf), vec![1.5; 10]);
+/// ```
+pub fn cached<'a, T: Default + Copy>(device: &'a Device, len: usize) -> Buffer<'a, T> {
+    let device = get_device!(device, CacheBuf<T>);
+    device.cached(len)
 }
