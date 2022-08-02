@@ -41,7 +41,7 @@ where
         // By default, the Buffer dereferences to a slice. 
         // Therefore, standard indexing can be used. 
         // You can pass a CPU Buffer to a function that takes a slice as a parameter, too.
-        // However, the Buffer must be created via a CPU.
+        // However, the Buffer must be created via a CPU or CLDevice with unified memory (e.g. laptops, APUs).
         for i in 0..len {
             out[i] = lhs[i] + rhs[i];
         }
@@ -93,7 +93,7 @@ impl<T: CDatatype> AddBuf<T> for CudaDevice {
         "#, datatype = T::as_c_type_str());
         
         let len = std::cmp::min(lhs.len, rhs.len);
-        let out = Cache::get::<T, CudaDevice>(self, len);
+        let out = Cache::get::<T, _>(self, len);
 
         // The kernel is compiled once with nvrtc and is cached too.
         // The arguments are specified with a vector of buffers and/or numbers.
@@ -166,6 +166,7 @@ pub struct OwnStruct<'a, T> {
 }
 
 impl<'a, T> OwnStruct<'a, T> {
+    // consider using operator overloading for your own type
     #[inline]
     fn add(&self, rhs: &OwnStruct<T>) -> Buffer<T> 
     where 
@@ -182,6 +183,13 @@ impl<'a, T> OwnStruct<'a, T> {
 
     // ... more operations ... 
 }
+```
+
+Without specifying a device:
+
+```rust
+let out = lhs.add(&rhs);
+assert_eq!(out.read(), vec![0, -9, -1, 6, 4, 5]);
 ```
 
 ### Issues with ```get_device!```

@@ -42,24 +42,24 @@ fn test_questionmark() -> Result<(), Box<dyn std::error::Error>> {
 
 #[test]
 fn test_print_error() {
-    let err = Error::from(DeviceError::NoDeviceSelected);
+    let err = Error::from(DeviceError::ConstructError);
     assert_eq!(
-        "No device selected, .select() on a device was not called before get_device! call",
+        "Only a non-drop buffer can be converted to a CPU+OpenCL buffer",
         &format!("{err}")
     );
     assert_eq!(
-        "No device selected, .select() on a device was not called before get_device! call",
+        "Only a non-drop buffer can be converted to a CPU+OpenCL buffer",
         &format!("{err:?}")
     );
 }
 
 #[test]
 fn test_std_err() {
-    let err = Error::from(DeviceError::NoDeviceSelected);
+    let err = Error::from(DeviceError::ConstructError);
     let e: Box<dyn std::error::Error> = err.into();
     assert_eq!(
         e.downcast_ref::<DeviceError>(),
-        Some(&DeviceError::NoDeviceSelected)
+        Some(&DeviceError::ConstructError)
     );
 }
 

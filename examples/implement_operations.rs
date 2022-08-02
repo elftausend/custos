@@ -98,6 +98,7 @@ pub trait AddOp<T> {
 }
 
 impl<T: CDatatype> AddOp<T> for Buffer<'_, T> {
+    #[inline]
     fn add(&self, rhs: &Buffer<T>) -> Buffer<T> {
         get_device!(self.device, AddBuf<T>).add(self, rhs)
     }
@@ -110,6 +111,7 @@ pub struct OwnStruct<'a, T> {
 
 impl<'a, T> OwnStruct<'a, T> {
     #[allow(dead_code)]
+    // consider using operator overloading for your own type
     #[inline]
     fn add(&self, rhs: &OwnStruct<T>) -> Buffer<T> 
     where 

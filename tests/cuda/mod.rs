@@ -9,6 +9,7 @@ mod cuda_kernels;
 mod nvrtc;
 mod occupancy;
 mod scalar_ops;
+mod to_cuda;
 
 #[test]
 fn test_cached_kernel_launch() -> custos::Result<()> {

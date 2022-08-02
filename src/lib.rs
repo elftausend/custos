@@ -51,7 +51,7 @@ mod count;
 
 pub mod number;
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DeviceType {
     CPU = 0,
     #[cfg(feature="cuda")]
@@ -282,18 +282,18 @@ pub trait AsDev {
 
 #[derive(Clone, Copy, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub enum DeviceError {
-    NoDeviceSelected,
     ConstructError,
+    CPUtoCUDA,
 }
 
 impl DeviceError {
     pub fn as_str(&self) -> &'static str {
         match self {
-            DeviceError::NoDeviceSelected => {
-                "No device selected, .select() on a device was not called before get_device! call"
-            }
             DeviceError::ConstructError => {
                 "Only a non-drop buffer can be converted to a CPU+OpenCL buffer"
+            },
+            DeviceError::CPUtoCUDA => {
+                "Only a CPU Buffer can be converted to a CUDA Buffer"
             }
         }
     }
