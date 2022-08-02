@@ -3,9 +3,10 @@
 [![Crates.io version](https://img.shields.io/crates/v/custos.svg)](https://crates.io/crates/custos)
 [![Docs](https://docs.rs/custos/badge.svg?version=0.4.1)](https://docs.rs/custos/0.4.1/custos/)
 
-A minimal OpenCL, CUDA and host CPU array manipulation engine / framework.
-It provides the tools needed to execute array operations with the CPU, as well as with CUDA and OpenCL devices.
-This library demonstrates how operations can be implemented for the compute devices: [custos-math]
+A minimal OpenCL, CUDA and host CPU array manipulation engine / framework written in Rust.
+This crate provides the tools for executing custom array operations with the CPU, as well as with CUDA and OpenCL devices.<br>
+This guide demonstrates how operations can be implemented for the compute devices: [implement_operations.md](implement_operations.md)<br>
+or to see it at a larger scale, look here: [custos-math]
 
 [custos-math]: https://github.com/elftausend/custos-math
 
@@ -27,6 +28,11 @@ Available features:
 - using no features at all ... CPU with BLAS
 
 ## [Examples]
+
+These examples show how to use the implemented operations. <br>
+custos only implements three buffer operations. These would be the write, read, and clear operations.<br>
+On the other hand, [custos-math] implements a lot more operations, including Matrix operations for a custom Matrix struct.<br>
+If you want to implement your own operations for all compute devices, look here: [implement_operations.md](implement_operations.md)
 
 [examples]: https://github.com/elftausend/custos/tree/main/examples
 
