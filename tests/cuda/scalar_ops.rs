@@ -1,5 +1,5 @@
 use custos::{
-    cuda::{launch_kernel1d},
+    cuda::launch_kernel1d,
     Buffer, CDatatype, CudaDevice, VecRead, cache::Cache,
 };
 

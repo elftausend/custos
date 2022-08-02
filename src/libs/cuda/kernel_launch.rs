@@ -29,6 +29,8 @@ impl<T: Number> AsCudaCvoidPtr for T {
 }
 
 /// uses calculated occupancy as launch configuration to launch a CUDA kernel
+/// # Safety
+/// All kernel arguments must be set.
 pub fn launch_kernel1d(
     len: usize,
     device: &CudaDevice,

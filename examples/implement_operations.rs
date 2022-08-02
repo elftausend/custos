@@ -87,7 +87,7 @@ impl<T: CDatatype> AddBuf<T> for CudaDevice {
 
         // The kernel is compiled once with nvrtc and is cached too.
         // The arguments are specified with a vector of buffers and/or numbers.
-        launch_kernel1d(len, self, &src, "add", vec![lhs, rhs, &out]).unwrap();
+        launch_kernel1d(len, self, &src, "add", vec![lhs, rhs, &out, &len]).unwrap();
         out
     
     }
@@ -151,16 +151,15 @@ fn main() -> custos::Result<()> {
         assert_eq!(out.read(), &[7, 7, 7, 7, 7, 7]);
     }
     
-
     #[cfg(feature="cuda")]
     {
         let cuda_device = CudaDevice::new(0)?;
 
-        let lhs = Buffer::from((&cuda_device, [1, 2, 3, 4, 5, 6]));
-        let rhs = Buffer::from((&cuda_device, [6, 5, 4, 3, 2, 1]));
+        let lhs = Buffer::from((&cuda_device, [1., 2., 3., 4., 5., 6.]));
+        let rhs = Buffer::from((&cuda_device, [6., 5., 4., 3., 2., 1.]));
     
         let out = cuda_device.add(&lhs, &rhs);
-        assert_eq!(out.read(), &[7, 7, 7, 7, 7, 7]);
+        assert_eq!(out.read(), &[7., 7., 7., 7., 7., 7.]);
     }
 
     Ok(())
@@ -176,6 +175,7 @@ pub trait AnotherOpBuf<T> {
 
 impl<T> AnotherOpBuf<T> for CPU {}
 
+#[cfg(feature="opencl")]
 impl<T> AnotherOpBuf<T> for CLDevice {
     fn operation(&self, _buf: Buffer<T>) -> Buffer<T> {
         todo!()

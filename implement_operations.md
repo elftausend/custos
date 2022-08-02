@@ -3,9 +3,11 @@
 As code in .md files is not compiled directly, minor compilation issues may appear in the snippets below. 
 Hence, you can find the entire source code in the examples folder, or just click [here](https://github.com/elftausend/custos/blob/main/examples/implement_operations.rs).
 
+## Make operations invocable für all devices
+
 Implementing a new operation happens in a few steps. <br>
 
-- The first step is to define a trait. This is the operation<br>
+The first step is to define a trait. This is the operation<br>
 This trait is then implemented for all devices.<br>
 
 You can use your own type as parameters also. It just needs to encapsulate a ```Buffer```.
@@ -95,7 +97,7 @@ impl<T: CDatatype> AddBuf<T> for CudaDevice {
 
         // The kernel is compiled once with nvrtc and is cached too.
         // The arguments are specified with a vector of buffers and/or numbers.
-        launch_kernel1d(len, self, &src, "add", vec![lhs, rhs, &out]).unwrap();
+        launch_kernel1d(len, self, &src, "add", vec![lhs, rhs, &out, &len]).unwrap();
         out
     
     }
@@ -124,6 +126,8 @@ fn main() -> custos::Result<()> {
     Ok(())
 }
 ```
+
+## Make operations invocable on ```Buffer``` or custom structs
 
 Now, we have implemented a custom operation for all compute devices. 
 However, you may have spot something.
@@ -180,8 +184,10 @@ impl<'a, T> OwnStruct<'a, T> {
 }
 ```
 
+### Issues with ```get_device!```
+
 As mentioned before, it is not mandatory to implement an operation for every device.<br>
-However, there is one caviat. <br>
+However, there is one caveat. <br>
 If you want to call new operations on the ```Buffer``` (or any custom type), a ```CPU``` implementation must be available, since ```get_device!``` expects this. <br>
 
 A way around this, if you only want this functionality, for instance, for OpenCL buffers, may be a trait where all operations are ```unimplemented!()``` by default.
@@ -222,4 +228,4 @@ opencl = []
 cuda = []
 ```
 
-This is because ```get_device!``` contains code that uses ```#[cfg(feature="cuda")]``` and ```#[cfg(feature="opencl")]```. This macro is then expanded in your crate. Therefore, the expanded code looks after these features.
+This is because ```get_device!``` contains code that uses ```#[cfg(feature="cuda")]``` and ```#[cfg(feature="opencl")]```. This macro is then expanded in your crate. Therefore, the expanded code looks after these features, which would fail without adding these features.
