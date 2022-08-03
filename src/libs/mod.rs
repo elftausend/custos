@@ -173,7 +173,23 @@ pub trait GenericBlas
 where
     Self: Sized + Float,
 {
-    fn gemm(m: usize, n: usize, k: usize, a: &[Self], b: &[Self], c: &mut [Self]);
+    fn blas_gemm(order: Order, trans_a: Transpose, trans_b: Transpose, m: usize, n: usize, k: usize, a: &[Self], lda: usize, b: &[Self], ldb: usize, c: &mut [Self], ldc: usize);
+    #[inline]
+    fn gemm(m: usize, n: usize, k: usize, a: &[Self], b: &[Self], c: &mut [Self]) {
+        Self::blas_gemm(Order::RowMajor, Transpose::NoTrans, Transpose::NoTrans, m, n, k, a, k, b, n, c, n)    
+    }
+    #[inline]
+    #[allow(non_snake_case)]
+    fn gemmT(m: usize, n: usize, k: usize, a: &[Self], b: &[Self], c: &mut [Self]) {
+        Self::blas_gemm(Order::RowMajor, Transpose::NoTrans, Transpose::Trans, m, n, k, a, k, b, k, c, n)    
+    }
+
+    #[inline]
+    #[allow(non_snake_case)]
+    fn Tgemm(m: usize, n: usize, k: usize, a: &[Self], b: &[Self], c: &mut [Self]) {
+        Self::blas_gemm(Order::RowMajor, Transpose::Trans, Transpose::NoTrans, m, n, k, a, m, b, n, c, n)    
+    }
+
     #[cfg(feature = "cuda")]
     fn cugemm(
         handle: &CublasHandle,
@@ -188,23 +204,23 @@ where
 
 impl GenericBlas for f32 {
     #[inline]
-    fn gemm(m: usize, n: usize, k: usize, a: &[Self], b: &[Self], c: &mut [Self]) {
+    fn blas_gemm(order: Order, trans_a: Transpose, trans_b: Transpose, m: usize, n: usize, k: usize, a: &[Self], lda: usize, b: &[Self], ldb: usize, c: &mut [Self], ldc: usize) {
         unsafe {
             cblas_sgemm(
-                Order::RowMajor,
-                Transpose::NoTranspose,
-                Transpose::NoTranspose,
+                order,
+                trans_a,
+                trans_b,
                 m,
                 n,
                 k,
                 1.0,
                 a.as_ptr(),
-                k,
+                lda,
                 b.as_ptr(),
-                n,
+                ldb,
                 0.0,
                 c.as_mut_ptr(),
-                n,
+                ldc,
             )
         };
     }
@@ -244,23 +260,23 @@ impl GenericBlas for f32 {
 
 impl GenericBlas for f64 {
     #[inline]
-    fn gemm(m: usize, n: usize, k: usize, a: &[Self], b: &[Self], c: &mut [Self]) {
+    fn blas_gemm(order: Order, trans_a: Transpose, trans_b: Transpose, m: usize, n: usize, k: usize, a: &[Self], lda: usize, b: &[Self], ldb: usize, c: &mut [Self], ldc: usize) {
         unsafe {
             cblas_dgemm(
-                Order::RowMajor,
-                Transpose::NoTranspose,
-                Transpose::NoTranspose,
+                order,
+                trans_a,
+                trans_b,
                 m,
                 n,
                 k,
                 1.0,
                 a.as_ptr(),
-                k,
+                lda,
                 b.as_ptr(),
-                n,
+                ldb,
                 0.0,
                 c.as_mut_ptr(),
-                n,
+                ldc,
             )
         };
     }

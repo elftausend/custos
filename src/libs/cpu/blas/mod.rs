@@ -7,6 +7,6 @@ pub enum Order {
 }
 #[repr(C)]
 pub enum Transpose {
-    NoTranspose = 111,
-    Transpose = 112,
+    NoTrans = 111,
+    Trans = 112,
 }
