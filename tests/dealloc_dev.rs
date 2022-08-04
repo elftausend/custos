@@ -20,9 +20,11 @@ fn test_rc_get_dev() {
 fn test_dealloc_cl() -> custos::Result<()> {
     let device = CLDevice::new(0)?;
 
-    let _a = Buffer::from((&device, [1f32, 2., 3., 4., 5., 6.]));
-    let _b = Buffer::from((&device, [6., 5., 4., 3., 2., 1.]));
+    let a = Buffer::from((&device, [1f32, 2., 3., 4., 5., 6.]));
+    let b = Buffer::from((&device, [6., 5., 4., 3., 2., 1.]));
 
+    drop(a);
+    drop(b);
     drop(device);
 
     Ok(())

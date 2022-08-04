@@ -227,3 +227,27 @@ fn test_alloc() {
     assert_eq!(buf.read(), vec![0.; 100]);
     drop(buf);
 }
+
+#[test]
+fn test_deviceless_buf() {
+    let mut buf = {
+        let device = CPU::new();
+        Buffer::<u8>::deviceless(&device, 5)
+    };
+
+    for (idx, element) in buf.iter_mut().enumerate() {
+        *element = idx as u8;
+    }
+
+    assert_eq!(buf.as_slice(), &[0, 1, 2, 3, 4]);
+}
+
+#[test]
+#[should_panic]
+fn test_deviceless_buf_panic() {
+    let buf = {
+        let device = CPU::new();
+        Buffer::<u8>::deviceless(&device, 5)
+    };
+    buf.read();
+}
