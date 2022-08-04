@@ -45,7 +45,7 @@ impl<'a, T> Buffer<'a, T> {
     /// assert_eq!(buffer.as_slice(), &[2; 6]);
     ///
     /// ```
-    pub fn new<'b, D: Alloc<T>>(device: &'b D, len: usize) -> Buffer<'a, T> {
+    pub fn new<'b, D: Alloc<T> + ?Sized>(device: &'b D, len: usize) -> Buffer<'a, T> {
         Buffer {
             ptr: device.alloc(len),
             len,

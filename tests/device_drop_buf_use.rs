@@ -1,6 +1,6 @@
 use custos::{Buffer, ClearBuf, CPU};
 
-#[test]
+/*#[test]
 fn test_return_buf() {
     let mut buf = {
         let device = CPU::new();
@@ -10,7 +10,7 @@ fn test_return_buf() {
     let device = CPU::new();
     device.clear(&mut buf);
     assert_eq!(buf.as_slice(), &[0; 5])
-}
+}*/
 
 /* 
 // won't compile
