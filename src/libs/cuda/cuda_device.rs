@@ -8,8 +8,8 @@ use super::{
     cu_clear, RawCUBuf, KernelCacheCU,
 };
 use crate::{
-    AsDev, BaseDevice, CDatatype, CacheBuf,
-    ClearBuf, Device, GenericBlas, VecRead, WriteBuf, Alloc, DeviceType, Buffer, cache::{CacheReturn, Cache},
+    AsDev, CDatatype, CacheBuf,
+    ClearBuf, Device, VecRead, WriteBuf, Alloc, DeviceType, Buffer, cache::{CacheReturn, Cache},
 };
 use std::{ptr::null_mut, cell::RefCell};
 
@@ -137,5 +137,3 @@ pub fn cu_cached<T: Copy+Default>(device: &CudaDevice, len: usize) -> Buffer<T> 
 }
 
 impl AsDev for CudaDevice {}
-
-impl<T: CDatatype + GenericBlas> BaseDevice<T> for CudaDevice {}

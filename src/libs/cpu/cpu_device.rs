@@ -1,6 +1,6 @@
 use crate::{
-    libs::cache::{Cache, CacheReturn}, AsDev, BaseDevice,
-    Buffer, CDatatype, CacheBuf, ClearBuf, Alloc, GenericBlas, ManualMem, VecRead, WriteBuf, Device, DeviceType
+    libs::cache::{Cache, CacheReturn}, AsDev,
+    Buffer, CacheBuf, ClearBuf, Alloc, VecRead, WriteBuf, Device, DeviceType
 };
 use std::{ffi::c_void, fmt::Debug, alloc::{Layout, handle_alloc_error}, mem::size_of, cell::RefCell};
 
@@ -79,14 +79,6 @@ impl<T: Clone + Default> Alloc<T> for CPU {
 
 impl AsDev for CPU {}
 
-impl<T> ManualMem<T> for CPU {
-    fn drop_buf(&self, buf: Buffer<T>) {
-        unsafe {
-            drop(Box::from_raw(buf.ptr.0));
-        }
-    }
-}
-
 impl CacheReturn<RawCpuBuf> for CPU {
     #[inline]
     fn cache(&self) -> std::cell::RefMut<Cache<RawCpuBuf>> {
@@ -125,5 +117,3 @@ impl<T: Copy> WriteBuf<T> for CPU {
         buf.copy_from_slice(data)
     }
 }
-
-impl<T: CDatatype + GenericBlas> BaseDevice<T> for CPU {}

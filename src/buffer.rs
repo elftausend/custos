@@ -21,6 +21,7 @@ impl PartialEq for BufFlag {
     }
 }
 
+/// The underlying non-growable array structure. A `Buffer` may be encapsulated in other structs.
 pub struct Buffer<'a, T> {
     pub ptr: (*mut T, *mut c_void, u64),
     pub len: usize,
@@ -30,8 +31,8 @@ pub struct Buffer<'a, T> {
 }
 
 impl<'a, T> Buffer<'a, T> {
-    /// Creates a zeroed (or values set to default) buffer with the given length on the specified device.
-    /// This Buffer can't outlive the device specified as a parameter.
+    /// Creates a zeroed (or values set to default) `Buffer` with the given length on the specified device.
+    /// This `Buffer` can't outlive the device specified as a parameter.
     /// ```
     /// use custos::{CPU, Buffer};
     ///
@@ -56,8 +57,8 @@ impl<'a, T> Buffer<'a, T> {
         }
     }
 
-    /// Buffers created with this method can outlive the device used to create this Buffer.<br>
-    /// No operations can be invoked on this buffer as [get_device!] will panic.
+    /// Buffers created with this method can outlive the device used to create this `Buffer`.<br>
+    /// No operations can be invoked on this `Buffer` as [get_device!] will panic.
     /// # Examples
     /// ```rust
     /// use custos::{CPU, Buffer};
@@ -82,7 +83,7 @@ impl<'a, T> Buffer<'a, T> {
         }
     }
 
-    /// Constructs a Buffer with a host pointer and a length.
+    /// Constructs a `Buffer` out of a host pointer and a length.
     /// # Example
     /// ```
     /// use custos::{Buffer, Alloc, CPU, VecRead};
@@ -108,7 +109,7 @@ impl<'a, T> Buffer<'a, T> {
         }
     }
 
-    /// Returns the number of elements contained in the buffer.
+    /// Returns the number of elements contained in `Buffer`.
     /// # Example
     /// ```
     /// use custos::{CPU, Buffer};
@@ -121,7 +122,7 @@ impl<'a, T> Buffer<'a, T> {
         self.len
     }
 
-    /// Returns `true` if the buffer is created without a slice.
+    /// Returns `true` if `Buffer` is created without a slice.
     /// # Example
     /// ```
     /// use custos::{CPU, Buffer};
@@ -188,7 +189,7 @@ impl<'a, T> Buffer<'a, T> {
         unsafe { std::slice::from_raw_parts_mut(self.ptr.0, self.len) }
     }
 
-    /// Used if the buffer contains only a single value.
+    /// Used if the `Buffer` contains only a single value.
     ///
     /// # Example
     ///
@@ -211,6 +212,7 @@ impl<'a, T> Buffer<'a, T> {
         T::default()
     }
 
+    /// Sets all elements in `Buffer` to the default value.
     pub fn clear(&mut self)
     where
         T: CDatatype,

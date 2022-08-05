@@ -38,7 +38,7 @@ impl AsRangeArg for (usize, usize) {
 }
 
 /// inclusive range
-/// used to reset the cache count in loops as every operation increases the cache count, which would break the "cache cycle".
+/// used to reset the cache count in loops as every operation increases the cache count, which would break the "cache cycle" if the cache count would not be reset.
 ///
 /// # Example
 /// ```

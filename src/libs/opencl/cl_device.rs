@@ -1,13 +1,12 @@
 use super::{
     api::{
-        create_command_queue, create_context, enqueue_read_buffer, enqueue_write_buffer,
-        release_mem_object, unified_ptr, wait_for_event, CLIntDevice, CommandQueue, Context,
+        create_command_queue, create_context, enqueue_read_buffer, enqueue_write_buffer, unified_ptr, wait_for_event, CLIntDevice, CommandQueue, Context,
     },
     cl_clear, CL_DEVICES, RawCL, KernelCacheCL,
 };
 use crate::{
     libs::opencl::api::{create_buffer, MemFlags},
-    AsDev, BaseDevice, Buffer, CDatatype, CacheBuf, ClearBuf, Device, Error, ManualMem, VecRead,
+    AsDev, Buffer, CDatatype, CacheBuf, ClearBuf, Device, Error, VecRead,
     WriteBuf, Alloc, DeviceType, cache::{Cache, CacheReturn},
 };
 use std::{cell::{RefCell, Ref}, ffi::c_void, fmt::Debug, rc::Rc};
@@ -152,14 +151,6 @@ impl<T> Alloc<T> for CLDevice {
     }
 }
 
-impl<T> ManualMem<T> for CLDevice {
-    fn drop_buf(&self, buf: crate::Buffer<T>) {
-        unsafe {
-            release_mem_object(buf.ptr.1).unwrap();
-        }
-    }
-}
-
 impl<'a, T> CacheBuf<'a, T> for CLDevice {
     #[inline]
     fn cached(&'a self, len: usize) -> Buffer<'a, T> {
@@ -209,8 +200,6 @@ impl<T: Default + Copy> VecRead<T> for CLDevice {
 }
 
 impl AsDev for CLDevice {}
-
-impl<T: CDatatype> BaseDevice<T> for CLDevice {}
 
 /// Internal representation of an OpenCL Device with the capability of storing pointers.
 /// # Note / Safety

@@ -1,8 +1,7 @@
-//! custos is a minimal OpenCL, CUDA and host CPU array manipulation engine / framework.
-//! It provides some matrix / buffer operations: matrix multiplication (BLAS, cuBLAS), element-wise arithmetic (vector addition, ...), set all elements to zero (or default value).
-//! To use more operations: [custos-math]
-//!
-//! [custos-math]: https://github.com/elftausend/custos-math
+//! A minimal OpenCL, CUDA and host CPU array manipulation engine / framework written in Rust.
+//! This crate provides the tools for executing custom array operations with the CPU, as well as with CUDA and OpenCL devices.<br>
+//! This guide demonstrates how operations can be implemented for the compute devices: [implement_operations.md](implement_operations.md)<br>
+//! or to see it at a larger scale, look here: [custos-math]
 //!
 //! ## [Examples]
 //!
@@ -51,6 +50,7 @@ mod count;
 
 pub mod number;
 
+/// Used to determine which device type [Device] is of.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DeviceType {
     CPU = 0,
@@ -61,6 +61,19 @@ pub enum DeviceType {
     None = 3,
 }
 
+/// `Device` is another representation of a compute device.<br>
+/// It stores the type of the device and a pointer to the device from which `Device` originates from.<br>
+/// This is used instead of another "device" generic for [Buffer].
+/// 
+/// # Example
+/// ```rust
+/// use custos::{CPU, AsDev, Device, DeviceType};
+/// 
+/// let cpu = CPU::new();
+/// let device: Device = cpu.dev();
+/// assert_eq!(device.device_type, DeviceType::CPU);
+/// assert_eq!(device.device as *const CPU, &cpu as *const CPU);
+/// ```
 #[derive(Debug, Clone, Copy)]
 pub struct Device {
     pub device_type: DeviceType,
@@ -127,7 +140,7 @@ impl core::fmt::Display for Error {
 
 pub type Result<T> = std::result::Result<T, Error>;
 
-/// Manage device memory
+/// This trait allocates memory on the implemented device.
 ///
 /// # Example
 /// ```
@@ -183,15 +196,17 @@ pub trait Alloc<T> {
     /// assert_eq!(vec![1, 5, 4, 3, 6, 9, 0, 4], device.read(&buf));
     /// ```
     fn with_data(&self, data: &[T]) -> (*mut T, *mut c_void, u64);
+
+    /// If the vector `vec` was allocated previously, this function can be used in order to reduce the amount of allocations, which may be faster than using a slice of `vec`.
     fn alloc_with_vec(&self, vec: Vec<T>) -> (*mut T, *mut c_void, u64) {
         self.with_data(&vec)
     }
+
+    /// Creates a generic representation of the device
     fn as_dev(&self) -> Device;
 }
 
-///All 'base' traits?
-pub trait BaseDevice<T>: Alloc<T> + VecRead<T> {}
-
+/// Trait for implementing the clear() operation for the compute devices.
 pub trait ClearBuf<T> {
     /// Sets all elements of the matrix to zero.
     /// # Example
@@ -237,17 +252,14 @@ pub trait WriteBuf<T> {
     ///
     /// ```
     fn write(&self, buf: &mut Buffer<T>, data: &[T]);
-    /// Write data from <Device> Buffer to other <Device> Buffer.
+    /// Writes data from <Device> Buffer to other <Device> Buffer.
     // TODO: implement, change name of fn? -> set_.. ?
     fn write_buf(&self, _dst: &mut Buffer<T>, _src: &Buffer<T>) {
         unimplemented!()
     }
 }
 
-trait ManualMem<T> {
-    fn drop_buf(&self, buf: Buffer<T>);
-}
-
+/// This trait is used to retrieve a cached buffer from a specific device type.
 pub trait CacheBuf<'a, T> {
     /// Adds a buffer to the cache. Following calls will return this buffer, if the corresponding internal count matches with the id used in the cache.
     /// # Example
@@ -271,6 +283,7 @@ pub trait CacheBuf<'a, T> {
     fn cached(&'a self, len: usize) -> Buffer<'a, T>;
 }
 
+/// This trait is a non-generic variant for calling [Alloc]'s `Alloc::<T>::as_dev(..)`
 pub trait AsDev {
     fn dev(&self) -> Device 
     where
