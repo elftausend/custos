@@ -267,7 +267,7 @@ impl<'a, T> Buffer<'a, T> {
     /// # Safety
     /// Itself, this function does not need to be unsafe. 
     /// However, declaring this function as unsafe highlights the violation of creating two or more owners for one resource.
-    pub unsafe fn shallow(&self) -> Buffer<T> {
+    pub unsafe fn shallow(&self) -> Buffer<'a, T> {
         Buffer {
             ptr: self.ptr,
             len: self.len,
