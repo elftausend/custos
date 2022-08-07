@@ -142,17 +142,17 @@ We can implement this for ```AddBuf``` as well.<br>
 To get this to work, a new trait must be created. If the operation should be used on a struct created in your current crate, you can omit this step.
 
 ```rust
-pub trait AddOp<T> {
-    fn add(&self, rhs: &Buffer<T>) -> Buffer<T>;
+pub trait AddOp<'a, T> {
+    fn add(&self, rhs: &Buffer<'a, T>) -> Buffer<'a, T>;
 }
 ```
 
 This trait is then implemented for ```Buffer``` (or any other type).
 
 ```rust
-impl<T: CDatatype> AddOp<T> for Buffer<'_, T> {
+impl<'a, T: CDatatype> AddOp<'a, T> for Buffer<'a, T> {
     #[inline]
-    fn add(&self, rhs: &Buffer<T>) -> Buffer<T> {
+    fn add(&self, rhs: &Buffer<'a, T>) -> Buffer<'a, T> {
         get_device!(self.device, AddBuf<T>).add(self, rhs)
     }
 }

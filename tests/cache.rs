@@ -1,8 +1,10 @@
+#[cfg(not(feature = "realloc"))]
 use std::ptr::null_mut;
 
+#[cfg(not(feature = "realloc"))]
 use custos::{cpu::cpu_cached, range, Buffer, CPU};
 
-
+#[cfg(not(feature = "realloc"))]
 fn cached_add<'a>(device: &'a CPU, a: &[f32], b: &[f32]) -> Buffer<'a, f32> {
     let mut out = cpu_cached(device, a.len());
     for i in 0..out.len {
@@ -11,6 +13,7 @@ fn cached_add<'a>(device: &'a CPU, a: &[f32], b: &[f32]) -> Buffer<'a, f32> {
     out
 }
 
+#[cfg(not(feature = "realloc"))]
 #[test]
 fn test_caching_cpu() {
     let device = CPU::new();

@@ -5,7 +5,10 @@ use custos::cpu::cpu_cached;
 use custos::{libs::opencl::CLDevice, Error};
 use custos::{Buffer, Alloc, VecRead};
 
-use custos::{get_count, set_count, CPU};
+use custos::CPU;
+
+#[cfg(not(feature="realloc"))]
+use custos::{get_count, set_count};
 
 pub fn get_mut_slice<'a, T>(buf: &'a mut Buffer<T>) -> &'a mut [T] {
     unsafe { std::slice::from_raw_parts_mut(buf.ptr.0, buf.len) }
@@ -101,6 +104,7 @@ fn test_use_number() {
     assert_eq!(num, Box::new(10));
 }
 
+#[cfg(not(feature = "realloc"))]
 #[test]
 fn test_cached_cpu() {
     std::env::set_var("RUST_BACKTRACE", "1");
@@ -127,6 +131,7 @@ fn test_cached_cpu() {
     assert_eq!(device.read(&buf), vec![1.5; 10]);
 }
 
+#[cfg(not(feature = "realloc"))]
 #[cfg(not(target_os = "linux"))]
 #[cfg(feature = "opencl")]
 #[test]

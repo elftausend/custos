@@ -1,6 +1,9 @@
 #[cfg(feature = "opencl")]
 use custos::opencl::cl_device::CLDevice;
-use custos::{libs::cpu::CPU, range, Buffer, cpu::cpu_cached};
+use custos::{libs::cpu::CPU, range, Buffer};
+
+#[cfg(not(feature="realloc"))]
+use custos::cpu::cpu_cached;
 
 #[test]
 fn test_rc_get_dev() {
@@ -30,6 +33,7 @@ fn test_dealloc_cl() -> custos::Result<()> {
     Ok(())
 }
 
+#[cfg(not(feature = "realloc"))]
 #[test]
 fn test_dealloc_device_cache_cpu() {
     let device = CPU::new();
@@ -43,6 +47,7 @@ fn test_dealloc_device_cache_cpu() {
     //assert_eq!(device.cache.borrow().nodes.len(), 0);
 }
 
+#[cfg(not(feature = "realloc"))]
 #[cfg(feature = "opencl")]
 #[test]
 fn test_dealloc_device_cache_cl() -> custos::Result<()> {

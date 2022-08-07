@@ -1,4 +1,4 @@
-use std::{ffi::c_void, ptr::null_mut, marker::PhantomData, fmt::Debug};
+use std::{ffi::c_void, ptr::null_mut};
 
 pub use kernel_cache::*;
 pub use cl_device::*;
@@ -11,8 +11,14 @@ pub mod cl_device;
 pub mod cl_devices;
 mod kernel_enqueue;
 
+#[cfg(not(feature="realloc"))]
+use crate::{BufFlag, DeviceError, AsDev};
+
+#[cfg(not(feature="realloc"))]
+use std::{marker::PhantomData, fmt::Debug};
+
 use self::api::{create_buffer, MemFlags};
-use crate::{BufFlag, Buffer, CDatatype, Node, DeviceError, AsDev};
+use crate::{Buffer, CDatatype, Node};
 
 /// Returns an OpenCL pointer that is bound to the host pointer stored in the specified buffer.
 pub fn to_unified<T>(device: &CLDevice, no_drop: Buffer<T>) -> crate::Result<*mut c_void> {
@@ -39,6 +45,7 @@ pub fn to_unified<T>(device: &CLDevice, no_drop: Buffer<T>) -> crate::Result<*mu
     Ok(cl_ptr)
 }
 
+#[cfg(not(feature="realloc"))]
 /// Converts an 'only' CPU buffer into an OpenCL + CPU (unified memory) buffer.
 /// # Safety
 /// The pointer of the no_drop Buffer must be valid for the entire lifetime of the returned Buffer.
@@ -48,6 +55,9 @@ pub unsafe fn construct_buffer<'a, T: Copy + Default + Debug>(
 ) -> crate::Result<Buffer<'a, T>> {
 
     if no_drop.flag == BufFlag::None {
+        if cfg!(feature="realloc") {
+
+        }
         return Err(DeviceError::ConstructError.into())
     }
 

@@ -1,5 +1,4 @@
 use std::{ffi::c_void, collections::HashMap, marker::PhantomData, cell::RefMut};
-
 use crate::{Node, Buffer, Alloc, BufFlag};
 
 pub trait CacheType {
@@ -56,5 +55,10 @@ impl<P: CacheType> Cache<P> {
             }
             None => cache.add_node(device, node),
         }
+    }
+
+    #[cfg(feature="realloc")]
+    pub fn get<T, D: Alloc<T>+CacheReturn<P>>(device: &D, len: usize) -> Buffer<T> {
+        Buffer::new(device, len)
     }
 }

@@ -262,27 +262,26 @@ impl<'a, T> Buffer<'a, T> {
         cuda_device.write(&mut out, self);
         Ok(out)
     }
+
+    /// Creates a shallow copy of &self.
+    /// # Safety
+    /// Itself, this function does not need to be unsafe. 
+    /// However, declaring this function as unsafe highlights the violation of creating two or more owners for one resource.
+    pub unsafe fn shallow(&self) -> Buffer<T> {
+        Buffer {
+            ptr: self.ptr,
+            len: self.len,
+            device: self.device,
+            flag: BufFlag::Wrapper,
+            p: PhantomData
+        }
+    }
 }
 
 /*#[cfg(feature = "safe")]
 unsafe impl<T> Send for Buffer<'a, T> {}
 #[cfg(feature = "safe")]
 unsafe impl<T> Sync for Buffer<'a, T> {}*/
-
-impl<T> Clone for Buffer<'_, T> {
-    fn clone(&self) -> Self {
-        assert!(self.flag == BufFlag::Cache, "Called .clone() on a non-cache buffer. Use a reference counted approach instead.");
-    
-        Self {
-            ptr: self.ptr,
-            len: self.len,
-            device: self.device,
-            flag: self.flag.clone(),
-            p: PhantomData,
-        }
-    }
-}
-
 
 impl<A: Clone + Default> FromIterator<A> for Buffer<'_, A> {
     fn from_iter<T: IntoIterator<Item = A>>(iter: T) -> Self {
@@ -591,6 +590,7 @@ impl<'a, T: CDatatype> From<(u64, usize)> for Buffer<'a, T> {
     }
 }
 
+#[cfg_attr(feature = "realloc", doc = "```ignore")]
 /// Adds a buffer to the "cache chain".
 /// Following calls will return this buffer,
 /// if the corresponding internal count matches with the id used in the cache.

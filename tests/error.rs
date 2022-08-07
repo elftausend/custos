@@ -44,11 +44,11 @@ fn test_questionmark() -> Result<(), Box<dyn std::error::Error>> {
 fn test_print_error() {
     let err = Error::from(DeviceError::ConstructError);
     assert_eq!(
-        "Only a non-drop buffer can be converted to a CPU+OpenCL buffer",
+        "Only a non-drop buffer can be converted to a CPU+OpenCL buffer.",
         &format!("{err}")
     );
     assert_eq!(
-        "Only a non-drop buffer can be converted to a CPU+OpenCL buffer",
+        "Only a non-drop buffer can be converted to a CPU+OpenCL buffer.",
         &format!("{err:?}")
     );
 }

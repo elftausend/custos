@@ -261,6 +261,7 @@ pub trait WriteBuf<T> {
 
 /// This trait is used to retrieve a cached buffer from a specific device type.
 pub trait CacheBuf<'a, T> {
+    #[cfg_attr(feature = "realloc", doc = "```ignore")]
     /// Adds a buffer to the cache. Following calls will return this buffer, if the corresponding internal count matches with the id used in the cache.
     /// # Example
     /// ```
@@ -303,7 +304,7 @@ impl DeviceError {
     pub fn as_str(&self) -> &'static str {
         match self {
             DeviceError::ConstructError => {
-                "Only a non-drop buffer can be converted to a CPU+OpenCL buffer"
+                "Only a non-drop buffer can be converted to a CPU+OpenCL buffer."
             },
             DeviceError::CPUtoCUDA => {
                 "Only a CPU Buffer can be converted to a CUDA Buffer"
