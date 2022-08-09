@@ -1,4 +1,6 @@
-# custos
+![custos logo](assets/custos.png)
+
+<hr/>
 
 [![Crates.io version](https://img.shields.io/crates/v/custos.svg)](https://crates.io/crates/custos)
 [![Docs](https://docs.rs/custos/badge.svg?version=0.4.4)](https://docs.rs/custos/0.4.4/custos/)

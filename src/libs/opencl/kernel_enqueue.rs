@@ -1,6 +1,6 @@
 use std::{mem::size_of, ffi::c_void};
 use crate::{CLDevice, number::Number, Buffer};
-use super::{api::{OCLErrorKind, set_kernel_arg, enqueue_nd_range_kernel}};
+use super::api::{OCLErrorKind, set_kernel_arg, enqueue_nd_range_kernel};
 
 pub trait AsClCvoidPtr {
     fn as_cvoid_ptr(&self) -> *const c_void;

@@ -55,9 +55,6 @@ pub unsafe fn construct_buffer<'a, T: Copy + Default + Debug>(
 ) -> crate::Result<Buffer<'a, T>> {
 
     if no_drop.flag == BufFlag::None {
-        if cfg!(feature="realloc") {
-
-        }
         return Err(DeviceError::ConstructError.into())
     }
 
