@@ -1,9 +1,11 @@
 use crate::libs::cache::CacheType;
-use std::{
-    mem::{align_of, size_of}, alloc::Layout, ptr::null_mut,
-};
 pub use blas::*;
 pub use cpu_device::*;
+use std::{
+    alloc::Layout,
+    mem::{align_of, size_of},
+    ptr::null_mut,
+};
 
 mod blas;
 mod cpu_device;
@@ -34,8 +36,7 @@ impl CacheType for RawCpuBuf {
 impl Drop for RawCpuBuf {
     fn drop(&mut self) {
         unsafe {
-            let layout = Layout::array::<u8>(self.len*self.size)
-                .unwrap().align_to(self.align).unwrap();
+            let layout = Layout::from_size_align(self.len*self.size, self.align).unwrap();
             std::alloc::dealloc(self.ptr, layout);
         }
     }

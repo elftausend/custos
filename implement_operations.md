@@ -28,7 +28,7 @@ However, it is not mandatory to implement this trait for every device, but we wi
 // Host CPU implementation
 impl<T> AddBuf<T> for CPU 
 where
-    T: Copy + Default + std::ops::Add<Output=T> // instead of adding a lot of trait bounds, 
+    T: Copy + std::ops::Add<Output=T> // instead of adding a lot of trait bounds, 
 {                                               // you can use the custos::Number trait. This trait is implemented for all number types (usize, i16, f32, ...)
     fn add(&self, lhs: &Buffer<T>, rhs: &Buffer<T>) -> Buffer<T> {
         let len = std::cmp::min(lhs.len, rhs.len);

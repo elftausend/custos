@@ -1,21 +1,21 @@
 use std::{ffi::c_void, ptr::null_mut};
 
-pub use kernel_cache::*;
 pub use cl_device::*;
 pub use cl_devices::*;
+pub use kernel_cache::*;
 pub use kernel_enqueue::*;
 
 pub mod api;
-mod kernel_cache;
 pub mod cl_device;
 pub mod cl_devices;
+mod kernel_cache;
 mod kernel_enqueue;
 
-#[cfg(not(feature="realloc"))]
-use crate::{BufFlag, DeviceError, AsDev};
+#[cfg(not(feature = "realloc"))]
+use crate::{AsDev, BufFlag, DeviceError};
 
-#[cfg(not(feature="realloc"))]
-use std::{marker::PhantomData, fmt::Debug};
+#[cfg(not(feature = "realloc"))]
+use std::{fmt::Debug, marker::PhantomData};
 
 use self::api::{create_buffer, MemFlags};
 use crate::{Buffer, CDatatype, Node};
@@ -37,7 +37,7 @@ pub fn to_unified<T>(device: &CLDevice, no_drop: Buffer<T>) -> crate::Result<*mu
             host_ptr: null_mut(),
         },
     );
-    
+
     // this pointer was overwritten previously, hence can it be deallocated
     // this line can be removed, however it shows that deallocating the old pointer makes sense
     drop(old_ptr);
@@ -45,17 +45,16 @@ pub fn to_unified<T>(device: &CLDevice, no_drop: Buffer<T>) -> crate::Result<*mu
     Ok(cl_ptr)
 }
 
-#[cfg(not(feature="realloc"))]
+#[cfg(not(feature = "realloc"))]
 /// Converts an 'only' CPU buffer into an OpenCL + CPU (unified memory) buffer.
 /// # Safety
 /// The pointer of the no_drop Buffer must be valid for the entire lifetime of the returned Buffer.
-pub unsafe fn construct_buffer<'a, T: Copy + Default + Debug>(
+pub unsafe fn construct_buffer<'a, T: Debug>(
     device: &'a CLDevice,
     no_drop: Buffer<T>,
 ) -> crate::Result<Buffer<'a, T>> {
-
     if no_drop.flag == BufFlag::None {
-        return Err(DeviceError::ConstructError.into())
+        return Err(DeviceError::ConstructError.into());
     }
 
     let (host_ptr, len) = (no_drop.host_ptr(), no_drop.len);
@@ -66,7 +65,7 @@ pub unsafe fn construct_buffer<'a, T: Copy + Default + Debug>(
         len,
         device: device.dev(),
         flag: BufFlag::Cache,
-        p: PhantomData 
+        p: PhantomData,
     })
 }
 

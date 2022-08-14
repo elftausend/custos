@@ -3,7 +3,7 @@ use super::api::{
     nvrtc::{create_program, nvrtcDestroyProgram},
     FnHandle,
 };
-use crate::{CudaDevice, Error, cache::CacheType};
+use crate::{cache::CacheType, CudaDevice, Error};
 use std::{collections::HashMap, ffi::CString, ptr::null_mut};
 
 #[derive(Debug)]
@@ -13,9 +13,7 @@ pub struct RawCUBuf {
 
 impl CacheType for RawCUBuf {
     fn new<T>(ptr: (*mut T, *mut std::ffi::c_void, u64), _: usize) -> Self {
-        RawCUBuf {
-            ptr: ptr.2,
-        }
+        RawCUBuf { ptr: ptr.2 }
     }
 
     fn destruct<T>(&self) -> (*mut T, *mut std::ffi::c_void, u64) {
@@ -25,9 +23,7 @@ impl CacheType for RawCUBuf {
 
 impl Drop for RawCUBuf {
     fn drop(&mut self) {
-        unsafe { 
-            cufree(self.ptr).unwrap() 
-        }
+        unsafe { cufree(self.ptr).unwrap() }
     }
 }
 
@@ -42,8 +38,7 @@ impl KernelCacheCU {
         device: &CudaDevice,
         src: &str,
         fn_name: &str,
-    ) -> Result<FnHandle, Error> 
-    {
+    ) -> Result<FnHandle, Error> {
         let kernel = self.kernels.get(src);
 
         if let Some(kernel) = kernel {
@@ -66,5 +61,8 @@ impl KernelCacheCU {
 }
 
 pub fn fn_cache(device: &CudaDevice, src: &str, fn_name: &str) -> crate::Result<FnHandle> {
-    device.kernel_cache.borrow_mut().kernel(device, src, fn_name)
+    device
+        .kernel_cache
+        .borrow_mut()
+        .kernel(device, src, fn_name)
 }

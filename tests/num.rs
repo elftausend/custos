@@ -25,6 +25,7 @@ fn test_num() {
     assert_eq!(two, 2u16);
 }
 
+#[cfg_attr(miri, ignore)]
 #[test]
 fn test_float() {
     let x = 6f32;

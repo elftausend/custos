@@ -2,6 +2,7 @@
 
 use std::{
     ffi::{c_void, CString},
+    mem::size_of,
     usize, vec,
 };
 
@@ -227,7 +228,6 @@ pub fn create_context(devices: &[CLIntDevice]) -> Result<Context, Error> {
     Ok(Context(r))
 }
 
-
 // TODO: implement drop
 #[derive(Debug, Clone)]
 pub struct CommandQueue(pub cl_command_queue);
@@ -403,7 +403,7 @@ pub unsafe fn enqueue_read_buffer<T>(
     }
     Ok(Event(events[0]))
 }
-pub(crate) fn enqueue_copy_buffer(
+pub(crate) fn enqueue_full_copy_buffer<T>(
     cq: &CommandQueue,
     src_mem: *mut c_void,
     dst_mem: *mut c_void,
@@ -417,7 +417,7 @@ pub(crate) fn enqueue_copy_buffer(
             dst_mem,
             0,
             0,
-            size * 4,
+            size * size_of::<T>(),
             0,
             std::ptr::null(),
             events.as_mut_ptr() as *mut cl_event,
@@ -636,21 +636,13 @@ pub fn set_kernel_arg(
     arg_size: usize,
     is_num: bool,
 ) -> Result<(), Error> {
-
     let ptr = if is_num {
         arg
     } else {
-        &arg as *const *const c_void as *const c_void  
+        &arg as *const *const c_void as *const c_void
     };
-    
-    let value = unsafe {
-        clSetKernelArg(
-            kernel.0,
-            index as u32,
-            arg_size,
-            ptr
-        )
-    };
+
+    let value = unsafe { clSetKernelArg(kernel.0, index as u32, arg_size, ptr) };
     if value != 0 {
         return Err(Error::from(OCLErrorKind::from_value(value)));
     }

@@ -1,16 +1,22 @@
 use super::{
     api::{
-        create_command_queue, create_context, enqueue_read_buffer, enqueue_write_buffer, unified_ptr, wait_for_event, CLIntDevice, CommandQueue, Context,
+        create_command_queue, create_context, enqueue_full_copy_buffer, enqueue_read_buffer,
+        enqueue_write_buffer, unified_ptr, wait_for_event, CLIntDevice, CommandQueue, Context,
     },
-    cl_clear, CL_DEVICES, RawCL, KernelCacheCL,
+    cl_clear, KernelCacheCL, RawCL, CL_DEVICES,
 };
 use crate::{
+    cache::{Cache, CacheReturn},
     libs::opencl::api::{create_buffer, MemFlags},
-    AsDev, Buffer, CDatatype, CacheBuf, ClearBuf, Device, Error, VecRead,
-    WriteBuf, Alloc, DeviceType, cache::{Cache, CacheReturn},
+    Alloc, AsDev, Buffer, CDatatype, CacheBuf, ClearBuf, CloneBuf, Device, DeviceType, Error,
+    VecRead, WriteBuf,
 };
-use std::{cell::{RefCell, Ref}, ffi::c_void, fmt::Debug, rc::Rc};
-
+use std::{
+    cell::{Ref, RefCell},
+    ffi::c_void,
+    fmt::Debug,
+    rc::Rc,
+};
 
 /// Used to perform calculations with an OpenCL capable device.
 /// To make new calculations invocable, a trait providing new operations should be implemented for [CLDevice].
@@ -43,7 +49,7 @@ impl CLDevice {
     /// - some other OpenCL related errors
     pub fn new(device_idx: usize) -> Result<CLDevice, Error> {
         let inner = Rc::new(RefCell::new(CL_DEVICES.current(device_idx)?));
-        Ok(CLDevice { 
+        Ok(CLDevice {
             kernel_cache: RefCell::new(KernelCacheCL::default()),
             cache: RefCell::new(Cache::default()),
             inner,
@@ -117,6 +123,7 @@ impl<T> Alloc<T> for CLDevice {
             create_buffer::<T>(&self.ctx(), MemFlags::MemReadWrite as u64, len, None).unwrap();
 
         let cpu_ptr = if self.unified_mem() {
+            // TODO: not unmapping before executing a kernel results in ub?
             unified_ptr::<T>(&self.queue(), ptr, len).unwrap()
         } else {
             std::ptr::null_mut()
@@ -146,8 +153,16 @@ impl<T> Alloc<T> for CLDevice {
     fn as_dev(&self) -> Device {
         Device {
             device_type: DeviceType::CL,
-            device: self as *const CLDevice as *mut u8
+            device: self as *const CLDevice as *mut u8,
         }
+    }
+}
+
+impl<'a, T> CloneBuf<'a, T> for CLDevice {
+    fn clone_buf(&'a self, buf: &Buffer<'a, T>) -> Buffer<'a, T> {
+        let cloned = Buffer::new(self, buf.len);
+        enqueue_full_copy_buffer::<T>(&self.queue(), buf.ptr.1, cloned.ptr.1, buf.len).unwrap();
+        cloned
     }
 }
 
@@ -166,10 +181,9 @@ impl CacheReturn<RawCL> for CLDevice {
 }
 
 #[inline]
-pub fn cl_cached<T: Copy+Default>(device: &CLDevice, len: usize) -> Buffer<T> {
+pub fn cl_cached<T>(device: &CLDevice, len: usize) -> Buffer<T> {
     device.cached(len)
 }
-
 
 impl<T: CDatatype> ClearBuf<T> for CLDevice {
     #[inline]
@@ -185,7 +199,7 @@ impl<T> WriteBuf<T> for CLDevice {
     }
 }
 
-impl<T: Default + Copy> VecRead<T> for CLDevice {
+impl<T: Clone + Default> VecRead<T> for CLDevice {
     fn read(&self, buf: &crate::Buffer<T>) -> Vec<T> {
         assert!(
             !buf.ptr.1.is_null(),

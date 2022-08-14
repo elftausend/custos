@@ -33,7 +33,6 @@ fn test_cached_kernel_launch() -> custos::Result<()> {
         fn_cache(&device, src, "add")?;
 
         assert_eq!(device.kernel_cache.borrow().kernels.len(), 1);
-
     }
     let function = fn_cache(&device, src, "add")?;
 

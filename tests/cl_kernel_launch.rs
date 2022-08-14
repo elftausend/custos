@@ -1,7 +1,10 @@
 use std::ffi::c_void;
 
-use custos::{opencl::{AsClCvoidPtr, enqueue_kernel}, CLDevice, Buffer, CDatatype, cache::Cache};
-
+use custos::{
+    cache::Cache,
+    opencl::{enqueue_kernel, AsClCvoidPtr},
+    Buffer, CDatatype, CLDevice,
+};
 
 #[test]
 fn test_as_cl_cvoid() -> custos::Result<()> {
@@ -28,13 +31,11 @@ fn test_kernel_launch() -> custos::Result<()> {
         }
     ";
 
-    let lhs = Buffer::<f32>::from((&device, [1., 3., 6., 4., 1., 4.,]));
+    let lhs = Buffer::<f32>::from((&device, [1., 3., 6., 4., 1., 4.]));
     let out = Cache::get::<f32, _>(&device, lhs.len);
 
     let gws = [lhs.len, 0, 0];
-    enqueue_kernel(&device, src_add, gws, None, 
-        &[&lhs, &out, &4f32]
-    )?;
+    enqueue_kernel(&device, src_add, gws, None, &[&lhs, &out, &4f32])?;
     assert_eq!(out.read(), vec![5., 7., 10., 8., 5., 8.]);
 
     Ok(())
@@ -51,20 +52,18 @@ fn test_kernel_launch_diff_datatype() -> custos::Result<()> {
         }
     ";
 
-    let lhs = Buffer::<f32>::from((&device, [1., 3., 6., 4., 1., 4.,]));
+    let lhs = Buffer::<f32>::from((&device, [1., 3., 6., 4., 1., 4.]));
     let out = Cache::get::<f32, _>(&device, lhs.len);
 
     let gws = [lhs.len, 0, 0];
-    enqueue_kernel(&device, src_add, gws, None, 
-        &[&lhs, &out, &3i32]
-    )?;
+    enqueue_kernel(&device, src_add, gws, None, &[&lhs, &out, &3i32])?;
     assert_eq!(out.read(), vec![1., 27., 216., 64., 1., 64.]);
 
     Ok(())
 }
 
 #[test]
-fn test_kernel_launch_2() -> custos::Result<()>{
+fn test_kernel_launch_2() -> custos::Result<()> {
     let device = CLDevice::new(0)?;
 
     let lhs = Buffer::<i32>::from((&device, [1, 5, 3, 2, 7, 8]));

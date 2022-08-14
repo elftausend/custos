@@ -1,7 +1,6 @@
+//use custos::{Buffer, ClearBuf, CPU};
 
 /*
-use custos::{Buffer, ClearBuf, CPU};
-
 // won't compile
 #[test]
 fn test_return_buf() {
@@ -15,7 +14,7 @@ fn test_return_buf() {
     assert_eq!(buf.as_slice(), &[0; 5])
 }*/
 
-/* 
+/*
 // won't compile
 #[test]
 fn test_return_cache_buf() {
@@ -46,7 +45,7 @@ fn test_return_cache_dev() {
 }
 */
 
-/* 
+/*
 // won't compile
 #[test]
 fn test_return_cache_dev() {
@@ -62,3 +61,14 @@ fn test_return_cache_dev() {
     assert_eq!(buf.as_slice(), &[0; 5])
 }
 */
+
+/*
+// won't compile
+#[test]
+fn test_clone_buf_invalid_return() {
+    {
+        let device = CPU::new();
+        let buf = Buffer::<f32>::new(&device, 10);
+        buf.clone()
+    };
+}*/

@@ -130,6 +130,9 @@ extern "C" {
     pub fn cuCtxSynchronize() -> CUresult;
     pub fn cuMemAlloc_v2(ptr: *mut CUdeviceptr, size: usize) -> CUresult;
     pub fn cuMemFree_v2(ptr: CUdeviceptr) -> CUresult;
+
+    pub fn cuMemcpy(dst: CUdeviceptr, src: CUdeviceptr, bytes: usize) -> CUresult;
+
     pub fn cuMemcpyHtoD_v2(
         dst_device: CUdeviceptr,
         src_host: *const c_void,

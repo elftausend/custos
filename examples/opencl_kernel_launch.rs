@@ -1,4 +1,4 @@
-use custos::{Buffer, CDatatype, CLDevice, Error, opencl::enqueue_kernel, cache::Cache};
+use custos::{cache::Cache, opencl::enqueue_kernel, Buffer, CDatatype, CLDevice, Error};
 
 fn main() -> Result<(), Error> {
     let device = CLDevice::new(0)?;

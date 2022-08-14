@@ -1,4 +1,7 @@
-use self::cpu::{Order, Transpose, api::{cblas_sgemm, cblas_dgemm}};
+use self::cpu::{
+    api::{cblas_dgemm, cblas_sgemm},
+    Order, Transpose,
+};
 use crate::number::{Float, Number};
 use std::cell::RefCell;
 
@@ -26,7 +29,6 @@ pub struct InternCudaDevice;
 thread_local! {
     pub static COUNT: RefCell<usize> = RefCell::new(0);
 }
-
 
 /// Sets current cache identifier / index.
 /// This function is usually called after an iteration in a loop -> [Count](crate::Count) or [range](crate::range)
@@ -140,21 +142,73 @@ pub trait GenericBlas
 where
     Self: Sized + Float,
 {
-    fn blas_gemm(order: Order, trans_a: Transpose, trans_b: Transpose, m: usize, n: usize, k: usize, a: &[Self], lda: usize, b: &[Self], ldb: usize, c: &mut [Self], ldc: usize);
+    fn blas_gemm(
+        order: Order,
+        trans_a: Transpose,
+        trans_b: Transpose,
+        m: usize,
+        n: usize,
+        k: usize,
+        a: &[Self],
+        lda: usize,
+        b: &[Self],
+        ldb: usize,
+        c: &mut [Self],
+        ldc: usize,
+    );
     #[inline]
     fn gemm(m: usize, n: usize, k: usize, a: &[Self], b: &[Self], c: &mut [Self]) {
-        Self::blas_gemm(Order::RowMajor, Transpose::NoTrans, Transpose::NoTrans, m, n, k, a, k, b, n, c, n)    
+        Self::blas_gemm(
+            Order::RowMajor,
+            Transpose::NoTrans,
+            Transpose::NoTrans,
+            m,
+            n,
+            k,
+            a,
+            k,
+            b,
+            n,
+            c,
+            n,
+        )
     }
     #[inline]
     #[allow(non_snake_case)]
     fn gemmT(m: usize, n: usize, k: usize, a: &[Self], b: &[Self], c: &mut [Self]) {
-        Self::blas_gemm(Order::RowMajor, Transpose::NoTrans, Transpose::Trans, m, n, k, a, k, b, k, c, n)    
+        Self::blas_gemm(
+            Order::RowMajor,
+            Transpose::NoTrans,
+            Transpose::Trans,
+            m,
+            n,
+            k,
+            a,
+            k,
+            b,
+            k,
+            c,
+            n,
+        )
     }
 
     #[inline]
     #[allow(non_snake_case)]
     fn Tgemm(m: usize, n: usize, k: usize, a: &[Self], b: &[Self], c: &mut [Self]) {
-        Self::blas_gemm(Order::RowMajor, Transpose::Trans, Transpose::NoTrans, m, n, k, a, m, b, n, c, n)    
+        Self::blas_gemm(
+            Order::RowMajor,
+            Transpose::Trans,
+            Transpose::NoTrans,
+            m,
+            n,
+            k,
+            a,
+            m,
+            b,
+            n,
+            c,
+            n,
+        )
     }
 
     #[cfg(feature = "cuda")]
@@ -171,7 +225,20 @@ where
 
 impl GenericBlas for f32 {
     #[inline]
-    fn blas_gemm(order: Order, trans_a: Transpose, trans_b: Transpose, m: usize, n: usize, k: usize, a: &[Self], lda: usize, b: &[Self], ldb: usize, c: &mut [Self], ldc: usize) {
+    fn blas_gemm(
+        order: Order,
+        trans_a: Transpose,
+        trans_b: Transpose,
+        m: usize,
+        n: usize,
+        k: usize,
+        a: &[Self],
+        lda: usize,
+        b: &[Self],
+        ldb: usize,
+        c: &mut [Self],
+        ldc: usize,
+    ) {
         unsafe {
             cblas_sgemm(
                 order,
@@ -227,7 +294,20 @@ impl GenericBlas for f32 {
 
 impl GenericBlas for f64 {
     #[inline]
-    fn blas_gemm(order: Order, trans_a: Transpose, trans_b: Transpose, m: usize, n: usize, k: usize, a: &[Self], lda: usize, b: &[Self], ldb: usize, c: &mut [Self], ldc: usize) {
+    fn blas_gemm(
+        order: Order,
+        trans_a: Transpose,
+        trans_b: Transpose,
+        m: usize,
+        n: usize,
+        k: usize,
+        a: &[Self],
+        lda: usize,
+        b: &[Self],
+        ldb: usize,
+        c: &mut [Self],
+        ldc: usize,
+    ) {
         unsafe {
             cblas_dgemm(
                 order,

@@ -3,11 +3,11 @@ use std::ffi::c_void;
 use custos::cpu::cpu_cached;
 #[cfg(feature = "opencl")]
 use custos::{libs::opencl::CLDevice, Error};
-use custos::{Buffer, Alloc, VecRead};
+use custos::{Alloc, Buffer, VecRead};
 
 use custos::CPU;
 
-#[cfg(not(feature="realloc"))]
+#[cfg(not(feature = "realloc"))]
 use custos::{get_count, set_count};
 
 pub fn get_mut_slice<'a, T>(buf: &'a mut Buffer<T>) -> &'a mut [T] {
@@ -105,6 +105,7 @@ fn test_use_number() {
 }
 
 #[cfg(not(feature = "realloc"))]
+#[cfg_attr(miri, ignore)]
 #[test]
 fn test_cached_cpu() {
     std::env::set_var("RUST_BACKTRACE", "1");
@@ -136,7 +137,10 @@ fn test_cached_cpu() {
 #[cfg(feature = "opencl")]
 #[test]
 fn test_cached_cl() -> Result<(), custos::Error> {
-    use custos::opencl::{api::{enqueue_write_buffer, wait_for_event}, cl_cached};
+    use custos::opencl::{
+        api::{enqueue_write_buffer, wait_for_event},
+        cl_cached,
+    };
 
     let device = CLDevice::new(0)?;
     let _k = Buffer::<f32>::new(&device, 1);
@@ -154,7 +158,7 @@ fn test_cached_cl() -> Result<(), custos::Error> {
     assert_eq!(device.read(&buf), vec![0.1; 10]);
 
     let new_buf = cl_cached::<i32>(&device, 10);
-    
+
     assert_eq!(device.read(&new_buf), vec![0; 10]);
     assert_eq!(2, get_count());
 
@@ -218,13 +222,14 @@ fn test_debug_print_buf() -> custos::Result<()> {
 fn test_slice() {
     let device = CPU::new();
 
-    let buf = Buffer::from((&device, [1, 2, 3, 4, 5, 6,]));
+    let buf = Buffer::from((&device, [1, 2, 3, 4, 5, 6]));
     println!("buf: {:?}", buf.as_slice());
 }
 
 #[test]
 fn test_alloc() {
     let device = CPU::new();
+    
     let buf = cpu_cached::<f32>(&device, 100);
     assert_eq!(buf.read(), vec![0.; 100]);
 

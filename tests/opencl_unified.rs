@@ -1,9 +1,10 @@
 #![allow(unused)]
 use custos::{
+    cache::Cache,
     opencl::api::{clCreateBuffer, enqueue_map_buffer, CommandQueue, MemFlags, OCLErrorKind},
-    Buffer, CLDevice, Error, VecRead, CPU, cache::Cache, range, set_count,
+    range, set_count, Buffer, CLDevice, Error, VecRead, CPU,
 };
-use std::{ffi::c_void, collections::HashMap};
+use std::{collections::HashMap, ffi::c_void};
 
 pub fn unified_mem<T>(device: &CLDevice, arr: &mut [T]) -> Result<*mut c_void, Error> {
     let mut err = 0;
@@ -161,7 +162,7 @@ fn test_unified_mem_ops() -> Result<(), custos::Error> {
 
     Ok(())
 }
- 
+
 #[cfg(feature = "opencl")]
 #[test]
 fn test_unified_mem_iterate() -> custos::Result<()> {
@@ -185,7 +186,7 @@ fn test_unified_mem_iterate() -> custos::Result<()> {
     Ok(())
 }*/
 
-#[cfg(not(feature="realloc"))]
+#[cfg(not(feature = "realloc"))]
 #[test]
 fn test_cpu_to_unified() -> custos::Result<()> {
     let device = CPU::new();
@@ -201,8 +202,7 @@ fn test_cpu_to_unified() -> custos::Result<()> {
     Ok(())
 }
 
-
-#[cfg(not(feature="realloc"))]
+#[cfg(not(feature = "realloc"))]
 #[test]
 fn test_cpu_to_unified_leak() -> custos::Result<()> {
     let cl_dev = CLDevice::new(0)?;
@@ -230,28 +230,27 @@ fn test_cpu_to_unified_leak() -> custos::Result<()> {
     Ok(())
 }
 
-#[cfg(not(feature="realloc"))]
+#[cfg(not(feature = "realloc"))]
 #[test]
 fn test_cpu_to_unified_perf() -> custos::Result<()> {
     use std::time::Instant;
 
-    let cl_dev = CLDevice::new(0)?;    
+    let cl_dev = CLDevice::new(0)?;
     let device = CPU::new();
 
     let mut dur = 0.;
 
     for _ in range(100) {
-        
         let mut buf = Cache::get::<i32, CPU>(&device, 6);
-        
+
         buf.copy_from_slice(&[1, 2, 3, 4, 5, 6]);
-        
+
         let start = Instant::now();
-        let cl_cpu_buf = unsafe { custos::opencl::construct_buffer(&cl_dev, buf)? };    
+        let cl_cpu_buf = unsafe { custos::opencl::construct_buffer(&cl_dev, buf)? };
         dur += start.elapsed().as_secs_f64();
 
         assert_eq!(cl_cpu_buf.as_slice(), &[1, 2, 3, 4, 5, 6]);
-        assert_eq!(cl_cpu_buf.read(), &[1, 2, 3, 4, 5, 6]); 
+        assert_eq!(cl_cpu_buf.read(), &[1, 2, 3, 4, 5, 6]);
     }
 
     println!("duration: {dur}");

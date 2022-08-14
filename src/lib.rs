@@ -54,9 +54,9 @@ pub mod number;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DeviceType {
     CPU = 0,
-    #[cfg(feature="cuda")]
+    #[cfg(feature = "cuda")]
     CUDA = 1,
-    #[cfg(feature="opencl")]
+    #[cfg(feature = "opencl")]
     CL = 2,
     None = 3,
 }
@@ -64,11 +64,11 @@ pub enum DeviceType {
 /// `Device` is another representation of a compute device.<br>
 /// It stores the type of the device and a pointer to the device from which `Device` originates from.<br>
 /// This is used instead of another "device" generic for [Buffer].
-/// 
+///
 /// # Example
 /// ```rust
 /// use custos::{CPU, AsDev, Device, DeviceType};
-/// 
+///
 /// let cpu = CPU::new();
 /// let device: Device = cpu.dev();
 /// assert_eq!(device.device_type, DeviceType::CPU);
@@ -77,12 +77,15 @@ pub enum DeviceType {
 #[derive(Debug, Clone, Copy)]
 pub struct Device {
     pub device_type: DeviceType,
-    pub device: *mut u8
+    pub device: *mut u8,
 }
 
 impl Default for Device {
     fn default() -> Self {
-        Self { device_type: DeviceType::None, device: null_mut() }
+        Self {
+            device_type: DeviceType::None,
+            device: null_mut(),
+        }
     }
 }
 
@@ -195,10 +198,15 @@ pub trait Alloc<T> {
     /// };
     /// assert_eq!(vec![1, 5, 4, 3, 6, 9, 0, 4], device.read(&buf));
     /// ```
-    fn with_data(&self, data: &[T]) -> (*mut T, *mut c_void, u64);
+    fn with_data(&self, data: &[T]) -> (*mut T, *mut c_void, u64)
+    where
+        T: Clone;
 
     /// If the vector `vec` was allocated previously, this function can be used in order to reduce the amount of allocations, which may be faster than using a slice of `vec`.
-    fn alloc_with_vec(&self, vec: Vec<T>) -> (*mut T, *mut c_void, u64) {
+    fn alloc_with_vec(&self, vec: Vec<T>) -> (*mut T, *mut c_void, u64)
+    where
+        T: Clone,
+    {
         self.with_data(&vec)
     }
 
@@ -259,6 +267,23 @@ pub trait WriteBuf<T> {
     }
 }
 
+/// This trait is used to clone a buffer based on a specific device type.
+pub trait CloneBuf<'a, T> {
+    /// Creates a deep copy of the specified buffer.
+    /// # Example
+    ///
+    /// ```
+    /// use custos::{CPU, Buffer, CloneBuf};
+    ///
+    /// let device = CPU::new();
+    /// let buf = Buffer::from((&device, [1., 2., 6., 2., 4.,]));
+    ///
+    /// let cloned = device.clone_buf(&buf);
+    /// assert_eq!(buf.read(), cloned.read());
+    /// ```
+    fn clone_buf(&'a self, buf: &Buffer<'a, T>) -> Buffer<'a, T>;
+}
+
 /// This trait is used to retrieve a cached buffer from a specific device type.
 pub trait CacheBuf<'a, T> {
     #[cfg_attr(feature = "realloc", doc = "```ignore")]
@@ -286,7 +311,7 @@ pub trait CacheBuf<'a, T> {
 
 /// This trait is a non-generic variant for calling [Alloc]'s `Alloc::<T>::as_dev(..)`
 pub trait AsDev {
-    fn dev(&self) -> Device 
+    fn dev(&self) -> Device
     where
         Self: Alloc<u8> + Sized,
     {
@@ -305,10 +330,8 @@ impl DeviceError {
         match self {
             DeviceError::ConstructError => {
                 "Only a non-drop buffer can be converted to a CPU+OpenCL buffer."
-            },
-            DeviceError::CPUtoCUDA => {
-                "Only a CPU Buffer can be converted to a CUDA Buffer"
             }
+            DeviceError::CPUtoCUDA => "Only a CPU Buffer can be converted to a CUDA Buffer",
         }
     }
 }
@@ -365,7 +388,7 @@ macro_rules! get_device {
                     you need to add 'opencl' and 'cuda' as features in your Cargo.toml."
                 ),
             }
-            
+
         };
         device
     }}

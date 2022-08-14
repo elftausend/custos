@@ -1,10 +1,10 @@
 pub mod api;
-mod kernel_cache;
 mod cuda_device;
+mod kernel_cache;
 mod kernel_launch;
 
-pub use kernel_cache::*;
 pub use cuda_device::*;
+pub use kernel_cache::*;
 pub use kernel_launch::*;
 
 use crate::{Buffer, CDatatype};

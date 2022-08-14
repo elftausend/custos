@@ -4,7 +4,10 @@ use std::{ffi::c_void, fmt::Debug, ptr::null_mut};
 
 #[cfg(feature = "opencl")]
 use crate::opencl::api::release_mem_object;
-use crate::{get_device, CDatatype, ClearBuf, Alloc, VecRead, WriteBuf, Device, CacheBuf, GLOBAL_CPU, AsDev};
+use crate::{
+    get_device, Alloc, AsDev, CDatatype, CacheBuf, ClearBuf, CloneBuf, Device, VecRead, WriteBuf,
+    GLOBAL_CPU,
+};
 
 use crate::number::Number;
 
@@ -13,6 +16,7 @@ pub enum BufFlag {
     None,
     Cache,
     Wrapper,
+    Item,
 }
 
 impl PartialEq for BufFlag {
@@ -53,7 +57,7 @@ impl<'a, T> Buffer<'a, T> {
             len,
             device: device.as_dev(),
             flag: BufFlag::None,
-            p: PhantomData,   
+            p: PhantomData,
         }
     }
 
@@ -62,7 +66,7 @@ impl<'a, T> Buffer<'a, T> {
     /// # Examples
     /// ```rust
     /// use custos::{CPU, Buffer};
-    /// 
+    ///
     /// let mut buf = {
     ///     let device = CPU::new();
     ///     Buffer::<u8>::deviceless(&device, 5)
@@ -79,7 +83,7 @@ impl<'a, T> Buffer<'a, T> {
             len,
             device: Device::default(),
             flag: BufFlag::None,
-            p: PhantomData,   
+            p: PhantomData,
         }
     }
 
@@ -160,10 +164,7 @@ impl<'a, T> Buffer<'a, T> {
     #[cfg(feature = "cuda")]
     #[inline]
     pub fn cu_ptr(&self) -> u64 {
-        assert!(
-            self.ptr.2 != 0,
-            "called cu_ptr() on an invalid CUDA buffer"
-        );
+        assert!(self.ptr.2 != 0, "called cu_ptr() on an invalid CUDA buffer");
         self.ptr.2
     }
 
@@ -171,8 +172,7 @@ impl<'a, T> Buffer<'a, T> {
     #[inline]
     pub fn as_slice(&self) -> &[T] {
         assert!(
-            /*self.flag == BufFlag::Wrapper ||*/
-            !self.ptr.0.is_null(), 
+            !self.ptr.0.is_null(),
             "called as_slice() on an invalid CPU buffer (this would dereference an invalid pointer)"
         );
         unsafe { std::slice::from_raw_parts(self.ptr.0, self.len) }
@@ -206,7 +206,7 @@ impl<'a, T> Buffer<'a, T> {
     where
         T: Default + Copy,
     {
-        if self.len == 0 {
+        if self.len == 0 && !self.ptr.0.is_null() {
             return unsafe { *self.ptr.0 };
         }
         T::default()
@@ -223,19 +223,19 @@ impl<'a, T> Buffer<'a, T> {
 
     /// Reads the contents of the buffer and writes them into a vector.
     /// If it is certain whether a CPU, or an unified CPU + OpenCL Buffer, is used, calling `.as_slice()` (or deref/mut to `&/mut [&T]`) is probably preferred.
-    /// 
+    ///
     /// # Example
     /// ```rust
     /// use custos::{CPU, Buffer};
-    /// 
+    ///
     /// let device = CPU::new();
     /// let buf = Buffer::from((&device, [1, 2, 3, 4]));
-    /// 
+    ///
     /// assert_eq!(buf.read(), vec![1, 2, 3, 4]);
     /// ```
     pub fn read(&self) -> Vec<T>
     where
-        T: Copy + Default,
+        T: Clone + Default,
     {
         let device = get_device!(self.device, VecRead<T>);
         device.read(self)
@@ -250,9 +250,9 @@ impl<'a, T> Buffer<'a, T> {
         get_device!(self.device, WriteBuf<T>).write(self, data)
     }
 
-    #[cfg(feature="cuda")]
+    #[cfg(feature = "cuda")]
     pub fn to_cuda<'c>(&self, cuda_device: &'c crate::CudaDevice) -> crate::Result<Buffer<'c, T>> {
-        use crate::{DeviceType, DeviceError};
+        use crate::{DeviceError, DeviceType};
 
         if self.device.device_type != DeviceType::CPU {
             return Err(DeviceError::CPUtoCUDA.into());
@@ -262,19 +262,48 @@ impl<'a, T> Buffer<'a, T> {
         cuda_device.write(&mut out, self);
         Ok(out)
     }
+}
 
-    /// Creates a shallow copy of &self.
+impl<'a, T> Buffer<'a, T> {
+    /// Creates a shallow copy of &self, if the `realloc` feature is not used.
+    ///
+    /// # Note
+    /// If the `realloc` feature is activated, this function returns a deap copy.
+    ///
     /// # Safety
-    /// Itself, this function does not need to be unsafe. 
+    /// Itself, this function does not need to be unsafe.
     /// However, declaring this function as unsafe highlights the violation of creating two or more owners for one resource.
+    #[cfg(feature = "realloc")]
+    pub unsafe fn shallow(&self) -> Buffer<'a, T>
+    where
+        T: Clone,
+    {
+        self.clone()
+    }
+
+    /// Creates a shallow copy of &self, if the `realloc` feature is not used.
+    ///
+    /// # Note
+    /// If the `realloc` feature is activated, this function returns a deap copy.
+    ///
+    /// # Safety
+    /// Itself, this function does not need to be unsafe.
+    /// However, declaring this function as unsafe highlights the violation of creating two or more owners for one resource.
+    #[cfg(not(feature = "realloc"))]
     pub unsafe fn shallow(&self) -> Buffer<'a, T> {
         Buffer {
             ptr: self.ptr,
             len: self.len,
             device: self.device,
             flag: BufFlag::Wrapper,
-            p: PhantomData
+            p: PhantomData,
         }
+    }
+}
+
+impl<'a, T: Clone> Clone for Buffer<'a, T> {
+    fn clone(&self) -> Self {
+        get_device!(self.device, CloneBuf<T>).clone_buf(self)
     }
 }
 
@@ -287,7 +316,7 @@ impl<A: Clone + Default> FromIterator<A> for Buffer<'_, A> {
     fn from_iter<T: IntoIterator<Item = A>>(iter: T) -> Self {
         GLOBAL_CPU.with(|device| {
             let from_iter = Vec::from_iter(iter);
-    
+
             Buffer {
                 len: from_iter.len(),
                 ptr: device.alloc_with_vec(from_iter),
@@ -301,10 +330,16 @@ impl<A: Clone + Default> FromIterator<A> for Buffer<'_, A> {
 
 impl<T> Drop for Buffer<'_, T> {
     fn drop(&mut self) {
+        if self.flag == BufFlag::Item {
+            drop(unsafe {
+                Box::from_raw(self.ptr.0)
+            });
+            return;
+        }
         if self.flag != BufFlag::None {
             return;
         }
-    
+
         unsafe {
             if !self.ptr.0.is_null() && self.ptr.1.is_null() {
                 let layout = Layout::array::<T>(self.len).unwrap();
@@ -429,7 +464,12 @@ impl<T: Debug + Default + Copy> Debug for Buffer<'_, T> {
             write!(f, "CUDA: {:?}, ", read.read(self))?;
         }
 
-        write!(f, "datatype={}, device={device:?} }}", std::any::type_name::<T>(), device=self.device.device_type)
+        write!(
+            f,
+            "datatype={}, device={device:?} }}",
+            std::any::type_name::<T>(),
+            device = self.device.device_type
+        )
     }
 }
 
@@ -461,7 +501,7 @@ impl<T: Number> From<T> for Buffer<'_, T> {
             ptr: (Box::into_raw(Box::new(val)), null_mut(), 0),
             len: 0,
             device: Device::default(),
-            flag: BufFlag::None,
+            flag: BufFlag::Item,
             p: PhantomData,
         }
     }

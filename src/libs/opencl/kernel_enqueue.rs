@@ -1,6 +1,6 @@
-use std::{mem::size_of, ffi::c_void};
-use crate::{CLDevice, number::Number, Buffer};
-use super::api::{OCLErrorKind, set_kernel_arg, enqueue_nd_range_kernel};
+use super::api::{enqueue_nd_range_kernel, set_kernel_arg, OCLErrorKind};
+use crate::{number::Number, Buffer, CLDevice};
+use std::{ffi::c_void, mem::size_of};
 
 pub trait AsClCvoidPtr {
     fn as_cvoid_ptr(&self) -> *const c_void;
@@ -45,10 +45,7 @@ pub fn enqueue_kernel(
     lws: Option<[usize; 3]>,
     args: &[&dyn AsClCvoidPtr],
 ) -> crate::Result<()> {
-
-    let kernel = device.kernel_cache
-        .borrow_mut()
-        .kernel_cache(device, src)?;
+    let kernel = device.kernel_cache.borrow_mut().kernel_cache(device, src)?;
 
     let wd;
     if gws[0] == 0 {
@@ -62,7 +59,7 @@ pub fn enqueue_kernel(
     }
 
     for (idx, arg) in args.iter().enumerate() {
-        set_kernel_arg(&kernel, idx, arg.as_cvoid_ptr(), arg.size(), arg.is_num()).unwrap();    
+        set_kernel_arg(&kernel, idx, arg.as_cvoid_ptr(), arg.size(), arg.is_num()).unwrap();
     }
     enqueue_nd_range_kernel(&device.queue(), &kernel, wd, &gws, lws.as_ref(), None)?;
     Ok(())

@@ -2,7 +2,7 @@
 use custos::opencl::cl_device::CLDevice;
 use custos::{libs::cpu::CPU, range, Buffer};
 
-#[cfg(not(feature="realloc"))]
+#[cfg(not(feature = "realloc"))]
 use custos::cpu::cpu_cached;
 
 #[test]
@@ -64,6 +64,7 @@ fn test_dealloc_device_cache_cl() -> custos::Result<()> {
     Ok(())
 }
 
+#[cfg(not(feature = "realloc"))]
 #[cfg(feature = "cuda")]
 #[test]
 fn test_dealloc_device_cache_cu() -> custos::Result<()> {

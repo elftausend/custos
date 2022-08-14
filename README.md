@@ -3,7 +3,7 @@
 <hr/>
 
 [![Crates.io version](https://img.shields.io/crates/v/custos.svg)](https://crates.io/crates/custos)
-[![Docs](https://docs.rs/custos/badge.svg?version=0.4.4)](https://docs.rs/custos/0.4.4/custos/)
+[![Docs](https://docs.rs/custos/badge.svg?version=0.4.5)](https://docs.rs/custos/0.4.5/custos/)
 
 A minimal OpenCL, CUDA and host CPU array manipulation engine / framework written in Rust.
 This crate provides the tools for executing custom array operations with the CPU, as well as with CUDA and OpenCL devices.<br>
@@ -17,16 +17,16 @@ or to see it at a larger scale, look here: [custos-math]
 Add "custos" as a dependency:
 ```toml
 [dependencies]
-custos = "0.4.4"
+custos = "0.4.5"
 
 # to disable the default features (cuda, opencl) and use an own set of features:
-#custos = {version = "0.4.4", default-features=false, features=["opencl"]}
+#custos = {version = "0.4.5", default-features=false, features=["opencl"]}
 ```
 
 Available features: 
 - "opencl" ... adds OpenCL features, where the CLDevice (feature) is the most important one.
 - "cuda" ... adds CUDA features. (CudaDevice)
-- "realloc" ... disables caching for CPU.
+- "realloc" ... disables caching for all devices.
 - using no features at all ... CPU with BLAS
 
 ## [Examples]

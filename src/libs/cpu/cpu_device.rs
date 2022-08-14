@@ -1,8 +1,14 @@
 use crate::{
-    libs::cache::{Cache, CacheReturn}, AsDev,
-    Buffer, CacheBuf, ClearBuf, Alloc, VecRead, WriteBuf, Device, DeviceType
+    libs::cache::{Cache, CacheReturn},
+    Alloc, AsDev, Buffer, CacheBuf, ClearBuf, CloneBuf, Device, DeviceType, VecRead, WriteBuf,
 };
-use std::{ffi::c_void, fmt::Debug, alloc::{Layout, handle_alloc_error}, mem::size_of, cell::RefCell};
+use std::{
+    alloc::{handle_alloc_error, Layout},
+    cell::RefCell,
+    ffi::c_void,
+    fmt::Debug,
+    mem::size_of,
+};
 
 use super::RawCpuBuf;
 
@@ -22,7 +28,7 @@ use super::RawCpuBuf;
 /// assert_eq!(out, vec![1, 2, 3]);
 /// ```
 pub struct CPU {
-    pub cache: RefCell<Cache<RawCpuBuf>>
+    pub cache: RefCell<Cache<RawCpuBuf>>,
 }
 
 impl CPU {
@@ -35,16 +41,14 @@ impl CPU {
     }
 }
 
-impl<T: Clone + Default> Alloc<T> for CPU {
+impl<T> Alloc<T> for CPU {
     fn alloc(&self, len: usize) -> (*mut T, *mut c_void, u64) {
         assert!(len > 0, "invalid buffer len: 0");
         let layout = Layout::array::<T>(len).unwrap();
-        let ptr = unsafe {
-            std::alloc::alloc(layout)
-        };
+        let ptr = unsafe { std::alloc::alloc(layout) };
 
         // initialize block of memory
-        for element in unsafe {std::slice::from_raw_parts_mut(ptr, len*size_of::<T>())} {
+        for element in unsafe { std::slice::from_raw_parts_mut(ptr, len * size_of::<T>()) } {
             *element = 0;
         }
 
@@ -54,16 +58,19 @@ impl<T: Clone + Default> Alloc<T> for CPU {
         (ptr as *mut T, std::ptr::null_mut(), 0)
     }
 
-    fn with_data(&self, data: &[T]) -> (*mut T, *mut c_void, u64) {
+    fn with_data(&self, data: &[T]) -> (*mut T, *mut c_void, u64)
+    where
+        T: Clone,
+    {
         assert!(!data.is_empty(), "invalid buffer len: 0");
         let (ptr, _, _) = self.alloc(data.len());
-        let slice = unsafe {std::slice::from_raw_parts_mut(ptr, data.len())};
+        let slice = unsafe { std::slice::from_raw_parts_mut(ptr, data.len()) };
         slice.clone_from_slice(data);
         (ptr, std::ptr::null_mut(), 0)
     }
     fn alloc_with_vec(&self, mut vec: Vec<T>) -> (*mut T, *mut c_void, u64) {
         assert!(!vec.is_empty(), "invalid buffer len: 0");
-    
+
         let ptr = vec.as_mut_ptr();
         std::mem::forget(vec);
         (ptr, std::ptr::null_mut(), 0)
@@ -72,7 +79,7 @@ impl<T: Clone + Default> Alloc<T> for CPU {
     fn as_dev(&self) -> crate::Device {
         Device {
             device_type: DeviceType::CPU,
-            device: self as *const CPU as *mut u8
+            device: self as *const CPU as *mut u8,
         }
     }
 }
@@ -86,7 +93,15 @@ impl CacheReturn<RawCpuBuf> for CPU {
     }
 }
 
-impl<'a, T: Copy + Default> CacheBuf<'a, T> for CPU {
+impl<'a, T: Clone> CloneBuf<'a, T> for CPU {
+    fn clone_buf(&'a self, buf: &Buffer<'a, T>) -> Buffer<'a, T> {
+        let mut cloned = Buffer::new(self, buf.len);
+        cloned.clone_from_slice(buf);
+        cloned
+    }
+}
+
+impl<'a, T> CacheBuf<'a, T> for CPU {
     #[inline]
     fn cached(&'a self, len: usize) -> Buffer<'a, T> {
         Cache::get::<T, CPU>(self, len)
@@ -94,11 +109,11 @@ impl<'a, T: Copy + Default> CacheBuf<'a, T> for CPU {
 }
 
 #[inline]
-pub fn cpu_cached<T: Copy+Default>(device: &CPU, len: usize) -> Buffer<T> {
+pub fn cpu_cached<T: Clone>(device: &CPU, len: usize) -> Buffer<T> {
     device.cached(len)
 }
 
-impl<T: Copy + Default> VecRead<T> for CPU {
+impl<T: Clone> VecRead<T> for CPU {
     fn read(&self, buf: &Buffer<T>) -> Vec<T> {
         buf.as_slice().to_vec()
     }

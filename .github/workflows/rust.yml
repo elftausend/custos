@@ -54,6 +54,21 @@ jobs:
     - name: Run 'realloc' tests
       run: cargo test --verbose --no-default-features --features realloc
 
+  miri:
+    name: "Miri"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install Miri
+        run: |
+          rustup toolchain install nightly --component miri
+          rustup override set nightly
+          cargo miri setup
+      - name: Test with Miri
+        run: cargo miri test --no-default-features
+      - name: Test 'realloc' with Miri
+        run: cargo miri test --no-default-features --features realloc
+
 #  bench:
 #  
 #    runs-on: ubuntu-latest

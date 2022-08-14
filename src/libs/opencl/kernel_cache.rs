@@ -1,7 +1,8 @@
 use super::api::{
-    build_program, create_kernels_in_program, create_program_with_source, release_mem_object, Kernel
+    build_program, create_kernels_in_program, create_program_with_source, release_mem_object,
+    Kernel,
 };
-use crate::{CLDevice, Error, libs::cache::CacheType};
+use crate::{libs::cache::CacheType, CLDevice, Error};
 use std::{collections::HashMap, ffi::c_void};
 
 #[derive(Debug)]
@@ -25,9 +26,7 @@ impl CacheType for RawCL {
 
 impl Drop for RawCL {
     fn drop(&mut self) {
-        unsafe { 
-            release_mem_object(self.ptr).unwrap() 
-        };
+        unsafe { release_mem_object(self.ptr).unwrap() };
     }
 }
 
@@ -60,6 +59,6 @@ impl Drop for KernelCacheCL {
         // TODO:  not really safe
         for kernel in &mut self.kernel_cache.values_mut() {
             kernel.release()
-        }    
+        }
     }
 }

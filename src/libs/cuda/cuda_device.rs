@@ -1,17 +1,17 @@
 use super::{
     api::{
-        create_context, create_stream, cuInit, cuStreamDestroy,
-        cu_read, cu_write,
+        create_context, create_stream, cuInit, cuMemcpy, cuStreamDestroy, cu_read, cu_write,
         cublas::{create_handle, cublasDestroy_v2, cublasSetStream_v2, CublasHandle},
         cumalloc, device, Context, CudaIntDevice, Module, Stream,
     },
-    cu_clear, RawCUBuf, KernelCacheCU,
+    cu_clear, KernelCacheCU, RawCUBuf,
 };
 use crate::{
-    AsDev, CDatatype, CacheBuf,
-    ClearBuf, Device, VecRead, WriteBuf, Alloc, DeviceType, Buffer, cache::{CacheReturn, Cache},
+    cache::{Cache, CacheReturn},
+    Alloc, AsDev, Buffer, CDatatype, CacheBuf, ClearBuf, CloneBuf, Device, DeviceType, VecRead,
+    WriteBuf,
 };
-use std::{ptr::null_mut, cell::RefCell};
+use std::{cell::RefCell, ptr::null_mut};
 
 /// Used to perform calculations with a CUDA capable device.
 /// To make new calculations invocable, a trait providing new operations should be implemented for [CudaDevice].
@@ -35,7 +35,7 @@ impl CudaDevice {
         let handle = create_handle()?;
         unsafe { cublasSetStream_v2(handle.0, stream.0) }.to_result()?;
 
-        Ok(CudaDevice { 
+        Ok(CudaDevice {
             cache: RefCell::new(Cache::default()),
             kernel_cache: RefCell::new(KernelCacheCU::default()),
             modules: RefCell::new(vec![]),
@@ -88,12 +88,12 @@ impl<T> Alloc<T> for CudaDevice {
     fn as_dev(&self) -> Device {
         Device {
             device_type: DeviceType::CUDA,
-            device: self as *const CudaDevice as *mut u8
+            device: self as *const CudaDevice as *mut u8,
         }
     }
 }
 
-impl<T: Default + Copy> VecRead<T> for CudaDevice {
+impl<T: Default + Clone> VecRead<T> for CudaDevice {
     fn read(&self, buf: &Buffer<T>) -> Vec<T> {
         assert!(
             buf.ptr.2 != 0,
@@ -124,6 +124,16 @@ impl CacheReturn<RawCUBuf> for CudaDevice {
     }
 }
 
+impl<'a, T> CloneBuf<'a, T> for CudaDevice {
+    fn clone_buf(&'a self, buf: &Buffer<'a, T>) -> Buffer<'a, T> {
+        let cloned = Buffer::new(self, buf.len);
+        unsafe {
+            cuMemcpy(cloned.ptr.2, buf.ptr.2, buf.len * std::mem::size_of::<T>());
+        }
+        cloned
+    }
+}
+
 impl<'a, T> CacheBuf<'a, T> for CudaDevice {
     #[inline]
     fn cached(&self, len: usize) -> Buffer<T> {
@@ -132,7 +142,7 @@ impl<'a, T> CacheBuf<'a, T> for CudaDevice {
 }
 
 #[inline]
-pub fn cu_cached<T: Copy+Default>(device: &CudaDevice, len: usize) -> Buffer<T> {
+pub fn cu_cached<T>(device: &CudaDevice, len: usize) -> Buffer<T> {
     device.cached(len)
 }
 

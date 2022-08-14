@@ -1,10 +1,10 @@
 use super::{
-    cuCtxCreate_v2, cuDeviceGet, cuDeviceGetCount, cuInit, cuLaunchKernel, cuMemFree_v2,
-    cuMemcpyDtoH_v2, cuMemcpyHtoD_v2, cuModuleGetFunction, cuModuleLoad, cuModuleLoadData,
-    cuStreamCreate, cuStreamSynchronize,
+    cuCtxCreate_v2, cuCtxDestroy, cuDeviceGet, cuDeviceGetCount, cuInit, cuLaunchKernel,
+    cuMemFree_v2, cuMemcpyDtoH_v2, cuMemcpyHtoD_v2, cuModuleGetFunction, cuModuleLoad,
+    cuModuleLoadData, cuModuleUnload, cuStreamCreate, cuStreamSynchronize,
     error::{CudaErrorKind, CudaResult},
     ffi::cuMemAlloc_v2,
-    CUcontext, CUdevice, CUfunction, CUmodule, CUstream, cuModuleUnload, cuCtxDestroy,
+    CUcontext, CUdevice, CUfunction, CUmodule, CUstream,
 };
 use crate::CUdeviceptr;
 use std::{
@@ -96,7 +96,6 @@ impl Drop for Module {
         unsafe {
             cuModuleUnload(self.0).to_result().unwrap();
         }
-        
     }
 }
 

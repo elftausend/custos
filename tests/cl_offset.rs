@@ -1,4 +1,4 @@
-/* 
+/*
 #[cfg(feature = "opencl")]
 use custos::{opencl::KernelOptions, AsDev, CLDevice, Error};
 
