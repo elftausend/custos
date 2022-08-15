@@ -16,6 +16,10 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
+    - uses: actions-rs/toolchain@v1
+      with:
+        profile: minimal
+        toolchain: stable
     - uses: Swatinem/rust-cache@v1
     - name: Build (OpenCL)
       run: cargo build --verbose --no-default-features --features opencl
@@ -26,6 +30,10 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
+    - uses: actions-rs/toolchain@v1
+      with:
+        profile: minimal
+        toolchain: stable
     - uses: Swatinem/rust-cache@v1
     - name: Build (CUDA)
       run: cargo build --verbose --no-default-features --features cuda
@@ -36,6 +44,10 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
+    - uses: actions-rs/toolchain@v1
+      with:
+        profile: minimal
+        toolchain: stable
     - uses: Swatinem/rust-cache@v1
     - name: Build (CUDA)
       run: cargo build --verbose --no-default-features --features cuda,opencl
