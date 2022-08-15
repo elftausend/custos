@@ -1,4 +1,4 @@
-use crate::libs::cache::CacheType;
+use crate::devices::cache::CacheType;
 pub use blas::*;
 pub use cpu_device::*;
 use std::{

@@ -7,7 +7,7 @@ use super::{
 };
 use crate::{
     cache::{Cache, CacheReturn},
-    libs::opencl::api::{create_buffer, MemFlags},
+    devices::opencl::api::{create_buffer, MemFlags},
     Alloc, AsDev, Buffer, CDatatype, CacheBuf, ClearBuf, CloneBuf, Device, DeviceType, Error,
     VecRead, WriteBuf,
 };

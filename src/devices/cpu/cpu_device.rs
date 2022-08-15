@@ -1,5 +1,5 @@
 use crate::{
-    libs::cache::{Cache, CacheReturn},
+    devices::cache::{Cache, CacheReturn},
     Alloc, AsDev, Buffer, CacheBuf, ClearBuf, CloneBuf, Device, DeviceType, VecRead, WriteBuf,
 };
 use std::{

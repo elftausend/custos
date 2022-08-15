@@ -2,7 +2,7 @@ use super::api::{
     build_program, create_kernels_in_program, create_program_with_source, release_mem_object,
     Kernel,
 };
-use crate::{libs::cache::CacheType, CLDevice, Error};
+use crate::{devices::cache::CacheType, CLDevice, Error};
 use std::{collections::HashMap, ffi::c_void};
 
 #[derive(Debug)]

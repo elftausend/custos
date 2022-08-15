@@ -2,7 +2,7 @@ use std::ffi::c_void;
 
 use custos::cpu::cpu_cached;
 #[cfg(feature = "opencl")]
-use custos::{libs::opencl::CLDevice, Error};
+use custos::{devices::opencl::CLDevice, Error};
 use custos::{Alloc, Buffer, VecRead};
 
 use custos::CPU;

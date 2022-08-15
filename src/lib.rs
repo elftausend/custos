@@ -35,15 +35,15 @@ use std::{ffi::c_void, ptr::null_mut};
 //pub use libs::*;
 pub use buffer::*;
 pub use count::*;
-pub use libs::*;
+pub use devices::*;
 
-pub use libs::cpu::CPU;
+pub use devices::cpu::CPU;
 #[cfg(feature = "cuda")]
-pub use libs::cuda::CudaDevice;
+pub use devices::cuda::CudaDevice;
 #[cfg(feature = "opencl")]
-pub use libs::opencl::{CLDevice, InternCLDevice};
+pub use devices::opencl::{CLDevice, InternCLDevice};
 
-pub mod libs;
+pub mod devices;
 
 mod buffer;
 mod count;

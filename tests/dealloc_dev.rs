@@ -1,6 +1,6 @@
 #[cfg(feature = "opencl")]
 use custos::opencl::cl_device::CLDevice;
-use custos::{libs::cpu::CPU, range, Buffer};
+use custos::{devices::cpu::CPU, range, Buffer};
 
 #[cfg(not(feature = "realloc"))]
 use custos::cpu::cpu_cached;
