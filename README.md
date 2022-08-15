@@ -104,3 +104,4 @@ fn main() -> custos::Result<()> {
 ```
 
 A lot more examples can be found in the 'tests' and 'examples' folder.
+TEST
