@@ -262,34 +262,12 @@ impl<'a, T> Buffer<'a, T> {
         cuda_device.write(&mut out, self);
         Ok(out)
     }
-}
 
-impl<'a, T> Buffer<'a, T> {
-    /// Creates a shallow copy of &self, if the `realloc` feature is not used.
-    ///
-    /// # Note
-    /// If the `realloc` feature is activated, this function returns a deap copy.
-    ///
+    /// Creates a shallow copy of &self. 
+    /// 
     /// # Safety
     /// Itself, this function does not need to be unsafe.
     /// However, declaring this function as unsafe highlights the violation of creating two or more owners for one resource.
-    #[cfg(feature = "realloc")]
-    pub unsafe fn shallow(&self) -> Buffer<'a, T>
-    where
-        T: Clone,
-    {
-        self.clone()
-    }
-
-    /// Creates a shallow copy of &self, if the `realloc` feature is not used.
-    ///
-    /// # Note
-    /// If the `realloc` feature is activated, this function returns a deap copy.
-    ///
-    /// # Safety
-    /// Itself, this function does not need to be unsafe.
-    /// However, declaring this function as unsafe highlights the violation of creating two or more owners for one resource.
-    #[cfg(not(feature = "realloc"))]
     pub unsafe fn shallow(&self) -> Buffer<'a, T> {
         Buffer {
             ptr: self.ptr,
@@ -299,7 +277,27 @@ impl<'a, T> Buffer<'a, T> {
             p: PhantomData,
         }
     }
+
+    /// Returns a shallow copy of &self, if the `realloc` feature is activated.
+    /// If the `realloc` feature is not activated, it returns a deep copy / clone.
+    ///
+    /// # Safety
+    /// Itself, this function does not need to be unsafe.
+    /// However, declaring this function as unsafe highlights the violation of possibly creating two or more owners for one resource.
+    pub unsafe fn shallow_or_clone(&self) -> Buffer<'a, T>
+    where
+        T: Clone,
+    {
+        {
+            #[cfg(not(feature = "realloc"))]
+            self.shallow()
+        }
+
+        #[cfg(feature = "realloc")]
+        self.clone()
+    }
 }
+
 
 impl<'a, T: Clone> Clone for Buffer<'a, T> {
     fn clone(&self) -> Self {
