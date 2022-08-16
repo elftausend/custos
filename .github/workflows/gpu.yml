@@ -20,7 +20,7 @@ jobs:
       with:
         profile: minimal
         toolchain: stable
-    - uses: Swatinem/rust-cache@v1
+
     - name: Build (OpenCL)
       run: cargo build --verbose --no-default-features --features opencl
   
@@ -34,7 +34,7 @@ jobs:
       with:
         profile: minimal
         toolchain: stable
-    - uses: Swatinem/rust-cache@v1
+
     - name: Build (CUDA)
       run: cargo build --verbose --no-default-features --features cuda
 
@@ -48,7 +48,7 @@ jobs:
       with:
         profile: minimal
         toolchain: stable
-    - uses: Swatinem/rust-cache@v1
+
     - name: Build (CUDA)
       run: cargo build --verbose --no-default-features --features cuda,opencl
       
@@ -63,8 +63,6 @@ jobs:
       with:
         profile: minimal
         toolchain: stable
-
-    - uses: Swatinem/rust-cache@v1
 
     - name: Run tests (OpenCL)
       run: cargo test --verbose --no-default-features --features opencl
@@ -83,8 +81,6 @@ jobs:
         profile: minimal
         toolchain: stable
 
-    - uses: Swatinem/rust-cache@v1
-
     - name: Run tests (CUDA)
       run: cargo test --verbose --no-default-features --features cuda
     - name: Run tests (CUDA, realloc)
@@ -101,8 +97,6 @@ jobs:
       with:
         profile: minimal
         toolchain: stable
-
-    - uses: Swatinem/rust-cache@v1
 
     - name: Run tests (CUDA, OpenCL)
       run: cargo test --verbose --no-default-features --features cuda,opencl
