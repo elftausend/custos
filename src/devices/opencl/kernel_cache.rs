@@ -31,16 +31,14 @@ impl Drop for RawCL {
 }
 
 #[derive(Debug, Default)]
-/// Stores kernels and outputs
+/// This stores the previously compiled OpenCL kernels.
 pub struct KernelCacheCL {
     pub(crate) kernel_cache: HashMap<String, Kernel>,
 }
 
 impl KernelCacheCL {
     pub fn kernel_cache(&mut self, device: &CLDevice, src: &str) -> Result<Kernel, Error> {
-        let kernel = self.kernel_cache.get(src);
-
-        if let Some(kernel) = kernel {
+        if let Some(kernel) = self.kernel_cache.get(src) {
             return Ok(*kernel);
         }
 

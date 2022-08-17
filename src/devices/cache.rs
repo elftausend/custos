@@ -1,15 +1,33 @@
 use crate::{Alloc, BufFlag, Buffer, Node};
 use std::{cell::RefMut, collections::HashMap, ffi::c_void, marker::PhantomData};
 
+/// This trait is implemented for every 'cacheable' pointer.
 pub trait CacheType {
+    /// Constructs a new device-specific cachable pointer.
+    /// # Example
+    /// ```
+    /// use custos::{cpu::RawCpuBuf, cache::CacheType};
+    /// 
+    /// let raw_cpu_buf = RawCpuBuf::new::<f32>((&6f32 as *const f32 as *mut f32, std::ptr::null_mut(), 0), 0);
+    /// assert_eq!(raw_cpu_buf.destruct::<f32>(), (&6f32 as *const f32 as *mut f32, std::ptr::null_mut(), 0));
+    /// 
+    /// // would try do deallocate an invalid pointer on drop.
+    /// std::mem::forget(raw_cpu_buf);
+    /// ```
     fn new<T>(ptr: (*mut T, *mut c_void, u64), len: usize) -> Self;
+
+    /// Destructs a device-specific pointer in its raw form.<br>
+    /// See [CacheType::new].
     fn destruct<T>(&self) -> (*mut T, *mut c_void, u64);
 }
 
+/// This trait makes a device's [`Cache`] accessible and is implemented for all compute devices.
 pub trait CacheReturn<P: CacheType> {
+    /// Returns a device specific [`Cache`].
     fn cache(&self) -> RefMut<Cache<P>>;
 }
 
+/// Caches pointers that can be reconstructed into a [`Buffer`].
 #[derive(Debug)]
 pub struct Cache<P: CacheType> {
     pub nodes: HashMap<Node, P>,
@@ -28,6 +46,7 @@ impl<P: CacheType> Cache<P> {
         let ptr: (*mut T, *mut c_void, _) = device.alloc(node.len);
 
         self.nodes.insert(node, P::new(ptr, node.len));
+
         Buffer {
             ptr,
             len: node.len,
@@ -36,6 +55,8 @@ impl<P: CacheType> Cache<P> {
             p: PhantomData,
         }
     }
+
+    /// Retrieves cached pointers and constructs a [`Buffer`] with them and `len`.
     #[cfg(not(feature = "realloc"))]
     pub fn get<T, D: Alloc<T> + CacheReturn<P>>(device: &D, len: usize) -> Buffer<T> {
         let node = Node::new(len);

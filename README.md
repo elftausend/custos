@@ -4,6 +4,9 @@
 
 [![Crates.io version](https://img.shields.io/crates/v/custos.svg)](https://crates.io/crates/custos)
 [![Docs](https://docs.rs/custos/badge.svg?version=0.4.6)](https://docs.rs/custos/0.4.6/custos/)
+[![Rust](https://github.com/elftausend/custos/actions/workflows/rust.yml/badge.svg)](https://github.com/elftausend/custos/actions/workflows/rust.yml)
+[![GPU](https://github.com/elftausend/custos/actions/workflows/gpu.yml/badge.svg)](https://github.com/elftausend/custos/actions/workflows/gpu.yml)
+[![rust-clippy](https://github.com/elftausend/custos/actions/workflows/rust-clippy.yml/badge.svg)](https://github.com/elftausend/custos/actions/workflows/rust-clippy.yml)
 
 A minimal OpenCL, CUDA and host CPU array manipulation engine / framework written in Rust.
 This crate provides the tools for executing custom array operations with the CPU, as well as with CUDA and OpenCL devices.<br>

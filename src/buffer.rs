@@ -11,6 +11,7 @@ use crate::{
 
 use crate::number::Number;
 
+/// Descripes the type of a [`Buffer`]
 #[derive(Debug, Clone)]
 pub enum BufFlag {
     None,
@@ -62,7 +63,7 @@ impl<'a, T> Buffer<'a, T> {
     }
 
     /// Buffers created with this method can outlive the device used to create this `Buffer`.<br>
-    /// No operations can be invoked on this `Buffer` as [get_device!] will panic.
+    /// No operations can be invoked on this `Buffer` as [`get_device!`] will panic.
     /// # Examples
     /// ```rust
     /// use custos::{CPU, Buffer};
@@ -382,7 +383,7 @@ impl<T> AsMut<[T]> for Buffer<'_, T> {
     }
 }
 
-/// A buffer dereferences into a slice.
+/// A `Buffer` dereferences into a slice.
 ///
 /// # Examples
 ///
@@ -413,7 +414,7 @@ impl<T> std::ops::Deref for Buffer<'_, T> {
     }
 }
 
-/// A buffer dereferences into a slice.
+/// A `Buffer` dereferences into a slice.
 ///
 /// # Examples
 ///
@@ -491,8 +492,6 @@ impl<'a, T> std::iter::IntoIterator for &'a mut Buffer<'_, T> {
     }
 }
 
-// TODO: test if working correctly (no safe mode)
-// mind deallocation
 impl<T: Number> From<T> for Buffer<'_, T> {
     fn from(val: T) -> Self {
         Buffer {
@@ -629,8 +628,8 @@ impl<'a, T: CDatatype> From<(u64, usize)> for Buffer<'a, T> {
 }
 
 #[cfg_attr(feature = "realloc", doc = "```ignore")]
-/// Adds a buffer to the "cache chain".
-/// Following calls will return this buffer,
+/// Adds a `Buffer` to the "cache chain".
+/// Following calls will return this `Buffer`,
 /// if the corresponding internal count matches with the id used in the cache.
 ///
 ///

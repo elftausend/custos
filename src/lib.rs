@@ -50,7 +50,7 @@ mod count;
 
 pub mod number;
 
-/// Used to determine which device type [Device] is of.
+/// Used to determine which device type [`Device`] is of.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DeviceType {
     CPU = 0,
@@ -63,7 +63,7 @@ pub enum DeviceType {
 
 /// `Device` is another representation of a compute device.<br>
 /// It stores the type of the device and a pointer to the device from which `Device` originates from.<br>
-/// This is used instead of another "device" generic for [Buffer].
+/// This is used instead of another "device" generic for [`Buffer`].
 ///
 /// # Example
 /// ```rust
@@ -143,7 +143,7 @@ impl core::fmt::Display for Error {
 
 pub type Result<T> = std::result::Result<T, Error>;
 
-/// This trait allocates memory on the implemented device.
+/// This trait is for allocating memory on the implemented device.
 ///
 /// # Example
 /// ```
@@ -162,7 +162,7 @@ pub type Result<T> = std::result::Result<T, Error>;
 /// assert_eq!(vec![0.; 12], device.read(&buf));
 /// ```
 pub trait Alloc<T> {
-    /// Allocate memory
+    /// Allocate memory on the implemented device.
     /// # Example
     /// ```
     /// use custos::{CPU, Alloc, Buffer, VecRead, BufFlag, AsDev};
@@ -309,7 +309,7 @@ pub trait CacheBuf<'a, T> {
     fn cached(&'a self, len: usize) -> Buffer<'a, T>;
 }
 
-/// This trait is a non-generic variant for calling [Alloc]'s `Alloc::<T>::as_dev(..)`
+/// This trait is a non-generic variant for calling [`Alloc`]'s `Alloc::<T>::as_dev(..)`
 pub trait AsDev {
     fn dev(&self) -> Device
     where

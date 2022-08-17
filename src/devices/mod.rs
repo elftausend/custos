@@ -1,3 +1,5 @@
+//! This module defines all available compute devices
+
 use self::cpu::{
     api::{cblas_dgemm, cblas_sgemm},
     Order, Transpose,
