@@ -42,6 +42,8 @@ pub use devices::cpu::CPU;
 pub use devices::cuda::CudaDevice;
 #[cfg(feature = "opencl")]
 pub use devices::opencl::{CLDevice, InternCLDevice};
+#[cfg(feature = "metal")]
+pub use devices::metal::MTLDevice;
 
 pub mod devices;
 

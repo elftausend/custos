@@ -13,11 +13,13 @@ readme = "README.md"
 [dependencies]
 lazy_static = { version = "1.4.0", optional = true }
 half = { version = "2.1.0", optional = true, default-features = false }
+objc = { version = "0.2.7", optional = true }
 
 [features]
-default = ["opencl", "cuda", "half"]
+default = ["opencl", "metal"]
 opencl = ["dep:lazy_static"]
 cuda = []
+metal = ["dep:objc"]
 realloc = []
 half = ["dep:half"]
 

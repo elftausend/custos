@@ -18,6 +18,9 @@ pub mod cuda;
 #[cfg(feature = "opencl")]
 pub mod opencl;
 
+#[cfg(feature = "metal")]
+pub mod metal;
+
 pub type CUdeviceptr = std::os::raw::c_ulonglong;
 
 #[cfg(not(feature = "opencl"))]
