@@ -4,16 +4,6 @@ use std::{cell::RefMut, collections::HashMap, ffi::c_void, marker::PhantomData};
 /// This trait is implemented for every 'cacheable' pointer.
 pub trait CacheType {
     /// Constructs a new device-specific cachable pointer.
-    /// # Example
-    /// ```
-    /// use custos::{cpu::RawCpuBuf, cache::CacheType};
-    /// 
-    /// let raw_cpu_buf = RawCpuBuf::new::<f32>((&6f32 as *const f32 as *mut f32, std::ptr::null_mut(), 0), 0);
-    /// assert_eq!(raw_cpu_buf.destruct::<f32>(), (&6f32 as *const f32 as *mut f32, std::ptr::null_mut(), 0));
-    /// 
-    /// // would try do deallocate an invalid pointer on drop.
-    /// std::mem::forget(raw_cpu_buf);
-    /// ```
     fn new<T>(ptr: (*mut T, *mut c_void, u64), len: usize) -> Self;
 
     /// Destructs a device-specific pointer in its raw form.<br>
