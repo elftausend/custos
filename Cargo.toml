@@ -11,13 +11,15 @@ readme = "README.md"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-lazy_static = "1.4.0"
+lazy_static = { version = "1.4.0", optional = true }
+half = { version = "2.1.0", optional = true, default-features = false }
 
 [features]
-default = ["opencl", "cuda"]
-opencl = []
+default = ["opencl", "cuda", "half"]
+opencl = ["dep:lazy_static"]
 cuda = []
 realloc = []
+half = ["dep:half"]
 
 [[example]]
 name = "cuda_readme"

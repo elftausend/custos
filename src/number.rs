@@ -4,6 +4,9 @@ use core::{
 };
 use std::iter::Sum;
 
+#[cfg(feature="half")]
+use half::{f16, bf16};
+
 pub trait Number:
     Sized
     + Default
@@ -31,7 +34,7 @@ pub trait Number:
     fn two() -> Self;
 }
 
-macro_rules! number_apply {
+macro_rules! impl_number {
     ($($t:ident),*) => {
         $(
             impl Number for $t {
@@ -75,10 +78,58 @@ macro_rules! number_apply {
     };
 }
 
-number_apply! {
+impl_number! {
     f32, f64, i8, i16, i32, i64, i128,
     isize, u8, u16, u32, u64, u128, usize
 }
+
+#[cfg(feature="half")]
+macro_rules! impl_number_half {
+    ($($t:ident),*) => {
+        $(
+            impl Number for $t {
+                #[inline]
+                fn from_usize(value: usize) -> Self {
+                    $t::from(value as u8)
+                }
+
+                #[inline]
+                fn from_u64(value: u64) -> Self {
+                    $t::from(value as u8)
+                }
+
+                #[inline]
+                fn as_usize(&self) -> usize {
+                    self.to_f64() as usize
+                }
+
+                #[inline]
+                fn as_f64(&self) -> f64 {
+                    self.to_f64()
+                }
+
+                #[inline]
+                fn zero() -> Self {
+                    $t::from_bits(0)
+                }
+
+                #[inline]
+                fn one() -> Self {
+                    $t::from_bits(15360)
+                }
+
+                #[inline]
+                fn two() -> Self {
+                    $t::from_bits(16384)
+                }
+            }
+        )*
+
+    };
+}
+
+#[cfg(feature="half")]
+impl_number_half!(f16, bf16);
 
 pub trait Float: Neg<Output = Self> + Number {
     fn negate(&self) -> Self;
@@ -96,7 +147,7 @@ pub trait Float: Neg<Output = Self> + Number {
     fn abs(&self) -> Self;
 }
 
-macro_rules! float_apply {
+macro_rules! impl_float {
     ($($t:ident),*) => {
         $(
             impl Float for $t {
@@ -104,7 +155,6 @@ macro_rules! float_apply {
                 fn negate(&self) -> $t {
                     use core::ops::Neg;
                     self.neg()
-
                 }
                 #[inline]
                 fn squared(lhs: $t) -> $t {
@@ -155,4 +205,64 @@ macro_rules! float_apply {
     };
 }
 
-float_apply!(f32, f64);
+impl_float!(f32, f64);
+
+#[cfg(feature="half")]
+macro_rules! impl_float_half {
+    ($($t:ident),*) => {
+        $(
+            impl Float for $t {
+                fn negate(&self) -> Self {
+                    self.neg()
+                }
+            
+                fn squared(lhs: Self) -> Self {
+                    lhs*lhs
+                }
+            
+                fn exp(&self) -> Self {
+                    $t::from_f32(self.to_f32().exp())
+                }
+            
+                fn powf(&self, rhs: Self) -> Self {
+                    $t::from_f32(self.to_f32().powf(rhs.to_f32()))
+                }
+            
+                fn powi(&self, rhs: i32) -> Self {
+                    $t::from_f32(self.to_f32().powi(rhs))
+                }
+            
+                fn comp(lhs: Self, rhs: Self) -> Option<Ordering> {
+                    lhs.partial_cmp(&rhs)
+                }
+            
+                fn tanh(&self) -> Self {
+                    $t::from_f32(self.to_f32().tanh())
+                }
+            
+                fn sin(&self) -> Self {
+                    $t::from_f32(self.to_f32().sin())
+                }
+            
+                fn as_generic(value: f64) -> Self {
+                    $t::from_f64(value)
+                }
+            
+                fn sqrt(&self) -> Self {
+                    $t::from_f32(self.to_f32().sqrt())
+                }
+            
+                fn ln(&self) -> Self {
+                    $t::from_f32(self.to_f32().ln())
+                }
+            
+                fn abs(&self) -> Self {
+                    $t::from_f32(self.to_f32().abs())
+                }
+            }
+        )*
+    };
+}
+
+#[cfg(feature="half")]
+impl_float_half!(f16, bf16);

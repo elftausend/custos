@@ -78,6 +78,24 @@ impl CDatatype for f64 {
     }
 }
 
+#[cfg(any(not(target_os = "macos"), not(feature = "opencl")))]
+#[cfg(feature="half")]
+impl CDatatype for half::f16 {
+    #[inline]
+    fn as_c_type_str() -> &'static str {
+        "half"
+    }
+}
+
+#[cfg(any(not(target_os = "macos"), not(feature = "opencl")))]
+#[cfg(feature="half")]
+impl CDatatype for half::bf16 {
+    #[inline]
+    fn as_c_type_str() -> &'static str {
+        "half"
+    }
+}
+
 impl CDatatype for f32 {
     #[inline]
     fn as_c_type_str() -> &'static str {

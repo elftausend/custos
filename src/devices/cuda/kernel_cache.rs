@@ -39,9 +39,7 @@ impl KernelCacheCU {
         src: &str,
         fn_name: &str,
     ) -> Result<FnHandle, Error> {
-        let kernel = self.kernels.get(src);
-
-        if let Some(kernel) = kernel {
+        if let Some(kernel) = self.kernels.get(src) {
             return Ok(*kernel);
         }
 

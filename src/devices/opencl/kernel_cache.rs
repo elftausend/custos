@@ -43,7 +43,7 @@ impl KernelCacheCL {
         }
 
         let program = create_program_with_source(&device.ctx(), src)?;
-        build_program(&program, &[device.device()], Some("-cl-std=CL1.2"))?; //-cl-single-precision-constant
+        build_program(&program, &[device.device()], Some("-cl-std=CL1.2"))?; //
         let kernel = create_kernels_in_program(&program)?[0];
 
         self.kernel_cache.insert(src.to_string(), kernel);

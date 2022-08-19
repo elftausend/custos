@@ -13,6 +13,8 @@ fn test_clear_cpu() {
 #[cfg(feature = "opencl")]
 #[test]
 fn test_clear_cl() -> Result<(), custos::Error> {
+    
+
     use custos::CLDevice;
 
     let device = CLDevice::new(0)?;
