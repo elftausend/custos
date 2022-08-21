@@ -12,9 +12,7 @@ impl MetalIntDevice {
         unsafe { MTLCreateSystemDefaultDevice().as_mut().map(|x| Self(x)) }
     }
     pub fn has_unified_memory(&self) -> bool {
-        unsafe {
-            msg_send![self.0, hasUnifiedMemory]             
-        }
+        unsafe { msg_send![self.0, hasUnifiedMemory] }
     }
     
     pub fn new_command_queue(&self) -> CommandQueue {
