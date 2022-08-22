@@ -6,7 +6,7 @@ use std::{ffi::c_void, fmt::Debug, ptr::null_mut};
 use crate::opencl::api::release_mem_object;
 use crate::{
     get_device, Alloc, AsDev, CDatatype, CacheBuf, ClearBuf, CloneBuf, Device, VecRead, WriteBuf,
-    GLOBAL_CPU,
+    GLOBAL_CPU, GNode,
 };
 
 use crate::number::Number;
@@ -15,7 +15,7 @@ use crate::number::Number;
 #[derive(Debug, Clone)]
 pub enum BufFlag {
     None,
-    Cache,
+    Cache(GNode),
     Wrapper,
     Item,
 }
