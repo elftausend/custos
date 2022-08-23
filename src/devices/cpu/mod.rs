@@ -1,4 +1,4 @@
-use crate::devices::cache::CacheType;
+use crate::{devices::cache::CacheType, GNode};
 pub use blas::*;
 pub use cpu_device::*;
 use std::{
@@ -16,27 +16,29 @@ pub struct RawCpuBuf {
     len: usize,
     align: usize,
     size: usize,
+    node: GNode,
 }
 
 impl CacheType for RawCpuBuf {
-    fn new<T>(ptr: (*mut T, *mut std::ffi::c_void, u64), len: usize) -> Self {
+    fn new<T>(ptr: (*mut T, *mut std::ffi::c_void, u64), len: usize, node: GNode) -> Self {
         RawCpuBuf {
             ptr: ptr.0 as *mut u8,
             len,
             align: align_of::<T>(),
             size: size_of::<T>(),
+            node,
         }
     }
 
-    fn destruct<T>(&self) -> (*mut T, *mut std::ffi::c_void, u64) {
-        (self.ptr as *mut T, null_mut(), 0)
+    fn destruct<T>(&self) -> ((*mut T, *mut std::ffi::c_void, u64), GNode) {
+        ((self.ptr as *mut T, null_mut(), 0), self.node)
     }
 }
 
 impl Drop for RawCpuBuf {
     fn drop(&mut self) {
         unsafe {
-            let layout = Layout::from_size_align(self.len*self.size, self.align).unwrap();
+            let layout = Layout::from_size_align(self.len * self.size, self.align).unwrap();
             std::alloc::dealloc(self.ptr, layout);
         }
     }

@@ -149,7 +149,7 @@ pub type Result<T> = std::result::Result<T, Error>;
 ///
 /// # Example
 /// ```
-/// use custos::{CPU, Alloc, Buffer, VecRead, BufFlag, AsDev};
+/// use custos::{CPU, Alloc, Buffer, VecRead, BufFlag, AsDev, GraphReturn};
 ///
 /// let device = CPU::new();
 /// let ptrs: (*mut f32, *mut std::ffi::c_void, u64) = device.alloc(12);
@@ -159,6 +159,7 @@ pub type Result<T> = std::result::Result<T, Error>;
 ///     len: 12,
 ///     device: AsDev::dev(&device),
 ///     flag: BufFlag::None,
+///     node: device.graph().add_leaf(),
 ///     p: std::marker::PhantomData
 /// };
 /// assert_eq!(vec![0.; 12], device.read(&buf));
@@ -167,7 +168,7 @@ pub trait Alloc<T> {
     /// Allocate memory on the implemented device.
     /// # Example
     /// ```
-    /// use custos::{CPU, Alloc, Buffer, VecRead, BufFlag, AsDev};
+    /// use custos::{CPU, Alloc, Buffer, VecRead, BufFlag, AsDev, GraphReturn};
     ///
     /// let device = CPU::new();
     /// let ptrs: (*mut f32, *mut std::ffi::c_void, u64) = device.alloc(12);
@@ -177,6 +178,7 @@ pub trait Alloc<T> {
     ///     len: 12,
     ///     device: AsDev::dev(&device),
     ///     flag: BufFlag::None,
+    ///     node: device.graph().add_leaf(),
     ///     p: std::marker::PhantomData
     /// };
     /// assert_eq!(vec![0.; 12], device.read(&buf));
@@ -186,7 +188,7 @@ pub trait Alloc<T> {
     /// Allocate new memory with data
     /// # Example
     /// ```
-    /// use custos::{CPU, Alloc, Buffer, VecRead, BufFlag, AsDev};
+    /// use custos::{CPU, Alloc, Buffer, VecRead, BufFlag, AsDev, GraphReturn};
     ///
     /// let device = CPU::new();
     /// let ptrs: (*mut u8, *mut std::ffi::c_void, u64) = device.with_data(&[1, 5, 4, 3, 6, 9, 0, 4]);
@@ -196,6 +198,7 @@ pub trait Alloc<T> {
     ///     len: 8,
     ///     device: AsDev::dev(&device),
     ///     flag: BufFlag::None,
+    ///     node: device.graph().add_leaf(),
     ///     p: std::marker::PhantomData
     /// };
     /// assert_eq!(vec![1, 5, 4, 3, 6, 9, 0, 4], device.read(&buf));

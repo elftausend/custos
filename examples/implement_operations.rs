@@ -25,7 +25,7 @@ where
         // this returns a previously allocated buffer.
         // You can deactivate the caching behaviour by adding the "realloc" feature
         // to the custos feature list in the Cargo.toml.
-        let mut out = Cache::get(self, len);
+        let mut out = Cache::get(self, len, lhs.node.idx, rhs.node.idx);
 
         // By default, the Buffer dereferences to a slice.
         // Therefore, standard indexing can be used.
