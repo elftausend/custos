@@ -1,4 +1,4 @@
-use crate::{Alloc, BufFlag, Buffer, GNode, GraphReturn, Node};
+use crate::{Alloc, BufFlag, Buffer, Node, GNode, GraphReturn, AddGraph};
 use std::{cell::RefMut, collections::HashMap, ffi::c_void, marker::PhantomData};
 
 /// This trait is implemented for every 'cacheable' pointer.
@@ -32,16 +32,14 @@ impl<P: CacheType> Default for Cache<P> {
 }
 
 impl<P: CacheType> Cache<P> {
-    pub fn add_node<'a, T, D: Alloc<T> + GraphReturn>(
-        &mut self,
-        device: &'a D,
-        node: Node,
-        lhs_idx: usize,
-        rhs_idx: usize,
-    ) -> Buffer<'a, T> {
+    pub fn add_node<'a, T, D, A>(&mut self, device: &'a D, node: Node, add_node: A) -> Buffer<'a, T> 
+    where 
+        D: Alloc<T> + GraphReturn,
+        A: AddGraph
+    {
         let ptr: (*mut T, *mut c_void, _) = device.alloc(node.len);
 
-        let graph_node = device.graph().add_node(node.len, lhs_idx, rhs_idx);
+        let graph_node = device.graph().add(node.len, add_node);
         self.nodes.insert(node, P::new(ptr, node.len, graph_node));
 
         Buffer {
@@ -56,12 +54,12 @@ impl<P: CacheType> Cache<P> {
 
     /// Retrieves cached pointers and constructs a [`Buffer`] with them and `len`.
     #[cfg(not(feature = "realloc"))]
-    pub fn get<T, D: Alloc<T> + CacheReturn<P>>(
-        device: &D,
-        len: usize,
-        lhs_node_idx: usize,
-        rhs_node_idx: usize,
-    ) -> Buffer<T> {
+    pub fn get<T, D, A>(device: &D, len: usize, add_node: A) -> Buffer<T> 
+    where 
+        D: Alloc<T> + CacheReturn<P>,
+        A: AddGraph
+    {
+
         let node = Node::new(len);
 
         let mut cache = device.cache();
@@ -78,8 +76,8 @@ impl<P: CacheType> Cache<P> {
                     node,
                     p: PhantomData,
                 }
-            }
-            None => cache.add_node(device, node, lhs_node_idx, rhs_node_idx),
+            },
+            None => cache.add_node(device, node, add_node),
         }
     }
 

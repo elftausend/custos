@@ -14,6 +14,10 @@ impl Graph {
         Self { nodes: Vec::new() }
     }
 
+    pub fn add<A: AddGraph>(&mut self, len: usize, add_node: A) -> GNode {
+        add_node.add(self, len)
+    }
+
     pub fn add_leaf(&mut self, len: usize) -> GNode {
         let idx = self.nodes.len();
         self.add_node(len, idx, idx)
@@ -39,7 +43,7 @@ impl Graph {
 
         let mut idx = trace_at.idx;
         for check in &self.nodes[trace_at.idx + 1..] {
-            if !self.is_path_optimizable(check) {
+            if trace_at.len != check.len || !self.is_path_optimizable(check) {
                 continue;
             }
             if check.deps.contains(&idx) {
@@ -58,7 +62,7 @@ impl Graph {
         let mut occurences = 0;
 
         for check in &self.nodes[check_at.idx + 1..] {
-            if !check.deps.contains(&check_at.idx) {
+            if check_at.len != check.len || !check.deps.contains(&check_at.idx) {
                 continue;
             }
 
@@ -85,7 +89,7 @@ impl Graph {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Default)]
 pub struct GNode {
     pub idx: usize,
     pub deps: [usize; 2],
@@ -96,6 +100,41 @@ impl GNode {
     #[inline]
     pub fn is_leaf(&self) -> bool {
         self.idx == (self.deps[0] & self.deps[1])
+    }
+}
+
+pub trait AddGraph {
+    fn add(&self, graph: &mut Graph, len: usize) -> GNode;
+}
+
+// Leaf cache
+impl AddGraph for () {
+    fn add(&self, graph: &mut Graph, len: usize) -> GNode {
+        graph.add_leaf(len)
+    }
+}
+
+// Unary operation
+impl AddGraph for usize {
+    fn add(&self, graph: &mut Graph, len: usize) -> GNode {
+        graph.add_node(len, *self, *self)
+    }
+}
+
+impl AddGraph for (usize, usize) {
+    fn add(&self, graph: &mut Graph, len: usize) -> GNode {
+        graph.add_node(len, self.0, self.1)
+    }
+}
+
+impl AddGraph for [usize; 2] {
+    fn add(&self, graph: &mut Graph, len: usize) -> GNode {
+        graph.add_node(len, self[0], self[1])
+    }
+}
+impl AddGraph for [usize; 1] {
+    fn add(&self, graph: &mut Graph, len: usize) -> GNode {
+        graph.add_node(len, self[0], self[0])
     }
 }
 

@@ -12,7 +12,7 @@ where
     fn add(&self, lhs: &Buffer<T>, rhs: &Buffer<T>) -> Buffer<T> {
         let len = std::cmp::min(lhs.len, rhs.len);
 
-        let mut out = Cache::get(self, len, lhs.node.idx, rhs.node.idx);
+        let mut out = Cache::get(self, len, (lhs.node.idx, rhs.node.idx));
 
         for i in 0..len {
             out[i] = lhs[i] + rhs[i];
@@ -21,7 +21,7 @@ where
     }
 
     fn relu(&self, lhs: &Buffer<T>) -> Buffer<T> {
-        let mut out = Cache::get(self, lhs.len, lhs.node.idx, lhs.node.idx);
+        let mut out = Cache::get(self, lhs.len, (lhs.node.idx, lhs.node.idx));
 
         for i in 0..lhs.len {
             if out[i] > T::zero() {
