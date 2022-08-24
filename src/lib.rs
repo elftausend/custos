@@ -159,7 +159,7 @@ pub type Result<T> = std::result::Result<T, Error>;
 ///     len: 12,
 ///     device: AsDev::dev(&device),
 ///     flag: BufFlag::None,
-///     node: device.graph().add_leaf(),
+///     node: device.graph().add_leaf(12),
 ///     p: std::marker::PhantomData
 /// };
 /// assert_eq!(vec![0.; 12], device.read(&buf));
@@ -178,7 +178,7 @@ pub trait Alloc<T> {
     ///     len: 12,
     ///     device: AsDev::dev(&device),
     ///     flag: BufFlag::None,
-    ///     node: device.graph().add_leaf(),
+    ///     node: device.graph().add_leaf(12),
     ///     p: std::marker::PhantomData
     /// };
     /// assert_eq!(vec![0.; 12], device.read(&buf));
@@ -198,7 +198,7 @@ pub trait Alloc<T> {
     ///     len: 8,
     ///     device: AsDev::dev(&device),
     ///     flag: BufFlag::None,
-    ///     node: device.graph().add_leaf(),
+    ///     node: device.graph().add_leaf(8),
     ///     p: std::marker::PhantomData
     /// };
     /// assert_eq!(vec![1, 5, 4, 3, 6, 9, 0, 4], device.read(&buf));

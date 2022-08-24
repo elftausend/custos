@@ -2,7 +2,6 @@ use std::alloc::Layout;
 use std::marker::PhantomData;
 use std::{ffi::c_void, fmt::Debug, ptr::null_mut};
 
-use crate::cache::{CacheReturn, CacheType};
 #[cfg(feature = "opencl")]
 use crate::opencl::api::release_mem_object;
 use crate::{

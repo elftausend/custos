@@ -1,4 +1,4 @@
-use crate::{Alloc, BufFlag, Buffer, Node, GNode, GraphReturn, AddGraph};
+use crate::{Alloc, BufFlag, Buffer, Node, GNode, GraphReturn, AddGraph, CacheTrace};
 use std::{cell::RefMut, collections::HashMap, ffi::c_void, marker::PhantomData};
 
 /// This trait is implemented for every 'cacheable' pointer.
@@ -21,12 +21,14 @@ pub trait CacheReturn<P: CacheType>: GraphReturn {
 #[derive(Debug)]
 pub struct Cache<P: CacheType> {
     pub nodes: HashMap<Node, P>,
+    pub cache_traces: Option<Vec<CacheTrace>>
 }
 
 impl<P: CacheType> Default for Cache<P> {
     fn default() -> Self {
         Self {
             nodes: Default::default(),
+            cache_traces: None,
         }
     }
 }
@@ -52,6 +54,31 @@ impl<P: CacheType> Cache<P> {
         }
     }
 
+    pub fn traced_buf<'a, T, D: Alloc<T>>(&self, device: &'a D, map_to: Node) -> Option<Buffer<'a, T>> {
+        if let Some(cache_traces) = &self.cache_traces {
+            for trace in cache_traces {
+                if trace.use_cache_idx.contains(&map_to.idx) {
+                    
+                    let ptr = self.nodes.get(&Node {
+                        idx: trace.cache_idx,
+                        len: map_to.len
+                    }).unwrap();
+                    let (ptr, node) = ptr.destruct();
+
+                    return Some(Buffer {
+                        ptr,
+                        len: node.len,
+                        device: Alloc::<T>::as_dev(device),
+                        flag: BufFlag::Cache,
+                        node,
+                        p: PhantomData,
+                    });
+                }
+            }
+        }
+        None
+    }
+
     /// Retrieves cached pointers and constructs a [`Buffer`] with them and `len`.
     #[cfg(not(feature = "realloc"))]
     pub fn get<T, D, A>(device: &D, len: usize, add_node: A) -> Buffer<T> 
@@ -63,6 +90,11 @@ impl<P: CacheType> Cache<P> {
         let node = Node::new(len);
 
         let mut cache = device.cache();
+
+        if let Some(cached) = cache.traced_buf(device, node) {
+            return cached;
+        }
+        
         let ptr_option = cache.nodes.get(&node);
 
         match ptr_option {
@@ -70,7 +102,7 @@ impl<P: CacheType> Cache<P> {
                 let (ptr, node) = ptr.destruct();
                 Buffer {
                     ptr,
-                    len,
+                    len: node.len,
                     device: Alloc::<T>::as_dev(device),
                     flag: BufFlag::Cache,
                     node,

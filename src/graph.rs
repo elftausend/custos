@@ -1,17 +1,57 @@
 use std::cell::RefMut;
 
+use crate::{cache::{CacheReturn, CacheType}, Node};
+
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub struct CacheTrace {
+    pub cache_idx: usize,
+    pub use_cache_idx: Vec<usize>,
+}
+
 pub trait GraphReturn {
     fn graph(&self) -> RefMut<Graph>;
+}
+
+pub trait GraphOpt {
+    fn optimize<P>(&self) 
+    where
+        P: CacheType,
+        Self: GraphReturn + CacheReturn<P>,
+    {
+        let mut cache = self.cache();
+        let cache_tracees = self.graph().cache_traces();
+        
+        if let Some(cache_traces) = &cache_tracees {
+            for trace in cache_traces {
+
+                //let node = cache.nodes.get()
+
+                cache.nodes.remove(
+                    &Node {
+                        idx: trace.cache_idx,
+                        len: 10000000,
+                    }
+                );
+            }
+        }
+        
+        cache.cache_traces = cache_tracees
+        
+    }
 }
 
 #[derive(Default, Debug)]
 pub struct Graph {
     nodes: Vec<GNode>,
+    leafs: usize,
 }
 
 impl Graph {
     pub fn new() -> Self {
-        Self { nodes: Vec::new() }
+        Self { 
+            nodes: Vec::new(),
+            leafs: 0
+        }
     }
 
     pub fn add<A: AddGraph>(&mut self, len: usize, add_node: A) -> GNode {
@@ -20,6 +60,7 @@ impl Graph {
 
     pub fn add_leaf(&mut self, len: usize) -> GNode {
         let idx = self.nodes.len();
+        self.leafs += 1;
         self.add_node(len, idx, idx)
     }
 
@@ -32,6 +73,39 @@ impl Graph {
         };
         self.nodes.push(node);
         node
+    }
+
+    pub fn cache_traces(&self) -> Option<Vec<CacheTrace>> {
+        if self.nodes.is_empty() {
+            return None;
+        }
+
+        let mut start = GNode::default();
+        for node in &self.nodes {
+            if !node.is_leaf() {
+                start = *node;
+                break;
+            }
+        }
+
+        let offset = start.idx;
+        let mut traces = vec![];
+
+        while let Some(trace) = self.trace_cache_path(&start) {
+            let last_trace_node = *trace.last().unwrap();
+            traces.push(
+                CacheTrace {
+                    cache_idx: start.idx - offset,
+                    use_cache_idx: trace.iter().map(|node| node.idx-offset).collect()
+                }
+            );
+            if let Some(last) = self.nodes.get(last_trace_node.idx + 1) {
+                start = *last;  
+            } else {
+                break
+            }   
+        }
+        Some(traces)
     }
 
     pub fn trace_cache_path(&self, trace_at: &GNode) -> Option<Vec<GNode>> {
@@ -140,7 +214,7 @@ impl AddGraph for [usize; 1] {
 
 #[cfg(test)]
 mod tests {
-    use crate::{GNode, Graph};
+    use crate::{GNode, Graph, CacheTrace};
 
     #[test]
     fn test_leaf_node() {
@@ -205,6 +279,9 @@ mod tests {
             ]),
             trace
         );
+
+        let traces = graph.cache_traces();
+        println!("traces: {traces:?}");
     }
 
     #[test]
@@ -279,16 +356,39 @@ mod tests {
         let d = graph.add_node(10, c.idx, c.idx);
         
         // idx: 4, deps: [3, 0]
-        let u = graph.add_node(10, d.idx, a.idx);
+        let _u = graph.add_node(10, d.idx, a.idx);
 
         // idx: 5, deps: [3, 1]
-        let e = graph.add_node(10, d.idx, b.idx);
+        let _e = graph.add_node(10, d.idx, b.idx);
 
 
-        let trace = graph.trace_cache_path(&c);
+        let _trace = graph.trace_cache_path(&c);
 
         assert!(graph.is_path_optimizable(&c));
         assert!(!graph.is_path_optimizable(&d));
-        println!("trace: {trace:?}");
+        //println!("trace: {trace:?}");
+    }
+
+    #[test]
+    fn test_trace_all() {
+        let mut graph = Graph::new();
+        let a = graph.add_leaf(10);
+        let b = graph.add_leaf(10);
+
+        // idx: 2, deps: [0, 1] (0)
+        let c = graph.add_node(10, a.idx, b.idx);
+
+        // idx: 3, deps: [2, 2] (1)
+        let d = graph.add_node(10, c.idx, c.idx);
+
+        // idx: 4, deps: [3, 1] (2)
+        let _e = graph.add_node(10, d.idx, b.idx);
+
+        let traces = graph.cache_traces();
+        assert_eq!(
+            CacheTrace {
+                cache_idx: 0,
+                use_cache_idx: vec![0, 1, 2,],
+            }, traces.unwrap()[0]);
     }
 }

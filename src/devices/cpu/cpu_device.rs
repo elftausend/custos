@@ -1,7 +1,7 @@
 use crate::{
     devices::cache::{Cache, CacheReturn},
     Alloc, AsDev, Buffer, CacheBuf, ClearBuf, CloneBuf, Device, DeviceType, Graph, GraphReturn,
-    VecRead, WriteBuf,
+    VecRead, WriteBuf, GraphOpt,
 };
 use std::{
     alloc::{handle_alloc_error, Layout},
@@ -104,6 +104,8 @@ impl GraphReturn for CPU {
         self.graph.borrow_mut()
     }
 }
+
+impl GraphOpt for CPU {}
 
 impl<'a, T: Clone> CloneBuf<'a, T> for CPU {
     fn clone_buf(&'a self, buf: &Buffer<'a, T>) -> Buffer<'a, T> {

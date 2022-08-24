@@ -1,4 +1,4 @@
-use custos::{get_device, number::Number, range, Buffer, Cache, GraphReturn, CPU};
+use custos::{get_device, number::Number, range, Buffer, Cache, CPU, GraphOpt};
 
 pub trait AddBuf<T> {
     fn add(&self, lhs: &Buffer<T>, rhs: &Buffer<T>) -> Buffer<T>;
@@ -24,8 +24,8 @@ where
         let mut out = Cache::get(self, lhs.len, (lhs.node.idx, lhs.node.idx));
 
         for i in 0..lhs.len {
-            if out[i] > T::zero() {
-                out[i] = T::zero();
+            if lhs[i] > T::zero() {
+                out[i] = lhs[i];
             }
         }
         out
@@ -57,21 +57,24 @@ fn test_graph() {
     // idx: 1
     let b = Buffer::from((&device, [2, 3, 1, 4, 0, 5]));
 
-    // idx: 2, deps: [0, 1]
-    let c = a.add(&b);
 
-    // idx: 3, deps: [2, 2]
-    let d = c.relu();
-    // idx: 4, deps: [3, 1]
-    let e = d.add(&b);
+    for ep in range(1) {
+        // idx: 2, deps: [0, 1]
+        let c = a.add(&b);
+        assert_eq!(vec![3, 5, 4, 8, 5, 11], c.read());
 
-    // idx: 5, deps: [2, 1]
-    let f = c.add(&b);
+        // idx: 3, deps: [2, 2]
+        let d = c.relu();
+        
+        assert_eq!(vec![3, 5, 4, 8, 5, 11], d.read());
 
-    let mut graph = device.graph();
-    //println!("graph: {graph:?}");
-    let is_c_opt = graph.is_path_optimizable(&c.node);
-    //let is_opt = graph.is_optimizable();
-    println!("is_opt: {is_c_opt}");
-    //println!("c: {c:?}");
+        // idx: 4, deps: [3, 1]
+        let e = d.add(&b);
+
+        if ep == 1 {
+            assert_eq!(c.ptr, d.ptr);
+            assert_eq!(c.ptr, e.ptr);
+        }
+        device.optimize();
+    }
 }
