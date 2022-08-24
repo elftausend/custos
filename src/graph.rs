@@ -22,21 +22,23 @@ pub trait GraphOpt {
         Self: GraphReturn + CacheReturn<P>,
     {
         let mut cache = self.cache();
-
         let cache_traces = self.graph().cache_traces();
 
         if let Some(cache_traces) = &cache_traces {
             for trace in cache_traces {
 
-                //let node = cache.nodes.get()
+                // starting at 1, because the first element is the origin
+                for node in &trace.use_cache_idx[1..] {
+                    // insert the common / optimized pointer in all the other nodes
+                    // this deallocates the old pointers
+                    let ptr = cache.nodes.get(&trace.use_cache_idx[0]).unwrap().clone();
+                    cache.nodes.insert(*node, ptr);
 
-                /*cache.nodes.remove(
-                    &trace.cache_idx
-                );*/
+                    println!("dealloc");
+                }
             }
         }
-
-        cache.cache_traces = cache_traces
+        //cache.cache_traces = cache_traces
     }
 }
 
@@ -81,6 +83,8 @@ impl Graph {
         }
 
         let mut start = GNode::default();
+
+        // skip leafs
         for node in &self.nodes {
             if !node.is_leaf() {
                 start = *node;
@@ -95,6 +99,7 @@ impl Graph {
             let last_trace_node = *trace.last().unwrap();
 
             traces.push(CacheTrace {
+                // subtract offset because of the leaf nodes
                 cache_idx: start.idx - offset,
                 use_cache_idx: trace
                     .into_iter()
@@ -104,9 +109,21 @@ impl Graph {
                     })
                     .collect(),
             });
-            if let Some(last) = self.nodes.get(last_trace_node.idx + 1) {
-                start = *last;
-            } else {
+
+            // skip leafs, find another tracing node
+            let mut add = 1;
+            let mut has_entered = false;
+            while let Some(last) = self.nodes.get(last_trace_node.idx + add) {
+                has_entered = true;
+                if !last.is_leaf() {
+                    start = *last;
+                    break;
+                } 
+                add += 1;
+            }
+
+            // while loop condition isn't updated, therefore it would loop indefinitely
+            if !has_entered {
                 break;
             }
         }
@@ -125,6 +142,7 @@ impl Graph {
             if trace_at.len != check.len || !self.is_path_optimizable(check) {
                 continue;
             }
+
             if check.deps.contains(&idx) {
                 idx = check.idx;
                 trace.push(*check);
@@ -401,5 +419,28 @@ mod tests {
             },
             traces.unwrap()[0]
         );
+    }
+
+    #[test]
+    fn test_leafed_trace() {
+        let mut graph = Graph::new();
+        let a = graph.add_leaf(10);
+        let b = graph.add_node(10, a.idx, a.idx);
+
+        let _z = graph.add_leaf(10);
+        
+        let _z = graph.add_leaf(10);
+
+        // idx: 2, deps: [0, 1] (0)
+        let c = graph.add_node(12, a.idx, a.idx);
+
+        // idx: 3, deps: [2, 2] (1)
+        let d = graph.add_node(12, c.idx, c.idx);
+
+        // idx: 4, deps: [3, 1] (2)
+        let _e = graph.add_node(12, d.idx, a.idx);
+
+        let traces = graph.cache_traces();
+        println!("traces: {traces:?}");
     }
 }

@@ -1,5 +1,5 @@
 use crate::{AddGraph, Alloc, BufFlag, Buffer, CacheTrace, GNode, GraphReturn, Node};
-use std::{cell::RefMut, collections::HashMap, ffi::c_void, marker::PhantomData};
+use std::{cell::RefMut, collections::HashMap, ffi::c_void, marker::PhantomData, rc::Rc};
 
 /// This trait is implemented for every 'cacheable' pointer.
 pub trait CacheType {
@@ -20,15 +20,15 @@ pub trait CacheReturn<P: CacheType>: GraphReturn {
 /// Caches pointers that can be reconstructed into a [`Buffer`].
 #[derive(Debug)]
 pub struct Cache<P: CacheType> {
-    pub nodes: HashMap<Node, P>,
-    pub cache_traces: Option<Vec<CacheTrace>>,
+    pub nodes: HashMap<Node, Rc<P>>,
+    //pub cache_traces: Option<Vec<CacheTrace>>,
 }
 
 impl<P: CacheType> Default for Cache<P> {
     fn default() -> Self {
         Self {
             nodes: Default::default(),
-            cache_traces: None,
+            //cache_traces: None,
         }
     }
 }
@@ -42,7 +42,7 @@ impl<P: CacheType> Cache<P> {
         let ptr: (*mut T, *mut c_void, _) = device.alloc(node.len);
 
         let graph_node = device.graph().add(node.len, add_node);
-        self.nodes.insert(node, P::new(ptr, node.len, graph_node));
+        self.nodes.insert(node, Rc::new(P::new(ptr, node.len, graph_node)));
 
         Buffer {
             ptr,
@@ -53,12 +53,13 @@ impl<P: CacheType> Cache<P> {
             p: PhantomData,
         }
     }
-
+/* 
     pub fn traced_buf<'a, T, D: Alloc<T>>(
         &self,
         device: &'a D,
         map_to: Node,
     ) -> Option<Buffer<'a, T>> {
+       
         if let Some(cache_traces) = &self.cache_traces {
             for trace in cache_traces {
                 if trace.use_cache_idx.contains(&map_to) {
@@ -84,7 +85,7 @@ impl<P: CacheType> Cache<P> {
         }
         None
     }
-
+*/
     /// Retrieves cached pointers and constructs a [`Buffer`] with them and `len`.
     #[cfg(not(feature = "realloc"))]
     pub fn get<T, D, A>(device: &D, len: usize, add_node: A) -> Buffer<T>
@@ -96,9 +97,9 @@ impl<P: CacheType> Cache<P> {
 
         let mut cache = device.cache();
 
-        if let Some(cached) = cache.traced_buf(device, node) {
-            return cached;
-        }
+        //if let Some(cached) = cache.traced_buf(device, node) {
+        //    return cached;
+        //}
 
         let ptr_option = cache.nodes.get(&node);
 
