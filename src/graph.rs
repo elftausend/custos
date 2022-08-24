@@ -26,7 +26,6 @@ pub trait GraphOpt {
 
         if let Some(cache_traces) = &cache_traces {
             for trace in cache_traces {
-
                 // starting at 1, because the first element is the origin
                 for node in &trace.use_cache_idx[1..] {
                     // insert the common / optimized pointer in all the other nodes
@@ -61,13 +60,15 @@ impl Graph {
     }
 
     pub fn add_leaf(&mut self, len: usize) -> GNode {
-        let idx = self.nodes.len();
-        self.leafs += 1;
-        self.add_node(len, idx, idx)
+        GNode {
+            idx: -1,
+            deps: [-1, -1],
+            len,
+        }
     }
 
-    pub fn add_node(&mut self, len: usize, lhs_idx: usize, rhs_idx: usize) -> GNode {
-        let idx = self.nodes.len();
+    pub fn add_node(&mut self, len: usize, lhs_idx: isize, rhs_idx: isize) -> GNode {
+        let idx = self.nodes.len() as isize;
         let node = GNode {
             idx,
             deps: [lhs_idx, rhs_idx],
@@ -82,48 +83,27 @@ impl Graph {
             return None;
         }
 
-        let mut start = GNode::default();
+        let mut start = self.nodes[0];
 
-        // skip leafs
-        for node in &self.nodes {
-            if !node.is_leaf() {
-                start = *node;
-                break;
-            }
-        }
-
-        let offset = start.idx;
         let mut traces = vec![];
 
         while let Some(trace) = self.trace_cache_path(&start) {
             let last_trace_node = *trace.last().unwrap();
 
             traces.push(CacheTrace {
-                // subtract offset because of the leaf nodes
-                cache_idx: start.idx - offset,
+                cache_idx: start.idx as usize,
                 use_cache_idx: trace
                     .into_iter()
                     .map(|node| Node {
-                        idx: node.idx - offset,
-                        len: node.len,
+                        idx: node.idx as usize,
+                        len: node.len as usize,
                     })
                     .collect(),
             });
 
-            // skip leafs, find another tracing node
-            let mut add = 1;
-            let mut has_entered = false;
-            while let Some(last) = self.nodes.get(last_trace_node.idx + add) {
-                has_entered = true;
-                if !last.is_leaf() {
-                    start = *last;
-                    break;
-                } 
-                add += 1;
-            }
-
-            // while loop condition isn't updated, therefore it would loop indefinitely
-            if !has_entered {
+            if let Some(last) = self.nodes.get(last_trace_node.idx as usize + 1) {
+                start = *last;
+            } else {
                 break;
             }
         }
@@ -138,7 +118,7 @@ impl Graph {
         let mut trace = vec![*trace_at];
 
         let mut idx = trace_at.idx;
-        for check in &self.nodes[trace_at.idx + 1..] {
+        for check in &self.nodes[trace_at.idx as usize + 1..] {
             if trace_at.len != check.len || !self.is_path_optimizable(check) {
                 continue;
             }
@@ -158,7 +138,7 @@ impl Graph {
 
         let mut occurences = 0;
 
-        for check in &self.nodes[check_at.idx + 1..] {
+        for check in &self.nodes[check_at.idx as usize + 1..] {
             if check_at.len != check.len || !check.deps.contains(&check_at.idx) {
                 continue;
             }
@@ -188,15 +168,15 @@ impl Graph {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Default)]
 pub struct GNode {
-    pub idx: usize,
-    pub deps: [usize; 2],
+    pub idx: isize,
+    pub deps: [isize; 2],
     pub len: usize,
 }
 
 impl GNode {
     #[inline]
     pub fn is_leaf(&self) -> bool {
-        self.idx == (self.deps[0] & self.deps[1])
+        self.idx == -1
     }
 }
 
@@ -214,11 +194,24 @@ impl AddGraph for () {
 // Unary operation
 impl AddGraph for usize {
     fn add(&self, graph: &mut Graph, len: usize) -> GNode {
-        graph.add_node(len, *self, *self)
+        graph.add_node(len, *self as isize, *self as isize)
+    }
+}
+
+// Unary operation
+impl AddGraph for isize {
+    fn add(&self, graph: &mut Graph, len: usize) -> GNode {
+        graph.add_node(len, *self as isize, *self)
     }
 }
 
 impl AddGraph for (usize, usize) {
+    fn add(&self, graph: &mut Graph, len: usize) -> GNode {
+        graph.add_node(len, self.0 as isize, self.1 as isize)
+    }
+}
+
+impl AddGraph for (isize, isize) {
     fn add(&self, graph: &mut Graph, len: usize) -> GNode {
         graph.add_node(len, self.0, self.1)
     }
@@ -226,12 +219,19 @@ impl AddGraph for (usize, usize) {
 
 impl AddGraph for [usize; 2] {
     fn add(&self, graph: &mut Graph, len: usize) -> GNode {
+        graph.add_node(len, self[0] as isize, self[1] as isize)
+    }
+}
+
+impl AddGraph for [isize; 2] {
+    fn add(&self, graph: &mut Graph, len: usize) -> GNode {
         graph.add_node(len, self[0], self[1])
     }
 }
+
 impl AddGraph for [usize; 1] {
     fn add(&self, graph: &mut Graph, len: usize) -> GNode {
-        graph.add_node(len, self[0], self[0])
+        graph.add_node(len, self[0] as isize, self[0] as isize)
     }
 }
 
@@ -242,7 +242,7 @@ mod tests {
     #[test]
     fn test_leaf_node() {
         let node = GNode {
-            idx: 1,
+            idx: -1,
             deps: [1, 1],
             len: 10,
         };
@@ -285,18 +285,18 @@ mod tests {
         assert_eq!(
             Some(vec![
                 GNode {
+                    idx: 0,
+                    deps: [-1, -1],
+                    len: 10
+                },
+                GNode {
+                    idx: 1,
+                    deps: [0, 0],
+                    len: 10
+                },
+                GNode {
                     idx: 2,
-                    deps: [0, 1],
-                    len: 10
-                },
-                GNode {
-                    idx: 3,
-                    deps: [2, 2],
-                    len: 10
-                },
-                GNode {
-                    idx: 4,
-                    deps: [3, 1],
+                    deps: [1, -1],
                     len: 10
                 }
             ]),
@@ -347,18 +347,18 @@ mod tests {
         assert_eq!(
             Some(vec![
                 GNode {
+                    idx: 0,
+                    deps: [-1, -1],
+                    len: 10
+                },
+                GNode {
+                    idx: 2,
+                    deps: [0, 0],
+                    len: 10
+                },
+                GNode {
                     idx: 3,
-                    deps: [0, 1],
-                    len: 10
-                },
-                GNode {
-                    idx: 5,
-                    deps: [3, 3],
-                    len: 10
-                },
-                GNode {
-                    idx: 6,
-                    deps: [5, 1],
+                    deps: [2, -1],
                     len: 10
                 }
             ]),
@@ -428,7 +428,7 @@ mod tests {
         let b = graph.add_node(10, a.idx, a.idx);
 
         let _z = graph.add_leaf(10);
-        
+
         let _z = graph.add_leaf(10);
 
         // idx: 2, deps: [0, 1] (0)
