@@ -1,11 +1,14 @@
 use std::cell::RefMut;
 
-use crate::{cache::{CacheReturn, CacheType}, Node};
+use crate::{
+    cache::{CacheReturn, CacheType},
+    Node,
+};
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct CacheTrace {
     pub cache_idx: usize,
-    pub use_cache_idx: Vec<usize>,
+    pub use_cache_idx: Vec<Node>,
 }
 
 pub trait GraphReturn {
@@ -13,30 +16,27 @@ pub trait GraphReturn {
 }
 
 pub trait GraphOpt {
-    fn optimize<P>(&self) 
+    fn optimize<P>(&self)
     where
         P: CacheType,
         Self: GraphReturn + CacheReturn<P>,
     {
         let mut cache = self.cache();
-        let cache_tracees = self.graph().cache_traces();
-        
-        if let Some(cache_traces) = &cache_tracees {
+
+        let cache_traces = self.graph().cache_traces();
+
+        if let Some(cache_traces) = &cache_traces {
             for trace in cache_traces {
 
                 //let node = cache.nodes.get()
 
-                cache.nodes.remove(
-                    &Node {
-                        idx: trace.cache_idx,
-                        len: 10000000,
-                    }
-                );
+                /*cache.nodes.remove(
+                    &trace.cache_idx
+                );*/
             }
         }
-        
-        cache.cache_traces = cache_tracees
-        
+
+        cache.cache_traces = cache_traces
     }
 }
 
@@ -48,9 +48,9 @@ pub struct Graph {
 
 impl Graph {
     pub fn new() -> Self {
-        Self { 
+        Self {
             nodes: Vec::new(),
-            leafs: 0
+            leafs: 0,
         }
     }
 
@@ -93,17 +93,22 @@ impl Graph {
 
         while let Some(trace) = self.trace_cache_path(&start) {
             let last_trace_node = *trace.last().unwrap();
-            traces.push(
-                CacheTrace {
-                    cache_idx: start.idx - offset,
-                    use_cache_idx: trace.iter().map(|node| node.idx-offset).collect()
-                }
-            );
+
+            traces.push(CacheTrace {
+                cache_idx: start.idx - offset,
+                use_cache_idx: trace
+                    .into_iter()
+                    .map(|node| Node {
+                        idx: node.idx - offset,
+                        len: node.len,
+                    })
+                    .collect(),
+            });
             if let Some(last) = self.nodes.get(last_trace_node.idx + 1) {
-                start = *last;  
+                start = *last;
             } else {
-                break
-            }   
+                break;
+            }
         }
         Some(traces)
     }
@@ -214,7 +219,7 @@ impl AddGraph for [usize; 1] {
 
 #[cfg(test)]
 mod tests {
-    use crate::{GNode, Graph, CacheTrace};
+    use crate::{CacheTrace, GNode, Graph, Node};
 
     #[test]
     fn test_leaf_node() {
@@ -354,13 +359,12 @@ mod tests {
 
         // idx: 3, deps: [2, 2]
         let d = graph.add_node(10, c.idx, c.idx);
-        
+
         // idx: 4, deps: [3, 0]
         let _u = graph.add_node(10, d.idx, a.idx);
 
         // idx: 5, deps: [3, 1]
         let _e = graph.add_node(10, d.idx, b.idx);
-
 
         let _trace = graph.trace_cache_path(&c);
 
@@ -385,10 +389,17 @@ mod tests {
         let _e = graph.add_node(10, d.idx, b.idx);
 
         let traces = graph.cache_traces();
+
         assert_eq!(
             CacheTrace {
                 cache_idx: 0,
-                use_cache_idx: vec![0, 1, 2,],
-            }, traces.unwrap()[0]);
+                use_cache_idx: vec![
+                    Node { idx: 0, len: 10 },
+                    Node { idx: 1, len: 10 },
+                    Node { idx: 2, len: 10 },
+                ],
+            },
+            traces.unwrap()[0]
+        );
     }
 }

@@ -1,4 +1,4 @@
-use custos::{get_device, number::Number, range, Buffer, Cache, CPU, GraphOpt};
+use custos::{get_device, number::Number, range, Buffer, Cache, GraphOpt, CPU};
 
 pub trait AddBuf<T> {
     fn add(&self, lhs: &Buffer<T>, rhs: &Buffer<T>) -> Buffer<T>;
@@ -57,7 +57,6 @@ fn test_graph() {
     // idx: 1
     let b = Buffer::from((&device, [2, 3, 1, 4, 0, 5]));
 
-
     for ep in range(1) {
         // idx: 2, deps: [0, 1]
         let c = a.add(&b);
@@ -65,7 +64,7 @@ fn test_graph() {
 
         // idx: 3, deps: [2, 2]
         let d = c.relu();
-        
+
         assert_eq!(vec![3, 5, 4, 8, 5, 11], d.read());
 
         // idx: 4, deps: [3, 1]

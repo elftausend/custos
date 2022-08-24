@@ -1,4 +1,4 @@
-use crate::{Alloc, BufFlag, Buffer, Node, GNode, GraphReturn, AddGraph, CacheTrace};
+use crate::{AddGraph, Alloc, BufFlag, Buffer, CacheTrace, GNode, GraphReturn, Node};
 use std::{cell::RefMut, collections::HashMap, ffi::c_void, marker::PhantomData};
 
 /// This trait is implemented for every 'cacheable' pointer.
@@ -21,7 +21,7 @@ pub trait CacheReturn<P: CacheType>: GraphReturn {
 #[derive(Debug)]
 pub struct Cache<P: CacheType> {
     pub nodes: HashMap<Node, P>,
-    pub cache_traces: Option<Vec<CacheTrace>>
+    pub cache_traces: Option<Vec<CacheTrace>>,
 }
 
 impl<P: CacheType> Default for Cache<P> {
@@ -34,10 +34,10 @@ impl<P: CacheType> Default for Cache<P> {
 }
 
 impl<P: CacheType> Cache<P> {
-    pub fn add_node<'a, T, D, A>(&mut self, device: &'a D, node: Node, add_node: A) -> Buffer<'a, T> 
-    where 
+    pub fn add_node<'a, T, D, A>(&mut self, device: &'a D, node: Node, add_node: A) -> Buffer<'a, T>
+    where
         D: Alloc<T> + GraphReturn,
-        A: AddGraph
+        A: AddGraph,
     {
         let ptr: (*mut T, *mut c_void, _) = device.alloc(node.len);
 
@@ -54,15 +54,21 @@ impl<P: CacheType> Cache<P> {
         }
     }
 
-    pub fn traced_buf<'a, T, D: Alloc<T>>(&self, device: &'a D, map_to: Node) -> Option<Buffer<'a, T>> {
+    pub fn traced_buf<'a, T, D: Alloc<T>>(
+        &self,
+        device: &'a D,
+        map_to: Node,
+    ) -> Option<Buffer<'a, T>> {
         if let Some(cache_traces) = &self.cache_traces {
             for trace in cache_traces {
-                if trace.use_cache_idx.contains(&map_to.idx) {
-                    
-                    let ptr = self.nodes.get(&Node {
-                        idx: trace.cache_idx,
-                        len: map_to.len
-                    }).unwrap();
+                if trace.use_cache_idx.contains(&map_to) {
+                    let ptr = self
+                        .nodes
+                        .get(&Node {
+                            idx: trace.cache_idx,
+                            len: map_to.len,
+                        })
+                        .unwrap();
                     let (ptr, node) = ptr.destruct();
 
                     return Some(Buffer {
@@ -81,12 +87,11 @@ impl<P: CacheType> Cache<P> {
 
     /// Retrieves cached pointers and constructs a [`Buffer`] with them and `len`.
     #[cfg(not(feature = "realloc"))]
-    pub fn get<T, D, A>(device: &D, len: usize, add_node: A) -> Buffer<T> 
-    where 
+    pub fn get<T, D, A>(device: &D, len: usize, add_node: A) -> Buffer<T>
+    where
         D: Alloc<T> + CacheReturn<P>,
-        A: AddGraph
+        A: AddGraph,
     {
-
         let node = Node::new(len);
 
         let mut cache = device.cache();
@@ -94,7 +99,7 @@ impl<P: CacheType> Cache<P> {
         if let Some(cached) = cache.traced_buf(device, node) {
             return cached;
         }
-        
+
         let ptr_option = cache.nodes.get(&node);
 
         match ptr_option {
@@ -108,7 +113,7 @@ impl<P: CacheType> Cache<P> {
                     node,
                     p: PhantomData,
                 }
-            },
+            }
             None => cache.add_node(device, node, add_node),
         }
     }

@@ -45,7 +45,7 @@ pub fn get_count() -> usize {
     COUNT.with(|c| *c.borrow())
 }
 
-#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]
 /// A Node is used to identify a cached pointer.
 pub struct Node {
     pub idx: usize,
