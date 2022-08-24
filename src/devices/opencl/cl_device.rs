@@ -9,13 +9,13 @@ use crate::{
     cache::{Cache, CacheReturn},
     devices::opencl::api::{create_buffer, MemFlags},
     Alloc, AsDev, Buffer, CDatatype, CacheBuf, ClearBuf, CloneBuf, Device, DeviceType, Error,
-    VecRead, WriteBuf,
+    VecRead, WriteBuf, Graph, GraphOpt, GraphReturn,
 };
 use std::{
     cell::{Ref, RefCell},
     ffi::c_void,
     fmt::Debug,
-    rc::Rc,
+    rc::Rc, borrow::BorrowMut,
 };
 
 /// Used to perform calculations with an OpenCL capable device.
@@ -38,6 +38,7 @@ pub struct CLDevice {
     pub kernel_cache: RefCell<KernelCacheCL>,
     pub cache: RefCell<Cache<RawCL>>,
     pub inner: Rc<RefCell<InternCLDevice>>,
+    pub graph: RefCell<Graph>,
 }
 
 unsafe impl Sync for InternCLDevice {}
@@ -53,6 +54,7 @@ impl CLDevice {
             kernel_cache: RefCell::new(KernelCacheCL::default()),
             cache: RefCell::new(Cache::default()),
             inner,
+            graph: RefCell::new(Graph::new()),
         })
     }
 
@@ -169,7 +171,7 @@ impl<'a, T> CloneBuf<'a, T> for CLDevice {
 impl<'a, T> CacheBuf<'a, T> for CLDevice {
     #[inline]
     fn cached(&'a self, len: usize) -> Buffer<'a, T> {
-        Cache::get(self, len)
+        Cache::get(self, len, ())
     }
 }
 
@@ -179,6 +181,14 @@ impl CacheReturn<RawCL> for CLDevice {
         self.cache.borrow_mut()
     }
 }
+
+impl GraphReturn for CLDevice {
+    #[inline]
+    fn graph(&self) -> std::cell::RefMut<Graph> {
+        self.graph.borrow_mut()
+    }
+}
+impl GraphOpt for CLDevice {}
 
 #[inline]
 pub fn cl_cached<T>(device: &CLDevice, len: usize) -> Buffer<T> {

@@ -118,8 +118,7 @@ impl<'a, T: Clone> CloneBuf<'a, T> for CPU {
 impl<'a, T> CacheBuf<'a, T> for CPU {
     #[inline]
     fn cached(&'a self, len: usize) -> Buffer<'a, T> {
-        let node = self.graph().add_leaf(len);
-        Cache::get::<T, CPU, _>(self, len, node.idx)
+        Cache::get::<T, CPU, _>(self, len, ())
     }
 }
 

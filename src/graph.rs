@@ -22,36 +22,30 @@ pub trait GraphOpt {
         Self: GraphReturn + CacheReturn<P>,
     {
         let mut cache = self.cache();
-        let cache_traces = self.graph().cache_traces();
 
-        if let Some(cache_traces) = &cache_traces {
+        if let Some(cache_traces) = &self.graph().cache_traces() {
             for trace in cache_traces {
                 // starting at 1, because the first element is the origin
                 for node in &trace.use_cache_idx[1..] {
-                    // insert the common / optimized pointer in all the other nodes
+                    // insert the common / optimized pointer in all the other nodes 
                     // this deallocates the old pointers
                     let ptr = cache.nodes.get(&trace.use_cache_idx[0]).unwrap().clone();
                     cache.nodes.insert(*node, ptr);
-
-                    println!("dealloc");
                 }
             }
         }
-        //cache.cache_traces = cache_traces
     }
 }
 
 #[derive(Default, Debug)]
 pub struct Graph {
     nodes: Vec<GNode>,
-    leafs: usize,
 }
 
 impl Graph {
     pub fn new() -> Self {
         Self {
             nodes: Vec::new(),
-            leafs: 0,
         }
     }
 
@@ -84,7 +78,6 @@ impl Graph {
         }
 
         let mut start = self.nodes[0];
-
         let mut traces = vec![];
 
         while let Some(trace) = self.trace_cache_path(&start) {
@@ -101,13 +94,13 @@ impl Graph {
                     .collect(),
             });
 
-            if let Some(last) = self.nodes.get(last_trace_node.idx as usize + 1) {
-                start = *last;
-            } else {
-                break;
+            // use better searching algorithm to find the next start node
+            match self.nodes.get(last_trace_node.idx as usize + 1) {
+                Some(next) => start = *next,
+                None => return Some(traces),
             }
         }
-        Some(traces)
+        None
     }
 
     pub fn trace_cache_path(&self, trace_at: &GNode) -> Option<Vec<GNode>> {
@@ -149,20 +142,6 @@ impl Graph {
             occurences += 1;
         }
         true
-    }
-
-    pub fn is_optimizable(&mut self) -> bool {
-        for node in &self.nodes {
-            if node.is_leaf() {
-                continue;
-            }
-
-            let path_optimizable = self.is_path_optimizable(node);
-
-            println!("node: {node:?}, is_opt: {path_optimizable}");
-            //if path_optimizable { return true }
-        }
-        false
     }
 }
 
@@ -425,7 +404,7 @@ mod tests {
     fn test_leafed_trace() {
         let mut graph = Graph::new();
         let a = graph.add_leaf(10);
-        let b = graph.add_node(10, a.idx, a.idx);
+        let _b = graph.add_node(10, a.idx, a.idx);
 
         let _z = graph.add_leaf(10);
 

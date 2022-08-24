@@ -1,4 +1,4 @@
-use std::{ffi::c_void, ptr::null_mut};
+use std::{ffi::c_void, ptr::null_mut, rc::Rc};
 
 pub use cl_device::*;
 pub use cl_devices::*;
@@ -18,7 +18,7 @@ use crate::{AsDev, BufFlag, DeviceError};
 use std::{fmt::Debug, marker::PhantomData};
 
 use self::api::{create_buffer, MemFlags};
-use crate::{Buffer, CDatatype, Node};
+use crate::{Buffer, CDatatype, Node, GraphReturn};
 
 /// Returns an OpenCL pointer that is bound to the host pointer stored in the specified buffer.
 pub fn to_unified<T>(device: &CLDevice, no_drop: Buffer<T>) -> crate::Result<*mut c_void> {
@@ -30,12 +30,15 @@ pub fn to_unified<T>(device: &CLDevice, no_drop: Buffer<T>) -> crate::Result<*mu
         Some(&no_drop),
     )?;
 
+    let node = device.graph().add_node(no_drop.len, lhs_idx, rhs_idx);
+
     let old_ptr = device.cache.borrow_mut().nodes.insert(
         Node::new(no_drop.len),
-        RawCL {
+        Rc::new(RawCL {
             ptr: cl_ptr,
             host_ptr: null_mut(),
-        },
+            node,
+        }),
     );
 
     // this pointer was overwritten previously, hence can it be deallocated
