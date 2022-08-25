@@ -56,7 +56,7 @@ where
         ", datatype=T::as_c_type_str());
 
         let len = std::cmp::min(lhs.len, rhs.len);
-        let out = Cache::get::<T, CLDevice>(self, len, [lhs.node.idx, rhs.node.idx]);
+        let out = Cache::get::<T, CLDevice, _>(self, len, [lhs.node.idx, rhs.node.idx]);
 
         // In the background, the kernel is compiled once. After that, it will be reused every iteration.
         // The cached kernels are released (or freed) when the underlying CLDevice is dropped.

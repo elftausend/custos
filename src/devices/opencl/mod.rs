@@ -12,16 +12,16 @@ mod kernel_cache;
 mod kernel_enqueue;
 
 #[cfg(not(feature = "realloc"))]
-use crate::{AsDev, BufFlag, DeviceError};
+use crate::{AsDev, BufFlag, DeviceError, AddGraph};
 
 #[cfg(not(feature = "realloc"))]
 use std::{fmt::Debug, marker::PhantomData};
 
 use self::api::{create_buffer, MemFlags};
-use crate::{Buffer, CDatatype, Node, GraphReturn};
+use crate::{Buffer, CDatatype, Node, GraphReturn, GNode};
 
 /// Returns an OpenCL pointer that is bound to the host pointer stored in the specified buffer.
-pub fn to_unified<T>(device: &CLDevice, no_drop: Buffer<T>) -> crate::Result<*mut c_void> {
+pub fn to_unified<T>(device: &CLDevice, no_drop: Buffer<T>, node: GNode) -> crate::Result<*mut c_void> {
     // use the host pointer to create an OpenCL buffer
     let cl_ptr = create_buffer(
         &device.ctx(),
@@ -29,8 +29,6 @@ pub fn to_unified<T>(device: &CLDevice, no_drop: Buffer<T>) -> crate::Result<*mu
         no_drop.len,
         Some(&no_drop),
     )?;
-
-    let node = device.graph().add_node(no_drop.len, lhs_idx, rhs_idx);
 
     let old_ptr = device.cache.borrow_mut().nodes.insert(
         Node::new(no_drop.len),
@@ -52,22 +50,27 @@ pub fn to_unified<T>(device: &CLDevice, no_drop: Buffer<T>) -> crate::Result<*mu
 /// Converts an 'only' CPU buffer into an OpenCL + CPU (unified memory) buffer.
 /// # Safety
 /// The pointer of the no_drop Buffer must be valid for the entire lifetime of the returned Buffer.
-pub unsafe fn construct_buffer<'a, T: Debug>(
+pub unsafe fn construct_buffer<'a, T: Debug, A: AddGraph>(
     device: &'a CLDevice,
     no_drop: Buffer<T>,
+    add_node: A,
 ) -> crate::Result<Buffer<'a, T>> {
+    
     if no_drop.flag == BufFlag::None {
         return Err(DeviceError::ConstructError.into());
     }
 
+    let node = add_node.add(&mut device.graph(), no_drop.len);
+
     let (host_ptr, len) = (no_drop.host_ptr(), no_drop.len);
-    let cl_ptr = to_unified(device, no_drop)?;
+    let cl_ptr = to_unified(device, no_drop, node)?;
 
     Ok(Buffer {
         ptr: (host_ptr, cl_ptr, 0),
         len,
         device: device.dev(),
         flag: BufFlag::Cache,
+        node,
         p: PhantomData,
     })
 }

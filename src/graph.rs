@@ -2,7 +2,7 @@ use std::cell::RefMut;
 
 use crate::{
     cache::{CacheReturn, CacheType},
-    Node,
+    Node, Buffer,
 };
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
@@ -145,11 +145,17 @@ impl Graph {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct GNode {
     pub idx: isize,
     pub deps: [isize; 2],
     pub len: usize,
+}
+
+impl Default for GNode {
+    fn default() -> Self {
+        Self { idx: -1, deps: [-1, -1], len: 0 }
+    }
 }
 
 impl GNode {
@@ -211,6 +217,24 @@ impl AddGraph for [isize; 2] {
 impl AddGraph for [usize; 1] {
     fn add(&self, graph: &mut Graph, len: usize) -> GNode {
         graph.add_node(len, self[0] as isize, self[0] as isize)
+    }
+}
+
+impl<'a, T> AddGraph for Buffer<'a, T> {
+    fn add(&self, graph: &mut Graph, len: usize) -> GNode {
+        graph.add_node(len, self.node.idx, self.node.idx)
+    }
+}
+
+impl<'a, T> AddGraph for &Buffer<'a, T> {
+    fn add(&self, graph: &mut Graph, len: usize) -> GNode {
+        graph.add_node(len, self.node.idx, self.node.idx)
+    }
+}
+
+impl<'a, T> AddGraph for (&Buffer<'a, T>, &Buffer<'a, T>) {
+    fn add(&self, graph: &mut Graph, len: usize) -> GNode {
+        graph.add_node(len, self.0.node.idx, self.1.node.idx)
     }
 }
 

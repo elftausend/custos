@@ -15,7 +15,7 @@ use std::{
     cell::{Ref, RefCell},
     ffi::c_void,
     fmt::Debug,
-    rc::Rc, borrow::BorrowMut,
+    rc::Rc,
 };
 
 /// Used to perform calculations with an OpenCL capable device.

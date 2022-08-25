@@ -9,7 +9,7 @@ use std::{collections::HashMap, ffi::c_void};
 pub struct RawCL {
     pub ptr: *mut c_void,
     pub host_ptr: *mut u8,
-    node: GNode,
+    pub node: GNode,
 }
 
 impl CacheType for RawCL {

@@ -33,5 +33,6 @@ fn test_shallow_buf_realloc() {
     let mut cloned = unsafe { buf.shallow_or_clone() };
     cloned[0] = 101;
 
+    
     assert_eq!(buf.as_slice(), &[101, 2, 3, 4, 5]);
 }

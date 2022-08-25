@@ -32,7 +32,7 @@ fn test_kernel_launch() -> custos::Result<()> {
     ";
 
     let lhs = Buffer::<f32>::from((&device, [1., 3., 6., 4., 1., 4.]));
-    let out = Cache::get::<f32, _>(&device, lhs.len);
+    let out = Cache::get::<f32, _, _>(&device, lhs.len, &lhs);
 
     let gws = [lhs.len, 0, 0];
     enqueue_kernel(&device, src_add, gws, None, &[&lhs, &out, &4f32])?;
@@ -53,7 +53,7 @@ fn test_kernel_launch_diff_datatype() -> custos::Result<()> {
     ";
 
     let lhs = Buffer::<f32>::from((&device, [1., 3., 6., 4., 1., 4.]));
-    let out = Cache::get::<f32, _>(&device, lhs.len);
+    let out = Cache::get::<f32, _, _>(&device, lhs.len, lhs.node.idx);
 
     let gws = [lhs.len, 0, 0];
     enqueue_kernel(&device, src_add, gws, None, &[&lhs, &out, &3i32])?;
@@ -78,7 +78,7 @@ fn test_kernel_launch_2() -> custos::Result<()> {
 
     let gws = [lhs.len, 0, 0];
 
-    let out = Cache::get::<i32, _>(&device, lhs.len);
+    let out = Cache::get::<i32, _, _>(&device, lhs.len, (lhs.node.idx, rhs.node.idx));
     enqueue_kernel(&device, &src, gws, None, &[&lhs, &rhs, &out])?;
     assert_eq!(out.read(), vec![-1, -1, -1, -1, -1, -1]);
     Ok(())
