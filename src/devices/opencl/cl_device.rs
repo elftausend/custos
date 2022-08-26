@@ -15,7 +15,6 @@ use std::{
     cell::{Ref, RefCell},
     ffi::c_void,
     fmt::Debug,
-    rc::Rc,
 };
 
 /// Used to perform calculations with an OpenCL capable device.
@@ -37,7 +36,7 @@ use std::{
 pub struct CLDevice {
     pub kernel_cache: RefCell<KernelCacheCL>,
     pub cache: RefCell<Cache<RawCL>>,
-    pub inner: Rc<RefCell<InternCLDevice>>,
+    pub inner: RefCell<InternCLDevice>,
     pub graph: RefCell<Graph>,
 }
 
@@ -49,7 +48,7 @@ impl CLDevice {
     /// - No device is found at the given device index
     /// - some other OpenCL related errors
     pub fn new(device_idx: usize) -> Result<CLDevice, Error> {
-        let inner = Rc::new(RefCell::new(CL_DEVICES.current(device_idx)?));
+        let inner = RefCell::new(CL_DEVICES.current(device_idx)?);
         Ok(CLDevice {
             kernel_cache: RefCell::new(KernelCacheCL::default()),
             cache: RefCell::new(Cache::default()),

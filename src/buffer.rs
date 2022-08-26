@@ -377,11 +377,7 @@ impl<T> Default for Buffer<'_, T> {
             len: Default::default(),
             device: Default::default(),
             flag: BufFlag::None,
-            node: GNode {
-                idx: 0,
-                deps: [0, 0],
-                len: 0,
-            },
+            node: GNode::default(),
             p: PhantomData,
         }
     }

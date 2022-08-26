@@ -60,8 +60,10 @@ pub unsafe fn construct_buffer<'a, T: Debug, A: AddGraph>(
         return Err(DeviceError::ConstructError.into());
     }
 
-    let node = add_node.add(&mut device.graph(), no_drop.len);
-
+    let mut node = device.graph().add(no_drop.len, add_node);
+    // adding 1, because Node::new is called after node add
+    node.idx +=1;
+    
     let (host_ptr, len) = (no_drop.host_ptr(), no_drop.len);
     let cl_ptr = to_unified(device, no_drop, node)?;
 

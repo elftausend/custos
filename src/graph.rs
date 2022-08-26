@@ -2,7 +2,7 @@ use std::cell::RefMut;
 
 use crate::{
     cache::{CacheReturn, CacheType},
-    Node, Buffer,
+    Node, Buffer, COUNT,
 };
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
@@ -39,7 +39,7 @@ pub trait GraphOpt {
 
 #[derive(Default, Debug)]
 pub struct Graph {
-    nodes: Vec<GNode>,
+    pub nodes: Vec<GNode>,
 }
 
 impl Graph {
@@ -56,6 +56,7 @@ impl Graph {
     pub fn add_leaf(&mut self, len: usize) -> GNode {
         GNode {
             idx: -1,
+            node_idx: -1,
             deps: [-1, -1],
             len,
         }
@@ -63,11 +64,15 @@ impl Graph {
 
     pub fn add_node(&mut self, len: usize, lhs_idx: isize, rhs_idx: isize) -> GNode {
         let idx = self.nodes.len() as isize;
-        let node = GNode {
-            idx,
-            deps: [lhs_idx, rhs_idx],
-            len,
-        };
+        let node = COUNT.with(|count| {
+            GNode {
+                // subtracting 1, because Node::new is called bafore add_node in Cache::get
+                node_idx: *count.borrow() as isize - 1,
+                idx,
+                deps: [lhs_idx, rhs_idx],
+                len,
+            }
+        });
         self.nodes.push(node);
         node
     }
@@ -88,7 +93,7 @@ impl Graph {
                 use_cache_idx: trace
                     .into_iter()
                     .map(|node| Node {
-                        idx: node.idx as usize,
+                        idx: node.node_idx as usize,
                         len: node.len as usize,
                     })
                     .collect(),
@@ -147,6 +152,7 @@ impl Graph {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct GNode {
+    pub node_idx: isize,
     pub idx: isize,
     pub deps: [isize; 2],
     pub len: usize,
@@ -154,7 +160,7 @@ pub struct GNode {
 
 impl Default for GNode {
     fn default() -> Self {
-        Self { idx: -1, deps: [-1, -1], len: 0 }
+        Self { node_idx: -1, idx: -1, deps: [-1, -1], len: 0 }
     }
 }
 
@@ -245,6 +251,7 @@ mod tests {
     #[test]
     fn test_leaf_node() {
         let node = GNode {
+            node_idx: -1,
             idx: -1,
             deps: [1, 1],
             len: 10,
@@ -252,6 +259,7 @@ mod tests {
         assert!(node.is_leaf());
 
         let node = GNode {
+            node_idx: 2,
             idx: 2,
             deps: [1, 1],
             len: 10,
@@ -259,6 +267,7 @@ mod tests {
         assert!(!node.is_leaf());
 
         let node = GNode {
+            node_idx: -1,
             idx: 2,
             deps: [1, 2],
             len: 10,
@@ -288,16 +297,19 @@ mod tests {
         assert_eq!(
             Some(vec![
                 GNode {
+                    node_idx: -1,
                     idx: 0,
                     deps: [-1, -1],
                     len: 10
                 },
                 GNode {
+                    node_idx: -1,
                     idx: 1,
                     deps: [0, 0],
                     len: 10
                 },
                 GNode {
+                    node_idx: -1,
                     idx: 2,
                     deps: [1, -1],
                     len: 10
@@ -350,16 +362,19 @@ mod tests {
         assert_eq!(
             Some(vec![
                 GNode {
+                    node_idx: -1,
                     idx: 0,
                     deps: [-1, -1],
                     len: 10
                 },
                 GNode {
+                    node_idx: -1,
                     idx: 2,
                     deps: [0, 0],
                     len: 10
                 },
                 GNode {
+                    node_idx: -1,
                     idx: 3,
                     deps: [2, -1],
                     len: 10
