@@ -32,10 +32,9 @@ impl<P: CacheType> Default for Cache<P> {
 }
 
 impl<P: CacheType> Cache<P> {
-    pub fn add_node<'a, T, D, A>(&mut self, device: &'a D, node: Node, add_node: A) -> Buffer<'a, T>
+    pub fn add_node<'a, T, D>(&mut self, device: &'a D, node: Node, add_node: impl AddGraph) -> Buffer<'a, T>
     where
         D: Alloc<T> + GraphReturn,
-        A: AddGraph,
     {
         let ptr: (*mut T, *mut c_void, _) = device.alloc(node.len);
 
@@ -55,10 +54,9 @@ impl<P: CacheType> Cache<P> {
 
     /// Retrieves cached pointers and constructs a [`Buffer`] with them and `len`.
     #[cfg(not(feature = "realloc"))]
-    pub fn get<T, D, A>(device: &D, len: usize, add_node: A) -> Buffer<T>
+    pub fn get<T, D>(device: &D, len: usize, add_node: impl AddGraph) -> Buffer<T>
     where
         D: Alloc<T> + CacheReturn<P>,
-        A: AddGraph,
     {
         let node = Node::new(len);
 

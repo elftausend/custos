@@ -12,7 +12,7 @@ fn test_to_unified_graph_opt_cl() -> custos::Result<()> {
 
     let device = CPU::new();
 
-    let cpu_a = Buffer::from((&device, [1, 2, 3, 4, 5]));
+    let _cpu_a = Buffer::from((&device, [1, 2, 3, 4, 5]));
     
 
     let a = Buffer::from((&cl_dev, [1, 2, 3, 4, 5]));
