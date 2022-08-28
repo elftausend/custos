@@ -1,4 +1,4 @@
-use std::{ffi::c_void, ptr::null_mut, rc::Rc};
+use std::{ffi::c_void, rc::Rc};
 
 pub use cl_device::*;
 pub use cl_devices::*;
@@ -21,7 +21,7 @@ use self::api::{create_buffer, MemFlags};
 use crate::{Buffer, CDatatype, Node, GraphReturn, GNode};
 
 /// Returns an OpenCL pointer that is bound to the host pointer stored in the specified buffer.
-pub fn to_unified<T>(device: &CLDevice, no_drop: Buffer<T>, node: GNode) -> crate::Result<*mut c_void> {
+pub fn to_unified<T>(device: &CLDevice, no_drop: Buffer<T>, graph_node: GNode, cache_node: Node) -> crate::Result<*mut c_void> {
     // use the host pointer to create an OpenCL buffer
     let cl_ptr = create_buffer(
         &device.ctx(),
@@ -31,11 +31,11 @@ pub fn to_unified<T>(device: &CLDevice, no_drop: Buffer<T>, node: GNode) -> crat
     )?;
 
     let old_ptr = device.cache.borrow_mut().nodes.insert(
-        Node::new(no_drop.len),
+        cache_node,
         Rc::new(RawCL {
             ptr: cl_ptr,
-            host_ptr: null_mut(),
-            node,
+            host_ptr: no_drop.host_ptr() as *mut u8,
+            node: graph_node,
         }),
     );
 
@@ -50,29 +50,42 @@ pub fn to_unified<T>(device: &CLDevice, no_drop: Buffer<T>, node: GNode) -> crat
 /// Converts an 'only' CPU buffer into an OpenCL + CPU (unified memory) buffer.
 /// # Safety
 /// The pointer of the no_drop Buffer must be valid for the entire lifetime of the returned Buffer.
-pub unsafe fn construct_buffer<'a, T: Debug, A: AddGraph>(
+pub unsafe fn construct_buffer<'a, T: Debug>(
     device: &'a CLDevice,
     no_drop: Buffer<T>,
-    add_node: A,
+    add_node: impl AddGraph,
 ) -> crate::Result<Buffer<'a, T>> {
     
     if no_drop.flag == BufFlag::None {
         return Err(DeviceError::ConstructError.into());
     }
+    
+    let cache_node = Node::new(no_drop.len);
 
-    let mut node = device.graph().add(no_drop.len, add_node);
+    if let Some(rawcl) = device.cache.borrow().nodes.get(&cache_node) {
+        return Ok(Buffer {
+            ptr: (rawcl.host_ptr as *mut T, rawcl.ptr, 0),
+            len: no_drop.len,
+            device: device.dev(),
+            flag: BufFlag::Cache,
+            node: rawcl.node,
+            p: PhantomData,
+        })
+    }
+
+    let graph_node = device.graph().add(no_drop.len, add_node);
     // adding 1, because Node::new is called after node add
-    node.idx +=1;
+    //graph_node.idx +=1;
     
     let (host_ptr, len) = (no_drop.host_ptr(), no_drop.len);
-    let cl_ptr = to_unified(device, no_drop, node)?;
+    let cl_ptr = to_unified(device, no_drop, graph_node, cache_node)?;
 
     Ok(Buffer {
         ptr: (host_ptr, cl_ptr, 0),
         len,
         device: device.dev(),
         flag: BufFlag::Cache,
-        node,
+        node: graph_node,
         p: PhantomData,
     })
 }

@@ -49,7 +49,7 @@ impl Graph {
         }
     }
 
-    pub fn add<A: AddGraph>(&mut self, len: usize, add_node: A) -> GNode {
+    pub fn add(&mut self, len: usize, add_node: impl AddGraph) -> GNode {
         add_node.add(self, len)
     }
 
@@ -66,7 +66,7 @@ impl Graph {
         let idx = self.nodes.len() as isize;
         let node = COUNT.with(|count| {
             GNode {
-                // subtracting 1, because Node::new is called bafore add_node in Cache::get
+                // subtracting 1, because Node::new is called before add_node in Cache::get
                 node_idx: *count.borrow() as isize - 1,
                 idx,
                 deps: [lhs_idx, rhs_idx],
