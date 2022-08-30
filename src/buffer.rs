@@ -10,12 +10,18 @@ use crate::{
 };
 
 /// Descripes the type of a [`Buffer`]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub enum BufFlag {
     None,
     Cache,
     Wrapper,
     Item,
+}
+
+impl Default for BufFlag {
+    fn default() -> Self {
+        BufFlag::None
+    }
 }
 
 impl PartialEq for BufFlag {
@@ -59,13 +65,11 @@ impl<'a, T> Buffer<'a, T> {
             ptr: device.alloc(len),
             len,
             device: device.as_dev(),
-            flag: BufFlag::None,
             node: device.graph().add_leaf(len),
-            p: PhantomData,
+            ..Default::default()
         }
     }
-    /*
-    // TODO: can't be added to a graph
+    
     /// Buffers created with this method can outlive the device used to create this `Buffer`.<br>
     /// No operations can be invoked on this `Buffer` as [`get_device!`] will panic.
     /// # Examples
@@ -86,14 +90,10 @@ impl<'a, T> Buffer<'a, T> {
         Buffer {
             ptr: device.alloc(len),
             len,
-            device: Device::default(),
-            flag: BufFlag::None,
-            p: PhantomData,
+            ..Default::default()
         }
     }
-    */
-
-    /*
+    
     /// Constructs a `Buffer` out of a host pointer and a length.
     /// # Example
     /// ```
@@ -109,16 +109,17 @@ impl<'a, T> Buffer<'a, T> {
     ///     *value += idx as f32;
     /// }
     /// assert_eq!(buf.as_slice(), &[0., 1., 2., 3., 4., 5., 6., 7., 8., 9.,])
+    /// 
     /// ```
+    /// # Safety
+    /// The pointer must not outlive the Buffer.
     pub unsafe fn from_raw_host(ptr: *mut T, len: usize) -> Buffer<'a, T> {
         Buffer {
             ptr: (ptr, null_mut(), 0),
             len,
-            device: Device::default(),
-            flag: BufFlag::None,
-            p: PhantomData,
+            ..Default::default()
         }
-    }*/
+    }
 
     /// Returns the number of elements contained in `Buffer`.
     /// # Example
@@ -133,8 +134,6 @@ impl<'a, T> Buffer<'a, T> {
         self.len
     }
 
-    /*
-    TODO: test uses from 5, buffer can't be added to graph
     /// Returns `true` if `Buffer` is created without a slice.
     /// # Example
     /// ```
@@ -144,7 +143,6 @@ impl<'a, T> Buffer<'a, T> {
     /// let a = Buffer::<i32>::from(5);
     /// assert!(a.is_empty())
     /// ```
-    */
     pub fn is_empty(&self) -> bool {
         self.len == 0
     }
@@ -199,8 +197,6 @@ impl<'a, T> Buffer<'a, T> {
         unsafe { std::slice::from_raw_parts_mut(self.ptr.0, self.len) }
     }
 
-    /*
-    // TODO: Buffer can't be added to graph
     /// Used if the `Buffer` contains only a single value.
     ///
     /// # Example
@@ -223,7 +219,7 @@ impl<'a, T> Buffer<'a, T> {
         }
         T::default()
     }
-    */
+    
 
     /// Sets all elements in `Buffer` to the default value.
     pub fn clear(&mut self)
@@ -370,13 +366,13 @@ impl<T> Drop for Buffer<'_, T> {
     }
 }
 
-impl<T> Default for Buffer<'_, T> {
+impl<'a, T> Default for Buffer<'a, T> {
     fn default() -> Self {
         Self {
             ptr: (null_mut(), null_mut(), 0),
+            flag: BufFlag::default(),
             len: Default::default(),
             device: Default::default(),
-            flag: BufFlag::None,
             node: Node::default(),
             p: PhantomData,
         }
@@ -504,17 +500,16 @@ impl<'a, T> std::iter::IntoIterator for &'a mut Buffer<'_, T> {
     }
 }
 
-/*impl<T: Number> From<T> for Buffer<'_, T> {
+impl<T: crate::number::Number> From<T> for Buffer<'_, T> {
     fn from(val: T) -> Self {
         Buffer {
             ptr: (Box::into_raw(Box::new(val)), null_mut(), 0),
             len: 0,
-            device: Device::default(),
             flag: BufFlag::Item,
-            p: PhantomData,
+            ..Default::default()
         }
     }
-}*/
+}
 
 impl<'a, T: Clone, D: Alloc<T> + ?Sized + GraphReturn, const N: usize> From<(&'a D, [T; N])>
     for Buffer<'a, T>
@@ -525,9 +520,8 @@ impl<'a, T: Clone, D: Alloc<T> + ?Sized + GraphReturn, const N: usize> From<(&'a
             ptr: device_slice.0.with_data(&device_slice.1),
             len,
             device: device_slice.0.as_dev(),
-            flag: BufFlag::None,
             node: device_slice.0.graph().add_leaf(len),
-            p: PhantomData,
+            ..Default::default()
         }
     }
 }
@@ -539,9 +533,8 @@ impl<'a, T: Clone, D: Alloc<T> + GraphReturn + ?Sized> From<(&'a D, &[T])> for B
             ptr: device_slice.0.with_data(device_slice.1),
             len,
             device: device_slice.0.as_dev(),
-            flag: BufFlag::None,
             node: device_slice.0.graph().add_leaf(len),
-            p: PhantomData,
+            ..Default::default()
         }
     }
 }
@@ -553,9 +546,8 @@ impl<'a, T: Clone, D: Alloc<T> + GraphReturn + ?Sized> From<(&'a D, Vec<T>)> for
             ptr: device_slice.0.alloc_with_vec(device_slice.1),
             len,
             device: device_slice.0.as_dev(),
-            flag: BufFlag::None,
             node: device_slice.0.graph().add_leaf(len),
-            p: PhantomData,
+            ..Default::default()
         }
     }
 }
@@ -567,9 +559,8 @@ impl<'a, T: Clone, D: Alloc<T> + GraphReturn + ?Sized> From<(&'a D, &Vec<T>)> fo
             ptr: device_slice.0.with_data(device_slice.1),
             len,
             device: device_slice.0.as_dev(),
-            flag: BufFlag::None,
             node: device_slice.0.graph().add_leaf(len),
-            p: PhantomData,
+            ..Default::default()
         }
     }
 }

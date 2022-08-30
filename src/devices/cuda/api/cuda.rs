@@ -68,6 +68,9 @@ pub fn cumalloc<T>(len: usize) -> CudaResult<CUdeviceptr> {
     Ok(ptr)
 }
 
+/// Free CUDA GPU memory
+/// # Safety
+/// FFI, `ptr` must be a valid pointer.
 pub unsafe fn cufree(ptr: CUdeviceptr) -> CudaResult<()> {
     cuMemFree_v2(ptr).into()
 }

@@ -150,6 +150,7 @@ pub trait GenericBlas
 where
     Self: Sized + Float,
 {
+    #[allow(clippy::too_many_arguments)]
     fn blas_gemm(
         order: Order,
         trans_a: Transpose,
