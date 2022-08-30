@@ -1,9 +1,9 @@
 use std::cell::RefMut;
 
-use crate::{
-    cache::{CacheReturn, CacheType},
-    Ident, Buffer, COUNT,
-};
+use crate::{Ident, Buffer, COUNT};
+
+#[cfg(feature="opt-cache")]
+use crate::cache::{CacheReturn, CacheType};
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct CacheTrace {
@@ -15,6 +15,7 @@ pub trait GraphReturn {
     fn graph(&self) -> RefMut<Graph>;
 }
 
+#[cfg(feature="opt-cache")]
 pub trait GraphOpt {
     fn optimize<P>(&self)
     where

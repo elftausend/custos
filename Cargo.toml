@@ -18,6 +18,7 @@ default = ["realloc", "opencl", "cuda"]
 opencl = ["dep:lazy_static"]
 cuda = []
 realloc = []
+opt-cache = []
 
 [[example]]
 name = "cuda_readme"

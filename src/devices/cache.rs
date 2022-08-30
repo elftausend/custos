@@ -32,13 +32,18 @@ impl<P: CacheType> Default for Cache<P> {
 }
 
 impl<P: CacheType> Cache<P> {
-    pub fn add_node<'a, T, D>(&mut self, device: &'a D, node: Ident, add_node: impl AddGraph) -> Buffer<'a, T>
+    pub fn add_node<'a, T, D>(&mut self, device: &'a D, node: Ident, _add_node: impl AddGraph) -> Buffer<'a, T>
     where
         D: Alloc<T> + GraphReturn,
     {
         let ptr: (*mut T, *mut c_void, _) = device.alloc(node.len);
 
-        let graph_node = device.graph().add(node.len, add_node);
+        #[cfg(feature="opt-cache")]
+        let graph_node = device.graph().add(node.len, _add_node);
+
+        #[cfg(not(feature="opt-cache"))]
+        let graph_node = Node::default();
+
         bump_count();
 
         self.nodes

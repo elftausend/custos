@@ -1,6 +1,6 @@
 use crate::{
     devices::cache::{Cache, CacheReturn},
-    Alloc, AsDev, Buffer, CacheBuf, ClearBuf, CloneBuf, Device, DeviceType, Graph, GraphOpt,
+    Alloc, AsDev, Buffer, CacheBuf, ClearBuf, CloneBuf, Device, DeviceType, Graph,
     GraphReturn, VecRead, WriteBuf, CachedLeaf,
 };
 use std::{
@@ -105,7 +105,9 @@ impl GraphReturn for CPU {
     }
 }
 
-impl GraphOpt for CPU {}
+
+#[cfg(feature="opt-cache")]
+impl crate::GraphOpt for CPU {}
 
 impl<'a, T: Clone> CloneBuf<'a, T> for CPU {
     fn clone_buf(&'a self, buf: &Buffer<'a, T>) -> Buffer<'a, T> {
