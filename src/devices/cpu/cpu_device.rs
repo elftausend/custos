@@ -1,7 +1,7 @@
 use crate::{
     devices::cache::{Cache, CacheReturn},
     Alloc, AsDev, Buffer, CacheBuf, ClearBuf, CloneBuf, Device, DeviceType, Graph, GraphOpt,
-    GraphReturn, VecRead, WriteBuf,
+    GraphReturn, VecRead, WriteBuf, CachedLeaf,
 };
 use std::{
     alloc::{handle_alloc_error, Layout},
@@ -118,7 +118,7 @@ impl<'a, T: Clone> CloneBuf<'a, T> for CPU {
 impl<'a, T> CacheBuf<'a, T> for CPU {
     #[inline]
     fn cached(&'a self, len: usize) -> Buffer<'a, T> {
-        Cache::get::<T, CPU>(self, len, ())
+        Cache::get::<T, CPU>(self, len, CachedLeaf)
     }
 }
 

@@ -176,7 +176,6 @@ pub trait AddGraph {
     fn add(&self, graph: &mut Graph, len: usize) -> Node;
 }
 
-// Leaf cache
 impl AddGraph for () {
     fn add(&self, graph: &mut Graph, len: usize) -> Node {
         graph.add_leaf(len)
@@ -224,6 +223,14 @@ impl AddGraph for [isize; 2] {
 impl AddGraph for [usize; 1] {
     fn add(&self, graph: &mut Graph, len: usize) -> Node {
         graph.add_node(len, self[0] as isize, self[0] as isize)
+    }
+}
+
+pub struct CachedLeaf;
+
+impl AddGraph for CachedLeaf {
+    fn add(&self, graph: &mut Graph, len: usize) -> Node {
+        graph.add_node(len, -1, -1)
     }
 }
 

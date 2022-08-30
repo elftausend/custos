@@ -37,6 +37,6 @@ pub fn cu_clear<T: CDatatype>(device: &CudaDevice, buf: &mut Buffer<T>) -> crate
     "#,
         datatype = T::as_c_type_str()
     );
-    launch_kernel1d(buf.len, device, &src, "clear", vec![buf, &buf.len])?;
+    launch_kernel1d(buf.len, device, &src, "clear", &[buf, &buf.len])?;
     Ok(())
 }

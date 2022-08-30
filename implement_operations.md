@@ -3,7 +3,7 @@
 As code in .md files is not compiled directly, minor compilation issues may appear in the snippets below. 
 Hence, you can find the entire source code in the examples folder, or just click [here](https://github.com/elftausend/custos/blob/main/examples/implement_operations.rs).
 
-## Make operations invocable für all devices
+## Make operations invocable for all devices
 
 Implementing a new operation happens in a few steps. <br>
 

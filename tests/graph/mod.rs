@@ -8,6 +8,9 @@ mod graph;
 #[cfg(feature="opencl")]
 mod to_unified;
 
+#[cfg(feature="cuda")]
+use custos::{CudaDevice, cuda::launch_kernel1d};
+
 pub trait AddBuf<T> {
     fn add(&self, lhs: &Buffer<T>, rhs: &Buffer<T>) -> Buffer<T>;
     fn relu(&self, lhs: &Buffer<T>) -> Buffer<T>;
@@ -70,6 +73,48 @@ impl<T: CDatatype> AddBuf<T> for CLDevice {
     
         let out = Cache::get::<T, _>(self, lhs.len(), lhs.node.idx);
         enqueue_kernel(self, &src, [lhs.len, 0, 0], None, &[lhs, &out]).unwrap();
+        out
+    }
+}
+
+#[cfg(feature="cuda")]
+impl<T: CDatatype> AddBuf<T> for CudaDevice {
+    fn add(&self, lhs: &Buffer<T>, rhs: &Buffer<T>) -> Buffer<T> {
+        let src = format!(
+            r#"extern "C" __global__ void add({datatype}* lhs, {datatype}* rhs, {datatype}* out, int numElements)
+                {{
+                    int idx = blockDim.x * blockIdx.x + threadIdx.x;
+                    if (idx < numElements) {{
+                        out[idx] = lhs[idx] + rhs[idx];
+                    }}
+                  
+                }}
+        "#, datatype = T::as_c_type_str());
+
+        let out = Cache::get::<T, _>(self, lhs.len, (lhs.node.idx, rhs.node.idx));
+        launch_kernel1d(lhs.len, self, &src, "add", &[
+            lhs, rhs, &out, &lhs.len
+        ]).unwrap();
+        out
+    }
+
+
+    fn relu(&self, lhs: &Buffer<T>) -> Buffer<T> {
+        let src = format!(
+            r#"extern "C" __global__ void relu({datatype}* lhs, {datatype}* out, int numElements)
+                {{
+                    int idx = blockDim.x * blockIdx.x + threadIdx.x;
+                    if (idx < numElements) {{
+                        out[idx] = max(lhs[idx], 0);
+                    }}
+                  
+                }}
+        "#, datatype = T::as_c_type_str());
+    
+        let out = Cache::get::<T, _>(self, lhs.len(), lhs.node.idx);
+        launch_kernel1d(lhs.len, self, &src, "relu", &[
+            lhs, &out, &lhs.len
+        ]).unwrap();
         out
     }
 }

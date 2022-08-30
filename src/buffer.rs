@@ -259,7 +259,7 @@ impl<'a, T> Buffer<'a, T> {
         get_device!(self.device, WriteBuf<T>).write(self, data)
     }
 
-    #[cfg(feature = "cuda")]
+    /*#[cfg(feature = "cuda")]
     pub fn to_cuda<'c>(&self, cuda_device: &'c crate::CudaDevice) -> crate::Result<Buffer<'c, T>> {
         use crate::{DeviceError, DeviceType};
 
@@ -267,10 +267,10 @@ impl<'a, T> Buffer<'a, T> {
             return Err(DeviceError::CPUtoCUDA.into());
         }
 
-        let mut out = crate::Cache::get(cuda_device, self.len);
+        let mut out = crate::Cache::get(cuda_device, self.len, );
         cuda_device.write(&mut out, self);
         Ok(out)
-    }
+    }*/
 
     /// Creates a shallow copy of &self.
     ///

@@ -85,11 +85,11 @@ impl<T: CDatatype> AddBuf<T> for CudaDevice {
         );
 
         let len = std::cmp::min(lhs.len, rhs.len);
-        let out = Cache::get::<T, CudaDevice>(self, len);
+        let out = Cache::get::<T, CudaDevice>(self, len, (lhs.node.idx, rhs.node.idx));
 
         // The kernel is compiled once with nvrtc and is cached too.
         // The arguments are specified with a vector of buffers and/or numbers.
-        launch_kernel1d(len, self, &src, "add", vec![lhs, rhs, &out, &len]).unwrap();
+        launch_kernel1d(len, self, &src, "add", &[lhs, rhs, &out, &len]).unwrap();
         out
     }
 }

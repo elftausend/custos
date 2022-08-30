@@ -9,7 +9,7 @@ use crate::{
     cache::{Cache, CacheReturn},
     devices::opencl::api::{create_buffer, MemFlags},
     Alloc, AsDev, Buffer, CDatatype, CacheBuf, ClearBuf, CloneBuf, Device, DeviceType, Error,
-    VecRead, WriteBuf, Graph, GraphOpt, GraphReturn,
+    VecRead, WriteBuf, Graph, GraphOpt, GraphReturn, CachedLeaf,
 };
 use std::{
     cell::{Ref, RefCell},
@@ -170,7 +170,7 @@ impl<'a, T> CloneBuf<'a, T> for CLDevice {
 impl<'a, T> CacheBuf<'a, T> for CLDevice {
     #[inline]
     fn cached(&'a self, len: usize) -> Buffer<'a, T> {
-        Cache::get(self, len, ())
+        Cache::get(self, len, CachedLeaf)
     }
 }
 
