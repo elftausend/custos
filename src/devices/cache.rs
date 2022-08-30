@@ -1,14 +1,14 @@
-use crate::{AddGraph, Alloc, BufFlag, Buffer, GNode, GraphReturn, Node};
+use crate::{AddGraph, Alloc, BufFlag, Buffer, Node, GraphReturn, Ident, bump_count};
 use std::{cell::RefMut, collections::HashMap, ffi::c_void, marker::PhantomData, rc::Rc};
 
 /// This trait is implemented for every 'cacheable' pointer.
 pub trait CacheType {
     /// Constructs a new device-specific cachable pointer.
-    fn new<T>(ptr: (*mut T, *mut c_void, u64), len: usize, node: GNode) -> Self;
+    fn new<T>(ptr: (*mut T, *mut c_void, u64), len: usize, node: Node) -> Self;
 
     /// Destructs a device-specific pointer in its raw form.<br>
     /// See [CacheType::new].
-    fn destruct<T>(&self) -> ((*mut T, *mut c_void, u64), GNode);
+    fn destruct<T>(&self) -> ((*mut T, *mut c_void, u64), Node);
 }
 
 /// This trait makes a device's [`Cache`] accessible and is implemented for all compute devices.
@@ -20,7 +20,7 @@ pub trait CacheReturn<P: CacheType>: GraphReturn {
 /// Caches pointers that can be reconstructed into a [`Buffer`].
 #[derive(Debug)]
 pub struct Cache<P: CacheType> {
-    pub nodes: HashMap<Node, Rc<P>>,
+    pub nodes: HashMap<Ident, Rc<P>>,
 }
 
 impl<P: CacheType> Default for Cache<P> {
@@ -32,13 +32,15 @@ impl<P: CacheType> Default for Cache<P> {
 }
 
 impl<P: CacheType> Cache<P> {
-    pub fn add_node<'a, T, D>(&mut self, device: &'a D, node: Node, add_node: impl AddGraph) -> Buffer<'a, T>
+    pub fn add_node<'a, T, D>(&mut self, device: &'a D, node: Ident, add_node: impl AddGraph) -> Buffer<'a, T>
     where
         D: Alloc<T> + GraphReturn,
     {
         let ptr: (*mut T, *mut c_void, _) = device.alloc(node.len);
 
         let graph_node = device.graph().add(node.len, add_node);
+        bump_count();
+
         self.nodes
             .insert(node, Rc::new(P::new(ptr, node.len, graph_node)));
 
@@ -58,13 +60,14 @@ impl<P: CacheType> Cache<P> {
     where
         D: Alloc<T> + CacheReturn<P>,
     {
-        let node = Node::new(len);
-
+        let node = Ident::new(len);
+    
         let mut cache = device.cache();
         let ptr_option = cache.nodes.get(&node);
 
         match ptr_option {
             Some(ptr) => {
+                bump_count();
                 let (ptr, node) = ptr.destruct();
                 Buffer {
                     ptr,

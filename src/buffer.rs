@@ -5,7 +5,7 @@ use std::{ffi::c_void, fmt::Debug, ptr::null_mut};
 #[cfg(feature = "opencl")]
 use crate::opencl::api::release_mem_object;
 use crate::{
-    get_device, Alloc, AsDev, CDatatype, CacheBuf, ClearBuf, CloneBuf, Device, GNode, GraphReturn,
+    get_device, Alloc, AsDev, CDatatype, CacheBuf, ClearBuf, CloneBuf, Device, Node, GraphReturn,
     VecRead, WriteBuf, GLOBAL_CPU,
 };
 
@@ -30,7 +30,7 @@ pub struct Buffer<'a, T> {
     pub len: usize,
     pub device: Device,
     pub flag: BufFlag,
-    pub node: GNode,
+    pub node: Node,
     pub p: PhantomData<&'a T>,
 }
 
@@ -377,7 +377,7 @@ impl<T> Default for Buffer<'_, T> {
             len: Default::default(),
             device: Default::default(),
             flag: BufFlag::None,
-            node: GNode::default(),
+            node: Node::default(),
             p: PhantomData,
         }
     }

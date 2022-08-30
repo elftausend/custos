@@ -45,22 +45,28 @@ pub fn get_count() -> usize {
     COUNT.with(|c| *c.borrow())
 }
 
+#[inline]
+/// Increases the cache identifier / index by 1.
+pub fn bump_count() {
+    COUNT.with(|c| *c.borrow_mut() += 1)
+}
+
+
+
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]
-/// A Node is used to identify a cached pointer.
-pub struct Node {
+/// An `Ident` is used to identify a cached pointer.
+pub struct Ident {
     pub idx: usize,
     pub len: usize,
 }
 
-impl Node {
-    pub fn new(len: usize) -> Node {
+impl Ident {
+    pub fn new(len: usize) -> Ident {
         crate::COUNT.with(|count| {
-            let node = Node {
+            Ident {
                 idx: *count.borrow(),
                 len,
-            };
-            *count.borrow_mut() += 1;
-            node
+            }
         })
     }
 }

@@ -1,4 +1,4 @@
-use crate::{devices::cache::CacheType, GNode};
+use crate::{devices::cache::CacheType, Node};
 pub use blas::*;
 pub use cpu_device::*;
 use std::{
@@ -16,11 +16,11 @@ pub struct RawCpuBuf {
     len: usize,
     align: usize,
     size: usize,
-    node: GNode,
+    node: Node,
 }
 
 impl CacheType for RawCpuBuf {
-    fn new<T>(ptr: (*mut T, *mut std::ffi::c_void, u64), len: usize, node: GNode) -> Self {
+    fn new<T>(ptr: (*mut T, *mut std::ffi::c_void, u64), len: usize, node: Node) -> Self {
         RawCpuBuf {
             ptr: ptr.0 as *mut u8,
             len,
@@ -30,7 +30,7 @@ impl CacheType for RawCpuBuf {
         }
     }
 
-    fn destruct<T>(&self) -> ((*mut T, *mut std::ffi::c_void, u64), GNode) {
+    fn destruct<T>(&self) -> ((*mut T, *mut std::ffi::c_void, u64), Node) {
         ((self.ptr as *mut T, null_mut(), 0), self.node)
     }
 }

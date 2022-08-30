@@ -18,20 +18,20 @@ use crate::{AsDev, BufFlag, DeviceError, AddGraph};
 use std::{fmt::Debug, marker::PhantomData};
 
 use self::api::{create_buffer, MemFlags};
-use crate::{Buffer, CDatatype, Node, GraphReturn, GNode};
+use crate::{Buffer, CDatatype, Ident, GraphReturn, Node};
 
 /// Returns an OpenCL pointer that is bound to the host pointer stored in the specified buffer.
-pub fn to_unified<T>(device: &CLDevice, no_drop: Buffer<T>, graph_node: GNode, cache_node: Node) -> crate::Result<*mut c_void> {
+pub fn to_unified<T>(device: &CLDevice, no_drop: Buffer<T>, graph_node: Node) -> crate::Result<*mut c_void> {
     // use the host pointer to create an OpenCL buffer
     let cl_ptr = create_buffer(
         &device.ctx(),
         MemFlags::MemReadWrite | MemFlags::MemUseHostPtr,
         no_drop.len,
-        Some(&no_drop),
+        Some(&no_drop)
     )?;
 
     let old_ptr = device.cache.borrow_mut().nodes.insert(
-        cache_node,
+        Ident::new(no_drop.len),
         Rc::new(RawCL {
             ptr: cl_ptr,
             host_ptr: no_drop.host_ptr() as *mut u8,
@@ -55,14 +55,13 @@ pub unsafe fn construct_buffer<'a, T: Debug>(
     no_drop: Buffer<T>,
     add_node: impl AddGraph,
 ) -> crate::Result<Buffer<'a, T>> {
-    
+    use crate::bump_count;
+
     if no_drop.flag == BufFlag::None {
         return Err(DeviceError::ConstructError.into());
     }
     
-    let cache_node = Node::new(no_drop.len);
-
-    if let Some(rawcl) = device.cache.borrow().nodes.get(&cache_node) {
+    if let Some(rawcl) = device.cache.borrow().nodes.get(&Ident::new(no_drop.len)) {
         return Ok(Buffer {
             ptr: (rawcl.host_ptr as *mut T, rawcl.ptr, 0),
             len: no_drop.len,
@@ -74,11 +73,11 @@ pub unsafe fn construct_buffer<'a, T: Debug>(
     }
 
     let graph_node = device.graph().add(no_drop.len, add_node);
-    // adding 1, because Node::new is called after node add
-    //graph_node.idx +=1;
-    
+
     let (host_ptr, len) = (no_drop.host_ptr(), no_drop.len);
-    let cl_ptr = to_unified(device, no_drop, graph_node, cache_node)?;
+    let cl_ptr = to_unified(device, no_drop, graph_node)?;
+
+    bump_count();
 
     Ok(Buffer {
         ptr: (host_ptr, cl_ptr, 0),

@@ -2,13 +2,13 @@ use std::cell::RefMut;
 
 use crate::{
     cache::{CacheReturn, CacheType},
-    Node, Buffer, COUNT,
+    Ident, Buffer, COUNT,
 };
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct CacheTrace {
     pub cache_idx: usize,
-    pub use_cache_idx: Vec<Node>,
+    pub use_cache_idx: Vec<Ident>,
 }
 
 pub trait GraphReturn {
@@ -39,7 +39,7 @@ pub trait GraphOpt {
 
 #[derive(Default, Debug)]
 pub struct Graph {
-    pub nodes: Vec<GNode>,
+    pub nodes: Vec<Node>,
 }
 
 impl Graph {
@@ -49,25 +49,26 @@ impl Graph {
         }
     }
 
-    pub fn add(&mut self, len: usize, add_node: impl AddGraph) -> GNode {
+    pub fn add(&mut self, len: usize, add_node: impl AddGraph) -> Node {
         add_node.add(self, len)
     }
 
-    pub fn add_leaf(&mut self, len: usize) -> GNode {
-        GNode {
+    pub fn add_leaf(&mut self, len: usize) -> Node {
+
+        Node {
             idx: -1,
-            node_idx: -1,
+            ident_idx: -1,
             deps: [-1, -1],
             len,
         }
     }
 
-    pub fn add_node(&mut self, len: usize, lhs_idx: isize, rhs_idx: isize) -> GNode {
+    pub fn add_node(&mut self, len: usize, lhs_idx: isize, rhs_idx: isize) -> Node {
         let idx = self.nodes.len() as isize;
         let node = COUNT.with(|count| {
-            GNode {
-                // subtracting 1, because Node::new is called before add_node in Cache::get
-                node_idx: *count.borrow() as isize - 1,
+            Node {
+                // subtracting 1, because the count is increased beforehand.
+                ident_idx: *count.borrow() as isize,
                 idx,
                 deps: [lhs_idx, rhs_idx],
                 len,
@@ -92,8 +93,8 @@ impl Graph {
                 cache_idx: start.idx as usize,
                 use_cache_idx: trace
                     .into_iter()
-                    .map(|node| Node {
-                        idx: node.node_idx as usize,
+                    .map(|node| Ident {
+                        idx: node.ident_idx as usize,
                         len: node.len as usize,
                     })
                     .collect(),
@@ -108,7 +109,7 @@ impl Graph {
         None
     }
 
-    pub fn trace_cache_path(&self, trace_at: &GNode) -> Option<Vec<GNode>> {
+    pub fn trace_cache_path(&self, trace_at: &Node) -> Option<Vec<Node>> {
         if !self.is_path_optimizable(trace_at) {
             return None;
         }
@@ -129,7 +130,7 @@ impl Graph {
         Some(trace)
     }
 
-    pub fn is_path_optimizable(&self, check_at: &GNode) -> bool {
+    pub fn is_path_optimizable(&self, check_at: &Node) -> bool {
         if check_at.is_leaf() {
             return false;
         };
@@ -151,20 +152,20 @@ impl Graph {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub struct GNode {
-    pub node_idx: isize,
+pub struct Node {
+    pub ident_idx: isize,
     pub idx: isize,
     pub deps: [isize; 2],
     pub len: usize,
 }
 
-impl Default for GNode {
+impl Default for Node {
     fn default() -> Self {
-        Self { node_idx: -1, idx: -1, deps: [-1, -1], len: 0 }
+        Self { ident_idx: -1, idx: -1, deps: [-1, -1], len: 0 }
     }
 }
 
-impl GNode {
+impl Node {
     #[inline]
     pub fn is_leaf(&self) -> bool {
         self.idx == -1
@@ -172,102 +173,102 @@ impl GNode {
 }
 
 pub trait AddGraph {
-    fn add(&self, graph: &mut Graph, len: usize) -> GNode;
+    fn add(&self, graph: &mut Graph, len: usize) -> Node;
 }
 
 // Leaf cache
 impl AddGraph for () {
-    fn add(&self, graph: &mut Graph, len: usize) -> GNode {
+    fn add(&self, graph: &mut Graph, len: usize) -> Node {
         graph.add_leaf(len)
     }
 }
 
 // Unary operation
 impl AddGraph for usize {
-    fn add(&self, graph: &mut Graph, len: usize) -> GNode {
+    fn add(&self, graph: &mut Graph, len: usize) -> Node {
         graph.add_node(len, *self as isize, *self as isize)
     }
 }
 
 // Unary operation
 impl AddGraph for isize {
-    fn add(&self, graph: &mut Graph, len: usize) -> GNode {
+    fn add(&self, graph: &mut Graph, len: usize) -> Node {
         graph.add_node(len, *self as isize, *self)
     }
 }
 
 impl AddGraph for (usize, usize) {
-    fn add(&self, graph: &mut Graph, len: usize) -> GNode {
+    fn add(&self, graph: &mut Graph, len: usize) -> Node {
         graph.add_node(len, self.0 as isize, self.1 as isize)
     }
 }
 
 impl AddGraph for (isize, isize) {
-    fn add(&self, graph: &mut Graph, len: usize) -> GNode {
+    fn add(&self, graph: &mut Graph, len: usize) -> Node {
         graph.add_node(len, self.0, self.1)
     }
 }
 
 impl AddGraph for [usize; 2] {
-    fn add(&self, graph: &mut Graph, len: usize) -> GNode {
+    fn add(&self, graph: &mut Graph, len: usize) -> Node {
         graph.add_node(len, self[0] as isize, self[1] as isize)
     }
 }
 
 impl AddGraph for [isize; 2] {
-    fn add(&self, graph: &mut Graph, len: usize) -> GNode {
+    fn add(&self, graph: &mut Graph, len: usize) -> Node {
         graph.add_node(len, self[0], self[1])
     }
 }
 
 impl AddGraph for [usize; 1] {
-    fn add(&self, graph: &mut Graph, len: usize) -> GNode {
+    fn add(&self, graph: &mut Graph, len: usize) -> Node {
         graph.add_node(len, self[0] as isize, self[0] as isize)
     }
 }
 
 impl<'a, T> AddGraph for Buffer<'a, T> {
-    fn add(&self, graph: &mut Graph, len: usize) -> GNode {
+    fn add(&self, graph: &mut Graph, len: usize) -> Node {
         graph.add_node(len, self.node.idx, self.node.idx)
     }
 }
 
 impl<'a, T> AddGraph for &Buffer<'a, T> {
-    fn add(&self, graph: &mut Graph, len: usize) -> GNode {
+    fn add(&self, graph: &mut Graph, len: usize) -> Node {
         graph.add_node(len, self.node.idx, self.node.idx)
     }
 }
 
 impl<'a, T> AddGraph for (&Buffer<'a, T>, &Buffer<'a, T>) {
-    fn add(&self, graph: &mut Graph, len: usize) -> GNode {
+    fn add(&self, graph: &mut Graph, len: usize) -> Node {
         graph.add_node(len, self.0.node.idx, self.1.node.idx)
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::{CacheTrace, GNode, Graph, Node};
+    use crate::{CacheTrace, Node, Graph, Ident, bump_count};
 
     #[test]
     fn test_leaf_node() {
-        let node = GNode {
-            node_idx: -1,
+        let node = Node {
+            ident_idx: -1,
             idx: -1,
             deps: [1, 1],
             len: 10,
         };
         assert!(node.is_leaf());
 
-        let node = GNode {
-            node_idx: 2,
+        let node = Node {
+            ident_idx: 2,
             idx: 2,
             deps: [1, 1],
             len: 10,
         };
         assert!(!node.is_leaf());
 
-        let node = GNode {
-            node_idx: -1,
+        let node = Node {
+            ident_idx: -1,
             idx: 2,
             deps: [1, 2],
             len: 10,
@@ -296,20 +297,20 @@ mod tests {
         let trace = graph.trace_cache_path(&c);
         assert_eq!(
             Some(vec![
-                GNode {
-                    node_idx: -1,
+                Node {
+                    ident_idx: 0,
                     idx: 0,
                     deps: [-1, -1],
                     len: 10
                 },
-                GNode {
-                    node_idx: -1,
+                Node {
+                    ident_idx: 0,
                     idx: 1,
                     deps: [0, 0],
                     len: 10
                 },
-                GNode {
-                    node_idx: -1,
+                Node {
+                    ident_idx: 0,
                     idx: 2,
                     deps: [1, -1],
                     len: 10
@@ -361,20 +362,20 @@ mod tests {
         let trace = graph.trace_cache_path(&c);
         assert_eq!(
             Some(vec![
-                GNode {
-                    node_idx: -1,
+                Node {
+                    ident_idx: 0,
                     idx: 0,
                     deps: [-1, -1],
                     len: 10
                 },
-                GNode {
-                    node_idx: -1,
+                Node {
+                    ident_idx: 0,
                     idx: 2,
                     deps: [0, 0],
                     len: 10
                 },
-                GNode {
-                    node_idx: -1,
+                Node {
+                    ident_idx: 0,
                     idx: 3,
                     deps: [2, -1],
                     len: 10
@@ -411,18 +412,22 @@ mod tests {
 
     #[test]
     fn test_trace_all() {
+        
         let mut graph = Graph::new();
         let a = graph.add_leaf(10);
         let b = graph.add_leaf(10);
 
         // idx: 2, deps: [0, 1] (0)
         let c = graph.add_node(10, a.idx, b.idx);
+        bump_count();
 
         // idx: 3, deps: [2, 2] (1)
         let d = graph.add_node(10, c.idx, c.idx);
+        bump_count();
 
         // idx: 4, deps: [3, 1] (2)
         let _e = graph.add_node(10, d.idx, b.idx);
+        bump_count();
 
         let traces = graph.cache_traces();
 
@@ -430,9 +435,9 @@ mod tests {
             CacheTrace {
                 cache_idx: 0,
                 use_cache_idx: vec![
-                    Node { idx: 0, len: 10 },
-                    Node { idx: 1, len: 10 },
-                    Node { idx: 2, len: 10 },
+                    Ident { idx: 0, len: 10 },
+                    Ident { idx: 1, len: 10 },
+                    Ident { idx: 2, len: 10 },
                 ],
             },
             traces.unwrap()[0]
