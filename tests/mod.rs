@@ -2,6 +2,7 @@
 #[cfg(feature = "cuda")]
 mod cuda;
 
+#[cfg(feature = "opt-cache")]
 mod graph;
 
 #[cfg(feature = "opencl")]
