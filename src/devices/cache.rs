@@ -83,7 +83,7 @@ impl<P: CacheType> Cache<P> {
     }
 
     #[cfg(feature = "realloc")]
-    pub fn get<T, D: Alloc<T> + CacheReturn<P>>(device: &D, len: usize) -> Buffer<T> {
+    pub fn get<T, D: Alloc<T> + CacheReturn<P>>(device: &D, len: usize, _: impl AddGraph) -> Buffer<T> {
         Buffer::new(device, len)
     }
 }

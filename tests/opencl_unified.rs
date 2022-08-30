@@ -1,7 +1,7 @@
 #![allow(unused)]
 use custos::{
     cache::Cache,
-    opencl::{api::{clCreateBuffer, enqueue_map_buffer, CommandQueue, MemFlags, OCLErrorKind}, construct_buffer},
+    opencl::api::{clCreateBuffer, enqueue_map_buffer, CommandQueue, MemFlags, OCLErrorKind},
     range, set_count, Buffer, CLDevice, Error, VecRead, CPU,
 };
 use std::{collections::HashMap, ffi::c_void};

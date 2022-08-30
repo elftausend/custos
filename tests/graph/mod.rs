@@ -3,9 +3,11 @@ use custos::{get_device, number::Number, Buffer, Cache, CPU, CDatatype};
 #[cfg(feature="opencl")]
 use custos::{CLDevice, opencl::enqueue_kernel};
 
+#[cfg(not(feature="realloc"))]
 mod graph;
 
 #[cfg(feature="opencl")]
+#[cfg(not(feature="realloc"))]
 mod to_unified;
 
 #[cfg(feature="cuda")]
