@@ -20,9 +20,9 @@ jobs:
     - name: Build
       run: cargo build --verbose --no-default-features
     - name: Build (opt-cache)
-      run: cargo build --verbose --no-default-features opt-cache
+      run: cargo build --verbose --no-default-features --features opt-cache
     - name: Build (realloc)
-      run: cargo build --verbose --no-default-features realloc
+      run: cargo build --verbose --no-default-features --features realloc
       
   test:
   
