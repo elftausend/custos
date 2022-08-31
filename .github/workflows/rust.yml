@@ -19,6 +19,10 @@ jobs:
     - uses: Swatinem/rust-cache@v1
     - name: Build
       run: cargo build --verbose --no-default-features
+    - name: Build (opt-cache)
+      run: cargo build --verbose --no-default-features opt-cache
+    - name: Build (realloc)
+      run: cargo build --verbose --no-default-features realloc
       
   test:
   
@@ -54,6 +58,23 @@ jobs:
     - name: Run 'realloc' tests
       run: cargo test --verbose --no-default-features --features realloc
 
+  test-opt-cache:
+  
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+
+    - uses: actions-rs/toolchain@v1
+      with:
+        profile: minimal
+        toolchain: stable
+
+    - uses: Swatinem/rust-cache@v1
+
+    - name: Run 'opt-cache' tests
+      run: cargo test --verbose --no-default-features --features opt-cache
+
   miri:
     name: "Miri"
     runs-on: ubuntu-latest
@@ -68,6 +89,8 @@ jobs:
         run: cargo miri test --no-default-features
       - name: Test 'realloc' with Miri
         run: cargo miri test --no-default-features --features realloc
+      - name: Test 'opt-cache' with Miri
+        run: cargo miri test --no-default-features --features opt-cache
 
 #  bench:
 #  

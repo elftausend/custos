@@ -76,7 +76,7 @@ impl<P: CacheType> Cache<P> {
                 let (ptr, node) = ptr.destruct();
                 Buffer {
                     ptr,
-                    len: node.len,
+                    len,
                     device: Alloc::<T>::as_dev(device),
                     flag: BufFlag::Cache,
                     node,
