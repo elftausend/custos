@@ -9,7 +9,7 @@ use crate::{
     cache::{Cache, CacheReturn},
     devices::opencl::api::{create_buffer, MemFlags},
     Alloc, AsDev, Buffer, CDatatype, CacheBuf, ClearBuf, CloneBuf, Device, DeviceType, Error,
-    VecRead, WriteBuf, Graph, GraphReturn, CachedLeaf,
+    VecRead, WriteBuf, Graph, GraphReturn, CachedLeaf, CPU,
 };
 use std::{
     cell::{Ref, RefCell},
@@ -38,6 +38,7 @@ pub struct CLDevice {
     pub cache: RefCell<Cache<RawCL>>,
     pub inner: RefCell<InternCLDevice>,
     pub graph: RefCell<Graph>,
+    pub cpu: CPU,
 }
 
 unsafe impl Sync for InternCLDevice {}
@@ -54,6 +55,7 @@ impl CLDevice {
             cache: RefCell::new(Cache::default()),
             inner,
             graph: RefCell::new(Graph::new()),
+            cpu: CPU::new(),
         })
     }
 

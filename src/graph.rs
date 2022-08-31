@@ -161,6 +161,7 @@ pub struct Node {
 }
 
 impl Default for Node {
+    #[inline]
     fn default() -> Self {
         Self { ident_idx: -1, idx: -1, deps: [-1, -1], len: 0 }
     }
@@ -257,32 +258,17 @@ impl<'a, T> AddGraph for (&Buffer<'a, T>, &Buffer<'a, T>) {
 mod tests {
     use crate::{CacheTrace, Node, Graph, Ident, bump_count};
 
+    // test if node is a leaf node
     #[test]
-    fn test_leaf_node() {
-        let node = Node {
-            ident_idx: -1,
-            idx: -1,
-            deps: [1, 1],
-            len: 10,
-        };
+    fn test_is_leaf() {
+        let mut graph = Graph::new();
+        let node = graph.add_leaf(0);
         assert!(node.is_leaf());
 
-        let node = Node {
-            ident_idx: 2,
-            idx: 2,
-            deps: [1, 1],
-            len: 10,
-        };
-        assert!(!node.is_leaf());
-
-        let node = Node {
-            ident_idx: -1,
-            idx: 2,
-            deps: [1, 2],
-            len: 10,
-        };
+        let node = graph.add_node(10, -1, -1);
         assert!(!node.is_leaf());
     }
+    
 
     #[test]
     fn test_cache_trace() {
@@ -411,11 +397,28 @@ mod tests {
         // idx: 5, deps: [3, 1]
         let _e = graph.add_node(10, d.idx, b.idx);
 
-        let _trace = graph.trace_cache_path(&c);
+        let trace = graph.trace_cache_path(&c);
+
+        // TODO: d could use the memory of c, but this is not the case yet
+        assert_eq!(Some(vec![
+            Node {
+                ident_idx: 0,
+                idx: 0,
+                deps: [-1, -1],
+                len: 10
+            },
+            /* if d uses the memory of c, this node could be added:
+            Node {
+                ident_idx: 0,
+                idx: 1,
+                deps: [0, 0],
+                len: 10
+            },*/
+
+        ]), trace);
 
         assert!(graph.is_path_optimizable(&c));
         assert!(!graph.is_path_optimizable(&d));
-        //println!("trace: {trace:?}");
     }
 
     #[test]
@@ -453,10 +456,11 @@ mod tests {
     }
 
     #[test]
-    fn test_leafed_trace() {
+    fn test_leafed_diff_len_trace() {
         let mut graph = Graph::new();
         let a = graph.add_leaf(10);
         let _b = graph.add_node(10, a.idx, a.idx);
+        bump_count();
 
         let _z = graph.add_leaf(10);
 
@@ -464,14 +468,39 @@ mod tests {
 
         // idx: 2, deps: [0, 1] (0)
         let c = graph.add_node(12, a.idx, a.idx);
+        bump_count();
 
         // idx: 3, deps: [2, 2] (1)
         let d = graph.add_node(12, c.idx, c.idx);
+        bump_count();
 
         // idx: 4, deps: [3, 1] (2)
         let _e = graph.add_node(12, d.idx, a.idx);
+        bump_count();
 
         let traces = graph.cache_traces();
-        println!("traces: {traces:?}");
+
+        assert_eq!(
+            CacheTrace {
+                cache_idx: 0,
+                use_cache_idx: vec![
+                    Ident { idx: 0, len: 10 },
+                ],
+            },
+            traces.as_ref().unwrap()[0]
+        );
+
+        assert_eq!(
+            CacheTrace {
+                cache_idx: 1,
+                use_cache_idx: vec![
+                    Ident { idx: 1, len: 12 },
+                    Ident { idx: 2, len: 12 },
+                    Ident { idx: 3, len: 12 },
+                ],
+            },
+            traces.as_ref().unwrap()[1]
+        );
+//        println!("traces: {traces:?}");
     }
 }
