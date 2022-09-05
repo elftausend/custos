@@ -112,13 +112,13 @@ fn test_cached_cpu() {
     assert_eq!(0, get_count());
 
     let mut buf = cpu_cached::<f32>(&device, 10);
-    
+
     assert_eq!(1, get_count());
-    
+
     for value in buf.as_mut_slice() {
         *value = 1.5;
     }
-    
+
     let new_buf = cpu_cached::<i32>(&device, 10);
     assert_eq!(device.read(&new_buf), vec![0; 10]);
     assert_eq!(2, get_count());

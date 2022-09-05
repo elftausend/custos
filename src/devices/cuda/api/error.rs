@@ -70,15 +70,13 @@ impl From<u32> for CudaErrorKind {
 
 impl core::fmt::Debug for CudaErrorKind {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.as_str())?;
-        Ok(())
+        write!(f, "{}", self.as_str())
     }
 }
 
 impl core::fmt::Display for CudaErrorKind {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.as_str())?;
-        Ok(())
+        write!(f, "{self:?}")
     }
 }
 

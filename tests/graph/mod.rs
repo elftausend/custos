@@ -1,17 +1,17 @@
-use custos::{get_device, number::Number, Buffer, Cache, CPU, CDatatype};
+use custos::{get_device, number::Number, Buffer, CDatatype, Cache, CPU};
 
-#[cfg(feature="opencl")]
-use custos::{CLDevice, opencl::enqueue_kernel};
+#[cfg(feature = "opencl")]
+use custos::{opencl::enqueue_kernel, CLDevice};
 
-#[cfg(not(feature="realloc"))]
+#[cfg(not(feature = "realloc"))]
 mod graph;
 
-#[cfg(feature="opencl")]
-#[cfg(not(feature="realloc"))]
+#[cfg(feature = "opencl")]
+#[cfg(not(feature = "realloc"))]
 mod to_unified;
 
-#[cfg(feature="cuda")]
-use custos::{CudaDevice, cuda::launch_kernel1d};
+#[cfg(feature = "cuda")]
+use custos::{cuda::launch_kernel1d, CudaDevice};
 
 pub trait AddBuf<T> {
     fn add(&self, lhs: &Buffer<T>, rhs: &Buffer<T>) -> Buffer<T>;
@@ -45,7 +45,7 @@ where
     }
 }
 
-#[cfg(feature="opencl")]
+#[cfg(feature = "opencl")]
 impl<T: CDatatype> AddBuf<T> for CLDevice {
     fn add(&self, lhs: &Buffer<T>, rhs: &Buffer<T>) -> Buffer<T> {
         let src = format!("
@@ -61,7 +61,6 @@ impl<T: CDatatype> AddBuf<T> for CLDevice {
         out
     }
 
-
     fn relu(&self, lhs: &Buffer<T>) -> Buffer<T> {
         let src = format!(
             "
@@ -72,14 +71,14 @@ impl<T: CDatatype> AddBuf<T> for CLDevice {
         ",
             datatype = T::as_c_type_str()
         );
-    
+
         let out = Cache::get::<T, _>(self, lhs.len(), lhs.node.idx);
         enqueue_kernel(self, &src, [lhs.len, 0, 0], None, &[lhs, &out]).unwrap();
         out
     }
 }
 
-#[cfg(feature="cuda")]
+#[cfg(feature = "cuda")]
 impl<T: CDatatype> AddBuf<T> for CudaDevice {
     fn add(&self, lhs: &Buffer<T>, rhs: &Buffer<T>) -> Buffer<T> {
         let src = format!(
@@ -91,15 +90,14 @@ impl<T: CDatatype> AddBuf<T> for CudaDevice {
                     }}
                   
                 }}
-        "#, datatype = T::as_c_type_str());
+        "#,
+            datatype = T::as_c_type_str()
+        );
 
         let out = Cache::get::<T, _>(self, lhs.len, (lhs.node.idx, rhs.node.idx));
-        launch_kernel1d(lhs.len, self, &src, "add", &[
-            lhs, rhs, &out, &lhs.len
-        ]).unwrap();
+        launch_kernel1d(lhs.len, self, &src, "add", &[lhs, rhs, &out, &lhs.len]).unwrap();
         out
     }
-
 
     fn relu(&self, lhs: &Buffer<T>) -> Buffer<T> {
         let src = format!(
@@ -111,12 +109,12 @@ impl<T: CDatatype> AddBuf<T> for CudaDevice {
                     }}
                   
                 }}
-        "#, datatype = T::as_c_type_str());
-    
+        "#,
+            datatype = T::as_c_type_str()
+        );
+
         let out = Cache::get::<T, _>(self, lhs.len(), lhs.node.idx);
-        launch_kernel1d(lhs.len, self, &src, "relu", &[
-            lhs, &out, &lhs.len
-        ]).unwrap();
+        launch_kernel1d(lhs.len, self, &src, "relu", &[lhs, &out, &lhs.len]).unwrap();
         out
     }
 }

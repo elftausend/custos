@@ -8,8 +8,8 @@ use super::{
 };
 use crate::{
     cache::{Cache, CacheReturn},
-    Alloc, AsDev, Buffer, CDatatype, CacheBuf, ClearBuf, CloneBuf, Device, DeviceType, VecRead,
-    WriteBuf, Graph, GraphReturn, CachedLeaf,
+    Alloc, AsDev, Buffer, CDatatype, CacheBuf, CachedLeaf, ClearBuf, CloneBuf, Device, DeviceType,
+    Graph, GraphReturn, VecRead, WriteBuf,
 };
 use std::{cell::RefCell, ptr::null_mut};
 
@@ -132,7 +132,7 @@ impl CacheReturn<RawCUBuf> for CudaDevice {
     }
 }
 
-#[cfg(feature="opt-cache")]
+#[cfg(feature = "opt-cache")]
 impl crate::GraphOpt for CudaDevice {}
 
 impl<'a, T> CloneBuf<'a, T> for CudaDevice {

@@ -12,7 +12,7 @@ mod kernel_cache;
 mod kernel_enqueue;
 
 #[cfg(not(feature = "realloc"))]
-use crate::{AsDev, BufFlag, DeviceError, AddGraph, GraphReturn};
+use crate::{AddGraph, AsDev, BufFlag, DeviceError, GraphReturn};
 
 #[cfg(not(feature = "realloc"))]
 use std::{fmt::Debug, marker::PhantomData};
@@ -21,13 +21,17 @@ use self::api::{create_buffer, MemFlags};
 use crate::{Buffer, CDatatype, Ident, Node};
 
 /// Returns an OpenCL pointer that is bound to the host pointer stored in the specified buffer.
-pub fn to_unified<T>(device: &CLDevice, no_drop: Buffer<T>, graph_node: Node) -> crate::Result<*mut c_void> {
+pub fn to_unified<T>(
+    device: &CLDevice,
+    no_drop: Buffer<T>,
+    graph_node: Node,
+) -> crate::Result<*mut c_void> {
     // use the host pointer to create an OpenCL buffer
     let cl_ptr = create_buffer(
         &device.ctx(),
         MemFlags::MemReadWrite | MemFlags::MemUseHostPtr,
         no_drop.len,
-        Some(&no_drop)
+        Some(&no_drop),
     )?;
 
     let old_ptr = device.cache.borrow_mut().nodes.insert(
@@ -60,7 +64,7 @@ pub unsafe fn construct_buffer<'a, T: Debug>(
     if no_drop.flag == BufFlag::None {
         return Err(DeviceError::ConstructError.into());
     }
-    
+
     if let Some(rawcl) = device.cache.borrow().nodes.get(&Ident::new(no_drop.len)) {
         return Ok(Buffer {
             ptr: (rawcl.host_ptr as *mut T, rawcl.ptr, 0),
@@ -69,7 +73,7 @@ pub unsafe fn construct_buffer<'a, T: Debug>(
             flag: BufFlag::Cache,
             node: rawcl.node,
             p: PhantomData,
-        })
+        });
     }
 
     let graph_node = device.graph().add(no_drop.len, add_node);

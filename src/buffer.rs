@@ -5,7 +5,7 @@ use std::{ffi::c_void, fmt::Debug, ptr::null_mut};
 #[cfg(feature = "opencl")]
 use crate::opencl::api::release_mem_object;
 use crate::{
-    get_device, Alloc, AsDev, CDatatype, CacheBuf, ClearBuf, CloneBuf, Device, Node, GraphReturn,
+    get_device, Alloc, AsDev, CDatatype, CacheBuf, ClearBuf, CloneBuf, Device, GraphReturn, Node,
     VecRead, WriteBuf, GLOBAL_CPU,
 };
 
@@ -69,7 +69,7 @@ impl<'a, T> Buffer<'a, T> {
             ..Default::default()
         }
     }
-    
+
     /// Buffers created with this method can outlive the device used to create this `Buffer`.<br>
     /// No operations can be invoked on this `Buffer` as [`get_device!`] will panic.
     /// # Examples
@@ -93,7 +93,7 @@ impl<'a, T> Buffer<'a, T> {
             ..Default::default()
         }
     }
-    
+
     /// Constructs a `Buffer` out of a host pointer and a length.
     /// # Example
     /// ```
@@ -109,7 +109,7 @@ impl<'a, T> Buffer<'a, T> {
     ///     *value += idx as f32;
     /// }
     /// assert_eq!(buf.as_slice(), &[0., 1., 2., 3., 4., 5., 6., 7., 8., 9.,])
-    /// 
+    ///
     /// ```
     /// # Safety
     /// The pointer must not outlive the Buffer.
@@ -219,7 +219,6 @@ impl<'a, T> Buffer<'a, T> {
         }
         T::default()
     }
-    
 
     /// Sets all elements in `Buffer` to the default value.
     pub fn clear(&mut self)
@@ -277,6 +276,7 @@ impl<'a, T> Buffer<'a, T> {
     /// # Safety
     /// Itself, this function does not need to be unsafe.
     /// However, declaring this function as unsafe highlights the violation of creating two or more owners for one resource.
+    /// Furthermore, the resulting `Buffer` can outlive `self`.
     pub unsafe fn shallow(&self) -> Buffer<'a, T> {
         Buffer {
             ptr: self.ptr,
@@ -294,6 +294,7 @@ impl<'a, T> Buffer<'a, T> {
     /// # Safety
     /// Itself, this function does not need to be unsafe.
     /// However, declaring this function as unsafe highlights the violation of possibly creating two or more owners for one resource.
+    /// Furthermore, the resulting `Buffer` can outlive `self`.
     pub unsafe fn shallow_or_clone(&self) -> Buffer<'a, T>
     where
         T: Clone,

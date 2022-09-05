@@ -1,12 +1,12 @@
 use custos::{range, Buffer, GraphOpt, CPU};
 
-#[cfg(feature="opencl")]
+#[cfg(feature = "opencl")]
 use custos::CLDevice;
 
 use crate::graph::AddOp;
 
 #[test]
-fn test_graph() {
+fn test_graph() -> custos::Result<()> {
     let device = CPU::new();
 
     // idx: 0
@@ -31,11 +31,12 @@ fn test_graph() {
             assert_eq!(c.ptr, d.ptr);
             assert_eq!(c.ptr, e.ptr);
         }
-        device.optimize();
+        device.optimize()?;
     }
+    Ok(())
 }
 
-#[cfg(feature="opencl")]
+#[cfg(feature = "opencl")]
 #[test]
 fn test_graph_cl() -> custos::Result<()> {
     let device = CLDevice::new(0)?;
@@ -62,12 +63,12 @@ fn test_graph_cl() -> custos::Result<()> {
             assert_eq!(c.ptr, d.ptr);
             assert_eq!(c.ptr, e.ptr);
         }
-        device.optimize();
+        device.optimize()?;
     }
     Ok(())
 }
 
-#[cfg(feature="cuda")]
+#[cfg(feature = "cuda")]
 #[test]
 fn test_graph_cu() -> custos::Result<()> {
     use custos::CudaDevice;
@@ -96,7 +97,7 @@ fn test_graph_cu() -> custos::Result<()> {
             assert_eq!(c.ptr, d.ptr);
             assert_eq!(c.ptr, e.ptr);
         }
-        device.optimize();
+        device.optimize()?;
     }
     Ok(())
 }

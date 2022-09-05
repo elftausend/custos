@@ -38,7 +38,6 @@ pub fn launch_kernel1d(
     fn_name: &str,
     params: &[&dyn AsCudaCvoidPtr],
 ) -> crate::Result<()> {
-    
     let params = params
         .into_iter()
         .map(|param| param.as_cvoid_ptr())

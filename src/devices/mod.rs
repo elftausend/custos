@@ -51,8 +51,6 @@ pub fn bump_count() {
     COUNT.with(|c| *c.borrow_mut() += 1)
 }
 
-
-
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]
 /// An `Ident` is used to identify a cached pointer.
 pub struct Ident {
@@ -62,11 +60,9 @@ pub struct Ident {
 
 impl Ident {
     pub fn new(len: usize) -> Ident {
-        crate::COUNT.with(|count| {
-            Ident {
-                idx: *count.borrow(),
-                len,
-            }
+        crate::COUNT.with(|count| Ident {
+            idx: *count.borrow(),
+            len,
         })
     }
 }

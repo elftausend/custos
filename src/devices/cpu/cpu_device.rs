@@ -1,7 +1,7 @@
 use crate::{
     devices::cache::{Cache, CacheReturn},
-    Alloc, AsDev, Buffer, CacheBuf, ClearBuf, CloneBuf, Device, DeviceType, Graph,
-    GraphReturn, VecRead, WriteBuf, CachedLeaf,
+    Alloc, AsDev, Buffer, CacheBuf, CachedLeaf, ClearBuf, CloneBuf, Device, DeviceType, Graph,
+    GraphReturn, VecRead, WriteBuf,
 };
 use std::{
     alloc::{handle_alloc_error, Layout},
@@ -105,8 +105,7 @@ impl GraphReturn for CPU {
     }
 }
 
-
-#[cfg(feature="opt-cache")]
+#[cfg(feature = "opt-cache")]
 impl crate::GraphOpt for CPU {}
 
 impl<'a, T: Clone> CloneBuf<'a, T> for CPU {

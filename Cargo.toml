@@ -14,7 +14,7 @@ readme = "README.md"
 lazy_static = { version = "1.4.0", optional = true }
 
 [features]
-default = ["opencl"]
+default = ["opencl", "opt-cache"]
 opencl = ["dep:lazy_static"]
 cuda = []
 realloc = []
@@ -47,9 +47,6 @@ required-features = ["opencl"]
 [dev-dependencies]
 criterion = "0.3"
 
-[[bench]]
-name = "safe_vs_cache"
-harness = false
 
 #[[bench]]
 #name = "fixed_size_vs_vec"

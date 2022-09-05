@@ -1,8 +1,8 @@
 use std::cell::RefMut;
 
-use crate::{Ident, Buffer, COUNT};
+use crate::{Buffer, DeviceError, Ident, COUNT};
 
-#[cfg(feature="opt-cache")]
+#[cfg(feature = "opt-cache")]
 use crate::cache::{CacheReturn, CacheType};
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
@@ -15,26 +15,29 @@ pub trait GraphReturn {
     fn graph(&self) -> RefMut<Graph>;
 }
 
-#[cfg(feature="opt-cache")]
+#[cfg(feature = "opt-cache")]
 pub trait GraphOpt {
-    fn optimize<P>(&self)
+    fn optimize<P>(&self) -> crate::Result<()>
     where
         P: CacheType,
         Self: GraphReturn + CacheReturn<P>,
     {
         let mut cache = self.cache();
 
-        if let Some(cache_traces) = &self.graph().cache_traces() {
-            for trace in cache_traces {
-                // starting at 1, because the first element is the origin
-                for node in &trace.use_cache_idx[1..] {
-                    // insert the common / optimized pointer in all the other nodes 
-                    // this deallocates the old pointers
-                    let ptr = cache.nodes.get(&trace.use_cache_idx[0]).unwrap().clone();
-                    cache.nodes.insert(*node, ptr);
-                }
+        for trace in self.graph().cache_traces() {
+            // starting at 1, because the first element is the origin
+            for node in &trace.use_cache_idx[1..] {
+                // insert the common / optimized pointer in all the other nodes
+                // this deallocates the old pointers
+                let ptr = cache
+                    .nodes
+                    .get(&trace.use_cache_idx[0])
+                    .ok_or(DeviceError::GraphOptimization)?
+                    .clone();
+                cache.nodes.insert(*node, ptr);
             }
         }
+        Ok(())
     }
 }
 
@@ -45,9 +48,7 @@ pub struct Graph {
 
 impl Graph {
     pub fn new() -> Self {
-        Self {
-            nodes: Vec::new(),
-        }
+        Self { nodes: Vec::new() }
     }
 
     pub fn add(&mut self, len: usize, add_node: impl AddGraph) -> Node {
@@ -55,7 +56,6 @@ impl Graph {
     }
 
     pub fn add_leaf(&mut self, len: usize) -> Node {
-
         Node {
             idx: -1,
             ident_idx: -1,
@@ -79,9 +79,9 @@ impl Graph {
         node
     }
 
-    pub fn cache_traces(&self) -> Option<Vec<CacheTrace>> {
+    pub fn cache_traces(&self) -> Vec<CacheTrace> {
         if self.nodes.is_empty() {
-            return None;
+            return Vec::new();
         }
 
         let mut start = self.nodes[0];
@@ -104,10 +104,10 @@ impl Graph {
             // use better searching algorithm to find the next start node
             match self.nodes.get(last_trace_node.idx as usize + 1) {
                 Some(next) => start = *next,
-                None => return Some(traces),
+                None => return traces,
             }
         }
-        None
+        traces
     }
 
     pub fn trace_cache_path(&self, trace_at: &Node) -> Option<Vec<Node>> {
@@ -163,7 +163,12 @@ pub struct Node {
 impl Default for Node {
     #[inline]
     fn default() -> Self {
-        Self { ident_idx: -1, idx: -1, deps: [-1, -1], len: 0 }
+        Self {
+            ident_idx: -1,
+            idx: -1,
+            deps: [-1, -1],
+            len: 0,
+        }
     }
 }
 
@@ -256,7 +261,7 @@ impl<'a, T> AddGraph for (&Buffer<'a, T>, &Buffer<'a, T>) {
 
 #[cfg(test)]
 mod tests {
-    use crate::{CacheTrace, Node, Graph, Ident, bump_count};
+    use crate::{bump_count, set_count, CacheTrace, Graph, Ident, Node};
 
     // test if node is a leaf node
     #[test]
@@ -268,7 +273,6 @@ mod tests {
         let node = graph.add_node(10, -1, -1);
         assert!(!node.is_leaf());
     }
-    
 
     #[test]
     fn test_cache_trace() {
@@ -400,22 +404,24 @@ mod tests {
         let trace = graph.trace_cache_path(&c);
 
         // TODO: d could use the memory of c, but this is not the case yet
-        assert_eq!(Some(vec![
-            Node {
-                ident_idx: 0,
-                idx: 0,
-                deps: [-1, -1],
-                len: 10
-            },
-            /* if d uses the memory of c, this node could be added:
-            Node {
-                ident_idx: 0,
-                idx: 1,
-                deps: [0, 0],
-                len: 10
-            },*/
-
-        ]), trace);
+        assert_eq!(
+            Some(vec![
+                Node {
+                    ident_idx: 0,
+                    idx: 0,
+                    deps: [-1, -1],
+                    len: 10
+                },
+                /* if d uses the memory of c, this node could be added:
+                Node {
+                    ident_idx: 0,
+                    idx: 1,
+                    deps: [0, 0],
+                    len: 10
+                },*/
+            ]),
+            trace
+        );
 
         assert!(graph.is_path_optimizable(&c));
         assert!(!graph.is_path_optimizable(&d));
@@ -423,7 +429,7 @@ mod tests {
 
     #[test]
     fn test_trace_all() {
-        
+        set_count(0);
         let mut graph = Graph::new();
         let a = graph.add_leaf(10);
         let b = graph.add_leaf(10);
@@ -451,7 +457,7 @@ mod tests {
                     Ident { idx: 2, len: 10 },
                 ],
             },
-            traces.unwrap()[0]
+            traces[0]
         );
     }
 
@@ -483,11 +489,9 @@ mod tests {
         assert_eq!(
             CacheTrace {
                 cache_idx: 0,
-                use_cache_idx: vec![
-                    Ident { idx: 0, len: 10 },
-                ],
+                use_cache_idx: vec![Ident { idx: 0, len: 10 },],
             },
-            traces.as_ref().unwrap()[0]
+            traces[0]
         );
 
         assert_eq!(
@@ -499,8 +503,8 @@ mod tests {
                     Ident { idx: 3, len: 12 },
                 ],
             },
-            traces.as_ref().unwrap()[1]
+            traces[1]
         );
-//        println!("traces: {traces:?}");
+        //        println!("traces: {traces:?}");
     }
 }

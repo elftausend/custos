@@ -8,8 +8,8 @@ use super::{
 use crate::{
     cache::{Cache, CacheReturn},
     devices::opencl::api::{create_buffer, MemFlags},
-    Alloc, AsDev, Buffer, CDatatype, CacheBuf, ClearBuf, CloneBuf, Device, DeviceType, Error,
-    VecRead, WriteBuf, Graph, GraphReturn, CachedLeaf, CPU,
+    Alloc, AsDev, Buffer, CDatatype, CacheBuf, CachedLeaf, ClearBuf, CloneBuf, Device, DeviceType,
+    Error, Graph, GraphReturn, VecRead, WriteBuf, CPU,
 };
 use std::{
     cell::{Ref, RefCell},
@@ -190,7 +190,7 @@ impl GraphReturn for CLDevice {
     }
 }
 
-#[cfg(feature="opt-cache")]
+#[cfg(feature = "opt-cache")]
 impl crate::GraphOpt for CLDevice {}
 
 #[inline]
