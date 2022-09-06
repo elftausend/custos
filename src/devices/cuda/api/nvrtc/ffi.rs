@@ -1,6 +1,8 @@
 #![allow(dead_code)]
 #![allow(non_camel_case_types)]
 
+use std::os::raw::c_char;
+
 use super::error::{NvrtcErrorKind, NvrtcResult};
 
 pub enum _nvrtcProgram {}
@@ -35,18 +37,18 @@ impl nvrtcResult {
 extern "C" {
     pub fn nvrtcCreateProgram(
         prog: *mut nvrtcProgram,
-        src: *const i8,
-        name: *const i8,
+        src: *const c_char,
+        name: *const c_char,
         numHeaders: i32,
-        headers: *const *const i8,
-        includeNames: *const *const i8,
+        headers: *const *const c_char,
+        includeNames: *const *const c_char,
     ) -> nvrtcResult;
     pub fn nvrtcCompileProgram(
         prog: nvrtcProgram,
         numOptions: i32,
-        options: *const *const i8,
+        options: *const *const c_char,
     ) -> nvrtcResult;
     pub fn nvrtcDestroyProgram(prog: *mut nvrtcProgram) -> nvrtcResult;
-    pub fn nvrtcGetPTX(prog: nvrtcProgram, ptx: *mut i8) -> nvrtcResult;
+    pub fn nvrtcGetPTX(prog: nvrtcProgram, ptx: *mut c_char) -> nvrtcResult;
     pub fn nvrtcGetPTXSize(prog: nvrtcProgram, ptx_size: *mut isize) -> nvrtcResult;
 }

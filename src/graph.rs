@@ -1,9 +1,9 @@
 use std::cell::RefMut;
 
-use crate::{Buffer, DeviceError, Ident, COUNT};
+use crate::{Buffer, Ident, COUNT};
 
 #[cfg(feature = "opt-cache")]
-use crate::cache::{CacheReturn, CacheType};
+use crate::cache::{CacheReturn, CacheType, DeviceError};
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct CacheTrace {

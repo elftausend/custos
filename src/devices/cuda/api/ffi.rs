@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 #![allow(non_camel_case_types)]
 
-use std::ffi::c_void;
+use std::{ffi::c_void, os::raw::c_char};
 
 use crate::CUdeviceptr;
 
@@ -143,12 +143,12 @@ extern "C" {
         src_device: CUdeviceptr,
         bytes_to_copy: usize,
     ) -> CUresult;
-    pub fn cuModuleLoad(module: *mut CUmodule, fname: *const i8) -> CUresult;
+    pub fn cuModuleLoad(module: *mut CUmodule, fname: *const c_char) -> CUresult;
     pub fn cuModuleLoadData(module: *mut CUmodule, data: *const c_void) -> CUresult;
     pub fn cuModuleGetFunction(
         hfunc: *mut CUfunction,
         module: CUmodule,
-        fn_name: *const i8,
+        fn_name: *const c_char,
     ) -> CUresult;
     pub fn cuModuleUnload(module: CUmodule) -> CUresult;
     pub fn cuLaunchKernel(

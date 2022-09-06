@@ -3,7 +3,7 @@ mod ffi;
 
 use std::{
     ffi::CString,
-    ptr::{null, null_mut},
+    ptr::{null, null_mut}, os::raw::c_char,
 };
 
 pub use ffi::*;
@@ -52,7 +52,7 @@ pub fn compile_program(prog: &NvrtcProgram, options: Option<Vec<CString>>) -> Nv
             let options = options
                 .iter()
                 .map(|option| option.as_ptr())
-                .collect::<Vec<*const i8>>();
+                .collect::<Vec<*const c_char>>();
             unsafe { nvrtcCompileProgram(prog.0, options.len() as i32, options.as_ptr()) }
                 .to_result()
         }
