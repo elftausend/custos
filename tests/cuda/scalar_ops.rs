@@ -1,4 +1,6 @@
-use custos::{cache::Cache, cuda::launch_kernel1d, Buffer, CDatatype, CudaDevice, VecRead};
+use custos::{
+    cache::Cache, cuda::launch_kernel1d, Buffer, CDatatype, CachedLeaf, CudaDevice, VecRead,
+};
 
 #[test]
 fn test_scalar_op_cuda() -> custos::Result<()> {
@@ -18,14 +20,14 @@ fn test_scalar_op_cuda() -> custos::Result<()> {
     );
 
     let lhs = Buffer::from((&device, [1f32, 2., 3., 4., 5.]));
-    let out: Buffer<f32> = Cache::get(&device, lhs.len);
+    let out: Buffer<f32> = Cache::get(&device, lhs.len, CachedLeaf);
 
     launch_kernel1d(
         lhs.len,
         &device,
         &src,
         "scalar_add",
-        vec![&lhs, &3f32, &out, &lhs.len],
+        &[&lhs, &3f32, &out, &lhs.len],
     )?;
 
     assert_eq!(vec![4., 5., 6., 7., 8.], device.read(&out));

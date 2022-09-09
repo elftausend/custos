@@ -1,9 +1,9 @@
 #![allow(non_camel_case_types)]
 
+use std::os::raw::c_char;
 use std::ffi::c_void;
 
 pub type size_t = usize;
-pub type c_char = i8;
 
 pub type cl_platform_id = *mut c_void;
 pub type cl_device_id = *mut c_void;

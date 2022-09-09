@@ -7,7 +7,7 @@ pub trait AsClCvoidPtr {
     fn is_num(&self) -> bool {
         false
     }
-    fn size(&self) -> usize {
+    fn ptr_size(&self) -> usize {
         std::mem::size_of::<*const c_void>()
     }
 }
@@ -29,7 +29,7 @@ impl<T: Number> AsClCvoidPtr for T {
         self as *const T as *const c_void
     }
 
-    fn size(&self) -> usize {
+    fn ptr_size(&self) -> usize {
         size_of::<T>()
     }
 
@@ -59,7 +59,7 @@ pub fn enqueue_kernel(
     }
 
     for (idx, arg) in args.iter().enumerate() {
-        set_kernel_arg(&kernel, idx, arg.as_cvoid_ptr(), arg.size(), arg.is_num()).unwrap();
+        set_kernel_arg(&kernel, idx, arg.as_cvoid_ptr(), arg.ptr_size(), arg.is_num()).unwrap();
     }
     enqueue_nd_range_kernel(&device.queue(), &kernel, wd, &gws, lws.as_ref(), None)?;
     Ok(())

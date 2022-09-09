@@ -25,7 +25,7 @@ where
         // this returns a previously allocated buffer.
         // You can deactivate the caching behaviour by adding the "realloc" feature
         // to the custos feature list in the Cargo.toml.
-        let mut out = Cache::get(self, len);
+        let mut out = Cache::get(self, len, [lhs.node.idx, rhs.node.idx]);
 
         // By default, the Buffer dereferences to a slice.
         // Therefore, standard indexing can be used.
@@ -56,7 +56,7 @@ where
         ", datatype=T::as_c_type_str());
 
         let len = std::cmp::min(lhs.len, rhs.len);
-        let out = Cache::get::<T, CLDevice>(self, len);
+        let out = Cache::get::<T, CLDevice>(self, len, [lhs.node.idx, rhs.node.idx]);
 
         // In the background, the kernel is compiled once. After that, it will be reused every iteration.
         // The cached kernels are released (or freed) when the underlying CLDevice is dropped.
@@ -85,11 +85,11 @@ impl<T: CDatatype> AddBuf<T> for CudaDevice {
         );
 
         let len = std::cmp::min(lhs.len, rhs.len);
-        let out = Cache::get::<T, CudaDevice>(self, len);
+        let out = Cache::get::<T, CudaDevice>(self, len, (lhs.node.idx, rhs.node.idx));
 
         // The kernel is compiled once with nvrtc and is cached too.
         // The arguments are specified with a vector of buffers and/or numbers.
-        launch_kernel1d(len, self, &src, "add", vec![lhs, rhs, &out, &len]).unwrap();
+        launch_kernel1d(len, self, &src, "add", &[lhs, rhs, &out, &len]).unwrap();
         out
     }
 }

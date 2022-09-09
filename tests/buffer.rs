@@ -1,5 +1,3 @@
-use std::ffi::c_void;
-
 use custos::cpu::cpu_cached;
 #[cfg(feature = "opencl")]
 use custos::{devices::opencl::CLDevice, Error};
@@ -127,6 +125,7 @@ fn test_cached_cpu() {
 
     set_count(0);
     assert_eq!(0, get_count());
+
     let buf = cpu_cached::<f32>(&device, 10);
 
     assert_eq!(device.read(&buf), vec![1.5; 10]);
@@ -170,7 +169,7 @@ fn test_cached_cl() -> Result<(), custos::Error> {
     Ok(())
 }
 
-#[test]
+/*#[test]
 fn test_from_ptrs() {
     let mut value = 4f32;
     let ptr: *mut c_void = &mut value as *mut f32 as *mut c_void;
@@ -181,7 +180,7 @@ fn test_from_ptrs() {
     let ptr: *mut f32 = &mut value as *mut f32;
     let buf = Buffer::<f32>::from((ptr, 5));
     assert_eq!(buf.ptr.1, std::ptr::null_mut());
-}
+}*/
 
 #[test]
 fn test_size_buf() {
@@ -229,7 +228,7 @@ fn test_slice() {
 #[test]
 fn test_alloc() {
     let device = CPU::new();
-    
+
     let buf = cpu_cached::<f32>(&device, 100);
     assert_eq!(buf.read(), vec![0.; 100]);
 
@@ -238,7 +237,8 @@ fn test_alloc() {
     drop(buf);
 }
 
-#[test]
+// TODO: readd deviceless
+/*#[test]
 fn test_deviceless_buf() {
     let mut buf = {
         let device = CPU::new();
@@ -250,8 +250,9 @@ fn test_deviceless_buf() {
     }
 
     assert_eq!(buf.as_slice(), &[0, 1, 2, 3, 4]);
-}
+}*/
 
+/*
 #[test]
 #[should_panic]
 fn test_deviceless_buf_panic() {
@@ -261,3 +262,4 @@ fn test_deviceless_buf_panic() {
     };
     buf.read();
 }
+*/

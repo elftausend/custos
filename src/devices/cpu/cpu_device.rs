@@ -1,10 +1,11 @@
 use crate::{
     devices::cache::{Cache, CacheReturn},
-    Alloc, AsDev, Buffer, CacheBuf, ClearBuf, CloneBuf, Device, DeviceType, VecRead, WriteBuf,
+    Alloc, AsDev, Buffer, CacheBuf, CachedLeaf, ClearBuf, CloneBuf, Device, DeviceType, Graph,
+    GraphReturn, VecRead, WriteBuf,
 };
 use std::{
     alloc::{handle_alloc_error, Layout},
-    cell::RefCell,
+    cell::{RefCell, RefMut},
     ffi::c_void,
     fmt::Debug,
     mem::size_of,
@@ -29,6 +30,7 @@ use super::RawCpuBuf;
 /// ```
 pub struct CPU {
     pub cache: RefCell<Cache<RawCpuBuf>>,
+    pub graph: RefCell<Graph>,
 }
 
 impl CPU {
@@ -37,6 +39,7 @@ impl CPU {
     pub fn new() -> CPU {
         CPU {
             cache: RefCell::new(Cache::default()),
+            graph: RefCell::new(Graph::new()),
         }
     }
 }
@@ -55,6 +58,7 @@ impl<T> Alloc<T> for CPU {
         if ptr.is_null() {
             handle_alloc_error(layout);
         }
+
         (ptr as *mut T, std::ptr::null_mut(), 0)
     }
 
@@ -73,6 +77,7 @@ impl<T> Alloc<T> for CPU {
 
         let ptr = vec.as_mut_ptr();
         std::mem::forget(vec);
+
         (ptr, std::ptr::null_mut(), 0)
     }
 
@@ -88,10 +93,20 @@ impl AsDev for CPU {}
 
 impl CacheReturn<RawCpuBuf> for CPU {
     #[inline]
-    fn cache(&self) -> std::cell::RefMut<Cache<RawCpuBuf>> {
+    fn cache(&self) -> RefMut<Cache<RawCpuBuf>> {
         self.cache.borrow_mut()
     }
 }
+
+impl GraphReturn for CPU {
+    #[inline]
+    fn graph(&self) -> RefMut<Graph> {
+        self.graph.borrow_mut()
+    }
+}
+
+#[cfg(feature = "opt-cache")]
+impl crate::GraphOpt for CPU {}
 
 impl<'a, T: Clone> CloneBuf<'a, T> for CPU {
     fn clone_buf(&'a self, buf: &Buffer<'a, T>) -> Buffer<'a, T> {
@@ -104,7 +119,7 @@ impl<'a, T: Clone> CloneBuf<'a, T> for CPU {
 impl<'a, T> CacheBuf<'a, T> for CPU {
     #[inline]
     fn cached(&'a self, len: usize) -> Buffer<'a, T> {
-        Cache::get::<T, CPU>(self, len)
+        Cache::get::<T, CPU>(self, len, CachedLeaf)
     }
 }
 

@@ -36,7 +36,7 @@ pub fn launch_kernel1d(
     device: &CudaDevice,
     src: &str,
     fn_name: &str,
-    params: Vec<&dyn AsCudaCvoidPtr>,
+    params: &[&dyn AsCudaCvoidPtr],
 ) -> crate::Result<()> {
     let params = params
         .into_iter()

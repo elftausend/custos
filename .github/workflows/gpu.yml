@@ -68,6 +68,8 @@ jobs:
       run: cargo test --verbose --no-default-features --features opencl
     - name: Run tests (OpenCL, realloc)
       run: cargo test --verbose --no-default-features --features opencl,realloc
+    - name: Run tests (OpenCL, opt-cache)
+      run: cargo test --verbose --no-default-features --features opencl,opt-cache
   
   test-cuda:
   
@@ -85,6 +87,8 @@ jobs:
       run: cargo test --verbose --no-default-features --features cuda
     - name: Run tests (CUDA, realloc)
       run: cargo test --verbose --no-default-features --features cuda,realloc
+    - name: Run tests (CUDA, opt-cache)
+      run: cargo test --verbose --no-default-features --features cuda,opt-cache
 
   test-all:
   
@@ -100,5 +104,7 @@ jobs:
 
     - name: Run tests (CUDA, OpenCL)
       run: cargo test --verbose --no-default-features --features cuda,opencl
-    - name: Run tests (all features)
+    - name: Run tests (CUDA, OpenCL, opt-cache)
+      run: cargo test --verbose --no-default-features --features cuda,opencl,opt-cache
+    - name: Run tests (CUDA, OpenCL, realloc)
       run: cargo test --verbose --no-default-features --features cuda,opencl,realloc

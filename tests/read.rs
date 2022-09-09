@@ -9,8 +9,3 @@ fn test_read_cuda() -> custos::Result<()> {
     assert_eq!(vec![3., 1., 3., 4.,], read);
     Ok(())
 }
-
-#[test]
-fn test_vec() {
-    let _vec = Vec::from_iter(0..10);
-}

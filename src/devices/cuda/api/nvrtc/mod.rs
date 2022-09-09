@@ -3,7 +3,7 @@ mod ffi;
 
 use std::{
     ffi::CString,
-    ptr::{null, null_mut},
+    ptr::{null, null_mut}, os::raw::c_char,
 };
 
 pub use ffi::*;
@@ -52,7 +52,7 @@ pub fn compile_program(prog: &NvrtcProgram, options: Option<Vec<CString>>) -> Nv
             let options = options
                 .iter()
                 .map(|option| option.as_ptr())
-                .collect::<Vec<*const i8>>();
+                .collect::<Vec<*const c_char>>();
             unsafe { nvrtcCompileProgram(prog.0, options.len() as i32, options.as_ptr()) }
                 .to_result()
         }
@@ -66,7 +66,7 @@ pub fn get_ptx(prog: &NvrtcProgram) -> NvrtcResult<CString> {
         let mut ptx_size = 0;
         nvrtcGetPTXSize(prog.0, &mut ptx_size).to_result()?;
         let mut src: Vec<u8> = vec![0; ptx_size as usize];
-        nvrtcGetPTX(prog.0, src.as_mut_ptr() as *mut i8).to_result()?;
+        nvrtcGetPTX(prog.0, src.as_mut_ptr() as *mut c_char).to_result()?;
         Ok(CString::from_vec_with_nul_unchecked(src))
     }
 }

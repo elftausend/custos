@@ -8,14 +8,13 @@ use super::{
 use crate::{
     cache::{Cache, CacheReturn},
     devices::opencl::api::{create_buffer, MemFlags},
-    Alloc, AsDev, Buffer, CDatatype, CacheBuf, ClearBuf, CloneBuf, Device, DeviceType, Error,
-    VecRead, WriteBuf,
+    Alloc, AsDev, Buffer, CDatatype, CacheBuf, CachedLeaf, ClearBuf, CloneBuf, Device, DeviceType,
+    Error, Graph, GraphReturn, VecRead, WriteBuf, CPU,
 };
 use std::{
     cell::{Ref, RefCell},
     ffi::c_void,
     fmt::Debug,
-    rc::Rc,
 };
 
 /// Used to perform calculations with an OpenCL capable device.
@@ -37,7 +36,9 @@ use std::{
 pub struct CLDevice {
     pub kernel_cache: RefCell<KernelCacheCL>,
     pub cache: RefCell<Cache<RawCL>>,
-    pub inner: Rc<RefCell<InternCLDevice>>,
+    pub inner: RefCell<InternCLDevice>,
+    pub graph: RefCell<Graph>,
+    pub cpu: CPU,
 }
 
 unsafe impl Sync for InternCLDevice {}
@@ -48,11 +49,13 @@ impl CLDevice {
     /// - No device is found at the given device index
     /// - some other OpenCL related errors
     pub fn new(device_idx: usize) -> Result<CLDevice, Error> {
-        let inner = Rc::new(RefCell::new(CL_DEVICES.current(device_idx)?));
+        let inner = RefCell::new(CL_DEVICES.current(device_idx)?);
         Ok(CLDevice {
             kernel_cache: RefCell::new(KernelCacheCL::default()),
             cache: RefCell::new(Cache::default()),
             inner,
+            graph: RefCell::new(Graph::new()),
+            cpu: CPU::new(),
         })
     }
 
@@ -169,7 +172,7 @@ impl<'a, T> CloneBuf<'a, T> for CLDevice {
 impl<'a, T> CacheBuf<'a, T> for CLDevice {
     #[inline]
     fn cached(&'a self, len: usize) -> Buffer<'a, T> {
-        Cache::get(self, len)
+        Cache::get(self, len, CachedLeaf)
     }
 }
 
@@ -179,6 +182,16 @@ impl CacheReturn<RawCL> for CLDevice {
         self.cache.borrow_mut()
     }
 }
+
+impl GraphReturn for CLDevice {
+    #[inline]
+    fn graph(&self) -> std::cell::RefMut<Graph> {
+        self.graph.borrow_mut()
+    }
+}
+
+#[cfg(feature = "opt-cache")]
+impl crate::GraphOpt for CLDevice {}
 
 #[inline]
 pub fn cl_cached<T>(device: &CLDevice, len: usize) -> Buffer<T> {

@@ -8,8 +8,8 @@ use super::{
 };
 use crate::{
     cache::{Cache, CacheReturn},
-    Alloc, AsDev, Buffer, CDatatype, CacheBuf, ClearBuf, CloneBuf, Device, DeviceType, VecRead,
-    WriteBuf,
+    Alloc, AsDev, Buffer, CDatatype, CacheBuf, CachedLeaf, ClearBuf, CloneBuf, Device, DeviceType,
+    Graph, GraphReturn, VecRead, WriteBuf,
 };
 use std::{cell::RefCell, ptr::null_mut};
 
@@ -20,6 +20,7 @@ pub struct CudaDevice {
     pub cache: RefCell<Cache<RawCUBuf>>,
     pub kernel_cache: RefCell<KernelCacheCU>,
     pub modules: RefCell<Vec<Module>>,
+    pub graph: RefCell<Graph>,
     device: CudaIntDevice,
     ctx: Context,
     stream: Stream,
@@ -39,6 +40,7 @@ impl CudaDevice {
             cache: RefCell::new(Cache::default()),
             kernel_cache: RefCell::new(KernelCacheCU::default()),
             modules: RefCell::new(vec![]),
+            graph: RefCell::new(Graph::new()),
             device,
             ctx,
             stream,
@@ -117,12 +119,21 @@ impl<T> WriteBuf<T> for CudaDevice {
     }
 }
 
+impl GraphReturn for CudaDevice {
+    fn graph(&self) -> std::cell::RefMut<Graph> {
+        self.graph.borrow_mut()
+    }
+}
+
 impl CacheReturn<RawCUBuf> for CudaDevice {
     #[inline]
     fn cache(&self) -> std::cell::RefMut<Cache<RawCUBuf>> {
         self.cache.borrow_mut()
     }
 }
+
+#[cfg(feature = "opt-cache")]
+impl crate::GraphOpt for CudaDevice {}
 
 impl<'a, T> CloneBuf<'a, T> for CudaDevice {
     fn clone_buf(&'a self, buf: &Buffer<'a, T>) -> Buffer<'a, T> {
@@ -137,7 +148,7 @@ impl<'a, T> CloneBuf<'a, T> for CudaDevice {
 impl<'a, T> CacheBuf<'a, T> for CudaDevice {
     #[inline]
     fn cached(&self, len: usize) -> Buffer<T> {
-        Cache::get(self, len)
+        Cache::get(self, len, CachedLeaf)
     }
 }
 

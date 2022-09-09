@@ -5,19 +5,23 @@ use std::{ffi::c_void, fmt::Debug, ptr::null_mut};
 #[cfg(feature = "opencl")]
 use crate::opencl::api::release_mem_object;
 use crate::{
-    get_device, Alloc, AsDev, CDatatype, CacheBuf, ClearBuf, CloneBuf, Device, VecRead, WriteBuf,
-    GLOBAL_CPU,
+    get_device, Alloc, AsDev, CDatatype, CacheBuf, ClearBuf, CloneBuf, Device, GraphReturn, Node,
+    VecRead, WriteBuf, GLOBAL_CPU,
 };
 
-use crate::number::Number;
-
 /// Descripes the type of a [`Buffer`]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub enum BufFlag {
     None,
     Cache,
     Wrapper,
     Item,
+}
+
+impl Default for BufFlag {
+    fn default() -> Self {
+        BufFlag::None
+    }
 }
 
 impl PartialEq for BufFlag {
@@ -32,6 +36,7 @@ pub struct Buffer<'a, T> {
     pub len: usize,
     pub device: Device,
     pub flag: BufFlag,
+    pub node: Node,
     pub p: PhantomData<&'a T>,
 }
 
@@ -52,13 +57,16 @@ impl<'a, T> Buffer<'a, T> {
     /// assert_eq!(buffer.as_slice(), &[2; 6]);
     ///
     /// ```
-    pub fn new<D: Alloc<T> + ?Sized>(device: &'a D, len: usize) -> Buffer<'a, T> {
+    pub fn new<D>(device: &'a D, len: usize) -> Buffer<'a, T>
+    where
+        D: Alloc<T> + GraphReturn + ?Sized,
+    {
         Buffer {
             ptr: device.alloc(len),
             len,
             device: device.as_dev(),
-            flag: BufFlag::None,
-            p: PhantomData,
+            node: device.graph().add_leaf(len),
+            ..Default::default()
         }
     }
 
@@ -82,9 +90,7 @@ impl<'a, T> Buffer<'a, T> {
         Buffer {
             ptr: device.alloc(len),
             len,
-            device: Device::default(),
-            flag: BufFlag::None,
-            p: PhantomData,
+            ..Default::default()
         }
     }
 
@@ -103,14 +109,15 @@ impl<'a, T> Buffer<'a, T> {
     ///     *value += idx as f32;
     /// }
     /// assert_eq!(buf.as_slice(), &[0., 1., 2., 3., 4., 5., 6., 7., 8., 9.,])
+    ///
     /// ```
+    /// # Safety
+    /// The pointer must not outlive the Buffer.
     pub unsafe fn from_raw_host(ptr: *mut T, len: usize) -> Buffer<'a, T> {
         Buffer {
             ptr: (ptr, null_mut(), 0),
             len,
-            device: Device::default(),
-            flag: BufFlag::None,
-            p: PhantomData,
+            ..Default::default()
         }
     }
 
@@ -251,7 +258,7 @@ impl<'a, T> Buffer<'a, T> {
         get_device!(self.device, WriteBuf<T>).write(self, data)
     }
 
-    #[cfg(feature = "cuda")]
+    /*#[cfg(feature = "cuda")]
     pub fn to_cuda<'c>(&self, cuda_device: &'c crate::CudaDevice) -> crate::Result<Buffer<'c, T>> {
         use crate::{DeviceError, DeviceType};
 
@@ -259,22 +266,24 @@ impl<'a, T> Buffer<'a, T> {
             return Err(DeviceError::CPUtoCUDA.into());
         }
 
-        let mut out = crate::Cache::get(cuda_device, self.len);
+        let mut out = crate::Cache::get(cuda_device, self.len, );
         cuda_device.write(&mut out, self);
         Ok(out)
-    }
+    }*/
 
-    /// Creates a shallow copy of &self. 
-    /// 
+    /// Creates a shallow copy of &self.
+    ///
     /// # Safety
     /// Itself, this function does not need to be unsafe.
     /// However, declaring this function as unsafe highlights the violation of creating two or more owners for one resource.
+    /// Furthermore, the resulting `Buffer` can outlive `self`.
     pub unsafe fn shallow(&self) -> Buffer<'a, T> {
         Buffer {
             ptr: self.ptr,
             len: self.len,
             device: self.device,
             flag: BufFlag::Wrapper,
+            node: self.node,
             p: PhantomData,
         }
     }
@@ -285,6 +294,7 @@ impl<'a, T> Buffer<'a, T> {
     /// # Safety
     /// Itself, this function does not need to be unsafe.
     /// However, declaring this function as unsafe highlights the violation of possibly creating two or more owners for one resource.
+    /// Furthermore, the resulting `Buffer` can outlive `self`.
     pub unsafe fn shallow_or_clone(&self) -> Buffer<'a, T>
     where
         T: Clone,
@@ -298,7 +308,6 @@ impl<'a, T> Buffer<'a, T> {
         self.clone()
     }
 }
-
 
 impl<'a, T: Clone> Clone for Buffer<'a, T> {
     fn clone(&self) -> Self {
@@ -318,6 +327,7 @@ impl<A: Clone + Default> FromIterator<A> for Buffer<'_, A> {
 
             Buffer {
                 len: from_iter.len(),
+                node: device.graph().add_leaf(from_iter.len()),
                 ptr: device.alloc_with_vec(from_iter),
                 device: device.dev(),
                 flag: BufFlag::None,
@@ -330,9 +340,7 @@ impl<A: Clone + Default> FromIterator<A> for Buffer<'_, A> {
 impl<T> Drop for Buffer<'_, T> {
     fn drop(&mut self) {
         if self.flag == BufFlag::Item {
-            drop(unsafe {
-                Box::from_raw(self.ptr.0)
-            });
+            drop(unsafe { Box::from_raw(self.ptr.0) });
             return;
         }
         if self.flag != BufFlag::None {
@@ -359,13 +367,14 @@ impl<T> Drop for Buffer<'_, T> {
     }
 }
 
-impl<T> Default for Buffer<'_, T> {
+impl<'a, T> Default for Buffer<'a, T> {
     fn default() -> Self {
         Self {
             ptr: (null_mut(), null_mut(), 0),
+            flag: BufFlag::default(),
             len: Default::default(),
             device: Default::default(),
-            flag: BufFlag::None,
+            node: Node::default(),
             p: PhantomData,
         }
     }
@@ -492,68 +501,73 @@ impl<'a, T> std::iter::IntoIterator for &'a mut Buffer<'_, T> {
     }
 }
 
-impl<T: Number> From<T> for Buffer<'_, T> {
+impl<T: crate::number::Number> From<T> for Buffer<'_, T> {
     fn from(val: T) -> Self {
         Buffer {
             ptr: (Box::into_raw(Box::new(val)), null_mut(), 0),
             len: 0,
-            device: Device::default(),
             flag: BufFlag::Item,
-            p: PhantomData,
+            ..Default::default()
         }
     }
 }
 
-impl<'a, T: Clone, D: Alloc<T> + ?Sized, const N: usize> From<(&'a D, [T; N])> for Buffer<'a, T> {
+impl<'a, T: Clone, D: Alloc<T> + ?Sized + GraphReturn, const N: usize> From<(&'a D, [T; N])>
+    for Buffer<'a, T>
+{
     fn from(device_slice: (&D, [T; N])) -> Self {
+        let len = device_slice.1.len();
         Buffer {
             ptr: device_slice.0.with_data(&device_slice.1),
-            len: device_slice.1.len(),
+            len,
             device: device_slice.0.as_dev(),
-            flag: BufFlag::None,
-            p: PhantomData,
+            node: device_slice.0.graph().add_leaf(len),
+            ..Default::default()
         }
     }
 }
 
-impl<'a, T: Clone, D: Alloc<T> + ?Sized> From<(&'a D, &[T])> for Buffer<'a, T> {
+impl<'a, T: Clone, D: Alloc<T> + GraphReturn + ?Sized> From<(&'a D, &[T])> for Buffer<'a, T> {
     fn from(device_slice: (&D, &[T])) -> Self {
+        let len = device_slice.1.len();
         Buffer {
             ptr: device_slice.0.with_data(device_slice.1),
-            len: device_slice.1.len(),
+            len,
             device: device_slice.0.as_dev(),
-            flag: BufFlag::None,
-            p: PhantomData,
+            node: device_slice.0.graph().add_leaf(len),
+            ..Default::default()
         }
     }
 }
 
-impl<'a, T: Clone, D: Alloc<T> + ?Sized> From<(&'a D, Vec<T>)> for Buffer<'a, T> {
+impl<'a, T: Clone, D: Alloc<T> + GraphReturn + ?Sized> From<(&'a D, Vec<T>)> for Buffer<'a, T> {
     fn from(device_slice: (&D, Vec<T>)) -> Self {
         let len = device_slice.1.len();
         Buffer {
             ptr: device_slice.0.alloc_with_vec(device_slice.1),
             len,
             device: device_slice.0.as_dev(),
-            flag: BufFlag::None,
-            p: PhantomData,
+            node: device_slice.0.graph().add_leaf(len),
+            ..Default::default()
         }
     }
 }
 
-impl<'a, T: Clone, D: Alloc<T> + ?Sized> From<(&'a D, &Vec<T>)> for Buffer<'a, T> {
+impl<'a, T: Clone, D: Alloc<T> + GraphReturn + ?Sized> From<(&'a D, &Vec<T>)> for Buffer<'a, T> {
     fn from(device_slice: (&D, &Vec<T>)) -> Self {
         let len = device_slice.1.len();
         Buffer {
             ptr: device_slice.0.with_data(device_slice.1),
             len,
             device: device_slice.0.as_dev(),
-            flag: BufFlag::None,
-            p: PhantomData,
+            node: device_slice.0.graph().add_leaf(len),
+            ..Default::default()
         }
     }
 }
 
+// TODO: Think of adding them to the graph
+/*
 // TODO: check if Wrapper flag fits
 // TODO: unsafe from raw parts fn?
 impl<'a, T: Copy> From<(*mut T, usize)> for Buffer<'a, T> {
@@ -626,6 +640,7 @@ impl<'a, T: CDatatype> From<(u64, usize)> for Buffer<'a, T> {
         }
     }
 }
+*/
 
 #[cfg_attr(feature = "realloc", doc = "```ignore")]
 /// Adds a `Buffer` to the "cache chain".

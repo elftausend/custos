@@ -36,6 +36,8 @@ use std::{ffi::c_void, ptr::null_mut};
 pub use buffer::*;
 pub use count::*;
 pub use devices::*;
+pub use graph::*;
+pub use error::*;
 
 pub use devices::cpu::CPU;
 #[cfg(feature = "cuda")]
@@ -47,6 +49,8 @@ pub mod devices;
 
 mod buffer;
 mod count;
+mod graph;
+mod error;
 
 pub mod number;
 
@@ -93,61 +97,11 @@ thread_local! {
     pub static GLOBAL_CPU: CPU = CPU::new();
 }
 
-pub struct Error {
-    pub error: Box<dyn std::error::Error + Send>,
-}
-
-impl<E: std::error::Error + PartialEq + 'static> PartialEq<E> for Error {
-    fn eq(&self, other: &E) -> bool {
-        let e = self.error.downcast_ref::<E>();
-        if let Some(e) = e {
-            return e == other;
-        }
-        false
-    }
-}
-
-impl From<Error> for Box<dyn std::error::Error> {
-    fn from(e: Error) -> Self {
-        e.error
-    }
-}
-
-impl Error {
-    pub fn kind<E: std::error::Error + PartialEq + 'static>(&self) -> Option<&E> {
-        self.error.downcast_ref::<E>()
-    }
-}
-
-impl<T: std::error::Error + Send + 'static> From<T> for Error {
-    fn from(error: T) -> Self {
-        Error {
-            error: Box::new(error),
-        }
-    }
-}
-
-impl core::fmt::Debug for Error {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:?}", self.error)?;
-        Ok(())
-    }
-}
-
-impl core::fmt::Display for Error {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.error)?;
-        Ok(())
-    }
-}
-
-pub type Result<T> = std::result::Result<T, Error>;
-
 /// This trait is for allocating memory on the implemented device.
 ///
 /// # Example
 /// ```
-/// use custos::{CPU, Alloc, Buffer, VecRead, BufFlag, AsDev};
+/// use custos::{CPU, Alloc, Buffer, VecRead, BufFlag, AsDev, GraphReturn};
 ///
 /// let device = CPU::new();
 /// let ptrs: (*mut f32, *mut std::ffi::c_void, u64) = device.alloc(12);
@@ -157,6 +111,7 @@ pub type Result<T> = std::result::Result<T, Error>;
 ///     len: 12,
 ///     device: AsDev::dev(&device),
 ///     flag: BufFlag::None,
+///     node: device.graph().add_leaf(12),
 ///     p: std::marker::PhantomData
 /// };
 /// assert_eq!(vec![0.; 12], device.read(&buf));
@@ -165,7 +120,7 @@ pub trait Alloc<T> {
     /// Allocate memory on the implemented device.
     /// # Example
     /// ```
-    /// use custos::{CPU, Alloc, Buffer, VecRead, BufFlag, AsDev};
+    /// use custos::{CPU, Alloc, Buffer, VecRead, BufFlag, AsDev, GraphReturn};
     ///
     /// let device = CPU::new();
     /// let ptrs: (*mut f32, *mut std::ffi::c_void, u64) = device.alloc(12);
@@ -175,6 +130,7 @@ pub trait Alloc<T> {
     ///     len: 12,
     ///     device: AsDev::dev(&device),
     ///     flag: BufFlag::None,
+    ///     node: device.graph().add_leaf(12),
     ///     p: std::marker::PhantomData
     /// };
     /// assert_eq!(vec![0.; 12], device.read(&buf));
@@ -184,7 +140,7 @@ pub trait Alloc<T> {
     /// Allocate new memory with data
     /// # Example
     /// ```
-    /// use custos::{CPU, Alloc, Buffer, VecRead, BufFlag, AsDev};
+    /// use custos::{CPU, Alloc, Buffer, VecRead, BufFlag, AsDev, GraphReturn};
     ///
     /// let device = CPU::new();
     /// let ptrs: (*mut u8, *mut std::ffi::c_void, u64) = device.with_data(&[1, 5, 4, 3, 6, 9, 0, 4]);
@@ -194,6 +150,7 @@ pub trait Alloc<T> {
     ///     len: 8,
     ///     device: AsDev::dev(&device),
     ///     flag: BufFlag::None,
+    ///     node: device.graph().add_leaf(8),
     ///     p: std::marker::PhantomData
     /// };
     /// assert_eq!(vec![1, 5, 4, 3, 6, 9, 0, 4], device.read(&buf));
@@ -318,39 +275,6 @@ pub trait AsDev {
         Alloc::as_dev(self)
     }
 }
-
-#[derive(Clone, Copy, Eq, Hash, Ord, PartialEq, PartialOrd)]
-pub enum DeviceError {
-    ConstructError,
-    CPUtoCUDA,
-}
-
-impl DeviceError {
-    pub fn as_str(&self) -> &'static str {
-        match self {
-            DeviceError::ConstructError => {
-                "Only a non-drop buffer can be converted to a CPU+OpenCL buffer."
-            }
-            DeviceError::CPUtoCUDA => "Only a CPU Buffer can be converted to a CUDA Buffer",
-        }
-    }
-}
-
-impl core::fmt::Debug for DeviceError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.as_str())?;
-        Ok(())
-    }
-}
-
-impl core::fmt::Display for DeviceError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.as_str())?;
-        Ok(())
-    }
-}
-
-impl std::error::Error for DeviceError {}
 
 /// Return a device that implements the trait provided thus giving access to the functions implemented by the trait.
 ///

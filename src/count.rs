@@ -42,10 +42,11 @@ impl AsRangeArg for (usize, usize) {
 ///
 /// # Example
 /// ```
-/// use custos::{get_count, range, Node};
+/// use custos::{get_count, range, Ident, bump_count};
 ///
 /// for _ in range(100) {
-///     Node::new(10); // a 'Node' is created if a Buffer is retrieved from cache.
+///     Ident::new(10); // an 'Ident' is created if a Buffer is retrieved from cache.
+///     bump_count();
 ///     assert!(get_count() == 1);
 /// }
 /// assert!(get_count() == 0);
