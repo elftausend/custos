@@ -1,5 +1,5 @@
 use std::cell::RefMut;
-use crate::{Buffer, Ident, COUNT};
+use crate::{Buffer, Ident, COUNT, Device1};
 
 #[cfg(feature = "opt-cache")]
 use crate::{DeviceError, cache::{CacheReturn, CacheType}};
@@ -240,19 +240,19 @@ impl AddGraph for CachedLeaf {
     }
 }
 
-impl<'a, T> AddGraph for Buffer<'a, T> {
+impl<'a, T, D> AddGraph for Buffer<'a, T, D> {
     fn add(&self, graph: &mut Graph, len: usize) -> Node {
         graph.add_node(len, self.node.idx, self.node.idx)
     }
 }
 
-impl<'a, T> AddGraph for &Buffer<'a, T> {
+impl<'a, T, D> AddGraph for &Buffer<'a, T, D> {
     fn add(&self, graph: &mut Graph, len: usize) -> Node {
         graph.add_node(len, self.node.idx, self.node.idx)
     }
 }
 
-impl<'a, T> AddGraph for (&Buffer<'a, T>, &Buffer<'a, T>) {
+impl<'a, T, D> AddGraph for (&Buffer<'a, T, D>, &Buffer<'a, T, D>) {
     fn add(&self, graph: &mut Graph, len: usize) -> Node {
         graph.add_node(len, self.0.node.idx, self.1.node.idx)
     }

@@ -22,7 +22,7 @@ use crate::{Buffer, CDatatype, Ident, Node};
 
 /// Returns an OpenCL pointer that is bound to the host pointer stored in the specified buffer.
 pub fn to_unified<T>(
-    device: &CLDevice,
+    device: &OpenCL,
     no_drop: Buffer<T>,
     graph_node: Node,
 ) -> crate::Result<*mut c_void> {
@@ -55,7 +55,7 @@ pub fn to_unified<T>(
 /// # Safety
 /// The pointer of the no_drop Buffer must be valid for the entire lifetime of the returned Buffer.
 pub unsafe fn construct_buffer<'a, T: Debug>(
-    device: &'a CLDevice,
+    device: &'a OpenCL,
     no_drop: Buffer<T>,
     add_node: impl AddGraph,
 ) -> crate::Result<Buffer<'a, T>> {
@@ -108,7 +108,7 @@ pub unsafe fn construct_buffer<'a, T: Debug>(
 ///     Ok(())
 /// }
 /// ```
-pub fn cl_clear<T: CDatatype>(device: &CLDevice, lhs: &mut Buffer<T>) -> crate::Result<()> {
+pub fn cl_clear<T: CDatatype>(device: &OpenCL, lhs: &mut Buffer<T>) -> crate::Result<()> {
     let src = format!(
         "
         __kernel void clear(__global {datatype}* self) {{

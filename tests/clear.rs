@@ -13,9 +13,9 @@ fn test_clear_cpu() {
 #[cfg(feature = "opencl")]
 #[test]
 fn test_clear_cl() -> Result<(), custos::Error> {
-    use custos::CLDevice;
+    use custos::OpenCL;
 
-    let device = CLDevice::new(0)?;
+    let device = OpenCL::new(0)?;
 
     let mut buf = Buffer::from((&device, [1., 2., 3., 4., 5., 6.]));
     assert_eq!(buf.read(), vec![1., 2., 3., 4., 5., 6.,]);
@@ -27,9 +27,9 @@ fn test_clear_cl() -> Result<(), custos::Error> {
 #[cfg(feature = "cuda")]
 #[test]
 fn test_clear_cuda() -> Result<(), custos::Error> {
-    use custos::CudaDevice;
+    use custos::CUDA;
 
-    let device = CudaDevice::new(0)?;
+    let device = CUDA::new(0)?;
 
     let mut buf = Buffer::from((&device, [1., 2., 3., 4., 5., 6.]));
     assert_eq!(buf.read(), vec![1., 2., 3., 4., 5., 6.,]);

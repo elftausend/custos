@@ -9,14 +9,14 @@ use super::{
 use crate::{
     cache::{Cache, CacheReturn},
     Alloc, AsDev, Buffer, CDatatype, CacheBuf, CachedLeaf, ClearBuf, CloneBuf, Device, DeviceType,
-    Graph, GraphReturn, VecRead, WriteBuf,
+    Graph, GraphReturn, VecRead, WriteBuf, Device1,
 };
 use std::{cell::RefCell, ptr::null_mut};
 
 /// Used to perform calculations with a CUDA capable device.
 /// To make new calculations invocable, a trait providing new operations should be implemented for [CudaDevice].
 #[derive(Debug)]
-pub struct CudaDevice {
+pub struct CUDA {
     pub cache: RefCell<Cache<RawCUBuf>>,
     pub kernel_cache: RefCell<KernelCacheCU>,
     pub modules: RefCell<Vec<Module>>,
@@ -27,8 +27,8 @@ pub struct CudaDevice {
     handle: CublasHandle,
 }
 
-impl CudaDevice {
-    pub fn new(idx: usize) -> crate::Result<CudaDevice> {
+impl CUDA {
+    pub fn new(idx: usize) -> crate::Result<CUDA> {
         unsafe { cuInit(0) }.to_result()?;
         let device = device(idx as i32)?;
         let ctx = create_context(&device)?;
@@ -36,7 +36,7 @@ impl CudaDevice {
         let handle = create_handle()?;
         unsafe { cublasSetStream_v2(handle.0, stream.0) }.to_result()?;
 
-        Ok(CudaDevice {
+        Ok(CUDA {
             cache: RefCell::new(Cache::default()),
             kernel_cache: RefCell::new(KernelCacheCU::default()),
             modules: RefCell::new(vec![]),
@@ -65,7 +65,7 @@ impl CudaDevice {
     }
 }
 
-impl Drop for CudaDevice {
+impl Drop for CUDA {
     fn drop(&mut self) {
         unsafe {
             cublasDestroy_v2(self.handle.0);
@@ -74,7 +74,9 @@ impl Drop for CudaDevice {
     }
 }
 
-impl<T> Alloc<T> for CudaDevice {
+impl Device1 for CUDA {}
+
+impl<T> Alloc<T> for CUDA {
     fn alloc(&self, len: usize) -> (*mut T, *mut std::ffi::c_void, u64) {
         let ptr = cumalloc::<T>(len).unwrap();
         // TODO: use unified mem if available -> i can't test this
@@ -90,12 +92,12 @@ impl<T> Alloc<T> for CudaDevice {
     fn as_dev(&self) -> Device {
         Device {
             device_type: DeviceType::CUDA,
-            device: self as *const CudaDevice as *mut u8,
+            device: self as *const CUDA as *mut u8,
         }
     }
 }
 
-impl<T: Default + Clone> VecRead<T> for CudaDevice {
+impl<T: Default + Clone> VecRead<T> for CUDA {
     fn read(&self, buf: &Buffer<T>) -> Vec<T> {
         assert!(
             buf.ptr.2 != 0,
@@ -107,25 +109,25 @@ impl<T: Default + Clone> VecRead<T> for CudaDevice {
     }
 }
 
-impl<T: CDatatype> ClearBuf<T> for CudaDevice {
+impl<T: CDatatype> ClearBuf<T> for CUDA {
     fn clear(&self, buf: &mut Buffer<T>) {
         cu_clear(self, buf).unwrap()
     }
 }
 
-impl<T> WriteBuf<T> for CudaDevice {
+impl<T> WriteBuf<T> for CUDA {
     fn write(&self, buf: &mut Buffer<T>, data: &[T]) {
         cu_write(buf.cu_ptr(), data).unwrap();
     }
 }
 
-impl GraphReturn for CudaDevice {
+impl GraphReturn for CUDA {
     fn graph(&self) -> std::cell::RefMut<Graph> {
         self.graph.borrow_mut()
     }
 }
 
-impl CacheReturn<RawCUBuf> for CudaDevice {
+impl CacheReturn<RawCUBuf> for CUDA {
     #[inline]
     fn cache(&self) -> std::cell::RefMut<Cache<RawCUBuf>> {
         self.cache.borrow_mut()
@@ -133,9 +135,9 @@ impl CacheReturn<RawCUBuf> for CudaDevice {
 }
 
 #[cfg(feature = "opt-cache")]
-impl crate::GraphOpt for CudaDevice {}
+impl crate::GraphOpt for CUDA {}
 
-impl<'a, T> CloneBuf<'a, T> for CudaDevice {
+impl<'a, T> CloneBuf<'a, T> for CUDA {
     fn clone_buf(&'a self, buf: &Buffer<'a, T>) -> Buffer<'a, T> {
         let cloned = Buffer::new(self, buf.len);
         unsafe {
@@ -145,7 +147,7 @@ impl<'a, T> CloneBuf<'a, T> for CudaDevice {
     }
 }
 
-impl<'a, T> CacheBuf<'a, T> for CudaDevice {
+impl<'a, T> CacheBuf<'a, T> for CUDA {
     #[inline]
     fn cached(&self, len: usize) -> Buffer<T> {
         Cache::get(self, len, CachedLeaf)
@@ -153,8 +155,8 @@ impl<'a, T> CacheBuf<'a, T> for CudaDevice {
 }
 
 #[inline]
-pub fn cu_cached<T>(device: &CudaDevice, len: usize) -> Buffer<T> {
+pub fn cu_cached<T>(device: &CUDA, len: usize) -> Buffer<T> {
     device.cached(len)
 }
 
-impl AsDev for CudaDevice {}
+impl AsDev for CUDA {}

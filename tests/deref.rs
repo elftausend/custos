@@ -22,9 +22,9 @@ fn test_deref_cpu() {
 #[test]
 #[should_panic]
 fn test_deref_opencl() {
-    use custos::CLDevice;
+    use custos::OpenCL;
 
-    let device = CLDevice::new(0).unwrap();
+    let device = OpenCL::new(0).unwrap();
     if device.unified_mem() {
         panic!("the cpu ptr needs to be null")
     }
@@ -41,9 +41,9 @@ fn test_deref_opencl() {
 #[test]
 #[should_panic]
 fn test_deref_cuda() {
-    use custos::CudaDevice;
+    use custos::CUDA;
 
-    let device = CudaDevice::new(0).unwrap();
+    let device = CUDA::new(0).unwrap();
 
     let a = Buffer::from((&device, [1., 2., 3., 4.]));
     let b = Buffer::from((&device, [2., 3., 4., 5.]));

@@ -1,7 +1,7 @@
 use crate::{
     devices::cache::{Cache, CacheReturn},
     Alloc, AsDev, Buffer, CacheBuf, CachedLeaf, ClearBuf, CloneBuf, Device, DeviceType, Graph,
-    GraphReturn, VecRead, WriteBuf,
+    GraphReturn, VecRead, WriteBuf, Device1,
 };
 use std::{
     alloc::{handle_alloc_error, Layout},
@@ -43,6 +43,8 @@ impl CPU {
         }
     }
 }
+
+impl Device1 for CPU {}
 
 impl<T> Alloc<T> for CPU {
     fn alloc(&self, len: usize) -> (*mut T, *mut c_void, u64) {

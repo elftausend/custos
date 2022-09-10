@@ -1,6 +1,6 @@
 use custos::{
     cuda::{api::culaunch_kernel, fn_cache},
-    Buffer, CudaDevice, VecRead,
+    Buffer, CUDA, VecRead,
 };
 use std::ffi::c_void;
 
@@ -13,7 +13,7 @@ mod scalar_ops;
 
 #[test]
 fn test_cached_kernel_launch() -> custos::Result<()> {
-    let device = CudaDevice::new(0)?;
+    let device = CUDA::new(0)?;
 
     let a = Buffer::from((&device, [1, 2, 3, 4, 5]));
     let b = Buffer::from((&device, [4, 1, 7, 6, 9]));

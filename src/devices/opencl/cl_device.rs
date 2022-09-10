@@ -9,7 +9,7 @@ use crate::{
     cache::{Cache, CacheReturn},
     devices::opencl::api::{create_buffer, MemFlags},
     Alloc, AsDev, Buffer, CDatatype, CacheBuf, CachedLeaf, ClearBuf, CloneBuf, Device, DeviceType,
-    Error, Graph, GraphReturn, VecRead, WriteBuf, CPU,
+    Error, Graph, GraphReturn, VecRead, WriteBuf, CPU, Device1,
 };
 use std::{
     cell::{Ref, RefCell},
@@ -33,7 +33,7 @@ use std::{
 ///     Ok(())
 /// }
 /// ```
-pub struct CLDevice {
+pub struct OpenCL {
     pub kernel_cache: RefCell<KernelCacheCL>,
     pub cache: RefCell<Cache<RawCL>>,
     pub inner: RefCell<InternCLDevice>,
@@ -43,14 +43,14 @@ pub struct CLDevice {
 
 unsafe impl Sync for InternCLDevice {}
 
-impl CLDevice {
+impl OpenCL {
     /// Returns an [CLDevice] at the specified device index.
     /// # Errors
     /// - No device is found at the given device index
     /// - some other OpenCL related errors
-    pub fn new(device_idx: usize) -> Result<CLDevice, Error> {
+    pub fn new(device_idx: usize) -> Result<OpenCL, Error> {
         let inner = RefCell::new(CL_DEVICES.current(device_idx)?);
-        Ok(CLDevice {
+        Ok(OpenCL {
             kernel_cache: RefCell::new(KernelCacheCL::default()),
             cache: RefCell::new(Cache::default()),
             inner,
@@ -102,7 +102,7 @@ impl CLDevice {
     }
 }
 
-impl Debug for CLDevice {
+impl Debug for OpenCL {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
@@ -120,7 +120,9 @@ impl Debug for CLDevice {
     }
 }
 
-impl<T> Alloc<T> for CLDevice {
+impl Device1 for OpenCL {}
+
+impl<T> Alloc<T> for OpenCL {
     fn alloc(&self, len: usize) -> (*mut T, *mut c_void, u64) {
         let ptr =
             create_buffer::<T>(&self.ctx(), MemFlags::MemReadWrite as u64, len, None).unwrap();
@@ -156,12 +158,12 @@ impl<T> Alloc<T> for CLDevice {
     fn as_dev(&self) -> Device {
         Device {
             device_type: DeviceType::CL,
-            device: self as *const CLDevice as *mut u8,
+            device: self as *const OpenCL as *mut u8,
         }
     }
 }
 
-impl<'a, T> CloneBuf<'a, T> for CLDevice {
+impl<'a, T> CloneBuf<'a, T> for OpenCL {
     fn clone_buf(&'a self, buf: &Buffer<'a, T>) -> Buffer<'a, T> {
         let cloned = Buffer::new(self, buf.len);
         enqueue_full_copy_buffer::<T>(&self.queue(), buf.ptr.1, cloned.ptr.1, buf.len).unwrap();
@@ -169,21 +171,21 @@ impl<'a, T> CloneBuf<'a, T> for CLDevice {
     }
 }
 
-impl<'a, T> CacheBuf<'a, T> for CLDevice {
+impl<'a, T> CacheBuf<'a, T> for OpenCL {
     #[inline]
     fn cached(&'a self, len: usize) -> Buffer<'a, T> {
         Cache::get(self, len, CachedLeaf)
     }
 }
 
-impl CacheReturn<RawCL> for CLDevice {
+impl CacheReturn<RawCL> for OpenCL {
     #[inline]
     fn cache(&self) -> std::cell::RefMut<Cache<RawCL>> {
         self.cache.borrow_mut()
     }
 }
 
-impl GraphReturn for CLDevice {
+impl GraphReturn for OpenCL {
     #[inline]
     fn graph(&self) -> std::cell::RefMut<Graph> {
         self.graph.borrow_mut()
@@ -191,28 +193,28 @@ impl GraphReturn for CLDevice {
 }
 
 #[cfg(feature = "opt-cache")]
-impl crate::GraphOpt for CLDevice {}
+impl crate::GraphOpt for OpenCL {}
 
 #[inline]
-pub fn cl_cached<T>(device: &CLDevice, len: usize) -> Buffer<T> {
+pub fn cl_cached<T>(device: &OpenCL, len: usize) -> Buffer<T> {
     device.cached(len)
 }
 
-impl<T: CDatatype> ClearBuf<T> for CLDevice {
+impl<T: CDatatype> ClearBuf<T> for OpenCL {
     #[inline]
     fn clear(&self, buf: &mut Buffer<T>) {
         cl_clear(self, buf).unwrap()
     }
 }
 
-impl<T> WriteBuf<T> for CLDevice {
+impl<T> WriteBuf<T> for OpenCL {
     fn write(&self, buf: &mut Buffer<T>, data: &[T]) {
         let event = unsafe { enqueue_write_buffer(&self.queue(), buf.ptr.1, data, false).unwrap() };
         wait_for_event(event).unwrap();
     }
 }
 
-impl<T: Clone + Default> VecRead<T> for CLDevice {
+impl<T: Clone + Default> VecRead<T> for OpenCL {
     fn read(&self, buf: &crate::Buffer<T>) -> Vec<T> {
         assert!(
             !buf.ptr.1.is_null(),
@@ -226,7 +228,7 @@ impl<T: Clone + Default> VecRead<T> for CLDevice {
     }
 }
 
-impl AsDev for CLDevice {}
+impl AsDev for OpenCL {}
 
 /// Internal representation of an OpenCL Device with the capability of storing pointers.
 /// # Note / Safety

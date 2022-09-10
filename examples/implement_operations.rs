@@ -1,10 +1,10 @@
 use custos::{get_device, Buffer, CDatatype, Cache, CPU};
 
 #[cfg(feature = "opencl")]
-use custos::{opencl::enqueue_kernel, CLDevice};
+use custos::{opencl::enqueue_kernel, OpenCL};
 
 #[cfg(feature = "cuda")]
-use custos::{cuda::launch_kernel1d, CudaDevice};
+use custos::{cuda::launch_kernel1d, CUDA};
 
 /// AddBuf will be implemented for all compute devices.
 pub trait AddBuf<T> {
@@ -40,7 +40,7 @@ where
 
 #[cfg(feature = "opencl")]
 // OpenCL implementation
-impl<T> AddBuf<T> for CLDevice
+impl<T> AddBuf<T> for OpenCL
 where
     T: CDatatype, // the custos::CDatatype trait is used to
 {
@@ -56,7 +56,7 @@ where
         ", datatype=T::as_c_type_str());
 
         let len = std::cmp::min(lhs.len, rhs.len);
-        let out = Cache::get::<T, CLDevice>(self, len, [lhs.node.idx, rhs.node.idx]);
+        let out = Cache::get::<T, OpenCL>(self, len, [lhs.node.idx, rhs.node.idx]);
 
         // In the background, the kernel is compiled once. After that, it will be reused every iteration.
         // The cached kernels are released (or freed) when the underlying CLDevice is dropped.
@@ -68,7 +68,7 @@ where
 
 #[cfg(feature = "cuda")]
 // CUDA Implementation
-impl<T: CDatatype> AddBuf<T> for CudaDevice {
+impl<T: CDatatype> AddBuf<T> for CUDA {
     fn add(&self, lhs: &Buffer<T>, rhs: &Buffer<T>) -> Buffer<T> {
         // generic CUDA kernel
         let src = format!(
@@ -85,7 +85,7 @@ impl<T: CDatatype> AddBuf<T> for CudaDevice {
         );
 
         let len = std::cmp::min(lhs.len, rhs.len);
-        let out = Cache::get::<T, CudaDevice>(self, len, (lhs.node.idx, rhs.node.idx));
+        let out = Cache::get::<T, CUDA>(self, len, (lhs.node.idx, rhs.node.idx));
 
         // The kernel is compiled once with nvrtc and is cached too.
         // The arguments are specified with a vector of buffers and/or numbers.
@@ -145,7 +145,7 @@ fn main() -> custos::Result<()> {
 
     #[cfg(feature = "opencl")] // deactivate this block if the feature is disabled
     {
-        let cl_device = CLDevice::new(0)?;
+        let cl_device = OpenCL::new(0)?;
 
         let lhs = Buffer::from((&cl_device, [1, 2, 3, 4, 5, 6]));
         let rhs = Buffer::from((&cl_device, [6, 5, 4, 3, 2, 1]));
@@ -156,7 +156,7 @@ fn main() -> custos::Result<()> {
 
     #[cfg(feature = "cuda")]
     {
-        let cuda_device = CudaDevice::new(0)?;
+        let cuda_device = CUDA::new(0)?;
 
         let lhs = Buffer::from((&cuda_device, [1., 2., 3., 4., 5., 6.]));
         let rhs = Buffer::from((&cuda_device, [6., 5., 4., 3., 2., 1.]));
@@ -178,7 +178,7 @@ pub trait AnotherOpBuf<T> {
 impl<T> AnotherOpBuf<T> for CPU {}
 
 #[cfg(feature = "opencl")]
-impl<T> AnotherOpBuf<T> for CLDevice {
+impl<T> AnotherOpBuf<T> for OpenCL {
     fn operation(&self, _buf: Buffer<T>) -> Buffer<T> {
         todo!()
     }

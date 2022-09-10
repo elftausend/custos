@@ -150,9 +150,9 @@ fn test_ffi_cuda() {
 
 #[test]
 fn test_cuda_device() -> custos::Result<()> {
-    use custos::{cuda::CudaDevice, Buffer};
+    use custos::{cuda::CUDA, Buffer};
 
-    let device = CudaDevice::new(0)?;
+    let device = CUDA::new(0)?;
     let _a = Buffer::<f32>::new(&device, 10);
     Ok(())
 }

@@ -1,7 +1,7 @@
 use custos::{get_device, number::Number, Buffer, CDatatype, Cache, CPU};
 
 #[cfg(feature = "opencl")]
-use custos::{opencl::enqueue_kernel, CLDevice};
+use custos::{opencl::enqueue_kernel, OpenCL};
 
 #[cfg(not(feature = "realloc"))]
 mod graph;
@@ -11,7 +11,7 @@ mod graph;
 mod to_unified;
 
 #[cfg(feature = "cuda")]
-use custos::{cuda::launch_kernel1d, CudaDevice};
+use custos::{cuda::launch_kernel1d, CUDA};
 
 pub trait AddBuf<T> {
     fn add(&self, lhs: &Buffer<T>, rhs: &Buffer<T>) -> Buffer<T>;
@@ -46,7 +46,7 @@ where
 }
 
 #[cfg(feature = "opencl")]
-impl<T: CDatatype> AddBuf<T> for CLDevice {
+impl<T: CDatatype> AddBuf<T> for OpenCL {
     fn add(&self, lhs: &Buffer<T>, rhs: &Buffer<T>) -> Buffer<T> {
         let src = format!("
         __kernel void add(__global {datatype}* self, __global const {datatype}* rhs, __global {datatype}* out) {{
@@ -79,7 +79,7 @@ impl<T: CDatatype> AddBuf<T> for CLDevice {
 }
 
 #[cfg(feature = "cuda")]
-impl<T: CDatatype> AddBuf<T> for CudaDevice {
+impl<T: CDatatype> AddBuf<T> for CUDA {
     fn add(&self, lhs: &Buffer<T>, rhs: &Buffer<T>) -> Buffer<T> {
         let src = format!(
             r#"extern "C" __global__ void add({datatype}* lhs, {datatype}* rhs, {datatype}* out, int numElements)

@@ -1,7 +1,7 @@
-use custos::{Buffer, CLDevice, VecRead};
+use custos::{Buffer, OpenCL, VecRead};
 
 fn main() -> custos::Result<()> {
-    let device = CLDevice::new(0)?;
+    let device = OpenCL::new(0)?;
 
     if !device.unified_mem() {
         println!("CLDevice uses own memory");

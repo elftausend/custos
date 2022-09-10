@@ -24,7 +24,7 @@ use crate::{Buffer, CDatatype};
 ///     Ok(())
 /// }
 /// ```
-pub fn cu_clear<T: CDatatype>(device: &CudaDevice, buf: &mut Buffer<T>) -> crate::Result<()> {
+pub fn cu_clear<T: CDatatype>(device: &CUDA, buf: &mut Buffer<T>) -> crate::Result<()> {
     let src = format!(
         r#"extern "C" __global__ void clear({datatype}* self, int numElements)
             {{

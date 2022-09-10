@@ -2,7 +2,7 @@ use super::api::{
     build_program, create_kernels_in_program, create_program_with_source, release_mem_object,
     Kernel,
 };
-use crate::{devices::cache::CacheType, CLDevice, Error, Node};
+use crate::{devices::cache::CacheType, OpenCL, Error, Node};
 use std::{collections::HashMap, ffi::c_void};
 
 #[derive(Debug)]
@@ -39,7 +39,7 @@ pub struct KernelCacheCL {
 }
 
 impl KernelCacheCL {
-    pub fn kernel_cache(&mut self, device: &CLDevice, src: &str) -> Result<Kernel, Error> {
+    pub fn kernel_cache(&mut self, device: &OpenCL, src: &str) -> Result<Kernel, Error> {
         if let Some(kernel) = self.kernel_cache.get(src) {
             return Ok(*kernel);
         }

@@ -1,6 +1,6 @@
 use custos::cpu::cpu_cached;
 #[cfg(feature = "opencl")]
-use custos::{devices::opencl::CLDevice, Error};
+use custos::{devices::opencl::OpenCL, Error};
 use custos::{Alloc, Buffer, VecRead};
 
 use custos::CPU;
@@ -26,7 +26,7 @@ where
 #[cfg(feature = "opencl")]
 #[test]
 fn test_cldevice_name() -> Result<(), Error> {
-    let device = CLDevice::new(0)?;
+    let device = OpenCL::new(0)?;
     println!("{}", device.name()?);
 
     Ok(())
@@ -35,7 +35,7 @@ fn test_cldevice_name() -> Result<(), Error> {
 #[cfg(feature = "opencl")]
 #[test]
 fn test_cldevice_version() -> Result<(), Error> {
-    let device = CLDevice::new(0)?;
+    let device = OpenCL::new(0)?;
     println!("{}", device.version()?);
     Ok(())
 }
@@ -43,7 +43,7 @@ fn test_cldevice_version() -> Result<(), Error> {
 #[cfg(feature = "opencl")]
 #[test]
 fn test_cldevice_mem() -> Result<(), Error> {
-    let device = CLDevice::new(0)?;
+    let device = OpenCL::new(0)?;
     println!(
         "get_global_mem_size_in_gb: {}",
         device.global_mem_size_in_gb()?
@@ -55,7 +55,7 @@ fn test_cldevice_mem() -> Result<(), Error> {
 #[cfg(feature = "opencl")]
 #[test]
 fn test_buffer_from_read() -> Result<(), Error> {
-    let device = CLDevice::new(0)?;
+    let device = OpenCL::new(0)?;
 
     let buf = Buffer::<f32>::from((&device, [3.13, 3., 1., 8.]));
     assert_eq!(read(&device, &buf), vec![3.13, 3., 1., 8.,]);
@@ -78,7 +78,7 @@ fn test_buffer_alloc_and_read() -> Result<(), Error> {
     buf_slice.copy_from_slice(&[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
     assert_eq!(&[0, 1, 2, 3, 4, 5, 6, 7, 8, 9], buf_slice);
 
-    let cl = CLDevice::new(0)?;
+    let cl = OpenCL::new(0)?;
 
     let buf = Buffer::<f32>::from((&cl, [3.13, 3., 1., 8.]));
     let buf_read = read(&cl, &buf);
@@ -141,7 +141,7 @@ fn test_cached_cl() -> Result<(), custos::Error> {
         cl_cached,
     };
 
-    let device = CLDevice::new(0)?;
+    let device = OpenCL::new(0)?;
     let _k = Buffer::<f32>::new(&device, 1);
 
     assert_eq!(0, get_count());
@@ -209,7 +209,7 @@ fn test_iterate() {
 #[cfg(feature = "opencl")]
 #[test]
 fn test_debug_print_buf() -> custos::Result<()> {
-    let device = CLDevice::new(0)?;
+    let device = OpenCL::new(0)?;
 
     let a = Buffer::from((&device, [1, 2, 3, 4, 5, 6]));
 

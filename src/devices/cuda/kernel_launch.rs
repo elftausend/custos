@@ -1,4 +1,4 @@
-use crate::{number::Number, Buffer, CudaDevice};
+use crate::{number::Number, Buffer, CUDA};
 use std::ffi::c_void;
 
 use super::{
@@ -33,7 +33,7 @@ impl<T: Number> AsCudaCvoidPtr for T {
 /// All kernel arguments must be set.
 pub fn launch_kernel1d(
     len: usize,
-    device: &CudaDevice,
+    device: &CUDA,
     src: &str,
     fn_name: &str,
     params: &[&dyn AsCudaCvoidPtr],

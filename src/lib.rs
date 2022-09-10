@@ -41,9 +41,9 @@ pub use error::*;
 
 pub use devices::cpu::CPU;
 #[cfg(feature = "cuda")]
-pub use devices::cuda::CudaDevice;
+pub use devices::cuda::CUDA;
 #[cfg(feature = "opencl")]
-pub use devices::opencl::{CLDevice, InternCLDevice};
+pub use devices::opencl::{OpenCL, InternCLDevice};
 
 pub mod devices;
 
@@ -96,6 +96,12 @@ impl Default for Device {
 thread_local! {
     pub static GLOBAL_CPU: CPU = CPU::new();
 }
+
+pub trait Device1 {}
+
+#[derive(Debug, Clone, Copy)]
+pub struct NONE;
+impl Device1 for NONE {}
 
 /// This trait is for allocating memory on the implemented device.
 ///
@@ -295,16 +301,16 @@ pub trait AsDev {
 #[macro_export]
 macro_rules! get_device {
     ($device:expr, $t:ident<$g:ident>) => {{
-        use $crate::{ DeviceType, CPU };
+        use $crate::DeviceType;
 
         let device: &dyn $t<$g> = unsafe {
             //&*($device.device as *mut CPU)
             match $device.device_type {
-                DeviceType::CPU => &*($device.device as *mut CPU),
+                DeviceType::CPU => &*($device.device as *mut $crate::CPU),
                 #[cfg(feature="cuda")]
-                DeviceType::CUDA => &*($device.device as *mut $crate::CudaDevice),
+                DeviceType::CUDA => &*($device.device as *mut $crate::CUDA),
                 #[cfg(feature="opencl")]
-                DeviceType::CL => &*($device.device as *mut $crate::CLDevice),
+                DeviceType::CL => &*($device.device as *mut $crate::OpenCL),
                 // TODO: convert to error
                 _ => panic!(
                     "No device found to execute this operation with. 

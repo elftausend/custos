@@ -1,10 +1,10 @@
-use custos::{cache::CacheReturn, opencl::construct_buffer, Buffer, CLDevice, Ident, CPU};
+use custos::{cache::CacheReturn, opencl::construct_buffer, Buffer, OpenCL, Ident, CPU};
 
 use super::{AddBuf, AddOp};
 
 #[test]
 fn test_access_cached_after_unified_construct_buf() -> custos::Result<()> {
-    let cl_dev = CLDevice::new(0)?;
+    let cl_dev = OpenCL::new(0)?;
 
     if !cl_dev.unified_mem() {
         return Ok(());
@@ -41,7 +41,7 @@ fn test_access_cached_after_unified_construct_buf() -> custos::Result<()> {
 
 #[test]
 fn test_multiple_construct_buffer() -> custos::Result<()> {
-    let cl_dev = CLDevice::new(0)?;
+    let cl_dev = OpenCL::new(0)?;
 
     if !cl_dev.unified_mem() {
         return Ok(());

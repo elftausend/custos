@@ -6,7 +6,7 @@ use std::{ffi::c_void, fmt::Debug, ptr::null_mut};
 use crate::opencl::api::release_mem_object;
 use crate::{
     get_device, Alloc, AsDev, CDatatype, CacheBuf, ClearBuf, CloneBuf, Device, GraphReturn, Node,
-    VecRead, WriteBuf, GLOBAL_CPU,
+    VecRead, WriteBuf, GLOBAL_CPU, Device1, NONE,
 };
 
 /// Descripes the type of a [`Buffer`]
@@ -31,16 +31,16 @@ impl PartialEq for BufFlag {
 }
 
 /// The underlying non-growable array structure. A `Buffer` may be encapsulated in other structs.
-pub struct Buffer<'a, T> {
+pub struct Buffer<'a, T, D> {
     pub ptr: (*mut T, *mut c_void, u64),
     pub len: usize,
-    pub device: Device,
+    pub device: &'a D,
     pub flag: BufFlag,
     pub node: Node,
     pub p: PhantomData<&'a T>,
 }
 
-impl<'a, T> Buffer<'a, T> {
+impl<'a, T, Dev: Device1> Buffer<'a, T, Dev> {
     /// Creates a zeroed (or values set to default) `Buffer` with the given length on the specified device.
     /// This `Buffer` can't outlive the device specified as a parameter.
     /// ```
@@ -57,7 +57,7 @@ impl<'a, T> Buffer<'a, T> {
     /// assert_eq!(buffer.as_slice(), &[2; 6]);
     ///
     /// ```
-    pub fn new<D>(device: &'a D, len: usize) -> Buffer<'a, T>
+    pub fn new<D>(device: &'a D, len: usize) -> Buffer<'a, T, D>
     where
         D: Alloc<T> + GraphReturn + ?Sized,
     {
@@ -86,7 +86,7 @@ impl<'a, T> Buffer<'a, T> {
     /// }
     /// assert_eq!(buf.as_slice(), &[0, 1, 2, 3, 4]);
     /// ```
-    pub fn deviceless<'b, D: Alloc<T> + ?Sized>(device: &'b D, len: usize) -> Buffer<'a, T> {
+    pub fn deviceless<'b, D: Alloc<T> + ?Sized>(device: &'b D, len: usize) -> Buffer<'a, T, NONE> {
         Buffer {
             ptr: device.alloc(len),
             len,
@@ -113,7 +113,7 @@ impl<'a, T> Buffer<'a, T> {
     /// ```
     /// # Safety
     /// The pointer must not outlive the Buffer.
-    pub unsafe fn from_raw_host(ptr: *mut T, len: usize) -> Buffer<'a, T> {
+    pub unsafe fn from_raw_host(ptr: *mut T, len: usize) -> Buffer<'a, T, NONE> {
         Buffer {
             ptr: (ptr, null_mut(), 0),
             len,
@@ -224,6 +224,7 @@ impl<'a, T> Buffer<'a, T> {
     pub fn clear(&mut self)
     where
         T: CDatatype,
+        Dev: ClearBuf<T>,
     {
         let device = get_device!(self.device, ClearBuf<T>);
         device.clear(self)
@@ -277,7 +278,7 @@ impl<'a, T> Buffer<'a, T> {
     /// Itself, this function does not need to be unsafe.
     /// However, declaring this function as unsafe highlights the violation of creating two or more owners for one resource.
     /// Furthermore, the resulting `Buffer` can outlive `self`.
-    pub unsafe fn shallow(&self) -> Buffer<'a, T> {
+    pub unsafe fn shallow(&self) -> Buffer<'a, T, Dev> {
         Buffer {
             ptr: self.ptr,
             len: self.len,
@@ -295,7 +296,7 @@ impl<'a, T> Buffer<'a, T> {
     /// Itself, this function does not need to be unsafe.
     /// However, declaring this function as unsafe highlights the violation of possibly creating two or more owners for one resource.
     /// Furthermore, the resulting `Buffer` can outlive `self`.
-    pub unsafe fn shallow_or_clone(&self) -> Buffer<'a, T>
+    pub unsafe fn shallow_or_clone(&self) -> Buffer<'a, T, Dev>
     where
         T: Clone,
     {
@@ -309,7 +310,7 @@ impl<'a, T> Buffer<'a, T> {
     }
 }
 
-impl<'a, T: Clone> Clone for Buffer<'a, T> {
+impl<'a, T: Clone, D> Clone for Buffer<'a, T, D> {
     fn clone(&self) -> Self {
         get_device!(self.device, CloneBuf<T>).clone_buf(self)
     }
@@ -670,7 +671,7 @@ impl<'a, T: CDatatype> From<(u64, usize)> for Buffer<'a, T> {
 /// let buf = cached::<f32>(&dev, 10);
 /// assert_eq!(device.read(&buf), vec![1.5; 10]);
 /// ```
-pub fn cached<T: Default + Copy>(device: &Device, len: usize) -> Buffer<T> {
+pub fn cached<T: Default + Copy, D>(device: &Device, len: usize) -> Buffer<T, D> {
     let device = get_device!(device, CacheBuf<T>);
     device.cached(len)
 }

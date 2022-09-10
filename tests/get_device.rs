@@ -13,9 +13,9 @@ fn get_device_test_cpu() {
 #[cfg(feature = "opencl")]
 #[test]
 fn get_device_test_cl() -> custos::Result<()> {
-    use custos::CLDevice;
+    use custos::OpenCL;
 
-    let device = CLDevice::new(0)?;
+    let device = OpenCL::new(0)?;
 
     let buf = Buffer::from((&device, [1., 1.5, 0.14]));
 
@@ -27,9 +27,9 @@ fn get_device_test_cl() -> custos::Result<()> {
 #[cfg(feature = "cuda")]
 #[test]
 fn get_device_test_cu() -> custos::Result<()> {
-    use custos::CudaDevice;
+    use custos::CUDA;
 
-    let device = CudaDevice::new(0)?;
+    let device = CUDA::new(0)?;
 
     let buf = Buffer::from((&device, [1., 1.5, 0.14]));
 
