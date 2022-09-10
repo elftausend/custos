@@ -100,8 +100,8 @@ thread_local! {
 pub trait Device1 {}
 
 #[derive(Debug, Clone, Copy)]
-pub struct NONE;
-impl Device1 for NONE {}
+pub struct Deviceless;
+pub trait DevicelessAble: Alloc {}
 
 /// This trait is for allocating memory on the implemented device.
 ///
@@ -122,7 +122,7 @@ impl Device1 for NONE {}
 /// };
 /// assert_eq!(vec![0.; 12], device.read(&buf));
 /// ```
-pub trait Alloc<T> {
+pub trait Alloc {
     /// Allocate memory on the implemented device.
     /// # Example
     /// ```
@@ -141,7 +141,7 @@ pub trait Alloc<T> {
     /// };
     /// assert_eq!(vec![0.; 12], device.read(&buf));
     /// ```
-    fn alloc(&self, len: usize) -> (*mut T, *mut c_void, u64);
+    fn alloc<T>(&self, len: usize) -> (*mut T, *mut c_void, u64);
 
     /// Allocate new memory with data
     /// # Example
@@ -161,12 +161,12 @@ pub trait Alloc<T> {
     /// };
     /// assert_eq!(vec![1, 5, 4, 3, 6, 9, 0, 4], device.read(&buf));
     /// ```
-    fn with_data(&self, data: &[T]) -> (*mut T, *mut c_void, u64)
+    fn with_data<T>(&self, data: &[T]) -> (*mut T, *mut c_void, u64)
     where
         T: Clone;
 
     /// If the vector `vec` was allocated previously, this function can be used in order to reduce the amount of allocations, which may be faster than using a slice of `vec`.
-    fn alloc_with_vec(&self, vec: Vec<T>) -> (*mut T, *mut c_void, u64)
+    fn alloc_with_vec<T>(&self, vec: Vec<T>) -> (*mut T, *mut c_void, u64)
     where
         T: Clone,
     {

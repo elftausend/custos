@@ -6,7 +6,7 @@ use std::{ffi::c_void, fmt::Debug, ptr::null_mut};
 use crate::opencl::api::release_mem_object;
 use crate::{
     get_device, Alloc, AsDev, CDatatype, CacheBuf, ClearBuf, CloneBuf, Device, GraphReturn, Node,
-    VecRead, WriteBuf, GLOBAL_CPU, Device1, NONE,
+    VecRead, WriteBuf, GLOBAL_CPU, Device1, NONE, Deviceless, DevicelessAble,
 };
 
 /// Descripes the type of a [`Buffer`]
@@ -37,10 +37,12 @@ pub struct Buffer<'a, T, D> {
     pub device: &'a D,
     pub flag: BufFlag,
     pub node: Node,
-    pub p: PhantomData<&'a T>,
 }
 
-impl<'a, T, Dev: Device1> Buffer<'a, T, Dev> {
+impl<'a, T> Buffer<'a, T, Deviceless> 
+where 
+    
+{
     /// Creates a zeroed (or values set to default) `Buffer` with the given length on the specified device.
     /// This `Buffer` can't outlive the device specified as a parameter.
     /// ```
@@ -59,7 +61,7 @@ impl<'a, T, Dev: Device1> Buffer<'a, T, Dev> {
     /// ```
     pub fn new<D>(device: &'a D, len: usize) -> Buffer<'a, T, D>
     where
-        D: Alloc<T> + GraphReturn + ?Sized,
+        D: Alloc + GraphReturn + ?Sized ,
     {
         Buffer {
             ptr: device.alloc(len),
@@ -86,7 +88,7 @@ impl<'a, T, Dev: Device1> Buffer<'a, T, Dev> {
     /// }
     /// assert_eq!(buf.as_slice(), &[0, 1, 2, 3, 4]);
     /// ```
-    pub fn deviceless<'b, D: Alloc<T> + ?Sized>(device: &'b D, len: usize) -> Buffer<'a, T, NONE> {
+    pub fn deviceless<'b>(device: &'b impl DevicelessAble, len: usize) -> Buffer<'a, T, Deviceless> {
         Buffer {
             ptr: device.alloc(len),
             len,
@@ -94,6 +96,9 @@ impl<'a, T, Dev: Device1> Buffer<'a, T, Dev> {
         }
     }
 
+}
+
+impl<'a, T, D> Buffer<'a, T, D> {
     /// Constructs a `Buffer` out of a host pointer and a length.
     /// # Example
     /// ```
