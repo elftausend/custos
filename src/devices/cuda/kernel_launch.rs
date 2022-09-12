@@ -10,13 +10,13 @@ pub trait AsCudaCvoidPtr {
     fn as_cvoid_ptr(&self) -> *mut c_void;
 }
 
-impl<'a, T> AsCudaCvoidPtr for &Buffer<'a, T> {
+impl<'a, T, D> AsCudaCvoidPtr for &Buffer<'a, T, D> {
     fn as_cvoid_ptr(&self) -> *mut c_void {
         &self.ptr.2 as *const u64 as *mut c_void
     }
 }
 
-impl<'a, T> AsCudaCvoidPtr for Buffer<'a, T> {
+impl<'a, T, D> AsCudaCvoidPtr for Buffer<'a, T, D> {
     fn as_cvoid_ptr(&self) -> *mut c_void {
         &self.ptr.2 as *const u64 as *mut c_void
     }

@@ -37,9 +37,9 @@ impl<P: CacheType> Cache<P> {
         device: &'a D,
         node: Ident,
         _add_node: impl AddGraph,
-    ) -> Buffer<'a, T>
+    ) -> Buffer<'a, T, D>
     where
-        D: Alloc<T> + GraphReturn,
+        D: Alloc + GraphReturn,
     {
         let ptr: (*mut T, *mut c_void, _) = device.alloc(node.len);
 
@@ -57,18 +57,17 @@ impl<P: CacheType> Cache<P> {
         Buffer {
             ptr,
             len: node.len,
-            device: Alloc::<T>::as_dev(device),
+            device: Alloc::as_dev(device),
             flag: BufFlag::Cache,
             node: graph_node,
-            p: PhantomData,
         }
     }
 
     /// Retrieves cached pointers and constructs a [`Buffer`] with them and `len`.
     #[cfg(not(feature = "realloc"))]
-    pub fn get<T, D>(device: &D, len: usize, add_node: impl AddGraph) -> Buffer<T>
+    pub fn get<T, D>(device: &D, len: usize, add_node: impl AddGraph) -> Buffer<T, D>
     where
-        D: Alloc<T> + CacheReturn<P>,
+        D: Alloc + CacheReturn<P>,
     {
         let node = Ident::new(len);
 
@@ -82,10 +81,9 @@ impl<P: CacheType> Cache<P> {
                 Buffer {
                     ptr,
                     len,
-                    device: Alloc::<T>::as_dev(device),
+                    device: Alloc::as_dev(device),
                     flag: BufFlag::Cache,
                     node,
-                    p: PhantomData,
                 }
             }
             None => cache.add_node(device, node, add_node),

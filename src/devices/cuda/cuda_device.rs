@@ -76,14 +76,14 @@ impl Drop for CUDA {
 
 impl Device1 for CUDA {}
 
-impl<T> Alloc<T> for CUDA {
-    fn alloc(&self, len: usize) -> (*mut T, *mut std::ffi::c_void, u64) {
+impl Alloc for CUDA {
+    fn alloc<T>(&self, len: usize) -> (*mut T, *mut std::ffi::c_void, u64) {
         let ptr = cumalloc::<T>(len).unwrap();
         // TODO: use unified mem if available -> i can't test this
         (null_mut(), null_mut(), ptr)
     }
 
-    fn with_data(&self, data: &[T]) -> (*mut T, *mut std::ffi::c_void, u64) {
+    fn with_data<T>(&self, data: &[T]) -> (*mut T, *mut std::ffi::c_void, u64) {
         let ptr = cumalloc::<T>(data.len()).unwrap();
         cu_write(ptr, data).unwrap();
         (null_mut(), null_mut(), ptr)
@@ -98,7 +98,7 @@ impl<T> Alloc<T> for CUDA {
 }
 
 impl<T: Default + Clone> VecRead<T> for CUDA {
-    fn read(&self, buf: &Buffer<T>) -> Vec<T> {
+    fn read(&self, buf: &Buffer<T, CUDA>) -> Vec<T> {
         assert!(
             buf.ptr.2 != 0,
             "called VecRead::read(..) on a non CUDA buffer"
@@ -110,13 +110,13 @@ impl<T: Default + Clone> VecRead<T> for CUDA {
 }
 
 impl<T: CDatatype> ClearBuf<T> for CUDA {
-    fn clear(&self, buf: &mut Buffer<T>) {
+    fn clear(&self, buf: &mut Buffer<T, CUDA>) {
         cu_clear(self, buf).unwrap()
     }
 }
 
 impl<T> WriteBuf<T> for CUDA {
-    fn write(&self, buf: &mut Buffer<T>, data: &[T]) {
+    fn write(&self, buf: &mut Buffer<T, CUDA>, data: &[T]) {
         cu_write(buf.cu_ptr(), data).unwrap();
     }
 }
@@ -138,7 +138,7 @@ impl CacheReturn<RawCUBuf> for CUDA {
 impl crate::GraphOpt for CUDA {}
 
 impl<'a, T> CloneBuf<'a, T> for CUDA {
-    fn clone_buf(&'a self, buf: &Buffer<'a, T>) -> Buffer<'a, T> {
+    fn clone_buf(&'a self, buf: &Buffer<'a, T, CUDA>) -> Buffer<'a, T, CUDA> {
         let cloned = Buffer::new(self, buf.len);
         unsafe {
             cuMemcpy(cloned.ptr.2, buf.ptr.2, buf.len * std::mem::size_of::<T>());
@@ -149,13 +149,13 @@ impl<'a, T> CloneBuf<'a, T> for CUDA {
 
 impl<'a, T> CacheBuf<'a, T> for CUDA {
     #[inline]
-    fn cached(&self, len: usize) -> Buffer<T> {
+    fn cached(&self, len: usize) -> Buffer<T, CUDA> {
         Cache::get(self, len, CachedLeaf)
     }
 }
 
 #[inline]
-pub fn cu_cached<T>(device: &CUDA, len: usize) -> Buffer<T> {
+pub fn cu_cached<T>(device: &CUDA, len: usize) -> Buffer<T, CUDA> {
     device.cached(len)
 }
 

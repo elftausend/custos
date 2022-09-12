@@ -46,8 +46,8 @@ impl CPU {
 
 impl Device1 for CPU {}
 
-impl<T> Alloc<T> for CPU {
-    fn alloc(&self, len: usize) -> (*mut T, *mut c_void, u64) {
+impl Alloc for CPU {
+    fn alloc<T>(&self, len: usize) -> (*mut T, *mut c_void, u64) {
         assert!(len > 0, "invalid buffer len: 0");
         let layout = Layout::array::<T>(len).unwrap();
         let ptr = unsafe { std::alloc::alloc(layout) };
@@ -64,7 +64,7 @@ impl<T> Alloc<T> for CPU {
         (ptr as *mut T, std::ptr::null_mut(), 0)
     }
 
-    fn with_data(&self, data: &[T]) -> (*mut T, *mut c_void, u64)
+    fn with_data<T>(&self, data: &[T]) -> (*mut T, *mut c_void, u64)
     where
         T: Clone,
     {
@@ -74,7 +74,7 @@ impl<T> Alloc<T> for CPU {
         slice.clone_from_slice(data);
         (ptr, std::ptr::null_mut(), 0)
     }
-    fn alloc_with_vec(&self, mut vec: Vec<T>) -> (*mut T, *mut c_void, u64) {
+    fn alloc_with_vec<T>(&self, mut vec: Vec<T>) -> (*mut T, *mut c_void, u64) {
         assert!(!vec.is_empty(), "invalid buffer len: 0");
 
         let ptr = vec.as_mut_ptr();
@@ -83,11 +83,8 @@ impl<T> Alloc<T> for CPU {
         (ptr, std::ptr::null_mut(), 0)
     }
 
-    fn as_dev(&self) -> crate::Device {
-        Device {
-            device_type: DeviceType::CPU,
-            device: self as *const CPU as *mut u8,
-        }
+    fn as_dev(&self) -> &CPU {
+        self
     }
 }
 
@@ -111,7 +108,7 @@ impl GraphReturn for CPU {
 impl crate::GraphOpt for CPU {}
 
 impl<'a, T: Clone> CloneBuf<'a, T> for CPU {
-    fn clone_buf(&'a self, buf: &Buffer<'a, T>) -> Buffer<'a, T> {
+    fn clone_buf(&'a self, buf: &Buffer<'a, T, CPU>) -> Buffer<'a, T, CPU> {
         let mut cloned = Buffer::new(self, buf.len);
         cloned.clone_from_slice(buf);
         cloned
@@ -120,24 +117,24 @@ impl<'a, T: Clone> CloneBuf<'a, T> for CPU {
 
 impl<'a, T> CacheBuf<'a, T> for CPU {
     #[inline]
-    fn cached(&'a self, len: usize) -> Buffer<'a, T> {
+    fn cached(&'a self, len: usize) -> Buffer<'a, T, CPU> {
         Cache::get::<T, CPU>(self, len, CachedLeaf)
     }
 }
 
 #[inline]
-pub fn cpu_cached<T: Clone>(device: &CPU, len: usize) -> Buffer<T> {
+pub fn cpu_cached<T: Clone>(device: &CPU, len: usize) -> Buffer<T, CPU> {
     device.cached(len)
 }
 
 impl<T: Clone> VecRead<T> for CPU {
-    fn read(&self, buf: &Buffer<T>) -> Vec<T> {
+    fn read(&self, buf: &Buffer<T, CPU>) -> Vec<T> {
         buf.as_slice().to_vec()
     }
 }
 
-impl<T: Default> ClearBuf<T> for CPU {
-    fn clear(&self, buf: &mut Buffer<T>) {
+impl ClearBuf for CPU {
+    fn clear<T: Default>(&self, buf: &mut Buffer<T, CPU>) {
         for value in buf {
             *value = T::default();
         }
@@ -145,7 +142,7 @@ impl<T: Default> ClearBuf<T> for CPU {
 }
 
 impl<T: Copy> WriteBuf<T> for CPU {
-    fn write(&self, buf: &mut Buffer<T>, data: &[T]) {
+    fn write(&self, buf: &mut Buffer<T, CPU>, data: &[T]) {
         buf.copy_from_slice(data)
     }
 }
