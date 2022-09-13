@@ -45,7 +45,7 @@ where
     T: CDatatype, // the custos::CDatatype trait is used to
 {
     // get the OpenCL C type string for creating generic OpenCL kernels.
-    fn add(&self, lhs: &Buffer<T>, rhs: &Buffer<T>) -> Buffer<T> {
+    fn add(&self, lhs: &Buffer<T, OpenCL>, rhs: &Buffer<T, OpenCL>) -> Buffer<T, OpenCL> {
         // generic OpenCL kernel
         let src = format!("
             __kernel void add(__global const {datatype}* lhs, __global const {datatype}* rhs, __global {datatype}* out) 
@@ -180,8 +180,8 @@ pub trait AnotherOpBuf<T, D> {
 impl<T, D> AnotherOpBuf<T, D> for CPU {}
 
 #[cfg(feature = "opencl")]
-impl<T> AnotherOpBuf<T> for OpenCL {
-    fn operation(&self, _buf: Buffer<T>) -> Buffer<T> {
+impl<T> AnotherOpBuf<T, OpenCL> for OpenCL {
+    fn operation(&self, _buf: Buffer<T, OpenCL>) -> Buffer<T, OpenCL> {
         todo!()
     }
 }

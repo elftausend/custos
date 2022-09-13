@@ -56,7 +56,7 @@ pub fn to_unified<T>(
 /// The pointer of the no_drop Buffer must be valid for the entire lifetime of the returned Buffer.
 pub unsafe fn construct_buffer<'a, T: Debug>(
     device: &'a OpenCL,
-    no_drop: Buffer<T, OpenCL>,
+    no_drop: Buffer<T, CPU>,
     add_node: impl AddGraph,
 ) -> crate::Result<Buffer<'a, T, OpenCL>> {
     use crate::bump_count;
@@ -85,7 +85,7 @@ pub unsafe fn construct_buffer<'a, T: Debug>(
     Ok(Buffer {
         ptr: (host_ptr, cl_ptr, 0),
         len,
-        device: device.dev(),
+        device: Some(device),
         flag: BufFlag::Cache,
         node: graph_node,
     })

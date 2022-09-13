@@ -54,44 +54,6 @@ mod error;
 
 pub mod number;
 
-/// Used to determine which device type [`Device`] is of.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum DeviceType {
-    CPU = 0,
-    #[cfg(feature = "cuda")]
-    CUDA = 1,
-    #[cfg(feature = "opencl")]
-    CL = 2,
-    None = 3,
-}
-
-/// `Device` is another representation of a compute device.<br>
-/// It stores the type of the device and a pointer to the device from which `Device` originates from.<br>
-/// This is used instead of another "device" generic for [`Buffer`].
-///
-/// # Example
-/// ```rust
-/// use custos::{CPU, AsDev, Device, DeviceType};
-///
-/// let cpu = CPU::new();
-/// let device: Device = cpu.dev();
-/// assert_eq!(device.device_type, DeviceType::CPU);
-/// assert_eq!(device.device as *const CPU, &cpu as *const CPU);
-/// ```
-#[derive(Debug, Clone, Copy)]
-pub struct Device {
-    pub device_type: DeviceType,
-    pub device: *mut u8,
-}
-
-impl Default for Device {
-    fn default() -> Self {
-        Self {
-            device_type: DeviceType::None,
-            device: null_mut(),
-        }
-    }
-}
 
 thread_local! {
     pub static GLOBAL_CPU: CPU = CPU::new();
@@ -105,7 +67,7 @@ pub trait DevicelessAble: Alloc {}
 ///
 /// # Example
 /// ```
-/// use custos::{CPU, Alloc, Buffer, VecRead, BufFlag, AsDev, GraphReturn};
+/// use custos::{CPU, Alloc, Buffer, VecRead, BufFlag, GraphReturn};
 ///
 /// let device = CPU::new();
 /// let ptrs: (*mut f32, *mut std::ffi::c_void, u64) = device.alloc(12);
@@ -113,10 +75,9 @@ pub trait DevicelessAble: Alloc {}
 /// let buf = Buffer {
 ///     ptr: ptrs,
 ///     len: 12,
-///     device: AsDev::dev(&device),
+///     device: Some(&device),
 ///     flag: BufFlag::None,
 ///     node: device.graph().add_leaf(12),
-///     p: std::marker::PhantomData
 /// };
 /// assert_eq!(vec![0.; 12], device.read(&buf));
 /// ```
@@ -124,7 +85,7 @@ pub trait Alloc {
     /// Allocate memory on the implemented device.
     /// # Example
     /// ```
-    /// use custos::{CPU, Alloc, Buffer, VecRead, BufFlag, AsDev, GraphReturn};
+    /// use custos::{CPU, Alloc, Buffer, VecRead, BufFlag, GraphReturn};
     ///
     /// let device = CPU::new();
     /// let ptrs: (*mut f32, *mut std::ffi::c_void, u64) = device.alloc(12);
@@ -132,10 +93,9 @@ pub trait Alloc {
     /// let buf = Buffer {
     ///     ptr: ptrs,
     ///     len: 12,
-    ///     device: AsDev::dev(&device),
+    ///     device: Some(&device),
     ///     flag: BufFlag::None,
     ///     node: device.graph().add_leaf(12),
-    ///     p: std::marker::PhantomData
     /// };
     /// assert_eq!(vec![0.; 12], device.read(&buf));
     /// ```
@@ -144,7 +104,7 @@ pub trait Alloc {
     /// Allocate new memory with data
     /// # Example
     /// ```
-    /// use custos::{CPU, Alloc, Buffer, VecRead, BufFlag, AsDev, GraphReturn};
+    /// use custos::{CPU, Alloc, Buffer, VecRead, BufFlag, GraphReturn};
     ///
     /// let device = CPU::new();
     /// let ptrs: (*mut u8, *mut std::ffi::c_void, u64) = device.with_data(&[1, 5, 4, 3, 6, 9, 0, 4]);
@@ -152,10 +112,9 @@ pub trait Alloc {
     /// let buf = Buffer {
     ///     ptr: ptrs,
     ///     len: 8,
-    ///     device: AsDev::dev(&device),
+    ///     device: Some(&device),
     ///     flag: BufFlag::None,
     ///     node: device.graph().add_leaf(8),
-    ///     p: std::marker::PhantomData
     /// };
     /// assert_eq!(vec![1, 5, 4, 3, 6, 9, 0, 4], device.read(&buf));
     /// ```

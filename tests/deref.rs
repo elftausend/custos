@@ -18,6 +18,7 @@ fn test_deref_cpu() {
     assert_eq!(c.as_slice(), &[3., 5., 7., 9.,]);
 }
 
+/*
 #[cfg(feature = "opencl")]
 #[test]
 #[should_panic]
@@ -32,10 +33,12 @@ fn test_deref_opencl() {
     let b = Buffer::from((&device, [2., 3., 4., 5.]));
     let mut c = Buffer::from((&device, [0.; 4]));
 
+    // does not compile!
     slice_add(&a, &b, &mut c);
 
     assert_eq!(c.as_slice(), &[3., 5., 7., 9.,]);
 }
+*/
 
 #[cfg(feature = "cuda")]
 #[test]

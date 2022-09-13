@@ -13,7 +13,7 @@ fn test_as_cl_cvoid() -> custos::Result<()> {
     assert_eq!(ptr, &x as *const f64 as *mut c_void);
 
     let device = OpenCL::new(0)?;
-    let buf = Buffer::<f32>::new(&device, 100);
+    let buf = Buffer::<f32, _>::new(&device, 100);
     let ptr = buf.as_cvoid_ptr();
     assert_eq!(ptr, buf.cl_ptr());
 
@@ -31,7 +31,7 @@ fn test_kernel_launch() -> custos::Result<()> {
         }
     ";
 
-    let lhs = Buffer::<f32>::from((&device, [1., 3., 6., 4., 1., 4.]));
+    let lhs = Buffer::<f32, _>::from((&device, [1., 3., 6., 4., 1., 4.]));
     let out = Cache::get::<f32, _>(&device, lhs.len, &lhs);
 
     let gws = [lhs.len, 0, 0];
@@ -52,7 +52,7 @@ fn test_kernel_launch_diff_datatype() -> custos::Result<()> {
         }
     ";
 
-    let lhs = Buffer::<f32>::from((&device, [1., 3., 6., 4., 1., 4.]));
+    let lhs = Buffer::<f32, _>::from((&device, [1., 3., 6., 4., 1., 4.]));
     let out = Cache::get::<f32, _>(&device, lhs.len, lhs.node.idx);
 
     let gws = [lhs.len, 0, 0];
@@ -66,8 +66,8 @@ fn test_kernel_launch_diff_datatype() -> custos::Result<()> {
 fn test_kernel_launch_2() -> custos::Result<()> {
     let device = OpenCL::new(0)?;
 
-    let lhs = Buffer::<i32>::from((&device, [1, 5, 3, 2, 7, 8]));
-    let rhs = Buffer::<i32>::from((&device, [-2, -6, -4, -3, -8, -9]));
+    let lhs = Buffer::<i32, _>::from((&device, [1, 5, 3, 2, 7, 8]));
+    let rhs = Buffer::<i32, _>::from((&device, [-2, -6, -4, -3, -8, -9]));
 
     let src = format!("
         __kernel void add(__global {datatype}* self, __global const {datatype}* rhs, __global {datatype}* out) {{

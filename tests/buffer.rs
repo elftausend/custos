@@ -57,12 +57,12 @@ fn test_cldevice_mem() -> Result<(), Error> {
 fn test_buffer_from_read() -> Result<(), Error> {
     let device = OpenCL::new(0)?;
 
-    let buf = Buffer::<f32>::from((&device, [3.13, 3., 1., 8.]));
+    let buf = Buffer::<f32, _>::from((&device, [3.13, 3., 1., 8.]));
     assert_eq!(read(&device, &buf), vec![3.13, 3., 1., 8.,]);
 
     let device = CPU::new();
 
-    let buf = Buffer::<f32>::from((&device, [3.13, 3., 1., 8.]));
+    let buf = Buffer::<f32, _>::from((&device, [3.13, 3., 1., 8.]));
     assert_eq!(read(&device, &buf), vec![3.13, 3., 1., 8.,]);
     Ok(())
 }
@@ -72,7 +72,7 @@ fn test_buffer_from_read() -> Result<(), Error> {
 fn test_buffer_alloc_and_read() -> Result<(), Error> {
     let device = CPU::new();
 
-    let mut buf = Buffer::<u8>::new(&device, 10);
+    let mut buf = Buffer::<u8, _>::new(&device, 10);
 
     let buf_slice = get_mut_slice(&mut buf);
     buf_slice.copy_from_slice(&[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
@@ -80,11 +80,11 @@ fn test_buffer_alloc_and_read() -> Result<(), Error> {
 
     let cl = OpenCL::new(0)?;
 
-    let buf = Buffer::<f32>::from((&cl, [3.13, 3., 1., 8.]));
+    let buf = Buffer::<f32, _>::from((&cl, [3.13, 3., 1., 8.]));
     let buf_read = read(&cl, &buf);
     assert_eq!(&[3.13, 3., 1., 8.], buf_read.as_slice());
 
-    let buf = Buffer::<f32>::from((&device, [3.13, 3., 1., 8.]));
+    let buf = Buffer::<f32, _>::from((&device, [3.13, 3., 1., 8.]));
     let buf_read = read(&device, &buf);
     assert_eq!(&[3.13, 3., 1., 8.], buf_read.as_slice());
 
@@ -142,7 +142,7 @@ fn test_cached_cl() -> Result<(), custos::Error> {
     };
 
     let device = OpenCL::new(0)?;
-    let _k = Buffer::<f32>::new(&device, 1);
+    let _k = Buffer::<f32, _>::new(&device, 1);
 
     assert_eq!(0, get_count());
 

@@ -3,8 +3,8 @@ use custos::{cache::Cache, opencl::enqueue_kernel, Buffer, CDatatype, OpenCL, Er
 fn main() -> Result<(), Error> {
     let device = OpenCL::new(0)?;
 
-    let lhs = Buffer::<i32>::from((&device, [1, 5, 3, 2, 7, 8]));
-    let rhs = Buffer::<i32>::from((&device, [-2, -6, -4, -3, -8, -9]));
+    let lhs = Buffer::<i32, _>::from((&device, [1, 5, 3, 2, 7, 8]));
+    let rhs = Buffer::<i32, _>::from((&device, [-2, -6, -4, -3, -8, -9]));
 
     let src = format!("
         __kernel void add(__global {datatype}* self, __global const {datatype}* rhs, __global {datatype}* out) {{

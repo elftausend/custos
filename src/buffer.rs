@@ -49,7 +49,7 @@ where
     /// use custos::{CPU, Buffer};
     ///
     /// let device = CPU::new();
-    /// let mut buffer = Buffer::<i32>::new(&device, 6);
+    /// let mut buffer = Buffer::<i32, _>::new(&device, 6);
     ///
     /// // this works only with cpu buffers (this creates a slice with the host pointer)
     /// for value in &mut buffer {
@@ -80,7 +80,7 @@ where
     ///
     /// let mut buf = {
     ///     let device = CPU::new();
-    ///     Buffer::<u8>::deviceless(&device, 5)
+    ///     Buffer::<u8, _>::deviceless(&device, 5)
     /// };
     /// // buf.read(); // panics
     /// for (idx, element) in buf.iter_mut().enumerate() {
@@ -111,7 +111,7 @@ impl<'a, T, D> Buffer<'a, T, D> {
     /// let device = CPU::new();
     /// let ptrs: (*mut f32, *mut c_void, u64) = device.alloc(10);
     /// let mut buf = unsafe {
-    ///     Buffer::from_raw_host(ptrs.0, 10)
+    ///     Buffer::<f32, CPU>::from_raw_host(ptrs.0, 10)
     /// };
     /// for (idx, value) in buf.iter_mut().enumerate() {
     ///     *value += idx as f32;
@@ -135,7 +135,7 @@ impl<'a, T, D> Buffer<'a, T, D> {
     /// use custos::{CPU, Buffer};
     ///
     /// let device = CPU::new();
-    /// let a = Buffer::<i32>::new(&device, 10);
+    /// let a = Buffer::<i32, _>::new(&device, 10);
     /// assert_eq!(a.len(), 10)
     /// ```
     pub fn len(&self) -> usize {
@@ -145,10 +145,9 @@ impl<'a, T, D> Buffer<'a, T, D> {
     /// Returns `true` if `Buffer` is created without a slice.
     /// # Example
     /// ```
-    /// use custos::{CPU, Buffer};
+    /// use custos::{CPU, Buffer, Deviceless};
     ///
-    /// let device = CPU::new();
-    /// let a = Buffer::<i32>::from(5);
+    /// let a = Buffer::<i32, Deviceless>::from(5);
     /// assert!(a.is_empty())
     /// ```
     pub fn is_empty(&self) -> bool {
@@ -212,7 +211,7 @@ impl<'a, T, D> Buffer<'a, T, D> {
     /// ```
     /// use custos::Buffer;
     ///
-    /// let x: Buffer<f32> = 7f32.into();
+    /// let x: Buffer<f32, _> = 7f32.into();
     /// assert_eq!(x.item(), 7.);
     ///
     /// //let x: Buffer<f32> = (&mut [5., 4., 8.]).into();
@@ -426,7 +425,7 @@ impl<T> AsMut<[T]> for Buffer<'_, T, CPU> {
 /// slice_add(&a, &b, &mut c);
 /// assert_eq!(c.as_slice(), &[3., 5., 7., 9.,]);
 /// ```
-impl<T> std::ops::Deref for Buffer<'_, T, CPU> {
+impl<T, D> std::ops::Deref for Buffer<'_, T, D> {
     type Target = [T];
 
     fn deref(&self) -> &Self::Target {
@@ -455,7 +454,7 @@ impl<T> std::ops::Deref for Buffer<'_, T, CPU> {
 /// slice_add(&a, &b, &mut c);
 /// assert_eq!(c.as_slice(), &[6., 5., 9., 9.,]);
 /// ```
-impl<T> std::ops::DerefMut for Buffer<'_, T, CPU> {
+impl<T, D> std::ops::DerefMut for Buffer<'_, T, D> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         self.as_mut_slice()
     }
@@ -491,7 +490,7 @@ impl<T: Debug + Default + Copy, D: VecRead<T>> Debug for Buffer<'_, T, D> {
     }
 }
 
-impl<'a, T> std::iter::IntoIterator for &'a Buffer<'_, T, CPU> {
+impl<'a, T, D> std::iter::IntoIterator for &'a Buffer<'_, T, D> {
     type Item = &'a T;
 
     type IntoIter = std::slice::Iter<'a, T>;
@@ -501,7 +500,7 @@ impl<'a, T> std::iter::IntoIterator for &'a Buffer<'_, T, CPU> {
     }
 }
 
-impl<'a, T> std::iter::IntoIterator for &'a mut Buffer<'_, T, CPU> {
+impl<'a, T, D> std::iter::IntoIterator for &'a mut Buffer<'_, T, D> {
     type Item = &'a mut T;
 
     type IntoIter = std::slice::IterMut<'a, T>;

@@ -102,6 +102,8 @@ impl OpenCL {
     }
 }
 
+impl DevicelessAble for OpenCL {}
+
 impl Debug for OpenCL {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
