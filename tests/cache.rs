@@ -5,7 +5,7 @@ use std::ptr::null_mut;
 use custos::{cpu::cpu_cached, range, Buffer, CPU};
 
 #[cfg(not(feature = "realloc"))]
-fn cached_add<'a>(device: &'a CPU, a: &[f32], b: &[f32]) -> Buffer<'a, f32> {
+fn cached_add<'a>(device: &'a CPU, a: &[f32], b: &[f32]) -> Buffer<'a, f32, CPU> {
     let mut out = cpu_cached(device, a.len());
     for i in 0..out.len {
         out[i] = a[i] + b[i];
@@ -18,8 +18,8 @@ fn cached_add<'a>(device: &'a CPU, a: &[f32], b: &[f32]) -> Buffer<'a, f32> {
 fn test_caching_cpu() {
     let device = CPU::new();
 
-    let a = Buffer::<f32>::new(&device, 100);
-    let b = Buffer::<f32>::new(&device, 100);
+    let a = Buffer::<f32, _>::new(&device, 100);
+    let b = Buffer::<f32, _>::new(&device, 100);
 
     let mut old_ptr = null_mut();
 

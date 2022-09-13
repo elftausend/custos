@@ -13,6 +13,10 @@ pub trait DevicelessAble: Alloc {}
 impl DevicelessAble for CPU {}
 impl DevicelessAble for OpenCL {}
 
+pub trait AddBuf<T>: Sized {
+    fn add(&self, lhs: &Buffer<T, Self>);
+}
+
 pub trait Alloc {
     fn alloc<T>(&self, len: usize) -> (*mut T, *mut c_void, u64);
 }

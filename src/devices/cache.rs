@@ -1,5 +1,5 @@
 use crate::{bump_count, AddGraph, Alloc, BufFlag, Buffer, GraphReturn, Ident, Node};
-use std::{cell::RefMut, collections::HashMap, ffi::c_void, marker::PhantomData, rc::Rc};
+use std::{cell::RefMut, collections::HashMap, ffi::c_void, rc::Rc};
 
 /// This trait is implemented for every 'cacheable' pointer.
 pub trait CacheType {
@@ -57,7 +57,7 @@ impl<P: CacheType> Cache<P> {
         Buffer {
             ptr,
             len: node.len,
-            device: Alloc::as_dev(device),
+            device: Some(device),
             flag: BufFlag::Cache,
             node: graph_node,
         }
@@ -81,7 +81,7 @@ impl<P: CacheType> Cache<P> {
                 Buffer {
                     ptr,
                     len,
-                    device: Alloc::as_dev(device),
+                    device: Some(device),
                     flag: BufFlag::Cache,
                     node,
                 }

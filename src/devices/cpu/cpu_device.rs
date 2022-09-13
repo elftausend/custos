@@ -1,7 +1,7 @@
 use crate::{
     devices::cache::{Cache, CacheReturn},
-    Alloc, AsDev, Buffer, CacheBuf, CachedLeaf, ClearBuf, CloneBuf, Device, DeviceType, Graph,
-    GraphReturn, VecRead, WriteBuf, Device1,
+    Alloc, Buffer, CacheBuf, CachedLeaf, ClearBuf, CloneBuf, Graph,
+    GraphReturn, VecRead, WriteBuf,
 };
 use std::{
     alloc::{handle_alloc_error, Layout},
@@ -44,8 +44,6 @@ impl CPU {
     }
 }
 
-impl Device1 for CPU {}
-
 impl Alloc for CPU {
     fn alloc<T>(&self, len: usize) -> (*mut T, *mut c_void, u64) {
         assert!(len > 0, "invalid buffer len: 0");
@@ -82,13 +80,7 @@ impl Alloc for CPU {
 
         (ptr, std::ptr::null_mut(), 0)
     }
-
-    fn as_dev(&self) -> &CPU {
-        self
-    }
 }
-
-impl AsDev for CPU {}
 
 impl CacheReturn<RawCpuBuf> for CPU {
     #[inline]
@@ -133,8 +125,8 @@ impl<T: Clone> VecRead<T> for CPU {
     }
 }
 
-impl ClearBuf for CPU {
-    fn clear<T: Default>(&self, buf: &mut Buffer<T, CPU>) {
+impl<T: Default> ClearBuf<T> for CPU {
+    fn clear(&self, buf: &mut Buffer<T, CPU>) {
         for value in buf {
             *value = T::default();
         }

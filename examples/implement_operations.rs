@@ -1,4 +1,4 @@
-use custos::{get_device, Buffer, CDatatype, Cache, CPU};
+use custos::{Buffer, CDatatype, Cache, CPU};
 
 #[cfg(feature = "opencl")]
 use custos::{opencl::enqueue_kernel, OpenCL};
@@ -7,19 +7,19 @@ use custos::{opencl::enqueue_kernel, OpenCL};
 use custos::{cuda::launch_kernel1d, CUDA};
 
 /// AddBuf will be implemented for all compute devices.
-pub trait AddBuf<T> {
+pub trait AddBuf<T> where Self: Sized {
     /// This operation perfoms element-wise addition.
-    fn add(&self, lhs: &Buffer<T>, rhs: &Buffer<T>) -> Buffer<T>;
+    fn add(&self, lhs: &Buffer<T, Self>, rhs: &Buffer<T, Self>) -> Buffer<T, Self>;
     // ... you can add more operations if you want to do that.
 }
 
 // Host CPU implementation
 impl<T> AddBuf<T> for CPU
 where
-    T: Copy + std::ops::Add<Output = T>, // instead of adding a lot of trait bounds,
+    T: Copy + std::ops::Add<Output = T>,
 {
     // you can use the custos::Number trait. This trait is implemented for all number types (usize, i16, f32, ...)
-    fn add(&self, lhs: &Buffer<T>, rhs: &Buffer<T>) -> Buffer<T> {
+    fn add(&self, lhs: &Buffer<T, CPU>, rhs: &Buffer<T, CPU>) -> Buffer<T, CPU> {
         let len = std::cmp::min(lhs.len, rhs.len);
 
         // this returns a previously allocated buffer.
@@ -94,31 +94,33 @@ impl<T: CDatatype> AddBuf<T> for CUDA {
     }
 }
 
-pub trait AddOp<'a, T> {
-    fn add(&self, rhs: &Buffer<'a, T>) -> Buffer<'a, T>;
+pub trait AddOp<'a, T, D> {
+    fn add(&self, rhs: &Buffer<'a, T, D>) -> Buffer<'a, T, D>;
 }
 
-impl<'a, T: CDatatype> AddOp<'a, T> for Buffer<'a, T> {
+impl<'a, T: CDatatype, D: AddBuf<T>> AddOp<'a, T, D> for Buffer<'a, T, D> {
     #[inline]
-    fn add(&self, rhs: &Buffer<'a, T>) -> Buffer<'a, T> {
-        get_device!(self.device, AddBuf<T>).add(self, rhs)
+    fn add(&self, rhs: &Buffer<'a, T, D>) -> Buffer<'a, T, D> {
+        self.device().add(self, rhs)
     }
 }
 
 #[allow(dead_code)]
-pub struct OwnStruct<'a, T> {
-    buf: Buffer<'a, T>,
+pub struct OwnStruct<'a, T, D> {
+    buf: Buffer<'a, T, D>,
 }
 
-impl<'a, T> OwnStruct<'a, T> {
+impl<'a, T, D> OwnStruct<'a, T, D> {
     #[allow(dead_code)]
     // consider using operator overloading for your own type
     #[inline]
-    fn add(&self, rhs: &OwnStruct<T>) -> Buffer<T>
+    fn add(&self, rhs: &OwnStruct<T, D>) -> Buffer<T, D>
     where
         T: CDatatype,
+        D: AddBuf<T>
     {
-        get_device!(self.buf.device, AddBuf<T>).add(&self.buf, &rhs.buf)
+        self.buf.device().add(&self.buf, &rhs.buf)
+        //get_device!(self.buf.device, AddBuf<T>).add(&self.buf, &rhs.buf)
     }
 
     // general context
@@ -169,13 +171,13 @@ fn main() -> custos::Result<()> {
 }
 
 // this trait is implemented for all devices.
-pub trait AnotherOpBuf<T> {
-    fn operation(&self, _buf: Buffer<T>) -> Buffer<T> {
+pub trait AnotherOpBuf<T, D> {
+    fn operation(&self, _buf: Buffer<T, D>) -> Buffer<T, D> {
         unimplemented!()
     }
 }
 
-impl<T> AnotherOpBuf<T> for CPU {}
+impl<T, D> AnotherOpBuf<T, D> for CPU {}
 
 #[cfg(feature = "opencl")]
 impl<T> AnotherOpBuf<T> for OpenCL {

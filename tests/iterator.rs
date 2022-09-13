@@ -8,6 +8,6 @@ fn test_from_iter() {
 
 #[test]
 fn test_collect() {
-    let buf = (0..5).into_iter().collect::<Buffer<i32>>();
+    let buf = (0..5).into_iter().collect::<Buffer<i32, _>>();
     assert_eq!(buf.read(), vec![0, 1, 2, 3, 4]);
 }

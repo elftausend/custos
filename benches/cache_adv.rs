@@ -13,7 +13,7 @@ fn add_cached<T: Default + Copy + Add<Output = T>>(device: &CPU, lhs: &[T], rhs:
     }
 }
 
-fn add<T: Default + Copy + Add<Output = T>>(device: &CPU, lhs: &Buffer<T>, rhs: &Buffer<T>) {
+fn add<T: Default + Copy + Add<Output = T>>(device: &CPU, lhs: &Buffer<T, CPU>, rhs: &Buffer<T, CPU>) {
     let len = std::cmp::min(lhs.len, rhs.len);
     let mut out = Buffer::new(device, SIZE);
 

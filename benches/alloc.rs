@@ -27,7 +27,7 @@ pub fn bench_buf_alloc(c: &mut Criterion) {
 
     c.bench_function("bench buf alloc", |bench| {
         bench.iter(|| {
-            let buf = Buffer::<f32>::new(&device, SIZE);
+            let buf = Buffer::<f32, _>::new(&device, SIZE);
             drop(buf)
         })
     });

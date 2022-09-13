@@ -97,8 +97,6 @@ thread_local! {
     pub static GLOBAL_CPU: CPU = CPU::new();
 }
 
-pub trait Device1 {}
-
 #[derive(Debug, Clone, Copy)]
 pub struct Deviceless;
 pub trait DevicelessAble: Alloc {}
@@ -172,13 +170,10 @@ pub trait Alloc {
     {
         self.with_data(&vec)
     }
-
-    /// Creates a generic representation of the device
-    fn as_dev(&self) -> &Self;
 }
 
 /// Trait for implementing the clear() operation for the compute devices.
-pub trait ClearBuf {
+pub trait ClearBuf<T> {
     /// Sets all elements of the matrix to zero.
     /// # Example
     /// ```
@@ -191,11 +186,11 @@ pub trait ClearBuf {
     /// device.clear(&mut a);
     /// assert_eq!(a.read(), vec![0; 6]);
     /// ```
-    fn clear<T: Default>(&self, buf: &mut Buffer<T, Self>) where Self: Sized;
+    fn clear(&self, buf: &mut Buffer<T, Self>) where Self: Sized;
 }
 
 /// Trait for reading buffers.
-pub trait VecRead<T> where Self: Sized {
+pub trait VecRead<T>: Sized {
     /// Read the data of a buffer into a vector
     /// # Example
     /// ```
@@ -210,7 +205,7 @@ pub trait VecRead<T> where Self: Sized {
 }
 
 /// Trait for writing data to buffers.
-pub trait WriteBuf<T> where Self: Sized {
+pub trait WriteBuf<T>: Sized {
     /// Write data to the buffer.
     /// # Example
     /// ```
@@ -231,7 +226,7 @@ pub trait WriteBuf<T> where Self: Sized {
 }
 
 /// This trait is used to clone a buffer based on a specific device type.
-pub trait CloneBuf<'a, T> where Self: Sized {
+pub trait CloneBuf<'a, T>: Sized {
     /// Creates a deep copy of the specified buffer.
     /// # Example
     ///
@@ -271,17 +266,6 @@ pub trait CacheBuf<'a, T> where Self: Sized {
     /// ```
     fn cached(&'a self, len: usize) -> Buffer<'a, T, Self>;
 }
-
-/// This trait is a non-generic variant for calling [`Alloc`]'s `Alloc::<T>::as_dev(..)`
-pub trait AsDev {
-    fn dev(&self) -> &Self
-    where
-        Self: Alloc + Sized,
-    {
-        Alloc::as_dev(self)
-    }
-}
-
 /*
 /// Return a device that implements the trait provided thus giving access to the functions implemented by the trait.
 ///

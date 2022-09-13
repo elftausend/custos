@@ -8,8 +8,8 @@ use super::{
 use crate::{
     cache::{Cache, CacheReturn},
     devices::opencl::api::{create_buffer, MemFlags},
-    Alloc, AsDev, Buffer, CDatatype, CacheBuf, CachedLeaf, ClearBuf, CloneBuf, Device, DeviceType,
-    Error, Graph, GraphReturn, VecRead, WriteBuf, CPU, Device1,
+    Alloc, Buffer, CDatatype, CacheBuf, CachedLeaf, ClearBuf, CloneBuf, Device, DeviceType,
+    Error, Graph, GraphReturn, VecRead, WriteBuf, CPU
 };
 use std::{
     cell::{Ref, RefCell},
@@ -120,8 +120,6 @@ impl Debug for OpenCL {
     }
 }
 
-impl Device1 for OpenCL {}
-
 impl Alloc for OpenCL {
     fn alloc<T>(&self, len: usize) -> (*mut T, *mut c_void, u64) {
         let ptr =
@@ -153,13 +151,6 @@ impl Alloc for OpenCL {
         };
 
         (cpu_ptr, ptr, 0)
-    }
-
-    fn as_dev(&self) -> Device {
-        Device {
-            device_type: DeviceType::CL,
-            device: self as *const OpenCL as *mut u8,
-        }
     }
 }
 
@@ -227,8 +218,6 @@ impl<T: Clone + Default> VecRead<T> for OpenCL {
         read
     }
 }
-
-impl AsDev for OpenCL {}
 
 /// Internal representation of an OpenCL Device with the capability of storing pointers.
 /// # Note / Safety

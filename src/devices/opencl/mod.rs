@@ -12,18 +12,18 @@ mod kernel_cache;
 mod kernel_enqueue;
 
 #[cfg(not(feature = "realloc"))]
-use crate::{AddGraph, AsDev, BufFlag, DeviceError, GraphReturn};
+use crate::{AddGraph, BufFlag, DeviceError, GraphReturn};
 
 #[cfg(not(feature = "realloc"))]
-use std::{fmt::Debug, marker::PhantomData};
+use std::fmt::Debug;
 
 use self::api::{create_buffer, MemFlags};
-use crate::{Buffer, CDatatype, Ident, Node};
+use crate::{Buffer, CDatatype, Ident, Node, CPU};
 
 /// Returns an OpenCL pointer that is bound to the host pointer stored in the specified buffer.
 pub fn to_unified<T>(
     device: &OpenCL,
-    no_drop: Buffer<T, OpenCL>,
+    no_drop: Buffer<T, CPU>,
     graph_node: Node,
 ) -> crate::Result<*mut c_void> {
     // use the host pointer to create an OpenCL buffer
@@ -69,7 +69,7 @@ pub unsafe fn construct_buffer<'a, T: Debug>(
         return Ok(Buffer {
             ptr: (rawcl.host_ptr as *mut T, rawcl.ptr, 0),
             len: no_drop.len,
-            device: device.dev(),
+            device: Some(device),
             flag: BufFlag::Cache,
             node: rawcl.node,
         });

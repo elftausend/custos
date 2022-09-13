@@ -8,15 +8,15 @@ use custos::CPU;
 #[cfg(not(feature = "realloc"))]
 use custos::{get_count, set_count};
 
-pub fn get_mut_slice<'a, T>(buf: &'a mut Buffer<T>) -> &'a mut [T] {
+pub fn get_mut_slice<'a, T, D>(buf: &'a mut Buffer<T, D>) -> &'a mut [T] {
     unsafe { std::slice::from_raw_parts_mut(buf.ptr.0, buf.len) }
 }
 
-pub fn get_slice<'a, T>(buf: &'a Buffer<T>) -> &'a [T] {
+pub fn get_slice<'a, T, D>(buf: &'a Buffer<T, D>) -> &'a [T] {
     unsafe { std::slice::from_raw_parts(buf.ptr.0, buf.len) }
 }
 
-pub fn read<T, D: Alloc<T>>(device: &D, buf: &Buffer<T>) -> Vec<T>
+pub fn read<T, D: Alloc>(device: &D, buf: &Buffer<T, D>) -> Vec<T>
 where
     D: VecRead<T>,
 {
@@ -184,7 +184,7 @@ fn test_from_ptrs() {
 
 #[test]
 fn test_size_buf() {
-    let x = core::mem::size_of::<Buffer<i8>>();
+    let x = core::mem::size_of::<Buffer<i8, CPU>>();
     println!("x: {x}");
 }
 
