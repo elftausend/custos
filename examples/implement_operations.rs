@@ -7,7 +7,7 @@ use custos::{opencl::enqueue_kernel, OpenCL};
 use custos::{cuda::launch_kernel1d, CUDA};
 
 /// AddBuf will be implemented for all compute devices.
-pub trait AddBuf<T> where Self: Sized {
+pub trait AddBuf<T>: Sized {
     /// This operation perfoms element-wise addition.
     fn add(&self, lhs: &Buffer<T, Self>, rhs: &Buffer<T, Self>) -> Buffer<T, Self>;
     // ... you can add more operations if you want to do that.
@@ -58,7 +58,7 @@ where
         let len = std::cmp::min(lhs.len, rhs.len);
         let out = Cache::get::<T, OpenCL>(self, len, [lhs.node.idx, rhs.node.idx]);
 
-        // In the background, the kernel is compiled once. After that, it will be reused every iteration.
+        // In the background, the kernel is compiled once. After that, it will be reused for every iteration.
         // The cached kernels are released (or freed) when the underlying CLDevice is dropped.
         // The arguments are specified with a slice of buffers and/or numbers.
         enqueue_kernel(self, &src, [len, 0, 0], None, &[&lhs, &rhs, &out]).unwrap();
@@ -69,7 +69,7 @@ where
 #[cfg(feature = "cuda")]
 // CUDA Implementation
 impl<T: CDatatype> AddBuf<T> for CUDA {
-    fn add(&self, lhs: &Buffer<T>, rhs: &Buffer<T>) -> Buffer<T> {
+    fn add(&self, lhs: &Buffer<T, CUDA>, rhs: &Buffer<T, CUDA>) -> Buffer<T, CUDA> {
         // generic CUDA kernel
         let src = format!(
             r#"extern "C" __global__ void add({datatype}* lhs, {datatype}* rhs, {datatype}* out, int numElements)
@@ -168,20 +168,4 @@ fn main() -> custos::Result<()> {
     }
 
     Ok(())
-}
-
-// this trait is implemented for all devices.
-pub trait AnotherOpBuf<T, D> {
-    fn operation(&self, _buf: Buffer<T, D>) -> Buffer<T, D> {
-        unimplemented!()
-    }
-}
-
-impl<T, D> AnotherOpBuf<T, D> for CPU {}
-
-#[cfg(feature = "opencl")]
-impl<T> AnotherOpBuf<T, OpenCL> for OpenCL {
-    fn operation(&self, _buf: Buffer<T, OpenCL>) -> Buffer<T, OpenCL> {
-        todo!()
-    }
 }

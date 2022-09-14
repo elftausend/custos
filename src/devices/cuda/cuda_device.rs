@@ -8,8 +8,8 @@ use super::{
 };
 use crate::{
     cache::{Cache, CacheReturn},
-    Alloc, AsDev, Buffer, CDatatype, CacheBuf, CachedLeaf, ClearBuf, CloneBuf, Device, DeviceType,
-    Graph, GraphReturn, VecRead, WriteBuf, Device1,
+    Alloc, Buffer, CDatatype, CacheBuf, CachedLeaf, ClearBuf, CloneBuf,
+    Graph, GraphReturn, VecRead, WriteBuf
 };
 use std::{cell::RefCell, ptr::null_mut};
 
@@ -74,8 +74,6 @@ impl Drop for CUDA {
     }
 }
 
-impl Device1 for CUDA {}
-
 impl Alloc for CUDA {
     fn alloc<T>(&self, len: usize) -> (*mut T, *mut std::ffi::c_void, u64) {
         let ptr = cumalloc::<T>(len).unwrap();
@@ -87,13 +85,6 @@ impl Alloc for CUDA {
         let ptr = cumalloc::<T>(data.len()).unwrap();
         cu_write(ptr, data).unwrap();
         (null_mut(), null_mut(), ptr)
-    }
-
-    fn as_dev(&self) -> Device {
-        Device {
-            device_type: DeviceType::CUDA,
-            device: self as *const CUDA as *mut u8,
-        }
     }
 }
 
@@ -158,5 +149,3 @@ impl<'a, T> CacheBuf<'a, T> for CUDA {
 pub fn cu_cached<T>(device: &CUDA, len: usize) -> Buffer<T, CUDA> {
     device.cached(len)
 }
-
-impl AsDev for CUDA {}

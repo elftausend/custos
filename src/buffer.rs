@@ -477,8 +477,7 @@ impl<T: Debug + Default + Copy, D: VecRead<T>> Debug for Buffer<'_, T, D> {
 
         #[cfg(feature = "cuda")]
         if self.ptr.2 != 0 {
-            let read = get_device!(self.device, VecRead<T>);
-            write!(f, "CUDA: {:?}, ", read.read(self))?;
+            write!(f, "CUDA: {:?}, ", self.device().read(self))?;
         }
 
         write!(

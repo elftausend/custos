@@ -20,7 +20,7 @@ fn test_scalar_op_cuda() -> custos::Result<()> {
     );
 
     let lhs = Buffer::from((&device, [1f32, 2., 3., 4., 5.]));
-    let out: Buffer<f32> = Cache::get(&device, lhs.len, CachedLeaf);
+    let out: Buffer<f32, _> = Cache::get(&device, lhs.len, CachedLeaf);
 
     launch_kernel1d(
         lhs.len,

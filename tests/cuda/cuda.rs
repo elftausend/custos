@@ -153,6 +153,6 @@ fn test_cuda_device() -> custos::Result<()> {
     use custos::{cuda::CUDA, Buffer};
 
     let device = CUDA::new(0)?;
-    let _a = Buffer::<f32>::new(&device, 10);
+    let _a = Buffer::<f32, _>::new(&device, 10);
     Ok(())
 }

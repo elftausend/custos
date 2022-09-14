@@ -14,9 +14,9 @@ You can use your own type as parameters also. It just needs to encapsulate a ```
 
 ```rust
 /// AddBuf will be implemented for all compute devices.
-pub trait AddBuf<T> {
+pub trait AddBuf<T>: Sized {
     /// This operation perfoms element-wise addition.
-    fn add(&self, lhs: &Buffer<T>, rhs: &Buffer<T>) -> Buffer<T>;
+    fn add(&self, lhs: &Buffer<T, Self>, rhs: &Buffer<T, Self>) -> Buffer<T, Self>;
     // ... you can add more operations if you want to do that.
 }
 ```
@@ -26,22 +26,23 @@ However, it is not mandatory to implement this trait for every device, but we wi
 
 ```rust
 // Host CPU implementation
-impl<T> AddBuf<T> for CPU 
+impl<T> AddBuf<T> for CPU
 where
-    T: Copy + std::ops::Add<Output=T> // instead of adding a lot of trait bounds, 
-{                                               // you can use the custos::Number trait. This trait is implemented for all number types (usize, i16, f32, ...)
-    fn add(&self, lhs: &Buffer<T>, rhs: &Buffer<T>) -> Buffer<T> {
+    T: Copy + std::ops::Add<Output = T>, // you can use the custos::Number trait. 
+                                         // This trait is implemented for all number types (usize, i16,      f32, ...)
+{
+    fn add(&self, lhs: &Buffer<T, CPU>, rhs: &Buffer<T, CPU>) -> Buffer<T, CPU> {
         let len = std::cmp::min(lhs.len, rhs.len);
 
-        // this returns a previously allocated buffer. 
-        // You can deactivate the caching behaviour by adding the "realloc" feature 
+        // this returns a previously allocated buffer.
+        // You can deactivate the caching behaviour by adding the "realloc" feature
         // to the custos feature list in the Cargo.toml.
-        let mut out = Cache::get(self, len);
+        let mut out = Cache::get(self, len, [lhs.node.idx, rhs.node.idx]);
 
-        // By default, the Buffer dereferences to a slice. 
-        // Therefore, standard indexing can be used. 
+        // By default, the Buffer dereferences to a slice.
+        // Therefore, standard indexing can be used.
         // You can pass a CPU Buffer to a function that takes a slice as a parameter, too.
-        // However, the Buffer must be created via a CPU or CLDevice with unified memory (e.g. laptops, APUs).
+        // However, the Buffer must be created via a CPU.
         for i in 0..len {
             out[i] = lhs[i] + rhs[i];
         }
@@ -50,12 +51,12 @@ where
 }
 
 // OpenCL implementation
-impl<T> AddBuf<T> for CLDevice 
+impl<T> AddBuf<T> for OpenCL
 where
-    T: CDatatype // the custos::CDatatype trait is used to 
-{                // get the OpenCL C type string for creating generic OpenCL kernels.
-    fn add(&self, lhs: &Buffer<T>, rhs: &Buffer<T>) -> Buffer<T> {
-
+    T: CDatatype, // the custos::CDatatype trait is used to
+{
+    // get the OpenCL C type string for creating generic OpenCL kernels.
+    fn add(&self, lhs: &Buffer<T, OpenCL>, rhs: &Buffer<T, OpenCL>) -> Buffer<T, OpenCL> {
         // generic OpenCL kernel
         let src = format!("
             __kernel void add(__global const {datatype}* lhs, __global const {datatype}* rhs, __global {datatype}* out) 
@@ -66,9 +67,9 @@ where
         ", datatype=T::as_c_type_str());
 
         let len = std::cmp::min(lhs.len, rhs.len);
-        let out = Cache::get::<T, CLDevice>(self, len);
+        let out = Cache::get::<T, OpenCL>(self, len, [lhs.node.idx, rhs.node.idx]);
 
-        // In the background, the kernel is compiled once. After that, it will be reused every iteration.
+        // In the background, the kernel is compiled once. After that, it will be reused for every iteration.
         // The cached kernels are released (or freed) when the underlying CLDevice is dropped.
         // The arguments are specified with a slice of buffers and/or numbers.
         enqueue_kernel(self, &src, [len, 0, 0], None, &[&lhs, &rhs, &out]).unwrap();
@@ -76,10 +77,10 @@ where
     }
 }
 
+#[cfg(feature = "cuda")]
 // CUDA Implementation
-impl<T: CDatatype> AddBuf<T> for CudaDevice {
-    fn add(&self, lhs: &Buffer<T>, rhs: &Buffer<T>) -> Buffer<T> {
-
+impl<T: CDatatype> AddBuf<T> for CUDA {
+    fn add(&self, lhs: &Buffer<T, CUDA>, rhs: &Buffer<T, CUDA>) -> Buffer<T, CUDA> {
         // generic CUDA kernel
         let src = format!(
             r#"extern "C" __global__ void add({datatype}* lhs, {datatype}* rhs, {datatype}* out, int numElements)
@@ -90,16 +91,17 @@ impl<T: CDatatype> AddBuf<T> for CudaDevice {
                     }}
                     
                 }}
-        "#, datatype = T::as_c_type_str());
-        
+        "#,
+            datatype = T::as_c_type_str()
+        );
+
         let len = std::cmp::min(lhs.len, rhs.len);
-        let out = Cache::get::<T, _>(self, len);
+        let out = Cache::get::<T, CUDA>(self, len, (lhs.node.idx, rhs.node.idx));
 
         // The kernel is compiled once with nvrtc and is cached too.
         // The arguments are specified with a vector of buffers and/or numbers.
-        launch_kernel1d(len, self, &src, "add", vec![lhs, rhs, &out, &len]).unwrap();
+        launch_kernel1d(len, self, &src, "add", &[lhs, rhs, &out, &len]).unwrap();
         out
-    
     }
 }
 ```
@@ -142,18 +144,18 @@ We can implement this for ```AddBuf``` as well.<br>
 To get this to work, a new trait must be created. If the operation should be used on a struct created in your current crate, you can omit this step.
 
 ```rust
-pub trait AddOp<'a, T> {
-    fn add(&self, rhs: &Buffer<'a, T>) -> Buffer<'a, T>;
+pub trait AddOp<'a, T, D> {
+    fn add(&self, rhs: &Buffer<'a, T, D>) -> Buffer<'a, T, D>;
 }
 ```
 
 This trait is then implemented for ```Buffer``` (or any other type).
 
 ```rust
-impl<'a, T: CDatatype> AddOp<'a, T> for Buffer<'a, T> {
+impl<'a, T: CDatatype, D: AddBuf<T>> AddOp<'a, T, D> for Buffer<'a, T, D> {
     #[inline]
-    fn add(&self, rhs: &Buffer<'a, T>) -> Buffer<'a, T> {
-        get_device!(self.device, AddBuf<T>).add(self, rhs)
+    fn add(&self, rhs: &Buffer<'a, T, D>) -> Buffer<'a, T, D> {
+        self.device().add(self, rhs)
     }
 }
 ```
@@ -161,27 +163,29 @@ impl<'a, T: CDatatype> AddOp<'a, T> for Buffer<'a, T> {
 If you have defined your own struct that encapsulates a ```Buffer```, you can do the following:
 
 ```rust
-pub struct OwnStruct<'a, T> {
-    buf: Buffer<'a, T>
+pub struct OwnStruct<'a, T, D> {
+    buf: Buffer<'a, T, D>,
 }
 
-impl<'a, T> OwnStruct<'a, T> {
+impl<'a, T, D> OwnStruct<'a, T, D> {
+    #[allow(dead_code)]
     // consider using operator overloading for your own type
     #[inline]
-    fn add(&self, rhs: &OwnStruct<T>) -> Buffer<T> 
-    where 
-        T: CDatatype
+    fn add(&self, rhs: &OwnStruct<T, D>) -> Buffer<T, D>
+    where
+        T: CDatatype,
+        D: AddBuf<T>
     {
-        get_device!(self.buf.device, AddBuf<T>).add(&self.buf, &rhs.buf)
+        self.buf.device().add(&self.buf, &rhs.buf)
     }
 
     // general context
-    #[inline]
+    /*#[inline]
     fn operation(&self, rhs: &OwnStruct<T>, other_arg: &T) -> OwnStruct<T> {
         get_device!(self.buf.device, OperationTrait<T>).operation(self, rhs, other_arg)
-    }
+    }*/
 
-    // ... more operations ... 
+    // ...
 }
 ```
 
@@ -191,49 +195,3 @@ Without specifying a device:
 let out = lhs.add(&rhs);
 assert_eq!(out.read(), vec![0, -9, -1, 6, 4, 5]);
 ```
-
-### Issues with ```get_device!```
-
-As mentioned before, it is not mandatory to implement an operation for every device.<br>
-However, there is one caveat. <br>
-If you want to call new operations on the ```Buffer``` (or any custom type), a ```CPU``` implementation must be available, since ```get_device!``` expects this. <br>
-
-A way around this, if you only want this functionality, for instance, for OpenCL buffers, may be a trait where all operations are ```unimplemented!()``` by default.
-For example:
-
-```rust
-// this trait is implemented for all devices.
-pub trait AnotherOpBuf<T> {
-    fn operation(&self, _buf: Buffer<T>) -> Buffer<T>{
-        unimplemented!()
-    }
-}
-```
-
-Then, this trait can be implemented for ```CPU```, without providing any functionality.
-```rust
-impl<T> AnotherOpBuf<T> for CPU {}
-```
-
-For ```CLDevice```, the operation can be properly implemented.
-
-```rust
-impl<T> AnotherOpBuf<T> for CLDevice {
-    #[inline]
-    fn operation(&self, _buf: Buffer<T>) -> Buffer<T> {
-        // ...
-        todo!()
-    }
-}
-```
-
-Currently, If you use ```get_device!``` in your crate, you also need to add a 'cuda' and a 'opencl' feature to your Cargo.toml.
-
-```toml
-[features]
-default = ["opencl"]
-opencl = []
-cuda = []
-```
-
-This is because ```get_device!``` contains code that uses ```#[cfg(feature="cuda")]``` and ```#[cfg(feature="opencl")]```. This macro is then expanded in your crate. Therefore, the expanded code looks after these features, which would fail without adding these features.

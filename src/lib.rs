@@ -30,7 +30,7 @@
 //!
 //! assert_eq!(a.read(), vec![0; 6]);
 //! ```
-use std::{ffi::c_void, ptr::null_mut};
+use std::ffi::c_void;
 
 //pub use libs::*;
 pub use buffer::*;
@@ -225,46 +225,3 @@ pub trait CacheBuf<'a, T> where Self: Sized {
     /// ```
     fn cached(&'a self, len: usize) -> Buffer<'a, T, Self>;
 }
-/*
-/// Return a device that implements the trait provided thus giving access to the functions implemented by the trait.
-///
-/// # Example
-/// ```
-/// use custos::{Error, CPU, get_device, VecRead, AsDev, Buffer};
-///
-/// fn main() -> Result<(), Error> {
-///     let device = CPU::new();
-///     let read = get_device!(device.dev(), VecRead<f32>);
-///
-///     let buf = Buffer::from(( &device, [1.51, 6.123, 7., 5.21, 8.62, 4.765]));
-///     let read = read.read(&buf);
-///     assert_eq!(read, vec![1.51, 6.123, 7., 5.21, 8.62, 4.765]);
-///     Ok(())
-/// }
-/// ```
-#[macro_export]
-macro_rules! get_device {
-    ($device:expr, $t:ident<$g:ident>) => {{
-        use $crate::DeviceType;
-
-        let device: &dyn $t<$g> = unsafe {
-            //&*($device.device as *mut CPU)
-            match $device.device_type {
-                DeviceType::CPU => &*($device.device as *mut $crate::CPU),
-                #[cfg(feature="cuda")]
-                DeviceType::CUDA => &*($device.device as *mut $crate::CUDA),
-                #[cfg(feature="opencl")]
-                DeviceType::CL => &*($device.device as *mut $crate::OpenCL),
-                // TODO: convert to error
-                _ => panic!(
-                    "No device found to execute this operation with. 
-                    If you are using get_device! in your own crate, 
-                    you need to add 'opencl' and 'cuda' as features in your Cargo.toml."
-                ),
-            }
-
-        };
-        device
-    }}
-}
-*/

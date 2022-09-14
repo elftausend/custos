@@ -8,8 +8,8 @@ use super::{
 use crate::{
     cache::{Cache, CacheReturn},
     devices::opencl::api::{create_buffer, MemFlags},
-    Alloc, Buffer, CDatatype, CacheBuf, CachedLeaf, ClearBuf, CloneBuf, Device, DeviceType,
-    Error, Graph, GraphReturn, VecRead, WriteBuf, CPU
+    Alloc, Buffer, CDatatype, CacheBuf, CachedLeaf, ClearBuf, CloneBuf,
+    Error, Graph, GraphReturn, VecRead, WriteBuf, CPU, DevicelessAble
 };
 use std::{
     cell::{Ref, RefCell},

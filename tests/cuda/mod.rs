@@ -18,7 +18,7 @@ fn test_cached_kernel_launch() -> custos::Result<()> {
     let a = Buffer::from((&device, [1, 2, 3, 4, 5]));
     let b = Buffer::from((&device, [4, 1, 7, 6, 9]));
 
-    let mut c = Buffer::<i32>::new(&device, a.len);
+    let mut c = Buffer::<i32, _>::new(&device, a.len);
 
     let src = r#"
         extern "C" __global__ void add(int *a, int *b, int *c, int numElements)
