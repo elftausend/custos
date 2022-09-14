@@ -21,10 +21,10 @@ use std::{
 /// To make new calculations invocable, a trait providing new operations should be implemented for [CLDevice].
 /// # Example
 /// ```
-/// use custos::{CLDevice, VecRead, Buffer, Error};
+/// use custos::{OpenCL, VecRead, Buffer, Error};
 ///
 /// fn main() -> Result<(), Error> {
-///     let device = CLDevice::new(0)?;
+///     let device = OpenCL::new(0)?;
 ///     
 ///     let a = Buffer::from((&device, [1.3; 25]));
 ///     let out = device.read(&a);

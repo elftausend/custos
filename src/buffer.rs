@@ -305,6 +305,7 @@ impl<'a, T, D> Buffer<'a, T, D> {
     pub unsafe fn shallow_or_clone(&self) -> Buffer<'a, T, D>
     where
         T: Clone,
+        D: CloneBuf<'a, T>
     {
         {
             #[cfg(not(feature = "realloc"))]

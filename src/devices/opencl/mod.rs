@@ -94,11 +94,11 @@ pub unsafe fn construct_buffer<'a, T: Debug>(
 /// Sets the elements of an OpenCL Buffer to zero.
 /// # Example
 /// ```
-/// use custos::{CLDevice, Buffer, VecRead, opencl::cl_clear};
+/// use custos::{OpenCL, Buffer, VecRead, opencl::cl_clear};
 ///
 /// fn main() -> Result<(), custos::Error> {
-///     let device = CLDevice::new(0)?;
-///     let mut lhs = Buffer::<i16>::from((&device, [15, 30, 21, 5, 8]));
+///     let device = OpenCL::new(0)?;
+///     let mut lhs = Buffer::<i16, _>::from((&device, [15, 30, 21, 5, 8]));
 ///     assert_eq!(device.read(&lhs), vec![15, 30, 21, 5, 8]);
 ///
 ///     cl_clear(&device, &mut lhs);
