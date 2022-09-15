@@ -14,7 +14,7 @@ readme = "README.md"
 lazy_static = { version = "1.4.0", optional = true }
 
 [features]
-default = ["opencl", "opt-cache"]
+default = ["opencl"]
 opencl = ["dep:lazy_static"]
 cuda = []
 realloc = []

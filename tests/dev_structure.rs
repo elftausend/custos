@@ -1,5 +1,5 @@
 #![allow(unused)]
-use std::ffi::c_void;
+use std::{ffi::c_void, marker::PhantomData};
 
 
 pub struct CPU {}
@@ -37,8 +37,16 @@ impl Alloc for OpenCL {
 pub struct Buffer<'a, T, D> {
     ptr: (*mut T, *mut c_void, u64),
     len: usize,
-    device: &'a D,
+    device: Option<&'a D>,
 }
+
+impl<'a, T, D> Drop for Buffer<'a, T, D> {
+    fn drop(&mut self) {
+        todo!()
+    }
+}
+
+
 
 impl<'a, T, D> Buffer<'a, T, D> {
     pub fn new(device: &'a D, len: usize) -> Self 
@@ -49,7 +57,7 @@ impl<'a, T, D> Buffer<'a, T, D> {
         Buffer {
             ptr,
             len,
-            device
+            device: Some(device),
         }
     }
 }
@@ -59,7 +67,7 @@ impl<'a, T> Buffer<'a, T, Deviceless> {
         Buffer {
             ptr: device.alloc(len),
             len,
-            device: &Deviceless,
+            device: Some(&Deviceless),
         }
     }
 }

@@ -317,13 +317,13 @@ impl<'a, T, D> Buffer<'a, T, D> {
     }
 }
 
-//impl<'a, T> Buffer<'a, T, crate::OpenCL> {
-//    pub fn cpu(&self) -> &Buffer<'a, T, CPU> {
-//        unsafe {
-//            std::mem::transmute(self)
-//        }
-//    }
-//}
+impl<'a, T> Buffer<'a, T, crate::OpenCL> {
+    pub fn cpu(&self) -> &Buffer<'a, T, CPU> {
+        unsafe {
+            std::mem::transmute(self)
+        }
+    }
+}
 
 impl<'a, T: Clone, D: CloneBuf<'a, T>> Clone for Buffer<'a, T, D> {
     fn clone(&self) -> Self {
