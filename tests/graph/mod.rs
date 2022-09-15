@@ -1,4 +1,4 @@
-use custos::{get_device, number::Number, Buffer, CDatatype, Cache, CPU};
+use custos::{number::Number, Buffer, CDatatype, Cache, CPU};
 
 #[cfg(feature = "opencl")]
 use custos::{opencl::enqueue_kernel, OpenCL};
@@ -13,16 +13,16 @@ mod to_unified;
 #[cfg(feature = "cuda")]
 use custos::{cuda::launch_kernel1d, CUDA};
 
-pub trait AddBuf<T> {
-    fn add(&self, lhs: &Buffer<T>, rhs: &Buffer<T>) -> Buffer<T>;
-    fn relu(&self, lhs: &Buffer<T>) -> Buffer<T>;
+pub trait AddBuf<T>: Sized {
+    fn add(&self, lhs: &Buffer<T, Self>, rhs: &Buffer<T, Self>) -> Buffer<T, Self>;
+    fn relu(&self, lhs: &Buffer<T, Self>) -> Buffer<T, Self>;
 }
 
 impl<T> AddBuf<T> for CPU
 where
     T: Number,
 {
-    fn add(&self, lhs: &Buffer<T>, rhs: &Buffer<T>) -> Buffer<T> {
+    fn add(&self, lhs: &Buffer<T, CPU>, rhs: &Buffer<T, CPU>) -> Buffer<T, CPU> {
         let len = std::cmp::min(lhs.len, rhs.len);
 
         let mut out = Cache::get(self, len, (lhs.node.idx, rhs.node.idx));
@@ -33,7 +33,7 @@ where
         out
     }
 
-    fn relu(&self, lhs: &Buffer<T>) -> Buffer<T> {
+    fn relu(&self, lhs: &Buffer<T, CPU>) -> Buffer<T, CPU> {
         let mut out = Cache::get(self, lhs.len, (lhs.node.idx, lhs.node.idx));
 
         for i in 0..lhs.len {
@@ -47,7 +47,7 @@ where
 
 #[cfg(feature = "opencl")]
 impl<T: CDatatype> AddBuf<T> for OpenCL {
-    fn add(&self, lhs: &Buffer<T>, rhs: &Buffer<T>) -> Buffer<T> {
+    fn add(&self, lhs: &Buffer<T, OpenCL>, rhs: &Buffer<T, OpenCL>) -> Buffer<T, OpenCL> {
         let src = format!("
         __kernel void add(__global {datatype}* self, __global const {datatype}* rhs, __global {datatype}* out) {{
             size_t id = get_global_id(0);
@@ -61,7 +61,7 @@ impl<T: CDatatype> AddBuf<T> for OpenCL {
         out
     }
 
-    fn relu(&self, lhs: &Buffer<T>) -> Buffer<T> {
+    fn relu(&self, lhs: &Buffer<T, OpenCL>) -> Buffer<T, OpenCL> {
         let src = format!(
             "
             __kernel void str_op(__global const {datatype}* lhs, __global {datatype}* out) {{
@@ -119,18 +119,18 @@ impl<T: CDatatype> AddBuf<T> for CUDA {
     }
 }
 
-pub trait AddOp<'a, T> {
-    fn add(&self, rhs: &Buffer<'a, T>) -> Buffer<'a, T>;
-    fn relu(&self) -> Buffer<'a, T>;
+pub trait AddOp<'a, T, D> {
+    fn add(&self, rhs: &Buffer<'a, T, D>) -> Buffer<'a, T, D>;
+    fn relu(&self) -> Buffer<'a, T, D>;
 }
 
-impl<'a, T: CDatatype> AddOp<'a, T> for Buffer<'a, T> {
+impl<'a, T: CDatatype, D: AddBuf<T>> AddOp<'a, T, D> for Buffer<'a, T, D> {
     #[inline]
-    fn add(&self, rhs: &Buffer<'a, T>) -> Buffer<'a, T> {
-        get_device!(self.device, AddBuf<T>).add(self, rhs)
+    fn add(&self, rhs: &Buffer<'a, T, D>) -> Buffer<'a, T, D> {
+        self.device().add(self, rhs)
     }
 
-    fn relu(&self) -> Buffer<'a, T> {
-        get_device!(self.device, AddBuf<T>).relu(self)
+    fn relu(&self) -> Buffer<'a, T, D> {
+        self.device().relu(self)
     }
 }

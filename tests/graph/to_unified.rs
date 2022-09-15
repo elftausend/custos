@@ -17,7 +17,7 @@ fn test_access_cached_after_unified_construct_buf() -> custos::Result<()> {
     let c = a.relu();
 
     let device = CPU::new();
-    let no_drop = device.add(&c, &b);
+    let no_drop = device.add(c.cpu(), b.cpu());
 
     let cl_cpu_buf = unsafe { construct_buffer(&cl_dev, no_drop, (&c, &b)) }?;
 
@@ -52,7 +52,7 @@ fn test_multiple_construct_buffer() -> custos::Result<()> {
     let b = Buffer::from((&cl_dev, [1, 2, 3, 4, 5]));
     let c = a.relu();
 
-    let no_drop = device.add(&c, &b);
+    let no_drop = device.add(c.cpu(), b.cpu());
     let _cl_cpu_buf = unsafe { construct_buffer(&cl_dev, no_drop, (&c, &b)) }?;
 
     Ok(())
