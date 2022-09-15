@@ -36,8 +36,8 @@ use std::{ffi::c_void, ptr::null_mut};
 pub use buffer::*;
 pub use count::*;
 pub use devices::*;
-pub use graph::*;
 pub use error::*;
+pub use graph::*;
 
 pub use devices::cpu::CPU;
 #[cfg(feature = "cuda")]
@@ -49,8 +49,8 @@ pub mod devices;
 
 mod buffer;
 mod count;
-mod graph;
 mod error;
+mod graph;
 
 pub mod number;
 

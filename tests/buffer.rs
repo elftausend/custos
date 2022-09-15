@@ -251,7 +251,6 @@ fn test_deviceless_buf() {
     assert_eq!(buf.as_slice(), &[0, 1, 2, 3, 4]);
 }
 
-
 #[test]
 #[should_panic]
 fn test_deviceless_buf_panic() {
@@ -262,7 +261,7 @@ fn test_deviceless_buf_panic() {
     buf.read();
 }
 
-#[cfg(feature="opencl")]
+#[cfg(feature = "opencl")]
 #[test]
 fn test_deviceless_buf_cl() -> custos::Result<()> {
     use custos::WriteBuf;
@@ -277,5 +276,6 @@ fn test_deviceless_buf_cl() -> custos::Result<()> {
 
     let device = CLDevice::new(0)?;
     assert_eq!(device.read(&buf), &[0, 1, 2, 3, 4]);
+
     Ok(())
 }

@@ -59,7 +59,14 @@ pub fn enqueue_kernel(
     }
 
     for (idx, arg) in args.iter().enumerate() {
-        set_kernel_arg(&kernel, idx, arg.as_cvoid_ptr(), arg.ptr_size(), arg.is_num()).unwrap();
+        set_kernel_arg(
+            &kernel,
+            idx,
+            arg.as_cvoid_ptr(),
+            arg.ptr_size(),
+            arg.is_num(),
+        )
+        .unwrap();
     }
     enqueue_nd_range_kernel(&device.queue(), &kernel, wd, &gws, lws.as_ref(), None)?;
     Ok(())

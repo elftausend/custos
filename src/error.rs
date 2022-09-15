@@ -48,7 +48,6 @@ impl core::fmt::Display for Error {
 
 pub type Result<T> = std::result::Result<T, Error>;
 
-
 #[derive(Clone, Copy, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub enum DeviceError {
     ConstructError,

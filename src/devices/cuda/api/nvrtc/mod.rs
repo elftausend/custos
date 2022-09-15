@@ -3,7 +3,8 @@ mod ffi;
 
 use std::{
     ffi::CString,
-    ptr::{null, null_mut}, os::raw::c_char,
+    os::raw::c_char,
+    ptr::{null, null_mut},
 };
 
 pub use ffi::*;
