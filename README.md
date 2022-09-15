@@ -3,7 +3,7 @@
 <hr/>
 
 [![Crates.io version](https://img.shields.io/crates/v/custos.svg)](https://crates.io/crates/custos)
-[![Docs](https://docs.rs/custos/badge.svg?version=0.4.6)](https://docs.rs/custos/0.4.6/custos/)
+[![Docs](https://docs.rs/custos/badge.svg?version=0.5.0)](https://docs.rs/custos/0.5.0/custos/)
 [![Rust](https://github.com/elftausend/custos/actions/workflows/rust.yml/badge.svg)](https://github.com/elftausend/custos/actions/workflows/rust.yml)
 [![GPU](https://github.com/elftausend/custos/actions/workflows/gpu.yml/badge.svg)](https://github.com/elftausend/custos/actions/workflows/gpu.yml)
 [![rust-clippy](https://github.com/elftausend/custos/actions/workflows/rust-clippy.yml/badge.svg)](https://github.com/elftausend/custos/actions/workflows/rust-clippy.yml)
@@ -20,10 +20,10 @@ or to see it at a larger scale, look here: [custos-math]
 Add "custos" as a dependency:
 ```toml
 [dependencies]
-custos = "0.4.6"
+custos = "0.5.0"
 
 # to disable the default features (cuda, opencl) and use an own set of features:
-#custos = {version = "0.4.6", default-features=false, features=["opencl"]}
+#custos = {version = "0.5.0", default-features=false, features=["opencl"]}
 ```
 
 Available features: 

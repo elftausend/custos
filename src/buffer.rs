@@ -318,7 +318,9 @@ impl<'a, T, D> Buffer<'a, T, D> {
 }
 
 impl<'a, T> Buffer<'a, T, crate::OpenCL> {
-    pub fn cpu(&self) -> &Buffer<'a, T, CPU> {
+    pub fn cpu(&self) -> &Buffer<'a, T, Deviceless> {
+        assert!(self.device().unified_mem(), "Called .cpu() on a non unified memory Buffer");
+
         unsafe {
             std::mem::transmute(self)
         }
