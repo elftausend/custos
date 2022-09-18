@@ -2,10 +2,7 @@ use crate::{Buffer, Ident, COUNT};
 use std::cell::RefMut;
 
 #[cfg(feature = "opt-cache")]
-use crate::{
-    cache::{CacheReturn, CacheType},
-    DeviceError,
-};
+use crate::{cache::CacheReturn, DeviceError};
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct CacheTrace {
@@ -19,10 +16,9 @@ pub trait GraphReturn {
 
 #[cfg(feature = "opt-cache")]
 pub trait GraphOpt {
-    fn optimize<P>(&self) -> crate::Result<()>
+    fn optimize(&self) -> crate::Result<()>
     where
-        P: CacheType,
-        Self: GraphReturn + CacheReturn<P>,
+        Self: GraphReturn + CacheReturn,
     {
         let mut cache = self.cache();
 

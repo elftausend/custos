@@ -97,6 +97,10 @@ thread_local! {
     pub static GLOBAL_CPU: CPU = CPU::new();
 }
 
+pub trait Device1 {
+    type P;
+}
+
 /// This trait is for allocating memory on the implemented device.
 ///
 /// # Example

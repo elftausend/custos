@@ -16,7 +16,7 @@ pub trait AddBuf<T> {
 // Host CPU implementation
 impl<T> AddBuf<T> for CPU
 where
-    T: Copy + std::ops::Add<Output = T>, // you can use the custos::Number trait. 
+    T: Copy + std::ops::Add<Output = T>, // you can use the custos::Number trait.
                                          // This trait is implemented for all number types (usize, i16, f32, ...)
 {
     // you can use the custos::Number trait. This trait is implemented for all number types (usize, i16, f32, ...)

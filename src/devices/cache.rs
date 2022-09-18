@@ -12,9 +12,10 @@ pub trait CacheType {
 }
 
 /// This trait makes a device's [`Cache`] accessible and is implemented for all compute devices.
-pub trait CacheReturn<P: CacheType>: GraphReturn {
+pub trait CacheReturn: GraphReturn {
+    type P: CacheType;
     /// Returns a device specific [`Cache`].
-    fn cache(&self) -> RefMut<Cache<P>>;
+    fn cache(&self) -> RefMut<Cache<Self::P>>;
 }
 
 /// Caches pointers that can be reconstructed into a [`Buffer`].
@@ -22,6 +23,9 @@ pub trait CacheReturn<P: CacheType>: GraphReturn {
 pub struct Cache<P: CacheType> {
     pub nodes: HashMap<Ident, Rc<P>>,
 }
+
+pub trait BindP<P> {}
+impl<P: CacheType> BindP<P> for Cache<P> {}
 
 impl<P: CacheType> Default for Cache<P> {
     fn default() -> Self {
@@ -68,7 +72,10 @@ impl<P: CacheType> Cache<P> {
     #[cfg(not(feature = "realloc"))]
     pub fn get<T, D>(device: &D, len: usize, add_node: impl AddGraph) -> Buffer<T>
     where
-        D: Alloc<T> + CacheReturn<P>,
+        // In order to know the specific pointer type
+        // there is probably a better way to implement this
+        Self: BindP<D::P>,
+        D: Alloc<T> + CacheReturn,
     {
         let node = Ident::new(len);
 
@@ -93,11 +100,13 @@ impl<P: CacheType> Cache<P> {
     }
 
     #[cfg(feature = "realloc")]
-    pub fn get<T, D: Alloc<T> + CacheReturn<P>>(
-        device: &D,
-        len: usize,
-        _: impl AddGraph,
-    ) -> Buffer<T> {
+    pub fn get<T, D>(device: &D, len: usize, _: impl AddGraph) -> Buffer<T>
+    where
+        // In order to know the specific pointer type
+        // there is probably a better way to implement this
+        Self: BindP<D::P>,
+        D: Alloc<T> + CacheReturn,
+    {
         Buffer::new(device, len)
     }
 }

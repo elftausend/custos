@@ -23,7 +23,7 @@ impl AsRangeArg for RangeInclusive<usize> {
     }
 
     fn end(&self) -> usize {
-        *self.end()+1
+        *self.end() + 1
     }
 }
 

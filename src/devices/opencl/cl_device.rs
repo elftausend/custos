@@ -176,7 +176,8 @@ impl<'a, T> CacheBuf<'a, T> for CLDevice {
     }
 }
 
-impl CacheReturn<RawCL> for CLDevice {
+impl CacheReturn for CLDevice {
+    type P = RawCL;
     #[inline]
     fn cache(&self) -> std::cell::RefMut<Cache<RawCL>> {
         self.cache.borrow_mut()
