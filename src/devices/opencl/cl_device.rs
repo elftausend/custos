@@ -208,7 +208,7 @@ impl<T: CDatatype> ClearBuf<T> for CLDevice {
 
 impl<T> WriteBuf<T> for CLDevice {
     fn write(&self, buf: &mut Buffer<T>, data: &[T]) {
-        let event = unsafe { enqueue_write_buffer(&self.queue(), buf.ptr.1, data, false).unwrap() };
+        let event = unsafe { enqueue_write_buffer(&self.queue(), buf.ptr.1, data, true).unwrap() };
         wait_for_event(event).unwrap();
     }
 }

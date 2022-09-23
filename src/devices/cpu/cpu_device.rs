@@ -1,6 +1,6 @@
 use crate::{
     devices::cache::{Cache, CacheReturn},
-    Alloc, AsDev, Buffer, CacheBuf, CachedLeaf, ClearBuf, CloneBuf, Device, Device1, DeviceType,
+    Alloc, AsDev, Buffer, CacheBuf, CachedLeaf, ClearBuf, CloneBuf, Device, DeviceType,
     Graph, GraphReturn, VecRead, WriteBuf,
 };
 use std::{
@@ -90,10 +90,6 @@ impl<T> Alloc<T> for CPU {
 }
 
 impl AsDev for CPU {}
-
-impl Device1 for CPU {
-    type P = RawCpuBuf;
-}
 
 impl CacheReturn for CPU {
     type P = RawCpuBuf;
