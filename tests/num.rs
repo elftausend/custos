@@ -1,5 +1,5 @@
 use custos::number::{Float, Number};
-use std::any::{Any, TypeId};
+use std::{any::{Any, TypeId}, ops::Neg};
 
 #[test]
 fn test_num() {
@@ -30,7 +30,7 @@ fn test_num() {
 fn test_float() {
     let x = 6f32;
 
-    assert_eq!(x.negate(), -x);
+    assert_eq!(x.neg(), -x);
     assert_eq!(Float::powi(&x, 2), x.powi(2));
     assert_eq!(Float::powf(&x, 2.5), x.powf(2.5));
     assert_eq!(Float::sin(&x), x.sin());
@@ -42,7 +42,7 @@ fn test_float() {
     assert_eq!(Float::comp(x, 8.), Some(core::cmp::Ordering::Less));
     assert_eq!(Float::abs(&-5.), 5.);
 
-    assert_eq!(x.negate().abs(), x);
+    assert_eq!((-x).abs(), x);
 
     let x: f32 = Float::as_generic(0.4);
     assert_eq!(x, 0.4);
