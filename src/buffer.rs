@@ -31,7 +31,21 @@ impl PartialEq for BufFlag {
 }
 
 /// The underlying non-growable array structure. A `Buffer` may be encapsulated in other structs.
-pub struct Buffer<'a, T, D = CPU> {
+/// By default, the `Buffer` is a f32 CPU Buffer.
+/// # Example
+/// ```
+/// use custos::prelude::*;
+/// 
+/// fn buffer_f32_cpu(buf: &Buffer) {}
+/// fn buffer_generic<T, D>(buf: &Buffer<T, D>) {}
+/// 
+/// let device = CPU::new();
+/// let buf = Buffer::from((&device, [0.5, 1.3, 3.2, 2.43]));
+/// 
+/// buffer_f32_cpu(&buf);
+/// buffer_generic(&buf);
+/// ```
+pub struct Buffer<'a, T = f32, D = CPU> {
     pub ptr: (*mut T, *mut c_void, u64),
     pub len: usize,
     pub device: Option<&'a D>,
@@ -99,33 +113,7 @@ impl<'a, T, D> Buffer<'a, T, D> {
         self.device
             .expect("Called device() on a deviceless buffer.")
     }
-    /// Constructs a `Buffer` out of a host pointer and a length.
-    /// # Example
-    /// ```
-    /// use custos::{Buffer, Alloc, CPU, VecRead};
-    /// use std::ffi::c_void;
-    ///
-    /// let device = CPU::new();
-    /// let ptrs: (*mut f32, *mut c_void, u64) = device.alloc(10);
-    /// let mut buf = unsafe {
-    ///     Buffer::<f32, CPU>::from_raw_host(ptrs.0, 10)
-    /// };
-    /// for (idx, value) in buf.iter_mut().enumerate() {
-    ///     *value += idx as f32;
-    /// }
-    /// assert_eq!(buf.as_slice(), &[0., 1., 2., 3., 4., 5., 6., 7., 8., 9.,])
-    ///
-    /// ```
-    /// # Safety
-    /// The pointer must not outlive the Buffer.
-    pub unsafe fn from_raw_host(ptr: *mut T, len: usize) -> Buffer<'a, T, D> {
-        Buffer {
-            ptr: (ptr, null_mut(), 0),
-            len,
-            ..Default::default()
-        }
-    }
-
+    
     /// Returns the number of elements contained in `Buffer`.
     /// # Example
     /// ```
@@ -260,6 +248,35 @@ impl<'a, T, D> Buffer<'a, T, D> {
     }
 }
 
+impl<'a, T> Buffer<'a, T> {
+    /// Constructs a `Buffer` out of a host pointer and a length.
+    /// # Example
+    /// ```
+    /// use custos::{Buffer, Alloc, CPU, VecRead};
+    /// use std::ffi::c_void;
+    ///
+    /// let device = CPU::new();
+    /// let ptrs: (*mut f32, *mut c_void, u64) = device.alloc(10);
+    /// let mut buf = unsafe {
+    ///     Buffer::from_raw_host(ptrs.0, 10)
+    /// };
+    /// for (idx, value) in buf.iter_mut().enumerate() {
+    ///     *value += idx as f32;
+    /// }
+    /// assert_eq!(buf.as_slice(), &[0., 1., 2., 3., 4., 5., 6., 7., 8., 9.,])
+    ///
+    /// ```
+    /// # Safety
+    /// The pointer must not outlive the Buffer.
+    pub unsafe fn from_raw_host(ptr: *mut T, len: usize) -> Buffer<'a, T> {
+        Buffer {
+            ptr: (ptr, null_mut(), 0),
+            len,
+            ..Default::default()
+        }
+    }
+}
+
 impl<'a, T> Buffer<'a, T, ()> {
     /// Used if the `Buffer` contains only a single value.
     ///
@@ -330,7 +347,7 @@ unsafe impl<T> Send for Buffer<'a, T> {}
 #[cfg(feature = "safe")]
 unsafe impl<T> Sync for Buffer<'a, T> {}*/
 
-impl<'a, A> FromIterator<A> for Buffer<'a, A, CPU> 
+impl<'a, A> FromIterator<A> for Buffer<'a, A> 
 where
     A: Clone + Default
 {

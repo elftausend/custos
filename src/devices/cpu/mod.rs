@@ -1,4 +1,5 @@
 use crate::{devices::cache::CacheType, Node, PtrType, Alloc};
+#[cfg(feature="blas")]
 pub use blas::*;
 pub use cpu_device::*;
 use std::{
@@ -7,6 +8,7 @@ use std::{
     ptr::null_mut,
 };
 
+#[cfg(feature="blas")]
 mod blas;
 mod cpu_device;
 

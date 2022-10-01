@@ -1,6 +1,6 @@
 [package]
 name = "custos"
-version = "0.5.0"
+version = "0.6.0"
 edition = "2021"
 license = "MIT"
 description = "A minimal OpenCL, CUDA and host CPU array manipulation engine / framework."
@@ -14,14 +14,15 @@ readme = "README.md"
 lazy_static = { version = "1.4.0", optional = true }
 
 [build-dependencies]
-custos = { version="0.1.4", default-features=false, features=["opencl"] }
+custos = { version="0.5.0", default-features=false }
 
 [features]
-default = []
-opencl = ["dep:lazy_static"]
+default = ["blas"]
+opencl = ["dep:lazy_static", "custos/opencl"]
 cuda = []
 realloc = []
 opt-cache = []
+blas = []
 
 [[example]]
 name = "cuda_readme"

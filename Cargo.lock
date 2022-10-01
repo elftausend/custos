@@ -4,18 +4,18 @@ version = 3
 
 [[package]]
 name = "custos"
-version = "0.1.5"
+version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2f344e88d24618fb0b9c52b7d35a6201600f08784c62c58010d8e99e1e1badeb"
+checksum = "a86beed068fb037e9adc074ab3457452e94d200bf582f79a2a0180dc06bf1486"
 dependencies = [
  "lazy_static",
 ]
 
 [[package]]
 name = "custos"
-version = "0.5.0"
+version = "0.6.0"
 dependencies = [
- "custos 0.1.5",
+ "custos 0.5.0",
  "lazy_static",
 ]
 
