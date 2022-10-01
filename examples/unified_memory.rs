@@ -1,3 +1,4 @@
+#[cfg(unified_cl)]
 use custos::{Buffer, OpenCL, VecRead};
 
 #[cfg(unified_cl)]

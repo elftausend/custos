@@ -1,7 +1,7 @@
 use super::{
     api::{
         create_command_queue, create_context, enqueue_full_copy_buffer, enqueue_read_buffer,
-        enqueue_write_buffer, unified_ptr, wait_for_event, CLIntDevice, CommandQueue, Context,
+        enqueue_write_buffer, wait_for_event, CLIntDevice, CommandQueue, Context,
     },
     cl_clear, KernelCacheCL, RawCL, CL_DEVICES,
 };
@@ -9,13 +9,16 @@ use crate::{
     cache::{Cache, CacheReturn},
     devices::opencl::api::{create_buffer, MemFlags},
     Alloc, Buffer, CDatatype, CacheBuf, CachedLeaf, ClearBuf, CloneBuf, DevicelessAble, Error,
-    Graph, GraphReturn, VecRead, WriteBuf, CPU, CPUCL,
+    Graph, GraphReturn, VecRead, WriteBuf, CPU,
 };
 use std::{
     cell::{Ref, RefCell},
     ffi::c_void,
     fmt::Debug,
 };
+
+#[cfg(unified_cl)]
+use crate::{opencl::api::unified_ptr, CPUCL};
 
 /// Used to perform calculations with an OpenCL capable device.
 /// To make new calculations invocable, a trait providing new operations should be implemented for [CLDevice].

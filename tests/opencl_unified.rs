@@ -186,6 +186,7 @@ fn test_unified_mem_iterate() -> custos::Result<()> {
     Ok(())
 }*/
 
+#[cfg(unified_cl)]
 #[cfg(not(feature = "realloc"))]
 #[test]
 fn test_cpu_to_unified() -> custos::Result<()> {
@@ -202,6 +203,7 @@ fn test_cpu_to_unified() -> custos::Result<()> {
     Ok(())
 }
 
+#[cfg(unified_cl)]
 #[cfg(not(feature = "realloc"))]
 #[test]
 fn test_cpu_to_unified_leak() -> custos::Result<()> {
@@ -232,6 +234,7 @@ fn test_cpu_to_unified_leak() -> custos::Result<()> {
     Ok(())
 }
 
+#[cfg(unified_cl)]
 #[cfg(not(feature = "realloc"))]
 #[test]
 fn test_cpu_to_unified_perf() -> custos::Result<()> {
