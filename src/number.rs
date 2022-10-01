@@ -99,7 +99,7 @@ macro_rules! float_apply {
     ($($t:ident),*) => {
         $(
             impl Float for $t {
-                
+
                 #[inline]
                 fn squared(lhs: $t) -> $t {
                     lhs*lhs

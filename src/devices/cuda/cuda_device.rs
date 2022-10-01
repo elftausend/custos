@@ -8,8 +8,8 @@ use super::{
 };
 use crate::{
     cache::{Cache, CacheReturn},
-    Alloc, Buffer, CDatatype, CacheBuf, CachedLeaf, ClearBuf, CloneBuf,
-    Graph, GraphReturn, VecRead, WriteBuf
+    Alloc, Buffer, CDatatype, CacheBuf, CachedLeaf, ClearBuf, CloneBuf, Graph, GraphReturn,
+    VecRead, WriteBuf,
 };
 use std::{cell::RefCell, ptr::null_mut};
 
@@ -118,12 +118,8 @@ impl GraphReturn for CUDA {
     }
 }
 
-<<<<<<< HEAD
-impl CacheReturn<RawCUBuf> for CUDA {
-=======
 impl CacheReturn for CudaDevice {
     type P = RawCUBuf;
->>>>>>> main
     #[inline]
     fn cache(&self) -> std::cell::RefMut<Cache<RawCUBuf>> {
         self.cache.borrow_mut()

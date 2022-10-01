@@ -8,8 +8,8 @@ use super::{
 use crate::{
     cache::{Cache, CacheReturn},
     devices::opencl::api::{create_buffer, MemFlags},
-    Alloc, Buffer, CDatatype, CacheBuf, CachedLeaf, ClearBuf, CloneBuf,
-    Error, Graph, GraphReturn, VecRead, WriteBuf, CPU, DevicelessAble
+    Alloc, Buffer, CDatatype, CacheBuf, CachedLeaf, ClearBuf, CloneBuf, DevicelessAble, Error,
+    Graph, GraphReturn, VecRead, WriteBuf, CPU, CPUCL,
 };
 use std::{
     cell::{Ref, RefCell},
@@ -186,6 +186,9 @@ impl GraphReturn for OpenCL {
     }
 }
 
+#[cfg(unified_cl)]
+impl CPUCL for OpenCL {}
+
 #[cfg(feature = "opt-cache")]
 impl crate::GraphOpt for OpenCL {}
 
@@ -194,21 +197,21 @@ pub fn cl_cached<T>(device: &OpenCL, len: usize) -> Buffer<T, OpenCL> {
     device.cached(len)
 }
 
-impl<T: CDatatype> ClearBuf<T> for OpenCL {
+impl<T: CDatatype> ClearBuf<T, OpenCL> for OpenCL {
     #[inline]
     fn clear(&self, buf: &mut Buffer<T, OpenCL>) {
         cl_clear(self, buf).unwrap()
     }
 }
 
-impl<T> WriteBuf<T> for OpenCL {
+impl<T> WriteBuf<T, OpenCL> for OpenCL {
     fn write(&self, buf: &mut Buffer<T, OpenCL>, data: &[T]) {
         let event = unsafe { enqueue_write_buffer(&self.queue(), buf.ptr.1, data, true).unwrap() };
         wait_for_event(event).unwrap();
     }
 }
 
-impl<T: Clone + Default> VecRead<T> for OpenCL {
+impl<T: Clone + Default> VecRead<T, OpenCL> for OpenCL {
     fn read(&self, buf: &crate::Buffer<T, OpenCL>) -> Vec<T> {
         assert!(
             !buf.ptr.1.is_null(),

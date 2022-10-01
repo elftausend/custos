@@ -1,7 +1,7 @@
 use crate::{
     devices::cache::{Cache, CacheReturn},
-    Alloc, Buffer, CacheBuf, CachedLeaf, ClearBuf, CloneBuf, Graph,
-    GraphReturn, VecRead, WriteBuf, DevicelessAble,
+    Alloc, Buffer, CacheBuf, CachedLeaf, ClearBuf, CloneBuf, DevicelessAble, Graph, GraphReturn,
+    VecRead, WriteBuf, CPUCL,
 };
 use std::{
     alloc::{handle_alloc_error, Layout},
@@ -99,6 +99,8 @@ impl GraphReturn for CPU {
     }
 }
 
+impl CPUCL for CPU {}
+
 #[cfg(feature = "opt-cache")]
 impl crate::GraphOpt for CPU {}
 
@@ -122,22 +124,22 @@ pub fn cpu_cached<T: Clone>(device: &CPU, len: usize) -> Buffer<T, CPU> {
     device.cached(len)
 }
 
-impl<T: Clone> VecRead<T> for CPU {
-    fn read(&self, buf: &Buffer<T, CPU>) -> Vec<T> {
+impl<T: Clone, D: CPUCL> VecRead<T, D> for CPU {
+    fn read(&self, buf: &Buffer<T, D>) -> Vec<T> {
         buf.as_slice().to_vec()
     }
 }
 
-impl<T: Default> ClearBuf<T> for CPU {
-    fn clear(&self, buf: &mut Buffer<T, CPU>) {
+impl<T: Default, D: CPUCL> ClearBuf<T, D> for CPU {
+    fn clear(&self, buf: &mut Buffer<T, D>) {
         for value in buf {
             *value = T::default();
         }
     }
 }
 
-impl<T: Copy> WriteBuf<T> for CPU {
-    fn write(&self, buf: &mut Buffer<T, CPU>, data: &[T]) {
+impl<T: Copy, D: CPUCL> WriteBuf<T, D> for CPU {
+    fn write(&self, buf: &mut Buffer<T, D>, data: &[T]) {
         buf.copy_from_slice(data)
     }
 }

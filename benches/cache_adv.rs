@@ -1,3 +1,4 @@
+/*
 use criterion::{criterion_group, criterion_main, Criterion};
 use custos::{cache::Cache, set_count, Buffer, CPU};
 use std::ops::Add;
@@ -57,3 +58,5 @@ pub fn bench_buf_slice(c: &mut Criterion) {
 
 criterion_group!(benches, bench_buf_slice_cached, bench_buf_slice);
 criterion_main!(benches);
+*/
+fn main() {}

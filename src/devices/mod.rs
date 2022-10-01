@@ -11,7 +11,7 @@ use std::cell::RefCell;
 use cuda::api::cublas::{cublasDgemm_v2, cublasOperation_t, cublasSgemm_v2, CublasHandle};
 
 pub mod cache;
-pub use cache::Cache;
+pub use cache::{Cache, CacheReturn};
 pub mod cpu;
 #[cfg(feature = "cuda")]
 pub mod cuda;
@@ -364,10 +364,4 @@ impl GenericBlas for f64 {
         .to_result()?;
         Ok(())
     }
-}
-
-pub fn remove_value<T: Ord>(values: &mut Vec<T>, match_value: &T) -> Result<(), usize> {
-    let idx = values.binary_search(match_value)?;
-    values.swap_remove(idx);
-    Ok(())
 }

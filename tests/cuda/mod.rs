@@ -1,6 +1,6 @@
 use custos::{
     cuda::{api::culaunch_kernel, fn_cache},
-    Buffer, CUDA, VecRead,
+    Buffer, VecRead, CUDA,
 };
 use std::ffi::c_void;
 

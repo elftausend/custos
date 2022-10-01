@@ -43,7 +43,7 @@ pub use devices::cpu::CPU;
 #[cfg(feature = "cuda")]
 pub use devices::cuda::CUDA;
 #[cfg(feature = "opencl")]
-pub use devices::opencl::{OpenCL, InternCLDevice};
+pub use devices::opencl::{InternCLDevice, OpenCL};
 
 pub mod devices;
 
@@ -54,12 +54,17 @@ mod graph;
 
 pub mod number;
 
-
 thread_local! {
     pub static GLOBAL_CPU: CPU = CPU::new();
 }
 
 pub trait DevicelessAble: Alloc {}
+
+//pub trait Deviceless {}
+//impl Deviceless for () {}
+
+pub trait CPUCL {}
+
 
 /// This trait is for allocating memory on the implemented device.
 ///
@@ -130,7 +135,7 @@ pub trait Alloc {
 }
 
 /// Trait for implementing the clear() operation for the compute devices.
-pub trait ClearBuf<T> {
+pub trait ClearBuf<T, D> {
     /// Sets all elements of the matrix to zero.
     /// # Example
     /// ```
@@ -143,11 +148,11 @@ pub trait ClearBuf<T> {
     /// device.clear(&mut a);
     /// assert_eq!(a.read(), vec![0; 6]);
     /// ```
-    fn clear(&self, buf: &mut Buffer<T, Self>) where Self: Sized;
+    fn clear(&self, buf: &mut Buffer<T, D>);
 }
 
 /// Trait for reading buffers.
-pub trait VecRead<T>: Sized {
+pub trait VecRead<T, D> {
     /// Read the data of a buffer into a vector
     /// # Example
     /// ```
@@ -158,11 +163,11 @@ pub trait VecRead<T>: Sized {
     /// let read = device.read(&a);
     /// assert_eq!(vec![1., 2., 3., 3., 2., 1.,], read);
     /// ```
-    fn read(&self, buf: &Buffer<T, Self>) -> Vec<T>;
+    fn read(&self, buf: &Buffer<T, D>) -> Vec<T>;
 }
 
 /// Trait for writing data to buffers.
-pub trait WriteBuf<T>: Sized {
+pub trait WriteBuf<T, D>: Sized {
     /// Write data to the buffer.
     /// # Example
     /// ```
@@ -174,7 +179,7 @@ pub trait WriteBuf<T>: Sized {
     /// assert_eq!(buf.as_slice(), &[9, 3, 2, -4])
     ///
     /// ```
-    fn write(&self, buf: &mut Buffer<T, Self>, data: &[T]);
+    fn write(&self, buf: &mut Buffer<T, D>, data: &[T]);
     /// Writes data from <Device> Buffer to other <Device> Buffer.
     // TODO: implement, change name of fn? -> set_.. ?
     fn write_buf(&self, _dst: &mut Buffer<T, Self>, _src: &Buffer<T, Self>) {
@@ -200,7 +205,8 @@ pub trait CloneBuf<'a, T>: Sized {
 }
 
 /// This trait is used to retrieve a cached buffer from a specific device type.
-pub trait CacheBuf<'a, T> where Self: Sized {
+pub trait CacheBuf<'a, T>: Sized
+{
     #[cfg_attr(feature = "realloc", doc = "```ignore")]
     /// Adds a buffer to the cache. Following calls will return this buffer, if the corresponding internal count matches with the id used in the cache.
     /// # Example
@@ -222,4 +228,21 @@ pub trait CacheBuf<'a, T> where Self: Sized {
     /// assert_eq!(device.read(&buf), vec![1.5; 10]);
     /// ```
     fn cached(&'a self, len: usize) -> Buffer<'a, T, Self>;
+}
+
+pub mod prelude {
+    pub use crate::{
+        cache::CacheReturn, get_count, set_count, Buffer, CDatatype, CacheBuf, GraphReturn,
+        VecRead, CPU, WriteBuf, cached, number::*, range,
+    };
+
+    #[cfg(feature = "opencl")]
+    pub use crate::opencl::OpenCL;
+
+    #[cfg(feature = "opencl")]
+    #[cfg(unified_cl)]
+    pub use crate::opencl::{construct_buffer, to_unified};
+
+    #[cfg(feature = "cuda")]
+    pub use crate::cuda::CUDA;
 }

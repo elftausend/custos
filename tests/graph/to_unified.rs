@@ -1,4 +1,4 @@
-use custos::{cache::CacheReturn, opencl::construct_buffer, Buffer, OpenCL, Ident, CPU};
+use custos::{cache::CacheReturn, opencl::construct_buffer, Buffer, Ident, OpenCL, CPU};
 
 use super::{AddBuf, AddOp};
 

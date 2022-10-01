@@ -118,7 +118,7 @@ impl<'a, T, D> OwnStruct<'a, T, D> {
     fn add(&self, rhs: &OwnStruct<T, D>) -> Buffer<T, D>
     where
         T: CDatatype,
-        D: AddBuf<T>
+        D: AddBuf<T>,
     {
         self.buf.device().add(&self.buf, &rhs.buf)
         //get_device!(self.buf.device, AddBuf<T>).add(&self.buf, &rhs.buf)

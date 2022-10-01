@@ -1,6 +1,4 @@
-use custos::{
-    cache::Cache, cuda::launch_kernel1d, Buffer, CDatatype, CachedLeaf, CUDA, VecRead,
-};
+use custos::{cache::Cache, cuda::launch_kernel1d, Buffer, CDatatype, CachedLeaf, VecRead, CUDA};
 
 #[test]
 fn test_scalar_op_cuda() -> custos::Result<()> {

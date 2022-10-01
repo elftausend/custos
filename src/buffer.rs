@@ -5,8 +5,8 @@ use std::{ffi::c_void, fmt::Debug, ptr::null_mut};
 #[cfg(feature = "opencl")]
 use crate::opencl::api::release_mem_object;
 use crate::{
-    Alloc, CDatatype, ClearBuf, CloneBuf, GraphReturn, Node,
-    VecRead, WriteBuf, GLOBAL_CPU, CPU, CacheBuf, DevicelessAble,
+    Alloc, CDatatype, CacheBuf, ClearBuf, CloneBuf, DevicelessAble, GraphReturn, Node, VecRead,
+    WriteBuf, CPU, GLOBAL_CPU,
 };
 
 /// Descripes the type of a [`Buffer`]
@@ -39,10 +39,7 @@ pub struct Buffer<'a, T, D = ()> {
     pub node: Node,
 }
 
-impl<'a, T> Buffer<'a, T> 
-where 
-    
-{
+impl<'a, T> Buffer<'a, T> {
     /// Creates a zeroed (or values set to default) `Buffer` with the given length on the specified device.
     /// This `Buffer` can't outlive the device specified as a parameter.
     /// ```
@@ -95,12 +92,12 @@ where
             ..Default::default()
         }
     }
-
 }
 
 impl<'a, T, D> Buffer<'a, T, D> {
     pub fn device(&self) -> &'a D {
-        self.device.expect("Called device() on a deviceless buffer.")
+        self.device
+            .expect("Called device() on a deviceless buffer.")
     }
     /// Constructs a `Buffer` out of a host pointer and a length.
     /// # Example
@@ -231,7 +228,7 @@ impl<'a, T, D> Buffer<'a, T, D> {
     pub fn clear(&mut self)
     where
         T: CDatatype,
-        D: ClearBuf<T>,
+        D: ClearBuf<T, D>,
     {
         self.device().clear(self)
     }
@@ -251,7 +248,7 @@ impl<'a, T, D> Buffer<'a, T, D> {
     pub fn read(&self) -> Vec<T>
     where
         T: Clone + Default,
-        D: VecRead<T>
+        D: VecRead<T, D>,
     {
         self.device().read(self)
     }
@@ -261,7 +258,7 @@ impl<'a, T, D> Buffer<'a, T, D> {
     pub fn write(&mut self, data: &[T])
     where
         T: Copy,
-        D: WriteBuf<T>
+        D: WriteBuf<T, D>,
     {
         self.device().write(self, data)
     }
@@ -305,7 +302,7 @@ impl<'a, T, D> Buffer<'a, T, D> {
     pub unsafe fn shallow_or_clone(&self) -> Buffer<'a, T, D>
     where
         T: Clone,
-        D: CloneBuf<'a, T>
+        D: CloneBuf<'a, T>,
     {
         {
             #[cfg(not(feature = "realloc"))]
@@ -316,7 +313,6 @@ impl<'a, T, D> Buffer<'a, T, D> {
         self.clone()
     }
 }
-
 
 impl<'a, T: Clone, D: CloneBuf<'a, T>> Clone for Buffer<'a, T, D> {
     fn clone(&self) -> Self {
@@ -334,9 +330,10 @@ impl<'a, A: Clone + Default> FromIterator<A> for Buffer<'a, A, CPU> {
     fn from_iter<T: IntoIterator<Item = A>>(iter: T) -> Self {
         // Safety: GLOBAL_CPU should live long enough
         let device = unsafe {
-            GLOBAL_CPU.with(|device| {
-                device as *const CPU
-            }).as_ref().unwrap()
+            GLOBAL_CPU
+                .with(|device| device as *const CPU)
+                .as_ref()
+                .unwrap()
         };
         let from_iter = Vec::from_iter(iter);
 
@@ -345,7 +342,7 @@ impl<'a, A: Clone + Default> FromIterator<A> for Buffer<'a, A, CPU> {
             node: device.graph().add_leaf(from_iter.len()),
             ptr: device.alloc_with_vec(from_iter),
             device: Some(device),
-            flag: BufFlag::None
+            flag: BufFlag::None,
         }
     }
 }
@@ -462,7 +459,7 @@ impl<T, D> std::ops::DerefMut for Buffer<'_, T, D> {
     }
 }
 
-impl<T: Debug + Default + Copy, D: VecRead<T>> Debug for Buffer<'_, T, D> {
+impl<T: Debug + Default + Copy, D: VecRead<T, D>> Debug for Buffer<'_, T, D> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Buffer")
             .field("ptr (CPU, CL, CU)", &self.ptr)

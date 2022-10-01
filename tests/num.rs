@@ -1,5 +1,8 @@
 use custos::number::{Float, Number};
-use std::{any::{Any, TypeId}, ops::Neg};
+use std::{
+    any::{Any, TypeId},
+    ops::Neg,
+};
 
 #[test]
 fn test_num() {

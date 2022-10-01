@@ -19,6 +19,7 @@ opencl = ["dep:lazy_static"]
 cuda = []
 realloc = []
 opt-cache = []
+#unified-mem = []
 
 [[example]]
 name = "cuda_readme"
@@ -45,7 +46,10 @@ name = "cl_kernel_launch"
 required-features = ["opencl"]
 
 [dev-dependencies]
-criterion = "0.3"
+#criterion = "0.3"
+
+[build-dependencies]
+custos = { version="0.1.4", default-features=false, features=["opencl"] }
 
 
 #[[bench]]

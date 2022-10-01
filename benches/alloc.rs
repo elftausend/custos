@@ -1,3 +1,4 @@
+/*
 use std::alloc::Layout;
 
 use criterion::{criterion_group, criterion_main, Criterion};
@@ -35,3 +36,5 @@ pub fn bench_buf_alloc(c: &mut Criterion) {
 
 criterion_group!(benches, bench_layout_alloc, bench_buf_alloc);
 criterion_main!(benches);
+*/
+fn main() {}

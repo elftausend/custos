@@ -4,7 +4,7 @@ use custos::{
     cuda::api::{
         cuLaunchKernel, cuOccupancyMaxPotentialBlockSize, load_module_data, nvrtc::create_program,
     },
-    Buffer, CUDA, VecRead,
+    Buffer, VecRead, CUDA,
 };
 
 #[test]

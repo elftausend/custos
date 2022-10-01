@@ -3,7 +3,7 @@ use super::api::{
     nvrtc::{create_program, nvrtcDestroyProgram},
     FnHandle,
 };
-use crate::{cache::CacheType, CUDA, Error, Node};
+use crate::{cache::CacheType, Error, Node, CUDA};
 use std::{collections::HashMap, ffi::CString, ptr::null_mut};
 
 #[derive(Debug)]
@@ -34,12 +34,7 @@ pub struct KernelCacheCU {
 }
 
 impl KernelCacheCU {
-    pub fn kernel(
-        &mut self,
-        device: &CUDA,
-        src: &str,
-        fn_name: &str,
-    ) -> Result<FnHandle, Error> {
+    pub fn kernel(&mut self, device: &CUDA, src: &str, fn_name: &str) -> Result<FnHandle, Error> {
         let kernel = self.kernels.get(src);
 
         if let Some(kernel) = kernel {

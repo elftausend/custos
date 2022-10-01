@@ -1,8 +1,7 @@
-use custos::cache::CacheReturn;
 use custos::cpu::cpu_cached;
 #[cfg(feature = "opencl")]
 use custos::{devices::opencl::OpenCL, Error};
-use custos::{Alloc, Buffer, VecRead, GraphReturn};
+use custos::{Alloc, Buffer, VecRead, CPUCL};
 
 use custos::CPU;
 
@@ -19,7 +18,7 @@ pub fn get_slice<'a, T, D>(buf: &'a Buffer<T, D>) -> &'a [T] {
 
 pub fn read<T, D: Alloc>(device: &D, buf: &Buffer<T, D>) -> Vec<T>
 where
-    D: VecRead<T>,
+    D: VecRead<T, D>,
 {
     device.read(&buf)
 }
@@ -218,14 +217,7 @@ fn test_debug_print_buf() -> custos::Result<()> {
     Ok(())
 }
 
-pub trait CPUCL: GraphReturn {}
-
-impl CPUCL for CPU {}
-impl CPUCL for custos::OpenCL {}
-
-fn slice_add<T, D: CPUCL>(lhs: &Buffer<T, D>) {
-    
-}
+fn slice_add<T, D: CPUCL>(_lhs: &Buffer<T, D>) {}
 
 #[test]
 fn test_slice() {
@@ -236,7 +228,7 @@ fn test_slice() {
 
     let device = custos::OpenCL::new(0).unwrap();
     let buf = Buffer::from((&device, [1, 2, 3, 4, 5, 6]));
-    
+
     slice_add::<i32, _>(&buf);
 }
 
@@ -266,7 +258,6 @@ fn test_deviceless_buf() {
     assert_eq!(buf.as_slice(), &[0, 1, 2, 3, 4]);
 }
 
-
 /*
 // compile-time error instead
 #[test]
@@ -280,11 +271,45 @@ fn test_deviceless_buf_panic() {
 }*/
 
 
+/*
+pub trait Deviceless {}
 
 
-/* 
-TODO: Should run!
-#[cfg(feature = "opencl")]
+impl Deviceless for CPU {}
+impl Deviceless for OpenCL {}
+
+pub trait AddTest<T, D> {
+    fn add(&self, buf: &Buffer<T, D>);
+}
+
+impl<T, D: Deviceless + CPUCL> AddTest<T, D> for CPU {
+    fn add(&self, buf: &Buffer<T, D>) {
+        todo!()
+    }
+}
+
+#[test]
+fn test_deviceless_buf_cl() -> custos::Result<()> {
+    use custos::WriteBuf;
+
+    let buf = {
+        let device = CPU::new();
+        let mut buf = Buffer::<u8>::deviceless(&device, 5);
+        device.write(&mut buf, &[0, 1, 2, 3, 4]);
+        drop(device);
+        buf
+    };
+
+    let device = OpenCL::new(0)?;
+    //assert_eq!(device.read(&buf), &[0, 1, 2, 3, 4]);
+
+    Ok(())
+}*/
+
+
+
+//TODO: Should run!
+/*#[cfg(feature = "opencl")]
 #[test]
 fn test_deviceless_buf_cl() -> custos::Result<()> {
     use custos::WriteBuf;
@@ -301,5 +326,4 @@ fn test_deviceless_buf_cl() -> custos::Result<()> {
     assert_eq!(device.read(&buf), &[0, 1, 2, 3, 4]);
 
     Ok(())
-}
-*/
+}*/
