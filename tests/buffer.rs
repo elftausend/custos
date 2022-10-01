@@ -252,8 +252,7 @@ fn test_alloc() {
     drop(buf);
 }
 
-// TODO: readd deviceless
-/*#[test]
+#[test]
 fn test_deviceless_buf() {
     let mut buf = {
         let device = CPU::new();
@@ -265,9 +264,11 @@ fn test_deviceless_buf() {
     }
 
     assert_eq!(buf.as_slice(), &[0, 1, 2, 3, 4]);
-}*/
+}
+
 
 /*
+// compile-time error instead
 #[test]
 #[should_panic]
 fn test_deviceless_buf_panic() {
@@ -276,5 +277,29 @@ fn test_deviceless_buf_panic() {
         Buffer::<u8>::deviceless(&device, 5)
     };
     buf.read();
+}*/
+
+
+
+
+/* 
+TODO: Should run!
+#[cfg(feature = "opencl")]
+#[test]
+fn test_deviceless_buf_cl() -> custos::Result<()> {
+    use custos::WriteBuf;
+
+    let buf = {
+        let device = OpenCL::new(0)?;
+        let mut buf = Buffer::<u8>::deviceless(&device, 5);
+        device.write(&mut buf, &[0, 1, 2, 3, 4]);
+        drop(device);
+        buf
+    };
+
+    let device = OpenCL::new(0)?;
+    assert_eq!(device.read(&buf), &[0, 1, 2, 3, 4]);
+
+    Ok(())
 }
 */

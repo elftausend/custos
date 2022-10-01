@@ -84,7 +84,8 @@ impl Alloc for CPU {
     }
 }
 
-impl CacheReturn<RawCpuBuf> for CPU {
+impl CacheReturn for CPU {
+    type P = RawCpuBuf;
     #[inline]
     fn cache(&self) -> RefMut<Cache<RawCpuBuf>> {
         self.cache.borrow_mut()

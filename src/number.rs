@@ -81,7 +81,6 @@ number_apply! {
 }
 
 pub trait Float: Neg<Output = Self> + Number {
-    fn negate(&self) -> Self;
     fn squared(lhs: Self) -> Self;
     fn exp(&self) -> Self;
     fn powf(&self, rhs: Self) -> Self;
@@ -100,12 +99,7 @@ macro_rules! float_apply {
     ($($t:ident),*) => {
         $(
             impl Float for $t {
-                #[inline]
-                fn negate(&self) -> $t {
-                    use core::ops::Neg;
-                    self.neg()
-
-                }
+                
                 #[inline]
                 fn squared(lhs: $t) -> $t {
                     lhs*lhs

@@ -1,4 +1,4 @@
-use std::ops::Range;
+use std::ops::{Range, RangeInclusive};
 
 use crate::{get_count, set_count};
 
@@ -14,6 +14,16 @@ impl AsRangeArg for Range<usize> {
 
     fn end(&self) -> usize {
         self.end
+    }
+}
+
+impl AsRangeArg for RangeInclusive<usize> {
+    fn start(&self) -> usize {
+        *self.start()
+    }
+
+    fn end(&self) -> usize {
+        *self.end() + 1
     }
 }
 
@@ -69,7 +79,7 @@ impl Iterator for CountIntoIter {
 
     fn next(&mut self) -> Option<Self::Item> {
         set_count(self.idx);
-        if self.epoch > self.end {
+        if self.epoch >= self.end {
             return None;
         }
         let epoch = Some(self.epoch);

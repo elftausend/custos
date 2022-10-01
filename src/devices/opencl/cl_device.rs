@@ -171,7 +171,8 @@ impl<'a, T> CacheBuf<'a, T> for OpenCL {
     }
 }
 
-impl CacheReturn<RawCL> for OpenCL {
+impl CacheReturn for OpenCL {
+    type P = RawCL;
     #[inline]
     fn cache(&self) -> std::cell::RefMut<Cache<RawCL>> {
         self.cache.borrow_mut()
@@ -202,7 +203,7 @@ impl<T: CDatatype> ClearBuf<T> for OpenCL {
 
 impl<T> WriteBuf<T> for OpenCL {
     fn write(&self, buf: &mut Buffer<T, OpenCL>, data: &[T]) {
-        let event = unsafe { enqueue_write_buffer(&self.queue(), buf.ptr.1, data, false).unwrap() };
+        let event = unsafe { enqueue_write_buffer(&self.queue(), buf.ptr.1, data, true).unwrap() };
         wait_for_event(event).unwrap();
     }
 }

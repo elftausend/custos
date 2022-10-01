@@ -1,7 +1,7 @@
 #![allow(non_camel_case_types)]
 
-use std::os::raw::c_char;
 use std::ffi::c_void;
+use std::os::raw::c_char;
 
 pub type size_t = usize;
 

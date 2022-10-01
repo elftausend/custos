@@ -145,9 +145,9 @@ impl<'a, T, D> Buffer<'a, T, D> {
     /// Returns `true` if `Buffer` is created without a slice.
     /// # Example
     /// ```
-    /// use custos::{CPU, Buffer, Deviceless};
+    /// use custos::{CPU, Buffer};
     ///
-    /// let a = Buffer::<i32, Deviceless>::from(5);
+    /// let a = Buffer::<i32>::from(5);
     /// assert!(a.is_empty())
     /// ```
     pub fn is_empty(&self) -> bool {

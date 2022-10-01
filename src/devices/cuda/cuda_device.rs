@@ -118,7 +118,12 @@ impl GraphReturn for CUDA {
     }
 }
 
+<<<<<<< HEAD
 impl CacheReturn<RawCUBuf> for CUDA {
+=======
+impl CacheReturn for CudaDevice {
+    type P = RawCUBuf;
+>>>>>>> main
     #[inline]
     fn cache(&self) -> std::cell::RefMut<Cache<RawCUBuf>> {
         self.cache.borrow_mut()
