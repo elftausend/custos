@@ -1,6 +1,6 @@
 fn main() {
     #[cfg(feature = "opencl")]
-    if has_device_unified_mem() {
+    if !has_device_unified_mem() {
         println!("cargo:rustc-cfg=unified_cl");
     }
 }

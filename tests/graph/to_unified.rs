@@ -2,7 +2,6 @@ use custos::{cache::CacheReturn, opencl::construct_buffer, Buffer, Ident, OpenCL
 
 use super::{AddBuf, AddOp};
 
-#[cfg(unified_cl)]
 #[test]
 fn test_access_cached_after_unified_construct_buf() -> custos::Result<()> {
     let cl_dev = OpenCL::new(0)?;
@@ -36,7 +35,6 @@ fn test_access_cached_after_unified_construct_buf() -> custos::Result<()> {
     Ok(())
 }
 
-#[cfg(unified_cl)]
 #[test]
 fn test_multiple_construct_buffer() -> custos::Result<()> {
     let cl_dev = OpenCL::new(0)?;

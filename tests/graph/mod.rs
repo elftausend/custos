@@ -6,8 +6,8 @@ use custos::{opencl::enqueue_kernel, OpenCL};
 #[cfg(not(feature = "realloc"))]
 mod graph;
 
-#[cfg(feature = "opencl")]
 #[cfg(not(feature = "realloc"))]
+#[cfg(unified_cl)]
 mod to_unified;
 
 #[cfg(feature = "cuda")]
