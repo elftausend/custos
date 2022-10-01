@@ -59,8 +59,6 @@ thread_local! {
     pub static GLOBAL_CPU: CPU = CPU::new();
 }
 
-#[derive(Debug, Clone, Copy)]
-pub struct Deviceless;
 pub trait DevicelessAble: Alloc {}
 
 /// This trait is for allocating memory on the implemented device.

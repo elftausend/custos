@@ -6,7 +6,7 @@ use std::{ffi::c_void, fmt::Debug, ptr::null_mut};
 use crate::opencl::api::release_mem_object;
 use crate::{
     Alloc, CDatatype, ClearBuf, CloneBuf, GraphReturn, Node,
-    VecRead, WriteBuf, GLOBAL_CPU, Deviceless, DevicelessAble, CPU, CacheBuf,
+    VecRead, WriteBuf, GLOBAL_CPU, CPU, CacheBuf, DevicelessAble,
 };
 
 /// Descripes the type of a [`Buffer`]
@@ -31,7 +31,7 @@ impl PartialEq for BufFlag {
 }
 
 /// The underlying non-growable array structure. A `Buffer` may be encapsulated in other structs.
-pub struct Buffer<'a, T, D> {
+pub struct Buffer<'a, T, D = ()> {
     pub ptr: (*mut T, *mut c_void, u64),
     pub len: usize,
     pub device: Option<&'a D>,
@@ -39,7 +39,7 @@ pub struct Buffer<'a, T, D> {
     pub node: Node,
 }
 
-impl<'a, T> Buffer<'a, T, Deviceless> 
+impl<'a, T> Buffer<'a, T> 
 where 
     
 {
@@ -88,7 +88,7 @@ where
     /// }
     /// assert_eq!(buf.as_slice(), &[0, 1, 2, 3, 4]);
     /// ```
-    pub fn deviceless<'b>(device: &'b impl DevicelessAble, len: usize) -> Buffer<'a, T, Deviceless> {
+    pub fn deviceless<'b>(device: &'b impl DevicelessAble, len: usize) -> Buffer<'a, T> {
         Buffer {
             ptr: device.alloc(len),
             len,
@@ -121,7 +121,7 @@ impl<'a, T, D> Buffer<'a, T, D> {
     /// ```
     /// # Safety
     /// The pointer must not outlive the Buffer.
-    pub unsafe fn from_raw_host(ptr: *mut T, len: usize) -> Buffer<'a, T, Deviceless> {
+    pub unsafe fn from_raw_host(ptr: *mut T, len: usize) -> Buffer<'a, T> {
         Buffer {
             ptr: (ptr, null_mut(), 0),
             len,
@@ -317,15 +317,6 @@ impl<'a, T, D> Buffer<'a, T, D> {
     }
 }
 
-impl<'a, T> Buffer<'a, T, crate::OpenCL> {
-    pub fn cpu(&self) -> &Buffer<'a, T, Deviceless> {
-        assert!(self.device().unified_mem(), "Called .cpu() on a non unified memory Buffer");
-
-        unsafe {
-            std::mem::transmute(self)
-        }
-    }
-}
 
 impl<'a, T: Clone, D: CloneBuf<'a, T>> Clone for Buffer<'a, T, D> {
     fn clone(&self) -> Self {
@@ -520,7 +511,7 @@ impl<'a, T, D> std::iter::IntoIterator for &'a mut Buffer<'_, T, D> {
     }
 }
 
-impl<T: crate::number::Number> From<T> for Buffer<'_, T, Deviceless> {
+impl<T: crate::number::Number> From<T> for Buffer<'_, T> {
     fn from(val: T) -> Self {
         Buffer {
             ptr: (Box::into_raw(Box::new(val)), null_mut(), 0),

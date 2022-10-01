@@ -1,7 +1,8 @@
+use custos::cache::CacheReturn;
 use custos::cpu::cpu_cached;
 #[cfg(feature = "opencl")]
 use custos::{devices::opencl::OpenCL, Error};
-use custos::{Alloc, Buffer, VecRead};
+use custos::{Alloc, Buffer, VecRead, GraphReturn};
 
 use custos::CPU;
 
@@ -217,12 +218,26 @@ fn test_debug_print_buf() -> custos::Result<()> {
     Ok(())
 }
 
+pub trait CPUCL: GraphReturn {}
+
+impl CPUCL for CPU {}
+impl CPUCL for custos::OpenCL {}
+
+fn slice_add<T, D: CPUCL>(lhs: &Buffer<T, D>) {
+    
+}
+
 #[test]
 fn test_slice() {
     let device = CPU::new();
 
     let buf = Buffer::from((&device, [1, 2, 3, 4, 5, 6]));
     println!("buf: {:?}", buf.as_slice());
+
+    let device = custos::OpenCL::new(0).unwrap();
+    let buf = Buffer::from((&device, [1, 2, 3, 4, 5, 6]));
+    
+    slice_add::<i32, _>(&buf);
 }
 
 #[test]
