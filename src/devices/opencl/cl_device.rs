@@ -127,12 +127,11 @@ impl Alloc for OpenCL {
         let ptr =
             create_buffer::<T>(&self.ctx(), MemFlags::MemReadWrite as u64, len, None).unwrap();
 
-        let cpu_ptr = if self.unified_mem() {
-            // TODO: not unmapping before executing a kernel results in ub?
-            unified_ptr::<T>(&self.queue(), ptr, len).unwrap()
-        } else {
-            std::ptr::null_mut()
-        };
+        #[cfg(unified_cl)]
+        let cpu_ptr = unified_ptr::<T>(&self.queue(), ptr, len).unwrap();
+        
+        #[cfg(not(unified_cl))]
+        let cpu_ptr = std::ptr::null_mut();
 
         (cpu_ptr, ptr, 0)
     }
@@ -146,11 +145,11 @@ impl Alloc for OpenCL {
         )
         .unwrap();
 
-        let cpu_ptr = if self.unified_mem() {
-            unified_ptr::<T>(&self.queue(), ptr, data.len()).unwrap()
-        } else {
-            std::ptr::null_mut()
-        };
+        #[cfg(unified_cl)]
+        let cpu_ptr = unified_ptr::<T>(&self.queue(), ptr, data.len()).unwrap();
+        
+        #[cfg(not(unified_cl))]
+        let cpu_ptr = std::ptr::null_mut();
 
         (cpu_ptr, ptr, 0)
     }

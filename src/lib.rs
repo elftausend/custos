@@ -58,6 +58,15 @@ thread_local! {
     pub static GLOBAL_CPU: CPU = CPU::new();
 }
 
+pub trait PtrType {
+    unsafe fn alloc<T>(alloc: impl Alloc, len: usize) -> Self;
+    unsafe fn dealloc<T>(&mut self, len: usize);
+}
+
+pub trait Device {
+    type P: PtrType;
+}
+
 pub trait DevicelessAble: Alloc {}
 
 //pub trait Deviceless {}

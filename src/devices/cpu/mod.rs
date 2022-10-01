@@ -1,4 +1,4 @@
-use crate::{devices::cache::CacheType, Node};
+use crate::{devices::cache::CacheType, Node, PtrType, Alloc};
 pub use blas::*;
 pub use cpu_device::*;
 use std::{
@@ -9,6 +9,25 @@ use std::{
 
 mod blas;
 mod cpu_device;
+
+pub struct CPUPtr {
+    pub ptr: *mut u8,
+}
+
+impl PtrType for CPUPtr {
+    #[inline]
+    unsafe fn alloc<T>(alloc: impl Alloc, len: usize) -> Self {
+        CPUPtr {
+            ptr: alloc.alloc::<T>(len).0 as *mut u8,
+        }   
+    }
+
+    #[inline]
+    unsafe fn dealloc<T>(&mut self, len: usize) {
+        let layout = Layout::array::<T>(len).unwrap();
+        std::alloc::dealloc(self.ptr, layout);
+    }
+}
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct RawCpuBuf {

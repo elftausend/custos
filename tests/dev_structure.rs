@@ -14,17 +14,17 @@ impl DevicelessAble for CPU {}
 impl DevicelessAble for OpenCL {}
 
 pub trait PtrType {
-    fn alloc<T>(alloc: impl Alloc, len: usize) -> Self;
-    fn dealloc<T>(&mut self);
+    unsafe fn alloc<T>(alloc: impl Alloc, len: usize) -> Self;
+    unsafe fn dealloc<T>(&mut self, len: usize);
 }
 
 impl PtrType for RawCpuBuf {
-    fn alloc<T>(alloc: impl Alloc, len: usize) -> Self {
+    unsafe fn alloc<T>(alloc: impl Alloc, len: usize) -> Self {
         alloc.alloc::<T>(len);
         todo!()
     }
 
-    fn dealloc<T>(&mut self) {
+    unsafe fn dealloc<T>(&mut self, len: usize) {
         todo!()
     }
 }
@@ -47,7 +47,9 @@ impl<'a, T, D: Device> Buf<'a, T, D>
 where &'a D: Alloc,
 {
     fn new(device: &'a D) {
-        let ptr = D::P::alloc::<T>(device, 10);
+        let ptr = unsafe {
+            D::P::alloc::<T>(device, 10)
+        };
     }
 }
 

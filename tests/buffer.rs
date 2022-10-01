@@ -244,11 +244,13 @@ fn test_alloc() {
     drop(buf);
 }
 
+
+
 #[test]
 fn test_deviceless_buf() {
     let mut buf = {
         let device = CPU::new();
-        Buffer::<u8>::deviceless(&device, 5)
+        Buffer::<u8, CPU>::deviceless(&device, 5)
     };
 
     for (idx, element) in buf.iter_mut().enumerate() {
@@ -271,52 +273,14 @@ fn test_deviceless_buf_panic() {
 }*/
 
 
-/*
-pub trait Deviceless {}
-
-
-impl Deviceless for CPU {}
-impl Deviceless for OpenCL {}
-
-pub trait AddTest<T, D> {
-    fn add(&self, buf: &Buffer<T, D>);
-}
-
-impl<T, D: Deviceless + CPUCL> AddTest<T, D> for CPU {
-    fn add(&self, buf: &Buffer<T, D>) {
-        todo!()
-    }
-}
-
-#[test]
-fn test_deviceless_buf_cl() -> custos::Result<()> {
-    use custos::WriteBuf;
-
-    let buf = {
-        let device = CPU::new();
-        let mut buf = Buffer::<u8>::deviceless(&device, 5);
-        device.write(&mut buf, &[0, 1, 2, 3, 4]);
-        drop(device);
-        buf
-    };
-
-    let device = OpenCL::new(0)?;
-    //assert_eq!(device.read(&buf), &[0, 1, 2, 3, 4]);
-
-    Ok(())
-}*/
-
-
-
-//TODO: Should run!
-/*#[cfg(feature = "opencl")]
+#[cfg(feature = "opencl")]
 #[test]
 fn test_deviceless_buf_cl() -> custos::Result<()> {
     use custos::WriteBuf;
 
     let buf = {
         let device = OpenCL::new(0)?;
-        let mut buf = Buffer::<u8>::deviceless(&device, 5);
+        let mut buf = Buffer::<u8, _>::deviceless(&device, 5);
         device.write(&mut buf, &[0, 1, 2, 3, 4]);
         drop(device);
         buf
@@ -326,4 +290,4 @@ fn test_deviceless_buf_cl() -> custos::Result<()> {
     assert_eq!(device.read(&buf), &[0, 1, 2, 3, 4]);
 
     Ok(())
-}*/
+}

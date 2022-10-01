@@ -6,7 +6,7 @@ use std::{ffi::c_void, fmt::Debug, ptr::null_mut};
 use crate::opencl::api::release_mem_object;
 use crate::{
     Alloc, CDatatype, CacheBuf, ClearBuf, CloneBuf, DevicelessAble, GraphReturn, Node, VecRead,
-    WriteBuf, CPU, GLOBAL_CPU,
+    WriteBuf, CPU, GLOBAL_CPU, CPUCL,
 };
 
 /// Descripes the type of a [`Buffer`]
@@ -31,7 +31,7 @@ impl PartialEq for BufFlag {
 }
 
 /// The underlying non-growable array structure. A `Buffer` may be encapsulated in other structs.
-pub struct Buffer<'a, T, D = ()> {
+pub struct Buffer<'a, T, D> {
     pub ptr: (*mut T, *mut c_void, u64),
     pub len: usize,
     pub device: Option<&'a D>,
@@ -39,7 +39,7 @@ pub struct Buffer<'a, T, D = ()> {
     pub node: Node,
 }
 
-impl<'a, T> Buffer<'a, T> {
+impl<'a, T, D> Buffer<'a, T, D> {
     /// Creates a zeroed (or values set to default) `Buffer` with the given length on the specified device.
     /// This `Buffer` can't outlive the device specified as a parameter.
     /// ```
@@ -56,7 +56,7 @@ impl<'a, T> Buffer<'a, T> {
     /// assert_eq!(buffer.as_slice(), &[2; 6]);
     ///
     /// ```
-    pub fn new<D>(device: &'a D, len: usize) -> Buffer<'a, T, D>
+    pub fn new(device: &'a D, len: usize) -> Buffer<'a, T, D>
     where
         D: Alloc + GraphReturn,
     {
@@ -85,7 +85,7 @@ impl<'a, T> Buffer<'a, T> {
     /// }
     /// assert_eq!(buf.as_slice(), &[0, 1, 2, 3, 4]);
     /// ```
-    pub fn deviceless<'b>(device: &'b impl DevicelessAble, len: usize) -> Buffer<'a, T> {
+    pub fn deviceless<'b>(device: &'b impl DevicelessAble, len: usize) -> Buffer<'a, T, D> {
         Buffer {
             ptr: device.alloc(len),
             len,
@@ -118,7 +118,7 @@ impl<'a, T, D> Buffer<'a, T, D> {
     /// ```
     /// # Safety
     /// The pointer must not outlive the Buffer.
-    pub unsafe fn from_raw_host(ptr: *mut T, len: usize) -> Buffer<'a, T> {
+    pub unsafe fn from_raw_host(ptr: *mut T, len: usize) -> Buffer<'a, T, ()> {
         Buffer {
             ptr: (ptr, null_mut(), 0),
             len,
@@ -151,16 +151,6 @@ impl<'a, T, D> Buffer<'a, T, D> {
         self.len == 0
     }
 
-    /// Returns a non null host pointer
-    #[inline]
-    pub fn host_ptr(&self) -> *mut T {
-        assert!(
-            !self.ptr.0.is_null(),
-            "called host_ptr() on an invalid CPU buffer"
-        );
-        self.ptr.0
-    }
-
     #[cfg(feature = "opencl")]
     #[inline]
     pub fn cl_ptr(&self) -> *mut c_void {
@@ -178,27 +168,6 @@ impl<'a, T, D> Buffer<'a, T, D> {
     pub fn cu_ptr(&self) -> u64 {
         assert!(self.ptr.2 != 0, "called cu_ptr() on an invalid CUDA buffer");
         self.ptr.2
-    }
-
-    /// Returns a CPU slice. This does not work with CUDA or OpenCL buffers.
-    #[inline]
-    pub fn as_slice(&self) -> &[T] {
-        assert!(
-            !self.ptr.0.is_null(),
-            "called as_slice() on an invalid CPU buffer (this would dereference an invalid pointer)"
-        );
-        unsafe { std::slice::from_raw_parts(self.ptr.0, self.len) }
-    }
-
-    /// Returns a mutable CPU slice.
-    #[inline]
-    pub fn as_mut_slice(&mut self) -> &mut [T] {
-        assert!(
-            //self.flag == BufFlag::Wrapper
-            !self.ptr.0.is_null(),
-            "called as_mut_slice() on a non CPU buffer (this would dereference a null pointer)"
-        );
-        unsafe { std::slice::from_raw_parts_mut(self.ptr.0, self.len) }
     }
 
     /// Used if the `Buffer` contains only a single value.
@@ -314,6 +283,38 @@ impl<'a, T, D> Buffer<'a, T, D> {
     }
 }
 
+impl<'a, T, D: CPUCL> Buffer<'a, T, D> {
+    /// Returns a CPU slice. This does not work with CUDA or OpenCL buffers.
+    #[inline]
+    pub fn as_slice(&self) -> &[T] {
+        assert!(
+            !self.ptr.0.is_null(),
+            "called as_slice() on an invalid CPU buffer (this would dereference an invalid pointer)"
+        );
+        unsafe { std::slice::from_raw_parts(self.ptr.0, self.len) }
+    }
+
+    /// Returns a mutable CPU slice.
+    #[inline]
+    pub fn as_mut_slice(&mut self) -> &mut [T] {
+        assert!(
+            !self.ptr.0.is_null(),
+            "called as_mut_slice() on a non CPU buffer (this would dereference a null pointer)"
+        );
+        unsafe { std::slice::from_raw_parts_mut(self.ptr.0, self.len) }
+    }
+
+    /// Returns a non null host pointer
+    #[inline]
+    pub fn host_ptr(&self) -> *mut T {
+        assert!(
+            !self.ptr.0.is_null(),
+            "called host_ptr() on an invalid CPU buffer"
+        );
+        self.ptr.0
+    }
+}
+
 impl<'a, T: Clone, D: CloneBuf<'a, T>> Clone for Buffer<'a, T, D> {
     fn clone(&self) -> Self {
         //get_device!(self.device, CloneBuf<T>).clone_buf(self)
@@ -424,7 +425,7 @@ impl<T> AsMut<[T]> for Buffer<'_, T, CPU> {
 /// slice_add(&a, &b, &mut c);
 /// assert_eq!(c.as_slice(), &[3., 5., 7., 9.,]);
 /// ```
-impl<T, D> std::ops::Deref for Buffer<'_, T, D> {
+impl<T, D: CPUCL> std::ops::Deref for Buffer<'_, T, D> {
     type Target = [T];
 
     fn deref(&self) -> &Self::Target {
@@ -453,7 +454,7 @@ impl<T, D> std::ops::Deref for Buffer<'_, T, D> {
 /// slice_add(&a, &b, &mut c);
 /// assert_eq!(c.as_slice(), &[6., 5., 9., 9.,]);
 /// ```
-impl<T, D> std::ops::DerefMut for Buffer<'_, T, D> {
+impl<T, D: CPUCL> std::ops::DerefMut for Buffer<'_, T, D> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         self.as_mut_slice()
     }
@@ -466,7 +467,7 @@ impl<T: Debug + Default + Copy, D: VecRead<T, D>> Debug for Buffer<'_, T, D> {
             .field("len", &self.len);
         writeln!(f, ",")?;
         if !self.ptr.0.is_null() {
-            writeln!(f, "CPU:    {:?}", self.as_slice())?;
+            writeln!(f, "CPU:    {:?}", self.device().read(self))?;
         }
 
         #[cfg(feature = "opencl")]
@@ -488,7 +489,7 @@ impl<T: Debug + Default + Copy, D: VecRead<T, D>> Debug for Buffer<'_, T, D> {
     }
 }
 
-impl<'a, T, D> std::iter::IntoIterator for &'a Buffer<'_, T, D> {
+impl<'a, T, D: CPUCL> std::iter::IntoIterator for &'a Buffer<'_, T, D> {
     type Item = &'a T;
 
     type IntoIter = std::slice::Iter<'a, T>;
@@ -498,7 +499,7 @@ impl<'a, T, D> std::iter::IntoIterator for &'a Buffer<'_, T, D> {
     }
 }
 
-impl<'a, T, D> std::iter::IntoIterator for &'a mut Buffer<'_, T, D> {
+impl<'a, T, D: CPUCL> std::iter::IntoIterator for &'a mut Buffer<'_, T, D> {
     type Item = &'a mut T;
 
     type IntoIter = std::slice::IterMut<'a, T>;
@@ -508,7 +509,7 @@ impl<'a, T, D> std::iter::IntoIterator for &'a mut Buffer<'_, T, D> {
     }
 }
 
-impl<T: crate::number::Number> From<T> for Buffer<'_, T> {
+impl<T: crate::number::Number> From<T> for Buffer<'_, T, ()> {
     fn from(val: T) -> Self {
         Buffer {
             ptr: (Box::into_raw(Box::new(val)), null_mut(), 0),
