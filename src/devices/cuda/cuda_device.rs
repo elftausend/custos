@@ -88,7 +88,7 @@ impl Alloc for CUDA {
     }
 }
 
-impl<T: Default + Clone> VecRead<T> for CUDA {
+impl<T: Default + Clone> VecRead<T, CUDA> for CUDA {
     fn read(&self, buf: &Buffer<T, CUDA>) -> Vec<T> {
         assert!(
             buf.ptr.2 != 0,
@@ -100,13 +100,13 @@ impl<T: Default + Clone> VecRead<T> for CUDA {
     }
 }
 
-impl<T: CDatatype> ClearBuf<T> for CUDA {
+impl<T: CDatatype> ClearBuf<T, CUDA> for CUDA {
     fn clear(&self, buf: &mut Buffer<T, CUDA>) {
         cu_clear(self, buf).unwrap()
     }
 }
 
-impl<T> WriteBuf<T> for CUDA {
+impl<T> WriteBuf<T, CUDA> for CUDA {
     fn write(&self, buf: &mut Buffer<T, CUDA>, data: &[T]) {
         cu_write(buf.cu_ptr(), data).unwrap();
     }
@@ -118,7 +118,7 @@ impl GraphReturn for CUDA {
     }
 }
 
-impl CacheReturn for CudaDevice {
+impl CacheReturn for CUDA {
     type P = RawCUBuf;
     #[inline]
     fn cache(&self) -> std::cell::RefMut<Cache<RawCUBuf>> {

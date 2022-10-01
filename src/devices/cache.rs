@@ -98,7 +98,7 @@ impl<P: CacheType> Cache<P> {
     }
 
     #[cfg(feature = "realloc")]
-    pub fn get<T, D>(device: &D, len: usize, _: impl AddGraph) -> Buffer<T>
+    pub fn get<T, D>(device: &D, len: usize, _: impl AddGraph) -> Buffer<T, D>
     where
         // In order to know the specific pointer type
         // there is probably a better way to implement this

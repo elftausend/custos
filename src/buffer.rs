@@ -31,7 +31,7 @@ impl PartialEq for BufFlag {
 }
 
 /// The underlying non-growable array structure. A `Buffer` may be encapsulated in other structs.
-pub struct Buffer<'a, T, D> {
+pub struct Buffer<'a, T, D = CPU> {
     pub ptr: (*mut T, *mut c_void, u64),
     pub len: usize,
     pub device: Option<&'a D>,
@@ -46,7 +46,7 @@ impl<'a, T, D> Buffer<'a, T, D> {
     /// use custos::{CPU, Buffer};
     ///
     /// let device = CPU::new();
-    /// let mut buffer = Buffer::<i32, _>::new(&device, 6);
+    /// let mut buffer = Buffer::<i32>::new(&device, 6);
     ///
     /// // this works only with cpu buffers (this creates a slice with the host pointer)
     /// for value in &mut buffer {
@@ -77,7 +77,7 @@ impl<'a, T, D> Buffer<'a, T, D> {
     ///
     /// let mut buf = {
     ///     let device = CPU::new();
-    ///     Buffer::<u8, _>::deviceless(&device, 5)
+    ///     Buffer::<u8>::deviceless(&device, 5)
     /// };
     /// // buf.read(); // panics
     /// for (idx, element) in buf.iter_mut().enumerate() {
@@ -118,7 +118,7 @@ impl<'a, T, D> Buffer<'a, T, D> {
     /// ```
     /// # Safety
     /// The pointer must not outlive the Buffer.
-    pub unsafe fn from_raw_host(ptr: *mut T, len: usize) -> Buffer<'a, T, ()> {
+    pub unsafe fn from_raw_host(ptr: *mut T, len: usize) -> Buffer<'a, T, D> {
         Buffer {
             ptr: (ptr, null_mut(), 0),
             len,
@@ -144,7 +144,7 @@ impl<'a, T, D> Buffer<'a, T, D> {
     /// ```
     /// use custos::{CPU, Buffer};
     ///
-    /// let a = Buffer::<i32>::from(5);
+    /// let a = Buffer::<i32, ()>::from(5);
     /// assert!(a.is_empty())
     /// ```
     pub fn is_empty(&self) -> bool {
@@ -168,29 +168,6 @@ impl<'a, T, D> Buffer<'a, T, D> {
     pub fn cu_ptr(&self) -> u64 {
         assert!(self.ptr.2 != 0, "called cu_ptr() on an invalid CUDA buffer");
         self.ptr.2
-    }
-
-    /// Used if the `Buffer` contains only a single value.
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// use custos::Buffer;
-    ///
-    /// let x: Buffer<f32, _> = 7f32.into();
-    /// assert_eq!(x.item(), 7.);
-    ///
-    /// //let x: Buffer<f32> = (&mut [5., 4., 8.]).into();
-    /// //assert_eq!(x.item(), 0.);
-    /// ```
-    pub fn item(&self) -> T
-    where
-        T: Default + Copy,
-    {
-        if self.len == 0 && !self.ptr.0.is_null() {
-            return unsafe { *self.ptr.0 };
-        }
-        T::default()
     }
 
     /// Sets all elements in `Buffer` to the default value.
@@ -283,6 +260,32 @@ impl<'a, T, D> Buffer<'a, T, D> {
     }
 }
 
+impl<'a, T> Buffer<'a, T, ()> {
+    /// Used if the `Buffer` contains only a single value.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use custos::Buffer;
+    ///
+    /// let x: Buffer<f32, _> = 7f32.into();
+    /// assert_eq!(x.item(), 7.);
+    ///
+    /// //let x: Buffer<f32> = (&mut [5., 4., 8.]).into();
+    /// //assert_eq!(x.item(), 0.);
+    /// ```
+    pub fn item(&self) -> T
+    where
+        T: Default + Copy,
+    {
+        if self.len == 0 && !self.ptr.0.is_null() {
+            return unsafe { *self.ptr.0 };
+        }
+        T::default()
+    }
+
+}
+
 impl<'a, T, D: CPUCL> Buffer<'a, T, D> {
     /// Returns a CPU slice. This does not work with CUDA or OpenCL buffers.
     #[inline]
@@ -327,7 +330,10 @@ unsafe impl<T> Send for Buffer<'a, T> {}
 #[cfg(feature = "safe")]
 unsafe impl<T> Sync for Buffer<'a, T> {}*/
 
-impl<'a, A: Clone + Default> FromIterator<A> for Buffer<'a, A, CPU> {
+impl<'a, A> FromIterator<A> for Buffer<'a, A, CPU> 
+where
+    A: Clone + Default
+{
     fn from_iter<T: IntoIterator<Item = A>>(iter: T) -> Self {
         // Safety: GLOBAL_CPU should live long enough
         let device = unsafe {
@@ -390,13 +396,13 @@ impl<'a, T, D> Default for Buffer<'a, T, D> {
     }
 }
 
-impl<T> AsRef<[T]> for Buffer<'_, T, CPU> {
+impl<T, D: CPUCL> AsRef<[T]> for Buffer<'_, T, D> {
     fn as_ref(&self) -> &[T] {
         self.as_slice()
     }
 }
 
-impl<T> AsMut<[T]> for Buffer<'_, T, CPU> {
+impl<T, D: CPUCL> AsMut<[T]> for Buffer<'_, T, D> {
     fn as_mut(&mut self) -> &mut [T] {
         self.as_mut_slice()
     }
@@ -460,12 +466,17 @@ impl<T, D: CPUCL> std::ops::DerefMut for Buffer<'_, T, D> {
     }
 }
 
-impl<T: Debug + Default + Copy, D: VecRead<T, D>> Debug for Buffer<'_, T, D> {
+impl<T, D> Debug for Buffer<'_, T, D> 
+where 
+    T: Debug + Default + Copy, 
+    D: VecRead<T, D> 
+{
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Buffer")
             .field("ptr (CPU, CL, CU)", &self.ptr)
             .field("len", &self.len);
         writeln!(f, ",")?;
+
         if !self.ptr.0.is_null() {
             writeln!(f, "CPU:    {:?}", self.device().read(self))?;
         }
@@ -520,8 +531,10 @@ impl<T: crate::number::Number> From<T> for Buffer<'_, T, ()> {
     }
 }
 
-impl<'a, T: Clone, D: Alloc + GraphReturn, const N: usize> From<(&'a D, [T; N])>
-    for Buffer<'a, T, D>
+impl<'a, T, D, const N: usize> From<(&'a D, [T; N])> for Buffer<'a, T, D>
+where 
+    T: Clone, 
+    D: Alloc + GraphReturn 
 {
     fn from(device_slice: (&'a D, [T; N])) -> Self {
         let len = device_slice.1.len();
@@ -535,7 +548,11 @@ impl<'a, T: Clone, D: Alloc + GraphReturn, const N: usize> From<(&'a D, [T; N])>
     }
 }
 
-impl<'a, T: Clone, D: Alloc + GraphReturn> From<(&'a D, &[T])> for Buffer<'a, T, D> {
+impl<'a, T, D> From<(&'a D, &[T])> for Buffer<'a, T, D> 
+where 
+    T: Clone, 
+    D: Alloc + GraphReturn 
+{
     fn from(device_slice: (&'a D, &[T])) -> Self {
         let len = device_slice.1.len();
         Buffer {
@@ -548,7 +565,11 @@ impl<'a, T: Clone, D: Alloc + GraphReturn> From<(&'a D, &[T])> for Buffer<'a, T,
     }
 }
 
-impl<'a, T: Clone, D: Alloc + GraphReturn> From<(&'a D, Vec<T>)> for Buffer<'a, T, D> {
+impl<'a, T, D> From<(&'a D, Vec<T>)> for Buffer<'a, T, D> 
+where 
+    T: Clone, 
+    D: Alloc + GraphReturn 
+{
     fn from(device_slice: (&'a D, Vec<T>)) -> Self {
         let len = device_slice.1.len();
         Buffer {
@@ -561,7 +582,11 @@ impl<'a, T: Clone, D: Alloc + GraphReturn> From<(&'a D, Vec<T>)> for Buffer<'a, 
     }
 }
 
-impl<'a, T: Clone, D: Alloc + GraphReturn> From<(&'a D, &Vec<T>)> for Buffer<'a, T, D> {
+impl<'a, T, D> From<(&'a D, &Vec<T>)> for Buffer<'a, T, D> 
+where 
+    T: Clone, 
+    D: Alloc + GraphReturn 
+{
     fn from(device_slice: (&'a D, &Vec<T>)) -> Self {
         let len = device_slice.1.len();
         Buffer {

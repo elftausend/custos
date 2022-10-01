@@ -1,12 +1,14 @@
 use custos::{Buffer, OpenCL, VecRead};
 
+#[cfg(unified_cl)]
 fn main() -> custos::Result<()> {
     let device = OpenCL::new(0)?;
 
-    if !device.unified_mem() {
-        println!("CLDevice uses own memory");
-        return Ok(());
-    }
+    // declare function with conditional compilation attribute #[cfg(unified_cl)] or check dynamically:
+    // if !device.unified_mem() {
+    //     println!("CLDevice uses own memory");
+    //     return Ok(());
+    // }
 
     // create an OpenCL buffer
     let mut a = Buffer::from((&device, [1, 2, 3, 4, 5]));
@@ -25,3 +27,6 @@ fn main() -> custos::Result<()> {
 
     Ok(())
 }
+
+#[cfg(not(unified_cl))]
+fn main() {}

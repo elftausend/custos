@@ -40,8 +40,10 @@ fn test_deref_opencl() {
 }
 */
 
+/*
 #[cfg(feature = "cuda")]
 #[test]
+// compile-time error instead
 #[should_panic]
 fn test_deref_cuda() {
     use custos::CUDA;
@@ -56,3 +58,4 @@ fn test_deref_cuda() {
 
     assert_eq!(c.as_slice(), &[3., 5., 7., 9.,]);
 }
+*/

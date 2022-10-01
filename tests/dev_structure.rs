@@ -70,7 +70,7 @@ impl<T, D: CPUCL> AddBuf<T, D> for CPU {
     fn add(&self, lhs: &Buffer<T, D>) {}
 }
 
-#[test]
+//#[test]
 fn test_add() {
     let device = CPU::new();
 

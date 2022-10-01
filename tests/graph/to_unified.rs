@@ -2,13 +2,10 @@ use custos::{cache::CacheReturn, opencl::construct_buffer, Buffer, Ident, OpenCL
 
 use super::{AddBuf, AddOp};
 
+#[cfg(unified_cl)]
 #[test]
 fn test_access_cached_after_unified_construct_buf() -> custos::Result<()> {
     let cl_dev = OpenCL::new(0)?;
-
-    if !cl_dev.unified_mem() {
-        return Ok(());
-    }
 
     let a = Buffer::from((&cl_dev, [1, 2, 3, 4, 5]));
     let b = Buffer::from((&cl_dev, [1, 2, 3, 4, 5]));
@@ -17,7 +14,7 @@ fn test_access_cached_after_unified_construct_buf() -> custos::Result<()> {
     let c = a.relu();
 
     let device = CPU::new();
-    let no_drop = device.add(c.cpu(), b.cpu());
+    let no_drop = device.add(&c, &b);
 
     let cl_cpu_buf = unsafe { construct_buffer(&cl_dev, no_drop, (&c, &b)) }?;
 
@@ -39,20 +36,18 @@ fn test_access_cached_after_unified_construct_buf() -> custos::Result<()> {
     Ok(())
 }
 
+#[cfg(unified_cl)]
 #[test]
 fn test_multiple_construct_buffer() -> custos::Result<()> {
     let cl_dev = OpenCL::new(0)?;
 
-    if !cl_dev.unified_mem() {
-        return Ok(());
-    }
     let device = CPU::new();
 
     let a = Buffer::from((&cl_dev, [1, 2, 3, 4, 5]));
     let b = Buffer::from((&cl_dev, [1, 2, 3, 4, 5]));
     let c = a.relu();
 
-    let no_drop = device.add(c.cpu(), b.cpu());
+    let no_drop = device.add(&c, &b);
     let _cl_cpu_buf = unsafe { construct_buffer(&cl_dev, no_drop, (&c, &b)) }?;
 
     Ok(())
