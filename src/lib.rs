@@ -242,7 +242,7 @@ pub trait CacheBuf<'a, T>: Sized
 pub mod prelude {
     pub use crate::{
         cache::CacheReturn, get_count, set_count, Buffer, CDatatype, CacheBuf, GraphReturn,
-        VecRead, CPU, WriteBuf, cached, number::*, range,
+        VecRead, CPU, WriteBuf, cached, number::*, range, ClearBuf
     };
 
     #[cfg(feature = "opencl")]

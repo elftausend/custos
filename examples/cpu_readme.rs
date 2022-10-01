@@ -1,4 +1,4 @@
-use custos::{Buffer, ClearBuf, VecRead, CPU};
+use custos::prelude::*;
 
 fn main() {
     let device = CPU::new();

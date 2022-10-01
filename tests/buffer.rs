@@ -1,9 +1,12 @@
 use custos::cpu::cpu_cached;
 #[cfg(feature = "opencl")]
 use custos::{devices::opencl::OpenCL, Error};
-use custos::{Alloc, Buffer, VecRead, CPUCL};
+use custos::{Alloc, Buffer, VecRead};
 
 use custos::CPU;
+
+#[cfg(unified_cl)]
+use custos::CPUCL;
 
 #[cfg(not(feature = "realloc"))]
 use custos::{get_count, set_count};
@@ -217,8 +220,10 @@ fn test_debug_print_buf() -> custos::Result<()> {
     Ok(())
 }
 
+#[cfg(unified_cl)]
 fn slice_add<T, D: CPUCL>(_lhs: &Buffer<T, D>) {}
 
+#[cfg(unified_cl)]
 #[test]
 fn test_slice() {
     let device = CPU::new();
