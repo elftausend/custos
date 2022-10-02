@@ -1,7 +1,7 @@
 use crate::{
     devices::cache::{Cache, CacheReturn},
     Alloc, Buffer, CacheBuf, CachedLeaf, ClearBuf, CloneBuf, DevicelessAble, Graph, GraphReturn,
-    VecRead, WriteBuf, CPUCL,
+    VecRead, WriteBuf, CPUCL, Device,
 };
 use std::{
     alloc::{handle_alloc_error, Layout},
@@ -11,7 +11,7 @@ use std::{
     mem::size_of,
 };
 
-use super::RawCpuBuf;
+use super::{RawCpuBuf, CPUPtr};
 
 #[derive(Debug, Default)]
 /// A CPU is used to perform calculations on the host CPU.
@@ -44,6 +44,9 @@ impl CPU {
     }
 }
 
+impl Device for CPU {
+    type P = CPUPtr;
+}
 impl DevicelessAble for CPU {}
 
 impl Alloc for CPU {
@@ -85,7 +88,7 @@ impl Alloc for CPU {
 }
 
 impl CacheReturn for CPU {
-    type P = RawCpuBuf;
+    type CT = RawCpuBuf;
     #[inline]
     fn cache(&self) -> RefMut<Cache<RawCpuBuf>> {
         self.cache.borrow_mut()

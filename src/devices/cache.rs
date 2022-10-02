@@ -1,4 +1,4 @@
-use crate::{bump_count, AddGraph, Alloc, BufFlag, Buffer, GraphReturn, Ident, Node};
+use crate::{bump_count, AddGraph, Alloc, BufFlag, Buffer, GraphReturn, Ident, Node, Device};
 use std::{cell::RefMut, collections::HashMap, ffi::c_void, rc::Rc};
 
 /// This trait is implemented for every 'cacheable' pointer.
@@ -13,9 +13,9 @@ pub trait CacheType {
 
 /// This trait makes a device's [`Cache`] accessible and is implemented for all compute devices.
 pub trait CacheReturn: GraphReturn {
-    type P: CacheType;
+    type CT: CacheType;
     /// Returns a device specific [`Cache`].
-    fn cache(&self) -> RefMut<Cache<Self::P>>;
+    fn cache(&self) -> RefMut<Cache<Self::CT>>;
 }
 
 /// Caches pointers that can be reconstructed into a [`Buffer`].
@@ -25,9 +25,9 @@ pub struct Cache<P: CacheType> {
 }
 
 pub trait BindP<P> {}
-impl<P: CacheType> BindP<P> for Cache<P> {}
+impl<CT: CacheType> BindP<CT> for Cache<CT> {}
 
-impl<P: CacheType> Default for Cache<P> {
+impl<CT: CacheType> Default for Cache<CT> {
     fn default() -> Self {
         Self {
             nodes: Default::default(),
@@ -43,7 +43,7 @@ impl<P: CacheType> Cache<P> {
         _add_node: impl AddGraph,
     ) -> Buffer<'a, T, D>
     where
-        D: Alloc + GraphReturn,
+        D: Alloc + GraphReturn + Device,
     {
         let ptr: (*mut T, *mut c_void, _) = device.alloc(node.len);
 
@@ -73,8 +73,8 @@ impl<P: CacheType> Cache<P> {
     where
         // In order to know the specific pointer type
         // there is probably a better way to implement this
-        Self: BindP<D::P>,
-        D: Alloc + CacheReturn,
+        Self: BindP<D::CT>,
+        D: Alloc + CacheReturn + Device,
     {
         let node = Ident::new(len);
 

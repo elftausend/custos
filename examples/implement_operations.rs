@@ -1,4 +1,4 @@
-use custos::{Buffer, CDatatype, Cache, CPU};
+use custos::{Buffer, CDatatype, Cache, CPU, Device};
 
 #[cfg(feature = "opencl")]
 use custos::{opencl::enqueue_kernel, OpenCL};
@@ -7,7 +7,7 @@ use custos::{opencl::enqueue_kernel, OpenCL};
 use custos::{cuda::launch_kernel1d, CUDA};
 
 /// AddBuf will be implemented for all compute devices.
-pub trait AddBuf<T>: Sized {
+pub trait AddBuf<T>: Sized+Device {
     /// This operation perfoms element-wise addition.
     fn add(&self, lhs: &Buffer<T, Self>, rhs: &Buffer<T, Self>) -> Buffer<T, Self>;
     // ... you can add more operations if you want to do that.
@@ -95,7 +95,7 @@ impl<T: CDatatype> AddBuf<T> for CUDA {
     }
 }
 
-pub trait AddOp<'a, T, D> {
+pub trait AddOp<'a, T, D: Device> {
     fn add(&self, rhs: &Buffer<'a, T, D>) -> Buffer<'a, T, D>;
 }
 
@@ -107,11 +107,11 @@ impl<'a, T: CDatatype, D: AddBuf<T>> AddOp<'a, T, D> for Buffer<'a, T, D> {
 }
 
 #[allow(dead_code)]
-pub struct OwnStruct<'a, T, D> {
+pub struct OwnStruct<'a, T, D: Device> {
     buf: Buffer<'a, T, D>,
 }
 
-impl<'a, T, D> OwnStruct<'a, T, D> {
+impl<'a, T, D: Device> OwnStruct<'a, T, D> {
     #[allow(dead_code)]
     // consider using operator overloading for your own type
     #[inline]

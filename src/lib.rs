@@ -30,7 +30,7 @@
 //!
 //! assert_eq!(a.read(), vec![0; 6]);
 //! ```
-use std::ffi::c_void;
+use std::{ffi::c_void, marker::PhantomData};
 
 //pub use libs::*;
 pub use buffer::*;
@@ -44,6 +44,7 @@ pub use devices::cpu::CPU;
 pub use devices::cuda::CUDA;
 #[cfg(feature = "opencl")]
 pub use devices::opencl::{InternCLDevice, OpenCL};
+use number::Number;
 
 pub mod devices;
 
@@ -67,12 +68,44 @@ pub trait Device {
     type P: PtrType;
 }
 
+impl<T: Number> PtrType for T {
+    unsafe fn alloc<A>(_alloc: impl Alloc, _len: usize) -> Self {
+        unimplemented!()
+    }
+
+    unsafe fn dealloc<A>(&mut self, _len: usize) {
+        unimplemented!()
+    }
+}
+
+pub struct Num<T> {
+    p: PhantomData<T>
+}
+
+impl<T: Number> Device for Num<T> {
+    type P = T;
+}
+
+/*impl<T: Number> PtrType for T {
+    unsafe fn alloc<A>(alloc: impl Alloc, len: usize) -> Self {
+        todo!()
+    }
+
+    unsafe fn dealloc<A>(&mut self, len: usize) {
+        todo!()
+    }
+}
+
+impl<T: Number> Device<T> for () {
+    type P = T;
+}*/
+
 pub trait DevicelessAble: Alloc {}
 
 //pub trait Deviceless {}
 //impl Deviceless for () {}
 
-pub trait CPUCL {}
+pub trait CPUCL: Device {}
 
 
 /// This trait is for allocating memory on the implemented device.
@@ -144,7 +177,7 @@ pub trait Alloc {
 }
 
 /// Trait for implementing the clear() operation for the compute devices.
-pub trait ClearBuf<T, D> {
+pub trait ClearBuf<T, D: Device> {
     /// Sets all elements of the matrix to zero.
     /// # Example
     /// ```
@@ -161,7 +194,7 @@ pub trait ClearBuf<T, D> {
 }
 
 /// Trait for reading buffers.
-pub trait VecRead<T, D> {
+pub trait VecRead<T, D: Device> {
     /// Read the data of a buffer into a vector
     /// # Example
     /// ```
@@ -176,7 +209,7 @@ pub trait VecRead<T, D> {
 }
 
 /// Trait for writing data to buffers.
-pub trait WriteBuf<T, D>: Sized {
+pub trait WriteBuf<T, D: Device>: Sized+ Device {
     /// Write data to the buffer.
     /// # Example
     /// ```
@@ -197,7 +230,7 @@ pub trait WriteBuf<T, D>: Sized {
 }
 
 /// This trait is used to clone a buffer based on a specific device type.
-pub trait CloneBuf<'a, T>: Sized {
+pub trait CloneBuf<'a, T>: Sized+Device {
     /// Creates a deep copy of the specified buffer.
     /// # Example
     ///
@@ -214,7 +247,7 @@ pub trait CloneBuf<'a, T>: Sized {
 }
 
 /// This trait is used to retrieve a cached buffer from a specific device type.
-pub trait CacheBuf<'a, T>: Sized
+pub trait CacheBuf<'a, T>: Sized+Device
 {
     #[cfg_attr(feature = "realloc", doc = "```ignore")]
     /// Adds a buffer to the cache. Following calls will return this buffer, if the corresponding internal count matches with the id used in the cache.

@@ -6,7 +6,7 @@ use std::{ffi::c_void, fmt::Debug, ptr::null_mut};
 use crate::opencl::api::release_mem_object;
 use crate::{
     Alloc, CDatatype, CacheBuf, ClearBuf, CloneBuf, DevicelessAble, GraphReturn, Node, VecRead,
-    WriteBuf, CPU, GLOBAL_CPU, CPUCL,
+    WriteBuf, CPU, GLOBAL_CPU, CPUCL, Device, Num,
 };
 
 /// Descripes the type of a [`Buffer`]
@@ -45,7 +45,7 @@ impl PartialEq for BufFlag {
 /// buffer_f32_cpu(&buf);
 /// buffer_generic(&buf);
 /// ```
-pub struct Buffer<'a, T = f32, D = CPU> {
+pub struct Buffer<'a, T = f32, D: Device = CPU> {
     pub ptr: (*mut T, *mut c_void, u64),
     pub len: usize,
     pub device: Option<&'a D>,
@@ -53,7 +53,7 @@ pub struct Buffer<'a, T = f32, D = CPU> {
     pub node: Node,
 }
 
-impl<'a, T, D> Buffer<'a, T, D> {
+impl<'a, T, D: Device> Buffer<'a, T, D> {
     /// Creates a zeroed (or values set to default) `Buffer` with the given length on the specified device.
     /// This `Buffer` can't outlive the device specified as a parameter.
     /// ```
@@ -108,7 +108,7 @@ impl<'a, T, D> Buffer<'a, T, D> {
     }
 }
 
-impl<'a, T, D> Buffer<'a, T, D> {
+impl<'a, T, D: Device> Buffer<'a, T, D> {
     pub fn device(&self) -> &'a D {
         self.device
             .expect("Called device() on a deviceless buffer.")
@@ -277,7 +277,7 @@ impl<'a, T> Buffer<'a, T> {
     }
 }
 
-impl<'a, T> Buffer<'a, T, ()> {
+impl<'a, T: crate::number::Number> Buffer<'a, T, Num<T>>  {
     /// Used if the `Buffer` contains only a single value.
     ///
     /// # Example
@@ -335,7 +335,7 @@ impl<'a, T, D: CPUCL> Buffer<'a, T, D> {
     }
 }
 
-impl<'a, T: Clone, D: CloneBuf<'a, T>> Clone for Buffer<'a, T, D> {
+impl<'a, T: Clone, D: CloneBuf<'a, T>+Device> Clone for Buffer<'a, T, D> {
     fn clone(&self) -> Self {
         //get_device!(self.device, CloneBuf<T>).clone_buf(self)
         self.device().clone_buf(self)
@@ -371,7 +371,7 @@ where
     }
 }
 
-impl<T, D> Drop for Buffer<'_, T, D> {
+impl<T, D: Device> Drop for Buffer<'_, T, D> {
     fn drop(&mut self) {
         if self.flag == BufFlag::Item {
             drop(unsafe { Box::from_raw(self.ptr.0) });
@@ -401,7 +401,7 @@ impl<T, D> Drop for Buffer<'_, T, D> {
     }
 }
 
-impl<'a, T, D> Default for Buffer<'a, T, D> {
+impl<'a, T, D: Device> Default for Buffer<'a, T, D> {
     fn default() -> Self {
         Self {
             ptr: (null_mut(), null_mut(), 0),
@@ -486,7 +486,7 @@ impl<T, D: CPUCL> std::ops::DerefMut for Buffer<'_, T, D> {
 impl<T, D> Debug for Buffer<'_, T, D> 
 where 
     T: Debug + Default + Copy, 
-    D: VecRead<T, D> 
+    D: VecRead<T, D> + Device
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Buffer")
@@ -537,7 +537,7 @@ impl<'a, T, D: CPUCL> std::iter::IntoIterator for &'a mut Buffer<'_, T, D> {
     }
 }
 
-impl<T: crate::number::Number> From<T> for Buffer<'_, T, ()> {
+impl<T: crate::number::Number> From<T> for Buffer<'_, T, Num<T>> {
     fn from(val: T) -> Self {
         Buffer {
             ptr: (Box::into_raw(Box::new(val)), null_mut(), 0),
@@ -551,7 +551,7 @@ impl<T: crate::number::Number> From<T> for Buffer<'_, T, ()> {
 impl<'a, T, D, const N: usize> From<(&'a D, [T; N])> for Buffer<'a, T, D>
 where 
     T: Clone, 
-    D: Alloc + GraphReturn 
+    D: Alloc + GraphReturn + Device
 {
     fn from(device_slice: (&'a D, [T; N])) -> Self {
         let len = device_slice.1.len();
@@ -568,7 +568,7 @@ where
 impl<'a, T, D> From<(&'a D, &[T])> for Buffer<'a, T, D> 
 where 
     T: Clone, 
-    D: Alloc + GraphReturn 
+    D: Alloc + GraphReturn + Device
 {
     fn from(device_slice: (&'a D, &[T])) -> Self {
         let len = device_slice.1.len();
@@ -585,7 +585,7 @@ where
 impl<'a, T, D> From<(&'a D, Vec<T>)> for Buffer<'a, T, D> 
 where 
     T: Clone, 
-    D: Alloc + GraphReturn 
+    D: Alloc + GraphReturn + Device
 {
     fn from(device_slice: (&'a D, Vec<T>)) -> Self {
         let len = device_slice.1.len();
@@ -602,7 +602,7 @@ where
 impl<'a, T, D> From<(&'a D, &Vec<T>)> for Buffer<'a, T, D> 
 where 
     T: Clone, 
-    D: Alloc + GraphReturn 
+    D: Alloc + GraphReturn + Device
 {
     fn from(device_slice: (&'a D, &Vec<T>)) -> Self {
         let len = device_slice.1.len();
@@ -719,6 +719,6 @@ impl<'a, T: CDatatype> From<(u64, usize)> for Buffer<'a, T> {
 /// let buf = cached::<f32, _>(&device, 10);
 /// assert_eq!(device.read(&buf), vec![1.5; 10]);
 /// ```
-pub fn cached<'a, T, D: CacheBuf<'a, T>>(device: &'a D, len: usize) -> Buffer<'a, T, D> {
+pub fn cached<'a, T, D: CacheBuf<'a, T> + Device>(device: &'a D, len: usize) -> Buffer<'a, T, D> {
     device.cached(len)
 }
