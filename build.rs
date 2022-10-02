@@ -1,14 +1,45 @@
 fn main() {
     #[cfg(feature = "opencl")]
-    if !has_device_unified_mem() {
+    if has_device_unified_mem() {
         println!("cargo:rustc-cfg=unified_cl");
     }
 }
 
 #[cfg(feature = "opencl")]
 fn has_device_unified_mem() -> bool {
-    //TODO: idx as env var?
-    custos::CLDevice::new(0)
+
+    println!("cargo:rerun-if-env-changed=CUSTOS_UNIFIED_IDX");
+    println!("cargo:rerun-if-env-changed=CUSTOS_USE_UNIFIED");
+
+    let device_idx = std::env::var("CUSTOS_UNIFIED_IDX")
+        .unwrap_or("0".into())
+        .parse::<usize>()
+        .expect("Value in variable 'CUSTOS_UNIFIED_IDX' must be a positive usize value.");
+
+
+    // this environment variable (CUSTOS_USE_UNIFIED) is used to either:
+    // ... disable unified memory on unified memory devices, or
+    // ... activate unified memory on devices with dedicated memory to check if 
+    // the code would compile on a device with unified memory.
+    if let Ok(value) = std::env::var("CUSTOS_USE_UNIFIED") {
+        if &value.to_ascii_lowercase() != "default" {
+            let force_unified_mem = value.parse()
+                .expect("'CUSTOS_USE_UNIFIED' must be either true, false or default. 
+                    [
+                        default=it is checked whether the device can use unified memory automatically.
+                        true='simulates' unified memory to know if your code would compile on a device with unified memory.
+                        false=deactivates unified memory
+                    ]");
+            if force_unified_mem {
+                println!("Device forcefully uses unified memory!")
+            } else {
+                println!("Device won't use unified memory!")
+            }
+            return force_unified_mem;
+        }
+    }
+
+    custos::CLDevice::new(device_idx)
         .expect("Could not get an OpenCL device.")
         .unified_mem()
 }

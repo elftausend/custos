@@ -17,7 +17,7 @@ lazy_static = { version = "1.4.0", optional = true }
 custos = { version="0.5.0", default-features=false }
 
 [features]
-default = ["opencl", "blas"]
+default = ["opencl", "blas", "opt-cache"]
 opencl = ["dep:lazy_static", "custos/opencl"]
 cuda = []
 realloc = []
