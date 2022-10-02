@@ -2,11 +2,12 @@ use std::alloc::Layout;
 use std::iter::FromIterator;
 use std::{ffi::c_void, fmt::Debug, ptr::null_mut};
 
+use crate::cpu::CPUPtr;
 #[cfg(feature = "opencl")]
 use crate::opencl::api::release_mem_object;
 use crate::{
     Alloc, CDatatype, CacheBuf, ClearBuf, CloneBuf, DevicelessAble, GraphReturn, Node, VecRead,
-    WriteBuf, CPU, GLOBAL_CPU, CPUCL, Device, Num,
+    WriteBuf, CPU, GLOBAL_CPU, CPUCL, Device, PtrType, X
 };
 
 /// Descripes the type of a [`Buffer`]
@@ -37,7 +38,7 @@ impl PartialEq for BufFlag {
 /// use custos::prelude::*;
 /// 
 /// fn buffer_f32_cpu(buf: &Buffer) {}
-/// fn buffer_generic<T, D>(buf: &Buffer<T, D>) {}
+/// fn buffer_generic<T, D: Device>(buf: &Buffer<T, D>) {}
 /// 
 /// let device = CPU::new();
 /// let buf = Buffer::from((&device, [0.5, 1.3, 3.2, 2.43]));
@@ -46,7 +47,7 @@ impl PartialEq for BufFlag {
 /// buffer_generic(&buf);
 /// ```
 pub struct Buffer<'a, T = f32, D: Device = CPU> {
-    pub ptr: (*mut T, *mut c_void, u64),
+    pub ptr: D::P<T>,
     pub len: usize,
     pub device: Option<&'a D>,
     pub flag: BufFlag,
@@ -75,7 +76,7 @@ impl<'a, T, D: Device> Buffer<'a, T, D> {
         D: Alloc + GraphReturn,
     {
         Buffer {
-            ptr: device.alloc(len),
+            ptr: D::P::<T>::from_ptrs(device.alloc::<T>(len)),
             len,
             device: Some(device),
             node: device.graph().add_leaf(len),
@@ -101,7 +102,7 @@ impl<'a, T, D: Device> Buffer<'a, T, D> {
     /// ```
     pub fn deviceless<'b>(device: &'b impl DevicelessAble, len: usize) -> Buffer<'a, T, D> {
         Buffer {
-            ptr: device.alloc(len),
+            ptr: D::P::<T>::from_ptrs(device.alloc::<T>(len)),
             len,
             ..Default::default()
         }
@@ -216,7 +217,7 @@ impl<'a, T, D: Device> Buffer<'a, T, D> {
     /// Itself, this function does not need to be unsafe.
     /// However, declaring this function as unsafe highlights the violation of creating two or more owners for one resource.
     /// Furthermore, the resulting `Buffer` can outlive `self`.
-    pub unsafe fn shallow(&self) -> Buffer<'a, T, D> {
+    pub unsafe fn shallow(&self) -> Buffer<'a, T, D> where <D as Device>::P<T>: Copy {
         Buffer {
             ptr: self.ptr,
             len: self.len,
@@ -235,6 +236,7 @@ impl<'a, T, D: Device> Buffer<'a, T, D> {
     /// Furthermore, the resulting `Buffer` can outlive `self`.
     pub unsafe fn shallow_or_clone(&self) -> Buffer<'a, T, D>
     where
+        <D as Device>::P<T>: Copy,
         T: Clone,
         D: CloneBuf<'a, T>,
     {
@@ -270,14 +272,15 @@ impl<'a, T> Buffer<'a, T> {
     /// The pointer must not outlive the Buffer.
     pub unsafe fn from_raw_host(ptr: *mut T, len: usize) -> Buffer<'a, T> {
         Buffer {
-            ptr: (ptr, null_mut(), 0),
+            ptr: CPUPtr { ptr },
+            //ptr: (ptr, null_mut(), 0),
             len,
             ..Default::default()
         }
     }
 }
 
-impl<'a, T: crate::number::Number> Buffer<'a, T, Num<T>>  {
+impl<'a, T: crate::number::Number> Buffer<'a, T, ()>  {
     /// Used if the `Buffer` contains only a single value.
     ///
     /// # Example
@@ -295,10 +298,7 @@ impl<'a, T: crate::number::Number> Buffer<'a, T, Num<T>>  {
     where
         T: Default + Copy,
     {
-        if self.len == 0 && !self.ptr.0.is_null() {
-            return unsafe { *self.ptr.0 };
-        }
-        T::default()
+        self.ptr.num
     }
 
 }
@@ -308,30 +308,30 @@ impl<'a, T, D: CPUCL> Buffer<'a, T, D> {
     #[inline]
     pub fn as_slice(&self) -> &[T] {
         assert!(
-            !self.ptr.0.is_null(),
+            !self.ptr.ptrs().0.is_null(),
             "called as_slice() on an invalid CPU buffer (this would dereference an invalid pointer)"
         );
-        unsafe { std::slice::from_raw_parts(self.ptr.0, self.len) }
+        unsafe { std::slice::from_raw_parts(self.ptr.ptrs().0, self.len) }
     }
 
     /// Returns a mutable CPU slice.
     #[inline]
     pub fn as_mut_slice(&mut self) -> &mut [T] {
         assert!(
-            !self.ptr.0.is_null(),
+            !self.ptr.ptrs().0.is_null(),
             "called as_mut_slice() on a non CPU buffer (this would dereference a null pointer)"
         );
-        unsafe { std::slice::from_raw_parts_mut(self.ptr.0, self.len) }
+        unsafe { std::slice::from_raw_parts_mut(self.ptr.ptrs().0, self.len) }
     }
 
     /// Returns a non null host pointer
     #[inline]
     pub fn host_ptr(&self) -> *mut T {
         assert!(
-            !self.ptr.0.is_null(),
+            !self.ptr.ptrs().0.is_null(),
             "called host_ptr() on an invalid CPU buffer"
         );
-        self.ptr.0
+        self.ptr.ptrs().0
     }
 }
 
@@ -346,6 +346,8 @@ impl<'a, T: Clone, D: CloneBuf<'a, T>+Device> Clone for Buffer<'a, T, D> {
 unsafe impl<T> Send for Buffer<'a, T> {}
 #[cfg(feature = "safe")]
 unsafe impl<T> Sync for Buffer<'a, T> {}*/
+
+
 
 impl<'a, A> FromIterator<A> for Buffer<'a, A> 
 where
@@ -364,23 +366,30 @@ where
         Buffer {
             len: from_iter.len(),
             node: device.graph().add_leaf(from_iter.len()),
-            ptr: device.alloc_with_vec(from_iter),
+            ptr: CPUPtr::from_ptrs(device.alloc_with_vec(from_iter)),
             device: Some(device),
             flag: BufFlag::None,
         }
     }
 }
 
+
 impl<T, D: Device> Drop for Buffer<'_, T, D> {
     fn drop(&mut self) {
+        println!("self.flag: {:?}", self.flag);
         if self.flag == BufFlag::Item {
-            drop(unsafe { Box::from_raw(self.ptr.0) });
             return;
         }
+
         if self.flag != BufFlag::None {
             return;
         }
 
+        unsafe {
+            self.ptr.dealloc(self.len);
+        }
+
+        /* 
         unsafe {
             if !self.ptr.0.is_null() && self.ptr.1.is_null() {
                 let layout = Layout::array::<T>(self.len).unwrap();
@@ -398,13 +407,14 @@ impl<T, D: Device> Drop for Buffer<'_, T, D> {
                 cufree(self.ptr.2).unwrap();
             }
         }
+        */
     }
 }
 
 impl<'a, T, D: Device> Default for Buffer<'a, T, D> {
     fn default() -> Self {
         Self {
-            ptr: (null_mut(), null_mut(), 0),
+            ptr: D::P::<T>::default(),
             flag: BufFlag::default(),
             len: Default::default(),
             device: None,
@@ -490,11 +500,11 @@ where
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Buffer")
-            .field("ptr (CPU, CL, CU)", &self.ptr)
+            .field("ptr (CPU, CL, CU)", &self.ptr.ptrs())
             .field("len", &self.len);
         writeln!(f, ",")?;
 
-        if !self.ptr.0.is_null() {
+        if !self.ptr.ptrs().0.is_null() {
             writeln!(f, "CPU:    {:?}", self.device().read(self))?;
         }
 
@@ -537,10 +547,10 @@ impl<'a, T, D: CPUCL> std::iter::IntoIterator for &'a mut Buffer<'_, T, D> {
     }
 }
 
-impl<T: crate::number::Number> From<T> for Buffer<'_, T, Num<T>> {
-    fn from(val: T) -> Self {
+impl<T: crate::number::Number> From<T> for Buffer<'_, T, ()> {
+    fn from(ptr: T) -> Self {
         Buffer {
-            ptr: (Box::into_raw(Box::new(val)), null_mut(), 0),
+            ptr: X { num: ptr},
             len: 0,
             flag: BufFlag::Item,
             ..Default::default()
@@ -556,7 +566,7 @@ where
     fn from(device_slice: (&'a D, [T; N])) -> Self {
         let len = device_slice.1.len();
         Buffer {
-            ptr: device_slice.0.with_data(&device_slice.1),
+            ptr: D::P::<T>::from_ptrs(device_slice.0.with_data(&device_slice.1)),
             len,
             device: Some(device_slice.0),
             node: device_slice.0.graph().add_leaf(len),
@@ -573,7 +583,7 @@ where
     fn from(device_slice: (&'a D, &[T])) -> Self {
         let len = device_slice.1.len();
         Buffer {
-            ptr: device_slice.0.with_data(device_slice.1),
+            ptr: D::P::<T>::from_ptrs(device_slice.0.with_data(&device_slice.1)),
             len,
             device: Some(device_slice.0),
             node: device_slice.0.graph().add_leaf(len),
@@ -587,13 +597,13 @@ where
     T: Clone, 
     D: Alloc + GraphReturn + Device
 {
-    fn from(device_slice: (&'a D, Vec<T>)) -> Self {
-        let len = device_slice.1.len();
+    fn from(device_vec: (&'a D, Vec<T>)) -> Self {
+        let len = device_vec.1.len();
         Buffer {
-            ptr: device_slice.0.alloc_with_vec(device_slice.1),
+            ptr: D::P::<T>::from_ptrs(device_vec.0.alloc_with_vec(device_vec.1)),
             len,
-            device: Some(device_slice.0),
-            node: device_slice.0.graph().add_leaf(len),
+            device: Some(device_vec.0),
+            node: device_vec.0.graph().add_leaf(len),
             ..Default::default()
         }
     }
@@ -607,7 +617,7 @@ where
     fn from(device_slice: (&'a D, &Vec<T>)) -> Self {
         let len = device_slice.1.len();
         Buffer {
-            ptr: device_slice.0.with_data(device_slice.1),
+            ptr: D::P::<T>::from_ptrs(device_slice.0.with_data(&device_slice.1)),
             len,
             device: Some(device_slice.0),
             node: device_slice.0.graph().add_leaf(len),

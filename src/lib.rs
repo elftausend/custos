@@ -30,7 +30,7 @@
 //!
 //! assert_eq!(a.read(), vec![0; 6]);
 //! ```
-use std::{ffi::c_void, marker::PhantomData};
+use std::{ffi::c_void, marker::PhantomData, fmt::Debug};
 
 //pub use libs::*;
 pub use buffer::*;
@@ -59,21 +59,28 @@ thread_local! {
     pub static GLOBAL_CPU: CPU = CPU::new();
 }
 
-pub trait PtrType {
-    unsafe fn alloc<T>(alloc: impl Alloc, len: usize) -> Self;
-    unsafe fn dealloc<T>(&mut self, len: usize);
+pub trait PtrType<T>: Default {
+    unsafe fn dealloc(&mut self, len: usize);
+    
+    fn ptrs(&self) -> (*mut T, *mut c_void, u64);
+    fn from_ptrs(ptrs: (*mut T, *mut c_void, u64)) -> Self;
+
 }
 
 pub trait Device {
-    type P: PtrType;
+    type P<U>: PtrType<U>;
 }
-
-impl<T: Number> PtrType for T {
-    unsafe fn alloc<A>(_alloc: impl Alloc, _len: usize) -> Self {
+/* 
+impl<T: Number> PtrType<T> for T {
+    unsafe fn dealloc(&mut self, _len: usize) {
         unimplemented!()
     }
 
-    unsafe fn dealloc<A>(&mut self, _len: usize) {
+    fn ptrs(&self) -> (*mut T, *mut c_void, u64) {
+        unimplemented!()
+    }
+
+    fn from_ptrs(_ptrs: (*mut T, *mut c_void, u64)) -> Self {
         unimplemented!()
     }
 }
@@ -82,9 +89,11 @@ pub struct Num<T> {
     p: PhantomData<T>
 }
 
+
 impl<T: Number> Device for Num<T> {
-    type P = T;
+    type P<U> = U;
 }
+*/
 
 /*impl<T: Number> PtrType for T {
     unsafe fn alloc<A>(alloc: impl Alloc, len: usize) -> Self {
@@ -96,9 +105,35 @@ impl<T: Number> Device for Num<T> {
     }
 }
 
-impl<T: Number> Device<T> for () {
-    type P = T;
-}*/
+*/
+
+pub struct X<T> {
+    pub num: T
+}
+
+impl<T> Default for X<T> {
+    fn default() -> Self {
+        todo!()
+    }
+}
+
+impl<T> PtrType<T> for X<T> {
+    unsafe fn dealloc(&mut self, len: usize) {
+        todo!()
+    }
+
+    fn ptrs(&self) -> (*mut T, *mut c_void, u64) {
+        todo!()
+    }
+
+    fn from_ptrs(ptrs: (*mut T, *mut c_void, u64)) -> Self {
+        todo!()
+    }
+}
+
+impl Device for () {
+    type P<U> = X<U>;
+}
 
 pub trait DevicelessAble: Alloc {}
 
@@ -112,13 +147,13 @@ pub trait CPUCL: Device {}
 ///
 /// # Example
 /// ```
-/// use custos::{CPU, Alloc, Buffer, VecRead, BufFlag, GraphReturn};
+/// use custos::{CPU, Alloc, Buffer, VecRead, BufFlag, GraphReturn, cpu::CPUPtr, PtrType};
 ///
 /// let device = CPU::new();
 /// let ptrs: (*mut f32, *mut std::ffi::c_void, u64) = device.alloc(12);
 ///
 /// let buf = Buffer {
-///     ptr: ptrs,
+///     ptr: CPUPtr::from_ptrs(ptrs),
 ///     len: 12,
 ///     device: Some(&device),
 ///     flag: BufFlag::None,
@@ -130,13 +165,13 @@ pub trait Alloc {
     /// Allocate memory on the implemented device.
     /// # Example
     /// ```
-    /// use custos::{CPU, Alloc, Buffer, VecRead, BufFlag, GraphReturn};
+    /// use custos::{CPU, Alloc, Buffer, VecRead, BufFlag, GraphReturn, cpu::CPUPtr, PtrType};
     ///
     /// let device = CPU::new();
     /// let ptrs: (*mut f32, *mut std::ffi::c_void, u64) = device.alloc(12);
     ///
     /// let buf = Buffer {
-    ///     ptr: ptrs,
+    ///     ptr: CPUPtr::from_ptrs(ptrs),
     ///     len: 12,
     ///     device: Some(&device),
     ///     flag: BufFlag::None,
@@ -149,13 +184,13 @@ pub trait Alloc {
     /// Allocate new memory with data
     /// # Example
     /// ```
-    /// use custos::{CPU, Alloc, Buffer, VecRead, BufFlag, GraphReturn};
+    /// use custos::{CPU, Alloc, Buffer, VecRead, BufFlag, GraphReturn, cpu::CPUPtr, PtrType};
     ///
     /// let device = CPU::new();
     /// let ptrs: (*mut u8, *mut std::ffi::c_void, u64) = device.with_data(&[1, 5, 4, 3, 6, 9, 0, 4]);
     ///
     /// let buf = Buffer {
-    ///     ptr: ptrs,
+    ///     ptr: CPUPtr::from_ptrs::<u8>(ptrs),
     ///     len: 8,
     ///     device: Some(&device),
     ///     flag: BufFlag::None,
@@ -275,7 +310,7 @@ pub trait CacheBuf<'a, T>: Sized+Device
 pub mod prelude {
     pub use crate::{
         cache::CacheReturn, get_count, set_count, Buffer, CDatatype, CacheBuf, GraphReturn,
-        VecRead, CPU, WriteBuf, cached, number::*, range, ClearBuf
+        VecRead, CPU, WriteBuf, cached, number::*, range, ClearBuf, Device
     };
 
     #[cfg(feature = "opencl")]

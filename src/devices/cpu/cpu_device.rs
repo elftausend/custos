@@ -45,7 +45,7 @@ impl CPU {
 }
 
 impl Device for CPU {
-    type P = CPUPtr;
+    type P<U> = CPUPtr<U>;
 }
 impl DevicelessAble for CPU {}
 

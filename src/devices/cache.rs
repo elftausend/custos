@@ -1,4 +1,4 @@
-use crate::{bump_count, AddGraph, Alloc, BufFlag, Buffer, GraphReturn, Ident, Node, Device};
+use crate::{bump_count, AddGraph, Alloc, BufFlag, Buffer, GraphReturn, Ident, Node, Device, PtrType};
 use std::{cell::RefMut, collections::HashMap, ffi::c_void, rc::Rc};
 
 /// This trait is implemented for every 'cacheable' pointer.
@@ -45,7 +45,7 @@ impl<P: CacheType> Cache<P> {
     where
         D: Alloc + GraphReturn + Device,
     {
-        let ptr: (*mut T, *mut c_void, _) = device.alloc(node.len);
+        let ptr = device.alloc::<T>(node.len);
 
         #[cfg(feature = "opt-cache")]
         let graph_node = device.graph().add(node.len, _add_node);
@@ -59,7 +59,7 @@ impl<P: CacheType> Cache<P> {
             .insert(node, Rc::new(P::new(ptr, node.len, graph_node)));
 
         Buffer {
-            ptr,
+            ptr: D::P::<T>::from_ptrs(ptr),
             len: node.len,
             device: Some(device),
             flag: BufFlag::Cache,
@@ -84,7 +84,8 @@ impl<P: CacheType> Cache<P> {
         match ptr_option {
             Some(ptr) => {
                 bump_count();
-                let (ptr, node) = ptr.destruct();
+                let (ptr, node) = ptr.destruct::<T>();
+                let ptr = D::P::<T>::from_ptrs(ptr);
                 Buffer {
                     ptr,
                     len,

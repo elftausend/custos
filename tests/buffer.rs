@@ -1,7 +1,7 @@
 use custos::cpu::cpu_cached;
 #[cfg(feature = "opencl")]
 use custos::{devices::opencl::OpenCL, Error};
-use custos::{Alloc, Buffer, VecRead, Device};
+use custos::{Alloc, Buffer, VecRead, Device, PtrType};
 
 use custos::CPU;
 
@@ -12,11 +12,11 @@ use custos::CPUCL;
 use custos::{get_count, set_count};
 
 pub fn get_mut_slice<'a, T, D: Device>(buf: &'a mut Buffer<T, D>) -> &'a mut [T] {
-    unsafe { std::slice::from_raw_parts_mut(buf.ptr.0, buf.len) }
+    unsafe { std::slice::from_raw_parts_mut(buf.ptr.ptrs().0, buf.len) }
 }
 
 pub fn get_slice<'a, T, D: Device>(buf: &'a Buffer<T, D>) -> &'a [T] {
-    unsafe { std::slice::from_raw_parts(buf.ptr.0, buf.len) }
+    unsafe { std::slice::from_raw_parts(buf.ptr.ptrs().0, buf.len) }
 }
 
 pub fn read<T, D: Alloc>(device: &D, buf: &Buffer<T, D>) -> Vec<T>
@@ -95,6 +95,14 @@ fn test_buffer_alloc_and_read() -> Result<(), Error> {
     assert_eq!(&[3.13, 3., 1., 8.], buf_read);
 
     Ok(())
+}
+
+#[test]
+fn test_buf_with_num() {
+    let x = "mind";
+    //let buffer: Buffer<i32, Num<_>> = 5.into();
+    //let value = buffer.ptr;
+    //assert_eq!(value, 5);
 }
 
 #[test]

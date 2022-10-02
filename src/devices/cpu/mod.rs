@@ -1,4 +1,4 @@
-use crate::{devices::cache::CacheType, Node, PtrType, Alloc};
+use crate::{devices::cache::CacheType, Node, PtrType, Alloc, GraphReturn};
 #[cfg(feature="blas")]
 pub use blas::*;
 pub use cpu_device::*;
@@ -12,23 +12,34 @@ use std::{
 mod blas;
 mod cpu_device;
 
-pub struct CPUPtr {
-    pub ptr: *mut u8,
+#[derive(Clone, Copy)]
+pub struct CPUPtr<T> {
+    pub ptr: *mut T,
 }
 
-impl PtrType for CPUPtr {
+impl<T> Default for CPUPtr<T> {
+    fn default() -> Self {
+        Self { ptr: null_mut() }
+    }
+}
+
+impl<T> PtrType<T> for CPUPtr<T> {
+
     #[inline]
-    unsafe fn alloc<T>(alloc: impl Alloc, len: usize) -> Self {
-        CPUPtr {
-            ptr: alloc.alloc::<T>(len).0 as *mut u8,
-        }   
+    unsafe fn dealloc(&mut self, len: usize) {
+        let layout = Layout::array::<T>(len).unwrap();
+        std::alloc::dealloc(self.ptr as *mut u8, layout);
     }
 
     #[inline]
-    unsafe fn dealloc<T>(&mut self, len: usize) {
-        let layout = Layout::array::<T>(len).unwrap();
-        std::alloc::dealloc(self.ptr, layout);
+    fn ptrs(&self) -> (*mut T, *mut std::ffi::c_void, u64) {
+        (self.ptr as *mut T, null_mut(), 0)
     }
+
+    fn from_ptrs(ptrs: (*mut T, *mut std::ffi::c_void, u64)) -> Self {
+        CPUPtr { ptr: ptrs.0 }
+    }
+    
 }
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
