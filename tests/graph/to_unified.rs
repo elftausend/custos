@@ -29,8 +29,8 @@ fn test_access_cached_after_unified_construct_buf() -> custos::Result<()> {
         .unwrap()
         .clone();
 
-    assert_eq!(cl_cpu_buf.ptr.0 as *mut u8, cached_cl_cpu_buf.host_ptr);
-    assert_eq!(cl_cpu_buf.ptr.1, cached_cl_cpu_buf.ptr);
+    assert_eq!(cl_cpu_buf.ptrs().0 as *mut u8, cached_cl_cpu_buf.host_ptr);
+    assert_eq!(cl_cpu_buf.ptrs().1, cached_cl_cpu_buf.ptr);
 
     Ok(())
 }

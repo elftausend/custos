@@ -12,7 +12,7 @@ use std::{
 mod blas;
 mod cpu_device;
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct CPUPtr<T> {
     pub ptr: *mut T,
 }
@@ -24,7 +24,6 @@ impl<T> Default for CPUPtr<T> {
 }
 
 impl<T> PtrType<T> for CPUPtr<T> {
-
     #[inline]
     unsafe fn dealloc(&mut self, len: usize) {
         if self.ptr.is_null() {

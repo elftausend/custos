@@ -1,7 +1,7 @@
 use custos::cpu::cpu_cached;
 #[cfg(feature = "opencl")]
 use custos::{devices::opencl::OpenCL, Error};
-use custos::{Alloc, Buffer, VecRead, Device, PtrType};
+use custos::{Alloc, Buffer, VecRead, Device};
 
 use custos::CPU;
 
@@ -12,11 +12,11 @@ use custos::CPUCL;
 use custos::{get_count, set_count};
 
 pub fn get_mut_slice<'a, T, D: Device>(buf: &'a mut Buffer<T, D>) -> &'a mut [T] {
-    unsafe { std::slice::from_raw_parts_mut(buf.ptr.ptrs().0, buf.len) }
+    unsafe { std::slice::from_raw_parts_mut(buf.ptrs().0, buf.len) }
 }
 
 pub fn get_slice<'a, T, D: Device>(buf: &'a Buffer<T, D>) -> &'a [T] {
-    unsafe { std::slice::from_raw_parts(buf.ptr.ptrs().0, buf.len) }
+    unsafe { std::slice::from_raw_parts(buf.ptrs().0, buf.len) }
 }
 
 pub fn read<T, D: Alloc>(device: &D, buf: &Buffer<T, D>) -> Vec<T>
@@ -164,7 +164,7 @@ fn test_cached_cl() -> Result<(), custos::Error> {
     assert_eq!(1, get_count());
 
     unsafe {
-        let event = enqueue_write_buffer(&device.queue(), buf.ptr.ptrs().1, &[0.1f32; 10], true)?;
+        let event = enqueue_write_buffer(&device.queue(), buf.ptrs().1, &[0.1f32; 10], true)?;
         wait_for_event(event)?
     }
     assert_eq!(device.read(&buf), vec![0.1; 10]);
@@ -266,7 +266,7 @@ fn test_deviceless_buf() {
         Buffer::<u8, CPU>::deviceless(&device, 5)
     };
 
-    println!("test buf ptr: {:?}", buf.ptr.ptrs());
+    println!("test buf ptr: {:?}", buf.ptrs());
 
     for (idx, element) in buf.iter_mut().enumerate() {
         *element = idx as u8;

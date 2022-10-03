@@ -14,7 +14,6 @@ pub enum BufFlag {
     None,
     Cache,
     Wrapper,
-    Item,
 }
 
 impl Default for BufFlag {
@@ -142,19 +141,10 @@ impl<'a, T, D: Device> Buffer<'a, T, D> {
     #[inline]
     pub fn cl_ptr(&self) -> *mut c_void {
         assert!(
-            !self.ptr.ptrs().1.is_null(),
+            !self.ptrs().1.is_null(),
             "called cl_ptr() on an invalid OpenCL buffer"
         );
-        self.ptr.ptrs().1
-    }
-
-    // TODO: replace buf.ptr.2 with this fn, do the same with cl, cpu
-    /// Returns a non null CUDA pointer
-    #[cfg(feature = "cuda")]
-    #[inline]
-    pub fn cu_ptr(&self) -> u64 {
-        assert!(self.ptr.2 != 0, "called cu_ptr() on an invalid CUDA buffer");
-        self.ptr.2
+        self.ptrs().1
     }
 
     /// Sets all elements in `Buffer` to the default value.
@@ -194,6 +184,12 @@ impl<'a, T, D: Device> Buffer<'a, T, D> {
         D: WriteBuf<T, D>,
     {
         self.device().write(self, data)
+    }
+
+    #[inline]
+    /// Returns all types of pointers. (host, OpenCL, CUDA)
+    pub fn ptrs(&self) -> (*mut T, *mut c_void, u64) {
+        self.ptr.ptrs()
     }
 
     /*#[cfg(feature = "cuda")]
@@ -298,7 +294,17 @@ impl<'a, T: crate::number::Number> Buffer<'a, T, ()>  {
     {
         self.ptr.num
     }
+}
 
+#[cfg(feature = "cuda")]
+impl<'a, T> Buffer<'a, T, crate::CUDA> {
+    // TODO: replace buf.ptr.2 with this fn, do the same with cl, cpu
+    /// Returns a non null CUDA pointer
+    #[inline]
+    pub fn cu_ptr(&self) -> u64 {
+        assert!(self.ptrs().2 != 0, "called cu_ptr() on an invalid CUDA buffer");
+        self.ptr.ptr
+    }
 }
 
 impl<'a, T, D: CPUCL> Buffer<'a, T, D> {
@@ -306,30 +312,30 @@ impl<'a, T, D: CPUCL> Buffer<'a, T, D> {
     #[inline]
     pub fn as_slice(&self) -> &[T] {
         assert!(
-            !self.ptr.ptrs().0.is_null(),
+            !self.ptrs().0.is_null(),
             "called as_slice() on an invalid CPU buffer (this would dereference an invalid pointer)"
         );
-        unsafe { std::slice::from_raw_parts(self.ptr.ptrs().0, self.len) }
+        unsafe { std::slice::from_raw_parts(self.ptrs().0, self.len) }
     }
 
     /// Returns a mutable CPU slice.
     #[inline]
     pub fn as_mut_slice(&mut self) -> &mut [T] {
         assert!(
-            !self.ptr.ptrs().0.is_null(),
+            !self.ptrs().0.is_null(),
             "called as_mut_slice() on a non CPU buffer (this would dereference a null pointer)"
         );
-        unsafe { std::slice::from_raw_parts_mut(self.ptr.ptrs().0, self.len) }
+        unsafe { std::slice::from_raw_parts_mut(self.ptrs().0, self.len) }
     }
 
     /// Returns a non null host pointer
     #[inline]
     pub fn host_ptr(&self) -> *mut T {
         assert!(
-            !self.ptr.ptrs().0.is_null(),
+            !self.ptrs().0.is_null(),
             "called host_ptr() on an invalid CPU buffer"
         );
-        self.ptr.ptrs().0
+        self.ptrs().0
     }
 }
 
@@ -374,10 +380,6 @@ where
 
 impl<T, D: Device> Drop for Buffer<'_, T, D> {
     fn drop(&mut self) {
-        if self.flag == BufFlag::Item {
-            return;
-        }
-
         if self.flag != BufFlag::None {
             return;
         }
@@ -477,21 +479,21 @@ where
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Buffer")
-            .field("ptr (CPU, CL, CU)", &self.ptr.ptrs())
+            .field("ptr (CPU, CL, CU)", &self.ptrs())
             .field("len", &self.len);
         writeln!(f, ",")?;
 
-        if !self.ptr.ptrs().0.is_null() {
+        if !self.ptrs().0.is_null() {
             writeln!(f, "CPU:    {:?}", self.device().read(self))?;
         }
 
         #[cfg(feature = "opencl")]
-        if !self.ptr.ptrs().1.is_null() {
+        if !self.ptrs().1.is_null() {
             write!(f, "OpenCL: {:?}, ", self.device().read(self))?;
         }
 
         #[cfg(feature = "cuda")]
-        if self.ptr.2 != 0 {
+        if self.ptrs().2 != 0 {
             write!(f, "CUDA: {:?}, ", self.device().read(self))?;
         }
 
@@ -529,7 +531,7 @@ impl<T: crate::number::Number> From<T> for Buffer<'_, T, ()> {
         Buffer {
             ptr: Num { num: ptr},
             len: 0,
-            flag: BufFlag::Item,
+            flag: BufFlag::None,
             device: None,
             node: Node::default(),
         }
@@ -561,7 +563,7 @@ where
     fn from(device_slice: (&'a D, &[T])) -> Self {
         let len = device_slice.1.len();
         Buffer {
-            ptr: D::P::<T>::from_ptrs(device_slice.0.with_data(&device_slice.1)),
+            ptr: D::P::<T>::from_ptrs(device_slice.0.with_data(device_slice.1)),
             len,
             device: Some(device_slice.0),
             node: device_slice.0.graph().add_leaf(len),
@@ -595,7 +597,7 @@ where
     fn from(device_slice: (&'a D, &Vec<T>)) -> Self {
         let len = device_slice.1.len();
         Buffer {
-            ptr: D::P::<T>::from_ptrs(device_slice.0.with_data(&device_slice.1)),
+            ptr: D::P::<T>::from_ptrs(device_slice.0.with_data(device_slice.1)),
             len,
             device: Some(device_slice.0),
             node: device_slice.0.graph().add_leaf(len),

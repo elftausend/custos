@@ -99,11 +99,11 @@ impl<P: CacheType> Cache<P> {
     }
 
     #[cfg(feature = "realloc")]
-    pub fn get<T, D>(device: &D, len: usize, _: impl AddGraph) -> Buffer<T, D>
+    pub fn get<T, D: Device>(device: &D, len: usize, _: impl AddGraph) -> Buffer<T, D>
     where
         // In order to know the specific pointer type
         // there is probably a better way to implement this
-        Self: BindP<D::P>,
+        Self: BindP<D::CT>,
         D: Alloc + CacheReturn,
     {
         Buffer::new(device, len)

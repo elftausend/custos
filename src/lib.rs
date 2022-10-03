@@ -59,52 +59,17 @@ thread_local! {
 }
 
 pub trait PtrType<T>: Default {
+    /// # Safety
+    /// The pointer must be a valid pointer.
     unsafe fn dealloc(&mut self, len: usize);
     
     fn ptrs(&self) -> (*mut T, *mut c_void, u64);
     fn from_ptrs(ptrs: (*mut T, *mut c_void, u64)) -> Self;
-
 }
 
-pub trait Device {
+pub trait Device: Sized {
     type P<U>: PtrType<U>;
 }
-/* 
-impl<T: Number> PtrType<T> for T {
-    unsafe fn dealloc(&mut self, _len: usize) {
-        unimplemented!()
-    }
-
-    fn ptrs(&self) -> (*mut T, *mut c_void, u64) {
-        unimplemented!()
-    }
-
-    fn from_ptrs(_ptrs: (*mut T, *mut c_void, u64)) -> Self {
-        unimplemented!()
-    }
-}
-
-pub struct Num<T> {
-    p: PhantomData<T>
-}
-
-
-impl<T: Number> Device for Num<T> {
-    type P<U> = U;
-}
-*/
-
-/*impl<T: Number> PtrType for T {
-    unsafe fn alloc<A>(alloc: impl Alloc, len: usize) -> Self {
-        todo!()
-    }
-
-    unsafe fn dealloc<A>(&mut self, len: usize) {
-        todo!()
-    }
-}
-
-*/
 
 pub struct Num<T> {
     pub num: T
@@ -118,7 +83,7 @@ impl<T> Default for Num<T> {
 
 impl<T> PtrType<T> for Num<T> {
     unsafe fn dealloc(&mut self, _len: usize) {
-        unimplemented!()
+        return;
     }
 
     fn ptrs(&self) -> (*mut T, *mut c_void, u64) {

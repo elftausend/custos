@@ -60,8 +60,6 @@ impl Alloc for CPU {
             *element = 0;
         }
 
-        println!("alloc ptr: {ptr:?}");
-
         if ptr.is_null() {
             handle_alloc_error(layout);
         }

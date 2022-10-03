@@ -4,12 +4,12 @@ use super::{
         cublas::{create_handle, cublasDestroy_v2, cublasSetStream_v2, CublasHandle},
         cumalloc, device, Context, CudaIntDevice, Module, Stream,
     },
-    cu_clear, KernelCacheCU, RawCUBuf,
+    cu_clear, KernelCacheCU, RawCUBuf, CUDAPtr,
 };
 use crate::{
     cache::{Cache, CacheReturn},
     Alloc, Buffer, CDatatype, CacheBuf, CachedLeaf, ClearBuf, CloneBuf, Graph, GraphReturn,
-    VecRead, WriteBuf,
+    VecRead, WriteBuf, Device
 };
 use std::{cell::RefCell, ptr::null_mut};
 
@@ -65,6 +65,10 @@ impl CUDA {
     }
 }
 
+impl Device for CUDA {
+    type P<U> = CUDAPtr<U>;
+}
+
 impl Drop for CUDA {
     fn drop(&mut self) {
         unsafe {
@@ -91,11 +95,11 @@ impl Alloc for CUDA {
 impl<T: Default + Clone> VecRead<T, CUDA> for CUDA {
     fn read(&self, buf: &Buffer<T, CUDA>) -> Vec<T> {
         assert!(
-            buf.ptr.2 != 0,
+            buf.ptrs().2 != 0,
             "called VecRead::read(..) on a non CUDA buffer"
         );
         let mut read = vec![T::default(); buf.len];
-        cu_read(&mut read, buf.ptr.2).unwrap();
+        cu_read(&mut read, buf.ptrs().2).unwrap();
         read
     }
 }
@@ -119,7 +123,7 @@ impl GraphReturn for CUDA {
 }
 
 impl CacheReturn for CUDA {
-    type P = RawCUBuf;
+    type CT = RawCUBuf;
     #[inline]
     fn cache(&self) -> std::cell::RefMut<Cache<RawCUBuf>> {
         self.cache.borrow_mut()
@@ -133,7 +137,7 @@ impl<'a, T> CloneBuf<'a, T> for CUDA {
     fn clone_buf(&'a self, buf: &Buffer<'a, T, CUDA>) -> Buffer<'a, T, CUDA> {
         let cloned = Buffer::new(self, buf.len);
         unsafe {
-            cuMemcpy(cloned.ptr.2, buf.ptr.2, buf.len * std::mem::size_of::<T>());
+            cuMemcpy(cloned.ptrs().2, buf.ptrs().2, buf.len * std::mem::size_of::<T>());
         }
         cloned
     }

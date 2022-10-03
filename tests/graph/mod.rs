@@ -1,4 +1,4 @@
-use custos::{number::Number, Buffer, CDatatype, Cache, CPU, CPUCL};
+use custos::{number::Number, Buffer, CDatatype, Cache, CPU, CPUCL, Device};
 
 #[cfg(feature = "opencl")]
 use custos::{opencl::enqueue_kernel, OpenCL};
@@ -13,7 +13,7 @@ mod to_unified;
 #[cfg(feature = "cuda")]
 use custos::{cuda::launch_kernel1d, CUDA};
 
-pub trait AddBuf<T, D>: Sized {
+pub trait AddBuf<T, D: Device>: Device {
     fn add(&self, lhs: &Buffer<T, D>, rhs: &Buffer<T, D>) -> Buffer<T, Self>;
     fn relu(&self, lhs: &Buffer<T, D>) -> Buffer<T, Self>;
 }
@@ -119,7 +119,7 @@ impl<T: CDatatype> AddBuf<T, CUDA> for CUDA {
     }
 }
 
-pub trait AddOp<'a, T, D> {
+pub trait AddOp<'a, T, D: Device> {
     fn add(&self, rhs: &Buffer<'a, T, D>) -> Buffer<'a, T, D>;
     fn relu(&self) -> Buffer<'a, T, D>;
 }

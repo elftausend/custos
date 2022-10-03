@@ -3,11 +3,50 @@ mod cuda_device;
 mod kernel_cache;
 mod kernel_launch;
 
+use std::{marker::PhantomData, ptr::null_mut};
+
 pub use cuda_device::*;
 pub use kernel_cache::*;
 pub use kernel_launch::*;
 
-use crate::{Buffer, CDatatype};
+use crate::{Buffer, CDatatype, PtrType};
+
+use self::api::cufree;
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct CUDAPtr<T> {
+    pub ptr: u64,
+    p: PhantomData<T>,
+}
+
+impl<T> Default for CUDAPtr<T> {
+    fn default() -> Self {
+        Self { 
+            ptr: 0,
+            p: PhantomData
+        }
+    }
+}
+
+impl<T> PtrType<T> for CUDAPtr<T> {
+    unsafe fn dealloc(&mut self, _len: usize) {
+        if self.ptr == 0 {
+            return;
+        }
+        cufree(self.ptr).unwrap();
+    }
+
+    fn ptrs(&self) -> (*mut T, *mut std::ffi::c_void, u64) {
+        (null_mut(), null_mut(), self.ptr)
+    }
+
+    fn from_ptrs(ptrs: (*mut T, *mut std::ffi::c_void, u64)) -> Self {
+        Self {
+            ptr: ptrs.2,
+            p: PhantomData
+        }
+    }
+}
 
 /// Sets the elements of a CUDA Buffer to zero.
 /// # Example

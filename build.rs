@@ -16,7 +16,6 @@ fn has_device_unified_mem() -> bool {
         .parse::<usize>()
         .expect("Value in variable 'CUSTOS_UNIFIED_IDX' must be a positive usize value.");
 
-
     // this environment variable (CUSTOS_USE_UNIFIED) is used to either:
     // ... disable unified memory on unified memory devices, or
     // ... activate unified memory on devices with dedicated memory to check if 

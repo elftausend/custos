@@ -68,9 +68,9 @@ fn test_occupancy() -> custos::Result<()> {
 
     unsafe {
         let params = &mut [
-            &a.ptr.2 as *const u64 as *mut c_void,
-            &b.ptr.2 as *const u64 as *mut c_void,
-            &c.ptr.2 as *const u64 as *mut c_void,
+            &a.ptrs().2 as *const u64 as *mut c_void,
+            &b.ptrs().2 as *const u64 as *mut c_void,
+            &c.ptrs().2 as *const u64 as *mut c_void,
             &len as *const usize as *mut c_void,
         ];
         cuLaunchKernel(

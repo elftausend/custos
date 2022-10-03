@@ -9,7 +9,7 @@ use crate::{
     cache::{Cache, CacheReturn},
     devices::opencl::api::{create_buffer, MemFlags},
     Alloc, Buffer, CDatatype, CacheBuf, CachedLeaf, ClearBuf, CloneBuf, DevicelessAble, Error,
-    Graph, GraphReturn, VecRead, WriteBuf, CPU, Device, PtrType
+    Graph, GraphReturn, VecRead, WriteBuf, CPU, Device
 };
 use std::{
     cell::{Ref, RefCell},
@@ -165,7 +165,7 @@ impl Alloc for OpenCL {
 impl<'a, T> CloneBuf<'a, T> for OpenCL {
     fn clone_buf(&'a self, buf: &Buffer<'a, T, OpenCL>) -> Buffer<'a, T, OpenCL> {
         let cloned = Buffer::new(self, buf.len);
-        enqueue_full_copy_buffer::<T>(&self.queue(), buf.ptr.ptrs().1, cloned.ptr.ptrs().1, buf.len).unwrap();
+        enqueue_full_copy_buffer::<T>(&self.queue(), buf.ptrs().1, cloned.ptrs().1, buf.len).unwrap();
         cloned
     }
 }
@@ -212,7 +212,7 @@ impl<T: CDatatype> ClearBuf<T, OpenCL> for OpenCL {
 
 impl<T> WriteBuf<T, OpenCL> for OpenCL {
     fn write(&self, buf: &mut Buffer<T, OpenCL>, data: &[T]) {
-        let event = unsafe { enqueue_write_buffer(&self.queue(), buf.ptr.ptrs().1, data, true).unwrap() };
+        let event = unsafe { enqueue_write_buffer(&self.queue(), buf.ptrs().1, data, true).unwrap() };
         wait_for_event(event).unwrap();
     }
 }
@@ -220,12 +220,12 @@ impl<T> WriteBuf<T, OpenCL> for OpenCL {
 impl<T: Clone + Default> VecRead<T, OpenCL> for OpenCL {
     fn read(&self, buf: &crate::Buffer<T, OpenCL>) -> Vec<T> {
         assert!(
-            !buf.ptr.ptrs().1.is_null(),
+            !buf.ptrs().1.is_null(),
             "called VecRead::read(..) on a non OpenCL buffer (this would read out a null pointer)"
         );
         let mut read = vec![T::default(); buf.len];
         let event =
-            unsafe { enqueue_read_buffer(&self.queue(), buf.ptr.ptrs().1, &mut read, false).unwrap() };
+            unsafe { enqueue_read_buffer(&self.queue(), buf.ptrs().1, &mut read, false).unwrap() };
         wait_for_event(event).unwrap();
         read
     }
