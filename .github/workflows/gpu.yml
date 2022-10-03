@@ -19,7 +19,7 @@ jobs:
     - uses: actions-rs/toolchain@v1
       with:
         profile: minimal
-        toolchain: stable
+        toolchain: beta
 
     - name: Build (OpenCL)
       run: cargo build --verbose --no-default-features --features opencl
@@ -33,7 +33,7 @@ jobs:
     - uses: actions-rs/toolchain@v1
       with:
         profile: minimal
-        toolchain: stable
+        toolchain: beta
 
     - name: Build (CUDA)
       run: cargo build --verbose --no-default-features --features cuda
@@ -47,7 +47,7 @@ jobs:
     - uses: actions-rs/toolchain@v1
       with:
         profile: minimal
-        toolchain: stable
+        toolchain: beta
 
     - name: Build (CUDA)
       run: cargo build --verbose --no-default-features --features cuda,opencl
@@ -62,7 +62,7 @@ jobs:
     - uses: actions-rs/toolchain@v1
       with:
         profile: minimal
-        toolchain: stable
+        toolchain: beta
 
     - name: Run tests (OpenCL)
       run: cargo test --verbose --no-default-features --features opencl
@@ -81,7 +81,7 @@ jobs:
     - uses: actions-rs/toolchain@v1
       with:
         profile: minimal
-        toolchain: stable
+        toolchain: beta
 
     - name: Run tests (CUDA)
       run: cargo test --verbose --no-default-features --features cuda
@@ -100,7 +100,7 @@ jobs:
     - uses: actions-rs/toolchain@v1
       with:
         profile: minimal
-        toolchain: stable
+        toolchain: beta
 
     - name: Run tests (CUDA, OpenCL)
       run: cargo test --verbose --no-default-features --features cuda,opencl
