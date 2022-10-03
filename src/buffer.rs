@@ -1,13 +1,11 @@
-use std::alloc::Layout;
 use std::iter::FromIterator;
-use std::{ffi::c_void, fmt::Debug, ptr::null_mut};
+use std::{ffi::c_void, fmt::Debug};
 
 use crate::cpu::CPUPtr;
-#[cfg(feature = "opencl")]
-use crate::opencl::api::release_mem_object;
+
 use crate::{
     Alloc, CDatatype, CacheBuf, ClearBuf, CloneBuf, DevicelessAble, GraphReturn, Node, VecRead,
-    WriteBuf, CPU, GLOBAL_CPU, CPUCL, Device, PtrType, X
+    WriteBuf, CPU, GLOBAL_CPU, CPUCL, Device, PtrType, Num
 };
 
 /// Descripes the type of a [`Buffer`]
@@ -144,10 +142,10 @@ impl<'a, T, D: Device> Buffer<'a, T, D> {
     #[inline]
     pub fn cl_ptr(&self) -> *mut c_void {
         assert!(
-            !self.ptr.1.is_null(),
+            !self.ptr.ptrs().1.is_null(),
             "called cl_ptr() on an invalid OpenCL buffer"
         );
-        self.ptr.1
+        self.ptr.ptrs().1
     }
 
     // TODO: replace buf.ptr.2 with this fn, do the same with cl, cpu
@@ -376,7 +374,6 @@ where
 
 impl<T, D: Device> Drop for Buffer<'_, T, D> {
     fn drop(&mut self) {
-        println!("self.flag: {:?}", self.flag);
         if self.flag == BufFlag::Item {
             return;
         }
@@ -388,26 +385,6 @@ impl<T, D: Device> Drop for Buffer<'_, T, D> {
         unsafe {
             self.ptr.dealloc(self.len);
         }
-
-        /* 
-        unsafe {
-            if !self.ptr.0.is_null() && self.ptr.1.is_null() {
-                let layout = Layout::array::<T>(self.len).unwrap();
-                std::alloc::dealloc(self.ptr.0 as *mut u8, layout);
-            }
-
-            #[cfg(feature = "opencl")]
-            if !self.ptr.1.is_null() {
-                release_mem_object(self.ptr.1).unwrap()
-            }
-
-            #[cfg(feature = "cuda")]
-            if self.ptr.2 != 0 {
-                use crate::cuda::api::cufree;
-                cufree(self.ptr.2).unwrap();
-            }
-        }
-        */
     }
 }
 
@@ -509,7 +486,7 @@ where
         }
 
         #[cfg(feature = "opencl")]
-        if !self.ptr.1.is_null() {
+        if !self.ptr.ptrs().1.is_null() {
             write!(f, "OpenCL: {:?}, ", self.device().read(self))?;
         }
 
@@ -550,10 +527,11 @@ impl<'a, T, D: CPUCL> std::iter::IntoIterator for &'a mut Buffer<'_, T, D> {
 impl<T: crate::number::Number> From<T> for Buffer<'_, T, ()> {
     fn from(ptr: T) -> Self {
         Buffer {
-            ptr: X { num: ptr},
+            ptr: Num { num: ptr},
             len: 0,
             flag: BufFlag::Item,
-            ..Default::default()
+            device: None,
+            node: Node::default(),
         }
     }
 }

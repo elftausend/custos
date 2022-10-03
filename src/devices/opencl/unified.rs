@@ -51,7 +51,7 @@ pub unsafe fn construct_buffer<'a, T: Debug>(
     no_drop: Buffer<T, CPU>,
     add_node: impl AddGraph,
 ) -> crate::Result<Buffer<'a, T, OpenCL>> {
-    use crate::bump_count;
+    use crate::{bump_count, opencl::CLPtr, PtrType};
 
     if no_drop.flag == BufFlag::None {
         return Err(DeviceError::ConstructError.into());
@@ -59,7 +59,10 @@ pub unsafe fn construct_buffer<'a, T: Debug>(
 
     if let Some(rawcl) = device.cache.borrow().nodes.get(&Ident::new(no_drop.len)) {
         return Ok(Buffer {
-            ptr: (rawcl.host_ptr as *mut T, rawcl.ptr, 0),
+            ptr: CLPtr {
+                ptr: rawcl.ptr,
+                host_ptr: rawcl.host_ptr as *mut T
+            },
             len: no_drop.len,
             device: Some(device),
             flag: BufFlag::Cache,
@@ -75,7 +78,7 @@ pub unsafe fn construct_buffer<'a, T: Debug>(
     bump_count();
 
     Ok(Buffer {
-        ptr: (host_ptr, cl_ptr, 0),
+        ptr: CLPtr::from_ptrs((host_ptr, cl_ptr, 0)),
         len,
         device: Some(device),
         flag: BufFlag::Cache,

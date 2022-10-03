@@ -99,10 +99,12 @@ fn test_buffer_alloc_and_read() -> Result<(), Error> {
 
 #[test]
 fn test_buf_with_num() {
-    let x = "mind";
-    //let buffer: Buffer<i32, Num<_>> = 5.into();
-    //let value = buffer.ptr;
-    //assert_eq!(value, 5);
+    let buf: Buffer<i32, ()> = 5.into();
+    assert_eq!(buf.ptr.num, 5);
+
+    let mut buf1: Buffer<_, ()> = 7f32.into();
+    buf1.ptr.num = 3.;
+    assert_eq!(buf1.ptr.num, 3.);
 }
 
 #[test]
@@ -162,7 +164,7 @@ fn test_cached_cl() -> Result<(), custos::Error> {
     assert_eq!(1, get_count());
 
     unsafe {
-        let event = enqueue_write_buffer(&device.queue(), buf.ptr.1, &[0.1f32; 10], true)?;
+        let event = enqueue_write_buffer(&device.queue(), buf.ptr.ptrs().1, &[0.1f32; 10], true)?;
         wait_for_event(event)?
     }
     assert_eq!(device.read(&buf), vec![0.1; 10]);
@@ -257,8 +259,6 @@ fn test_alloc() {
     drop(buf);
 }
 
-
-
 #[test]
 fn test_deviceless_buf() {
     let mut buf = {
@@ -266,11 +266,13 @@ fn test_deviceless_buf() {
         Buffer::<u8, CPU>::deviceless(&device, 5)
     };
 
+    println!("test buf ptr: {:?}", buf.ptr.ptrs());
+
     for (idx, element) in buf.iter_mut().enumerate() {
         *element = idx as u8;
     }
-
     assert_eq!(buf.as_slice(), &[0, 1, 2, 3, 4]);
+
 }
 
 /*

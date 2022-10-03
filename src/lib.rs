@@ -30,7 +30,7 @@
 //!
 //! assert_eq!(a.read(), vec![0; 6]);
 //! ```
-use std::{ffi::c_void, marker::PhantomData, fmt::Debug};
+use std::ffi::c_void;
 
 //pub use libs::*;
 pub use buffer::*;
@@ -44,7 +44,6 @@ pub use devices::cpu::CPU;
 pub use devices::cuda::CUDA;
 #[cfg(feature = "opencl")]
 pub use devices::opencl::{InternCLDevice, OpenCL};
-use number::Number;
 
 pub mod devices;
 
@@ -107,32 +106,32 @@ impl<T: Number> Device for Num<T> {
 
 */
 
-pub struct X<T> {
+pub struct Num<T> {
     pub num: T
 }
 
-impl<T> Default for X<T> {
+impl<T> Default for Num<T> {
     fn default() -> Self {
-        todo!()
+        unimplemented!()
     }
 }
 
-impl<T> PtrType<T> for X<T> {
-    unsafe fn dealloc(&mut self, len: usize) {
-        todo!()
+impl<T> PtrType<T> for Num<T> {
+    unsafe fn dealloc(&mut self, _len: usize) {
+        unimplemented!()
     }
 
     fn ptrs(&self) -> (*mut T, *mut c_void, u64) {
-        todo!()
+        unimplemented!()
     }
 
-    fn from_ptrs(ptrs: (*mut T, *mut c_void, u64)) -> Self {
-        todo!()
+    fn from_ptrs(_ptrs: (*mut T, *mut c_void, u64)) -> Self {
+        unimplemented!()
     }
 }
 
 impl Device for () {
-    type P<U> = X<U>;
+    type P<U> = Num<U>;
 }
 
 pub trait DevicelessAble: Alloc {}
@@ -190,7 +189,7 @@ pub trait Alloc {
     /// let ptrs: (*mut u8, *mut std::ffi::c_void, u64) = device.with_data(&[1, 5, 4, 3, 6, 9, 0, 4]);
     ///
     /// let buf = Buffer {
-    ///     ptr: CPUPtr::from_ptrs::<u8>(ptrs),
+    ///     ptr: CPUPtr::from_ptrs(ptrs),
     ///     len: 8,
     ///     device: Some(&device),
     ///     flag: BufFlag::None,

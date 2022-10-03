@@ -3,13 +3,13 @@ use super::{
         create_command_queue, create_context, enqueue_full_copy_buffer, enqueue_read_buffer,
         enqueue_write_buffer, wait_for_event, CLIntDevice, CommandQueue, Context,
     },
-    cl_clear, KernelCacheCL, RawCL, CL_DEVICES,
+    cl_clear, KernelCacheCL, RawCL, CL_DEVICES, CLPtr,
 };
 use crate::{
     cache::{Cache, CacheReturn},
     devices::opencl::api::{create_buffer, MemFlags},
     Alloc, Buffer, CDatatype, CacheBuf, CachedLeaf, ClearBuf, CloneBuf, DevicelessAble, Error,
-    Graph, GraphReturn, VecRead, WriteBuf, CPU,
+    Graph, GraphReturn, VecRead, WriteBuf, CPU, Device, PtrType
 };
 use std::{
     cell::{Ref, RefCell},
@@ -105,6 +105,10 @@ impl OpenCL {
     }
 }
 
+impl Device for OpenCL {
+    type P<U> = CLPtr<U>;
+}
+
 impl DevicelessAble for OpenCL {}
 
 impl Debug for OpenCL {
@@ -161,7 +165,7 @@ impl Alloc for OpenCL {
 impl<'a, T> CloneBuf<'a, T> for OpenCL {
     fn clone_buf(&'a self, buf: &Buffer<'a, T, OpenCL>) -> Buffer<'a, T, OpenCL> {
         let cloned = Buffer::new(self, buf.len);
-        enqueue_full_copy_buffer::<T>(&self.queue(), buf.ptr.1, cloned.ptr.1, buf.len).unwrap();
+        enqueue_full_copy_buffer::<T>(&self.queue(), buf.ptr.ptrs().1, cloned.ptr.ptrs().1, buf.len).unwrap();
         cloned
     }
 }
@@ -174,7 +178,7 @@ impl<'a, T> CacheBuf<'a, T> for OpenCL {
 }
 
 impl CacheReturn for OpenCL {
-    type P = RawCL;
+    type CT = RawCL;
     #[inline]
     fn cache(&self) -> std::cell::RefMut<Cache<RawCL>> {
         self.cache.borrow_mut()
@@ -208,7 +212,7 @@ impl<T: CDatatype> ClearBuf<T, OpenCL> for OpenCL {
 
 impl<T> WriteBuf<T, OpenCL> for OpenCL {
     fn write(&self, buf: &mut Buffer<T, OpenCL>, data: &[T]) {
-        let event = unsafe { enqueue_write_buffer(&self.queue(), buf.ptr.1, data, true).unwrap() };
+        let event = unsafe { enqueue_write_buffer(&self.queue(), buf.ptr.ptrs().1, data, true).unwrap() };
         wait_for_event(event).unwrap();
     }
 }
@@ -216,12 +220,12 @@ impl<T> WriteBuf<T, OpenCL> for OpenCL {
 impl<T: Clone + Default> VecRead<T, OpenCL> for OpenCL {
     fn read(&self, buf: &crate::Buffer<T, OpenCL>) -> Vec<T> {
         assert!(
-            !buf.ptr.1.is_null(),
+            !buf.ptr.ptrs().1.is_null(),
             "called VecRead::read(..) on a non OpenCL buffer (this would read out a null pointer)"
         );
         let mut read = vec![T::default(); buf.len];
         let event =
-            unsafe { enqueue_read_buffer(&self.queue(), buf.ptr.1, &mut read, false).unwrap() };
+            unsafe { enqueue_read_buffer(&self.queue(), buf.ptr.ptrs().1, &mut read, false).unwrap() };
         wait_for_event(event).unwrap();
         read
     }

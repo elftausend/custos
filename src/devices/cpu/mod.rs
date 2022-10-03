@@ -1,4 +1,4 @@
-use crate::{devices::cache::CacheType, Node, PtrType, Alloc, GraphReturn};
+use crate::{devices::cache::CacheType, Node, PtrType};
 #[cfg(feature="blas")]
 pub use blas::*;
 pub use cpu_device::*;
@@ -27,6 +27,9 @@ impl<T> PtrType<T> for CPUPtr<T> {
 
     #[inline]
     unsafe fn dealloc(&mut self, len: usize) {
+        if self.ptr.is_null() {
+            return;
+        }
         let layout = Layout::array::<T>(len).unwrap();
         std::alloc::dealloc(self.ptr as *mut u8, layout);
     }
@@ -36,6 +39,7 @@ impl<T> PtrType<T> for CPUPtr<T> {
         (self.ptr as *mut T, null_mut(), 0)
     }
 
+    #[inline]
     fn from_ptrs(ptrs: (*mut T, *mut std::ffi::c_void, u64)) -> Self {
         CPUPtr { ptr: ptrs.0 }
     }
