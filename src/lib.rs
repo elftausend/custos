@@ -51,12 +51,9 @@ mod buffer;
 mod count;
 mod error;
 mod graph;
+mod static_api;
 
 pub mod number;
-
-thread_local! {
-    pub static GLOBAL_CPU: CPU = CPU::new();
-}
 
 pub trait PtrType<T>: Default {
     /// # Safety

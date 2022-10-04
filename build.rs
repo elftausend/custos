@@ -8,13 +8,13 @@ fn main() {
 #[cfg(feature = "opencl")]
 fn has_device_unified_mem() -> bool {
 
-    println!("cargo:rerun-if-env-changed=CUSTOS_UNIFIED_IDX");
+    println!("cargo:rerun-if-env-changed=CUSTOS_CL_DEVICE_IDX");
     println!("cargo:rerun-if-env-changed=CUSTOS_USE_UNIFIED");
 
-    let device_idx = std::env::var("CUSTOS_UNIFIED_IDX")
+    let device_idx = std::env::var("CUSTOS_CL_DEVICE_IDX")
         .unwrap_or("0".into())
         .parse::<usize>()
-        .expect("Value in variable 'CUSTOS_UNIFIED_IDX' must be a positive usize value.");
+        .expect("Value in variable 'CUSTOS_CL_DEVICE_IDX' must be a positive usize value.");
 
     // this environment variable (CUSTOS_USE_UNIFIED) is used to either:
     // ... disable unified memory on unified memory devices, or

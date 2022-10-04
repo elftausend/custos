@@ -1,11 +1,10 @@
-use std::iter::FromIterator;
 use std::{ffi::c_void, fmt::Debug};
 
 use crate::cpu::CPUPtr;
 
 use crate::{
     Alloc, CDatatype, CacheBuf, ClearBuf, CloneBuf, DevicelessAble, GraphReturn, Node, VecRead,
-    WriteBuf, CPU, GLOBAL_CPU, CPUCL, Device, PtrType, Num
+    WriteBuf, CPU, CPUCL, Device, PtrType, Num
 };
 
 /// Descripes the type of a [`Buffer`]
@@ -137,16 +136,6 @@ impl<'a, T, D: Device> Buffer<'a, T, D> {
         self.len == 0
     }
 
-    #[cfg(feature = "opencl")]
-    #[inline]
-    pub fn cl_ptr(&self) -> *mut c_void {
-        assert!(
-            !self.ptrs().1.is_null(),
-            "called cl_ptr() on an invalid OpenCL buffer"
-        );
-        self.ptrs().1
-    }
-
     /// Sets all elements in `Buffer` to the default value.
     pub fn clear(&mut self)
     where
@@ -180,7 +169,7 @@ impl<'a, T, D: Device> Buffer<'a, T, D> {
     /// With a CPU buffer, the slice is just copied to the slice of the buffer.
     pub fn write(&mut self, data: &[T])
     where
-        T: Copy,
+        T: Clone,
         D: WriteBuf<T, D>,
     {
         self.device().write(self, data)
@@ -296,6 +285,18 @@ impl<'a, T: crate::number::Number> Buffer<'a, T, ()>  {
     }
 }
 
+#[cfg(feature = "opencl")]
+impl<'a, T> Buffer<'a, T, crate::OpenCL> {    
+    #[inline]
+    pub fn cl_ptr(&self) -> *mut c_void {
+        assert!(
+            !self.ptrs().1.is_null(),
+            "called cl_ptr() on an invalid OpenCL buffer"
+        );
+        self.ptrs().1
+    }
+}
+
 #[cfg(feature = "cuda")]
 impl<'a, T> Buffer<'a, T, crate::CUDA> {
     // TODO: replace buf.ptr.2 with this fn, do the same with cl, cpu
@@ -350,32 +351,6 @@ impl<'a, T: Clone, D: CloneBuf<'a, T>+Device> Clone for Buffer<'a, T, D> {
 unsafe impl<T> Send for Buffer<'a, T> {}
 #[cfg(feature = "safe")]
 unsafe impl<T> Sync for Buffer<'a, T> {}*/
-
-
-
-impl<'a, A> FromIterator<A> for Buffer<'a, A> 
-where
-    A: Clone + Default
-{
-    fn from_iter<T: IntoIterator<Item = A>>(iter: T) -> Self {
-        // Safety: GLOBAL_CPU should live long enough
-        let device = unsafe {
-            GLOBAL_CPU
-                .with(|device| device as *const CPU)
-                .as_ref()
-                .unwrap()
-        };
-        let from_iter = Vec::from_iter(iter);
-
-        Buffer {
-            len: from_iter.len(),
-            node: device.graph().add_leaf(from_iter.len()),
-            ptr: CPUPtr::from_ptrs(device.alloc_with_vec(from_iter)),
-            device: Some(device),
-            flag: BufFlag::None,
-        }
-    }
-}
 
 
 impl<T, D: Device> Drop for Buffer<'_, T, D> {
@@ -606,7 +581,6 @@ where
     }
 }
 
-// TODO: Think of adding them to the graph
 /*
 // TODO: check if Wrapper flag fits
 // TODO: unsafe from raw parts fn?
