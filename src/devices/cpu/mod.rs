@@ -1,5 +1,5 @@
 use crate::{devices::cache::CacheType, Node, PtrType};
-#[cfg(feature="blas")]
+#[cfg(feature = "blas")]
 pub use blas::*;
 pub use cpu_device::*;
 use std::{
@@ -8,7 +8,7 @@ use std::{
     ptr::null_mut,
 };
 
-#[cfg(feature="blas")]
+#[cfg(feature = "blas")]
 mod blas;
 mod cpu_device;
 
@@ -42,7 +42,6 @@ impl<T> PtrType<T> for CPUPtr<T> {
     fn from_ptrs(ptrs: (*mut T, *mut std::ffi::c_void, u64)) -> Self {
         CPUPtr { ptr: ptrs.0 }
     }
-    
 }
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]

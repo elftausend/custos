@@ -3,13 +3,13 @@ use super::{
         create_command_queue, create_context, enqueue_full_copy_buffer, enqueue_read_buffer,
         enqueue_write_buffer, wait_for_event, CLIntDevice, CommandQueue, Context,
     },
-    cl_clear, KernelCacheCL, RawCL, CL_DEVICES, CLPtr,
+    cl_clear, CLPtr, KernelCacheCL, RawCL, CL_DEVICES,
 };
 use crate::{
     cache::{Cache, CacheReturn},
     devices::opencl::api::{create_buffer, MemFlags},
-    Alloc, Buffer, CDatatype, CacheBuf, CachedLeaf, ClearBuf, CloneBuf, DevicelessAble, Error,
-    Graph, GraphReturn, VecRead, WriteBuf, CPU, Device
+    Alloc, Buffer, CDatatype, CacheBuf, CachedLeaf, ClearBuf, CloneBuf, Device, DevicelessAble,
+    Error, Graph, GraphReturn, VecRead, WriteBuf, CPU,
 };
 use std::{
     cell::{Ref, RefCell},
@@ -136,7 +136,7 @@ impl Alloc for OpenCL {
 
         #[cfg(unified_cl)]
         let cpu_ptr = unified_ptr::<T>(&self.queue(), ptr, len).unwrap();
-        
+
         #[cfg(not(unified_cl))]
         let cpu_ptr = std::ptr::null_mut();
 
@@ -154,7 +154,7 @@ impl Alloc for OpenCL {
 
         #[cfg(unified_cl)]
         let cpu_ptr = unified_ptr::<T>(&self.queue(), ptr, data.len()).unwrap();
-        
+
         #[cfg(not(unified_cl))]
         let cpu_ptr = std::ptr::null_mut();
 
@@ -165,7 +165,8 @@ impl Alloc for OpenCL {
 impl<'a, T> CloneBuf<'a, T> for OpenCL {
     fn clone_buf(&'a self, buf: &Buffer<'a, T, OpenCL>) -> Buffer<'a, T, OpenCL> {
         let cloned = Buffer::new(self, buf.len);
-        enqueue_full_copy_buffer::<T>(&self.queue(), buf.ptrs().1, cloned.ptrs().1, buf.len).unwrap();
+        enqueue_full_copy_buffer::<T>(&self.queue(), buf.ptrs().1, cloned.ptrs().1, buf.len)
+            .unwrap();
         cloned
     }
 }
@@ -212,7 +213,8 @@ impl<T: CDatatype> ClearBuf<T, OpenCL> for OpenCL {
 
 impl<T> WriteBuf<T, OpenCL> for OpenCL {
     fn write(&self, buf: &mut Buffer<T, OpenCL>, data: &[T]) {
-        let event = unsafe { enqueue_write_buffer(&self.queue(), buf.ptrs().1, data, true).unwrap() };
+        let event =
+            unsafe { enqueue_write_buffer(&self.queue(), buf.ptrs().1, data, true).unwrap() };
         wait_for_event(event).unwrap();
     }
 }

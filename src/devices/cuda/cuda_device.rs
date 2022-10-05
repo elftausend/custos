@@ -4,12 +4,12 @@ use super::{
         cublas::{create_handle, cublasDestroy_v2, cublasSetStream_v2, CublasHandle},
         cumalloc, device, Context, CudaIntDevice, Module, Stream,
     },
-    cu_clear, KernelCacheCU, RawCUBuf, CUDAPtr,
+    cu_clear, CUDAPtr, KernelCacheCU, RawCUBuf,
 };
 use crate::{
     cache::{Cache, CacheReturn},
-    Alloc, Buffer, CDatatype, CacheBuf, CachedLeaf, ClearBuf, CloneBuf, Graph, GraphReturn,
-    VecRead, WriteBuf, Device
+    Alloc, Buffer, CDatatype, CacheBuf, CachedLeaf, ClearBuf, CloneBuf, Device, Graph, GraphReturn,
+    VecRead, WriteBuf,
 };
 use std::{cell::RefCell, ptr::null_mut};
 
@@ -137,7 +137,11 @@ impl<'a, T> CloneBuf<'a, T> for CUDA {
     fn clone_buf(&'a self, buf: &Buffer<'a, T, CUDA>) -> Buffer<'a, T, CUDA> {
         let cloned = Buffer::new(self, buf.len);
         unsafe {
-            cuMemcpy(cloned.ptrs().2, buf.ptrs().2, buf.len * std::mem::size_of::<T>());
+            cuMemcpy(
+                cloned.ptrs().2,
+                buf.ptrs().2,
+                buf.len * std::mem::size_of::<T>(),
+            );
         }
         cloned
     }

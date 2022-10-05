@@ -1,4 +1,4 @@
-use crate::{Buffer, Ident, COUNT, Device};
+use crate::{Buffer, Device, Ident, COUNT};
 use std::cell::RefMut;
 
 #[cfg(feature = "opt-cache")]

@@ -1,4 +1,6 @@
-use crate::{bump_count, AddGraph, Alloc, BufFlag, Buffer, GraphReturn, Ident, Node, Device, PtrType};
+use crate::{
+    bump_count, AddGraph, Alloc, BufFlag, Buffer, Device, GraphReturn, Ident, Node, PtrType,
+};
 use std::{cell::RefMut, collections::HashMap, ffi::c_void, rc::Rc};
 
 /// This trait is implemented for every 'cacheable' pointer.

@@ -59,7 +59,7 @@ pub trait PtrType<T>: Default {
     /// # Safety
     /// The pointer must be a valid pointer.
     unsafe fn dealloc(&mut self, len: usize);
-    
+
     fn ptrs(&self) -> (*mut T, *mut c_void, u64);
     fn from_ptrs(ptrs: (*mut T, *mut c_void, u64)) -> Self;
 }
@@ -69,7 +69,7 @@ pub trait Device: Sized {
 }
 
 pub struct Num<T> {
-    pub num: T
+    pub num: T,
 }
 
 impl<T> Default for Num<T> {
@@ -102,7 +102,6 @@ pub trait DevicelessAble: Alloc {}
 //impl Deviceless for () {}
 
 pub trait CPUCL: Device {}
-
 
 /// This trait is for allocating memory on the implemented device.
 ///
@@ -205,7 +204,7 @@ pub trait VecRead<T, D: Device> {
 }
 
 /// Trait for writing data to buffers.
-pub trait WriteBuf<T, D: Device>: Sized+ Device {
+pub trait WriteBuf<T, D: Device>: Sized + Device {
     /// Write data to the buffer.
     /// # Example
     /// ```
@@ -226,7 +225,7 @@ pub trait WriteBuf<T, D: Device>: Sized+ Device {
 }
 
 /// This trait is used to clone a buffer based on a specific device type.
-pub trait CloneBuf<'a, T>: Sized+Device {
+pub trait CloneBuf<'a, T>: Sized + Device {
     /// Creates a deep copy of the specified buffer.
     /// # Example
     ///
@@ -243,12 +242,11 @@ pub trait CloneBuf<'a, T>: Sized+Device {
 }
 
 /// This trait is used to retrieve a cached buffer from a specific device type.
-pub trait CacheBuf<'a, T>: Sized+Device
-{
-    #[cfg_attr(feature = "realloc", doc = "```ignore")]
+pub trait CacheBuf<'a, T>: Sized + Device {
     /// Adds a buffer to the cache. Following calls will return this buffer, if the corresponding internal count matches with the id used in the cache.
     /// # Example
-    /// ```
+    #[cfg_attr(feature = "realloc", doc = "```ignore")]
+    #[cfg_attr(not(feature = "realloc"), doc = "```")]
     /// use custos::{CPU, VecRead, set_count, get_count, CacheBuf};
     ///
     /// let device = CPU::new();
@@ -270,8 +268,8 @@ pub trait CacheBuf<'a, T>: Sized+Device
 
 pub mod prelude {
     pub use crate::{
-        cache::CacheReturn, get_count, set_count, Buffer, CDatatype, CacheBuf, GraphReturn,
-        VecRead, CPU, WriteBuf, cached, number::*, range, ClearBuf, Device
+        cache::CacheReturn, cached, get_count, number::*, range, set_count, Buffer, CDatatype,
+        CacheBuf, ClearBuf, Device, GraphReturn, VecRead, WriteBuf, CPU,
     };
 
     #[cfg(feature = "opencl")]
@@ -279,7 +277,7 @@ pub mod prelude {
 
     #[cfg(feature = "opencl")]
     #[cfg(unified_cl)]
-    #[cfg(not(feature="realloc"))]
+    #[cfg(not(feature = "realloc"))]
     pub use crate::opencl::{construct_buffer, to_unified};
 
     #[cfg(feature = "cuda")]

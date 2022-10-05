@@ -1,4 +1,4 @@
-use custos::{Buffer, CDatatype, Cache, CPU, Device};
+use custos::{Buffer, CDatatype, Cache, Device, CPU};
 
 #[cfg(feature = "opencl")]
 use custos::{opencl::enqueue_kernel, OpenCL};
@@ -7,7 +7,7 @@ use custos::{opencl::enqueue_kernel, OpenCL};
 use custos::{cuda::launch_kernel1d, CUDA};
 
 /// AddBuf will be implemented for all compute devices.
-pub trait AddBuf<T>: Sized+Device {
+pub trait AddBuf<T>: Sized + Device {
     /// This operation perfoms element-wise addition.
     fn add(&self, lhs: &Buffer<T, Self>, rhs: &Buffer<T, Self>) -> Buffer<T, Self>;
     // ... you can add more operations if you want to do that.

@@ -28,12 +28,14 @@ pub struct CLPtr<T> {
 
 impl<T> Default for CLPtr<T> {
     fn default() -> Self {
-        Self { ptr: null_mut(), host_ptr: null_mut() }
+        Self {
+            ptr: null_mut(),
+            host_ptr: null_mut(),
+        }
     }
 }
 
 impl<T> PtrType<T> for CLPtr<T> {
-    
     unsafe fn dealloc(&mut self, _len: usize) {
         if self.ptr.is_null() {
             return;

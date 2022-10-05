@@ -7,7 +7,6 @@ fn main() {
 
 #[cfg(feature = "opencl")]
 fn has_device_unified_mem() -> bool {
-
     println!("cargo:rerun-if-env-changed=CUSTOS_CL_DEVICE_IDX");
     println!("cargo:rerun-if-env-changed=CUSTOS_USE_UNIFIED");
 
@@ -18,7 +17,7 @@ fn has_device_unified_mem() -> bool {
 
     // this environment variable (CUSTOS_USE_UNIFIED) is used to either:
     // ... disable unified memory on unified memory devices, or
-    // ... activate unified memory on devices with dedicated memory to check if 
+    // ... activate unified memory on devices with dedicated memory to check if
     // the code would compile on a device with unified memory.
     if let Ok(value) = std::env::var("CUSTOS_USE_UNIFIED") {
         if &value.to_ascii_lowercase() != "default" {

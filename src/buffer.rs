@@ -3,8 +3,8 @@ use std::{ffi::c_void, fmt::Debug};
 use crate::cpu::CPUPtr;
 
 use crate::{
-    Alloc, CDatatype, CacheBuf, ClearBuf, CloneBuf, DevicelessAble, GraphReturn, Node, VecRead,
-    WriteBuf, CPU, CPUCL, Device, PtrType, Num
+    Alloc, CDatatype, CacheBuf, ClearBuf, CloneBuf, Device, DevicelessAble, GraphReturn, Node, Num,
+    PtrType, VecRead, WriteBuf, CPU, CPUCL,
 };
 
 /// Descripes the type of a [`Buffer`]
@@ -32,13 +32,13 @@ impl PartialEq for BufFlag {
 /// # Example
 /// ```
 /// use custos::prelude::*;
-/// 
+///
 /// fn buffer_f32_cpu(buf: &Buffer) {}
 /// fn buffer_generic<T, D: Device>(buf: &Buffer<T, D>) {}
-/// 
+///
 /// let device = CPU::new();
 /// let buf = Buffer::from((&device, [0.5, 1.3, 3.2, 2.43]));
-/// 
+///
 /// buffer_f32_cpu(&buf);
 /// buffer_generic(&buf);
 /// ```
@@ -59,7 +59,7 @@ impl<'a, T, D: Device> Buffer<'a, T, D> {
     /// let device = CPU::new();
     /// let mut buffer = Buffer::<i32>::new(&device, 6);
     ///
-    /// // this works only with cpu buffers (this creates a slice with the host pointer)
+    /// // this only works with CPU or unified memory buffers (this creates a slice with the host pointer)
     /// for value in &mut buffer {
     ///     *value = 2;
     /// }
@@ -110,7 +110,7 @@ impl<'a, T, D: Device> Buffer<'a, T, D> {
         self.device
             .expect("Called device() on a deviceless buffer.")
     }
-    
+
     /// Returns the number of elements contained in `Buffer`.
     /// # Example
     /// ```
@@ -200,7 +200,10 @@ impl<'a, T, D: Device> Buffer<'a, T, D> {
     /// Itself, this function does not need to be unsafe.
     /// However, declaring this function as unsafe highlights the violation of creating two or more owners for one resource.
     /// Furthermore, the resulting `Buffer` can outlive `self`.
-    pub unsafe fn shallow(&self) -> Buffer<'a, T, D> where <D as Device>::P<T>: Copy {
+    pub unsafe fn shallow(&self) -> Buffer<'a, T, D>
+    where
+        <D as Device>::P<T>: Copy,
+    {
         Buffer {
             ptr: self.ptr,
             len: self.len,
@@ -263,7 +266,7 @@ impl<'a, T> Buffer<'a, T> {
     }
 }
 
-impl<'a, T: crate::number::Number> Buffer<'a, T, ()>  {
+impl<'a, T: crate::number::Number> Buffer<'a, T, ()> {
     /// Used if the `Buffer` contains only a single value.
     ///
     /// # Example
@@ -286,7 +289,7 @@ impl<'a, T: crate::number::Number> Buffer<'a, T, ()>  {
 }
 
 #[cfg(feature = "opencl")]
-impl<'a, T> Buffer<'a, T, crate::OpenCL> {    
+impl<'a, T> Buffer<'a, T, crate::OpenCL> {
     #[inline]
     pub fn cl_ptr(&self) -> *mut c_void {
         assert!(
@@ -303,7 +306,10 @@ impl<'a, T> Buffer<'a, T, crate::CUDA> {
     /// Returns a non null CUDA pointer
     #[inline]
     pub fn cu_ptr(&self) -> u64 {
-        assert!(self.ptrs().2 != 0, "called cu_ptr() on an invalid CUDA buffer");
+        assert!(
+            self.ptrs().2 != 0,
+            "called cu_ptr() on an invalid CUDA buffer"
+        );
         self.ptr.ptr
     }
 }
@@ -340,7 +346,7 @@ impl<'a, T, D: CPUCL> Buffer<'a, T, D> {
     }
 }
 
-impl<'a, T: Clone, D: CloneBuf<'a, T>+Device> Clone for Buffer<'a, T, D> {
+impl<'a, T: Clone, D: CloneBuf<'a, T> + Device> Clone for Buffer<'a, T, D> {
     fn clone(&self) -> Self {
         //get_device!(self.device, CloneBuf<T>).clone_buf(self)
         self.device().clone_buf(self)
@@ -351,7 +357,6 @@ impl<'a, T: Clone, D: CloneBuf<'a, T>+Device> Clone for Buffer<'a, T, D> {
 unsafe impl<T> Send for Buffer<'a, T> {}
 #[cfg(feature = "safe")]
 unsafe impl<T> Sync for Buffer<'a, T> {}*/
-
 
 impl<T, D: Device> Drop for Buffer<'_, T, D> {
     fn drop(&mut self) {
@@ -447,10 +452,10 @@ impl<T, D: CPUCL> std::ops::DerefMut for Buffer<'_, T, D> {
     }
 }
 
-impl<T, D> Debug for Buffer<'_, T, D> 
-where 
-    T: Debug + Default + Copy, 
-    D: VecRead<T, D> + Device
+impl<T, D> Debug for Buffer<'_, T, D>
+where
+    T: Debug + Default + Copy,
+    D: VecRead<T, D> + Device,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Buffer")
@@ -504,7 +509,7 @@ impl<'a, T, D: CPUCL> std::iter::IntoIterator for &'a mut Buffer<'_, T, D> {
 impl<T: crate::number::Number> From<T> for Buffer<'_, T, ()> {
     fn from(ptr: T) -> Self {
         Buffer {
-            ptr: Num { num: ptr},
+            ptr: Num { num: ptr },
             len: 0,
             flag: BufFlag::None,
             device: None,
@@ -514,9 +519,9 @@ impl<T: crate::number::Number> From<T> for Buffer<'_, T, ()> {
 }
 
 impl<'a, T, D, const N: usize> From<(&'a D, [T; N])> for Buffer<'a, T, D>
-where 
-    T: Clone, 
-    D: Alloc + GraphReturn + Device
+where
+    T: Clone,
+    D: Alloc + GraphReturn + Device,
 {
     fn from(device_slice: (&'a D, [T; N])) -> Self {
         let len = device_slice.1.len();
@@ -530,10 +535,10 @@ where
     }
 }
 
-impl<'a, T, D> From<(&'a D, &[T])> for Buffer<'a, T, D> 
-where 
-    T: Clone, 
-    D: Alloc + GraphReturn + Device
+impl<'a, T, D> From<(&'a D, &[T])> for Buffer<'a, T, D>
+where
+    T: Clone,
+    D: Alloc + GraphReturn + Device,
 {
     fn from(device_slice: (&'a D, &[T])) -> Self {
         let len = device_slice.1.len();
@@ -547,10 +552,10 @@ where
     }
 }
 
-impl<'a, T, D> From<(&'a D, Vec<T>)> for Buffer<'a, T, D> 
-where 
-    T: Clone, 
-    D: Alloc + GraphReturn + Device
+impl<'a, T, D> From<(&'a D, Vec<T>)> for Buffer<'a, T, D>
+where
+    T: Clone,
+    D: Alloc + GraphReturn + Device,
 {
     fn from(device_vec: (&'a D, Vec<T>)) -> Self {
         let len = device_vec.1.len();
@@ -564,10 +569,10 @@ where
     }
 }
 
-impl<'a, T, D> From<(&'a D, &Vec<T>)> for Buffer<'a, T, D> 
-where 
-    T: Clone, 
-    D: Alloc + GraphReturn + Device
+impl<'a, T, D> From<(&'a D, &Vec<T>)> for Buffer<'a, T, D>
+where
+    T: Clone,
+    D: Alloc + GraphReturn + Device,
 {
     fn from(device_slice: (&'a D, &Vec<T>)) -> Self {
         let len = device_slice.1.len();
@@ -656,14 +661,14 @@ impl<'a, T: CDatatype> From<(u64, usize)> for Buffer<'a, T> {
 }
 */
 
-#[cfg_attr(feature = "realloc", doc = "```ignore")]
 /// Adds a `Buffer` to the "cache chain".
 /// Following calls will return this `Buffer`,
 /// if the corresponding internal count matches with the id used in the cache.
 ///
 ///
 /// # Example
-/// ```
+#[cfg_attr(feature = "realloc", doc = "```ignore")]
+#[cfg_attr(not(feature = "realloc"), doc = "```")]
 /// use custos::{CPU, cached, VecRead, set_count, get_count};
 ///
 /// let device = CPU::new();

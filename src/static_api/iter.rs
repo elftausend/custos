@@ -1,10 +1,10 @@
-use crate::{Buffer, Alloc, cpu::CPUPtr, GraphReturn, PtrType, BufFlag};
+use crate::{cpu::CPUPtr, Alloc, BufFlag, Buffer, GraphReturn, PtrType};
 
 use super::static_cpu;
 
-impl<'a, A> FromIterator<A> for Buffer<'a, A> 
+impl<'a, A> FromIterator<A> for Buffer<'a, A>
 where
-    A: Clone + Default
+    A: Clone + Default,
 {
     fn from_iter<T: IntoIterator<Item = A>>(iter: T) -> Self {
         let device = static_cpu();

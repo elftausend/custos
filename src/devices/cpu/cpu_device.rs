@@ -1,7 +1,7 @@
 use crate::{
     devices::cache::{Cache, CacheReturn},
-    Alloc, Buffer, CacheBuf, CachedLeaf, ClearBuf, CloneBuf, DevicelessAble, Graph, GraphReturn,
-    VecRead, WriteBuf, CPUCL, Device,
+    Alloc, Buffer, CacheBuf, CachedLeaf, ClearBuf, CloneBuf, Device, DevicelessAble, Graph,
+    GraphReturn, VecRead, WriteBuf, CPUCL,
 };
 use std::{
     alloc::{handle_alloc_error, Layout},
@@ -11,7 +11,7 @@ use std::{
     mem::size_of,
 };
 
-use super::{RawCpuBuf, CPUPtr};
+use super::{CPUPtr, RawCpuBuf};
 
 #[derive(Debug, Default)]
 /// A CPU is used to perform calculations on the host CPU.

@@ -1,7 +1,7 @@
 use custos::cpu::cpu_cached;
 #[cfg(feature = "opencl")]
 use custos::{devices::opencl::OpenCL, Error};
-use custos::{Alloc, Buffer, VecRead, Device};
+use custos::{Alloc, Buffer, Device, VecRead};
 
 use custos::CPU;
 
@@ -272,7 +272,6 @@ fn test_deviceless_buf() {
         *element = idx as u8;
     }
     assert_eq!(buf.as_slice(), &[0, 1, 2, 3, 4]);
-
 }
 
 /*
@@ -286,7 +285,6 @@ fn test_deviceless_buf_panic() {
     };
     buf.read();
 }*/
-
 
 #[cfg(feature = "opencl")]
 #[test]

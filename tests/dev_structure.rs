@@ -1,4 +1,4 @@
-/* 
+/*
 #![allow(unused)]
 use std::{ffi::c_void, marker::PhantomData};
 
@@ -44,7 +44,7 @@ pub struct Buf<'a, T, D: Device> {
     p: PhantomData<T>,
 }
 
-impl<'a, T, D: Device> Buf<'a, T, D> 
+impl<'a, T, D: Device> Buf<'a, T, D>
 where &'a D: Alloc,
 {
     fn new(device: &'a D) {

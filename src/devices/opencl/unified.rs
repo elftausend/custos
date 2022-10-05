@@ -61,7 +61,7 @@ pub unsafe fn construct_buffer<'a, T: Debug>(
         return Ok(Buffer {
             ptr: CLPtr {
                 ptr: rawcl.ptr,
-                host_ptr: rawcl.host_ptr as *mut T
+                host_ptr: rawcl.host_ptr as *mut T,
             },
             len: no_drop.len,
             device: Some(device),

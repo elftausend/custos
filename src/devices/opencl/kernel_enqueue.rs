@@ -1,5 +1,5 @@
 use super::api::{enqueue_nd_range_kernel, set_kernel_arg, OCLErrorKind};
-use crate::{number::Number, Buffer, OpenCL, Device};
+use crate::{number::Number, Buffer, Device, OpenCL};
 use std::{ffi::c_void, mem::size_of};
 
 pub trait AsClCvoidPtr {

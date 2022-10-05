@@ -21,9 +21,9 @@ pub struct CUDAPtr<T> {
 
 impl<T> Default for CUDAPtr<T> {
     fn default() -> Self {
-        Self { 
+        Self {
             ptr: 0,
-            p: PhantomData
+            p: PhantomData,
         }
     }
 }
@@ -43,7 +43,7 @@ impl<T> PtrType<T> for CUDAPtr<T> {
     fn from_ptrs(ptrs: (*mut T, *mut std::ffi::c_void, u64)) -> Self {
         Self {
             ptr: ptrs.2,
-            p: PhantomData
+            p: PhantomData,
         }
     }
 }
