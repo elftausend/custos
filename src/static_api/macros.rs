@@ -1,4 +1,3 @@
-
 #[macro_export]
 macro_rules! buf {
     ($elem:expr; $n:expr) => (

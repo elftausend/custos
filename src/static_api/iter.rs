@@ -22,7 +22,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::{Buffer, buf};
+    use crate::{buf, Buffer};
 
     #[test]
     fn test_from_iter() {
@@ -33,7 +33,7 @@ mod tests {
     #[test]
     fn test_collect() {
         let buf = (0..5).into_iter().collect::<Buffer<i32>>();
-        
+
         assert_eq!(buf.read(), vec![0, 1, 2, 3, 4]);
     }
 

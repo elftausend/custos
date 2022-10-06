@@ -1,7 +1,7 @@
-mod static_devices;
 mod iter;
-mod to_device;
 mod macros;
+mod static_devices;
+mod to_device;
 
 pub use macros::*;
 pub use static_devices::*;

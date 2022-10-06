@@ -95,11 +95,13 @@ impl OpenCL {
         self.device().get_version()
     }
 
+    /// Checks if the device supports unified memory.
     #[inline]
     pub fn unified_mem(&self) -> bool {
         self.inner.borrow().unified_mem
     }
 
+    #[deprecated(since="0.6.0", note="Use the environment variable 'CUSTOS_USE_UNIFIED' set to 'true', 'false' or 'default'[=hardware dependent] instead.")]
     pub fn set_unified_mem(&self, unified_mem: bool) {
         self.inner.borrow_mut().unified_mem = unified_mem;
     }

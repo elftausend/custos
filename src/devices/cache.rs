@@ -21,13 +21,24 @@ pub trait CacheReturn: GraphReturn {
 }
 
 /// Caches pointers that can be reconstructed into a [`Buffer`].
+///
+/// Example
+///
+/// ```
+/// use custos::prelude::*;
+///
+/// let device = CPU::new();
+/// let cached_buf = Cache::get::<f32, _>(&device, 10, ());
+///
+/// assert_eq!(cached_buf.len, 10);
+/// ```
 #[derive(Debug)]
 pub struct Cache<P: CacheType> {
     pub nodes: HashMap<Ident, Rc<P>>,
 }
 
-pub trait BindP<P> {}
-impl<CT: CacheType> BindP<CT> for Cache<CT> {}
+pub trait BindCT<CT> {}
+impl<CT: CacheType> BindCT<CT> for Cache<CT> {}
 
 impl<CT: CacheType> Default for Cache<CT> {
     fn default() -> Self {
@@ -38,6 +49,27 @@ impl<CT: CacheType> Default for Cache<CT> {
 }
 
 impl<P: CacheType> Cache<P> {
+    /// Adds a new cache entry to the cache.
+    /// The next get call will return this entry if the [Ident] is correct.
+    /// # Example
+    /// ```
+    /// use custos::prelude::*;
+    /// use custos::Ident;
+    /// 
+    /// let device = CPU::new();
+    /// let cache: Buffer = device
+    ///     .cache()
+    ///     .add_node(&device, Ident { idx: 0, len: 7 }, ());
+    ///
+    /// let ptr = device
+    ///     .cache()
+    ///     .nodes
+    ///     .get(&Ident { idx: 0, len: 7 })
+    ///     .unwrap()
+    ///     .clone();
+    ///
+    /// assert_eq!(cache.host_ptr(), ptr.ptr as *mut f32);
+    /// ```
     pub fn add_node<'a, T, D>(
         &mut self,
         device: &'a D,
@@ -69,13 +101,31 @@ impl<P: CacheType> Cache<P> {
         }
     }
 
-    /// Retrieves cached pointers and constructs a [`Buffer`] with them and `len`.
+    /// Retrieves cached pointers and constructs a [`Buffer`] with the pointers and the given `len`gth.
+    /// If a cached pointer doesn't exist, a new `Buffer` will be added to the cache and returned.
+    /// 
+    /// # Example
+    /// ```
+    /// use custos::prelude::*;
+    /// 
+    /// let device = CPU::new();
+    ///     
+    /// let cache_entry: Buffer = Cache::get(&device, 10, ());
+    /// let new_cache_entry: Buffer = Cache::get(&device, 10, ());
+    /// 
+    /// assert_ne!(cache_entry.ptrs(), new_cache_entry.ptrs());
+    /// 
+    /// set_count(0);
+    /// 
+    /// let first_entry: Buffer = Cache::get(&device, 10, ());
+    /// assert_eq!(cache_entry.ptrs(), first_entry.ptrs());
+    /// ```
     #[cfg(not(feature = "realloc"))]
     pub fn get<T, D>(device: &D, len: usize, add_node: impl AddGraph) -> Buffer<T, D>
     where
         // In order to know the specific pointer type
         // there is probably a better way to implement this
-        Self: BindP<D::CT>,
+        Self: BindCT<D::CT>,
         D: Alloc + CacheReturn + Device,
     {
         let node = Ident::new(len);
@@ -100,14 +150,52 @@ impl<P: CacheType> Cache<P> {
         }
     }
 
+    /// If the 'realloc' feature is enabled, this functions always returns a new [`Buffer`] with the size of `len`gth.
     #[cfg(feature = "realloc")]
     pub fn get<T, D: Device>(device: &D, len: usize, _: impl AddGraph) -> Buffer<T, D>
     where
         // In order to know the specific pointer type
         // there is probably a better way to implement this
-        Self: BindP<D::CT>,
+        Self: BindCT<D::CT>,
         D: Alloc + CacheReturn,
     {
         Buffer::new(device, len)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::{Buffer, CacheReturn, Ident, CPU, Cache, set_count};
+
+    #[test]
+    fn test_add_node() {
+        let device = CPU::new();
+        let cache: Buffer = device
+            .cache()
+            .add_node(&device, Ident { idx: 0, len: 7 }, ());
+
+        let ptr = device
+            .cache()
+            .nodes
+            .get(&Ident { idx: 0, len: 7 })
+            .unwrap()
+            .clone();
+
+        assert_eq!(cache.host_ptr(), ptr.ptr as *mut f32);
+    }
+
+    #[test]
+    fn test_get() {
+        let device = CPU::new();
+        
+        let cache_entry: Buffer = Cache::get(&device, 10, ());
+        let new_cache_entry: Buffer = Cache::get(&device, 10, ());
+
+        assert_ne!(cache_entry.ptrs(), new_cache_entry.ptrs());
+
+        set_count(0);
+
+        let first_entry: Buffer = Cache::get(&device, 10, ());
+        assert_eq!(cache_entry.ptrs(), first_entry.ptrs());
     }
 }

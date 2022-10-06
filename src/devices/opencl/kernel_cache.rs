@@ -35,10 +35,35 @@ impl Drop for RawCL {
 #[derive(Debug, Default)]
 /// This stores the previously compiled OpenCL kernels.
 pub struct KernelCacheCL {
-    pub(crate) kernel_cache: HashMap<String, Kernel>,
+    pub kernel_cache: HashMap<String, Kernel>,
 }
 
 impl KernelCacheCL {
+    /// Returns a cached kernel. If the kernel source code does not exist, a new kernel is created and cached.
+    /// 
+    /// # Example
+    /// ``` 
+    /// use std::collections::HashMap;
+    /// use custos::{OpenCL, opencl::KernelCacheCL};
+    /// 
+    /// fn main() -> custos::Result<()> {
+    ///     let device = OpenCL::new(0)?;
+    ///     
+    ///     let mut kernel_cache = KernelCacheCL {
+    ///         kernel_cache: HashMap::new(),
+    ///     };
+    ///     
+    ///     let mut kernel_fn = || kernel_cache.kernel_cache(&device, "
+    ///         __kernel void test(__global float* test) {}
+    ///     ");
+    ///     
+    ///     let kernel = kernel_fn()?;
+    ///     let same_kernel = kernel_fn()?;
+    ///     
+    ///     assert_eq!(kernel.0, same_kernel.0);
+    ///     Ok(())
+    /// }
+    /// ```
     pub fn kernel_cache(&mut self, device: &OpenCL, src: &str) -> Result<Kernel, Error> {
         if let Some(kernel) = self.kernel_cache.get(src) {
             return Ok(*kernel);
@@ -60,5 +85,39 @@ impl Drop for KernelCacheCL {
         for kernel in &mut self.kernel_cache.values_mut() {
             kernel.release()
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::collections::HashMap;
+    use crate::OpenCL;
+    use super::KernelCacheCL;
+
+    #[test]
+    fn test_kernel_cache() -> crate::Result<()> {
+        let device = OpenCL::new(0)?;
+
+        let mut kernel_cache = KernelCacheCL {
+            kernel_cache: HashMap::new(),
+        };
+
+        let mut kernel_fn = || kernel_cache.kernel_cache(&device, "
+            __kernel void foo(__global float* test) {}
+        ");
+
+        let kernel = kernel_fn()?;
+        let same_kernel = kernel_fn()?;
+        
+        assert_eq!(kernel.0, same_kernel.0);
+        
+        let kernel = kernel_fn()?;
+        let another_kernel = kernel_cache.kernel_cache(&device, "
+            __kernel void bar(__global float* test, __global float* out) {}
+        ")?;
+
+        assert_ne!(kernel.0, another_kernel.0);
+
+        Ok(())
     }
 }

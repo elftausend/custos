@@ -1,7 +1,6 @@
-use crate::{cpu::CPUPtr, Alloc, BufFlag, Buffer, Device, GraphReturn, PtrType, VecRead, Node};
+use crate::{cpu::CPUPtr, Alloc, BufFlag, Buffer, Device, GraphReturn, Node, PtrType, VecRead};
 
 use super::{static_cpu, StaticGPU};
-
 
 impl<'a, T: Clone> Buffer<'a, T> {
     /// Moves the buffer [`Buffer`] to a static device.<br>
@@ -12,18 +11,17 @@ impl<'a, T: Clone> Buffer<'a, T> {
     #[cfg_attr(not(feature = "opencl"), doc = "```ignore")]
     #[cfg_attr(feature = "opencl", doc = "```")]
     /// use custos::prelude::*;
-    /// 
+    ///
     /// let cpu_buffer = Buffer::from(&[1., 2., 3.]);
     ///
     /// let cl_buf = cpu_buffer.to_dev::<OpenCL>();
     /// assert_eq!(cl_buf.read(), vec![1., 2., 3.]);
     /// ```
     #[inline]
-    pub fn to_dev<D>(self) -> Buffer<'static, T, D> 
+    pub fn to_dev<D>(self) -> Buffer<'static, T, D>
     where
-        D: Device + StaticGPU + Alloc + GraphReturn 
+        D: Device + StaticGPU + Alloc + GraphReturn,
     {
-
         Buffer::from((D::as_static(), self.as_slice()))
     }
 
@@ -33,7 +31,7 @@ impl<'a, T: Clone> Buffer<'a, T> {
     /// Example
     /// ```
     /// use custos::prelude::*;
-    /// 
+    ///
     /// let cpu_buffer = Buffer::from(&[1., 2., 3.]);
     ///
     /// let cu_buf = cpu_buffer.to_cuda();
@@ -51,7 +49,7 @@ impl<'a, T: Clone> Buffer<'a, T> {
     /// Example
     /// ```
     /// use custos::prelude::*;
-    /// 
+    ///
     /// let cpu_buffer = Buffer::from(&[1., 2., 3.]);
     ///
     /// let cl_buf = cpu_buffer.to_cl();
@@ -64,17 +62,17 @@ impl<'a, T: Clone> Buffer<'a, T> {
     }
 
     /// Converts a [Buffer] to an OpenCL device buffer.
-    /// 
+    ///
     /// This method depends on the feature configuration.<br>
     /// If the 'cuda' feature is enabled, this function will return a CUDA device buffer.
-    /// 
+    ///
     /// # Example
     /// ```
     /// use custos::prelude::*;
-    /// 
+    ///
     /// let cpu_buf = Buffer::from(&[4., 3., 5.]);
     /// let cl_buf = cpu_buf.to_gpu();
-    /// 
+    ///
     /// assert_eq!(cl_buf.read(), vec![4., 3., 5.]);
     /// ```
     #[cfg(feature = "opencl")]
@@ -85,17 +83,17 @@ impl<'a, T: Clone> Buffer<'a, T> {
     }
 
     /// Converts a [Buffer] to a CUDA device buffer.
-    /// 
+    ///
     /// This method depends on the feature configuration.<br>
     /// If the 'cuda' feature is disabled, this function will return an OpenCL device buffer.
-    /// 
+    ///
     /// # Example
     /// ```
     /// use custos::prelude::*;
-    /// 
+    ///
     /// let cpu_buf = Buffer::from(&[4., 3., 5.]);
     /// let cuda_buf = cpu_buf.to_gpu();
-    /// 
+    ///
     /// assert_eq!(cuda_buf.read(), vec![4., 3., 5.]);
     /// ```
     #[cfg(feature = "cuda")]
@@ -105,23 +103,23 @@ impl<'a, T: Clone> Buffer<'a, T> {
     }
 }
 
-impl<'a, T, D> Buffer<'a, T, D> 
-where 
-    T: Clone + Default, 
-    D: Device + VecRead<T, D> 
+impl<'a, T, D> Buffer<'a, T, D>
+where
+    T: Clone + Default,
+    D: Device + VecRead<T, D>,
 {
     /// Moves the [`Buffer`] back to a CPU buffer.
-    /// 
+    ///
     /// Example
-    /// 
-    #[cfg_attr(not(any(feature = "opencl", feature="cuda")), doc = "```ignore")]
-    #[cfg_attr(any(feature = "opencl", feature="cuda"), doc = "```")]
+    ///
+    #[cfg_attr(not(any(feature = "opencl", feature = "cuda")), doc = "```ignore")]
+    #[cfg_attr(any(feature = "opencl", feature = "cuda"), doc = "```")]
     /// use custos::prelude::*;
-    /// 
+    ///
     /// let gpu_buf = Buffer::from(&[1, 2, 3]).to_gpu();
-    /// 
+    ///
     /// // ... some operations ...
-    /// 
+    ///
     /// let cpu_buf = gpu_buf.to_cpu();
     /// assert_eq!(cpu_buf.as_slice(), &[1, 2, 3]);
     /// ```

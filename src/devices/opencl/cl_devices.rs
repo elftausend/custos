@@ -50,7 +50,7 @@ mod tests {
     #[should_panic]
     fn test_invalid_idx() {
         let device = CLDevices {
-            current_devices: vec![]
+            current_devices: vec![],
         };
         device.current(1).unwrap();
     }
