@@ -5,7 +5,6 @@ lazy_static::lazy_static! {
     pub static ref CL_DEVICES: CLDevices = CLDevices::new().unwrap();
 }
 
-#[derive(Debug)]
 pub struct CLDevices {
     pub current_devices: Vec<InternCLDevice>,
 }
@@ -34,5 +33,25 @@ impl CLDevices {
 impl Default for CLDevices {
     fn default() -> Self {
         Self::new().unwrap()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::opencl::CLDevices;
+
+    #[test]
+    fn test_cl_devices_creation() {
+        let devices = CLDevices::default();
+        assert!(devices.current_devices.len() >= 1);
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_invalid_idx() {
+        let device = CLDevices {
+            current_devices: vec![]
+        };
+        device.current(1).unwrap();
     }
 }

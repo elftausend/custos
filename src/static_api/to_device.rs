@@ -1,4 +1,4 @@
-use crate::{cpu::CPUPtr, Alloc, BufFlag, Buffer, Device, GraphReturn, PtrType, VecRead};
+use crate::{cpu::CPUPtr, Alloc, BufFlag, Buffer, Device, GraphReturn, PtrType, VecRead, Node};
 
 use super::{static_cpu, StaticGPU};
 
@@ -103,14 +103,6 @@ impl<'a, T: Clone> Buffer<'a, T> {
     pub fn to_gpu(self) -> Buffer<'a, T, crate::CUDA> {
         self.to_cuda()
     }
-
-    /// `Warning`: Either the 'opencl' or 'cuda' feature should be enabled.<br>
-    /// Calling this function with the current feature-set is redundant.
-    #[cfg(not(any(feature="opencl", feature="cuda")))]
-    pub fn to_gpu(self) -> Buffer<'a, T> {
-        // TODO: log msg
-        self
-    }
 }
 
 impl<'a, T, D> Buffer<'a, T, D> 
@@ -122,7 +114,8 @@ where
     /// 
     /// Example
     /// 
-    /// ```
+    #[cfg_attr(not(any(feature = "opencl", feature="cuda")), doc = "```ignore")]
+    #[cfg_attr(any(feature = "opencl", feature="cuda"), doc = "```")]
     /// use custos::prelude::*;
     /// 
     /// let gpu_buf = Buffer::from(&[1, 2, 3]).to_gpu();
@@ -172,7 +165,20 @@ impl<'a, T: Clone, const N: usize> From<[T; N]> for Buffer<'a, T> {
             len: slice.len(),
             device: Some(device),
             flag: BufFlag::None,
-            node: device.graph().add_leaf(slice.len()),
+            node: Node::default(),
+        }
+    }
+}
+
+impl<'a, T: Clone> From<Vec<T>> for Buffer<'a, T> {
+    fn from(data: Vec<T>) -> Self {
+        let device = static_cpu();
+        Buffer {
+            len: data.len(),
+            ptr: CPUPtr::from_ptrs(device.alloc_with_vec(data)),
+            device: Some(device),
+            flag: BufFlag::None,
+            node: Node::default(),
         }
     }
 }

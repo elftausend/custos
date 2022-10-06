@@ -1,7 +1,9 @@
 mod static_devices;
 mod iter;
 mod to_device;
+mod macros;
 
+pub use macros::*;
 pub use static_devices::*;
 
 pub trait StaticGPU {
