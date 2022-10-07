@@ -24,8 +24,9 @@ cuda = []
 realloc = []
 opt-cache = []
 blas = []
-static_api = []
+static-api = []
 stack = []
+
 
 [[example]]
 name = "cuda_readme"
