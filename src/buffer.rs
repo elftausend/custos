@@ -42,7 +42,7 @@ impl PartialEq for BufFlag {
 /// buffer_f32_cpu(&buf);
 /// buffer_generic(&buf);
 /// ```
-pub struct Buffer<'a, T = f32, D: Device = CPU> {
+pub struct Buffer<'a, T = f32, D: Device = CPU, const N: usize = 0> {
     pub ptr: D::P<T>,
     pub len: usize,
     pub device: Option<&'a D>,
@@ -345,7 +345,7 @@ unsafe impl<T> Send for Buffer<'a, T> {}
 #[cfg(feature = "safe")]
 unsafe impl<T> Sync for Buffer<'a, T> {}*/
 
-impl<T, D: Device> Drop for Buffer<'_, T, D> {
+impl<T, D: Device, const N: usize> Drop for Buffer<'_, T, D, N> {
     fn drop(&mut self) {
         if self.flag != BufFlag::None {
             return;
