@@ -1,4 +1,4 @@
-use crate::{cpu::CPUPtr, Alloc, BufFlag, Buffer, GraphReturn, PtrType};
+use crate::{Alloc, BufFlag, Buffer, GraphReturn};
 
 use super::static_cpu;
 
@@ -13,7 +13,7 @@ where
         Buffer {
             len: from_iter.len(),
             node: device.graph().add_leaf(from_iter.len()),
-            ptr: CPUPtr::from_ptrs(device.alloc_with_vec(from_iter)),
+            ptr: device.alloc_with_vec(from_iter),
             device: Some(device),
             flag: BufFlag::None,
         }

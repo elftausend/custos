@@ -11,7 +11,7 @@ use crate::{
     Alloc, Buffer, CDatatype, CacheBuf, CachedLeaf, ClearBuf, CloneBuf, Device, Graph, GraphReturn,
     VecRead, WriteBuf,
 };
-use std::{cell::RefCell, ptr::null_mut};
+use std::{cell::RefCell, marker::PhantomData};
 
 /// Used to perform calculations with a CUDA capable device.
 /// To make new calculations invocable, a trait providing new operations should be implemented for [CudaDevice].
@@ -79,16 +79,22 @@ impl Drop for CUDA {
 }
 
 impl Alloc for CUDA {
-    fn alloc<T>(&self, len: usize) -> (*mut T, *mut std::ffi::c_void, u64) {
+    fn alloc<T>(&self, len: usize) -> CUDAPtr<T> {
         let ptr = cumalloc::<T>(len).unwrap();
         // TODO: use unified mem if available -> i can't test this
-        (null_mut(), null_mut(), ptr)
+        CUDAPtr {
+            ptr,
+            p: PhantomData
+        }
     }
 
-    fn with_data<T>(&self, data: &[T]) -> (*mut T, *mut std::ffi::c_void, u64) {
+    fn with_data<T>(&self, data: &[T]) -> CUDAPtr<T> {
         let ptr = cumalloc::<T>(data.len()).unwrap();
         cu_write(ptr, data).unwrap();
-        (null_mut(), null_mut(), ptr)
+        CUDAPtr { 
+            ptr,
+            p: PhantomData
+        }
     }
 }
 

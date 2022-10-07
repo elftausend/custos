@@ -132,20 +132,23 @@ impl Debug for OpenCL {
 }
 
 impl Alloc for OpenCL {
-    fn alloc<T>(&self, len: usize) -> (*mut T, *mut c_void, u64) {
+    fn alloc<T>(&self, len: usize) -> CLPtr<T> {
         let ptr =
             create_buffer::<T>(&self.ctx(), MemFlags::MemReadWrite as u64, len, None).unwrap();
 
         #[cfg(unified_cl)]
-        let cpu_ptr = unified_ptr::<T>(&self.queue(), ptr, len).unwrap();
+        let host_ptr = unified_ptr::<T>(&self.queue(), ptr, len).unwrap();
 
         #[cfg(not(unified_cl))]
-        let cpu_ptr = std::ptr::null_mut();
+        let host_ptr = std::ptr::null_mut();
 
-        (cpu_ptr, ptr, 0)
+        CLPtr {
+            ptr,
+            host_ptr
+        }
     }
 
-    fn with_data<T>(&self, data: &[T]) -> (*mut T, *mut c_void, u64) {
+    fn with_data<T>(&self, data: &[T]) -> CLPtr<T> {
         let ptr = create_buffer::<T>(
             &self.ctx(),
             MemFlags::MemReadWrite | MemFlags::MemCopyHostPtr,
@@ -155,12 +158,15 @@ impl Alloc for OpenCL {
         .unwrap();
 
         #[cfg(unified_cl)]
-        let cpu_ptr = unified_ptr::<T>(&self.queue(), ptr, data.len()).unwrap();
+        let host_ptr = unified_ptr::<T>(&self.queue(), ptr, data.len()).unwrap();
 
         #[cfg(not(unified_cl))]
-        let cpu_ptr = std::ptr::null_mut();
+        let host_ptr = std::ptr::null_mut();
 
-        (cpu_ptr, ptr, 0)
+        CLPtr {
+            ptr,
+            host_ptr,
+        }
     }
 }
 

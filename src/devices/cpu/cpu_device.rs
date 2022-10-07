@@ -6,7 +6,6 @@ use crate::{
 use std::{
     alloc::{handle_alloc_error, Layout},
     cell::{RefCell, RefMut},
-    ffi::c_void,
     fmt::Debug,
     mem::size_of,
 };
@@ -50,7 +49,7 @@ impl Device for CPU {
 impl DevicelessAble for CPU {}
 
 impl Alloc for CPU {
-    fn alloc<T>(&self, len: usize) -> (*mut T, *mut c_void, u64) {
+    fn alloc<T>(&self, len: usize) -> CPUPtr<T> {
         assert!(len > 0, "invalid buffer len: 0");
         let layout = Layout::array::<T>(len).unwrap();
         let ptr = unsafe { std::alloc::alloc(layout) };
@@ -64,26 +63,32 @@ impl Alloc for CPU {
             handle_alloc_error(layout);
         }
 
-        (ptr as *mut T, std::ptr::null_mut(), 0)
+        CPUPtr {
+            ptr: ptr as *mut T
+        }
+
     }
 
-    fn with_data<T>(&self, data: &[T]) -> (*mut T, *mut c_void, u64)
+    fn with_data<T>(&self, data: &[T]) -> CPUPtr<T>
     where
         T: Clone,
     {
         assert!(!data.is_empty(), "invalid buffer len: 0");
-        let (ptr, _, _) = self.alloc(data.len());
-        let slice = unsafe { std::slice::from_raw_parts_mut(ptr, data.len()) };
+        let cpu_ptr = self.alloc(data.len());
+        let slice = unsafe { std::slice::from_raw_parts_mut(cpu_ptr.ptr, data.len()) };
         slice.clone_from_slice(data);
-        (ptr, std::ptr::null_mut(), 0)
+
+        cpu_ptr
     }
-    fn alloc_with_vec<T>(&self, mut vec: Vec<T>) -> (*mut T, *mut c_void, u64) {
+    fn alloc_with_vec<T>(&self, mut vec: Vec<T>) -> CPUPtr<T> {
         assert!(!vec.is_empty(), "invalid buffer len: 0");
 
         let ptr = vec.as_mut_ptr();
         std::mem::forget(vec);
 
-        (ptr, std::ptr::null_mut(), 0)
+        CPUPtr { 
+            ptr 
+        }
     }
 }
 

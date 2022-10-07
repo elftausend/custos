@@ -72,7 +72,7 @@ impl<'a, T, D: Device> Buffer<'a, T, D> {
         D: Alloc + GraphReturn,
     {
         Buffer {
-            ptr: D::P::<T>::from_ptrs(device.alloc::<T>(len)),
+            ptr: device.alloc::<T>(len),
             len,
             device: Some(device),
             node: device.graph().add_leaf(len),
@@ -96,9 +96,12 @@ impl<'a, T, D: Device> Buffer<'a, T, D> {
     /// }
     /// assert_eq!(buf.as_slice(), &[0, 1, 2, 3, 4]);
     /// ```
-    pub fn deviceless<'b>(device: &'b impl DevicelessAble, len: usize) -> Buffer<'a, T, D> {
+    pub fn deviceless<'b>(device: &'b D, len: usize) -> Buffer<'a, T, D> 
+    where
+        D: DevicelessAble + GraphReturn
+    {
         Buffer {
-            ptr: D::P::<T>::from_ptrs(device.alloc::<T>(len)),
+            ptr: device.alloc::<T>(len),
             len,
             ..Default::default()
         }
@@ -231,9 +234,9 @@ impl<'a, T> Buffer<'a, T> {
     /// use std::ffi::c_void;
     ///
     /// let device = CPU::new();
-    /// let ptrs: (*mut f32, *mut c_void, u64) = device.alloc(10);
+    /// let ptr = device.alloc::<f32>(10);
     /// let mut buf = unsafe {
-    ///     Buffer::from_raw_host(ptrs.0, 10)
+    ///     Buffer::from_raw_host(ptr.ptr, 10)
     /// };
     /// for (idx, value) in buf.iter_mut().enumerate() {
     ///     *value += idx as f32;
@@ -513,7 +516,7 @@ where
     fn from(device_slice: (&'a D, [T; N])) -> Self {
         let len = device_slice.1.len();
         Buffer {
-            ptr: D::P::<T>::from_ptrs(device_slice.0.with_data(&device_slice.1)),
+            ptr: device_slice.0.with_data(&device_slice.1),
             len,
             device: Some(device_slice.0),
             node: device_slice.0.graph().add_leaf(len),
@@ -530,7 +533,7 @@ where
     fn from(device_slice: (&'a D, &[T])) -> Self {
         let len = device_slice.1.len();
         Buffer {
-            ptr: D::P::<T>::from_ptrs(device_slice.0.with_data(device_slice.1)),
+            ptr: device_slice.0.with_data(device_slice.1),
             len,
             device: Some(device_slice.0),
             node: device_slice.0.graph().add_leaf(len),
@@ -547,7 +550,7 @@ where
     fn from(device_vec: (&'a D, Vec<T>)) -> Self {
         let len = device_vec.1.len();
         Buffer {
-            ptr: D::P::<T>::from_ptrs(device_vec.0.alloc_with_vec(device_vec.1)),
+            ptr: device_vec.0.alloc_with_vec(device_vec.1),
             len,
             device: Some(device_vec.0),
             node: device_vec.0.graph().add_leaf(len),
@@ -564,7 +567,7 @@ where
     fn from(device_slice: (&'a D, &Vec<T>)) -> Self {
         let len = device_slice.1.len();
         Buffer {
-            ptr: D::P::<T>::from_ptrs(device_slice.0.with_data(device_slice.1)),
+            ptr: device_slice.0.with_data(device_slice.1),
             len,
             device: Some(device_slice.0),
             node: device_slice.0.graph().add_leaf(len),
