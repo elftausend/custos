@@ -30,12 +30,12 @@ thread_local! {
 #[cfg(feature = "cuda")]
 thread_local! {
     pub static GLOBAL_CUDA: crate::CUDA = {
-        let idx = std::env::var("CUSTOS_CL_DEVICE_IDX")
+        let idx = std::env::var("CUSTOS_CU_DEVICE_IDX")
             .unwrap_or("0".into())
             .parse()
-            .expect("Environment variable 'CUSTOS_CL_DEVICE_IDX' contains an invalid opencl device index!");
+            .expect("Environment variable 'CUSTOS_CU_DEVICE_IDX' contains an invalid CUDA device index!");
 
-        crate::CUDA::new(idx).expect("Could not create a static OpenCL device.")
+        crate::CUDA::new(idx).expect("Could not create a static CUDA device.")
     };
 }
 
@@ -130,8 +130,11 @@ mod tests {
     #[cfg(any(feature = "opencl", feature = "cuda"))]
     #[test]
     fn test_to_gpu() {
-        let _buf = Buffer::from(&[2f32, 5., 1.]).to_gpu();
-    }
+        use crate::buf;
+
+        let buf = buf![2f32, 5., 1.].to_gpu();
+        assert_eq!(buf.read(), vec![2., 5., 1.]);
+    }   
 
     #[cfg(feature = "cuda")]
     #[test]
@@ -146,9 +149,9 @@ mod tests {
     #[cfg(feature = "opencl")]
     #[test]
     fn test_to_device_cl() {
-        use crate::OpenCL;
+        use crate::{OpenCL, buf};
 
-        let buf = Buffer::from(&[3f32, 1.4, 1., 2.]).to_dev::<OpenCL>();
+        let buf = buf![3f32, 1.4, 1., 2.].to_dev::<OpenCL>();
 
         assert_eq!(buf.read(), vec![3., 1.4, 1., 2.]);
     }

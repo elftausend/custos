@@ -9,6 +9,6 @@ macro_rules! buf {
     );
 
     ($($x:expr),+ $(,)?) => (
-        $crate::Buffer::from(vec![$($x),+])
+        $crate::Buffer::from([$($x),+])
     )
 }
