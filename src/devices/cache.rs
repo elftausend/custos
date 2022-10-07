@@ -79,7 +79,7 @@ impl<P: CacheType> Cache<P> {
     where
         D: Alloc + GraphReturn + Device,
     {
-        let ptr = device.alloc::<T>(node.len);
+        let ptr = device.alloc::<T>(node.len).ptrs();
 
         #[cfg(feature = "opt-cache")]
         let graph_node = device.graph().add(node.len, _add_node);
@@ -165,7 +165,9 @@ impl<P: CacheType> Cache<P> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{Buffer, CacheReturn, Ident, CPU, Cache, set_count};
+    use crate::{Buffer, CacheReturn, Ident, CPU};
+    #[cfg(not(feature="realloc"))]
+    use crate::{set_count, Cache};
 
     #[test]
     fn test_add_node() {
@@ -184,6 +186,7 @@ mod tests {
         assert_eq!(cache.host_ptr(), ptr.ptr as *mut f32);
     }
 
+    #[cfg(not(feature="realloc"))]
     #[test]
     fn test_get() {
         let device = CPU::new();

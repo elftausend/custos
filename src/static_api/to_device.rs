@@ -1,4 +1,4 @@
-use crate::{cpu::CPUPtr, Alloc, BufFlag, Buffer, Device, GraphReturn, Node, PtrType, VecRead};
+use crate::{Alloc, BufFlag, Buffer, Device, GraphReturn, Node, VecRead};
 
 use super::{static_cpu, StaticGPU};
 
@@ -133,7 +133,7 @@ impl<'a, T: Clone> From<&[T]> for Buffer<'a, T> {
     fn from(slice: &[T]) -> Self {
         let device = static_cpu();
         Buffer {
-            ptr: CPUPtr::from_ptrs(device.with_data(slice)),
+            ptr: device.with_data(slice),
             len: slice.len(),
             device: Some(device),
             flag: BufFlag::None,
@@ -146,7 +146,7 @@ impl<'a, T: Clone, const N: usize> From<&[T; N]> for Buffer<'a, T> {
     fn from(slice: &[T; N]) -> Self {
         let device = static_cpu();
         Buffer {
-            ptr: CPUPtr::from_ptrs(device.with_data(slice)),
+            ptr: device.with_data(slice),
             len: slice.len(),
             device: Some(device),
             flag: BufFlag::None,
@@ -159,7 +159,7 @@ impl<'a, T: Clone, const N: usize> From<[T; N]> for Buffer<'a, T> {
     fn from(slice: [T; N]) -> Self {
         let device = static_cpu();
         Buffer {
-            ptr: CPUPtr::from_ptrs(device.with_data(&slice)),
+            ptr: device.with_data(&slice),
             len: slice.len(),
             device: Some(device),
             flag: BufFlag::None,
@@ -173,7 +173,7 @@ impl<'a, T: Clone> From<Vec<T>> for Buffer<'a, T> {
         let device = static_cpu();
         Buffer {
             len: data.len(),
-            ptr: CPUPtr::from_ptrs(device.alloc_with_vec(data)),
+            ptr: device.alloc_with_vec(data),
             device: Some(device),
             flag: BufFlag::None,
             node: Node::default(),
