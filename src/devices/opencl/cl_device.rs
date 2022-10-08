@@ -111,7 +111,7 @@ impl Device for OpenCL {
     type P<U> = CLPtr<U>;
 }
 
-impl DevicelessAble for OpenCL {}
+impl<T> DevicelessAble<T> for OpenCL {}
 
 impl Debug for OpenCL {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -131,8 +131,8 @@ impl Debug for OpenCL {
     }
 }
 
-impl Alloc for OpenCL {
-    fn alloc<T>(&self, len: usize) -> CLPtr<T> {
+impl<T> Alloc<T> for OpenCL {
+    fn alloc(&self, len: usize) -> CLPtr<T> {
         let ptr =
             create_buffer::<T>(&self.ctx(), MemFlags::MemReadWrite as u64, len, None).unwrap();
 
@@ -148,7 +148,7 @@ impl Alloc for OpenCL {
         }
     }
 
-    fn with_data<T>(&self, data: &[T]) -> CLPtr<T> {
+    fn with_data(&self, data: &[T]) -> CLPtr<T> {
         let ptr = create_buffer::<T>(
             &self.ctx(),
             MemFlags::MemReadWrite | MemFlags::MemCopyHostPtr,

@@ -44,12 +44,12 @@ impl CPU {
 }
 
 impl Device for CPU {
-    type P<U> = CPUPtr<U>;
+    type Ptr<U, const N:usize> = CPUPtr<U>;
 }
-impl DevicelessAble for CPU {}
+impl<T> DevicelessAble<T> for CPU {}
 
-impl Alloc for CPU {
-    fn alloc<T>(&self, len: usize) -> CPUPtr<T> {
+impl<T> Alloc<T> for CPU {
+    fn alloc(&self, len: usize) -> CPUPtr<T> {
         assert!(len > 0, "invalid buffer len: 0");
         let layout = Layout::array::<T>(len).unwrap();
         let ptr = unsafe { std::alloc::alloc(layout) };
@@ -69,7 +69,7 @@ impl Alloc for CPU {
 
     }
 
-    fn with_data<T>(&self, data: &[T]) -> CPUPtr<T>
+    fn from_slice(&self, data: &[T]) -> CPUPtr<T>
     where
         T: Clone,
     {
@@ -80,7 +80,7 @@ impl Alloc for CPU {
 
         cpu_ptr
     }
-    fn alloc_with_vec<T>(&self, mut vec: Vec<T>) -> CPUPtr<T> {
+    fn alloc_with_vec(&self, mut vec: Vec<T>) -> CPUPtr<T> {
         assert!(!vec.is_empty(), "invalid buffer len: 0");
 
         let ptr = vec.as_mut_ptr();
@@ -114,7 +114,7 @@ impl crate::GraphOpt for CPU {}
 
 impl<'a, T: Clone> CloneBuf<'a, T> for CPU {
     fn clone_buf(&'a self, buf: &Buffer<'a, T, CPU>) -> Buffer<'a, T, CPU> {
-        let mut cloned = Buffer::new(self, buf.len);
+        let mut cloned = Buffer::<_, _, 0>::new(self, buf.len);
         cloned.clone_from_slice(buf);
         cloned
     }

@@ -77,9 +77,9 @@ impl<P: CacheType> Cache<P> {
         _add_node: impl AddGraph,
     ) -> Buffer<'a, T, D>
     where
-        D: Alloc + GraphReturn + Device,
+        D: Alloc<T> + GraphReturn,
     {
-        let ptr = device.alloc::<T>(node.len).ptrs();
+        let ptr = device.alloc(node.len);
 
         #[cfg(feature = "opt-cache")]
         let graph_node = device.graph().add(node.len, _add_node);
@@ -90,10 +90,10 @@ impl<P: CacheType> Cache<P> {
         bump_count();
 
         self.nodes
-            .insert(node, Rc::new(P::new(ptr, node.len, graph_node)));
+            .insert(node, Rc::new(P::new(ptr.ptrs(), node.len, graph_node)));
 
         Buffer {
-            ptr: D::P::<T>::from_ptrs(ptr),
+            ptr,
             len: node.len,
             device: Some(device),
             flag: BufFlag::Cache,
@@ -126,7 +126,7 @@ impl<P: CacheType> Cache<P> {
         // In order to know the specific pointer type
         // there is probably a better way to implement this
         Self: BindCT<D::CT>,
-        D: Alloc + CacheReturn + Device,
+        D: Alloc<T> + CacheReturn,
     {
         let node = Ident::new(len);
 
@@ -137,7 +137,7 @@ impl<P: CacheType> Cache<P> {
             Some(ptr) => {
                 bump_count();
                 let (ptr, node) = ptr.destruct::<T>();
-                let ptr = D::P::<T>::from_ptrs(ptr);
+                let ptr = <D as Device>::Ptr::<T, 0>::from_ptrs(ptr);
                 Buffer {
                     ptr,
                     len,

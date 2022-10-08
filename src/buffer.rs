@@ -43,14 +43,14 @@ impl PartialEq for BufFlag {
 /// buffer_generic(&buf);
 /// ```
 pub struct Buffer<'a, T = f32, D: Device = CPU, const N: usize = 0> {
-    pub ptr: D::P<T>,
+    pub ptr: D::Ptr<T, N>,
     pub len: usize,
     pub device: Option<&'a D>,
     pub flag: BufFlag,
     pub node: Node,
 }
 
-impl<'a, T, D: Device> Buffer<'a, T, D> {
+impl<'a, T, D: Device, const N: usize> Buffer<'a, T, D, N> {
     /// Creates a zeroed (or values set to default) `Buffer` with the given length on the specified device.
     /// This `Buffer` can't outlive the device specified as a parameter.
     /// ```
@@ -67,16 +67,18 @@ impl<'a, T, D: Device> Buffer<'a, T, D> {
     /// assert_eq!(buffer.as_slice(), &[2; 6]);
     ///
     /// ```
-    pub fn new(device: &'a D, len: usize) -> Buffer<'a, T, D>
+    pub fn new(device: &'a D, len: usize) -> Buffer<'a, T, D, N>
     where
-        D: Alloc + GraphReturn,
+        D: Alloc<T, N> /*+ GraphReturn*/,
     {
         Buffer {
-            ptr: device.alloc::<T>(len),
+            ptr: device.alloc(len),
             len,
             device: Some(device),
-            node: device.graph().add_leaf(len),
-            ..Default::default()
+            flag: BufFlag::None,
+            // TODO: enable, if leafs get more important
+            //node: device.graph().add_leaf(len),
+            node: Node::default(),            
         }
     }
 
@@ -96,14 +98,16 @@ impl<'a, T, D: Device> Buffer<'a, T, D> {
     /// }
     /// assert_eq!(buf.as_slice(), &[0, 1, 2, 3, 4]);
     /// ```
-    pub fn deviceless<'b>(device: &'b D, len: usize) -> Buffer<'a, T, D> 
+    pub fn deviceless<'b>(device: &'b D, len: usize) -> Buffer<'a, T, D, N> 
     where
-        D: DevicelessAble + GraphReturn
+        D: DevicelessAble<T, N>
     {
         Buffer {
-            ptr: device.alloc::<T>(len),
+            ptr: device.alloc(len),
             len,
-            ..Default::default()
+            flag: BufFlag::None,
+            node: Node::default(),
+            device: None,
         }
     }
 }
@@ -192,7 +196,7 @@ impl<'a, T, D: Device> Buffer<'a, T, D> {
     /// Furthermore, the resulting `Buffer` can outlive `self`.
     pub unsafe fn shallow(&self) -> Buffer<'a, T, D>
     where
-        <D as Device>::P<T>: Copy,
+        <D as Device>::Ptr<T, 0>: Copy,
     {
         Buffer {
             ptr: self.ptr,
@@ -212,7 +216,7 @@ impl<'a, T, D: Device> Buffer<'a, T, D> {
     /// Furthermore, the resulting `Buffer` can outlive `self`.
     pub unsafe fn shallow_or_clone(&self) -> Buffer<'a, T, D>
     where
-        <D as Device>::P<T>: Copy,
+        <D as Device>::Ptr<T, 0>: Copy,
         T: Clone,
         D: CloneBuf<'a, T>,
     {
@@ -360,10 +364,12 @@ impl<T, D: Device, const N: usize> Drop for Buffer<'_, T, D, N> {
     }
 }
 
-impl<'a, T, D: Device> Default for Buffer<'a, T, D> {
+impl<'a, T, D: Device> Default for Buffer<'a, T, D> 
+where D::Ptr<T, 0>: Default
+{
     fn default() -> Self {
         Self {
-            ptr: D::P::<T>::default(),
+            ptr: D::Ptr::<T, 0>::default(),
             flag: BufFlag::default(),
             len: Default::default(),
             device: None,
@@ -511,12 +517,13 @@ impl<T: crate::number::Number> From<T> for Buffer<'_, T, ()> {
 impl<'a, T, D, const N: usize> From<(&'a D, [T; N])> for Buffer<'a, T, D>
 where
     T: Clone,
-    D: Alloc + GraphReturn + Device,
+    D: Alloc<T> + GraphReturn + Device,
+    D::Ptr<T, 0>: Default
 {
     fn from(device_slice: (&'a D, [T; N])) -> Self {
         let len = device_slice.1.len();
         Buffer {
-            ptr: device_slice.0.with_data(&device_slice.1),
+            ptr: device_slice.0.from_slice(&device_slice.1),
             len,
             device: Some(device_slice.0),
             node: device_slice.0.graph().add_leaf(len),
@@ -528,12 +535,13 @@ where
 impl<'a, T, D> From<(&'a D, &[T])> for Buffer<'a, T, D>
 where
     T: Clone,
-    D: Alloc + GraphReturn + Device,
+    D: Alloc<T> + GraphReturn + Device,
+    D::Ptr<T, 0>: Default
 {
     fn from(device_slice: (&'a D, &[T])) -> Self {
         let len = device_slice.1.len();
         Buffer {
-            ptr: device_slice.0.with_data(device_slice.1),
+            ptr: device_slice.0.from_slice(device_slice.1),
             len,
             device: Some(device_slice.0),
             node: device_slice.0.graph().add_leaf(len),
@@ -545,7 +553,8 @@ where
 impl<'a, T, D> From<(&'a D, Vec<T>)> for Buffer<'a, T, D>
 where
     T: Clone,
-    D: Alloc + GraphReturn + Device,
+    D: Alloc<T> + GraphReturn + Device,
+    D::Ptr<T, 0>: Default
 {
     fn from(device_vec: (&'a D, Vec<T>)) -> Self {
         let len = device_vec.1.len();
@@ -562,12 +571,13 @@ where
 impl<'a, T, D> From<(&'a D, &Vec<T>)> for Buffer<'a, T, D>
 where
     T: Clone,
-    D: Alloc + GraphReturn + Device,
+    D: Alloc<T> + GraphReturn + Device,
+    D::Ptr<T, 0>: Default
 {
     fn from(device_slice: (&'a D, &Vec<T>)) -> Self {
         let len = device_slice.1.len();
         Buffer {
-            ptr: device_slice.0.with_data(device_slice.1),
+            ptr: device_slice.0.from_slice(device_slice.1),
             len,
             device: Some(device_slice.0),
             node: device_slice.0.graph().add_leaf(len),

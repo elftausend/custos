@@ -4,7 +4,7 @@ use custos::{Alloc, BufFlag};
 #[test]
 fn test_alloc() {
     let device = CPU::new();
-    let ptr = device.with_data(&[1, 5, 4, 3, 6, 9, 0, 4]);
+    let ptr = device.from_slice(&[1, 5, 4, 3, 6, 9, 0, 4]);
     let buf = Buffer {
         ptr,
         len: 8,

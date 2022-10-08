@@ -20,7 +20,7 @@ impl<'a, T: Clone> Buffer<'a, T> {
     #[inline]
     pub fn to_dev<D>(self) -> Buffer<'static, T, D>
     where
-        D: Device + StaticGPU + Alloc + GraphReturn,
+        D: Device + StaticGPU + Alloc<T> + GraphReturn,
     {
         Buffer::from((D::as_static(), self.as_slice()))
     }

@@ -57,7 +57,7 @@ mod static_api;
 
 pub mod number;
 
-pub trait PtrType<T>: Default {
+pub trait PtrType<T, const N: usize = 0> {
     /// # Safety
     /// The pointer must be a valid pointer.
     unsafe fn dealloc(&mut self, len: usize);
@@ -67,20 +67,21 @@ pub trait PtrType<T>: Default {
 }
 
 pub trait Device: Sized {
-    type P<U>: PtrType<U>;
+    type Ptr<U, const N: usize>: PtrType<U>;
+
 }
 
-pub struct Num<T> {
+pub struct Num<T, const N: usize = 0> {
     pub num: T,
 }
 
-impl<T> Default for Num<T> {
+impl<const N: usize, T> Default for Num<T, N> {
     fn default() -> Self {
         unimplemented!()
     }
 }
 
-impl<T> PtrType<T> for Num<T> {
+impl<const N: usize, T> PtrType<T, 0> for Num<T, N> {
     unsafe fn dealloc(&mut self, _len: usize) {
         return;
     }
@@ -95,10 +96,10 @@ impl<T> PtrType<T> for Num<T> {
 }
 
 impl Device for () {
-    type P<U> = Num<U>;
+    type Ptr<U, const N: usize> = Num<U, N>;
 }
 
-pub trait DevicelessAble: Alloc {}
+pub trait DevicelessAble<T, const N: usize=0>: Alloc<T, N> {}
 
 //pub trait Deviceless {}
 //impl Deviceless for () {}
@@ -123,7 +124,7 @@ pub trait CPUCL: Device {}
 /// };
 /// assert_eq!(vec![0.; 12], device.read(&buf));
 /// ```
-pub trait Alloc: Device {
+pub trait Alloc<T, const N: usize = 0>: Device {
     /// Allocate memory on the implemented device.
     /// # Example
     /// ```
@@ -141,7 +142,7 @@ pub trait Alloc: Device {
     /// };
     /// assert_eq!(vec![0.; 12], device.read(&buf));
     /// ```
-    fn alloc<T>(&self, len: usize) -> <Self as Device>::P<T>;
+    fn alloc(&self, len: usize) -> <Self as Device>::Ptr<T, N>;
 
     /// Allocate new memory with data
     /// # Example
@@ -160,17 +161,25 @@ pub trait Alloc: Device {
     /// };
     /// assert_eq!(vec![1, 5, 4, 3, 6, 9, 0, 4], device.read(&buf));
     /// ```
-    fn with_data<T>(&self, data: &[T]) -> <Self as Device>::P<T>
-    where
-        T: Clone;
+    fn from_slice(&self, data: &[T]) -> <Self as Device>::Ptr<T, N>
+    where T: Clone;
 
     /// If the vector `vec` was allocated previously, this function can be used in order to reduce the amount of allocations, which may be faster than using a slice of `vec`.
-    fn alloc_with_vec<T>(&self, vec: Vec<T>) -> <Self as Device>::P<T>
-    where
-        T: Clone,
+    /// #[inline]
+    fn alloc_with_vec(&self, vec: Vec<T>) -> <Self as Device>::Ptr<T, N>
+    where T: Clone,
     {
-        self.with_data(&vec)
+        self.from_slice(&vec)
     }
+
+    #[inline]
+    fn from_array(&self, array: [T; N]) -> <Self as Device>::Ptr<T, N>
+    where T: Clone 
+    {
+        self.from_slice(&array)
+    }
+
+
 }
 
 /// Trait for implementing the clear() operation for the compute devices.
