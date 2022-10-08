@@ -3,6 +3,11 @@ use crate::{
 };
 use std::{cell::RefMut, collections::HashMap, ffi::c_void, rc::Rc};
 
+pub trait CacheAble<D: Device, const N: usize = 0> {
+    fn retrieve<'a, T>(device: &'a D, len: usize, add_node: impl AddGraph) -> Buffer<'a, T, D, N>
+        where D: Alloc<T, N>;
+}
+
 /// This trait is implemented for every 'cacheable' pointer.
 pub trait CacheType {
     /// Constructs a new device-specific cachable pointer.
@@ -33,12 +38,20 @@ pub trait CacheReturn: GraphReturn {
 /// assert_eq!(cached_buf.len, 10);
 /// ```
 #[derive(Debug)]
-pub struct Cache<P: CacheType> {
-    pub nodes: HashMap<Ident, Rc<P>>,
+pub struct Cache<CT: CacheType> {
+    pub nodes: HashMap<Ident, Rc<CT>>,
 }
 
 pub trait BindCT<CT> {}
 impl<CT: CacheType> BindCT<CT> for Cache<CT> {}
+
+impl<CT: CacheType, D: Device + CacheReturn> CacheAble<D> for Cache<CT> {
+    fn retrieve<'a, T>(device: &'a D, len: usize, add_node: impl AddGraph) -> Buffer<'a, T, D> 
+        where D: Alloc<T>,
+    {
+        Cache::get(device, len, add_node)
+    }
+}
 
 impl<CT: CacheType> Default for Cache<CT> {
     fn default() -> Self {

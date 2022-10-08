@@ -45,7 +45,9 @@ impl CPU {
 
 impl Device for CPU {
     type Ptr<U, const N:usize> = CPUPtr<U>;
+    type Cache<const N: usize> = Cache<RawCpuBuf>;
 }
+
 impl<T> DevicelessAble<T> for CPU {}
 
 impl<T> Alloc<T> for CPU {

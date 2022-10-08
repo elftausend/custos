@@ -36,6 +36,7 @@ use std::ffi::c_void;
 pub use buffer::*;
 pub use count::*;
 pub use devices::*;
+use devices::cache::CacheAble;
 pub use error::*;
 pub use graph::*;
 
@@ -68,7 +69,7 @@ pub trait PtrType<T, const N: usize = 0> {
 
 pub trait Device: Sized {
     type Ptr<U, const N: usize>: PtrType<U>;
-
+    type Cache<const N: usize>: CacheAble<Self, N>;
 }
 
 pub struct Num<T, const N: usize = 0> {
@@ -95,8 +96,15 @@ impl<const N: usize, T> PtrType<T, 0> for Num<T, N> {
     }
 }
 
+impl<D: Device, const N: usize> CacheAble<D, N> for () {
+    fn retrieve<'a, T>(device: &'a D, len: usize, add_node: impl AddGraph) -> Buffer<'a, T, D, N> {
+        todo!()
+    }
+}
+
 impl Device for () {
     type Ptr<U, const N: usize> = Num<U, N>;
+    type Cache<const N: usize> = ();
 }
 
 pub trait DevicelessAble<T, const N: usize=0>: Alloc<T, N> {}

@@ -4,7 +4,7 @@ mod buffer_impl;
 
 #[cfg(test)]
 mod tests {
-    use crate::{Buffer, Device, CPU, CPUCL};
+    use crate::{Buffer, Device, CPU, CPUCL, CacheAble, Alloc};
 
     use super::stack_device::Stack;
 
@@ -20,13 +20,13 @@ mod tests {
         }
     }*/
 
-    impl<T, D: CPUCL, const N: usize> AddBuf<T, D, N> for D { 
+    impl<const N: usize, T, D: CPUCL + Alloc<T, N>> AddBuf<T, D, N> for D { 
         fn add(&self, lhs: &Buffer<T, D, N>, rhs: &Buffer<T, D, N>) -> Buffer<T, Self, N> {
-            
+            let out: Buffer<T, D, N> = D::Cache::retrieve(self, N, (lhs.node.idx, rhs.node.idx));
             for i in 0..N {
                 
             }
-            todo!()
+            out
         }
     }
 
