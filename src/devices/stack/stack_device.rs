@@ -1,6 +1,6 @@
 use std::{ptr::null_mut, ops::{Deref, DerefMut}};
 
-use crate::{Device, PtrType, Alloc, CPUCL, devices::CacheAble};
+use crate::{Device, PtrType, Alloc, CPUCL, devices::CacheAble, Buffer};
 
 #[derive(Debug, Clone, Copy)]
 pub struct Stack;
@@ -44,10 +44,10 @@ pub struct StackRetrieve {
 }
 
 impl<const N: usize> CacheAble<Stack, N> for StackRetrieve {
-    fn retrieve<'a, T>(device: &'a Stack, len: usize, add_node: impl crate::AddGraph) -> crate::Buffer<'a, T, Stack, N>
+    fn retrieve<'a, T>(device: &'a Stack, len: usize, _add_node: impl crate::AddGraph) -> crate::Buffer<'a, T, Stack, N>
     where Stack: Alloc<T, N> 
     {
-        todo!()
+        Buffer::new(device, len)
     }
 }
 impl Device for Stack {

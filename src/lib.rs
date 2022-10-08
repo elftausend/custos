@@ -70,6 +70,12 @@ pub trait PtrType<T, const N: usize = 0> {
 pub trait Device: Sized {
     type Ptr<U, const N: usize>: PtrType<U>;
     type Cache<const N: usize>: CacheAble<Self, N>;
+
+    fn retrieve<'a, T, const N: usize>(&'a self, len: usize, add_node: impl AddGraph) -> Buffer<'a, T, Self, N> 
+    where Self: Alloc<T, N>
+    {
+        Self::Cache::retrieve(self, len, add_node)
+    }
 }
 
 pub struct Num<T, const N: usize = 0> {

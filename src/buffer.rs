@@ -71,6 +71,7 @@ impl<'a, T, D: Device, const N: usize> Buffer<'a, T, D, N> {
     where
         D: Alloc<T, N> /*+ GraphReturn*/,
     {
+        let len = if N > 0 { N } else { len };
         Buffer {
             ptr: device.alloc(len),
             len,

@@ -125,7 +125,7 @@ impl<'a, T: Clone> CloneBuf<'a, T> for CPU {
 impl<'a, T> CacheBuf<'a, T> for CPU {
     #[inline]
     fn cached(&'a self, len: usize) -> Buffer<'a, T, CPU> {
-        Cache::get::<T, CPU>(self, len, CachedLeaf)
+        Cache::get::<T, CPU, 0>(self, len, CachedLeaf)
     }
 }
 

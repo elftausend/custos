@@ -45,9 +45,9 @@ pub struct Cache<CT: CacheType> {
 pub trait BindCT<CT> {}
 impl<CT: CacheType> BindCT<CT> for Cache<CT> {}
 
-impl<CT: CacheType, D: Device + CacheReturn> CacheAble<D> for Cache<CT> {
-    fn retrieve<'a, T>(device: &'a D, len: usize, add_node: impl AddGraph) -> Buffer<'a, T, D> 
-        where D: Alloc<T>,
+impl<CT: CacheType, D: Device + CacheReturn, const N: usize> CacheAble<D, N> for Cache<CT> {
+    fn retrieve<'a, T>(device: &'a D, len: usize, add_node: impl AddGraph) -> Buffer<'a, T, D, N> 
+        where D: Alloc<T, N>,
     {
         Cache::get(device, len, add_node)
     }
@@ -83,14 +83,14 @@ impl<P: CacheType> Cache<P> {
     ///
     /// assert_eq!(cache.host_ptr(), ptr.ptr as *mut f32);
     /// ```
-    pub fn add_node<'a, T, D>(
+    pub fn add_node<'a, T, D, const N: usize>(
         &mut self,
         device: &'a D,
         node: Ident,
         _add_node: impl AddGraph,
-    ) -> Buffer<'a, T, D>
+    ) -> Buffer<'a, T, D, N>
     where
-        D: Alloc<T> + GraphReturn,
+        D: Alloc<T, N> + GraphReturn,
     {
         let ptr = device.alloc(node.len);
 
@@ -134,12 +134,12 @@ impl<P: CacheType> Cache<P> {
     /// assert_eq!(cache_entry.ptrs(), first_entry.ptrs());
     /// ```
     #[cfg(not(feature = "realloc"))]
-    pub fn get<T, D>(device: &D, len: usize, add_node: impl AddGraph) -> Buffer<T, D>
+    pub fn get<T, D, const N: usize>(device: &D, len: usize, add_node: impl AddGraph) -> Buffer<T, D, N>
     where
         // In order to know the specific pointer type
         // there is probably a better way to implement this
         Self: BindCT<D::CT>,
-        D: Alloc<T> + CacheReturn,
+        D: Alloc<T, N> + CacheReturn,
     {
         let node = Ident::new(len);
 
@@ -150,7 +150,7 @@ impl<P: CacheType> Cache<P> {
             Some(ptr) => {
                 bump_count();
                 let (ptr, node) = ptr.destruct::<T>();
-                let ptr = <D as Device>::Ptr::<T, 0>::from_ptrs(ptr);
+                let ptr = <D as Device>::Ptr::<T, N>::from_ptrs(ptr);
                 Buffer {
                     ptr,
                     len,
