@@ -34,7 +34,7 @@ pub trait CacheReturn: GraphReturn {
 /// use custos::prelude::*;
 ///
 /// let device = CPU::new();
-/// let cached_buf = Cache::get::<f32, _>(&device, 10, ());
+/// let cached_buf = Cache::get::<f32, _, 0>(&device, 10, ());
 ///
 /// assert_eq!(cached_buf.len, 10);
 /// ```
@@ -46,7 +46,11 @@ pub struct Cache<CT: CacheType> {
 pub trait BindCT<CT> {}
 impl<CT: CacheType> BindCT<CT> for Cache<CT> {}
 
-impl<CT: CacheType, D: Device + CacheReturn, const N: usize> CacheAble<D, N> for Cache<CT> {
+impl<CT, D, const N: usize> CacheAble<D, N> for Cache<CT> 
+where
+    D: Device + CacheReturn,
+    CT: CacheType
+{
     fn retrieve<T>(device: &D, len: usize, add_node: impl AddGraph) -> Buffer<T, D, N>
     where
         D: Alloc<T, N>,

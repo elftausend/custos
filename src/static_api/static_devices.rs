@@ -19,7 +19,7 @@ pub fn static_cpu() -> &'static CPU {
 thread_local! {
     pub static GLOBAL_OPENCL: crate::OpenCL = {
         let idx = std::env::var("CUSTOS_CL_DEVICE_IDX")
-            .unwrap_or("0".into())
+            .unwrap_or_else(|_| "0".into())
             .parse()
             .expect("Environment variable 'CUSTOS_CL_DEVICE_IDX' contains an invalid opencl device index!");
 
@@ -31,7 +31,7 @@ thread_local! {
 thread_local! {
     pub static GLOBAL_CUDA: crate::CUDA = {
         let idx = std::env::var("CUSTOS_CU_DEVICE_IDX")
-            .unwrap_or("0".into())
+            .unwrap_or_else(|_| "0".into())
             .parse()
             .expect("Environment variable 'CUSTOS_CU_DEVICE_IDX' contains an invalid CUDA device index!");
 

@@ -13,7 +13,7 @@ use crate::{Buffer, CDatatype, PtrType};
 
 use self::api::cufree;
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct CUDAPtr<T> {
     pub ptr: u64,
     p: PhantomData<T>,

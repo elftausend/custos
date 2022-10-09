@@ -14,6 +14,8 @@ use crate::{Buffer, Ident, Node, OpenCL, CPU};
 
 /// Returns an OpenCL pointer that is bound to the host pointer stored in the specified buffer.
 /// This function is used in the `constuct_buffer()` function.
+/// # Safety
+/// The host pointer inside the no_drop `Buffer` must live as long as the resulting pointer.
 pub unsafe fn to_unified<T>(
     device: &OpenCL,
     no_drop: Buffer<T, CPU>,
@@ -46,7 +48,7 @@ pub unsafe fn to_unified<T>(
 #[cfg(not(feature = "realloc"))]
 /// Converts an 'only' CPU buffer into an OpenCL + CPU (unified memory) buffer.
 /// # Safety
-/// The pointer of the no_drop Buffer must be valid for the entire lifetime of the returned Buffer.
+/// The host pointer of the no_drop `Buffer` must be valid for the entire lifetime of the returned Buffer.
 ///
 /// # Example
 /// ```

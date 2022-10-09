@@ -1,4 +1,4 @@
-mod buffer_impl;
+mod impl_buffer;
 mod stack_device;
 
 #[cfg(test)]
@@ -53,11 +53,10 @@ mod tests {
     fn test_stack() {
         let stack = Stack;
 
-        let mut buf = Buffer::<f32, _, 100>::new(&stack, 0);
-        buf.copy_from_slice(&[1.; 100]);
+        let buf = Buffer::<f32, Stack, 100>::from([1f32; 100]);
 
         let out = stack.add(&buf, &buf);
-        assert_eq!(out.as_slice(), &[2.; 100]);
+        assert_eq!(out.ptr.array, [2.; 100]);
 
         let cpu = CPU::new();
         

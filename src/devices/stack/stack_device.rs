@@ -8,9 +8,18 @@ use crate::{devices::CacheAble, Alloc, Buffer, Device, PtrType, CPUCL, IsCPU};
 #[derive(Debug, Clone, Copy)]
 pub struct Stack;
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct StackArray<const N: usize, T = f32> {
-    array: [T; N],
+    pub array: [T; N],
+}
+
+impl<T, const N: usize> StackArray<N, T> {
+    #[inline]
+    pub fn new(array: [T; N]) -> Self {
+        StackArray {
+            array
+        }
+    }
 }
 
 impl<const N: usize, T> Deref for StackArray<N, T> {

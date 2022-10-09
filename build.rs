@@ -12,7 +12,7 @@ fn has_device_unified_mem() -> bool {
     println!("cargo:rerun-if-env-changed=CUSTOS_USE_UNIFIED");
 
     let device_idx = std::env::var("CUSTOS_CL_DEVICE_IDX")
-        .unwrap_or("0".into())
+        .unwrap_or_else(|_| "0".into())
         .parse::<usize>()
         .expect("Value in variable 'CUSTOS_CL_DEVICE_IDX' must be a positive usize value.");
 

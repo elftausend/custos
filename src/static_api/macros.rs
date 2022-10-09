@@ -9,6 +9,6 @@ macro_rules! buf {
     );
 
     ($($x:expr),+ $(,)?) => (
-        $crate::Buffer::from([$($x),+])
+        $crate::Buffer::<_, $crate::CPU, 0>::from([$($x),+])
     )
 }

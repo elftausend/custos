@@ -23,7 +23,7 @@ use crate::{Buffer, CDatatype, PtrType};
 
 use self::api::release_mem_object;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct CLPtr<T> {
     pub ptr: *mut c_void,
     pub host_ptr: *mut T,
