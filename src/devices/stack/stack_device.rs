@@ -1,13 +1,16 @@
-use std::{ptr::null_mut, ops::{Deref, DerefMut}};
+use std::{
+    ops::{Deref, DerefMut},
+    ptr::null_mut,
+};
 
-use crate::{Device, PtrType, Alloc, CPUCL, devices::CacheAble, Buffer};
+use crate::{devices::CacheAble, Alloc, Buffer, Device, PtrType, CPUCL, IsCPU};
 
 #[derive(Debug, Clone, Copy)]
 pub struct Stack;
 
 #[derive(Debug, Clone, Copy)]
 pub struct StackArray<const N: usize, T = f32> {
-    array: [T; N]
+    array: [T; N],
 }
 
 impl<const N: usize, T> Deref for StackArray<N, T> {
@@ -27,9 +30,7 @@ impl<const N: usize, T> DerefMut for StackArray<N, T> {
 }
 
 impl<const N: usize, T> PtrType<T> for StackArray<N, T> {
-    unsafe fn dealloc(&mut self, _len: usize) {
-        return;
-    }
+    unsafe fn dealloc(&mut self, _len: usize) {}
 
     fn ptrs(&self) -> (*mut T, *mut std::ffi::c_void, u64) {
         (self.array.as_ptr() as *mut T, null_mut(), 0)
@@ -40,39 +41,49 @@ impl<const N: usize, T> PtrType<T> for StackArray<N, T> {
     }
 }
 
-pub struct StackRetrieve {
-}
+pub struct StackRetrieve {}
 
 impl<const N: usize> CacheAble<Stack, N> for StackRetrieve {
-    fn retrieve<'a, T>(device: &'a Stack, len: usize, _add_node: impl crate::AddGraph) -> crate::Buffer<'a, T, Stack, N>
-    where Stack: Alloc<T, N> 
+    fn retrieve<T>(
+        device: &Stack,
+        len: usize,
+        _add_node: impl crate::AddGraph,
+    ) -> crate::Buffer<T, Stack, N>
+    where
+        Stack: Alloc<T, N>,
     {
         Buffer::new(device, len)
     }
 }
+
 impl Device for Stack {
     type Ptr<U, const N: usize> = StackArray<N, U>;
     type Cache<const N: usize> = StackRetrieve;
 }
 
+impl IsCPU for Stack {}
 impl CPUCL for Stack {}
 
 impl<const N: usize, T: Copy + Default> Alloc<T, N> for Stack {
     #[inline]
     fn alloc(&self, _len: usize) -> StackArray<N, T> {
-        StackArray { array: [T::default(); N] }
+        // TODO: one day... use const expressions
+        if N == 0 {
+            panic!("The size (N) of a stack allocated buffer must be greater than 0.");
+        }
+        StackArray {
+            array: [T::default(); N],
+        }
     }
 
-    fn from_slice(&self, data: &[T]) -> StackArray<N, T> {
+    fn with_slice(&self, data: &[T]) -> StackArray<N, T> {
         let mut array = self.alloc(0);
         array.copy_from_slice(&data[..N]);
         array
     }
 
     #[inline]
-    fn from_array(&self, array: [T; N]) -> <Self as Device>::Ptr<T, N> {
-        StackArray {
-            array
-        }
+    fn with_array(&self, array: [T; N]) -> <Self as Device>::Ptr<T, N> {
+        StackArray { array }
     }
 }

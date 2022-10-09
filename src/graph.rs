@@ -239,21 +239,27 @@ impl AddGraph for CachedLeaf {
     }
 }
 
-impl<'a, T, D: Device> AddGraph for Buffer<'a, T, D> {
+impl<'a, T, D: Device, const N: usize> AddGraph for Buffer<'a, T, D, N> {
     fn add(&self, graph: &mut Graph, len: usize) -> Node {
         graph.add_node(len, self.node.idx, self.node.idx)
     }
 }
 
-impl<'a, T, D: Device> AddGraph for &Buffer<'a, T, D> {
+impl<'a, T, D: Device, const N: usize> AddGraph for &Buffer<'a, T, D, N> {
     fn add(&self, graph: &mut Graph, len: usize) -> Node {
         graph.add_node(len, self.node.idx, self.node.idx)
     }
 }
 
-impl<'a, T, D: Device> AddGraph for (&Buffer<'a, T, D>, &Buffer<'a, T, D>) {
+impl<'a, T, D: Device, const N: usize> AddGraph for (&Buffer<'a, T, D, N>, &Buffer<'a, T, D, N>) {
     fn add(&self, graph: &mut Graph, len: usize) -> Node {
         graph.add_node(len, self.0.node.idx, self.1.node.idx)
+    }
+}
+
+impl<'a, T, D: Device, const N: usize> AddGraph for [&Buffer<'a, T, D, N>; 2] {
+    fn add(&self, graph: &mut Graph, len: usize) -> Node {
+        graph.add_node(len, self[0].node.idx, self[1].node.idx)
     }
 }
 

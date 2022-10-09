@@ -11,12 +11,12 @@ pub mod cl_devices;
 mod kernel_cache;
 mod kernel_enqueue;
 
-#[cfg(not(feature="realloc"))]
+#[cfg(not(feature = "realloc"))]
 #[cfg(unified_cl)]
 mod unified;
 
 #[cfg(unified_cl)]
-#[cfg(not(feature="realloc"))]
+#[cfg(not(feature = "realloc"))]
 pub use unified::*;
 
 use crate::{Buffer, CDatatype, PtrType};

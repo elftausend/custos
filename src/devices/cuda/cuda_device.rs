@@ -66,7 +66,8 @@ impl CUDA {
 }
 
 impl Device for CUDA {
-    type P<U> = CUDAPtr<U>;
+    type Ptr<U, const N: usize> = CUDAPtr<U>;
+    type Cache<const N: usize> = Cache<RawCUBuf>;
 }
 
 impl Drop for CUDA {
@@ -78,22 +79,22 @@ impl Drop for CUDA {
     }
 }
 
-impl Alloc for CUDA {
-    fn alloc<T>(&self, len: usize) -> CUDAPtr<T> {
+impl<T> Alloc<T> for CUDA {
+    fn alloc(&self, len: usize) -> CUDAPtr<T> {
         let ptr = cumalloc::<T>(len).unwrap();
         // TODO: use unified mem if available -> i can't test this
         CUDAPtr {
             ptr,
-            p: PhantomData
+            p: PhantomData,
         }
     }
 
-    fn with_data<T>(&self, data: &[T]) -> CUDAPtr<T> {
+    fn with_slice(&self, data: &[T]) -> CUDAPtr<T> {
         let ptr = cumalloc::<T>(data.len()).unwrap();
         cu_write(ptr, data).unwrap();
-        CUDAPtr { 
+        CUDAPtr {
             ptr,
-            p: PhantomData
+            p: PhantomData,
         }
     }
 }

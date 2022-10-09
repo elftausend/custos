@@ -40,12 +40,12 @@ pub struct KernelCacheCL {
 
 impl KernelCacheCL {
     /// Returns a cached kernel. If the kernel source code does not exist, a new kernel is created and cached.
-    /// 
+    ///
     /// # Example
-    /// ``` 
+    /// ```
     /// use std::collections::HashMap;
     /// use custos::{OpenCL, opencl::KernelCacheCL};
-    /// 
+    ///
     /// fn main() -> custos::Result<()> {
     ///     let device = OpenCL::new(0)?;
     ///     
@@ -90,9 +90,9 @@ impl Drop for KernelCacheCL {
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashMap;
-    use crate::OpenCL;
     use super::KernelCacheCL;
+    use crate::OpenCL;
+    use std::collections::HashMap;
 
     #[test]
     fn test_kernel_cache() -> crate::Result<()> {
@@ -102,19 +102,27 @@ mod tests {
             kernel_cache: HashMap::new(),
         };
 
-        let mut kernel_fn = || kernel_cache.kernel_cache(&device, "
+        let mut kernel_fn = || {
+            kernel_cache.kernel_cache(
+                &device,
+                "
             __kernel void foo(__global float* test) {}
-        ");
+        ",
+            )
+        };
 
         let kernel = kernel_fn()?;
         let same_kernel = kernel_fn()?;
-        
+
         assert_eq!(kernel.0, same_kernel.0);
-        
+
         let kernel = kernel_fn()?;
-        let another_kernel = kernel_cache.kernel_cache(&device, "
+        let another_kernel = kernel_cache.kernel_cache(
+            &device,
+            "
             __kernel void bar(__global float* test, __global float* out) {}
-        ")?;
+        ",
+        )?;
 
         assert_ne!(kernel.0, another_kernel.0);
 

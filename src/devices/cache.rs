@@ -4,8 +4,9 @@ use crate::{
 use std::{cell::RefMut, collections::HashMap, ffi::c_void, rc::Rc};
 
 pub trait CacheAble<D: Device, const N: usize = 0> {
-    fn retrieve<'a, T>(device: &'a D, len: usize, add_node: impl AddGraph) -> Buffer<'a, T, D, N>
-        where D: Alloc<T, N>;
+    fn retrieve<T>(device: &D, len: usize, add_node: impl AddGraph) -> Buffer<T, D, N>
+    where
+        D: Alloc<T, N>;
 }
 
 /// This trait is implemented for every 'cacheable' pointer.
@@ -46,8 +47,9 @@ pub trait BindCT<CT> {}
 impl<CT: CacheType> BindCT<CT> for Cache<CT> {}
 
 impl<CT: CacheType, D: Device + CacheReturn, const N: usize> CacheAble<D, N> for Cache<CT> {
-    fn retrieve<'a, T>(device: &'a D, len: usize, add_node: impl AddGraph) -> Buffer<'a, T, D, N> 
-        where D: Alloc<T, N>,
+    fn retrieve<T>(device: &D, len: usize, add_node: impl AddGraph) -> Buffer<T, D, N>
+    where
+        D: Alloc<T, N>,
     {
         Cache::get(device, len, add_node)
     }
@@ -68,7 +70,7 @@ impl<P: CacheType> Cache<P> {
     /// ```
     /// use custos::prelude::*;
     /// use custos::Ident;
-    /// 
+    ///
     /// let device = CPU::new();
     /// let cache: Buffer = device
     ///     .cache()
@@ -116,25 +118,29 @@ impl<P: CacheType> Cache<P> {
 
     /// Retrieves cached pointers and constructs a [`Buffer`] with the pointers and the given `len`gth.
     /// If a cached pointer doesn't exist, a new `Buffer` will be added to the cache and returned.
-    /// 
+    ///
     /// # Example
     /// ```
     /// use custos::prelude::*;
-    /// 
+    ///
     /// let device = CPU::new();
     ///     
     /// let cache_entry: Buffer = Cache::get(&device, 10, ());
     /// let new_cache_entry: Buffer = Cache::get(&device, 10, ());
-    /// 
+    ///
     /// assert_ne!(cache_entry.ptrs(), new_cache_entry.ptrs());
-    /// 
+    ///
     /// set_count(0);
-    /// 
+    ///
     /// let first_entry: Buffer = Cache::get(&device, 10, ());
     /// assert_eq!(cache_entry.ptrs(), first_entry.ptrs());
     /// ```
     #[cfg(not(feature = "realloc"))]
-    pub fn get<T, D, const N: usize>(device: &D, len: usize, add_node: impl AddGraph) -> Buffer<T, D, N>
+    pub fn get<T, D, const N: usize>(
+        device: &D,
+        len: usize,
+        add_node: impl AddGraph,
+    ) -> Buffer<T, D, N>
     where
         // In order to know the specific pointer type
         // there is probably a better way to implement this
@@ -165,12 +171,12 @@ impl<P: CacheType> Cache<P> {
 
     /// If the 'realloc' feature is enabled, this functions always returns a new [`Buffer`] with the size of `len`gth.
     #[cfg(feature = "realloc")]
-    pub fn get<T, D: Device>(device: &D, len: usize, _: impl AddGraph) -> Buffer<T, D>
+    pub fn get<T, D: Device, const N: usize>(device: &D, len: usize, _: impl AddGraph) -> Buffer<T, D, N>
     where
         // In order to know the specific pointer type
         // there is probably a better way to implement this
         Self: BindCT<D::CT>,
-        D: Alloc + CacheReturn,
+        D: Alloc<T, N> + CacheReturn,
     {
         Buffer::new(device, len)
     }
@@ -178,9 +184,9 @@ impl<P: CacheType> Cache<P> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{Buffer, CacheReturn, Ident, CPU};
-    #[cfg(not(feature="realloc"))]
+    #[cfg(not(feature = "realloc"))]
     use crate::{set_count, Cache};
+    use crate::{Buffer, CacheReturn, Ident, CPU};
 
     #[test]
     fn test_add_node() {
@@ -199,11 +205,11 @@ mod tests {
         assert_eq!(cache.host_ptr(), ptr.ptr as *mut f32);
     }
 
-    #[cfg(not(feature="realloc"))]
+    #[cfg(not(feature = "realloc"))]
     #[test]
     fn test_get() {
         let device = CPU::new();
-        
+
         let cache_entry: Buffer = Cache::get(&device, 10, ());
         let new_cache_entry: Buffer = Cache::get(&device, 10, ());
 

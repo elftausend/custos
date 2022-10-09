@@ -191,7 +191,7 @@ fn test_unified_mem_iterate() -> custos::Result<()> {
 #[test]
 fn test_cpu_to_unified() -> custos::Result<()> {
     let device = CPU::new();
-    let mut buf = Cache::get::<i32, CPU>(&device, 6, ());
+    let mut buf = Cache::get::<i32, CPU, 0>(&device, 6, ());
     buf.copy_from_slice(&[1, 2, 3, 4, 5, 6]);
 
     let cl_dev = OpenCL::new(0)?;
@@ -216,7 +216,7 @@ fn test_cpu_to_unified_leak() -> custos::Result<()> {
     for _ in range(10) {
         let cl_cpu_buf = {
             let cpu = CPU::new();
-            let mut buf = Cache::get::<i32, CPU>(&cpu, 6, ());
+            let mut buf = Cache::get::<i32, CPU, 0>(&cpu, 6, ());
             buf.copy_from_slice(&[1, 2, 3, 4, 5, 6]);
 
             let cl_cpu_buf = unsafe { custos::opencl::construct_buffer(&cl_dev, buf, ())? };
@@ -246,7 +246,7 @@ fn test_cpu_to_unified_perf() -> custos::Result<()> {
     let mut dur = 0.;
 
     for _ in range(100) {
-        let mut buf = Cache::get::<i32, CPU>(&device, 6, ());
+        let mut buf = Cache::get::<i32, CPU, 0>(&device, 6, ());
 
         buf.copy_from_slice(&[1, 2, 3, 4, 5, 6]);
 

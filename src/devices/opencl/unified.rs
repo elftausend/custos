@@ -47,11 +47,11 @@ pub unsafe fn to_unified<T>(
 /// Converts an 'only' CPU buffer into an OpenCL + CPU (unified memory) buffer.
 /// # Safety
 /// The pointer of the no_drop Buffer must be valid for the entire lifetime of the returned Buffer.
-/// 
+///
 /// # Example
 /// ```
 /// use custos::prelude::*;
-/// 
+///
 /// fn main() -> custos::Result<()> {
 ///     let cpu = CPU::new();
 ///     let mut no_drop: Buffer = cpu.cached(4);
@@ -110,9 +110,9 @@ pub unsafe fn construct_buffer<'a, T: Debug>(
 
 #[cfg(test)]
 mod tests {
-    use crate::{OpenCL, Buffer, CPU, Node, opencl::CLPtr, PtrType, BufFlag, CacheBuf};
+    use crate::{opencl::CLPtr, BufFlag, Buffer, CacheBuf, Node, OpenCL, PtrType, CPU};
 
-    use super::{to_unified, construct_buffer};
+    use super::{construct_buffer, to_unified};
 
     #[test]
     fn test_to_unified() -> crate::Result<()> {
@@ -123,10 +123,8 @@ mod tests {
         let device = OpenCL::new(0)?;
 
         let (host_ptr, len) = (no_drop.host_ptr(), no_drop.len);
-        let cl_host_ptr = unsafe {
-            to_unified(&device, no_drop, Node::default())?
-        };
-        
+        let cl_host_ptr = unsafe { to_unified(&device, no_drop, Node::default())? };
+
         let buf: Buffer<f32, OpenCL> = Buffer {
             ptr: CLPtr::from_ptrs((host_ptr, cl_host_ptr, 0)),
             len,
@@ -145,11 +143,9 @@ mod tests {
         let cpu = CPU::new();
         let mut no_drop: Buffer = cpu.cached(3);
         no_drop.write(&[1., 2.3, 0.76]);
-        
+
         let device = OpenCL::new(0)?;
-        let buf = unsafe {
-            construct_buffer(&device, no_drop, ())?
-        };
+        let buf = unsafe { construct_buffer(&device, no_drop, ())? };
 
         assert_eq!(buf.read(), vec![1., 2.3, 0.76]);
         assert_eq!(buf.as_slice(), &[1., 2.3, 0.76]);

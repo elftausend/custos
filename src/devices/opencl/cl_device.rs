@@ -101,14 +101,18 @@ impl OpenCL {
         self.inner.borrow().unified_mem
     }
 
-    #[deprecated(since="0.6.0", note="Use the environment variable 'CUSTOS_USE_UNIFIED' set to 'true', 'false' or 'default'[=hardware dependent] instead.")]
+    #[deprecated(
+        since = "0.6.0",
+        note = "Use the environment variable 'CUSTOS_USE_UNIFIED' set to 'true', 'false' or 'default'[=hardware dependent] instead."
+    )]
     pub fn set_unified_mem(&self, unified_mem: bool) {
         self.inner.borrow_mut().unified_mem = unified_mem;
     }
 }
 
 impl Device for OpenCL {
-    type P<U> = CLPtr<U>;
+    type Ptr<U, const N: usize> = CLPtr<U>;
+    type Cache<const N: usize> = Cache<RawCL>;
 }
 
 impl<T> DevicelessAble<T> for OpenCL {}
@@ -142,13 +146,10 @@ impl<T> Alloc<T> for OpenCL {
         #[cfg(not(unified_cl))]
         let host_ptr = std::ptr::null_mut();
 
-        CLPtr {
-            ptr,
-            host_ptr
-        }
+        CLPtr { ptr, host_ptr }
     }
 
-    fn with_data(&self, data: &[T]) -> CLPtr<T> {
+    fn with_slice(&self, data: &[T]) -> CLPtr<T> {
         let ptr = create_buffer::<T>(
             &self.ctx(),
             MemFlags::MemReadWrite | MemFlags::MemCopyHostPtr,
@@ -163,10 +164,7 @@ impl<T> Alloc<T> for OpenCL {
         #[cfg(not(unified_cl))]
         let host_ptr = std::ptr::null_mut();
 
-        CLPtr {
-            ptr,
-            host_ptr,
-        }
+        CLPtr { ptr, host_ptr }
     }
 }
 

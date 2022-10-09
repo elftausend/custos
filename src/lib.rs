@@ -35,8 +35,8 @@ use std::ffi::c_void;
 //pub use libs::*;
 pub use buffer::*;
 pub use count::*;
-pub use devices::*;
 use devices::cache::CacheAble;
+pub use devices::*;
 pub use error::*;
 pub use graph::*;
 
@@ -53,10 +53,12 @@ mod count;
 mod error;
 mod graph;
 
-#[cfg(feature="static-api")]
+#[cfg(feature = "static-api")]
 mod static_api;
 
 pub mod number;
+
+pub trait IsCPU: Device + CPUCL {}
 
 pub trait PtrType<T, const N: usize = 0> {
     /// # Safety
@@ -71,8 +73,9 @@ pub trait Device: Sized {
     type Ptr<U, const N: usize>: PtrType<U>;
     type Cache<const N: usize>: CacheAble<Self, N>;
 
-    fn retrieve<'a, T, const N: usize>(&'a self, len: usize, add_node: impl AddGraph) -> Buffer<'a, T, Self, N> 
-    where Self: Alloc<T, N>
+    fn retrieve<T, const N: usize>(&self, len: usize, add_node: impl AddGraph) -> Buffer<T, Self, N>
+    where
+        Self: Alloc<T, N>,
     {
         Self::Cache::retrieve(self, len, add_node)
     }
@@ -82,16 +85,9 @@ pub struct Num<T, const N: usize = 0> {
     pub num: T,
 }
 
-impl<const N: usize, T> Default for Num<T, N> {
-    fn default() -> Self {
-        unimplemented!()
-    }
-}
 
 impl<const N: usize, T> PtrType<T, 0> for Num<T, N> {
-    unsafe fn dealloc(&mut self, _len: usize) {
-        return;
-    }
+    unsafe fn dealloc(&mut self, _len: usize) {}
 
     fn ptrs(&self) -> (*mut T, *mut c_void, u64) {
         unimplemented!()
@@ -103,8 +99,8 @@ impl<const N: usize, T> PtrType<T, 0> for Num<T, N> {
 }
 
 impl<D: Device, const N: usize> CacheAble<D, N> for () {
-    fn retrieve<'a, T>(device: &'a D, len: usize, add_node: impl AddGraph) -> Buffer<'a, T, D, N> {
-        todo!()
+    fn retrieve<T>(_device: &D, _len: usize, _add_node: impl AddGraph) -> Buffer<T, D, N> {
+        unimplemented!()
     }
 }
 
@@ -113,7 +109,7 @@ impl Device for () {
     type Cache<const N: usize> = ();
 }
 
-pub trait DevicelessAble<T, const N: usize=0>: Alloc<T, N> {}
+pub trait DevicelessAble<T, const N: usize = 0>: Alloc<T, N> {}
 
 //pub trait Deviceless {}
 //impl Deviceless for () {}
@@ -175,25 +171,26 @@ pub trait Alloc<T, const N: usize = 0>: Device {
     /// };
     /// assert_eq!(vec![1, 5, 4, 3, 6, 9, 0, 4], device.read(&buf));
     /// ```
-    fn from_slice(&self, data: &[T]) -> <Self as Device>::Ptr<T, N>
-    where T: Clone;
+    fn with_slice(&self, data: &[T]) -> <Self as Device>::Ptr<T, N>
+    where
+        T: Clone;
 
     /// If the vector `vec` was allocated previously, this function can be used in order to reduce the amount of allocations, which may be faster than using a slice of `vec`.
     /// #[inline]
     fn alloc_with_vec(&self, vec: Vec<T>) -> <Self as Device>::Ptr<T, N>
-    where T: Clone,
+    where
+        T: Clone,
     {
-        self.from_slice(&vec)
+        self.with_slice(&vec)
     }
 
     #[inline]
-    fn from_array(&self, array: [T; N]) -> <Self as Device>::Ptr<T, N>
-    where T: Clone 
+    fn with_array(&self, array: [T; N]) -> <Self as Device>::Ptr<T, N>
+    where
+        T: Clone,
     {
-        self.from_slice(&array)
+        self.with_slice(&array)
     }
-
-
 }
 
 /// Trait for implementing the clear() operation for the compute devices.

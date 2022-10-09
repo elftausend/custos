@@ -20,7 +20,8 @@ impl<'a, T: Clone> Buffer<'a, T> {
     #[inline]
     pub fn to_dev<D>(self) -> Buffer<'static, T, D>
     where
-        D: Device + StaticGPU + Alloc<T> + GraphReturn,
+        D: StaticGPU + Alloc<T> + GraphReturn,
+        <D as Device>::Ptr<T, 0>: Default,
     {
         Buffer::from((D::as_static(), self.as_slice()))
     }
@@ -133,7 +134,7 @@ impl<'a, T: Clone> From<&[T]> for Buffer<'a, T> {
     fn from(slice: &[T]) -> Self {
         let device = static_cpu();
         Buffer {
-            ptr: device.with_data(slice),
+            ptr: device.with_slice(slice),
             len: slice.len(),
             device: Some(device),
             flag: BufFlag::None,
@@ -146,7 +147,7 @@ impl<'a, T: Clone, const N: usize> From<&[T; N]> for Buffer<'a, T> {
     fn from(slice: &[T; N]) -> Self {
         let device = static_cpu();
         Buffer {
-            ptr: device.with_data(slice),
+            ptr: device.with_slice(slice),
             len: slice.len(),
             device: Some(device),
             flag: BufFlag::None,
@@ -159,7 +160,7 @@ impl<'a, T: Clone, const N: usize> From<[T; N]> for Buffer<'a, T> {
     fn from(slice: [T; N]) -> Self {
         let device = static_cpu();
         Buffer {
-            ptr: device.with_data(&slice),
+            ptr: device.with_slice(&slice),
             len: slice.len(),
             device: Some(device),
             flag: BufFlag::None,

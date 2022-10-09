@@ -1,4 +1,5 @@
 fn main() {
+    // TODO: execute other opencl test to know whether opencl can actually be used
     #[cfg(feature = "opencl")]
     if has_device_unified_mem() {
         println!("cargo:rustc-cfg=unified_cl");

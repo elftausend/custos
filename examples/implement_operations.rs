@@ -1,4 +1,4 @@
-use custos::{Buffer, CDatatype, Cache, Device, CPU};
+use custos::{Buffer, CDatatype, Device, CPU};
 
 #[cfg(feature = "opencl")]
 use custos::{opencl::enqueue_kernel, OpenCL};
@@ -26,7 +26,8 @@ where
         // this returns a previously allocated buffer.
         // You can deactivate the caching behaviour by adding the "realloc" feature
         // to the custos feature list in the Cargo.toml.
-        let mut out = Cache::get(self, len, [lhs.node.idx, rhs.node.idx]);
+        let mut out = self.retrieve(len, [lhs, rhs]);
+        //or: let mut out = Cache::get(self, len, [lhs, rhs]);
 
         // By default, the Buffer dereferences to a slice.
         // Therefore, standard indexing can be used.
@@ -57,7 +58,7 @@ where
         ", datatype=T::as_c_type_str());
 
         let len = std::cmp::min(lhs.len, rhs.len);
-        let out = Cache::get::<T, OpenCL>(self, len, [lhs.node.idx, rhs.node.idx]);
+        let out = self.retrieve::<T, 0>(len, (lhs, rhs));
 
         // In the background, the kernel is compiled once. After that, it will be reused for every iteration.
         // The cached kernels are released (or freed) when the underlying CLDevice is dropped.
@@ -86,7 +87,8 @@ impl<T: CDatatype> AddBuf<T> for CUDA {
         );
 
         let len = std::cmp::min(lhs.len, rhs.len);
-        let out = Cache::get::<T, CUDA>(self, len, (lhs.node.idx, rhs.node.idx));
+        let out = self.retrieve::<T, 0>(len, (lhs, rhs));
+        //or: let out = Cache::get::<T, CUDA, 0>(self, len, (lhs, rhs));
 
         // The kernel is compiled once with nvrtc and is cached too.
         // The arguments are specified with a vector of buffers and/or numbers.

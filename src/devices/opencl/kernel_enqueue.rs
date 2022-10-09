@@ -12,13 +12,13 @@ pub trait AsClCvoidPtr {
     }
 }
 
-impl<'a, T, D: Device> AsClCvoidPtr for &Buffer<'a, T, D> {
+impl<'a, T, D: Device, const N: usize> AsClCvoidPtr for &Buffer<'a, T, D, N> {
     fn as_cvoid_ptr(&self) -> *const c_void {
         self.ptrs().1
     }
 }
 
-impl<'a, T, D: Device> AsClCvoidPtr for Buffer<'a, T, D> {
+impl<'a, T, D: Device, const N: usize> AsClCvoidPtr for Buffer<'a, T, D, N> {
     fn as_cvoid_ptr(&self) -> *const c_void {
         self.ptrs().1
     }

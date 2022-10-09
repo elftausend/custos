@@ -106,7 +106,7 @@ impl IntoIterator for Count {
 
 #[cfg(test)]
 mod tests {
-    use crate::{CountIntoIter, Count, range};
+    use crate::{range, Count, CountIntoIter};
 
     fn count_iter(iter: &mut CountIntoIter) {
         iter.next();
@@ -146,5 +146,4 @@ mod tests {
             assert_eq!(idx, other)
         }
     }
-
 }

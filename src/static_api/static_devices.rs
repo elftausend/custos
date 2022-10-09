@@ -78,7 +78,7 @@ mod tests {
         let a = Buffer::from(&[1, 2, 3, 4]);
         let b = Buffer::from(&[1, 2, 3, 4]);
 
-        let out = Cache::get::<i32, _>(cpu, a.len, (&a, &b));
+        let out = Cache::get::<i32, _, 0>(cpu, a.len, (&a, &b));
 
         let cache = static_cpu().cache.borrow();
         let cached = cache
@@ -134,7 +134,7 @@ mod tests {
 
         let buf = buf![2f32, 5., 1.].to_gpu();
         assert_eq!(buf.read(), vec![2., 5., 1.]);
-    }   
+    }
 
     #[cfg(feature = "cuda")]
     #[test]
@@ -149,7 +149,7 @@ mod tests {
     #[cfg(feature = "opencl")]
     #[test]
     fn test_to_device_cl() {
-        use crate::{OpenCL, buf};
+        use crate::{buf, OpenCL};
 
         let buf = buf![3f32, 1.4, 1., 2.].to_dev::<OpenCL>();
 

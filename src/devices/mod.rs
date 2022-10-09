@@ -12,7 +12,7 @@ use std::cell::RefCell;
 use cuda::api::cublas::{cublasDgemm_v2, cublasOperation_t, cublasSgemm_v2, CublasHandle};
 
 pub mod cache;
-pub use cache::{Cache, CacheReturn, CacheAble};
+pub use cache::{Cache, CacheAble, CacheReturn};
 pub mod cpu;
 #[cfg(feature = "cuda")]
 pub mod cuda;

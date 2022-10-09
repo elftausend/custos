@@ -1,7 +1,7 @@
 use crate::{
     devices::cache::{Cache, CacheReturn},
     Alloc, Buffer, CacheBuf, CachedLeaf, ClearBuf, CloneBuf, Device, DevicelessAble, Graph,
-    GraphReturn, VecRead, WriteBuf, CPUCL,
+    GraphReturn, VecRead, WriteBuf, CPUCL, IsCPU,
 };
 use std::{
     alloc::{handle_alloc_error, Layout},
@@ -44,9 +44,11 @@ impl CPU {
 }
 
 impl Device for CPU {
-    type Ptr<U, const N:usize> = CPUPtr<U>;
+    type Ptr<U, const N: usize> = CPUPtr<U>;
     type Cache<const N: usize> = Cache<RawCpuBuf>;
 }
+
+impl IsCPU for CPU {}
 
 impl<T> DevicelessAble<T> for CPU {}
 
@@ -65,13 +67,10 @@ impl<T> Alloc<T> for CPU {
             handle_alloc_error(layout);
         }
 
-        CPUPtr {
-            ptr: ptr as *mut T
-        }
-
+        CPUPtr { ptr: ptr as *mut T }
     }
 
-    fn from_slice(&self, data: &[T]) -> CPUPtr<T>
+    fn with_slice(&self, data: &[T]) -> CPUPtr<T>
     where
         T: Clone,
     {
@@ -88,9 +87,7 @@ impl<T> Alloc<T> for CPU {
         let ptr = vec.as_mut_ptr();
         std::mem::forget(vec);
 
-        CPUPtr { 
-            ptr 
-        }
+        CPUPtr { ptr }
     }
 }
 
