@@ -44,7 +44,7 @@ pub use devices::cpu::CPU;
 #[cfg(feature = "cuda")]
 pub use devices::cuda::CUDA;
 #[cfg(feature = "opencl")]
-pub use devices::opencl::{InternCLDevice, OpenCL};
+pub use devices::opencl::{CLDevice, OpenCL};
 
 pub mod devices;
 

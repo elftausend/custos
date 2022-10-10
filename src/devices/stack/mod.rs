@@ -11,7 +11,6 @@ mod tests {
     pub trait AddBuf<T, D: Device, const N: usize = 0>: Device {
         fn add(&self, lhs: &Buffer<T, D, N>, rhs: &Buffer<T, D, N>) -> Buffer<T, Self, N>;
     }
-
     
     /*// Without stack support
     impl<T, D> AddBuf<T, D> for CPU
@@ -30,7 +29,6 @@ mod tests {
         }
     }*/
 
-
     impl<IsCpu, const N: usize, T, D> AddBuf<T, D, N> for IsCpu
     where
         IsCpu: IsCPU + Alloc<T, N>,
@@ -48,7 +46,6 @@ mod tests {
         }
     }
     
-
     #[test]
     fn test_stack() {
         let stack = Stack;
@@ -61,7 +58,9 @@ mod tests {
         let cpu = CPU::new();
         
         // implement Buffer::<f32, _, 100> for cpu?
-        let buf = Buffer::<f32>::new(&cpu, 100);
-        cpu.add(&buf, &buf);
+        //let buf = Buffer::<f32>::new(&cpu, 100);
+        let buf = Buffer::from((&cpu, [1f32; 100]));
+        let out = cpu.add(&buf, &buf);
+        assert_eq!(out.as_slice(), &[2.; 100]);
     }
 }

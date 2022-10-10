@@ -15,7 +15,7 @@ lazy_static = { version = "1.4.0", optional = true }
 
 [build-dependencies]
 # TODO: use opencl only lib
-custos = { version="0.5.0", default-features=false }
+custos = { version="0.5.0", default-features = false }
 
 [features]
 default = ["blas", "opencl", "static-api"]

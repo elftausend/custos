@@ -14,7 +14,7 @@ use crate::{
 use std::{
     cell::{Ref, RefCell},
     ffi::c_void,
-    fmt::Debug,
+    fmt::Debug, rc::Rc,
 };
 
 #[cfg(unified_cl)]
@@ -39,12 +39,12 @@ use crate::{opencl::api::unified_ptr, CPUCL};
 pub struct OpenCL {
     pub kernel_cache: RefCell<KernelCacheCL>,
     pub cache: RefCell<Cache<RawCL>>,
-    pub inner: RefCell<InternCLDevice>,
+    pub inner: RefCell<CLDevice>,
     pub graph: RefCell<Graph>,
     pub cpu: CPU,
 }
 
-unsafe impl Sync for InternCLDevice {}
+unsafe impl Sync for CLDevice {}
 
 impl OpenCL {
     /// Returns an [CLDevice] at the specified device index.
@@ -54,22 +54,22 @@ impl OpenCL {
     pub fn new(device_idx: usize) -> Result<OpenCL, Error> {
         let inner = RefCell::new(CL_DEVICES.current(device_idx)?);
         Ok(OpenCL {
-            kernel_cache: RefCell::new(KernelCacheCL::default()),
-            cache: RefCell::new(Cache::default()),
             inner,
-            graph: RefCell::new(Graph::new()),
-            cpu: CPU::new(),
+            kernel_cache: Default::default(),
+            cache: Default::default(),
+            graph: Default::default(),
+            cpu: Default::default()
         })
     }
 
     #[inline]
-    pub fn ctx(&self) -> Ref<Context> {
+    pub fn ctx(&self) -> Ref<Rc<Context>> {
         let borrow = self.inner.borrow();
         Ref::map(borrow, |device| &device.ctx)
     }
 
     #[inline]
-    pub fn queue(&self) -> Ref<CommandQueue> {
+    pub fn queue(&self) -> Ref<Rc<CommandQueue>> {
         let borrow = self.inner.borrow();
         Ref::map(borrow, |device| &device.queue)
     }
@@ -95,7 +95,7 @@ impl OpenCL {
         self.device().get_version()
     }
 
-    /// Checks if the device supports unified memory.
+    /// Checks whether the device supports unified memory.
     #[inline]
     pub fn unified_mem(&self) -> bool {
         self.inner.borrow().unified_mem
@@ -242,23 +242,23 @@ impl<T: Clone + Default> VecRead<T, OpenCL> for OpenCL {
 /// Internal representation of an OpenCL Device with the capability of storing pointers.
 /// # Note / Safety
 ///
-/// If the 'safe' feature isn't used, all pointers will get invalid when the drop code for a CLDevice object is run as that deallocates the memory previously pointed at by the pointers stored in 'ptrs'.
+/// If the 'safe' feature isn't used, all pointers will get invalid when the drop code for a CLDevice object runs as that deallocates the memory previously pointed at by the pointers stored in 'ptrs'.
 #[derive(Debug, Clone)]
-pub struct InternCLDevice {
+pub struct CLDevice {
     pub ptrs: Vec<*mut c_void>,
     device: CLIntDevice,
-    ctx: Context,
-    queue: CommandQueue,
+    ctx: Rc<Context>,
+    queue: Rc<CommandQueue>,
     unified_mem: bool,
 }
 
-impl InternCLDevice {
-    pub fn new(device: CLIntDevice) -> crate::Result<InternCLDevice> {
-        let ctx = create_context(&[device])?;
-        let queue = create_command_queue(&ctx, device)?;
+impl CLDevice {
+    pub fn new(device: CLIntDevice) -> crate::Result<CLDevice> {
+        let ctx = Rc::new(create_context(&[device])?);
+        let queue = Rc::new(create_command_queue(&ctx, device)?);
         let unified_mem = device.unified_mem()?;
 
-        Ok(InternCLDevice {
+        Ok(CLDevice {
             ptrs: Vec::new(),
             device,
             ctx,

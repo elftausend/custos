@@ -3,7 +3,7 @@ use super::api::{
     Kernel,
 };
 use crate::{devices::cache::CacheType, Error, Node, OpenCL};
-use std::{collections::HashMap, ffi::c_void};
+use std::{collections::HashMap, ffi::c_void, rc::Rc};
 
 #[derive(Debug)]
 pub struct RawCL {
@@ -35,7 +35,7 @@ impl Drop for RawCL {
 #[derive(Debug, Default)]
 /// This stores the previously compiled OpenCL kernels.
 pub struct KernelCacheCL {
-    pub kernel_cache: HashMap<String, Kernel>,
+    pub kernel_cache: HashMap<String, Rc<Kernel>>,
 }
 
 impl KernelCacheCL {
@@ -64,27 +64,17 @@ impl KernelCacheCL {
     ///     Ok(())
     /// }
     /// ```
-    pub fn kernel_cache(&mut self, device: &OpenCL, src: &str) -> Result<Kernel, Error> {
+    pub fn kernel_cache(&mut self, device: &OpenCL, src: &str) -> Result<Rc<Kernel>, Error> {
         if let Some(kernel) = self.kernel_cache.get(src) {
-            return Ok(*kernel);
+            return Ok(kernel.clone());
         }
 
         let program = create_program_with_source(&device.ctx(), src)?;
         build_program(&program, &[device.device()], Some("-cl-std=CL1.2"))?; //-cl-single-precision-constant
-        let kernel = create_kernels_in_program(&program)?[0];
+        let kernel = create_kernels_in_program(&program)?[0].clone();
 
-        self.kernel_cache.insert(src.to_string(), kernel);
+        self.kernel_cache.insert(src.to_string(), kernel.clone());
         Ok(kernel)
-    }
-}
-
-impl Drop for KernelCacheCL {
-    fn drop(&mut self) {
-        // FIXME:
-        // TODO:  not really safe
-        for kernel in &mut self.kernel_cache.values_mut() {
-            kernel.release()
-        }
     }
 }
 
