@@ -12,7 +12,7 @@ use custos::CPUCL;
 use custos::{get_count, set_count};
 
 pub fn get_mut_slice<'a, T, D: Device>(buf: &'a mut Buffer<T, D>) -> &'a mut [T] {
-    unsafe { std::slice::from_raw_parts_mut(buf.ptrs().0, buf.len) }
+    unsafe { std::slice::from_raw_parts_mut(buf.ptrs_mut().0, buf.len) }
 }
 
 pub fn get_slice<'a, T, D: Device>(buf: &'a Buffer<T, D>) -> &'a [T] {
@@ -116,9 +116,11 @@ fn test_use_number() {
 }
 
 #[cfg(not(feature = "realloc"))]
-#[cfg_attr(miri, ignore)]
 #[test]
 fn test_cached_cpu() {
+    // for: cargo test -- --test-threads=1 
+    set_count(0);
+
     std::env::set_var("RUST_BACKTRACE", "1");
     let device = CPU::new();
 
@@ -153,6 +155,9 @@ fn test_cached_cl() -> Result<(), custos::Error> {
         api::{enqueue_write_buffer, wait_for_event},
         cl_cached,
     };
+
+    // for: cargo test -- --test-threads=1 
+    set_count(0);
 
     let device = OpenCL::new(0)?;
     let _k = Buffer::<f32, _>::new(&device, 1);
@@ -286,6 +291,9 @@ fn test_deviceless_buf_panic() {
     buf.read();
 }*/
 
+
+/*
+// compmile-time error
 #[cfg(feature = "opencl")]
 #[test]
 fn test_deviceless_buf_cl() -> custos::Result<()> {
@@ -304,3 +312,4 @@ fn test_deviceless_buf_cl() -> custos::Result<()> {
 
     Ok(())
 }
+*/

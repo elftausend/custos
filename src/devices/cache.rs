@@ -98,7 +98,7 @@ impl<P: CacheType> Cache<P> {
     where
         D: Alloc<T, N> + GraphReturn,
     {
-        let ptr = device.alloc(node.len);
+        let mut ptr = device.alloc(node.len);
 
         #[cfg(feature = "opt-cache")]
         let graph_node = device.graph().add(node.len, _add_node);
@@ -109,7 +109,7 @@ impl<P: CacheType> Cache<P> {
         bump_count();
 
         self.nodes
-            .insert(node, Rc::new(P::new(ptr.ptrs(), node.len, graph_node)));
+            .insert(node, Rc::new(P::new(ptr.ptrs_mut(), node.len, graph_node)));
 
         Buffer {
             ptr,
@@ -212,6 +212,8 @@ mod tests {
     #[cfg(not(feature = "realloc"))]
     #[test]
     fn test_get() {
+        // for: cargo test -- --test-threads=1 
+        set_count(0);
         let device = CPU::new();
 
         let cache_entry: Buffer = Cache::get(&device, 10, ());

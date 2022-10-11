@@ -12,3 +12,15 @@ impl<'a, T, const N: usize> From<[T; N]> for Buffer<'a, T, Stack, N> {
         }
     }
 }
+
+impl<'a, T, const N: usize> From<(Stack, [T; N])> for Buffer<'a, T, Stack, N> {
+    fn from(array: (Stack, [T; N])) -> Self {
+        Buffer {
+            ptr: StackArray::new(array.1),
+            len: N,
+            device: Some(&Stack),
+            flag: BufFlag::None,
+            node: Node::default(),
+        }
+    }
+}

@@ -1,6 +1,8 @@
 mod impl_buffer;
 mod stack_device;
 
+pub use stack_device::*;
+
 #[cfg(test)]
 mod tests {
     use std::ops::Add;

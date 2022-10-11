@@ -67,7 +67,8 @@ pub trait PtrType<T, const N: usize = 0> {
     /// The pointer must be a valid pointer.
     unsafe fn dealloc(&mut self, len: usize);
 
-    fn ptrs(&self) -> (*mut T, *mut c_void, u64);
+    fn ptrs(&self) -> (*const T, *mut c_void, u64);
+    fn ptrs_mut(&mut self) -> (*mut T, *mut c_void, u64);
     fn from_ptrs(ptrs: (*mut T, *mut c_void, u64)) -> Self;
 }
 

@@ -34,7 +34,12 @@ impl<T> PtrType<T> for CPUPtr<T> {
     }
 
     #[inline]
-    fn ptrs(&self) -> (*mut T, *mut std::ffi::c_void, u64) {
+    fn ptrs(&self) -> (*const T, *mut std::ffi::c_void, u64) {
+        (self.ptr as *const T, null_mut(), 0)
+    }
+
+    #[inline]
+    fn ptrs_mut(&mut self) -> (*mut T, *mut std::ffi::c_void, u64) {
         (self.ptr as *mut T, null_mut(), 0)
     }
 

@@ -1,20 +1,20 @@
 use super::{
     api::{
         create_command_queue, create_context, enqueue_full_copy_buffer, enqueue_read_buffer,
-        enqueue_write_buffer, wait_for_event, CLIntDevice, CommandQueue, Context,
+        enqueue_write_buffer, wait_for_event, CLIntDevice, CommandQueue, Context, get_platforms, get_device_ids, DeviceType, OCLErrorKind,
     },
-    cl_clear, CLPtr, KernelCacheCL, RawCL, CL_DEVICES,
+    cl_clear, CLPtr, KernelCacheCL, RawCL,
 };
 use crate::{
     cache::{Cache, CacheReturn},
     devices::opencl::api::{create_buffer, MemFlags},
-    Alloc, Buffer, CDatatype, CacheBuf, CachedLeaf, ClearBuf, CloneBuf, Device, DevicelessAble,
+    Alloc, Buffer, CDatatype, CacheBuf, CachedLeaf, ClearBuf, CloneBuf, Device,
     Error, Graph, GraphReturn, VecRead, WriteBuf, CPU,
 };
 use std::{
     cell::{Ref, RefCell},
     ffi::c_void,
-    fmt::Debug, rc::Rc,
+    fmt::Debug,
 };
 
 #[cfg(unified_cl)]
@@ -52,7 +52,7 @@ impl OpenCL {
     /// - No device is found at the given device index
     /// - some other OpenCL related errors
     pub fn new(device_idx: usize) -> Result<OpenCL, Error> {
-        let inner = RefCell::new(CL_DEVICES.current(device_idx)?);
+        let inner = RefCell::new(CLDevice::new(device_idx)?);
         Ok(OpenCL {
             inner,
             kernel_cache: Default::default(),
@@ -63,13 +63,13 @@ impl OpenCL {
     }
 
     #[inline]
-    pub fn ctx(&self) -> Ref<Rc<Context>> {
+    pub fn ctx(&self) -> Ref<Context> {
         let borrow = self.inner.borrow();
         Ref::map(borrow, |device| &device.ctx)
     }
 
     #[inline]
-    pub fn queue(&self) -> Ref<Rc<CommandQueue>> {
+    pub fn queue(&self) -> Ref<CommandQueue> {
         let borrow = self.inner.borrow();
         Ref::map(borrow, |device| &device.queue)
     }
@@ -114,8 +114,6 @@ impl Device for OpenCL {
     type Ptr<U, const N: usize> = CLPtr<U>;
     type Cache<const N: usize> = Cache<RawCL>;
 }
-
-impl<T> DevicelessAble<T> for OpenCL {}
 
 impl Debug for OpenCL {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -243,19 +241,27 @@ impl<T: Clone + Default> VecRead<T, OpenCL> for OpenCL {
 /// # Note / Safety
 ///
 /// If the 'safe' feature isn't used, all pointers will get invalid when the drop code for a CLDevice object runs as that deallocates the memory previously pointed at by the pointers stored in 'ptrs'.
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct CLDevice {
     pub ptrs: Vec<*mut c_void>,
     device: CLIntDevice,
-    ctx: Rc<Context>,
-    queue: Rc<CommandQueue>,
+    ctx: Context,
+    queue: CommandQueue,
     unified_mem: bool,
 }
 
 impl CLDevice {
-    pub fn new(device: CLIntDevice) -> crate::Result<CLDevice> {
-        let ctx = Rc::new(create_context(&[device])?);
-        let queue = Rc::new(create_command_queue(&ctx, device)?);
+    pub fn new(device_idx: usize) -> crate::Result<CLDevice> {
+        let platform = get_platforms()?[0];
+        let devices = get_device_ids(platform, &(DeviceType::GPU as u64))?;
+        
+        if device_idx >= devices.len() {
+            return Err(OCLErrorKind::InvalidDeviceIdx.into());
+        }
+        let device = devices[0];
+
+        let ctx = create_context(&[device])?;
+        let queue = create_command_queue(&ctx, device)?;
         let unified_mem = device.unified_mem()?;
 
         Ok(CLDevice {

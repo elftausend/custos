@@ -201,7 +201,7 @@ pub fn get_device_info(
 }
 
 // TODO: implement drop
-#[derive(Debug, Hash)]
+#[derive(Debug, Hash, /*remove:*/ Clone)]
 pub struct Context(pub cl_context);
 
 impl Drop for Context {
@@ -228,7 +228,7 @@ pub fn create_context(devices: &[CLIntDevice]) -> Result<Context, Error> {
     Ok(Context(r))
 }
 
-#[derive(Debug)]
+#[derive(Debug /* remove: */, Clone)]
 pub struct CommandQueue(pub cl_command_queue);
 
 impl CommandQueue {
@@ -243,7 +243,7 @@ impl CommandQueue {
 
 impl Drop for CommandQueue {
     fn drop(&mut self) {
-        self.release().unwrap();
+       self.release().unwrap();
     }
 }
 
@@ -632,7 +632,7 @@ pub(crate) fn create_kernels_in_program(program: &Program) -> Result<Vec<Rc<Kern
     }
 
     let kernels = kernels.into_iter()
-        .map(|kernel| Rc::new(kernel))
+        .map(Rc::new)
         .collect();
 
     Ok(kernels)
@@ -702,4 +702,41 @@ pub fn enqueue_nd_range_kernel(
     }
     let e = Event(events[0]);
     wait_for_event(e)
+}
+
+#[cfg(test)]
+mod tests {
+    use std::cell::RefCell;
+
+    use crate::{CLDevice, OpenCL, Buffer};
+
+    #[test]
+    fn test_multiplie_queues() -> crate::Result<()> {
+        let device = CLDevice::new(0)?;
+        let cl = OpenCL {
+            kernel_cache: Default::default(),
+            cache: Default::default(),
+            inner: RefCell::new(device),
+            graph: Default::default(),
+            cpu: Default::default(),
+        };
+        
+        let buf = Buffer::from((&cl, &[1, 2, 3, 4, 5, 6, 7,]));
+        assert_eq!(buf.read(), vec![1, 2, 3, 4, 5, 6, 7]);
+
+        let device = CLDevice::new(0)?;
+
+        let cl1 = OpenCL {
+            kernel_cache: Default::default(),
+            cache: Default::default(),
+            inner: RefCell::new(device),
+            graph: Default::default(),
+            cpu: Default::default(),
+        };
+
+        let buf = Buffer::from((&cl1, &[2, 2, 4, 4, 2, 1, 3,]));
+        assert_eq!(buf.read(), vec![2, 2, 4, 4, 2, 1, 3]);
+
+        Ok(())
+    }
 }

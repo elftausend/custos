@@ -1,13 +1,11 @@
 use std::{ffi::c_void, ptr::null_mut};
 
 pub use cl_device::*;
-pub use cl_devices::*;
 pub use kernel_cache::*;
 pub use kernel_enqueue::*;
 
 pub mod api;
 pub mod cl_device;
-pub mod cl_devices;
 mod kernel_cache;
 mod kernel_enqueue;
 
@@ -46,7 +44,11 @@ impl<T> PtrType<T> for CLPtr<T> {
         release_mem_object(self.ptr).unwrap();
     }
 
-    fn ptrs(&self) -> (*mut T, *mut c_void, u64) {
+    fn ptrs(&self) -> (*const T, *mut c_void, u64) {
+        (self.host_ptr, self.ptr, 0)
+    }
+
+    fn ptrs_mut(&mut self) -> (*mut T, *mut c_void, u64) {
         (self.host_ptr, self.ptr, 0)
     }
 

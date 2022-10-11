@@ -100,8 +100,14 @@ impl<'a, T, D: Device, const N: usize> Buffer<'a, T, D, N> {
 
     #[inline]
     /// Returns all types of pointers. (host, OpenCL, CUDA)
-    pub fn ptrs(&self) -> (*mut T, *mut c_void, u64) {
+    pub fn ptrs(&self) -> (*const T, *mut c_void, u64) {
         self.ptr.ptrs()
+    }
+
+    #[inline]
+    /// Returns all types of pointers. (host, OpenCL, CUDA)
+    pub fn ptrs_mut(&mut self) -> (*mut T, *mut c_void, u64) {
+        self.ptr.ptrs_mut()
     }
 }
 
@@ -313,17 +319,27 @@ impl<'a, const N: usize, T, D: CPUCL> Buffer<'a, T, D, N> {
             !self.ptrs().0.is_null(),
             "called as_mut_slice() on a non CPU buffer (this would dereference a null pointer)"
         );
-        unsafe { std::slice::from_raw_parts_mut(self.ptrs().0, self.len) }
+        unsafe { std::slice::from_raw_parts_mut(self.ptrs_mut().0, self.len) }
     }
 
     /// Returns a non null host pointer
     #[inline]
-    pub fn host_ptr(&self) -> *mut T {
+    pub fn host_ptr(&self) -> *const T {
         assert!(
             !self.ptrs().0.is_null(),
             "called host_ptr() on an invalid CPU buffer"
         );
         self.ptrs().0
+    }
+
+    /// Returns a non null host pointer
+    #[inline]
+    pub fn host_ptr_mut(&mut self) -> *mut T {
+        assert!(
+            !self.ptrs().0.is_null(),
+            "called host_ptr() on an invalid CPU buffer"
+        );
+        self.ptrs_mut().0
     }
 }
 

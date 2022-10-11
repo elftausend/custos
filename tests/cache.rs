@@ -24,11 +24,11 @@ fn test_caching_cpu() {
     let mut old_ptr = null_mut();
 
     for _ in range(100) {
-        let out = cached_add(&device, &a, &b);
+        let mut out = cached_add(&device, &a, &b);
         if out.host_ptr() != old_ptr && !old_ptr.is_null() {
             panic!("Should be the same pointer!");
         }
-        old_ptr = out.host_ptr();
+        old_ptr = out.host_ptr_mut();
         let len = device.cache.borrow().nodes.len();
         //let len = CPU_CACHE.with(|cache| cache.borrow().nodes.len());
         assert_eq!(len, 1);

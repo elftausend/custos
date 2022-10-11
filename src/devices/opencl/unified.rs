@@ -71,7 +71,7 @@ pub unsafe fn to_unified<T>(
 /// ```
 pub unsafe fn construct_buffer<'a, T: Debug>(
     device: &'a OpenCL,
-    no_drop: Buffer<T, CPU>,
+    mut no_drop: Buffer<T, CPU>,
     add_node: impl AddGraph,
 ) -> crate::Result<Buffer<'a, T, OpenCL>> {
     use crate::{bump_count, opencl::CLPtr, PtrType};
@@ -96,7 +96,7 @@ pub unsafe fn construct_buffer<'a, T: Debug>(
 
     let graph_node = device.graph().add(no_drop.len, add_node);
 
-    let (host_ptr, len) = (no_drop.host_ptr(), no_drop.len);
+    let (host_ptr, len) = (no_drop.host_ptr_mut(), no_drop.len);
     let cl_ptr = to_unified(device, no_drop, graph_node)?;
 
     bump_count();
@@ -124,7 +124,7 @@ mod tests {
 
         let device = OpenCL::new(0)?;
 
-        let (host_ptr, len) = (no_drop.host_ptr(), no_drop.len);
+        let (host_ptr, len) = (no_drop.host_ptr_mut(), no_drop.len);
         let cl_host_ptr = unsafe { to_unified(&device, no_drop, Node::default())? };
 
         let buf: Buffer<f32, OpenCL> = Buffer {

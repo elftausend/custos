@@ -3,12 +3,12 @@ use std::{
     ptr::null_mut,
 };
 
-use crate::{devices::CacheAble, Alloc, Buffer, Device, PtrType, CPUCL, IsCPU};
+use crate::{devices::CacheAble, Alloc, Buffer, Device, PtrType, CPUCL, IsCPU, DevicelessAble};
 
 #[derive(Debug, Clone, Copy)]
 pub struct Stack;
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct StackArray<const N: usize, T = f32> {
     pub array: [T; N],
 }
@@ -41,8 +41,14 @@ impl<const N: usize, T> DerefMut for StackArray<N, T> {
 impl<const N: usize, T> PtrType<T> for StackArray<N, T> {
     unsafe fn dealloc(&mut self, _len: usize) {}
 
-    fn ptrs(&self) -> (*mut T, *mut std::ffi::c_void, u64) {
-        (self.array.as_ptr() as *mut T, null_mut(), 0)
+    #[inline]
+    fn ptrs(&self) -> (*const T, *mut std::ffi::c_void, u64) {
+        (self.array.as_ptr(), null_mut(), 0)
+    }
+
+    #[inline]
+    fn ptrs_mut(&mut self) -> (*mut T, *mut std::ffi::c_void, u64) {
+        (self.array.as_mut_ptr(), null_mut(), 0)
     }
 
     fn from_ptrs(_ptrs: (*mut T, *mut std::ffi::c_void, u64)) -> Self {
@@ -65,6 +71,8 @@ impl<const N: usize> CacheAble<Stack, N> for StackRetrieve {
     }
 }
 
+impl<T: Copy + Default> DevicelessAble<T> for Stack {}
+
 impl Device for Stack {
     type Ptr<U, const N: usize> = StackArray<N, U>;
     type Cache<const N: usize> = StackRetrieve;
@@ -85,6 +93,7 @@ impl<const N: usize, T: Copy + Default> Alloc<T, N> for Stack {
         }
     }
 
+    #[inline]
     fn with_slice(&self, data: &[T]) -> StackArray<N, T> {
         let mut array = self.alloc(0);
         array.copy_from_slice(&data[..N]);

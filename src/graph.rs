@@ -280,6 +280,8 @@ mod tests {
 
     #[test]
     fn test_cache_trace() {
+        // for: cargo test -- --test-threads=1 
+        set_count(0);
         let mut graph = Graph::new();
         let a = graph.add_leaf(10);
         let b = graph.add_leaf(10);
@@ -327,6 +329,8 @@ mod tests {
 
     #[test]
     fn test_no_cache_trace() {
+        // for: cargo test -- --test-threads=1 
+        set_count(0);
         let mut graph = Graph::new();
         let a = graph.add_leaf(10);
         let b = graph.add_leaf(10);
@@ -349,6 +353,8 @@ mod tests {
 
     #[test]
     fn test_cache_trace_2() {
+        // for: cargo test -- --test-threads=1 
+        set_count(0);
         let mut graph = Graph::new();
         let a = graph.add_leaf(10);
         let b = graph.add_leaf(10);
@@ -389,6 +395,8 @@ mod tests {
 
     #[test]
     fn test_cache_trace_break() {
+        // for: cargo test -- --test-threads=1 
+        set_count(0);
         let mut graph = Graph::new();
         let a = graph.add_leaf(10);
         let b = graph.add_leaf(10);
@@ -433,6 +441,7 @@ mod tests {
 
     #[test]
     fn test_trace_all() {
+        // for: cargo test -- --test-threads=1 
         set_count(0);
         let mut graph = Graph::new();
         let a = graph.add_leaf(10);
@@ -467,6 +476,8 @@ mod tests {
 
     #[test]
     fn test_leafed_diff_len_trace() {
+        // for: cargo test -- --test-threads=1 
+        set_count(0);
         let mut graph = Graph::new();
         let a = graph.add_leaf(10);
         let _b = graph.add_node(10, a.idx, a.idx);

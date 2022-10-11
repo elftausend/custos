@@ -9,7 +9,11 @@ pub struct Num<T> {
 impl<T> PtrType<T, 0> for Num<T> {
     unsafe fn dealloc(&mut self, _len: usize) {}
 
-    fn ptrs(&self) -> (*mut T, *mut c_void, u64) {
+    fn ptrs(&self) -> (*const T, *mut c_void, u64) {
+        unimplemented!()
+    }
+
+    fn ptrs_mut(&mut self) -> (*mut T, *mut c_void, u64) {
         unimplemented!()
     }
 

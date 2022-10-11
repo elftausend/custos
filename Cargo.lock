@@ -16,7 +16,6 @@ name = "custos"
 version = "0.6.0"
 dependencies = [
  "custos 0.5.0",
- "lazy_static",
 ]
 
 [[package]]
