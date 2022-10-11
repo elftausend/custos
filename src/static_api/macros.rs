@@ -12,3 +12,18 @@ macro_rules! buf {
         $crate::Buffer::<_, $crate::CPU, 0>::from([$($x),+])
     )
 }
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn test_macro_filling() {
+        let buf = buf![2.; 10];
+        assert_eq!(buf.as_slice(), &[2.; 10]);
+    }
+
+    #[test]
+    fn test_macro_from_slice() {
+        let buf = buf![5, 3, 2, 6, 2];
+        assert_eq!(buf.as_slice(), &[5, 3, 2, 6, 2])
+    }
+}

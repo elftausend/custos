@@ -36,7 +36,11 @@ impl<T> PtrType<T> for CUDAPtr<T> {
         cufree(self.ptr).unwrap();
     }
 
-    fn ptrs(&self) -> (*mut T, *mut std::ffi::c_void, u64) {
+    fn ptrs(&self) -> (*const T, *mut std::ffi::c_void, u64) {
+        (null_mut(), null_mut(), self.ptr)
+    }
+
+    fn ptrs_mut(&mut self) -> (*mut T, *mut std::ffi::c_void, u64) {
         (null_mut(), null_mut(), self.ptr)
     }
 

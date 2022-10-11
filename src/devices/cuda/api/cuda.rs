@@ -167,7 +167,7 @@ pub fn culaunch_kernel(
     .to_result()?;
 
     // TODO: sync here or elsewhere?
-    stream.sync()?;
+    //stream.sync()?;
 
     //    unsafe {cuCtxSynchronize().to_result()?};
 

@@ -105,6 +105,9 @@ impl<T: Default + Clone> VecRead<T, CUDA> for CUDA {
             buf.ptrs().2 != 0,
             "called VecRead::read(..) on a non CUDA buffer"
         );
+        // TODO: sync here or somewhere else?
+        self.stream.sync().unwrap();
+
         let mut read = vec![T::default(); buf.len];
         cu_read(&mut read, buf.ptrs().2).unwrap();
         read

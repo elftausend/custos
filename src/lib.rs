@@ -55,7 +55,7 @@ mod graph;
 mod op_traits;
 
 #[cfg(feature = "static-api")]
-mod static_api;
+pub mod static_api;
 
 pub mod number;
 pub use op_traits::*;
