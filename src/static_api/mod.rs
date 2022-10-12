@@ -1,8 +1,8 @@
+mod impl_buffer;
 mod iter;
 mod macros;
 mod static_devices;
 mod to_device;
-mod impl_buffer;
 
 pub use macros::*;
 pub use static_devices::*;

@@ -1,5 +1,5 @@
-use crate::{Buffer, BufFlag, Node};
 use super::stack_device::{Stack, StackArray};
+use crate::{BufFlag, Buffer, Node};
 
 impl<'a, T, const N: usize> From<[T; N]> for Buffer<'a, T, Stack, N> {
     fn from(array: [T; N]) -> Self {

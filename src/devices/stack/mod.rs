@@ -5,18 +5,18 @@ pub use stack_device::*;
 
 #[cfg(test)]
 mod tests {
+    use crate::{Alloc, Buffer, Device, IsCPU, CPU, CPUCL};
     use std::ops::Add;
-    use crate::{Alloc, Buffer, Device, CPU, CPUCL, IsCPU};
 
     use super::stack_device::Stack;
 
     pub trait AddBuf<T, D: Device, const N: usize = 0>: Device {
         fn add(&self, lhs: &Buffer<T, D, N>, rhs: &Buffer<T, D, N>) -> Buffer<T, Self, N>;
     }
-    
+
     /*// Without stack support
     impl<T, D> AddBuf<T, D> for CPU
-    where 
+    where
         T: Add<Output = T> + Clone,
         D: CPUCL,
     {
@@ -47,7 +47,7 @@ mod tests {
             out
         }
     }
-    
+
     #[test]
     fn test_stack() {
         let stack = Stack;
@@ -58,7 +58,7 @@ mod tests {
         assert_eq!(out.ptr.array, [2.; 100]);
 
         let cpu = CPU::new();
-        
+
         // implement Buffer::<f32, _, 100> for cpu?
         //let buf = Buffer::<f32>::new(&cpu, 100);
         let buf = Buffer::from((&cpu, [1f32; 100]));

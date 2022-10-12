@@ -46,10 +46,10 @@ pub struct Cache<CT: CacheType> {
 pub trait BindCT<CT> {}
 impl<CT: CacheType> BindCT<CT> for Cache<CT> {}
 
-impl<CT, D, const N: usize> CacheAble<D, N> for Cache<CT> 
+impl<CT, D, const N: usize> CacheAble<D, N> for Cache<CT>
 where
     D: Device + CacheReturn,
-    CT: CacheType
+    CT: CacheType,
 {
     fn retrieve<T>(device: &D, len: usize, add_node: impl AddGraph) -> Buffer<T, D, N>
     where
@@ -175,7 +175,11 @@ impl<P: CacheType> Cache<P> {
 
     /// If the 'realloc' feature is enabled, this functions always returns a new [`Buffer`] with the size of `len`gth.
     #[cfg(feature = "realloc")]
-    pub fn get<T, D: Device, const N: usize>(device: &D, len: usize, _: impl AddGraph) -> Buffer<T, D, N>
+    pub fn get<T, D: Device, const N: usize>(
+        device: &D,
+        len: usize,
+        _: impl AddGraph,
+    ) -> Buffer<T, D, N>
     where
         // In order to know the specific pointer type
         // there is probably a better way to implement this
@@ -212,7 +216,7 @@ mod tests {
     #[cfg(not(feature = "realloc"))]
     #[test]
     fn test_get() {
-        // for: cargo test -- --test-threads=1 
+        // for: cargo test -- --test-threads=1
         set_count(0);
         let device = CPU::new();
 

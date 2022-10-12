@@ -3,7 +3,7 @@ use std::{
     ptr::null_mut,
 };
 
-use crate::{devices::CacheAble, Alloc, Buffer, Device, PtrType, CPUCL, IsCPU, DevicelessAble};
+use crate::{devices::CacheAble, Alloc, Buffer, Device, DevicelessAble, IsCPU, PtrType, CPUCL};
 
 #[derive(Debug, Clone, Copy)]
 pub struct Stack;
@@ -16,9 +16,7 @@ pub struct StackArray<const N: usize, T = f32> {
 impl<T, const N: usize> StackArray<N, T> {
     #[inline]
     pub fn new(array: [T; N]) -> Self {
-        StackArray {
-            array
-        }
+        StackArray { array }
     }
 }
 

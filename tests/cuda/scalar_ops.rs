@@ -1,8 +1,11 @@
 use custos::{cache::Cache, cuda::launch_kernel1d, Buffer, CachedLeaf, VecRead, CUDA};
 
-fn scalar_apply<'a>(device: &'a CUDA, lhs: &'a Buffer<f32, CUDA>, rhs: f32) -> custos::Result<Buffer<'a, f32, CUDA>> {
-    let src =
-        r#"extern "C" __global__ void scalar_add(float* lhs, float rhs, float* out, int numElements)
+fn scalar_apply<'a>(
+    device: &'a CUDA,
+    lhs: &'a Buffer<f32, CUDA>,
+    rhs: f32,
+) -> custos::Result<Buffer<'a, f32, CUDA>> {
+    let src = r#"extern "C" __global__ void scalar_add(float* lhs, float rhs, float* out, int numElements)
             {
                 int idx = blockDim.x * blockIdx.x + threadIdx.x;
                 if (idx < numElements) {
@@ -21,7 +24,7 @@ fn scalar_apply<'a>(device: &'a CUDA, lhs: &'a Buffer<f32, CUDA>, rhs: f32) -> c
         "scalar_add",
         &[&lhs, &rhs, &out, &lhs.len],
     )?;
-    
+
     Ok(out)
 }
 
@@ -37,7 +40,7 @@ fn test_scalar_op_cuda() -> custos::Result<()> {
     Ok(())
 }
 
-#[cfg(feature="static-api")]
+#[cfg(feature = "static-api")]
 #[test]
 fn test_large_scalar_ops_cuda_static_api() -> custos::Result<()> {
     use custos::static_api::static_cuda;
@@ -48,7 +51,10 @@ fn test_large_scalar_ops_cuda_static_api() -> custos::Result<()> {
 
     let out = scalar_apply(&static_cuda(), &lhs, 1.)?;
 
-    let actual = (0..100000).into_iter().map(|val| val as f32 + 1.).collect::<Vec<f32>>();
+    let actual = (0..100000)
+        .into_iter()
+        .map(|val| val as f32 + 1.)
+        .collect::<Vec<f32>>();
     assert_eq!(actual, out.read());
 
     Ok(())

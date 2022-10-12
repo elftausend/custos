@@ -3,15 +3,15 @@ use std::{ffi::c_void, fmt::Debug};
 use crate::cpu::CPUPtr;
 
 use crate::{
-    Alloc, CDatatype, CacheBuf, ClearBuf, CloneBuf, Device, DevicelessAble, Node,
-    PtrType, VecRead, WriteBuf, CPU, CPUCL,
+    Alloc, CDatatype, CacheBuf, ClearBuf, CloneBuf, Device, DevicelessAble, Node, PtrType, VecRead,
+    WriteBuf, CPU, CPUCL,
 };
 pub use flag::BufFlag;
 pub use num::Num;
 
 mod flag;
-mod num;
 mod impl_from;
+mod num;
 
 /// The underlying non-growable array structure. A `Buffer` may be encapsulated in other structs.
 /// By default, the `Buffer` is a f32 CPU Buffer.

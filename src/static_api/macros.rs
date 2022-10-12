@@ -10,6 +10,11 @@ macro_rules! buf {
 
     ($($x:expr),+ $(,)?) => (
         $crate::Buffer::<_, $crate::CPU, 0>::from([$($x),+])
+    );
+
+    // TODO: buf![device, [...]]
+    ($device:expr, [($x:expr),+ $(,)?]) => (
+        $crate::Buffer::<_, _, 0>::from((&device, [$($x),+]))
     )
 }
 

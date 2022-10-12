@@ -17,7 +17,7 @@ readme = "README.md"
 custos = { version="0.5.0", default-features = false }
 
 [features]
-default = ["blas", "cuda", "static-api", "opencl"]
+default = ["blas", "static-api", "opencl"]
 opencl = ["custos/opencl"]
 cuda = []
 realloc = []

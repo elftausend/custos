@@ -1,6 +1,6 @@
 use std::ffi::c_void;
 
-use crate::{PtrType, Device, Buffer, AddGraph, devices::CacheAble, BufFlag, Node};
+use crate::{devices::CacheAble, AddGraph, BufFlag, Buffer, Device, Node, PtrType};
 
 pub struct Num<T> {
     pub num: T,

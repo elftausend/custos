@@ -1,7 +1,7 @@
 use crate::{
     devices::cache::{Cache, CacheReturn},
     Alloc, Buffer, CacheBuf, CachedLeaf, ClearBuf, CloneBuf, Device, DevicelessAble, Graph,
-    GraphReturn, VecRead, WriteBuf, CPUCL, IsCPU,
+    GraphReturn, IsCPU, VecRead, WriteBuf, CPUCL,
 };
 use std::{
     alloc::{handle_alloc_error, Layout},

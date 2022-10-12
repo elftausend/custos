@@ -1,6 +1,5 @@
 use custos::{Buffer, CPU};
 
-
 #[test]
 fn from_slice() {
     let cpu = CPU::new();

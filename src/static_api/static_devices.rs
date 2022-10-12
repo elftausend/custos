@@ -70,10 +70,10 @@ mod tests {
     #[cfg(not(feature = "realloc"))]
     #[test]
     fn test_static_cpu_cache() {
-        // for: cargo test -- --test-threads=1 
+        // for: cargo test -- --test-threads=1
         set_count(0);
         use super::static_cpu;
-        use crate::{Cache, Ident, set_count};
+        use crate::{set_count, Cache, Ident};
 
         let cpu = static_cpu();
 

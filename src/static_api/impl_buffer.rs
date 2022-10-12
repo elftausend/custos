@@ -1,4 +1,4 @@
-use crate::{Buffer, BufFlag, GraphReturn, Alloc, Node};
+use crate::{Alloc, BufFlag, Buffer, GraphReturn, Node};
 
 use super::static_cpu;
 

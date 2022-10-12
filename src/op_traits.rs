@@ -1,4 +1,4 @@
-use crate::{Device, Buffer};
+use crate::{Buffer, Device};
 
 /// Trait for implementing the clear() operation for the compute devices.
 pub trait ClearBuf<T, D: Device> {

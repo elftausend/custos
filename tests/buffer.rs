@@ -118,7 +118,7 @@ fn test_use_number() {
 #[cfg(not(feature = "realloc"))]
 #[test]
 fn test_cached_cpu() {
-    // for: cargo test -- --test-threads=1 
+    // for: cargo test -- --test-threads=1
     set_count(0);
 
     std::env::set_var("RUST_BACKTRACE", "1");
@@ -156,7 +156,7 @@ fn test_cached_cl() -> Result<(), custos::Error> {
         cl_cached,
     };
 
-    // for: cargo test -- --test-threads=1 
+    // for: cargo test -- --test-threads=1
     set_count(0);
 
     let device = OpenCL::new(0)?;
@@ -290,7 +290,6 @@ fn test_deviceless_buf_panic() {
     };
     buf.read();
 }*/
-
 
 /*
 // compmile-time error

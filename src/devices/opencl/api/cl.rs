@@ -3,7 +3,8 @@
 use std::{
     ffi::{c_void, CString},
     mem::size_of,
-    usize, vec, rc::Rc,
+    rc::Rc,
+    usize, vec,
 };
 
 use crate::Error;
@@ -243,7 +244,7 @@ impl CommandQueue {
 
 impl Drop for CommandQueue {
     fn drop(&mut self) {
-       self.release().unwrap();
+        self.release().unwrap();
     }
 }
 
@@ -631,9 +632,7 @@ pub(crate) fn create_kernels_in_program(program: &Program) -> Result<Vec<Rc<Kern
         return Err(Error::from(OCLErrorKind::from_value(value)));
     }
 
-    let kernels = kernels.into_iter()
-        .map(Rc::new)
-        .collect();
+    let kernels = kernels.into_iter().map(Rc::new).collect();
 
     Ok(kernels)
 }
@@ -708,7 +707,7 @@ pub fn enqueue_nd_range_kernel(
 mod tests {
     use std::cell::RefCell;
 
-    use crate::{CLDevice, OpenCL, Buffer};
+    use crate::{Buffer, CLDevice, OpenCL};
 
     #[test]
     fn test_multiplie_queues() -> crate::Result<()> {
@@ -720,8 +719,8 @@ mod tests {
             graph: Default::default(),
             cpu: Default::default(),
         };
-        
-        let buf = Buffer::from((&cl, &[1, 2, 3, 4, 5, 6, 7,]));
+
+        let buf = Buffer::from((&cl, &[1, 2, 3, 4, 5, 6, 7]));
         assert_eq!(buf.read(), vec![1, 2, 3, 4, 5, 6, 7]);
 
         let device = CLDevice::new(0)?;
@@ -734,7 +733,7 @@ mod tests {
             cpu: Default::default(),
         };
 
-        let buf = Buffer::from((&cl1, &[2, 2, 4, 4, 2, 1, 3,]));
+        let buf = Buffer::from((&cl1, &[2, 2, 4, 4, 2, 1, 3]));
         assert_eq!(buf.read(), vec![2, 2, 4, 4, 2, 1, 3]);
 
         Ok(())

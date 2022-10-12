@@ -1,15 +1,16 @@
 use super::{
     api::{
         create_command_queue, create_context, enqueue_full_copy_buffer, enqueue_read_buffer,
-        enqueue_write_buffer, wait_for_event, CLIntDevice, CommandQueue, Context, get_platforms, get_device_ids, DeviceType, OCLErrorKind,
+        enqueue_write_buffer, get_device_ids, get_platforms, wait_for_event, CLIntDevice,
+        CommandQueue, Context, DeviceType, OCLErrorKind,
     },
     cl_clear, CLPtr, KernelCacheCL, RawCL,
 };
 use crate::{
     cache::{Cache, CacheReturn},
     devices::opencl::api::{create_buffer, MemFlags},
-    Alloc, Buffer, CDatatype, CacheBuf, CachedLeaf, ClearBuf, CloneBuf, Device,
-    Error, Graph, GraphReturn, VecRead, WriteBuf, CPU,
+    Alloc, Buffer, CDatatype, CacheBuf, CachedLeaf, ClearBuf, CloneBuf, Device, Error, Graph,
+    GraphReturn, VecRead, WriteBuf, CPU,
 };
 use std::{
     cell::{Ref, RefCell},
@@ -58,7 +59,7 @@ impl OpenCL {
             kernel_cache: Default::default(),
             cache: Default::default(),
             graph: Default::default(),
-            cpu: Default::default()
+            cpu: Default::default(),
         })
     }
 
@@ -254,7 +255,7 @@ impl CLDevice {
     pub fn new(device_idx: usize) -> crate::Result<CLDevice> {
         let platform = get_platforms()?[0];
         let devices = get_device_ids(platform, &(DeviceType::GPU as u64))?;
-        
+
         if device_idx >= devices.len() {
             return Err(OCLErrorKind::InvalidDeviceIdx.into());
         }
