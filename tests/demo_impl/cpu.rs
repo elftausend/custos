@@ -1,4 +1,8 @@
-use custos::{CPUCL, CPU, Buffer, Device, Alloc, stack::Stack, prelude::Number};
+use custos::{CPUCL, CPU, Buffer, Device, prelude::Number};
+use custos_macro::impl_stack;
+
+#[cfg(feature = "stack-alloc")]
+use custos::stack::Stack;
 
 use super::ElementWise;
 
@@ -15,7 +19,8 @@ where
 
 }
 
-//TODO stack macro: #[stack_impl]
+// TODO: write expansion example
+#[impl_stack]
 impl<T: Number, D> ElementWise<T, D> for CPU
 where
     D: CPUCL,
@@ -33,6 +38,15 @@ where
     }
 }
 
+#[cfg(feature = "stack-alloc")]
+#[test]
+fn test_impl_stack() {
+    let buf = Buffer::<i32, Stack, 5>::from([1, 2, 3, 4, 5]);
+    let out = Stack.add(&buf, &buf);
+    assert_eq!(out.as_slice(), &[2, 4, 6, 8, 10]);
+}
+
+/* 
 impl<T, const N: usize, D> ElementWise<T, D, N> for Stack
 where
     D: CPUCL,
@@ -47,4 +61,4 @@ where
     fn mul(&self, _lhs: &Buffer<T, D, N>, _rhs: &Buffer<T, D, N>) -> Buffer<T, Stack, N> {
         todo!()
     }
-}
+}*/

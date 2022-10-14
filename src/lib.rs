@@ -1,3 +1,5 @@
+#![cfg_attr(feature = "no-std", no_std)]
+
 //! A minimal OpenCL, CUDA and host CPU array manipulation engine / framework written in Rust.
 //! This crate provides the tools for executing custom array operations with the CPU, as well as with CUDA and OpenCL devices.<br>
 //! This guide demonstrates how operations can be implemented for the compute devices: [implement_operations.md](implement_operations.md)<br>
@@ -168,7 +170,7 @@ pub trait Alloc<T, const N: usize = 0>: Device {
 pub mod prelude {
     pub use crate::{
         cache::CacheReturn, cached, get_count, number::*, range, set_count, Buffer, CDatatype,
-        Cache, CacheBuf, ClearBuf, Device, GraphReturn, VecRead, WriteBuf, CPU,
+        Cache, CacheBuf, ClearBuf, Device, GraphReturn, VecRead, WriteBuf, CPU
     };
 
     #[cfg(feature = "opencl")]

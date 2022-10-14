@@ -12,20 +12,25 @@ readme = "README.md"
 
 [dependencies]
 
+
 [build-dependencies]
 # TODO: use opencl only lib
 custos = { version="0.5.0", default-features = false }
 
 [features]
-default = ["blas", "static-api", "opencl"]
+default = []
 opencl = ["custos/opencl"]
 cuda = []
 realloc = []
 opt-cache = []
 blas = []
 static-api = []
-stack = []
+stack-alloc = []
+no-std = ["stack-alloc"]
 
+[dev-dependencies]
+#criterion = "0.3"
+custos-macro = {path = "../custos-macro"}
 
 [[example]]
 name = "cuda_readme"
@@ -50,9 +55,6 @@ required-features = ["opencl"]
 [[test]]
 name = "cl_kernel_launch"
 required-features = ["opencl"]
-
-[dev-dependencies]
-#criterion = "0.3"
 
 #[[bench]]
 #name = "fixed_size_vs_vec"

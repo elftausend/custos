@@ -201,8 +201,7 @@ pub fn get_device_info(
     })
 }
 
-// TODO: implement drop
-#[derive(Debug, Hash, /*remove:*/ Clone)]
+#[derive(Debug, Hash)]
 pub struct Context(pub cl_context);
 
 impl Drop for Context {
@@ -494,7 +493,7 @@ pub fn enqueue_fill_buffer<T>(cq: &CommandQueue, mem: &Mem, pattern: Vec<T>) -> 
     Event(events[0])
 }
 */
-// TODO: implement drop
+
 pub struct Program(pub cl_program);
 
 impl Program {

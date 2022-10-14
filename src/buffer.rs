@@ -1,10 +1,10 @@
 use std::{ffi::c_void, fmt::Debug};
 
-use crate::cpu::CPUPtr;
+use crate::cpu::{CPUPtr, CPU};
 
 use crate::{
     Alloc, CDatatype, CacheBuf, ClearBuf, CloneBuf, Device, DevicelessAble, Node, PtrType, VecRead,
-    WriteBuf, CPU, CPUCL,
+    WriteBuf, CPUCL,
 };
 pub use flag::BufFlag;
 pub use num::Num;

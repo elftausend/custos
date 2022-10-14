@@ -18,6 +18,7 @@ pub mod cpu;
 pub mod cuda;
 #[cfg(feature = "opencl")]
 pub mod opencl;
+#[cfg(feature = "stack-alloc")]
 pub mod stack;
 
 pub type CUdeviceptr = std::os::raw::c_ulonglong;
