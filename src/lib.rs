@@ -62,8 +62,6 @@ pub mod static_api;
 pub mod number;
 pub use op_traits::*;
 
-pub trait IsCPU: Device + CPUCL {}
-
 pub trait PtrType<T, const N: usize = 0> {
     /// # Safety
     /// The pointer must be a valid pointer.
@@ -170,7 +168,7 @@ pub trait Alloc<T, const N: usize = 0>: Device {
 pub mod prelude {
     pub use crate::{
         cache::CacheReturn, cached, get_count, number::*, range, set_count, Buffer, CDatatype,
-        Cache, CacheBuf, ClearBuf, Device, GraphReturn, VecRead, WriteBuf, CPU
+        Cache, CacheBuf, ClearBuf, Device, GraphReturn, VecRead, WriteBuf, CPU,
     };
 
     #[cfg(feature = "opencl")]

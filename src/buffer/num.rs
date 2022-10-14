@@ -1,6 +1,6 @@
 use std::ffi::c_void;
 
-use crate::{devices::CacheAble, AddGraph, BufFlag, Buffer, Device, Node, PtrType};
+use crate::{BufFlag, Buffer, Device, Node, PtrType};
 
 pub struct Num<T> {
     pub num: T,
@@ -18,12 +18,6 @@ impl<T> PtrType<T, 0> for Num<T> {
     }
 
     fn from_ptrs(_ptrs: (*mut T, *mut c_void, u64)) -> Self {
-        unimplemented!()
-    }
-}
-
-impl<D: Device, const N: usize> CacheAble<D, N> for () {
-    fn retrieve<T>(_device: &D, _len: usize, _add_node: impl AddGraph) -> Buffer<T, D, N> {
         unimplemented!()
     }
 }

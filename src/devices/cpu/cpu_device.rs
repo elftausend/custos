@@ -1,7 +1,7 @@
 use crate::{
     devices::cache::{Cache, CacheReturn},
     Alloc, Buffer, CacheBuf, CachedLeaf, ClearBuf, CloneBuf, Device, DevicelessAble, Graph,
-    GraphReturn, IsCPU, VecRead, WriteBuf, CPUCL,
+    GraphReturn, VecRead, WriteBuf, CPUCL,
 };
 use std::{
     alloc::{handle_alloc_error, Layout},
@@ -47,8 +47,6 @@ impl Device for CPU {
     type Ptr<U, const N: usize> = CPUPtr<U>;
     type Cache<const N: usize> = Cache<RawCpuBuf>;
 }
-
-impl IsCPU for CPU {}
 
 impl<T> DevicelessAble<T> for CPU {}
 

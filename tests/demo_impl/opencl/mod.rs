@@ -1,4 +1,4 @@
-use custos::{Buffer, CDatatype, OpenCL, opencl::enqueue_kernel, Device};
+use custos::{opencl::enqueue_kernel, Buffer, CDatatype, Device, OpenCL};
 
 use super::ElementWise;
 
@@ -8,7 +8,8 @@ pub fn cl_element_wise<T>(
     rhs: &Buffer<T, OpenCL>,
     out: &mut Buffer<T, OpenCL>,
     op: &str,
-) -> custos::Result<()> where
+) -> custos::Result<()>
+where
     T: CDatatype,
 {
     let src = format!(
@@ -19,9 +20,7 @@ pub fn cl_element_wise<T>(
         }}"
     , datatype=T::as_c_type_str());
 
-    enqueue_kernel(device, &src, [lhs.len, 0, 0], None, 
-        &[lhs, rhs, out]
-    )?;
+    enqueue_kernel(device, &src, [lhs.len, 0, 0], None, &[lhs, rhs, out])?;
     Ok(())
 }
 

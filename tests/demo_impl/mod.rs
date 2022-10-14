@@ -2,7 +2,7 @@ use custos::{Buffer, Device};
 
 mod cpu;
 
-#[cfg(feature="opencl")]
+#[cfg(feature = "opencl")]
 mod opencl;
 
 pub trait ElementWise<T, D: Device, const N: usize = 0>: Device {

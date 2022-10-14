@@ -1,4 +1,4 @@
-use custos::{CPUCL, CPU, Buffer, Device, prelude::Number};
+use custos::{prelude::Number, Buffer, Device, CPU, CPUCL};
 use custos_macro::impl_stack;
 
 #[cfg(feature = "stack-alloc")]
@@ -6,17 +6,16 @@ use custos::stack::Stack;
 
 use super::ElementWise;
 
-pub fn cpu_element_wise<T, F>(lhs: &[T], rhs: &[T], out: &mut [T], f: F) 
-where 
-    T: Copy, 
-    F: Fn(&mut T, T, T)
+pub fn cpu_element_wise<T, F>(lhs: &[T], rhs: &[T], out: &mut [T], f: F)
+where
+    T: Copy,
+    F: Fn(&mut T, T, T),
 {
     let len = std::cmp::min(lhs.len(), rhs.len());
 
     for i in 0..len {
         f(&mut out[i], lhs[i], rhs[i])
     }
-
 }
 
 // TODO: write expansion example
@@ -46,7 +45,7 @@ fn test_impl_stack() {
     assert_eq!(out.as_slice(), &[2, 4, 6, 8, 10]);
 }
 
-/* 
+/*
 impl<T, const N: usize, D> ElementWise<T, D, N> for Stack
 where
     D: CPUCL,
