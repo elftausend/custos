@@ -1,4 +1,4 @@
-use std::{
+use core::{
     ops::{Deref, DerefMut},
     ptr::null_mut,
 };
@@ -40,16 +40,16 @@ impl<const N: usize, T> PtrType<T> for StackArray<N, T> {
     unsafe fn dealloc(&mut self, _len: usize) {}
 
     #[inline]
-    fn ptrs(&self) -> (*const T, *mut std::ffi::c_void, u64) {
+    fn ptrs(&self) -> (*const T, *mut core::ffi::c_void, u64) {
         (self.array.as_ptr(), null_mut(), 0)
     }
 
     #[inline]
-    fn ptrs_mut(&mut self) -> (*mut T, *mut std::ffi::c_void, u64) {
+    fn ptrs_mut(&mut self) -> (*mut T, *mut core::ffi::c_void, u64) {
         (self.array.as_mut_ptr(), null_mut(), 0)
     }
 
-    fn from_ptrs(_ptrs: (*mut T, *mut std::ffi::c_void, u64)) -> Self {
+    fn from_ptrs(_ptrs: (*mut T, *mut core::ffi::c_void, u64)) -> Self {
         unimplemented!("Cannot create a StackArray from pointers.");
     }
 }

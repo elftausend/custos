@@ -40,6 +40,11 @@ where
 #[cfg(feature = "stack-alloc")]
 #[test]
 fn test_impl_stack() {
+    let device = CPU::new();
+    let buf = Buffer::<i32, _>::from((&device, [1, 2, 3, 4, 5]));
+    let out = device.add(&buf, &buf);
+    assert_eq!(out.as_slice(), &[2, 4, 6, 8, 10]);
+
     let buf = Buffer::<i32, Stack, 5>::from([1, 2, 3, 4, 5]);
     let out = Stack.add(&buf, &buf);
     assert_eq!(out.as_slice(), &[2, 4, 6, 8, 10]);

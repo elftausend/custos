@@ -1,4 +1,4 @@
-use std::ops::{Range, RangeInclusive};
+use core::ops::{Range, RangeInclusive};
 
 use crate::{get_count, set_count};
 

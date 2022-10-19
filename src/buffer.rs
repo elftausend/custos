@@ -1,4 +1,4 @@
-use std::{ffi::c_void, fmt::Debug};
+use core::{ffi::c_void, fmt::Debug};
 
 use crate::cpu::{CPUPtr, CPU};
 
@@ -6,6 +6,7 @@ use crate::{
     Alloc, CDatatype, CacheBuf, ClearBuf, CloneBuf, Device, DevicelessAble, Node, PtrType, VecRead,
     WriteBuf, CPUCL,
 };
+use alloc::vec::Vec;
 pub use flag::BufFlag;
 pub use num::Num;
 
@@ -309,7 +310,7 @@ impl<'a, const N: usize, T, D: CPUCL> Buffer<'a, T, D, N> {
             !self.ptrs().0.is_null(),
             "called as_slice() on an invalid CPU buffer (this would dereference an invalid pointer)"
         );
-        unsafe { std::slice::from_raw_parts(self.ptrs().0, self.len) }
+        unsafe { alloc::slice::from_raw_parts(self.ptrs().0, self.len) }
     }
 
     /// Returns a mutable CPU slice.
@@ -319,7 +320,7 @@ impl<'a, const N: usize, T, D: CPUCL> Buffer<'a, T, D, N> {
             !self.ptrs().0.is_null(),
             "called as_mut_slice() on a non CPU buffer (this would dereference a null pointer)"
         );
-        unsafe { std::slice::from_raw_parts_mut(self.ptrs_mut().0, self.len) }
+        unsafe { alloc::slice::from_raw_parts_mut(self.ptrs_mut().0, self.len) }
     }
 
     /// Returns a non null host pointer
@@ -417,7 +418,7 @@ impl<T, D: CPUCL> AsMut<[T]> for Buffer<'_, T, D> {
 /// slice_add(&a, &b, &mut c);
 /// assert_eq!(c.as_slice(), &[3., 5., 7., 9.,]);
 /// ```
-impl<const N: usize, T, D: CPUCL> std::ops::Deref for Buffer<'_, T, D, N> {
+impl<const N: usize, T, D: CPUCL> core::ops::Deref for Buffer<'_, T, D, N> {
     type Target = [T];
 
     fn deref(&self) -> &Self::Target {
@@ -446,7 +447,7 @@ impl<const N: usize, T, D: CPUCL> std::ops::Deref for Buffer<'_, T, D, N> {
 /// slice_add(&a, &b, &mut c);
 /// assert_eq!(c.as_slice(), &[6., 5., 9., 9.,]);
 /// ```
-impl<const N: usize, T, D: CPUCL> std::ops::DerefMut for Buffer<'_, T, D, N> {
+impl<const N: usize, T, D: CPUCL> core::ops::DerefMut for Buffer<'_, T, D, N> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         self.as_mut_slice()
     }
@@ -457,7 +458,7 @@ where
     T: Debug + Default + Copy,
     D: VecRead<T, D> + Device,
 {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         f.debug_struct("Buffer")
             .field("ptr (CPU, CL, CU)", &self.ptrs())
             .field("len", &self.len);
@@ -480,26 +481,26 @@ where
         write!(
             f,
             "datatype={}, device={device:?} }}",
-            std::any::type_name::<T>(),
-            device = std::any::type_name::<D>()
+            core::any::type_name::<T>(),
+            device = core::any::type_name::<D>()
         )
     }
 }
 
-impl<'a, T, D: CPUCL> std::iter::IntoIterator for &'a Buffer<'_, T, D> {
+impl<'a, T, D: CPUCL> core::iter::IntoIterator for &'a Buffer<'_, T, D> {
     type Item = &'a T;
 
-    type IntoIter = std::slice::Iter<'a, T>;
+    type IntoIter = alloc::slice::Iter<'a, T>;
 
     fn into_iter(self) -> Self::IntoIter {
         self.iter()
     }
 }
 
-impl<'a, T, D: CPUCL> std::iter::IntoIterator for &'a mut Buffer<'_, T, D> {
+impl<'a, T, D: CPUCL> core::iter::IntoIterator for &'a mut Buffer<'_, T, D> {
     type Item = &'a mut T;
 
-    type IntoIter = std::slice::IterMut<'a, T>;
+    type IntoIter = core::slice::IterMut<'a, T>;
 
     fn into_iter(self) -> Self::IntoIter {
         self.iter_mut()

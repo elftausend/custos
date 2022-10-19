@@ -6,7 +6,7 @@ pub use stack_device::*;
 #[cfg(test)]
 mod tests {
     use crate::{Alloc, Buffer, Device, CPU, CPUCL};
-    use std::ops::Add;
+    use core::ops::Add;
 
     use super::stack_device::Stack;
 
@@ -21,7 +21,7 @@ mod tests {
         D: CPUCL,
     {
         fn add(&self, lhs: &Buffer<T, D>, rhs: &Buffer<T, D>) -> Buffer<T, Self> {
-            let len = std::cmp::min(lhs.len, rhs.len);
+            let len = core::cmp::min(lhs.len, rhs.len);
 
             let mut out = self.retrieve(len, (lhs, rhs));
             for i in 0..len {
@@ -37,7 +37,7 @@ mod tests {
         T: Add<Output = T> + Clone,
     {
         fn add(&self, lhs: &Buffer<T, D>, rhs: &Buffer<T, D>) -> Buffer<T, Self> {
-            let len = std::cmp::min(lhs.len, rhs.len);
+            let len = core::cmp::min(lhs.len, rhs.len);
 
             let mut out = self.retrieve(len, (lhs, rhs));
             for i in 0..len {
@@ -54,7 +54,7 @@ mod tests {
         T: Add<Output = T> + Clone,
     {
         fn add(&self, lhs: &Buffer<T, D, N>, rhs: &Buffer<T, D, N>) -> Buffer<T, Self, N> {
-            let len = std::cmp::min(lhs.len, rhs.len);
+            let len = core::cmp::min(lhs.len, rhs.len);
 
             let mut out = self.retrieve(len, (lhs, rhs));
             for i in 0..len {

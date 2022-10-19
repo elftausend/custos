@@ -32,7 +32,9 @@
 //!
 //! assert_eq!(a.read(), vec![0; 6]);
 //! ```
-use std::ffi::c_void;
+extern crate alloc;
+use alloc::vec::Vec;
+use core::ffi::c_void;
 
 //pub use libs::*;
 pub use buffer::*;

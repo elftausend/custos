@@ -4,7 +4,7 @@ macro_rules! buf {
         if $n == 0 {
             panic!("The length of the buffer can't be 0.");
         } else {
-            $crate::Buffer::from(vec![$elem; $n])
+            $crate::Buffer::from(alloc::vec![$elem; $n])
         }
     );
 

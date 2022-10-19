@@ -1,9 +1,11 @@
 use crate::CPU;
-
+    
+#[cfg(not(feature = "no-std"))]
 thread_local! {
     pub static GLOBAL_CPU: CPU = CPU::new();
 }
 
+#[cfg(not(feature = "no-std"))]
 #[inline]
 pub fn static_cpu() -> &'static CPU {
     // Safety: GLOBAL_CPU should live long enough
@@ -13,6 +15,19 @@ pub fn static_cpu() -> &'static CPU {
             .as_ref()
             .unwrap()
     }
+}
+
+#[cfg(feature = "no-std")]
+pub static GLOBAL_CPU: Option<CPU> = None;
+
+#[cfg(feature = "no-std")]
+pub fn static_cpu() -> &'static CPU {
+    if let Some(cpu) = &GLOBAL_CPU {
+        cpu
+    } else {
+        GLOBAL_CPU = Some(CPU::new())
+    }
+
 }
 
 #[cfg(feature = "opencl")]

@@ -3,12 +3,12 @@ use crate::{
     Alloc, Buffer, CacheBuf, CachedLeaf, ClearBuf, CloneBuf, Device, DevicelessAble, Graph,
     GraphReturn, VecRead, WriteBuf, CPUCL,
 };
-use std::{
-    alloc::{handle_alloc_error, Layout},
+use core::{
     cell::{RefCell, RefMut},
     fmt::Debug,
     mem::size_of,
 };
+use alloc::{alloc::{handle_alloc_error, Layout}, vec::Vec};
 
 use super::{CPUPtr, RawCpuBuf};
 
@@ -54,10 +54,10 @@ impl<T> Alloc<T> for CPU {
     fn alloc(&self, len: usize) -> CPUPtr<T> {
         assert!(len > 0, "invalid buffer len: 0");
         let layout = Layout::array::<T>(len).unwrap();
-        let ptr = unsafe { std::alloc::alloc(layout) };
+        let ptr = unsafe { alloc::alloc::alloc(layout) };
 
         // initialize block of memory
-        for element in unsafe { std::slice::from_raw_parts_mut(ptr, len * size_of::<T>()) } {
+        for element in unsafe { alloc::slice::from_raw_parts_mut(ptr, len * size_of::<T>()) } {
             *element = 0;
         }
 
@@ -74,7 +74,7 @@ impl<T> Alloc<T> for CPU {
     {
         assert!(!data.is_empty(), "invalid buffer len: 0");
         let cpu_ptr = self.alloc(data.len());
-        let slice = unsafe { std::slice::from_raw_parts_mut(cpu_ptr.ptr, data.len()) };
+        let slice = unsafe { alloc::slice::from_raw_parts_mut(cpu_ptr.ptr, data.len()) };
         slice.clone_from_slice(data);
 
         cpu_ptr
@@ -83,7 +83,7 @@ impl<T> Alloc<T> for CPU {
         assert!(!vec.is_empty(), "invalid buffer len: 0");
 
         let ptr = vec.as_mut_ptr();
-        std::mem::forget(vec);
+        core::mem::forget(vec);
 
         CPUPtr { ptr }
     }

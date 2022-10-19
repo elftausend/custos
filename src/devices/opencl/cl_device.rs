@@ -63,6 +63,15 @@ impl OpenCL {
         })
     }
 
+    /// Sets the values of the attributes cache, kernel cache, graph and CPU to their default.
+    /// This cleans up any accumulated allocations.
+    pub fn reset(&'static mut self) {
+        self.kernel_cache = Default::default();
+        self.cache = Default::default();
+        self.graph = Default::default();
+        self.cpu = Default::default();
+    }
+
     #[inline]
     pub fn ctx(&self) -> Ref<Context> {
         let borrow = self.inner.borrow();

@@ -1,3 +1,5 @@
+use alloc::vec::Vec;
+
 use crate::{Alloc, BufFlag, Buffer, GraphReturn};
 
 use super::static_cpu;

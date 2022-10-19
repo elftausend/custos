@@ -1,3 +1,5 @@
+use alloc::vec::Vec;
+
 use crate::{Alloc, Buffer, GraphReturn};
 
 impl<'a, T, D, const N: usize> From<(&'a D, [T; N])> for Buffer<'a, T, D>

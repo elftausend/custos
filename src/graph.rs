@@ -1,5 +1,7 @@
+use alloc::vec::Vec;
+
 use crate::{Buffer, Device, Ident, COUNT};
-use std::cell::RefMut;
+use core::cell::RefMut;
 
 #[cfg(feature = "opt-cache")]
 use crate::{cache::CacheReturn, DeviceError};
@@ -265,6 +267,8 @@ impl<'a, T, D: Device, const N: usize> AddGraph for [&Buffer<'a, T, D, N>; 2] {
 
 #[cfg(test)]
 mod tests {
+    use alloc::vec;
+
     use crate::{bump_count, set_count, CacheTrace, Graph, Ident, Node};
 
     // test if node is a leaf node
@@ -323,8 +327,8 @@ mod tests {
             trace
         );
 
-        let traces = graph.cache_traces();
-        println!("traces: {traces:?}");
+        let _traces = graph.cache_traces();
+        //println!("traces: {traces:?}");
     }
 
     #[test]

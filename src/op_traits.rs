@@ -1,3 +1,5 @@
+use alloc::vec::Vec;
+
 use crate::{Buffer, Device};
 
 /// Trait for implementing the clear() operation for the compute devices.
