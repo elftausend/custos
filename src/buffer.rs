@@ -302,15 +302,11 @@ impl<'a, T> Buffer<'a, T, crate::CUDA> {
     }
 }
 
-impl<'a, const N: usize, T, D: CPUCL> Buffer<'a, T, D, N> {
+impl<'a, T, D: CPUCL, const N: usize> Buffer<'a, T, D, N> {
     /// Returns a CPU slice. This does not work with CUDA or OpenCL buffers.
     #[inline]
     pub fn as_slice(&self) -> &[T] {
-        assert!(
-            !self.ptrs().0.is_null(),
-            "called as_slice() on an invalid CPU buffer (this would dereference an invalid pointer)"
-        );
-        unsafe { alloc::slice::from_raw_parts(self.ptrs().0, self.len) }
+        D::buf_as_slice(self)
     }
 
     /// Returns a mutable CPU slice.

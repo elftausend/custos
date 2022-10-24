@@ -1,23 +1,7 @@
 use crate::{
-    bump_count, AddGraph, Alloc, BufFlag, Buffer, Device, GraphReturn, Ident, Node, PtrType,
+    bump_count, AddGraph, Alloc, BufFlag, Buffer, Device, GraphReturn, Ident, Node, PtrType, CacheAble,
 };
 use std::{cell::RefMut, collections::HashMap, ffi::c_void, rc::Rc};
-
-pub trait CacheAble<D: Device, const N: usize = 0> {
-    fn retrieve<T>(device: &D, len: usize, add_node: impl AddGraph) -> Buffer<T, D, N>
-    where
-        D: Alloc<T, N>;
-}
-
-// TODO: Mind num implement?
-impl<D: Device, const N: usize> CacheAble<D, N> for () {
-    fn retrieve<T>(device: &D, len: usize, _add_node: impl AddGraph) -> Buffer<T, D, N>
-    where
-        D: Alloc<T, N>,
-    {
-        Buffer::new(device, len)
-    }
-}
 
 /// This trait is implemented for every 'cacheable' pointer.
 pub trait CacheType {

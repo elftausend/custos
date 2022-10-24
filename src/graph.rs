@@ -265,6 +265,7 @@ impl<'a, T, D: Device, const N: usize> AddGraph for [&Buffer<'a, T, D, N>; 2] {
     }
 }
 
+#[cfg(not(feature="no-std"))]
 #[cfg(test)]
 mod tests {
     use alloc::vec;

@@ -1,58 +1,11 @@
-use core::{
-    ops::{Deref, DerefMut},
-    ptr::null_mut,
-};
+use crate::{Alloc, Device, DevicelessAble, CPUCL, Buffer};
 
-use crate::{Alloc, Device, DevicelessAble, PtrType, CPUCL};
+use super::stack_array::StackArray;
 
 #[derive(Debug, Clone, Copy)]
 pub struct Stack;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct StackArray<const N: usize, T = f32> {
-    pub array: [T; N],
-}
 
-impl<T, const N: usize> StackArray<N, T> {
-    #[inline]
-    pub fn new(array: [T; N]) -> Self {
-        StackArray { array }
-    }
-}
-
-impl<const N: usize, T> Deref for StackArray<N, T> {
-    type Target = [T; N];
-
-    #[inline]
-    fn deref(&self) -> &Self::Target {
-        &self.array
-    }
-}
-
-impl<const N: usize, T> DerefMut for StackArray<N, T> {
-    #[inline]
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.array
-    }
-}
-
-impl<const N: usize, T> PtrType<T> for StackArray<N, T> {
-    unsafe fn dealloc(&mut self, _len: usize) {}
-
-    #[inline]
-    fn ptrs(&self) -> (*const T, *mut core::ffi::c_void, u64) {
-        (self.array.as_ptr(), null_mut(), 0)
-    }
-
-    #[inline]
-    fn ptrs_mut(&mut self) -> (*mut T, *mut core::ffi::c_void, u64) {
-        (self.array.as_mut_ptr(), null_mut(), 0)
-    }
-
-    fn from_ptrs(_ptrs: (*mut T, *mut core::ffi::c_void, u64)) -> Self {
-        unimplemented!("Cannot create a StackArray from pointers.");
-    }
-}
 
 impl<T: Copy + Default> DevicelessAble<T> for Stack {}
 
@@ -61,7 +14,17 @@ impl Device for Stack {
     type Cache<const N: usize> = ();
 }
 
-impl CPUCL for Stack {}
+impl CPUCL for Stack {
+    #[inline]
+    fn buf_as_slice<'a, T, const N: usize>(buf: &'a Buffer<T, Self, N>) -> &'a [T] {
+        &buf.ptr.array
+    }
+
+    #[inline]
+    fn buf_as_slice_mut<'a, T, const N: usize>(buf: &'a mut Buffer<T, Self, N>) -> &'a mut [T] {
+        &mut buf.ptr.array
+    }
+}
 
 impl<const N: usize, T: Copy + Default> Alloc<T, N> for Stack {
     #[inline]

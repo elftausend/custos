@@ -104,7 +104,24 @@ impl GraphReturn for CPU {
     }
 }
 
-impl CPUCL for CPU {}
+impl CPUCL for CPU {
+    #[inline]
+    fn buf_as_slice<'a, T, const N: usize>(buf: &'a Buffer<T, Self, N>) -> &'a [T] {
+        assert!(
+            !buf.ptrs().0.is_null(),
+            "called as_slice() on an invalid CPU buffer (this would dereference an invalid pointer)"
+        );
+        unsafe { alloc::slice::from_raw_parts(buf.ptrs().0, buf.len) }
+    }
+
+    fn buf_as_slice_mut<'a, T, const N: usize>(buf: &'a mut Buffer<T, Self, N>) -> &'a mut [T] {
+        assert!(
+            !buf.ptrs().0.is_null(),
+            "called as_slice() on an invalid CPU buffer (this would dereference an invalid pointer)"
+        );
+        unsafe { alloc::slice::from_raw_parts_mut(buf.ptrs_mut().0, buf.len) }
+    }
+}
 
 #[cfg(feature = "opt-cache")]
 impl crate::GraphOpt for CPU {}

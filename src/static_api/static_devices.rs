@@ -80,8 +80,10 @@ pub fn static_cuda() -> &'static crate::CUDA {
 
 #[cfg(test)]
 mod tests {
+    #[cfg(not(feature="no-std"))]
     use crate::Buffer;
 
+    #[cfg(not(feature="no-std"))]
     #[cfg(not(feature = "realloc"))]
     #[test]
     fn test_static_cpu_cache() {

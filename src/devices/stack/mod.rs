@@ -1,5 +1,6 @@
 mod impl_buffer;
 mod stack_device;
+mod stack_array;
 
 pub use stack_device::*;
 

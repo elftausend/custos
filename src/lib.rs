@@ -39,7 +39,6 @@ use core::ffi::c_void;
 //pub use libs::*;
 pub use buffer::*;
 pub use count::*;
-use devices::cache::CacheAble;
 pub use devices::*;
 pub use error::*;
 pub use graph::*;
@@ -88,7 +87,12 @@ pub trait Device: Sized {
 
 pub trait DevicelessAble<T, const N: usize = 0>: Alloc<T, N> {}
 
-pub trait CPUCL: Device {}
+pub trait CPUCL: Device { 
+    /// This is a device specific `as_slice()` function.
+    /// As a 'StackArray' does not need to be checked for null.
+    fn buf_as_slice<'a, T, const N: usize>(buf: &'a Buffer<T, Self, N>) -> &'a [T];
+    fn buf_as_slice_mut<'a, T, const N: usize>(buf: &'a mut Buffer<T, Self, N>) -> &'a mut [T];
+}
 
 /// This trait is for allocating memory on the implemented device.
 ///
@@ -169,9 +173,12 @@ pub trait Alloc<T, const N: usize = 0>: Device {
 
 pub mod prelude {
     pub use crate::{
-        cache::CacheReturn, cached, get_count, number::*, range, set_count, Buffer, CDatatype,
-        Cache, CacheBuf, ClearBuf, Device, GraphReturn, VecRead, WriteBuf, CPU,
+        cached, number::*, range, Buffer, CDatatype,
+        CacheBuf, ClearBuf, Device, GraphReturn, VecRead, WriteBuf, CPU,
     };
+
+    #[cfg(not(feature="no-std"))]
+    pub use crate::{cache::CacheReturn, get_count, set_count, Cache};
 
     #[cfg(feature = "opencl")]
     pub use crate::opencl::OpenCL;

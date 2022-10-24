@@ -5,14 +5,16 @@ use self::cpu::{
     api::{cblas_dgemm, cblas_sgemm},
     Order, Transpose,
 };
-use crate::number::Float;
+use crate::{number::Float, Device, Alloc, AddGraph, Buffer};
 
 #[cfg(feature = "cuda")]
 use cuda::api::cublas::{cublasDgemm_v2, cublasOperation_t, cublasSgemm_v2, CublasHandle};
 
-
+#[cfg(not(feature="no-std"))]
 pub mod cache;
-pub use cache::{Cache, CacheAble, CacheReturn};
+#[cfg(not(feature="no-std"))]
+pub use cache::{Cache, CacheReturn};
+
 pub mod cpu;
 #[cfg(feature = "cuda")]
 pub mod cuda;
@@ -24,7 +26,9 @@ pub mod stack;
 mod cdatatype;
 pub use cdatatype::*;
 
+#[cfg(not(feature="no-std"))]
 mod ident;
+#[cfg(not(feature="no-std"))]
 pub use ident::*;
 
 #[cfg(feature="cuda")]
@@ -37,6 +41,22 @@ pub struct InternCLDevice;
 #[cfg(not(feature = "cuda"))]
 #[derive(Debug)]
 pub struct InternCudaDevice;
+
+pub trait CacheAble<D: Device, const N: usize = 0> {
+    fn retrieve<T>(device: &D, len: usize, add_node: impl AddGraph) -> Buffer<T, D, N>
+    where
+        D: Alloc<T, N>;
+}
+
+// TODO: Mind num implement?
+impl<D: Device, const N: usize> CacheAble<D, N> for () {
+    fn retrieve<T>(device: &D, len: usize, _add_node: impl AddGraph) -> Buffer<T, D, N>
+    where
+        D: Alloc<T, N>,
+    {
+        Buffer::new(device, len)
+    }
+}
 
 pub trait GenericBlas
 where

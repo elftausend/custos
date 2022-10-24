@@ -1,4 +1,4 @@
-use super::stack_device::{Stack, StackArray};
+use super::{stack_device::Stack, stack_array::StackArray};
 use crate::{BufFlag, Buffer, Node};
 
 impl<'a, T, const N: usize> From<[T; N]> for Buffer<'a, T, Stack, N> {
