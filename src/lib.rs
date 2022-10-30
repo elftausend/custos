@@ -70,13 +70,17 @@ pub trait PtrType<T, const N: usize = 0> {
 
     fn ptrs(&self) -> (*const T, *mut c_void, u64);
     fn ptrs_mut(&mut self) -> (*mut T, *mut c_void, u64);
-    fn from_ptrs(ptrs: (*mut T, *mut c_void, u64)) -> Self;
+    
+    /// # Safety
+    /// The pointer must be a valid pointer.
+    unsafe fn from_ptrs(ptrs: (*mut T, *mut c_void, u64)) -> Self;
 }
 
 pub trait Device: Sized {
     type Ptr<U, const N: usize>: PtrType<U>;
     type Cache<const N: usize>: CacheAble<Self, N>;
 
+    #[inline]
     fn retrieve<T, const N: usize>(&self, len: usize, add_node: impl AddGraph) -> Buffer<T, Self, N>
     where
         Self: Alloc<T, N>,

@@ -312,3 +312,9 @@ fn test_deviceless_buf_cl() -> custos::Result<()> {
     Ok(())
 }
 */
+
+#[test]
+fn test_buf_num() {
+    let mut buf = Buffer::from(5);
+    buf.copy();
+}

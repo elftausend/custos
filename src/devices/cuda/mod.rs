@@ -29,6 +29,7 @@ impl<T> Default for CUDAPtr<T> {
 }
 
 impl<T> PtrType<T> for CUDAPtr<T> {
+    #[inline]
     unsafe fn dealloc(&mut self, _len: usize) {
         if self.ptr == 0 {
             return;
@@ -36,15 +37,18 @@ impl<T> PtrType<T> for CUDAPtr<T> {
         cufree(self.ptr).unwrap();
     }
 
+    #[inline]
     fn ptrs(&self) -> (*const T, *mut std::ffi::c_void, u64) {
         (null_mut(), null_mut(), self.ptr)
     }
 
+    #[inline]
     fn ptrs_mut(&mut self) -> (*mut T, *mut std::ffi::c_void, u64) {
         (null_mut(), null_mut(), self.ptr)
     }
 
-    fn from_ptrs(ptrs: (*mut T, *mut std::ffi::c_void, u64)) -> Self {
+    #[inline]
+    unsafe fn from_ptrs(ptrs: (*mut T, *mut std::ffi::c_void, u64)) -> Self {
         Self {
             ptr: ptrs.2,
             p: PhantomData,

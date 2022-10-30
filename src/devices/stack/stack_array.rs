@@ -43,7 +43,7 @@ impl<const N: usize, T> PtrType<T> for StackArray<N, T> {
         (self.array.as_mut_ptr(), null_mut(), 0)
     }
 
-    fn from_ptrs(_ptrs: (*mut T, *mut core::ffi::c_void, u64)) -> Self {
+    unsafe fn from_ptrs(_ptrs: (*mut T, *mut core::ffi::c_void, u64)) -> Self {
         unimplemented!("Cannot create a StackArray from pointers.");
     }
 }

@@ -37,6 +37,7 @@ impl<T> Default for CLPtr<T> {
 }
 
 impl<T> PtrType<T> for CLPtr<T> {
+    #[inline]
     unsafe fn dealloc(&mut self, _len: usize) {
         if self.ptr.is_null() {
             return;
@@ -44,15 +45,18 @@ impl<T> PtrType<T> for CLPtr<T> {
         release_mem_object(self.ptr).unwrap();
     }
 
+    #[inline]
     fn ptrs(&self) -> (*const T, *mut c_void, u64) {
         (self.host_ptr, self.ptr, 0)
     }
 
+    #[inline]
     fn ptrs_mut(&mut self) -> (*mut T, *mut c_void, u64) {
         (self.host_ptr, self.ptr, 0)
     }
 
-    fn from_ptrs(ptrs: (*mut T, *mut c_void, u64)) -> Self {
+    #[inline]
+    unsafe fn from_ptrs(ptrs: (*mut T, *mut c_void, u64)) -> Self {
         CLPtr {
             ptr: ptrs.1,
             host_ptr: ptrs.0,

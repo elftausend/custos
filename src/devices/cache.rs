@@ -154,7 +154,11 @@ impl<P: CacheType> Cache<P> {
             Some(ptr) => {
                 bump_count();
                 let (ptr, node) = ptr.destruct::<T>();
-                let ptr = <D as Device>::Ptr::<T, N>::from_ptrs(ptr);
+                
+                let ptr = unsafe {
+                    <D as Device>::Ptr::<T, N>::from_ptrs(ptr)
+                };
+                
                 Buffer {
                     ptr,
                     len,

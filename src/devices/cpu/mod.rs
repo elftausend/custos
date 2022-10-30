@@ -44,7 +44,7 @@ impl<T> PtrType<T> for CPUPtr<T> {
     }
 
     #[inline]
-    fn from_ptrs(ptrs: (*mut T, *mut core::ffi::c_void, u64)) -> Self {
+    unsafe fn from_ptrs(ptrs: (*mut T, *mut core::ffi::c_void, u64)) -> Self {
         CPUPtr { ptr: ptrs.0 }
     }
 }
