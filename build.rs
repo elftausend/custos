@@ -9,6 +9,7 @@ fn main() {
 #[cfg(feature = "opencl")]
 fn has_device_unified_mem() -> bool {
     println!("cargo:rerun-if-env-changed=CUSTOS_CL_DEVICE_IDX");
+    println!("cargo:rerun-if-env-changed=CUSTOS_CU_DEVICE_IDX");
     println!("cargo:rerun-if-env-changed=CUSTOS_USE_UNIFIED");
 
     let device_idx = std::env::var("CUSTOS_CL_DEVICE_IDX")

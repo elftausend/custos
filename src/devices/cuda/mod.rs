@@ -13,6 +13,8 @@ use crate::{Buffer, CDatatype, PtrType};
 
 use self::api::cufree;
 
+pub type CUBuffer<'a, T> = Buffer<'a, T, CUDA>;
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct CUDAPtr<T> {
     pub ptr: u64,

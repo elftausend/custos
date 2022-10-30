@@ -45,6 +45,8 @@ pub struct OpenCL {
     pub cpu: CPU,
 }
 
+pub type CL = OpenCL;
+
 unsafe impl Sync for CLDevice {}
 
 impl OpenCL {
@@ -209,20 +211,14 @@ impl GraphReturn for OpenCL {
 
 #[cfg(unified_cl)]
 impl CPUCL for OpenCL {
+    #[inline]
     fn buf_as_slice<'a, T, const N: usize>(buf: &'a Buffer<T, Self, N>) -> &'a [T] {
-        assert!(
-            !buf.ptrs().0.is_null(),
-            "called as_slice() on an invalid CPU buffer (this would dereference an invalid pointer)"
-        );
-        unsafe { alloc::slice::from_raw_parts(buf.ptrs().0, buf.len) }
+        unsafe { alloc::slice::from_raw_parts(buf.host_ptr(), buf.len) }
     }
 
+    #[inline]
     fn buf_as_slice_mut<'a, T, const N: usize>(buf: &'a mut Buffer<T, Self, N>) -> &'a mut [T] {
-        assert!(
-            !buf.ptrs().0.is_null(),
-            "called as_slice() on an invalid CPU buffer (this would dereference an invalid pointer)"
-        );
-        unsafe { alloc::slice::from_raw_parts_mut(buf.ptrs_mut().0, buf.len) }
+        unsafe { alloc::slice::from_raw_parts_mut(buf.host_ptr_mut(), buf.len) }
     }
 }
 
@@ -244,20 +240,16 @@ impl<T: CDatatype> ClearBuf<T, OpenCL> for OpenCL {
 impl<T> WriteBuf<T, OpenCL> for OpenCL {
     fn write(&self, buf: &mut Buffer<T, OpenCL>, data: &[T]) {
         let event =
-            unsafe { enqueue_write_buffer(&self.queue(), buf.ptrs().1, data, true).unwrap() };
+            unsafe { enqueue_write_buffer(&self.queue(), buf.cl_ptr(), data, true).unwrap() };
         wait_for_event(event).unwrap();
     }
 }
 
 impl<T: Clone + Default> VecRead<T, OpenCL> for OpenCL {
     fn read(&self, buf: &crate::Buffer<T, OpenCL>) -> Vec<T> {
-        assert!(
-            !buf.ptrs().1.is_null(),
-            "called VecRead::read(..) on a non OpenCL buffer (this would read out a null pointer)"
-        );
         let mut read = vec![T::default(); buf.len];
         let event =
-            unsafe { enqueue_read_buffer(&self.queue(), buf.ptrs().1, &mut read, false).unwrap() };
+            unsafe { enqueue_read_buffer(&self.queue(), buf.cl_ptr(), &mut read, false).unwrap() };
         wait_for_event(event).unwrap();
         read
     }

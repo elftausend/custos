@@ -27,6 +27,8 @@ pub struct CUDA {
     handle: CublasHandle,
 }
 
+pub type CU = CUDA;
+
 impl CUDA {
     pub fn new(idx: usize) -> crate::Result<CUDA> {
         unsafe { cuInit(0) }.to_result()?;

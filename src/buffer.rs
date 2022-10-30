@@ -127,6 +127,7 @@ impl<'a, T, D: Device> Buffer<'a, T, D> {
     /// let a = Buffer::<i32, _>::new(&device, 10);
     /// assert_eq!(a.len(), 10)
     /// ```
+    #[inline]
     pub fn len(&self) -> usize {
         self.len
     }
@@ -139,6 +140,7 @@ impl<'a, T, D: Device> Buffer<'a, T, D> {
     /// let a = Buffer::<i32, ()>::from(5);
     /// assert!(a.is_empty())
     /// ```
+    #[inline]
     pub fn is_empty(&self) -> bool {
         self.len == 0
     }
@@ -164,6 +166,7 @@ impl<'a, T, D: Device> Buffer<'a, T, D> {
     ///
     /// assert_eq!(buf.read(), vec![1, 2, 3, 4]);
     /// ```
+    #[inline]
     pub fn read(&self) -> Vec<T>
     where
         T: Clone + Default,
@@ -174,6 +177,7 @@ impl<'a, T, D: Device> Buffer<'a, T, D> {
 
     /// Writes a slice to the Buffer.
     /// With a CPU buffer, the slice is just copied to the slice of the buffer.
+    #[inline]
     pub fn write(&mut self, data: &[T])
     where
         T: Clone,
@@ -188,6 +192,7 @@ impl<'a, T, D: Device> Buffer<'a, T, D> {
     /// Itself, this function does not need to be unsafe.
     /// However, declaring this function as unsafe highlights the violation of creating two or more owners for one resource.
     /// Furthermore, the resulting `Buffer` can outlive `self`.
+    #[inline]
     pub unsafe fn shallow(&self) -> Buffer<'a, T, D>
     where
         <D as Device>::Ptr<T, 0>: Copy,
@@ -320,7 +325,7 @@ impl<'a, T, D: CPUCL, const N: usize> Buffer<'a, T, D, N> {
     pub fn host_ptr(&self) -> *const T {
         assert!(
             !self.ptrs().0.is_null(),
-            "called host_ptr() on an invalid CPU buffer"
+            "called host_ptr() on an invalid CPU buffer (this would dereference a null pointer)"
         );
         self.ptrs().0
     }
@@ -330,7 +335,7 @@ impl<'a, T, D: CPUCL, const N: usize> Buffer<'a, T, D, N> {
     pub fn host_ptr_mut(&mut self) -> *mut T {
         assert!(
             !self.ptrs().0.is_null(),
-            "called host_ptr() on an invalid CPU buffer"
+            "called host_ptr_mut() on an invalid CPU buffer (this would dereference a null pointer)"
         );
         self.ptrs_mut().0
     }
