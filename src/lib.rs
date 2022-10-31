@@ -185,7 +185,7 @@ pub mod prelude {
     pub use crate::{cache::CacheReturn, get_count, set_count, Cache};
 
     #[cfg(feature = "opencl")]
-    pub use crate::opencl::OpenCL;
+    pub use crate::opencl::{OpenCL, CL, CLBuffer, enqueue_kernel};
 
     #[cfg(feature = "opencl")]
     #[cfg(unified_cl)]
@@ -193,5 +193,5 @@ pub mod prelude {
     pub use crate::opencl::{construct_buffer, to_unified};
 
     #[cfg(feature = "cuda")]
-    pub use crate::cuda::CUDA;
+    pub use crate::cuda::{CUDA, CU, CUBuffer, launch_kernel1d};
 }

@@ -27,6 +27,7 @@ pub struct CUDA {
     handle: CublasHandle,
 }
 
+/// Short form for `CUDA`
 pub type CU = CUDA;
 
 impl CUDA {

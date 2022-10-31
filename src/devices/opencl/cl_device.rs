@@ -45,6 +45,7 @@ pub struct OpenCL {
     pub cpu: CPU,
 }
 
+/// Short form for `OpenCL`
 pub type CL = OpenCL;
 
 unsafe impl Sync for CLDevice {}
