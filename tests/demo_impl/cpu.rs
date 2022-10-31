@@ -1,5 +1,5 @@
 use custos::{prelude::Number, Buffer, Device, CPU, CPUCL};
-use custos_macro::impl_stack;
+//use custos_macro::impl_stack;
 
 #[cfg(feature = "stack-alloc")]
 use custos::stack::Stack;
@@ -18,6 +18,7 @@ where
     }
 }
 
+/*
 // TODO: write expansion example
 #[impl_stack]
 impl<T: Number, D> ElementWise<T, D> for CPU
@@ -49,6 +50,7 @@ fn test_impl_stack() {
     let out = Stack.add(&buf, &buf);
     assert_eq!(out.as_slice(), &[2, 4, 6, 8, 10]);
 }
+*/
 
 /*
 impl<T, const N: usize, D> ElementWise<T, D, N> for Stack

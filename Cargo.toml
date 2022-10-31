@@ -30,7 +30,7 @@ no-std = ["stack-alloc"]
 
 [dev-dependencies]
 #criterion = "0.3"
-custos-macro = {path = "../custos-macro"}
+#custos-macro = {path = "../custos-macro"}
 
 [[example]]
 name = "cuda_readme"
