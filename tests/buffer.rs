@@ -315,6 +315,6 @@ fn test_deviceless_buf_cl() -> custos::Result<()> {
 
 #[test]
 fn test_buf_num() {
-    let mut buf = Buffer::from(5);
-    buf.copy();
+    let buf = Buffer::from(5);
+    assert_eq!(*buf, 5);
 }

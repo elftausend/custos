@@ -259,28 +259,6 @@ impl<'a, T> Buffer<'a, T> {
     }
 }
 
-impl<'a, T: crate::number::Number> Buffer<'a, T, ()> {
-    /// Used if the `Buffer` contains only a single value.
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// use custos::Buffer;
-    ///
-    /// let x: Buffer<f32, _> = 7f32.into();
-    /// assert_eq!(x.item(), 7.);
-    ///
-    /// //let x: Buffer<f32> = (&mut [5., 4., 8.]).into();
-    /// //assert_eq!(x.item(), 0.);
-    /// ```
-    pub fn item(&self) -> T
-    where
-        T: Default + Copy,
-    {
-        self.ptr.num
-    }
-}
-
 #[cfg(feature = "opencl")]
 impl<'a, T> Buffer<'a, T, crate::OpenCL> {
     #[inline]
@@ -533,4 +511,43 @@ impl<'a, T, D: CPUCL> core::iter::IntoIterator for &'a mut Buffer<'_, T, D> {
 /// ```
 pub fn cached<'a, T, D: CacheBuf<'a, T> + Device>(device: &'a D, len: usize) -> Buffer<'a, T, D> {
     device.cached(len)
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::{Buffer, CPU};
+
+    #[test]
+    fn test_deref() {
+        let device = CPU::new();
+        let buf = Buffer::from((&device, [1, 2, 3, 4]));
+        let slice = &*buf;
+        assert_eq!(slice, &[1, 2, 3, 4]);
+    }
+
+    #[cfg(feature="opencl")]
+    #[cfg(unified_cl)]
+    #[test]
+    fn test_deref_cl() -> crate::Result<()> {
+        use crate::OpenCL;
+
+        let device = OpenCL::new(0)?;
+        let buf = Buffer::from((&device, [1, 2, 3, 4]));
+        let slice = &*buf;
+        assert_eq!(slice, &[1, 2, 3, 4]);
+
+        Ok(())
+    }
+
+    #[cfg(feature="stack-alloc")]
+    #[test]
+    fn test_deref_stack() -> crate::Result<()> {
+        use crate::stack::Stack;
+
+        let buf = Buffer::<i32, Stack, 4>::from([1i32, 2, 3, 4]);
+        let slice = &*buf;
+        assert_eq!(slice, &[1, 2, 3, 4]);
+
+        Ok(())
+    }
 }
