@@ -17,7 +17,7 @@ pub fn cinit(flags: u32) -> CudaResult<()> {
 }
 
 #[derive(Debug)]
-pub struct CudaIntDevice(CUdevice);
+pub struct CudaIntDevice(pub CUdevice);
 
 pub fn device_count() -> CudaResult<i32> {
     let mut count = 0;

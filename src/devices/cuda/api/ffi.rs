@@ -21,6 +21,18 @@ pub enum CUstream_st {}
 pub type CUstream = *mut CUstream_st;
 
 #[repr(u32)]
+pub enum CUdevice_attribute {
+    CU_DEVICE_ATTRIBUTE_MAX_THREADS_PER_BLOCK = 1,
+    CU_DEVICE_ATTRIBUTE_MAX_BLOCK_DIM_X = 2,
+    CU_DEVICE_ATTRIBUTE_MAX_BLOCK_DIM_Y = 3,
+    CU_DEVICE_ATTRIBUTE_MAX_BLOCK_DIM_Z = 4,
+    CU_DEVICE_ATTRIBUTE_MAX_GRID_DIM_X = 5,
+    CU_DEVICE_ATTRIBUTE_MAX_GRID_DIM_Y = 6,
+    CU_DEVICE_ATTRIBUTE_MAX_GRID_DIM_Z = 7,
+    CU_DEVICE_ATTRIBUTE_UNIFIED_ADDRESSING = 41,
+}
+
+#[repr(u32)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
 #[allow(non_camel_case_types)]
 pub enum CUresult {
@@ -125,6 +137,7 @@ extern "C" {
     pub fn cuInit(flags: u32) -> CUresult;
     pub fn cuDeviceGetCount(count: *mut i32) -> CUresult;
     pub fn cuDeviceGet(device: *mut CUdevice, ordinal: i32) -> CUresult;
+    pub fn cuDeviceGetAttribute(pi: *mut i32, attrib: CUdevice_attribute, device: CUdevice) -> CUresult;
     pub fn cuCtxCreate_v2(context: *mut CUcontext, flags: u32, device: CUdevice) -> CUresult;
     pub fn cuCtxDestroy(context: CUcontext);
     pub fn cuCtxSynchronize() -> CUresult;
@@ -175,4 +188,7 @@ extern "C" {
         dyn_smem_size: usize,
         block_size_limit: i32,
     ) -> CUresult;
+
+    // unified memory
+
 }
