@@ -1,3 +1,4 @@
+/*
 use criterion::{criterion_group, criterion_main, Criterion};
 use custos::{cache::Cache, set_count, Buffer, CPU};
 use std::ops::Add;
@@ -13,7 +14,7 @@ fn add_cached<T: Default + Copy + Add<Output = T>>(device: &CPU, lhs: &[T], rhs:
     }
 }
 
-fn add<T: Default + Copy + Add<Output = T>>(device: &CPU, lhs: &Buffer<T>, rhs: &Buffer<T>) {
+fn add<T: Default + Copy + Add<Output = T>>(device: &CPU, lhs: &Buffer<T, CPU>, rhs: &Buffer<T, CPU>) {
     let len = std::cmp::min(lhs.len, rhs.len);
     let mut out = Buffer::new(device, SIZE);
 
@@ -57,3 +58,5 @@ pub fn bench_buf_slice(c: &mut Criterion) {
 
 criterion_group!(benches, bench_buf_slice_cached, bench_buf_slice);
 criterion_main!(benches);
+*/
+fn main() {}

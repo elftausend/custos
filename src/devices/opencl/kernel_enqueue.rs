@@ -1,5 +1,5 @@
 use super::api::{enqueue_nd_range_kernel, set_kernel_arg, OCLErrorKind};
-use crate::{number::Number, Buffer, CLDevice};
+use crate::{number::Number, Buffer, Device, OpenCL};
 use std::{ffi::c_void, mem::size_of};
 
 pub trait AsClCvoidPtr {
@@ -12,15 +12,15 @@ pub trait AsClCvoidPtr {
     }
 }
 
-impl<'a, T> AsClCvoidPtr for &Buffer<'a, T> {
+impl<'a, T, D: Device, const N: usize> AsClCvoidPtr for &Buffer<'a, T, D, N> {
     fn as_cvoid_ptr(&self) -> *const c_void {
-        self.ptr.1
+        self.ptrs().1
     }
 }
 
-impl<'a, T> AsClCvoidPtr for Buffer<'a, T> {
+impl<'a, T, D: Device, const N: usize> AsClCvoidPtr for Buffer<'a, T, D, N> {
     fn as_cvoid_ptr(&self) -> *const c_void {
-        self.ptr.1
+        self.ptrs().1
     }
 }
 
@@ -39,7 +39,7 @@ impl<T: Number> AsClCvoidPtr for T {
 }
 
 pub fn enqueue_kernel(
-    device: &CLDevice,
+    device: &OpenCL,
     src: &str,
     gws: [usize; 3],
     lws: Option<[usize; 3]>,

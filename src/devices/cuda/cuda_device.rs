@@ -4,19 +4,19 @@ use super::{
         cublas::{create_handle, cublasDestroy_v2, cublasSetStream_v2, CublasHandle},
         cumalloc, device, Context, CudaIntDevice, Module, Stream,
     },
-    cu_clear, KernelCacheCU, RawCUBuf,
+    cu_clear, CUDAPtr, KernelCacheCU, RawCUBuf,
 };
 use crate::{
     cache::{Cache, CacheReturn},
-    Alloc, AsDev, Buffer, CDatatype, CacheBuf, CachedLeaf, ClearBuf, CloneBuf, Device, DeviceType,
-    Graph, GraphReturn, VecRead, WriteBuf,
+    Alloc, Buffer, CDatatype, CacheBuf, CachedLeaf, ClearBuf, CloneBuf, Device, Graph, GraphReturn,
+    VecRead, WriteBuf,
 };
-use std::{cell::RefCell, ptr::null_mut};
+use std::{cell::RefCell, marker::PhantomData};
 
 /// Used to perform calculations with a CUDA capable device.
 /// To make new calculations invocable, a trait providing new operations should be implemented for [CudaDevice].
 #[derive(Debug)]
-pub struct CudaDevice {
+pub struct CUDA {
     pub cache: RefCell<Cache<RawCUBuf>>,
     pub kernel_cache: RefCell<KernelCacheCU>,
     pub modules: RefCell<Vec<Module>>,
@@ -27,8 +27,11 @@ pub struct CudaDevice {
     handle: CublasHandle,
 }
 
-impl CudaDevice {
-    pub fn new(idx: usize) -> crate::Result<CudaDevice> {
+/// Short form for `CUDA`
+pub type CU = CUDA;
+
+impl CUDA {
+    pub fn new(idx: usize) -> crate::Result<CUDA> {
         unsafe { cuInit(0) }.to_result()?;
         let device = device(idx as i32)?;
         let ctx = create_context(&device)?;
@@ -36,7 +39,7 @@ impl CudaDevice {
         let handle = create_handle()?;
         unsafe { cublasSetStream_v2(handle.0, stream.0) }.to_result()?;
 
-        Ok(CudaDevice {
+        Ok(CUDA {
             cache: RefCell::new(Cache::default()),
             kernel_cache: RefCell::new(KernelCacheCU::default()),
             modules: RefCell::new(vec![]),
@@ -65,7 +68,12 @@ impl CudaDevice {
     }
 }
 
-impl Drop for CudaDevice {
+impl Device for CUDA {
+    type Ptr<U, const N: usize> = CUDAPtr<U>;
+    type Cache<const N: usize> = Cache<RawCUBuf>;
+}
+
+impl Drop for CUDA {
     fn drop(&mut self) {
         unsafe {
             cublasDestroy_v2(self.handle.0);
@@ -74,59 +82,61 @@ impl Drop for CudaDevice {
     }
 }
 
-impl<T> Alloc<T> for CudaDevice {
-    fn alloc(&self, len: usize) -> (*mut T, *mut std::ffi::c_void, u64) {
+impl<T> Alloc<T> for CUDA {
+    fn alloc(&self, len: usize) -> CUDAPtr<T> {
         let ptr = cumalloc::<T>(len).unwrap();
         // TODO: use unified mem if available -> i can't test this
-        (null_mut(), null_mut(), ptr)
+        CUDAPtr {
+            ptr,
+            p: PhantomData,
+        }
     }
 
-    fn with_data(&self, data: &[T]) -> (*mut T, *mut std::ffi::c_void, u64) {
+    fn with_slice(&self, data: &[T]) -> CUDAPtr<T> {
         let ptr = cumalloc::<T>(data.len()).unwrap();
         cu_write(ptr, data).unwrap();
-        (null_mut(), null_mut(), ptr)
-    }
-
-    fn as_dev(&self) -> Device {
-        Device {
-            device_type: DeviceType::CUDA,
-            device: self as *const CudaDevice as *mut u8,
+        CUDAPtr {
+            ptr,
+            p: PhantomData,
         }
     }
 }
 
-impl<T: Default + Clone> VecRead<T> for CudaDevice {
-    fn read(&self, buf: &Buffer<T>) -> Vec<T> {
+impl<T: Default + Clone> VecRead<T, CUDA> for CUDA {
+    fn read(&self, buf: &Buffer<T, CUDA>) -> Vec<T> {
         assert!(
-            buf.ptr.2 != 0,
+            buf.ptrs().2 != 0,
             "called VecRead::read(..) on a non CUDA buffer"
         );
+        // TODO: sync here or somewhere else?
+        self.stream.sync().unwrap();
+
         let mut read = vec![T::default(); buf.len];
-        cu_read(&mut read, buf.ptr.2).unwrap();
+        cu_read(&mut read, buf.ptrs().2).unwrap();
         read
     }
 }
 
-impl<T: CDatatype> ClearBuf<T> for CudaDevice {
-    fn clear(&self, buf: &mut Buffer<T>) {
+impl<T: CDatatype> ClearBuf<T, CUDA> for CUDA {
+    fn clear(&self, buf: &mut Buffer<T, CUDA>) {
         cu_clear(self, buf).unwrap()
     }
 }
 
-impl<T> WriteBuf<T> for CudaDevice {
-    fn write(&self, buf: &mut Buffer<T>, data: &[T]) {
+impl<T> WriteBuf<T, CUDA> for CUDA {
+    fn write(&self, buf: &mut Buffer<T, CUDA>, data: &[T]) {
         cu_write(buf.cu_ptr(), data).unwrap();
     }
 }
 
-impl GraphReturn for CudaDevice {
+impl GraphReturn for CUDA {
     fn graph(&self) -> std::cell::RefMut<Graph> {
         self.graph.borrow_mut()
     }
 }
 
-impl CacheReturn for CudaDevice {
-    type P = RawCUBuf;
+impl CacheReturn for CUDA {
+    type CT = RawCUBuf;
     #[inline]
     fn cache(&self) -> std::cell::RefMut<Cache<RawCUBuf>> {
         self.cache.borrow_mut()
@@ -134,28 +144,30 @@ impl CacheReturn for CudaDevice {
 }
 
 #[cfg(feature = "opt-cache")]
-impl crate::GraphOpt for CudaDevice {}
+impl crate::GraphOpt for CUDA {}
 
-impl<'a, T> CloneBuf<'a, T> for CudaDevice {
-    fn clone_buf(&'a self, buf: &Buffer<'a, T>) -> Buffer<'a, T> {
+impl<'a, T> CloneBuf<'a, T> for CUDA {
+    fn clone_buf(&'a self, buf: &Buffer<'a, T, CUDA>) -> Buffer<'a, T, CUDA> {
         let cloned = Buffer::new(self, buf.len);
         unsafe {
-            cuMemcpy(cloned.ptr.2, buf.ptr.2, buf.len * std::mem::size_of::<T>());
+            cuMemcpy(
+                cloned.ptrs().2,
+                buf.ptrs().2,
+                buf.len * std::mem::size_of::<T>(),
+            );
         }
         cloned
     }
 }
 
-impl<'a, T> CacheBuf<'a, T> for CudaDevice {
+impl<'a, T> CacheBuf<'a, T> for CUDA {
     #[inline]
-    fn cached(&self, len: usize) -> Buffer<T> {
+    fn cached(&self, len: usize) -> Buffer<T, CUDA> {
         Cache::get(self, len, CachedLeaf)
     }
 }
 
 #[inline]
-pub fn cu_cached<T>(device: &CudaDevice, len: usize) -> Buffer<T> {
+pub fn cu_cached<T>(device: &CUDA, len: usize) -> Buffer<T, CUDA> {
     device.cached(len)
 }
-
-impl AsDev for CudaDevice {}

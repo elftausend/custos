@@ -18,13 +18,14 @@ fn test_deref_cpu() {
     assert_eq!(c.as_slice(), &[3., 5., 7., 9.,]);
 }
 
+/*
 #[cfg(feature = "opencl")]
 #[test]
 #[should_panic]
 fn test_deref_opencl() {
-    use custos::CLDevice;
+    use custos::OpenCL;
 
-    let device = CLDevice::new(0).unwrap();
+    let device = OpenCL::new(0).unwrap();
     if device.unified_mem() {
         panic!("the cpu ptr needs to be null")
     }
@@ -32,18 +33,22 @@ fn test_deref_opencl() {
     let b = Buffer::from((&device, [2., 3., 4., 5.]));
     let mut c = Buffer::from((&device, [0.; 4]));
 
+    // does not compile!
     slice_add(&a, &b, &mut c);
 
     assert_eq!(c.as_slice(), &[3., 5., 7., 9.,]);
 }
+*/
 
+/*
 #[cfg(feature = "cuda")]
 #[test]
+// compile-time error instead
 #[should_panic]
 fn test_deref_cuda() {
-    use custos::CudaDevice;
+    use custos::CUDA;
 
-    let device = CudaDevice::new(0).unwrap();
+    let device = CUDA::new(0).unwrap();
 
     let a = Buffer::from((&device, [1., 2., 3., 4.]));
     let b = Buffer::from((&device, [2., 3., 4., 5.]));
@@ -53,3 +58,4 @@ fn test_deref_cuda() {
 
     assert_eq!(c.as_slice(), &[3., 5., 7., 9.,]);
 }
+*/

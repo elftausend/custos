@@ -1,7 +1,7 @@
-use custos::{Buffer, CudaDevice};
+use custos::{Buffer, CUDA};
 
 fn main() -> custos::Result<()> {
-    let device = CudaDevice::new(0)?;
+    let device = CUDA::new(0)?;
 
     let mut a = Buffer::from((&device, [5, 3, 2, 4, 6, 2]));
     a.clear();

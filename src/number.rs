@@ -1,8 +1,8 @@
 use core::{
     cmp::Ordering,
     ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign},
+    iter::Sum
 };
-use std::iter::Sum;
 
 pub trait Number:
     Sized
@@ -99,7 +99,7 @@ macro_rules! float_apply {
     ($($t:ident),*) => {
         $(
             impl Float for $t {
-                
+
                 #[inline]
                 fn squared(lhs: $t) -> $t {
                     lhs*lhs

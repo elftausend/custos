@@ -3,20 +3,69 @@ mod cuda_device;
 mod kernel_cache;
 mod kernel_launch;
 
+use std::{marker::PhantomData, ptr::null_mut};
+
 pub use cuda_device::*;
 pub use kernel_cache::*;
 pub use kernel_launch::*;
 
-use crate::{Buffer, CDatatype};
+use crate::{Buffer, CDatatype, PtrType};
+
+use self::api::cufree;
+
+pub type CUBuffer<'a, T> = Buffer<'a, T, CUDA>;
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct CUDAPtr<T> {
+    pub ptr: u64,
+    p: PhantomData<T>,
+}
+
+impl<T> Default for CUDAPtr<T> {
+    fn default() -> Self {
+        Self {
+            ptr: 0,
+            p: PhantomData,
+        }
+    }
+}
+
+impl<T> PtrType<T> for CUDAPtr<T> {
+    #[inline]
+    unsafe fn dealloc(&mut self, _len: usize) {
+        if self.ptr == 0 {
+            return;
+        }
+        cufree(self.ptr).unwrap();
+    }
+
+    #[inline]
+    fn ptrs(&self) -> (*const T, *mut std::ffi::c_void, u64) {
+        (null_mut(), null_mut(), self.ptr)
+    }
+
+    #[inline]
+    fn ptrs_mut(&mut self) -> (*mut T, *mut std::ffi::c_void, u64) {
+        (null_mut(), null_mut(), self.ptr)
+    }
+
+    #[inline]
+    unsafe fn from_ptrs(ptrs: (*mut T, *mut std::ffi::c_void, u64)) -> Self {
+        Self {
+            ptr: ptrs.2,
+            p: PhantomData,
+        }
+    }
+}
 
 /// Sets the elements of a CUDA Buffer to zero.
 /// # Example
 /// ```
-/// use custos::{CudaDevice, Buffer, VecRead, cuda::cu_clear};
+/// use custos::{CUDA, Buffer, VecRead, cuda::cu_clear};
 ///
 /// fn main() -> Result<(), custos::Error> {
-///     let device = CudaDevice::new(0)?;
-///     let mut lhs = Buffer::<i32>::from((&device, [15, 30, 21, 5, 8]));
+///     let device = CUDA::new(0)?;
+///     let mut lhs = Buffer::<i32, _>::from((&device, [15, 30, 21, 5, 8]));
 ///     assert_eq!(device.read(&lhs), vec![15, 30, 21, 5, 8]);
 ///
 ///     cu_clear(&device, &mut lhs);
@@ -24,7 +73,7 @@ use crate::{Buffer, CDatatype};
 ///     Ok(())
 /// }
 /// ```
-pub fn cu_clear<T: CDatatype>(device: &CudaDevice, buf: &mut Buffer<T>) -> crate::Result<()> {
+pub fn cu_clear<T: CDatatype>(device: &CUDA, buf: &mut Buffer<T, CUDA>) -> crate::Result<()> {
     let src = format!(
         r#"extern "C" __global__ void clear({datatype}* self, int numElements)
             {{

@@ -1,14 +1,10 @@
-use custos::{cache::CacheReturn, opencl::construct_buffer, Buffer, CLDevice, Ident, CPU};
+use custos::{cache::CacheReturn, opencl::construct_buffer, Buffer, Ident, OpenCL, CPU};
 
 use super::{AddBuf, AddOp};
 
 #[test]
 fn test_access_cached_after_unified_construct_buf() -> custos::Result<()> {
-    let cl_dev = CLDevice::new(0)?;
-
-    if !cl_dev.unified_mem() {
-        return Ok(());
-    }
+    let cl_dev = OpenCL::new(0)?;
 
     let a = Buffer::from((&cl_dev, [1, 2, 3, 4, 5]));
     let b = Buffer::from((&cl_dev, [1, 2, 3, 4, 5]));
@@ -33,19 +29,16 @@ fn test_access_cached_after_unified_construct_buf() -> custos::Result<()> {
         .unwrap()
         .clone();
 
-    assert_eq!(cl_cpu_buf.ptr.0 as *mut u8, cached_cl_cpu_buf.host_ptr);
-    assert_eq!(cl_cpu_buf.ptr.1, cached_cl_cpu_buf.ptr);
+    assert_eq!(cl_cpu_buf.ptrs().0 as *mut u8, cached_cl_cpu_buf.host_ptr);
+    assert_eq!(cl_cpu_buf.ptrs().1, cached_cl_cpu_buf.ptr);
 
     Ok(())
 }
 
 #[test]
 fn test_multiple_construct_buffer() -> custos::Result<()> {
-    let cl_dev = CLDevice::new(0)?;
+    let cl_dev = OpenCL::new(0)?;
 
-    if !cl_dev.unified_mem() {
-        return Ok(());
-    }
     let device = CPU::new();
 
     let a = Buffer::from((&cl_dev, [1, 2, 3, 4, 5]));

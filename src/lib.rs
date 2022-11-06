@@ -1,3 +1,5 @@
+#![cfg_attr(feature = "no-std", no_std)]
+
 //! A minimal OpenCL, CUDA and host CPU array manipulation engine / framework written in Rust.
 //! This crate provides the tools for executing custom array operations with the CPU, as well as with CUDA and OpenCL devices.<br>
 //! This guide demonstrates how operations can be implemented for the compute devices: [implement_operations.md](implement_operations.md)<br>
@@ -30,7 +32,9 @@
 //!
 //! assert_eq!(a.read(), vec![0; 6]);
 //! ```
-use std::{ffi::c_void, ptr::null_mut};
+extern crate alloc;
+use alloc::vec::Vec;
+use core::ffi::c_void;
 
 //pub use libs::*;
 pub use buffer::*;
@@ -41,9 +45,9 @@ pub use graph::*;
 
 pub use devices::cpu::CPU;
 #[cfg(feature = "cuda")]
-pub use devices::cuda::CudaDevice;
+pub use devices::cuda::CUDA;
 #[cfg(feature = "opencl")]
-pub use devices::opencl::{CLDevice, InternCLDevice};
+pub use devices::opencl::{CLDevice, OpenCL};
 
 pub mod devices;
 
@@ -51,269 +55,146 @@ mod buffer;
 mod count;
 mod error;
 mod graph;
+mod op_traits;
+
+#[cfg(feature = "static-api")]
+pub mod static_api;
 
 pub mod number;
+pub use op_traits::*;
 
-/// Used to determine which device type [`Device`] is of.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum DeviceType {
-    CPU = 0,
-    #[cfg(feature = "cuda")]
-    CUDA = 1,
-    #[cfg(feature = "opencl")]
-    CL = 2,
-    None = 3,
+pub trait PtrType<T, const N: usize = 0> {
+    /// # Safety
+    /// The pointer must be a valid pointer.
+    unsafe fn dealloc(&mut self, len: usize);
+
+    fn ptrs(&self) -> (*const T, *mut c_void, u64);
+    fn ptrs_mut(&mut self) -> (*mut T, *mut c_void, u64);
+    
+    /// # Safety
+    /// The pointer must be a valid pointer.
+    unsafe fn from_ptrs(ptrs: (*mut T, *mut c_void, u64)) -> Self;
 }
 
-/// `Device` is another representation of a compute device.<br>
-/// It stores the type of the device and a pointer to the device from which `Device` originates from.<br>
-/// This is used instead of another "device" generic for [`Buffer`].
-///
-/// # Example
-/// ```rust
-/// use custos::{CPU, AsDev, Device, DeviceType};
-///
-/// let cpu = CPU::new();
-/// let device: Device = cpu.dev();
-/// assert_eq!(device.device_type, DeviceType::CPU);
-/// assert_eq!(device.device as *const CPU, &cpu as *const CPU);
-/// ```
-#[derive(Debug, Clone, Copy)]
-pub struct Device {
-    pub device_type: DeviceType,
-    pub device: *mut u8,
-}
+pub trait Device: Sized {
+    type Ptr<U, const N: usize>: PtrType<U>;
+    type Cache<const N: usize>: CacheAble<Self, N>;
 
-impl Default for Device {
-    fn default() -> Self {
-        Self {
-            device_type: DeviceType::None,
-            device: null_mut(),
-        }
+    #[inline]
+    fn retrieve<T, const N: usize>(&self, len: usize, add_node: impl AddGraph) -> Buffer<T, Self, N>
+    where
+        Self: Alloc<T, N>,
+    {
+        Self::Cache::retrieve(self, len, add_node)
     }
 }
 
-thread_local! {
-    pub static GLOBAL_CPU: CPU = CPU::new();
+pub trait DevicelessAble<T, const N: usize = 0>: Alloc<T, N> {}
+
+pub trait CPUCL: Device { 
+    /// This is a device specific `as_slice()` function.
+    /// As a 'StackArray' does not need to be checked for null.
+    fn buf_as_slice<'a, T, const N: usize>(buf: &'a Buffer<T, Self, N>) -> &'a [T];
+    fn buf_as_slice_mut<'a, T, const N: usize>(buf: &'a mut Buffer<T, Self, N>) -> &'a mut [T];
 }
 
 /// This trait is for allocating memory on the implemented device.
 ///
 /// # Example
 /// ```
-/// use custos::{CPU, Alloc, Buffer, VecRead, BufFlag, AsDev, GraphReturn};
+/// use custos::{CPU, Alloc, Buffer, VecRead, BufFlag, GraphReturn, cpu::CPUPtr, PtrType};
 ///
 /// let device = CPU::new();
-/// let ptrs: (*mut f32, *mut std::ffi::c_void, u64) = device.alloc(12);
+/// let ptr = device.alloc(12);
 ///
 /// let buf = Buffer {
-///     ptr: ptrs,
+///     ptr,
 ///     len: 12,
-///     device: AsDev::dev(&device),
+///     device: Some(&device),
 ///     flag: BufFlag::None,
 ///     node: device.graph().add_leaf(12),
-///     p: std::marker::PhantomData
 /// };
 /// assert_eq!(vec![0.; 12], device.read(&buf));
 /// ```
-pub trait Alloc<T> {
+pub trait Alloc<T, const N: usize = 0>: Device {
     /// Allocate memory on the implemented device.
     /// # Example
     /// ```
-    /// use custos::{CPU, Alloc, Buffer, VecRead, BufFlag, AsDev, GraphReturn};
+    /// use custos::{CPU, Alloc, Buffer, VecRead, BufFlag, GraphReturn, cpu::CPUPtr, PtrType};
     ///
     /// let device = CPU::new();
-    /// let ptrs: (*mut f32, *mut std::ffi::c_void, u64) = device.alloc(12);
+    /// let ptr = device.alloc(12);
     ///
     /// let buf = Buffer {
-    ///     ptr: ptrs,
+    ///     ptr,
     ///     len: 12,
-    ///     device: AsDev::dev(&device),
+    ///     device: Some(&device),
     ///     flag: BufFlag::None,
     ///     node: device.graph().add_leaf(12),
-    ///     p: std::marker::PhantomData
     /// };
     /// assert_eq!(vec![0.; 12], device.read(&buf));
     /// ```
-    fn alloc(&self, len: usize) -> (*mut T, *mut c_void, u64);
+    fn alloc(&self, len: usize) -> <Self as Device>::Ptr<T, N>;
 
     /// Allocate new memory with data
     /// # Example
     /// ```
-    /// use custos::{CPU, Alloc, Buffer, VecRead, BufFlag, AsDev, GraphReturn};
+    /// use custos::{CPU, Alloc, Buffer, VecRead, BufFlag, GraphReturn, cpu::CPUPtr, PtrType};
     ///
     /// let device = CPU::new();
-    /// let ptrs: (*mut u8, *mut std::ffi::c_void, u64) = device.with_data(&[1, 5, 4, 3, 6, 9, 0, 4]);
+    /// let ptr = device.with_slice(&[1, 5, 4, 3, 6, 9, 0, 4]);
     ///
     /// let buf = Buffer {
-    ///     ptr: ptrs,
+    ///     ptr,
     ///     len: 8,
-    ///     device: AsDev::dev(&device),
+    ///     device: Some(&device),
     ///     flag: BufFlag::None,
     ///     node: device.graph().add_leaf(8),
-    ///     p: std::marker::PhantomData
     /// };
     /// assert_eq!(vec![1, 5, 4, 3, 6, 9, 0, 4], device.read(&buf));
     /// ```
-    fn with_data(&self, data: &[T]) -> (*mut T, *mut c_void, u64)
+    fn with_slice(&self, data: &[T]) -> <Self as Device>::Ptr<T, N>
     where
         T: Clone;
 
     /// If the vector `vec` was allocated previously, this function can be used in order to reduce the amount of allocations, which may be faster than using a slice of `vec`.
-    fn alloc_with_vec(&self, vec: Vec<T>) -> (*mut T, *mut c_void, u64)
+    /// #[inline]
+    fn alloc_with_vec(&self, vec: Vec<T>) -> <Self as Device>::Ptr<T, N>
     where
         T: Clone,
     {
-        self.with_data(&vec)
+        self.with_slice(&vec)
     }
 
-    /// Creates a generic representation of the device
-    fn as_dev(&self) -> Device;
-}
-
-/// Trait for implementing the clear() operation for the compute devices.
-pub trait ClearBuf<T> {
-    /// Sets all elements of the matrix to zero.
-    /// # Example
-    /// ```
-    /// use custos::{CPU, ClearBuf, Buffer};
-    ///
-    /// let device = CPU::new();
-    /// let mut a = Buffer::from((&device, [2, 4, 6, 8, 10, 12]));
-    /// assert_eq!(a.read(), vec![2, 4, 6, 8, 10, 12]);
-    ///
-    /// device.clear(&mut a);
-    /// assert_eq!(a.read(), vec![0; 6]);
-    /// ```
-    fn clear(&self, buf: &mut Buffer<T>);
-}
-
-/// Trait for reading buffers.
-pub trait VecRead<T> {
-    /// Read the data of a buffer into a vector
-    /// # Example
-    /// ```
-    /// use custos::{CPU, Buffer, VecRead};
-    ///
-    /// let device = CPU::new();
-    /// let a = Buffer::from((&device, [1., 2., 3., 3., 2., 1.,]));
-    /// let read = device.read(&a);
-    /// assert_eq!(vec![1., 2., 3., 3., 2., 1.,], read);
-    /// ```
-    fn read(&self, buf: &Buffer<T>) -> Vec<T>;
-}
-
-/// Trait for writing data to buffers.
-pub trait WriteBuf<T> {
-    /// Write data to the buffer.
-    /// # Example
-    /// ```
-    /// use custos::{CPU, Buffer, WriteBuf};
-    ///
-    /// let device = CPU::new();
-    /// let mut buf = Buffer::new(&device, 4);
-    /// device.write(&mut buf, &[9, 3, 2, -4]);
-    /// assert_eq!(buf.as_slice(), &[9, 3, 2, -4])
-    ///
-    /// ```
-    fn write(&self, buf: &mut Buffer<T>, data: &[T]);
-    /// Writes data from <Device> Buffer to other <Device> Buffer.
-    // TODO: implement, change name of fn? -> set_.. ?
-    fn write_buf(&self, _dst: &mut Buffer<T>, _src: &Buffer<T>) {
-        unimplemented!()
-    }
-}
-
-/// This trait is used to clone a buffer based on a specific device type.
-pub trait CloneBuf<'a, T> {
-    /// Creates a deep copy of the specified buffer.
-    /// # Example
-    ///
-    /// ```
-    /// use custos::{CPU, Buffer, CloneBuf};
-    ///
-    /// let device = CPU::new();
-    /// let buf = Buffer::from((&device, [1., 2., 6., 2., 4.,]));
-    ///
-    /// let cloned = device.clone_buf(&buf);
-    /// assert_eq!(buf.read(), cloned.read());
-    /// ```
-    fn clone_buf(&'a self, buf: &Buffer<'a, T>) -> Buffer<'a, T>;
-}
-
-/// This trait is used to retrieve a cached buffer from a specific device type.
-pub trait CacheBuf<'a, T> {
-    #[cfg_attr(feature = "realloc", doc = "```ignore")]
-    /// Adds a buffer to the cache. Following calls will return this buffer, if the corresponding internal count matches with the id used in the cache.
-    /// # Example
-    /// ```
-    /// use custos::{CPU, VecRead, set_count, get_count, CacheBuf};
-    ///
-    /// let device = CPU::new();
-    /// assert_eq!(0, get_count());
-    ///
-    /// let mut buf = CacheBuf::<f32>::cached(&device, 10);
-    /// assert_eq!(1, get_count());
-    ///
-    /// for value in buf.as_mut_slice() {
-    ///     *value = 1.5;
-    /// }
-    ///    
-    /// set_count(0);
-    /// let buf = CacheBuf::<f32>::cached(&device, 10);
-    /// assert_eq!(device.read(&buf), vec![1.5; 10]);
-    /// ```
-    fn cached(&'a self, len: usize) -> Buffer<'a, T>;
-}
-
-/// This trait is a non-generic variant for calling [`Alloc`]'s `Alloc::<T>::as_dev(..)`
-pub trait AsDev {
-    fn dev(&self) -> Device
+    #[inline]
+    fn with_array(&self, array: [T; N]) -> <Self as Device>::Ptr<T, N>
     where
-        Self: Alloc<u8> + Sized,
+        T: Clone,
     {
-        Alloc::as_dev(self)
+        self.with_slice(&array)
     }
 }
 
-/// Return a device that implements the trait provided thus giving access to the functions implemented by the trait.
-///
-/// # Example
-/// ```
-/// use custos::{Error, CPU, get_device, VecRead, AsDev, Buffer};
-///
-/// fn main() -> Result<(), Error> {
-///     let device = CPU::new();
-///     let read = get_device!(device.dev(), VecRead<f32>);
-///
-///     let buf = Buffer::from(( &device, [1.51, 6.123, 7., 5.21, 8.62, 4.765]));
-///     let read = read.read(&buf);
-///     assert_eq!(read, vec![1.51, 6.123, 7., 5.21, 8.62, 4.765]);
-///     Ok(())
-/// }
-/// ```
-#[macro_export]
-macro_rules! get_device {
-    ($device:expr, $t:ident<$g:ident>) => {{
-        use $crate::{ DeviceType, CPU };
+pub mod prelude {
+    pub use crate::{
+        cached, number::*, range, Buffer, CDatatype,
+        CacheBuf, ClearBuf, Device, GraphReturn, VecRead, WriteBuf, CPU,
+    };
 
-        let device: &dyn $t<$g> = unsafe {
-            //&*($device.device as *mut CPU)
-            match $device.device_type {
-                DeviceType::CPU => &*($device.device as *mut CPU),
-                #[cfg(feature="cuda")]
-                DeviceType::CUDA => &*($device.device as *mut $crate::CudaDevice),
-                #[cfg(feature="opencl")]
-                DeviceType::CL => &*($device.device as *mut $crate::CLDevice),
-                // TODO: convert to error
-                _ => panic!(
-                    "No device found to execute this operation with. 
-                    If you are using get_device! in your own crate, 
-                    you need to add 'opencl' and 'cuda' as features in your Cargo.toml."
-                ),
-            }
+    #[cfg(not(feature="no-std"))]
+    pub use crate::{cache::CacheReturn, get_count, set_count, Cache};
 
-        };
-        device
-    }}
+    #[cfg(feature = "opencl")]
+    pub use crate::opencl::{OpenCL, CL, CLBuffer, enqueue_kernel};
+
+    #[cfg(feature = "opencl")]
+    #[cfg(unified_cl)]
+    #[cfg(not(feature = "realloc"))]
+    pub use crate::opencl::{construct_buffer, to_unified};
+
+    #[cfg(feature="stack-alloc")]
+    pub use crate::stack::Stack;
+
+    #[cfg(feature = "cuda")]
+    pub use crate::cuda::{CUDA, CU, CUBuffer, launch_kernel1d};
 }

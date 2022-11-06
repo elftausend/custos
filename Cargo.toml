@@ -1,6 +1,6 @@
 [package]
 name = "custos"
-version = "0.5.0"
+version = "0.6.0"
 edition = "2021"
 license = "MIT"
 description = "A minimal OpenCL, CUDA and host CPU array manipulation engine / framework."
@@ -8,17 +8,30 @@ repository = "https://github.com/elftausend/custos"
 keywords = ["CUDA", "OpenCL", "arrays", "deep-learning", "array-manipulation"]
 categories = ["science", "mathematics", "memory-management", "external-ffi-bindings"]
 readme = "README.md"
+rust-version = "1.65"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-lazy_static = { version = "1.4.0", optional = true }
+
+
+[build-dependencies]
+# TODO: use opencl only lib
+custos = { version="0.5.0", default-features = false }
 
 [features]
-default = ["opencl", "cuda"]
-opencl = ["dep:lazy_static"]
+default = ["blas", "cuda", "opencl", "opt-cache"]
+opencl = ["custos/opencl"]
 cuda = []
 realloc = []
 opt-cache = []
+blas = []
+static-api = []
+stack-alloc = []
+no-std = ["stack-alloc"]
+
+[dev-dependencies]
+#criterion = "0.3"
+#custos-macro = {path = "../custos-macro"}
 
 [[example]]
 name = "cuda_readme"
@@ -43,10 +56,6 @@ required-features = ["opencl"]
 [[test]]
 name = "cl_kernel_launch"
 required-features = ["opencl"]
-
-[dev-dependencies]
-criterion = "0.3"
-
 
 #[[bench]]
 #name = "fixed_size_vs_vec"

@@ -1,7 +1,7 @@
-use custos::{Buffer, CLDevice};
+use custos::{Buffer, OpenCL};
 
 fn main() -> custos::Result<()> {
-    let device = CLDevice::new(0)?;
+    let device = OpenCL::new(0)?;
 
     let mut a = Buffer::from((&device, [5, 3, 2, 4, 6, 2]));
     a.clear();

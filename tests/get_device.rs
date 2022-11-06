@@ -1,4 +1,4 @@
-use custos::{get_device, AsDev, Buffer, VecRead, CPU};
+use custos::{Buffer, VecRead, CPU};
 
 #[test]
 fn get_device_test_cpu() {
@@ -6,34 +6,31 @@ fn get_device_test_cpu() {
 
     let buf = Buffer::from((&device, [1., 1.5, 0.14]));
 
-    let read_device = get_device!(device.dev(), VecRead<f32>);
-    assert_eq!(vec![1., 1.5, 0.14], read_device.read(&buf));
+    let read = buf.device().read(&buf);
+    assert_eq!(vec![1., 1.5, 0.14], read);
 }
 
 #[cfg(feature = "opencl")]
 #[test]
 fn get_device_test_cl() -> custos::Result<()> {
-    use custos::CLDevice;
+    use custos::OpenCL;
 
-    let device = CLDevice::new(0)?;
-
+    let device = OpenCL::new(0)?;
     let buf = Buffer::from((&device, [1., 1.5, 0.14]));
 
-    let read_device = get_device!(device.dev(), VecRead<f32>);
-    assert_eq!(vec![1., 1.5, 0.14], read_device.read(&buf));
+    assert_eq!(vec![1., 1.5, 0.14], buf.device().read(&buf));
     Ok(())
 }
 
 #[cfg(feature = "cuda")]
 #[test]
 fn get_device_test_cu() -> custos::Result<()> {
-    use custos::CudaDevice;
+    use custos::CUDA;
 
-    let device = CudaDevice::new(0)?;
+    let device = CUDA::new(0)?;
 
     let buf = Buffer::from((&device, [1., 1.5, 0.14]));
 
-    let read_device = get_device!(device.dev(), VecRead<f32>);
-    assert_eq!(vec![1., 1.5, 0.14], read_device.read(&buf));
+    assert_eq!(vec![1., 1.5, 0.14], buf.device().read(&buf));
     Ok(())
 }

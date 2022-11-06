@@ -1,15 +1,10 @@
-use custos::{get_device, Buffer, CDatatype, Cache, CPU};
+use custos::prelude::*;
 
-#[cfg(feature = "opencl")]
-use custos::{opencl::enqueue_kernel, CLDevice};
-
-#[cfg(feature = "cuda")]
-use custos::{cuda::launch_kernel1d, CudaDevice};
-
-/// AddBuf will be implemented for all compute devices.
-pub trait AddBuf<T> {
+/// `AddBuf` will be implemented for all compute devices.<br>
+/// Because of `N`, this trait can be implemented for [`Stack`] which uses fixed size arrays.
+pub trait AddBuf<T, const N: usize = 0>: Sized + Device {
     /// This operation perfoms element-wise addition.
-    fn add(&self, lhs: &Buffer<T>, rhs: &Buffer<T>) -> Buffer<T>;
+    fn add(&self, lhs: &Buffer<T, Self, N>, rhs: &Buffer<T, Self, N>) -> Buffer<T, Self, N>;
     // ... you can add more operations if you want to do that.
 }
 
@@ -26,7 +21,8 @@ where
         // this returns a previously allocated buffer.
         // You can deactivate the caching behaviour by adding the "realloc" feature
         // to the custos feature list in the Cargo.toml.
-        let mut out = Cache::get(self, len, [lhs.node.idx, rhs.node.idx]);
+        let mut out = self.retrieve(len, [lhs, rhs]);
+        //or: let mut out = Cache::get(self, len, [lhs, rhs]);
 
         // By default, the Buffer dereferences to a slice.
         // Therefore, standard indexing can be used.
@@ -39,14 +35,35 @@ where
     }
 }
 
+// the attribute macro `#[impl_stack]` from the crate `custos-macro` 
+// can be placed on top of the CPU implementation to automatically
+// generate a Stack implementation.
+#[cfg(feature="stack-alloc")]
+impl<T, const N: usize> AddBuf<T, N> for Stack 
+where
+    T: Copy + Default + std::ops::Add<Output = T>,
+{
+    fn add(&self, lhs: &Buffer<T, Self, N>, rhs: &Buffer<T, Self, N>) -> Buffer<T, Self, N> {
+        let mut out = [T::default(); N];
+        //let mut out = self.retrieve(N, [lhs, rhs]); // this works as well and in this case (Stack), does exactly the same as the line above.
+
+        for i in 0..N {
+            out[i] = lhs[i] + rhs[i];
+        }
+
+        Buffer::from(out)
+    }
+}
+
 #[cfg(feature = "opencl")]
 // OpenCL implementation
-impl<T> AddBuf<T> for CLDevice
+impl<T> AddBuf<T> for OpenCL
 where
     T: CDatatype, // the custos::CDatatype trait is used to
+                  // get the OpenCL C type string for creating generic OpenCL kernels.
 {
-    // get the OpenCL C type string for creating generic OpenCL kernels.
-    fn add(&self, lhs: &Buffer<T>, rhs: &Buffer<T>) -> Buffer<T> {
+    
+    fn add(&self, lhs: &CLBuffer<T>, rhs: &CLBuffer<T>) -> CLBuffer<T> { // CLBuffer<T> is the same as Buffer<T, OpenCL>
         // generic OpenCL kernel
         let src = format!("
             __kernel void add(__global const {datatype}* lhs, __global const {datatype}* rhs, __global {datatype}* out) 
@@ -57,9 +74,9 @@ where
         ", datatype=T::as_c_type_str());
 
         let len = std::cmp::min(lhs.len, rhs.len);
-        let out = Cache::get::<T, CLDevice>(self, len, [lhs.node.idx, rhs.node.idx]);
+        let out = self.retrieve::<T, 0>(len, (lhs, rhs));
 
-        // In the background, the kernel is compiled once. After that, it will be reused every iteration.
+        // In the background, the kernel is compiled once. After that, it will be reused for every iteration.
         // The cached kernels are released (or freed) when the underlying CLDevice is dropped.
         // The arguments are specified with a slice of buffers and/or numbers.
         enqueue_kernel(self, &src, [len, 0, 0], None, &[&lhs, &rhs, &out]).unwrap();
@@ -69,8 +86,8 @@ where
 
 #[cfg(feature = "cuda")]
 // CUDA Implementation
-impl<T: CDatatype> AddBuf<T> for CudaDevice {
-    fn add(&self, lhs: &Buffer<T>, rhs: &Buffer<T>) -> Buffer<T> {
+impl<T: CDatatype> AddBuf<T> for CUDA {
+    fn add(&self, lhs: &CUBuffer<T>, rhs: &CUBuffer<T>) -> CUBuffer<T> { // CLBuffer<T> is the same as Buffer<T, OpenCL>
         // generic CUDA kernel
         let src = format!(
             r#"extern "C" __global__ void add({datatype}* lhs, {datatype}* rhs, {datatype}* out, int numElements)
@@ -86,7 +103,8 @@ impl<T: CDatatype> AddBuf<T> for CudaDevice {
         );
 
         let len = std::cmp::min(lhs.len, rhs.len);
-        let out = Cache::get::<T, CudaDevice>(self, len, (lhs.node.idx, rhs.node.idx));
+        let out = self.retrieve::<T, 0>(len, (lhs, rhs));
+        //or: let out = Cache::get::<T, CUDA, 0>(self, len, (lhs, rhs));
 
         // The kernel is compiled once with nvrtc and is cached too.
         // The arguments are specified with a vector of buffers and/or numbers.
@@ -95,37 +113,39 @@ impl<T: CDatatype> AddBuf<T> for CudaDevice {
     }
 }
 
-pub trait AddOp<'a, T> {
-    fn add(&self, rhs: &Buffer<'a, T>) -> Buffer<'a, T>;
+pub trait AddOp<'a, T, D: Device> {
+    fn add(&self, rhs: &Buffer<'a, T, D>) -> Buffer<'a, T, D>;
 }
 
-impl<'a, T: CDatatype> AddOp<'a, T> for Buffer<'a, T> {
+impl<'a, T: CDatatype, D: AddBuf<T>> AddOp<'a, T, D> for Buffer<'a, T, D> {
     #[inline]
-    fn add(&self, rhs: &Buffer<'a, T>) -> Buffer<'a, T> {
-        get_device!(self.device, AddBuf<T>).add(self, rhs)
+    fn add(&self, rhs: &Buffer<'a, T, D>) -> Buffer<'a, T, D> {
+        self.device().add(self, rhs)
     }
 }
 
 #[allow(dead_code)]
-pub struct OwnStruct<'a, T> {
-    buf: Buffer<'a, T>,
+pub struct OwnStruct<'a, T, D: Device> {
+    buf: Buffer<'a, T, D>,
 }
 
-impl<'a, T> OwnStruct<'a, T> {
+impl<'a, T, D: Device> OwnStruct<'a, T, D> {
     #[allow(dead_code)]
     // consider using operator overloading for your own type
     #[inline]
-    fn add(&self, rhs: &OwnStruct<T>) -> Buffer<T>
+    fn add(&self, rhs: &OwnStruct<T, D>) -> Buffer<T, D>
     where
         T: CDatatype,
+        D: AddBuf<T>,
     {
-        get_device!(self.buf.device, AddBuf<T>).add(&self.buf, &rhs.buf)
+        self.buf.device().add(&self.buf, &rhs.buf)
+        //get_device!(self.buf.device, AddBuf<T>).add(&self.buf, &rhs.buf)
     }
 
     // general context
     /*#[inline]
     fn operation(&self, rhs: &OwnStruct<T>, other_arg: &T) -> OwnStruct<T> {
-        get_device!(self.buf.device, OperationTrait<T>).operation(self, rhs, other_arg)
+        self.buf.device().operation(self, rhs, other_arg)
     }*/
 
     // ...
@@ -146,7 +166,7 @@ fn main() -> custos::Result<()> {
 
     #[cfg(feature = "opencl")] // deactivate this block if the feature is disabled
     {
-        let cl_device = CLDevice::new(0)?;
+        let cl_device = OpenCL::new(0)?;
 
         let lhs = Buffer::from((&cl_device, [1, 2, 3, 4, 5, 6]));
         let rhs = Buffer::from((&cl_device, [6, 5, 4, 3, 2, 1]));
@@ -157,7 +177,7 @@ fn main() -> custos::Result<()> {
 
     #[cfg(feature = "cuda")]
     {
-        let cuda_device = CudaDevice::new(0)?;
+        let cuda_device = CUDA::new(0)?;
 
         let lhs = Buffer::from((&cuda_device, [1., 2., 3., 4., 5., 6.]));
         let rhs = Buffer::from((&cuda_device, [6., 5., 4., 3., 2., 1.]));
@@ -167,20 +187,4 @@ fn main() -> custos::Result<()> {
     }
 
     Ok(())
-}
-
-// this trait is implemented for all devices.
-pub trait AnotherOpBuf<T> {
-    fn operation(&self, _buf: Buffer<T>) -> Buffer<T> {
-        unimplemented!()
-    }
-}
-
-impl<T> AnotherOpBuf<T> for CPU {}
-
-#[cfg(feature = "opencl")]
-impl<T> AnotherOpBuf<T> for CLDevice {
-    fn operation(&self, _buf: Buffer<T>) -> Buffer<T> {
-        todo!()
-    }
 }

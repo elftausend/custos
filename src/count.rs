@@ -1,6 +1,4 @@
-use std::ops::{Range, RangeInclusive};
-
-use crate::{get_count, set_count};
+use core::ops::{Range, RangeInclusive};
 
 pub trait AsRangeArg {
     fn start(&self) -> usize;
@@ -66,8 +64,10 @@ pub fn range<R: AsRangeArg>(range: R) -> Count {
 }
 
 /// used to reset the cache count
-pub struct Count(usize, usize);
+#[derive(Debug, Clone, Copy)]
+pub struct Count(pub(super) usize, pub(super) usize);
 
+#[derive(Debug)]
 pub struct CountIntoIter {
     epoch: usize,
     idx: usize,
@@ -78,7 +78,8 @@ impl Iterator for CountIntoIter {
     type Item = usize;
 
     fn next(&mut self) -> Option<Self::Item> {
-        set_count(self.idx);
+        #[cfg(not(feature="no-std"))]
+        crate::set_count(self.idx);
         if self.epoch >= self.end {
             return None;
         }
@@ -96,8 +97,55 @@ impl IntoIterator for Count {
     fn into_iter(self) -> Self::IntoIter {
         CountIntoIter {
             epoch: self.0,
-            idx: get_count(),
+            #[cfg(not(feature="no-std"))]
+            idx: crate::get_count(),
+            #[cfg(feature="no-std")]
+            idx: 0,
             end: self.1,
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::{range, Count, CountIntoIter};
+
+    fn count_iter(iter: &mut CountIntoIter) {
+        iter.next();
+        assert_eq!(iter.epoch, 1);
+        assert_eq!(iter.idx, 0);
+        assert_eq!(iter.end, 10);
+
+        iter.next();
+        assert_eq!(iter.epoch, 2);
+        assert_eq!(iter.idx, 0);
+        assert_eq!(iter.end, 10);
+    }
+
+    #[test]
+    fn test_count_into_iter() {
+        let mut iter = CountIntoIter {
+            epoch: 0,
+            idx: 0,
+            end: 10,
+        };
+
+        count_iter(&mut iter);
+    }
+
+    #[test]
+    fn test_count() {
+        let count: Count = Count(0, 10);
+        count_iter(&mut count.into_iter());
+    }
+
+    #[test]
+    fn test_range_inclusive() {
+        let count: Count = range(0..=9);
+        count_iter(&mut count.into_iter());
+
+        for (idx, other) in count.into_iter().zip(0..=9) {
+            assert_eq!(idx, other)
         }
     }
 }

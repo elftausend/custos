@@ -1,5 +1,7 @@
-use crate::{Buffer, Ident, COUNT};
-use std::cell::RefMut;
+use alloc::vec::Vec;
+
+use crate::{Buffer, Device, Ident, COUNT};
+use core::cell::RefMut;
 
 #[cfg(feature = "opt-cache")]
 use crate::{cache::CacheReturn, DeviceError};
@@ -239,26 +241,35 @@ impl AddGraph for CachedLeaf {
     }
 }
 
-impl<'a, T> AddGraph for Buffer<'a, T> {
+impl<'a, T, D: Device, const N: usize> AddGraph for Buffer<'a, T, D, N> {
     fn add(&self, graph: &mut Graph, len: usize) -> Node {
         graph.add_node(len, self.node.idx, self.node.idx)
     }
 }
 
-impl<'a, T> AddGraph for &Buffer<'a, T> {
+impl<'a, T, D: Device, const N: usize> AddGraph for &Buffer<'a, T, D, N> {
     fn add(&self, graph: &mut Graph, len: usize) -> Node {
         graph.add_node(len, self.node.idx, self.node.idx)
     }
 }
 
-impl<'a, T> AddGraph for (&Buffer<'a, T>, &Buffer<'a, T>) {
+impl<'a, T, D: Device, const N: usize> AddGraph for (&Buffer<'a, T, D, N>, &Buffer<'a, T, D, N>) {
     fn add(&self, graph: &mut Graph, len: usize) -> Node {
         graph.add_node(len, self.0.node.idx, self.1.node.idx)
     }
 }
 
+impl<'a, T, D: Device, const N: usize> AddGraph for [&Buffer<'a, T, D, N>; 2] {
+    fn add(&self, graph: &mut Graph, len: usize) -> Node {
+        graph.add_node(len, self[0].node.idx, self[1].node.idx)
+    }
+}
+
+#[cfg(not(feature="no-std"))]
 #[cfg(test)]
 mod tests {
+    use alloc::vec;
+
     use crate::{bump_count, set_count, CacheTrace, Graph, Ident, Node};
 
     // test if node is a leaf node
@@ -274,6 +285,8 @@ mod tests {
 
     #[test]
     fn test_cache_trace() {
+        // for: cargo test -- --test-threads=1
+        set_count(0);
         let mut graph = Graph::new();
         let a = graph.add_leaf(10);
         let b = graph.add_leaf(10);
@@ -315,12 +328,14 @@ mod tests {
             trace
         );
 
-        let traces = graph.cache_traces();
-        println!("traces: {traces:?}");
+        let _traces = graph.cache_traces();
+        //println!("traces: {traces:?}");
     }
 
     #[test]
     fn test_no_cache_trace() {
+        // for: cargo test -- --test-threads=1
+        set_count(0);
         let mut graph = Graph::new();
         let a = graph.add_leaf(10);
         let b = graph.add_leaf(10);
@@ -343,6 +358,8 @@ mod tests {
 
     #[test]
     fn test_cache_trace_2() {
+        // for: cargo test -- --test-threads=1
+        set_count(0);
         let mut graph = Graph::new();
         let a = graph.add_leaf(10);
         let b = graph.add_leaf(10);
@@ -383,6 +400,8 @@ mod tests {
 
     #[test]
     fn test_cache_trace_break() {
+        // for: cargo test -- --test-threads=1
+        set_count(0);
         let mut graph = Graph::new();
         let a = graph.add_leaf(10);
         let b = graph.add_leaf(10);
@@ -427,6 +446,7 @@ mod tests {
 
     #[test]
     fn test_trace_all() {
+        // for: cargo test -- --test-threads=1
         set_count(0);
         let mut graph = Graph::new();
         let a = graph.add_leaf(10);
@@ -461,6 +481,8 @@ mod tests {
 
     #[test]
     fn test_leafed_diff_len_trace() {
+        // for: cargo test -- --test-threads=1
+        set_count(0);
         let mut graph = Graph::new();
         let a = graph.add_leaf(10);
         let _b = graph.add_node(10, a.idx, a.idx);

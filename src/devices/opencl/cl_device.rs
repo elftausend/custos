@@ -1,15 +1,16 @@
 use super::{
     api::{
         create_command_queue, create_context, enqueue_full_copy_buffer, enqueue_read_buffer,
-        enqueue_write_buffer, unified_ptr, wait_for_event, CLIntDevice, CommandQueue, Context,
+        enqueue_write_buffer, get_device_ids, get_platforms, wait_for_event, CLIntDevice,
+        CommandQueue, Context, DeviceType, OCLErrorKind,
     },
-    cl_clear, KernelCacheCL, RawCL, CL_DEVICES,
+    cl_clear, CLPtr, KernelCacheCL, RawCL,
 };
 use crate::{
     cache::{Cache, CacheReturn},
     devices::opencl::api::{create_buffer, MemFlags},
-    Alloc, AsDev, Buffer, CDatatype, CacheBuf, CachedLeaf, ClearBuf, CloneBuf, Device, DeviceType,
-    Error, Graph, GraphReturn, VecRead, WriteBuf, CPU,
+    Alloc, Buffer, CDatatype, CacheBuf, CachedLeaf, ClearBuf, CloneBuf, Device, Error, Graph,
+    GraphReturn, VecRead, WriteBuf, CPU,
 };
 use std::{
     cell::{Ref, RefCell},
@@ -17,14 +18,17 @@ use std::{
     fmt::Debug,
 };
 
+#[cfg(unified_cl)]
+use crate::{opencl::api::unified_ptr, CPUCL};
+
 /// Used to perform calculations with an OpenCL capable device.
 /// To make new calculations invocable, a trait providing new operations should be implemented for [CLDevice].
 /// # Example
 /// ```
-/// use custos::{CLDevice, VecRead, Buffer, Error};
+/// use custos::{OpenCL, VecRead, Buffer, Error};
 ///
 /// fn main() -> Result<(), Error> {
-///     let device = CLDevice::new(0)?;
+///     let device = OpenCL::new(0)?;
 ///     
 ///     let a = Buffer::from((&device, [1.3; 25]));
 ///     let out = device.read(&a);
@@ -33,30 +37,42 @@ use std::{
 ///     Ok(())
 /// }
 /// ```
-pub struct CLDevice {
+pub struct OpenCL {
     pub kernel_cache: RefCell<KernelCacheCL>,
     pub cache: RefCell<Cache<RawCL>>,
-    pub inner: RefCell<InternCLDevice>,
+    pub inner: RefCell<CLDevice>,
     pub graph: RefCell<Graph>,
     pub cpu: CPU,
 }
 
-unsafe impl Sync for InternCLDevice {}
+/// Short form for `OpenCL`
+pub type CL = OpenCL;
 
-impl CLDevice {
+unsafe impl Sync for CLDevice {}
+
+impl OpenCL {
     /// Returns an [CLDevice] at the specified device index.
     /// # Errors
     /// - No device is found at the given device index
     /// - some other OpenCL related errors
-    pub fn new(device_idx: usize) -> Result<CLDevice, Error> {
-        let inner = RefCell::new(CL_DEVICES.current(device_idx)?);
-        Ok(CLDevice {
-            kernel_cache: RefCell::new(KernelCacheCL::default()),
-            cache: RefCell::new(Cache::default()),
+    pub fn new(device_idx: usize) -> Result<OpenCL, Error> {
+        let inner = RefCell::new(CLDevice::new(device_idx)?);
+        Ok(OpenCL {
             inner,
-            graph: RefCell::new(Graph::new()),
-            cpu: CPU::new(),
+            kernel_cache: Default::default(),
+            cache: Default::default(),
+            graph: Default::default(),
+            cpu: Default::default(),
         })
+    }
+
+    /// Sets the values of the attributes cache, kernel cache, graph and CPU to their default.
+    /// This cleans up any accumulated allocations.
+    pub fn reset(&'static mut self) {
+        self.kernel_cache = Default::default();
+        self.cache = Default::default();
+        self.graph = Default::default();
+        self.cpu = Default::default();
     }
 
     #[inline]
@@ -92,17 +108,27 @@ impl CLDevice {
         self.device().get_version()
     }
 
+    /// Checks whether the device supports unified memory.
     #[inline]
     pub fn unified_mem(&self) -> bool {
         self.inner.borrow().unified_mem
     }
 
+    #[deprecated(
+        since = "0.6.0",
+        note = "Use the environment variable 'CUSTOS_USE_UNIFIED' set to 'true', 'false' or 'default'[=hardware dependent] instead."
+    )]
     pub fn set_unified_mem(&self, unified_mem: bool) {
         self.inner.borrow_mut().unified_mem = unified_mem;
     }
 }
 
-impl Debug for CLDevice {
+impl Device for OpenCL {
+    type Ptr<U, const N: usize> = CLPtr<U>;
+    type Cache<const N: usize> = Cache<RawCL>;
+}
+
+impl Debug for OpenCL {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
@@ -120,22 +146,21 @@ impl Debug for CLDevice {
     }
 }
 
-impl<T> Alloc<T> for CLDevice {
-    fn alloc(&self, len: usize) -> (*mut T, *mut c_void, u64) {
+impl<T> Alloc<T> for OpenCL {
+    fn alloc(&self, len: usize) -> CLPtr<T> {
         let ptr =
             create_buffer::<T>(&self.ctx(), MemFlags::MemReadWrite as u64, len, None).unwrap();
 
-        let cpu_ptr = if self.unified_mem() {
-            // TODO: not unmapping before executing a kernel results in ub?
-            unified_ptr::<T>(&self.queue(), ptr, len).unwrap()
-        } else {
-            std::ptr::null_mut()
-        };
+        #[cfg(unified_cl)]
+        let host_ptr = unified_ptr::<T>(&self.queue(), ptr, len).unwrap();
 
-        (cpu_ptr, ptr, 0)
+        #[cfg(not(unified_cl))]
+        let host_ptr = std::ptr::null_mut();
+
+        CLPtr { ptr, host_ptr }
     }
 
-    fn with_data(&self, data: &[T]) -> (*mut T, *mut c_void, u64) {
+    fn with_slice(&self, data: &[T]) -> CLPtr<T> {
         let ptr = create_buffer::<T>(
             &self.ctx(),
             MemFlags::MemReadWrite | MemFlags::MemCopyHostPtr,
@@ -144,97 +169,99 @@ impl<T> Alloc<T> for CLDevice {
         )
         .unwrap();
 
-        let cpu_ptr = if self.unified_mem() {
-            unified_ptr::<T>(&self.queue(), ptr, data.len()).unwrap()
-        } else {
-            std::ptr::null_mut()
-        };
+        #[cfg(unified_cl)]
+        let host_ptr = unified_ptr::<T>(&self.queue(), ptr, data.len()).unwrap();
 
-        (cpu_ptr, ptr, 0)
-    }
+        #[cfg(not(unified_cl))]
+        let host_ptr = std::ptr::null_mut();
 
-    fn as_dev(&self) -> Device {
-        Device {
-            device_type: DeviceType::CL,
-            device: self as *const CLDevice as *mut u8,
-        }
+        CLPtr { ptr, host_ptr }
     }
 }
 
-impl<'a, T> CloneBuf<'a, T> for CLDevice {
-    fn clone_buf(&'a self, buf: &Buffer<'a, T>) -> Buffer<'a, T> {
+impl<'a, T> CloneBuf<'a, T> for OpenCL {
+    fn clone_buf(&'a self, buf: &Buffer<'a, T, OpenCL>) -> Buffer<'a, T, OpenCL> {
         let cloned = Buffer::new(self, buf.len);
-        enqueue_full_copy_buffer::<T>(&self.queue(), buf.ptr.1, cloned.ptr.1, buf.len).unwrap();
+        enqueue_full_copy_buffer::<T>(&self.queue(), buf.ptrs().1, cloned.ptrs().1, buf.len)
+            .unwrap();
         cloned
     }
 }
 
-impl<'a, T> CacheBuf<'a, T> for CLDevice {
+impl<'a, T> CacheBuf<'a, T> for OpenCL {
     #[inline]
-    fn cached(&'a self, len: usize) -> Buffer<'a, T> {
+    fn cached(&'a self, len: usize) -> Buffer<'a, T, OpenCL> {
         Cache::get(self, len, CachedLeaf)
     }
 }
 
-impl CacheReturn for CLDevice {
-    type P = RawCL;
+impl CacheReturn for OpenCL {
+    type CT = RawCL;
     #[inline]
     fn cache(&self) -> std::cell::RefMut<Cache<RawCL>> {
         self.cache.borrow_mut()
     }
 }
 
-impl GraphReturn for CLDevice {
+impl GraphReturn for OpenCL {
     #[inline]
     fn graph(&self) -> std::cell::RefMut<Graph> {
         self.graph.borrow_mut()
     }
 }
 
+#[cfg(unified_cl)]
+impl CPUCL for OpenCL {
+    #[inline]
+    fn buf_as_slice<'a, T, const N: usize>(buf: &'a Buffer<T, Self, N>) -> &'a [T] {
+        unsafe { alloc::slice::from_raw_parts(buf.host_ptr(), buf.len) }
+    }
+
+    #[inline]
+    fn buf_as_slice_mut<'a, T, const N: usize>(buf: &'a mut Buffer<T, Self, N>) -> &'a mut [T] {
+        unsafe { alloc::slice::from_raw_parts_mut(buf.host_ptr_mut(), buf.len) }
+    }
+}
+
 #[cfg(feature = "opt-cache")]
-impl crate::GraphOpt for CLDevice {}
+impl crate::GraphOpt for OpenCL {}
 
 #[inline]
-pub fn cl_cached<T>(device: &CLDevice, len: usize) -> Buffer<T> {
+pub fn cl_cached<T>(device: &OpenCL, len: usize) -> Buffer<T, OpenCL> {
     device.cached(len)
 }
 
-impl<T: CDatatype> ClearBuf<T> for CLDevice {
+impl<T: CDatatype> ClearBuf<T, OpenCL> for OpenCL {
     #[inline]
-    fn clear(&self, buf: &mut Buffer<T>) {
+    fn clear(&self, buf: &mut Buffer<T, OpenCL>) {
         cl_clear(self, buf).unwrap()
     }
 }
 
-impl<T> WriteBuf<T> for CLDevice {
-    fn write(&self, buf: &mut Buffer<T>, data: &[T]) {
-        let event = unsafe { enqueue_write_buffer(&self.queue(), buf.ptr.1, data, true).unwrap() };
+impl<T> WriteBuf<T, OpenCL> for OpenCL {
+    fn write(&self, buf: &mut Buffer<T, OpenCL>, data: &[T]) {
+        let event =
+            unsafe { enqueue_write_buffer(&self.queue(), buf.cl_ptr(), data, true).unwrap() };
         wait_for_event(event).unwrap();
     }
 }
 
-impl<T: Clone + Default> VecRead<T> for CLDevice {
-    fn read(&self, buf: &crate::Buffer<T>) -> Vec<T> {
-        assert!(
-            !buf.ptr.1.is_null(),
-            "called VecRead::read(..) on a non OpenCL buffer (this would read out a null pointer)"
-        );
+impl<T: Clone + Default> VecRead<T, OpenCL> for OpenCL {
+    fn read(&self, buf: &crate::Buffer<T, OpenCL>) -> Vec<T> {
         let mut read = vec![T::default(); buf.len];
         let event =
-            unsafe { enqueue_read_buffer(&self.queue(), buf.ptr.1, &mut read, false).unwrap() };
+            unsafe { enqueue_read_buffer(&self.queue(), buf.cl_ptr(), &mut read, false).unwrap() };
         wait_for_event(event).unwrap();
         read
     }
 }
 
-impl AsDev for CLDevice {}
-
 /// Internal representation of an OpenCL Device with the capability of storing pointers.
 /// # Note / Safety
 ///
-/// If the 'safe' feature isn't used, all pointers will get invalid when the drop code for a CLDevice object is run as that deallocates the memory previously pointed at by the pointers stored in 'ptrs'.
-#[derive(Debug, Clone)]
-pub struct InternCLDevice {
+/// If the 'safe' feature isn't used, all pointers will get invalid when the drop code for a CLDevice object runs as that deallocates the memory previously pointed at by the pointers stored in 'ptrs'.
+#[derive(Debug)]
+pub struct CLDevice {
     pub ptrs: Vec<*mut c_void>,
     device: CLIntDevice,
     ctx: Context,
@@ -242,13 +269,21 @@ pub struct InternCLDevice {
     unified_mem: bool,
 }
 
-impl InternCLDevice {
-    pub fn new(device: CLIntDevice) -> crate::Result<InternCLDevice> {
+impl CLDevice {
+    pub fn new(device_idx: usize) -> crate::Result<CLDevice> {
+        let platform = get_platforms()?[0];
+        let devices = get_device_ids(platform, &(DeviceType::GPU as u64))?;
+
+        if device_idx >= devices.len() {
+            return Err(OCLErrorKind::InvalidDeviceIdx.into());
+        }
+        let device = devices[0];
+
         let ctx = create_context(&[device])?;
         let queue = create_command_queue(&ctx, device)?;
         let unified_mem = device.unified_mem()?;
 
-        Ok(InternCLDevice {
+        Ok(CLDevice {
             ptrs: Vec::new(),
             device,
             ctx,

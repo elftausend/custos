@@ -14,7 +14,7 @@ fn test_write_cpu() {
 #[cfg(feature = "opencl")]
 #[test]
 fn test_write_cl() -> custos::Result<()> {
-    let device = custos::CLDevice::new(0)?;
+    let device = custos::OpenCL::new(0)?;
     let mut buf = Buffer::new(&device, 5);
     device.write(&mut buf, &[1., 2., 3., 4., 5.]);
     assert_eq!(device.read(&buf), vec![1., 2., 3., 4., 5.]);
@@ -24,7 +24,7 @@ fn test_write_cl() -> custos::Result<()> {
 #[cfg(feature = "cuda")]
 #[test]
 fn test_write_cuda() -> custos::Result<()> {
-    let device = custos::CudaDevice::new(0)?;
+    let device = custos::CUDA::new(0)?;
     let mut buf = Buffer::new(&device, 5);
     device.write(&mut buf, &[1., 2., 3., 4., 5.]);
     assert_eq!(device.read(&buf), vec![1., 2., 3., 4., 5.]);

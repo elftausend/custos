@@ -3,6 +3,7 @@
 use std::{
     ffi::{c_void, CString},
     mem::size_of,
+    rc::Rc,
     usize, vec,
 };
 
@@ -200,15 +201,14 @@ pub fn get_device_info(
     })
 }
 
-// TODO: implement drop
-#[derive(Debug, Hash, Clone)]
+#[derive(Debug, Hash)]
 pub struct Context(pub cl_context);
 
-/*impl Drop for Context {
+impl Drop for Context {
     fn drop(&mut self) {
         unsafe { clReleaseContext(self.0) };
     }
-}*/
+}
 
 pub fn create_context(devices: &[CLIntDevice]) -> Result<Context, Error> {
     let mut err = 0;
@@ -228,15 +228,24 @@ pub fn create_context(devices: &[CLIntDevice]) -> Result<Context, Error> {
     Ok(Context(r))
 }
 
-// TODO: implement drop
-#[derive(Debug, Clone)]
+#[derive(Debug /* remove: */, Clone)]
 pub struct CommandQueue(pub cl_command_queue);
 
-/*impl CommandQueue {
-    pub fn release(self) {
-        release_command_queue(self);
+impl CommandQueue {
+    pub fn release(&mut self) -> Result<(), Error> {
+        let err = unsafe { clReleaseCommandQueue(self.0) };
+        if err != 0 {
+            return Err(OCLErrorKind::from_value(err).into());
+        }
+        Ok(())
     }
-}*/
+}
+
+impl Drop for CommandQueue {
+    fn drop(&mut self) {
+        self.release().unwrap();
+    }
+}
 
 pub fn create_command_queue(context: &Context, device: CLIntDevice) -> Result<CommandQueue, Error> {
     let mut err = 0;
@@ -252,9 +261,6 @@ pub fn finish(cq: CommandQueue) {
     unsafe { clFinish(cq.0) };
 }
 
-fn release_command_queue(cq: CommandQueue) {
-    unsafe { clReleaseCommandQueue(cq.0) };
-}
 #[derive(Debug, Clone, Copy)]
 pub struct Event(pub cl_event);
 
@@ -487,12 +493,18 @@ pub fn enqueue_fill_buffer<T>(cq: &CommandQueue, mem: &Mem, pattern: Vec<T>) -> 
     Event(events[0])
 }
 */
-// TODO: implement drop
+
 pub struct Program(pub cl_program);
 
 impl Program {
     pub fn release(&mut self) {
         release_program(self).unwrap();
+    }
+}
+
+impl Drop for Program {
+    fn drop(&mut self) {
+        release_program(self).unwrap()
     }
 }
 
@@ -541,14 +553,14 @@ pub fn build_program(
 ) -> Result<(), Error> {
     let len = devices.len();
 
-    let err = if let Some(x) = options {
-        let cstring = CString::new(x).unwrap();
+    let err = if let Some(options) = options {
+        let options = CString::new(options).unwrap();
         unsafe {
             clBuildProgram(
                 program.0,
                 len as u32,
                 devices.as_ptr() as *const *mut c_void,
-                cstring.as_ptr(),
+                options.as_ptr(),
                 std::ptr::null_mut(),
                 std::ptr::null_mut(),
             )
@@ -571,12 +583,12 @@ pub fn build_program(
     Ok(())
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug)]
 pub /*(crate)*/ struct Kernel(pub cl_kernel);
 
-impl Kernel {
-    pub fn release(&mut self) {
-        release_kernel(self).unwrap();
+impl Drop for Kernel {
+    fn drop(&mut self) {
+        release_kernel(self).unwrap()
     }
 }
 
@@ -592,7 +604,7 @@ pub(crate) fn create_kernel(program: &Program, str: &str) -> Result<Kernel, Erro
     }
     Ok(Kernel(kernel))
 }
-pub(crate) fn create_kernels_in_program(program: &Program) -> Result<Vec<Kernel>, Error> {
+pub(crate) fn create_kernels_in_program(program: &Program) -> Result<Vec<Rc<Kernel>>, Error> {
     let mut n_kernels: u32 = 0;
     let value =
         unsafe { clCreateKernelsInProgram(program.0, 0, std::ptr::null_mut(), &mut n_kernels) };
@@ -618,6 +630,9 @@ pub(crate) fn create_kernels_in_program(program: &Program) -> Result<Vec<Kernel>
     if value != 0 {
         return Err(Error::from(OCLErrorKind::from_value(value)));
     }
+
+    let kernels = kernels.into_iter().map(Rc::new).collect();
+
     Ok(kernels)
 }
 
@@ -685,4 +700,41 @@ pub fn enqueue_nd_range_kernel(
     }
     let e = Event(events[0]);
     wait_for_event(e)
+}
+
+#[cfg(test)]
+mod tests {
+    use std::cell::RefCell;
+
+    use crate::{Buffer, CLDevice, OpenCL};
+
+    #[test]
+    fn test_multiplie_queues() -> crate::Result<()> {
+        let device = CLDevice::new(0)?;
+        let cl = OpenCL {
+            kernel_cache: Default::default(),
+            cache: Default::default(),
+            inner: RefCell::new(device),
+            graph: Default::default(),
+            cpu: Default::default(),
+        };
+
+        let buf = Buffer::from((&cl, &[1, 2, 3, 4, 5, 6, 7]));
+        assert_eq!(buf.read(), vec![1, 2, 3, 4, 5, 6, 7]);
+
+        let device = CLDevice::new(0)?;
+
+        let cl1 = OpenCL {
+            kernel_cache: Default::default(),
+            cache: Default::default(),
+            inner: RefCell::new(device),
+            graph: Default::default(),
+            cpu: Default::default(),
+        };
+
+        let buf = Buffer::from((&cl1, &[2, 2, 4, 4, 2, 1, 3]));
+        assert_eq!(buf.read(), vec![2, 2, 4, 4, 2, 1, 3]);
+
+        Ok(())
+    }
 }

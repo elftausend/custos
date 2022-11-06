@@ -21,7 +21,7 @@ fn test_self_buf_clone() {
 #[cfg(feature = "opencl")]
 #[test]
 fn test_buf_clone_cl() -> custos::Result<()> {
-    let device = custos::CLDevice::new(0)?;
+    let device = custos::OpenCL::new(0)?;
 
     let buf = Buffer::from((&device, [1., 2., 6., 2., 4.]));
 
@@ -34,7 +34,7 @@ fn test_buf_clone_cl() -> custos::Result<()> {
 #[cfg(feature = "cuda")]
 #[test]
 fn test_buf_clone_cu() -> custos::Result<()> {
-    let device = custos::CudaDevice::new(0)?;
+    let device = custos::CUDA::new(0)?;
 
     let buf = Buffer::from((&device, [1., 2., 6., 2., 4.]));
 

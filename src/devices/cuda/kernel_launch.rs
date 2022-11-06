@@ -1,4 +1,4 @@
-use crate::{number::Number, Buffer, CudaDevice};
+use crate::{number::Number, Buffer, CUDA};
 use std::ffi::c_void;
 
 use super::{
@@ -10,15 +10,15 @@ pub trait AsCudaCvoidPtr {
     fn as_cvoid_ptr(&self) -> *mut c_void;
 }
 
-impl<'a, T> AsCudaCvoidPtr for &Buffer<'a, T> {
+impl<'a, T> AsCudaCvoidPtr for &Buffer<'a, T, CUDA> {
     fn as_cvoid_ptr(&self) -> *mut c_void {
-        &self.ptr.2 as *const u64 as *mut c_void
+        &self.ptr.ptr as *const u64 as *mut c_void
     }
 }
 
-impl<'a, T> AsCudaCvoidPtr for Buffer<'a, T> {
+impl<'a, T> AsCudaCvoidPtr for Buffer<'a, T, CUDA> {
     fn as_cvoid_ptr(&self) -> *mut c_void {
-        &self.ptr.2 as *const u64 as *mut c_void
+        &self.ptr.ptr as *const u64 as *mut c_void
     }
 }
 
@@ -33,7 +33,7 @@ impl<T: Number> AsCudaCvoidPtr for T {
 /// All kernel arguments must be set.
 pub fn launch_kernel1d(
     len: usize,
-    device: &CudaDevice,
+    device: &CUDA,
     src: &str,
     fn_name: &str,
     params: &[&dyn AsCudaCvoidPtr],

@@ -4,17 +4,17 @@ use custos::{
     cuda::api::{
         cuLaunchKernel, cuOccupancyMaxPotentialBlockSize, load_module_data, nvrtc::create_program,
     },
-    Buffer, CudaDevice, VecRead,
+    Buffer, VecRead, CUDA,
 };
 
 #[test]
 fn test_occupancy() -> custos::Result<()> {
-    let device = CudaDevice::new(0)?;
+    let device = CUDA::new(0)?;
 
     let a = Buffer::from((&device, [1, 2, 3, 4, 5]));
     let b = Buffer::from((&device, [4, 1, 7, 6, 9]));
 
-    let c = Buffer::<i32>::new(&device, a.len);
+    let c = Buffer::<i32, _>::new(&device, a.len);
 
     let src = r#"
         extern "C" __global__ void add(int *a, int *b, int *c, int numElements)
@@ -68,9 +68,9 @@ fn test_occupancy() -> custos::Result<()> {
 
     unsafe {
         let params = &mut [
-            &a.ptr.2 as *const u64 as *mut c_void,
-            &b.ptr.2 as *const u64 as *mut c_void,
-            &c.ptr.2 as *const u64 as *mut c_void,
+            &a.ptrs().2 as *const u64 as *mut c_void,
+            &b.ptrs().2 as *const u64 as *mut c_void,
+            &c.ptrs().2 as *const u64 as *mut c_void,
             &len as *const usize as *mut c_void,
         ];
         cuLaunchKernel(

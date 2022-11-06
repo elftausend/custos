@@ -1,24 +1,38 @@
 //! This module defines all available compute devices
 
+#[cfg(feature = "blas")]
 use self::cpu::{
     api::{cblas_dgemm, cblas_sgemm},
     Order, Transpose,
 };
-use crate::number::{Float, Number};
-use std::cell::RefCell;
+use crate::{number::Float, Device, Alloc, AddGraph, Buffer};
 
 #[cfg(feature = "cuda")]
 use cuda::api::cublas::{cublasDgemm_v2, cublasOperation_t, cublasSgemm_v2, CublasHandle};
 
+#[cfg(not(feature="no-std"))]
 pub mod cache;
-pub use cache::Cache;
+#[cfg(not(feature="no-std"))]
+pub use cache::{Cache, CacheReturn};
+
 pub mod cpu;
 #[cfg(feature = "cuda")]
 pub mod cuda;
 #[cfg(feature = "opencl")]
 pub mod opencl;
+#[cfg(feature = "stack-alloc")]
+pub mod stack;
 
-pub type CUdeviceptr = std::os::raw::c_ulonglong;
+mod cdatatype;
+pub use cdatatype::*;
+
+#[cfg(not(feature="no-std"))]
+mod ident;
+#[cfg(not(feature="no-std"))]
+pub use ident::*;
+
+#[cfg(feature="cuda")]
+pub type CUdeviceptr = core::ffi::c_ulonglong;
 
 #[cfg(not(feature = "opencl"))]
 #[derive(Debug)]
@@ -28,117 +42,19 @@ pub struct InternCLDevice;
 #[derive(Debug)]
 pub struct InternCudaDevice;
 
-thread_local! {
-    pub static COUNT: RefCell<usize> = RefCell::new(0);
+pub trait CacheAble<D: Device, const N: usize = 0> {
+    fn retrieve<T>(device: &D, len: usize, add_node: impl AddGraph) -> Buffer<T, D, N>
+    where
+        D: Alloc<T, N>;
 }
 
-/// Sets current cache identifier / index.
-/// This function is usually called after an iteration in a loop -> [Count](crate::Count) or [range](crate::range)
-#[inline]
-pub fn set_count(count: usize) {
-    COUNT.with(|c| *c.borrow_mut() = count);
-}
-
-/// Returns current cache identifier / index
-#[inline]
-pub fn get_count() -> usize {
-    COUNT.with(|c| *c.borrow())
-}
-
-#[inline]
-/// Increases the cache identifier / index by 1.
-pub fn bump_count() {
-    COUNT.with(|c| *c.borrow_mut() += 1)
-}
-
-#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]
-/// An `Ident` is used to identify a cached pointer.
-pub struct Ident {
-    pub idx: usize,
-    pub len: usize,
-}
-
-impl Ident {
-    pub fn new(len: usize) -> Ident {
-        crate::COUNT.with(|count| Ident {
-            idx: *count.borrow(),
-            len,
-        })
-    }
-}
-
-/// enables easy generic kernel creation
-pub trait CDatatype: Number + 'static {
-    fn as_c_type_str() -> &'static str;
-}
-
-#[cfg(any(not(target_os = "macos"), not(feature = "opencl")))]
-impl CDatatype for f64 {
-    #[inline]
-    fn as_c_type_str() -> &'static str {
-        "double"
-    }
-}
-
-impl CDatatype for f32 {
-    #[inline]
-    fn as_c_type_str() -> &'static str {
-        "float"
-    }
-}
-
-impl CDatatype for i32 {
-    #[inline]
-    fn as_c_type_str() -> &'static str {
-        "int"
-    }
-}
-
-impl CDatatype for u32 {
-    #[inline]
-    fn as_c_type_str() -> &'static str {
-        "uint"
-    }
-}
-
-impl CDatatype for i8 {
-    #[inline]
-    fn as_c_type_str() -> &'static str {
-        "char"
-    }
-}
-
-impl CDatatype for u8 {
-    #[inline]
-    fn as_c_type_str() -> &'static str {
-        "uchar"
-    }
-}
-
-impl CDatatype for i16 {
-    #[inline]
-    fn as_c_type_str() -> &'static str {
-        "short"
-    }
-}
-impl CDatatype for u16 {
-    #[inline]
-    fn as_c_type_str() -> &'static str {
-        "ushort"
-    }
-}
-
-impl CDatatype for i64 {
-    #[inline]
-    fn as_c_type_str() -> &'static str {
-        "long"
-    }
-}
-
-impl CDatatype for u64 {
-    #[inline]
-    fn as_c_type_str() -> &'static str {
-        "ulong"
+// TODO: Mind num implement?
+impl<D: Device, const N: usize> CacheAble<D, N> for () {
+    fn retrieve<T>(device: &D, len: usize, _add_node: impl AddGraph) -> Buffer<T, D, N>
+    where
+        D: Alloc<T, N>,
+    {
+        Buffer::new(device, len)
     }
 }
 
@@ -146,6 +62,7 @@ pub trait GenericBlas
 where
     Self: Sized + Float,
 {
+    #[cfg(feature = "blas")]
     #[allow(clippy::too_many_arguments)]
     fn blas_gemm(
         order: Order,
@@ -161,6 +78,7 @@ where
         c: &mut [Self],
         ldc: usize,
     );
+    #[cfg(feature = "blas")]
     #[inline]
     fn gemm(m: usize, n: usize, k: usize, a: &[Self], b: &[Self], c: &mut [Self]) {
         Self::blas_gemm(
@@ -178,6 +96,7 @@ where
             n,
         )
     }
+    #[cfg(feature = "blas")]
     #[inline]
     #[allow(non_snake_case)]
     fn gemmT(m: usize, n: usize, k: usize, a: &[Self], b: &[Self], c: &mut [Self]) {
@@ -197,6 +116,7 @@ where
         )
     }
 
+    #[cfg(feature = "blas")]
     #[inline]
     #[allow(non_snake_case)]
     fn Tgemm(m: usize, n: usize, k: usize, a: &[Self], b: &[Self], c: &mut [Self]) {
@@ -229,6 +149,7 @@ where
 }
 
 impl GenericBlas for f32 {
+    #[cfg(feature = "blas")]
     #[inline]
     fn blas_gemm(
         order: Order,
@@ -298,6 +219,7 @@ impl GenericBlas for f32 {
 }
 
 impl GenericBlas for f64 {
+    #[cfg(feature = "blas")]
     #[inline]
     fn blas_gemm(
         order: Order,
@@ -364,10 +286,4 @@ impl GenericBlas for f64 {
         .to_result()?;
         Ok(())
     }
-}
-
-pub fn remove_value<T: Ord>(values: &mut Vec<T>, match_value: &T) -> Result<(), usize> {
-    let idx = values.binary_search(match_value)?;
-    values.swap_remove(idx);
-    Ok(())
 }
