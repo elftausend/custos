@@ -8,6 +8,7 @@ repository = "https://github.com/elftausend/custos"
 keywords = ["CUDA", "OpenCL", "arrays", "deep-learning", "array-manipulation"]
 categories = ["science", "mathematics", "memory-management", "external-ffi-bindings"]
 readme = "README.md"
+rust-version = "1.65"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
@@ -18,7 +19,7 @@ readme = "README.md"
 custos = { version="0.5.0", default-features = false }
 
 [features]
-default = ["blas", "stack-alloc", "static-api", "opencl", "cuda"]
+default = ["blas", "static-api", "opencl", ]
 opencl = ["custos/opencl"]
 cuda = []
 realloc = []

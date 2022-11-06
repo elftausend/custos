@@ -1,7 +1,7 @@
 use custos::{prelude::Number, Buffer, Device, CPU, CPUCL};
 //use custos_macro::impl_stack;
 
-#[cfg(feature = "stack-alloc")]
+//#[cfg(feature = "stack-alloc")]
 //use custos::stack::Stack;
 
 use super::ElementWise;

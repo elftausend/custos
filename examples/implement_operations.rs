@@ -1,4 +1,4 @@
-use custos::{prelude::*, stack::Stack};
+use custos::prelude::*;
 
 /// `AddBuf` will be implemented for all compute devices.<br>
 /// Because of `N`, this trait can be implemented for [`Stack`] which uses fixed size arrays.

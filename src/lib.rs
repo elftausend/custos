@@ -192,6 +192,9 @@ pub mod prelude {
     #[cfg(not(feature = "realloc"))]
     pub use crate::opencl::{construct_buffer, to_unified};
 
+    #[cfg(feature="stack-alloc")]
+    pub use crate::stack::Stack;
+
     #[cfg(feature = "cuda")]
     pub use crate::cuda::{CUDA, CU, CUBuffer, launch_kernel1d};
 }
