@@ -4,7 +4,7 @@ use custos::{
 };
 use std::ffi::c_void;
 
-mod unified_mem;
+//mod unified_mem;
 mod cuda;
 mod cuda_kernels;
 mod nvrtc;
