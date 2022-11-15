@@ -1,45 +1,11 @@
-use alloc::vec::Vec;
-
-use crate::{Buffer, Device, Ident, COUNT};
 use core::cell::RefMut;
+use crate::{Ident, COUNT};
 
-#[cfg(feature = "opt-cache")]
-use crate::{cache::CacheReturn, DeviceError};
+pub use node::*;
+pub use add_graph::*;
 
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
-pub struct CacheTrace {
-    pub cache_idx: usize,
-    pub use_cache_idx: Vec<Ident>,
-}
-
-pub trait GraphReturn {
-    fn graph(&self) -> RefMut<Graph>;
-}
-
-#[cfg(feature = "opt-cache")]
-pub trait GraphOpt {
-    fn optimize(&self) -> crate::Result<()>
-    where
-        Self: GraphReturn + CacheReturn,
-    {
-        let mut cache = self.cache();
-
-        for trace in self.graph().cache_traces() {
-            // starting at 1, because the first element is the origin
-            for node in &trace.use_cache_idx[1..] {
-                // insert the common / optimized pointer in all the other nodes
-                // this deallocates the old pointers
-                let ptr = cache
-                    .nodes
-                    .get(&trace.use_cache_idx[0])
-                    .ok_or(DeviceError::GraphOptimization)?
-                    .clone();
-                cache.nodes.insert(*node, ptr);
-            }
-        }
-        Ok(())
-    }
-}
+mod node;
+mod add_graph;
 
 #[derive(Default, Debug)]
 pub struct Graph {
@@ -116,6 +82,7 @@ impl Graph {
         }
 
         let mut trace = vec![*trace_at];
+        trace.as_slice();
 
         let mut idx = trace_at.idx;
         for check in &self.nodes[trace_at.idx as usize + 1..] {
@@ -152,118 +119,42 @@ impl Graph {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub struct Node {
-    pub ident_idx: isize,
-    pub idx: isize,
-    pub deps: [isize; 2],
-    pub len: usize,
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub struct CacheTrace {
+    pub cache_idx: usize,
+    pub use_cache_idx: Vec<Ident>,
 }
 
-impl Default for Node {
-    #[inline]
-    fn default() -> Self {
-        Self {
-            ident_idx: -1,
-            idx: -1,
-            deps: [-1, -1],
-            len: 0,
+pub trait GraphReturn {
+    fn graph(&self) -> RefMut<Graph>;
+}
+
+
+#[cfg(feature = "opt-cache")]
+pub trait GraphOpt {
+    fn optimize(&self) -> crate::Result<()>
+    where
+        Self: GraphReturn + CacheReturn,
+    {
+        let mut cache = self.cache();
+
+        for trace in self.graph().cache_traces() {
+            // starting at 1, because the first element is the origin
+            for node in &trace.use_cache_idx[1..] {
+                // insert the common / optimized pointer in all the other nodes
+                // this deallocates the old pointers
+                let ptr = cache
+                    .nodes
+                    .get(&trace.use_cache_idx[0])
+                    .ok_or(DeviceError::GraphOptimization)?
+                    .clone();
+                cache.nodes.insert(*node, ptr);
+            }
         }
+        Ok(())
     }
 }
 
-impl Node {
-    #[inline]
-    pub fn is_leaf(&self) -> bool {
-        self.idx == -1
-    }
-}
-
-pub trait AddGraph {
-    fn add(&self, graph: &mut Graph, len: usize) -> Node;
-}
-
-impl AddGraph for () {
-    fn add(&self, graph: &mut Graph, len: usize) -> Node {
-        graph.add_leaf(len)
-    }
-}
-
-// Unary operation
-impl AddGraph for usize {
-    fn add(&self, graph: &mut Graph, len: usize) -> Node {
-        graph.add_node(len, *self as isize, *self as isize)
-    }
-}
-
-// Unary operation
-impl AddGraph for isize {
-    fn add(&self, graph: &mut Graph, len: usize) -> Node {
-        graph.add_node(len, *self as isize, *self)
-    }
-}
-
-impl AddGraph for (usize, usize) {
-    fn add(&self, graph: &mut Graph, len: usize) -> Node {
-        graph.add_node(len, self.0 as isize, self.1 as isize)
-    }
-}
-
-impl AddGraph for (isize, isize) {
-    fn add(&self, graph: &mut Graph, len: usize) -> Node {
-        graph.add_node(len, self.0, self.1)
-    }
-}
-
-impl AddGraph for [usize; 2] {
-    fn add(&self, graph: &mut Graph, len: usize) -> Node {
-        graph.add_node(len, self[0] as isize, self[1] as isize)
-    }
-}
-
-impl AddGraph for [isize; 2] {
-    fn add(&self, graph: &mut Graph, len: usize) -> Node {
-        graph.add_node(len, self[0], self[1])
-    }
-}
-
-impl AddGraph for [usize; 1] {
-    fn add(&self, graph: &mut Graph, len: usize) -> Node {
-        graph.add_node(len, self[0] as isize, self[0] as isize)
-    }
-}
-
-pub struct CachedLeaf;
-
-impl AddGraph for CachedLeaf {
-    fn add(&self, graph: &mut Graph, len: usize) -> Node {
-        graph.add_node(len, -1, -1)
-    }
-}
-
-impl<'a, T, D: Device, const N: usize> AddGraph for Buffer<'a, T, D, N> {
-    fn add(&self, graph: &mut Graph, len: usize) -> Node {
-        graph.add_node(len, self.node.idx, self.node.idx)
-    }
-}
-
-impl<'a, T, D: Device, const N: usize> AddGraph for &Buffer<'a, T, D, N> {
-    fn add(&self, graph: &mut Graph, len: usize) -> Node {
-        graph.add_node(len, self.node.idx, self.node.idx)
-    }
-}
-
-impl<'a, T, D: Device, const N: usize> AddGraph for (&Buffer<'a, T, D, N>, &Buffer<'a, T, D, N>) {
-    fn add(&self, graph: &mut Graph, len: usize) -> Node {
-        graph.add_node(len, self.0.node.idx, self.1.node.idx)
-    }
-}
-
-impl<'a, T, D: Device, const N: usize> AddGraph for [&Buffer<'a, T, D, N>; 2] {
-    fn add(&self, graph: &mut Graph, len: usize) -> Node {
-        graph.add_node(len, self[0].node.idx, self[1].node.idx)
-    }
-}
 
 #[cfg(not(feature="no-std"))]
 #[cfg(test)]

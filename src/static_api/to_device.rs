@@ -1,4 +1,4 @@
-use crate::{Alloc, Buffer, Device, GraphReturn, VecRead};
+use crate::{Alloc, Buffer, Device, GraphReturn, Read};
 
 use super::{static_cpu, StaticGPU};
 
@@ -107,7 +107,7 @@ impl<'a, T: Clone> Buffer<'a, T> {
 impl<'a, T, D> Buffer<'a, T, D>
 where
     T: Clone + Default,
-    D: Device + VecRead<T, D>,
+    D: Device + Read<T, D>,
 {
     /// Moves the [`Buffer`] back to a CPU buffer.
     ///

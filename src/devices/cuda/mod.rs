@@ -61,7 +61,7 @@ impl<T> PtrType<T> for CUDAPtr<T> {
 /// Sets the elements of a CUDA Buffer to zero.
 /// # Example
 /// ```
-/// use custos::{CUDA, Buffer, VecRead, cuda::cu_clear};
+/// use custos::{CUDA, Buffer, Read, cuda::cu_clear};
 ///
 /// fn main() -> Result<(), custos::Error> {
 ///     let device = CUDA::new(0)?;

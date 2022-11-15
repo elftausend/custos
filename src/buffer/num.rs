@@ -29,6 +29,11 @@ impl<T> PtrType<T, 0> for Num<T> {
 impl Device for () {
     type Ptr<U, const N: usize> = Num<U>;
     type Cache<const N: usize> = ();
+
+    fn new() -> crate::Result<Self> {
+        Ok(())
+    }
+
 }
 
 impl<'a, T: Clone> CloneBuf<'a, T> for () {

@@ -20,19 +20,34 @@ pub trait ClearBuf<T, D: Device> {
 }
 
 /// Trait for reading buffers.
-pub trait VecRead<T, D: Device> {
-    /// Read the data of a buffer into a vector
+pub trait Read<T, D: Device> {
+    type Read<'a> where 
+        T: 'a,
+        D: 'a;
+    /// Read the data of the `Buffer` as type `Read`.
     /// # Example
     /// ```
-    /// use custos::{CPU, Buffer, VecRead};
+    /// use custos::{CPU, Buffer, Read};
     ///
     /// let device = CPU::new();
     /// let a = Buffer::from((&device, [1., 2., 3., 3., 2., 1.,]));
     /// let read = device.read(&a);
+    /// assert_eq!(&[1., 2., 3., 3., 2., 1.,], read);
+    /// ```
+    fn read<'a>(&self, buf: &'a Buffer<T, D>) -> Self::Read<'a>;
+    /// Read the data of a buffer into a vector
+    /// # Example
+    /// ```
+    /// use custos::{CPU, Buffer, Read};
+    ///
+    /// let device = CPU::new();
+    /// let a = Buffer::from((&device, [1., 2., 3., 3., 2., 1.,]));
+    /// let read = device.read_to_vec(&a);
     /// assert_eq!(vec![1., 2., 3., 3., 2., 1.,], read);
     /// ```
-    fn read(&self, buf: &Buffer<T, D>) -> Vec<T>;
+    fn read_to_vec(&self, buf: &Buffer<T, D>) -> Vec<T> where T: Default + Clone;
 }
+
 
 /// Trait for writing data to buffers.
 pub trait WriteBuf<T, D: Device>: Sized + Device {
@@ -78,7 +93,7 @@ pub trait CacheBuf<'a, T>: Sized + Device {
     /// # Example
     #[cfg_attr(feature = "realloc", doc = "```ignore")]
     #[cfg_attr(not(feature = "realloc"), doc = "```")]
-    /// use custos::{CPU, VecRead, set_count, get_count, CacheBuf};
+    /// use custos::{CPU, Read, set_count, get_count, CacheBuf};
     ///
     /// let device = CPU::new();
     /// assert_eq!(0, get_count());

@@ -49,7 +49,7 @@ Using the host CPU as the compute device:
 
 [cpu_readme.rs]: https://github.com/elftausend/custos/blob/main/examples/cpu_readme.rs
 ```rust
-use custos::{Buffer, ClearBuf, VecRead, CPU};
+use custos::{Buffer, ClearBuf, Read, CPU};
 
 fn main() {
     let device = CPU::new();

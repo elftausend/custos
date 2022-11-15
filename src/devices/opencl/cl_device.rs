@@ -10,7 +10,7 @@ use crate::{
     cache::{Cache, CacheReturn},
     devices::opencl::api::{create_buffer, MemFlags},
     Alloc, Buffer, CDatatype, CacheBuf, CachedLeaf, ClearBuf, CloneBuf, Device, Error, Graph,
-    GraphReturn, VecRead, WriteBuf, CPU,
+    GraphReturn, WriteBuf, CPU, Read,
 };
 use std::{
     cell::{Ref, RefCell},
@@ -25,7 +25,7 @@ use crate::{opencl::api::unified_ptr, CPUCL};
 /// To make new calculations invocable, a trait providing new operations should be implemented for [CLDevice].
 /// # Example
 /// ```
-/// use custos::{OpenCL, VecRead, Buffer, Error};
+/// use custos::{OpenCL, Read, Buffer, Error};
 ///
 /// fn main() -> Result<(), Error> {
 ///     let device = OpenCL::new(0)?;
@@ -126,6 +126,10 @@ impl OpenCL {
 impl Device for OpenCL {
     type Ptr<U, const N: usize> = CLPtr<U>;
     type Cache<const N: usize> = Cache<RawCL>;
+
+    fn new() -> crate::Result<Self> {
+        OpenCL::new(0)
+    }
 }
 
 impl Debug for OpenCL {
@@ -246,14 +250,41 @@ impl<T> WriteBuf<T, OpenCL> for OpenCL {
     }
 }
 
-impl<T: Clone + Default> VecRead<T, OpenCL> for OpenCL {
-    fn read(&self, buf: &crate::Buffer<T, OpenCL>) -> Vec<T> {
-        let mut read = vec![T::default(); buf.len];
-        let event =
-            unsafe { enqueue_read_buffer(&self.queue(), buf.cl_ptr(), &mut read, false).unwrap() };
-        wait_for_event(event).unwrap();
-        read
+#[cfg(not(unified_cl))]
+impl<T: Clone + Default> Read<T, OpenCL> for OpenCL {
+    type Read<'a> = Vec<T> where T: 'a;
+
+    fn read<'a>(&self, buf: &'a Buffer<T, OpenCL>) -> Self::Read<'a> {
+        self.read_to_vec(buf)
     }
+
+    #[inline]
+    fn read_to_vec(&self, buf: &crate::Buffer<T, OpenCL>) -> Vec<T> {
+        read_cl_buf_to_vec(self, buf).unwrap()
+    }
+}
+
+#[cfg(unified_cl)]
+impl<T: Clone + Default> Read<T, OpenCL> for OpenCL {
+    type Read<'a> = &'a [T] where T: 'a;
+
+    #[inline]
+    fn read<'a>(&self, buf: &'a Buffer<T, OpenCL>) -> Self::Read<'a> {
+        buf.as_slice()
+    }
+
+    #[inline]
+    fn read_to_vec(&self, buf: &Buffer<T, OpenCL>) -> Vec<T> {
+        read_cl_buf_to_vec(self, buf).unwrap()
+    }
+}
+
+fn read_cl_buf_to_vec<T: Clone + Default>(device: &OpenCL, buf: &Buffer<T, OpenCL>) -> crate::Result<Vec<T>> {
+    let mut read = vec![T::default(); buf.len];
+    let event =
+        unsafe { enqueue_read_buffer(&device.queue(), buf.cl_ptr(), &mut read, false)? };
+    wait_for_event(event).unwrap();
+    Ok(read)
 }
 
 /// Internal representation of an OpenCL Device with the capability of storing pointers.

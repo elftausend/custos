@@ -9,7 +9,7 @@ use super::{
 use crate::{
     cache::{Cache, CacheReturn},
     Alloc, Buffer, CDatatype, CacheBuf, CachedLeaf, ClearBuf, CloneBuf, Device, Graph, GraphReturn,
-    VecRead, WriteBuf,
+    Read, WriteBuf,
 };
 use std::{cell::RefCell, marker::PhantomData};
 
@@ -102,11 +102,11 @@ impl<T> Alloc<T> for CUDA {
     }
 }
 
-impl<T: Default + Clone> VecRead<T, CUDA> for CUDA {
+impl<T: Default + Clone> Read<T, CUDA> for CUDA {
     fn read(&self, buf: &Buffer<T, CUDA>) -> Vec<T> {
         assert!(
             buf.ptrs().2 != 0,
-            "called VecRead::read(..) on a non CUDA buffer"
+            "called Read::read(..) on a non CUDA buffer"
         );
         // TODO: sync here or somewhere else?
         self.stream.sync().unwrap();

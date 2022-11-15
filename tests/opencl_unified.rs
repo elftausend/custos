@@ -2,7 +2,7 @@
 use custos::{
     cache::Cache,
     opencl::api::{clCreateBuffer, enqueue_map_buffer, CommandQueue, MemFlags, OCLErrorKind},
-    range, set_count, Buffer, Error, OpenCL, VecRead, CPU,
+    range, set_count, Buffer, Error, OpenCL, Read, CPU,
 };
 use std::{collections::HashMap, ffi::c_void};
 

@@ -1,7 +1,7 @@
 use crate::{
     devices::cache::{Cache, CacheReturn},
     Alloc, Buffer, CacheBuf, CachedLeaf, ClearBuf, CloneBuf, Device, DevicelessAble, Graph,
-    GraphReturn, VecRead, WriteBuf, CPUCL,
+    GraphReturn, WriteBuf, CPUCL, Read,
 };
 use core::{
     cell::{RefCell, RefMut},
@@ -18,7 +18,7 @@ use super::{CPUPtr, RawCpuBuf};
 ///
 /// # Example
 /// ```
-/// use custos::{CPU, VecRead, Buffer};
+/// use custos::{CPU, Read, Buffer};
 ///
 /// let device = CPU::new();
 /// let a = Buffer::from((&device, [1, 2, 3]));
@@ -46,6 +46,10 @@ impl CPU {
 impl Device for CPU {
     type Ptr<U, const N: usize> = CPUPtr<U>;
     type Cache<const N: usize> = Cache<RawCpuBuf>;
+
+    fn new() -> crate::Result<Self> {
+        Ok(Self::new())
+    }    
 }
 
 impl<T> DevicelessAble<T> for CPU {}
@@ -146,9 +150,17 @@ pub fn cpu_cached<T: Clone>(device: &CPU, len: usize) -> Buffer<T, CPU> {
     device.cached(len)
 }
 
-impl<T: Clone, D: CPUCL> VecRead<T, D> for CPU {
-    fn read(&self, buf: &Buffer<T, D>) -> Vec<T> {
-        buf.as_slice().to_vec()
+impl<T, D: CPUCL> Read<T, D> for CPU {
+    type Read<'a> = &'a [T] where T: 'a, D: 'a;
+
+    #[inline]
+    fn read<'a>(&self, buf: &'a Buffer<T, D>) -> Self::Read<'a> {
+        buf.as_slice()
+    }
+
+    #[inline]
+    fn read_to_vec<'a>(&self, buf: &Buffer<T, D>) -> Vec<T>  where T: Default + Clone {
+        buf.to_vec()
     }
 }
 

@@ -26,7 +26,7 @@ fn test_cl_offset() -> Result<(), Error> {
         .run()?
         .unwrap();
 
-    use custos::{Buffer, VecRead};
+    use custos::{Buffer, Read};
     let _out_data = device.read(&out);
     //assert_eq!(out_data, vec![0., 0., 0., 6., 7.5, 9.]);
     Ok(())

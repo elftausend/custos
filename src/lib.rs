@@ -16,7 +16,7 @@
 //! [cpu_readme.rs]: https://github.com/elftausend/custos/blob/main/examples/cpu_readme.rs
 //!
 //! ```rust
-//! use custos::{CPU, ClearBuf, VecRead, Buffer};
+//! use custos::{CPU, ClearBuf, Read, Buffer};
 //!
 //! let device = CPU::new();
 //! let mut a = Buffer::from(( &device, [1, 2, 3, 4, 5, 6]));
@@ -41,6 +41,8 @@ pub use buffer::*;
 pub use count::*;
 pub use devices::*;
 pub use error::*;
+
+#[cfg(not(feature="no-std"))]
 pub use graph::*;
 
 pub use devices::cpu::CPU;
@@ -54,6 +56,7 @@ pub mod devices;
 mod buffer;
 mod count;
 mod error;
+#[cfg(not(feature="no-std"))]
 mod graph;
 mod op_traits;
 
@@ -80,6 +83,8 @@ pub trait Device: Sized {
     type Ptr<U, const N: usize>: PtrType<U>;
     type Cache<const N: usize>: CacheAble<Self, N>;
 
+    fn new() -> crate::Result<Self>;
+
     #[inline]
     fn retrieve<T, const N: usize>(&self, len: usize, add_node: impl AddGraph) -> Buffer<T, Self, N>
     where
@@ -102,7 +107,7 @@ pub trait CPUCL: Device {
 ///
 /// # Example
 /// ```
-/// use custos::{CPU, Alloc, Buffer, VecRead, BufFlag, GraphReturn, cpu::CPUPtr, PtrType};
+/// use custos::{CPU, Alloc, Buffer, Read, BufFlag, GraphReturn, cpu::CPUPtr, PtrType};
 ///
 /// let device = CPU::new();
 /// let ptr = device.alloc(12);
@@ -120,7 +125,7 @@ pub trait Alloc<T, const N: usize = 0>: Device {
     /// Allocate memory on the implemented device.
     /// # Example
     /// ```
-    /// use custos::{CPU, Alloc, Buffer, VecRead, BufFlag, GraphReturn, cpu::CPUPtr, PtrType};
+    /// use custos::{CPU, Alloc, Buffer, Read, BufFlag, GraphReturn, cpu::CPUPtr, PtrType};
     ///
     /// let device = CPU::new();
     /// let ptr = device.alloc(12);
@@ -139,7 +144,7 @@ pub trait Alloc<T, const N: usize = 0>: Device {
     /// Allocate new memory with data
     /// # Example
     /// ```
-    /// use custos::{CPU, Alloc, Buffer, VecRead, BufFlag, GraphReturn, cpu::CPUPtr, PtrType};
+    /// use custos::{CPU, Alloc, Buffer, Read, BufFlag, GraphReturn, cpu::CPUPtr, PtrType};
     ///
     /// let device = CPU::new();
     /// let ptr = device.with_slice(&[1, 5, 4, 3, 6, 9, 0, 4]);
@@ -178,7 +183,8 @@ pub trait Alloc<T, const N: usize = 0>: Device {
 pub mod prelude {
     pub use crate::{
         cached, number::*, range, Buffer, CDatatype,
-        CacheBuf, ClearBuf, Device, GraphReturn, VecRead, WriteBuf, CPU,
+        CacheBuf, ClearBuf, Device, GraphReturn, 
+        WriteBuf, CPU, Read
     };
 
     #[cfg(not(feature="no-std"))]

@@ -1,4 +1,4 @@
-use custos::{cache::Cache, cuda::launch_kernel1d, Buffer, CachedLeaf, VecRead, CUDA};
+use custos::{cache::Cache, cuda::launch_kernel1d, Buffer, CachedLeaf, Read, CUDA};
 
 fn scalar_apply<'a>(
     device: &'a CUDA,

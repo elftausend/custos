@@ -1,7 +1,7 @@
 use custos::cpu::cpu_cached;
 #[cfg(feature = "opencl")]
 use custos::{devices::opencl::OpenCL, Error};
-use custos::{Alloc, Buffer, Device, VecRead};
+use custos::{Alloc, Buffer, Device, Read};
 
 use custos::CPU;
 
@@ -19,11 +19,12 @@ pub fn get_slice<'a, T, D: Device>(buf: &'a Buffer<T, D>) -> &'a [T] {
     unsafe { std::slice::from_raw_parts(buf.ptrs().0, buf.len) }
 }
 
-pub fn read<T, D: Alloc<T>>(device: &D, buf: &Buffer<T, D>) -> Vec<T>
+pub fn read<'a, T, D: Alloc<T>>(device: &D, buf: &'a Buffer<T, D>) -> Vec<T>
 where
-    D: VecRead<T, D> + Device,
+    D: Read<T, D> + Device,
+    T: Clone + Default
 {
-    device.read(&buf)
+    device.read_to_vec(&buf)
 }
 
 #[cfg(feature = "opencl")]

@@ -68,7 +68,7 @@ impl<T> PtrType<T> for CLPtr<T> {
 /// Sets the elements of an OpenCL Buffer to zero.
 /// # Example
 /// ```
-/// use custos::{OpenCL, Buffer, VecRead, opencl::cl_clear};
+/// use custos::{OpenCL, Buffer, Read, opencl::cl_clear};
 ///
 /// fn main() -> Result<(), custos::Error> {
 ///     let device = OpenCL::new(0)?;

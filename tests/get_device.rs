@@ -1,4 +1,4 @@
-use custos::{Buffer, VecRead, CPU};
+use custos::{Buffer, CPU, Read};
 
 #[test]
 fn get_device_test_cpu() {
