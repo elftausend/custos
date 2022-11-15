@@ -4,7 +4,7 @@ use super::{
         cublas::{create_handle, cublasDestroy_v2, cublasSetStream_v2, CublasHandle},
         cumalloc, device, Context, CudaIntDevice, Module, Stream,
     },
-    cu_clear, CUDAPtr, KernelCacheCU, RawCUBuf,
+    cu_clear, CUDAPtr, KernelCacheCU, RawCUBuf, chosen_cu_idx,
 };
 use crate::{
     cache::{Cache, CacheReturn},
@@ -73,7 +73,7 @@ impl Device for CUDA {
     type Cache<const N: usize> = Cache<RawCUBuf>;
 
     fn new() -> crate::Result<Self> {
-        CUDA::new(0)
+        CUDA::new(chosen_cu_idx())
     }
 }
 

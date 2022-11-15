@@ -4,7 +4,7 @@ use super::{
         enqueue_write_buffer, get_device_ids, get_platforms, wait_for_event, CLIntDevice,
         CommandQueue, Context, DeviceType, OCLErrorKind,
     },
-    cl_clear, CLPtr, KernelCacheCL, RawCL,
+    cl_clear, CLPtr, KernelCacheCL, RawCL, chosen_cl_idx,
 };
 use crate::{
     cache::{Cache, CacheReturn},
@@ -128,7 +128,7 @@ impl Device for OpenCL {
     type Cache<const N: usize> = Cache<RawCL>;
 
     fn new() -> crate::Result<Self> {
-        OpenCL::new(0)
+        OpenCL::new(chosen_cl_idx())
     }
 }
 

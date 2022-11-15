@@ -22,6 +22,13 @@ use crate::{Buffer, CDatatype, PtrType};
 
 pub type CLBuffer<'a, T> = Buffer<'a, T, OpenCL>;
 
+pub fn chosen_cl_idx() -> usize {
+    std::env::var("CUSTOS_CL_DEVICE_IDX")
+        .unwrap_or_else(|_| "0".into())
+        .parse()
+        .expect("Environment variable 'CUSTOS_CL_DEVICE_IDX' contains an invalid opencl device index!")
+}
+
 #[derive(Debug, PartialEq, Eq)]
 pub struct CLPtr<T> {
     pub ptr: *mut c_void,

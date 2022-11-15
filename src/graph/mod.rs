@@ -1,6 +1,9 @@
 use crate::{Ident, COUNT};
 use core::cell::RefMut;
 
+#[cfg(feature = "opt-cache")]
+use crate::{CacheReturn, DeviceError};
+
 pub use add_graph::*;
 pub use node::*;
 
