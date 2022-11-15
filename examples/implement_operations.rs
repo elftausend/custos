@@ -35,11 +35,11 @@ where
     }
 }
 
-// the attribute macro `#[impl_stack]` from the crate `custos-macro` 
+// the attribute macro `#[impl_stack]` from the crate `custos-macro`
 // can be placed on top of the CPU implementation to automatically
 // generate a Stack implementation.
-#[cfg(feature="stack-alloc")]
-impl<T, const N: usize> AddBuf<T, N> for Stack 
+#[cfg(feature = "stack")]
+impl<T, const N: usize> AddBuf<T, N> for Stack
 where
     T: Copy + Default + std::ops::Add<Output = T>,
 {
@@ -62,8 +62,8 @@ where
     T: CDatatype, // the custos::CDatatype trait is used to
                   // get the OpenCL C type string for creating generic OpenCL kernels.
 {
-    
-    fn add(&self, lhs: &CLBuffer<T>, rhs: &CLBuffer<T>) -> CLBuffer<T> { // CLBuffer<T> is the same as Buffer<T, OpenCL>
+    fn add(&self, lhs: &CLBuffer<T>, rhs: &CLBuffer<T>) -> CLBuffer<T> {
+        // CLBuffer<T> is the same as Buffer<T, OpenCL>
         // generic OpenCL kernel
         let src = format!("
             __kernel void add(__global const {datatype}* lhs, __global const {datatype}* rhs, __global {datatype}* out) 
@@ -87,7 +87,8 @@ where
 #[cfg(feature = "cuda")]
 // CUDA Implementation
 impl<T: CDatatype> AddBuf<T> for CUDA {
-    fn add(&self, lhs: &CUBuffer<T>, rhs: &CUBuffer<T>) -> CUBuffer<T> { // CLBuffer<T> is the same as Buffer<T, OpenCL>
+    fn add(&self, lhs: &CUBuffer<T>, rhs: &CUBuffer<T>) -> CUBuffer<T> {
+        // CLBuffer<T> is the same as Buffer<T, OpenCL>
         // generic CUDA kernel
         let src = format!(
             r#"extern "C" __global__ void add({datatype}* lhs, {datatype}* rhs, {datatype}* out, int numElements)

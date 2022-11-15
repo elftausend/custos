@@ -1,7 +1,7 @@
 use core::{
     cmp::Ordering,
+    iter::Sum,
     ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign},
-    iter::Sum
 };
 
 pub trait Number:

@@ -42,7 +42,7 @@ pub use count::*;
 pub use devices::*;
 pub use error::*;
 
-#[cfg(not(feature="no-std"))]
+#[cfg(not(feature = "no-std"))]
 pub use graph::*;
 
 pub use devices::cpu::CPU;
@@ -56,7 +56,7 @@ pub mod devices;
 mod buffer;
 mod count;
 mod error;
-#[cfg(not(feature="no-std"))]
+#[cfg(not(feature = "no-std"))]
 mod graph;
 mod op_traits;
 
@@ -73,7 +73,7 @@ pub trait PtrType<T, const N: usize = 0> {
 
     fn ptrs(&self) -> (*const T, *mut c_void, u64);
     fn ptrs_mut(&mut self) -> (*mut T, *mut c_void, u64);
-    
+
     /// # Safety
     /// The pointer must be a valid pointer.
     unsafe fn from_ptrs(ptrs: (*mut T, *mut c_void, u64)) -> Self;
@@ -96,7 +96,7 @@ pub trait Device: Sized {
 
 pub trait DevicelessAble<T, const N: usize = 0>: Alloc<T, N> {}
 
-pub trait CPUCL: Device { 
+pub trait CPUCL: Device {
     /// This is a device specific `as_slice()` function.
     /// As a 'StackArray' does not need to be checked for null.
     fn buf_as_slice<'a, T, const N: usize>(buf: &'a Buffer<T, Self, N>) -> &'a [T];
@@ -182,25 +182,24 @@ pub trait Alloc<T, const N: usize = 0>: Device {
 
 pub mod prelude {
     pub use crate::{
-        cached, number::*, range, Buffer, CDatatype,
-        CacheBuf, ClearBuf, Device, GraphReturn, 
-        WriteBuf, CPU, Read
+        cached, number::*, range, Buffer, CDatatype, CacheBuf, ClearBuf, Device, GraphReturn, Read,
+        WriteBuf, CPU,
     };
 
-    #[cfg(not(feature="no-std"))]
+    #[cfg(not(feature = "no-std"))]
     pub use crate::{cache::CacheReturn, get_count, set_count, Cache};
 
     #[cfg(feature = "opencl")]
-    pub use crate::opencl::{OpenCL, CL, CLBuffer, enqueue_kernel};
+    pub use crate::opencl::{enqueue_kernel, CLBuffer, OpenCL, CL};
 
     #[cfg(feature = "opencl")]
     #[cfg(unified_cl)]
     #[cfg(not(feature = "realloc"))]
     pub use crate::opencl::{construct_buffer, to_unified};
 
-    #[cfg(feature="stack-alloc")]
+    #[cfg(feature = "stack")]
     pub use crate::stack::Stack;
 
     #[cfg(feature = "cuda")]
-    pub use crate::cuda::{CUDA, CU, CUBuffer, launch_kernel1d};
+    pub use crate::cuda::{launch_kernel1d, CUBuffer, CU, CUDA};
 }

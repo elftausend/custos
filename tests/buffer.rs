@@ -22,7 +22,7 @@ pub fn get_slice<'a, T, D: Device>(buf: &'a Buffer<T, D>) -> &'a [T] {
 pub fn read<'a, T, D: Alloc<T>>(device: &D, buf: &'a Buffer<T, D>) -> Vec<T>
 where
     D: Read<T, D> + Device,
-    T: Clone + Default
+    T: Clone + Default,
 {
     device.read_to_vec(&buf)
 }

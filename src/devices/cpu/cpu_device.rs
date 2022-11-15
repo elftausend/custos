@@ -1,14 +1,17 @@
 use crate::{
     devices::cache::{Cache, CacheReturn},
     Alloc, Buffer, CacheBuf, CachedLeaf, ClearBuf, CloneBuf, Device, DevicelessAble, Graph,
-    GraphReturn, WriteBuf, CPUCL, Read,
+    GraphReturn, Read, WriteBuf, CPUCL,
+};
+use alloc::{
+    alloc::{handle_alloc_error, Layout},
+    vec::Vec,
 };
 use core::{
     cell::{RefCell, RefMut},
     fmt::Debug,
     mem::size_of,
 };
-use alloc::{alloc::{handle_alloc_error, Layout}, vec::Vec};
 
 use super::{CPUPtr, RawCpuBuf};
 
@@ -49,7 +52,7 @@ impl Device for CPU {
 
     fn new() -> crate::Result<Self> {
         Ok(Self::new())
-    }    
+    }
 }
 
 impl<T> DevicelessAble<T> for CPU {}
@@ -159,7 +162,10 @@ impl<T, D: CPUCL> Read<T, D> for CPU {
     }
 
     #[inline]
-    fn read_to_vec<'a>(&self, buf: &Buffer<T, D>) -> Vec<T>  where T: Default + Clone {
+    fn read_to_vec<'a>(&self, buf: &Buffer<T, D>) -> Vec<T>
+    where
+        T: Default + Clone,
+    {
         buf.to_vec()
     }
 }

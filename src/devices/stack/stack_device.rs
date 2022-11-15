@@ -1,17 +1,19 @@
-use crate::{Alloc, Device, DevicelessAble, CPUCL, Buffer};
+use crate::{Alloc, Buffer, Device, DevicelessAble, Read, CPUCL};
 
 use super::stack_array::StackArray;
 
 #[derive(Debug, Clone, Copy)]
 pub struct Stack;
 
-
-
 impl<T: Copy + Default> DevicelessAble<T> for Stack {}
 
 impl Device for Stack {
     type Ptr<U, const N: usize> = StackArray<N, U>;
     type Cache<const N: usize> = ();
+
+    fn new() -> crate::Result<Self> {
+        Ok(Stack)
+    }
 }
 
 impl CPUCL for Stack {
@@ -48,5 +50,25 @@ impl<const N: usize, T: Copy + Default> Alloc<T, N> for Stack {
     #[inline]
     fn with_array(&self, array: [T; N]) -> <Self as Device>::Ptr<T, N> {
         StackArray { array }
+    }
+}
+
+impl<T: Clone, const N: usize> Read<T, Stack, N> for Stack {
+    type Read<'a> = [T; N]
+    where
+        T: 'a,
+        Stack: 'a;
+
+    #[inline]
+    fn read<'a>(&self, buf: &'a Buffer<T, Stack, N>) -> Self::Read<'a> {
+        buf.ptr.array.clone()
+    }
+
+    #[inline]
+    fn read_to_vec(&self, buf: &Buffer<T, Stack, N>) -> Vec<T>
+    where
+        T: Default,
+    {
+        buf.ptr.to_vec()
     }
 }

@@ -1,4 +1,7 @@
-use core::{ops::{Deref, DerefMut}, ptr::null_mut};
+use core::{
+    ops::{Deref, DerefMut},
+    ptr::null_mut,
+};
 
 use crate::PtrType;
 

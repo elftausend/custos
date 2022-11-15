@@ -1,5 +1,5 @@
 use crate::CPU;
-    
+
 #[cfg(not(feature = "no-std"))]
 thread_local! {
     pub static GLOBAL_CPU: CPU = CPU::new();
@@ -27,7 +27,6 @@ pub fn static_cpu() -> &'static CPU {
     } else {
         GLOBAL_CPU = Some(CPU::new())
     }
-
 }
 
 #[cfg(feature = "opencl")]
@@ -80,10 +79,10 @@ pub fn static_cuda() -> &'static crate::CUDA {
 
 #[cfg(test)]
 mod tests {
-    #[cfg(not(feature="no-std"))]
+    #[cfg(not(feature = "no-std"))]
     use crate::Buffer;
 
-    #[cfg(not(feature="no-std"))]
+    #[cfg(not(feature = "no-std"))]
     #[cfg(not(feature = "realloc"))]
     #[test]
     fn test_static_cpu_cache() {

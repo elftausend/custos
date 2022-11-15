@@ -1,11 +1,11 @@
-use core::cell::RefMut;
 use crate::{Ident, COUNT};
+use core::cell::RefMut;
 
-pub use node::*;
 pub use add_graph::*;
+pub use node::*;
 
-mod node;
 mod add_graph;
+mod node;
 
 #[derive(Default, Debug)]
 pub struct Graph {
@@ -129,7 +129,6 @@ pub trait GraphReturn {
     fn graph(&self) -> RefMut<Graph>;
 }
 
-
 #[cfg(feature = "opt-cache")]
 pub trait GraphOpt {
     fn optimize(&self) -> crate::Result<()>
@@ -155,8 +154,7 @@ pub trait GraphOpt {
     }
 }
 
-
-#[cfg(not(feature="no-std"))]
+#[cfg(not(feature = "no-std"))]
 #[cfg(test)]
 mod tests {
     use alloc::vec;

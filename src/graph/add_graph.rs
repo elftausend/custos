@@ -1,4 +1,4 @@
-use crate::{Graph, Buffer, Device};
+use crate::{Buffer, Device, Graph};
 
 use super::node::Node;
 

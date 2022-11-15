@@ -3,8 +3,8 @@ use core::{ffi::c_void, fmt::Debug};
 use crate::cpu::{CPUPtr, CPU};
 
 use crate::{
-    Alloc, CDatatype, CacheBuf, ClearBuf, CloneBuf, Device, DevicelessAble, Node, PtrType,
-    WriteBuf, CPUCL, Read,
+    Alloc, CDatatype, CacheBuf, ClearBuf, CloneBuf, Device, DevicelessAble, Node, PtrType, Read,
+    WriteBuf, CPUCL,
 };
 use alloc::vec::Vec;
 pub use flag::BufFlag;
@@ -176,10 +176,10 @@ impl<'a, T, D: Device> Buffer<'a, T, D> {
     /// assert_eq!(buf.read_to_vec(), vec![1, 2, 3, 4]);
     /// ```
     #[inline]
-    pub fn read_to_vec(&self) -> Vec<T> 
-    where 
+    pub fn read_to_vec(&self) -> Vec<T>
+    where
         D: Read<T, D>,
-        T: Default + Clone
+        T: Default + Clone,
     {
         self.device().read_to_vec(self)
     }
@@ -449,9 +449,7 @@ where
         writeln!(f, ",")?;
 
         if !self.ptrs().0.is_null() {
-            let cpu_data = unsafe {
-                std::slice::from_raw_parts(self.ptrs().0, self.len)
-            };
+            let cpu_data = unsafe { std::slice::from_raw_parts(self.ptrs().0, self.len) };
             writeln!(f, "CPU:    {:?}", cpu_data)?;
         }
 
@@ -537,7 +535,7 @@ mod tests {
         assert_eq!(slice, &[1, 2, 3, 4]);
     }
 
-    #[cfg(feature="opencl")]
+    #[cfg(feature = "opencl")]
     #[cfg(unified_cl)]
     #[test]
     fn test_deref_cl() -> crate::Result<()> {
@@ -551,7 +549,7 @@ mod tests {
         Ok(())
     }
 
-    #[cfg(feature="stack-alloc")]
+    #[cfg(feature = "stack")]
     #[test]
     fn test_deref_stack() -> crate::Result<()> {
         use crate::stack::Stack;
@@ -566,8 +564,8 @@ mod tests {
     #[test]
     fn test_debug_print() {
         let device = CPU::new();
-        let buf = Buffer::from((&device, [1, 2, 3, 4, 5, 6,]));
+        let buf = Buffer::from((&device, [1, 2, 3, 4, 5, 6]));
 
-        println!("{buf:?}", );
+        println!("{buf:?}",);
     }
 }

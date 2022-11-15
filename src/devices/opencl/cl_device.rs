@@ -10,7 +10,7 @@ use crate::{
     cache::{Cache, CacheReturn},
     devices::opencl::api::{create_buffer, MemFlags},
     Alloc, Buffer, CDatatype, CacheBuf, CachedLeaf, ClearBuf, CloneBuf, Device, Error, Graph,
-    GraphReturn, WriteBuf, CPU, Read,
+    GraphReturn, Read, WriteBuf, CPU,
 };
 use std::{
     cell::{Ref, RefCell},
@@ -279,10 +279,12 @@ impl<T: Clone + Default> Read<T, OpenCL> for OpenCL {
     }
 }
 
-fn read_cl_buf_to_vec<T: Clone + Default>(device: &OpenCL, buf: &Buffer<T, OpenCL>) -> crate::Result<Vec<T>> {
+fn read_cl_buf_to_vec<T: Clone + Default>(
+    device: &OpenCL,
+    buf: &Buffer<T, OpenCL>,
+) -> crate::Result<Vec<T>> {
     let mut read = vec![T::default(); buf.len];
-    let event =
-        unsafe { enqueue_read_buffer(&device.queue(), buf.cl_ptr(), &mut read, false)? };
+    let event = unsafe { enqueue_read_buffer(&device.queue(), buf.cl_ptr(), &mut read, false)? };
     wait_for_event(event).unwrap();
     Ok(read)
 }

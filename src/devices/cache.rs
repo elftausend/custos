@@ -1,5 +1,6 @@
 use crate::{
-    bump_count, AddGraph, Alloc, BufFlag, Buffer, Device, GraphReturn, Ident, Node, PtrType, CacheAble,
+    bump_count, AddGraph, Alloc, BufFlag, Buffer, CacheAble, Device, GraphReturn, Ident, Node,
+    PtrType,
 };
 use std::{cell::RefMut, collections::HashMap, ffi::c_void, rc::Rc};
 
@@ -154,11 +155,9 @@ impl<P: CacheType> Cache<P> {
             Some(ptr) => {
                 bump_count();
                 let (ptr, node) = ptr.destruct::<T>();
-                
-                let ptr = unsafe {
-                    <D as Device>::Ptr::<T, N>::from_ptrs(ptr)
-                };
-                
+
+                let ptr = unsafe { <D as Device>::Ptr::<T, N>::from_ptrs(ptr) };
+
                 Buffer {
                     ptr,
                     len,

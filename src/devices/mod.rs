@@ -5,14 +5,14 @@ use self::cpu::{
     api::{cblas_dgemm, cblas_sgemm},
     Order, Transpose,
 };
-use crate::{number::Float, Device, Alloc, AddGraph, Buffer};
+use crate::{number::Float, AddGraph, Alloc, Buffer, Device};
 
 #[cfg(feature = "cuda")]
 use cuda::api::cublas::{cublasDgemm_v2, cublasOperation_t, cublasSgemm_v2, CublasHandle};
 
-#[cfg(not(feature="no-std"))]
+#[cfg(not(feature = "no-std"))]
 pub mod cache;
-#[cfg(not(feature="no-std"))]
+#[cfg(not(feature = "no-std"))]
 pub use cache::{Cache, CacheReturn};
 
 pub mod cpu;
@@ -20,18 +20,18 @@ pub mod cpu;
 pub mod cuda;
 #[cfg(feature = "opencl")]
 pub mod opencl;
-#[cfg(feature = "stack-alloc")]
+#[cfg(feature = "stack")]
 pub mod stack;
 
 mod cdatatype;
 pub use cdatatype::*;
 
-#[cfg(not(feature="no-std"))]
+#[cfg(not(feature = "no-std"))]
 mod ident;
-#[cfg(not(feature="no-std"))]
+#[cfg(not(feature = "no-std"))]
 pub use ident::*;
 
-#[cfg(feature="cuda")]
+#[cfg(feature = "cuda")]
 pub type CUdeviceptr = core::ffi::c_ulonglong;
 
 #[cfg(not(feature = "opencl"))]

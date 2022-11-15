@@ -1,6 +1,10 @@
-use core::{ffi::c_void, ptr::null_mut, ops::{Deref, DerefMut}};
+use core::{
+    ffi::c_void,
+    ops::{Deref, DerefMut},
+    ptr::null_mut,
+};
 
-use crate::{BufFlag, Buffer, Device, Node, PtrType, CloneBuf};
+use crate::{BufFlag, Buffer, CloneBuf, Device, Node, PtrType};
 
 pub struct Num<T> {
     pub num: T,
@@ -33,14 +37,15 @@ impl Device for () {
     fn new() -> crate::Result<Self> {
         Ok(())
     }
-
 }
 
 impl<'a, T: Clone> CloneBuf<'a, T> for () {
     #[inline]
     fn clone_buf(&'a self, buf: &Buffer<'a, T, Self>) -> Buffer<'a, T, Self> {
         Buffer {
-            ptr: Num { num: buf.ptr.num.clone() },
+            ptr: Num {
+                num: buf.ptr.num.clone(),
+            },
             len: buf.len,
             device: buf.device,
             flag: buf.flag,
@@ -64,14 +69,17 @@ impl<T: crate::number::Number> From<T> for Buffer<'_, T, ()> {
 
 impl<'a, T> Buffer<'a, T, ()> {
     #[inline]
-    pub fn copy(&self) -> Self where T: Copy {
+    pub fn copy(&self) -> Self
+    where
+        T: Copy,
+    {
         Buffer {
             ptr: Num { num: self.ptr.num },
             len: self.len,
             device: self.device,
             flag: self.flag,
             node: self.node,
-        }        
+        }
     }
 
     /// Used if the `Buffer` contains only a single value.
@@ -124,7 +132,6 @@ mod tests {
         let c = *a + *b;
         assert_eq!(c, 12);
     }
-
 
     #[test]
     fn test_deref_mut() {

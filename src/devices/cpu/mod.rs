@@ -1,12 +1,12 @@
 use crate::{devices::cache::CacheType, Node, PtrType};
 #[cfg(feature = "blas")]
 pub use blas::*;
-pub use cpu_device::*;
 use core::{
     alloc::Layout,
     mem::{align_of, size_of},
     ptr::null_mut,
 };
+pub use cpu_device::*;
 
 #[cfg(feature = "blas")]
 mod blas;

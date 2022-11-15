@@ -40,6 +40,8 @@ fn has_device_unified_mem() -> bool {
     }
 
     custos::CLDevice::new(device_idx)
-        .expect(&format!("Could not get an OpenCL device (at index {device_idx})."))
+        .expect(&format!(
+            "Could not get an OpenCL device (at index {device_idx})."
+        ))
         .unified_mem()
 }

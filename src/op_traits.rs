@@ -20,10 +20,12 @@ pub trait ClearBuf<T, D: Device> {
 }
 
 /// Trait for reading buffers.
-pub trait Read<T, D: Device> {
-    type Read<'a> where 
+pub trait Read<T, D: Device, const N: usize = 0> {
+    type Read<'a>
+    where
         T: 'a,
         D: 'a;
+
     /// Read the data of the `Buffer` as type `Read`.
     /// # Example
     /// ```
@@ -34,7 +36,7 @@ pub trait Read<T, D: Device> {
     /// let read = device.read(&a);
     /// assert_eq!(&[1., 2., 3., 3., 2., 1.,], read);
     /// ```
-    fn read<'a>(&self, buf: &'a Buffer<T, D>) -> Self::Read<'a>;
+    fn read<'a>(&self, buf: &'a Buffer<T, D, N>) -> Self::Read<'a>;
     /// Read the data of a buffer into a vector
     /// # Example
     /// ```
@@ -45,9 +47,10 @@ pub trait Read<T, D: Device> {
     /// let read = device.read_to_vec(&a);
     /// assert_eq!(vec![1., 2., 3., 3., 2., 1.,], read);
     /// ```
-    fn read_to_vec(&self, buf: &Buffer<T, D>) -> Vec<T> where T: Default + Clone;
+    fn read_to_vec(&self, buf: &Buffer<T, D, N>) -> Vec<T>
+    where
+        T: Default + Clone;
 }
-
 
 /// Trait for writing data to buffers.
 pub trait WriteBuf<T, D: Device>: Sized + Device {
