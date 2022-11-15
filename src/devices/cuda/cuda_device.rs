@@ -71,6 +71,10 @@ impl CUDA {
 impl Device for CUDA {
     type Ptr<U, const N: usize> = CUDAPtr<U>;
     type Cache<const N: usize> = Cache<RawCUBuf>;
+
+    fn new() -> crate::Result<Self> {
+        CUDA::new(0)
+    }
 }
 
 impl Drop for CUDA {
@@ -103,7 +107,20 @@ impl<T> Alloc<T> for CUDA {
 }
 
 impl<T: Default + Clone> Read<T, CUDA> for CUDA {
+    type Read<'a> = Vec<T>
+    where
+        T: 'a,
+        CUDA: 'a;
+
+    #[inline]
     fn read(&self, buf: &Buffer<T, CUDA>) -> Vec<T> {
+        self.read_to_vec(buf)
+    }
+
+    fn read_to_vec(&self, buf: &Buffer<T, CUDA>) -> Vec<T>
+    where
+        T: Default + Clone 
+    {
         assert!(
             buf.ptrs().2 != 0,
             "called Read::read(..) on a non CUDA buffer"

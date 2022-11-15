@@ -126,6 +126,6 @@ where
     /// ```
     #[inline]
     pub fn to_cpu(self) -> Buffer<'a, T> {
-        Buffer::from((static_cpu(), self.read()))
+        Buffer::from((static_cpu(), self.read_to_vec()))
     }
 }

@@ -460,7 +460,7 @@ where
 
         #[cfg(feature = "cuda")]
         if self.ptrs().2 != 0 {
-            write!(f, "CUDA: {:?}, ", self.device().read(self))?;
+            write!(f, "CUDA: {:?}, ", self.read_to_vec())?;
         }
 
         write!(
