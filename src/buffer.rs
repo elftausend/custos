@@ -56,7 +56,7 @@ impl<'a, T, D: Device, const N: usize> Buffer<'a, T, D, N> {
     /// ```
     pub fn new(device: &'a D, len: usize) -> Buffer<'a, T, D, N>
     where
-        D: Alloc<T, N>, /*+ GraphReturn*/
+        D: Alloc<'a, T, N>, /*+ GraphReturn*/
     {
         let len = if N > 0 { N } else { len };
         Buffer {
@@ -88,7 +88,7 @@ impl<'a, T, D: Device, const N: usize> Buffer<'a, T, D, N> {
     /// ```
     pub fn deviceless<'b>(device: &'b D, len: usize) -> Buffer<'a, T, D, N>
     where
-        D: DevicelessAble<T, N>,
+        D: DevicelessAble<'b, T, N>,
     {
         Buffer {
             ptr: device.alloc(len),
@@ -110,12 +110,51 @@ impl<'a, T, D: Device, const N: usize> Buffer<'a, T, D, N> {
     pub fn ptrs_mut(&mut self) -> (*mut T, *mut c_void, u64) {
         self.ptr.ptrs_mut()
     }
-}
 
-impl<'a, T, D: Device> Buffer<'a, T, D> {
     pub fn device(&self) -> &'a D {
         self.device
             .expect("Called device() on a deviceless buffer.")
+    }
+
+    #[inline]
+    pub fn read(&'a self) -> D::Read<'a>
+    where
+        T: Clone + Default,
+        D: Read<T, D, N>,
+    {
+        self.device().read(self)
+    }
+
+    /// Reads the contents of the buffer and writes them into a vector.
+    /// If it is certain whether a CPU, or an unified CPU + OpenCL Buffer, is used, calling `.as_slice()` (or deref/mut to `&/mut [&T]`) is probably preferred.
+    ///
+    /// # Example
+    /// ```rust
+    /// use custos::{CPU, Buffer};
+    ///
+    /// let device = CPU::new();
+    /// let buf = Buffer::from((&device, [1, 2, 3, 4]));
+    ///
+    /// assert_eq!(buf.read_to_vec(), vec![1, 2, 3, 4]);
+    /// ```
+    #[inline]
+    pub fn read_to_vec(&self) -> Vec<T>
+    where
+        D: Read<T, D, N>,
+        T: Default + Clone,
+    {
+        self.device().read_to_vec(self)
+    }
+
+    /// Writes a slice to the Buffer.
+    /// With a CPU buffer, the slice is just copied to the slice of the buffer.
+    #[inline]
+    pub fn write(&mut self, data: &[T])
+    where
+        T: Clone,
+        D: WriteBuf<T, D, N>,
+    {
+        self.device().write(self, data)
     }
 
     /// Returns the number of elements contained in `Buffer`.
@@ -131,7 +170,9 @@ impl<'a, T, D: Device> Buffer<'a, T, D> {
     pub fn len(&self) -> usize {
         self.len
     }
+}
 
+impl<'a, T, D: Device> Buffer<'a, T, D> {
     /// Returns `true` if `Buffer` is created without a slice.
     /// # Example
     /// ```
@@ -152,47 +193,6 @@ impl<'a, T, D: Device> Buffer<'a, T, D> {
         D: ClearBuf<T, D>,
     {
         self.device().clear(self)
-    }
-
-    #[inline]
-    pub fn read(&'a self) -> D::Read<'a>
-    where
-        T: Clone + Default,
-        D: Read<T, D>,
-    {
-        self.device().read(self)
-    }
-
-    /// Reads the contents of the buffer and writes them into a vector.
-    /// If it is certain whether a CPU, or an unified CPU + OpenCL Buffer, is used, calling `.as_slice()` (or deref/mut to `&/mut [&T]`) is probably preferred.
-    ///
-    /// # Example
-    /// ```rust
-    /// use custos::{CPU, Buffer};
-    ///
-    /// let device = CPU::new();
-    /// let buf = Buffer::from((&device, [1, 2, 3, 4]));
-    ///
-    /// assert_eq!(buf.read_to_vec(), vec![1, 2, 3, 4]);
-    /// ```
-    #[inline]
-    pub fn read_to_vec(&self) -> Vec<T>
-    where
-        D: Read<T, D>,
-        T: Default + Clone,
-    {
-        self.device().read_to_vec(self)
-    }
-
-    /// Writes a slice to the Buffer.
-    /// With a CPU buffer, the slice is just copied to the slice of the buffer.
-    #[inline]
-    pub fn write(&mut self, data: &[T])
-    where
-        T: Clone,
-        D: WriteBuf<T, D>,
-    {
-        self.device().write(self, data)
     }
 
     /// Creates a shallow copy of &self.
@@ -441,6 +441,7 @@ impl<'a, T, D> Debug for Buffer<'a, T, D>
 where
     T: Debug + Default + Copy + 'a,
     D: Read<T, D> + Device + 'a,
+    for<'b> <D as Read<T, D>>::Read<'b>: Debug
 {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         f.debug_struct("Buffer")
@@ -449,18 +450,17 @@ where
         writeln!(f, ",")?;
 
         if !self.ptrs().0.is_null() {
-            let cpu_data = unsafe { std::slice::from_raw_parts(self.ptrs().0, self.len) };
-            writeln!(f, "CPU:    {:?}", cpu_data)?;
+            writeln!(f, "CPU:    {:?}", self.read())?;
         }
 
         #[cfg(feature = "opencl")]
         if !self.ptrs().1.is_null() {
-            write!(f, "OpenCL: {:?}, ", self.read_to_vec())?;
+            write!(f, "OpenCL: {:?}, ", self.read())?;
         }
 
         #[cfg(feature = "cuda")]
         if self.ptrs().2 != 0 {
-            write!(f, "CUDA: {:?}, ", self.read_to_vec())?;
+            write!(f, "CUDA: {:?}, ", self.read())?;
         }
 
         write!(
@@ -554,7 +554,7 @@ mod tests {
     fn test_deref_stack() -> crate::Result<()> {
         use crate::stack::Stack;
 
-        let buf = Buffer::<i32, Stack, 4>::from([1i32, 2, 3, 4]);
+        let buf = Buffer::<i32, _, 4>::from((Stack, [1i32, 2, 3, 4]));
         let slice = &*buf;
         assert_eq!(slice, &[1, 2, 3, 4]);
 

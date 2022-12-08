@@ -5,7 +5,7 @@ use super::stack_array::StackArray;
 #[derive(Debug, Clone, Copy)]
 pub struct Stack;
 
-impl<T: Copy + Default> DevicelessAble<T> for Stack {}
+impl<'a, T: Copy + Default> DevicelessAble<'a, T> for Stack {}
 
 impl Device for Stack {
     type Ptr<U, const N: usize> = StackArray<N, U>;
@@ -28,7 +28,7 @@ impl CPUCL for Stack {
     }
 }
 
-impl<const N: usize, T: Copy + Default> Alloc<T, N> for Stack {
+impl<'a, const N: usize, T: Copy + Default> Alloc<'a, T, N> for Stack {
     #[inline]
     fn alloc(&self, _len: usize) -> StackArray<N, T> {
         // TODO: one day... use const expressions

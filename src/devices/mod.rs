@@ -23,6 +23,8 @@ pub mod opencl;
 #[cfg(feature = "stack")]
 pub mod stack;
 
+pub mod network;
+
 mod cdatatype;
 pub use cdatatype::*;
 
@@ -45,14 +47,14 @@ pub struct InternCudaDevice;
 pub trait CacheAble<D: Device, const N: usize = 0> {
     fn retrieve<T>(device: &D, len: usize, add_node: impl AddGraph) -> Buffer<T, D, N>
     where
-        D: Alloc<T, N>;
+        for<'a> D: Alloc<'a, T, N>;
 }
 
 // TODO: Mind num implement?
 impl<D: Device, const N: usize> CacheAble<D, N> for () {
     fn retrieve<T>(device: &D, len: usize, _add_node: impl AddGraph) -> Buffer<T, D, N>
     where
-        D: Alloc<T, N>,
+        for<'a> D: Alloc<'a, T, N>,
     {
         Buffer::new(device, len)
     }

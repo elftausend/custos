@@ -19,7 +19,9 @@ pub fn chosen_cu_idx() -> usize {
     std::env::var("CUSTOS_CU_DEVICE_IDX")
         .unwrap_or_else(|_| "0".into())
         .parse()
-        .expect("Environment variable 'CUSTOS_CU_DEVICE_IDX' contains an invalid CUDA device index!")
+        .expect(
+            "Environment variable 'CUSTOS_CU_DEVICE_IDX' contains an invalid CUDA device index!",
+        )
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

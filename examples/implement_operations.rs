@@ -51,7 +51,7 @@ where
             out[i] = lhs[i] + rhs[i];
         }
 
-        Buffer::from(out)
+        Buffer::from((Stack, out))
     }
 }
 

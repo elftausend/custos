@@ -4,7 +4,7 @@ use super::{
         cublas::{create_handle, cublasDestroy_v2, cublasSetStream_v2, CublasHandle},
         cumalloc, device, Context, CudaIntDevice, Module, Stream,
     },
-    cu_clear, CUDAPtr, KernelCacheCU, RawCUBuf, chosen_cu_idx,
+    chosen_cu_idx, cu_clear, CUDAPtr, KernelCacheCU, RawCUBuf,
 };
 use crate::{
     cache::{Cache, CacheReturn},
@@ -86,7 +86,7 @@ impl Drop for CUDA {
     }
 }
 
-impl<T> Alloc<T> for CUDA {
+impl<'a, T> Alloc<'a, T> for CUDA {
     fn alloc(&self, len: usize) -> CUDAPtr<T> {
         let ptr = cumalloc::<T>(len).unwrap();
         // TODO: use unified mem if available -> i can't test this
@@ -119,7 +119,7 @@ impl<T: Default + Clone> Read<T, CUDA> for CUDA {
 
     fn read_to_vec(&self, buf: &Buffer<T, CUDA>) -> Vec<T>
     where
-        T: Default + Clone 
+        T: Default + Clone,
     {
         assert!(
             buf.ptrs().2 != 0,

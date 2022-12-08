@@ -1,7 +1,7 @@
 use alloc::boxed::Box;
 
 pub struct Error {
-    pub error: Box<dyn std::error::Error + Send>,
+    pub error: Box<dyn std::error::Error + Send + Sync>,
 }
 
 impl<E: std::error::Error + PartialEq + 'static> PartialEq<E> for Error {
@@ -26,7 +26,7 @@ impl Error {
     }
 }
 
-impl<T: std::error::Error + Send + 'static> From<T> for Error {
+impl<T: std::error::Error + Send + 'static + Sync> From<T> for Error {
     fn from(error: T) -> Self {
         Error {
             error: Box::new(error),
@@ -55,6 +55,7 @@ pub enum DeviceError {
     ConstructError,
     CPUtoCUDA,
     GraphOptimization, // probably a programming error
+    MissingAddress,
 }
 
 impl DeviceError {
@@ -65,6 +66,7 @@ impl DeviceError {
             }
             DeviceError::CPUtoCUDA => "Only a CPU Buffer can be converted to a CUDA Buffer",
             DeviceError::GraphOptimization => "This graph can't be optimized.",
+            DeviceError::MissingAddress => "An address was not supplied for a Network device.",
         }
     }
 }

@@ -48,7 +48,7 @@ where
 {
     fn retrieve<T>(device: &D, len: usize, add_node: impl AddGraph) -> Buffer<T, D, N>
     where
-        D: Alloc<T, N>,
+        for<'a> D: Alloc<'a, T, N>,
     {
         Cache::get(device, len, add_node)
     }
@@ -91,7 +91,7 @@ impl<P: CacheType> Cache<P> {
         _add_node: impl AddGraph,
     ) -> Buffer<'a, T, D, N>
     where
-        D: Alloc<T, N> + GraphReturn,
+        D: Alloc<'a, T, N> + GraphReturn,
     {
         let mut ptr = device.alloc(node.len);
 
@@ -135,8 +135,8 @@ impl<P: CacheType> Cache<P> {
     /// assert_eq!(cache_entry.ptrs(), first_entry.ptrs());
     /// ```
     #[cfg(not(feature = "realloc"))]
-    pub fn get<T, D, const N: usize>(
-        device: &D,
+    pub fn get<'a, T, D, const N: usize>(
+        device: &'a D,
         len: usize,
         add_node: impl AddGraph,
     ) -> Buffer<T, D, N>
@@ -144,7 +144,7 @@ impl<P: CacheType> Cache<P> {
         // In order to know the specific pointer type
         // there is probably a better way to implement this
         Self: BindCT<D::CT>,
-        D: Alloc<T, N> + CacheReturn,
+        D: Alloc<'a, T, N> + CacheReturn,
     {
         let node = Ident::new(len);
 
@@ -172,8 +172,8 @@ impl<P: CacheType> Cache<P> {
 
     /// If the 'realloc' feature is enabled, this functions always returns a new [`Buffer`] with the size of `len`gth.
     #[cfg(feature = "realloc")]
-    pub fn get<T, D: Device, const N: usize>(
-        device: &D,
+    pub fn get<'a, T, D: Device, const N: usize>(
+        device: &'a D,
         len: usize,
         _: impl AddGraph,
     ) -> Buffer<T, D, N>
@@ -181,7 +181,7 @@ impl<P: CacheType> Cache<P> {
         // In order to know the specific pointer type
         // there is probably a better way to implement this
         Self: BindCT<D::CT>,
-        D: Alloc<T, N> + CacheReturn,
+        D: Alloc<'a, T, N> + CacheReturn,
     {
         Buffer::new(device, len)
     }

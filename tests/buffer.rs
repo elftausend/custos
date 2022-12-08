@@ -19,7 +19,7 @@ pub fn get_slice<'a, T, D: Device>(buf: &'a Buffer<T, D>) -> &'a [T] {
     unsafe { std::slice::from_raw_parts(buf.ptrs().0, buf.len) }
 }
 
-pub fn read<'a, T, D: Alloc<T>>(device: &D, buf: &'a Buffer<T, D>) -> Vec<T>
+pub fn read<'a, T, D: Alloc<'a, T>>(device: &D, buf: &'a Buffer<T, D>) -> Vec<T>
 where
     D: Read<T, D> + Device,
     T: Clone + Default,

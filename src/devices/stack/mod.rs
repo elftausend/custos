@@ -50,7 +50,7 @@ mod tests {
 
     impl<const N: usize, T, D> AddBuf<T, D, N> for Stack
     where
-        Stack: Alloc<T, N>,
+        for<'a> Stack: Alloc<'a, T, N>,
         D: CPUCL,
         T: Add<Output = T> + Clone,
     {
@@ -67,11 +67,9 @@ mod tests {
 
     #[test]
     fn test_stack() {
-        let stack = Stack;
+        let buf = Buffer::<f32, Stack, 100>::from((Stack, [1f32; 100]));
 
-        let buf = Buffer::<f32, Stack, 100>::from([1f32; 100]);
-
-        let out = stack.add(&buf, &buf);
+        let out = Stack.add(&buf, &buf);
         assert_eq!(out.ptr.array, [2.; 100]);
 
         let cpu = CPU::new();

@@ -26,7 +26,9 @@ pub fn chosen_cl_idx() -> usize {
     std::env::var("CUSTOS_CL_DEVICE_IDX")
         .unwrap_or_else(|_| "0".into())
         .parse()
-        .expect("Environment variable 'CUSTOS_CL_DEVICE_IDX' contains an invalid opencl device index!")
+        .expect(
+            "Environment variable 'CUSTOS_CL_DEVICE_IDX' contains an invalid opencl device index!",
+        )
 }
 
 #[derive(Debug, PartialEq, Eq)]

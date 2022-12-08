@@ -1,9 +1,9 @@
 use crate::CPU;
 
-#[cfg(feature="opencl")]
+#[cfg(feature = "opencl")]
 use crate::opencl::chosen_cl_idx;
 
-#[cfg(feature="cuda")]
+#[cfg(feature = "cuda")]
 use crate::cuda::chosen_cu_idx;
 
 #[cfg(not(feature = "no-std"))]

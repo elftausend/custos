@@ -55,9 +55,9 @@ impl Device for CPU {
     }
 }
 
-impl<T> DevicelessAble<T> for CPU {}
+impl<'a, T> DevicelessAble<'a, T> for CPU {}
 
-impl<T> Alloc<T> for CPU {
+impl<'a, T> Alloc<'a, T> for CPU {
     fn alloc(&self, len: usize) -> CPUPtr<T> {
         assert!(len > 0, "invalid buffer len: 0");
         let layout = Layout::array::<T>(len).unwrap();

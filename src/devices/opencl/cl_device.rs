@@ -4,7 +4,7 @@ use super::{
         enqueue_write_buffer, get_device_ids, get_platforms, wait_for_event, CLIntDevice,
         CommandQueue, Context, DeviceType, OCLErrorKind,
     },
-    cl_clear, CLPtr, KernelCacheCL, RawCL, chosen_cl_idx,
+    chosen_cl_idx, cl_clear, CLPtr, KernelCacheCL, RawCL,
 };
 use crate::{
     cache::{Cache, CacheReturn},
@@ -150,7 +150,7 @@ impl Debug for OpenCL {
     }
 }
 
-impl<T> Alloc<T> for OpenCL {
+impl<'a, T> Alloc<'a, T> for OpenCL {
     fn alloc(&self, len: usize) -> CLPtr<T> {
         let ptr =
             create_buffer::<T>(&self.ctx(), MemFlags::MemReadWrite as u64, len, None).unwrap();
@@ -250,7 +250,7 @@ impl<T> WriteBuf<T, OpenCL> for OpenCL {
     }
 }
 
-#[cfg(not(unified_cl))]
+/*#[cfg(not(unified_cl))]
 impl<T: Clone + Default> Read<T, OpenCL> for OpenCL {
     type Read<'a> = Vec<T> where T: 'a;
 
@@ -262,12 +262,18 @@ impl<T: Clone + Default> Read<T, OpenCL> for OpenCL {
     fn read_to_vec(&self, buf: &crate::Buffer<T, OpenCL>) -> Vec<T> {
         read_cl_buf_to_vec(self, buf).unwrap()
     }
-}
+}*/
 
 #[cfg(unified_cl)]
 impl<T: Clone + Default> Read<T, OpenCL> for OpenCL {
     type Read<'a> = &'a [T] where T: 'a;
 
+    #[cfg(not(unified_cl))]
+    fn read<'a>(&self, buf: &'a Buffer<T, OpenCL>) -> Self::Read<'a> {
+        self.read_to_vec(buf)
+    }
+
+    #[cfg(unified_cl)]
     #[inline]
     fn read<'a>(&self, buf: &'a Buffer<T, OpenCL>) -> Self::Read<'a> {
         buf.as_slice()

@@ -3,7 +3,7 @@ use alloc::vec::Vec;
 use crate::{Buffer, Device};
 
 /// Trait for implementing the clear() operation for the compute devices.
-pub trait ClearBuf<T, D: Device> {
+pub trait ClearBuf<T, D: Device, const N: usize = 0> {
     /// Sets all elements of the matrix to zero.
     /// # Example
     /// ```
@@ -16,7 +16,7 @@ pub trait ClearBuf<T, D: Device> {
     /// device.clear(&mut a);
     /// assert_eq!(a.read(), vec![0; 6]);
     /// ```
-    fn clear(&self, buf: &mut Buffer<T, D>);
+    fn clear(&self, buf: &mut Buffer<T, D, N>);
 }
 
 /// Trait for reading buffers.
@@ -53,7 +53,7 @@ pub trait Read<T, D: Device, const N: usize = 0> {
 }
 
 /// Trait for writing data to buffers.
-pub trait WriteBuf<T, D: Device>: Sized + Device {
+pub trait WriteBuf<T, D: Device, const N: usize = 0>: Sized + Device {
     /// Write data to the buffer.
     /// # Example
     /// ```
@@ -65,16 +65,16 @@ pub trait WriteBuf<T, D: Device>: Sized + Device {
     /// assert_eq!(buf.as_slice(), &[9, 3, 2, -4])
     ///
     /// ```
-    fn write(&self, buf: &mut Buffer<T, D>, data: &[T]);
+    fn write(&self, buf: &mut Buffer<T, D, N>, data: &[T]);
     /// Writes data from <Device> Buffer to other <Device> Buffer.
     // TODO: implement, change name of fn? -> set_.. ?
-    fn write_buf(&self, _dst: &mut Buffer<T, Self>, _src: &Buffer<T, Self>) {
+    fn write_buf(&self, _dst: &mut Buffer<T, Self, N>, _src: &Buffer<T, Self, N>) {
         unimplemented!()
     }
 }
 
 /// This trait is used to clone a buffer based on a specific device type.
-pub trait CloneBuf<'a, T>: Sized + Device {
+pub trait CloneBuf<'a, T, const N: usize = 0>: Sized + Device {
     /// Creates a deep copy of the specified buffer.
     /// # Example
     ///
@@ -87,11 +87,11 @@ pub trait CloneBuf<'a, T>: Sized + Device {
     /// let cloned = device.clone_buf(&buf);
     /// assert_eq!(buf.read(), cloned.read());
     /// ```
-    fn clone_buf(&'a self, buf: &Buffer<'a, T, Self>) -> Buffer<'a, T, Self>;
+    fn clone_buf(&'a self, buf: &Buffer<'a, T, Self, N>) -> Buffer<'a, T, Self, N>;
 }
 
 /// This trait is used to retrieve a cached buffer from a specific device type.
-pub trait CacheBuf<'a, T>: Sized + Device {
+pub trait CacheBuf<'a, T, const N: usize = 0>: Sized + Device {
     /// Adds a buffer to the cache. Following calls will return this buffer, if the corresponding internal count matches with the id used in the cache.
     /// # Example
     #[cfg_attr(feature = "realloc", doc = "```ignore")]
@@ -112,5 +112,5 @@ pub trait CacheBuf<'a, T>: Sized + Device {
     /// let buf = CacheBuf::<f32>::cached(&device, 10);
     /// assert_eq!(device.read(&buf), vec![1.5; 10]);
     /// ```
-    fn cached(&'a self, len: usize) -> Buffer<'a, T, Self>;
+    fn cached(&'a self, len: usize) -> Buffer<'a, T, Self, N>;
 }

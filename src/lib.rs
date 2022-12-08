@@ -88,13 +88,13 @@ pub trait Device: Sized {
     #[inline]
     fn retrieve<T, const N: usize>(&self, len: usize, add_node: impl AddGraph) -> Buffer<T, Self, N>
     where
-        Self: Alloc<T, N>,
+        for<'a> Self: Alloc<'a, T, N>,
     {
         Self::Cache::retrieve(self, len, add_node)
     }
 }
 
-pub trait DevicelessAble<T, const N: usize = 0>: Alloc<T, N> {}
+pub trait DevicelessAble<'a, T, const N: usize = 0>: Alloc<'a, T, N> {}
 
 pub trait CPUCL: Device {
     /// This is a device specific `as_slice()` function.
@@ -121,7 +121,7 @@ pub trait CPUCL: Device {
 /// };
 /// assert_eq!(vec![0.; 12], device.read(&buf));
 /// ```
-pub trait Alloc<T, const N: usize = 0>: Device {
+pub trait Alloc<'a, T, const N: usize = 0>: Device {
     /// Allocate memory on the implemented device.
     /// # Example
     /// ```
@@ -139,7 +139,7 @@ pub trait Alloc<T, const N: usize = 0>: Device {
     /// };
     /// assert_eq!(vec![0.; 12], device.read(&buf));
     /// ```
-    fn alloc(&self, len: usize) -> <Self as Device>::Ptr<T, N>;
+    fn alloc(&'a self, len: usize) -> <Self as Device>::Ptr<T, N>;
 
     /// Allocate new memory with data
     /// # Example
@@ -158,13 +158,13 @@ pub trait Alloc<T, const N: usize = 0>: Device {
     /// };
     /// assert_eq!(vec![1, 5, 4, 3, 6, 9, 0, 4], device.read(&buf));
     /// ```
-    fn with_slice(&self, data: &[T]) -> <Self as Device>::Ptr<T, N>
+    fn with_slice(&'a self, data: &[T]) -> <Self as Device>::Ptr<T, N>
     where
         T: Clone;
 
     /// If the vector `vec` was allocated previously, this function can be used in order to reduce the amount of allocations, which may be faster than using a slice of `vec`.
     /// #[inline]
-    fn alloc_with_vec(&self, vec: Vec<T>) -> <Self as Device>::Ptr<T, N>
+    fn alloc_with_vec(&'a self, vec: Vec<T>) -> <Self as Device>::Ptr<T, N>
     where
         T: Clone,
     {
@@ -172,7 +172,7 @@ pub trait Alloc<T, const N: usize = 0>: Device {
     }
 
     #[inline]
-    fn with_array(&self, array: [T; N]) -> <Self as Device>::Ptr<T, N>
+    fn with_array(&'a self, array: [T; N]) -> <Self as Device>::Ptr<T, N>
     where
         T: Clone,
     {
@@ -199,6 +199,8 @@ pub mod prelude {
 
     #[cfg(feature = "stack")]
     pub use crate::stack::Stack;
+
+    pub use crate::network::{Network, NetworkArray};
 
     #[cfg(feature = "cuda")]
     pub use crate::cuda::{launch_kernel1d, CUBuffer, CU, CUDA};
