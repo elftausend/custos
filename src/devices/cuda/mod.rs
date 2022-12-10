@@ -9,7 +9,7 @@ pub use cuda_device::*;
 pub use kernel_cache::*;
 pub use kernel_launch::*;
 
-use crate::{Buffer, CDatatype, PtrType};
+use crate::{Buffer, CDatatype, CommonPtrs, Dealloc, FromCommonPtrs};
 
 use self::api::cufree;
 
@@ -39,7 +39,7 @@ impl<T> Default for CUDAPtr<T> {
     }
 }
 
-impl<T> PtrType<T> for CUDAPtr<T> {
+impl<T> Dealloc<T> for CUDAPtr<T> {
     #[inline]
     unsafe fn dealloc(&mut self, _len: usize) {
         if self.ptr == 0 {
@@ -47,7 +47,9 @@ impl<T> PtrType<T> for CUDAPtr<T> {
         }
         cufree(self.ptr).unwrap();
     }
+}
 
+impl<T> CommonPtrs<T> for CUDAPtr<T> {
     #[inline]
     fn ptrs(&self) -> (*const T, *mut std::ffi::c_void, u64) {
         (null_mut(), null_mut(), self.ptr)
@@ -57,7 +59,9 @@ impl<T> PtrType<T> for CUDAPtr<T> {
     fn ptrs_mut(&mut self) -> (*mut T, *mut std::ffi::c_void, u64) {
         (null_mut(), null_mut(), self.ptr)
     }
+}
 
+impl<T> FromCommonPtrs<T> for CUDAPtr<T> {
     #[inline]
     unsafe fn from_ptrs(ptrs: (*mut T, *mut std::ffi::c_void, u64)) -> Self {
         Self {

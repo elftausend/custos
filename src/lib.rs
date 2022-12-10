@@ -66,21 +66,25 @@ pub mod static_api;
 pub mod number;
 pub use op_traits::*;
 
-pub trait PtrType<T, const N: usize = 0> {
+pub trait Dealloc<T, const N: usize = 0> {
     /// # Safety
     /// The pointer must be a valid pointer.
     unsafe fn dealloc(&mut self, len: usize);
+}
 
+pub trait CommonPtrs<T> {
     fn ptrs(&self) -> (*const T, *mut c_void, u64);
     fn ptrs_mut(&mut self) -> (*mut T, *mut c_void, u64);
+}
 
+pub trait FromCommonPtrs<T>: CommonPtrs<T> {
     /// # Safety
     /// The pointer must be a valid pointer.
     unsafe fn from_ptrs(ptrs: (*mut T, *mut c_void, u64)) -> Self;
 }
 
 pub trait Device: Sized {
-    type Ptr<U, const N: usize>: PtrType<U>;
+    type Ptr<U, const N: usize>: Dealloc<U>;
     type Cache<const N: usize>: CacheAble<Self, N>;
 
     fn new() -> crate::Result<Self>;
@@ -107,7 +111,7 @@ pub trait CPUCL: Device {
 ///
 /// # Example
 /// ```
-/// use custos::{CPU, Alloc, Buffer, Read, BufFlag, GraphReturn, cpu::CPUPtr, PtrType};
+/// use custos::{CPU, Alloc, Buffer, Read, BufFlag, GraphReturn, cpu::CPUPtr};
 ///
 /// let device = CPU::new();
 /// let ptr = device.alloc(12);
@@ -125,7 +129,7 @@ pub trait Alloc<'a, T, const N: usize = 0>: Device {
     /// Allocate memory on the implemented device.
     /// # Example
     /// ```
-    /// use custos::{CPU, Alloc, Buffer, Read, BufFlag, GraphReturn, cpu::CPUPtr, PtrType};
+    /// use custos::{CPU, Alloc, Buffer, Read, BufFlag, GraphReturn, cpu::CPUPtr};
     ///
     /// let device = CPU::new();
     /// let ptr = device.alloc(12);
@@ -144,7 +148,7 @@ pub trait Alloc<'a, T, const N: usize = 0>: Device {
     /// Allocate new memory with data
     /// # Example
     /// ```
-    /// use custos::{CPU, Alloc, Buffer, Read, BufFlag, GraphReturn, cpu::CPUPtr, PtrType};
+    /// use custos::{CPU, Alloc, Buffer, Read, BufFlag, GraphReturn, cpu::CPUPtr};
     ///
     /// let device = CPU::new();
     /// let ptr = device.with_slice(&[1, 5, 4, 3, 6, 9, 0, 4]);

@@ -4,16 +4,18 @@ use core::{
     ptr::null_mut,
 };
 
-use crate::{BufFlag, Buffer, CloneBuf, Device, Node, PtrType};
+use crate::{BufFlag, Buffer, CloneBuf, CommonPtrs, Dealloc, Device, Node};
 
 pub struct Num<T> {
     pub num: T,
 }
 
-impl<T> PtrType<T, 0> for Num<T> {
+impl<T> Dealloc<T, 0> for Num<T> {
     #[inline]
     unsafe fn dealloc(&mut self, _len: usize) {}
+}
 
+impl<T> CommonPtrs<T> for Num<T> {
     #[inline]
     fn ptrs(&self) -> (*const T, *mut c_void, u64) {
         (&self.num as *const T, null_mut(), 0)
@@ -22,14 +24,6 @@ impl<T> PtrType<T, 0> for Num<T> {
     #[inline]
     fn ptrs_mut(&mut self) -> (*mut T, *mut c_void, u64) {
         (&mut self.num as *mut T, null_mut(), 0)
-    }
-
-    // TODO: create new trait -> e.g. "FromPtrs", implement for all PtrType types -> add bound to cache etc
-    unsafe fn from_ptrs(_ptrs: (*mut T, *mut c_void, u64)) -> Self {
-        unimplemented!()
-        /*Num {
-            num: *ptrs.0
-        }*/
     }
 }
 

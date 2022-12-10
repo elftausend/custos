@@ -74,7 +74,7 @@ pub unsafe fn construct_buffer<'a, T: Debug>(
     mut no_drop: Buffer<T, CPU>,
     add_node: impl AddGraph,
 ) -> crate::Result<Buffer<'a, T, OpenCL>> {
-    use crate::{bump_count, opencl::CLPtr, PtrType};
+    use crate::{bump_count, opencl::CLPtr, FromCommonPtrs};
 
     if no_drop.flag == BufFlag::None {
         return Err(DeviceError::ConstructError.into());
@@ -112,7 +112,7 @@ pub unsafe fn construct_buffer<'a, T: Debug>(
 
 #[cfg(test)]
 mod tests {
-    use crate::{opencl::CLPtr, BufFlag, Buffer, CacheBuf, Node, OpenCL, PtrType, CPU};
+    use crate::{opencl::CLPtr, BufFlag, Buffer, CacheBuf, FromCommonPtrs, Node, OpenCL, CPU};
 
     use super::{construct_buffer, to_unified};
 

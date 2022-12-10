@@ -94,7 +94,7 @@ impl<T: CDatatype> AddBuf<T, CUDA> for CUDA {
             datatype = T::as_c_type_str()
         );
 
-        let out = Cache::get::<T, _, 0>(self, lhs.len, (lhs.node.idx, rhs.node.idx));
+        let out = Cache::get::<T, 0>(self, lhs.len, (lhs.node.idx, rhs.node.idx));
         launch_kernel1d(lhs.len, self, &src, "add", &[lhs, rhs, &out, &lhs.len]).unwrap();
         out
     }
@@ -113,7 +113,7 @@ impl<T: CDatatype> AddBuf<T, CUDA> for CUDA {
             datatype = T::as_c_type_str()
         );
 
-        let out = Cache::get::<T, _, 0>(self, lhs.len(), lhs.node.idx);
+        let out = Cache::get::<T, 0>(self, lhs.len(), lhs.node.idx);
         launch_kernel1d(lhs.len, self, &src, "relu", &[lhs, &out, &lhs.len]).unwrap();
         out
     }

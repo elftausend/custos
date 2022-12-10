@@ -1,4 +1,4 @@
-use crate::{Alloc, Buffer, ClearBuf, Device, DeviceError, Graph, GraphReturn, PtrType, Read};
+use crate::{Alloc, Buffer, ClearBuf, Dealloc, Device, DeviceError, Graph, GraphReturn, Read};
 use core::{
     cell::{RefCell, RefMut},
     marker::PhantomData,
@@ -102,20 +102,8 @@ pub struct NetworkArray<'a, T> {
     _p: PhantomData<T>,
 }
 
-impl<'a, T> PtrType<T> for NetworkArray<'a, T> {
+impl<'a, T> Dealloc<T> for NetworkArray<'a, T> {
     unsafe fn dealloc(&mut self, _len: usize) {
         self.client.borrow_mut().dealloc_buf(self.id).unwrap();
-    }
-
-    fn ptrs(&self) -> (*const T, *mut core::ffi::c_void, u64) {
-        (core::ptr::null(), core::ptr::null_mut(), 0)
-    }
-
-    fn ptrs_mut(&mut self) -> (*mut T, *mut core::ffi::c_void, u64) {
-        (core::ptr::null_mut(), core::ptr::null_mut(), 0)
-    }
-
-    unsafe fn from_ptrs(_ptrs: (*mut T, *mut core::ffi::c_void, u64)) -> Self {
-        unimplemented!()
     }
 }

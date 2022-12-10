@@ -137,9 +137,9 @@ impl<D: RawConv> Cache<D> {
         match ptr_option {
             Some(ptr) => {
                 bump_count();
-                
+
                 let (ptr, node) = D::destruct::<T, N>(ptr);
-                
+
                 Buffer {
                     ptr,
                     len,

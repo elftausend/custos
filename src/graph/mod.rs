@@ -65,7 +65,7 @@ impl Graph {
                     .into_iter()
                     .map(|node| Ident {
                         idx: node.ident_idx as usize,
-                        len: node.len
+                        len: node.len,
                     })
                     .collect(),
             });

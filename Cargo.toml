@@ -19,7 +19,7 @@ cuwanto-server = {path="../cuwanto/cuwanto-server", optional=true}
 custos = { version="0.5.0", default-features = false, optional=true }
 
 [features]
-default = ["blas", "stack", "static-api", "opencl", "opt-cache"]
+default = ["blas", "stack", "static-api", "opencl", "opt-cache", "network"]
 opencl = ["custos/opencl"]
 network = ["cuwanto-server"]
 cuda = []

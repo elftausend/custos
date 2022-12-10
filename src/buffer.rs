@@ -3,8 +3,8 @@ use core::{ffi::c_void, fmt::Debug};
 use crate::cpu::{CPUPtr, CPU};
 
 use crate::{
-    Alloc, CacheBuf, ClearBuf, CloneBuf, Device, DevicelessAble, Node, PtrType, Read, WriteBuf,
-    CPUCL,
+    Alloc, CacheBuf, ClearBuf, CloneBuf, CommonPtrs, Dealloc, Device, DevicelessAble, Node, Read,
+    WriteBuf, CPUCL,
 };
 use alloc::vec::Vec;
 pub use flag::BufFlag;
@@ -102,18 +102,6 @@ impl<'a, T, D: Device, const N: usize> Buffer<'a, T, D, N> {
         }
     }
 
-    #[inline]
-    /// Returns all types of pointers. (host, OpenCL, CUDA)
-    pub fn ptrs(&self) -> (*const T, *mut c_void, u64) {
-        self.ptr.ptrs()
-    }
-
-    #[inline]
-    /// Returns all types of pointers. (host, OpenCL, CUDA)
-    pub fn ptrs_mut(&mut self) -> (*mut T, *mut c_void, u64) {
-        self.ptr.ptrs_mut()
-    }
-
     pub fn device(&self) -> &'a D {
         self.device
             .expect("Called device() on a deviceless buffer.")
@@ -172,6 +160,23 @@ impl<'a, T, D: Device, const N: usize> Buffer<'a, T, D, N> {
     #[inline]
     pub fn len(&self) -> usize {
         self.len
+    }
+}
+
+impl<'a, T, D: Device, const N: usize> Buffer<'a, T, D, N>
+where
+    D::Ptr<T, N>: CommonPtrs<T>,
+{
+    #[inline]
+    /// Returns all types of pointers. (host, OpenCL, CUDA)
+    pub fn ptrs(&self) -> (*const T, *mut c_void, u64) {
+        self.ptr.ptrs()
+    }
+
+    #[inline]
+    /// Returns all types of pointers. (host, OpenCL, CUDA)
+    pub fn ptrs_mut(&mut self) -> (*mut T, *mut c_void, u64) {
+        self.ptr.ptrs_mut()
     }
 }
 
@@ -308,7 +313,12 @@ impl<'a, T, D: CPUCL, const N: usize> Buffer<'a, T, D, N> {
     pub fn as_mut_slice(&mut self) -> &mut [T] {
         D::buf_as_slice_mut(self)
     }
+}
 
+impl<'a, T, D: CPUCL, const N: usize> Buffer<'a, T, D, N>
+where
+    D::Ptr<T, N>: CommonPtrs<T>,
+{
     /// Returns a non null host pointer
     #[inline]
     pub fn host_ptr(&self) -> *const T {
@@ -441,9 +451,10 @@ impl<const N: usize, T, D: CPUCL> core::ops::DerefMut for Buffer<'_, T, D, N> {
 
 impl<'a, T, D> Debug for Buffer<'a, T, D>
 where
-    T: Debug + Default + Copy + 'a,
+    T: Debug + Default + Clone + 'a,
     D: Read<T, D> + Device + 'a,
     for<'b> <D as Read<T, D>>::Read<'b>: Debug,
+    D::Ptr<T, 0>: CommonPtrs<T>,
 {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         f.debug_struct("Buffer")

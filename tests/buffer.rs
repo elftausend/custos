@@ -1,7 +1,7 @@
 use custos::cpu::cpu_cached;
 #[cfg(feature = "opencl")]
 use custos::{devices::opencl::OpenCL, Error};
-use custos::{Alloc, Buffer, Device, Read};
+use custos::{Alloc, Buffer, CommonPtrs, Device, Read};
 
 use custos::CPU;
 
@@ -11,11 +11,17 @@ use custos::CPUCL;
 #[cfg(not(feature = "realloc"))]
 use custos::{get_count, set_count};
 
-pub fn get_mut_slice<'a, T, D: Device>(buf: &'a mut Buffer<T, D>) -> &'a mut [T] {
+pub fn get_mut_slice<'a, T, D: Device>(buf: &'a mut Buffer<T, D>) -> &'a mut [T]
+where
+    D::Ptr<T, 0>: CommonPtrs<T>,
+{
     unsafe { std::slice::from_raw_parts_mut(buf.ptrs_mut().0, buf.len) }
 }
 
-pub fn get_slice<'a, T, D: Device>(buf: &'a Buffer<T, D>) -> &'a [T] {
+pub fn get_slice<'a, T, D: Device>(buf: &'a Buffer<T, D>) -> &'a [T]
+where
+    D::Ptr<T, 0>: CommonPtrs<T>,
+{
     unsafe { std::slice::from_raw_parts(buf.ptrs().0, buf.len) }
 }
 

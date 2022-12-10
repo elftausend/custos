@@ -18,7 +18,7 @@ mod unified;
 pub use unified::*;
 
 use self::api::release_mem_object;
-use crate::{Buffer, CDatatype, PtrType};
+use crate::{Buffer, CDatatype, CommonPtrs, Dealloc, FromCommonPtrs};
 
 pub type CLBuffer<'a, T> = Buffer<'a, T, OpenCL>;
 
@@ -46,7 +46,7 @@ impl<T> Default for CLPtr<T> {
     }
 }
 
-impl<T> PtrType<T> for CLPtr<T> {
+impl<T> Dealloc<T> for CLPtr<T> {
     #[inline]
     unsafe fn dealloc(&mut self, _len: usize) {
         if self.ptr.is_null() {
@@ -54,7 +54,9 @@ impl<T> PtrType<T> for CLPtr<T> {
         }
         release_mem_object(self.ptr).unwrap();
     }
+}
 
+impl<T> CommonPtrs<T> for CLPtr<T> {
     #[inline]
     fn ptrs(&self) -> (*const T, *mut c_void, u64) {
         (self.host_ptr, self.ptr, 0)
@@ -64,7 +66,9 @@ impl<T> PtrType<T> for CLPtr<T> {
     fn ptrs_mut(&mut self) -> (*mut T, *mut c_void, u64) {
         (self.host_ptr, self.ptr, 0)
     }
+}
 
+impl<T> FromCommonPtrs<T> for CLPtr<T> {
     #[inline]
     unsafe fn from_ptrs(ptrs: (*mut T, *mut c_void, u64)) -> Self {
         CLPtr {

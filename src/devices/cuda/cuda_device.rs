@@ -9,7 +9,7 @@ use super::{
 use crate::{
     cache::{Cache, CacheReturn},
     Alloc, Buffer, CDatatype, CacheBuf, CachedLeaf, ClearBuf, CloneBuf, Device, Graph, GraphReturn,
-    Read, WriteBuf,
+    RawConv, Read, WriteBuf,
 };
 use std::{cell::RefCell, marker::PhantomData};
 
@@ -17,7 +17,7 @@ use std::{cell::RefCell, marker::PhantomData};
 /// To make new calculations invocable, a trait providing new operations should be implemented for [CudaDevice].
 #[derive(Debug)]
 pub struct CUDA {
-    pub cache: RefCell<Cache<RawCUBuf>>,
+    pub cache: RefCell<Cache<CUDA>>,
     pub kernel_cache: RefCell<KernelCacheCU>,
     pub modules: RefCell<Vec<Module>>,
     pub graph: RefCell<Graph>,
@@ -70,10 +70,30 @@ impl CUDA {
 
 impl Device for CUDA {
     type Ptr<U, const N: usize> = CUDAPtr<U>;
-    type Cache<const N: usize> = Cache<RawCUBuf>;
+    type Cache<const N: usize> = Cache<CUDA>;
 
     fn new() -> crate::Result<Self> {
         CUDA::new(chosen_cu_idx())
+    }
+}
+
+impl RawConv for CUDA {
+    fn construct<T, const N: usize>(
+        ptr: &Self::Ptr<T, N>,
+        _len: usize,
+        node: crate::Node,
+    ) -> Self::CT {
+        RawCUBuf { ptr: ptr.ptr, node }
+    }
+
+    fn destruct<T, const N: usize>(ct: &Self::CT) -> (Self::Ptr<T, N>, crate::Node) {
+        (
+            CUDAPtr {
+                ptr: ct.ptr,
+                p: PhantomData,
+            },
+            ct.node,
+        )
     }
 }
 
@@ -155,7 +175,7 @@ impl GraphReturn for CUDA {
 impl CacheReturn for CUDA {
     type CT = RawCUBuf;
     #[inline]
-    fn cache(&self) -> std::cell::RefMut<Cache<RawCUBuf>> {
+    fn cache(&self) -> std::cell::RefMut<Cache<CUDA>> {
         self.cache.borrow_mut()
     }
 }

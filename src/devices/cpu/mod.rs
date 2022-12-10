@@ -1,4 +1,4 @@
-use crate::{/*devices::cache::CacheType,*/ Node, PtrType};
+use crate::{CommonPtrs, Dealloc, FromCommonPtrs, Node};
 #[cfg(feature = "blas")]
 pub use blas::*;
 use core::{alloc::Layout, ptr::null_mut};
@@ -19,7 +19,7 @@ impl<T> Default for CPUPtr<T> {
     }
 }
 
-impl<T> PtrType<T> for CPUPtr<T> {
+impl<T> Dealloc<T> for CPUPtr<T> {
     #[inline]
     unsafe fn dealloc(&mut self, len: usize) {
         if self.ptr.is_null() {
@@ -28,7 +28,9 @@ impl<T> PtrType<T> for CPUPtr<T> {
         let layout = Layout::array::<T>(len).unwrap();
         alloc::alloc::dealloc(self.ptr as *mut u8, layout);
     }
+}
 
+impl<T> CommonPtrs<T> for CPUPtr<T> {
     #[inline]
     fn ptrs(&self) -> (*const T, *mut core::ffi::c_void, u64) {
         (self.ptr as *const T, null_mut(), 0)
@@ -38,7 +40,9 @@ impl<T> PtrType<T> for CPUPtr<T> {
     fn ptrs_mut(&mut self) -> (*mut T, *mut core::ffi::c_void, u64) {
         (self.ptr as *mut T, null_mut(), 0)
     }
+}
 
+impl<T> FromCommonPtrs<T> for CPUPtr<T> {
     #[inline]
     unsafe fn from_ptrs(ptrs: (*mut T, *mut core::ffi::c_void, u64)) -> Self {
         CPUPtr { ptr: ptrs.0 }
