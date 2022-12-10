@@ -56,7 +56,7 @@ impl<T: CDatatype> AddBuf<T, OpenCL> for OpenCL {
     ", datatype=T::as_c_type_str());
 
         let gws = [lhs.len, 0, 0];
-        let out = Cache::get::<T, _, 0>(self, lhs.len, (lhs.node.idx, rhs.node.idx));
+        let out = Cache::get::<T, 0>(self, lhs.len, (lhs.node.idx, rhs.node.idx));
         enqueue_kernel(self, &src, gws, None, &[lhs, rhs, &out]).unwrap();
         out
     }
@@ -72,7 +72,7 @@ impl<T: CDatatype> AddBuf<T, OpenCL> for OpenCL {
             datatype = T::as_c_type_str()
         );
 
-        let out = Cache::get::<T, _, 0>(self, lhs.len(), lhs.node.idx);
+        let out = Cache::get::<T, 0>(self, lhs.len(), lhs.node.idx);
         enqueue_kernel(self, &src, [lhs.len, 0, 0], None, &[lhs, &out]).unwrap();
         out
     }

@@ -326,7 +326,7 @@ pub fn create_buffer<T>(
     let r = unsafe {
         clCreateBuffer(
             context.0,
-            flag as u64,
+            flag,
             size * core::mem::size_of::<T>(),
             host_ptr,
             &mut err,

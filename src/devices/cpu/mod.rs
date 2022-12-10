@@ -1,11 +1,7 @@
-use crate::{devices::cache::CacheType, Node, PtrType};
+use crate::{/*devices::cache::CacheType,*/ Node, PtrType};
 #[cfg(feature = "blas")]
 pub use blas::*;
-use core::{
-    alloc::Layout,
-    mem::{align_of, size_of},
-    ptr::null_mut,
-};
+use core::{alloc::Layout, ptr::null_mut};
 pub use cpu_device::*;
 
 #[cfg(feature = "blas")]
@@ -56,22 +52,6 @@ pub struct RawCpuBuf {
     align: usize,
     size: usize,
     node: Node,
-}
-
-impl CacheType for RawCpuBuf {
-    fn new<T>(ptr: (*mut T, *mut core::ffi::c_void, u64), len: usize, node: Node) -> Self {
-        RawCpuBuf {
-            ptr: ptr.0 as *mut u8,
-            len,
-            align: align_of::<T>(),
-            size: size_of::<T>(),
-            node,
-        }
-    }
-
-    fn destruct<T>(&self) -> ((*mut T, *mut core::ffi::c_void, u64), Node) {
-        ((self.ptr as *mut T, null_mut(), 0), self.node)
-    }
 }
 
 impl Drop for RawCpuBuf {

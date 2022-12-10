@@ -1,4 +1,4 @@
-use crate::{Alloc, Buffer, Device, DeviceError, Graph, GraphReturn, PtrType, Read};
+use crate::{Alloc, Buffer, ClearBuf, Device, DeviceError, Graph, GraphReturn, PtrType, Read};
 use core::{
     cell::{RefCell, RefMut},
     marker::PhantomData,
@@ -87,6 +87,12 @@ impl<'b, T: AsDataType + Clone + Default> Read<T, Network<'b>> for Network<'b> {
         T: Default + Clone,
     {
         self.cuw_client.borrow_mut().read_buf(buf.ptr.id).unwrap()
+    }
+}
+
+impl<'a, T> ClearBuf<T, Network<'a>> for Network<'a> {
+    fn clear(&self, buf: &mut Buffer<T, Network<'a>>) {
+        todo!()
     }
 }
 

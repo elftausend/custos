@@ -200,6 +200,7 @@ pub mod prelude {
     #[cfg(feature = "stack")]
     pub use crate::stack::Stack;
 
+    #[cfg(feature = "network")]
     pub use crate::network::{Network, NetworkArray};
 
     #[cfg(feature = "cuda")]

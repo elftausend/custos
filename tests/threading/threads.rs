@@ -4,11 +4,18 @@ use custos::{Buffer, CPU};
 fn test_with_threads() {
     let device = CPU::new();
 
-    let _buf = Buffer::from((&device, [1, 2, 3, 4]));
+    //let buf = Buffer::from((&device, [1, 2, 3, 4]));
+    let buf = Buffer::<f32>::deviceless(&device, 10);
 
-    std::thread::spawn(|| {
+    let vec: Vec<f64> = vec![1., 2., 3.];
+
+    let a = std::thread::spawn(move || {
         let device = CPU::new();
+
+        let _b = &buf;
+        let _a = &vec;
 
         let _buf = Buffer::from((&device, [1, 2, 3, 4]));
     });
+    a.join().unwrap();
 }

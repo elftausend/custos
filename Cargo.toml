@@ -12,7 +12,7 @@ rust-version = "1.65"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-cuwanto-server = {path="../cuwanto/cuwanto-server"}
+cuwanto-server = {path="../cuwanto/cuwanto-server", optional=true}
 
 [build-dependencies]
 # TODO: use opencl only lib
@@ -21,6 +21,7 @@ custos = { version="0.5.0", default-features = false, optional=true }
 [features]
 default = ["blas", "stack", "static-api", "opencl", "opt-cache"]
 opencl = ["custos/opencl"]
+network = ["cuwanto-server"]
 cuda = []
 realloc = []
 opt-cache = []
@@ -56,6 +57,10 @@ required-features = ["opencl"]
 [[test]]
 name = "cl_kernel_launch"
 required-features = ["opencl"]
+
+[[test]]
+name = "network_device"
+required-features = ["network"]
 
 #[[bench]]
 #name = "fixed_size_vs_vec"

@@ -22,7 +22,7 @@ impl AddGraph for usize {
 // Unary operation
 impl AddGraph for isize {
     fn add(&self, graph: &mut Graph, len: usize) -> Node {
-        graph.add_node(len, *self as isize, *self)
+        graph.add_node(len, *self, *self)
     }
 }
 

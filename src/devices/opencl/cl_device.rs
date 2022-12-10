@@ -7,7 +7,7 @@ use super::{
     chosen_cl_idx, cl_clear, CLPtr, KernelCacheCL, RawCL,
 };
 use crate::{
-    cache::{Cache, CacheReturn},
+    cache::{Cache, CacheReturn, RawConv},
     devices::opencl::api::{create_buffer, MemFlags},
     Alloc, Buffer, CDatatype, CacheBuf, CachedLeaf, ClearBuf, CloneBuf, Device, Error, Graph,
     GraphReturn, Read, WriteBuf, CPU,
@@ -39,7 +39,7 @@ use crate::{opencl::api::unified_ptr, CPUCL};
 /// ```
 pub struct OpenCL {
     pub kernel_cache: RefCell<KernelCacheCL>,
-    pub cache: RefCell<Cache<RawCL>>,
+    pub cache: RefCell<Cache<OpenCL>>,
     pub inner: RefCell<CLDevice>,
     pub graph: RefCell<Graph>,
     pub cpu: CPU,
@@ -125,10 +125,34 @@ impl OpenCL {
 
 impl Device for OpenCL {
     type Ptr<U, const N: usize> = CLPtr<U>;
-    type Cache<const N: usize> = Cache<RawCL>;
+    type Cache<const N: usize> = Cache<Self>;
 
     fn new() -> crate::Result<Self> {
         OpenCL::new(chosen_cl_idx())
+    }
+}
+
+impl RawConv for OpenCL {
+    fn construct<T, const N: usize>(
+        ptr: &Self::Ptr<T, N>,
+        _len: usize,
+        node: crate::Node,
+    ) -> Self::CT {
+        RawCL {
+            ptr: ptr.ptr,
+            host_ptr: ptr.host_ptr as *mut u8,
+            node,
+        }
+    }
+
+    fn destruct<T, const N: usize>(ct: &Self::CT) -> (Self::Ptr<T, N>, crate::Node) {
+        (
+            CLPtr {
+                ptr: ct.ptr,
+                host_ptr: ct.host_ptr as *mut T,
+            },
+            ct.node,
+        )
     }
 }
 
@@ -202,7 +226,10 @@ impl<'a, T> CacheBuf<'a, T> for OpenCL {
 impl CacheReturn for OpenCL {
     type CT = RawCL;
     #[inline]
-    fn cache(&self) -> std::cell::RefMut<Cache<RawCL>> {
+    fn cache(&self) -> std::cell::RefMut<Cache<OpenCL>>
+    where
+        OpenCL: RawConv,
+    {
         self.cache.borrow_mut()
     }
 }

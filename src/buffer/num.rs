@@ -11,12 +11,15 @@ pub struct Num<T> {
 }
 
 impl<T> PtrType<T, 0> for Num<T> {
+    #[inline]
     unsafe fn dealloc(&mut self, _len: usize) {}
 
+    #[inline]
     fn ptrs(&self) -> (*const T, *mut c_void, u64) {
         (&self.num as *const T, null_mut(), 0)
     }
 
+    #[inline]
     fn ptrs_mut(&mut self) -> (*mut T, *mut c_void, u64) {
         (&mut self.num as *mut T, null_mut(), 0)
     }

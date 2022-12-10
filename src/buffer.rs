@@ -3,8 +3,8 @@ use core::{ffi::c_void, fmt::Debug};
 use crate::cpu::{CPUPtr, CPU};
 
 use crate::{
-    Alloc, CDatatype, CacheBuf, ClearBuf, CloneBuf, Device, DevicelessAble, Node, PtrType, Read,
-    WriteBuf, CPUCL,
+    Alloc, CacheBuf, ClearBuf, CloneBuf, Device, DevicelessAble, Node, PtrType, Read, WriteBuf,
+    CPUCL,
 };
 use alloc::vec::Vec;
 pub use flag::BufFlag;
@@ -36,6 +36,9 @@ pub struct Buffer<'a, T = f32, D: Device = CPU, const N: usize = 0> {
     pub flag: BufFlag,
     pub node: Node,
 }
+
+unsafe impl<'a, T, D: Device, const N: usize> Send for Buffer<'a, T, D, N> {}
+unsafe impl<'a, T, D: Device, const N: usize> Sync for Buffer<'a, T, D, N> {}
 
 impl<'a, T, D: Device, const N: usize> Buffer<'a, T, D, N> {
     /// Creates a zeroed (or values set to default) `Buffer` with the given length on the specified device.
@@ -189,7 +192,6 @@ impl<'a, T, D: Device> Buffer<'a, T, D> {
     /// Sets all elements in `Buffer` to the default value.
     pub fn clear(&mut self)
     where
-        T: CDatatype,
         D: ClearBuf<T, D>,
     {
         self.device().clear(self)
@@ -441,7 +443,7 @@ impl<'a, T, D> Debug for Buffer<'a, T, D>
 where
     T: Debug + Default + Copy + 'a,
     D: Read<T, D> + Device + 'a,
-    for<'b> <D as Read<T, D>>::Read<'b>: Debug
+    for<'b> <D as Read<T, D>>::Read<'b>: Debug,
 {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         f.debug_struct("Buffer")

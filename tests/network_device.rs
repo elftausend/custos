@@ -10,5 +10,6 @@ fn test_network_device() -> cuw::Result<()> {
     let buf = Buffer::<f64, _>::from((&device, &[1., 2., 3., 4.]));
     // ....
     println!("buf: {:?}", buf.read());
+    //buf.clear();
     Ok(())
 }

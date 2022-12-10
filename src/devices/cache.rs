@@ -1,68 +1,54 @@
+use core::{cell::RefMut, marker::PhantomData};
+use std::collections::HashMap;
+
+use alloc::rc::Rc;
+
 use crate::{
     bump_count, AddGraph, Alloc, BufFlag, Buffer, CacheAble, Device, GraphReturn, Ident, Node,
-    PtrType,
 };
-use std::{cell::RefMut, collections::HashMap, ffi::c_void, rc::Rc};
-
-/// This trait is implemented for every 'cacheable' pointer.
-pub trait CacheType {
-    /// Constructs a new device-specific cachable pointer.
-    fn new<T>(ptr: (*mut T, *mut c_void, u64), len: usize, node: Node) -> Self;
-
-    /// Destructs a device-specific pointer in its raw form.<br>
-    /// See [CacheType::new].
-    fn destruct<T>(&self) -> ((*mut T, *mut c_void, u64), Node);
-}
 
 /// This trait makes a device's [`Cache`] accessible and is implemented for all compute devices.
 pub trait CacheReturn: GraphReturn {
-    type CT: CacheType;
+    type CT;
     /// Returns a device specific [`Cache`].
-    fn cache(&self) -> RefMut<Cache<Self::CT>>;
+    fn cache(&self) -> RefMut<Cache<Self>>
+    where
+        Self: RawConv;
 }
 
-/// Caches pointers that can be reconstructed into a [`Buffer`].
-///
-/// Example
-///
-/// ```
-/// use custos::prelude::*;
-///
-/// let device = CPU::new();
-/// let cached_buf = Cache::get::<f32, _, 0>(&device, 10, ());
-///
-/// assert_eq!(cached_buf.len, 10);
-/// ```
+pub trait RawConv: Device + CacheReturn {
+    fn construct<T, const N: usize>(ptr: &Self::Ptr<T, N>, len: usize, node: Node) -> Self::CT;
+    fn destruct<T, const N: usize>(ct: &Self::CT) -> (Self::Ptr<T, N>, Node);
+}
+
 #[derive(Debug)]
-pub struct Cache<CT: CacheType> {
-    pub nodes: HashMap<Ident, Rc<CT>>,
+pub struct Cache<D: RawConv> {
+    pub nodes: HashMap<Ident, Rc<D::CT>>,
+    _p: PhantomData<D>,
 }
 
-pub trait BindCT<CT> {}
-impl<CT: CacheType> BindCT<CT> for Cache<CT> {}
+impl<D: RawConv> Default for Cache<D> {
+    fn default() -> Self {
+        Self {
+            nodes: Default::default(),
+            _p: PhantomData,
+        }
+    }
+}
 
-impl<CT, D, const N: usize> CacheAble<D, N> for Cache<CT>
+impl<D, const N: usize> CacheAble<D, N> for Cache<D>
 where
-    D: Device + CacheReturn,
-    CT: CacheType,
+    D: RawConv,
 {
     fn retrieve<T>(device: &D, len: usize, add_node: impl AddGraph) -> Buffer<T, D, N>
     where
-        for<'a> D: Alloc<'a, T, N>,
+        for<'b> D: Alloc<'b, T, N>,
     {
         Cache::get(device, len, add_node)
     }
 }
 
-impl<CT: CacheType> Default for Cache<CT> {
-    fn default() -> Self {
-        Self {
-            nodes: Default::default(),
-        }
-    }
-}
-
-impl<P: CacheType> Cache<P> {
+impl<D: RawConv> Cache<D> {
     /// Adds a new cache entry to the cache.
     /// The next get call will return this entry if the [Ident] is correct.
     /// # Example
@@ -84,16 +70,16 @@ impl<P: CacheType> Cache<P> {
     ///
     /// assert_eq!(cache.host_ptr(), ptr.ptr as *mut f32);
     /// ```
-    pub fn add_node<'a, T, D, const N: usize>(
+    pub fn add_node<'a, T, const N: usize>(
         &mut self,
         device: &'a D,
         node: Ident,
         _add_node: impl AddGraph,
     ) -> Buffer<'a, T, D, N>
     where
-        D: Alloc<'a, T, N> + GraphReturn,
+        D: Alloc<'a, T, N> + RawConv,
     {
-        let mut ptr = device.alloc(node.len);
+        let ptr = device.alloc(node.len);
 
         #[cfg(feature = "opt-cache")]
         let graph_node = device.graph().add(node.len, _add_node);
@@ -101,10 +87,10 @@ impl<P: CacheType> Cache<P> {
         #[cfg(not(feature = "opt-cache"))]
         let graph_node = Node::default();
 
-        bump_count();
+        let raw_ptr = D::construct(&ptr, node.len, graph_node);
+        self.nodes.insert(node, Rc::new(raw_ptr));
 
-        self.nodes
-            .insert(node, Rc::new(P::new(ptr.ptrs_mut(), node.len, graph_node)));
+        bump_count();
 
         Buffer {
             ptr,
@@ -135,16 +121,13 @@ impl<P: CacheType> Cache<P> {
     /// assert_eq!(cache_entry.ptrs(), first_entry.ptrs());
     /// ```
     #[cfg(not(feature = "realloc"))]
-    pub fn get<'a, T, D, const N: usize>(
+    pub fn get<'a, T, const N: usize>(
         device: &'a D,
         len: usize,
         add_node: impl AddGraph,
-    ) -> Buffer<T, D, N>
+    ) -> Buffer<'a, T, D, N>
     where
-        // In order to know the specific pointer type
-        // there is probably a better way to implement this
-        Self: BindCT<D::CT>,
-        D: Alloc<'a, T, N> + CacheReturn,
+        D: Alloc<'a, T, N> + RawConv,
     {
         let node = Ident::new(len);
 
@@ -154,10 +137,9 @@ impl<P: CacheType> Cache<P> {
         match ptr_option {
             Some(ptr) => {
                 bump_count();
-                let (ptr, node) = ptr.destruct::<T>();
-
-                let ptr = unsafe { <D as Device>::Ptr::<T, N>::from_ptrs(ptr) };
-
+                
+                let (ptr, node) = D::destruct::<T, N>(ptr);
+                
                 Buffer {
                     ptr,
                     len,
@@ -172,16 +154,13 @@ impl<P: CacheType> Cache<P> {
 
     /// If the 'realloc' feature is enabled, this functions always returns a new [`Buffer`] with the size of `len`gth.
     #[cfg(feature = "realloc")]
-    pub fn get<'a, T, D: Device, const N: usize>(
+    pub fn get<'a, T, const N: usize>(
         device: &'a D,
         len: usize,
         _: impl AddGraph,
     ) -> Buffer<T, D, N>
     where
-        // In order to know the specific pointer type
-        // there is probably a better way to implement this
-        Self: BindCT<D::CT>,
-        D: Alloc<'a, T, N> + CacheReturn,
+        D: Alloc<'a, T, N>,
     {
         Buffer::new(device, len)
     }

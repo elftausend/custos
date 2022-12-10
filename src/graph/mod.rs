@@ -1,4 +1,4 @@
-use crate::{Ident, COUNT};
+use crate::{Ident, RawConv, COUNT};
 use core::cell::RefMut;
 
 #[cfg(feature = "opt-cache")]
@@ -65,7 +65,7 @@ impl Graph {
                     .into_iter()
                     .map(|node| Ident {
                         idx: node.ident_idx as usize,
-                        len: node.len as usize,
+                        len: node.len
                     })
                     .collect(),
             });
@@ -136,7 +136,7 @@ pub trait GraphReturn {
 pub trait GraphOpt {
     fn optimize(&self) -> crate::Result<()>
     where
-        Self: GraphReturn + CacheReturn,
+        Self: GraphReturn + CacheReturn + RawConv,
     {
         let mut cache = self.cache();
 

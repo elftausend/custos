@@ -12,8 +12,10 @@ use cuda::api::cublas::{cublasDgemm_v2, cublasOperation_t, cublasSgemm_v2, Cubla
 
 #[cfg(not(feature = "no-std"))]
 pub mod cache;
+//pub mod cache;
 #[cfg(not(feature = "no-std"))]
-pub use cache::{Cache, CacheReturn};
+pub use cache::*;
+//pub use cache::{Cache, CacheReturn};
 
 pub mod cpu;
 #[cfg(feature = "cuda")]
@@ -23,6 +25,7 @@ pub mod opencl;
 #[cfg(feature = "stack")]
 pub mod stack;
 
+#[cfg(feature = "network")]
 pub mod network;
 
 mod cdatatype;
@@ -48,6 +51,8 @@ pub trait CacheAble<D: Device, const N: usize = 0> {
     fn retrieve<T>(device: &D, len: usize, add_node: impl AddGraph) -> Buffer<T, D, N>
     where
         for<'a> D: Alloc<'a, T, N>;
+
+    //fn insert_node<T>(&mut self, device: &D, ptr: &D::Ptr<T, N>, node: Ident, graph_node: crate::Node) {}
 }
 
 // TODO: Mind num implement?
