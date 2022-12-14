@@ -84,7 +84,7 @@ pub trait FromCommonPtrs<T>: CommonPtrs<T> {
 }
 
 pub trait Device: Sized {
-    type Ptr<U, const N: usize>: Dealloc<U>;
+    type Ptr<U, const N: usize>: Dealloc<U>; //const B: usize, const C: usize
     type Cache<const N: usize>: CacheAble<Self, N>;
 
     fn new() -> crate::Result<Self>;
@@ -206,6 +206,9 @@ pub mod prelude {
 
     #[cfg(feature = "network")]
     pub use crate::network::{Network, NetworkArray};
+
+    #[cfg(feature = "wgpu")]
+    pub use crate::wgpu::WGPU;
 
     #[cfg(feature = "cuda")]
     pub use crate::cuda::{launch_kernel1d, CUBuffer, CU, CUDA};

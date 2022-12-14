@@ -14,3 +14,14 @@ fn test_alloc() {
     };
     assert_eq!(vec![1, 5, 4, 3, 6, 9, 0, 4], device.read(&buf));
 }
+
+#[cfg(feature="wgpu")]
+#[test]
+fn test_wgpu_alloc() {
+    let device = WGPU::new(wgpu::Backends::all()).unwrap();
+
+    let buf = Buffer::<f32, _>::new(&device, 100);
+
+    let buf2 = Buffer::<f32, _>::from((&device, &[1., 2., 3., 4.,]));
+
+}

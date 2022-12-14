@@ -1,4 +1,6 @@
-use crate::{Alloc, Buffer, ClearBuf, Dealloc, Device, DeviceError, Graph, GraphReturn, Read};
+use crate::{
+    Alloc, Buffer, ClearBuf, Dealloc, Device, DeviceError, Error, Graph, GraphReturn, Read,
+};
 use core::{
     cell::{RefCell, RefMut},
     marker::PhantomData,
@@ -14,11 +16,13 @@ pub struct Network<'a> {
 }
 
 impl<'a> Network<'a> {
-    pub fn new<A: ToSocketAddrs>(addr: A, device: cuw::DeviceType) -> cuw::Result<Network<'a>> {
-        let mut cuw_client = cuw::client::Client::connect(addr)?;
+    pub fn new<A: ToSocketAddrs>(addr: A, device: cuw::DeviceType) -> crate::Result<Network<'a>> {
+        let mut cuw_client = cuw::client::Client::connect(addr).map_err(|error| Error { error })?;
 
         // should receive error if this is missing
-        cuw_client.create_device(device, 0)?;
+        cuw_client
+            .create_device(device, 0)
+            .map_err(|error| Error { error })?;
 
         Ok(Network {
             cuw_client: RefCell::new(cuw_client),

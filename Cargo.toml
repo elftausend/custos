@@ -12,16 +12,18 @@ rust-version = "1.65"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-cuwanto-server = {path="../cuwanto/cuwanto-server", optional=true}
+#cuwanto-server = {path="../cuwanto/cuwanto-server", optional=true}
+pollster = {version="0.2.5", optional=true }
+wgpu = {version="0.14.2", optional=true }
 
 [build-dependencies]
 # TODO: use opencl only lib
 custos = { version="0.5.0", default-features = false, optional=true }
 
 [features]
-default = ["blas", "stack", "static-api", "opencl", "opt-cache", "network"]
+default = ["blas", "stack", "static-api", "opt-cache", "opencl", "wgpu"]
 opencl = ["custos/opencl"]
-network = ["cuwanto-server"]
+#network = ["cuwanto-server"]
 cuda = []
 realloc = []
 opt-cache = []
@@ -29,6 +31,7 @@ blas = []
 static-api = []
 stack = []
 no-std = ["stack"]
+wgpu = ["dep:wgpu", "dep:pollster"]
 
 [dev-dependencies]
 #criterion = "0.3"

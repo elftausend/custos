@@ -51,7 +51,7 @@ pub type CL = OpenCL;
 unsafe impl Sync for CLDevice {}
 
 impl OpenCL {
-    /// Returns an [CLDevice] at the specified device index.
+    /// Returns an [OpenCL] at the specified device index.
     /// # Errors
     /// - No device is found at the given device index
     /// - some other OpenCL related errors

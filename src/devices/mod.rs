@@ -25,6 +25,9 @@ pub mod opencl;
 #[cfg(feature = "stack")]
 pub mod stack;
 
+#[cfg(feature = "wgpu")]
+pub mod wgpu;
+
 #[cfg(feature = "network")]
 pub mod network;
 

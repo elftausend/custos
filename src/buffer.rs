@@ -29,7 +29,14 @@ mod num;
 /// buffer_f32_cpu(&buf);
 /// buffer_generic(&buf);
 /// ```
-pub struct Buffer<'a, T = f32, D: Device = CPU, const N: usize = 0> {
+pub struct Buffer<
+    'a,
+    T = f32,
+    D: Device = CPU,
+    const N: usize = 0,
+    const B: usize = 0,
+    const C: usize = 0,
+> {
     pub ptr: D::Ptr<T, N>,
     pub len: usize,
     pub device: Option<&'a D>,
@@ -37,8 +44,15 @@ pub struct Buffer<'a, T = f32, D: Device = CPU, const N: usize = 0> {
     pub node: Node,
 }
 
-unsafe impl<'a, T, D: Device, const N: usize> Send for Buffer<'a, T, D, N> {}
-unsafe impl<'a, T, D: Device, const N: usize> Sync for Buffer<'a, T, D, N> {}
+unsafe impl<'a, T, D: Device, const N: usize, const B: usize, const C: usize> Send
+    for Buffer<'a, T, D, N, B, C>
+{
+}
+
+unsafe impl<'a, T, D: Device, const N: usize, const B: usize, const C: usize> Sync
+    for Buffer<'a, T, D, N, B, C>
+{
+}
 
 impl<'a, T, D: Device, const N: usize> Buffer<'a, T, D, N> {
     /// Creates a zeroed (or values set to default) `Buffer` with the given length on the specified device.
@@ -352,7 +366,9 @@ unsafe impl<T> Send for Buffer<'a, T> {}
 #[cfg(feature = "safe")]
 unsafe impl<T> Sync for Buffer<'a, T> {}*/
 
-impl<T, D: Device, const N: usize> Drop for Buffer<'_, T, D, N> {
+impl<T, D: Device, const N: usize, const B: usize, const C: usize> Drop
+    for Buffer<'_, T, D, N, B, C>
+{
     fn drop(&mut self) {
         if self.flag != BufFlag::None {
             return;
@@ -463,7 +479,8 @@ where
         writeln!(f, ",")?;
 
         if !self.ptrs().0.is_null() {
-            writeln!(f, "CPU:    {:?}", self.read())?;
+            let slice = unsafe { std::slice::from_raw_parts(self.ptrs().0, self.len) };
+            writeln!(f, "CPU:    {slice:?}")?;
         }
 
         #[cfg(feature = "opencl")]
