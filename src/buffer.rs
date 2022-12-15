@@ -549,7 +549,7 @@ impl<'a, T, D: CPUCL> core::iter::IntoIterator for &'a mut Buffer<'_, T, D> {
 /// let buf = cached::<f32, _>(&device, 10);
 /// assert_eq!(device.read(&buf), vec![1.5; 10]);
 /// ```
-pub fn cached<'a, T, D: CacheBuf<'a, T> + Device>(device: &'a D, len: usize) -> Buffer<'a, T, D> {
+pub fn cached<'a, T, D: CacheBuf<'a, T> + Device>(device: &'a D, len: usize) -> Buffer<'a, T, D> where D::Ptr<T, 0>: Clone,{
     device.cached(len)
 }
 

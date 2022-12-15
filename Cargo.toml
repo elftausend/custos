@@ -13,6 +13,9 @@ rust-version = "1.65"
 
 [dependencies]
 #cuwanto-server = {path="../cuwanto/cuwanto-server", optional=true}
+
+# WGPU deps
+futures-intrusive = {version="0.5.0", optional=true}
 pollster = {version="0.2.5", optional=true }
 wgpu = {version="0.14.2", optional=true }
 
@@ -21,7 +24,7 @@ wgpu = {version="0.14.2", optional=true }
 custos = { version="0.5.0", default-features = false, optional=true }
 
 [features]
-default = ["blas", "stack", "static-api", "opt-cache", "opencl", "wgpu"]
+default = ["blas", "stack", "static-api", "opencl", "wgpu"]
 opencl = ["custos/opencl"]
 #network = ["cuwanto-server"]
 cuda = []
@@ -31,7 +34,7 @@ blas = []
 static-api = []
 stack = []
 no-std = ["stack"]
-wgpu = ["dep:wgpu", "dep:pollster"]
+wgpu = ["dep:wgpu", "dep:pollster", "dep:futures-intrusive"]
 
 [dev-dependencies]
 #criterion = "0.3"

@@ -92,6 +92,7 @@ pub trait Device: Sized {
     #[inline]
     fn retrieve<T, const N: usize>(&self, len: usize, add_node: impl AddGraph) -> Buffer<T, Self, N>
     where
+        Self::Ptr<T, N>: Clone,
         for<'a> Self: Alloc<'a, T, N>,
     {
         Self::Cache::retrieve(self, len, add_node)

@@ -53,6 +53,7 @@ pub struct InternCudaDevice;
 pub trait CacheAble<D: Device, const N: usize = 0> {
     fn retrieve<T>(device: &D, len: usize, add_node: impl AddGraph) -> Buffer<T, D, N>
     where
+        D::Ptr<T, N>: Clone,
         for<'a> D: Alloc<'a, T, N>;
 
     //fn insert_node<T>(&mut self, device: &D, ptr: &D::Ptr<T, N>, node: Ident, graph_node: crate::Node) {}

@@ -31,7 +31,7 @@ pub fn chosen_cl_idx() -> usize {
         )
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct CLPtr<T> {
     pub ptr: *mut c_void,
     pub host_ptr: *mut T,
