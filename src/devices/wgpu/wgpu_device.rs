@@ -2,7 +2,7 @@ use core::cell::RefCell;
 
 use super::{shader_cache::ShaderCache, wgpu_buffer::*};
 
-use crate::{Alloc, Device, Graph, GraphReturn, RawConv, CacheReturn, Cache, Node, Dealloc, Read};
+use crate::{Alloc, Cache, CacheReturn, Dealloc, Device, Graph, GraphReturn, Node, RawConv, Read};
 use wgpu::{Adapter, Backends, Queue};
 
 pub struct WGPU {
@@ -11,7 +11,7 @@ pub struct WGPU {
     pub queue: Queue,
     pub graph: RefCell<Graph>,
     pub shader_cache: RefCell<ShaderCache>,
-    pub cache: RefCell<Cache<WGPU>>
+    pub cache: RefCell<Cache<WGPU>>,
 }
 
 impl WGPU {
@@ -37,7 +37,7 @@ impl WGPU {
             queue,
             graph: Default::default(),
             shader_cache: Default::default(),
-            cache: Default::default()
+            cache: Default::default(),
         })
     }
 }
@@ -50,30 +50,34 @@ impl GraphReturn for WGPU {
 
 impl Device for WGPU {
     type Ptr<U, const N: usize> = WGPUBufPtr<U>;
-    type Cache<const N: usize> = Cache<WGPU>;
+    type Cache = Cache<WGPU>;
 
     fn new() -> crate::Result<Self> {
         unimplemented!()
     }
 }
 
-impl<'a, T> Alloc<'a, T> for WGPU {
-    fn alloc(&'a self, len: usize) -> WGPUBufPtr<T> {
+impl<T, const N: usize> Alloc<'_, T, N> for WGPU {
+    fn alloc(&self, len: usize) -> WGPUBufPtr<T> {
         let wgpu_buf = WGPUBuffer::new(&self.device, len as u64);
-        WGPUBufPtr { ptr: Box::leak(Box::new(wgpu_buf)) }
+        WGPUBufPtr {
+            ptr: Box::leak(Box::new(wgpu_buf)),
+        }
     }
 
-    fn with_slice(&'a self, data: &[T]) -> WGPUBufPtr<T>
+    fn with_slice(&self, data: &[T]) -> WGPUBufPtr<T>
     where
         T: Clone,
     {
         let wgpu_buf = WGPUBuffer::with_slice(&self.device, data);
-        WGPUBufPtr { ptr: Box::into_raw(Box::new(wgpu_buf)) }
+        WGPUBufPtr {
+            ptr: Box::into_raw(Box::new(wgpu_buf)),
+        }
     }
 }
 
 pub struct WGPUBufPtr<T> {
-    pub ptr: *mut WGPUBuffer<T>
+    pub ptr: *mut WGPUBuffer<T>,
 }
 
 impl<T> WGPUBufPtr<T> {
@@ -91,14 +95,12 @@ impl<T> Dealloc<T> for WGPUBufPtr<T> {
 pub struct RawWGPUBuffer {
     pub ptr: *const u8,
     pub buffer: *mut wgpu::Buffer,
-    node: Node
+    node: Node,
 }
 
 impl Drop for RawWGPUBuffer {
     fn drop(&mut self) {
-        unsafe {
-            drop(Box::from_raw(self.buffer))
-        }
+        unsafe { drop(Box::from_raw(self.buffer)) }
     }
 }
 
@@ -107,28 +109,34 @@ impl CacheReturn for WGPU {
 
     fn cache(&self) -> core::cell::RefMut<crate::Cache<Self>>
     where
-        Self: RawConv 
+        Self: RawConv,
     {
         self.cache.borrow_mut()
     }
 }
 
 impl RawConv for WGPU {
-    fn construct<T, const N: usize>(ptr: &Self::Ptr<T, N>, _len: usize, node: crate::Node) -> RawWGPUBuffer {
+    fn construct<T, const N: usize>(
+        ptr: &Self::Ptr<T, N>,
+        _len: usize,
+        node: crate::Node,
+    ) -> RawWGPUBuffer {
         unsafe {
-            RawWGPUBuffer { 
-                ptr: ptr.ptr as *const u8, 
+            RawWGPUBuffer {
+                ptr: ptr.ptr as *const u8,
                 buffer: &mut *(*ptr.ptr).buf,
-                node 
+                node,
             }
         }
     }
 
     fn destruct<T, const N: usize>(ct: &RawWGPUBuffer) -> (Self::Ptr<T, N>, crate::Node) {
-        (WGPUBufPtr {
-            ptr: ct.ptr as *mut WGPUBuffer<T>,
-        }
-           , ct.node)
+        (
+            WGPUBufPtr {
+                ptr: ct.ptr as *mut WGPUBuffer<T>,
+            },
+            ct.node,
+        )
     }
 }
 
@@ -144,14 +152,11 @@ impl<T: Default + Clone> Read<T, Self> for WGPU {
 
     fn read_to_vec(&self, buf: &crate::Buffer<T, Self>) -> Vec<T>
     where
-        T: Default + Clone 
+        T: Default + Clone,
     {
-
         self.queue.submit(None);
 
-        let buf = unsafe {
-            buf.ptr.buf()
-        };
+        let buf = unsafe { buf.ptr.buf() };
 
         let buf_slice = buf.slice(..);
 
@@ -165,6 +170,9 @@ impl<T: Default + Clone> Read<T, Self> for WGPU {
         };
 
         let data = buf_slice.get_mapped_range();
-        slice_gen_cast::<T>(&data).to_vec()
+        let read = slice_gen_cast::<T>(&data).to_vec();
+        drop(data);
+        buf.unmap();
+        read
     }
 }

@@ -38,7 +38,7 @@ wgpu = ["dep:wgpu", "dep:pollster", "dep:futures-intrusive"]
 
 [dev-dependencies]
 #criterion = "0.3"
-#custos-macro = {path = "../custos-macro"}
+custos-macro = {path = "../custos-macro"}
 
 [[example]]
 name = "cuda_readme"

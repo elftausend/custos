@@ -51,6 +51,15 @@ pub use devices::cuda::CUDA;
 #[cfg(feature = "opencl")]
 pub use devices::opencl::{CLDevice, OpenCL};
 
+#[cfg(feature = "wgpu")]
+pub use devices::wgpu::WGPU;
+
+#[cfg(feature = "stack")]
+pub use devices::stack::Stack;
+
+#[cfg(feature = "network")]
+pub use devices::network::Network;
+
 pub mod devices;
 
 mod buffer;
@@ -85,14 +94,13 @@ pub trait FromCommonPtrs<T>: CommonPtrs<T> {
 
 pub trait Device: Sized {
     type Ptr<U, const N: usize>: Dealloc<U>; //const B: usize, const C: usize
-    type Cache<const N: usize>: CacheAble<Self, N>;
+    type Cache: CacheAble<Self>;
 
     fn new() -> crate::Result<Self>;
 
     #[inline]
     fn retrieve<T, const N: usize>(&self, len: usize, add_node: impl AddGraph) -> Buffer<T, Self, N>
     where
-        Self::Ptr<T, N>: Clone,
         for<'a> Self: Alloc<'a, T, N>,
     {
         Self::Cache::retrieve(self, len, add_node)
@@ -101,7 +109,7 @@ pub trait Device: Sized {
 
 pub trait DevicelessAble<'a, T, const N: usize = 0>: Alloc<'a, T, N> {}
 
-pub trait CPUCL: Device {
+pub trait MainMemory: Device {
     /// This is a device specific `as_slice()` function.
     /// As a 'StackArray' does not need to be checked for null.
     fn buf_as_slice<'a, T, const N: usize>(buf: &'a Buffer<T, Self, N>) -> &'a [T];
@@ -115,9 +123,9 @@ pub trait CPUCL: Device {
 /// use custos::{CPU, Alloc, Buffer, Read, BufFlag, GraphReturn, cpu::CPUPtr};
 ///
 /// let device = CPU::new();
-/// let ptr = device.alloc(12);
+/// let ptr = Alloc::<f32>::alloc(&device, 12);
 ///
-/// let buf = Buffer {
+/// let buf: Buffer = Buffer {
 ///     ptr,
 ///     len: 12,
 ///     device: Some(&device),
@@ -133,9 +141,9 @@ pub trait Alloc<'a, T, const N: usize = 0>: Device {
     /// use custos::{CPU, Alloc, Buffer, Read, BufFlag, GraphReturn, cpu::CPUPtr};
     ///
     /// let device = CPU::new();
-    /// let ptr = device.alloc(12);
+    /// let ptr = Alloc::<f32>::alloc(&device, 12);
     ///
-    /// let buf = Buffer {
+    /// let buf: Buffer = Buffer {
     ///     ptr,
     ///     len: 12,
     ///     device: Some(&device),
@@ -152,9 +160,9 @@ pub trait Alloc<'a, T, const N: usize = 0>: Device {
     /// use custos::{CPU, Alloc, Buffer, Read, BufFlag, GraphReturn, cpu::CPUPtr};
     ///
     /// let device = CPU::new();
-    /// let ptr = device.with_slice(&[1, 5, 4, 3, 6, 9, 0, 4]);
+    /// let ptr = Alloc::<i32>::with_slice(&device, &[1, 5, 4, 3, 6, 9, 0, 4]);
     ///
-    /// let buf = Buffer {
+    /// let buf: Buffer<i32, CPU> = Buffer {
     ///     ptr,
     ///     len: 8,
     ///     device: Some(&device),
@@ -168,7 +176,7 @@ pub trait Alloc<'a, T, const N: usize = 0>: Device {
         T: Clone;
 
     /// If the vector `vec` was allocated previously, this function can be used in order to reduce the amount of allocations, which may be faster than using a slice of `vec`.
-    /// #[inline]
+    #[inline]
     fn alloc_with_vec(&'a self, vec: Vec<T>) -> <Self as Device>::Ptr<T, N>
     where
         T: Clone,
@@ -187,8 +195,8 @@ pub trait Alloc<'a, T, const N: usize = 0>: Device {
 
 pub mod prelude {
     pub use crate::{
-        cached, number::*, range, Buffer, CDatatype, CacheBuf, ClearBuf, Device, GraphReturn, Read,
-        WriteBuf, CPU,
+        cached, cpu::cpu_cached, number::*, opencl::cl_cached, range, Alloc, Buffer, CDatatype,
+        CacheBuf, ClearBuf, Device, GraphReturn, Read, WithConst, WriteBuf, CPU,
     };
 
     #[cfg(not(feature = "no-std"))]

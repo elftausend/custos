@@ -8,7 +8,7 @@ impl<'a, T: Clone> From<&[T]> for Buffer<'a, T> {
     fn from(slice: &[T]) -> Self {
         let device = static_cpu();
         Buffer {
-            ptr: device.with_slice(slice),
+            ptr: Alloc::<T>::with_slice(device, slice),
             len: slice.len(),
             device: Some(device),
             flag: BufFlag::None,
@@ -21,7 +21,8 @@ impl<'a, T: Clone, const N: usize> From<&[T; N]> for Buffer<'a, T> {
     fn from(slice: &[T; N]) -> Self {
         let device = static_cpu();
         Buffer {
-            ptr: device.with_slice(slice),
+            //ptr: device.with_slice(slice),
+            ptr: Alloc::<T>::with_slice(device, slice),
             len: slice.len(),
             device: Some(device),
             flag: BufFlag::None,
@@ -34,7 +35,8 @@ impl<'a, T: Clone, const N: usize> From<[T; N]> for Buffer<'a, T> {
     fn from(slice: [T; N]) -> Self {
         let device = static_cpu();
         Buffer {
-            ptr: device.with_slice(&slice),
+            //ptr: device.with_slice(&slice),
+            ptr: Alloc::<T>::with_slice(device, &slice),
             len: slice.len(),
             device: Some(device),
             flag: BufFlag::None,
@@ -48,7 +50,8 @@ impl<'a, T: Clone> From<Vec<T>> for Buffer<'a, T> {
         let device = static_cpu();
         Buffer {
             len: data.len(),
-            ptr: device.alloc_with_vec(data),
+            //ptr: device.alloc_with_vec(data),
+            ptr: Alloc::<T>::alloc_with_vec(device, data),
             device: Some(device),
             flag: BufFlag::None,
             node: Node::default(),

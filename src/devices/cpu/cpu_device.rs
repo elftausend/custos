@@ -2,7 +2,7 @@ use crate::{
     cache::RawConv,
     devices::cache::{Cache, CacheReturn},
     Alloc, Buffer, CacheBuf, CachedLeaf, ClearBuf, CloneBuf, Device, DevicelessAble, Graph,
-    GraphReturn, Read, WriteBuf, CPUCL,
+    GraphReturn, MainMemory, Read, WriteBuf,
 };
 use alloc::{
     alloc::{handle_alloc_error, Layout},
@@ -49,7 +49,7 @@ impl CPU {
 
 impl Device for CPU {
     type Ptr<U, const N: usize> = CPUPtr<U>;
-    type Cache<const N: usize> = Cache<CPU>; //<CPU as CacheReturn>::CT
+    type Cache = Cache<CPU>; //<CPU as CacheReturn>::CT
 
     fn new() -> crate::Result<Self> {
         Ok(Self::new())
@@ -83,9 +83,14 @@ impl RawConv for CPU {
 
 impl<'a, T> DevicelessAble<'a, T> for CPU {}
 
-impl<'a, T> Alloc<'a, T> for CPU {
-    fn alloc(&self, len: usize) -> CPUPtr<T> {
+impl<T, const N: usize> Alloc<'_, T, N> for CPU {
+    fn alloc(&self, mut len: usize) -> CPUPtr<T> {
         assert!(len > 0, "invalid buffer len: 0");
+
+        if N > len {
+            len = N
+        }
+
         let layout = Layout::array::<T>(len).unwrap();
         let ptr = unsafe { alloc::alloc::alloc(layout) };
 
@@ -106,7 +111,8 @@ impl<'a, T> Alloc<'a, T> for CPU {
         T: Clone,
     {
         assert!(!data.is_empty(), "invalid buffer len: 0");
-        let cpu_ptr = self.alloc(data.len());
+        let cpu_ptr = Alloc::<T>::alloc(self, data.len());
+        //= self.alloc(data.len());
         let slice = unsafe { alloc::slice::from_raw_parts_mut(cpu_ptr.ptr, data.len()) };
         slice.clone_from_slice(data);
 
@@ -137,7 +143,7 @@ impl GraphReturn for CPU {
     }
 }
 
-impl CPUCL for CPU {
+impl MainMemory for CPU {
     #[inline]
     fn buf_as_slice<'a, T, const N: usize>(buf: &'a Buffer<T, Self, N>) -> &'a [T] {
         assert!(
@@ -179,16 +185,16 @@ pub fn cpu_cached<T: Clone>(device: &CPU, len: usize) -> Buffer<T, CPU> {
     device.cached(len)
 }
 
-impl<T, D: CPUCL> Read<T, D> for CPU {
+impl<T, D: MainMemory, const N: usize> Read<T, D, N> for CPU {
     type Read<'a> = &'a [T] where T: 'a, D: 'a;
 
     #[inline]
-    fn read<'a>(&self, buf: &'a Buffer<T, D>) -> Self::Read<'a> {
+    fn read<'a>(&self, buf: &'a Buffer<T, D, N>) -> Self::Read<'a> {
         buf.as_slice()
     }
 
     #[inline]
-    fn read_to_vec<'a>(&self, buf: &Buffer<T, D>) -> Vec<T>
+    fn read_to_vec<'a>(&self, buf: &Buffer<T, D, N>) -> Vec<T>
     where
         T: Default + Clone,
     {
@@ -196,7 +202,7 @@ impl<T, D: CPUCL> Read<T, D> for CPU {
     }
 }
 
-impl<T: Default, D: CPUCL> ClearBuf<T, D> for CPU {
+impl<T: Default, D: MainMemory> ClearBuf<T, D> for CPU {
     fn clear(&self, buf: &mut Buffer<T, D>) {
         for value in buf {
             *value = T::default();
@@ -204,7 +210,7 @@ impl<T: Default, D: CPUCL> ClearBuf<T, D> for CPU {
     }
 }
 
-impl<T: Copy, D: CPUCL> WriteBuf<T, D> for CPU {
+impl<T: Copy, D: MainMemory> WriteBuf<T, D> for CPU {
     fn write(&self, buf: &mut Buffer<T, D>, data: &[T]) {
         buf.copy_from_slice(data)
     }

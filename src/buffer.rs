@@ -3,15 +3,17 @@ use core::{ffi::c_void, fmt::Debug};
 use crate::cpu::{CPUPtr, CPU};
 
 use crate::{
-    Alloc, CacheBuf, ClearBuf, CloneBuf, CommonPtrs, Dealloc, Device, DevicelessAble, Node, Read,
-    WriteBuf, CPUCL,
+    Alloc, CacheBuf, ClearBuf, CloneBuf, CommonPtrs, Dealloc, Device, DevicelessAble, MainMemory,
+    Node, Read, WriteBuf,
 };
 use alloc::vec::Vec;
 pub use flag::BufFlag;
+pub use impl_from_const::*;
 pub use num::Num;
 
 mod flag;
 mod impl_from;
+mod impl_from_const;
 mod num;
 
 /// The underlying non-growable array structure. A `Buffer` may be encapsulated in other structs.
@@ -29,14 +31,8 @@ mod num;
 /// buffer_f32_cpu(&buf);
 /// buffer_generic(&buf);
 /// ```
-pub struct Buffer<
-    'a,
-    T = f32,
-    D: Device = CPU,
-    const N: usize = 0,
-    const B: usize = 0,
-    const C: usize = 0,
-> {
+pub struct Buffer<'a, T = f32, D: Device = CPU, const N: usize = 0> {
+    // const B: usize = 0, const C: usize = 0,
     pub ptr: D::Ptr<T, N>,
     pub len: usize,
     pub device: Option<&'a D>,
@@ -44,13 +40,13 @@ pub struct Buffer<
     pub node: Node,
 }
 
-unsafe impl<'a, T, D: Device, const N: usize, const B: usize, const C: usize> Send
-    for Buffer<'a, T, D, N, B, C>
+unsafe impl<'a, T, D: Device, const N: usize /*const B: usize, const C: usize*/> Send
+    for Buffer<'a, T, D, N /*B, C*/>
 {
 }
 
-unsafe impl<'a, T, D: Device, const N: usize, const B: usize, const C: usize> Sync
-    for Buffer<'a, T, D, N, B, C>
+unsafe impl<'a, T, D: Device, const N: usize /*const B: usize, const C: usize*/> Sync
+    for Buffer<'a, T, D, N /*B, C*/>
 {
 }
 
@@ -267,9 +263,9 @@ impl<'a, T> Buffer<'a, T> {
     /// use std::ffi::c_void;
     ///
     /// let device = CPU::new();
-    /// let ptr = device.alloc(10);
+    /// let ptr = Alloc::<f32>::alloc(&device, 10);
     /// let mut buf = unsafe {
-    ///     Buffer::<f32>::from_raw_host(ptr.ptr, 10)
+    ///     Buffer::from_raw_host(ptr.ptr, 10)
     /// };
     /// for (idx, value) in buf.iter_mut().enumerate() {
     ///     *value += idx as f32;
@@ -315,7 +311,7 @@ impl<'a, T> Buffer<'a, T, crate::CUDA> {
     }
 }
 
-impl<'a, T, D: CPUCL, const N: usize> Buffer<'a, T, D, N> {
+impl<'a, T, D: MainMemory, const N: usize> Buffer<'a, T, D, N> {
     /// Returns a CPU slice. This does not work with CUDA or raw OpenCL buffers.
     #[inline]
     pub fn as_slice(&self) -> &[T] {
@@ -329,7 +325,7 @@ impl<'a, T, D: CPUCL, const N: usize> Buffer<'a, T, D, N> {
     }
 }
 
-impl<'a, T, D: CPUCL, const N: usize> Buffer<'a, T, D, N>
+impl<'a, T, D: MainMemory, const N: usize> Buffer<'a, T, D, N>
 where
     D::Ptr<T, N>: CommonPtrs<T>,
 {
@@ -366,8 +362,8 @@ unsafe impl<T> Send for Buffer<'a, T> {}
 #[cfg(feature = "safe")]
 unsafe impl<T> Sync for Buffer<'a, T> {}*/
 
-impl<T, D: Device, const N: usize, const B: usize, const C: usize> Drop
-    for Buffer<'_, T, D, N, B, C>
+impl<T, D: Device, const N: usize /*const B: usize, const C: usize*/> Drop
+    for Buffer<'_, T, D, N /*B, C*/>
 {
     fn drop(&mut self) {
         if self.flag != BufFlag::None {
@@ -395,13 +391,13 @@ where
     }
 }
 
-impl<T, D: CPUCL> AsRef<[T]> for Buffer<'_, T, D> {
+impl<T, D: MainMemory> AsRef<[T]> for Buffer<'_, T, D> {
     fn as_ref(&self) -> &[T] {
         self.as_slice()
     }
 }
 
-impl<T, D: CPUCL> AsMut<[T]> for Buffer<'_, T, D> {
+impl<T, D: MainMemory> AsMut<[T]> for Buffer<'_, T, D> {
     fn as_mut(&mut self) -> &mut [T] {
         self.as_mut_slice()
     }
@@ -430,7 +426,7 @@ impl<T, D: CPUCL> AsMut<[T]> for Buffer<'_, T, D> {
 /// slice_add(&a, &b, &mut c);
 /// assert_eq!(c.as_slice(), &[3., 5., 7., 9.,]);
 /// ```
-impl<const N: usize, T, D: CPUCL> core::ops::Deref for Buffer<'_, T, D, N> {
+impl<const N: usize, T, D: MainMemory> core::ops::Deref for Buffer<'_, T, D, N> {
     type Target = [T];
 
     fn deref(&self) -> &Self::Target {
@@ -459,7 +455,7 @@ impl<const N: usize, T, D: CPUCL> core::ops::Deref for Buffer<'_, T, D, N> {
 /// slice_add(&a, &b, &mut c);
 /// assert_eq!(c.as_slice(), &[6., 5., 9., 9.,]);
 /// ```
-impl<const N: usize, T, D: CPUCL> core::ops::DerefMut for Buffer<'_, T, D, N> {
+impl<const N: usize, T, D: MainMemory> core::ops::DerefMut for Buffer<'_, T, D, N> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         self.as_mut_slice()
     }
@@ -502,7 +498,7 @@ where
     }
 }
 
-impl<'a, T, D: CPUCL> core::iter::IntoIterator for &'a Buffer<'_, T, D> {
+impl<'a, T, D: MainMemory> core::iter::IntoIterator for &'a Buffer<'_, T, D> {
     type Item = &'a T;
 
     type IntoIter = alloc::slice::Iter<'a, T>;
@@ -512,7 +508,7 @@ impl<'a, T, D: CPUCL> core::iter::IntoIterator for &'a Buffer<'_, T, D> {
     }
 }
 
-impl<'a, T, D: CPUCL> core::iter::IntoIterator for &'a mut Buffer<'_, T, D> {
+impl<'a, T, D: MainMemory> core::iter::IntoIterator for &'a mut Buffer<'_, T, D> {
     type Item = &'a mut T;
 
     type IntoIter = core::slice::IterMut<'a, T>;
@@ -549,7 +545,10 @@ impl<'a, T, D: CPUCL> core::iter::IntoIterator for &'a mut Buffer<'_, T, D> {
 /// let buf = cached::<f32, _>(&device, 10);
 /// assert_eq!(device.read(&buf), vec![1.5; 10]);
 /// ```
-pub fn cached<'a, T, D: CacheBuf<'a, T> + Device>(device: &'a D, len: usize) -> Buffer<'a, T, D> where D::Ptr<T, 0>: Clone,{
+pub fn cached<'a, T, D: CacheBuf<'a, T> + Device>(device: &'a D, len: usize) -> Buffer<'a, T, D>
+where
+    D::Ptr<T, 0>: Clone,
+{
     device.cached(len)
 }
 

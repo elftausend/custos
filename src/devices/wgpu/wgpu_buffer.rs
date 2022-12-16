@@ -1,8 +1,5 @@
 use core::{marker::PhantomData, mem::size_of};
-
 use wgpu::util::DeviceExt;
-
-use crate::Dealloc;
 
 pub struct WGPUBuffer<T> {
     pub buf: *mut wgpu::Buffer,
@@ -14,7 +11,10 @@ impl<T> WGPUBuffer<T> {
         let buf = Box::new(device.create_buffer(&wgpu::BufferDescriptor {
             label: None,
             size: size * size_of::<T>() as u64,
-            usage: wgpu::BufferUsages::MAP_READ | wgpu::BufferUsages::COPY_DST,
+            usage: wgpu::BufferUsages::STORAGE
+                | wgpu::BufferUsages::COPY_DST
+                | wgpu::BufferUsages::COPY_SRC
+                | wgpu::BufferUsages::MAP_READ,
             mapped_at_creation: false,
         }));
         Self {
@@ -24,15 +24,16 @@ impl<T> WGPUBuffer<T> {
     }
 
     pub fn with_slice(device: &wgpu::Device, slice: &[T]) -> Self {
-        
-        let buf = Box::new(device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: None,
-            contents: slice_u8_cast(slice),
-            usage: wgpu::BufferUsages::STORAGE
-                | wgpu::BufferUsages::COPY_DST
-                | wgpu::BufferUsages::COPY_SRC
-                | wgpu::BufferUsages::MAP_READ 
-        }));
+        let buf = Box::new(
+            device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                label: None,
+                contents: slice_u8_cast(slice),
+                usage: wgpu::BufferUsages::STORAGE
+                    | wgpu::BufferUsages::COPY_DST
+                    | wgpu::BufferUsages::COPY_SRC
+                    | wgpu::BufferUsages::MAP_READ,
+            }),
+        );
         Self {
             buf: Box::into_raw(buf),
             _p: PhantomData,
@@ -42,9 +43,7 @@ impl<T> WGPUBuffer<T> {
 
 impl<T> Drop for WGPUBuffer<T> {
     fn drop(&mut self) {
-        unsafe {
-            drop(Box::from_raw(self.buf))
-        }
+        unsafe { drop(Box::from_raw(self.buf)) }
     }
 }
 

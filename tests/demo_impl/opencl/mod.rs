@@ -2,18 +2,18 @@ use custos::{opencl::enqueue_kernel, Buffer, CDatatype, Device, OpenCL};
 
 use super::ElementWise;
 
-pub fn cl_element_wise<T>(
+pub fn cl_element_wise<T, const N: usize>(
     device: &OpenCL,
-    lhs: &Buffer<T, OpenCL>,
-    rhs: &Buffer<T, OpenCL>,
-    out: &mut Buffer<T, OpenCL>,
+    lhs: &Buffer<T, OpenCL, N>,
+    rhs: &Buffer<T, OpenCL, N>,
+    out: &mut Buffer<T, OpenCL, N>,
     op: &str,
 ) -> custos::Result<()>
 where
     T: CDatatype,
 {
     let src = format!(
-        "__kernel void cl_ew(__global {datatype}* lhs, __global {datatype}* rhs, __global {datatype} out) {{
+        "__kernel void cl_ew(__global {datatype}* lhs, __global {datatype}* rhs, __global {datatype}* out) {{
             size_t idx = get_global_id(0);
 
             out[idx] = lhs[idx] {op} rhs[idx];
@@ -24,16 +24,16 @@ where
     Ok(())
 }
 
-impl<T: CDatatype> ElementWise<T, OpenCL> for OpenCL {
+impl<T: CDatatype, const N: usize> ElementWise<T, OpenCL, N> for OpenCL {
     #[inline]
-    fn add(&self, lhs: &Buffer<T, OpenCL>, rhs: &Buffer<T, OpenCL>) -> Buffer<T, OpenCL> {
+    fn add(&self, lhs: &Buffer<T, OpenCL, N>, rhs: &Buffer<T, OpenCL, N>) -> Buffer<T, OpenCL, N> {
         let mut out = self.retrieve(lhs.len, (lhs, rhs));
         cl_element_wise(self, lhs, rhs, &mut out, "+").unwrap();
         out
     }
 
     #[inline]
-    fn mul(&self, lhs: &Buffer<T, OpenCL>, rhs: &Buffer<T, OpenCL>) -> Buffer<T, OpenCL> {
+    fn mul(&self, lhs: &Buffer<T, OpenCL, N>, rhs: &Buffer<T, OpenCL, N>) -> Buffer<T, OpenCL, N> {
         let mut out = self.retrieve(lhs.len, (lhs, rhs));
         cl_element_wise(self, lhs, rhs, &mut out, "*").unwrap();
         out

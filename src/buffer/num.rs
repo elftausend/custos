@@ -29,7 +29,7 @@ impl<T> CommonPtrs<T> for Num<T> {
 
 impl Device for () {
     type Ptr<U, const N: usize> = Num<U>;
-    type Cache<const N: usize> = ();
+    type Cache = ();
 
     fn new() -> crate::Result<Self> {
         Ok(())
@@ -38,7 +38,7 @@ impl Device for () {
 
 impl<'a, T: Clone> CloneBuf<'a, T> for () {
     #[inline]
-    fn clone_buf(&'a self, buf: &Buffer<'a, T, Self>) -> Buffer<'a, T, Self> {
+    fn clone_buf(&self, buf: &Buffer<'a, T, Self>) -> Buffer<'a, T, Self> {
         Buffer {
             ptr: Num {
                 num: buf.ptr.num.clone(),
@@ -95,7 +95,7 @@ impl<'a, T> Buffer<'a, T, ()> {
     #[inline]
     pub fn item(&self) -> T
     where
-        T: Default + Copy,
+        T: Copy,
     {
         self.ptr.num
     }

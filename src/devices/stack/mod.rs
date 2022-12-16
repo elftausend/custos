@@ -6,7 +6,7 @@ pub use stack_device::*;
 
 #[cfg(test)]
 mod tests {
-    use crate::{Alloc, Buffer, Device, CPU, CPUCL};
+    use crate::{Alloc, Buffer, Device, MainMemory, CPU};
     use core::ops::Add;
 
     use super::stack_device::Stack;
@@ -34,7 +34,7 @@ mod tests {
 
     impl<T, D> AddBuf<T, D> for CPU
     where
-        D: CPUCL,
+        D: MainMemory,
         T: Add<Output = T> + Clone,
     {
         fn add(&self, lhs: &Buffer<T, D>, rhs: &Buffer<T, D>) -> Buffer<T, Self> {
@@ -51,7 +51,7 @@ mod tests {
     impl<const N: usize, T, D> AddBuf<T, D, N> for Stack
     where
         for<'a> Stack: Alloc<'a, T, N>,
-        D: CPUCL,
+        D: MainMemory,
         T: Add<Output = T> + Clone,
     {
         fn add(&self, lhs: &Buffer<T, D, N>, rhs: &Buffer<T, D, N>) -> Buffer<T, Self, N> {

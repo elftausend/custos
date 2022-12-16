@@ -36,11 +36,11 @@ impl<D: RawConv> Default for Cache<D> {
     }
 }
 
-impl<D, const N: usize> CacheAble<D, N> for Cache<D>
+impl<D> CacheAble<D> for Cache<D>
 where
     D: RawConv,
 {
-    fn retrieve<T>(device: &D, len: usize, add_node: impl AddGraph) -> Buffer<T, D, N>
+    fn retrieve<T, const N: usize >(device: &D, len: usize, add_node: impl AddGraph) -> Buffer<T, D, N>
     where
         for<'b> D: Alloc<'b, T, N>,
     {

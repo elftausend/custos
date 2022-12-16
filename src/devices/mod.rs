@@ -50,18 +50,18 @@ pub struct InternCLDevice;
 #[derive(Debug)]
 pub struct InternCudaDevice;
 
-pub trait CacheAble<D: Device, const N: usize = 0> {
-    fn retrieve<T>(device: &D, len: usize, add_node: impl AddGraph) -> Buffer<T, D, N>
+pub trait CacheAble<D: Device> {
+    fn retrieve<T, const N: usize>(device: &D, len: usize, add_node: impl AddGraph) -> Buffer<T, D, N>
     where
-        D::Ptr<T, N>: Clone,
         for<'a> D: Alloc<'a, T, N>;
 
     //fn insert_node<T>(&mut self, device: &D, ptr: &D::Ptr<T, N>, node: Ident, graph_node: crate::Node) {}
 }
 
 // TODO: Mind num implement?
-impl<D: Device, const N: usize> CacheAble<D, N> for () {
-    fn retrieve<T>(device: &D, len: usize, _add_node: impl AddGraph) -> Buffer<T, D, N>
+impl<D: Device> CacheAble<D> for () {
+    #[inline]
+    fn retrieve<T, const N: usize>(device: &D, len: usize, _add_node: impl AddGraph) -> Buffer<T, D, N>
     where
         for<'a> D: Alloc<'a, T, N>,
     {

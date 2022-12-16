@@ -1,4 +1,4 @@
-use crate::{Alloc, Buffer, Device, DevicelessAble, Read, CPUCL};
+use crate::{Alloc, Buffer, Device, DevicelessAble, MainMemory, Read};
 
 use super::stack_array::StackArray;
 
@@ -9,14 +9,14 @@ impl<'a, T: Copy + Default> DevicelessAble<'a, T> for Stack {}
 
 impl Device for Stack {
     type Ptr<U, const N: usize> = StackArray<N, U>;
-    type Cache<const N: usize> = ();
+    type Cache = ();
 
     fn new() -> crate::Result<Self> {
         Ok(Stack)
     }
 }
 
-impl CPUCL for Stack {
+impl MainMemory for Stack {
     #[inline]
     fn buf_as_slice<'a, T, const N: usize>(buf: &'a Buffer<T, Self, N>) -> &'a [T] {
         &buf.ptr.array

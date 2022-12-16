@@ -15,7 +15,8 @@ where
         Buffer {
             len: from_iter.len(),
             node: device.graph().add_leaf(from_iter.len()),
-            ptr: device.alloc_with_vec(from_iter),
+            //ptr: device.alloc_with_vec(from_iter),
+            ptr: Alloc::<A>::alloc_with_vec(device, from_iter),
             device: Some(device),
             flag: BufFlag::None,
         }
@@ -53,7 +54,7 @@ where
         Buffer {
             len: from_iter.len(),
             node: device.graph().add_leaf(from_iter.len()),
-            ptr: device.alloc_with_vec(from_iter),
+            ptr: Alloc::<A>::alloc_with_vec(device, from_iter),
             device: Some(device),
             flag: BufFlag::None,
         }

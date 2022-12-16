@@ -1,12 +1,7 @@
-use custos::cpu::cpu_cached;
-#[cfg(feature = "opencl")]
-use custos::{devices::opencl::OpenCL, Error};
-use custos::{Alloc, Buffer, CommonPtrs, Device, Read};
-
-use custos::CPU;
+use custos::{prelude::*, CommonPtrs, Error};
 
 #[cfg(unified_cl)]
-use custos::CPUCL;
+use custos::MainMemory;
 
 #[cfg(not(feature = "realloc"))]
 use custos::{get_count, set_count};
@@ -45,6 +40,8 @@ fn test_cldevice_name() -> Result<(), Error> {
 #[cfg(feature = "opencl")]
 #[test]
 fn test_cldevice_version() -> Result<(), Error> {
+    use custos::Error;
+
     let device = OpenCL::new(0)?;
     println!("{}", device.version()?);
     Ok(())
@@ -243,7 +240,7 @@ fn test_debug_print_buf() -> custos::Result<()> {
 }
 
 #[cfg(unified_cl)]
-fn slice_add<T, D: CPUCL>(_lhs: &Buffer<T, D>) {}
+fn slice_add<T, D: MainMemory>(_lhs: &Buffer<T, D>) {}
 
 #[cfg(unified_cl)]
 #[test]
@@ -324,4 +321,14 @@ fn test_deviceless_buf_cl() -> custos::Result<()> {
 fn test_buf_num() {
     let buf = Buffer::from(5);
     assert_eq!(*buf, 5);
+}
+
+#[test]
+fn test_buf_const() {
+    let device = CPU::new();
+    //let device = Stack;
+    let buf = Buffer::with(&device, [1., 2., 3.]);
+    buf.read();
+
+    //let buf = Buffer::from((&device, [1., 2., 3.]));
 }

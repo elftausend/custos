@@ -19,7 +19,7 @@ use std::{
 };
 
 #[cfg(unified_cl)]
-use crate::{opencl::api::unified_ptr, CPUCL};
+use crate::{opencl::api::unified_ptr, MainMemory};
 
 /// Used to perform calculations with an OpenCL capable device.
 /// To make new calculations invocable, a trait providing new operations should be implemented for [CLDevice].
@@ -125,7 +125,7 @@ impl OpenCL {
 
 impl Device for OpenCL {
     type Ptr<U, const N: usize> = CLPtr<U>;
-    type Cache<const N: usize> = Cache<Self>;
+    type Cache = Cache<Self>;
 
     fn new() -> crate::Result<Self> {
         OpenCL::new(chosen_cl_idx())
@@ -174,8 +174,14 @@ impl Debug for OpenCL {
     }
 }
 
-impl<'a, T> Alloc<'a, T> for OpenCL {
-    fn alloc(&self, len: usize) -> CLPtr<T> {
+impl<T, const N: usize> Alloc<'_, T, N> for OpenCL {
+    fn alloc(&self, mut len: usize) -> CLPtr<T> {
+        assert!(len > 0, "invalid buffer len: 0");
+
+        if N > len {
+            len = N
+        }
+
         let ptr =
             create_buffer::<T>(&self.ctx(), MemFlags::MemReadWrite as u64, len, None).unwrap();
 
@@ -242,7 +248,7 @@ impl GraphReturn for OpenCL {
 }
 
 #[cfg(unified_cl)]
-impl CPUCL for OpenCL {
+impl MainMemory for OpenCL {
     #[inline]
     fn buf_as_slice<'a, T, const N: usize>(buf: &'a Buffer<T, Self, N>) -> &'a [T] {
         unsafe { alloc::slice::from_raw_parts(buf.host_ptr(), buf.len) }
@@ -291,8 +297,10 @@ impl<T: Clone + Default> Read<T, OpenCL> for OpenCL {
     }
 }*/
 
-#[cfg(unified_cl)]
 impl<T: Clone + Default> Read<T, OpenCL> for OpenCL {
+    #[cfg(not(unified_cl))]
+    type Read<'a> = Vec<T> where T: 'a;
+    #[cfg(unified_cl)]
     type Read<'a> = &'a [T] where T: 'a;
 
     #[cfg(not(unified_cl))]

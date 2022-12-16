@@ -2,8 +2,6 @@ use alloc::borrow::Cow;
 use std::collections::HashMap;
 use wgpu::ShaderModule;
 
-use super::WGPU;
-
 #[derive(Debug, Default)]
 pub struct ShaderCache {
     shaders: HashMap<String, ShaderModule>,

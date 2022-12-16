@@ -8,11 +8,15 @@ pub trait AsBindingResource {
     fn as_binding_resource(&self) -> BindingResource;
 }
 
-impl<'a, T> AsBindingResource for Buffer<'a, T, WGPU> {
+impl<'a, T, const N: usize> AsBindingResource for Buffer<'a, T, WGPU, N> {
     fn as_binding_resource(&self) -> BindingResource {
-        unsafe {
-            self.ptr.buf().as_entire_binding()
-        }
+        unsafe { self.ptr.buf().as_entire_binding() }
+    }
+}
+
+impl<'a, T, const N: usize> AsBindingResource for &Buffer<'a, T, WGPU, N> {
+    fn as_binding_resource(&self) -> BindingResource {
+        unsafe { self.ptr.buf().as_entire_binding() }
     }
 }
 
@@ -32,21 +36,24 @@ pub fn launch_shader(device: &WGPU, src: &str, gws: [u32; 3], args: &[impl AsBin
 
     let bind_group_layout = compute_pipeline.get_bind_group_layout(0);
 
-    let bind_group_entries = args.iter().enumerate().map(|(binding, resource)| {
-        wgpu::BindGroupEntry {
+    let bind_group_entries = args
+        .iter()
+        .enumerate()
+        .map(|(binding, resource)| wgpu::BindGroupEntry {
             binding: binding as u32,
-            resource: resource.as_binding_resource()
-        }
-    }).collect::<Vec<wgpu::BindGroupEntry>>();
+            resource: resource.as_binding_resource(),
+        })
+        .collect::<Vec<wgpu::BindGroupEntry>>();
 
     let bind_group = device.device.create_bind_group(&wgpu::BindGroupDescriptor {
         label: None,
         layout: &bind_group_layout,
-        entries: &bind_group_entries
+        entries: &bind_group_entries,
     });
 
-    let mut encoder =
-        device.device.create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
+    let mut encoder = device
+        .device
+        .create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
     {
         let mut cpass = encoder.begin_compute_pass(&wgpu::ComputePassDescriptor { label: None });
         cpass.set_pipeline(&compute_pipeline);

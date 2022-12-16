@@ -1,4 +1,4 @@
-use crate::{Ident, RawConv, COUNT};
+use crate::{Ident, COUNT};
 use core::cell::RefMut;
 
 #[cfg(feature = "opt-cache")]

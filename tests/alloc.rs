@@ -4,8 +4,9 @@ use custos::{Alloc, BufFlag};
 #[test]
 fn test_alloc() {
     let device = CPU::new();
-    let ptr = device.with_slice(&[1, 5, 4, 3, 6, 9, 0, 4]);
-    let buf = Buffer {
+    let ptr = Alloc::<i32, 0>::with_slice(&device, &[1, 5, 4, 3, 6, 9, 0, 4]);
+    //let ptr = device.with_slice(&[1, 5, 4, 3, 6, 9, 0, 4]);
+    let buf: Buffer<i32, CPU, 0> = Buffer {
         ptr,
         len: 8,
         device: Some(&device),
@@ -22,8 +23,9 @@ fn test_wgpu_alloc() {
 
     let buf = Buffer::<f32, _>::new(&device, 100);
 
-    let buf2 = Buffer::<f32, _>::from((&device, &[1., 2., 3., 4., -9.]));
+    assert_eq!(buf.read(), &[0.; 100]);
 
-    let data = buf.read();
-    println!("data: {data:?}")
+    let buf1 = Buffer::<f32, _>::from((&device, &[1., 2., 3., 4., -9.]));
+
+    assert_eq!(buf1.read(), &[1., 2., 3., 4., -9.])
 }
