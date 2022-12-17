@@ -49,7 +49,7 @@ pub use devices::cpu::CPU;
 #[cfg(feature = "cuda")]
 pub use devices::cuda::CUDA;
 #[cfg(feature = "opencl")]
-pub use devices::opencl::{CLDevice, OpenCL};
+pub use devices::opencl::OpenCL;
 
 #[cfg(feature = "wgpu")]
 pub use devices::wgpu::WGPU;
@@ -195,7 +195,7 @@ pub trait Alloc<'a, T, const N: usize = 0>: Device {
 
 pub mod prelude {
     pub use crate::{
-        cached, cpu::cpu_cached, number::*, opencl::cl_cached, range, Alloc, Buffer, CDatatype,
+        cached, cpu::cpu_cached, number::*, range, Alloc, Buffer, CDatatype,
         CacheBuf, ClearBuf, Device, GraphReturn, Read, WithConst, WriteBuf, CPU,
     };
 
@@ -208,7 +208,7 @@ pub mod prelude {
     #[cfg(feature = "opencl")]
     #[cfg(unified_cl)]
     #[cfg(not(feature = "realloc"))]
-    pub use crate::opencl::{construct_buffer, to_unified};
+    pub use crate::opencl::{construct_buffer, to_unified, cl_cached};
 
     #[cfg(feature = "stack")]
     pub use crate::stack::Stack;

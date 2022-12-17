@@ -20,7 +20,7 @@ pub trait ClearBuf<T, D: Device, const N: usize = 0> {
 }
 
 /// Trait for reading buffers.
-pub trait Read<T, D: Device, const N: usize = 0> {
+pub trait Read<T, D: Device, const N: usize = 0>: Device {
     type Read<'a>
     where
         T: 'a,

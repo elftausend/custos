@@ -44,7 +44,7 @@ pub type CUdeviceptr = core::ffi::c_ulonglong;
 
 #[cfg(not(feature = "opencl"))]
 #[derive(Debug)]
-pub struct InternCLDevice;
+pub struct InternOpenCL;
 
 #[cfg(not(feature = "cuda"))]
 #[derive(Debug)]

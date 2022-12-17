@@ -706,7 +706,7 @@ pub fn enqueue_nd_range_kernel(
 mod tests {
     use std::cell::RefCell;
 
-    use crate::{Buffer, CLDevice, OpenCL};
+    use crate::{Buffer, opencl::cl_device::CLDevice, OpenCL};
 
     #[test]
     fn test_multiplie_queues() -> crate::Result<()> {
