@@ -232,8 +232,8 @@ impl<'a, T, D: Device> Buffer<'a, T, D> {
         }
     }
 
-    /// Returns a shallow copy of &self, if the `realloc` feature is activated.
-    /// If the `realloc` feature is not activated, it returns a deep copy / clone.
+    /// Returns a shallow copy of &self, if the `realloc` feature is deactivated.
+    /// If the `realloc` feature is activated, it returns a deep copy / clone.
     ///
     /// # Safety
     /// Itself, this function does not need to be unsafe.
@@ -275,12 +275,14 @@ impl<'a, T> Buffer<'a, T> {
     /// ```
     /// # Safety
     /// The pointer must not outlive the Buffer.
+    /// The `Buffer` does not manage deallocation of the allocated memory.
     pub unsafe fn from_raw_host(ptr: *mut T, len: usize) -> Buffer<'a, T> {
         Buffer {
             ptr: CPUPtr { ptr },
-            //ptr: (ptr, null_mut(), 0),
             len,
-            ..Default::default()
+            device: None,
+            flag: BufFlag::Wrapper,
+            node: Default::default(),
         }
     }
 }
