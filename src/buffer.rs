@@ -274,7 +274,7 @@ impl<'a, T> Buffer<'a, T> {
     ///
     /// ```
     /// # Safety
-    /// The pointer must not outlive the Buffer.
+    /// The pointer must be valid.
     /// The `Buffer` does not manage deallocation of the allocated memory.
     pub unsafe fn from_raw_host(ptr: *mut T, len: usize) -> Buffer<'a, T> {
         Buffer {

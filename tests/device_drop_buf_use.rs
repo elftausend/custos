@@ -1,4 +1,16 @@
-//use custos::{Buffer, ClearBuf, CPU};
+//use custos::{Buffer, ClearBuf, CPU, WithConst};
+
+/* 
+#[test]
+fn test_device_return() {
+
+    let x = {
+        let device = CPU::new();
+        let buf = Buffer::with(&device, [1., 2., 3.,]);
+        buf.device()
+    };
+}
+*/
 
 /*
 // won't compile
