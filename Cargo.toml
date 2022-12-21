@@ -24,7 +24,7 @@ wgpu = {version="0.14.2", optional=true }
 custos = { version="0.5.0", default-features = false, optional=true }
 
 [features]
-default = ["blas", "stack", "static-api", "opencl", "wgpu"]
+default = ["blas", "stack", "static-api", "opencl", "wgpu", "cuda"]
 opencl = ["custos/opencl"]
 #network = ["cuwanto-server"]
 cuda = []

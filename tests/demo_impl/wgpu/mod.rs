@@ -93,7 +93,7 @@ fn test_add_large() {
 
     for _ in range(0..100) {
         let out = device.add(&lhs, &rhs);
-        //        assert_eq!(out.read(), out_actual_data);
+        assert_eq!(out.read(), out_actual_data);
     }
 
     println!("wgpu dur: {:?}", start.elapsed());

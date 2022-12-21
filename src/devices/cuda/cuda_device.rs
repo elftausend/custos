@@ -70,7 +70,7 @@ impl CUDA {
 
 impl Device for CUDA {
     type Ptr<U, const N: usize> = CUDAPtr<U>;
-    type Cache<const N: usize> = Cache<CUDA>;
+    type Cache = Cache<CUDA>;
 
     fn new() -> crate::Result<Self> {
         CUDA::new(chosen_cu_idx())
@@ -106,7 +106,7 @@ impl Drop for CUDA {
     }
 }
 
-impl<'a, T> Alloc<'a, T> for CUDA {
+impl<T> Alloc<'_, T> for CUDA {
     fn alloc(&self, len: usize) -> CUDAPtr<T> {
         let ptr = cumalloc::<T>(len).unwrap();
         // TODO: use unified mem if available -> i can't test this
