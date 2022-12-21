@@ -4,7 +4,7 @@ pub use cl_device::{OpenCL, CL, cl_cached};
 pub use kernel_cache::*;
 pub use kernel_enqueue::*;
 
-pub mod api;
+//pub mod api;
 pub mod cl_device;
 mod kernel_cache;
 mod kernel_enqueue;
@@ -13,11 +13,12 @@ mod kernel_enqueue;
 #[cfg(unified_cl)]
 mod unified;
 
+use min_cl::api::release_mem_object;
 #[cfg(unified_cl)]
 #[cfg(not(feature = "realloc"))]
 pub use unified::*;
 
-use self::api::release_mem_object;
+//use self::api::release_mem_object;
 use crate::{Buffer, CDatatype, CommonPtrs, Dealloc, FromCommonPtrs};
 
 pub type CLBuffer<'a, T> = Buffer<'a, T, OpenCL>;

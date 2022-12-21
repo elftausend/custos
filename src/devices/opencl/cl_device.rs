@@ -1,20 +1,22 @@
+use min_cl::CLDevice;
+
+use min_cl::api::{
+    enqueue_full_copy_buffer, enqueue_read_buffer,
+    enqueue_write_buffer, wait_for_event, CLIntDevice,
+    CommandQueue, Context, create_buffer, MemFlags
+};
+
 use super::{
-    api::{
-        create_command_queue, create_context, enqueue_full_copy_buffer, enqueue_read_buffer,
-        enqueue_write_buffer, get_device_ids, get_platforms, wait_for_event, CLIntDevice,
-        CommandQueue, Context, DeviceType, OCLErrorKind,
-    },
+
     chosen_cl_idx, cl_clear, CLPtr, KernelCacheCL, RawCL,
 };
 use crate::{
     cache::{Cache, CacheReturn, RawConv},
-    devices::opencl::api::{create_buffer, MemFlags},
     Alloc, Buffer, CDatatype, CacheBuf, CachedLeaf, ClearBuf, CloneBuf, Device, Error, Graph,
     GraphReturn, Read, WriteBuf, CPU,
 };
 use std::{
     cell::{Ref, RefCell},
-    ffi::c_void,
     fmt::Debug,
 };
 
@@ -48,7 +50,6 @@ pub struct OpenCL {
 /// Short form for `OpenCL`
 pub type CL = OpenCL;
 
-unsafe impl Sync for CLDevice {}
 
 impl OpenCL {
     /// Returns an [OpenCL] at the specified device index.
@@ -330,39 +331,39 @@ fn read_cl_buf_to_vec<T: Clone + Default>(
     Ok(read)
 }
 
-/// Internal representation of an OpenCL Device with the capability of storing pointers.
-/// # Note / Safety
-///
-/// If the 'safe' feature isn't used, all pointers will get invalid when the drop code for a CLDevice object runs as that deallocates the memory previously pointed at by the pointers stored in 'ptrs'.
-#[derive(Debug)]
-pub struct CLDevice {
-    pub ptrs: Vec<*mut c_void>,
-    device: CLIntDevice,
-    ctx: Context,
-    queue: CommandQueue,
-    unified_mem: bool,
-}
+#[cfg(test)]
+mod tests {
+    use std::cell::RefCell;
 
-impl CLDevice {
-    pub fn new(device_idx: usize) -> crate::Result<CLDevice> {
-        let platform = get_platforms()?[0];
-        let devices = get_device_ids(platform, &(DeviceType::GPU as u64))?;
+    use crate::{Buffer, opencl::cl_device::CLDevice, OpenCL};
 
-        if device_idx >= devices.len() {
-            return Err(OCLErrorKind::InvalidDeviceIdx.into());
-        }
-        let device = devices[0];
+    #[test]
+    fn test_multiplie_queues() -> crate::Result<()> {
+        let device = CLDevice::new(0)?;
+        let cl = OpenCL {
+            kernel_cache: Default::default(),
+            cache: Default::default(),
+            inner: RefCell::new(device),
+            graph: Default::default(),
+            cpu: Default::default(),
+        };
 
-        let ctx = create_context(&[device])?;
-        let queue = create_command_queue(&ctx, device)?;
-        let unified_mem = device.unified_mem()?;
+        let buf = Buffer::from((&cl, &[1, 2, 3, 4, 5, 6, 7]));
+        assert_eq!(buf.read(), vec![1, 2, 3, 4, 5, 6, 7]);
 
-        Ok(CLDevice {
-            ptrs: Vec::new(),
-            device,
-            ctx,
-            queue,
-            unified_mem,
-        })
+        let device = CLDevice::new(0)?;
+
+        let cl1 = OpenCL {
+            kernel_cache: Default::default(),
+            cache: Default::default(),
+            inner: RefCell::new(device),
+            graph: Default::default(),
+            cpu: Default::default(),
+        };
+
+        let buf = Buffer::from((&cl1, &[2, 2, 4, 4, 2, 1, 3]));
+        assert_eq!(buf.read(), vec![2, 2, 4, 4, 2, 1, 3]);
+
+        Ok(())
     }
 }

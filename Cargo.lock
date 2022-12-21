@@ -160,6 +160,7 @@ dependencies = [
  "custos 0.5.0",
  "custos-macro",
  "futures-intrusive",
+ "min-cl",
  "pollster",
  "wgpu",
 ]
@@ -395,6 +396,10 @@ dependencies = [
  "log",
  "objc",
 ]
+
+[[package]]
+name = "min-cl"
+version = "0.1.0"
 
 [[package]]
 name = "naga"

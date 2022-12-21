@@ -1,9 +1,18 @@
 use alloc::boxed::Box;
 
-pub struct Error {
-    pub error: Box<dyn std::error::Error + Send + Sync>,
+pub type Error = Box<dyn std::error::Error + Send + Sync>;
+
+pub trait ErrorKind {
+    fn kind<E: std::error::Error + PartialEq + 'static>(&self) -> Option<&E>;
 }
 
+impl ErrorKind for Error {
+    fn kind<E: std::error::Error + PartialEq + 'static>(&self) -> Option<&E> {
+        self.downcast_ref::<E>()
+    }
+}
+
+/* 
 impl<E: std::error::Error + PartialEq + 'static> PartialEq<E> for Error {
     fn eq(&self, other: &E) -> bool {
         let e = self.error.downcast_ref::<E>();
@@ -47,6 +56,7 @@ impl core::fmt::Display for Error {
         Ok(())
     }
 }
+*/
 
 pub type Result<T> = core::result::Result<T, Error>;
 

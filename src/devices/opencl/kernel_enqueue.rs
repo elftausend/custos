@@ -1,4 +1,4 @@
-use super::api::{enqueue_nd_range_kernel, set_kernel_arg, OCLErrorKind};
+use min_cl::api::{enqueue_nd_range_kernel, set_kernel_arg, OCLErrorKind};
 use crate::{number::Number, Buffer, CommonPtrs, Device, OpenCL};
 use std::{ffi::c_void, mem::size_of};
 

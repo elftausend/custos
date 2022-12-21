@@ -1,9 +1,12 @@
 #![allow(unused)]
 use custos::{
     cache::Cache,
-    opencl::api::{clCreateBuffer, enqueue_map_buffer, CommandQueue, MemFlags, OCLErrorKind},
     range, set_count, Buffer, Error, OpenCL, Read, CPU,
 };
+
+
+use min_cl::api::{clCreateBuffer, enqueue_map_buffer, CommandQueue, MemFlags, OCLErrorKind};
+
 use std::{collections::HashMap, ffi::c_void};
 
 pub fn unified_mem<T>(device: &OpenCL, arr: &mut [T]) -> Result<*mut c_void, Error> {
@@ -19,7 +22,6 @@ pub fn unified_mem<T>(device: &OpenCL, arr: &mut [T]) -> Result<*mut c_void, Err
         )
     };
 
-    device.inner.borrow_mut().ptrs.push(r);
 
     if err != 0 {
         return Err(Error::from(OCLErrorKind::from_value(err)));
@@ -46,7 +48,7 @@ fn test_unified_mem() -> Result<(), Error> {
     const TIMES: usize = 10000;
     use std::time::Instant;
 
-    use custos::opencl::api::{create_buffer, release_mem_object, MemFlags};
+    use min_cl::api::{create_buffer, release_mem_object, MemFlags};
 
     let len = 20000;
 

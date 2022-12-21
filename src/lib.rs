@@ -193,6 +193,12 @@ pub trait Alloc<'a, T, const N: usize = 0>: Device {
     }
 }
 
+#[cfg(not(unified_cl))]
+pub const UNIFIED_CL_MEM: bool = false;
+
+#[cfg(unified_cl)]
+pub const UNIFIED_CL_MEM: bool = true;
+
 pub mod prelude {
     pub use crate::{
         cached, cpu::cpu_cached, number::*, range, Alloc, Buffer, CDatatype,

@@ -1,4 +1,4 @@
-use super::api::{
+use min_cl::api::{
     build_program, create_kernels_in_program, create_program_with_source, release_mem_object,
     Kernel,
 };
