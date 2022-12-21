@@ -39,6 +39,7 @@ where
     }
 }
 
+#[cfg(feature="wgpu")]
 #[test]
 fn test_const_size_buf() {
     let device = CPU::new();

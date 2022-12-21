@@ -21,12 +21,12 @@ pollster = {version="0.2.5", optional=true }
 wgpu = {version="0.14.2", optional=true }
 
 [build-dependencies]
-# TODO: use opencl only lib
-custos = { version="0.5.0", default-features = false, optional=true }
+min-cl = { path = "../min-cl", optional=true }
+
 
 [features]
-default = ["blas", "stack", "static-api", "opencl", "wgpu", "cuda"]
-opencl = ["custos/opencl", "dep:min-cl"]
+default = ["blas", "stack", "static-api", "opencl", "cuda"]
+opencl = ["dep:min-cl"]
 #network = ["cuwanto-server"]
 cuda = []
 realloc = []
