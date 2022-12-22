@@ -6,10 +6,8 @@ use crate::{AddGraph, BufFlag, DeviceError, GraphReturn};
 #[cfg(not(feature = "realloc"))]
 use std::fmt::Debug;
 
-use super::{
-    api::{create_buffer, MemFlags},
-    RawCL,
-};
+use min_cl::api::{create_buffer, MemFlags};
+use super::RawCL;
 use crate::{Buffer, Ident, Node, OpenCL, CPU};
 
 /// Returns an OpenCL pointer that is bound to the host pointer stored in the specified buffer.

@@ -13,6 +13,9 @@ mod kernel_enqueue;
 #[cfg(unified_cl)]
 mod unified;
 
+pub use min_cl::*;
+
+
 use min_cl::api::release_mem_object;
 #[cfg(unified_cl)]
 #[cfg(not(feature = "realloc"))]

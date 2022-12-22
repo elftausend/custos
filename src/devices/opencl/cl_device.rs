@@ -21,7 +21,7 @@ use std::{
 };
 
 #[cfg(unified_cl)]
-use crate::{opencl::api::unified_ptr, MainMemory};
+use min_cl::api::unified_ptr;
 
 /// Used to perform calculations with an OpenCL capable device.
 /// To make new calculations invocable, a trait providing new operations should be implemented for [CLDevice].
@@ -249,7 +249,7 @@ impl GraphReturn for OpenCL {
 }
 
 #[cfg(unified_cl)]
-impl MainMemory for OpenCL {
+impl crate::MainMemory for OpenCL {
     #[inline]
     fn buf_as_slice<'a, T, const N: usize>(buf: &'a Buffer<T, Self, N>) -> &'a [T] {
         unsafe { alloc::slice::from_raw_parts(buf.host_ptr(), buf.len) }

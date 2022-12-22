@@ -155,6 +155,7 @@ fn test_cached_cpu() {
 #[cfg(feature = "opencl")]
 #[test]
 fn test_cached_cl() -> Result<(), custos::Error> {
+
     use custos::opencl::{
         api::{enqueue_write_buffer, wait_for_event},
         cl_cached,
