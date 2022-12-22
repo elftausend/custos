@@ -3,7 +3,7 @@ use std::ffi::c_void;
 use custos::{
     cache::Cache,
     opencl::{enqueue_kernel, AsClCvoidPtr},
-    Buffer, CDatatype, OpenCL,
+    Buffer, CDatatype, OpenCL, prelude::Float,
 };
 
 #[test]
@@ -41,6 +41,18 @@ fn test_kernel_launch() -> custos::Result<()> {
     Ok(())
 }
 
+pub fn roughly_eq_slices<T: Float>(lhs: &[T], rhs: &[T]) {
+    for (a, b) in lhs.iter().zip(rhs) {
+        if (*a-*b).abs() >= T::as_generic(0.1) {
+            panic!("Slices 
+                left {lhs:?} 
+                and right {rhs:?} do not equal. 
+                Encountered diffrent value: {a}, {b}"
+            )
+        }
+    }
+}
+
 #[test]
 fn test_kernel_launch_diff_datatype() -> custos::Result<()> {
     let device = OpenCL::new(0)?;
@@ -57,8 +69,9 @@ fn test_kernel_launch_diff_datatype() -> custos::Result<()> {
 
     let gws = [lhs.len, 0, 0];
     enqueue_kernel(&device, src_add, gws, None, &[&lhs, &out, &3i32])?;
-    assert_eq!(out.read(), vec![1., 27., 216., 64., 1., 64.]);
-
+    
+    roughly_eq_slices(&out.read(), &[1., 27., 216., 64., 1., 64.]);
+    
     Ok(())
 }
 

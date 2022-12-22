@@ -3,7 +3,7 @@ use alloc::vec::Vec;
 use crate::{Buffer, Device};
 
 /// Trait for implementing the clear() operation for the compute devices.
-pub trait ClearBuf<T, D: Device, const N: usize = 0> {
+pub trait ClearBuf<T, D: Device=Self, const N: usize = 0>:Device {
     /// Sets all elements of the matrix to zero.
     /// # Example
     /// ```
@@ -20,7 +20,7 @@ pub trait ClearBuf<T, D: Device, const N: usize = 0> {
 }
 
 /// Trait for reading buffers.
-pub trait Read<T, D: Device, const N: usize = 0>: Device {
+pub trait Read<T, D: Device=Self, const N: usize = 0>: Device {
     type Read<'a>
     where
         T: 'a,
@@ -53,7 +53,7 @@ pub trait Read<T, D: Device, const N: usize = 0>: Device {
 }
 
 /// Trait for writing data to buffers.
-pub trait WriteBuf<T, D: Device, const N: usize = 0>: Sized + Device {
+pub trait WriteBuf<T, D: Device = Self, const N: usize = 0>: Sized + Device {
     /// Write data to the buffer.
     /// # Example
     /// ```

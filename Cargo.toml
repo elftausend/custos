@@ -25,7 +25,7 @@ min-cl = { path = "../min-cl", optional=true }
 
 
 [features]
-default = ["blas", "stack", "static-api", "opencl", "cuda"]
+default = ["blas", "stack", "static-api", "opencl"]
 opencl = ["dep:min-cl"]
 #network = ["cuwanto-server"]
 cuda = []

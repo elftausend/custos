@@ -8,6 +8,7 @@ mod graph;
 mod demo_impl;
 mod threading;
 
+
 #[cfg(feature = "opencl")]
 #[test]
 fn test_debug_fmt_cl_dev() -> custos::Result<()> {
