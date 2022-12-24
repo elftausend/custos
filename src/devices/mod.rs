@@ -5,7 +5,7 @@ use self::cpu::{
     api::{cblas_dgemm, cblas_sgemm},
     Order, Transpose,
 };
-use crate::{number::Float, AddGraph, Alloc, Buffer, Device};
+use crate::{AddGraph, Alloc, Buffer, Device};
 
 #[cfg(feature = "cuda")]
 use cuda::api::cublas::{cublasDgemm_v2, cublasOperation_t, cublasSgemm_v2, CublasHandle};

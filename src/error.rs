@@ -17,7 +17,7 @@ mod std_err {
 }
 
 #[cfg(not(feature="no-std"))]
-pub use std_err::Error;
+pub use std_err::*;
 
 
 /* 

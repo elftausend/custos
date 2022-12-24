@@ -1,5 +1,5 @@
 use min_cl::api::{enqueue_nd_range_kernel, set_kernel_arg, OCLErrorKind};
-use crate::{number::Number, Buffer, CommonPtrs, Device, OpenCL};
+use crate::{number::Number, Buffer, OpenCL};
 use std::{ffi::c_void, mem::size_of};
 
 pub trait AsClCvoidPtr {
@@ -12,21 +12,17 @@ pub trait AsClCvoidPtr {
     }
 }
 
-impl<'a, T, D: Device, const N: usize> AsClCvoidPtr for &Buffer<'a, T, D, N>
-where
-    D::Ptr<T, N>: CommonPtrs<T>,
+impl<'a, T, const N: usize> AsClCvoidPtr for &Buffer<'a, T, OpenCL, N>
 {
     fn as_cvoid_ptr(&self) -> *const c_void {
-        self.ptrs().1
+        self.ptr.ptr
     }
 }
 
-impl<'a, T, D: Device, const N: usize> AsClCvoidPtr for Buffer<'a, T, D, N>
-where
-    D::Ptr<T, N>: CommonPtrs<T>,
+impl<'a, T, const N: usize> AsClCvoidPtr for Buffer<'a, T, OpenCL, N>
 {
     fn as_cvoid_ptr(&self) -> *const c_void {
-        self.ptrs().1
+        self.ptr.ptr
     }
 }
 

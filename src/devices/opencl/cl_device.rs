@@ -252,12 +252,12 @@ impl GraphReturn for OpenCL {
 impl crate::MainMemory for OpenCL {
     #[inline]
     fn buf_as_slice<'a, T, const N: usize>(buf: &'a Buffer<T, Self, N>) -> &'a [T] {
-        unsafe { alloc::slice::from_raw_parts(buf.host_ptr(), buf.len) }
+        unsafe { std::slice::from_raw_parts(buf.host_ptr(), buf.len) }
     }
 
     #[inline]
     fn buf_as_slice_mut<'a, T, const N: usize>(buf: &'a mut Buffer<T, Self, N>) -> &'a mut [T] {
-        unsafe { alloc::slice::from_raw_parts_mut(buf.host_ptr_mut(), buf.len) }
+        unsafe { std::slice::from_raw_parts_mut(buf.host_ptr_mut(), buf.len) }
     }
 }
 
