@@ -4,7 +4,7 @@ use crate::{
     Alloc, Buffer, CacheBuf, CachedLeaf, ClearBuf, CloneBuf, Device, DevicelessAble, Graph,
     GraphReturn, MainMemory, Read, WriteBuf,
 };
-use alloc::{
+use std::{
     alloc::{handle_alloc_error, Layout},
     vec::Vec,
 };
@@ -92,10 +92,10 @@ impl<T, const N: usize> Alloc<'_, T, N> for CPU {
         }
 
         let layout = Layout::array::<T>(len).unwrap();
-        let ptr = unsafe { alloc::alloc::alloc(layout) };
+        let ptr = unsafe { std::alloc::alloc(layout) };
 
         // initialize block of memory
-        for element in unsafe { alloc::slice::from_raw_parts_mut(ptr, len * size_of::<T>()) } {
+        for element in unsafe { std::slice::from_raw_parts_mut(ptr, len * size_of::<T>()) } {
             *element = 0;
         }
 
@@ -113,7 +113,7 @@ impl<T, const N: usize> Alloc<'_, T, N> for CPU {
         assert!(!data.is_empty(), "invalid buffer len: 0");
         let cpu_ptr = Alloc::<T>::alloc(self, data.len());
         //= self.alloc(data.len());
-        let slice = unsafe { alloc::slice::from_raw_parts_mut(cpu_ptr.ptr, data.len()) };
+        let slice = unsafe { std::slice::from_raw_parts_mut(cpu_ptr.ptr, data.len()) };
         slice.clone_from_slice(data);
 
         cpu_ptr
@@ -150,7 +150,7 @@ impl MainMemory for CPU {
             !buf.ptrs().0.is_null(),
             "called as_slice() on an invalid CPU buffer (this would dereference an invalid pointer)"
         );
-        unsafe { alloc::slice::from_raw_parts(buf.ptrs().0, buf.len) }
+        unsafe { std::slice::from_raw_parts(buf.ptrs().0, buf.len) }
     }
 
     fn buf_as_slice_mut<'a, T, const N: usize>(buf: &'a mut Buffer<T, Self, N>) -> &'a mut [T] {
@@ -158,7 +158,7 @@ impl MainMemory for CPU {
             !buf.ptrs().0.is_null(),
             "called as_slice() on an invalid CPU buffer (this would dereference an invalid pointer)"
         );
-        unsafe { alloc::slice::from_raw_parts_mut(buf.ptrs_mut().0, buf.len) }
+        unsafe { std::slice::from_raw_parts_mut(buf.ptrs_mut().0, buf.len) }
     }
 }
 

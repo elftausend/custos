@@ -26,7 +26,7 @@ impl<T> Dealloc<T> for CPUPtr<T> {
             return;
         }
         let layout = Layout::array::<T>(len).unwrap();
-        alloc::alloc::dealloc(self.ptr as *mut u8, layout);
+        std::alloc::dealloc(self.ptr as *mut u8, layout);
     }
 }
 
@@ -62,7 +62,7 @@ impl Drop for RawCpuBuf {
     fn drop(&mut self) {
         unsafe {
             let layout = Layout::from_size_align(self.len * self.size, self.align).unwrap();
-            alloc::alloc::dealloc(self.ptr, layout);
+            std::alloc::dealloc(self.ptr, layout);
         }
     }
 }

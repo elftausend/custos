@@ -151,6 +151,7 @@ dependencies = [
  "custos-macro",
  "futures-intrusive",
  "min-cl",
+ "num-traits",
  "pollster",
  "wgpu",
 ]

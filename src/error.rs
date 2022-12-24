@@ -1,16 +1,24 @@
-use alloc::boxed::Box;
 
-pub type Error = Box<dyn std::error::Error + Send + Sync>;
+#[cfg(not(feature = "no-std"))]
+mod std_err {
+    pub type Error = Box<dyn std::error::Error + Send + Sync>;
 
-pub trait ErrorKind {
-    fn kind<E: std::error::Error + PartialEq + 'static>(&self) -> Option<&E>;
-}
-
-impl ErrorKind for Error {
-    fn kind<E: std::error::Error + PartialEq + 'static>(&self) -> Option<&E> {
-        self.downcast_ref::<E>()
+    pub trait ErrorKind {
+        fn kind<E: std::error::Error + PartialEq + 'static>(&self) -> Option<&E>;
     }
+    
+    impl ErrorKind for Error {
+        fn kind<E: std::error::Error + PartialEq + 'static>(&self) -> Option<&E> {
+            self.downcast_ref::<E>()
+        }
+    }
+
+    impl std::error::Error for crate::DeviceError {}
 }
+
+#[cfg(not(feature="no-std"))]
+pub use std_err::Error;
+
 
 /* 
 impl<E: std::error::Error + PartialEq + 'static> PartialEq<E> for Error {
@@ -58,6 +66,14 @@ impl core::fmt::Display for Error {
 }
 */
 
+#[cfg(not(feature = "no-std"))]
+pub type Result<T> = core::result::Result<T, self::std_err::Error>;
+
+#[cfg(feature = "no-std")]
+#[derive(Debug)]
+pub struct Error {}
+
+#[cfg(feature = "no-std")]
 pub type Result<T> = core::result::Result<T, Error>;
 
 #[derive(Clone, Copy, Eq, Hash, Ord, PartialEq, PartialOrd)]
@@ -93,4 +109,4 @@ impl core::fmt::Display for DeviceError {
     }
 }
 
-impl std::error::Error for DeviceError {}
+

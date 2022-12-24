@@ -1,5 +1,3 @@
-use alloc::vec::Vec;
-
 use crate::{Alloc, BufFlag, Buffer, GraphReturn};
 
 impl<'a, T, D, const N: usize> From<(&'a D, [T; N])> for Buffer<'a, T, D>
@@ -55,6 +53,7 @@ where
     }
 }
 
+#[cfg(not(feature = "no-std"))]
 impl<'a, T, D, const N: usize> From<(&'a D, Vec<T>)> for Buffer<'a, T, D, N>
 where
     T: Clone,
@@ -72,6 +71,7 @@ where
     }
 }
 
+#[cfg(not(feature = "no-std"))]
 impl<'a, T, D, const N: usize> From<(&'a D, &Vec<T>)> for Buffer<'a, T, D, N>
 where
     T: Clone,

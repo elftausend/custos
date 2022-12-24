@@ -65,6 +65,7 @@ impl<T: Clone, const N: usize> Read<T, Stack, N> for Stack {
     }
 
     #[inline]
+    #[cfg(not(feature = "no-std"))]
     fn read_to_vec(&self, buf: &Buffer<T, Stack, N>) -> Vec<T>
     where
         T: Default,

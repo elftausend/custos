@@ -1,7 +1,8 @@
 use core::{cell::RefMut, marker::PhantomData};
 use std::collections::HashMap;
 
-use alloc::rc::Rc;
+
+use std::rc::Rc;
 
 use crate::{
     bump_count, AddGraph, Alloc, BufFlag, Buffer, CacheAble, Device, GraphReturn, Ident, Node,
@@ -166,15 +167,16 @@ impl<D: RawConv> Cache<D> {
     }
 }
 
+#[cfg(feature="cpu")]
 #[cfg(test)]
 mod tests {
     #[cfg(not(feature = "realloc"))]
     use crate::{set_count, Cache};
-    use crate::{Buffer, CacheReturn, Ident, CPU};
+    use crate::{Buffer, CacheReturn, Ident};
 
     #[test]
     fn test_add_node() {
-        let device = CPU::new();
+        let device = crate::CPU::new();
         let cache: Buffer = device
             .cache()
             .add_node(&device, Ident { idx: 0, len: 7 }, ());
@@ -194,7 +196,7 @@ mod tests {
     fn test_get() {
         // for: cargo test -- --test-threads=1
         set_count(0);
-        let device = CPU::new();
+        let device = crate::CPU::new();
 
         let cache_entry: Buffer = Cache::get(&device, 10, ());
         let new_cache_entry: Buffer = Cache::get(&device, 10, ());

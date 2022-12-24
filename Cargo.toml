@@ -19,13 +19,16 @@ min-cl = { path = "../min-cl", optional=true }
 futures-intrusive = {version="0.5.0", optional=true}
 pollster = {version="0.2.5", optional=true }
 wgpu = {version="0.14.2", optional=true }
+num-traits = { version="0.2", default-features=false, optional=true}
 
 [build-dependencies]
 min-cl = { path = "../min-cl", optional=true }
 
 
 [features]
-default = ["blas", "stack", "static-api", "opencl"]
+#default = ["cpu", "stack"]
+default = ["no-std", "stack"]
+cpu = []
 opencl = ["dep:min-cl"]
 #network = ["cuwanto-server"]
 cuda = []
@@ -34,7 +37,7 @@ opt-cache = []
 blas = []
 static-api = []
 stack = []
-no-std = ["stack"]
+no-std = ["stack", "dep:num-traits"]
 wgpu = ["dep:wgpu", "dep:pollster", "dep:futures-intrusive"]
 
 [dev-dependencies]

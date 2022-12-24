@@ -1,5 +1,3 @@
-use alloc::vec::Vec;
-
 use crate::{Buffer, Device};
 
 /// Trait for implementing the clear() operation for the compute devices.
@@ -37,6 +35,7 @@ pub trait Read<T, D: Device=Self, const N: usize = 0>: Device {
     /// assert_eq!(&[1., 2., 3., 3., 2., 1.,], read);
     /// ```
     fn read<'a>(&self, buf: &'a Buffer<T, D, N>) -> Self::Read<'a>;
+   
     /// Read the data of a buffer into a vector
     /// # Example
     /// ```
@@ -47,6 +46,7 @@ pub trait Read<T, D: Device=Self, const N: usize = 0>: Device {
     /// let read = device.read_to_vec(&a);
     /// assert_eq!(vec![1., 2., 3., 3., 2., 1.,], read);
     /// ```
+    #[cfg(not(feature = "no-std"))]
     fn read_to_vec(&self, buf: &Buffer<T, D, N>) -> Vec<T>
     where
         T: Default + Clone;

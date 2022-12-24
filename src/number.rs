@@ -80,6 +80,10 @@ number_apply! {
     isize, u8, u16, u32, u64, u128, usize
 }
 
+#[cfg(feature="no-std")]
+pub trait Float: ::num_traits::float::FloatCore {}
+
+#[cfg(not(feature="no-std"))]
 pub trait Float: Neg<Output = Self> + Number {
     fn squared(lhs: Self) -> Self;
     fn exp(&self) -> Self;
@@ -149,4 +153,5 @@ macro_rules! float_apply {
     };
 }
 
+#[cfg(not(feature="no-std"))]
 float_apply!(f32, f64);

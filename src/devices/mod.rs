@@ -17,11 +17,15 @@ pub mod cache;
 pub use cache::*;
 //pub use cache::{Cache, CacheReturn};
 
+#[cfg(feature = "cpu")]
 pub mod cpu;
+
 #[cfg(feature = "cuda")]
 pub mod cuda;
+
 #[cfg(feature = "opencl")]
 pub mod opencl;
+
 #[cfg(feature = "stack")]
 pub mod stack;
 
@@ -71,7 +75,7 @@ impl<D: Device> CacheAble<D> for () {
 
 pub trait GenericBlas
 where
-    Self: Sized + Float,
+    Self: Sized,
 {
     #[cfg(feature = "blas")]
     #[allow(clippy::too_many_arguments)]

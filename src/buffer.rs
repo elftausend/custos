@@ -1,15 +1,30 @@
 use core::{ffi::c_void, fmt::Debug};
 
+#[cfg(feature="cpu")]
 use crate::cpu::{CPUPtr, CPU};
+
+#[cfg(not(feature="cpu"))]
+pub struct CPU {}
+
+#[cfg(not(feature="cpu"))]
+impl Device for CPU {
+    type Ptr<U, const N: usize> = num::Num<U>;
+
+    type Cache = ();
+
+    fn new() -> crate::Result<Self> {
+        todo!()
+    }
+}
 
 use crate::{
     Alloc, CacheBuf, ClearBuf, CloneBuf, CommonPtrs, Dealloc, Device, DevicelessAble, MainMemory,
     Node, Read, WriteBuf,
 };
-use alloc::vec::Vec;
+
 pub use flag::BufFlag;
 pub use impl_from_const::*;
-pub use num::Num;
+pub use self::num::Num;
 
 mod flag;
 mod impl_from;
@@ -139,6 +154,7 @@ impl<'a, T, D: Device, const N: usize> Buffer<'a, T, D, N> {
     /// assert_eq!(buf.read_to_vec(), vec![1, 2, 3, 4]);
     /// ```
     #[inline]
+    #[cfg(not(feature = "no-std"))]
     pub fn read_to_vec(&self) -> Vec<T>
     where
         D: Read<T, D, N>,
@@ -255,6 +271,7 @@ impl<'a, T, D: Device> Buffer<'a, T, D> {
     }
 }
 
+#[cfg(feature="cpu")]
 impl<'a, T> Buffer<'a, T> {
     /// Constructs a `Buffer` out of a host pointer and a length.
     /// # Example
@@ -463,6 +480,7 @@ impl<const N: usize, T, D: MainMemory> core::ops::DerefMut for Buffer<'_, T, D, 
     }
 }
 
+#[cfg(not(feature = "no-std"))]
 impl<'a, T, D> Debug for Buffer<'a, T, D>
 where
     T: Debug + Default + Clone + 'a,
@@ -503,7 +521,7 @@ where
 impl<'a, T, D: MainMemory> core::iter::IntoIterator for &'a Buffer<'_, T, D> {
     type Item = &'a T;
 
-    type IntoIter = alloc::slice::Iter<'a, T>;
+    type IntoIter = core::slice::Iter<'a, T>;
 
     fn into_iter(self) -> Self::IntoIter {
         self.iter()
@@ -556,11 +574,12 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::{Buffer, CPU};
+    use crate::Buffer;
 
+    #[cfg(feature="cpu")]
     #[test]
     fn test_deref() {
-        let device = CPU::new();
+        let device = crate::CPU::new();
         let buf = Buffer::from((&device, [1, 2, 3, 4]));
         let slice = &*buf;
         assert_eq!(slice, &[1, 2, 3, 4]);
@@ -592,9 +611,10 @@ mod tests {
         Ok(())
     }
 
+    #[cfg(feature="cpu")]
     #[test]
     fn test_debug_print() {
-        let device = CPU::new();
+        let device = crate::CPU::new();
         let buf = Buffer::from((&device, [1, 2, 3, 4, 5, 6]));
 
         println!("{buf:?}",);

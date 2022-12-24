@@ -4,6 +4,7 @@ mod stack_device;
 
 pub use stack_device::*;
 
+#[cfg(feature="cpu")]
 #[cfg(test)]
 mod tests {
     use crate::{Alloc, Buffer, Device, MainMemory, CPU};

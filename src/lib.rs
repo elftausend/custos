@@ -32,20 +32,20 @@
 //!
 //! assert_eq!(a.read(), vec![0; 6]);
 //! ```
-extern crate alloc;
-use alloc::vec::Vec;
 use core::ffi::c_void;
 
 //pub use libs::*;
 pub use buffer::*;
 pub use count::*;
 pub use devices::*;
+
 pub use error::*;
 
-#[cfg(not(feature = "no-std"))]
 pub use graph::*;
 
+#[cfg(feature="cpu")]
 pub use devices::cpu::CPU;
+
 #[cfg(feature = "cuda")]
 pub use devices::cuda::CUDA;
 #[cfg(feature = "opencl")]
@@ -65,7 +65,7 @@ pub mod devices;
 mod buffer;
 mod count;
 mod error;
-#[cfg(not(feature = "no-std"))]
+
 mod graph;
 mod op_traits;
 
@@ -177,6 +177,7 @@ pub trait Alloc<'a, T, const N: usize = 0>: Device {
 
     /// If the vector `vec` was allocated previously, this function can be used in order to reduce the amount of allocations, which may be faster than using a slice of `vec`.
     #[inline]
+    #[cfg(not(feature = "no-std"))]
     fn alloc_with_vec(&'a self, vec: Vec<T>) -> <Self as Device>::Ptr<T, N>
     where
         T: Clone,
@@ -201,9 +202,12 @@ pub const UNIFIED_CL_MEM: bool = true;
 
 pub mod prelude {
     pub use crate::{
-        cached, cpu::cpu_cached, number::*, range, Alloc, Buffer, CDatatype,
-        CacheBuf, ClearBuf, Device, GraphReturn, Read, WithConst, WriteBuf, CPU,
+        cached, number::*, range, Alloc, Buffer, CDatatype,
+        CacheBuf, ClearBuf, Device, GraphReturn, Read, WithConst, WriteBuf,
     };
+
+    #[cfg(feature="cpu")]
+    pub use crate::{cpu::cpu_cached, CPU};
 
     #[cfg(not(feature = "no-std"))]
     pub use crate::{cache::CacheReturn, get_count, set_count, Cache};
