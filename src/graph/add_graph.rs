@@ -1,4 +1,4 @@
-use crate::{Buffer, Device, Graph};
+use crate::{Buffer, Device, Graph, shape::Shape};
 
 use super::node::Node;
 
@@ -73,28 +73,28 @@ impl AddGraph for CachedLeaf {
     }
 }
 
-impl<'a, T, D: Device, const N: usize> AddGraph for Buffer<'a, T, D, N> {
+impl<'a, T, D: Device, S: Shape> AddGraph for Buffer<'a, T, D, S> {
     #[inline]
     fn add(&self, graph: &mut Graph, len: usize) -> Node {
         graph.add_node(len, self.node.idx, self.node.idx)
     }
 }
 
-impl<'a, T, D: Device, const N: usize> AddGraph for &Buffer<'a, T, D, N> {
+impl<'a, T, D: Device, S: Shape> AddGraph for &Buffer<'a, T, D, S> {
     #[inline]
     fn add(&self, graph: &mut Graph, len: usize) -> Node {
         graph.add_node(len, self.node.idx, self.node.idx)
     }
 }
 
-impl<'a, T, D: Device, const N: usize> AddGraph for (&Buffer<'a, T, D, N>, &Buffer<'a, T, D, N>) {
+impl<'a, T, D: Device, S: Shape> AddGraph for (&Buffer<'a, T, D, S>, &Buffer<'a, T, D, S>) {
     #[inline]
     fn add(&self, graph: &mut Graph, len: usize) -> Node {
         graph.add_node(len, self.0.node.idx, self.1.node.idx)
     }
 }
 
-impl<'a, T, D: Device, const N: usize> AddGraph for [&Buffer<'a, T, D, N>; 2] {
+impl<'a, T, D: Device, S: Shape> AddGraph for [&Buffer<'a, T, D, S>; 2] {
     #[inline]
     fn add(&self, graph: &mut Graph, len: usize) -> Node {
         graph.add_node(len, self[0].node.idx, self[1].node.idx)

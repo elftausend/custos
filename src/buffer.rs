@@ -8,7 +8,7 @@ pub struct CPU {}
 
 #[cfg(not(feature="cpu"))]
 impl Device for CPU {
-    type Ptr<U, const N: usize> = num::Num<U>;
+    type Ptr<U, S: Shape> = num::Num<U>;
 
     type Cache = ();
 
@@ -19,7 +19,7 @@ impl Device for CPU {
 
 use crate::{
     Alloc, CacheBuf, ClearBuf, CloneBuf, CommonPtrs, Dealloc, Device, DevicelessAble, MainMemory,
-    Node, Read, WriteBuf,
+    Node, Read, WriteBuf, shape::Shape,
 };
 
 pub use flag::BufFlag;
@@ -46,26 +46,25 @@ mod num;
 /// buffer_f32_cpu(&buf);
 /// buffer_generic(&buf);
 /// ```
-pub struct Buffer<'a, T = f32, D: Device = CPU, const N: usize = 0> {
-    // const B: usize = 0, const C: usize = 0,
-    pub ptr: D::Ptr<T, N>,
+pub struct Buffer<'a, T = f32, D: Device = CPU, S: Shape = ()> {
+    pub ptr: D::Ptr<T, S>,
     pub len: usize,
     pub device: Option<&'a D>,
     pub flag: BufFlag,
     pub node: Node,
 }
 
-unsafe impl<'a, T, D: Device, const N: usize /*const B: usize, const C: usize*/> Send
-    for Buffer<'a, T, D, N /*B, C*/>
+unsafe impl<'a, T, D: Device, S: Shape> Send
+    for Buffer<'a, T, D, S>
 {
 }
 
-unsafe impl<'a, T, D: Device, const N: usize /*const B: usize, const C: usize*/> Sync
-    for Buffer<'a, T, D, N /*B, C*/>
+unsafe impl<'a, T, D: Device, S: Shape> Sync
+    for Buffer<'a, T, D, S>
 {
 }
 
-impl<'a, T, D: Device, const N: usize> Buffer<'a, T, D, N> {
+impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
     /// Creates a zeroed (or values set to default) `Buffer` with the given length on the specified device.
     /// This `Buffer` can't outlive the device specified as a parameter.
     /// ```
@@ -82,11 +81,11 @@ impl<'a, T, D: Device, const N: usize> Buffer<'a, T, D, N> {
     /// assert_eq!(buffer.as_slice(), &[2; 6]);
     ///
     /// ```
-    pub fn new(device: &'a D, len: usize) -> Buffer<'a, T, D, N>
+    pub fn new(device: &'a D, len: usize) -> Buffer<'a, T, D, S>
     where
-        D: Alloc<'a, T, N>, /*+ GraphReturn*/
+        D: Alloc<'a, T, S>, /*+ GraphReturn*/
     {
-        let len = if N > 0 { N } else { len };
+        let len = if S::LEN > 0 { S::LEN } else { len };
         Buffer {
             ptr: device.alloc(len),
             len,
@@ -114,9 +113,9 @@ impl<'a, T, D: Device, const N: usize> Buffer<'a, T, D, N> {
     /// }
     /// assert_eq!(buf.as_slice(), &[0, 1, 2, 3, 4]);
     /// ```
-    pub fn deviceless<'b>(device: &'b D, len: usize) -> Buffer<'a, T, D, N>
+    pub fn deviceless<'b>(device: &'b D, len: usize) -> Buffer<'a, T, D, S>
     where
-        D: DevicelessAble<'b, T, N>,
+        D: DevicelessAble<'b, T, S>,
     {
         Buffer {
             ptr: device.alloc(len),
@@ -136,7 +135,7 @@ impl<'a, T, D: Device, const N: usize> Buffer<'a, T, D, N> {
     pub fn read(&'a self) -> D::Read<'a>
     where
         T: Clone + Default,
-        D: Read<T, D, N>,
+        D: Read<T, D, S>,
     {
         self.device().read(self)
     }
@@ -157,7 +156,7 @@ impl<'a, T, D: Device, const N: usize> Buffer<'a, T, D, N> {
     #[cfg(not(feature = "no-std"))]
     pub fn read_to_vec(&self) -> Vec<T>
     where
-        D: Read<T, D, N>,
+        D: Read<T, D, S>,
         T: Default + Clone,
     {
         self.device().read_to_vec(self)
@@ -169,7 +168,7 @@ impl<'a, T, D: Device, const N: usize> Buffer<'a, T, D, N> {
     pub fn write(&mut self, data: &[T])
     where
         T: Clone,
-        D: WriteBuf<T, D, N>,
+        D: WriteBuf<T, D, S>,
     {
         self.device().write(self, data)
     }
@@ -189,9 +188,9 @@ impl<'a, T, D: Device, const N: usize> Buffer<'a, T, D, N> {
     }
 }
 
-impl<'a, T, D: Device, const N: usize> Buffer<'a, T, D, N>
+impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S>
 where
-    D::Ptr<T, N>: CommonPtrs<T>,
+    D::Ptr<T, S>: CommonPtrs<T>,
 {
     #[inline]
     /// Returns all types of pointers. (host, OpenCL, CUDA)
@@ -237,7 +236,7 @@ impl<'a, T, D: Device> Buffer<'a, T, D> {
     #[inline]
     pub unsafe fn shallow(&self) -> Buffer<'a, T, D>
     where
-        <D as Device>::Ptr<T, 0>: Copy,
+        <D as Device>::Ptr<T, ()>: Copy,
     {
         Buffer {
             ptr: self.ptr,
@@ -257,7 +256,7 @@ impl<'a, T, D: Device> Buffer<'a, T, D> {
     /// Furthermore, the resulting `Buffer` can outlive `self`.
     pub unsafe fn shallow_or_clone(&self) -> Buffer<'a, T, D>
     where
-        <D as Device>::Ptr<T, 0>: Copy,
+        <D as Device>::Ptr<T, ()>: Copy,
         T: Clone,
         D: CloneBuf<'a, T>,
     {
@@ -330,7 +329,7 @@ impl<'a, T> Buffer<'a, T, crate::CUDA> {
     }
 }
 
-impl<'a, T, D: MainMemory, const N: usize> Buffer<'a, T, D, N> {
+impl<'a, T, D: MainMemory, S: Shape> Buffer<'a, T, D, S> {
     /// Returns a CPU slice. This does not work with CUDA or raw OpenCL buffers.
     #[inline]
     pub fn as_slice(&self) -> &[T] {
@@ -344,9 +343,9 @@ impl<'a, T, D: MainMemory, const N: usize> Buffer<'a, T, D, N> {
     }
 }
 
-impl<'a, T, D: MainMemory, const N: usize> Buffer<'a, T, D, N>
+impl<'a, T, D: MainMemory, S: Shape> Buffer<'a, T, D, S>
 where
-    D::Ptr<T, N>: CommonPtrs<T>,
+    D::Ptr<T, S>: CommonPtrs<T>,
 {
     /// Returns a non null host pointer
     #[inline]
@@ -381,8 +380,8 @@ unsafe impl<T> Send for Buffer<'a, T> {}
 #[cfg(feature = "safe")]
 unsafe impl<T> Sync for Buffer<'a, T> {}*/
 
-impl<T, D: Device, const N: usize /*const B: usize, const C: usize*/> Drop
-    for Buffer<'_, T, D, N /*B, C*/>
+impl<T, D: Device, S: Shape> Drop
+    for Buffer<'_, T, D, S>
 {
     fn drop(&mut self) {
         if self.flag != BufFlag::None {
@@ -395,13 +394,13 @@ impl<T, D: Device, const N: usize /*const B: usize, const C: usize*/> Drop
     }
 }
 
-impl<'a, T, D: Device, const N: usize> Default for Buffer<'a, T, D, N>
+impl<'a, T, D: Device, S: Shape> Default for Buffer<'a, T, D, S>
 where
-    D::Ptr<T, N>: Default,
+    D::Ptr<T, S>: Default,
 {
     fn default() -> Self {
         Self {
-            ptr: D::Ptr::<T, N>::default(),
+            ptr: D::Ptr::<T, S>::default(),
             flag: BufFlag::default(),
             len: Default::default(),
             device: None,
@@ -445,7 +444,7 @@ impl<T, D: MainMemory> AsMut<[T]> for Buffer<'_, T, D> {
 /// slice_add(&a, &b, &mut c);
 /// assert_eq!(c.as_slice(), &[3., 5., 7., 9.,]);
 /// ```
-impl<const N: usize, T, D: MainMemory> core::ops::Deref for Buffer<'_, T, D, N> {
+impl<T, D: MainMemory, S: Shape> core::ops::Deref for Buffer<'_, T, D, S> {
     type Target = [T];
 
     fn deref(&self) -> &Self::Target {
@@ -474,7 +473,7 @@ impl<const N: usize, T, D: MainMemory> core::ops::Deref for Buffer<'_, T, D, N> 
 /// slice_add(&a, &b, &mut c);
 /// assert_eq!(c.as_slice(), &[6., 5., 9., 9.,]);
 /// ```
-impl<const N: usize, T, D: MainMemory> core::ops::DerefMut for Buffer<'_, T, D, N> {
+impl<T, D: MainMemory, S: Shape> core::ops::DerefMut for Buffer<'_, T, D, S> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         self.as_mut_slice()
     }
@@ -486,7 +485,7 @@ where
     T: Debug + Default + Clone + 'a,
     D: Read<T, D> + Device + 'a,
     for<'b> <D as Read<T, D>>::Read<'b>: Debug,
-    D::Ptr<T, 0>: CommonPtrs<T>,
+    D::Ptr<T, ()>: CommonPtrs<T>,
 {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         f.debug_struct("Buffer")
@@ -567,7 +566,7 @@ impl<'a, T, D: MainMemory> core::iter::IntoIterator for &'a mut Buffer<'_, T, D>
 /// ```
 pub fn cached<'a, T, D: CacheBuf<'a, T> + Device>(device: &'a D, len: usize) -> Buffer<'a, T, D>
 where
-    D::Ptr<T, 0>: Clone,
+    D::Ptr<T, ()>: Clone,
 {
     device.cached(len)
 }

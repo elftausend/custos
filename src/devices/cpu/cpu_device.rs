@@ -2,7 +2,7 @@ use crate::{
     cache::RawConv,
     devices::cache::{Cache, CacheReturn},
     Alloc, Buffer, CacheBuf, CachedLeaf, ClearBuf, CloneBuf, Device, DevicelessAble, Graph,
-    GraphReturn, MainMemory, Read, WriteBuf,
+    GraphReturn, MainMemory, Read, WriteBuf, shape::Shape,
 };
 use std::{
     alloc::{handle_alloc_error, Layout},
@@ -48,7 +48,7 @@ impl CPU {
 }
 
 impl Device for CPU {
-    type Ptr<U, const N: usize> = CPUPtr<U>;
+    type Ptr<U, S: Shape> = CPUPtr<U>;
     type Cache = Cache<CPU>; //<CPU as CacheReturn>::CT
 
     fn new() -> crate::Result<Self> {
@@ -57,8 +57,8 @@ impl Device for CPU {
 }
 
 impl RawConv for CPU {
-    fn construct<T, const N: usize>(
-        ptr: &Self::Ptr<T, N>,
+    fn construct<T, S: Shape>(
+        ptr: &Self::Ptr<T, S>,
         len: usize,
         node: crate::Node,
     ) -> Self::CT {
@@ -71,7 +71,7 @@ impl RawConv for CPU {
         }
     }
 
-    fn destruct<T, const N: usize>(ct: &Self::CT) -> (Self::Ptr<T, N>, crate::Node) {
+    fn destruct<T, S: Shape>(ct: &Self::CT) -> (Self::Ptr<T, S>, crate::Node) {
         (
             CPUPtr {
                 ptr: ct.ptr as *mut T,
@@ -83,12 +83,12 @@ impl RawConv for CPU {
 
 impl<'a, T> DevicelessAble<'a, T> for CPU {}
 
-impl<T, const N: usize> Alloc<'_, T, N> for CPU {
+impl<T, S: Shape> Alloc<'_, T, S> for CPU {
     fn alloc(&self, mut len: usize) -> CPUPtr<T> {
         assert!(len > 0, "invalid buffer len: 0");
 
-        if N > len {
-            len = N
+        if S::LEN > len {
+            len = S::LEN
         }
 
         let layout = Layout::array::<T>(len).unwrap();
@@ -145,7 +145,7 @@ impl GraphReturn for CPU {
 
 impl MainMemory for CPU {
     #[inline]
-    fn buf_as_slice<'a, T, const N: usize>(buf: &'a Buffer<T, Self, N>) -> &'a [T] {
+    fn buf_as_slice<'a, T, S: Shape>(buf: &'a Buffer<T, Self, S>) -> &'a [T] {
         assert!(
             !buf.ptrs().0.is_null(),
             "called as_slice() on an invalid CPU buffer (this would dereference an invalid pointer)"
@@ -153,7 +153,7 @@ impl MainMemory for CPU {
         unsafe { std::slice::from_raw_parts(buf.ptrs().0, buf.len) }
     }
 
-    fn buf_as_slice_mut<'a, T, const N: usize>(buf: &'a mut Buffer<T, Self, N>) -> &'a mut [T] {
+    fn buf_as_slice_mut<'a, T, S: Shape>(buf: &'a mut Buffer<T, Self, S>) -> &'a mut [T] {
         assert!(
             !buf.ptrs().0.is_null(),
             "called as_slice() on an invalid CPU buffer (this would dereference an invalid pointer)"
@@ -167,7 +167,7 @@ impl crate::GraphOpt for CPU {}
 
 impl<'a, T: Clone> CloneBuf<'a, T> for CPU {
     fn clone_buf(&'a self, buf: &Buffer<'a, T, CPU>) -> Buffer<'a, T, CPU> {
-        let mut cloned = Buffer::<_, _, 0>::new(self, buf.len);
+        let mut cloned = Buffer::<_, _, ()>::new(self, buf.len);
         cloned.clone_from_slice(buf);
         cloned
     }
@@ -176,7 +176,7 @@ impl<'a, T: Clone> CloneBuf<'a, T> for CPU {
 impl<'a, T> CacheBuf<'a, T> for CPU {
     #[inline]
     fn cached(&'a self, len: usize) -> Buffer<'a, T, CPU> {
-        Cache::get::<T, 0>(self, len, CachedLeaf)
+        Cache::get::<T, ()>(self, len, CachedLeaf)
     }
 }
 
@@ -185,16 +185,16 @@ pub fn cpu_cached<T: Clone>(device: &CPU, len: usize) -> Buffer<T, CPU> {
     device.cached(len)
 }
 
-impl<T, D: MainMemory, const N: usize> Read<T, D, N> for CPU {
-    type Read<'a> = &'a [T] where T: 'a, D: 'a;
+impl<T, D: MainMemory, S: Shape> Read<T, D, S> for CPU {
+    type Read<'a> = &'a [T] where T: 'a, D: 'a, S: 'a;
 
     #[inline]
-    fn read<'a>(&self, buf: &'a Buffer<T, D, N>) -> Self::Read<'a> {
+    fn read<'a>(&self, buf: &'a Buffer<T, D, S>) -> Self::Read<'a> {
         buf.as_slice()
     }
 
     #[inline]
-    fn read_to_vec<'a>(&self, buf: &Buffer<T, D, N>) -> Vec<T>
+    fn read_to_vec<'a>(&self, buf: &Buffer<T, D, S>) -> Vec<T>
     where
         T: Default + Clone,
     {

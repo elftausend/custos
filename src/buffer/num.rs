@@ -4,7 +4,7 @@ use core::{
     ptr::null_mut,
 };
 
-use crate::{BufFlag, Buffer, CloneBuf, CommonPtrs, Dealloc, Device, Node};
+use crate::{BufFlag, Buffer, CloneBuf, CommonPtrs, Dealloc, Device, Node, shape::Shape};
 
 pub struct Num<T> {
     pub num: T,
@@ -28,7 +28,7 @@ impl<T> CommonPtrs<T> for Num<T> {
 }
 
 impl Device for () {
-    type Ptr<U, const N: usize> = Num<U>;
+    type Ptr<U, S: Shape> = Num<U>;
     type Cache = ();
 
     fn new() -> crate::Result<Self> {

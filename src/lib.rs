@@ -68,12 +68,14 @@ mod error;
 
 mod graph;
 mod op_traits;
+mod shape;
 
 #[cfg(feature = "static-api")]
 pub mod static_api;
 
 pub mod number;
 pub use op_traits::*;
+use shape::Shape;
 
 pub trait Dealloc<T, const N: usize = 0> {
     /// # Safety
@@ -93,27 +95,27 @@ pub trait FromCommonPtrs<T>: CommonPtrs<T> {
 }
 
 pub trait Device: Sized {
-    type Ptr<U, const N: usize>: Dealloc<U>; //const B: usize, const C: usize
+    type Ptr<U, S: Shape>: Dealloc<U>; //const B: usize, const C: usize
     type Cache: CacheAble<Self>;
 
     fn new() -> crate::Result<Self>;
 
     #[inline]
-    fn retrieve<T, const N: usize>(&self, len: usize, add_node: impl AddGraph) -> Buffer<T, Self, N>
+    fn retrieve<T, S: Shape>(&self, len: usize, add_node: impl AddGraph) -> Buffer<T, Self, S>
     where
-        for<'a> Self: Alloc<'a, T, N>,
+        for<'a> Self: Alloc<'a, T, S>,
     {
         Self::Cache::retrieve(self, len, add_node)
     }
 }
 
-pub trait DevicelessAble<'a, T, const N: usize = 0>: Alloc<'a, T, N> {}
+pub trait DevicelessAble<'a, T, S: Shape = ()>: Alloc<'a, T, S> {}
 
 pub trait MainMemory: Device {
     /// This is a device specific `as_slice()` function.
     /// As a 'StackArray' does not need to be checked for null.
-    fn buf_as_slice<'a, T, const N: usize>(buf: &'a Buffer<T, Self, N>) -> &'a [T];
-    fn buf_as_slice_mut<'a, T, const N: usize>(buf: &'a mut Buffer<T, Self, N>) -> &'a mut [T];
+    fn buf_as_slice<'a, T, S: Shape>(buf: &'a Buffer<T, Self, S>) -> &'a [T];
+    fn buf_as_slice_mut<'a, T, S: Shape>(buf: &'a mut Buffer<T, Self, S>) -> &'a mut [T];
 }
 
 /// This trait is for allocating memory on the implemented device.
@@ -134,7 +136,7 @@ pub trait MainMemory: Device {
 /// };
 /// assert_eq!(vec![0.; 12], device.read(&buf));
 /// ```
-pub trait Alloc<'a, T, const N: usize = 0>: Device {
+pub trait Alloc<'a, T, S: Shape = ()>: Device {
     /// Allocate memory on the implemented device.
     /// # Example
     /// ```
@@ -152,7 +154,7 @@ pub trait Alloc<'a, T, const N: usize = 0>: Device {
     /// };
     /// assert_eq!(vec![0.; 12], device.read(&buf));
     /// ```
-    fn alloc(&'a self, len: usize) -> <Self as Device>::Ptr<T, N>;
+    fn alloc(&'a self, len: usize) -> <Self as Device>::Ptr<T, S>;
 
     /// Allocate new memory with data
     /// # Example
@@ -171,14 +173,14 @@ pub trait Alloc<'a, T, const N: usize = 0>: Device {
     /// };
     /// assert_eq!(vec![1, 5, 4, 3, 6, 9, 0, 4], device.read(&buf));
     /// ```
-    fn with_slice(&'a self, data: &[T]) -> <Self as Device>::Ptr<T, N>
+    fn with_slice(&'a self, data: &[T]) -> <Self as Device>::Ptr<T, S>
     where
         T: Clone;
 
     /// If the vector `vec` was allocated previously, this function can be used in order to reduce the amount of allocations, which may be faster than using a slice of `vec`.
     #[inline]
     #[cfg(not(feature = "no-std"))]
-    fn alloc_with_vec(&'a self, vec: Vec<T>) -> <Self as Device>::Ptr<T, N>
+    fn alloc_with_vec(&'a self, vec: Vec<T>) -> <Self as Device>::Ptr<T, S>
     where
         T: Clone,
     {
@@ -186,7 +188,7 @@ pub trait Alloc<'a, T, const N: usize = 0>: Device {
     }
 
     #[inline]
-    fn with_array(&'a self, array: [T; N]) -> <Self as Device>::Ptr<T, N>
+    fn with_array<const N: usize>(&'a self, array: [T; N]) -> <Self as Device>::Ptr<T, S>
     where
         T: Clone,
     {

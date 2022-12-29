@@ -5,7 +5,7 @@ use std::collections::HashMap;
 use std::rc::Rc;
 
 use crate::{
-    bump_count, AddGraph, Alloc, BufFlag, Buffer, CacheAble, Device, GraphReturn, Ident, Node,
+    bump_count, AddGraph, Alloc, BufFlag, Buffer, CacheAble, Device, GraphReturn, Ident, Node, shape::Shape,
 };
 
 /// This trait makes a device's [`Cache`] accessible and is implemented for all compute devices.
@@ -18,8 +18,8 @@ pub trait CacheReturn: GraphReturn {
 }
 
 pub trait RawConv: Device + CacheReturn {
-    fn construct<T, const N: usize>(ptr: &Self::Ptr<T, N>, len: usize, node: Node) -> Self::CT;
-    fn destruct<T, const N: usize>(ct: &Self::CT) -> (Self::Ptr<T, N>, Node);
+    fn construct<T, S: Shape>(ptr: &Self::Ptr<T, S>, len: usize, node: Node) -> Self::CT;
+    fn destruct<T, S: Shape>(ct: &Self::CT) -> (Self::Ptr<T, S>, Node);
 }
 
 #[derive(Debug)]
@@ -41,9 +41,9 @@ impl<D> CacheAble<D> for Cache<D>
 where
     D: RawConv,
 {
-    fn retrieve<T, const N: usize >(device: &D, len: usize, add_node: impl AddGraph) -> Buffer<T, D, N>
+    fn retrieve<T, S: Shape>(device: &D, len: usize, add_node: impl AddGraph) -> Buffer<T, D, S>
     where
-        for<'b> D: Alloc<'b, T, N>,
+        for<'b> D: Alloc<'b, T, S>,
     {
         Cache::get(device, len, add_node)
     }
@@ -71,14 +71,14 @@ impl<D: RawConv> Cache<D> {
     ///
     /// assert_eq!(cache.host_ptr(), ptr.ptr as *mut f32);
     /// ```
-    pub fn add_node<'a, T, const N: usize>(
+    pub fn add_node<'a, T, S: Shape>(
         &mut self,
         device: &'a D,
         node: Ident,
         _add_node: impl AddGraph,
-    ) -> Buffer<'a, T, D, N>
+    ) -> Buffer<'a, T, D, S>
     where
-        D: Alloc<'a, T, N> + RawConv,
+        D: Alloc<'a, T, S> + RawConv,
     {
         let ptr = device.alloc(node.len);
 
@@ -122,13 +122,13 @@ impl<D: RawConv> Cache<D> {
     /// assert_eq!(cache_entry.ptrs(), first_entry.ptrs());
     /// ```
     #[cfg(not(feature = "realloc"))]
-    pub fn get<'a, T, const N: usize>(
+    pub fn get<'a, T, S: Shape>(
         device: &'a D,
         len: usize,
         add_node: impl AddGraph,
-    ) -> Buffer<'a, T, D, N>
+    ) -> Buffer<'a, T, D, S>
     where
-        D: Alloc<'a, T, N> + RawConv,
+        D: Alloc<'a, T, S> + RawConv,
     {
         let node = Ident::new(len);
 
@@ -139,7 +139,7 @@ impl<D: RawConv> Cache<D> {
             Some(ptr) => {
                 bump_count();
 
-                let (ptr, node) = D::destruct::<T, N>(ptr);
+                let (ptr, node) = D::destruct::<T, S>(ptr);
 
                 Buffer {
                     ptr,

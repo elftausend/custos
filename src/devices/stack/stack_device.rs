@@ -1,4 +1,4 @@
-use crate::{Alloc, Buffer, Device, DevicelessAble, MainMemory, Read};
+use crate::{Alloc, Buffer, Device, DevicelessAble, MainMemory, Read, shape::Shape};
 
 use super::stack_array::StackArray;
 
@@ -8,7 +8,7 @@ pub struct Stack;
 impl<'a, T: Copy + Default> DevicelessAble<'a, T> for Stack {}
 
 impl Device for Stack {
-    type Ptr<U, const N: usize> = StackArray<N, U>;
+    type Ptr<U, S: Shape> = S::ARR<U>;
     type Cache = ();
 
     fn new() -> crate::Result<Self> {
@@ -18,21 +18,21 @@ impl Device for Stack {
 
 impl MainMemory for Stack {
     #[inline]
-    fn buf_as_slice<'a, T, const N: usize>(buf: &'a Buffer<T, Self, N>) -> &'a [T] {
+    fn buf_as_slice<'a, T, S: Shape>(buf: &'a Buffer<T, Self, S>) -> &'a [T] {
         &buf.ptr.array
     }
 
     #[inline]
-    fn buf_as_slice_mut<'a, T, const N: usize>(buf: &'a mut Buffer<T, Self, N>) -> &'a mut [T] {
+    fn buf_as_slice_mut<'a, T, S: Shape>(buf: &'a mut Buffer<T, Self, S>) -> &'a mut [T] {
         &mut buf.ptr.array
     }
 }
 
-impl<'a, const N: usize, T: Copy + Default> Alloc<'a, T, N> for Stack {
+impl<'a, S: Shape, T: Copy + Default> Alloc<'a, T, S> for Stack {
     #[inline]
     fn alloc(&self, _len: usize) -> StackArray<N, T> {
         // TODO: one day... use const expressions
-        if N == 0 {
+        if S::LEN == 0 {
             panic!("The size (N) of a stack allocated buffer must be greater than 0.");
         }
         StackArray {

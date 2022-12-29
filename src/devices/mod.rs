@@ -5,7 +5,7 @@ use self::cpu::{
     api::{cblas_dgemm, cblas_sgemm},
     Order, Transpose,
 };
-use crate::{AddGraph, Alloc, Buffer, Device};
+use crate::{AddGraph, Alloc, Buffer, Device, shape::Shape};
 
 #[cfg(feature = "cuda")]
 use cuda::api::cublas::{cublasDgemm_v2, cublasOperation_t, cublasSgemm_v2, CublasHandle};
@@ -55,9 +55,9 @@ pub struct InternOpenCL;
 pub struct InternCudaDevice;
 
 pub trait CacheAble<D: Device> {
-    fn retrieve<T, const N: usize>(device: &D, len: usize, add_node: impl AddGraph) -> Buffer<T, D, N>
+    fn retrieve<T, S: Shape>(device: &D, len: usize, add_node: impl AddGraph) -> Buffer<T, D, S>
     where
-        for<'a> D: Alloc<'a, T, N>;
+        for<'a> D: Alloc<'a, T, S>;
 
     //fn insert_node<T>(&mut self, device: &D, ptr: &D::Ptr<T, N>, node: Ident, graph_node: crate::Node) {}
 }
@@ -65,9 +65,9 @@ pub trait CacheAble<D: Device> {
 // TODO: Mind num implement?
 impl<D: Device> CacheAble<D> for () {
     #[inline]
-    fn retrieve<T, const N: usize>(device: &D, len: usize, _add_node: impl AddGraph) -> Buffer<T, D, N>
+    fn retrieve<T, S: Shape>(device: &D, len: usize, _add_node: impl AddGraph) -> Buffer<T, D, S>
     where
-        for<'a> D: Alloc<'a, T, N>,
+        for<'a> D: Alloc<'a, T, S>,
     {
         Buffer::new(device, len)
     }

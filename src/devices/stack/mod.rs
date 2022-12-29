@@ -6,6 +6,7 @@ pub use stack_device::*;
 
 #[cfg(feature="cpu")]
 #[cfg(test)]
+#[cfg(test3)]
 mod tests {
     use crate::{Alloc, Buffer, Device, MainMemory, CPU};
     use core::ops::Add;

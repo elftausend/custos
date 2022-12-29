@@ -1,13 +1,13 @@
-use crate::{Alloc, BufFlag, Buffer};
+use crate::{Alloc, BufFlag, Buffer, shape::Shape};
 
 pub trait WithConst<D, C> {
     fn with(device: D, array: C) -> Self;
 }
 
-impl<'a, T, D, const N: usize> WithConst<&'a D, [T; N]> for Buffer<'a, T, D, N>
+impl<'a, T, D, S: Shape, const N: usize> WithConst<&'a D, [T; N]> for Buffer<'a, T, D, S>
 where
     T: Clone,
-    D: Alloc<'a, T, N>,
+    D: Alloc<'a, T, S>,
 {
     fn with(device: &'a D, array: [T; N]) -> Self {
         Buffer {
@@ -20,10 +20,10 @@ where
     }
 }
 
-impl<'a, T, D, const N: usize> WithConst<&'a D, &[T; N]> for Buffer<'a, T, D, N>
+impl<'a, T, D, S: Shape, const N: usize> WithConst<&'a D, &[T; N]> for Buffer<'a, T, D, S>
 where
     T: Copy,
-    D: Alloc<'a, T, N>,
+    D: Alloc<'a, T, S>,
 {
     fn with(device: &'a D, array: &[T; N]) -> Self {
         Buffer {
@@ -36,11 +36,11 @@ where
     }
 }
 
-impl<'a, T, D, const N: usize> WithConst<&'a D, ()> for Buffer<'a, T, D, N>
+impl<'a, T, D, S: Shape> WithConst<&'a D, ()> for Buffer<'a, T, D, S>
 where
-    D: Alloc<'a, T, N>,
+    D: Alloc<'a, T, S>,
 {
     fn with(device: &'a D, _: ()) -> Self {
-        Buffer::new(device, N)
+        Buffer::new(device, S::LEN)
     }
 }

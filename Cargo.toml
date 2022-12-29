@@ -26,7 +26,7 @@ min-cl = { path = "../min-cl", optional=true }
 
 
 [features]
-default = ["cpu", "opencl"]
+default = ["cpu", "stack"]
 #default = ["no-std", "stack"]
 cpu = []
 opencl = ["dep:min-cl"]
