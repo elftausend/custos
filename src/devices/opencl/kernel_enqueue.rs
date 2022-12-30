@@ -1,5 +1,5 @@
+use crate::{number::Number, Buffer, OpenCL, Shape};
 use min_cl::api::{enqueue_nd_range_kernel, set_kernel_arg, OCLErrorKind};
-use crate::{number::Number, Buffer, OpenCL};
 use std::{ffi::c_void, mem::size_of};
 
 pub trait AsClCvoidPtr {
@@ -12,15 +12,13 @@ pub trait AsClCvoidPtr {
     }
 }
 
-impl<'a, T, const N: usize> AsClCvoidPtr for &Buffer<'a, T, OpenCL, N>
-{
+impl<'a, T, S: Shape> AsClCvoidPtr for &Buffer<'a, T, OpenCL, S> {
     fn as_cvoid_ptr(&self) -> *const c_void {
         self.ptr.ptr
     }
 }
 
-impl<'a, T, const N: usize> AsClCvoidPtr for Buffer<'a, T, OpenCL, N>
-{
+impl<'a, T, S: Shape> AsClCvoidPtr for Buffer<'a, T, OpenCL, S> {
     fn as_cvoid_ptr(&self) -> *const c_void {
         self.ptr.ptr
     }

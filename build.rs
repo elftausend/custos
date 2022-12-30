@@ -1,4 +1,3 @@
-
 fn main() {
     // TODO: execute other opencl test to know whether opencl can actually be used
     #[cfg(feature = "opencl")]

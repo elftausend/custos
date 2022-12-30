@@ -1,6 +1,6 @@
 //use custos::{Buffer, ClearBuf, CPU, WithConst};
 
-/* 
+/*
 #[test]
 fn test_device_return() {
 

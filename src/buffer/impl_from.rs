@@ -1,4 +1,4 @@
-use crate::{Alloc, BufFlag, Buffer, GraphReturn, shape::Shape};
+use crate::{shape::Shape, Alloc, BufFlag, Buffer, GraphReturn};
 
 impl<'a, T, D, const N: usize> From<(&'a D, [T; N])> for Buffer<'a, T, D>
 where

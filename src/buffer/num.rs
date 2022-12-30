@@ -4,7 +4,7 @@ use core::{
     ptr::null_mut,
 };
 
-use crate::{BufFlag, Buffer, CloneBuf, CommonPtrs, Dealloc, Device, Node, shape::Shape};
+use crate::{shape::Shape, BufFlag, Buffer, CloneBuf, CommonPtrs, Dealloc, Device, Node};
 
 pub struct Num<T> {
     pub num: T,

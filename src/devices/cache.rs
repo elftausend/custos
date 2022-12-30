@@ -1,11 +1,11 @@
 use core::{cell::RefMut, marker::PhantomData};
 use std::collections::HashMap;
 
-
 use std::rc::Rc;
 
 use crate::{
-    bump_count, AddGraph, Alloc, BufFlag, Buffer, CacheAble, Device, GraphReturn, Ident, Node, shape::Shape,
+    bump_count, shape::Shape, AddGraph, Alloc, BufFlag, Buffer, CacheAble, Device, GraphReturn,
+    Ident, Node,
 };
 
 /// This trait makes a device's [`Cache`] accessible and is implemented for all compute devices.
@@ -167,7 +167,7 @@ impl<D: RawConv> Cache<D> {
     }
 }
 
-#[cfg(feature="cpu")]
+#[cfg(feature = "cpu")]
 #[cfg(test)]
 mod tests {
     #[cfg(not(feature = "realloc"))]

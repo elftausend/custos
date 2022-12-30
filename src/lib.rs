@@ -43,7 +43,7 @@ pub use error::*;
 
 pub use graph::*;
 
-#[cfg(feature="cpu")]
+#[cfg(feature = "cpu")]
 pub use devices::cpu::CPU;
 
 #[cfg(feature = "cuda")]
@@ -75,7 +75,7 @@ pub mod static_api;
 
 pub mod number;
 pub use op_traits::*;
-use shape::Shape;
+pub use shape::*;
 
 pub trait Dealloc<T, const N: usize = 0> {
     /// # Safety
@@ -204,11 +204,11 @@ pub const UNIFIED_CL_MEM: bool = true;
 
 pub mod prelude {
     pub use crate::{
-        cached, number::*, range, Alloc, Buffer, CDatatype,
-        CacheBuf, ClearBuf, Device, GraphReturn, Read, WithConst, WriteBuf,
+        cached, number::*, range, Alloc, Buffer, CDatatype, CacheBuf, ClearBuf, Device,
+        GraphReturn, Read, WithConst, WriteBuf, shape::*
     };
 
-    #[cfg(feature="cpu")]
+    #[cfg(feature = "cpu")]
     pub use crate::{cpu::cpu_cached, CPU};
 
     #[cfg(not(feature = "no-std"))]
@@ -220,7 +220,7 @@ pub mod prelude {
     #[cfg(feature = "opencl")]
     #[cfg(unified_cl)]
     #[cfg(not(feature = "realloc"))]
-    pub use crate::opencl::{construct_buffer, to_unified, cl_cached};
+    pub use crate::opencl::{cl_cached, construct_buffer, to_unified};
 
     #[cfg(feature = "stack")]
     pub use crate::stack::Stack;

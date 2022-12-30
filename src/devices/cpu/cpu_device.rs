@@ -1,17 +1,18 @@
 use crate::{
     cache::RawConv,
     devices::cache::{Cache, CacheReturn},
+    shape::Shape,
     Alloc, Buffer, CacheBuf, CachedLeaf, ClearBuf, CloneBuf, Device, DevicelessAble, Graph,
-    GraphReturn, MainMemory, Read, WriteBuf, shape::Shape,
-};
-use std::{
-    alloc::{handle_alloc_error, Layout},
-    vec::Vec,
+    GraphReturn, MainMemory, Read, WriteBuf,
 };
 use core::{
     cell::{RefCell, RefMut},
     fmt::Debug,
     mem::{align_of, size_of},
+};
+use std::{
+    alloc::{handle_alloc_error, Layout},
+    vec::Vec,
 };
 
 use super::{CPUPtr, RawCpuBuf};
@@ -57,13 +58,9 @@ impl Device for CPU {
 }
 
 impl RawConv for CPU {
-    fn construct<T, S: Shape>(
-        ptr: &Self::Ptr<T, S>,
-        len: usize,
-        node: crate::Node,
-    ) -> Self::CT {
+    fn construct<T, S: Shape>(ptr: &Self::Ptr<T, S>, len: usize, node: crate::Node) -> Self::CT {
         RawCpuBuf {
-            ptr: ptr.ptr as *mut u8,
+            ptr: ptr.ptr.cast(),
             len,
             align: align_of::<T>(),
             size: size_of::<T>(),

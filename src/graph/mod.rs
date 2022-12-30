@@ -38,7 +38,6 @@ impl Graph {
     }
 }
 
-
 #[cfg(not(feature = "no-std"))]
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct CacheTrace {

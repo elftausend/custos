@@ -1,15 +1,12 @@
 use min_cl::CLDevice;
 
 use min_cl::api::{
-    enqueue_full_copy_buffer, enqueue_read_buffer,
-    enqueue_write_buffer, wait_for_event, CLIntDevice,
-    CommandQueue, Context, create_buffer, MemFlags
+    create_buffer, enqueue_full_copy_buffer, enqueue_read_buffer, enqueue_write_buffer,
+    wait_for_event, CLIntDevice, CommandQueue, Context, MemFlags,
 };
 
-use super::{
-
-    chosen_cl_idx, cl_clear, CLPtr, KernelCacheCL, RawCL,
-};
+use super::{chosen_cl_idx, cl_clear, CLPtr, KernelCacheCL, RawCL};
+use crate::Shape;
 use crate::{
     cache::{Cache, CacheReturn, RawConv},
     Alloc, Buffer, CDatatype, CacheBuf, CachedLeaf, ClearBuf, CloneBuf, Device, Error, Graph,
@@ -49,7 +46,6 @@ pub struct OpenCL {
 
 /// Short form for `OpenCL`
 pub type CL = OpenCL;
-
 
 impl OpenCL {
     /// Returns an [OpenCL] at the specified device index.
@@ -125,7 +121,7 @@ impl OpenCL {
 }
 
 impl Device for OpenCL {
-    type Ptr<U, const N: usize> = CLPtr<U>;
+    type Ptr<U, S: Shape> = CLPtr<U>;
     type Cache = Cache<Self>;
 
     fn new() -> crate::Result<Self> {
@@ -134,8 +130,8 @@ impl Device for OpenCL {
 }
 
 impl RawConv for OpenCL {
-    fn construct<T, const N: usize>(
-        ptr: &Self::Ptr<T, N>,
+    fn construct<T, S: Shape>(
+        ptr: &Self::Ptr<T, S>,
         _len: usize,
         node: crate::Node,
     ) -> Self::CT {
@@ -146,7 +142,7 @@ impl RawConv for OpenCL {
         }
     }
 
-    fn destruct<T, const N: usize>(ct: &Self::CT) -> (Self::Ptr<T, N>, crate::Node) {
+    fn destruct<T, S: Shape>(ct: &Self::CT) -> (Self::Ptr<T, S>, crate::Node) {
         (
             CLPtr {
                 ptr: ct.ptr,
@@ -175,12 +171,12 @@ impl Debug for OpenCL {
     }
 }
 
-impl<T, const N: usize> Alloc<'_, T, N> for OpenCL {
+impl<T, S: Shape> Alloc<'_, T, S> for OpenCL {
     fn alloc(&self, mut len: usize) -> CLPtr<T> {
         assert!(len > 0, "invalid buffer len: 0");
 
-        if N > len {
-            len = N
+        if S::LEN > len {
+            len = S::LEN
         }
 
         let ptr =
@@ -251,12 +247,12 @@ impl GraphReturn for OpenCL {
 #[cfg(unified_cl)]
 impl crate::MainMemory for OpenCL {
     #[inline]
-    fn buf_as_slice<'a, T, const N: usize>(buf: &'a Buffer<T, Self, N>) -> &'a [T] {
+    fn buf_as_slice<'a, T, S: Shape>(buf: &'a Buffer<T, Self, S>) -> &'a [T] {
         unsafe { std::slice::from_raw_parts(buf.host_ptr(), buf.len) }
     }
 
     #[inline]
-    fn buf_as_slice_mut<'a, T, const N: usize>(buf: &'a mut Buffer<T, Self, N>) -> &'a mut [T] {
+    fn buf_as_slice_mut<'a, T, S: Shape>(buf: &'a mut Buffer<T, Self, S>) -> &'a mut [T] {
         unsafe { std::slice::from_raw_parts_mut(buf.host_ptr_mut(), buf.len) }
     }
 }
@@ -335,7 +331,7 @@ fn read_cl_buf_to_vec<T: Clone + Default>(
 mod tests {
     use std::cell::RefCell;
 
-    use crate::{Buffer, opencl::cl_device::CLDevice, OpenCL};
+    use crate::{opencl::cl_device::CLDevice, Buffer, OpenCL};
 
     #[test]
     fn test_multiplie_queues() -> crate::Result<()> {

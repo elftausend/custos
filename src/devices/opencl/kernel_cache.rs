@@ -1,8 +1,8 @@
+use crate::{Error, Node, OpenCL};
 use min_cl::api::{
     build_program, create_kernels_in_program, create_program_with_source, release_mem_object,
     Kernel,
 };
-use crate::{Error, Node, OpenCL};
 use std::{collections::HashMap, ffi::c_void, rc::Rc};
 
 #[derive(Debug)]

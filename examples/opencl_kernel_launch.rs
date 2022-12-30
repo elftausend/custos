@@ -15,7 +15,7 @@ fn main() -> Result<(), Error> {
 
     let gws = [lhs.len, 0, 0];
 
-    let out = Cache::get::<i32, 0>(&device, lhs.len, ());
+    let out = Cache::get::<i32, ()>(&device, lhs.len, ());
     enqueue_kernel(&device, &src, gws, None, &[&lhs, &rhs, &out])?;
     assert_eq!(out.read(), vec![-1, -1, -1, -1, -1, -1]);
     Ok(())

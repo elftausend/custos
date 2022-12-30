@@ -1,5 +1,4 @@
-use crate::{Node, AddGraph, CacheTrace, COUNT, Ident};
-
+use crate::{AddGraph, CacheTrace, Ident, Node, COUNT};
 
 #[derive(Default, Debug)]
 pub struct Graph {

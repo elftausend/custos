@@ -1,12 +1,12 @@
 use core::{ffi::c_void, fmt::Debug};
 
-#[cfg(feature="cpu")]
+#[cfg(feature = "cpu")]
 use crate::cpu::{CPUPtr, CPU};
 
-#[cfg(not(feature="cpu"))]
+#[cfg(not(feature = "cpu"))]
 pub struct CPU {}
 
-#[cfg(not(feature="cpu"))]
+#[cfg(not(feature = "cpu"))]
 impl Device for CPU {
     type Ptr<U, S: Shape> = num::Num<U>;
 
@@ -18,13 +18,13 @@ impl Device for CPU {
 }
 
 use crate::{
-    Alloc, CacheBuf, ClearBuf, CloneBuf, CommonPtrs, Dealloc, Device, DevicelessAble, MainMemory,
-    Node, Read, WriteBuf, shape::Shape,
+    shape::Shape, Alloc, CacheBuf, ClearBuf, CloneBuf, CommonPtrs, Dealloc, Device, DevicelessAble,
+    MainMemory, Node, Read, WriteBuf,
 };
 
+pub use self::num::Num;
 pub use flag::BufFlag;
 pub use impl_from_const::*;
-pub use self::num::Num;
 
 mod flag;
 mod impl_from;
@@ -54,15 +54,9 @@ pub struct Buffer<'a, T = f32, D: Device = CPU, S: Shape = ()> {
     pub node: Node,
 }
 
-unsafe impl<'a, T, D: Device, S: Shape> Send
-    for Buffer<'a, T, D, S>
-{
-}
+unsafe impl<'a, T, D: Device, S: Shape> Send for Buffer<'a, T, D, S> {}
 
-unsafe impl<'a, T, D: Device, S: Shape> Sync
-    for Buffer<'a, T, D, S>
-{
-}
+unsafe impl<'a, T, D: Device, S: Shape> Sync for Buffer<'a, T, D, S> {}
 
 impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
     /// Creates a zeroed (or values set to default) `Buffer` with the given length on the specified device.
@@ -270,24 +264,26 @@ impl<'a, T, D: Device> Buffer<'a, T, D> {
     }
 }
 
-#[cfg(feature="cpu")]
+#[cfg(feature = "cpu")]
 impl<'a, T> Buffer<'a, T> {
     /// Constructs a `Buffer` out of a host pointer and a length.
     /// # Example
     /// ```
-    /// use custos::{Buffer, Alloc, CPU, Read};
+    /// use custos::{Buffer, Alloc, CPU, Read, Dealloc};
     /// use std::ffi::c_void;
     ///
     /// let device = CPU::new();
-    /// let ptr = Alloc::<f32>::alloc(&device, 10);
+    /// let mut ptr = Alloc::<f32>::alloc(&device, 10);
     /// let mut buf = unsafe {
     ///     Buffer::from_raw_host(ptr.ptr, 10)
     /// };
     /// for (idx, value) in buf.iter_mut().enumerate() {
     ///     *value += idx as f32;
     /// }
-    /// assert_eq!(buf.as_slice(), &[0., 1., 2., 3., 4., 5., 6., 7., 8., 9.,])
-    ///
+    /// 
+    /// assert_eq!(buf.as_slice(), &[0., 1., 2., 3., 4., 5., 6., 7., 8., 9.,]);
+    /// unsafe { ptr.dealloc(10) };
+    /// 
     /// ```
     /// # Safety
     /// The pointer must be valid.
@@ -380,9 +376,7 @@ unsafe impl<T> Send for Buffer<'a, T> {}
 #[cfg(feature = "safe")]
 unsafe impl<T> Sync for Buffer<'a, T> {}*/
 
-impl<T, D: Device, S: Shape> Drop
-    for Buffer<'_, T, D, S>
-{
+impl<T, D: Device, S: Shape> Drop for Buffer<'_, T, D, S> {
     fn drop(&mut self) {
         if self.flag != BufFlag::None {
             return;
@@ -575,7 +569,7 @@ where
 mod tests {
     use crate::Buffer;
 
-    #[cfg(feature="cpu")]
+    #[cfg(feature = "cpu")]
     #[test]
     fn test_deref() {
         let device = crate::CPU::new();
@@ -601,16 +595,17 @@ mod tests {
     #[cfg(feature = "stack")]
     #[test]
     fn test_deref_stack() -> crate::Result<()> {
-        use crate::stack::Stack;
+        use crate::{shape::Dim1, stack::Stack};
 
-        let buf = Buffer::<i32, _, 4>::from((Stack, [1i32, 2, 3, 4]));
+        //TODO
+        let buf = Buffer::<i32, _, Dim1<4>>::from((Stack, [1i32, 2, 3, 4]));
         let slice = &*buf;
         assert_eq!(slice, &[1, 2, 3, 4]);
 
         Ok(())
     }
 
-    #[cfg(feature="cpu")]
+    #[cfg(feature = "cpu")]
     #[test]
     fn test_debug_print() {
         let device = crate::CPU::new();

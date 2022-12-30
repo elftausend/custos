@@ -1,7 +1,7 @@
-use crate::{Buffer, Device, shape::Shape};
+use crate::{shape::Shape, Buffer, Device};
 
 /// Trait for implementing the clear() operation for the compute devices.
-pub trait ClearBuf<T, D: Device=Self, S: Shape = ()>: Device {
+pub trait ClearBuf<T, D: Device = Self, S: Shape = ()>: Device {
     /// Sets all elements of the matrix to zero.
     /// # Example
     /// ```
@@ -18,7 +18,7 @@ pub trait ClearBuf<T, D: Device=Self, S: Shape = ()>: Device {
 }
 
 /// Trait for reading buffers.
-pub trait Read<T, D: Device=Self, S: Shape = ()>: Device {
+pub trait Read<T, D: Device = Self, S: Shape = ()>: Device {
     type Read<'a>
     where
         T: 'a,
@@ -36,7 +36,7 @@ pub trait Read<T, D: Device=Self, S: Shape = ()>: Device {
     /// assert_eq!(&[1., 2., 3., 3., 2., 1.,], read);
     /// ```
     fn read<'a>(&self, buf: &'a Buffer<T, D, S>) -> Self::Read<'a>;
-   
+
     /// Read the data of a buffer into a vector
     /// # Example
     /// ```

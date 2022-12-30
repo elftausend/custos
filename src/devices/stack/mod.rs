@@ -3,8 +3,9 @@ mod stack_array;
 mod stack_device;
 
 pub use stack_device::*;
+pub use stack_array::StackArray;
 
-#[cfg(feature="cpu")]
+#[cfg(feature = "cpu")]
 #[cfg(test)]
 #[cfg(test3)]
 mod tests {

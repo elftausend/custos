@@ -2,9 +2,9 @@ use custos::prelude::*;
 
 /// `AddBuf` will be implemented for all compute devices.<br>
 /// Because of `N`, this trait can be implemented for [`Stack`] which uses fixed size arrays.
-pub trait AddBuf<T, const N: usize = 0>: Sized + Device {
+pub trait AddBuf<T, S: Shape = ()>: Sized + Device {
     /// This operation perfoms element-wise addition.
-    fn add(&self, lhs: &Buffer<T, Self, N>, rhs: &Buffer<T, Self, N>) -> Buffer<T, Self, N>;
+    fn add(&self, lhs: &Buffer<T, Self, S>, rhs: &Buffer<T, Self, S>) -> Buffer<T, Self, S>;
     // ... you can add more operations if you want to do that.
 }
 
@@ -35,23 +35,23 @@ where
     }
 }
 
+
 // the attribute macro `#[impl_stack]` from the crate `custos-macro`
 // can be placed on top of the CPU implementation to automatically
 // generate a Stack implementation.
 #[cfg(feature = "stack")]
-impl<T, const N: usize> AddBuf<T, N> for Stack
+impl<T, S: Shape> AddBuf<T, S> for Stack
 where
     T: Copy + Default + std::ops::Add<Output = T>,
 {
-    fn add(&self, lhs: &Buffer<T, Self, N>, rhs: &Buffer<T, Self, N>) -> Buffer<T, Self, N> {
-        let mut out = [T::default(); N];
-        //let mut out = self.retrieve(N, [lhs, rhs]); // this works as well and in this case (Stack), does exactly the same as the line above.
+    fn add(&self, lhs: &Buffer<T, Self, S>, rhs: &Buffer<T, Self, S>) -> Buffer<T, Self, S> {
+        let mut out = self.retrieve(S::LEN, [lhs, rhs]); // this works as well and in this case (Stack), does exactly the same as the line above.
 
-        for i in 0..N {
+        for i in 0..S::LEN {
             out[i] = lhs[i] + rhs[i];
         }
 
-        Buffer::from((Stack, out))
+        out
     }
 }
 
@@ -74,7 +74,7 @@ where
         ", datatype=T::as_c_type_str());
 
         let len = std::cmp::min(lhs.len, rhs.len);
-        let out = self.retrieve::<T, 0>(len, (lhs, rhs));
+        let out = self.retrieve::<T, ()>(len, (lhs, rhs));
 
         // In the background, the kernel is compiled once. After that, it will be reused for every iteration.
         // The cached kernels are released (or freed) when the underlying CLDevice is dropped.

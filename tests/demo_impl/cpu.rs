@@ -1,11 +1,11 @@
-use custos::{prelude::Number, Buffer, Device, MainMemory, Stack, WithConst, CPU};
+use custos::{prelude::Number, Buffer, Device, MainMemory, Shape, Stack, WithConst, CPU, Dim2};
 use custos_macro::impl_stack;
 //use custos_macro::impl_stack;
 
 //#[cfg(feature = "stack")]
 //use custos::stack::Stack;
 
-use super::ElementWise;
+use super::{ElementWise, transpose::Transpose};
 
 pub fn cpu_element_wise<T, F>(lhs: &[T], rhs: &[T], out: &mut [T], f: F)
 where
@@ -21,25 +21,26 @@ where
 
 // TODO: write expansion example
 #[impl_stack]
-impl<T, D, const N: usize> ElementWise<T, D, N> for CPU
+impl<T, D, S> ElementWise<T, D, S> for CPU
 where
     T: Number,
     D: MainMemory,
+    S: Shape
 {
-    fn add(&self, lhs: &Buffer<T, D, N>, rhs: &Buffer<T, D, N>) -> Buffer<T, CPU, N> {
+    fn add(&self, lhs: &Buffer<T, D, S>, rhs: &Buffer<T, D, S>) -> Buffer<T, CPU, S> {
         let mut out = self.retrieve(lhs.len, (lhs, rhs));
         cpu_element_wise(lhs, rhs, &mut out, |o, a, b| *o = a + b);
         out
     }
 
-    fn mul(&self, lhs: &Buffer<T, D, N>, rhs: &Buffer<T, D, N>) -> Buffer<T, CPU, N> {
+    fn mul(&self, lhs: &Buffer<T, D, S>, rhs: &Buffer<T, D, S>) -> Buffer<T, CPU, S> {
         let mut out = self.retrieve(lhs.len, (lhs, rhs));
         cpu_element_wise(lhs, rhs, &mut out, |o, a, b| *o = a * b);
         out
     }
 }
 
-#[cfg(feature="wgpu")]
+#[cfg(feature = "wgpu")]
 #[test]
 fn test_const_size_buf() {
     let device = CPU::new();
@@ -70,12 +71,14 @@ fn test_const_size_buf() {
 #[cfg(feature = "stack")]
 #[test]
 fn test_impl_stack() {
+    use custos::Dim1;
+
     let device = CPU::new();
     let buf = Buffer::<i32, _>::from((&device, [1, 2, 3, 4, 5]));
     let out = device.add(&buf, &buf);
     assert_eq!(out.as_slice(), &[2, 4, 6, 8, 10]);
 
-    let buf = Buffer::<i32, Stack, 5>::with(&Stack, [1, 2, 3, 4, 5]);
+    let buf = Buffer::<i32, Stack, Dim1<5>>::with(&Stack, [1, 2, 3, 4, 5]);
     let out = Stack.add(&buf, &buf);
     assert_eq!(out.as_slice(), &[2, 4, 6, 8, 10]);
 }
@@ -97,3 +100,9 @@ where
     }
 }
 */
+
+impl<T, D: Device, const A: usize, const B: usize> Transpose<T, D, Dim2<A, B>, Dim2<B, A>> for Stack {
+    fn transpose(&self, _buf: Buffer<T, D, Dim2<A, B>>) -> Buffer<T, Self, Dim2<B, A>> {
+        todo!()
+    }
+}

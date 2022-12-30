@@ -1,9 +1,5 @@
 #![allow(unused)]
-use custos::{
-    cache::Cache,
-    range, set_count, Buffer, Error, OpenCL, Read, CPU,
-};
-
+use custos::{cache::Cache, range, set_count, Buffer, Error, OpenCL, Read, CPU};
 
 use min_cl::api::{clCreateBuffer, enqueue_map_buffer, CommandQueue, MemFlags, OCLErrorKind};
 
@@ -21,7 +17,6 @@ pub fn unified_mem<T>(device: &OpenCL, arr: &mut [T]) -> Result<*mut c_void, Err
             &mut err,
         )
     };
-
 
     if err != 0 {
         return Err(Error::from(OCLErrorKind::from_value(err)));
@@ -193,7 +188,7 @@ fn test_unified_mem_iterate() -> custos::Result<()> {
 #[test]
 fn test_cpu_to_unified() -> custos::Result<()> {
     let device = CPU::new();
-    let mut buf = Cache::get::<i32, 0>(&device, 6, ());
+    let mut buf = Cache::get::<i32, ()>(&device, 6, ());
     buf.copy_from_slice(&[1, 2, 3, 4, 5, 6]);
 
     let cl_dev = OpenCL::new(0)?;
@@ -218,7 +213,7 @@ fn test_cpu_to_unified_leak() -> custos::Result<()> {
     for _ in range(10) {
         let cl_cpu_buf = {
             let cpu = CPU::new();
-            let mut buf = Cache::get::<i32, 0>(&cpu, 6, ());
+            let mut buf = Cache::get::<i32, ()>(&cpu, 6, ());
             buf.copy_from_slice(&[1, 2, 3, 4, 5, 6]);
 
             let cl_cpu_buf = unsafe { custos::opencl::construct_buffer(&cl_dev, buf, ())? };
@@ -248,7 +243,7 @@ fn test_cpu_to_unified_perf() -> custos::Result<()> {
     let mut dur = 0.;
 
     for _ in range(100) {
-        let mut buf = Cache::get::<i32, 0>(&device, 6, ());
+        let mut buf = Cache::get::<i32, ()>(&device, 6, ());
 
         buf.copy_from_slice(&[1, 2, 3, 4, 5, 6]);
 

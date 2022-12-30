@@ -1,4 +1,4 @@
-use crate::{Alloc, BufFlag, Buffer, shape::Shape};
+use crate::{shape::Shape, Alloc, BufFlag, Buffer};
 
 pub trait WithConst<D, C> {
     fn with(device: D, array: C) -> Self;

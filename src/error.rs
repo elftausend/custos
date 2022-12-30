@@ -1,4 +1,3 @@
-
 #[cfg(not(feature = "no-std"))]
 mod std_err {
     pub type Error = Box<dyn std::error::Error + Send + Sync>;
@@ -6,7 +5,7 @@ mod std_err {
     pub trait ErrorKind {
         fn kind<E: std::error::Error + PartialEq + 'static>(&self) -> Option<&E>;
     }
-    
+
     impl ErrorKind for Error {
         fn kind<E: std::error::Error + PartialEq + 'static>(&self) -> Option<&E> {
             self.downcast_ref::<E>()
@@ -16,11 +15,10 @@ mod std_err {
     impl std::error::Error for crate::DeviceError {}
 }
 
-#[cfg(not(feature="no-std"))]
+#[cfg(not(feature = "no-std"))]
 pub use std_err::*;
 
-
-/* 
+/*
 impl<E: std::error::Error + PartialEq + 'static> PartialEq<E> for Error {
     fn eq(&self, other: &E) -> bool {
         let e = self.error.downcast_ref::<E>();
@@ -108,5 +106,3 @@ impl core::fmt::Display for DeviceError {
         write!(f, "{self:?}")
     }
 }
-
-
