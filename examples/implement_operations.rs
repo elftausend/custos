@@ -35,7 +35,6 @@ where
     }
 }
 
-
 // the attribute macro `#[impl_stack]` from the crate `custos-macro`
 // can be placed on top of the CPU implementation to automatically
 // generate a Stack implementation.

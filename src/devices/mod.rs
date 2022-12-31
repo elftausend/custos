@@ -1,6 +1,7 @@
 //! This module defines all available compute devices
 
 #[cfg(feature = "blas")]
+#[cfg(feature = "cpu")]
 use self::cpu::{
     api::{cblas_dgemm, cblas_sgemm},
     Order, Transpose,
@@ -78,6 +79,7 @@ where
     Self: Sized,
 {
     #[cfg(feature = "blas")]
+    #[cfg(feature = "cpu")]
     #[allow(clippy::too_many_arguments)]
     fn blas_gemm(
         order: Order,
@@ -94,6 +96,7 @@ where
         ldc: usize,
     );
     #[cfg(feature = "blas")]
+    #[cfg(feature = "cpu")]
     #[inline]
     fn gemm(m: usize, n: usize, k: usize, a: &[Self], b: &[Self], c: &mut [Self]) {
         Self::blas_gemm(
@@ -112,6 +115,7 @@ where
         )
     }
     #[cfg(feature = "blas")]
+    #[cfg(feature = "cpu")]
     #[inline]
     #[allow(non_snake_case)]
     fn gemmT(m: usize, n: usize, k: usize, a: &[Self], b: &[Self], c: &mut [Self]) {
@@ -132,6 +136,7 @@ where
     }
 
     #[cfg(feature = "blas")]
+    #[cfg(feature = "cpu")]
     #[inline]
     #[allow(non_snake_case)]
     fn Tgemm(m: usize, n: usize, k: usize, a: &[Self], b: &[Self], c: &mut [Self]) {
@@ -165,6 +170,7 @@ where
 
 impl GenericBlas for f32 {
     #[cfg(feature = "blas")]
+    #[cfg(feature = "cpu")]
     #[inline]
     fn blas_gemm(
         order: Order,
@@ -235,6 +241,7 @@ impl GenericBlas for f32 {
 
 impl GenericBlas for f64 {
     #[cfg(feature = "blas")]
+    #[cfg(feature = "cpu")]
     #[inline]
     fn blas_gemm(
         order: Order,

@@ -58,6 +58,7 @@ impl Device for CPU {
 }
 
 impl RawConv for CPU {
+    #[inline]
     fn construct<T, S: Shape>(ptr: &Self::Ptr<T, S>, len: usize, node: crate::Node) -> Self::CT {
         RawCpuBuf {
             ptr: ptr.ptr.cast(),
@@ -68,6 +69,7 @@ impl RawConv for CPU {
         }
     }
 
+    #[inline]
     fn destruct<T, S: Shape>(ct: &Self::CT) -> (Self::Ptr<T, S>, crate::Node) {
         (
             CPUPtr {
@@ -141,21 +143,22 @@ impl GraphReturn for CPU {
 }
 
 impl MainMemory for CPU {
-    #[inline]
+    #[inline(always)]
     fn buf_as_slice<'a, T, S: Shape>(buf: &'a Buffer<T, Self, S>) -> &'a [T] {
         assert!(
-            !buf.ptrs().0.is_null(),
+            !buf.ptr.ptr.is_null(),
             "called as_slice() on an invalid CPU buffer (this would dereference an invalid pointer)"
         );
-        unsafe { std::slice::from_raw_parts(buf.ptrs().0, buf.len) }
+        unsafe { std::slice::from_raw_parts(buf.ptr.ptr, buf.len) }
     }
 
+    #[inline(always)]
     fn buf_as_slice_mut<'a, T, S: Shape>(buf: &'a mut Buffer<T, Self, S>) -> &'a mut [T] {
         assert!(
-            !buf.ptrs().0.is_null(),
+            !buf.ptr.ptr.is_null(),
             "called as_slice() on an invalid CPU buffer (this would dereference an invalid pointer)"
         );
-        unsafe { std::slice::from_raw_parts_mut(buf.ptrs_mut().0, buf.len) }
+        unsafe { std::slice::from_raw_parts_mut(buf.ptr.ptr, buf.len) }
     }
 }
 

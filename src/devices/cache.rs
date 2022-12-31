@@ -41,6 +41,7 @@ impl<D> CacheAble<D> for Cache<D>
 where
     D: RawConv,
 {
+    #[inline]
     fn retrieve<T, S: Shape>(device: &D, len: usize, add_node: impl AddGraph) -> Buffer<T, D, S>
     where
         for<'b> D: Alloc<'b, T, S>,
@@ -155,13 +156,10 @@ impl<D: RawConv> Cache<D> {
 
     /// If the 'realloc' feature is enabled, this functions always returns a new [`Buffer`] with the size of `len`gth.
     #[cfg(feature = "realloc")]
-    pub fn get<'a, T, const N: usize>(
-        device: &'a D,
-        len: usize,
-        _: impl AddGraph,
-    ) -> Buffer<T, D, N>
+    #[inline]
+    pub fn get<'a, T, S: Shape>(device: &'a D, len: usize, _: impl AddGraph) -> Buffer<T, D, S>
     where
-        D: Alloc<'a, T, N>,
+        D: Alloc<'a, T, S>,
     {
         Buffer::new(device, len)
     }

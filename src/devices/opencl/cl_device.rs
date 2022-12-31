@@ -130,11 +130,7 @@ impl Device for OpenCL {
 }
 
 impl RawConv for OpenCL {
-    fn construct<T, S: Shape>(
-        ptr: &Self::Ptr<T, S>,
-        _len: usize,
-        node: crate::Node,
-    ) -> Self::CT {
+    fn construct<T, S: Shape>(ptr: &Self::Ptr<T, S>, _len: usize, node: crate::Node) -> Self::CT {
         RawCL {
             ptr: ptr.ptr,
             host_ptr: ptr.host_ptr as *mut u8,

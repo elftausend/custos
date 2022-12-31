@@ -22,15 +22,17 @@ wgpu = {version="0.14.2", optional=true }
 
 num-traits = { version="0.2", default-features=false, optional=true}
 
+custos-macro = {path = "../custos-macro", optional=true}
+
 [build-dependencies]
 min-cl = { path = "../min-cl", optional=true }
 
 
 [features]
-default = ["cpu", "stack", "opencl"]
+default = ["cpu", "stack", "blas", "realloc"]
 #default = ["no-std", "stack"]
 cpu = []
-opencl = ["dep:min-cl"]
+opencl = ["dep:min-cl", "cpu"]
 #network = ["cuwanto-server"]
 cuda = []
 realloc = []
@@ -40,6 +42,7 @@ static-api = []
 stack = []
 no-std = ["stack", "dep:num-traits"]
 wgpu = ["dep:wgpu", "dep:pollster", "dep:futures-intrusive"]
+macro = ["dep:custos-macro"]
 
 [dev-dependencies]
 #criterion = "0.3"

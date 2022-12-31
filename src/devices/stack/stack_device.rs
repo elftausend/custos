@@ -88,7 +88,7 @@ mod tests {
 
     #[test]
     fn test_dim2() {
-        let buf = Buffer::<f64, Stack, Dim2<2, 3>>::from((&Stack, &[3., 2., 1., 4., 7., 1.,]));
+        let buf = Buffer::<f64, Stack, Dim2<2, 3>>::from((&Stack, &[3., 2., 1., 4., 7., 1.]));
 
         for val in buf.iter() {
             println!("val: {val}");
@@ -97,6 +97,5 @@ mod tests {
         assert_eq!(buf.read(), [[3., 2., 1.,], [4., 7., 1.]]);
 
         assert_eq!(buf.read_to_vec(), [3., 2., 1., 4., 7., 1.]);
-
     }
 }

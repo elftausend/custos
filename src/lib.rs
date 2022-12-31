@@ -202,10 +202,13 @@ pub const UNIFIED_CL_MEM: bool = false;
 #[cfg(unified_cl)]
 pub const UNIFIED_CL_MEM: bool = true;
 
+#[cfg(feature = "macro")]
+pub use custos_macro::impl_stack;
+
 pub mod prelude {
     pub use crate::{
-        cached, number::*, range, Alloc, Buffer, CDatatype, CacheBuf, ClearBuf, Device,
-        GraphReturn, Read, WithConst, WriteBuf, shape::*
+        cached, number::*, range, shape::*, Alloc, Buffer, CDatatype, CacheBuf, ClearBuf, Device,
+        GraphReturn, Read, WithConst, WriteBuf,
     };
 
     #[cfg(feature = "cpu")]

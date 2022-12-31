@@ -1,11 +1,11 @@
-use custos::{prelude::Number, Buffer, Device, MainMemory, Shape, Stack, WithConst, CPU, Dim2};
+use custos::{prelude::Number, Buffer, Device, Dim2, MainMemory, Shape, Stack, WithConst, CPU};
 use custos_macro::impl_stack;
 //use custos_macro::impl_stack;
 
 //#[cfg(feature = "stack")]
 //use custos::stack::Stack;
 
-use super::{ElementWise, transpose::Transpose};
+use super::{transpose::Transpose, ElementWise};
 
 pub fn cpu_element_wise<T, F>(lhs: &[T], rhs: &[T], out: &mut [T], f: F)
 where
@@ -25,7 +25,7 @@ impl<T, D, S> ElementWise<T, D, S> for CPU
 where
     T: Number,
     D: MainMemory,
-    S: Shape
+    S: Shape,
 {
     fn add(&self, lhs: &Buffer<T, D, S>, rhs: &Buffer<T, D, S>) -> Buffer<T, CPU, S> {
         let mut out = self.retrieve(lhs.len, (lhs, rhs));
@@ -101,7 +101,9 @@ where
 }
 */
 
-impl<T, D: Device, const A: usize, const B: usize> Transpose<T, D, Dim2<A, B>, Dim2<B, A>> for Stack {
+impl<T, D: Device, const A: usize, const B: usize> Transpose<T, D, Dim2<A, B>, Dim2<B, A>>
+    for Stack
+{
     fn transpose(&self, _buf: Buffer<T, D, Dim2<A, B>>) -> Buffer<T, Self, Dim2<B, A>> {
         todo!()
     }

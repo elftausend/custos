@@ -180,6 +180,48 @@ impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
     pub fn len(&self) -> usize {
         self.len
     }
+
+    /// Creates a shallow copy of &self.
+    ///
+    /// # Safety
+    /// Itself, this function does not need to be unsafe.
+    /// However, declaring this function as unsafe highlights the violation of creating two or more owners for one resource.
+    /// Furthermore, the resulting `Buffer` can outlive `self`.
+    #[inline]
+    pub unsafe fn shallow(&self) -> Buffer<'a, T, D, S>
+    where
+        <D as Device>::Ptr<T, S>: Copy,
+    {
+        Buffer {
+            ptr: self.ptr,
+            len: self.len,
+            device: self.device,
+            flag: BufFlag::Wrapper,
+            node: self.node,
+        }
+    }
+
+    /// Returns a shallow copy of &self, if the `realloc` feature is deactivated.
+    /// If the `realloc` feature is activated, it returns a deep copy / clone.
+    ///
+    /// # Safety
+    /// Itself, this function does not need to be unsafe.
+    /// However, declaring this function as unsafe highlights the violation of possibly creating two or more owners for one resource.
+    /// Furthermore, the resulting `Buffer` can outlive `self`.
+    pub unsafe fn shallow_or_clone(&self) -> Buffer<'a, T, D, S>
+    where
+        <D as Device>::Ptr<T, S>: Copy,
+        T: Clone,
+        D: CloneBuf<'a, T, S>,
+    {
+        {
+            #[cfg(not(feature = "realloc"))]
+            self.shallow()
+        }
+
+        #[cfg(feature = "realloc")]
+        self.clone()
+    }
 }
 
 impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S>
@@ -220,48 +262,6 @@ impl<'a, T, D: Device> Buffer<'a, T, D> {
     {
         self.device().clear(self)
     }
-
-    /// Creates a shallow copy of &self.
-    ///
-    /// # Safety
-    /// Itself, this function does not need to be unsafe.
-    /// However, declaring this function as unsafe highlights the violation of creating two or more owners for one resource.
-    /// Furthermore, the resulting `Buffer` can outlive `self`.
-    #[inline]
-    pub unsafe fn shallow(&self) -> Buffer<'a, T, D>
-    where
-        <D as Device>::Ptr<T, ()>: Copy,
-    {
-        Buffer {
-            ptr: self.ptr,
-            len: self.len,
-            device: self.device,
-            flag: BufFlag::Wrapper,
-            node: self.node,
-        }
-    }
-
-    /// Returns a shallow copy of &self, if the `realloc` feature is deactivated.
-    /// If the `realloc` feature is activated, it returns a deep copy / clone.
-    ///
-    /// # Safety
-    /// Itself, this function does not need to be unsafe.
-    /// However, declaring this function as unsafe highlights the violation of possibly creating two or more owners for one resource.
-    /// Furthermore, the resulting `Buffer` can outlive `self`.
-    pub unsafe fn shallow_or_clone(&self) -> Buffer<'a, T, D>
-    where
-        <D as Device>::Ptr<T, ()>: Copy,
-        T: Clone,
-        D: CloneBuf<'a, T>,
-    {
-        {
-            #[cfg(not(feature = "realloc"))]
-            self.shallow()
-        }
-
-        #[cfg(feature = "realloc")]
-        self.clone()
-    }
 }
 
 #[cfg(feature = "cpu")]
@@ -280,10 +280,10 @@ impl<'a, T> Buffer<'a, T> {
     /// for (idx, value) in buf.iter_mut().enumerate() {
     ///     *value += idx as f32;
     /// }
-    /// 
+    ///
     /// assert_eq!(buf.as_slice(), &[0., 1., 2., 3., 4., 5., 6., 7., 8., 9.,]);
     /// unsafe { ptr.dealloc(10) };
-    /// 
+    ///
     /// ```
     /// # Safety
     /// The pointer must be valid.
@@ -327,13 +327,13 @@ impl<'a, T> Buffer<'a, T, crate::CUDA> {
 
 impl<'a, T, D: MainMemory, S: Shape> Buffer<'a, T, D, S> {
     /// Returns a CPU slice. This does not work with CUDA or raw OpenCL buffers.
-    #[inline]
+    #[inline(always)]
     pub fn as_slice(&self) -> &[T] {
         D::buf_as_slice(self)
     }
 
     /// Returns a mutable CPU slice.
-    #[inline]
+    #[inline(always)]
     pub fn as_mut_slice(&mut self) -> &mut [T] {
         D::buf_as_slice_mut(self)
     }
@@ -364,7 +364,12 @@ where
     }
 }
 
-impl<'a, T: Clone, D: CloneBuf<'a, T> + Device> Clone for Buffer<'a, T, D> {
+impl<'a, T, D, S> Clone for Buffer<'a, T, D, S>
+where
+    T: Clone,
+    D: CloneBuf<'a, T, S> + Device,
+    S: Shape,
+{
     fn clone(&self) -> Self {
         //get_device!(self.device, CloneBuf<T>).clone_buf(self)
         self.device().clone_buf(self)
@@ -404,12 +409,14 @@ where
 }
 
 impl<T, D: MainMemory> AsRef<[T]> for Buffer<'_, T, D> {
+    #[inline]
     fn as_ref(&self) -> &[T] {
         self.as_slice()
     }
 }
 
 impl<T, D: MainMemory> AsMut<[T]> for Buffer<'_, T, D> {
+    #[inline]
     fn as_mut(&mut self) -> &mut [T] {
         self.as_mut_slice()
     }
@@ -441,6 +448,7 @@ impl<T, D: MainMemory> AsMut<[T]> for Buffer<'_, T, D> {
 impl<T, D: MainMemory, S: Shape> core::ops::Deref for Buffer<'_, T, D, S> {
     type Target = [T];
 
+    #[inline(always)]
     fn deref(&self) -> &Self::Target {
         self.as_slice()
     }
@@ -468,6 +476,7 @@ impl<T, D: MainMemory, S: Shape> core::ops::Deref for Buffer<'_, T, D, S> {
 /// assert_eq!(c.as_slice(), &[6., 5., 9., 9.,]);
 /// ```
 impl<T, D: MainMemory, S: Shape> core::ops::DerefMut for Buffer<'_, T, D, S> {
+    #[inline(always)]
     fn deref_mut(&mut self) -> &mut Self::Target {
         self.as_mut_slice()
     }
