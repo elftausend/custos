@@ -19,6 +19,7 @@ unsafe impl<const N: usize> Shape for Dim1<N> {
     const LEN: usize = N;
     type ARR<T> = [T; N];
 
+    #[inline]
     fn new<T: Copy + Default>() -> Self::ARR<T> {
         [T::default(); N]
     }
@@ -30,6 +31,7 @@ unsafe impl<const B: usize, const A: usize> Shape for Dim2<B, A> {
     const LEN: usize = B * A;
     type ARR<T> = [[T; A]; B];
 
+    #[inline]
     fn new<T: Copy + Default>() -> Self::ARR<T> {
         [[T::default(); A]; B]
     }
@@ -41,6 +43,7 @@ unsafe impl<const C: usize, const B: usize, const A: usize> Shape for Dim3<C, B,
     const LEN: usize = B * A * C;
     type ARR<T> = [[[T; A]; B]; C];
 
+    #[inline]
     fn new<T: Copy + Default>() -> Self::ARR<T> {
         [[[T::default(); A]; B]; C]
     }

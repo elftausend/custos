@@ -77,7 +77,7 @@ pub mod number;
 pub use op_traits::*;
 pub use shape::*;
 
-pub trait Dealloc<T, const N: usize = 0> {
+pub trait Dealloc<T> {
     /// # Safety
     /// The pointer must be a valid pointer.
     unsafe fn dealloc(&mut self, len: usize);

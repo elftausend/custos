@@ -75,6 +75,7 @@ impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
     /// assert_eq!(buffer.as_slice(), &[2; 6]);
     ///
     /// ```
+    #[inline]
     pub fn new(device: &'a D, len: usize) -> Buffer<'a, T, D, S>
     where
         D: Alloc<'a, T, S>, /*+ GraphReturn*/
@@ -107,6 +108,7 @@ impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
     /// }
     /// assert_eq!(buf.as_slice(), &[0, 1, 2, 3, 4]);
     /// ```
+    #[inline]
     pub fn deviceless<'b>(device: &'b D, len: usize) -> Buffer<'a, T, D, S>
     where
         D: DevicelessAble<'b, T, S>,
@@ -382,6 +384,7 @@ unsafe impl<T> Send for Buffer<'a, T> {}
 unsafe impl<T> Sync for Buffer<'a, T> {}*/
 
 impl<T, D: Device, S: Shape> Drop for Buffer<'_, T, D, S> {
+    #[inline]
     fn drop(&mut self) {
         if self.flag != BufFlag::None {
             return;

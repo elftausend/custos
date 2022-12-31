@@ -10,7 +10,7 @@ pub struct Num<T> {
     pub num: T,
 }
 
-impl<T> Dealloc<T, 0> for Num<T> {
+impl<T> Dealloc<T> for Num<T> {
     #[inline]
     unsafe fn dealloc(&mut self, _len: usize) {}
 }
