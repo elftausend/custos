@@ -75,7 +75,6 @@ impl Graph {
         }
 
         let mut trace = vec![*trace_at];
-        trace.as_slice();
 
         let mut idx = trace_at.idx;
         for check in &self.nodes[trace_at.idx as usize + 1..] {

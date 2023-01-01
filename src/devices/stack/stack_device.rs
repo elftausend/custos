@@ -1,4 +1,4 @@
-use crate::{shape::Shape, Alloc, Buffer, Device, DevicelessAble, MainMemory, Read};
+use crate::{shape::Shape, Alloc, Buffer, Device, DevicelessAble, MainMemory, Read, GraphReturn};
 
 use super::stack_array::StackArray;
 
@@ -55,6 +55,12 @@ impl<'a, S: Shape, T: Copy + Default> Alloc<'a, T, S> for Stack {
         //StackArray { array }
         todo!()
     }*/
+}
+
+impl GraphReturn for Stack {
+    fn graph(&self) -> core::cell::RefMut<crate::Graph> {
+        unimplemented!()
+    }
 }
 
 impl<T: Copy, S: Shape> Read<T, Stack, S> for Stack
