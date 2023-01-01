@@ -80,16 +80,19 @@ number_apply! {
     isize, u8, u16, u32, u64, u128, usize
 }
 
-#[cfg(feature = "no-std")]
-pub trait Float: ::num_traits::float::FloatCore {}
-
-#[cfg(not(feature = "no-std"))]
 pub trait Float: Neg<Output = Self> + Number {
-    fn squared(lhs: Self) -> Self;
+    #[inline]
+    fn squared(lhs: Self) -> Self {
+        lhs * lhs
+    }
     fn exp(&self) -> Self;
     fn powf(&self, rhs: Self) -> Self;
     fn powi(&self, rhs: i32) -> Self;
-    fn comp(lhs: Self, rhs: Self) -> Option<Ordering>;
+
+    #[inline]
+    fn cmp(lhs: Self, rhs: Self) -> Option<Ordering> {
+        lhs.partial_cmp(&rhs)
+    }
     //fn from_usize(value: usize) -> Self;
     fn tanh(&self) -> Self;
     fn sin(&self) -> Self;
@@ -99,6 +102,7 @@ pub trait Float: Neg<Output = Self> + Number {
     fn abs(&self) -> Self;
 }
 
+#[cfg(not(feature="no-std"))]
 macro_rules! float_apply {
     ($($t:ident),*) => {
         $(
@@ -120,10 +124,7 @@ macro_rules! float_apply {
                 fn powi(&self, rhs: i32) -> $t {
                     $t::powi(*self, rhs)
                 }
-                #[inline]
-                fn comp(lhs: $t, rhs: $t) -> Option<Ordering> {
-                    lhs.partial_cmp(&rhs)
-                }
+                
                 #[inline]
                 fn tanh(&self) -> $t {
                     $t::tanh(*self)
@@ -153,5 +154,103 @@ macro_rules! float_apply {
     };
 }
 
-#[cfg(not(feature = "no-std"))]
+#[cfg(not(feature="no-std"))]
 float_apply!(f32, f64);
+
+#[cfg(feature="no-std")]
+impl Float for f32 {
+
+    #[inline]
+    fn exp(&self) -> Self {
+        libm::expf(*self)
+    }
+
+    #[inline]
+    fn powf(&self, rhs: Self) -> Self {
+        libm::powf(*self, rhs)
+    }
+
+    #[inline]
+    fn powi(&self, rhs: i32) -> Self {
+        libm::powf(*self, rhs as f32)
+    }
+
+    #[inline]
+    fn tanh(&self) -> Self {
+        libm::tanhf(*self)
+    }
+
+    #[inline]
+    fn sin(&self) -> Self {
+        libm::sinf(*self)
+    }
+
+    #[inline]
+    fn as_generic(value: f64) -> Self {
+        value as f32
+    }
+
+    #[inline]
+    fn sqrt(&self) -> Self {
+        libm::sqrtf(*self)
+    }
+
+    #[inline]
+    fn ln(&self) -> Self {
+        libm::logf(*self)
+    }
+
+    #[inline]
+    fn abs(&self) -> Self {
+        self * ((*self > 0.) as u32 - (*self < 0.) as u32) as f32
+    }
+}
+
+#[cfg(feature="no-std")]
+impl Float for f64 {
+
+    #[inline]
+    fn exp(&self) -> Self {
+        libm::exp(*self)
+    }
+
+    #[inline]
+    fn powf(&self, rhs: Self) -> Self {
+        libm::pow(*self, rhs)
+    }
+
+    #[inline]
+    fn powi(&self, rhs: i32) -> Self {
+        libm::pow(*self, rhs as f64)
+    }
+
+    #[inline]
+    fn tanh(&self) -> Self {
+        libm::tanh(*self)
+    }
+
+    #[inline]
+    fn sin(&self) -> Self {
+        libm::sin(*self)
+    }
+
+    #[inline]
+    fn as_generic(value: f64) -> Self {
+        value
+    }
+
+    #[inline]
+    fn sqrt(&self) -> Self {
+        libm::sqrt(*self)
+    }
+
+    #[inline]
+    fn ln(&self) -> Self {
+        libm::log(*self)
+    }
+
+    #[inline]
+    fn abs(&self) -> Self {
+        self * ((*self > 0.) as u64 - (*self < 0.) as u64) as f64
+    }
+}
