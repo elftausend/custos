@@ -102,7 +102,7 @@ pub trait Float: Neg<Output = Self> + Number {
     fn abs(&self) -> Self;
 }
 
-#[cfg(not(feature="no-std"))]
+#[cfg(not(feature = "no-std"))]
 macro_rules! float_apply {
     ($($t:ident),*) => {
         $(
@@ -124,7 +124,7 @@ macro_rules! float_apply {
                 fn powi(&self, rhs: i32) -> $t {
                     $t::powi(*self, rhs)
                 }
-                
+
                 #[inline]
                 fn tanh(&self) -> $t {
                     $t::tanh(*self)
@@ -154,12 +154,11 @@ macro_rules! float_apply {
     };
 }
 
-#[cfg(not(feature="no-std"))]
+#[cfg(not(feature = "no-std"))]
 float_apply!(f32, f64);
 
-#[cfg(feature="no-std")]
+#[cfg(feature = "no-std")]
 impl Float for f32 {
-
     #[inline]
     fn exp(&self) -> Self {
         libm::expf(*self)
@@ -206,9 +205,8 @@ impl Float for f32 {
     }
 }
 
-#[cfg(feature="no-std")]
+#[cfg(feature = "no-std")]
 impl Float for f64 {
-
     #[inline]
     fn exp(&self) -> Self {
         libm::exp(*self)

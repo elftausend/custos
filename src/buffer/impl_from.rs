@@ -1,18 +1,19 @@
-use crate::{shape::Shape, Alloc, BufFlag, Buffer};
+use crate::{shape::Shape, Alloc, BufFlag, Buffer, GraphReturn};
 
 impl<'a, T, D, const N: usize> From<(&'a D, [T; N])> for Buffer<'a, T, D>
 where
     T: Clone,
-    D: Alloc<'a, T>,
+    // FIXME: In this case, GraphReturn acts as an "IsDynamic" trait, as GraphReturn is not implemented for Stack
+    D: Alloc<'a, T> + GraphReturn,
 {
-    fn from(device_slice: (&'a D, [T; N])) -> Self {
-        let len = device_slice.1.len();
+    fn from((device, array): (&'a D, [T; N])) -> Self {
+        let len = array.len();
         Buffer {
             // TODO: with_array()
-            ptr: device_slice.0.with_slice(&device_slice.1),
+            ptr: device.with_slice(&array),
             len,
-            device: Some(device_slice.0),
-            //node: device_slice.0.graph().add_leaf(len),
+            device: Some(device),
+            //node: device.graph().add_leaf(len),
             node: Default::default(),
             flag: BufFlag::default(),
         }
@@ -22,16 +23,16 @@ where
 impl<'a, T, D, const N: usize> From<(&'a D, &[T; N])> for Buffer<'a, T, D>
 where
     T: Clone,
-    D: Alloc<'a, T>,
+    D: Alloc<'a, T> + GraphReturn,
 {
-    fn from(device_slice: (&'a D, &[T; N])) -> Self {
-        let len = device_slice.1.len();
+    fn from((device, array): (&'a D, &[T; N])) -> Self {
+        let len = array.len();
         Buffer {
             // TODO: with_array()
-            ptr: device_slice.0.with_slice(device_slice.1),
+            ptr: device.with_slice(array),
             len,
-            device: Some(device_slice.0),
-            //node: device_slice.0.graph().add_leaf(len),
+            device: Some(device),
+            //node: device.graph().add_leaf(len),
             node: Default::default(),
             flag: BufFlag::default(),
         }
@@ -41,15 +42,15 @@ where
 impl<'a, T, D, S: Shape> From<(&'a D, &[T])> for Buffer<'a, T, D, S>
 where
     T: Clone,
-    D: Alloc<'a, T, S>,
+    D: Alloc<'a, T, S> + GraphReturn,
 {
-    fn from(device_slice: (&'a D, &[T])) -> Self {
-        let len = device_slice.1.len();
+    fn from((device, slice): (&'a D, &[T])) -> Self {
+        let len = slice.len();
         Buffer {
-            ptr: device_slice.0.with_slice(device_slice.1),
+            ptr: device.with_slice(slice),
             len,
-            device: Some(device_slice.0),
-            //node: device_slice.0.graph().add_leaf(len),
+            device: Some(device),
+            //node: device.graph().add_leaf(len),
             node: Default::default(),
             flag: BufFlag::default(),
         }
@@ -60,14 +61,14 @@ where
 impl<'a, T, D, S: Shape> From<(&'a D, Vec<T>)> for Buffer<'a, T, D, S>
 where
     T: Clone,
-    D: Alloc<'a, T, S>,
+    D: Alloc<'a, T, S> + GraphReturn,
 {
-    fn from(device_vec: (&'a D, Vec<T>)) -> Self {
-        let len = device_vec.1.len();
+    fn from((device, vec): (&'a D, Vec<T>)) -> Self {
+        let len = vec.len();
         Buffer {
-            ptr: device_vec.0.alloc_with_vec(device_vec.1),
+            ptr: device.alloc_with_vec(vec),
             len,
-            device: Some(device_vec.0),
+            device: Some(device),
             //node: device_vec.0.graph().add_leaf(len),
             node: Default::default(),
             flag: BufFlag::default(),
@@ -79,15 +80,15 @@ where
 impl<'a, T, D, S: Shape> From<(&'a D, &Vec<T>)> for Buffer<'a, T, D, S>
 where
     T: Clone,
-    D: Alloc<'a, T, S>
+    D: Alloc<'a, T, S> + GraphReturn,
 {
-    fn from(device_slice: (&'a D, &Vec<T>)) -> Self {
-        let len = device_slice.1.len();
+    fn from((device, vec): (&'a D, &Vec<T>)) -> Self {
+        let len = vec.len();
         Buffer {
-            ptr: device_slice.0.with_slice(device_slice.1),
+            ptr: device.with_slice(vec),
             len,
-            device: Some(device_slice.0),
-            //node: device_slice.0.graph().add_leaf(len),
+            device: Some(device),
+            //node: device.graph().add_leaf(len),
             node: Default::default(),
             flag: BufFlag::default(),
         }

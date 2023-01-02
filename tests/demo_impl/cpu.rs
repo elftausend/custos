@@ -1,9 +1,9 @@
-use custos::{prelude::Number, Buffer, Device, Dim2, MainMemory, Shape, Stack, WithConst, CPU};
+use custos::{prelude::Number, Buffer, Device, Dim2, MainMemory, Shape, WithConst, CPU};
 use custos_macro::impl_stack;
 //use custos_macro::impl_stack;
 
-//#[cfg(feature = "stack")]
-//use custos::stack::Stack;
+#[cfg(feature = "stack")]
+use custos::Stack;
 
 use super::{transpose::Transpose, ElementWise};
 
@@ -101,6 +101,7 @@ where
 }
 */
 
+#[cfg(feature="stack")]
 impl<T, D: Device, const A: usize, const B: usize> Transpose<T, D, Dim2<A, B>, Dim2<B, A>>
     for Stack
 {

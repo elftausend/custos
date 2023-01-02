@@ -52,6 +52,24 @@ impl<'a, T, const N: usize> From<(&Stack, [T; N])> for Buffer<'a, T, Stack, Dim1
     }
 }
 
+impl<'a, T: Copy + Default, const A: usize, const B: usize, const N: usize, > From<(&Stack, [T; N])>
+    for Buffer<'a, T, Stack, Dim2<A, B>>
+{
+    fn from((_, array): (&Stack, [T; N])) -> Self {
+        let mut arr = StackArray::new();
+        arr.copy_from_slice(&array);
+        Buffer {
+            ptr: arr,
+            len: N,
+            device: Some(&Stack),
+            flag: BufFlag::None,
+            node: Node::default(),
+        }
+    }
+}
+
+
+
 impl<'a, T: Copy, const N: usize> From<(Stack, &[T; N])> for Buffer<'a, T, Stack, Dim1<N>> {
     fn from(array: (Stack, &[T; N])) -> Self {
         Buffer {

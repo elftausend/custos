@@ -9,7 +9,7 @@ use super::{
 use crate::{
     cache::{Cache, CacheReturn},
     Alloc, Buffer, CDatatype, CacheBuf, CachedLeaf, ClearBuf, CloneBuf, Device, Graph, GraphReturn,
-    RawConv, Read, WriteBuf,
+    RawConv, Read, WriteBuf, Shape,
 };
 use std::{cell::RefCell, marker::PhantomData};
 
@@ -69,7 +69,7 @@ impl CUDA {
 }
 
 impl Device for CUDA {
-    type Ptr<U, const N: usize> = CUDAPtr<U>;
+    type Ptr<U, S: Shape> = CUDAPtr<U>;
     type Cache = Cache<CUDA>;
 
     fn new() -> crate::Result<Self> {
@@ -78,15 +78,15 @@ impl Device for CUDA {
 }
 
 impl RawConv for CUDA {
-    fn construct<T, const N: usize>(
-        ptr: &Self::Ptr<T, N>,
+    fn construct<T, S: Shape>(
+        ptr: &Self::Ptr<T, S>,
         _len: usize,
         node: crate::Node,
     ) -> Self::CT {
         RawCUBuf { ptr: ptr.ptr, node }
     }
 
-    fn destruct<T, const N: usize>(ct: &Self::CT) -> (Self::Ptr<T, N>, crate::Node) {
+    fn destruct<T, S: Shape>(ct: &Self::CT) -> (Self::Ptr<T, S>, crate::Node) {
         (
             CUDAPtr {
                 ptr: ct.ptr,
