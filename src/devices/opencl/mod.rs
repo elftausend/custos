@@ -21,7 +21,7 @@ use min_cl::api::release_mem_object;
 pub use unified::*;
 
 //use self::api::release_mem_object;
-use crate::{Buffer, CDatatype, CommonPtrs, Dealloc, FromCommonPtrs};
+use crate::{Buffer, CDatatype, CommonPtrs, flag::AllocFlag, ShallowCopy, PtrType};
 
 pub type CLBuffer<'a, T> = Buffer<'a, T, OpenCL>;
 
@@ -34,10 +34,12 @@ pub fn chosen_cl_idx() -> usize {
         )
 }
 
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct CLPtr<T> {
     pub ptr: *mut c_void,
     pub host_ptr: *mut T,
+    pub len: usize,
+    pub flag: AllocFlag,
 }
 
 impl<T> Default for CLPtr<T> {
@@ -45,17 +47,38 @@ impl<T> Default for CLPtr<T> {
         Self {
             ptr: null_mut(),
             host_ptr: null_mut(),
+            len: 0,
+            flag: AllocFlag::default(),
         }
     }
 }
 
-impl<T> Dealloc<T> for CLPtr<T> {
+impl<T> ShallowCopy for CLPtr<T> {
     #[inline]
-    unsafe fn dealloc(&mut self, _len: usize) {
+    unsafe fn shallow(&self) -> Self {
+        CLPtr { ptr: self.ptr, host_ptr: self.host_ptr, len: self.len, flag: AllocFlag::Wrapper }
+    }
+}
+
+impl<T> PtrType for CLPtr<T> {
+    #[inline]
+    fn len(&self) -> usize {
+        self.len
+    }
+}
+
+impl<T> Drop for CLPtr<T> {
+    fn drop(&mut self) {
+        if self.flag != AllocFlag::None {
+            return;
+        }
+
         if self.ptr.is_null() {
             return;
         }
-        release_mem_object(self.ptr).unwrap();
+        unsafe {
+            release_mem_object(self.ptr).unwrap();    
+        }
     }
 }
 
@@ -71,15 +94,6 @@ impl<T> CommonPtrs<T> for CLPtr<T> {
     }
 }
 
-impl<T> FromCommonPtrs<T> for CLPtr<T> {
-    #[inline]
-    unsafe fn from_ptrs(ptrs: (*mut T, *mut c_void, u64)) -> Self {
-        CLPtr {
-            ptr: ptrs.1,
-            host_ptr: ptrs.0,
-        }
-    }
-}
 
 /// Sets the elements of an OpenCL Buffer to zero.
 /// # Example
@@ -107,7 +121,7 @@ pub fn cl_clear<T: CDatatype>(device: &OpenCL, lhs: &mut Buffer<T, OpenCL>) -> c
         datatype = T::as_c_type_str()
     );
 
-    let gws = [lhs.len, 0, 0];
+    let gws = [lhs.len(), 0, 0];
     enqueue_kernel(device, &src, gws, None, &[lhs])?;
     Ok(())
 }

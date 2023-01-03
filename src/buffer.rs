@@ -18,15 +18,13 @@ impl Device for CPU {
 }
 
 use crate::{
-    shape::Shape, Alloc, CacheBuf, ClearBuf, CloneBuf, CommonPtrs, Dealloc, Device, DevicelessAble,
-    MainMemory, Node, Read, WriteBuf,
+    flag::AllocFlag, shape::Shape, Alloc, CacheBuf, ClearBuf, CloneBuf, CommonPtrs, Device,
+    DevicelessAble, MainMemory, Node, Read, WriteBuf, PtrType, ShallowCopy,
 };
 
 pub use self::num::Num;
-pub use flag::BufFlag;
 pub use impl_from_const::*;
 
-mod flag;
 mod impl_from;
 mod impl_from_const;
 mod num;
@@ -48,9 +46,7 @@ mod num;
 /// ```
 pub struct Buffer<'a, T = f32, D: Device = CPU, S: Shape = ()> {
     pub ptr: D::Ptr<T, S>,
-    pub len: usize,
     pub device: Option<&'a D>,
-    pub flag: BufFlag,
     pub node: Node,
 }
 
@@ -80,12 +76,9 @@ impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
     where
         D: Alloc<'a, T, S>, /*+ GraphReturn*/
     {
-        let len = if S::LEN > 0 { S::LEN } else { len };
         Buffer {
-            ptr: device.alloc(len),
-            len,
+            ptr: device.alloc(len, AllocFlag::None),
             device: Some(device),
-            flag: BufFlag::None,
             // TODO: enable, if leafs get more important
             //node: device.graph().add_leaf(len),
             node: Node::default(),
@@ -114,9 +107,7 @@ impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
         D: DevicelessAble<'b, T, S>,
     {
         Buffer {
-            ptr: device.alloc(len),
-            len,
-            flag: BufFlag::None,
+            ptr: device.alloc(len, AllocFlag::None),
             node: Node::default(),
             device: None,
         }
@@ -180,7 +171,7 @@ impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
     /// ```
     #[inline]
     pub fn len(&self) -> usize {
-        self.len
+        self.ptr.len()
     }
 
     /// Creates a shallow copy of &self.
@@ -192,13 +183,11 @@ impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
     #[inline]
     pub unsafe fn shallow(&self) -> Buffer<'a, T, D, S>
     where
-        <D as Device>::Ptr<T, S>: Copy,
+        <D as Device>::Ptr<T, S>: ShallowCopy,
     {
         Buffer {
-            ptr: self.ptr,
-            len: self.len,
+            ptr: self.ptr.shallow(),
             device: self.device,
-            flag: BufFlag::Wrapper,
             node: self.node,
         }
     }
@@ -212,7 +201,7 @@ impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
     /// Furthermore, the resulting `Buffer` can outlive `self`.
     pub unsafe fn shallow_or_clone(&self) -> Buffer<'a, T, D, S>
     where
-        <D as Device>::Ptr<T, S>: Copy,
+        <D as Device>::Ptr<T, S>: ShallowCopy,
         T: Clone,
         D: CloneBuf<'a, T, S>,
     {
@@ -254,7 +243,7 @@ impl<'a, T, D: Device> Buffer<'a, T, D> {
     /// ```
     #[inline]
     pub fn is_empty(&self) -> bool {
-        self.len == 0
+        self.len() == 0
     }
 
     /// Sets all elements in `Buffer` to the default value.
@@ -271,11 +260,11 @@ impl<'a, T> Buffer<'a, T> {
     /// Constructs a `Buffer` out of a host pointer and a length.
     /// # Example
     /// ```
-    /// use custos::{Buffer, Alloc, CPU, Read, Dealloc};
+    /// use custos::{Buffer, Alloc, CPU, Read, flag::AllocFlag};
     /// use std::ffi::c_void;
     ///
     /// let device = CPU::new();
-    /// let mut ptr = Alloc::<f32>::alloc(&device, 10);
+    /// let mut ptr = Alloc::<f32>::alloc(&device, 10, AllocFlag::None);
     /// let mut buf = unsafe {
     ///     Buffer::from_raw_host(ptr.ptr, 10)
     /// };
@@ -284,7 +273,6 @@ impl<'a, T> Buffer<'a, T> {
     /// }
     ///
     /// assert_eq!(buf.as_slice(), &[0., 1., 2., 3., 4., 5., 6., 7., 8., 9.,]);
-    /// unsafe { ptr.dealloc(10) };
     ///
     /// ```
     /// # Safety
@@ -292,10 +280,12 @@ impl<'a, T> Buffer<'a, T> {
     /// The `Buffer` does not manage deallocation of the allocated memory.
     pub unsafe fn from_raw_host(ptr: *mut T, len: usize) -> Buffer<'a, T> {
         Buffer {
-            ptr: CPUPtr { ptr },
-            len,
+            ptr: CPUPtr {
+                ptr,
+                len,
+                flag: AllocFlag::Wrapper,
+            },
             device: None,
-            flag: BufFlag::Wrapper,
             node: Default::default(),
         }
     }
@@ -383,19 +373,6 @@ unsafe impl<T> Send for Buffer<'a, T> {}
 #[cfg(feature = "safe")]
 unsafe impl<T> Sync for Buffer<'a, T> {}*/
 
-impl<T, D: Device, S: Shape> Drop for Buffer<'_, T, D, S> {
-    #[inline]
-    fn drop(&mut self) {
-        if self.flag != BufFlag::None {
-            return;
-        }
-
-        unsafe {
-            self.ptr.dealloc(self.len);
-        }
-    }
-}
-
 impl<'a, T, D: Device, S: Shape> Default for Buffer<'a, T, D, S>
 where
     D::Ptr<T, S>: Default,
@@ -403,8 +380,6 @@ where
     fn default() -> Self {
         Self {
             ptr: D::Ptr::<T, S>::default(),
-            flag: BufFlag::default(),
-            len: Default::default(),
             device: None,
             node: Node::default(),
         }
@@ -496,11 +471,11 @@ where
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         f.debug_struct("Buffer")
             .field("ptr (CPU, CL, CU)", &self.ptrs())
-            .field("len", &self.len);
+            .field("len", &self.len());
         writeln!(f, ",")?;
 
         if !self.ptrs().0.is_null() {
-            let slice = unsafe { std::slice::from_raw_parts(self.ptrs().0, self.len) };
+            let slice = unsafe { std::slice::from_raw_parts(self.ptrs().0, self.len()) };
             writeln!(f, "CPU:    {slice:?}")?;
         }
 

@@ -1,4 +1,4 @@
-use crate::{shape::Shape, Alloc, Buffer, Device, DevicelessAble, MainMemory, Read};
+use crate::{shape::Shape, Alloc, Buffer, CloneBuf, Device, DevicelessAble, MainMemory, Read, flag::AllocFlag};
 
 use super::stack_array::StackArray;
 
@@ -30,7 +30,7 @@ impl MainMemory for Stack {
 
 impl<'a, S: Shape, T: Copy + Default> Alloc<'a, T, S> for Stack {
     #[inline]
-    fn alloc(&self, _len: usize) -> StackArray<S, T> {
+    fn alloc(&self, _len: usize, _flag: AllocFlag) -> StackArray<S, T> {
         // TODO: one day... use const expressions
         if S::LEN == 0 {
             panic!("The size (N) of a stack allocated buffer must be greater than 0.");
@@ -42,7 +42,7 @@ impl<'a, S: Shape, T: Copy + Default> Alloc<'a, T, S> for Stack {
 
     #[inline]
     fn with_slice(&self, data: &[T]) -> Self::Ptr<T, S> {
-        let mut array: StackArray<S, T> = <Stack as Alloc<'_, T, S>>::alloc(self, 0);
+        let mut array: StackArray<S, T> = <Stack as Alloc<'_, T, S>>::alloc(self, 0, AllocFlag::None);
         unsafe {
             array.flatten_mut().copy_from_slice(&data[..S::LEN]);
         }
@@ -85,6 +85,19 @@ where
         T: Default,
     {
         unsafe { buf.ptr.flatten().to_vec() }
+    }
+}
+
+impl<'a, T, S: Shape> CloneBuf<'a, T, S> for Stack
+where
+    <Stack as Device>::Ptr<T, S>: Copy,
+{
+    fn clone_buf(&'a self, buf: &Buffer<'a, T, Self, S>) -> Buffer<'a, T, Self, S> {
+        Buffer {
+            ptr: buf.ptr,
+            device: Some(&Stack),
+            node: Default::default(),
+        }
     }
 }
 

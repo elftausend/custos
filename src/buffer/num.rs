@@ -4,15 +4,17 @@ use core::{
     ptr::null_mut,
 };
 
-use crate::{shape::Shape, BufFlag, Buffer, CloneBuf, CommonPtrs, Dealloc, Device, Node};
+use crate::{shape::Shape, Buffer, CloneBuf, CommonPtrs, Device, Node, PtrType};
 
 pub struct Num<T> {
     pub num: T,
 }
 
-impl<T> Dealloc<T> for Num<T> {
+impl<T> PtrType for Num<T> {
     #[inline]
-    unsafe fn dealloc(&mut self, _len: usize) {}
+    fn len(&self) -> usize {
+        0
+    }
 }
 
 impl<T> CommonPtrs<T> for Num<T> {
@@ -43,9 +45,7 @@ impl<'a, T: Clone> CloneBuf<'a, T> for () {
             ptr: Num {
                 num: buf.ptr.num.clone(),
             },
-            len: buf.len,
             device: buf.device,
-            flag: buf.flag,
             node: buf.node,
         }
     }
@@ -56,8 +56,6 @@ impl<T: crate::number::Number> From<T> for Buffer<'_, T, ()> {
     fn from(ptr: T) -> Self {
         Buffer {
             ptr: Num { num: ptr },
-            len: 0,
-            flag: BufFlag::None,
             device: None,
             node: Node::default(),
         }
@@ -72,9 +70,7 @@ impl<'a, T> Buffer<'a, T, ()> {
     {
         Buffer {
             ptr: Num { num: self.ptr.num },
-            len: self.len,
             device: self.device,
-            flag: self.flag,
             node: self.node,
         }
     }

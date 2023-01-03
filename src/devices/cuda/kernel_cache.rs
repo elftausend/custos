@@ -9,6 +9,7 @@ use std::{collections::HashMap, ffi::CString};
 #[derive(Debug)]
 pub struct RawCUBuf {
     pub ptr: u64,
+    pub len: usize,
     pub node: Node,
 }
 

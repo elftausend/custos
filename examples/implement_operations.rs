@@ -16,7 +16,7 @@ where
 {
     // you can use the custos::Number trait. This trait is implemented for all number types (usize, i16, f32, ...)
     fn add(&self, lhs: &Buffer<T>, rhs: &Buffer<T>) -> Buffer<T> {
-        let len = std::cmp::min(lhs.len, rhs.len);
+        let len = std::cmp::min(lhs.len(), rhs.len());
 
         // this returns a previously allocated buffer.
         // You can deactivate the caching behaviour by adding the "realloc" feature
@@ -72,7 +72,7 @@ where
             }}
         ", datatype=T::as_c_type_str());
 
-        let len = std::cmp::min(lhs.len, rhs.len);
+        let len = std::cmp::min(lhs.len(), rhs.len());
         let out = self.retrieve::<T, ()>(len, (lhs, rhs));
 
         // In the background, the kernel is compiled once. After that, it will be reused for every iteration.
@@ -102,8 +102,8 @@ impl<T: CDatatype> AddBuf<T> for CUDA {
             datatype = T::as_c_type_str()
         );
 
-        let len = std::cmp::min(lhs.len, rhs.len);
-        let out = self.retrieve::<T, 0>(len, (lhs, rhs));
+        let len = std::cmp::min(lhs.len(), rhs.len());
+        let out = self.retrieve::<T, ()>(len, (lhs, rhs));
         //or: let out = Cache::get::<T, CUDA, 0>(self, len, (lhs, rhs));
 
         // The kernel is compiled once with nvrtc and is cached too.

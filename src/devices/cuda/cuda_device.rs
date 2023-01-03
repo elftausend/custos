@@ -9,7 +9,7 @@ use super::{
 use crate::{
     cache::{Cache, CacheReturn},
     Alloc, Buffer, CDatatype, CacheBuf, CachedLeaf, ClearBuf, CloneBuf, Device, Graph, GraphReturn,
-    RawConv, Read, WriteBuf, Shape,
+    RawConv, Read, Shape, WriteBuf, flag::AllocFlag,
 };
 use std::{cell::RefCell, marker::PhantomData};
 
@@ -78,18 +78,16 @@ impl Device for CUDA {
 }
 
 impl RawConv for CUDA {
-    fn construct<T, S: Shape>(
-        ptr: &Self::Ptr<T, S>,
-        _len: usize,
-        node: crate::Node,
-    ) -> Self::CT {
-        RawCUBuf { ptr: ptr.ptr, node }
+    fn construct<T, S: Shape>(ptr: &Self::Ptr<T, S>, len: usize, node: crate::Node) -> Self::CT {
+        RawCUBuf { ptr: ptr.ptr, node, len }
     }
 
     fn destruct<T, S: Shape>(ct: &Self::CT) -> (Self::Ptr<T, S>, crate::Node) {
         (
             CUDAPtr {
                 ptr: ct.ptr,
+                len: ct.len,
+                flag: AllocFlag::Cache,
                 p: PhantomData,
             },
             ct.node,
@@ -107,11 +105,13 @@ impl Drop for CUDA {
 }
 
 impl<T> Alloc<'_, T> for CUDA {
-    fn alloc(&self, len: usize) -> CUDAPtr<T> {
+    fn alloc(&self, len: usize, flag: AllocFlag) -> CUDAPtr<T> {
         let ptr = cumalloc::<T>(len).unwrap();
         // TODO: use unified mem if available -> i can't test this
         CUDAPtr {
             ptr,
+            len,
+            flag,
             p: PhantomData,
         }
     }
@@ -121,6 +121,8 @@ impl<T> Alloc<'_, T> for CUDA {
         cu_write(ptr, data).unwrap();
         CUDAPtr {
             ptr,
+            len: data.len(),
+            flag: AllocFlag::None,
             p: PhantomData,
         }
     }
@@ -148,7 +150,7 @@ impl<T: Default + Clone> Read<T, CUDA> for CUDA {
         // TODO: sync here or somewhere else?
         self.stream.sync().unwrap();
 
-        let mut read = vec![T::default(); buf.len];
+        let mut read = vec![T::default(); buf.len()];
         cu_read(&mut read, buf.ptrs().2).unwrap();
         read
     }
@@ -185,12 +187,12 @@ impl crate::GraphOpt for CUDA {}
 
 impl<'a, T> CloneBuf<'a, T> for CUDA {
     fn clone_buf(&'a self, buf: &Buffer<'a, T, CUDA>) -> Buffer<'a, T, CUDA> {
-        let cloned = Buffer::new(self, buf.len);
+        let cloned = Buffer::new(self, buf.len());
         unsafe {
             cuMemcpy(
                 cloned.ptrs().2,
                 buf.ptrs().2,
-                buf.len * std::mem::size_of::<T>(),
+                buf.len() * std::mem::size_of::<T>(),
             );
         }
         cloned

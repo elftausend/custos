@@ -3,7 +3,7 @@ use core::{
     ptr::null_mut,
 };
 
-use crate::{shape::Shape, CommonPtrs, Dealloc};
+use crate::{shape::Shape, CommonPtrs, PtrType, ShallowCopy};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct StackArray<S: Shape, T> {
@@ -55,9 +55,11 @@ impl<S: Shape, T> DerefMut for StackArray<S, T> {
     }
 }
 
-impl<S: Shape, T> Dealloc<T> for StackArray<S, T> {
+impl<S: Shape, T> PtrType for StackArray<S, T> {
     #[inline]
-    unsafe fn dealloc(&mut self, _len: usize) {}
+    fn len(&self) -> usize {
+        S::LEN
+    }
 }
 
 impl<S: Shape, T> CommonPtrs<T> for StackArray<S, T> {
@@ -69,5 +71,18 @@ impl<S: Shape, T> CommonPtrs<T> for StackArray<S, T> {
     #[inline]
     fn ptrs_mut(&mut self) -> (*mut T, *mut core::ffi::c_void, u64) {
         (self.as_mut_ptr(), null_mut(), 0)
+    }
+}
+
+
+impl<S: Shape, T> ShallowCopy for StackArray<S, T> 
+where
+    S::ARR<T>: Copy
+{
+    #[inline]
+    unsafe fn shallow(&self) -> Self {
+        StackArray {
+             array: self.array 
+        }
     }
 }

@@ -15,14 +15,14 @@ fn scalar_apply<'a>(
             }
     "#;
 
-    let out: Buffer<f32, _> = Cache::get(device, lhs.len, CachedLeaf);
+    let out: Buffer<f32, _> = Cache::get(device, lhs.len(), CachedLeaf);
 
     launch_kernel1d(
-        lhs.len,
+        lhs.len(),
         &device,
         &src,
         "scalar_add",
-        &[&lhs, &rhs, &out, &lhs.len],
+        &[&lhs, &rhs, &out, &lhs.len()],
     )?;
 
     Ok(out)

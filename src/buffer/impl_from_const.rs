@@ -1,4 +1,4 @@
-use crate::{shape::Shape, Alloc, BufFlag, Buffer};
+use crate::{shape::Shape, Alloc, Buffer};
 
 pub trait WithConst<D, C> {
     fn with(device: D, array: C) -> Self;
@@ -12,9 +12,7 @@ where
     fn with(device: &'a D, array: [T; N]) -> Self {
         Buffer {
             ptr: device.with_array(array),
-            len: N,
             device: Some(device),
-            flag: BufFlag::None,
             node: Default::default(),
         }
     }
@@ -28,9 +26,7 @@ where
     fn with(device: &'a D, array: &[T; N]) -> Self {
         Buffer {
             ptr: device.with_array(*array),
-            len: N,
             device: Some(device),
-            flag: BufFlag::None,
             node: Default::default(),
         }
     }

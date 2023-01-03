@@ -1,6 +1,7 @@
 use crate::{
     cache::RawConv,
     devices::cache::{Cache, CacheReturn},
+    flag::AllocFlag,
     shape::Shape,
     Alloc, Buffer, CacheBuf, CachedLeaf, ClearBuf, CloneBuf, Device, DevicelessAble, Graph,
     GraphReturn, MainMemory, Read, WriteBuf,
@@ -10,10 +11,7 @@ use core::{
     fmt::Debug,
     mem::{align_of, size_of},
 };
-use std::{
-    alloc::{handle_alloc_error, Layout},
-    vec::Vec,
-};
+use std::vec::Vec;
 
 use super::{CPUPtr, RawCpuBuf};
 
@@ -74,6 +72,8 @@ impl RawConv for CPU {
         (
             CPUPtr {
                 ptr: ct.ptr as *mut T,
+                len: ct.len,
+                flag: AllocFlag::Cache,
             },
             ct.node,
         )
@@ -83,26 +83,14 @@ impl RawConv for CPU {
 impl<'a, T> DevicelessAble<'a, T> for CPU {}
 
 impl<T, S: Shape> Alloc<'_, T, S> for CPU {
-    fn alloc(&self, mut len: usize) -> CPUPtr<T> {
+    fn alloc(&self, mut len: usize, flag: AllocFlag) -> CPUPtr<T> {
         assert!(len > 0, "invalid buffer len: 0");
 
         if S::LEN > len {
             len = S::LEN
         }
 
-        let layout = Layout::array::<T>(len).unwrap();
-        let ptr = unsafe { std::alloc::alloc(layout) };
-
-        // initialize block of memory
-        for element in unsafe { std::slice::from_raw_parts_mut(ptr, len * size_of::<T>()) } {
-            *element = 0;
-        }
-
-        if ptr.is_null() {
-            handle_alloc_error(layout);
-        }
-
-        CPUPtr { ptr: ptr as *mut T }
+        CPUPtr::new(len, flag)
     }
 
     fn with_slice(&self, data: &[T]) -> CPUPtr<T>
@@ -110,7 +98,7 @@ impl<T, S: Shape> Alloc<'_, T, S> for CPU {
         T: Clone,
     {
         assert!(!data.is_empty(), "invalid buffer len: 0");
-        let cpu_ptr = Alloc::<T>::alloc(self, data.len());
+        let cpu_ptr = Alloc::<T>::alloc(self, data.len(), AllocFlag::None);
         //= self.alloc(data.len());
         let slice = unsafe { std::slice::from_raw_parts_mut(cpu_ptr.ptr, data.len()) };
         slice.clone_from_slice(data);
@@ -121,9 +109,14 @@ impl<T, S: Shape> Alloc<'_, T, S> for CPU {
         assert!(!vec.is_empty(), "invalid buffer len: 0");
 
         let ptr = vec.as_mut_ptr();
+        let len = vec.len();
         core::mem::forget(vec);
 
-        CPUPtr { ptr }
+        CPUPtr {
+            ptr,
+            len,
+            flag: AllocFlag::None,
+        }
     }
 }
 
@@ -149,7 +142,7 @@ impl MainMemory for CPU {
             !buf.ptr.ptr.is_null(),
             "called as_slice() on an invalid CPU buffer (this would dereference an invalid pointer)"
         );
-        unsafe { std::slice::from_raw_parts(buf.ptr.ptr, buf.len) }
+        unsafe { std::slice::from_raw_parts(buf.ptr.ptr, buf.len()) }
     }
 
     #[inline(always)]
@@ -158,7 +151,7 @@ impl MainMemory for CPU {
             !buf.ptr.ptr.is_null(),
             "called as_slice() on an invalid CPU buffer (this would dereference an invalid pointer)"
         );
-        unsafe { std::slice::from_raw_parts_mut(buf.ptr.ptr, buf.len) }
+        unsafe { std::slice::from_raw_parts_mut(buf.ptr.ptr, buf.len()) }
     }
 }
 
@@ -167,7 +160,7 @@ impl crate::GraphOpt for CPU {}
 
 impl<'a, T: Clone, S: Shape> CloneBuf<'a, T, S> for CPU {
     fn clone_buf(&'a self, buf: &Buffer<'a, T, CPU, S>) -> Buffer<'a, T, CPU, S> {
-        let mut cloned = Buffer::new(self, buf.len);
+        let mut cloned = Buffer::new(self, buf.len());
         cloned.clone_from_slice(buf);
         cloned
     }

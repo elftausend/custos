@@ -7,6 +7,7 @@ use min_cl::api::{
 
 use super::{chosen_cl_idx, cl_clear, CLPtr, KernelCacheCL, RawCL};
 use crate::Shape;
+use crate::flag::AllocFlag;
 use crate::{
     cache::{Cache, CacheReturn, RawConv},
     Alloc, Buffer, CDatatype, CacheBuf, CachedLeaf, ClearBuf, CloneBuf, Device, Error, Graph,
@@ -130,10 +131,11 @@ impl Device for OpenCL {
 }
 
 impl RawConv for OpenCL {
-    fn construct<T, S: Shape>(ptr: &Self::Ptr<T, S>, _len: usize, node: crate::Node) -> Self::CT {
+    fn construct<T, S: Shape>(ptr: &Self::Ptr<T, S>, len: usize, node: crate::Node) -> Self::CT {
         RawCL {
             ptr: ptr.ptr,
             host_ptr: ptr.host_ptr as *mut u8,
+            len,
             node,
         }
     }
@@ -143,6 +145,8 @@ impl RawConv for OpenCL {
             CLPtr {
                 ptr: ct.ptr,
                 host_ptr: ct.host_ptr as *mut T,
+                len: ct.len,
+                flag: AllocFlag::Cache
             },
             ct.node,
         )
@@ -168,7 +172,7 @@ impl Debug for OpenCL {
 }
 
 impl<T, S: Shape> Alloc<'_, T, S> for OpenCL {
-    fn alloc(&self, mut len: usize) -> CLPtr<T> {
+    fn alloc(&self, mut len: usize, flag: AllocFlag) -> CLPtr<T> {
         assert!(len > 0, "invalid buffer len: 0");
 
         if S::LEN > len {
@@ -184,7 +188,7 @@ impl<T, S: Shape> Alloc<'_, T, S> for OpenCL {
         #[cfg(not(unified_cl))]
         let host_ptr = std::ptr::null_mut();
 
-        CLPtr { ptr, host_ptr }
+        CLPtr { ptr, host_ptr, len, flag }
     }
 
     fn with_slice(&self, data: &[T]) -> CLPtr<T> {
@@ -202,14 +206,14 @@ impl<T, S: Shape> Alloc<'_, T, S> for OpenCL {
         #[cfg(not(unified_cl))]
         let host_ptr = std::ptr::null_mut();
 
-        CLPtr { ptr, host_ptr }
+        CLPtr { ptr, host_ptr, len: data.len(), flag: AllocFlag::None }
     }
 }
 
 impl<'a, T> CloneBuf<'a, T> for OpenCL {
     fn clone_buf(&'a self, buf: &Buffer<'a, T, OpenCL>) -> Buffer<'a, T, OpenCL> {
-        let cloned = Buffer::new(self, buf.len);
-        enqueue_full_copy_buffer::<T>(&self.queue(), buf.ptrs().1, cloned.ptrs().1, buf.len)
+        let cloned = Buffer::new(self, buf.len());
+        enqueue_full_copy_buffer::<T>(&self.queue(), buf.ptr.ptr, cloned.ptr.ptr, buf.len())
             .unwrap();
         cloned
     }
@@ -244,12 +248,12 @@ impl GraphReturn for OpenCL {
 impl crate::MainMemory for OpenCL {
     #[inline]
     fn buf_as_slice<'a, T, S: Shape>(buf: &'a Buffer<T, Self, S>) -> &'a [T] {
-        unsafe { std::slice::from_raw_parts(buf.host_ptr(), buf.len) }
+        unsafe { std::slice::from_raw_parts(buf.host_ptr(), buf.len()) }
     }
 
     #[inline]
     fn buf_as_slice_mut<'a, T, S: Shape>(buf: &'a mut Buffer<T, Self, S>) -> &'a mut [T] {
-        unsafe { std::slice::from_raw_parts_mut(buf.host_ptr_mut(), buf.len) }
+        unsafe { std::slice::from_raw_parts_mut(buf.host_ptr_mut(), buf.len()) }
     }
 }
 
@@ -317,7 +321,7 @@ fn read_cl_buf_to_vec<T: Clone + Default>(
     device: &OpenCL,
     buf: &Buffer<T, OpenCL>,
 ) -> crate::Result<Vec<T>> {
-    let mut read = vec![T::default(); buf.len];
+    let mut read = vec![T::default(); buf.len()];
     let event = unsafe { enqueue_read_buffer(&device.queue(), buf.cl_ptr(), &mut read, false)? };
     wait_for_event(event).unwrap();
     Ok(read)

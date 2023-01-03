@@ -9,7 +9,7 @@ pub use cuda_device::*;
 pub use kernel_cache::*;
 pub use kernel_launch::*;
 
-use crate::{Buffer, CDatatype, CommonPtrs, Dealloc, FromCommonPtrs};
+use crate::{Buffer, CDatatype, CommonPtrs, flag::AllocFlag, ShallowCopy, PtrType};
 
 use self::api::cufree;
 
@@ -24,9 +24,11 @@ pub fn chosen_cu_idx() -> usize {
         )
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct CUDAPtr<T> {
     pub ptr: u64,
+    pub len: usize,
+    pub flag: AllocFlag,
     p: PhantomData<T>,
 }
 
@@ -34,18 +36,38 @@ impl<T> Default for CUDAPtr<T> {
     fn default() -> Self {
         Self {
             ptr: 0,
+            len: 0,
+            flag: AllocFlag::default(),
             p: PhantomData,
         }
     }
 }
 
-impl<T> Dealloc<T> for CUDAPtr<T> {
-    #[inline]
-    unsafe fn dealloc(&mut self, _len: usize) {
+impl<T> Drop for CUDAPtr<T> {
+    fn drop(&mut self) {
+        if self.flag != AllocFlag::None {
+            return;
+        }
+
         if self.ptr == 0 {
             return;
         }
-        cufree(self.ptr).unwrap();
+        
+        unsafe {
+            cufree(self.ptr).unwrap();    
+        }
+    }
+}
+
+impl<T> ShallowCopy for CUDAPtr<T> {
+    unsafe fn shallow(&self) -> Self {
+        CUDAPtr { ptr: self.ptr, len: self.len, flag: AllocFlag::Wrapper, p: PhantomData }
+    }
+}
+
+impl<T> PtrType for CUDAPtr<T> {
+    fn len(&self) -> usize {
+        self.len
     }
 }
 
@@ -58,16 +80,6 @@ impl<T> CommonPtrs<T> for CUDAPtr<T> {
     #[inline]
     fn ptrs_mut(&mut self) -> (*mut T, *mut std::ffi::c_void, u64) {
         (null_mut(), null_mut(), self.ptr)
-    }
-}
-
-impl<T> FromCommonPtrs<T> for CUDAPtr<T> {
-    #[inline]
-    unsafe fn from_ptrs(ptrs: (*mut T, *mut std::ffi::c_void, u64)) -> Self {
-        Self {
-            ptr: ptrs.2,
-            p: PhantomData,
-        }
     }
 }
 
@@ -99,6 +111,6 @@ pub fn cu_clear<T: CDatatype>(device: &CUDA, buf: &mut Buffer<T, CUDA>) -> crate
     "#,
         datatype = T::as_c_type_str()
     );
-    launch_kernel1d(buf.len, device, &src, "clear", &[buf, &buf.len])?;
+    launch_kernel1d(buf.len(), device, &src, "clear", &[buf, &buf.len()])?;
     Ok(())
 }

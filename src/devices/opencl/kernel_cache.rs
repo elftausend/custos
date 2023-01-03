@@ -9,6 +9,7 @@ use std::{collections::HashMap, ffi::c_void, rc::Rc};
 pub struct RawCL {
     pub ptr: *mut c_void,
     pub host_ptr: *mut u8,
+    pub len: usize,
     pub node: Node,
 }
 

@@ -7,7 +7,7 @@ use custos::{cpu::cpu_cached, range, Buffer, CPU};
 #[cfg(not(feature = "realloc"))]
 fn cached_add<'a>(device: &'a CPU, a: &[f32], b: &[f32]) -> Buffer<'a, f32, CPU> {
     let mut out = cpu_cached(device, a.len());
-    for i in 0..out.len {
+    for i in 0..out.len() {
         out[i] = a[i] + b[i];
     }
     out

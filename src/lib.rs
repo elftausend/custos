@@ -41,6 +41,7 @@ pub use devices::*;
 
 pub use error::*;
 
+use flag::AllocFlag;
 pub use graph::*;
 
 #[cfg(feature = "cpu")]
@@ -66,6 +67,7 @@ mod buffer;
 mod count;
 mod error;
 
+pub mod flag;
 mod graph;
 mod op_traits;
 mod shape;
@@ -77,10 +79,12 @@ pub mod number;
 pub use op_traits::*;
 pub use shape::*;
 
-pub trait Dealloc<T> {
-    /// # Safety
-    /// The pointer must be a valid pointer.
-    unsafe fn dealloc(&mut self, len: usize);
+pub trait PtrType {
+    fn len(&self) -> usize;
+}
+
+pub trait ShallowCopy {
+    unsafe fn shallow(&self) -> Self;
 }
 
 pub trait CommonPtrs<T> {
@@ -88,14 +92,8 @@ pub trait CommonPtrs<T> {
     fn ptrs_mut(&mut self) -> (*mut T, *mut c_void, u64);
 }
 
-pub trait FromCommonPtrs<T>: CommonPtrs<T> {
-    /// # Safety
-    /// The pointer must be a valid pointer.
-    unsafe fn from_ptrs(ptrs: (*mut T, *mut c_void, u64)) -> Self;
-}
-
 pub trait Device: Sized {
-    type Ptr<U, S: Shape>: Dealloc<U>; //const B: usize, const C: usize
+    type Ptr<U, S: Shape>: PtrType; //const B: usize, const C: usize
     type Cache: CacheAble<Self>;
 
     fn new() -> crate::Result<Self>;
@@ -122,16 +120,14 @@ pub trait MainMemory: Device {
 ///
 /// # Example
 /// ```
-/// use custos::{CPU, Alloc, Buffer, Read, BufFlag, GraphReturn, cpu::CPUPtr};
+/// use custos::{CPU, Alloc, Buffer, Read, flag::AllocFlag, GraphReturn, cpu::CPUPtr};
 ///
 /// let device = CPU::new();
-/// let ptr = Alloc::<f32>::alloc(&device, 12);
+/// let ptr = Alloc::<f32>::alloc(&device, 12, AllocFlag::None);
 ///
 /// let buf: Buffer = Buffer {
 ///     ptr,
-///     len: 12,
 ///     device: Some(&device),
-///     flag: BufFlag::None,
 ///     node: device.graph().add_leaf(12),
 /// };
 /// assert_eq!(vec![0.; 12], device.read(&buf));
@@ -140,35 +136,31 @@ pub trait Alloc<'a, T, S: Shape = ()>: Device {
     /// Allocate memory on the implemented device.
     /// # Example
     /// ```
-    /// use custos::{CPU, Alloc, Buffer, Read, BufFlag, GraphReturn, cpu::CPUPtr};
+    /// use custos::{CPU, Alloc, Buffer, Read, flag::AllocFlag, GraphReturn, cpu::CPUPtr};
     ///
     /// let device = CPU::new();
-    /// let ptr = Alloc::<f32>::alloc(&device, 12);
+    /// let ptr = Alloc::<f32>::alloc(&device, 12, AllocFlag::None);
     ///
     /// let buf: Buffer = Buffer {
     ///     ptr,
-    ///     len: 12,
     ///     device: Some(&device),
-    ///     flag: BufFlag::None,
     ///     node: device.graph().add_leaf(12),
     /// };
     /// assert_eq!(vec![0.; 12], device.read(&buf));
     /// ```
-    fn alloc(&'a self, len: usize) -> <Self as Device>::Ptr<T, S>;
+    fn alloc(&'a self, len: usize, flag: AllocFlag) -> <Self as Device>::Ptr<T, S>;
 
     /// Allocate new memory with data
     /// # Example
     /// ```
-    /// use custos::{CPU, Alloc, Buffer, Read, BufFlag, GraphReturn, cpu::CPUPtr};
+    /// use custos::{CPU, Alloc, Buffer, Read, GraphReturn, cpu::CPUPtr};
     ///
     /// let device = CPU::new();
     /// let ptr = Alloc::<i32>::with_slice(&device, &[1, 5, 4, 3, 6, 9, 0, 4]);
     ///
     /// let buf: Buffer<i32, CPU> = Buffer {
     ///     ptr,
-    ///     len: 8,
     ///     device: Some(&device),
-    ///     flag: BufFlag::None,
     ///     node: device.graph().add_leaf(8),
     /// };
     /// assert_eq!(vec![1, 5, 4, 3, 6, 9, 0, 4], device.read(&buf));
@@ -208,7 +200,7 @@ pub use custos_macro::impl_stack;
 pub mod prelude {
     pub use crate::{
         cached, number::*, range, shape::*, Alloc, Buffer, CDatatype, CacheBuf, ClearBuf, Device,
-        GraphReturn, Read, WithConst, WriteBuf
+        GraphReturn, Read, WithConst, WriteBuf,
     };
 
     #[cfg(feature = "cpu")]

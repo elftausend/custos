@@ -10,14 +10,14 @@ pub fn get_mut_slice<'a, T, D: Device>(buf: &'a mut Buffer<T, D>) -> &'a mut [T]
 where
     D::Ptr<T, ()>: CommonPtrs<T>,
 {
-    unsafe { std::slice::from_raw_parts_mut(buf.ptrs_mut().0, buf.len) }
+    unsafe { std::slice::from_raw_parts_mut(buf.ptrs_mut().0, buf.len()) }
 }
 
 pub fn get_slice<'a, T, D: Device>(buf: &'a Buffer<T, D>) -> &'a [T]
 where
     D::Ptr<T, ()>: CommonPtrs<T>,
 {
-    unsafe { std::slice::from_raw_parts(buf.ptrs().0, buf.len) }
+    unsafe { std::slice::from_raw_parts(buf.ptrs().0, buf.len()) }
 }
 
 pub fn read<'a, T, D: Alloc<'a, T>>(device: &D, buf: &'a Buffer<T, D>) -> Vec<T>
