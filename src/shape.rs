@@ -13,7 +13,8 @@ unsafe impl Shape for () {
     }
 }
 
-pub struct Dim1<const N: usize> {}
+#[derive(Clone, Copy)]
+pub struct Dim1<const N: usize>;
 
 unsafe impl<const N: usize> Shape for Dim1<N> {
     const LEN: usize = N;
@@ -25,7 +26,8 @@ unsafe impl<const N: usize> Shape for Dim1<N> {
     }
 }
 
-pub struct Dim2<const B: usize, const A: usize> {}
+#[derive(Clone, Copy)]
+pub struct Dim2<const B: usize, const A: usize>;
 
 unsafe impl<const B: usize, const A: usize> Shape for Dim2<B, A> {
     const LEN: usize = B * A;
@@ -37,7 +39,15 @@ unsafe impl<const B: usize, const A: usize> Shape for Dim2<B, A> {
     }
 }
 
-pub struct Dim3<const C: usize, const B: usize, const A: usize> {}
+pub trait MayDim2<const A: usize, const B: usize>: Shape {}
+
+impl<const A: usize, const B: usize> MayDim2<A, B> for () {}
+
+impl<const A: usize, const B: usize> MayDim2<A, B> for Dim2<A, B> {}
+
+
+#[derive(Clone, Copy)]
+pub struct Dim3<const C: usize, const B: usize, const A: usize>;
 
 unsafe impl<const C: usize, const B: usize, const A: usize> Shape for Dim3<C, B, A> {
     const LEN: usize = B * A * C;

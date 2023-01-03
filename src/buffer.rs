@@ -572,7 +572,7 @@ impl<'a, T, D: MainMemory> core::iter::IntoIterator for &'a mut Buffer<'_, T, D>
 /// ```
 pub fn cached<'a, T, D: CacheBuf<'a, T> + Device>(device: &'a D, len: usize) -> Buffer<'a, T, D>
 where
-    D::Ptr<T, ()>: Clone,
+    //D::Ptr<T, ()>: Clone,
 {
     device.cached(len)
 }

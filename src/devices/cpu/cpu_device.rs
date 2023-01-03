@@ -165,9 +165,9 @@ impl MainMemory for CPU {
 #[cfg(feature = "opt-cache")]
 impl crate::GraphOpt for CPU {}
 
-impl<'a, T: Clone> CloneBuf<'a, T> for CPU {
-    fn clone_buf(&'a self, buf: &Buffer<'a, T, CPU>) -> Buffer<'a, T, CPU> {
-        let mut cloned = Buffer::<_, _, ()>::new(self, buf.len);
+impl<'a, T: Clone, S: Shape> CloneBuf<'a, T, S> for CPU {
+    fn clone_buf(&'a self, buf: &Buffer<'a, T, CPU, S>) -> Buffer<'a, T, CPU, S> {
+        let mut cloned = Buffer::new(self, buf.len);
         cloned.clone_from_slice(buf);
         cloned
     }
