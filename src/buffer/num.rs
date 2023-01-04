@@ -15,6 +15,10 @@ impl<T> PtrType for Num<T> {
     fn len(&self) -> usize {
         0
     }
+
+    fn flag(&self) -> crate::flag::AllocFlag {
+        crate::flag::AllocFlag::None
+    }
 }
 
 impl<T> CommonPtrs<T> for Num<T> {

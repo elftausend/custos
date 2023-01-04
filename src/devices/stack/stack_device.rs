@@ -1,4 +1,7 @@
-use crate::{shape::Shape, Alloc, Buffer, CloneBuf, Device, DevicelessAble, MainMemory, Read, flag::AllocFlag};
+use crate::{
+    flag::AllocFlag, shape::Shape, Alloc, Buffer, CloneBuf, Device, DevicelessAble, MainMemory,
+    Read,
+};
 
 use super::stack_array::StackArray;
 
@@ -42,7 +45,8 @@ impl<'a, S: Shape, T: Copy + Default> Alloc<'a, T, S> for Stack {
 
     #[inline]
     fn with_slice(&self, data: &[T]) -> Self::Ptr<T, S> {
-        let mut array: StackArray<S, T> = <Stack as Alloc<'_, T, S>>::alloc(self, 0, AllocFlag::None);
+        let mut array: StackArray<S, T> =
+            <Stack as Alloc<'_, T, S>>::alloc(self, 0, AllocFlag::None);
         unsafe {
             array.flatten_mut().copy_from_slice(&data[..S::LEN]);
         }

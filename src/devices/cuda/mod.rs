@@ -9,7 +9,7 @@ pub use cuda_device::*;
 pub use kernel_cache::*;
 pub use kernel_launch::*;
 
-use crate::{Buffer, CDatatype, CommonPtrs, flag::AllocFlag, ShallowCopy, PtrType};
+use crate::{flag::AllocFlag, Buffer, CDatatype, CommonPtrs, PtrType, ShallowCopy};
 
 use self::api::cufree;
 
@@ -52,16 +52,21 @@ impl<T> Drop for CUDAPtr<T> {
         if self.ptr == 0 {
             return;
         }
-        
+
         unsafe {
-            cufree(self.ptr).unwrap();    
+            cufree(self.ptr).unwrap();
         }
     }
 }
 
 impl<T> ShallowCopy for CUDAPtr<T> {
     unsafe fn shallow(&self) -> Self {
-        CUDAPtr { ptr: self.ptr, len: self.len, flag: AllocFlag::Wrapper, p: PhantomData }
+        CUDAPtr {
+            ptr: self.ptr,
+            len: self.len,
+            flag: AllocFlag::Wrapper,
+            p: PhantomData,
+        }
     }
 }
 

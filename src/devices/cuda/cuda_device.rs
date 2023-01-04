@@ -8,8 +8,9 @@ use super::{
 };
 use crate::{
     cache::{Cache, CacheReturn},
+    flag::AllocFlag,
     Alloc, Buffer, CDatatype, CacheBuf, CachedLeaf, ClearBuf, CloneBuf, Device, Graph, GraphReturn,
-    RawConv, Read, Shape, WriteBuf, flag::AllocFlag,
+    RawConv, Read, Shape, WriteBuf,
 };
 use std::{cell::RefCell, marker::PhantomData};
 
@@ -79,7 +80,11 @@ impl Device for CUDA {
 
 impl RawConv for CUDA {
     fn construct<T, S: Shape>(ptr: &Self::Ptr<T, S>, len: usize, node: crate::Node) -> Self::CT {
-        RawCUBuf { ptr: ptr.ptr, node, len }
+        RawCUBuf {
+            ptr: ptr.ptr,
+            node,
+            len,
+        }
     }
 
     fn destruct<T, S: Shape>(ct: &Self::CT) -> (Self::Ptr<T, S>, crate::Node) {

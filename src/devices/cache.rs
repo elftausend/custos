@@ -4,7 +4,8 @@ use std::collections::HashMap;
 use std::rc::Rc;
 
 use crate::{
-    bump_count, shape::Shape, AddGraph, Alloc, Buffer, CacheAble, Device, GraphReturn, Ident, Node, flag::AllocFlag,
+    bump_count, flag::AllocFlag, shape::Shape, AddGraph, Alloc, Buffer, CacheAble, Device,
+    GraphReturn, Ident, Node,
 };
 
 /// This trait makes a device's [`Cache`] accessible and is implemented for all compute devices.
@@ -18,7 +19,7 @@ pub trait CacheReturn: GraphReturn {
 
 pub trait RawConv: Device + CacheReturn {
     fn construct<T, S: Shape>(ptr: &Self::Ptr<T, S>, len: usize, node: Node) -> Self::CT;
-    fn destruct<T, S: Shape>(ct: &Self::CT) -> (Self::Ptr<T, S>, Node);
+    fn destruct<T, S: Shape>(ct: &Self::CT, flag: AllocFlag) -> (Self::Ptr<T, S>, Node);
 }
 
 #[derive(Debug)]
@@ -137,7 +138,7 @@ impl<D: RawConv> Cache<D> {
             Some(ptr) => {
                 bump_count();
 
-                let (ptr, node) = D::destruct::<T, S>(ptr);
+                let (ptr, node) = D::destruct::<T, S>(ptr, AllocFlag::Cache);
 
                 Buffer {
                     ptr,

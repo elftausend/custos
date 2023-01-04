@@ -130,7 +130,12 @@ mod tests {
         let cl_host_ptr = unsafe { to_unified(&device, no_drop, Node::default())? };
 
         let buf: Buffer<f32, OpenCL> = Buffer {
-            ptr: CLPtr { ptr: cl_host_ptr, host_ptr, len, flag: AllocFlag::Cache },
+            ptr: CLPtr {
+                ptr: cl_host_ptr,
+                host_ptr,
+                len,
+                flag: AllocFlag::Cache,
+            },
             device: Some(&device),
             node: Node::default(),
         };

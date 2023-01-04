@@ -19,7 +19,7 @@ impl Device for CPU {
 
 use crate::{
     flag::AllocFlag, shape::Shape, Alloc, CacheBuf, ClearBuf, CloneBuf, CommonPtrs, Device,
-    DevicelessAble, MainMemory, Node, Read, WriteBuf, PtrType, ShallowCopy,
+    DevicelessAble, MainMemory, Node, PtrType, Read, ShallowCopy, WriteBuf, ToDim, IsConstDim, RawConv,
 };
 
 pub use self::num::Num;
@@ -214,6 +214,24 @@ impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
         self.clone()
     }
 }
+
+impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
+    /// Converts a (non stack allocated) `Buffer` with no shape to a `Buffer` with shape `O`.
+    #[inline]
+    pub fn to_dims<O: Shape>(self) -> Buffer<'a, T, D, O> 
+    where
+        D: ToDim<T, S, O>
+    {
+        let ptr = self.device().to_dim(self.ptr);
+
+        Buffer {
+            ptr,
+            device: self.device,
+            node: self.node,
+        }
+    }
+}
+
 
 impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S>
 where
@@ -599,5 +617,16 @@ mod tests {
         let buf = Buffer::from((&device, [1, 2, 3, 4, 5, 6]));
 
         println!("{buf:?}",);
+    }
+
+    #[cfg(feature="cpu")]
+    #[test]
+    fn test_to_dims() {
+        use crate::Dim2;
+
+        let device = crate::CPU::new();
+        let buf = Buffer::from((&device, [1, 2, 3, 4, 5, 6]));
+        let _buf_dim2 = buf.to_dims::<Dim2<3, 2>>();
+
     }
 }

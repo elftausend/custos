@@ -68,12 +68,12 @@ impl RawConv for CPU {
     }
 
     #[inline]
-    fn destruct<T, S: Shape>(ct: &Self::CT) -> (Self::Ptr<T, S>, crate::Node) {
+    fn destruct<T, S: Shape>(ct: &Self::CT, flag: AllocFlag) -> (Self::Ptr<T, S>, crate::Node) {
         (
             CPUPtr {
                 ptr: ct.ptr as *mut T,
                 len: ct.len,
-                flag: AllocFlag::Cache,
+                flag,
             },
             ct.node,
         )

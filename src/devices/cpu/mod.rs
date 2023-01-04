@@ -73,6 +73,11 @@ impl<T> PtrType for CPUPtr<T> {
     fn len(&self) -> usize {
         self.len
     }
+
+    #[inline]
+    fn flag(&self) -> AllocFlag {
+        self.flag
+    }
 }
 
 impl<T> CommonPtrs<T> for CPUPtr<T> {
@@ -90,7 +95,11 @@ impl<T> CommonPtrs<T> for CPUPtr<T> {
 impl<T> ShallowCopy for CPUPtr<T> {
     #[inline]
     unsafe fn shallow(&self) -> Self {
-        CPUPtr { ptr: self.ptr, len: self.len, flag: AllocFlag::Wrapper }
+        CPUPtr {
+            ptr: self.ptr,
+            len: self.len,
+            flag: AllocFlag::Wrapper,
+        }
     }
 }
 

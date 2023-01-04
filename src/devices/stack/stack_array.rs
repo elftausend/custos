@@ -60,6 +60,11 @@ impl<S: Shape, T> PtrType for StackArray<S, T> {
     fn len(&self) -> usize {
         S::LEN
     }
+
+    #[inline]
+    fn flag(&self) -> crate::flag::AllocFlag {
+        crate::flag::AllocFlag::None
+    }
 }
 
 impl<S: Shape, T> CommonPtrs<T> for StackArray<S, T> {
@@ -74,15 +79,12 @@ impl<S: Shape, T> CommonPtrs<T> for StackArray<S, T> {
     }
 }
 
-
-impl<S: Shape, T> ShallowCopy for StackArray<S, T> 
+impl<S: Shape, T> ShallowCopy for StackArray<S, T>
 where
-    S::ARR<T>: Copy
+    S::ARR<T>: Copy,
 {
     #[inline]
     unsafe fn shallow(&self) -> Self {
-        StackArray {
-             array: self.array 
-        }
+        StackArray { array: self.array }
     }
 }

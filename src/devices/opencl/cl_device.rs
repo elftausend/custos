@@ -6,8 +6,8 @@ use min_cl::api::{
 };
 
 use super::{chosen_cl_idx, cl_clear, CLPtr, KernelCacheCL, RawCL};
-use crate::Shape;
 use crate::flag::AllocFlag;
+use crate::Shape;
 use crate::{
     cache::{Cache, CacheReturn, RawConv},
     Alloc, Buffer, CDatatype, CacheBuf, CachedLeaf, ClearBuf, CloneBuf, Device, Error, Graph,
@@ -140,13 +140,13 @@ impl RawConv for OpenCL {
         }
     }
 
-    fn destruct<T, S: Shape>(ct: &Self::CT) -> (Self::Ptr<T, S>, crate::Node) {
+    fn destruct<T, S: Shape>(ct: &Self::CT, flag: AllocFlag) -> (Self::Ptr<T, S>, crate::Node) {
         (
             CLPtr {
                 ptr: ct.ptr,
                 host_ptr: ct.host_ptr as *mut T,
                 len: ct.len,
-                flag: AllocFlag::Cache
+                flag,
             },
             ct.node,
         )
@@ -188,7 +188,12 @@ impl<T, S: Shape> Alloc<'_, T, S> for OpenCL {
         #[cfg(not(unified_cl))]
         let host_ptr = std::ptr::null_mut();
 
-        CLPtr { ptr, host_ptr, len, flag }
+        CLPtr {
+            ptr,
+            host_ptr,
+            len,
+            flag,
+        }
     }
 
     fn with_slice(&self, data: &[T]) -> CLPtr<T> {
@@ -206,7 +211,12 @@ impl<T, S: Shape> Alloc<'_, T, S> for OpenCL {
         #[cfg(not(unified_cl))]
         let host_ptr = std::ptr::null_mut();
 
-        CLPtr { ptr, host_ptr, len: data.len(), flag: AllocFlag::None }
+        CLPtr {
+            ptr,
+            host_ptr,
+            len: data.len(),
+            flag: AllocFlag::None,
+        }
     }
 }
 
