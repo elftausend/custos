@@ -19,7 +19,7 @@ impl Device for CPU {
 
 use crate::{
     flag::AllocFlag, shape::Shape, Alloc, CacheBuf, ClearBuf, CloneBuf, CommonPtrs, Device,
-    DevicelessAble, MainMemory, Node, PtrType, Read, ShallowCopy, WriteBuf, ToDim, IsConstDim, RawConv,
+    DevicelessAble, MainMemory, Node, PtrType, Read, ShallowCopy, WriteBuf, ToDim, IsConstDim, RawConv, IsShapeIndep,
 };
 
 pub use self::num::Num;
@@ -231,6 +231,23 @@ impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
         }
     }
 }
+
+impl<'a, T, D: IsShapeIndep, S: Shape> Buffer<'a, T, D, S> {
+    #[inline]
+    pub fn as_dims<O: Shape>(&self) -> &Buffer<'a, T, D, O> {
+        unsafe {
+            &*(self as *const Self).cast()
+        }
+    }
+
+    #[inline]
+    pub fn as_dims_mut<O: Shape>(&mut self) -> &mut Buffer<'a, T, D, O> {
+        unsafe {
+            &mut *(self as *mut Self).cast()
+        }
+    }
+}
+
 
 
 impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S>

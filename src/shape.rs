@@ -15,6 +15,11 @@ unsafe impl Shape for () {
     }
 }
 
+// TODO: impl for net device
+// this is used to 
+pub trait IsShapeIndep: Device {}
+impl<D: crate::RawConv> IsShapeIndep for D {}
+
 pub trait IsConstDim: Shape {}
 
 #[derive(Clone, Copy)]
@@ -73,12 +78,12 @@ pub trait ToDim<T, I: Shape, O: Shape>: crate::Device {
     fn to_dim(&self, ptr: Self::Ptr<T, I>) -> Self::Ptr<T, O>;
 }
 
-impl<T, D: crate::RawConv, O: Shape> ToDim<T, (), O> for D
+impl<T, D: crate::RawConv, I: Shape, O: Shape> ToDim<T, I, O> for D
 where
     Self::Ptr<T, ()>: crate::PtrType,
 {
     #[inline]
-    fn to_dim(&self, ptr: Self::Ptr<T, ()>) -> D::Ptr<T, O> {
+    fn to_dim(&self, ptr: Self::Ptr<T, I>) -> D::Ptr<T, O> {
         // resources are now mananged by the destructed raw pointer (prevents double free).
         let ptr = core::mem::ManuallyDrop::new(ptr);
         // TODO: mind default node!
@@ -91,6 +96,7 @@ where
     }
 }
 
+/* 
 impl<T, D: crate::RawConv, I: IsConstDim> ToDim<T, I, ()> for D
 where
     Self::Ptr<T, I>: crate::PtrType,
@@ -107,11 +113,20 @@ where
 
         ptr
     }
-}
+}*/
 
+/* 
 impl<T, D: Device, S: IsConstDim> ToDim<T, S, S> for D {
     #[inline]
     fn to_dim(&self, ptr: Self::Ptr<T, S>) -> D::Ptr<T, S> {
+        ptr
+    }
+}
+*/
+
+impl<T, S: IsConstDim> ToDim<T, S, S> for crate::Stack {
+    #[inline]
+    fn to_dim(&self, ptr: Self::Ptr<T, S>) -> Self::Ptr<T, S> {
         ptr
     }
 }
@@ -120,7 +135,11 @@ impl<T, D: Device, S: IsConstDim> ToDim<T, S, S> for D {
 mod tests {
     use core::mem::size_of;
 
-    use crate::{Dim1, Dim2, Dim3};
+    use crate::{Dim1, Dim2, Dim3, Device, Buffer, Shape};
+
+    fn len_of_shape<T, D: Device, S: Shape>(_: &Buffer<T, D, S>) {
+        println!("S::LEN {}", S::LEN);
+    }
 
     #[test]
     fn test_size_of_dims() {
@@ -133,15 +152,26 @@ mod tests {
     #[cfg(feature="cpu")]
     #[test]
     fn test_transmute_of_stackless_buf() {
-        use crate::{CPU, Buffer};
+        use crate::{CPU, Buffer, Stack};
 
         let device = CPU::new();
-        let buf = Buffer::<f32, CPU, Dim2<10, 5>>::new(&device, 413);
-        
-        let other_buf = unsafe {
-            core::mem::transmute::<_, &Buffer>(&buf)
-        };
+        let buf = Buffer::<f32, CPU, Dim2<5, 5>>::new(&device, 10);
 
-        println!("other_buf: {other_buf:?}");
+        let other_buf = unsafe {
+            &*(&buf as *const Buffer<f32, CPU, Dim2<5, 5,>> as *const Buffer<f32, CPU, ()>)
+        };
+        
+        /*
+        let other_buf = unsafe {
+            core::mem::transmute::<_, &Buffer::<f32, CPU, Dim3<4,4,2>>>(&buf)
+        };*/
+
+        println!("other_buf: {:?}", other_buf.read());
+
+        len_of_shape(&other_buf);
+
+        println!("other_buf: {:?}", other_buf.read());
+
+        len_of_shape(&other_buf);
     }
 }
