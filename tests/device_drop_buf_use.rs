@@ -85,19 +85,20 @@ fn test_clone_buf_invalid_return() {
     };
 }*/
 
-/*
+
 // should not compile, but it does (unsafe block)
 use custos::{CPU, Buffer};
 
 #[test]
 fn test_shallow_ub() {
     let device = CPU::new();
+    
     let _x = {
-        let buf = Buffer::from((&device, vec![1., 2., 3., 4., 5.]));
-        let x = unsafe {buf.shallow()};
+        let buf: Buffer = Buffer::from((&device, vec![1f32, 2., 3., 4., 5.]));
+        let x: Buffer = unsafe {buf.shallow()};
         x
     };
 
     //drop(device);
     //println!("x: {x:?}");
-}*/
+}

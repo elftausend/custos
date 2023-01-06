@@ -87,12 +87,12 @@ impl RawConv for CUDA {
         }
     }
 
-    fn destruct<T, S: Shape>(ct: &Self::CT) -> (Self::Ptr<T, S>, crate::Node) {
+    fn destruct<T, S: Shape>(ct: &Self::CT, flag: AllocFlag) -> (Self::Ptr<T, S>, crate::Node) {
         (
             CUDAPtr {
                 ptr: ct.ptr,
                 len: ct.len,
-                flag: AllocFlag::Cache,
+                flag,
                 p: PhantomData,
             },
             ct.node,

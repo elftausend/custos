@@ -33,6 +33,7 @@ pub struct CUDAPtr<T> {
 }
 
 impl<T> Default for CUDAPtr<T> {
+    #[inline]
     fn default() -> Self {
         Self {
             ptr: 0,
@@ -60,6 +61,7 @@ impl<T> Drop for CUDAPtr<T> {
 }
 
 impl<T> ShallowCopy for CUDAPtr<T> {
+    #[inline]
     unsafe fn shallow(&self) -> Self {
         CUDAPtr {
             ptr: self.ptr,
@@ -71,8 +73,14 @@ impl<T> ShallowCopy for CUDAPtr<T> {
 }
 
 impl<T> PtrType for CUDAPtr<T> {
+    #[inline]
     fn len(&self) -> usize {
         self.len
+    }
+
+    #[inline]
+    fn flag(&self) -> AllocFlag {
+        self.flag
     }
 }
 

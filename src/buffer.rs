@@ -275,7 +275,7 @@ impl<'a, T, D: Device> Buffer<'a, T, D> {
 
 #[cfg(feature = "cpu")]
 impl<'a, T> Buffer<'a, T> {
-    /// Constructs a `Buffer` out of a host pointer and a length.
+    /// Constructs a deviceless `Buffer` out of a host pointer and a length.
     /// # Example
     /// ```
     /// use custos::{Buffer, Alloc, CPU, Read, flag::AllocFlag};
@@ -296,6 +296,7 @@ impl<'a, T> Buffer<'a, T> {
     /// # Safety
     /// The pointer must be valid.
     /// The `Buffer` does not manage deallocation of the allocated memory.
+    #[inline]
     pub unsafe fn from_raw_host(ptr: *mut T, len: usize) -> Buffer<'a, T> {
         Buffer {
             ptr: CPUPtr {
@@ -304,6 +305,25 @@ impl<'a, T> Buffer<'a, T> {
                 flag: AllocFlag::Wrapper,
             },
             device: None,
+            node: Default::default(),
+        }
+    }
+
+    /// Constructs a `Buffer` out of a host pointer and a length.
+    /// The provided device can be used to shorten operation calls.
+    /// 
+    /// # Safety
+    /// The pointer must be valid.
+    /// The `Buffer` does not manage deallocation of the allocated memory.
+    #[inline]
+    pub unsafe fn from_raw_host_device(device: &'a CPU, ptr: *mut T, len: usize) -> Buffer<'a, T> {
+        Buffer {
+            ptr: CPUPtr {
+                ptr,
+                len,
+                flag: AllocFlag::Wrapper,
+            },
+            device: Some(device),
             node: Default::default(),
         }
     }
@@ -626,7 +646,8 @@ mod tests {
 
         let device = crate::CPU::new();
         let buf = Buffer::from((&device, [1, 2, 3, 4, 5, 6]));
-        let _buf_dim2 = buf.to_dims::<Dim2<3, 2>>();
+        let buf_dim2 = buf.to_dims::<Dim2<3, 2>>();
 
+        buf_dim2.to_dims::<()>();
     }
 }

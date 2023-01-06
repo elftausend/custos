@@ -91,9 +91,57 @@ where
     }
 }
 
+impl<T, D: crate::RawConv, I: IsConstDim> ToDim<T, I, ()> for D
+where
+    Self::Ptr<T, I>: crate::PtrType,
+{
+    #[inline]
+    fn to_dim(&self, ptr: Self::Ptr<T, I>) -> D::Ptr<T, ()> {
+        // resources are now mananged by the destructed raw pointer (prevents double free).
+        let ptr = core::mem::ManuallyDrop::new(ptr);
+        // TODO: mind default node!
+        let raw_ptr = D::construct(&ptr, ptr.len(), Default::default());
+        let (ptr, _) = D::destruct(&raw_ptr, ptr.flag());
+
+        core::mem::forget(raw_ptr);
+
+        ptr
+    }
+}
+
 impl<T, D: Device, S: IsConstDim> ToDim<T, S, S> for D {
     #[inline]
     fn to_dim(&self, ptr: Self::Ptr<T, S>) -> D::Ptr<T, S> {
         ptr
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use core::mem::size_of;
+
+    use crate::{Dim1, Dim2, Dim3};
+
+    #[test]
+    fn test_size_of_dims() {
+        assert_eq!(0, size_of::<Dim1<20>>());
+        assert_eq!(0, size_of::<Dim2<20, 10>>());
+        assert_eq!(0, size_of::<Dim3<4134, 20, 10>>());
+        assert_eq!(0, size_of::<()>());
+    }
+
+    #[cfg(feature="cpu")]
+    #[test]
+    fn test_transmute_of_stackless_buf() {
+        use crate::{CPU, Buffer};
+
+        let device = CPU::new();
+        let buf = Buffer::<f32, CPU, Dim2<10, 5>>::new(&device, 413);
+        
+        let other_buf = unsafe {
+            core::mem::transmute::<_, &Buffer>(&buf)
+        };
+
+        println!("other_buf: {other_buf:?}");
     }
 }

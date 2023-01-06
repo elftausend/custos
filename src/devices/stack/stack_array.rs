@@ -8,12 +8,30 @@ use crate::{shape::Shape, CommonPtrs, PtrType, ShallowCopy};
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct StackArray<S: Shape, T> {
     pub array: S::ARR<T>,
+    _private: (),
 }
 
 impl<S: Shape, T: Default + Copy> StackArray<S, T> {
     #[inline]
     pub fn new() -> Self {
-        StackArray { array: S::new() }
+        // TODO: one day... use const expressions
+        assert!(S::LEN > 0,
+            "The size (N) of a stack allocated buffer must be greater than 0."
+        );
+        StackArray { array: S::new(), _private: () }
+    }
+}
+
+impl<S: Shape, T> StackArray<S, T> {
+    pub fn from_array(array: S::ARR<T>) -> Self {
+        assert!(S::LEN > 0,
+            "The size (N) of a stack allocated buffer must be greater than 0."
+        );
+        
+        StackArray {
+            array,
+            _private: ()
+        }
     }
 }
 
@@ -85,6 +103,6 @@ where
 {
     #[inline]
     unsafe fn shallow(&self) -> Self {
-        StackArray { array: self.array }
+        StackArray { array: self.array, _private: () }
     }
 }

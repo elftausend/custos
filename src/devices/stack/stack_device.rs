@@ -34,13 +34,7 @@ impl MainMemory for Stack {
 impl<'a, S: Shape, T: Copy + Default> Alloc<'a, T, S> for Stack {
     #[inline]
     fn alloc(&self, _len: usize, _flag: AllocFlag) -> StackArray<S, T> {
-        // TODO: one day... use const expressions
-        if S::LEN == 0 {
-            panic!("The size (N) of a stack allocated buffer must be greater than 0.");
-        }
-        StackArray {
-            array: <S as Shape>::new(),
-        }
+        StackArray::new()
     }
 
     #[inline]
