@@ -136,22 +136,14 @@ impl GraphReturn for CPU {
 }
 
 impl MainMemory for CPU {
-    #[inline(always)]
-    fn buf_as_slice<'a, T, S: Shape>(buf: &'a Buffer<T, Self, S>) -> &'a [T] {
-        assert!(
-            !buf.ptr.ptr.is_null(),
-            "called as_slice() on an invalid CPU buffer (this would dereference an invalid pointer)"
-        );
-        unsafe { std::slice::from_raw_parts(buf.ptr.ptr, buf.len()) }
+    #[inline]
+    fn as_ptr<T, S: Shape>(ptr: &Self::Ptr<T, S>) -> *const T {
+        ptr.ptr
     }
 
-    #[inline(always)]
-    fn buf_as_slice_mut<'a, T, S: Shape>(buf: &'a mut Buffer<T, Self, S>) -> &'a mut [T] {
-        assert!(
-            !buf.ptr.ptr.is_null(),
-            "called as_slice() on an invalid CPU buffer (this would dereference an invalid pointer)"
-        );
-        unsafe { std::slice::from_raw_parts_mut(buf.ptr.ptr, buf.len()) }
+    #[inline]
+    fn as_ptr_mut<T, S: Shape>(ptr: &mut Self::Ptr<T, S>) -> *mut T {
+        ptr.ptr
     }
 }
 

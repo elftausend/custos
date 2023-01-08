@@ -1,10 +1,10 @@
-use crate::{shape::Shape, Alloc, Buffer, GraphReturn};
+use crate::{shape::Shape, Alloc, Buffer, IsShapeIndep};
 
 impl<'a, T, D, const N: usize> From<(&'a D, [T; N])> for Buffer<'a, T, D>
 where
     T: Clone,
     // FIXME: In this case, GraphReturn acts as an "IsDynamic" trait, as GraphReturn is not implemented for Stack
-    D: Alloc<'a, T> + GraphReturn,
+    D: Alloc<'a, T> + IsShapeIndep,
 {
     fn from((device, array): (&'a D, [T; N])) -> Self {
         Buffer {
@@ -20,7 +20,7 @@ where
 impl<'a, T, D, const N: usize> From<(&'a D, &[T; N])> for Buffer<'a, T, D>
 where
     T: Clone,
-    D: Alloc<'a, T> + GraphReturn,
+    D: Alloc<'a, T> + IsShapeIndep,
 {
     fn from((device, array): (&'a D, &[T; N])) -> Self {
         Buffer {
@@ -36,7 +36,7 @@ where
 impl<'a, T, D, S: Shape> From<(&'a D, &[T])> for Buffer<'a, T, D, S>
 where
     T: Clone,
-    D: Alloc<'a, T, S> + GraphReturn,
+    D: Alloc<'a, T, S> + IsShapeIndep,
 {
     fn from((device, slice): (&'a D, &[T])) -> Self {
         Buffer {
@@ -52,7 +52,7 @@ where
 impl<'a, T, D, S: Shape> From<(&'a D, Vec<T>)> for Buffer<'a, T, D, S>
 where
     T: Clone,
-    D: Alloc<'a, T, S> + GraphReturn,
+    D: Alloc<'a, T, S> + IsShapeIndep,
 {
     fn from((device, vec): (&'a D, Vec<T>)) -> Self {
         Buffer {
@@ -68,7 +68,7 @@ where
 impl<'a, T, D, S: Shape> From<(&'a D, &Vec<T>)> for Buffer<'a, T, D, S>
 where
     T: Clone,
-    D: Alloc<'a, T, S> + GraphReturn,
+    D: Alloc<'a, T, S> + IsShapeIndep,
 {
     fn from((device, vec): (&'a D, &Vec<T>)) -> Self {
         Buffer {

@@ -234,14 +234,17 @@ impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
 
 impl<'a, T, D: IsShapeIndep, S: Shape> Buffer<'a, T, D, S> {
     #[inline]
-    pub fn as_dims<O: Shape>(&self) -> &Buffer<'a, T, D, O> {
+    pub fn as_dims<'b, O: Shape>(&self) -> &Buffer<'b, T, D, O> {
+        // Safety: shape independent buffers 
+        // -> all dims have a size of 0
+        // -> all other buffer types do not depend on any features of the shape (S::ARR).
         unsafe {
             &*(self as *const Self).cast()
         }
     }
 
     #[inline]
-    pub fn as_dims_mut<O: Shape>(&mut self) -> &mut Buffer<'a, T, D, O> {
+    pub fn as_dims_mut<'b, O: Shape>(&mut self) -> &mut Buffer<'b, T, D, O> {
         unsafe {
             &mut *(self as *mut Self).cast()
         }
@@ -376,13 +379,13 @@ impl<'a, T, D: MainMemory, S: Shape> Buffer<'a, T, D, S> {
     /// Returns a CPU slice. This does not work with CUDA or raw OpenCL buffers.
     #[inline(always)]
     pub fn as_slice(&self) -> &[T] {
-        D::buf_as_slice(self)
+        self
     }
 
     /// Returns a mutable CPU slice.
     #[inline(always)]
     pub fn as_mut_slice(&mut self) -> &mut [T] {
-        D::buf_as_slice_mut(self)
+        self
     }
 }
 
@@ -444,14 +447,14 @@ where
 impl<T, D: MainMemory> AsRef<[T]> for Buffer<'_, T, D> {
     #[inline]
     fn as_ref(&self) -> &[T] {
-        self.as_slice()
+        self
     }
 }
 
 impl<T, D: MainMemory> AsMut<[T]> for Buffer<'_, T, D> {
     #[inline]
     fn as_mut(&mut self) -> &mut [T] {
-        self.as_mut_slice()
+        self
     }
 }
 
@@ -481,9 +484,9 @@ impl<T, D: MainMemory> AsMut<[T]> for Buffer<'_, T, D> {
 impl<T, D: MainMemory, S: Shape> core::ops::Deref for Buffer<'_, T, D, S> {
     type Target = [T];
 
-    #[inline(always)]
+    #[inline]
     fn deref(&self) -> &Self::Target {
-        self.as_slice()
+        unsafe { std::slice::from_raw_parts(D::as_ptr(&self.ptr), self.len()) }
     }
 }
 
@@ -508,10 +511,11 @@ impl<T, D: MainMemory, S: Shape> core::ops::Deref for Buffer<'_, T, D, S> {
 /// slice_add(&a, &b, &mut c);
 /// assert_eq!(c.as_slice(), &[6., 5., 9., 9.,]);
 /// ```
-impl<T, D: MainMemory, S: Shape> core::ops::DerefMut for Buffer<'_, T, D, S> {
-    #[inline(always)]
+impl<T, D: MainMemory, S: Shape> core::ops::DerefMut for Buffer<'_, T, D, S> 
+{
+    #[inline]
     fn deref_mut(&mut self) -> &mut Self::Target {
-        self.as_mut_slice()
+        unsafe { std::slice::from_raw_parts_mut(D::as_ptr_mut(&mut self.ptr), self.len()) }
     }
 }
 

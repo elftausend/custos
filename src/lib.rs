@@ -111,10 +111,8 @@ pub trait Device: Sized {
 pub trait DevicelessAble<'a, T, S: Shape = ()>: Alloc<'a, T, S> {}
 
 pub trait MainMemory: Device {
-    /// This is a device specific `as_slice()` function.
-    /// As a 'StackArray' does not need to be checked for null.
-    fn buf_as_slice<'a, T, S: Shape>(buf: &'a Buffer<T, Self, S>) -> &'a [T];
-    fn buf_as_slice_mut<'a, T, S: Shape>(buf: &'a mut Buffer<T, Self, S>) -> &'a mut [T];
+    fn as_ptr<T, S: Shape>(ptr: &Self::Ptr<T, S>) -> *const T;
+    fn as_ptr_mut<T, S: Shape>(ptr: &mut Self::Ptr<T, S>) -> *mut T;
 }
 
 /// This trait is for allocating memory on the implemented device.
