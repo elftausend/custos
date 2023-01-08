@@ -619,7 +619,7 @@ mod tests {
     #[test]
     fn test_deref() {
         let device = crate::CPU::new();
-        let buf = Buffer::from((&device, [1, 2, 3, 4]));
+        let buf: Buffer<i32> = Buffer::from((&device, [1, 2, 3, 4]));
         let slice = &*buf;
         assert_eq!(slice, &[1, 2, 3, 4]);
     }

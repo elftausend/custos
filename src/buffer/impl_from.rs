@@ -1,9 +1,8 @@
-use crate::{shape::Shape, Alloc, Buffer, IsShapeIndep};
+use crate::{shape::Shape, Alloc, Buffer, IsShapeIndep, IsConstDim};
 
 impl<'a, T, D, const N: usize> From<(&'a D, [T; N])> for Buffer<'a, T, D>
 where
     T: Clone,
-    // FIXME: In this case, GraphReturn acts as an "IsDynamic" trait, as GraphReturn is not implemented for Stack
     D: Alloc<'a, T> + IsShapeIndep,
 {
     fn from((device, array): (&'a D, [T; N])) -> Self {

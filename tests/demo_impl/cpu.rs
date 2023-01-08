@@ -1,4 +1,4 @@
-use custos::{prelude::Number, Buffer, Device, Dim2, MainMemory, Shape, WithConst, CPU};
+use custos::{prelude::Number, Buffer, Device, Dim2, MainMemory, Shape, WithShape, CPU};
 use custos_macro::impl_stack;
 //use custos_macro::impl_stack;
 
