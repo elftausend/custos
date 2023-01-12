@@ -11,6 +11,21 @@ use crate::flag::AllocFlag;
 mod blas;
 mod cpu_device;
 
+pub fn alloc_initialized<T>(len: usize) -> *mut u8 {
+    let layout = Layout::array::<T>(len).unwrap();
+    let ptr = unsafe { std::alloc::alloc(layout) };
+
+    // initialize block of memory
+    for element in unsafe { std::slice::from_raw_parts_mut(ptr, len * size_of::<T>()) } {
+        *element = 0;
+    }
+
+    if ptr.is_null() {
+        handle_alloc_error(layout);
+    }
+    ptr
+}
+
 #[derive(PartialEq, Eq, Debug)]
 pub struct CPUPtr<T> {
     pub ptr: *mut T,
@@ -20,20 +35,8 @@ pub struct CPUPtr<T> {
 
 impl<T> CPUPtr<T> {
     pub fn new(len: usize, flag: AllocFlag) -> CPUPtr<T> {
-        let layout = Layout::array::<T>(len).unwrap();
-        let ptr = unsafe { std::alloc::alloc(layout) };
-
-        // initialize block of memory
-        for element in unsafe { std::slice::from_raw_parts_mut(ptr, len * size_of::<T>()) } {
-            *element = 0;
-        }
-
-        if ptr.is_null() {
-            handle_alloc_error(layout);
-        }
-
         CPUPtr {
-            ptr: ptr as *mut T,
+            ptr: alloc_initialized::<T>(len).cast(),
             len,
             flag,
         }
@@ -106,10 +109,10 @@ impl<T> ShallowCopy for CPUPtr<T> {
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct RawCpuBuf {
     pub ptr: *mut u8,
-    len: usize,
-    align: usize,
-    size: usize,
-    node: Node,
+    pub len: usize,
+    pub align: usize,
+    pub size: usize,
+    pub node: Node,
 }
 
 impl Drop for RawCpuBuf {
@@ -120,3 +123,5 @@ impl Drop for RawCpuBuf {
         }
     }
 }
+
+

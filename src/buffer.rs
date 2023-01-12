@@ -23,10 +23,10 @@ use crate::{
 };
 
 pub use self::num::Num;
-pub use impl_from_const::*;
+pub use impl_with_shape::*;
 
 mod impl_from;
-mod impl_from_const;
+mod impl_with_shape;
 mod num;
 
 /// The underlying non-growable array structure. A `Buffer` may be encapsulated in other structs.

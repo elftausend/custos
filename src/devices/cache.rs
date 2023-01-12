@@ -1,11 +1,11 @@
-use core::{cell::RefMut, marker::PhantomData};
+use core::{cell::RefMut, marker::PhantomData, mem::{ManuallyDrop, align_of, size_of}};
 use std::collections::HashMap;
 
 use std::rc::Rc;
 
 use crate::{
     bump_count, flag::AllocFlag, shape::Shape, AddGraph, Alloc, Buffer, CacheAble, Device,
-    GraphReturn, Ident, Node,
+    GraphReturn, Ident, Node, cpu::{CPUPtr, alloc_initialized, RawCpuBuf},
 };
 
 /// This trait makes a device's [`Cache`] accessible and is implemented for all compute devices.
@@ -34,6 +34,157 @@ impl<D: RawConv> Default for Cache<D> {
             nodes: Default::default(),
             _p: PhantomData,
         }
+    }
+}
+
+pub trait BufType: Device {
+    type Buf<'a>;
+}
+
+impl BufType for crate::CPU {
+    type Buf<'a> = Buffer<'a, u8, crate::CPU>;
+}
+
+#[cfg(feature="opencl")]
+impl BufType for crate::OpenCL {
+    type Buf<'a> = Buffer<'a, u8, crate::OpenCL>;
+}
+
+#[derive(Debug)]
+pub struct Cache2<'a, D: RawConv + BufType = crate::CPU> {
+    pub nodes: HashMap<Ident, (ManuallyDrop<D::Buf<'a>>, D::CT)>
+    //pub nodes: HashMap<Ident, &'a mut Buffer<u8>>
+}
+
+/*impl Drop for Cache2 {
+    fn drop(&mut self) {
+        todo!()
+    }
+}*/
+
+#[test]
+fn test_this() {
+    for _ in 0..100000000000usize {
+        // let val = ManuallyDrop::new(32i128);
+        // assert_eq!(*val, 32);
+
+        let val = ManuallyDrop::new(32i128);
+        //assert_eq!(val[0], 32);
+        assert_eq!(*val, 32);
+
+        std::thread::sleep(std::time::Duration::from_micros(10))
+    }
+}
+
+#[test]
+fn test_leaking2() {
+    let device = crate::CPU::new();
+
+    let mut cache: Cache2<crate::CPU> = Cache2 {
+        nodes: HashMap::new()
+    };
+
+    for _ in 0..1000 {
+        cache.get::<f32>(&device, Ident::new(10));
+    }
+
+    drop(cache);
+    drop(device);
+
+    loop {
+
+    }
+
+}
+
+#[test]
+fn test_leaking() {
+    let device = crate::CPU::new();
+
+    let mut cache: Cache2<crate::CPU> = Cache2 {
+        nodes: HashMap::new()
+    };
+
+    for _ in 0..1000 {
+        cache.get::<f32>(&device, Ident::new(10));
+    }
+    //println!("{:?}", cache);
+
+    /*for (_, (buf, _)) in &mut cache.nodes {
+        unsafe {
+            ManuallyDrop::drop(buf)
+        }
+    }*/
+
+    drop(cache);
+    drop(device);
+
+    loop {
+
+    }
+
+}
+
+impl<'c, /*D: BufType,*/> Cache2<'c, crate::CPU> {
+    fn add<T, /*D: BufType*/>(&mut self, device: &'c crate::CPU, ident: Ident) -> &mut Buffer<T>
+    where
+        //D: for<'b> Alloc<'b, T>
+    {
+        //let ptr = device.alloc(ident.len, AllocFlag::Cache);
+        //let ptr = CPUPtr::<u8>::new(ident.len * std::mem::size_of::<T>(), AllocFlag::Cache);
+        
+        let ptr = CPUPtr {
+            ptr: alloc_initialized::<T>(ident.len),
+            len: ident.len,
+            flag: AllocFlag::Cache,
+        };
+
+        let raw = RawCpuBuf {
+            ptr: ptr.ptr,
+            len: ident.len,
+            align: align_of::<T>(),
+            size: size_of::<T>(),
+            node: Node::default(),
+        };
+        
+        let buf = ManuallyDrop::new(Buffer {
+            ptr,
+            device: Some(device),
+            //device: None,
+            node: Node::default(),
+        });
+
+        //let buf = &*buf;
+        self.nodes.insert(ident, (buf, raw));
+        
+        bump_count();
+
+        unsafe {
+            &mut *((&mut *self.nodes.get_mut(&ident).unwrap().0) as *mut Buffer<u8>).cast()
+        }
+    }
+    fn get<'a, T, /*D: BufType*/>(&'a mut self, device: &'c crate::CPU, ident: Ident) -> &'a mut Buffer<'a, T> {
+        match self.nodes.get_mut(&ident) {
+            Some(buf) => {
+                bump_count();
+                println!("test");
+                unsafe {
+                    &mut *(&mut *buf.0 as *mut Buffer<_>).cast()
+                }
+                /*unsafe {
+                    //&mut *(*buf as *mut Buffer<T, D>)
+                }*/
+                //todo!()
+                // unsafe {
+                    // return &mut *(buf as *mut Buffer<u8> as *mut Buffer<T, D>)
+                // }
+            },
+            None => {
+                self.add(device, ident)
+            },
+        }
+        //buf as *const Buffer<u8> as *const Buffer<T, D>;
+
     }
 }
 
