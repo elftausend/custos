@@ -123,5 +123,3 @@ impl Drop for RawCpuBuf {
         }
     }
 }
-
-

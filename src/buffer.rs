@@ -19,7 +19,8 @@ impl Device for CPU {
 
 use crate::{
     flag::AllocFlag, shape::Shape, Alloc, CacheBuf, ClearBuf, CloneBuf, CommonPtrs, Device,
-    DevicelessAble, MainMemory, Node, PtrType, Read, ShallowCopy, WriteBuf, ToDim, IsConstDim, RawConv, IsShapeIndep,
+    DevicelessAble, IsConstDim, IsShapeIndep, MainMemory, Node, PtrType, RawConv, Read,
+    ShallowCopy, ToDim, WriteBuf,
 };
 
 pub use self::num::Num;
@@ -218,9 +219,9 @@ impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
 impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
     /// Converts a (non stack allocated) `Buffer` with no shape to a `Buffer` with shape `O`.
     #[inline]
-    pub fn to_dims<O: Shape>(self) -> Buffer<'a, T, D, O> 
+    pub fn to_dims<O: Shape>(self) -> Buffer<'a, T, D, O>
     where
-        D: ToDim<T, S, O>
+        D: ToDim<T, S, O>,
     {
         let ptr = self.device().to_dim(self.ptr);
 
@@ -235,23 +236,17 @@ impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
 impl<'a, T, D: IsShapeIndep, S: Shape> Buffer<'a, T, D, S> {
     #[inline]
     pub fn as_dims<'b, O: Shape>(&self) -> &Buffer<'b, T, D, O> {
-        // Safety: shape independent buffers 
+        // Safety: shape independent buffers
         // -> all dims have a size of 0
         // -> all other buffer types do not depend on any features of the shape (S::ARR).
-        unsafe {
-            &*(self as *const Self).cast()
-        }
+        unsafe { &*(self as *const Self).cast() }
     }
 
     #[inline]
     pub fn as_dims_mut<'b, O: Shape>(&mut self) -> &mut Buffer<'b, T, D, O> {
-        unsafe {
-            &mut *(self as *mut Self).cast()
-        }
+        unsafe { &mut *(self as *mut Self).cast() }
     }
 }
-
-
 
 impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S>
 where
@@ -331,7 +326,7 @@ impl<'a, T> Buffer<'a, T> {
 
     /// Constructs a `Buffer` out of a host pointer and a length.
     /// The provided device can be used to shorten operation calls.
-    /// 
+    ///
     /// # Safety
     /// The pointer must be valid.
     /// The `Buffer` does not manage deallocation of the allocated memory.
@@ -511,8 +506,7 @@ impl<T, D: MainMemory, S: Shape> core::ops::Deref for Buffer<'_, T, D, S> {
 /// slice_add(&a, &b, &mut c);
 /// assert_eq!(c.as_slice(), &[6., 5., 9., 9.,]);
 /// ```
-impl<T, D: MainMemory, S: Shape> core::ops::DerefMut for Buffer<'_, T, D, S> 
-{
+impl<T, D: MainMemory, S: Shape> core::ops::DerefMut for Buffer<'_, T, D, S> {
     #[inline]
     fn deref_mut(&mut self) -> &mut Self::Target {
         unsafe { std::slice::from_raw_parts_mut(D::as_ptr_mut(&mut self.ptr), self.len()) }
@@ -660,7 +654,7 @@ mod tests {
         println!("{buf:?}",);
     }
 
-    #[cfg(feature="cpu")]
+    #[cfg(feature = "cpu")]
     #[test]
     fn test_to_dims() {
         use crate::Dim2;

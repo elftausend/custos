@@ -76,57 +76,8 @@ fn test_this() {
     }
 }
 
-#[test]
-fn test_leaking2() {
-    let device = crate::CPU::new();
-
-    let mut cache: Cache2<crate::CPU> = Cache2 {
-        nodes: HashMap::new()
-    };
-
-    for _ in 0..1000 {
-        cache.get::<f32>(&device, Ident::new(10));
-    }
-
-    drop(cache);
-    drop(device);
-
-    loop {
-
-    }
-
-}
-
-#[test]
-fn test_leaking() {
-    let device = crate::CPU::new();
-
-    let mut cache: Cache2<crate::CPU> = Cache2 {
-        nodes: HashMap::new()
-    };
-
-    for _ in 0..1000 {
-        cache.get::<f32>(&device, Ident::new(10));
-    }
-    //println!("{:?}", cache);
-
-    /*for (_, (buf, _)) in &mut cache.nodes {
-        unsafe {
-            ManuallyDrop::drop(buf)
-        }
-    }*/
-
-    drop(cache);
-    drop(device);
-
-    loop {
-
-    }
-
-}
-
-impl<'c, /*D: BufType,*/> Cache2<'c, crate::CPU> {
-    fn add<T, /*D: BufType*/>(&mut self, device: &'c crate::CPU, ident: Ident) -> &mut Buffer<T>
+impl<'a, /*D: BufType,*/> Cache2<'a, crate::CPU> {
+    fn add<T, /*D: BufType*/>(&mut self, device: &'a crate::CPU, ident: Ident) -> &'a mut Buffer<'a, T>
     where
         //D: for<'b> Alloc<'b, T>
     {
@@ -163,11 +114,12 @@ impl<'c, /*D: BufType,*/> Cache2<'c, crate::CPU> {
             &mut *((&mut *self.nodes.get_mut(&ident).unwrap().0) as *mut Buffer<u8>).cast()
         }
     }
-    fn get<'a, T, /*D: BufType*/>(&'a mut self, device: &'c crate::CPU, ident: Ident) -> &'a mut Buffer<'a, T> {
+
+    fn get<T, /*D: BufType*/>(&mut self, device: &'a crate::CPU, ident: Ident) -> &'a mut Buffer<'a, T> {
         match self.nodes.get_mut(&ident) {
             Some(buf) => {
                 bump_count();
-                println!("test");
+
                 unsafe {
                     &mut *(&mut *buf.0 as *mut Buffer<_>).cast()
                 }
@@ -180,6 +132,7 @@ impl<'c, /*D: BufType,*/> Cache2<'c, crate::CPU> {
                 // }
             },
             None => {
+                //todo!()
                 self.add(device, ident)
             },
         }
@@ -315,9 +268,40 @@ impl<D: RawConv> Cache<D> {
 #[cfg(feature = "cpu")]
 #[cfg(test)]
 mod tests {
+    use std::collections::HashMap;
+
     #[cfg(not(feature = "realloc"))]
     use crate::{set_count, Cache};
-    use crate::{Buffer, CacheReturn, Ident};
+    use crate::{Buffer, CacheReturn, Ident, Cache2};
+
+    pub struct Test<'a> {
+        buf: Option<&'a Buffer<'a>>
+    }
+
+    impl<'a> Test<'a> {
+        pub fn forward(&mut self, buf: &'a Buffer) {
+            self.buf = Some(buf);
+        }
+    }
+
+    #[test]
+    fn test_get2() {
+        let device = crate::CPU::new();
+
+        let mut cache: Cache2<crate::CPU> = Cache2 {
+            nodes: HashMap::new()
+        };
+
+        let mut test = Test {
+            buf: None
+        };
+                
+        for _x in 0..10 {
+            let buf = cache.get::<f32>(&device, Ident::new(10));
+            test.forward(buf);
+        }        
+    }
+
 
     #[test]
     fn test_add_node() {
