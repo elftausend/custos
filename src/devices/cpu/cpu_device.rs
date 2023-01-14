@@ -83,14 +83,14 @@ impl RawConv for CPU {
 impl<'a, T> DevicelessAble<'a, T> for CPU {}
 
 impl<T, S: Shape> Alloc<'_, T, S> for CPU {
-    fn alloc(&self, mut len: usize, flag: AllocFlag) -> CPUPtr<T> {
+    unsafe fn alloc<A>(&self, mut len: usize, flag: AllocFlag) -> CPUPtr<T> {
         assert!(len > 0, "invalid buffer len: 0");
 
         if S::LEN > len {
             len = S::LEN
         }
 
-        CPUPtr::new(len, flag)
+        CPUPtr::<T>::new::<A>(len, flag)
     }
 
     fn with_slice(&self, data: &[T]) -> CPUPtr<T>
@@ -98,7 +98,7 @@ impl<T, S: Shape> Alloc<'_, T, S> for CPU {
         T: Clone,
     {
         assert!(!data.is_empty(), "invalid buffer len: 0");
-        let cpu_ptr = Alloc::<T>::alloc(self, data.len(), AllocFlag::None);
+        let cpu_ptr = unsafe { Alloc::<T>::alloc::<T>(self, data.len(), AllocFlag::None) };
         //= self.alloc(data.len());
         let slice = unsafe { std::slice::from_raw_parts_mut(cpu_ptr.ptr, data.len()) };
         slice.clone_from_slice(data);

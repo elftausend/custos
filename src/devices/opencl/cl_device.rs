@@ -13,10 +13,7 @@ use crate::{
     Alloc, Buffer, CDatatype, CacheBuf, CachedLeaf, ClearBuf, CloneBuf, Device, Error, Graph,
     GraphReturn, Read, WriteBuf, CPU,
 };
-use std::{
-    cell::{Ref, RefCell},
-    fmt::Debug,
-};
+use std::{cell::RefCell, fmt::Debug};
 
 #[cfg(unified_cl)]
 use min_cl::api::unified_ptr;
@@ -40,7 +37,7 @@ use min_cl::api::unified_ptr;
 pub struct OpenCL {
     pub kernel_cache: RefCell<KernelCacheCL>,
     pub cache: RefCell<Cache<OpenCL>>,
-    pub inner: RefCell<CLDevice>,
+    pub inner: CLDevice,
     pub graph: RefCell<Graph>,
     pub cpu: CPU,
 }
@@ -54,7 +51,7 @@ impl OpenCL {
     /// - No device is found at the given device index
     /// - some other OpenCL related errors
     pub fn new(device_idx: usize) -> Result<OpenCL, Error> {
-        let inner = RefCell::new(CLDevice::new(device_idx)?);
+        let inner = CLDevice::new(device_idx)?;
         Ok(OpenCL {
             inner,
             kernel_cache: Default::default(),
@@ -74,20 +71,18 @@ impl OpenCL {
     }
 
     #[inline]
-    pub fn ctx(&self) -> Ref<Context> {
-        let borrow = self.inner.borrow();
-        Ref::map(borrow, |device| &device.ctx)
+    pub fn ctx(&self) -> &Context {
+        &self.inner.ctx
     }
 
     #[inline]
-    pub fn queue(&self) -> Ref<CommandQueue> {
-        let borrow = self.inner.borrow();
-        Ref::map(borrow, |device| &device.queue)
+    pub fn queue(&self) -> &CommandQueue {
+        &self.inner.queue
     }
 
     #[inline]
     pub fn device(&self) -> CLIntDevice {
-        self.inner.borrow().device
+        self.inner.device
     }
 
     pub fn global_mem_size_in_gb(&self) -> Result<f64, Error> {
@@ -109,15 +104,15 @@ impl OpenCL {
     /// Checks whether the device supports unified memory.
     #[inline]
     pub fn unified_mem(&self) -> bool {
-        self.inner.borrow().unified_mem
+        self.inner.unified_mem
     }
 
     #[deprecated(
         since = "0.6.0",
         note = "Use the environment variable 'CUSTOS_USE_UNIFIED' set to 'true', 'false' or 'default'[=hardware dependent] instead."
     )]
-    pub fn set_unified_mem(&self, unified_mem: bool) {
-        self.inner.borrow_mut().unified_mem = unified_mem;
+    pub fn set_unified_mem(&mut self, unified_mem: bool) {
+        self.inner.unified_mem = unified_mem;
     }
 }
 
@@ -172,28 +167,14 @@ impl Debug for OpenCL {
 }
 
 impl<T, S: Shape> Alloc<'_, T, S> for OpenCL {
-    fn alloc(&self, mut len: usize, flag: AllocFlag) -> CLPtr<T> {
+    unsafe fn alloc<A>(&self, mut len: usize, flag: AllocFlag) -> CLPtr<T> {
         assert!(len > 0, "invalid buffer len: 0");
 
         if S::LEN > len {
             len = S::LEN
         }
 
-        let ptr =
-            create_buffer::<T>(&self.ctx(), MemFlags::MemReadWrite as u64, len, None).unwrap();
-
-        #[cfg(unified_cl)]
-        let host_ptr = unified_ptr::<T>(&self.queue(), ptr, len).unwrap();
-
-        #[cfg(not(unified_cl))]
-        let host_ptr = std::ptr::null_mut();
-
-        CLPtr {
-            ptr,
-            host_ptr,
-            len,
-            flag,
-        }
+        CLPtr::<T>::new::<A>(&self.inner, len, flag)
     }
 
     fn with_slice(&self, data: &[T]) -> CLPtr<T> {
@@ -349,7 +330,7 @@ mod tests {
         let cl = OpenCL {
             kernel_cache: Default::default(),
             cache: Default::default(),
-            inner: RefCell::new(device),
+            inner: device,
             graph: Default::default(),
             cpu: Default::default(),
         };
@@ -362,7 +343,7 @@ mod tests {
         let cl1 = OpenCL {
             kernel_cache: Default::default(),
             cache: Default::default(),
-            inner: RefCell::new(device),
+            inner: device,
             graph: Default::default(),
             cpu: Default::default(),
         };

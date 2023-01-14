@@ -34,9 +34,12 @@ pub struct CPUPtr<T> {
 }
 
 impl<T> CPUPtr<T> {
-    pub fn new(len: usize, flag: AllocFlag) -> CPUPtr<T> {
+    #[inline]
+    /// # Safety
+    /// Generic `A` is used for the size and alignment of the allocation.
+    pub unsafe fn new<A>(len: usize, flag: AllocFlag) -> CPUPtr<T> {
         CPUPtr {
-            ptr: alloc_initialized::<T>(len).cast(),
+            ptr: alloc_initialized::<A>(len).cast(),
             len,
             flag,
         }

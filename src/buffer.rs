@@ -78,7 +78,7 @@ impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
         D: Alloc<'a, T, S>, /*+ GraphReturn*/
     {
         Buffer {
-            ptr: device.alloc(len, AllocFlag::None),
+            ptr: unsafe { device.alloc::<T>(len, AllocFlag::None) },
             device: Some(device),
             // TODO: enable, if leafs get more important
             //node: device.graph().add_leaf(len),
@@ -108,7 +108,7 @@ impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
         D: DevicelessAble<'b, T, S>,
     {
         Buffer {
-            ptr: device.alloc(len, AllocFlag::None),
+            ptr: unsafe { device.alloc::<T>(len, AllocFlag::None) },
             node: Node::default(),
             device: None,
         }

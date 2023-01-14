@@ -147,7 +147,11 @@ pub trait Alloc<'a, T, S: Shape = ()>: Device {
     /// };
     /// assert_eq!(vec![0.; 12], device.read(&buf));
     /// ```
-    fn alloc(&'a self, len: usize, flag: AllocFlag) -> <Self as Device>::Ptr<T, S>;
+    /// # Safety
+    ///
+    /// Generic `A` is used for the size and alignment.
+    ///
+    unsafe fn alloc<A>(&'a self, len: usize, flag: AllocFlag) -> <Self as Device>::Ptr<T, S>;
 
     /// Allocate new memory with data
     /// # Example

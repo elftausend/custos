@@ -15,7 +15,7 @@ mod unified;
 
 pub use min_cl::*;
 
-use min_cl::api::release_mem_object;
+use min_cl::api::{create_buffer, release_mem_object, unified_ptr, MemFlags};
 #[cfg(unified_cl)]
 #[cfg(not(feature = "realloc"))]
 pub use unified::*;
@@ -42,7 +42,29 @@ pub struct CLPtr<T> {
     pub flag: AllocFlag,
 }
 
+impl<T> CLPtr<T> {
+    #[inline]
+    pub fn new<A>(device: &CLDevice, len: usize, flag: AllocFlag) -> CLPtr<T> {
+        let ptr =
+            create_buffer::<T>(&device.ctx, MemFlags::MemReadWrite as u64, len, None).unwrap();
+
+        #[cfg(unified_cl)]
+        let host_ptr = unified_ptr::<T>(&device.queue, ptr, len).unwrap();
+
+        #[cfg(not(unified_cl))]
+        let host_ptr = std::ptr::null_mut();
+
+        CLPtr {
+            ptr,
+            host_ptr,
+            len,
+            flag,
+        }
+    }
+}
+
 impl<T> Default for CLPtr<T> {
+    #[inline]
     fn default() -> Self {
         Self {
             ptr: null_mut(),

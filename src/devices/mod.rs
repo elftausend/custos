@@ -59,8 +59,12 @@ pub trait CacheAble<D: Device> {
     fn retrieve<T, S: Shape>(device: &D, len: usize, add_node: impl AddGraph) -> Buffer<T, D, S>
     where
         for<'a> D: Alloc<'a, T, S>;
+}
 
-    //fn insert_node<T>(&mut self, device: &D, ptr: &D::Ptr<T, N>, node: Ident, graph_node: crate::Node) {}
+pub trait CacheAble2<D: Device> {
+    fn retrieve<'a, T, S: Shape>(device: &'a D, len: usize, add_node: impl AddGraph) -> &'a Buffer<'a, T, D, S>;
+    // where
+        // for<'a> D: Alloc<'a, T, S>;
 }
 
 // TODO: Mind num implement?

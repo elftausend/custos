@@ -1,11 +1,19 @@
-use core::{cell::RefMut, marker::PhantomData, mem::{ManuallyDrop, align_of, size_of}};
+use core::{
+    cell::RefMut,
+    marker::PhantomData,
+    mem::{align_of, size_of, ManuallyDrop},
+};
 use std::collections::HashMap;
 
 use std::rc::Rc;
 
 use crate::{
-    bump_count, flag::AllocFlag, shape::Shape, AddGraph, Alloc, Buffer, CacheAble, Device,
-    GraphReturn, Ident, Node, cpu::{CPUPtr, alloc_initialized, RawCpuBuf},
+    bump_count,
+    cpu::{alloc_initialized, CPUPtr, RawCpuBuf},
+    flag::AllocFlag,
+    opencl::RawCL,
+    shape::Shape,
+    AddGraph, Alloc, Buffer, CacheAble, Device, GraphReturn, Ident, Node, CacheAble2,
 };
 
 /// This trait makes a device's [`Cache`] accessible and is implemented for all compute devices.
@@ -17,8 +25,20 @@ pub trait CacheReturn: GraphReturn {
         Self: RawConv;
 }
 
+pub trait CacheReturn2: GraphReturn {
+    /// Returns a device specific [`Cache`].
+    fn cache(&self) -> RefMut<Cache2<Self>>
+    where
+        Self: BufType;
+}
+
 pub trait RawConv: Device + CacheReturn {
     fn construct<T, S: Shape>(ptr: &Self::Ptr<T, S>, len: usize, node: Node) -> Self::CT;
+    fn destruct<T, S: Shape>(ct: &Self::CT, flag: AllocFlag) -> (Self::Ptr<T, S>, Node);
+}
+
+pub trait RawConv2: Device + CacheReturn {
+    fn construct<T, S: Shape>(ptr: &Self::Ptr<u8, S>, len: usize, node: Node) -> Self::CT;
     fn destruct<T, S: Shape>(ct: &Self::CT, flag: AllocFlag) -> (Self::Ptr<T, S>, Node);
 }
 
@@ -38,106 +58,89 @@ impl<D: RawConv> Default for Cache<D> {
 }
 
 pub trait BufType: Device {
-    type Buf<'a>;
+    type Deallocator;
+
+    unsafe fn ptr_to_raw<T, S: Shape>(ptr: &Self::Ptr<u8, S>) -> Self::Deallocator;
 }
 
 impl BufType for crate::CPU {
-    type Buf<'a> = Buffer<'a, u8, crate::CPU>;
-}
+    type Deallocator = RawCpuBuf;
 
-#[cfg(feature="opencl")]
-impl BufType for crate::OpenCL {
-    type Buf<'a> = Buffer<'a, u8, crate::OpenCL>;
-}
-
-#[derive(Debug)]
-pub struct Cache2<'a, D: RawConv + BufType = crate::CPU> {
-    pub nodes: HashMap<Ident, (ManuallyDrop<D::Buf<'a>>, D::CT)>
-    //pub nodes: HashMap<Ident, &'a mut Buffer<u8>>
-}
-
-/*impl Drop for Cache2 {
-    fn drop(&mut self) {
-        todo!()
-    }
-}*/
-
-#[test]
-fn test_this() {
-    for _ in 0..100000000000usize {
-        // let val = ManuallyDrop::new(32i128);
-        // assert_eq!(*val, 32);
-
-        let val = ManuallyDrop::new(32i128);
-        //assert_eq!(val[0], 32);
-        assert_eq!(*val, 32);
-
-        std::thread::sleep(std::time::Duration::from_micros(10))
-    }
-}
-
-impl<'a, /*D: BufType,*/> Cache2<'a, crate::CPU> {
-    fn add<T, /*D: BufType*/>(&mut self, device: &'a crate::CPU, ident: Ident) -> &'a mut Buffer<'a, T>
-    where
-        //D: for<'b> Alloc<'b, T>
-    {
-        //let ptr = device.alloc(ident.len, AllocFlag::Cache);
-        //let ptr = CPUPtr::<u8>::new(ident.len * std::mem::size_of::<T>(), AllocFlag::Cache);
-        
-        let ptr = CPUPtr {
-            ptr: alloc_initialized::<T>(ident.len),
-            len: ident.len,
-            flag: AllocFlag::Cache,
-        };
-
-        let raw = RawCpuBuf {
+    unsafe fn ptr_to_raw<T, S: Shape>(ptr: &Self::Ptr<u8, S>) -> Self::Deallocator {
+        RawCpuBuf {
             ptr: ptr.ptr,
-            len: ident.len,
+            len: ptr.len,
             align: align_of::<T>(),
             size: size_of::<T>(),
+            // FIXME: mind default node
             node: Node::default(),
-        };
-        
+        }
+    }
+}
+
+#[cfg(feature = "opencl")]
+impl BufType for crate::OpenCL {
+    type Deallocator = RawCL;
+
+    unsafe fn ptr_to_raw<T, S: Shape>(ptr: &Self::Ptr<u8, S>) -> Self::Deallocator {
+        RawCL {
+            ptr: ptr.ptr,
+            host_ptr: ptr.host_ptr as *mut u8,
+            len: ptr.len,
+            // FIXME: mind default node
+            node: Node::default(),
+        }
+    }
+}
+
+//#[derive(Debug)]
+pub struct Cache2<'a, D: BufType = crate::CPU> {
+    pub nodes: HashMap<Ident, (ManuallyDrop<Buffer<'a, u8, D, ()>>, D::Deallocator)>,
+}
+
+impl<'a, D: BufType> Cache2<'a, D> {
+    fn add<T, S>(&mut self, device: &'a D, ident: Ident) -> &'a mut Buffer<'a, T, D, S>
+    where
+        S: Shape,
+        D: for<'b> Alloc<'b, u8>,
+    {
+        let ptr = unsafe { device.alloc::<T>(ident.len, AllocFlag::Cache) };
+        let raw = unsafe { D::ptr_to_raw::<T, ()>(&ptr) };
+
         let buf = ManuallyDrop::new(Buffer {
             ptr,
             device: Some(device),
-            //device: None,
             node: Node::default(),
         });
 
-        //let buf = &*buf;
         self.nodes.insert(ident, (buf, raw));
-        
+
         bump_count();
 
         unsafe {
-            &mut *((&mut *self.nodes.get_mut(&ident).unwrap().0) as *mut Buffer<u8>).cast()
+            &mut *((&mut *self.nodes.get_mut(&ident).unwrap().0) as *mut Buffer<u8, D>).cast()
         }
     }
 
-    fn get<T, /*D: BufType*/>(&mut self, device: &'a crate::CPU, ident: Ident) -> &'a mut Buffer<'a, T> {
+    fn get<T, S>(
+        &mut self,
+        device: &'a D,
+        len: usize,
+        _add_node: impl AddGraph,
+    ) -> &'a mut Buffer<'a, T, D, S>
+    where
+        S: Shape,
+        D: for<'b> Alloc<'b, u8>,
+    {
+        let ident = Ident::new(len);
         match self.nodes.get_mut(&ident) {
             Some(buf) => {
                 bump_count();
 
-                unsafe {
-                    &mut *(&mut *buf.0 as *mut Buffer<_>).cast()
-                }
-                /*unsafe {
-                    //&mut *(*buf as *mut Buffer<T, D>)
-                }*/
-                //todo!()
-                // unsafe {
-                    // return &mut *(buf as *mut Buffer<u8> as *mut Buffer<T, D>)
-                // }
-            },
-            None => {
-                //todo!()
-                self.add(device, ident)
-            },
+                unsafe { &mut *(&mut *buf.0 as *mut Buffer<_, D>).cast() }
+            }
+            None => self.add(device, ident),
         }
-        //buf as *const Buffer<u8> as *const Buffer<T, D>;
-
     }
 }
 
@@ -151,6 +154,18 @@ where
         for<'b> D: Alloc<'b, T, S>,
     {
         Cache::get(device, len, add_node)
+    }
+}
+
+impl<D> CacheAble2<D> for Cache2<'_, D>
+where
+    D: BufType + CacheReturn2,
+    D: for<'b> Alloc<'b, u8>
+{
+    #[inline]
+    fn retrieve<'a, T, S: Shape>(device: &'a D, len: usize, add_node: impl AddGraph) -> &'a Buffer<'a, T, D, S>
+    {
+        device.cache().get::<T, S>(device, len, add_node)
     }
 }
 
@@ -185,7 +200,7 @@ impl<D: RawConv> Cache<D> {
     where
         D: Alloc<'a, T, S> + RawConv,
     {
-        let ptr = device.alloc(node.len, AllocFlag::Cache);
+        let ptr = unsafe { device.alloc::<T>(node.len, AllocFlag::Cache) };
 
         #[cfg(feature = "opt-cache")]
         let graph_node = device.graph().add(node.len, _add_node);
@@ -272,10 +287,10 @@ mod tests {
 
     #[cfg(not(feature = "realloc"))]
     use crate::{set_count, Cache};
-    use crate::{Buffer, CacheReturn, Ident, Cache2};
+    use crate::{Buffer, Cache2, CacheReturn, Device, Ident};
 
     pub struct Test<'a> {
-        buf: Option<&'a Buffer<'a>>
+        buf: Option<&'a Buffer<'a>>,
     }
 
     impl<'a> Test<'a> {
@@ -289,19 +304,16 @@ mod tests {
         let device = crate::CPU::new();
 
         let mut cache: Cache2<crate::CPU> = Cache2 {
-            nodes: HashMap::new()
+            nodes: HashMap::new(),
         };
 
-        let mut test = Test {
-            buf: None
-        };
-                
+        let mut test = Test { buf: None };
+
         for _x in 0..10 {
-            let buf = cache.get::<f32>(&device, Ident::new(10));
+            let buf = cache.get::<f32, ()>(&device, 10, ());
             test.forward(buf);
-        }        
+        }
     }
-
 
     #[test]
     fn test_add_node() {

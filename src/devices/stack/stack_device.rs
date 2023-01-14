@@ -33,14 +33,14 @@ impl MainMemory for Stack {
 
 impl<'a, S: Shape, T: Copy + Default> Alloc<'a, T, S> for Stack {
     #[inline]
-    fn alloc(&self, _len: usize, _flag: AllocFlag) -> StackArray<S, T> {
+    unsafe fn alloc<A>(&self, _len: usize, _flag: AllocFlag) -> StackArray<S, T> {
         StackArray::new()
     }
 
     #[inline]
     fn with_slice(&self, data: &[T]) -> Self::Ptr<T, S> {
         let mut array: StackArray<S, T> =
-            <Stack as Alloc<'_, T, S>>::alloc(self, 0, AllocFlag::None);
+            unsafe { <Stack as Alloc<'_, T, S>>::alloc::<T>(self, 0, AllocFlag::None) };
         unsafe {
             array.flatten_mut().copy_from_slice(&data[..S::LEN]);
         }
