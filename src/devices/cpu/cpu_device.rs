@@ -3,8 +3,8 @@ use crate::{
     devices::cache::{Cache, CacheReturn},
     flag::AllocFlag,
     shape::Shape,
-    Alloc, Buffer, CacheBuf, CachedLeaf, ClearBuf, CloneBuf, Device, DevicelessAble, Graph,
-    GraphReturn, MainMemory, Read, WriteBuf,
+    Alloc, BufType, Buffer, Cache2, CacheBuf, CachedLeaf, ClearBuf, CloneBuf, Device,
+    DevicelessAble, Graph, GraphReturn, MainMemory, Read, WriteBuf,
 };
 use core::{
     cell::{RefCell, RefMut},
@@ -30,32 +30,48 @@ use super::{CPUPtr, RawCpuBuf};
 ///
 /// assert_eq!(out, vec![1, 2, 3]);
 /// ```
-pub struct CPU {
-    pub cache: RefCell<Cache<CPU>>,
+pub struct CPU<'a> {
+    pub cache: RefCell<Cache2<'a, CPU<'a>>>,
     pub graph: RefCell<Graph>,
 }
 
-impl CPU {
+impl<'a> CPU<'a> {
     /// Creates an [CPU] with an InternCPU that holds an empty vector of pointers.
     #[must_use]
-    pub fn new() -> CPU {
+    pub fn new() -> Self {
         CPU {
-            cache: RefCell::new(Cache::default()),
+            cache: RefCell::new(Cache2::default()),
             graph: RefCell::new(Graph::new()),
         }
     }
 }
 
-impl Device for CPU {
+impl<'a> Device for CPU<'a> {
     type Ptr<U, S: Shape> = CPUPtr<U>;
-    type Cache = Cache<CPU>; //<CPU as CacheReturn>::CT
+    //type Cache = Cache2<'a, CPU<'a>>; //<CPU as CacheReturn>::CT
+    type Cache = ();
 
     fn new() -> crate::Result<Self> {
         Ok(Self::new())
     }
 }
 
-impl RawConv for CPU {
+impl<'a> BufType for crate::CPU<'a> {
+    type Deallocator = RawCpuBuf;
+
+    unsafe fn ptr_to_raw<T, S: Shape>(ptr: &Self::Ptr<u8, S>) -> Self::Deallocator {
+        RawCpuBuf {
+            ptr: ptr.ptr,
+            len: ptr.len,
+            align: align_of::<T>(),
+            size: size_of::<T>(),
+            // FIXME: mind default node
+            node: crate::Node::default(),
+        }
+    }
+}
+
+impl<'a> RawConv for CPU<'a> {
     #[inline]
     fn construct<T, S: Shape>(ptr: &Self::Ptr<T, S>, len: usize, node: crate::Node) -> Self::CT {
         RawCpuBuf {
@@ -80,9 +96,9 @@ impl RawConv for CPU {
     }
 }
 
-impl<'a, T> DevicelessAble<'a, T> for CPU {}
+impl<'a, T> DevicelessAble<'a, T> for CPU<'a> {}
 
-impl<T, S: Shape> Alloc<'_, T, S> for CPU {
+impl<'a, T, S: Shape> Alloc<'a, T, S> for CPU<'a> {
     unsafe fn alloc<A>(&self, mut len: usize, flag: AllocFlag) -> CPUPtr<T> {
         assert!(len > 0, "invalid buffer len: 0");
 
@@ -120,22 +136,23 @@ impl<T, S: Shape> Alloc<'_, T, S> for CPU {
     }
 }
 
-impl CacheReturn for CPU {
+impl<'a> CacheReturn for CPU<'a> {
     type CT = RawCpuBuf;
     #[inline]
-    fn cache(&self) -> RefMut<Cache<CPU>> {
-        self.cache.borrow_mut()
+    fn cache(&self) -> RefMut<Cache<CPU<'a>>> {
+        todo!()
+ //       self.cache.borrow_mut()
     }
 }
 
-impl GraphReturn for CPU {
+impl<'a> GraphReturn for CPU<'a> {
     #[inline]
     fn graph(&self) -> RefMut<Graph> {
         self.graph.borrow_mut()
     }
 }
 
-impl MainMemory for CPU {
+impl<'a> MainMemory for CPU<'a> {
     #[inline]
     fn as_ptr<T, S: Shape>(ptr: &Self::Ptr<T, S>) -> *const T {
         ptr.ptr
@@ -150,7 +167,7 @@ impl MainMemory for CPU {
 #[cfg(feature = "opt-cache")]
 impl crate::GraphOpt for CPU {}
 
-impl<'a, T: Clone, S: Shape> CloneBuf<'a, T, S> for CPU {
+impl<'a, T: Clone, S: Shape> CloneBuf<'a, T, S> for CPU<'a> {
     fn clone_buf(&'a self, buf: &Buffer<'a, T, CPU, S>) -> Buffer<'a, T, CPU, S> {
         let mut cloned = Buffer::new(self, buf.len());
         cloned.clone_from_slice(buf);
@@ -158,19 +175,19 @@ impl<'a, T: Clone, S: Shape> CloneBuf<'a, T, S> for CPU {
     }
 }
 
-impl<'a, T> CacheBuf<'a, T> for CPU {
+impl<'a, T> CacheBuf<'a, T> for CPU<'a> {
     #[inline]
-    fn cached(&'a self, len: usize) -> Buffer<'a, T, CPU> {
+    fn cached(&'a self, len: usize) -> Buffer<'a, T, CPU<'a>> {
         Cache::get::<T, ()>(self, len, CachedLeaf)
     }
 }
 
 #[inline]
-pub fn cpu_cached<T: Clone>(device: &CPU, len: usize) -> Buffer<T, CPU> {
+pub fn cpu_cached<'a, T: Clone>(device: &'a CPU, len: usize) -> Buffer<'a, T, CPU<'a>> {
     device.cached(len)
 }
 
-impl<T, D: MainMemory, S: Shape> Read<T, D, S> for CPU {
+impl<T, D: MainMemory, S: Shape> Read<T, D, S> for CPU<'_> {
     type Read<'a> = &'a [T] where T: 'a, D: 'a, S: 'a;
 
     #[inline]
@@ -187,7 +204,7 @@ impl<T, D: MainMemory, S: Shape> Read<T, D, S> for CPU {
     }
 }
 
-impl<T: Default, D: MainMemory> ClearBuf<T, D> for CPU {
+impl<T: Default, D: MainMemory> ClearBuf<T, D> for CPU<'_> {
     fn clear(&self, buf: &mut Buffer<T, D>) {
         for value in buf {
             *value = T::default();
@@ -195,7 +212,7 @@ impl<T: Default, D: MainMemory> ClearBuf<T, D> for CPU {
     }
 }
 
-impl<T: Copy, D: MainMemory> WriteBuf<T, D> for CPU {
+impl<T: Copy, D: MainMemory> WriteBuf<T, D> for CPU<'_> {
     fn write(&self, buf: &mut Buffer<T, D>, data: &[T]) {
         buf.copy_from_slice(data)
     }

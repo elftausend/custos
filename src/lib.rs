@@ -95,12 +95,22 @@ pub trait CommonPtrs<T> {
 
 pub trait Device: Sized {
     type Ptr<U, S: Shape>: PtrType; //const B: usize, const C: usize
-    type Cache: CacheAble<Self>;
+    type Cache: CacheAble2;
 
     fn new() -> crate::Result<Self>;
 
-    #[inline]
+    /*#[inline]
     fn retrieve<T, S: Shape>(&self, len: usize, add_node: impl AddGraph) -> Buffer<T, Self, S>
+    where
+        for<'a> Self: Alloc<'a, T, S>,
+    {
+        Self::Cache::retrieve(self, len, add_node)
+    }*/
+    fn retrieve<'b, T, S: Shape>(
+        &'b self,
+        len: usize,
+        add_node: impl AddGraph,
+    ) -> <Self::Cache as CacheAble2>::Retrieval<'b, T, Self, S>
     where
         for<'a> Self: Alloc<'a, T, S>,
     {

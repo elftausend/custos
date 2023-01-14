@@ -7,12 +7,12 @@ use min_cl::api::{
 
 use super::{chosen_cl_idx, cl_clear, CLPtr, KernelCacheCL, RawCL};
 use crate::flag::AllocFlag;
-use crate::Shape;
 use crate::{
     cache::{Cache, CacheReturn, RawConv},
     Alloc, Buffer, CDatatype, CacheBuf, CachedLeaf, ClearBuf, CloneBuf, Device, Error, Graph,
     GraphReturn, Read, WriteBuf, CPU,
 };
+use crate::{BufType, Shape};
 use std::{cell::RefCell, fmt::Debug};
 
 #[cfg(unified_cl)]
@@ -122,6 +122,20 @@ impl Device for OpenCL {
 
     fn new() -> crate::Result<Self> {
         OpenCL::new(chosen_cl_idx())
+    }
+}
+
+impl BufType for crate::OpenCL {
+    type Deallocator = RawCL;
+
+    unsafe fn ptr_to_raw<T, S: Shape>(ptr: &Self::Ptr<u8, S>) -> Self::Deallocator {
+        RawCL {
+            ptr: ptr.ptr,
+            host_ptr: ptr.host_ptr as *mut u8,
+            len: ptr.len,
+            // FIXME: mind default node
+            node: crate::Node::default(),
+        }
     }
 }
 

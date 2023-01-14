@@ -1,19 +1,11 @@
-use core::{
-    cell::RefMut,
-    marker::PhantomData,
-    mem::{align_of, size_of, ManuallyDrop},
-};
+use core::{cell::RefMut, fmt::Debug, marker::PhantomData, mem::ManuallyDrop};
 use std::collections::HashMap;
 
 use std::rc::Rc;
 
 use crate::{
-    bump_count,
-    cpu::{alloc_initialized, CPUPtr, RawCpuBuf},
-    flag::AllocFlag,
-    opencl::RawCL,
-    shape::Shape,
-    AddGraph, Alloc, Buffer, CacheAble, Device, GraphReturn, Ident, Node, CacheAble2,
+    bump_count, flag::AllocFlag, shape::Shape, AddGraph, Alloc, Buffer, CacheAble, CacheAble2,
+    Device, GraphReturn, Ident, Node,
 };
 
 /// This trait makes a device's [`Cache`] accessible and is implemented for all compute devices.
@@ -34,11 +26,6 @@ pub trait CacheReturn2: GraphReturn {
 
 pub trait RawConv: Device + CacheReturn {
     fn construct<T, S: Shape>(ptr: &Self::Ptr<T, S>, len: usize, node: Node) -> Self::CT;
-    fn destruct<T, S: Shape>(ct: &Self::CT, flag: AllocFlag) -> (Self::Ptr<T, S>, Node);
-}
-
-pub trait RawConv2: Device + CacheReturn {
-    fn construct<T, S: Shape>(ptr: &Self::Ptr<u8, S>, len: usize, node: Node) -> Self::CT;
     fn destruct<T, S: Shape>(ct: &Self::CT, flag: AllocFlag) -> (Self::Ptr<T, S>, Node);
 }
 
@@ -63,39 +50,34 @@ pub trait BufType: Device {
     unsafe fn ptr_to_raw<T, S: Shape>(ptr: &Self::Ptr<u8, S>) -> Self::Deallocator;
 }
 
-impl BufType for crate::CPU {
-    type Deallocator = RawCpuBuf;
-
-    unsafe fn ptr_to_raw<T, S: Shape>(ptr: &Self::Ptr<u8, S>) -> Self::Deallocator {
-        RawCpuBuf {
-            ptr: ptr.ptr,
-            len: ptr.len,
-            align: align_of::<T>(),
-            size: size_of::<T>(),
-            // FIXME: mind default node
-            node: Node::default(),
-        }
-    }
-}
-
-#[cfg(feature = "opencl")]
-impl BufType for crate::OpenCL {
-    type Deallocator = RawCL;
-
-    unsafe fn ptr_to_raw<T, S: Shape>(ptr: &Self::Ptr<u8, S>) -> Self::Deallocator {
-        RawCL {
-            ptr: ptr.ptr,
-            host_ptr: ptr.host_ptr as *mut u8,
-            len: ptr.len,
-            // FIXME: mind default node
-            node: Node::default(),
-        }
-    }
-}
-
-//#[derive(Debug)]
-pub struct Cache2<'a, D: BufType = crate::CPU> {
+pub struct Cache2<'a, D: BufType = crate::CPU<'a>> {
     pub nodes: HashMap<Ident, (ManuallyDrop<Buffer<'a, u8, D, ()>>, D::Deallocator)>,
+}
+
+impl<D: BufType> Default for Cache2<'_, D> {
+    fn default() -> Self {
+        Self {
+            nodes: Default::default(),
+        }
+    }
+}
+
+impl<D: BufType> Debug for Cache2<'_, D>
+where
+    D::Deallocator: Debug,
+{
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.debug_struct("Cache2")
+            .field(
+                "nodes",
+                &self
+                    .nodes
+                    .values()
+                    .map(|(a, b)| b)
+                    .collect::<Vec<&D::Deallocator>>(),
+            )
+            .finish()
+    }
 }
 
 impl<'a, D: BufType> Cache2<'a, D> {
@@ -157,17 +139,49 @@ where
     }
 }
 
-impl<D> CacheAble2<D> for Cache2<'_, D>
+/* 
+impl<DevCache> CacheAble2 for Cache2<'_, DevCache> 
+where
+    DevCache: BufType
+{
+    type Retrieval<'b, T, D: Device, S: Shape> = ()
+    where
+        D: 'b,
+        T: 'b,
+        S: 'b;
+
+    fn retrieve<'a, T, S: Shape, D>(
+        device: &'a D,
+        len: usize,
+        add_node: impl AddGraph,
+    ) -> Self::Retrieval<'a, T, D, S>
+    where
+        for<'b> D: Alloc<'b, T, S> {
+        todo!()
+    }
+}*/
+
+/* 
+impl<D> CacheAble2 for Cache2<'_, D>
 where
     D: BufType + CacheReturn2,
-    D: for<'b> Alloc<'b, u8>
+    D: for<'b> Alloc<'b, u8>,
 {
     #[inline]
-    fn retrieve<'a, T, S: Shape>(device: &'a D, len: usize, add_node: impl AddGraph) -> &'a Buffer<'a, T, D, S>
-    {
+    fn retrieve<'a, T, S: Shape>(
+        device: &'a D,
+        len: usize,
+        add_node: impl AddGraph,
+    ) -> &'a Buffer<'a, T, D, S> {
         device.cache().get::<T, S>(device, len, add_node)
     }
-}
+
+    type Retrieval<'b, T, D: Device, S: Shape> = &'b Buffer<'b, T, D, S>
+    where
+        D: 'b,
+        T: 'b,
+        S: 'b;
+}*/
 
 impl<D: RawConv> Cache<D> {
     /// Adds a new cache entry to the cache.

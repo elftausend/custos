@@ -34,7 +34,7 @@ mod tests {
         }
     }*/
 
-    impl<T, D> AddBuf<T, D> for CPU
+    impl<T, D> AddBuf<T, D> for CPU<'_>
     where
         D: MainMemory,
         T: Add<Output = T> + Clone,

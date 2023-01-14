@@ -61,10 +61,35 @@ pub trait CacheAble<D: Device> {
         for<'a> D: Alloc<'a, T, S>;
 }
 
-pub trait CacheAble2<D: Device> {
-    fn retrieve<'a, T, S: Shape>(device: &'a D, len: usize, add_node: impl AddGraph) -> &'a Buffer<'a, T, D, S>;
-    // where
-        // for<'a> D: Alloc<'a, T, S>;
+pub trait CacheAble2 {
+    type Retrieval<'b, T, D: Device, S: Shape>
+    where
+        D: 'b,
+        T: 'b,
+        S: 'b;
+    fn retrieve<'a, T, S: Shape, D>(
+        device: &'a D,
+        len: usize,
+        add_node: impl AddGraph,
+    ) -> Self::Retrieval<'a, T, D, S>
+    where
+        for<'b> D: Alloc<'b, T, S>;
+}
+
+impl CacheAble2 for () {
+    type Retrieval<'b, T, D: Device, S: Shape> = Buffer<'b, T, D, S>
+    where
+        D: 'b,
+        T: 'b,
+        S: 'b;
+
+    #[inline]
+    fn retrieve<T, S: Shape, D>(device: &D, len: usize, _add_node: impl AddGraph) -> Buffer<T, D, S>
+    where
+        for<'b> D: Alloc<'b, T, S>,
+    {
+        Buffer::new(device, len)
+    }
 }
 
 // TODO: Mind num implement?

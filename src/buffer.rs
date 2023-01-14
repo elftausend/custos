@@ -45,7 +45,7 @@ mod num;
 /// buffer_f32_cpu(&buf);
 /// buffer_generic(&buf);
 /// ```
-pub struct Buffer<'a, T = f32, D: Device = CPU, S: Shape = ()> {
+pub struct Buffer<'a, T = f32, D: Device = CPU<'a>, S: Shape = ()> {
     pub ptr: D::Ptr<T, S>,
     pub device: Option<&'a D>,
     pub node: Node,
