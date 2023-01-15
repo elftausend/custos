@@ -3,8 +3,8 @@ use crate::{
     devices::cache::{Cache, CacheReturn},
     flag::AllocFlag,
     shape::Shape,
-    Alloc, Buffer, CacheBuf, CachedLeaf, ClearBuf, CloneBuf, Device, DevicelessAble, Graph,
-    GraphReturn, MainMemory, Read, WriteBuf,
+    Alloc, Buffer, Cache2, CacheBuf, CacheReturn2, CachedLeaf, ClearBuf, CloneBuf, Device,
+    DevicelessAble, Graph, GraphReturn, MainMemory, Read, WriteBuf,
 };
 use core::{
     cell::{RefCell, RefMut},
@@ -31,7 +31,7 @@ use super::{CPUPtr, RawCpuBuf};
 /// assert_eq!(out, vec![1, 2, 3]);
 /// ```
 pub struct CPU {
-    pub cache: RefCell<Cache<CPU>>,
+    pub cache: RefCell<Cache2<CPU>>,
     pub graph: RefCell<Graph>,
 }
 
@@ -40,7 +40,7 @@ impl CPU {
     #[must_use]
     pub fn new() -> CPU {
         CPU {
-            cache: RefCell::new(Cache::default()),
+            cache: RefCell::new(Cache2::default()),
             graph: RefCell::new(Graph::new()),
         }
     }
@@ -48,7 +48,7 @@ impl CPU {
 
 impl Device for CPU {
     type Ptr<U, S: Shape> = CPUPtr<U>;
-    type Cache = Cache<CPU>; //<CPU as CacheReturn>::CT
+    type Cache = Cache2<CPU>; //<CPU as CacheReturn>::CT
 
     fn new() -> crate::Result<Self> {
         Ok(Self::new())
@@ -124,6 +124,13 @@ impl CacheReturn for CPU {
     type CT = RawCpuBuf;
     #[inline]
     fn cache(&self) -> RefMut<Cache<CPU>> {
+        todo!()
+    }
+}
+
+impl CacheReturn2 for CPU {
+    #[inline]
+    fn cache(&self) -> RefMut<Cache2<CPU>> {
         self.cache.borrow_mut()
     }
 }

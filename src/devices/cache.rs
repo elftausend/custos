@@ -87,101 +87,35 @@ impl BufType for crate::OpenCL {
     }
 }
 
-pub struct CPU2 {
-    pub cache: core::cell::RefCell<Cache2<CPU2>>,
-    pub cpu: crate::CPU,
-}
-
-impl<'a, T, S: Shape> Alloc<'a, T, S> for CPU2 {
-    unsafe fn alloc<A>(&'a self, len: usize, flag: AllocFlag) -> <Self as Device>::Ptr<T, S> {
-        Alloc::<T, S>::alloc::<A>(&self.cpu, len, flag)
-    }
-
-    fn with_slice(&'a self, data: &[T]) -> <Self as Device>::Ptr<T, S>
-    where
-        T: Clone,
-    {
-        todo!()
-    }
-}
-
-impl CPU2 {
-    pub fn retrieve<T, S: Shape>(
-        &self,
-        len: usize,
-        add_node: impl AddGraph,
-    ) -> &mut Buffer<T, Self, S> {
-        self.cache.borrow_mut().get::<T, S>(self, len, add_node)
-    }
-}
-
-#[test]
-fn test() {
-    let cpu = CPU2 {
-        cache: core::cell::RefCell::new(Cache2 {
-            nodes: HashMap::new(),
-        }),
-        cpu: crate::CPU::new(),
-    };
-
-    cpu.retrieve::<f32, ()>(10, ());
-}
-
-impl GraphReturn for CPU2 {
-    fn graph(&self) -> RefMut<crate::Graph> {
-        todo!()
-    }
-}
-
-impl CacheReturn for CPU2 {
-    type CT = ();
-
-    fn cache(&self) -> RefMut<Cache<Self>>
-    where
-        Self: RawConv,
-    {
-        todo!()
-    }
-}
-
-impl RawConv for CPU2 {
-    fn construct<T, S: Shape>(ptr: &Self::Ptr<T, S>, len: usize, node: Node) -> Self::CT {
-        todo!()
-    }
-
-    fn destruct<T, S: Shape>(ct: &Self::CT, flag: AllocFlag) -> (Self::Ptr<T, S>, Node) {
-        todo!()
-    }
-}
-
-impl Device for CPU2 {
-    type Ptr<U, S: Shape> = CPUPtr<U>;
-
-    type Cache = Cache<CPU2>;
-
-    fn new() -> crate::Result<Self> {
-        todo!()
-    }
-}
-
-impl BufType for CPU2 {
-    type Deallocator = RawCpuBuf;
-
-    unsafe fn ptr_to_raw<T, S: Shape>(ptr: &Self::Ptr<u8, S>) -> Self::Deallocator {
-        RawCpuBuf {
-            ptr: ptr.ptr,
-            len: ptr.len,
-            align: align_of::<T>(),
-            size: size_of::<T>(),
-            // FIXME: mind default node
-            node: Node::default(),
-        }
-    }
-}
-
 //#[derive(Debug)]
 pub struct Cache2<D: 'static + BufType = crate::CPU> {
     pub nodes: HashMap<Ident, (ManuallyDrop<Buffer<'static, u8, D, ()>>, D::Deallocator)>,
+}
+
+impl<D: BufType> core::fmt::Debug for Cache2<D>
+where
+    D::Deallocator: core::fmt::Debug,
+{
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.debug_struct("Cache2")
+            .field(
+                "nodes",
+                &self
+                    .nodes
+                    .values()
+                    .map(|(a, b)| b)
+                    .collect::<Vec<&D::Deallocator>>(),
+            )
+            .finish()
+    }
+}
+
+impl<D: BufType> Default for Cache2<D> {
+    fn default() -> Self {
+        Self {
+            nodes: Default::default(),
+        }
+    }
 }
 
 impl<D: BufType> Cache2<D> {
@@ -250,7 +184,7 @@ where
     D: BufType + CacheReturn2 + 'static,
     D: for<'b> Alloc<'b, u8>,
 {
-    type Retrieval<'r, T, S: Shape> = &'r Buffer<'r, T, D, S>
+    type Retrieval<'r, T, S: Shape> = &'r mut Buffer<'r, T, D, S>
     where
         S: 'r,
         D: 'r,
@@ -261,7 +195,7 @@ where
         device: &'a D,
         len: usize,
         add_node: impl AddGraph,
-    ) -> &'a Buffer<'a, T, D, S>
+    ) -> Self::Retrieval<'a, T, S>
     where
         D: Alloc<'a, T, S>,
     {
@@ -271,7 +205,7 @@ where
 
 impl<D> CacheAble2<D> for ()
 where
-    D: BufType + CacheReturn2 + 'static,
+    D: Device,
 {
     type Retrieval<'r, T, S: Shape> = Buffer<'r, T, D, S>
     where
