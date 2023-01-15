@@ -17,9 +17,9 @@ pub trait CacheReturn: GraphReturn {
         Self: RawConv;
 }
 
-pub trait CacheReturn2: GraphReturn {
+pub trait CacheReturn2<'a>: GraphReturn {
     /// Returns a device specific [`Cache`].
-    fn cache(&self) -> RefMut<Cache2<Self>>
+    fn cache(&'a self) -> RefMut<Cache2<Self>>
     where
         Self: BufType;
 }
@@ -50,7 +50,7 @@ pub trait BufType: Device {
     unsafe fn ptr_to_raw<T, S: Shape>(ptr: &Self::Ptr<u8, S>) -> Self::Deallocator;
 }
 
-pub struct Cache2<'a, D: BufType = crate::CPU<'a>> {
+pub struct Cache2<'a, D: BufType/* = crate::CPU<'a>*/> {
     pub nodes: HashMap<Ident, (ManuallyDrop<Buffer<'a, u8, D, ()>>, D::Deallocator)>,
 }
 
@@ -84,7 +84,7 @@ impl<'a, D: BufType> Cache2<'a, D> {
     fn add<T, S>(&mut self, device: &'a D, ident: Ident) -> &'a mut Buffer<'a, T, D, S>
     where
         S: Shape,
-        D: for<'b> Alloc<'b, u8>,
+        D: Alloc<'a, u8>,
     {
         let ptr = unsafe { device.alloc::<T>(ident.len, AllocFlag::Cache) };
         let raw = unsafe { D::ptr_to_raw::<T, ()>(&ptr) };
@@ -112,7 +112,7 @@ impl<'a, D: BufType> Cache2<'a, D> {
     ) -> &'a mut Buffer<'a, T, D, S>
     where
         S: Shape,
-        D: for<'b> Alloc<'b, u8>,
+        D: Alloc<'a, u8>,
     {
         let ident = Ident::new(len);
         match self.nodes.get_mut(&ident) {
@@ -126,18 +126,6 @@ impl<'a, D: BufType> Cache2<'a, D> {
     }
 }
 
-impl<D> CacheAble<D> for Cache<D>
-where
-    D: RawConv,
-{
-    #[inline]
-    fn retrieve<T, S: Shape>(device: &D, len: usize, add_node: impl AddGraph) -> Buffer<T, D, S>
-    where
-        for<'b> D: Alloc<'b, T, S>,
-    {
-        Cache::get(device, len, add_node)
-    }
-}
 
 /* 
 impl<DevCache> CacheAble2 for Cache2<'_, DevCache> 
@@ -161,27 +149,42 @@ where
     }
 }*/
 
-/* 
-impl<D> CacheAble2 for Cache2<'_, D>
-where
-    D: BufType + CacheReturn2,
-    D: for<'b> Alloc<'b, u8>,
-{
-    #[inline]
-    fn retrieve<'a, T, S: Shape>(
-        device: &'a D,
-        len: usize,
-        add_node: impl AddGraph,
-    ) -> &'a Buffer<'a, T, D, S> {
-        device.cache().get::<T, S>(device, len, add_node)
-    }
 
-    type Retrieval<'b, T, D: Device, S: Shape> = &'b Buffer<'b, T, D, S>
+impl<'a, Dev> CacheAble2<'a, Dev> for Cache2<'a, Dev>
+where
+    Dev: BufType + CacheReturn2<'a>,
+    Dev: Alloc<'a, u8>,
+{
+    type Retrieval<'b, T, S: Shape> = &'b Buffer<'b, T, Dev, S>
     where
-        D: 'b,
+        Dev: 'b,
         T: 'b,
         S: 'b;
-}*/
+
+    fn retrieve<T, S: Shape>(
+        device: &'a Dev,
+        len: usize,
+        add_node: impl AddGraph,
+    ) -> Self::Retrieval<'a, T, S>
+    where
+        Dev: Alloc<'a, T, S> 
+    {
+        device.cache().get(device, len, add_node)
+    }
+}
+
+impl<D> CacheAble<D> for Cache<D>
+where
+    D: RawConv,
+{
+    #[inline]
+    fn retrieve<T, S: Shape>(device: &D, len: usize, add_node: impl AddGraph) -> Buffer<T, D, S>
+    where
+        for<'b> D: Alloc<'b, T, S>,
+    {
+        Cache::get(device, len, add_node)
+    }
+}
 
 impl<D: RawConv> Cache<D> {
     /// Adds a new cache entry to the cache.
@@ -308,7 +311,7 @@ mod tests {
     }
 
     impl<'a> Test<'a> {
-        pub fn forward(&mut self, buf: &'a Buffer) {
+        pub fn forward(&mut self, buf: &'a Buffer<'a>) {
             self.buf = Some(buf);
         }
     }

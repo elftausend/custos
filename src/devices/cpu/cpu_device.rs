@@ -4,7 +4,7 @@ use crate::{
     flag::AllocFlag,
     shape::Shape,
     Alloc, BufType, Buffer, Cache2, CacheBuf, CachedLeaf, ClearBuf, CloneBuf, Device,
-    DevicelessAble, Graph, GraphReturn, MainMemory, Read, WriteBuf,
+    DevicelessAble, Graph, GraphReturn, MainMemory, Read, WriteBuf, CacheReturn2,
 };
 use core::{
     cell::{RefCell, RefMut},
@@ -48,8 +48,8 @@ impl<'a> CPU<'a> {
 
 impl<'a> Device for CPU<'a> {
     type Ptr<U, S: Shape> = CPUPtr<U>;
-    //type Cache = Cache2<'a, CPU<'a>>; //<CPU as CacheReturn>::CT
-    type Cache = ();
+    type Cache<'b> = Cache2<'a, CPU<'a>> where Self: 'b; //<CPU as CacheReturn>::CT
+    //type Cache = ();
 
     fn new() -> crate::Result<Self> {
         Ok(Self::new())
@@ -113,13 +113,14 @@ impl<'a, T, S: Shape> Alloc<'a, T, S> for CPU<'a> {
     where
         T: Clone,
     {
-        assert!(!data.is_empty(), "invalid buffer len: 0");
+        todo!()
+        /*assert!(!data.is_empty(), "invalid buffer len: 0");
         let cpu_ptr = unsafe { Alloc::<T>::alloc::<T>(self, data.len(), AllocFlag::None) };
         //= self.alloc(data.len());
         let slice = unsafe { std::slice::from_raw_parts_mut(cpu_ptr.ptr, data.len()) };
         slice.clone_from_slice(data);
 
-        cpu_ptr
+        cpu_ptr*/
     }
     fn alloc_with_vec(&self, mut vec: Vec<T>) -> CPUPtr<T> {
         assert!(!vec.is_empty(), "invalid buffer len: 0");
@@ -142,6 +143,13 @@ impl<'a> CacheReturn for CPU<'a> {
     fn cache(&self) -> RefMut<Cache<CPU<'a>>> {
         todo!()
  //       self.cache.borrow_mut()
+    }
+}
+
+impl<'a> CacheReturn2<'a> for CPU<'a> {
+    #[inline]
+    fn cache(&'a self) -> RefMut<Cache2<CPU<'a>>> {
+        self.cache.borrow_mut()
     }
 }
 
@@ -183,7 +191,7 @@ impl<'a, T> CacheBuf<'a, T> for CPU<'a> {
 }
 
 #[inline]
-pub fn cpu_cached<'a, T: Clone>(device: &'a CPU, len: usize) -> Buffer<'a, T, CPU<'a>> {
+pub fn cpu_cached<'a, T: Clone>(device: &'a CPU<'a>, len: usize) -> Buffer<'a, T, CPU<'a>> {
     device.cached(len)
 }
 

@@ -45,7 +45,7 @@ mod num;
 /// buffer_f32_cpu(&buf);
 /// buffer_generic(&buf);
 /// ```
-pub struct Buffer<'a, T = f32, D: Device = CPU<'a>, S: Shape = ()> {
+pub struct Buffer<'a, T = f32, D: Device = CPU, S: Shape = ()> {
     pub ptr: D::Ptr<T, S>,
     pub device: Option<&'a D>,
     pub node: Node,
@@ -331,7 +331,7 @@ impl<'a, T> Buffer<'a, T> {
     /// The pointer must be valid.
     /// The `Buffer` does not manage deallocation of the allocated memory.
     #[inline]
-    pub unsafe fn from_raw_host_device(device: &'a CPU, ptr: *mut T, len: usize) -> Buffer<'a, T> {
+    pub unsafe fn from_raw_host_device(device: &'a CPU<'a>, ptr: *mut T, len: usize) -> Buffer<'a, T> {
         Buffer {
             ptr: CPUPtr {
                 ptr,
@@ -518,7 +518,8 @@ impl<'a, T, D> Debug for Buffer<'a, T, D>
 where
     T: Debug + Default + Clone + 'a,
     D: Read<T, D> + Device + 'a,
-    for<'b> <D as Read<T, D>>::Read<'b>: Debug,
+    //for<'b> <D as Read<T, D>>::Read<'b>: Debug,
+    <D as Read<T, D>>::Read<'a>: Debug,
     D::Ptr<T, ()>: CommonPtrs<T>,
 {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
@@ -651,7 +652,7 @@ mod tests {
         let device = crate::CPU::new();
         let buf = Buffer::from((&device, [1, 2, 3, 4, 5, 6]));
 
-        println!("{buf:?}",);
+        println!("{buf:?}");
     }
 
     #[cfg(feature = "cpu")]
