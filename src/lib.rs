@@ -106,6 +106,16 @@ pub trait Device: Sized {
     {
         Self::Cache::retrieve(self, len, add_node)
     }
+    /*fn retrieve<'b, T, S: Shape>(
+        &'b self,
+        len: usize,
+        add_node: impl AddGraph,
+    ) -> <Self::Cache as CacheAble2<Self>>::Retrieval<'b, T, S>
+    where
+        Self: Alloc<'b, T, S>,
+    {
+        Self::Cache::retrieve(self, len, add_node)
+    }*/
 }
 
 pub trait DevicelessAble<'a, T, S: Shape = ()>: Alloc<'a, T, S> {}

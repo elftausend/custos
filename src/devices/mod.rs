@@ -62,9 +62,19 @@ pub trait CacheAble<D: Device> {
 }
 
 pub trait CacheAble2<D: Device> {
-    fn retrieve<'a, T, S: Shape>(device: &'a D, len: usize, add_node: impl AddGraph) -> &'a Buffer<'a, T, D, S>;
-    // where
-        // for<'a> D: Alloc<'a, T, S>;
+    type Retrieval<'r, T, S: Shape>
+    where
+        S: 'r,
+        D: 'r,
+        T: 'r;
+
+    fn retrieve<'a, T, S: Shape>(
+        device: &'a D,
+        len: usize,
+        add_node: impl AddGraph,
+    ) -> Self::Retrieval<'a, T, S>
+    where
+        D: Alloc<'a, T, S>;
 }
 
 // TODO: Mind num implement?
