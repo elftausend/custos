@@ -72,20 +72,6 @@ impl BufType for crate::CPU {
     }
 }
 
-#[cfg(feature = "opencl")]
-impl BufType for crate::OpenCL {
-    type Deallocator = RawCL;
-
-    unsafe fn ptr_to_raw<T, S: Shape>(ptr: &Self::Ptr<u8, S>) -> Self::Deallocator {
-        RawCL {
-            ptr: ptr.ptr,
-            host_ptr: ptr.host_ptr as *mut u8,
-            len: ptr.len,
-            // FIXME: mind default node
-            node: Node::default(),
-        }
-    }
-}
 
 //#[derive(Debug)]
 pub struct Cache2<D: 'static + BufType = crate::CPU> {

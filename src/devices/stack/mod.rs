@@ -8,13 +8,13 @@ pub use stack_device::*;
 #[cfg(feature = "cpu")]
 #[cfg(test)]
 mod tests {
-    use crate::{Alloc, Buffer, Device, Dim1, MainMemory, Shape, CPU};
+    use crate::{Buffer, Device, Dim1, MainMemory, Return, Shape, CPU};
     use core::ops::Add;
 
     use super::stack_device::Stack;
 
-    pub trait AddBuf<T, D: Device = Self, S: Shape = ()>: Device {
-        fn add(&self, lhs: &Buffer<T, D, S>, rhs: &Buffer<T, D, S>) -> Buffer<T, Self, S>;
+    pub trait AddBuf<'a, T, D: Device = Self, S: Shape = ()>: Device {
+        fn add(&'a self, lhs: &Buffer<T, D, S>, rhs: &Buffer<T, D, S>) -> Return<T, Self, S>;
     }
 
     /*// Without stack support
@@ -34,15 +34,15 @@ mod tests {
         }
     }*/
 
-    impl<T, D> AddBuf<T, D> for CPU
+    impl<T, D> AddBuf<'_, T, D> for CPU
     where
         D: MainMemory,
         T: Add<Output = T> + Clone,
     {
-        fn add(&self, lhs: &Buffer<T, D>, rhs: &Buffer<T, D>) -> Buffer<T, Self> {
+        fn add(&self, lhs: &Buffer<T, D>, rhs: &Buffer<T, D>) -> Return<T, Self> {
             let len = core::cmp::min(lhs.len(), rhs.len());
 
-            let mut out = self.retrieve(len, (lhs, rhs));
+            let out = self.retrieve(len, (lhs, rhs));
             for i in 0..len {
                 out[i] = lhs[i].clone() + rhs[i].clone();
             }
@@ -50,17 +50,17 @@ mod tests {
         }
     }
 
-    impl<T, D, S: Shape> AddBuf<T, D, S> for Stack
+    impl<'a, T, D, S> AddBuf<'a, T, D, S> for Stack
     where
-        for<'a> Stack: Alloc<'a, T, S>,
         D: MainMemory,
-        T: Add<Output = T> + Clone,
+        T: Add<Output = T> + Copy + Default + 'a,
+        S: Shape + 'a,
     {
-        fn add(&self, lhs: &Buffer<T, D, S>, rhs: &Buffer<T, D, S>) -> Buffer<T, Self, S> {
+        fn add(&'a self, lhs: &Buffer<T, D, S>, rhs: &Buffer<T, D, S>) -> Buffer<T, Self, S> {
             let mut out = self.retrieve(S::LEN, (lhs, rhs));
 
             for i in 0..S::LEN {
-                out[i] = lhs[i].clone() + rhs[i].clone();
+                out[i] = lhs[i] + rhs[i];
             }
             out
         }
@@ -79,6 +79,6 @@ mod tests {
         //let buf = Buffer::<f32>::new(&cpu, 100);
         let buf = Buffer::from((&cpu, [1f32; 100]));
         let out = cpu.add(&buf, &buf);
-        assert_eq!(&*out, &[2.; 100]);
+        assert_eq!(out.as_slice(), &[2.; 100]);
     }
 }

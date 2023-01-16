@@ -93,6 +93,9 @@ pub trait CommonPtrs<T> {
     fn ptrs_mut(&mut self) -> (*mut T, *mut c_void, u64);
 }
 
+pub type Return<'a, T = f32, D = CPU, S = ()> =
+    <<D as Device>::Cache as CacheAble2<D>>::Retrieval<'a, T, S>;
+
 pub trait Device: Sized {
     type Ptr<U, S: Shape>: PtrType; //const B: usize, const C: usize
     type Cache: CacheAble2<Self>;

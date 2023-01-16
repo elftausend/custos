@@ -8,7 +8,7 @@ pub trait AddBuf<T, S: Shape = ()>: Device {
 }
 
 pub struct Test<'a, T: 'a, D: Device + 'a> {
-    val: Return<'a, T, D>
+    val: Return<'a, T, D>,
 }
 
 impl<T, S> AddBuf<T, S> for CPU
