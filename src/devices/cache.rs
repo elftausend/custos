@@ -57,21 +57,6 @@ pub trait BufType: Device {
     unsafe fn ptr_to_raw<T, S: Shape>(ptr: &Self::Ptr<u8, S>) -> Self::Deallocator;
 }
 
-impl BufType for crate::CPU {
-    type Deallocator = RawCpuBuf;
-
-    unsafe fn ptr_to_raw<T, S: Shape>(ptr: &Self::Ptr<u8, S>) -> Self::Deallocator {
-        RawCpuBuf {
-            ptr: ptr.ptr,
-            len: ptr.len,
-            align: align_of::<T>(),
-            size: size_of::<T>(),
-            // FIXME: mind default node
-            node: Node::default(),
-        }
-    }
-}
-
 
 //#[derive(Debug)]
 pub struct Cache2<D: 'static + BufType = crate::CPU> {
