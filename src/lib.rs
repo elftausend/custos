@@ -93,9 +93,12 @@ pub trait CommonPtrs<T> {
     fn ptrs_mut(&mut self) -> (*mut T, *mut c_void, u64);
 }
 
+pub type Return<'a, T = f32, D = CPU, S = ()> =
+    <<D as Device>::Cache as CacheAble2<D>>::Retrieval<'a, T, S>;
+
 pub trait Device: Sized {
     type Ptr<U, S: Shape>: PtrType; //const B: usize, const C: usize
-    type Cache<'a>: CacheAble2<'a, Self> where Self: 'a;
+    type Cache: CacheAble2<Self>;
 
     fn new() -> crate::Result<Self>;
 
@@ -110,7 +113,7 @@ pub trait Device: Sized {
         &'b self,
         len: usize,
         add_node: impl AddGraph,
-    ) -> <Self::Cache<'b> as CacheAble2<Self>>::Retrieval<'b, T, S>
+    ) -> <Self::Cache as CacheAble2<Self>>::Retrieval<'b, T, S>
     where
         Self: Alloc<'b, T, S>,
     {

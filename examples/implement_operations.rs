@@ -2,7 +2,7 @@ use custos::prelude::*;
 
 /// `AddBuf` will be implemented for all compute devices.<br>
 /// Because of `N`, this trait can be implemented for [`Stack`] which uses fixed size arrays.
-pub trait AddBuf<T, S: Shape = ()>: Sized + Device {
+pub trait AddBuf<T, S: Shape = ()>: Device {
     /// This operation perfoms element-wise addition.
     fn add(&self, lhs: &Buffer<T, Self, S>, rhs: &Buffer<T, Self, S>) -> Buffer<T, Self, S>;
     // ... you can add more operations if you want to do that.

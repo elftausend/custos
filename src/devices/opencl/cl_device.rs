@@ -7,12 +7,13 @@ use min_cl::api::{
 
 use super::{chosen_cl_idx, cl_clear, CLPtr, KernelCacheCL, RawCL};
 use crate::flag::AllocFlag;
+use crate::{Shape, Cache2, CacheReturn2, Node, BufType};
 use crate::{
     cache::{Cache, CacheReturn, RawConv},
     Alloc, Buffer, CDatatype, CacheBuf, CachedLeaf, ClearBuf, CloneBuf, Device, Error, Graph,
     GraphReturn, Read, WriteBuf, CPU,
 };
-use crate::{BufType, Shape};
+
 use std::{cell::RefCell, fmt::Debug};
 
 #[cfg(unified_cl)]
@@ -36,7 +37,7 @@ use min_cl::api::unified_ptr;
 /// ```
 pub struct OpenCL {
     pub kernel_cache: RefCell<KernelCacheCL>,
-    pub cache: RefCell<Cache<OpenCL>>,
+    pub cache: RefCell<Cache2<OpenCL>>,
     pub inner: CLDevice,
     pub graph: RefCell<Graph>,
     pub cpu: CPU,
@@ -118,7 +119,7 @@ impl OpenCL {
 
 impl Device for OpenCL {
     type Ptr<U, S: Shape> = CLPtr<U>;
-    type Cache = Cache<Self>;
+    type Cache = Cache2<Self>;
 
     fn new() -> crate::Result<Self> {
         OpenCL::new(chosen_cl_idx())
@@ -134,11 +135,10 @@ impl BufType for crate::OpenCL {
             host_ptr: ptr.host_ptr as *mut u8,
             len: ptr.len,
             // FIXME: mind default node
-            node: crate::Node::default(),
+            node: Node::default(),
         }
     }
 }
-
 impl RawConv for OpenCL {
     fn construct<T, S: Shape>(ptr: &Self::Ptr<T, S>, len: usize, node: crate::Node) -> Self::CT {
         RawCL {
@@ -238,6 +238,13 @@ impl CacheReturn for OpenCL {
     where
         OpenCL: RawConv,
     {
+        todo!()
+    }
+}
+
+impl CacheReturn2 for OpenCL {
+    #[inline]
+    fn cache(&self) -> std::cell::RefMut<Cache2<OpenCL>> {
         self.cache.borrow_mut()
     }
 }

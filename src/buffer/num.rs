@@ -35,7 +35,7 @@ impl<T> CommonPtrs<T> for Num<T> {
 
 impl Device for () {
     type Ptr<U, S: Shape> = Num<U>;
-    type Cache<'a> = ();
+    type Cache = ();
 
     fn new() -> crate::Result<Self> {
         Ok(())

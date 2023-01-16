@@ -331,7 +331,7 @@ impl<'a, T> Buffer<'a, T> {
     /// The pointer must be valid.
     /// The `Buffer` does not manage deallocation of the allocated memory.
     #[inline]
-    pub unsafe fn from_raw_host_device(device: &'a CPU<'a>, ptr: *mut T, len: usize) -> Buffer<'a, T> {
+    pub unsafe fn from_raw_host_device(device: &'a CPU, ptr: *mut T, len: usize) -> Buffer<'a, T> {
         Buffer {
             ptr: CPUPtr {
                 ptr,

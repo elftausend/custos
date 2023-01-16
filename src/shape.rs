@@ -150,6 +150,7 @@ mod tests {
         assert_eq!(0, size_of::<()>());
     }
 
+    #[cfg(feature = "stack")]
     #[cfg(feature = "cpu")]
     #[test]
     fn test_transmute_of_stackless_buf() {
