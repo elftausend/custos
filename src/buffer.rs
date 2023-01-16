@@ -518,7 +518,8 @@ impl<'a, T, D> Debug for Buffer<'a, T, D>
 where
     T: Debug + Default + Clone + 'a,
     D: Read<T, D> + Device + 'a,
-    for<'b> <D as Read<T, D>>::Read<'b>: Debug,
+    //for<'b> <D as Read<T, D>>::Read<'b>: Debug,
+    <D as Read<T, D>>::Read<'a>: Debug,
     D::Ptr<T, ()>: CommonPtrs<T>,
 {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
@@ -651,7 +652,7 @@ mod tests {
         let device = crate::CPU::new();
         let buf = Buffer::from((&device, [1, 2, 3, 4, 5, 6]));
 
-        println!("{buf:?}",);
+        println!("{buf:?}");
     }
 
     #[cfg(feature = "cpu")]

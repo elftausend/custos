@@ -13,6 +13,7 @@ use crate::{
     Alloc, Buffer, CDatatype, CacheBuf, CachedLeaf, ClearBuf, CloneBuf, Device, Error, Graph,
     GraphReturn, Read, WriteBuf, CPU,
 };
+
 use std::{cell::RefCell, fmt::Debug};
 
 #[cfg(unified_cl)]

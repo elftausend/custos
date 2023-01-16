@@ -57,7 +57,6 @@ pub trait BufType: Device {
     unsafe fn ptr_to_raw<T, S: Shape>(ptr: &Self::Ptr<u8, S>) -> Self::Deallocator;
 }
 
-
 //#[derive(Debug)]
 pub struct Cache2<D: 'static + BufType = crate::CPU> {
     pub nodes: HashMap<Ident, (ManuallyDrop<Buffer<'static, u8, D, ()>>, D::Deallocator)>,

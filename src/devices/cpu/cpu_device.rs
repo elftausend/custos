@@ -38,7 +38,7 @@ pub struct CPU {
 impl CPU {
     /// Creates an [CPU] with an InternCPU that holds an empty vector of pointers.
     #[must_use]
-    pub fn new() -> CPU {
+    pub fn new() -> Self {
         CPU {
             cache: RefCell::new(Cache2::default()),
             graph: RefCell::new(Graph::new()),
@@ -112,13 +112,14 @@ impl<T, S: Shape> Alloc<'_, T, S> for CPU {
     where
         T: Clone,
     {
-        assert!(!data.is_empty(), "invalid buffer len: 0");
+        todo!()
+        /*assert!(!data.is_empty(), "invalid buffer len: 0");
         let cpu_ptr = unsafe { Alloc::<T>::alloc::<T>(self, data.len(), AllocFlag::None) };
         //= self.alloc(data.len());
         let slice = unsafe { std::slice::from_raw_parts_mut(cpu_ptr.ptr, data.len()) };
         slice.clone_from_slice(data);
 
-        cpu_ptr
+        cpu_ptr*/
     }
     fn alloc_with_vec(&self, mut vec: Vec<T>) -> CPUPtr<T> {
         assert!(!vec.is_empty(), "invalid buffer len: 0");
@@ -135,7 +136,7 @@ impl<T, S: Shape> Alloc<'_, T, S> for CPU {
     }
 }
 
-impl CacheReturn for CPU {
+impl<'a> CacheReturn for CPU {
     type CT = RawCpuBuf;
     #[inline]
     fn cache(&self) -> RefMut<Cache<CPU>> {
@@ -188,7 +189,7 @@ impl<'a, T> CacheBuf<'a, T> for CPU {
 }
 
 #[inline]
-pub fn cpu_cached<T: Clone>(device: &CPU, len: usize) -> Buffer<T, CPU> {
+pub fn cpu_cached<'a, T: Clone>(device: &'a CPU, len: usize) -> Buffer<'a, T, CPU> {
     device.cached(len)
 }
 

@@ -20,20 +20,20 @@ where
 }
 
 // TODO: write expansion example
-#[impl_stack]
-impl<T, D, S> ElementWise<T, D, S> for CPU
+//#[impl_stack]
+impl<T, D, S> ElementWise<T, D, S> for CPU<'_>
 where
     T: Number,
     D: MainMemory,
     S: Shape,
 {
-    fn add(&self, lhs: &Buffer<T, D, S>, rhs: &Buffer<T, D, S>) -> Buffer<T, CPU, S> {
+    fn add(&self, lhs: &Buffer<T, D, S>, rhs: &Buffer<T, D, S>) -> Buffer<T, Self, S> {
         let mut out = self.retrieve(lhs.len(), (lhs, rhs));
         cpu_element_wise(lhs, rhs, &mut out, |o, a, b| *o = a + b);
         out
     }
 
-    fn mul(&self, lhs: &Buffer<T, D, S>, rhs: &Buffer<T, D, S>) -> Buffer<T, CPU, S> {
+    fn mul(&self, lhs: &Buffer<T, D, S>, rhs: &Buffer<T, D, S>) -> Buffer<T, Self, S> {
         let mut out = self.retrieve(lhs.len(), (lhs, rhs));
         cpu_element_wise(lhs, rhs, &mut out, |o, a, b| *o = a * b);
         out
