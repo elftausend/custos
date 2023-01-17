@@ -32,11 +32,11 @@ where
     }
 }
 
-/*impl<'a, T, D, S: Shape> WithShape<&'a D, ()> for Buffer<'a, T, D, S>
+impl<'a, T, D, S: Shape> WithShape<&'a D, ()> for Buffer<'a, T, D, S>
 where
     D: Alloc<'a, T, S>,
 {
     fn with(device: &'a D, _: ()) -> Self {
         Buffer::new(device, S::LEN)
     }
-}*/
+}
