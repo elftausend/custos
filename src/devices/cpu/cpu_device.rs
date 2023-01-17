@@ -112,14 +112,12 @@ impl<T, S: Shape> Alloc<'_, T, S> for CPU {
     where
         T: Clone,
     {
-        todo!()
-        /*assert!(!data.is_empty(), "invalid buffer len: 0");
+        assert!(!data.is_empty(), "invalid buffer len: 0");
         let cpu_ptr = unsafe { Alloc::<T>::alloc::<T>(self, data.len(), AllocFlag::None) };
-        //= self.alloc(data.len());
         let slice = unsafe { std::slice::from_raw_parts_mut(cpu_ptr.ptr, data.len()) };
         slice.clone_from_slice(data);
 
-        cpu_ptr*/
+        cpu_ptr
     }
     fn alloc_with_vec(&self, mut vec: Vec<T>) -> CPUPtr<T> {
         assert!(!vec.is_empty(), "invalid buffer len: 0");

@@ -1,7 +1,7 @@
 use core::{
     cell::RefMut,
     marker::PhantomData,
-    mem::{align_of, size_of, ManuallyDrop},
+    mem::ManuallyDrop,
 };
 use std::collections::HashMap;
 
@@ -9,7 +9,6 @@ use std::rc::Rc;
 
 use crate::{
     bump_count,
-    cpu::{alloc_initialized, CPUPtr, RawCpuBuf},
     flag::AllocFlag,
     shape::Shape,
     AddGraph, Alloc, Buffer, CacheAble, CacheAble2, Device, GraphReturn, Ident, Node,
@@ -73,7 +72,7 @@ where
                 &self
                     .nodes
                     .values()
-                    .map(|(a, b)| b)
+                    .map(|(_, b)| b)
                     .collect::<Vec<&D::Deallocator>>(),
             )
             .finish()
@@ -314,7 +313,7 @@ mod tests {
 
     #[cfg(not(feature = "realloc"))]
     use crate::{set_count, Cache};
-    use crate::{Buffer, Cache2, CacheReturn, Device, Ident};
+    use crate::{Buffer, Cache2, CacheReturn, Ident};
 
     pub struct Test<'a> {
         buf: Option<&'a Buffer<'a>>,

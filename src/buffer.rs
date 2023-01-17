@@ -19,7 +19,7 @@ impl Device for CPU {
 
 use crate::{
     flag::AllocFlag, shape::Shape, Alloc, CacheBuf, ClearBuf, CloneBuf, CommonPtrs, Device,
-    DevicelessAble, IsConstDim, IsShapeIndep, MainMemory, Node, PtrType, RawConv, Read,
+    DevicelessAble, IsShapeIndep, MainMemory, Node, PtrType, Read,
     ShallowCopy, ToDim, WriteBuf,
 };
 
