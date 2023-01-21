@@ -7,10 +7,10 @@ use min_cl::api::{
 
 use super::{chosen_cl_idx, cl_clear, CLPtr, KernelCacheCL, RawCL};
 use crate::flag::AllocFlag;
-use crate::Shape;
+use crate::{Shape, bump_count};
 use crate::{
     cache::{Cache, CacheReturn, RawConv},
-    Alloc, Buffer, CDatatype, CacheBuf, CachedLeaf, ClearBuf, CloneBuf, Device, Error, Graph,
+    Alloc, Buffer, CDatatype, CacheBuf, ClearBuf, CloneBuf, Device, Error, Graph,
     GraphReturn, Read, WriteBuf, CPU,
 };
 use std::{
@@ -232,7 +232,7 @@ impl<'a, T> CloneBuf<'a, T> for OpenCL {
 impl<'a, T> CacheBuf<'a, T> for OpenCL {
     #[inline]
     fn cached(&'a self, len: usize) -> Buffer<'a, T, OpenCL> {
-        Cache::get(self, len, CachedLeaf)
+        Cache::get(self, len, bump_count)
     }
 }
 

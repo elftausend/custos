@@ -4,7 +4,7 @@ use std::collections::HashMap;
 use std::rc::Rc;
 
 use crate::{
-    bump_count, flag::AllocFlag, shape::Shape, AddGraph, Alloc, Buffer, CacheAble, Device,
+    bump_count, flag::AllocFlag, shape::Shape, Alloc, Buffer, CacheAble, Device,
     GraphReturn, Ident, Node,
 };
 
@@ -42,11 +42,11 @@ where
     D: RawConv,
 {
     #[inline]
-    fn retrieve<T, S: Shape>(device: &D, len: usize, add_node: impl AddGraph) -> Buffer<T, D, S>
+    fn retrieve<T, S: Shape>(device: &D, len: usize, /*add_node: impl AddGraph*/) -> Buffer<T, D, S>
     where
         for<'b> D: Alloc<'b, T, S>,
     {
-        Cache::get(device, len, add_node)
+        Cache::get(device, len, bump_count)
     }
 }
 
@@ -56,12 +56,12 @@ impl<D: RawConv> Cache<D> {
     /// # Example
     /// ```
     /// use custos::prelude::*;
-    /// use custos::Ident;
+    /// use custos::{Ident, bump_count};
     ///
     /// let device = CPU::new();
     /// let cache: Buffer = device
     ///     .cache()
-    ///     .add_node(&device, Ident { idx: 0, len: 7 }, ());
+    ///     .add_node(&device, Ident { idx: 0, len: 7 }, bump_count);
     ///
     /// let ptr = device
     ///     .cache()
@@ -76,7 +76,7 @@ impl<D: RawConv> Cache<D> {
         &mut self,
         device: &'a D,
         node: Ident,
-        _add_node: impl AddGraph,
+        callback: fn(),
     ) -> Buffer<'a, T, D, S>
     where
         D: Alloc<'a, T, S> + RawConv,
@@ -97,7 +97,7 @@ impl<D: RawConv> Cache<D> {
         let raw_ptr = D::construct(&ptr, node.len, graph_node);
         self.nodes.insert(node, Rc::new(raw_ptr));
 
-        bump_count();
+        callback();
 
         Buffer {
             ptr,
@@ -112,24 +112,26 @@ impl<D: RawConv> Cache<D> {
     /// # Example
     /// ```
     /// use custos::prelude::*;
+    /// use custos::bump_count;
     ///
     /// let device = CPU::new();
     ///     
-    /// let cache_entry: Buffer = Cache::get(&device, 10, ());
-    /// let new_cache_entry: Buffer = Cache::get(&device, 10, ());
+    /// let cache_entry: Buffer = Cache::get(&device, 10, bump_count);
+    /// let new_cache_entry: Buffer = Cache::get(&device, 10, bump_count);
     ///
     /// assert_ne!(cache_entry.ptrs(), new_cache_entry.ptrs());
     ///
     /// set_count(0);
     ///
-    /// let first_entry: Buffer = Cache::get(&device, 10, ());
+    /// let first_entry: Buffer = Cache::get(&device, 10, bump_count);
     /// assert_eq!(cache_entry.ptrs(), first_entry.ptrs());
     /// ```
     #[cfg(not(feature = "realloc"))]
     pub fn get<'a, T, S: Shape>(
         device: &'a D,
         len: usize,
-        add_node: impl AddGraph,
+        //add_node: impl AddGraph,
+        callback: fn(),
     ) -> Buffer<'a, T, D, S>
     where
         D: Alloc<'a, T, S> + RawConv,
@@ -141,7 +143,7 @@ impl<D: RawConv> Cache<D> {
 
         match ptr_option {
             Some(ptr) => {
-                bump_count();
+                callback();
 
                 let (ptr, node) = D::destruct::<T, S>(ptr, AllocFlag::Cache);
 
@@ -151,7 +153,7 @@ impl<D: RawConv> Cache<D> {
                     node,
                 }
             }
-            None => cache.add_node(device, node, add_node),
+            None => cache.add_node(device, node, callback),
         }
     }
 
@@ -171,14 +173,14 @@ impl<D: RawConv> Cache<D> {
 mod tests {
     #[cfg(not(feature = "realloc"))]
     use crate::{set_count, Cache};
-    use crate::{Buffer, CacheReturn, Ident};
+    use crate::{Buffer, CacheReturn, Ident, bump_count};
 
     #[test]
     fn test_add_node() {
         let device = crate::CPU::new();
         let cache: Buffer = device
             .cache()
-            .add_node(&device, Ident { idx: 0, len: 7 }, ());
+            .add_node(&device, Ident { idx: 0, len: 7 }, bump_count);
 
         let ptr = device
             .cache()
@@ -197,14 +199,14 @@ mod tests {
         set_count(0);
         let device = crate::CPU::new();
 
-        let cache_entry: Buffer = Cache::get(&device, 10, ());
-        let new_cache_entry: Buffer = Cache::get(&device, 10, ());
+        let cache_entry: Buffer = Cache::get(&device, 10, bump_count);
+        let new_cache_entry: Buffer = Cache::get(&device, 10, bump_count);
 
         assert_ne!(cache_entry.ptrs(), new_cache_entry.ptrs());
 
         set_count(0);
 
-        let first_entry: Buffer = Cache::get(&device, 10, ());
+        let first_entry: Buffer = Cache::get(&device, 10, bump_count);
         assert_eq!(cache_entry.ptrs(), first_entry.ptrs());
     }
 }

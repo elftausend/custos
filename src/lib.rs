@@ -100,11 +100,11 @@ pub trait Device: Sized {
     fn new() -> crate::Result<Self>;
 
     #[inline]
-    fn retrieve<T, S: Shape>(&self, len: usize, add_node: impl AddGraph) -> Buffer<T, Self, S>
+    fn retrieve<T, S: Shape>(&self, len: usize, /*add_node: impl AddGraph*/) -> Buffer<T, Self, S>
     where
         for<'a> Self: Alloc<'a, T, S>,
     {
-        Self::Cache::retrieve(self, len, add_node)
+        Self::Cache::retrieve(self, len)
     }
 }
 

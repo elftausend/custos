@@ -21,7 +21,7 @@ where
         // this returns a previously allocated buffer.
         // You can deactivate the caching behaviour by adding the "realloc" feature
         // to the custos feature list in the Cargo.toml.
-        let mut out = self.retrieve(len, [lhs, rhs]);
+        let mut out = self.retrieve(len);
         //or: let mut out = Cache::get(self, len, [lhs, rhs]);
 
         // By default, the Buffer dereferences to a slice.
@@ -44,7 +44,7 @@ where
     T: Copy + Default + std::ops::Add<Output = T>,
 {
     fn add(&self, lhs: &Buffer<T, Self, S>, rhs: &Buffer<T, Self, S>) -> Buffer<T, Self, S> {
-        let mut out = self.retrieve(S::LEN, [lhs, rhs]); // this works as well and in this case (Stack), does exactly the same as the line above.
+        let mut out = self.retrieve(S::LEN); // this works as well and in this case (Stack), does exactly the same as the line above.
 
         for i in 0..S::LEN {
             out[i] = lhs[i] + rhs[i];
@@ -73,7 +73,7 @@ where
         ", datatype=T::as_c_type_str());
 
         let len = std::cmp::min(lhs.len(), rhs.len());
-        let out = self.retrieve::<T, ()>(len, (lhs, rhs));
+        let out = self.retrieve::<T, ()>(len);
 
         // In the background, the kernel is compiled once. After that, it will be reused for every iteration.
         // The cached kernels are released (or freed) when the underlying CLDevice is dropped.

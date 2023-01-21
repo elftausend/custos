@@ -3,8 +3,8 @@ use crate::{
     devices::cache::{Cache, CacheReturn},
     flag::AllocFlag,
     shape::Shape,
-    Alloc, Buffer, CacheBuf, CachedLeaf, ClearBuf, CloneBuf, Device, DevicelessAble, Graph,
-    GraphReturn, MainMemory, Read, WriteBuf,
+    Alloc, Buffer, CacheBuf, ClearBuf, CloneBuf, Device, DevicelessAble, Graph,
+    GraphReturn, MainMemory, Read, WriteBuf, bump_count,
 };
 use core::{
     cell::{RefCell, RefMut},
@@ -161,7 +161,7 @@ impl<'a, T: Clone, S: Shape> CloneBuf<'a, T, S> for CPU {
 impl<'a, T> CacheBuf<'a, T> for CPU {
     #[inline]
     fn cached(&'a self, len: usize) -> Buffer<'a, T, CPU> {
-        Cache::get::<T, ()>(self, len, CachedLeaf)
+        Cache::get::<T, ()>(self, len, bump_count)
     }
 }
 
