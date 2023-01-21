@@ -158,7 +158,7 @@ impl<'a, T: Clone, S: Shape> CloneBuf<'a, T, S> for CPU {
 impl<'a, T> CacheBuf<'a, T> for CPU {
     #[inline]
     fn cached(&'a self, len: usize) -> Buffer<'a, T, CPU> {
-        Cache::get::<T, ()>(self, Ident::new(len), bump_count)
+        self.cache().get(self, Ident::new(len), bump_count)
     }
 }
 

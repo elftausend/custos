@@ -228,7 +228,7 @@ impl<'a, T> CloneBuf<'a, T> for OpenCL {
 impl<'a, T> CacheBuf<'a, T> for OpenCL {
     #[inline]
     fn cached(&'a self, len: usize) -> Buffer<'a, T, OpenCL> {
-        Cache::get(self, Ident::new(len), bump_count)
+        self.cache().get(self, Ident::new(len), bump_count)
     }
 }
 

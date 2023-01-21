@@ -48,7 +48,8 @@ where
     where
         for<'b> D: Alloc<'b, T, S>,
     {
-        Cache::get(device, Ident::new(len), bump_count)
+        device.cache().get(device, Ident::new(len), bump_count)
+        //Cache::get(device, Ident::new(len), bump_count)
     }
 }
 
@@ -110,28 +111,28 @@ impl<D: RawConv> Cache<D> {
     ///
     /// let device = CPU::new();
     ///     
-    /// let cache_entry: Buffer = Cache::get(&device, Ident::new(10), bump_count);
-    /// let new_cache_entry: Buffer = Cache::get(&device, Ident::new(10), bump_count);
+    /// let cache_entry: Buffer = device.cache().get(&device, Ident::new(10), bump_count);
+    /// let new_cache_entry: Buffer = device.cache().get(&device, Ident::new(10), bump_count);
     ///
     /// assert_ne!(cache_entry.ptrs(), new_cache_entry.ptrs());
     ///
     /// set_count(0);
     ///
-    /// let first_entry: Buffer = Cache::get(&device, Ident::new(10), bump_count);
+    /// let first_entry: Buffer = device.cache().get(&device, Ident::new(10), bump_count);
     /// assert_eq!(cache_entry.ptrs(), first_entry.ptrs());
     /// ```
     #[cfg(not(feature = "realloc"))]
     pub fn get<'a, T, S: Shape>(
+        &mut self,
         device: &'a D,
         ident: Ident,
         //add_node: impl AddGraph,
         callback: fn(),
-    ) -> Buffer<'a, T, D, S>
+    ) -> Buffer<'a, T, D, S> 
     where
         D: Alloc<'a, T, S> + RawConv,
     {
-        let mut cache = device.cache();
-        let ptr_option = cache.nodes.get(&ident);
+        let ptr_option = self.nodes.get(&ident);
 
         match ptr_option {
             Some(ptr) => {
@@ -145,7 +146,7 @@ impl<D: RawConv> Cache<D> {
                     ident,
                 }
             }
-            None => cache.add_node(device, ident, callback),
+            None => self.add_node(device, ident, callback),
         }
     }
 
@@ -165,7 +166,7 @@ impl<D: RawConv> Cache<D> {
 mod tests {
     use crate::{bump_count, Buffer, CacheReturn, Ident};
     #[cfg(not(feature = "realloc"))]
-    use crate::{set_count, Cache};
+    use crate::set_count;
 
     #[test]
     fn test_add_node() {
@@ -191,14 +192,14 @@ mod tests {
         set_count(0);
         let device = crate::CPU::new();
 
-        let cache_entry: Buffer = Cache::get(&device, Ident::new(10), bump_count);
-        let new_cache_entry: Buffer = Cache::get(&device, Ident::new(10), bump_count);
+        let cache_entry: Buffer = device.cache().get(&device, Ident::new(10), bump_count);
+        let new_cache_entry: Buffer = device.cache().get(&device, Ident::new(10), bump_count);
 
         assert_ne!(cache_entry.ptrs(), new_cache_entry.ptrs());
 
         set_count(0);
 
-        let first_entry: Buffer = Cache::get(&device, Ident::new(10), bump_count);
+        let first_entry: Buffer = device.cache().get(&device, Ident::new(10), bump_count);
         assert_eq!(cache_entry.ptrs(), first_entry.ptrs());
     }
 }
