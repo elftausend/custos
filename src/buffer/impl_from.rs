@@ -1,4 +1,4 @@
-use crate::{shape::Shape, Alloc, Buffer, IsShapeIndep, IsConstDim};
+use crate::{shape::Shape, Alloc, Buffer, IsShapeIndep};
 
 impl<'a, T, D, const N: usize> From<(&'a D, [T; N])> for Buffer<'a, T, D>
 where

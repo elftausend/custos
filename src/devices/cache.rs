@@ -87,7 +87,12 @@ impl<D: RawConv> Cache<D> {
         let graph_node = device.graph().add(node.len, _add_node);
 
         #[cfg(not(feature = "opt-cache"))]
-        let graph_node = Node::default();
+        let graph_node = Node {
+            ident_idx: node.idx as isize,
+            idx: node.idx as isize,
+            deps: [-1, -1],
+            len: node.len,
+        };
 
         let raw_ptr = D::construct(&ptr, node.len, graph_node);
         self.nodes.insert(node, Rc::new(raw_ptr));

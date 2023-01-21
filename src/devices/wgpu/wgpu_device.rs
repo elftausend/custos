@@ -2,7 +2,7 @@ use core::cell::RefCell;
 
 use super::{shader_cache::ShaderCache, wgpu_buffer::*};
 
-use crate::{Alloc, Cache, CacheReturn, Dealloc, Device, Graph, GraphReturn, Node, RawConv, Read};
+use crate::{Alloc, Cache, CacheReturn, Device, Graph, GraphReturn, Node, RawConv, Read, Shape};
 use wgpu::{Adapter, Backends, Queue};
 
 pub struct WGPU {
@@ -57,7 +57,7 @@ impl Device for WGPU {
     }
 }
 
-impl<T, const N: usize> Alloc<'_, T, N> for WGPU {
+impl<T, S: Shape> Alloc<'_, T, S> for WGPU {
     fn alloc(&self, len: usize) -> WGPUBufPtr<T> {
         let wgpu_buf = WGPUBuffer::new(&self.device, len as u64);
         WGPUBufPtr {

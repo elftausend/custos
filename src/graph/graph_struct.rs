@@ -28,7 +28,7 @@ impl Graph {
         let node = COUNT.with(|count| {
             Node {
                 // subtracting 1, because the count is increased beforehand.
-                ident_idx: *count.borrow() as isize,
+                ident_idx: count.get() as isize,
                 idx,
                 deps: [lhs_idx, rhs_idx],
                 len,

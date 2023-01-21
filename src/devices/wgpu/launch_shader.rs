@@ -1,6 +1,6 @@
 use wgpu::BindingResource;
 
-use crate::Buffer;
+use crate::{Buffer, Shape};
 
 use super::WGPU;
 
@@ -8,13 +8,13 @@ pub trait AsBindingResource {
     fn as_binding_resource(&self) -> BindingResource;
 }
 
-impl<'a, T, const N: usize> AsBindingResource for Buffer<'a, T, WGPU, N> {
+impl<'a, T, S: Shape> AsBindingResource for Buffer<'a, T, WGPU, S> {
     fn as_binding_resource(&self) -> BindingResource {
         unsafe { self.ptr.buf().as_entire_binding() }
     }
 }
 
-impl<'a, T, const N: usize> AsBindingResource for &Buffer<'a, T, WGPU, N> {
+impl<'a, T, S: Shape> AsBindingResource for &Buffer<'a, T, WGPU, S> {
     fn as_binding_resource(&self) -> BindingResource {
         unsafe { self.ptr.buf().as_entire_binding() }
     }

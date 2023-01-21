@@ -40,7 +40,6 @@ fn test_cldevice_name() -> Result<(), Error> {
 #[cfg(feature = "opencl")]
 #[test]
 fn test_cldevice_version() -> Result<(), Error> {
-    use custos::Error;
 
     let device = OpenCL::new(0)?;
     println!("{}", device.version()?);
@@ -325,7 +324,7 @@ fn test_buf_num() {
 
 #[test]
 fn test_buf_const() {
-    let device = CPU::new();
+    let _device = CPU::new();
     // TODO
     //let device = Stack;
     // let buf = Buffer::with(&device, [1., 2., 3.]);

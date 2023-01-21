@@ -19,7 +19,7 @@ impl Device for CPU {
 
 use crate::{
     flag::AllocFlag, shape::Shape, Alloc, CacheBuf, ClearBuf, CloneBuf, CommonPtrs, Device,
-    DevicelessAble, MainMemory, Node, PtrType, Read, ShallowCopy, WriteBuf, ToDim, IsConstDim, RawConv, IsShapeIndep,
+    DevicelessAble, MainMemory, Node, PtrType, Read, ShallowCopy, WriteBuf, ToDim, IsShapeIndep, Ident,
 };
 
 pub use self::num::Num;
@@ -212,6 +212,13 @@ impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
 
         #[cfg(feature = "realloc")]
         self.clone()
+    }
+
+    pub fn id(&self) -> Ident {
+        Ident {
+            idx: self.node.ident_idx as usize,
+            len: self.len(),
+        }
     }
 }
 

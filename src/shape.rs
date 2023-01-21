@@ -153,7 +153,7 @@ mod tests {
     #[cfg(feature="cpu")]
     #[test]
     fn test_transmute_of_stackless_buf() {
-        use crate::{CPU, Buffer, Stack};
+        use crate::{CPU, Buffer};
 
         let device = CPU::new();
         let buf = Buffer::<f32, CPU, Dim2<5, 5>>::new(&device, 10);

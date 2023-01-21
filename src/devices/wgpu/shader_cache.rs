@@ -1,5 +1,5 @@
-use alloc::borrow::Cow;
 use std::collections::HashMap;
+use std::borrow::Cow;
 use wgpu::ShaderModule;
 
 #[derive(Debug, Default)]
