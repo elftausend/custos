@@ -1,4 +1,4 @@
-use crate::{CommonPtrs, Node, PtrType, ShallowCopy};
+use crate::{CommonPtrs, PtrType, ShallowCopy};
 #[cfg(feature = "blas")]
 pub use blas::*;
 use core::{alloc::Layout, mem::size_of, ptr::null_mut};
@@ -109,7 +109,6 @@ pub struct RawCpuBuf {
     len: usize,
     align: usize,
     size: usize,
-    node: Node,
 }
 
 impl Drop for RawCpuBuf {

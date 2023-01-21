@@ -94,7 +94,7 @@ where
         Buffer {
             ptr: buf.ptr,
             device: Some(&Stack),
-            node: Default::default(),
+            ident: buf.ident,
         }
     }
 }

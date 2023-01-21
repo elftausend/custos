@@ -4,7 +4,7 @@ use core::{
     ptr::null_mut,
 };
 
-use crate::{shape::Shape, Buffer, CloneBuf, CommonPtrs, Device, Node, PtrType};
+use crate::{shape::Shape, Buffer, CloneBuf, CommonPtrs, Device, Ident, PtrType};
 
 pub struct Num<T> {
     pub num: T,
@@ -50,7 +50,7 @@ impl<'a, T: Clone> CloneBuf<'a, T> for () {
                 num: buf.ptr.num.clone(),
             },
             device: buf.device,
-            node: buf.node,
+            ident: buf.ident,
         }
     }
 }
@@ -61,7 +61,7 @@ impl<T: crate::number::Number> From<T> for Buffer<'_, T, ()> {
         Buffer {
             ptr: Num { num: ptr },
             device: None,
-            node: Node::default(),
+            ident: Ident::new_bumped(0),
         }
     }
 }
@@ -75,7 +75,7 @@ impl<'a, T> Buffer<'a, T, ()> {
         Buffer {
             ptr: Num { num: self.ptr.num },
             device: self.device,
-            node: self.node,
+            ident: self.ident,
         }
     }
 

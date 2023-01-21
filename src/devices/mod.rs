@@ -56,7 +56,10 @@ pub struct InternOpenCL;
 pub struct InternCudaDevice;
 
 pub trait CacheAble<D: Device> {
-    fn retrieve<T, S: Shape>(device: &D, len: usize, /*add_node: impl AddGraph*/) -> Buffer<T, D, S>
+    fn retrieve<T, S: Shape>(
+        device: &D,
+        len: usize, /*add_node: impl AddGraph*/
+    ) -> Buffer<T, D, S>
     where
         for<'a> D: Alloc<'a, T, S>;
 
@@ -66,7 +69,10 @@ pub trait CacheAble<D: Device> {
 // TODO: Mind num implement?
 impl<D: Device> CacheAble<D> for () {
     #[inline]
-    fn retrieve<T, S: Shape>(device: &D, len: usize,/* _add_node: impl AddGraph*/) -> Buffer<T, D, S>
+    fn retrieve<T, S: Shape>(
+        device: &D,
+        len: usize, /* _add_node: impl AddGraph*/
+    ) -> Buffer<T, D, S>
     where
         for<'a> D: Alloc<'a, T, S>,
     {

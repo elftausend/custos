@@ -40,7 +40,6 @@ fn test_cldevice_name() -> Result<(), Error> {
 #[cfg(feature = "opencl")]
 #[test]
 fn test_cldevice_version() -> Result<(), Error> {
-
     let device = OpenCL::new(0)?;
     println!("{}", device.version()?);
     Ok(())
@@ -165,11 +164,11 @@ fn test_cached_cl() -> Result<(), custos::Error> {
     let device = OpenCL::new(0)?;
     let _k = Buffer::<f32, _>::new(&device, 1);
 
-    assert_eq!(0, get_count());
+    assert_eq!(1, get_count());
 
     let buf = cl_cached::<f32>(&device, 10);
 
-    assert_eq!(1, get_count());
+    assert_eq!(2, get_count());
 
     unsafe {
         let event = enqueue_write_buffer(&device.queue(), buf.ptrs().1, &[0.1f32; 10], true)?;
@@ -180,10 +179,10 @@ fn test_cached_cl() -> Result<(), custos::Error> {
     let new_buf = cl_cached::<i32>(&device, 10);
 
     assert_eq!(device.read(&new_buf), vec![0; 10]);
-    assert_eq!(2, get_count());
+    assert_eq!(3, get_count());
 
-    set_count(0);
-    assert_eq!(0, get_count());
+    set_count(1);
+    assert_eq!(1, get_count());
     let buf = cl_cached::<f32>(&device, 10);
     println!("new_buf: {buf:?}");
     assert_eq!(device.read(&buf), vec![0.1; 10]);

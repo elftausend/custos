@@ -1,4 +1,4 @@
-use crate::{shape::Shape, Alloc, Buffer};
+use crate::{shape::Shape, Alloc, Buffer, Ident};
 
 pub trait WithShape<D, C> {
     fn with(device: D, array: C) -> Self;
@@ -11,9 +11,9 @@ where
 {
     fn with(device: &'a D, array: [T; N]) -> Self {
         Buffer {
+            ident: Ident::new_bumped(array.len()),
             ptr: device.with_array(array),
             device: Some(device),
-            node: Default::default(),
         }
     }
 }
@@ -25,9 +25,9 @@ where
 {
     fn with(device: &'a D, array: &[T; N]) -> Self {
         Buffer {
+            ident: Ident::new_bumped(array.len()),
             ptr: device.with_array(*array),
             device: Some(device),
-            node: Default::default(),
         }
     }
 }

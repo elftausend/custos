@@ -4,8 +4,7 @@ use std::collections::HashMap;
 use std::rc::Rc;
 
 use crate::{
-    bump_count, flag::AllocFlag, shape::Shape, Alloc, Buffer, CacheAble, Device,
-    GraphReturn, Ident, Node,
+    bump_count, flag::AllocFlag, shape::Shape, Alloc, Buffer, CacheAble, Device, GraphReturn, Ident,
 };
 
 /// This trait makes a device's [`Cache`] accessible and is implemented for all compute devices.
@@ -18,8 +17,8 @@ pub trait CacheReturn: GraphReturn {
 }
 
 pub trait RawConv: Device + CacheReturn {
-    fn construct<T, S: Shape>(ptr: &Self::Ptr<T, S>, len: usize, node: Node) -> Self::CT;
-    fn destruct<T, S: Shape>(ct: &Self::CT, flag: AllocFlag) -> (Self::Ptr<T, S>, Node);
+    fn construct<T, S: Shape>(ptr: &Self::Ptr<T, S>, len: usize) -> Self::CT;
+    fn destruct<T, S: Shape>(ct: &Self::CT, flag: AllocFlag) -> Self::Ptr<T, S>;
 }
 
 #[derive(Debug)]
@@ -42,11 +41,14 @@ where
     D: RawConv,
 {
     #[inline]
-    fn retrieve<T, S: Shape>(device: &D, len: usize, /*add_node: impl AddGraph*/) -> Buffer<T, D, S>
+    fn retrieve<T, S: Shape>(
+        device: &D,
+        len: usize, /*add_node: impl AddGraph*/
+    ) -> Buffer<T, D, S>
     where
         for<'b> D: Alloc<'b, T, S>,
     {
-        Cache::get(device, len, bump_count)
+        Cache::get(device, Ident::new(len), bump_count)
     }
 }
 
@@ -75,34 +77,26 @@ impl<D: RawConv> Cache<D> {
     pub fn add_node<'a, T, S: Shape>(
         &mut self,
         device: &'a D,
-        node: Ident,
+        ident: Ident,
         callback: fn(),
     ) -> Buffer<'a, T, D, S>
     where
         D: Alloc<'a, T, S> + RawConv,
     {
-        let ptr = device.alloc(node.len, AllocFlag::Cache);
+        let ptr = device.alloc(ident.len, AllocFlag::Cache);
 
-        #[cfg(feature = "opt-cache")]
-        let graph_node = device.graph().add(node.len, _add_node);
+        //#[cfg(feature = "opt-cache")]
+        //let graph_node = device.graph().add(ident.len, _add_node);
 
-        #[cfg(not(feature = "opt-cache"))]
-        let graph_node = Node {
-            ident_idx: node.idx as isize,
-            idx: node.idx as isize,
-            deps: [-1, -1],
-            len: node.len,
-        };
-
-        let raw_ptr = D::construct(&ptr, node.len, graph_node);
-        self.nodes.insert(node, Rc::new(raw_ptr));
+        let raw_ptr = D::construct(&ptr, ident.len);
+        self.nodes.insert(ident, Rc::new(raw_ptr));
 
         callback();
 
         Buffer {
             ptr,
             device: Some(device),
-            node: graph_node,
+            ident,
         }
     }
 
@@ -116,44 +110,42 @@ impl<D: RawConv> Cache<D> {
     ///
     /// let device = CPU::new();
     ///     
-    /// let cache_entry: Buffer = Cache::get(&device, 10, bump_count);
-    /// let new_cache_entry: Buffer = Cache::get(&device, 10, bump_count);
+    /// let cache_entry: Buffer = Cache::get(&device, Ident::new(10), bump_count);
+    /// let new_cache_entry: Buffer = Cache::get(&device, Ident::new(10), bump_count);
     ///
     /// assert_ne!(cache_entry.ptrs(), new_cache_entry.ptrs());
     ///
     /// set_count(0);
     ///
-    /// let first_entry: Buffer = Cache::get(&device, 10, bump_count);
+    /// let first_entry: Buffer = Cache::get(&device, Ident::new(10), bump_count);
     /// assert_eq!(cache_entry.ptrs(), first_entry.ptrs());
     /// ```
     #[cfg(not(feature = "realloc"))]
     pub fn get<'a, T, S: Shape>(
         device: &'a D,
-        len: usize,
+        ident: Ident,
         //add_node: impl AddGraph,
         callback: fn(),
     ) -> Buffer<'a, T, D, S>
     where
         D: Alloc<'a, T, S> + RawConv,
     {
-        let node = Ident::new(len);
-
         let mut cache = device.cache();
-        let ptr_option = cache.nodes.get(&node);
+        let ptr_option = cache.nodes.get(&ident);
 
         match ptr_option {
             Some(ptr) => {
                 callback();
 
-                let (ptr, node) = D::destruct::<T, S>(ptr, AllocFlag::Cache);
+                let ptr = D::destruct::<T, S>(ptr, AllocFlag::Cache);
 
                 Buffer {
                     ptr,
                     device: Some(device),
-                    node,
+                    ident,
                 }
             }
-            None => cache.add_node(device, node, callback),
+            None => cache.add_node(device, ident, callback),
         }
     }
 
@@ -171,9 +163,9 @@ impl<D: RawConv> Cache<D> {
 #[cfg(feature = "cpu")]
 #[cfg(test)]
 mod tests {
+    use crate::{bump_count, Buffer, CacheReturn, Ident};
     #[cfg(not(feature = "realloc"))]
     use crate::{set_count, Cache};
-    use crate::{Buffer, CacheReturn, Ident, bump_count};
 
     #[test]
     fn test_add_node() {
@@ -199,14 +191,14 @@ mod tests {
         set_count(0);
         let device = crate::CPU::new();
 
-        let cache_entry: Buffer = Cache::get(&device, 10, bump_count);
-        let new_cache_entry: Buffer = Cache::get(&device, 10, bump_count);
+        let cache_entry: Buffer = Cache::get(&device, Ident::new(10), bump_count);
+        let new_cache_entry: Buffer = Cache::get(&device, Ident::new(10), bump_count);
 
         assert_ne!(cache_entry.ptrs(), new_cache_entry.ptrs());
 
         set_count(0);
 
-        let first_entry: Buffer = Cache::get(&device, 10, bump_count);
+        let first_entry: Buffer = Cache::get(&device, Ident::new(10), bump_count);
         assert_eq!(cache_entry.ptrs(), first_entry.ptrs());
     }
 }

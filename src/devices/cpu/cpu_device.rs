@@ -1,10 +1,11 @@
 use crate::{
+    bump_count,
     cache::RawConv,
     devices::cache::{Cache, CacheReturn},
     flag::AllocFlag,
     shape::Shape,
-    Alloc, Buffer, CacheBuf, ClearBuf, CloneBuf, Device, DevicelessAble, Graph,
-    GraphReturn, MainMemory, Read, WriteBuf, bump_count,
+    Alloc, Buffer, CacheBuf, ClearBuf, CloneBuf, Device, DevicelessAble, Graph, GraphReturn, Ident,
+    MainMemory, Read, WriteBuf,
 };
 use core::{
     cell::{RefCell, RefMut},
@@ -57,26 +58,22 @@ impl Device for CPU {
 
 impl RawConv for CPU {
     #[inline]
-    fn construct<T, S: Shape>(ptr: &Self::Ptr<T, S>, len: usize, node: crate::Node) -> Self::CT {
+    fn construct<T, S: Shape>(ptr: &Self::Ptr<T, S>, len: usize) -> Self::CT {
         RawCpuBuf {
             ptr: ptr.ptr.cast(),
             len,
             align: align_of::<T>(),
             size: size_of::<T>(),
-            node,
         }
     }
 
     #[inline]
-    fn destruct<T, S: Shape>(ct: &Self::CT, flag: AllocFlag) -> (Self::Ptr<T, S>, crate::Node) {
-        (
-            CPUPtr {
-                ptr: ct.ptr as *mut T,
-                len: ct.len,
-                flag,
-            },
-            ct.node,
-        )
+    fn destruct<T, S: Shape>(ct: &Self::CT, flag: AllocFlag) -> Self::Ptr<T, S> {
+        CPUPtr {
+            ptr: ct.ptr as *mut T,
+            len: ct.len,
+            flag,
+        }
     }
 }
 
@@ -161,7 +158,7 @@ impl<'a, T: Clone, S: Shape> CloneBuf<'a, T, S> for CPU {
 impl<'a, T> CacheBuf<'a, T> for CPU {
     #[inline]
     fn cached(&'a self, len: usize) -> Buffer<'a, T, CPU> {
-        Cache::get::<T, ()>(self, len, bump_count)
+        Cache::get::<T, ()>(self, Ident::new(len), bump_count)
     }
 }
 

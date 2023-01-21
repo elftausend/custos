@@ -187,10 +187,10 @@ fn test_unified_mem_iterate() -> custos::Result<()> {
 #[cfg(not(feature = "realloc"))]
 #[test]
 fn test_cpu_to_unified() -> custos::Result<()> {
-    use custos::bump_count;
+    use custos::{bump_count, Ident};
 
     let device = CPU::new();
-    let mut buf = Cache::get::<i32, ()>(&device, 6, bump_count);
+    let mut buf = Cache::get::<i32, ()>(&device, Ident::new(6), bump_count);
     buf.copy_from_slice(&[1, 2, 3, 4, 5, 6]);
 
     let cl_dev = OpenCL::new(0)?;
@@ -208,7 +208,7 @@ fn test_cpu_to_unified() -> custos::Result<()> {
 fn test_cpu_to_unified_leak() -> custos::Result<()> {
     use std::rc::Rc;
 
-    use custos::bump_count;
+    use custos::{bump_count, Ident};
 
     let cl_dev = OpenCL::new(0)?;
 
@@ -217,7 +217,7 @@ fn test_cpu_to_unified_leak() -> custos::Result<()> {
     for _ in range(10) {
         let cl_cpu_buf = {
             let cpu = CPU::new();
-            let mut buf = Cache::get::<i32, ()>(&cpu, 6, bump_count);
+            let mut buf = Cache::get::<i32, ()>(&cpu, Ident::new(6), bump_count);
             buf.copy_from_slice(&[1, 2, 3, 4, 5, 6]);
 
             let cl_cpu_buf = unsafe { custos::opencl::construct_buffer(&cl_dev, buf, ())? };
@@ -241,7 +241,7 @@ fn test_cpu_to_unified_leak() -> custos::Result<()> {
 fn test_cpu_to_unified_perf() -> custos::Result<()> {
     use std::time::Instant;
 
-    use custos::bump_count;
+    use custos::{bump_count, Ident};
 
     let cl_dev = OpenCL::new(0)?;
     let device = CPU::new();
@@ -249,7 +249,7 @@ fn test_cpu_to_unified_perf() -> custos::Result<()> {
     let mut dur = 0.;
 
     for _ in range(100) {
-        let mut buf = Cache::get::<i32, ()>(&device, 6, bump_count);
+        let mut buf = Cache::get::<i32, ()>(&device, Ident::new(6), bump_count);
 
         buf.copy_from_slice(&[1, 2, 3, 4, 5, 6]);
 

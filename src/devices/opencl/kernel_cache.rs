@@ -1,4 +1,4 @@
-use crate::{Error, Node, OpenCL};
+use crate::{Error, OpenCL};
 use min_cl::api::{
     build_program, create_kernels_in_program, create_program_with_source, release_mem_object,
     Kernel,
@@ -10,7 +10,6 @@ pub struct RawCL {
     pub ptr: *mut c_void,
     pub host_ptr: *mut u8,
     pub len: usize,
-    pub node: Node,
 }
 
 impl Drop for RawCL {

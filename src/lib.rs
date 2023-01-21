@@ -100,7 +100,10 @@ pub trait Device: Sized {
     fn new() -> crate::Result<Self>;
 
     #[inline]
-    fn retrieve<T, S: Shape>(&self, len: usize, /*add_node: impl AddGraph*/) -> Buffer<T, Self, S>
+    fn retrieve<T, S: Shape>(
+        &self,
+        len: usize, /*add_node: impl AddGraph*/
+    ) -> Buffer<T, Self, S>
     where
         for<'a> Self: Alloc<'a, T, S>,
     {
@@ -119,15 +122,15 @@ pub trait MainMemory: Device {
 ///
 /// # Example
 /// ```
-/// use custos::{CPU, Alloc, Buffer, Read, flag::AllocFlag, GraphReturn, cpu::CPUPtr};
+/// use custos::{CPU, Alloc, Buffer, Read, flag::AllocFlag, GraphReturn, cpu::CPUPtr, Ident};
 ///
 /// let device = CPU::new();
 /// let ptr = Alloc::<f32>::alloc(&device, 12, AllocFlag::None);
 ///
 /// let buf: Buffer = Buffer {
+///     ident: Ident::new_bumped(ptr.len),
 ///     ptr,
 ///     device: Some(&device),
-///     node: device.graph().add_leaf(12),
 /// };
 /// assert_eq!(vec![0.; 12], device.read(&buf));
 /// ```
@@ -135,15 +138,15 @@ pub trait Alloc<'a, T, S: Shape = ()>: Device {
     /// Allocate memory on the implemented device.
     /// # Example
     /// ```
-    /// use custos::{CPU, Alloc, Buffer, Read, flag::AllocFlag, GraphReturn, cpu::CPUPtr};
+    /// use custos::{CPU, Alloc, Buffer, Read, flag::AllocFlag, GraphReturn, cpu::CPUPtr, Ident};
     ///
     /// let device = CPU::new();
     /// let ptr = Alloc::<f32>::alloc(&device, 12, AllocFlag::None);
     ///
     /// let buf: Buffer = Buffer {
+    ///     ident: Ident::new_bumped(ptr.len),
     ///     ptr,
     ///     device: Some(&device),
-    ///     node: device.graph().add_leaf(12),
     /// };
     /// assert_eq!(vec![0.; 12], device.read(&buf));
     /// ```
@@ -152,15 +155,15 @@ pub trait Alloc<'a, T, S: Shape = ()>: Device {
     /// Allocate new memory with data
     /// # Example
     /// ```
-    /// use custos::{CPU, Alloc, Buffer, Read, GraphReturn, cpu::CPUPtr};
+    /// use custos::{CPU, Alloc, Buffer, Read, GraphReturn, cpu::CPUPtr, Ident};
     ///
     /// let device = CPU::new();
     /// let ptr = Alloc::<i32>::with_slice(&device, &[1, 5, 4, 3, 6, 9, 0, 4]);
     ///
     /// let buf: Buffer<i32, CPU> = Buffer {
+    ///     ident: Ident::new_bumped(ptr.len),
     ///     ptr,
     ///     device: Some(&device),
-    ///     node: device.graph().add_leaf(8),
     /// };
     /// assert_eq!(vec![1, 5, 4, 3, 6, 9, 0, 4], device.read(&buf));
     /// ```
@@ -199,7 +202,7 @@ pub use custos_macro::impl_stack;
 pub mod prelude {
     pub use crate::{
         cached, number::*, range, shape::*, Alloc, Buffer, CDatatype, CacheBuf, ClearBuf, Device,
-        GraphReturn, Read, ShallowCopy, WithShape, WriteBuf,
+        GraphReturn, Ident, Read, ShallowCopy, WithShape, WriteBuf,
     };
 
     #[cfg(feature = "cpu")]

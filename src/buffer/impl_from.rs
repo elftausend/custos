@@ -1,4 +1,4 @@
-use crate::{shape::Shape, Alloc, Buffer, IsShapeIndep};
+use crate::{shape::Shape, Alloc, Buffer, Ident, IsShapeIndep};
 
 impl<'a, T, D, const N: usize> From<(&'a D, [T; N])> for Buffer<'a, T, D>
 where
@@ -11,7 +11,7 @@ where
             ptr: device.with_slice(&array),
             device: Some(device),
             //node: device.graph().add_leaf(len),
-            node: Default::default(),
+            ident: Ident::new_bumped(array.len()),
         }
     }
 }
@@ -27,7 +27,7 @@ where
             ptr: device.with_slice(array),
             device: Some(device),
             //node: device.graph().add_leaf(len),
-            node: Default::default(),
+            ident: Ident::new_bumped(array.len()),
         }
     }
 }
@@ -42,7 +42,7 @@ where
             ptr: device.with_slice(slice),
             device: Some(device),
             //node: device.graph().add_leaf(len),
-            node: Default::default(),
+            ident: Ident::new_bumped(slice.len()),
         }
     }
 }
@@ -55,10 +55,10 @@ where
 {
     fn from((device, vec): (&'a D, Vec<T>)) -> Self {
         Buffer {
+            ident: Ident::new_bumped(vec.len()),
             ptr: device.alloc_with_vec(vec),
             device: Some(device),
             //node: device_vec.0.graph().add_leaf(len),
-            node: Default::default(),
         }
     }
 }
@@ -71,10 +71,10 @@ where
 {
     fn from((device, vec): (&'a D, &Vec<T>)) -> Self {
         Buffer {
+            ident: Ident::new_bumped(vec.len()),
             ptr: device.with_slice(vec),
             device: Some(device),
             //node: device.graph().add_leaf(len),
-            node: Default::default(),
         }
     }
 }

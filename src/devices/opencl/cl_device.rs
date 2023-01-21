@@ -7,11 +7,11 @@ use min_cl::api::{
 
 use super::{chosen_cl_idx, cl_clear, CLPtr, KernelCacheCL, RawCL};
 use crate::flag::AllocFlag;
-use crate::{Shape, bump_count};
+use crate::{bump_count, Ident, Shape};
 use crate::{
     cache::{Cache, CacheReturn, RawConv},
-    Alloc, Buffer, CDatatype, CacheBuf, ClearBuf, CloneBuf, Device, Error, Graph,
-    GraphReturn, Read, WriteBuf, CPU,
+    Alloc, Buffer, CDatatype, CacheBuf, ClearBuf, CloneBuf, Device, Error, Graph, GraphReturn,
+    Read, WriteBuf, CPU,
 };
 use std::{
     cell::{Ref, RefCell},
@@ -131,25 +131,21 @@ impl Device for OpenCL {
 }
 
 impl RawConv for OpenCL {
-    fn construct<T, S: Shape>(ptr: &Self::Ptr<T, S>, len: usize, node: crate::Node) -> Self::CT {
+    fn construct<T, S: Shape>(ptr: &Self::Ptr<T, S>, len: usize) -> Self::CT {
         RawCL {
             ptr: ptr.ptr,
             host_ptr: ptr.host_ptr as *mut u8,
             len,
-            node,
         }
     }
 
-    fn destruct<T, S: Shape>(ct: &Self::CT, flag: AllocFlag) -> (Self::Ptr<T, S>, crate::Node) {
-        (
-            CLPtr {
-                ptr: ct.ptr,
-                host_ptr: ct.host_ptr as *mut T,
-                len: ct.len,
-                flag,
-            },
-            ct.node,
-        )
+    fn destruct<T, S: Shape>(ct: &Self::CT, flag: AllocFlag) -> Self::Ptr<T, S> {
+        CLPtr {
+            ptr: ct.ptr,
+            host_ptr: ct.host_ptr as *mut T,
+            len: ct.len,
+            flag,
+        }
     }
 }
 
@@ -232,7 +228,7 @@ impl<'a, T> CloneBuf<'a, T> for OpenCL {
 impl<'a, T> CacheBuf<'a, T> for OpenCL {
     #[inline]
     fn cached(&'a self, len: usize) -> Buffer<'a, T, OpenCL> {
-        Cache::get(self, len, bump_count)
+        Cache::get(self, Ident::new(len), bump_count)
     }
 }
 
