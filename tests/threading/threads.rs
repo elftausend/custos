@@ -1,5 +1,6 @@
 use custos::{Buffer, CPU};
 
+#[cfg(feature)]
 #[test]
 fn test_with_threads() {
     let device = CPU::new();

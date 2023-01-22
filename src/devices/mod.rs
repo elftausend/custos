@@ -63,6 +63,9 @@ pub trait CacheAble<D: Device> {
     where
         for<'a> D: Alloc<'a, T, S>;
 
+    fn get_like<T, S: Shape>(device: &D, ident: Ident) -> Buffer<T, D, S>
+    where
+        for<'b> D: Alloc<'b, T, S>;
     //fn insert_node<T>(&mut self, device: &D, ptr: &D::Ptr<T, N>, node: Ident, graph_node: crate::Node) {}
 }
 
@@ -77,6 +80,11 @@ impl<D: Device> CacheAble<D> for () {
         for<'a> D: Alloc<'a, T, S>,
     {
         Buffer::new(device, len)
+    }
+
+    #[inline]
+    fn get_like<T, S: Shape>(device: &D, ident: Ident) -> Buffer<T, D, S> {
+        todo!()
     }
 }
 

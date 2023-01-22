@@ -75,6 +75,7 @@ mod shape;
 #[cfg(feature = "static-api")]
 pub mod static_api;
 
+mod autograd;
 pub mod number;
 pub use op_traits::*;
 pub use shape::*;
@@ -108,6 +109,14 @@ pub trait Device: Sized {
         for<'a> Self: Alloc<'a, T, S>,
     {
         Self::Cache::retrieve(self, len)
+    }
+
+    #[inline]
+    fn get_like<T, S: Shape>(&self, ident: Ident) -> Buffer<T, Self, S>
+    where
+        for<'a> Self: Alloc<'a, T, S>,
+    {
+        Self::Cache::get_like(self, ident)
     }
 }
 

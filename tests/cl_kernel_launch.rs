@@ -3,7 +3,7 @@ use std::ffi::c_void;
 use custos::{
     opencl::{enqueue_kernel, AsClCvoidPtr},
     prelude::Float,
-    Buffer, CDatatype, OpenCL, Device,
+    Buffer, CDatatype, Device, OpenCL,
 };
 
 #[test]
@@ -67,7 +67,7 @@ fn test_kernel_launch_diff_datatype() -> custos::Result<()> {
     ";
 
     let lhs = Buffer::<f32, _>::from((&device, [1., 3., 6., 4., 1., 4.]));
-    
+
     let out = device.retrieve::<f32, ()>(lhs.len());
 
     let gws = [lhs.len(), 0, 0];

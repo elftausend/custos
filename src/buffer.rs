@@ -19,8 +19,7 @@ impl Device for CPU {
 
 use crate::{
     flag::AllocFlag, shape::Shape, Alloc, CacheBuf, ClearBuf, CloneBuf, CommonPtrs, Device,
-    DevicelessAble, Ident, IsShapeIndep, MainMemory, PtrType, Read, ShallowCopy, ToDim,
-    WriteBuf,
+    DevicelessAble, Ident, IsShapeIndep, MainMemory, PtrType, Read, ShallowCopy, ToDim, WriteBuf,
 };
 
 pub use self::num::Num;
@@ -182,13 +181,13 @@ impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
     /// However, declaring this function as unsafe highlights the violation of creating two or more owners for one resource.
     /// Furthermore, the resulting `Buffer` can outlive `self`.
     #[inline]
-    pub unsafe fn shallow(&self) -> Buffer<'a, T, D, S>
+    pub unsafe fn shallow<'b>(&self) -> Buffer<'b, T, D, S>
     where
         <D as Device>::Ptr<T, S>: ShallowCopy,
     {
         Buffer {
             ptr: self.ptr.shallow(),
-            device: self.device,
+            device: None,
             ident: self.ident,
         }
     }

@@ -24,14 +24,12 @@ pub trait RawConv: Device + CacheReturn {
 #[derive(Debug)]
 pub struct Cache<D: RawConv> {
     pub nodes: HashMap<Ident, Rc<D::CT>>,
-    _p: PhantomData<D>,
 }
 
 impl<D: RawConv> Default for Cache<D> {
     fn default() -> Self {
         Self {
             nodes: Default::default(),
-            _p: PhantomData,
         }
     }
 }
@@ -50,6 +48,14 @@ where
     {
         device.cache().get(device, Ident::new(len), bump_count)
         //Cache::get(device, Ident::new(len), bump_count)
+    }
+
+    #[inline]
+    fn get_like<T, S: Shape>(device: &D, ident: Ident) -> Buffer<T, D, S>
+    where
+        for<'b> D: Alloc<'b, T, S>,
+    {
+        device.cache().get(device, ident, || ())
     }
 }
 
@@ -128,7 +134,7 @@ impl<D: RawConv> Cache<D> {
         ident: Ident,
         //add_node: impl AddGraph,
         callback: fn(),
-    ) -> Buffer<'a, T, D, S> 
+    ) -> Buffer<'a, T, D, S>
     where
         D: Alloc<'a, T, S> + RawConv,
     {
@@ -164,9 +170,9 @@ impl<D: RawConv> Cache<D> {
 #[cfg(feature = "cpu")]
 #[cfg(test)]
 mod tests {
-    use crate::{bump_count, Buffer, CacheReturn, Ident};
     #[cfg(not(feature = "realloc"))]
     use crate::set_count;
+    use crate::{bump_count, Buffer, CacheReturn, Ident};
 
     #[test]
     fn test_add_node() {
