@@ -3,7 +3,7 @@ mod resolve;
 
 pub use resolve::*;
 
-use self::ops::{Add, Cos, Mul, Sin};
+use self::ops::{Add, Cos, Mul, Sin, Sub, Div, GEq, LEq, Eq};
 
 pub trait Eval<T> {
     fn eval(self) -> T;
@@ -17,21 +17,6 @@ impl<T: Copy> Eval<T> for T {
 }
 
 pub trait Combiner {
-    #[inline]
-    fn eval<T>(self) -> T
-    where
-        Self: Eval<T> + Sized,
-    {
-        Eval::eval(self)
-    }
-
-    #[inline]
-    fn to_string(&self) -> String
-    where
-        Self: ToString,
-    {
-        ToString::to_string(self)
-    }
 
     #[inline]
     fn add<R>(self, rhs: R) -> Add<Self, R>
@@ -50,6 +35,22 @@ pub trait Combiner {
     }
 
     #[inline]
+    fn sub<R>(self, rhs: R) -> Sub<Self, R>
+    where
+        Self: Sized,
+    {
+        Sub::new(self, rhs)
+    }
+
+    #[inline]
+    fn div<R>(self, rhs: R) -> Div<Self, R>
+    where
+        Self: Sized,
+    {
+        Div::new(self, rhs)
+    }
+
+    #[inline]
     fn sin(self) -> Sin<Self>
     where
         Self: Sized,
@@ -64,11 +65,92 @@ pub trait Combiner {
     {
         Cos { comb: self }
     }
+
+    #[inline]
+    fn geq<R>(self, rhs: R) -> GEq<Self, R>
+    where
+        Self: Sized,
+    {
+        GEq { comb: self, rhs }
+    }
+
+    #[inline]
+    fn leq<R>(self, rhs: R) -> LEq<Self, R>
+    where
+        Self: Sized,
+    {
+        LEq { comb: self, rhs }
+    }
+
+    #[inline]
+    fn eq<R>(self, rhs: R) -> Eq<Self, R>
+    where
+        Self: Sized,
+    {
+        Eq { comb: self, rhs }
+    }
 }
 
 #[cfg(test)]
 #[cfg(feature = "opencl")]
 mod tests {
+
+    #[test]
+    fn test_relu() {
+        let f = |x: Resolve<i32>| x.geq(0).mul(x);
+
+        let res = f(Resolve::new(3)).eval();
+        assert_eq!(res, 3);
+
+        let res = f(Resolve::with_marker("var_x")).to_string();
+        assert_eq!(res, "((var_x >= 0) * var_x)");
+    }
+
+    #[test]
+    fn test_geq() {
+        let f = |x: Resolve<i32>| x.geq(4);
+
+        let res = f(Resolve::new(3)).eval();
+        assert_eq!(res, 0);
+
+        let res = f(Resolve::with_marker("var_x")).to_string();
+        assert_eq!(res, "(var_x >= 4)");
+    }
+
+    #[test]
+    fn test_eval() {
+        let f = |x: Resolve<i32>| x.add(2).add(x.mul(8));
+
+        assert_eq!(f(Resolve::new(4)).eval(), 38);
+    }
+
+    #[test]
+    fn test_str_result_two_args() {
+        let f = |x: Resolve<f32>, y: Resolve<f32>| x.add(y);
+
+        let r = f("x".to_marker(), "y".to_marker()).to_string();
+        assert_eq!("(x + y)", r);
+    }
+
+    #[test]
+    fn test_str_result_two_args2() {
+        let f = |x: Resolve<f32>, y: Resolve<f32>| x.add(y).mul(3.6).sub(y);
+
+        let a = f(4f32.to_val(), 3f32.to_val());
+
+        roughly_eq_slices(&[a.eval()], &[22.2]);
+
+        let r = f("x".to_marker(), "y".to_marker()).to_string();
+        assert_eq!("(((x + y) * 3.6) - y)", r);
+    }
+
+    #[test]
+    fn test_str_result() {
+        let f = |x: Resolve<f32>| x.add(2.).mul(x).add(x.mul(8.)).mul(5.);
+
+        let r = f(Resolve::default()).to_string();
+        assert_eq!("((((x + 2) * x) + (x * 8)) * 5)", r);
+    }
 
     pub fn roughly_eq_slices<T: Float>(lhs: &[T], rhs: &[T]) {
         for (a, b) in lhs.iter().zip(rhs) {
@@ -85,7 +167,7 @@ mod tests {
 
     use crate::{
         opencl::{enqueue_kernel, CLBuffer},
-        Buffer, CDatatype, Combiner, Device, Eval, MainMemory, OpenCL, Resolve, Shape, CPU, prelude::Float,
+        Buffer, CDatatype, Combiner, Device, Eval, MainMemory, OpenCL, Resolve, Shape, CPU, prelude::Float, ToMarker, ToVal,
     };
 
     pub trait ApplyFunction<T, S: Shape = (), D: Device = CPU>: Device {

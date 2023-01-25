@@ -1,3 +1,7 @@
+mod cmps;
+
+pub use cmps::*;
+
 use crate::prelude::Float;
 
 use super::{Combiner, Eval};
@@ -91,5 +95,61 @@ impl<C: Eval<T>, R: Eval<T>, T: std::ops::Add<Output = T>> Eval<T> for Add<C, R>
     #[inline]
     fn eval(self) -> T {
         self.comb.eval() + self.rhs.eval()
+    }
+}
+
+pub struct Sub<C, R> {
+    comb: C,
+    rhs: R,
+}
+
+impl<C, R> Sub<C, R> {
+    #[inline]
+    pub fn new(comb: C, rhs: R) -> Sub<C, R> {
+        Sub { comb, rhs }
+    }
+}
+
+impl<C, R> Combiner for Sub<C, R> {}
+
+impl<C: ToString, R: ToString> ToString for Sub<C, R> {
+    #[inline]
+    fn to_string(&self) -> String {
+        format!("({} - {})", self.comb.to_string(), self.rhs.to_string())
+    }
+}
+
+impl<C: Eval<T>, R: Eval<T>, T: std::ops::Sub<Output = T>> Eval<T> for Sub<C, R> {
+    #[inline]
+    fn eval(self) -> T {
+        self.comb.eval() - self.rhs.eval()
+    }
+}
+
+pub struct Div<C, R> {
+    comb: C,
+    rhs: R,
+}
+
+impl<C, R> Div<C, R> {
+    #[inline]
+    pub fn new(comb: C, rhs: R) -> Div<C, R> {
+        Div { comb, rhs }
+    }
+}
+
+impl<C, R> Combiner for Div<C, R> {}
+
+impl<C: ToString, R: ToString> ToString for Div<C, R> {
+    #[inline]
+    fn to_string(&self) -> String {
+        format!("({} / {})", self.comb.to_string(), self.rhs.to_string())
+    }
+}
+
+impl<C: Eval<T>, R: Eval<T>, T: std::ops::Div<Output = T>> Eval<T> for Div<C, R> {
+    #[inline]
+    fn eval(self) -> T {
+        self.comb.eval() / self.rhs.eval()
     }
 }
