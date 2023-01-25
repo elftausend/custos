@@ -1,4 +1,4 @@
-use crate::{shape::Shape, Buffer, Device};
+use crate::{shape::Shape, Buffer, Device, Eval, Resolve, CPU};
 
 /// Trait for implementing the clear() operation for the compute devices.
 pub trait ClearBuf<T, D: Device = Self, S: Shape = ()>: Device {
@@ -114,4 +114,10 @@ pub trait CacheBuf<'a, T, S: Shape = ()>: Sized + Device {
     /// assert_eq!(device.read(&buf), vec![1.5; 10]);
     /// ```
     fn cached(&'a self, len: usize) -> Buffer<'a, T, Self, S>;
+}
+
+pub trait ApplyFunction<T, S: Shape = (), D: Device = CPU>: Device {
+    fn apply_fn<F>(&self, buf: &Buffer<T, D, S>, f: impl Fn(Resolve<T>) -> F) -> Buffer<T, Self, S>
+    where
+        F: Eval<T> + ToString;
 }

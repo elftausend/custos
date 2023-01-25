@@ -10,6 +10,7 @@ use crate::flag::AllocFlag;
 #[cfg(feature = "blas")]
 mod blas;
 mod cpu_device;
+mod ops;
 
 #[derive(PartialEq, Eq, Debug)]
 pub struct CPUPtr<T> {

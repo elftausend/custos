@@ -61,6 +61,9 @@ pub use devices::stack::Stack;
 #[cfg(feature = "network")]
 pub use devices::network::Network;
 
+#[cfg(feature = "autograd")]
+pub use autograd::*;
+
 pub mod devices;
 
 mod buffer;

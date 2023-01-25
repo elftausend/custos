@@ -3,7 +3,7 @@ mod resolve;
 
 pub use resolve::*;
 
-use self::ops::{Add, Cos, Mul, Sin, Sub, Div, GEq, LEq, Eq};
+use self::ops::{Add, Cos, Div, Eq, GEq, LEq, Mul, Sin, Sub};
 
 pub trait Eval<T> {
     fn eval(self) -> T;
@@ -17,7 +17,6 @@ impl<T: Copy> Eval<T> for T {
 }
 
 pub trait Combiner {
-
     #[inline]
     fn add<R>(self, rhs: R) -> Add<Self, R>
     where
@@ -92,11 +91,22 @@ pub trait Combiner {
 }
 
 #[cfg(test)]
-#[cfg(feature = "opencl")]
 mod tests {
+    use crate::{prelude::Float, Buffer, Combiner, Eval, Resolve, ToMarker, ToVal, CPU};
 
     #[test]
-    fn test_relu() {
+    fn test_eq() {
+        let f = |x: Resolve<i32>, y| x.eq(y);
+
+        let res: i32 = f(3.to_val(), 3.to_val()).eval();
+        assert_eq!(res, 1);
+
+        let res = f("var_x".to_marker(), "other".to_marker()).to_string();
+        assert_eq!(res, "(var_x == other)");
+    }
+
+    #[test]
+    fn test_geq_relu() {
         let f = |x: Resolve<i32>| x.geq(0).mul(x);
 
         let res = f(Resolve::new(3)).eval();
@@ -165,121 +175,78 @@ mod tests {
         }
     }
 
-    use crate::{
-        opencl::{enqueue_kernel, CLBuffer},
-        Buffer, CDatatype, Combiner, Device, Eval, MainMemory, OpenCL, Resolve, Shape, CPU, prelude::Float, ToMarker, ToVal,
-    };
-
-    pub trait ApplyFunction<T, S: Shape = (), D: Device = CPU>: Device {
-        fn apply_fn<F: Eval<T> + ToString>(
-            &self,
-            buf: &Buffer<T, D, S>,
-            f: impl Fn(Resolve<T>) -> F,
-        ) -> Buffer<T, Self, S>;
-    }
-
-    impl<T, D, S> ApplyFunction<T, S, D> for CPU
-    where
-        T: Copy + Default,
-        D: MainMemory,
-        S: Shape,
-    {
-        fn apply_fn<F: Eval<T>>(
-            &self,
-            buf: &Buffer<T, D, S>,
-            f: impl Fn(Resolve<T>) -> F,
-        ) -> Buffer<T, Self, S> {
-            let mut out = self.retrieve::<T, S>(buf.len());
-
-            for (value, x) in out.iter_mut().zip(buf.iter()) {
-                *value = f(Resolve::new(*x)).eval()
-            }
-
-            out
-        }
-    }
-
-    impl<T, S> ApplyFunction<T, S, OpenCL> for OpenCL
-    where
-        T: CDatatype,
-        S: Shape,
-    {
-        fn apply_fn<F: Eval<T> + ToString>(
-            &self,
-            buf: &Buffer<T, Self, S>,
-            f: impl Fn(Resolve<T>) -> F,
-        ) -> Buffer<T, Self, S> {
-            cl_gen_fn(self, buf, f).unwrap()
-        }
-    }
-
-    pub fn cl_gen_fn<'a, T, S, F: ToString>(
-        device: &'a OpenCL,
-        x: &CLBuffer<T, S>,
-        f: impl Fn(Resolve<T>) -> F,
-    ) -> crate::Result<CLBuffer<'a, T, S>>
-    where
-        T: CDatatype,
-        S: Shape,
-    {
-        let src = format!(
-            "
-            __kernel void str_op(__global const {datatype}* lhs, __global {datatype}* out) {{
-                size_t id = get_global_id(0);
-                {datatype} x = lhs[id];
-                out[id] = {operation};
-            }}
-        ",
-            datatype = T::as_c_type_str(),
-            operation = f(Resolve::with_marker("x")).to_string()
-        );
-
-        let out = device.retrieve::<T, S>(x.len());
-        enqueue_kernel(device, &src, [x.len(), 0, 0], None, &[x, &out])?;
-        Ok(out)
-    }
-
+    #[cfg(feature = "cpu")]
     #[test]
     fn test_apply_fn_cpu() {
+        use crate::{ApplyFunction, Combiner};
+
         let device = CPU::new();
 
-        let buf = Buffer::from((&device, &[3, 3, 4, 5, 3, 2]));
+        let mut buf = Buffer::from((&device, &[3, 3, 4, 5, 3, 2]));
 
-        let buf = device.apply_fn(&buf, |x| x.add(3));
+        device.apply_fn(&mut buf, |x| x.add(3));
         assert_eq!(buf.read(), &[6, 6, 7, 8, 6, 5]);
     }
 
+    #[cfg(feature = "opencl")]
     #[test]
     fn test_run_apply_fn_opencl() -> crate::Result<()> {
+        use crate::{ApplyFunction, Combiner, OpenCL};
+
         let device = OpenCL::new(0)?;
 
-        let buf = Buffer::from((&device, &[3, 3, 4, 5, 3, 2]));
+        let mut buf = Buffer::from((&device, &[3, 3, 4, 5, 3, 2]));
 
-        let buf = device.apply_fn(&buf, |x| x.add(3));
+        device.apply_fn(&mut buf, |x| x.add(3));
         assert_eq!(buf.read(), &[6, 6, 7, 8, 6, 5]);
 
         Ok(())
-    
     }
 
+    #[cfg(feature = "cpu")]
     #[test]
     fn test_run_apply_fn_cpu_more_complex() {
+        use crate::ApplyFunction;
+
         let device = CPU::new();
 
-        let buf = Buffer::from((&device, &[3., 3., 4., 5., 3., 2.]));
+        let mut buf = Buffer::from((&device, &[3., 3., 4., 5., 3., 2.]));
 
-        let buf = device.apply_fn(&buf, |x| x.mul(2.).add(4.).sin().mul(x).add(1.));
-        roughly_eq_slices(buf.read(), &[-0.6320633326681093, -0.6320633326681093, -1.1462916720017398, 5.953036778474352, -0.6320633326681093, 2.978716493246764]);
+        device.apply_fn(&mut buf, |x| x.mul(2.).add(4.).sin().mul(x).add(1.));
+        roughly_eq_slices(
+            buf.read(),
+            &[
+                -0.6320633326681093,
+                -0.6320633326681093,
+                -1.1462916720017398,
+                5.953036778474352,
+                -0.6320633326681093,
+                2.978716493246764,
+            ],
+        );
     }
 
+    #[cfg(feature = "opencl")]
     #[test]
     fn test_run_apply_fn_opencl_more_complex() -> crate::Result<()> {
+        use crate::{ApplyFunction, OpenCL};
+
         let device = OpenCL::new(0)?;
 
-        let buf = Buffer::from((&device, &[3., 3., 4., 5., 3., 2.]));
+        let mut buf = Buffer::from((&device, &[3., 3., 4., 5., 3., 2.]));
 
-        let buf = device.apply_fn(&buf, |x| x.mul(2.).add(4.).sin().mul(x).add(1.));
-        roughly_eq_slices(&buf.read(), &[-0.6320633326681093, -0.6320633326681093, -1.1462916720017398, 5.953036778474352, -0.6320633326681093, 2.978716493246764]);
+        device.apply_fn(&mut buf, |x| x.mul(2.).add(4.).sin().mul(x).add(1.));
+        roughly_eq_slices(
+            &buf.read(),
+            &[
+                -0.6320633326681093,
+                -0.6320633326681093,
+                -1.1462916720017398,
+                5.953036778474352,
+                -0.6320633326681093,
+                2.978716493246764,
+            ],
+        );
 
         Ok(())
     }

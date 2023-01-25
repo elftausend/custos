@@ -18,9 +18,9 @@ impl Device for CPU {
 }
 
 use crate::{
-    flag::AllocFlag, shape::Shape, Alloc, CacheBuf, CacheReturn, ClearBuf, CloneBuf, CommonPtrs,
-    Device, DevicelessAble, Ident, IsShapeIndep, MainMemory, PtrType, RawConv, Read, ShallowCopy,
-    ToDim, WriteBuf,
+    flag::AllocFlag, shape::Shape, Alloc, CacheBuf, ClearBuf, CloneBuf, CommonPtrs, Device,
+    DevicelessAble, Ident, IsShapeIndep, MainMemory, PtrType, RawConv, Read, ShallowCopy, ToDim,
+    WriteBuf,
 };
 
 pub use self::num::Num;

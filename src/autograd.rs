@@ -1,9 +1,13 @@
-use core::fmt::Debug;
+use core::{fmt::Debug, cell::RefMut};
 
-use crate::{prelude::One, Alloc, Buffer, Cache, Ident, RawConv, Shape, WriteBuf};
+use crate::{
+    prelude::One, Alloc, ApplyFunction, Buffer, Cache, Eval, Ident, RawConv, Resolve, Shape,
+    WriteBuf,
+};
 
 #[derive(Default)]
 pub struct Gradients<D: RawConv> {
+    // Borrowing cache
     cache: Cache<D>,
 }
 
@@ -90,6 +94,10 @@ pub struct Tape<D: RawConv> {
     grad_fns: Vec<Box<dyn Fn(&mut Gradients<D>, &D)>>,
 }
 
+pub trait TapeReturn: RawConv {
+    fn tape_mut(&self) -> RefMut<Tape<Self>>;
+}
+
 impl<D: RawConv> Debug for Tape<D>
 where
     D::CT: Debug,
@@ -120,4 +128,35 @@ impl<D: RawConv> Tape<D> {
 
         self.backward(buf.device())
     }
+
+    pub fn unary_ew<'a, T, S, FO, GO>(
+        &mut self,
+        x: &Buffer<'a, T, D, S>,
+        forward_fn: impl Fn(Resolve<T>) -> FO,
+        x_grad: fn(&T) -> GO,
+    ) -> Buffer<'a, T, D, S>
+    where
+        T: Copy + core::ops::Mul<Output = T> + core::ops::AddAssign + 'static,
+        D: for<'b> Alloc<'b, T, S> + ApplyFunction<T, S, D>,
+        S: Shape,
+        FO: Eval<T> + ToString,
+        GO: Eval<T> + ToString,
+    {
+        let out = x.device().apply_fn(x, forward_fn);
+
+        let ids = (x.id(), out.id());
+        self.add_grad_fn(move |grads, device| {
+            let (lhs, mut lhs_grad, out_grad) = grads.get_double::<T, S>(device, ids);
+
+            //unary_grad_slice(lhs.len(), &lhs, &mut lhs_grad, &out_grad, x_grad);
+        });
+
+        out
+    }
+}
+
+#[cfg(test)]
+mod tests {
+
+    //#[test]
 }

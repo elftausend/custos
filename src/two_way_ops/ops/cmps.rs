@@ -1,4 +1,4 @@
-use crate::{prelude::Number, Eval, Combiner};
+use crate::{prelude::Number, Combiner, Eval};
 
 pub struct GEq<C, R> {
     pub comb: C,
@@ -13,11 +13,11 @@ impl<C, R> GEq<C, R> {
 }
 
 impl<C: ToString, R: ToString> ToString for GEq<C, R> {
+    #[inline]
     fn to_string(&self) -> String {
         format!("({} >= {})", self.comb.to_string(), self.rhs.to_string())
     }
 }
-
 
 impl<C: Eval<T>, R: Eval<T>, T: Number> Eval<T> for GEq<C, R> {
     #[inline]
@@ -41,11 +41,11 @@ impl<C, R> LEq<C, R> {
 }
 
 impl<C: ToString, R: ToString> ToString for LEq<C, R> {
+    #[inline]
     fn to_string(&self) -> String {
         format!("({} <= {})", self.comb.to_string(), self.rhs.to_string())
     }
 }
-
 
 impl<C: Eval<T>, R: Eval<T>, T: Number> Eval<T> for LEq<C, R> {
     #[inline]
@@ -69,11 +69,11 @@ impl<C, R> Eq<C, R> {
 }
 
 impl<C: ToString, R: ToString> ToString for Eq<C, R> {
+    #[inline]
     fn to_string(&self) -> String {
-        format!("({} <= {})", self.comb.to_string(), self.rhs.to_string())
+        format!("({} == {})", self.comb.to_string(), self.rhs.to_string())
     }
 }
-
 
 impl<C: Eval<T>, R: Eval<T>, T: Number> Eval<T> for Eq<C, R> {
     #[inline]

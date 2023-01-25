@@ -26,7 +26,7 @@ impl<T: Default> ToMarker<T, (Resolve<T>, Resolve<T>)> for (&'static str, &'stat
     }
 }
 
-pub trait ToVal<T> {
+pub trait ToVal<T = Self> {
     fn to_val(self) -> Resolve<T>;
 }
 

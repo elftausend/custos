@@ -4,8 +4,8 @@ use crate::{
     devices::cache::{Cache, CacheReturn},
     flag::AllocFlag,
     shape::Shape,
-    Alloc, Buffer, CacheBuf, ClearBuf, CloneBuf, Device, DevicelessAble, Graph, GraphReturn, Ident,
-    MainMemory, Read, WriteBuf,
+    Alloc, Buffer, CacheBuf, CloneBuf, Device, DevicelessAble, Graph, GraphReturn, Ident,
+    MainMemory, Tape, TapeReturn,
 };
 use core::{
     cell::{RefCell, RefMut},
@@ -33,6 +33,7 @@ use super::{CPUPtr, RawCpuBuf};
 /// ```
 pub struct CPU {
     pub cache: RefCell<Cache<CPU>>,
+    pub tape: RefCell<Tape<CPU>>,
     pub graph: RefCell<Graph>,
 }
 
@@ -41,8 +42,9 @@ impl CPU {
     #[must_use]
     pub fn new() -> CPU {
         CPU {
-            cache: RefCell::new(Cache::default()),
-            graph: RefCell::new(Graph::new()),
+            cache: Default::default(),
+            tape: Default::default(),
+            graph: Default::default(),
         }
     }
 }
@@ -118,6 +120,13 @@ impl<T, S: Shape> Alloc<'_, T, S> for CPU {
     }
 }
 
+impl TapeReturn for CPU {
+    #[inline]
+    fn tape_mut(&self) -> RefMut<Tape<Self>> {
+        self.tape.borrow_mut()
+    }
+}
+
 impl CacheReturn for CPU {
     type CT = RawCpuBuf;
     #[inline]
@@ -166,35 +175,4 @@ impl<'a, T> CacheBuf<'a, T> for CPU {
 #[inline]
 pub fn cpu_cached<T: Clone>(device: &CPU, len: usize) -> Buffer<T, CPU> {
     device.cached(len)
-}
-
-impl<T, D: MainMemory, S: Shape> Read<T, D, S> for CPU {
-    type Read<'a> = &'a [T] where T: 'a, D: 'a, S: 'a;
-
-    #[inline]
-    fn read<'a>(&self, buf: &'a Buffer<T, D, S>) -> Self::Read<'a> {
-        buf.as_slice()
-    }
-
-    #[inline]
-    fn read_to_vec<'a>(&self, buf: &Buffer<T, D, S>) -> Vec<T>
-    where
-        T: Default + Clone,
-    {
-        buf.to_vec()
-    }
-}
-
-impl<T: Default, D: MainMemory> ClearBuf<T, D> for CPU {
-    fn clear(&self, buf: &mut Buffer<T, D>) {
-        for value in buf {
-            *value = T::default();
-        }
-    }
-}
-
-impl<T: Copy, D: MainMemory> WriteBuf<T, D> for CPU {
-    fn write(&self, buf: &mut Buffer<T, D>, data: &[T]) {
-        buf.copy_from_slice(data)
-    }
 }

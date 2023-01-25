@@ -31,7 +31,7 @@ min-cl = { path = "../min-cl", optional=true }
 
 [features]
 #default = ["stack", "cpu", "opencl"]
-default = ["cpu", "opencl"]
+default = ["cpu", "opencl", "autograd"]
 cpu = []
 opencl = ["dep:min-cl", "cpu"]
 #network = ["cuwanto-server"]
@@ -43,6 +43,7 @@ static-api = []
 stack = []
 no-std = ["stack", "dep:libm"]
 wgpu = ["dep:wgpu", "dep:pollster", "dep:futures-intrusive"]
+autograd = []
 macro = ["dep:custos-macro"]
 
 [dev-dependencies]
