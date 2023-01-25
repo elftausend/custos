@@ -87,8 +87,8 @@ where
         // resources are now mananged by the destructed raw pointer (prevents double free).
         let ptr = core::mem::ManuallyDrop::new(ptr);
 
-        let raw_ptr = D::construct(&ptr, ptr.len());
-        let ptr = D::destruct(&raw_ptr, ptr.flag());
+        let raw_ptr = D::construct(&ptr, ptr.len(), ptr.flag());
+        let ptr = D::destruct(&raw_ptr);
 
         core::mem::forget(raw_ptr);
 

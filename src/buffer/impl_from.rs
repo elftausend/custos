@@ -1,6 +1,17 @@
-use crate::{shape::Shape, Alloc, Buffer, Ident, IsShapeIndep};
+use crate::{shape::Shape, Alloc, Buffer, Ident, IsShapeIndep, RawConv};
 
 impl<'a, T, D, const N: usize> From<(&'a D, [T; N])> for Buffer<'a, T, D>
+where
+    T: Clone,
+    D: Alloc<'a, T> + IsShapeIndep + RawConv,
+{
+    #[inline]
+    fn from((device, array): (&'a D, [T; N])) -> Self {
+        Buffer::from_slice(device, &array)
+    }
+}
+
+/*impl<'a, T, D, const N: usize> From<(&'a D, [T; N])> for Buffer<'a, T, D>
 where
     T: Clone,
     D: Alloc<'a, T> + IsShapeIndep,
@@ -14,9 +25,20 @@ where
             ident: Ident::new_bumped(array.len()),
         }
     }
-}
+}*/
 
 impl<'a, T, D, const N: usize> From<(&'a D, &[T; N])> for Buffer<'a, T, D>
+where
+    T: Clone,
+    D: Alloc<'a, T> + IsShapeIndep + RawConv,
+{
+    #[inline]
+    fn from((device, array): (&'a D, &[T; N])) -> Self {
+        Buffer::from_slice(device, array)
+    }
+}
+
+/*impl<'a, T, D, const N: usize> From<(&'a D, &[T; N])> for Buffer<'a, T, D>
 where
     T: Clone,
     D: Alloc<'a, T> + IsShapeIndep,
@@ -30,9 +52,21 @@ where
             ident: Ident::new_bumped(array.len()),
         }
     }
-}
+}*/
 
 impl<'a, T, D, S: Shape> From<(&'a D, &[T])> for Buffer<'a, T, D, S>
+where
+    T: Clone,
+    D: Alloc<'a, T, S> + IsShapeIndep,
+{
+    #[inline]
+    fn from((device, slice): (&'a D, &[T])) -> Self {
+        todo!()
+        //Buffer::from_slice(device, slice)
+    }
+}
+
+/*impl<'a, T, D, S: Shape> From<(&'a D, &[T])> for Buffer<'a, T, D, S>
 where
     T: Clone,
     D: Alloc<'a, T, S> + IsShapeIndep,
@@ -45,8 +79,20 @@ where
             ident: Ident::new_bumped(slice.len()),
         }
     }
+}*/
+
+#[cfg(not(feature = "no-std"))]
+impl<'a, T, D, S: Shape> From<(&'a D, Vec<T>)> for Buffer<'a, T, D, S>
+where
+    T: Clone,
+    D: Alloc<'a, T, S> + IsShapeIndep,
+{
+    fn from((device, vec): (&'a D, Vec<T>)) -> Self {
+        todo!()
+    }
 }
 
+/*
 #[cfg(not(feature = "no-std"))]
 impl<'a, T, D, S: Shape> From<(&'a D, Vec<T>)> for Buffer<'a, T, D, S>
 where
@@ -61,9 +107,20 @@ where
             //node: device_vec.0.graph().add_leaf(len),
         }
     }
-}
+}*/
 
 #[cfg(not(feature = "no-std"))]
+impl<'a, T, D, S: Shape> From<(&'a D, &Vec<T>)> for Buffer<'a, T, D, S>
+where
+    T: Clone,
+    D: Alloc<'a, T, S> + IsShapeIndep,
+{
+    fn from((device, vec): (&'a D, &Vec<T>)) -> Self {
+        todo!()
+    }
+}
+
+/*#[cfg(not(feature = "no-std"))]
 impl<'a, T, D, S: Shape> From<(&'a D, &Vec<T>)> for Buffer<'a, T, D, S>
 where
     T: Clone,
@@ -77,4 +134,4 @@ where
             //node: device.graph().add_leaf(len),
         }
     }
-}
+}*/

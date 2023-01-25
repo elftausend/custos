@@ -4,14 +4,67 @@ use core::{
     ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign},
 };
 
+pub trait Zero {
+    #[inline]
+    fn zero() -> Self
+    where
+        Self: Default,
+    {
+        Self::default()
+    }
+}
+
+impl<T: Default> Zero for T {}
+
+pub trait One {
+    fn one() -> Self;
+}
+
+pub trait Two {
+    fn two() -> Self;
+}
+
+macro_rules! typical_number_impl {
+    ($($t:ident),*) => {
+        $(
+            impl One for $t {
+                #[inline]
+                fn one() -> $t {
+                    1 as $t
+                }
+            }
+
+            impl Two for $t {
+                #[inline]
+                fn two() -> $t {
+                    2 as $t
+                }
+            }
+        )*
+
+    };
+}
+
+typical_number_impl! {
+    f32, f64, i8, i16, i32, i64, i128,
+    isize, u8, u16, u32, u64, u128, usize
+}
+
 pub trait Number:
     Sized
     + Default
     + Copy
+    + One
+    + Two
+    + Zero
     + Add<Self, Output = Self>
     + Sub<Self, Output = Self>
     + Div<Self, Output = Self>
     + Mul<Self, Output = Self>
+    + for<'a> Add<&'a Self, Output = Self>
+    + for<'a> Sub<&'a Self, Output = Self>
+    + for<'a> Div<&'a Self, Output = Self>
+    + for<'a> Mul<&'a Self, Output = Self>
     + AddAssign<Self>
     + SubAssign<Self>
     + MulAssign<Self>
@@ -26,9 +79,6 @@ pub trait Number:
     fn from_u64(value: u64) -> Self;
     fn as_usize(&self) -> usize;
     fn as_f64(&self) -> f64;
-    fn zero() -> Self;
-    fn one() -> Self;
-    fn two() -> Self;
 }
 
 macro_rules! number_apply {
@@ -53,21 +103,6 @@ macro_rules! number_apply {
                 #[inline]
                 fn as_f64(&self) -> f64 {
                     *self as f64
-                }
-
-                #[inline]
-                fn zero() -> $t {
-                    0 as $t
-                }
-
-                #[inline]
-                fn one() -> $t {
-                    1 as $t
-                }
-
-                #[inline]
-                fn two() -> $t {
-                    2 as $t
                 }
             }
         )*
@@ -96,8 +131,11 @@ pub trait Float: Neg<Output = Self> + Number {
     //fn from_usize(value: usize) -> Self;
     fn tanh(&self) -> Self;
     fn sin(&self) -> Self;
+    fn cos(&self) -> Self;
+    fn tan(&self) -> Self;
     fn as_generic(value: f64) -> Self;
     fn sqrt(&self) -> Self;
+    fn log(&self, base: Self) -> Self;
     fn ln(&self) -> Self;
     fn abs(&self) -> Self;
 }
@@ -133,6 +171,17 @@ macro_rules! float_apply {
                 fn sin(&self) -> $t {
                     $t::sin(*self)
                 }
+
+                #[inline]
+                fn cos(&self) -> $t {
+                    $t::cos(*self)
+                }
+
+                #[inline]
+                fn tan(&self) -> $t {
+                    $t::tan(*self)
+                }
+
                 #[inline]
                 fn as_generic(value: f64) -> $t {
                     value as $t
@@ -141,6 +190,12 @@ macro_rules! float_apply {
                 fn sqrt(&self) -> $t {
                     $t::sqrt(*self)
                 }
+
+                #[inline]
+                fn log(&self, base: Self) -> $t {
+                    $t::log(*self, base)
+                }
+
                 #[inline]
                 fn ln(&self) -> $t {
                     $t::ln(*self)

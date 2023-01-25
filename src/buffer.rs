@@ -18,8 +18,9 @@ impl Device for CPU {
 }
 
 use crate::{
-    flag::AllocFlag, shape::Shape, Alloc, CacheBuf, ClearBuf, CloneBuf, CommonPtrs, Device,
-    DevicelessAble, Ident, IsShapeIndep, MainMemory, PtrType, Read, ShallowCopy, ToDim, WriteBuf,
+    flag::AllocFlag, shape::Shape, Alloc, CacheBuf, CacheReturn, ClearBuf, CloneBuf, CommonPtrs,
+    Device, DevicelessAble, Ident, IsShapeIndep, MainMemory, PtrType, RawConv, Read, ShallowCopy,
+    ToDim, WriteBuf,
 };
 
 pub use self::num::Num;
@@ -289,6 +290,27 @@ impl<'a, T, D: Device> Buffer<'a, T, D> {
         D: ClearBuf<T, D>,
     {
         self.device().clear(self)
+    }
+}
+
+impl<'a, T, D: Device> Buffer<'a, T, D> {
+    #[inline]
+    pub fn from_slice(device: &'a D, slice: &[T]) -> Self
+    where
+        T: Clone,
+        D: Alloc<'a, T> + RawConv,
+    {
+        let ident = Ident::new_bumped(slice.len());
+        let ptr = device.with_slice(slice);
+
+        let raw_ptr = std::rc::Rc::new(D::construct(&ptr, slice.len(), AllocFlag::Wrapper));
+        device.cache().nodes.insert(ident, raw_ptr);
+
+        Buffer {
+            ptr,
+            ident,
+            device: Some(device),
+        }
     }
 }
 
@@ -668,5 +690,19 @@ mod tests {
         let buf_dim2 = buf.to_dims::<Dim2<3, 2>>();
 
         buf_dim2.to_dims::<()>();
+    }
+
+    #[cfg(feature = "cpu")]
+    #[test]
+    fn test_add_to_cache_and_get_like() {
+        use crate::{flag::AllocFlag, Device, CPU};
+
+        let device = CPU::new();
+
+        let buf = Buffer::from((&device, [1, 6, 4, 3, 5, 3]));
+
+        let buf_like = device.get_like::<i32, ()>(buf.id());
+        assert_eq!(buf.ptr.ptr, buf_like.ptr.ptr);
+        assert_eq!(AllocFlag::Wrapper, buf_like.ptr.flag);
     }
 }

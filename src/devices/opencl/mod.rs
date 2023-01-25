@@ -23,7 +23,7 @@ pub use unified::*;
 //use self::api::release_mem_object;
 use crate::{flag::AllocFlag, Buffer, CDatatype, CommonPtrs, PtrType, ShallowCopy};
 
-pub type CLBuffer<'a, T> = Buffer<'a, T, OpenCL>;
+pub type CLBuffer<'a, T, S = ()> = Buffer<'a, T, OpenCL, S>;
 
 pub fn chosen_cl_idx() -> usize {
     std::env::var("CUSTOS_CL_DEVICE_IDX")

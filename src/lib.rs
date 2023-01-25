@@ -71,6 +71,7 @@ pub mod flag;
 mod graph;
 mod op_traits;
 mod shape;
+mod two_way_ops;
 
 #[cfg(feature = "static-api")]
 pub mod static_api;
@@ -79,6 +80,7 @@ mod autograd;
 pub mod number;
 pub use op_traits::*;
 pub use shape::*;
+pub use two_way_ops::*;
 
 pub trait PtrType {
     fn len(&self) -> usize;

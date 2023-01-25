@@ -131,20 +131,21 @@ impl Device for OpenCL {
 }
 
 impl RawConv for OpenCL {
-    fn construct<T, S: Shape>(ptr: &Self::Ptr<T, S>, len: usize) -> Self::CT {
+    fn construct<T, S: Shape>(ptr: &Self::Ptr<T, S>, len: usize, flag: AllocFlag) -> Self::CT {
         RawCL {
             ptr: ptr.ptr,
             host_ptr: ptr.host_ptr as *mut u8,
             len,
+            flag,
         }
     }
 
-    fn destruct<T, S: Shape>(ct: &Self::CT, flag: AllocFlag) -> Self::Ptr<T, S> {
+    fn destruct<T, S: Shape>(ct: &Self::CT) -> Self::Ptr<T, S> {
         CLPtr {
             ptr: ct.ptr,
             host_ptr: ct.host_ptr as *mut T,
             len: ct.len,
-            flag,
+            flag: ct.flag,
         }
     }
 }

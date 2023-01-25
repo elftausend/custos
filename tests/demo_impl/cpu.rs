@@ -20,44 +20,24 @@ where
 }
 
 // TODO: write expansion example
-//#[impl_stack]
-impl<'a, T, D, S> ElementWise<'a, T, D, S> for CPU<'a>
+#[impl_stack]
+impl<T, D, S> ElementWise<T, D, S> for CPU
 where
     T: Number,
     D: MainMemory,
     S: Shape,
 {
-    fn add(
-        &'a self,
-        lhs: &Buffer<'a, T, D, S>,
-        rhs: &Buffer<'a, T, D, S>,
-    ) -> Buffer<'a, T, CPU<'a>, S> {
+    fn add(&self, lhs: &Buffer<T, D, S>, rhs: &Buffer<T, D, S>) -> Buffer<T, CPU, S> {
         let mut out = self.retrieve(lhs.len());
         cpu_element_wise(lhs, rhs, &mut out, |o, a, b| *o = a + b);
         out
     }
 
-    fn mul(
-        &'a self,
-        lhs: &Buffer<'a, T, D, S>,
-        rhs: &Buffer<'a, T, D, S>,
-    ) -> Buffer<'a, T, CPU<'a>, S> {
+    fn mul(&self, lhs: &Buffer<T, D, S>, rhs: &Buffer<T, D, S>) -> Buffer<T, CPU, S> {
         let mut out = self.retrieve(lhs.len());
         cpu_element_wise(lhs, rhs, &mut out, |o, a, b| *o = a * b);
         out
     }
-}
-
-#[cfg(feature = "cpu")]
-#[test]
-fn test_cpu() {
-    let device = CPU::new();
-
-    let lhs = Buffer::from((&device, [1, 2, 3, 4]));
-    let rhs = Buffer::from((&device, [4, 1, 9, 4]));
-
-    let out = device.add(&lhs, &rhs);
-    device.add(&lhs, &out);
 }
 
 #[cfg(feature = "wgpu")]

@@ -1,4 +1,4 @@
-use crate::{Error, OpenCL};
+use crate::{flag::AllocFlag, Error, OpenCL};
 use min_cl::api::{
     build_program, create_kernels_in_program, create_program_with_source, release_mem_object,
     Kernel,
@@ -10,10 +10,15 @@ pub struct RawCL {
     pub ptr: *mut c_void,
     pub host_ptr: *mut u8,
     pub len: usize,
+    pub flag: AllocFlag,
 }
 
 impl Drop for RawCL {
     fn drop(&mut self) {
+        if self.flag != AllocFlag::Cache {
+            return;
+        }
+
         unsafe { release_mem_object(self.ptr).unwrap() };
     }
 }

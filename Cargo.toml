@@ -31,7 +31,7 @@ min-cl = { path = "../min-cl", optional=true }
 
 [features]
 #default = ["stack", "cpu", "opencl"]
-default = ["cpu"]
+default = ["cpu", "opencl"]
 cpu = []
 opencl = ["dep:min-cl", "cpu"]
 #network = ["cuwanto-server"]

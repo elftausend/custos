@@ -1,4 +1,7 @@
-use custos::number::{Float, Number};
+use custos::{
+    number::{Float, Number, Two, Zero},
+    prelude::One,
+};
 use std::{
     any::{Any, TypeId},
     ops::Neg,
@@ -10,10 +13,10 @@ fn test_num() {
     let num_f64 = num.as_f64();
     assert_eq!(num_f64.type_id(), TypeId::of::<f64>());
 
-    let zero: i32 = Number::zero();
+    let zero: i32 = i32::zero();
     assert_eq!(zero, 0i32);
 
-    let one: i32 = Number::one();
+    let one: i32 = One::one();
     assert_eq!(one, 1i32);
 
     assert_eq!(num.as_usize().type_id(), TypeId::of::<usize>());
@@ -24,7 +27,7 @@ fn test_num() {
     let x: u32 = Number::from_usize(16);
     assert_eq!(x, 16u32);
 
-    let two: u16 = Number::two();
+    let two: u16 = u16::two();
     assert_eq!(two, 2u16);
 }
 

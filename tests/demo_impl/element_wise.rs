@@ -1,26 +1,17 @@
 use custos::{Buffer, Device, Shape};
 
-pub trait ElementWise<'a, T, D: Device, S: Shape = ()>: Device {
-    fn add(
-        &'a self,
-        lhs: &Buffer<'a, T, D, S>,
-        rhs: &Buffer<'a, T, D, S>,
-    ) -> Buffer<'a, T, Self, S>;
-    fn mul(
-        &'a self,
-        lhs: &Buffer<'a, T, D, S>,
-        rhs: &Buffer<'a, T, D, S>,
-    ) -> Buffer<'a, T, Self, S>;
+pub trait ElementWise<T, D: Device, S: Shape = ()>: Device {
+    fn add(&self, lhs: &Buffer<T, D, S>, rhs: &Buffer<T, D, S>) -> Buffer<T, Self, S>;
+    fn mul(&self, lhs: &Buffer<T, D, S>, rhs: &Buffer<T, D, S>) -> Buffer<T, Self, S>;
 }
 
 pub trait ElementWiseBuf<T, D: Device> {
     fn add(&self, rhs: &Buffer<T, D>) -> Buffer<T, D>;
 }
 
-impl<'a, T, D: Device + ElementWise<'a, T, D>> ElementWiseBuf<T, D> for Buffer<'a, T, D> {
+impl<'a, T, D: Device + ElementWise<T, D>> ElementWiseBuf<T, D> for Buffer<'a, T, D> {
     fn add(&self, rhs: &Buffer<T, D>) -> Buffer<T, D> {
-        todo!()
-        //self.device().add(self, rhs)
+        self.device().add(self, rhs)
     }
 }
 
@@ -30,7 +21,7 @@ pub trait Add2<Rhs = Self> {
     fn add(self, rhs: Rhs) -> Self::Output;
 }
 
-impl<'a, T, D: Device + ElementWise<'a, T, D>> Add2 for &Buffer<'a, T, D> {
+impl<'a, T, D: Device + ElementWise<T, D>> Add2 for &Buffer<'a, T, D> {
     type Output = Buffer<'a, T, D>;
 
     fn add(self, rhs: Self) -> Self::Output {
@@ -49,7 +40,7 @@ impl<'a, T, D: Device> Matrix<'a, T, D> {
     }
 }
 
-impl<'a, T, D: Device + ElementWise<'a, T, D>> Add2 for &Matrix<'a, T, D> {
+impl<'a, T, D: Device + ElementWise<T, D>> Add2 for &Matrix<'a, T, D> {
     type Output = Matrix<'a, T, D>;
 
     fn add(self, rhs: Self) -> Self::Output {

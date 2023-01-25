@@ -32,6 +32,7 @@ pub unsafe fn to_unified<T>(
             ptr: cl_ptr,
             host_ptr: no_drop.host_ptr() as *mut u8,
             len: no_drop.len(),
+            flag: AllocFlag::Cache,
         }),
     );
 

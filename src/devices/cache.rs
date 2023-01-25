@@ -1,4 +1,4 @@
-use core::{cell::RefMut, marker::PhantomData};
+use core::cell::RefMut;
 use std::collections::HashMap;
 
 use std::rc::Rc;
@@ -17,8 +17,8 @@ pub trait CacheReturn: GraphReturn {
 }
 
 pub trait RawConv: Device + CacheReturn {
-    fn construct<T, S: Shape>(ptr: &Self::Ptr<T, S>, len: usize) -> Self::CT;
-    fn destruct<T, S: Shape>(ct: &Self::CT, flag: AllocFlag) -> Self::Ptr<T, S>;
+    fn construct<T, S: Shape>(ptr: &Self::Ptr<T, S>, len: usize, flag: AllocFlag) -> Self::CT;
+    fn destruct<T, S: Shape>(ct: &Self::CT) -> Self::Ptr<T, S>;
 }
 
 #[derive(Debug)]
@@ -95,7 +95,7 @@ impl<D: RawConv> Cache<D> {
         //#[cfg(feature = "opt-cache")]
         //let graph_node = device.graph().add(ident.len, _add_node);
 
-        let raw_ptr = D::construct(&ptr, ident.len);
+        let raw_ptr = D::construct(&ptr, ident.len, AllocFlag::Cache);
         self.nodes.insert(ident, Rc::new(raw_ptr));
 
         callback();
@@ -144,7 +144,7 @@ impl<D: RawConv> Cache<D> {
             Some(ptr) => {
                 callback();
 
-                let ptr = D::destruct::<T, S>(ptr, AllocFlag::Cache);
+                let ptr = D::destruct::<T, S>(ptr);
 
                 Buffer {
                     ptr,

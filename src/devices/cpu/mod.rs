@@ -109,10 +109,14 @@ pub struct RawCpuBuf {
     len: usize,
     align: usize,
     size: usize,
+    flag: AllocFlag,
 }
 
 impl Drop for RawCpuBuf {
     fn drop(&mut self) {
+        if self.flag != AllocFlag::Cache {
+            return;
+        }
         unsafe {
             let layout = Layout::from_size_align(self.len * self.size, self.align).unwrap();
             std::alloc::dealloc(self.ptr, layout);

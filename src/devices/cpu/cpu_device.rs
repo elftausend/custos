@@ -58,21 +58,22 @@ impl Device for CPU {
 
 impl RawConv for CPU {
     #[inline]
-    fn construct<T, S: Shape>(ptr: &Self::Ptr<T, S>, len: usize) -> Self::CT {
+    fn construct<T, S: Shape>(ptr: &Self::Ptr<T, S>, len: usize, flag: AllocFlag) -> Self::CT {
         RawCpuBuf {
-            ptr: ptr.ptr.cast(),
+            flag,
             len,
+            ptr: ptr.ptr.cast(),
             align: align_of::<T>(),
             size: size_of::<T>(),
         }
     }
 
     #[inline]
-    fn destruct<T, S: Shape>(ct: &Self::CT, flag: AllocFlag) -> Self::Ptr<T, S> {
+    fn destruct<T, S: Shape>(ct: &Self::CT) -> Self::Ptr<T, S> {
         CPUPtr {
             ptr: ct.ptr as *mut T,
             len: ct.len,
-            flag,
+            flag: ct.flag,
         }
     }
 }
