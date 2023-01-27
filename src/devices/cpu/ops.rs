@@ -1,6 +1,8 @@
+use core::ops::AddAssign;
+
 use crate::{
     ApplyFunction, Buffer, ClearBuf, Device, Eval, MainMemory, Read, Resolve, Shape, ToVal,
-    WriteBuf, CPU,
+    UnaryGrad, WriteBuf, CPU,
 };
 
 impl<T, D: MainMemory, S: Shape> Read<T, D, S> for CPU {
@@ -51,5 +53,26 @@ where
         }
 
         out
+    }
+}
+
+impl<T, D, S> UnaryGrad<T, S, D> for CPU
+where
+    T: AddAssign + Copy + std::ops::Mul<Output = T>,
+    S: Shape,
+    D: MainMemory,
+{
+    fn add_unary_grad<F>(
+        &self,
+        lhs: &Buffer<T, D, S>,
+        lhs_grad: &mut Buffer<T, D, S>,
+        out: &Buffer<T, D, S>,
+        lhs_grad_fn: impl Fn(Resolve<T>) -> F,
+    ) where
+        F: Eval<T> + ToString,
+    {
+        for ((lhs, lhs_grad), out) in lhs.iter().zip(lhs_grad.iter_mut()).zip(out.iter()) {
+            *lhs_grad += *out * lhs_grad_fn((*lhs).to_val()).eval();
+        }
     }
 }

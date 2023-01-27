@@ -47,14 +47,6 @@ pub use ident::*;
 #[cfg(feature = "cuda")]
 pub type CUdeviceptr = core::ffi::c_ulonglong;
 
-#[cfg(not(feature = "opencl"))]
-#[derive(Debug)]
-pub struct InternOpenCL;
-
-#[cfg(not(feature = "cuda"))]
-#[derive(Debug)]
-pub struct InternCudaDevice;
-
 pub trait CacheAble<D: Device> {
     fn retrieve<T, S: Shape>(
         device: &D,

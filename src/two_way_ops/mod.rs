@@ -182,9 +182,9 @@ mod tests {
 
         let device = CPU::new();
 
-        let mut buf = Buffer::from((&device, &[3, 3, 4, 5, 3, 2]));
+        let buf = Buffer::from((&device, &[3, 3, 4, 5, 3, 2]));
 
-        device.apply_fn(&mut buf, |x| x.add(3));
+        let buf = device.apply_fn(&buf, |x| x.add(3));
         assert_eq!(buf.read(), &[6, 6, 7, 8, 6, 5]);
     }
 
@@ -195,9 +195,9 @@ mod tests {
 
         let device = OpenCL::new(0)?;
 
-        let mut buf = Buffer::from((&device, &[3, 3, 4, 5, 3, 2]));
+        let buf = Buffer::from((&device, &[3, 3, 4, 5, 3, 2]));
 
-        device.apply_fn(&mut buf, |x| x.add(3));
+        let buf = device.apply_fn(&buf, |x| x.add(3));
         assert_eq!(buf.read(), &[6, 6, 7, 8, 6, 5]);
 
         Ok(())
@@ -210,9 +210,9 @@ mod tests {
 
         let device = CPU::new();
 
-        let mut buf = Buffer::from((&device, &[3., 3., 4., 5., 3., 2.]));
+        let buf = Buffer::from((&device, &[3., 3., 4., 5., 3., 2.]));
 
-        device.apply_fn(&mut buf, |x| x.mul(2.).add(4.).sin().mul(x).add(1.));
+        let buf = device.apply_fn(&buf, |x| x.mul(2.).add(4.).sin().mul(x).add(1.));
         roughly_eq_slices(
             buf.read(),
             &[
@@ -233,9 +233,9 @@ mod tests {
 
         let device = OpenCL::new(0)?;
 
-        let mut buf = Buffer::from((&device, &[3., 3., 4., 5., 3., 2.]));
+        let buf = Buffer::from((&device, &[3., 3., 4., 5., 3., 2.]));
 
-        device.apply_fn(&mut buf, |x| x.mul(2.).add(4.).sin().mul(x).add(1.));
+        let buf = device.apply_fn(&buf, |x| x.mul(2.).add(4.).sin().mul(x).add(1.));
         roughly_eq_slices(
             &buf.read(),
             &[

@@ -1,10 +1,8 @@
 mod cmps;
 
-pub use cmps::*;
-
-use crate::prelude::Float;
-
 use super::{Combiner, Eval};
+use crate::prelude::Float;
+pub use cmps::*;
 
 pub struct Sin<C> {
     pub comb: C,
@@ -13,12 +11,14 @@ pub struct Sin<C> {
 impl<C> Combiner for Sin<C> {}
 
 impl<T: Float, C: Eval<T>> Eval<T> for Sin<C> {
+    #[inline]
     fn eval(self) -> T {
         self.comb.eval().sin()
     }
 }
 
 impl<C: ToString> ToString for Sin<C> {
+    #[inline]
     fn to_string(&self) -> String {
         format!("sin({})", self.comb.to_string())
     }
@@ -31,12 +31,14 @@ pub struct Cos<C> {
 impl<C> Combiner for Cos<C> {}
 
 impl<T: Float, C: Eval<T>> Eval<T> for Cos<C> {
+    #[inline]
     fn eval(self) -> T {
         self.comb.eval().cos()
     }
 }
 
 impl<C: ToString> ToString for Cos<C> {
+    #[inline]
     fn to_string(&self) -> String {
         format!("cos({})", self.comb.to_string())
     }

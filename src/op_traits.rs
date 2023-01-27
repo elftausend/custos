@@ -121,3 +121,14 @@ pub trait ApplyFunction<T, S: Shape = (), D: Device = CPU>: Device {
     where
         F: Eval<T> + ToString;
 }
+
+pub trait UnaryGrad<T, S: Shape = (), D: Device = CPU>: Device {
+    fn add_unary_grad<F>(
+        &self,
+        lhs: &Buffer<T, D, S>,
+        lhs_grad: &mut Buffer<T, D, S>,
+        out: &Buffer<T, D, S>,
+        lhs_grad_fn: impl Fn(Resolve<T>) -> F,
+    ) where
+        F: Eval<T> + ToString;
+}
