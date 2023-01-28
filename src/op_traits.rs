@@ -1,4 +1,4 @@
-use crate::{shape::Shape, Buffer, Device, Eval, Resolve, CPU};
+use crate::{shape::Shape, Buffer, Device, Eval, Resolve};
 
 /// Trait for implementing the clear() operation for the compute devices.
 pub trait ClearBuf<T, D: Device = Self, S: Shape = ()>: Device {
@@ -116,13 +116,13 @@ pub trait CacheBuf<'a, T, S: Shape = ()>: Sized + Device {
     fn cached(&'a self, len: usize) -> Buffer<'a, T, Self, S>;
 }
 
-pub trait ApplyFunction<T, S: Shape = (), D: Device = CPU>: Device {
+pub trait ApplyFunction<T, S: Shape = (), D: Device = Self>: Device {
     fn apply_fn<F>(&self, buf: &Buffer<T, D, S>, f: impl Fn(Resolve<T>) -> F) -> Buffer<T, Self, S>
     where
         F: Eval<T> + ToString;
 }
 
-pub trait UnaryGrad<T, S: Shape = (), D: Device = CPU>: Device {
+pub trait UnaryGrad<T, S: Shape = (), D: Device = Self>: Device {
     fn add_unary_grad<F>(
         &self,
         lhs: &Buffer<T, D, S>,

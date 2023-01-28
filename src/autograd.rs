@@ -2,7 +2,7 @@ use core::{cell::RefMut, fmt::Debug};
 
 use crate::{
     prelude::One, Alloc, ApplyFunction, Buffer, Cache, Device, Eval, Ident, RawConv, Resolve,
-    Shape, WriteBuf,
+    Shape, UnaryGrad, WriteBuf,
 };
 
 #[derive(Default)]
@@ -135,16 +135,17 @@ pub trait UnaryElementWise<T, D: Device, S: Shape>: Device {
         &self,
         buf: &Buffer<T, D, S>,
         forward_fn: impl Fn(Resolve<T>) -> FO,
-        x_grad: fn(&T) -> GO,
+        grad_fn: fn(Resolve<T>) -> GO,
     ) -> Buffer<T, Self, S>
     where
         FO: Eval<T> + ToString,
-        GO: Eval<T> + ToString;
+        GO: Eval<T> + ToString + 'static;
 }
 
 impl<T, D, S> UnaryElementWise<T, D, S> for D
 where
-    D: ApplyFunction<T, S, D> + TapeReturn,
+    T: 'static,
+    D: ApplyFunction<T, S, D> + UnaryGrad<T, S, D> + TapeReturn,
     D: for<'a> Alloc<'a, T, S>,
     S: Shape,
 {
@@ -152,35 +153,55 @@ where
         &self,
         buf: &Buffer<T, D, S>,
         forward_fn: impl Fn(Resolve<T>) -> FO,
-        x_grad: fn(&T) -> GO,
+        grad_fn: fn(Resolve<T>) -> GO,
     ) -> Buffer<T, Self, S>
     where
         FO: Eval<T> + ToString,
-        GO: Eval<T> + ToString,
+        GO: Eval<T> + ToString + 'static,
     {
         let out = self.apply_fn(buf, forward_fn);
 
         let ids = (buf.id(), out.id());
         self.tape_mut().add_grad_fn(move |grads, device| {
             let (lhs, mut lhs_grad, out_grad) = grads.get_double::<T, S>(device, ids);
-
-            //unary_grad_slice(lhs.len(), &lhs, &mut lhs_grad, &out_grad, x_grad);
+            device.add_unary_grad(&lhs, &mut lhs_grad, &out_grad, grad_fn);
         });
 
         out
     }
 }
 
+impl<'a, T, D, S> Buffer<'a, T, D, S>
+where
+    T: Clone + One,
+    D: TapeReturn + WriteBuf<T, D, S> + for<'b> Alloc<'b, T, S>,
+    S: Shape,
+{
+    #[inline]
+    pub fn backward(&self) {
+        self.device().tape_mut().backward_seeded(self)
+    }
+
+    #[inline]
+    pub fn grad(&self) -> Self {
+        self.device().tape_mut().grads.get_like(self)
+    }
+}
+
 #[cfg(test)]
 mod tests {
-    use crate::{Buffer, Tape, UnaryElementWise, CPU};
+    use crate::{Buffer, Combiner, UnaryElementWise, CPU};
 
     #[test]
     fn test_tape_unary_ew() {
         let device = CPU::new();
 
-        let buf = Buffer::from((&device, [1, 2, 3, 4, 5, 6]));
+        let buf = Buffer::from((&device, [1., 2., 3., 4., 5., 6.]));
 
-        device.unary_ew(&buf, |x| x, |x| *x);
+        let out = device.unary_ew(&buf, |x| x.sin(), |x| x.cos());
+
+        out.backward();
+
+        let grad = out.grad();
     }
 }

@@ -2,7 +2,7 @@ use min_cl::api::{enqueue_read_buffer, enqueue_write_buffer, wait_for_event};
 
 use crate::{
     ApplyFunction, Buffer, CDatatype, ClearBuf, Device, OpenCL, Read, Resolve, Shape, ToMarker,
-    WriteBuf,
+    UnaryGrad, WriteBuf,
 };
 
 use super::{enqueue_kernel, CLBuffer};
@@ -10,7 +10,7 @@ use super::{enqueue_kernel, CLBuffer};
 impl<T: CDatatype> ClearBuf<T, OpenCL> for OpenCL {
     #[inline]
     fn clear(&self, buf: &mut Buffer<T, OpenCL>) {
-        cl_clear(self, buf).unwrap()
+        try_cl_clear(self, buf).unwrap()
     }
 }
 
@@ -29,7 +29,10 @@ impl<T: CDatatype> ClearBuf<T, OpenCL> for OpenCL {
 ///     Ok(())
 /// }
 /// ```
-pub fn cl_clear<T: CDatatype>(device: &OpenCL, lhs: &mut Buffer<T, OpenCL>) -> crate::Result<()> {
+pub fn try_cl_clear<T: CDatatype>(
+    device: &OpenCL,
+    lhs: &mut Buffer<T, OpenCL>,
+) -> crate::Result<()> {
     let src = format!(
         "
         __kernel void clear(__global {datatype}* self) {{
@@ -72,11 +75,11 @@ impl<T: Clone + Default> Read<T, OpenCL> for OpenCL {
 
     #[inline]
     fn read_to_vec(&self, buf: &Buffer<T, OpenCL>) -> Vec<T> {
-        read_cl_buf_to_vec(self, buf).unwrap()
+        try_read_cl_buf_to_vec(self, buf).unwrap()
     }
 }
 
-fn read_cl_buf_to_vec<T: Clone + Default>(
+fn try_read_cl_buf_to_vec<T: Clone + Default>(
     device: &OpenCL,
     buf: &Buffer<T, OpenCL>,
 ) -> crate::Result<Vec<T>> {
@@ -86,7 +89,7 @@ fn read_cl_buf_to_vec<T: Clone + Default>(
     Ok(read)
 }
 
-impl<T, S> ApplyFunction<T, S, OpenCL> for OpenCL
+impl<T, S> ApplyFunction<T, S> for OpenCL
 where
     T: CDatatype,
     S: Shape,
@@ -100,11 +103,11 @@ where
     where
         F: ToString,
     {
-        cl_apply_fn(self, buf, f).unwrap()
+        try_cl_apply_fn(self, buf, f).unwrap()
     }
 }
 
-pub fn cl_apply_fn<'a, T, S, F: ToString>(
+pub fn try_cl_apply_fn<'a, T, S, F: ToString>(
     device: &'a OpenCL,
     x: &CLBuffer<T, S>,
     f: impl Fn(Resolve<T>) -> F,
@@ -127,4 +130,86 @@ where
     let out = device.retrieve::<T, S>(x.len());
     enqueue_kernel(device, &src, [x.len(), 0, 0], None, &[x, &out])?;
     Ok(out)
+}
+
+impl<T, S> UnaryGrad<T, S> for OpenCL
+where
+    T: CDatatype,
+    S: Shape,
+{
+    #[inline]
+    fn add_unary_grad<F>(
+        &self,
+        lhs: &Buffer<T, Self, S>,
+        lhs_grad: &mut Buffer<T, Self, S>,
+        out: &Buffer<T, Self, S>,
+        lhs_grad_fn: impl Fn(Resolve<T>) -> F,
+    ) where
+        F: ToString,
+    {
+        try_cl_add_unary_grad(self, lhs, lhs_grad, out, lhs_grad_fn).unwrap();
+    }
+}
+
+pub fn try_cl_add_unary_grad<T, S, F>(
+    device: &OpenCL,
+    lhs: &Buffer<T, OpenCL, S>,
+    lhs_grad: &mut Buffer<T, OpenCL, S>,
+    out: &Buffer<T, OpenCL, S>,
+    lhs_grad_fn: impl Fn(Resolve<T>) -> F,
+) -> crate::Result<()>
+where
+    T: CDatatype,
+    F: ToString,
+    S: Shape,
+{
+    let src = format!(
+        "
+        __kernel void add_unary_grad(__global const {datatype}* lhs, __global {datatype}* lhs_grad, __global const {datatype}* out) {{
+            size_t id = get_global_id(0);
+            lhs_grad[id] += out[id] * {operation};
+        }}
+    ",
+        datatype = T::as_c_type_str(),
+        operation = lhs_grad_fn("lhs_grad[id]".to_marker()).to_string()
+    );
+
+    enqueue_kernel(device, &src, [lhs.len(), 0, 0], None, &[lhs, lhs_grad, out])?;
+    Ok(())
+}
+
+#[cfg(test)]
+mod test {
+    use crate::{
+        opencl::{try_cl_add_unary_grad, try_cl_apply_fn},
+        Buffer, Combiner, OpenCL,
+    };
+
+    #[test]
+    fn test_cl_apply_fn() -> crate::Result<()> {
+        let device = OpenCL::new(0)?;
+
+        let buf = Buffer::from((&device, [1, 2, 3, 4, 5, 6]));
+
+        let out = try_cl_apply_fn(&device, &buf, |x| x.mul(2))?;
+        assert_eq!(out.read(), [2, 4, 6, 8, 10, 12]);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_cl_add_unary_grad() -> crate::Result<()> {
+        let device = OpenCL::new(0)?;
+
+        let lhs = Buffer::from((&device, [1, 2, 3, 4, 5, 6]));
+        let mut lhs_grad = Buffer::from((&device, [1, 2, 3, 4, 5, 6]));
+
+        let out = Buffer::from((&device, [1, 1, 1, 1, 1, 1]));
+
+        try_cl_add_unary_grad(&device, &lhs, &mut lhs_grad, &out, |x| x.mul(2).add(1))?;
+
+        assert_eq!(lhs_grad.read(), [4, 7, 10, 13, 16, 19]);
+
+        Ok(())
+    }
 }
