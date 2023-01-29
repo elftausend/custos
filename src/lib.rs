@@ -123,6 +123,11 @@ pub trait Device: Sized {
     {
         Self::Cache::get_like(self, ident)
     }
+
+    #[inline]
+    fn remove(&self, ident: Ident) {
+        Self::Cache::remove(self, ident);
+    }
 }
 
 pub trait DevicelessAble<'a, T, S: Shape = ()>: Alloc<'a, T, S> {}

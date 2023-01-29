@@ -57,6 +57,11 @@ where
     {
         device.cache().get(device, ident, || ())
     }
+
+    #[inline]
+    fn remove(device: &D, ident: Ident) {
+        device.cache().nodes.remove(&ident);
+    }
 }
 
 impl<D: RawConv> Cache<D> {

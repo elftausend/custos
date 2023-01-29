@@ -4,6 +4,7 @@ pub enum AllocFlag {
     None,
     Cache,
     Wrapper,
+    Num,
 }
 
 impl Default for AllocFlag {

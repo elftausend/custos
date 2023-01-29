@@ -221,6 +221,22 @@ impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
     }
 }
 
+impl<'a, T, D: Device, S: Shape> Drop for Buffer<'a, T, D, S> {
+    #[inline]
+    fn drop(&mut self) {
+        if self.ptr.flag() != AllocFlag::None {
+            return;
+        }
+
+        // mind that these buffers are currently only added at from_slice
+        if let Some(device) = self.device {
+            device.remove(self.ident)
+        }
+        
+    }
+}
+
+/* 
 impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
     /// Converts a (non stack allocated) `Buffer` with no shape to a `Buffer` with shape `O`.
     #[inline]
@@ -236,7 +252,7 @@ impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
             ident: self.ident,
         }
     }
-}
+}*/
 
 impl<'a, T, D: IsShapeIndep, S: Shape> Buffer<'a, T, D, S> {
     #[inline]
@@ -687,9 +703,9 @@ mod tests {
 
         let device = crate::CPU::new();
         let buf = Buffer::from((&device, [1, 2, 3, 4, 5, 6]));
-        let buf_dim2 = buf.to_dims::<Dim2<3, 2>>();
+        //let buf_dim2 = buf.to_dims::<Dim2<3, 2>>();
 
-        buf_dim2.to_dims::<()>();
+        //buf_dim2.to_dims::<()>();
     }
 
     #[cfg(feature = "cpu")]
