@@ -21,7 +21,7 @@ where
 
 // TODO: write expansion example
 //#[impl_stack]
-impl<T, D, S> ElementWise<T, D, S> for CPU<'_>
+impl<T, D, S> ElementWise<T, D, S> for CPU
 where
     T: Number,
     D: MainMemory,

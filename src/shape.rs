@@ -1,6 +1,6 @@
 use crate::{Device, PtrType};
 
-pub unsafe trait Shape {
+pub unsafe trait Shape: 'static {
     const LEN: usize = 0;
     type ARR<T>;
 
@@ -78,7 +78,7 @@ pub trait ToDim<T, I: Shape, O: Shape>: crate::Device {
     fn to_dim(&self, ptr: Self::Ptr<T, I>) -> Self::Ptr<T, O>;
 }
 
-impl<T, D: crate::RawConv, I: Shape, O: Shape> ToDim<T, I, O> for D
+impl<T: 'static, D: crate::RawConv, I: Shape, O: Shape> ToDim<T, I, O> for D
 where
     Self::Ptr<T, ()>: crate::PtrType,
 {
@@ -125,7 +125,7 @@ impl<T, D: Device, S: IsConstDim> ToDim<T, S, S> for D {
 */
 
 #[cfg(feature = "stack")]
-impl<T, S: IsConstDim> ToDim<T, S, S> for crate::Stack {
+impl<T: 'static, S: IsConstDim> ToDim<T, S, S> for crate::Stack {
     #[inline]
     fn to_dim(&self, ptr: Self::Ptr<T, S>) -> Self::Ptr<T, S> {
         ptr

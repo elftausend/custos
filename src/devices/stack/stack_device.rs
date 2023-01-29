@@ -8,10 +8,10 @@ use super::stack_array::StackArray;
 #[derive(Debug, Clone, Copy)]
 pub struct Stack;
 
-impl<'a, T: Copy + Default, S: Shape> DevicelessAble<'a, T, S> for Stack {}
+impl<'a, T: Copy + Default + 'static, S: Shape> DevicelessAble<'a, T, S> for Stack {}
 
 impl Device for Stack {
-    type Ptr<U, S: Shape> = StackArray<S, U>;
+    type Ptr<U: 'static, S: Shape> = StackArray<S, U>;
     type Cache = ();
 
     fn new() -> crate::Result<Self> {
@@ -21,17 +21,17 @@ impl Device for Stack {
 
 impl MainMemory for Stack {
     #[inline]
-    fn as_ptr<T, S: Shape>(ptr: &Self::Ptr<T, S>) -> *const T {
+    fn as_ptr<T: 'static, S: Shape>(ptr: &Self::Ptr<T, S>) -> *const T {
         ptr.as_ptr()
     }
 
     #[inline]
-    fn as_ptr_mut<T, S: Shape>(ptr: &mut Self::Ptr<T, S>) -> *mut T {
+    fn as_ptr_mut<T: 'static, S: Shape>(ptr: &mut Self::Ptr<T, S>) -> *mut T {
         ptr.as_ptr_mut()
     }
 }
 
-impl<'a, S: Shape, T: Copy + Default> Alloc<'a, T, S> for Stack {
+impl<'a, S: Shape, T: Copy + Default + 'static> Alloc<'a, T, S> for Stack {
     #[inline]
     unsafe fn alloc<A>(&self, _len: usize, _flag: AllocFlag) -> StackArray<S, T> {
         StackArray::new()
@@ -86,7 +86,7 @@ where
     }
 }
 
-impl<'a, T, S: Shape> CloneBuf<'a, T, S> for Stack
+impl<'a, T: 'static, S: Shape> CloneBuf<'a, T, S> for Stack
 where
     <Stack as Device>::Ptr<T, S>: Copy,
 {

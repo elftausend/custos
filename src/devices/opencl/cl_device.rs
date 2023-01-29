@@ -7,12 +7,12 @@ use min_cl::api::{
 
 use super::{chosen_cl_idx, cl_clear, CLPtr, KernelCacheCL, RawCL};
 use crate::flag::AllocFlag;
-use crate::{Shape, Cache2, CacheReturn2, Node, BufType};
 use crate::{
     cache::{Cache, CacheReturn, RawConv},
     Alloc, Buffer, CDatatype, CacheBuf, CachedLeaf, ClearBuf, CloneBuf, Device, Error, Graph,
     GraphReturn, Read, WriteBuf, CPU,
 };
+use crate::{BufType, Cache2, CacheReturn2, Node, Shape};
 
 use std::{cell::RefCell, fmt::Debug};
 

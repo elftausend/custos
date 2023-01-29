@@ -6,10 +6,12 @@ use self::cpu::{
     api::{cblas_dgemm, cblas_sgemm},
     Order, Transpose,
 };
-use crate::{shape::Shape, AddGraph, Alloc, Buffer, Device};
+use crate::{shape::Shape, AddGraph, Alloc, Buffer, Device, IsBuffer};
 
 #[cfg(feature = "cuda")]
 use cuda::api::cublas::{cublasDgemm_v2, cublasOperation_t, cublasSgemm_v2, CublasHandle};
+
+mod cache3;
 
 #[cfg(not(feature = "no-std"))]
 pub mod cache;
@@ -62,11 +64,16 @@ pub trait CacheAble<D: Device> {
 }
 
 pub trait CacheAble2<D: Device> {
-    type Retrieval<'r, T, S: Shape>
+    /*type Input<'r, T, S: Shape>: IsBuffer<'r, D>
     where
         S: 'r,
         D: 'r,
-        T: 'r;
+        T: 'r;*/
+    type Retrieval<'r, T, S: Shape>: IsBuffer<'r, T, D, S>
+    where
+        S: 'r,
+        D: 'r,
+        T: 'r + 'static;
 
     fn retrieve<'a, T, S: Shape>(
         device: &'a D,

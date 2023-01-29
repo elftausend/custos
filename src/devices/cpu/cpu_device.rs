@@ -3,8 +3,8 @@ use crate::{
     devices::cache::{Cache, CacheReturn},
     flag::AllocFlag,
     shape::Shape,
-    Alloc, Buffer, Cache2, CacheBuf, CacheReturn2, CachedLeaf, ClearBuf, CloneBuf, Device,
-    DevicelessAble, Graph, GraphReturn, MainMemory, Read, WriteBuf, BufType,
+    Alloc, BufType, Buffer, Cache2, CacheBuf, CacheReturn2, CachedLeaf, ClearBuf, CloneBuf, Device,
+    DevicelessAble, Graph, GraphReturn, MainMemory, Read, WriteBuf,
 };
 use core::{
     cell::{RefCell, RefMut},
@@ -47,7 +47,7 @@ impl CPU {
 }
 
 impl Device for CPU {
-    type Ptr<U, S: Shape> = CPUPtr<U>;
+    type Ptr<U: 'static, S: Shape> = CPUPtr<U>;
     type Cache = Cache2<CPU>; //<CPU as CacheReturn>::CT
 
     fn new() -> crate::Result<Self> {
@@ -72,7 +72,7 @@ impl BufType for crate::CPU {
 
 impl RawConv for CPU {
     #[inline]
-    fn construct<T, S: Shape>(ptr: &Self::Ptr<T, S>, len: usize, node: crate::Node) -> Self::CT {
+    fn construct<T: 'static, S: Shape>(ptr: &Self::Ptr<T, S>, len: usize, node: crate::Node) -> Self::CT {
         RawCpuBuf {
             ptr: ptr.ptr.cast(),
             len,
@@ -83,7 +83,7 @@ impl RawConv for CPU {
     }
 
     #[inline]
-    fn destruct<T, S: Shape>(ct: &Self::CT, flag: AllocFlag) -> (Self::Ptr<T, S>, crate::Node) {
+    fn destruct<T: 'static, S: Shape>(ct: &Self::CT, flag: AllocFlag) -> (Self::Ptr<T, S>, crate::Node) {
         (
             CPUPtr {
                 ptr: ct.ptr as *mut T,
@@ -95,9 +95,9 @@ impl RawConv for CPU {
     }
 }
 
-impl<'a, T> DevicelessAble<'a, T> for CPU {}
+impl<'a, T: 'static> DevicelessAble<'a, T> for CPU {}
 
-impl<T, S: Shape> Alloc<'_, T, S> for CPU {
+impl<T: 'static, S: Shape> Alloc<'_, T, S> for CPU {
     unsafe fn alloc<A>(&self, mut len: usize, flag: AllocFlag) -> CPUPtr<T> {
         assert!(len > 0, "invalid buffer len: 0");
 
@@ -158,12 +158,12 @@ impl GraphReturn for CPU {
 
 impl MainMemory for CPU {
     #[inline]
-    fn as_ptr<T, S: Shape>(ptr: &Self::Ptr<T, S>) -> *const T {
+    fn as_ptr<T: 'static, S: Shape>(ptr: &Self::Ptr<T, S>) -> *const T {
         ptr.ptr
     }
 
     #[inline]
-    fn as_ptr_mut<T, S: Shape>(ptr: &mut Self::Ptr<T, S>) -> *mut T {
+    fn as_ptr_mut<T: 'static, S: Shape>(ptr: &mut Self::Ptr<T, S>) -> *mut T {
         ptr.ptr
     }
 }

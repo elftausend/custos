@@ -97,7 +97,7 @@ pub type Return<'a, T = f32, D = CPU, S = ()> =
     <<D as Device>::Cache as CacheAble2<D>>::Retrieval<'a, T, S>;
 
 pub trait Device: Sized {
-    type Ptr<U, S: Shape>: PtrType; //const B: usize, const C: usize
+    type Ptr<U: 'static, S: Shape>: PtrType + 'static; //const B: usize, const C: usize
     type Cache: CacheAble2<Self>;
 
     fn new() -> crate::Result<Self>;

@@ -19,15 +19,16 @@ impl Device for CPU {
 
 use crate::{
     flag::AllocFlag, shape::Shape, Alloc, CacheBuf, ClearBuf, CloneBuf, CommonPtrs, Device,
-    DevicelessAble, IsShapeIndep, MainMemory, Node, PtrType, Read,
-    ShallowCopy, ToDim, WriteBuf,
+    DevicelessAble, IsShapeIndep, MainMemory, Node, PtrType, Read, ShallowCopy, ToDim, WriteBuf,
 };
 
 pub use self::num::Num;
 pub use impl_with_shape::*;
+pub use is_buffer::*;
 
 mod impl_from;
 mod impl_with_shape;
+mod is_buffer;
 mod num;
 
 /// The underlying non-growable array structure. A `Buffer` may be encapsulated in other structs.
@@ -45,7 +46,7 @@ mod num;
 /// buffer_f32_cpu(&buf);
 /// buffer_generic(&buf);
 /// ```
-pub struct Buffer<'a, T = f32, D: Device = CPU, S: Shape = ()> {
+pub struct Buffer<'a, T: 'static = f32, D: Device = CPU, S: Shape = ()> {
     pub ptr: D::Ptr<T, S>,
     pub device: Option<&'a D>,
     pub node: Node,
@@ -114,6 +115,7 @@ impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
         }
     }
 
+    #[inline]
     pub fn device(&self) -> &'a D {
         self.device
             .expect("Called device() on a deviceless buffer.")

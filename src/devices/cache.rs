@@ -1,17 +1,11 @@
-use core::{
-    cell::RefMut,
-    marker::PhantomData,
-    mem::ManuallyDrop,
-};
+use core::{cell::RefMut, marker::PhantomData, mem::ManuallyDrop};
 use std::collections::HashMap;
 
 use std::rc::Rc;
 
 use crate::{
-    bump_count,
-    flag::AllocFlag,
-    shape::Shape,
-    AddGraph, Alloc, Buffer, CacheAble, CacheAble2, Device, GraphReturn, Ident, Node,
+    bump_count, flag::AllocFlag, shape::Shape, AddGraph, Alloc, Buffer, CacheAble, CacheAble2,
+    Device, GraphReturn, Ident, Node,
 };
 
 /// This trait makes a device's [`Cache`] accessible and is implemented for all compute devices.
@@ -58,7 +52,13 @@ pub trait BufType: Device {
 
 //#[derive(Debug)]
 pub struct Cache2<D: 'static + BufType = crate::CPU> {
-    pub nodes: HashMap<Ident, (ManuallyDrop<Buffer<'static, u8, D, ()>>, D::Deallocator)>,
+    pub nodes: HashMap<
+        Ident,
+        (
+            ManuallyDrop<Buffer<'static, u8, D, ()>>,
+            Option<D::Deallocator>,
+        ),
+    >,
 }
 
 impl<D: BufType> core::fmt::Debug for Cache2<D>
@@ -73,7 +73,7 @@ where
                     .nodes
                     .values()
                     .map(|(_, b)| b)
-                    .collect::<Vec<&D::Deallocator>>(),
+                    .collect::<Vec<&Option<D::Deallocator>>>(),
             )
             .finish()
     }
@@ -104,7 +104,7 @@ impl<D: BufType> Cache2<D> {
             node: Node::default(),
         });
 
-        self.nodes.insert(ident, (buf, raw));
+        self.nodes.insert(ident, (buf, Some(raw)));
 
         bump_count();
 
@@ -157,7 +157,7 @@ where
     where
         S: 'r,
         D: 'r,
-        T: 'r;
+        T: 'r + 'static;
 
     #[inline]
     fn retrieve<'a, T, S: Shape>(
@@ -180,7 +180,7 @@ where
     where
         S: 'r,
         D: 'r,
-        T: 'r;
+        T: 'r + 'static;
 
     #[inline]
     fn retrieve<'a, T, S: Shape>(
