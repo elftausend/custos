@@ -59,3 +59,23 @@ impl<C: ToString> ToString for Tan<C> {
         format!("tan({})", self.comb.to_string())
     }
 }
+
+pub struct Neg<C> {
+    pub comb: C,
+}
+
+impl<C> Combiner for Neg<C> {}
+
+impl<T: core::ops::Neg<Output = T>, C: Eval<T>> Eval<T> for Neg<C> {
+    #[inline]
+    fn eval(self) -> T {
+        self.comb.eval().neg()
+    }
+}
+
+impl<C: ToString> ToString for Neg<C> {
+    #[inline]
+    fn to_string(&self) -> String {
+        format!("-({})", self.comb.to_string())
+    }
+}

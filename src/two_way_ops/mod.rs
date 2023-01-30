@@ -3,7 +3,7 @@ mod resolve;
 
 pub use resolve::*;
 
-use self::ops::{Add, Cos, Div, Eq, GEq, LEq, Mul, Sin, Sub, Tan, Pow};
+use self::ops::{Add, Cos, Div, Eq, GEq, LEq, Mul, Sin, Sub, Tan, Pow, Neg};
 
 pub trait Eval<T> {
     fn eval(self) -> T;
@@ -104,11 +104,30 @@ pub trait Combiner {
     {
         Eq { comb: self, rhs }
     }
+
+    #[inline]
+    fn neg(self) -> Neg<Self>
+    where
+        Self: Sized,
+    {
+        Neg { comb: self }
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use crate::{prelude::Float, Buffer, Combiner, Eval, Resolve, ToMarker, ToVal, CPU};
+
+    #[test]
+    fn test_neg_tan() {
+        let f = |x: Resolve<f32>| x.tan().neg();
+
+        let res: f32 = f(2f32.to_val()).eval();
+        roughly_eq_slices(&[res], &[2.1850398]);
+        
+        let res = f("val".to_marker()).to_string();
+        assert_eq!(res, "-(tan(val))")
+    }
 
     #[test]
     fn test_pow() {
