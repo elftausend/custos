@@ -3,7 +3,7 @@ mod resolve;
 
 pub use resolve::*;
 
-use self::ops::{Add, Cos, Div, Eq, GEq, LEq, Mul, Sin, Sub};
+use self::ops::{Add, Cos, Div, Eq, GEq, LEq, Mul, Sin, Sub, Tan, Pow};
 
 pub trait Eval<T> {
     fn eval(self) -> T;
@@ -66,6 +66,22 @@ pub trait Combiner {
     }
 
     #[inline]
+    fn tan(self) -> Tan<Self>
+    where
+        Self: Sized,
+    {
+        Tan { comb: self }
+    }
+
+    #[inline]
+    fn pow<R>(self, rhs: R) -> Pow<Self, R>
+    where
+        Self: Sized,
+    {
+        Pow::new(self, rhs)
+    }
+
+    #[inline]
     fn geq<R>(self, rhs: R) -> GEq<Self, R>
     where
         Self: Sized,
@@ -93,6 +109,17 @@ pub trait Combiner {
 #[cfg(test)]
 mod tests {
     use crate::{prelude::Float, Buffer, Combiner, Eval, Resolve, ToMarker, ToVal, CPU};
+
+    #[test]
+    fn test_pow() {
+        let f = |x: Resolve<f32>, y: Resolve<f32>| x.mul(3.).pow(y.add(1.));
+
+        let res = f(3f32.to_val(), 2f32.to_val()).eval();
+        assert_eq!(res, 9. * 9. * 9.);
+
+        let res = f("x".to_marker(), "y".to_marker()).to_string();
+        assert_eq!(res, "pow((x * 3), (y + 1))")
+    }
 
     #[test]
     fn test_eq() {

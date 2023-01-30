@@ -1,48 +1,11 @@
 mod cmps;
+mod unary;
+
+use crate::prelude::Float;
 
 use super::{Combiner, Eval};
-use crate::prelude::Float;
 pub use cmps::*;
-
-pub struct Sin<C> {
-    pub comb: C,
-}
-
-impl<C> Combiner for Sin<C> {}
-
-impl<T: Float, C: Eval<T>> Eval<T> for Sin<C> {
-    #[inline]
-    fn eval(self) -> T {
-        self.comb.eval().sin()
-    }
-}
-
-impl<C: ToString> ToString for Sin<C> {
-    #[inline]
-    fn to_string(&self) -> String {
-        format!("sin({})", self.comb.to_string())
-    }
-}
-
-pub struct Cos<C> {
-    pub comb: C,
-}
-
-impl<C> Combiner for Cos<C> {}
-
-impl<T: Float, C: Eval<T>> Eval<T> for Cos<C> {
-    #[inline]
-    fn eval(self) -> T {
-        self.comb.eval().cos()
-    }
-}
-
-impl<C: ToString> ToString for Cos<C> {
-    #[inline]
-    fn to_string(&self) -> String {
-        format!("cos({})", self.comb.to_string())
-    }
-}
+pub use unary::*;
 
 pub struct Mul<C, R> {
     comb: C,
@@ -153,5 +116,33 @@ impl<C: Eval<T>, R: Eval<T>, T: std::ops::Div<Output = T>> Eval<T> for Div<C, R>
     #[inline]
     fn eval(self) -> T {
         self.comb.eval() / self.rhs.eval()
+    }
+}
+
+pub struct Pow<C, R> {
+    comb: C,
+    rhs: R
+}
+
+impl<C, R> Pow<C, R> {
+    #[inline]
+    pub fn new(comb: C, rhs: R) -> Pow<C, R> {
+        Pow { comb, rhs }
+    }
+}
+
+impl<C, R> Combiner for Pow<C, R> {}
+
+impl<C: ToString, R: ToString> ToString for Pow<C, R> {
+    #[inline]
+    fn to_string(&self) -> String {
+        format!("pow({}, {})", self.comb.to_string(), self.rhs.to_string())
+    }
+}
+
+impl<C: Eval<T>, R: Eval<T>, T: Float> Eval<T> for Pow<C, R> {
+    #[inline]
+    fn eval(self) -> T {
+        self.comb.eval().powf(self.rhs.eval())
     }
 }
