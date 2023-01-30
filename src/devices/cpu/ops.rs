@@ -36,6 +36,12 @@ impl<T: Copy, D: MainMemory> WriteBuf<T, D> for CPU {
     }
 }
 
+use custos_macro::impl_stack;
+
+#[cfg(feature="stack")]
+use crate::Stack;
+
+#[impl_stack]
 impl<T, D, S> ApplyFunction<T, S, D> for CPU
 where
     T: Copy + Default + ToVal,
@@ -56,6 +62,7 @@ where
     }
 }
 
+#[impl_stack]
 impl<T, D, S> UnaryGrad<T, S, D> for CPU
 where
     T: AddAssign + Copy + std::ops::Mul<Output = T>,

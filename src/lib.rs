@@ -79,6 +79,7 @@ mod two_way_ops;
 #[cfg(feature = "static-api")]
 pub mod static_api;
 
+#[cfg(feature="autograd")]
 mod autograd;
 pub mod number;
 pub use op_traits::*;
@@ -102,6 +103,7 @@ pub trait CommonPtrs<T> {
 pub trait Device: Sized {
     type Ptr<U, S: Shape>: PtrType; //const B: usize, const C: usize
     type Cache: CacheAble<Self>;
+    //type Tape;
 
     fn new() -> crate::Result<Self>;
 
@@ -125,8 +127,18 @@ pub trait Device: Sized {
     }
 
     #[inline]
+    fn get_existing_buf<T, S: Shape>(&self, ident: Ident) -> Buffer<T, Self, S> {
+        Self::Cache::get_existing_buf(self, ident)
+    }
+
+    #[inline]
     fn remove(&self, ident: Ident) {
         Self::Cache::remove(self, ident);
+    }
+
+    #[inline]
+    fn add_to_cache<T, S: Shape>(&self, ptr: &Self::Ptr<T, S>) -> Ident {
+        Self::Cache::add_to_cache(self, ptr)
     }
 }
 
@@ -208,6 +220,16 @@ pub trait Alloc<'a, T, S: Shape = ()>: Device {
         self.with_slice(&array)
     }
 }
+
+#[cfg(feature = "autograd")]
+pub trait MayTapeReturn: crate::TapeReturn {}
+#[cfg(feature = "autograd")]
+impl<D: crate::TapeReturn> MayTapeReturn for D {}
+
+#[cfg(not(feature = "autograd"))]
+pub trait MayTapeReturn {}
+#[cfg(not(feature = "autograd"))]
+impl<D> MayTapeReturn for D {}
 
 #[cfg(not(unified_cl))]
 pub const UNIFIED_CL_MEM: bool = false;

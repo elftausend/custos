@@ -41,6 +41,8 @@ pub struct OpenCL {
     pub inner: RefCell<CLDevice>,
     pub graph: RefCell<Graph>,
     pub cpu: CPU,
+    #[cfg(feature="autograd")]
+    pub tape: RefCell<crate::Tape<OpenCL>>,
 }
 
 /// Short form for `OpenCL`
@@ -59,6 +61,8 @@ impl OpenCL {
             cache: Default::default(),
             graph: Default::default(),
             cpu: Default::default(),
+            #[cfg(feature="autograd")]
+            tape: Default::default(),
         })
     }
 
@@ -119,12 +123,35 @@ impl OpenCL {
     }
 }
 
+impl Default for OpenCL {
+    fn default() -> Self {
+        let inner = RefCell::new(CLDevice::new(chosen_cl_idx()).expect("Could not get CLDevice."));
+        Self {
+            inner,
+            kernel_cache: Default::default(),
+            cache: Default::default(),
+            graph: Default::default(),
+            cpu: Default::default(),
+            #[cfg(feature="autograd")]
+            tape: Default::default(),
+        }
+    }
+}
+
 impl Device for OpenCL {
     type Ptr<U, S: Shape> = CLPtr<U>;
     type Cache = Cache<Self>;
 
     fn new() -> crate::Result<Self> {
         OpenCL::new(chosen_cl_idx())
+    }
+}
+
+#[cfg(feature="autograd")]
+impl crate::TapeReturn for OpenCL {
+    #[inline]
+    fn tape_mut(&self) -> core::cell::RefMut<crate::Tape<Self>> {
+        self.tape.borrow_mut()
     }
 }
 
@@ -285,6 +312,8 @@ mod tests {
             inner: RefCell::new(device),
             graph: Default::default(),
             cpu: Default::default(),
+            #[cfg(feature="autograd")]
+            tape: Default::default(),
         };
 
         let buf = Buffer::from((&cl, &[1, 2, 3, 4, 5, 6, 7]));
@@ -298,6 +327,8 @@ mod tests {
             inner: RefCell::new(device),
             graph: Default::default(),
             cpu: Default::default(),
+            #[cfg(feature="autograd")]
+            tape: Default::default(),
         };
 
         let buf = Buffer::from((&cl1, &[2, 2, 4, 4, 2, 1, 3]));

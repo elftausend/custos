@@ -1,4 +1,4 @@
-use crate::{shape::Shape, Buffer, Device, Eval, Resolve};
+use crate::{shape::Shape, Buffer, Device, Eval, Resolve, Alloc, MayTapeReturn};
 
 /// Trait for implementing the clear() operation for the compute devices.
 pub trait ClearBuf<T, D: Device = Self, S: Shape = ()>: Device {
@@ -131,4 +131,66 @@ pub trait UnaryGrad<T, S: Shape = (), D: Device = Self>: Device {
         lhs_grad_fn: impl Fn(Resolve<T>) -> F,
     ) where
         F: Eval<T> + ToString;
+}
+
+pub trait UnaryElementWise<T, D: Device, S: Shape>: Device {
+    fn unary_ew<FO, GO>(
+        &self,
+        buf: &Buffer<T, D, S>,
+        forward_fn: impl Fn(Resolve<T>) -> FO,
+        grad_fn: fn(Resolve<T>) -> GO,
+    ) -> Buffer<T, Self, S>
+    where
+        FO: Eval<T> + ToString,
+        GO: Eval<T> + ToString + 'static;
+}
+
+impl<T, D, S> UnaryElementWise<T, D, S> for D
+where
+    T: 'static,
+    D: ApplyFunction<T, S, D> + UnaryGrad<T, S, D> + MayTapeReturn,
+    D: for<'a> Alloc<'a, T, S>,
+    S: Shape,
+{
+    fn unary_ew<FO, GO>(
+        &self,
+        buf: &Buffer<T, D, S>,
+        forward_fn: impl Fn(Resolve<T>) -> FO,
+        _grad_fn: fn(Resolve<T>) -> GO,
+    ) -> Buffer<T, Self, S>
+    where
+        FO: Eval<T> + ToString,
+        GO: Eval<T> + ToString + 'static,
+    {
+        let out = self.apply_fn(buf, forward_fn);
+
+        #[cfg(feature = "autograd")]
+        {
+            let ids = (buf.id(), out.id());
+            self.tape_mut().add_grad_fn(move |grads, device| {
+                let (lhs, mut lhs_grad, out_grad) = grads.get_double::<T, S>(device, ids);
+                device.add_unary_grad(&lhs, &mut lhs_grad, &out_grad, _grad_fn);
+            });
+        }
+
+        out
+    }
+}
+
+#[cfg(test)]
+mod tests {
+
+    #[cfg(feature="stack")]
+    #[cfg(not(feature="autograd"))]
+    #[test]
+    fn test_unary_ew_stack_no_autograd() {
+        use crate::{Buffer, Dim1, UnaryElementWise, Combiner};
+
+        let device = crate::Stack;
+        let buf = Buffer::<_, _, Dim1<5>>::from((&device, [1, 2, 4, 5, 3]));
+        
+        let out = device.unary_ew(&buf, |x| x.mul(3), |x| x);
+        
+        assert_eq!(out.read(), [3, 6, 12, 15, 9]);
+    }
 }

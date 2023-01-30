@@ -1,4 +1,4 @@
-use crate::{shape::Shape, Alloc, Buffer, Ident, IsShapeIndep, RawConv};
+use crate::{shape::Shape, Alloc, Buffer, IsShapeIndep, RawConv};
 
 impl<'a, T, D, const N: usize> From<(&'a D, [T; N])> for Buffer<'a, T, D>
 where
@@ -61,8 +61,7 @@ where
 {
     #[inline]
     fn from((device, slice): (&'a D, &[T])) -> Self {
-        todo!()
-        //Buffer::from_slice(device, slice)
+        Buffer::from_slice(device, slice)
     }
 }
 
@@ -87,27 +86,11 @@ where
     T: Clone,
     D: Alloc<'a, T, S> + IsShapeIndep,
 {
+    #[inline]
     fn from((device, vec): (&'a D, Vec<T>)) -> Self {
-        todo!()
+        Buffer::from_vec(device, vec)
     }
 }
-
-/*
-#[cfg(not(feature = "no-std"))]
-impl<'a, T, D, S: Shape> From<(&'a D, Vec<T>)> for Buffer<'a, T, D, S>
-where
-    T: Clone,
-    D: Alloc<'a, T, S> + IsShapeIndep,
-{
-    fn from((device, vec): (&'a D, Vec<T>)) -> Self {
-        Buffer {
-            ident: Ident::new_bumped(vec.len()),
-            ptr: device.alloc_with_vec(vec),
-            device: Some(device),
-            //node: device_vec.0.graph().add_leaf(len),
-        }
-    }
-}*/
 
 #[cfg(not(feature = "no-std"))]
 impl<'a, T, D, S: Shape> From<(&'a D, &Vec<T>)> for Buffer<'a, T, D, S>
@@ -115,23 +98,8 @@ where
     T: Clone,
     D: Alloc<'a, T, S> + IsShapeIndep,
 {
+    #[inline]
     fn from((device, vec): (&'a D, &Vec<T>)) -> Self {
-        todo!()
+        Buffer::from_slice(device, vec)
     }
 }
-
-/*#[cfg(not(feature = "no-std"))]
-impl<'a, T, D, S: Shape> From<(&'a D, &Vec<T>)> for Buffer<'a, T, D, S>
-where
-    T: Clone,
-    D: Alloc<'a, T, S> + IsShapeIndep,
-{
-    fn from((device, vec): (&'a D, &Vec<T>)) -> Self {
-        Buffer {
-            ident: Ident::new_bumped(vec.len()),
-            ptr: device.with_slice(vec),
-            device: Some(device),
-            //node: device.graph().add_leaf(len),
-        }
-    }
-}*/

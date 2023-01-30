@@ -17,14 +17,14 @@ impl<T: CDatatype> ClearBuf<T, OpenCL> for OpenCL {
 /// Sets the elements of an OpenCL Buffer to zero.
 /// # Example
 /// ```
-/// use custos::{OpenCL, Buffer, Read, opencl::cl_clear};
+/// use custos::{OpenCL, Buffer, Read, opencl::try_cl_clear};
 ///
 /// fn main() -> Result<(), custos::Error> {
 ///     let device = OpenCL::new(0)?;
 ///     let mut lhs = Buffer::<i16, _>::from((&device, [15, 30, 21, 5, 8]));
 ///     assert_eq!(device.read(&lhs), vec![15, 30, 21, 5, 8]);
 ///
-///     cl_clear(&device, &mut lhs);
+///     try_cl_clear(&device, &mut lhs)?;
 ///     assert_eq!(device.read(&lhs), vec![0; 5]);
 ///     Ok(())
 /// }
@@ -171,7 +171,7 @@ where
         }}
     ",
         datatype = T::as_c_type_str(),
-        operation = lhs_grad_fn("lhs_grad[id]".to_marker()).to_string()
+        operation = lhs_grad_fn("lhs[id]".to_marker()).to_string()
     );
 
     enqueue_kernel(device, &src, [lhs.len(), 0, 0], None, &[lhs, lhs_grad, out])?;

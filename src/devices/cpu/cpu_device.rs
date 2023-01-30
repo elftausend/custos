@@ -5,7 +5,7 @@ use crate::{
     flag::AllocFlag,
     shape::Shape,
     Alloc, Buffer, CacheBuf, CloneBuf, Device, DevicelessAble, Graph, GraphReturn, Ident,
-    MainMemory, Tape, TapeReturn,
+    MainMemory,
 };
 use core::{
     cell::{RefCell, RefMut},
@@ -33,8 +33,9 @@ use super::{CPUPtr, RawCpuBuf};
 /// ```
 pub struct CPU {
     pub cache: RefCell<Cache<CPU>>,
-    pub tape: RefCell<Tape<CPU>>,
     pub graph: RefCell<Graph>,
+    #[cfg(feature="autograd")]
+    pub tape: RefCell<crate::Tape<CPU>>,
 }
 
 impl CPU {
@@ -43,8 +44,9 @@ impl CPU {
     pub fn new() -> CPU {
         CPU {
             cache: Default::default(),
-            tape: Default::default(),
             graph: Default::default(),
+            #[cfg(feature="autograd")]
+            tape: Default::default(),
         }
     }
 }
@@ -120,9 +122,10 @@ impl<T, S: Shape> Alloc<'_, T, S> for CPU {
     }
 }
 
-impl TapeReturn for CPU {
+#[cfg(feature="autograd")]
+impl crate::TapeReturn for CPU {
     #[inline]
-    fn tape_mut(&self) -> RefMut<Tape<Self>> {
+    fn tape_mut(&self) -> RefMut<crate::Tape<Self>> {
         self.tape.borrow_mut()
     }
 }

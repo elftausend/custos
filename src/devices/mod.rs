@@ -6,7 +6,7 @@ use self::cpu::{
     api::{cblas_dgemm, cblas_sgemm},
     Order, Transpose,
 };
-use crate::{shape::Shape, Alloc, Buffer, Device};
+use crate::{shape::Shape, Alloc, Buffer, Device, PtrType};
 
 #[cfg(feature = "cuda")]
 use cuda::api::cublas::{cublasDgemm_v2, cublasOperation_t, cublasSgemm_v2, CublasHandle};
@@ -59,7 +59,10 @@ pub trait CacheAble<D: Device> {
     where
         for<'b> D: Alloc<'b, T, S>;
 
+    fn get_existing_buf<T, S: Shape>(device: &D, id: Ident) -> Buffer<T, D, S>;
+
     fn remove(device: &D, ident: Ident);
+    fn add_to_cache<T, S: Shape>(device: &D, ptr: &D::Ptr<T, S>) -> Ident;
     //fn insert_node<T>(&mut self, device: &D, ptr: &D::Ptr<T, N>, node: Ident, graph_node: crate::Node) {}
 }
 
@@ -82,8 +85,15 @@ impl<D: Device> CacheAble<D> for () {
     }
 
     #[inline]
-    fn remove(_device: &D, _ident: Ident) {
-        
+    fn remove(_device: &D, _ident: Ident) {}
+
+    #[inline]
+    fn add_to_cache<T, S: Shape>(_device: &D, ptr: &<D as Device>::Ptr<T, S>) -> Ident {
+        Ident::new_bumped(ptr.len())
+    }
+
+    fn get_existing_buf<T, S: Shape>(device: &D, id: Ident) -> Buffer<T, D, S> {
+        todo!();
     }
 }
 

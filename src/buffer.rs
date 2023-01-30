@@ -19,8 +19,7 @@ impl Device for CPU {
 
 use crate::{
     flag::AllocFlag, shape::Shape, Alloc, CacheBuf, ClearBuf, CloneBuf, CommonPtrs, Device,
-    DevicelessAble, Ident, IsShapeIndep, MainMemory, PtrType, RawConv, Read, ShallowCopy, ToDim,
-    WriteBuf,
+    DevicelessAble, Ident, IsShapeIndep, MainMemory, PtrType, Read, ShallowCopy, WriteBuf,
 };
 
 pub use self::num::Num;
@@ -77,12 +76,14 @@ impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
     where
         D: Alloc<'a, T, S>, /*+ GraphReturn*/
     {
+        let ptr = device.alloc(len, AllocFlag::None);
+        let ident = device.add_to_cache(&ptr);
         Buffer {
-            ptr: device.alloc(len, AllocFlag::None),
+            ptr,
             device: Some(device),
             // TODO: enable, if leafs get more important
             //node: device.graph().add_leaf(len),
-            ident: Ident::new_bumped(len),
+            ident,
         }
     }
 
@@ -228,15 +229,13 @@ impl<'a, T, D: Device, S: Shape> Drop for Buffer<'a, T, D, S> {
             return;
         }
 
-        // mind that these buffers are currently only added at from_slice
         if let Some(device) = self.device {
             device.remove(self.ident)
         }
-        
     }
 }
 
-/* 
+/*
 impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
     /// Converts a (non stack allocated) `Buffer` with no shape to a `Buffer` with shape `O`.
     #[inline]
@@ -309,18 +308,31 @@ impl<'a, T, D: Device> Buffer<'a, T, D> {
     }
 }
 
-impl<'a, T, D: Device> Buffer<'a, T, D> {
+impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
     #[inline]
     pub fn from_slice(device: &'a D, slice: &[T]) -> Self
     where
         T: Clone,
-        D: Alloc<'a, T> + RawConv,
+        D: Alloc<'a, T, S>,
     {
-        let ident = Ident::new_bumped(slice.len());
         let ptr = device.with_slice(slice);
+        let ident = device.add_to_cache(&ptr);
 
-        let raw_ptr = std::rc::Rc::new(D::construct(&ptr, slice.len(), AllocFlag::Wrapper));
-        device.cache().nodes.insert(ident, raw_ptr);
+        Buffer {
+            ptr,
+            ident,
+            device: Some(device),
+        }
+    }
+
+    #[inline]
+    pub fn from_vec(device: &'a D, data: Vec<T>) -> Self
+    where
+        T: Clone,
+        D: Alloc<'a, T, S>,
+    {
+        let ptr = device.alloc_with_vec(data);
+        let ident = device.add_to_cache(&ptr);
 
         Buffer {
             ptr,
@@ -586,7 +598,7 @@ where
 
         write!(
             f,
-            "datatype={}, device={device:?} }}",
+            "datatype={}, device={device} }}",
             core::any::type_name::<T>(),
             device = core::any::type_name::<D>()
         )

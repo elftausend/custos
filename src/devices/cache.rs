@@ -4,7 +4,8 @@ use std::collections::HashMap;
 use std::rc::Rc;
 
 use crate::{
-    bump_count, flag::AllocFlag, shape::Shape, Alloc, Buffer, CacheAble, Device, GraphReturn, Ident,
+    bump_count, flag::AllocFlag, shape::Shape, Alloc, Buffer, CacheAble, Device, GraphReturn,
+    Ident, PtrType,
 };
 
 /// This trait makes a device's [`Cache`] accessible and is implemented for all compute devices.
@@ -27,6 +28,7 @@ pub struct Cache<D: RawConv> {
 }
 
 impl<D: RawConv> Default for Cache<D> {
+    #[inline]
     fn default() -> Self {
         Self {
             nodes: Default::default(),
@@ -59,8 +61,32 @@ where
     }
 
     #[inline]
+    fn get_existing_buf<T, S: Shape>(device: &D, ident: Ident) -> Buffer<T, D, S> {
+        let ptr = D::destruct::<T, S>(
+            device
+                .cache()
+                .nodes
+                .get(&ident)
+                .expect("A matching Buffer does not exist."),
+        );
+
+        Buffer {
+            ptr,
+            device: Some(device),
+            ident,
+        }
+    }
+
+    #[inline]
     fn remove(device: &D, ident: Ident) {
         device.cache().nodes.remove(&ident);
+    }
+
+    fn add_to_cache<T, S: Shape>(device: &D, ptr: &<D as Device>::Ptr<T, S>) -> Ident {
+        let ident = Ident::new_bumped(ptr.len());
+        let raw_ptr = std::rc::Rc::new(D::construct(ptr, ptr.len(), AllocFlag::Wrapper));
+        device.cache().nodes.insert(ident, raw_ptr);
+        ident
     }
 }
 

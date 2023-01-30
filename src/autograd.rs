@@ -1,8 +1,8 @@
 use core::{cell::RefMut, fmt::Debug};
 
 use crate::{
-    prelude::One, Alloc, ApplyFunction, Buffer, Cache, Device, Eval, Ident, RawConv, Resolve,
-    Shape, UnaryGrad, WriteBuf,
+    prelude::One, Alloc, Buffer, Cache, Ident, RawConv,
+    Shape, WriteBuf,
 };
 
 #[derive(Default)]
@@ -59,8 +59,8 @@ impl<D: RawConv> Gradients<D> {
         D: for<'b> Alloc<'b, T, S>,
     {
         (
-            device.get_like(lid),
-            device.get_like(rid),
+            device.get_existing_buf(lid),
+            device.get_existing_buf(rid),
             self.get_like_raw(device, lid),
             self.get_like_raw(device, rid),
             self.get_like_raw(device, oid),
@@ -81,7 +81,7 @@ impl<D: RawConv> Gradients<D> {
         D: for<'b> Alloc<'b, T, S>,
     {
         (
-            device.get_like(xid),
+            device.get_existing_buf(xid),
             self.get_like_raw(device, xid),
             self.get_like_raw(device, oid),
         )
@@ -130,47 +130,6 @@ impl<D: RawConv> Tape<D> {
     }
 }
 
-pub trait UnaryElementWise<T, D: Device, S: Shape>: Device {
-    fn unary_ew<FO, GO>(
-        &self,
-        buf: &Buffer<T, D, S>,
-        forward_fn: impl Fn(Resolve<T>) -> FO,
-        grad_fn: fn(Resolve<T>) -> GO,
-    ) -> Buffer<T, Self, S>
-    where
-        FO: Eval<T> + ToString,
-        GO: Eval<T> + ToString + 'static;
-}
-
-impl<T, D, S> UnaryElementWise<T, D, S> for D
-where
-    T: 'static,
-    D: ApplyFunction<T, S, D> + UnaryGrad<T, S, D> + TapeReturn,
-    D: for<'a> Alloc<'a, T, S>,
-    S: Shape,
-{
-    fn unary_ew<FO, GO>(
-        &self,
-        buf: &Buffer<T, D, S>,
-        forward_fn: impl Fn(Resolve<T>) -> FO,
-        grad_fn: fn(Resolve<T>) -> GO,
-    ) -> Buffer<T, Self, S>
-    where
-        FO: Eval<T> + ToString,
-        GO: Eval<T> + ToString + 'static,
-    {
-        let out = self.apply_fn(buf, forward_fn);
-
-        let ids = (buf.id(), out.id());
-        self.tape_mut().add_grad_fn(move |grads, device| {
-            let (lhs, mut lhs_grad, out_grad) = grads.get_double::<T, S>(device, ids);
-            device.add_unary_grad(&lhs, &mut lhs_grad, &out_grad, grad_fn);
-        });
-
-        out
-    }
-}
-
 impl<'a, T, D, S> Buffer<'a, T, D, S>
 where
     T: Clone + One,
@@ -190,18 +149,46 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::{Buffer, Combiner, UnaryElementWise, CPU};
+    use crate::{Buffer, Combiner};
 
+
+    #[cfg(feature = "cpu")]
     #[test]
     fn test_tape_unary_ew() {
+        use crate::{CPU, UnaryElementWise};
+
         let device = CPU::new();
+        //let device = CPU::new();
 
-        let buf = Buffer::from((&device, [1., 2., 3., 4., 5., 6.]));
+        let buf = Buffer::from((&device, [1., -2., 3., -4., 5., 6.]));
 
-        let out = device.unary_ew(&buf, |x| x.sin(), |x| x.cos());
+        let out = device.unary_ew(&buf, |x| x.geq(0.).mul(x), |x| x.geq(0.));
+        assert_eq!(out.read(), vec![1., 0., 3., 0., 5., 6.,]);
 
         out.backward();
 
-        let grad = out.grad();
+        let grad = buf.grad();
+        assert_eq!(grad.read(), vec![1., 0., 1., 0., 1., 1.,]);
+    }
+
+    #[cfg(feature = "opencl")]
+    #[test]
+    fn test_tape_unary_ew_cl() -> crate::Result<()> {
+        use crate::{OpenCL, UnaryElementWise};
+
+        let device = OpenCL::new(0)?;
+        //let device = CPU::new();
+
+        let buf = Buffer::from((&device, [1., -2., 3., -4., 5., 6.]));
+
+        let out = device.unary_ew(&buf, |x| x.geq(0.).mul(x), |x| x.geq(0.));
+        assert_eq!(out.read(), vec![1., 0., 3., 0., 5., 6.,]);
+
+        out.backward();
+
+        let grad = buf.grad();
+        assert_eq!(grad.read(), vec![1., 0., 1., 0., 1., 1.,]);
+
+        Ok(())
     }
 }
