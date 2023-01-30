@@ -109,7 +109,7 @@ pub trait CacheBuf<'a, T, S: Shape = ()>: Sized + Device {
     ///     *value = 1.5;
     /// }
     ///    
-    /// set_count(0);
+    /// unsafe { set_count(0) };
     /// let buf = CacheBuf::<f32>::cached(&device, 10);
     /// assert_eq!(device.read(&buf), vec![1.5; 10]);
     /// ```

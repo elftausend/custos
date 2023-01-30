@@ -648,7 +648,7 @@ impl<'a, T, D: MainMemory> core::iter::IntoIterator for &'a mut Buffer<'_, T, D>
 /// let new_buf = cached::<i32, _>(&device, 10);
 /// assert_eq!(2, get_count());
 ///
-/// set_count(0);
+/// unsafe { set_count(0) };
 /// let buf = cached::<f32, _>(&device, 10);
 /// assert_eq!(device.read(&buf), vec![1.5; 10]);
 /// ```

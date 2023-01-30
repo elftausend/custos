@@ -121,7 +121,7 @@ fn test_use_number() {
 #[test]
 fn test_cached_cpu() {
     // for: cargo test -- --test-threads=1
-    set_count(0);
+    unsafe { set_count(0) };
 
     std::env::set_var("RUST_BACKTRACE", "1");
     let device = CPU::new();
@@ -140,7 +140,8 @@ fn test_cached_cpu() {
     assert_eq!(device.read(&new_buf), vec![0; 10]);
     assert_eq!(2, get_count());
 
-    set_count(0);
+    unsafe { set_count(0) };
+    
     assert_eq!(0, get_count());
 
     let buf = cpu_cached::<f32>(&device, 10);
@@ -159,7 +160,7 @@ fn test_cached_cl() -> Result<(), custos::Error> {
     };
 
     // for: cargo test -- --test-threads=1
-    set_count(0);
+    unsafe { set_count(0) };
 
     let device = OpenCL::new(0)?;
     let _k = Buffer::<f32, _>::new(&device, 1);
@@ -181,7 +182,7 @@ fn test_cached_cl() -> Result<(), custos::Error> {
     assert_eq!(device.read(&new_buf), vec![0; 10]);
     assert_eq!(3, get_count());
 
-    set_count(1);
+    unsafe { set_count(1) };
     assert_eq!(1, get_count());
     let buf = cl_cached::<f32>(&device, 10);
     println!("new_buf: {buf:?}");

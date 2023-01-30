@@ -153,7 +153,7 @@ impl<D: RawConv> Cache<D> {
     ///
     /// assert_ne!(cache_entry.ptrs(), new_cache_entry.ptrs());
     ///
-    /// set_count(0);
+    /// unsafe { set_count(0) };
     ///
     /// let first_entry: Buffer = device.cache().get(&device, Ident::new(10), bump_count);
     /// assert_eq!(cache_entry.ptrs(), first_entry.ptrs());
@@ -226,7 +226,7 @@ mod tests {
     #[test]
     fn test_get() {
         // for: cargo test -- --test-threads=1
-        set_count(0);
+        unsafe { set_count(0) };
         let device = crate::CPU::new();
 
         let cache_entry: Buffer = device.cache().get(&device, Ident::new(10), bump_count);
@@ -234,7 +234,7 @@ mod tests {
 
         assert_ne!(cache_entry.ptrs(), new_cache_entry.ptrs());
 
-        set_count(0);
+        unsafe { set_count(0) };
 
         let first_entry: Buffer = device.cache().get(&device, Ident::new(10), bump_count);
         assert_eq!(cache_entry.ptrs(), first_entry.ptrs());

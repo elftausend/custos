@@ -142,8 +142,8 @@ where
     }
 
     #[inline]
-    pub fn grad(&self) -> Self {
-        self.device().tape_mut().grads.get_like(self)
+    pub fn grad(self) -> Self {
+        self.device().tape_mut().grads.get_like(&self)
     }
 }
 

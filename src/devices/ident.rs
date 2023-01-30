@@ -7,8 +7,10 @@ thread_local! {
 
 /// Sets current cache identifier / index.
 /// This function is usually called after an iteration in a loop -> [Count](crate::Count) or [range](crate::range)
+/// # Safety
+/// Manually setting the count may yield multiple `Buffer` pointing two the same data.
 #[inline]
-pub fn set_count(count: usize) {
+pub unsafe fn set_count(count: usize) {
     COUNT.with(|c| c.set(count));
 }
 

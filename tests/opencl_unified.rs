@@ -213,7 +213,7 @@ fn test_cpu_to_unified_leak() -> custos::Result<()> {
 
     let cl_dev = OpenCL::new(0)?;
 
-    set_count(0);
+    unsafe { set_count(0) };
 
     for _ in range(10) {
         let cl_cpu_buf = {
