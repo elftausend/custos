@@ -207,9 +207,9 @@ fn test_cpu_to_unified() -> custos::Result<()> {
 #[cfg(not(feature = "realloc"))]
 #[test]
 fn test_cpu_to_unified_leak() -> custos::Result<()> {
-    use std::rc::Rc;
+    use std::{rc::Rc, hash::BuildHasherDefault};
 
-    use custos::{bump_count, Device, Ident};
+    use custos::{bump_count, Device, Ident, IdentHasher};
 
     let cl_dev = OpenCL::new(0)?;
 
@@ -222,7 +222,7 @@ fn test_cpu_to_unified_leak() -> custos::Result<()> {
             buf.copy_from_slice(&[1, 2, 3, 4, 5, 6]);
 
             let cl_cpu_buf = unsafe { custos::opencl::construct_buffer(&cl_dev, buf, ())? };
-            let mut hm = HashMap::new();
+            let mut hm = HashMap::<Ident, _, BuildHasherDefault<IdentHasher>>::default();
             std::mem::swap(&mut cpu.cache.borrow_mut().nodes, &mut hm);
             for mut value in hm {
                 let mut ptr = Rc::get_mut(&mut value.1).unwrap();

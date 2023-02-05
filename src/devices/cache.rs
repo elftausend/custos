@@ -1,4 +1,4 @@
-use core::cell::RefMut;
+use core::{cell::RefMut, hash::BuildHasherDefault, ops::BitXor};
 use std::collections::HashMap;
 
 use std::rc::Rc;
@@ -22,9 +22,33 @@ pub trait RawConv: Device + CacheReturn {
     fn destruct<T, S: Shape>(ct: &Self::CT) -> Self::Ptr<T, S>;
 }
 
+const K: usize = 0x517cc1b727220a95;
+
+#[derive(Default)]
+pub struct IdentHasher {
+    hash: usize
+}
+
+impl std::hash::Hasher for IdentHasher {
+    #[inline]
+    fn finish(&self) -> u64 {
+        self.hash as u64
+    }
+
+    #[inline]
+    fn write(&mut self, _bytes: &[u8]) {
+        unimplemented!("IdentHasher only hashes usize.")
+    }
+
+    #[inline]
+    fn write_usize(&mut self, i: usize) {
+        self.hash = self.hash.rotate_left(5).bitxor(i).wrapping_mul(K);
+    }
+}
+
 #[derive(Debug)]
 pub struct Cache<D: RawConv> {
-    pub nodes: HashMap<Ident, Rc<D::CT>>,
+    pub nodes: HashMap<Ident, Rc<D::CT>, BuildHasherDefault<IdentHasher>>,
 }
 
 impl<D: RawConv> Default for Cache<D> {
@@ -198,13 +222,30 @@ impl<D: RawConv> Cache<D> {
     }
 }
 
-#[cfg(feature = "cpu")]
 #[cfg(test)]
 mod tests {
+    use core::hash::Hasher;
+    use std::collections::HashSet;
+
     #[cfg(not(feature = "realloc"))]
     use crate::set_count;
-    use crate::{bump_count, Buffer, CacheReturn, Ident};
+    use crate::{bump_count, Buffer, CacheReturn, Ident, IdentHasher};
 
+    #[test]
+    fn test_ident_hasher() {
+        let mut hashed_items = HashSet::new();
+        let mut hasher = IdentHasher::default();
+        
+        for item in 0..2500000 {
+            hasher.write_usize(item);
+            let hashed_item = hasher.finish();
+            assert!(!hashed_items.contains(&hashed_item));
+            
+            hashed_items.insert(hashed_item);
+        }
+    }
+
+    #[cfg(feature = "cpu")]
     #[test]
     fn test_add_node() {
         let device = crate::CPU::new();
@@ -222,6 +263,7 @@ mod tests {
         assert_eq!(cache.host_ptr(), ptr.ptr as *mut f32);
     }
 
+    #[cfg(feature = "cpu")]
     #[cfg(not(feature = "realloc"))]
     #[test]
     fn test_get() {
