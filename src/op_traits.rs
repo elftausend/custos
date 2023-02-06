@@ -54,7 +54,7 @@ pub trait Read<T, D: Device = Self, S: Shape = ()>: Device {
 }
 
 /// Trait for writing data to buffers.
-pub trait WriteBuf<T, D: Device = Self, S: Shape = ()>: Sized + Device {
+pub trait WriteBuf<T, S: Shape = (), D: Device = Self>: Sized + Device {
     /// Write data to the buffer.
     /// # Example
     /// ```
@@ -67,11 +67,9 @@ pub trait WriteBuf<T, D: Device = Self, S: Shape = ()>: Sized + Device {
     ///
     /// ```
     fn write(&self, buf: &mut Buffer<T, D, S>, data: &[T]);
+    
     /// Writes data from <Device> Buffer to other <Device> Buffer.
-    // TODO: implement, change name of fn? -> set_.. ?
-    fn write_buf(&self, _dst: &mut Buffer<T, Self, S>, _src: &Buffer<T, Self, S>) {
-        unimplemented!()
-    }
+    fn write_buf(&self, dst: &mut Buffer<T, Self, S>, src: &Buffer<T, Self, S>);
 }
 
 /// This trait is used to clone a buffer based on a specific device type.

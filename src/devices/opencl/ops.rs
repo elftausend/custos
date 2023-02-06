@@ -1,4 +1,4 @@
-use min_cl::api::{enqueue_read_buffer, enqueue_write_buffer, wait_for_event};
+use min_cl::api::{enqueue_read_buffer, enqueue_write_buffer, wait_for_event, enqueue_full_copy_buffer};
 
 use crate::{
     ApplyFunction, Buffer, CDatatype, ClearBuf, Device, OpenCL, Read, Resolve, Shape, ToMarker,
@@ -48,11 +48,16 @@ pub fn try_cl_clear<T: CDatatype>(
     Ok(())
 }
 
-impl<T> WriteBuf<T, OpenCL> for OpenCL {
+impl<T> WriteBuf<T> for OpenCL {
     fn write(&self, buf: &mut Buffer<T, OpenCL>, data: &[T]) {
         let event =
             unsafe { enqueue_write_buffer(&self.queue(), buf.cl_ptr(), data, true).unwrap() };
         wait_for_event(event).unwrap();
+    }
+
+    fn write_buf(&self, dst: &mut Buffer<T, Self>, src: &Buffer<T, Self>) {
+        //enqueue_full_copy_buffer(&self.queue(), src.cl_ptr(), dst.cl_ptr(), size)
+        todo!()
     }
 }
 

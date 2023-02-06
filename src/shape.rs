@@ -1,3 +1,5 @@
+use core::marker::PhantomData;
+
 use crate::{Device, PtrType};
 
 pub unsafe trait Shape {
@@ -57,6 +59,7 @@ pub trait MayDim2<const A: usize, const B: usize>: Shape {}
 impl<const A: usize, const B: usize> MayDim2<A, B> for () {}
 
 impl<const A: usize, const B: usize> MayDim2<A, B> for Dim2<A, B> {}
+
 
 #[derive(Clone, Copy)]
 pub struct Dim3<const C: usize, const B: usize, const A: usize>;

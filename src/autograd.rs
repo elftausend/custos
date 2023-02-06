@@ -121,7 +121,7 @@ impl<D: RawConv> Tape<D> {
     pub fn backward_seeded<T, S: Shape>(&mut self, buf: &Buffer<T, D, S>)
     where
         T: Clone + One,
-        D: for<'a> Alloc<'a, T, S> + WriteBuf<T, D, S>,
+        D: for<'a> Alloc<'a, T, S> + WriteBuf<T, S, D>,
     {
         let mut out = self.grads.get_like::<T, S>(buf);
         out.write(&vec![T::one(); out.len()]);
@@ -133,7 +133,7 @@ impl<D: RawConv> Tape<D> {
 impl<'a, T, D, S> Buffer<'a, T, D, S>
 where
     T: Clone + One,
-    D: TapeReturn + WriteBuf<T, D, S> + for<'b> Alloc<'b, T, S>,
+    D: TapeReturn + WriteBuf<T, S, D> + for<'b> Alloc<'b, T, S>,
     S: Shape,
 {
     #[inline]

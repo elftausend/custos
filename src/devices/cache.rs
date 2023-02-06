@@ -64,6 +64,7 @@ impl<D> CacheAble<D> for Cache<D>
 where
     D: RawConv,
 {
+    #[cfg(not(feature = "realloc"))]
     #[inline]
     fn retrieve<T, S: Shape>(
         device: &D,
@@ -74,6 +75,18 @@ where
     {
         device.cache().get(device, Ident::new(len), bump_count)
         //Cache::get(device, Ident::new(len), bump_count)
+    }
+
+    #[cfg(feature = "realloc")]
+    #[inline]
+    fn retrieve<T, S: Shape>(
+        device: &D,
+        len: usize, /*add_node: impl AddGraph*/
+    ) -> Buffer<T, D, S>
+    where
+        for<'b> D: Alloc<'b, T, S>,
+    {
+        Buffer::new(device, len)
     }
 
     #[inline]
@@ -210,16 +223,6 @@ impl<D: RawConv> Cache<D> {
             None => self.add_node(device, ident, callback),
         }
     }
-
-    /// If the 'realloc' feature is enabled, this functions always returns a new [`Buffer`] with the size of `len`gth.
-    #[cfg(feature = "realloc")]
-    #[inline]
-    pub fn get<'a, T, S: Shape>(device: &'a D, len: usize, _: impl AddGraph) -> Buffer<T, D, S>
-    where
-        D: Alloc<'a, T, S>,
-    {
-        Buffer::new(device, len)
-    }
 }
 
 #[cfg(test)]
@@ -238,6 +241,7 @@ mod tests {
         
         for item in 0..2500000 {
             hasher.write_usize(item);
+            hasher.write_usize(100000);
             let hashed_item = hasher.finish();
             assert!(!hashed_items.contains(&hashed_item));
             
