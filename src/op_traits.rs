@@ -164,6 +164,7 @@ where
     D: for<'a> Alloc<'a, T, S>,
     S: Shape,
 {
+    #[inline(always)]
     fn unary_ew<FO, GO>(
         &self,
         buf: &Buffer<T, D, S>,
