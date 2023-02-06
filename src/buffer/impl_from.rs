@@ -1,9 +1,10 @@
-use crate::{shape::Shape, Alloc, Buffer, IsShapeIndep, RawConv};
+use crate::{shape::Shape, Alloc, Buffer, IsShapeIndep};
 
 impl<'a, T, D, const N: usize> From<(&'a D, [T; N])> for Buffer<'a, T, D>
 where
     T: Clone,
-    D: Alloc<'a, T> + IsShapeIndep + RawConv,
+    // TODO: IsShapeIndep ... find way to include Stack
+    D: Alloc<'a, T> + IsShapeIndep,
 {
     #[inline]
     fn from((device, array): (&'a D, [T; N])) -> Self {
@@ -30,7 +31,8 @@ where
 impl<'a, T, D, const N: usize> From<(&'a D, &[T; N])> for Buffer<'a, T, D>
 where
     T: Clone,
-    D: Alloc<'a, T> + IsShapeIndep + RawConv,
+    // TODO: IsShapeIndep ... find way to include Stack
+    D: Alloc<'a, T> + IsShapeIndep,
 {
     #[inline]
     fn from((device, array): (&'a D, &[T; N])) -> Self {
@@ -57,6 +59,7 @@ where
 impl<'a, T, D, S: Shape> From<(&'a D, &[T])> for Buffer<'a, T, D, S>
 where
     T: Clone,
+    // TODO: IsShapeIndep ... find way to include Stack
     D: Alloc<'a, T, S> + IsShapeIndep,
 {
     #[inline]
@@ -84,6 +87,7 @@ where
 impl<'a, T, D, S: Shape> From<(&'a D, Vec<T>)> for Buffer<'a, T, D, S>
 where
     T: Clone,
+    // TODO: IsShapeIndep ... find way to include Stack
     D: Alloc<'a, T, S> + IsShapeIndep,
 {
     #[inline]

@@ -145,7 +145,7 @@ pub trait UnaryGrad<T, S: Shape = (), D: Device = Self>: Device {
         F: Eval<T> + ToString;
 }
 
-pub trait UnaryElementWise<T, D: Device, S: Shape>: Device {
+pub trait UnaryElementWiseMayGrad<T, D: Device, S: Shape>: Device {
     fn unary_ew<FO, GO>(
         &self,
         buf: &Buffer<T, D, S>,
@@ -157,7 +157,7 @@ pub trait UnaryElementWise<T, D: Device, S: Shape>: Device {
         GO: Eval<T> + ToString + 'static;
 }
 
-impl<T, D, S> UnaryElementWise<T, D, S> for D
+impl<T, D, S> UnaryElementWiseMayGrad<T, D, S> for D
 where
     T: 'static,
     D: ApplyFunction<T, S, D> + UnaryGrad<T, S, D> + MayTapeReturn,
@@ -196,7 +196,7 @@ mod tests {
     #[cfg(not(feature="autograd"))]
     #[test]
     fn test_unary_ew_stack_no_autograd() {
-        use crate::{Buffer, Dim1, UnaryElementWise, Combiner};
+        use crate::{Buffer, Dim1, UnaryElementWiseMayGrad, Combiner};
 
         let device = crate::Stack;
         let buf = Buffer::<_, _, Dim1<5>>::from((&device, [1, 2, 4, 5, 3]));

@@ -155,7 +155,7 @@ mod tests {
     #[cfg(feature = "cpu")]
     #[test]
     fn test_tape_unary_ew() {
-        use crate::{CPU, UnaryElementWise};
+        use crate::{CPU, UnaryElementWiseMayGrad};
 
         let device = CPU::new();
         //let device = CPU::new();
@@ -174,7 +174,7 @@ mod tests {
     #[cfg(feature = "opencl")]
     #[test]
     fn test_tape_unary_ew_cl() -> crate::Result<()> {
-        use crate::{OpenCL, UnaryElementWise};
+        use crate::{OpenCL, UnaryElementWiseMayGrad};
 
         let device = OpenCL::new(0)?;
         //let device = CPU::new();
