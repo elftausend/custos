@@ -54,14 +54,14 @@ pub trait Read<T, D: Device = Self, S: Shape = ()>: Device {
 }
 
 /// Trait for writing data to buffers.
-pub trait WriteBuf<T, S: Shape = (), D: Device = Self>: Sized + Device {
+pub trait WriteBuf<T, S: Shape = (), D: Device = Self>: Device {
     /// Write data to the buffer.
     /// # Example
     /// ```
     /// use custos::{CPU, Buffer, WriteBuf};
     ///
     /// let device = CPU::new();
-    /// let mut buf = Buffer::new(&device, 4);
+    /// let mut buf: Buffer<i32> = Buffer::new(&device, 4);
     /// device.write(&mut buf, &[9, 3, 2, -4]);
     /// assert_eq!(buf.as_slice(), &[9, 3, 2, -4])
     ///
@@ -69,7 +69,21 @@ pub trait WriteBuf<T, S: Shape = (), D: Device = Self>: Sized + Device {
     fn write(&self, buf: &mut Buffer<T, D, S>, data: &[T]);
     
     /// Writes data from <Device> Buffer to other <Device> Buffer.
-    fn write_buf(&self, dst: &mut Buffer<T, Self, S>, src: &Buffer<T, Self, S>);
+    /// The buffers must have the same size.
+    /// 
+    /// # Example
+    /// ```
+    /// use custos::{CPU, Buffer, WriteBuf};
+    ///
+    /// let device = CPU::new();
+    /// 
+    /// let mut dst: Buffer<i32> = Buffer::new(&device, 4);
+    /// 
+    /// let mut src: Buffer<i32> = Buffer::from((&device, [1, 2, -5, 4]));
+    /// device.write_buf(&mut dst, &src);
+    /// assert_eq!(dst.read(), [1, 2, -5, 4])
+    /// ```
+    fn write_buf(&self, dst: &mut Buffer<T, D, S>, src: &Buffer<T, D, S>);
 }
 
 /// This trait is used to clone a buffer based on a specific device type.

@@ -162,6 +162,16 @@ impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
         self.device().write(self, data)
     }
 
+    /// Writes the contents of the source buffer to self.
+    #[inline]
+    pub fn write_buf(&mut self, src: &Buffer<T, D, S>)
+    where
+        T: Clone,
+        D: WriteBuf<T, S, D>,
+    {
+        self.device().write_buf(self, src)
+    }
+
     /// Returns the number of elements contained in `Buffer`.
     /// # Example
     /// ```

@@ -49,15 +49,17 @@ pub fn try_cl_clear<T: CDatatype>(
 }
 
 impl<T> WriteBuf<T> for OpenCL {
+    #[inline]
     fn write(&self, buf: &mut Buffer<T, OpenCL>, data: &[T]) {
         let event =
             unsafe { enqueue_write_buffer(&self.queue(), buf.cl_ptr(), data, true).unwrap() };
         wait_for_event(event).unwrap();
     }
 
+    #[inline]
     fn write_buf(&self, dst: &mut Buffer<T, Self>, src: &Buffer<T, Self>) {
-        //enqueue_full_copy_buffer(&self.queue(), src.cl_ptr(), dst.cl_ptr(), size)
-        todo!()
+        debug_assert_eq!(dst.len(), src.len());
+        enqueue_full_copy_buffer::<T>(&self.queue(), src.cl_ptr(), dst.cl_ptr(), dst.len()).unwrap();
     }
 }
 
