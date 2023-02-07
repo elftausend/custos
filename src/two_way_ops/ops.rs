@@ -121,7 +121,7 @@ impl<C: Eval<T>, R: Eval<T>, T: std::ops::Div<Output = T>> Eval<T> for Div<C, R>
 
 pub struct Pow<C, R> {
     comb: C,
-    rhs: R
+    rhs: R,
 }
 
 impl<C, R> Pow<C, R> {

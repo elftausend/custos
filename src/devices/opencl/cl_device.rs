@@ -11,10 +11,7 @@ use crate::{
     cache::{Cache, CacheReturn, RawConv},
     Alloc, Buffer, CacheBuf, CloneBuf, Device, Error, Graph, GraphReturn, CPU,
 };
-use std::{
-    cell::RefCell,
-    fmt::Debug,
-};
+use std::{cell::RefCell, fmt::Debug};
 
 #[cfg(unified_cl)]
 use min_cl::api::unified_ptr;
@@ -41,7 +38,7 @@ pub struct OpenCL {
     pub inner: CLDevice,
     pub graph: RefCell<Graph>,
     pub cpu: CPU,
-    #[cfg(feature="autograd")]
+    #[cfg(feature = "autograd")]
     pub tape: RefCell<crate::Tape<OpenCL>>,
 }
 
@@ -61,7 +58,7 @@ impl OpenCL {
             cache: Default::default(),
             graph: Default::default(),
             cpu: Default::default(),
-            #[cfg(feature="autograd")]
+            #[cfg(feature = "autograd")]
             tape: Default::default(),
         })
     }
@@ -130,7 +127,7 @@ impl Default for OpenCL {
             cache: Default::default(),
             graph: Default::default(),
             cpu: Default::default(),
-            #[cfg(feature="autograd")]
+            #[cfg(feature = "autograd")]
             tape: Default::default(),
         }
     }
@@ -145,7 +142,7 @@ impl Device for OpenCL {
     }
 }
 
-#[cfg(feature="autograd")]
+#[cfg(feature = "autograd")]
 impl crate::TapeReturn for OpenCL {
     #[inline]
     fn tape_mut(&self) -> core::cell::RefMut<crate::Tape<Self>> {
@@ -308,7 +305,7 @@ mod tests {
             inner: device,
             graph: Default::default(),
             cpu: Default::default(),
-            #[cfg(feature="autograd")]
+            #[cfg(feature = "autograd")]
             tape: Default::default(),
         };
 
@@ -323,7 +320,7 @@ mod tests {
             inner: device,
             graph: Default::default(),
             cpu: Default::default(),
-            #[cfg(feature="autograd")]
+            #[cfg(feature = "autograd")]
             tape: Default::default(),
         };
 

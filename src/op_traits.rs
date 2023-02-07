@@ -1,4 +1,4 @@
-use crate::{shape::Shape, Buffer, Device, Eval, Resolve, Alloc, MayTapeReturn};
+use crate::{shape::Shape, Alloc, Buffer, Device, Eval, MayTapeReturn, Resolve};
 
 /// Trait for implementing the clear() operation for the compute devices.
 pub trait ClearBuf<T, D: Device = Self, S: Shape = ()>: Device {
@@ -67,18 +67,18 @@ pub trait WriteBuf<T, S: Shape = (), D: Device = Self>: Device {
     ///
     /// ```
     fn write(&self, buf: &mut Buffer<T, D, S>, data: &[T]);
-    
+
     /// Writes data from <Device> Buffer to other <Device> Buffer.
     /// The buffers must have the same size.
-    /// 
+    ///
     /// # Example
     /// ```
     /// use custos::{CPU, Buffer, WriteBuf};
     ///
     /// let device = CPU::new();
-    /// 
+    ///
     /// let mut dst: Buffer<i32> = Buffer::new(&device, 4);
-    /// 
+    ///
     /// let mut src: Buffer<i32> = Buffer::from((&device, [1, 2, -5, 4]));
     /// device.write_buf(&mut dst, &src);
     /// assert_eq!(dst.read(), [1, 2, -5, 4])
@@ -193,17 +193,17 @@ where
 #[cfg(test)]
 mod tests {
 
-    #[cfg(feature="stack")]
-    #[cfg(not(feature="autograd"))]
+    #[cfg(feature = "stack")]
+    #[cfg(not(feature = "autograd"))]
     #[test]
     fn test_unary_ew_stack_no_autograd() {
-        use crate::{Buffer, Dim1, UnaryElementWiseMayGrad, Combiner};
+        use crate::{Buffer, Combiner, Dim1, UnaryElementWiseMayGrad};
 
         let device = crate::Stack;
         let buf = Buffer::<_, _, Dim1<5>>::from((&device, [1, 2, 4, 5, 3]));
-        
+
         let out = device.unary_ew(&buf, |x| x.mul(3), |x| x);
-        
+
         assert_eq!(out.read(), [3, 6, 12, 15, 9]);
     }
 }

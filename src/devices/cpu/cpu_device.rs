@@ -34,7 +34,7 @@ use super::{CPUPtr, RawCpuBuf};
 pub struct CPU {
     pub cache: RefCell<Cache<CPU>>,
     pub graph: RefCell<Graph>,
-    #[cfg(feature="autograd")]
+    #[cfg(feature = "autograd")]
     pub tape: RefCell<crate::Tape<CPU>>,
 }
 
@@ -45,7 +45,7 @@ impl CPU {
         CPU {
             cache: Default::default(),
             graph: Default::default(),
-            #[cfg(feature="autograd")]
+            #[cfg(feature = "autograd")]
             tape: Default::default(),
         }
     }
@@ -122,7 +122,7 @@ impl<T, S: Shape> Alloc<'_, T, S> for CPU {
     }
 }
 
-#[cfg(feature="autograd")]
+#[cfg(feature = "autograd")]
 impl crate::TapeReturn for CPU {
     #[inline]
     fn tape_mut(&self) -> RefMut<crate::Tape<Self>> {

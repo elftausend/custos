@@ -26,7 +26,7 @@ const K: usize = 0x517cc1b727220a95;
 
 #[derive(Default)]
 pub struct IdentHasher {
-    hash: usize
+    hash: usize,
 }
 
 impl std::hash::Hasher for IdentHasher {
@@ -238,13 +238,13 @@ mod tests {
     fn test_ident_hasher() {
         let mut hashed_items = HashSet::new();
         let mut hasher = IdentHasher::default();
-        
+
         for item in 0..2500000 {
             hasher.write_usize(item);
             hasher.write_usize(100000);
             let hashed_item = hasher.finish();
             assert!(!hashed_items.contains(&hashed_item));
-            
+
             hashed_items.insert(hashed_item);
         }
     }

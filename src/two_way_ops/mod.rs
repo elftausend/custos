@@ -3,7 +3,7 @@ mod resolve;
 
 pub use resolve::*;
 
-use self::ops::{Add, Cos, Div, Eq, GEq, LEq, Mul, Sin, Sub, Tan, Pow, Neg};
+use self::ops::{Add, Cos, Div, Eq, GEq, LEq, Mul, Neg, Pow, Sin, Sub, Tan};
 
 pub trait Eval<T> {
     fn eval(self) -> T;
@@ -124,7 +124,7 @@ mod tests {
 
         let res: f32 = f(2f32.to_val()).eval();
         roughly_eq_slices(&[res], &[2.1850398]);
-        
+
         let res = f("val".to_marker()).to_string();
         assert_eq!(res, "-(tan(val))")
     }

@@ -79,7 +79,7 @@ mod two_way_ops;
 #[cfg(feature = "static-api")]
 pub mod static_api;
 
-#[cfg(feature="autograd")]
+#[cfg(feature = "autograd")]
 mod autograd;
 pub mod number;
 pub use op_traits::*;

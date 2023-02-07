@@ -1,4 +1,6 @@
-use min_cl::api::{enqueue_read_buffer, enqueue_write_buffer, wait_for_event, enqueue_full_copy_buffer};
+use min_cl::api::{
+    enqueue_full_copy_buffer, enqueue_read_buffer, enqueue_write_buffer, wait_for_event,
+};
 
 use crate::{
     ApplyFunction, Buffer, CDatatype, ClearBuf, Device, OpenCL, Read, Resolve, Shape, ToMarker,
@@ -59,7 +61,8 @@ impl<T> WriteBuf<T> for OpenCL {
     #[inline]
     fn write_buf(&self, dst: &mut Buffer<T, Self>, src: &Buffer<T, Self>) {
         debug_assert_eq!(dst.len(), src.len());
-        enqueue_full_copy_buffer::<T>(&self.queue(), src.cl_ptr(), dst.cl_ptr(), dst.len()).unwrap();
+        enqueue_full_copy_buffer::<T>(&self.queue(), src.cl_ptr(), dst.cl_ptr(), dst.len())
+            .unwrap();
     }
 }
 

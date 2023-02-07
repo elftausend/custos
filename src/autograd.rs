@@ -1,9 +1,6 @@
 use core::{cell::RefMut, fmt::Debug};
 
-use crate::{
-    prelude::One, Alloc, Buffer, Cache, Ident, RawConv,
-    Shape, WriteBuf,
-};
+use crate::{prelude::One, Alloc, Buffer, Cache, Ident, RawConv, Shape, WriteBuf};
 
 #[derive(Default)]
 pub struct Gradients<D: RawConv> {
@@ -23,6 +20,18 @@ where
 }
 
 impl<D: RawConv> Gradients<D> {
+    pub fn grads<'a, T>(&mut self, device: &'a D) -> Vec<Buffer<'a, T, D>> {
+        self.cache
+            .nodes
+            .iter()
+            .map(|(id, raw)| Buffer {
+                ptr: D::destruct::<T, ()>(raw),
+                device: Some(device),
+                ident: *id,
+            })
+            .collect::<Vec<Buffer<T, D>>>()
+    }
+
     #[inline]
     pub fn get_like_raw<'a, T, S: Shape>(
         &mut self,
@@ -151,11 +160,10 @@ where
 mod tests {
     use crate::{Buffer, Combiner};
 
-
     #[cfg(feature = "cpu")]
     #[test]
     fn test_tape_unary_ew() {
-        use crate::{CPU, UnaryElementWiseMayGrad};
+        use crate::{UnaryElementWiseMayGrad, CPU};
 
         let device = CPU::new();
         //let device = CPU::new();

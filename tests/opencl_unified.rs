@@ -207,7 +207,7 @@ fn test_cpu_to_unified() -> custos::Result<()> {
 #[cfg(not(feature = "realloc"))]
 #[test]
 fn test_cpu_to_unified_leak() -> custos::Result<()> {
-    use std::{rc::Rc, hash::BuildHasherDefault};
+    use std::{hash::BuildHasherDefault, rc::Rc};
 
     use custos::{bump_count, Device, Ident, IdentHasher};
 

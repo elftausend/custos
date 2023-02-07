@@ -60,7 +60,6 @@ impl<const A: usize, const B: usize> MayDim2<A, B> for () {}
 
 impl<const A: usize, const B: usize> MayDim2<A, B> for Dim2<A, B> {}
 
-
 #[derive(Clone, Copy)]
 pub struct Dim3<const C: usize, const B: usize, const A: usize>;
 

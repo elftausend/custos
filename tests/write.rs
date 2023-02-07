@@ -11,15 +11,14 @@ fn test_write_cpu() {
     assert_eq!(buf.as_slice(), &[1., 2., 3., 4., 5.])
 }
 
-
 #[test]
 fn test_write_buf_cpu() {
-    use custos::{CPU, Buffer, WriteBuf};
+    use custos::{Buffer, WriteBuf, CPU};
 
     let device = CPU::new();
-    
+
     let mut dst: Buffer<i32, CPU, ()> = Buffer::new(&device, 4);
-    
+
     let src: Buffer<i32, CPU, ()> = Buffer::from((&device, [1, 2, -5, 4]));
 
     device.write_buf(&mut dst, &src);

@@ -44,7 +44,7 @@ impl<T: Copy, D: MainMemory, S: Shape> WriteBuf<T, S, D> for CPU {
 
 use custos_macro::impl_stack;
 
-#[cfg(feature="stack")]
+#[cfg(feature = "stack")]
 use crate::Stack;
 
 #[impl_stack]

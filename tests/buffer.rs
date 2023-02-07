@@ -141,7 +141,7 @@ fn test_cached_cpu() {
     assert_eq!(2, get_count());
 
     unsafe { set_count(0) };
-    
+
     assert_eq!(0, get_count());
 
     let buf = cpu_cached::<f32>(&device, 10);
