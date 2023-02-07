@@ -8,7 +8,7 @@ use crate::{
 #[derive(Default)]
 pub struct Gradients<D: RawConv> {
     // Borrowing cache
-    cache: Cache<D>,
+    pub cache: Cache<D>,
 }
 
 impl<D: RawConv> Debug for Gradients<D>
@@ -90,7 +90,7 @@ impl<D: RawConv> Gradients<D> {
 
 #[derive(Default)]
 pub struct Tape<D: RawConv> {
-    grads: Gradients<D>,
+    pub grads: Gradients<D>,
     grad_fns: Vec<Box<dyn Fn(&mut Gradients<D>, &D)>>,
 }
 
