@@ -230,6 +230,14 @@ impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
     pub fn id(&self) -> Ident {
         self.ident
     }
+
+    /// Sets all elements in `Buffer` to the default value.
+    pub fn clear(&mut self)
+    where
+        D: ClearBuf<T, S, D>,
+    {
+        self.device().clear(self)
+    }
 }
 
 impl<'a, T, D: Device, S: Shape> Drop for Buffer<'a, T, D, S> {
@@ -307,14 +315,6 @@ impl<'a, T, D: Device> Buffer<'a, T, D> {
     #[inline]
     pub fn is_empty(&self) -> bool {
         self.len() == 0
-    }
-
-    /// Sets all elements in `Buffer` to the default value.
-    pub fn clear(&mut self)
-    where
-        D: ClearBuf<T, D>,
-    {
-        self.device().clear(self)
     }
 }
 
@@ -615,7 +615,7 @@ where
     }
 }
 
-impl<'a, T, D: MainMemory> core::iter::IntoIterator for &'a Buffer<'_, T, D> {
+impl<'a, T, D: MainMemory, S: Shape> core::iter::IntoIterator for &'a Buffer<'_, T, D, S> {
     type Item = &'a T;
 
     type IntoIter = core::slice::Iter<'a, T>;
@@ -625,7 +625,7 @@ impl<'a, T, D: MainMemory> core::iter::IntoIterator for &'a Buffer<'_, T, D> {
     }
 }
 
-impl<'a, T, D: MainMemory> core::iter::IntoIterator for &'a mut Buffer<'_, T, D> {
+impl<'a, T, D: MainMemory, S: Shape> core::iter::IntoIterator for &'a mut Buffer<'_, T, D, S> {
     type Item = &'a mut T;
 
     type IntoIter = core::slice::IterMut<'a, T>;

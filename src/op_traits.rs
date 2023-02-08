@@ -1,7 +1,7 @@
 use crate::{shape::Shape, Alloc, Buffer, Device, Eval, MayTapeReturn, Resolve};
 
 /// Trait for implementing the clear() operation for the compute devices.
-pub trait ClearBuf<T, D: Device = Self, S: Shape = ()>: Device {
+pub trait ClearBuf<T, S: Shape = (), D: Device = Self>: Device {
     /// Sets all elements of the matrix to zero.
     /// # Example
     /// ```

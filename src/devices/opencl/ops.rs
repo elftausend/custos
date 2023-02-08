@@ -9,7 +9,7 @@ use crate::{
 
 use super::{enqueue_kernel, CLBuffer};
 
-impl<T: CDatatype> ClearBuf<T, OpenCL> for OpenCL {
+impl<T: CDatatype> ClearBuf<T> for OpenCL {
     #[inline]
     fn clear(&self, buf: &mut Buffer<T, OpenCL>) {
         try_cl_clear(self, buf).unwrap()

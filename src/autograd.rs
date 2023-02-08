@@ -20,7 +20,8 @@ where
 }
 
 impl<D: RawConv> Gradients<D> {
-    pub fn grads<'a, T>(&mut self, device: &'a D) -> Vec<Buffer<'a, T, D>> {
+    // everything is T, bad
+    /*pub fn grads<'a, T>(&mut self, device: &'a D) -> Vec<Buffer<'a, T, D>> {
         self.cache
             .nodes
             .iter()
@@ -30,7 +31,7 @@ impl<D: RawConv> Gradients<D> {
                 ident: *id,
             })
             .collect::<Vec<Buffer<T, D>>>()
-    }
+    }*/
 
     #[inline]
     pub fn get_like_raw<'a, T, S: Shape>(

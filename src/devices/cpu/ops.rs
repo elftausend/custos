@@ -22,8 +22,8 @@ impl<T, D: MainMemory, S: Shape> Read<T, D, S> for CPU {
     }
 }
 
-impl<T: Default, D: MainMemory> ClearBuf<T, D> for CPU {
-    fn clear(&self, buf: &mut Buffer<T, D>) {
+impl<T: Default, D: MainMemory, S: Shape> ClearBuf<T, S, D> for CPU {
+    fn clear(&self, buf: &mut Buffer<T, D, S>) {
         for value in buf {
             *value = T::default();
         }
