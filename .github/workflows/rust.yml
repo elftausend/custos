@@ -127,7 +127,7 @@ jobs:
           rustup override set nightly
           cargo miri setup
       - name: Test with Miri
-        run: cargo miri test --no-default-features
+        run: cargo miri test --no-default-features --features cpu
       - name: Test 'realloc' with Miri
         run: cargo miri test --no-default-features --features realloc,cpu
       - name: Test 'opt-cache' with Miri
