@@ -20,10 +20,10 @@ or to see it at a larger scale, look here: [custos-math]
 Add "custos" as a dependency:
 ```toml
 [dependencies]
-custos = "0.6.0"
+custos = "0.5.0"
 
 # to disable the default features (cuda, opencl) and use an own set of features:
-#custos = {version = "0.6.0", default-features=false, features=["opencl"]}
+#custos = {version = "0.5.0", default-features=false, features=["opencl"]}
 ```
 
 Available features: 
