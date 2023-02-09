@@ -1,3 +1,5 @@
+use std::ops::RangeBounds;
+
 use alloc::vec::Vec;
 
 use crate::{Buffer, Device};
@@ -17,6 +19,22 @@ pub trait ClearBuf<T, D: Device> {
     /// assert_eq!(a.read(), vec![0; 6]);
     /// ```
     fn clear(&self, buf: &mut Buffer<T, D>);
+}
+
+/// Trait for copying a slice of a buffer, to implement the slice() operation.
+pub trait CopySlice<T, D: Device, R: RangeBounds<usize>>: Sized + Device {
+    /// Copy a slice of the given buffer into a new buffer.
+    /// # Example
+    ///
+    /// ```
+    /// use custos::{CPU, Buffer, CopySlice};
+    ///
+    /// let device = CPU::new();
+    /// let buf = Buffer::from((&device, [1., 2., 6., 2., 4.,]));
+    /// let slice = device.copy_slice(&buf, 1..3);
+    /// assert_eq!(slice.read(), &[2., 6.]);
+    /// ```
+    fn copy_slice(&self, buf: &Buffer<T, D>, range: R) -> Buffer<T, Self>;
 }
 
 /// Trait for reading buffers.
@@ -48,6 +66,7 @@ pub trait WriteBuf<T, D: Device>: Sized + Device {
     ///
     /// ```
     fn write(&self, buf: &mut Buffer<T, D>, data: &[T]);
+
     /// Writes data from <Device> Buffer to other <Device> Buffer.
     // TODO: implement, change name of fn? -> set_.. ?
     fn write_buf(&self, _dst: &mut Buffer<T, Self>, _src: &Buffer<T, Self>) {
