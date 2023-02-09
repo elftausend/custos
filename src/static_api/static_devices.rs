@@ -92,14 +92,14 @@ mod tests {
         let a = Buffer::from(&[1, 2, 3, 4]);
         let b = Buffer::from(&[1, 2, 3, 4]);
 
-        let out = Cache::get::<i32, 0>(cpu, a.len, (&a, &b));
+        let out = Cache::get::<i32, ()>(cpu, a.len(), (&a, &b));
 
         let cache = static_cpu().cache.borrow();
         let cached = cache
             .nodes
             .get(&Ident {
                 idx: 0,
-                len: out.len,
+                len: out.len(),
             })
             .unwrap();
 

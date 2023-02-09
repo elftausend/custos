@@ -1,4 +1,4 @@
-use crate::{Alloc, Buffer, Device, GraphReturn, Read};
+use crate::{Alloc, Buffer, Device, Read, IsShapeIndep};
 
 use super::{static_cpu, StaticGPU};
 
@@ -18,10 +18,10 @@ impl<'a, T: Clone> Buffer<'a, T> {
     /// assert_eq!(cl_buf.read(), vec![1., 2., 3.]);
     /// ```
     #[inline]
-    pub fn to_dev<D>(self) -> Buffer<'static, T, D>
+    pub fn to_dev<D>(self) -> Buffer<'static, T, D, ()>
     where
-        D: StaticGPU + Alloc<'static, T> + GraphReturn,
-        <D as Device>::Ptr<T, 0>: Default,
+        D: StaticGPU + Alloc<'static, T, ()> + IsShapeIndep, // should remove IsShapeIndep in autograd branch
+        <D as Device>::Ptr<T, ()>: Default,
     {
         Buffer::from((D::as_static(), self.as_slice()))
     }
