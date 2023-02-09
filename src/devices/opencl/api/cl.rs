@@ -409,10 +409,13 @@ pub unsafe fn enqueue_read_buffer<T>(
     }
     Ok(Event(events[0]))
 }
-pub(crate) fn enqueue_full_copy_buffer<T>(
+
+pub(crate) fn enqueue_copy_buffer<T>(
     cq: &CommandQueue,
     src_mem: *mut c_void,
     dst_mem: *mut c_void,
+    src_offset: usize,
+    dst_offset: usize,
     size: usize,
 ) -> Result<(), Error> {
     let mut events = vec![std::ptr::null_mut(); 1];
@@ -421,8 +424,8 @@ pub(crate) fn enqueue_full_copy_buffer<T>(
             cq.0,
             src_mem,
             dst_mem,
-            0,
-            0,
+            src_offset * size_of::<T>(),
+            dst_offset * size_of::<T>(),
             size * size_of::<T>(),
             0,
             std::ptr::null(),
@@ -433,6 +436,15 @@ pub(crate) fn enqueue_full_copy_buffer<T>(
         return Err(Error::from(OCLErrorKind::from_value(value)));
     }
     wait_for_event(Event(events[0]))
+}
+
+pub(crate) fn enqueue_full_copy_buffer<T>(
+    cq: &CommandQueue,
+    src_mem: *mut c_void,
+    dst_mem: *mut c_void,
+    size: usize,
+) -> Result<(), Error> {
+    enqueue_copy_buffer::<T>(cq, src_mem, dst_mem, 0, 0, size)
 }
 
 pub(crate) fn unified_ptr<T>(
