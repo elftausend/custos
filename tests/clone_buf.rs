@@ -1,5 +1,6 @@
 use custos::{Buffer, CloneBuf, CPU};
 
+#[cfg(feature = "cpu")]
 #[test]
 fn test_buf_clone() {
     let device = CPU::new();
@@ -9,6 +10,7 @@ fn test_buf_clone() {
     assert_eq!(buf.as_slice(), cloned.as_slice());
 }
 
+#[cfg(feature = "cpu")]
 #[test]
 fn test_self_buf_clone() {
     let device = CPU::new();

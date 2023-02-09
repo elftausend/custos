@@ -8,7 +8,9 @@ pub trait AddBuf<T, S: Shape = ()>: Sized + Device {
     // ... you can add more operations if you want to do that.
 }
 
+
 // Host CPU implementation
+#[cfg(feature="cpu")]
 impl<T> AddBuf<T> for CPU
 where
     T: Copy + std::ops::Add<Output = T>, // you can use the custos::Number trait.
@@ -152,17 +154,22 @@ impl<'a, T, D: Device> OwnStruct<'a, T, D> {
 }
 
 fn main() -> custos::Result<()> {
-    let cpu = CPU::new();
 
-    let lhs = Buffer::from((&cpu, [1, 3, 5, 3, 2, 6]));
-    let rhs = Buffer::from((&cpu, [-1, -12, -6, 3, 2, -1]));
+    #[cfg(feature="cpu")]
+    {
+        let cpu = CPU::new();
 
-    let out = cpu.add(&lhs, &rhs);
-    assert_eq!(out.read(), vec![0, -9, -1, 6, 4, 5]); // to read a CPU Buffer, you can also call .as_slice() on it.
+        let lhs = Buffer::from((&cpu, [1, 3, 5, 3, 2, 6]));
+        let rhs = Buffer::from((&cpu, [-1, -12, -6, 3, 2, -1]));
 
-    // without specifying a device
-    let out = lhs.add(&rhs);
-    assert_eq!(out.read(), vec![0, -9, -1, 6, 4, 5]);
+        let out = cpu.add(&lhs, &rhs);
+        assert_eq!(out.read(), vec![0, -9, -1, 6, 4, 5]); // to read a CPU Buffer, you can also call .as_slice() on it.
+
+        // without specifying a device
+        let out = lhs.add(&rhs);
+        assert_eq!(out.read(), vec![0, -9, -1, 6, 4, 5]);
+
+    }
 
     #[cfg(feature = "opencl")] // deactivate this block if the feature is disabled
     {

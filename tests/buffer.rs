@@ -118,6 +118,7 @@ fn test_use_number() {
     assert_eq!(num, Box::new(10));
 }
 
+#[cfg(feature = "cpu")]
 #[cfg(not(feature = "realloc"))]
 #[test]
 fn test_cached_cpu() {
@@ -203,6 +204,7 @@ fn test_from_ptrs() {
     assert_eq!(buf.ptr.1, std::ptr::null_mut());
 }*/
 
+#[cfg(feature = "cpu")]
 #[test]
 fn test_size_buf() {
     let x = core::mem::size_of::<Buffer<i8, CPU>>();
@@ -215,6 +217,7 @@ fn _slice_add<T: Copy + std::ops::Add<Output = T>>(a: &[T], b: &[T], c: &mut [T]
     }
 }
 
+#[cfg(feature = "cpu")]
 #[test]
 fn test_iterate() {
     let cmp = [1f32, 2., 3.3];
@@ -255,6 +258,7 @@ fn test_slice() {
     slice_add::<i32, _>(&buf);
 }
 
+#[cfg(feature = "cpu")]
 #[test]
 fn test_alloc() {
     let device = CPU::new();
@@ -267,6 +271,7 @@ fn test_alloc() {
     drop(buf);
 }
 
+#[cfg(feature = "cpu")]
 #[test]
 fn test_deviceless_buf() {
     let mut buf = {
@@ -322,6 +327,7 @@ fn test_buf_num() {
     assert_eq!(*buf, 5);
 }
 
+#[cfg(feature = "cpu")]
 #[test]
 fn test_buf_const() {
     let _device = CPU::new();

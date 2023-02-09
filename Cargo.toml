@@ -32,7 +32,8 @@ min-cl = { version="0.1.0", optional=true }
 
 [features]
 #default = ["stack", "cpu", "opencl"]
-default = ["stack", "cpu", "opt-cache", "blas", "static-api", "opencl"]
+default = []
+#default = ["stack", "cpu", "opt-cache", "blas", "static-api", "opencl"]
 cpu = []
 opencl = ["dep:min-cl", "cpu"]
 #network = ["cuwanto-server"]
@@ -56,6 +57,10 @@ name = "cuda_readme"
 required-features = ["cuda"]
 
 [[example]]
+name = "cpu_readme"
+required-features = ["cpu"]
+
+[[example]]
 name = "cl_readme"
 required-features = ["opencl"]
 
@@ -66,6 +71,12 @@ required-features = ["opencl"]
 [[example]]
 name = "opencl_kernel_launch"
 required-features = ["opencl"]
+
+[[example]]
+name = "read"
+required-features = ["cpu"]
+
+
 
 [[test]]
 name = "opencl_unified"
