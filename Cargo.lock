@@ -392,9 +392,9 @@ dependencies = [
 
 [[package]]
 name = "min-cl"
-version = "0.1.1"
+version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6b714a72d5e77a92b235eb4c3292351a770c2ee85c817ebbc4c7cbd2b78eef8e"
+checksum = "831b50bc158276bcf8fe08a4b870012ab11952f4e14943a469949e96872e0466"
 
 [[package]]
 name = "naga"
