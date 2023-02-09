@@ -21,7 +21,6 @@ impl<'a, T: Clone> Buffer<'a, T> {
     pub fn to_dev<D>(self) -> Buffer<'static, T, D>
     where
         D: StaticDevice + Alloc<'static, T>,
-        <D as Device>::Ptr<T, ()>: Default,
     {
         Buffer::from((D::as_static(), self.as_slice()))
     }
