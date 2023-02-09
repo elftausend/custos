@@ -4,14 +4,15 @@ use crate::{
     flag::AllocFlag,
     shape::Shape,
     Alloc, Buffer, CacheBuf, CachedLeaf, ClearBuf, CloneBuf, Device, DevicelessAble, Graph,
-    GraphReturn, MainMemory, Read, WriteBuf,
+    GraphReturn, MainMemory, Read, WriteBuf, CopySlice,
 };
+
+use core::ops::{Index, RangeBounds};
 use core::{
     cell::{RefCell, RefMut},
     fmt::Debug,
     mem::{align_of, size_of},
 };
-use std::vec::Vec;
 
 use super::{CPUPtr, RawCpuBuf};
 
@@ -162,6 +163,18 @@ impl<'a, T> CacheBuf<'a, T> for CPU {
     #[inline]
     fn cached(&'a self, len: usize) -> Buffer<'a, T, CPU> {
         Cache::get::<T, ()>(self, len, CachedLeaf)
+    }
+}
+
+impl<T: Copy, R: RangeBounds<usize>, D: MainMemory> CopySlice<T, R, D> for CPU
+where
+    [T]: Index<R, Output = [T]>,
+{
+    fn copy_slice(&self, buf: &Buffer<T, D>, range: R) -> Buffer<T, Self> {
+        let slice = &buf.as_slice()[range];
+        let mut copied = Buffer::new(self, slice.len());
+        self.write(&mut copied, slice);
+        copied
     }
 }
 

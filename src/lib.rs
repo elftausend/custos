@@ -199,7 +199,7 @@ pub use custos_macro::impl_stack;
 pub mod prelude {
     pub use crate::{
         cached, number::*, range, shape::*, Alloc, Buffer, CDatatype, CacheBuf, ClearBuf, Device,
-        GraphReturn, Read, ShallowCopy, WithShape, WriteBuf,
+        GraphReturn, Read, ShallowCopy, WithShape, WriteBuf, CopySlice
     };
 
     #[cfg(feature = "cpu")]

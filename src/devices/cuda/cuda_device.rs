@@ -1,3 +1,7 @@
+use std::cell::RefCell;
+use std::marker::PhantomData;
+use std::ops::{Bound, RangeBounds};
+
 use super::{
     api::{
         create_context, create_stream, cuInit, cuMemcpy, cuStreamDestroy, cu_read, cu_write,
@@ -6,13 +10,13 @@ use super::{
     },
     chosen_cu_idx, cu_clear, CUDAPtr, KernelCacheCU, RawCUBuf,
 };
+use crate::CopySlice;
 use crate::{
     cache::{Cache, CacheReturn},
     flag::AllocFlag,
     Alloc, Buffer, CDatatype, CacheBuf, CachedLeaf, ClearBuf, CloneBuf, Device, Graph, GraphReturn,
     RawConv, Read, Shape, WriteBuf,
 };
-use std::{cell::RefCell, marker::PhantomData};
 
 /// Used to perform calculations with a CUDA capable device.
 /// To make new calculations invocable, a trait providing new operations should be implemented for [CudaDevice].
@@ -162,8 +166,38 @@ impl<T: Default + Clone> Read<T, CUDA> for CUDA {
 }
 
 impl<T: CDatatype> ClearBuf<T, CUDA> for CUDA {
+    #[inline]
     fn clear(&self, buf: &mut Buffer<T, CUDA>) {
         cu_clear(self, buf).unwrap()
+    }
+}
+
+impl<T, R: RangeBounds<usize>> CopySlice<T, R> for CUDA {
+    fn copy_slice(&self, buf: &Buffer<T, CUDA>, range: R) -> Buffer<T, Self> {
+        let start = match range.start_bound() {
+            Bound::Included(start) => *start,
+            Bound::Excluded(start) => start + 1,
+            Bound::Unbounded => 0,
+        };
+
+        let end = match range.end_bound() {
+            Bound::Excluded(end) => *end,
+            Bound::Included(end) => end + 1,
+            Bound::Unbounded => buf.len(),
+        };
+
+        let slice_len = end - start;
+        let copied = Buffer::new(self, slice_len);
+
+        unsafe {
+            cuMemcpy(
+                copied.ptr.ptr,
+                buf.ptr.ptr + (start * std::mem::size_of::<T>()) as u64,
+                copied.len() * std::mem::size_of::<T>(),
+            );
+        }
+
+        copied
     }
 }
 
