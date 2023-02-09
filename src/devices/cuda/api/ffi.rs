@@ -137,7 +137,11 @@ extern "C" {
     pub fn cuInit(flags: u32) -> CUresult;
     pub fn cuDeviceGetCount(count: *mut i32) -> CUresult;
     pub fn cuDeviceGet(device: *mut CUdevice, ordinal: i32) -> CUresult;
-    pub fn cuDeviceGetAttribute(pi: *mut i32, attrib: CUdevice_attribute, device: CUdevice) -> CUresult;
+    pub fn cuDeviceGetAttribute(
+        pi: *mut i32,
+        attrib: CUdevice_attribute,
+        device: CUdevice,
+    ) -> CUresult;
     pub fn cuCtxCreate_v2(context: *mut CUcontext, flags: u32, device: CUdevice) -> CUresult;
     pub fn cuCtxDestroy(context: CUcontext);
     pub fn cuCtxSynchronize() -> CUresult;

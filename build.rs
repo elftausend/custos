@@ -15,7 +15,7 @@ fn has_device_unified_mem() -> bool {
     let device_idx = std::env::var("CUSTOS_CL_DEVICE_IDX")
         .unwrap_or_else(|_| "0".into())
         .parse::<usize>()
-        .expect("Value in variable 'CUSTOS_CL_DEVICE_IDX' must be a positive usize value.");
+        .expect("Value in variable 'CUSTOS_CL_DEVICE_IDX' must be a usize value.");
 
     // this environment variable (CUSTOS_USE_UNIFIED) is used to either:
     // ... disable unified memory on unified memory devices, or
@@ -39,7 +39,7 @@ fn has_device_unified_mem() -> bool {
         }
     }
 
-    custos::CLDevice::new(device_idx)
-        .expect("Could not get an OpenCL device.")
-        .unified_mem()
+    min_cl::CLDevice::new(device_idx)
+        .unwrap_or_else(|_| panic!("Could not get an OpenCL device (at index {device_idx})."))
+        .unified_mem
 }

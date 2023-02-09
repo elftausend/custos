@@ -9,36 +9,82 @@ pub use cuda_device::*;
 pub use kernel_cache::*;
 pub use kernel_launch::*;
 
-use crate::{Buffer, CDatatype, PtrType};
+use crate::{flag::AllocFlag, Buffer, CDatatype, CommonPtrs, PtrType, ShallowCopy};
 
 use self::api::cufree;
 
 pub type CUBuffer<'a, T> = Buffer<'a, T, CUDA>;
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub fn chosen_cu_idx() -> usize {
+    std::env::var("CUSTOS_CU_DEVICE_IDX")
+        .unwrap_or_else(|_| "0".into())
+        .parse()
+        .expect(
+            "Environment variable 'CUSTOS_CU_DEVICE_IDX' contains an invalid CUDA device index!",
+        )
+}
+
+#[derive(Debug, PartialEq, Eq)]
 pub struct CUDAPtr<T> {
     pub ptr: u64,
+    pub len: usize,
+    pub flag: AllocFlag,
     p: PhantomData<T>,
 }
 
 impl<T> Default for CUDAPtr<T> {
+    #[inline]
     fn default() -> Self {
         Self {
             ptr: 0,
+            len: 0,
+            flag: AllocFlag::default(),
             p: PhantomData,
         }
     }
 }
 
-impl<T> PtrType<T> for CUDAPtr<T> {
-    #[inline]
-    unsafe fn dealloc(&mut self, _len: usize) {
+impl<T> Drop for CUDAPtr<T> {
+    fn drop(&mut self) {
+        if self.flag != AllocFlag::None {
+            return;
+        }
+
         if self.ptr == 0 {
             return;
         }
-        cufree(self.ptr).unwrap();
+
+        unsafe {
+            cufree(self.ptr).unwrap();
+        }
+    }
+}
+
+impl<T> ShallowCopy for CUDAPtr<T> {
+    #[inline]
+    unsafe fn shallow(&self) -> Self {
+        CUDAPtr {
+            ptr: self.ptr,
+            len: self.len,
+            flag: AllocFlag::Wrapper,
+            p: PhantomData,
+        }
+    }
+}
+
+impl<T> PtrType for CUDAPtr<T> {
+    #[inline]
+    fn len(&self) -> usize {
+        self.len
     }
 
+    #[inline]
+    fn flag(&self) -> AllocFlag {
+        self.flag
+    }
+}
+
+impl<T> CommonPtrs<T> for CUDAPtr<T> {
     #[inline]
     fn ptrs(&self) -> (*const T, *mut std::ffi::c_void, u64) {
         (null_mut(), null_mut(), self.ptr)
@@ -48,20 +94,12 @@ impl<T> PtrType<T> for CUDAPtr<T> {
     fn ptrs_mut(&mut self) -> (*mut T, *mut std::ffi::c_void, u64) {
         (null_mut(), null_mut(), self.ptr)
     }
-
-    #[inline]
-    unsafe fn from_ptrs(ptrs: (*mut T, *mut std::ffi::c_void, u64)) -> Self {
-        Self {
-            ptr: ptrs.2,
-            p: PhantomData,
-        }
-    }
 }
 
 /// Sets the elements of a CUDA Buffer to zero.
 /// # Example
 /// ```
-/// use custos::{CUDA, Buffer, VecRead, cuda::cu_clear};
+/// use custos::{CUDA, Buffer, Read, cuda::cu_clear};
 ///
 /// fn main() -> Result<(), custos::Error> {
 ///     let device = CUDA::new(0)?;
@@ -86,6 +124,6 @@ pub fn cu_clear<T: CDatatype>(device: &CUDA, buf: &mut Buffer<T, CUDA>) -> crate
     "#,
         datatype = T::as_c_type_str()
     );
-    launch_kernel1d(buf.len, device, &src, "clear", &[buf, &buf.len])?;
+    launch_kernel1d(buf.len(), device, &src, "clear", &[buf, &buf.len()])?;
     Ok(())
 }

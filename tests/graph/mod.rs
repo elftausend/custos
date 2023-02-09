@@ -1,4 +1,4 @@
-use custos::{number::Number, Buffer, CDatatype, Cache, Device, CPU, CPUCL};
+use custos::{number::Number, Buffer, CDatatype, Cache, Device, CPU, MainMemory};
 
 #[cfg(feature = "opencl")]
 use custos::{opencl::enqueue_kernel, OpenCL};
@@ -18,12 +18,12 @@ pub trait AddBuf<T, D: Device>: Device {
     fn relu(&self, lhs: &Buffer<T, D>) -> Buffer<T, Self>;
 }
 
-impl<T, D: CPUCL> AddBuf<T, D> for CPU
+impl<T, D: MainMemory> AddBuf<T, D> for CPU
 where
     T: Number,
 {
     fn add(&self, lhs: &Buffer<T, D>, rhs: &Buffer<T, D>) -> Buffer<T> {
-        let len = std::cmp::min(lhs.len, rhs.len);
+        let len = std::cmp::min(lhs.len(), rhs.len());
 
         let mut out = Cache::get(self, len, (lhs.node.idx, rhs.node.idx));
 
@@ -34,9 +34,9 @@ where
     }
 
     fn relu(&self, lhs: &Buffer<T, D>) -> Buffer<T> {
-        let mut out = Cache::get(self, lhs.len, (lhs.node.idx, lhs.node.idx));
+        let mut out = Cache::get(self, lhs.len(), (lhs.node.idx, lhs.node.idx));
 
-        for i in 0..lhs.len {
+        for i in 0..lhs.len() {
             if lhs[i] > T::zero() {
                 out[i] = lhs[i];
             }
@@ -55,8 +55,8 @@ impl<T: CDatatype> AddBuf<T, OpenCL> for OpenCL {
         }}
     ", datatype=T::as_c_type_str());
 
-        let gws = [lhs.len, 0, 0];
-        let out = Cache::get::<T, _, 0>(self, lhs.len, (lhs.node.idx, rhs.node.idx));
+        let gws = [lhs.len(), 0, 0];
+        let out = Cache::get::<T, ()>(self, lhs.len(), (lhs.node.idx, rhs.node.idx));
         enqueue_kernel(self, &src, gws, None, &[lhs, rhs, &out]).unwrap();
         out
     }
@@ -72,8 +72,8 @@ impl<T: CDatatype> AddBuf<T, OpenCL> for OpenCL {
             datatype = T::as_c_type_str()
         );
 
-        let out = Cache::get::<T, _, 0>(self, lhs.len(), lhs.node.idx);
-        enqueue_kernel(self, &src, [lhs.len, 0, 0], None, &[lhs, &out]).unwrap();
+        let out = Cache::get::<T, ()>(self, lhs.len(), lhs.node.idx);
+        enqueue_kernel(self, &src, [lhs.len(), 0, 0], None, &[lhs, &out]).unwrap();
         out
     }
 }
@@ -94,8 +94,8 @@ impl<T: CDatatype> AddBuf<T, CUDA> for CUDA {
             datatype = T::as_c_type_str()
         );
 
-        let out = Cache::get::<T, _, 0>(self, lhs.len, (lhs.node.idx, rhs.node.idx));
-        launch_kernel1d(lhs.len, self, &src, "add", &[lhs, rhs, &out, &lhs.len]).unwrap();
+        let out = Cache::get::<T, ()>(self, lhs.len(), (lhs.node.idx, rhs.node.idx));
+        launch_kernel1d(lhs.len(), self, &src, "add", &[lhs, rhs, &out, &lhs.len()]).unwrap();
         out
     }
 
@@ -113,8 +113,8 @@ impl<T: CDatatype> AddBuf<T, CUDA> for CUDA {
             datatype = T::as_c_type_str()
         );
 
-        let out = Cache::get::<T, _, 0>(self, lhs.len(), lhs.node.idx);
-        launch_kernel1d(lhs.len, self, &src, "relu", &[lhs, &out, &lhs.len]).unwrap();
+        let out = Cache::get::<T, ()>(self, lhs.len(), lhs.node.idx);
+        launch_kernel1d(lhs.len(), self, &src, "relu", &[lhs, &out, &lhs.len()]).unwrap();
         out
     }
 }

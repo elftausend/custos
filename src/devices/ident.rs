@@ -1,27 +1,32 @@
-use core::cell::RefCell;
+use core::cell::Cell;
 use std::thread_local;
 
 thread_local! {
-    pub static COUNT: RefCell<usize> = RefCell::new(0);
+    pub static COUNT: Cell<usize> = Cell::new(0);
 }
 
 /// Sets current cache identifier / index.
 /// This function is usually called after an iteration in a loop -> [Count](crate::Count) or [range](crate::range)
 #[inline]
 pub fn set_count(count: usize) {
-    COUNT.with(|c| *c.borrow_mut() = count);
+    COUNT.with(|c| c.set(count));
 }
 
 /// Returns current cache identifier / index
 #[inline]
 pub fn get_count() -> usize {
-    COUNT.with(|c| *c.borrow())
+    COUNT.with(|c| c.get())
 }
 
 #[inline]
 /// Increases the cache identifier / index by 1.
 pub fn bump_count() {
-    COUNT.with(|c| *c.borrow_mut() += 1)
+    COUNT.with(|c| 
+        {
+            let count = c.get();
+            c.set(count + 1);
+        }
+    )
 }
 
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]
@@ -34,7 +39,7 @@ pub struct Ident {
 impl Ident {
     pub fn new(len: usize) -> Ident {
         crate::COUNT.with(|count| Ident {
-            idx: *count.borrow(),
+            idx: count.get(),
             len,
         })
     }

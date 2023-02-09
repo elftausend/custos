@@ -1,58 +1,74 @@
 //! This module defines all available compute devices
 
 #[cfg(feature = "blas")]
+#[cfg(feature = "cpu")]
 use self::cpu::{
     api::{cblas_dgemm, cblas_sgemm},
     Order, Transpose,
 };
-use crate::{number::Float, Device, Alloc, AddGraph, Buffer};
+use crate::{shape::Shape, AddGraph, Alloc, Buffer, Device};
 
 #[cfg(feature = "cuda")]
 use cuda::api::cublas::{cublasDgemm_v2, cublasOperation_t, cublasSgemm_v2, CublasHandle};
 
-#[cfg(not(feature="no-std"))]
+#[cfg(not(feature = "no-std"))]
 pub mod cache;
-#[cfg(not(feature="no-std"))]
-pub use cache::{Cache, CacheReturn};
+//pub mod cache;
+#[cfg(not(feature = "no-std"))]
+pub use cache::*;
+//pub use cache::{Cache, CacheReturn};
 
+#[cfg(feature = "cpu")]
 pub mod cpu;
+
 #[cfg(feature = "cuda")]
 pub mod cuda;
+
 #[cfg(feature = "opencl")]
 pub mod opencl;
-#[cfg(feature = "stack-alloc")]
+
+#[cfg(feature = "stack")]
 pub mod stack;
+
+#[cfg(feature = "wgpu")]
+pub mod wgpu;
+
+#[cfg(feature = "network")]
+pub mod network;
 
 mod cdatatype;
 pub use cdatatype::*;
 
-#[cfg(not(feature="no-std"))]
+#[cfg(not(feature = "no-std"))]
 mod ident;
-#[cfg(not(feature="no-std"))]
+#[cfg(not(feature = "no-std"))]
 pub use ident::*;
 
-#[cfg(feature="cuda")]
+#[cfg(feature = "cuda")]
 pub type CUdeviceptr = core::ffi::c_ulonglong;
 
 #[cfg(not(feature = "opencl"))]
 #[derive(Debug)]
-pub struct InternCLDevice;
+pub struct InternOpenCL;
 
 #[cfg(not(feature = "cuda"))]
 #[derive(Debug)]
 pub struct InternCudaDevice;
 
-pub trait CacheAble<D: Device, const N: usize = 0> {
-    fn retrieve<T>(device: &D, len: usize, add_node: impl AddGraph) -> Buffer<T, D, N>
+pub trait CacheAble<D: Device> {
+    fn retrieve<T, S: Shape>(device: &D, len: usize, add_node: impl AddGraph) -> Buffer<T, D, S>
     where
-        D: Alloc<T, N>;
+        for<'a> D: Alloc<'a, T, S>;
+
+    //fn insert_node<T>(&mut self, device: &D, ptr: &D::Ptr<T, N>, node: Ident, graph_node: crate::Node) {}
 }
 
 // TODO: Mind num implement?
-impl<D: Device, const N: usize> CacheAble<D, N> for () {
-    fn retrieve<T>(device: &D, len: usize, _add_node: impl AddGraph) -> Buffer<T, D, N>
+impl<D: Device> CacheAble<D> for () {
+    #[inline]
+    fn retrieve<T, S: Shape>(device: &D, len: usize, _add_node: impl AddGraph) -> Buffer<T, D, S>
     where
-        D: Alloc<T, N>,
+        for<'a> D: Alloc<'a, T, S>,
     {
         Buffer::new(device, len)
     }
@@ -60,9 +76,10 @@ impl<D: Device, const N: usize> CacheAble<D, N> for () {
 
 pub trait GenericBlas
 where
-    Self: Sized + Float,
+    Self: Sized,
 {
     #[cfg(feature = "blas")]
+    #[cfg(feature = "cpu")]
     #[allow(clippy::too_many_arguments)]
     fn blas_gemm(
         order: Order,
@@ -79,6 +96,7 @@ where
         ldc: usize,
     );
     #[cfg(feature = "blas")]
+    #[cfg(feature = "cpu")]
     #[inline]
     fn gemm(m: usize, n: usize, k: usize, a: &[Self], b: &[Self], c: &mut [Self]) {
         Self::blas_gemm(
@@ -97,6 +115,7 @@ where
         )
     }
     #[cfg(feature = "blas")]
+    #[cfg(feature = "cpu")]
     #[inline]
     #[allow(non_snake_case)]
     fn gemmT(m: usize, n: usize, k: usize, a: &[Self], b: &[Self], c: &mut [Self]) {
@@ -117,6 +136,7 @@ where
     }
 
     #[cfg(feature = "blas")]
+    #[cfg(feature = "cpu")]
     #[inline]
     #[allow(non_snake_case)]
     fn Tgemm(m: usize, n: usize, k: usize, a: &[Self], b: &[Self], c: &mut [Self]) {
@@ -150,6 +170,7 @@ where
 
 impl GenericBlas for f32 {
     #[cfg(feature = "blas")]
+    #[cfg(feature = "cpu")]
     #[inline]
     fn blas_gemm(
         order: Order,
@@ -220,6 +241,7 @@ impl GenericBlas for f32 {
 
 impl GenericBlas for f64 {
     #[cfg(feature = "blas")]
+    #[cfg(feature = "cpu")]
     #[inline]
     fn blas_gemm(
         order: Order,

@@ -1,18 +1,18 @@
 /// Descripes the type of a [`Buffer`]
-#[derive(Debug, Clone, Copy)]
-pub enum BufFlag {
+#[derive(Debug, Clone, Copy, Eq)]
+pub enum AllocFlag {
     None,
     Cache,
     Wrapper,
 }
 
-impl Default for BufFlag {
+impl Default for AllocFlag {
     fn default() -> Self {
-        BufFlag::None
+        AllocFlag::None
     }
 }
 
-impl PartialEq for BufFlag {
+impl PartialEq for AllocFlag {
     fn eq(&self, other: &Self) -> bool {
         core::mem::discriminant(self) == core::mem::discriminant(other)
     }

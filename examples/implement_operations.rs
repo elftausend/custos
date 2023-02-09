@@ -2,13 +2,15 @@ use custos::prelude::*;
 
 /// `AddBuf` will be implemented for all compute devices.<br>
 /// Because of `N`, this trait can be implemented for [`Stack`] which uses fixed size arrays.
-pub trait AddBuf<T, const N: usize = 0>: Sized + Device {
+pub trait AddBuf<T, S: Shape = ()>: Sized + Device {
     /// This operation perfoms element-wise addition.
-    fn add(&self, lhs: &Buffer<T, Self, N>, rhs: &Buffer<T, Self, N>) -> Buffer<T, Self, N>;
+    fn add(&self, lhs: &Buffer<T, Self, S>, rhs: &Buffer<T, Self, S>) -> Buffer<T, Self, S>;
     // ... you can add more operations if you want to do that.
 }
 
+
 // Host CPU implementation
+#[cfg(feature="cpu")]
 impl<T> AddBuf<T> for CPU
 where
     T: Copy + std::ops::Add<Output = T>, // you can use the custos::Number trait.
@@ -16,7 +18,7 @@ where
 {
     // you can use the custos::Number trait. This trait is implemented for all number types (usize, i16, f32, ...)
     fn add(&self, lhs: &Buffer<T>, rhs: &Buffer<T>) -> Buffer<T> {
-        let len = std::cmp::min(lhs.len, rhs.len);
+        let len = std::cmp::min(lhs.len(), rhs.len());
 
         // this returns a previously allocated buffer.
         // You can deactivate the caching behaviour by adding the "realloc" feature
@@ -35,23 +37,22 @@ where
     }
 }
 
-// the attribute macro `#[impl_stack]` from the crate `custos-macro` 
+// the attribute macro `#[impl_stack]` from the crate `custos-macro`
 // can be placed on top of the CPU implementation to automatically
 // generate a Stack implementation.
-#[cfg(feature="stack-alloc")]
-impl<T, const N: usize> AddBuf<T, N> for Stack 
+#[cfg(feature = "stack")]
+impl<T, S: Shape> AddBuf<T, S> for Stack
 where
     T: Copy + Default + std::ops::Add<Output = T>,
 {
-    fn add(&self, lhs: &Buffer<T, Self, N>, rhs: &Buffer<T, Self, N>) -> Buffer<T, Self, N> {
-        let mut out = [T::default(); N];
-        //let mut out = self.retrieve(N, [lhs, rhs]); // this works as well and in this case (Stack), does exactly the same as the line above.
+    fn add(&self, lhs: &Buffer<T, Self, S>, rhs: &Buffer<T, Self, S>) -> Buffer<T, Self, S> {
+        let mut out = self.retrieve(S::LEN, [lhs, rhs]); // this works as well and in this case (Stack), does exactly the same as the line above.
 
-        for i in 0..N {
+        for i in 0..S::LEN {
             out[i] = lhs[i] + rhs[i];
         }
 
-        Buffer::from(out)
+        out
     }
 }
 
@@ -62,8 +63,8 @@ where
     T: CDatatype, // the custos::CDatatype trait is used to
                   // get the OpenCL C type string for creating generic OpenCL kernels.
 {
-    
-    fn add(&self, lhs: &CLBuffer<T>, rhs: &CLBuffer<T>) -> CLBuffer<T> { // CLBuffer<T> is the same as Buffer<T, OpenCL>
+    fn add(&self, lhs: &CLBuffer<T>, rhs: &CLBuffer<T>) -> CLBuffer<T> {
+        // CLBuffer<T> is the same as Buffer<T, OpenCL>
         // generic OpenCL kernel
         let src = format!("
             __kernel void add(__global const {datatype}* lhs, __global const {datatype}* rhs, __global {datatype}* out) 
@@ -73,8 +74,8 @@ where
             }}
         ", datatype=T::as_c_type_str());
 
-        let len = std::cmp::min(lhs.len, rhs.len);
-        let out = self.retrieve::<T, 0>(len, (lhs, rhs));
+        let len = std::cmp::min(lhs.len(), rhs.len());
+        let out = self.retrieve::<T, ()>(len, (lhs, rhs));
 
         // In the background, the kernel is compiled once. After that, it will be reused for every iteration.
         // The cached kernels are released (or freed) when the underlying CLDevice is dropped.
@@ -87,7 +88,8 @@ where
 #[cfg(feature = "cuda")]
 // CUDA Implementation
 impl<T: CDatatype> AddBuf<T> for CUDA {
-    fn add(&self, lhs: &CUBuffer<T>, rhs: &CUBuffer<T>) -> CUBuffer<T> { // CLBuffer<T> is the same as Buffer<T, OpenCL>
+    fn add(&self, lhs: &CUBuffer<T>, rhs: &CUBuffer<T>) -> CUBuffer<T> {
+        // CLBuffer<T> is the same as Buffer<T, OpenCL>
         // generic CUDA kernel
         let src = format!(
             r#"extern "C" __global__ void add({datatype}* lhs, {datatype}* rhs, {datatype}* out, int numElements)
@@ -102,8 +104,8 @@ impl<T: CDatatype> AddBuf<T> for CUDA {
             datatype = T::as_c_type_str()
         );
 
-        let len = std::cmp::min(lhs.len, rhs.len);
-        let out = self.retrieve::<T, 0>(len, (lhs, rhs));
+        let len = std::cmp::min(lhs.len(), rhs.len());
+        let out = self.retrieve::<T, ()>(len, (lhs, rhs));
         //or: let out = Cache::get::<T, CUDA, 0>(self, len, (lhs, rhs));
 
         // The kernel is compiled once with nvrtc and is cached too.
@@ -152,17 +154,22 @@ impl<'a, T, D: Device> OwnStruct<'a, T, D> {
 }
 
 fn main() -> custos::Result<()> {
-    let cpu = CPU::new();
 
-    let lhs = Buffer::from((&cpu, [1, 3, 5, 3, 2, 6]));
-    let rhs = Buffer::from((&cpu, [-1, -12, -6, 3, 2, -1]));
+    #[cfg(feature="cpu")]
+    {
+        let cpu = CPU::new();
 
-    let out = cpu.add(&lhs, &rhs);
-    assert_eq!(out.read(), vec![0, -9, -1, 6, 4, 5]); // to read a CPU Buffer, you can also call .as_slice() on it.
+        let lhs = Buffer::from((&cpu, [1, 3, 5, 3, 2, 6]));
+        let rhs = Buffer::from((&cpu, [-1, -12, -6, 3, 2, -1]));
 
-    // without specifying a device
-    let out = lhs.add(&rhs);
-    assert_eq!(out.read(), vec![0, -9, -1, 6, 4, 5]);
+        let out = cpu.add(&lhs, &rhs);
+        assert_eq!(out.read(), vec![0, -9, -1, 6, 4, 5]); // to read a CPU Buffer, you can also call .as_slice() on it.
+
+        // without specifying a device
+        let out = lhs.add(&rhs);
+        assert_eq!(out.read(), vec![0, -9, -1, 6, 4, 5]);
+
+    }
 
     #[cfg(feature = "opencl")] // deactivate this block if the feature is disabled
     {

@@ -1,29 +1,31 @@
-use custos::cpu::cpu_cached;
-#[cfg(feature = "opencl")]
-use custos::{devices::opencl::OpenCL, Error};
-use custos::{Alloc, Buffer, Device, VecRead};
-
-use custos::CPU;
+use custos::{prelude::*, CommonPtrs, Error};
 
 #[cfg(unified_cl)]
-use custos::CPUCL;
+use custos::MainMemory;
 
 #[cfg(not(feature = "realloc"))]
 use custos::{get_count, set_count};
 
-pub fn get_mut_slice<'a, T, D: Device>(buf: &'a mut Buffer<T, D>) -> &'a mut [T] {
-    unsafe { std::slice::from_raw_parts_mut(buf.ptrs_mut().0, buf.len) }
-}
-
-pub fn get_slice<'a, T, D: Device>(buf: &'a Buffer<T, D>) -> &'a [T] {
-    unsafe { std::slice::from_raw_parts(buf.ptrs().0, buf.len) }
-}
-
-pub fn read<T, D: Alloc<T>>(device: &D, buf: &Buffer<T, D>) -> Vec<T>
+pub fn get_mut_slice<'a, T, D: Device>(buf: &'a mut Buffer<T, D>) -> &'a mut [T]
 where
-    D: VecRead<T, D> + Device,
+    D::Ptr<T, ()>: CommonPtrs<T>,
 {
-    device.read(&buf)
+    unsafe { std::slice::from_raw_parts_mut(buf.ptrs_mut().0, buf.len()) }
+}
+
+pub fn get_slice<'a, T, D: Device>(buf: &'a Buffer<T, D>) -> &'a [T]
+where
+    D::Ptr<T, ()>: CommonPtrs<T>,
+{
+    unsafe { std::slice::from_raw_parts(buf.ptrs().0, buf.len()) }
+}
+
+pub fn read<'a, T, D: Alloc<'a, T>>(device: &D, buf: &'a Buffer<T, D>) -> Vec<T>
+where
+    D: Read<T, D> + Device,
+    T: Clone + Default,
+{
+    device.read_to_vec(&buf)
 }
 
 #[cfg(feature = "opencl")]
@@ -38,6 +40,7 @@ fn test_cldevice_name() -> Result<(), Error> {
 #[cfg(feature = "opencl")]
 #[test]
 fn test_cldevice_version() -> Result<(), Error> {
+
     let device = OpenCL::new(0)?;
     println!("{}", device.version()?);
     Ok(())
@@ -115,6 +118,7 @@ fn test_use_number() {
     assert_eq!(num, Box::new(10));
 }
 
+#[cfg(feature = "cpu")]
 #[cfg(not(feature = "realloc"))]
 #[test]
 fn test_cached_cpu() {
@@ -200,6 +204,7 @@ fn test_from_ptrs() {
     assert_eq!(buf.ptr.1, std::ptr::null_mut());
 }*/
 
+#[cfg(feature = "cpu")]
 #[test]
 fn test_size_buf() {
     let x = core::mem::size_of::<Buffer<i8, CPU>>();
@@ -212,6 +217,7 @@ fn _slice_add<T: Copy + std::ops::Add<Output = T>>(a: &[T], b: &[T], c: &mut [T]
     }
 }
 
+#[cfg(feature = "cpu")]
 #[test]
 fn test_iterate() {
     let cmp = [1f32, 2., 3.3];
@@ -236,7 +242,7 @@ fn test_debug_print_buf() -> custos::Result<()> {
 }
 
 #[cfg(unified_cl)]
-fn slice_add<T, D: CPUCL>(_lhs: &Buffer<T, D>) {}
+fn slice_add<T, D: MainMemory>(_lhs: &Buffer<T, D>) {}
 
 #[cfg(unified_cl)]
 #[test]
@@ -252,6 +258,7 @@ fn test_slice() {
     slice_add::<i32, _>(&buf);
 }
 
+#[cfg(feature = "cpu")]
 #[test]
 fn test_alloc() {
     let device = CPU::new();
@@ -264,6 +271,7 @@ fn test_alloc() {
     drop(buf);
 }
 
+#[cfg(feature = "cpu")]
 #[test]
 fn test_deviceless_buf() {
     let mut buf = {
@@ -317,4 +325,16 @@ fn test_deviceless_buf_cl() -> custos::Result<()> {
 fn test_buf_num() {
     let buf = Buffer::from(5);
     assert_eq!(*buf, 5);
+}
+
+#[cfg(feature = "cpu")]
+#[test]
+fn test_buf_const() {
+    let _device = CPU::new();
+    // TODO
+    //let device = Stack;
+    // let buf = Buffer::with(&device, [1., 2., 3.]);
+    // buf.read();
+
+    //let buf = Buffer::from((&device, [1., 2., 3.]));
 }

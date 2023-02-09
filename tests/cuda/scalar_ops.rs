@@ -1,4 +1,4 @@
-use custos::{cache::Cache, cuda::launch_kernel1d, Buffer, CachedLeaf, VecRead, CUDA};
+use custos::{cache::Cache, cuda::launch_kernel1d, Buffer, CachedLeaf, Read, CUDA};
 
 fn scalar_apply<'a>(
     device: &'a CUDA,
@@ -15,14 +15,14 @@ fn scalar_apply<'a>(
             }
     "#;
 
-    let out: Buffer<f32, _> = Cache::get(device, lhs.len, CachedLeaf);
+    let out: Buffer<f32, _> = Cache::get(device, lhs.len(), CachedLeaf);
 
     launch_kernel1d(
-        lhs.len,
+        lhs.len(),
         &device,
         &src,
         "scalar_add",
-        &[&lhs, &rhs, &out, &lhs.len],
+        &[&lhs, &rhs, &out, &lhs.len()],
     )?;
 
     Ok(out)

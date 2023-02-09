@@ -9,20 +9,22 @@ Implementing a new operation happens in a few steps. <br>
 
 The first step is to define a trait. This is the operation<br>
 This trait is then implemented for all devices.<br>
+Using const generics to determine the possible size for the buffer. This is useful for fixed-size arrays
 
 You can use your own type as parameters also. It just needs to encapsulate a ```Buffer```.
 
 ```rust
-/// AddBuf will be implemented for all compute devices.
-pub trait AddBuf<T>: Sized {
+/// `AddBuf` will be implemented for all compute devices.<br>
+/// Because of `N`, this trait can be implemented for [`Stack`] which uses fixed size arrays.
+pub trait AddBuf<T, const N: usize = 0>: Sized + Device {
     /// This operation perfoms element-wise addition.
-    fn add(&self, lhs: &Buffer<T, Self>, rhs: &Buffer<T, Self>) -> Buffer<T, Self>;
+    fn add(&self, lhs: &Buffer<T, Self, N>, rhs: &Buffer<T, Self, N>) -> Buffer<T, Self, N>;
     // ... you can add more operations if you want to do that.
 }
 ```
 
 Afterwards, implement this trait for every device.<br>
-However, it is not mandatory to implement this trait for every device, but we will come to this again a bit later.
+It is not mandatory to implement this trait for every device.
 
 ```rust
 // Host CPU implementation

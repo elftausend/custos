@@ -1,18 +1,20 @@
 mod impl_buffer;
-mod stack_device;
 mod stack_array;
+mod stack_device;
 
+pub use stack_array::StackArray;
 pub use stack_device::*;
 
+#[cfg(feature = "cpu")]
 #[cfg(test)]
 mod tests {
-    use crate::{Alloc, Buffer, Device, CPU, CPUCL};
+    use crate::{Alloc, Buffer, Device, Dim1, MainMemory, Shape, CPU};
     use core::ops::Add;
 
     use super::stack_device::Stack;
 
-    pub trait AddBuf<T, D: Device, const N: usize = 0>: Device {
-        fn add(&self, lhs: &Buffer<T, D, N>, rhs: &Buffer<T, D, N>) -> Buffer<T, Self, N>;
+    pub trait AddBuf<T, D: Device = Self, S: Shape = ()>: Device {
+        fn add(&self, lhs: &Buffer<T, D, S>, rhs: &Buffer<T, D, S>) -> Buffer<T, Self, S>;
     }
 
     /*// Without stack support
@@ -34,11 +36,11 @@ mod tests {
 
     impl<T, D> AddBuf<T, D> for CPU
     where
-        D: CPUCL,
+        D: MainMemory,
         T: Add<Output = T> + Clone,
     {
         fn add(&self, lhs: &Buffer<T, D>, rhs: &Buffer<T, D>) -> Buffer<T, Self> {
-            let len = core::cmp::min(lhs.len, rhs.len);
+            let len = core::cmp::min(lhs.len(), rhs.len());
 
             let mut out = self.retrieve(len, (lhs, rhs));
             for i in 0..len {
@@ -48,17 +50,16 @@ mod tests {
         }
     }
 
-    impl<const N: usize, T, D> AddBuf<T, D, N> for Stack
+    impl<T, D, S: Shape> AddBuf<T, D, S> for Stack
     where
-        Stack: Alloc<T, N>,
-        D: CPUCL,
+        for<'a> Stack: Alloc<'a, T, S>,
+        D: MainMemory,
         T: Add<Output = T> + Clone,
     {
-        fn add(&self, lhs: &Buffer<T, D, N>, rhs: &Buffer<T, D, N>) -> Buffer<T, Self, N> {
-            let len = core::cmp::min(lhs.len, rhs.len);
+        fn add(&self, lhs: &Buffer<T, D, S>, rhs: &Buffer<T, D, S>) -> Buffer<T, Self, S> {
+            let mut out = self.retrieve(S::LEN, (lhs, rhs));
 
-            let mut out = self.retrieve(len, (lhs, rhs));
-            for i in 0..len {
+            for i in 0..S::LEN {
                 out[i] = lhs[i].clone() + rhs[i].clone();
             }
             out
@@ -67,11 +68,9 @@ mod tests {
 
     #[test]
     fn test_stack() {
-        let stack = Stack;
+        let buf = Buffer::<f32, Stack, Dim1<100>>::from((Stack, [1f32; 100]));
 
-        let buf = Buffer::<f32, Stack, 100>::from([1f32; 100]);
-
-        let out = stack.add(&buf, &buf);
+        let out = Stack.add(&buf, &buf);
         assert_eq!(out.ptr.array, [2.; 100]);
 
         let cpu = CPU::new();
@@ -80,6 +79,6 @@ mod tests {
         //let buf = Buffer::<f32>::new(&cpu, 100);
         let buf = Buffer::from((&cpu, [1f32; 100]));
         let out = cpu.add(&buf, &buf);
-        assert_eq!(out.as_slice(), &[2.; 100]);
+        assert_eq!(&*out, &[2.; 100]);
     }
 }

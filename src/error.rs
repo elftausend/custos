@@ -1,9 +1,24 @@
-use alloc::boxed::Box;
+#[cfg(not(feature = "no-std"))]
+mod std_err {
+    pub type Error = Box<dyn std::error::Error + Send + Sync>;
 
-pub struct Error {
-    pub error: Box<dyn std::error::Error + Send>,
+    pub trait ErrorKind {
+        fn kind<E: std::error::Error + PartialEq + 'static>(&self) -> Option<&E>;
+    }
+
+    impl ErrorKind for Error {
+        fn kind<E: std::error::Error + PartialEq + 'static>(&self) -> Option<&E> {
+            self.downcast_ref::<E>()
+        }
+    }
+
+    impl std::error::Error for crate::DeviceError {}
 }
 
+#[cfg(not(feature = "no-std"))]
+pub use std_err::*;
+
+/*
 impl<E: std::error::Error + PartialEq + 'static> PartialEq<E> for Error {
     fn eq(&self, other: &E) -> bool {
         let e = self.error.downcast_ref::<E>();
@@ -26,7 +41,7 @@ impl Error {
     }
 }
 
-impl<T: std::error::Error + Send + 'static> From<T> for Error {
+impl<T: std::error::Error + Send + 'static + Sync> From<T> for Error {
     fn from(error: T) -> Self {
         Error {
             error: Box::new(error),
@@ -47,7 +62,16 @@ impl core::fmt::Display for Error {
         Ok(())
     }
 }
+*/
 
+#[cfg(not(feature = "no-std"))]
+pub type Result<T> = core::result::Result<T, self::std_err::Error>;
+
+#[cfg(feature = "no-std")]
+#[derive(Debug)]
+pub struct Error {}
+
+#[cfg(feature = "no-std")]
 pub type Result<T> = core::result::Result<T, Error>;
 
 #[derive(Clone, Copy, Eq, Hash, Ord, PartialEq, PartialOrd)]
@@ -55,6 +79,7 @@ pub enum DeviceError {
     ConstructError,
     CPUtoCUDA,
     GraphOptimization, // probably a programming error
+    MissingAddress,
 }
 
 impl DeviceError {
@@ -65,6 +90,7 @@ impl DeviceError {
             }
             DeviceError::CPUtoCUDA => "Only a CPU Buffer can be converted to a CUDA Buffer",
             DeviceError::GraphOptimization => "This graph can't be optimized.",
+            DeviceError::MissingAddress => "An address was not supplied for a Network device.",
         }
     }
 }
@@ -80,5 +106,3 @@ impl core::fmt::Display for DeviceError {
         write!(f, "{self:?}")
     }
 }
-
-impl std::error::Error for DeviceError {}

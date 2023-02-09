@@ -12,30 +12,53 @@ rust-version = "1.65"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+#cuwanto-server = {path="../cuwanto/cuwanto-server", optional=true}
+min-cl = { version="0.1.0", optional=true }
 
+# WGPU deps
+futures-intrusive = {version="0.5.0", optional=true}
+pollster = {version="0.2.5", optional=true }
+wgpu = {version="0.14.2", optional=true }
+
+#custos-macro = {path = "../custos-macro", optional=true}
+custos-macro = {version = "0.1.0", optional=true}
+
+# no-std float math
+libm = { version="0.2.6", optional = true }
 
 [build-dependencies]
-# TODO: use opencl only lib
-custos = { version="0.5.0", default-features = false }
+min-cl = { version="0.1.0", optional=true }
+
 
 [features]
-default = ["blas", "cuda", "opencl", "opt-cache"]
-opencl = ["custos/opencl"]
+#default = ["stack", "cpu", "opencl"]
+default = []
+#default = ["stack", "cpu", "opt-cache", "blas", "static-api", "opencl"]
+cpu = []
+opencl = ["dep:min-cl", "cpu"]
+#network = ["cuwanto-server"]
 cuda = []
 realloc = []
 opt-cache = []
 blas = []
 static-api = []
-stack-alloc = []
-no-std = ["stack-alloc"]
+stack = []
+no-std = ["stack", "dep:libm"]
+wgpu = ["dep:wgpu", "dep:pollster", "dep:futures-intrusive"]
+macro = ["dep:custos-macro"]
 
 [dev-dependencies]
 #criterion = "0.3"
 #custos-macro = {path = "../custos-macro"}
+custos-macro = {version = "0.1.0"}
 
 [[example]]
 name = "cuda_readme"
 required-features = ["cuda"]
+
+[[example]]
+name = "cpu_readme"
+required-features = ["cpu"]
 
 [[example]]
 name = "cl_readme"
@@ -49,6 +72,12 @@ required-features = ["opencl"]
 name = "opencl_kernel_launch"
 required-features = ["opencl"]
 
+[[example]]
+name = "read"
+required-features = ["cpu"]
+
+
+
 [[test]]
 name = "opencl_unified"
 required-features = ["opencl"]
@@ -56,6 +85,10 @@ required-features = ["opencl"]
 [[test]]
 name = "cl_kernel_launch"
 required-features = ["opencl"]
+
+[[test]]
+name = "network_device"
+required-features = ["network"]
 
 #[[bench]]
 #name = "fixed_size_vs_vec"

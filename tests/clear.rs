@@ -1,5 +1,6 @@
 use custos::{Buffer, CPU};
 
+#[cfg(feature = "cpu")]
 #[test]
 fn test_clear_cpu() {
     let device = CPU::new();

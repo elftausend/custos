@@ -1,6 +1,6 @@
 use custos::{
     cuda::api::{culaunch_kernel, load_module_data, nvrtc::create_program},
-    Buffer, VecRead, CUDA,
+    Buffer, Read, CUDA,
 };
 use std::ffi::c_void;
 
@@ -11,7 +11,7 @@ fn test_nvrtc() -> custos::Result<()> {
     let a = Buffer::from((&device, [1, 2, 3, 4, 5]));
     let b = Buffer::from((&device, [4, 1, 7, 6, 9]));
 
-    let c = Buffer::<i32, _>::new(&device, a.len);
+    let c = Buffer::<i32, _>::new(&device, a.len());
 
     let src = r#"
         extern "C" __global__ void add(int *a, int *b, int *c, int numElements)
@@ -29,14 +29,14 @@ fn test_nvrtc() -> custos::Result<()> {
 
     culaunch_kernel(
         &function,
-        [a.len as u32, 1, 1],
+        [a.len() as u32, 1, 1],
         [1, 1, 1],
         &mut device.stream(),
         &mut [
             &a.ptrs().2 as *const u64 as *mut c_void,
             &b.ptrs().2 as *const u64 as *mut c_void,
             &c.ptrs().2 as *const u64 as *mut c_void,
-            &a.len as *const usize as *mut c_void,
+            &a.len() as *const usize as *mut c_void,
         ],
     )?;
 

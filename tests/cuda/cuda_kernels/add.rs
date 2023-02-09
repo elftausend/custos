@@ -5,7 +5,7 @@ fn test_add_cuda() -> custos::Result<()> {
 
     use custos::{
         cuda::api::{create_stream, culaunch_kernel, load_module},
-        Buffer, CudaDevice, VecRead,
+        Buffer, CudaDevice, Read,
     };
     let device = CudaDevice::new(0)?;
 

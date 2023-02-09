@@ -78,7 +78,7 @@ impl Iterator for CountIntoIter {
     type Item = usize;
 
     fn next(&mut self) -> Option<Self::Item> {
-        #[cfg(not(feature="no-std"))]
+        #[cfg(not(feature = "no-std"))]
         crate::set_count(self.idx);
         if self.epoch >= self.end {
             return None;
@@ -97,9 +97,9 @@ impl IntoIterator for Count {
     fn into_iter(self) -> Self::IntoIter {
         CountIntoIter {
             epoch: self.0,
-            #[cfg(not(feature="no-std"))]
+            #[cfg(not(feature = "no-std"))]
             idx: crate::get_count(),
-            #[cfg(feature="no-std")]
+            #[cfg(feature = "no-std")]
             idx: 0,
             end: self.1,
         }

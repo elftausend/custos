@@ -1,11 +1,44 @@
-use alloc::vec::Vec;
+#[cfg(not(feature = "no-std"))]
+use crate::Ident;
 
-use crate::{Buffer, Device, Ident, COUNT};
 use core::cell::RefMut;
 
 #[cfg(feature = "opt-cache")]
-use crate::{cache::CacheReturn, DeviceError};
+use crate::{CacheReturn, DeviceError};
 
+pub use add_graph::*;
+pub use node::*;
+
+mod add_graph;
+mod node;
+
+#[cfg(not(feature = "no-std"))]
+mod graph_struct;
+
+#[cfg(not(feature = "no-std"))]
+pub use graph_struct::Graph;
+
+#[cfg(feature = "no-std")]
+pub struct Graph {}
+
+#[cfg(feature = "no-std")]
+impl Graph {
+    #[inline]
+    pub fn add_leaf(&mut self, len: usize) -> Node {
+        Node {
+            idx: -1,
+            ident_idx: -1,
+            deps: [-1, -1],
+            len,
+        }
+    }
+    #[inline]
+    pub fn add_node(&mut self, len: usize, lhs_idx: isize, rhs_idx: isize) -> Node {
+        self.add_leaf(len)
+    }
+}
+
+#[cfg(not(feature = "no-std"))]
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct CacheTrace {
     pub cache_idx: usize,
@@ -20,7 +53,7 @@ pub trait GraphReturn {
 pub trait GraphOpt {
     fn optimize(&self) -> crate::Result<()>
     where
-        Self: GraphReturn + CacheReturn,
+        Self: GraphReturn + CacheReturn + crate::RawConv,
     {
         let mut cache = self.cache();
 
@@ -41,235 +74,9 @@ pub trait GraphOpt {
     }
 }
 
-#[derive(Default, Debug)]
-pub struct Graph {
-    pub nodes: Vec<Node>,
-}
-
-impl Graph {
-    pub fn new() -> Self {
-        Self { nodes: Vec::new() }
-    }
-
-    pub fn add(&mut self, len: usize, add_node: impl AddGraph) -> Node {
-        add_node.add(self, len)
-    }
-
-    pub fn add_leaf(&mut self, len: usize) -> Node {
-        Node {
-            idx: -1,
-            ident_idx: -1,
-            deps: [-1, -1],
-            len,
-        }
-    }
-
-    pub fn add_node(&mut self, len: usize, lhs_idx: isize, rhs_idx: isize) -> Node {
-        let idx = self.nodes.len() as isize;
-        let node = COUNT.with(|count| {
-            Node {
-                // subtracting 1, because the count is increased beforehand.
-                ident_idx: *count.borrow() as isize,
-                idx,
-                deps: [lhs_idx, rhs_idx],
-                len,
-            }
-        });
-        self.nodes.push(node);
-        node
-    }
-
-    pub fn cache_traces(&self) -> Vec<CacheTrace> {
-        if self.nodes.is_empty() {
-            return Vec::new();
-        }
-
-        let mut start = self.nodes[0];
-        let mut traces = vec![];
-
-        while let Some(trace) = self.trace_cache_path(&start) {
-            let last_trace_node = *trace.last().unwrap();
-
-            traces.push(CacheTrace {
-                cache_idx: start.idx as usize,
-                use_cache_idx: trace
-                    .into_iter()
-                    .map(|node| Ident {
-                        idx: node.ident_idx as usize,
-                        len: node.len as usize,
-                    })
-                    .collect(),
-            });
-
-            // use better searching algorithm to find the next start node
-            match self.nodes.get(last_trace_node.idx as usize + 1) {
-                Some(next) => start = *next,
-                None => return traces,
-            }
-        }
-        traces
-    }
-
-    pub fn trace_cache_path(&self, trace_at: &Node) -> Option<Vec<Node>> {
-        if !self.is_path_optimizable(trace_at) {
-            return None;
-        }
-
-        let mut trace = vec![*trace_at];
-
-        let mut idx = trace_at.idx;
-        for check in &self.nodes[trace_at.idx as usize + 1..] {
-            if trace_at.len != check.len || !self.is_path_optimizable(check) {
-                continue;
-            }
-
-            if check.deps.contains(&idx) {
-                idx = check.idx;
-                trace.push(*check);
-            }
-        }
-        Some(trace)
-    }
-
-    pub fn is_path_optimizable(&self, check_at: &Node) -> bool {
-        if check_at.is_leaf() {
-            return false;
-        };
-
-        let mut occurences = 0;
-
-        for check in &self.nodes[check_at.idx as usize + 1..] {
-            if check_at.len != check.len || !check.deps.contains(&check_at.idx) {
-                continue;
-            }
-
-            if occurences >= 1 {
-                return false;
-            }
-            occurences += 1;
-        }
-        true
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub struct Node {
-    pub ident_idx: isize,
-    pub idx: isize,
-    pub deps: [isize; 2],
-    pub len: usize,
-}
-
-impl Default for Node {
-    #[inline]
-    fn default() -> Self {
-        Self {
-            ident_idx: -1,
-            idx: -1,
-            deps: [-1, -1],
-            len: 0,
-        }
-    }
-}
-
-impl Node {
-    #[inline]
-    pub fn is_leaf(&self) -> bool {
-        self.idx == -1
-    }
-}
-
-pub trait AddGraph {
-    fn add(&self, graph: &mut Graph, len: usize) -> Node;
-}
-
-impl AddGraph for () {
-    fn add(&self, graph: &mut Graph, len: usize) -> Node {
-        graph.add_leaf(len)
-    }
-}
-
-// Unary operation
-impl AddGraph for usize {
-    fn add(&self, graph: &mut Graph, len: usize) -> Node {
-        graph.add_node(len, *self as isize, *self as isize)
-    }
-}
-
-// Unary operation
-impl AddGraph for isize {
-    fn add(&self, graph: &mut Graph, len: usize) -> Node {
-        graph.add_node(len, *self as isize, *self)
-    }
-}
-
-impl AddGraph for (usize, usize) {
-    fn add(&self, graph: &mut Graph, len: usize) -> Node {
-        graph.add_node(len, self.0 as isize, self.1 as isize)
-    }
-}
-
-impl AddGraph for (isize, isize) {
-    fn add(&self, graph: &mut Graph, len: usize) -> Node {
-        graph.add_node(len, self.0, self.1)
-    }
-}
-
-impl AddGraph for [usize; 2] {
-    fn add(&self, graph: &mut Graph, len: usize) -> Node {
-        graph.add_node(len, self[0] as isize, self[1] as isize)
-    }
-}
-
-impl AddGraph for [isize; 2] {
-    fn add(&self, graph: &mut Graph, len: usize) -> Node {
-        graph.add_node(len, self[0], self[1])
-    }
-}
-
-impl AddGraph for [usize; 1] {
-    fn add(&self, graph: &mut Graph, len: usize) -> Node {
-        graph.add_node(len, self[0] as isize, self[0] as isize)
-    }
-}
-
-pub struct CachedLeaf;
-
-impl AddGraph for CachedLeaf {
-    fn add(&self, graph: &mut Graph, len: usize) -> Node {
-        graph.add_node(len, -1, -1)
-    }
-}
-
-impl<'a, T, D: Device, const N: usize> AddGraph for Buffer<'a, T, D, N> {
-    fn add(&self, graph: &mut Graph, len: usize) -> Node {
-        graph.add_node(len, self.node.idx, self.node.idx)
-    }
-}
-
-impl<'a, T, D: Device, const N: usize> AddGraph for &Buffer<'a, T, D, N> {
-    fn add(&self, graph: &mut Graph, len: usize) -> Node {
-        graph.add_node(len, self.node.idx, self.node.idx)
-    }
-}
-
-impl<'a, T, D: Device, const N: usize> AddGraph for (&Buffer<'a, T, D, N>, &Buffer<'a, T, D, N>) {
-    fn add(&self, graph: &mut Graph, len: usize) -> Node {
-        graph.add_node(len, self.0.node.idx, self.1.node.idx)
-    }
-}
-
-impl<'a, T, D: Device, const N: usize> AddGraph for [&Buffer<'a, T, D, N>; 2] {
-    fn add(&self, graph: &mut Graph, len: usize) -> Node {
-        graph.add_node(len, self[0].node.idx, self[1].node.idx)
-    }
-}
-
-#[cfg(not(feature="no-std"))]
+#[cfg(not(feature = "no-std"))]
 #[cfg(test)]
 mod tests {
-    use alloc::vec;
-
     use crate::{bump_count, set_count, CacheTrace, Graph, Ident, Node};
 
     // test if node is a leaf node

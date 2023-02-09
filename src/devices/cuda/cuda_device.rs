@@ -4,12 +4,13 @@ use super::{
         cublas::{create_handle, cublasDestroy_v2, cublasSetStream_v2, CublasHandle},
         cumalloc, device, Context, CudaIntDevice, Module, Stream,
     },
-    cu_clear, CUDAPtr, KernelCacheCU, RawCUBuf,
+    chosen_cu_idx, cu_clear, CUDAPtr, KernelCacheCU, RawCUBuf,
 };
 use crate::{
     cache::{Cache, CacheReturn},
+    flag::AllocFlag,
     Alloc, Buffer, CDatatype, CacheBuf, CachedLeaf, ClearBuf, CloneBuf, Device, Graph, GraphReturn,
-    VecRead, WriteBuf,
+    RawConv, Read, Shape, WriteBuf,
 };
 use std::{cell::RefCell, marker::PhantomData};
 
@@ -17,7 +18,7 @@ use std::{cell::RefCell, marker::PhantomData};
 /// To make new calculations invocable, a trait providing new operations should be implemented for [CudaDevice].
 #[derive(Debug)]
 pub struct CUDA {
-    pub cache: RefCell<Cache<RawCUBuf>>,
+    pub cache: RefCell<Cache<CUDA>>,
     pub kernel_cache: RefCell<KernelCacheCU>,
     pub modules: RefCell<Vec<Module>>,
     pub graph: RefCell<Graph>,
@@ -69,8 +70,34 @@ impl CUDA {
 }
 
 impl Device for CUDA {
-    type Ptr<U, const N: usize> = CUDAPtr<U>;
-    type Cache<const N: usize> = Cache<RawCUBuf>;
+    type Ptr<U, S: Shape> = CUDAPtr<U>;
+    type Cache = Cache<CUDA>;
+
+    fn new() -> crate::Result<Self> {
+        CUDA::new(chosen_cu_idx())
+    }
+}
+
+impl RawConv for CUDA {
+    fn construct<T, S: Shape>(ptr: &Self::Ptr<T, S>, len: usize, node: crate::Node) -> Self::CT {
+        RawCUBuf {
+            ptr: ptr.ptr,
+            node,
+            len,
+        }
+    }
+
+    fn destruct<T, S: Shape>(ct: &Self::CT, flag: AllocFlag) -> (Self::Ptr<T, S>, crate::Node) {
+        (
+            CUDAPtr {
+                ptr: ct.ptr,
+                len: ct.len,
+                flag,
+                p: PhantomData,
+            },
+            ct.node,
+        )
+    }
 }
 
 impl Drop for CUDA {
@@ -82,12 +109,14 @@ impl Drop for CUDA {
     }
 }
 
-impl<T> Alloc<T> for CUDA {
-    fn alloc(&self, len: usize) -> CUDAPtr<T> {
+impl<T> Alloc<'_, T> for CUDA {
+    fn alloc(&self, len: usize, flag: AllocFlag) -> CUDAPtr<T> {
         let ptr = cumalloc::<T>(len).unwrap();
         // TODO: use unified mem if available -> i can't test this
         CUDAPtr {
             ptr,
+            len,
+            flag,
             p: PhantomData,
         }
     }
@@ -97,21 +126,36 @@ impl<T> Alloc<T> for CUDA {
         cu_write(ptr, data).unwrap();
         CUDAPtr {
             ptr,
+            len: data.len(),
+            flag: AllocFlag::None,
             p: PhantomData,
         }
     }
 }
 
-impl<T: Default + Clone> VecRead<T, CUDA> for CUDA {
+impl<T: Default + Clone> Read<T, CUDA> for CUDA {
+    type Read<'a> = Vec<T>
+    where
+        T: 'a,
+        CUDA: 'a;
+
+    #[inline]
     fn read(&self, buf: &Buffer<T, CUDA>) -> Vec<T> {
+        self.read_to_vec(buf)
+    }
+
+    fn read_to_vec(&self, buf: &Buffer<T, CUDA>) -> Vec<T>
+    where
+        T: Default + Clone,
+    {
         assert!(
             buf.ptrs().2 != 0,
-            "called VecRead::read(..) on a non CUDA buffer"
+            "called Read::read(..) on a non CUDA buffer"
         );
         // TODO: sync here or somewhere else?
         self.stream.sync().unwrap();
 
-        let mut read = vec![T::default(); buf.len];
+        let mut read = vec![T::default(); buf.len()];
         cu_read(&mut read, buf.ptrs().2).unwrap();
         read
     }
@@ -138,7 +182,7 @@ impl GraphReturn for CUDA {
 impl CacheReturn for CUDA {
     type CT = RawCUBuf;
     #[inline]
-    fn cache(&self) -> std::cell::RefMut<Cache<RawCUBuf>> {
+    fn cache(&self) -> std::cell::RefMut<Cache<CUDA>> {
         self.cache.borrow_mut()
     }
 }
@@ -148,12 +192,12 @@ impl crate::GraphOpt for CUDA {}
 
 impl<'a, T> CloneBuf<'a, T> for CUDA {
     fn clone_buf(&'a self, buf: &Buffer<'a, T, CUDA>) -> Buffer<'a, T, CUDA> {
-        let cloned = Buffer::new(self, buf.len);
+        let cloned = Buffer::new(self, buf.len());
         unsafe {
             cuMemcpy(
                 cloned.ptrs().2,
                 buf.ptrs().2,
-                buf.len * std::mem::size_of::<T>(),
+                buf.len() * std::mem::size_of::<T>(),
             );
         }
         cloned

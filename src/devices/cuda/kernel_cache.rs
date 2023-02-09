@@ -3,23 +3,14 @@ use super::api::{
     nvrtc::{create_program, nvrtcDestroyProgram},
     FnHandle,
 };
-use crate::{cache::CacheType, Error, Node, CUDA};
-use std::{collections::HashMap, ffi::CString, ptr::null_mut};
+use crate::{Error, Node, CUDA};
+use std::{collections::HashMap, ffi::CString};
 
 #[derive(Debug)]
 pub struct RawCUBuf {
     pub ptr: u64,
+    pub len: usize,
     pub node: Node,
-}
-
-impl CacheType for RawCUBuf {
-    fn new<T>(ptr: (*mut T, *mut std::ffi::c_void, u64), _: usize, node: Node) -> Self {
-        RawCUBuf { ptr: ptr.2, node }
-    }
-
-    fn destruct<T>(&self) -> ((*mut T, *mut std::ffi::c_void, u64), Node) {
-        ((null_mut(), null_mut(), self.ptr), self.node)
-    }
 }
 
 impl Drop for RawCUBuf {

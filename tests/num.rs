@@ -42,7 +42,7 @@ fn test_float() {
     assert_eq!(Float::squared(x), x.powi(2));
     assert_eq!(Float::exp(&x), x.exp());
     assert_eq!(Float::tanh(&x), x.tanh());
-    assert_eq!(Float::comp(x, 8.), Some(core::cmp::Ordering::Less));
+    assert_eq!(Float::cmp(x, 8.), Some(core::cmp::Ordering::Less));
     assert_eq!(Float::abs(&-5.), 5.);
 
     assert_eq!((-x).abs(), x);

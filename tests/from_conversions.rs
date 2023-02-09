@@ -1,5 +1,6 @@
-use custos::{Buffer, CPU};
+use custos::prelude::*;
 
+#[cfg(feature = "cpu")]
 #[test]
 fn from_slice() {
     let cpu = CPU::new();

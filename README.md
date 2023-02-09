@@ -8,7 +8,7 @@
 [![GPU](https://github.com/elftausend/custos/actions/workflows/gpu.yml/badge.svg)](https://github.com/elftausend/custos/actions/workflows/gpu.yml)
 [![rust-clippy](https://github.com/elftausend/custos/actions/workflows/rust-clippy.yml/badge.svg)](https://github.com/elftausend/custos/actions/workflows/rust-clippy.yml)
 
-A minimal OpenCL, CUDA and host CPU array manipulation engine / framework written in Rust.
+A minimal OpenCL, WGPU, CUDA and host CPU array manipulation engine / framework written in Rust.
 This crate provides the tools for executing custom array operations with the CPU, as well as with CUDA and OpenCL devices.<br>
 This guide demonstrates how operations can be implemented for the compute devices: [implement_operations.md](implement_operations.md)<br>
 or to see it at a larger scale, look here: [custos-math]
@@ -49,7 +49,7 @@ Using the host CPU as the compute device:
 
 [cpu_readme.rs]: https://github.com/elftausend/custos/blob/main/examples/cpu_readme.rs
 ```rust
-use custos::{Buffer, ClearBuf, VecRead, CPU};
+use custos::{Buffer, ClearBuf, Read, CPU};
 
 fn main() {
     let device = CPU::new();

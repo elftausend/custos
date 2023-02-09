@@ -1,5 +1,11 @@
 use crate::CPU;
-    
+
+#[cfg(feature = "opencl")]
+use crate::opencl::chosen_cl_idx;
+
+#[cfg(feature = "cuda")]
+use crate::cuda::chosen_cu_idx;
+
 #[cfg(not(feature = "no-std"))]
 thread_local! {
     pub static GLOBAL_CPU: CPU = CPU::new();
@@ -27,30 +33,19 @@ pub fn static_cpu() -> &'static CPU {
     } else {
         GLOBAL_CPU = Some(CPU::new())
     }
-
 }
 
 #[cfg(feature = "opencl")]
 thread_local! {
     pub static GLOBAL_OPENCL: crate::OpenCL = {
-        let idx = std::env::var("CUSTOS_CL_DEVICE_IDX")
-            .unwrap_or_else(|_| "0".into())
-            .parse()
-            .expect("Environment variable 'CUSTOS_CL_DEVICE_IDX' contains an invalid opencl device index!");
-
-        crate::OpenCL::new(idx).expect("Could not create a static OpenCL device.")
+        crate::OpenCL::new(chosen_cl_idx()).expect("Could not create a static OpenCL device.")
     };
 }
 
 #[cfg(feature = "cuda")]
 thread_local! {
     pub static GLOBAL_CUDA: crate::CUDA = {
-        let idx = std::env::var("CUSTOS_CU_DEVICE_IDX")
-            .unwrap_or_else(|_| "0".into())
-            .parse()
-            .expect("Environment variable 'CUSTOS_CU_DEVICE_IDX' contains an invalid CUDA device index!");
-
-        crate::CUDA::new(idx).expect("Could not create a static CUDA device.")
+        crate::CUDA::new(chosen_cu_idx()).expect("Could not create a static CUDA device.")
     };
 }
 
@@ -80,10 +75,10 @@ pub fn static_cuda() -> &'static crate::CUDA {
 
 #[cfg(test)]
 mod tests {
-    #[cfg(not(feature="no-std"))]
+    #[cfg(not(feature = "no-std"))]
     use crate::Buffer;
 
-    #[cfg(not(feature="no-std"))]
+    #[cfg(not(feature = "no-std"))]
     #[cfg(not(feature = "realloc"))]
     #[test]
     fn test_static_cpu_cache() {
@@ -97,14 +92,14 @@ mod tests {
         let a = Buffer::from(&[1, 2, 3, 4]);
         let b = Buffer::from(&[1, 2, 3, 4]);
 
-        let out = Cache::get::<i32, _, 0>(cpu, a.len, (&a, &b));
+        let out = Cache::get::<i32, ()>(cpu, a.len(), (&a, &b));
 
         let cache = static_cpu().cache.borrow();
         let cached = cache
             .nodes
             .get(&Ident {
                 idx: 0,
-                len: out.len,
+                len: out.len(),
             })
             .unwrap();
 

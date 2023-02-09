@@ -1,44 +1,55 @@
-use core::{ffi::c_void, ptr::null_mut, ops::{Deref, DerefMut}};
+use core::{
+    ffi::c_void,
+    ops::{Deref, DerefMut},
+    ptr::null_mut,
+};
 
-use crate::{BufFlag, Buffer, Device, Node, PtrType, CloneBuf};
+use crate::{shape::Shape, Buffer, CloneBuf, CommonPtrs, Device, Node, PtrType};
 
 pub struct Num<T> {
     pub num: T,
 }
 
-impl<T> PtrType<T, 0> for Num<T> {
-    unsafe fn dealloc(&mut self, _len: usize) {}
+impl<T> PtrType for Num<T> {
+    #[inline]
+    fn len(&self) -> usize {
+        0
+    }
 
+    fn flag(&self) -> crate::flag::AllocFlag {
+        crate::flag::AllocFlag::None
+    }
+}
+
+impl<T> CommonPtrs<T> for Num<T> {
+    #[inline]
     fn ptrs(&self) -> (*const T, *mut c_void, u64) {
         (&self.num as *const T, null_mut(), 0)
     }
 
+    #[inline]
     fn ptrs_mut(&mut self) -> (*mut T, *mut c_void, u64) {
         (&mut self.num as *mut T, null_mut(), 0)
-    }
-
-    // TODO: create new trait -> e.g. "FromPtrs", implement for all PtrType types -> add bound to cache etc
-    unsafe fn from_ptrs(_ptrs: (*mut T, *mut c_void, u64)) -> Self {
-        unimplemented!()
-        /*Num {
-            num: *ptrs.0
-        }*/
     }
 }
 
 impl Device for () {
-    type Ptr<U, const N: usize> = Num<U>;
-    type Cache<const N: usize> = ();
+    type Ptr<U, S: Shape> = Num<U>;
+    type Cache = ();
+
+    fn new() -> crate::Result<Self> {
+        Ok(())
+    }
 }
 
 impl<'a, T: Clone> CloneBuf<'a, T> for () {
     #[inline]
-    fn clone_buf(&'a self, buf: &Buffer<'a, T, Self>) -> Buffer<'a, T, Self> {
+    fn clone_buf(&self, buf: &Buffer<'a, T, Self>) -> Buffer<'a, T, Self> {
         Buffer {
-            ptr: Num { num: buf.ptr.num.clone() },
-            len: buf.len,
+            ptr: Num {
+                num: buf.ptr.num.clone(),
+            },
             device: buf.device,
-            flag: buf.flag,
             node: buf.node,
         }
     }
@@ -49,8 +60,6 @@ impl<T: crate::number::Number> From<T> for Buffer<'_, T, ()> {
     fn from(ptr: T) -> Self {
         Buffer {
             ptr: Num { num: ptr },
-            len: 0,
-            flag: BufFlag::None,
             device: None,
             node: Node::default(),
         }
@@ -59,14 +68,15 @@ impl<T: crate::number::Number> From<T> for Buffer<'_, T, ()> {
 
 impl<'a, T> Buffer<'a, T, ()> {
     #[inline]
-    pub fn copy(&self) -> Self where T: Copy {
+    pub fn copy(&self) -> Self
+    where
+        T: Copy,
+    {
         Buffer {
             ptr: Num { num: self.ptr.num },
-            len: self.len,
             device: self.device,
-            flag: self.flag,
             node: self.node,
-        }        
+        }
     }
 
     /// Used if the `Buffer` contains only a single value.
@@ -85,7 +95,7 @@ impl<'a, T> Buffer<'a, T, ()> {
     #[inline]
     pub fn item(&self) -> T
     where
-        T: Default + Copy,
+        T: Copy,
     {
         self.ptr.num
     }
@@ -119,7 +129,6 @@ mod tests {
         let c = *a + *b;
         assert_eq!(c, 12);
     }
-
 
     #[test]
     fn test_deref_mut() {
