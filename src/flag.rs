@@ -1,16 +1,12 @@
 /// Descripes the type of a [`Buffer`]
-#[derive(Debug, Clone, Copy, Eq)]
+#[derive(Debug, Clone, Copy, Eq, Default)]
 pub enum AllocFlag {
+    #[default]
     None,
     Cache,
     Wrapper,
 }
 
-impl Default for AllocFlag {
-    fn default() -> Self {
-        AllocFlag::None
-    }
-}
 
 impl PartialEq for AllocFlag {
     fn eq(&self, other: &Self) -> bool {

@@ -10,9 +10,7 @@ pub unsafe trait Shape {
 unsafe impl Shape for () {
     type ARR<T> = ();
 
-    fn new<T>() -> Self::ARR<T> {
-        ()
-    }
+    fn new<T>() -> Self::ARR<T> {}
 }
 
 // TODO: impl for net device

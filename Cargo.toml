@@ -32,8 +32,8 @@ min-cl = { version="0.1.0", optional=true }
 
 [features]
 #default = ["stack", "cpu", "opencl"]
-default = []
-#default = ["stack", "cpu", "opt-cache", "blas", "static-api", "opencl"]
+#default = []
+default = ["stack", "cpu", "blas", "static-api", "opencl"]
 cpu = []
 opencl = ["dep:min-cl", "cpu"]
 #network = ["cuwanto-server"]

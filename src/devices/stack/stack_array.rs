@@ -22,6 +22,13 @@ impl<S: Shape, T: Default + Copy> StackArray<S, T> {
     }
 }
 
+impl<S: Shape, T: Default + Copy> Default for StackArray<S, T> {
+    #[inline]
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<S: Shape, T> StackArray<S, T> {
     pub fn from_array(array: S::ARR<T>) -> Self {
         assert!(S::LEN > 0,

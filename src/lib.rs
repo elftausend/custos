@@ -79,6 +79,7 @@ pub mod number;
 pub use op_traits::*;
 pub use shape::*;
 
+#[allow(clippy::len_without_is_empty)]
 pub trait PtrType {
     fn len(&self) -> usize;
     fn flag(&self) -> AllocFlag;
