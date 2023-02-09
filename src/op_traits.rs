@@ -22,7 +22,7 @@ pub trait ClearBuf<T, D: Device> {
 }
 
 /// Trait for copying a slice of a buffer, to implement the slice() operation.
-pub trait CopySlice<T, D: Device, R: RangeBounds<usize>>: Sized + Device {
+pub trait CopySlice<T, R: RangeBounds<usize>, D: Device>: Sized + Device {
     /// Copy a slice of the given buffer into a new buffer.
     /// # Example
     ///

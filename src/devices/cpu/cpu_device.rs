@@ -145,15 +145,15 @@ impl<'a, T> CacheBuf<'a, T> for CPU {
     }
 }
 
-impl<T: Copy, D: CPUCL, R: RangeBounds<usize>> CopySlice<T, D, R> for CPU
+impl<T: Copy, R: RangeBounds<usize>, D: CPUCL> CopySlice<T, R, D> for CPU
 where
     [T]: Index<R, Output = [T]>,
 {
     fn copy_slice(&self, buf: &Buffer<T, D>, range: R) -> Buffer<T, Self> {
         let slice = &buf.as_slice()[range];
-        let mut dest = Buffer::new(self, slice.len());
-        self.write(&mut dest, slice);
-        dest
+        let mut copied = Buffer::new(self, slice.len());
+        self.write(&mut copied, slice);
+        copied
     }
 }
 
