@@ -1,4 +1,7 @@
-use crate::{shape::Shape, Buffer, Device};
+use std::ops::RangeBounds;
+
+
+use crate::{Buffer, Device, Shape};
 
 /// Trait for implementing the clear() operation for the compute devices.
 pub trait ClearBuf<T, D: Device = Self, S: Shape = ()>: Device {
@@ -15,6 +18,22 @@ pub trait ClearBuf<T, D: Device = Self, S: Shape = ()>: Device {
     /// assert_eq!(a.read(), vec![0; 6]);
     /// ```
     fn clear(&self, buf: &mut Buffer<T, D, S>);
+}
+
+/// Trait for copying a slice of a buffer, to implement the slice() operation.
+pub trait CopySlice<T, R: RangeBounds<usize>, D: Device>: Sized + Device {
+    /// Copy a slice of the given buffer into a new buffer.
+    /// # Example
+    ///
+    /// ```
+    /// use custos::{CPU, Buffer, CopySlice};
+    ///
+    /// let device = CPU::new();
+    /// let buf = Buffer::from((&device, [1., 2., 6., 2., 4.,]));
+    /// let slice = device.copy_slice(&buf, 1..3);
+    /// assert_eq!(slice.read(), &[2., 6.]);
+    /// ```
+    fn copy_slice(&self, buf: &Buffer<T, D>, range: R) -> Buffer<T, Self>;
 }
 
 /// Trait for reading buffers.

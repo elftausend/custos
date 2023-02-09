@@ -13,6 +13,7 @@ use crate::{
     Alloc, Buffer, CDatatype, CacheBuf, CachedLeaf, ClearBuf, CloneBuf, Device, Error, Graph,
     GraphReturn, Read, WriteBuf, CPU,
 };
+use core::ops::{Bound, RangeBounds};
 use std::{
     cell::{Ref, RefCell},
     fmt::Debug,
@@ -282,10 +283,42 @@ impl<T: CDatatype> ClearBuf<T, OpenCL> for OpenCL {
     }
 }
 
+impl<T, R: RangeBounds<usize>> CopySlice<T, R, OpenCL> for OpenCL {
+    fn copy_slice(&self, buf: &Buffer<T, OpenCL>, range: R) -> Buffer<T, Self> {
+        let start = match range.start_bound() {
+            Bound::Included(start) => *start,
+            Bound::Excluded(start) => start + 1,
+            Bound::Unbounded => 0,
+        };
+
+        let end = match range.end_bound() {
+            Bound::Excluded(end) => *end,
+            Bound::Included(end) => end + 1,
+            Bound::Unbounded => buf.len,
+        };
+
+        let slice_len = end - start;
+        let copied = Buffer::new(self, slice_len);
+
+        enqueue_copy_buffer::<T>(
+            &self.queue(),
+            buf.ptrs().1,
+            copied.ptrs().1,
+            start,
+            0,
+            copied.len,
+        )
+        .unwrap();
+
+        copied
+    }
+}
+
 impl<T> WriteBuf<T, OpenCL> for OpenCL {
     fn write(&self, buf: &mut Buffer<T, OpenCL>, data: &[T]) {
         let event =
             unsafe { enqueue_write_buffer(&self.queue(), buf.cl_ptr(), data, true).unwrap() };
+
         wait_for_event(event).unwrap();
     }
 }
