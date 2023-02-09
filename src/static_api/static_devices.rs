@@ -83,23 +83,23 @@ mod tests {
     #[test]
     fn test_static_cpu_cache() {
         // for: cargo test -- --test-threads=1
-        set_count(0);
+        unsafe {set_count(0)};
         use super::static_cpu;
-        use crate::{set_count, Cache, Ident};
+        use crate::{set_count, Ident, Device};
 
         let cpu = static_cpu();
 
         let a = Buffer::from(&[1, 2, 3, 4]);
-        let b = Buffer::from(&[1, 2, 3, 4]);
+        let _b = Buffer::from(&[1, 2, 3, 4]);
 
-        let out = Cache::get::<i32, 0>(cpu, a.len, (&a, &b));
+        let out = cpu.retrieve::<_, ()>(a.len());
 
         let cache = static_cpu().cache.borrow();
         let cached = cache
             .nodes
             .get(&Ident {
-                idx: 0,
-                len: out.len,
+                idx: 2,
+                len: out.len(),
             })
             .unwrap();
 

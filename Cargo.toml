@@ -18,7 +18,7 @@ min-cl = { path = "../min-cl", optional=true }
 
 # WGPU deps
 futures-intrusive = {version="0.5.0", optional=true}
-pollster = {version="0.2.5", optional=true }
+pollster = {version="0.3", optional=true }
 wgpu = {version="0.14.2", optional=true }
 
 custos-macro = {path = "../custos-macro", optional=true}
@@ -34,7 +34,7 @@ min-cl = { path = "../min-cl", optional=true }
 [features]
 #default = ["stack", "cpu", "opencl"]
 # TODO: macro feature, per default?
-default = ["cpu", "opencl", "stack", "macro", "autograd"]
+default = ["cpu", "opencl", "stack", "macro", "autograd", "static-api"]
 cpu = []
 opencl = ["dep:min-cl", "cpu"]
 #network = ["cuwanto-server"]

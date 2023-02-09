@@ -60,7 +60,7 @@ impl<'a, T, D, S: Shape> From<(&'a D, &[T])> for Buffer<'a, T, D, S>
 where
     T: Clone,
     // TODO: IsShapeIndep ... find way to include Stack
-    D: Alloc<'a, T, S> + IsShapeIndep,
+    D: Alloc<'a, T, S>
 {
     #[inline]
     fn from((device, slice): (&'a D, &[T])) -> Self {
@@ -100,7 +100,8 @@ where
 impl<'a, T, D, S: Shape> From<(&'a D, &Vec<T>)> for Buffer<'a, T, D, S>
 where
     T: Clone,
-    D: Alloc<'a, T, S> + IsShapeIndep,
+    // TODO: IsShapeIndep ... find way to include Stack
+    D: Alloc<'a, T, S>
 {
     #[inline]
     fn from((device, vec): (&'a D, &Vec<T>)) -> Self {
