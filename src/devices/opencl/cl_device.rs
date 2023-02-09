@@ -2,12 +2,12 @@ use min_cl::CLDevice;
 
 use min_cl::api::{
     create_buffer, enqueue_full_copy_buffer, enqueue_read_buffer, enqueue_write_buffer,
-    wait_for_event, CLIntDevice, CommandQueue, Context, MemFlags,
+    wait_for_event, CLIntDevice, CommandQueue, Context, MemFlags, enqueue_copy_buffer,
 };
 
 use super::{chosen_cl_idx, cl_clear, CLPtr, KernelCacheCL, RawCL};
 use crate::flag::AllocFlag;
-use crate::Shape;
+use crate::{Shape, CopySlice};
 use crate::{
     cache::{Cache, CacheReturn, RawConv},
     Alloc, Buffer, CDatatype, CacheBuf, CachedLeaf, ClearBuf, CloneBuf, Device, Error, Graph,
@@ -283,7 +283,7 @@ impl<T: CDatatype> ClearBuf<T, OpenCL> for OpenCL {
     }
 }
 
-impl<T, R: RangeBounds<usize>> CopySlice<T, R, OpenCL> for OpenCL {
+impl<T, R: RangeBounds<usize>> CopySlice<T, R> for OpenCL {
     fn copy_slice(&self, buf: &Buffer<T, OpenCL>, range: R) -> Buffer<T, Self> {
         let start = match range.start_bound() {
             Bound::Included(start) => *start,
@@ -294,7 +294,7 @@ impl<T, R: RangeBounds<usize>> CopySlice<T, R, OpenCL> for OpenCL {
         let end = match range.end_bound() {
             Bound::Excluded(end) => *end,
             Bound::Included(end) => end + 1,
-            Bound::Unbounded => buf.len,
+            Bound::Unbounded => buf.len(),
         };
 
         let slice_len = end - start;
@@ -302,11 +302,11 @@ impl<T, R: RangeBounds<usize>> CopySlice<T, R, OpenCL> for OpenCL {
 
         enqueue_copy_buffer::<T>(
             &self.queue(),
-            buf.ptrs().1,
-            copied.ptrs().1,
+            buf.ptr.ptr,
+            copied.ptr.ptr,
             start,
             0,
-            copied.len,
+            copied.len(),
         )
         .unwrap();
 

@@ -4,19 +4,15 @@ use crate::{
     flag::AllocFlag,
     shape::Shape,
     Alloc, Buffer, CacheBuf, CachedLeaf, ClearBuf, CloneBuf, Device, DevicelessAble, Graph,
-    GraphReturn, MainMemory, Read, WriteBuf,
+    GraphReturn, MainMemory, Read, WriteBuf, CopySlice,
 };
-use alloc::{
-    alloc::{handle_alloc_error, Layout},
-    vec::Vec,
-};
+
 use core::ops::{Index, RangeBounds};
 use core::{
     cell::{RefCell, RefMut},
     fmt::Debug,
     mem::{align_of, size_of},
 };
-use std::vec::Vec;
 
 use super::{CPUPtr, RawCpuBuf};
 
@@ -170,7 +166,7 @@ impl<'a, T> CacheBuf<'a, T> for CPU {
     }
 }
 
-impl<T: Copy, R: RangeBounds<usize>, D: CPUCL> CopySlice<T, R, D> for CPU
+impl<T: Copy, R: RangeBounds<usize>, D: MainMemory> CopySlice<T, R, D> for CPU
 where
     [T]: Index<R, Output = [T]>,
 {
