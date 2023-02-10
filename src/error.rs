@@ -80,6 +80,7 @@ pub enum DeviceError {
     CPUtoCUDA,
     GraphOptimization, // probably a programming error
     MissingAddress,
+    WGPUDeviceReturn,
 }
 
 impl DeviceError {
@@ -91,6 +92,7 @@ impl DeviceError {
             DeviceError::CPUtoCUDA => "Only a CPU Buffer can be converted to a CUDA Buffer",
             DeviceError::GraphOptimization => "This graph can't be optimized.",
             DeviceError::MissingAddress => "An address was not supplied for a Network device.",
+            DeviceError::WGPUDeviceReturn => "Cannot create WGPU device instance.",
         }
     }
 }

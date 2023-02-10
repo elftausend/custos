@@ -17,7 +17,7 @@ min-cl = { version="0.1.2", optional=true }
 
 # WGPU deps
 futures-intrusive = {version="0.5.0", optional=true}
-pollster = {version="0.2.5", optional=true }
+pollster = {version="0.3", optional=true }
 wgpu = {version="0.14.2", optional=true }
 
 #custos-macro = {path = "../custos-macro", optional=true}
@@ -32,7 +32,8 @@ min-cl = { version="0.1.2", optional=true }
 
 [features]
 #default = ["stack", "cpu", "opencl"]
-default = ["cpu", "opencl", "stack", "static-api"]
+#default = ["cpu", "opencl", "stack", "static-api"]
+default = ["wgpu", "opencl"]
 #default = ["stack", "cpu", "opt-cache", "blas", "static-api", "opencl"]
 cpu = []
 opencl = ["dep:min-cl", "cpu"]

@@ -4,16 +4,16 @@ use custos::{
     prelude::Number,
     range,
     wgpu::{launch_shader, WGPU},
-    Buffer, Device, OpenCL,
+    Buffer, Device, OpenCL, Shape,
 };
 
 use super::ElementWise;
 
-pub fn wgpu_element_wise<T: Number, const N: usize>(
+pub fn wgpu_element_wise<T: Number, S: Shape>(
     device: &WGPU,
-    lhs: &Buffer<T, WGPU, N>,
-    rhs: &Buffer<T, WGPU, N>,
-    out: &mut Buffer<T, WGPU, N>,
+    lhs: &Buffer<T, WGPU, S>,
+    rhs: &Buffer<T, WGPU, S>,
+    out: &mut Buffer<T, WGPU, S>,
     op: &str,
 ) {
     let src = format!(
@@ -39,20 +39,20 @@ pub fn wgpu_element_wise<T: Number, const N: usize>(
         datatype = std::any::type_name::<T>()
     );
 
-    launch_shader(device, &src, [lhs.len as u32, 1, 1], &[lhs, rhs, out]);
+    launch_shader(device, &src, [lhs.len() as u32, 1, 1], &[lhs, rhs, out]);
 }
 
-impl<T: Number, const N: usize> ElementWise<T, WGPU, N> for WGPU {
+impl<T: Number, S: Shape> ElementWise<T, WGPU, S> for WGPU {
     #[inline]
-    fn add(&self, lhs: &Buffer<T, WGPU, N>, rhs: &Buffer<T, WGPU, N>) -> Buffer<T, WGPU, N> {
-        let mut out = self.retrieve(lhs.len, (lhs, rhs));
+    fn add(&self, lhs: &Buffer<T, WGPU, S>, rhs: &Buffer<T, WGPU, S>) -> Buffer<T, WGPU, S> {
+        let mut out = self.retrieve(lhs.len(), (lhs, rhs));
         wgpu_element_wise(self, lhs, rhs, &mut out, "+");
         out
     }
 
     #[inline]
-    fn mul(&self, lhs: &Buffer<T, WGPU, N>, rhs: &Buffer<T, WGPU, N>) -> Buffer<T, WGPU, N> {
-        let mut out = self.retrieve(lhs.len, (lhs, rhs));
+    fn mul(&self, lhs: &Buffer<T, WGPU, S>, rhs: &Buffer<T, WGPU, S>) -> Buffer<T, WGPU, S> {
+        let mut out = self.retrieve(lhs.len(), (lhs, rhs));
         wgpu_element_wise(self, lhs, rhs, &mut out, "*");
         out
     }

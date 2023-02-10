@@ -71,6 +71,7 @@ impl<T> PtrType for CLPtr<T> {
         self.len
     }
 
+    #[inline]
     fn flag(&self) -> AllocFlag {
         self.flag
     }
@@ -108,7 +109,7 @@ impl<T> CommonPtrs<T> for CLPtr<T> {
 /// ```
 /// use custos::{OpenCL, Buffer, Read, opencl::cl_clear};
 ///
-/// fn main() -> Result<(), custos::Error> {
+/// fn main() -> custos::Result<()> {
 ///     let device = OpenCL::new(0)?;
 ///     let mut lhs = Buffer::<i16, _>::from((&device, [15, 30, 21, 5, 8]));
 ///     assert_eq!(device.read(&lhs), vec![15, 30, 21, 5, 8]);

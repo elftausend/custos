@@ -19,7 +19,7 @@ impl Device for CPU {
 
 use crate::{
     flag::AllocFlag, shape::Shape, Alloc, CacheBuf, ClearBuf, CloneBuf, CommonPtrs, Device,
-    DevicelessAble, MainMemory, Node, PtrType, Read, ShallowCopy, WriteBuf, ToDim, IsShapeIndep, Ident,
+    DevicelessAble, MainMemory, Node, PtrType, Read, ShallowCopy, WriteBuf, ToDim, IsShapeIndep,
 };
 
 pub use self::num::Num;
@@ -214,8 +214,9 @@ impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
         self.clone()
     }
 
-    pub fn id(&self) -> Ident {
-        Ident {
+    #[cfg(not(feature="no-std"))]
+    pub fn id(&self) -> crate::Ident {
+        crate::Ident {
             idx: self.node.ident_idx as usize,
             len: self.len(),
         }
@@ -493,7 +494,7 @@ impl<T, D: MainMemory, S: Shape> core::ops::Deref for Buffer<'_, T, D, S> {
 
     #[inline]
     fn deref(&self) -> &Self::Target {
-        unsafe { std::slice::from_raw_parts(D::as_ptr(&self.ptr), self.len()) }
+        unsafe { core::slice::from_raw_parts(D::as_ptr(&self.ptr), self.len()) }
     }
 }
 
@@ -522,7 +523,7 @@ impl<T, D: MainMemory, S: Shape> core::ops::DerefMut for Buffer<'_, T, D, S>
 {
     #[inline]
     fn deref_mut(&mut self) -> &mut Self::Target {
-        unsafe { std::slice::from_raw_parts_mut(D::as_ptr_mut(&mut self.ptr), self.len()) }
+        unsafe { core::slice::from_raw_parts_mut(D::as_ptr_mut(&mut self.ptr), self.len()) }
     }
 }
 

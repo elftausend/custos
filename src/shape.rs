@@ -18,6 +18,8 @@ unsafe impl Shape for () {
 // TODO: impl for net device
 // this is used to 
 pub trait IsShapeIndep: Device {}
+
+#[cfg(not(feature="no-std"))]
 impl<D: crate::RawConv> IsShapeIndep for D {}
 
 pub trait IsConstDim: Shape {}
@@ -78,6 +80,7 @@ pub trait ToDim<T, I: Shape, O: Shape>: crate::Device {
     fn to_dim(&self, ptr: Self::Ptr<T, I>) -> Self::Ptr<T, O>;
 }
 
+#[cfg(not(feature="no-std"))]
 impl<T, D: crate::RawConv, I: Shape, O: Shape> ToDim<T, I, O> for D
 where
     Self::Ptr<T, ()>: crate::PtrType,
@@ -138,6 +141,7 @@ mod tests {
 
     use crate::{Dim1, Dim2, Dim3, Device, Buffer, Shape};
 
+    #[cfg(not(feature="no-std"))]
     fn len_of_shape<T, D: Device, S: Shape>(_: &Buffer<T, D, S>) {
         println!("S::LEN {}", S::LEN);
     }

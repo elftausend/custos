@@ -1,13 +1,13 @@
-use crate::{shape::Shape, Alloc, Buffer};
+use crate::{shape::Shape, Alloc, Buffer, Dim1};
 
 pub trait WithShape<D, C> {
     fn with(device: D, array: C) -> Self;
 }
 
-impl<'a, T, D, S: Shape, const N: usize> WithShape<&'a D, [T; N]> for Buffer<'a, T, D, S>
+impl<'a, T, D, const N: usize> WithShape<&'a D, [T; N]> for Buffer<'a, T, D, Dim1<N>>
 where
     T: Clone,
-    D: Alloc<'a, T, S>,
+    D: Alloc<'a, T, Dim1<N>>,
 {
     fn with(device: &'a D, array: [T; N]) -> Self {
         Buffer {
@@ -18,10 +18,10 @@ where
     }
 }
 
-impl<'a, T, D, S: Shape, const N: usize> WithShape<&'a D, &[T; N]> for Buffer<'a, T, D, S>
+impl<'a, T, D, const N: usize> WithShape<&'a D, &[T; N]> for Buffer<'a, T, D, Dim1<N>>
 where
     T: Copy,
-    D: Alloc<'a, T, S>,
+    D: Alloc<'a, T, Dim1<N>>,
 {
     fn with(device: &'a D, array: &[T; N]) -> Self {
         Buffer {

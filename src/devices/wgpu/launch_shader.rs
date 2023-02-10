@@ -20,6 +20,12 @@ impl<'a, T, S: Shape> AsBindingResource for &Buffer<'a, T, WGPU, S> {
     }
 }
 
+impl<'a, T, S: Shape> AsBindingResource for &mut Buffer<'a, T, WGPU, S> {
+    fn as_binding_resource(&self) -> BindingResource {
+        unsafe { self.ptr.buf().as_entire_binding() }
+    }
+}
+
 pub fn launch_shader(device: &WGPU, src: &str, gws: [u32; 3], args: &[impl AsBindingResource]) {
     let mut shader_cache = device.shader_cache.borrow_mut();
     let shader = shader_cache.shader(&device.device, src);

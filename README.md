@@ -22,17 +22,20 @@ Add "custos" as a dependency:
 [dependencies]
 custos = "0.5.0"
 
-# to disable the default features (cuda, opencl) and use an own set of features:
+# to disable the default features (cpu, cuda, opencl) and use an own set of features:
 #custos = {version = "0.5.0", default-features=false, features=["opencl"]}
 ```
 
 Available features: 
-- "opencl" ... adds OpenCL features. (name of the device: 'OpenCL')
-- "cuda" ... adds CUDA features. (name of the device: 'CUDA')
-- "realloc" ... disables caching for all devices.
-- "blas" ... adds gemm functions from your selected BLAS library.
+- "cpu" ... adds `CPU` device
+- "stack" ... adds `Stack` device and enables stack allocated `Buffer`
+- "no-std" ... for no std environments, activates "stack" feature
+- "opencl" ... adds OpenCL features. (name of the device: `OpenCL`)
+- "cuda" ... adds CUDA features. (name of the device: `CUDA`)
+- "static-api" ... enables the creation of `Buffer` without providing any device.
+- "realloc" ... disables caching for all devices
+- "blas" ... adds gemm functions from your selected BLAS library
 - "opt-cache" ... makes the 'cache graph' optimizeable
-- using no features at all ... CPU only
 
 ## [Examples]
 

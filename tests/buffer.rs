@@ -3,6 +3,7 @@ use custos::{prelude::*, CommonPtrs, Error};
 #[cfg(unified_cl)]
 use custos::MainMemory;
 
+#[cfg(not(feature="no-std"))]
 #[cfg(not(feature = "realloc"))]
 use custos::{get_count, set_count};
 
@@ -20,6 +21,7 @@ where
     unsafe { std::slice::from_raw_parts(buf.ptrs().0, buf.len()) }
 }
 
+#[cfg(not(feature="no-std"))]
 pub fn read<'a, T, D: Alloc<'a, T>>(device: &D, buf: &'a Buffer<T, D>) -> Vec<T>
 where
     D: Read<T, D> + Device,
