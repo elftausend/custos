@@ -1,6 +1,11 @@
 fn main() {
     // TODO: execute other opencl test to know whether opencl can actually be used
 
+
+    if std::env::var("DOCS_RS").is_ok() {
+        return;
+    }
+
     #[cfg(not(docsrs))]
     #[cfg(feature = "opencl")]
     if has_device_unified_mem() {
