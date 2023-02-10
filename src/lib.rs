@@ -199,7 +199,7 @@ pub use custos_macro::impl_stack;
 pub mod prelude {
     pub use crate::{
         cached, number::*, range, shape::*, Alloc, Buffer, CDatatype, CacheBuf, ClearBuf, Device,
-        GraphReturn, Read, ShallowCopy, WithShape, WriteBuf, CopySlice
+        GraphReturn, Read, ShallowCopy, WithShape, WriteBuf, CopySlice, MainMemory
     };
 
     #[cfg(feature = "cpu")]
@@ -223,7 +223,7 @@ pub mod prelude {
     pub use crate::network::{Network, NetworkArray};
 
     #[cfg(feature = "wgpu")]
-    pub use crate::wgpu::WGPU;
+    pub use crate::wgpu::{WGPU, launch_shader};
 
     #[cfg(feature = "cuda")]
     pub use crate::cuda::{launch_kernel1d, CUBuffer, CU, CUDA};

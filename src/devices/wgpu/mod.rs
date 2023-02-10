@@ -14,7 +14,7 @@ use crate::{Buffer, Shape};
 /// 
 /// # Example
 /// ```
-/// use crate::{WGPU, Buffer, wgpu::wgpu_clear};
+/// use custos::{WGPU, Buffer, wgpu::wgpu_clear};
 /// 
 /// fn main() -> custos::Result<()> {
 ///     let device = WGPU::new(wgpu::Backends::all())?;

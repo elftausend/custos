@@ -32,6 +32,7 @@ Available features:
 - "no-std" ... for no std environments, activates "stack" feature
 - "opencl" ... adds OpenCL features. (name of the device: `OpenCL`)
 - "cuda" ... adds CUDA features. (name of the device: `CUDA`)
+- "wgpu" ... adds WGPU features.(name of the device: `WGPU`)
 - "static-api" ... enables the creation of `Buffer` without providing any device.
 - "realloc" ... disables caching for all devices
 - "blas" ... adds gemm functions from your selected BLAS library
@@ -40,7 +41,7 @@ Available features:
 ## [Examples]
 
 These examples show how to use the implemented operations. <br>
-custos only implements three buffer operations. These would be the write, read, and clear operations.<br>
+custos only implements four `Buffer` operations. These would be the `write`, `read`, `copy_slice` and `clear` operations.<br>
 On the other hand, [custos-math] implements a lot more operations, including Matrix operations for a custom Matrix struct.<br>
 If you want to implement your own operations for all compute devices, look here: [implement_operations.md](implement_operations.md)
 

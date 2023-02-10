@@ -169,6 +169,19 @@ impl RawConv for WGPU {
 }
 
 impl<T: Default + Debug, S: Shape> ClearBuf<T, Self, S> for WGPU {
+    /// Sets all the elements of a `WGPU` `Buffer` to zero / default.
+    /// # Example
+    /// ```
+    /// use custos::{WGPU, Buffer, ClearBuf};
+    /// fn main() -> custos::Result<()> {
+    ///     let device = WGPU::new(wgpu::Backends::all())?;
+    ///     let mut buf = Buffer::from((&device, [1, 5, 3, 4, 2]));
+    ///     device.clear(&mut buf);
+    /// 
+    ///     assert_eq!(buf.read(), [0, 0, 0, 0, 0]);
+    ///     Ok(())
+    /// }
+    /// ```
     #[inline]
     fn clear(&self, buf: &mut crate::Buffer<T, Self, S>) {
         wgpu_clear(self, buf)

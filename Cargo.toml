@@ -33,7 +33,7 @@ min-cl = { version="0.1.2", optional=true }
 [features]
 #default = ["stack", "cpu", "opencl"]
 #default = ["cpu", "opencl", "stack", "static-api"]
-default = ["wgpu", "opencl"]
+default = ["wgpu", "opencl", "stack"]
 #default = ["stack", "cpu", "opt-cache", "blas", "static-api", "opencl"]
 cpu = []
 opencl = ["dep:min-cl", "cpu"]
@@ -64,6 +64,14 @@ required-features = ["cpu"]
 [[example]]
 name = "cl_readme"
 required-features = ["opencl"]
+
+[[example]]
+name = "wgpu"
+required-features = ["wgpu"]
+
+[[example]]
+name = "static-api"
+required-features = ["static-api", "opencl"]
 
 [[example]]
 name = "unified_memory"
