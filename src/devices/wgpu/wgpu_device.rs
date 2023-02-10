@@ -16,7 +16,10 @@ pub struct WGPU {
 
 impl WGPU {
     pub fn new(backends: Backends) -> crate::Result<WGPU> {
-        let instance = wgpu::Instance::new(backends);
+        let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
+            backends,
+            dx12_shader_compiler: Default::default(),
+        });
 
         let adapter =
             pollster::block_on(instance.request_adapter(&wgpu::RequestAdapterOptions::default())).ok_or(DeviceError::WGPUDeviceReturn)?;
