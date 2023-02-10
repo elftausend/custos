@@ -1,9 +1,8 @@
 use crate::{
     flag::AllocFlag, shape::Shape, Alloc, Buffer, CloneBuf, Device, DevicelessAble, MainMemory,
-    Read,
+    Read, StackArray,
 };
 
-use super::stack_array::StackArray;
 
 #[derive(Debug, Clone, Copy)]
 pub struct Stack;
@@ -45,6 +44,14 @@ impl<'a, S: Shape, T: Copy + Default> Alloc<'a, T, S> for Stack {
             array.flatten_mut().copy_from_slice(&data[..S::LEN]);
         }
         array
+    }
+
+    #[inline]
+    fn with_array(&'a self, array: <S as Shape>::ARR<T>) -> <Self as Device>::Ptr<T, S>
+    where
+        T: Clone, 
+    {
+        StackArray::from_array(array)
     }
 
     /* TODO

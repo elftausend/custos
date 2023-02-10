@@ -1,12 +1,12 @@
 [package]
 name = "custos"
-version = "0.5.0"
+version = "0.6.0"
 edition = "2021"
 license = "MIT"
-description = "A minimal OpenCL, CUDA and host CPU array manipulation engine / framework."
+description = "A minimal OpenCL, WGPU, CUDA and host CPU array manipulation engine."
 repository = "https://github.com/elftausend/custos"
-keywords = ["CUDA", "OpenCL", "arrays", "deep-learning", "array-manipulation"]
-categories = ["science", "mathematics", "memory-management", "external-ffi-bindings"]
+keywords = ["CUDA", "OpenCL", "arrays", "deep-learning", "array-manipulation", "no-std", "fixed-size"]
+categories = ["science", "mathematics", "no-std", "external-ffi-bindings"]
 readme = "README.md"
 rust-version = "1.65"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -31,9 +31,8 @@ min-cl = { version="0.1.2", optional=true }
 
 
 [features]
+default = ["cpu", "cuda", "opencl", "static-api", "blas", "macro"]
 #default = ["stack", "cpu", "opencl"]
-#default = ["cpu", "opencl", "stack", "static-api"]
-default = ["wgpu", "opencl", "stack"]
 #default = ["stack", "cpu", "opt-cache", "blas", "static-api", "opencl"]
 cpu = []
 opencl = ["dep:min-cl", "cpu"]
@@ -85,6 +84,9 @@ required-features = ["opencl"]
 name = "read"
 required-features = ["cpu"]
 
+[[example]]
+name = "fixed-size-stack"
+required-features = ["cpu", "stack"]
 
 
 [[test]]

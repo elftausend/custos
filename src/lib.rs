@@ -179,11 +179,12 @@ pub trait Alloc<'a, T, S: Shape = ()>: Device {
     }
 
     #[inline]
-    fn with_array<const N: usize>(&'a self, array: [T; N]) -> <Self as Device>::Ptr<T, S>
+    fn with_array(&'a self, array: S::ARR<T>) -> <Self as Device>::Ptr<T, S>
     where
         T: Clone,
     {
-        self.with_slice(&array)
+        let stack_array = StackArray::<S, T>::from_array(array);
+        self.with_slice(unsafe {stack_array.flatten()})
     }
 }
 

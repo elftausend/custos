@@ -1,7 +1,7 @@
-use super::{stack_array::StackArray, stack_device::Stack};
+use super::stack_device::Stack;
 use crate::{
     shape::{Dim1, Dim2},
-    Buffer, Node,
+    Buffer, Node, StackArray,
 };
 
 /*impl<'a, T, const N: usize> From<[T; N]> for Buffer<'a, T, Stack, N> {

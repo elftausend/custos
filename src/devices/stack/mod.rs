@@ -1,8 +1,6 @@
 mod impl_buffer;
-mod stack_array;
 mod stack_device;
 
-pub use stack_array::StackArray;
 pub use stack_device::*;
 
 #[cfg(feature = "cpu")]

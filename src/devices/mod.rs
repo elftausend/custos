@@ -36,6 +36,9 @@ pub mod wgpu;
 #[cfg(feature = "network")]
 pub mod network;
 
+mod stack_array;
+pub use stack_array::*;
+
 mod cdatatype;
 pub use cdatatype::*;
 
