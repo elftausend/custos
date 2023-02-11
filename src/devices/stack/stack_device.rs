@@ -1,9 +1,9 @@
 use crate::{
     flag::AllocFlag, shape::Shape, Alloc, Buffer, CloneBuf, Device, DevicelessAble, MainMemory,
-    Read, WriteBuf,
+    Read, StackArray,
+    WriteBuf,
 };
 
-use super::stack_array::StackArray;
 
 #[derive(Debug, Clone, Copy)]
 pub struct Stack;
@@ -45,6 +45,14 @@ impl<'a, S: Shape, T: Copy + Default> Alloc<'a, T, S> for Stack {
             array.flatten_mut().copy_from_slice(&data[..S::LEN]);
         }
         array
+    }
+
+    #[inline]
+    fn with_array(&'a self, array: <S as Shape>::ARR<T>) -> <Self as Device>::Ptr<T, S>
+    where
+        T: Clone, 
+    {
+        StackArray::from_array(array)
     }
 
     /* TODO
@@ -113,8 +121,10 @@ impl<T: Copy, S: Shape> WriteBuf<T, S> for Stack {
 
 #[cfg(test)]
 mod tests {
+    #[cfg(not(feature="no-std"))]
     use crate::{shape::Dim2, Buffer, Stack};
 
+    #[cfg(not(feature="no-std"))]
     #[test]
     fn test_dim2() {
         let buf = Buffer::<f64, Stack, Dim2<2, 3>>::from((&Stack, &[3., 2., 1., 4., 7., 1.]));

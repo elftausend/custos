@@ -49,7 +49,8 @@ pub unsafe fn to_unified<T>(
 /// The host pointer of the no_drop `Buffer` must be valid for the entire lifetime of the returned Buffer.
 ///
 /// # Example
-/// ```
+#[cfg_attr(unified_cl, doc = "```")]
+#[cfg_attr(not(unified_cl), doc = "```ignore")]
 /// use custos::prelude::*;
 ///
 /// fn main() -> custos::Result<()> {
@@ -115,6 +116,7 @@ pub unsafe fn construct_buffer<'a, T: Debug>(
     })
 }
 
+#[cfg(unified_cl)]
 #[cfg(test)]
 mod tests {
     use crate::{opencl::CLPtr, AllocFlag, Buffer, CacheBuf, Ident, OpenCL, CPU};

@@ -2,6 +2,7 @@ use custos::prelude::*;
 use custos::Alloc;
 use custos::Ident;
 
+#[cfg(feature = "cpu")]
 #[test]
 fn test_alloc() {
     let device = CPU::new();

@@ -1,10 +1,15 @@
+
+use core::ops::RangeBounds;
+
 use crate::{shape::Shape, Alloc, Buffer, Device, Eval, MayTapeReturn, Resolve};
+
 
 /// Trait for implementing the clear() operation for the compute devices.
 pub trait ClearBuf<T, S: Shape = (), D: Device = Self>: Device {
     /// Sets all elements of the matrix to zero.
     /// # Example
-    /// ```
+    #[cfg_attr(feature = "cpu", doc = "```")]
+    #[cfg_attr(not(feature = "cpu"), doc = "```ignore")]
     /// use custos::{CPU, ClearBuf, Buffer};
     ///
     /// let device = CPU::new();
@@ -17,6 +22,23 @@ pub trait ClearBuf<T, S: Shape = (), D: Device = Self>: Device {
     fn clear(&self, buf: &mut Buffer<T, D, S>);
 }
 
+/// Trait for copying a slice of a buffer, to implement the slice() operation.
+pub trait CopySlice<T, R: RangeBounds<usize>, D: Device = Self>: Sized + Device {
+    /// Copy a slice of the given buffer into a new buffer.
+    /// # Example
+    ///
+    #[cfg_attr(feature = "cpu", doc = "```")]
+    #[cfg_attr(not(feature = "cpu"), doc = "```ignore")]
+    /// use custos::{CPU, Buffer, CopySlice};
+    ///
+    /// let device = CPU::new();
+    /// let buf = Buffer::from((&device, [1., 2., 6., 2., 4.,]));
+    /// let slice = device.copy_slice(&buf, 1..3);
+    /// assert_eq!(slice.read(), &[2., 6.]);
+    /// ```
+    fn copy_slice(&self, buf: &Buffer<T, D>, range: R) -> Buffer<T, Self>;
+}
+
 /// Trait for reading buffers.
 pub trait Read<T, D: Device = Self, S: Shape = ()>: Device {
     type Read<'a>
@@ -27,7 +49,8 @@ pub trait Read<T, D: Device = Self, S: Shape = ()>: Device {
 
     /// Read the data of the `Buffer` as type `Read`.
     /// # Example
-    /// ```
+    #[cfg_attr(feature = "cpu", doc = "```")]
+    #[cfg_attr(not(feature = "cpu"), doc = "```ignore")]
     /// use custos::{CPU, Buffer, Read};
     ///
     /// let device = CPU::new();
@@ -39,7 +62,8 @@ pub trait Read<T, D: Device = Self, S: Shape = ()>: Device {
 
     /// Read the data of a buffer into a vector
     /// # Example
-    /// ```
+    #[cfg_attr(feature = "cpu", doc = "```")]
+    #[cfg_attr(not(feature = "cpu"), doc = "```ignore")]
     /// use custos::{CPU, Buffer, Read};
     ///
     /// let device = CPU::new();
@@ -57,7 +81,8 @@ pub trait Read<T, D: Device = Self, S: Shape = ()>: Device {
 pub trait WriteBuf<T, S: Shape = (), D: Device = Self>: Device {
     /// Write data to the buffer.
     /// # Example
-    /// ```
+    #[cfg_attr(feature = "cpu", doc = "```")]
+    #[cfg_attr(not(feature = "cpu"), doc = "```ignore")]
     /// use custos::{CPU, Buffer, WriteBuf};
     ///
     /// let device = CPU::new();
@@ -91,7 +116,8 @@ pub trait CloneBuf<'a, T, S: Shape = ()>: Sized + Device {
     /// Creates a deep copy of the specified buffer.
     /// # Example
     ///
-    /// ```
+    #[cfg_attr(feature = "cpu", doc = "```")]
+    #[cfg_attr(not(feature = "cpu"), doc = "```ignore")]
     /// use custos::{CPU, Buffer, CloneBuf};
     ///
     /// let device = CPU::new();
@@ -107,8 +133,8 @@ pub trait CloneBuf<'a, T, S: Shape = ()>: Sized + Device {
 pub trait CacheBuf<'a, T, S: Shape = ()>: Sized + Device {
     /// Adds a buffer to the cache. Following calls will return this buffer, if the corresponding internal count matches with the id used in the cache.
     /// # Example
-    #[cfg_attr(feature = "realloc", doc = "```ignore")]
-    #[cfg_attr(not(feature = "realloc"), doc = "```")]
+    #[cfg_attr(any(feature = "realloc", not(feature="cpu")), doc = "```ignore")]
+    #[cfg_attr(any(not(feature = "realloc"), feature="cpu"), doc = "```")]
     /// use custos::{CPU, Read, set_count, get_count, CacheBuf};
     ///
     /// let device = CPU::new();

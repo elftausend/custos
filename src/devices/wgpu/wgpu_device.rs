@@ -1,8 +1,8 @@
-use core::cell::RefCell;
+use core::{cell::RefCell, fmt::Debug};
 
-use super::{shader_cache::ShaderCache, wgpu_buffer::*};
+use super::{shader_cache::ShaderCache, wgpu_buffer::*, wgpu_clear};
 
-use crate::{Alloc, Cache, CacheReturn, Device, Graph, GraphReturn, Node, RawConv, Read, Shape};
+use crate::{Alloc, Cache, CacheReturn, Device, Graph, GraphReturn, Node, RawConv, Read, Shape, flag::AllocFlag, PtrType, DeviceError, ClearBuf};
 use wgpu::{Adapter, Backends, Queue};
 
 pub struct WGPU {
@@ -15,11 +15,14 @@ pub struct WGPU {
 }
 
 impl WGPU {
-    pub fn new(backends: Backends) -> Option<WGPU> {
-        let instance = wgpu::Instance::new(backends);
+    pub fn new(backends: Backends) -> crate::Result<WGPU> {
+        let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
+            backends,
+            dx12_shader_compiler: Default::default(),
+        });
 
         let adapter =
-            pollster::block_on(instance.request_adapter(&wgpu::RequestAdapterOptions::default()))?;
+            pollster::block_on(instance.request_adapter(&wgpu::RequestAdapterOptions::default())).ok_or(DeviceError::WGPUDeviceReturn)?;
 
         let (device, queue) = pollster::block_on(adapter.request_device(
             &wgpu::DeviceDescriptor {
@@ -28,10 +31,9 @@ impl WGPU {
                 limits: wgpu::Limits::downlevel_defaults(),
             },
             None,
-        ))
-        .unwrap();
+        ))?;
 
-        Some(WGPU {
+        Ok(WGPU {
             adapter,
             device,
             queue,
@@ -49,7 +51,7 @@ impl GraphReturn for WGPU {
 }
 
 impl Device for WGPU {
-    type Ptr<U, const N: usize> = WGPUBufPtr<U>;
+    type Ptr<U, S: Shape> = WGPUBufPtr<U>;
     type Cache = Cache<WGPU>;
 
     fn new() -> crate::Result<Self> {
@@ -58,10 +60,12 @@ impl Device for WGPU {
 }
 
 impl<T, S: Shape> Alloc<'_, T, S> for WGPU {
-    fn alloc(&self, len: usize) -> WGPUBufPtr<T> {
+    fn alloc(&self, len: usize, flag: AllocFlag) -> WGPUBufPtr<T> {
         let wgpu_buf = WGPUBuffer::new(&self.device, len as u64);
         WGPUBufPtr {
             ptr: Box::leak(Box::new(wgpu_buf)),
+            len,
+            flag
         }
     }
 
@@ -72,12 +76,16 @@ impl<T, S: Shape> Alloc<'_, T, S> for WGPU {
         let wgpu_buf = WGPUBuffer::with_slice(&self.device, data);
         WGPUBufPtr {
             ptr: Box::into_raw(Box::new(wgpu_buf)),
+            len: data.len(),
+            flag: AllocFlag::None
         }
     }
 }
 
 pub struct WGPUBufPtr<T> {
     pub ptr: *mut WGPUBuffer<T>,
+    pub len: usize,
+    pub flag: AllocFlag,
 }
 
 impl<T> WGPUBufPtr<T> {
@@ -86,15 +94,35 @@ impl<T> WGPUBufPtr<T> {
     }
 }
 
-impl<T> Dealloc<T> for WGPUBufPtr<T> {
-    unsafe fn dealloc(&mut self, _len: usize) {
-        drop(Box::from_raw(self.ptr));
+impl<T> PtrType for WGPUBufPtr<T> {
+    #[inline]
+    fn len(&self) -> usize {
+        self.len
+    }
+
+    #[inline]
+    fn flag(&self) -> AllocFlag {
+        self.flag
     }
 }
+
+impl<T> Drop for WGPUBufPtr<T> {
+    fn drop(&mut self) {
+        if self.flag != AllocFlag::None {
+            return;
+        }
+
+        unsafe {
+            drop(Box::from_raw(self.ptr))
+        }
+    }
+}
+
 
 pub struct RawWGPUBuffer {
     pub ptr: *const u8,
     pub buffer: *mut wgpu::Buffer,
+    len: usize,
     node: Node,
 }
 
@@ -116,27 +144,50 @@ impl CacheReturn for WGPU {
 }
 
 impl RawConv for WGPU {
-    fn construct<T, const N: usize>(
-        ptr: &Self::Ptr<T, N>,
-        _len: usize,
+    fn construct<T, S: Shape>(
+        ptr: &Self::Ptr<T, S>,
+        len: usize,
         node: crate::Node,
     ) -> RawWGPUBuffer {
         unsafe {
             RawWGPUBuffer {
                 ptr: ptr.ptr as *const u8,
                 buffer: &mut *(*ptr.ptr).buf,
+                len,
                 node,
             }
         }
     }
 
-    fn destruct<T, const N: usize>(ct: &RawWGPUBuffer) -> (Self::Ptr<T, N>, crate::Node) {
+    fn destruct<T, S: Shape>(ct: &RawWGPUBuffer, flag: AllocFlag) -> (Self::Ptr<T, S>, crate::Node) {
         (
             WGPUBufPtr {
                 ptr: ct.ptr as *mut WGPUBuffer<T>,
+                len: ct.len,
+                flag
             },
             ct.node,
         )
+    }
+}
+
+impl<T: Default + Debug, S: Shape> ClearBuf<T, Self, S> for WGPU {
+    /// Sets all the elements of a `WGPU` `Buffer` to zero / default.
+    /// # Example
+    /// ```
+    /// use custos::{WGPU, Buffer, ClearBuf};
+    /// fn main() -> custos::Result<()> {
+    ///     let device = WGPU::new(wgpu::Backends::all())?;
+    ///     let mut buf = Buffer::from((&device, [1, 5, 3, 4, 2]));
+    ///     device.clear(&mut buf);
+    /// 
+    ///     assert_eq!(buf.read(), [0, 0, 0, 0, 0]);
+    ///     Ok(())
+    /// }
+    /// ```
+    #[inline]
+    fn clear(&self, buf: &mut crate::Buffer<T, Self, S>) {
+        wgpu_clear(self, buf)
     }
 }
 
@@ -146,6 +197,7 @@ impl<T: Default + Clone> Read<T, Self> for WGPU {
         T: 'a,
         Self: 'a;
 
+    #[inline]
     fn read<'a>(&self, buf: &'a crate::Buffer<T, Self>) -> Self::Read<'a> {
         self.read_to_vec(buf)
     }

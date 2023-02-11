@@ -25,11 +25,11 @@ jobs:
     - name: Build
       run: cargo build --verbose --no-default-features
     - name: Build (opt-cache)
-      run: cargo build --verbose --no-default-features --features opt-cache
+      run: cargo build --verbose --no-default-features --features opt-cache,cpu
     - name: Build (realloc)
-      run: cargo build --verbose --no-default-features --features realloc
+      run: cargo build --verbose --no-default-features --features realloc,cpu
     - name: Build (stack)
-      run: cargo build --verbose --no-default-features --features stack
+      run: cargo build --verbose --no-default-features --features stack,cpu
       
   test:
   
@@ -46,7 +46,7 @@ jobs:
     - uses: Swatinem/rust-cache@v1
 
     - name: Run tests
-      run: cargo test --verbose --no-default-features
+      run: cargo test --verbose --no-default-features --features cpu
 
   test-realloc:
   
@@ -63,7 +63,7 @@ jobs:
     - uses: Swatinem/rust-cache@v1
 
     - name: Run 'realloc' tests
-      run: cargo test --verbose --no-default-features --features realloc
+      run: cargo test --verbose --no-default-features --features realloc,cpu
 
   test-opt-cache:
   
@@ -80,7 +80,7 @@ jobs:
     - uses: Swatinem/rust-cache@v1
 
     - name: Run 'opt-cache' tests
-      run: cargo test --verbose --no-default-features --features opt-cache
+      run: cargo test --verbose --no-default-features --features opt-cache,cpu
 
   test-stack:
   
@@ -97,7 +97,7 @@ jobs:
     - uses: Swatinem/rust-cache@v1
 
     - name: Run 'stack' tests
-      run: cargo test --no-default-features --features stack
+      run: cargo test --no-default-features --features stack,cpu
 
   test-static-api:
   
@@ -114,7 +114,7 @@ jobs:
     - uses: Swatinem/rust-cache@v1
 
     - name: Run 'static-api' tests
-      run: cargo test --no-default-features --features static-api
+      run: cargo test --no-default-features --features static-api,cpu
 
   miri:
     name: "Miri"
@@ -127,15 +127,15 @@ jobs:
           rustup override set nightly
           cargo miri setup
       - name: Test with Miri
-        run: cargo miri test --no-default-features
+        run: cargo miri test --no-default-features --features cpu
       - name: Test 'realloc' with Miri
-        run: cargo miri test --no-default-features --features realloc
+        run: cargo miri test --no-default-features --features realloc,cpu
       - name: Test 'opt-cache' with Miri
-        run: cargo miri test --no-default-features --features opt-cache
+        run: cargo miri test --no-default-features --features opt-cache,cpu
       - name: Test 'stack' with Miri
-        run: cargo miri test --no-default-features --features stack
+        run: cargo miri test --no-default-features --features stack,cpu
       - name: Test 'static-api' with Miri
-        run: cargo miri test --no-default-features --features static-api
+        run: cargo miri test --no-default-features --features static-api,cpu
 
 #  bench:
 #  

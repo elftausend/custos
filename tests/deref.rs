@@ -1,4 +1,4 @@
-use custos::{Buffer, CPU};
+use custos::prelude::*;
 
 fn slice_add<T: Copy + std::ops::Add<Output = T>>(a: &[T], b: &[T], c: &mut [T]) {
     for i in 0..c.len() {
@@ -6,6 +6,7 @@ fn slice_add<T: Copy + std::ops::Add<Output = T>>(a: &[T], b: &[T], c: &mut [T])
     }
 }
 
+#[cfg(feature = "cpu")]
 #[test]
 fn test_deref_cpu() {
     let device = CPU::new();

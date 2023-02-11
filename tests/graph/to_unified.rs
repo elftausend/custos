@@ -23,8 +23,8 @@ fn test_access_cached_after_unified_construct_buf() -> custos::Result<()> {
         .cache()
         .nodes
         .get(&Ident {
-            idx: cl_cpu_buf.node.ident_idx as usize,
-            len: cl_cpu_buf.len,
+            idx: cl_cpu_buf.ident.idx as usize,
+            len: cl_cpu_buf.len(),
         })
         .unwrap()
         .clone();

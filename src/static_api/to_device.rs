@@ -18,7 +18,7 @@ impl<'a, T: Clone> Buffer<'a, T> {
     /// assert_eq!(cl_buf.read(), vec![1., 2., 3.]);
     /// ```
     #[inline]
-    pub fn to_dev<D>(self) -> Buffer<'static, T, D>
+    pub fn to_dev<D>(self) -> Buffer<'static, T, D, ()>
     where
         D: StaticDevice + Alloc<'static, T>,
     {

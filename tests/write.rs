@@ -3,6 +3,7 @@ use custos::{Buffer, WriteBuf, CPU};
 #[cfg(any(feature = "cuda", feature = "opencl"))]
 use custos::Read;
 
+#[cfg(feature = "cpu")]
 #[test]
 fn test_write_cpu() {
     let device = CPU::new();

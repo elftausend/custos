@@ -9,16 +9,16 @@ Implementing a new operation happens in a few steps. <br>
 
 The first step is to define a trait. This is the operation<br>
 This trait is then implemented for all devices.<br>
-Using const generics to determine the possible size for the buffer. This is useful for fixed-size arrays
 
 You can use your own type as parameters also. It just needs to encapsulate a ```Buffer```.
 
 ```rust
 /// `AddBuf` will be implemented for all compute devices.<br>
-/// Because of `N`, this trait can be implemented for [`Stack`] which uses fixed size arrays.
-pub trait AddBuf<T, const N: usize = 0>: Sized + Device {
+/// Because of `S: Shape`, this trait can be implemented for [`Stack`], which uses fixed size stack allocated arrays.<br>
+/// Adding a `D: Device = Self` makes it possible to invoke operations with a `CPU` on, for example, `OpenCL` `Buffer`s (if the device uses unified memory), and `Stack` `Buffer`s.
+pub trait AddBuf<T, S: Shape = (), D: Device = Self>: Sized + Device {
     /// This operation perfoms element-wise addition.
-    fn add(&self, lhs: &Buffer<T, Self, N>, rhs: &Buffer<T, Self, N>) -> Buffer<T, Self, N>;
+    fn add(&self, lhs: &Buffer<T, D, S>, rhs: &Buffer<T, D, S>) -> Buffer<T, Self, S>;
     // ... you can add more operations if you want to do that.
 }
 ```
@@ -28,18 +28,20 @@ It is not mandatory to implement this trait for every device.
 
 ```rust
 // Host CPU implementation
+#[cfg(feature="cpu")]
 impl<T> AddBuf<T> for CPU
 where
-    T: Copy + std::ops::Add<Output = T>, // you can use the custos::Number trait. 
-                                         // This trait is implemented for all number types (usize, i16,      f32, ...)
+    T: Copy + std::ops::Add<Output = T>, // you can use the custos::Number trait.
+                                         // This trait is implemented for all number types (usize, i16, f32, ...)
 {
-    fn add(&self, lhs: &Buffer<T, CPU>, rhs: &Buffer<T, CPU>) -> Buffer<T, CPU> {
-        let len = std::cmp::min(lhs.len, rhs.len);
+    fn add(&self, lhs: &Buffer<T>, rhs: &Buffer<T>) -> Buffer<T> {
+        let len = std::cmp::min(lhs.len(), rhs.len());
 
         // this returns a previously allocated buffer.
         // You can deactivate the caching behaviour by adding the "realloc" feature
         // to the custos feature list in the Cargo.toml.
-        let mut out = Cache::get(self, len, [lhs.node.idx, rhs.node.idx]);
+        let mut out = self.retrieve(len, [lhs, rhs]);
+        //or: let mut out = Cache::get(self, len, [lhs, rhs]);
 
         // By default, the Buffer dereferences to a slice.
         // Therefore, standard indexing can be used.
@@ -52,13 +54,34 @@ where
     }
 }
 
+// the attribute macro `#[impl_stack]` from the crate `custos-macro`
+// can be placed on top of the CPU implementation to automatically
+// generate a Stack implementation.
+#[cfg(feature = "stack")]
+impl<T, S: Shape, D: MainMemory> AddBuf<T, S, D> for Stack
+where
+    T: Copy + Default + std::ops::Add<Output = T>,
+{
+    fn add(&self, lhs: &Buffer<T, D, S>, rhs: &Buffer<T, D, S>) -> Buffer<T, Self, S> {
+        let mut out = self.retrieve(S::LEN, [lhs, rhs]); // this works as well and in this case (Stack), does exactly the same as the line above.
+
+        for i in 0..S::LEN {
+            out[i] = lhs[i] + rhs[i];
+        }
+
+        out
+    }
+}
+
+#[cfg(feature = "opencl")]
 // OpenCL implementation
 impl<T> AddBuf<T> for OpenCL
 where
     T: CDatatype, // the custos::CDatatype trait is used to
+                  // get the OpenCL C type string for creating generic OpenCL kernels.
 {
-    // get the OpenCL C type string for creating generic OpenCL kernels.
-    fn add(&self, lhs: &Buffer<T, OpenCL>, rhs: &Buffer<T, OpenCL>) -> Buffer<T, OpenCL> {
+    fn add(&self, lhs: &CLBuffer<T>, rhs: &CLBuffer<T>) -> CLBuffer<T> {
+        // CLBuffer<T> is the same as Buffer<T, OpenCL>
         // generic OpenCL kernel
         let src = format!("
             __kernel void add(__global const {datatype}* lhs, __global const {datatype}* rhs, __global {datatype}* out) 
@@ -68,11 +91,11 @@ where
             }}
         ", datatype=T::as_c_type_str());
 
-        let len = std::cmp::min(lhs.len, rhs.len);
-        let out = Cache::get::<T, OpenCL>(self, len, [lhs.node.idx, rhs.node.idx]);
+        let len = std::cmp::min(lhs.len(), rhs.len());
+        let out = self.retrieve::<T, ()>(len, (lhs, rhs));
 
         // In the background, the kernel is compiled once. After that, it will be reused for every iteration.
-        // The cached kernels are released (or freed) when the underlying CLDevice is dropped.
+        // The cached kernels are released (or freed) when the underlying OpenCL device is dropped.
         // The arguments are specified with a slice of buffers and/or numbers.
         enqueue_kernel(self, &src, [len, 0, 0], None, &[&lhs, &rhs, &out]).unwrap();
         out
@@ -82,7 +105,8 @@ where
 #[cfg(feature = "cuda")]
 // CUDA Implementation
 impl<T: CDatatype> AddBuf<T> for CUDA {
-    fn add(&self, lhs: &Buffer<T, CUDA>, rhs: &Buffer<T, CUDA>) -> Buffer<T, CUDA> {
+    fn add(&self, lhs: &CUBuffer<T>, rhs: &CUBuffer<T>) -> CUBuffer<T> {
+        // CUBuffer<T> is the same as Buffer<T, CUDA>
         // generic CUDA kernel
         let src = format!(
             r#"extern "C" __global__ void add({datatype}* lhs, {datatype}* rhs, {datatype}* out, int numElements)
@@ -97,8 +121,9 @@ impl<T: CDatatype> AddBuf<T> for CUDA {
             datatype = T::as_c_type_str()
         );
 
-        let len = std::cmp::min(lhs.len, rhs.len);
-        let out = Cache::get::<T, CUDA>(self, len, (lhs.node.idx, rhs.node.idx));
+        let len = std::cmp::min(lhs.len(), rhs.len());
+        let out = self.retrieve::<T, ()>(len, (lhs, rhs));
+        //or: let out = Cache::get::<T, CUDA, 0>(self, len, (lhs, rhs));
 
         // The kernel is compiled once with nvrtc and is cached too.
         // The arguments are specified with a vector of buffers and/or numbers.
@@ -106,6 +131,39 @@ impl<T: CDatatype> AddBuf<T> for CUDA {
         out
     }
 }
+
+#[cfg(feature="wgpu")]
+impl<T> AddBuf<T> for WGPU {
+    fn add(&self, lhs: &Buffer<T, Self>, rhs: &Buffer<T, Self>) -> Buffer<T, Self> {
+        let src = format!(
+            "@group(0)
+            @binding(0)
+            var<storage, read_write> a: array<{datatype}>;
+            
+            @group(0)
+            @binding(1)
+            var<storage, read_write> b: array<{datatype}>;
+    
+            @group(0)
+            @binding(2)
+            var<storage, read_write> out: array<{datatype}>;
+            
+            
+            @compute
+            @workgroup_size(1)
+            fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {{
+                out[global_id.x] = a[global_id.x] + b[global_id.x];
+            }}
+            ",
+            datatype = std::any::type_name::<T>()
+        );
+    
+        let mut out = self.retrieve(lhs.len(), (lhs, rhs));
+        launch_shader(self, &src, [lhs.len() as u32, 1, 1], &[lhs, rhs, &mut out]);
+        out
+    }
+}
+
 ```
 Now, the operation is accessible via the devices.<br>
 Let's try it out with a ```CPU``` device:
@@ -123,10 +181,13 @@ assert_eq!(out.read(), vec![0, -9, -1, 6, 4, 5]); // to read a CPU Buffer, you c
 If you want to use another device, just update the device declaration.
 
 ```rust
+
+use custos::{OpenCL, CUDA};
+
 fn main() -> custos::Result<()> {
-    let device = CLDevice::new(0)?; 
+    let device = OpenCL::new(0)?; 
     // or:
-    let device = CudaDevice::new(0)?;
+    let device = CUDA::new(0)?;
     Ok(())
 }
 ```

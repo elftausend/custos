@@ -4,15 +4,16 @@ use crate::{
     devices::cache::{Cache, CacheReturn},
     flag::AllocFlag,
     shape::Shape,
-    Alloc, Buffer, CacheBuf, CloneBuf, Device, DevicelessAble, Graph, GraphReturn, Ident,
-    MainMemory,
+    Alloc, Buffer, CacheBuf, CloneBuf, Device, DevicelessAble, Graph,
+    GraphReturn, MainMemory,
+     Ident,
 };
+
 use core::{
     cell::{RefCell, RefMut},
     fmt::Debug,
     mem::{align_of, size_of},
 };
-use std::vec::Vec;
 
 use super::{CPUPtr, RawCpuBuf};
 
@@ -174,6 +175,7 @@ impl<'a, T> CacheBuf<'a, T> for CPU {
         self.cache().get(self, Ident::new(len), bump_count)
     }
 }
+
 
 #[inline]
 pub fn cpu_cached<T: Clone>(device: &CPU, len: usize) -> Buffer<T, CPU> {

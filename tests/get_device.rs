@@ -1,5 +1,6 @@
-use custos::{Buffer, Read, CPU};
+use custos::prelude::*;
 
+#[cfg(feature = "cpu")]
 #[test]
 fn get_device_test_cpu() {
     let device = CPU::new();

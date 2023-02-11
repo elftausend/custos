@@ -1,11 +1,18 @@
 fn main() {
     // TODO: execute other opencl test to know whether opencl can actually be used
+
+    if std::env::var("DOCS_RS").is_ok() {
+        return;
+    }
+
+    #[cfg(not(docsrs))]
     #[cfg(feature = "opencl")]
     if has_device_unified_mem() {
         println!("cargo:rustc-cfg=unified_cl");
     }
 }
 
+#[cfg(not(docsrs))]
 #[cfg(feature = "opencl")]
 fn has_device_unified_mem() -> bool {
     println!("cargo:rerun-if-env-changed=CUSTOS_CL_DEVICE_IDX");

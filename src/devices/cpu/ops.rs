@@ -1,8 +1,8 @@
-use core::ops::AddAssign;
+use core::ops::{AddAssign, RangeBounds, Index};
 
 use crate::{
     ApplyFunction, Buffer, ClearBuf, Device, Eval, MainMemory, Read, Resolve, Shape, ToVal,
-    UnaryGrad, WriteBuf, CPU,
+    UnaryGrad, WriteBuf, CPU, CopySlice,
 };
 
 impl<T, D: MainMemory, S: Shape> Read<T, D, S> for CPU {
@@ -41,6 +41,19 @@ impl<T: Copy, D: MainMemory, S: Shape> WriteBuf<T, S, D> for CPU {
         self.write(dst, src)
     }
 }
+
+impl<T: Copy, R: RangeBounds<usize>, D: MainMemory> CopySlice<T, R, D> for CPU
+where
+    [T]: Index<R, Output = [T]>,
+{
+    fn copy_slice(&self, buf: &Buffer<T, D>, range: R) -> Buffer<T, Self> {
+        let slice = &buf.as_slice()[range];
+        let mut copied = Buffer::new(self, slice.len());
+        self.write(&mut copied, slice);
+        copied
+    }
+}
+
 
 use custos_macro::impl_stack;
 

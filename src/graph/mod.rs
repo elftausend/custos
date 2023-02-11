@@ -53,7 +53,7 @@ pub trait GraphReturn {
 pub trait GraphOpt {
     fn optimize(&self) -> crate::Result<()>
     where
-        Self: GraphReturn + CacheReturn + RawConv,
+        Self: GraphReturn + CacheReturn + crate::RawConv,
     {
         let mut cache = self.cache();
 

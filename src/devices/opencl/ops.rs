@@ -1,10 +1,12 @@
+use core::ops::{RangeBounds, Bound};
+
 use min_cl::api::{
-    enqueue_full_copy_buffer, enqueue_read_buffer, enqueue_write_buffer, wait_for_event,
+    enqueue_full_copy_buffer, enqueue_read_buffer, enqueue_write_buffer, wait_for_event, enqueue_copy_buffer,
 };
 
 use crate::{
     ApplyFunction, Buffer, CDatatype, ClearBuf, Device, OpenCL, Read, Resolve, Shape, ToMarker,
-    UnaryGrad, WriteBuf,
+    UnaryGrad, WriteBuf, CopySlice,
 };
 
 use super::{enqueue_kernel, CLBuffer};
@@ -63,6 +65,37 @@ impl<T> WriteBuf<T> for OpenCL {
         debug_assert_eq!(dst.len(), src.len());
         enqueue_full_copy_buffer::<T>(&self.queue(), src.cl_ptr(), dst.cl_ptr(), dst.len())
             .unwrap();
+    }
+}
+
+impl<T, R: RangeBounds<usize>> CopySlice<T, R> for OpenCL {
+    fn copy_slice(&self, buf: &Buffer<T, OpenCL>, range: R) -> Buffer<T, Self> {
+        let start = match range.start_bound() {
+            Bound::Included(start) => *start,
+            Bound::Excluded(start) => start + 1,
+            Bound::Unbounded => 0,
+        };
+
+        let end = match range.end_bound() {
+            Bound::Excluded(end) => *end,
+            Bound::Included(end) => end + 1,
+            Bound::Unbounded => buf.len(),
+        };
+
+        let slice_len = end - start;
+        let copied = Buffer::new(self, slice_len);
+
+        enqueue_copy_buffer::<T>(
+            &self.queue(),
+            buf.ptr.ptr,
+            copied.ptr.ptr,
+            start,
+            0,
+            copied.len(),
+        )
+        .unwrap();
+
+        copied
     }
 }
 

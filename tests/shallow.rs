@@ -1,5 +1,6 @@
 use custos::{Buffer, CPU};
 
+#[cfg(feature = "cpu")]
 #[test]
 fn test_shallow_buf_copy() {
     let device = CPU::new();
@@ -24,6 +25,7 @@ fn test_shallow_buf_realloc() {
     assert_eq!(cloned.as_slice(), &[101, 2, 3, 4, 5]);
 }
 
+#[cfg(feature = "cpu")]
 #[cfg(not(feature = "realloc"))]
 #[test]
 fn test_shallow_buf_realloc() {

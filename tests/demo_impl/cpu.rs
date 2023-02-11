@@ -68,6 +68,7 @@ fn test_const_size_buf() {
     device.add(&lhs, &rhs);
 }
 
+#[cfg(feature = "cpu")]
 #[cfg(feature = "stack")]
 #[test]
 fn test_impl_stack() {

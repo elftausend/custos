@@ -6,11 +6,16 @@ use min_cl::api::{
 
 use super::{chosen_cl_idx, CLPtr, KernelCacheCL, RawCL};
 use crate::flag::AllocFlag;
-use crate::{bump_count, Ident, Shape};
+use crate::Shape;
 use crate::{
     cache::{Cache, CacheReturn, RawConv},
-    Alloc, Buffer, CacheBuf, CloneBuf, Device, Error, Graph, GraphReturn, CPU,
+    Alloc, Buffer, CacheBuf, CloneBuf, Device, Error, Graph,
+    GraphReturn, CPU,
 };
+
+
+use crate::{bump_count, Ident};
+
 use std::{cell::RefCell, fmt::Debug};
 
 #[cfg(unified_cl)]
