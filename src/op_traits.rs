@@ -1,10 +1,11 @@
+
 use core::ops::RangeBounds;
 
+use crate::{shape::Shape, Alloc, Buffer, Device, Eval, MayTapeReturn, Resolve};
 
-use crate::{Buffer, Device, Shape};
 
 /// Trait for implementing the clear() operation for the compute devices.
-pub trait ClearBuf<T, D: Device = Self, S: Shape = ()>: Device {
+pub trait ClearBuf<T, S: Shape = (), D: Device = Self>: Device {
     /// Sets all elements of the matrix to zero.
     /// # Example
     #[cfg_attr(feature = "cpu", doc = "```")]
@@ -77,7 +78,7 @@ pub trait Read<T, D: Device = Self, S: Shape = ()>: Device {
 }
 
 /// Trait for writing data to buffers.
-pub trait WriteBuf<T, D: Device = Self, S: Shape = ()>: Sized + Device {
+pub trait WriteBuf<T, S: Shape = (), D: Device = Self>: Device {
     /// Write data to the buffer.
     /// # Example
     #[cfg_attr(feature = "cpu", doc = "```")]
@@ -85,17 +86,29 @@ pub trait WriteBuf<T, D: Device = Self, S: Shape = ()>: Sized + Device {
     /// use custos::{CPU, Buffer, WriteBuf};
     ///
     /// let device = CPU::new();
-    /// let mut buf = Buffer::new(&device, 4);
+    /// let mut buf: Buffer<i32> = Buffer::new(&device, 4);
     /// device.write(&mut buf, &[9, 3, 2, -4]);
     /// assert_eq!(buf.as_slice(), &[9, 3, 2, -4])
     ///
     /// ```
     fn write(&self, buf: &mut Buffer<T, D, S>, data: &[T]);
+
     /// Writes data from <Device> Buffer to other <Device> Buffer.
-    // TODO: implement, change name of fn? -> set_.. ?
-    fn write_buf(&self, _dst: &mut Buffer<T, Self, S>, _src: &Buffer<T, Self, S>) {
-        unimplemented!()
-    }
+    /// The buffers must have the same size.
+    ///
+    /// # Example
+    /// ```
+    /// use custos::{CPU, Buffer, WriteBuf};
+    ///
+    /// let device = CPU::new();
+    ///
+    /// let mut dst: Buffer<i32> = Buffer::new(&device, 4);
+    ///
+    /// let mut src: Buffer<i32> = Buffer::from((&device, [1, 2, -5, 4]));
+    /// device.write_buf(&mut dst, &src);
+    /// assert_eq!(dst.read(), [1, 2, -5, 4])
+    /// ```
+    fn write_buf(&self, dst: &mut Buffer<T, D, S>, src: &Buffer<T, D, S>);
 }
 
 /// This trait is used to clone a buffer based on a specific device type.
@@ -134,9 +147,89 @@ pub trait CacheBuf<'a, T, S: Shape = ()>: Sized + Device {
     ///     *value = 1.5;
     /// }
     ///    
-    /// set_count(0);
+    /// unsafe { set_count(0) };
     /// let buf = CacheBuf::<f32>::cached(&device, 10);
     /// assert_eq!(device.read(&buf), vec![1.5; 10]);
     /// ```
     fn cached(&'a self, len: usize) -> Buffer<'a, T, Self, S>;
+}
+
+pub trait ApplyFunction<T, S: Shape = (), D: Device = Self>: Device {
+    fn apply_fn<F>(&self, buf: &Buffer<T, D, S>, f: impl Fn(Resolve<T>) -> F) -> Buffer<T, Self, S>
+    where
+        F: Eval<T> + ToString;
+}
+
+pub trait UnaryGrad<T, S: Shape = (), D: Device = Self>: Device {
+    fn add_unary_grad<F>(
+        &self,
+        lhs: &Buffer<T, D, S>,
+        lhs_grad: &mut Buffer<T, D, S>,
+        out: &Buffer<T, D, S>,
+        lhs_grad_fn: impl Fn(Resolve<T>) -> F,
+    ) where
+        F: Eval<T> + ToString;
+}
+
+pub trait UnaryElementWiseMayGrad<T, D: Device, S: Shape>: Device {
+    fn unary_ew<FO, GO>(
+        &self,
+        buf: &Buffer<T, D, S>,
+        forward_fn: impl Fn(Resolve<T>) -> FO,
+        grad_fn: fn(Resolve<T>) -> GO,
+    ) -> Buffer<T, Self, S>
+    where
+        FO: Eval<T> + ToString,
+        GO: Eval<T> + ToString + 'static;
+}
+
+impl<T, D, S> UnaryElementWiseMayGrad<T, D, S> for D
+where
+    T: 'static,
+    D: ApplyFunction<T, S, D> + UnaryGrad<T, S, D> + MayTapeReturn,
+    D: for<'a> Alloc<'a, T, S>,
+    S: Shape,
+{
+    #[inline(always)]
+    fn unary_ew<FO, GO>(
+        &self,
+        buf: &Buffer<T, D, S>,
+        forward_fn: impl Fn(Resolve<T>) -> FO,
+        _grad_fn: fn(Resolve<T>) -> GO,
+    ) -> Buffer<T, Self, S>
+    where
+        FO: Eval<T> + ToString,
+        GO: Eval<T> + ToString + 'static,
+    {
+        let out = self.apply_fn(buf, forward_fn);
+
+        #[cfg(feature = "autograd")]
+        {
+            let ids = (buf.id(), out.id());
+            self.tape_mut().add_grad_fn(move |grads, device| {
+                let (lhs, mut lhs_grad, out_grad) = grads.get_double::<T, S>(device, ids);
+                device.add_unary_grad(&lhs, &mut lhs_grad, &out_grad, _grad_fn);
+            });
+        }
+
+        out
+    }
+}
+
+#[cfg(test)]
+mod tests {
+
+    #[cfg(feature = "stack")]
+    #[cfg(not(feature = "autograd"))]
+    #[test]
+    fn test_unary_ew_stack_no_autograd() {
+        use crate::{Buffer, Combiner, Dim1, UnaryElementWiseMayGrad};
+
+        let device = crate::Stack;
+        let buf = Buffer::<_, _, Dim1<5>>::from((&device, [1, 2, 4, 5, 3]));
+
+        let out = device.unary_ew(&buf, |x| x.mul(3), |x| x);
+
+        assert_eq!(out.read(), [3, 6, 12, 15, 9]);
+    }
 }

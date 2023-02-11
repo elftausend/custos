@@ -1,13 +1,14 @@
 use crate::{
+    bump_count,
     cache::RawConv,
     devices::cache::{Cache, CacheReturn},
     flag::AllocFlag,
     shape::Shape,
-    Alloc, Buffer, CacheBuf, CachedLeaf, ClearBuf, CloneBuf, Device, DevicelessAble, Graph,
-    GraphReturn, MainMemory, Read, WriteBuf, CopySlice,
+    Alloc, Buffer, CacheBuf, CloneBuf, Device, DevicelessAble, Graph,
+    GraphReturn, MainMemory,
+     Ident,
 };
 
-use core::ops::{Index, RangeBounds};
 use core::{
     cell::{RefCell, RefMut},
     fmt::Debug,
@@ -34,6 +35,8 @@ use super::{CPUPtr, RawCpuBuf};
 pub struct CPU {
     pub cache: RefCell<Cache<CPU>>,
     pub graph: RefCell<Graph>,
+    #[cfg(feature = "autograd")]
+    pub tape: RefCell<crate::Tape<CPU>>,
 }
 
 impl CPU {
@@ -41,8 +44,10 @@ impl CPU {
     #[must_use]
     pub fn new() -> CPU {
         CPU {
-            cache: RefCell::new(Cache::default()),
-            graph: RefCell::new(Graph::new()),
+            cache: Default::default(),
+            graph: Default::default(),
+            #[cfg(feature = "autograd")]
+            tape: Default::default(),
         }
     }
 }
@@ -58,26 +63,23 @@ impl Device for CPU {
 
 impl RawConv for CPU {
     #[inline]
-    fn construct<T, S: Shape>(ptr: &Self::Ptr<T, S>, len: usize, node: crate::Node) -> Self::CT {
+    fn construct<T, S: Shape>(ptr: &Self::Ptr<T, S>, len: usize, flag: AllocFlag) -> Self::CT {
         RawCpuBuf {
-            ptr: ptr.ptr.cast(),
+            flag,
             len,
+            ptr: ptr.ptr.cast(),
             align: align_of::<T>(),
             size: size_of::<T>(),
-            node,
         }
     }
 
     #[inline]
-    fn destruct<T, S: Shape>(ct: &Self::CT, flag: AllocFlag) -> (Self::Ptr<T, S>, crate::Node) {
-        (
-            CPUPtr {
-                ptr: ct.ptr as *mut T,
-                len: ct.len,
-                flag,
-            },
-            ct.node,
-        )
+    fn destruct<T, S: Shape>(ct: &Self::CT) -> Self::Ptr<T, S> {
+        CPUPtr {
+            ptr: ct.ptr as *mut T,
+            len: ct.len,
+            flag: ct.flag,
+        }
     }
 }
 
@@ -118,6 +120,14 @@ impl<T, S: Shape> Alloc<'_, T, S> for CPU {
             len,
             flag: AllocFlag::None,
         }
+    }
+}
+
+#[cfg(feature = "autograd")]
+impl crate::TapeReturn for CPU {
+    #[inline]
+    fn tape_mut(&self) -> RefMut<crate::Tape<Self>> {
+        self.tape.borrow_mut()
     }
 }
 
@@ -162,54 +172,12 @@ impl<'a, T: Clone, S: Shape> CloneBuf<'a, T, S> for CPU {
 impl<'a, T> CacheBuf<'a, T> for CPU {
     #[inline]
     fn cached(&'a self, len: usize) -> Buffer<'a, T, CPU> {
-        Cache::get::<T, ()>(self, len, CachedLeaf)
+        self.cache().get(self, Ident::new(len), bump_count)
     }
 }
 
-impl<T: Copy, R: RangeBounds<usize>, D: MainMemory> CopySlice<T, R, D> for CPU
-where
-    [T]: Index<R, Output = [T]>,
-{
-    fn copy_slice(&self, buf: &Buffer<T, D>, range: R) -> Buffer<T, Self> {
-        let slice = &buf.as_slice()[range];
-        let mut copied = Buffer::new(self, slice.len());
-        self.write(&mut copied, slice);
-        copied
-    }
-}
 
 #[inline]
 pub fn cpu_cached<T: Clone>(device: &CPU, len: usize) -> Buffer<T, CPU> {
     device.cached(len)
-}
-
-impl<T, D: MainMemory, S: Shape> Read<T, D, S> for CPU {
-    type Read<'a> = &'a [T] where T: 'a, D: 'a, S: 'a;
-
-    #[inline]
-    fn read<'a>(&self, buf: &'a Buffer<T, D, S>) -> Self::Read<'a> {
-        buf.as_slice()
-    }
-
-    #[inline]
-    fn read_to_vec<'a>(&self, buf: &Buffer<T, D, S>) -> Vec<T>
-    where
-        T: Default + Clone,
-    {
-        buf.to_vec()
-    }
-}
-
-impl<T: Default, D: MainMemory> ClearBuf<T, D> for CPU {
-    fn clear(&self, buf: &mut Buffer<T, D>) {
-        for value in buf {
-            *value = T::default();
-        }
-    }
-}
-
-impl<T: Copy, D: MainMemory> WriteBuf<T, D> for CPU {
-    fn write(&self, buf: &mut Buffer<T, D>, data: &[T]) {
-        buf.copy_from_slice(data)
-    }
 }

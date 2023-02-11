@@ -1,4 +1,4 @@
-use crate::{CommonPtrs, Node, PtrType, ShallowCopy};
+use crate::{CommonPtrs, PtrType, ShallowCopy};
 #[cfg(feature = "blas")]
 pub use blas::*;
 use core::{alloc::Layout, mem::size_of, ptr::null_mut};
@@ -10,6 +10,7 @@ use crate::flag::AllocFlag;
 #[cfg(feature = "blas")]
 mod blas;
 mod cpu_device;
+mod ops;
 
 #[derive(PartialEq, Eq, Debug)]
 pub struct CPUPtr<T> {
@@ -109,11 +110,14 @@ pub struct RawCpuBuf {
     len: usize,
     align: usize,
     size: usize,
-    node: Node,
+    flag: AllocFlag,
 }
 
 impl Drop for RawCpuBuf {
     fn drop(&mut self) {
+        if self.flag != AllocFlag::Cache {
+            return;
+        }
         unsafe {
             let layout = Layout::from_size_align(self.len * self.size, self.align).unwrap();
             std::alloc::dealloc(self.ptr, layout);

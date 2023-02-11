@@ -34,6 +34,6 @@ fn test_caching_cpu() {
         old_ptr = out.host_ptr_mut();
         let len = device.cache.borrow().nodes.len();
         //let len = CPU_CACHE.with(|cache| cache.borrow().nodes.len());
-        assert_eq!(len, 1);
+        assert_eq!(len, 3);
     }
 }

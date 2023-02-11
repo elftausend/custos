@@ -1,6 +1,7 @@
 use crate::{
     flag::AllocFlag, shape::Shape, Alloc, Buffer, CloneBuf, Device, DevicelessAble, MainMemory,
     Read, StackArray,
+    WriteBuf,
 };
 
 
@@ -101,8 +102,20 @@ where
         Buffer {
             ptr: buf.ptr,
             device: Some(&Stack),
-            node: Default::default(),
+            ident: buf.ident,
         }
+    }
+}
+
+impl<T: Copy, S: Shape> WriteBuf<T, S> for Stack {
+    #[inline]
+    fn write(&self, buf: &mut Buffer<T, Self, S>, data: &[T]) {
+        buf.copy_from_slice(data)
+    }
+
+    #[inline]
+    fn write_buf(&self, dst: &mut Buffer<T, Self, S>, src: &Buffer<T, Self, S>) {
+        self.write(dst, src)
     }
 }
 

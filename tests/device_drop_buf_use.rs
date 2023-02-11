@@ -85,7 +85,6 @@ fn test_clone_buf_invalid_return() {
     };
 }*/
 
-
 // should not compile, but it does (unsafe block)
 /*
 use custos::{CPU, Buffer};
@@ -105,7 +104,7 @@ fn test_shallow_ub() {
 }
 */
 
-/* 
+/*
 use custos::{CPU, Buffer};
 
 #[test]
@@ -114,7 +113,7 @@ fn test_as_dims_transform() {
 
     let _x = {
         let buf: Buffer = Buffer::from((&device, vec![1f32, 2., 3., 4., 5.]));
-        buf.as_dims::<()>()        
+        buf.as_dims::<()>()
     };
 
     //drop(device);

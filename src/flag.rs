@@ -1,9 +1,10 @@
 /// Descripes the type of a [`Buffer`]
-#[derive(Debug, Clone, Copy, Eq)]
+#[derive(Debug, Clone, Copy, Eq, PartialOrd, Ord)]
 pub enum AllocFlag {
     None,
     Cache,
     Wrapper,
+    Num,
 }
 
 impl Default for AllocFlag {

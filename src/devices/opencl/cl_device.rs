@@ -1,23 +1,22 @@
 use min_cl::CLDevice;
 
 use min_cl::api::{
-    create_buffer, enqueue_full_copy_buffer, enqueue_read_buffer, enqueue_write_buffer,
-    wait_for_event, CLIntDevice, CommandQueue, Context, MemFlags, enqueue_copy_buffer,
+    create_buffer, enqueue_full_copy_buffer, CLIntDevice, CommandQueue, Context, MemFlags,
 };
 
-use super::{chosen_cl_idx, cl_clear, CLPtr, KernelCacheCL, RawCL};
+use super::{chosen_cl_idx, CLPtr, KernelCacheCL, RawCL};
 use crate::flag::AllocFlag;
-use crate::{Shape, CopySlice};
+use crate::Shape;
 use crate::{
     cache::{Cache, CacheReturn, RawConv},
-    Alloc, Buffer, CDatatype, CacheBuf, CachedLeaf, ClearBuf, CloneBuf, Device, Error, Graph,
-    GraphReturn, Read, WriteBuf, CPU,
+    Alloc, Buffer, CacheBuf, CloneBuf, Device, Error, Graph,
+    GraphReturn, CPU,
 };
-use core::ops::{Bound, RangeBounds};
-use std::{
-    cell::{Ref, RefCell},
-    fmt::Debug,
-};
+
+
+use crate::{bump_count, Ident};
+
+use std::{cell::RefCell, fmt::Debug};
 
 #[cfg(unified_cl)]
 use min_cl::api::unified_ptr;
@@ -41,9 +40,11 @@ use min_cl::api::unified_ptr;
 pub struct OpenCL {
     pub kernel_cache: RefCell<KernelCacheCL>,
     pub cache: RefCell<Cache<OpenCL>>,
-    pub inner: RefCell<CLDevice>,
+    pub inner: CLDevice,
     pub graph: RefCell<Graph>,
     pub cpu: CPU,
+    #[cfg(feature = "autograd")]
+    pub tape: RefCell<crate::Tape<OpenCL>>,
 }
 
 /// Short form for `OpenCL`
@@ -55,13 +56,15 @@ impl OpenCL {
     /// - No device is found at the given device index
     /// - some other OpenCL related errors
     pub fn new(device_idx: usize) -> Result<OpenCL, Error> {
-        let inner = RefCell::new(CLDevice::new(device_idx)?);
+        let inner = CLDevice::new(device_idx)?;
         Ok(OpenCL {
             inner,
             kernel_cache: Default::default(),
             cache: Default::default(),
             graph: Default::default(),
             cpu: Default::default(),
+            #[cfg(feature = "autograd")]
+            tape: Default::default(),
         })
     }
 
@@ -75,20 +78,18 @@ impl OpenCL {
     }
 
     #[inline]
-    pub fn ctx(&self) -> Ref<Context> {
-        let borrow = self.inner.borrow();
-        Ref::map(borrow, |device| &device.ctx)
+    pub fn ctx(&self) -> &Context {
+        &self.inner.ctx
     }
 
     #[inline]
-    pub fn queue(&self) -> Ref<CommandQueue> {
-        let borrow = self.inner.borrow();
-        Ref::map(borrow, |device| &device.queue)
+    pub fn queue(&self) -> &CommandQueue {
+        &self.inner.queue
     }
 
     #[inline]
     pub fn device(&self) -> CLIntDevice {
-        self.inner.borrow().device
+        self.inner.device
     }
 
     pub fn global_mem_size_in_gb(&self) -> Result<f64, Error> {
@@ -110,15 +111,30 @@ impl OpenCL {
     /// Checks whether the device supports unified memory.
     #[inline]
     pub fn unified_mem(&self) -> bool {
-        self.inner.borrow().unified_mem
+        self.inner.unified_mem
     }
 
     #[deprecated(
         since = "0.6.0",
         note = "Use the environment variable 'CUSTOS_USE_UNIFIED' set to 'true', 'false' or 'default'[=hardware dependent] instead."
     )]
-    pub fn set_unified_mem(&self, unified_mem: bool) {
-        self.inner.borrow_mut().unified_mem = unified_mem;
+    pub fn set_unified_mem(&mut self, unified_mem: bool) {
+        self.inner.unified_mem = unified_mem;
+    }
+}
+
+impl Default for OpenCL {
+    fn default() -> Self {
+        let inner = CLDevice::new(chosen_cl_idx()).expect("Could not get CLDevice.");
+        Self {
+            inner,
+            kernel_cache: Default::default(),
+            cache: Default::default(),
+            graph: Default::default(),
+            cpu: Default::default(),
+            #[cfg(feature = "autograd")]
+            tape: Default::default(),
+        }
     }
 }
 
@@ -131,26 +147,31 @@ impl Device for OpenCL {
     }
 }
 
+#[cfg(feature = "autograd")]
+impl crate::TapeReturn for OpenCL {
+    #[inline]
+    fn tape_mut(&self) -> core::cell::RefMut<crate::Tape<Self>> {
+        self.tape.borrow_mut()
+    }
+}
+
 impl RawConv for OpenCL {
-    fn construct<T, S: Shape>(ptr: &Self::Ptr<T, S>, len: usize, node: crate::Node) -> Self::CT {
+    fn construct<T, S: Shape>(ptr: &Self::Ptr<T, S>, len: usize, flag: AllocFlag) -> Self::CT {
         RawCL {
             ptr: ptr.ptr,
             host_ptr: ptr.host_ptr as *mut u8,
             len,
-            node,
+            flag,
         }
     }
 
-    fn destruct<T, S: Shape>(ct: &Self::CT, flag: AllocFlag) -> (Self::Ptr<T, S>, crate::Node) {
-        (
-            CLPtr {
-                ptr: ct.ptr,
-                host_ptr: ct.host_ptr as *mut T,
-                len: ct.len,
-                flag,
-            },
-            ct.node,
-        )
+    fn destruct<T, S: Shape>(ct: &Self::CT) -> Self::Ptr<T, S> {
+        CLPtr {
+            ptr: ct.ptr,
+            host_ptr: ct.host_ptr as *mut T,
+            len: ct.len,
+            flag: ct.flag,
+        }
     }
 }
 
@@ -233,7 +254,7 @@ impl<'a, T> CloneBuf<'a, T> for OpenCL {
 impl<'a, T> CacheBuf<'a, T> for OpenCL {
     #[inline]
     fn cached(&'a self, len: usize) -> Buffer<'a, T, OpenCL> {
-        Cache::get(self, len, CachedLeaf)
+        self.cache().get(self, Ident::new(len), bump_count)
     }
 }
 
@@ -276,104 +297,8 @@ pub fn cl_cached<T>(device: &OpenCL, len: usize) -> Buffer<T, OpenCL> {
     device.cached(len)
 }
 
-impl<T: CDatatype> ClearBuf<T, OpenCL> for OpenCL {
-    #[inline]
-    fn clear(&self, buf: &mut Buffer<T, OpenCL>) {
-        cl_clear(self, buf).unwrap()
-    }
-}
-
-impl<T, R: RangeBounds<usize>> CopySlice<T, R> for OpenCL {
-    fn copy_slice(&self, buf: &Buffer<T, OpenCL>, range: R) -> Buffer<T, Self> {
-        let start = match range.start_bound() {
-            Bound::Included(start) => *start,
-            Bound::Excluded(start) => start + 1,
-            Bound::Unbounded => 0,
-        };
-
-        let end = match range.end_bound() {
-            Bound::Excluded(end) => *end,
-            Bound::Included(end) => end + 1,
-            Bound::Unbounded => buf.len(),
-        };
-
-        let slice_len = end - start;
-        let copied = Buffer::new(self, slice_len);
-
-        enqueue_copy_buffer::<T>(
-            &self.queue(),
-            buf.ptr.ptr,
-            copied.ptr.ptr,
-            start,
-            0,
-            copied.len(),
-        )
-        .unwrap();
-
-        copied
-    }
-}
-
-impl<T> WriteBuf<T, OpenCL> for OpenCL {
-    fn write(&self, buf: &mut Buffer<T, OpenCL>, data: &[T]) {
-        let event =
-            unsafe { enqueue_write_buffer(&self.queue(), buf.cl_ptr(), data, true).unwrap() };
-
-        wait_for_event(event).unwrap();
-    }
-}
-
-/*#[cfg(not(unified_cl))]
-impl<T: Clone + Default> Read<T, OpenCL> for OpenCL {
-    type Read<'a> = Vec<T> where T: 'a;
-
-    fn read<'a>(&self, buf: &'a Buffer<T, OpenCL>) -> Self::Read<'a> {
-        self.read_to_vec(buf)
-    }
-
-    #[inline]
-    fn read_to_vec(&self, buf: &crate::Buffer<T, OpenCL>) -> Vec<T> {
-        read_cl_buf_to_vec(self, buf).unwrap()
-    }
-}*/
-
-impl<T: Clone + Default> Read<T, OpenCL> for OpenCL {
-    #[cfg(not(unified_cl))]
-    type Read<'a> = Vec<T> where T: 'a;
-    #[cfg(unified_cl)]
-    type Read<'a> = &'a [T] where T: 'a;
-
-    #[cfg(not(unified_cl))]
-    fn read<'a>(&self, buf: &'a Buffer<T, OpenCL>) -> Self::Read<'a> {
-        self.read_to_vec(buf)
-    }
-
-    #[cfg(unified_cl)]
-    #[inline]
-    fn read<'a>(&self, buf: &'a Buffer<T, OpenCL>) -> Self::Read<'a> {
-        buf.as_slice()
-    }
-
-    #[inline]
-    fn read_to_vec(&self, buf: &Buffer<T, OpenCL>) -> Vec<T> {
-        read_cl_buf_to_vec(self, buf).unwrap()
-    }
-}
-
-fn read_cl_buf_to_vec<T: Clone + Default>(
-    device: &OpenCL,
-    buf: &Buffer<T, OpenCL>,
-) -> crate::Result<Vec<T>> {
-    let mut read = vec![T::default(); buf.len()];
-    let event = unsafe { enqueue_read_buffer(&device.queue(), buf.cl_ptr(), &mut read, false)? };
-    wait_for_event(event).unwrap();
-    Ok(read)
-}
-
 #[cfg(test)]
 mod tests {
-    use std::cell::RefCell;
-
     use crate::{opencl::cl_device::CLDevice, Buffer, OpenCL};
 
     #[test]
@@ -382,9 +307,11 @@ mod tests {
         let cl = OpenCL {
             kernel_cache: Default::default(),
             cache: Default::default(),
-            inner: RefCell::new(device),
+            inner: device,
             graph: Default::default(),
             cpu: Default::default(),
+            #[cfg(feature = "autograd")]
+            tape: Default::default(),
         };
 
         let buf = Buffer::from((&cl, &[1, 2, 3, 4, 5, 6, 7]));
@@ -395,9 +322,11 @@ mod tests {
         let cl1 = OpenCL {
             kernel_cache: Default::default(),
             cache: Default::default(),
-            inner: RefCell::new(device),
+            inner: device,
             graph: Default::default(),
             cpu: Default::default(),
+            #[cfg(feature = "autograd")]
+            tape: Default::default(),
         };
 
         let buf = Buffer::from((&cl1, &[2, 2, 4, 4, 2, 1, 3]));

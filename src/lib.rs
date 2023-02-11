@@ -62,6 +62,9 @@ pub use devices::stack::Stack;
 #[cfg(feature = "network")]
 pub use devices::network::Network;
 
+#[cfg(feature = "autograd")]
+pub use autograd::*;
+
 pub mod devices;
 
 mod buffer;
@@ -72,13 +75,17 @@ pub mod flag;
 mod graph;
 mod op_traits;
 mod shape;
+mod two_way_ops;
 
 #[cfg(feature = "static-api")]
 pub mod static_api;
 
+#[cfg(feature = "autograd")]
+mod autograd;
 pub mod number;
 pub use op_traits::*;
 pub use shape::*;
+pub use two_way_ops::*;
 
 pub trait PtrType {
     fn len(&self) -> usize;
@@ -97,15 +104,42 @@ pub trait CommonPtrs<T> {
 pub trait Device: Sized {
     type Ptr<U, S: Shape>: PtrType; //const B: usize, const C: usize
     type Cache: CacheAble<Self>;
+    //type Tape;
 
     fn new() -> crate::Result<Self>;
 
     #[inline]
-    fn retrieve<T, S: Shape>(&self, len: usize, add_node: impl AddGraph) -> Buffer<T, Self, S>
+    fn retrieve<T, S: Shape>(
+        &self,
+        len: usize, /*add_node: impl AddGraph*/
+    ) -> Buffer<T, Self, S>
     where
         for<'a> Self: Alloc<'a, T, S>,
     {
-        Self::Cache::retrieve(self, len, add_node)
+        Self::Cache::retrieve(self, len)
+    }
+
+    #[inline]
+    fn get_like<T, S: Shape>(&self, ident: Ident) -> Buffer<T, Self, S>
+    where
+        for<'a> Self: Alloc<'a, T, S>,
+    {
+        Self::Cache::get_like(self, ident)
+    }
+
+    #[inline]
+    fn get_existing_buf<T, S: Shape>(&self, ident: Ident) -> Buffer<T, Self, S> {
+        Self::Cache::get_existing_buf(self, ident)
+    }
+
+    #[inline]
+    fn remove(&self, ident: Ident) {
+        Self::Cache::remove(self, ident);
+    }
+
+    #[inline]
+    fn add_to_cache<T, S: Shape>(&self, ptr: &Self::Ptr<T, S>) -> Ident {
+        Self::Cache::add_to_cache(self, ptr)
     }
 }
 
@@ -121,15 +155,15 @@ pub trait MainMemory: Device {
 /// # Example
 #[cfg_attr(feature = "cpu", doc = "```")]
 #[cfg_attr(not(feature = "cpu"), doc = "```ignore")]
-/// use custos::{CPU, Alloc, Buffer, Read, flag::AllocFlag, GraphReturn, cpu::CPUPtr};
+/// use custos::{CPU, Alloc, Buffer, Read, flag::AllocFlag, GraphReturn, cpu::CPUPtr, Ident};
 ///
 /// let device = CPU::new();
 /// let ptr = Alloc::<f32>::alloc(&device, 12, AllocFlag::None);
 ///
 /// let buf: Buffer = Buffer {
+///     ident: Ident::new_bumped(ptr.len),
 ///     ptr,
 ///     device: Some(&device),
-///     node: device.graph().add_leaf(12),
 /// };
 /// assert_eq!(vec![0.; 12], device.read(&buf));
 /// ```
@@ -138,15 +172,15 @@ pub trait Alloc<'a, T, S: Shape = ()>: Device {
     /// # Example
     #[cfg_attr(feature = "cpu", doc = "```")]
     #[cfg_attr(not(feature = "cpu"), doc = "```ignore")]
-    /// use custos::{CPU, Alloc, Buffer, Read, flag::AllocFlag, GraphReturn, cpu::CPUPtr};
+    /// use custos::{CPU, Alloc, Buffer, Read, flag::AllocFlag, GraphReturn, cpu::CPUPtr, Ident};
     ///
     /// let device = CPU::new();
     /// let ptr = Alloc::<f32>::alloc(&device, 12, AllocFlag::None);
     ///
     /// let buf: Buffer = Buffer {
+    ///     ident: Ident::new_bumped(ptr.len),
     ///     ptr,
     ///     device: Some(&device),
-    ///     node: device.graph().add_leaf(12),
     /// };
     /// assert_eq!(vec![0.; 12], device.read(&buf));
     /// ```
@@ -156,15 +190,15 @@ pub trait Alloc<'a, T, S: Shape = ()>: Device {
     /// # Example
     #[cfg_attr(feature = "cpu", doc = "```")]
     #[cfg_attr(not(feature = "cpu"), doc = "```ignore")]
-    /// use custos::{CPU, Alloc, Buffer, Read, GraphReturn, cpu::CPUPtr};
+    /// use custos::{CPU, Alloc, Buffer, Read, GraphReturn, cpu::CPUPtr, Ident};
     ///
     /// let device = CPU::new();
     /// let ptr = Alloc::<i32>::with_slice(&device, &[1, 5, 4, 3, 6, 9, 0, 4]);
     ///
     /// let buf: Buffer<i32, CPU> = Buffer {
+    ///     ident: Ident::new_bumped(ptr.len),
     ///     ptr,
     ///     device: Some(&device),
-    ///     node: device.graph().add_leaf(8),
     /// };
     /// assert_eq!(vec![1, 5, 4, 3, 6, 9, 0, 4], device.read(&buf));
     /// ```
@@ -192,6 +226,16 @@ pub trait Alloc<'a, T, S: Shape = ()>: Device {
     }
 }
 
+#[cfg(feature = "autograd")]
+pub trait MayTapeReturn: crate::TapeReturn {}
+#[cfg(feature = "autograd")]
+impl<D: crate::TapeReturn> MayTapeReturn for D {}
+
+#[cfg(not(feature = "autograd"))]
+pub trait MayTapeReturn {}
+#[cfg(not(feature = "autograd"))]
+impl<D> MayTapeReturn for D {}
+
 #[cfg(not(unified_cl))]
 pub const UNIFIED_CL_MEM: bool = false;
 
@@ -204,7 +248,7 @@ pub use custos_macro::impl_stack;
 pub mod prelude {
     pub use crate::{
         cached, number::*, range, shape::*, Alloc, Buffer, CDatatype, CacheBuf, ClearBuf, Device,
-        GraphReturn, Read, ShallowCopy, WithShape, WriteBuf, CopySlice, MainMemory
+        GraphReturn, Ident, Read, ShallowCopy, WithShape, WriteBuf, CopySlice, MainMemory
     };
 
     #[cfg(feature = "cpu")]

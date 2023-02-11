@@ -7,7 +7,7 @@ use crate::{AddGraph, AllocFlag, DeviceError, GraphReturn};
 use std::fmt::Debug;
 
 use super::RawCL;
-use crate::{Buffer, Ident, Node, OpenCL, CPU};
+use crate::{Buffer, Ident, OpenCL, CPU};
 use min_cl::api::{create_buffer, MemFlags};
 
 /// Returns an OpenCL pointer that is bound to the host pointer stored in the specified buffer.
@@ -17,7 +17,6 @@ use min_cl::api::{create_buffer, MemFlags};
 pub unsafe fn to_unified<T>(
     device: &OpenCL,
     no_drop: Buffer<T, CPU>,
-    graph_node: Node,
 ) -> crate::Result<*mut c_void> {
     // use the host pointer to create an OpenCL buffer
     let cl_ptr = create_buffer(
@@ -33,7 +32,7 @@ pub unsafe fn to_unified<T>(
             ptr: cl_ptr,
             host_ptr: no_drop.host_ptr() as *mut u8,
             len: no_drop.len(),
-            node: graph_node,
+            flag: AllocFlag::Cache,
         }),
     );
 
@@ -90,14 +89,15 @@ pub unsafe fn construct_buffer<'a, T: Debug>(
                 flag: no_drop.ptr.flag,
             },
             device: Some(device),
-            node: rawcl.node,
+            ident: Ident::new(no_drop.len()),
         });
     }
 
+    // TODO: remove
     let graph_node = device.graph().add(no_drop.len(), add_node);
 
     let (host_ptr, len) = (no_drop.host_ptr_mut(), no_drop.len());
-    let ptr = to_unified(device, no_drop, graph_node)?;
+    let ptr = to_unified(device, no_drop)?;
 
     bump_count();
 
@@ -109,14 +109,17 @@ pub unsafe fn construct_buffer<'a, T: Debug>(
             flag: AllocFlag::Cache,
         },
         device: Some(device),
-        node: graph_node,
+        ident: Ident {
+            idx: graph_node.ident_idx as usize,
+            len,
+        },
     })
 }
 
 #[cfg(unified_cl)]
 #[cfg(test)]
 mod tests {
-    use crate::{opencl::CLPtr, AllocFlag, Buffer, CacheBuf, Node, OpenCL, CPU};
+    use crate::{opencl::CLPtr, AllocFlag, Buffer, CacheBuf, Ident, OpenCL, CPU};
 
     use super::{construct_buffer, to_unified};
 
@@ -129,7 +132,7 @@ mod tests {
         let device = OpenCL::new(0)?;
 
         let (host_ptr, len) = (no_drop.host_ptr_mut(), no_drop.len());
-        let cl_host_ptr = unsafe { to_unified(&device, no_drop, Node::default())? };
+        let cl_host_ptr = unsafe { to_unified(&device, no_drop)? };
 
         let buf: Buffer<f32, OpenCL> = Buffer {
             ptr: CLPtr {
@@ -139,7 +142,7 @@ mod tests {
                 flag: AllocFlag::Cache,
             },
             device: Some(&device),
-            node: Node::default(),
+            ident: Ident::new_bumped(len),
         };
 
         assert_eq!(buf.read(), vec![1., 2.3, 0.76]);

@@ -79,7 +79,9 @@ impl Iterator for CountIntoIter {
 
     fn next(&mut self) -> Option<Self::Item> {
         #[cfg(not(feature = "no-std"))]
-        crate::set_count(self.idx);
+        unsafe {
+            crate::set_count(self.idx)
+        };
         if self.epoch >= self.end {
             return None;
         }

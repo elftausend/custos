@@ -1,5 +1,4 @@
-
-use crate::{Alloc, Buffer, GraphReturn};
+use crate::Buffer;
 
 use super::static_cpu;
 
@@ -10,13 +9,7 @@ where
     fn from_iter<T: IntoIterator<Item = A>>(iter: T) -> Self {
         let device = static_cpu();
         let from_iter = Vec::from_iter(iter);
-
-        Buffer {
-            node: device.graph().add_leaf(from_iter.len()),
-            //ptr: device.alloc_with_vec(from_iter),
-            ptr: Alloc::<A>::alloc_with_vec(device, from_iter),
-            device: Some(device),
-        }
+        Buffer::from((device, from_iter))
     }
 }
 
@@ -45,12 +38,7 @@ where
     fn from_iter<T: IntoIterator<Item = A>>(iter: T) -> Self {
         let device = super::static_opencl();
         let from_iter = Vec::from_iter(iter);
-
-        Buffer {
-            node: device.graph().add_leaf(from_iter.len()),
-            ptr: Alloc::<A>::alloc_with_vec(device, from_iter),
-            device: Some(device),
-        }
+        Buffer::from((device, from_iter))
     }
 }
 

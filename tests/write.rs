@@ -7,9 +7,24 @@ use custos::Read;
 #[test]
 fn test_write_cpu() {
     let device = CPU::new();
-    let mut buf = Buffer::new(&device, 5);
+    let mut buf: Buffer = Buffer::new(&device, 5);
     device.write(&mut buf, &[1., 2., 3., 4., 5.]);
     assert_eq!(buf.as_slice(), &[1., 2., 3., 4., 5.])
+}
+
+#[test]
+fn test_write_buf_cpu() {
+    use custos::{Buffer, WriteBuf, CPU};
+
+    let device = CPU::new();
+
+    let mut dst: Buffer<i32, CPU, ()> = Buffer::new(&device, 4);
+
+    let src: Buffer<i32, CPU, ()> = Buffer::from((&device, [1, 2, -5, 4]));
+
+    device.write_buf(&mut dst, &src);
+
+    assert_eq!(dst.read(), [1, 2, -5, 4])
 }
 
 #[cfg(feature = "opencl")]

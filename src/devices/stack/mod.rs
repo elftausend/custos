@@ -40,7 +40,7 @@ mod tests {
         fn add(&self, lhs: &Buffer<T, D>, rhs: &Buffer<T, D>) -> Buffer<T, Self> {
             let len = core::cmp::min(lhs.len(), rhs.len());
 
-            let mut out = self.retrieve(len, (lhs, rhs));
+            let mut out = self.retrieve(len);
             for i in 0..len {
                 out[i] = lhs[i].clone() + rhs[i].clone();
             }
@@ -55,7 +55,7 @@ mod tests {
         T: Add<Output = T> + Clone,
     {
         fn add(&self, lhs: &Buffer<T, D, S>, rhs: &Buffer<T, D, S>) -> Buffer<T, Self, S> {
-            let mut out = self.retrieve(S::LEN, (lhs, rhs));
+            let mut out = self.retrieve(S::LEN);
 
             for i in 0..S::LEN {
                 out[i] = lhs[i].clone() + rhs[i].clone();

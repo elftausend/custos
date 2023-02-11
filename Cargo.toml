@@ -12,6 +12,7 @@ rust-version = "1.65"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+
 #cuwanto-server = {path="../cuwanto/cuwanto-server", optional=true}
 min-cl = { version="0.1.2", optional=true }
 
@@ -26,6 +27,7 @@ custos-macro = {version = "0.1.0", optional=true}
 # no-std float math
 libm = { version="0.2.6", optional = true }
 
+
 [build-dependencies]
 min-cl = { version="0.1.2", optional=true }
 
@@ -33,7 +35,7 @@ min-cl = { version="0.1.2", optional=true }
 [features]
 #default = ["opencl"]
 #default = ["stack", "cpu", "opencl"]
-default = ["stack", "cpu", "opt-cache", "blas", "static-api", "opencl"]
+default = ["stack", "cpu", "blas", "static-api", "opencl", "macro"]
 cpu = []
 opencl = ["dep:min-cl", "cpu"]
 #network = ["cuwanto-server"]
@@ -45,6 +47,7 @@ static-api = []
 stack = []
 no-std = ["stack", "dep:libm"]
 wgpu = ["dep:wgpu", "dep:pollster", "dep:futures-intrusive"]
+autograd = []
 macro = ["dep:custos-macro"]
 
 [dev-dependencies]

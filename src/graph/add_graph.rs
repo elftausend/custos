@@ -76,27 +76,27 @@ impl AddGraph for CachedLeaf {
 impl<'a, T, D: Device, S: Shape> AddGraph for Buffer<'a, T, D, S> {
     #[inline]
     fn add(&self, graph: &mut Graph, len: usize) -> Node {
-        graph.add_node(len, self.node.idx, self.node.idx)
+        graph.add_node(len, self.ident.idx as isize, self.ident.idx as isize)
     }
 }
 
 impl<'a, T, D: Device, S: Shape> AddGraph for &Buffer<'a, T, D, S> {
     #[inline]
     fn add(&self, graph: &mut Graph, len: usize) -> Node {
-        graph.add_node(len, self.node.idx, self.node.idx)
+        graph.add_node(len, self.ident.idx as isize, self.ident.idx as isize)
     }
 }
 
 impl<'a, T, D: Device, S: Shape> AddGraph for (&Buffer<'a, T, D, S>, &Buffer<'a, T, D, S>) {
     #[inline]
     fn add(&self, graph: &mut Graph, len: usize) -> Node {
-        graph.add_node(len, self.0.node.idx, self.1.node.idx)
+        graph.add_node(len, self.0.ident.idx as isize, self.1.ident.idx as isize)
     }
 }
 
 impl<'a, T, D: Device, S: Shape> AddGraph for [&Buffer<'a, T, D, S>; 2] {
     #[inline]
     fn add(&self, graph: &mut Graph, len: usize) -> Node {
-        graph.add_node(len, self[0].node.idx, self[1].node.idx)
+        graph.add_node(len, self[0].ident.idx as isize, self[1].ident.idx as isize)
     }
 }
