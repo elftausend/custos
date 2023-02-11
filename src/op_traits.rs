@@ -1,8 +1,6 @@
-
 use core::ops::RangeBounds;
 
 use crate::{shape::Shape, Alloc, Buffer, Device, Eval, MayTapeReturn, Resolve};
-
 
 /// Trait for implementing the clear() operation for the compute devices.
 pub trait ClearBuf<T, S: Shape = (), D: Device = Self>: Device {
@@ -133,8 +131,8 @@ pub trait CloneBuf<'a, T, S: Shape = ()>: Sized + Device {
 pub trait CacheBuf<'a, T, S: Shape = ()>: Sized + Device {
     /// Adds a buffer to the cache. Following calls will return this buffer, if the corresponding internal count matches with the id used in the cache.
     /// # Example
-    #[cfg_attr(any(feature = "realloc", not(feature="cpu")), doc = "```ignore")]
-    #[cfg_attr(any(not(feature = "realloc"), feature="cpu"), doc = "```")]
+    #[cfg_attr(any(feature = "realloc", not(feature = "cpu")), doc = "```ignore")]
+    #[cfg_attr(any(not(feature = "realloc"), feature = "cpu"), doc = "```")]
     /// use custos::{CPU, Read, set_count, get_count, CacheBuf};
     ///
     /// let device = CPU::new();

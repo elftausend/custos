@@ -12,6 +12,7 @@ fn test_write_cpu() {
     assert_eq!(buf.as_slice(), &[1., 2., 3., 4., 5.])
 }
 
+#[cfg(feature = "cpu")]
 #[test]
 fn test_write_buf_cpu() {
     use custos::{Buffer, WriteBuf, CPU};
@@ -25,6 +26,42 @@ fn test_write_buf_cpu() {
     device.write_buf(&mut dst, &src);
 
     assert_eq!(dst.read(), [1, 2, -5, 4])
+}
+
+#[cfg(feature = "opencl")]
+#[test]
+fn test_write_buf_cl() -> custos::Result<()> {
+    use custos::{Buffer, WriteBuf, OpenCL};
+
+    let device = OpenCL::new(0)?;
+
+    let mut dst: Buffer<i32, _> = Buffer::new(&device, 4);
+
+    let src: Buffer<i32, _> = Buffer::from((&device, [1, 2, -5, 4]));
+
+    device.write_buf(&mut dst, &src);
+
+    assert_eq!(dst.read(), [1, 2, -5, 4]);
+
+    Ok(())
+}
+
+#[cfg(feature = "cuda")]
+#[test]
+fn test_write_buf_cu() -> custos::Result<()> {
+    use custos::{Buffer, WriteBuf, CUDA};
+
+    let device = CUDA::new(0)?;
+
+    let mut dst: Buffer<i32, _> = Buffer::new(&device, 4);
+
+    let src: Buffer<i32, _> = Buffer::from((&device, [1, 2, -5, 4]));
+
+    device.write_buf(&mut dst, &src);
+
+    assert_eq!(dst.read(), [1, 2, -5, 4]);
+
+    Ok(())
 }
 
 #[cfg(feature = "opencl")]

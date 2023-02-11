@@ -83,9 +83,9 @@ mod tests {
     #[test]
     fn test_static_cpu_cache() {
         // for: cargo test -- --test-threads=1
-        unsafe {set_count(0)};
+        unsafe { set_count(0) };
         use super::static_cpu;
-        use crate::{set_count, Ident, Device};
+        use crate::{set_count, Device, Ident};
 
         let cpu = static_cpu();
 

@@ -1,4 +1,4 @@
-use crate::{shape::Shape, Alloc, Buffer, Dim1, Dim2, prelude::Number, Ident};
+use crate::{prelude::Number, shape::Shape, Alloc, Buffer, Dim1, Dim2, Ident};
 
 pub trait WithShape<D, C> {
     fn with(device: D, array: C) -> Self;
@@ -32,34 +32,35 @@ where
     }
 }
 
-impl<'a, T, D, const B: usize, const A: usize> WithShape<&'a D, [[T; A]; B]> for Buffer<'a, T, D, Dim2<B, A>>
+impl<'a, T, D, const B: usize, const A: usize> WithShape<&'a D, [[T; A]; B]>
+    for Buffer<'a, T, D, Dim2<B, A>>
 where
     T: Number,
     D: Alloc<'a, T, Dim2<B, A>>,
 {
     fn with(device: &'a D, array: [[T; A]; B]) -> Self {
         Buffer {
-            ident: Ident::new_bumped(B*A),
+            ident: Ident::new_bumped(B * A),
             ptr: device.with_array(array),
             device: Some(device),
         }
     }
 }
 
-impl<'a, T, D, const B: usize, const A: usize> WithShape<&'a D, &[[T; A]; B]> for Buffer<'a, T, D, Dim2<B, A>>
+impl<'a, T, D, const B: usize, const A: usize> WithShape<&'a D, &[[T; A]; B]>
+    for Buffer<'a, T, D, Dim2<B, A>>
 where
     T: Number,
     D: Alloc<'a, T, Dim2<B, A>>,
 {
     fn with(device: &'a D, array: &[[T; A]; B]) -> Self {
         Buffer {
-            ident: Ident::new_bumped(B*A),
+            ident: Ident::new_bumped(B * A),
             ptr: device.with_array(*array),
             device: Some(device),
         }
     }
 }
-
 
 impl<'a, T, D, S: Shape> WithShape<&'a D, ()> for Buffer<'a, T, D, S>
 where

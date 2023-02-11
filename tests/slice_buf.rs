@@ -1,6 +1,6 @@
 use custos::prelude::*;
 
-#[cfg(feature="cpu")]
+#[cfg(feature = "cpu")]
 #[test]
 fn test_buf_slice() {
     let device = CPU::new();

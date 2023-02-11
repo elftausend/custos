@@ -9,9 +9,8 @@ pub trait AddBuf<T, S: Shape = (), D: Device = Self>: Sized + Device {
     // ... you can add more operations if you want to do that.
 }
 
-
 // Host CPU implementation
-#[cfg(feature="cpu")]
+#[cfg(feature = "cpu")]
 impl<T, S: Shape, D: MainMemory> AddBuf<T, S, D> for CPU
 where
     T: Copy + std::ops::Add<Output = T>, // you can use the custos::Number trait.
@@ -105,7 +104,7 @@ impl<T: CDatatype> AddBuf<T> for CUDA {
         );
 
         let len = std::cmp::min(lhs.len(), rhs.len());
-        let out = self.retrieve::<T, ()>(len, (lhs, rhs));
+        let out = self.retrieve::<T, ()>(len);
         //or: let out = Cache::get::<T, CUDA, 0>(self, len, (lhs, rhs));
 
         // The kernel is compiled once with nvrtc and is cached too.
@@ -116,7 +115,7 @@ impl<T: CDatatype> AddBuf<T> for CUDA {
 }
 
 /// WGPU implementation
-#[cfg(feature="wgpu")]
+#[cfg(feature = "wgpu")]
 impl<T> AddBuf<T> for WGPU {
     fn add(&self, lhs: &Buffer<T, Self>, rhs: &Buffer<T, Self>) -> Buffer<T, Self> {
         let src = format!(
@@ -141,7 +140,7 @@ impl<T> AddBuf<T> for WGPU {
             ",
             datatype = std::any::type_name::<T>()
         );
-    
+
         let mut out = self.retrieve(lhs.len(), (lhs, rhs));
         launch_shader(self, &src, [lhs.len() as u32, 1, 1], &[lhs, rhs, &mut out]);
         out
@@ -187,8 +186,7 @@ impl<'a, T, D: Device> OwnStruct<'a, T, D> {
 }
 
 fn main() -> custos::Result<()> {
-
-    #[cfg(feature="cpu")]
+    #[cfg(feature = "cpu")]
     {
         let cpu = CPU::new();
 
@@ -201,7 +199,6 @@ fn main() -> custos::Result<()> {
         // without specifying a device
         let out = lhs.add(&rhs);
         assert_eq!(out.read(), vec![0, -9, -1, 6, 4, 5]);
-
     }
 
     #[cfg(feature = "opencl")] // deactivate this block if the feature is disabled

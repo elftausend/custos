@@ -1,8 +1,8 @@
-use core::ops::{AddAssign, RangeBounds, Index};
+use core::ops::{AddAssign, Index, RangeBounds};
 
 use crate::{
-    ApplyFunction, Buffer, ClearBuf, Device, Eval, MainMemory, Read, Resolve, Shape, ToVal,
-    UnaryGrad, WriteBuf, CPU, CopySlice,
+    ApplyFunction, Buffer, ClearBuf, CopySlice, Device, Eval, MainMemory, Read, Resolve, Shape,
+    ToVal, UnaryGrad, WriteBuf, CPU,
 };
 
 impl<T, D: MainMemory, S: Shape> Read<T, D, S> for CPU {
@@ -53,7 +53,6 @@ where
         copied
     }
 }
-
 
 use custos_macro::impl_stack;
 

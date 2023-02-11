@@ -3,14 +3,14 @@ use super::api::{
     nvrtc::{create_program, nvrtcDestroyProgram},
     FnHandle,
 };
-use crate::{Error, Node, CUDA};
+use crate::{flag::AllocFlag, Error, CUDA};
 use std::{collections::HashMap, ffi::CString};
 
 #[derive(Debug)]
 pub struct RawCUBuf {
     pub ptr: u64,
     pub len: usize,
-    pub node: Node,
+    pub flag: AllocFlag,
 }
 
 impl Drop for RawCUBuf {

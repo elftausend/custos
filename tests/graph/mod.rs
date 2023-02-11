@@ -1,4 +1,4 @@
-use custos::{number::Number, Buffer, CDatatype, Cache, Device, CPU, MainMemory};
+use custos::{number::Number, Buffer, CDatatype, Cache, Device, MainMemory, CPU};
 
 #[cfg(feature = "opencl")]
 use custos::{opencl::enqueue_kernel, OpenCL};

@@ -20,7 +20,7 @@ impl StaticDevice for crate::CPU {
     }
 }
 
-#[cfg(feature="stack")]
+#[cfg(feature = "stack")]
 impl StaticDevice for crate::Stack {
     #[inline]
     fn as_static() -> &'static Self {

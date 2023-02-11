@@ -19,8 +19,7 @@ impl Device for CPU {
 
 use crate::{
     flag::AllocFlag, shape::Shape, Alloc, CacheBuf, ClearBuf, CloneBuf, CommonPtrs, Device,
-    DevicelessAble, MainMemory, PtrType, Read, ShallowCopy, WriteBuf, IsShapeIndep,
-    Ident
+    DevicelessAble, Ident, IsShapeIndep, MainMemory, PtrType, Read, ShallowCopy, WriteBuf,
 };
 
 pub use self::num::Num;
@@ -649,8 +648,8 @@ impl<'a, T, D: MainMemory, S: Shape> core::iter::IntoIterator for &'a mut Buffer
 ///
 ///
 /// # Example
-#[cfg_attr(any(feature = "realloc", not(feature="cpu")), doc = "```ignore")]
-#[cfg_attr(any(not(feature = "realloc"), feature="cpu"), doc = "```")]
+#[cfg_attr(any(feature = "realloc", not(feature = "cpu")), doc = "```ignore")]
+#[cfg_attr(any(not(feature = "realloc"), feature = "cpu"), doc = "```")]
 /// use custos::{CPU, cached, Read, set_count, get_count};
 ///
 /// let device = CPU::new();

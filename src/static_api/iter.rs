@@ -21,12 +21,7 @@ where
     fn from_iter<T: IntoIterator<Item = A>>(iter: T) -> Self {
         let device = super::static_cuda();
         let from_iter = Vec::from_iter(iter);
-
-        Buffer {
-            node: device.graph().add_leaf(from_iter.len()),
-            ptr: device.alloc_with_vec(from_iter),
-            device: Some(device),
-        }
+        Buffer::from((device, from_iter))
     }
 }
 

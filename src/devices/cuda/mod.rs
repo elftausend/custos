@@ -2,6 +2,7 @@ pub mod api;
 mod cuda_device;
 mod kernel_cache;
 mod kernel_launch;
+mod ops;
 
 use std::{marker::PhantomData, ptr::null_mut};
 

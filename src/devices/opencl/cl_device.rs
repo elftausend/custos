@@ -9,10 +9,8 @@ use crate::flag::AllocFlag;
 use crate::Shape;
 use crate::{
     cache::{Cache, CacheReturn, RawConv},
-    Alloc, Buffer, CacheBuf, CloneBuf, Device, Error, Graph,
-    GraphReturn, CPU,
+    Alloc, Buffer, CacheBuf, CloneBuf, Device, Error, Graph, GraphReturn, CPU,
 };
-
 
 use crate::{bump_count, Ident};
 

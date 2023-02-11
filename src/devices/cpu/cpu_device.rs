@@ -4,9 +4,8 @@ use crate::{
     devices::cache::{Cache, CacheReturn},
     flag::AllocFlag,
     shape::Shape,
-    Alloc, Buffer, CacheBuf, CloneBuf, Device, DevicelessAble, Graph,
-    GraphReturn, MainMemory,
-     Ident,
+    Alloc, Buffer, CacheBuf, CloneBuf, Device, DevicelessAble, Graph, GraphReturn, Ident,
+    MainMemory,
 };
 
 use core::{
@@ -175,7 +174,6 @@ impl<'a, T> CacheBuf<'a, T> for CPU {
         self.cache().get(self, Ident::new(len), bump_count)
     }
 }
-
 
 #[inline]
 pub fn cpu_cached<T: Clone>(device: &CPU, len: usize) -> Buffer<T, CPU> {
