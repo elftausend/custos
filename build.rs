@@ -1,7 +1,6 @@
 fn main() {
     // TODO: execute other opencl test to know whether opencl can actually be used
 
-
     if std::env::var("DOCS_RS").is_ok() {
         return;
     }

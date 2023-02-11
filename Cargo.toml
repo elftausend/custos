@@ -1,6 +1,6 @@
 [package]
 name = "custos"
-version = "0.6.2"
+version = "0.6.3"
 edition = "2021"
 license = "MIT"
 description = "A minimal OpenCL, WGPU, CUDA and host CPU array manipulation engine."
@@ -31,9 +31,9 @@ min-cl = { version="0.1.2", optional=true }
 
 
 [features]
-default = ["cpu", "cuda", "opencl", "static-api", "blas", "macro"]
+#default = ["opencl"]
 #default = ["stack", "cpu", "opencl"]
-#default = ["stack", "cpu", "opt-cache", "blas", "static-api", "opencl"]
+default = ["stack", "cpu", "opt-cache", "blas", "static-api", "opencl"]
 cpu = []
 opencl = ["dep:min-cl", "cpu"]
 #network = ["cuwanto-server"]
