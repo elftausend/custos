@@ -4,44 +4,8 @@ use std::{ffi::c_void, rc::Rc};
 use crate::{AddGraph, AllocFlag, DeviceError, GraphReturn};
 
 use super::RawCL;
-use crate::{Buffer, Ident, OpenCL, CPU, Shape, devices::exec_on_cpu::cpu_exec_unary};
+use crate::{Buffer, Ident, OpenCL, CPU, Shape};
 use min_cl::api::{create_buffer, MemFlags};
-
-pub fn cpu_exec_unary_may_unified<'a, T, F>(device: &'a OpenCL, x: &Buffer<T, OpenCL>, f: F) -> crate::Result<Buffer<'a, T, OpenCL>>
-where
-    T: Clone + Default,
-    F: for<'b> Fn(&'b CPU, &Buffer<'_, T, CPU>) -> Buffer<'b, T, CPU>,
-{
-    // TODO: use compile time unified_cl flag -> get from custos?
-    #[cfg(not(feature = "realloc"))]
-    if device.unified_mem() {
-        // Using a CPU stored in a OpenCL in order to get a (correct) cache entry.
-        // Due to the (new) caching architecture, using a new CPU isn't possible,
-        // as the cache would be newly created every iteration.
-
-        // host ptr buffer
-        let no_drop = f(
-            &device.cpu,
-            &unsafe {Buffer::from_raw_host(x.ptr.host_ptr, x.len())},
-        );
-
-        // convert host ptr / CPU buffer into a host ptr + OpenCL ptr buffer
-        return unsafe {
-            construct_buffer(device, no_drop, /*buf.node.idx*/ ())
-        };
-    }
-
-    #[cfg(feature = "realloc")]
-    if device.unified_mem() {
-        let cpu = CPU::new();
-        return Ok(Matrix::from((
-            device,
-            f(&cpu, &Matrix::from((matrix.ptr.host_ptr, matrix.dims))),
-        )));
-    }
-
-    cpu_exec_unary(device, x, f)
-}
 
 /// Returns an OpenCL pointer that is bound to the host pointer stored in the specified buffer.
 /// This function is used in the `constuct_buffer()` function.
@@ -152,14 +116,14 @@ pub unsafe fn construct_buffer<'a, T, S: Shape>(
 #[cfg(unified_cl)]
 #[cfg(test)]
 mod tests {
-    use crate::{opencl::CLPtr, AllocFlag, Buffer, CacheBuf, Ident, OpenCL, CPU};
+    use crate::{opencl::CLPtr, AllocFlag, Buffer, Ident, OpenCL, CPU, Device};
 
     use super::{construct_buffer, to_unified};
 
     #[test]
     fn test_to_unified() -> crate::Result<()> {
         let cpu = CPU::new();
-        let mut no_drop: Buffer = cpu.cached(3);
+        let mut no_drop: Buffer = cpu.retrieve(3);
         no_drop.write(&[1., 2.3, 0.76]);
 
         let device = OpenCL::new(0)?;
@@ -186,7 +150,7 @@ mod tests {
     #[test]
     fn test_construct_buffer() -> crate::Result<()> {
         let cpu = CPU::new();
-        let mut no_drop: Buffer = cpu.cached(3);
+        let mut no_drop: Buffer = cpu.retrieve(3);
         no_drop.write(&[1., 2.3, 0.76]);
 
         let device = OpenCL::new(0)?;

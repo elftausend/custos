@@ -127,31 +127,6 @@ pub trait CloneBuf<'a, T, S: Shape = ()>: Sized + Device {
     fn clone_buf(&'a self, buf: &Buffer<'a, T, Self, S>) -> Buffer<'a, T, Self, S>;
 }
 
-/// This trait is used to retrieve a cached buffer from a specific device type.
-pub trait CacheBuf<'a, T, S: Shape = ()>: Sized + Device {
-    /// Adds a buffer to the cache. Following calls will return this buffer, if the corresponding internal count matches with the id used in the cache.
-    /// # Example
-    #[cfg_attr(any(feature = "realloc", not(feature = "cpu")), doc = "```ignore")]
-    #[cfg_attr(any(not(feature = "realloc"), feature = "cpu"), doc = "```")]
-    /// use custos::{CPU, Read, set_count, get_count, CacheBuf};
-    ///
-    /// let device = CPU::new();
-    /// assert_eq!(0, get_count());
-    ///
-    /// let mut buf = CacheBuf::<f32>::cached(&device, 10);
-    /// assert_eq!(1, get_count());
-    ///
-    /// for value in buf.as_mut_slice() {
-    ///     *value = 1.5;
-    /// }
-    ///    
-    /// unsafe { set_count(0) };
-    /// let buf = CacheBuf::<f32>::cached(&device, 10);
-    /// assert_eq!(device.read(&buf), vec![1.5; 10]);
-    /// ```
-    fn cached(&'a self, len: usize) -> Buffer<'a, T, Self, S>;
-}
-
 pub trait ApplyFunction<T, S: Shape = (), D: Device = Self>: Device {
     fn apply_fn<F>(&self, buf: &Buffer<T, D, S>, f: impl Fn(Resolve<T>) -> F) -> Buffer<T, Self, S>
     where

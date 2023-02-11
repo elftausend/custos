@@ -4,7 +4,7 @@ use std::collections::HashMap;
 use std::rc::Rc;
 
 use crate::{
-    bump_count, flag::AllocFlag, shape::Shape, Alloc, Buffer, CacheAble, Device, GraphReturn,
+    flag::AllocFlag, shape::Shape, Alloc, Buffer, CacheAble, Device, GraphReturn,
     Ident, PtrType,
 };
 
@@ -73,7 +73,7 @@ where
     where
         for<'b> D: Alloc<'b, T, S>,
     {
-        device.cache().get(device, Ident::new(len), bump_count)
+        device.cache().get(device, Ident::new(len), crate::bump_count)
         //Cache::get(device, Ident::new(len), bump_count)
     }
 
@@ -197,7 +197,6 @@ impl<D: RawConv> Cache<D> {
     /// let first_entry: Buffer = device.cache().get(&device, Ident::new(10), bump_count);
     /// assert_eq!(cache_entry.ptrs(), first_entry.ptrs());
     /// ```
-    #[cfg(not(feature = "realloc"))]
     pub fn get<'a, T, S: Shape>(
         &mut self,
         device: &'a D,

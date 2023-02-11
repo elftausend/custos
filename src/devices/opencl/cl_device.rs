@@ -9,10 +9,8 @@ use crate::flag::AllocFlag;
 use crate::Shape;
 use crate::{
     cache::{Cache, CacheReturn, RawConv},
-    Alloc, Buffer, CacheBuf, CloneBuf, Device, Error, Graph, GraphReturn, CPU,
+    Alloc, Buffer, CloneBuf, Device, Error, Graph, GraphReturn, CPU,
 };
-
-use crate::{bump_count, Ident};
 
 use std::{cell::RefCell, fmt::Debug};
 
@@ -249,13 +247,6 @@ impl<'a, T> CloneBuf<'a, T> for OpenCL {
     }
 }
 
-impl<'a, T> CacheBuf<'a, T> for OpenCL {
-    #[inline]
-    fn cached(&'a self, len: usize) -> Buffer<'a, T, OpenCL> {
-        self.cache().get(self, Ident::new(len), bump_count)
-    }
-}
-
 impl CacheReturn for OpenCL {
     type CT = RawCL;
     #[inline]
@@ -290,10 +281,6 @@ impl crate::MainMemory for OpenCL {
 #[cfg(feature = "opt-cache")]
 impl crate::GraphOpt for OpenCL {}
 
-#[inline]
-pub fn cl_cached<T>(device: &OpenCL, len: usize) -> Buffer<T, OpenCL> {
-    device.cached(len)
-}
 
 #[cfg(test)]
 mod tests {

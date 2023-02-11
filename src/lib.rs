@@ -65,6 +65,9 @@ pub use devices::network::Network;
 #[cfg(feature = "autograd")]
 pub use autograd::*;
 
+#[cfg(feature = "cpu")]
+pub mod exec_on_cpu;
+
 pub mod devices;
 
 mod buffer;
@@ -247,12 +250,12 @@ pub use custos_macro::impl_stack;
 
 pub mod prelude {
     pub use crate::{
-        cached, number::*, range, shape::*, Alloc, Buffer, CDatatype, CacheBuf, ClearBuf,
+        number::*, range, shape::*, Alloc, Buffer, CDatatype, ClearBuf,
         CopySlice, Device, GraphReturn, Ident, MainMemory, Read, ShallowCopy, WithShape, WriteBuf,
     };
 
     #[cfg(feature = "cpu")]
-    pub use crate::{cpu::cpu_cached, CPU};
+    pub use crate::CPU;
 
     #[cfg(not(feature = "no-std"))]
     pub use crate::{cache::CacheReturn, get_count, set_count, Cache};
@@ -263,7 +266,7 @@ pub mod prelude {
     #[cfg(feature = "opencl")]
     #[cfg(unified_cl)]
     #[cfg(not(feature = "realloc"))]
-    pub use crate::opencl::{cl_cached, construct_buffer, to_unified};
+    pub use crate::opencl::{construct_buffer, to_unified};
 
     #[cfg(feature = "stack")]
     pub use crate::stack::Stack;

@@ -1,8 +1,5 @@
 use crate::{shape::Shape, Alloc, Buffer, WriteBuf, CPU};
 
-#[cfg(feature = "cuda")]
-use crate::CUDA;
-
 impl<'a, T, D, const N: usize> From<(&'a D, [T; N])> for Buffer<'a, T, D>
 where
     T: Clone,

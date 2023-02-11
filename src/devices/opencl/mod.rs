@@ -1,6 +1,6 @@
 use std::{ffi::c_void, ptr::null_mut};
 
-pub use cl_device::{cl_cached, OpenCL, CL};
+pub use cl_device::{OpenCL, CL};
 pub use kernel_cache::*;
 pub use kernel_enqueue::*;
 

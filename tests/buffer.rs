@@ -24,7 +24,7 @@ where
 #[cfg(not(feature = "no-std"))]
 pub fn read<'a, T, D: Alloc<'a, T>>(device: &D, buf: &'a Buffer<T, D>) -> Vec<T>
 where
-    D: Read<T, D> + Device,
+    D: Read<T> + Device,
     T: Clone + Default,
 {
     device.read_to_vec(&buf)
@@ -131,7 +131,7 @@ fn test_cached_cpu() {
 
     assert_eq!(0, get_count());
 
-    let mut buf = cpu_cached::<f32>(&device, 10);
+    let mut buf = device.retrieve::<f32, ()>(10);
 
     assert_eq!(1, get_count());
 
@@ -139,7 +139,7 @@ fn test_cached_cpu() {
         *value = 1.5;
     }
 
-    let new_buf = cpu_cached::<i32>(&device, 10);
+    let new_buf = device.retrieve::<i32, ()>(10);
     assert_eq!(device.read(&new_buf), vec![0; 10]);
     assert_eq!(2, get_count());
 
@@ -147,7 +147,7 @@ fn test_cached_cpu() {
 
     assert_eq!(0, get_count());
 
-    let buf = cpu_cached::<f32>(&device, 10);
+    let buf = device.retrieve::<f32, ()>(10);
 
     assert_eq!(device.read(&buf), vec![1.5; 10]);
 }
@@ -159,7 +159,6 @@ fn test_cached_cpu() {
 fn test_cached_cl() -> Result<(), custos::Error> {
     use custos::opencl::{
         api::{enqueue_write_buffer, wait_for_event},
-        cl_cached,
     };
 
     // for: cargo test -- --test-threads=1
@@ -170,7 +169,7 @@ fn test_cached_cl() -> Result<(), custos::Error> {
 
     assert_eq!(1, get_count());
 
-    let buf = cl_cached::<f32>(&device, 10);
+    let buf = device.retrieve::<f32, ()>(10);
 
     assert_eq!(2, get_count());
 
@@ -180,14 +179,14 @@ fn test_cached_cl() -> Result<(), custos::Error> {
     }
     assert_eq!(device.read(&buf), vec![0.1; 10]);
 
-    let new_buf = cl_cached::<i32>(&device, 10);
+    let new_buf = device.retrieve::<i32, ()>(10);
 
     assert_eq!(device.read(&new_buf), vec![0; 10]);
     assert_eq!(3, get_count());
 
     unsafe { set_count(1) };
     assert_eq!(1, get_count());
-    let buf = cl_cached::<f32>(&device, 10);
+    let buf = device.retrieve::<f32, ()>(10);
     println!("new_buf: {buf:?}");
     assert_eq!(device.read(&buf), vec![0.1; 10]);
     Ok(())
@@ -265,10 +264,10 @@ fn test_slice() {
 fn test_alloc() {
     let device = CPU::new();
 
-    let buf = cpu_cached::<f32>(&device, 100);
+    let buf = device.retrieve::<f32, ()>(100);
     assert_eq!(buf.read(), vec![0.; 100]);
 
-    let buf = cpu_cached::<f32>(&device, 100);
+    let buf = device.retrieve::<f32, ()>(100);
     assert_eq!(buf.read(), vec![0.; 100]);
     drop(buf);
 }

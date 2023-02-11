@@ -18,7 +18,7 @@ impl Device for CPU {
 }
 
 use crate::{
-    flag::AllocFlag, shape::Shape, Alloc, CacheBuf, ClearBuf, CloneBuf, CommonPtrs, Device,
+    flag::AllocFlag, shape::Shape, Alloc, ClearBuf, CloneBuf, CommonPtrs, Device,
     DevicelessAble, Ident, IsShapeIndep, MainMemory, PtrType, Read, ShallowCopy, WriteBuf,
 };
 
@@ -368,7 +368,7 @@ impl<'a, T, S: Shape> Buffer<'a, T, CPU, S> {
     /// let device = CPU::new();
     /// let mut ptr = Alloc::<f32>::alloc(&device, 10, AllocFlag::None);
     /// let mut buf = unsafe {
-    ///     Buffer::from_raw_host(ptr.ptr, 10)
+    ///     Buffer::<_, _, ()>::from_raw_host(ptr.ptr, 10)
     /// };
     /// for (idx, value) in buf.iter_mut().enumerate() {
     ///     *value += idx as f32;
@@ -642,39 +642,6 @@ impl<'a, T, D: MainMemory, S: Shape> core::iter::IntoIterator for &'a mut Buffer
     }
 }
 
-/// Adds a `Buffer` to the "cache chain".
-/// Following calls will return this `Buffer`,
-/// if the corresponding internal count matches with the id used in the cache.
-///
-///
-/// # Example
-#[cfg_attr(any(feature = "realloc", not(feature = "cpu")), doc = "```ignore")]
-#[cfg_attr(any(not(feature = "realloc"), feature = "cpu"), doc = "```")]
-/// use custos::{CPU, cached, Read, set_count, get_count};
-///
-/// let device = CPU::new();
-/// assert_eq!(0, get_count());
-///
-/// let mut buf = cached::<f32, _>(&device, 10);
-/// assert_eq!(1, get_count());
-///
-/// for value in buf.as_mut_slice() {
-///     *value = 1.5;
-/// }
-///    
-/// let new_buf = cached::<i32, _>(&device, 10);
-/// assert_eq!(2, get_count());
-///
-/// unsafe { set_count(0) };
-/// let buf = cached::<f32, _>(&device, 10);
-/// assert_eq!(device.read(&buf), vec![1.5; 10]);
-/// ```
-pub fn cached<'a, T, D: CacheBuf<'a, T> + Device>(device: &'a D, len: usize) -> Buffer<'a, T, D>
-where
-    //D::Ptr<T, ()>: Clone,
-{
-    device.cached(len)
-}
 
 #[cfg(test)]
 mod tests {

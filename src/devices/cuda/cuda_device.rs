@@ -13,7 +13,7 @@ use super::{
 use crate::{
     cache::{Cache, CacheReturn},
     flag::AllocFlag,
-    Alloc, Buffer, CacheBuf, CloneBuf, Device, Graph, GraphReturn, RawConv, Shape,
+    Alloc, Buffer, CloneBuf, Device, Graph, GraphReturn, RawConv, Shape,
 };
 
 /// Used to perform calculations with a CUDA capable device.
@@ -161,16 +161,4 @@ impl<'a, T> CloneBuf<'a, T> for CUDA {
         }
         cloned
     }
-}
-
-impl<'a, T> CacheBuf<'a, T> for CUDA {
-    #[inline]
-    fn cached(&self, len: usize) -> Buffer<T, CUDA> {
-        self.retrieve(len)
-    }
-}
-
-#[inline]
-pub fn cu_cached<T>(device: &CUDA, len: usize) -> Buffer<T, CUDA> {
-    device.cached(len)
 }

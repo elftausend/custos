@@ -36,9 +36,6 @@ pub mod wgpu;
 #[cfg(feature = "network")]
 pub mod network;
 
-#[cfg(feature = "cpu")]
-mod exec_on_cpu;
-
 mod stack_array;
 pub use stack_array::*;
 

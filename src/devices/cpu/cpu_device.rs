@@ -1,10 +1,9 @@
 use crate::{
-    bump_count,
     cache::RawConv,
     devices::cache::{Cache, CacheReturn},
     flag::AllocFlag,
     shape::Shape,
-    Alloc, Buffer, CacheBuf, CloneBuf, Device, DevicelessAble, Graph, GraphReturn, Ident,
+    Alloc, Buffer, CloneBuf, Device, DevicelessAble, Graph, GraphReturn,
     MainMemory,
 };
 
@@ -166,16 +165,4 @@ impl<'a, T: Clone, S: Shape> CloneBuf<'a, T, S> for CPU {
         cloned.clone_from_slice(buf);
         cloned
     }
-}
-
-impl<'a, T> CacheBuf<'a, T> for CPU {
-    #[inline]
-    fn cached(&'a self, len: usize) -> Buffer<'a, T, CPU> {
-        self.cache().get(self, Ident::new(len), bump_count)
-    }
-}
-
-#[inline]
-pub fn cpu_cached<T: Clone>(device: &CPU, len: usize) -> Buffer<T, CPU> {
-    device.cached(len)
 }
