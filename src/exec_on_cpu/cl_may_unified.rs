@@ -4,6 +4,11 @@ use crate::{Buffer, OpenCL, CPU};
 #[cfg(not(feature = "realloc"))]
 use crate::opencl::construct_buffer;
 
+/// If the current device supports unified memory, data is not deep-copied.
+/// This is way faster than [cpu_exec_unary], as new memory is not allocated.
+/// 
+/// `cpu_exec_unary_may_unified` can be used interchangeably with [cpu_exec_unary].
+/// 
 pub fn cpu_exec_unary_may_unified<'a, T, F>(
     device: &'a OpenCL,
     x: &Buffer<T, OpenCL>,
@@ -43,6 +48,11 @@ where
     cpu_exec_unary(device, x, f)
 }
 
+/// If the current device supports unified memory, data is not deep-copied.
+/// This is way faster than [cpu_exec_binary], as new memory is not allocated.
+/// 
+/// `cpu_exec_binary_may_unified` can be used interchangeably with [cpu_exec_binary].
+/// 
 pub fn cpu_exec_binary_may_unified<'a, T, F>(
     device: &'a OpenCL,
     lhs: &Buffer<T, OpenCL>,
