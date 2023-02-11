@@ -157,9 +157,7 @@ fn test_cached_cpu() {
 #[cfg(feature = "opencl")]
 #[test]
 fn test_cached_cl() -> Result<(), custos::Error> {
-    use custos::opencl::{
-        api::{enqueue_write_buffer, wait_for_event},
-    };
+    use custos::opencl::api::{enqueue_write_buffer, wait_for_event};
 
     // for: cargo test -- --test-threads=1
     unsafe { set_count(0) };

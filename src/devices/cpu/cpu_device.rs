@@ -3,8 +3,7 @@ use crate::{
     devices::cache::{Cache, CacheReturn},
     flag::AllocFlag,
     shape::Shape,
-    Alloc, Buffer, CloneBuf, Device, DevicelessAble, Graph, GraphReturn,
-    MainMemory,
+    Alloc, Buffer, CloneBuf, Device, DevicelessAble, Graph, GraphReturn, MainMemory,
 };
 
 use core::{

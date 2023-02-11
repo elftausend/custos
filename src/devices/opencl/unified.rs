@@ -4,7 +4,7 @@ use std::{ffi::c_void, rc::Rc};
 use crate::{AddGraph, AllocFlag, DeviceError, GraphReturn};
 
 use super::RawCL;
-use crate::{Buffer, Ident, OpenCL, CPU, Shape};
+use crate::{Buffer, Ident, OpenCL, Shape, CPU};
 use min_cl::api::{create_buffer, MemFlags};
 
 /// Returns an OpenCL pointer that is bound to the host pointer stored in the specified buffer.
@@ -116,7 +116,7 @@ pub unsafe fn construct_buffer<'a, T, S: Shape>(
 #[cfg(unified_cl)]
 #[cfg(test)]
 mod tests {
-    use crate::{opencl::CLPtr, AllocFlag, Buffer, Ident, OpenCL, CPU, Device};
+    use crate::{opencl::CLPtr, AllocFlag, Buffer, Device, Ident, OpenCL, CPU};
 
     use super::{construct_buffer, to_unified};
 

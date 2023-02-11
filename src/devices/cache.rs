@@ -4,8 +4,7 @@ use std::collections::HashMap;
 use std::rc::Rc;
 
 use crate::{
-    flag::AllocFlag, shape::Shape, Alloc, Buffer, CacheAble, Device, GraphReturn,
-    Ident, PtrType,
+    flag::AllocFlag, shape::Shape, Alloc, Buffer, CacheAble, Device, GraphReturn, Ident, PtrType,
 };
 
 /// This trait makes a device's [`Cache`] accessible and is implemented for all compute devices.
@@ -73,7 +72,9 @@ where
     where
         for<'b> D: Alloc<'b, T, S>,
     {
-        device.cache().get(device, Ident::new(len), crate::bump_count)
+        device
+            .cache()
+            .get(device, Ident::new(len), crate::bump_count)
         //Cache::get(device, Ident::new(len), bump_count)
     }
 

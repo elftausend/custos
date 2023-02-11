@@ -1,7 +1,5 @@
 use custos::prelude::*;
 
-
-
 #[cfg(feature = "cpu")]
 #[test]
 fn test_rc_get_dev() {
@@ -50,7 +48,6 @@ fn test_dealloc_device_cache_cpu() {
 #[cfg(feature = "opencl")]
 #[test]
 fn test_dealloc_device_cache_cl() -> custos::Result<()> {
-    
     let device = OpenCL::new(0)?;
 
     assert_eq!(device.cache.borrow().nodes.len(), 0);

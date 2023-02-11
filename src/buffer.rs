@@ -18,8 +18,8 @@ impl Device for CPU {
 }
 
 use crate::{
-    flag::AllocFlag, shape::Shape, Alloc, ClearBuf, CloneBuf, CommonPtrs, Device,
-    DevicelessAble, Ident, IsShapeIndep, MainMemory, PtrType, Read, ShallowCopy, WriteBuf,
+    flag::AllocFlag, shape::Shape, Alloc, ClearBuf, CloneBuf, CommonPtrs, Device, DevicelessAble,
+    Ident, IsShapeIndep, MainMemory, PtrType, Read, ShallowCopy, WriteBuf,
 };
 
 pub use self::num::Num;
@@ -400,7 +400,11 @@ impl<'a, T, S: Shape> Buffer<'a, T, CPU, S> {
     /// The pointer must be valid.
     /// The `Buffer` does not manage deallocation of the allocated memory.
     #[inline]
-    pub unsafe fn from_raw_host_device(device: &'a CPU, ptr: *mut T, len: usize) -> Buffer<'a, T, CPU, S> {
+    pub unsafe fn from_raw_host_device(
+        device: &'a CPU,
+        ptr: *mut T,
+        len: usize,
+    ) -> Buffer<'a, T, CPU, S> {
         Buffer {
             ptr: CPUPtr {
                 ptr,
@@ -641,7 +645,6 @@ impl<'a, T, D: MainMemory, S: Shape> core::iter::IntoIterator for &'a mut Buffer
         self.iter_mut()
     }
 }
-
 
 #[cfg(test)]
 mod tests {
