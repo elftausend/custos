@@ -54,7 +54,8 @@ impl<D: RawConv> Cache<D> {
     /// Adds a new cache entry to the cache.
     /// The next get call will return this entry if the [Ident] is correct.
     /// # Example
-    /// ```
+    #[cfg_attr(feature = "cpu", doc = "```")]
+    #[cfg_attr(not(feature = "cpu"), doc = "```ignore")]
     /// use custos::prelude::*;
     /// use custos::Ident;
     ///
@@ -110,7 +111,8 @@ impl<D: RawConv> Cache<D> {
     /// If a cached pointer doesn't exist, a new `Buffer` will be added to the cache and returned.
     ///
     /// # Example
-    /// ```
+    #[cfg_attr(feature = "cpu", doc = "```")]
+    #[cfg_attr(not(feature = "cpu"), doc = "```ignore")]
     /// use custos::prelude::*;
     ///
     /// let device = CPU::new();

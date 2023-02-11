@@ -15,7 +15,8 @@
 //!
 //! [cpu_readme.rs]: https://github.com/elftausend/custos/blob/main/examples/cpu_readme.rs
 //!
-//! ```rust
+#![cfg_attr(feature = "cpu", doc = "```")]
+#![cfg_attr(not(feature = "cpu"), doc = "```ignore")]
 //! use custos::{CPU, ClearBuf, Read, Buffer};
 //!
 //! let device = CPU::new();
@@ -118,7 +119,8 @@ pub trait MainMemory: Device {
 /// This trait is for allocating memory on the implemented device.
 ///
 /// # Example
-/// ```
+#[cfg_attr(feature = "cpu", doc = "```")]
+#[cfg_attr(not(feature = "cpu"), doc = "```ignore")]
 /// use custos::{CPU, Alloc, Buffer, Read, flag::AllocFlag, GraphReturn, cpu::CPUPtr};
 ///
 /// let device = CPU::new();
@@ -134,7 +136,8 @@ pub trait MainMemory: Device {
 pub trait Alloc<'a, T, S: Shape = ()>: Device {
     /// Allocate memory on the implemented device.
     /// # Example
-    /// ```
+    #[cfg_attr(feature = "cpu", doc = "```")]
+    #[cfg_attr(not(feature = "cpu"), doc = "```ignore")]
     /// use custos::{CPU, Alloc, Buffer, Read, flag::AllocFlag, GraphReturn, cpu::CPUPtr};
     ///
     /// let device = CPU::new();
@@ -151,7 +154,8 @@ pub trait Alloc<'a, T, S: Shape = ()>: Device {
 
     /// Allocate new memory with data
     /// # Example
-    /// ```
+    #[cfg_attr(feature = "cpu", doc = "```")]
+    #[cfg_attr(not(feature = "cpu"), doc = "```ignore")]
     /// use custos::{CPU, Alloc, Buffer, Read, GraphReturn, cpu::CPUPtr};
     ///
     /// let device = CPU::new();

@@ -32,7 +32,8 @@ mod num;
 /// The underlying non-growable array structure. A `Buffer` may be encapsulated in other structs.
 /// By default, the `Buffer` is a f32 CPU Buffer.
 /// # Example
-/// ```
+#[cfg_attr(feature = "cpu", doc = "```")]
+#[cfg_attr(not(feature = "cpu"), doc = "```ignore")]
 /// use custos::prelude::*;
 ///
 /// fn buffer_f32_cpu(buf: &Buffer) {}
@@ -57,7 +58,8 @@ unsafe impl<'a, T, D: Device, S: Shape> Sync for Buffer<'a, T, D, S> {}
 impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
     /// Creates a zeroed (or values set to default) `Buffer` with the given length on the specified device.
     /// This `Buffer` can't outlive the device specified as a parameter.
-    /// ```
+    #[cfg_attr(feature = "cpu", doc = "```")]
+    #[cfg_attr(not(feature = "cpu"), doc = "```ignore")]
     /// use custos::{CPU, Buffer};
     ///
     /// let device = CPU::new();
@@ -88,7 +90,8 @@ impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
     /// Buffers created with this method can outlive the device used to create this `Buffer`.<br>
     /// No operations can be invoked on this `Buffer` as [`get_device!`] will panic.
     /// # Examples
-    /// ```rust
+    #[cfg_attr(feature = "cpu", doc = "```")]
+    #[cfg_attr(not(feature = "cpu"), doc = "```ignore")]
     /// use custos::{CPU, Buffer};
     ///
     /// let mut buf = {
@@ -131,7 +134,8 @@ impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
     /// If it is certain whether a CPU, or an unified CPU + OpenCL Buffer, is used, calling `.as_slice()` (or deref/mut to `&/mut [&T]`) is probably preferred.
     ///
     /// # Example
-    /// ```rust
+    #[cfg_attr(feature = "cpu", doc = "```")]
+    #[cfg_attr(not(feature = "cpu"), doc = "```ignore")]
     /// use custos::{CPU, Buffer};
     ///
     /// let device = CPU::new();
@@ -162,7 +166,8 @@ impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
 
     /// Returns the number of elements contained in `Buffer`.
     /// # Example
-    /// ```
+    #[cfg_attr(feature = "cpu", doc = "```")]
+    #[cfg_attr(not(feature = "cpu"), doc = "```ignore")]
     /// use custos::{CPU, Buffer};
     ///
     /// let device = CPU::new();
@@ -470,7 +475,8 @@ impl<T, D: MainMemory> AsMut<[T]> for Buffer<'_, T, D> {
 ///
 /// # Examples
 ///
-/// ```
+#[cfg_attr(feature = "cpu", doc = "```")]
+#[cfg_attr(not(feature = "cpu"), doc = "```ignore")]
 /// use custos::{Buffer, CPU};
 ///
 /// let device = CPU::new();
@@ -502,7 +508,8 @@ impl<T, D: MainMemory, S: Shape> core::ops::Deref for Buffer<'_, T, D, S> {
 ///
 /// # Examples
 ///
-/// ```
+#[cfg_attr(feature = "cpu", doc = "```")]
+#[cfg_attr(not(feature = "cpu"), doc = "```ignore")]
 /// use custos::{Buffer, CPU};
 ///  
 /// let device = CPU::new();
@@ -591,8 +598,8 @@ impl<'a, T, D: MainMemory> core::iter::IntoIterator for &'a mut Buffer<'_, T, D>
 ///
 ///
 /// # Example
-#[cfg_attr(feature = "realloc", doc = "```ignore")]
-#[cfg_attr(not(feature = "realloc"), doc = "```")]
+#[cfg_attr(any(feature = "realloc", not(feature="cpu")), doc = "```ignore")]
+#[cfg_attr(any(not(feature = "realloc"), feature="cpu"), doc = "```")]
 /// use custos::{CPU, cached, Read, set_count, get_count};
 ///
 /// let device = CPU::new();
