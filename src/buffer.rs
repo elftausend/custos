@@ -127,7 +127,7 @@ impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
     pub fn read(&'a self) -> D::Read<'a>
     where
         T: Clone + Default,
-        D: Read<T, D, S>,
+        D: Read<T, S>,
     {
         self.device().read(self)
     }
@@ -149,7 +149,7 @@ impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
     #[cfg(not(feature = "no-std"))]
     pub fn read_to_vec(&self) -> Vec<T>
     where
-        D: Read<T, D, S>,
+        D: Read<T, S>,
         T: Default + Clone,
     {
         self.device().read_to_vec(self)
@@ -358,7 +358,7 @@ impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
 }
 
 #[cfg(feature = "cpu")]
-impl<'a, T> Buffer<'a, T> {
+impl<'a, T, S: Shape> Buffer<'a, T, CPU, S> {
     /// Constructs a deviceless `Buffer` out of a host pointer and a length.
     /// # Example
     /// ```
@@ -381,7 +381,7 @@ impl<'a, T> Buffer<'a, T> {
     /// The pointer must be valid.
     /// The `Buffer` does not manage deallocation of the allocated memory.
     #[inline]
-    pub unsafe fn from_raw_host(ptr: *mut T, len: usize) -> Buffer<'a, T> {
+    pub unsafe fn from_raw_host(ptr: *mut T, len: usize) -> Buffer<'a, T, CPU, S> {
         Buffer {
             ptr: CPUPtr {
                 ptr,
@@ -400,7 +400,7 @@ impl<'a, T> Buffer<'a, T> {
     /// The pointer must be valid.
     /// The `Buffer` does not manage deallocation of the allocated memory.
     #[inline]
-    pub unsafe fn from_raw_host_device(device: &'a CPU, ptr: *mut T, len: usize) -> Buffer<'a, T> {
+    pub unsafe fn from_raw_host_device(device: &'a CPU, ptr: *mut T, len: usize) -> Buffer<'a, T, CPU, S> {
         Buffer {
             ptr: CPUPtr {
                 ptr,
@@ -588,8 +588,8 @@ impl<T, D: MainMemory, S: Shape> core::ops::DerefMut for Buffer<'_, T, D, S> {
 impl<'a, T, D> Debug for Buffer<'a, T, D>
 where
     T: Debug + Default + Clone + 'a,
-    D: Read<T, D> + Device + 'a,
-    for<'b> <D as Read<T, D>>::Read<'b>: Debug,
+    D: Read<T> + Device + 'a,
+    for<'b> <D as Read<T>>::Read<'b>: Debug,
     D::Ptr<T, ()>: CommonPtrs<T>,
 {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {

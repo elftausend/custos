@@ -13,8 +13,7 @@ use super::{
 use crate::{
     cache::{Cache, CacheReturn},
     flag::AllocFlag,
-    Alloc, Buffer, CacheBuf, CloneBuf, Device, Graph, GraphReturn,
-    RawConv, Shape,
+    Alloc, Buffer, CacheBuf, CloneBuf, Device, Graph, GraphReturn, RawConv, Shape,
 };
 
 /// Used to perform calculations with a CUDA capable device.

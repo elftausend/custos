@@ -1,12 +1,13 @@
-use core::ops::{RangeBounds, Bound};
+use core::ops::{Bound, RangeBounds};
 
-use crate::{Read, CUDA, Buffer, CDatatype, ClearBuf, cuda::api::cu_read, CopySlice, WriteBuf};
+use crate::{cuda::api::cu_read, Buffer, CDatatype, ClearBuf, CopySlice, Read, WriteBuf, CUDA};
 
-use super::{cu_clear, api::{cuMemcpy, cu_write}};
+use super::{
+    api::{cuMemcpy, cu_write},
+    cu_clear,
+};
 
-
-
-impl<T: Default + Clone> Read<T, CUDA> for CUDA {
+impl<T: Default + Clone> Read<T> for CUDA {
     type Read<'a> = Vec<T>
     where
         T: 'a,

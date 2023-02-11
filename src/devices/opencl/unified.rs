@@ -3,20 +3,53 @@ use std::{ffi::c_void, rc::Rc};
 #[cfg(not(feature = "realloc"))]
 use crate::{AddGraph, AllocFlag, DeviceError, GraphReturn};
 
-#[cfg(not(feature = "realloc"))]
-use std::fmt::Debug;
-
 use super::RawCL;
-use crate::{Buffer, Ident, OpenCL, CPU};
+use crate::{Buffer, Ident, OpenCL, CPU, Shape, devices::exec_on_cpu::cpu_exec_unary};
 use min_cl::api::{create_buffer, MemFlags};
+
+pub fn cpu_exec_unary_may_unified<'a, T, F>(device: &'a OpenCL, x: &Buffer<T, OpenCL>, f: F) -> crate::Result<Buffer<'a, T, OpenCL>>
+where
+    T: Clone + Default,
+    F: for<'b> Fn(&'b CPU, &Buffer<'_, T, CPU>) -> Buffer<'b, T, CPU>,
+{
+    // TODO: use compile time unified_cl flag -> get from custos?
+    #[cfg(not(feature = "realloc"))]
+    if device.unified_mem() {
+        // Using a CPU stored in a OpenCL in order to get a (correct) cache entry.
+        // Due to the (new) caching architecture, using a new CPU isn't possible,
+        // as the cache would be newly created every iteration.
+
+        // host ptr buffer
+        let no_drop = f(
+            &device.cpu,
+            &unsafe {Buffer::from_raw_host(x.ptr.host_ptr, x.len())},
+        );
+
+        // convert host ptr / CPU buffer into a host ptr + OpenCL ptr buffer
+        return unsafe {
+            construct_buffer(device, no_drop, /*buf.node.idx*/ ())
+        };
+    }
+
+    #[cfg(feature = "realloc")]
+    if device.unified_mem() {
+        let cpu = CPU::new();
+        return Ok(Matrix::from((
+            device,
+            f(&cpu, &Matrix::from((matrix.ptr.host_ptr, matrix.dims))),
+        )));
+    }
+
+    cpu_exec_unary(device, x, f)
+}
 
 /// Returns an OpenCL pointer that is bound to the host pointer stored in the specified buffer.
 /// This function is used in the `constuct_buffer()` function.
 /// # Safety
 /// The host pointer inside the no_drop `Buffer` must live as long as the resulting pointer.
-pub unsafe fn to_unified<T>(
+pub unsafe fn to_unified<T, S: Shape>(
     device: &OpenCL,
-    no_drop: Buffer<T, CPU>,
+    no_drop: Buffer<T, CPU, S>,
 ) -> crate::Result<*mut c_void> {
     // use the host pointer to create an OpenCL buffer
     let cl_ptr = create_buffer(
@@ -68,11 +101,11 @@ pub unsafe fn to_unified<T>(
 ///     Ok(())
 /// }
 /// ```
-pub unsafe fn construct_buffer<'a, T: Debug>(
+pub unsafe fn construct_buffer<'a, T, S: Shape>(
     device: &'a OpenCL,
-    mut no_drop: Buffer<T, CPU>,
+    mut no_drop: Buffer<T, CPU, S>,
     add_node: impl AddGraph,
-) -> crate::Result<Buffer<'a, T, OpenCL>> {
+) -> crate::Result<Buffer<'a, T, OpenCL, S>> {
     use crate::{bump_count, opencl::CLPtr};
 
     if no_drop.ptr.flag == AllocFlag::None {

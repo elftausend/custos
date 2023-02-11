@@ -5,7 +5,7 @@ use crate::{
     ToVal, UnaryGrad, WriteBuf, CPU,
 };
 
-impl<T, D: MainMemory, S: Shape> Read<T, D, S> for CPU {
+impl<T, D: MainMemory, S: Shape> Read<T, S, D> for CPU {
     type Read<'a> = &'a [T] where T: 'a, D: 'a, S: 'a;
 
     #[inline]

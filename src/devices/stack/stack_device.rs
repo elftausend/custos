@@ -67,7 +67,7 @@ impl<'a, S: Shape, T: Copy + Default> Alloc<'a, T, S> for Stack {
     }
 }*/
 
-impl<T: Copy, S: Shape> Read<T, Stack, S> for Stack
+impl<T: Copy, S: Shape> Read<T, S> for Stack
 where
     S::ARR<T>: Clone,
 {

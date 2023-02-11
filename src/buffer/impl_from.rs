@@ -1,10 +1,4 @@
-use crate::{shape::Shape, Alloc, Buffer, WriteBuf};
-
-#[cfg(any(feature = "opencl", feature = "cuda"))]
-use crate::{Device, CPU};
-
-#[cfg(feature = "opencl")]
-use crate::OpenCL;
+use crate::{shape::Shape, Alloc, Buffer, WriteBuf, CPU};
 
 #[cfg(feature = "cuda")]
 use crate::CUDA;
@@ -118,18 +112,12 @@ where
     }
 }
 
-#[cfg(feature = "opencl")]
-impl<'a, 'b, T, S: Shape> From<(&'a OpenCL, Buffer<'b, T, CPU, S>)> for Buffer<'a, T, OpenCL> {
-    fn from((device, buf): (&'a OpenCL, Buffer<'b, T, CPU, S>)) -> Self {
-        let mut out = device.retrieve(buf.len());
-        device.write(&mut out, &buf);
-        out
-    }
-}
-
-#[cfg(feature = "cuda")]
-impl<'a, 'b, T, S: Shape> From<(&'a CUDA, Buffer<'b, T, CPU, S>)> for Buffer<'a, T, CUDA> {
-    fn from((device, buf): (&'a CUDA, Buffer<'b, T, CPU, S>)) -> Self {
+impl<'a, 'b, T, S, D> From<(&'a D, Buffer<'b, T, CPU, S>)> for Buffer<'a, T, D, S>
+where
+    S: Shape,
+    D: WriteBuf<T, S> + for<'c> Alloc<'c, T, S>,
+{
+    fn from((device, buf): (&'a D, Buffer<'b, T, CPU, S>)) -> Self {
         let mut out = device.retrieve(buf.len());
         device.write(&mut out, &buf);
         out
@@ -138,10 +126,10 @@ impl<'a, 'b, T, S: Shape> From<(&'a CUDA, Buffer<'b, T, CPU, S>)> for Buffer<'a,
 
 #[cfg(test)]
 mod tests {
-    #[cfg(feature="opencl")]
+    #[cfg(feature = "opencl")]
     #[test]
     fn test_buf_device_conversion_cl() -> crate::Result<()> {
-        use crate::{OpenCL, Buffer, CPU, Read};
+        use crate::{Buffer, OpenCL, Read, CPU};
 
         let device = OpenCL::new(0)?;
 
@@ -154,10 +142,10 @@ mod tests {
         Ok(())
     }
 
-    #[cfg(feature="cuda")]
+    #[cfg(feature = "cuda")]
     #[test]
     fn test_buf_device_conversion_cu() -> crate::Result<()> {
-        use crate::{CUDA, Buffer, CPU, Read};
+        use crate::{Buffer, Read, CPU, CUDA};
 
         let device = CUDA::new(0)?;
 

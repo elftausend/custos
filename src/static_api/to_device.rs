@@ -106,7 +106,7 @@ impl<'a, T: Clone> Buffer<'a, T> {
 impl<'a, T, D> Buffer<'a, T, D>
 where
     T: Clone + Default,
-    D: Device + Read<T, D>,
+    D: Device + Read<T>,
 {
     /// Moves the [`Buffer`] back to a CPU buffer.
     ///

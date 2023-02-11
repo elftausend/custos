@@ -100,7 +100,7 @@ impl<T, R: RangeBounds<usize>> CopySlice<T, R> for OpenCL {
     }
 }
 
-impl<T: Clone + Default> Read<T, OpenCL> for OpenCL {
+impl<T: Clone + Default> Read<T> for OpenCL {
     #[cfg(not(unified_cl))]
     type Read<'a> = Vec<T> where T: 'a;
     #[cfg(unified_cl)]

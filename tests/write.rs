@@ -31,7 +31,7 @@ fn test_write_buf_cpu() {
 #[cfg(feature = "opencl")]
 #[test]
 fn test_write_buf_cl() -> custos::Result<()> {
-    use custos::{Buffer, WriteBuf, OpenCL};
+    use custos::{Buffer, OpenCL, WriteBuf};
 
     let device = OpenCL::new(0)?;
 

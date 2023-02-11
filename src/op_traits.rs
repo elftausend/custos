@@ -38,7 +38,7 @@ pub trait CopySlice<T, R: RangeBounds<usize>, D: Device = Self>: Sized + Device 
 }
 
 /// Trait for reading buffers.
-pub trait Read<T, D: Device = Self, S: Shape = ()>: Device {
+pub trait Read<T, S: Shape = (), D: Device = Self>: Device {
     type Read<'a>
     where
         T: 'a,
