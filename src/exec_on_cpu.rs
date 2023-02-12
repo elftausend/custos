@@ -93,6 +93,27 @@ where
     Ok(Buffer::from((device, f(&cpu, &cpu_lhs, &cpu_rhs))))
 }
 
+pub fn cpu_exec_binary_mut<'a, T, D, F>(
+    device: &'a D,
+    lhs: &mut Buffer<T, D>,
+    rhs: &Buffer<T, D>,
+    f: F,
+) -> crate::Result<()>
+where
+    T: Clone + Default,
+    F: for<'b> Fn(&'b CPU, &mut Buffer<'_, T, CPU>, &Buffer<'_, T, CPU>),
+    D: Device + Read<T> + WriteBuf<T> + for<'c> Alloc<'c, T>,
+{
+    let cpu = CPU::new();
+    let mut cpu_lhs = Buffer::<T, CPU>::from((&cpu, lhs.read_to_vec()));
+    let cpu_rhs = Buffer::<T, CPU>::from((&cpu, rhs.read_to_vec()));
+    f(&cpu, &mut cpu_lhs, &cpu_rhs);
+
+    device.write(lhs, &cpu_lhs);
+
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
 

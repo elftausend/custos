@@ -1,4 +1,4 @@
-use super::{cpu_exec_binary, cpu_exec_unary};
+use super::{cpu_exec_binary, cpu_exec_unary, cpu_exec_binary_mut};
 use crate::{Buffer, OpenCL, CPU};
 
 #[cfg(not(feature = "realloc"))]
@@ -97,4 +97,29 @@ where
     }
 
     cpu_exec_binary(device, lhs, rhs, f)
+}
+
+pub fn cpu_exec_binary_may_unified_mut<'a, T, F>(
+    device: &'a OpenCL,
+    lhs: &mut Buffer<T, OpenCL>,
+    rhs: &Buffer<T, OpenCL>,
+    f: F,
+) -> crate::Result<()>
+where
+    T: Clone + Default,
+    F: for<'b> Fn(&'b CPU, &mut Buffer<'_, T, CPU>, &Buffer<'_, T, CPU>)
+{
+    let cpu = CPU::new();
+
+    if device.unified_mem() {
+        return Ok(f(
+            &cpu,
+            &mut unsafe {Buffer::from_raw_host(lhs.ptr.host_ptr, lhs.len())},
+            &unsafe {Buffer::from_raw_host(rhs.ptr.host_ptr, rhs.len())},
+        ))
+    }
+
+    cpu_exec_binary_mut(device, lhs, rhs, f)?;
+
+    Ok(())
 }
