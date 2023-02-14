@@ -188,7 +188,7 @@ pub trait Alloc<'a, T, S: Shape = ()>: Device {
         T: Clone,
     {
         let stack_array = StackArray::<S, T>::from_array(array);
-        self.with_slice(unsafe {stack_array.flatten()})
+        self.with_slice(unsafe { stack_array.flatten() })
     }
 }
 
@@ -203,8 +203,8 @@ pub use custos_macro::impl_stack;
 
 pub mod prelude {
     pub use crate::{
-        cached, number::*, range, shape::*, Alloc, Buffer, CDatatype, CacheBuf, ClearBuf, Device,
-        GraphReturn, Read, ShallowCopy, WithShape, WriteBuf, CopySlice, MainMemory
+        cached, number::*, range, shape::*, Alloc, Buffer, CDatatype, CacheBuf, ClearBuf,
+        CopySlice, Device, GraphReturn, MainMemory, Read, ShallowCopy, WithShape, WriteBuf,
     };
 
     #[cfg(feature = "cpu")]
@@ -228,7 +228,7 @@ pub mod prelude {
     pub use crate::network::{Network, NetworkArray};
 
     #[cfg(feature = "wgpu")]
-    pub use crate::wgpu::{WGPU, launch_shader};
+    pub use crate::wgpu::{launch_shader, WGPU};
 
     #[cfg(feature = "cuda")]
     pub use crate::cuda::{launch_kernel1d, CUBuffer, CU, CUDA};

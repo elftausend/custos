@@ -11,7 +11,6 @@ fn main() {
 
     assert_eq!(buf_stack.read(), buf_heap.read());
 
-    
     let buf_stack_dim2 = Buffer::with(&Stack, [[1, 2, 3], [7, 2, 1]]);
     let buf_heap_dim2 = Buffer::with(&cpu, [[1, 2, 3], [7, 2, 1]]);
 

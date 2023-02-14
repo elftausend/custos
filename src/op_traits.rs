@@ -1,6 +1,6 @@
 use core::ops::{Bound, Range, RangeBounds};
 
-use crate::{Buffer, Device, Shape, Alloc};
+use crate::{Alloc, Buffer, Device, Shape};
 
 /// Trait for implementing the clear() operation for the compute devices.
 pub trait ClearBuf<T, D: Device = Self, S: Shape = ()>: Device {
@@ -38,9 +38,9 @@ pub trait CopySlice<T, D: Device = Self>: Sized + Device {
         &'a self,
         buf: &'a Buffer<T, D>,
         range: R,
-    ) -> Buffer<T, Self> 
-    where 
-        Self: for<'b> Alloc<'b, T>
+    ) -> Buffer<T, Self>
+    where
+        Self: for<'b> Alloc<'b, T>,
     {
         let range = bounds_to_range(range, buf.len());
         let mut copied = Buffer::new(self, range.end - range.start);
@@ -69,6 +69,23 @@ pub trait CopySlice<T, D: Device = Self>: Sized + Device {
         dest_range: DR,
     );
 
+    /// Copy multiple slices of the source buffer into multiplie slices of the destination buffer.
+    /// 
+    /// # Example
+    #[cfg_attr(feature = "cpu", doc = "```")]
+    #[cfg_attr(not(feature = "cpu"), doc = "```ignore")]
+    /// let device = CPU::new();
+    /// let source = Buffer::from((&device, [1., 2., 6., 2., 4.]));
+    ///
+    /// let mut dest = Buffer::new(&device, 10);
+    ///
+    /// device.copy_slice_all(&source, &mut dest, [(2..5, 7..10), (1..3, 3..5)]);
+    ///
+    /// assert_eq!(
+    ///    dest.read(),
+    ///    [0.0, 0.0, 0.0, 2.0, 6.0, 0.0, 0.0, 6.0, 2.0, 4.0]
+    /// );
+    ///```
     fn copy_slice_all<I: IntoIterator<Item = (Range<usize>, Range<usize>)>>(
         &self,
         source: &Buffer<T, D>,

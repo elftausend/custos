@@ -21,12 +21,10 @@ pub fn get_count() -> usize {
 #[inline]
 /// Increases the cache identifier / index by 1.
 pub fn bump_count() {
-    COUNT.with(|c| 
-        {
-            let count = c.get();
-            c.set(count + 1);
-        }
-    )
+    COUNT.with(|c| {
+        let count = c.get();
+        c.set(count + 1);
+    })
 }
 
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]

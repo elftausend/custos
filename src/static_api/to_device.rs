@@ -1,4 +1,4 @@
-use crate::{Alloc, Buffer, Device, Read, IsShapeIndep};
+use crate::{Alloc, Buffer, Device, IsShapeIndep, Read};
 
 use super::{static_cpu, StaticGPU};
 
