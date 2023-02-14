@@ -1,3 +1,5 @@
+use core::ops::RangeBounds;
+
 use min_cl::CLDevice;
 
 use min_cl::api::{
@@ -6,14 +8,14 @@ use min_cl::api::{
 };
 
 use super::{chosen_cl_idx, cl_clear, CLPtr, KernelCacheCL, RawCL};
-use crate::flag::AllocFlag;
-use crate::{Shape, CopySlice};
 use crate::{
     cache::{Cache, CacheReturn, RawConv},
+    devices::bounds_to_range,
+    flag::AllocFlag,
     Alloc, Buffer, CDatatype, CacheBuf, CachedLeaf, ClearBuf, CloneBuf, Device, Error, Graph,
-    GraphReturn, Read, WriteBuf, CPU,
+    GraphReturn, Read, WriteBuf, CPU, Shape, CopySlice,
 };
-use core::ops::{Bound, RangeBounds};
+
 use std::{
     cell::{Ref, RefCell},
     fmt::Debug,
@@ -283,28 +285,16 @@ impl<T: CDatatype> ClearBuf<T, OpenCL> for OpenCL {
     }
 }
 
-impl<T, R: RangeBounds<usize>> CopySlice<T, R> for OpenCL {
-    fn copy_slice(&self, buf: &Buffer<T, OpenCL>, range: R) -> Buffer<T, Self> {
-        let start = match range.start_bound() {
-            Bound::Included(start) => *start,
-            Bound::Excluded(start) => start + 1,
-            Bound::Unbounded => 0,
-        };
-
-        let end = match range.end_bound() {
-            Bound::Excluded(end) => *end,
-            Bound::Included(end) => end + 1,
-            Bound::Unbounded => buf.len(),
-        };
-
-        let slice_len = end - start;
-        let copied = Buffer::new(self, slice_len);
+impl<T> CopySlice<T> for OpenCL {
+    fn copy_slice<R: RangeBounds<usize>>(&self, buf: &Buffer<T, OpenCL>, range: R) -> Buffer<T, Self> {
+        let range = bounds_to_range(range, buf.len());
+        let copied = Buffer::new(self, range.end - range.start);
 
         enqueue_copy_buffer::<T>(
             &self.queue(),
             buf.ptr.ptr,
             copied.ptr.ptr,
-            start,
+            range.start,
             0,
             copied.len(),
         )

@@ -22,7 +22,7 @@ pub trait ClearBuf<T, D: Device = Self, S: Shape = ()>: Device {
 }
 
 /// Trait for copying a slice of a buffer, to implement the slice() operation.
-pub trait CopySlice<T, R: RangeBounds<usize>, D: Device = Self>: Sized + Device {
+pub trait CopySlice<T, D: Device = Self>: Sized + Device {
     /// Copy a slice of the given buffer into a new buffer.
     /// # Example
     ///
@@ -35,7 +35,7 @@ pub trait CopySlice<T, R: RangeBounds<usize>, D: Device = Self>: Sized + Device 
     /// let slice = device.copy_slice(&buf, 1..3);
     /// assert_eq!(slice.read(), &[2., 6.]);
     /// ```
-    fn copy_slice(&self, buf: &Buffer<T, D>, range: R) -> Buffer<T, Self>;
+    fn copy_slice<R: RangeBounds<usize>>(&self, buf: &Buffer<T, D>, range: R) -> Buffer<T, Self>;
 }
 
 /// Trait for reading buffers.

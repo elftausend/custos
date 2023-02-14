@@ -1,5 +1,6 @@
 //! This module defines all available compute devices
 
+use core::ops::{Bound, Range, RangeBounds};
 #[cfg(feature = "blas")]
 #[cfg(feature = "cpu")]
 use self::cpu::{
@@ -311,4 +312,21 @@ impl GenericBlas for f64 {
         .to_result()?;
         Ok(())
     }
+}
+
+#[inline]
+fn bounds_to_range<B: RangeBounds<usize>>(bounds: B, len: usize) -> Range<usize> {
+    let start = match bounds.start_bound() {
+        Bound::Included(start) => *start,
+        Bound::Excluded(start) => start + 1,
+        Bound::Unbounded => 0,
+    };
+
+    let end = match bounds.end_bound() {
+        Bound::Excluded(end) => *end,
+        Bound::Included(end) => end + 1,
+        Bound::Unbounded => len,
+    };
+
+    start..end
 }

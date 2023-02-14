@@ -1,3 +1,4 @@
+use crate::devices::bounds_to_range;
 use crate::{
     cache::RawConv,
     devices::cache::{Cache, CacheReturn},
@@ -7,11 +8,11 @@ use crate::{
     GraphReturn, MainMemory, Read, WriteBuf, CopySlice,
 };
 
-use core::ops::{Index, RangeBounds};
 use core::{
     cell::{RefCell, RefMut},
     fmt::Debug,
     mem::{align_of, size_of},
+    ops::{Index, Range, RangeBounds},
 };
 
 use super::{CPUPtr, RawCpuBuf};
@@ -166,11 +167,12 @@ impl<'a, T> CacheBuf<'a, T> for CPU {
     }
 }
 
-impl<T: Copy, R: RangeBounds<usize>, D: MainMemory> CopySlice<T, R, D> for CPU
+impl<T: Copy, D: MainMemory> CopySlice<T, D> for CPU
 where
-    [T]: Index<R, Output = [T]>,
+    [T]: Index<Range<usize>, Output = [T]>,
 {
-    fn copy_slice(&self, buf: &Buffer<T, D>, range: R) -> Buffer<T, Self> {
+    fn copy_slice<R: RangeBounds<usize>>(&self, buf: &Buffer<T, D>, range: R) -> Buffer<T, Self> {
+        let range = bounds_to_range(range, buf.len());
         let slice = &buf.as_slice()[range];
         let mut copied = Buffer::new(self, slice.len());
         self.write(&mut copied, slice);
