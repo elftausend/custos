@@ -167,24 +167,13 @@ impl<'a, T> CacheBuf<'a, T> for CPU {
     }
 }
 
-impl<T: Copy> CopySlice<T> for CPU
+impl<T: Copy, D: MainMemory> CopySlice<T, D> for CPU
 where
     [T]: Index<Range<usize>, Output = [T]>,
 {
-    fn copy_slice<'a, R: RangeBounds<usize>>(
-        &'a self,
-        buf: &'a Buffer<T, Self>,
-        range: R,
-    ) -> Buffer<T, Self> {
-        let range = bounds_to_range(range, buf.len());
-        let mut copied = Buffer::new(self, range.end - range.start);
-        self.copy_slice_to(buf, range, &mut copied, ..);
-        copied
-    }
-
     fn copy_slice_to<SR: RangeBounds<usize>, DR: RangeBounds<usize>>(
         &self,
-        source: &Buffer<T, Self>,
+        source: &Buffer<T, D>,
         source_range: SR,
         dest: &mut Buffer<T, Self>,
         dest_range: DR,
@@ -202,7 +191,7 @@ where
 
     fn copy_slice_all<I: IntoIterator<Item = (Range<usize>, Range<usize>)>>(
         &self,
-        source: &Buffer<T, Self>,
+        source: &Buffer<T, D>,
         dest: &mut Buffer<T, Self>,
         ranges: I,
     ) {

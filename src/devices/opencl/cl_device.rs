@@ -287,17 +287,6 @@ impl<T: CDatatype> ClearBuf<T, OpenCL> for OpenCL {
 }
 
 impl<T> CopySlice<T> for OpenCL {
-    fn copy_slice<R: RangeBounds<usize>>(
-        &self,
-        buf: &Buffer<T, OpenCL>,
-        range: R,
-    ) -> Buffer<T, Self> {
-        let range = bounds_to_range(range, buf.len());
-        let mut copied = Buffer::new(self, range.end - range.start);
-        self.copy_slice_to(buf, range, &mut copied, ..);
-        copied
-    }
-
     fn copy_slice_to<SR: RangeBounds<usize>, DR: RangeBounds<usize>>(
         &self,
         source: &Buffer<T, Self>,

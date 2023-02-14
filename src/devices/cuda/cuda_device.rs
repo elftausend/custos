@@ -174,17 +174,6 @@ impl<T: CDatatype> ClearBuf<T, CUDA> for CUDA {
 }
 
 impl<T> CopySlice<T> for CUDA {
-    fn copy_slice<R: RangeBounds<usize>>(
-        &self,
-        buf: &Buffer<T, CUDA>,
-        range: R,
-    ) -> Buffer<T, Self> {
-        let range = bounds_to_range(range, buf.len());
-        let mut copied = Buffer::new(self, range.end - range.start);
-        self.copy_slice_to(buf, range, &mut copied, ..);
-        copied
-    }
-
     fn copy_slice_to<SR: RangeBounds<usize>, DR: RangeBounds<usize>>(
         &self,
         source: &Buffer<T, Self>,
