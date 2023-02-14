@@ -1,4 +1,4 @@
-use core::ops::RangeBounds;
+use core::ops::{Range, RangeBounds};
 
 use std::cell::RefCell;
 use std::marker::PhantomData;
@@ -14,7 +14,7 @@ use super::{
 use crate::{
     cache::{Cache, CacheReturn},
     flag::AllocFlag,
-    op_traits::{CacheBuf, ClearBuf, CloneBuf, CopySlice, bounds_to_range},
+    op_traits::{bounds_to_range, CacheBuf, ClearBuf, CloneBuf, CopySlice},
     Alloc, Buffer, CDatatype, CachedLeaf, Device, Graph, GraphReturn, RawConv, Read, Shape,
     WriteBuf,
 };
@@ -205,6 +205,17 @@ impl<T> CopySlice<T> for CUDA {
                 source.ptr.ptr + (source_range.start * size) as u64,
                 len * size,
             );
+        }
+    }
+
+    fn copy_slice_all<I: IntoIterator<Item = (Range<usize>, Range<usize>)>>(
+        &self,
+        source: &Buffer<T, Self>,
+        dest: &mut Buffer<T, Self>,
+        ranges: I,
+    ) {
+        for (source_range, dest_range) in ranges {
+            self.copy_slice_to(source, source_range, dest, dest_range);
         }
     }
 }

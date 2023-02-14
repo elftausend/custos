@@ -1,10 +1,11 @@
-use core::ops::RangeBounds;
+use core::ops::{Range, RangeBounds};
 
 use min_cl::CLDevice;
 
 use min_cl::api::{
-    create_buffer, enqueue_copy_buffer, enqueue_full_copy_buffer, enqueue_read_buffer,
-    enqueue_write_buffer, wait_for_event, CLIntDevice, CommandQueue, Context, MemFlags,
+    create_buffer, enqueue_copy_buffer, enqueue_copy_buffers, enqueue_full_copy_buffer,
+    enqueue_read_buffer, enqueue_write_buffer, wait_for_event, CLIntDevice, CommandQueue, Context,
+    MemFlags,
 };
 
 use super::{chosen_cl_idx, cl_clear, CLPtr, KernelCacheCL, RawCL};
@@ -321,6 +322,21 @@ impl<T> CopySlice<T> for OpenCL {
             source_range.end - source_range.start,
         )
         .unwrap();
+    }
+
+    fn copy_slice_all<I: IntoIterator<Item = (Range<usize>, Range<usize>)>>(
+        &self,
+        source: &Buffer<T, Self>,
+        dest: &mut Buffer<T, Self>,
+        ranges: I,
+    ) {
+        let ranges = ranges.into_iter().map(|(from, to)| {
+            let len = from.end - from.start;
+            assert_eq!(len, to.end - to.start);
+            (from.start, to.start, len)
+        });
+
+        enqueue_copy_buffers::<T, _>(&self.queue(), source.ptr.ptr, dest.ptr.ptr, ranges).unwrap();
     }
 }
 

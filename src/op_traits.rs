@@ -60,6 +60,13 @@ pub trait CopySlice<T, D: Device = Self>: Sized + Device {
         dest: &mut Buffer<T, D>,
         dest_range: DR,
     );
+
+    fn copy_slice_all<I: IntoIterator<Item = (Range<usize>, Range<usize>)>>(
+        &self,
+        source: &Buffer<T, D>,
+        dest: &mut Buffer<T, D>,
+        ranges: I,
+    );
 }
 
 /// Trait for reading buffers.

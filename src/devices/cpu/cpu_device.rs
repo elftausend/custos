@@ -199,6 +199,17 @@ where
 
         dest[dest_range].copy_from_slice(&source[source_range]);
     }
+
+    fn copy_slice_all<I: IntoIterator<Item = (Range<usize>, Range<usize>)>>(
+        &self,
+        source: &Buffer<T, Self>,
+        dest: &mut Buffer<T, Self>,
+        ranges: I,
+    ) {
+        for (source_range, dest_range) in ranges {
+            self.copy_slice_to(source, source_range, dest, dest_range);
+        }
+    }
 }
 
 #[inline]
