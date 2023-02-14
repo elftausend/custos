@@ -64,9 +64,25 @@ mod tests {
         }
     }
 
+    /*#[test]
+    fn test_stack_from_borrowed() {
+        let device = Stack;
+
+        // TODO: fix stack from_const while borrowed
+        let mut buf = Buffer::from((&device, [1., 2., 3., 4., 5., 6.]));
+        
+        
+        assert_eq!(buf.read(), [1., 2., 3., 4., 5., 6.,]);
+        buf.clear();
+        assert_eq!(buf.read(), [0.; 6]);
+    }*/
+
     #[test]
     fn test_stack() {
-        let buf = Buffer::<f32, Stack, Dim1<100>>::from((Stack, [1f32; 100]));
+        // TODO fix stack from_const while borrowed
+        //let buf = Buffer::<f32, Stack, _>::from((&Stack, [1f32; 100]));
+        let buf = Buffer::<f32, Stack, Dim1<100>>::from((&Stack, [1f32; 100]));
+        
 
         let out = Stack.add(&buf, &buf);
         assert_eq!(out.ptr.array, [2.; 100]);

@@ -216,13 +216,17 @@ fn _slice_add<T: Copy + std::ops::Add<Output = T>>(a: &[T], b: &[T], c: &mut [T]
     }
 }
 
-#[cfg(feature = "cpu")]
+use custos_macro::stack_cpu_test;
+
+//#[cfg(feature = "cpu")]
+
+#[stack_cpu_test]
 #[test]
-fn test_iterate() {
+fn test_iterate_cpu() {
     let cmp = [1f32, 2., 3.3];
 
     let device = CPU::new();
-    let x = Buffer::from((&device, [1., 2., 3.3]));
+    let x = Buffer::with(&device, [1., 2., 3.3]);
 
     for (x, y) in x.iter().zip(cmp) {
         assert!(*x == y)

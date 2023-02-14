@@ -116,7 +116,7 @@ pub trait Combiner {
 
 #[cfg(test)]
 mod tests {
-    use crate::{prelude::Float, Buffer, Combiner, Eval, Resolve, ToMarker, ToVal, CPU};
+    use crate::{prelude::Float, Combiner, Eval, Resolve, ToMarker, ToVal};
 
     #[test]
     fn test_neg_tan() {
@@ -224,7 +224,7 @@ mod tests {
     #[cfg(feature = "cpu")]
     #[test]
     fn test_apply_fn_cpu() {
-        use crate::{ApplyFunction, Combiner};
+        use crate::{ApplyFunction, Buffer, Combiner, CPU};
 
         let device = CPU::new();
 
@@ -237,7 +237,7 @@ mod tests {
     #[cfg(feature = "opencl")]
     #[test]
     fn test_run_apply_fn_opencl() -> crate::Result<()> {
-        use crate::{ApplyFunction, Combiner, OpenCL};
+        use crate::{ApplyFunction, Buffer, Combiner, OpenCL};
 
         let device = OpenCL::new(0)?;
 
@@ -252,7 +252,7 @@ mod tests {
     #[cfg(feature = "cpu")]
     #[test]
     fn test_run_apply_fn_cpu_more_complex() {
-        use crate::ApplyFunction;
+        use crate::{ApplyFunction, Buffer, CPU};
 
         let device = CPU::new();
 
@@ -275,7 +275,7 @@ mod tests {
     #[cfg(feature = "opencl")]
     #[test]
     fn test_run_apply_fn_opencl_more_complex() -> crate::Result<()> {
-        use crate::{ApplyFunction, OpenCL};
+        use crate::{ApplyFunction, Buffer, OpenCL};
 
         let device = OpenCL::new(0)?;
 

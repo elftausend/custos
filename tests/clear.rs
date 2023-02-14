@@ -1,14 +1,17 @@
-use custos::{Buffer, CPU};
+use custos::{Buffer, CPU, WithShape};
 
-#[cfg(feature = "cpu")]
+use custos_macro::stack_cpu_test;
+
+//#[cfg(feature = "cpu")]
+#[stack_cpu_test]
 #[test]
 fn test_clear_cpu() {
     let device = CPU::new();
 
-    let mut buf = Buffer::from((&device, [1., 2., 3., 4., 5., 6.]));
-    assert_eq!(buf.read(), vec![1., 2., 3., 4., 5., 6.,]);
+    let mut buf = Buffer::with(&device, [1., 2., 3., 4., 5., 6.]);
+    assert_eq!(buf.read(), [1., 2., 3., 4., 5., 6.,]);
     buf.clear();
-    assert_eq!(buf.read(), vec![0.; 6]);
+    assert_eq!(buf.read(), [0.; 6]);
 }
 
 #[cfg(feature = "opencl")]

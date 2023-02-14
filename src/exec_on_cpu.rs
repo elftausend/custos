@@ -6,13 +6,13 @@ pub use cl_may_unified::*;
 
 use crate::{Alloc, Buffer, Device, Read, WriteBuf, CPU};
 
-/// Moves a `Buffer` stored on device `D` to a `CPU` `Buffer` 
+/// Moves a `Buffer` stored on device `D` to a `CPU` `Buffer`
 /// and executes the unary operation `F` with a `CPU` on the newly created `CPU` `Buffer`.
-/// 
+///
 /// # Example
 /// ```
 /// use custos::{exec_on_cpu::cpu_exec_unary, Buffer, Device, OpenCL};
-/// 
+///
 /// fn main() -> custos::Result<()> {
 ///     let device = OpenCL::new(0)?;
 ///     
@@ -49,13 +49,32 @@ where
     Ok(Buffer::from((device, f(&cpu, &cpu_buf))))
 }
 
+pub fn cpu_exec_unary_mut<'a, T, D, F>(
+    device: &'a D,
+    x: &mut Buffer<T, D>,
+    f: F,
+) -> crate::Result<()>
+where
+    T: Clone + Default,
+    F: for<'b> Fn(&'b CPU, &mut Buffer<'_, T, CPU>),
+    D: Read<T> + WriteBuf<T>,
+{
+    let cpu = CPU::new();
+    let mut cpu_buf = Buffer::<T, CPU>::from((&cpu, x.read_to_vec()));
+    f(&cpu, &mut cpu_buf);
+
+    device.write(x, &cpu_buf);
+
+    Ok(())
+}
+
 /// Moves two `Buffer` stored on device `D` to two `CPU` `Buffer`s
 /// and executes the binary operation `F` with a `CPU` on the newly created `CPU` `Buffer`s.
-/// 
+///
 /// # Example
 /// ```
 /// use custos::{exec_on_cpu::cpu_exec_binary, Buffer, Device, OpenCL};
-/// 
+///
 /// fn main() -> custos::Result<()> {
 ///     let device = OpenCL::new(0)?;
 ///     
@@ -93,6 +112,7 @@ where
     Ok(Buffer::from((device, f(&cpu, &cpu_lhs, &cpu_rhs))))
 }
 
+/// Inplace version of [cpu_exec_binary]
 pub fn cpu_exec_binary_mut<'a, T, D, F>(
     device: &'a D,
     lhs: &mut Buffer<T, D>,
@@ -102,7 +122,7 @@ pub fn cpu_exec_binary_mut<'a, T, D, F>(
 where
     T: Clone + Default,
     F: for<'b> Fn(&'b CPU, &mut Buffer<'_, T, CPU>, &Buffer<'_, T, CPU>),
-    D: Device + Read<T> + WriteBuf<T> + for<'c> Alloc<'c, T>,
+    D: Read<T> + WriteBuf<T>,
 {
     let cpu = CPU::new();
     let mut cpu_lhs = Buffer::<T, CPU>::from((&cpu, lhs.read_to_vec()));
@@ -179,7 +199,6 @@ mod tests {
 
         Ok(())
     }
-
 
     #[cfg(feature = "opencl")]
     #[test]

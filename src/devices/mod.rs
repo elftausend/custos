@@ -42,6 +42,8 @@ pub use stack_array::*;
 mod cdatatype;
 pub use cdatatype::*;
 
+mod cpu_stack_ops;
+
 #[cfg(not(feature = "no-std"))]
 mod ident;
 #[cfg(not(feature = "no-std"))]

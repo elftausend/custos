@@ -34,7 +34,7 @@ impl<'a, T, const N: usize> From<(Stack, [T; N])> for Buffer<'a, T, Stack, Dim1<
     }
 }
 
-impl<'a, T, const N: usize> From<(&Stack, [T; N])> for Buffer<'a, T, Stack, Dim1<N>> {
+impl<'a, T, const N: usize> From<(&'a Stack, [T; N])> for Buffer<'a, T, Stack, Dim1<N>> {
     fn from((_, array): (&Stack, [T; N])) -> Self {
         Buffer {
             ident: Ident::new_bumped(array.len()),

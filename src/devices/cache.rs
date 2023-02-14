@@ -232,12 +232,14 @@ mod tests {
     use core::hash::Hasher;
     use std::collections::HashSet;
 
-    #[cfg(not(feature = "realloc"))]
-    use crate::set_count;
-    use crate::{bump_count, Buffer, CacheReturn, Ident, IdentHasher};
+    //#[cfg(not(feature = "realloc"))]
+    //use crate::set_count;
+    //use crate::{bump_count, Buffer, CacheReturn, Ident, IdentHasher};
 
     #[test]
     fn test_ident_hasher() {
+        use crate::IdentHasher;
+
         let mut hashed_items = HashSet::new();
         let mut hasher = IdentHasher::default();
 
@@ -254,6 +256,8 @@ mod tests {
     #[cfg(feature = "cpu")]
     #[test]
     fn test_add_node() {
+        use crate::{bump_count, Buffer, CacheReturn, Ident};
+
         let device = crate::CPU::new();
         let cache: Buffer = device
             .cache()
@@ -274,6 +278,8 @@ mod tests {
     #[test]
     fn test_get() {
         // for: cargo test -- --test-threads=1
+
+        use crate::{bump_count, set_count, Buffer, CacheReturn, Ident};
         unsafe { set_count(0) };
         let device = crate::CPU::new();
 
