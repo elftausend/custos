@@ -1,11 +1,11 @@
-use crate::devices::bounds_to_range;
 use crate::{
     cache::RawConv,
     devices::cache::{Cache, CacheReturn},
     flag::AllocFlag,
+    op_traits::{bounds_to_range, CacheBuf, ClearBuf, CloneBuf, CopySlice},
     shape::Shape,
-    Alloc, Buffer, CacheBuf, CachedLeaf, ClearBuf, CloneBuf, Device, DevicelessAble, Graph,
-    GraphReturn, MainMemory, Read, WriteBuf, CopySlice,
+    Alloc, Buffer, CachedLeaf, Device, DevicelessAble, Graph, GraphReturn, MainMemory, Read,
+    WriteBuf,
 };
 
 use core::{
@@ -167,16 +167,37 @@ impl<'a, T> CacheBuf<'a, T> for CPU {
     }
 }
 
-impl<T: Copy, D: MainMemory> CopySlice<T, D> for CPU
+impl<T: Copy> CopySlice<T> for CPU
 where
     [T]: Index<Range<usize>, Output = [T]>,
 {
-    fn copy_slice<R: RangeBounds<usize>>(&self, buf: &Buffer<T, D>, range: R) -> Buffer<T, Self> {
+    fn copy_slice<'a, R: RangeBounds<usize>>(
+        &'a self,
+        buf: &'a Buffer<T, Self>,
+        range: R,
+    ) -> Buffer<T, Self> {
         let range = bounds_to_range(range, buf.len());
-        let slice = &buf.as_slice()[range];
-        let mut copied = Buffer::new(self, slice.len());
-        self.write(&mut copied, slice);
+        let mut copied = Buffer::new(self, range.end - range.start);
+        self.copy_slice_to(buf, range, &mut copied, ..);
         copied
+    }
+
+    fn copy_slice_to<SR: RangeBounds<usize>, DR: RangeBounds<usize>>(
+        &self,
+        source: &Buffer<T, Self>,
+        source_range: SR,
+        dest: &mut Buffer<T, Self>,
+        dest_range: DR,
+    ) {
+        let source_range = bounds_to_range(source_range, source.len());
+        let dest_range = bounds_to_range(dest_range, dest.len());
+
+        assert_eq!(
+            source_range.end - source_range.start,
+            dest_range.end - dest_range.start,
+        );
+
+        dest[dest_range].copy_from_slice(&source[source_range]);
     }
 }
 

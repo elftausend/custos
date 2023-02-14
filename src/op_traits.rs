@@ -1,5 +1,4 @@
-use core::ops::RangeBounds;
-
+use core::ops::{Bound, Range, RangeBounds};
 
 use crate::{Buffer, Device, Shape};
 
@@ -35,7 +34,32 @@ pub trait CopySlice<T, D: Device = Self>: Sized + Device {
     /// let slice = device.copy_slice(&buf, 1..3);
     /// assert_eq!(slice.read(), &[2., 6.]);
     /// ```
-    fn copy_slice<R: RangeBounds<usize>>(&self, buf: &Buffer<T, D>, range: R) -> Buffer<T, Self>;
+    fn copy_slice<'a, R: RangeBounds<usize>>(
+        &'a self,
+        buf: &'a Buffer<T, D>,
+        range: R,
+    ) -> Buffer<T, Self>;
+
+    /// Copy a slice of the source buffer into a slice of the destination buffer.
+    /// # Example
+    ///
+    #[cfg_attr(feature = "cpu", doc = "```")]
+    #[cfg_attr(not(feature = "cpu"), doc = "```ignore")]
+    /// use custos::{CPU, Buffer, CopySlice};
+    ///
+    /// let device = CPU::new();
+    /// let source = Buffer::from((&device, [1., 2., 3., 4., 5.,]));
+    /// let mut dest = Buffer::from((&device, [5., 4., 3., 2., 1.,]));
+    /// let slice = device.copy_slice_to(&source, 1..3, &mut dest, 3..5);
+    /// assert_eq!(dest.read(), &[5., 4., 3., 2., 3.]);
+    /// ```
+    fn copy_slice_to<SR: RangeBounds<usize>, DR: RangeBounds<usize>>(
+        &self,
+        source: &Buffer<T, D>,
+        source_range: SR,
+        dest: &mut Buffer<T, D>,
+        dest_range: DR,
+    );
 }
 
 /// Trait for reading buffers.
@@ -120,8 +144,8 @@ pub trait CloneBuf<'a, T, S: Shape = ()>: Sized + Device {
 pub trait CacheBuf<'a, T, S: Shape = ()>: Sized + Device {
     /// Adds a buffer to the cache. Following calls will return this buffer, if the corresponding internal count matches with the id used in the cache.
     /// # Example
-    #[cfg_attr(any(feature = "realloc", not(feature="cpu")), doc = "```ignore")]
-    #[cfg_attr(any(not(feature = "realloc"), feature="cpu"), doc = "```")]
+    #[cfg_attr(any(feature = "realloc", not(feature = "cpu")), doc = "```ignore")]
+    #[cfg_attr(any(not(feature = "realloc"), feature = "cpu"), doc = "```")]
     /// use custos::{CPU, Read, set_count, get_count, CacheBuf};
     ///
     /// let device = CPU::new();
@@ -139,4 +163,22 @@ pub trait CacheBuf<'a, T, S: Shape = ()>: Sized + Device {
     /// assert_eq!(device.read(&buf), vec![1.5; 10]);
     /// ```
     fn cached(&'a self, len: usize) -> Buffer<'a, T, Self, S>;
+}
+
+/// Convert a possibly-indefinite [`RangeBounds`] into a [`Range`] with a start and stop index.
+#[inline]
+pub(crate) fn bounds_to_range<B: RangeBounds<usize>>(bounds: B, len: usize) -> Range<usize> {
+    let start = match bounds.start_bound() {
+        Bound::Included(start) => *start,
+        Bound::Excluded(start) => start + 1,
+        Bound::Unbounded => 0,
+    };
+
+    let end = match bounds.end_bound() {
+        Bound::Excluded(end) => *end,
+        Bound::Included(end) => end + 1,
+        Bound::Unbounded => len,
+    };
+
+    start..end
 }

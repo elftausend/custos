@@ -11,12 +11,12 @@ use super::{
     },
     chosen_cu_idx, cu_clear, CUDAPtr, KernelCacheCU, RawCUBuf,
 };
-use crate::devices::bounds_to_range;
 use crate::{
     cache::{Cache, CacheReturn},
     flag::AllocFlag,
-    Alloc, Buffer, CDatatype, CacheBuf, CachedLeaf, ClearBuf, CloneBuf, CopySlice, Device, Graph, GraphReturn,
-    RawConv, Read, Shape, WriteBuf,
+    op_traits::{CacheBuf, ClearBuf, CloneBuf, CopySlice, bounds_to_range},
+    Alloc, Buffer, CDatatype, CachedLeaf, Device, Graph, GraphReturn, RawConv, Read, Shape,
+    WriteBuf,
 };
 
 /// Used to perform calculations with a CUDA capable device.
@@ -174,19 +174,38 @@ impl<T: CDatatype> ClearBuf<T, CUDA> for CUDA {
 }
 
 impl<T> CopySlice<T> for CUDA {
-    fn copy_slice<R: RangeBounds<usize>>(&self, buf: &Buffer<T, CUDA>, range: R) -> Buffer<T, Self> {
+    fn copy_slice<R: RangeBounds<usize>>(
+        &self,
+        buf: &Buffer<T, CUDA>,
+        range: R,
+    ) -> Buffer<T, Self> {
         let range = bounds_to_range(range, buf.len());
-        let copied = Buffer::new(self, range.end - range.start);
+        let mut copied = Buffer::new(self, range.end - range.start);
+        self.copy_slice_to(buf, range, &mut copied, ..);
+        copied
+    }
+
+    fn copy_slice_to<SR: RangeBounds<usize>, DR: RangeBounds<usize>>(
+        &self,
+        source: &Buffer<T, Self>,
+        source_range: SR,
+        dest: &mut Buffer<T, Self>,
+        dest_range: DR,
+    ) {
+        let source_range = bounds_to_range(source_range, source.len());
+        let dest_range = bounds_to_range(dest_range, dest.len());
+
+        let len = source_range.end - source_range.start;
+        assert_eq!(len, dest_range.end - dest_range.start);
+        let size = std::mem::size_of::<T>();
 
         unsafe {
             cuMemcpy(
-                copied.ptr.ptr,
-                buf.ptr.ptr + (range.start * std::mem::size_of::<T>()) as u64,
-                copied.len() * std::mem::size_of::<T>(),
+                dest.ptr.ptr + (dest_range.start * size) as u64,
+                source.ptr.ptr + (source_range.start * size) as u64,
+                len * size,
             );
         }
-
-        copied
     }
 }
 

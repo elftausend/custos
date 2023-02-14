@@ -3,17 +3,17 @@ use core::ops::RangeBounds;
 use min_cl::CLDevice;
 
 use min_cl::api::{
-    create_buffer, enqueue_full_copy_buffer, enqueue_read_buffer, enqueue_write_buffer,
-    wait_for_event, CLIntDevice, CommandQueue, Context, MemFlags, enqueue_copy_buffer,
+    create_buffer, enqueue_copy_buffer, enqueue_full_copy_buffer, enqueue_read_buffer,
+    enqueue_write_buffer, wait_for_event, CLIntDevice, CommandQueue, Context, MemFlags,
 };
 
 use super::{chosen_cl_idx, cl_clear, CLPtr, KernelCacheCL, RawCL};
 use crate::{
     cache::{Cache, CacheReturn, RawConv},
-    devices::bounds_to_range,
     flag::AllocFlag,
-    Alloc, Buffer, CDatatype, CacheBuf, CachedLeaf, ClearBuf, CloneBuf, Device, Error, Graph,
-    GraphReturn, Read, WriteBuf, CPU, Shape, CopySlice,
+    op_traits::{bounds_to_range, CacheBuf, ClearBuf, CloneBuf, CopySlice},
+    Alloc, Buffer, CDatatype, CachedLeaf, Device, Error, Graph, GraphReturn, Read, Shape, WriteBuf,
+    CPU,
 };
 
 use std::{
@@ -286,21 +286,41 @@ impl<T: CDatatype> ClearBuf<T, OpenCL> for OpenCL {
 }
 
 impl<T> CopySlice<T> for OpenCL {
-    fn copy_slice<R: RangeBounds<usize>>(&self, buf: &Buffer<T, OpenCL>, range: R) -> Buffer<T, Self> {
+    fn copy_slice<R: RangeBounds<usize>>(
+        &self,
+        buf: &Buffer<T, OpenCL>,
+        range: R,
+    ) -> Buffer<T, Self> {
         let range = bounds_to_range(range, buf.len());
-        let copied = Buffer::new(self, range.end - range.start);
+        let mut copied = Buffer::new(self, range.end - range.start);
+        self.copy_slice_to(buf, range, &mut copied, ..);
+        copied
+    }
+
+    fn copy_slice_to<SR: RangeBounds<usize>, DR: RangeBounds<usize>>(
+        &self,
+        source: &Buffer<T, Self>,
+        source_range: SR,
+        dest: &mut Buffer<T, Self>,
+        dest_range: DR,
+    ) {
+        let source_range = bounds_to_range(source_range, source.len());
+        let dest_range = bounds_to_range(dest_range, dest.len());
+
+        assert_eq!(
+            source_range.end - source_range.start,
+            dest_range.end - dest_range.start
+        );
 
         enqueue_copy_buffer::<T>(
             &self.queue(),
-            buf.ptr.ptr,
-            copied.ptr.ptr,
-            range.start,
-            0,
-            copied.len(),
+            source.ptr.ptr,
+            dest.ptr.ptr,
+            source_range.start,
+            dest_range.start,
+            source_range.end - source_range.start,
         )
         .unwrap();
-
-        copied
     }
 }
 
