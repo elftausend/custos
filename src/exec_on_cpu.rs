@@ -134,6 +134,7 @@ where
     Ok(())
 }
 
+#[inline]
 pub fn cpu_exec_reduce<T, D, F>(x: &Buffer<T, D>, f: F) -> T
 where
     T: Default + Clone,

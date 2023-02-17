@@ -1,5 +1,25 @@
 use crate::{prelude::Float, Combiner, Eval};
 
+pub struct Exp<C> {
+    pub comb: C
+}
+
+impl<C> Combiner for Exp<C> {}
+
+impl<T: Float, C: Eval<T>> Eval<T> for Exp<C> {
+    #[inline]
+    fn eval(self) -> T {
+        self.comb.eval().exp()
+    }
+}
+
+impl<C: ToString> ToString for Exp<C> {
+    #[inline]
+    fn to_string(&self) -> String {
+        format!("exp({})", self.comb.to_string())
+    }
+}
+
 pub struct Sin<C> {
     pub comb: C,
 }

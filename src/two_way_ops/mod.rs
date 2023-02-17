@@ -3,7 +3,7 @@ mod resolve;
 
 pub use resolve::*;
 
-use self::ops::{Add, Cos, Div, Eq, GEq, LEq, Mul, Neg, Pow, Sin, Sub, Tan};
+use self::ops::{Add, Cos, Div, Eq, GEq, LEq, Mul, Neg, Pow, Sin, Sub, Tan, Exp};
 
 pub trait Eval<T> {
     fn eval(self) -> T;
@@ -111,6 +111,14 @@ pub trait Combiner {
         Self: Sized,
     {
         Neg { comb: self }
+    }
+
+    #[inline]
+    fn exp(self) -> Exp<Self> 
+    where
+        Self: Sized
+    {
+        Exp { comb: self }
     }
 }
 
