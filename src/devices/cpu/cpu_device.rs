@@ -2,16 +2,17 @@ use crate::{
     cache::RawConv,
     devices::cache::{Cache, CacheReturn},
     flag::AllocFlag,
+    op_traits::{bounds_to_range, CacheBuf, ClearBuf, CloneBuf, CopySlice},
     shape::Shape,
-    Alloc, Buffer, CacheBuf, CachedLeaf, ClearBuf, CloneBuf, Device, DevicelessAble, Graph,
-    GraphReturn, MainMemory, Read, WriteBuf, CopySlice,
+    Alloc, Buffer, CachedLeaf, Device, DevicelessAble, Graph, GraphReturn, MainMemory, Read,
+    WriteBuf,
 };
 
-use core::ops::{Index, RangeBounds};
 use core::{
     cell::{RefCell, RefMut},
     fmt::Debug,
     mem::{align_of, size_of},
+    ops::{Index, Range, RangeBounds},
 };
 
 use super::{CPUPtr, RawCpuBuf};
@@ -166,15 +167,37 @@ impl<'a, T> CacheBuf<'a, T> for CPU {
     }
 }
 
-impl<T: Copy, R: RangeBounds<usize>, D: MainMemory> CopySlice<T, R, D> for CPU
+impl<T: Copy, D: MainMemory> CopySlice<T, D> for CPU
 where
-    [T]: Index<R, Output = [T]>,
+    [T]: Index<Range<usize>, Output = [T]>,
 {
-    fn copy_slice(&self, buf: &Buffer<T, D>, range: R) -> Buffer<T, Self> {
-        let slice = &buf.as_slice()[range];
-        let mut copied = Buffer::new(self, slice.len());
-        self.write(&mut copied, slice);
-        copied
+    fn copy_slice_to<SR: RangeBounds<usize>, DR: RangeBounds<usize>>(
+        &self,
+        source: &Buffer<T, D>,
+        source_range: SR,
+        dest: &mut Buffer<T, Self>,
+        dest_range: DR,
+    ) {
+        let source_range = bounds_to_range(source_range, source.len());
+        let dest_range = bounds_to_range(dest_range, dest.len());
+
+        assert_eq!(
+            source_range.end - source_range.start,
+            dest_range.end - dest_range.start,
+        );
+
+        dest[dest_range].copy_from_slice(&source[source_range]);
+    }
+
+    fn copy_slice_all<I: IntoIterator<Item = (Range<usize>, Range<usize>)>>(
+        &self,
+        source: &Buffer<T, D>,
+        dest: &mut Buffer<T, Self>,
+        ranges: I,
+    ) {
+        for (source_range, dest_range) in ranges {
+            self.copy_slice_to(source, source_range, dest, dest_range);
+        }
     }
 }
 

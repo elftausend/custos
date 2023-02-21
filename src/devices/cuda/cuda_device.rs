@@ -1,6 +1,7 @@
+use core::ops::{Range, RangeBounds};
+
 use std::cell::RefCell;
 use std::marker::PhantomData;
-use std::ops::{Bound, RangeBounds};
 
 use super::{
     api::{
@@ -10,12 +11,12 @@ use super::{
     },
     chosen_cu_idx, cu_clear, CUDAPtr, KernelCacheCU, RawCUBuf,
 };
-use crate::CopySlice;
 use crate::{
     cache::{Cache, CacheReturn},
     flag::AllocFlag,
-    Alloc, Buffer, CDatatype, CacheBuf, CachedLeaf, ClearBuf, CloneBuf, Device, Graph, GraphReturn,
-    RawConv, Read, Shape, WriteBuf,
+    op_traits::{bounds_to_range, CacheBuf, ClearBuf, CloneBuf, CopySlice},
+    Alloc, Buffer, CDatatype, CachedLeaf, Device, Graph, GraphReturn, RawConv, Read, Shape,
+    WriteBuf,
 };
 
 /// Used to perform calculations with a CUDA capable device.
@@ -172,32 +173,39 @@ impl<T: CDatatype> ClearBuf<T, CUDA> for CUDA {
     }
 }
 
-impl<T, R: RangeBounds<usize>> CopySlice<T, R> for CUDA {
-    fn copy_slice(&self, buf: &Buffer<T, CUDA>, range: R) -> Buffer<T, Self> {
-        let start = match range.start_bound() {
-            Bound::Included(start) => *start,
-            Bound::Excluded(start) => start + 1,
-            Bound::Unbounded => 0,
-        };
+impl<T> CopySlice<T> for CUDA {
+    fn copy_slice_to<SR: RangeBounds<usize>, DR: RangeBounds<usize>>(
+        &self,
+        source: &Buffer<T, Self>,
+        source_range: SR,
+        dest: &mut Buffer<T, Self>,
+        dest_range: DR,
+    ) {
+        let source_range = bounds_to_range(source_range, source.len());
+        let dest_range = bounds_to_range(dest_range, dest.len());
 
-        let end = match range.end_bound() {
-            Bound::Excluded(end) => *end,
-            Bound::Included(end) => end + 1,
-            Bound::Unbounded => buf.len(),
-        };
-
-        let slice_len = end - start;
-        let copied = Buffer::new(self, slice_len);
+        let len = source_range.end - source_range.start;
+        assert_eq!(len, dest_range.end - dest_range.start);
+        let size = std::mem::size_of::<T>();
 
         unsafe {
             cuMemcpy(
-                copied.ptr.ptr,
-                buf.ptr.ptr + (start * std::mem::size_of::<T>()) as u64,
-                copied.len() * std::mem::size_of::<T>(),
+                dest.ptr.ptr + (dest_range.start * size) as u64,
+                source.ptr.ptr + (source_range.start * size) as u64,
+                len * size,
             );
         }
+    }
 
-        copied
+    fn copy_slice_all<I: IntoIterator<Item = (Range<usize>, Range<usize>)>>(
+        &self,
+        source: &Buffer<T, Self>,
+        dest: &mut Buffer<T, Self>,
+        ranges: I,
+    ) {
+        for (source_range, dest_range) in ranges {
+            self.copy_slice_to(source, source_range, dest, dest_range);
+        }
     }
 }
 

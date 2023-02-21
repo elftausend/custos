@@ -11,11 +11,11 @@ pub use wgpu_device::*;
 use crate::{Buffer, Shape};
 
 /// Sets all the elements of a `WGPU` `Buffer` to zero / default.
-/// 
+///
 /// # Example
 /// ```
 /// use custos::{WGPU, Buffer, wgpu::wgpu_clear};
-/// 
+///
 /// fn main() -> custos::Result<()> {
 ///     let device = WGPU::new(wgpu::Backends::all())?;
 ///     let mut buf = Buffer::from((&device, [4f32, -1.2, 2., 1., 3.]));
@@ -46,10 +46,10 @@ pub fn wgpu_clear<T: Default + Debug, S: Shape>(device: &WGPU, buf: &mut Buffer<
 
 #[cfg(test)]
 mod tests {
-    use crate::{WGPU, Buffer};
+    use crate::{Buffer, WGPU};
 
     #[test]
-    fn test_wgpu_clear() -> crate::Result<() >{
+    fn test_wgpu_clear() -> crate::Result<()> {
         let device = WGPU::new(wgpu::Backends::all())?;
 
         let mut buf = Buffer::from((&device, [1, 4, 2, 1, 9]));

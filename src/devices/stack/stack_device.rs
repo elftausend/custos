@@ -3,7 +3,6 @@ use crate::{
     Read, StackArray,
 };
 
-
 #[derive(Debug, Clone, Copy)]
 pub struct Stack;
 
@@ -49,7 +48,7 @@ impl<'a, S: Shape, T: Copy + Default> Alloc<'a, T, S> for Stack {
     #[inline]
     fn with_array(&'a self, array: <S as Shape>::ARR<T>) -> <Self as Device>::Ptr<T, S>
     where
-        T: Clone, 
+        T: Clone,
     {
         StackArray::from_array(array)
     }
@@ -108,10 +107,10 @@ where
 
 #[cfg(test)]
 mod tests {
-    #[cfg(not(feature="no-std"))]
+    #[cfg(not(feature = "no-std"))]
     use crate::{shape::Dim2, Buffer, Stack};
 
-    #[cfg(not(feature="no-std"))]
+    #[cfg(not(feature = "no-std"))]
     #[test]
     fn test_dim2() {
         let buf = Buffer::<f64, Stack, Dim2<2, 3>>::from((&Stack, &[3., 2., 1., 4., 7., 1.]));

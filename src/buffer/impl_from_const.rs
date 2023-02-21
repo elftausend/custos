@@ -1,4 +1,4 @@
-use crate::{shape::Shape, Alloc, Buffer, Dim1, Dim2, prelude::Number};
+use crate::{prelude::Number, shape::Shape, Alloc, Buffer, Dim1, Dim2};
 
 pub trait WithShape<D, C> {
     fn with(device: D, array: C) -> Self;
@@ -32,7 +32,8 @@ where
     }
 }
 
-impl<'a, T, D, const B: usize, const A: usize> WithShape<&'a D, [[T; A]; B]> for Buffer<'a, T, D, Dim2<B, A>>
+impl<'a, T, D, const B: usize, const A: usize> WithShape<&'a D, [[T; A]; B]>
+    for Buffer<'a, T, D, Dim2<B, A>>
 where
     T: Number,
     D: Alloc<'a, T, Dim2<B, A>>,
@@ -46,7 +47,8 @@ where
     }
 }
 
-impl<'a, T, D, const B: usize, const A: usize> WithShape<&'a D, &[[T; A]; B]> for Buffer<'a, T, D, Dim2<B, A>>
+impl<'a, T, D, const B: usize, const A: usize> WithShape<&'a D, &[[T; A]; B]>
+    for Buffer<'a, T, D, Dim2<B, A>>
 where
     T: Number,
     D: Alloc<'a, T, Dim2<B, A>>,
@@ -59,7 +61,6 @@ where
         }
     }
 }
-
 
 impl<'a, T, D, S: Shape> WithShape<&'a D, ()> for Buffer<'a, T, D, S>
 where

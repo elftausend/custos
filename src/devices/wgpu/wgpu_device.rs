@@ -2,7 +2,10 @@ use core::{cell::RefCell, fmt::Debug};
 
 use super::{shader_cache::ShaderCache, wgpu_buffer::*, wgpu_clear};
 
-use crate::{Alloc, Cache, CacheReturn, Device, Graph, GraphReturn, Node, RawConv, Read, Shape, flag::AllocFlag, PtrType, DeviceError, ClearBuf};
+use crate::{
+    flag::AllocFlag, Alloc, Cache, CacheReturn, ClearBuf, Device, DeviceError, Graph, GraphReturn,
+    Node, PtrType, RawConv, Read, Shape,
+};
 use wgpu::{Adapter, Backends, Queue};
 
 pub struct WGPU {
@@ -22,7 +25,8 @@ impl WGPU {
         });
 
         let adapter =
-            pollster::block_on(instance.request_adapter(&wgpu::RequestAdapterOptions::default())).ok_or(DeviceError::WGPUDeviceReturn)?;
+            pollster::block_on(instance.request_adapter(&wgpu::RequestAdapterOptions::default()))
+                .ok_or(DeviceError::WGPUDeviceReturn)?;
 
         let (device, queue) = pollster::block_on(adapter.request_device(
             &wgpu::DeviceDescriptor {
@@ -65,7 +69,7 @@ impl<T, S: Shape> Alloc<'_, T, S> for WGPU {
         WGPUBufPtr {
             ptr: Box::leak(Box::new(wgpu_buf)),
             len,
-            flag
+            flag,
         }
     }
 
@@ -77,7 +81,7 @@ impl<T, S: Shape> Alloc<'_, T, S> for WGPU {
         WGPUBufPtr {
             ptr: Box::into_raw(Box::new(wgpu_buf)),
             len: data.len(),
-            flag: AllocFlag::None
+            flag: AllocFlag::None,
         }
     }
 }
@@ -112,12 +116,9 @@ impl<T> Drop for WGPUBufPtr<T> {
             return;
         }
 
-        unsafe {
-            drop(Box::from_raw(self.ptr))
-        }
+        unsafe { drop(Box::from_raw(self.ptr)) }
     }
 }
-
 
 pub struct RawWGPUBuffer {
     pub ptr: *const u8,
@@ -159,12 +160,15 @@ impl RawConv for WGPU {
         }
     }
 
-    fn destruct<T, S: Shape>(ct: &RawWGPUBuffer, flag: AllocFlag) -> (Self::Ptr<T, S>, crate::Node) {
+    fn destruct<T, S: Shape>(
+        ct: &RawWGPUBuffer,
+        flag: AllocFlag,
+    ) -> (Self::Ptr<T, S>, crate::Node) {
         (
             WGPUBufPtr {
                 ptr: ct.ptr as *mut WGPUBuffer<T>,
                 len: ct.len,
-                flag
+                flag,
             },
             ct.node,
         )
@@ -180,7 +184,7 @@ impl<T: Default + Debug, S: Shape> ClearBuf<T, Self, S> for WGPU {
     ///     let device = WGPU::new(wgpu::Backends::all())?;
     ///     let mut buf = Buffer::from((&device, [1, 5, 3, 4, 2]));
     ///     device.clear(&mut buf);
-    /// 
+    ///
     ///     assert_eq!(buf.read(), [0, 0, 0, 0, 0]);
     ///     Ok(())
     /// }
