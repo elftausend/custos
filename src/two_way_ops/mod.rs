@@ -127,6 +127,17 @@ mod tests {
     use crate::{prelude::Float, Combiner, Eval, Resolve, ToMarker, ToVal};
 
     #[test]
+    fn test_exp() {
+        let f = |x: Resolve<f32>| x.exp();
+
+        let res: f32 = f(1f32.to_val()).eval();
+        assert_eq!(res, core::f32::consts::E);
+
+        let res = f("x".to_marker()).to_string();
+        assert_eq!(res, "exp(x)");
+    }
+
+    #[test]
     fn test_neg_tan() {
         let f = |x: Resolve<f32>| x.tan().neg();
 
