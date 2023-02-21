@@ -74,6 +74,8 @@ pub trait CopySlice<T, D: Device = Self>: Sized + Device {
     /// # Example
     #[cfg_attr(feature = "cpu", doc = "```")]
     #[cfg_attr(not(feature = "cpu"), doc = "```ignore")]
+    /// use custos::{Buffer, CPU, CopySlice};
+    /// 
     /// let device = CPU::new();
     /// let source = Buffer::from((&device, [1., 2., 6., 2., 4.]));
     ///
