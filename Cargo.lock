@@ -189,6 +189,7 @@ dependencies = [
 [[package]]
 name = "custos-macro"
 version = "0.1.0"
+source = "git+https://github.com/elftausend/custos-macro#6541f455c309dba1369e46f1a2112cd7692eee8f"
 dependencies = [
  "proc-macro2",
  "quote",

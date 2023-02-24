@@ -21,7 +21,8 @@ futures-intrusive = {version="0.5.0", optional=true}
 pollster = {version="0.3", optional=true }
 wgpu = {version="0.15", optional=true }
 
-custos-macro = {path = "../custos-macro", optional=true}
+#custos-macro = {path = "../custos-macro", optional=true}
+custos-macro = {git = "https://github.com/elftausend/custos-macro", optional=true}
 #custos-macro = {version = "0.1.0", optional=true}
 
 # no-std float math
@@ -52,7 +53,8 @@ macro = ["dep:custos-macro"]
 
 [dev-dependencies]
 #criterion = "0.3"
-custos-macro = {path = "../custos-macro"}
+custos-macro = {git = "https://github.com/elftausend/custos-macro"}
+#custos-macro = {path = "../custos-macro"}
 #custos-macro = {version = "0.1.0"}
 
 [[example]]
