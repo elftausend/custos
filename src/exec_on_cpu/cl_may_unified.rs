@@ -1,4 +1,6 @@
-use super::{cpu_exec_binary, cpu_exec_binary_mut, cpu_exec_unary, cpu_exec_unary_mut, cpu_exec_reduce};
+use super::{
+    cpu_exec_binary, cpu_exec_binary_mut, cpu_exec_reduce, cpu_exec_unary, cpu_exec_unary_mut,
+};
 use crate::{Buffer, OpenCL, CPU};
 
 #[cfg(not(feature = "realloc"))]
@@ -151,12 +153,14 @@ where
 pub fn cpu_exec_reduce_may_unified<T, F>(device: &OpenCL, x: &Buffer<T, OpenCL>, f: F) -> T
 where
     T: Default + Clone,
-    F: Fn(&CPU, &Buffer<T, CPU>) -> T
+    F: Fn(&CPU, &Buffer<T, CPU>) -> T,
 {
     let cpu = CPU::new();
 
     if device.unified_mem() {
-        return f(&cpu, &unsafe { Buffer::from_raw_host(x.ptr.host_ptr, x.len()) });
+        return f(&cpu, &unsafe {
+            Buffer::from_raw_host(x.ptr.host_ptr, x.len())
+        });
     }
     cpu_exec_reduce(x, f)
 }

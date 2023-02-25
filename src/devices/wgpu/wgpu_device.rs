@@ -112,7 +112,7 @@ impl<T> PtrType for WGPUBufPtr<T> {
 
 impl<T> Drop for WGPUBufPtr<T> {
     fn drop(&mut self) {
-        if self.flag != AllocFlag::None {
+        if !matches!(self.flag, AllocFlag::None | AllocFlag::BorrowedCache) {
             return;
         }
 

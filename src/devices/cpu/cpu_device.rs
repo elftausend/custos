@@ -3,7 +3,7 @@ use crate::{
     devices::cache::{Cache, CacheReturn},
     flag::AllocFlag,
     shape::Shape,
-    Alloc, Buffer, CloneBuf, Device, DevicelessAble, Graph, GraphReturn, MainMemory,
+    Alloc, BorrowedCache, Buffer, CloneBuf, Device, DevicelessAble, Graph, GraphReturn, MainMemory,
 };
 
 use core::{
@@ -34,6 +34,8 @@ pub struct CPU {
     pub graph: RefCell<Graph>,
     #[cfg(feature = "autograd")]
     pub tape: RefCell<crate::Tape<CPU>>,
+
+    pub(crate) cache2: RefCell<BorrowedCache>,
 }
 
 impl CPU {
@@ -43,6 +45,7 @@ impl CPU {
         CPU {
             cache: Default::default(),
             graph: Default::default(),
+            cache2: Default::default(),
             #[cfg(feature = "autograd")]
             tape: Default::default(),
         }

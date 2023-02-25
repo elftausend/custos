@@ -5,6 +5,7 @@ pub enum AllocFlag {
     Cache,
     Wrapper,
     Num,
+    BorrowedCache
 }
 
 impl Default for AllocFlag {

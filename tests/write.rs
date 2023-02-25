@@ -3,7 +3,6 @@ use custos::{Buffer, WriteBuf, CPU};
 #[cfg(any(feature = "cuda", feature = "opencl"))]
 use custos::Read;
 
-
 use custos_macro::stack_cpu_test;
 
 #[stack_cpu_test]

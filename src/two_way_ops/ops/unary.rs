@@ -1,7 +1,7 @@
 use crate::{prelude::Float, Combiner, Eval};
 
 pub struct Exp<C> {
-    pub comb: C
+    pub comb: C,
 }
 
 impl<C> Combiner for Exp<C> {}

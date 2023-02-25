@@ -237,6 +237,7 @@ mod tests {
     //use crate::{bump_count, Buffer, CacheReturn, Ident, IdentHasher};
 
     #[test]
+    #[cfg_attr(miri, ignore)]
     fn test_ident_hasher() {
         use crate::IdentHasher;
 

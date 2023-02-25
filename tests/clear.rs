@@ -1,4 +1,4 @@
-use custos::{Buffer, CPU, WithShape};
+use custos::{Buffer, WithShape, CPU};
 
 use custos_macro::stack_cpu_test;
 

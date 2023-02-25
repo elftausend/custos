@@ -53,7 +53,7 @@ impl<T> Default for CPUPtr<T> {
 
 impl<T> Drop for CPUPtr<T> {
     fn drop(&mut self) {
-        if self.flag != AllocFlag::None {
+        if !matches!(self.flag, AllocFlag::None | AllocFlag::BorrowedCache) {
             return;
         }
 

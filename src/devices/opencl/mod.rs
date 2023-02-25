@@ -82,7 +82,7 @@ impl<T> PtrType for CLPtr<T> {
 
 impl<T> Drop for CLPtr<T> {
     fn drop(&mut self) {
-        if self.flag != AllocFlag::None {
+        if !matches!(self.flag, AllocFlag::None | AllocFlag::BorrowedCache) {
             return;
         }
 

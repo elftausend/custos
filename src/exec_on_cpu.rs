@@ -139,7 +139,7 @@ pub fn cpu_exec_reduce<T, D, F>(x: &Buffer<T, D>, f: F) -> T
 where
     T: Default + Clone,
     D: Read<T>,
-    F: Fn(&CPU, &Buffer<T, CPU>) -> T
+    F: Fn(&CPU, &Buffer<T, CPU>) -> T,
 {
     let cpu = CPU::new();
     let cpu_x = Buffer::from((&cpu, x.read_to_vec()));
