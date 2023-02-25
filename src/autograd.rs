@@ -1,11 +1,12 @@
-use core::{cell::RefMut, fmt::Debug};
+use core::{cell::{RefMut, Ref}, fmt::Debug, marker::PhantomData};
 
-use crate::{prelude::One, Alloc, Buffer, Cache, Ident, RawConv, Shape, WriteBuf};
+use crate::{prelude::One, Alloc, Buffer, Ident, RawConv, Shape, WriteBuf, Device, borrowing_cache::BorrowingCache};
 
 #[derive(Default)]
-pub struct Gradients<D: RawConv> {
-    // Borrowing cache
-    pub cache: Cache<D>,
+pub struct Gradients<D> {
+    // maybe use a borrowed cache in the style of the 'owned' cache
+    cache: BorrowingCache,
+    _pd: PhantomData<D>
 }
 
 impl<D: RawConv> Debug for Gradients<D>
@@ -14,12 +15,12 @@ where
 {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         f.debug_struct("Gradients")
-            .field("cache", &self.cache.nodes)
+            .field("cache", &self.cache)
             .finish()
     }
 }
 
-impl<D: RawConv> Gradients<D> {
+impl<D> Gradients<D> {
     // everything is T, bad
     /*pub fn grads<'a, T>(&mut self, device: &'a D) -> Vec<Buffer<'a, T, D>> {
         self.cache
@@ -33,67 +34,125 @@ impl<D: RawConv> Gradients<D> {
             .collect::<Vec<Buffer<T, D>>>()
     }*/
 
+
     #[inline]
-    pub fn get_like_raw<'a, T, S: Shape>(
+    pub fn may_get_ref<'a, T, S>(
+        &self,
+        ident: Ident,
+    ) -> Option<&Buffer<'a, T, D, S>>
+    where
+        T: 'static,
+        S: Shape,
+        D: Device,
+    {
+        self.cache.get_buf(ident)
+    }
+
+    #[inline]
+    pub fn may_get_mut<'a, T, S>(
+        &mut self,
+        ident: Ident,
+    ) -> Option<&mut Buffer<'a, T, D, S>>
+    where
+        T: 'static,
+        S: Shape,
+        D: Device,
+    {
+        self.cache.get_buf_mut(ident)
+    }
+
+    #[inline]
+    pub fn get_ref<'a, T, S>(
         &mut self,
         device: &'a D,
         ident: Ident,
-    ) -> Buffer<'a, T, D, S>
+    ) -> &Buffer<'a, T, D, S>
     where
+        T: 'static,
+        S: Shape,
         D: Alloc<'a, T, S>,
     {
-        self.cache.get(device, ident, || ())
+        self.cache.add_or_get(device, ident)
     }
 
     #[inline]
-    pub fn get_like<'a, T, S: Shape>(&mut self, buf: &Buffer<'a, T, D, S>) -> Buffer<'a, T, D, S>
+    pub fn get_mut<'a, T, S>(
+        &mut self,
+        device: &'a D,
+        ident: Ident,
+    ) -> &mut Buffer<'a, T, D, S>
     where
-        D: Alloc<'a, T, S>,
+        T: 'static,
+        S: Shape,
+        D: for<'b> Alloc<'b, T, S>,
     {
-        self.get_like_raw(buf.device(), buf.id())
+       self.cache.add_or_get_mut(device, ident)
     }
 
     #[inline]
-    pub fn get_triple<'a, T, S: Shape>(
+    pub fn get_like<'a, T, S>(&mut self, buf: &Buffer<'a, T, D, S>) -> &Buffer<'a, T, D, S>
+    where
+        T: 'static,
+        S: Shape,
+        D: Alloc<'a, T, S>,
+    {
+        self.get_ref(buf.device(), buf.id())
+    }
+
+    #[inline]
+    pub fn get_triple<'a, T, S>(
         &mut self,
         device: &'a D,
         (lid, rid, oid): (Ident, Ident, Ident),
     ) -> (
         Buffer<'a, T, D, S>,
         Buffer<'a, T, D, S>,
-        Buffer<'a, T, D, S>,
-        Buffer<'a, T, D, S>,
-        Buffer<'a, T, D, S>,
-    )
+        &mut Buffer<'a, T, D, S>,
+        &Buffer<'a, T, D, S>,
+        &Buffer<'a, T, D, S>,
+    ) 
     where
+        T: 'static,
+        S: Shape,
         D: for<'b> Alloc<'b, T, S>,
     {
+        self.cache.add_buf_once(device, rid);
+        self.cache.add_buf_once(device, oid);
+
+        let lhs_grad_ptr = self.get_mut(device, lid) as *mut _;
+        let lhs_grad = unsafe { &mut *lhs_grad_ptr };
         (
             device.get_existing_buf(lid),
             device.get_existing_buf(rid),
-            self.get_like_raw(device, lid),
-            self.get_like_raw(device, rid),
-            self.get_like_raw(device, oid),
+            lhs_grad,    
+            self.may_get_ref(rid).unwrap(),
+            self.may_get_ref(oid).unwrap()
         )
     }
 
     #[inline]
-    pub fn get_double<'a, T, S: Shape>(
+    pub fn get_double<'a, T, S>(
         &mut self,
         device: &'a D,
         (xid, oid): (Ident, Ident),
     ) -> (
         Buffer<'a, T, D, S>,
-        Buffer<'a, T, D, S>,
-        Buffer<'a, T, D, S>,
+        &mut Buffer<'a, T, D, S>,
+        &Buffer<'a, T, D, S>,
     )
     where
+        T: 'static,
+        S: Shape,
         D: for<'b> Alloc<'b, T, S>,
     {
+        let x_grad_ptr = self.get_mut(device, xid) as *mut _;
+        let x_grad_mut = unsafe { &mut *x_grad_ptr };
+        let o_grad = self.get_ref(&device, oid);
+
         (
             device.get_existing_buf(xid),
-            self.get_like_raw(device, xid),
-            self.get_like_raw(device, oid),
+            x_grad_mut,
+            o_grad,
         )
     }
 }
@@ -105,6 +164,7 @@ pub struct Tape<D: RawConv> {
 }
 
 pub trait TapeReturn: RawConv {
+    fn tape(&self) -> Ref<Tape<Self>>;
     fn tape_mut(&self) -> RefMut<Tape<Self>>;
 }
 
@@ -118,6 +178,7 @@ where
 }
 
 impl<D: RawConv> Tape<D> {
+    #[inline]
     pub fn add_grad_fn<F: Fn(&mut Gradients<D>, &D) + 'static>(&mut self, grad_fn: F) {
         self.grad_fns.push(Box::new(grad_fn))
     }
@@ -130,10 +191,12 @@ impl<D: RawConv> Tape<D> {
 
     pub fn backward_seeded<T, S: Shape>(&mut self, buf: &Buffer<T, D, S>)
     where
-        T: Clone + One,
+        T: Clone + One + 'static,
         D: for<'a> Alloc<'a, T, S> + WriteBuf<T, S, D>,
     {
-        let mut out = self.grads.get_like::<T, S>(buf);
+        // TODO // TODO
+        //let mut out = self.grads.get_like::<T, S>(buf);
+        let out = self.grads.get_mut::<T, S>(buf.device(), buf.id());
         out.write(&vec![T::one(); out.len()]);
 
         self.backward(buf.device())
@@ -142,7 +205,7 @@ impl<D: RawConv> Tape<D> {
 
 impl<'a, T, D, S> Buffer<'a, T, D, S>
 where
-    T: Clone + One,
+    T: Clone + One + 'static,
     D: TapeReturn + WriteBuf<T, S, D> + for<'b> Alloc<'b, T, S>,
     S: Shape,
 {
@@ -150,10 +213,19 @@ where
     pub fn backward(&self) {
         self.device().tape_mut().backward_seeded(self)
     }
+    
+    #[inline]
+    pub fn grad(&self) -> Ref<Self> {
+        Ref::map(self.device().tape(), |tape| {
+            tape.grads.may_get_ref(self.id()).unwrap()
+        })
+    }
 
     #[inline]
-    pub fn grad(&self) -> Self {
-        self.device().tape_mut().grads.get_like(&self)
+    pub fn grad_mut(&mut self) -> RefMut<Self> {
+        RefMut::map(self.device().tape_mut(), |tape| {
+            tape.grads.may_get_mut(self.id()).unwrap()
+        })
     }
 }
 

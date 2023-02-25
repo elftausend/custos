@@ -104,7 +104,7 @@ pub trait CommonPtrs<T> {
     fn ptrs_mut(&mut self) -> (*mut T, *mut c_void, u64);
 }
 
-pub trait Device: Sized {
+pub trait Device: Sized + 'static {
     type Ptr<U, S: Shape>: PtrType; //const B: usize, const C: usize
     type Cache: CacheAble<Self>;
     //type Tape;

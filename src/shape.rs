@@ -1,6 +1,6 @@
 use crate::{Device, PtrType};
 
-pub unsafe trait Shape {
+pub unsafe trait Shape: 'static {
     const LEN: usize = 0;
     type ARR<T>;
 

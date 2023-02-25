@@ -15,14 +15,12 @@ use cuda::api::cublas::{cublasDgemm_v2, cublasOperation_t, cublasSgemm_v2, Cubla
 pub mod cache;
 
 #[cfg(not(feature = "no-std"))]
-pub mod borrowed_cache;
+pub mod borrowing_cache;
 
 //pub mod cache;
 #[cfg(not(feature = "no-std"))]
 pub use cache::*;
 
-#[cfg(not(feature = "no-std"))]
-pub use borrowed_cache::*;
 //pub use cache::{Cache, CacheReturn};
 
 #[cfg(feature = "cpu")]

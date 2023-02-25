@@ -144,7 +144,7 @@ pub trait UnaryGrad<T, S: Shape = (), D: Device = Self>: Device {
         F: Eval<T> + ToString;
 }
 
-pub trait UnaryElementWiseMayGrad<T, D: Device, S: Shape>: Device {
+pub trait UnaryElementWiseMayGrad<'a, T, D: Device, S: Shape>: Device {
     fn unary_ew<FO, GO>(
         &self,
         buf: &Buffer<T, D, S>,
@@ -156,11 +156,12 @@ pub trait UnaryElementWiseMayGrad<T, D: Device, S: Shape>: Device {
         GO: Eval<T> + ToString + 'static;
 }
 
-impl<T, D, S> UnaryElementWiseMayGrad<T, D, S> for D
+impl<'a, T, D, S> UnaryElementWiseMayGrad<'a, T, D, S> for D
 where
+    Buffer<'a, T, D, S>: 'static,
     T: 'static,
     D: ApplyFunction<T, S, D> + UnaryGrad<T, S, D> + MayTapeReturn,
-    D: for<'a> Alloc<'a, T, S>,
+    D: for<'b> Alloc<'b, T, S>,
     S: Shape,
 {
     #[inline(always)]

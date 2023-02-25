@@ -3,7 +3,7 @@ use crate::{
     devices::cache::{Cache, CacheReturn},
     flag::AllocFlag,
     shape::Shape,
-    Alloc, BorrowedCache, Buffer, CloneBuf, Device, DevicelessAble, Graph, GraphReturn, MainMemory,
+    Alloc, Buffer, CloneBuf, Device, DevicelessAble, Graph, GraphReturn, MainMemory,
 };
 
 use core::{
@@ -34,8 +34,6 @@ pub struct CPU {
     pub graph: RefCell<Graph>,
     #[cfg(feature = "autograd")]
     pub tape: RefCell<crate::Tape<CPU>>,
-
-    pub(crate) cache2: RefCell<BorrowedCache>,
 }
 
 impl CPU {
@@ -45,7 +43,6 @@ impl CPU {
         CPU {
             cache: Default::default(),
             graph: Default::default(),
-            cache2: Default::default(),
             #[cfg(feature = "autograd")]
             tape: Default::default(),
         }
@@ -125,6 +122,11 @@ impl<T, S: Shape> Alloc<'_, T, S> for CPU {
 
 #[cfg(feature = "autograd")]
 impl crate::TapeReturn for CPU {
+    #[inline]
+    fn tape(&self) -> core::cell::Ref<crate::Tape<Self>> {
+        self.tape.borrow()
+    }
+
     #[inline]
     fn tape_mut(&self) -> RefMut<crate::Tape<Self>> {
         self.tape.borrow_mut()
