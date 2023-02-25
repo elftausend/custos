@@ -1,6 +1,6 @@
 use crate::{
     cache::RawConv,
-    devices::cache::{Cache, CacheReturn},
+    devices::{cache::{Cache, CacheReturn}, cache3::Cache3},
     flag::AllocFlag,
     shape::Shape,
     Alloc, BufType, Buffer, Cache2, CacheBuf, CacheReturn2, CachedLeaf, ClearBuf, CloneBuf, Device,
@@ -33,6 +33,8 @@ use super::{CPUPtr, RawCpuBuf};
 pub struct CPU {
     pub cache: RefCell<Cache2<CPU>>,
     pub graph: RefCell<Graph>,
+
+    pub cache3: RefCell<Cache3>
 }
 
 impl CPU {
@@ -42,6 +44,7 @@ impl CPU {
         CPU {
             cache: RefCell::new(Cache2::default()),
             graph: RefCell::new(Graph::new()),
+            cache3: Default::default()
         }
     }
 }
