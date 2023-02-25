@@ -10,7 +10,8 @@ use crate::{Alloc, Buffer, Device, Read, WriteBuf, CPU};
 /// and executes the unary operation `F` with a `CPU` on the newly created `CPU` `Buffer`.
 ///
 /// # Example
-/// ```
+#[cfg_attr(feature = "opencl", doc = "```")]
+#[cfg_attr(not(feature = "opencl"), doc = "```ignore")]
 /// use custos::{exec_on_cpu::cpu_exec_unary, Buffer, Device, OpenCL};
 ///
 /// fn main() -> custos::Result<()> {
@@ -72,7 +73,8 @@ where
 /// and executes the binary operation `F` with a `CPU` on the newly created `CPU` `Buffer`s.
 ///
 /// # Example
-/// ```
+#[cfg_attr(feature = "opencl", doc = "```")]
+#[cfg_attr(not(feature = "opencl"), doc = "```ignore")]
 /// use custos::{exec_on_cpu::cpu_exec_binary, Buffer, Device, OpenCL};
 ///
 /// fn main() -> custos::Result<()> {

@@ -146,6 +146,11 @@ impl Device for OpenCL {
 #[cfg(feature = "autograd")]
 impl crate::TapeReturn for OpenCL {
     #[inline]
+    fn tape(&self) -> core::cell::Ref<crate::Tape<Self>> {
+        self.tape.borrow()
+    }
+
+    #[inline]
     fn tape_mut(&self) -> core::cell::RefMut<crate::Tape<Self>> {
         self.tape.borrow_mut()
     }

@@ -8,7 +8,7 @@ use crate::{flag::AllocFlag, Alloc, Buffer, Device, Ident, Shape};
 
 #[derive(Debug, Default)]
 pub(crate) struct BorrowingCache {
-    cache: HashMap<Ident, Box<dyn Any>>,
+    pub(crate) cache: HashMap<Ident, Box<dyn Any>>,
 }
 
 // TODO: make BorrowedCache unuseable without device (=> Static get methods with D: CacheReturn)
@@ -95,7 +95,7 @@ impl BorrowingCache {
 
 #[cfg(test)]
 mod tests {
-    use crate::{CPU, Ident, Buffer};
+    use crate::{CPU, Ident};
 
     use super::BorrowingCache;
 

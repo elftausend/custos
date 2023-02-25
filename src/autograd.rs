@@ -34,6 +34,10 @@ impl<D> Gradients<D> {
             .collect::<Vec<Buffer<T, D>>>()
     }*/
 
+    #[inline]
+    pub fn zero_grad(&mut self) {
+        self.cache.cache.clear();
+    }
 
     #[inline]
     pub fn may_get_ref<'a, T, S>(
@@ -108,7 +112,7 @@ impl<D> Gradients<D> {
         Buffer<'a, T, D, S>,
         Buffer<'a, T, D, S>,
         &mut Buffer<'a, T, D, S>,
-        &Buffer<'a, T, D, S>,
+        &mut Buffer<'a, T, D, S>,
         &Buffer<'a, T, D, S>,
     ) 
     where
@@ -121,11 +125,14 @@ impl<D> Gradients<D> {
 
         let lhs_grad_ptr = self.get_mut(device, lid) as *mut _;
         let lhs_grad = unsafe { &mut *lhs_grad_ptr };
+
+        let rhs_grad_ptr = self.get_mut(device, rid) as *mut _;
+        let rhs_grad = unsafe { &mut *rhs_grad_ptr };
         (
             device.get_existing_buf(lid),
             device.get_existing_buf(rid),
             lhs_grad,    
-            self.may_get_ref(rid).unwrap(),
+            rhs_grad,
             self.may_get_ref(oid).unwrap()
         )
     }
@@ -222,7 +229,21 @@ where
     }
 
     #[inline]
+    pub fn grad_unbound(&self) -> Ref<'a, Self> {
+        Ref::map(self.device().tape(), |tape| {
+            tape.grads.may_get_ref(self.id()).unwrap()
+        })
+    }
+
+    #[inline]
     pub fn grad_mut(&mut self) -> RefMut<Self> {
+        RefMut::map(self.device().tape_mut(), |tape| {
+            tape.grads.may_get_mut(self.id()).unwrap()
+        })
+    }
+
+    #[inline]
+    pub fn grad_mut_unbound(&mut self) -> RefMut<'a, Self> {
         RefMut::map(self.device().tape_mut(), |tape| {
             tape.grads.may_get_mut(self.id()).unwrap()
         })
@@ -242,7 +263,7 @@ mod tests {
         //let device = CPU::new();
 
         let buf = Buffer::from((&device, [1., -2., 3., -4., 5., 6.]));
-
+        
         let out = device.unary_ew(&buf, |x| x.geq(0.).mul(x), |x| x.geq(0.));
         assert_eq!(out.read(), vec![1., 0., 3., 0., 5., 6.,]);
 
