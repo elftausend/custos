@@ -25,7 +25,7 @@ where
     fn add(&self, lhs: &Buffer<T, D>, rhs: &Buffer<T, D>) -> Buffer<T> {
         let len = std::cmp::min(lhs.len(), rhs.len());
 
-        let mut out = Cache::get(self, len, (lhs.node.idx, rhs.node.idx));
+        let mut out = self.retrieve::<T, ()>(lhs.len(), (lhs, rhs));
 
         for i in 0..len {
             out[i] = lhs[i] + rhs[i];
@@ -34,7 +34,7 @@ where
     }
 
     fn relu(&self, lhs: &Buffer<T, D>) -> Buffer<T> {
-        let mut out = Cache::get(self, lhs.len(), (lhs.node.idx, lhs.node.idx));
+        let mut out = self.retrieve::<T, ()>(lhs.len(), lhs);
 
         for i in 0..lhs.len() {
             if lhs[i] > T::zero() {
@@ -56,7 +56,7 @@ impl<T: CDatatype> AddBuf<T, OpenCL> for OpenCL {
     ", datatype=T::as_c_type_str());
 
         let gws = [lhs.len(), 0, 0];
-        let out = Cache::get::<T, ()>(self, lhs.len(), (lhs.node.idx, rhs.node.idx));
+        let out = self.retrieve::<T, ()>(lhs.len(), (lhs, rhs));
         enqueue_kernel(self, &src, gws, None, &[lhs, rhs, &out]).unwrap();
         out
     }
@@ -72,7 +72,7 @@ impl<T: CDatatype> AddBuf<T, OpenCL> for OpenCL {
             datatype = T::as_c_type_str()
         );
 
-        let out = Cache::get::<T, ()>(self, lhs.len(), lhs.node.idx);
+        let out = self.retrieve::<T, ()>(lhs.len(), lhs);
         enqueue_kernel(self, &src, [lhs.len(), 0, 0], None, &[lhs, &out]).unwrap();
         out
     }

@@ -167,7 +167,7 @@ fn test_cached_cl() -> Result<(), custos::Error> {
 
     assert_eq!(1, get_count());
 
-    let buf = device.retrieve::<f32, ()>(10);
+    let buf = device.retrieve::<f32, ()>(10, ());
 
     assert_eq!(2, get_count());
 
@@ -177,14 +177,14 @@ fn test_cached_cl() -> Result<(), custos::Error> {
     }
     assert_eq!(device.read(&buf), vec![0.1; 10]);
 
-    let new_buf = device.retrieve::<i32, ()>(10);
+    let new_buf = device.retrieve::<i32, ()>(10, ());
 
     assert_eq!(device.read(&new_buf), vec![0; 10]);
     assert_eq!(3, get_count());
 
     unsafe { set_count(1) };
     assert_eq!(1, get_count());
-    let buf = device.retrieve::<f32, ()>(10);
+    let buf = device.retrieve::<f32, ()>(10, ());
     println!("new_buf: {buf:?}");
     assert_eq!(device.read(&buf), vec![0.1; 10]);
     Ok(())

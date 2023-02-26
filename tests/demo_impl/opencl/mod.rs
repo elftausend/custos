@@ -27,14 +27,14 @@ where
 impl<T: CDatatype, S: Shape> ElementWise<T, OpenCL, S> for OpenCL {
     #[inline]
     fn add(&self, lhs: &Buffer<T, OpenCL, S>, rhs: &Buffer<T, OpenCL, S>) -> Buffer<T, OpenCL, S> {
-        let mut out = self.retrieve(lhs.len());
+        let mut out = self.retrieve(lhs.len(), ());
         cl_element_wise(self, lhs, rhs, &mut out, "+").unwrap();
         out
     }
 
     #[inline]
     fn mul(&self, lhs: &Buffer<T, OpenCL, S>, rhs: &Buffer<T, OpenCL, S>) -> Buffer<T, OpenCL, S> {
-        let mut out = self.retrieve(lhs.len());
+        let mut out = self.retrieve(lhs.len(), ());
         cl_element_wise(self, lhs, rhs, &mut out, "*").unwrap();
         out
     }

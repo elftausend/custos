@@ -51,7 +51,7 @@ fn test_dealloc_device_cache_cl() -> custos::Result<()> {
     let device = OpenCL::new(0)?;
 
     assert_eq!(device.cache.borrow().nodes.len(), 0);
-    let a = device.retrieve::<f32, ()>(10);
+    let a = device.retrieve::<f32, ()>(10, ());
     assert_eq!(device.cache.borrow().nodes.len(), 1);
 
     drop(a);

@@ -48,6 +48,7 @@ where
     let cpu = CPU::new();
     let cpu_buf = Buffer::<T, CPU>::from((&cpu, x.read_to_vec()));
     Ok(Buffer::from((device, f(&cpu, &cpu_buf))))
+    // TODO add new node to graph
 }
 
 pub fn cpu_exec_unary_mut<'a, T, D, F>(
@@ -112,6 +113,7 @@ where
     let cpu_lhs = Buffer::<T, CPU>::from((&cpu, lhs.read_to_vec()));
     let cpu_rhs = Buffer::<T, CPU>::from((&cpu, rhs.read_to_vec()));
     Ok(Buffer::from((device, f(&cpu, &cpu_lhs, &cpu_rhs))))
+    // TODO add new node to graph
 }
 
 /// Inplace version of [cpu_exec_binary]
@@ -177,7 +179,7 @@ mod tests {
         let add = 3;
 
         let out = cpu_exec_unary_may_unified(&device, &buf, |cpu, buf| {
-            let mut out = cpu.retrieve(buf.len());
+            let mut out = cpu.retrieve(buf.len(), ());
 
             for (out, val) in out.iter_mut().zip(buf) {
                 *out += add + val;
@@ -200,7 +202,7 @@ mod tests {
         let rhs = Buffer::from((&device, [-1, -4, -1, -8, -1]));
 
         let out = cpu_exec_binary(&device, &lhs, &rhs, |cpu, lhs, rhs| {
-            let mut out = cpu.retrieve(lhs.len());
+            let mut out = cpu.retrieve(lhs.len(), ());
 
             for ((lhs, rhs), out) in lhs.iter().zip(rhs).zip(&mut out) {
                 *out = lhs + rhs
@@ -224,7 +226,7 @@ mod tests {
         let rhs = Buffer::from((&device, [-1, -4, -1, -8, -1]));
 
         let out = cpu_exec_binary_may_unified(&device, &lhs, &rhs, |cpu, lhs, rhs| {
-            let mut out = cpu.retrieve(lhs.len());
+            let mut out = cpu.retrieve(lhs.len(), ());
 
             for ((lhs, rhs), out) in lhs.iter().zip(rhs).zip(&mut out) {
                 *out = lhs + rhs

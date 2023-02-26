@@ -73,7 +73,7 @@ where
         ", datatype=T::as_c_type_str());
 
         let len = std::cmp::min(lhs.len(), rhs.len());
-        let out = self.retrieve::<T, ()>(len);
+        let out = self.retrieve::<T, ()>(len, (lhs, rhs));
 
         // In the background, the kernel is compiled once. After that, it will be reused for every iteration.
         // The cached kernels are released (or freed) when the underlying CLDevice is dropped.

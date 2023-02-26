@@ -15,20 +15,26 @@ impl Graph {
     }
 
     pub fn add_leaf(&mut self, len: usize) -> Node {
-        Node {
-            idx: -1,
-            ident_idx: -1,
-            deps: [-1, -1],
-            len,
-        }
-    }
-
-    pub fn add_node(&mut self, len: usize, lhs_idx: isize, rhs_idx: isize) -> Node {
-        let idx = self.nodes.len() as isize;
+        let idx = self.nodes.len();
         let node = COUNT.with(|count| {
             Node {
                 // subtracting 1, because the count is increased beforehand.
-                ident_idx: count.get() as isize,
+                ident_idx: count.get(),
+                idx,
+                deps: [idx, idx],
+                len,
+            }
+        });
+        self.nodes.push(node);
+        node
+    }
+
+    pub fn add_node(&mut self, len: usize, lhs_idx: usize, rhs_idx: usize) -> Node {
+        let idx = self.nodes.len();
+        let node = COUNT.with(|count| {
+            Node {
+                // subtracting 1, because the count is increased beforehand.
+                ident_idx: count.get(),
                 idx,
                 deps: [lhs_idx, rhs_idx],
                 len,
@@ -39,11 +45,13 @@ impl Graph {
     }
 
     pub fn cache_traces(&self) -> Vec<CacheTrace> {
-        if self.nodes.is_empty() {
+        let nodes = self.nodes.iter().filter(|node| !node.is_leaf()).copied().collect::<Vec<Node>>();
+
+        if nodes.is_empty() {
             return Vec::new();
         }
 
-        let mut start = self.nodes[0];
+        let mut start = nodes[0];
         let mut traces = vec![];
 
         while let Some(trace) = self.trace_cache_path(&start) {
@@ -61,7 +69,7 @@ impl Graph {
             });
 
             // use better searching algorithm to find the next start node
-            match self.nodes.get(last_trace_node.idx as usize + 1) {
+            match nodes.get(last_trace_node.idx as usize) {
                 Some(next) => start = *next,
                 None => return traces,
             }

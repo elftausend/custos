@@ -123,7 +123,7 @@ mod tests {
     #[test]
     fn test_to_unified() -> crate::Result<()> {
         let cpu = CPU::new();
-        let mut no_drop: Buffer = cpu.retrieve(3);
+        let mut no_drop: Buffer = cpu.retrieve(3, ());
         no_drop.write(&[1., 2.3, 0.76]);
 
         let device = OpenCL::new(0)?;
@@ -150,7 +150,7 @@ mod tests {
     #[test]
     fn test_construct_buffer() -> crate::Result<()> {
         let cpu = CPU::new();
-        let mut no_drop: Buffer = cpu.retrieve(3);
+        let mut no_drop: Buffer = cpu.retrieve(3, ());
         no_drop.write(&[1., 2.3, 0.76]);
 
         let device = OpenCL::new(0)?;

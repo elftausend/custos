@@ -171,7 +171,7 @@ where
         operation = f("lhs[id]".to_marker()).to_string()
     );
 
-    let out = device.retrieve::<T, S>(x.len());
+    let out = device.retrieve::<T, S>(x.len(), x);
     enqueue_kernel(device, &src, [x.len(), 0, 0], None, &[x, &out])?;
     Ok(out)
 }

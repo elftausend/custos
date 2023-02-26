@@ -90,6 +90,11 @@ pub use op_traits::*;
 pub use shape::*;
 pub use two_way_ops::*;
 
+#[cfg(feature = "autograd")]
+#[cfg(feature = "opt-cache")]
+compile_error!("The autograd and opt-cache feature are not currently compatible. 
+This is because the logic for detecting if a forward buffer is used during gradient calculation isn't implemented yet.");
+
 pub trait PtrType {
     fn len(&self) -> usize;
     fn flag(&self) -> AllocFlag;
