@@ -1,14 +1,14 @@
 use core::{
     any::Any,
-    mem::transmute,
+    mem::transmute, hash::BuildHasherDefault,
 };
 use std::collections::HashMap;
 
-use crate::{flag::AllocFlag, Alloc, Buffer, Device, Ident, Shape};
+use crate::{flag::AllocFlag, Alloc, Buffer, Device, Ident, Shape, IdentHasher};
 
 #[derive(Debug, Default)]
 pub(crate) struct BorrowingCache {
-    pub(crate) cache: HashMap<Ident, Box<dyn Any>>,
+    pub(crate) cache: HashMap<Ident, Box<dyn Any>, BuildHasherDefault<IdentHasher>>,
 }
 
 // TODO: make BorrowedCache unuseable without device (=> Static get methods with D: CacheReturn)

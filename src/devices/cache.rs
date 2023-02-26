@@ -67,7 +67,8 @@ where
     #[inline]
     fn retrieve<T, S: Shape>(
         device: &D,
-        len: usize, /*add_node: impl AddGraph*/
+        len: usize,
+        add_node: impl crate::AddGraph
     ) -> Buffer<T, D, S>
     where
         for<'b> D: Alloc<'b, T, S>,
@@ -88,14 +89,6 @@ where
         for<'b> D: Alloc<'b, T, S>,
     {
         Buffer::new(device, len)
-    }
-
-    #[inline]
-    fn get_like<T, S: Shape>(device: &D, ident: Ident) -> Buffer<T, D, S>
-    where
-        for<'b> D: Alloc<'b, T, S>,
-    {
-        device.cache().get(device, ident, || ())
     }
 
     #[inline]

@@ -28,13 +28,13 @@ where
     S: Shape,
 {
     fn add(&self, lhs: &Buffer<T, D, S>, rhs: &Buffer<T, D, S>) -> Buffer<T, CPU, S> {
-        let mut out = self.retrieve(lhs.len());
+        let mut out = self.retrieve(lhs.len(), (lhs, rhs));
         cpu_element_wise(lhs, rhs, &mut out, |o, a, b| *o = a + b);
         out
     }
 
     fn mul(&self, lhs: &Buffer<T, D, S>, rhs: &Buffer<T, D, S>) -> Buffer<T, CPU, S> {
-        let mut out = self.retrieve(lhs.len());
+        let mut out = self.retrieve(lhs.len(), (lhs, rhs));
         cpu_element_wise(lhs, rhs, &mut out, |o, a, b| *o = a * b);
         out
     }

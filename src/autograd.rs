@@ -138,19 +138,20 @@ impl<D> Gradients<D> {
     }
 
     #[inline]
-    pub fn get_double<'a, T, S>(
+    pub fn get_double<'a, T, IS, OS>(
         &mut self,
         device: &'a D,
         (xid, oid): (Ident, Ident),
     ) -> (
-        Buffer<'a, T, D, S>,
-        &mut Buffer<'a, T, D, S>,
-        &Buffer<'a, T, D, S>,
+        Buffer<'a, T, D, IS>,
+        &mut Buffer<'a, T, D, IS>,
+        &Buffer<'a, T, D, OS>,
     )
     where
         T: 'static,
-        S: Shape,
-        D: for<'b> Alloc<'b, T, S>,
+        IS: Shape,
+        OS: Shape,
+        D: for<'b> Alloc<'b, T, IS> + for<'b> Alloc<'b, T, OS>,
     {
         let x_grad_ptr = self.get_mut(device, xid) as *mut _;
         let x_grad_mut = unsafe { &mut *x_grad_ptr };
@@ -165,12 +166,12 @@ impl<D> Gradients<D> {
 }
 
 #[derive(Default)]
-pub struct Tape<D: RawConv> {
+pub struct Tape<D: Device> {
     pub grads: Gradients<D>,
     grad_fns: Vec<Box<dyn Fn(&mut Gradients<D>, &D)>>,
 }
 
-pub trait TapeReturn: RawConv {
+pub trait TapeReturn: Device {
     fn tape(&self) -> Ref<Tape<Self>>;
     fn tape_mut(&self) -> RefMut<Tape<Self>>;
 }
@@ -184,7 +185,7 @@ where
     }
 }
 
-impl<D: RawConv> Tape<D> {
+impl<D: Device> Tape<D> {
     #[inline]
     pub fn add_grad_fn<F: Fn(&mut Gradients<D>, &D) + 'static>(&mut self, grad_fn: F) {
         self.grad_fns.push(Box::new(grad_fn))

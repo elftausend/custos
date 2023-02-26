@@ -180,7 +180,7 @@ where
         {
             let ids = (buf.id(), out.id());
             self.tape_mut().add_grad_fn(move |grads, device| {
-                let (lhs, mut lhs_grad, out_grad) = grads.get_double::<T, S>(device, ids);
+                let (lhs, mut lhs_grad, out_grad) = grads.get_double::<T, S, S>(device, ids);
                 device.add_unary_grad(&lhs, &mut lhs_grad, &out_grad, _grad_fn);
             });
         }

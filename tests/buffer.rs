@@ -131,7 +131,7 @@ fn test_cached_cpu() {
 
     assert_eq!(0, get_count());
 
-    let mut buf = device.retrieve::<f32, ()>(10);
+    let mut buf = device.retrieve::<f32, ()>(10, ());
 
     assert_eq!(1, get_count());
 
@@ -139,7 +139,7 @@ fn test_cached_cpu() {
         *value = 1.5;
     }
 
-    let new_buf = device.retrieve::<i32, ()>(10);
+    let new_buf = device.retrieve::<i32, ()>(10, ());
     assert_eq!(device.read(&new_buf), vec![0; 10]);
     assert_eq!(2, get_count());
 
@@ -147,7 +147,7 @@ fn test_cached_cpu() {
 
     assert_eq!(0, get_count());
 
-    let buf = device.retrieve::<f32, ()>(10);
+    let buf = device.retrieve::<f32, ()>(10, ());
 
     assert_eq!(device.read(&buf), vec![1.5; 10]);
 }
@@ -266,10 +266,10 @@ fn test_slice() {
 fn test_alloc() {
     let device = CPU::new();
 
-    let buf = device.retrieve::<f32, ()>(100);
+    let buf = device.retrieve::<f32, ()>(100, ());
     assert_eq!(buf.read(), vec![0.; 100]);
 
-    let buf = device.retrieve::<f32, ()>(100);
+    let buf = device.retrieve::<f32, ()>(100, ());
     assert_eq!(buf.read(), vec![0.; 100]);
     drop(buf);
 }

@@ -706,18 +706,4 @@ mod tests {
 
         //buf_dim2.to_dims::<()>();
     }
-
-    #[cfg(feature = "cpu")]
-    #[test]
-    fn test_add_to_cache_and_get_like() {
-        use crate::{flag::AllocFlag, Device, CPU};
-
-        let device = CPU::new();
-
-        let buf = Buffer::from((&device, [1, 6, 4, 3, 5, 3]));
-
-        let buf_like = device.get_like::<i32, ()>(buf.id());
-        assert_eq!(buf.ptr.ptr, buf_like.ptr.ptr);
-        assert_eq!(AllocFlag::Wrapper, buf_like.ptr.flag);
-    }
 }

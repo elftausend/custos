@@ -334,4 +334,99 @@ mod tests {
         );
         //        println!("traces: {traces:?}");
     }
+
+
+    #[test]
+    fn test_cache_trace_neural_net() {
+        // for: cargo test -- --test-threads=1
+        unsafe { set_count(0) };
+        let mut graph = Graph::new();
+        let inputs = graph.add_leaf(100 * 10);
+        let targets = graph.add_leaf(100);
+
+        let w1 = graph.add_leaf(10 * 64);
+        let b1 = graph.add_leaf(64);
+        let w2 = graph.add_leaf(64 * 64);
+        let b2 = graph.add_leaf(64);
+        let w3 = graph.add_leaf(64 * 64);
+        let b3 = graph.add_leaf(64);
+        let w4 = graph.add_leaf(64 * 1);
+        let b4 = graph.add_leaf(1);
+
+        let a1 = graph.add_node(100 * 64, inputs.idx, w1.idx);
+        let a2 = graph.add_node(100 * 64, a1.idx, b1.idx);
+        let a2 = graph.add_node(100*64, a2.idx, a2.idx);
+
+        let a3 = graph.add_node(100 * 64, a2.idx, w2.idx);
+        let a4 = graph.add_node(100 * 64, a3.idx, b2.idx);
+        let a4 = graph.add_node(100*64, a4.idx, a4.idx);
+
+        let a5 = graph.add_node(100 * 64, a4.idx, w3.idx);
+        let a6 = graph.add_node(100 * 64, a5.idx, b3.idx);
+        let a6 = graph.add_node(100*64, a6.idx, a6.idx);
+
+        let a7 = graph.add_node(100 * 1, a6.idx, w4.idx);
+        let a8 = graph.add_node(100 * 1, a7.idx, b4.idx);
+
+        let loss = graph.add_node(100, a8.idx, targets.idx);
+
+        let traces = graph.cache_traces();
+        println!("traces: {traces:?}");
+
+
+        // graph.add_node(10*10, gemm.idx, gemm.idx);
+        // bump_count();
+    }
+
+    #[test]
+    fn test_cache_trace_d() {
+        // for: cargo test -- --test-threads=1
+        unsafe { set_count(0) };
+        let mut graph = Graph::new();
+        let a = graph.add_leaf(10);
+        let b = graph.add_leaf(10);
+
+        // idx: 2, deps: [0, 1]
+        let c = graph.add_node(10, a.idx, b.idx);
+
+        // idx: 3, deps: [2, 2]
+        let d = graph.add_node(10, c.idx, c.idx);
+
+        // idx: 4, deps: [3, 0]
+        let _u = graph.add_node(10, a.idx, d.idx);
+
+        // idx: 5, deps: [3, 1]
+        //let _e = graph.add_node(10, d.idx, b.idx);
+
+        let trace = graph.trace_cache_path(&c);
+
+        // TODO: d could use the memory of c, but this is not the case yet
+        assert_eq!(
+            Some(vec![
+                Node {
+                    ident_idx: 0,
+                    idx: 0,
+                    deps: [-1, -1],
+                    len: 10
+                },
+                
+                Node {
+                    ident_idx: 0,
+                    idx: 1,
+                    deps: [0, 0],
+                    len: 10
+                },
+                Node {
+                    ident_idx: 0,
+                    idx: 2,
+                    deps: [-1, 1],
+                    len: 10
+                }
+            ]),
+            trace
+        );
+
+        assert!(graph.is_path_optimizable(&c));
+        assert!(graph.is_path_optimizable(&d));
+    }
 }

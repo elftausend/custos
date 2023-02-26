@@ -87,16 +87,9 @@ impl<'a, T, D: Device, S: Shape> AddGraph for &Buffer<'a, T, D, S> {
     }
 }
 
-impl<'a, T, D: Device, S: Shape> AddGraph for (&Buffer<'a, T, D, S>, &Buffer<'a, T, D, S>) {
+impl<'a, T, D: Device, LS: Shape, RS: Shape> AddGraph for (&Buffer<'a, T, D, LS>, &Buffer<'a, T, D, RS>) {
     #[inline]
     fn add(&self, graph: &mut Graph, len: usize) -> Node {
         graph.add_node(len, self.0.ident.idx as isize, self.1.ident.idx as isize)
-    }
-}
-
-impl<'a, T, D: Device, S: Shape> AddGraph for [&Buffer<'a, T, D, S>; 2] {
-    #[inline]
-    fn add(&self, graph: &mut Graph, len: usize) -> Node {
-        graph.add_node(len, self[0].ident.idx as isize, self[1].ident.idx as isize)
     }
 }

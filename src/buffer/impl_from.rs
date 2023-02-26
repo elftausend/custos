@@ -119,7 +119,7 @@ where
     D: WriteBuf<T, S> + for<'c> Alloc<'c, T, S>,
 {
     fn from((device, buf): (&'a D, Buffer<'b, T, CPU, S>)) -> Self {
-        let mut out = device.retrieve(buf.len());
+        let mut out = device.retrieve(buf.len(), &buf);
         device.write(&mut out, &buf);
         out
     }

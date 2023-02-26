@@ -107,6 +107,7 @@ impl Graph {
             }
             occurences += 1;
         }
+        
         true
     }
 }

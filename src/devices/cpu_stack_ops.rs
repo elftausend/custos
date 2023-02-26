@@ -34,7 +34,7 @@ where
     where
         F: Eval<T>,
     {
-        let mut out = self.retrieve::<T, S>(buf.len());
+        let mut out = self.retrieve::<T, S>(buf.len(), buf);
 
         for (value, x) in out.iter_mut().zip(buf.iter()) {
             *value = f((*x).to_val()).eval()

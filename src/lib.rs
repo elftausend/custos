@@ -107,27 +107,20 @@ pub trait CommonPtrs<T> {
 pub trait Device: Sized + 'static {
     type Ptr<U, S: Shape>: PtrType; //const B: usize, const C: usize
     type Cache: CacheAble<Self>;
-    //type Tape;
+    //type Tape: ;
 
     fn new() -> crate::Result<Self>;
 
     #[inline]
     fn retrieve<T, S: Shape>(
         &self,
-        len: usize, /*add_node: impl AddGraph*/
+        len: usize, 
+        add_node: impl AddGraph
     ) -> Buffer<T, Self, S>
     where
         for<'a> Self: Alloc<'a, T, S>,
     {
-        Self::Cache::retrieve(self, len)
-    }
-
-    #[inline]
-    fn get_like<T, S: Shape>(&self, ident: Ident) -> Buffer<T, Self, S>
-    where
-        for<'a> Self: Alloc<'a, T, S>,
-    {
-        Self::Cache::get_like(self, ident)
+        Self::Cache::retrieve(self, len, add_node)
     }
 
     #[inline]
