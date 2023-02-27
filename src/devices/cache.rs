@@ -177,7 +177,7 @@ impl<D: RawConv> Cache<D> {
             ptr,
             device: Some(device),
             ident: Ident {
-                idx: graph_node.ident_idx as usize,
+                idx: graph_node.idx,
                 len: ident.len,
             },
         }

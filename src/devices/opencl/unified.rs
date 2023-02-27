@@ -107,7 +107,7 @@ pub unsafe fn construct_buffer<'a, T, S: Shape>(
         },
         device: Some(device),
         ident: Ident {
-            idx: graph_node.ident_idx as usize,
+            idx: graph_node.idx,
             len,
         },
     })

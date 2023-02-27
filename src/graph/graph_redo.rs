@@ -26,7 +26,7 @@ impl Graph {
                     .map(|node| {
                         visited_nodes.insert(*node);
                         Ident {
-                            idx: node.ident_idx,
+                            idx: node.idx,
                             len: node.len,
                         }
                     })
@@ -67,21 +67,17 @@ mod tests {
         unsafe { set_count(0) };
         let mut graph = Graph::new();
         let a = graph.add_leaf(10);
-        bump_count();
+
         let b = graph.add_leaf(10);
-        bump_count();
 
         // idx: 2, deps: [0, 1] (0)
         let c = graph.add_node(10, a.idx, b.idx);
-        bump_count();
 
         // idx: 3, deps: [2, 2] (1)
         let d = graph.add_node(10, c.idx, c.idx);
-        bump_count();
 
         // idx: 4, deps: [3, 1] (2)
         let _e = graph.add_node(10, d.idx, b.idx);
-        bump_count();
 
         let traces = graph.cache_traces_2();
 
@@ -104,23 +100,18 @@ mod tests {
         unsafe { set_count(0) };
         let mut graph = Graph::new();
         let a = graph.add_leaf(10);
-        bump_count();
+
         let _b = graph.add_node(10, a.idx, a.idx);
-        bump_count();
 
         let _z = graph.add_leaf(10);
-        bump_count();
 
         let _z = graph.add_leaf(10);
-        bump_count();
 
         // idx: 2, deps: [0, 1] (0)
         let c = graph.add_node(12, a.idx, a.idx);
-        bump_count();
 
         // idx: 3, deps: [2, 2] (1)
         let d = graph.add_node(12, c.idx, c.idx);
-        bump_count();
 
         // idx: 4, deps: [3, 1] (2)
         let _e = graph.add_node(12, d.idx, a.idx);
@@ -145,38 +136,30 @@ mod tests {
 
         // idx: 0, deps: [] (0)
         let a = graph.add_leaf(10);
-        bump_count();
 
         // idx: 1, deps: [0, 0] (1)
         let _b = graph.add_node(10, a.idx, a.idx);
-        bump_count();
 
         // idx: 2
         let _z = graph.add_leaf(10);
-        bump_count();
 
         // idx: 3
         let _z = graph.add_leaf(10);
-        bump_count();
 
         // idx: 4, deps: [0, 1] (0)
         let c = graph.add_node(12, a.idx, a.idx);
-        bump_count();
 
         // idx: 5, deps: [2, 2] (1)
         let d = graph.add_node(12, c.idx, c.idx);
-        bump_count();
 
         // idx: 6, deps: [3, 1] (2)
         let _e = graph.add_node(12, d.idx, a.idx);
-        bump_count();
 
         // idx: 7
         let f = graph.add_node(10, _b.idx, _z.idx);
-        bump_count();
+
         // idx: 8
         let _g = graph.add_node(10, f.idx, _z.idx);
-        bump_count();
 
         let traces = graph.cache_traces_2();
 

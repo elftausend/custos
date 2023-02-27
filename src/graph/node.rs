@@ -1,10 +1,9 @@
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Node {
-    pub ident_idx: usize,
+    //pub ident_idx: usize,
     pub idx: usize,
     pub deps: [usize; 2],
     pub len: usize,
-    pub used: bool,
 }
 
 impl Node {

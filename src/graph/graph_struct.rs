@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use crate::{AddGraph, CacheTrace, Ident, Node, COUNT};
 
 #[derive(Default, Debug)]
@@ -19,11 +21,10 @@ impl Graph {
         let node = COUNT.with(|count| {
             Node {
                 // subtracting 1, because the count is increased beforehand.
-                ident_idx: count.get(),
+                //ident_idx: idx,
                 idx,
                 deps: [idx, idx],
                 len,
-                used: false,
             }
         });
         self.nodes.push(node);
@@ -35,11 +36,10 @@ impl Graph {
         let node = COUNT.with(|count| {
             Node {
                 // subtracting 1, because the count is increased beforehand.
-                ident_idx: count.get(),
+                // ident_idx: idx,
                 idx,
                 deps: [lhs_idx, rhs_idx],
                 len,
-                used: false,
             }
         });
         self.nodes.push(node);
@@ -47,63 +47,68 @@ impl Graph {
     }
 
     pub fn cache_traces(&self) -> Vec<CacheTrace> {
-        let nodes = self
-            .nodes
-            .iter()
-            .filter(|node| !node.is_leaf())
-            .copied()
-            .collect::<Vec<Node>>();
-
-        if nodes.is_empty() {
-            return Vec::new();
-        }
-
-        let mut start = nodes[0];
         let mut traces = vec![];
+        let mut visited_nodes = HashSet::new();
 
-        while let Some(trace) = self.trace_cache_path(&start) {
-            let last_trace_node = *trace.last().unwrap();
-
-            traces.push(CacheTrace {
-                cache_idx: start.idx,
-                use_cache_idx: trace
-                    .into_iter()
-                    .map(|node| Ident {
-                        idx: node.ident_idx,
-                        len: node.len,
-                    })
-                    .collect(),
-            });
-
-            // use better searching algorithm to find the next start node
-            match nodes.get(last_trace_node.idx) {
-                Some(next) => start = *next,
-                None => return traces,
-            }
-        }
-        traces
-    }
-
-    pub fn trace_cache_path(&self, trace_at: &Node) -> Option<Vec<Node>> {
-        if !self.is_path_optimizable(trace_at) {
-            return None;
-        }
-
-        let mut trace = vec![*trace_at];
-        // let mut trace = vec![];
-
-        let mut idx = trace_at.idx;
-        for check in &self.nodes[trace_at.idx + 1..] {
-            if trace_at.len != check.len || !self.is_path_optimizable(check) {
+        for node in self.nodes.iter().filter(|node| !node.is_leaf()) {
+            if visited_nodes.contains(node) {
                 continue;
             }
 
-            if check.deps.contains(&idx) {
-                idx = check.idx;
-                trace.push(*check);
+            let trace = self.trace_cache_path(node);
+
+            if trace.is_empty() {
+                continue;
+            }
+
+            traces.push(CacheTrace {
+                cache_idx: node.idx,
+                use_cache_idx: trace
+                    .iter()
+                    //.filter(|node| !visited_nodes.contains(*node))
+                    .map(|node| {
+                        visited_nodes.insert(*node);
+                        Ident {
+                            idx: node.idx,
+                            len: node.len,
+                        }
+                    })
+                    .collect(),
+            });
+        }
+
+        traces
+    }
+
+    pub fn trace_cache_path(&self, trace_at: &Node) -> Vec<Node> {
+        if !self.is_path_optimizable(trace_at) {
+            return vec![];
+        }
+
+        let mut trace = vec![];
+        let mut idx = trace_at.idx;
+
+        for check in self.nodes.iter().skip(trace_at.idx + 1) {
+
+            if !check.deps.contains(&idx) {
+                continue;
+            }
+
+            if trace_at.len != check.len {
+                continue;
+            }
+            
+            idx = check.idx;
+            trace.push(*check);
+
+            // the first unoptimizable node in a cache trace may be added to the cache trace
+            // look test "test_cache_trace_break_not_anymore"
+            if !self.is_path_optimizable(check) {
+                break
             }
         }
-        Some(trace)
+
+        trace
     }
 
     pub fn is_path_optimizable(&self, check_at: &Node) -> bool {
