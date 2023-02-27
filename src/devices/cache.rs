@@ -160,6 +160,14 @@ impl<D: RawConv> Cache<D> {
         #[cfg(feature = "opt-cache")]
         let graph_node = device.graph().add(ident.len, _add_node);
 
+        #[cfg(not(feature = "opt-cache"))]
+        let graph_node = crate::Node {
+            ident_idx: ident.idx,
+            idx: ident.idx,
+            deps: [0; 2],
+            len: ident.len,
+        };
+
         let raw_ptr = D::construct(&ptr, ident.len, AllocFlag::Cache);
         self.nodes.insert(ident, Rc::new(raw_ptr));
 

@@ -4,6 +4,7 @@ pub struct Node {
     pub idx: usize,
     pub deps: [usize; 2],
     pub len: usize,
+    pub used: bool,
 }
 
 impl Node {

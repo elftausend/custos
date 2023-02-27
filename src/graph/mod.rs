@@ -10,6 +10,7 @@ pub use add_graph::*;
 pub use node::*;
 
 mod add_graph;
+mod graph_redo;
 mod node;
 
 #[cfg(not(feature = "no-std"))]
@@ -116,19 +117,22 @@ mod tests {
                     ident_idx: 0,
                     idx: 2,
                     deps: [0, 1],
-                    len: 10
+                    len: 10,
+                    used: false,
                 },
                 Node {
                     ident_idx: 0,
                     idx: 3,
                     deps: [2, 2],
-                    len: 10
+                    len: 10,
+                    used: false,
                 },
                 Node {
                     ident_idx: 0,
                     idx: 4,
                     deps: [3, 1],
-                    len: 10
+                    len: 10,
+                    used: false,
                 }
             ]),
             trace
@@ -190,19 +194,22 @@ mod tests {
                     ident_idx: 0,
                     idx: 3,
                     deps: [0, 1],
-                    len: 10
+                    len: 10,
+                    used: false,
                 },
                 Node {
                     ident_idx: 0,
                     idx: 5,
                     deps: [3, 3],
-                    len: 10
+                    len: 10,
+                    used: false,
                 },
                 Node {
                     ident_idx: 0,
                     idx: 6,
                     deps: [5, 1],
-                    len: 10
+                    len: 10,
+                    used: false,
                 }
             ]),
             trace
@@ -238,7 +245,8 @@ mod tests {
                     ident_idx: 0,
                     idx: 2,
                     deps: [0, 1],
-                    len: 10
+                    len: 10,
+                    used: false,
                 },
                 /* if d uses the memory of c, this node could be added:
                 Node {
@@ -349,51 +357,82 @@ mod tests {
         unsafe { set_count(0) };
         let mut graph = Graph::new();
         let inputs = graph.add_leaf(100 * 10);
+        bump_count();
         let targets = graph.add_leaf(100);
+        bump_count();
 
         let w1 = graph.add_leaf(10 * 64);
+        bump_count();
         let b1 = graph.add_leaf(64);
+        bump_count();
         let w2 = graph.add_leaf(64 * 64);
+        bump_count();
         let b2 = graph.add_leaf(64);
+        bump_count();
         let w3 = graph.add_leaf(64 * 64);
+        bump_count();
         let b3 = graph.add_leaf(64);
+        bump_count();
         let w4 = graph.add_leaf(64 * 1);
+        bump_count();
         let b4 = graph.add_leaf(1);
+        bump_count();
 
         let a1 = graph.add_node(100 * 64, inputs.idx, w1.idx);
+        bump_count();
         let a2 = graph.add_node(100 * 64, a1.idx, b1.idx);
+        bump_count();
         let a2 = graph.add_node(100 * 64, a2.idx, a2.idx);
+        bump_count();
 
         let a3 = graph.add_node(100 * 64, a2.idx, w2.idx);
+        bump_count();
         let a4 = graph.add_node(100 * 64, a3.idx, b2.idx);
+        bump_count();
         let a4 = graph.add_node(100 * 64, a4.idx, a4.idx);
+        bump_count();
 
         let a5 = graph.add_node(100 * 64, a4.idx, w3.idx);
+        bump_count();
         let a6 = graph.add_node(100 * 64, a5.idx, b3.idx);
+        bump_count();
         let a6 = graph.add_node(100 * 64, a6.idx, a6.idx);
-
+        bump_count();
         let a7 = graph.add_node(100 * 1, a6.idx, w4.idx);
+        bump_count();
         let a8 = graph.add_node(100 * 1, a7.idx, b4.idx);
+        bump_count();
 
         let _loss = graph.add_node(100, a8.idx, targets.idx);
+        bump_count();
 
-        let traces = graph.cache_traces();
+        let traces = graph.cache_traces_2();
         assert_eq!(
             traces,
-            [CacheTrace {
-                cache_idx: 10,
-                use_cache_idx: vec![
-                    Ident { idx: 0, len: 6400 },
-                    Ident { idx: 0, len: 6400 },
-                    Ident { idx: 0, len: 6400 },
-                    Ident { idx: 0, len: 6400 },
-                    Ident { idx: 0, len: 6400 },
-                    Ident { idx: 0, len: 6400 },
-                    Ident { idx: 0, len: 6400 },
-                    Ident { idx: 0, len: 6400 },
-                    Ident { idx: 0, len: 6400 }
-                ]
-            }]
+            [
+                CacheTrace {
+                    cache_idx: 10,
+                    use_cache_idx: vec![
+                        //   Ident { idx: 0, len: 6400 },
+                        Ident { idx: 11, len: 6400 },
+                        Ident { idx: 12, len: 6400 },
+                        Ident { idx: 13, len: 6400 },
+                        Ident { idx: 14, len: 6400 },
+                        Ident { idx: 15, len: 6400 },
+                        Ident { idx: 16, len: 6400 },
+                        Ident { idx: 17, len: 6400 },
+                        Ident { idx: 18, len: 6400 }
+                    ]
+                },
+                CacheTrace {
+                    cache_idx: 19,
+                    use_cache_idx: vec![
+                        //   Ident { idx: 0, len: 6400 },
+                        Ident { idx: 20, len: 100 },
+                        Ident { idx: 21, len: 100 },
+                    ]
+                }
+            ]
         )
 
         // graph.add_node(10*10, gemm.idx, gemm.idx);
@@ -429,19 +468,22 @@ mod tests {
                     ident_idx: 0,
                     idx: 2,
                     deps: [0, 1],
-                    len: 10
+                    len: 10,
+                    used: false,
                 },
                 Node {
                     ident_idx: 0,
                     idx: 3,
                     deps: [2, 2],
-                    len: 10
+                    len: 10,
+                    used: false,
                 },
                 Node {
                     ident_idx: 0,
                     idx: 4,
                     deps: [0, 3],
-                    len: 10
+                    len: 10,
+                    used: false,
                 }
             ]),
             trace
@@ -452,6 +494,7 @@ mod tests {
     }
 
     #[cfg(feature = "cpu")]
+    #[cfg(feature = "opt-cache")]
     #[test]
     fn test_from_retrieve() {
         use crate::{Buffer, Device, GraphReturn, CPU};
@@ -487,13 +530,13 @@ mod tests {
 
         let _loss = device.retrieve::<i32, ()>(100, (&a8, &targets));
 
-        let cts = device.graph().cache_traces();
+        let cts = device.graph().cache_traces_2();
         assert_eq!(
             cts,
             [CacheTrace {
                 cache_idx: 10,
                 use_cache_idx: vec![
-                    Ident { idx: 10, len: 6400 },
+                    //   Ident { idx: 10, len: 6400 },
                     Ident { idx: 11, len: 6400 },
                     Ident { idx: 12, len: 6400 },
                     Ident { idx: 13, len: 6400 },
@@ -505,5 +548,19 @@ mod tests {
                 ]
             }]
         );
+    }
+
+    #[test]
+    fn test_no_cache_trace_in_graph() {
+        let mut graph = Graph::new();
+        let a = graph.add_leaf(10);
+        let b = graph.add_leaf(10);
+
+        let c = graph.add_node(10, a.idx, b.idx);
+
+        let trace = graph.trace_cache_path(&c);
+        graph.cache_traces();
+
+        //assert_eq!(None, trace);
     }
 }

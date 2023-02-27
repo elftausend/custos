@@ -7,14 +7,14 @@ use std::{ffi::c_void, mem::size_of};
 /// # Example
 /// ```
 /// use custos::{OpenCL, Buffer, opencl::AsClCvoidPtr};
-/// 
+///
 /// fn args(args: &[&dyn AsClCvoidPtr]) {
 ///     // ...
 /// }
-/// 
+///
 /// fn main() -> custos::Result<()> {
 ///     let device = OpenCL::new(0)?;
-/// 
+///
 ///     let buf = Buffer::<f32, _>::new(&device, 10);
 ///     let num = 4;
 ///     args(&[&num, &buf]);
