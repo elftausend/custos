@@ -68,7 +68,7 @@ where
     fn retrieve<T, S: Shape>(
         device: &D,
         len: usize,
-        add_node: impl crate::AddGraph
+        add_node: impl crate::AddGraph,
     ) -> Buffer<T, D, S>
     where
         for<'b> D: Alloc<'b, T, S>,
@@ -134,7 +134,7 @@ impl<D: RawConv> Cache<D> {
     /// let device = CPU::new();
     /// let cache: Buffer = device
     ///     .cache()
-    ///     .add_node(&device, Ident { idx: 0, len: 7 }, bump_count);
+    ///     .add_node(&device, Ident { idx: 0, len: 7 }, (), bump_count);
     ///
     /// let ptr = device
     ///     .cache()
@@ -170,7 +170,7 @@ impl<D: RawConv> Cache<D> {
             device: Some(device),
             ident: Ident {
                 idx: graph_node.ident_idx as usize,
-                len: ident.len
+                len: ident.len,
             },
         }
     }
@@ -186,14 +186,14 @@ impl<D: RawConv> Cache<D> {
     ///
     /// let device = CPU::new();
     ///     
-    /// let cache_entry: Buffer = device.cache().get(&device, Ident::new(10), bump_count);
-    /// let new_cache_entry: Buffer = device.cache().get(&device, Ident::new(10), bump_count);
+    /// let cache_entry: Buffer = device.cache().get(&device, Ident::new(10), (), bump_count);
+    /// let new_cache_entry: Buffer = device.cache().get(&device, Ident::new(10), (), bump_count);
     ///
     /// assert_ne!(cache_entry.ptrs(), new_cache_entry.ptrs());
     ///
     /// unsafe { set_count(0) };
     ///
-    /// let first_entry: Buffer = device.cache().get(&device, Ident::new(10), bump_count);
+    /// let first_entry: Buffer = device.cache().get(&device, Ident::new(10), (), bump_count);
     /// assert_eq!(cache_entry.ptrs(), first_entry.ptrs());
     /// ```
     pub fn get<'a, T, S: Shape>(
@@ -258,9 +258,10 @@ mod tests {
         use crate::{bump_count, Buffer, CacheReturn, Ident};
 
         let device = crate::CPU::new();
-        let cache: Buffer = device
-            .cache()
-            .add_node(&device, Ident { idx: 0, len: 7 }, (), bump_count);
+        let cache: Buffer =
+            device
+                .cache()
+                .add_node(&device, Ident { idx: 0, len: 7 }, (), bump_count);
 
         let ptr = device
             .cache()

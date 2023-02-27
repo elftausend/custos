@@ -45,7 +45,12 @@ impl Graph {
     }
 
     pub fn cache_traces(&self) -> Vec<CacheTrace> {
-        let nodes = self.nodes.iter().filter(|node| !node.is_leaf()).copied().collect::<Vec<Node>>();
+        let nodes = self
+            .nodes
+            .iter()
+            .filter(|node| !node.is_leaf())
+            .copied()
+            .collect::<Vec<Node>>();
 
         if nodes.is_empty() {
             return Vec::new();
@@ -56,6 +61,7 @@ impl Graph {
 
         while let Some(trace) = self.trace_cache_path(&start) {
             let last_trace_node = *trace.last().unwrap();
+
 
             traces.push(CacheTrace {
                 cache_idx: start.idx as usize,
@@ -69,7 +75,7 @@ impl Graph {
             });
 
             // use better searching algorithm to find the next start node
-            match nodes.get(last_trace_node.idx as usize) {
+            match nodes.get(last_trace_node.idx as usize /*+ (last_trace_node == start) as usize*/) {
                 Some(next) => start = *next,
                 None => return traces,
             }
@@ -115,7 +121,7 @@ impl Graph {
             }
             occurences += 1;
         }
-        
+
         true
     }
 }

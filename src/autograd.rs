@@ -1,12 +1,19 @@
-use core::{cell::{RefMut, Ref}, fmt::Debug, marker::PhantomData};
+use core::{
+    cell::{Ref, RefMut},
+    fmt::Debug,
+    marker::PhantomData,
+};
 
-use crate::{prelude::One, Alloc, Buffer, Ident, RawConv, Shape, WriteBuf, Device, borrowing_cache::BorrowingCache};
+use crate::{
+    borrowing_cache::BorrowingCache, prelude::One, Alloc, Buffer, Device, Ident, RawConv, Shape,
+    WriteBuf,
+};
 
 #[derive(Default)]
 pub struct Gradients<D> {
     // maybe use a borrowed cache in the style of the 'owned' cache
     cache: BorrowingCache,
-    _pd: PhantomData<D>
+    _pd: PhantomData<D>,
 }
 
 impl<D: RawConv> Debug for Gradients<D>
@@ -40,10 +47,7 @@ impl<D> Gradients<D> {
     }
 
     #[inline]
-    pub fn may_get_ref<'a, T, S>(
-        &self,
-        ident: Ident,
-    ) -> Option<&Buffer<'a, T, D, S>>
+    pub fn may_get_ref<'a, T, S>(&self, ident: Ident) -> Option<&Buffer<'a, T, D, S>>
     where
         T: 'static,
         S: Shape,
@@ -53,10 +57,7 @@ impl<D> Gradients<D> {
     }
 
     #[inline]
-    pub fn may_get_mut<'a, T, S>(
-        &mut self,
-        ident: Ident,
-    ) -> Option<&mut Buffer<'a, T, D, S>>
+    pub fn may_get_mut<'a, T, S>(&mut self, ident: Ident) -> Option<&mut Buffer<'a, T, D, S>>
     where
         T: 'static,
         S: Shape,
@@ -66,11 +67,7 @@ impl<D> Gradients<D> {
     }
 
     #[inline]
-    pub fn get_ref<'a, T, S>(
-        &mut self,
-        device: &'a D,
-        ident: Ident,
-    ) -> &Buffer<'a, T, D, S>
+    pub fn get_ref<'a, T, S>(&mut self, device: &'a D, ident: Ident) -> &Buffer<'a, T, D, S>
     where
         T: 'static,
         S: Shape,
@@ -80,17 +77,13 @@ impl<D> Gradients<D> {
     }
 
     #[inline]
-    pub fn get_mut<'a, T, S>(
-        &mut self,
-        device: &'a D,
-        ident: Ident,
-    ) -> &mut Buffer<'a, T, D, S>
+    pub fn get_mut<'a, T, S>(&mut self, device: &'a D, ident: Ident) -> &mut Buffer<'a, T, D, S>
     where
         T: 'static,
         S: Shape,
         D: for<'b> Alloc<'b, T, S>,
     {
-       self.cache.add_or_get_mut(device, ident)
+        self.cache.add_or_get_mut(device, ident)
     }
 
     #[inline]
@@ -114,7 +107,7 @@ impl<D> Gradients<D> {
         &mut Buffer<'a, T, D, S>,
         &mut Buffer<'a, T, D, S>,
         &Buffer<'a, T, D, S>,
-    ) 
+    )
     where
         T: 'static,
         S: Shape,
@@ -131,9 +124,9 @@ impl<D> Gradients<D> {
         (
             device.get_existing_buf(lid),
             device.get_existing_buf(rid),
-            lhs_grad,    
+            lhs_grad,
             rhs_grad,
-            self.may_get_ref(oid).unwrap()
+            self.may_get_ref(oid).unwrap(),
         )
     }
 
@@ -157,11 +150,7 @@ impl<D> Gradients<D> {
         let x_grad_mut = unsafe { &mut *x_grad_ptr };
         let o_grad = self.get_ref(&device, oid);
 
-        (
-            device.get_existing_buf(xid),
-            x_grad_mut,
-            o_grad,
-        )
+        (device.get_existing_buf(xid), x_grad_mut, o_grad)
     }
 }
 
@@ -221,7 +210,7 @@ where
     pub fn backward(&self) {
         self.device().tape_mut().backward_seeded(self)
     }
-    
+
     #[inline]
     pub fn grad(&self) -> Ref<Self> {
         Ref::map(self.device().tape(), |tape| {
@@ -264,7 +253,7 @@ mod tests {
         //let device = CPU::new();
 
         let buf = Buffer::from((&device, [1., -2., 3., -4., 5., 6.]));
-        
+
         let out = device.unary_ew(&buf, |x| x.geq(0.).mul(x), |x| x.geq(0.));
         assert_eq!(out.read(), vec![1., 0., 3., 0., 5., 6.,]);
 

@@ -52,7 +52,7 @@ pub unsafe fn to_unified<T, S: Shape>(
 ///
 /// fn main() -> custos::Result<()> {
 ///     let cpu = CPU::new();
-///     let mut no_drop: Buffer = cpu.retrieve(4);
+///     let mut no_drop: Buffer = cpu.retrieve(4, ());
 ///     no_drop.write(&[1., 3.1, 2.34, 0.76]);
 ///     
 ///     let device = OpenCL::new(0)?;

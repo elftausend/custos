@@ -6,7 +6,7 @@ use self::cpu::{
     api::{cblas_dgemm, cblas_sgemm},
     Order, Transpose,
 };
-use crate::{shape::Shape, Alloc, Buffer, Device, PtrType, AddGraph};
+use crate::{shape::Shape, AddGraph, Alloc, Buffer, Device, PtrType};
 
 #[cfg(feature = "cuda")]
 use cuda::api::cublas::{cublasDgemm_v2, cublasOperation_t, cublasSgemm_v2, CublasHandle};
@@ -58,11 +58,7 @@ pub use ident::*;
 pub type CUdeviceptr = core::ffi::c_ulonglong;
 
 pub trait CacheAble<D: Device> {
-    fn retrieve<T, S: Shape>(
-        device: &D,
-        len: usize, 
-        add_node: impl AddGraph
-    ) -> Buffer<T, D, S>
+    fn retrieve<T, S: Shape>(device: &D, len: usize, add_node: impl AddGraph) -> Buffer<T, D, S>
     where
         for<'a> D: Alloc<'a, T, S>;
 
@@ -76,17 +72,12 @@ pub trait CacheAble<D: Device> {
 // TODO: Mind num implement?
 impl<D: Device> CacheAble<D> for () {
     #[inline]
-    fn retrieve<T, S: Shape>(
-        device: &D,
-        len: usize,
-        _add_node: impl AddGraph
-    ) -> Buffer<T, D, S>
+    fn retrieve<T, S: Shape>(device: &D, len: usize, _add_node: impl AddGraph) -> Buffer<T, D, S>
     where
         for<'a> D: Alloc<'a, T, S>,
     {
         Buffer::new(device, len)
     }
-
 
     #[inline]
     fn remove(_device: &D, _ident: Ident) {}

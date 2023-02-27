@@ -6,8 +6,6 @@ pub struct Node {
     pub len: usize,
 }
 
-
-
 impl Node {
     #[inline]
     pub fn is_leaf(&self) -> bool {

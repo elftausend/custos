@@ -117,17 +117,14 @@ pub trait Device: Sized + 'static {
     fn new() -> crate::Result<Self>;
 
     #[inline]
-    fn retrieve<T, S: Shape>(
-        &self,
-        len: usize, 
-        add_node: impl AddGraph
-    ) -> Buffer<T, Self, S>
+    fn retrieve<T, S: Shape>(&self, len: usize, add_node: impl AddGraph) -> Buffer<T, Self, S>
     where
         for<'a> Self: Alloc<'a, T, S>,
     {
         Self::Cache::retrieve(self, len, add_node)
     }
 
+    #[cfg(feature = "autograd")]
     #[inline]
     fn get_existing_buf<T, S: Shape>(&self, ident: Ident) -> Buffer<T, Self, S> {
         Self::Cache::get_existing_buf(self, ident)

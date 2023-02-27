@@ -2,37 +2,63 @@ use crate::{number::Number, Buffer, OpenCL, Shape};
 use min_cl::api::{enqueue_nd_range_kernel, set_kernel_arg, OCLErrorKind};
 use std::{ffi::c_void, mem::size_of};
 
+/// Converts `Self` to a *const c_void.
+/// This enables taking `Buffer` and a number `T` as an argument to an OpenCL kernel.
+/// # Example
+/// ```
+/// use custos::{OpenCL, Buffer, opencl::AsClCvoidPtr};
+/// 
+/// fn args(args: &[&dyn AsClCvoidPtr]) {
+///     // ...
+/// }
+/// 
+/// fn main() -> custos::Result<()> {
+///     let device = OpenCL::new(0)?;
+/// 
+///     let buf = Buffer::<f32, _>::new(&device, 10);
+///     let num = 4;
+///     args(&[&num, &buf]);
+///     Ok(())
+/// }
+/// ```
 pub trait AsClCvoidPtr {
     fn as_cvoid_ptr(&self) -> *const c_void;
+    #[inline]
     fn is_num(&self) -> bool {
         false
     }
+    #[inline]
     fn ptr_size(&self) -> usize {
         std::mem::size_of::<*const c_void>()
     }
 }
 
 impl<'a, T, S: Shape> AsClCvoidPtr for &Buffer<'a, T, OpenCL, S> {
+    #[inline]
     fn as_cvoid_ptr(&self) -> *const c_void {
         self.ptr.ptr
     }
 }
 
 impl<'a, T, S: Shape> AsClCvoidPtr for Buffer<'a, T, OpenCL, S> {
+    #[inline]
     fn as_cvoid_ptr(&self) -> *const c_void {
         self.ptr.ptr
     }
 }
 
 impl<T: Number> AsClCvoidPtr for T {
+    #[inline]
     fn as_cvoid_ptr(&self) -> *const c_void {
         self as *const T as *const c_void
     }
 
+    #[inline]
     fn ptr_size(&self) -> usize {
         size_of::<T>()
     }
 
+    #[inline]
     fn is_num(&self) -> bool {
         true
     }

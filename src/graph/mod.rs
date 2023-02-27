@@ -179,7 +179,7 @@ mod tests {
 
         // idx: 5, deps: [3, 3]
         let d = graph.add_node(10, c.idx, c.idx);
-        
+
         // idx: 6, deps: [5, 1]
         let _e = graph.add_node(10, d.idx, b.idx);
 
@@ -318,7 +318,7 @@ mod tests {
 
         // idx: 4, deps: [3, 1] (2)
         let _e = graph.add_node(12, d.idx, a.idx);
-        
+
         let traces = graph.cache_traces();
 
         assert_eq!(
@@ -343,7 +343,6 @@ mod tests {
         //        println!("traces: {traces:?}");
     }
 
-
     #[test]
     fn test_cache_trace_neural_net() {
         // for: cargo test -- --test-threads=1
@@ -363,25 +362,39 @@ mod tests {
 
         let a1 = graph.add_node(100 * 64, inputs.idx, w1.idx);
         let a2 = graph.add_node(100 * 64, a1.idx, b1.idx);
-        let a2 = graph.add_node(100*64, a2.idx, a2.idx);
+        let a2 = graph.add_node(100 * 64, a2.idx, a2.idx);
 
         let a3 = graph.add_node(100 * 64, a2.idx, w2.idx);
         let a4 = graph.add_node(100 * 64, a3.idx, b2.idx);
-        let a4 = graph.add_node(100*64, a4.idx, a4.idx);
+        let a4 = graph.add_node(100 * 64, a4.idx, a4.idx);
 
         let a5 = graph.add_node(100 * 64, a4.idx, w3.idx);
         let a6 = graph.add_node(100 * 64, a5.idx, b3.idx);
-        let a6 = graph.add_node(100*64, a6.idx, a6.idx);
+        let a6 = graph.add_node(100 * 64, a6.idx, a6.idx);
 
         let a7 = graph.add_node(100 * 1, a6.idx, w4.idx);
         let a8 = graph.add_node(100 * 1, a7.idx, b4.idx);
 
-        let loss = graph.add_node(100, a8.idx, targets.idx);
+        let _loss = graph.add_node(100, a8.idx, targets.idx);
 
         let traces = graph.cache_traces();
-        println!("traces: {traces:?}");
-        println!("traces: {:?}", traces[0].use_cache_idx.len());
-
+        assert_eq!(
+            traces,
+            [CacheTrace {
+                cache_idx: 10,
+                use_cache_idx: vec![
+                    Ident { idx: 0, len: 6400 },
+                    Ident { idx: 0, len: 6400 },
+                    Ident { idx: 0, len: 6400 },
+                    Ident { idx: 0, len: 6400 },
+                    Ident { idx: 0, len: 6400 },
+                    Ident { idx: 0, len: 6400 },
+                    Ident { idx: 0, len: 6400 },
+                    Ident { idx: 0, len: 6400 },
+                    Ident { idx: 0, len: 6400 }
+                ]
+            }]
+        )
 
         // graph.add_node(10*10, gemm.idx, gemm.idx);
         // bump_count();
@@ -418,7 +431,6 @@ mod tests {
                     deps: [0, 1],
                     len: 10
                 },
-                
                 Node {
                     ident_idx: 0,
                     idx: 3,
@@ -442,7 +454,7 @@ mod tests {
     #[cfg(feature = "cpu")]
     #[test]
     fn test_from_retrieve() {
-        use crate::{CPU, Buffer, Device, GraphReturn};
+        use crate::{Buffer, Device, GraphReturn, CPU};
 
         let device = CPU::new();
 
@@ -454,7 +466,7 @@ mod tests {
         let b3 = Buffer::from((&device, [1; 64]));
         let w4 = Buffer::from((&device, [1; 64 * 1]));
         let b4 = Buffer::from((&device, [1; 1]));
-        
+
         let inputs = Buffer::from((&device, [1; 10 * 100]));
         let targets = Buffer::from((&device, [2; 100]));
 
@@ -473,12 +485,25 @@ mod tests {
         let a7 = device.retrieve::<i32, ()>(100 * 1, (&a6, &w4));
         let a8 = device.retrieve::<i32, ()>(100 * 1, (&a7, &b4));
 
-        let loss = device.retrieve::<i32, ()>(100, (&a8, &targets));
-
+        let _loss = device.retrieve::<i32, ()>(100, (&a8, &targets));
 
         let cts = device.graph().cache_traces();
-        println!("cts: {cts:?}");
-
-        println!("traces: {:?}", cts[0].use_cache_idx.len());
+        assert_eq!(
+            cts,
+            [CacheTrace {
+                cache_idx: 10,
+                use_cache_idx: vec![
+                    Ident { idx: 10, len: 6400 },
+                    Ident { idx: 11, len: 6400 },
+                    Ident { idx: 12, len: 6400 },
+                    Ident { idx: 13, len: 6400 },
+                    Ident { idx: 14, len: 6400 },
+                    Ident { idx: 15, len: 6400 },
+                    Ident { idx: 16, len: 6400 },
+                    Ident { idx: 17, len: 6400 },
+                    Ident { idx: 18, len: 6400 }
+                ]
+            }]
+        );
     }
 }
