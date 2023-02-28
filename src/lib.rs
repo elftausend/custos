@@ -261,7 +261,7 @@ pub mod prelude {
     #[cfg(feature = "opencl")]
     #[cfg(unified_cl)]
     #[cfg(not(feature = "realloc"))]
-    pub use crate::opencl::{construct_buffer, to_unified};
+    pub use crate::opencl::{construct_buffer, to_cached_unified};
 
     #[cfg(feature = "stack")]
     pub use crate::stack::Stack;

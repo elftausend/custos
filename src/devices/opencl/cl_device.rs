@@ -6,7 +6,7 @@ use min_cl::api::{
 
 use super::{chosen_cl_idx, CLPtr, KernelCacheCL, RawCL};
 use crate::flag::AllocFlag;
-use crate::Shape;
+use crate::{Shape, GlobalCount};
 use crate::{
     cache::{Cache, CacheReturn, RawConv},
     Alloc, Buffer, CloneBuf, Device, Error, Graph, GraphReturn, CPU,
@@ -37,7 +37,7 @@ pub struct OpenCL {
     pub kernel_cache: RefCell<KernelCacheCL>,
     pub cache: RefCell<Cache<OpenCL>>,
     pub inner: CLDevice,
-    pub graph: RefCell<Graph>,
+    pub graph: RefCell<Graph<GlobalCount>>,
     pub cpu: CPU,
     #[cfg(feature = "autograd")]
     pub tape: RefCell<crate::Tape<OpenCL>>,
@@ -265,7 +265,7 @@ impl CacheReturn for OpenCL {
 
 impl GraphReturn for OpenCL {
     #[inline]
-    fn graph(&self) -> std::cell::RefMut<Graph> {
+    fn graph(&self) -> std::cell::RefMut<Graph<GlobalCount>> {
         self.graph.borrow_mut()
     }
 }

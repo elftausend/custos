@@ -16,7 +16,7 @@ mod node;
 mod graph_struct;
 
 #[cfg(not(feature = "no-std"))]
-pub use graph_struct::Graph;
+pub use graph_struct::*;
 
 #[cfg(feature = "no-std")]
 pub struct Graph {}
@@ -45,15 +45,15 @@ pub struct CacheTrace {
     pub use_cache_idx: Vec<Ident>,
 }
 
-pub trait GraphReturn {
-    fn graph(&self) -> RefMut<Graph>;
+pub trait GraphReturn<IdxFrom: NodeIdx = GlobalCount> {
+    fn graph(&self) -> RefMut<Graph<IdxFrom>>;
 }
 
 #[cfg(feature = "opt-cache")]
 pub trait GraphOpt {
     fn optimize(&self) -> crate::Result<()>
     where
-        Self: GraphReturn + CacheReturn + crate::RawConv,
+        Self: GraphReturn<GlobalCount> + CacheReturn + crate::RawConv,
     {
         let mut cache = self.cache();
         for trace in self.graph().cache_traces() {
@@ -76,11 +76,11 @@ pub trait GraphOpt {
 #[cfg(not(feature = "no-std"))]
 #[cfg(test)]
 mod tests {
-    use crate::{set_count, CacheTrace, Graph, Ident, Node};
+    use crate::{set_count, CacheTrace, Graph, Ident, Node, NodeCount};
 
     #[test]
     fn test_is_leaf() {
-        let mut graph = Graph::new();
+        let mut graph = Graph::<NodeCount>::new();
         let node = graph.add_leaf(0);
         assert!(node.is_leaf());
 
@@ -92,7 +92,7 @@ mod tests {
     fn test_cache_trace() {
         // for: cargo test -- --test-threads=1
         unsafe { set_count(0) };
-        let mut graph = Graph::new();
+        let mut graph = Graph::<NodeCount>::new();
         let a = graph.add_leaf(10);
         let b = graph.add_leaf(10);
 
@@ -133,7 +133,7 @@ mod tests {
     fn test_no_cache_trace() {
         // for: cargo test -- --test-threads=1
         unsafe { set_count(0) };
-        let mut graph = Graph::new();
+        let mut graph = Graph::<NodeCount>::new();
         let a = graph.add_leaf(10);
         let b = graph.add_leaf(10);
 
@@ -157,7 +157,7 @@ mod tests {
     fn test_cache_trace_2() {
         // for: cargo test -- --test-threads=1
         unsafe { set_count(0) };
-        let mut graph = Graph::new();
+        let mut graph = Graph::<NodeCount>::new();
         let a = graph.add_leaf(10); // idx: 0
         let b = graph.add_leaf(10); // idx: 1
         let u = graph.add_leaf(10); // idx: 2
@@ -196,7 +196,7 @@ mod tests {
     fn test_cache_trace_break_not_anymore() {
         // for: cargo test -- --test-threads=1
         unsafe { set_count(0) };
-        let mut graph = Graph::new();
+        let mut graph = Graph::<NodeCount>::new();
         let a = graph.add_leaf(10);
         let b = graph.add_leaf(10);
 
@@ -235,7 +235,7 @@ mod tests {
     fn test_trace_all() {
         // for: cargo test -- --test-threads=1
         unsafe { set_count(0) };
-        let mut graph = Graph::new();
+        let mut graph = Graph::<NodeCount>::new();
         let a = graph.add_leaf(10);
         let b = graph.add_leaf(10);
 
@@ -268,7 +268,7 @@ mod tests {
     fn test_leafed_diff_len_trace() {
         // for: cargo test -- --test-threads=1
         unsafe { set_count(0) };
-        let mut graph = Graph::new();
+        let mut graph = Graph::<NodeCount>::new();
         let a = graph.add_leaf(10);
 
         let _b = graph.add_node(10, a.idx, a.idx);
@@ -301,7 +301,7 @@ mod tests {
     fn test_cache_trace_neural_net() {
         // for: cargo test -- --test-threads=1
         unsafe { set_count(0) };
-        let mut graph = Graph::new();
+        let mut graph = Graph::<NodeCount>::new();
         let inputs = graph.add_leaf(100 * 10);
         let targets = graph.add_leaf(100);
 
@@ -367,7 +367,7 @@ mod tests {
     fn test_cache_trace_d() {
         // for: cargo test -- --test-threads=1
         unsafe { set_count(0) };
-        let mut graph = Graph::new();
+        let mut graph = Graph::<NodeCount>::new();
         let a = graph.add_leaf(10);
         let b = graph.add_leaf(10);
 
@@ -482,7 +482,7 @@ mod tests {
 
     #[test]
     fn test_no_cache_trace_in_graph() {
-        let mut graph = Graph::new();
+        let mut graph = Graph::<NodeCount>::new();
         let a = graph.add_leaf(10);
         let b = graph.add_leaf(10);
 
@@ -498,7 +498,7 @@ mod tests {
     fn test_multiple_traces() {
         // for: cargo test -- --test-threads=1
         unsafe { set_count(0) };
-        let mut graph = Graph::new();
+        let mut graph = Graph::<NodeCount>::new();
 
         // idx: 0, deps: [] (0)
         let a = graph.add_leaf(10);

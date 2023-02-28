@@ -1,4 +1,4 @@
-use custos::{cache::CacheReturn, opencl::construct_buffer, Buffer, Ident, OpenCL, CPU};
+use custos::{cache::CacheReturn, opencl::construct_buffer, Buffer, Ident, OpenCL, CPU, GraphReturn, get_count};
 
 use super::{AddBuf, AddOp};
 
@@ -12,12 +12,13 @@ fn test_access_cached_after_unified_construct_buf() -> custos::Result<()> {
     // some operation to generate an OpenCL graph
     let c = a.relu();
 
+    assert_eq!(cl_dev.graph().nodes.len(), 3);
+    assert_eq!(get_count(), 3);
+
     let device = CPU::new();
     let no_drop = device.add(&c, &b);
 
     let cl_cpu_buf = unsafe { construct_buffer(&cl_dev, no_drop, (&c, &b)) }?;
-
-    println!("nodes: {:?}", cl_dev.cache.borrow().nodes);
 
     let cached_cl_cpu_buf = cl_dev
         .cache()

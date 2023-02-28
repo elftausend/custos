@@ -1,4 +1,4 @@
-use crate::{shape::Shape, Buffer, Device, Graph};
+use crate::{shape::Shape, Buffer, Device, Graph, NodeIdx};
 
 use super::node::Node;
 
@@ -7,7 +7,8 @@ pub trait AddGraph {
     fn idxs(&self) -> (usize, usize) {
         (0, 0)
     }
-    fn add(&self, graph: &mut Graph, len: usize) -> Node {
+    #[inline]
+    fn add<IdxFrom: NodeIdx>(&self, graph: &mut Graph<IdxFrom>, len: usize) -> Node {
         let (lhs_idx, rhs_idx) = self.idxs();
         graph.add_node(len, lhs_idx, rhs_idx)
     }
@@ -15,7 +16,7 @@ pub trait AddGraph {
 
 impl AddGraph for () {
     #[inline]
-    fn add(&self, graph: &mut Graph, len: usize) -> Node {
+    fn add<IdxFrom: NodeIdx>(&self, graph: &mut Graph<IdxFrom>, len: usize) -> Node {
         graph.add_leaf(len)
     }
 }

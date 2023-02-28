@@ -4,11 +4,11 @@ use std::collections::HashMap;
 use std::rc::Rc;
 
 use crate::{
-    flag::AllocFlag, shape::Shape, Alloc, Buffer, CacheAble, Device, GraphReturn, Ident, PtrType,
+    flag::AllocFlag, shape::Shape, Alloc, Buffer, CacheAble, Device, GraphReturn, Ident, PtrType, GlobalCount,
 };
 
 /// This trait makes a device's [`Cache`] accessible and is implemented for all compute devices.
-pub trait CacheReturn: GraphReturn {
+pub trait CacheReturn: GraphReturn<GlobalCount> {
     type CT;
     /// Returns a device specific [`Cache`].
     fn cache(&self) -> RefMut<Cache<Self>>

@@ -1,15 +1,37 @@
+use core::marker::PhantomData;
 use std::collections::HashSet;
 
-use crate::{AddGraph, CacheTrace, Ident, Node, COUNT};
+use crate::{AddGraph, CacheTrace, Ident, Node, get_count};
 
 #[derive(Default, Debug)]
-pub struct Graph {
+pub struct Graph<IdxFrom: NodeIdx> {
     pub nodes: Vec<Node>,
+    _pd: PhantomData<IdxFrom>,
 }
 
-impl Graph {
+pub trait NodeIdx {
+    #[inline]
+    fn idx(nodes: &[Node]) -> usize {
+        nodes.len()
+    }
+}
+
+#[derive(Debug, Default)]
+pub struct GlobalCount;
+impl NodeIdx for GlobalCount {
+    #[inline]
+    fn idx(_nodes: &[Node]) -> usize {
+        get_count()
+    }
+}
+
+#[derive(Debug)]
+pub struct NodeCount;
+impl NodeIdx for NodeCount {}
+
+impl<IdxFrom: NodeIdx> Graph<IdxFrom> {
     pub fn new() -> Self {
-        Self { nodes: Vec::new() }
+        Self { nodes: Vec::new(), _pd: PhantomData }
     }
 
     pub fn add(&mut self, len: usize, add_node: impl AddGraph) -> Node {
@@ -17,31 +39,25 @@ impl Graph {
     }
 
     pub fn add_leaf(&mut self, len: usize) -> Node {
-        let idx = self.nodes.len();
-        let node = COUNT.with(|count| {
-            Node {
-                // subtracting 1, because the count is increased beforehand.
-                //ident_idx: idx,
-                idx,
-                deps: [idx, idx],
-                len,
-            }
-        });
+        let idx = IdxFrom::idx(&self.nodes);
+        let node = Node {
+            //ident_idx: idx,
+            idx,
+            deps: [idx, idx],
+            len,
+        };
         self.nodes.push(node);
         node
     }
 
     pub fn add_node(&mut self, len: usize, lhs_idx: usize, rhs_idx: usize) -> Node {
-        let idx = self.nodes.len();
-        let node = COUNT.with(|count| {
-            Node {
-                // subtracting 1, because the count is increased beforehand.
-                // ident_idx: idx,
-                idx,
-                deps: [lhs_idx, rhs_idx],
-                len,
-            }
-        });
+        let idx = IdxFrom::idx(&self.nodes);
+        let node = Node {
+            // ident_idx: idx,
+            idx,
+            deps: [lhs_idx, rhs_idx],
+            len,
+        };
         self.nodes.push(node);
         node
     }

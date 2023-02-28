@@ -3,7 +3,7 @@ use crate::{
     devices::cache::{Cache, CacheReturn},
     flag::AllocFlag,
     shape::Shape,
-    Alloc, Buffer, CloneBuf, Device, DevicelessAble, Graph, GraphReturn, MainMemory,
+    Alloc, Buffer, CloneBuf, Device, DevicelessAble, Graph, GraphReturn, MainMemory, GlobalCount,
 };
 
 use core::{
@@ -31,7 +31,7 @@ use super::{CPUPtr, RawCpuBuf};
 /// ```
 pub struct CPU {
     pub cache: RefCell<Cache<CPU>>,
-    pub graph: RefCell<Graph>,
+    pub graph: RefCell<Graph<GlobalCount>>,
     #[cfg(feature = "autograd")]
     pub tape: RefCell<crate::Tape<CPU>>,
 }
@@ -143,7 +143,7 @@ impl CacheReturn for CPU {
 
 impl GraphReturn for CPU {
     #[inline]
-    fn graph(&self) -> RefMut<Graph> {
+    fn graph(&self) -> RefMut<Graph<GlobalCount>> {
         self.graph.borrow_mut()
     }
 }

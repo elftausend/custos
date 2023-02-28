@@ -11,7 +11,7 @@ use min_cl::api::{create_buffer, MemFlags};
 /// This function is used in the `constuct_buffer()` function.
 /// # Safety
 /// The host pointer inside the no_drop `Buffer` must live as long as the resulting pointer.
-pub unsafe fn to_unified<T, S: Shape>(
+pub unsafe fn to_cached_unified<T, S: Shape>(
     device: &OpenCL,
     no_drop: Buffer<T, CPU, S>,
 ) -> crate::Result<*mut c_void> {
@@ -94,7 +94,7 @@ pub unsafe fn construct_buffer<'a, T, S: Shape>(
     let graph_node = device.graph().add(no_drop.len(), add_node);
 
     let (host_ptr, len) = (no_drop.host_ptr_mut(), no_drop.len());
-    let ptr = to_unified(device, no_drop)?;
+    let ptr = to_cached_unified(device, no_drop)?;
 
     bump_count();
 
@@ -118,7 +118,7 @@ pub unsafe fn construct_buffer<'a, T, S: Shape>(
 mod tests {
     use crate::{opencl::CLPtr, AllocFlag, Buffer, Device, Ident, OpenCL, CPU};
 
-    use super::{construct_buffer, to_unified};
+    use super::{construct_buffer, to_cached_unified};
 
     #[test]
     fn test_to_unified() -> crate::Result<()> {
@@ -129,7 +129,7 @@ mod tests {
         let device = OpenCL::new(0)?;
 
         let (host_ptr, len) = (no_drop.host_ptr_mut(), no_drop.len());
-        let cl_host_ptr = unsafe { to_unified(&device, no_drop)? };
+        let cl_host_ptr = unsafe { to_cached_unified(&device, no_drop)? };
 
         let buf: Buffer<f32, OpenCL> = Buffer {
             ptr: CLPtr {
