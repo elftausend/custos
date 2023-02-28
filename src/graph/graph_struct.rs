@@ -64,10 +64,10 @@ impl Graph {
             traces.push(CacheTrace {
                 cache_idx: node.idx,
                 use_cache_idx: trace
-                    .iter()
+                    .into_iter()
                     //.filter(|node| !visited_nodes.contains(*node))
                     .map(|node| {
-                        visited_nodes.insert(*node);
+                        visited_nodes.insert(node);
                         Ident {
                             idx: node.idx,
                             len: node.len,
@@ -89,7 +89,6 @@ impl Graph {
         let mut idx = trace_at.idx;
 
         for check in self.nodes.iter().skip(trace_at.idx + 1) {
-
             if !check.deps.contains(&idx) {
                 continue;
             }
@@ -97,14 +96,14 @@ impl Graph {
             if trace_at.len != check.len {
                 continue;
             }
-            
+
             idx = check.idx;
             trace.push(*check);
 
             // the first unoptimizable node in a cache trace may be added to the cache trace
             // look test "test_cache_trace_break_not_anymore"
             if !self.is_path_optimizable(check) {
-                break
+                break;
             }
         }
 

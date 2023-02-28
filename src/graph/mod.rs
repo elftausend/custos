@@ -10,7 +10,6 @@ pub use add_graph::*;
 pub use node::*;
 
 mod add_graph;
-mod graph_redo;
 mod node;
 
 #[cfg(not(feature = "no-std"))]
@@ -77,9 +76,8 @@ pub trait GraphOpt {
 #[cfg(not(feature = "no-std"))]
 #[cfg(test)]
 mod tests {
-    use crate::{bump_count, set_count, CacheTrace, Graph, Ident, Node};
+    use crate::{set_count, CacheTrace, Graph, Ident, Node};
 
-    // test if node is a leaf node
     #[test]
     fn test_is_leaf() {
         let mut graph = Graph::new();
@@ -113,11 +111,6 @@ mod tests {
         let trace = graph.trace_cache_path(&c);
         assert_eq!(
             vec![
-                Node {
-                    idx: 2,
-                    deps: [0, 1],
-                    len: 10,
-                },
                 Node {
                     idx: 3,
                     deps: [2, 2],
@@ -185,11 +178,6 @@ mod tests {
         assert_eq!(
             vec![
                 Node {
-                    idx: 3,
-                    deps: [0, 1],
-                    len: 10,
-                },
-                Node {
                     idx: 5,
                     deps: [3, 3],
                     len: 10,
@@ -229,7 +217,7 @@ mod tests {
         let trace = graph.trace_cache_path(&c);
         println!("c_trace: {:?}", trace);
         /*assert_eq!(
-            vec![                
+            vec![
                 Node {
                     idx: 2,
                     deps: [0, 0],
@@ -262,11 +250,12 @@ mod tests {
 
         let traces = graph.cache_traces();
 
+        assert_eq!(traces.len(), 1);
+
         assert_eq!(
             CacheTrace {
                 cache_idx: 2,
                 use_cache_idx: vec![
-                    Ident { idx: 2, len: 10 },
                     Ident { idx: 3, len: 10 },
                     Ident { idx: 4, len: 10 },
                 ],
@@ -341,7 +330,7 @@ mod tests {
 
         let _loss = graph.add_node(100, a8.idx, targets.idx);
 
-        let traces = graph.cache_traces_2();
+        let traces = graph.cache_traces();
         assert_eq!(
             traces,
             [
@@ -396,14 +385,8 @@ mod tests {
 
         let trace = graph.trace_cache_path(&c);
 
-        // TODO: d could use the memory of c, but this is not the case yet
         assert_eq!(
             vec![
-                Node {
-                    idx: 2,
-                    deps: [0, 1],
-                    len: 10,
-                },
                 Node {
                     idx: 3,
                     deps: [2, 2],
@@ -420,6 +403,15 @@ mod tests {
 
         assert!(graph.is_path_optimizable(&c));
         assert!(graph.is_path_optimizable(&d));
+
+        let trace = graph.cache_traces();
+        assert_eq!(
+            trace,
+            [CacheTrace {
+                cache_idx: 2,
+                use_cache_idx: vec![Ident { idx: 3, len: 10 }, Ident { idx: 4, len: 10 }]
+            }]
+        );
     }
 
     #[cfg(feature = "cpu")]
@@ -441,7 +433,7 @@ mod tests {
 
         let inputs = Buffer::from((&device, [1; 10 * 100]));
         let targets = Buffer::from((&device, [2; 100]));
-        
+
         let a1 = device.retrieve::<i32, ()>(100 * 64, (&inputs, &w1));
         let a2 = device.retrieve::<i32, ()>(100 * 64, (&a1, &b1));
         let a2 = device.retrieve::<i32, ()>(100 * 64, (&a2, &a2));
@@ -499,6 +491,56 @@ mod tests {
         let trace = graph.trace_cache_path(&c);
         graph.cache_traces();
 
-        //assert_eq!(None, trace);
+        assert_eq!(Vec::<Node>::new(), trace);
+    }
+
+    #[test]
+    fn test_multiple_traces() {
+        // for: cargo test -- --test-threads=1
+        unsafe { set_count(0) };
+        let mut graph = Graph::new();
+
+        // idx: 0, deps: [] (0)
+        let a = graph.add_leaf(10);
+
+        // idx: 1, deps: [0, 0] (1)
+        let _b = graph.add_node(10, a.idx, a.idx);
+
+        // idx: 2
+        let _z = graph.add_leaf(10);
+
+        // idx: 3
+        let _z = graph.add_leaf(10);
+
+        // idx: 4, deps: [0, 1] (0)
+        let c = graph.add_node(12, a.idx, a.idx);
+
+        // idx: 5, deps: [2, 2] (1)
+        let d = graph.add_node(12, c.idx, c.idx);
+
+        // idx: 6, deps: [3, 1] (2)
+        let _e = graph.add_node(12, d.idx, a.idx);
+
+        // idx: 7
+        let f = graph.add_node(10, _b.idx, _z.idx);
+
+        // idx: 8
+        let _g = graph.add_node(10, f.idx, _z.idx);
+
+        let traces = graph.cache_traces();
+
+        assert_eq!(
+            [
+                CacheTrace {
+                    cache_idx: 1,
+                    use_cache_idx: vec![Ident { idx: 7, len: 10 }, Ident { idx: 8, len: 10 }]
+                },
+                CacheTrace {
+                    cache_idx: 4,
+                    use_cache_idx: vec![Ident { idx: 5, len: 12 }, Ident { idx: 6, len: 12 }]
+                }
+            ],
+            &*traces
+        );
     }
 }

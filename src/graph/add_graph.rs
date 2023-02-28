@@ -3,7 +3,14 @@ use crate::{shape::Shape, Buffer, Device, Graph};
 use super::node::Node;
 
 pub trait AddGraph {
-    fn add(&self, graph: &mut Graph, len: usize) -> Node;
+    #[inline]
+    fn idxs(&self) -> (usize, usize) {
+        (0, 0)
+    }
+    fn add(&self, graph: &mut Graph, len: usize) -> Node {
+        let (lhs_idx, rhs_idx) = self.idxs();
+        graph.add_node(len, lhs_idx, rhs_idx)
+    }
 }
 
 impl AddGraph for () {
@@ -16,43 +23,29 @@ impl AddGraph for () {
 // Unary operation
 impl AddGraph for usize {
     #[inline]
-    fn add(&self, graph: &mut Graph, len: usize) -> Node {
-        graph.add_node(len, *self, *self)
+    fn idxs(&self) -> (usize,usize) {
+        (*self, *self)
     }
 }
 
 impl AddGraph for (usize, usize) {
     #[inline]
-    fn add(&self, graph: &mut Graph, len: usize) -> Node {
-        graph.add_node(len, self.0, self.1)
-    }
-}
-
-impl AddGraph for [usize; 2] {
-    #[inline]
-    fn add(&self, graph: &mut Graph, len: usize) -> Node {
-        graph.add_node(len, self[0], self[1])
-    }
-}
-
-impl AddGraph for [usize; 1] {
-    #[inline]
-    fn add(&self, graph: &mut Graph, len: usize) -> Node {
-        graph.add_node(len, self[0], self[0])
+    fn idxs(&self) -> (usize,usize) {
+        *self
     }
 }
 
 impl<'a, T, D: Device, S: Shape> AddGraph for Buffer<'a, T, D, S> {
     #[inline]
-    fn add(&self, graph: &mut Graph, len: usize) -> Node {
-        graph.add_node(len, self.ident.idx, self.ident.idx)
+    fn idxs(&self) -> (usize,usize) {
+        (self.ident.idx, self.ident.idx)
     }
 }
 
 impl<'a, T, D: Device, S: Shape> AddGraph for &Buffer<'a, T, D, S> {
     #[inline]
-    fn add(&self, graph: &mut Graph, len: usize) -> Node {
-        graph.add_node(len, self.ident.idx, self.ident.idx)
+    fn idxs(&self) -> (usize,usize) {
+        (self.ident.idx, self.ident.idx)
     }
 }
 
@@ -60,7 +53,7 @@ impl<'a, T, D: Device, LS: Shape, RS: Shape> AddGraph
     for (&Buffer<'a, T, D, LS>, &Buffer<'a, T, D, RS>)
 {
     #[inline]
-    fn add(&self, graph: &mut Graph, len: usize) -> Node {
-        graph.add_node(len, self.0.ident.idx, self.1.ident.idx)
+    fn idxs(&self) -> (usize,usize) {
+        (self.0.ident.idx, self.1.ident.idx)
     }
 }
