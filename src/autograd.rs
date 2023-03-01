@@ -27,6 +27,14 @@ where
     }
 }
 
+type LhsRhsOut<'a, 'b, T, D, S> = (
+    Buffer<'a, T, D, S>,
+    Buffer<'a, T, D, S>,
+    &'b mut Buffer<'a, T, D, S>,
+    &'b mut Buffer<'a, T, D, S>,
+    &'b Buffer<'a, T, D, S>,
+);
+
 impl<D> Gradients<D> {
     // everything is T, bad
     /*pub fn grads<'a, T>(&mut self, device: &'a D) -> Vec<Buffer<'a, T, D>> {
@@ -101,13 +109,7 @@ impl<D> Gradients<D> {
         &mut self,
         device: &'a D,
         (lid, rid, oid): (Ident, Ident, Ident),
-    ) -> (
-        Buffer<'a, T, D, S>,
-        Buffer<'a, T, D, S>,
-        &mut Buffer<'a, T, D, S>,
-        &mut Buffer<'a, T, D, S>,
-        &Buffer<'a, T, D, S>,
-    )
+    ) -> LhsRhsOut<'a, '_, T, D, S>
     where
         T: 'static,
         S: Shape,

@@ -103,7 +103,7 @@ impl<T: CDatatype> AddBuf<T> for CUDA {
         );
 
         let len = std::cmp::min(lhs.len(), rhs.len());
-        let out = self.retrieve::<T, ()>(len);
+        let out = self.retrieve::<T, ()>(len, (lhs, rhs));
         //or: let out = Cache::get::<T, CUDA, 0>(self, len, (lhs, rhs));
 
         // The kernel is compiled once with nvrtc and is cached too.

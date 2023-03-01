@@ -7,8 +7,7 @@ use crate::{shape::Shape, CommonPtrs, PtrType, ShallowCopy};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct StackArray<S: Shape, T> {
-    pub array: S::ARR<T>,
-    _private: (),
+    pub(crate) array: S::ARR<T>,
 }
 
 impl<S: Shape, T: Default + Copy> StackArray<S, T> {
@@ -19,10 +18,17 @@ impl<S: Shape, T: Default + Copy> StackArray<S, T> {
             S::LEN > 0,
             "The size (N) of a stack allocated buffer must be greater than 0."
         );
-        StackArray {
-            array: S::new(),
-            _private: (),
-        }
+        StackArray { array: S::new() }
+    }
+
+    #[inline]
+    pub fn array(&self) -> &S::ARR<T> {
+        &self.array
+    }
+
+    #[inline]
+    pub fn array_mut(&mut self) -> &mut S::ARR<T> {
+        &mut self.array
     }
 }
 
@@ -40,10 +46,7 @@ impl<S: Shape, T> StackArray<S, T> {
             "The size (N) of a stack allocated buffer must be greater than 0."
         );
 
-        StackArray {
-            array,
-            _private: (),
-        }
+        StackArray { array }
     }
 }
 
@@ -59,15 +62,17 @@ impl<S: Shape, T> StackArray<S, T> {
     }
 
     /// Flattens a possibly multidimensional array.
+    /// &[[T], ..] -> &[T]
     #[inline]
-    pub const unsafe fn flatten(&self) -> &[T] {
-        core::slice::from_raw_parts(self.as_ptr(), S::LEN)
+    pub const fn flatten(&self) -> &[T] {
+        unsafe { core::slice::from_raw_parts(self.as_ptr(), S::LEN) }
     }
 
     /// Flattens a possibly multidimensional array.
+    /// &mut [[T], ..] -> &mut [T]
     #[inline]
-    pub unsafe fn flatten_mut(&mut self) -> &mut [T] {
-        core::slice::from_raw_parts_mut(self.as_ptr_mut(), S::LEN)
+    pub fn flatten_mut(&mut self) -> &mut [T] {
+        unsafe { core::slice::from_raw_parts_mut(self.as_ptr_mut(), S::LEN) }
     }
 }
 
@@ -76,20 +81,20 @@ impl<S: Shape, T> Deref for StackArray<S, T> {
 
     #[inline]
     fn deref(&self) -> &Self::Target {
-        unsafe { self.flatten() }
+        self.flatten()
     }
 }
 
 impl<S: Shape, T> DerefMut for StackArray<S, T> {
     #[inline]
     fn deref_mut(&mut self) -> &mut Self::Target {
-        unsafe { self.flatten_mut() }
+        self.flatten_mut()
     }
 }
 
 impl<S: Shape, T> PtrType for StackArray<S, T> {
     #[inline]
-    fn len(&self) -> usize {
+    fn size(&self) -> usize {
         S::LEN
     }
 
@@ -117,9 +122,6 @@ where
 {
     #[inline]
     unsafe fn shallow(&self) -> Self {
-        StackArray {
-            array: self.array,
-            _private: (),
-        }
+        StackArray { array: self.array }
     }
 }

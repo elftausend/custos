@@ -71,7 +71,7 @@ impl<T> Drop for CPUPtr<T> {
 
 impl<T> PtrType for CPUPtr<T> {
     #[inline]
-    fn len(&self) -> usize {
+    fn size(&self) -> usize {
         self.len
     }
 

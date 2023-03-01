@@ -12,7 +12,7 @@ pub struct Num<T> {
 
 impl<T> PtrType for Num<T> {
     #[inline]
-    fn len(&self) -> usize {
+    fn size(&self) -> usize {
         0
     }
 

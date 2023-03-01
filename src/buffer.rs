@@ -188,7 +188,7 @@ impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
     /// ```
     #[inline]
     pub fn len(&self) -> usize {
-        self.ptr.len()
+        self.ptr.size()
     }
 
     /// Creates a shallow copy of &self.

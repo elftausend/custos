@@ -96,7 +96,7 @@ compile_error!("The autograd and opt-cache feature are not currently compatible.
 This is because the logic for detecting if a forward buffer is used during gradient calculation isn't implemented yet.");
 
 pub trait PtrType {
-    fn len(&self) -> usize;
+    fn size(&self) -> usize;
     fn flag(&self) -> AllocFlag;
 }
 
@@ -222,7 +222,7 @@ pub trait Alloc<'a, T, S: Shape = ()>: Device {
         T: Clone,
     {
         let stack_array = StackArray::<S, T>::from_array(array);
-        self.with_slice(unsafe { stack_array.flatten() })
+        self.with_slice(stack_array.flatten())
     }
 }
 

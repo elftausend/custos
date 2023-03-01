@@ -70,7 +70,7 @@ impl<T> ShallowCopy for CLPtr<T> {
 
 impl<T> PtrType for CLPtr<T> {
     #[inline]
-    fn len(&self) -> usize {
+    fn size(&self) -> usize {
         self.len
     }
 

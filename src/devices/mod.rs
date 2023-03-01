@@ -85,7 +85,7 @@ impl<D: Device> CacheAble<D> for () {
 
     #[inline]
     fn add_to_cache<T, S: Shape>(_device: &D, ptr: &<D as Device>::Ptr<T, S>) -> Ident {
-        Ident::new_bumped(ptr.len())
+        Ident::new_bumped(ptr.size())
     }
 
     fn get_existing_buf<T, S: Shape>(_device: &D, _id: Ident) -> Buffer<T, D, S> {

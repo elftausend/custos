@@ -13,7 +13,7 @@ use super::{
 use crate::{
     cache::{Cache, CacheReturn},
     flag::AllocFlag,
-    Alloc, Buffer, CloneBuf, Device, Graph, GraphReturn, RawConv, Shape,
+    Alloc, Buffer, CloneBuf, Device, GlobalCount, Graph, GraphReturn, RawConv, Shape,
 };
 
 /// Used to perform calculations with a CUDA capable device.
@@ -23,7 +23,7 @@ pub struct CUDA {
     pub cache: RefCell<Cache<CUDA>>,
     pub kernel_cache: RefCell<KernelCacheCU>,
     pub modules: RefCell<Vec<Module>>,
-    pub graph: RefCell<Graph>,
+    pub graph: RefCell<Graph<GlobalCount>>,
     device: CudaIntDevice,
     ctx: Context,
     stream: Stream,
@@ -133,7 +133,7 @@ impl<T> Alloc<'_, T> for CUDA {
 }
 
 impl GraphReturn for CUDA {
-    fn graph(&self) -> std::cell::RefMut<Graph> {
+    fn graph(&self) -> std::cell::RefMut<Graph<GlobalCount>> {
         self.graph.borrow_mut()
     }
 }

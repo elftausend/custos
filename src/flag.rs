@@ -1,5 +1,3 @@
-use core::default;
-
 /// Descripes the type of a [`Buffer`]
 #[derive(Debug, Clone, Copy, Eq, PartialOrd, Ord, Default)]
 pub enum AllocFlag {

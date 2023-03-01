@@ -75,7 +75,7 @@ impl<T> ShallowCopy for CUDAPtr<T> {
 
 impl<T> PtrType for CUDAPtr<T> {
     #[inline]
-    fn len(&self) -> usize {
+    fn size(&self) -> usize {
         self.len
     }
 

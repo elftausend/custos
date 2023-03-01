@@ -115,9 +115,9 @@ where
     }
 
     fn add_to_cache<T, S: Shape>(device: &D, ptr: &<D as Device>::Ptr<T, S>) -> Ident {
-        device.graph().add_leaf(ptr.len());
-        let ident = Ident::new_bumped(ptr.len());
-        let raw_ptr = std::rc::Rc::new(D::construct(ptr, ptr.len(), AllocFlag::Wrapper));
+        device.graph().add_leaf(ptr.size());
+        let ident = Ident::new_bumped(ptr.size());
+        let raw_ptr = std::rc::Rc::new(D::construct(ptr, ptr.size(), AllocFlag::Wrapper));
         device.cache().nodes.insert(ident, raw_ptr);
         ident
     }
