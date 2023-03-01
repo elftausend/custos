@@ -283,9 +283,6 @@ impl crate::MainMemory for OpenCL {
     }
 }
 
-#[cfg(feature = "opt-cache")]
-impl crate::GraphOpt for OpenCL {}
-
 #[cfg(test)]
 mod tests {
     use crate::{opencl::cl_device::CLDevice, Buffer, OpenCL};

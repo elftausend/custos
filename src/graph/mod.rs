@@ -53,12 +53,12 @@ pub trait GraphReturn<IdxFrom: NodeIdx = GlobalCount> {
 pub trait GraphOpt {
     fn optimize(&self) -> crate::Result<()>
     where
-        Self: GraphReturn<GlobalCount> + CacheReturn + crate::RawConv,
+        Self: GraphReturn + CacheReturn + crate::RawConv,
     {
         let mut cache = self.cache();
         for trace in self.graph().cache_traces() {
             // starting at 1, because the first element is the origin
-            for node in &trace.use_cache_idx[1..] {
+            for node in &trace.use_cache_idx {
                 // insert the common / optimized pointer in all the other nodes
                 // this deallocates the old pointers
                 let ptr = cache
@@ -72,6 +72,9 @@ pub trait GraphOpt {
         Ok(())
     }
 }
+
+#[cfg(feature = "opt-cache")]
+impl<D: GraphReturn> GraphOpt for D {}
 
 #[cfg(not(feature = "no-std"))]
 #[cfg(test)]

@@ -1,11 +1,12 @@
-use core::marker::PhantomData;
-use std::collections::HashSet;
+use core::{marker::PhantomData, hash::BuildHasherDefault};
+use std::collections::{HashSet, HashMap};
 
-use crate::{AddGraph, CacheTrace, Ident, Node, get_count};
+use crate::{AddGraph, CacheTrace, Ident, Node, get_count, IdentHasher};
 
 #[derive(Default, Debug)]
 pub struct Graph<IdxFrom: NodeIdx> {
     pub nodes: Vec<Node>,
+    pub idx_trans: HashMap<usize, usize, BuildHasherDefault<IdentHasher>>,
     _pd: PhantomData<IdxFrom>,
 }
 
@@ -25,13 +26,13 @@ impl NodeIdx for GlobalCount {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct NodeCount;
 impl NodeIdx for NodeCount {}
 
 impl<IdxFrom: NodeIdx> Graph<IdxFrom> {
     pub fn new() -> Self {
-        Self { nodes: Vec::new(), _pd: PhantomData }
+        Self { nodes: Vec::new(), idx_trans: HashMap::default(), _pd: PhantomData }
     }
 
     pub fn add(&mut self, len: usize, add_node: impl AddGraph) -> Node {
@@ -39,7 +40,8 @@ impl<IdxFrom: NodeIdx> Graph<IdxFrom> {
     }
 
     pub fn add_leaf(&mut self, len: usize) -> Node {
-        let idx = IdxFrom::idx(&self.nodes);
+        let idx = self.nodes.len();
+        let ident_idx = IdxFrom::idx(&self.nodes);
         let node = Node {
             //ident_idx: idx,
             idx,
@@ -47,11 +49,13 @@ impl<IdxFrom: NodeIdx> Graph<IdxFrom> {
             len,
         };
         self.nodes.push(node);
+        self.idx_trans.insert(idx, ident_idx);
         node
     }
 
     pub fn add_node(&mut self, len: usize, lhs_idx: usize, rhs_idx: usize) -> Node {
-        let idx = IdxFrom::idx(&self.nodes);
+        let idx = self.nodes.len();
+        let ident_idx = IdxFrom::idx(&self.nodes);
         let node = Node {
             // ident_idx: idx,
             idx,
@@ -59,6 +63,7 @@ impl<IdxFrom: NodeIdx> Graph<IdxFrom> {
             len,
         };
         self.nodes.push(node);
+        self.idx_trans.insert(idx, ident_idx);
         node
     }
 
@@ -85,7 +90,7 @@ impl<IdxFrom: NodeIdx> Graph<IdxFrom> {
                     .map(|node| {
                         visited_nodes.insert(node);
                         Ident {
-                            idx: node.idx,
+                            idx: *self.idx_trans.get(&node.idx).unwrap(),
                             len: node.len,
                         }
                     })
