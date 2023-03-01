@@ -64,9 +64,12 @@ where
     let cpu = CPU::new();
 
     if device.unified_mem() {
-        return Ok(f(&cpu, &mut unsafe {
-            Buffer::from_raw_host(lhs.ptr.host_ptr, lhs.len())
-        }));
+        return {
+            f(&cpu, &mut unsafe {
+                Buffer::from_raw_host(lhs.ptr.host_ptr, lhs.len())
+            });
+            Ok(())
+        };
     }
 
     cpu_exec_unary_mut(device, lhs, f)?;
@@ -138,11 +141,14 @@ where
     let cpu = CPU::new();
 
     if device.unified_mem() {
-        return Ok(f(
-            &cpu,
-            &mut unsafe { Buffer::from_raw_host(lhs.ptr.host_ptr, lhs.len()) },
-            &unsafe { Buffer::from_raw_host(rhs.ptr.host_ptr, rhs.len()) },
-        ));
+        return {
+            f(
+                &cpu,
+                &mut unsafe { Buffer::from_raw_host(lhs.ptr.host_ptr, lhs.len()) },
+                &unsafe { Buffer::from_raw_host(rhs.ptr.host_ptr, rhs.len()) },
+            );
+            Ok(())
+        };
     }
 
     cpu_exec_binary_mut(device, lhs, rhs, f)?;

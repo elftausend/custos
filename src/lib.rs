@@ -101,6 +101,8 @@ pub trait PtrType {
 }
 
 pub trait ShallowCopy {
+    /// # Safety
+    /// Shallow copies of pointers may live longer than the corresponding resource.
     unsafe fn shallow(&self) -> Self;
 }
 

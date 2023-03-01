@@ -15,6 +15,7 @@ use cuda::api::cublas::{cublasDgemm_v2, cublasOperation_t, cublasSgemm_v2, Cubla
 pub mod cache;
 
 #[cfg(not(feature = "no-std"))]
+#[cfg(feature = "autograd")]
 pub mod borrowing_cache;
 
 //pub mod cache;
@@ -87,7 +88,7 @@ impl<D: Device> CacheAble<D> for () {
         Ident::new_bumped(ptr.len())
     }
 
-    fn get_existing_buf<T, S: Shape>(device: &D, id: Ident) -> Buffer<T, D, S> {
+    fn get_existing_buf<T, S: Shape>(_device: &D, _id: Ident) -> Buffer<T, D, S> {
         todo!();
     }
 }

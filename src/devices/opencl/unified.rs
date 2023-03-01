@@ -17,7 +17,7 @@ pub unsafe fn to_cached_unified<T, S: Shape>(
 ) -> crate::Result<*mut c_void> {
     // use the host pointer to create an OpenCL buffer
     let cl_ptr = create_buffer(
-        &device.ctx(),
+        device.ctx(),
         MemFlags::MemReadWrite | MemFlags::MemUseHostPtr,
         no_drop.len(),
         Some(&no_drop),

@@ -26,6 +26,13 @@ impl<S: Shape, T: Default + Copy> StackArray<S, T> {
     }
 }
 
+impl<S: Shape, T: Default + Copy> Default for StackArray<S, T> {
+    #[inline]
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<S: Shape, T> StackArray<S, T> {
     pub fn from_array(array: S::ARR<T>) -> Self {
         assert!(
@@ -51,11 +58,13 @@ impl<S: Shape, T> StackArray<S, T> {
         &mut self.array as *mut S::ARR<T> as *mut T
     }
 
+    /// Flattens a possibly multidimensional array.
     #[inline]
     pub const unsafe fn flatten(&self) -> &[T] {
         core::slice::from_raw_parts(self.as_ptr(), S::LEN)
     }
 
+    /// Flattens a possibly multidimensional array.
     #[inline]
     pub unsafe fn flatten_mut(&mut self) -> &mut [T] {
         core::slice::from_raw_parts_mut(self.as_ptr_mut(), S::LEN)

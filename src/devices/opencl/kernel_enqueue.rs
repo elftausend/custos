@@ -94,6 +94,6 @@ pub fn enqueue_kernel(
         )
         .unwrap();
     }
-    enqueue_nd_range_kernel(&device.queue(), &kernel, wd, &gws, lws.as_ref(), None)?;
+    enqueue_nd_range_kernel(device.queue(), &kernel, wd, &gws, lws.as_ref(), None)?;
     Ok(())
 }

@@ -24,28 +24,28 @@ impl AddGraph for () {
 // Unary operation
 impl AddGraph for usize {
     #[inline]
-    fn idxs(&self) -> (usize,usize) {
+    fn idxs(&self) -> (usize, usize) {
         (*self, *self)
     }
 }
 
 impl AddGraph for (usize, usize) {
     #[inline]
-    fn idxs(&self) -> (usize,usize) {
+    fn idxs(&self) -> (usize, usize) {
         *self
     }
 }
 
 impl<'a, T, D: Device, S: Shape> AddGraph for Buffer<'a, T, D, S> {
     #[inline]
-    fn idxs(&self) -> (usize,usize) {
+    fn idxs(&self) -> (usize, usize) {
         (self.ident.idx, self.ident.idx)
     }
 }
 
 impl<'a, T, D: Device, S: Shape> AddGraph for &Buffer<'a, T, D, S> {
     #[inline]
-    fn idxs(&self) -> (usize,usize) {
+    fn idxs(&self) -> (usize, usize) {
         (self.ident.idx, self.ident.idx)
     }
 }
@@ -54,7 +54,7 @@ impl<'a, T, D: Device, LS: Shape, RS: Shape> AddGraph
     for (&Buffer<'a, T, D, LS>, &Buffer<'a, T, D, RS>)
 {
     #[inline]
-    fn idxs(&self) -> (usize,usize) {
+    fn idxs(&self) -> (usize, usize) {
         (self.0.ident.idx, self.1.ident.idx)
     }
 }

@@ -1,4 +1,4 @@
-use crate::{shape::Shape, Alloc, Buffer, IsShapeIndep};
+use crate::{shape::Shape, Alloc, Buffer};
 
 #[cfg(feature = "cpu")]
 use crate::{WriteBuf, CPU};

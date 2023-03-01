@@ -75,7 +75,7 @@ impl<T> Eval<T> for Resolve<T> {
 impl<T: Display> ToString for Resolve<T> {
     #[inline]
     fn to_string(&self) -> String {
-        format!("{}", self.marker)
+        self.marker.to_string()
     }
 }
 

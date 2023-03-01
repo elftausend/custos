@@ -57,15 +57,14 @@ impl<T> WriteBuf<T> for OpenCL {
     #[inline]
     fn write(&self, buf: &mut Buffer<T, OpenCL>, data: &[T]) {
         let event =
-            unsafe { enqueue_write_buffer(&self.queue(), buf.cl_ptr(), data, true).unwrap() };
+            unsafe { enqueue_write_buffer(self.queue(), buf.cl_ptr(), data, true).unwrap() };
         wait_for_event(event).unwrap();
     }
 
     #[inline]
     fn write_buf(&self, dst: &mut Buffer<T, Self>, src: &Buffer<T, Self>) {
         debug_assert_eq!(dst.len(), src.len());
-        enqueue_full_copy_buffer::<T>(&self.queue(), src.cl_ptr(), dst.cl_ptr(), dst.len())
-            .unwrap();
+        enqueue_full_copy_buffer::<T>(self.queue(), src.cl_ptr(), dst.cl_ptr(), dst.len()).unwrap();
     }
 }
 
@@ -87,7 +86,7 @@ impl<T, R: RangeBounds<usize>> CopySlice<T, R> for OpenCL {
         let copied = Buffer::new(self, slice_len);
 
         enqueue_copy_buffer::<T>(
-            &self.queue(),
+            self.queue(),
             buf.ptr.ptr,
             copied.ptr.ptr,
             start,
@@ -128,7 +127,7 @@ fn try_read_cl_buf_to_vec<T: Clone + Default>(
     buf: &Buffer<T, OpenCL>,
 ) -> crate::Result<Vec<T>> {
     let mut read = vec![T::default(); buf.len()];
-    let event = unsafe { enqueue_read_buffer(&device.queue(), buf.cl_ptr(), &mut read, false)? };
+    let event = unsafe { enqueue_read_buffer(device.queue(), buf.cl_ptr(), &mut read, false)? };
     wait_for_event(event).unwrap();
     Ok(read)
 }

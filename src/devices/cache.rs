@@ -4,7 +4,8 @@ use std::collections::HashMap;
 use std::rc::Rc;
 
 use crate::{
-    flag::AllocFlag, shape::Shape, Alloc, Buffer, CacheAble, Device, GraphReturn, Ident, PtrType, GlobalCount,
+    flag::AllocFlag, shape::Shape, Alloc, Buffer, CacheAble, Device, GlobalCount, GraphReturn,
+    Ident, PtrType,
 };
 
 /// This trait makes a device's [`Cache`] accessible and is implemented for all compute devices.
@@ -162,7 +163,6 @@ impl<D: RawConv> Cache<D> {
 
         #[cfg(not(feature = "opt-cache"))]
         let graph_node = crate::Node {
-            ident_idx: ident.idx,
             idx: ident.idx,
             deps: [0; 2],
             len: ident.len,

@@ -1,17 +1,14 @@
+use core::default;
+
 /// Descripes the type of a [`Buffer`]
-#[derive(Debug, Clone, Copy, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, Eq, PartialOrd, Ord, Default)]
 pub enum AllocFlag {
+    #[default]
     None,
     Cache,
     Wrapper,
     Num,
     BorrowedCache,
-}
-
-impl Default for AllocFlag {
-    fn default() -> Self {
-        AllocFlag::None
-    }
 }
 
 impl PartialEq for AllocFlag {

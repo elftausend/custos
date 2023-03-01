@@ -148,16 +148,18 @@ impl<D> Gradients<D> {
     {
         let x_grad_ptr = self.get_mut(device, xid) as *mut _;
         let x_grad_mut = unsafe { &mut *x_grad_ptr };
-        let o_grad = self.get_ref(&device, oid);
+        let o_grad = self.get_ref(device, oid);
 
         (device.get_existing_buf(xid), x_grad_mut, o_grad)
     }
 }
 
+type GradFn<D> = Box<dyn Fn(&mut Gradients<D>, &D)>;
+
 #[derive(Default)]
 pub struct Tape<D: Device> {
     pub grads: Gradients<D>,
-    grad_fns: Vec<Box<dyn Fn(&mut Gradients<D>, &D)>>,
+    grad_fns: Vec<GradFn<D>>,
 }
 
 pub trait TapeReturn: Device {

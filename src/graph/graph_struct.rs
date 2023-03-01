@@ -1,7 +1,7 @@
-use core::{marker::PhantomData, hash::BuildHasherDefault};
-use std::collections::{HashSet, HashMap};
+use core::{hash::BuildHasherDefault, marker::PhantomData};
+use std::collections::{HashMap, HashSet};
 
-use crate::{AddGraph, CacheTrace, Ident, Node, get_count, IdentHasher};
+use crate::{get_count, AddGraph, CacheTrace, Ident, IdentHasher, Node};
 
 #[derive(Default, Debug)]
 pub struct Graph<IdxFrom: NodeIdx> {
@@ -32,7 +32,11 @@ impl NodeIdx for NodeCount {}
 
 impl<IdxFrom: NodeIdx> Graph<IdxFrom> {
     pub fn new() -> Self {
-        Self { nodes: Vec::new(), idx_trans: HashMap::default(), _pd: PhantomData }
+        Self {
+            nodes: Vec::new(),
+            idx_trans: HashMap::default(),
+            _pd: PhantomData,
+        }
     }
 
     pub fn add(&mut self, len: usize, add_node: impl AddGraph) -> Node {

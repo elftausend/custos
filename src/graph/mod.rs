@@ -258,10 +258,7 @@ mod tests {
         assert_eq!(
             CacheTrace {
                 cache_idx: 2,
-                use_cache_idx: vec![
-                    Ident { idx: 3, len: 10 },
-                    Ident { idx: 4, len: 10 },
-                ],
+                use_cache_idx: vec![Ident { idx: 3, len: 10 }, Ident { idx: 4, len: 10 },],
             },
             traces[0]
         );

@@ -1,18 +1,16 @@
 use crate::{Device, PtrType};
 
-pub unsafe trait Shape: 'static {
+pub trait Shape: 'static {
     const LEN: usize = 0;
     type ARR<T>;
 
     fn new<T: Copy + Default>() -> Self::ARR<T>;
 }
 
-unsafe impl Shape for () {
+impl Shape for () {
     type ARR<T> = ();
 
-    fn new<T>() -> Self::ARR<T> {
-        ()
-    }
+    fn new<T>() -> Self::ARR<T> {}
 }
 
 // TODO: impl for net device
@@ -29,7 +27,7 @@ pub struct Dim1<const N: usize>;
 
 impl<const N: usize> IsConstDim for Dim1<N> {}
 
-unsafe impl<const N: usize> Shape for Dim1<N> {
+impl<const N: usize> Shape for Dim1<N> {
     const LEN: usize = N;
     type ARR<T> = [T; N];
 
@@ -44,7 +42,7 @@ pub struct Dim2<const B: usize, const A: usize>;
 
 impl<const B: usize, const A: usize> IsConstDim for Dim2<B, A> {}
 
-unsafe impl<const B: usize, const A: usize> Shape for Dim2<B, A> {
+impl<const B: usize, const A: usize> Shape for Dim2<B, A> {
     const LEN: usize = B * A;
     type ARR<T> = [[T; A]; B];
 
@@ -65,7 +63,7 @@ pub struct Dim3<const C: usize, const B: usize, const A: usize>;
 
 impl<const C: usize, const B: usize, const A: usize> IsConstDim for Dim3<C, B, A> {}
 
-unsafe impl<const C: usize, const B: usize, const A: usize> Shape for Dim3<C, B, A> {
+impl<const C: usize, const B: usize, const A: usize> Shape for Dim3<C, B, A> {
     const LEN: usize = B * A * C;
     type ARR<T> = [[[T; A]; B]; C];
 

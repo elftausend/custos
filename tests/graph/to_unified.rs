@@ -1,4 +1,7 @@
-use custos::{cache::CacheReturn, opencl::construct_buffer, Buffer, Ident, OpenCL, CPU, GraphReturn, get_count};
+use custos::{
+    cache::CacheReturn, get_count, opencl::construct_buffer, Buffer, GraphReturn, Ident, OpenCL,
+    CPU,
+};
 
 use super::{AddBuf, AddOp};
 

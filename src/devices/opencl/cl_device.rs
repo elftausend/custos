@@ -6,11 +6,11 @@ use min_cl::api::{
 
 use super::{chosen_cl_idx, CLPtr, KernelCacheCL, RawCL};
 use crate::flag::AllocFlag;
-use crate::{Shape, GlobalCount};
 use crate::{
     cache::{Cache, CacheReturn, RawConv},
     Alloc, Buffer, CloneBuf, Device, Error, Graph, GraphReturn, CPU,
 };
+use crate::{GlobalCount, Shape};
 
 use std::{cell::RefCell, fmt::Debug};
 
@@ -202,11 +202,10 @@ impl<T, S: Shape> Alloc<'_, T, S> for OpenCL {
             len = S::LEN
         }
 
-        let ptr =
-            create_buffer::<T>(&self.ctx(), MemFlags::MemReadWrite as u64, len, None).unwrap();
+        let ptr = create_buffer::<T>(self.ctx(), MemFlags::MemReadWrite as u64, len, None).unwrap();
 
         #[cfg(unified_cl)]
-        let host_ptr = unified_ptr::<T>(&self.queue(), ptr, len).unwrap();
+        let host_ptr = unified_ptr::<T>(self.queue(), ptr, len).unwrap();
 
         #[cfg(not(unified_cl))]
         let host_ptr = std::ptr::null_mut();
@@ -221,7 +220,7 @@ impl<T, S: Shape> Alloc<'_, T, S> for OpenCL {
 
     fn with_slice(&self, data: &[T]) -> CLPtr<T> {
         let ptr = create_buffer::<T>(
-            &self.ctx(),
+            self.ctx(),
             MemFlags::MemReadWrite | MemFlags::MemCopyHostPtr,
             data.len(),
             Some(data),
@@ -229,7 +228,7 @@ impl<T, S: Shape> Alloc<'_, T, S> for OpenCL {
         .unwrap();
 
         #[cfg(unified_cl)]
-        let host_ptr = unified_ptr::<T>(&self.queue(), ptr, data.len()).unwrap();
+        let host_ptr = unified_ptr::<T>(self.queue(), ptr, data.len()).unwrap();
 
         #[cfg(not(unified_cl))]
         let host_ptr = std::ptr::null_mut();
@@ -246,7 +245,7 @@ impl<T, S: Shape> Alloc<'_, T, S> for OpenCL {
 impl<'a, T> CloneBuf<'a, T> for OpenCL {
     fn clone_buf(&'a self, buf: &Buffer<'a, T, OpenCL>) -> Buffer<'a, T, OpenCL> {
         let cloned = Buffer::new(self, buf.len());
-        enqueue_full_copy_buffer::<T>(&self.queue(), buf.ptr.ptr, cloned.ptr.ptr, buf.len())
+        enqueue_full_copy_buffer::<T>(self.queue(), buf.ptr.ptr, cloned.ptr.ptr, buf.len())
             .unwrap();
         cloned
     }
