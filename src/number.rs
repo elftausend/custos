@@ -1,7 +1,7 @@
 use core::{
     cmp::Ordering,
     iter::Sum,
-    ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign},
+    ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign, Rem, RemAssign},
 };
 
 pub trait Zero {
@@ -61,6 +61,8 @@ pub trait Number:
     + Sub<Self, Output = Self>
     + Div<Self, Output = Self>
     + Mul<Self, Output = Self>
+    + Rem<Self, Output = Self>
+    + for<'a> Rem<&'a Self, Output = Self>
     + for<'a> Add<&'a Self, Output = Self>
     + for<'a> Sub<&'a Self, Output = Self>
     + for<'a> Div<&'a Self, Output = Self>
@@ -69,6 +71,7 @@ pub trait Number:
     + SubAssign<Self>
     + MulAssign<Self>
     + DivAssign<Self>
+    + RemAssign<Self>
     + PartialOrd
     + PartialEq
     + core::fmt::Debug
