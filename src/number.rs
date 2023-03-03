@@ -4,10 +4,34 @@ use core::{
     ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign, RemAssign, Rem},
 };
 
-pub trait Number:
+pub trait Numeric:
     Sized
     + Default
     + Copy
+    + PartialOrd
+    + PartialEq
+    + core::fmt::Debug
+    + core::fmt::Display
+{}
+
+impl Numeric for bool {}
+impl Numeric for f32 {}
+impl Numeric for f64 {}
+impl Numeric for i8 {}
+impl Numeric for i16 {}
+impl Numeric for i32 {}
+impl Numeric for i64 {}
+impl Numeric for i128 {}
+impl Numeric for isize {}
+impl Numeric for u8 {}
+impl Numeric for u16 {}
+impl Numeric for u32 {}
+impl Numeric for u64 {}
+impl Numeric for u128 {}
+impl Numeric for usize {}
+
+pub trait Number:
+    Numeric
     + Add<Self, Output = Self>
     + Sub<Self, Output = Self>
     + Div<Self, Output = Self>
@@ -23,10 +47,6 @@ pub trait Number:
     + SubAssign<Self>
     + MulAssign<Self>
     + DivAssign<Self>
-    + PartialOrd
-    + PartialEq
-    + core::fmt::Debug
-    + core::fmt::Display
     + Sum<Self>
 {
     fn from_usize(value: usize) -> Self;
