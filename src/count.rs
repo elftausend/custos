@@ -45,14 +45,13 @@ impl AsRangeArg for (usize, usize) {
     }
 }
 
-/// inclusive range
 /// used to reset the cache count in loops as every operation increases the cache count, which would break the "cache cycle" if the cache count would not be reset.
 ///
 /// # Example
 /// ```
 /// use custos::{get_count, range, Ident, bump_count};
 ///
-/// for _ in range(100) {
+/// for _ in range(100) // using only one usize: exclusive range {
 ///     Ident::new(10); // an 'Ident' is created if a Buffer is retrieved from cache.
 ///     bump_count();
 ///     assert!(get_count() == 1);
@@ -147,6 +146,7 @@ mod tests {
         count_iter(&mut count.into_iter());
 
         for (idx, other) in count.into_iter().zip(0..=9) {
+
             assert_eq!(idx, other)
         }
     }

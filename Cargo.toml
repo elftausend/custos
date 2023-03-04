@@ -34,7 +34,7 @@ min-cl = { version="0.1.2", optional=true }
 
 
 [features]
-default = ["stack", "macro", "cpu", "blas", "opencl", "autograd", "cuda"]
+default = ["stack", "macro", "cpu", "blas", "opencl", "autograd"]
 #default = ["stack", "cpu", "opencl"]
 #default = ["stack", "cpu", "blas", "static-api", "opencl", "macro"]
 cpu = []
