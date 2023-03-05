@@ -139,6 +139,26 @@ where
 }
 
 #[macro_export]
+macro_rules! to_cpu_mut {
+    ($cpu:ident, $($t:ident, $cpu_name:ident),*) => {     
+        $(
+            #[allow(unused_mut)]
+            let mut $cpu_name = Buffer::<_, CPU>::from((&$cpu, $t.read_to_vec()));
+        )*
+    };
+}
+
+#[macro_export]
+macro_rules! to_cpu_mut2 {
+    ($cpu:ident, $($t:ident),*) => {     
+        $(
+            #[allow(unused_mut)]
+            let mut $t = Buffer::<_, CPU>::from((&$cpu, $t.read_to_vec()));
+        )*
+    };
+}
+
+#[macro_export]
 macro_rules! to_cpu {
     ($cpu:ident, $($t:ident),*) => {     
         $(
@@ -148,10 +168,31 @@ macro_rules! to_cpu {
 }
 
 #[macro_export]
+macro_rules! to_raw_host {
+    ($($t:ident),*) => {     
+        $(
+            let $t = &unsafe { Buffer::<_, _, ()>::from_raw_host($t.ptr.host_ptr, $t.len()) };
+        )*
+    };
+}
+
+#[macro_export]
 macro_rules! cpu_exec {
     ($device:ident, $cpu:ident, $($t:ident),*; $op:expr) => {{
         $crate::to_cpu!($cpu, $($t),*);
         Buffer::from((&$device, $op))
+    }};
+}
+
+#[macro_export]
+macro_rules! cpu_exec_mut {
+    ($device:ident, $cpu:ident, $($t:ident),* WRITE_TO<$($write_to:ident, $from:ident),*> $op:expr) => {{
+        $crate::to_cpu!($cpu, $($t),*);
+        $crate::to_cpu_mut!($cpu, $($write_to, $from),*);
+        $op;
+        $(
+            $device.write($write_to, &$from);
+        )*
     }};
 }
 

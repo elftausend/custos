@@ -170,3 +170,34 @@ where
     }
     cpu_exec_reduce(x, f)
 }
+
+#[macro_export]
+macro_rules! cl_cpu_exec_unified {
+    ($device:ident, $($t:ident),*; $op:expr) => {{
+        let cpu = CPU::new();
+        if $device.unified_mem() {
+            
+            $crate::to_raw_host!($($t),*);
+
+            #[cfg(not(feature = "realloc"))]
+            {
+                unsafe {
+                    // TODO mind graph opt trace -> ()
+                    $crate::opencl::construct_buffer(&$device, $op, ())
+                }
+            }
+
+            #[cfg(feature = "realloc")]
+            {
+                let buf = Buffer::from((&$device, $op));
+                $device.cpu.cache.borrow_mut().nodes.clear();
+                buf
+            }
+
+        } else {
+            let buf = $crate::cpu_exec!($device, cpu, $($t),*; $op);
+            $device.cpu.cache.borrow_mut().nodes.clear();
+            Ok(buf)
+        }
+    }};
+}
