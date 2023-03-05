@@ -103,7 +103,7 @@ pub fn cpu_exec_binary<'a, T, D, F>(
     lhs: &Buffer<T, D>,
     rhs: &Buffer<T, D>,
     f: F,
-) -> crate::Result<Buffer<'a, T, D>>
+) -> Buffer<'a, T, D>
 where
     T: Clone + Default,
     F: for<'b> Fn(&'b CPU, &Buffer<'_, T, CPU>, &Buffer<'_, T, CPU>) -> Buffer<'b, T, CPU>,
@@ -112,7 +112,7 @@ where
     let cpu = CPU::new();
     let cpu_lhs = Buffer::<T, CPU>::from((&cpu, lhs.read_to_vec()));
     let cpu_rhs = Buffer::<T, CPU>::from((&cpu, rhs.read_to_vec()));
-    Ok(Buffer::from((device, f(&cpu, &cpu_lhs, &cpu_rhs))))
+    Buffer::from((device, f(&cpu, &cpu_lhs, &cpu_rhs)))
     // TODO add new node to graph
 }
 
@@ -138,6 +138,23 @@ where
     Ok(())
 }
 
+#[macro_export]
+macro_rules! to_cpu {
+    ($cpu:ident, $($t:ident),*) => {     
+        $(
+            let $t = Buffer::<_, CPU>::from((&$cpu, $t.read_to_vec()));
+        )*
+    };
+}
+
+#[macro_export]
+macro_rules! cpu_exec {
+    ($device:ident, $cpu:ident, $($t:ident),*; $op:expr) => {{
+        $crate::to_cpu!($cpu, $($t),*);
+        Buffer::from((&$device, $op))
+    }};
+}
+
 #[inline]
 pub fn cpu_exec_reduce<T, D, F>(x: &Buffer<T, D>, f: F) -> T
 where
@@ -152,6 +169,24 @@ where
 
 #[cfg(test)]
 mod tests {
+    #[cfg(feature = "opencl")]
+    #[test]
+    fn test_to_cpu_macro() {
+        use crate::{CPU, Buffer};
+
+        let device = crate::OpenCL::new(0).unwrap();
+
+        let cpu = CPU::new();
+
+        let lhs = Buffer::from((&device, [1, 2, 3]));
+        let rhs = Buffer::from((&device, [1, 2, 3]));
+
+        to_cpu!(
+            cpu, lhs, rhs
+        );
+        assert_eq!(lhs.len(), 3);
+        assert_eq!(rhs.len(), 3);
+    }
 
     #[cfg(feature = "opencl")]
     #[test]
@@ -209,7 +244,7 @@ mod tests {
             }
 
             out
-        })?;
+        });
 
         assert_eq!(out.read(), [0, -2, 2, -4, 4]);
 

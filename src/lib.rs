@@ -66,6 +66,7 @@ pub use devices::network::Network;
 pub use autograd::*;
 
 #[cfg(feature = "cpu")]
+#[macro_use]
 pub mod exec_on_cpu;
 
 pub mod devices;

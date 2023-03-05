@@ -125,7 +125,7 @@ where
         )));
     }
 
-    cpu_exec_binary(device, lhs, rhs, f)
+    Ok(cpu_exec_binary(device, lhs, rhs, f))
 }
 
 pub fn cpu_exec_binary_may_unified_mut<'a, T, F>(
