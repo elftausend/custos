@@ -149,16 +149,6 @@ macro_rules! to_cpu_mut {
 }
 
 #[macro_export]
-macro_rules! to_cpu_mut2 {
-    ($cpu:ident, $($t:ident),*) => {     
-        $(
-            #[allow(unused_mut)]
-            let mut $t = Buffer::<_, CPU>::from((&$cpu, $t.read_to_vec()));
-        )*
-    };
-}
-
-#[macro_export]
 macro_rules! to_cpu {
     ($cpu:ident, $($t:ident),*) => {     
         $(
@@ -172,6 +162,15 @@ macro_rules! to_raw_host {
     ($($t:ident),*) => {     
         $(
             let $t = &unsafe { Buffer::<_, _, ()>::from_raw_host($t.ptr.host_ptr, $t.len()) };
+        )*
+    };
+}
+
+#[macro_export]
+macro_rules! to_raw_host_mut {
+    ($($t:ident, $cpu_name:ident),*) => {     
+        $(
+            let mut $cpu_name = &mut unsafe { Buffer::<_, _, ()>::from_raw_host($t.ptr.host_ptr, $t.len()) };
         )*
     };
 }
