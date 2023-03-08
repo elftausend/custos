@@ -1,8 +1,4 @@
-<<<<<<< HEAD
 use crate::{Alloc, Buffer, Device, Read};
-=======
-use crate::{Alloc, Buffer, Device, IsShapeIndep, Read};
->>>>>>> main
 
 use super::{static_cpu, StaticDevice};
 

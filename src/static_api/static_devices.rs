@@ -92,7 +92,7 @@ mod tests {
         let a = Buffer::from(&[1, 2, 3, 4]);
         let _b = Buffer::from(&[1, 2, 3, 4]);
 
-        let out = cpu.retrieve::<_, ()>(a.len());
+        let out = cpu.retrieve::<_, ()>(a.len(), ());
 
         let cache = static_cpu().cache.borrow();
         let cached = cache
