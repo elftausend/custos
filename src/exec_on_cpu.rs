@@ -92,7 +92,7 @@ where
 ///         }
 ///     
 ///         out
-///     })?;
+///     });
 ///     
 ///     assert_eq!(out.read(), [0, -2, 2, -4, 4]);
 ///     Ok(())
@@ -175,6 +175,22 @@ macro_rules! to_raw_host_mut {
     };
 }
 
+/// Moves `n` `Buffer`s stored on another device to `n` `CPU` `Buffer`s and executes an operation on the `CPU`.
+/// # Example
+/* TODO #[cfg_attr(feature = "opencl", doc = "```")]
+#[cfg_attr(not(feature = "opencl"), doc = "```ignore")]
+/// use custos::{OpenCL, Buffer, CPU};
+/// 
+/// let device = OpenCL::new(0).unwrap();
+/// 
+/// let a = Buffer::new(&device, 10);
+/// let b = Buffer::new(&device, 10);
+/// let c = Buffer::new(&device, 10);
+/// 
+/// let cpu = CPU::new();
+/// 
+/// ```
+*/
 #[macro_export]
 macro_rules! cpu_exec {
     ($device:ident, $cpu:ident, $($t:ident),*; $op:expr) => {{

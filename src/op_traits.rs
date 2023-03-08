@@ -1,4 +1,4 @@
-use core::ops::RangeBounds;
+use core::ops::{Bound, Range, RangeBounds};
 
 use crate::{shape::Shape, Alloc, Buffer, Device, Eval, MayTapeReturn, Resolve};
 
@@ -21,7 +21,7 @@ pub trait ClearBuf<T, S: Shape = (), D: Device = Self>: Device {
 }
 
 /// Trait for copying a slice of a buffer, to implement the slice() operation.
-pub trait CopySlice<T, R: RangeBounds<usize>, D: Device = Self>: Sized + Device {
+pub trait CopySlice<T, D: Device = Self>: Sized + Device {
     /// Copy a slice of the given buffer into a new buffer.
     /// # Example
     ///
@@ -34,7 +34,66 @@ pub trait CopySlice<T, R: RangeBounds<usize>, D: Device = Self>: Sized + Device 
     /// let slice = device.copy_slice(&buf, 1..3);
     /// assert_eq!(slice.read(), &[2., 6.]);
     /// ```
-    fn copy_slice(&self, buf: &Buffer<T, D>, range: R) -> Buffer<T, Self>;
+    fn copy_slice<'a, R: RangeBounds<usize>>(
+        &'a self,
+        buf: &Buffer<T, D>,
+        range: R,
+    ) -> Buffer<'a, T, Self>
+    where
+        Self: for<'b> Alloc<'b, T>,
+    {
+        let range = bounds_to_range(range, buf.len());
+        let mut copied = Buffer::new(self, range.end - range.start);
+        self.copy_slice_to(buf, range, &mut copied, ..);
+        copied
+    }
+
+    /// Copy a slice of the source buffer into a slice of the destination buffer.
+    /// # Example
+    ///
+    #[cfg_attr(feature = "cpu", doc = "```")]
+    #[cfg_attr(not(feature = "cpu"), doc = "```ignore")]
+    /// use custos::{CPU, Buffer, CopySlice};
+    ///
+    /// let device = CPU::new();
+    /// let source = Buffer::from((&device, [1., 2., 3., 4., 5.,]));
+    /// let mut dest = Buffer::from((&device, [5., 4., 3., 2., 1.,]));
+    /// let slice = device.copy_slice_to(&source, 1..3, &mut dest, 3..5);
+    /// assert_eq!(dest.read(), &[5., 4., 3., 2., 3.]);
+    /// ```
+    fn copy_slice_to<SR: RangeBounds<usize>, DR: RangeBounds<usize>>(
+        &self,
+        source: &Buffer<T, D>,
+        source_range: SR,
+        dest: &mut Buffer<T, Self>,
+        dest_range: DR,
+    );
+
+    /// Copy multiple slices of the source buffer into multiplie slices of the destination buffer.
+    /// 
+    /// # Example
+    #[cfg_attr(feature = "cpu", doc = "```")]
+    #[cfg_attr(not(feature = "cpu"), doc = "```ignore")]
+    /// use custos::{Buffer, CPU, CopySlice};
+    /// 
+    /// let device = CPU::new();
+    /// let source = Buffer::from((&device, [1., 2., 6., 2., 4.]));
+    ///
+    /// let mut dest = Buffer::new(&device, 10);
+    ///
+    /// device.copy_slice_all(&source, &mut dest, [(2..5, 7..10), (1..3, 3..5)]);
+    ///
+    /// assert_eq!(
+    ///    dest.read(),
+    ///    [0.0, 0.0, 0.0, 2.0, 6.0, 0.0, 0.0, 6.0, 2.0, 4.0]
+    /// );
+    ///```
+    fn copy_slice_all<I: IntoIterator<Item = (Range<usize>, Range<usize>)>>(
+        &self,
+        source: &Buffer<T, D>,
+        dest: &mut Buffer<T, Self>,
+        ranges: I,
+    );
 }
 
 /// Trait for reading buffers.
@@ -205,4 +264,22 @@ mod tests {
 
         assert_eq!(out.read(), [3, 6, 12, 15, 9]);
     }
+}
+
+/// Convert a possibly-indefinite [`RangeBounds`] into a [`Range`] with a start and stop index.
+#[inline]
+pub(crate) fn bounds_to_range<B: RangeBounds<usize>>(bounds: B, len: usize) -> Range<usize> {
+    let start = match bounds.start_bound() {
+        Bound::Included(start) => *start,
+        Bound::Excluded(start) => start + 1,
+        Bound::Unbounded => 0,
+    };
+
+    let end = match bounds.end_bound() {
+        Bound::Excluded(end) => *end,
+        Bound::Included(end) => end + 1,
+        Bound::Unbounded => len,
+    };
+
+    start..end
 }

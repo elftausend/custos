@@ -1,13 +1,13 @@
-use core::ops::{Bound, RangeBounds};
+use core::ops::{RangeBounds, Range};
 
 use min_cl::api::{
     enqueue_copy_buffer, enqueue_full_copy_buffer, enqueue_read_buffer, enqueue_write_buffer,
-    wait_for_event,
+    wait_for_event, enqueue_copy_buffers,
 };
 
 use crate::{
     ApplyFunction, Buffer, CDatatype, ClearBuf, CopySlice, Device, OpenCL, Read, Resolve, Shape,
-    ToMarker, UnaryGrad, WriteBuf,
+    ToMarker, UnaryGrad, WriteBuf, bounds_to_range, prelude::Number,
 };
 
 use super::{enqueue_kernel, CLBuffer};
@@ -68,34 +68,46 @@ impl<T> WriteBuf<T> for OpenCL {
     }
 }
 
-impl<T, R: RangeBounds<usize>> CopySlice<T, R> for OpenCL {
-    fn copy_slice(&self, buf: &Buffer<T, OpenCL>, range: R) -> Buffer<T, Self> {
-        let start = match range.start_bound() {
-            Bound::Included(start) => *start,
-            Bound::Excluded(start) => start + 1,
-            Bound::Unbounded => 0,
-        };
+impl<T> CopySlice<T> for OpenCL {
+    fn copy_slice_to<SR: RangeBounds<usize>, DR: RangeBounds<usize>>(
+        &self,
+        source: &Buffer<T, Self>,
+        source_range: SR,
+        dest: &mut Buffer<T, Self>,
+        dest_range: DR,
+    ) {
+        let source_range = bounds_to_range(source_range, source.len());
+        let dest_range = bounds_to_range(dest_range, dest.len());
 
-        let end = match range.end_bound() {
-            Bound::Excluded(end) => *end,
-            Bound::Included(end) => end + 1,
-            Bound::Unbounded => buf.len(),
-        };
-
-        let slice_len = end - start;
-        let copied = Buffer::new(self, slice_len);
+        assert_eq!(
+            source_range.end - source_range.start,
+            dest_range.end - dest_range.start
+        );
 
         enqueue_copy_buffer::<T>(
-            self.queue(),
-            buf.ptr.ptr,
-            copied.ptr.ptr,
-            start,
-            0,
-            copied.len(),
+            &self.queue(),
+            source.ptr.ptr,
+            dest.ptr.ptr,
+            source_range.start,
+            dest_range.start,
+            source_range.end - source_range.start,
         )
         .unwrap();
+    }
 
-        copied
+    fn copy_slice_all<I: IntoIterator<Item = (Range<usize>, Range<usize>)>>(
+        &self,
+        source: &Buffer<T, Self>,
+        dest: &mut Buffer<T, Self>,
+        ranges: I,
+    ) {
+        let ranges = ranges.into_iter().map(|(from, to)| {
+            let len = from.end - from.start;
+            assert_eq!(len, to.end - to.start);
+            (from.start, to.start, len)
+        });
+
+        enqueue_copy_buffers::<T, _>(&self.queue(), source.ptr.ptr, dest.ptr.ptr, ranges).unwrap();
     }
 }
 
@@ -134,7 +146,7 @@ fn try_read_cl_buf_to_vec<T: Clone + Default>(
 
 impl<T, S> ApplyFunction<T, S> for OpenCL
 where
-    T: CDatatype,
+    T: CDatatype + Number,
     S: Shape,
 {
     #[inline]
@@ -156,7 +168,7 @@ pub fn try_cl_apply_fn<'a, T, S, F: ToString>(
     f: impl Fn(Resolve<T>) -> F,
 ) -> crate::Result<CLBuffer<'a, T, S>>
 where
-    T: CDatatype,
+    T: CDatatype + Number,
     S: Shape,
 {
     let src = format!(
@@ -177,7 +189,7 @@ where
 
 impl<T, S> UnaryGrad<T, S> for OpenCL
 where
-    T: CDatatype,
+    T: CDatatype + Number,
     S: Shape,
 {
     #[inline]
@@ -202,7 +214,7 @@ pub fn try_cl_add_unary_grad<T, S, F>(
     lhs_grad_fn: impl Fn(Resolve<T>) -> F,
 ) -> crate::Result<()>
 where
-    T: CDatatype,
+    T: CDatatype + Number,
     F: ToString,
     S: Shape,
 {

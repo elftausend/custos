@@ -1,3 +1,5 @@
+use core::ops::{Range, RangeBounds};
+
 use std::cell::RefCell;
 use std::marker::PhantomData;
 
@@ -9,11 +11,20 @@ use super::{
     },
     chosen_cu_idx, CUDAPtr, KernelCacheCU, RawCUBuf,
 };
+<<<<<<< HEAD
 
 use crate::{
     cache::{Cache, CacheReturn},
     flag::AllocFlag,
     Alloc, Buffer, CloneBuf, Device, GlobalCount, Graph, GraphReturn, RawConv, Shape,
+=======
+use crate::{
+    cache::{Cache, CacheReturn},
+    flag::AllocFlag,
+    op_traits::{bounds_to_range, CacheBuf, ClearBuf, CloneBuf, CopySlice},
+    Alloc, Buffer, CDatatype, CachedLeaf, Device, Graph, GraphReturn, RawConv, Read, Shape,
+    WriteBuf,
+>>>>>>> main
 };
 
 /// Used to perform calculations with a CUDA capable device.
@@ -132,6 +143,86 @@ impl<T> Alloc<'_, T> for CUDA {
     }
 }
 
+<<<<<<< HEAD
+=======
+impl<T: Default + Clone> Read<T, CUDA> for CUDA {
+    type Read<'a> = Vec<T>
+    where
+        T: 'a,
+        CUDA: 'a;
+
+    #[inline]
+    fn read(&self, buf: &Buffer<T, CUDA>) -> Vec<T> {
+        self.read_to_vec(buf)
+    }
+
+    fn read_to_vec(&self, buf: &Buffer<T, CUDA>) -> Vec<T>
+    where
+        T: Default + Clone,
+    {
+        assert!(
+            buf.ptrs().2 != 0,
+            "called Read::read(..) on a non CUDA buffer"
+        );
+        // TODO: sync here or somewhere else?
+        self.stream.sync().unwrap();
+
+        let mut read = vec![T::default(); buf.len()];
+        cu_read(&mut read, buf.ptrs().2).unwrap();
+        read
+    }
+}
+
+impl<T: CDatatype> ClearBuf<T, CUDA> for CUDA {
+    #[inline]
+    fn clear(&self, buf: &mut Buffer<T, CUDA>) {
+        cu_clear(self, buf).unwrap()
+    }
+}
+
+impl<T> CopySlice<T> for CUDA {
+    fn copy_slice_to<SR: RangeBounds<usize>, DR: RangeBounds<usize>>(
+        &self,
+        source: &Buffer<T, Self>,
+        source_range: SR,
+        dest: &mut Buffer<T, Self>,
+        dest_range: DR,
+    ) {
+        let source_range = bounds_to_range(source_range, source.len());
+        let dest_range = bounds_to_range(dest_range, dest.len());
+
+        let len = source_range.end - source_range.start;
+        assert_eq!(len, dest_range.end - dest_range.start);
+        let size = std::mem::size_of::<T>();
+
+        unsafe {
+            cuMemcpy(
+                dest.ptr.ptr + (dest_range.start * size) as u64,
+                source.ptr.ptr + (source_range.start * size) as u64,
+                len * size,
+            );
+        }
+    }
+
+    fn copy_slice_all<I: IntoIterator<Item = (Range<usize>, Range<usize>)>>(
+        &self,
+        source: &Buffer<T, Self>,
+        dest: &mut Buffer<T, Self>,
+        ranges: I,
+    ) {
+        for (source_range, dest_range) in ranges {
+            self.copy_slice_to(source, source_range, dest, dest_range);
+        }
+    }
+}
+
+impl<T> WriteBuf<T, CUDA> for CUDA {
+    fn write(&self, buf: &mut Buffer<T, CUDA>, data: &[T]) {
+        cu_write(buf.cu_ptr(), data).unwrap();
+    }
+}
+
+>>>>>>> main
 impl GraphReturn for CUDA {
     fn graph(&self) -> std::cell::RefMut<Graph<GlobalCount>> {
         self.graph.borrow_mut()

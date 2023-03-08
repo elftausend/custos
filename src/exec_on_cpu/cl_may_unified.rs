@@ -204,14 +204,14 @@ macro_rules! cl_cpu_exec_unified {
 
 #[macro_export]
 macro_rules! cl_cpu_exec_unified_mut {
-    ($device:ident, $($t:ident),* WRITE_TO<$($write_to:ident, $from:ident),*> $op:expr) => {{
+    ($device:ident, $cpu:ident, $($t:ident),* WRITE_TO<$($write_to:ident, $from:ident),*> $op:expr) => {{
+        let cpu = CPU::new();
         if $device.unified_mem() {
             $crate::to_raw_host!($($t),*);
             $crate::to_raw_host_mut!($($write_to, $from),*);
             $op;
 
         } else {
-            let cpu = CPU::new();
             $crate::cpu_exec_mut!($device, cpu, $($t),* WRITE_TO<$($write_to, $from),*> $op);
             $device.cpu.cache.borrow_mut().nodes.clear();
         }

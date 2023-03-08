@@ -2,8 +2,9 @@ use crate::{
     cache::RawConv,
     devices::cache::{Cache, CacheReturn},
     flag::AllocFlag,
+
     shape::Shape,
-    Alloc, Buffer, CloneBuf, Device, DevicelessAble, GlobalCount, Graph, GraphReturn, MainMemory,
+    Alloc, Buffer, Device, DevicelessAble, GlobalCount, Graph, GraphReturn, MainMemory, CloneBuf,
 };
 
 use core::{

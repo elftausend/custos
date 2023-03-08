@@ -51,7 +51,7 @@ impl AsRangeArg for (usize, usize) {
 /// ```
 /// use custos::{get_count, range, Ident, bump_count};
 ///
-/// for _ in range(100) // using only one usize: exclusive range {
+/// for _ in range(100) { // using only one usize: exclusive range 
 ///     Ident::new(10); // an 'Ident' is created if a Buffer is retrieved from cache.
 ///     bump_count();
 ///     assert!(get_count() == 1);

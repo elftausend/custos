@@ -1,8 +1,15 @@
-use crate::number::Number;
 
 /// enables easy generic kernel creation
-pub trait CDatatype: Number + 'static {
+pub trait CDatatype: 'static {
+    // TODO: this would make more sense as an associated constant
     fn as_c_type_str() -> &'static str;
+}
+
+impl CDatatype for bool {
+    #[inline]
+    fn as_c_type_str() -> &'static str {
+        "bool"
+    }
 }
 
 #[cfg(any(not(target_os = "macos"), not(feature = "opencl")))]

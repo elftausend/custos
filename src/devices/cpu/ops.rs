@@ -1,6 +1,6 @@
-use core::ops::{Index, RangeBounds};
+use core::ops::{Index, RangeBounds, Range};
 
-use crate::{Buffer, CopySlice, MainMemory, Read, Shape, WriteBuf, CPU};
+use crate::{Buffer, CopySlice, MainMemory, Read, Shape, WriteBuf, CPU, bounds_to_range};
 
 impl<T, D: MainMemory, S: Shape> Read<T, S, D> for CPU {
     type Read<'a> = &'a [T] where T: 'a, D: 'a, S: 'a;
@@ -31,14 +31,36 @@ impl<T: Copy, D: MainMemory, S: Shape> WriteBuf<T, S, D> for CPU {
     }
 }
 
-impl<T: Copy, R: RangeBounds<usize>, D: MainMemory> CopySlice<T, R, D> for CPU
+impl<T: Copy, D: MainMemory> CopySlice<T, D> for CPU
 where
-    [T]: Index<R, Output = [T]>,
+    [T]: Index<Range<usize>, Output = [T]>,
 {
-    fn copy_slice(&self, buf: &Buffer<T, D>, range: R) -> Buffer<T, Self> {
-        let slice = &buf.as_slice()[range];
-        let mut copied = Buffer::new(self, slice.len());
-        self.write(&mut copied, slice);
-        copied
+    fn copy_slice_to<SR: RangeBounds<usize>, DR: RangeBounds<usize>>(
+        &self,
+        source: &Buffer<T, D>,
+        source_range: SR,
+        dest: &mut Buffer<T, Self>,
+        dest_range: DR,
+    ) {
+        let source_range = bounds_to_range(source_range, source.len());
+        let dest_range = bounds_to_range(dest_range, dest.len());
+
+        assert_eq!(
+            source_range.end - source_range.start,
+            dest_range.end - dest_range.start,
+        );
+
+        dest[dest_range].copy_from_slice(&source[source_range]);
+    }
+
+    fn copy_slice_all<I: IntoIterator<Item = (Range<usize>, Range<usize>)>>(
+        &self,
+        source: &Buffer<T, D>,
+        dest: &mut Buffer<T, Self>,
+        ranges: I,
+    ) {
+        for (source_range, dest_range) in ranges {
+            self.copy_slice_to(source, source_range, dest, dest_range);
+        }
     }
 }

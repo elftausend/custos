@@ -50,32 +50,53 @@ typical_number_impl! {
     isize, u8, u16, u32, u64, u128, usize
 }
 
-pub trait Number:
+
+pub trait Numeric:
     Sized
     + Default
     + Copy
-    + One
-    + Two
-    + Zero
+    + PartialOrd
+    + PartialEq
+    + core::fmt::Debug
+    + core::fmt::Display
+{}
+
+impl Numeric for bool {}
+impl Numeric for f32 {}
+impl Numeric for f64 {}
+impl Numeric for i8 {}
+impl Numeric for i16 {}
+impl Numeric for i32 {}
+impl Numeric for i64 {}
+impl Numeric for i128 {}
+impl Numeric for isize {}
+impl Numeric for u8 {}
+impl Numeric for u16 {}
+impl Numeric for u32 {}
+impl Numeric for u64 {}
+impl Numeric for u128 {}
+impl Numeric for usize {}
+
+pub trait Number:
+    Numeric
     + Add<Self, Output = Self>
     + Sub<Self, Output = Self>
     + Div<Self, Output = Self>
     + Mul<Self, Output = Self>
     + Rem<Self, Output = Self>
+    + One
+    + Two
+    + Zero
     + for<'a> Rem<&'a Self, Output = Self>
     + for<'a> Add<&'a Self, Output = Self>
     + for<'a> Sub<&'a Self, Output = Self>
     + for<'a> Div<&'a Self, Output = Self>
-    + for<'a> Mul<&'a Self, Output = Self>
+    + for<'a> Mul<&'a Self, Output = Self>   
+    + RemAssign<Self>
     + AddAssign<Self>
     + SubAssign<Self>
     + MulAssign<Self>
     + DivAssign<Self>
-    + RemAssign<Self>
-    + PartialOrd
-    + PartialEq
-    + core::fmt::Debug
-    + core::fmt::Display
     + Sum<Self>
 {
     fn from_usize(value: usize) -> Self;
