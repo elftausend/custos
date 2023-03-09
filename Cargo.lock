@@ -462,8 +462,6 @@ dependencies = [
 [[package]]
 name = "min-cl"
 version = "0.1.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c4c6f4ab120528025d53f8a5067850903d325da81e497eceba75083f561798c3"
 
 [[package]]
 name = "miniz_oxide"

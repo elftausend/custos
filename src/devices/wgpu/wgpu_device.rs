@@ -1,10 +1,12 @@
 use core::{cell::RefCell, fmt::Debug};
 
-use super::{shader_cache::ShaderCache, wgpu_buffer::*, wgpu_clear};
+use super::{
+    launch_shader, shader_cache::ShaderCache, wgpu_buffer::*, wgpu_clear, AsBindingResource,
+};
 
 use crate::{
-    flag::AllocFlag, Alloc, Cache, CacheReturn, ClearBuf, Device, DeviceError, Graph, GraphReturn,
-    Node, PtrType, RawConv, Read, Shape,
+    flag::AllocFlag, Alloc, Cache, CacheReturn, ClearBuf, Device, DeviceError, GlobalCount, Graph,
+    GraphReturn, PtrType, RawConv, Read, Shape,
 };
 use wgpu::{Adapter, Backends, Queue};
 
@@ -12,7 +14,7 @@ pub struct WGPU {
     pub adapter: Adapter,
     pub device: wgpu::Device,
     pub queue: Queue,
-    pub graph: RefCell<Graph>,
+    pub graph: RefCell<Graph<GlobalCount>>,
     pub shader_cache: RefCell<ShaderCache>,
     pub cache: RefCell<Cache<WGPU>>,
 }
@@ -46,10 +48,15 @@ impl WGPU {
             cache: Default::default(),
         })
     }
+
+    #[inline]
+    pub fn launch_kernel(&self, src: &str, gws: [u32; 3], args: &[impl AsBindingResource]) {
+        launch_shader(self, src, gws, args)
+    }
 }
 
 impl GraphReturn for WGPU {
-    fn graph(&self) -> core::cell::RefMut<Graph> {
+    fn graph(&self) -> core::cell::RefMut<Graph<GlobalCount>> {
         self.graph.borrow_mut()
     }
 }
@@ -94,13 +101,13 @@ pub struct WGPUBufPtr<T> {
 
 impl<T> WGPUBufPtr<T> {
     pub unsafe fn buf(&self) -> &wgpu::Buffer {
-        &*(*self.ptr).buf
+        &(*self.ptr).buf
     }
 }
 
 impl<T> PtrType for WGPUBufPtr<T> {
     #[inline]
-    fn len(&self) -> usize {
+    fn size(&self) -> usize {
         self.len
     }
 
@@ -124,11 +131,15 @@ pub struct RawWGPUBuffer {
     pub ptr: *const u8,
     pub buffer: *mut wgpu::Buffer,
     len: usize,
-    node: Node,
+    flag: AllocFlag,
 }
 
 impl Drop for RawWGPUBuffer {
     fn drop(&mut self) {
+        if self.flag != AllocFlag::Cache {
+            return;
+        }
+
         unsafe { drop(Box::from_raw(self.buffer)) }
     }
 }
@@ -136,6 +147,7 @@ impl Drop for RawWGPUBuffer {
 impl CacheReturn for WGPU {
     type CT = RawWGPUBuffer;
 
+    #[inline]
     fn cache(&self) -> core::cell::RefMut<crate::Cache<Self>>
     where
         Self: RawConv,
@@ -145,37 +157,29 @@ impl CacheReturn for WGPU {
 }
 
 impl RawConv for WGPU {
-    fn construct<T, S: Shape>(
-        ptr: &Self::Ptr<T, S>,
-        len: usize,
-        node: crate::Node,
-    ) -> RawWGPUBuffer {
+    #[inline]
+    fn construct<T, S: Shape>(ptr: &Self::Ptr<T, S>, len: usize, flag: AllocFlag) -> RawWGPUBuffer {
         unsafe {
             RawWGPUBuffer {
                 ptr: ptr.ptr as *const u8,
-                buffer: &mut *(*ptr.ptr).buf,
+                buffer: &mut (*ptr.ptr).buf,
                 len,
-                node,
+                flag,
             }
         }
     }
 
-    fn destruct<T, S: Shape>(
-        ct: &RawWGPUBuffer,
-        flag: AllocFlag,
-    ) -> (Self::Ptr<T, S>, crate::Node) {
-        (
-            WGPUBufPtr {
-                ptr: ct.ptr as *mut WGPUBuffer<T>,
-                len: ct.len,
-                flag,
-            },
-            ct.node,
-        )
+    #[inline]
+    fn destruct<T, S: Shape>(ct: &RawWGPUBuffer) -> Self::Ptr<T, S> {
+        WGPUBufPtr {
+            ptr: ct.ptr as *mut WGPUBuffer<T>,
+            len: ct.len,
+            flag: ct.flag,
+        }
     }
 }
 
-impl<T: Default + Debug, S: Shape> ClearBuf<T, Self, S> for WGPU {
+impl<T: Default + Debug, S: Shape> ClearBuf<T, S> for WGPU {
     /// Sets all the elements of a `WGPU` `Buffer` to zero / default.
     /// # Example
     /// ```
@@ -195,7 +199,7 @@ impl<T: Default + Debug, S: Shape> ClearBuf<T, Self, S> for WGPU {
     }
 }
 
-impl<T: Default + Clone> Read<T, Self> for WGPU {
+impl<T: Default + Clone> Read<T> for WGPU {
     type Read<'a> = Vec<T>
     where
         T: 'a,

@@ -70,12 +70,12 @@ pub trait CopySlice<T, D: Device = Self>: Sized + Device {
     );
 
     /// Copy multiple slices of the source buffer into multiplie slices of the destination buffer.
-    /// 
+    ///
     /// # Example
     #[cfg_attr(feature = "cpu", doc = "```")]
     #[cfg_attr(not(feature = "cpu"), doc = "```ignore")]
     /// use custos::{Buffer, CPU, CopySlice};
-    /// 
+    ///
     /// let device = CPU::new();
     /// let source = Buffer::from((&device, [1., 2., 6., 2., 4.]));
     ///
@@ -248,24 +248,6 @@ where
     }
 }
 
-#[cfg(test)]
-mod tests {
-
-    #[cfg(feature = "stack")]
-    #[cfg(not(feature = "autograd"))]
-    #[test]
-    fn test_unary_ew_stack_no_autograd() {
-        use crate::{Buffer, Combiner, Dim1, UnaryElementWiseMayGrad};
-
-        let device = crate::Stack;
-        let buf = Buffer::<_, _, Dim1<5>>::from((&device, [1, 2, 4, 5, 3]));
-
-        let out = device.unary_ew(&buf, |x| x.mul(3), |x| x);
-
-        assert_eq!(out.read(), [3, 6, 12, 15, 9]);
-    }
-}
-
 /// Convert a possibly-indefinite [`RangeBounds`] into a [`Range`] with a start and stop index.
 #[inline]
 pub(crate) fn bounds_to_range<B: RangeBounds<usize>>(bounds: B, len: usize) -> Range<usize> {
@@ -282,4 +264,22 @@ pub(crate) fn bounds_to_range<B: RangeBounds<usize>>(bounds: B, len: usize) -> R
     };
 
     start..end
+}
+
+#[cfg(test)]
+mod tests {
+
+    #[cfg(feature = "stack")]
+    #[cfg(not(feature = "autograd"))]
+    #[test]
+    fn test_unary_ew_stack_no_autograd() {
+        use crate::{Buffer, Combiner, Dim1, UnaryElementWiseMayGrad};
+
+        let device = crate::Stack;
+        let buf = Buffer::<_, _, Dim1<5>>::from((&device, [1, 2, 4, 5, 3]));
+
+        let out = device.unary_ew(&buf, |x| x.mul(3), |x| x);
+
+        assert_eq!(out.read(), [3, 6, 12, 15, 9]);
+    }
 }

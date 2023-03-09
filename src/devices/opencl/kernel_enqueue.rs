@@ -71,7 +71,8 @@ pub fn enqueue_kernel(
     lws: Option<[usize; 3]>,
     args: &[&dyn AsClCvoidPtr],
 ) -> crate::Result<()> {
-    let kernel = device.kernel_cache.borrow_mut().kernel_cache(device, src)?;
+    let mut binding = device.kernel_cache.borrow_mut();
+    let kernel = binding.kernel_cache(device, src)?;
 
     let wd;
     if gws[0] == 0 {
@@ -96,4 +97,31 @@ pub fn enqueue_kernel(
     }
     enqueue_nd_range_kernel(device.queue(), &kernel, wd, &gws, lws.as_ref(), None)?;
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::{Buffer, CDatatype, OpenCL};
+
+    #[test]
+    fn test_kernel_launch() -> crate::Result<()> {
+        let device = OpenCL::new(0)?;
+
+        let src = format!("
+            __kernel void add(__global const {datatype}* lhs, __global const {datatype}* rhs, __global {datatype}* out) 
+            {{
+                size_t id = get_global_id(0);
+                out[id] = lhs[id] + rhs[id];
+            }}
+        ", datatype=f32::as_c_type_str());
+
+        let lhs = Buffer::from((&device, [1f32, 5.1, 1.2, 2.3, 4.6]));
+        let rhs = Buffer::from((&device, [1f32, 5.1, 1.2, 2.3, 4.6]));
+
+        let mut out = Buffer::<f32, _>::new(&device, lhs.len());
+
+        device.launch_kernel(&src, [lhs.len(), 0, 0], None, &[&lhs, &rhs, &mut out])?;
+
+        Ok(())
+    }
 }

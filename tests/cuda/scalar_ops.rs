@@ -1,4 +1,4 @@
-use custos::{cuda::launch_kernel1d, Buffer, Read, CUDA, Device};
+use custos::{cuda::launch_kernel1d, Buffer, Device, Read, CUDA};
 
 fn scalar_apply<'a>(
     device: &'a CUDA,

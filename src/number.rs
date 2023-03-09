@@ -50,16 +50,10 @@ typical_number_impl! {
     isize, u8, u16, u32, u64, u128, usize
 }
 
-
 pub trait Numeric:
-    Sized
-    + Default
-    + Copy
-    + PartialOrd
-    + PartialEq
-    + core::fmt::Debug
-    + core::fmt::Display
-{}
+    Sized + Default + Copy + PartialOrd + PartialEq + core::fmt::Debug + core::fmt::Display
+{
+}
 
 impl Numeric for bool {}
 impl Numeric for f32 {}
@@ -91,7 +85,7 @@ pub trait Number:
     + for<'a> Add<&'a Self, Output = Self>
     + for<'a> Sub<&'a Self, Output = Self>
     + for<'a> Div<&'a Self, Output = Self>
-    + for<'a> Mul<&'a Self, Output = Self>   
+    + for<'a> Mul<&'a Self, Output = Self>
     + RemAssign<Self>
     + AddAssign<Self>
     + SubAssign<Self>

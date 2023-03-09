@@ -1,6 +1,6 @@
-use core::ops::{Index, RangeBounds, Range};
+use core::ops::{Index, Range, RangeBounds};
 
-use crate::{Buffer, CopySlice, MainMemory, Read, Shape, WriteBuf, CPU, bounds_to_range};
+use crate::{bounds_to_range, Buffer, CopySlice, MainMemory, Read, Shape, WriteBuf, CPU};
 
 impl<T, D: MainMemory, S: Shape> Read<T, S, D> for CPU {
     type Read<'a> = &'a [T] where T: 'a, D: 'a, S: 'a;

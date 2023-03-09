@@ -7,7 +7,7 @@ use super::{
         cublas::{create_handle, cublasDestroy_v2, cublasSetStream_v2, CublasHandle},
         cumalloc, device, Context, CudaIntDevice, Module, Stream,
     },
-    chosen_cu_idx, CUDAPtr, KernelCacheCU, RawCUBuf,
+    chosen_cu_idx, launch_kernel1d, AsCudaCvoidPtr, CUDAPtr, KernelCacheCU, RawCUBuf,
 };
 
 use crate::{
@@ -68,6 +68,17 @@ impl CUDA {
 
     pub fn stream(&self) -> &Stream {
         &self.stream
+    }
+
+    #[inline]
+    pub fn launch_kernel1d(
+        &self,
+        len: usize,
+        src: &str,
+        fn_name: &str,
+        args: &[&dyn AsCudaCvoidPtr],
+    ) -> crate::Result<()> {
+        launch_kernel1d(len, self, src, fn_name, args)
     }
 }
 

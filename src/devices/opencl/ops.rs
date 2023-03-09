@@ -1,13 +1,13 @@
-use core::ops::{RangeBounds, Range};
+use core::ops::{Range, RangeBounds};
 
 use min_cl::api::{
-    enqueue_copy_buffer, enqueue_full_copy_buffer, enqueue_read_buffer, enqueue_write_buffer,
-    wait_for_event, enqueue_copy_buffers,
+    enqueue_copy_buffer, enqueue_copy_buffers, enqueue_full_copy_buffer, enqueue_read_buffer,
+    enqueue_write_buffer, wait_for_event,
 };
 
 use crate::{
-    ApplyFunction, Buffer, CDatatype, ClearBuf, CopySlice, Device, OpenCL, Read, Resolve, Shape,
-    ToMarker, UnaryGrad, WriteBuf, bounds_to_range, prelude::Number,
+    bounds_to_range, prelude::Number, ApplyFunction, Buffer, CDatatype, ClearBuf, CopySlice,
+    Device, OpenCL, Read, Resolve, Shape, ToMarker, UnaryGrad, WriteBuf,
 };
 
 use super::{enqueue_kernel, CLBuffer};

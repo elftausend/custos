@@ -140,7 +140,7 @@ where
 
 #[macro_export]
 macro_rules! to_cpu_mut {
-    ($cpu:ident, $($t:ident, $cpu_name:ident),*) => {     
+    ($cpu:ident, $($t:ident, $cpu_name:ident),*) => {
         $(
             #[allow(unused_mut)]
             let mut $cpu_name = Buffer::<_, CPU>::from((&$cpu, $t.read_to_vec()));
@@ -150,7 +150,7 @@ macro_rules! to_cpu_mut {
 
 #[macro_export]
 macro_rules! to_cpu {
-    ($cpu:ident, $($t:ident),*) => {     
+    ($cpu:ident, $($t:ident),*) => {
         $(
             let $t = Buffer::<_, CPU>::from((&$cpu, $t.read_to_vec()));
         )*
@@ -159,7 +159,7 @@ macro_rules! to_cpu {
 
 #[macro_export]
 macro_rules! to_raw_host {
-    ($($t:ident),*) => {     
+    ($($t:ident),*) => {
         $(
             let $t = &unsafe { Buffer::<_, _, ()>::from_raw_host($t.ptr.host_ptr, $t.len()) };
         )*
@@ -168,7 +168,7 @@ macro_rules! to_raw_host {
 
 #[macro_export]
 macro_rules! to_raw_host_mut {
-    ($($t:ident, $cpu_name:ident),*) => {     
+    ($($t:ident, $cpu_name:ident),*) => {
         $(
             let mut $cpu_name = &mut unsafe { Buffer::<_, _, ()>::from_raw_host($t.ptr.host_ptr, $t.len()) };
         )*
@@ -180,15 +180,15 @@ macro_rules! to_raw_host_mut {
 /* TODO #[cfg_attr(feature = "opencl", doc = "```")]
 #[cfg_attr(not(feature = "opencl"), doc = "```ignore")]
 /// use custos::{OpenCL, Buffer, CPU};
-/// 
+///
 /// let device = OpenCL::new(0).unwrap();
-/// 
+///
 /// let a = Buffer::new(&device, 10);
 /// let b = Buffer::new(&device, 10);
 /// let c = Buffer::new(&device, 10);
-/// 
+///
 /// let cpu = CPU::new();
-/// 
+///
 /// ```
 */
 #[macro_export]
@@ -228,7 +228,7 @@ mod tests {
     #[cfg(feature = "opencl")]
     #[test]
     fn test_to_cpu_macro() {
-        use crate::{CPU, Buffer};
+        use crate::{Buffer, CPU};
 
         let device = crate::OpenCL::new(0).unwrap();
 
@@ -237,9 +237,7 @@ mod tests {
         let lhs = Buffer::from((&device, [1, 2, 3]));
         let rhs = Buffer::from((&device, [1, 2, 3]));
 
-        to_cpu!(
-            cpu, lhs, rhs
-        );
+        to_cpu!(cpu, lhs, rhs);
         assert_eq!(lhs.len(), 3);
         assert_eq!(rhs.len(), 3);
     }

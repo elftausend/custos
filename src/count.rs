@@ -51,7 +51,7 @@ impl AsRangeArg for (usize, usize) {
 /// ```
 /// use custos::{get_count, range, Ident, bump_count};
 ///
-/// for _ in range(100) { // using only one usize: exclusive range 
+/// for _ in range(100) { // using only one usize: exclusive range
 ///     Ident::new(10); // an 'Ident' is created if a Buffer is retrieved from cache.
 ///     bump_count();
 ///     assert!(get_count() == 1);
@@ -146,7 +146,6 @@ mod tests {
         count_iter(&mut count.into_iter());
 
         for (idx, other) in count.into_iter().zip(0..=9) {
-
             assert_eq!(idx, other)
         }
     }

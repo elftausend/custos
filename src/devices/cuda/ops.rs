@@ -1,6 +1,9 @@
-use core::ops::{RangeBounds, Range};
+use core::ops::{Range, RangeBounds};
 
-use crate::{cuda::api::cu_read, Buffer, CDatatype, ClearBuf, CopySlice, Read, WriteBuf, CUDA, bounds_to_range};
+use crate::{
+    bounds_to_range, cuda::api::cu_read, Buffer, CDatatype, ClearBuf, CopySlice, Read, WriteBuf,
+    CUDA,
+};
 
 use super::{
     api::{cuMemcpy, cu_write},

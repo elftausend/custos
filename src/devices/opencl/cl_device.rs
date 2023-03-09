@@ -4,7 +4,7 @@ use min_cl::api::{
     create_buffer, enqueue_full_copy_buffer, CLIntDevice, CommandQueue, Context, MemFlags,
 };
 
-use super::{chosen_cl_idx, CLPtr, KernelCacheCL, RawCL};
+use super::{chosen_cl_idx, enqueue_kernel, AsClCvoidPtr, CLPtr, KernelCacheCL, RawCL};
 use crate::flag::AllocFlag;
 use crate::{
     cache::{Cache, CacheReturn, RawConv},
@@ -116,6 +116,17 @@ impl OpenCL {
     )]
     pub fn set_unified_mem(&mut self, unified_mem: bool) {
         self.inner.unified_mem = unified_mem;
+    }
+
+    #[inline]
+    pub fn launch_kernel(
+        &self,
+        src: &str,
+        gws: [usize; 3],
+        lws: Option<[usize; 3]>,
+        args: &[&dyn AsClCvoidPtr],
+    ) -> crate::Result<()> {
+        enqueue_kernel(self, src, gws, lws, args)
     }
 }
 
