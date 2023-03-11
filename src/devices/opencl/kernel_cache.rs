@@ -46,12 +46,12 @@ impl KernelCacheCL {
     ///     
     ///     let mut kernel_fn = || kernel_cache.kernel_cache(&device, "
     ///         __kernel void test(__global float* test) {}
-    ///     ");
+    ///     ").unwrap().0;
     ///     
-    ///     let kernel = kernel_fn()?;
-    ///     let same_kernel = kernel_fn()?;
+    ///     let kernel = kernel_fn();
+    ///     let same_kernel = kernel_fn();
     ///     
-    ///     assert_eq!(kernel.0, same_kernel.0);
+    ///     assert_eq!(kernel, same_kernel);
     ///     Ok(())
     /// }
     /// ```
@@ -98,8 +98,8 @@ mod tests {
             .kernel_cache(
                 &device,
                 "
-        __kernel void foo(__global float* test) {}
-    ",
+                __kernel void foo(__global float* test) {}
+            ",
             )?
             .0;
 

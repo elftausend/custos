@@ -70,7 +70,7 @@ fn test_write_buf_cu() -> custos::Result<()> {
 #[test]
 fn test_write_cl() -> custos::Result<()> {
     let device = custos::OpenCL::new(0)?;
-    let mut buf = Buffer::new(&device, 5);
+    let mut buf = Buffer::<_, _>::new(&device, 5);
     device.write(&mut buf, &[1., 2., 3., 4., 5.]);
     assert_eq!(device.read(&buf), vec![1., 2., 3., 4., 5.]);
     Ok(())

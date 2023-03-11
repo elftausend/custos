@@ -53,16 +53,16 @@ pub fn try_cl_clear<T: CDatatype>(
     Ok(())
 }
 
-impl<T> WriteBuf<T> for OpenCL {
+impl<T, S: Shape> WriteBuf<T, S> for OpenCL {
     #[inline]
-    fn write(&self, buf: &mut Buffer<T, OpenCL>, data: &[T]) {
+    fn write(&self, buf: &mut Buffer<T, OpenCL, S>, data: &[T]) {
         let event =
             unsafe { enqueue_write_buffer(self.queue(), buf.cl_ptr(), data, true).unwrap() };
         wait_for_event(event).unwrap();
     }
 
     #[inline]
-    fn write_buf(&self, dst: &mut Buffer<T, Self>, src: &Buffer<T, Self>) {
+    fn write_buf(&self, dst: &mut Buffer<T, Self, S>, src: &Buffer<T, Self, S>) {
         debug_assert_eq!(dst.len(), src.len());
         enqueue_full_copy_buffer::<T>(self.queue(), src.cl_ptr(), dst.cl_ptr(), dst.len()).unwrap();
     }
@@ -111,7 +111,7 @@ impl<T> CopySlice<T> for OpenCL {
     }
 }
 
-impl<T: Clone + Default> Read<T> for OpenCL {
+impl<T: Clone + Default, S: Shape> Read<T, S> for OpenCL {
     #[cfg(not(unified_cl))]
     type Read<'a> = Vec<T> where T: 'a;
     #[cfg(unified_cl)]
@@ -124,19 +124,19 @@ impl<T: Clone + Default> Read<T> for OpenCL {
 
     #[cfg(unified_cl)]
     #[inline]
-    fn read<'a>(&self, buf: &'a Buffer<T, OpenCL>) -> Self::Read<'a> {
+    fn read<'a>(&self, buf: &'a Buffer<T, OpenCL, S>) -> Self::Read<'a> {
         buf.as_slice()
     }
 
     #[inline]
-    fn read_to_vec(&self, buf: &Buffer<T, OpenCL>) -> Vec<T> {
+    fn read_to_vec(&self, buf: &Buffer<T, OpenCL, S>) -> Vec<T> {
         try_read_cl_buf_to_vec(self, buf).unwrap()
     }
 }
 
-fn try_read_cl_buf_to_vec<T: Clone + Default>(
+fn try_read_cl_buf_to_vec<T: Clone + Default, S: Shape>(
     device: &OpenCL,
-    buf: &Buffer<T, OpenCL>,
+    buf: &Buffer<T, OpenCL, S>,
 ) -> crate::Result<Vec<T>> {
     let mut read = vec![T::default(); buf.len()];
     let event = unsafe { enqueue_read_buffer(device.queue(), buf.cl_ptr(), &mut read, false)? };

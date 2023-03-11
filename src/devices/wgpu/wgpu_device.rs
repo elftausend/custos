@@ -217,7 +217,6 @@ impl<T: Default + Clone> Read<T> for WGPU {
         self.queue.submit(None);
 
         let buf = unsafe { buf.ptr.buf() };
-
         let buf_slice = buf.slice(..);
 
         let (sender, receiver) = futures_intrusive::channel::shared::oneshot_channel();

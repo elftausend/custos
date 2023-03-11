@@ -92,15 +92,19 @@ pub fn enqueue_kernel(
             arg.as_cvoid_ptr(),
             arg.ptr_size(),
             arg.is_num(),
-        )
-        .unwrap();
+        )?;
     }
-    enqueue_nd_range_kernel(device.queue(), &kernel, wd, &gws, lws.as_ref(), None)?;
+
+    // with waitlist:
+    // device.inner.enqueue_nd_range_kernel(kernel, wd, &gws, lws.as_ref(), None);
+    enqueue_nd_range_kernel(device.queue(), kernel, wd, &gws, lws.as_ref(), None)?;
     Ok(())
 }
 
 #[cfg(test)]
 mod tests {
+    use core::ffi::c_void;
+
     use crate::{Buffer, CDatatype, OpenCL};
 
     #[test]
@@ -124,4 +128,41 @@ mod tests {
 
         Ok(())
     }
+
+    fn ew_add_kernel<T: CDatatype>(op: &str) -> String {
+        format!(
+            "__kernel void cl_ew(__global {datatype}* lhs, __global {datatype}* rhs, __global {datatype}* out) {{
+                size_t idx = get_global_id(0);
+    
+                out[idx] = lhs[idx] {op} rhs[idx];
+            }}"
+        , datatype=T::as_c_type_str())
+    }
+
+    /*#[test]
+    fn test_get_work_group_size() -> crate::Result<()> {
+        let device = OpenCL::new(0)?;
+        let mut kernel_cache = device.kernel_cache.borrow_mut();
+
+        let kernel = kernel_cache.kernel_cache(&device, &ew_add_kernel::<f32>("+"))?;
+
+        let mut local = 0;
+
+        unsafe {
+            min_cl::api::ffi::clGetKernelWorkGroupInfo(
+                kernel.0,
+                device.inner.device.0,
+                min_cl::api::ffi::CL_KERNEL_WORK_GROUP_SIZE,
+                core::mem::size_of_val(&local),
+                &mut local as *mut i32 as *mut c_void,
+                core::ptr::null_mut()
+            );
+        }
+
+        // println!("local: {local}");
+
+
+        Ok(())
+    }
+    */
 }

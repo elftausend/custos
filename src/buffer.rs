@@ -418,7 +418,7 @@ impl<'a, T, S: Shape> Buffer<'a, T, CPU, S> {
 }
 
 #[cfg(feature = "opencl")]
-impl<'a, T> Buffer<'a, T, crate::OpenCL> {
+impl<'a, T, S: Shape> Buffer<'a, T, crate::OpenCL, S> {
     #[inline]
     pub fn cl_ptr(&self) -> *mut c_void {
         assert!(
