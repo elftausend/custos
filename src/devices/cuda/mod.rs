@@ -14,8 +14,10 @@ use crate::{flag::AllocFlag, Buffer, CDatatype, CommonPtrs, PtrType, ShallowCopy
 
 use self::api::cufree;
 
+/// Another shorter type for Buffer<'a, T, CUDA, S>
 pub type CUBuffer<'a, T> = Buffer<'a, T, CUDA>;
 
+/// Reads the environment variable `CUSTOS_CU_DEVICE_IDX` and returns the value as a `usize`.
 pub fn chosen_cu_idx() -> usize {
     std::env::var("CUSTOS_CU_DEVICE_IDX")
         .unwrap_or_else(|_| "0".into())
@@ -25,6 +27,7 @@ pub fn chosen_cu_idx() -> usize {
         )
 }
 
+/// The pointer used for `CUDA` [`Buffer`](crate::Buffer)s
 #[derive(Debug, PartialEq, Eq)]
 pub struct CUDAPtr<T> {
     pub ptr: u64,

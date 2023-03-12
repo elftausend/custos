@@ -212,7 +212,9 @@ pub trait DevicelessAble<'a, T, S: Shape = ()>: Alloc<'a, T, S> {}
 
 /// Devices that can access the main memory / RAM of the host.
 pub trait MainMemory: Device {
+    /// Returns the respective immutable host memory pointer 
     fn as_ptr<T, S: Shape>(ptr: &Self::Ptr<T, S>) -> *const T;
+    /// Returns the respective mutable host memory pointer
     fn as_ptr_mut<T, S: Shape>(ptr: &mut Self::Ptr<T, S>) -> *mut T;
 }
 

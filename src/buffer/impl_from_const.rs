@@ -82,3 +82,30 @@ where
         Buffer::new(device, S::LEN)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    #[cfg(feature = "cpu")]
+    #[test]
+    fn test_with_const_dim2_cpu() {
+        use crate::{CPU, WithShape, Buffer};
+
+        let device = CPU::new();
+
+        let buf = Buffer::with(&device, [[1.0, 2.0], [3.0, 4.0]]);
+
+        assert_eq!(&*buf, &[1.0, 2.0, 3.0, 4.0]);
+    }
+
+    #[cfg(feature = "stack")]
+    #[test]
+    fn test_with_const_dim2_stack() {
+        use crate::{WithShape, Buffer, Stack};
+
+        let device = Stack;
+
+        let buf = Buffer::with(&device, [[1.0, 2.0], [3.0, 4.0]]);
+
+        assert_eq!(buf.ptr.array, [[1.0, 2.0,], [3.0, 4.0]]);
+    }
+}

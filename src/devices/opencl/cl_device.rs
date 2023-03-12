@@ -73,33 +73,40 @@ impl OpenCL {
         self.cpu = Default::default();
     }
 
+    /// Context of the OpenCL device.
     #[inline]
     pub fn ctx(&self) -> &Context {
         &self.inner.ctx
     }
 
+    /// Command queue of the OpenCL device.
     #[inline]
     pub fn queue(&self) -> &CommandQueue {
         &self.inner.queue
     }
 
+    /// CLIntDevice of the OpenCL device.
     #[inline]
     pub fn device(&self) -> CLIntDevice {
         self.inner.device
     }
 
+    /// Returns the global memory size in GB.
     pub fn global_mem_size_in_gb(&self) -> Result<f64, Error> {
         Ok(self.device().get_global_mem()? as f64 * 10f64.powi(-9))
     }
 
+    /// Returns the maximum memory allocation size in GB.
     pub fn max_mem_alloc_in_gb(&self) -> Result<f64, Error> {
         Ok(self.device().get_max_mem_alloc()? as f64 * 10f64.powi(-9))
     }
 
+    /// Returns the name of the OpenCL device.
     pub fn name(&self) -> Result<String, Error> {
         self.device().get_name()
     }
 
+    /// Returns the OpenCL version of the device.
     pub fn version(&self) -> Result<String, Error> {
         self.device().get_version()
     }
@@ -110,6 +117,7 @@ impl OpenCL {
         self.inner.unified_mem
     }
 
+    /// Sets whether the device should use unified memory.
     #[deprecated(
         since = "0.6.0",
         note = "Use the environment variable 'CUSTOS_USE_UNIFIED' set to 'true', 'false' or 'default'[=hardware dependent] instead."

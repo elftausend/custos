@@ -7,6 +7,7 @@ use crate::{get_count, AddGraph, CacheTrace, Ident, IdentHasher, Node};
 /// It is typically built up during the forward process. (calling `device.retrieve(.., (lhs, rhs))`)
 #[derive(Default, Debug)]
 pub struct Graph<IdxFrom: NodeIdx> {
+    /// The nodes in the graph.
     pub nodes: Vec<Node>,
     /// Translates the index to a [`Node`] in the graph, to an index in the cache / global count.
     pub idx_trans: HashMap<usize, usize, BuildHasherDefault<IdentHasher>>,
@@ -55,6 +56,7 @@ impl<IdxFrom: NodeIdx> Graph<IdxFrom> {
         add_node.add(self, len)
     }
 
+    /// Adds a leaf node to the graph.
     pub fn add_leaf(&mut self, len: usize) -> Node {
         let idx = self.nodes.len();
         let ident_idx = IdxFrom::idx(&self.nodes);
@@ -69,6 +71,7 @@ impl<IdxFrom: NodeIdx> Graph<IdxFrom> {
         node
     }
 
+    /// Adds a node to the graph using lhs_idx and rhs_idx as dependencies.
     pub fn add_node(&mut self, len: usize, lhs_idx: usize, rhs_idx: usize) -> Node {
         let idx = self.nodes.len();
         let ident_idx = IdxFrom::idx(&self.nodes);

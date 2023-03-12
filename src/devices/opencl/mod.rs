@@ -41,6 +41,7 @@ pub fn chosen_cl_idx() -> usize {
         )
 }
 
+/// The pointer used for `OpenCL` [`Buffer`](crate::Buffer)s
 #[derive(Debug, PartialEq, Eq)]
 pub struct CLPtr<T> {
     pub ptr: *mut c_void,
