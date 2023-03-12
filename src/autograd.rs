@@ -1,4 +1,4 @@
-//! Provides automatic differentiation tools.
+//! Provides tools for automatic differentiation.
 
 use core::{
     cell::{Ref, RefMut},
@@ -11,6 +11,8 @@ use crate::{
     WriteBuf,
 };
 
+/// A cache for gradients.
+/// The cache is populated by `get_ref`, `get_like` or `get_mut_ref` calls.
 #[derive(Default)]
 pub struct Gradients<D> {
     // maybe use a borrowed cache in the style of the 'owned' cache
@@ -51,11 +53,13 @@ impl<D> Gradients<D> {
             .collect::<Vec<Buffer<T, D>>>()
     }*/
 
+    /// Clears the cache.
     #[inline]
     pub fn zero_grad(&mut self) {
         self.cache.cache.clear();
     }
 
+    /// May get a reference to a gradient [`Buffer`].
     #[inline]
     pub fn may_get_ref<'a, T, S>(&self, ident: Ident) -> Option<&Buffer<'a, T, D, S>>
     where
@@ -66,6 +70,7 @@ impl<D> Gradients<D> {
         self.cache.get_buf(ident)
     }
 
+    /// May get a mutable reference to a gradient [`Buffer`].
     #[inline]
     pub fn may_get_mut<'a, T, S>(&mut self, ident: Ident) -> Option<&mut Buffer<'a, T, D, S>>
     where
@@ -76,6 +81,8 @@ impl<D> Gradients<D> {
         self.cache.get_buf_mut(ident)
     }
 
+    /// Returns a reference to a gradient [`Buffer`].
+    /// Allocates a gradient [`Buffer`] if it does not exist.
     #[inline]
     pub fn get_ref<'a, T, S>(&mut self, device: &'a D, ident: Ident) -> &Buffer<'a, T, D, S>
     where
@@ -86,6 +93,8 @@ impl<D> Gradients<D> {
         self.cache.add_or_get(device, ident)
     }
 
+    /// Returns a mutable reference to a gradient [`Buffer`].
+    /// Allocates a gradient [`Buffer`] if it does not exist.
     #[inline]
     pub fn get_mut<'a, T, S>(&mut self, device: &'a D, ident: Ident) -> &mut Buffer<'a, T, D, S>
     where
@@ -96,6 +105,7 @@ impl<D> Gradients<D> {
         self.cache.add_or_get_mut(device, ident)
     }
 
+    /// Returns a reference to a gradient [`Buffer`] using information from `buf`.
     #[inline]
     pub fn get_like<'a, T, S>(&mut self, buf: &Buffer<'a, T, D, S>) -> &Buffer<'a, T, D, S>
     where
@@ -106,6 +116,8 @@ impl<D> Gradients<D> {
         self.get_ref(buf.device(), buf.id())
     }
 
+    /// Returns the forward [`Buffer`]s lhs and and rhs, and the gradient `Buffer`s lhs_grad, rhs_grad and out_grad.
+    /// Usefull for binary operations.
     #[inline]
     pub fn get_triple<'a, T, S>(
         &mut self,
@@ -134,6 +146,8 @@ impl<D> Gradients<D> {
         )
     }
 
+    /// Returns the forward [`Buffer`] x and the gradient `Buffer`s x_grad and out_grad.
+    /// Usefull for unary operations.
     #[inline]
     pub fn get_double<'a, T, IS, OS>(
         &mut self,
@@ -160,12 +174,14 @@ impl<D> Gradients<D> {
 
 type GradFn<D> = Box<dyn Fn(&mut Gradients<D>, &D)>;
 
+/// Stores the grad functions and gradient cache.
 #[derive(Default)]
 pub struct Tape<D: Device> {
     pub grads: Gradients<D>,
     grad_fns: Vec<GradFn<D>>,
 }
 
+/// This trait is implemented for all devices that provide a [`Tape`].
 pub trait TapeReturn: Device {
     fn tape(&self) -> Ref<Tape<Self>>;
     fn tape_mut(&self) -> RefMut<Tape<Self>>;
@@ -181,17 +197,20 @@ where
 }
 
 impl<D: Device> Tape<D> {
+    /// Adds a gradient function to the tape.
     #[inline]
     pub fn add_grad_fn<F: Fn(&mut Gradients<D>, &D) + 'static>(&mut self, grad_fn: F) {
         self.grad_fns.push(Box::new(grad_fn))
     }
 
+    /// Calls all gradient functions in reverse order.
     pub fn backward(&mut self, device: &D) {
         for grad_fn in self.grad_fns.drain(..).rev() {
             grad_fn(&mut self.grads, device);
         }
     }
-
+    /// Backward pass with seeded gradient.
+    /// The seed of the gradient contains `buf.len()` elements, all of them are set to 1.
     pub fn backward_seeded<T, S: Shape>(&mut self, buf: &Buffer<T, D, S>)
     where
         T: Clone + One + 'static,
@@ -212,6 +231,8 @@ where
     D: TapeReturn + WriteBuf<T, S, D> + for<'b> Alloc<'b, T, S>,
     S: Shape,
 {
+    /// Calls `.backward_seeded` on the [`Tape`].
+    /// The seed of the gradient is set to `1` and contains `self.len()` elements.
     #[inline]
     pub fn backward(&self) {
         self.device().tape_mut().backward_seeded(self)

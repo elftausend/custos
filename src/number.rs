@@ -1,4 +1,5 @@
 //! Contains traits for generic math.
+#![allow(missing_docs)]
 
 use core::{
     cmp::Ordering,

@@ -23,8 +23,8 @@ where
     enqueue_kernel(
         device,
         &src,
-        [lhs.len() / 256, 0, 0],
-        Some([128, 0, 0]),
+        [lhs.len(), 0, 0],
+        None,
         &[lhs, rhs, out],
     )?;
     Ok(())

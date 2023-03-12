@@ -5,6 +5,7 @@ pub use resolve::*;
 
 use self::ops::{Add, Cos, Div, Eq, Exp, GEq, LEq, Mul, Neg, Pow, Sin, Sub, Tan};
 
+/// Evaluates a combined (via [`Combiner`]) math operations chain to a value.
 pub trait Eval<T> {
     fn eval(self) -> T;
 }
@@ -16,6 +17,8 @@ impl<T: Copy> Eval<T> for T {
     }
 }
 
+/// A trait that allows combining math operations.
+/// (Similiar to an Iterator)
 pub trait Combiner {
     #[inline]
     fn add<R>(self, rhs: R) -> Add<Self, R>

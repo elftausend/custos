@@ -2,13 +2,41 @@ use core::fmt::Display;
 
 use super::{Combiner, Eval};
 
+/// Resolves to either a mathematical expression as string or a computed value.
+/// This is used to create generic kernels / operations over `OpenCL`, `CUDA` and `CPU`.
+/// 
+/// # Example
+/// ```
+/// use custos::{Resolve, Eval, Combiner};
+/// 
+/// let val = Resolve::new(1.5);
+/// let out = val.mul(val).add(2.);
+///
+/// assert_eq!(out.eval(), 4.25);
+///  
+/// let mark = Resolve::<f32>::with_marker("x");
+/// let out = mark.mul(mark).add(2.);
+/// 
+/// assert_eq!(out.to_string(), "((x * x) + 2)");
+/// ```
 #[derive(Debug, Clone, Copy)]
 pub struct Resolve<T> {
+    /// Acts as the seed value.
     pub val: T,
+    /// Acts as the variable name for the expression.
     pub marker: &'static str,
 }
 
+/// Converts a value to a [`Resolve`] with a given marker.
 pub trait ToMarker<T, R> {
+    /// Converts a value to a [`Resolve`] with a given marker.
+    /// # Example
+    /// ```
+    /// use custos::{Resolve, ToMarker};
+    /// 
+    /// let resolve = ToMarker::<f32, Resolve<f32>>::to_marker("x");;
+    /// assert_eq!(resolve.to_string(), "x");
+    /// ```
     fn to_marker(self) -> R;
 }
 

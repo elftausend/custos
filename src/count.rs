@@ -1,7 +1,10 @@
 use core::ops::{Range, RangeInclusive};
 
+/// Converts ranges into a start and end index.
 pub trait AsRangeArg {
+    /// Returns the start index of the range.
     fn start(&self) -> usize;
+    /// Returns the end index of the range.
     fn end(&self) -> usize;
 }
 
@@ -66,6 +69,7 @@ pub fn range<R: AsRangeArg>(range: R) -> Count {
 #[derive(Debug, Clone, Copy)]
 pub struct Count(pub(super) usize, pub(super) usize);
 
+/// The iterator used for setting the cache count.
 #[derive(Debug)]
 pub struct CountIntoIter {
     epoch: usize,

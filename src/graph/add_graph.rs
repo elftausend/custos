@@ -2,6 +2,7 @@ use crate::{shape::Shape, Buffer, Device, Graph, NodeIdx};
 
 use super::node::Node;
 
+/// Trait for adding a node to a graph.
 pub trait AddGraph {
     #[inline]
     fn idxs(&self) -> (usize, usize) {

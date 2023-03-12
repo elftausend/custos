@@ -118,11 +118,14 @@ impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
         }
     }
 
+    /// Returns the device of the `Buffer`.
+    /// Panic if the `Buffer` is deviceless.
     pub fn device(&self) -> &'a D {
         self.device
             .expect("Called device() on a deviceless buffer.")
     }
 
+    /// Reads the contents of the `Buffer`.
     #[inline]
     pub fn read(&'a self) -> D::Read<'a>
     where
@@ -132,9 +135,8 @@ impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
         self.device().read(self)
     }
 
-    /// Reads the contents of the buffer and writes them into a vector.
-    /// If it is certain whether a CPU, or an unified CPU + OpenCL Buffer, is used, calling `.as_slice()` (or deref/mut to `&/mut [&T]`) is probably preferred.
-    ///
+    /// Reads the contents of the `Buffer` and writes them into a vector.
+    /// `.read` is more efficient, if the device uses host memory.
     /// # Example
     #[cfg_attr(feature = "cpu", doc = "```")]
     #[cfg_attr(not(feature = "cpu"), doc = "```ignore")]
@@ -155,7 +157,7 @@ impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
         self.device().read_to_vec(self)
     }
 
-    /// Writes a slice to the Buffer.
+    /// Writes a slice to the `Buffer`.
     /// With a CPU buffer, the slice is just copied to the slice of the buffer.
     #[inline]
     pub fn write(&mut self, data: &[T])
@@ -231,6 +233,7 @@ impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
         self.clone()
     }
 
+    /// Returns the [`Ident`] of a `Buffer`.
     #[inline]
     pub fn id(&self) -> Ident {
         self.ident
@@ -277,6 +280,8 @@ impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
 }*/
 
 impl<'a, T, D: IsShapeIndep, S: Shape> Buffer<'a, T, D, S> {
+    /// Returns a reference of the same buffer, but with a different shape.
+    /// The Buffer is shape independet, so it can be converted to any shape.
     #[inline]
     pub fn as_dims<'b, O: Shape>(&self) -> &Buffer<'b, T, D, O> {
         // Safety: shape independent buffers
@@ -285,6 +290,8 @@ impl<'a, T, D: IsShapeIndep, S: Shape> Buffer<'a, T, D, S> {
         unsafe { &*(self as *const Self).cast() }
     }
 
+    /// Returns a mutable reference of the same buffer, but with a different shape.
+    /// The Buffer is shape independet, so it can be converted to any shape.
     #[inline]
     pub fn as_dims_mut<'b, O: Shape>(&mut self) -> &mut Buffer<'b, T, D, O> {
         unsafe { &mut *(self as *mut Self).cast() }
@@ -324,6 +331,9 @@ impl<'a, T, D: Device> Buffer<'a, T, D> {
 }
 
 impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
+    /// Creates a new `Buffer` from a slice (&[T]).
+    /// The pointer of the allocation may be added to the cache of the device.
+    /// Usually, this pointer / `Buffer` is then returned by a `device.get_existing_buf(..)` (accesses the cache) call.
     #[inline]
     pub fn from_slice(device: &'a D, slice: &[T]) -> Self
     where
@@ -340,6 +350,9 @@ impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
         }
     }
 
+    /// Creates a new `Buffer` from a `Vec`.
+    /// The pointer of the allocation may be added to the cache of the device.
+    /// Usually, this pointer / `Buffer` is then returned by a `device.get_existing_buf(..)` call.
     #[inline]
     pub fn from_vec(device: &'a D, data: Vec<T>) -> Self
     where
@@ -419,10 +432,11 @@ impl<'a, T, S: Shape> Buffer<'a, T, CPU, S> {
 
 #[cfg(feature = "opencl")]
 impl<'a, T, S: Shape> Buffer<'a, T, crate::OpenCL, S> {
+    /// Returns the OpenCL pointer of the `Buffer`.
     #[inline]
     pub fn cl_ptr(&self) -> *mut c_void {
         assert!(
-            !self.ptrs().1.is_null(),
+            !self.ptr.ptr.is_null(),
             "called cl_ptr() on an invalid OpenCL buffer"
         );
         self.ptrs().1

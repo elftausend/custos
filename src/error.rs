@@ -1,3 +1,5 @@
+#![allow(missing_docs)]
+
 #[cfg(not(feature = "no-std"))]
 mod std_err {
     pub type Error = Box<dyn std::error::Error + Send + Sync>;

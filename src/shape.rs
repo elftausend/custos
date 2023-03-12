@@ -1,9 +1,14 @@
 use crate::{Device, PtrType};
 
+/// Determines the shape of a [`Buffer`](crate::Buffer).
+/// `Shape` is used to get the size and ND-Array for a stack allocated `Buffer`.
 pub trait Shape: 'static {
+    /// The count of elements that fit into the shape.
     const LEN: usize = 0;
+    /// The type of the ND-Array.
     type ARR<T>;
 
+    /// Creates a new ND-Array with the default value of `T`.
     fn new<T: Copy + Default>() -> Self::ARR<T>;
 }
 
@@ -15,6 +20,7 @@ impl Shape for () {
 
 // TODO: impl for net device
 // this is used to
+/// If the [`Shape`] does not matter for a specific device [`Buffer`], than this trait should be implemented.
 pub trait IsShapeIndep: Device {}
 
 #[cfg(not(feature = "no-std"))]
@@ -22,6 +28,7 @@ impl<D: crate::RawConv> IsShapeIndep for D {}
 
 pub trait IsConstDim: Shape {}
 
+/// A 1D shape.
 #[derive(Clone, Copy)]
 pub struct Dim1<const N: usize>;
 
@@ -37,6 +44,7 @@ impl<const N: usize> Shape for Dim1<N> {
     }
 }
 
+/// A 2D shape.
 #[derive(Clone, Copy)]
 pub struct Dim2<const B: usize, const A: usize>;
 
@@ -52,12 +60,14 @@ impl<const B: usize, const A: usize> Shape for Dim2<B, A> {
     }
 }
 
+/// The shape may be 2D or ().
 pub trait MayDim2<const A: usize, const B: usize>: Shape {}
 
 impl<const A: usize, const B: usize> MayDim2<A, B> for () {}
 
 impl<const A: usize, const B: usize> MayDim2<A, B> for Dim2<A, B> {}
 
+/// A 3D shape.
 #[derive(Clone, Copy)]
 pub struct Dim3<const C: usize, const B: usize, const A: usize>;
 
@@ -74,6 +84,7 @@ impl<const C: usize, const B: usize, const A: usize> Shape for Dim3<C, B, A> {
 }
 
 // TODO: do not use device
+/// Converts a pointer to a different [`Shape`].
 pub trait ToDim<T, I: Shape, O: Shape>: crate::Device {
     fn to_dim(&self, ptr: Self::Ptr<T, I>) -> Self::Ptr<T, O>;
 }
