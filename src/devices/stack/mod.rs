@@ -1,3 +1,5 @@
+//! The Stack module provides the Stack backend for custos.
+
 mod impl_buffer;
 mod stack_device;
 

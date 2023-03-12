@@ -1,6 +1,18 @@
 use crate::{prelude::Number, shape::Shape, Alloc, Buffer, Dim1, Dim2, Ident};
 
+/// Trait for creating [`Buffer`]s with a [`Shape`]. The [`Shape`] is inferred from the array.
 pub trait WithShape<D, C> {
+    /// Create a new [`Buffer`] with the given [`Shape`] and array.
+    /// # Example
+    /// ```
+    /// use custos::{CPU, Buffer, WithShape};
+    /// 
+    /// let device = CPU::new();
+    /// let buf = Buffer::with(&device, [1.0, 2.0, 3.0]);
+    /// 
+    /// assert_eq!(&*buf, &[1.0, 2.0, 3.0]);
+    /// 
+    /// ```
     fn with(device: D, array: C) -> Self;
 }
 

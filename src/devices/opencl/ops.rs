@@ -162,6 +162,8 @@ where
     }
 }
 
+/// A failable OpenCL version of [`apply_fn`](ApplyFunction::apply_fn).
+/// It applies a function to a buffer and returns a new buffer.
 pub fn try_cl_apply_fn<'a, T, S, F: ToString>(
     device: &'a OpenCL,
     x: &CLBuffer<T, S>,
@@ -206,6 +208,8 @@ where
     }
 }
 
+/// A failable OpenCL version of [`add_unary_grad`](UnaryGrad::add_unary_grad).
+/// Writes the unary gradient (with chainrule) to the lhs_grad [`Buffer`].
 pub fn try_cl_add_unary_grad<T, S, F>(
     device: &OpenCL,
     lhs: &Buffer<T, OpenCL, S>,

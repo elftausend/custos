@@ -6,7 +6,9 @@ use core::{
 
 use crate::{shape::Shape, Buffer, CloneBuf, CommonPtrs, Device, Ident, PtrType};
 
+/// Makes it possible to use a single number in a [`Buffer`].
 pub struct Num<T> {
+    /// The stored number.
     pub num: T,
 }
 
@@ -68,6 +70,8 @@ impl<T: crate::number::Number> From<T> for Buffer<'_, T, ()> {
 }
 
 impl<'a, T> Buffer<'a, T, ()> {
+    /// A [`Num`] [`Buffer`] is safe to copy.
+    /// This method returns a new "[`Buffer`]" with the same single value.
     #[inline]
     pub fn copy(&self) -> Self
     where

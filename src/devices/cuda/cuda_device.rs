@@ -144,7 +144,11 @@ impl<T> Alloc<'_, T> for CUDA {
 }
 
 impl GraphReturn for CUDA {
-    fn graph(&self) -> std::cell::RefMut<Graph<GlobalCount>> {
+    fn graph(&self) -> std::cell::Ref<Graph<GlobalCount>> {
+        self.graph.borrow()
+    }
+
+    fn graph_mut(&self) -> std::cell::RefMut<Graph<GlobalCount>> {
         self.graph.borrow_mut()
     }
 }

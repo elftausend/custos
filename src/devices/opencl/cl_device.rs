@@ -18,7 +18,7 @@ use std::{cell::RefCell, fmt::Debug};
 use min_cl::api::unified_ptr;
 
 /// Used to perform calculations with an OpenCL capable device.
-/// To make new calculations invocable, a trait providing new operations should be implemented for [CLDevice].
+/// To make new calculations invocable, a trait providing new operations should be implemented for [OpenCL].
 /// # Example
 /// ```
 /// use custos::{OpenCL, Read, Buffer, Error};
@@ -34,7 +34,7 @@ use min_cl::api::unified_ptr;
 /// }
 /// ```
 pub struct OpenCL {
-    pub kernel_cache: RefCell<KernelCacheCL>,
+    pub(crate) kernel_cache: RefCell<KernelCacheCL>,
     pub cache: RefCell<Cache<OpenCL>>,
     pub inner: CLDevice,
     pub graph: RefCell<Graph<GlobalCount>>,
@@ -118,6 +118,28 @@ impl OpenCL {
         self.inner.unified_mem = unified_mem;
     }
 
+    /// Executes a cached OpenCL kernel.
+    /// # Example
+    /// 
+    /// ```
+    /// use custos::{OpenCL, Buffer};
+    /// 
+    /// fn main() -> custos::Result<()> {
+    ///     let device = OpenCL::new(0)?;
+    ///     let mut buf = Buffer::<f32, _>::new(&device, 10);
+    /// 
+    ///     device.launch_kernel("
+    ///      __kernel void add(__global float* buf, float num) {
+    ///         int idx = get_global_id(0);
+    ///         buf[idx] += num;
+    ///      }
+    ///     ", [buf.len(), 0, 0], None, &[&mut buf, &4f32])?;
+    ///     
+    ///     assert_eq!(buf.read_to_vec(), [4.0; 10]);    
+    /// 
+    ///     Ok(())
+    /// }
+    /// ```
     #[inline]
     pub fn launch_kernel(
         &self,
@@ -275,7 +297,11 @@ impl CacheReturn for OpenCL {
 
 impl GraphReturn for OpenCL {
     #[inline]
-    fn graph(&self) -> std::cell::RefMut<Graph<GlobalCount>> {
+    fn graph(&self) -> std::cell::Ref<Graph<GlobalCount>> {
+        self.graph.borrow()
+    }
+    #[inline]
+    fn graph_mut(&self) -> std::cell::RefMut<Graph<GlobalCount>> {
         self.graph.borrow_mut()
     }
 }

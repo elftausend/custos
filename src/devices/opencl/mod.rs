@@ -1,3 +1,5 @@
+//! The OpenCL module provides the OpenCL backend for custos.
+
 use std::{ffi::c_void, ptr::null_mut};
 
 pub use cl_device::{OpenCL, CL};
@@ -5,7 +7,7 @@ pub use kernel_cache::*;
 pub use kernel_enqueue::*;
 
 //pub mod api;
-pub mod cl_device;
+mod cl_device;
 mod kernel_cache;
 mod kernel_enqueue;
 
@@ -26,8 +28,10 @@ pub use unified::*;
 //use self::api::release_mem_object;
 use crate::{flag::AllocFlag, Buffer, CommonPtrs, PtrType, ShallowCopy};
 
+/// Another type for Buffer<'a, T, OpenCL, S>
 pub type CLBuffer<'a, T, S = ()> = Buffer<'a, T, OpenCL, S>;
 
+/// Reads the environment variable `CUSTOS_CL_DEVICE_IDX` and returns the value as a `usize`.
 pub fn chosen_cl_idx() -> usize {
     std::env::var("CUSTOS_CL_DEVICE_IDX")
         .unwrap_or_else(|_| "0".into())

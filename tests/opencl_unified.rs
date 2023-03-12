@@ -206,39 +206,6 @@ fn test_cpu_to_unified() -> custos::Result<()> {
 #[cfg(unified_cl)]
 #[cfg(not(feature = "realloc"))]
 #[test]
-fn test_cpu_to_unified_leak() -> custos::Result<()> {
-    use std::{hash::BuildHasherDefault, rc::Rc};
-
-    use custos::{bump_count, Device, Ident, IdentHasher};
-
-    let cl_dev = OpenCL::new(0)?;
-
-    unsafe { set_count(0) };
-
-    for _ in range(10) {
-        let cl_cpu_buf = {
-            let cpu = CPU::new();
-            let mut buf = cpu.retrieve::<i32, ()>(6, ());
-            buf.copy_from_slice(&[1, 2, 3, 4, 5, 6]);
-
-            let cl_cpu_buf = unsafe { custos::opencl::construct_buffer(&cl_dev, buf, ())? };
-            let mut hm = HashMap::<Ident, _, BuildHasherDefault<IdentHasher>>::default();
-            std::mem::swap(&mut cpu.cache.borrow_mut().nodes, &mut hm);
-            for mut value in hm {
-                let mut ptr = Rc::get_mut(&mut value.1).unwrap();
-                ptr.ptr = std::ptr::null_mut();
-            }
-            cl_cpu_buf
-        };
-        assert_eq!(cl_cpu_buf.as_slice(), &[1, 2, 3, 4, 5, 6]);
-        assert_eq!(cl_cpu_buf.read(), &[1, 2, 3, 4, 5, 6]);
-    }
-    Ok(())
-}
-
-#[cfg(unified_cl)]
-#[cfg(not(feature = "realloc"))]
-#[test]
 fn test_cpu_to_unified_perf() -> custos::Result<()> {
     use std::time::Instant;
 

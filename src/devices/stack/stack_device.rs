@@ -3,6 +3,7 @@ use crate::{
     Read, StackArray, WriteBuf,
 };
 
+/// A device that allocates memory on the stack.
 #[derive(Debug, Clone, Copy)]
 pub struct Stack;
 

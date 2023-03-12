@@ -7,6 +7,16 @@ use self::ops::{Add, Cos, Div, Eq, Exp, GEq, LEq, Mul, Neg, Pow, Sin, Sub, Tan};
 
 /// Evaluates a combined (via [`Combiner`]) math operations chain to a value.
 pub trait Eval<T> {
+    /// Evaluates a combined (via [`Combiner`]) math operations chain to a value.
+    /// # Example
+    /// ```
+    /// use std::ops::{Add, Mul};
+    /// use custos::{Eval, Combiner};
+    /// 
+    /// let x = 1.5f32.add(2.5).mul(3.5).eval();
+    /// 
+    /// assert_eq!(x, 14.);
+    /// ```
     fn eval(self) -> T;
 }
 
@@ -177,7 +187,7 @@ mod tests {
     fn test_geq_relu() {
         let f = |x: Resolve<i32>| x.geq(0).mul(x);
 
-        let res = f(Resolve::new(3)).eval();
+        let res = f(Resolve::with_val(3)).eval();
         assert_eq!(res, 3);
 
         let res = f(Resolve::with_marker("var_x")).to_string();
@@ -188,7 +198,7 @@ mod tests {
     fn test_geq() {
         let f = |x: Resolve<i32>| x.geq(4);
 
-        let res = f(Resolve::new(3)).eval();
+        let res = f(Resolve::with_val(3)).eval();
         assert_eq!(res, 0);
 
         let res = f(Resolve::with_marker("var_x")).to_string();
@@ -199,7 +209,7 @@ mod tests {
     fn test_eval() {
         let f = |x: Resolve<i32>| x.add(2).add(x.mul(8));
 
-        assert_eq!(f(Resolve::new(4)).eval(), 38);
+        assert_eq!(f(Resolve::with_val(4)).eval(), 38);
     }
 
     #[test]

@@ -91,7 +91,7 @@ pub unsafe fn construct_buffer<'a, T, S: Shape>(
     }
 
     // TODO: remove
-    let graph_node = device.graph().add(no_drop.len(), add_node);
+    let graph_node = device.graph_mut().add(no_drop.len(), add_node);
 
     let (host_ptr, len) = (no_drop.host_ptr_mut(), no_drop.len());
     let ptr = to_cached_unified(device, no_drop)?;
@@ -107,7 +107,7 @@ pub unsafe fn construct_buffer<'a, T, S: Shape>(
         },
         device: Some(device),
         ident: Ident {
-            idx: *device.graph().idx_trans.get(&graph_node.idx).unwrap(),
+            idx: *device.graph_mut().idx_trans.get(&graph_node.idx).unwrap(),
             len,
         },
     })
@@ -159,6 +159,39 @@ mod tests {
         assert_eq!(buf.read(), vec![1., 2.3, 0.76]);
         assert_eq!(buf.as_slice(), &[1., 2.3, 0.76]);
 
+        Ok(())
+    }
+
+    #[cfg(unified_cl)]
+    #[cfg(not(feature = "realloc"))]
+    #[test]
+    fn test_cpu_to_unified_leak() -> crate::Result<()> {
+        use std::{hash::BuildHasherDefault, rc::Rc, collections::HashMap};
+
+        use crate::{Device, Ident, IdentHasher, set_count, range};
+
+        let cl_dev = OpenCL::new(0)?;
+
+        unsafe { set_count(0) };
+
+        for _ in range(10) {
+            let cl_cpu_buf = {
+                let cpu = CPU::new();
+                let mut buf = cpu.retrieve::<i32, ()>(6, ());
+                buf.copy_from_slice(&[1, 2, 3, 4, 5, 6]);
+
+                let cl_cpu_buf = unsafe { crate::opencl::construct_buffer(&cl_dev, buf, ())? };
+                let mut hm = HashMap::<Ident, _, BuildHasherDefault<IdentHasher>>::default();
+                std::mem::swap(&mut cpu.cache.borrow_mut().nodes, &mut hm);
+                for mut value in hm {
+                    let ptr = Rc::get_mut(&mut value.1).unwrap();
+                    ptr.ptr = std::ptr::null_mut();
+                }
+                cl_cpu_buf
+            };
+            assert_eq!(cl_cpu_buf.as_slice(), &[1, 2, 3, 4, 5, 6]);
+            assert_eq!(cl_cpu_buf.read(), &[1, 2, 3, 4, 5, 6]);
+        }
         Ok(())
     }
 }

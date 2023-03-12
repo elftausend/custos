@@ -7,7 +7,7 @@ use crate::{
 };
 
 use core::{
-    cell::{RefCell, RefMut},
+    cell::{RefCell, RefMut, Ref},
     fmt::Debug,
     mem::{align_of, size_of},
 };
@@ -143,7 +143,12 @@ impl CacheReturn for CPU {
 
 impl GraphReturn for CPU {
     #[inline]
-    fn graph(&self) -> RefMut<Graph<GlobalCount>> {
+    fn graph(&self) -> Ref<Graph<GlobalCount>> {
+        self.graph.borrow()
+    }
+
+    #[inline]
+    fn graph_mut(&self) -> RefMut<Graph<GlobalCount>> {
         self.graph.borrow_mut()
     }
 }

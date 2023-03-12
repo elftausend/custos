@@ -19,7 +19,7 @@ pub trait ApplyFunction<T, S: Shape = (), D: Device = Self>: Device {
         F: Eval<T> + ToString;
 }
 
-/// Write the unary gradient to the lhs_grad buffer.
+/// Writes the unary gradient (with chainrule) to the lhs_grad buffer.
 pub trait UnaryGrad<T, S: Shape = (), D: Device = Self>: Device {
     /// Write the unary gradient to the lhs_grad buffer.
     /// # Example

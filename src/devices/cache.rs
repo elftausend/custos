@@ -1,3 +1,5 @@
+//! Contains the [`Cache`]ing logic.
+
 use core::{cell::RefMut, hash::BuildHasherDefault, ops::BitXor};
 use std::collections::HashMap;
 
@@ -10,6 +12,7 @@ use crate::{
 
 /// This trait makes a device's [`Cache`] accessible and is implemented for all compute devices.
 pub trait CacheReturn: GraphReturn<GlobalCount> {
+    /// The type of the raw pointer.
     type CT;
     /// Returns a device specific [`Cache`].
     fn cache(&self) -> RefMut<Cache<Self>>
@@ -17,13 +20,17 @@ pub trait CacheReturn: GraphReturn<GlobalCount> {
         Self: RawConv;
 }
 
+/// Converts a regular [`Buffer`] pointer into a raw "generic-less" cachable pointer.
 pub trait RawConv: Device + CacheReturn {
+    /// Construct a raw pointer from a regular [`Buffer`] pointer.
     fn construct<T, S: Shape>(ptr: &Self::Ptr<T, S>, len: usize, flag: AllocFlag) -> Self::CT;
+    /// Destruct a raw pointer into a regular [`Buffer`] pointer.
     fn destruct<T, S: Shape>(ct: &Self::CT) -> Self::Ptr<T, S>;
 }
 
 const K: usize = 0x517cc1b727220a95;
 
+/// An low-overhead [`Ident`] hasher using "FxHasher".
 #[derive(Default)]
 pub struct IdentHasher {
     hash: usize,
@@ -46,8 +53,10 @@ impl std::hash::Hasher for IdentHasher {
     }
 }
 
+/// A cache for no-generic raw pointers.
 #[derive(Debug)]
 pub struct Cache<D: RawConv> {
+    /// A map of all cached buffers using a custom hash function.
     pub nodes: HashMap<Ident, Rc<D::CT>, BuildHasherDefault<IdentHasher>>,
 }
 
@@ -114,7 +123,7 @@ where
     }
 
     fn add_to_cache<T, S: Shape>(device: &D, ptr: &<D as Device>::Ptr<T, S>) -> Ident {
-        device.graph().add_leaf(ptr.size());
+        device.graph_mut().add_leaf(ptr.size());
         let ident = Ident::new_bumped(ptr.size());
         let raw_ptr = std::rc::Rc::new(D::construct(ptr, ptr.size(), AllocFlag::Wrapper));
         device.cache().nodes.insert(ident, raw_ptr);

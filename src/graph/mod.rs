@@ -1,7 +1,7 @@
 #[cfg(not(feature = "no-std"))]
 use crate::Ident;
 
-use core::cell::RefMut;
+use core::cell::{RefMut, Ref};
 
 #[cfg(feature = "opt-cache")]
 use crate::{CacheReturn, DeviceError};
@@ -38,6 +38,7 @@ impl Graph {
     }
 }
 
+/// A `CacheTrace` is a list of nodes that shows which [`Buffer`](crate::Buffer)s could use the same cache.
 #[cfg(not(feature = "no-std"))]
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct CacheTrace {
@@ -45,8 +46,10 @@ pub struct CacheTrace {
     pub use_cache_idx: Vec<Ident>,
 }
 
+/// Returns a mutable reference to the graph.
 pub trait GraphReturn<IdxFrom: NodeIdx = GlobalCount> {
-    fn graph(&self) -> RefMut<Graph<IdxFrom>>;
+    fn graph(&self) -> Ref<Graph<IdxFrom>>;
+    fn graph_mut(&self) -> RefMut<Graph<IdxFrom>>;
 }
 
 #[cfg(feature = "opt-cache")]
@@ -111,7 +114,7 @@ mod tests {
         // idx: 5, deps: [2, 1]
         //let f = graph.add_node(10, c.idx, b.idx);
 
-        let trace = graph.trace_cache_path(&c);
+        let trace = graph.trace_cache_path_raw(&c);
         assert_eq!(
             vec![
                 Node {
@@ -152,7 +155,7 @@ mod tests {
         // idx: 5, deps: [2, 1]
         let _f = graph.add_node(10, c.idx, b.idx);
 
-        let trace = graph.trace_cache_path(&c);
+        let trace = graph.trace_cache_path_raw(&c);
         assert_eq!(Vec::<Node>::new(), trace);
     }
 
@@ -177,7 +180,7 @@ mod tests {
         // idx: 6, deps: [5, 1]
         let _e = graph.add_node(10, d.idx, b.idx);
 
-        let trace = graph.trace_cache_path(&c);
+        let trace = graph.trace_cache_path_raw(&c);
         assert_eq!(
             vec![
                 Node {
@@ -217,7 +220,7 @@ mod tests {
 
         println!("traces: {:?}", graph.cache_traces());
 
-        let trace = graph.trace_cache_path(&c);
+        let trace = graph.trace_cache_path_raw(&c);
         println!("c_trace: {:?}", trace);
         /*assert_eq!(
             vec![
@@ -383,7 +386,7 @@ mod tests {
         // idx: 5, deps: [3, 1]
         //let _e = graph.add_node(10, d.idx, b.idx);
 
-        let trace = graph.trace_cache_path(&c);
+        let trace = graph.trace_cache_path_raw(&c);
 
         assert_eq!(
             vec![
@@ -488,7 +491,7 @@ mod tests {
 
         let c = graph.add_node(10, a.idx, b.idx);
 
-        let trace = graph.trace_cache_path(&c);
+        let trace = graph.trace_cache_path_raw(&c);
         graph.cache_traces();
 
         assert_eq!(Vec::<Node>::new(), trace);

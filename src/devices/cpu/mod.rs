@@ -1,3 +1,5 @@
+//! The CPU module provides the CPU backend for custos.
+
 use crate::{CommonPtrs, PtrType, ShallowCopy};
 #[cfg(feature = "blas")]
 pub use blas::*;
@@ -12,6 +14,7 @@ mod blas;
 mod cpu_device;
 mod ops;
 
+/// The pointer used for `CPU` [`Buffer`](crate::Buffer)s
 #[derive(PartialEq, Eq, Debug)]
 pub struct CPUPtr<T> {
     pub ptr: *mut T,
@@ -104,8 +107,10 @@ impl<T> ShallowCopy for CPUPtr<T> {
     }
 }
 
+/// The pointer used for storage in the `CPU` [`Cache`](crate::Cache).
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct RawCpuBuf {
+    /// the pointer to data without type information
     pub ptr: *mut u8,
     len: usize,
     align: usize,

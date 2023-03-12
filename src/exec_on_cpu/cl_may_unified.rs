@@ -10,7 +10,6 @@ use crate::opencl::construct_buffer;
 /// This is way faster than [cpu_exec_unary], as new memory is not allocated.
 ///
 /// `cpu_exec_unary_may_unified` can be used interchangeably with [cpu_exec_unary].
-///
 pub fn cpu_exec_unary_may_unified<'a, T, F>(
     device: &'a OpenCL,
     x: &Buffer<T, OpenCL>,
@@ -52,6 +51,10 @@ where
     cpu_exec_unary(device, x, f)
 }
 
+/// If the current device supports unified memory, data is not deep-copied.
+/// This is way faster than [cpu_exec_unary_mut], as new memory is not allocated.
+///
+/// `cpu_exec_unary_may_unified` can be used interchangeably with [cpu_exec_unary_mut].
 pub fn cpu_exec_unary_may_unified_mut<'a, T, F>(
     device: &'a OpenCL,
     lhs: &mut Buffer<T, OpenCL>,
@@ -81,7 +84,6 @@ where
 /// This is way faster than [cpu_exec_binary], as new memory is not allocated.
 ///
 /// `cpu_exec_binary_may_unified` can be used interchangeably with [cpu_exec_binary].
-///
 pub fn cpu_exec_binary_may_unified<'a, T, F>(
     device: &'a OpenCL,
     lhs: &Buffer<T, OpenCL>,
@@ -128,6 +130,10 @@ where
     Ok(cpu_exec_binary(device, lhs, rhs, f))
 }
 
+/// If the current device supports unified memory, data is not deep-copied.
+/// This is way faster than [cpu_exec_binary_mut], as new memory is not allocated.
+///
+/// `cpu_exec_binary_may_unified` can be used interchangeably with [cpu_exec_binary_mut].
 pub fn cpu_exec_binary_may_unified_mut<'a, T, F>(
     device: &'a OpenCL,
     lhs: &mut Buffer<T, OpenCL>,
@@ -156,6 +162,10 @@ where
     Ok(())
 }
 
+/// If the current device supports unified memory, data is not deep-copied.
+/// This is way faster than [cpu_exec_reduce], as new memory is not allocated.
+///
+/// `cpu_exec_binary_may_unified` can be used interchangeably with [cpu_exec_reduce].
 pub fn cpu_exec_reduce_may_unified<T, F>(device: &OpenCL, x: &Buffer<T, OpenCL>, f: F) -> T
 where
     T: Default + Clone,
@@ -171,6 +181,11 @@ where
     cpu_exec_reduce(x, f)
 }
 
+/// If the current device supports unified memory, data is not deep-copied.
+/// This is way faster than [cpu_exec](crate::cpu_exec), as new memory is not allocated.
+/// 
+/// TODO
+/// Syntax is different from [cpu_exec](crate::cpu_exec)!
 #[macro_export]
 macro_rules! cl_cpu_exec_unified {
     ($device:ident, $($t:ident),*; $op:expr) => {{
@@ -202,6 +217,12 @@ macro_rules! cl_cpu_exec_unified {
     }};
 }
 
+
+/// If the current device supports unified memory, data is not deep-copied.
+/// This is way faster than [cpu_exec_mut](crate::cpu_exec_mut), as new memory is not allocated.
+/// 
+/// TODO
+/// Syntax is different from [cpu_exec](crate::cpu_exec)!
 #[macro_export]
 macro_rules! cl_cpu_exec_unified_mut {
     ($device:ident, $($t:ident),* WRITE_TO<$($write_to:ident, $from:ident),*> $op:expr) => {{

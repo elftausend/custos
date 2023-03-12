@@ -1,3 +1,5 @@
+//! CUDA API
+
 mod cuda;
 mod error;
 mod ffi;

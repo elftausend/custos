@@ -5,6 +5,7 @@ use min_cl::api::{
 };
 use std::{collections::HashMap, ffi::c_void};
 
+/// The pointer used for storage in the `OpenCL` [`Cache`](crate::Cache).
 #[derive(Debug)]
 pub struct RawCL {
     pub ptr: *mut c_void,
@@ -26,6 +27,7 @@ impl Drop for RawCL {
 #[derive(Debug, Default)]
 /// This stores the previously compiled OpenCL kernels.
 pub struct KernelCacheCL {
+    /// Uses the kernel source code to retrieve the corresponding `Kernel`.
     pub kernel_cache: HashMap<String, Kernel>,
 }
 

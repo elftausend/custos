@@ -94,7 +94,7 @@ impl<IdxFrom: NodeIdx> Graph<IdxFrom> {
                 continue;
             }
 
-            let trace = self.trace_cache_path(node);
+            let trace = self.trace_cache_path_raw(node);
 
             if trace.is_empty() {
                 continue;
@@ -121,7 +121,7 @@ impl<IdxFrom: NodeIdx> Graph<IdxFrom> {
 
     /// Calculates the cache trace for a starting node.
     /// A cache trace is a list of nodes that shows which [`Buffer`](crate::Buffer)s could use the same cache.
-    pub fn trace_cache_path(&self, trace_at: &Node) -> Vec<Node> {
+    pub fn trace_cache_path_raw(&self, trace_at: &Node) -> Vec<Node> {
         if !self.is_path_optimizable(trace_at) {
             return vec![];
         }

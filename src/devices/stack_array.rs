@@ -5,12 +5,15 @@ use core::{
 
 use crate::{shape::Shape, CommonPtrs, PtrType, ShallowCopy};
 
+/// A possibly multi-dimensional array allocated on the stack.
+/// It uses `S:`[`Shape`] to get the type of the array.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct StackArray<S: Shape, T> {
     pub(crate) array: S::ARR<T>,
 }
 
 impl<S: Shape, T: Default + Copy> StackArray<S, T> {
+    /// Creates a new `StackArray`.
     #[inline]
     pub fn new() -> Self {
         // TODO: one day... use const expressions
@@ -21,11 +24,13 @@ impl<S: Shape, T: Default + Copy> StackArray<S, T> {
         StackArray { array: S::new() }
     }
 
+    /// Returns a reference to the possibly multi-dimensional array.
     #[inline]
     pub fn array(&self) -> &S::ARR<T> {
         &self.array
     }
 
+    /// Returns a mutable reference to the possibly multi-dimensional array.
     #[inline]
     pub fn array_mut(&mut self) -> &mut S::ARR<T> {
         &mut self.array
@@ -40,6 +45,7 @@ impl<S: Shape, T: Default + Copy> Default for StackArray<S, T> {
 }
 
 impl<S: Shape, T> StackArray<S, T> {
+    /// Creates a new `StackArray` from a possibly multi-dimensional array.
     pub fn from_array(array: S::ARR<T>) -> Self {
         assert!(
             S::LEN > 0,
@@ -51,11 +57,14 @@ impl<S: Shape, T> StackArray<S, T> {
 }
 
 impl<S: Shape, T> StackArray<S, T> {
+
+    /// Returns a pointer to the possibly multi-dimensional array.
     #[inline]
     pub const fn as_ptr(&self) -> *const T {
         &self.array as *const S::ARR<T> as *const T
     }
 
+    /// Returns a pointer to the possibly multi-dimensional array.
     #[inline]
     pub fn as_ptr_mut(&mut self) -> *mut T {
         &mut self.array as *mut S::ARR<T> as *mut T

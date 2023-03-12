@@ -16,7 +16,7 @@ pub mod cache;
 
 #[cfg(not(feature = "no-std"))]
 #[cfg(feature = "autograd")]
-pub mod borrowing_cache;
+pub(crate) mod borrowing_cache;
 
 //pub mod cache;
 #[cfg(not(feature = "no-std"))]
@@ -58,6 +58,7 @@ pub use ident::*;
 #[cfg(feature = "cuda")]
 pub type CUdeviceptr = core::ffi::c_ulonglong;
 
+/// Implementors of this trait can be used as cache for a device.
 pub trait CacheAble<D: Device> {
     /// May allocate a new buffer or return an existing one.
     /// It may use the cache count provided by the cache count ([Ident]).
@@ -126,6 +127,7 @@ impl<D: Device> CacheAble<D> for () {
     }
 }
 
+/// Provides generic access to f32 and f64 BLAS functions
 pub trait GenericBlas
 where
     Self: Sized,
