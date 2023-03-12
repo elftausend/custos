@@ -78,7 +78,8 @@ where
         // In the background, the kernel is compiled once. After that, it will be reused for every iteration.
         // The cached kernels are released (or freed) when the underlying CLDevice is dropped.
         // The arguments are specified with a slice of buffers and/or numbers.
-        self.launch_kernel(&src, [len, 0, 0], None, &[&lhs, &rhs, &out]).unwrap();
+        self.launch_kernel(&src, [len, 0, 0], None, &[&lhs, &rhs, &out])
+            .unwrap();
         out
     }
 }
@@ -108,7 +109,8 @@ impl<T: CDatatype> AddBuf<T> for CUDA {
 
         // The kernel is compiled once with nvrtc and is cached too.
         // The arguments are specified with a vector of buffers and/or numbers.
-        self.launch_kernel1d(len, &src, "add", &[lhs, rhs, &out, &len]).unwrap();
+        self.launch_kernel1d(len, &src, "add", &[lhs, rhs, &out, &len])
+            .unwrap();
         out
     }
 }

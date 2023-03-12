@@ -1,6 +1,6 @@
 use core::ops::{Bound, Range, RangeBounds};
 
-use crate::{shape::Shape, Alloc, Buffer, Device, Eval, MayTapeReturn, Resolve};
+use crate::{shape::Shape, Alloc, Buffer, Device};
 
 /// Trait for implementing the clear() operation for the compute devices.
 pub trait ClearBuf<T, S: Shape = (), D: Device = Self>: Device {
@@ -97,7 +97,10 @@ pub trait CopySlice<T, D: Device = Self>: Sized + Device {
 }
 
 /// Trait for reading buffers.
+/// Syncronizationpoint for CUDA.
 pub trait Read<T, S: Shape = (), D: Device = Self>: Device {
+    /// The type of the read data.
+    /// Usually Vec<T> or &'a [T].
     type Read<'a>
     where
         T: 'a,
@@ -184,68 +187,6 @@ pub trait CloneBuf<'a, T, S: Shape = ()>: Sized + Device {
     /// assert_eq!(buf.read(), cloned.read());
     /// ```
     fn clone_buf(&'a self, buf: &Buffer<'a, T, Self, S>) -> Buffer<'a, T, Self, S>;
-}
-
-pub trait ApplyFunction<T, S: Shape = (), D: Device = Self>: Device {
-    fn apply_fn<F>(&self, buf: &Buffer<T, D, S>, f: impl Fn(Resolve<T>) -> F) -> Buffer<T, Self, S>
-    where
-        F: Eval<T> + ToString;
-}
-
-pub trait UnaryGrad<T, S: Shape = (), D: Device = Self>: Device {
-    fn add_unary_grad<F>(
-        &self,
-        lhs: &Buffer<T, D, S>,
-        lhs_grad: &mut Buffer<T, D, S>,
-        out: &Buffer<T, D, S>,
-        lhs_grad_fn: impl Fn(Resolve<T>) -> F,
-    ) where
-        F: Eval<T> + ToString;
-}
-
-pub trait UnaryElementWiseMayGrad<T, D: Device, S: Shape>: Device {
-    fn unary_ew<FO, GO>(
-        &self,
-        buf: &Buffer<T, D, S>,
-        forward_fn: impl Fn(Resolve<T>) -> FO,
-        grad_fn: fn(Resolve<T>) -> GO,
-    ) -> Buffer<T, Self, S>
-    where
-        FO: Eval<T> + ToString,
-        GO: Eval<T> + ToString + 'static;
-}
-
-impl<T, D, S> UnaryElementWiseMayGrad<T, D, S> for D
-where
-    T: 'static,
-    D: ApplyFunction<T, S, D> + UnaryGrad<T, S, D> + MayTapeReturn,
-    D: for<'b> Alloc<'b, T, S>,
-    S: Shape,
-{
-    #[inline(always)]
-    fn unary_ew<FO, GO>(
-        &self,
-        buf: &Buffer<T, D, S>,
-        forward_fn: impl Fn(Resolve<T>) -> FO,
-        _grad_fn: fn(Resolve<T>) -> GO,
-    ) -> Buffer<T, Self, S>
-    where
-        FO: Eval<T> + ToString,
-        GO: Eval<T> + ToString + 'static,
-    {
-        let out = self.apply_fn(buf, forward_fn);
-
-        #[cfg(feature = "autograd")]
-        {
-            let ids = (buf.id(), out.id());
-            self.tape_mut().add_grad_fn(move |grads, device| {
-                let (lhs, lhs_grad, out_grad) = grads.get_double::<T, S, S>(device, ids);
-                device.add_unary_grad(&lhs, lhs_grad, out_grad, _grad_fn);
-            });
-        }
-
-        out
-    }
 }
 
 /// Convert a possibly-indefinite [`RangeBounds`] into a [`Range`] with a start and stop index.

@@ -631,6 +631,7 @@ impl<'a, T, D: MainMemory, S: Shape> core::iter::IntoIterator for &'a Buffer<'_,
 
     type IntoIter = core::slice::Iter<'a, T>;
 
+    #[inline]
     fn into_iter(self) -> Self::IntoIter {
         self.iter()
     }
@@ -641,6 +642,7 @@ impl<'a, T, D: MainMemory, S: Shape> core::iter::IntoIterator for &'a mut Buffer
 
     type IntoIter = core::slice::IterMut<'a, T>;
 
+    #[inline]
     fn into_iter(self) -> Self::IntoIter {
         self.iter_mut()
     }

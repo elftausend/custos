@@ -59,15 +59,47 @@ pub use ident::*;
 pub type CUdeviceptr = core::ffi::c_ulonglong;
 
 pub trait CacheAble<D: Device> {
+    /// May allocate a new buffer or return an existing one.
+    /// It may use the cache count provided by the cache count ([Ident]).
+    /// This depends on the type of cache.
+    ///
+    /// # Example
+    #[cfg_attr(feature = "cpu", doc = "```")]
+    #[cfg_attr(not(feature = "cpu"), doc = "```ignore")]
+    /// use custos::{Device, CPU, set_count};
+    ///
+    /// let device = CPU::new();
+    ///
+    /// let buf = device.retrieve::<f32, ()>(10, ());
+    /// 
+    /// // unsafe, because the next .retrieve call will tehn return the same buffer
+    /// unsafe { set_count(0) }
+    ///
+    /// let buf_2 = device.retrieve::<f32, ()>(10, ());
+    /// 
+    /// assert_eq!(buf.ptr, buf_2.ptr);
+    /// 
+    /// ```
     fn retrieve<T, S: Shape>(device: &D, len: usize, add_node: impl AddGraph) -> Buffer<T, D, S>
     where
         for<'a> D: Alloc<'a, T, S>;
 
-    fn get_existing_buf<T, S: Shape>(device: &D, id: Ident) -> Buffer<T, D, S>;
+    /// May return an existing buffer using the provided [`Ident`].
+    /// This function panics if no buffer with the provided [`Ident`] exists.
+    /// 
+    /// # Safety
+    /// This function is unsafe because it is possible to return multiple `Buffer` with `Ident` that share the same memory.
+    /// If this function is called twice with the same `Ident`, the returned `Buffer` will be the same.
+    /// Even though the return `Buffer`s are owned, this does not lead to double-frees (see [`AllocFlag`]).
+    unsafe fn get_existing_buf<T, S: Shape>(device: &D, id: Ident) -> Option<Buffer<T, D, S>>;
 
+    /// Removes a `Buffer` with the provided [`Ident`] from the cache.
+    /// This function is internally called when a `Buffer` with [`AllocFlag`] `None` is dropped.
     fn remove(device: &D, ident: Ident);
+
+    /// Adds a pointer that was allocated by [`Alloc`] to the cache and returns a new corresponding [`Ident`].
+    /// This function is internally called when a `Buffer` with [`AllocFlag`] `None` is created.
     fn add_to_cache<T, S: Shape>(device: &D, ptr: &D::Ptr<T, S>) -> Ident;
-    //fn insert_node<T>(&mut self, device: &D, ptr: &D::Ptr<T, N>, node: Ident, graph_node: crate::Node) {}
 }
 
 // TODO: Mind num implement?
@@ -88,8 +120,9 @@ impl<D: Device> CacheAble<D> for () {
         Ident::new_bumped(ptr.size())
     }
 
-    fn get_existing_buf<T, S: Shape>(_device: &D, _id: Ident) -> Buffer<T, D, S> {
-        todo!();
+    #[inline]
+    unsafe fn get_existing_buf<T, S: Shape>(_device: &D, _id: Ident) -> Option<Buffer<T, D, S>> {
+        None
     }
 }
 

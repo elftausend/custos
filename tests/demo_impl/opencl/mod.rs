@@ -20,7 +20,13 @@ where
         }}"
     , datatype=T::as_c_type_str());
 
-    enqueue_kernel(device, &src, [lhs.len() / 256, 0, 0], Some([128, 0, 0]), &[lhs, rhs, out])?;
+    enqueue_kernel(
+        device,
+        &src,
+        [lhs.len() / 256, 0, 0],
+        Some([128, 0, 0]),
+        &[lhs, rhs, out],
+    )?;
     Ok(())
 }
 
@@ -42,7 +48,7 @@ impl<T: CDatatype, S: Shape> ElementWise<T, OpenCL, S> for OpenCL {
 
 #[cfg(test)]
 mod tests {
-    use custos::{OpenCL, Buffer, WithShape, Device, CPU};
+    use custos::{Buffer, Device, OpenCL, WithShape, CPU};
 
     use crate::demo_impl::cpu::cpu_element_wise;
 
@@ -81,16 +87,14 @@ mod tests {
         for _ in 0..TIMES {
             cl_element_wise::<_, ()>(&device, &lhs, &rhs, &mut out, "+").unwrap();
         }
-        
+
         println!("ocl: {:?}", start.elapsed());
-        
+
         assert_eq!(out.read(), &[5; SIZE]);
-        
     }
 
     #[test]
     fn test_element_wise_large_bufs_cpu() {
-
         let device = CPU::new();
 
         let lhs = Buffer::<_>::from((&device, vec![1; SIZE]));
@@ -102,7 +106,7 @@ mod tests {
         for _ in 0..TIMES {
             cpu_element_wise(&lhs, &rhs, &mut out, |out, lhs, rhs| *out = lhs + rhs);
         }
-        
+
         println!("cpu: {:?}", start.elapsed());
         assert_eq!(out.as_slice(), &[5; SIZE]);
     }

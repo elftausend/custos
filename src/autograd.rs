@@ -1,3 +1,5 @@
+//! Provides automatic differentiation tools.
+
 use core::{
     cell::{Ref, RefMut},
     fmt::Debug,
@@ -124,8 +126,8 @@ impl<D> Gradients<D> {
         let rhs_grad_ptr = self.get_mut(device, rid) as *mut _;
         let rhs_grad = unsafe { &mut *rhs_grad_ptr };
         (
-            device.get_existing_buf(lid),
-            device.get_existing_buf(rid),
+            unsafe { device.get_existing_buf(lid) },
+            unsafe { device.get_existing_buf(rid) },
             lhs_grad,
             rhs_grad,
             self.may_get_ref(oid).unwrap(),
@@ -152,7 +154,7 @@ impl<D> Gradients<D> {
         let x_grad_mut = unsafe { &mut *x_grad_ptr };
         let o_grad = self.get_ref(device, oid);
 
-        (device.get_existing_buf(xid), x_grad_mut, o_grad)
+        (unsafe { device.get_existing_buf(xid) }, x_grad_mut, o_grad)
     }
 }
 
@@ -215,6 +217,9 @@ where
         self.device().tape_mut().backward_seeded(self)
     }
 
+    /// Returns a reference to the gradient of this buffer.
+    /// The lifetime is bound to the lifetime of self, which is more strict.
+    /// If the borrow checker complains, use `grad_unbound` instead.
     #[inline]
     pub fn grad(&self) -> Ref<Self> {
         Ref::map(self.device().tape(), |tape| {
@@ -222,6 +227,8 @@ where
         })
     }
 
+    /// Returns a reference to the gradient of this buffer.
+    /// Lifetimes are checked during runtime.
     #[inline]
     pub fn grad_unbound(&self) -> Ref<'a, Self> {
         Ref::map(self.device().tape(), |tape| {
@@ -229,6 +236,9 @@ where
         })
     }
 
+    /// Returns a mutable reference to the gradient of this buffer.
+    /// The lifetime is bound to the lifetime of self, which is more strict.
+    /// If the borrow checker complains, use `grad_mut_unbound` instead.
     #[inline]
     pub fn grad_mut(&mut self) -> RefMut<Self> {
         RefMut::map(self.device().tape_mut(), |tape| {
@@ -236,6 +246,8 @@ where
         })
     }
 
+    /// Returns a mutable reference to the gradient of this buffer.
+    /// Lifetimes are checked during runtime.
     #[inline]
     pub fn grad_mut_unbound(&mut self) -> RefMut<'a, Self> {
         RefMut::map(self.device().tape_mut(), |tape| {

@@ -1,3 +1,16 @@
+/// A macro that creates a `CPU` `Buffer` using the static `CPU` device.
+///
+/// # Examples
+#[cfg_attr(feature = "cpu", doc = "```")]
+#[cfg_attr(not(feature = "cpu"), doc = "```ignore")]
+/// use custos::buf;
+///
+/// let buf = buf![2.; 10];
+/// assert_eq!(buf.read(), [2.; 10]);
+///
+/// let buf = buf![5, 3, 2, 6, 2];
+/// assert_eq!(buf.read(), &[5, 3, 2, 6, 2])
+/// ```
 #[macro_export]
 macro_rules! buf {
     ($elem:expr; $n:expr) => (

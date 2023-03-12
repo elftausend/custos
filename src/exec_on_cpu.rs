@@ -1,3 +1,7 @@
+//! This module includes macros and functions for executing operations on the CPU.
+//! They move the supplied (CUDA, OpenCL, WGPU, ...) `Buffer`s to the CPU and execute the operation on the CPU.
+//! Most of the time, you should actually implement the operation for the device natively, as it is typically faster.
+
 #[cfg(feature = "opencl")]
 mod cl_may_unified;
 
@@ -51,6 +55,8 @@ where
     // TODO add new node to graph
 }
 
+/// Moves a single `Buffer` stored on another device to a `CPU` `Buffer`s and executes an operation on the `CPU`.
+/// The result is written back to the original `Buffer`.
 pub fn cpu_exec_unary_mut<'a, T, D, F>(
     device: &'a D,
     x: &mut Buffer<T, D>,
@@ -138,6 +144,26 @@ where
     Ok(())
 }
 
+/// Moves `Buffer`s to `CPU` `Buffer`s.
+/// The name of the new `CPU` `Buffer`s are provided by the user.
+/// The new `Buffer`s are declared as mutable.
+///
+/// # Example
+/// ```
+/// use custos::{CPU, Buffer, OpenCL, to_cpu};
+///
+/// let device = OpenCL::new(0).unwrap();
+///
+/// let cpu = CPU::new();
+///
+/// let lhs = Buffer::from((&device, [1, 2, 3]));
+/// let rhs = Buffer::from((&device, [1, 2, 3]));
+///
+/// to_cpu!(cpu, lhs, rhs);
+///
+/// assert_eq!(lhs.len(), 3);
+/// assert_eq!(rhs.len(), 3);
+/// ```
 #[macro_export]
 macro_rules! to_cpu_mut {
     ($cpu:ident, $($t:ident, $cpu_name:ident),*) => {
@@ -148,6 +174,24 @@ macro_rules! to_cpu_mut {
     };
 }
 
+/// Shadows all supplied `Buffer`s to `CPU` `Buffer's.
+///
+/// # Example
+/// ```
+/// use custos::{CPU, Buffer, OpenCL, to_cpu};
+///
+/// let device = OpenCL::new(0).unwrap();
+///
+/// let cpu = CPU::new();
+///
+/// let lhs = Buffer::from((&device, [1, 2, 3]));
+/// let rhs = Buffer::from((&device, [1, 2, 3]));
+///
+/// to_cpu!(cpu, lhs, rhs);
+///
+/// assert_eq!(lhs.len(), 3);
+/// assert_eq!(rhs.len(), 3);
+/// ```
 #[macro_export]
 macro_rules! to_cpu {
     ($cpu:ident, $($t:ident),*) => {
@@ -157,6 +201,8 @@ macro_rules! to_cpu {
     };
 }
 
+/// Takes `Buffer`s having a host pointer and wraps them into `CPU` `Buffer`'s.
+/// The old `Buffer`s are shadowed.
 #[macro_export]
 macro_rules! to_raw_host {
     ($($t:ident),*) => {
@@ -166,6 +212,8 @@ macro_rules! to_raw_host {
     };
 }
 
+/// Takes `Buffer`s having a host pointer and wraps them into mutable `CPU` `Buffer`'s.
+/// New names for the `CPU` `Buffer`s are provided by the user.
 #[macro_export]
 macro_rules! to_raw_host_mut {
     ($($t:ident, $cpu_name:ident),*) => {
@@ -199,6 +247,8 @@ macro_rules! cpu_exec {
     }};
 }
 
+/// Moves `n` `Buffer`s stored on another device to `n` `CPU` `Buffer`s and executes an operation on the `CPU`.
+/// The results are written back to the original `Buffer`s.
 #[macro_export]
 macro_rules! cpu_exec_mut {
     ($device:ident, $cpu:ident, $($t:ident),* WRITE_TO<$($write_to:ident, $from:ident),*> $op:expr) => {{
@@ -211,6 +261,7 @@ macro_rules! cpu_exec_mut {
     }};
 }
 
+/// Moves a single `Buffer` stored on another device to a `CPU` `Buffer` and executes an reduce operation on the `CPU`.
 #[inline]
 pub fn cpu_exec_reduce<T, D, F>(x: &Buffer<T, D>, f: F) -> T
 where

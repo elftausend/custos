@@ -93,20 +93,19 @@ where
     }
 
     #[inline]
-    fn get_existing_buf<T, S: Shape>(device: &D, ident: Ident) -> Buffer<T, D, S> {
+    unsafe fn get_existing_buf<T, S: Shape>(device: &D, ident: Ident) -> Option<Buffer<T, D, S>> {
         let ptr = D::destruct::<T, S>(
             device
                 .cache()
                 .nodes
-                .get(&ident)
-                .expect("A matching Buffer does not exist."),
+                .get(&ident)?,
         );
 
-        Buffer {
+        Some(Buffer {
             ptr,
             device: Some(device),
             ident,
-        }
+        })
     }
 
     #[inline]

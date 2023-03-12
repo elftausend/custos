@@ -1,10 +1,21 @@
+//! Contains traits for generic math.
+
 use core::{
     cmp::Ordering,
     iter::Sum,
     ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Rem, RemAssign, Sub, SubAssign},
 };
 
+/// A trait that returns the default / zero of a value.
 pub trait Zero {
+    /// Returns zero or the default.
+    /// # Example
+    /// ```
+    /// use custos::number::Zero;
+    ///
+    /// assert_eq!(f32::zero(), 0.);
+    ///
+    /// ```
     #[inline]
     fn zero() -> Self
     where
@@ -16,11 +27,37 @@ pub trait Zero {
 
 impl<T: Default> Zero for T {}
 
+/// A trait that returns 1 for a number.
 pub trait One {
+    /// Returns one..
+    /// # Example
+    /// ```
+    /// use custos::number::One;
+    ///
+    /// fn generic_one<T: One>() -> T {
+    ///     T::one()
+    /// }
+    ///
+    /// assert_eq!(generic_one::<f32>(), 1.);
+    ///
+    /// ```
     fn one() -> Self;
 }
 
+/// A trait that returns 2 for a number.
 pub trait Two {
+    /// Returns two.
+    /// # Example
+    /// ```
+    /// use custos::number::Two;
+    ///
+    /// fn generic_two<T: Two>() -> T {
+    ///     T::two()
+    /// }
+    ///
+    /// assert_eq!(generic_two::<f32>(), 2.);
+    ///
+    /// ```
     fn two() -> Self;
 }
 
@@ -50,6 +87,7 @@ typical_number_impl! {
     isize, u8, u16, u32, u64, u128, usize
 }
 
+/// Numeric is a trait that is implemented for all numeric types.
 pub trait Numeric:
     Sized + Default + Copy + PartialOrd + PartialEq + core::fmt::Debug + core::fmt::Display
 {
@@ -71,6 +109,17 @@ impl Numeric for u64 {}
 impl Numeric for u128 {}
 impl Numeric for usize {}
 
+/// Implementors of `Number` require some basic math operations.
+/// # Example
+/// ```
+/// use custos::number::Number;
+///
+/// fn generic_add<T: Number>(a: T, b: T) -> T {
+///     a + b
+/// }
+///
+/// assert_eq!(generic_add(1., 2.), 3.);
+/// ```
 pub trait Number:
     Numeric
     + Add<Self, Output = Self>

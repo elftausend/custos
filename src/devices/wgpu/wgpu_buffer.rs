@@ -24,15 +24,14 @@ impl<T> WGPUBuffer<T> {
     }
 
     pub fn with_slice(device: &wgpu::Device, slice: &[T]) -> Self {
-        let buf =
-            device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                label: None,
-                contents: slice_u8_cast(slice),
-                usage: wgpu::BufferUsages::STORAGE
-                    | wgpu::BufferUsages::COPY_DST
-                    | wgpu::BufferUsages::COPY_SRC
-                    | wgpu::BufferUsages::MAP_READ,
-            });
+        let buf = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: None,
+            contents: slice_u8_cast(slice),
+            usage: wgpu::BufferUsages::STORAGE
+                | wgpu::BufferUsages::COPY_DST
+                | wgpu::BufferUsages::COPY_SRC
+                | wgpu::BufferUsages::MAP_READ,
+        });
         Self {
             buf,
             _p: PhantomData,
