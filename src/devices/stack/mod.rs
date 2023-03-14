@@ -5,6 +5,19 @@ mod stack_device;
 
 pub use stack_device::*;
 
+use crate::{Buffer, ClearBuf, Shape, MainMemory};
+
+
+// #[impl_stack]
+impl<T: Default, D: MainMemory, S: Shape> ClearBuf<T, S, D> for Stack {
+    fn clear(&self, buf: &mut Buffer<T, D, S>) {
+        for value in buf {
+            *value = T::default();
+        }
+    }
+}
+
+
 #[cfg(feature = "cpu")]
 #[cfg(test)]
 mod tests {

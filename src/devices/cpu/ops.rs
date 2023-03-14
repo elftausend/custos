@@ -1,6 +1,6 @@
 use core::ops::{Index, Range, RangeBounds};
 
-use crate::{bounds_to_range, Buffer, CopySlice, MainMemory, Read, Shape, WriteBuf, CPU};
+use crate::{bounds_to_range, Buffer, CopySlice, MainMemory, Read, Shape, WriteBuf, CPU, ClearBuf};
 
 impl<T, D: MainMemory, S: Shape> Read<T, S, D> for CPU {
     type Read<'a> = &'a [T] where T: 'a, D: 'a, S: 'a;
@@ -28,6 +28,15 @@ impl<T: Copy, D: MainMemory, S: Shape> WriteBuf<T, S, D> for CPU {
     #[inline]
     fn write_buf(&self, dst: &mut Buffer<T, D, S>, src: &Buffer<T, D, S>) {
         self.write(dst, src)
+    }
+}
+
+// #[impl_stack]
+impl<T: Default, D: MainMemory, S: Shape> ClearBuf<T, S, D> for CPU {
+    fn clear(&self, buf: &mut Buffer<T, D, S>) {
+        for value in buf {
+            *value = T::default();
+        }
     }
 }
 

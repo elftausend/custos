@@ -4,7 +4,8 @@ use crate::{prelude::Number, shape::Shape, Alloc, Buffer, Dim1, Dim2, Ident};
 pub trait WithShape<D, C> {
     /// Create a new [`Buffer`] with the given [`Shape`] and array.
     /// # Example
-    /// ```
+    #[cfg_attr(feature = "cpu", doc = "```")]
+    #[cfg_attr(not(feature = "cpu"), doc = "```ignore")]
     /// use custos::{CPU, Buffer, WithShape};
     /// 
     /// let device = CPU::new();

@@ -36,8 +36,8 @@ min-cl = { path="../min-cl", optional=true }
 
 
 [features]
-default = ["stack", "macro", "cpu", "blas", "opencl", "autograd", "static-api"]
-#default = ["stack", "cpu", "opencl"]
+default = ["stack"]
+#default = ["stack", "macro", "cpu", "autograd", "blas", "opencl",  "static-api"]
 #default = ["stack", "cpu", "blas", "static-api", "opencl", "macro"]
 cpu = []
 opencl = ["dep:min-cl", "cpu"]
@@ -95,6 +95,9 @@ required-features = ["cpu"]
 name = "fixed-size-stack"
 required-features = ["cpu", "stack"]
 
+[[example]]
+name = "mul_buf_cpu_impl"
+required-features = ["cpu"]
 
 [[test]]
 name = "opencl_unified"

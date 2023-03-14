@@ -149,7 +149,8 @@ where
 /// The new `Buffer`s are declared as mutable.
 ///
 /// # Example
-/// ```
+#[cfg_attr(feature = "opencl", doc = "```")]
+#[cfg_attr(feature = "opencl", doc = "```ignore")]
 /// use custos::{CPU, Buffer, OpenCL, to_cpu};
 ///
 /// let device = OpenCL::new(0).unwrap();
@@ -177,7 +178,8 @@ macro_rules! to_cpu_mut {
 /// Shadows all supplied `Buffer`s to `CPU` `Buffer's.
 ///
 /// # Example
-/// ```
+#[cfg_attr(feature = "opencl", doc = "```")]
+#[cfg_attr(feature = "opencl", doc = "```ignore")]
 /// use custos::{CPU, Buffer, OpenCL, to_cpu};
 ///
 /// let device = OpenCL::new(0).unwrap();

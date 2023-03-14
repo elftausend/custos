@@ -15,15 +15,6 @@ use crate::CPU;
 use crate::Stack;
 
 #[impl_stack]
-impl<T: Default, D: MainMemory, S: Shape> ClearBuf<T, S, D> for CPU {
-    fn clear(&self, buf: &mut Buffer<T, D, S>) {
-        for value in buf {
-            *value = T::default();
-        }
-    }
-}
-
-#[impl_stack]
 impl<T, D, S> ApplyFunction<T, S, D> for CPU
 where
     T: Copy + Default + ToVal,

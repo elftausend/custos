@@ -4,8 +4,8 @@ use crate::{Shape, Buffer, Eval, Device, Resolve, Alloc, MayTapeReturn};
 pub trait ApplyFunction<T, S: Shape = (), D: Device = Self>: Device {
     /// Applies a function to a buffer and returns a new buffer.
     /// # Example
-    #[cfg_attr(feature = "cpu", doc = "```")]
-    #[cfg_attr(not(feature = "cpu"), doc = "```ignore")]
+    #[cfg_attr(all(feature = "cpu", feature = "macro"), doc = "```")]
+    #[cfg_attr(all(feature = "cpu", feature = "macro"), doc = "```ignore")]
     /// use custos::{CPU, Buffer, ApplyFunction, Combiner};
     /// 
     /// let device = CPU::new();
@@ -23,8 +23,8 @@ pub trait ApplyFunction<T, S: Shape = (), D: Device = Self>: Device {
 pub trait UnaryGrad<T, S: Shape = (), D: Device = Self>: Device {
     /// Write the unary gradient to the lhs_grad buffer.
     /// # Example
-    #[cfg_attr(feature = "cpu", doc = "```")]
-    #[cfg_attr(not(feature = "cpu"), doc = "```ignore")]
+    #[cfg_attr(all(feature = "cpu", feature = "macro"), doc = "```")]
+    #[cfg_attr(all(feature = "cpu", feature = "macro"), doc = "```ignore")]
     /// use custos::{CPU, Buffer, UnaryGrad, Combiner};
     /// 
     /// let device = CPU::new();
@@ -55,8 +55,8 @@ pub trait UnaryElementWiseMayGrad<T, D: Device, S: Shape>: Device {
     /// Applies the forward function of a new/cached [`Buffer`] and returns it.
     /// If the `autograd` feature is enabled, the gradient function is also calculated via the grad function.
     /// # Example
-    #[cfg_attr(feature = "cpu", doc = "```")]
-    #[cfg_attr(not(feature = "cpu"), doc = "```ignore")]
+    #[cfg_attr(all(feature = "autograd", feature = "cpu"), doc = "```")]
+    #[cfg_attr(not(all(feature = "autograd", feature = "cpu")), doc = "```ignore")]
     /// use custos::{CPU, Buffer, UnaryElementWiseMayGrad, Combiner};
     /// 
     /// let device = CPU::new();

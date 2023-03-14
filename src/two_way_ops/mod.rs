@@ -253,7 +253,7 @@ mod tests {
         }
     }
 
-    #[cfg(feature = "cpu")]
+    #[cfg(all(feature = "cpu", feature = "macro"))]
     #[test]
     fn test_apply_fn_cpu() {
         use crate::{ApplyFunction, Buffer, Combiner, CPU};
@@ -281,7 +281,7 @@ mod tests {
         Ok(())
     }
 
-    #[cfg(feature = "cpu")]
+    #[cfg(all(feature = "cpu", feature = "macro"))]
     #[test]
     fn test_run_apply_fn_cpu_more_complex() {
         use crate::{ApplyFunction, Buffer, CPU};

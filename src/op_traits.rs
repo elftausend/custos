@@ -3,7 +3,7 @@ use core::ops::{Bound, Range, RangeBounds};
 use crate::{shape::Shape, Alloc, Buffer, Device};
 
 /// Trait for implementing the clear() operation for the compute devices.
-pub trait ClearBuf<T, S: Shape = (), D: Device = Self>: Device {
+pub trait ClearBuf<T, S: Shape = (), D: Device = Self> {
     /// Sets all elements of the matrix to zero.
     /// # Example
     #[cfg_attr(feature = "cpu", doc = "```")]
@@ -157,7 +157,8 @@ pub trait WriteBuf<T, S: Shape = (), D: Device = Self>: Device {
     /// The buffers must have the same size.
     ///
     /// # Example
-    /// ```
+    #[cfg_attr(feature = "cpu", doc = "```")]
+    #[cfg_attr(not(feature = "cpu"), doc = "```ignore")]
     /// use custos::{CPU, Buffer, WriteBuf};
     ///
     /// let device = CPU::new();
@@ -211,6 +212,7 @@ pub(crate) fn bounds_to_range<B: RangeBounds<usize>>(bounds: B, len: usize) -> R
 mod tests {
 
     #[cfg(feature = "stack")]
+    #[cfg(feature = "macro")]
     #[cfg(not(feature = "autograd"))]
     #[test]
     fn test_unary_ew_stack_no_autograd() {
