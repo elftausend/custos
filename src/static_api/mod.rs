@@ -1,8 +1,8 @@
 //! Exposes an API for static devices.
 //! The usage is similiar to pytorch as `Buffer`s are moved to the gpu or another compute device via `.to_gpu`, `.to_cl`, ...
 //! # Example
-#![cfg_attr(feature = "cpu", doc = "```")]
-#![cfg_attr(not(feature = "cpu"), doc = "```ignore")]
+#![cfg_attr(any(feature = "cuda", feature = "opencl"), doc = "```")]
+#![cfg_attr(not(any(feature = "cuda", feature = "opencl")), doc = "```ignore")]
 //! use custos::buf;
 //!
 //! let buf = buf![2f32, 5., 1.].to_gpu();

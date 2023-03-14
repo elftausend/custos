@@ -5,7 +5,7 @@ pub trait ApplyFunction<T, S: Shape = (), D: Device = Self>: Device {
     /// Applies a function to a buffer and returns a new buffer.
     /// # Example
     #[cfg_attr(all(feature = "cpu", feature = "macro"), doc = "```")]
-    #[cfg_attr(all(feature = "cpu", feature = "macro"), doc = "```ignore")]
+    #[cfg_attr(not(all(feature = "cpu", feature = "macro")), doc = "```ignore")]
     /// use custos::{CPU, Buffer, ApplyFunction, Combiner};
     /// 
     /// let device = CPU::new();
@@ -24,7 +24,7 @@ pub trait UnaryGrad<T, S: Shape = (), D: Device = Self>: Device {
     /// Write the unary gradient to the lhs_grad buffer.
     /// # Example
     #[cfg_attr(all(feature = "cpu", feature = "macro"), doc = "```")]
-    #[cfg_attr(all(feature = "cpu", feature = "macro"), doc = "```ignore")]
+    #[cfg_attr(not(all(feature = "cpu", feature = "macro")), doc = "```ignore")]
     /// use custos::{CPU, Buffer, UnaryGrad, Combiner};
     /// 
     /// let device = CPU::new();

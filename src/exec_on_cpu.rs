@@ -150,7 +150,7 @@ where
 ///
 /// # Example
 #[cfg_attr(feature = "opencl", doc = "```")]
-#[cfg_attr(feature = "opencl", doc = "```ignore")]
+#[cfg_attr(not(feature = "opencl"), doc = "```ignore")]
 /// use custos::{CPU, Buffer, OpenCL, to_cpu};
 ///
 /// let device = OpenCL::new(0).unwrap();
@@ -179,7 +179,7 @@ macro_rules! to_cpu_mut {
 ///
 /// # Example
 #[cfg_attr(feature = "opencl", doc = "```")]
-#[cfg_attr(feature = "opencl", doc = "```ignore")]
+#[cfg_attr(not(feature = "opencl"), doc = "```ignore")]
 /// use custos::{CPU, Buffer, OpenCL, to_cpu};
 ///
 /// let device = OpenCL::new(0).unwrap();

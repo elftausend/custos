@@ -117,6 +117,10 @@ pub use two_way_ops::*;
 compile_error!("The autograd and opt-cache feature are not currently compatible. 
 This is because the logic for detecting if a forward buffer is used during gradient calculation isn't implemented yet.");
 
+
+#[cfg(all(feature = "realloc", feature = "opt-cache"))]
+compile_error!("A typical 'cache' does not exist when the `realloc` feature is enabled.");
+
 /// This trait is implemented for every pointer type.
 pub trait PtrType {
     /// Returns the element count.

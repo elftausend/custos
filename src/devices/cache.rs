@@ -93,7 +93,8 @@ where
     #[inline]
     fn retrieve<T, S: Shape>(
         device: &D,
-        len: usize, /*add_node: impl AddGraph*/
+        len: usize, 
+        _add_node: impl crate::AddGraph
     ) -> Buffer<T, D, S>
     where
         for<'b> D: Alloc<'b, T, S>,
@@ -167,7 +168,7 @@ impl<D: RawConv> Cache<D> {
         let ptr = device.alloc(ident.len, AllocFlag::Cache);
 
         #[cfg(feature = "opt-cache")]
-        let graph_node = device.graph().add(ident.len, _add_node);
+        let graph_node = device.graph_mut().add(ident.len, _add_node);
 
         #[cfg(not(feature = "opt-cache"))]
         let graph_node = crate::Node {

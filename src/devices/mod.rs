@@ -48,7 +48,7 @@ pub use stack_array::*;
 mod cdatatype;
 pub use cdatatype::*;
 
-#[cfg(all(any(feature = "cpu", feature = "stack"), feature = "macros"))]
+#[cfg(all(any(feature = "cpu", feature = "stack"), feature = "macro"))]
 mod cpu_stack_ops;
 
 #[cfg(not(feature = "no-std"))]
