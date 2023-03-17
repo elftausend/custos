@@ -4,11 +4,11 @@ use super::{Combiner, Eval};
 
 /// Resolves to either a mathematical expression as string or a computed value.
 /// This is used to create generic kernels / operations over `OpenCL`, `CUDA` and `CPU`.
-/// 
+///
 /// # Example
 /// ```
 /// use custos::{Resolve, Eval, Combiner};
-/// 
+///
 /// let val = Resolve::with_val(1.5);
 /// let out = val.mul(val).add(2.);
 ///
@@ -16,7 +16,7 @@ use super::{Combiner, Eval};
 ///  
 /// let mark = Resolve::<f32>::with_marker("x");
 /// let out = mark.mul(mark).add(2.);
-/// 
+///
 /// assert_eq!(out.to_string(), "((x * x) + 2)");
 /// ```
 #[derive(Debug, Clone, Copy)]
@@ -33,7 +33,7 @@ pub trait ToMarker<T, R> {
     /// # Example
     /// ```
     /// use custos::{Resolve, ToMarker};
-    /// 
+    ///
     /// let resolve = ToMarker::<f32, Resolve<f32>>::to_marker("x");;
     /// assert_eq!(resolve.to_string(), "x");
     /// ```
@@ -60,9 +60,9 @@ pub trait ToVal<T = Self> {
     /// # Example
     /// ```
     /// use custos::{Resolve, ToVal, Eval};
-    /// 
+    ///
     /// let resolve: Resolve<f32> = 1.5.to_val();
-    /// 
+    ///
     /// assert_eq!(<Resolve<f32> as Eval<f32>>::eval(resolve), 1.5);
     /// ```
     fn to_val(self) -> Resolve<T>;
@@ -90,10 +90,10 @@ impl<T> Resolve<T> {
     /// # Example
     /// ```
     /// use custos::{Resolve, Eval, Combiner};
-    /// 
+    ///
     /// let val = Resolve::with_val(1.5);
     /// let out = val.mul(val).add(2.);
-    /// 
+    ///
     /// assert_eq!(out.eval(), 4.25);
     /// ```
     #[inline]
@@ -105,10 +105,10 @@ impl<T> Resolve<T> {
     /// # Example
     /// ```
     /// use custos::{Resolve, Eval, Combiner};
-    /// 
+    ///
     /// let mark = Resolve::<f32>::with_marker("x");
     /// let out = mark.add(mark).mul(2.);
-    /// 
+    ///
     /// assert_eq!(out.to_string(), "((x + x) * 2)");
     /// ```
     #[inline]

@@ -13,27 +13,31 @@ use super::{
 use crate::{
     cache::{Cache, CacheReturn},
     flag::AllocFlag,
-    Alloc, Buffer, CloneBuf, Device, GlobalCount, Graph, GraphReturn, RawConv, Shape,
+    Addons, AddonsReturn, Alloc, Buffer, CloneBuf, Device, GlobalCount, Graph, GraphReturn,
+    RawConv, Shape,
 };
 
 /// Used to perform calculations with a CUDA capable device.
 /// To make new calculations invocable, a trait providing new operations should be implemented for [CudaDevice].
 #[derive(Debug)]
 pub struct CUDA {
-    pub cache: RefCell<Cache<CUDA>>,
     pub kernel_cache: RefCell<KernelCacheCU>,
     pub modules: RefCell<Vec<Module>>,
-    pub graph: RefCell<Graph<GlobalCount>>,
     device: CudaIntDevice,
     ctx: Context,
     stream: Stream,
     handle: CublasHandle,
+    pub addons: Addons<CUDA>,
 }
 
 /// Short form for `CUDA`
 pub type CU = CUDA;
 
 impl CUDA {
+    /// Returns an [CUDA] device at the specified device index.
+    /// # Errors
+    /// - No device was found at the given device index
+    /// - some other CUDA related errors
     pub fn new(idx: usize) -> crate::Result<CUDA> {
         unsafe { cuInit(0) }.to_result()?;
         let device = device(idx as i32)?;
@@ -43,10 +47,9 @@ impl CUDA {
         unsafe { cublasSetStream_v2(handle.0, stream.0) }.to_result()?;
 
         Ok(CUDA {
-            cache: Default::default(),
             kernel_cache: Default::default(),
             modules: Default::default(),
-            graph: Default::default(),
+            addons: Default::default(),
             device,
             ctx,
             stream,
@@ -112,6 +115,13 @@ impl RawConv for CUDA {
     }
 }
 
+impl Default for CUDA {
+    #[inline]
+    fn default() -> Self {
+        CUDA::new(chosen_cu_idx()).expect("A valid CUDA device index should be set via the environment variable `CUSTOS_CL_DEVICE_IDX`")
+    }
+}
+
 impl Drop for CUDA {
     fn drop(&mut self) {
         unsafe {
@@ -145,21 +155,15 @@ impl<T> Alloc<'_, T> for CUDA {
     }
 }
 
-impl GraphReturn for CUDA {
-    fn graph(&self) -> std::cell::Ref<Graph<GlobalCount>> {
-        self.graph.borrow()
-    }
+impl AddonsReturn for CUDA {
+    type CachePtrType = RawCUBuf;
 
-    fn graph_mut(&self) -> std::cell::RefMut<Graph<GlobalCount>> {
-        self.graph.borrow_mut()
-    }
-}
-
-impl CacheReturn for CUDA {
-    type CT = RawCUBuf;
     #[inline]
-    fn cache(&self) -> std::cell::RefMut<Cache<CUDA>> {
-        self.cache.borrow_mut()
+    fn addons(&self) -> &Addons<Self>
+    where
+        Self: Device,
+    {
+        &self.addons
     }
 }
 

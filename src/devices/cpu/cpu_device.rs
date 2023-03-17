@@ -1,13 +1,9 @@
 use crate::{
-    cache::RawConv,
-    devices::cache::{Cache, CacheReturn},
-    flag::AllocFlag,
-    shape::Shape,
-    Alloc, Buffer, CloneBuf, Device, DevicelessAble, GlobalCount, Graph, GraphReturn, MainMemory,
+    cache::RawConv, devices::cache::Cache, flag::AllocFlag, shape::Shape, Addons, AddonsReturn,
+    Alloc, Buffer, CloneBuf, Device, DevicelessAble, MainMemory,
 };
 
 use core::{
-    cell::{RefCell, RefMut, Ref},
     fmt::Debug,
     mem::{align_of, size_of},
 };
@@ -30,10 +26,7 @@ use super::{CPUPtr, RawCpuBuf};
 /// assert_eq!(out, vec![1, 2, 3]);
 /// ```
 pub struct CPU {
-    pub cache: RefCell<Cache<CPU>>,
-    pub graph: RefCell<Graph<GlobalCount>>,
-    #[cfg(feature = "autograd")]
-    pub tape: RefCell<crate::Tape<CPU>>,
+    pub addons: Addons<CPU>,
 }
 
 impl CPU {
@@ -41,10 +34,7 @@ impl CPU {
     #[must_use]
     pub fn new() -> CPU {
         CPU {
-            cache: Default::default(),
-            graph: Default::default(),
-            #[cfg(feature = "autograd")]
-            tape: Default::default(),
+            addons: Addons::default(),
         }
     }
 }
@@ -55,6 +45,15 @@ impl Device for CPU {
 
     fn new() -> crate::Result<Self> {
         Ok(Self::new())
+    }
+}
+
+impl AddonsReturn for CPU {
+    type CachePtrType = RawCpuBuf;
+
+    #[inline]
+    fn addons(&self) -> &Addons<Self> {
+        &self.addons
     }
 }
 
@@ -117,39 +116,6 @@ impl<T, S: Shape> Alloc<'_, T, S> for CPU {
             len,
             flag: AllocFlag::None,
         }
-    }
-}
-
-#[cfg(feature = "autograd")]
-impl crate::TapeReturn for CPU {
-    #[inline]
-    fn tape(&self) -> core::cell::Ref<crate::Tape<Self>> {
-        self.tape.borrow()
-    }
-
-    #[inline]
-    fn tape_mut(&self) -> RefMut<crate::Tape<Self>> {
-        self.tape.borrow_mut()
-    }
-}
-
-impl CacheReturn for CPU {
-    type CT = RawCpuBuf;
-    #[inline]
-    fn cache(&self) -> RefMut<Cache<CPU>> {
-        self.cache.borrow_mut()
-    }
-}
-
-impl GraphReturn for CPU {
-    #[inline]
-    fn graph(&self) -> Ref<Graph<GlobalCount>> {
-        self.graph.borrow()
-    }
-
-    #[inline]
-    fn graph_mut(&self) -> RefMut<Graph<GlobalCount>> {
-        self.graph.borrow_mut()
     }
 }
 

@@ -1,8 +1,9 @@
 use crate::{
-    Alloc, Buffer, ClearBuf, Device, DeviceError, Error, Graph, GraphReturn, Read, GlobalCount, Shape, PtrType, flag::AllocFlag,
+    flag::AllocFlag, Alloc, Buffer, ClearBuf, Device, DeviceError, Error, GlobalCount, Graph,
+    GraphReturn, PtrType, Read, Shape,
 };
 use core::{
-    cell::{RefCell, RefMut, Ref},
+    cell::{Ref, RefCell, RefMut},
     marker::PhantomData,
 };
 use cuw::AsDataType;
@@ -20,8 +21,7 @@ impl<'a> Network<'a> {
         let mut cuw_client = cuw::Client::connect(addr)?;
 
         // should receive error if this is missing
-        cuw_client
-            .create_device(device, 0)?;
+        cuw_client.create_device(device, 0)?;
 
         Ok(Network {
             cuw_client: RefCell::new(cuw_client),

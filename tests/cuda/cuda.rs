@@ -1,3 +1,5 @@
+use custos::cuda::api::CUdeviceptr;
+
 #[test]
 fn test_cuda_alloc() {
     use custos::cuda::api::{create_context, cuInit, cumalloc, device};
@@ -115,12 +117,9 @@ const N: usize = 100;
 fn test_ffi_cuda() {
     use std::{ffi::c_void, mem::size_of};
 
-    use custos::{
-        cuda::api::{
-            cuCtxCreate_v2, cuDeviceGet, cuInit, cuMemAlloc_v2, cuMemcpyDtoH_v2, cuMemcpyHtoD_v2,
-            CUctx_st,
-        },
-        CUdeviceptr,
+    use custos::cuda::api::{
+        cuCtxCreate_v2, cuDeviceGet, cuInit, cuMemAlloc_v2, cuMemcpyDtoH_v2, cuMemcpyHtoD_v2,
+        CUctx_st,
     };
 
     unsafe {

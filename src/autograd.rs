@@ -20,10 +20,7 @@ pub struct Gradients<D> {
     _pd: PhantomData<D>,
 }
 
-impl<D: RawConv> Debug for Gradients<D>
-where
-    D::CT: Debug,
-{
+impl<D> Debug for Gradients<D> {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         f.debug_struct("Gradients")
             .field("cache", &self.cache)
@@ -187,10 +184,7 @@ pub trait TapeReturn: Device {
     fn tape_mut(&self) -> RefMut<Tape<Self>>;
 }
 
-impl<D: RawConv> Debug for Tape<D>
-where
-    D::CT: Debug,
-{
+impl<D: Device> Debug for Tape<D> {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         f.debug_struct("Tape").field("grads", &self.grads).finish()
     }

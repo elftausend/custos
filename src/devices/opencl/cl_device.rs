@@ -7,10 +7,10 @@ use min_cl::api::{
 use super::{chosen_cl_idx, enqueue_kernel, AsClCvoidPtr, CLPtr, KernelCacheCL, RawCL};
 use crate::flag::AllocFlag;
 use crate::{
-    cache::{Cache, CacheReturn, RawConv},
-    Alloc, Buffer, CloneBuf, Device, Error, Graph, GraphReturn, CPU,
+    cache::{Cache, RawConv},
+    Alloc, Buffer, CloneBuf, Device, Error, CPU,
 };
-use crate::{GlobalCount, Shape};
+use crate::{Addons, AddonsReturn, Shape};
 
 use std::{cell::RefCell, fmt::Debug};
 
@@ -35,32 +35,26 @@ use min_cl::api::unified_ptr;
 /// ```
 pub struct OpenCL {
     pub(crate) kernel_cache: RefCell<KernelCacheCL>,
-    pub cache: RefCell<Cache<OpenCL>>,
     pub inner: CLDevice,
-    pub graph: RefCell<Graph<GlobalCount>>,
     pub cpu: CPU,
-    #[cfg(feature = "autograd")]
-    pub tape: RefCell<crate::Tape<OpenCL>>,
+    pub addons: Addons<OpenCL>,
 }
 
 /// Short form for `OpenCL`
 pub type CL = OpenCL;
 
 impl OpenCL {
-    /// Returns an [OpenCL] at the specified device index.
+    /// Returns an [OpenCL] device at the specified device index.
     /// # Errors
-    /// - No device is found at the given device index
+    /// - No device was found at the given device index
     /// - some other OpenCL related errors
     pub fn new(device_idx: usize) -> Result<OpenCL, Error> {
         let inner = CLDevice::new(device_idx)?;
         Ok(OpenCL {
             inner,
             kernel_cache: Default::default(),
-            cache: Default::default(),
-            graph: Default::default(),
             cpu: Default::default(),
-            #[cfg(feature = "autograd")]
-            tape: Default::default(),
+            addons: Default::default(),
         })
     }
 
@@ -68,9 +62,8 @@ impl OpenCL {
     /// This cleans up any accumulated allocations.
     pub fn reset(&'static mut self) {
         self.kernel_cache = Default::default();
-        self.cache = Default::default();
-        self.graph = Default::default();
         self.cpu = Default::default();
+        self.addons = Default::default();
     }
 
     /// Context of the OpenCL device.
@@ -128,14 +121,14 @@ impl OpenCL {
 
     /// Executes a cached OpenCL kernel.
     /// # Example
-    /// 
+    ///
     /// ```
     /// use custos::{OpenCL, Buffer};
-    /// 
+    ///
     /// fn main() -> custos::Result<()> {
     ///     let device = OpenCL::new(0)?;
     ///     let mut buf = Buffer::<f32, _>::new(&device, 10);
-    /// 
+    ///
     ///     device.launch_kernel("
     ///      __kernel void add(__global float* buf, float num) {
     ///         int idx = get_global_id(0);
@@ -144,7 +137,7 @@ impl OpenCL {
     ///     ", [buf.len(), 0, 0], None, &[&mut buf, &4f32])?;
     ///     
     ///     assert_eq!(buf.read_to_vec(), [4.0; 10]);    
-    /// 
+    ///
     ///     Ok(())
     /// }
     /// ```
@@ -161,17 +154,9 @@ impl OpenCL {
 }
 
 impl Default for OpenCL {
+    #[inline]
     fn default() -> Self {
-        let inner = CLDevice::new(chosen_cl_idx()).expect("Could not get CLDevice.");
-        Self {
-            inner,
-            kernel_cache: Default::default(),
-            cache: Default::default(),
-            graph: Default::default(),
-            cpu: Default::default(),
-            #[cfg(feature = "autograd")]
-            tape: Default::default(),
-        }
+        OpenCL::new(chosen_cl_idx()).expect("A valid OpenCL device index should be set via the environment variable 'CUSTOS_CL_DEVICE_IDX'.")
     }
 }
 
@@ -184,16 +169,12 @@ impl Device for OpenCL {
     }
 }
 
-#[cfg(feature = "autograd")]
-impl crate::TapeReturn for OpenCL {
-    #[inline]
-    fn tape(&self) -> core::cell::Ref<crate::Tape<Self>> {
-        self.tape.borrow()
-    }
+impl AddonsReturn for OpenCL {
+    type CachePtrType = RawCL;
 
     #[inline]
-    fn tape_mut(&self) -> core::cell::RefMut<crate::Tape<Self>> {
-        self.tape.borrow_mut()
+    fn addons(&self) -> &Addons<Self> {
+        &self.addons
     }
 }
 
@@ -292,28 +273,6 @@ impl<'a, T> CloneBuf<'a, T> for OpenCL {
     }
 }
 
-impl CacheReturn for OpenCL {
-    type CT = RawCL;
-    #[inline]
-    fn cache(&self) -> std::cell::RefMut<Cache<OpenCL>>
-    where
-        OpenCL: RawConv,
-    {
-        self.cache.borrow_mut()
-    }
-}
-
-impl GraphReturn for OpenCL {
-    #[inline]
-    fn graph(&self) -> std::cell::Ref<Graph<GlobalCount>> {
-        self.graph.borrow()
-    }
-    #[inline]
-    fn graph_mut(&self) -> std::cell::RefMut<Graph<GlobalCount>> {
-        self.graph.borrow_mut()
-    }
-}
-
 #[cfg(unified_cl)]
 impl crate::MainMemory for OpenCL {
     #[inline]
@@ -335,13 +294,10 @@ mod tests {
     fn test_multiplie_queues() -> crate::Result<()> {
         let device = CLDevice::new(0)?;
         let cl = OpenCL {
-            kernel_cache: Default::default(),
-            cache: Default::default(),
             inner: device,
-            graph: Default::default(),
+            kernel_cache: Default::default(),
             cpu: Default::default(),
-            #[cfg(feature = "autograd")]
-            tape: Default::default(),
+            addons: Default::default(),
         };
 
         let buf = Buffer::from((&cl, &[1, 2, 3, 4, 5, 6, 7]));
@@ -350,13 +306,10 @@ mod tests {
         let device = CLDevice::new(0)?;
 
         let cl1 = OpenCL {
-            kernel_cache: Default::default(),
-            cache: Default::default(),
             inner: device,
-            graph: Default::default(),
+            kernel_cache: Default::default(),
             cpu: Default::default(),
-            #[cfg(feature = "autograd")]
-            tape: Default::default(),
+            addons: Default::default(),
         };
 
         let buf = Buffer::from((&cl1, &[2, 2, 4, 4, 2, 1, 3]));

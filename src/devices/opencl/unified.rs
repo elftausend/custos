@@ -23,7 +23,7 @@ pub unsafe fn to_cached_unified<T, S: Shape>(
         Some(&no_drop),
     )?;
 
-    let old_ptr = device.cache.borrow_mut().nodes.insert(
+    let old_ptr = device.addons.cache.borrow_mut().nodes.insert(
         Ident::new(no_drop.len()),
         Rc::new(RawCL {
             ptr: cl_ptr,
@@ -77,7 +77,13 @@ pub unsafe fn construct_buffer<'a, T, S: Shape>(
     }
 
     // if buffer was already converted, return the cache entry.
-    if let Some(rawcl) = device.cache.borrow().nodes.get(&Ident::new(no_drop.len())) {
+    if let Some(rawcl) = device
+        .addons
+        .cache
+        .borrow()
+        .nodes
+        .get(&Ident::new(no_drop.len()))
+    {
         return Ok(Buffer {
             ptr: CLPtr {
                 ptr: rawcl.ptr,
@@ -166,9 +172,9 @@ mod tests {
     #[cfg(not(feature = "realloc"))]
     #[test]
     fn test_cpu_to_unified_leak() -> crate::Result<()> {
-        use std::{hash::BuildHasherDefault, rc::Rc, collections::HashMap};
+        use std::{collections::HashMap, hash::BuildHasherDefault, rc::Rc};
 
-        use crate::{Device, Ident, IdentHasher, set_count, range};
+        use crate::{range, set_count, Device, Ident, IdentHasher};
 
         let cl_dev = OpenCL::new(0)?;
 
@@ -182,7 +188,7 @@ mod tests {
 
                 let cl_cpu_buf = unsafe { crate::opencl::construct_buffer(&cl_dev, buf, ())? };
                 let mut hm = HashMap::<Ident, _, BuildHasherDefault<IdentHasher>>::default();
-                std::mem::swap(&mut cpu.cache.borrow_mut().nodes, &mut hm);
+                std::mem::swap(&mut cpu.addons.cache.borrow_mut().nodes, &mut hm);
                 for mut value in hm {
                     let ptr = Rc::get_mut(&mut value.1).unwrap();
                     ptr.ptr = std::ptr::null_mut();

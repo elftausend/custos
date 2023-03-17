@@ -1,3 +1,5 @@
+//! The CUDA module provides the CUDA backend for custos.
+
 pub mod api;
 mod cuda_device;
 mod kernel_cache;

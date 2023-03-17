@@ -6,7 +6,39 @@ use super::{
     fn_cache,
 };
 
+/// Converts `Self` to a (cuda) *mut c_void.
+/// This enables taking `Buffer` and a number `T` as an argument to an CUDA kernel.
+/// # Example
+/// ```
+/// use custos::{CUDA, Buffer, cuda::AsCudaCvoidPtr};
+///
+/// fn args(args: &[&dyn AsCudaCvoidPtr]) {
+///     // ...
+/// }
+///
+/// fn main() -> custos::Result<()> {
+///     let device = CUDA::new(0)?;
+///
+///     let buf = Buffer::<f32, _>::new(&device, 10);
+///     let num = 4;
+///     args(&[&num, &buf]);
+///     Ok(())
+/// }
+/// ```
 pub trait AsCudaCvoidPtr {
+    /// Converts `Self` to a (cuda) *mut c_void.
+    /// # Example
+    /// ```
+    /// use custos::{CUDA, Buffer, cuda::AsCudaCvoidPtr};
+    ///
+    /// fn main() -> custos::Result<()> {
+    ///     let device = CUDA::new(0)?;
+    ///     let buf = Buffer::<f32, _>::new(&device, 10);
+    ///     
+    ///     let _ptr = buf.as_cvoid_ptr();
+    ///     Ok(())
+    /// }
+    ///
     fn as_cvoid_ptr(&self) -> *mut c_void;
 }
 

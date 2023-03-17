@@ -5,8 +5,7 @@ mod stack_device;
 
 pub use stack_device::*;
 
-use crate::{Buffer, ClearBuf, Shape, MainMemory};
-
+use crate::{Buffer, ClearBuf, MainMemory, Shape};
 
 // #[impl_stack]
 impl<T: Default, D: MainMemory, S: Shape> ClearBuf<T, S, D> for Stack {
@@ -16,7 +15,6 @@ impl<T: Default, D: MainMemory, S: Shape> ClearBuf<T, S, D> for Stack {
         }
     }
 }
-
 
 #[cfg(feature = "cpu")]
 #[cfg(test)]

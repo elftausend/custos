@@ -42,11 +42,9 @@ impl KernelCacheCL {
     /// fn main() -> custos::Result<()> {
     ///     let device = OpenCL::new(0)?;
     ///     
-    ///     let mut kernel_cache = KernelCacheCL {
-    ///         kernel_cache: HashMap::new(),
-    ///     };
+    ///     let mut kernel_cache = KernelCacheCL::default();
     ///     
-    ///     let mut kernel_fn = || kernel_cache.kernel_cache(&device, "
+    ///     let mut kernel_fn = || kernel_cache.kernel(&device, "
     ///         __kernel void test(__global float* test) {}
     ///     ").unwrap().0;
     ///     
@@ -57,7 +55,7 @@ impl KernelCacheCL {
     ///     Ok(())
     /// }
     /// ```
-    pub fn kernel_cache(&mut self, device: &OpenCL, src: &str) -> Result<&Kernel, Error> {
+    pub fn kernel(&mut self, device: &OpenCL, src: &str) -> Result<&Kernel, Error> {
         if self.kernel_cache.contains_key(src) {
             return Ok(self.kernel_cache.get(src).unwrap());
         }
@@ -97,7 +95,7 @@ mod tests {
         };*/
 
         let kernel = kernel_cache
-            .kernel_cache(
+            .kernel(
                 &device,
                 "
                 __kernel void foo(__global float* test) {}
@@ -106,7 +104,7 @@ mod tests {
             .0;
 
         let same_kernel = kernel_cache
-            .kernel_cache(
+            .kernel(
                 &device,
                 "
                 __kernel void foo(__global float* test) {}
@@ -117,7 +115,7 @@ mod tests {
         assert_eq!(kernel, same_kernel);
 
         let another_kernel = kernel_cache
-            .kernel_cache(
+            .kernel(
                 &device,
                 "
                 __kernel void bar(__global float* test, __global float* out) {}

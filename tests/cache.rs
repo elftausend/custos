@@ -32,7 +32,7 @@ fn test_caching_cpu() {
             panic!("Should be the same pointer!");
         }
         old_ptr = out.host_ptr_mut();
-        let len = device.cache.borrow().nodes.len();
+        let len = device.addons.cache.borrow().nodes.len();
         //let len = CPU_CACHE.with(|cache| cache.borrow().nodes.len());
         assert_eq!(len, 3);
     }

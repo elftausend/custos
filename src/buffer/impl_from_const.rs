@@ -7,12 +7,12 @@ pub trait WithShape<D, C> {
     #[cfg_attr(feature = "cpu", doc = "```")]
     #[cfg_attr(not(feature = "cpu"), doc = "```ignore")]
     /// use custos::{CPU, Buffer, WithShape};
-    /// 
+    ///
     /// let device = CPU::new();
     /// let buf = Buffer::with(&device, [1.0, 2.0, 3.0]);
-    /// 
+    ///
     /// assert_eq!(&*buf, &[1.0, 2.0, 3.0]);
-    /// 
+    ///
     /// ```
     fn with(device: D, array: C) -> Self;
 }
@@ -89,7 +89,7 @@ mod tests {
     #[cfg(feature = "cpu")]
     #[test]
     fn test_with_const_dim2_cpu() {
-        use crate::{CPU, WithShape, Buffer};
+        use crate::{Buffer, WithShape, CPU};
 
         let device = CPU::new();
 
@@ -101,7 +101,7 @@ mod tests {
     #[cfg(feature = "stack")]
     #[test]
     fn test_with_const_dim2_stack() {
-        use crate::{WithShape, Buffer, Stack};
+        use crate::{Buffer, Stack, WithShape};
 
         let device = Stack;
 

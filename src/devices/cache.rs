@@ -1,6 +1,6 @@
 //! Contains the [`Cache`]ing logic.
 
-use core::{cell::RefMut, hash::BuildHasherDefault, ops::BitXor};
+use core::{cell::RefMut, fmt::Debug, hash::BuildHasherDefault, ops::BitXor};
 use std::collections::HashMap;
 
 use std::rc::Rc;
@@ -13,9 +13,13 @@ use crate::{
 /// This trait makes a device's [`Cache`] accessible and is implemented for all compute devices.
 pub trait CacheReturn: GraphReturn<GlobalCount> {
     /// The type of the raw pointer.
-    type CT;
+    type CT: Debug;
+    fn cache(&self) -> core::cell::Ref<crate::Cache<Self>>
+    where
+        Self: crate::RawConv;
+
     /// Returns a device specific [`Cache`].
-    fn cache(&self) -> RefMut<Cache<Self>>
+    fn cache_mut(&self) -> RefMut<Cache<Self>>
     where
         Self: RawConv;
 }
@@ -84,7 +88,7 @@ where
         for<'b> D: Alloc<'b, T, S>,
     {
         device
-            .cache()
+            .cache_mut()
             .get(device, Ident::new(len), add_node, crate::bump_count)
         //Cache::get(device, Ident::new(len), bump_count)
     }
@@ -93,8 +97,8 @@ where
     #[inline]
     fn retrieve<T, S: Shape>(
         device: &D,
-        len: usize, 
-        _add_node: impl crate::AddGraph
+        len: usize,
+        _add_node: impl crate::AddGraph,
     ) -> Buffer<T, D, S>
     where
         for<'b> D: Alloc<'b, T, S>,
@@ -104,12 +108,7 @@ where
 
     #[inline]
     unsafe fn get_existing_buf<T, S: Shape>(device: &D, ident: Ident) -> Option<Buffer<T, D, S>> {
-        let ptr = D::destruct::<T, S>(
-            device
-                .cache()
-                .nodes
-                .get(&ident)?,
-        );
+        let ptr = D::destruct::<T, S>(device.cache().nodes.get(&ident)?);
 
         Some(Buffer {
             ptr,
@@ -120,14 +119,14 @@ where
 
     #[inline]
     fn remove(device: &D, ident: Ident) {
-        device.cache().nodes.remove(&ident);
+        device.cache_mut().nodes.remove(&ident);
     }
 
     fn add_to_cache<T, S: Shape>(device: &D, ptr: &<D as Device>::Ptr<T, S>) -> Ident {
         device.graph_mut().add_leaf(ptr.size());
         let ident = Ident::new_bumped(ptr.size());
         let raw_ptr = std::rc::Rc::new(D::construct(ptr, ptr.size(), AllocFlag::Wrapper));
-        device.cache().nodes.insert(ident, raw_ptr);
+        device.cache_mut().nodes.insert(ident, raw_ptr);
         ident
     }
 }
@@ -277,7 +276,7 @@ mod tests {
         let device = crate::CPU::new();
         let cache: Buffer =
             device
-                .cache()
+                .cache_mut()
                 .add_node(&device, Ident { idx: 0, len: 7 }, (), bump_count);
 
         let ptr = device
@@ -300,14 +299,14 @@ mod tests {
         unsafe { set_count(0) };
         let device = crate::CPU::new();
 
-        let cache_entry: Buffer = device.cache().get(&device, Ident::new(10), (), bump_count);
-        let new_cache_entry: Buffer = device.cache().get(&device, Ident::new(10), (), bump_count);
+        let cache_entry: Buffer = device.cache_mut().get(&device, Ident::new(10), (), bump_count);
+        let new_cache_entry: Buffer = device.cache_mut().get(&device, Ident::new(10), (), bump_count);
 
         assert_ne!(cache_entry.ptrs(), new_cache_entry.ptrs());
 
         unsafe { set_count(0) };
 
-        let first_entry: Buffer = device.cache().get(&device, Ident::new(10), (), bump_count);
+        let first_entry: Buffer = device.cache_mut().get(&device, Ident::new(10), (), bump_count);
         assert_eq!(cache_entry.ptrs(), first_entry.ptrs());
     }
 }

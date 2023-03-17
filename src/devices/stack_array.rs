@@ -57,7 +57,6 @@ impl<S: Shape, T> StackArray<S, T> {
 }
 
 impl<S: Shape, T> StackArray<S, T> {
-
     /// Returns a pointer to the possibly multi-dimensional array.
     #[inline]
     pub const fn as_ptr(&self) -> *const T {

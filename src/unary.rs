@@ -1,4 +1,4 @@
-use crate::{Shape, Buffer, Eval, Device, Resolve, Alloc, MayTapeReturn};
+use crate::{Alloc, Buffer, Device, Eval, MayTapeReturn, Resolve, Shape};
 
 /// Applies a function to a buffer and returns a new buffer.
 pub trait ApplyFunction<T, S: Shape = (), D: Device = Self>: Device {
@@ -7,10 +7,10 @@ pub trait ApplyFunction<T, S: Shape = (), D: Device = Self>: Device {
     #[cfg_attr(all(feature = "cpu", feature = "macro"), doc = "```")]
     #[cfg_attr(not(all(feature = "cpu", feature = "macro")), doc = "```ignore")]
     /// use custos::{CPU, Buffer, ApplyFunction, Combiner};
-    /// 
+    ///
     /// let device = CPU::new();
     /// let a = Buffer::from((&device, [1., 2., 3., 3., 2., 1.,]));
-    /// 
+    ///
     /// let out = device.apply_fn(&a, |x| x.mul(2.));
     /// assert_eq!(&*out, &[2., 4., 6., 6., 4., 2.,]);
     /// ```
@@ -26,18 +26,18 @@ pub trait UnaryGrad<T, S: Shape = (), D: Device = Self>: Device {
     #[cfg_attr(all(feature = "cpu", feature = "macro"), doc = "```")]
     #[cfg_attr(not(all(feature = "cpu", feature = "macro")), doc = "```ignore")]
     /// use custos::{CPU, Buffer, UnaryGrad, Combiner};
-    /// 
+    ///
     /// let device = CPU::new();
-    /// 
+    ///
     /// let a = Buffer::from((&device, [1., 2., 3., 3., 2., 1.,]));
     /// let out_grad = Buffer::from((&device, [1.; 6]));
-    /// 
+    ///
     /// let mut lhs_grad = Buffer::from((&device, [0.; 6]));
-    /// 
+    ///
     /// device.add_unary_grad(&a, &mut lhs_grad, &out_grad, |x| 2.);
-    /// 
+    ///
     /// assert_eq!(&*lhs_grad, &[2.; 6]);
-    /// 
+    ///
     /// ```
     fn add_unary_grad<F>(
         &self,
@@ -58,14 +58,14 @@ pub trait UnaryElementWiseMayGrad<T, D: Device, S: Shape>: Device {
     #[cfg_attr(all(feature = "autograd", feature = "cpu"), doc = "```")]
     #[cfg_attr(not(all(feature = "autograd", feature = "cpu")), doc = "```ignore")]
     /// use custos::{CPU, Buffer, UnaryElementWiseMayGrad, Combiner};
-    /// 
+    ///
     /// let device = CPU::new();
-    /// 
+    ///
     /// let buf = Buffer::from((&device, [1., 2., 3., 3., 2., 1.,]));
     /// let out = device.unary_ew(&buf, |x| x.mul(2.), |x| 2.);
-    /// 
+    ///
     /// assert_eq!(&*out, &[2., 4., 6., 6., 4., 2.,]);
-    /// 
+    ///
     /// out.backward();
     /// assert_eq!(&**buf.grad(), &[2.; 6]);
     /// ```

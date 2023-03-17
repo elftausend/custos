@@ -26,7 +26,7 @@ pub trait AsClCvoidPtr {
     /// # Example
     /// ```
     /// use custos::{OpenCL, Buffer, opencl::AsClCvoidPtr};
-    /// 
+    ///
     /// fn main() -> custos::Result<()> {
     ///     let device = OpenCL::new(0)?;
     ///     let buf = Buffer::<f32, _>::new(&device, 10);
@@ -35,14 +35,14 @@ pub trait AsClCvoidPtr {
     ///     assert_eq!(ptr, buf.cl_ptr());
     ///     Ok(())
     /// }
-    /// 
+    ///
     fn as_cvoid_ptr(&self) -> *const c_void;
 
     /// Checks if `Self` is a number.
     /// # Example
     /// ```
     /// use custos::opencl::AsClCvoidPtr;
-    /// 
+    ///
     /// assert_eq!(4f32.is_num(), true);
     /// ```
     #[inline]
@@ -54,17 +54,17 @@ pub trait AsClCvoidPtr {
     /// # Example
     /// ```
     /// use custos::{OpenCL, Buffer, opencl::AsClCvoidPtr};
-    /// 
+    ///
     /// fn main() -> custos::Result<()> {
     ///     assert_eq!(4f32.ptr_size(), 4);    
-    /// 
+    ///
     ///     let device = OpenCL::new(0)?;
-    /// 
+    ///
     ///     let buf = Buffer::<f32, _>::new(&device, 10);
     ///     assert_eq!(buf.ptr_size(), 8);
     ///     Ok(())
     /// }
-    /// 
+    ///
     /// ```
     #[inline]
     fn ptr_size(&self) -> usize {
@@ -105,14 +105,14 @@ impl<T: Number> AsClCvoidPtr for T {
 
 /// Executes a cached OpenCL kernel.
 /// # Example
-/// 
+///
 /// ```
 /// use custos::{OpenCL, Buffer, opencl::enqueue_kernel};
-/// 
+///
 /// fn main() -> custos::Result<()> {
 ///     let device = OpenCL::new(0)?;
 ///     let mut buf = Buffer::<f32, _>::new(&device, 10);
-/// 
+///
 ///     enqueue_kernel(&device, "
 ///      __kernel void add(__global float* buf, float num) {
 ///         int idx = get_global_id(0);
@@ -121,7 +121,7 @@ impl<T: Number> AsClCvoidPtr for T {
 ///     ", [buf.len(), 0, 0], None, &[&mut buf, &4f32])?;
 ///     
 ///     assert_eq!(buf.read_to_vec(), [4.0; 10]);    
-/// 
+///
 ///     Ok(())
 /// }
 /// ```
@@ -133,7 +133,7 @@ pub fn enqueue_kernel(
     args: &[&dyn AsClCvoidPtr],
 ) -> crate::Result<()> {
     let mut binding = device.kernel_cache.borrow_mut();
-    let kernel = binding.kernel_cache(device, src)?;
+    let kernel = binding.kernel(device, src)?;
 
     let wd;
     if gws[0] == 0 {

@@ -183,7 +183,7 @@ where
 
 /// If the current device supports unified memory, data is not deep-copied.
 /// This is way faster than [cpu_exec](crate::cpu_exec), as new memory is not allocated.
-/// 
+///
 /// TODO
 /// Syntax is different from [cpu_exec](crate::cpu_exec)!
 #[macro_export]
@@ -217,10 +217,9 @@ macro_rules! cl_cpu_exec_unified {
     }};
 }
 
-
 /// If the current device supports unified memory, data is not deep-copied.
 /// This is way faster than [cpu_exec_mut](crate::cpu_exec_mut), as new memory is not allocated.
-/// 
+///
 /// TODO
 /// Syntax is different from [cpu_exec](crate::cpu_exec)!
 #[macro_export]

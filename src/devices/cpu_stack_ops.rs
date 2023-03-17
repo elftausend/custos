@@ -4,7 +4,6 @@ use core::ops::AddAssign;
 //#[cfg(any(feature = "cpu", feature = "stack"))]
 use custos_macro::impl_stack;
 
-use crate::ClearBuf;
 #[cfg(any(feature = "cpu", feature = "stack"))]
 use crate::{ApplyFunction, Buffer, Device, Eval, MainMemory, Resolve, Shape, ToVal, UnaryGrad};
 

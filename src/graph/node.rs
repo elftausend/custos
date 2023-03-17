@@ -1,4 +1,3 @@
-
 /// A node in the [`Graph`](crate::Graph).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Node {
@@ -15,15 +14,15 @@ impl Node {
     /// # Example
     /// ```
     /// use custos::Node;
-    /// 
+    ///
     /// let node = Node {
     ///     idx: 0,
     ///     deps: [0, 0],
     ///     len: 10,
     /// };
-    /// 
+    ///
     /// assert!(node.is_leaf());
-    /// 
+    ///
     /// let node = Node {
     ///     idx: 1,
     ///     deps: [0, 0],

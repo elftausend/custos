@@ -159,16 +159,16 @@ impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
 
     /// Writes a slice to the `Buffer`.
     /// With a CPU buffer, the slice is just copied to the slice of the buffer.
-    /// 
+    ///
     /// # Example
     #[cfg_attr(feature = "cpu", doc = "```")]
     #[cfg_attr(not(feature = "cpu"), doc = "```ignore")]
     /// use custos::{CPU, Buffer};
-    /// 
+    ///
     /// let device = CPU::new();
     /// let mut buf = Buffer::<i32>::new(&device, 6);
     /// buf.write(&[4, 2, 3, 4, 5, 3]);
-    /// 
+    ///
     /// assert_eq!(&*buf, [4, 2, 3, 4, 5, 3]);
     /// ```
     #[inline]

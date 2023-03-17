@@ -20,13 +20,7 @@ where
         }}"
     , datatype=T::as_c_type_str());
 
-    enqueue_kernel(
-        device,
-        &src,
-        [lhs.len(), 0, 0],
-        None,
-        &[lhs, rhs, out],
-    )?;
+    enqueue_kernel(device, &src, [lhs.len(), 0, 0], None, &[lhs, rhs, out])?;
     Ok(())
 }
 

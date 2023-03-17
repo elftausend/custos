@@ -5,8 +5,8 @@ use super::{
 };
 
 use crate::{
-    flag::AllocFlag, Alloc, Cache, CacheReturn, ClearBuf, Device, DeviceError, GlobalCount, Graph,
-    GraphReturn, PtrType, RawConv, Read, Shape,
+    flag::AllocFlag, Addons, AddonsReturn, Alloc, Cache, ClearBuf, Device, DeviceError, PtrType,
+    RawConv, Read, Shape,
 };
 use wgpu::{Adapter, Backends, Queue};
 
@@ -14,9 +14,8 @@ pub struct WGPU {
     pub adapter: Adapter,
     pub device: wgpu::Device,
     pub queue: Queue,
-    pub graph: RefCell<Graph<GlobalCount>>,
     pub shader_cache: RefCell<ShaderCache>,
-    pub cache: RefCell<Cache<WGPU>>,
+    pub addons: Addons<WGPU>,
 }
 
 impl WGPU {
@@ -43,9 +42,8 @@ impl WGPU {
             adapter,
             device,
             queue,
-            graph: Default::default(),
             shader_cache: Default::default(),
-            cache: Default::default(),
+            addons: Default::default(),
         })
     }
 
@@ -55,15 +53,10 @@ impl WGPU {
     }
 }
 
-impl GraphReturn for WGPU {
+impl Default for WGPU {
     #[inline]
-    fn graph(&self) -> core::cell::Ref<Graph<GlobalCount>> {
-        self.graph.borrow()
-    }
-
-    #[inline]
-    fn graph_mut(&self) -> core::cell::RefMut<Graph<GlobalCount>> {
-        self.graph.borrow_mut()
+    fn default() -> Self {
+        Self::new(Backends::PRIMARY).unwrap()
     }
 }
 
@@ -72,7 +65,16 @@ impl Device for WGPU {
     type Cache = Cache<WGPU>;
 
     fn new() -> crate::Result<Self> {
-        unimplemented!()
+        Ok(WGPU::default())
+    }
+}
+
+impl AddonsReturn for WGPU {
+    type CachePtrType = RawWGPUBuffer;
+
+    #[inline]
+    fn addons(&self) -> &Addons<Self> {
+        &self.addons
     }
 }
 
@@ -133,6 +135,7 @@ impl<T> Drop for WGPUBufPtr<T> {
     }
 }
 
+#[derive(Debug)]
 pub struct RawWGPUBuffer {
     pub ptr: *const u8,
     pub buffer: *mut wgpu::Buffer,
@@ -147,18 +150,6 @@ impl Drop for RawWGPUBuffer {
         }
 
         unsafe { drop(Box::from_raw(self.buffer)) }
-    }
-}
-
-impl CacheReturn for WGPU {
-    type CT = RawWGPUBuffer;
-
-    #[inline]
-    fn cache(&self) -> core::cell::RefMut<crate::Cache<Self>>
-    where
-        Self: RawConv,
-    {
-        self.cache.borrow_mut()
     }
 }
 

@@ -158,7 +158,7 @@ impl<IdxFrom: NodeIdx> Graph<IdxFrom> {
     /// # Example
     /// ```
     /// use custos::{Graph, NodeCount};
-    /// 
+    ///
     /// let mut graph = Graph::<NodeCount>::new();
     /// let a = graph.add_leaf(10);
     /// let b = graph.add_leaf(10);

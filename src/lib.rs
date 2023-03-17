@@ -122,7 +122,6 @@ This is because the logic for detecting if a forward buffer is used during gradi
 compile_error!("The `autograd` and `realloc` feature are incompatible. 
 The automatic differentiation system requires caching of buffers, which is deactivated when using the `realloc` feature.");
 
-
 #[cfg(all(feature = "realloc", feature = "opt-cache"))]
 compile_error!("A typical 'cache' does not exist when the `realloc` feature is enabled.");
 
@@ -160,20 +159,20 @@ pub trait Device: Sized {
     fn new() -> crate::Result<Self>;
 
     /// Creates a new [`Buffer`] using `A`.
-    /// 
+    ///
     /// # Example
     #[cfg_attr(feature = "cpu", doc = "```")]
     #[cfg_attr(not(feature = "cpu"), doc = "```ignore")]
     /// use custos::{CPU, Device};
-    /// 
+    ///
     /// let device = CPU::new();
     /// let buf = device.buffer([5, 4, 3]);
-    /// 
+    ///
     /// assert_eq!(buf.read(), [5, 4, 3]);
     /// ```
     fn buffer<'a, T, S: Shape, A>(&'a self, arr: A) -> Buffer<'a, T, Self, S>
     where
-        Buffer<'a, T, Self, S>: From<(&'a Self, A)> 
+        Buffer<'a, T, Self, S>: From<(&'a Self, A)>,
     {
         Buffer::from((self, arr))
     }
@@ -190,14 +189,14 @@ pub trait Device: Sized {
     /// let device = CPU::new();
     ///
     /// let buf = device.retrieve::<f32, ()>(10, ());
-    /// 
+    ///
     /// // unsafe, because the next .retrieve call will then return the same buffer
     /// unsafe { set_count(0) }
     ///
     /// let buf_2 = device.retrieve::<f32, ()>(10, ());
-    /// 
+    ///
     /// assert_eq!(buf.ptr, buf_2.ptr);
-    /// 
+    ///
     /// ```
     #[inline]
     fn retrieve<T, S: Shape>(&self, len: usize, add_node: impl AddGraph) -> Buffer<T, Self, S>
@@ -209,7 +208,7 @@ pub trait Device: Sized {
 
     /// May return an existing buffer using the provided [`Ident`].
     /// This function panics if no buffer with the provided `Ident` exists.
-    /// 
+    ///
     /// # Safety
     /// This function is unsafe because it is possible to return multiple [`Buffer`] with `Ident` that share the same memory.
     /// If this function is called twice with the same `Ident`, the returned `Buffer` will be the same.
@@ -240,7 +239,7 @@ pub trait DevicelessAble<'a, T, S: Shape = ()>: Alloc<'a, T, S> {}
 
 /// Devices that can access the main memory / RAM of the host.
 pub trait MainMemory: Device {
-    /// Returns the respective immutable host memory pointer 
+    /// Returns the respective immutable host memory pointer
     fn as_ptr<T, S: Shape>(ptr: &Self::Ptr<T, S>) -> *const T;
     /// Returns the respective mutable host memory pointer
     fn as_ptr_mut<T, S: Shape>(ptr: &mut Self::Ptr<T, S>) -> *mut T;
@@ -392,7 +391,7 @@ mod tests {
     #[cfg(feature = "cpu")]
     #[test]
     fn test_buffer_from_device() {
-        use crate::{CPU, Device};
+        use crate::{Device, CPU};
 
         let device = CPU::new();
         let buf = device.buffer([1, 2, 3]);

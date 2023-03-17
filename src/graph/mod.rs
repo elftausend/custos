@@ -1,7 +1,7 @@
 #[cfg(not(feature = "no-std"))]
 use crate::Ident;
 
-use core::cell::{RefMut, Ref};
+use core::cell::{Ref, RefMut};
 
 #[cfg(feature = "opt-cache")]
 use crate::{CacheReturn, DeviceError};
