@@ -15,6 +15,10 @@ pub struct RawCUBuf {
 
 impl Drop for RawCUBuf {
     fn drop(&mut self) {
+        if self.flag != AllocFlag::Cache {
+            return;
+        }
+
         unsafe { cufree(self.ptr).unwrap() }
     }
 }

@@ -43,10 +43,10 @@ impl CUDA {
         unsafe { cublasSetStream_v2(handle.0, stream.0) }.to_result()?;
 
         Ok(CUDA {
-            cache: RefCell::new(Cache::default()),
-            kernel_cache: RefCell::new(KernelCacheCU::default()),
-            modules: RefCell::new(vec![]),
-            graph: RefCell::new(Graph::new()),
+            cache: Default::default(),
+            kernel_cache: Default::default(),
+            modules: Default::default(),
+            graph: Default::default(),
             device,
             ctx,
             stream,
@@ -92,6 +92,7 @@ impl Device for CUDA {
 }
 
 impl RawConv for CUDA {
+    #[inline]
     fn construct<T, S: Shape>(ptr: &Self::Ptr<T, S>, len: usize, flag: AllocFlag) -> Self::CT {
         RawCUBuf {
             ptr: ptr.ptr,
@@ -100,6 +101,7 @@ impl RawConv for CUDA {
         }
     }
 
+    #[inline]
     fn destruct<T, S: Shape>(ct: &Self::CT) -> Self::Ptr<T, S> {
         CUDAPtr {
             ptr: ct.ptr,

@@ -1,37 +1,15 @@
 use crate::Buffer;
 
-use super::static_cpu;
+use super::StaticDevice;
 
-impl<'a, A> FromIterator<A> for Buffer<'a, A>
+impl<'a, A, D> FromIterator<A> for Buffer<'a, A, D>
 where
     A: Clone + Default,
+    D: StaticDevice + 'static,
+    Buffer<'a, A, D>: From<(&'a D, Vec<A>)>,
 {
     fn from_iter<T: IntoIterator<Item = A>>(iter: T) -> Self {
-        let device = static_cpu();
-        let from_iter = Vec::from_iter(iter);
-        Buffer::from((device, from_iter))
-    }
-}
-
-#[cfg(feature = "cuda")]
-impl<'a, A> FromIterator<A> for Buffer<'a, A, crate::CUDA>
-where
-    A: Clone + Default,
-{
-    fn from_iter<T: IntoIterator<Item = A>>(iter: T) -> Self {
-        let device = super::static_cuda();
-        let from_iter = Vec::from_iter(iter);
-        Buffer::from((device, from_iter))
-    }
-}
-
-#[cfg(feature = "opencl")]
-impl<'a, A> FromIterator<A> for Buffer<'a, A, crate::OpenCL>
-where
-    A: Clone + Default,
-{
-    fn from_iter<T: IntoIterator<Item = A>>(iter: T) -> Self {
-        let device = super::static_opencl();
+        let device = D::as_static();
         let from_iter = Vec::from_iter(iter);
         Buffer::from((device, from_iter))
     }

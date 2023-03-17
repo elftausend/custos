@@ -118,7 +118,7 @@ impl<T: Clone + Default, S: Shape> Read<T, S> for OpenCL {
     type Read<'a> = &'a [T] where T: 'a;
 
     #[cfg(not(unified_cl))]
-    fn read<'a>(&self, buf: &'a Buffer<T, OpenCL>) -> Self::Read<'a> {
+    fn read<'a>(&self, buf: &'a Buffer<T, OpenCL, S>) -> Self::Read<'a> {
         self.read_to_vec(buf)
     }
 

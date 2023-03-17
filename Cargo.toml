@@ -12,7 +12,7 @@ rust-version = "1.65"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-cuwanto-client = { path = "../cuwanto/cuwanto-client", optional = true }
+#cuwanto-client = { path = "../cuwanto/cuwanto-client", optional = true }
 #cuwanto-server = {path="../cuwanto/cuwanto-server", optional=true}
 #min-cl = { version = "0.1.3", optional=true }
 min-cl = { path="../min-cl", optional=true }
@@ -37,7 +37,7 @@ min-cl = { path="../min-cl", optional=true }
 
 [features]
 #default = ["cpu", "realloc", "stack", "blas"]
-default = ["stack", "macro", "cpu", "autograd", "blas", "opencl",  "static-api"]
+default = ["stack", "macro", "cpu", "autograd", "blas", "opencl", "static-api", "cuda"]
 #default = ["stack", "cpu", "blas", "static-api", "opencl", "macro"]
 cpu = []
 opencl = ["dep:min-cl", "cpu"]
