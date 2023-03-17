@@ -17,7 +17,7 @@ impl BorrowingCache {
     ) -> &Buffer<'a, T, D, S>
     where
         T: 'static,
-        D: Alloc<'a, T, S>,
+        D: Alloc<'a, T, S> + 'static,
         S: Shape,
     {
         self.add_buf_once(device, id);
@@ -33,7 +33,7 @@ impl BorrowingCache {
     ) -> &mut Buffer<'a, T, D, S>
     where
         T: 'static,
-        D: for<'b> Alloc<'b, T, S>,
+        D: for<'b> Alloc<'b, T, S> + 'static,
         S: Shape,
     {
         self.add_buf_once(device, id);
@@ -44,7 +44,7 @@ impl BorrowingCache {
     pub(crate) fn add_buf_once<'a, T, D, S>(&mut self, device: &'a D, ident: Ident)
     where
         T: 'static,
-        D: Alloc<'a, T, S>,
+        D: Alloc<'a, T, S> + 'static,
         S: Shape,
     {
         if self.cache.get(&ident).is_some() {
@@ -57,7 +57,7 @@ impl BorrowingCache {
     pub(crate) fn add_buf<'a, T, D, S>(&mut self, device: &'a D, ident: Ident)
     where
         T: 'static,
-        D: Alloc<'a, T, S>,
+        D: Alloc<'a, T, S> + 'static,
         S: Shape,
     {
         // not using ::new, because this buf would get added to the cache of the device.
@@ -75,7 +75,7 @@ impl BorrowingCache {
     pub(crate) fn get_buf<'a, T, D, S>(&self, id: Ident) -> Option<&Buffer<'a, T, D, S>>
     where
         T: 'static,
-        D: Device,
+        D: Device + 'static,
         S: Shape,
     {
         self.cache.get(&id)?.downcast_ref()
@@ -85,7 +85,7 @@ impl BorrowingCache {
     pub(crate) fn get_buf_mut<'a, T, D, S>(&mut self, id: Ident) -> Option<&mut Buffer<'a, T, D, S>>
     where
         T: 'static,
-        D: Device,
+        D: Device + 'static,
         S: Shape,
     {
         unsafe { transmute(self.cache.get_mut(&id)?.downcast_mut::<Buffer<T, D, S>>()) }

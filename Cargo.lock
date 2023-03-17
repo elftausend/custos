@@ -179,6 +179,7 @@ name = "custos"
 version = "0.6.3"
 dependencies = [
  "custos-macro",
+ "cuwanto-client",
  "futures-intrusive",
  "libm",
  "min-cl",
@@ -195,6 +196,17 @@ dependencies = [
  "quote",
  "syn",
 ]
+
+[[package]]
+name = "cuwanto-client"
+version = "0.1.0"
+dependencies = [
+ "cuwanto-common",
+]
+
+[[package]]
+name = "cuwanto-common"
+version = "0.1.0"
 
 [[package]]
 name = "d3d12"

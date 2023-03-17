@@ -66,8 +66,8 @@ pub trait CacheAble<D: Device> {
     /// This depends on the type of cache.
     ///
     /// # Example
-    #[cfg_attr(feature = "cpu", doc = "```")]
-    #[cfg_attr(not(feature = "cpu"), doc = "```ignore")]
+    #[cfg_attr(all(feature = "cpu", not(feature = "realloc")), doc = "```")]
+    #[cfg_attr(all(not(feature = "cpu"), feature = "realloc"), doc = "```ignore")]
     /// use custos::{Device, CPU, set_count};
     ///
     /// let device = CPU::new();

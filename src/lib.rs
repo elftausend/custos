@@ -114,8 +114,13 @@ pub use two_way_ops::*;
 
 #[cfg(feature = "autograd")]
 #[cfg(feature = "opt-cache")]
-compile_error!("The autograd and opt-cache feature are not currently compatible. 
+compile_error!("The `autograd` and `opt-cache` feature are currently incompatible. 
 This is because the logic for detecting if a forward buffer is used during gradient calculation isn't implemented yet.");
+
+#[cfg(feature = "autograd")]
+#[cfg(feature = "realloc")]
+compile_error!("The `autograd` and `realloc` feature are incompatible. 
+The automatic differentiation system requires caching of buffers, which is deactivated when using the `realloc` feature.");
 
 
 #[cfg(all(feature = "realloc", feature = "opt-cache"))]
@@ -144,7 +149,7 @@ pub trait CommonPtrs<T> {
 }
 
 /// This trait is the base trait for every device.
-pub trait Device: Sized + 'static {
+pub trait Device: Sized {
     /// The type of the pointer that is used for `Buffer`.
     type Ptr<U, S: Shape>: PtrType;
     /// The type of the cache.
@@ -154,20 +159,39 @@ pub trait Device: Sized + 'static {
     /// Creates a new device.
     fn new() -> crate::Result<Self>;
 
+    /// Creates a new [`Buffer`] using `A`.
+    /// 
+    /// # Example
+    #[cfg_attr(feature = "cpu", doc = "```")]
+    #[cfg_attr(not(feature = "cpu"), doc = "```ignore")]
+    /// use custos::{CPU, Device};
+    /// 
+    /// let device = CPU::new();
+    /// let buf = device.buffer([5, 4, 3]);
+    /// 
+    /// assert_eq!(buf.read(), [5, 4, 3]);
+    /// ```
+    fn buffer<'a, T, S: Shape, A>(&'a self, arr: A) -> Buffer<'a, T, Self, S>
+    where
+        Buffer<'a, T, Self, S>: From<(&'a Self, A)> 
+    {
+        Buffer::from((self, arr))
+    }
+
     /// May allocate a new [`Buffer`] or return an existing one.
     /// It may use the cache count provided by the cache count ([Ident]).
     /// This depends on the type of cache.
     ///
     /// # Example
-    #[cfg_attr(feature = "cpu", doc = "```")]
-    #[cfg_attr(not(feature = "cpu"), doc = "```ignore")]
+    #[cfg_attr(all(feature = "cpu", not(feature = "realloc")), doc = "```")]
+    #[cfg_attr(all(not(feature = "cpu"), feature = "realloc"), doc = "```ignore")]
     /// use custos::{Device, CPU, set_count};
     ///
     /// let device = CPU::new();
     ///
     /// let buf = device.retrieve::<f32, ()>(10, ());
     /// 
-    /// // unsafe, because the next .retrieve call will tehn return the same buffer
+    /// // unsafe, because the next .retrieve call will then return the same buffer
     /// unsafe { set_count(0) }
     ///
     /// let buf_2 = device.retrieve::<f32, ()>(10, ());
@@ -360,4 +384,19 @@ pub mod prelude {
 
     #[cfg(feature = "cuda")]
     pub use crate::cuda::{launch_kernel1d, CUBuffer, CU, CUDA};
+}
+
+#[cfg(test)]
+mod tests {
+
+    #[cfg(feature = "cpu")]
+    #[test]
+    fn test_buffer_from_device() {
+        use crate::{CPU, Device};
+
+        let device = CPU::new();
+        let buf = device.buffer([1, 2, 3]);
+
+        assert_eq!(buf.read(), [1, 2, 3])
+    }
 }

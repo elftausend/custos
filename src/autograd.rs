@@ -65,7 +65,7 @@ impl<D> Gradients<D> {
     where
         T: 'static,
         S: Shape,
-        D: Device,
+        D: Device + 'static,
     {
         self.cache.get_buf(ident)
     }
@@ -76,7 +76,7 @@ impl<D> Gradients<D> {
     where
         T: 'static,
         S: Shape,
-        D: Device,
+        D: Device + 'static,
     {
         self.cache.get_buf_mut(ident)
     }
@@ -88,7 +88,7 @@ impl<D> Gradients<D> {
     where
         T: 'static,
         S: Shape,
-        D: Alloc<'a, T, S>,
+        D: Alloc<'a, T, S> + 'static,
     {
         self.cache.add_or_get(device, ident)
     }
@@ -100,7 +100,7 @@ impl<D> Gradients<D> {
     where
         T: 'static,
         S: Shape,
-        D: for<'b> Alloc<'b, T, S>,
+        D: for<'b> Alloc<'b, T, S> + 'static,
     {
         self.cache.add_or_get_mut(device, ident)
     }
@@ -111,7 +111,7 @@ impl<D> Gradients<D> {
     where
         T: 'static,
         S: Shape,
-        D: Alloc<'a, T, S>,
+        D: Alloc<'a, T, S> + 'static,
     {
         self.get_ref(buf.device(), buf.id())
     }
@@ -127,7 +127,7 @@ impl<D> Gradients<D> {
     where
         T: 'static,
         S: Shape,
-        D: for<'b> Alloc<'b, T, S>,
+        D: for<'b> Alloc<'b, T, S> + 'static,
     {
         self.cache.add_buf_once(device, rid);
         self.cache.add_buf_once(device, oid);
@@ -162,7 +162,7 @@ impl<D> Gradients<D> {
         T: 'static,
         IS: Shape,
         OS: Shape,
-        D: for<'b> Alloc<'b, T, IS> + for<'b> Alloc<'b, T, OS>,
+        D: for<'b> Alloc<'b, T, IS> + for<'b> Alloc<'b, T, OS> + 'static,
     {
         let x_grad_ptr = self.get_mut(device, xid) as *mut _;
         let x_grad_mut = unsafe { &mut *x_grad_ptr };
@@ -214,7 +214,7 @@ impl<D: Device> Tape<D> {
     pub fn backward_seeded<T, S: Shape>(&mut self, buf: &Buffer<T, D, S>)
     where
         T: Clone + One + 'static,
-        D: for<'a> Alloc<'a, T, S> + WriteBuf<T, S, D>,
+        D: for<'a> Alloc<'a, T, S> + WriteBuf<T, S, D> + 'static,
     {
         // TODO // TODO
         //let mut out = self.grads.get_like::<T, S>(buf);
@@ -228,7 +228,7 @@ impl<D: Device> Tape<D> {
 impl<'a, T, D, S> Buffer<'a, T, D, S>
 where
     T: Clone + One + 'static,
-    D: TapeReturn + WriteBuf<T, S, D> + for<'b> Alloc<'b, T, S>,
+    D: TapeReturn + WriteBuf<T, S, D> + for<'b> Alloc<'b, T, S> + 'static,
     S: Shape,
 {
     /// Calls `.backward_seeded` on the [`Tape`].
@@ -263,6 +263,7 @@ where
     #[inline]
     pub fn grad_mut(&mut self) -> RefMut<Self> {
         RefMut::map(self.device().tape_mut(), |tape| {
+            // TODO unwrap?, result?, try?, expect?
             tape.grads.may_get_mut(self.id()).unwrap()
         })
     }
@@ -272,6 +273,7 @@ where
     #[inline]
     pub fn grad_mut_unbound(&mut self) -> RefMut<'a, Self> {
         RefMut::map(self.device().tape_mut(), |tape| {
+            // TODO unwrap?, result?, try?, expect?
             tape.grads.may_get_mut(self.id()).unwrap()
         })
     }

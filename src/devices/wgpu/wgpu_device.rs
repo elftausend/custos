@@ -56,7 +56,13 @@ impl WGPU {
 }
 
 impl GraphReturn for WGPU {
-    fn graph(&self) -> core::cell::RefMut<Graph<GlobalCount>> {
+    #[inline]
+    fn graph(&self) -> core::cell::Ref<Graph<GlobalCount>> {
+        self.graph.borrow()
+    }
+
+    #[inline]
+    fn graph_mut(&self) -> core::cell::RefMut<Graph<GlobalCount>> {
         self.graph.borrow_mut()
     }
 }
