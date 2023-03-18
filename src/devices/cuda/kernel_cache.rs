@@ -1,28 +1,11 @@
 use super::api::{
-    cufree, load_module_data,
+    load_module_data,
     nvrtc::{create_program, nvrtcDestroyProgram},
     FnHandle,
 };
-use crate::{flag::AllocFlag, Error, CUDA};
+use crate::{Error, CUDA};
 use std::{collections::HashMap, ffi::CString};
 
-/// The pointer used for storage in the `CUDA` [`Cache`](crate::Cache).
-#[derive(Debug)]
-pub struct RawCUBuf {
-    pub ptr: u64,
-    pub len: usize,
-    pub flag: AllocFlag,
-}
-
-impl Drop for RawCUBuf {
-    fn drop(&mut self) {
-        if self.flag != AllocFlag::Cache {
-            return;
-        }
-
-        unsafe { cufree(self.ptr).unwrap() }
-    }
-}
 
 /// This stores the previously compiled CUDA functions / kernels.
 #[derive(Debug, Default)]

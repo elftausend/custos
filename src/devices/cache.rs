@@ -14,11 +14,13 @@ use crate::{
 pub trait CacheReturn: GraphReturn<GlobalCount> {
     /// The type of the raw pointer.
     type CT: Debug;
+
+    /// Returns a reference to a device's [`Cache`].
     fn cache(&self) -> core::cell::Ref<crate::Cache<Self>>
     where
         Self: crate::RawConv;
 
-    /// Returns a device specific [`Cache`].
+    /// Returns a mutable reference to a device's [`Cache`].
     fn cache_mut(&self) -> RefMut<Cache<Self>>
     where
         Self: RawConv;
@@ -142,7 +144,7 @@ impl<D: RawConv> Cache<D> {
     ///
     /// let device = CPU::new();
     /// let cache: Buffer = device
-    ///     .cache()
+    ///     .cache_mut()
     ///     .add_node(&device, Ident { idx: 0, len: 7 }, (), bump_count);
     ///
     /// let ptr = device
@@ -202,14 +204,14 @@ impl<D: RawConv> Cache<D> {
     ///
     /// let device = CPU::new();
     ///     
-    /// let cache_entry: Buffer = device.cache().get(&device, Ident::new(10), (), bump_count);
-    /// let new_cache_entry: Buffer = device.cache().get(&device, Ident::new(10), (), bump_count);
+    /// let cache_entry: Buffer = device.cache_mut().get(&device, Ident::new(10), (), bump_count);
+    /// let new_cache_entry: Buffer = device.cache_mut().get(&device, Ident::new(10), (), bump_count);
     ///
     /// assert_ne!(cache_entry.ptrs(), new_cache_entry.ptrs());
     ///
     /// unsafe { set_count(0) };
     ///
-    /// let first_entry: Buffer = device.cache().get(&device, Ident::new(10), (), bump_count);
+    /// let first_entry: Buffer = device.cache_mut().get(&device, Ident::new(10), (), bump_count);
     /// assert_eq!(cache_entry.ptrs(), first_entry.ptrs());
     /// ```
     pub fn get<'a, T, S: Shape>(
@@ -299,14 +301,21 @@ mod tests {
         unsafe { set_count(0) };
         let device = crate::CPU::new();
 
-        let cache_entry: Buffer = device.cache_mut().get(&device, Ident::new(10), (), bump_count);
-        let new_cache_entry: Buffer = device.cache_mut().get(&device, Ident::new(10), (), bump_count);
+        let cache_entry: Buffer = device
+            .cache_mut()
+            .get(&device, Ident::new(10), (), bump_count);
+        let new_cache_entry: Buffer =
+            device
+                .cache_mut()
+                .get(&device, Ident::new(10), (), bump_count);
 
         assert_ne!(cache_entry.ptrs(), new_cache_entry.ptrs());
 
         unsafe { set_count(0) };
 
-        let first_entry: Buffer = device.cache_mut().get(&device, Ident::new(10), (), bump_count);
+        let first_entry: Buffer = device
+            .cache_mut()
+            .get(&device, Ident::new(10), (), bump_count);
         assert_eq!(cache_entry.ptrs(), first_entry.ptrs());
     }
 }

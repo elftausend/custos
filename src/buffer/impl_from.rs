@@ -127,6 +127,21 @@ where
 
 #[cfg(test)]
 mod tests {
+
+    #[cfg(feature = "cpu")]
+    #[test]
+    fn test_buf_device_conversion_cpu() {
+        use crate::{Buffer, Read, CPU};
+
+        let device = CPU::new();
+
+        let cpu = CPU::new();
+        let cpu_buf = Buffer::from((&cpu, [1, 2, 4, 5]));
+
+        let out = Buffer::from((&device, cpu_buf));
+        assert_eq!(device.read(&out), [1, 2, 4, 5]);
+    }
+
     #[cfg(feature = "opencl")]
     #[test]
     fn test_buf_device_conversion_cl() -> crate::Result<()> {

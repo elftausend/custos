@@ -11,10 +11,8 @@ use super::{
 };
 
 use crate::{
-    cache::{Cache, CacheReturn},
-    flag::AllocFlag,
-    Addons, AddonsReturn, Alloc, Buffer, CloneBuf, Device, GlobalCount, Graph, GraphReturn,
-    RawConv, Shape,
+    cache::Cache, flag::AllocFlag, Addons, AddonsReturn, Alloc, Buffer, CloneBuf, Device, RawConv,
+    Shape, CacheReturn,
 };
 
 /// Used to perform calculations with a CUDA capable device.
@@ -94,6 +92,19 @@ impl Device for CUDA {
     }
 }
 
+impl AddonsReturn for CUDA {
+    type CachePtrType = RawCUBuf;
+
+    #[inline]
+    fn addons(&self) -> &Addons<Self>
+    where
+        Self: Device,
+    {
+        &self.addons
+    }
+}
+
+
 impl RawConv for CUDA {
     #[inline]
     fn construct<T, S: Shape>(ptr: &Self::Ptr<T, S>, len: usize, flag: AllocFlag) -> Self::CT {
@@ -124,6 +135,9 @@ impl Default for CUDA {
 
 impl Drop for CUDA {
     fn drop(&mut self) {
+        // deallocates all cached buffers before destroying the context etc
+        self.cache_mut().nodes.clear();
+
         unsafe {
             cublasDestroy_v2(self.handle.0);
             cuStreamDestroy(self.stream.0);
@@ -154,19 +168,6 @@ impl<T> Alloc<'_, T> for CUDA {
         }
     }
 }
-
-impl AddonsReturn for CUDA {
-    type CachePtrType = RawCUBuf;
-
-    #[inline]
-    fn addons(&self) -> &Addons<Self>
-    where
-        Self: Device,
-    {
-        &self.addons
-    }
-}
-
 #[cfg(feature = "opt-cache")]
 impl crate::GraphOpt for CUDA {}
 

@@ -132,6 +132,7 @@ impl MainMemory for CPU {
 }
 
 impl<'a, T: Clone, S: Shape> CloneBuf<'a, T, S> for CPU {
+    #[inline]
     fn clone_buf(&'a self, buf: &Buffer<'a, T, CPU, S>) -> Buffer<'a, T, CPU, S> {
         let mut cloned = Buffer::new(self, buf.len());
         cloned.clone_from_slice(buf);
