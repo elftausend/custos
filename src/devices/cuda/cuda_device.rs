@@ -168,8 +168,6 @@ impl<T> Alloc<'_, T> for CUDA {
         }
     }
 }
-#[cfg(feature = "opt-cache")]
-impl crate::GraphOpt for CUDA {}
 
 impl<'a, T> CloneBuf<'a, T> for CUDA {
     fn clone_buf(&'a self, buf: &Buffer<'a, T, CUDA>) -> Buffer<'a, T, CUDA> {

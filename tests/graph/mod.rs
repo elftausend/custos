@@ -1,4 +1,4 @@
-use custos::{number::Number, Buffer, CDatatype, Cache, Device, MainMemory, CPU};
+use custos::{number::Number, Buffer, CDatatype, Device, MainMemory, CPU};
 
 #[cfg(feature = "opencl")]
 use custos::{opencl::enqueue_kernel, OpenCL};
@@ -94,7 +94,7 @@ impl<T: CDatatype> AddBuf<T, CUDA> for CUDA {
             datatype = T::as_c_type_str()
         );
 
-        let out = Cache::get::<T, ()>(self, lhs.len(), (lhs.node.idx, rhs.node.idx));
+        let out = self.retrieve::<T, _>(lhs.len(), (lhs, rhs));
         launch_kernel1d(lhs.len(), self, &src, "add", &[lhs, rhs, &out, &lhs.len()]).unwrap();
         out
     }
@@ -113,7 +113,7 @@ impl<T: CDatatype> AddBuf<T, CUDA> for CUDA {
             datatype = T::as_c_type_str()
         );
 
-        let out = Cache::get::<T, ()>(self, lhs.len(), lhs.node.idx);
+        let out = self.retrieve::<T, _>(lhs.len(), lhs);
         launch_kernel1d(lhs.len(), self, &src, "relu", &[lhs, &out, &lhs.len()]).unwrap();
         out
     }

@@ -58,7 +58,7 @@ pub trait GraphOpt {
     where
         Self: GraphReturn + CacheReturn + crate::RawConv,
     {
-        let mut cache = self.cache();
+        let mut cache = self.cache_mut();
         for trace in self.graph().cache_traces() {
             // starting at 1, because the first element is the origin
             for node in &trace.use_cache_idx {
