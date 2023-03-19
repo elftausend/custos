@@ -116,6 +116,23 @@ jobs:
     - name: Run 'static-api' tests
       run: cargo test --no-default-features --features static-api,cpu
 
+  test-autograd:
+  
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+
+    - uses: actions-rs/toolchain@v1
+      with:
+        profile: minimal
+        toolchain: stable
+
+    - uses: Swatinem/rust-cache@v1
+
+    - name: Run 'autograd' tests
+      run: cargo test --no-default-features --features autograd,cpu
+
   miri:
     name: "Miri"
     runs-on: ubuntu-latest
@@ -136,6 +153,8 @@ jobs:
         run: cargo miri test --no-default-features --features stack,cpu
       - name: Test 'static-api' with Miri
         run: cargo miri test --no-default-features --features static-api,cpu
+    - name: Test 'autograd' with Miri
+        run: cargo miri test --no-default-features --features autograd,cpu
 
 #  bench:
 #  

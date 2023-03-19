@@ -85,7 +85,7 @@ impl<T> CopySlice<T> for OpenCL {
         );
 
         enqueue_copy_buffer::<T>(
-            &self.queue(),
+            self.queue(),
             source.ptr.ptr,
             dest.ptr.ptr,
             source_range.start,
@@ -107,7 +107,7 @@ impl<T> CopySlice<T> for OpenCL {
             (from.start, to.start, len)
         });
 
-        enqueue_copy_buffers::<T, _>(&self.queue(), source.ptr.ptr, dest.ptr.ptr, ranges).unwrap();
+        enqueue_copy_buffers::<T, _>(self.queue(), source.ptr.ptr, dest.ptr.ptr, ranges).unwrap();
     }
 }
 

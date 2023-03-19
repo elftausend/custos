@@ -148,7 +148,7 @@ pub fn enqueue_kernel(
 
     for (idx, arg) in args.iter().enumerate() {
         set_kernel_arg(
-            &kernel,
+            kernel,
             idx,
             arg.as_cvoid_ptr(),
             arg.ptr_size(),
