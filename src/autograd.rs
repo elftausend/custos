@@ -7,7 +7,7 @@ use core::{
 };
 
 use crate::{
-    borrowing_cache::BorrowingCache, prelude::One, Alloc, Buffer, Device, Ident, RawConv, Shape,
+    borrowing_cache::BorrowingCache, prelude::One, Alloc, Buffer, Device, Ident, Shape,
     WriteBuf,
 };
 
