@@ -275,9 +275,12 @@ where
 
 #[cfg(test)]
 mod tests {
+    #[cfg(feature = "cpu")]
+    #[cfg(feature = "macros")]
     use crate::{Buffer, Combiner};
 
     #[cfg(feature = "cpu")]
+    #[cfg(feature = "macros")]
     #[test]
     fn test_tape_unary_ew() {
         use crate::{UnaryElementWiseMayGrad, CPU};

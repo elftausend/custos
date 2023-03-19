@@ -131,7 +131,7 @@ jobs:
     - uses: Swatinem/rust-cache@v1
 
     - name: Run 'autograd' tests
-      run: cargo test --no-default-features --features autograd,cpu
+      run: cargo test --no-default-features --features autograd,cpu,macro
 
   miri:
     name: "Miri"
@@ -154,7 +154,7 @@ jobs:
       - name: Test 'static-api' with Miri
         run: cargo miri test --no-default-features --features static-api,cpu
       - name: Test 'autograd' with Miri
-        run: cargo miri test --no-default-features --features autograd,cpu
+        run: cargo miri test --no-default-features --features autograd,cpu,macro
 
 #  bench:
 #  
