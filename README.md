@@ -46,76 +46,42 @@ Available features:
 
 ## [Examples]
 
-These examples show how to use the implemented operations. <br>
-custos only implements four `Buffer` operations. These would be the `write`, `read`, `copy_slice` and `clear` operations.<br>
+custos only implements four `Buffer` operations. These would be the `write`, `read`, `copy_slice` and `clear` operations, however, there are also [unary] (device only) operations.<br>
 On the other hand, [custos-math] implements a lot more operations, including Matrix operations for a custom Matrix struct.<br>
-If you want to implement your own operations for all compute devices, look here: [implement_operations.md](implement_operations.md)
 
 [examples]: https://github.com/elftausend/custos/tree/main/examples
+[unary]: https://github.com/elftausend/custos/blob/main/src/unary.rs
 
-Using the host CPU as the compute device:
+Implement an operation for `CPU`:
+If you want to implement your own operations for all compute devices, consider looking here: [implement_operations.md](implement_operations.md)
 
-[cpu_readme.rs]
-
-[cpu_readme.rs]: https://github.com/elftausend/custos/blob/main/examples/cpu_readme.rs
 ```rust
-use custos::{Buffer, ClearBuf, Read, CPU};
+use std::ops::Mul;
+use custos::prelude::*;
 
-fn main() {
-    let device = CPU::new();
-    let mut a = Buffer::from((&device, [1, 2, 3, 4, 5, 6]));
+pub trait MulBuf<T, S: Shape = (), D: Device = Self>: Sized + Device {
+    fn mul(&self, lhs: &Buffer<T, D, S>, rhs: &Buffer<T, D, S>) -> Buffer<T, Self, S>;
+}
 
-    // specify device for operation
-    device.clear(&mut a);
-    assert_eq!(device.read(&a), [0; 6]);
+impl<T, S, D> MulBuf<T, S, D> for CPU
+where
+    T: Mul<Output = T> + Copy,
+    S: Shape,
+    D: MainMemory,
+{
+    fn mul(&self, lhs: &Buffer<T, D, S>, rhs: &Buffer<T, D, S>) -> Buffer<T, CPU, S> {
+        let mut out = self.retrieve(lhs.len(), (lhs, rhs));
 
-    let device = CPU::new();
+        for ((lhs, rhs), out) in lhs.iter().zip(&*rhs).zip(&mut out) {
+            *out = *lhs * *rhs;
+        }
 
-    let mut a = Buffer::from((&device, [1, 2, 3, 4, 5, 6]));
-
-    // no need to specify the device
-    a.clear();
-    assert_eq!(a.read(), vec![0; 6]);
+        out
+    }
 }
 ```
 
-Using an `OpenCL` device as the compute device:
+A lot more usage examples can be found in the [tests] and [examples] folder.
+(Or in the [unary] operation file.)
 
-[cl_readme.rs]
-
-[cl_readme.rs]: https://github.com/elftausend/custos/blob/main/examples/cl_readme.rs
-```rust
-use custos::{Buffer, OpenCL};
-
-fn main() -> custos::Result<()> {
-    let device = OpenCL::new(0)?;
-
-    let mut a = Buffer::from((&device, [5, 3, 2, 4, 6, 2]));
-    a.clear();
-
-    assert_eq!(a.read(), [0; 6]);
-    Ok(())
-}
-
-```
-
-Using a `CUDA` device as the compute device:
-
-[cuda_readme.rs]
-
-[cuda_readme.rs]: https://github.com/elftausend/custos/blob/main/examples/cuda_readme.rs
-```rust
-use custos::{Buffer, CUDA};
-
-fn main() -> custos::Result<()> {
-    let device = CUDA::new(0)?;
-
-    let mut a = Buffer::from((&device, [5, 3, 2, 4, 6, 2]));
-    a.clear();
-
-    assert_eq!(a.read(), [0; 6]);
-    Ok(())
-}
-```
-
-A lot more examples can be found in the 'tests' and 'examples' folder.
+[tests]: https://github.com/elftausend/custos/tree/main/tests

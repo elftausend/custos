@@ -1,55 +1,17 @@
-use crate::{Alloc, Buffer, GraphReturn};
+use crate::Buffer;
 
-use super::static_cpu;
+use super::StaticDevice;
 
-impl<'a, A> FromIterator<A> for Buffer<'a, A>
+impl<'a, A, D> FromIterator<A> for Buffer<'a, A, D>
 where
     A: Clone + Default,
+    D: StaticDevice + 'static,
+    Buffer<'a, A, D>: From<(&'a D, Vec<A>)>,
 {
     fn from_iter<T: IntoIterator<Item = A>>(iter: T) -> Self {
-        let device = static_cpu();
+        let device = D::as_static();
         let from_iter = Vec::from_iter(iter);
-
-        Buffer {
-            node: device.graph().add_leaf(from_iter.len()),
-            //ptr: device.alloc_with_vec(from_iter),
-            ptr: Alloc::<A>::alloc_with_vec(device, from_iter),
-            device: Some(device),
-        }
-    }
-}
-
-#[cfg(feature = "cuda")]
-impl<'a, A> FromIterator<A> for Buffer<'a, A, crate::CUDA>
-where
-    A: Clone + Default,
-{
-    fn from_iter<T: IntoIterator<Item = A>>(iter: T) -> Self {
-        let device = super::static_cuda();
-        let from_iter = Vec::from_iter(iter);
-
-        Buffer {
-            node: device.graph().add_leaf(from_iter.len()),
-            ptr: device.alloc_with_vec(from_iter),
-            device: Some(device),
-        }
-    }
-}
-
-#[cfg(feature = "opencl")]
-impl<'a, A> FromIterator<A> for Buffer<'a, A, crate::OpenCL>
-where
-    A: Clone + Default,
-{
-    fn from_iter<T: IntoIterator<Item = A>>(iter: T) -> Self {
-        let device = super::static_opencl();
-        let from_iter = Vec::from_iter(iter);
-
-        Buffer {
-            node: device.graph().add_leaf(from_iter.len()),
-            ptr: Alloc::<A>::alloc_with_vec(device, from_iter),
-            device: Some(device),
-        }
+        Buffer::from((device, from_iter))
     }
 }
 

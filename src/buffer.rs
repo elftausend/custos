@@ -18,8 +18,8 @@ impl Device for CPU {
 }
 
 use crate::{
-    flag::AllocFlag, shape::Shape, Alloc, CacheBuf, ClearBuf, CloneBuf, CommonPtrs, Device,
-    DevicelessAble, IsShapeIndep, MainMemory, Node, PtrType, Read, ShallowCopy, ToDim, WriteBuf,
+    flag::AllocFlag, shape::Shape, Alloc, ClearBuf, CloneBuf, CommonPtrs, Device, DevicelessAble,
+    Ident, IsShapeIndep, MainMemory, PtrType, Read, ShallowCopy, WriteBuf,
 };
 
 pub use self::num::Num;
@@ -48,7 +48,7 @@ mod num;
 pub struct Buffer<'a, T = f32, D: Device = CPU, S: Shape = ()> {
     pub ptr: D::Ptr<T, S>,
     pub device: Option<&'a D>,
-    pub node: Node,
+    pub ident: Ident,
 }
 
 unsafe impl<'a, T, D: Device, S: Shape> Send for Buffer<'a, T, D, S> {}
@@ -78,12 +78,14 @@ impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
     where
         D: Alloc<'a, T, S>, /*+ GraphReturn*/
     {
+        let ptr = device.alloc(len, AllocFlag::None);
+        let ident = device.add_to_cache(&ptr);
         Buffer {
-            ptr: device.alloc(len, AllocFlag::None),
+            ptr,
             device: Some(device),
             // TODO: enable, if leafs get more important
             //node: device.graph().add_leaf(len),
-            node: Node::default(),
+            ident,
         }
     }
 
@@ -111,28 +113,30 @@ impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
     {
         Buffer {
             ptr: device.alloc(len, AllocFlag::None),
-            node: Node::default(),
+            ident: Ident::new_bumped(len),
             device: None,
         }
     }
 
+    /// Returns the device of the `Buffer`.
+    /// Panic if the `Buffer` is deviceless.
     pub fn device(&self) -> &'a D {
         self.device
             .expect("Called device() on a deviceless buffer.")
     }
 
+    /// Reads the contents of the `Buffer`.
     #[inline]
     pub fn read(&'a self) -> D::Read<'a>
     where
         T: Clone + Default,
-        D: Read<T, D, S>,
+        D: Read<T, S>,
     {
         self.device().read(self)
     }
 
-    /// Reads the contents of the buffer and writes them into a vector.
-    /// If it is certain whether a CPU, or an unified CPU + OpenCL Buffer, is used, calling `.as_slice()` (or deref/mut to `&/mut [&T]`) is probably preferred.
-    ///
+    /// Reads the contents of the `Buffer` and writes them into a vector.
+    /// `.read` is more efficient, if the device uses host memory.
     /// # Example
     #[cfg_attr(feature = "cpu", doc = "```")]
     #[cfg_attr(not(feature = "cpu"), doc = "```ignore")]
@@ -147,21 +151,43 @@ impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
     #[cfg(not(feature = "no-std"))]
     pub fn read_to_vec(&self) -> Vec<T>
     where
-        D: Read<T, D, S>,
+        D: Read<T, S>,
         T: Default + Clone,
     {
         self.device().read_to_vec(self)
     }
 
-    /// Writes a slice to the Buffer.
+    /// Writes a slice to the `Buffer`.
     /// With a CPU buffer, the slice is just copied to the slice of the buffer.
+    ///
+    /// # Example
+    #[cfg_attr(feature = "cpu", doc = "```")]
+    #[cfg_attr(not(feature = "cpu"), doc = "```ignore")]
+    /// use custos::{CPU, Buffer};
+    ///
+    /// let device = CPU::new();
+    /// let mut buf = Buffer::<i32>::new(&device, 6);
+    /// buf.write(&[4, 2, 3, 4, 5, 3]);
+    ///
+    /// assert_eq!(&*buf, [4, 2, 3, 4, 5, 3]);
+    /// ```
     #[inline]
     pub fn write(&mut self, data: &[T])
     where
         T: Clone,
-        D: WriteBuf<T, D, S>,
+        D: WriteBuf<T, S, D>,
     {
         self.device().write(self, data)
+    }
+
+    /// Writes the contents of the source buffer to self.
+    #[inline]
+    pub fn write_buf(&mut self, src: &Buffer<T, D, S>)
+    where
+        T: Clone,
+        D: WriteBuf<T, S, D>,
+    {
+        self.device().write_buf(self, src)
     }
 
     /// Returns the number of elements contained in `Buffer`.
@@ -176,7 +202,7 @@ impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
     /// ```
     #[inline]
     pub fn len(&self) -> usize {
-        self.ptr.len()
+        self.ptr.size()
     }
 
     /// Creates a shallow copy of &self.
@@ -186,14 +212,14 @@ impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
     /// However, declaring this function as unsafe highlights the violation of creating two or more owners for one resource.
     /// Furthermore, the resulting `Buffer` can outlive `self`.
     #[inline]
-    pub unsafe fn shallow(&self) -> Buffer<'a, T, D, S>
+    pub unsafe fn shallow<'b>(&self) -> Buffer<'b, T, D, S>
     where
         <D as Device>::Ptr<T, S>: ShallowCopy,
     {
         Buffer {
             ptr: self.ptr.shallow(),
-            device: self.device,
-            node: self.node,
+            device: None,
+            ident: self.ident,
         }
     }
 
@@ -219,15 +245,35 @@ impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
         self.clone()
     }
 
-    #[cfg(not(feature = "no-std"))]
-    pub fn id(&self) -> crate::Ident {
-        crate::Ident {
-            idx: self.node.ident_idx as usize,
-            len: self.len(),
+    /// Returns the [`Ident`] of a `Buffer`.
+    #[inline]
+    pub fn id(&self) -> Ident {
+        self.ident
+    }
+
+    /// Sets all elements in `Buffer` to the default value.
+    pub fn clear(&mut self)
+    where
+        D: ClearBuf<T, S, D>,
+    {
+        self.device().clear(self)
+    }
+}
+
+impl<'a, T, D: Device, S: Shape> Drop for Buffer<'a, T, D, S> {
+    #[inline]
+    fn drop(&mut self) {
+        if self.ptr.flag() != AllocFlag::None {
+            return;
+        }
+
+        if let Some(device) = self.device {
+            device.remove(self.ident)
         }
     }
 }
 
+/*
 impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
     /// Converts a (non stack allocated) `Buffer` with no shape to a `Buffer` with shape `O`.
     #[inline]
@@ -240,12 +286,14 @@ impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
         Buffer {
             ptr,
             device: self.device,
-            node: self.node,
+            ident: self.ident,
         }
     }
-}
+}*/
 
 impl<'a, T, D: IsShapeIndep, S: Shape> Buffer<'a, T, D, S> {
+    /// Returns a reference of the same buffer, but with a different shape.
+    /// The Buffer is shape independet, so it can be converted to any shape.
     #[inline]
     pub fn as_dims<'b, O: Shape>(&self) -> &Buffer<'b, T, D, O> {
         // Safety: shape independent buffers
@@ -254,6 +302,8 @@ impl<'a, T, D: IsShapeIndep, S: Shape> Buffer<'a, T, D, S> {
         unsafe { &*(self as *const Self).cast() }
     }
 
+    /// Returns a mutable reference of the same buffer, but with a different shape.
+    /// The Buffer is shape independet, so it can be converted to any shape.
     #[inline]
     pub fn as_dims_mut<'b, O: Shape>(&mut self) -> &mut Buffer<'b, T, D, O> {
         unsafe { &mut *(self as *mut Self).cast() }
@@ -290,18 +340,50 @@ impl<'a, T, D: Device> Buffer<'a, T, D> {
     pub fn is_empty(&self) -> bool {
         self.len() == 0
     }
+}
 
-    /// Sets all elements in `Buffer` to the default value.
-    pub fn clear(&mut self)
+impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
+    /// Creates a new `Buffer` from a slice (&[T]).
+    /// The pointer of the allocation may be added to the cache of the device.
+    /// Usually, this pointer / `Buffer` is then returned by a `device.get_existing_buf(..)` (accesses the cache) call.
+    #[inline]
+    pub fn from_slice(device: &'a D, slice: &[T]) -> Self
     where
-        D: ClearBuf<T, D>,
+        T: Clone,
+        D: Alloc<'a, T, S>,
     {
-        self.device().clear(self)
+        let ptr = device.with_slice(slice);
+        let ident = device.add_to_cache(&ptr);
+
+        Buffer {
+            ptr,
+            ident,
+            device: Some(device),
+        }
+    }
+
+    /// Creates a new `Buffer` from a `Vec`.
+    /// The pointer of the allocation may be added to the cache of the device.
+    /// Usually, this pointer / `Buffer` is then returned by a `device.get_existing_buf(..)` call.
+    #[inline]
+    pub fn from_vec(device: &'a D, data: Vec<T>) -> Self
+    where
+        T: Clone,
+        D: Alloc<'a, T, S>,
+    {
+        let ptr = device.alloc_with_vec(data);
+        let ident = device.add_to_cache(&ptr);
+
+        Buffer {
+            ptr,
+            ident,
+            device: Some(device),
+        }
     }
 }
 
 #[cfg(feature = "cpu")]
-impl<'a, T> Buffer<'a, T> {
+impl<'a, T, S: Shape> Buffer<'a, T, CPU, S> {
     /// Constructs a deviceless `Buffer` out of a host pointer and a length.
     /// # Example
     /// ```
@@ -311,7 +393,7 @@ impl<'a, T> Buffer<'a, T> {
     /// let device = CPU::new();
     /// let mut ptr = Alloc::<f32>::alloc(&device, 10, AllocFlag::None);
     /// let mut buf = unsafe {
-    ///     Buffer::from_raw_host(ptr.ptr, 10)
+    ///     Buffer::<_, _, ()>::from_raw_host(ptr.ptr, 10)
     /// };
     /// for (idx, value) in buf.iter_mut().enumerate() {
     ///     *value += idx as f32;
@@ -324,7 +406,7 @@ impl<'a, T> Buffer<'a, T> {
     /// The pointer must be valid.
     /// The `Buffer` does not manage deallocation of the allocated memory.
     #[inline]
-    pub unsafe fn from_raw_host(ptr: *mut T, len: usize) -> Buffer<'a, T> {
+    pub unsafe fn from_raw_host(ptr: *mut T, len: usize) -> Buffer<'a, T, CPU, S> {
         Buffer {
             ptr: CPUPtr {
                 ptr,
@@ -332,7 +414,7 @@ impl<'a, T> Buffer<'a, T> {
                 flag: AllocFlag::Wrapper,
             },
             device: None,
-            node: Default::default(),
+            ident: Ident::new_bumped(len),
         }
     }
 
@@ -343,7 +425,11 @@ impl<'a, T> Buffer<'a, T> {
     /// The pointer must be valid.
     /// The `Buffer` does not manage deallocation of the allocated memory.
     #[inline]
-    pub unsafe fn from_raw_host_device(device: &'a CPU, ptr: *mut T, len: usize) -> Buffer<'a, T> {
+    pub unsafe fn from_raw_host_device(
+        device: &'a CPU,
+        ptr: *mut T,
+        len: usize,
+    ) -> Buffer<'a, T, CPU, S> {
         Buffer {
             ptr: CPUPtr {
                 ptr,
@@ -351,17 +437,18 @@ impl<'a, T> Buffer<'a, T> {
                 flag: AllocFlag::Wrapper,
             },
             device: Some(device),
-            node: Default::default(),
+            ident: Ident::new_bumped(len),
         }
     }
 }
 
 #[cfg(feature = "opencl")]
-impl<'a, T> Buffer<'a, T, crate::OpenCL> {
+impl<'a, T, S: Shape> Buffer<'a, T, crate::OpenCL, S> {
+    /// Returns the OpenCL pointer of the `Buffer`.
     #[inline]
     pub fn cl_ptr(&self) -> *mut c_void {
         assert!(
-            !self.ptrs().1.is_null(),
+            !self.ptr.ptr.is_null(),
             "called cl_ptr() on an invalid OpenCL buffer"
         );
         self.ptrs().1
@@ -446,7 +533,7 @@ where
         Self {
             ptr: D::Ptr::<T, S>::default(),
             device: None,
-            node: Node::default(),
+            ident: Ident { idx: 0, len: 0 },
         }
     }
 }
@@ -531,8 +618,8 @@ impl<T, D: MainMemory, S: Shape> core::ops::DerefMut for Buffer<'_, T, D, S> {
 impl<'a, T, D> Debug for Buffer<'a, T, D>
 where
     T: Debug + Default + Clone + 'a,
-    D: Read<T, D> + Device + 'a,
-    for<'b> <D as Read<T, D>>::Read<'b>: Debug,
+    D: Read<T> + Device + 'a,
+    for<'b> <D as Read<T>>::Read<'b>: Debug,
     D::Ptr<T, ()>: CommonPtrs<T>,
 {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
@@ -558,65 +645,33 @@ where
 
         write!(
             f,
-            "datatype={}, device={device:?} }}",
+            "datatype={}, device={device} }}",
             core::any::type_name::<T>(),
             device = core::any::type_name::<D>()
         )
     }
 }
 
-impl<'a, T, D: MainMemory> core::iter::IntoIterator for &'a Buffer<'_, T, D> {
+impl<'a, T, D: MainMemory, S: Shape> core::iter::IntoIterator for &'a Buffer<'_, T, D, S> {
     type Item = &'a T;
 
     type IntoIter = core::slice::Iter<'a, T>;
 
+    #[inline]
     fn into_iter(self) -> Self::IntoIter {
         self.iter()
     }
 }
 
-impl<'a, T, D: MainMemory> core::iter::IntoIterator for &'a mut Buffer<'_, T, D> {
+impl<'a, T, D: MainMemory, S: Shape> core::iter::IntoIterator for &'a mut Buffer<'_, T, D, S> {
     type Item = &'a mut T;
 
     type IntoIter = core::slice::IterMut<'a, T>;
 
+    #[inline]
     fn into_iter(self) -> Self::IntoIter {
         self.iter_mut()
     }
-}
-
-/// Adds a `Buffer` to the "cache chain".
-/// Following calls will return this `Buffer`,
-/// if the corresponding internal count matches with the id used in the cache.
-///
-///
-/// # Example
-#[cfg_attr(any(feature = "realloc", not(feature = "cpu")), doc = "```ignore")]
-#[cfg_attr(any(not(feature = "realloc"), feature = "cpu"), doc = "```")]
-/// use custos::{CPU, cached, Read, set_count, get_count};
-///
-/// let device = CPU::new();
-/// assert_eq!(0, get_count());
-///
-/// let mut buf = cached::<f32, _>(&device, 10);
-/// assert_eq!(1, get_count());
-///
-/// for value in buf.as_mut_slice() {
-///     *value = 1.5;
-/// }
-///    
-/// let new_buf = cached::<i32, _>(&device, 10);
-/// assert_eq!(2, get_count());
-///
-/// set_count(0);
-/// let buf = cached::<f32, _>(&device, 10);
-/// assert_eq!(device.read(&buf), vec![1.5; 10]);
-/// ```
-pub fn cached<'a, T, D: CacheBuf<'a, T> + Device>(device: &'a D, len: usize) -> Buffer<'a, T, D>
-where
-    //D::Ptr<T, ()>: Clone,
-{
-    device.cached(len)
 }
 
 #[cfg(test)]
@@ -675,8 +730,8 @@ mod tests {
 
         let device = crate::CPU::new();
         let buf = Buffer::from((&device, [1, 2, 3, 4, 5, 6]));
-        let buf_dim2 = buf.to_dims::<Dim2<3, 2>>();
+        //let buf_dim2 = buf.to_dims::<Dim2<3, 2>>();
 
-        buf_dim2.to_dims::<()>();
+        //buf_dim2.to_dims::<()>();
     }
 }

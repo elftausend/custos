@@ -1,7 +1,10 @@
+//! The CUDA module provides the CUDA backend for custos.
+
 pub mod api;
 mod cuda_device;
 mod kernel_cache;
 mod kernel_launch;
+mod ops;
 
 use std::{marker::PhantomData, ptr::null_mut};
 
@@ -13,8 +16,10 @@ use crate::{flag::AllocFlag, Buffer, CDatatype, CommonPtrs, PtrType, ShallowCopy
 
 use self::api::cufree;
 
+/// Another shorter type for Buffer<'a, T, CUDA, S>
 pub type CUBuffer<'a, T> = Buffer<'a, T, CUDA>;
 
+/// Reads the environment variable `CUSTOS_CU_DEVICE_IDX` and returns the value as a `usize`.
 pub fn chosen_cu_idx() -> usize {
     std::env::var("CUSTOS_CU_DEVICE_IDX")
         .unwrap_or_else(|_| "0".into())
@@ -24,6 +29,7 @@ pub fn chosen_cu_idx() -> usize {
         )
 }
 
+/// The pointer used for `CUDA` [`Buffer`](crate::Buffer)s
 #[derive(Debug, PartialEq, Eq)]
 pub struct CUDAPtr<T> {
     pub ptr: u64,
@@ -46,14 +52,13 @@ impl<T> Default for CUDAPtr<T> {
 
 impl<T> Drop for CUDAPtr<T> {
     fn drop(&mut self) {
-        if self.flag != AllocFlag::None {
+        if !matches!(self.flag, AllocFlag::None | AllocFlag::BorrowedCache) {
             return;
         }
 
         if self.ptr == 0 {
             return;
         }
-
         unsafe {
             cufree(self.ptr).unwrap();
         }
@@ -74,7 +79,7 @@ impl<T> ShallowCopy for CUDAPtr<T> {
 
 impl<T> PtrType for CUDAPtr<T> {
     #[inline]
-    fn len(&self) -> usize {
+    fn size(&self) -> usize {
         self.len
     }
 
@@ -126,4 +131,21 @@ pub fn cu_clear<T: CDatatype>(device: &CUDA, buf: &mut Buffer<T, CUDA>) -> crate
     );
     launch_kernel1d(buf.len(), device, &src, "clear", &[buf, &buf.len()])?;
     Ok(())
+}
+
+/// The pointer used for storage in the `CUDA` [`Cache`](crate::Cache).
+#[derive(Debug)]
+pub struct RawCUBuf {
+    pub ptr: u64,
+    pub len: usize,
+    pub flag: AllocFlag,
+}
+
+impl Drop for RawCUBuf {
+    fn drop(&mut self) {
+        if self.flag != AllocFlag::Cache {
+            return;
+        }
+        unsafe { cufree(self.ptr).expect("Pointer freed should be a valid pointer.") }
+    }
 }

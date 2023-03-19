@@ -1,9 +1,9 @@
 use core::ops::{Bound, Range, RangeBounds};
 
-use crate::{Alloc, Buffer, Device, Shape};
+use crate::{shape::Shape, Alloc, Buffer, Device};
 
 /// Trait for implementing the clear() operation for the compute devices.
-pub trait ClearBuf<T, D: Device = Self, S: Shape = ()>: Device {
+pub trait ClearBuf<T, S: Shape = (), D: Device = Self> {
     /// Sets all elements of the matrix to zero.
     /// # Example
     #[cfg_attr(feature = "cpu", doc = "```")]
@@ -36,9 +36,9 @@ pub trait CopySlice<T, D: Device = Self>: Sized + Device {
     /// ```
     fn copy_slice<'a, R: RangeBounds<usize>>(
         &'a self,
-        buf: &'a Buffer<T, D>,
+        buf: &Buffer<T, D>,
         range: R,
-    ) -> Buffer<T, Self>
+    ) -> Buffer<'a, T, Self>
     where
         Self: for<'b> Alloc<'b, T>,
     {
@@ -70,12 +70,12 @@ pub trait CopySlice<T, D: Device = Self>: Sized + Device {
     );
 
     /// Copy multiple slices of the source buffer into multiplie slices of the destination buffer.
-    /// 
+    ///
     /// # Example
     #[cfg_attr(feature = "cpu", doc = "```")]
     #[cfg_attr(not(feature = "cpu"), doc = "```ignore")]
     /// use custos::{Buffer, CPU, CopySlice};
-    /// 
+    ///
     /// let device = CPU::new();
     /// let source = Buffer::from((&device, [1., 2., 6., 2., 4.]));
     ///
@@ -97,7 +97,10 @@ pub trait CopySlice<T, D: Device = Self>: Sized + Device {
 }
 
 /// Trait for reading buffers.
-pub trait Read<T, D: Device = Self, S: Shape = ()>: Device {
+/// Syncronizationpoint for CUDA.
+pub trait Read<T, S: Shape = (), D: Device = Self>: Device {
+    /// The type of the read data.
+    /// Usually Vec<T> or &'a [T].
     type Read<'a>
     where
         T: 'a,
@@ -135,7 +138,7 @@ pub trait Read<T, D: Device = Self, S: Shape = ()>: Device {
 }
 
 /// Trait for writing data to buffers.
-pub trait WriteBuf<T, D: Device = Self, S: Shape = ()>: Sized + Device {
+pub trait WriteBuf<T, S: Shape = (), D: Device = Self>: Device {
     /// Write data to the buffer.
     /// # Example
     #[cfg_attr(feature = "cpu", doc = "```")]
@@ -143,17 +146,30 @@ pub trait WriteBuf<T, D: Device = Self, S: Shape = ()>: Sized + Device {
     /// use custos::{CPU, Buffer, WriteBuf};
     ///
     /// let device = CPU::new();
-    /// let mut buf = Buffer::new(&device, 4);
+    /// let mut buf: Buffer<i32> = Buffer::new(&device, 4);
     /// device.write(&mut buf, &[9, 3, 2, -4]);
     /// assert_eq!(buf.as_slice(), &[9, 3, 2, -4])
     ///
     /// ```
     fn write(&self, buf: &mut Buffer<T, D, S>, data: &[T]);
+
     /// Writes data from <Device> Buffer to other <Device> Buffer.
-    // TODO: implement, change name of fn? -> set_.. ?
-    fn write_buf(&self, _dst: &mut Buffer<T, Self, S>, _src: &Buffer<T, Self, S>) {
-        unimplemented!()
-    }
+    /// The buffers must have the same size.
+    ///
+    /// # Example
+    #[cfg_attr(feature = "cpu", doc = "```")]
+    #[cfg_attr(not(feature = "cpu"), doc = "```ignore")]
+    /// use custos::{CPU, Buffer, WriteBuf};
+    ///
+    /// let device = CPU::new();
+    ///
+    /// let mut dst: Buffer<i32> = Buffer::new(&device, 4);
+    ///
+    /// let mut src: Buffer<i32> = Buffer::from((&device, [1, 2, -5, 4]));
+    /// device.write_buf(&mut dst, &src);
+    /// assert_eq!(dst.read(), [1, 2, -5, 4])
+    /// ```
+    fn write_buf(&self, dst: &mut Buffer<T, D, S>, src: &Buffer<T, D, S>);
 }
 
 /// This trait is used to clone a buffer based on a specific device type.
@@ -174,31 +190,6 @@ pub trait CloneBuf<'a, T, S: Shape = ()>: Sized + Device {
     fn clone_buf(&'a self, buf: &Buffer<'a, T, Self, S>) -> Buffer<'a, T, Self, S>;
 }
 
-/// This trait is used to retrieve a cached buffer from a specific device type.
-pub trait CacheBuf<'a, T, S: Shape = ()>: Sized + Device {
-    /// Adds a buffer to the cache. Following calls will return this buffer, if the corresponding internal count matches with the id used in the cache.
-    /// # Example
-    #[cfg_attr(any(feature = "realloc", not(feature = "cpu")), doc = "```ignore")]
-    #[cfg_attr(any(not(feature = "realloc"), feature = "cpu"), doc = "```")]
-    /// use custos::{CPU, Read, set_count, get_count, CacheBuf};
-    ///
-    /// let device = CPU::new();
-    /// assert_eq!(0, get_count());
-    ///
-    /// let mut buf = CacheBuf::<f32>::cached(&device, 10);
-    /// assert_eq!(1, get_count());
-    ///
-    /// for value in buf.as_mut_slice() {
-    ///     *value = 1.5;
-    /// }
-    ///    
-    /// set_count(0);
-    /// let buf = CacheBuf::<f32>::cached(&device, 10);
-    /// assert_eq!(device.read(&buf), vec![1.5; 10]);
-    /// ```
-    fn cached(&'a self, len: usize) -> Buffer<'a, T, Self, S>;
-}
-
 /// Convert a possibly-indefinite [`RangeBounds`] into a [`Range`] with a start and stop index.
 #[inline]
 pub(crate) fn bounds_to_range<B: RangeBounds<usize>>(bounds: B, len: usize) -> Range<usize> {
@@ -215,4 +206,23 @@ pub(crate) fn bounds_to_range<B: RangeBounds<usize>>(bounds: B, len: usize) -> R
     };
 
     start..end
+}
+
+#[cfg(test)]
+mod tests {
+
+    #[cfg(feature = "stack")]
+    #[cfg(feature = "macro")]
+    #[cfg(not(feature = "autograd"))]
+    #[test]
+    fn test_unary_ew_stack_no_autograd() {
+        use crate::{Buffer, Combiner, Dim1, UnaryElementWiseMayGrad};
+
+        let device = crate::Stack;
+        let buf = Buffer::<_, _, Dim1<5>>::from((&device, [1, 2, 4, 5, 3]));
+
+        let out = device.unary_ew(&buf, |x| x.mul(3), |x| x);
+
+        assert_eq!(out.read(), [3, 6, 12, 15, 9]);
+    }
 }

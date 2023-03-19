@@ -1,6 +1,19 @@
-use crate::{prelude::Number, shape::Shape, Alloc, Buffer, Dim1, Dim2};
+use crate::{prelude::Number, shape::Shape, Alloc, Buffer, Dim1, Dim2, Ident};
 
+/// Trait for creating [`Buffer`]s with a [`Shape`]. The [`Shape`] is inferred from the array.
 pub trait WithShape<D, C> {
+    /// Create a new [`Buffer`] with the given [`Shape`] and array.
+    /// # Example
+    #[cfg_attr(feature = "cpu", doc = "```")]
+    #[cfg_attr(not(feature = "cpu"), doc = "```ignore")]
+    /// use custos::{CPU, Buffer, WithShape};
+    ///
+    /// let device = CPU::new();
+    /// let buf = Buffer::with(&device, [1.0, 2.0, 3.0]);
+    ///
+    /// assert_eq!(&*buf, &[1.0, 2.0, 3.0]);
+    ///
+    /// ```
     fn with(device: D, array: C) -> Self;
 }
 
@@ -11,9 +24,9 @@ where
 {
     fn with(device: &'a D, array: [T; N]) -> Self {
         Buffer {
+            ident: Ident::new_bumped(array.len()),
             ptr: device.with_array(array),
             device: Some(device),
-            node: Default::default(),
         }
     }
 }
@@ -25,9 +38,9 @@ where
 {
     fn with(device: &'a D, array: &[T; N]) -> Self {
         Buffer {
+            ident: Ident::new_bumped(array.len()),
             ptr: device.with_array(*array),
             device: Some(device),
-            node: Default::default(),
         }
     }
 }
@@ -40,9 +53,9 @@ where
 {
     fn with(device: &'a D, array: [[T; A]; B]) -> Self {
         Buffer {
+            ident: Ident::new_bumped(B * A),
             ptr: device.with_array(array),
             device: Some(device),
-            node: Default::default(),
         }
     }
 }
@@ -55,9 +68,9 @@ where
 {
     fn with(device: &'a D, array: &[[T; A]; B]) -> Self {
         Buffer {
+            ident: Ident::new_bumped(B * A),
             ptr: device.with_array(*array),
             device: Some(device),
-            node: Default::default(),
         }
     }
 }
@@ -68,5 +81,32 @@ where
 {
     fn with(device: &'a D, _: ()) -> Self {
         Buffer::new(device, S::LEN)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    #[cfg(feature = "cpu")]
+    #[test]
+    fn test_with_const_dim2_cpu() {
+        use crate::{Buffer, WithShape, CPU};
+
+        let device = CPU::new();
+
+        let buf = Buffer::with(&device, [[1.0, 2.0], [3.0, 4.0]]);
+
+        assert_eq!(&*buf, &[1.0, 2.0, 3.0, 4.0]);
+    }
+
+    #[cfg(feature = "stack")]
+    #[test]
+    fn test_with_const_dim2_stack() {
+        use crate::{Buffer, Stack, WithShape};
+
+        let device = Stack;
+
+        let buf = Buffer::with(&device, [[1.0, 2.0], [3.0, 4.0]]);
+
+        assert_eq!(buf.ptr.array, [[1.0, 2.0,], [3.0, 4.0]]);
     }
 }

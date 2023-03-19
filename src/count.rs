@@ -1,7 +1,10 @@
 use core::ops::{Range, RangeInclusive};
 
+/// Converts ranges into a start and end index.
 pub trait AsRangeArg {
+    /// Returns the start index of the range.
     fn start(&self) -> usize;
+    /// Returns the end index of the range.
     fn end(&self) -> usize;
 }
 
@@ -45,14 +48,13 @@ impl AsRangeArg for (usize, usize) {
     }
 }
 
-/// inclusive range
 /// used to reset the cache count in loops as every operation increases the cache count, which would break the "cache cycle" if the cache count would not be reset.
 ///
 /// # Example
 /// ```
 /// use custos::{get_count, range, Ident, bump_count};
 ///
-/// for _ in range(100) {
+/// for _ in range(100) { // using only one usize: exclusive range
 ///     Ident::new(10); // an 'Ident' is created if a Buffer is retrieved from cache.
 ///     bump_count();
 ///     assert!(get_count() == 1);
@@ -67,6 +69,7 @@ pub fn range<R: AsRangeArg>(range: R) -> Count {
 #[derive(Debug, Clone, Copy)]
 pub struct Count(pub(super) usize, pub(super) usize);
 
+/// The iterator used for setting the cache count.
 #[derive(Debug)]
 pub struct CountIntoIter {
     epoch: usize,
@@ -79,7 +82,9 @@ impl Iterator for CountIntoIter {
 
     fn next(&mut self) -> Option<Self::Item> {
         #[cfg(not(feature = "no-std"))]
-        crate::set_count(self.idx);
+        unsafe {
+            crate::set_count(self.idx)
+        };
         if self.epoch >= self.end {
             return None;
         }

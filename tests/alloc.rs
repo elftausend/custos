@@ -1,5 +1,6 @@
 use custos::prelude::*;
 use custos::Alloc;
+use custos::Ident;
 
 #[cfg(feature = "cpu")]
 #[test]
@@ -8,9 +9,9 @@ fn test_alloc() {
     let ptr = Alloc::<i32, ()>::with_slice(&device, &[1, 5, 4, 3, 6, 9, 0, 4]);
     //let ptr = device.with_slice(&[1, 5, 4, 3, 6, 9, 0, 4]);
     let buf: Buffer<i32, CPU, ()> = Buffer {
+        ident: Ident::new_bumped(ptr.len),
         ptr,
         device: Some(&device),
-        node: device.graph().add_leaf(8),
     };
     assert_eq!(vec![1, 5, 4, 3, 6, 9, 0, 4], device.read(&buf));
 }

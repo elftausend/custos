@@ -2,13 +2,15 @@ use core::cell::Cell;
 use std::thread_local;
 
 thread_local! {
-    pub static COUNT: Cell<usize> = Cell::new(0);
+    pub(crate) static COUNT: Cell<usize> = Cell::new(0);
 }
 
 /// Sets current cache identifier / index.
 /// This function is usually called after an iteration in a loop -> [Count](crate::Count) or [range](crate::range)
+/// # Safety
+/// Manually setting the count may yield multiple `Buffer` pointing two the same data.
 #[inline]
-pub fn set_count(count: usize) {
+pub unsafe fn set_count(count: usize) {
     COUNT.with(|c| c.set(count));
 }
 
@@ -30,15 +32,30 @@ pub fn bump_count() {
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]
 /// An `Ident` is used to identify a cached pointer.
 pub struct Ident {
+    /// The index of the `Ident`.
     pub idx: usize,
+    /// The amount of elements a corresponding [`Buffer`](crate::Buffer) has.
     pub len: usize,
 }
 
 impl Ident {
+    /// Returns a new `Ident` with the current cache identifier / index.
+    #[inline]
     pub fn new(len: usize) -> Ident {
-        crate::COUNT.with(|count| Ident {
-            idx: count.get(),
+        Ident {
+            idx: get_count(),
             len,
-        })
+        }
+    }
+
+    /// Returns a new `Ident` with the current cache identifier / index and increases the cache identifier / index by 1.
+    #[inline]
+    pub fn new_bumped(len: usize) -> Ident {
+        let id = Ident {
+            idx: get_count(),
+            len,
+        };
+        bump_count();
+        id
     }
 }

@@ -1,8 +1,9 @@
 use crate::{
     flag::AllocFlag, shape::Shape, Alloc, Buffer, CloneBuf, Device, DevicelessAble, MainMemory,
-    Read, StackArray,
+    Read, StackArray, WriteBuf,
 };
 
+/// A device that allocates memory on the stack.
 #[derive(Debug, Clone, Copy)]
 pub struct Stack;
 
@@ -39,9 +40,8 @@ impl<'a, S: Shape, T: Copy + Default> Alloc<'a, T, S> for Stack {
     fn with_slice(&self, data: &[T]) -> Self::Ptr<T, S> {
         let mut array: StackArray<S, T> =
             <Stack as Alloc<'_, T, S>>::alloc(self, 0, AllocFlag::None);
-        unsafe {
-            array.flatten_mut().copy_from_slice(&data[..S::LEN]);
-        }
+        array.flatten_mut().copy_from_slice(&data[..S::LEN]);
+
         array
     }
 
@@ -52,13 +52,6 @@ impl<'a, S: Shape, T: Copy + Default> Alloc<'a, T, S> for Stack {
     {
         StackArray::from_array(array)
     }
-
-    /* TODO
-    #[inline]
-    fn with_array<const N: usize>(&self, array: [T; N]) -> Self::Ptr<T, S> {
-        //StackArray { array }
-        todo!()
-    }*/
 }
 
 /*impl GraphReturn for Stack {
@@ -67,9 +60,9 @@ impl<'a, S: Shape, T: Copy + Default> Alloc<'a, T, S> for Stack {
     }
 }*/
 
-impl<T: Copy, S: Shape> Read<T, Stack, S> for Stack
+impl<T: Copy, S: Shape> Read<T, S> for Stack
 where
-    S::ARR<T>: Clone,
+    S::ARR<T>: Copy,
 {
     type Read<'a> = S::ARR<T>
     where
@@ -79,7 +72,7 @@ where
 
     #[inline]
     fn read<'a>(&self, buf: &'a Buffer<T, Stack, S>) -> Self::Read<'a> {
-        buf.ptr.array.clone()
+        buf.ptr.array
     }
 
     #[inline]
@@ -88,7 +81,7 @@ where
     where
         T: Default,
     {
-        unsafe { buf.ptr.flatten().to_vec() }
+        buf.ptr.flatten().to_vec()
     }
 }
 
@@ -100,8 +93,20 @@ where
         Buffer {
             ptr: buf.ptr,
             device: Some(&Stack),
-            node: Default::default(),
+            ident: buf.ident,
         }
+    }
+}
+
+impl<T: Copy, S: Shape> WriteBuf<T, S> for Stack {
+    #[inline]
+    fn write(&self, buf: &mut Buffer<T, Self, S>, data: &[T]) {
+        buf.copy_from_slice(data)
+    }
+
+    #[inline]
+    fn write_buf(&self, dst: &mut Buffer<T, Self, S>, src: &Buffer<T, Self, S>) {
+        self.write(dst, src)
     }
 }
 

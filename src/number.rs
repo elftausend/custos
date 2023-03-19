@@ -1,18 +1,98 @@
+//! Contains traits for generic math.
+#![allow(missing_docs)]
+
 use core::{
     cmp::Ordering,
     iter::Sum,
-    ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign, RemAssign, Rem},
+    ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Rem, RemAssign, Sub, SubAssign},
 };
 
+/// A trait that returns the default / zero of a value.
+pub trait Zero {
+    /// Returns zero or the default.
+    /// # Example
+    /// ```
+    /// use custos::number::Zero;
+    ///
+    /// assert_eq!(f32::zero(), 0.);
+    ///
+    /// ```
+    #[inline]
+    fn zero() -> Self
+    where
+        Self: Default,
+    {
+        Self::default()
+    }
+}
+
+impl<T: Default> Zero for T {}
+
+/// A trait that returns 1 for a number.
+pub trait One {
+    /// Returns one..
+    /// # Example
+    /// ```
+    /// use custos::number::One;
+    ///
+    /// fn generic_one<T: One>() -> T {
+    ///     T::one()
+    /// }
+    ///
+    /// assert_eq!(generic_one::<f32>(), 1.);
+    ///
+    /// ```
+    fn one() -> Self;
+}
+
+/// A trait that returns 2 for a number.
+pub trait Two {
+    /// Returns two.
+    /// # Example
+    /// ```
+    /// use custos::number::Two;
+    ///
+    /// fn generic_two<T: Two>() -> T {
+    ///     T::two()
+    /// }
+    ///
+    /// assert_eq!(generic_two::<f32>(), 2.);
+    ///
+    /// ```
+    fn two() -> Self;
+}
+
+macro_rules! typical_number_impl {
+    ($($t:ident),*) => {
+        $(
+            impl One for $t {
+                #[inline]
+                fn one() -> $t {
+                    1 as $t
+                }
+            }
+
+            impl Two for $t {
+                #[inline]
+                fn two() -> $t {
+                    2 as $t
+                }
+            }
+        )*
+
+    };
+}
+
+typical_number_impl! {
+    f32, f64, i8, i16, i32, i64, i128,
+    isize, u8, u16, u32, u64, u128, usize
+}
+
+/// Numeric is a trait that is implemented for all numeric types.
 pub trait Numeric:
-    Sized
-    + Default
-    + Copy
-    + PartialOrd
-    + PartialEq
-    + core::fmt::Debug
-    + core::fmt::Display
-{}
+    Sized + Default + Copy + PartialOrd + PartialEq + core::fmt::Debug + core::fmt::Display
+{
+}
 
 impl Numeric for bool {}
 impl Numeric for f32 {}
@@ -30,6 +110,17 @@ impl Numeric for u64 {}
 impl Numeric for u128 {}
 impl Numeric for usize {}
 
+/// Implementors of `Number` require some basic math operations.
+/// # Example
+/// ```
+/// use custos::number::Number;
+///
+/// fn generic_add<T: Number>(a: T, b: T) -> T {
+///     a + b
+/// }
+///
+/// assert_eq!(generic_add(1., 2.), 3.);
+/// ```
 pub trait Number:
     Numeric
     + Add<Self, Output = Self>
@@ -37,11 +128,14 @@ pub trait Number:
     + Div<Self, Output = Self>
     + Mul<Self, Output = Self>
     + Rem<Self, Output = Self>
+    + One
+    + Two
+    + Zero
     + for<'a> Rem<&'a Self, Output = Self>
     + for<'a> Add<&'a Self, Output = Self>
     + for<'a> Sub<&'a Self, Output = Self>
     + for<'a> Div<&'a Self, Output = Self>
-    + for<'a> Mul<&'a Self, Output = Self>   
+    + for<'a> Mul<&'a Self, Output = Self>
     + RemAssign<Self>
     + AddAssign<Self>
     + SubAssign<Self>
@@ -53,9 +147,7 @@ pub trait Number:
     fn from_u64(value: u64) -> Self;
     fn as_usize(&self) -> usize;
     fn as_f64(&self) -> f64;
-    fn zero() -> Self;
-    fn one() -> Self;
-    fn two() -> Self;
+    fn max(self, rhs: Self) -> Self;
 }
 
 macro_rules! number_apply {
@@ -83,18 +175,12 @@ macro_rules! number_apply {
                 }
 
                 #[inline]
-                fn zero() -> $t {
-                    0 as $t
-                }
-
-                #[inline]
-                fn one() -> $t {
-                    1 as $t
-                }
-
-                #[inline]
-                fn two() -> $t {
-                    2 as $t
+                fn max(self, rhs: Self) -> Self {
+                    if self > rhs {
+                        self
+                    } else {
+                        rhs
+                    }
                 }
             }
         )*
@@ -123,8 +209,11 @@ pub trait Float: Neg<Output = Self> + Number {
     //fn from_usize(value: usize) -> Self;
     fn tanh(&self) -> Self;
     fn sin(&self) -> Self;
+    fn cos(&self) -> Self;
+    fn tan(&self) -> Self;
     fn as_generic(value: f64) -> Self;
     fn sqrt(&self) -> Self;
+    fn log(&self, base: Self) -> Self;
     fn ln(&self) -> Self;
     fn abs(&self) -> Self;
 }
@@ -160,6 +249,17 @@ macro_rules! float_apply {
                 fn sin(&self) -> $t {
                     $t::sin(*self)
                 }
+
+                #[inline]
+                fn cos(&self) -> $t {
+                    $t::cos(*self)
+                }
+
+                #[inline]
+                fn tan(&self) -> $t {
+                    $t::tan(*self)
+                }
+
                 #[inline]
                 fn as_generic(value: f64) -> $t {
                     value as $t
@@ -168,6 +268,12 @@ macro_rules! float_apply {
                 fn sqrt(&self) -> $t {
                     $t::sqrt(*self)
                 }
+
+                #[inline]
+                fn log(&self, base: Self) -> $t {
+                    $t::log(*self, base)
+                }
+
                 #[inline]
                 fn ln(&self) -> $t {
                     $t::ln(*self)

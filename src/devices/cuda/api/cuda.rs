@@ -6,7 +6,7 @@ use super::{
     ffi::cuMemAlloc_v2,
     CUcontext, CUdevice, CUfunction, CUmodule, CUstream,
 };
-use crate::CUdeviceptr;
+
 use std::{
     ffi::{c_void, CString},
     ptr::null_mut,
@@ -15,6 +15,8 @@ use std::{
 pub fn cinit(flags: u32) -> CudaResult<()> {
     unsafe { cuInit(flags).into() }
 }
+
+pub type CUdeviceptr = core::ffi::c_ulonglong;
 
 #[derive(Debug)]
 pub struct CudaIntDevice(pub CUdevice);

@@ -8,7 +8,7 @@ use custos::{range, Buffer, CPU};
 #[cfg(feature = "cpu")]
 #[cfg(not(feature = "realloc"))]
 fn cached_add<'a>(device: &'a CPU, a: &[f32], b: &[f32]) -> Buffer<'a, f32, CPU> {
-    let mut out = custos::cpu::cpu_cached(device, a.len());
+    let mut out = custos::Device::retrieve::<f32, ()>(device, 10, ());
     for i in 0..out.len() {
         out[i] = a[i] + b[i];
     }
@@ -32,8 +32,8 @@ fn test_caching_cpu() {
             panic!("Should be the same pointer!");
         }
         old_ptr = out.host_ptr_mut();
-        let len = device.cache.borrow().nodes.len();
+        let len = device.addons.cache.borrow().nodes.len();
         //let len = CPU_CACHE.with(|cache| cache.borrow().nodes.len());
-        assert_eq!(len, 1);
+        assert_eq!(len, 3);
     }
 }

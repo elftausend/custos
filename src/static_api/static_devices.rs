@@ -8,9 +8,10 @@ use crate::cuda::chosen_cu_idx;
 
 #[cfg(not(feature = "no-std"))]
 thread_local! {
-    pub static GLOBAL_CPU: CPU = CPU::new();
+    static GLOBAL_CPU: CPU = CPU::new();
 }
 
+/// Returns a static `CPU` device.
 #[cfg(not(feature = "no-std"))]
 #[inline]
 pub fn static_cpu() -> &'static CPU {
@@ -24,8 +25,9 @@ pub fn static_cpu() -> &'static CPU {
 }
 
 #[cfg(feature = "no-std")]
-pub static GLOBAL_CPU: Option<CPU> = None;
+static GLOBAL_CPU: Option<CPU> = None;
 
+/// Returns a static `CPU` device.
 #[cfg(feature = "no-std")]
 pub fn static_cpu() -> &'static CPU {
     if let Some(cpu) = &GLOBAL_CPU {
@@ -37,18 +39,13 @@ pub fn static_cpu() -> &'static CPU {
 
 #[cfg(feature = "opencl")]
 thread_local! {
-    pub static GLOBAL_OPENCL: crate::OpenCL = {
+    static GLOBAL_OPENCL: crate::OpenCL = {
         crate::OpenCL::new(chosen_cl_idx()).expect("Could not create a static OpenCL device.")
     };
 }
 
-#[cfg(feature = "cuda")]
-thread_local! {
-    pub static GLOBAL_CUDA: crate::CUDA = {
-        crate::CUDA::new(chosen_cu_idx()).expect("Could not create a static CUDA device.")
-    };
-}
-
+/// Returns a static `OpenCL` device.
+/// You can select the index of a static [`OpenCL`](crate::OpenCL) device by setting the `CUSTOS_CL_DEVICE_IDX` environment variable.
 #[cfg(feature = "opencl")]
 #[inline]
 pub fn static_opencl() -> &'static crate::OpenCL {
@@ -61,6 +58,15 @@ pub fn static_opencl() -> &'static crate::OpenCL {
     }
 }
 
+#[cfg(feature = "cuda")]
+thread_local! {
+    static GLOBAL_CUDA: crate::CUDA = {
+        crate::CUDA::new(chosen_cu_idx()).expect("Could not create a static CUDA device.")
+    };
+}
+
+/// Returns a static `CUDA` device.
+/// /// You can select the index of a static [`CUDA`](crate::CUDA) device by setting the `CUSTOS_CU_DEVICE_IDX` environment variable.
 #[cfg(feature = "cuda")]
 #[inline]
 pub fn static_cuda() -> &'static crate::CUDA {
@@ -83,22 +89,22 @@ mod tests {
     #[test]
     fn test_static_cpu_cache() {
         // for: cargo test -- --test-threads=1
-        set_count(0);
+        unsafe { set_count(0) };
         use super::static_cpu;
-        use crate::{set_count, Cache, Ident};
+        use crate::{set_count, Device, Ident};
 
         let cpu = static_cpu();
 
         let a = Buffer::from(&[1, 2, 3, 4]);
-        let b = Buffer::from(&[1, 2, 3, 4]);
+        let _b = Buffer::from(&[1, 2, 3, 4]);
 
-        let out = Cache::get::<i32, ()>(cpu, a.len(), (&a, &b));
+        let out = cpu.retrieve::<_, ()>(a.len(), ());
 
-        let cache = static_cpu().cache.borrow();
+        let cache = static_cpu().addons.cache.borrow();
         let cached = cache
             .nodes
             .get(&Ident {
-                idx: 0,
+                idx: 2,
                 len: out.len(),
             })
             .unwrap();

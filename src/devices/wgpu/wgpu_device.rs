@@ -1,10 +1,12 @@
 use core::{cell::RefCell, fmt::Debug};
 
-use super::{shader_cache::ShaderCache, wgpu_buffer::*, wgpu_clear};
+use super::{
+    launch_shader, shader_cache::ShaderCache, wgpu_buffer::*, wgpu_clear, AsBindingResource,
+};
 
 use crate::{
-    flag::AllocFlag, Alloc, Cache, CacheReturn, ClearBuf, Device, DeviceError, Graph, GraphReturn,
-    Node, PtrType, RawConv, Read, Shape,
+    flag::AllocFlag, Addons, AddonsReturn, Alloc, Cache, ClearBuf, Device, DeviceError, PtrType,
+    RawConv, Read, Shape,
 };
 use wgpu::{Adapter, Backends, Queue};
 
@@ -12,9 +14,8 @@ pub struct WGPU {
     pub adapter: Adapter,
     pub device: wgpu::Device,
     pub queue: Queue,
-    pub graph: RefCell<Graph>,
     pub shader_cache: RefCell<ShaderCache>,
-    pub cache: RefCell<Cache<WGPU>>,
+    pub addons: Addons<WGPU>,
 }
 
 impl WGPU {
@@ -41,16 +42,21 @@ impl WGPU {
             adapter,
             device,
             queue,
-            graph: Default::default(),
             shader_cache: Default::default(),
-            cache: Default::default(),
+            addons: Default::default(),
         })
+    }
+
+    #[inline]
+    pub fn launch_kernel(&self, src: &str, gws: [u32; 3], args: &[impl AsBindingResource]) {
+        launch_shader(self, src, gws, args)
     }
 }
 
-impl GraphReturn for WGPU {
-    fn graph(&self) -> core::cell::RefMut<Graph> {
-        self.graph.borrow_mut()
+impl Default for WGPU {
+    #[inline]
+    fn default() -> Self {
+        Self::new(Backends::PRIMARY).unwrap()
     }
 }
 
@@ -59,7 +65,16 @@ impl Device for WGPU {
     type Cache = Cache<WGPU>;
 
     fn new() -> crate::Result<Self> {
-        unimplemented!()
+        Ok(WGPU::default())
+    }
+}
+
+impl AddonsReturn for WGPU {
+    type CachePtrType = RawWGPUBuffer;
+
+    #[inline]
+    fn addons(&self) -> &Addons<Self> {
+        &self.addons
     }
 }
 
@@ -94,13 +109,13 @@ pub struct WGPUBufPtr<T> {
 
 impl<T> WGPUBufPtr<T> {
     pub unsafe fn buf(&self) -> &wgpu::Buffer {
-        &*(*self.ptr).buf
+        &(*self.ptr).buf
     }
 }
 
 impl<T> PtrType for WGPUBufPtr<T> {
     #[inline]
-    fn len(&self) -> usize {
+    fn size(&self) -> usize {
         self.len
     }
 
@@ -112,7 +127,7 @@ impl<T> PtrType for WGPUBufPtr<T> {
 
 impl<T> Drop for WGPUBufPtr<T> {
     fn drop(&mut self) {
-        if self.flag != AllocFlag::None {
+        if !matches!(self.flag, AllocFlag::None | AllocFlag::BorrowedCache) {
             return;
         }
 
@@ -120,62 +135,48 @@ impl<T> Drop for WGPUBufPtr<T> {
     }
 }
 
+#[derive(Debug)]
 pub struct RawWGPUBuffer {
     pub ptr: *const u8,
     pub buffer: *mut wgpu::Buffer,
     len: usize,
-    node: Node,
+    flag: AllocFlag,
 }
 
 impl Drop for RawWGPUBuffer {
     fn drop(&mut self) {
+        if self.flag != AllocFlag::Cache {
+            return;
+        }
+
         unsafe { drop(Box::from_raw(self.buffer)) }
     }
 }
 
-impl CacheReturn for WGPU {
-    type CT = RawWGPUBuffer;
-
-    fn cache(&self) -> core::cell::RefMut<crate::Cache<Self>>
-    where
-        Self: RawConv,
-    {
-        self.cache.borrow_mut()
-    }
-}
-
 impl RawConv for WGPU {
-    fn construct<T, S: Shape>(
-        ptr: &Self::Ptr<T, S>,
-        len: usize,
-        node: crate::Node,
-    ) -> RawWGPUBuffer {
+    #[inline]
+    fn construct<T, S: Shape>(ptr: &Self::Ptr<T, S>, len: usize, flag: AllocFlag) -> RawWGPUBuffer {
         unsafe {
             RawWGPUBuffer {
                 ptr: ptr.ptr as *const u8,
-                buffer: &mut *(*ptr.ptr).buf,
+                buffer: &mut (*ptr.ptr).buf,
                 len,
-                node,
+                flag,
             }
         }
     }
 
-    fn destruct<T, S: Shape>(
-        ct: &RawWGPUBuffer,
-        flag: AllocFlag,
-    ) -> (Self::Ptr<T, S>, crate::Node) {
-        (
-            WGPUBufPtr {
-                ptr: ct.ptr as *mut WGPUBuffer<T>,
-                len: ct.len,
-                flag,
-            },
-            ct.node,
-        )
+    #[inline]
+    fn destruct<T, S: Shape>(ct: &RawWGPUBuffer) -> Self::Ptr<T, S> {
+        WGPUBufPtr {
+            ptr: ct.ptr as *mut WGPUBuffer<T>,
+            len: ct.len,
+            flag: ct.flag,
+        }
     }
 }
 
-impl<T: Default + Debug, S: Shape> ClearBuf<T, Self, S> for WGPU {
+impl<T: Default + Debug, S: Shape> ClearBuf<T, S> for WGPU {
     /// Sets all the elements of a `WGPU` `Buffer` to zero / default.
     /// # Example
     /// ```
@@ -195,7 +196,7 @@ impl<T: Default + Debug, S: Shape> ClearBuf<T, Self, S> for WGPU {
     }
 }
 
-impl<T: Default + Clone> Read<T, Self> for WGPU {
+impl<T: Default + Clone> Read<T> for WGPU {
     type Read<'a> = Vec<T>
     where
         T: 'a,
@@ -213,7 +214,6 @@ impl<T: Default + Clone> Read<T, Self> for WGPU {
         self.queue.submit(None);
 
         let buf = unsafe { buf.ptr.buf() };
-
         let buf_slice = buf.slice(..);
 
         let (sender, receiver) = futures_intrusive::channel::shared::oneshot_channel();

@@ -3,9 +3,10 @@
 
 use std::{ffi::c_void, os::raw::c_char};
 
-use crate::CUdeviceptr;
-
-use super::error::{CudaErrorKind, CudaResult};
+use super::{
+    error::{CudaErrorKind, CudaResult},
+    CUdeviceptr,
+};
 pub type CUdevice = std::os::raw::c_int;
 
 pub enum CUctx_st {}

@@ -22,8 +22,7 @@ where
         // this returns a previously allocated buffer.
         // You can deactivate the caching behaviour by adding the "realloc" feature
         // to the custos feature list in the Cargo.toml.
-        let mut out = self.retrieve(len, [lhs, rhs]);
-        //or: let mut out = Cache::get(self, len, [lhs, rhs]);
+        let mut out = self.retrieve(len, (lhs, rhs));
 
         // By default, the Buffer dereferences to a slice.
         // Therefore, standard indexing can be used.
@@ -45,7 +44,7 @@ where
     T: Copy + Default + std::ops::Add<Output = T>,
 {
     fn add(&self, lhs: &Buffer<T, D, S>, rhs: &Buffer<T, D, S>) -> Buffer<T, Self, S> {
-        let mut out = self.retrieve(S::LEN, [lhs, rhs]); // this works as well and in this case (Stack), does exactly the same as the line above.
+        let mut out = self.retrieve(S::LEN, ()); // this works as well and in this case (Stack), does exactly the same as the line above.
 
         for i in 0..S::LEN {
             out[i] = lhs[i] + rhs[i];
@@ -79,7 +78,8 @@ where
         // In the background, the kernel is compiled once. After that, it will be reused for every iteration.
         // The cached kernels are released (or freed) when the underlying CLDevice is dropped.
         // The arguments are specified with a slice of buffers and/or numbers.
-        enqueue_kernel(self, &src, [len, 0, 0], None, &[&lhs, &rhs, &out]).unwrap();
+        self.launch_kernel(&src, [len, 0, 0], None, &[&lhs, &rhs, &out])
+            .unwrap();
         out
     }
 }
@@ -109,7 +109,8 @@ impl<T: CDatatype> AddBuf<T> for CUDA {
 
         // The kernel is compiled once with nvrtc and is cached too.
         // The arguments are specified with a vector of buffers and/or numbers.
-        launch_kernel1d(len, self, &src, "add", &[lhs, rhs, &out, &len]).unwrap();
+        self.launch_kernel1d(len, &src, "add", &[lhs, rhs, &out, &len])
+            .unwrap();
         out
     }
 }
@@ -142,7 +143,7 @@ impl<T> AddBuf<T> for WGPU {
         );
 
         let mut out = self.retrieve(lhs.len(), (lhs, rhs));
-        launch_shader(self, &src, [lhs.len() as u32, 1, 1], &[lhs, rhs, &mut out]);
+        self.launch_kernel(&src, [lhs.len() as u32, 1, 1], &[lhs, rhs, &mut out]);
         out
     }
 }

@@ -1,42 +1,41 @@
-use core::ops::{Range, RangeBounds};
-
 use std::cell::RefCell;
 use std::marker::PhantomData;
 
 use super::{
     api::{
-        create_context, create_stream, cuInit, cuMemcpy, cuStreamDestroy, cu_read, cu_write,
+        create_context, create_stream, cuInit, cuMemcpy, cuStreamDestroy, cu_write,
         cublas::{create_handle, cublasDestroy_v2, cublasSetStream_v2, CublasHandle},
         cumalloc, device, Context, CudaIntDevice, Module, Stream,
     },
-    chosen_cu_idx, cu_clear, CUDAPtr, KernelCacheCU, RawCUBuf,
+    chosen_cu_idx, launch_kernel1d, AsCudaCvoidPtr, CUDAPtr, KernelCacheCU, RawCUBuf,
 };
+
 use crate::{
-    cache::{Cache, CacheReturn},
-    flag::AllocFlag,
-    op_traits::{bounds_to_range, CacheBuf, ClearBuf, CloneBuf, CopySlice},
-    Alloc, Buffer, CDatatype, CachedLeaf, Device, Graph, GraphReturn, RawConv, Read, Shape,
-    WriteBuf,
+    cache::Cache, flag::AllocFlag, Addons, AddonsReturn, Alloc, Buffer, CloneBuf, Device, RawConv,
+    Shape, CacheReturn,
 };
 
 /// Used to perform calculations with a CUDA capable device.
 /// To make new calculations invocable, a trait providing new operations should be implemented for [CudaDevice].
 #[derive(Debug)]
 pub struct CUDA {
-    pub cache: RefCell<Cache<CUDA>>,
     pub kernel_cache: RefCell<KernelCacheCU>,
     pub modules: RefCell<Vec<Module>>,
-    pub graph: RefCell<Graph>,
     device: CudaIntDevice,
     ctx: Context,
     stream: Stream,
     handle: CublasHandle,
+    pub addons: Addons<CUDA>,
 }
 
 /// Short form for `CUDA`
 pub type CU = CUDA;
 
 impl CUDA {
+    /// Returns an [CUDA] device at the specified device index.
+    /// # Errors
+    /// - No device was found at the given device index
+    /// - some other CUDA related errors
     pub fn new(idx: usize) -> crate::Result<CUDA> {
         unsafe { cuInit(0) }.to_result()?;
         let device = device(idx as i32)?;
@@ -46,10 +45,9 @@ impl CUDA {
         unsafe { cublasSetStream_v2(handle.0, stream.0) }.to_result()?;
 
         Ok(CUDA {
-            cache: RefCell::new(Cache::default()),
-            kernel_cache: RefCell::new(KernelCacheCU::default()),
-            modules: RefCell::new(vec![]),
-            graph: RefCell::new(Graph::new()),
+            kernel_cache: Default::default(),
+            modules: Default::default(),
+            addons: Default::default(),
             device,
             ctx,
             stream,
@@ -72,6 +70,17 @@ impl CUDA {
     pub fn stream(&self) -> &Stream {
         &self.stream
     }
+
+    #[inline]
+    pub fn launch_kernel1d(
+        &self,
+        len: usize,
+        src: &str,
+        fn_name: &str,
+        args: &[&dyn AsCudaCvoidPtr],
+    ) -> crate::Result<()> {
+        launch_kernel1d(len, self, src, fn_name, args)
+    }
 }
 
 impl Device for CUDA {
@@ -83,30 +92,52 @@ impl Device for CUDA {
     }
 }
 
+impl AddonsReturn for CUDA {
+    type CachePtrType = RawCUBuf;
+
+    #[inline]
+    fn addons(&self) -> &Addons<Self>
+    where
+        Self: Device,
+    {
+        &self.addons
+    }
+}
+
+
 impl RawConv for CUDA {
-    fn construct<T, S: Shape>(ptr: &Self::Ptr<T, S>, len: usize, node: crate::Node) -> Self::CT {
+    #[inline]
+    fn construct<T, S: Shape>(ptr: &Self::Ptr<T, S>, len: usize, flag: AllocFlag) -> Self::CT {
         RawCUBuf {
             ptr: ptr.ptr,
-            node,
+            flag,
             len,
         }
     }
 
-    fn destruct<T, S: Shape>(ct: &Self::CT, flag: AllocFlag) -> (Self::Ptr<T, S>, crate::Node) {
-        (
-            CUDAPtr {
-                ptr: ct.ptr,
-                len: ct.len,
-                flag,
-                p: PhantomData,
-            },
-            ct.node,
-        )
+    #[inline]
+    fn destruct<T, S: Shape>(ct: &Self::CT) -> Self::Ptr<T, S> {
+        CUDAPtr {
+            ptr: ct.ptr,
+            len: ct.len,
+            flag: ct.flag,
+            p: PhantomData,
+        }
+    }
+}
+
+impl Default for CUDA {
+    #[inline]
+    fn default() -> Self {
+        CUDA::new(chosen_cu_idx()).expect("A valid CUDA device index should be set via the environment variable `CUSTOS_CL_DEVICE_IDX`")
     }
 }
 
 impl Drop for CUDA {
     fn drop(&mut self) {
+        // deallocates all cached buffers before destroying the context etc
+        self.cache_mut().nodes.clear();
+
         unsafe {
             cublasDestroy_v2(self.handle.0);
             cuStreamDestroy(self.stream.0);
@@ -138,100 +169,6 @@ impl<T> Alloc<'_, T> for CUDA {
     }
 }
 
-impl<T: Default + Clone> Read<T, CUDA> for CUDA {
-    type Read<'a> = Vec<T>
-    where
-        T: 'a,
-        CUDA: 'a;
-
-    #[inline]
-    fn read(&self, buf: &Buffer<T, CUDA>) -> Vec<T> {
-        self.read_to_vec(buf)
-    }
-
-    fn read_to_vec(&self, buf: &Buffer<T, CUDA>) -> Vec<T>
-    where
-        T: Default + Clone,
-    {
-        assert!(
-            buf.ptrs().2 != 0,
-            "called Read::read(..) on a non CUDA buffer"
-        );
-        // TODO: sync here or somewhere else?
-        self.stream.sync().unwrap();
-
-        let mut read = vec![T::default(); buf.len()];
-        cu_read(&mut read, buf.ptrs().2).unwrap();
-        read
-    }
-}
-
-impl<T: CDatatype> ClearBuf<T, CUDA> for CUDA {
-    #[inline]
-    fn clear(&self, buf: &mut Buffer<T, CUDA>) {
-        cu_clear(self, buf).unwrap()
-    }
-}
-
-impl<T> CopySlice<T> for CUDA {
-    fn copy_slice_to<SR: RangeBounds<usize>, DR: RangeBounds<usize>>(
-        &self,
-        source: &Buffer<T, Self>,
-        source_range: SR,
-        dest: &mut Buffer<T, Self>,
-        dest_range: DR,
-    ) {
-        let source_range = bounds_to_range(source_range, source.len());
-        let dest_range = bounds_to_range(dest_range, dest.len());
-
-        let len = source_range.end - source_range.start;
-        assert_eq!(len, dest_range.end - dest_range.start);
-        let size = std::mem::size_of::<T>();
-
-        unsafe {
-            cuMemcpy(
-                dest.ptr.ptr + (dest_range.start * size) as u64,
-                source.ptr.ptr + (source_range.start * size) as u64,
-                len * size,
-            );
-        }
-    }
-
-    fn copy_slice_all<I: IntoIterator<Item = (Range<usize>, Range<usize>)>>(
-        &self,
-        source: &Buffer<T, Self>,
-        dest: &mut Buffer<T, Self>,
-        ranges: I,
-    ) {
-        for (source_range, dest_range) in ranges {
-            self.copy_slice_to(source, source_range, dest, dest_range);
-        }
-    }
-}
-
-impl<T> WriteBuf<T, CUDA> for CUDA {
-    fn write(&self, buf: &mut Buffer<T, CUDA>, data: &[T]) {
-        cu_write(buf.cu_ptr(), data).unwrap();
-    }
-}
-
-impl GraphReturn for CUDA {
-    fn graph(&self) -> std::cell::RefMut<Graph> {
-        self.graph.borrow_mut()
-    }
-}
-
-impl CacheReturn for CUDA {
-    type CT = RawCUBuf;
-    #[inline]
-    fn cache(&self) -> std::cell::RefMut<Cache<CUDA>> {
-        self.cache.borrow_mut()
-    }
-}
-
-#[cfg(feature = "opt-cache")]
-impl crate::GraphOpt for CUDA {}
-
 impl<'a, T> CloneBuf<'a, T> for CUDA {
     fn clone_buf(&'a self, buf: &Buffer<'a, T, CUDA>) -> Buffer<'a, T, CUDA> {
         let cloned = Buffer::new(self, buf.len());
@@ -244,16 +181,4 @@ impl<'a, T> CloneBuf<'a, T> for CUDA {
         }
         cloned
     }
-}
-
-impl<'a, T> CacheBuf<'a, T> for CUDA {
-    #[inline]
-    fn cached(&self, len: usize) -> Buffer<T, CUDA> {
-        Cache::get(self, len, CachedLeaf)
-    }
-}
-
-#[inline]
-pub fn cu_cached<T>(device: &CUDA, len: usize) -> Buffer<T, CUDA> {
-    device.cached(len)
 }

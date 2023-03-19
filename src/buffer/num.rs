@@ -4,20 +4,23 @@ use core::{
     ptr::null_mut,
 };
 
-use crate::{shape::Shape, Buffer, CloneBuf, CommonPtrs, Device, Node, PtrType};
+use crate::{shape::Shape, Buffer, CloneBuf, CommonPtrs, Device, Ident, PtrType};
 
+/// Makes it possible to use a single number in a [`Buffer`].
 pub struct Num<T> {
+    /// The stored number.
     pub num: T,
 }
 
 impl<T> PtrType for Num<T> {
     #[inline]
-    fn len(&self) -> usize {
+    fn size(&self) -> usize {
         0
     }
 
+    #[inline]
     fn flag(&self) -> crate::flag::AllocFlag {
-        crate::flag::AllocFlag::None
+        crate::flag::AllocFlag::Num
     }
 }
 
@@ -50,7 +53,7 @@ impl<'a, T: Clone> CloneBuf<'a, T> for () {
                 num: buf.ptr.num.clone(),
             },
             device: buf.device,
-            node: buf.node,
+            ident: buf.ident,
         }
     }
 }
@@ -61,12 +64,14 @@ impl<T: crate::number::Number> From<T> for Buffer<'_, T, ()> {
         Buffer {
             ptr: Num { num: ptr },
             device: None,
-            node: Node::default(),
+            ident: Ident::new_bumped(0),
         }
     }
 }
 
 impl<'a, T> Buffer<'a, T, ()> {
+    /// A [`Num`] [`Buffer`] is safe to copy.
+    /// This method returns a new "[`Buffer`]" with the same single value.
     #[inline]
     pub fn copy(&self) -> Self
     where
@@ -75,7 +80,7 @@ impl<'a, T> Buffer<'a, T, ()> {
         Buffer {
             ptr: Num { num: self.ptr.num },
             device: self.device,
-            node: self.node,
+            ident: self.ident,
         }
     }
 

@@ -1,22 +1,26 @@
 use crate::{Device, PtrType};
 
-pub unsafe trait Shape {
+/// Determines the shape of a [`Buffer`](crate::Buffer).
+/// `Shape` is used to get the size and ND-Array for a stack allocated `Buffer`.
+pub trait Shape: 'static {
+    /// The count of elements that fit into the shape.
     const LEN: usize = 0;
+    /// The type of the ND-Array.
     type ARR<T>;
 
+    /// Creates a new ND-Array with the default value of `T`.
     fn new<T: Copy + Default>() -> Self::ARR<T>;
 }
 
-unsafe impl Shape for () {
+impl Shape for () {
     type ARR<T> = ();
 
-    fn new<T>() -> Self::ARR<T> {
-        ()
-    }
+    fn new<T>() -> Self::ARR<T> {}
 }
 
 // TODO: impl for net device
 // this is used to
+/// If the [`Shape`] does not matter for a specific device [`Buffer`], than this trait should be implemented.
 pub trait IsShapeIndep: Device {}
 
 #[cfg(not(feature = "no-std"))]
@@ -24,12 +28,13 @@ impl<D: crate::RawConv> IsShapeIndep for D {}
 
 pub trait IsConstDim: Shape {}
 
+/// A 1D shape.
 #[derive(Clone, Copy)]
 pub struct Dim1<const N: usize>;
 
 impl<const N: usize> IsConstDim for Dim1<N> {}
 
-unsafe impl<const N: usize> Shape for Dim1<N> {
+impl<const N: usize> Shape for Dim1<N> {
     const LEN: usize = N;
     type ARR<T> = [T; N];
 
@@ -39,12 +44,13 @@ unsafe impl<const N: usize> Shape for Dim1<N> {
     }
 }
 
+/// A 2D shape.
 #[derive(Clone, Copy)]
 pub struct Dim2<const B: usize, const A: usize>;
 
 impl<const B: usize, const A: usize> IsConstDim for Dim2<B, A> {}
 
-unsafe impl<const B: usize, const A: usize> Shape for Dim2<B, A> {
+impl<const B: usize, const A: usize> Shape for Dim2<B, A> {
     const LEN: usize = B * A;
     type ARR<T> = [[T; A]; B];
 
@@ -54,18 +60,20 @@ unsafe impl<const B: usize, const A: usize> Shape for Dim2<B, A> {
     }
 }
 
+/// The shape may be 2D or ().
 pub trait MayDim2<const A: usize, const B: usize>: Shape {}
 
 impl<const A: usize, const B: usize> MayDim2<A, B> for () {}
 
 impl<const A: usize, const B: usize> MayDim2<A, B> for Dim2<A, B> {}
 
+/// A 3D shape.
 #[derive(Clone, Copy)]
 pub struct Dim3<const C: usize, const B: usize, const A: usize>;
 
 impl<const C: usize, const B: usize, const A: usize> IsConstDim for Dim3<C, B, A> {}
 
-unsafe impl<const C: usize, const B: usize, const A: usize> Shape for Dim3<C, B, A> {
+impl<const C: usize, const B: usize, const A: usize> Shape for Dim3<C, B, A> {
     const LEN: usize = B * A * C;
     type ARR<T> = [[[T; A]; B]; C];
 
@@ -76,6 +84,7 @@ unsafe impl<const C: usize, const B: usize, const A: usize> Shape for Dim3<C, B,
 }
 
 // TODO: do not use device
+/// Converts a pointer to a different [`Shape`].
 pub trait ToDim<T, I: Shape, O: Shape>: crate::Device {
     fn to_dim(&self, ptr: Self::Ptr<T, I>) -> Self::Ptr<T, O>;
 }
@@ -89,9 +98,9 @@ where
     fn to_dim(&self, ptr: Self::Ptr<T, I>) -> D::Ptr<T, O> {
         // resources are now mananged by the destructed raw pointer (prevents double free).
         let ptr = core::mem::ManuallyDrop::new(ptr);
-        // TODO: mind default node!
-        let raw_ptr = D::construct(&ptr, ptr.len(), Default::default());
-        let (ptr, _) = D::destruct(&raw_ptr, ptr.flag());
+
+        let raw_ptr = D::construct(&ptr, ptr.size(), ptr.flag());
+        let ptr = D::destruct(&raw_ptr);
 
         core::mem::forget(raw_ptr);
 

@@ -1,4 +1,6 @@
-use crate::{CommonPtrs, Node, PtrType, ShallowCopy};
+//! The CPU module provides the CPU backend for custos.
+
+use crate::{CommonPtrs, PtrType, ShallowCopy};
 #[cfg(feature = "blas")]
 pub use blas::*;
 use core::{alloc::Layout, mem::size_of, ptr::null_mut};
@@ -10,7 +12,9 @@ use crate::flag::AllocFlag;
 #[cfg(feature = "blas")]
 mod blas;
 mod cpu_device;
+mod ops;
 
+/// The pointer used for `CPU` [`Buffer`](crate::Buffer)s
 #[derive(PartialEq, Eq, Debug)]
 pub struct CPUPtr<T> {
     pub ptr: *mut T,
@@ -52,7 +56,7 @@ impl<T> Default for CPUPtr<T> {
 
 impl<T> Drop for CPUPtr<T> {
     fn drop(&mut self) {
-        if self.flag != AllocFlag::None {
+        if !matches!(self.flag, AllocFlag::None | AllocFlag::BorrowedCache) {
             return;
         }
 
@@ -70,7 +74,7 @@ impl<T> Drop for CPUPtr<T> {
 
 impl<T> PtrType for CPUPtr<T> {
     #[inline]
-    fn len(&self) -> usize {
+    fn size(&self) -> usize {
         self.len
     }
 
@@ -103,17 +107,22 @@ impl<T> ShallowCopy for CPUPtr<T> {
     }
 }
 
+/// The pointer used for storage in the `CPU` [`Cache`](crate::Cache).
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct RawCpuBuf {
+    /// the pointer to data without type information
     pub ptr: *mut u8,
     len: usize,
     align: usize,
     size: usize,
-    node: Node,
+    flag: AllocFlag,
 }
 
 impl Drop for RawCpuBuf {
     fn drop(&mut self) {
+        if self.flag != AllocFlag::Cache {
+            return;
+        }
         unsafe {
             let layout = Layout::from_size_align(self.len * self.size, self.align).unwrap();
             std::alloc::dealloc(self.ptr, layout);
