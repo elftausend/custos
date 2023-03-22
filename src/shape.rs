@@ -1,4 +1,4 @@
-use crate::{Device, PtrType};
+use crate::{flag::AllocFlag, Device, PtrConv};
 
 /// Determines the shape of a [`Buffer`](crate::Buffer).
 /// `Shape` is used to get the size and ND-Array for a stack allocated `Buffer`.
@@ -24,7 +24,7 @@ impl Shape for () {
 pub trait IsShapeIndep: Device {}
 
 #[cfg(not(feature = "no-std"))]
-impl<D: crate::RawConv> IsShapeIndep for D {}
+impl<D: PtrConv> IsShapeIndep for D {}
 
 pub trait IsConstDim: Shape {}
 
@@ -90,7 +90,7 @@ pub trait ToDim<T, I: Shape, O: Shape>: crate::Device {
 }
 
 #[cfg(not(feature = "no-std"))]
-impl<T, D: crate::RawConv, I: Shape, O: Shape> ToDim<T, I, O> for D
+impl<T, D: PtrConv, I: Shape, O: Shape> ToDim<T, I, O> for D
 where
     Self::Ptr<T, ()>: crate::PtrType,
 {
@@ -99,12 +99,8 @@ where
         // resources are now mananged by the destructed raw pointer (prevents double free).
         let ptr = core::mem::ManuallyDrop::new(ptr);
 
-        let raw_ptr = D::construct(&ptr, ptr.size(), ptr.flag());
-        let ptr = D::destruct(&raw_ptr);
-
-        core::mem::forget(raw_ptr);
-
-        ptr
+        // TODO: test if this is correct
+        unsafe { D::convert(&ptr, AllocFlag::None) }
     }
 }
 

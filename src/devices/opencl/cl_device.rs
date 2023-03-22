@@ -4,13 +4,10 @@ use min_cl::api::{
     create_buffer, enqueue_full_copy_buffer, CLIntDevice, CommandQueue, Context, MemFlags,
 };
 
-use super::{chosen_cl_idx, enqueue_kernel, AsClCvoidPtr, CLPtr, KernelCacheCL, RawCL};
+use super::{chosen_cl_idx, enqueue_kernel, AsClCvoidPtr, CLPtr, KernelCacheCL};
 use crate::flag::AllocFlag;
-use crate::{
-    cache::{Cache, RawConv},
-    Alloc, Buffer, CloneBuf, Device, Error, CPU,
-};
-use crate::{Addons, AddonsReturn, Shape};
+use crate::{cache::Cache, Alloc, Buffer, CloneBuf, Device, Error, CPU};
+use crate::{Addons, AddonsReturn, PtrConv, Shape};
 
 use std::{cell::RefCell, fmt::Debug};
 
@@ -170,33 +167,30 @@ impl Device for OpenCL {
 }
 
 impl AddonsReturn for OpenCL {
-    type CachePtrType = RawCL;
-
     #[inline]
     fn addons(&self) -> &Addons<Self> {
         &self.addons
     }
 }
 
-impl RawConv for OpenCL {
-    fn construct<T, S: Shape>(ptr: &Self::Ptr<T, S>, len: usize, flag: AllocFlag) -> Self::CT {
-        RawCL {
-            ptr: ptr.ptr,
-            host_ptr: ptr.host_ptr as *mut u8,
-            len,
-            flag,
-        }
-    }
-
-    fn destruct<T, S: Shape>(ct: &Self::CT) -> Self::Ptr<T, S> {
+impl PtrConv for OpenCL {
+    unsafe fn convert<T, IS, Conv, OS>(
+        ptr: &Self::Ptr<T, IS>,
+        flag: AllocFlag,
+    ) -> Self::Ptr<Conv, OS>
+    where
+        IS: Shape,
+        OS: Shape,
+    {
         CLPtr {
-            ptr: ct.ptr,
-            host_ptr: ct.host_ptr as *mut T,
-            len: ct.len,
-            flag: ct.flag,
+            ptr: ptr.ptr,
+            host_ptr: ptr.host_ptr.cast(),
+            len: ptr.len,
+            flag
         }
     }
 }
+
 
 impl Debug for OpenCL {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {

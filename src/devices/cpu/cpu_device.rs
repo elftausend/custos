@@ -1,6 +1,6 @@
 use crate::{
-    cache::RawConv, devices::cache::Cache, flag::AllocFlag, shape::Shape, Addons, AddonsReturn,
-    Alloc, Buffer, Cache2, CloneBuf, Device, DevicelessAble, MainMemory,
+    devices::cache::Cache, flag::AllocFlag, shape::Shape, Addons, AddonsReturn, Alloc, Buffer,
+    CloneBuf, Device, DevicelessAble, MainMemory, PtrConv,
 };
 
 use core::{
@@ -8,7 +8,7 @@ use core::{
     mem::{align_of, size_of},
 };
 
-use super::{CPUPtr, RawCpuBuf};
+use super::CPUPtr;
 
 #[derive(Debug, Default)]
 /// A CPU is used to perform calculations on the host CPU.
@@ -41,7 +41,7 @@ impl CPU {
 
 impl Device for CPU {
     type Ptr<U, S: Shape> = CPUPtr<U>;
-    type Cache = Cache2<CPU>; //<CPU as CacheReturn>::CT
+    type Cache = Cache<CPU>; //<CPU as CacheReturn>::CT
 
     fn new() -> crate::Result<Self> {
         Ok(Self::new())
@@ -49,29 +49,9 @@ impl Device for CPU {
 }
 
 impl AddonsReturn for CPU {
-    type CachePtrType = RawCpuBuf;
-
     #[inline]
     fn addons(&self) -> &Addons<Self> {
         &self.addons
-    }
-}
-
-impl RawConv for CPU {
-    #[inline]
-    fn construct<T, S: Shape>(ptr: &Self::Ptr<T, S>, len: usize, flag: AllocFlag) -> Self::CT {
-        RawCpuBuf {
-            flag,
-            len,
-            ptr: ptr.ptr.cast(),
-            align: align_of::<T>(),
-            size: size_of::<T>(),
-        }
-    }
-
-    #[inline]
-    fn destruct<T, S: Shape>(ct: &Self::CT) -> Self::Ptr<T, S> {
-        CPUPtr::from_ptr(ct.ptr.cast(), ct.len, ct.flag)
     }
 }
 
@@ -108,6 +88,22 @@ impl<T, S: Shape> Alloc<'_, T, S> for CPU {
         core::mem::forget(vec);
 
         CPUPtr::from_ptr(ptr, len, AllocFlag::None)
+    }
+}
+
+impl PtrConv for CPU {
+    #[inline]
+    unsafe fn convert<T, IS: Shape, Conv, OS: Shape>(
+        ptr: &Self::Ptr<T, IS>,
+        flag: AllocFlag,
+    ) -> Self::Ptr<Conv, OS> {
+        CPUPtr {
+            ptr: ptr.ptr as *mut Conv,
+            len: ptr.len,
+            flag,
+            align: Some(align_of::<T>()),
+            size: Some(size_of::<T>()),
+        }
     }
 }
 

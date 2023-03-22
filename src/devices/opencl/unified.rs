@@ -3,7 +3,7 @@ use std::{ffi::c_void, rc::Rc};
 #[cfg(not(feature = "realloc"))]
 use crate::{AddGraph, AllocFlag, DeviceError, GraphReturn};
 
-use super::RawCL;
+use super::CLPtr;
 use crate::{Buffer, Ident, OpenCL, Shape, CPU};
 use min_cl::api::{create_buffer, MemFlags};
 
@@ -25,11 +25,11 @@ pub unsafe fn to_cached_unified<T, S: Shape>(
 
     let old_ptr = device.addons.cache.borrow_mut().nodes.insert(
         Ident::new(no_drop.len()),
-        Rc::new(RawCL {
+        Rc::new(CLPtr {
             ptr: cl_ptr,
             host_ptr: no_drop.host_ptr() as *mut u8,
             len: no_drop.len(),
-            flag: AllocFlag::Cache,
+            flag: AllocFlag::None,
         }),
     );
 
@@ -70,7 +70,7 @@ pub unsafe fn construct_buffer<'a, T, S: Shape>(
     mut no_drop: Buffer<T, CPU, S>,
     add_node: impl AddGraph,
 ) -> crate::Result<Buffer<'a, T, OpenCL, S>> {
-    use crate::{bump_count, opencl::CLPtr};
+    use crate::bump_count;
 
     if no_drop.ptr.flag == AllocFlag::None {
         return Err(DeviceError::ConstructError.into());
@@ -109,7 +109,7 @@ pub unsafe fn construct_buffer<'a, T, S: Shape>(
             ptr,
             host_ptr,
             len,
-            flag: AllocFlag::Cache,
+            flag: AllocFlag::Wrapper,
         },
         device: Some(device),
         ident: Ident {
@@ -142,7 +142,7 @@ mod tests {
                 ptr: cl_host_ptr,
                 host_ptr,
                 len,
-                flag: AllocFlag::Cache,
+                flag: AllocFlag::Wrapper,
             },
             device: Some(&device),
             ident: Ident::new_bumped(len),

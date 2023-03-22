@@ -129,26 +129,3 @@ impl<T> ShallowCopy for CPUPtr<T> {
         }
     }
 }
-
-/// The pointer used for storage in the `CPU` [`Cache`](crate::Cache).
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
-pub struct RawCpuBuf {
-    /// the pointer to data without type information
-    pub ptr: *mut u8,
-    len: usize,
-    align: usize,
-    size: usize,
-    flag: AllocFlag,
-}
-
-impl Drop for RawCpuBuf {
-    fn drop(&mut self) {
-        if self.flag != AllocFlag::Cache {
-            return;
-        }
-        unsafe {
-            let layout = Layout::from_size_align(self.len * self.size, self.align).unwrap();
-            std::alloc::dealloc(self.ptr, layout);
-        }
-    }
-}
