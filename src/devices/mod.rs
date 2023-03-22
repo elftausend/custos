@@ -1,5 +1,8 @@
 //! This module defines all available compute devices
 
+mod cache2;
+pub use cache2::*;
+
 mod generic_blas;
 pub use generic_blas::*;
 

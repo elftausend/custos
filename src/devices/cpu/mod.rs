@@ -3,7 +3,11 @@
 use crate::{CommonPtrs, PtrType, ShallowCopy};
 #[cfg(feature = "blas")]
 pub use blas::*;
-use core::{alloc::Layout, mem::size_of, ptr::null_mut};
+use core::{
+    alloc::Layout,
+    mem::{align_of, size_of},
+    ptr::null_mut,
+};
 pub use cpu_device::*;
 use std::alloc::handle_alloc_error;
 
@@ -20,6 +24,8 @@ pub struct CPUPtr<T> {
     pub ptr: *mut T,
     pub len: usize,
     pub flag: AllocFlag,
+    pub align: Option<usize>,
+    pub size: Option<usize>,
 }
 
 impl<T> CPUPtr<T> {
@@ -36,10 +42,17 @@ impl<T> CPUPtr<T> {
             handle_alloc_error(layout);
         }
 
+        CPUPtr::from_ptr(ptr.cast(), len, flag)
+    }
+
+    #[inline]
+    pub fn from_ptr(ptr: *mut T, len: usize, flag: AllocFlag) -> CPUPtr<T> {
         CPUPtr {
-            ptr: ptr as *mut T,
+            ptr,
             len,
             flag,
+            align: None,
+            size: None,
         }
     }
 }
@@ -50,6 +63,8 @@ impl<T> Default for CPUPtr<T> {
             ptr: null_mut(),
             flag: AllocFlag::default(),
             len: 0,
+            align: None,
+            size: None,
         }
     }
 }
@@ -64,7 +79,13 @@ impl<T> Drop for CPUPtr<T> {
             return;
         }
 
-        let layout = Layout::array::<T>(self.len).unwrap();
+        let (align, size) = if let Some(align) = self.align {
+            (align, self.size.expect("size must be set if align is set"))
+        } else {
+            (align_of::<T>(), size_of::<T>())
+        };
+
+        let layout = Layout::from_size_align(self.len * size, align).unwrap();
 
         unsafe {
             std::alloc::dealloc(self.ptr as *mut u8, layout);
@@ -103,6 +124,8 @@ impl<T> ShallowCopy for CPUPtr<T> {
             ptr: self.ptr,
             len: self.len,
             flag: AllocFlag::Wrapper,
+            align: self.align,
+            size: self.size,
         }
     }
 }

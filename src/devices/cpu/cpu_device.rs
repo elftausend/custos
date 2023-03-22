@@ -1,6 +1,6 @@
 use crate::{
     cache::RawConv, devices::cache::Cache, flag::AllocFlag, shape::Shape, Addons, AddonsReturn,
-    Alloc, Buffer, CloneBuf, Device, DevicelessAble, MainMemory,
+    Alloc, Buffer, Cache2, CloneBuf, Device, DevicelessAble, MainMemory,
 };
 
 use core::{
@@ -41,7 +41,7 @@ impl CPU {
 
 impl Device for CPU {
     type Ptr<U, S: Shape> = CPUPtr<U>;
-    type Cache = Cache<CPU>; //<CPU as CacheReturn>::CT
+    type Cache = Cache2<CPU>; //<CPU as CacheReturn>::CT
 
     fn new() -> crate::Result<Self> {
         Ok(Self::new())
@@ -71,11 +71,7 @@ impl RawConv for CPU {
 
     #[inline]
     fn destruct<T, S: Shape>(ct: &Self::CT) -> Self::Ptr<T, S> {
-        CPUPtr {
-            ptr: ct.ptr as *mut T,
-            len: ct.len,
-            flag: ct.flag,
-        }
+        CPUPtr::from_ptr(ct.ptr.cast(), ct.len, ct.flag)
     }
 }
 
@@ -111,11 +107,7 @@ impl<T, S: Shape> Alloc<'_, T, S> for CPU {
         let len = vec.len();
         core::mem::forget(vec);
 
-        CPUPtr {
-            ptr,
-            len,
-            flag: AllocFlag::None,
-        }
+        CPUPtr::from_ptr(ptr, len, AllocFlag::None)
     }
 }
 

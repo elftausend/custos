@@ -11,8 +11,8 @@ use super::{
 };
 
 use crate::{
-    cache::Cache, flag::AllocFlag, Addons, AddonsReturn, Alloc, Buffer, CloneBuf, Device, RawConv,
-    Shape, CacheReturn,
+    cache::Cache, flag::AllocFlag, Addons, AddonsReturn, Alloc, Buffer, CacheReturn, CloneBuf,
+    Device, RawConv, Shape,
 };
 
 /// Used to perform calculations with a CUDA capable device.
@@ -103,7 +103,6 @@ impl AddonsReturn for CUDA {
         &self.addons
     }
 }
-
 
 impl RawConv for CUDA {
     #[inline]

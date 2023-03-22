@@ -7,8 +7,7 @@ use core::{
 };
 
 use crate::{
-    borrowing_cache::BorrowingCache, prelude::One, Alloc, Buffer, Device, Ident, Shape,
-    WriteBuf,
+    borrowing_cache::BorrowingCache, prelude::One, Alloc, Buffer, Device, Ident, Shape, WriteBuf,
 };
 
 /// A cache for gradients.

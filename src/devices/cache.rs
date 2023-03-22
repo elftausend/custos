@@ -26,6 +26,18 @@ pub trait CacheReturn: GraphReturn<GlobalCount> {
         Self: RawConv;
 }
 
+/// This trait makes a device's [`Cache`] accessible and is implemented for all compute devices.
+pub trait Cache2Return: GraphReturn<GlobalCount> + Device {
+    /// The type of the raw pointer.
+    type CT: Debug;
+
+    /// Returns a reference to a device's [`Cache`].
+    fn cache(&self) -> core::cell::Ref<crate::Cache2<Self>>;
+
+    /// Returns a mutable reference to a device's [`Cache`].
+    fn cache_mut(&self) -> RefMut<crate::Cache2<Self>>;
+}
+
 /// Converts a regular [`Buffer`] pointer into a raw "generic-less" cachable pointer.
 pub trait RawConv: Device + CacheReturn {
     /// Construct a raw pointer from a regular [`Buffer`] pointer.

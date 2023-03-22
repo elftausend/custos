@@ -55,8 +55,14 @@ pub trait UnaryElementWiseMayGrad<T, D: Device, S: Shape>: Device {
     /// Applies the forward function of a new/cached [`Buffer`] and returns it.
     /// If the `autograd` feature is enabled, the gradient function is also calculated via the grad function.
     /// # Example
-    #[cfg_attr(all(feature = "autograd", feature = "cpu", feature="macro"), doc = "```")]
-    #[cfg_attr(not(all(feature = "autograd", feature = "cpu", feature="macro")), doc = "```ignore")]
+    #[cfg_attr(
+        all(feature = "autograd", feature = "cpu", feature = "macro"),
+        doc = "```"
+    )]
+    #[cfg_attr(
+        not(all(feature = "autograd", feature = "cpu", feature = "macro")),
+        doc = "```ignore"
+    )]
     /// use custos::{CPU, Buffer, UnaryElementWiseMayGrad, Combiner};
     ///
     /// let device = CPU::new();
