@@ -30,6 +30,7 @@ impl<'a, T, const N: usize> From<(Stack, [T; N])> for Buffer<'a, T, Stack, Dim1<
             ident: Ident::new_bumped(array.len()),
             ptr: StackArray::from_array(array),
             device: Some(&Stack),
+            requires_grad: false,
         }
     }
 }
@@ -40,6 +41,7 @@ impl<'a, T, const N: usize> From<(&'a Stack, [T; N])> for Buffer<'a, T, Stack, D
             ident: Ident::new_bumped(array.len()),
             ptr: StackArray::from_array(array),
             device: Some(&Stack),
+            requires_grad: false,
         }
     }
 }
@@ -54,6 +56,7 @@ impl<'a, T: Copy + Default, const A: usize, const B: usize, const N: usize> From
             ident: Ident::new_bumped(arr.len()),
             ptr: arr,
             device: Some(&Stack),
+            requires_grad: false,
         }
     }
 }
@@ -64,6 +67,7 @@ impl<'a, T: Copy, const N: usize> From<(Stack, &[T; N])> for Buffer<'a, T, Stack
             ident: Ident::new_bumped(array.len()),
             ptr: StackArray::from_array(*array),
             device: Some(&Stack),
+            requires_grad: false,
         }
     }
 }
@@ -74,6 +78,7 @@ impl<'a, T: Copy, const N: usize> From<(&Stack, &[T; N])> for Buffer<'a, T, Stac
             ident: Ident::new_bumped(array.len()),
             ptr: StackArray::from_array(*array),
             device: Some(&Stack),
+            requires_grad: false,
         }
     }
 }
@@ -88,6 +93,7 @@ impl<'a, T: Copy + Default, const N: usize, const A: usize, const B: usize> From
             ident: Ident::new_bumped(arr.len()),
             ptr: arr,
             device: Some(&Stack),
+            requires_grad: false,
         }
     }
 }

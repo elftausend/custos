@@ -93,6 +93,7 @@ pub unsafe fn construct_buffer<'a, T, S: Shape>(
             },
             device: Some(device),
             ident: Ident::new(no_drop.len()),
+            requires_grad: false,
         });
     }
 
@@ -116,6 +117,7 @@ pub unsafe fn construct_buffer<'a, T, S: Shape>(
             idx: *device.graph_mut().idx_trans.get(&graph_node.idx).unwrap(),
             len,
         },
+        requires_grad: false,
     })
 }
 
@@ -146,6 +148,7 @@ mod tests {
             },
             device: Some(&device),
             ident: Ident::new_bumped(len),
+            requires_grad: false,
         };
 
         assert_eq!(buf.read(), vec![1., 2.3, 0.76]);

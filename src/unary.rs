@@ -110,6 +110,12 @@ where
         {
             let ids = (buf.id(), out.id());
             self.tape_mut().add_grad_fn(move |grads, device| {
+                let lhs = unsafe { device.get_existing_buf::<T, S>(ids.0) };
+                // TODO
+                if !lhs.requires_grad {
+                    return;
+                }
+
                 let (lhs, lhs_grad, out_grad) = grads.get_double::<T, S, S>(device, ids);
                 device.add_unary_grad(&lhs, lhs_grad, out_grad, _grad_fn);
             });

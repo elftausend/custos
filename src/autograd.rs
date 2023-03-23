@@ -175,12 +175,28 @@ type GradFn<D> = Box<dyn Fn(&mut Gradients<D>, &D)>;
 pub struct Tape<D: Device> {
     pub grads: Gradients<D>,
     grad_fns: Vec<GradFn<D>>,
+    enabled: bool,
 }
 
 /// This trait is implemented for all devices that provide a [`Tape`].
 pub trait TapeReturn: Device {
     fn tape(&self) -> Ref<Tape<Self>>;
     fn tape_mut(&self) -> RefMut<Tape<Self>>;
+
+    #[inline]
+    fn set_enabled(&self, enabled: bool) {
+        self.tape_mut().enabled = enabled;
+    }
+
+    #[inline]
+    fn enable(&self) {
+        self.set_enabled(true);
+    }
+
+    #[inline]
+    fn disable(&self) {
+        self.set_enabled(false);
+    }
 }
 
 impl<D: Device> Debug for Tape<D> {
@@ -193,6 +209,9 @@ impl<D: Device> Tape<D> {
     /// Adds a gradient function to the tape.
     #[inline]
     pub fn add_grad_fn<F: Fn(&mut Gradients<D>, &D) + 'static>(&mut self, grad_fn: F) {
+        if !self.enabled {
+            return;
+        }
         self.grad_fns.push(Box::new(grad_fn))
     }
 

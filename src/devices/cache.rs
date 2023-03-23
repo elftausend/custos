@@ -88,6 +88,7 @@ where
             ptr,
             device: Some(device),
             ident,
+            requires_grad: false,
         })
     }
 
@@ -191,6 +192,7 @@ impl<D: PtrConv> Cache<D> {
                 idx: graph_node.idx,
                 len: ident.len,
             },
+            requires_grad: false,
         }
     }
 
@@ -236,6 +238,7 @@ impl<D: PtrConv> Cache<D> {
                     ptr: typed_ptr,
                     device: Some(device),
                     ident,
+                    requires_grad: false,
                 }
             }
             None => self.add_node(device, ident, add_node, callback),

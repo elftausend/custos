@@ -94,6 +94,7 @@ where
             ptr: buf.ptr,
             device: Some(&Stack),
             ident: buf.ident,
+            requires_grad: false,
         }
     }
 }

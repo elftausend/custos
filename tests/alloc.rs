@@ -12,6 +12,7 @@ fn test_alloc() {
         ident: Ident::new_bumped(ptr.len),
         ptr,
         device: Some(&device),
+        requires_grad: false,
     };
     assert_eq!(vec![1, 5, 4, 3, 6, 9, 0, 4], device.read(&buf));
 }

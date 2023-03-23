@@ -49,6 +49,7 @@ pub struct Buffer<'a, T = f32, D: Device = CPU, S: Shape = ()> {
     pub ptr: D::Ptr<T, S>,
     pub device: Option<&'a D>,
     pub ident: Ident,
+    pub requires_grad: bool,
 }
 
 unsafe impl<'a, T, D: Device, S: Shape> Send for Buffer<'a, T, D, S> {}
@@ -86,6 +87,7 @@ impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
             // TODO: enable, if leafs get more important
             //node: device.graph().add_leaf(len),
             ident,
+            requires_grad: false,
         }
     }
 
@@ -115,6 +117,7 @@ impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
             ptr: device.alloc(len, AllocFlag::None),
             ident: Ident::new_bumped(len),
             device: None,
+            requires_grad: false,
         }
     }
 
@@ -220,6 +223,7 @@ impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
             ptr: self.ptr.shallow(),
             device: None,
             ident: self.ident,
+            requires_grad: false,
         }
     }
 
@@ -359,6 +363,7 @@ impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
             ptr,
             ident,
             device: Some(device),
+            requires_grad: false
         }
     }
 
@@ -378,6 +383,7 @@ impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
             ptr,
             ident,
             device: Some(device),
+            requires_grad: false
         }
     }
 }
@@ -411,6 +417,7 @@ impl<'a, T, S: Shape> Buffer<'a, T, CPU, S> {
             ptr: CPUPtr::from_ptr(ptr, len, AllocFlag::Wrapper),
             device: None,
             ident: Ident::new_bumped(len),
+            requires_grad: false
         }
     }
 
@@ -430,6 +437,7 @@ impl<'a, T, S: Shape> Buffer<'a, T, CPU, S> {
             ptr: CPUPtr::from_ptr(ptr, len, AllocFlag::Wrapper),
             device: Some(device),
             ident: Ident::new_bumped(len),
+            requires_grad: false
         }
     }
 }
@@ -526,6 +534,7 @@ where
             ptr: D::Ptr::<T, S>::default(),
             device: None,
             ident: Ident { idx: 0, len: 0 },
+            requires_grad: false,
         }
     }
 }

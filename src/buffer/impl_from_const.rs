@@ -27,6 +27,7 @@ where
             ident: Ident::new_bumped(array.len()),
             ptr: device.with_array(array),
             device: Some(device),
+            requires_grad: false,
         }
     }
 }
@@ -41,6 +42,7 @@ where
             ident: Ident::new_bumped(array.len()),
             ptr: device.with_array(*array),
             device: Some(device),
+            requires_grad: false,
         }
     }
 }
@@ -56,6 +58,7 @@ where
             ident: Ident::new_bumped(B * A),
             ptr: device.with_array(array),
             device: Some(device),
+            requires_grad: false,
         }
     }
 }
@@ -71,6 +74,7 @@ where
             ident: Ident::new_bumped(B * A),
             ptr: device.with_array(*array),
             device: Some(device),
+            requires_grad: false,
         }
     }
 }

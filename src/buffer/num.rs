@@ -54,6 +54,7 @@ impl<'a, T: Clone> CloneBuf<'a, T> for () {
             },
             device: buf.device,
             ident: buf.ident,
+            requires_grad: false,
         }
     }
 }
@@ -65,6 +66,7 @@ impl<T: crate::number::Number> From<T> for Buffer<'_, T, ()> {
             ptr: Num { num: ptr },
             device: None,
             ident: Ident::new_bumped(0),
+            requires_grad: false,
         }
     }
 }
@@ -81,6 +83,7 @@ impl<'a, T> Buffer<'a, T, ()> {
             ptr: Num { num: self.ptr.num },
             device: self.device,
             ident: self.ident,
+            requires_grad: false,
         }
     }
 
