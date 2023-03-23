@@ -56,7 +56,7 @@ pub trait GraphReturn<IdxFrom: NodeIdx = GlobalCount> {
 pub trait GraphOpt {
     fn optimize(&self) -> crate::Result<()>
     where
-        Self: GraphReturn + CacheReturn + crate::RawConv,
+        Self: GraphReturn + CacheReturn + crate::PtrConv,
     {
         let mut cache = self.cache_mut();
         for trace in self.graph().cache_traces() {
