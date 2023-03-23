@@ -7,31 +7,20 @@ use std::rc::Rc;
 
 use crate::{
     flag::AllocFlag, shape::Shape, Alloc, Buffer, CacheAble, Device, GlobalCount, GraphReturn,
-    Ident, PtrType,
+    Ident, PtrConv, PtrType,
 };
 
 /// This trait makes a device's [`Cache`] accessible and is implemented for all compute devices.
 pub trait CacheReturn: GraphReturn<GlobalCount> {
-    /// The type of the raw pointer.
-    type CT: Debug;
-
     /// Returns a reference to a device's [`Cache`].
-    fn cache(&self) -> core::cell::Ref<crate::Cache<Self>>
+    fn cache(&self) -> core::cell::Ref<Cache<Self>>
     where
-        Self: crate::RawConv;
+        Self: PtrConv;
 
     /// Returns a mutable reference to a device's [`Cache`].
     fn cache_mut(&self) -> RefMut<Cache<Self>>
     where
-        Self: RawConv;
-}
-
-/// Converts a regular [`Buffer`] pointer into a raw "generic-less" cachable pointer.
-pub trait RawConv: Device + CacheReturn {
-    /// Construct a raw pointer from a regular [`Buffer`] pointer.
-    fn construct<T, S: Shape>(ptr: &Self::Ptr<T, S>, len: usize, flag: AllocFlag) -> Self::CT;
-    /// Destruct a raw pointer into a regular [`Buffer`] pointer.
-    fn destruct<T, S: Shape>(ct: &Self::CT) -> Self::Ptr<T, S>;
+        Self: PtrConv;
 }
 
 const K: usize = 0x517cc1b727220a95;
@@ -59,25 +48,9 @@ impl std::hash::Hasher for IdentHasher {
     }
 }
 
-/// A cache for no-generic raw pointers.
-#[derive(Debug)]
-pub struct Cache<D: RawConv> {
-    /// A map of all cached buffers using a custom hash function.
-    pub nodes: HashMap<Ident, Rc<D::CT>, BuildHasherDefault<IdentHasher>>,
-}
-
-impl<D: RawConv> Default for Cache<D> {
-    #[inline]
-    fn default() -> Self {
-        Self {
-            nodes: Default::default(),
-        }
-    }
-}
-
 impl<D> CacheAble<D> for Cache<D>
 where
-    D: RawConv,
+    D: PtrConv,
 {
     #[cfg(not(feature = "realloc"))]
     #[inline]
@@ -92,7 +65,6 @@ where
         device
             .cache_mut()
             .get(device, Ident::new(len), add_node, crate::bump_count)
-        //Cache::get(device, Ident::new(len), bump_count)
     }
 
     #[cfg(feature = "realloc")]
@@ -110,7 +82,7 @@ where
 
     #[inline]
     unsafe fn get_existing_buf<T, S: Shape>(device: &D, ident: Ident) -> Option<Buffer<T, D, S>> {
-        let ptr = D::destruct::<T, S>(device.cache().nodes.get(&ident)?);
+        let ptr = D::convert(device.cache().nodes.get(&ident)?, AllocFlag::Wrapper);
 
         Some(Buffer {
             ptr,
@@ -127,13 +99,42 @@ where
     fn add_to_cache<T, S: Shape>(device: &D, ptr: &<D as Device>::Ptr<T, S>) -> Ident {
         device.graph_mut().add_leaf(ptr.size());
         let ident = Ident::new_bumped(ptr.size());
-        let raw_ptr = std::rc::Rc::new(D::construct(ptr, ptr.size(), AllocFlag::Wrapper));
+        let raw_ptr = unsafe { std::rc::Rc::new(D::convert(ptr, AllocFlag::Wrapper)) };
         device.cache_mut().nodes.insert(ident, raw_ptr);
         ident
     }
 }
 
-impl<D: RawConv> Cache<D> {
+/// A cache for 'no-generic' raw pointers.
+pub struct Cache<D: Device> {
+    /// A map of all cached buffers using a custom hash function.
+    pub nodes: HashMap<Ident, Rc<D::Ptr<u8, ()>>, BuildHasherDefault<IdentHasher>>,
+}
+
+impl<D: Device> Debug for Cache<D>
+where
+    D::Ptr<u8, ()>: Debug,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Cache2")
+            .field("cache", &self.nodes)
+            .finish()
+    }
+}
+
+impl<D: Device> Default for Cache<D>
+where
+    D::Ptr<u8, ()>: Default,
+{
+    #[inline]
+    fn default() -> Self {
+        Self {
+            nodes: Default::default(),
+        }
+    }
+}
+
+impl<D: PtrConv> Cache<D> {
     /// Adds a new cache entry to the cache.
     /// The next get call will return this entry if the [Ident] is correct.
     /// # Example
@@ -164,9 +165,9 @@ impl<D: RawConv> Cache<D> {
         callback: fn(),
     ) -> Buffer<'a, T, D, S>
     where
-        D: Alloc<'a, T, S> + RawConv,
+        D: Alloc<'a, T, S>,
     {
-        let ptr = device.alloc(ident.len, AllocFlag::Cache);
+        let ptr = device.alloc(ident.len, AllocFlag::Wrapper);
 
         #[cfg(feature = "opt-cache")]
         let graph_node = device.graph_mut().add(ident.len, _add_node);
@@ -178,8 +179,8 @@ impl<D: RawConv> Cache<D> {
             len: ident.len,
         };
 
-        let raw_ptr = D::construct(&ptr, ident.len, AllocFlag::Cache);
-        self.nodes.insert(ident, Rc::new(raw_ptr));
+        let untyped_ptr = unsafe { D::convert(&ptr, AllocFlag::None) };
+        self.nodes.insert(ident, Rc::new(untyped_ptr));
 
         callback();
 
@@ -222,18 +223,17 @@ impl<D: RawConv> Cache<D> {
         callback: fn(),
     ) -> Buffer<'a, T, D, S>
     where
-        D: Alloc<'a, T, S> + RawConv,
+        D: Alloc<'a, T, S>,
     {
-        let ptr_option = self.nodes.get(&ident);
+        let may_allocated = self.nodes.get(&ident);
 
-        match ptr_option {
+        match may_allocated {
             Some(ptr) => {
                 callback();
-
-                let ptr = D::destruct::<T, S>(ptr);
+                let typed_ptr = unsafe { D::convert(ptr, AllocFlag::Wrapper) };
 
                 Buffer {
-                    ptr,
+                    ptr: typed_ptr,
                     device: Some(device),
                     ident,
                 }

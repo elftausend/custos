@@ -7,12 +7,12 @@ use super::{
         cublas::{create_handle, cublasDestroy_v2, cublasSetStream_v2, CublasHandle},
         cumalloc, device, Context, CudaIntDevice, Module, Stream,
     },
-    chosen_cu_idx, launch_kernel1d, AsCudaCvoidPtr, CUDAPtr, KernelCacheCU, RawCUBuf,
+    chosen_cu_idx, launch_kernel1d, AsCudaCvoidPtr, CUDAPtr, KernelCacheCU,
 };
 
 use crate::{
-    cache::Cache, flag::AllocFlag, Addons, AddonsReturn, Alloc, Buffer, CloneBuf, Device, RawConv,
-    Shape, CacheReturn,
+    cache::Cache, flag::AllocFlag, Addons, AddonsReturn, Alloc, Buffer, CacheReturn, CloneBuf,
+    Device, PtrConv, Shape,
 };
 
 /// Used to perform calculations with a CUDA capable device.
@@ -93,8 +93,6 @@ impl Device for CUDA {
 }
 
 impl AddonsReturn for CUDA {
-    type CachePtrType = RawCUBuf;
-
     #[inline]
     fn addons(&self) -> &Addons<Self>
     where
@@ -104,23 +102,16 @@ impl AddonsReturn for CUDA {
     }
 }
 
-
-impl RawConv for CUDA {
+impl PtrConv for CUDA {
     #[inline]
-    fn construct<T, S: Shape>(ptr: &Self::Ptr<T, S>, len: usize, flag: AllocFlag) -> Self::CT {
-        RawCUBuf {
-            ptr: ptr.ptr,
-            flag,
-            len,
-        }
-    }
-
-    #[inline]
-    fn destruct<T, S: Shape>(ct: &Self::CT) -> Self::Ptr<T, S> {
+    unsafe fn convert<T, IS: Shape, Conv, OS: Shape>(
+        ptr: &Self::Ptr<T, IS>,
+        flag: AllocFlag,
+    ) -> Self::Ptr<Conv, OS> {
         CUDAPtr {
-            ptr: ct.ptr,
-            len: ct.len,
-            flag: ct.flag,
+            ptr: ptr.ptr,
+            len: ptr.len,
+            flag,
             p: PhantomData,
         }
     }

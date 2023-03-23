@@ -1,4 +1,4 @@
-use core::{cell::RefCell, fmt::Debug};
+use core::{cell::RefCell, fmt::Debug, ptr::null_mut};
 
 use super::{
     launch_shader, shader_cache::ShaderCache, wgpu_buffer::*, wgpu_clear, AsBindingResource,
@@ -6,7 +6,7 @@ use super::{
 
 use crate::{
     flag::AllocFlag, Addons, AddonsReturn, Alloc, Cache, ClearBuf, Device, DeviceError, PtrType,
-    RawConv, Read, Shape,
+    Read, Shape, PtrConv,
 };
 use wgpu::{Adapter, Backends, Queue};
 
@@ -64,14 +64,13 @@ impl Device for WGPU {
     type Ptr<U, S: Shape> = WGPUBufPtr<U>;
     type Cache = Cache<WGPU>;
 
+    #[inline]
     fn new() -> crate::Result<Self> {
         Ok(WGPU::default())
     }
 }
 
 impl AddonsReturn for WGPU {
-    type CachePtrType = RawWGPUBuffer;
-
     #[inline]
     fn addons(&self) -> &Addons<Self> {
         &self.addons
@@ -87,7 +86,7 @@ impl<T, S: Shape> Alloc<'_, T, S> for WGPU {
             flag,
         }
     }
-
+    
     fn with_slice(&self, data: &[T]) -> WGPUBufPtr<T>
     where
         T: Clone,
@@ -108,8 +107,20 @@ pub struct WGPUBufPtr<T> {
 }
 
 impl<T> WGPUBufPtr<T> {
+    #[inline]
     pub unsafe fn buf(&self) -> &wgpu::Buffer {
         &(*self.ptr).buf
+    }
+}
+
+impl Default for WGPUBufPtr<u8> {
+    #[inline]
+    fn default() -> Self {
+        WGPUBufPtr {
+            ptr: null_mut(),
+            len: 0,
+            flag: AllocFlag::Wrapper,
+        }
     }
 }
 
@@ -135,43 +146,16 @@ impl<T> Drop for WGPUBufPtr<T> {
     }
 }
 
-#[derive(Debug)]
-pub struct RawWGPUBuffer {
-    pub ptr: *const u8,
-    pub buffer: *mut wgpu::Buffer,
-    len: usize,
-    flag: AllocFlag,
-}
-
-impl Drop for RawWGPUBuffer {
-    fn drop(&mut self) {
-        if self.flag != AllocFlag::Cache {
-            return;
-        }
-
-        unsafe { drop(Box::from_raw(self.buffer)) }
-    }
-}
-
-impl RawConv for WGPU {
+impl PtrConv for WGPU {
     #[inline]
-    fn construct<T, S: Shape>(ptr: &Self::Ptr<T, S>, len: usize, flag: AllocFlag) -> RawWGPUBuffer {
-        unsafe {
-            RawWGPUBuffer {
-                ptr: ptr.ptr as *const u8,
-                buffer: &mut (*ptr.ptr).buf,
-                len,
-                flag,
-            }
-        }
-    }
-
-    #[inline]
-    fn destruct<T, S: Shape>(ct: &RawWGPUBuffer) -> Self::Ptr<T, S> {
+    unsafe fn convert<T, IS: Shape, Conv, OS: Shape>(
+        ptr: &Self::Ptr<T, IS>,
+        flag: AllocFlag,
+    ) -> Self::Ptr<Conv, OS> {
         WGPUBufPtr {
-            ptr: ct.ptr as *mut WGPUBuffer<T>,
-            len: ct.len,
-            flag: ct.flag,
+            ptr: ptr.ptr.cast(),
+            len: ptr.len,
+            flag
         }
     }
 }

@@ -6,8 +6,6 @@ pub enum AllocFlag {
     #[default]
     /// Typically used for temporary buffers. These buffers are not cached and are deallocated if they go out of scope.
     None,
-    /// Typically used for buffers that are used multiple times. These buffers are cached and are only deallocated if their device goes out of scope.
-    Cache,
     /// Wraps around another pointer. Such buffers are not deallocated when they go out of scope.
     Wrapper,
     /// If a Buffer / allocation only contains a single number.

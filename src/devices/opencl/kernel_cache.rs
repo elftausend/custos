@@ -1,28 +1,10 @@
-use crate::{flag::AllocFlag, Error, OpenCL};
+use crate::{Error, OpenCL};
 use min_cl::api::{
-    build_program, create_kernels_in_program, create_program_with_source, release_mem_object,
+    build_program, create_kernels_in_program, create_program_with_source,
     Kernel, OCLErrorKind,
 };
-use std::{collections::HashMap, ffi::c_void};
+use std::collections::HashMap;
 
-/// The pointer used for storage in the `OpenCL` [`Cache`](crate::Cache).
-#[derive(Debug)]
-pub struct RawCL {
-    pub ptr: *mut c_void,
-    pub host_ptr: *mut u8,
-    pub len: usize,
-    pub flag: AllocFlag,
-}
-
-impl Drop for RawCL {
-    fn drop(&mut self) {
-        if self.flag != AllocFlag::Cache {
-            return;
-        }
-
-        unsafe { release_mem_object(self.ptr).unwrap() };
-    }
-}
 
 #[derive(Debug, Default)]
 /// This stores the previously compiled OpenCL kernels.

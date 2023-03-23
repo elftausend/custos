@@ -6,7 +6,7 @@ pub use generic_blas::*;
 mod addons;
 pub use addons::*;
 
-use crate::{shape::Shape, AddGraph, Alloc, Buffer, Device, PtrType};
+use crate::{flag::AllocFlag, shape::Shape, AddGraph, Alloc, Buffer, Device, PtrType};
 
 #[cfg(not(feature = "no-std"))]
 pub mod cache;
@@ -53,6 +53,18 @@ mod ident;
 #[cfg(not(feature = "no-std"))]
 pub use ident::*;
 
+// Used to convert a device pointer to the a pointer of a different type.
+pub trait PtrConv: Device + CacheReturn {
+    /// Converts a pointer to a pointer with a different type.
+    /// # Safety
+    /// Prone to double frees. Make sure that the pointer is not freed twice.
+    /// `custos` solves this by using fitting [`AllocFlag`]s.
+    unsafe fn convert<T, IS: Shape, Conv, OS: Shape>(
+        ptr: &Self::Ptr<T, IS>,
+        flag: AllocFlag,
+    ) -> Self::Ptr<Conv, OS>;
+}
+
 /// Implementors of this trait can be used as cache for a device.
 pub trait CacheAble<D: Device> {
     /// May allocate a new buffer or return an existing one.
@@ -73,7 +85,7 @@ pub trait CacheAble<D: Device> {
     ///
     /// let buf_2 = device.retrieve::<f32, ()>(10, ());
     ///
-    /// assert_eq!(buf.ptr, buf_2.ptr);
+    /// assert_eq!(buf.ptr.ptr, buf_2.ptr.ptr);
     ///
     /// ```
     fn retrieve<T, S: Shape>(device: &D, len: usize, add_node: impl AddGraph) -> Buffer<T, D, S>

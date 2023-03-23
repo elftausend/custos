@@ -51,6 +51,7 @@ pub struct CLPtr<T> {
 }
 
 impl<T> Default for CLPtr<T> {
+    #[inline]
     fn default() -> Self {
         Self {
             ptr: null_mut(),

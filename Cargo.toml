@@ -29,15 +29,13 @@ custos-macro = {git = "https://github.com/elftausend/custos-macro", optional=tru
 # no-std float math
 libm = { version="0.2.6", optional = true }
 
-
 [build-dependencies]
 #min-cl = { path="../min-cl", optional=true }
 min-cl = { version = "0.2.0", optional=true }
 
-
 [features]
-default = ["cpu", "autograd"]
-#default = ["stack", "macro", "cpu", "blas", "opencl", "static-api", "cuda", "autograd"]
+#default = ["cpu", "autograd", "opencl", "stack", "wgpu", "static-api"]
+default = ["stack", "macro", "cpu", "blas", "opencl", "static-api", "opt-cache"]
 #default = ["stack", "cpu", "blas", "static-api", "opencl", "macro"]
 cpu = []
 opencl = ["dep:min-cl", "cpu"]

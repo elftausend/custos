@@ -132,20 +132,3 @@ pub fn cu_clear<T: CDatatype>(device: &CUDA, buf: &mut Buffer<T, CUDA>) -> crate
     launch_kernel1d(buf.len(), device, &src, "clear", &[buf, &buf.len()])?;
     Ok(())
 }
-
-/// The pointer used for storage in the `CUDA` [`Cache`](crate::Cache).
-#[derive(Debug)]
-pub struct RawCUBuf {
-    pub ptr: u64,
-    pub len: usize,
-    pub flag: AllocFlag,
-}
-
-impl Drop for RawCUBuf {
-    fn drop(&mut self) {
-        if self.flag != AllocFlag::Cache {
-            return;
-        }
-        unsafe { cufree(self.ptr).expect("Pointer freed should be a valid pointer.") }
-    }
-}

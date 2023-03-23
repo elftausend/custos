@@ -408,11 +408,7 @@ impl<'a, T, S: Shape> Buffer<'a, T, CPU, S> {
     #[inline]
     pub unsafe fn from_raw_host(ptr: *mut T, len: usize) -> Buffer<'a, T, CPU, S> {
         Buffer {
-            ptr: CPUPtr {
-                ptr,
-                len,
-                flag: AllocFlag::Wrapper,
-            },
+            ptr: CPUPtr::from_ptr(ptr, len, AllocFlag::Wrapper),
             device: None,
             ident: Ident::new_bumped(len),
         }
@@ -431,11 +427,7 @@ impl<'a, T, S: Shape> Buffer<'a, T, CPU, S> {
         len: usize,
     ) -> Buffer<'a, T, CPU, S> {
         Buffer {
-            ptr: CPUPtr {
-                ptr,
-                len,
-                flag: AllocFlag::Wrapper,
-            },
+            ptr: CPUPtr::from_ptr(ptr, len, AllocFlag::Wrapper),
             device: Some(device),
             ident: Ident::new_bumped(len),
         }

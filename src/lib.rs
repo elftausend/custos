@@ -195,7 +195,7 @@ pub trait Device: Sized {
     ///
     /// let buf_2 = device.retrieve::<f32, ()>(10, ());
     ///
-    /// assert_eq!(buf.ptr, buf_2.ptr);
+    /// assert_eq!(buf.ptr.ptr, buf_2.ptr.ptr);
     ///
     /// ```
     #[inline]

@@ -7,8 +7,7 @@ use core::{
 };
 
 use crate::{
-    borrowing_cache::BorrowingCache, prelude::One, Alloc, Buffer, Device, Ident, Shape,
-    WriteBuf,
+    borrowing_cache::BorrowingCache, prelude::One, Alloc, Buffer, Device, Ident, Shape, WriteBuf,
 };
 
 /// A cache for gradients.
@@ -302,7 +301,7 @@ mod tests {
     #[cfg(feature = "opencl")]
     #[test]
     fn test_tape_unary_ew_cl() -> crate::Result<()> {
-        use crate::{OpenCL, UnaryElementWiseMayGrad};
+        use crate::{Buffer, OpenCL, UnaryElementWiseMayGrad, Combiner};
 
         let device = OpenCL::new(0)?;
         //let device = CPU::new();

@@ -6,7 +6,6 @@ use super::api::{
 use crate::{Error, CUDA};
 use std::{collections::HashMap, ffi::CString};
 
-
 /// This stores the previously compiled CUDA functions / kernels.
 #[derive(Debug, Default)]
 pub struct KernelCacheCU {
