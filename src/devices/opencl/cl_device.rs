@@ -174,6 +174,7 @@ impl AddonsReturn for OpenCL {
 }
 
 impl PtrConv for OpenCL {
+    #[inline]
     unsafe fn convert<T, IS, Conv, OS>(
         ptr: &Self::Ptr<T, IS>,
         flag: AllocFlag,
