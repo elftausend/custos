@@ -18,10 +18,19 @@ where
     D::Ptr<u8, ()>: Debug,
 {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        #[cfg(feature = "autograd")]
+        {
+            f.debug_struct("Addons")
+                .field("graph", &self.graph)
+                .field("cache", &self.cache)
+                .field("tape", &self.tape)
+                .finish()
+        }
+
+        #[cfg(not(feature = "autograd"))]
         f.debug_struct("Addons")
             .field("graph", &self.graph)
             .field("cache", &self.cache)
-            .field("tape", &self.tape)
             .finish()
     }
 }
@@ -34,6 +43,7 @@ where
         Self {
             graph: Default::default(),
             cache: Default::default(),
+            #[cfg(feature = "autograd")]
             tape: Default::default(),
         }
     }

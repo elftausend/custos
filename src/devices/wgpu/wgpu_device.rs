@@ -64,6 +64,7 @@ impl Device for WGPU {
     type Ptr<U, S: Shape> = WGPUBufPtr<U>;
     type Cache = Cache<WGPU>;
 
+    #[inline]
     fn new() -> crate::Result<Self> {
         Ok(WGPU::default())
     }
@@ -85,7 +86,7 @@ impl<T, S: Shape> Alloc<'_, T, S> for WGPU {
             flag,
         }
     }
-
+    
     fn with_slice(&self, data: &[T]) -> WGPUBufPtr<T>
     where
         T: Clone,
