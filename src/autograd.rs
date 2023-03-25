@@ -182,21 +182,6 @@ pub struct Tape<D: Device> {
 pub trait TapeReturn: Device {
     fn tape(&self) -> Ref<Tape<Self>>;
     fn tape_mut(&self) -> RefMut<Tape<Self>>;
-
-    #[inline]
-    fn set_enabled(&self, enabled: bool) {
-        self.tape_mut().enabled = enabled;
-    }
-
-    #[inline]
-    fn enable(&self) {
-        self.set_enabled(true);
-    }
-
-    #[inline]
-    fn disable(&self) {
-        self.set_enabled(false);
-    }
 }
 
 impl<D: Device> Debug for Tape<D> {
@@ -213,6 +198,21 @@ impl<D: Device> Tape<D> {
             return;
         }
         self.grad_fns.push(Box::new(grad_fn))
+    }
+
+    /// Enables the tape.
+    /// The tape is enabled by default.
+    #[inline]
+    pub fn enable(&mut self) {
+        self.enabled = true;
+    }
+
+    /// Disables the tape.
+    /// The tape is enabled by default.
+    /// It is recommended to disable the `autograd` feature instead.
+    #[inline]
+    pub fn disable(&mut self) {
+        self.enabled = false;
     }
 
     /// Calls all gradient functions in reverse order.

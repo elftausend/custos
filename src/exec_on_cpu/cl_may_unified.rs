@@ -205,13 +205,13 @@ macro_rules! cl_cpu_exec_unified {
             #[cfg(feature = "realloc")]
             {
                 let buf = Buffer::from((&$device, $op));
-                $device.cpu.cache.borrow_mut().nodes.clear();
+                $device.cpu.cache_mut().nodes.clear();
                 buf
             }
 
         } else {
             let buf = $crate::cpu_exec!($device, cpu, $($t),*; $op);
-            $device.cpu.cache.borrow_mut().nodes.clear();
+            $device.cpu.cache_mut().nodes.clear();
             Ok(buf)
         }
     }};
@@ -233,7 +233,7 @@ macro_rules! cl_cpu_exec_unified_mut {
         } else {
             let cpu = CPU::new();
             $crate::cpu_exec_mut!($device, cpu, $($t),* WRITE_TO<$($write_to, $from),*> $op);
-            $device.cpu.cache.borrow_mut().nodes.clear();
+            $device.cpu.cache_mut().nodes.clear();
         }
     }};
 }
