@@ -187,11 +187,10 @@ impl PtrConv for OpenCL {
             ptr: ptr.ptr,
             host_ptr: ptr.host_ptr.cast(),
             len: ptr.len,
-            flag
+            flag,
         }
     }
 }
-
 
 impl Debug for OpenCL {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {

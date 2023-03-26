@@ -15,6 +15,16 @@ where
     }
 }
 
+impl<'a, T, D> From<(&'a D, usize)> for Buffer<'a, T, D>
+where
+    D: Alloc<'a, T>,
+{
+    #[inline]
+    fn from((device, len): (&'a D, usize)) -> Self {
+        Buffer::new(&device, len)
+    }
+}
+
 /*impl<'a, T, D, const N: usize> From<(&'a D, [T; N])> for Buffer<'a, T, D>
 where
     T: Clone,

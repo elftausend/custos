@@ -1,10 +1,8 @@
 use crate::{Error, OpenCL};
 use min_cl::api::{
-    build_program, create_kernels_in_program, create_program_with_source,
-    Kernel, OCLErrorKind,
+    build_program, create_kernels_in_program, create_program_with_source, Kernel, OCLErrorKind,
 };
 use std::collections::HashMap;
-
 
 #[derive(Debug, Default)]
 /// This stores the previously compiled OpenCL kernels.

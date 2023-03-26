@@ -234,40 +234,42 @@ where
     /// Returns a reference to the gradient of this buffer.
     /// The lifetime is bound to the lifetime of self, which is more strict.
     /// If the borrow checker complains, use `grad_unbound` instead.
+    /// Panics if the gradient was not allocated.
     #[inline]
     pub fn grad(&self) -> Ref<Self> {
-        Ref::map(self.device().tape(), |tape| {
-            tape.grads.may_get_ref(self.id()).unwrap()
-        })
+        self.grad_unbound()
     }
 
     /// Returns a reference to the gradient of this buffer.
     /// Lifetimes are checked during runtime.
+    /// Panics if the gradient was not allocated.
     #[inline]
     pub fn grad_unbound(&self) -> Ref<'a, Self> {
         Ref::map(self.device().tape(), |tape| {
-            tape.grads.may_get_ref(self.id()).unwrap()
+            tape.grads.may_get_ref(self.id()).expect(
+                "Gradient was not allocated for this buffer. Did you forget to call `backward`?",
+            )
         })
     }
 
     /// Returns a mutable reference to the gradient of this buffer.
     /// The lifetime is bound to the lifetime of self, which is more strict.
     /// If the borrow checker complains, use `grad_mut_unbound` instead.
+    /// Panics if the gradient was not allocated.
     #[inline]
     pub fn grad_mut(&mut self) -> RefMut<Self> {
-        RefMut::map(self.device().tape_mut(), |tape| {
-            // TODO unwrap?, result?, try?, expect?
-            tape.grads.may_get_mut(self.id()).unwrap()
-        })
+        self.grad_mut_unbound()
     }
 
     /// Returns a mutable reference to the gradient of this buffer.
     /// Lifetimes are checked during runtime.
+    /// Panics if the gradient was not allocated.
     #[inline]
     pub fn grad_mut_unbound(&mut self) -> RefMut<'a, Self> {
         RefMut::map(self.device().tape_mut(), |tape| {
-            // TODO unwrap?, result?, try?, expect?
-            tape.grads.may_get_mut(self.id()).unwrap()
+            tape.grads.may_get_mut(self.id()).expect(
+                "Gradient was not allocated for this buffer. Did you forget to call `backward`?",
+            )
         })
     }
 }
@@ -301,7 +303,7 @@ mod tests {
     #[cfg(feature = "opencl")]
     #[test]
     fn test_tape_unary_ew_cl() -> crate::Result<()> {
-        use crate::{Buffer, OpenCL, UnaryElementWiseMayGrad, Combiner};
+        use crate::{Buffer, Combiner, OpenCL, UnaryElementWiseMayGrad};
 
         let device = OpenCL::new(0)?;
         //let device = CPU::new();

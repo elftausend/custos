@@ -148,7 +148,7 @@ pub trait CommonPtrs<T> {
 }
 
 /// This trait is the base trait for every device.
-pub trait Device: Sized {
+pub trait Device: Sized + 'static {
     /// The type of the pointer that is used for `Buffer`.
     type Ptr<U, S: Shape>: PtrType;
     /// The type of the cache.

@@ -5,8 +5,8 @@ use super::{
 };
 
 use crate::{
-    flag::AllocFlag, Addons, AddonsReturn, Alloc, Cache, ClearBuf, Device, DeviceError, PtrType,
-    Read, Shape, PtrConv,
+    flag::AllocFlag, Addons, AddonsReturn, Alloc, Cache, ClearBuf, Device, DeviceError, PtrConv,
+    PtrType, Read, Shape,
 };
 use wgpu::{Adapter, Backends, Queue};
 
@@ -86,7 +86,7 @@ impl<T, S: Shape> Alloc<'_, T, S> for WGPU {
             flag,
         }
     }
-    
+
     fn with_slice(&self, data: &[T]) -> WGPUBufPtr<T>
     where
         T: Clone,
@@ -155,7 +155,7 @@ impl PtrConv for WGPU {
         WGPUBufPtr {
             ptr: ptr.ptr.cast(),
             len: ptr.len,
-            flag
+            flag,
         }
     }
 }
