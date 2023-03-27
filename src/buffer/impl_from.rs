@@ -1,4 +1,6 @@
-use crate::{shape::Shape, Alloc, Buffer};
+use core::ops::Range;
+
+use crate::{shape::Shape, Alloc, Buffer, AsRangeArg, prelude::{Numeric, Number}};
 
 #[cfg(feature = "cpu")]
 use crate::{WriteBuf, CPU};
@@ -24,6 +26,29 @@ where
         Buffer::new(&device, len)
     }
 }
+
+/*impl<'a, T, D> Buffer<'a, T, D> 
+where
+    T: Clone,
+    D: Alloc<'a, T>
+{
+    #[inline]
+    pub fn from_iter<I: IntoIterator<Item = T>>(device: &'a D, iter: I) -> Self {
+        Buffer::from_vec(&device, iter.into_iter().collect())
+    }
+}*/
+
+impl<'a, T, D> From<(&'a D, Range<usize>)> for Buffer<'a, T, D>
+where
+    T: Number,
+    D: Alloc<'a, T>,
+{
+    #[inline]
+    fn from((device, range): (&'a D, Range<usize>)) -> Self {
+        Buffer::from_vec(&device, range.map(|x| T::from_usize(x)).collect())
+    }
+}
+
 
 /*impl<'a, T, D, const N: usize> From<(&'a D, [T; N])> for Buffer<'a, T, D>
 where
