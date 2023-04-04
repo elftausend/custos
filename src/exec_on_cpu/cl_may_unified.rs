@@ -47,7 +47,7 @@ where
             }),
         )));
     }
-
+    // TODO: add to graph?:     convert.node = device.graph().add(convert.len(), matrix.node.idx);
     cpu_exec_unary(device, x, f)
 }
 
@@ -75,9 +75,8 @@ where
         };
     }
 
-    cpu_exec_unary_mut(device, lhs, f)?;
-
-    Ok(())
+    // TODO: add to graph?:     convert.node = device.graph().add(convert.len(), matrix.node.idx);
+    cpu_exec_unary_mut(device, lhs, f)
 }
 
 /// If the current device supports unified memory, data is not deep-copied.
@@ -189,6 +188,7 @@ where
 #[macro_export]
 macro_rules! cl_cpu_exec_unified {
     ($device:ident, $($t:ident),*; $op:expr) => {{
+        // TODO add to graph?:     convert.node = device.graph().add(convert.len(), matrix.node.idx);
         let cpu = CPU::new();
         if $device.unified_mem() {
 
@@ -225,6 +225,7 @@ macro_rules! cl_cpu_exec_unified {
 #[macro_export]
 macro_rules! cl_cpu_exec_unified_mut {
     ($device:ident, $($t:ident),* WRITE_TO<$($write_to:ident, $from:ident),*> $op:expr) => {{
+        // TODO: add to graph?:     convert.node = device.graph().add(convert.len(), matrix.node.idx);
         if $device.unified_mem() {
             $crate::to_raw_host!($($t),*);
             $crate::to_raw_host_mut!($($write_to, $from),*);

@@ -1,6 +1,6 @@
 use core::ops::Range;
 
-use crate::{shape::Shape, Alloc, Buffer, AsRangeArg, prelude::{Numeric, Number}};
+use crate::{shape::Shape, Alloc, Buffer, number::Number};
 
 #[cfg(feature = "cpu")]
 use crate::{WriteBuf, CPU};
