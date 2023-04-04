@@ -1,4 +1,4 @@
-use core::{ffi::c_void, fmt::Debug};
+use core::{ffi::c_void, fmt::Debug, mem::ManuallyDrop};
 
 #[cfg(feature = "cpu")]
 use crate::cpu::{CPUPtr, CPU};
@@ -273,23 +273,26 @@ impl<'a, T, D: Device, S: Shape> Drop for Buffer<'a, T, D, S> {
     }
 }
 
-/*
+// TODO better solution for the to_dims stack problem?
 impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
     /// Converts a (non stack allocated) `Buffer` with no shape to a `Buffer` with shape `O`.
     #[inline]
     pub fn to_dims<O: Shape>(self) -> Buffer<'a, T, D, O>
     where
-        D: ToDim<T, S, O>,
+        D: crate::ToDim<T, S, O>,
+        D::Ptr<T, S>: ShallowCopy,
     {
-        let ptr = self.device().to_dim(self.ptr);
+        let buf = ManuallyDrop::new(self);
+
+        let ptr = buf.device().to_dim(unsafe {buf.ptr.shallow()});
 
         Buffer {
             ptr,
-            device: self.device,
-            ident: self.ident,
+            device: buf.device,
+            ident: buf.ident,
         }
     }
-}*/
+}
 
 impl<'a, T, D: IsShapeIndep, S: Shape> Buffer<'a, T, D, S> {
     /// Returns a reference of the same buffer, but with a different shape.
@@ -722,8 +725,8 @@ mod tests {
 
         let device = crate::CPU::new();
         let buf = Buffer::from((&device, [1, 2, 3, 4, 5, 6]));
-        //let buf_dim2 = buf.to_dims::<Dim2<3, 2>>();
+        let buf_dim2 = buf.to_dims::<Dim2<3, 2>>();
 
-        //buf_dim2.to_dims::<()>();
+        buf_dim2.to_dims::<()>();
     }
 }
