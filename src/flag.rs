@@ -10,7 +10,7 @@ pub enum AllocFlag {
     Wrapper,
     /// If a Buffer / allocation only contains a single number.
     Num,
-    /// Similiar to `Cache`, but the buffer is borrowed and not owned.
+    /// Similiar to `Wrapper`, but the resulting [`Buffer`](crate::Buffer) is borrowed and not owned.
     BorrowedCache,
 }
 
