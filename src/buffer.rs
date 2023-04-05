@@ -177,7 +177,6 @@ impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
     #[inline]
     pub fn write(&mut self, data: &[T])
     where
-        T: Clone,
         D: WriteBuf<T, S, D>,
     {
         self.device().write(self, data)

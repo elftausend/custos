@@ -1,6 +1,11 @@
 //! The CUDA module provides the CUDA backend for custos.
 
-pub(crate) mod api;
+pub mod api;
+
+
+/// Type alias for `core::ffi::c_ulonglong`. Used for CUDA memory object pointers.
+pub type CUdeviceptr = core::ffi::c_ulonglong;
+
 mod cuda_device;
 mod kernel_cache;
 mod kernel_launch;
