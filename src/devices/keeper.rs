@@ -1,5 +1,5 @@
 use crate::{
-    flag::AllocFlag, Buffer, Device, GlobalCount, Graph, Ident, KeeperAble, KeeperReturn, PtrConv,
+    flag::AllocFlag, Buffer, Device, GlobalCount, Graph, Ident, KeeperReturn, PtrConv,
     PtrType, Shape,
 };
 
@@ -53,9 +53,47 @@ impl<D: Device + PtrConv> Keeper<D> {
         *self
             .ptrs
             .get_mut(id.idx)
-            .expect(&format!("Cannot get buffer with id {}", id.idx)) = None;
+            .expect(&format!("Cannot remove buffer with id {}. This indicates a bug in custos", id.idx)) = None;
     }
 }
+
+pub trait KeeperAble<D: Device> {
+    /// May return an existing buffer using the provided [`Ident`].
+    /// This function panics if no buffer with the provided [`Ident`] exists.
+    ///
+    /// # Safety
+    /// This function is unsafe because it is possible to return multiple `Buffer` with `Ident` that share the same memory.
+    /// If this function is called twice with the same `Ident`, the returned `Buffer` will be the same.
+    /// Even though the return `Buffer`s are owned, this does not lead to double-frees (see [`AllocFlag`]).
+    unsafe fn get_existing_buf<T, S: Shape>(device: &D, id: Ident) -> Option<Buffer<T, D, S>>;
+
+    /// Removes a `Buffer` with the provided [`Ident`] from the cache.
+    /// This function is internally called when a `Buffer` with [`AllocFlag`] `None` is dropped.
+    fn remove(device: &D, ident: Ident);
+
+    /// Adds a pointer that was allocated by [`Alloc`] to the cache and returns a new corresponding [`Ident`].
+    /// This function is internally called when a `Buffer` with [`AllocFlag`] `None` is created.
+    // TODO: rename function
+    fn add<T, S: Shape>(device: &D, ptr: &D::Ptr<T, S>) -> Ident;
+}
+
+impl<D: Device> KeeperAble<D> for () {
+    #[inline]
+    fn remove(_device: &D, _ident: Ident) {}
+
+    #[inline]
+    fn add<T, S: Shape>(_device: &D, ptr: &<D as Device>::Ptr<T, S>) -> Ident {
+        // None return?
+        todo!()
+        // Ident::new(ptr.size())
+    }
+
+    #[inline]
+    unsafe fn get_existing_buf<T, S: Shape>(_device: &D, _id: Ident) -> Option<Buffer<T, D, S>> {
+        None
+    }
+}
+
 
 impl<D: Device + KeeperReturn + PtrConv> KeeperAble<D> for Keeper<D> {
     #[inline]
@@ -69,7 +107,7 @@ impl<D: Device + KeeperReturn + PtrConv> KeeperAble<D> for Keeper<D> {
     }
 
     #[inline]
-    fn add_to_cache<T, S: Shape>(device: &D, ptr: &<D as Device>::Ptr<T, S>) -> Ident {
+    fn add<T, S: Shape>(device: &D, ptr: &<D as Device>::Ptr<T, S>) -> Ident {
         device
             .keeper_mut()
             .add_to_cache(&mut device.graph_mut(), ptr)

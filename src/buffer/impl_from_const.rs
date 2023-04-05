@@ -1,4 +1,4 @@
-use crate::{prelude::Number, shape::Shape, Alloc, Buffer, Dim1, Dim2, Ident};
+use crate::{prelude::Number, shape::Shape, Alloc, Buffer, Dim1, Dim2};
 
 /// Trait for creating [`Buffer`]s with a [`Shape`]. The [`Shape`] is inferred from the array.
 pub trait WithShape<D, C> {
@@ -22,12 +22,9 @@ where
     T: Number, // using Number here, because T could be an array type
     D: Alloc<'a, T, Dim1<N>>,
 {
+    #[inline]
     fn with(device: &'a D, array: [T; N]) -> Self {
-        Buffer {
-            ident: Ident::new_bumped(array.len()),
-            ptr: device.with_array(array),
-            device: Some(device),
-        }
+        Buffer::from_array(device, array)
     }
 }
 
@@ -36,12 +33,9 @@ where
     T: Number,
     D: Alloc<'a, T, Dim1<N>>,
 {
+    #[inline]
     fn with(device: &'a D, array: &[T; N]) -> Self {
-        Buffer {
-            ident: Ident::new_bumped(array.len()),
-            ptr: device.with_array(*array),
-            device: Some(device),
-        }
+        Buffer::from_array(device, *array)
     }
 }
 
@@ -51,12 +45,9 @@ where
     T: Number,
     D: Alloc<'a, T, Dim2<B, A>>,
 {
+    #[inline]
     fn with(device: &'a D, array: [[T; A]; B]) -> Self {
-        Buffer {
-            ident: Ident::new_bumped(B * A),
-            ptr: device.with_array(array),
-            device: Some(device),
-        }
+        Buffer::from_array(device, array)
     }
 }
 
@@ -66,12 +57,9 @@ where
     T: Number,
     D: Alloc<'a, T, Dim2<B, A>>,
 {
+    #[inline]
     fn with(device: &'a D, array: &[[T; A]; B]) -> Self {
-        Buffer {
-            ident: Ident::new_bumped(B * A),
-            ptr: device.with_array(*array),
-            device: Some(device),
-        }
+        Buffer::from_array(device, *array)
     }
 }
 

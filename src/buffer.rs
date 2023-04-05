@@ -384,6 +384,27 @@ impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
             device: Some(device),
         }
     }
+
+    /// Creates a new `Buffer` from an nd stack allocated array.
+    /// The dimension is defined by the [`Shape`].
+    /// The pointer of the allocation may be added to the cache of the device.
+    /// Usually, this pointer / `Buffer` is then returned by a `device.get_existing_buf(..)` call.
+    #[inline]
+    pub fn from_array(device: &'a D, array: S::ARR<T>) -> Buffer<T, D, S>
+    where
+        T: Clone,
+        D: Alloc<'a, T, S>,
+    {
+        let ptr = device.with_array(array);
+        let ident = device.add_to_cache(&ptr);
+
+        Buffer {
+            ptr,
+            ident,
+            device: Some(device),
+        }
+    }
+
 }
 
 #[cfg(feature = "cpu")]

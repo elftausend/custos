@@ -58,6 +58,7 @@ pub use buffer::*;
 pub use count::*;
 pub use devices::*;
 
+use devices::keeper::KeeperAble;
 pub use error::*;
 
 use flag::AllocFlag;
@@ -231,7 +232,7 @@ pub trait Device: Sized + 'static {
     /// This function is internally called when a `Buffer` with [`AllocFlag`] `None` is created.
     #[inline]
     fn add_to_cache<T, S: Shape>(&self, ptr: &Self::Ptr<T, S>) -> Ident {
-        Self::Keeper::add_to_cache(self, ptr)
+        Self::Keeper::add(self, ptr)
     }
 }
 
