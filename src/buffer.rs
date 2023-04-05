@@ -413,7 +413,7 @@ impl<'a, T, S: Shape> Buffer<'a, T, CPU, S> {
         Buffer {
             ptr: CPUPtr::from_ptr(ptr, len, AllocFlag::Wrapper),
             device: None,
-            ident: Ident::new_bumped(len),
+            ident: Ident::new(len),
         }
     }
 
@@ -432,7 +432,7 @@ impl<'a, T, S: Shape> Buffer<'a, T, CPU, S> {
         Buffer {
             ptr: CPUPtr::from_ptr(ptr, len, AllocFlag::Wrapper),
             device: Some(device),
-            ident: Ident::new_bumped(len),
+            ident: Ident::new(len),
         }
     }
 }
