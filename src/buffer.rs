@@ -80,6 +80,7 @@ impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
     {
         let ptr = device.alloc(len, AllocFlag::None);
         let ident = device.add_to_cache(&ptr);
+
         Buffer {
             ptr,
             device: Some(device),
@@ -284,7 +285,7 @@ impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
     {
         let buf = ManuallyDrop::new(self);
 
-        let ptr = buf.device().to_dim(unsafe {buf.ptr.shallow()});
+        let ptr = buf.device().to_dim(unsafe { buf.ptr.shallow() });
 
         Buffer {
             ptr,

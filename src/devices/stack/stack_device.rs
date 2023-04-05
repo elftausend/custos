@@ -12,6 +12,7 @@ impl<'a, T: Copy + Default, S: Shape> DevicelessAble<'a, T, S> for Stack {}
 impl Device for Stack {
     type Ptr<U, S: Shape> = StackArray<S, U>;
     type Cache = ();
+    type Keeper = ();
 
     fn new() -> crate::Result<Self> {
         Ok(Stack)

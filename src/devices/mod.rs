@@ -15,6 +15,9 @@ pub mod cache;
 #[cfg(feature = "autograd")]
 pub(crate) mod borrowing_cache;
 
+#[cfg(feature = "autograd")]
+pub mod keeper;
+
 //pub mod cache;
 #[cfg(not(feature = "no-std"))]
 pub use cache::*;
@@ -126,6 +129,43 @@ impl<D: Device> CacheAble<D> for () {
     #[inline]
     fn add_to_cache<T, S: Shape>(_device: &D, ptr: &<D as Device>::Ptr<T, S>) -> Ident {
         Ident::new_bumped(ptr.size())
+    }
+
+    #[inline]
+    unsafe fn get_existing_buf<T, S: Shape>(_device: &D, _id: Ident) -> Option<Buffer<T, D, S>> {
+        None
+    }
+}
+
+pub trait KeeperAble<D: Device> {
+    /// May return an existing buffer using the provided [`Ident`].
+    /// This function panics if no buffer with the provided [`Ident`] exists.
+    ///
+    /// # Safety
+    /// This function is unsafe because it is possible to return multiple `Buffer` with `Ident` that share the same memory.
+    /// If this function is called twice with the same `Ident`, the returned `Buffer` will be the same.
+    /// Even though the return `Buffer`s are owned, this does not lead to double-frees (see [`AllocFlag`]).
+    unsafe fn get_existing_buf<T, S: Shape>(device: &D, id: Ident) -> Option<Buffer<T, D, S>>;
+
+    /// Removes a `Buffer` with the provided [`Ident`] from the cache.
+    /// This function is internally called when a `Buffer` with [`AllocFlag`] `None` is dropped.
+    fn remove(device: &D, ident: Ident);
+
+    /// Adds a pointer that was allocated by [`Alloc`] to the cache and returns a new corresponding [`Ident`].
+    /// This function is internally called when a `Buffer` with [`AllocFlag`] `None` is created.
+    // TODO: rename function
+    fn add_to_cache<T, S: Shape>(device: &D, ptr: &D::Ptr<T, S>) -> Ident;
+}
+
+impl<D: Device> KeeperAble<D> for () {
+    #[inline]
+    fn remove(_device: &D, _ident: Ident) {}
+
+    #[inline]
+    fn add_to_cache<T, S: Shape>(_device: &D, ptr: &<D as Device>::Ptr<T, S>) -> Ident {
+        // None return?
+        todo!()
+        // Ident::new(ptr.size())
     }
 
     #[inline]

@@ -153,6 +153,7 @@ pub trait Device: Sized + 'static {
     type Ptr<U, S: Shape>: PtrType;
     /// The type of the cache.
     type Cache: CacheAble<Self>;
+    type Keeper: KeeperAble<Self>;
     //type Tape: ;
 
     /// Creates a new device.
@@ -216,21 +217,21 @@ pub trait Device: Sized + 'static {
     #[cfg(feature = "autograd")]
     #[inline]
     unsafe fn get_existing_buf<T, S: Shape>(&self, ident: Ident) -> Buffer<T, Self, S> {
-        Self::Cache::get_existing_buf(self, ident).expect("A matching Buffer does not exist.")
+        Self::Keeper::get_existing_buf(self, ident).expect("A matching Buffer does not exist.")
     }
 
     /// Removes a `Buffer` with the provided [`Ident`] from the cache.
     /// This function is internally called when a `Buffer` with [`AllocFlag`] `None` is dropped.
     #[inline]
     fn remove(&self, ident: Ident) {
-        Self::Cache::remove(self, ident);
+        Self::Keeper::remove(self, ident);
     }
 
     /// Adds a pointer that was allocated by [`Alloc`] to the cache and returns a new corresponding [`Ident`].
     /// This function is internally called when a `Buffer` with [`AllocFlag`] `None` is created.
     #[inline]
     fn add_to_cache<T, S: Shape>(&self, ptr: &Self::Ptr<T, S>) -> Ident {
-        Self::Cache::add_to_cache(self, ptr)
+        Self::Keeper::add_to_cache(self, ptr)
     }
 }
 

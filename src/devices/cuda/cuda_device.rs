@@ -11,8 +11,8 @@ use super::{
 };
 
 use crate::{
-    cache::Cache, flag::AllocFlag, Addons, AddonsReturn, Alloc, Buffer, CacheReturn, CloneBuf,
-    Device, PtrConv, Shape,
+    cache::Cache, flag::AllocFlag, keeper::Keeper, Addons, AddonsReturn, Alloc, Buffer,
+    CacheReturn, CloneBuf, Device, PtrConv, Shape,
 };
 
 /// Used to perform calculations with a CUDA capable device.
@@ -86,6 +86,7 @@ impl CUDA {
 impl Device for CUDA {
     type Ptr<U, S: Shape> = CUDAPtr<U>;
     type Cache = Cache<CUDA>;
+    type Keeper = Keeper<CUDA>;
 
     fn new() -> crate::Result<Self> {
         CUDA::new(chosen_cu_idx())

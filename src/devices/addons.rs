@@ -1,6 +1,11 @@
-use core::{cell::RefCell, fmt::Debug};
+use core::{
+    cell::{Ref, RefCell, RefMut},
+    fmt::Debug,
+};
 
-use crate::{Cache, CacheReturn, Device, GlobalCount, Graph, GraphReturn, NodeIdx, PtrConv};
+use crate::{
+    keeper::Keeper, Cache, CacheReturn, Device, GlobalCount, Graph, GraphReturn, NodeIdx, PtrConv,
+};
 
 /// Provides several addons for a device.
 /// - `graph`: An optimizeable graph.
@@ -9,6 +14,9 @@ use crate::{Cache, CacheReturn, Device, GlobalCount, Graph, GraphReturn, NodeIdx
 pub struct Addons<D: Device, IdxFrom: NodeIdx = GlobalCount> {
     pub graph: RefCell<Graph<IdxFrom>>,
     pub cache: RefCell<Cache<D>>,
+
+    #[cfg(feature = "autograd")]
+    pub keeper: RefCell<Keeper<D>>,
     #[cfg(feature = "autograd")]
     pub tape: RefCell<crate::Tape<D>>,
 }
@@ -43,11 +51,16 @@ where
         Self {
             graph: Default::default(),
             cache: Default::default(),
+
+            #[cfg(feature = "autograd")]
+            keeper: Default::default(),
             #[cfg(feature = "autograd")]
             tape: Default::default(),
         }
     }
 }
+
+impl<D: GraphReturn + Device + PtrConv> Addons<D> {}
 
 /// `AddonsReturn` is probably implemented for all devices that have an [`Addons`] field.
 pub trait AddonsReturn: Device {
@@ -57,19 +70,19 @@ pub trait AddonsReturn: Device {
 
 impl<D: AddonsReturn> GraphReturn for D {
     #[inline]
-    fn graph(&self) -> std::cell::Ref<Graph<GlobalCount>> {
+    fn graph(&self) -> Ref<Graph<GlobalCount>> {
         self.addons().graph.borrow()
     }
 
     #[inline]
-    fn graph_mut(&self) -> std::cell::RefMut<Graph<GlobalCount>> {
+    fn graph_mut(&self) -> RefMut<Graph<GlobalCount>> {
         self.addons().graph.borrow_mut()
     }
 }
 
 impl<D: AddonsReturn> CacheReturn for D {
     #[inline]
-    fn cache(&self) -> core::cell::Ref<crate::Cache<Self>>
+    fn cache(&self) -> Ref<crate::Cache<Self>>
     where
         Self: PtrConv,
     {
@@ -77,7 +90,7 @@ impl<D: AddonsReturn> CacheReturn for D {
     }
 
     #[inline]
-    fn cache_mut(&self) -> core::cell::RefMut<crate::Cache<Self>>
+    fn cache_mut(&self) -> RefMut<crate::Cache<Self>>
     where
         Self: PtrConv,
     {
@@ -88,12 +101,31 @@ impl<D: AddonsReturn> CacheReturn for D {
 #[cfg(feature = "autograd")]
 impl<D: AddonsReturn> crate::TapeReturn for D {
     #[inline]
-    fn tape(&self) -> core::cell::Ref<crate::Tape<Self>> {
+    fn tape(&self) -> Ref<crate::Tape<Self>> {
         self.addons().tape.borrow()
     }
 
     #[inline]
-    fn tape_mut(&self) -> core::cell::RefMut<crate::Tape<Self>> {
+    fn tape_mut(&self) -> RefMut<crate::Tape<Self>> {
         self.addons().tape.borrow_mut()
+    }
+}
+
+/// This trait is implemented for all devices that provide a [`Keeper`].
+pub trait KeeperReturn: Device {
+    fn keeper(&self) -> Ref<Keeper<Self>>;
+    fn keeper_mut(&self) -> RefMut<Keeper<Self>>;
+}
+
+#[cfg(feature = "autograd")]
+impl<D: AddonsReturn> KeeperReturn for D {
+    #[inline]
+    fn keeper(&self) -> Ref<Keeper<Self>> {
+        self.addons().keeper.borrow()
+    }
+
+    #[inline]
+    fn keeper_mut(&self) -> RefMut<Keeper<Self>> {
+        self.addons().keeper.borrow_mut()
     }
 }

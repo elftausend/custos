@@ -1,6 +1,6 @@
 use core::ops::Range;
 
-use crate::{shape::Shape, Alloc, Buffer, number::Number};
+use crate::{number::Number, shape::Shape, Alloc, Buffer};
 
 #[cfg(feature = "cpu")]
 use crate::{WriteBuf, CPU};
@@ -27,7 +27,7 @@ where
     }
 }
 
-/*impl<'a, T, D> Buffer<'a, T, D> 
+/*impl<'a, T, D> Buffer<'a, T, D>
 where
     T: Clone,
     D: Alloc<'a, T>
@@ -48,7 +48,6 @@ where
         Buffer::from_vec(&device, range.map(|x| T::from_usize(x)).collect())
     }
 }
-
 
 /*impl<'a, T, D, const N: usize> From<(&'a D, [T; N])> for Buffer<'a, T, D>
 where
