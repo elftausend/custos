@@ -286,11 +286,11 @@ impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
     /// # Example
     /// ```
     /// use custos::{CPU, Buffer, Shape, Dim1, Dim2};
-    /// 
+    ///
     /// let device = CPU::new();
     /// let a = Buffer::<i32, CPU, Dim1<10>>::new(&device, 10);
     /// let _b = a.to_dims::<Dim2<5, 2>>();
-    /// 
+    ///
     /// ```
     #[inline]
     pub fn to_dims<O: Shape>(self) -> Buffer<'a, T, D, O>
@@ -768,7 +768,7 @@ mod tests {
     #[cfg(feature = "cpu")]
     #[test]
     fn test_id_cpu() {
-        use crate::{CPU, Ident};
+        use crate::{Ident, CPU};
 
         let device = CPU::new();
 

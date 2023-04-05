@@ -38,7 +38,7 @@ impl<T> CPUPtr<T> {
     /// # Example
     /// ```
     /// use custos::{cpu::CPUPtr, flag::AllocFlag};
-    /// 
+    ///
     /// let ptr = CPUPtr::<f32>::new(10, AllocFlag::None);
     /// assert_eq!(ptr.len, 10);
     /// assert_eq!(ptr.flag, AllocFlag::None);
@@ -65,7 +65,7 @@ impl<T> CPUPtr<T> {
     /// # Example
     /// ```
     /// use custos::{cpu::CPUPtr, flag::AllocFlag};
-    /// 
+    ///
     /// let ptr = CPUPtr::<f32>::new(10, AllocFlag::None);
     /// let ptr2 = CPUPtr::<f32>::from_ptr(ptr.ptr, 10, AllocFlag::Wrapper); // AllocFlag::Wrapper will not free the pointer -> prevents double free
     /// assert_eq!(ptr.ptr, ptr2.ptr);

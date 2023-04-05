@@ -16,15 +16,18 @@ use crate::{
 };
 
 /// Used to perform calculations with a CUDA capable device.
-/// To make new calculations invocable, a trait providing new operations should be implemented for [CudaDevice].
+/// To make new calculations invocable, a trait providing new operations should be implemented for [`CUDA`].
 #[derive(Debug)]
 pub struct CUDA {
+    /// Stores compiled CUDA kernels.
     pub kernel_cache: RefCell<KernelCacheCU>,
+    /// Stores CUDA modules from the compiled kernels.
     pub modules: RefCell<Vec<Module>>,
     device: CudaIntDevice,
     ctx: Context,
     stream: Stream,
     handle: CublasHandle,
+    /// Provides additional functionality for the CUDA device. e.g. a cache, a gradient [`Tape`](crate::Tape), an optimizeable [`Graph`](crate::Graph) and a [`Cache`](crate::Cache).
     pub addons: Addons<CUDA>,
 }
 
@@ -55,22 +58,31 @@ impl CUDA {
         })
     }
 
+    /// Returns the internal CUDA device.
+    #[inline]
     pub fn device(&self) -> &CudaIntDevice {
         &self.device
     }
 
+    /// Returns the internal CUDA context.
+    #[inline]
     pub fn ctx(&self) -> &Context {
         &self.ctx
     }
 
-    pub fn handle(&self) -> &CublasHandle {
+    /// Returns the cublas handle
+    #[inline]
+    pub fn cublas_handle(&self) -> &CublasHandle {
         &self.handle
     }
 
+    /// Returns the internal CUDA stream.
+    #[inline]
     pub fn stream(&self) -> &Stream {
         &self.stream
     }
 
+    /// Lauches a CUDA kernel with the given arguments.
     #[inline]
     pub fn launch_kernel1d(
         &self,

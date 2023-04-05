@@ -1,6 +1,6 @@
 use std::{ffi::c_void, time::Instant};
 
-use custos::{
+use crate::{
     cuda::api::{
         cuLaunchKernel, cuOccupancyMaxPotentialBlockSize, load_module_data, nvrtc::create_program,
     },
@@ -8,7 +8,7 @@ use custos::{
 };
 
 #[test]
-fn test_occupancy() -> custos::Result<()> {
+fn test_occupancy() -> crate::Result<()> {
     let device = CUDA::new(0)?;
 
     let a = Buffer::from((&device, [1, 2, 3, 4, 5]));
