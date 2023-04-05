@@ -1,4 +1,4 @@
-// #![warn(missing_docs)]
+#![warn(missing_docs)]
 #![cfg_attr(feature = "no-std", no_std)]
 
 //! A minimal OpenCL, WGPU, CUDA and host CPU array manipulation engine / framework written in Rust.
@@ -143,7 +143,9 @@ pub trait ShallowCopy {
 /// custos v5 compatibility for "common pointers".
 /// The commmon pointers contain the following pointers: host, opencl and cuda
 pub trait CommonPtrs<T> {
+    /// Returns the "immutable" common pointers.
     fn ptrs(&self) -> (*const T, *mut c_void, u64);
+    /// Returns the mutable common pointers.
     fn ptrs_mut(&mut self) -> (*mut T, *mut c_void, u64);
 }
 

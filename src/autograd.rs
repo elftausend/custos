@@ -173,13 +173,16 @@ type GradFn<D> = Box<dyn Fn(&mut Gradients<D>, &D)>;
 /// Stores the grad functions and gradient cache.
 #[derive(Default)]
 pub struct Tape<D: Device> {
+    /// Caches gradients for each [`Buffer`]'s id ([`Ident`]).
     pub grads: Gradients<D>,
     grad_fns: Vec<GradFn<D>>,
 }
 
 /// This trait is implemented for all devices that provide a [`Tape`].
 pub trait TapeReturn: Device {
+    /// Returns a reference to the [`Tape`].
     fn tape(&self) -> Ref<Tape<Self>>;
+    /// Returns a mutable reference to the [`Tape`].
     fn tape_mut(&self) -> RefMut<Tape<Self>>;
 }
 

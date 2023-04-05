@@ -42,13 +42,17 @@ impl Graph {
 #[cfg(not(feature = "no-std"))]
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct CacheTrace {
+    /// This index is the common cache index. All the other indices in `use_cache_idx` can use this index to share memory.
     pub cache_idx: usize,
+    /// The indices of the nodes that can use the common cache entry of `cache_idx`.
     pub use_cache_idx: Vec<Ident>,
 }
 
 /// Returns a mutable reference to the graph.
 pub trait GraphReturn<IdxFrom: NodeIdx = GlobalCount> {
+    /// Returns a reference to [`Graph`].
     fn graph(&self) -> Ref<Graph<IdxFrom>>;
+    /// Returns a mutable reference to [`Graph`].
     fn graph_mut(&self) -> RefMut<Graph<IdxFrom>>;
 }
 

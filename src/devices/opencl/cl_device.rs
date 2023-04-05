@@ -32,8 +32,11 @@ use min_cl::api::unified_ptr;
 /// ```
 pub struct OpenCL {
     pub(crate) kernel_cache: RefCell<KernelCacheCL>,
+    /// The underlying OpenCL device.
     pub inner: CLDevice,
+    /// A [`CPU`] used for unified memory device switching.
     pub cpu: CPU,
+    /// Provides additional functionality e.g a gradient tape, optimizeable graph and cache.
     pub addons: Addons<OpenCL>,
 }
 

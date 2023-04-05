@@ -46,8 +46,11 @@ mod num;
 /// buffer_generic(&buf);
 /// ```
 pub struct Buffer<'a, T = f32, D: Device = CPU, S: Shape = ()> {
+    /// the type of pointer
     pub ptr: D::Ptr<T, S>,
+    /// A reference to the corresponding device. Mainly used for operations without a device parameter.
     pub device: Option<&'a D>,
+    /// Used as a cache and autograd identifier.
     pub ident: Option<Ident>,
 }
 
@@ -279,7 +282,16 @@ impl<'a, T, D: Device, S: Shape> Drop for Buffer<'a, T, D, S> {
 
 // TODO better solution for the to_dims stack problem?
 impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
-    /// Converts a (non stack allocated) `Buffer` with no shape to a `Buffer` with shape `O`.
+    /// Converts a non stack allocated `Buffer` with shape `S` to a `Buffer` with shape `O`.
+    /// # Example
+    /// ```
+    /// use custos::{CPU, Buffer, Shape, Dim1, Dim2};
+    /// 
+    /// let device = CPU::new();
+    /// let a = Buffer::<i32, CPU, Dim1<10>>::new(&device, 10);
+    /// let _b = a.to_dims::<Dim2<5, 2>>();
+    /// 
+    /// ```
     #[inline]
     pub fn to_dims<O: Shape>(self) -> Buffer<'a, T, D, O>
     where
@@ -768,7 +780,7 @@ mod tests {
     #[should_panic]
     #[test]
     fn test_id_stack() {
-        use crate::{CPU, Stack, WithShape};
+        use crate::{Stack, WithShape};
 
         let device = Stack;
 

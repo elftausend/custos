@@ -13,10 +13,12 @@ use super::cuda::api::{
     CUdeviceptr,
 };
 
+/// Provides generic access to f32 and f64 BLAS functions
 pub trait GenericBlas
 where
     Self: Sized,
 {
+    /// Performs a f32 or f64 matrix multiplication
     #[cfg(feature = "blas")]
     #[cfg(feature = "cpu")]
     #[allow(clippy::too_many_arguments)]
@@ -34,6 +36,8 @@ where
         c: &mut [Self],
         ldc: usize,
     );
+
+    /// A shortened wrapper around [`GenericBlas::blas_gemm`] with the correct parameters for a matrix multiplication
     #[cfg(feature = "blas")]
     #[cfg(feature = "cpu")]
     #[inline]
@@ -53,6 +57,9 @@ where
             n,
         )
     }
+
+    /// A shortened wrapper around [`GenericBlas::blas_gemm`] with the correct parameters for a matrix multiplication
+    /// It transposes the rhs (b) matrix.
     #[cfg(feature = "blas")]
     #[cfg(feature = "cpu")]
     #[inline]
@@ -74,6 +81,8 @@ where
         )
     }
 
+    /// A shortened wrapper around [`GenericBlas::blas_gemm`] with the correct parameters for a matrix multiplication
+    /// It transposes the lhs (a) matrix.
     #[cfg(feature = "blas")]
     #[cfg(feature = "cpu")]
     #[inline]
@@ -95,6 +104,7 @@ where
         )
     }
 
+    /// Access to cublas matrix multiplication
     #[cfg(feature = "cuda")]
     fn cugemm(
         handle: &CublasHandle,

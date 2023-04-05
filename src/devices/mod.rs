@@ -6,7 +6,7 @@ pub use generic_blas::*;
 mod addons;
 pub use addons::*;
 
-use crate::{flag::AllocFlag, shape::Shape, AddGraph, Alloc, Buffer, Device, PtrType};
+use crate::{flag::AllocFlag, shape::Shape, AddGraph, Alloc, Buffer, Device};
 
 #[cfg(not(feature = "no-std"))]
 pub mod cache;
@@ -53,7 +53,7 @@ mod ident;
 #[cfg(not(feature = "no-std"))]
 pub use ident::*;
 
-// Used to convert a device pointer to the a pointer of a different type.
+/// Used to convert a device pointer to the a pointer of a different type.
 pub trait PtrConv: Device + CacheReturn {
     /// Converts a pointer to a pointer with a different type.
     /// # Safety
@@ -124,7 +124,7 @@ impl<D: Device> CacheAble<D> for () {
     fn remove(_device: &D, _ident: Ident) {}
 
     #[inline]
-    fn add_to_cache<T, S: Shape>(_device: &D, ptr: &<D as Device>::Ptr<T, S>) -> Option<Ident> {
+    fn add_to_cache<T, S: Shape>(_device: &D, _ptr: &<D as Device>::Ptr<T, S>) -> Option<Ident> {
         None
     }
 

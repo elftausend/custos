@@ -30,6 +30,7 @@ impl<T: Copy> Eval<T> for T {
 /// A trait that allows combining math operations.
 /// (Similiar to an Iterator)
 pub trait Combiner {
+    /// Combines two values into a new one via an addition.
     #[inline]
     fn add<R>(self, rhs: R) -> Add<Self, R>
     where
@@ -38,6 +39,7 @@ pub trait Combiner {
         Add::new(self, rhs)
     }
 
+    /// Combines two values into a new one via an multiplication.
     #[inline]
     fn mul<R>(self, rhs: R) -> Mul<Self, R>
     where
@@ -46,6 +48,7 @@ pub trait Combiner {
         Mul::new(self, rhs)
     }
 
+    /// Combines two values into a new one via an subtraction.
     #[inline]
     fn sub<R>(self, rhs: R) -> Sub<Self, R>
     where
@@ -54,6 +57,7 @@ pub trait Combiner {
         Sub::new(self, rhs)
     }
 
+    /// Combines two values into a new one via an division.
     #[inline]
     fn div<R>(self, rhs: R) -> Div<Self, R>
     where
@@ -62,6 +66,7 @@ pub trait Combiner {
         Div::new(self, rhs)
     }
 
+    /// Calculates the sine of a value.
     #[inline]
     fn sin(self) -> Sin<Self>
     where
@@ -70,6 +75,7 @@ pub trait Combiner {
         Sin { comb: self }
     }
 
+    /// Calculates the cosine of a value.
     #[inline]
     fn cos(self) -> Cos<Self>
     where
@@ -78,6 +84,7 @@ pub trait Combiner {
         Cos { comb: self }
     }
 
+    /// Calculates the tangent of a value.
     #[inline]
     fn tan(self) -> Tan<Self>
     where
@@ -86,6 +93,7 @@ pub trait Combiner {
         Tan { comb: self }
     }
 
+    /// Combined two values into a new one via exponentiation.
     #[inline]
     fn pow<R>(self, rhs: R) -> Pow<Self, R>
     where
@@ -94,6 +102,7 @@ pub trait Combiner {
         Pow::new(self, rhs)
     }
 
+    /// Checks if the left value is greater than the right value.
     #[inline]
     fn geq<R>(self, rhs: R) -> GEq<Self, R>
     where
@@ -102,6 +111,7 @@ pub trait Combiner {
         GEq { comb: self, rhs }
     }
 
+    /// Checks if the left value is less than the right value.
     #[inline]
     fn leq<R>(self, rhs: R) -> LEq<Self, R>
     where
@@ -110,6 +120,7 @@ pub trait Combiner {
         LEq { comb: self, rhs }
     }
 
+    /// Checks if the left value is equal to the right value.
     #[inline]
     fn eq<R>(self, rhs: R) -> Eq<Self, R>
     where
@@ -118,6 +129,7 @@ pub trait Combiner {
         Eq { comb: self, rhs }
     }
 
+    /// Negates a value.
     #[inline]
     fn neg(self) -> Neg<Self>
     where
@@ -126,6 +138,7 @@ pub trait Combiner {
         Neg { comb: self }
     }
 
+    /// Calculates the e^x of a value.
     #[inline]
     fn exp(self) -> Exp<Self>
     where

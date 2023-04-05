@@ -44,9 +44,13 @@ pub fn chosen_cl_idx() -> usize {
 /// The pointer used for `OpenCL` [`Buffer`](crate::Buffer)s
 #[derive(Debug, PartialEq, Eq)]
 pub struct CLPtr<T> {
+    /// The pointer to the OpenCL memory object
     pub ptr: *mut c_void,
+    /// Possibly a pointer to the host memory. Only active for devices with unified memory.
     pub host_ptr: *mut T,
+    /// The number of elements allocated
     pub len: usize,
+    /// The flag of the memory object
     pub flag: AllocFlag,
 }
 

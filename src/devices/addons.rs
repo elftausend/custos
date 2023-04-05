@@ -7,8 +7,11 @@ use crate::{Cache, CacheReturn, Device, GlobalCount, Graph, GraphReturn, NodeIdx
 /// - `cache`: A cache for allocations.
 /// - `tape`: A (gradient) tape.
 pub struct Addons<D: Device, IdxFrom: NodeIdx = GlobalCount> {
+    /// An optimizeable graph.
     pub graph: RefCell<Graph<IdxFrom>>,
+    /// A cache for allocations.
     pub cache: RefCell<Cache<D>>,
+    /// A (gradient) tape.
     #[cfg(feature = "autograd")]
     pub tape: RefCell<crate::Tape<D>>,
 }

@@ -86,6 +86,8 @@ impl<const C: usize, const B: usize, const A: usize> Shape for Dim3<C, B, A> {
 // TODO: do not use device
 /// Converts a pointer to a different [`Shape`].
 pub trait ToDim<T, I: Shape, O: Shape>: crate::Device {
+    /// Converts a pointer to a different [`Shape`].
+    /// This is only possible for [`Buffer`]s that are not allocated on the stack.
     fn to_dim(&self, ptr: Self::Ptr<T, I>) -> Self::Ptr<T, O>;
 }
 

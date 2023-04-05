@@ -4,10 +4,13 @@ use super::node::Node;
 
 /// Trait for adding a node to a graph.
 pub trait AddGraph {
+    /// Returns the indices of the node's parents.
     #[inline]
     fn idxs(&self) -> (usize, usize) {
         (0, 0)
     }
+
+    /// Adds a node to the graph.
     #[inline]
     fn add<IdxFrom: NodeIdx>(&self, graph: &mut Graph<IdxFrom>, len: usize) -> Node {
         let (lhs_idx, rhs_idx) = self.idxs();
