@@ -106,7 +106,7 @@ fn test_add_large() {
     let start = Instant::now();
     for _ in range(0..100) {
         let out = device.add(&lhs, &rhs);
-        // assert_eq!(out.read(), out_actual_data);
+        assert_eq!(out.read(), out_actual_data);
     }
 
     println!("ocl dur: {:?}", start.elapsed());

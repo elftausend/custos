@@ -1,7 +1,8 @@
+//! The WGPU module provides the WGPU backend for custos.
 mod launch_shader;
 mod shader_cache;
 mod wgpu_buffer;
-pub mod wgpu_device;
+mod wgpu_device;
 
 use core::fmt::Debug;
 

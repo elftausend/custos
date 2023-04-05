@@ -26,12 +26,12 @@ use super::CPUPtr;
 /// assert_eq!(out, vec![1, 2, 3]);
 /// ```
 pub struct CPU {
-    /// Provides addons for the CPU. e.g. a cache, a gradient [`Tape`](crate::Tape), an optimizeable [`Graph`](crate::Graph) and a [`Cache`](crate::Cache).
+    /// Provides additional functionality for the CPU. e.g. a cache, a gradient [`Tape`](crate::Tape), an optimizeable [`Graph`](crate::Graph) and a [`Cache`](crate::Cache).
     pub addons: Addons<CPU>,
 }
 
 impl CPU {
-    /// Creates an [CPU] with an InternCPU that holds an empty vector of pointers.
+    /// Creates an [CPU] with default addons.
     #[must_use]
     pub fn new() -> CPU {
         CPU {

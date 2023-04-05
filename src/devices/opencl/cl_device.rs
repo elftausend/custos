@@ -20,7 +20,7 @@ use min_cl::api::unified_ptr;
 /// ```
 /// use custos::{OpenCL, Read, Buffer, Error};
 ///
-/// fn main() -> Result<(), Error> {
+/// fn main() -> custos::Result<()> {
 ///     let device = OpenCL::new(0)?;
 ///     
 ///     let a = Buffer::from((&device, [1.3; 25]));

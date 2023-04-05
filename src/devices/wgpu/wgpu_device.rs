@@ -10,15 +10,37 @@ use crate::{
 };
 use wgpu::{Adapter, Backends, Queue};
 
+/// Used to perform calculations with an WGPU capable device.
+/// To make new calculations invocable, a trait providing new operations should be implemented for [WGPU].
+/// # Example
+/// ```
+/// use custos::{WGPU, Read, Buffer, Error};
+///
+/// fn main() -> custos::Result<()> {
+///     let device = WGPU::new(wgpu::Backends::all())?;
+///     
+///     let a = Buffer::from((&device, [1.3; 25]));
+///     let out = device.read(&a);
+///     
+///     assert_eq!(out, vec![1.3; 5*5]);
+///     Ok(())
+/// }
+/// ```
 pub struct WGPU {
+    /// The WGPU adapter
     pub adapter: Adapter,
+    /// The WGPU device
     pub device: wgpu::Device,
+    /// The WGPU queue
     pub queue: Queue,
+    /// Caches compiled shaders for reuse
     pub shader_cache: RefCell<ShaderCache>,
+    /// Provides additional functionality for the WGPU device. e.g. a cache, a gradient [`Tape`](crate::Tape), an optimizeable [`Graph`](crate::Graph) and a [`Cache`](crate::Cache).
     pub addons: Addons<WGPU>,
 }
 
 impl WGPU {
+    /// Returns an [WGPU] device with the specified backends.
     pub fn new(backends: Backends) -> crate::Result<WGPU> {
         let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
             backends,
@@ -47,6 +69,7 @@ impl WGPU {
         })
     }
 
+    /// Launches a shader with the specified 'global work size' (`dispatch workgroups`) and arguments.
     #[inline]
     pub fn launch_kernel(&self, src: &str, gws: [u32; 3], args: &[impl AsBindingResource]) {
         launch_shader(self, src, gws, args)
@@ -100,13 +123,20 @@ impl<T, S: Shape> Alloc<'_, T, S> for WGPU {
     }
 }
 
+/// A pointer to a WGPU buffer.
 pub struct WGPUBufPtr<T> {
+    /// The pointer to the buffer
     pub ptr: *mut WGPUBuffer<T>,
+    /// The number of elements in the buffer
     pub len: usize,
+    /// The allocation flag of the buffer
     pub flag: AllocFlag,
 }
 
 impl<T> WGPUBufPtr<T> {
+    /// Returns a reference to the WGPU buffer.
+    /// # Safety
+    /// The buffer must not be dropped.
     #[inline]
     pub unsafe fn buf(&self) -> &wgpu::Buffer {
         &(*self.ptr).buf

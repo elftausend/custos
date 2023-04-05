@@ -12,7 +12,7 @@ use std::{
     ptr::null_mut,
 };
 
-pub fn cinit(flags: u32) -> CudaResult<()> {
+pub fn cuinit(flags: u32) -> CudaResult<()> {
     unsafe { cuInit(flags).into() }
 }
 

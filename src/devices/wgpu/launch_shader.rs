@@ -4,7 +4,9 @@ use crate::{Buffer, Shape};
 
 use super::WGPU;
 
+/// Every custos type that can be used as a binding resource should implement this trait.
 pub trait AsBindingResource {
+    /// Returns the binding resource.
     fn as_binding_resource(&self) -> BindingResource;
 }
 
