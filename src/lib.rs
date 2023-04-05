@@ -1,4 +1,4 @@
-#![warn(missing_docs)]
+#![deny(missing_docs)]
 #![cfg_attr(feature = "no-std", no_std)]
 
 //! A minimal OpenCL, WGPU, CUDA and host CPU array manipulation engine / framework written in Rust.

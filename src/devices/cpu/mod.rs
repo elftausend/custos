@@ -21,14 +21,29 @@ mod ops;
 /// The pointer used for `CPU` [`Buffer`](crate::Buffer)s
 #[derive(PartialEq, Eq, Debug)]
 pub struct CPUPtr<T> {
+    /// The pointer to the data
     pub ptr: *mut T,
+    /// The length of the data
     pub len: usize,
+    /// Allocation flag for the pointer
     pub flag: AllocFlag,
+    /// The alignment of type `T`
     pub align: Option<usize>,
+    /// The size of type `T`
     pub size: Option<usize>,
 }
 
 impl<T> CPUPtr<T> {
+    /// Create a new `CPUPtr` with the given length and allocation flag
+    /// # Example
+    /// ```
+    /// use custos::{cpu::CPUPtr, flag::AllocFlag};
+    /// 
+    /// let ptr = CPUPtr::<f32>::new(10, AllocFlag::None);
+    /// assert_eq!(ptr.len, 10);
+    /// assert_eq!(ptr.flag, AllocFlag::None);
+    /// assert_eq!(ptr.ptr.is_null(), false);
+    /// ```
     pub fn new(len: usize, flag: AllocFlag) -> CPUPtr<T> {
         let layout = Layout::array::<T>(len).unwrap();
         let ptr = unsafe { std::alloc::alloc(layout) };
@@ -45,6 +60,16 @@ impl<T> CPUPtr<T> {
         CPUPtr::from_ptr(ptr.cast(), len, flag)
     }
 
+    /// Wrap a raw pointer with the given length and allocation flag into a `CPUPtr`
+    /// Depending on the flag: [`AllocFlag`], the pointer will be freed or left untouched when the `CPUPtr` is dropped.
+    /// # Example
+    /// ```
+    /// use custos::{cpu::CPUPtr, flag::AllocFlag};
+    /// 
+    /// let ptr = CPUPtr::<f32>::new(10, AllocFlag::None);
+    /// let ptr2 = CPUPtr::<f32>::from_ptr(ptr.ptr, 10, AllocFlag::Wrapper); // AllocFlag::Wrapper will not free the pointer -> prevents double free
+    /// assert_eq!(ptr.ptr, ptr2.ptr);
+    /// ```
     #[inline]
     pub fn from_ptr(ptr: *mut T, len: usize, flag: AllocFlag) -> CPUPtr<T> {
         CPUPtr {

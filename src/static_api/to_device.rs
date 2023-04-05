@@ -4,7 +4,7 @@ use super::{static_cpu, StaticDevice};
 
 impl<'a, T: Clone> Buffer<'a, T> {
     /// Moves the buffer [`Buffer`] to a static device.<br>
-    /// This device is chosen via the type parameter D -> [`OpenCL`], [`CUDA`].<br>
+    /// This device is chosen via the type parameter D -> [`OpenCL`](crate::OpenCL), [`CUDA`](crate::CUDA).<br>
     /// It is recommended to use the to_gpu() method of [`Buffer`].
     ///  
     /// Example

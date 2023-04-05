@@ -26,6 +26,7 @@ use super::CPUPtr;
 /// assert_eq!(out, vec![1, 2, 3]);
 /// ```
 pub struct CPU {
+    /// Provides addons for the CPU. e.g. a cache, a gradient [`Tape`](crate::Tape), an optimizeable [`Graph`](crate::Graph) and a [`Cache`](crate::Cache).
     pub addons: Addons<CPU>,
 }
 

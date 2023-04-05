@@ -1,10 +1,11 @@
-#![allow(missing_docs)]
-
 #[cfg(not(feature = "no-std"))]
 mod std_err {
+    /// A type alias for Box<dyn std::error::Error + Send + Sync>
     pub type Error = Box<dyn std::error::Error + Send + Sync>;
 
+    /// A trait for downcasting errors.
     pub trait ErrorKind {
+        /// Downcasts the error to the specified type.
         fn kind<E: std::error::Error + PartialEq + 'static>(&self) -> Option<&E>;
     }
 
@@ -20,6 +21,7 @@ mod std_err {
 #[cfg(not(feature = "no-std"))]
 pub use std_err::*;
 
+/// A type alias for `Result<T, Error>`.
 #[cfg(not(feature = "no-std"))]
 pub type Result<T> = core::result::Result<T, self::std_err::Error>;
 
@@ -30,16 +32,23 @@ pub struct Error {}
 #[cfg(feature = "no-std")]
 pub type Result<T> = core::result::Result<T, Error>;
 
+/// 'generic' device errors that can occur on any device.
 #[derive(Clone, Copy, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub enum DeviceError {
+    /// Only a non-drop buffer can be converted to a CPU+OpenCL buffer.
     ConstructError,
+    /// Only a CPU Buffer can be converted to a CUDA Buffer
     CPUtoCUDA,
+    /// This graph can't be optimized. This indicates a bug in custos.
     GraphOptimization, // probably a bug
+    /// An address was not supplied for a Network device.
     MissingAddress,
+    /// Cannot create WGPU device instance.
     WGPUDeviceReturn,
 }
 
 impl DeviceError {
+    /// Returns a string slice containing the error message.
     pub fn as_str(&self) -> &'static str {
         match self {
             DeviceError::ConstructError => {

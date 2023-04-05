@@ -8,7 +8,7 @@ use crate::devices::cpu::{Order, Transpose};
 //#[cfg_attr(target_os = "linux", link(name = "openblas"))]
 extern "C" {
 
-    pub fn cblas_sgemm(
+    pub(crate) fn cblas_sgemm(
         order: Order,
         trans_a: Transpose,
         trans_b: Transpose,
@@ -25,7 +25,7 @@ extern "C" {
         ldc: usize,
     );
 
-    pub fn cblas_dgemm(
+    pub(crate) fn cblas_dgemm(
         order: Order,
         trans_a: Transpose,
         trans_b: Transpose,

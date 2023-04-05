@@ -20,12 +20,14 @@ impl Shape for () {
 
 // TODO: impl for net device
 // this is used to
-/// If the [`Shape`] does not matter for a specific device [`Buffer`], than this trait should be implemented.
+/// If the [`Shape`] does not matter for a specific device [`Buffer`](crate::Buffer), than this trait should be implemented.
 pub trait IsShapeIndep: Device {}
 
 #[cfg(not(feature = "no-std"))]
 impl<D: PtrConv> IsShapeIndep for D {}
 
+/// If the [`Shape`] is provides a fixed size, than this trait should be implemented.
+/// Forgot how this is useful.
 pub trait IsConstDim: Shape {}
 
 /// A 1D shape.
@@ -87,7 +89,7 @@ impl<const C: usize, const B: usize, const A: usize> Shape for Dim3<C, B, A> {
 /// Converts a pointer to a different [`Shape`].
 pub trait ToDim<T, I: Shape, O: Shape>: crate::Device {
     /// Converts a pointer to a different [`Shape`].
-    /// This is only possible for [`Buffer`]s that are not allocated on the stack.
+    /// This is only possible for [`Buffer`](crate::Buffer)s that are not allocated on the stack.
     fn to_dim(&self, ptr: Self::Ptr<T, I>) -> Self::Ptr<T, O>;
 }
 

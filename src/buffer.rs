@@ -93,7 +93,7 @@ impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
     }
 
     /// Buffers created with this method can outlive the device used to create this `Buffer`.<br>
-    /// No operations can be invoked on this `Buffer` as [`get_device!`] will panic.
+    /// No operations can be performed on this `Buffer` without a device parameter.
     /// # Examples
     #[cfg_attr(feature = "cpu", doc = "```")]
     #[cfg_attr(not(feature = "cpu"), doc = "```ignore")]

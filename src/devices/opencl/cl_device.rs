@@ -36,7 +36,7 @@ pub struct OpenCL {
     pub inner: CLDevice,
     /// A [`CPU`] used for unified memory device switching.
     pub cpu: CPU,
-    /// Provides additional functionality e.g a gradient tape, optimizeable graph and cache.
+    /// Provides additional functionality for the CPU. e.g. a cache, a gradient [`Tape`](crate::Tape), an optimizeable [`Graph`](crate::Graph) and a [`Cache`](crate::Cache).
     pub addons: Addons<OpenCL>,
 }
 

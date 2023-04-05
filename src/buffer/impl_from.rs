@@ -23,7 +23,7 @@ where
 {
     #[inline]
     fn from((device, len): (&'a D, usize)) -> Self {
-        Buffer::new(&device, len)
+        Buffer::new(device, len)
     }
 }
 
@@ -45,7 +45,7 @@ where
 {
     #[inline]
     fn from((device, range): (&'a D, Range<usize>)) -> Self {
-        Buffer::from_vec(&device, range.map(|x| T::from_usize(x)).collect())
+        Buffer::from_vec(device, range.map(|x| T::from_usize(x)).collect())
     }
 }
 

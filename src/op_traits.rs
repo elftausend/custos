@@ -100,7 +100,7 @@ pub trait CopySlice<T, D: Device = Self>: Sized + Device {
 /// Syncronizationpoint for CUDA.
 pub trait Read<T, S: Shape = (), D: Device = Self>: Device {
     /// The type of the read data.
-    /// Usually Vec<T> or &'a [T].
+    /// Usually `Vec<T>` or `&'a [T]`.
     type Read<'a>
     where
         T: 'a,
@@ -153,7 +153,7 @@ pub trait WriteBuf<T, S: Shape = (), D: Device = Self>: Device {
     /// ```
     fn write(&self, buf: &mut Buffer<T, D, S>, data: &[T]);
 
-    /// Writes data from <Device> Buffer to other <Device> Buffer.
+    /// Writes data from `<Device>` Buffer to other `<Device>` Buffer.
     /// The buffers must have the same size.
     ///
     /// # Example

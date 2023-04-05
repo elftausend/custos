@@ -70,14 +70,14 @@ impl<S: Shape, T> StackArray<S, T> {
     }
 
     /// Flattens a possibly multidimensional array.
-    /// &[[T], ..] -> &[T]
+    /// `&[[T], ..]` -> `&[T]`
     #[inline]
     pub const fn flatten(&self) -> &[T] {
         unsafe { core::slice::from_raw_parts(self.as_ptr(), S::LEN) }
     }
 
     /// Flattens a possibly multidimensional array.
-    /// &mut [[T], ..] -> &mut [T]
+    /// `&mut [[T], ..]` -> `&mut [T]`
     #[inline]
     pub fn flatten_mut(&mut self) -> &mut [T] {
         unsafe { core::slice::from_raw_parts_mut(self.as_ptr_mut(), S::LEN) }
