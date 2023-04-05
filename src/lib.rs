@@ -229,7 +229,7 @@ pub trait Device: Sized + 'static {
     /// Adds a pointer that was allocated by [`Alloc`] to the cache and returns a new corresponding [`Ident`].
     /// This function is internally called when a `Buffer` with [`AllocFlag`] `None` is created.
     #[inline]
-    fn add_to_cache<T, S: Shape>(&self, ptr: &Self::Ptr<T, S>) -> Ident {
+    fn add_to_cache<T, S: Shape>(&self, ptr: &Self::Ptr<T, S>) -> Option<Ident> {
         Self::Cache::add_to_cache(self, ptr)
     }
 }
@@ -250,13 +250,13 @@ pub trait MainMemory: Device {
 /// # Example
 #[cfg_attr(feature = "cpu", doc = "```")]
 #[cfg_attr(not(feature = "cpu"), doc = "```ignore")]
-/// use custos::{CPU, Alloc, Buffer, Read, flag::AllocFlag, GraphReturn, cpu::CPUPtr, Ident};
+/// use custos::{CPU, Alloc, Buffer, Read, flag::AllocFlag, GraphReturn, cpu::CPUPtr};
 ///
 /// let device = CPU::new();
 /// let ptr = Alloc::<f32>::alloc(&device, 12, AllocFlag::None);
 ///
 /// let buf: Buffer = Buffer {
-///     ident: Ident::new_bumped(ptr.len),
+///     ident: None,
 ///     ptr,
 ///     device: Some(&device),
 /// };
@@ -267,13 +267,13 @@ pub trait Alloc<'a, T, S: Shape = ()>: Device {
     /// # Example
     #[cfg_attr(feature = "cpu", doc = "```")]
     #[cfg_attr(not(feature = "cpu"), doc = "```ignore")]
-    /// use custos::{CPU, Alloc, Buffer, Read, flag::AllocFlag, GraphReturn, cpu::CPUPtr, Ident};
+    /// use custos::{CPU, Alloc, Buffer, Read, flag::AllocFlag, GraphReturn, cpu::CPUPtr};
     ///
     /// let device = CPU::new();
     /// let ptr = Alloc::<f32>::alloc(&device, 12, AllocFlag::None);
     ///
     /// let buf: Buffer = Buffer {
-    ///     ident: Ident::new_bumped(ptr.len),
+    ///     ident: None,
     ///     ptr,
     ///     device: Some(&device),
     /// };
@@ -285,13 +285,13 @@ pub trait Alloc<'a, T, S: Shape = ()>: Device {
     /// # Example
     #[cfg_attr(feature = "cpu", doc = "```")]
     #[cfg_attr(not(feature = "cpu"), doc = "```ignore")]
-    /// use custos::{CPU, Alloc, Buffer, Read, GraphReturn, cpu::CPUPtr, Ident};
+    /// use custos::{CPU, Alloc, Buffer, Read, GraphReturn, cpu::CPUPtr};
     ///
     /// let device = CPU::new();
     /// let ptr = Alloc::<i32>::with_slice(&device, &[1, 5, 4, 3, 6, 9, 0, 4]);
     ///
     /// let buf: Buffer<i32, CPU> = Buffer {
-    ///     ident: Ident::new_bumped(ptr.len),
+    ///     ident: None,
     ///     ptr,
     ///     device: Some(&device),
     /// };

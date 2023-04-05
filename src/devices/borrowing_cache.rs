@@ -64,7 +64,7 @@ impl BorrowingCache {
         let buf = Buffer {
             ptr: device.alloc(ident.len, AllocFlag::BorrowedCache),
             device: Some(device),
-            ident,
+            ident: Some(ident),
         };
 
         let buf = unsafe { transmute::<_, Buffer<'static, T, D, S>>(buf) };

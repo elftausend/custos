@@ -87,7 +87,7 @@ where
         Some(Buffer {
             ptr,
             device: Some(device),
-            ident,
+            ident: Some(ident),
         })
     }
 
@@ -96,12 +96,12 @@ where
         device.cache_mut().nodes.remove(&ident);
     }
 
-    fn add_to_cache<T, S: Shape>(device: &D, ptr: &<D as Device>::Ptr<T, S>) -> Ident {
+    fn add_to_cache<T, S: Shape>(device: &D, ptr: &<D as Device>::Ptr<T, S>) -> Option<Ident> {
         device.graph_mut().add_leaf(ptr.size());
         let ident = Ident::new_bumped(ptr.size());
         let raw_ptr = unsafe { std::rc::Rc::new(D::convert(ptr, AllocFlag::Wrapper)) };
         device.cache_mut().nodes.insert(ident, raw_ptr);
-        ident
+        Some(ident)
     }
 }
 
@@ -187,10 +187,10 @@ impl<D: PtrConv> Cache<D> {
         Buffer {
             ptr,
             device: Some(device),
-            ident: Ident {
+            ident: Some(Ident {
                 idx: graph_node.idx,
                 len: ident.len,
-            },
+            }),
         }
     }
 
@@ -235,7 +235,7 @@ impl<D: PtrConv> Cache<D> {
                 Buffer {
                     ptr: typed_ptr,
                     device: Some(device),
-                    ident,
+                    ident: Some(ident),
                 }
             }
             None => self.add_node(device, ident, add_node, callback),

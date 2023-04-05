@@ -40,14 +40,14 @@ impl AddGraph for (usize, usize) {
 impl<'a, T, D: Device, S: Shape> AddGraph for Buffer<'a, T, D, S> {
     #[inline]
     fn idxs(&self) -> (usize, usize) {
-        (self.ident.idx, self.ident.idx)
+        (self.id().idx, self.id().idx)
     }
 }
 
 impl<'a, T, D: Device, S: Shape> AddGraph for &Buffer<'a, T, D, S> {
     #[inline]
     fn idxs(&self) -> (usize, usize) {
-        (self.ident.idx, self.ident.idx)
+        (self.id().idx, self.id().idx)
     }
 }
 
@@ -56,6 +56,6 @@ impl<'a, T, D: Device, LS: Shape, RS: Shape> AddGraph
 {
     #[inline]
     fn idxs(&self) -> (usize, usize) {
-        (self.0.ident.idx, self.1.ident.idx)
+        (self.0.id().idx, self.1.id().idx)
     }
 }

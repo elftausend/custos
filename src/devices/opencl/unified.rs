@@ -92,7 +92,7 @@ pub unsafe fn construct_buffer<'a, T, S: Shape>(
                 flag: no_drop.ptr.flag,
             },
             device: Some(device),
-            ident: Ident::new(no_drop.len()),
+            ident: Some(Ident::new(no_drop.len())),
         });
     }
 
@@ -112,10 +112,10 @@ pub unsafe fn construct_buffer<'a, T, S: Shape>(
             flag: AllocFlag::Wrapper,
         },
         device: Some(device),
-        ident: Ident {
+        ident: Some(Ident {
             idx: *device.graph_mut().idx_trans.get(&graph_node.idx).unwrap(),
             len,
-        },
+        }),
     })
 }
 
@@ -145,7 +145,7 @@ mod tests {
                 flag: AllocFlag::Wrapper,
             },
             device: Some(&device),
-            ident: Ident::new_bumped(len),
+            ident: Some(Ident::new_bumped(len)),
         };
 
         assert_eq!(buf.read(), vec![1., 2.3, 0.76]);

@@ -4,7 +4,7 @@ use core::{
     ptr::null_mut,
 };
 
-use crate::{shape::Shape, Buffer, CloneBuf, CommonPtrs, Device, Ident, PtrType};
+use crate::{shape::Shape, Buffer, CloneBuf, CommonPtrs, Device, PtrType};
 
 /// Makes it possible to use a single number in a [`Buffer`].
 pub struct Num<T> {
@@ -64,7 +64,7 @@ impl<T: crate::number::Number> From<T> for Buffer<'_, T, ()> {
         Buffer {
             ptr: Num { num: ptr },
             device: None,
-            ident: Ident::new_bumped(0),
+            ident: None,
         }
     }
 }

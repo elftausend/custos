@@ -48,7 +48,7 @@ mod num;
 pub struct Buffer<'a, T = f32, D: Device = CPU, S: Shape = ()> {
     pub ptr: D::Ptr<T, S>,
     pub device: Option<&'a D>,
-    pub ident: Ident,
+    pub ident: Option<Ident>,
 }
 
 unsafe impl<'a, T, D: Device, S: Shape> Send for Buffer<'a, T, D, S> {}
@@ -113,7 +113,7 @@ impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
     {
         Buffer {
             ptr: device.alloc(len, AllocFlag::None),
-            ident: Ident::new_bumped(len),
+            ident: None,
             device: None,
         }
     }
@@ -248,7 +248,7 @@ impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
     /// Returns the [`Ident`] of a `Buffer`.
     #[inline]
     pub fn id(&self) -> Ident {
-        self.ident
+        self.ident.expect("This buffer has no trackable id. Why?: e.g. 'Stack' Buffer, Buffers created via Buffer::from_raw_host..(..), `Num` (scalar) Buffer")
     }
 
     /// Sets all elements in `Buffer` to the default value.
@@ -268,7 +268,9 @@ impl<'a, T, D: Device, S: Shape> Drop for Buffer<'a, T, D, S> {
         }
 
         if let Some(device) = self.device {
-            device.remove(self.ident)
+            if let Some(ident) = self.ident {
+                device.remove(ident)
+            }
         }
     }
 }
@@ -383,6 +385,26 @@ impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
             device: Some(device),
         }
     }
+
+    /// Creates a new `Buffer` from an nd-array.
+    /// The dimension is defined by the [`Shape`].
+    /// The pointer of the allocation may be added to the cache of the device.
+    /// Usually, this pointer / `Buffer` is then returned by a `device.get_existing_buf(..)` call.
+    #[inline]
+    pub fn from_array(device: &'a D, array: S::ARR<T>) -> Buffer<T, D, S>
+    where
+        T: Clone,
+        D: Alloc<'a, T, S>,
+    {
+        let ptr = device.with_array(array);
+        let ident = device.add_to_cache(&ptr);
+
+        Buffer {
+            ptr,
+            ident,
+            device: Some(device),
+        }
+    }    
 }
 
 #[cfg(feature = "cpu")]
@@ -413,7 +435,7 @@ impl<'a, T, S: Shape> Buffer<'a, T, CPU, S> {
         Buffer {
             ptr: CPUPtr::from_ptr(ptr, len, AllocFlag::Wrapper),
             device: None,
-            ident: Ident::new(len),
+            ident: None,
         }
     }
 
@@ -432,7 +454,7 @@ impl<'a, T, S: Shape> Buffer<'a, T, CPU, S> {
         Buffer {
             ptr: CPUPtr::from_ptr(ptr, len, AllocFlag::Wrapper),
             device: Some(device),
-            ident: Ident::new(len),
+            ident: None,
         }
     }
 }
@@ -528,7 +550,7 @@ where
         Self {
             ptr: D::Ptr::<T, S>::default(),
             device: None,
-            ident: Ident { idx: 0, len: 0 },
+            ident: None,
         }
     }
 }

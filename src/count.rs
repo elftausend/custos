@@ -9,40 +9,48 @@ pub trait AsRangeArg {
 }
 
 impl AsRangeArg for Range<usize> {
+    #[inline]
     fn start(&self) -> usize {
         self.start
     }
 
+    #[inline]
     fn end(&self) -> usize {
         self.end
     }
 }
 
 impl AsRangeArg for RangeInclusive<usize> {
+    #[inline]
     fn start(&self) -> usize {
         *self.start()
     }
 
+    #[inline]
     fn end(&self) -> usize {
         *self.end() + 1
     }
 }
 
 impl AsRangeArg for usize {
+    #[inline]
     fn start(&self) -> usize {
         0
     }
 
+    #[inline]
     fn end(&self) -> usize {
         *self
     }
 }
 
 impl AsRangeArg for (usize, usize) {
+    #[inline]
     fn start(&self) -> usize {
         self.0
     }
 
+    #[inline]
     fn end(&self) -> usize {
         self.1
     }
@@ -61,6 +69,7 @@ impl AsRangeArg for (usize, usize) {
 /// }
 /// assert!(get_count() == 0);
 /// ```
+#[inline]
 pub fn range<R: AsRangeArg>(range: R) -> Count {
     Count(range.start(), range.end())
 }
@@ -99,6 +108,7 @@ impl IntoIterator for Count {
 
     type IntoIter = CountIntoIter;
 
+    #[inline]
     fn into_iter(self) -> Self::IntoIter {
         CountIntoIter {
             epoch: self.0,

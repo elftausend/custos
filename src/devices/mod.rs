@@ -107,7 +107,7 @@ pub trait CacheAble<D: Device> {
 
     /// Adds a pointer that was allocated by [`Alloc`] to the cache and returns a new corresponding [`Ident`].
     /// This function is internally called when a `Buffer` with [`AllocFlag`] `None` is created.
-    fn add_to_cache<T, S: Shape>(device: &D, ptr: &D::Ptr<T, S>) -> Ident;
+    fn add_to_cache<T, S: Shape>(device: &D, ptr: &D::Ptr<T, S>) -> Option<Ident>;
 }
 
 // TODO: Mind num implement?
@@ -124,8 +124,8 @@ impl<D: Device> CacheAble<D> for () {
     fn remove(_device: &D, _ident: Ident) {}
 
     #[inline]
-    fn add_to_cache<T, S: Shape>(_device: &D, ptr: &<D as Device>::Ptr<T, S>) -> Ident {
-        Ident::new_bumped(ptr.size())
+    fn add_to_cache<T, S: Shape>(_device: &D, ptr: &<D as Device>::Ptr<T, S>) -> Option<Ident> {
+        None
     }
 
     #[inline]
