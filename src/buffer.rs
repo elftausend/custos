@@ -246,9 +246,11 @@ impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
     }
 
     /// Returns the [`Ident`] of a `Buffer`.
+    /// A `Buffer` receives an id, if it is useable for caching, graph optimization or autograd.
+    /// Panics, if `Buffer` hasn't an id.
     #[inline]
     pub fn id(&self) -> Ident {
-        self.ident.expect("This buffer has no trackable id. Why?: e.g. 'Stack' Buffer, Buffers created via Buffer::from_raw_host..(..), `Num` (scalar) Buffer")
+        self.ident.expect("This buffer has no trackable id. Who?: e.g. 'Stack' Buffer, Buffers created via Buffer::from_raw_host..(..), `Num` (scalar) Buffer")
     }
 
     /// Sets all elements in `Buffer` to the default value.
@@ -286,7 +288,7 @@ impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
     {
         let buf = ManuallyDrop::new(self);
 
-        let ptr = buf.device().to_dim(unsafe {buf.ptr.shallow()});
+        let ptr = buf.device().to_dim(unsafe { buf.ptr.shallow() });
 
         Buffer {
             ptr,
@@ -404,7 +406,7 @@ impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
             ident,
             device: Some(device),
         }
-    }    
+    }
 }
 
 #[cfg(feature = "cpu")]
@@ -532,7 +534,6 @@ where
     S: Shape,
 {
     fn clone(&self) -> Self {
-        //get_device!(self.device, CloneBuf<T>).clone_buf(self)
         self.device().clone_buf(self)
     }
 }
@@ -750,5 +751,28 @@ mod tests {
         let buf_dim2 = buf.to_dims::<Dim2<3, 2>>();
 
         buf_dim2.to_dims::<()>();
+    }
+
+    #[cfg(feature = "cpu")]
+    #[test]
+    fn test_id_cpu() {
+        use crate::{CPU, Ident};
+
+        let device = CPU::new();
+
+        let buf = Buffer::from((&device, [1, 2, 3, 4]));
+        assert_eq!(buf.id(), Ident { idx: 0, len: 4 })
+    }
+
+    #[cfg(feature = "cpu")]
+    #[should_panic]
+    #[test]
+    fn test_id_stack() {
+        use crate::{CPU, Stack, WithShape};
+
+        let device = Stack;
+
+        let buf = Buffer::with(&device, [1, 2, 3, 4]);
+        buf.id();
     }
 }
