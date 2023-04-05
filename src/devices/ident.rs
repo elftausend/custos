@@ -29,6 +29,17 @@ pub fn bump_count() {
     })
 }
 
+pub trait IdAble {
+    fn id(self) -> Option<Ident>;
+}
+
+impl IdAble for () {
+    #[inline]
+    fn id(self) -> Option<Ident> {
+        None
+    }
+}
+
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]
 /// An `Ident` is used to identify a cached pointer.
 pub struct Ident {
@@ -57,5 +68,12 @@ impl Ident {
         };
         bump_count();
         id
+    }
+}
+
+impl IdAble for Option<Ident> {
+    #[inline]
+    fn id(self) -> Option<Ident> {
+        self
     }
 }

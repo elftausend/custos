@@ -153,6 +153,7 @@ pub trait Device: Sized + 'static {
     type Ptr<U, S: Shape>: PtrType;
     /// The type of the cache.
     type Cache: CacheAble<Self>;
+    type Id: IdAble;
     //type Tape: ;
 
     /// Creates a new device.

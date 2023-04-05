@@ -7,7 +7,7 @@ use core::{
 };
 
 use crate::{
-    borrowing_cache::BorrowingCache, prelude::One, Alloc, Buffer, Device, Ident, Shape, WriteBuf,
+    borrowing_cache::BorrowingCache, prelude::One, Alloc, Buffer, Device, Ident, Shape, WriteBuf, IsShapeIndep,
 };
 
 /// A cache for gradients.
@@ -107,7 +107,7 @@ impl<D> Gradients<D> {
     where
         T: 'static,
         S: Shape,
-        D: Alloc<'a, T, S> + 'static,
+        D: Alloc<'a, T, S> + 'static + IsShapeIndep,
     {
         self.get_ref(buf.device(), buf.id())
     }
@@ -178,7 +178,7 @@ pub struct Tape<D: Device> {
 }
 
 /// This trait is implemented for all devices that provide a [`Tape`].
-pub trait TapeReturn: Device {
+pub trait TapeReturn: IsShapeIndep {
     fn tape(&self) -> Ref<Tape<Self>>;
     fn tape_mut(&self) -> RefMut<Tape<Self>>;
 }
@@ -207,7 +207,7 @@ impl<D: Device> Tape<D> {
     pub fn backward_seeded<T, S: Shape>(&mut self, buf: &Buffer<T, D, S>)
     where
         T: Clone + One + 'static,
-        D: for<'a> Alloc<'a, T, S> + WriteBuf<T, S, D> + 'static,
+        D: for<'a> Alloc<'a, T, S> + WriteBuf<T, S, D> + 'static + IsShapeIndep,
     {
         // TODO // TODO
         //let mut out = self.grads.get_like::<T, S>(buf);

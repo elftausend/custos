@@ -1,4 +1,4 @@
-use crate::{shape::Shape, Buffer, Device, Graph, NodeIdx};
+use crate::{shape::Shape, Buffer, Device, Graph, NodeIdx, IsShapeIndep};
 
 use super::node::Node;
 
@@ -37,25 +37,43 @@ impl AddGraph for (usize, usize) {
     }
 }
 
-impl<'a, T, D: Device, S: Shape> AddGraph for Buffer<'a, T, D, S> {
+impl<'a, T, D: IsShapeIndep, S: Shape> AddGraph for Buffer<'a, T, D, S> {
     #[inline]
     fn idxs(&self) -> (usize, usize) {
         (self.id().idx, self.id().idx)
     }
 }
 
-impl<'a, T, D: Device, S: Shape> AddGraph for &Buffer<'a, T, D, S> {
+#[cfg(feature = "stack")]
+impl<'a, T, S: Shape> AddGraph for Buffer<'a, T, crate::Stack, S> {
+    #[inline]
+    fn idxs(&self) -> (usize, usize) {
+        panic!("Cannot retrieve indices of non trackable Stack Buffer.")
+    }
+}
+
+impl<'a, T, D: IsShapeIndep, S: Shape> AddGraph for &Buffer<'a, T, D, S> {
     #[inline]
     fn idxs(&self) -> (usize, usize) {
         (self.id().idx, self.id().idx)
     }
 }
 
-impl<'a, T, D: Device, LS: Shape, RS: Shape> AddGraph
+impl<'a, T, D: IsShapeIndep, LS: Shape, RS: Shape> AddGraph
     for (&Buffer<'a, T, D, LS>, &Buffer<'a, T, D, RS>)
 {
     #[inline]
     fn idxs(&self) -> (usize, usize) {
         (self.0.id().idx, self.1.id().idx)
+    }
+}
+
+#[cfg(feature = "stack")]
+impl<'a, T, LS: Shape, RS: Shape> AddGraph
+    for (&Buffer<'a, T, crate::Stack, LS>, &Buffer<'a, T, crate::Stack, RS>)
+{
+    #[inline]
+    fn idxs(&self) -> (usize, usize) {
+        panic!("Cannot retrieve indices of non trackable Stack Buffer.")
     }
 }

@@ -1,6 +1,6 @@
 use core::{cell::RefCell, fmt::Debug};
 
-use crate::{Cache, CacheReturn, Device, GlobalCount, Graph, GraphReturn, NodeIdx, PtrConv};
+use crate::{Cache, CacheReturn, Device, GlobalCount, Graph, GraphReturn, NodeIdx, PtrConv, IsShapeIndep};
 
 /// Provides several addons for a device.
 /// - `graph`: An optimizeable graph.
@@ -86,7 +86,7 @@ impl<D: AddonsReturn> CacheReturn for D {
 }
 
 #[cfg(feature = "autograd")]
-impl<D: AddonsReturn> crate::TapeReturn for D {
+impl<D: AddonsReturn + IsShapeIndep> crate::TapeReturn for D {
     #[inline]
     fn tape(&self) -> core::cell::Ref<crate::Tape<Self>> {
         self.addons().tape.borrow()

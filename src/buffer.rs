@@ -245,14 +245,6 @@ impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
         self.clone()
     }
 
-    /// Returns the [`Ident`] of a `Buffer`.
-    /// A `Buffer` receives an id, if it is useable for caching, graph optimization or autograd.
-    /// Panics, if `Buffer` hasn't an id.
-    #[inline]
-    pub fn id(&self) -> Ident {
-        self.ident.expect("This buffer has no trackable id. Who?: e.g. 'Stack' Buffer, Buffers created via Buffer::from_raw_host..(..), `Num` (scalar) Buffer")
-    }
-
     /// Sets all elements in `Buffer` to the default value.
     pub fn clear(&mut self)
     where
@@ -315,6 +307,15 @@ impl<'a, T, D: IsShapeIndep, S: Shape> Buffer<'a, T, D, S> {
     pub fn as_dims_mut<'b, O: Shape>(&mut self) -> &mut Buffer<'b, T, D, O> {
         unsafe { &mut *(self as *mut Self).cast() }
     }
+
+    /// Returns the [`Ident`] of a `Buffer`.
+    /// A `Buffer` receives an id, if it is useable for caching, graph optimization or autograd.
+    /// Panics, if `Buffer` hasn't an id.
+    #[inline]
+    pub fn id(&self) -> Ident {
+        self.ident.expect("This buffer has no trackable id. Who?: e.g. 'Stack' Buffer, Buffers created via Buffer::from_raw_host..(..), `Num` (scalar) Buffer")
+    }
+
 }
 
 impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S>

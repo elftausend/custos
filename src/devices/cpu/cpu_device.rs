@@ -1,6 +1,6 @@
 use crate::{
     devices::cache::Cache, flag::AllocFlag, shape::Shape, Addons, AddonsReturn, Alloc, Buffer,
-    CloneBuf, Device, DevicelessAble, MainMemory, PtrConv,
+    CloneBuf, Device, DevicelessAble, MainMemory, PtrConv, Ident,
 };
 
 use core::{
@@ -42,6 +42,7 @@ impl CPU {
 impl Device for CPU {
     type Ptr<U, S: Shape> = CPUPtr<U>;
     type Cache = Cache<CPU>; //<CPU as CacheReturn>::CT
+    type Id = Option<Ident>;
 
     fn new() -> crate::Result<Self> {
         Ok(Self::new())

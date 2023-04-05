@@ -124,7 +124,7 @@ impl<D: Device> CacheAble<D> for () {
     fn remove(_device: &D, _ident: Ident) {}
 
     #[inline]
-    fn add_to_cache<T, S: Shape>(_device: &D, ptr: &<D as Device>::Ptr<T, S>) -> Option<Ident> {
+    fn add_to_cache<T, S: Shape>(_device: &D, _ptr: &<D as Device>::Ptr<T, S>) -> Option<Ident> {
         None
     }
 

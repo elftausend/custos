@@ -7,7 +7,7 @@ use min_cl::api::{
 use super::{chosen_cl_idx, enqueue_kernel, AsClCvoidPtr, CLPtr, KernelCacheCL};
 use crate::flag::AllocFlag;
 use crate::{cache::Cache, Alloc, Buffer, CloneBuf, Device, Error, CPU};
-use crate::{Addons, AddonsReturn, PtrConv, Shape};
+use crate::{Addons, AddonsReturn, PtrConv, Shape, Ident};
 
 use std::{cell::RefCell, fmt::Debug};
 
@@ -160,10 +160,12 @@ impl Default for OpenCL {
 impl Device for OpenCL {
     type Ptr<U, S: Shape> = CLPtr<U>;
     type Cache = Cache<Self>;
+    type Id = Option<Ident>;
 
     fn new() -> crate::Result<Self> {
         OpenCL::new(chosen_cl_idx())
     }
+
 }
 
 impl AddonsReturn for OpenCL {
