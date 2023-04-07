@@ -775,7 +775,7 @@ mod tests {
         assert_eq!(buf.id(), Ident { idx: 0, len: 4 })
     }
 
-    #[cfg(feature = "cpu")]
+    #[cfg(feature = "stack")]
     #[should_panic]
     #[test]
     fn test_id_stack() {
