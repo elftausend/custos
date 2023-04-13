@@ -1,3 +1,5 @@
+//! NVRTC ffi modulue
+
 mod error;
 mod ffi;
 
@@ -8,21 +10,24 @@ use std::{
 };
 
 pub use ffi::*;
-
 use self::error::NvrtcResult;
 
+/// A compileable nvrtc program
 pub struct NvrtcProgram(pub nvrtcProgram);
 
 impl NvrtcProgram {
+    /// Compiles the nvrtc program
     pub fn compile(&self, options: Option<Vec<CString>>) -> NvrtcResult<()> {
         compile_program(self, options)
     }
 
+    /// Returns the runnable ptx 
     pub fn ptx(&self) -> NvrtcResult<CString> {
         get_ptx(self)
     }
 }
 
+/// creates a new compileable nvrtc program
 pub fn create_program(src: &str, name: &str) -> NvrtcResult<NvrtcProgram> {
     let src = CString::new(src).unwrap();
     let name = CString::new(name).unwrap();
@@ -41,6 +46,8 @@ pub fn create_program(src: &str, name: &str) -> NvrtcResult<NvrtcProgram> {
     .to_result()?;
     Ok(prog)
 }
+
+/// Compiles a nvrtc program
 pub fn compile_program(prog: &NvrtcProgram, options: Option<Vec<CString>>) -> NvrtcResult<()> {
     /*
     let (num_options, options) = match options {
@@ -62,6 +69,7 @@ pub fn compile_program(prog: &NvrtcProgram, options: Option<Vec<CString>>) -> Nv
     //unsafe { nvrtcCompileProgram(prog.0, num_options as i32, options as *const *const i8) }.to_result()
 }
 
+/// Returns runnable ptx
 pub fn get_ptx(prog: &NvrtcProgram) -> NvrtcResult<CString> {
     unsafe {
         let mut ptx_size = 0;
