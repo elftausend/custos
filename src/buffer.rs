@@ -3,6 +3,9 @@ use core::{ffi::c_void, mem::ManuallyDrop};
 #[cfg(feature = "cpu")]
 use crate::cpu::{CPUPtr, CPU};
 
+#[cfg(not(feature = "cpu"))]
+use crate::CPU;
+
 use crate::{
     flag::AllocFlag, shape::Shape, Alloc, ClearBuf, CloneBuf, CommonPtrs, Device, DevicelessAble,
     Ident, IsShapeIndep, MainMemory, PtrType, Read, ShallowCopy, WriteBuf,
@@ -283,8 +286,8 @@ impl<'a, T, D: Device, S: Shape> Drop for Buffer<'a, T, D, S> {
 impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
     /// Converts a non stack allocated `Buffer` with shape `S` to a `Buffer` with shape `O`.
     /// # Example
-    #[cfg_attr(not(feature = "no-std"), doc = "```")]
-    #[cfg_attr(feature = "no-std", doc = "```ignore")]
+    #[cfg_attr(feature = "cpu", doc = "```")]
+    #[cfg_attr(not(feature = "cpu"), doc = "```ignore")]
     /// use custos::{CPU, Buffer, Shape, Dim1, Dim2};
     ///
     /// let device = CPU::new();
