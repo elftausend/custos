@@ -93,6 +93,7 @@ where
         Buffer {
             ptr: buf.ptr,
             device: Some(&Stack),
+            #[cfg(not(feature = "no-std"))]
             ident: buf.ident,
         }
     }

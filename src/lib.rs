@@ -1,4 +1,4 @@
-#![deny(missing_docs)]
+#![warn(missing_docs)]
 #![cfg_attr(feature = "no-std", no_std)]
 
 //! A minimal OpenCL, WGPU, CUDA and host CPU array manipulation engine / framework written in Rust.
@@ -354,12 +354,39 @@ pub const UNIFIED_CL_MEM: bool = true;
 #[cfg(feature = "macro")]
 pub use custos_macro::impl_stack;
 
+
+/// A dummy CPU. This only exists to make the code compile when the `cpu` feature is disabled
+/// because the CPU is the default type `D` for [`Buffer`]s.
+#[cfg(not(feature = "cpu"))]
+pub struct CPU {
+    _uncreateable: (),
+}
+
+#[cfg(not(feature = "cpu"))]
+impl Device for CPU {
+    type Ptr<U, S: Shape> = crate::Num<U>;
+
+    type Cache = ();
+
+    fn new() -> crate::Result<Self> {
+        #[cfg(feature = "no-std")]
+        {
+            unimplemented!("CPU is not available. Enable the `cpu` feature to use the CPU.")
+        }
+
+        #[cfg(not(feature = "no-std"))]
+        Err(crate::DeviceError::CPUDeviceNotAvailable.into())
+    }
+}
+
+
 pub mod prelude {
     //! Typical imports for using custos.
 
     pub use crate::{
         number::*, range, shape::*, Alloc, Buffer, CDatatype, ClearBuf, CopySlice, Device,
         GraphReturn, Ident, MainMemory, MayTapeReturn, Read, ShallowCopy, WithShape, WriteBuf,
+        MayToCLSource
     };
 
     #[cfg(feature = "cpu")]

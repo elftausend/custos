@@ -7,7 +7,7 @@ use min_cl::api::{
 
 use crate::{
     bounds_to_range, prelude::Number, ApplyFunction, Buffer, CDatatype, ClearBuf, CopySlice,
-    Device, OpenCL, Read, Resolve, Shape, ToMarker, UnaryGrad, WriteBuf,
+    Device, OpenCL, Read, Resolve, Shape, ToMarker, UnaryGrad, WriteBuf, ToCLSource,
 };
 
 use super::{enqueue_kernel, CLBuffer};
@@ -156,7 +156,7 @@ where
         f: impl Fn(Resolve<T>) -> F,
     ) -> Buffer<T, Self, S>
     where
-        F: ToString,
+        F: ToCLSource,
     {
         try_cl_apply_fn(self, buf, f).unwrap()
     }
@@ -164,7 +164,7 @@ where
 
 /// A failable OpenCL version of [`apply_fn`](ApplyFunction::apply_fn).
 /// It applies a function to a buffer and returns a new buffer.
-pub fn try_cl_apply_fn<'a, T, S, F: ToString>(
+pub fn try_cl_apply_fn<'a, T, S, F: ToCLSource>(
     device: &'a OpenCL,
     x: &CLBuffer<T, S>,
     f: impl Fn(Resolve<T>) -> F,
@@ -181,7 +181,7 @@ where
         }}
     ",
         datatype = T::as_c_type_str(),
-        operation = f("lhs[id]".to_marker()).to_string()
+        operation = f("lhs[id]".to_marker()).to_cl_source()
     );
 
     let out = device.retrieve::<T, S>(x.len(), x);
@@ -202,7 +202,7 @@ where
         out: &Buffer<T, Self, S>,
         lhs_grad_fn: impl Fn(Resolve<T>) -> F,
     ) where
-        F: ToString,
+        F: ToCLSource,
     {
         try_cl_add_unary_grad(self, lhs, lhs_grad, out, lhs_grad_fn).unwrap();
     }
@@ -219,7 +219,7 @@ pub fn try_cl_add_unary_grad<T, S, F>(
 ) -> crate::Result<()>
 where
     T: CDatatype + Number,
-    F: ToString,
+    F: ToCLSource,
     S: Shape,
 {
     let src = format!(
@@ -230,7 +230,7 @@ where
         }}
     ",
         datatype = T::as_c_type_str(),
-        operation = lhs_grad_fn("lhs[id]".to_marker()).to_string()
+        operation = lhs_grad_fn("lhs[id]".to_marker()).to_cl_source()
     );
 
     enqueue_kernel(device, &src, [lhs.len(), 0, 0], None, &[lhs, lhs_grad, out])?;

@@ -1,5 +1,8 @@
 use crate::{prelude::Number, Combiner, Eval};
 
+#[cfg(not(feature = "no-std"))]
+use super::ToCLSource;
+
 pub struct GEq<C, R> {
     pub comb: C,
     pub rhs: R,
@@ -12,10 +15,11 @@ impl<C, R> GEq<C, R> {
     }
 }
 
-impl<C: ToString, R: ToString> ToString for GEq<C, R> {
+#[cfg(not(feature = "no-std"))]
+impl<C: ToCLSource, R: ToCLSource> ToCLSource for GEq<C, R> {
     #[inline]
-    fn to_string(&self) -> String {
-        format!("({} >= {})", self.comb.to_string(), self.rhs.to_string())
+    fn to_cl_source(&self) -> String {
+        format!("({} >= {})", self.comb.to_cl_source(), self.rhs.to_cl_source())
     }
 }
 
@@ -40,10 +44,11 @@ impl<C, R> LEq<C, R> {
     }
 }
 
-impl<C: ToString, R: ToString> ToString for LEq<C, R> {
+#[cfg(not(feature = "no-std"))]
+impl<C: ToCLSource, R: ToCLSource> ToCLSource for LEq<C, R> {
     #[inline]
-    fn to_string(&self) -> String {
-        format!("({} <= {})", self.comb.to_string(), self.rhs.to_string())
+    fn to_cl_source(&self) -> String {
+        format!("({} <= {})", self.comb.to_cl_source(), self.rhs.to_cl_source())
     }
 }
 
@@ -68,10 +73,11 @@ impl<C, R> Eq<C, R> {
     }
 }
 
-impl<C: ToString, R: ToString> ToString for Eq<C, R> {
+#[cfg(not(feature = "no-std"))]
+impl<C: ToCLSource, R: ToCLSource> ToCLSource for Eq<C, R> {
     #[inline]
-    fn to_string(&self) -> String {
-        format!("({} == {})", self.comb.to_string(), self.rhs.to_string())
+    fn to_cl_source(&self) -> String {
+        format!("({} == {})", self.comb.to_cl_source(), self.rhs.to_cl_source())
     }
 }
 

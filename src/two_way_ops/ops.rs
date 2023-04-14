@@ -3,6 +3,9 @@ mod unary;
 
 use crate::prelude::Float;
 
+#[cfg(not(feature = "no-std"))]
+use crate::ToCLSource;
+
 use super::{Combiner, Eval};
 pub use cmps::*;
 pub use unary::*;
@@ -21,14 +24,15 @@ impl<C, R> Mul<C, R> {
 
 impl<C, R> Combiner for Mul<C, R> {}
 
-impl<C: ToString, R: ToString> ToString for Mul<C, R> {
+#[cfg(not(feature = "no-std"))]
+impl<C: ToCLSource, R: ToCLSource> ToCLSource for Mul<C, R> {
     #[inline]
-    fn to_string(&self) -> String {
-        format!("({} * {})", self.comb.to_string(), self.rhs.to_string())
+    fn to_cl_source(&self) -> String {
+        format!("({} * {})", self.comb.to_cl_source(), self.rhs.to_cl_source())
     }
 }
 
-impl<C: Eval<T>, R: Eval<T>, T: std::ops::Mul<Output = T>> Eval<T> for Mul<C, R> {
+impl<C: Eval<T>, R: Eval<T>, T: core::ops::Mul<Output = T>> Eval<T> for Mul<C, R> {
     #[inline]
     fn eval(self) -> T {
         self.comb.eval() * self.rhs.eval()
@@ -49,14 +53,15 @@ impl<C, R> Add<C, R> {
 
 impl<C, R> Combiner for Add<C, R> {}
 
-impl<C: ToString, R: ToString> ToString for Add<C, R> {
+#[cfg(not(feature = "no-std"))]
+impl<C: ToCLSource, R: ToCLSource> ToCLSource for Add<C, R> {
     #[inline]
-    fn to_string(&self) -> String {
-        format!("({} + {})", self.comb.to_string(), self.rhs.to_string())
+    fn to_cl_source(&self) -> String {
+        format!("({} + {})", self.comb.to_cl_source(), self.rhs.to_cl_source())
     }
 }
 
-impl<C: Eval<T>, R: Eval<T>, T: std::ops::Add<Output = T>> Eval<T> for Add<C, R> {
+impl<C: Eval<T>, R: Eval<T>, T: core::ops::Add<Output = T>> Eval<T> for Add<C, R> {
     #[inline]
     fn eval(self) -> T {
         self.comb.eval() + self.rhs.eval()
@@ -77,14 +82,15 @@ impl<C, R> Sub<C, R> {
 
 impl<C, R> Combiner for Sub<C, R> {}
 
-impl<C: ToString, R: ToString> ToString for Sub<C, R> {
+#[cfg(not(feature = "no-std"))]
+impl<C: ToCLSource, R: ToCLSource> ToCLSource for Sub<C, R> {
     #[inline]
-    fn to_string(&self) -> String {
-        format!("({} - {})", self.comb.to_string(), self.rhs.to_string())
+    fn to_cl_source(&self) -> String {
+        format!("({} - {})", self.comb.to_cl_source(), self.rhs.to_cl_source())
     }
 }
 
-impl<C: Eval<T>, R: Eval<T>, T: std::ops::Sub<Output = T>> Eval<T> for Sub<C, R> {
+impl<C: Eval<T>, R: Eval<T>, T: core::ops::Sub<Output = T>> Eval<T> for Sub<C, R> {
     #[inline]
     fn eval(self) -> T {
         self.comb.eval() - self.rhs.eval()
@@ -105,14 +111,15 @@ impl<C, R> Div<C, R> {
 
 impl<C, R> Combiner for Div<C, R> {}
 
-impl<C: ToString, R: ToString> ToString for Div<C, R> {
+#[cfg(not(feature = "no-std"))]
+impl<C: ToCLSource, R: ToCLSource> ToCLSource for Div<C, R> {
     #[inline]
-    fn to_string(&self) -> String {
-        format!("({} / {})", self.comb.to_string(), self.rhs.to_string())
+    fn to_cl_source(&self) -> String {
+        format!("({} / {})", self.comb.to_cl_source(), self.rhs.to_cl_source())
     }
 }
 
-impl<C: Eval<T>, R: Eval<T>, T: std::ops::Div<Output = T>> Eval<T> for Div<C, R> {
+impl<C: Eval<T>, R: Eval<T>, T: core::ops::Div<Output = T>> Eval<T> for Div<C, R> {
     #[inline]
     fn eval(self) -> T {
         self.comb.eval() / self.rhs.eval()
@@ -133,10 +140,11 @@ impl<C, R> Pow<C, R> {
 
 impl<C, R> Combiner for Pow<C, R> {}
 
-impl<C: ToString, R: ToString> ToString for Pow<C, R> {
+#[cfg(not(feature = "no-std"))]
+impl<C: ToCLSource, R: ToCLSource> ToCLSource for Pow<C, R> {
     #[inline]
-    fn to_string(&self) -> String {
-        format!("pow({}, {})", self.comb.to_string(), self.rhs.to_string())
+    fn to_cl_source(&self) -> String {
+        format!("pow({}, {})", self.comb.to_cl_source(), self.rhs.to_cl_source())
     }
 }
 

@@ -4,6 +4,7 @@ use core::ops::AddAssign;
 //#[cfg(any(feature = "cpu", feature = "stack"))]
 use custos_macro::impl_stack;
 
+use crate::MayToCLSource;
 #[cfg(any(feature = "cpu", feature = "stack"))]
 use crate::{ApplyFunction, Buffer, Device, Eval, MainMemory, Resolve, Shape, ToVal, UnaryGrad};
 
@@ -22,7 +23,7 @@ where
 {
     fn apply_fn<F>(&self, buf: &Buffer<T, D, S>, f: impl Fn(Resolve<T>) -> F) -> Buffer<T, Self, S>
     where
-        F: Eval<T>,
+        F: Eval<T> + MayToCLSource,
     {
         let mut out = self.retrieve::<T, S>(buf.len(), buf);
 
@@ -48,7 +49,7 @@ where
         out: &Buffer<T, D, S>,
         lhs_grad_fn: impl Fn(Resolve<T>) -> F,
     ) where
-        F: Eval<T> + ToString,
+        F: Eval<T> + MayToCLSource,
     {
         for ((lhs, lhs_grad), out) in lhs.iter().zip(lhs_grad.iter_mut()).zip(out.iter()) {
             *lhs_grad += *out * lhs_grad_fn((*lhs).to_val()).eval();

@@ -1,4 +1,4 @@
-use core::{ffi::c_void, fmt::Debug, mem::ManuallyDrop};
+use core::{ffi::c_void, mem::ManuallyDrop};
 
 #[cfg(feature = "cpu")]
 use crate::cpu::{CPUPtr, CPU};
@@ -17,6 +17,12 @@ impl Device for CPU {
     type Cache = ();
 
     fn new() -> crate::Result<Self> {
+        #[cfg(feature = "no-std")]
+        {
+            unimplemented!("CPU is not available. Enable the `cpu` feature to use the CPU.")
+        }
+
+        #[cfg(not(feature = "no-std"))]
         Err(crate::DeviceError::CPUDeviceNotAvailable.into())
     }
 }
@@ -55,6 +61,7 @@ pub struct Buffer<'a, T = f32, D: Device = CPU, S: Shape = ()> {
     /// A reference to the corresponding device. Mainly used for operations without a device parameter.
     pub device: Option<&'a D>,
     /// Used as a cache and autograd identifier.
+    #[cfg(not(feature = "no-std"))]
     pub ident: Option<Ident>,
 }
 
@@ -86,12 +93,16 @@ impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
         D: Alloc<'a, T, S>, /*+ GraphReturn*/
     {
         let ptr = device.alloc(len, AllocFlag::None);
+        
+        #[cfg(not(feature = "no-std"))]
         let ident = device.add_to_cache(&ptr);
+
         Buffer {
             ptr,
             device: Some(device),
             // TODO: enable, if leafs get more important
             //node: device.graph().add_leaf(len),
+            #[cfg(not(feature = "no-std"))]
             ident,
         }
     }
@@ -120,6 +131,7 @@ impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
     {
         Buffer {
             ptr: device.alloc(len, AllocFlag::None),
+            #[cfg(not(feature = "no-std"))]
             ident: None,
             device: None,
         }
@@ -225,6 +237,7 @@ impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
         Buffer {
             ptr: self.ptr.shallow(),
             device: self.device,
+            #[cfg(not(feature = "no-std"))]
             ident: self.ident,
         }
     }
@@ -256,6 +269,12 @@ impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
     /// Panics, if `Buffer` hasn't an id.
     #[inline]
     pub fn id(&self) -> Ident {
+        #[cfg(feature = "no-std")]
+        {
+            unimplemented!("This buffer has no trackable id. Who?: e.g. 'Stack' Buffer, Buffers created via Buffer::from_raw_host..(..), `Num` (scalar) Buffer")
+        }
+
+        #[cfg(not(feature = "no-std"))]
         self.ident.expect("This buffer has no trackable id. Who?: e.g. 'Stack' Buffer, Buffers created via Buffer::from_raw_host..(..), `Num` (scalar) Buffer")
     }
 
@@ -275,6 +294,7 @@ impl<'a, T, D: Device, S: Shape> Drop for Buffer<'a, T, D, S> {
             return;
         }
 
+        #[cfg(not(feature = "no-std"))]
         if let Some(device) = self.device {
             if let Some(ident) = self.ident {
                 device.remove(ident)
@@ -287,7 +307,8 @@ impl<'a, T, D: Device, S: Shape> Drop for Buffer<'a, T, D, S> {
 impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
     /// Converts a non stack allocated `Buffer` with shape `S` to a `Buffer` with shape `O`.
     /// # Example
-    /// ```
+    #[cfg_attr(not(feature = "no-std"), doc = "```")]
+    #[cfg_attr(feature = "no-std", doc = "```ignore")]
     /// use custos::{CPU, Buffer, Shape, Dim1, Dim2};
     ///
     /// let device = CPU::new();
@@ -308,6 +329,7 @@ impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
         Buffer {
             ptr,
             device: buf.device,
+            #[cfg(not(feature = "no-std"))]
             ident: buf.ident,
         }
     }
@@ -375,10 +397,13 @@ impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
         D: Alloc<'a, T, S>,
     {
         let ptr = device.with_slice(slice);
+
+        #[cfg(not(feature = "no-std"))]
         let ident = device.add_to_cache(&ptr);
 
         Buffer {
             ptr,
+            #[cfg(not(feature = "no-std"))]
             ident,
             device: Some(device),
         }
@@ -415,10 +440,13 @@ impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
         D: Alloc<'a, T, S>,
     {
         let ptr = device.with_array(array);
+        
+        #[cfg(not(feature = "no-std"))]
         let ident = device.add_to_cache(&ptr);
 
         Buffer {
             ptr,
+            #[cfg(not(feature = "no-std"))]
             ident,
             device: Some(device),
         }
@@ -567,6 +595,7 @@ where
         Self {
             ptr: D::Ptr::<T, S>::default(),
             device: None,
+            #[cfg(not(feature = "no-std"))]
             ident: None,
         }
     }
@@ -647,6 +676,9 @@ impl<T, D: MainMemory, S: Shape> core::ops::DerefMut for Buffer<'_, T, D, S> {
         unsafe { core::slice::from_raw_parts_mut(D::as_ptr_mut(&mut self.ptr), self.len()) }
     }
 }
+
+#[cfg(not(feature = "no-std"))]
+use core::fmt::Debug;
 
 #[cfg(not(feature = "no-std"))]
 impl<'a, T, D> Debug for Buffer<'a, T, D>
@@ -781,6 +813,7 @@ mod tests {
     }
 
     #[cfg(feature = "stack")]
+    #[cfg(not(feature = "no-std"))]
     #[should_panic]
     #[test]
     fn test_id_stack() {

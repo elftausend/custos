@@ -4,7 +4,7 @@
 use core::{
     cmp::Ordering,
     iter::Sum,
-    ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Rem, RemAssign, Sub, SubAssign},
+    ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Rem, RemAssign, Sub, SubAssign}, fmt::Display,
 };
 
 /// A trait that returns the default / zero of a value.
@@ -142,6 +142,7 @@ pub trait Number:
     + MulAssign<Self>
     + DivAssign<Self>
     + Sum<Self>
+    + Display
 {
     fn from_usize(value: usize) -> Self;
     fn from_u64(value: u64) -> Self;
@@ -334,7 +335,22 @@ impl Float for f32 {
 
     #[inline]
     fn abs(&self) -> Self {
-        self * ((*self > 0.) as u32 - (*self < 0.) as u32) as f32
+        (*self > 0.) as usize as f32 * *self - (*self < 0.) as usize as f32 * *self
+    }
+
+    #[inline]
+    fn cos(&self) -> Self {
+        libm::cosf(*self)
+    }
+
+    #[inline]
+    fn tan(&self) -> Self {
+        libm::tanf(*self)
+    }
+
+    #[inline]
+    fn log(&self, base: Self) -> Self {
+        libm::log10f(*self) / libm::log10f(base)
     }
 }
 
@@ -382,6 +398,21 @@ impl Float for f64 {
 
     #[inline]
     fn abs(&self) -> Self {
-        self * ((*self > 0.) as u64 - (*self < 0.) as u64) as f64
+        (*self > 0.) as usize as f64 * *self - (*self < 0.) as usize as f64 * *self
+    }
+
+    #[inline]
+    fn cos(&self) -> Self {
+        libm::cos(*self)
+    }
+    
+    #[inline]
+    fn tan(&self) -> Self {
+        libm::tan(*self)
+    }
+
+    #[inline]
+    fn log(&self, base: Self) -> Self {
+        libm::log10(*self) / libm::log10(base)
     }
 }

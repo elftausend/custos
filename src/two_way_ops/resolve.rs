@@ -1,11 +1,16 @@
+
+#[cfg(not(feature = "no-std"))]
+use crate::ToCLSource;
+
 use super::{Combiner, Eval};
 
 /// Resolves to either a mathematical expression as string or a computed value.
 /// This is used to create generic kernels / operations over `OpenCL`, `CUDA` and `CPU`.
 ///
 /// # Example
-/// ```
-/// use custos::{Resolve, Eval, Combiner};
+#[cfg_attr(not(feature = "no-std"), doc = "```")]
+#[cfg_attr(feature = "no-std", doc = "```ignore")]
+/// use custos::{Resolve, Eval, Combiner, ToCLSource};
 ///
 /// let val = Resolve::with_val(1.5);
 /// let out = val.mul(val).add(2.);
@@ -15,7 +20,7 @@ use super::{Combiner, Eval};
 /// let mark = Resolve::<f32>::with_marker("x");
 /// let out = mark.mul(mark).add(2.);
 ///
-/// assert_eq!(out.to_string(), "((x * x) + 2)");
+/// assert_eq!(out.to_cl_source(), "((x * x) + 2)");
 /// ```
 #[derive(Debug, Clone, Copy)]
 pub struct Resolve<T> {
@@ -29,11 +34,12 @@ pub struct Resolve<T> {
 pub trait ToMarker<T, R> {
     /// Converts a &'static str to a [`Resolve`].
     /// # Example
-    /// ```
-    /// use custos::{Resolve, ToMarker};
+    #[cfg_attr(not(feature = "no-std"), doc = "```")]
+    #[cfg_attr(feature = "no-std", doc = "```ignore")]
+    /// use custos::{Resolve, ToMarker, ToCLSource};
     ///
     /// let resolve = ToMarker::<f32, Resolve<f32>>::to_marker("x");;
-    /// assert_eq!(resolve.to_string(), "x");
+    /// assert_eq!(resolve.to_cl_source(), "x");
     /// ```
     fn to_marker(self) -> R;
 }
@@ -86,7 +92,8 @@ impl<T: Default> Default for Resolve<T> {
 impl<T> Resolve<T> {
     /// Creates a `Resolve` with a value.
     /// # Example
-    /// ```
+    #[cfg_attr(not(feature = "no-std"), doc = "```")]
+    #[cfg_attr(feature = "no-std", doc = "```ignore")]
     /// use custos::{Resolve, Eval, Combiner};
     ///
     /// let val = Resolve::with_val(1.5);
@@ -101,13 +108,14 @@ impl<T> Resolve<T> {
 
     /// Creates a `Resolve` with a marker.
     /// # Example
-    /// ```
-    /// use custos::{Resolve, Eval, Combiner};
+    #[cfg_attr(not(feature = "no-std"), doc = "```")]
+    #[cfg_attr(feature = "no-std", doc = "```ignore")]
+    /// use custos::{Resolve, Eval, Combiner, ToCLSource};
     ///
     /// let mark = Resolve::<f32>::with_marker("x");
     /// let out = mark.add(mark).mul(2.);
     ///
-    /// assert_eq!(out.to_string(), "((x + x) * 2)");
+    /// assert_eq!(out.to_cl_source(), "((x + x) * 2)");
     /// ```
     #[inline]
     pub fn with_marker(marker: &'static str) -> Self
@@ -128,9 +136,10 @@ impl<T> Eval<T> for Resolve<T> {
     }
 }
 
-impl<T> ToString for Resolve<T> {
+#[cfg(not(feature = "no-std"))]
+impl<T> ToCLSource for Resolve<T> {
     #[inline]
-    fn to_string(&self) -> String {
+    fn to_cl_source(&self) -> String {
         self.marker.to_string()
     }
 }

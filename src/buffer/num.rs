@@ -53,6 +53,7 @@ impl<'a, T: Clone> CloneBuf<'a, T> for () {
                 num: buf.ptr.num.clone(),
             },
             device: buf.device,
+            #[cfg(not(feature = "no-std"))]
             ident: buf.ident,
         }
     }
@@ -64,6 +65,7 @@ impl<T: crate::number::Number> From<T> for Buffer<'_, T, ()> {
         Buffer {
             ptr: Num { num: ptr },
             device: None,
+            #[cfg(not(feature = "no-std"))]
             ident: None,
         }
     }
@@ -80,6 +82,7 @@ impl<'a, T> Buffer<'a, T, ()> {
         Buffer {
             ptr: Num { num: self.ptr.num },
             device: self.device,
+            #[cfg(not(feature = "no-std"))]
             ident: self.ident,
         }
     }

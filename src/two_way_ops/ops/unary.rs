@@ -1,5 +1,8 @@
 use crate::{prelude::Float, Combiner, Eval};
 
+#[cfg(not(feature = "no-std"))]
+use super::ToCLSource;
+
 pub struct Exp<C> {
     pub comb: C,
 }
@@ -13,10 +16,11 @@ impl<T: Float, C: Eval<T>> Eval<T> for Exp<C> {
     }
 }
 
-impl<C: ToString> ToString for Exp<C> {
+#[cfg(not(feature = "no-std"))]
+impl<C: ToCLSource> ToCLSource for Exp<C> {
     #[inline]
-    fn to_string(&self) -> String {
-        format!("exp({})", self.comb.to_string())
+    fn to_cl_source(&self) -> String {
+        format!("exp({})", self.comb.to_cl_source())
     }
 }
 
@@ -33,10 +37,11 @@ impl<T: Float, C: Eval<T>> Eval<T> for Sin<C> {
     }
 }
 
-impl<C: ToString> ToString for Sin<C> {
+#[cfg(not(feature = "no-std"))]
+impl<C: ToCLSource> ToCLSource for Sin<C> {
     #[inline]
-    fn to_string(&self) -> String {
-        format!("sin({})", self.comb.to_string())
+    fn to_cl_source(&self) -> String {
+        format!("sin({})", self.comb.to_cl_source())
     }
 }
 
@@ -53,10 +58,11 @@ impl<T: Float, C: Eval<T>> Eval<T> for Cos<C> {
     }
 }
 
-impl<C: ToString> ToString for Cos<C> {
+#[cfg(not(feature = "no-std"))]
+impl<C: ToCLSource> ToCLSource for Cos<C> {
     #[inline]
-    fn to_string(&self) -> String {
-        format!("cos({})", self.comb.to_string())
+    fn to_cl_source(&self) -> String {
+        format!("cos({})", self.comb.to_cl_source())
     }
 }
 
@@ -73,10 +79,11 @@ impl<T: Float, C: Eval<T>> Eval<T> for Tan<C> {
     }
 }
 
-impl<C: ToString> ToString for Tan<C> {
+#[cfg(not(feature = "no-std"))]
+impl<C: ToCLSource> ToCLSource for Tan<C> {
     #[inline]
-    fn to_string(&self) -> String {
-        format!("tan({})", self.comb.to_string())
+    fn to_cl_source(&self) -> String {
+        format!("tan({})", self.comb.to_cl_source())
     }
 }
 
@@ -93,9 +100,10 @@ impl<T: core::ops::Neg<Output = T>, C: Eval<T>> Eval<T> for Neg<C> {
     }
 }
 
-impl<C: ToString> ToString for Neg<C> {
+#[cfg(not(feature = "no-std"))]
+impl<C: ToCLSource> ToCLSource for Neg<C> {
     #[inline]
-    fn to_string(&self) -> String {
-        format!("-({})", self.comb.to_string())
+    fn to_cl_source(&self) -> String {
+        format!("-({})", self.comb.to_cl_source())
     }
 }

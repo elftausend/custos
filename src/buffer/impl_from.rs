@@ -38,6 +38,7 @@ where
     }
 }*/
 
+#[cfg(not(feature = "no-std"))]
 impl<'a, T, D> From<(&'a D, Range<usize>)> for Buffer<'a, T, D>
 where
     T: Number,

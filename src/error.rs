@@ -25,10 +25,12 @@ pub use std_err::*;
 #[cfg(not(feature = "no-std"))]
 pub type Result<T> = core::result::Result<T, self::std_err::Error>;
 
+/// An error for no-std.
 #[cfg(feature = "no-std")]
 #[derive(Debug)]
 pub struct Error {}
 
+/// A type alias for `Result<T, Error>`.
 #[cfg(feature = "no-std")]
 pub type Result<T> = core::result::Result<T, Error>;
 

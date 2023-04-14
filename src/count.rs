@@ -59,7 +59,8 @@ impl AsRangeArg for (usize, usize) {
 /// used to reset the cache count in loops as every operation increases the cache count, which would break the "cache cycle" if the cache count would not be reset.
 ///
 /// # Example
-/// ```
+#[cfg_attr(not(feature = "no-std"), doc = "```")]
+#[cfg_attr(feature = "no-std", doc = "```ignore")]
 /// use custos::{get_count, range, Ident, bump_count};
 ///
 /// for _ in range(100) { // using only one usize: exclusive range
@@ -82,6 +83,7 @@ pub struct Count(pub(super) usize, pub(super) usize);
 #[derive(Debug)]
 pub struct CountIntoIter {
     epoch: usize,
+    #[cfg(not(feature = "no-std"))]
     idx: usize,
     end: usize,
 }
@@ -114,8 +116,6 @@ impl IntoIterator for Count {
             epoch: self.0,
             #[cfg(not(feature = "no-std"))]
             idx: crate::get_count(),
-            #[cfg(feature = "no-std")]
-            idx: 0,
             end: self.1,
         }
     }
@@ -128,11 +128,13 @@ mod tests {
     fn count_iter(iter: &mut CountIntoIter) {
         iter.next();
         assert_eq!(iter.epoch, 1);
+        #[cfg(not(feature = "no-std"))]
         assert_eq!(iter.idx, 0);
         assert_eq!(iter.end, 10);
 
         iter.next();
         assert_eq!(iter.epoch, 2);
+        #[cfg(not(feature = "no-std"))]
         assert_eq!(iter.idx, 0);
         assert_eq!(iter.end, 10);
     }
@@ -141,6 +143,7 @@ mod tests {
     fn test_count_into_iter() {
         let mut iter = CountIntoIter {
             epoch: 0,
+            #[cfg(not(feature = "no-std"))]
             idx: 0,
             end: 10,
         };

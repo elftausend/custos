@@ -1,4 +1,4 @@
-use crate::{Alloc, Buffer, Device, Eval, MayTapeReturn, Resolve, Shape};
+use crate::{Alloc, Buffer, Device, Eval, MayTapeReturn, Resolve, Shape, MayToCLSource};
 
 /// Applies a function to a buffer and returns a new buffer.
 pub trait ApplyFunction<T, S: Shape = (), D: Device = Self>: Device {
@@ -16,7 +16,7 @@ pub trait ApplyFunction<T, S: Shape = (), D: Device = Self>: Device {
     /// ```
     fn apply_fn<F>(&self, buf: &Buffer<T, D, S>, f: impl Fn(Resolve<T>) -> F) -> Buffer<T, Self, S>
     where
-        F: Eval<T> + ToString;
+        F: Eval<T> + MayToCLSource;
 }
 
 /// Writes the unary gradient (with chainrule) to the lhs_grad buffer.
@@ -46,7 +46,7 @@ pub trait UnaryGrad<T, S: Shape = (), D: Device = Self>: Device {
         out_grad: &Buffer<T, D, S>,
         lhs_grad_fn: impl Fn(Resolve<T>) -> F,
     ) where
-        F: Eval<T> + ToString;
+        F: Eval<T> + MayToCLSource;
 }
 
 /// Applies the forward function of a new/cached [`Buffer`] and returns it.
@@ -82,8 +82,8 @@ pub trait UnaryElementWiseMayGrad<T, D: Device, S: Shape>: Device {
         grad_fn: fn(Resolve<T>) -> GO,
     ) -> Buffer<T, Self, S>
     where
-        FO: Eval<T> + ToString,
-        GO: Eval<T> + ToString + 'static;
+        FO: Eval<T> + MayToCLSource,
+        GO: Eval<T> + MayToCLSource + 'static;
 }
 
 impl<T, D, S> UnaryElementWiseMayGrad<T, D, S> for D
@@ -101,8 +101,8 @@ where
         _grad_fn: fn(Resolve<T>) -> GO,
     ) -> Buffer<T, Self, S>
     where
-        FO: Eval<T> + ToString,
-        GO: Eval<T> + ToString + 'static,
+        FO: Eval<T> + MayToCLSource,
+        GO: Eval<T> + MayToCLSource + 'static,
     {
         let out = self.apply_fn(buf, forward_fn);
 

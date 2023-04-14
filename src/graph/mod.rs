@@ -1,7 +1,7 @@
 #[cfg(not(feature = "no-std"))]
 use crate::Ident;
 
-use core::cell::{Ref, RefMut};
+use core::{cell::{Ref, RefMut}, marker::PhantomData};
 
 #[cfg(feature = "opt-cache")]
 use crate::{CacheReturn, DeviceError};
@@ -32,21 +32,28 @@ pub trait NodeIdx {
 pub struct GlobalCount;
 
 #[cfg(feature = "no-std")]
-pub struct Graph<IdxFrom: NodeIdx> {}
+impl NodeIdx for GlobalCount {
+
+}
+
+/// A dummy graph for no-std.
+#[cfg(feature = "no-std")]
+pub struct Graph<IdxFrom: NodeIdx> {
+    _p: PhantomData<IdxFrom>
+}
 
 #[cfg(feature = "no-std")]
-impl<IdxFrom> Graph<IdxFrom> {
+impl<IdxFrom: NodeIdx> Graph<IdxFrom> {
+    /// This function will panic. Disable the `no-std` feature to use this function.
     #[inline]
-    pub fn add_leaf(&mut self, len: usize) -> Node {
-        Node {
-            idx: -1,
-            deps: [-1, -1],
-            len,
-        }
+    pub fn add_leaf(&mut self, _len: usize) -> Node {
+        unimplemented!("Not available in no-std mode")
     }
+    
+    /// This function will panic. Disable the `no-std` feature to use this function.
     #[inline]
-    pub fn add_node(&mut self, len: usize, lhs_idx: isize, rhs_idx: isize) -> Node {
-        self.add_leaf(len)
+    pub fn add_node(&mut self, _len: usize, _lhs_idx: usize, _rhs_idx: usize) -> Node {
+        unimplemented!("Not available in no-std mode")
     }
 }
 

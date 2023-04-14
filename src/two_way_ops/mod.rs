@@ -5,6 +5,36 @@ pub use resolve::*;
 
 use self::ops::{Add, Cos, Div, Eq, Exp, GEq, LEq, Mul, Neg, Pow, Sin, Sub, Tan};
 
+
+/// Evaluates a combined (via [`Combiner`]) math operations chain to a valid OpenCL C (and possibly CUDA) source string.
+#[cfg(not(feature = "no-std"))]
+pub trait ToCLSource {
+    /// Evaluates a combined (via [`Combiner`]) math operations chain to a valid OpenCL C (and possibly CUDA) source string.
+    fn to_cl_source(&self) -> String;
+}
+
+#[cfg(not(feature = "no-std"))]
+impl<N: crate::number::Numeric> ToCLSource for N {
+    #[inline]
+    fn to_cl_source(&self) -> String {
+        self.to_string()
+    }
+}
+
+/// If the `no-std` feature is disabled, this trait is implemented for all types that implement [`ToCLSource`].
+/// In this case, `no-std` is disabled.
+#[cfg(not(feature = "no-std"))]
+pub trait MayToCLSource: ToCLSource {}
+#[cfg(not(feature = "no-std"))]
+impl<T: ToCLSource> MayToCLSource for T {}
+
+/// If the `no-std` feature is disabled, this trait is implemented for all types that implement [`ToCLSource`].
+/// In this case, `no-std` is enabled and no C source string can be generated.
+#[cfg(feature = "no-std")]
+pub trait MayToCLSource {}
+#[cfg(feature = "no-std")]
+impl<T> MayToCLSource for T {}
+
 /// Evaluates a combined (via [`Combiner`]) math operations chain to a value.
 pub trait Eval<T> {
     /// Evaluates a combined (via [`Combiner`]) math operations chain to a value.
@@ -150,7 +180,10 @@ pub trait Combiner {
 
 #[cfg(test)]
 mod tests {
-    use crate::{prelude::Float, Combiner, Eval, Resolve, ToMarker, ToVal};
+    use crate::{prelude::Float, Combiner, Eval, Resolve, ToVal};
+
+    #[cfg(not(feature = "no-std"))]
+    use crate::{ToCLSource, ToMarker};
 
     #[test]
     fn test_exp() {
@@ -159,8 +192,11 @@ mod tests {
         let res: f32 = f(1f32.to_val()).eval();
         assert_eq!(res, core::f32::consts::E);
 
-        let res = f("x".to_marker()).to_string();
-        assert_eq!(res, "exp(x)");
+        #[cfg(not(feature = "no-std"))]
+        {
+            let res = f("x".to_marker()).to_cl_source();
+            assert_eq!(res, "exp(x)");
+        }
     }
 
     #[test]
@@ -170,10 +206,14 @@ mod tests {
         let res: f32 = f(2f32.to_val()).eval();
         roughly_eq_slices(&[res], &[2.1850398]);
 
-        let res = f("val".to_marker()).to_string();
-        assert_eq!(res, "-(tan(val))")
+        #[cfg(not(feature = "no-std"))]
+        {
+            let res = f("val".to_marker()).to_cl_source();
+            assert_eq!(res, "-(tan(val))")
+        }
     }
 
+    #[cfg(not(feature = "no-std"))]
     #[test]
     fn test_pow() {
         let f = |x: Resolve<f32>, y: Resolve<f32>| x.mul(3.).pow(y.add(1.));
@@ -181,8 +221,8 @@ mod tests {
         let res = f(3f32.to_val(), 2f32.to_val()).eval();
         assert_eq!(res, 9. * 9. * 9.);
 
-        let res = f("x".to_marker(), "y".to_marker()).to_string();
-        assert_eq!(res, "pow((x * 3), (y + 1))")
+        let res = f("x".to_marker(), "y".to_marker()).to_cl_source();
+        assert_eq!(res, "pow((x * 3), (y + 1))")   
     }
 
     #[test]
@@ -192,8 +232,11 @@ mod tests {
         let res: i32 = f(3.to_val(), 3.to_val()).eval();
         assert_eq!(res, 1);
 
-        let res = f("var_x".to_marker(), "other".to_marker()).to_string();
-        assert_eq!(res, "(var_x == other)");
+        #[cfg(not(feature = "no-std"))]
+        {
+            let res = f("var_x".to_marker(), "other".to_marker()).to_cl_source();
+            assert_eq!(res, "(var_x == other)");   
+        }
     }
 
     #[test]
@@ -203,8 +246,11 @@ mod tests {
         let res = f(Resolve::with_val(3)).eval();
         assert_eq!(res, 3);
 
-        let res = f(Resolve::with_marker("var_x")).to_string();
-        assert_eq!(res, "((var_x >= 0) * var_x)");
+        #[cfg(not(feature = "no-std"))]
+        {
+            let res = f(Resolve::with_marker("var_x")).to_cl_source();
+            assert_eq!(res, "((var_x >= 0) * var_x)");   
+        }
     }
 
     #[test]
@@ -214,10 +260,15 @@ mod tests {
         let res = f(Resolve::with_val(3)).eval();
         assert_eq!(res, 0);
 
-        let res = f(Resolve::with_marker("var_x")).to_string();
-        assert_eq!(res, "(var_x >= 4)");
+        #[cfg(not(feature = "no-std"))]
+        {
+            let res = f(Resolve::with_marker("var_x")).to_cl_source();
+            assert_eq!(res, "(var_x >= 4)");            
+        }
+
     }
 
+    #[cfg(not(feature = "no-std"))]
     #[test]
     fn test_eval() {
         let f = |x: Resolve<i32>| x.add(2).add(x.mul(8));
@@ -225,14 +276,16 @@ mod tests {
         assert_eq!(f(Resolve::with_val(4)).eval(), 38);
     }
 
+    #[cfg(not(feature = "no-std"))]
     #[test]
     fn test_str_result_two_args() {
         let f = |x: Resolve<f32>, y: Resolve<f32>| x.add(y);
 
-        let r = f("x".to_marker(), "y".to_marker()).to_string();
+        let r = f("x".to_marker(), "y".to_marker()).to_cl_source();
         assert_eq!("(x + y)", r);
     }
 
+    #[cfg(not(feature = "no-std"))]
     #[test]
     fn test_str_result_two_args2() {
         let f = |x: Resolve<f32>, y: Resolve<f32>| x.add(y).mul(3.6).sub(y);
@@ -241,15 +294,16 @@ mod tests {
 
         roughly_eq_slices(&[a.eval()], &[22.2]);
 
-        let r = f("x".to_marker(), "y".to_marker()).to_string();
+        let r = f("x".to_marker(), "y".to_marker()).to_cl_source();
         assert_eq!("(((x + y) * 3.6) - y)", r);
     }
 
+    #[cfg(not(feature = "no-std"))]
     #[test]
     fn test_str_result() {
         let f = |x: Resolve<f32>| x.add(2.).mul(x).add(x.mul(8.)).mul(5.);
 
-        let r = f(Resolve::default()).to_string();
+        let r = f(Resolve::default()).to_cl_source();
         assert_eq!("((((x + 2) * x) + (x * 8)) * 5)", r);
     }
 
