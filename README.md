@@ -3,7 +3,7 @@
 <hr/>
 
 [![Crates.io version](https://img.shields.io/crates/v/custos.svg)](https://crates.io/crates/custos)
-[![Docs](https://docs.rs/custos/badge.svg?version=0.6.3)](https://docs.rs/custos/0.6.3/custos/)
+[![Docs](https://docs.rs/custos/badge.svg?version=0.7.0)](https://docs.rs/custos/0.7.0/custos/)
 [![Rust](https://github.com/elftausend/custos/actions/workflows/rust.yml/badge.svg)](https://github.com/elftausend/custos/actions/workflows/rust.yml)
 [![GPU](https://github.com/elftausend/custos/actions/workflows/gpu.yml/badge.svg)](https://github.com/elftausend/custos/actions/workflows/gpu.yml)
 [![rust-clippy](https://github.com/elftausend/custos/actions/workflows/rust-clippy.yml/badge.svg)](https://github.com/elftausend/custos/actions/workflows/rust-clippy.yml)
@@ -19,10 +19,10 @@ or to see it at a larger scale, look here [`custos-math`](https://github.com/elf
 Add "custos" as a dependency:
 ```toml
 [dependencies]
-custos = "0.6.3"
+custos = "0.7.0"
 
 # to disable the default features (cpu, cuda, opencl, static-api, blas, macro) and use an own set of features:
-#custos = {version = "0.6.3", default-features=false, features=["opencl", "blas"]}
+#custos = {version = "0.7.0", default-features=false, features=["opencl", "blas"]}
 ```
 
 ### Available features: 
@@ -40,7 +40,7 @@ blas | Adds gemm functions from the system's (selected) BLAS library.
 opt-cache | Makes the 'cache graph' optimizeable, lowering the memory footprint.
 macro | Reexport of [custos-macro]
 realloc | Disables allocation caching for all devices.
-autograd | Adds automatic differentiation features (currently only in the git repository).
+autograd | Adds automatic differentiation features.
 
 [custos-macro]: https://github.com/elftausend/custos-macro
 
