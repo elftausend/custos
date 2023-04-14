@@ -1,7 +1,7 @@
 #[cfg(not(feature = "no-std"))]
 use crate::Ident;
 
-use core::{cell::{Ref, RefMut}, marker::PhantomData};
+use core::cell::{Ref, RefMut};
 
 #[cfg(feature = "opt-cache")]
 use crate::{CacheReturn, DeviceError};
@@ -39,7 +39,7 @@ impl NodeIdx for GlobalCount {
 /// A dummy graph for no-std.
 #[cfg(feature = "no-std")]
 pub struct Graph<IdxFrom: NodeIdx> {
-    _p: PhantomData<IdxFrom>
+    _p: core::marker::PhantomData<IdxFrom>
 }
 
 #[cfg(feature = "no-std")]
@@ -75,8 +75,10 @@ pub trait GraphReturn<IdxFrom: NodeIdx = GlobalCount> {
     fn graph_mut(&self) -> RefMut<Graph<IdxFrom>>;
 }
 
+/// Optimizes [`Graph`] and [`Cache`](crate::Cache) to achive a lower memory footprint.
 #[cfg(feature = "opt-cache")]
 pub trait GraphOpt {
+    /// Optimizes [`Graph`] and [`Cache`](crate::Cache) to achive a lower memory footprint.
     fn optimize(&self) -> crate::Result<()>
     where
         Self: GraphReturn + CacheReturn + crate::PtrConv,

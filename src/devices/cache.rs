@@ -134,7 +134,7 @@ where
     }
 }
 
-impl<D: PtrConv> Cache<D> {
+impl<D: PtrConv + GraphReturn> Cache<D> {
     /// Adds a new cache entry to the cache.
     /// The next get call will return this entry if the [Ident] is correct.
     /// # Example
