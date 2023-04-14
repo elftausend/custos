@@ -1,5 +1,3 @@
-use core::fmt::Display;
-
 use super::{Combiner, Eval};
 
 /// Resolves to either a mathematical expression as string or a computed value.
@@ -130,7 +128,7 @@ impl<T> Eval<T> for Resolve<T> {
     }
 }
 
-impl<T: Display> ToString for Resolve<T> {
+impl<T> ToString for Resolve<T> {
     #[inline]
     fn to_string(&self) -> String {
         self.marker.to_string()

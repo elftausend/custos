@@ -1,7 +1,7 @@
 use core::{hash::BuildHasherDefault, marker::PhantomData};
 use std::collections::{HashMap, HashSet};
 
-use crate::{get_count, AddGraph, CacheTrace, Ident, IdentHasher, Node};
+use crate::{get_count, AddGraph, CacheTrace, GlobalCount, Ident, IdentHasher, Node, NodeIdx};
 
 /// A graph of [`Node`]s.
 /// It is typically built up during the forward process. (calling `device.retrieve(.., (lhs, rhs))`)
@@ -13,19 +13,6 @@ pub struct Graph<IdxFrom: NodeIdx> {
     pub idx_trans: HashMap<usize, usize, BuildHasherDefault<IdentHasher>>,
     _pd: PhantomData<IdxFrom>,
 }
-
-/// Returns the next index for a [`Node`].
-pub trait NodeIdx {
-    /// Returns the next index for a [`Node`].
-    #[inline]
-    fn idx(nodes: &[Node]) -> usize {
-        nodes.len()
-    }
-}
-
-/// Uses the global count as the next index for a [`Node`].
-#[derive(Debug, Default)]
-pub struct GlobalCount;
 
 impl NodeIdx for GlobalCount {
     #[inline]

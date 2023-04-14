@@ -45,6 +45,8 @@ pub enum DeviceError {
     MissingAddress,
     /// Cannot create WGPU device instance.
     WGPUDeviceReturn,
+    /// The 'cpu' feature is disabled. Hence this CPU can't be created.
+    CPUDeviceNotAvailable,
 }
 
 impl DeviceError {
@@ -60,6 +62,9 @@ impl DeviceError {
             }
             DeviceError::MissingAddress => "An address was not supplied for a Network device.",
             DeviceError::WGPUDeviceReturn => "Cannot create WGPU device instance.",
+            DeviceError::CPUDeviceNotAvailable => {
+                "The 'cpu' feature is disabled. Hence this CPU can't be created."
+            }
         }
     }
 }

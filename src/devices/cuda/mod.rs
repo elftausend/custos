@@ -2,7 +2,6 @@
 
 pub mod api;
 
-
 /// Type alias for `core::ffi::c_ulonglong`. Used for CUDA memory object pointers.
 pub type CUdeviceptr = core::ffi::c_ulonglong;
 

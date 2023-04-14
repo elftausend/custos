@@ -3,8 +3,12 @@ use core::{ffi::c_void, fmt::Debug, mem::ManuallyDrop};
 #[cfg(feature = "cpu")]
 use crate::cpu::{CPUPtr, CPU};
 
+/// A dummy CPU. This only exists to make the code compile when the `cpu` feature is disabled
+/// because the CPU is the default type `D` for [`Buffer`]s.
 #[cfg(not(feature = "cpu"))]
-pub struct CPU {}
+pub struct CPU {
+    _uncreateable: (),
+}
 
 #[cfg(not(feature = "cpu"))]
 impl Device for CPU {
@@ -13,7 +17,7 @@ impl Device for CPU {
     type Cache = ();
 
     fn new() -> crate::Result<Self> {
-        todo!()
+        Err(crate::DeviceError::CPUDeviceNotAvailable.into())
     }
 }
 
@@ -383,6 +387,7 @@ impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
     /// Creates a new `Buffer` from a `Vec`.
     /// The pointer of the allocation may be added to the cache of the device.
     /// Usually, this pointer / `Buffer` is then returned by a `device.get_existing_buf(..)` call.
+    #[cfg(not(feature = "no-std"))]
     #[inline]
     pub fn from_vec(device: &'a D, data: Vec<T>) -> Self
     where

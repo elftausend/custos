@@ -223,6 +223,7 @@ pub trait Device: Sized + 'static {
 
     /// Removes a `Buffer` with the provided [`Ident`] from the cache.
     /// This function is internally called when a `Buffer` with [`AllocFlag`] `None` is dropped.
+    #[cfg(not(feature = "no-std"))]
     #[inline]
     fn remove(&self, ident: Ident) {
         Self::Cache::remove(self, ident);
@@ -230,6 +231,7 @@ pub trait Device: Sized + 'static {
 
     /// Adds a pointer that was allocated by [`Alloc`] to the cache and returns a new corresponding [`Ident`].
     /// This function is internally called when a `Buffer` with [`AllocFlag`] `None` is created.
+    #[cfg(not(feature = "no-std"))]
     #[inline]
     fn add_to_cache<T, S: Shape>(&self, ptr: &Self::Ptr<T, S>) -> Option<Ident> {
         Self::Cache::add_to_cache(self, ptr)

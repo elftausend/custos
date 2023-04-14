@@ -50,7 +50,7 @@ impl std::hash::Hasher for IdentHasher {
 
 impl<D> CacheAble<D> for Cache<D>
 where
-    D: PtrConv,
+    D: PtrConv + CacheReturn,
 {
     #[cfg(not(feature = "realloc"))]
     #[inline]

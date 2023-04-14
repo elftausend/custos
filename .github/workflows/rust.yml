@@ -133,6 +133,24 @@ jobs:
     - name: Run 'autograd' tests
       run: cargo test --no-default-features --features autograd,cpu,macro
 
+  test-no-std:
+  
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+
+    - uses: actions-rs/toolchain@v1
+      with:
+        profile: minimal
+        toolchain: stable
+
+    - uses: Swatinem/rust-cache@v1
+
+    - name: Run 'autograd' tests
+      run: cargo test --no-default-features --features no-std
+  
+
   miri:
     name: "Miri"
     runs-on: ubuntu-latest

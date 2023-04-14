@@ -9,8 +9,8 @@ use std::{
     ptr::{null, null_mut},
 };
 
-pub use ffi::*;
 use self::error::NvrtcResult;
+pub use ffi::*;
 
 /// A compileable nvrtc program
 pub struct NvrtcProgram(pub nvrtcProgram);
@@ -21,7 +21,7 @@ impl NvrtcProgram {
         compile_program(self, options)
     }
 
-    /// Returns the runnable ptx 
+    /// Returns the runnable ptx
     pub fn ptx(&self) -> NvrtcResult<CString> {
         get_ptx(self)
     }

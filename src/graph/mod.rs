@@ -18,16 +18,28 @@ mod graph_struct;
 #[cfg(not(feature = "no-std"))]
 pub use graph_struct::*;
 
-#[cfg(feature = "no-std")]
-pub struct Graph {}
+/// Returns the next index for a [`Node`].
+pub trait NodeIdx {
+    /// Returns the next index for a [`Node`].
+    #[inline]
+    fn idx(nodes: &[Node]) -> usize {
+        nodes.len()
+    }
+}
+
+/// Uses the global count as the next index for a [`Node`].
+#[derive(Debug, Default)]
+pub struct GlobalCount;
 
 #[cfg(feature = "no-std")]
-impl Graph {
+pub struct Graph<IdxFrom: NodeIdx> {}
+
+#[cfg(feature = "no-std")]
+impl<IdxFrom> Graph<IdxFrom> {
     #[inline]
     pub fn add_leaf(&mut self, len: usize) -> Node {
         Node {
             idx: -1,
-            ident_idx: -1,
             deps: [-1, -1],
             len,
         }

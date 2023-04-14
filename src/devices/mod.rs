@@ -3,7 +3,19 @@
 mod generic_blas;
 pub use generic_blas::*;
 
+#[cfg(feature = "no-std")]
+#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]
+/// Dummy Ident
+pub struct Ident {
+    /// unused
+    pub idx: usize,
+    /// unused
+    pub len: usize,
+}
+
+#[cfg(not(feature = "no-std"))]
 mod addons;
+#[cfg(not(feature = "no-std"))]
 pub use addons::*;
 
 use crate::{flag::AllocFlag, shape::Shape, AddGraph, Alloc, Buffer, Device};
@@ -54,7 +66,7 @@ mod ident;
 pub use ident::*;
 
 /// Used to convert a device pointer to the a pointer of a different type.
-pub trait PtrConv: Device + CacheReturn {
+pub trait PtrConv: Device {
     /// Converts a pointer to a pointer with a different type.
     /// # Safety
     /// Prone to double frees. Make sure that the pointer is not freed twice.
@@ -99,14 +111,17 @@ pub trait CacheAble<D: Device> {
     /// This function is unsafe because it is possible to return multiple `Buffer` with `Ident` that share the same memory.
     /// If this function is called twice with the same `Ident`, the returned `Buffer` will be the same.
     /// Even though the return `Buffer`s are owned, this does not lead to double-frees (see [`AllocFlag`]).
+    #[cfg(not(feature = "no-std"))]
     unsafe fn get_existing_buf<T, S: Shape>(device: &D, id: Ident) -> Option<Buffer<T, D, S>>;
 
     /// Removes a `Buffer` with the provided [`Ident`] from the cache.
     /// This function is internally called when a `Buffer` with [`AllocFlag`] `None` is dropped.
+    #[cfg(not(feature = "no-std"))]
     fn remove(device: &D, ident: Ident);
 
     /// Adds a pointer that was allocated by [`Alloc`] to the cache and returns a new corresponding [`Ident`].
     /// This function is internally called when a `Buffer` with [`AllocFlag`] `None` is created.
+    #[cfg(not(feature = "no-std"))]
     fn add_to_cache<T, S: Shape>(device: &D, ptr: &D::Ptr<T, S>) -> Option<Ident>;
 }
 
@@ -120,14 +135,17 @@ impl<D: Device> CacheAble<D> for () {
         Buffer::new(device, len)
     }
 
+    #[cfg(not(feature = "no-std"))]
     #[inline]
     fn remove(_device: &D, _ident: Ident) {}
 
+    #[cfg(not(feature = "no-std"))]
     #[inline]
     fn add_to_cache<T, S: Shape>(_device: &D, _ptr: &<D as Device>::Ptr<T, S>) -> Option<Ident> {
         None
     }
 
+    #[cfg(not(feature = "no-std"))]
     #[inline]
     unsafe fn get_existing_buf<T, S: Shape>(_device: &D, _id: Ident) -> Option<Buffer<T, D, S>> {
         None

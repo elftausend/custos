@@ -1,7 +1,7 @@
 use super::stack_device::Stack;
 use crate::{
     shape::{Dim1, Dim2},
-    Buffer, Ident, StackArray,
+    Buffer, StackArray,
 };
 
 /*impl<'a, T, const N: usize> From<[T; N]> for Buffer<'a, T, Stack, N> {
@@ -85,7 +85,9 @@ impl<'a, T: Copy + Default, const N: usize, const A: usize, const B: usize> From
         let mut arr = StackArray::new();
         arr.copy_from_slice(array);
         Buffer {
-            ident: Some(Ident::new_bumped(arr.len())),
+            // TODO: is this correct
+            ident: None,
+            // ident: Some(Ident::new_bumped(arr.len())),
             ptr: arr,
             device: Some(&Stack),
         }
