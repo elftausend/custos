@@ -180,8 +180,9 @@ pub trait Device: Sized + 'static {
     }
 
     /// May allocate a new [`Buffer`] or return an existing one.
-    /// It may use the cache count provided by the cache count ([Ident]).
-    /// This depends on the type of cache.
+    /// It may use the cache count provided by the cache count (identified by [`Ident`]). <br>
+    /// This depends on the type of cache and enabled features. <br>
+    /// With the `realloc` feature enabled, it is guaranteed that the returned `Buffer` is newly allocated and freed every time.
     ///
     /// # Example
     #[cfg_attr(all(feature = "cpu", not(feature = "realloc")), doc = "```")]

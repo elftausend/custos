@@ -9,12 +9,10 @@
 [![rust-clippy](https://github.com/elftausend/custos/actions/workflows/rust-clippy.yml/badge.svg)](https://github.com/elftausend/custos/actions/workflows/rust-clippy.yml)
 
 A minimal OpenCL, WGPU, CUDA and host CPU array manipulation engine / framework written in Rust.
-This crate provides the tools for executing custom array operations with the CPU, as well as with CUDA, WGPU and OpenCL devices.<br>
+This crate provides the tools for executing custom array and automatic differentiation operations with the CPU, as well as with CUDA, WGPU and OpenCL devices.<br>
 This guide demonstrates how operations can be implemented for the compute devices: [implement_operations.md](implement_operations.md)<br>
-or to see it at a larger scale, look here [custos-math] or here [sliced].
+or to see it at a larger scale, look here [`custos-math`](https://github.com/elftausend/custos-math) or here [`sliced`](https://github.com/elftausend/sliced) (for automatic diff examples).
 
-[custos-math]: https://github.com/elftausend/custos-math
-[sliced]: https://github.com/elftausend/sliced
 
 ## Installation
 
@@ -27,20 +25,22 @@ custos = "0.6.3"
 #custos = {version = "0.6.3", default-features=false, features=["opencl", "blas"]}
 ```
 
-Available features: 
-- devices
-    - "cpu" ... adds `CPU` device
-    - "stack" ... adds `Stack` device and enables stack allocated `Buffer`
-    - "opencl" ... adds OpenCL features. (name of the device: `OpenCL`)
-    - "cuda" ... adds CUDA features. (name of the device: `CUDA`)
-    - "wgpu" ... adds WGPU features.(name of the device: `WGPU`)
+### Available features: 
 
-- "no-std" ... for no std environments, activates "stack" feature
-- "static-api" ... enables the creation of `Buffer` without providing any device.
-- "blas" ... adds gemm functions from your selected BLAS library
-- "opt-cache" ... makes the 'cache graph' optimizeable
-- "macro" ... reexport of [custos-macro]
-- "realloc" ... disables caching for all devices
+Feature | Description
+--- | ---
+cpu | Adds the `CPU` device
+stack | Adds the `Stack` device, enables stack allocated `Buffer`s
+opencl | Adds OpenCL features. (name of the device: `OpenCL`)
+cuda | Adds CUDA features. (name of the device: `CUDA`)
+wgpu | Adds WGPU features. (name of the device: `WGPU`)
+no-std | For no std environments, activates `stack` feature.
+static-api | Enables the creation of `Buffer`s without providing a device.
+blas | Adds gemm functions from the system's (selected) BLAS library.
+opt-cache | Makes the 'cache graph' optimizeable, lowering the memory footprint.
+macro | Reexport of [custos-macro]
+realloc | Disables allocation caching for all devices.
+autograd | Adds automatic differentiation features (currently only in the git repository).
 
 [custos-macro]: https://github.com/elftausend/custos-macro
 
@@ -81,7 +81,7 @@ where
 }
 ```
 
-A lot more usage examples can be found in the [tests] and [examples] folder.
-(Or in the [unary] operation file.)
+A lot more usage examples can be found in the [tests] and [examples] folders.
+(Or in the [unary] operation file, [custos-math](https://github.com/elftausend/custos-math) and [`sliced`](https://github.com/elftausend/sliced))
 
 [tests]: https://github.com/elftausend/custos/tree/main/tests

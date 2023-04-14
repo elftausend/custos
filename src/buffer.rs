@@ -3,30 +3,6 @@ use core::{ffi::c_void, mem::ManuallyDrop};
 #[cfg(feature = "cpu")]
 use crate::cpu::{CPUPtr, CPU};
 
-/// A dummy CPU. This only exists to make the code compile when the `cpu` feature is disabled
-/// because the CPU is the default type `D` for [`Buffer`]s.
-#[cfg(not(feature = "cpu"))]
-pub struct CPU {
-    _uncreateable: (),
-}
-
-#[cfg(not(feature = "cpu"))]
-impl Device for CPU {
-    type Ptr<U, S: Shape> = num::Num<U>;
-
-    type Cache = ();
-
-    fn new() -> crate::Result<Self> {
-        #[cfg(feature = "no-std")]
-        {
-            unimplemented!("CPU is not available. Enable the `cpu` feature to use the CPU.")
-        }
-
-        #[cfg(not(feature = "no-std"))]
-        Err(crate::DeviceError::CPUDeviceNotAvailable.into())
-    }
-}
-
 use crate::{
     flag::AllocFlag, shape::Shape, Alloc, ClearBuf, CloneBuf, CommonPtrs, Device, DevicelessAble,
     Ident, IsShapeIndep, MainMemory, PtrType, Read, ShallowCopy, WriteBuf,
@@ -39,8 +15,8 @@ mod impl_from;
 mod impl_from_const;
 mod num;
 
-/// The underlying non-growable array structure. A `Buffer` may be encapsulated in other structs.
-/// By default, the `Buffer` is a f32 CPU Buffer.
+/// The underlying non-growable array structure of `custos`. A `Buffer` may be encapsulated in other data structures.
+/// By default, the `Buffer` is a f32 CPU Buffer with no statically known shape.
 /// # Example
 #[cfg_attr(feature = "cpu", doc = "```")]
 #[cfg_attr(not(feature = "cpu"), doc = "```ignore")]

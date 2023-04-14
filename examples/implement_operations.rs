@@ -20,15 +20,19 @@ where
         let len = std::cmp::min(lhs.len(), rhs.len());
 
         // this returns a previously allocated buffer.
-        // You can deactivate the caching behaviour by adding the "realloc" feature
+        // You can deactivate the caching behaviour by enabling the "realloc" feature
         // to the custos feature list in the Cargo.toml.
         let mut out = self.retrieve(len, (lhs, rhs));
 
         // By default, the Buffer dereferences to a slice.
         // Therefore, standard indexing can be used.
         // You can pass a CPU Buffer to a function that takes a slice as a parameter, too.
-        // However, the Buffer must be created via a CPU.
+        // However, the corresponding device needs to implement the 
+        // `MainMemory` trait (definitely the case for CPU and Stack, and for unified memory devices OpenCL).
         for i in 0..len {
+            // indexing Buffers appears to be slower than indexing slices.
+            // Therefore, it is recommended to convert the Buffer to a slice before indexing.
+            // (e.g. via creating a function that takes slices as parameters, ...).
             out[i] = lhs[i] + rhs[i];
         }
         out
@@ -76,7 +80,7 @@ where
         let out = self.retrieve::<T, ()>(len, (lhs, rhs));
 
         // In the background, the kernel is compiled once. After that, it will be reused for every iteration.
-        // The cached kernels are released (or freed) when the underlying CLDevice is dropped.
+        // The cached kernels are released (or freed) when the underlying OpenCL device is dropped.
         // The arguments are specified with a slice of buffers and/or numbers.
         self.launch_kernel(&src, [len, 0, 0], None, &[&lhs, &rhs, &out])
             .unwrap();
@@ -174,7 +178,6 @@ impl<'a, T, D: Device> OwnStruct<'a, T, D> {
         D: AddBuf<T>,
     {
         self.buf.device().add(&self.buf, &rhs.buf)
-        //get_device!(self.buf.device, AddBuf<T>).add(&self.buf, &rhs.buf)
     }
 
     // general context
