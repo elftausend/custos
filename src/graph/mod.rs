@@ -61,10 +61,10 @@ impl<IdxFrom: NodeIdx> Graph<IdxFrom> {
 #[cfg(not(feature = "no-std"))]
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct CacheTrace {
-    /// This index is the common cache index. All the other indices in `use_cache_idx` can use this index to share memory.
-    pub cache_idx: usize,
-    /// The indices of the nodes that can use the common cache entry of `cache_idx`.
-    pub use_cache_idx: Vec<Ident>,
+    /// This identifier is the common cache index / ident. All the other idents in `use_cache_ids` can use this ident to share memory.
+    pub cache_id: Ident,
+    /// The identifiers of the nodes that can use the common cache entry of `cache_id`.
+    pub use_cache_ids: Vec<Ident>,
 }
 
 /// Returns a mutable reference to the graph.
@@ -85,13 +85,12 @@ pub trait GraphOpt {
     {
         let mut cache = self.cache_mut();
         for trace in self.graph().cache_traces() {
-            // starting at 1, because the first element is the origin
-            for node in &trace.use_cache_idx {
+            for node in &trace.use_cache_ids {
                 // insert the common / optimized pointer in all the other nodes
                 // this deallocates the old pointers
                 let ptr = cache
                     .nodes
-                    .get(&trace.use_cache_idx[0])
+                    .get(&trace.cache_id)
                     .ok_or(DeviceError::GraphOptimization)?
                     .clone();
                 cache.nodes.insert(*node, ptr);
@@ -285,8 +284,8 @@ mod tests {
 
         assert_eq!(
             CacheTrace {
-                cache_idx: 2,
-                use_cache_idx: vec![Ident { idx: 3, len: 10 }, Ident { idx: 4, len: 10 },],
+                cache_id: Ident { idx: 2, len: 10 },
+                use_cache_ids: vec![Ident { idx: 3, len: 10 }, Ident { idx: 4, len: 10 },],
             },
             traces[0]
         );
@@ -318,8 +317,8 @@ mod tests {
 
         assert_eq!(
             [CacheTrace {
-                cache_idx: 4,
-                use_cache_idx: vec![Ident { idx: 5, len: 12 }, Ident { idx: 6, len: 12 },],
+                cache_id: Ident { idx: 4, len: 12 },
+                use_cache_ids: vec![Ident { idx: 5, len: 12 }, Ident { idx: 6, len: 12 },],
             }],
             &*traces
         );
@@ -363,8 +362,8 @@ mod tests {
             traces,
             [
                 CacheTrace {
-                    cache_idx: 10,
-                    use_cache_idx: vec![
+                    cache_id: Ident { idx: 10, len: 6400 },
+                    use_cache_ids: vec![
                         //   Ident { idx: 0, len: 6400 },
                         Ident { idx: 11, len: 6400 },
                         Ident { idx: 12, len: 6400 },
@@ -377,8 +376,8 @@ mod tests {
                     ]
                 },
                 CacheTrace {
-                    cache_idx: 19,
-                    use_cache_idx: vec![
+                    cache_id: Ident { idx: 19, len: 100 },
+                    use_cache_ids: vec![
                         //   Ident { idx: 0, len: 6400 },
                         Ident { idx: 20, len: 100 },
                         Ident { idx: 21, len: 100 },
@@ -436,8 +435,8 @@ mod tests {
         assert_eq!(
             trace,
             [CacheTrace {
-                cache_idx: 2,
-                use_cache_idx: vec![Ident { idx: 3, len: 10 }, Ident { idx: 4, len: 10 }]
+                cache_id: Ident { idx: 2, len: 10 },
+                use_cache_ids: vec![Ident { idx: 3, len: 10 }, Ident { idx: 4, len: 10 }]
             }]
         );
     }
@@ -445,7 +444,7 @@ mod tests {
     #[cfg(feature = "cpu")]
     #[cfg(feature = "opt-cache")]
     #[test]
-    fn test_from_retrieve() {
+    fn test_from_retrieve_sine_neural_net() {
         use crate::{Buffer, Device, GraphReturn, CPU};
 
         let device = CPU::new();
@@ -483,8 +482,8 @@ mod tests {
             cts,
             [
                 CacheTrace {
-                    cache_idx: 10,
-                    use_cache_idx: vec![
+                    cache_id: Ident { idx: 10, len: 6400 },
+                    use_cache_ids: vec![
                         //   Ident { idx: 0, len: 6400 },
                         Ident { idx: 11, len: 6400 },
                         Ident { idx: 12, len: 6400 },
@@ -497,8 +496,8 @@ mod tests {
                     ]
                 },
                 CacheTrace {
-                    cache_idx: 19,
-                    use_cache_idx: vec![
+                    cache_id: Ident { idx: 19, len: 100 },
+                    use_cache_ids: vec![
                         //   Ident { idx: 0, len: 6400 },
                         Ident { idx: 20, len: 100 },
                         Ident { idx: 21, len: 100 },
@@ -506,6 +505,76 @@ mod tests {
                 }
             ]
         )
+    }
+
+    #[cfg(feature = "cpu")]
+    #[cfg(feature = "opt-cache")]
+    #[test]
+    fn test_from_retrieve_sliced_chained_perf_example() {
+        use crate::{Buffer, Device, GraphReturn, CPU};
+
+        let device = CPU::new();
+
+        // idx: 0, deps: []
+        let x: Buffer = device.buffer([1.; 1000]);
+        // idx: 1, deps: []
+        let b: Buffer = device.buffer([1.1; 1000]);
+
+        // idx: 2, deps: [0, 0]
+        let squared = device.retrieve::<f32, ()>(1000, (&x, &x));
+        // idx: 3, deps: [1, 0]
+        let add = device.retrieve::<f32, ()>(1000, (&b, &x));
+        // idx: 4, deps: [3, 1]
+        let mul_b = device.retrieve::<f32, ()>(1000, (&add, &b));
+        // idx: 5, deps: [2, 0]
+        let mul = device.retrieve::<f32, ()>(1000, (&squared, &x));
+        // idx: 6, deps: [5, 4]
+        let _out = device.retrieve::<f32, ()>(1000, (&mul, &mul_b));
+
+        let traces = device.graph().cache_traces();
+        assert_eq!(traces, vec![
+            CacheTrace { cache_id: Ident { idx: 2, len: 1000 }, use_cache_ids: vec![
+                Ident { idx: 5, len: 1000 },
+                Ident { idx: 6, len: 1000 },
+            ] },
+            CacheTrace { cache_id: Ident { idx: 3, len: 1000 }, use_cache_ids: vec![
+                Ident { idx: 4, len: 1000 },
+            ] }
+        ]);
+    }
+
+    #[cfg(feature = "cpu")]
+    #[cfg(feature = "opt-cache")]
+    #[test]
+    fn test_from_retrieve_sliced_chained_perf_example_optimize_cache() {
+        use crate::{Buffer, Device, CPU, GraphOpt, CacheReturn};
+
+        let device = CPU::new();
+
+        // idx: 0, deps: []
+        let x: Buffer = device.buffer([1.; 1000]);
+        // idx: 1, deps: []
+        let b: Buffer = device.buffer([1.1; 1000]);
+
+        // idx: 2, deps: [0, 0]
+        let squared = device.retrieve::<f32, ()>(1000, (&x, &x));
+        // idx: 3, deps: [1, 0]
+        let add = device.retrieve::<f32, ()>(1000, (&b, &x));
+        // idx: 4, deps: [3, 1]
+        let mul_b = device.retrieve::<f32, ()>(1000, (&add, &b));
+        // idx: 5, deps: [2, 0]
+        let mul = device.retrieve::<f32, ()>(1000, (&squared, &x));
+        // idx: 6, deps: [5, 4]
+        let out = device.retrieve::<f32, ()>(1000, (&mul, &mul_b));
+
+        
+        device.optimize().unwrap();
+        let nodes = device.cache().nodes.clone();
+        
+        assert_eq!(nodes.get(&squared.id()), nodes.get(&mul.id()));
+        assert_eq!(nodes.get(&squared.id()), nodes.get(&out.id()));
+
+        assert_eq!(nodes.get(&add.id()), nodes.get(&mul_b.id()));
     }
 
     #[test]
@@ -560,12 +629,12 @@ mod tests {
         assert_eq!(
             [
                 CacheTrace {
-                    cache_idx: 1,
-                    use_cache_idx: vec![Ident { idx: 7, len: 10 }, Ident { idx: 8, len: 10 }]
+                    cache_id: Ident { idx: 1, len: 10 },
+                    use_cache_ids: vec![Ident { idx: 7, len: 10 }, Ident { idx: 8, len: 10 }]
                 },
                 CacheTrace {
-                    cache_idx: 4,
-                    use_cache_idx: vec![Ident { idx: 5, len: 12 }, Ident { idx: 6, len: 12 }]
+                    cache_id: Ident { idx: 4, len: 12 },
+                    use_cache_ids: vec![Ident { idx: 5, len: 12 }, Ident { idx: 6, len: 12 }]
                 }
             ],
             &*traces

@@ -91,16 +91,21 @@ impl<IdxFrom: NodeIdx> Graph<IdxFrom> {
             }
 
             traces.push(CacheTrace {
-                cache_idx: node.idx,
-                use_cache_idx: trace
+                cache_id: Ident {
+                    idx: node.idx,
+                    len: node.len,
+                },
+                use_cache_ids: trace
                     .into_iter()
-                    //.filter(|node| !visited_nodes.contains(*node))
-                    .map(|node| {
+                    .filter_map(|node| {
+                        if visited_nodes.contains(&node) {
+                            return None;
+                        }
                         visited_nodes.insert(node);
-                        Ident {
+                        Some(Ident {
                             idx: *self.idx_trans.get(&node.idx).unwrap(),
                             len: node.len,
-                        }
+                        })
                     })
                     .collect(),
             });
