@@ -182,6 +182,7 @@ dependencies = [
  "futures-intrusive",
  "libm",
  "min-cl",
+ "nnapi",
  "pollster",
  "wgpu",
 ]
@@ -494,6 +495,17 @@ dependencies = [
  "thiserror",
  "unicode-xid",
 ]
+
+[[package]]
+name = "nnapi"
+version = "0.1.0"
+dependencies = [
+ "nnapi-sys",
+]
+
+[[package]]
+name = "nnapi-sys"
+version = "0.1.0"
 
 [[package]]
 name = "num-traits"

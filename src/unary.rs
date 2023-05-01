@@ -1,4 +1,4 @@
-use crate::{Alloc, Buffer, Device, Eval, MayTapeReturn, Resolve, Shape, MayToCLSource};
+use crate::{Alloc, Buffer, Device, Eval, MayTapeReturn, MayToCLSource, Resolve, Shape};
 
 /// Applies a function to a buffer and returns a new buffer.
 pub trait ApplyFunction<T, S: Shape = (), D: Device = Self>: Device {

@@ -355,7 +355,6 @@ pub const UNIFIED_CL_MEM: bool = true;
 #[cfg(feature = "macro")]
 pub use custos_macro::impl_stack;
 
-
 /// A dummy CPU. This only exists to make the code compile when the `cpu` feature is disabled
 /// because the CPU is the default type `D` for [`Buffer`]s.
 #[cfg(not(feature = "cpu"))]
@@ -380,14 +379,13 @@ impl Device for CPU {
     }
 }
 
-
 pub mod prelude {
     //! Typical imports for using custos.
 
     pub use crate::{
         number::*, range, shape::*, Alloc, Buffer, CDatatype, ClearBuf, CopySlice, Device,
-        GraphReturn, Ident, MainMemory, MayTapeReturn, Read, ShallowCopy, WithShape, WriteBuf,
-        MayToCLSource
+        GraphReturn, Ident, MainMemory, MayTapeReturn, MayToCLSource, Read, ShallowCopy, WithShape,
+        WriteBuf,
     };
 
     #[cfg(feature = "cpu")]

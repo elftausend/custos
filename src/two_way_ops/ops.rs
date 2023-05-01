@@ -28,7 +28,11 @@ impl<C, R> Combiner for Mul<C, R> {}
 impl<C: ToCLSource, R: ToCLSource> ToCLSource for Mul<C, R> {
     #[inline]
     fn to_cl_source(&self) -> String {
-        format!("({} * {})", self.comb.to_cl_source(), self.rhs.to_cl_source())
+        format!(
+            "({} * {})",
+            self.comb.to_cl_source(),
+            self.rhs.to_cl_source()
+        )
     }
 }
 
@@ -57,7 +61,11 @@ impl<C, R> Combiner for Add<C, R> {}
 impl<C: ToCLSource, R: ToCLSource> ToCLSource for Add<C, R> {
     #[inline]
     fn to_cl_source(&self) -> String {
-        format!("({} + {})", self.comb.to_cl_source(), self.rhs.to_cl_source())
+        format!(
+            "({} + {})",
+            self.comb.to_cl_source(),
+            self.rhs.to_cl_source()
+        )
     }
 }
 
@@ -86,7 +94,11 @@ impl<C, R> Combiner for Sub<C, R> {}
 impl<C: ToCLSource, R: ToCLSource> ToCLSource for Sub<C, R> {
     #[inline]
     fn to_cl_source(&self) -> String {
-        format!("({} - {})", self.comb.to_cl_source(), self.rhs.to_cl_source())
+        format!(
+            "({} - {})",
+            self.comb.to_cl_source(),
+            self.rhs.to_cl_source()
+        )
     }
 }
 
@@ -115,7 +127,11 @@ impl<C, R> Combiner for Div<C, R> {}
 impl<C: ToCLSource, R: ToCLSource> ToCLSource for Div<C, R> {
     #[inline]
     fn to_cl_source(&self) -> String {
-        format!("({} / {})", self.comb.to_cl_source(), self.rhs.to_cl_source())
+        format!(
+            "({} / {})",
+            self.comb.to_cl_source(),
+            self.rhs.to_cl_source()
+        )
     }
 }
 
@@ -144,7 +160,11 @@ impl<C, R> Combiner for Pow<C, R> {}
 impl<C: ToCLSource, R: ToCLSource> ToCLSource for Pow<C, R> {
     #[inline]
     fn to_cl_source(&self) -> String {
-        format!("pow({}, {})", self.comb.to_cl_source(), self.rhs.to_cl_source())
+        format!(
+            "pow({}, {})",
+            self.comb.to_cl_source(),
+            self.rhs.to_cl_source()
+        )
     }
 }
 

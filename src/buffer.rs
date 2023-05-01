@@ -72,7 +72,7 @@ impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
         D: Alloc<'a, T, S>, /*+ GraphReturn*/
     {
         let ptr = device.alloc(len, AllocFlag::None);
-        
+
         #[cfg(not(feature = "no-std"))]
         let ident = device.add_to_cache(&ptr);
 
@@ -419,7 +419,7 @@ impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
         D: Alloc<'a, T, S>,
     {
         let ptr = device.with_array(array);
-        
+
         #[cfg(not(feature = "no-std"))]
         let ident = device.add_to_cache(&ptr);
 

@@ -19,7 +19,11 @@ impl<C, R> GEq<C, R> {
 impl<C: ToCLSource, R: ToCLSource> ToCLSource for GEq<C, R> {
     #[inline]
     fn to_cl_source(&self) -> String {
-        format!("({} >= {})", self.comb.to_cl_source(), self.rhs.to_cl_source())
+        format!(
+            "({} >= {})",
+            self.comb.to_cl_source(),
+            self.rhs.to_cl_source()
+        )
     }
 }
 
@@ -48,7 +52,11 @@ impl<C, R> LEq<C, R> {
 impl<C: ToCLSource, R: ToCLSource> ToCLSource for LEq<C, R> {
     #[inline]
     fn to_cl_source(&self) -> String {
-        format!("({} <= {})", self.comb.to_cl_source(), self.rhs.to_cl_source())
+        format!(
+            "({} <= {})",
+            self.comb.to_cl_source(),
+            self.rhs.to_cl_source()
+        )
     }
 }
 
@@ -77,7 +85,11 @@ impl<C, R> Eq<C, R> {
 impl<C: ToCLSource, R: ToCLSource> ToCLSource for Eq<C, R> {
     #[inline]
     fn to_cl_source(&self) -> String {
-        format!("({} == {})", self.comb.to_cl_source(), self.rhs.to_cl_source())
+        format!(
+            "({} == {})",
+            self.comb.to_cl_source(),
+            self.rhs.to_cl_source()
+        )
     }
 }
 
