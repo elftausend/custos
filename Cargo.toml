@@ -29,7 +29,9 @@ custos-macro = {version = "0.1.1", optional=true}
 # no-std float math
 libm = { version="0.2.6", optional = true }
 
+# nnapi
 nnapi = { path = "../nnapi/nnapi", optional = true }
+ndk-sys = {version = "0.4", features=["test"], optional = true}
 
 [build-dependencies]
 #min-cl = { path="../min-cl", optional=true }
@@ -53,7 +55,7 @@ no-std = ["stack", "dep:libm"]
 wgpu = ["dep:wgpu", "dep:pollster", "dep:futures-intrusive"]
 autograd = []
 macro = ["dep:custos-macro"]
-nnapi = ["dep:nnapi"]
+nnapi = ["dep:nnapi", "dep:ndk-sys"]
 
 [dev-dependencies]
 #criterion = "0.3"

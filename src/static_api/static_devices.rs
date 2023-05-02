@@ -100,6 +100,7 @@ mod tests {
 
         let out = cpu.retrieve::<_, ()>(a.len(), ());
 
+
         let cache = static_cpu().addons.cache.borrow();
         let cached = cache
             .nodes
