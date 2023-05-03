@@ -1,11 +1,10 @@
-use crate::{Addons, AddonsReturn, Alloc, Cache, Device, PtrConv, PtrType, Shape, Buffer};
+use crate::{Addons, AddonsReturn, Alloc, Buffer, Cache, Device, PtrConv, PtrType, Shape};
 use core::{
     cell::{Cell, RefCell},
     ffi::c_void,
-    mem::{ManuallyDrop, size_of},
+    mem::{size_of, ManuallyDrop},
 };
-use nnapi::{AsOperandCode, Model, Operand, Compilation};
-
+use nnapi::{AsOperandCode, Compilation, Model, Operand};
 
 type ArrayId = (u32, ArrayPtr);
 
@@ -40,7 +39,12 @@ impl NnapiDevice {
     pub fn compile<T, S: Shape>(&self, out: Buffer<T, Self, S>) -> crate::Result<()> {
         let mut model = self.model.borrow_mut();
 
-        let input_ids = self.input_ptrs.borrow().iter().map(|(id, _)| *id).collect::<Vec<u32>>();
+        let input_ids = self
+            .input_ptrs
+            .borrow()
+            .iter()
+            .map(|(id, _)| *id)
+            .collect::<Vec<u32>>();
 
         // let NnapiPtr { dtype, idx } = self.last_output.borrow().unwrap();
 
@@ -53,7 +57,11 @@ impl NnapiDevice {
         Ok(())
     }
 
-    pub fn run<T, S>(&self, out: Buffer<T, Self, S>) -> crate::Result<Vec<T>> where T: Default + Copy + AsOperandCode, S: Shape {
+    pub fn run<T, S>(&self, out: Buffer<T, Self, S>) -> crate::Result<Vec<T>>
+    where
+        T: Default + Copy + AsOperandCode,
+        S: Shape,
+    {
         if self.compilation.borrow().is_none() {
             self.compile(out)?;
         }
@@ -70,9 +78,7 @@ impl NnapiDevice {
 
         let mut out = vec![T::default(); S::LEN];
 
-        unsafe {
-            run.set_output_raw(0, out.as_mut_ptr().cast(), S::LEN * size_of::<T>())
-        }?;
+        unsafe { run.set_output_raw(0, out.as_mut_ptr().cast(), S::LEN * size_of::<T>()) }?;
 
         run.compute()?;
 
@@ -177,11 +183,14 @@ impl<'a, T: AsOperandCode, S: Shape> Alloc<'a, T, S> for NnapiDevice {
         let nnapi_ptr = Alloc::<T, S>::alloc(self, data.len(), crate::flag::AllocFlag::default());
 
         let mut data = ManuallyDrop::new(data.to_vec());
-        self.input_ptrs.borrow_mut().push((nnapi_ptr.idx, ArrayPtr {
-            ptr: data.as_mut_ptr() as *mut c_void,
-            len: data.len(),
-            size: std::mem::size_of::<T>(),
-        }));
+        self.input_ptrs.borrow_mut().push((
+            nnapi_ptr.idx,
+            ArrayPtr {
+                ptr: data.as_mut_ptr() as *mut c_void,
+                len: data.len(),
+                size: std::mem::size_of::<T>(),
+            },
+        ));
         nnapi_ptr
     }
 }
@@ -190,7 +199,7 @@ impl<'a, T: AsOperandCode, S: Shape> Alloc<'a, T, S> for NnapiDevice {
 mod tests {
     use nnapi::{nnapi_sys::OperationCode, Operand};
 
-    use crate::{Buffer, Device, Dim1, WithShape};
+    use crate::{Buffer, Cache, CacheReturn, Device, Dim1, Ident, WithShape};
 
     #[test]
     fn test_nnapi_device() -> crate::Result<()> {
@@ -198,9 +207,9 @@ mod tests {
 
         let lhs = Buffer::with(&device, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
         let rhs = Buffer::with(&device, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
-        
+
         // a single operation
-        let out = {
+        /*let out = {
             let out = device.retrieve::<i32, Dim1<10>>(lhs.len(), ());
             let activation_idx = device.add_operand(Operand::activation())?;
             let mut model = device.model.borrow_mut();
@@ -212,7 +221,25 @@ mod tests {
                 &[out.ptr.idx],
             )?;
             out
-        };
+        };*/
+        let out =
+            device
+                .cache_mut()
+                .get::<i32, Dim1<10>>(&device, Ident::new(lhs.len()), (), |out| {
+                    let activation_idx = device.add_operand(Operand::activation()).unwrap();
+                    let mut model = device.model.borrow_mut();
+
+                    model
+                        .set_activation_operand_value(activation_idx as i32)
+                        .unwrap();
+                    model
+                        .add_operation(
+                            OperationCode::ANEURALNETWORKS_ADD,
+                            &[lhs.ptr.idx, rhs.ptr.idx, activation_idx],
+                            &[out.ptr.idx],
+                        )
+                        .unwrap();
+                });
 
         // another one
         /*let out = {
@@ -229,7 +256,7 @@ mod tests {
             out1
         };*/
 
-        device.run(out)?;   
+        device.run(out)?;
 
         // assert_eq!(out.to_vec(), vec![2, 4, 6, 8, 10, 12, 14, 16, 18, 20]);
 

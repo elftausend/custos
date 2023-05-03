@@ -64,7 +64,7 @@ where
     {
         device
             .cache_mut()
-            .get(device, Ident::new(len), add_node, crate::bump_count)
+            .get(device, Ident::new(len), add_node, |_| {})
     }
 
     #[cfg(feature = "realloc")]
@@ -162,7 +162,7 @@ impl<D: PtrConv + GraphReturn> Cache<D> {
         device: &'a D,
         ident: Ident,
         _add_node: impl crate::AddGraph,
-        callback: fn(),
+        on_new_node: impl FnOnce(&Buffer<T, D, S>),
     ) -> Buffer<'a, T, D, S>
     where
         D: Alloc<'a, T, S>,
@@ -182,16 +182,17 @@ impl<D: PtrConv + GraphReturn> Cache<D> {
         let untyped_ptr = unsafe { D::convert(&ptr, AllocFlag::None) };
         self.nodes.insert(ident, Rc::new(untyped_ptr));
 
-        callback();
-
-        Buffer {
+        // callback();
+        let out = Buffer {
             ptr,
             device: Some(device),
             ident: Some(Ident {
                 idx: graph_node.idx,
                 len: ident.len,
             }),
-        }
+        };
+        on_new_node(&out);
+        out
     }
 
     /// Retrieves cached pointers and constructs a [`Buffer`] with the pointers and the given `len`gth.
@@ -220,16 +221,18 @@ impl<D: PtrConv + GraphReturn> Cache<D> {
         device: &'a D,
         ident: Ident,
         add_node: impl crate::AddGraph,
-        callback: fn(),
+        on_new_node: impl FnOnce(&Buffer<T, D, S>),
     ) -> Buffer<'a, T, D, S>
     where
         D: Alloc<'a, T, S>,
     {
         let may_allocated = self.nodes.get(&ident);
 
+        crate::bump_count();
+
         match may_allocated {
             Some(ptr) => {
-                callback();
+                // callback();
                 let typed_ptr = unsafe { D::convert(ptr, AllocFlag::Wrapper) };
 
                 Buffer {
@@ -238,7 +241,7 @@ impl<D: PtrConv + GraphReturn> Cache<D> {
                     ident: Some(ident),
                 }
             }
-            None => self.add_node(device, ident, add_node, callback),
+            None => self.add_node(device, ident, add_node, on_new_node),
         }
     }
 }
@@ -273,13 +276,13 @@ mod tests {
     #[cfg(feature = "cpu")]
     #[test]
     fn test_add_node() {
-        use crate::{bump_count, Buffer, CacheReturn, Ident};
+        use crate::{Buffer, CacheReturn, Ident};
 
         let device = crate::CPU::new();
         let cache: Buffer =
             device
                 .cache_mut()
-                .add_node(&device, Ident { idx: 0, len: 7 }, (), bump_count);
+                .add_node(&device, Ident { idx: 0, len: 7 }, (), |_| {});
 
         let ptr = device
             .cache()
@@ -297,25 +300,18 @@ mod tests {
     fn test_get() {
         // for: cargo test -- --test-threads=1
 
-        use crate::{bump_count, set_count, Buffer, CacheReturn, Ident};
+        use crate::{set_count, Buffer, CacheReturn, Ident};
         unsafe { set_count(0) };
         let device = crate::CPU::new();
 
-        let cache_entry: Buffer = device
-            .cache_mut()
-            .get(&device, Ident::new(10), (), bump_count);
-        let new_cache_entry: Buffer =
-            device
-                .cache_mut()
-                .get(&device, Ident::new(10), (), bump_count);
+        let cache_entry: Buffer = device.cache_mut().get(&device, Ident::new(10), (), |_| {});
+        let new_cache_entry: Buffer = device.cache_mut().get(&device, Ident::new(10), (), |_| {});
 
         assert_ne!(cache_entry.ptrs(), new_cache_entry.ptrs());
 
         unsafe { set_count(0) };
 
-        let first_entry: Buffer = device
-            .cache_mut()
-            .get(&device, Ident::new(10), (), bump_count);
+        let first_entry: Buffer = device.cache_mut().get(&device, Ident::new(10), (), |_| {});
         assert_eq!(cache_entry.ptrs(), first_entry.ptrs());
     }
 }
