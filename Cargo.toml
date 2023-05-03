@@ -39,7 +39,7 @@ min-cl = { version = "0.2.0", optional=true }
 
 [features]
 #default = ["no-std"]
-default = ["blas", "cpu", "static-api", "macro", "opt-cache", "nnapi"]
+default = ["blas", "cpu", "static-api", "macro", "autograd"]
 #default = ["stack", "macro", "cpu", "blas", "opencl", "static-api", "autograd"]
 #default = ["stack", "cpu", "blas", "static-api", "opencl", "macro"]
 cpu = []

@@ -15,7 +15,7 @@ pub trait Shape: 'static {
     /// Returns the dimension of the Shape as a vector.
     /// # Example
     /// ```
-    /// use custos::Dims2;
+    /// use custos::{Dim2, Shape};
     ///
     /// assert_eq!(Dim2::<1, 2>::dims(), vec![1, 2])
     /// ```

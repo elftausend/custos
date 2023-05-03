@@ -196,9 +196,8 @@ mod tests {
     fn test_nnapi_device() -> crate::Result<()> {
         let mut device = super::NnapiDevice::new()?;
 
-        let lhs = Buffer::with(&device, &[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
-        let rhs = Buffer::with(&device, &[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
-
+        let lhs = Buffer::with(&device, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+        let rhs = Buffer::with(&device, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
         
         // a single operation
         let out = {
