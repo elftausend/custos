@@ -226,7 +226,7 @@ pub trait Device: Sized + 'static {
     /// This function is internally called when a `Buffer` with [`AllocFlag`] `None` is dropped.
     #[cfg(not(feature = "no-std"))]
     #[inline]
-    fn remove(&self, ident: Ident) {
+    fn remove_from_cache(&self, ident: Ident) {
         Self::Cache::remove(self, ident);
     }
 

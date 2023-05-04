@@ -6,6 +6,7 @@ pub use blas::*;
 use core::{
     alloc::Layout,
     mem::{align_of, size_of},
+    ops::{Deref, DerefMut},
     ptr::null_mut,
 };
 pub use cpu_device::*;
@@ -79,6 +80,49 @@ impl<T> CPUPtr<T> {
             align: None,
             size: None,
         }
+    }
+
+    /// Extracts a slice containing the entire `CPUPtr`.
+    #[inline]
+    pub fn as_slice(&self) -> &[T] {
+        self
+    }
+
+    /// Extracts a mutable slice of the entire `CPUPtr`.
+    #[inline]
+    pub fn as_mut_slice(&mut self) -> &mut [T] {
+        self
+    }
+
+    /// Returns the layout info of the `CPUPtr`
+    /// If the `align` and `size` field are set,
+    /// they will be used, otherwise the size and alignment are determined by the type `T`
+    /// # Example
+    #[inline]
+    pub fn layout_info(&self) -> (usize, usize) {
+        let (align, size) = if let Some(align) = self.align {
+            (align, self.size.expect("size must be set if align is set"))
+        } else {
+            (align_of::<T>(), size_of::<T>())
+        };
+
+        (align, size)
+    }
+}
+
+impl<T> Deref for CPUPtr<T> {
+    type Target = [T];
+
+    #[inline]
+    fn deref(&self) -> &Self::Target {
+        unsafe { core::slice::from_raw_parts(self.ptr, self.len) }
+    }
+}
+
+impl<T> DerefMut for CPUPtr<T> {
+    #[inline]
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        unsafe { core::slice::from_raw_parts_mut(self.ptr, self.len) }
     }
 }
 

@@ -276,7 +276,7 @@ impl<'a, T, D: Device, S: Shape> Drop for Buffer<'a, T, D, S> {
         #[cfg(not(feature = "no-std"))]
         if let Some(device) = self.device {
             if let Some(ident) = self.ident {
-                device.remove(ident)
+                device.remove_from_cache(ident)
             }
         }
     }

@@ -1,9 +1,12 @@
-use crate::{Addons, AddonsReturn, Alloc, Buffer, Cache, Device, PtrConv, PtrType, Shape};
+use crate::{
+    cpu::CPUPtr, Addons, AddonsReturn, Alloc, Buffer, Cache, Device, PtrConv, PtrType, Shape, CPU, flag::AllocFlag,
+};
 use core::{
     cell::{Cell, RefCell},
     ffi::c_void,
     mem::{size_of, ManuallyDrop},
 };
+use ndk_sys::android_LogPriority;
 use nnapi::{AsOperandCode, Compilation, Model, Operand};
 
 type ArrayId = (u32, ArrayPtr);
@@ -17,11 +20,37 @@ pub struct NnapiDevice {
     addons: Addons<Self>,
 }
 
-#[derive(Debug, Clone, Copy)]
-pub struct ArrayPtr {
-    ptr: *mut c_void,
-    len: usize,
-    size: usize,
+pub type ArrayPtr = CPUPtr<u8>;
+
+#[inline]
+pub fn dtype_from_shape<'a, T: AsOperandCode, S: Shape>() -> Operand {
+    let dims = S::dims()
+        .into_iter()
+        .map(|dim| dim as u32)
+        .collect::<Vec<u32>>();
+    Operand::tensor(T::OPERAND_CODE, dims, 0., 0)
+}
+
+impl<'a, T: AsOperandCode, S: Shape> Alloc<'a, T, S> for NnapiDevice {
+    fn alloc(&'a self, _len: usize, flag: crate::flag::AllocFlag) -> <Self as Device>::Ptr<T, S> {
+        let dtype = dtype_from_shape::<T, S>();
+        let idx = self.add_operand(&dtype).unwrap();
+        NnapiPtr { dtype, idx, flag }
+    }
+
+    fn with_slice(&'a self, data: &[T]) -> <Self as Device>::Ptr<T, S>
+    where
+        T: Clone,
+    {
+        let nnapi_ptr = Alloc::<T, S>::alloc(self, data.len(), crate::flag::AllocFlag::default());
+
+        let mut ptr = CPUPtr::<T>::new(data.len(), crate::flag::AllocFlag::Wrapper);
+        ptr.clone_from_slice(data);
+        let ptr = unsafe { CPU::convert::<T, S, u8, S>(&ptr, crate::flag::AllocFlag::None) };
+
+        self.input_ptrs.borrow_mut().push((nnapi_ptr.idx, ptr));
+        nnapi_ptr
+   }
 }
 
 impl NnapiDevice {
@@ -72,7 +101,14 @@ impl NnapiDevice {
 
         for (idx, (_id, input_ptr)) in self.input_ptrs.borrow().iter().enumerate() {
             unsafe {
-                run.set_input_raw(idx as i32, input_ptr.ptr, input_ptr.size * input_ptr.len)
+                run.set_input_raw(
+                    idx as i32,
+                    input_ptr.ptr.cast(),
+                    input_ptr
+                        .size
+                        .expect("`size` is set during with_slice creation")
+                        * input_ptr.len,
+                )
             }?;
         }
 
@@ -85,8 +121,8 @@ impl NnapiDevice {
         Ok(out)
     }
 
-    pub fn add_operand(&self, dtype: Operand) -> crate::Result<u32> {
-        self.model.borrow_mut().add_operand(dtype)?;
+    pub fn add_operand(&self, dtype: &Operand) -> crate::Result<u32> {
+        self.model.borrow_mut().add_operand(&dtype)?;
         let idx = self.operand_count.get();
         self.operand_count.set(idx + 1);
         Ok(idx)
@@ -110,6 +146,7 @@ impl AddonsReturn for NnapiDevice {
 pub struct NnapiPtr {
     dtype: Operand,
     pub idx: u32,
+    flag: AllocFlag,
 }
 
 impl Default for NnapiPtr {
@@ -117,6 +154,7 @@ impl Default for NnapiPtr {
         Self {
             dtype: Operand::activation(),
             idx: u32::MAX,
+            flag: AllocFlag::Wrapper,
         }
     }
 }
@@ -127,8 +165,9 @@ impl PtrConv for NnapiDevice {
         flag: crate::flag::AllocFlag,
     ) -> Self::Ptr<Conv, OS> {
         NnapiPtr {
-            dtype: ptr.dtype,
+            dtype: ptr.dtype.clone(),
             idx: ptr.idx,
+            flag,
         }
     }
 }
@@ -141,7 +180,7 @@ impl PtrType for NnapiPtr {
 
     #[inline]
     fn flag(&self) -> crate::flag::AllocFlag {
-        crate::flag::AllocFlag::None
+        self.flag
     }
 }
 
@@ -153,45 +192,6 @@ impl Device for NnapiDevice {
     #[inline]
     fn new() -> crate::Result<Self> {
         NnapiDevice::new()
-    }
-}
-
-#[inline]
-pub fn dtype_from_shape<T: AsOperandCode, S: Shape>() -> Operand {
-    Operand::tensor(
-        T::OPERAND_CODE,
-        &S::dims()
-            .into_iter()
-            .map(|dim| dim as u32)
-            .collect::<Vec<u32>>(),
-        0.,
-        0,
-    )
-}
-
-impl<'a, T: AsOperandCode, S: Shape> Alloc<'a, T, S> for NnapiDevice {
-    fn alloc(&'a self, _len: usize, _flag: crate::flag::AllocFlag) -> <Self as Device>::Ptr<T, S> {
-        let dtype = dtype_from_shape::<T, S>();
-        let idx = self.add_operand(dtype).unwrap();
-        NnapiPtr { dtype, idx }
-    }
-
-    fn with_slice(&'a self, data: &[T]) -> <Self as Device>::Ptr<T, S>
-    where
-        T: Clone,
-    {
-        let nnapi_ptr = Alloc::<T, S>::alloc(self, data.len(), crate::flag::AllocFlag::default());
-
-        let mut data = ManuallyDrop::new(data.to_vec());
-        self.input_ptrs.borrow_mut().push((
-            nnapi_ptr.idx,
-            ArrayPtr {
-                ptr: data.as_mut_ptr() as *mut c_void,
-                len: data.len(),
-                size: std::mem::size_of::<T>(),
-            },
-        ));
-        nnapi_ptr
     }
 }
 
@@ -226,7 +226,7 @@ mod tests {
             device
                 .cache_mut()
                 .get::<i32, Dim1<10>>(&device, Ident::new(lhs.len()), (), |out| {
-                    let activation_idx = device.add_operand(Operand::activation()).unwrap();
+                    let activation_idx = device.add_operand(&Operand::activation()).unwrap();
                     let mut model = device.model.borrow_mut();
 
                     model
