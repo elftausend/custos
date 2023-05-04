@@ -98,6 +98,9 @@ impl<T> CPUPtr<T> {
     /// If the `align` and `size` field are set,
     /// they will be used, otherwise the size and alignment are determined by the type `T`
     /// # Example
+    /// ```
+    /// use custos::CPUPtr;
+    /// ```
     #[inline]
     pub fn layout_info(&self) -> (usize, usize) {
         let (align, size) = if let Some(align) = self.align {
@@ -148,11 +151,7 @@ impl<T> Drop for CPUPtr<T> {
             return;
         }
 
-        let (align, size) = if let Some(align) = self.align {
-            (align, self.size.expect("size must be set if align is set"))
-        } else {
-            (align_of::<T>(), size_of::<T>())
-        };
+        let (align, size) = self.layout_info();
 
         let layout = Layout::from_size_align(self.len * size, align).unwrap();
 

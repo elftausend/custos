@@ -1,5 +1,6 @@
 use crate::{
-    cpu::CPUPtr, Addons, AddonsReturn, Alloc, Buffer, Cache, Device, PtrConv, PtrType, Shape, CPU, flag::AllocFlag,
+    cpu::CPUPtr, flag::AllocFlag, Addons, AddonsReturn, Alloc, Buffer, Cache, CacheReturn, Device,
+    Ident, PtrConv, PtrType, Shape, CPU,
 };
 use core::{
     cell::{Cell, RefCell},
@@ -50,7 +51,7 @@ impl<'a, T: AsOperandCode, S: Shape> Alloc<'a, T, S> for NnapiDevice {
 
         self.input_ptrs.borrow_mut().push((nnapi_ptr.idx, ptr));
         nnapi_ptr
-   }
+    }
 }
 
 impl NnapiDevice {
@@ -126,6 +127,19 @@ impl NnapiDevice {
         let idx = self.operand_count.get();
         self.operand_count.set(idx + 1);
         Ok(idx)
+    }
+
+    #[inline]
+    pub fn retrieve_with_init<T, S>(
+        &self,
+        len: usize,
+        on_new_node: impl FnOnce(&Buffer<T, Self, S>),
+    ) -> Buffer<T, Self, S>
+    where
+        T: AsOperandCode,
+        S: Shape,
+    {
+        self.cache_mut().get(self, Ident::new(len), (), on_new_node)
     }
 }
 

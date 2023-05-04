@@ -80,6 +80,9 @@ pub use devices::stack::Stack;
 #[cfg(feature = "network")]
 pub use devices::network::Network;
 
+#[cfg(feature = "nnapi")]
+pub use devices::nnapi::{NnapiDevice, AsOperandCode};
+
 #[cfg(feature = "autograd")]
 pub use autograd::*;
 
@@ -404,6 +407,9 @@ pub mod prelude {
 
     #[cfg(feature = "stack")]
     pub use crate::stack::Stack;
+
+    #[cfg(feature = "nnapi")]
+    pub use crate::nnapi::NnapiDevice;
 
     #[cfg(feature = "network")]
     pub use crate::network::{Network, NetworkArray};
