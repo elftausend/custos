@@ -185,8 +185,6 @@ dependencies = [
 [[package]]
 name = "custos-macro"
 version = "0.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dfe3c1acf5ea94e69a17c3d3a1df3093a1824424696e5096df2961a0050ab352"
 dependencies = [
  "proc-macro2",
  "quote",

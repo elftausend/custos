@@ -1,7 +1,7 @@
 mod nnapi_device;
 pub use nnapi_device::*;
 
-pub use nnapi::AsOperandCode;
+pub use nnapi::*;
 
 /*pub fn log(priority: ndk_sys::android_LogPriority, msg: &str) {
     let tag = std::ffi::CString::new("MyApp").unwrap();
