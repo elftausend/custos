@@ -3,8 +3,9 @@
 
 use core::{
     cmp::Ordering,
+    fmt::Display,
     iter::Sum,
-    ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Rem, RemAssign, Sub, SubAssign}, fmt::Display,
+    ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Rem, RemAssign, Sub, SubAssign},
 };
 
 /// A trait that returns the default / zero of a value.
@@ -405,7 +406,7 @@ impl Float for f64 {
     fn cos(&self) -> Self {
         libm::cos(*self)
     }
-    
+
     #[inline]
     fn tan(&self) -> Self {
         libm::tan(*self)

@@ -66,7 +66,7 @@ impl<T, S: Shape> Alloc<'_, T, S> for CPU {
             len = S::LEN
         }
 
-        CPUPtr::new(len, flag)
+        CPUPtr::new_initialized(len, flag)
     }
 
     fn with_slice(&self, data: &[T]) -> CPUPtr<T>
@@ -74,8 +74,9 @@ impl<T, S: Shape> Alloc<'_, T, S> for CPU {
         T: Clone,
     {
         assert!(!data.is_empty(), "invalid buffer len: 0");
-        let cpu_ptr = Alloc::<T>::alloc(self, data.len(), AllocFlag::None);
-        //= self.alloc(data.len());
+        assert!(S::LEN <= data.len(), "invalid buffer len: {}", data.len());
+
+        let cpu_ptr = unsafe {CPUPtr::new(data.len(), AllocFlag::None)};
         let slice = unsafe { std::slice::from_raw_parts_mut(cpu_ptr.ptr, data.len()) };
         slice.clone_from_slice(data);
 
@@ -88,7 +89,7 @@ impl<T, S: Shape> Alloc<'_, T, S> for CPU {
         let len = vec.len();
         core::mem::forget(vec);
 
-        CPUPtr::from_ptr(ptr, len, AllocFlag::None)
+        unsafe { CPUPtr::from_ptr(ptr, len, AllocFlag::None) }
     }
 }
 

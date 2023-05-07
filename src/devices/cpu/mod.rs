@@ -35,23 +35,24 @@ pub struct CPUPtr<T> {
 
 impl<T> CPUPtr<T> {
     /// Create a new `CPUPtr` with the given length and allocation flag
+    ///
+    /// # Safety
+    ///
+    /// The allocated memory is not initialized.
+    /// Make sure that the memory was written to before being read.
+    ///
     /// # Example
     /// ```
     /// use custos::{cpu::CPUPtr, flag::AllocFlag};
     ///
-    /// let ptr = CPUPtr::<f32>::new(10, AllocFlag::None);
+    /// let ptr = unsafe { CPUPtr::<f32>::new(10, AllocFlag::None) };
     /// assert_eq!(ptr.len, 10);
     /// assert_eq!(ptr.flag, AllocFlag::None);
     /// assert_eq!(ptr.ptr.is_null(), false);
     /// ```
-    pub fn new(len: usize, flag: AllocFlag) -> CPUPtr<T> {
+    pub unsafe fn new(len: usize, flag: AllocFlag) -> CPUPtr<T> {
         let layout = Layout::array::<T>(len).unwrap();
         let ptr = unsafe { std::alloc::alloc(layout) };
-
-        // initialize block of memory
-        for element in unsafe { std::slice::from_raw_parts_mut(ptr, len * size_of::<T>()) } {
-            *element = 0;
-        }
 
         if ptr.is_null() {
             handle_alloc_error(layout);
@@ -60,18 +61,46 @@ impl<T> CPUPtr<T> {
         CPUPtr::from_ptr(ptr.cast(), len, flag)
     }
 
-    /// Wrap a raw pointer with the given length and allocation flag into a `CPUPtr`
-    /// Depending on the flag: [`AllocFlag`], the pointer will be freed or left untouched when the `CPUPtr` is dropped.
+    /// Create a new `CPUPtr` with the given length and allocation flag. Initializes memory as well.
     /// # Example
     /// ```
     /// use custos::{cpu::CPUPtr, flag::AllocFlag};
     ///
-    /// let ptr = CPUPtr::<f32>::new(10, AllocFlag::None);
-    /// let ptr2 = CPUPtr::<f32>::from_ptr(ptr.ptr, 10, AllocFlag::Wrapper); // AllocFlag::Wrapper will not free the pointer -> prevents double free
+    /// let ptr = CPUPtr::<f32>::new_initialized(10, AllocFlag::None);
+    /// assert_eq!(ptr.len, 10);
+    /// assert_eq!(ptr.flag, AllocFlag::None);
+    /// assert_eq!(ptr.ptr.is_null(), false);
+    /// ```
+    pub fn new_initialized(len: usize, flag: AllocFlag) -> CPUPtr<T> {
+        let cpu_ptr = unsafe { CPUPtr::new(len, flag) };
+
+        // initialize block of memory
+        for element in
+            unsafe { std::slice::from_raw_parts_mut(cpu_ptr.ptr as *mut u8, len * size_of::<T>()) }
+        {
+            *element = 0;
+        }
+
+        cpu_ptr
+    }
+
+    /// Wrap a raw pointer with the given length and allocation flag into a `CPUPtr`
+    /// Depending on the flag: [`AllocFlag`], the pointer will be freed or left untouched when the `CPUPtr` is dropped.
+    ///
+    /// # Safety
+    /// Basically the same as for [Vec]::from_raw_parts.
+    ///
+    /// # Example
+    /// ```
+    /// use custos::{cpu::CPUPtr, flag::AllocFlag};
+    ///
+    /// let ptr = CPUPtr::<f32>::new_initialized(10, AllocFlag::None);
+    /// // AllocFlag::Wrapper will not free the pointer -> prevents double free
+    /// let ptr2 = unsafe { CPUPtr::<f32>::from_ptr(ptr.ptr, 10, AllocFlag::Wrapper) };
     /// assert_eq!(ptr.ptr, ptr2.ptr);
     /// ```
     #[inline]
-    pub fn from_ptr(ptr: *mut T, len: usize, flag: AllocFlag) -> CPUPtr<T> {
+    pub unsafe fn from_ptr(ptr: *mut T, len: usize, flag: AllocFlag) -> CPUPtr<T> {
         CPUPtr {
             ptr,
             len,

@@ -27,7 +27,7 @@ where
         // By default, the Buffer dereferences to a slice.
         // Therefore, standard indexing can be used.
         // You can pass a CPU Buffer to a function that takes a slice as a parameter, too.
-        // However, the corresponding device needs to implement the 
+        // However, the corresponding device needs to implement the
         // `MainMemory` trait (definitely the case for CPU and Stack, and for unified memory devices OpenCL).
         for i in 0..len {
             // indexing Buffers appears to be slower than indexing slices.

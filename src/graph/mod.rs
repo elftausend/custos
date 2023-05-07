@@ -32,14 +32,12 @@ pub trait NodeIdx {
 pub struct GlobalCount;
 
 #[cfg(feature = "no-std")]
-impl NodeIdx for GlobalCount {
-
-}
+impl NodeIdx for GlobalCount {}
 
 /// A dummy graph for no-std.
 #[cfg(feature = "no-std")]
 pub struct Graph<IdxFrom: NodeIdx> {
-    _p: core::marker::PhantomData<IdxFrom>
+    _p: core::marker::PhantomData<IdxFrom>,
 }
 
 #[cfg(feature = "no-std")]
@@ -49,7 +47,7 @@ impl<IdxFrom: NodeIdx> Graph<IdxFrom> {
     pub fn add_leaf(&mut self, _len: usize) -> Node {
         unimplemented!("Not available in no-std mode")
     }
-    
+
     /// This function will panic. Disable the `no-std` feature to use this function.
     #[inline]
     pub fn add_node(&mut self, _len: usize, _lhs_idx: usize, _rhs_idx: usize) -> Node {
@@ -532,22 +530,26 @@ mod tests {
         let _out = device.retrieve::<f32, ()>(1000, (&mul, &mul_b));
 
         let traces = device.graph().cache_traces();
-        assert_eq!(traces, vec![
-            CacheTrace { cache_id: Ident { idx: 2, len: 1000 }, use_cache_ids: vec![
-                Ident { idx: 5, len: 1000 },
-                Ident { idx: 6, len: 1000 },
-            ] },
-            CacheTrace { cache_id: Ident { idx: 3, len: 1000 }, use_cache_ids: vec![
-                Ident { idx: 4, len: 1000 },
-            ] }
-        ]);
+        assert_eq!(
+            traces,
+            vec![
+                CacheTrace {
+                    cache_id: Ident { idx: 2, len: 1000 },
+                    use_cache_ids: vec![Ident { idx: 5, len: 1000 }, Ident { idx: 6, len: 1000 },]
+                },
+                CacheTrace {
+                    cache_id: Ident { idx: 3, len: 1000 },
+                    use_cache_ids: vec![Ident { idx: 4, len: 1000 },]
+                }
+            ]
+        );
     }
 
     #[cfg(feature = "cpu")]
     #[cfg(feature = "opt-cache")]
     #[test]
     fn test_from_retrieve_sliced_chained_perf_example_optimize_cache() {
-        use crate::{Buffer, Device, CPU, GraphOpt, CacheReturn};
+        use crate::{Buffer, CacheReturn, Device, GraphOpt, CPU};
 
         let device = CPU::new();
 
@@ -567,10 +569,9 @@ mod tests {
         // idx: 6, deps: [5, 4]
         let out = device.retrieve::<f32, ()>(1000, (&mul, &mul_b));
 
-        
         device.optimize().unwrap();
         let nodes = device.cache().nodes.clone();
-        
+
         assert_eq!(nodes.get(&squared.id()), nodes.get(&mul.id()));
         assert_eq!(nodes.get(&squared.id()), nodes.get(&out.id()));
 

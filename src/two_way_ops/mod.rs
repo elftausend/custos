@@ -5,7 +5,6 @@ pub use resolve::*;
 
 use self::ops::{Add, Cos, Div, Eq, Exp, GEq, LEq, Mul, Neg, Pow, Sin, Sub, Tan};
 
-
 /// Evaluates a combined (via [`Combiner`]) math operations chain to a valid OpenCL C (and possibly CUDA) source string.
 #[cfg(not(feature = "no-std"))]
 pub trait ToCLSource {
@@ -222,7 +221,7 @@ mod tests {
         assert_eq!(res, 9. * 9. * 9.);
 
         let res = f("x".to_marker(), "y".to_marker()).to_cl_source();
-        assert_eq!(res, "pow((x * 3), (y + 1))")   
+        assert_eq!(res, "pow((x * 3), (y + 1))")
     }
 
     #[test]
@@ -235,7 +234,7 @@ mod tests {
         #[cfg(not(feature = "no-std"))]
         {
             let res = f("var_x".to_marker(), "other".to_marker()).to_cl_source();
-            assert_eq!(res, "(var_x == other)");   
+            assert_eq!(res, "(var_x == other)");
         }
     }
 
@@ -249,7 +248,7 @@ mod tests {
         #[cfg(not(feature = "no-std"))]
         {
             let res = f(Resolve::with_marker("var_x")).to_cl_source();
-            assert_eq!(res, "((var_x >= 0) * var_x)");   
+            assert_eq!(res, "((var_x >= 0) * var_x)");
         }
     }
 
@@ -263,9 +262,8 @@ mod tests {
         #[cfg(not(feature = "no-std"))]
         {
             let res = f(Resolve::with_marker("var_x")).to_cl_source();
-            assert_eq!(res, "(var_x >= 4)");            
+            assert_eq!(res, "(var_x >= 4)");
         }
-
     }
 
     #[cfg(not(feature = "no-std"))]

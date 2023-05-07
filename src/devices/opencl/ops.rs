@@ -7,7 +7,7 @@ use min_cl::api::{
 
 use crate::{
     bounds_to_range, prelude::Number, ApplyFunction, Buffer, CDatatype, ClearBuf, CopySlice,
-    Device, OpenCL, Read, Resolve, Shape, ToMarker, UnaryGrad, WriteBuf, ToCLSource,
+    Device, OpenCL, Read, Resolve, Shape, ToCLSource, ToMarker, UnaryGrad, WriteBuf,
 };
 
 use super::{enqueue_kernel, CLBuffer};
