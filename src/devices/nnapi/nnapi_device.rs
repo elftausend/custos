@@ -1,28 +1,41 @@
 use crate::{
-    cpu::CPUPtr, flag::AllocFlag, Addons, AddonsReturn, Alloc, Buffer, Cache, CacheReturn, Device,
-    Ident, PtrConv, PtrType, Shape, CPU,
+    cpu::CPUPtr, Addons, AddonsReturn, Alloc, Buffer, Cache, CacheReturn, Device,
+    Ident, PtrConv, Shape, CPU,
 };
-use core::{
-    cell::{Cell, RefCell},
-    ffi::c_void,
-    mem::{size_of, ManuallyDrop},
-};
-use ndk_sys::android_LogPriority;
-use nnapi::{AsOperandCode, Compilation, Model, Operand};
+
+use core::cell::{Cell, RefCell};
+use nnapi::{AsOperandCode, Compilation, Execution, Model, Operand};
+use super::NnapiPtr;
 
 type ArrayId = (u32, ArrayPtr);
 
+/// Used to run operations performed by the NNAPI.
+/// It represents a single model.
 pub struct NnapiDevice {
+    /// The NNAPI model.
     pub model: RefCell<Model>,
     operand_count: Cell<u32>,
+    /// An array of pointers with a corresponding index in the NNAPI model.
     pub input_ptrs: RefCell<Vec<ArrayId>>,
-    // last_output: RefCell<Option<NnapiPtr>>,
     compilation: RefCell<Option<Compilation>>,
     addons: Addons<Self>,
 }
 
+impl Device for NnapiDevice {
+    type Ptr<U, S: crate::Shape> = NnapiPtr;
+
+    type Cache = Cache<NnapiDevice>;
+
+    #[inline]
+    fn new() -> crate::Result<Self> {
+        NnapiDevice::new()
+    }
+}
+
+/// A [`CPUPtr`] with a u8 generic type.
 pub type ArrayPtr = CPUPtr<u8>;
 
+/// Creates an [`Operand`] (datatype) from a shape `S`.
 #[inline]
 pub fn dtype_from_shape<'a, T: AsOperandCode, S: Shape>() -> Operand {
     let dims = S::dims()
@@ -55,6 +68,7 @@ impl<'a, T: AsOperandCode, S: Shape> Alloc<'a, T, S> for NnapiDevice {
 }
 
 impl NnapiDevice {
+    /// Creates a new [`NnapiDevice`].
     pub fn new() -> crate::Result<Self> {
         Ok(Self {
             model: RefCell::new(Model::new()?),
@@ -62,10 +76,11 @@ impl NnapiDevice {
             addons: Addons::default(),
             input_ptrs: Default::default(),
             compilation: Default::default(),
-            // last_output: Default::default(),
         })
     }
 
+    /// Compiles the model and stores it in the [`NnapiDevice`].
+    /// It handles setting the inputs and outputs of the model.
     pub fn compile<T, S: Shape>(&self, out: Buffer<T, Self, S>) -> crate::Result<()> {
         let mut model = self.model.borrow_mut();
 
@@ -87,19 +102,7 @@ impl NnapiDevice {
         Ok(())
     }
 
-    pub fn run<T, S>(&self, out: Buffer<T, Self, S>) -> crate::Result<Vec<T>>
-    where
-        T: Default + Copy + AsOperandCode,
-        S: Shape,
-    {
-        if self.compilation.borrow().is_none() {
-            self.compile(out)?;
-        }
-        let mut compilation = self.compilation.borrow_mut();
-        let compilation = compilation.as_mut().unwrap();
-
-        let mut run = compilation.create_execution()?;
-
+    fn set_input_ptrs(&self, run: &mut Execution) -> crate::Result<()> {
         for (idx, (_id, input_ptr)) in self.input_ptrs.borrow().iter().enumerate() {
             unsafe {
                 run.set_input_raw(
@@ -110,18 +113,39 @@ impl NnapiDevice {
                         .expect("`size` is set during with_slice creation")
                         * input_ptr.len,
                 )
-            }?;
+            }?
         }
+        Ok(())
+    }
+
+    /// Runs the model and returns the output.
+    /// It reuses the same [`Compilation`] if it exists.
+    pub fn run<T, S>(&self, out: Buffer<T, Self, S>) -> crate::Result<Vec<T>>
+    where
+        T: Default + Copy + AsOperandCode,
+        S: Shape,
+    {
+        if self.compilation.borrow().is_none() {
+            self.compile(out)?;
+        }
+        let mut compilation = self.compilation.borrow_mut();
+        let compilation = compilation
+            .as_mut()
+            .expect("Should be set during compilation");
+
+        let mut run = compilation.create_execution()?;
+        self.set_input_ptrs(&mut run)?;
 
         let mut out = vec![T::default(); S::LEN];
 
-        unsafe { run.set_output_raw(0, out.as_mut_ptr().cast(), S::LEN * size_of::<T>()) }?;
+        run.set_output(0, &mut out)?;
 
         run.compute()?;
 
         Ok(out)
     }
 
+    /// Adds an operand to the model.
     pub fn add_operand(&self, dtype: &Operand) -> crate::Result<u32> {
         self.model.borrow_mut().add_operand(&dtype)?;
         let idx = self.operand_count.get();
@@ -129,6 +153,8 @@ impl NnapiDevice {
         Ok(idx)
     }
 
+    /// Retrieves a [`Buffer`] from the [`Cache`].
+    /// If a new `Buffer` is created, it will call `on_new_node` with the new `Buffer`.
     #[inline]
     pub fn retrieve_with_init<T, S>(
         &self,
@@ -154,58 +180,6 @@ impl AddonsReturn for NnapiDevice {
     #[inline]
     fn addons(&self) -> &Addons<Self> {
         &self.addons
-    }
-}
-
-pub struct NnapiPtr {
-    dtype: Operand,
-    pub idx: u32,
-    flag: AllocFlag,
-}
-
-impl Default for NnapiPtr {
-    fn default() -> Self {
-        Self {
-            dtype: Operand::activation(),
-            idx: u32::MAX,
-            flag: AllocFlag::Wrapper,
-        }
-    }
-}
-
-impl PtrConv for NnapiDevice {
-    unsafe fn convert<T, IS: Shape, Conv, OS: Shape>(
-        ptr: &Self::Ptr<T, IS>,
-        flag: crate::flag::AllocFlag,
-    ) -> Self::Ptr<Conv, OS> {
-        NnapiPtr {
-            dtype: ptr.dtype.clone(),
-            idx: ptr.idx,
-            flag,
-        }
-    }
-}
-
-impl PtrType for NnapiPtr {
-    #[inline]
-    fn size(&self) -> usize {
-        self.dtype.len
-    }
-
-    #[inline]
-    fn flag(&self) -> crate::flag::AllocFlag {
-        self.flag
-    }
-}
-
-impl Device for NnapiDevice {
-    type Ptr<U, S: crate::Shape> = NnapiPtr;
-
-    type Cache = Cache<NnapiDevice>;
-
-    #[inline]
-    fn new() -> crate::Result<Self> {
-        NnapiDevice::new()
     }
 }
 

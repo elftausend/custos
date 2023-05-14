@@ -81,7 +81,7 @@ pub use devices::stack::Stack;
 pub use devices::network::Network;
 
 #[cfg(feature = "nnapi")]
-pub use devices::nnapi::{NnapiDevice, AsOperandCode};
+pub use devices::nnapi::{AsOperandCode, NnapiDevice};
 
 #[cfg(feature = "autograd")]
 pub use autograd::*;

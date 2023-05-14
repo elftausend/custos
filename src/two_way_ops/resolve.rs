@@ -1,7 +1,6 @@
+use super::{Combiner, Eval};
 #[cfg(not(feature = "no-std"))]
 use crate::ToCLSource;
-
-use super::{Combiner, Eval};
 
 /// Resolves to either a mathematical expression as string or a computed value.
 /// This is used to create generic kernels / operations over `OpenCL`, `CUDA` and `CPU`.
