@@ -76,7 +76,7 @@ impl<T, S: Shape> Alloc<'_, T, S> for CPU {
         assert!(!data.is_empty(), "invalid buffer len: 0");
         assert!(S::LEN <= data.len(), "invalid buffer len: {}", data.len());
 
-        let cpu_ptr = unsafe {CPUPtr::new(data.len(), AllocFlag::None)};
+        let cpu_ptr = unsafe { CPUPtr::new(data.len(), AllocFlag::None) };
         let slice = unsafe { std::slice::from_raw_parts_mut(cpu_ptr.ptr, data.len()) };
         slice.clone_from_slice(data);
 

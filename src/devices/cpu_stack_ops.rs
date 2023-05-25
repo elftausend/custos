@@ -17,7 +17,7 @@ use crate::Stack;
 #[impl_stack]
 impl<T, D, S> ApplyFunction<T, S, D> for CPU
 where
-    T: Copy + Default + ToVal,
+    T: Copy + Default,
     D: crate::MainMemory,
     S: Shape,
 {
@@ -28,7 +28,7 @@ where
         let mut out = self.retrieve::<T, S>(buf.len(), buf);
 
         for (value, x) in out.iter_mut().zip(buf.iter()) {
-            *value = f((*x).to_val()).eval()
+            *value = f((*x).to_val()).eval(T::default())
         }
 
         out
@@ -38,7 +38,7 @@ where
 #[impl_stack]
 impl<T, D, S> UnaryGrad<T, S, D> for CPU
 where
-    T: AddAssign + Copy + std::ops::Mul<Output = T>,
+    T: AddAssign + Copy + std::ops::Mul<Output = T> + Default,
     S: Shape,
     D: MainMemory,
 {
@@ -52,7 +52,7 @@ where
         F: Eval<T> + MayToCLSource,
     {
         for ((lhs, lhs_grad), out) in lhs.iter().zip(lhs_grad.iter_mut()).zip(out.iter()) {
-            *lhs_grad += *out * lhs_grad_fn((*lhs).to_val()).eval();
+            *lhs_grad += *out * lhs_grad_fn((*lhs).to_val()).eval(T::default());
         }
     }
 }

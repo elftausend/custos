@@ -146,6 +146,7 @@ pub trait Number:
     + Display
 {
     fn from_usize(value: usize) -> Self;
+    fn from_f64(value: f64) -> Self;
     fn from_u64(value: u64) -> Self;
     fn as_usize(&self) -> usize;
     fn as_f64(&self) -> f64;
@@ -158,6 +159,11 @@ macro_rules! number_apply {
             impl Number for $t {
                 #[inline]
                 fn from_usize(value: usize) -> $t {
+                    value as $t
+                }
+
+                #[inline]
+                fn from_f64(value: f64) -> $t {
                     value as $t
                 }
 

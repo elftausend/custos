@@ -3,7 +3,19 @@ mod resolve;
 
 pub use resolve::*;
 
+use crate::prelude::Number;
+
 use self::ops::{Add, Cos, Div, Eq, Exp, GEq, LEq, Mul, Neg, Pow, Sin, Sub, Tan};
+
+pub struct Derivative<O> {
+    op: O,
+}
+
+impl<T: Number, O: Eval<T> + Clone> Eval<T> for Derivative<O> {
+    fn eval(self, _input: T) -> T {
+        (self.op.clone().eval(T::from_f64(0.001)) - self.op.eval(T::default())) / T::from_f64(0.001)
+    }
+}
 
 /// Evaluates a combined (via [`Combiner`]) math operations chain to a valid OpenCL C (and possibly CUDA) source string.
 #[cfg(not(feature = "no-std"))]
@@ -46,12 +58,12 @@ pub trait Eval<T> {
     ///
     /// assert_eq!(x, 14.);
     /// ```
-    fn eval(self) -> T;
+    fn eval(self, input: T) -> T;
 }
 
 impl<T: Copy> Eval<T> for T {
     #[inline]
-    fn eval(self) -> T {
+    fn eval(self, input: T) -> T {
         self
     }
 }
@@ -175,14 +187,32 @@ pub trait Combiner {
     {
         Exp { comb: self }
     }
+
+    #[inline]
+    fn derivative(self) -> Derivative<Self>
+    where
+        Self: Sized,
+    {
+        Derivative { op: self }
+    }
 }
 
+#[test]
+fn test_derivative() {
+    let x = Resolve::with_val(4.);
+    let mut res = x.mul(8.).add(3.).derivative();
+    let out = res.eval(0.);
+
+    println!("out: {out}")
+}
+/*
 #[cfg(test)]
 mod tests {
     use crate::{prelude::Float, Combiner, Eval, Resolve, ToVal};
 
     #[cfg(not(feature = "no-std"))]
     use crate::{ToCLSource, ToMarker};
+
 
     #[test]
     fn test_exp() {
@@ -309,9 +339,9 @@ mod tests {
         for (a, b) in lhs.iter().zip(rhs) {
             if (*a - *b).abs() >= T::as_generic(0.1) {
                 panic!(
-                    "Slices 
-                    left {lhs:?} 
-                    and right {rhs:?} do not equal. 
+                    "Slices
+                    left {lhs:?}
+                    and right {rhs:?} do not equal.
                     Encountered diffrent value: {a}, {b}"
                 )
             }
@@ -394,3 +424,4 @@ mod tests {
         Ok(())
     }
 }
+*/

@@ -1,3 +1,5 @@
+use core::ops::Add;
+
 #[cfg(not(feature = "no-std"))]
 use crate::ToCLSource;
 
@@ -128,10 +130,10 @@ impl<T> Resolve<T> {
     }
 }
 
-impl<T> Eval<T> for Resolve<T> {
+impl<T: Add<T, Output = T>> Eval<T> for Resolve<T> {
     #[inline]
-    fn eval(self) -> T {
-        self.val
+    fn eval(self, input: T) -> T {
+        self.val + input
     }
 }
 

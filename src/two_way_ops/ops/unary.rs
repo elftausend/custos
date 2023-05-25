@@ -3,6 +3,7 @@ use crate::{prelude::Float, Combiner, Eval};
 #[cfg(not(feature = "no-std"))]
 use super::ToCLSource;
 
+#[derive(Clone)]
 pub struct Exp<C> {
     pub comb: C,
 }
@@ -11,8 +12,8 @@ impl<C> Combiner for Exp<C> {}
 
 impl<T: Float, C: Eval<T>> Eval<T> for Exp<C> {
     #[inline]
-    fn eval(self) -> T {
-        self.comb.eval().exp()
+    fn eval(self, input: T) -> T {
+        self.comb.eval(input).exp()
     }
 }
 
@@ -24,6 +25,7 @@ impl<C: ToCLSource> ToCLSource for Exp<C> {
     }
 }
 
+#[derive(Clone)]
 pub struct Sin<C> {
     pub comb: C,
 }
@@ -32,8 +34,8 @@ impl<C> Combiner for Sin<C> {}
 
 impl<T: Float, C: Eval<T>> Eval<T> for Sin<C> {
     #[inline]
-    fn eval(self) -> T {
-        self.comb.eval().sin()
+    fn eval(self, input: T) -> T {
+        self.comb.eval(input).sin()
     }
 }
 
@@ -45,6 +47,7 @@ impl<C: ToCLSource> ToCLSource for Sin<C> {
     }
 }
 
+#[derive(Clone)]
 pub struct Cos<C> {
     pub comb: C,
 }
@@ -53,8 +56,8 @@ impl<C> Combiner for Cos<C> {}
 
 impl<T: Float, C: Eval<T>> Eval<T> for Cos<C> {
     #[inline]
-    fn eval(self) -> T {
-        self.comb.eval().cos()
+    fn eval(self, input: T) -> T {
+        self.comb.eval(input).cos()
     }
 }
 
@@ -66,6 +69,7 @@ impl<C: ToCLSource> ToCLSource for Cos<C> {
     }
 }
 
+#[derive(Clone)]
 pub struct Tan<C> {
     pub comb: C,
 }
@@ -74,8 +78,8 @@ impl<C> Combiner for Tan<C> {}
 
 impl<T: Float, C: Eval<T>> Eval<T> for Tan<C> {
     #[inline]
-    fn eval(self) -> T {
-        self.comb.eval().tan()
+    fn eval(self, input: T) -> T {
+        self.comb.eval(input).tan()
     }
 }
 
@@ -87,6 +91,7 @@ impl<C: ToCLSource> ToCLSource for Tan<C> {
     }
 }
 
+#[derive(Clone)]
 pub struct Neg<C> {
     pub comb: C,
 }
@@ -95,8 +100,8 @@ impl<C> Combiner for Neg<C> {}
 
 impl<T: core::ops::Neg<Output = T>, C: Eval<T>> Eval<T> for Neg<C> {
     #[inline]
-    fn eval(self) -> T {
-        self.comb.eval().neg()
+    fn eval(self, input: T) -> T {
+        self.comb.eval(input).neg()
     }
 }
 

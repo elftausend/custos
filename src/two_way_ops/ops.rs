@@ -10,6 +10,7 @@ use super::{Combiner, Eval};
 pub use cmps::*;
 pub use unary::*;
 
+#[derive(Clone)]
 pub struct Mul<C, R> {
     comb: C,
     rhs: R,
@@ -36,13 +37,14 @@ impl<C: ToCLSource, R: ToCLSource> ToCLSource for Mul<C, R> {
     }
 }
 
-impl<C: Eval<T>, R: Eval<T>, T: core::ops::Mul<Output = T>> Eval<T> for Mul<C, R> {
+impl<C: Eval<T>, R: Eval<T>, T: core::ops::Mul<Output = T> + Copy> Eval<T> for Mul<C, R> {
     #[inline]
-    fn eval(self) -> T {
-        self.comb.eval() * self.rhs.eval()
+    fn eval(self, input: T) -> T {
+        self.comb.eval(input) * self.rhs.eval(input)
     }
 }
 
+#[derive(Clone)]
 pub struct Add<C, R> {
     comb: C,
     rhs: R,
@@ -69,13 +71,14 @@ impl<C: ToCLSource, R: ToCLSource> ToCLSource for Add<C, R> {
     }
 }
 
-impl<C: Eval<T>, R: Eval<T>, T: core::ops::Add<Output = T>> Eval<T> for Add<C, R> {
+impl<C: Eval<T>, R: Eval<T>, T: core::ops::Add<Output = T> + Copy> Eval<T> for Add<C, R> {
     #[inline]
-    fn eval(self) -> T {
-        self.comb.eval() + self.rhs.eval()
+    fn eval(self, input: T) -> T {
+        self.comb.eval(input) + self.rhs.eval(input)
     }
 }
 
+#[derive(Clone)]
 pub struct Sub<C, R> {
     comb: C,
     rhs: R,
@@ -102,13 +105,14 @@ impl<C: ToCLSource, R: ToCLSource> ToCLSource for Sub<C, R> {
     }
 }
 
-impl<C: Eval<T>, R: Eval<T>, T: core::ops::Sub<Output = T>> Eval<T> for Sub<C, R> {
+impl<C: Eval<T>, R: Eval<T>, T: core::ops::Sub<Output = T> + Copy> Eval<T> for Sub<C, R> {
     #[inline]
-    fn eval(self) -> T {
-        self.comb.eval() - self.rhs.eval()
+    fn eval(self, input: T) -> T {
+        self.comb.eval(input) - self.rhs.eval(input)
     }
 }
 
+#[derive(Clone)]
 pub struct Div<C, R> {
     comb: C,
     rhs: R,
@@ -135,13 +139,14 @@ impl<C: ToCLSource, R: ToCLSource> ToCLSource for Div<C, R> {
     }
 }
 
-impl<C: Eval<T>, R: Eval<T>, T: core::ops::Div<Output = T>> Eval<T> for Div<C, R> {
+impl<C: Eval<T>, R: Eval<T>, T: core::ops::Div<Output = T> + Copy> Eval<T> for Div<C, R> {
     #[inline]
-    fn eval(self) -> T {
-        self.comb.eval() / self.rhs.eval()
+    fn eval(self, input: T) -> T {
+        self.comb.eval(input) / self.rhs.eval(input)
     }
 }
 
+#[derive(Clone)]
 pub struct Pow<C, R> {
     comb: C,
     rhs: R,
@@ -170,7 +175,7 @@ impl<C: ToCLSource, R: ToCLSource> ToCLSource for Pow<C, R> {
 
 impl<C: Eval<T>, R: Eval<T>, T: Float> Eval<T> for Pow<C, R> {
     #[inline]
-    fn eval(self) -> T {
-        self.comb.eval().powf(self.rhs.eval())
+    fn eval(self, input: T) -> T {
+        self.comb.eval(input).powf(self.rhs.eval(input))
     }
 }
