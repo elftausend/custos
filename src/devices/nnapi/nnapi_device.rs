@@ -1,11 +1,11 @@
 use crate::{
-    cpu::CPUPtr, Addons, AddonsReturn, Alloc, Buffer, Cache, CacheReturn, Device,
-    Ident, PtrConv, Shape, CPU,
+    cpu::CPUPtr, Addons, AddonsReturn, Alloc, Buffer, Cache, CacheReturn, Device, Ident, PtrConv,
+    Shape, CPU,
 };
 
+use super::NnapiPtr;
 use core::cell::{Cell, RefCell};
 use nnapi::{AsOperandCode, Compilation, Execution, Model, Operand};
-use super::NnapiPtr;
 
 type ArrayId = (u32, ArrayPtr);
 
@@ -187,11 +187,11 @@ impl AddonsReturn for NnapiDevice {
 mod tests {
     use nnapi::{nnapi_sys::OperationCode, Operand};
 
-    use crate::{Buffer, Cache, CacheReturn, Device, Dim1, Ident, WithShape};
+    use crate::{Buffer, CacheReturn, Dim1, Ident, WithShape};
 
     #[test]
     fn test_nnapi_device() -> crate::Result<()> {
-        let mut device = super::NnapiDevice::new()?;
+        let device = super::NnapiDevice::new()?;
 
         let lhs = Buffer::with(&device, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
         let rhs = Buffer::with(&device, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
