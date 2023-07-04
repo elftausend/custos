@@ -60,6 +60,25 @@ impl<T: Number> AsCudaCvoidPtr for T {
     }
 }
 
+/// Launch a CUDA kernel with the given grid and block sizes.
+pub fn launch_kernel(
+    device: &CUDA,
+    grid: [u32; 3],
+    blocks: [u32; 3],
+    src: &str,
+    fn_name: &str,
+    params: &[&dyn AsCudaCvoidPtr],
+) -> crate::Result<()> {
+    let params = params
+        .iter()
+        .map(|param| param.as_cvoid_ptr())
+        .collect::<Vec<_>>();
+
+    let func = fn_cache(device, src, fn_name)?;
+    culaunch_kernel(&func, grid, blocks, device.stream(), &params)?;
+    Ok(())
+}
+
 /// uses calculated occupancy as launch configuration to launch a CUDA kernel
 /// # Safety
 /// All kernel arguments must be set.

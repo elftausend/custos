@@ -14,7 +14,7 @@ fn main() {
     }
 
     #[cfg(not(docsrs))]
-    #[cfg(feature="cuda")]
+    #[cfg(feature = "cuda")]
     link_cuda();
 }
 
@@ -60,7 +60,7 @@ fn has_device_unified_mem() -> bool {
 use std::path::{Path, PathBuf};
 
 // https://github.com/coreylowman/cudarc/blob/main/build.rs
-#[cfg(feature="cuda")]
+#[cfg(feature = "cuda")]
 fn link_cuda() {
     println!("cargo:rerun-if-env-changed=CUDA_ROOT");
     println!("cargo:rerun-if-env-changed=CUDA_PATH");
@@ -83,9 +83,8 @@ fn link_cuda() {
     println!("cargo:rustc-link-lib=dylib=cuda");
     println!("cargo:rustc-link-lib=dylib=nvrtc");
     println!("cargo:rustc-link-lib=dylib=curand");
-    
-    println!("cargo:rustc-link-lib=dylib=cublas");
 
+    println!("cargo:rustc-link-lib=dylib=cublas");
 }
 
 fn root_candidates() -> impl Iterator<Item = PathBuf> {
