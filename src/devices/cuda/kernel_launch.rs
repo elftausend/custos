@@ -65,7 +65,7 @@ pub fn launch_kernel(
     device: &CUDA,
     grid: [u32; 3],
     blocks: [u32; 3],
-    shared_mem_bytes: usize,
+    shared_mem_bytes: u32,
     src: &str,
     fn_name: &str,
     params: &[&dyn AsCudaCvoidPtr],
