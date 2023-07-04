@@ -148,6 +148,7 @@ pub fn culaunch_kernel(
     f: &FnHandle,
     grid: [u32; 3],
     blocks: [u32; 3],
+    shared_mem_bytes: usize,
     stream: &Stream,
     params: &[*mut c_void],
 ) -> CudaResult<()> {

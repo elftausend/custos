@@ -65,6 +65,7 @@ pub fn launch_kernel(
     device: &CUDA,
     grid: [u32; 3],
     blocks: [u32; 3],
+    shared_mem_bytes: usize,
     src: &str,
     fn_name: &str,
     params: &[&dyn AsCudaCvoidPtr],
@@ -75,7 +76,7 @@ pub fn launch_kernel(
         .collect::<Vec<_>>();
 
     let func = fn_cache(device, src, fn_name)?;
-    culaunch_kernel(&func, grid, blocks, device.stream(), &params)?;
+    culaunch_kernel(&func, grid, blocks, shared_mem_bytes, device.stream(), &params)?;
     Ok(())
 }
 
@@ -116,6 +117,7 @@ pub fn launch_kernel1d(
         &func,
         [grid_size as u32, 1, 1],
         [block_size as u32, 1, 1],
+        0,
         device.stream(),
         &params,
     )?;

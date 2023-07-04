@@ -15,7 +15,7 @@ pub fn call() {}
 
 pub fn sum_kernel(device: &CUDA, x: &Buffer<i32, CUDA>, out: &mut Buffer<i32, CUDA>) {
     let src = r#"
-        extern "C" __global__ void countZeros(int *d_A, int * B, int numElements)
+        extern "C" __global__ void countZeros(int *d_A, int* B, int numElements)
             {
                 int index = blockIdx.x * blockDim.x + threadIdx.x;
                 if (index < numElements) {                    
