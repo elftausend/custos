@@ -76,7 +76,14 @@ pub fn launch_kernel(
         .collect::<Vec<_>>();
 
     let func = fn_cache(device, src, fn_name)?;
-    culaunch_kernel(&func, grid, blocks, shared_mem_bytes, device.stream(), &params)?;
+    culaunch_kernel(
+        &func,
+        grid,
+        blocks,
+        shared_mem_bytes,
+        device.stream(),
+        &params,
+    )?;
     Ok(())
 }
 

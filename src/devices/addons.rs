@@ -2,6 +2,8 @@ use core::{cell::RefCell, fmt::Debug};
 
 use crate::{Cache, CacheReturn, Device, GlobalCount, Graph, GraphReturn, NodeIdx, PtrConv};
 
+use super::caller_cache::{CallerCacheReturn, TrackCallerCache};
+
 /// Provides several addons for a device.
 /// - `graph`: An optimizeable graph.
 /// - `cache`: A cache for allocations.
@@ -14,6 +16,7 @@ pub struct Addons<D: Device, IdxFrom: NodeIdx = GlobalCount> {
     /// A (gradient) tape.
     #[cfg(feature = "autograd")]
     pub tape: RefCell<crate::Tape<D>>,
+    pub caller_cache: RefCell<TrackCallerCache<D>>,
 }
 
 impl<D: Device + Debug> Debug for Addons<D>
@@ -48,6 +51,7 @@ where
             cache: Default::default(),
             #[cfg(feature = "autograd")]
             tape: Default::default(),
+            caller_cache: Default::default(),
         }
     }
 }
@@ -85,6 +89,24 @@ impl<D: AddonsReturn> CacheReturn for D {
         Self: PtrConv,
     {
         self.addons().cache.borrow_mut()
+    }
+}
+
+impl<D: AddonsReturn> CallerCacheReturn for D {
+    #[inline]
+    fn cache(&self) -> core::cell::Ref<TrackCallerCache<Self>>
+    where
+        Self: PtrConv,
+    {
+        self.addons().caller_cache.borrow()
+    }
+
+    #[inline]
+    fn cache_mut(&self) -> core::cell::RefMut<TrackCallerCache<Self>>
+    where
+        Self: PtrConv,
+    {
+        self.addons().caller_cache.borrow_mut()
     }
 }
 

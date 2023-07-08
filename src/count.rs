@@ -60,7 +60,7 @@ impl AsRangeArg for (usize, usize) {
 /// The cache count is used to retrieve the same allocation in each iteration.
 /// Not adding `range` results in allocating new memory in each iteration,
 /// which is only freed when the device is dropped. <br>
-/// To disable this caching behaviour, the `realloc` feature can be enabled.
+/// To disable this caching behaviour, enable the `realloc` feature.
 ///
 /// # Example
 #[cfg_attr(not(feature = "no-std"), doc = "```")]
