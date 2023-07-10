@@ -1,3 +1,4 @@
+// TODO: different types for cuda and opencl
 /// enables easy generic kernel creation
 pub trait CDatatype: 'static {
     // TODO: this would make more sense as an associated constant
@@ -52,7 +53,9 @@ impl CDatatype for i8 {
 impl CDatatype for u8 {
     #[inline]
     fn as_c_type_str() -> &'static str {
-        "uchar"
+        // TODO: different types for cuda and opencl
+        //"uchar"
+        "unsigned char"
     }
 }
 
