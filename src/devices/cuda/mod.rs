@@ -42,7 +42,7 @@ pub struct CUDAPtr<T> {
     pub len: usize,
     /// Allocation flag for the pointer.
     pub flag: AllocFlag,
-    p: PhantomData<T>,
+    pub p: PhantomData<T>,
 }
 
 impl Id for CUDAPtr<T> {

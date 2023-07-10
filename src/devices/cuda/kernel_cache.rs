@@ -9,8 +9,8 @@ use std::{collections::HashMap, ffi::CString};
 /// This stores the previously compiled CUDA functions / kernels.
 #[derive(Debug, Default)]
 pub struct KernelCacheCU {
-    /// Uses the kernel source code to retrieve the corresponding `FnHandle`.
-    pub kernels: HashMap<String, FnHandle>,
+    /// Uses the kernel source code and the kernel function to retrieve the corresponding `FnHandle`.
+    pub kernels: HashMap<(String, String), FnHandle>,
 }
 
 impl KernelCacheCU {
@@ -38,7 +38,7 @@ impl KernelCacheCU {
     /// }
     /// ```
     pub fn kernel(&mut self, device: &CUDA, src: &str, fn_name: &str) -> Result<FnHandle, Error> {
-        let kernel = self.kernels.get(src);
+        let kernel = self.kernels.get(&(src.into(), fn_name.into()));
 
         if let Some(kernel) = kernel {
             return Ok(*kernel);
@@ -53,7 +53,7 @@ impl KernelCacheCU {
 
         device.modules.borrow_mut().push(module);
 
-        self.kernels.insert(src.into(), function);
+        self.kernels.insert((src.into(), fn_name.into()), function);
         unsafe { nvrtcDestroyProgram(&mut x.0).to_result()? };
         Ok(function)
     }
