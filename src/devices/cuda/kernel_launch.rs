@@ -2,7 +2,7 @@ use crate::{number::Number, Buffer, CUDA};
 use std::ffi::c_void;
 
 use super::{
-    api::{cuOccupancyMaxPotentialBlockSize, culaunch_kernel},
+    api::{cuOccupancyMaxPotentialBlockSize, culaunch_kernel, FnHandle},
     fn_cache,
 };
 
@@ -70,12 +70,25 @@ pub fn launch_kernel(
     fn_name: &str,
     params: &[&dyn AsCudaCvoidPtr],
 ) -> crate::Result<()> {
+
+    let func = fn_cache(device, src, fn_name)?;
+    launch_kernel_with_fn(device, &func, grid, blocks, shared_mem_bytes, params)    
+}
+
+/// Launch a CUDA kernel with the given CUDA function grid and block sizes.
+pub fn launch_kernel_with_fn(
+    device: &CUDA,
+    func: &FnHandle,
+    grid: [u32; 3],
+    blocks: [u32; 3],
+    shared_mem_bytes: u32,
+    params: &[&dyn AsCudaCvoidPtr],
+) -> crate::Result<()> {
     let params = params
         .iter()
         .map(|param| param.as_cvoid_ptr())
         .collect::<Vec<_>>();
 
-    let func = fn_cache(device, src, fn_name)?;
     culaunch_kernel(
         &func,
         grid,
