@@ -168,11 +168,13 @@ mod tests {
     use super::Cached;
 
     // forgot to add track_caller
+    #[cfg(debug_assertions)]
     fn add_bufs<Mods: Retrieve<CPU<Mods>>>(device: &CPU<Mods>) -> Buffer<f32, CPU<Mods>, ()> {
         retrieve!(device, 10, f32)
     }
 
     #[test]
+    #[cfg(debug_assertions)]
     #[should_panic]
     fn test_forgot_track_caller_runtime_detection() {
         let device = CPU::<Cached<Base>>::new();

@@ -1,3 +1,5 @@
+use core::marker::PhantomData;
+
 use crate::Shape;
 
 use super::{Alloc, Device};
@@ -9,9 +11,12 @@ pub trait Retrieve<D> {
         D: Alloc;
 }
 
-// type GradFn<D> = Box<dyn Fn(&mut Gradients<D>, &D)>;
+pub struct Gradients<D> {
+    pd: PhantomData<D>
+}
 
+type GradFn<D> = Box<dyn Fn(&mut Gradients<D>, &D)>;
 
 pub trait AddGradFn<D> {
-    fn add_grad_fn(&self, device: &D, grad_fn: fn(&D));
+    fn add_grad_fn(&self, device: &D, grad_fn: GradFn<D>);
 }

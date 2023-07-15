@@ -10,6 +10,9 @@ pub use modules::*;
 mod buffer;
 pub use buffer::*;
 
+mod location_id;
+pub use location_id::*;
+
 use crate::{cpu::CPUPtr, flag::AllocFlag, Shape, StackArray};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
@@ -123,6 +126,7 @@ impl<Mods: Retrieve<Self>> Retriever for CPU<Mods> {
         Buffer {
             data,
             device: Some(self),
+            // id: LocationId::new()
         }
     }
 }
@@ -156,7 +160,14 @@ mod tests {
 
         take_generic_dev_alloc(&res);
         take_generic_dev(&res);
-
         // let device: CachedModule<Autograd<Base>, CPU<Base>> = Module::<Cached<Autograd<Base>>, CPU<Base>>::new();
+    }
+
+    #[test]
+    fn test_address_of() {
+        let mut vec = vec![1, 2, 3, 4];
+        let ptr = vec.as_ptr();
+        let ad = core::ptr::addr_of!(ptr) as usize;
+        println!("ad: {ad}");
     }
 }

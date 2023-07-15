@@ -1,6 +1,6 @@
 use crate::Shape;
 
-use super::{Alloc, Base, CPU};
+use super::{Alloc, Base, CPU, LocationId};
 
 pub struct Buffer<'a, T = f32, D: Alloc = CPU<Base>, S: Shape = ()> {
     /// the type of pointer
