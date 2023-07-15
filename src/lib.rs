@@ -95,7 +95,6 @@ mod buffer;
 mod count;
 mod error;
 
-pub mod module_comb;
 pub mod flag;
 mod graph;
 mod op_traits;
@@ -108,6 +107,7 @@ pub mod static_api;
 
 #[cfg(feature = "autograd")]
 pub mod autograd;
+mod module_comb;
 pub mod number;
 pub use op_traits::*;
 pub use shape::*;

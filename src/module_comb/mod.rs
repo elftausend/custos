@@ -1,13 +1,19 @@
 mod features;
 pub use features::*;
 
+mod ptr_conv;
+pub use ptr_conv::*;
+
 mod modules;
 pub use modules::*;
+
+mod buffer;
+pub use buffer::*;
 
 use crate::{cpu::CPUPtr, flag::AllocFlag, Shape, StackArray};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
-struct CPU<Mods> {
+pub struct CPU<Mods> {
     modules: Mods,
 }
 
@@ -15,7 +21,7 @@ pub trait Device {}
 
 impl<Mods> Device for CPU<Mods> {}
 
-pub trait Alloc {
+pub trait Alloc: Sized {
     type Data<T, S: Shape>;
 
     fn alloc<T, S: Shape>(&self, len: usize, flag: AllocFlag) -> Self::Data<T, S>;
@@ -87,56 +93,53 @@ impl<Mods> Alloc for CPU<Mods> {
     }
 }
 
-pub trait Module<D>  {
+pub trait Module<D> {
     type Module;
 
     fn new() -> Self::Module;
 }
 
-
 impl<Mods> CPU<Mods> {
     #[inline]
-    pub fn new<NewMods>() -> CPU<NewMods> 
-    where Mods: Module<CPU<Mods>, Module = NewMods>
-    {
-        CPU {
-            modules: Mods::new()
-        }
-    }
-
-    pub fn new2<NewMods>() -> CPU<<Mods as Module<CPU<NewMods>>>::Module>
+    pub fn new<NewMods>() -> CPU<NewMods>
     where
-        Mods: Module<CPU<NewMods>>
+        Mods: Module<CPU<Mods>, Module = NewMods>,
     {
-        /*let res: <Mods as Module<CPU<Mods>>>::Module = <Mods as Module<Self>>::new();
-        res*/
-        let res: <Mods as Module<CPU<NewMods>>>::Module = <Mods as Module<CPU<NewMods>>>::new();
-        
         CPU {
-            modules: res
+            modules: Mods::new(),
         }
-        // let device: CachedModule<Autograd<Base>, CPU<Base>> = <Cached<Autograd::<Base>> as Module::<CPU<Base>>>::new();
     }
 }
 
-// use other Retrieve (without _device?) for Devices? (simpler api)
-impl<Mods: Retrieve<Self>> Retrieve<Self> for CPU<Mods> {
+pub trait Retriever: Alloc {
+    #[track_caller]
+    fn retrieve<T, S: Shape>(&self, len: usize) -> Buffer<T, Self, S>;
+}
+
+impl<Mods: Retrieve<Self>> Retriever for CPU<Mods> {
     #[inline]
-    fn retrieve<T, S: Shape>(&self, _device: &Self, len: usize) -> <Self as Alloc>::Data<T, S>
-    where
-        Self: Alloc 
-    {
-        self.modules.retrieve(self, len)
+    fn retrieve<T, S: Shape>(&self, len: usize) -> Buffer<T, Self, S> {
+        let data = self.modules.retrieve::<T, S>(self, len);
+        Buffer {
+            data,
+            device: Some(self),
+        }
     }
 }
 
 #[cfg(test)]
 mod tests {
 
-    use super::{CPU, Cached, Autograd, Base, Module, CachedModule, Alloc, Retrieve};
+    #[test]
+    fn test_init_new_buf() {
+        let device = CPU::<Cached<Autograd<Base>>>::new();
+        let buf = device.retrieve::<f32, ()>(10);
+    }
 
-    fn take_generic_dev<D: Alloc + Retrieve<D>>(device: &D) {
-        device.retrieve::<f32, ()>(device, 10);
+    use super::{Alloc, Autograd, Base, Cached, CachedModule, Module, Retrieve, Retriever, CPU};
+
+    fn take_generic_dev<D: Retriever>(device: &D) {
+        device.retrieve::<f32, ()>(10);
     }
 
     fn take_generic_dev_alloc<D: Alloc>(device: &D) {
@@ -145,19 +148,13 @@ mod tests {
 
     #[test]
     fn test_cpu_creation() {
-        let device: CPU<Autograd<Cached<Base>>> = Default::default();
-        take_generic_dev(&device);
-
+        // take_generic_dev(&device);
         // CPU::<Cached<Autograd<Base>>>::new() -> select default type based on build time feature selection?
-        let res: CPU<CachedModule<Autograd<Base>, CPU<Cached<Autograd<Base>>>>> = CPU::<Cached<Autograd<Base>>>::new();
+        let res = CPU::<Cached<Autograd<Base>>>::new();
 
         take_generic_dev_alloc(&res);
         take_generic_dev(&res);
 
-        let res: CPU<CachedModule<Autograd<Base>, CPU<Cached<Autograd<Base>>>>> = CPU::<Cached<Autograd<Base>>>::new2();
-        // let device: CachedModule<Autograd<Base>, CPU<Base>> = <Cached<Autograd::<Base>> as Module::<CPU<Base>>>::new();
         // let device: CachedModule<Autograd<Base>, CPU<Base>> = Module::<Cached<Autograd<Base>>, CPU<Base>>::new();
-
-        
     }
 }

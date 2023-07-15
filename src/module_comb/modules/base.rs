@@ -1,6 +1,6 @@
 use crate::{
-    module_comb::{Alloc, Retrieve, Module},
     flag::AllocFlag,
+    module_comb::{Alloc, Module, Retrieve},
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
@@ -9,6 +9,7 @@ pub struct Base;
 impl<D> Module<D> for Base {
     type Module = Base;
 
+    #[inline]
     fn new() -> Self::Module {
         Base
     }

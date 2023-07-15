@@ -1,6 +1,6 @@
 use crate::Shape;
 
-use super::Alloc;
+use super::{Alloc, Device};
 
 pub trait Retrieve<D> {
     #[track_caller]
