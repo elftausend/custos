@@ -133,7 +133,9 @@ mod tests {
     #[test]
     fn test_init_new_buf() {
         let device = CPU::<Cached<Autograd<Base>>>::new();
-        let buf = device.retrieve::<f32, ()>(10);
+        for _ in 0..100 {
+            let buf = device.retrieve::<f32, ()>(10);
+        }
     }
 
     use super::{Alloc, Autograd, Base, Cached, CachedModule, Module, Retrieve, Retriever, CPU};

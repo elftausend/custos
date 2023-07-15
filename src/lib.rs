@@ -107,7 +107,7 @@ pub mod static_api;
 
 #[cfg(feature = "autograd")]
 pub mod autograd;
-mod module_comb;
+pub mod module_comb;
 pub mod number;
 pub use op_traits::*;
 pub use shape::*;
