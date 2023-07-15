@@ -13,6 +13,8 @@ pub use buffer::*;
 mod location_id;
 pub use location_id::*;
 
+use crate::{cpu::CPUPtr, flag::AllocFlag, Shape, StackArray};
+
 mod cache;
 pub use cache::*;
 
@@ -22,7 +24,6 @@ pub use devices::*;
 mod id;
 pub use id::*;
 
-use crate::{flag::AllocFlag, Shape, StackArray};
 
 #[cfg(test)]
 pub fn location() -> &'static core::panic::Location<'static> {
@@ -74,6 +75,7 @@ pub trait Retriever: Alloc {
     #[track_caller]
     fn retrieve<T, S: Shape>(&self, len: usize) -> Buffer<T, Self, S>;
 }
+
 
 #[cfg(test)]
 mod tests {

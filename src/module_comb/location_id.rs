@@ -1,23 +1,16 @@
+
 macro_rules! location_id {
     ($file:expr, $line:expr, $column:expr) => {{
-        let hash_location = $crate::module_comb::HashLocation {
-            file: $file,
-            line: $line,
-            col: $column,
-        };
-        let mut hasher = $crate::module_comb::LocationHasher::default();
-
+        let mut hasher = std::collections::hash_map::DefaultHasher::new();
         use std::hash::{Hash, Hasher};
-
-        hash_location.hash(&mut hasher);
-
+        ($file, $line, $column).hash(&mut hasher);
         $crate::module_comb::LocationId {
             id: hasher.finish() as usize,
         }
     }};
     () => {
         location_id!(file!(), line!(), column!())
-    };
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -28,7 +21,7 @@ pub struct LocationId {
 impl LocationId {
     #[inline]
     #[track_caller]
-    pub fn new() -> Self {
+    pub fn new() -> Self {        
         let location = core::panic::Location::caller();
         location_id!(location.file(), location.line(), location.column())
     }
