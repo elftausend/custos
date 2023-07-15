@@ -95,7 +95,7 @@ mod buffer;
 mod count;
 mod error;
 
-pub mod feature_comb;
+pub mod module_comb;
 pub mod flag;
 mod graph;
 mod op_traits;

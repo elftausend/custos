@@ -1,9 +1,18 @@
 use crate::{
-    feature_comb::{Alloc, Retrieve},
+    module_comb::{Alloc, Retrieve, Module},
     flag::AllocFlag,
 };
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub struct Base;
+
+impl<D> Module<D> for Base {
+    type Module = Base;
+
+    fn new() -> Self::Module {
+        Base
+    }
+}
 
 impl<D> Retrieve<D> for Base {
     #[inline]

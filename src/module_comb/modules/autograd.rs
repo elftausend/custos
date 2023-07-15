@@ -1,7 +1,16 @@
-use crate::feature_comb::{Alloc, Retrieve};
+use crate::module_comb::{Alloc, Retrieve, Module};
 
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Default)]
 pub struct Autograd<Mods> {
     modules: Mods,
+}
+
+impl<Mods: Default, D> Module<D> for Autograd<Mods> {
+    type Module = Autograd<Mods>;
+
+    fn new() -> Self::Module {
+        Default::default()
+    }
 }
 
 impl<Mods: Retrieve<D>, D> Retrieve<D> for Autograd<Mods> {
