@@ -25,7 +25,7 @@ pub trait CacheReturn: GraphReturn<GlobalCount> {
 
 const K: usize = 0x517cc1b727220a95;
 
-/// An low-overhead [`Ident`] hasher using "FxHasher".
+/// A low-overhead [`Ident`] hasher using "FxHasher".
 #[derive(Default)]
 pub struct IdentHasher {
     hash: usize,

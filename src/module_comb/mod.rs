@@ -15,6 +15,11 @@ pub use location_id::*;
 
 use crate::{cpu::CPUPtr, flag::AllocFlag, Shape, StackArray};
 
+#[cfg(test)]
+pub fn location() -> &'static core::panic::Location<'static> {
+    core::panic::Location::caller()
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub struct CPU<Mods> {
     modules: Mods,
