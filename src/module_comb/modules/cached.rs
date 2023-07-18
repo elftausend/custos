@@ -15,7 +15,16 @@ pub struct Cached<Mods> {
     pd: PhantomData<Mods>,
 }
 
-impl<Mods: Default, D: Alloc> Module<D> for Cached<Mods> {
+/*impl<Mods, D> Retrieve<D> for Cached<Mods> {
+    fn retrieve<T, S: Shape>(&self, device: &D, len: usize) -> <D>::Data<T, S>
+    where
+        D: Alloc 
+    {
+        todo!()
+    }
+}*/
+
+impl<Mods: Default, D: Alloc, NewMods> Module<D, NewMods> for Cached<Mods> {
     type Module = CachedModule<Mods, D>;
 
     fn new() -> Self::Module {
@@ -160,6 +169,7 @@ impl<Mods, D: Alloc + PtrConv<SimpleDevice>, SimpleDevice: Alloc + PtrConv<D>> R
 {
     #[inline]
     fn retrieve<T, S: crate::Shape>(&self, device: &D, len: usize) -> D::Data<T, S> {
+        println!("cached: retrieve");
         self.cache.borrow_mut().get(device, len, || ())
     }
 }

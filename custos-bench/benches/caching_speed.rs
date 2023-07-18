@@ -3,7 +3,7 @@ use std::hint::black_box;
 use criterion::{criterion_main, criterion_group, Criterion};
 use custos::{set_count, get_count, Device, Buffer, module_comb::{Cached, Base, Retriever}};
 
-const SIZE: usize = 1000000;
+const SIZE: usize = 10;
 
 fn bench_caching_speed(c: &mut Criterion) {
     let device = custos::CPU::new();
@@ -34,16 +34,32 @@ fn bench_caching_speed(c: &mut Criterion) {
 
     group.bench_function("bench_track_caller_caching", |bench| {
         bench.iter(|| {
-            /*let out = black_box(device.retrieve::<f32, ()>(SIZE));
-            let out = black_box(device.retrieve::<f32, ()>(SIZE));
-            let out = black_box(device.retrieve::<f32, ()>(SIZE));
-            let out = black_box(device.retrieve::<f32, ()>(SIZE));
-            let out = black_box(device.retrieve::<f32, ()>(SIZE));
-            let out = black_box(device.retrieve::<f32, ()>(SIZE));
-            let out = black_box(device.retrieve::<f32, ()>(SIZE));
-            let out = black_box(device.retrieve::<f32, ()>(SIZE));
-            let out = black_box(device.retrieve::<f32, ()>(SIZE));*/
             let _out = black_box(device.retrieve::<f32, ()>(SIZE));
+            let _out = black_box(device.retrieve::<f32, ()>(SIZE));
+            let _out = black_box(device.retrieve::<f32, ()>(SIZE));
+            let _out = black_box(device.retrieve::<f32, ()>(SIZE));
+            let _out = black_box(device.retrieve::<f32, ()>(SIZE));
+            let _out = black_box(device.retrieve::<f32, ()>(SIZE));
+            let _out = black_box(device.retrieve::<f32, ()>(SIZE));
+            let _out = black_box(device.retrieve::<f32, ()>(SIZE));
+            let _out = black_box(device.retrieve::<f32, ()>(SIZE));
+            let _out = black_box(device.retrieve::<f32, ()>(SIZE));
+
+        })
+    });
+
+    group.bench_function("bench_realloc", |bench| {
+        bench.iter(|| {
+            let _out = black_box(vec![0.0f32; SIZE]);
+            let _out = black_box(vec![0.0f32; SIZE]);
+            let _out = black_box(vec![0.0f32; SIZE]);
+            let _out = black_box(vec![0.0f32; SIZE]);
+            let _out = black_box(vec![0.0f32; SIZE]);
+            let _out = black_box(vec![0.0f32; SIZE]);
+            let _out = black_box(vec![0.0f32; SIZE]);
+            let _out = black_box(vec![0.0f32; SIZE]);
+            let _out = black_box(vec![0.0f32; SIZE]);
+            let _out = black_box(vec![0.0f32; SIZE]);
 
         })
     });

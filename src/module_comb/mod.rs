@@ -101,20 +101,20 @@ impl<Mods> Alloc for CPU<Mods> {
     }
 }
 
-pub trait Module<D> {
+pub trait Module<D, NewMods> {
     type Module;
 
     fn new() -> Self::Module;
 }
 
-impl<Mods> CPU<Mods> {
+impl<SimpleMods> CPU<SimpleMods> {
     #[inline]
     pub fn new<NewMods>() -> CPU<NewMods>
     where
-        Mods: Module<CPU<Mods>, Module = NewMods>,
+        SimpleMods: Module<CPU<SimpleMods>, NewMods, Module = NewMods>,
     {
         CPU {
-            modules: Mods::new(),
+            modules: SimpleMods::new(),
         }
     }
 }
@@ -161,7 +161,14 @@ mod tests {
     fn test_cpu_creation() {
         // take_generic_dev(&device);
         // CPU::<Cached<Autograd<Base>>>::new() -> select default type based on build time feature selection?
-        let res = CPU::<Cached<Autograd<Base>>>::new();
+        let res: CPU<CachedModule<Autograd<Base>, CPU<Cached<Autograd<Base>>>>> = CPU::<Cached<Autograd<Base>>>::new();
+        
+        // let x: CachedModule<Base, _> = <Cached::<Base> as Module<CPU<Cached<Base>>>>::new();
+
+        let y: Autograd<CachedModule<Base, CPU<Base>>> = <Autograd<Cached<Base>> as Module<CPU<Base>, CachedModule<Base, CPU<Base>>>>::new();
+        
+        
+        let res: CPU<_> = CPU::<Autograd<Cached<Base>>>::new();
 
         take_generic_dev_alloc(&res);
         take_generic_dev(&res);
@@ -174,5 +181,20 @@ mod tests {
         let ptr = vec.as_ptr();
         let ad = core::ptr::addr_of!(ptr) as usize;
         println!("ad: {ad}");
+    }
+
+    #[test]
+    fn test_retrieve_unique_buf() {
+        let device = CPU::<Cached<Base>>::new();
+        let buf = device.retrieve::<f32, ()>(10);
+        let buf1 = device.retrieve::<f32, ()>(10);
+        assert_ne!(buf.data.ptr, buf1.data.ptr);
+        let buf2 = device.retrieve::<f32, ()>(10);
+        assert_ne!(buf.data.ptr, buf2.data.ptr);
+        assert_ne!(buf1.data.ptr, buf2.data.ptr);
+        let buf3 = device.retrieve::<f32, ()>(10);
+        assert_ne!(buf2.data.ptr, buf3.data.ptr);
+        assert_ne!(buf1.data.ptr, buf3.data.ptr);
+        assert_ne!(buf.data.ptr, buf3.data.ptr);
     }
 }

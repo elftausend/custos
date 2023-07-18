@@ -5,14 +5,17 @@ pub struct Autograd<Mods> {
     modules: Mods,
 }
 
-impl<Mods: Default, D> Module<D> for Autograd<Mods> {
-    type Module = Autograd<Mods>;
+impl<NewMods, Mods: Module<SD, NewMods>, /*Module<SD, Module = Mods>,*/ SD> Module<SD, NewMods> for Autograd<Mods> {
+    type Module = Autograd<Mods::Module>;
 
     #[inline]
-    fn new() -> Self::Module {
-        Default::default()
+    fn new() -> Self::Module {  
+        Autograd {
+            modules: Mods::new(),
+        }
     }
 }
+
 
 impl<Mods: Retrieve<D>, D> Retrieve<D> for Autograd<Mods> {
     #[inline]
@@ -20,6 +23,7 @@ impl<Mods: Retrieve<D>, D> Retrieve<D> for Autograd<Mods> {
     where
         D: Alloc,
     {
+        println!("autograd: pass down retrieve");
         self.modules.retrieve(device, len)
     }
 }
