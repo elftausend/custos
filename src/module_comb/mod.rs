@@ -101,7 +101,7 @@ impl<Mods> Alloc for CPU<Mods> {
     }
 }
 
-pub trait Module<D, NewMods> {
+pub trait Module<D> {
     type Module;
 
     fn new() -> Self::Module;
@@ -111,7 +111,7 @@ impl<SimpleMods> CPU<SimpleMods> {
     #[inline]
     pub fn new<NewMods>() -> CPU<NewMods>
     where
-        SimpleMods: Module<CPU<SimpleMods>, NewMods, Module = NewMods>,
+        SimpleMods: Module<CPU<SimpleMods>, Module = NewMods>,
     {
         CPU {
             modules: SimpleMods::new(),
@@ -165,10 +165,10 @@ mod tests {
         
         // let x: CachedModule<Base, _> = <Cached::<Base> as Module<CPU<Cached<Base>>>>::new();
 
-        let y: Autograd<CachedModule<Base, CPU<Base>>> = <Autograd<Cached<Base>> as Module<CPU<Base>, CachedModule<Base, CPU<Base>>>>::new();
+        // let y: Autograd<CachedModule<Base, CPU<Base>>> = <Autograd<Cached<Base>> as Module<CPU<Base>, CachedModule<Base, CPU<Base>>>>::new();
         
         
-        let res: CPU<_> = CPU::<Autograd<Cached<Base>>>::new();
+        let res: CPU<Autograd<CachedModule<Base, CPU<Autograd<Cached<Base>>>>>> = CPU::<Autograd<Cached<Base>>>::new();
 
         take_generic_dev_alloc(&res);
         take_generic_dev(&res);

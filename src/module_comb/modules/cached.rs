@@ -24,7 +24,7 @@ pub struct Cached<Mods> {
     }
 }*/
 
-impl<Mods: Default, D: Alloc, NewMods> Module<D, NewMods> for Cached<Mods> {
+impl<Mods: Default, D: Alloc> Module<D> for Cached<Mods> {
     type Module = CachedModule<Mods, D>;
 
     fn new() -> Self::Module {

@@ -5,7 +5,7 @@ pub struct Autograd<Mods> {
     modules: Mods,
 }
 
-impl<NewMods, Mods: Module<SD, NewMods>, /*Module<SD, Module = Mods>,*/ SD> Module<SD, NewMods> for Autograd<Mods> {
+impl<Mods: Module<SD>, SD> Module<SD> for Autograd<Mods> {
     type Module = Autograd<Mods::Module>;
 
     #[inline]

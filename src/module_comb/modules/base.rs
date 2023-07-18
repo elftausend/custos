@@ -6,7 +6,7 @@ use crate::{
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub struct Base;
 
-impl<NewMods, D> Module<D, NewMods> for Base {
+impl<D> Module<D> for Base {
     type Module = Base;
 
     #[inline]
