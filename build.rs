@@ -87,6 +87,7 @@ fn link_cuda() {
     println!("cargo:rustc-link-lib=dylib=cublas");
 }
 
+#[cfg(feature = "cuda")]
 fn root_candidates() -> impl Iterator<Item = PathBuf> {
     let env_vars = [
         "CUDA_PATH",
@@ -111,6 +112,7 @@ fn root_candidates() -> impl Iterator<Item = PathBuf> {
     env_vars.chain(roots).map(Into::<PathBuf>::into)
 }
 
+#[cfg(feature = "cuda")]
 fn lib_candidates(root: &Path) -> Vec<PathBuf> {
     [
         "lib",

@@ -3,7 +3,7 @@ use std::hint::black_box;
 use criterion::{criterion_main, criterion_group, Criterion};
 use custos::{set_count, get_count, Device, Buffer, module_comb::{Cached, Base, Retriever}};
 
-const SIZE: usize = 10;
+const SIZE: usize = 10000;
 
 fn bench_caching_speed(c: &mut Criterion) {
     let device = custos::CPU::new();
@@ -44,7 +44,6 @@ fn bench_caching_speed(c: &mut Criterion) {
             let _out = black_box(device.retrieve::<f32, ()>(SIZE));
             let _out = black_box(device.retrieve::<f32, ()>(SIZE));
             let _out = black_box(device.retrieve::<f32, ()>(SIZE));
-
         })
     });
 

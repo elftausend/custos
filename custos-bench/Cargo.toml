@@ -10,6 +10,9 @@ custos = { path = "../" }
 criterion = "0.5"
 fastrand = "2.0.0"
 
+[profile.release]
+debug = true
+
 [[bench]]
 name = "hashmap_key_compare"
 harness = false

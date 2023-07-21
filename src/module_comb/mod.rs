@@ -161,14 +161,14 @@ mod tests {
     fn test_cpu_creation() {
         // take_generic_dev(&device);
         // CPU::<Cached<Autograd<Base>>>::new() -> select default type based on build time feature selection?
-        let res: CPU<CachedModule<Autograd<Base>, CPU<Cached<Autograd<Base>>>>> = CPU::<Cached<Autograd<Base>>>::new();
+        let res = CPU::<Cached<Autograd<Base>>>::new();
         
         // let x: CachedModule<Base, _> = <Cached::<Base> as Module<CPU<Cached<Base>>>>::new();
 
         // let y: Autograd<CachedModule<Base, CPU<Base>>> = <Autograd<Cached<Base>> as Module<CPU<Base>, CachedModule<Base, CPU<Base>>>>::new();
         
         
-        let res: CPU<Autograd<CachedModule<Base, CPU<Autograd<Cached<Base>>>>>> = CPU::<Autograd<Cached<Base>>>::new();
+        let res = CPU::<Autograd<Cached<Base>>>::new();
 
         take_generic_dev_alloc(&res);
         take_generic_dev(&res);

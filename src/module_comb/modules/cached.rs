@@ -24,15 +24,14 @@ pub struct Cached<Mods> {
     }
 }*/
 
-impl<Mods: Default, D: Alloc> Module<D> for Cached<Mods> {
-    type Module = CachedModule<Mods, D>;
+impl<Mods: Module<D>, D: Alloc> Module<D> for Cached<Mods> {
+    type Module = CachedModule<Mods::Module, D>;
 
     fn new() -> Self::Module {
         CachedModule {
-            modules: Default::default(),
+            modules: Mods::new(),
             cache: RefCell::new(Cache {
                 nodes: Default::default(),
-                nodes_faster: Default::default(),
             }),
         }
     }
@@ -53,7 +52,7 @@ const K: u64 = 0x517cc1b727220a95;
 impl std::hash::Hasher for LocationHasher {
     #[inline]
     fn finish(&self) -> u64 {
-        self.hash as u64
+        self.hash
     }
 
     #[inline]
@@ -118,12 +117,24 @@ impl<'a> From<&'a Location<'a>> for HashLocation<'a> {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Cache<D: Alloc> {
-    // improve hashing speed for location?
-    pub nodes: HashMap<&'static Location<'static>, Rc<D::Data<u8, ()>>>,
-    pub nodes_faster: HashMap<HashLocation<'static>, Rc<D::Data<u8, ()>>, BuildHasherDefault<LocationHasher>>
+    pub nodes: HashMap<HashLocation<'static>, Rc<D::Data<u8, ()>>, BuildHasherDefault<LocationHasher>>
+}
+
+impl<D: Alloc> Default for Cache<D> {
+    #[inline]
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl<SD: Alloc> Cache<SD> {
+    #[inline]
+    pub fn new() -> Self {
+        Self {
+            nodes: Default::default()
+        }
+    }
+
     #[track_caller]
     #[inline]
     pub fn get<T, S: Shape, D: Alloc>(
@@ -136,7 +147,7 @@ impl<SD: Alloc> Cache<SD> {
         SD: PtrConv<D>,
         D: PtrConv<SD>,
     {
-        let maybe_allocated = self.nodes_faster.get(&Location::caller().into());
+        let maybe_allocated = self.nodes.get(&Location::caller().into());
         match maybe_allocated {
             Some(data) => unsafe { SD::convert(&data, AllocFlag::Wrapper) },
             None => self.add_node(device, len, callback),
@@ -156,7 +167,7 @@ impl<SD: Alloc> Cache<SD> {
         let data = device.alloc::<T, S>(len, AllocFlag::Wrapper);
 
         let untyped_ptr = unsafe { D::convert(&data, AllocFlag::None) };
-        self.nodes_faster.insert(Location::caller().into(), Rc::new(untyped_ptr));
+        self.nodes.insert(Location::caller().into(), Rc::new(untyped_ptr));
 
         callback();
 
@@ -169,7 +180,6 @@ impl<Mods, D: Alloc + PtrConv<SimpleDevice>, SimpleDevice: Alloc + PtrConv<D>> R
 {
     #[inline]
     fn retrieve<T, S: crate::Shape>(&self, device: &D, len: usize) -> D::Data<T, S> {
-        println!("cached: retrieve");
         self.cache.borrow_mut().get(device, len, || ())
     }
 }
@@ -252,7 +262,14 @@ mod tests {
     // crate::modules
     use crate::module_comb::{CPU, Base, Retriever, Buffer, Retrieve, location};
 
-    use super::Cached;
+    use super::{Cached, Cache};
+
+    #[test]
+    fn test_cache_get() {
+        let mut cache = Cache::<CPU<Base>>::default();
+        let device = CPU::<Base>::new();
+        let res = cache.get::<f32, (), _>(&device, 10, || ());
+    }
 
     // forgot to add track_caller
     #[cfg(debug_assertions)]
@@ -319,12 +336,4 @@ mod tests {
         // good
         assert_ne!(ptr.file().as_ptr(), ptr1.file().as_ptr());
     }
-
-    #[test]
-    fn test_shift() {
-        let (line, col) = (line!(), column!());
-        let res = line << 8 | col;
-        println!("res: {res}");
-    }
-
 }
