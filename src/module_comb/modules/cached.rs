@@ -126,7 +126,7 @@ mod tests {
     // crate::modules
     use crate::module_comb::{location, Base, Buffer, Retrieve, Retriever, CPU};
 
-    use super::{Cache, Cached};
+    use super::Cached;
 
     // forgot to add track_caller
     #[cfg(debug_assertions)]

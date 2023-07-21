@@ -74,7 +74,9 @@ impl<SD: Alloc> Cache<SD> {
 
 #[cfg(test)]
 mod tests {
-    use crate::module_comb::{CPU, Base};
+    use core::mem::ManuallyDrop;
+
+    use crate::module_comb::{Base, CPU, Cached, Retriever, Device, Buffer};
 
     use super::Cache;
 
@@ -100,12 +102,12 @@ mod tests {
         let device = CPU::<Base>::new();
 
         assert_eq!(cache.nodes.len(), 0);
-        
+
         let out1 = cache.get::<f32, (), _>(&device, 10, || ());
         assert_eq!(cache.nodes.len(), 1);
 
         let out2 = cache.get::<f32, (), _>(&device, 10, || ());
-        
+
         assert_ne!(out1.ptr, out2.ptr);
         assert_eq!(cache.nodes.len(), 2);
     }
@@ -126,5 +128,28 @@ mod tests {
             prev = Some(out3.ptr);
         }
         assert_eq!(cache.nodes.len(), 1);
+    }
+
+    fn return_borrowed<'a, D: Retriever>(device: &'a D) -> &Buffer<'a, f32, D> {
+        let res = device.retrieve::<f32, ()>(10);
+        let man_drop = ManuallyDrop::new(res);
+        
+        // ptr
+        todo!()
+    }
+
+    #[test]
+    fn test_try_borrowed() {
+        let device = CPU::<Cached<Base>>::new();
+        
+        // owning pointer is located in the hashmap cache
+        let res = device.retrieve::<f32, ()>(10);   
+        
+        for _ in 0..100000000 {
+            let res = device.retrieve::<f32, ()>(10);   
+            
+            // let res_ref = Box::leak(Box::new(res));
+
+        }
     }
 }
