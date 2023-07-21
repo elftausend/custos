@@ -12,7 +12,7 @@ pub trait Retrieve<D> {
 }
 
 pub struct Gradients<D> {
-    pd: PhantomData<D>
+    pd: PhantomData<D>,
 }
 
 type GradFn<D> = Box<dyn Fn(&mut Gradients<D>, &D)>;

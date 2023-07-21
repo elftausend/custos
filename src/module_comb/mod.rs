@@ -13,6 +13,9 @@ pub use buffer::*;
 mod location_id;
 pub use location_id::*;
 
+mod cache;
+pub use cache::*;
+
 use crate::{cpu::CPUPtr, flag::AllocFlag, Shape, StackArray};
 
 #[cfg(test)]
@@ -162,12 +165,11 @@ mod tests {
         // take_generic_dev(&device);
         // CPU::<Cached<Autograd<Base>>>::new() -> select default type based on build time feature selection?
         let res = CPU::<Cached<Autograd<Base>>>::new();
-        
+
         // let x: CachedModule<Base, _> = <Cached::<Base> as Module<CPU<Cached<Base>>>>::new();
 
         // let y: Autograd<CachedModule<Base, CPU<Base>>> = <Autograd<Cached<Base>> as Module<CPU<Base>, CachedModule<Base, CPU<Base>>>>::new();
-        
-        
+
         let res = CPU::<Autograd<Cached<Base>>>::new();
 
         take_generic_dev_alloc(&res);
