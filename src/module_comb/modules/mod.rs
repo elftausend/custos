@@ -9,3 +9,6 @@ pub use cached::*;
 
 mod graph;
 pub use graph::*;
+
+mod lazy;
+pub use lazy::*;

@@ -1,6 +1,6 @@
 use core::{cell::RefCell, marker::PhantomData};
 
-use crate::module_comb::{Alloc, Cache, Module, PtrConv, Retrieve};
+use crate::module_comb::{Alloc, Cache, Module, PtrConv, Retrieve, Setup};
 
 // creator struct
 #[derive(Debug, PartialEq, Eq, Default)]
@@ -33,6 +33,13 @@ impl<Mods: Module<D>, D: Alloc> Module<D> for Cached<Mods> {
 pub struct CachedModule<Mods, D: Alloc> {
     modules: Mods,
     cache: RefCell<Cache<D>>,
+}
+
+impl<Mods: Setup<NewDev>, D: Alloc, NewDev> Setup<NewDev> for CachedModule<Mods, D> {
+    #[inline]
+    fn setup(device: &mut NewDev) {
+        Mods::setup(device)
+    }
 }
 
 impl<Mods, D: Alloc + PtrConv<SimpleDevice>, SimpleDevice: Alloc + PtrConv<D>> Retrieve<D>

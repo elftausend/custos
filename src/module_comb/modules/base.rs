@@ -1,6 +1,6 @@
 use crate::{
     flag::AllocFlag,
-    module_comb::{Alloc, Module, Retrieve},
+    module_comb::{Alloc, Module, Retrieve, Setup},
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
@@ -13,6 +13,11 @@ impl<D> Module<D> for Base {
     fn new() -> Self::Module {
         Base
     }
+}
+
+impl<D> Setup<D> for Base {
+    #[inline]
+    fn setup(_device: &mut D) {}
 }
 
 impl<D> Retrieve<D> for Base {

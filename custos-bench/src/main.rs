@@ -1,6 +1,6 @@
 use std::hint::black_box;
 
-use custos::module_comb::{Cached, Base, Retriever};
+use custos::module_comb::{Base, Cached, Retriever};
 
 const SIZE: usize = 10;
 
@@ -21,6 +21,6 @@ fn main() {
         let _out = black_box(device.retrieve::<f32, ()>(SIZE));
         let _out = black_box(device.retrieve::<f32, ()>(SIZE));
     }
-    
+
     println!("dur: {:?}", start.elapsed() / 10000);
 }

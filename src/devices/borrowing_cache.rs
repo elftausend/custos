@@ -4,13 +4,13 @@ use std::collections::HashMap;
 use crate::{flag::AllocFlag, Alloc, Buffer, Device, Ident, IdentHasher, Shape};
 
 #[derive(Debug, Default)]
-pub(crate) struct BorrowingCache {
-    pub(crate) cache: HashMap<Ident, Box<dyn Any>, BuildHasherDefault<IdentHasher>>,
+pub struct BorrowingCache {
+    pub cache: HashMap<Ident, Box<dyn Any>, BuildHasherDefault<IdentHasher>>,
 }
 
 // TODO: make BorrowedCache unuseable without device (=> Static get methods with D: CacheReturn)
 impl BorrowingCache {
-    pub(crate) fn add_or_get<'a, T, D, S>(
+    pub fn add_or_get<'a, T, D, S>(
         &mut self,
         device: &'a D,
         id: Ident,
@@ -26,7 +26,7 @@ impl BorrowingCache {
         buf_any.downcast_ref().unwrap()
     }
 
-    pub(crate) fn add_or_get_mut<'a, T, D, S>(
+    pub fn add_or_get_mut<'a, T, D, S>(
         &mut self,
         device: &D,
         id: Ident,
@@ -41,7 +41,7 @@ impl BorrowingCache {
         unsafe { transmute(buf_any.downcast_mut::<Buffer<T, D, S>>().unwrap()) }
     }
 
-    pub(crate) fn add_buf_once<'a, T, D, S>(&mut self, device: &'a D, ident: Ident)
+    pub fn add_buf_once<'a, T, D, S>(&mut self, device: &'a D, ident: Ident)
     where
         T: 'static,
         D: Alloc<'a, T, S> + 'static,
@@ -54,7 +54,7 @@ impl BorrowingCache {
         self.add_buf(device, ident)
     }
 
-    pub(crate) fn add_buf<'a, T, D, S>(&mut self, device: &'a D, ident: Ident)
+    pub fn add_buf<'a, T, D, S>(&mut self, device: &'a D, ident: Ident)
     where
         T: 'static,
         D: Alloc<'a, T, S> + 'static,
@@ -72,7 +72,7 @@ impl BorrowingCache {
     }
 
     #[inline]
-    pub(crate) fn get_buf<'a, T, D, S>(&self, id: Ident) -> Option<&Buffer<'a, T, D, S>>
+    pub fn get_buf<'a, T, D, S>(&self, id: Ident) -> Option<&Buffer<'a, T, D, S>>
     where
         T: 'static,
         D: Device + 'static,
@@ -82,7 +82,7 @@ impl BorrowingCache {
     }
 
     #[inline]
-    pub(crate) fn get_buf_mut<'a, T, D, S>(&mut self, id: Ident) -> Option<&mut Buffer<'a, T, D, S>>
+    pub fn get_buf_mut<'a, T, D, S>(&mut self, id: Ident) -> Option<&mut Buffer<'a, T, D, S>>
     where
         T: 'static,
         D: Device + 'static,

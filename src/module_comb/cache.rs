@@ -10,6 +10,8 @@ use super::{Alloc, PtrConv};
 
 mod location_hasher;
 
+pub use location_hasher::*;
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Cache<D: Alloc> {
     pub nodes:
@@ -128,28 +130,5 @@ mod tests {
             prev = Some(out3.ptr);
         }
         assert_eq!(cache.nodes.len(), 1);
-    }
-
-    fn return_borrowed<'a, D: Retriever>(device: &'a D) -> &Buffer<'a, f32, D> {
-        let res = device.retrieve::<f32, ()>(10);
-        let man_drop = ManuallyDrop::new(res);
-        
-        // ptr
-        todo!()
-    }
-
-    #[test]
-    fn test_try_borrowed() {
-        let device = CPU::<Cached<Base>>::new();
-        
-        // owning pointer is located in the hashmap cache
-        let res = device.retrieve::<f32, ()>(10);   
-        
-        for _ in 0..100000000 {
-            let res = device.retrieve::<f32, ()>(10);   
-            
-            // let res_ref = Box::leak(Box::new(res));
-
-        }
     }
 }

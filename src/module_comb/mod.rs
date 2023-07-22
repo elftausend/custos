@@ -16,21 +16,15 @@ pub use location_id::*;
 mod cache;
 pub use cache::*;
 
+mod devices;
+pub use devices::*;
+
 use crate::{cpu::CPUPtr, flag::AllocFlag, Shape, StackArray};
 
 #[cfg(test)]
 pub fn location() -> &'static core::panic::Location<'static> {
     core::panic::Location::caller()
 }
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
-pub struct CPU<Mods> {
-    modules: Mods,
-}
-
-pub trait Device {}
-
-impl<Mods> Device for CPU<Mods> {}
 
 pub trait Alloc: Sized {
     type Data<T, S: Shape>;
@@ -62,64 +56,15 @@ pub trait Alloc: Sized {
     }
 }
 
-impl<Mods> Alloc for CPU<Mods> {
-    type Data<T, S: Shape> = CPUPtr<T>;
-
-    fn alloc<T, S: Shape>(&self, mut len: usize, flag: AllocFlag) -> Self::Data<T, S> {
-        assert!(len > 0, "invalid buffer len: 0");
-
-        if S::LEN > len {
-            len = S::LEN
-        }
-
-        CPUPtr::new_initialized(len, flag)
-    }
-
-    fn alloc_from_slice<T, S>(&self, data: &[T]) -> Self::Data<T, S>
-    where
-        S: Shape,
-        T: Clone,
-    {
-        assert!(!data.is_empty(), "invalid buffer len: 0");
-        assert!(S::LEN <= data.len(), "invalid buffer len: {}", data.len());
-
-        let cpu_ptr = unsafe { CPUPtr::new(data.len(), AllocFlag::None) };
-        let slice = unsafe { std::slice::from_raw_parts_mut(cpu_ptr.ptr, data.len()) };
-        slice.clone_from_slice(data);
-
-        cpu_ptr
-    }
-
-    fn alloc_from_vec<T, S: Shape>(&self, mut vec: Vec<T>) -> Self::Data<T, S>
-    where
-        T: Clone,
-    {
-        assert!(!vec.is_empty(), "invalid buffer len: 0");
-
-        let ptr = vec.as_mut_ptr();
-        let len = vec.len();
-        core::mem::forget(vec);
-
-        unsafe { CPUPtr::from_ptr(ptr, len, AllocFlag::None) }
-    }
-}
-
 pub trait Module<D> {
     type Module;
 
     fn new() -> Self::Module;
 }
 
-impl<SimpleMods> CPU<SimpleMods> {
-    #[inline]
-    pub fn new<NewMods>() -> CPU<NewMods>
-    where
-        SimpleMods: Module<CPU<SimpleMods>, Module = NewMods>,
-    {
-        CPU {
-            modules: SimpleMods::new(),
-        }
-    }
+/// Used for modules that should affect the device.
+pub trait Setup<D> {
+    fn setup(device: &mut D);
 }
 
 pub trait Retriever: Alloc {

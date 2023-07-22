@@ -1,6 +1,6 @@
 use core::marker::PhantomData;
 
-use crate::module_comb::{Alloc, Module, Retrieve};
+use crate::module_comb::{Alloc, Module, Retrieve, Setup};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Default)]
 pub struct Autograd<Mods> {
@@ -23,6 +23,13 @@ impl<Mods: Module<SD>, SD: Alloc> Module<SD> for Autograd<Mods> {
 pub struct AutogradModule<Mods, D: Alloc> {
     modules: Mods,
     pd: PhantomData<D>,
+}
+
+impl<Mods: Setup<NewDev>, D: Alloc, NewDev> Setup<NewDev> for AutogradModule<Mods, D> {
+    #[inline]
+    fn setup(device: &mut NewDev) {
+        Mods::setup(device)
+    }
 }
 
 impl<Mods: Retrieve<D>, D, SimpleDevice: Alloc> Retrieve<D> for AutogradModule<Mods, SimpleDevice> {

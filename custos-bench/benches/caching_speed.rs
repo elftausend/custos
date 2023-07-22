@@ -1,7 +1,11 @@
 use std::hint::black_box;
 
-use criterion::{criterion_main, criterion_group, Criterion};
-use custos::{set_count, get_count, Device, Buffer, module_comb::{Cached, Base, Retriever}};
+use criterion::{criterion_group, criterion_main, Criterion};
+use custos::{
+    get_count,
+    module_comb::{Base, Cached, Retriever},
+    set_count, Buffer, Device,
+};
 
 const SIZE: usize = 10000;
 
@@ -26,7 +30,7 @@ fn bench_caching_speed(c: &mut Criterion) {
             let out = device.retrieve::<f32, ()>(SIZE, (&out, &lhs));
             let _out = black_box(device.retrieve::<f32, ()>(SIZE, (&out, &rhs)));
 
-            unsafe {set_count(prev_count)}
+            unsafe { set_count(prev_count) }
         })
     });
 
@@ -59,10 +63,8 @@ fn bench_caching_speed(c: &mut Criterion) {
             let _out = black_box(vec![0.0f32; SIZE]);
             let _out = black_box(vec![0.0f32; SIZE]);
             let _out = black_box(vec![0.0f32; SIZE]);
-
         })
     });
-
 }
 
 criterion_group!(benches, bench_caching_speed);

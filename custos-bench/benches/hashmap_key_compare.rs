@@ -1,7 +1,12 @@
-use std::{collections::{HashMap, hash_map::RandomState, HashSet}, hash::{BuildHasherDefault, BuildHasher, Hash}, hint::black_box, alloc::Layout};
+use std::{
+    alloc::Layout,
+    collections::{hash_map::RandomState, HashMap, HashSet},
+    hash::{BuildHasher, BuildHasherDefault, Hash},
+    hint::black_box,
+};
 
 use criterion::{criterion_group, criterion_main, Criterion};
-use custos::{IdentHasher, Ident};
+use custos::{Ident, IdentHasher};
 
 #[derive(Default)]
 pub struct NoHasher {
@@ -54,8 +59,7 @@ impl PartialEq for Location<'_> {
     #[inline]
     fn eq(&self, other: &Self) -> bool {
         // self.file == other.file &&
-        self.line == other.line &&
-        self.col == other.col
+        self.line == other.line && self.col == other.col
     }
 }
 
@@ -72,17 +76,32 @@ impl<'a> std::hash::Hash for Location<'a> {
     }
 }
 
-fn build_location_hm<'a, S: BuildHasher + Default>() -> (HashMap<Location<'a>, Vec<f64>, S>, Vec<Location<'a>>) {
+fn build_location_hm<'a, S: BuildHasher + Default>(
+) -> (HashMap<Location<'a>, Vec<f64>, S>, Vec<Location<'a>>) {
     let mut hm = HashMap::<Location<'a>, Vec<f64>, S>::default();
     let mut locations = Vec::new();
     let mut hashes = HashSet::new();
 
-    let filenames = ["main.rs", "cache.rs", "module_comb.rs", "hash.rs", "hashmap_key_compare.rs", "fasthash.rs", "custos.rs", "ident.rs", "caller_cache.rs", "stack_array.rs", "graph.rs", "mod.rs", "ptr_conv.rs"];
+    let filenames = [
+        "main.rs",
+        "cache.rs",
+        "module_comb.rs",
+        "hash.rs",
+        "hashmap_key_compare.rs",
+        "fasthash.rs",
+        "custos.rs",
+        "ident.rs",
+        "caller_cache.rs",
+        "stack_array.rs",
+        "graph.rs",
+        "mod.rs",
+        "ptr_conv.rs",
+    ];
 
     for idx in 0..1000 {
         let len = fastrand::usize(1..10) * 1000;
         let filename_idx = fastrand::usize(0..filenames.len());
-        
+
         let line = fastrand::u32(70..3000);
         let col = fastrand::u32(4..255);
 
@@ -93,20 +112,20 @@ fn build_location_hm<'a, S: BuildHasher + Default>() -> (HashMap<Location<'a>, V
         };
         let mut hasher = custos::module_comb::LocationHasher::default();
         location.hash(&mut hasher);
-        
+
         use std::hash::Hasher;
-        
+
         let hash = hasher.finish();
         // println!("hash: {hash}");
         if hashes.contains(&hash) {
             panic!("hash collision");
         }
         hashes.insert(hash);
-        
+
         locations.push(location);
         hm.insert(location, vec![10.0; len]);
     }
-    
+
     (hm, locations)
 }
 
@@ -122,7 +141,6 @@ fn build_idx_hm<S: BuildHasher + Default>() -> (HashMap<usize, Vec<f64>, S>, Vec
 }
 
 fn bench_location_key_hash(c: &mut Criterion) {
-
     let (hm, locations) = build_location_hm::<BuildHasherDefault<NoHasher>>();
 
     c.bench_function("bench_location_nohasher", |bench| {
@@ -130,7 +148,6 @@ fn bench_location_key_hash(c: &mut Criterion) {
             let idx = fastrand::usize(0..locations.len());
             let location = locations[idx];
             let _ = black_box(hm.get(&location));
-            
         })
     });
 
@@ -141,18 +158,16 @@ fn bench_location_key_hash(c: &mut Criterion) {
             let idx = fastrand::usize(0..locations.len());
             let location = &locations[idx];
             let _ = black_box(hm.get(location));
-
         })
     });
 
-    let (hm, locations) = build_location_hm::<BuildHasherDefault<custos::module_comb::LocationHasher>>();
+    let (hm, locations) = build_location_hm::<BuildHasherDefault<LocationHasher>>();
 
     c.bench_function("bench_location_key_hash_location_hasher", |bench| {
         bench.iter(|| {
             let idx = fastrand::usize(0..locations.len());
             let location = &locations[idx];
             let _ = black_box(hm.get(location));
-
         })
     });
 }
@@ -165,7 +180,6 @@ fn bench_ident_key_hash(c: &mut Criterion) {
             let idx = fastrand::usize(0..idents.len());
             let ident = idents[idx];
             let _ = black_box(hm.get(&ident));
-
         })
     });
 
@@ -176,7 +190,6 @@ fn bench_ident_key_hash(c: &mut Criterion) {
             let idx = fastrand::usize(0..idents.len());
             let ident = idents[idx];
             let _ = black_box(hm.get(&ident));
-            
         })
     });
 
@@ -187,7 +200,6 @@ fn bench_ident_key_hash(c: &mut Criterion) {
             let idx = fastrand::usize(0..idxs.len());
             let idx = idxs[idx];
             let _ = black_box(hm.get(&idx));
-            
         })
     });
 }
@@ -195,18 +207,21 @@ fn bench_ident_key_hash(c: &mut Criterion) {
 fn bench_alloc_speed(c: &mut Criterion) {
     c.bench_function("bench_alloc_speed", |bench| {
         bench.iter(|| {
-            let ptr = black_box(unsafe {std::alloc::alloc(Layout::from_size_align(1000000, 4).unwrap())});
-            unsafe {std::alloc::dealloc(ptr, Layout::from_size_align(1000000, 4).unwrap())};
+            let ptr = black_box(unsafe {
+                std::alloc::alloc(Layout::from_size_align(1000000, 4).unwrap())
+            });
+            unsafe { std::alloc::dealloc(ptr, Layout::from_size_align(1000000, 4).unwrap()) };
         })
     });
 
     c.bench_function("bench_alloc_speed_multiple", |bench| {
         bench.iter(|| {
             for _ in 0..1000000 / 10000 {
-                let ptr = black_box(unsafe {std::alloc::alloc(Layout::from_size_align(10000, 4).unwrap())});
-                unsafe {std::alloc::dealloc(ptr, Layout::from_size_align(10000, 4).unwrap())};
+                let ptr = black_box(unsafe {
+                    std::alloc::alloc(Layout::from_size_align(10000, 4).unwrap())
+                });
+                unsafe { std::alloc::dealloc(ptr, Layout::from_size_align(10000, 4).unwrap()) };
             }
-            
         })
     });
 }

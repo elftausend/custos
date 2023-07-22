@@ -25,7 +25,7 @@ pub mod cache;
 
 #[cfg(not(feature = "no-std"))]
 #[cfg(feature = "autograd")]
-pub(crate) mod borrowing_cache;
+pub mod borrowing_cache;
 
 //pub mod cache;
 #[cfg(not(feature = "no-std"))]
