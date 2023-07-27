@@ -76,7 +76,6 @@ pub trait Retriever: Alloc {
     fn retrieve<T, S: Shape>(&self, len: usize) -> Buffer<T, Self, S>;
 }
 
-
 #[cfg(test)]
 mod tests {
 
