@@ -13,7 +13,7 @@ pub use buffer::*;
 mod location_id;
 pub use location_id::*;
 
-use crate::{cpu::CPUPtr, flag::AllocFlag, Shape, StackArray};
+use crate::{flag::AllocFlag, Shape, StackArray};
 
 mod cache;
 pub use cache::*;
@@ -23,7 +23,6 @@ pub use devices::*;
 
 mod id;
 pub use id::*;
-
 
 #[cfg(test)]
 pub fn location() -> &'static core::panic::Location<'static> {

@@ -1,7 +1,11 @@
 use core::{any::Any, hash::BuildHasherDefault, mem::transmute};
 use std::collections::HashMap;
 
-use crate::{flag::AllocFlag, Device, Shape, module_comb::{Buffer, Alloc, Id}};
+use crate::{
+    flag::AllocFlag,
+    module_comb::{Alloc, Buffer, Id},
+    Shape,
+};
 
 use super::NoHasher;
 

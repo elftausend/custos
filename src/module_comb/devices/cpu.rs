@@ -2,7 +2,7 @@ use super::Device;
 use crate::{
     cpu::CPUPtr,
     flag::AllocFlag,
-    module_comb::{Alloc, Buffer, Module, Retrieve, Retriever, Setup},
+    module_comb::{Alloc, Buffer, HasModules, Module, OnNewBuffer, Retrieve, Retriever, Setup},
     Shape,
 };
 
@@ -12,6 +12,13 @@ pub struct CPU<Mods> {
 }
 
 impl<Mods> Device for CPU<Mods> {}
+
+impl<Mods> HasModules<Mods> for CPU<Mods> {
+    #[inline]
+    fn modules(&self) -> &Mods {
+        &self.modules
+    }
+}
 
 impl<SimpleMods> CPU<SimpleMods> {
     #[inline]
@@ -67,6 +74,13 @@ impl<Mods> Alloc for CPU<Mods> {
         core::mem::forget(vec);
 
         unsafe { CPUPtr::from_ptr(ptr, len, AllocFlag::None) }
+    }
+}
+
+impl<Mods: OnNewBuffer> OnNewBuffer for CPU<Mods> {
+    #[inline]
+    fn on_new_buffer<T, S: Shape, D: Alloc>(&self, device: &D, new_buf: &Buffer<T, D, S>) {
+        self.modules.on_new_buffer(device, new_buf)
     }
 }
 

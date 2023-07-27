@@ -1,10 +1,37 @@
+mod gradients;
+mod tape;
+
+pub use gradients::*;
+pub use tape::*;
+
 use core::marker::PhantomData;
 
-use crate::module_comb::{Alloc, Module, Retrieve, Setup};
+use crate::{
+    module_comb::{Alloc, Buffer, HasId, Module, OnNewBuffer, Retrieve, Setup},
+    Shape,
+};
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Default)]
+#[derive(Debug, Default)]
 pub struct Autograd<Mods> {
+    // AutogradModule is not needed -> remove PhantomData
     pd: PhantomData<Mods>,
+    grads: Gradients,
+}
+
+impl<Mods> OnNewBuffer for Autograd<Mods> {
+    #[inline]
+    fn on_new_buffer<T, S, D>(&self, _device: &D, new_buf: &Buffer<T, D, S>)
+    where
+        S: Shape,
+        D: Alloc,
+        D::Data<T, S>: HasId,
+    {
+        self.grads
+            .no_grads_pool
+            .borrow_mut()
+            .cache
+            .insert(*new_buf.id(), Box::new(new_buf));
+    }
 }
 
 impl<Mods: Module<SD>, SD: Alloc> Module<SD> for Autograd<Mods> {

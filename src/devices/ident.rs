@@ -1,10 +1,6 @@
 use core::cell::Cell;
 use std::thread_local;
 
-pub trait Identifiable {
-    fn id(&self) -> usize;
-}
-
 thread_local! {
     pub(crate) static COUNT: Cell<usize> = Cell::new(0);
 }

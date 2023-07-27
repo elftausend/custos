@@ -1,4 +1,3 @@
-
 macro_rules! location_id {
     ($file:expr, $line:expr, $column:expr) => {{
         let hash_location = $crate::module_comb::HashLocation {
@@ -18,7 +17,7 @@ macro_rules! location_id {
     }};
     () => {
         location_id!(file!(), line!(), column!())
-    }
+    };
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -29,7 +28,7 @@ pub struct LocationId {
 impl LocationId {
     #[inline]
     #[track_caller]
-    pub fn new() -> Self {        
+    pub fn new() -> Self {
         let location = core::panic::Location::caller();
         location_id!(location.file(), location.line(), location.column())
     }
