@@ -4,13 +4,16 @@ use std::rc::Rc;
 
 use crate::{flag::AllocFlag, Shape};
 
-use self::location_hasher::{HashLocation, LocationHasher};
-
 use super::{Alloc, PtrConv};
 
 mod location_hasher;
-
 pub use location_hasher::*;
+
+mod nohasher;
+pub use nohasher::*;
+
+mod borrow_cache;
+pub use borrow_cache::*;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Cache<D: Alloc> {
@@ -78,7 +81,7 @@ impl<SD: Alloc> Cache<SD> {
 mod tests {
     use core::mem::ManuallyDrop;
 
-    use crate::module_comb::{Base, CPU, Cached, Retriever, Device, Buffer};
+    use crate::module_comb::{Base, Buffer, Cached, Device, Retriever, CPU};
 
     use super::Cache;
 

@@ -36,9 +36,9 @@ impl std::hash::Hasher for LocationHasher {
 
 #[derive(Debug, Clone, Copy, Eq)]
 pub struct HashLocation<'a> {
-    file: &'a str,
-    line: u32,
-    col: u32,
+    pub file: &'a str,
+    pub line: u32,
+    pub col: u32,
 }
 
 impl PartialEq for HashLocation<'_> {

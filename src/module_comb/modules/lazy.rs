@@ -1,6 +1,6 @@
 use core::marker::PhantomData;
 
-use crate::module_comb::{Module, Retrieve, Alloc, Setup};
+use crate::module_comb::{Alloc, Module, Retrieve, Setup};
 
 #[derive(Debug, Default)]
 pub struct Lazy<Mods> {
@@ -8,7 +8,7 @@ pub struct Lazy<Mods> {
 }
 
 pub trait LazySetup {
-    fn setup(&mut self) {}
+    fn lazy_setup(&mut self) {}
 }
 
 impl<Mods: Module<D, Module = Mods>, D: LazySetup> Module<D> for Lazy<Mods> {
@@ -16,15 +16,14 @@ impl<Mods: Module<D, Module = Mods>, D: LazySetup> Module<D> for Lazy<Mods> {
 
     #[inline]
     fn new() -> Self::Module {
-        Lazy {
-            mods: Mods::new(),
-        }
+        Lazy { mods: Mods::new() }
     }
 }
 
 impl<D: LazySetup, Mods: Setup<D>> Setup<D> for Lazy<Mods> {
     #[inline]
     fn setup(device: &mut D) {
+        device.lazy_setup();
         println!("setup lazy");
         Mods::setup(device)
     }
@@ -42,7 +41,7 @@ impl<Mods, D> Retrieve<D> for Lazy<Mods> {
 
 #[cfg(test)]
 mod tests {
-    use crate::module_comb::{CPU, Base, Alloc, CUDA};
+    use crate::module_comb::{Alloc, Base, CPU, CUDA};
 
     use super::Lazy;
 

@@ -1,5 +1,10 @@
-use crate::{module_comb::{Module, Setup, Alloc}, flag::AllocFlag, cpu::CPUPtr, Shape};
 use super::Device;
+use crate::{
+    cpu::CPUPtr,
+    flag::AllocFlag,
+    module_comb::{Alloc, Buffer, Module, Retrieve, Retriever, Setup},
+    Shape,
+};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub struct CPU<Mods> {
@@ -62,5 +67,17 @@ impl<Mods> Alloc for CPU<Mods> {
         core::mem::forget(vec);
 
         unsafe { CPUPtr::from_ptr(ptr, len, AllocFlag::None) }
+    }
+}
+
+impl<Mods: Retrieve<Self>> Retriever for CPU<Mods> {
+    #[inline]
+    fn retrieve<T, S: Shape>(&self, len: usize) -> Buffer<T, Self, S> {
+        let data = self.modules.retrieve::<T, S>(self, len);
+        Buffer {
+            data,
+            device: Some(self),
+            // id: LocationId::new()
+        }
     }
 }

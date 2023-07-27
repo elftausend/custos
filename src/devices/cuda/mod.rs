@@ -45,6 +45,13 @@ pub struct CUDAPtr<T> {
     p: PhantomData<T>,
 }
 
+impl Id for CUDAPtr<T> {
+    #[inline]
+    fn id(&self) -> u64 {
+        self.ptr
+    }
+}
+
 impl<T> Default for CUDAPtr<T> {
     #[inline]
     fn default() -> Self {

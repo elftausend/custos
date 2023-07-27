@@ -18,18 +18,23 @@ fn bench_cache_types(c: &mut Criterion) {
 
     let mut group = c.benchmark_group("caching_speed");
     group.bench_function("bench_borrowing_cache", |bench| bench.iter(|| {
-        let _buf = black_box(borrowing_cache.add_or_get::<f32, CPU, ()>(&&old_device, Ident {
-            idx: 0,
-            len: 1,
-        }));
+        for idx in 0..10 {
+            let _buf = black_box(borrowing_cache.add_or_get::<f32, CPU, ()>(&old_device, Ident {
+                idx,
+                len: 1,
+            }));
+        }
+        
     }));
 
     group.bench_function("bench_owning_cache", |bench| bench.iter(|| {
+        for idx in 0..10 {
+            let _buf = black_box(cache.get::<f32, ()>(&old_device, Ident {
+                idx,
+                len: 1,
+            },  (), || ()));
+        }
         
-        let _buf = black_box(cache.get::<f32, ()>(&old_device, Ident {
-            idx: 0,
-            len: 1,
-        },  (), || ()));
     }));
 }
 

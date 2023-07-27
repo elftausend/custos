@@ -19,7 +19,10 @@ pub use cache::*;
 mod devices;
 pub use devices::*;
 
-use crate::{cpu::CPUPtr, flag::AllocFlag, Shape, StackArray};
+mod id;
+pub use id::*;
+
+use crate::{flag::AllocFlag, Shape, StackArray};
 
 #[cfg(test)]
 pub fn location() -> &'static core::panic::Location<'static> {
@@ -70,18 +73,6 @@ pub trait Setup<D> {
 pub trait Retriever: Alloc {
     #[track_caller]
     fn retrieve<T, S: Shape>(&self, len: usize) -> Buffer<T, Self, S>;
-}
-
-impl<Mods: Retrieve<Self>> Retriever for CPU<Mods> {
-    #[inline]
-    fn retrieve<T, S: Shape>(&self, len: usize) -> Buffer<T, Self, S> {
-        let data = self.modules.retrieve::<T, S>(self, len);
-        Buffer {
-            data,
-            device: Some(self),
-            // id: LocationId::new()
-        }
-    }
 }
 
 #[cfg(test)]

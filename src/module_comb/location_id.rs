@@ -1,8 +1,16 @@
 macro_rules! location_id {
     ($file:expr, $line:expr, $column:expr) => {{
-        let mut hasher = std::collections::hash_map::DefaultHasher::new();
+        let hash_location = $crate::module_comb::HashLocation {
+            file: $file,
+            line: $line,
+            col: $column,
+        };
+        let mut hasher = $crate::module_comb::LocationHasher::default();
+
         use std::hash::{Hash, Hasher};
-        ($file, $line, $column).hash(&mut hasher);
+
+        hash_location.hash(&mut hasher);
+
         $crate::module_comb::LocationId {
             id: hasher.finish() as usize,
         }
