@@ -3,7 +3,7 @@ use std::ffi::c_void;
 
 use super::{
     api::{cuOccupancyMaxPotentialBlockSize, culaunch_kernel, FnHandle},
-    fn_cache,
+    fn_cache, CUDAPtr,
 };
 
 /// Converts `Self` to a (cuda) *mut c_void.
@@ -43,18 +43,28 @@ pub trait AsCudaCvoidPtr {
 }
 
 impl<'a, T> AsCudaCvoidPtr for &Buffer<'a, T, CUDA> {
+    #[inline]
     fn as_cvoid_ptr(&self) -> *mut c_void {
         &self.ptr.ptr as *const u64 as *mut c_void
     }
 }
 
 impl<'a, T> AsCudaCvoidPtr for Buffer<'a, T, CUDA> {
+    #[inline]
     fn as_cvoid_ptr(&self) -> *mut c_void {
         &self.ptr.ptr as *const u64 as *mut c_void
     }
 }
 
+impl<'a, T> AsCudaCvoidPtr for CUDAPtr<T> {
+    #[inline]
+    fn as_cvoid_ptr(&self) -> *mut c_void {
+        &self.ptr as *const u64 as *mut c_void
+    }
+}
+
 impl<T: Number> AsCudaCvoidPtr for T {
+    #[inline]
     fn as_cvoid_ptr(&self) -> *mut c_void {
         self as *const T as *mut c_void
     }
