@@ -2,9 +2,11 @@ use core::marker::PhantomData;
 
 use crate::Shape;
 
-use super::{Alloc, Buffer, Device, Gradients, HasId};
+use super::{Alloc, Buffer, Device, Gradients, HasId, OnDropBuffer};
 
-pub trait Retrieve<D> {
+pub trait Feature: OnDropBuffer {}
+
+pub trait Retrieve<D>: OnDropBuffer {
     #[track_caller]
     fn retrieve<T, S: Shape>(&self, device: &D, len: usize) -> D::Data<T, S>
     where
@@ -13,16 +15,6 @@ pub trait Retrieve<D> {
 
 pub trait HasModules<Mods> {
     fn modules(&self) -> &Mods;
-}
-
-pub trait OnNewBuffer {
-    fn on_new_buffer<T, S, D>(&self, _device: &D, _new_buf: &Buffer<T, D, S>)
-    where
-        D::Data<T, S>: HasId,
-        S: Shape,
-        D: Alloc,
-    {
-    }
 }
 
 // does not require the device param ???

@@ -3,7 +3,7 @@ use std::collections::HashMap;
 
 use crate::{
     flag::AllocFlag,
-    module_comb::{Alloc, Buffer, Id},
+    module_comb::{Alloc, Buffer, Id, Device},
     Shape,
 };
 
@@ -21,7 +21,7 @@ impl BorrowCache {
     pub fn add_or_get<'a, T, D, S>(&mut self, device: &'a D, id: Id) -> &Buffer<'a, T, D, S>
     where
         T: 'static,
-        D: Alloc + 'static,
+        D: Device + 'static,
         S: Shape,
     {
         self.add_buf_once::<T, D, S>(device, id);
@@ -33,7 +33,7 @@ impl BorrowCache {
     pub fn add_or_get_mut<'a, T, D, S>(&mut self, device: &D, id: Id) -> &mut Buffer<'a, T, D, S>
     where
         T: 'static,
-        D: Alloc + 'static,
+        D: Device + 'static,
         S: Shape,
     {
         self.add_buf_once::<T, D, S>(device, id);
@@ -43,7 +43,7 @@ impl BorrowCache {
     pub fn add_buf_once<'a, T, D, S>(&mut self, device: &'a D, id: Id)
     where
         T: 'static,
-        D: Alloc + 'static,
+        D: Device + 'static,
         S: Shape,
     {
         if self.cache.get(&id).is_some() {
@@ -56,7 +56,7 @@ impl BorrowCache {
     pub fn add_buf<'a, T, D, S>(&mut self, device: &'a D, id: Id)
     where
         T: 'static,
-        D: Alloc + 'static,
+        D: Device + 'static,
         S: Shape,
     {
         // not using ::new, because this buf would get added to the cache of the device.
@@ -74,7 +74,7 @@ impl BorrowCache {
     pub fn get_buf<'a, T, D, S>(&self, id: Id) -> Option<&Buffer<'a, T, D, S>>
     where
         T: 'static,
-        D: Alloc + 'static,
+        D: Device + 'static,
         S: Shape,
     {
         self.cache.get(&id)?.downcast_ref()
@@ -84,7 +84,7 @@ impl BorrowCache {
     pub fn get_buf_mut<'a, T, D, S>(&mut self, id: Id) -> Option<&mut Buffer<'a, T, D, S>>
     where
         T: 'static,
-        D: Alloc + 'static,
+        D: Device + 'static,
         S: Shape,
     {
         unsafe { transmute(self.cache.get_mut(&id)?.downcast_mut::<Buffer<T, D, S>>()) }
@@ -93,7 +93,7 @@ impl BorrowCache {
 
 #[cfg(test)]
 mod tests {
-    use crate::CPU;
+    use crate::module_comb::{Base, CPU};
 
     use super::BorrowCache;
 
@@ -110,7 +110,7 @@ mod tests {
 
     /*#[test]
     fn test_get_borrowed() {
-        let device = CPU::new();
+        let device = CPU::<Base>::default();
         let mut cache = BorrowCache::default();
 
         let (fid, sid, tid) = (
@@ -119,12 +119,12 @@ mod tests {
             Id::new_bumped(10),
         );
 
-        cache.add_buf_once::<f32, CPU, ()>(&device, fid);
-        cache.add_buf_once::<f32, CPU, ()>(&device, sid);
-        cache.add_buf_once::<f32, CPU, ()>(&device, tid);
+        cache.add_buf_once::<f32, _, ()>(&device, fid);
+        cache.add_buf_once::<f32, _, ()>(&device, sid);
+        cache.add_buf_once::<f32, _, ()>(&device, tid);
 
-        let a = cache.get_buf::<f32, CPU, ()>(fid).unwrap();
-        let b = cache.get_buf::<f32, CPU, ()>(fid).unwrap();
+        let a = cache.get_buf::<f32, _, ()>(fid).unwrap();
+        let b = cache.get_buf::<f32, _, ()>(fid).unwrap();
 
         assert_eq!(a.ptr, b.ptr);
     }*/

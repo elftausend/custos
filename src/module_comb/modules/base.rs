@@ -1,6 +1,6 @@
 use crate::{
     flag::AllocFlag,
-    module_comb::{Alloc, Module, Retrieve, Setup},
+    module_comb::{Alloc, Module, Retrieve, Setup, OnDropBuffer},
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
@@ -15,10 +15,8 @@ impl<D> Module<D> for Base {
     }
 }
 
-impl<D> Setup<D> for Base {
-    #[inline]
-    fn setup(_device: &mut D) {}
-}
+impl<D> Setup<D> for Base {}
+impl OnDropBuffer for Base {}
 
 impl<D> Retrieve<D> for Base {
     #[inline]

@@ -1,6 +1,6 @@
 use core::marker::PhantomData;
 
-use crate::module_comb::{Alloc, Module, Retrieve, Setup};
+use crate::{module_comb::{Alloc, Module, Retrieve, Setup, OnDropBuffer, Device, Buffer}, Shape};
 
 #[derive(Debug, Default)]
 pub struct Lazy<Mods> {
@@ -29,7 +29,14 @@ impl<D: LazySetup, Mods: Setup<D>> Setup<D> for Lazy<Mods> {
     }
 }
 
-impl<Mods, D> Retrieve<D> for Lazy<Mods> {
+impl<Mods: OnDropBuffer> OnDropBuffer for Lazy<Mods> {
+    #[inline]
+    fn on_drop<'a, T, D: Device, S: Shape>(&self, device: &'a D, buf: &Buffer<T, D, S>) {
+        self.mods.on_drop(device, buf)
+    }
+}
+
+impl<Mods: OnDropBuffer, D> Retrieve<D> for Lazy<Mods> {
     #[inline]
     fn retrieve<T, S: crate::Shape>(&self, device: &D, len: usize) -> <D>::Data<T, S>
     where

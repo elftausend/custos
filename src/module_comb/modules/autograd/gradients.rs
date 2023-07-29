@@ -1,7 +1,7 @@
 use core::cell::RefCell;
 
 use crate::{
-    module_comb::{Alloc, BorrowCache, Buffer, HasId, Id},
+    module_comb::{Device, BorrowCache, Buffer, HasId, Id},
     Shape,
 };
 
@@ -42,7 +42,7 @@ impl Gradients {
     where
         T: 'static,
         S: Shape,
-        D: Alloc + 'static,
+        D: Device + 'static,
     {
         self.cache.get_buf(ident)
     }
@@ -53,7 +53,7 @@ impl Gradients {
     where
         T: 'static,
         S: Shape,
-        D: Alloc + 'static,
+        D: Device + 'static,
     {
         self.cache.get_buf_mut(id)
     }
@@ -65,7 +65,7 @@ impl Gradients {
     where
         T: 'static,
         S: Shape,
-        D: Alloc + 'static,
+        D: Device + 'static,
     {
         self.cache.add_or_get(device, id)
     }
@@ -77,7 +77,7 @@ impl Gradients {
     where
         T: 'static,
         S: Shape,
-        D: Alloc + 'static,
+        D: Device + 'static,
     {
         self.cache.add_or_get_mut(device, id)
     }
@@ -88,7 +88,7 @@ impl Gradients {
     where
         T: 'static,
         S: Shape,
-        D: Alloc + 'static,
+        D: Device + 'static,
         D::Data<T, S>: HasId,
     {
         self.get_ref(buf.device(), buf.id())
@@ -105,7 +105,7 @@ impl Gradients {
     where
         T: 'static,
         S: Shape,
-        D: Alloc + 'static,
+        D: Device + 'static,
     {
         todo!("works fine -> no_grads_pool");
 
@@ -143,8 +143,9 @@ impl Gradients {
         T: 'static,
         IS: Shape,
         OS: Shape,
-        D: Alloc + 'static,
+        D: Device + 'static,
     {
+        self.no_grads_pool.borrow().get_buf::<T, D, IS>(xid);
         todo!("works fine -> no_grads_pool");
         /*let x_grad_ptr = self.get_mut(device, xid) as *mut _;
         let x_grad_mut = unsafe { &mut *x_grad_ptr };

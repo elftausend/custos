@@ -1,6 +1,6 @@
 use core::{cell::RefCell, marker::PhantomData};
 
-use crate::module_comb::{Alloc, Cache, Module, PtrConv, Retrieve, Setup};
+use crate::{module_comb::{Alloc, Cache, Module, PtrConv, Retrieve, Setup, OnDropBuffer, Device, Buffer}, Shape};
 
 // creator struct
 #[derive(Debug, PartialEq, Eq, Default)]
@@ -42,11 +42,18 @@ impl<Mods: Setup<NewDev>, D: Alloc, NewDev> Setup<NewDev> for CachedModule<Mods,
     }
 }
 
-impl<Mods, D: Alloc + PtrConv<SimpleDevice>, SimpleDevice: Alloc + PtrConv<D>> Retrieve<D>
+impl<Mods: OnDropBuffer, SD: Alloc> OnDropBuffer for CachedModule<Mods, SD> {
+    #[inline]
+    fn on_drop<'a, T, D: Device, S: Shape>(&self, device: &'a D, buf: &Buffer<T, D, S>) {
+        self.modules.on_drop(device, buf)
+    }
+}
+
+impl<Mods: OnDropBuffer, D: Alloc + PtrConv<SimpleDevice>, SimpleDevice: Alloc + PtrConv<D>> Retrieve<D>
     for CachedModule<Mods, SimpleDevice>
 {
     #[inline]
-    fn retrieve<T, S: crate::Shape>(&self, device: &D, len: usize) -> D::Data<T, S> {
+    fn retrieve<T, S: Shape>(&self, device: &D, len: usize) -> D::Data<T, S> {
         self.cache.borrow_mut().get(device, len, || ())
     }
 }

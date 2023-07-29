@@ -1,8 +1,12 @@
+use core::convert::Infallible;
+
 use super::Device;
 use crate::{
     cpu::CPUPtr,
     flag::AllocFlag,
-    module_comb::{Alloc, Buffer, HasModules, Module, OnNewBuffer, Retrieve, Retriever, Setup},
+    module_comb::{
+        Alloc, Buffer, HasId, HasModules, Module, OnNewBuffer, Retrieve, Retriever, Setup, OnDropBuffer,
+    },
     Shape,
 };
 
@@ -11,7 +15,21 @@ pub struct CPU<Mods> {
     pub modules: Mods,
 }
 
-impl<Mods> Device for CPU<Mods> {}
+impl<Mods: OnDropBuffer> Device for CPU<Mods> {
+    type Error = Infallible;
+
+    fn new() -> Result<Self, Self::Error> {
+        todo!()
+        // Ok(CPU::new())
+    }
+}
+
+impl<Mods: OnDropBuffer> OnDropBuffer for CPU<Mods> {
+    #[inline]
+    fn on_drop<'a, T, D: Device, S: Shape>(&self, device: &'a D, buf: &Buffer<T, D, S>) {
+        self.modules.on_drop(device, buf)
+    }
+}
 
 impl<Mods> HasModules<Mods> for CPU<Mods> {
     #[inline]
@@ -77,9 +95,10 @@ impl<Mods> Alloc for CPU<Mods> {
     }
 }
 
-impl<Mods: OnNewBuffer> OnNewBuffer for CPU<Mods> {
+impl<T, D: Device, S: Shape, Mods: OnNewBuffer<T, D, S>> OnNewBuffer<T, D, S> for CPU<Mods>
+{
     #[inline]
-    fn on_new_buffer<T, S: Shape, D: Alloc>(&self, device: &D, new_buf: &Buffer<T, D, S>) {
+    fn on_new_buffer(&self, device: &D, new_buf: &Buffer<T, D, S>) {
         self.modules.on_new_buffer(device, new_buf)
     }
 }

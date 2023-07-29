@@ -4,4 +4,13 @@ pub use cpu::*;
 mod cuda;
 pub use cuda::*;
 
-pub trait Device {}
+use super::{OnDropBuffer, Alloc};
+
+pub trait Device: Alloc + OnDropBuffer {
+    type Error;
+
+    #[inline]
+    fn new() -> Result<Self, Self::Error> {
+        todo!()
+    }
+}

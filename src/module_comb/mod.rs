@@ -1,3 +1,5 @@
+use crate::{flag::AllocFlag, Shape, StackArray};
+
 mod features;
 pub use features::*;
 
@@ -13,8 +15,6 @@ pub use buffer::*;
 mod location_id;
 pub use location_id::*;
 
-use crate::{flag::AllocFlag, Shape, StackArray};
-
 mod cache;
 pub use cache::*;
 
@@ -24,13 +24,16 @@ pub use devices::*;
 mod id;
 pub use id::*;
 
+mod hooks;
+pub use hooks::*;
+
 #[cfg(test)]
 pub fn location() -> &'static core::panic::Location<'static> {
     core::panic::Location::caller()
 }
 
 pub trait Alloc: Sized {
-    type Data<T, S: Shape>;
+    type Data<T, S: Shape>: HasId;
 
     fn alloc<T, S: Shape>(&self, len: usize, flag: AllocFlag) -> Self::Data<T, S>;
     fn alloc_from_slice<T, S: Shape>(&self, data: &[T]) -> Self::Data<T, S>
@@ -67,10 +70,11 @@ pub trait Module<D> {
 
 /// Used for modules that should affect the device.
 pub trait Setup<D> {
-    fn setup(device: &mut D);
+    #[inline]
+    fn setup(_device: &mut D) {}
 }
 
-pub trait Retriever: Alloc {
+pub trait Retriever: Device {
     #[track_caller]
     fn retrieve<T, S: Shape>(&self, len: usize) -> Buffer<T, Self, S>;
 }
