@@ -13,9 +13,10 @@ fn main() {
         println!("cargo:rustc-cfg=unified_cl");
     }
 
-    #[cfg(not(docsrs))]
-    #[cfg(feature = "cuda")]
-    link_cuda();
+    // #[cfg(not(docsrs))]
+    // #[cfg(feature = "cuda")]
+    // maybe add a configurable option whether linking should happen at "runtime" -> cuda editing even on non cuda machines
+    // link_cuda();
 }
 
 #[cfg(not(docsrs))]

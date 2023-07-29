@@ -16,7 +16,7 @@ pub use cuda_device::*;
 pub use kernel_cache::*;
 pub use kernel_launch::*;
 
-use crate::{flag::AllocFlag, Buffer, CDatatype, CommonPtrs, PtrType, ShallowCopy};
+use crate::{flag::AllocFlag, Buffer, CDatatype, CommonPtrs, PtrType, ShallowCopy, module_comb::{Id, HasId}};
 
 use self::api::cufree;
 
@@ -45,10 +45,13 @@ pub struct CUDAPtr<T> {
     pub p: PhantomData<T>,
 }
 
-impl Id for CUDAPtr<T> {
+impl<T> HasId for CUDAPtr<T> {
     #[inline]
-    fn id(&self) -> u64 {
-        self.ptr
+    fn id(&self) -> Id {
+        Id {
+            id: self.ptr as u64,
+            len: self.len,
+        }
     }
 }
 
