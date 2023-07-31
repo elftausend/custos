@@ -6,14 +6,21 @@ use crate::{
     flag::AllocFlag,
     module_comb::{
         Alloc, Buffer, HasId, HasModules, Module, OnDropBuffer, OnNewBuffer, Retrieve, Retriever,
-        Setup,
+        Setup, CachedModule, Base, Cached,
     },
     Shape,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
-pub struct CPU<Mods> {
+pub struct CPU<Mods = Base> {
     pub modules: Mods,
+}
+
+// maybe
+impl<Mods> CPU<Mods> {
+    pub fn default() -> CPU<CachedModule<Base, CPU<Cached<Base>>>> {
+        CPU::<Cached<Base>>::new()
+    }
 }
 
 impl<Mods: OnDropBuffer> Device for CPU<Mods> {

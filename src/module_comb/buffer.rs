@@ -42,7 +42,9 @@ impl<'a, T, D: Device, S: Shape> HasId for Buffer<'a, T, D, S> {
 impl<'a, T, D: Device, S: Shape> Drop for Buffer<'a, T, D, S> {
     #[inline]
     fn drop(&mut self) {
-        self.device().on_drop_buffer(self.device(), self)
+        if let Some(device) = self.device {
+            device.on_drop_buffer(device, self)
+        }
     }
 }
 

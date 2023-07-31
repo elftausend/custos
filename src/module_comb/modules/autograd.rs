@@ -94,10 +94,10 @@ impl<Mods: Retrieve<D>, D> Retrieve<D> for Autograd<Mods> {
 
 #[cfg(test)]
 mod tests {
-    use core::any::Any;
+    use core::{any::{Any, TypeId}, mem::transmute};
 
     use crate::{
-        module_comb::{Base, BorrowCache, Buffer, Cached, Device, HasId, Id, CPU},
+        module_comb::{Base, BorrowCache, Buffer, Cached, Device, HasId, Id, CPU, CachedModule},
         Shape,
     };
 
@@ -105,10 +105,10 @@ mod tests {
 
     #[inline]
     pub fn downcast_val<'a, 'b, T: 'static, D: Device + 'static, S: Shape>(
-        buf_any: &'b dyn Any,
+        buf_any: &'b Box<dyn Any>,
         _device: &'a D,
     ) -> Option<&'b Buffer<'a, T, D, S>> {
-        buf_any.downcast_ref()
+        buf_any.downcast_ref::<&Buffer<T, D, S>>().copied()
     }
 
     pub fn get_buf_with_dev<'a, 'b, T, D, S>(
@@ -127,17 +127,22 @@ mod tests {
     #[test]
     fn test_buffer_creation_autograd_register() {
         let device = CPU::<Cached<Autograd<Base>>>::new();
-        let buf: Buffer<f32, _> = Buffer::<f32, _>::new(&device, 10);
+        let mut buf: Buffer<f32, _> = Buffer::<f32, _>::new(&device, 10);
+
         let autograd = &device.modules.modules;
         {
-            let no_grads_pool = &autograd.grads.no_grads_pool.borrow();
-            get_buf_with_dev::<f32, _, ()>(&device, no_grads_pool, buf.id()).unwrap();
-
-            /*no_grads_pool.get_buf::<f32, _, ()>(buf.id());
+            
+            let no_grads_pool = autograd.grads.no_grads_pool.borrow_mut();
             let buf_any = no_grads_pool.cache.get(&buf.id()).unwrap();
-            let buf: &Buffer<f32, _> = downcast_val::<f32, _, _>(buf_any, &device).unwrap();
-            println!("no_grads_pool: {no_grads_pool:?}");*/
+
+            let buf1 = downcast_val::<f32, _, ()>(buf_any, &device).unwrap();
+
+            // no borrow checks
+            &mut buf;
+            
+            drop(no_grads_pool)
         }
         drop(buf);
+        drop(device);
     }
 }
