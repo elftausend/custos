@@ -1,6 +1,11 @@
 use core::{cell::RefCell, marker::PhantomData};
 
-use crate::{module_comb::{Alloc, Cache, Module, PtrConv, Retrieve, Setup, OnDropBuffer, Device, Buffer}, Shape};
+use crate::{
+    module_comb::{
+        Alloc, Buffer, Cache, Device, Module, OnDropBuffer, OnNewBuffer, PtrConv, Retrieve, Setup,
+    },
+    Shape,
+};
 
 // creator struct
 #[derive(Debug, PartialEq, Eq, Default)]
@@ -31,7 +36,7 @@ impl<Mods: Module<D>, D: Alloc> Module<D> for Cached<Mods> {
 }
 
 pub struct CachedModule<Mods, D: Alloc> {
-    modules: Mods,
+    pub modules: Mods,
     cache: RefCell<Cache<D>>,
 }
 
@@ -42,15 +47,24 @@ impl<Mods: Setup<NewDev>, D: Alloc, NewDev> Setup<NewDev> for CachedModule<Mods,
     }
 }
 
-impl<Mods: OnDropBuffer, SD: Alloc> OnDropBuffer for CachedModule<Mods, SD> {
-    #[inline]
-    fn on_drop<'a, T, D: Device, S: Shape>(&self, device: &'a D, buf: &Buffer<T, D, S>) {
-        self.modules.on_drop(device, buf)
+impl<T, D: Device, S: Shape, Mods: OnNewBuffer<T, D, S>, SD: Alloc> OnNewBuffer<T, D, S>
+    for CachedModule<Mods, SD>
+{
+    fn on_new_buffer(&self, device: &D, new_buf: &Buffer<T, D, S>) {
+        self.modules.on_new_buffer(device, new_buf)
     }
 }
 
-impl<Mods: OnDropBuffer, D: Alloc + PtrConv<SimpleDevice>, SimpleDevice: Alloc + PtrConv<D>> Retrieve<D>
-    for CachedModule<Mods, SimpleDevice>
+impl<Mods: OnDropBuffer, SD: Alloc> OnDropBuffer for CachedModule<Mods, SD> {
+    #[inline]
+    fn on_drop_buffer<'a, T, D: Device, S: Shape>(&self, device: &'a D, buf: &Buffer<T, D, S>) {
+        self.modules.on_drop_buffer(device, buf)
+    }
+}
+
+// TODO: a more general OnDropBuffer => "Module"
+impl<Mods: OnDropBuffer, D: Alloc + PtrConv<SimpleDevice>, SimpleDevice: Alloc + PtrConv<D>>
+    Retrieve<D> for CachedModule<Mods, SimpleDevice>
 {
     #[inline]
     fn retrieve<T, S: Shape>(&self, device: &D, len: usize) -> D::Data<T, S> {

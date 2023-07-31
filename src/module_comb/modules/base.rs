@@ -1,6 +1,7 @@
 use crate::{
     flag::AllocFlag,
-    module_comb::{Alloc, Module, Retrieve, Setup, OnDropBuffer},
+    module_comb::{Alloc, Device, Module, OnDropBuffer, OnNewBuffer, Retrieve, Setup},
+    Shape,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
@@ -16,6 +17,9 @@ impl<D> Module<D> for Base {
 }
 
 impl<D> Setup<D> for Base {}
+
+impl<T, D: Device, S: Shape> OnNewBuffer<T, D, S> for Base {}
+
 impl OnDropBuffer for Base {}
 
 impl<D> Retrieve<D> for Base {

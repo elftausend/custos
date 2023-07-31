@@ -4,7 +4,7 @@ pub use cpu::*;
 mod cuda;
 pub use cuda::*;
 
-use super::{OnDropBuffer, Alloc};
+use super::{Alloc, OnDropBuffer};
 
 pub trait Device: Alloc + OnDropBuffer {
     type Error;

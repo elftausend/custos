@@ -16,7 +16,11 @@ pub use cuda_device::*;
 pub use kernel_cache::*;
 pub use kernel_launch::*;
 
-use crate::{flag::AllocFlag, Buffer, CDatatype, CommonPtrs, PtrType, ShallowCopy, module_comb::{Id, HasId}};
+use crate::{
+    flag::AllocFlag,
+    module_comb::{HasId, Id},
+    Buffer, CDatatype, CommonPtrs, PtrType, ShallowCopy,
+};
 
 use self::api::cufree;
 

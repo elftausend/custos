@@ -5,7 +5,8 @@ use crate::{
     cpu::CPUPtr,
     flag::AllocFlag,
     module_comb::{
-        Alloc, Buffer, HasId, HasModules, Module, OnNewBuffer, Retrieve, Retriever, Setup, OnDropBuffer,
+        Alloc, Buffer, HasId, HasModules, Module, OnDropBuffer, OnNewBuffer, Retrieve, Retriever,
+        Setup,
     },
     Shape,
 };
@@ -26,8 +27,8 @@ impl<Mods: OnDropBuffer> Device for CPU<Mods> {
 
 impl<Mods: OnDropBuffer> OnDropBuffer for CPU<Mods> {
     #[inline]
-    fn on_drop<'a, T, D: Device, S: Shape>(&self, device: &'a D, buf: &Buffer<T, D, S>) {
-        self.modules.on_drop(device, buf)
+    fn on_drop_buffer<'a, T, D: Device, S: Shape>(&self, device: &'a D, buf: &Buffer<T, D, S>) {
+        self.modules.on_drop_buffer(device, buf)
     }
 }
 
@@ -95,10 +96,11 @@ impl<Mods> Alloc for CPU<Mods> {
     }
 }
 
-impl<T, D: Device, S: Shape, Mods: OnNewBuffer<T, D, S>> OnNewBuffer<T, D, S> for CPU<Mods>
+impl<T, S: Shape, Mods: OnNewBuffer<T, Self, S> + OnDropBuffer> OnNewBuffer<T, Self, S>
+    for CPU<Mods>
 {
     #[inline]
-    fn on_new_buffer(&self, device: &D, new_buf: &Buffer<T, D, S>) {
+    fn on_new_buffer(&self, device: &Self, new_buf: &Buffer<T, Self, S>) {
         self.modules.on_new_buffer(device, new_buf)
     }
 }

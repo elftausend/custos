@@ -1,7 +1,7 @@
 use core::cell::RefCell;
 
 use crate::{
-    module_comb::{Device, BorrowCache, Buffer, HasId, Id},
+    module_comb::{BorrowCache, Buffer, Device, HasId, Id},
     Shape,
 };
 

@@ -3,7 +3,7 @@ use std::collections::HashMap;
 
 use crate::{
     flag::AllocFlag,
-    module_comb::{Alloc, Buffer, Id, Device},
+    module_comb::{Alloc, Buffer, Device, Id},
     Shape,
 };
 
