@@ -1,4 +1,4 @@
-use crate::Shape;
+use crate::{flag::AllocFlag, PtrType, Shape};
 
 use super::{Alloc, Base, Device, HasId, OnNewBuffer, CPU};
 
@@ -42,6 +42,10 @@ impl<'a, T, D: Device, S: Shape> HasId for Buffer<'a, T, D, S> {
 impl<'a, T, D: Device, S: Shape> Drop for Buffer<'a, T, D, S> {
     #[inline]
     fn drop(&mut self) {
+        if self.data.flag() != AllocFlag::None {
+            return;
+        }
+
         if let Some(device) = self.device {
             device.on_drop_buffer(device, self)
         }

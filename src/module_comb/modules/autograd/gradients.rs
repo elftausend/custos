@@ -1,9 +1,11 @@
-use core::cell::RefCell;
+use core::cell::{Ref, RefCell};
 
 use crate::{
     module_comb::{BorrowCache, Buffer, Device, HasId, Id},
     Shape,
 };
+
+const INVALID_ID: &'static str = "A matching Buffer does not exist.";
 
 /// A cache for gradients.
 /// The cache is populated by `get_ref`, `get_like` or `get_mut_ref` calls.
@@ -22,8 +24,8 @@ impl core::fmt::Debug for Gradients {
 }
 
 type LhsRhsOut<'a, 'b, T, D, S> = (
-    Buffer<'a, T, D, S>,
-    Buffer<'a, T, D, S>,
+    Ref<'b, Buffer<'a, T, D, S>>,
+    Ref<'b, Buffer<'a, T, D, S>>,
     &'b mut Buffer<'a, T, D, S>,
     &'b mut Buffer<'a, T, D, S>,
     &'b Buffer<'a, T, D, S>,
@@ -94,6 +96,20 @@ impl Gradients {
         self.get_ref(buf.device(), buf.id())
     }
 
+    #[inline]
+    pub fn get_buf_from_no_grad_pool<'a, T, S, D>(&self, device: &'a D, id: Id) -> Ref<'_, Buffer<'a, T, D, S>>
+    where
+        T: 'static,
+        S: Shape,
+        D: Device + 'static,
+    {
+        Ref::map(self.no_grads_pool.borrow(), |no_grads_pool| {
+            no_grads_pool
+                .get_buf_with_dev::<T, _, S>(id, device)
+                .expect(INVALID_ID)
+        })
+    }
+
     /// Returns the forward [`Buffer`]s lhs and and rhs, and the gradient `Buffer`s lhs_grad, rhs_grad and out_grad.
     /// Usefull for binary operations.
     #[inline]
@@ -107,24 +123,20 @@ impl Gradients {
         S: Shape,
         D: Device + 'static,
     {
-        todo!("works fine -> no_grads_pool");
-
-        /*
-        self.cache.add_buf_once(device, rid);
-        self.cache.add_buf_once(device, oid);
+        self.cache.add_buf_once::<T, _, S>(device, rid);
+        self.cache.add_buf_once::<T, _, S>(device, oid);
         let lhs_grad_ptr = self.get_mut(device, lid) as *mut _;
         let lhs_grad = unsafe { &mut *lhs_grad_ptr };
 
         let rhs_grad_ptr = self.get_mut(device, rid) as *mut _;
         let rhs_grad = unsafe { &mut *rhs_grad_ptr };
         (
-            // self.no_grads_pool.get_buf(lid)
-            unsafe { device.get_existing_buf(lid) },
-            unsafe { device.get_existing_buf(rid) },
+            self.get_buf_from_no_grad_pool(device, lid),
+            self.get_buf_from_no_grad_pool(device, rid),
             lhs_grad,
             rhs_grad,
             self.may_get_ref(oid).unwrap(),
-        )*/
+        )
     }
 
     /// Returns the forward [`Buffer`] x and the gradient `Buffer`s x_grad and out_grad.
@@ -135,7 +147,7 @@ impl Gradients {
         device: &'a D,
         (xid, oid): (Id, Id),
     ) -> (
-        Buffer<'a, T, D, IS>,
+        Ref<Buffer<'a, T, D, IS>>,
         &mut Buffer<'a, T, D, IS>,
         &Buffer<'a, T, D, OS>,
     )
@@ -145,12 +157,12 @@ impl Gradients {
         OS: Shape,
         D: Device + 'static,
     {
-        self.no_grads_pool.borrow().get_buf::<T, D, IS>(xid);
-        todo!("works fine -> no_grads_pool");
-        /*let x_grad_ptr = self.get_mut(device, xid) as *mut _;
-        let x_grad_mut = unsafe { &mut *x_grad_ptr };
-        let o_grad = self.get_ref(device, oid);
+        self.cache.add_buf_once::<T, _, IS>(device, oid);
 
-        (unsafe { device.get_existing_buf(xid) }, x_grad_mut, o_grad)*/
+        let x_grad_ptr = self.get_mut(device, xid) as *mut _;
+        let x_grad_mut = unsafe { &mut *x_grad_ptr };
+        let o_grad = self.may_get_ref(oid).unwrap();
+
+        (self.get_buf_from_no_grad_pool(device, xid), x_grad_mut, o_grad)
     }
 }

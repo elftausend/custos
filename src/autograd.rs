@@ -235,8 +235,9 @@ where
     }
 
     /// Returns a reference to the gradient of this buffer.
-    /// The lifetime is bound to the lifetime of self, which is more strict.
-    /// If the borrow checker complains, use `grad_unbound` instead.
+    /// The lifetime is bound to the lifetime of self, which is more strict and catches some mistakes at compile-time.
+    /// However, If the borrow checker complains and you are sure that everything should be fine, use `grad_unbound` instead.
+    /// 
     /// Panics if the gradient was not allocated.
     #[inline]
     pub fn grad(&self) -> Ref<Self> {
@@ -244,7 +245,7 @@ where
     }
 
     /// Returns a reference to the gradient of this buffer.
-    /// Lifetimes are checked during runtime.
+    /// Lifetimes are checked during runtime with `RefCell`.
     /// Panics if the gradient was not allocated.
     #[inline]
     pub fn grad_unbound(&self) -> Ref<'a, Self> {

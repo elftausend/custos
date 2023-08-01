@@ -71,6 +71,20 @@ impl BorrowCache {
     }
 
     #[inline]
+    pub fn get_buf_with_dev<'a, 'b, T, D, S>(
+        &'b self,
+        id: Id,
+        _dev: &'a D,
+    ) -> Option<&'b Buffer<'a, T, D, S>>
+    where
+        T: 'static,
+        D: Device + 'static,
+        S: Shape,
+    {
+        self.cache.get(&id)?.downcast_ref()
+    }
+
+    #[inline]
     pub fn get_buf<'a, T, D, S>(&self, id: Id) -> Option<&Buffer<'a, T, D, S>>
     where
         T: 'static,

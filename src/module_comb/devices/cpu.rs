@@ -5,8 +5,8 @@ use crate::{
     cpu::CPUPtr,
     flag::AllocFlag,
     module_comb::{
-        Alloc, Buffer, HasId, HasModules, Module, OnDropBuffer, OnNewBuffer, Retrieve, Retriever,
-        Setup, CachedModule, Base, Cached,
+        Alloc, Base, Buffer, Cached, CachedModule, HasId, HasModules, Module, OnDropBuffer,
+        OnNewBuffer, Retrieve, Retriever, Setup,
     },
     Shape,
 };

@@ -1,4 +1,4 @@
-use crate::{flag::AllocFlag, Shape, StackArray};
+use crate::{flag::AllocFlag, PtrType, Shape, StackArray};
 
 mod features;
 pub use features::*;
@@ -33,7 +33,7 @@ pub fn location() -> &'static core::panic::Location<'static> {
 }
 
 pub trait Alloc: Sized {
-    type Data<T, S: Shape>: HasId;
+    type Data<T, S: Shape>: HasId + PtrType;
 
     fn alloc<T, S: Shape>(&self, len: usize, flag: AllocFlag) -> Self::Data<T, S>;
     fn alloc_from_slice<T, S: Shape>(&self, data: &[T]) -> Self::Data<T, S>

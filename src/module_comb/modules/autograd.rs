@@ -8,9 +8,10 @@ use core::{any::Any, hash::BuildHasher, mem::transmute};
 use std::collections::HashMap;
 
 use crate::{
+    flag::AllocFlag,
     module_comb::{
-        Alloc, Buffer, Device, HasId, Id, Module, OnDropBuffer, OnNewBuffer, Retrieve, Setup,
-        UniqueId,
+        Alloc, Buffer, Device, HasId, Id, Module, OnDropBuffer, OnNewBuffer, PtrConv, Retrieve,
+        Setup, UniqueId,
     },
     Shape,
 };
@@ -27,10 +28,15 @@ pub unsafe fn register_buf<'a, T, D, S>(
     buf: &'a Buffer<T, D, S>,
 ) where
     T: 'static,
-    D: Device + 'static,
+    D: Device + PtrConv + 'static,
     S: Shape,
 {
-    let buf: &'static Buffer<T, D, S> = transmute(buf);
+    let wrapped_data = D::convert::<T, S, T, S>(&buf.data, AllocFlag::Wrapper);
+    let buf = Buffer {
+        data: wrapped_data,
+        device: buf.device,
+    };
+    let buf: Buffer<'static, T, D, S> = transmute(buf);
     cache.insert(*buf.id(), Box::new(buf));
 }
 
@@ -42,7 +48,7 @@ pub fn unregister_buf(cache: &mut HashMap<UniqueId, Box<dyn Any>, impl BuildHash
 impl<T, D, S, Mods> OnNewBuffer<T, D, S> for Autograd<Mods>
 where
     T: 'static,
-    D: Device + 'static,
+    D: Device + PtrConv + 'static,
     S: Shape,
     Mods: OnNewBuffer<T, D, S>,
 {
@@ -94,10 +100,10 @@ impl<Mods: Retrieve<D>, D> Retrieve<D> for Autograd<Mods> {
 
 #[cfg(test)]
 mod tests {
-    use core::{any::{Any, TypeId}, mem::transmute};
+    use core::any::Any;
 
     use crate::{
-        module_comb::{Base, BorrowCache, Buffer, Cached, Device, HasId, Id, CPU, CachedModule},
+        module_comb::{Base, Buffer, Cached, Device, HasId, CPU},
         Shape,
     };
 
@@ -108,41 +114,51 @@ mod tests {
         buf_any: &'b Box<dyn Any>,
         _device: &'a D,
     ) -> Option<&'b Buffer<'a, T, D, S>> {
-        buf_any.downcast_ref::<&Buffer<T, D, S>>().copied()
-    }
-
-    pub fn get_buf_with_dev<'a, 'b, T, D, S>(
-        _device: &'a D,
-        no_grads_pool: &'b BorrowCache,
-        id: Id,
-    ) -> Option<&'b Buffer<'a, T, D, S>>
-    where
-        T: 'static,
-        D: Device + 'static,
-        S: Shape + 'static,
-    {
-        no_grads_pool.get_buf(id)
+        buf_any.downcast_ref::<Buffer<T, D, S>>()
     }
 
     #[test]
-    fn test_buffer_creation_autograd_register() {
+    fn test_buffer_creation_autograd_register_manual() {
         let device = CPU::<Cached<Autograd<Base>>>::new();
-        let mut buf: Buffer<f32, _> = Buffer::<f32, _>::new(&device, 10);
+        let buf: Buffer<f32, _> = Buffer::<f32, _>::new(&device, 10);
 
         let autograd = &device.modules.modules;
         {
-            
             let no_grads_pool = autograd.grads.no_grads_pool.borrow_mut();
             let buf_any = no_grads_pool.cache.get(&buf.id()).unwrap();
 
             let buf1 = downcast_val::<f32, _, ()>(buf_any, &device).unwrap();
-
-            // no borrow checks
-            &mut buf;
-            
-            drop(no_grads_pool)
+            assert_eq!(buf1.data.ptr, buf.data.ptr);
         }
+    }
+
+    #[test]
+    fn test_buffer_creation_autograd_get_buf() {
+        let device = CPU::<Cached<Autograd<Base>>>::new();
+        let buf: Buffer<f32, _> = Buffer::<f32, _>::new(&device, 10);
+
+        let autograd = &device.modules.modules;
+        {
+            let no_grads_pool = autograd.grads.no_grads_pool.borrow_mut();
+            let buf1 = no_grads_pool
+                .get_buf_with_dev::<f32, _, ()>(buf.id(), &device)
+                .unwrap();
+            assert_eq!(buf1.data.ptr, buf.data.ptr);
+        }
+    }
+
+    #[test]
+    fn test_buffer_creation_autograd_unregister() {
+        let device = CPU::<Cached<Autograd<Base>>>::new();
+        let buf: Buffer<f32, _> = Buffer::<f32, _>::new(&device, 10);
+        let id = buf.id();
+        let autograd = &device.modules.modules;
+
         drop(buf);
-        drop(device);
+
+        {
+            let no_grads_pool = autograd.grads.no_grads_pool.borrow_mut();
+            assert!(no_grads_pool.cache.get(&id).is_none());
+        }
     }
 }
