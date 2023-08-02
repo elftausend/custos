@@ -47,6 +47,15 @@ impl<Mods: OnDropBuffer, D> Retrieve<D> for Lazy<Mods> {
     {
         todo!()
     }
+
+    fn on_retrieve_finish<T, S: Shape>(&self, retrieved_buf: &Buffer<T, D, S>)
+    where
+        T: 'static,
+        D: Device 
+    {
+        // pass down
+        todo!()
+    }
 }
 
 #[cfg(test)]

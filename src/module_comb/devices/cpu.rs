@@ -116,10 +116,12 @@ impl<Mods: Retrieve<Self>> Retriever for CPU<Mods> {
     #[inline]
     fn retrieve<T: 'static, S: Shape>(&self, len: usize) -> Buffer<T, Self, S> {
         let data = self.modules.retrieve::<T, S>(self, len);
-        Buffer {
+        let buf = Buffer {
             data,
             device: Some(self),
             // id: LocationId::new()
-        }
+        };
+        self.modules.on_retrieve_finish(&buf);
+        buf
     }
 }

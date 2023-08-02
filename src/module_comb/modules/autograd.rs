@@ -94,7 +94,6 @@ impl<Mods: Module<D>, D: Alloc> Module<D> for Autograd<Mods> {
 
     #[inline]
     fn new() -> Self::Module {
-        
         Autograd {
             modules: Cached::<Mods>::new(),
             grads: Gradients::default(),
@@ -118,19 +117,17 @@ where
     where
         D: Alloc,
     {
-        let data = self.modules.retrieve(device, len);
+        self.modules.retrieve(device, len)
+    }
 
-        // module specific action: could probably generalize this better
-        {
-            let buf = Buffer {
-                data: unsafe { D::convert::<T, S, T, S>(&data, AllocFlag::Wrapper) },
-                device: Some(device),
-            };
-    
-            self.register_no_grad_buf(&buf);
-        }
-        
-        data
+    #[inline]
+    fn on_retrieve_finish<T, S: Shape>(&self, retrieved_buf: &Buffer<T, D, S>)
+    where
+        T: 'static,
+        D: Device 
+    {
+        self.register_no_grad_buf(retrieved_buf);
+        self.modules.on_retrieve_finish(retrieved_buf)
     }
 }
 
@@ -215,8 +212,15 @@ mod tests {
     
     #[test]
     fn test_cached_before_autograd() {
-        // TODO: is a cached module is placed before Autograd results a problem
+        // is a cached module is placed before Autograd results a problem
         // -> the retrieved buffer is not added to the no grads pool of the autograd module
         let device = CPU::<Cached<Autograd<Base>>>::new();
+
+        // how to fix this:
+        // add retrieved buffer to no grads pool at the end of the chain (at device level (Retriever trait))
+        // => "generator", "actor"
+
+        // append ad AddGrad fn
+
     }
 }

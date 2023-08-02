@@ -63,12 +63,21 @@ impl<Mods: OnDropBuffer, SD: Alloc> OnDropBuffer for CachedModule<Mods, SD> {
 }
 
 // TODO: a more general OnDropBuffer => "Module"
-impl<Mods: OnDropBuffer, D: Alloc + PtrConv<SimpleDevice>, SimpleDevice: Alloc + PtrConv<D>>
+impl<Mods: Retrieve<D>, D: Alloc + PtrConv<SimpleDevice>, SimpleDevice: Alloc + PtrConv<D>>
     Retrieve<D> for CachedModule<Mods, SimpleDevice>
 {
     #[inline]
     fn retrieve<T, S: Shape>(&self, device: &D, len: usize) -> D::Data<T, S> {
         self.cache.borrow_mut().get(device, len, || ())
+    }
+
+    #[inline]
+    fn on_retrieve_finish<T, S: Shape>(&self, retrieved_buf: &Buffer<T, D, S>)
+    where
+        T: 'static,
+        D: Device 
+    {
+        self.modules.on_retrieve_finish(retrieved_buf)
     }
 }
 
