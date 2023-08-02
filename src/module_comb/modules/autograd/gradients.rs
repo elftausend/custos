@@ -97,7 +97,11 @@ impl Gradients {
     }
 
     #[inline]
-    pub fn get_buf_from_no_grad_pool<'a, T, S, D>(&self, device: &'a D, id: Id) -> Ref<'_, Buffer<'a, T, D, S>>
+    pub fn get_buf_from_no_grad_pool<'a, T, S, D>(
+        &self,
+        device: &'a D,
+        id: Id,
+    ) -> Ref<'_, Buffer<'a, T, D, S>>
     where
         T: 'static,
         S: Shape,
@@ -163,6 +167,10 @@ impl Gradients {
         let x_grad_mut = unsafe { &mut *x_grad_ptr };
         let o_grad = self.may_get_ref(oid).unwrap();
 
-        (self.get_buf_from_no_grad_pool(device, xid), x_grad_mut, o_grad)
+        (
+            self.get_buf_from_no_grad_pool(device, xid),
+            x_grad_mut,
+            o_grad,
+        )
     }
 }

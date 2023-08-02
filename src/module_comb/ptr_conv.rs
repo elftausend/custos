@@ -13,6 +13,7 @@ pub trait PtrConv<D: Alloc = Self>: Alloc {
 
 // impl for all devices
 impl<Mods, OtherMods> PtrConv<CPU<OtherMods>> for CPU<Mods> {
+    #[inline]
     unsafe fn convert<T, IS: Shape, Conv, OS: Shape>(
         data: &CPUPtr<T>,
         flag: AllocFlag,

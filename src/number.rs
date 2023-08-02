@@ -91,7 +91,7 @@ typical_number_impl! {
 
 /// Numeric is a trait that is implemented for all numeric types.
 pub trait Numeric:
-    Sized + Default + Copy + PartialOrd + PartialEq + core::fmt::Debug + core::fmt::Display
+    Sized + Default + Copy + PartialOrd + PartialEq + core::fmt::Debug + core::fmt::Display + 'static
 {
 }
 

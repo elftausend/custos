@@ -76,7 +76,7 @@ pub trait Setup<D> {
 
 pub trait Retriever: Device {
     #[track_caller]
-    fn retrieve<T, S: Shape>(&self, len: usize) -> Buffer<T, Self, S>;
+    fn retrieve<T: 'static, S: Shape>(&self, len: usize) -> Buffer<T, Self, S>;
 }
 
 #[cfg(test)]

@@ -45,6 +45,18 @@ pub fn unregister_buf(cache: &mut HashMap<UniqueId, Box<dyn Any>, impl BuildHash
     cache.remove(&id);
 }
 
+impl<Mods> Autograd<Mods> {
+    #[inline]
+    pub fn register_no_grad_buf<T, D, S>(&self, buf: &Buffer<T, D, S>)
+    where
+        T: 'static,
+        D: Device + PtrConv + 'static,
+        S: Shape,
+    {
+        unsafe { register_buf(&mut self.grads.no_grads_pool.borrow_mut().cache, buf) };
+    }
+}
+
 impl<T, D, S, Mods> OnNewBuffer<T, D, S> for Autograd<Mods>
 where
     T: 'static,
@@ -54,7 +66,7 @@ where
 {
     #[inline]
     fn on_new_buffer(&self, device: &D, new_buf: &Buffer<T, D, S>) {
-        unsafe { register_buf(&mut self.grads.no_grads_pool.borrow_mut().cache, new_buf) };
+        self.register_no_grad_buf(new_buf);
 
         // pass down
         self.modules.on_new_buffer(device, new_buf)
@@ -88,13 +100,28 @@ impl<Mods: Setup<NewDev>, NewDev> Setup<NewDev> for Autograd<Mods> {
     }
 }
 
-impl<Mods: Retrieve<D>, D> Retrieve<D> for Autograd<Mods> {
+impl<Mods: Retrieve<D>, D> Retrieve<D> for Autograd<Mods>
+where
+    D: PtrConv + Device + 'static,
+{
     #[inline]
-    fn retrieve<T, S: crate::Shape>(&self, device: &D, len: usize) -> <D>::Data<T, S>
+    fn retrieve<T: 'static, S: crate::Shape>(&self, device: &D, len: usize) -> <D>::Data<T, S>
     where
         D: Alloc,
     {
-        self.modules.retrieve(device, len)
+        let data = self.modules.retrieve(device, len);
+
+        // module specific action: could probably generalize this better
+        {
+            let buf = Buffer {
+                data: unsafe { D::convert::<T, S, T, S>(&data, AllocFlag::Wrapper) },
+                device: Some(device),
+            };
+    
+            self.register_no_grad_buf(&buf);
+        }
+        
+        data
     }
 }
 
@@ -103,7 +130,7 @@ mod tests {
     use core::any::Any;
 
     use crate::{
-        module_comb::{Base, Buffer, Cached, Device, HasId, CPU},
+        module_comb::{Base, Buffer, Cached, Device, HasId, CPU, Retriever},
         Shape,
     };
 
@@ -159,6 +186,17 @@ mod tests {
         {
             let no_grads_pool = autograd.grads.no_grads_pool.borrow_mut();
             assert!(no_grads_pool.cache.get(&id).is_none());
+        }
+    }
+
+    #[test]
+    fn test_buffer_new_and_retrieve() {
+        let device = CPU::<Autograd<Base>>::new();
+        let _lhs = Buffer::<f32, _>::new(&device, 10);
+        
+        for _ in 0..100 {
+            let x = device.retrieve::<f32, ()>(100);
+            assert_eq!(x.len(), 100)
         }
     }
 }

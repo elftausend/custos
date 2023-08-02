@@ -30,6 +30,22 @@ impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
         self.device
             .expect("Called device() on a deviceless buffer.")
     }
+
+    /// Returns the number of elements contained in `Buffer`.
+    /// # Example
+    #[cfg_attr(feature = "cpu", doc = "```")]
+    #[cfg_attr(not(feature = "cpu"), doc = "```ignore")]
+    /// use custos::module_comb::{Base, CPU, Buffer};
+    ///
+    /// let device = CPU::<Base>::new();
+    /// let a = Buffer::<i32, _>::new(&device, 10);
+    /// assert_eq!(a.len(), 10)
+    /// ```
+    #[inline]
+    pub fn len(&self) -> usize {
+        self.data.size()
+    }
+
 }
 
 impl<'a, T, D: Device, S: Shape> HasId for Buffer<'a, T, D, S> {

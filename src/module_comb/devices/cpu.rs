@@ -114,7 +114,7 @@ impl<T, S: Shape, Mods: OnNewBuffer<T, Self, S> + OnDropBuffer> OnNewBuffer<T, S
 
 impl<Mods: Retrieve<Self>> Retriever for CPU<Mods> {
     #[inline]
-    fn retrieve<T, S: Shape>(&self, len: usize) -> Buffer<T, Self, S> {
+    fn retrieve<T: 'static, S: Shape>(&self, len: usize) -> Buffer<T, Self, S> {
         let data = self.modules.retrieve::<T, S>(self, len);
         Buffer {
             data,
