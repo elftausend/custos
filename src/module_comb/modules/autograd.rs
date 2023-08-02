@@ -16,6 +16,8 @@ use crate::{
     Shape,
 };
 
+use super::{CachedModule, Cached};
+
 #[derive(Debug, Default)]
 pub struct Autograd<Mods> {
     modules: Mods,
@@ -53,7 +55,13 @@ impl<Mods> Autograd<Mods> {
         D: Device + PtrConv + 'static,
         S: Shape,
     {
-        unsafe { register_buf(&mut self.grads.no_grads_pool.borrow_mut().cache, buf) };
+        let no_grads_pool = &mut self.grads.no_grads_pool.borrow_mut().cache;
+
+        if no_grads_pool.get(&buf.id()).is_some() {
+            return;
+        }
+
+        unsafe { register_buf(no_grads_pool, buf) };
     }
 }
 
@@ -81,13 +89,14 @@ impl<Mods: OnDropBuffer> OnDropBuffer for Autograd<Mods> {
     }
 }
 
-impl<Mods: Module<D>, D> Module<D> for Autograd<Mods> {
-    type Module = Autograd<Mods::Module>;
+impl<Mods: Module<D>, D: Alloc> Module<D> for Autograd<Mods> {
+    type Module = Autograd<CachedModule<Mods::Module, D>>;
 
     #[inline]
     fn new() -> Self::Module {
+        
         Autograd {
-            modules: Mods::new(),
+            modules: Cached::<Mods>::new(),
             grads: Gradients::default(),
         }
     }
@@ -146,10 +155,10 @@ mod tests {
 
     #[test]
     fn test_buffer_creation_autograd_register_manual() {
-        let device = CPU::<Cached<Autograd<Base>>>::new();
+        let device = CPU::<Autograd<Base>>::new();
         let buf: Buffer<f32, _> = Buffer::<f32, _>::new(&device, 10);
 
-        let autograd = &device.modules.modules;
+        let autograd = &device.modules;
         {
             let no_grads_pool = autograd.grads.no_grads_pool.borrow_mut();
             let buf_any = no_grads_pool.cache.get(&buf.id()).unwrap();
@@ -161,10 +170,10 @@ mod tests {
 
     #[test]
     fn test_buffer_creation_autograd_get_buf() {
-        let device = CPU::<Cached<Autograd<Base>>>::new();
+        let device = CPU::<Autograd<Base>>::new();
         let buf: Buffer<f32, _> = Buffer::<f32, _>::new(&device, 10);
 
-        let autograd = &device.modules.modules;
+        let autograd = &device.modules;
         {
             let no_grads_pool = autograd.grads.no_grads_pool.borrow_mut();
             let buf1 = no_grads_pool
@@ -176,10 +185,10 @@ mod tests {
 
     #[test]
     fn test_buffer_creation_autograd_unregister() {
-        let device = CPU::<Cached<Autograd<Base>>>::new();
+        let device = CPU::<Autograd<Base>>::new();
         let buf: Buffer<f32, _> = Buffer::<f32, _>::new(&device, 10);
         let id = buf.id();
-        let autograd = &device.modules.modules;
+        let autograd = &device.modules;
 
         drop(buf);
 
@@ -198,5 +207,16 @@ mod tests {
             let x = device.retrieve::<f32, ()>(100);
             assert_eq!(x.len(), 100)
         }
+
+        let no_grads_pool = device.modules.grads.no_grads_pool.borrow();
+        assert_eq!(no_grads_pool.cache.len(), 2);
+    }
+
+    
+    #[test]
+    fn test_cached_before_autograd() {
+        // TODO: is a cached module is placed before Autograd results a problem
+        // -> the retrieved buffer is not added to the no grads pool of the autograd module
+        let device = CPU::<Cached<Autograd<Base>>>::new();
     }
 }
