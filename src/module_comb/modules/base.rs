@@ -1,6 +1,6 @@
 use crate::{
     flag::AllocFlag,
-    module_comb::{Alloc, Device, Module, OnDropBuffer, OnNewBuffer, Retrieve, Setup},
+    module_comb::{Alloc, Device, Module, OnDropBuffer, OnNewBuffer, Retrieve, Setup, TapeActions},
     Shape,
 };
 
@@ -31,3 +31,5 @@ impl<D> Retrieve<D> for Base {
         device.alloc(len, AllocFlag::None)
     }
 }
+
+impl TapeActions for Base {}

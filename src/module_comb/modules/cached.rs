@@ -2,7 +2,7 @@ use core::{cell::RefCell, marker::PhantomData};
 
 use crate::{
     module_comb::{
-        Alloc, Buffer, Cache, Device, Module, OnDropBuffer, OnNewBuffer, PtrConv, Retrieve, Setup,
+        Alloc, Buffer, Cache, Device, Module, OnDropBuffer, OnNewBuffer, PtrConv, Retrieve, Setup, TapeActions,
     },
     Shape,
 };
@@ -78,6 +78,18 @@ impl<Mods: Retrieve<D>, D: Alloc + PtrConv<SimpleDevice>, SimpleDevice: Alloc + 
         D: Device 
     {
         self.modules.on_retrieve_finish(retrieved_buf)
+    }
+}
+
+impl<Mods: TapeActions, SD: Alloc> TapeActions for CachedModule<Mods, SD> {
+    #[inline]
+    fn tape(&self) -> Option<core::cell::Ref<super::Tape>> {
+        self.modules.tape()
+    }
+
+    #[inline]
+    fn tape_mut(&self) -> Option<core::cell::RefMut<super::Tape>> {
+        self.modules.tape_mut()
     }
 }
 

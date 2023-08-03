@@ -34,8 +34,16 @@ pub trait HasModules<Mods> {
 }
 
 pub trait TapeActions {
-    fn tape(&self) -> Option<Ref<Tape>>;
-    fn tape_mut(&self) -> Option<RefMut<Tape>>;
+    // "generator" - do not forget to pass down
+    #[inline]
+    fn tape(&self) -> Option<Ref<Tape>> {
+        None
+    }
+    // "generator" - do not forget to pass down
+    #[inline]
+    fn tape_mut(&self) -> Option<RefMut<Tape>> {
+        None
+    }
 
     // use track caller to identify a specific grad function 
     //-> if backward is not called (.drain()), the grad fn vector will gradually fill up
