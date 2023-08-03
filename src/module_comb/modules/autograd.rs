@@ -208,7 +208,6 @@ mod tests {
         let no_grads_pool = device.modules.grads.no_grads_pool.borrow();
         assert_eq!(no_grads_pool.cache.len(), 2);
     }
-
     
     #[test]
     fn test_cached_before_autograd() {
@@ -220,7 +219,15 @@ mod tests {
         // add retrieved buffer to no grads pool at the end of the chain (at device level (Retriever trait))
         // => "generator", "actor"
 
-        // append ad AddGrad fn
+        let _lhs = Buffer::<f32, _>::new(&device, 10);
+        
+        for _ in 0..100 {
+            let x = device.retrieve::<f32, ()>(100);
+            assert_eq!(x.len(), 100)
+        }
+
+        let no_grads_pool = device.modules.modules.grads.no_grads_pool.borrow();
+        assert_eq!(no_grads_pool.cache.len(), 2);
 
     }
 }

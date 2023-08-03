@@ -27,6 +27,9 @@ pub use id::*;
 mod hooks;
 pub use hooks::*;
 
+mod op_traits;
+pub use op_traits::*;
+
 #[cfg(test)]
 pub fn location() -> &'static core::panic::Location<'static> {
     core::panic::Location::caller()
@@ -77,6 +80,14 @@ pub trait Setup<D> {
 pub trait Retriever: Device {
     #[track_caller]
     fn retrieve<T: 'static, S: Shape>(&self, len: usize) -> Buffer<T, Self, S>;
+}
+
+/// Devices that can access the main memory / RAM of the host.
+pub trait MainMemory: Device {
+    /// Returns the respective immutable host memory pointer
+    fn as_ptr<T, S: Shape>(ptr: &Self::Data<T, S>) -> *const T;
+    /// Returns the respective mutable host memory pointer
+    fn as_ptr_mut<T, S: Shape>(ptr: &mut Self::Data<T, S>) -> *mut T;
 }
 
 #[cfg(test)]

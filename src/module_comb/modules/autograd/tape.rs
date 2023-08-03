@@ -1,5 +1,5 @@
 use crate::{
-    module_comb::{Alloc, Buffer, Device},
+    module_comb::{Alloc, Buffer, Device, WriteBuf, HasId},
     prelude::One,
     Shape,
 };
@@ -31,7 +31,6 @@ impl Tape {
         }
     }
 
-    /*
     /// Backward pass with seeded gradient.
     /// The seed of the gradient contains `buf.len()` elements, all of them are set to 1.
     pub fn backward_seeded<T, D: Device, S: Shape>(&mut self, buf: &Buffer<T, D, S>)
@@ -39,11 +38,9 @@ impl Tape {
         T: Clone + One + 'static,
         D: Alloc + WriteBuf<T, S, D> + 'static,
     {
-        // TODO // TODO
-        //let mut out = self.grads.get_like::<T, S>(buf);
-        let out = self.grads.get_mut::<T, S>(buf.device(), buf.id());
+        let out = self.grads.get_mut::<T, S, D>(buf.device(), buf.id());
         out.write(&vec![T::one(); out.len()]);
 
         self.backward(buf.device())
-    }*/
+    }
 }

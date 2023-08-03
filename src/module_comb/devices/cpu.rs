@@ -6,7 +6,7 @@ use crate::{
     flag::AllocFlag,
     module_comb::{
         Alloc, Base, Buffer, Cached, CachedModule, HasId, HasModules, Module, OnDropBuffer,
-        OnNewBuffer, Retrieve, Retriever, Setup,
+        OnNewBuffer, Retrieve, Retriever, Setup, MainMemory,
     },
     Shape,
 };
@@ -29,6 +29,18 @@ impl<Mods: OnDropBuffer> Device for CPU<Mods> {
     fn new() -> Result<Self, Self::Error> {
         todo!()
         // Ok(CPU::new())
+    }
+}
+
+impl<Mods: OnDropBuffer> MainMemory for CPU<Mods> {
+    #[inline]
+    fn as_ptr<T, S: Shape>(ptr: &Self::Data<T, S>) -> *const T {
+        ptr.ptr
+    }
+
+    #[inline]
+    fn as_ptr_mut<T, S: Shape>(ptr: &mut Self::Data<T, S>) -> *mut T {
+        ptr.ptr
     }
 }
 

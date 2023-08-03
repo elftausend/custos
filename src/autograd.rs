@@ -212,7 +212,6 @@ impl<D: Device> Tape<D> {
         T: Clone + One + 'static,
         D: for<'a> Alloc<'a, T, S> + WriteBuf<T, S, D> + 'static,
     {
-        // TODO // TODO
         //let mut out = self.grads.get_like::<T, S>(buf);
         let out = self.grads.get_mut::<T, S>(buf.device(), buf.id());
         out.write(&vec![T::one(); out.len()]);
