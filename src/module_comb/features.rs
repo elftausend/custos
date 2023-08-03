@@ -1,6 +1,8 @@
+use core::cell::{Ref, RefMut};
+
 use crate::Shape;
 
-use super::{Alloc, GradFn, OnDropBuffer, Buffer, Device};
+use super::{Alloc, GradFn, OnDropBuffer, Buffer, Device, Tape};
 
 pub trait Feature: OnDropBuffer {}
 
@@ -31,6 +33,16 @@ pub trait HasModules<Mods> {
     fn modules(&self) -> &Mods;
 }
 
-pub trait AddGradFn<D> {
-    fn add_grad_fn(&self, device: &D, grad_fn: GradFn);
+pub trait TapeActions {
+    fn tape(&self) -> Option<Ref<Tape>>;
+    fn tape_mut(&self) -> Option<RefMut<Tape>>;
+
+    // use track caller to identify a specific grad function 
+    //-> if backward is not called (.drain()), the grad fn vector will gradually fill up
+    #[track_caller]
+    fn add_grad_fn<D>(&self, _device: &D, grad_fn: GradFn) {
+        if let Some(mut tape) = self.tape_mut() {
+            tape.add_grad_fn(grad_fn)
+        }
+    }
 }

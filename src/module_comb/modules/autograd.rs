@@ -4,14 +4,14 @@ mod tape;
 pub use gradients::*;
 pub use tape::*;
 
-use core::{any::Any, hash::BuildHasher, mem::transmute};
+use core::{any::Any, hash::BuildHasher, mem::transmute, cell::RefCell};
 use std::collections::HashMap;
 
 use crate::{
     flag::AllocFlag,
     module_comb::{
         Alloc, Buffer, Device, HasId, Id, Module, OnDropBuffer, OnNewBuffer, PtrConv, Retrieve,
-        Setup, UniqueId,
+        Setup, UniqueId, TapeActions,
     },
     Shape,
 };
@@ -21,7 +21,7 @@ use super::{CachedModule, Cached};
 #[derive(Debug, Default)]
 pub struct Autograd<Mods> {
     modules: Mods,
-    grads: Gradients,
+    tape: RefCell<Tape>,
 }
 
 #[inline]
@@ -55,7 +55,7 @@ impl<Mods> Autograd<Mods> {
         D: Device + PtrConv + 'static,
         S: Shape,
     {
-        let no_grads_pool = &mut self.grads.no_grads_pool.borrow_mut().cache;
+        let no_grads_pool = &mut self.tape.borrow_mut().grads.no_grads_pool.cache;
 
         if no_grads_pool.get(&buf.id()).is_some() {
             return;
@@ -84,7 +84,7 @@ where
 impl<Mods: OnDropBuffer> OnDropBuffer for Autograd<Mods> {
     #[inline]
     fn on_drop_buffer<'a, T, D: Device, S: Shape>(&self, device: &'a D, buf: &Buffer<T, D, S>) {
-        unregister_buf(&mut self.grads.no_grads_pool.borrow_mut().cache, buf.id());
+        unregister_buf(&mut self.tape.borrow_mut().grads.no_grads_pool.cache, buf.id());
         self.modules.on_drop_buffer(device, buf)
     }
 }
@@ -96,7 +96,7 @@ impl<Mods: Module<D>, D: Alloc> Module<D> for Autograd<Mods> {
     fn new() -> Self::Module {
         Autograd {
             modules: Cached::<Mods>::new(),
-            grads: Gradients::default(),
+            tape: Default::default(),
         }
     }
 }
@@ -131,6 +131,18 @@ where
     }
 }
 
+impl<Mods> TapeActions for Autograd<Mods> {
+    #[inline]
+    fn tape(&self) -> Option<core::cell::Ref<Tape>> {
+        Some(self.tape.borrow())
+    }
+
+    #[inline]
+    fn tape_mut(&self) -> Option<core::cell::RefMut<Tape>> {
+        Some(self.tape.borrow_mut())
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use core::any::Any;
@@ -157,7 +169,7 @@ mod tests {
 
         let autograd = &device.modules;
         {
-            let no_grads_pool = autograd.grads.no_grads_pool.borrow_mut();
+            let no_grads_pool = &mut autograd.tape.borrow_mut().grads.no_grads_pool;
             let buf_any = no_grads_pool.cache.get(&buf.id()).unwrap();
 
             let buf1 = downcast_val::<f32, _, ()>(buf_any, &device).unwrap();
@@ -172,7 +184,7 @@ mod tests {
 
         let autograd = &device.modules;
         {
-            let no_grads_pool = autograd.grads.no_grads_pool.borrow_mut();
+            let no_grads_pool = &mut autograd.tape.borrow_mut().grads.no_grads_pool;
             let buf1 = no_grads_pool
                 .get_buf_with_dev::<f32, _, ()>(buf.id(), &device)
                 .unwrap();
@@ -190,7 +202,7 @@ mod tests {
         drop(buf);
 
         {
-            let no_grads_pool = autograd.grads.no_grads_pool.borrow_mut();
+            let no_grads_pool = &autograd.tape.borrow_mut().grads.no_grads_pool;
             assert!(no_grads_pool.cache.get(&id).is_none());
         }
     }
@@ -205,7 +217,7 @@ mod tests {
             assert_eq!(x.len(), 100)
         }
 
-        let no_grads_pool = device.modules.grads.no_grads_pool.borrow();
+        let no_grads_pool = &device.modules.tape.borrow().grads.no_grads_pool;
         assert_eq!(no_grads_pool.cache.len(), 2);
     }
     
@@ -226,8 +238,7 @@ mod tests {
             assert_eq!(x.len(), 100)
         }
 
-        let no_grads_pool = device.modules.modules.grads.no_grads_pool.borrow();
+        let no_grads_pool = &device.modules.modules.tape.borrow().grads.no_grads_pool;
         assert_eq!(no_grads_pool.cache.len(), 2);
-
     }
 }

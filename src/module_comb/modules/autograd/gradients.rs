@@ -1,5 +1,3 @@
-use core::cell::{Ref, RefCell};
-
 use crate::{
     module_comb::{BorrowCache, Buffer, Device, HasId, Id},
     Shape,
@@ -12,7 +10,7 @@ const INVALID_ID: &'static str = "A matching Buffer does not exist.";
 #[derive(Default)]
 pub struct Gradients {
     pub cache: BorrowCache,
-    pub no_grads_pool: RefCell<BorrowCache>,
+    pub no_grads_pool: BorrowCache,
 }
 
 impl core::fmt::Debug for Gradients {
@@ -24,8 +22,8 @@ impl core::fmt::Debug for Gradients {
 }
 
 type LhsRhsOut<'a, 'b, T, D, S> = (
-    Ref<'b, Buffer<'a, T, D, S>>,
-    Ref<'b, Buffer<'a, T, D, S>>,
+    &'b Buffer<'a, T, D, S>,
+    &'b Buffer<'a, T, D, S>,
     &'b mut Buffer<'a, T, D, S>,
     &'b mut Buffer<'a, T, D, S>,
     &'b Buffer<'a, T, D, S>,
@@ -101,17 +99,14 @@ impl Gradients {
         &self,
         device: &'a D,
         id: Id,
-    ) -> Ref<'_, Buffer<'a, T, D, S>>
+    ) -> &Buffer<'a, T, D, S>
     where
         T: 'static,
         S: Shape,
         D: Device + 'static,
     {
-        Ref::map(self.no_grads_pool.borrow(), |no_grads_pool| {
-            no_grads_pool
-                .get_buf_with_dev::<T, _, S>(id, device)
-                .expect(INVALID_ID)
-        })
+        self.no_grads_pool.get_buf_with_dev::<T, _, S>(id, device)
+        .expect(INVALID_ID)
     }
 
     /// Returns the forward [`Buffer`]s lhs and and rhs, and the gradient `Buffer`s lhs_grad, rhs_grad and out_grad.
@@ -151,7 +146,7 @@ impl Gradients {
         device: &'a D,
         (xid, oid): (Id, Id),
     ) -> (
-        Ref<Buffer<'a, T, D, IS>>,
+        &Buffer<'a, T, D, IS>,
         &mut Buffer<'a, T, D, IS>,
         &Buffer<'a, T, D, OS>,
     )
