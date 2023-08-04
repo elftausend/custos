@@ -4,16 +4,16 @@ mod tape;
 pub use gradients::*;
 pub use tape::*;
 
-use core::{any::Any, hash::BuildHasher, mem::transmute, cell::RefCell};
+use core::{any::Any, hash::BuildHasher, mem::transmute, cell::{RefCell, Ref, RefMut}};
 use std::collections::HashMap;
 
 use crate::{
     flag::AllocFlag,
     module_comb::{
         Alloc, Buffer, Device, HasId, Id, Module, OnDropBuffer, OnNewBuffer, PtrConv, Retrieve,
-        Setup, UniqueId, TapeActions,
+        Setup, UniqueId, TapeActions, WriteBuf,
     },
-    Shape,
+    Shape, prelude::One,
 };
 
 use super::{CachedModule, Cached};
@@ -140,6 +140,67 @@ impl<Mods> TapeActions for Autograd<Mods> {
     #[inline]
     fn tape_mut(&self) -> Option<core::cell::RefMut<Tape>> {
         Some(self.tape.borrow_mut())
+    }
+}
+
+const AUTOGRAD_NOT_AVAILABLE: &'static str = "Autograd<> is not available.";
+
+impl<'a, T, D, S> Buffer<'a, T, D, S>
+where
+    T: Clone + One + 'static,
+    D: TapeActions + WriteBuf<T, S, D> + Alloc + 'static,
+    S: Shape,
+{
+    /// Calls `.backward_seeded` on the [`Tape`].
+    /// The seed of the gradient is set to `1` and contains `self.len()` elements.
+    #[inline]
+    pub fn backward(&self) {
+        if let Some(mut tape) = self.device().tape_mut() {
+            tape.backward_seeded(self)
+        }
+    }
+
+    /// Returns a reference to the gradient of this buffer.
+    /// The lifetime is bound to the lifetime of self, which is more strict and catches some mistakes at compile-time.
+    /// However, If the borrow checker complains and you are sure that everything should be fine, use `grad_unbound` instead.
+    ///
+    /// Panics if the gradient was not allocated.
+    #[inline]
+    pub fn grad(&self) -> Ref<Self> {
+        self.grad_unbound()
+    }
+
+    /// Returns a reference to the gradient of this buffer.
+    /// Lifetimes are checked during runtime with `RefCell`.
+    /// Panics if the gradient was not allocated.
+    #[inline]
+    pub fn grad_unbound(&self) -> Ref<'a, Self> {
+        Ref::map(self.device().tape().expect(AUTOGRAD_NOT_AVAILABLE), |tape| {
+            tape.grads.may_get_ref(self.id()).expect(
+                "Gradient was not allocated for this buffer. Did you forget to call `backward`?",
+            )
+        })
+    }
+
+    /// Returns a mutable reference to the gradient of this buffer.
+    /// The lifetime is bound to the lifetime of self, which is more strict.
+    /// If the borrow checker complains, use `grad_mut_unbound` instead.
+    /// Panics if the gradient was not allocated.
+    #[inline]
+    pub fn grad_mut(&mut self) -> RefMut<Self> {
+        self.grad_mut_unbound()
+    }
+
+    /// Returns a mutable reference to the gradient of this buffer.
+    /// Lifetimes are checked during runtime.
+    /// Panics if the gradient was not allocated.
+    #[inline]
+    pub fn grad_mut_unbound(&mut self) -> RefMut<'a, Self> {
+        RefMut::map(self.device().tape_mut().expect(AUTOGRAD_NOT_AVAILABLE), |tape| {
+            tape.grads.may_get_mut(self.id()).expect(
+                "Gradient was not allocated for this buffer. Did you forget to call `backward`?",
+            )
+        })
     }
 }
 
