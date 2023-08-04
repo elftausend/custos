@@ -173,6 +173,7 @@ where
     /// Returns a reference to the gradient of this buffer.
     /// Lifetimes are checked during runtime with `RefCell`.
     /// Panics if the gradient was not allocated.
+    // TODO: Maybe return Result with two error variants?
     #[inline]
     pub fn grad_unbound(&self) -> Ref<'a, Self> {
         Ref::map(self.device().tape().expect(AUTOGRAD_NOT_AVAILABLE), |tape| {
@@ -186,6 +187,7 @@ where
     /// The lifetime is bound to the lifetime of self, which is more strict.
     /// If the borrow checker complains, use `grad_mut_unbound` instead.
     /// Panics if the gradient was not allocated.
+    // TODO: Maybe return Result with two error variants?
     #[inline]
     pub fn grad_mut(&mut self) -> RefMut<Self> {
         self.grad_mut_unbound()
@@ -194,6 +196,7 @@ where
     /// Returns a mutable reference to the gradient of this buffer.
     /// Lifetimes are checked during runtime.
     /// Panics if the gradient was not allocated.
+    // TODO: Maybe return Result with two error variants?
     #[inline]
     pub fn grad_mut_unbound(&mut self) -> RefMut<'a, Self> {
         RefMut::map(self.device().tape_mut().expect(AUTOGRAD_NOT_AVAILABLE), |tape| {
@@ -301,5 +304,13 @@ mod tests {
 
         let no_grads_pool = &device.modules.modules.tape.borrow().grads.no_grads_pool;
         assert_eq!(no_grads_pool.cache.len(), 2);
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_tape_return_without_autograd() {
+        let device = CPU::<Base>::new();
+        let buf = Buffer::<f32>::new(&device, 10);
+        buf.grad();
     }
 }

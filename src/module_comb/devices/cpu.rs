@@ -1,3 +1,5 @@
+mod ops;
+
 use core::convert::Infallible;
 
 use super::Device;
@@ -6,7 +8,7 @@ use crate::{
     flag::AllocFlag,
     module_comb::{
         Alloc, Base, Buffer, Cached, CachedModule, HasId, HasModules, Module, OnDropBuffer,
-        OnNewBuffer, Retrieve, Retriever, Setup, MainMemory,
+        OnNewBuffer, Retrieve, Retriever, Setup, MainMemory, TapeActions,
     },
     Shape,
 };
@@ -135,5 +137,17 @@ impl<Mods: Retrieve<Self>> Retriever for CPU<Mods> {
         };
         self.modules.on_retrieve_finish(&buf);
         buf
+    }
+}
+
+impl<Mods: TapeActions> TapeActions for CPU<Mods> {
+    #[inline]
+    fn tape(&self) -> Option<core::cell::Ref<crate::module_comb::Tape>> {
+        self.modules.tape()
+    }
+
+    #[inline]
+    fn tape_mut(&self) -> Option<core::cell::RefMut<crate::module_comb::Tape>> {
+        self.modules.tape_mut()
     }
 }

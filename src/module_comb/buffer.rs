@@ -151,9 +151,9 @@ impl<'a, T, D: Device + OnNewBuffer<T, D, S>, S: Shape> Buffer<'a, T, D, S> {
 ///
 #[cfg_attr(feature = "cpu", doc = "```")]
 #[cfg_attr(not(feature = "cpu"), doc = "```ignore")]
-/// use custos::{Buffer, CPU};
+/// use custos::module_comb::{Base, Buffer, CPU};
 ///
-/// let device = CPU::new();
+/// let device = CPU::<Base>::new();
 ///
 /// let a = Buffer::from((&device, [1., 2., 3., 4.,]));
 /// let b = Buffer::from((&device, [2., 3., 4., 5.,]));
@@ -175,6 +175,35 @@ impl<T, D: MainMemory, S: Shape> core::ops::Deref for Buffer<'_, T, D, S> {
     #[inline]
     fn deref(&self) -> &Self::Target {
         unsafe { core::slice::from_raw_parts(D::as_ptr(&self.data), self.len()) }
+    }
+}
+
+/// A `Buffer` dereferences into a mutable slice.
+///
+/// # Examples
+///
+#[cfg_attr(feature = "cpu", doc = "```")]
+#[cfg_attr(not(feature = "cpu"), doc = "```ignore")]
+/// use custos::module_comb::{Base, Buffer, CPU};
+///  
+/// let device = CPU::<Base>::new();
+///
+/// let a = Buffer::from((&device, [4., 2., 3., 4.,]));
+/// let b = Buffer::from((&device, [2., 3., 6., 5.,]));
+/// let mut c = Buffer::from((&device, [0.; 4]));
+///
+/// let slice_add = |a: &[f64], b: &[f64], c: &mut [f64]| {
+///     for i in 0..c.len() {
+///         c[i] = a[i] + b[i];
+///     }
+/// };
+/// slice_add(&a, &b, &mut c);
+/// assert_eq!(c.as_slice(), &[6., 5., 9., 9.,]);
+/// ```
+impl<T, D: MainMemory, S: Shape> core::ops::DerefMut for Buffer<'_, T, D, S> {
+    #[inline]
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        unsafe { core::slice::from_raw_parts_mut(D::as_ptr_mut(&mut self.data), self.len()) }
     }
 }
 

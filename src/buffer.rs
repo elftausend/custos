@@ -627,7 +627,7 @@ impl<T, D: MainMemory, S: Shape> core::ops::Deref for Buffer<'_, T, D, S> {
     }
 }
 
-/// A `Buffer` dereferences into a slice.
+/// A `Buffer` dereferences into a mutable slice.
 ///
 /// # Examples
 ///
