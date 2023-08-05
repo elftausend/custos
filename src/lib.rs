@@ -354,7 +354,7 @@ pub const UNIFIED_CL_MEM: bool = false;
 pub const UNIFIED_CL_MEM: bool = true;
 
 #[cfg(feature = "macro")]
-pub use custos_macro::impl_stack;
+pub use custos_macro::*;
 
 /// A dummy CPU. This only exists to make the code compile when the `cpu` feature is disabled
 /// because the CPU is the default type `D` for [`Buffer`]s.

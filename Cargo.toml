@@ -23,8 +23,8 @@ pollster = {version="0.3", optional=true }
 wgpu = {version="0.15", optional=true }
 
 #custos-macro = {path = "../custos-macro", optional=true}
-#custos-macro = {git = "https://github.com/elftausend/custos-macro", optional=true}
-custos-macro = {version = "0.1.1", optional=true}
+custos-macro = {git = "https://github.com/elftausend/custos-macro", optional=true}
+#custos-macro = {version = "0.1.1", optional=true}
 
 # no-std float math
 libm = { version="0.2.6", optional = true }
@@ -53,9 +53,9 @@ autograd = []
 macro = ["dep:custos-macro"]
 
 [dev-dependencies]
-#custos-macro = {git = "https://github.com/elftausend/custos-macro"}
+custos-macro = {git = "https://github.com/elftausend/custos-macro"}
 #custos-macro = {path = "../custos-macro"}
-custos-macro = {version = "0.1.1"}
+#custos-macro = {version = "0.1.1"}
 
 [[example]]
 name = "cuda_readme"

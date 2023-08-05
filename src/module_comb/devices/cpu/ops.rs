@@ -13,3 +13,8 @@ impl<Mods: OnDropBuffer, T: Copy, D: MainMemory, S: Shape> WriteBuf<T, S, D> for
         self.write(dst, src)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    
+}

@@ -310,7 +310,26 @@ mod tests {
     #[should_panic]
     fn test_tape_return_without_autograd() {
         let device = CPU::<Base>::new();
-        let buf = Buffer::<f32>::new(&device, 10);
+        let buf = Buffer::<f32, _>::new(&device, 10);
+        buf.grad();
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_tape_return_without_grad_allocation() {
+        let device = CPU::<Autograd<Base>>::new();
+        let buf = Buffer::<f32, _>::new(&device, 10);
+        buf.grad();
+    }
+
+    #[test]
+    fn test_tape_return_with_grad_allocation() {
+        let device = CPU::<Autograd<Base>>::new();
+        let buf = Buffer::<f32, _>::new(&device, 10);
+
+        // allocates a new gradient buffer if none exists for the specified id
+        device.modules.tape.borrow_mut().grads.get_mut::<f32, (), _>(&device, buf.id());
+        
         buf.grad();
     }
 }
