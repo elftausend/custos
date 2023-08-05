@@ -13,10 +13,14 @@ use crate::{
     Shape,
 };
 
+pub trait IsCPU {}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub struct CPU<Mods = Base> {
     pub modules: Mods,
 }
+
+impl<Mods> IsCPU for CPU<Mods> {}
 
 // maybe
 impl<Mods> CPU<Mods> {
