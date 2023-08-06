@@ -9,6 +9,9 @@ mod cuda_device;
 mod kernel_cache;
 mod kernel_launch;
 mod ops;
+mod source;
+
+pub use source::*;
 
 use std::{marker::PhantomData, ptr::null_mut};
 

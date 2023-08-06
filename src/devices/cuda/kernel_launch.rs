@@ -3,7 +3,7 @@ use std::ffi::c_void;
 
 use super::{
     api::{cuOccupancyMaxPotentialBlockSize, culaunch_kernel, FnHandle},
-    fn_cache,
+    fn_cache, CudaSource,
 };
 
 /// Converts `Self` to a (cuda) *mut c_void.
@@ -66,7 +66,7 @@ pub fn launch_kernel(
     grid: [u32; 3],
     blocks: [u32; 3],
     shared_mem_bytes: u32,
-    src: &str,
+    src: impl CudaSource,
     fn_name: &str,
     params: &[&dyn AsCudaCvoidPtr],
 ) -> crate::Result<()> {
@@ -105,7 +105,7 @@ pub fn launch_kernel_with_fn(
 pub fn launch_kernel1d(
     len: usize,
     device: &CUDA,
-    src: &str,
+    src: impl CudaSource,
     fn_name: &str,
     params: &[&dyn AsCudaCvoidPtr],
 ) -> crate::Result<()> {

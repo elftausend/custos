@@ -1,0 +1,66 @@
+use core::fmt::Display;
+use std::ffi::CString;
+
+use crate::Error;
+use crate::cuda::api::nvrtc::create_program;
+
+use super::api::nvrtc::nvrtcDestroyProgram;
+
+pub struct Ptx {
+    src: String 
+}
+
+impl Display for Ptx {
+    #[inline]
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        write!(f, "{}", self.src)
+    }
+}
+
+pub trait CudaSource: Display {
+    fn as_src_str(&self) -> String 
+    {
+        self.to_string()
+    } 
+    fn ptx(&self) -> Result<CString, Error>;
+}
+
+impl CudaSource for Ptx {
+    #[inline]
+    fn ptx(&self) -> Result<CString, Error> {
+        Ok(CString::new(&*self.src).unwrap())
+    }
+}
+
+fn compile_cuda_src_to_ptx(src: impl AsRef<str>) -> Result<CString, Error> {
+    // TODO: not optimal, if multiple functions are used in the same source code, they are compiled multiple times
+    let mut x = create_program(src.as_ref(), "")?;
+
+    x.compile(Some(vec![CString::new("--use_fast_math").unwrap()]))?;
+    let ptx = x.ptx()?;
+    
+    unsafe { nvrtcDestroyProgram(&mut x.0).to_result()? };
+    
+    Ok(ptx)
+}
+
+impl CudaSource for String {
+    #[inline]
+    fn ptx(&self) -> Result<CString, Error> {
+        compile_cuda_src_to_ptx(self)
+    }
+}
+
+impl CudaSource for &String {
+    #[inline]
+    fn ptx(&self) -> Result<CString, Error> {
+        compile_cuda_src_to_ptx(self)
+    }
+}
+
+impl CudaSource for &str {
+    #[inline]
+    fn ptx(&self) -> Result<CString, Error> {
+        compile_cuda_src_to_ptx(self)
+    }
+}

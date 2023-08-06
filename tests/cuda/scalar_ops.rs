@@ -19,7 +19,7 @@ fn scalar_apply<'a>(
     launch_kernel1d(
         lhs.len(),
         &device,
-        &src,
+        src,
         "scalar_add",
         &[&lhs, &rhs, &out, &lhs.len()],
     )?;
