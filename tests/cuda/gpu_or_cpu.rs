@@ -29,7 +29,7 @@ pub fn sum_kernel(device: &CUDA, x: &Buffer<i32, CUDA>, out: &mut Buffer<i32, CU
         .unwrap();
 }
 
-const N: usize = 2;
+const N: usize = 20000;
 
 #[test]
 fn test_cuda_sum() {
@@ -41,7 +41,7 @@ fn test_cuda_sum() {
     let start = std::time::Instant::now();
     sum_kernel(&device, &lhs, &mut out);
 
-    assert_eq!(out.read(), [N as i32 * (N as i32 - 1) / 2]);
+    assert_eq!(out.read(), [(N as i128 * (N as i128 - 1) / 2) as i32]);
     println!("Time: {:?}", start.elapsed());
 }
 
@@ -56,8 +56,8 @@ fn test_cuda_sum_two() {
     let start = std::time::Instant::now();
 
     assert_eq!(
-        lhs.read().iter().sum::<i32>(),
-        N as i32 * (N as i32 - 1) / 2
+        lhs.read().iter().sum::<i32>() as i128,
+        N as i128 * (N as i128 - 1) / 2
     );
     println!("Time: {:?}", start.elapsed());
 }

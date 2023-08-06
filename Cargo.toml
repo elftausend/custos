@@ -22,8 +22,8 @@ futures-intrusive = {version="0.5.0", optional=true}
 pollster = {version="0.3", optional=true }
 wgpu = {version="0.15", optional=true }
 
-#custos-macro = {path = "../custos-macro", optional=true}
-custos-macro = {git = "https://github.com/elftausend/custos-macro", optional=true}
+custos-macro = {path = "../custos-macro", optional=true}
+#custos-macro = {git = "https://github.com/elftausend/custos-macro", optional=true}
 #custos-macro = {version = "0.1.1", optional=true}
 
 # no-std float math
@@ -35,7 +35,7 @@ min-cl = { version = "0.2.0", optional=true }
 
 [features]
 #default = ["no-std"]
-default = ["blas", "cpu", "stack", "static-api", "macro", "opencl", "autograd"]
+default = ["blas", "cpu", "stack", "static-api", "macro", "opencl", "autograd", "cuda"]
 #default = ["stack", "macro", "cpu", "blas", "opencl", "static-api", "autograd"]
 #default = ["stack", "cpu", "blas", "static-api", "opencl", "macro"]
 cpu = []
@@ -53,8 +53,8 @@ autograd = []
 macro = ["dep:custos-macro"]
 
 [dev-dependencies]
-custos-macro = {git = "https://github.com/elftausend/custos-macro"}
-#custos-macro = {path = "../custos-macro"}
+#custos-macro = {git = "https://github.com/elftausend/custos-macro"}
+custos-macro = {path = "../custos-macro"}
 #custos-macro = {version = "0.1.1"}
 
 [[example]]
