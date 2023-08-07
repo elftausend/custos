@@ -1,7 +1,6 @@
 use crate::Shape;
 
-use super::{Device, Buffer};
-
+use super::{Buffer, Device};
 
 /// Trait for writing data to buffers.
 pub trait WriteBuf<T, S: Shape = (), D: Device = Self>: Device {

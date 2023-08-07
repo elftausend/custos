@@ -1,5 +1,5 @@
+use super::{Alloc, Base, Device, HasId, MainMemory, OnNewBuffer, WriteBuf, CPU};
 use crate::{flag::AllocFlag, PtrType, Shape};
-use super::{Base, Device, HasId, OnNewBuffer, CPU, WriteBuf, Alloc, MainMemory};
 
 pub struct Buffer<'a, T = f32, D: Device = CPU<Base>, S: Shape = ()> {
     /// the type of pointer
@@ -85,7 +85,6 @@ impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
     {
         self.device().write_buf(self, src)
     }
-
 }
 
 impl<'a, T, D: Device, S: Shape> HasId for Buffer<'a, T, D, S> {
@@ -114,7 +113,7 @@ impl<'a, T, D: Device + OnNewBuffer<T, D, S>, S: Shape> Buffer<'a, T, D, S> {
     pub fn from_slice(device: &'a D, slice: &[T]) -> Self
     where
         T: Clone,
-        D: Alloc
+        D: Alloc,
     {
         let data = device.alloc_from_slice(slice);
         Buffer::from_new_alloc(device, data)
@@ -126,7 +125,7 @@ impl<'a, T, D: Device + OnNewBuffer<T, D, S>, S: Shape> Buffer<'a, T, D, S> {
     pub fn from_vec(device: &'a D, data: Vec<T>) -> Self
     where
         T: Clone,
-        D: Alloc
+        D: Alloc,
     {
         let data = device.alloc_from_vec(data);
         Buffer::from_new_alloc(device, data)
@@ -138,7 +137,7 @@ impl<'a, T, D: Device + OnNewBuffer<T, D, S>, S: Shape> Buffer<'a, T, D, S> {
     pub fn from_array(device: &'a D, array: S::ARR<T>) -> Buffer<T, D, S>
     where
         T: Clone,
-        D: Alloc
+        D: Alloc,
     {
         let data = device.alloc_from_array(array);
         Buffer::from_new_alloc(device, data)

@@ -2,14 +2,14 @@ use core::cell::{Ref, RefMut};
 
 use crate::Shape;
 
-use super::{Alloc, GradFn, OnDropBuffer, Buffer, Device, Tape};
+use super::{Alloc, Buffer, Device, GradFn, OnDropBuffer, Tape};
 
 pub trait Feature: OnDropBuffer {}
 
 // is a cached module is placed before Autograd results a problem
 // -> the retrieved buffer is not added to the no grads pool of the autograd module
 // let device = CPU::<Cached<Autograd<Base>>>::new();
-// 
+//
 // how to fix this:
 // add retrieved buffer to no grads pool at the end of the chain (at device level (Retriever trait))
 // => "generator", "actor"
@@ -20,13 +20,15 @@ pub trait Retrieve<D>: OnDropBuffer {
     where
         T: 'static, // if 'static causes any problems -> put T to => Retrieve<D, T>?
         D: Alloc;
-    
+
     // "actor"
     #[inline]
     fn on_retrieve_finish<T, S: Shape>(&self, _retrieved_buf: &Buffer<T, D, S>)
     where
         T: 'static,
-        D: Device {}
+        D: Device,
+    {
+    }
 }
 
 pub trait HasModules<Mods> {
@@ -45,7 +47,7 @@ pub trait TapeActions {
         None
     }
 
-    // use track caller to identify a specific grad function 
+    // use track caller to identify a specific grad function
     //-> if backward is not called (.drain()), the grad fn vector will gradually fill up
     #[track_caller]
     fn add_grad_fn<D>(&self, _device: &D, grad_fn: GradFn) {

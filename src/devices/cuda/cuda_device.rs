@@ -8,7 +8,7 @@ use super::{
         cublas::{create_handle, cublasDestroy_v2, cublasSetStream_v2, CublasHandle},
         cumalloc, device, Context, CudaIntDevice, Module, Stream,
     },
-    chosen_cu_idx, launch_kernel1d, AsCudaCvoidPtr, CUDAPtr, KernelCacheCU,
+    chosen_cu_idx, launch_kernel1d, AsCudaCvoidPtr, CUDAPtr, CUKernelCache,
 };
 
 use crate::{
@@ -21,7 +21,7 @@ use crate::{
 #[derive(Debug)]
 pub struct CUDA {
     /// Stores compiled CUDA kernels.
-    pub kernel_cache: RefCell<KernelCacheCU>,
+    pub kernel_cache: RefCell<CUKernelCache>,
     /// Stores CUDA modules from the compiled kernels.
     pub modules: RefCell<HashMap<FnHandle, Module>>,
     device: CudaIntDevice,
@@ -92,7 +92,15 @@ impl CUDA {
         fn_name: &str,
         args: &[&dyn AsCudaCvoidPtr],
     ) -> crate::Result<()> {
-        launch_kernel1d(len, self, src, fn_name, args)
+        launch_kernel1d(
+            len,
+            &mut self.kernel_cache.borrow_mut(),
+            &mut self.modules.borrow_mut(),
+            self.stream(),
+            src,
+            fn_name,
+            args,
+        )
     }
 }
 

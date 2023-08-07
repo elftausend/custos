@@ -1,9 +1,9 @@
 use crate::{number::Number, Buffer, CUDA};
-use std::ffi::c_void;
+use std::{collections::HashMap, ffi::c_void};
 
 use super::{
-    api::{cuOccupancyMaxPotentialBlockSize, culaunch_kernel, FnHandle},
-    fn_cache, CudaSource,
+    api::{cuOccupancyMaxPotentialBlockSize, culaunch_kernel, FnHandle, Module, Stream},
+    fn_cache, CUKernelCache, CudaSource,
 };
 
 /// Converts `Self` to a (cuda) *mut c_void.
@@ -71,12 +71,19 @@ pub fn launch_kernel(
     params: &[&dyn AsCudaCvoidPtr],
 ) -> crate::Result<()> {
     let func = fn_cache(device, src, fn_name)?;
-    launch_kernel_with_fn(device, &func, grid, blocks, shared_mem_bytes, params)
+    launch_kernel_with_fn(
+        device.stream(),
+        &func,
+        grid,
+        blocks,
+        shared_mem_bytes,
+        params,
+    )
 }
 
 /// Launch a CUDA kernel with the given CUDA function grid and block sizes.
 pub fn launch_kernel_with_fn(
-    device: &CUDA,
+    stream: &Stream,
     func: &FnHandle,
     grid: [u32; 3],
     blocks: [u32; 3],
@@ -88,14 +95,7 @@ pub fn launch_kernel_with_fn(
         .map(|param| param.as_cvoid_ptr())
         .collect::<Vec<_>>();
 
-    culaunch_kernel(
-        &func,
-        grid,
-        blocks,
-        shared_mem_bytes,
-        device.stream(),
-        &params,
-    )?;
+    culaunch_kernel(&func, grid, blocks, shared_mem_bytes, stream, &params)?;
     Ok(())
 }
 
@@ -104,7 +104,9 @@ pub fn launch_kernel_with_fn(
 /// All kernel arguments must be set.
 pub fn launch_kernel1d(
     len: usize,
-    device: &CUDA,
+    kernel_cache: &mut CUKernelCache,
+    modules: &mut HashMap<FnHandle, Module>,
+    stream: &Stream,
     src: impl CudaSource,
     fn_name: &str,
     params: &[&dyn AsCudaCvoidPtr],
@@ -114,7 +116,7 @@ pub fn launch_kernel1d(
         .map(|param| param.as_cvoid_ptr())
         .collect::<Vec<_>>();
 
-    let func = fn_cache(device, src, fn_name)?;
+    let func = kernel_cache.kernel(modules, src, fn_name)?;
 
     let mut min_grid_size = 0;
     let mut block_size = 0;
@@ -137,7 +139,7 @@ pub fn launch_kernel1d(
         [grid_size as u32, 1, 1],
         [block_size as u32, 1, 1],
         0,
-        device.stream(),
+        stream,
         &params,
     )?;
     Ok(())

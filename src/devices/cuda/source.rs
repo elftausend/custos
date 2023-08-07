@@ -1,13 +1,14 @@
 use core::fmt::Display;
 use std::ffi::CString;
 
-use crate::Error;
 use crate::cuda::api::nvrtc::create_program;
+use crate::Error;
 
 use super::api::nvrtc::nvrtcDestroyProgram;
 
+#[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Ptx {
-    src: String 
+    pub src: String,
 }
 
 impl Display for Ptx {
@@ -18,10 +19,9 @@ impl Display for Ptx {
 }
 
 pub trait CudaSource: Display {
-    fn as_src_str(&self) -> String 
-    {
+    fn as_src_str(&self) -> String {
         self.to_string()
-    } 
+    }
     fn ptx(&self) -> Result<CString, Error>;
 }
 
@@ -38,9 +38,9 @@ fn compile_cuda_src_to_ptx(src: impl AsRef<str>) -> Result<CString, Error> {
 
     x.compile(Some(vec![CString::new("--use_fast_math").unwrap()]))?;
     let ptx = x.ptx()?;
-    
+
     unsafe { nvrtcDestroyProgram(&mut x.0).to_result()? };
-    
+
     Ok(ptx)
 }
 

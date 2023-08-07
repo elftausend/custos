@@ -1,19 +1,22 @@
-use super::{api::{
-    load_module_data,
-    nvrtc::{create_program, nvrtcDestroyProgram},
-    FnHandle,
-}, CudaSource};
+use super::{
+    api::{
+        load_module_data,
+        nvrtc::{create_program, nvrtcDestroyProgram},
+        FnHandle, Module,
+    },
+    CudaSource,
+};
 use crate::{Error, CUDA};
 use std::{collections::HashMap, ffi::CString};
 
 /// This stores the previously compiled CUDA functions / kernels.
 #[derive(Debug, Default)]
-pub struct KernelCacheCU {
+pub struct CUKernelCache {
     /// Uses the kernel source code and the kernel function to retrieve the corresponding `FnHandle`.
     pub kernels: HashMap<(String, String), FnHandle>,
 }
 
-impl KernelCacheCU {
+impl CUKernelCache {
     /// Returns a cached kernel. If the kernel source code does not exist, a new kernel is created and cached.
     ///
     /// # Example
@@ -37,7 +40,12 @@ impl KernelCacheCU {
     ///     Ok(())
     /// }
     /// ```
-    pub fn kernel(&mut self, device: &CUDA, src: impl CudaSource, fn_name: &str) -> Result<FnHandle, Error> {
+    pub fn kernel(
+        &mut self,
+        modules: &mut HashMap<FnHandle, Module>,
+        src: impl CudaSource,
+        fn_name: &str,
+    ) -> Result<FnHandle, Error> {
         let kernel = self.kernels.get(&(src.as_src_str(), fn_name.into()));
 
         if let Some(kernel) = kernel {
@@ -48,9 +56,10 @@ impl KernelCacheCU {
         let function = module.function(fn_name)?;
 
         // TODO: not optimal, if multiple functions are used in the same source code, they are compiled multiple times
-        device.modules.borrow_mut().insert(function, module);
+        modules.insert(function, module);
 
-        self.kernels.insert((src.as_src_str(), fn_name.into()), function);
+        self.kernels
+            .insert((src.as_src_str(), fn_name.into()), function);
         Ok(function)
     }
 }
@@ -60,5 +69,5 @@ pub fn fn_cache(device: &CUDA, src: impl CudaSource, fn_name: &str) -> crate::Re
     device
         .kernel_cache
         .borrow_mut()
-        .kernel(device, src, fn_name)
+        .kernel(&mut device.modules.borrow_mut(), src, fn_name)
 }

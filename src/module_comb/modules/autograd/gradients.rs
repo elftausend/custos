@@ -105,8 +105,9 @@ impl Gradients {
         S: Shape,
         D: Device + 'static,
     {
-        self.no_grads_pool.get_buf_with_dev::<T, _, S>(id, device)
-        .expect(INVALID_ID)
+        self.no_grads_pool
+            .get_buf_with_dev::<T, _, S>(id, device)
+            .expect(INVALID_ID)
     }
 
     /// Returns the forward [`Buffer`]s lhs and and rhs, and the gradient `Buffer`s lhs_grad, rhs_grad and out_grad.

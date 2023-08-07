@@ -4,19 +4,25 @@ mod tape;
 pub use gradients::*;
 pub use tape::*;
 
-use core::{any::Any, hash::BuildHasher, mem::transmute, cell::{RefCell, Ref, RefMut}};
+use core::{
+    any::Any,
+    cell::{Ref, RefCell, RefMut},
+    hash::BuildHasher,
+    mem::transmute,
+};
 use std::collections::HashMap;
 
 use crate::{
     flag::AllocFlag,
     module_comb::{
         Alloc, Buffer, Device, HasId, Id, Module, OnDropBuffer, OnNewBuffer, PtrConv, Retrieve,
-        Setup, UniqueId, TapeActions, WriteBuf,
+        Setup, TapeActions, UniqueId, WriteBuf,
     },
-    Shape, prelude::One,
+    prelude::One,
+    Shape,
 };
 
-use super::{CachedModule, Cached};
+use super::{Cached, CachedModule};
 
 #[derive(Debug, Default)]
 pub struct Autograd<Mods> {
@@ -84,7 +90,10 @@ where
 impl<Mods: OnDropBuffer> OnDropBuffer for Autograd<Mods> {
     #[inline]
     fn on_drop_buffer<'a, T, D: Device, S: Shape>(&self, device: &'a D, buf: &Buffer<T, D, S>) {
-        unregister_buf(&mut self.tape.borrow_mut().grads.no_grads_pool.cache, buf.id());
+        unregister_buf(
+            &mut self.tape.borrow_mut().grads.no_grads_pool.cache,
+            buf.id(),
+        );
         self.modules.on_drop_buffer(device, buf)
     }
 }
@@ -124,7 +133,7 @@ where
     fn on_retrieve_finish<T, S: Shape>(&self, retrieved_buf: &Buffer<T, D, S>)
     where
         T: 'static,
-        D: Device 
+        D: Device,
     {
         self.register_no_grad_buf(retrieved_buf);
         self.modules.on_retrieve_finish(retrieved_buf)
@@ -176,11 +185,14 @@ where
     // TODO: Maybe return Result with two error variants?
     #[inline]
     pub fn grad_unbound(&self) -> Ref<'a, Self> {
-        Ref::map(self.device().tape().expect(AUTOGRAD_NOT_AVAILABLE), |tape| {
-            tape.grads.may_get_ref(self.id()).expect(
+        Ref::map(
+            self.device().tape().expect(AUTOGRAD_NOT_AVAILABLE),
+            |tape| {
+                tape.grads.may_get_ref(self.id()).expect(
                 "Gradient was not allocated for this buffer. Did you forget to call `backward`?",
             )
-        })
+            },
+        )
     }
 
     /// Returns a mutable reference to the gradient of this buffer.
@@ -199,11 +211,14 @@ where
     // TODO: Maybe return Result with two error variants?
     #[inline]
     pub fn grad_mut_unbound(&mut self) -> RefMut<'a, Self> {
-        RefMut::map(self.device().tape_mut().expect(AUTOGRAD_NOT_AVAILABLE), |tape| {
-            tape.grads.may_get_mut(self.id()).expect(
+        RefMut::map(
+            self.device().tape_mut().expect(AUTOGRAD_NOT_AVAILABLE),
+            |tape| {
+                tape.grads.may_get_mut(self.id()).expect(
                 "Gradient was not allocated for this buffer. Did you forget to call `backward`?",
             )
-        })
+            },
+        )
     }
 }
 
@@ -212,7 +227,7 @@ mod tests {
     use core::any::Any;
 
     use crate::{
-        module_comb::{Base, Buffer, Cached, Device, HasId, CPU, Retriever},
+        module_comb::{Base, Buffer, Cached, Device, HasId, Retriever, CPU},
         Shape,
     };
 
@@ -275,7 +290,7 @@ mod tests {
     fn test_buffer_new_and_retrieve() {
         let device = CPU::<Autograd<Base>>::new();
         let _lhs = Buffer::<f32, _>::new(&device, 10);
-        
+
         for _ in 0..100 {
             let x = device.retrieve::<f32, ()>(100);
             assert_eq!(x.len(), 100)
@@ -284,7 +299,7 @@ mod tests {
         let no_grads_pool = &device.modules.tape.borrow().grads.no_grads_pool;
         assert_eq!(no_grads_pool.cache.len(), 2);
     }
-    
+
     #[test]
     fn test_cached_before_autograd() {
         // is a cached module is placed before Autograd results a problem
@@ -296,7 +311,7 @@ mod tests {
         // => "generator", "actor"
 
         let _lhs = Buffer::<f32, _>::new(&device, 10);
-        
+
         for _ in 0..100 {
             let x = device.retrieve::<f32, ()>(100);
             assert_eq!(x.len(), 100)
@@ -328,8 +343,13 @@ mod tests {
         let buf = Buffer::<f32, _>::new(&device, 10);
 
         // allocates a new gradient buffer if none exists for the specified id
-        device.modules.tape.borrow_mut().grads.get_mut::<f32, (), _>(&device, buf.id());
-        
+        device
+            .modules
+            .tape
+            .borrow_mut()
+            .grads
+            .get_mut::<f32, (), _>(&device, buf.id());
+
         buf.grad();
     }
 }

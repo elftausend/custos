@@ -2,7 +2,7 @@ use core::{fmt::Debug, panic::Location};
 use std::collections::HashMap;
 
 use crate::{
-    module_comb::{Alloc, Buffer, Device, WriteBuf, HasId, HashLocation},
+    module_comb::{Alloc, Buffer, Device, HasId, HashLocation, WriteBuf},
     prelude::One,
     Shape,
 };
@@ -19,12 +19,15 @@ pub struct Tape {
     pub grads: Gradients,
     grad_fns: Vec<GradFn>,
     grad_fns_loc: HashMap<HashLocation<'static>, GradFn>,
-    grad_fn_order: Vec<HashLocation<'static>>
+    grad_fn_order: Vec<HashLocation<'static>>,
 }
 
 impl Debug for Tape {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        f.debug_struct("Tape").field("grads", &self.grads).field("grad_fns", &self.grad_fns.len()).finish()
+        f.debug_struct("Tape")
+            .field("grads", &self.grads)
+            .field("grad_fns", &self.grad_fns.len())
+            .finish()
     }
 }
 
@@ -34,14 +37,14 @@ impl Tape {
     #[track_caller]
     pub fn add_grad_fn<F: Fn(&mut Gradients) + 'static>(&mut self, grad_fn: F) {
         let hash_location = Location::caller().into();
-        
+
         if self.grad_fns_loc.contains_key(&hash_location) {
             return;
         }
-        
+
         self.grad_fns_loc.insert(hash_location, Box::new(grad_fn));
         self.grad_fn_order.push(hash_location)
-        
+
         // self.grad_fns.push(Box::new(grad_fn))
     }
 

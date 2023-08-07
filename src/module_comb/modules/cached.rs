@@ -2,7 +2,8 @@ use core::{cell::RefCell, marker::PhantomData};
 
 use crate::{
     module_comb::{
-        Alloc, Buffer, Cache, Device, Module, OnDropBuffer, OnNewBuffer, PtrConv, Retrieve, Setup, TapeActions,
+        Alloc, Buffer, Cache, Device, Module, OnDropBuffer, OnNewBuffer, PtrConv, Retrieve, Setup,
+        TapeActions,
     },
     Shape,
 };
@@ -75,7 +76,7 @@ impl<Mods: Retrieve<D>, D: Alloc + PtrConv<SimpleDevice>, SimpleDevice: Alloc + 
     fn on_retrieve_finish<T, S: Shape>(&self, retrieved_buf: &Buffer<T, D, S>)
     where
         T: 'static,
-        D: Device 
+        D: Device,
     {
         self.modules.on_retrieve_finish(retrieved_buf)
     }
