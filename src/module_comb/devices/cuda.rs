@@ -10,8 +10,8 @@ use crate::{
         },
         launch_kernel1d, AsCudaCvoidPtr, CUDAPtr, CUKernelCache, CudaSource,
     },
-    module_comb::{Alloc, Buffer, LazySetup, OnDropBuffer, Setup},
-    Shape,
+    module_comb::{Alloc, Buffer, LazySetup, OnDropBuffer, Setup, OnNewBuffer, Retrieve, Retriever},
+    Shape, impl_buffer_hook_traits, impl_retriever,
 };
 
 use super::Device;
@@ -29,6 +29,9 @@ pub struct CUDA<Mods> {
     stream: Stream,
     handle: CublasHandle,
 }
+
+impl_retriever!(CUDA);
+impl_buffer_hook_traits!(CUDA);
 
 impl<SimpleMods> CUDA<SimpleMods> {
     /// Returns an [CUDA] device at the specified device index.
@@ -114,13 +117,6 @@ impl<Mods: OnDropBuffer> Device for CUDA<Mods> {
     type Error = i32;
 }
 
-impl<Mods: OnDropBuffer> OnDropBuffer for CUDA<Mods> {
-    #[inline]
-    fn on_drop_buffer<'a, T, D: Device, S: Shape>(&self, device: &'a D, buf: &Buffer<T, D, S>) {
-        self.modules.on_drop_buffer(device, buf)
-    }
-}
-
 impl<Mods> Alloc for CUDA<Mods> {
     type Data<T, S: Shape> = CUDAPtr<T>;
 
@@ -145,20 +141,24 @@ impl<Mods> LazySetup for CUDA<Mods> {
     }
 }
 
+
 #[cfg(test)]
 mod tests {
     use crate::{
-        module_comb::{Base, Buffer},
+        module_comb::{Base, Buffer, Retriever},
         Shape,
     };
 
     use super::{IsCuda, CUDA};
 
-    fn take_cu_buffer<T, D: IsCuda, S: Shape>(device: &D, buf: &Buffer<T, D, S>) {}
+    fn take_cu_buffer<T: 'static, D: IsCuda + Retriever, S: Shape>(device: &D, buf: &Buffer<T, D, S>) {
+        let buf = device.retrieve::<T, S>(buf.len());
+    }
 
     #[test]
     fn test_cu_buffer_fn() {
         let device = CUDA::<Base>::new(0).unwrap();
-        // take_cu_buffer(device, buf)
+        let buf = Buffer::<f32, _, ()>::new(&device, 10);
+        take_cu_buffer(&device, &buf)
     }
 }

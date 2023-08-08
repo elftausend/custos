@@ -10,7 +10,7 @@ use crate::{
         Alloc, Base, Buffer, Cached, CachedModule, HasId, HasModules, MainMemory, Module,
         OnDropBuffer, OnNewBuffer, Retrieve, Retriever, Setup, TapeActions,
     },
-    Shape,
+    Shape, impl_buffer_hook_traits, impl_retriever,
 };
 
 pub trait IsCPU {}
@@ -19,6 +19,9 @@ pub trait IsCPU {}
 pub struct CPU<Mods = Base> {
     pub modules: Mods,
 }
+
+impl_retriever!(CPU);
+impl_buffer_hook_traits!(CPU);
 
 impl<Mods> IsCPU for CPU<Mods> {}
 
@@ -47,13 +50,6 @@ impl<Mods: OnDropBuffer> MainMemory for CPU<Mods> {
     #[inline]
     fn as_ptr_mut<T, S: Shape>(ptr: &mut Self::Data<T, S>) -> *mut T {
         ptr.ptr
-    }
-}
-
-impl<Mods: OnDropBuffer> OnDropBuffer for CPU<Mods> {
-    #[inline]
-    fn on_drop_buffer<'a, T, D: Device, S: Shape>(&self, device: &'a D, buf: &Buffer<T, D, S>) {
-        self.modules.on_drop_buffer(device, buf)
     }
 }
 
@@ -118,29 +114,6 @@ impl<Mods> Alloc for CPU<Mods> {
         core::mem::forget(vec);
 
         unsafe { CPUPtr::from_ptr(ptr, len, AllocFlag::None) }
-    }
-}
-
-impl<T, S: Shape, Mods: OnNewBuffer<T, Self, S> + OnDropBuffer> OnNewBuffer<T, Self, S>
-    for CPU<Mods>
-{
-    #[inline]
-    fn on_new_buffer(&self, device: &Self, new_buf: &Buffer<T, Self, S>) {
-        self.modules.on_new_buffer(device, new_buf)
-    }
-}
-
-impl<Mods: Retrieve<Self>> Retriever for CPU<Mods> {
-    #[inline]
-    fn retrieve<T: 'static, S: Shape>(&self, len: usize) -> Buffer<T, Self, S> {
-        let data = self.modules.retrieve::<T, S>(self, len);
-        let buf = Buffer {
-            data,
-            device: Some(self),
-            // id: LocationId::new()
-        };
-        self.modules.on_retrieve_finish(&buf);
-        buf
     }
 }
 
