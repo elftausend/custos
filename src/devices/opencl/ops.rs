@@ -45,7 +45,7 @@ pub fn try_cl_clear<T: CDatatype>(
             self[id] = 0;
         }}
     ",
-        datatype = T::as_c_type_str()
+        datatype = T::C_DTYPE_STR
     );
 
     let gws = [lhs.len(), 0, 0];
@@ -180,7 +180,7 @@ where
             out[id] = {operation};
         }}
     ",
-        datatype = T::as_c_type_str(),
+        datatype = T::C_DTYPE_STR,
         operation = f("lhs[id]".to_marker()).to_cl_source()
     );
 
@@ -229,7 +229,7 @@ where
             lhs_grad[id] += out[id] * {operation};
         }}
     ",
-        datatype = T::as_c_type_str(),
+        datatype = T::C_DTYPE_STR,
         operation = lhs_grad_fn("lhs[id]".to_marker()).to_cl_source()
     );
 

@@ -1,5 +1,5 @@
 use crate::{
-    module_comb::{Base, BorrowCache, Buffer, Device, HasId, Id, CPU},
+    module_comb::{Base, BorrowCache, Buffer, CachingError, Device, HasId, Id, CPU},
     Shape,
 };
 
@@ -38,7 +38,7 @@ impl Gradients {
 
     /// May get a reference to a gradient [`Buffer`].
     #[inline]
-    pub fn may_get_ref<'a, T, S, D>(&self, ident: Id) -> Option<&Buffer<'a, T, D, S>>
+    pub fn may_get_ref<'a, T, S, D>(&self, ident: Id) -> Result<&Buffer<'a, T, D, S>, CachingError>
     where
         T: 'static,
         S: Shape,
@@ -49,7 +49,10 @@ impl Gradients {
 
     /// May get a mutable reference to a gradient [`Buffer`].
     #[inline]
-    pub fn may_get_mut<'a, T, S, D>(&mut self, id: Id) -> Option<&mut Buffer<'a, T, D, S>>
+    pub fn may_get_mut<'a, T, S, D>(
+        &mut self,
+        id: Id,
+    ) -> Result<&mut Buffer<'a, T, D, S>, CachingError>
     where
         T: 'static,
         S: Shape,
@@ -165,7 +168,7 @@ impl Gradients {
 mod tests {
     use core::borrow::BorrowMut;
 
-    use crate::module_comb::{register_buf, Base, Buffer, HasId, Retriever, CPU, Autograd};
+    use crate::module_comb::{register_buf, Autograd, Base, Buffer, HasId, Retriever, CPU};
 
     use super::Gradients;
 
@@ -182,6 +185,11 @@ mod tests {
         let out = device.retrieve::<i64, ()>(buf.len());
         // unsafe { register_buf(&mut gradients.no_grads_pool.borrow_mut().cache, &out) }
 
-        device.modules.tape.borrow_mut().grads.get_double::<i32, (), (), _>(&device, (buf.id(), out.id()));
+        device
+            .modules
+            .tape
+            .borrow_mut()
+            .grads
+            .get_double::<i32, (), (), _>(&device, (buf.id(), out.id()));
     }
 }

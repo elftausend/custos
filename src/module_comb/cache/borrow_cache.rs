@@ -1,4 +1,9 @@
-use core::{any::Any, hash::BuildHasherDefault, mem::transmute};
+use core::{
+    any::Any,
+    fmt::{Debug, Display},
+    hash::BuildHasherDefault,
+    mem::transmute,
+};
 use std::collections::HashMap;
 
 use crate::{
@@ -10,6 +15,35 @@ use crate::{
 use super::NoHasher;
 
 pub type UniqueId = u64;
+
+#[derive(Clone, Copy)]
+pub enum CachingError {
+    InvalidId,
+    InvalidTypeInfo,
+}
+
+impl CachingError {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            CachingError::InvalidId => "InvalidId: Invalid Buffer identifier.",
+            CachingError::InvalidTypeInfo => "InvalidTypeInfo: Invalid type information provided for allocated Buffer. Does your specific operation use mixed types?",
+        }
+    }
+}
+
+impl Debug for CachingError {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        Display::fmt(&self, f)
+    }
+}
+
+impl Display for CachingError {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        write!(f, "{}", self.as_str())
+    }
+}
+
+impl std::error::Error for CachingError {}
 
 #[derive(Debug, Default)]
 pub struct BorrowCache {
@@ -85,23 +119,38 @@ impl BorrowCache {
     }
 
     #[inline]
-    pub fn get_buf<'a, T, D, S>(&self, id: Id) -> Option<&Buffer<'a, T, D, S>>
+    pub fn get_buf<'a, T, D, S>(&self, id: Id) -> Result<&Buffer<'a, T, D, S>, CachingError>
     where
         T: 'static,
         D: Device + 'static,
         S: Shape,
     {
-        self.cache.get(&id)?.downcast_ref()
+        self.cache
+            .get(&id)
+            .ok_or(CachingError::InvalidId)?
+            .downcast_ref()
+            .ok_or(CachingError::InvalidTypeInfo)
     }
 
     #[inline]
-    pub fn get_buf_mut<'a, T, D, S>(&mut self, id: Id) -> Option<&mut Buffer<'a, T, D, S>>
+    pub fn get_buf_mut<'a, T, D, S>(
+        &mut self,
+        id: Id,
+    ) -> Result<&mut Buffer<'a, T, D, S>, CachingError>
     where
         T: 'static,
         D: Device + 'static,
         S: Shape,
     {
-        unsafe { transmute(self.cache.get_mut(&id)?.downcast_mut::<Buffer<T, D, S>>()) }
+        unsafe {
+            transmute(
+                self.cache
+                    .get_mut(&id)
+                    .ok_or(CachingError::InvalidId)?
+                    .downcast_mut::<Buffer<T, D, S>>()
+                    .ok_or(CachingError::InvalidTypeInfo),
+            )
+        }
     }
 }
 

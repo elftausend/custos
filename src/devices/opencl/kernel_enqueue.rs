@@ -178,7 +178,7 @@ mod tests {
                 size_t id = get_global_id(0);
                 out[id] = lhs[id] + rhs[id];
             }}
-        ", datatype=f32::as_c_type_str());
+        ", datatype=f32::C_DTYPE_STR);
 
         let lhs = Buffer::from((&device, [1f32, 5.1, 1.2, 2.3, 4.6]));
         let rhs = Buffer::from((&device, [1f32, 5.1, 1.2, 2.3, 4.6]));
@@ -197,7 +197,7 @@ mod tests {
     
                 out[idx] = lhs[idx] {op} rhs[idx];
             }}"
-        , datatype=T::as_c_type_str())
+        , datatype=T::C_DTYPE_STR)
     }
 
     /*#[test]
