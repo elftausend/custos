@@ -82,6 +82,13 @@ where
     fn on_new_buffer(&self, device: &D, new_buf: &Buffer<T, D, S>) {
         self.register_no_grad_buf(new_buf);
 
+        // allocates gradient memory for the corresponding buffer id
+        self.tape
+            .borrow_mut()
+            .grads
+            .grads_pool
+            .add_buf_once::<T, D, S>(device, new_buf.id());
+
         // pass down
         self.modules.on_new_buffer(device, new_buf)
     }
@@ -136,6 +143,14 @@ where
         D: Device,
     {
         self.register_no_grad_buf(retrieved_buf);
+
+        // allocates gradients
+        self.tape
+            .borrow_mut()
+            .grads
+            .grads_pool
+            .add_buf_once::<T, D, S>(retrieved_buf.device(), retrieved_buf.id());
+
         self.modules.on_retrieve_finish(retrieved_buf)
     }
 }

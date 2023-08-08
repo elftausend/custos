@@ -25,7 +25,7 @@ pub fn sum_kernel(device: &CUDA, x: &Buffer<i32, CUDA>, out: &mut Buffer<i32, CU
     "#;
 
     device
-        .launch_kernel1d(x.len(), &src, "countZeros", &[x, out, &x.len()])
+        .launch_kernel1d(x.len(), src, "countZeros", &[x, out, &x.len()])
         .unwrap();
 }
 

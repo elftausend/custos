@@ -10,8 +10,11 @@ use crate::{
         },
         launch_kernel1d, AsCudaCvoidPtr, CUDAPtr, CUKernelCache, CudaSource,
     },
-    module_comb::{Alloc, Buffer, LazySetup, OnDropBuffer, Setup, OnNewBuffer, Retrieve, Retriever},
-    Shape, impl_buffer_hook_traits, impl_retriever,
+    impl_buffer_hook_traits, impl_retriever,
+    module_comb::{
+        Alloc, Buffer, LazySetup, OnDropBuffer, OnNewBuffer, Retrieve, Retriever, Setup,
+    },
+    Shape,
 };
 
 use super::Device;
@@ -141,7 +144,6 @@ impl<Mods> LazySetup for CUDA<Mods> {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use crate::{
@@ -151,7 +153,10 @@ mod tests {
 
     use super::{IsCuda, CUDA};
 
-    fn take_cu_buffer<T: 'static, D: IsCuda + Retriever, S: Shape>(device: &D, buf: &Buffer<T, D, S>) {
+    fn take_cu_buffer<T: 'static, D: IsCuda + Retriever, S: Shape>(
+        device: &D,
+        buf: &Buffer<T, D, S>,
+    ) {
         let buf = device.retrieve::<T, S>(buf.len());
     }
 

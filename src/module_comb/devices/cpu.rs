@@ -6,11 +6,12 @@ use super::Device;
 use crate::{
     cpu::CPUPtr,
     flag::AllocFlag,
+    impl_buffer_hook_traits, impl_retriever,
     module_comb::{
         Alloc, Base, Buffer, Cached, CachedModule, HasId, HasModules, MainMemory, Module,
         OnDropBuffer, OnNewBuffer, Retrieve, Retriever, Setup, TapeActions,
     },
-    Shape, impl_buffer_hook_traits, impl_retriever,
+    Shape,
 };
 
 pub trait IsCPU {}

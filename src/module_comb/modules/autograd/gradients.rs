@@ -1,5 +1,5 @@
 use crate::{
-    module_comb::{BorrowCache, Buffer, Device, HasId, Id},
+    module_comb::{Base, BorrowCache, Buffer, Device, HasId, Id, CPU},
     Shape,
 };
 
@@ -9,14 +9,14 @@ const INVALID_ID: &'static str = "A matching Buffer does not exist.";
 /// The cache is populated by `get_ref`, `get_like` or `get_mut_ref` calls.
 #[derive(Default)]
 pub struct Gradients {
-    pub cache: BorrowCache,
+    pub grads_pool: BorrowCache,
     pub no_grads_pool: BorrowCache,
 }
 
 impl core::fmt::Debug for Gradients {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         f.debug_struct("Gradients")
-            .field("cache", &self.cache)
+            .field("cache", &self.grads_pool)
             .finish()
     }
 }
@@ -33,7 +33,7 @@ impl Gradients {
     /// Clears the cache.
     #[inline]
     pub fn zero_grad(&mut self) {
-        self.cache.cache.clear();
+        self.grads_pool.cache.clear();
     }
 
     /// May get a reference to a gradient [`Buffer`].
@@ -44,7 +44,7 @@ impl Gradients {
         S: Shape,
         D: Device + 'static,
     {
-        self.cache.get_buf(ident)
+        self.grads_pool.get_buf(ident)
     }
 
     /// May get a mutable reference to a gradient [`Buffer`].
@@ -55,7 +55,7 @@ impl Gradients {
         S: Shape,
         D: Device + 'static,
     {
-        self.cache.get_buf_mut(id)
+        self.grads_pool.get_buf_mut(id)
     }
 
     /// Returns a reference to a gradient [`Buffer`].
@@ -67,7 +67,7 @@ impl Gradients {
         S: Shape,
         D: Device + 'static,
     {
-        self.cache.add_or_get(device, id)
+        self.grads_pool.add_or_get(device, id)
     }
 
     /// Returns a mutable reference to a gradient [`Buffer`].
@@ -79,7 +79,7 @@ impl Gradients {
         S: Shape,
         D: Device + 'static,
     {
-        self.cache.add_or_get_mut(device, id)
+        self.grads_pool.add_or_get_mut(device, id)
     }
 
     /// Returns a reference to a gradient [`Buffer`] using information from `buf`.
@@ -95,19 +95,13 @@ impl Gradients {
     }
 
     #[inline]
-    pub fn get_buf_from_no_grad_pool<'a, T, S, D>(
-        &self,
-        device: &'a D,
-        id: Id,
-    ) -> &Buffer<'a, T, D, S>
+    pub fn get_buf_from_no_grad_pool<'a, T, S, D>(&self, id: Id) -> &Buffer<'a, T, D, S>
     where
         T: 'static,
         S: Shape,
         D: Device + 'static,
     {
-        self.no_grads_pool
-            .get_buf_with_dev::<T, _, S>(id, device)
-            .expect(INVALID_ID)
+        self.no_grads_pool.get_buf::<T, D, S>(id).expect(INVALID_ID)
     }
 
     /// Returns the forward [`Buffer`]s lhs and and rhs, and the gradient `Buffer`s lhs_grad, rhs_grad and out_grad.
@@ -123,16 +117,16 @@ impl Gradients {
         S: Shape,
         D: Device + 'static,
     {
-        self.cache.add_buf_once::<T, _, S>(device, rid);
-        self.cache.add_buf_once::<T, _, S>(device, oid);
+        self.grads_pool.add_buf_once::<T, _, S>(device, rid);
+        self.grads_pool.add_buf_once::<T, _, S>(device, oid);
         let lhs_grad_ptr = self.get_mut(device, lid) as *mut _;
         let lhs_grad = unsafe { &mut *lhs_grad_ptr };
 
         let rhs_grad_ptr = self.get_mut(device, rid) as *mut _;
         let rhs_grad = unsafe { &mut *rhs_grad_ptr };
         (
-            self.get_buf_from_no_grad_pool(device, lid),
-            self.get_buf_from_no_grad_pool(device, rid),
+            self.get_buf_from_no_grad_pool(lid),
+            self.get_buf_from_no_grad_pool(rid),
             lhs_grad,
             rhs_grad,
             self.may_get_ref(oid).unwrap(),
@@ -140,7 +134,7 @@ impl Gradients {
     }
 
     /// Returns the forward [`Buffer`] x and the gradient `Buffer`s x_grad and out_grad.
-    /// Usefull for unary operations.
+    /// Useful for unary operations.
     #[inline]
     pub fn get_double<'a, T, IS, OS, D>(
         &mut self,
@@ -157,16 +151,37 @@ impl Gradients {
         OS: Shape,
         D: Device + 'static,
     {
-        self.cache.add_buf_once::<T, _, IS>(device, oid);
+        self.grads_pool.add_buf_once::<T, _, IS>(device, oid);
 
         let x_grad_ptr = self.get_mut(device, xid) as *mut _;
         let x_grad_mut = unsafe { &mut *x_grad_ptr };
         let o_grad = self.may_get_ref(oid).unwrap();
 
-        (
-            self.get_buf_from_no_grad_pool(device, xid),
-            x_grad_mut,
-            o_grad,
-        )
+        (self.get_buf_from_no_grad_pool(xid), x_grad_mut, o_grad)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use core::borrow::BorrowMut;
+
+    use crate::module_comb::{register_buf, Base, Buffer, HasId, Retriever, CPU, Autograd};
+
+    use super::Gradients;
+
+    #[test]
+    //#[should_panic]
+    fn test_different_types_get_double_return() {
+        let device = CPU::<Autograd<Base>>::new();
+
+        // let mut gradients = Gradients::default();
+
+        let buf = Buffer::<i32, _>::new(&device, 10);
+        // unsafe { register_buf(&mut gradients.no_grads_pool.borrow_mut().cache, &buf) }
+
+        let out = device.retrieve::<i64, ()>(buf.len());
+        // unsafe { register_buf(&mut gradients.no_grads_pool.borrow_mut().cache, &out) }
+
+        device.modules.tape.borrow_mut().grads.get_double::<i32, (), (), _>(&device, (buf.id(), out.id()));
     }
 }

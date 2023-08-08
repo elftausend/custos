@@ -30,6 +30,9 @@ pub use hooks::*;
 mod op_traits;
 pub use op_traits::*;
 
+mod apply_fn;
+pub use apply_fn::*;
+
 #[cfg(test)]
 pub fn location() -> &'static core::panic::Location<'static> {
     core::panic::Location::caller()

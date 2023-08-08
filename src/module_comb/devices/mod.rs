@@ -18,7 +18,9 @@ pub trait Device: Alloc + OnDropBuffer {
 #[macro_export]
 macro_rules! impl_buffer_hook_traits {
     ($device:ident) => {
-        impl<T, D: Device, S: Shape, Mods: OnNewBuffer<T, D, S>> OnNewBuffer<T, D, S> for $device<Mods> {
+        impl<T, D: Device, S: Shape, Mods: OnNewBuffer<T, D, S>> OnNewBuffer<T, D, S>
+            for $device<Mods>
+        {
             #[inline]
             fn on_new_buffer(&self, device: &D, new_buf: &Buffer<T, D, S>) {
                 self.modules.on_new_buffer(device, new_buf)
@@ -27,7 +29,11 @@ macro_rules! impl_buffer_hook_traits {
 
         impl<Mods: OnDropBuffer> OnDropBuffer for $device<Mods> {
             #[inline]
-            fn on_drop_buffer<'a, T, D: Device, S: Shape>(&self, device: &'a D, buf: &Buffer<T, D, S>) {
+            fn on_drop_buffer<'a, T, D: Device, S: Shape>(
+                &self,
+                device: &'a D,
+                buf: &Buffer<T, D, S>,
+            ) {
                 self.modules.on_drop_buffer(device, buf)
             }
         }
@@ -51,4 +57,3 @@ macro_rules! impl_retriever {
         }
     };
 }
-

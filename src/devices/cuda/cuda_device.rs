@@ -2,6 +2,7 @@ use std::marker::PhantomData;
 use std::{cell::RefCell, collections::HashMap};
 
 use super::api::FnHandle;
+use super::CudaSource;
 use super::{
     api::{
         create_context, create_stream, cuInit, cuMemcpy, cuStreamDestroy, cu_write,
@@ -88,7 +89,7 @@ impl CUDA {
     pub fn launch_kernel1d(
         &self,
         len: usize,
-        src: &str,
+        src: impl CudaSource,
         fn_name: &str,
         args: &[&dyn AsCudaCvoidPtr],
     ) -> crate::Result<()> {
