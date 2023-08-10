@@ -1,6 +1,6 @@
 use crate::{
     flag::AllocFlag,
-    module_comb::{Alloc, Device, Module, OnDropBuffer, OnNewBuffer, Retrieve, Setup, TapeActions},
+    module_comb::{Alloc, Device, Module, OnDropBuffer, OnNewBuffer, Retrieve, Setup, TapeActions, AddOperation},
     Shape,
 };
 
@@ -13,6 +13,13 @@ impl<D> Module<D> for Base {
     #[inline]
     fn new() -> Self::Module {
         Base
+    }
+}
+
+impl AddOperation for Base {
+    #[inline]
+    fn add_operation(&self, mut operation: impl FnOnce()) {
+        operation();
     }
 }
 

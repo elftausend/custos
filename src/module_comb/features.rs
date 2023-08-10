@@ -50,9 +50,9 @@ pub trait TapeActions {
     // use track caller to identify a specific grad function
     //-> if backward is not called (.drain()), the grad fn vector will gradually fill up
     #[track_caller]
-    fn add_grad_fn<T, S: Shape, const N: usize>(
+    fn add_grad_fn<T, S: Shape>(
         &self,
-        ids: impl AllocGradsFrom<N>,
+        // ids: impl AllocGradsFrom<N>,
         grad_fn: impl Fn(&mut Gradients) + 'static,
     ) where
         T: 'static,
@@ -60,9 +60,9 @@ pub trait TapeActions {
     {
         if let Some(mut tape) = self.tape_mut() {
             // the type T must match for every Id!
-            for id in ids.ids() {
-                tape.grads.grads_pool.add_buf_once::<T, Self, S>(self, id)
-            }
+            // for id in ids.ids() {
+            //     tape.grads.grads_pool.add_buf_once::<T, Self, S>(self, id)
+            // }
 
             tape.add_grad_fn(grad_fn)
         }
@@ -99,4 +99,9 @@ impl<const N: usize> AllocGradsFrom<N> for [Id; N] {
     fn ids(self) -> [Id; N] {
         self
     }
+}
+
+pub trait AddOperation {
+    fn add_operation(&self, operation: impl FnOnce());
+    fn call_lazily(&self) {}
 }

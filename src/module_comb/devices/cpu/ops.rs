@@ -1,9 +1,9 @@
 use crate::{
     module_comb::{
-        ApplyFunction, Buffer, Device, HasId, MainMemory, OnDropBuffer, Retrieve, Retriever,
-        TapeActions, WriteBuf,
+        AddOperation, ApplyFunction, Buffer, Device, HasId, MainMemory, OnDropBuffer, Retrieve,
+        Retriever, TapeActions, WriteBuf,
     },
-    Shape,
+    Shape, ToVal,
 };
 
 use super::CPU;
@@ -20,8 +20,25 @@ impl<Mods: OnDropBuffer, T: Copy, D: MainMemory, S: Shape> WriteBuf<T, S, D> for
     }
 }
 
-impl<Mods: Retrieve<Self> + TapeActions + 'static, T: 'static, S: Shape, D: MainMemory>
-    ApplyFunction<T, S, D> for CPU<Mods>
+impl<Mods: AddOperation> AddOperation for CPU<Mods> {
+    #[inline]
+    fn add_operation(&self, operation: impl FnOnce()) {
+        self.modules.add_operation(operation)
+    }
+
+    #[inline]
+    fn call_lazily(&self) {
+        self.modules.call_lazily()
+    }
+    
+}
+
+impl<Mods, T, S, D> ApplyFunction<T, S, D> for CPU<Mods>
+where
+    Mods: Retrieve<Self> + TapeActions + AddOperation + 'static,
+    T: Copy + Default + ToVal + 'static,
+    S: Shape,
+    D: MainMemory + 'static,
 {
     // actually take &mut Buf instead of returning an owned Buf?
     fn apply_fn<F>(
@@ -31,12 +48,23 @@ impl<Mods: Retrieve<Self> + TapeActions + 'static, T: 'static, S: Shape, D: Main
     ) -> Buffer<T, Self, S>
     where
         F: crate::Eval<T> + crate::MayToCLSource,
-    {
-        let out = self.retrieve(buf.len());
+    {   
+        let mut out = self.retrieve(buf.len());
+        println!("out_ptr: {:?}", out.data.ptr);
 
         let ids = (buf.id(), out.id());
-        self.add_grad_fn::<T, S, 2>(ids, move |grads| {
-            // let (lhs, lhs_grad, out_grad) = grads.get_double::<T, S, S>(ids);
+        self.add_grad_fn::<T, S>(move |grads| {
+            let (lhs, lhs_grad, out_grad) = grads.get_double::<T, S, S, D>(ids);
+        });
+
+        // self.apply_fn(buf, f)
+
+        self.add_operation(|| {
+            // let mut out = self.retrieve::<T, S>(buf.len());
+            // println!("out_ptr closure: {:?}", out.data.ptr);
+            for (x, out) in buf.iter().zip(out.iter_mut()) {
+                *out = f((*x).to_val()).eval();
+            }
         });
 
         out

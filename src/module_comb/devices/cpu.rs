@@ -9,7 +9,7 @@ use crate::{
     impl_buffer_hook_traits, impl_retriever,
     module_comb::{
         Alloc, Base, Buffer, Cached, CachedModule, HasId, HasModules, MainMemory, Module,
-        OnDropBuffer, OnNewBuffer, Retrieve, Retriever, Setup, TapeActions,
+        OnDropBuffer, OnNewBuffer, Retrieve, Retriever, Setup, TapeActions, LazySetup,
     },
     Shape,
 };
@@ -129,3 +129,5 @@ impl<Mods: TapeActions> TapeActions for CPU<Mods> {
         self.modules.tape_mut()
     }
 }
+
+impl<Mods> LazySetup for CPU<Mods> {}

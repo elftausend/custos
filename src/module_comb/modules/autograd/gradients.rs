@@ -138,10 +138,11 @@ impl Gradients {
 
     /// Returns the forward [`Buffer`] x and the gradient `Buffer`s x_grad and out_grad.
     /// Useful for unary operations.
+    ///
     #[inline]
     pub fn get_double<'a, T, IS, OS, D>(
         &mut self,
-        device: &'a D,
+        // device: &'a D,
         (xid, oid): (Id, Id),
     ) -> (
         &Buffer<'a, T, D, IS>,
@@ -154,9 +155,10 @@ impl Gradients {
         OS: Shape,
         D: Device + 'static,
     {
-        self.grads_pool.add_buf_once::<T, _, IS>(device, oid);
+        // self.grads_pool.add_buf_once::<T, _, IS>(device, oid);
 
-        let x_grad_ptr = self.get_mut(device, xid) as *mut _;
+        // let x_grad_ptr = self.get_mut(device, xid) as *mut _;
+        let x_grad_ptr = self.may_get_mut(xid).unwrap() as *mut _;
         let x_grad_mut = unsafe { &mut *x_grad_ptr };
         let o_grad = self.may_get_ref(oid).unwrap();
 
@@ -166,14 +168,30 @@ impl Gradients {
 
 #[cfg(test)]
 mod tests {
-    use core::borrow::BorrowMut;
-
-    use crate::module_comb::{register_buf, Autograd, Base, Buffer, HasId, Retriever, CPU};
-
-    use super::Gradients;
+    use crate::module_comb::{Autograd, Base, Buffer, HasId, Retriever, CPU};
 
     #[test]
-    //#[should_panic]
+    fn test_same_types_get_double_return() {
+        let device = CPU::<Autograd<Base>>::new();
+
+        // let mut gradients = Gradients::default();
+
+        let buf = Buffer::<i32, _>::new(&device, 10);
+        // unsafe { register_buf(&mut gradients.no_grads_pool.borrow_mut().cache, &buf) }
+
+        let out = device.retrieve::<i32, ()>(buf.len());
+        // unsafe { register_buf(&mut gradients.no_grads_pool.borrow_mut().cache, &out) }
+
+        device
+            .modules
+            .tape
+            .borrow_mut()
+            .grads
+            .get_double::<i32, (), (), CPU<Autograd<crate::module_comb::CachedModule<Base, CPU<Autograd<Base>>>>>>((buf.id(), out.id()));
+    }
+
+    #[test]
+    #[should_panic]
     fn test_different_types_get_double_return() {
         let device = CPU::<Autograd<Base>>::new();
 
@@ -190,6 +208,6 @@ mod tests {
             .tape
             .borrow_mut()
             .grads
-            .get_double::<i32, (), (), _>(&device, (buf.id(), out.id()));
+            .get_double::<i32, (), (), CPU<Autograd<crate::module_comb::CachedModule<Base, CPU<Autograd<Base>>>>>>((buf.id(), out.id()));
     }
 }
