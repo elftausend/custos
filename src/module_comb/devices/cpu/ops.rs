@@ -1,6 +1,6 @@
 use crate::{
     module_comb::{
-        AddOperation, ApplyFunction, Buffer, Device, HasId, MainMemory, OnDropBuffer, Retrieve,
+        AddOperation, ApplyFunction, Buffer, HasId, MainMemory, OnDropBuffer, Retrieve,
         Retriever, TapeActions, WriteBuf,
     },
     Shape, ToVal,
@@ -55,17 +55,12 @@ where
         let ids = (buf.id(), out.id());
         self.add_grad_fn::<T, S>(move |grads| {
             let (lhs, lhs_grad, out_grad) = grads.get_double::<T, S, S, D>(ids);
+            
         });
 
-        // self.apply_fn(buf, f)
-
-        self.add_operation(|| {
-            // let mut out = self.retrieve::<T, S>(buf.len());
-            // println!("out_ptr closure: {:?}", out.data.ptr);
-            for (x, out) in buf.iter().zip(out.iter_mut()) {
-                *out = f((*x).to_val()).eval();
-            }
-        });
+        for (x, out) in buf.iter().zip(out.iter_mut()) {
+            *out = f((*x).to_val()).eval();
+        }
 
         out
     }

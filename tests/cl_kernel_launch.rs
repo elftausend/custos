@@ -90,7 +90,7 @@ fn test_kernel_launch_2() -> custos::Result<()> {
             size_t id = get_global_id(0);
             out[id] = self[id]+rhs[id];
         }}
-    ", datatype=i32::as_c_type_str());
+    ", datatype=i32::C_DTYPE_STR);
 
     let gws = [lhs.len(), 0, 0];
 

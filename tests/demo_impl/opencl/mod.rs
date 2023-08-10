@@ -18,7 +18,7 @@ where
 
             out[idx] = lhs[idx] {op} rhs[idx];
         }}"
-    , datatype=T::as_c_type_str());
+    , datatype=T::C_DTYPE_STR);
 
     enqueue_kernel(device, &src, [lhs.len(), 0, 0], None, &[lhs, rhs, out])?;
     Ok(())

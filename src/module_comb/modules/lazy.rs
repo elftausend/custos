@@ -53,7 +53,6 @@ impl<D: LazySetup, Mods: Setup<D>> Setup<D> for Lazy<Mods> {
     #[inline]
     fn setup(device: &mut D) {
         device.lazy_setup();
-        println!("setup lazy");
         Mods::setup(device)
     }
 }

@@ -74,7 +74,7 @@ where
                 size_t id = get_global_id(0);
                 out[id] = lhs[id] + rhs[id];
             }}
-        ", datatype=T::as_c_type_str());
+        ", datatype=T::C_DTYPE_STR);
 
         let len = std::cmp::min(lhs.len(), rhs.len());
         let out = self.retrieve::<T, ()>(len, (lhs, rhs));

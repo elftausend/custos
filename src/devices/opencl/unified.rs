@@ -67,7 +67,7 @@ pub unsafe fn to_cached_unified<T, S: Shape>(
 /// ```
 pub unsafe fn construct_buffer<'a, T, S: Shape>(
     device: &'a OpenCL,
-    mut no_drop: Buffer<T, CPU, S>,
+    mut no_drop: Buffer<'a, T, CPU, S>,
     add_node: impl AddGraph,
 ) -> crate::Result<Buffer<'a, T, OpenCL, S>> {
     use crate::bump_count;
@@ -168,7 +168,8 @@ mod tests {
         Ok(())
     }
 
-    #[cfg(unified_cl)]
+    // improved lifetiem annotation rendered this test useless
+    /*#[cfg(unified_cl)]
     #[cfg(not(feature = "realloc"))]
     #[test]
     fn test_cpu_to_unified_leak() -> crate::Result<()> {
@@ -199,5 +200,5 @@ mod tests {
             assert_eq!(cl_cpu_buf.read(), &[1, 2, 3, 4, 5, 6]);
         }
         Ok(())
-    }
+    }*/
 }
