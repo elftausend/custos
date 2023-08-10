@@ -42,8 +42,6 @@ pub unsafe fn to_cached_unified<T, S: Shape>(
 
 #[cfg(not(feature = "realloc"))]
 /// Converts an 'only' CPU buffer into an OpenCL + CPU (unified memory) buffer.
-/// # Safety
-/// The host pointer of the no_drop `Buffer` must be valid for the entire lifetime of the returned Buffer.
 ///
 /// # Example
 #[cfg_attr(unified_cl, doc = "```")]
@@ -65,7 +63,7 @@ pub unsafe fn to_cached_unified<T, S: Shape>(
 ///     Ok(())
 /// }
 /// ```
-pub unsafe fn construct_buffer<'a, T, S: Shape>(
+pub fn construct_buffer<'a, T, S: Shape>(
     device: &'a OpenCL,
     mut no_drop: Buffer<'a, T, CPU, S>,
     add_node: impl AddGraph,
@@ -100,7 +98,7 @@ pub unsafe fn construct_buffer<'a, T, S: Shape>(
     let graph_node = device.graph_mut().add(no_drop.len(), add_node);
 
     let (host_ptr, len) = (no_drop.host_ptr_mut(), no_drop.len());
-    let ptr = to_cached_unified(device, no_drop)?;
+    let ptr = unsafe { to_cached_unified(device, no_drop)? };
 
     bump_count();
 
