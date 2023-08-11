@@ -44,7 +44,7 @@ pub struct HashLocation<'a> {
 impl PartialEq for HashLocation<'_> {
     #[inline]
     fn eq(&self, other: &Self) -> bool {
-        // filename pointer is actually actually unique, then this works (added units tests to check this... still not sure)
+        // if filename pointer is actually actually unique, then this works (added units tests to check this... still not sure)
         if self.file.as_ptr() != other.file.as_ptr() {
             return false;
         }

@@ -1,8 +1,8 @@
-use core::{fmt::Debug, panic::Location};
+use core::{fmt::Debug, panic::Location, hash::BuildHasherDefault};
 use std::collections::HashMap;
 
 use crate::{
-    module_comb::{Alloc, Buffer, Device, HasId, HashLocation, WriteBuf},
+    module_comb::{Alloc, Buffer, Device, HasId, HashLocation, WriteBuf, LocationHasher},
     prelude::One,
     Shape,
 };
@@ -18,7 +18,7 @@ pub struct Tape {
     /// Caches gradients for each [`Buffer`]'s id ([`Ident`]).
     pub grads: Gradients,
     grad_fns: Vec<GradFn>,
-    grad_fns_loc: HashMap<HashLocation<'static>, GradFn>,
+    grad_fns_loc: HashMap<HashLocation<'static>, GradFn, BuildHasherDefault<LocationHasher>>,
     grad_fn_order: Vec<HashLocation<'static>>,
 }
 
@@ -50,9 +50,13 @@ impl Tape {
 
     /// Calls all gradient functions in reverse order.
     pub fn backward<D>(&mut self, device: &D) {
-        for grad_fn in self.grad_fns.drain(..).rev() {
+        for grad_fn_id in self.grad_fn_order.iter().rev() {
+            let grad_fn = self.grad_fns_loc.get(grad_fn_id).unwrap();
             grad_fn(&mut self.grads);
         }
+        /*for grad_fn in self.grad_fns.drain(..).rev() {
+            grad_fn(&mut self.grads);
+        }*/
     }
 
     /// Backward pass with seeded gradient.

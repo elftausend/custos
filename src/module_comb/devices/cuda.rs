@@ -1,12 +1,12 @@
-use core::cell::RefCell;
+use core::{cell::RefCell, marker::PhantomData};
 use std::collections::HashMap;
 
 use crate::{
     cuda::{
         api::{
             create_context, create_stream, cuInit,
-            cublas::{create_handle, cublasSetStream_v2, CublasHandle},
-            device, Context, CudaIntDevice, FnHandle, Module, Stream,
+            cublas::{create_handle, cublasSetStream_v2, CublasHandle, cublasDestroy_v2},
+            device, Context, CudaIntDevice, FnHandle, Module, Stream, cuStreamDestroy, cumalloc,
         },
         launch_kernel1d, AsCudaCvoidPtr, CUDAPtr, CUKernelCache, CudaSource,
     },
@@ -120,11 +120,31 @@ impl<Mods: OnDropBuffer> Device for CUDA<Mods> {
     type Error = i32;
 }
 
+impl<Mods> Drop for CUDA<Mods> {
+    fn drop(&mut self) {
+        // deallocates all cached buffers before destroying the context etc
+        // TODO: keep in mind
+        // self.cache_mut().nodes.clear();
+
+        unsafe {
+            cublasDestroy_v2(self.handle.0);
+            cuStreamDestroy(self.stream.0);
+        }
+    }
+}
+
 impl<Mods> Alloc for CUDA<Mods> {
     type Data<T, S: Shape> = CUDAPtr<T>;
 
     fn alloc<T, S: Shape>(&self, len: usize, flag: crate::flag::AllocFlag) -> Self::Data<T, S> {
-        todo!()
+        let ptr = cumalloc::<T>(len).unwrap();
+        // TODO: use unified mem if available -> i can't test this
+        CUDAPtr {
+            ptr,
+            len,
+            flag,
+            p: PhantomData,
+        }
     }
 
     fn alloc_from_slice<T, S: Shape>(&self, data: &[T]) -> Self::Data<T, S>
@@ -157,7 +177,7 @@ mod tests {
         device: &D,
         buf: &Buffer<T, D, S>,
     ) {
-        let buf = device.retrieve::<T, S>(buf.len());
+        let buf = device.retrieve::<T, S, 0>(buf.len(), ());
     }
 
     #[test]
