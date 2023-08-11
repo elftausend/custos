@@ -1,7 +1,7 @@
 use crate::{
     module_comb::{
-        AddOperation, ApplyFunction, Buffer, HasId, MainMemory, OnDropBuffer, Retrieve,
-        Retriever, TapeActions, WriteBuf,
+        AddOperation, ApplyFunction, Buffer, HasId, MainMemory, OnDropBuffer, Retrieve, Retriever,
+        TapeActions, WriteBuf,
     },
     Shape, ToVal,
 };
@@ -30,7 +30,6 @@ impl<Mods: AddOperation> AddOperation for CPU<Mods> {
     fn call_lazily(&self) {
         self.modules.call_lazily()
     }
-    
 }
 
 impl<Mods, T, S, D> ApplyFunction<T, S, D> for CPU<Mods>
@@ -48,14 +47,12 @@ where
     ) -> Buffer<T, Self, S>
     where
         F: crate::Eval<T> + crate::MayToCLSource,
-    {   
-        let mut out = self.retrieve(buf.len());
-        println!("out_ptr: {:?}", out.data.ptr);
+    {
+        let mut out = self.retrieve(buf.len(), buf);
 
         let ids = (buf.id(), out.id());
         self.add_grad_fn::<T, S>(move |grads| {
             let (lhs, lhs_grad, out_grad) = grads.get_double::<T, S, S, D>(ids);
-            
         });
 
         for (x, out) in buf.iter().zip(out.iter_mut()) {

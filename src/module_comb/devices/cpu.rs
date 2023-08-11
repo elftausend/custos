@@ -8,8 +8,8 @@ use crate::{
     flag::AllocFlag,
     impl_buffer_hook_traits, impl_retriever,
     module_comb::{
-        Alloc, Base, Buffer, Cached, CachedModule, HasModules, MainMemory, Module,
-        OnDropBuffer, OnNewBuffer, Retrieve, Retriever, Setup, TapeActions, LazySetup,
+        Alloc, Base, Buffer, Cached, CachedModule, HasModules, LazySetup, MainMemory, Module,
+        OnDropBuffer, OnNewBuffer, Retrieve, Retriever, Setup, TapeActions,
     },
     Shape,
 };

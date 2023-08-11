@@ -1,6 +1,9 @@
 use crate::{
     flag::AllocFlag,
-    module_comb::{Alloc, Device, Module, OnDropBuffer, OnNewBuffer, Retrieve, Setup, TapeActions, AddOperation},
+    module_comb::{
+        AddOperation, Alloc, Device, Module, OnDropBuffer, OnNewBuffer, Parents, Retrieve, Setup,
+        TapeActions,
+    },
     Shape,
 };
 
@@ -31,8 +34,14 @@ impl OnDropBuffer for Base {}
 
 impl<D> Retrieve<D> for Base {
     #[inline]
-    fn retrieve<T, S: crate::Shape>(&self, device: &D, len: usize) -> <D>::Data<T, S>
+    fn retrieve<T, S, const NUM_PARENTS: usize>(
+        &self,
+        device: &D,
+        len: usize,
+        _parents: impl Parents<NUM_PARENTS>,
+    ) -> <D>::Data<T, S>
     where
+        S: crate::Shape,
         D: Alloc,
     {
         device.alloc(len, AllocFlag::None)

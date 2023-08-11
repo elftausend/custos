@@ -15,8 +15,8 @@ use std::collections::HashMap;
 use crate::{
     flag::AllocFlag,
     module_comb::{
-        Alloc, Buffer, Device, HasId, Id, Module, OnDropBuffer, OnNewBuffer, PtrConv, Retrieve,
-        Setup, TapeActions, UniqueId, WriteBuf,
+        Alloc, Buffer, Device, HasId, Id, Module, OnDropBuffer, OnNewBuffer, Parents, PtrConv,
+        Retrieve, Setup, TapeActions, UniqueId, WriteBuf,
     },
     prelude::One,
     Shape,
@@ -129,11 +129,18 @@ where
     D: PtrConv + Device + 'static,
 {
     #[inline]
-    fn retrieve<T: 'static, S: crate::Shape>(&self, device: &D, len: usize) -> <D>::Data<T, S>
+    fn retrieve<T, S, const NUM_PARENTS: usize>(
+        &self,
+        device: &D,
+        len: usize,
+        parents: impl Parents<NUM_PARENTS>,
+    ) -> <D>::Data<T, S>
     where
         D: Alloc,
+        T: 'static,
+        S: crate::Shape,
     {
-        self.modules.retrieve(device, len)
+        self.modules.retrieve(device, len, parents)
     }
 
     #[inline]
@@ -307,7 +314,7 @@ mod tests {
         let _lhs = Buffer::<f32, _>::new(&device, 10);
 
         for _ in 0..100 {
-            let x = device.retrieve::<f32, ()>(100);
+            let x = device.retrieve::<f32, (), 0>(100, ());
             assert_eq!(x.len(), 100)
         }
 
@@ -328,7 +335,7 @@ mod tests {
         let _lhs = Buffer::<f32, _>::new(&device, 10);
 
         for _ in 0..100 {
-            let x = device.retrieve::<f32, ()>(100);
+            let x = device.retrieve::<f32, (), 0>(100, ());
             assert_eq!(x.len(), 100)
         }
 

@@ -82,7 +82,14 @@ pub trait Setup<D> {
 
 pub trait Retriever: Device {
     #[track_caller]
-    fn retrieve<T: 'static, S: Shape>(&self, len: usize) -> Buffer<T, Self, S>;
+    fn retrieve<T, S, const NUM_PARENTS: usize>(
+        &self,
+        len: usize,
+        parents: impl Parents<NUM_PARENTS>,
+    ) -> Buffer<T, Self, S>
+    where
+        T: 'static,
+        S: Shape;
 }
 
 /// Devices that can access the main memory / RAM of the host.
@@ -100,14 +107,14 @@ mod tests {
     fn test_init_new_buf() {
         let device = CPU::<Cached<Autograd<Base>>>::new();
         for _ in 0..100 {
-            let buf = device.retrieve::<f32, ()>(10);
+            let buf: super::Buffer<'_, f32, CPU<CachedModule<Autograd<CachedModule<Base, CPU<Cached<Autograd<Base>>>>>, CPU<Cached<Autograd<Base>>>>>, ()> = device.retrieve(10, ());
         }
     }
 
     use super::{Alloc, Autograd, Base, Cached, CachedModule, Module, Retrieve, Retriever, CPU};
 
     fn take_generic_dev<D: Retriever>(device: &D) {
-        device.retrieve::<f32, ()>(10);
+        device.retrieve::<f32, (), 0>(10, ());
     }
 
     fn take_generic_dev_alloc<D: Alloc>(device: &D) {
@@ -142,13 +149,13 @@ mod tests {
     #[test]
     fn test_retrieve_unique_buf() {
         let device = CPU::<Cached<Base>>::new();
-        let buf = device.retrieve::<f32, ()>(10);
-        let buf1 = device.retrieve::<f32, ()>(10);
+        let buf = device.retrieve::<f32, (), 0>(10, ());
+        let buf1 = device.retrieve::<f32, (), 0>(10, ());
         assert_ne!(buf.data.ptr, buf1.data.ptr);
-        let buf2 = device.retrieve::<f32, ()>(10);
+        let buf2 = device.retrieve::<f32, (), 0>(10, ());
         assert_ne!(buf.data.ptr, buf2.data.ptr);
         assert_ne!(buf1.data.ptr, buf2.data.ptr);
-        let buf3 = device.retrieve::<f32, ()>(10);
+        let buf3 = device.retrieve::<f32, (), 0>(10, ());
         assert_ne!(buf2.data.ptr, buf3.data.ptr);
         assert_ne!(buf1.data.ptr, buf3.data.ptr);
         assert_ne!(buf.data.ptr, buf3.data.ptr);

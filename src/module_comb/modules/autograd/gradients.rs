@@ -1,5 +1,5 @@
 use crate::{
-    module_comb::{Base, BorrowCache, Buffer, CachingError, Device, HasId, Id, CPU},
+    module_comb::{Base, BorrowCache, Buffer, CachingError, Device, HasId, Id, Parents, CPU},
     Shape,
 };
 
@@ -143,7 +143,8 @@ impl Gradients {
     pub fn get_double<'a, T, IS, OS, D>(
         &mut self,
         // device: &'a D,
-        (xid, oid): (Id, Id),
+        parents: impl Parents<2>,
+        // (xid, oid): (Id, Id),
     ) -> (
         &Buffer<'a, T, D, IS>,
         &mut Buffer<'a, T, D, IS>,
@@ -155,6 +156,7 @@ impl Gradients {
         OS: Shape,
         D: Device + 'static,
     {
+        let [xid, oid] = parents.ids();
         // self.grads_pool.add_buf_once::<T, _, IS>(device, oid);
 
         // let x_grad_ptr = self.get_mut(device, xid) as *mut _;
@@ -179,7 +181,7 @@ mod tests {
         let buf = Buffer::<i32, _>::new(&device, 10);
         // unsafe { register_buf(&mut gradients.no_grads_pool.borrow_mut().cache, &buf) }
 
-        let out = device.retrieve::<i32, ()>(buf.len());
+        let out = device.retrieve::<i32, (), 0>(buf.len(), ());
         // unsafe { register_buf(&mut gradients.no_grads_pool.borrow_mut().cache, &out) }
 
         device
@@ -200,7 +202,7 @@ mod tests {
         let buf = Buffer::<i32, _>::new(&device, 10);
         // unsafe { register_buf(&mut gradients.no_grads_pool.borrow_mut().cache, &buf) }
 
-        let out = device.retrieve::<i64, ()>(buf.len());
+        let out = device.retrieve::<i64, (), 0>(buf.len(), ());
         // unsafe { register_buf(&mut gradients.no_grads_pool.borrow_mut().cache, &out) }
 
         device

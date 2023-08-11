@@ -2,8 +2,8 @@ use core::{cell::RefCell, marker::PhantomData};
 
 use crate::{
     module_comb::{
-        Alloc, Buffer, Cache, Device, Module, OnDropBuffer, OnNewBuffer, PtrConv, Retrieve, Setup,
-        TapeActions,
+        Alloc, Buffer, Cache, Device, Module, OnDropBuffer, OnNewBuffer, Parents, PtrConv,
+        Retrieve, Setup, TapeActions,
     },
     Shape,
 };
@@ -68,7 +68,12 @@ impl<Mods: Retrieve<D>, D: Alloc + PtrConv<SimpleDevice>, SimpleDevice: Alloc + 
     Retrieve<D> for CachedModule<Mods, SimpleDevice>
 {
     #[inline]
-    fn retrieve<T, S: Shape>(&self, device: &D, len: usize) -> D::Data<T, S> {
+    fn retrieve<T, S: Shape, const NUM_PARENTS: usize>(
+        &self,
+        device: &D,
+        len: usize,
+        _parents: impl Parents<NUM_PARENTS>,
+    ) -> D::Data<T, S> {
         self.cache.borrow_mut().get(device, len, || ())
     }
 
@@ -155,18 +160,18 @@ macro_rules! debug_assert_tracked {
 /// ```
 #[macro_export]
 macro_rules! retrieve {
-    ($device:ident, $len:expr) => {{
+    ($device:ident, $len:expr, $parents:expr) => {{
         $crate::debug_assert_tracked!();
-        $device.retrieve($len)
+        $device.retrieve($len, $parents)
     }};
-    ($device:ident, $len:expr, $dtype:ty) => {{
+    /*($device:ident, $len:expr, $dtype:ty, ) => {{
         $crate::debug_assert_tracked!();
         $device.retrieve::<$dtype, ()>($len)
     }};
     ($device:ident, $len:expr, $dtype:ty, $shape:ty) => {{
         $crate::debug_assert_tracked!();
         $device.retrieve::<$dtype, $shape>($len)
-    }};
+    }};*/
 }
 
 #[cfg(test)]
@@ -181,7 +186,7 @@ mod tests {
     // forgot to add track_caller
     #[cfg(debug_assertions)]
     fn add_bufs<Mods: Retrieve<CPU<Mods>>>(device: &CPU<Mods>) -> Buffer<f32, CPU<Mods>, ()> {
-        retrieve!(device, 10, f32)
+        retrieve!(device, 10, ())
     }
 
     #[test]
@@ -198,7 +203,7 @@ mod tests {
     fn add_bufs_tracked<Mods: Retrieve<CPU<Mods>>>(
         device: &CPU<Mods>,
     ) -> Buffer<f32, CPU<Mods>, ()> {
-        retrieve!(device, 10, f32)
+        retrieve!(device, 10, ())
     }
 
     #[test]
