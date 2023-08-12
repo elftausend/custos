@@ -1,8 +1,10 @@
+use core::any::Any;
+
 use crate::{
     flag::AllocFlag,
     module_comb::{
         AddOperation, Alloc, Device, Module, OnDropBuffer, OnNewBuffer, Parents, Retrieve, Setup,
-        TapeActions,
+        TapeActions, Buffer,
     },
     Shape,
 };
@@ -21,8 +23,14 @@ impl<D> Module<D> for Base {
 
 impl AddOperation for Base {
     #[inline]
-    fn add_operation(&self, mut operation: impl FnOnce()) {
-        operation();
+    unsafe fn add_operation<T: 'static, D: Device + 'static, S: Shape>(&self, out: &mut Buffer<T, D, S>, operation: impl Fn(&mut dyn Any)) {
+        let out: &mut Buffer<T, D, S> = unsafe { std::mem::transmute(out) };
+        operation(out);
+    }
+
+    #[inline]
+    fn add_operation2(&self, mut operation: impl crate::module_comb::Operation) {
+        operation.forward()
     }
 }
 

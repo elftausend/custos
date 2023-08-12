@@ -163,15 +163,14 @@ macro_rules! retrieve {
     ($device:ident, $len:expr, $parents:expr) => {{
         $crate::debug_assert_tracked!();
         $device.retrieve($len, $parents)
-    }};
-    /*($device:ident, $len:expr, $dtype:ty, ) => {{
-        $crate::debug_assert_tracked!();
-        $device.retrieve::<$dtype, ()>($len)
-    }};
-    ($device:ident, $len:expr, $dtype:ty, $shape:ty) => {{
-        $crate::debug_assert_tracked!();
-        $device.retrieve::<$dtype, $shape>($len)
-    }};*/
+    }}; /*($device:ident, $len:expr, $dtype:ty, ) => {{
+            $crate::debug_assert_tracked!();
+            $device.retrieve::<$dtype, ()>($len)
+        }};
+        ($device:ident, $len:expr, $dtype:ty, $shape:ty) => {{
+            $crate::debug_assert_tracked!();
+            $device.retrieve::<$dtype, $shape>($len)
+        }};*/
 }
 
 #[cfg(test)]

@@ -107,7 +107,17 @@ mod tests {
     fn test_init_new_buf() {
         let device = CPU::<Cached<Autograd<Base>>>::new();
         for _ in 0..100 {
-            let buf: super::Buffer<'_, f32, CPU<CachedModule<Autograd<CachedModule<Base, CPU<Cached<Autograd<Base>>>>>, CPU<Cached<Autograd<Base>>>>>, ()> = device.retrieve(10, ());
+            let buf: super::Buffer<
+                '_,
+                f32,
+                CPU<
+                    CachedModule<
+                        Autograd<CachedModule<Base, CPU<Cached<Autograd<Base>>>>>,
+                        CPU<Cached<Autograd<Base>>>,
+                    >,
+                >,
+                (),
+            > = device.retrieve(10, ());
         }
     }
 

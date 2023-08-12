@@ -47,8 +47,14 @@ macro_rules! impl_retriever {
     ($device:ident) => {
         impl<Mods: Retrieve<Self>> Retriever for $device<Mods> {
             #[inline]
-            fn retrieve<T: 'static, S: Shape, const NUM_PARENTS: usize>(&self, len: usize, parents: impl crate::module_comb::Parents<NUM_PARENTS>) -> Buffer<T, Self, S> {
-                let data = self.modules.retrieve::<T, S, NUM_PARENTS>(self, len, parents);
+            fn retrieve<T: 'static, S: Shape, const NUM_PARENTS: usize>(
+                &self,
+                len: usize,
+                parents: impl crate::module_comb::Parents<NUM_PARENTS>,
+            ) -> Buffer<T, Self, S> {
+                let data = self
+                    .modules
+                    .retrieve::<T, S, NUM_PARENTS>(self, len, parents);
                 let buf = Buffer {
                     data,
                     device: Some(self),

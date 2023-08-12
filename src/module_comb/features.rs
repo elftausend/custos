@@ -1,8 +1,8 @@
-use core::cell::{Ref, RefMut};
+use core::{cell::{Ref, RefMut}, any::Any};
 
 use crate::Shape;
 
-use super::{Alloc, Buffer, Device, GradFn, Gradients, Id, OnDropBuffer, Tape, HasId};
+use super::{Alloc, Buffer, Device, GradFn, Gradients, HasId, Id, OnDropBuffer, Tape};
 
 pub trait Feature: OnDropBuffer {}
 
@@ -121,7 +121,9 @@ impl<T, D: Device, S: Shape> Parents<1> for &Buffer<'_, T, D, S> {
     }
 }
 
-impl<T, D: Device, S: Shape, T1, D1: Device, S1: Shape> Parents<2> for (&Buffer<'_, T, D, S>, &Buffer<'_, T1, D1, S1>) {
+impl<T, D: Device, S: Shape, T1, D1: Device, S1: Shape> Parents<2>
+    for (&Buffer<'_, T, D, S>, &Buffer<'_, T1, D1, S1>)
+{
     #[inline]
     fn ids(self) -> [Id; 2] {
         let (lhs, rhs) = self;
@@ -129,7 +131,13 @@ impl<T, D: Device, S: Shape, T1, D1: Device, S1: Shape> Parents<2> for (&Buffer<
     }
 }
 
-impl<T, D: Device, S: Shape, T1, D1: Device, S1: Shape, T2, D2: Device, S2: Shape> Parents<3> for (&Buffer<'_, T, D, S>, &Buffer<'_, T1, D1, S1>, &Buffer<'_, T2, D2, S2>) {
+impl<T, D: Device, S: Shape, T1, D1: Device, S1: Shape, T2, D2: Device, S2: Shape> Parents<3>
+    for (
+        &Buffer<'_, T, D, S>,
+        &Buffer<'_, T1, D1, S1>,
+        &Buffer<'_, T2, D2, S2>,
+    )
+{
     #[inline]
     fn ids(self) -> [Id; 3] {
         let (buf, buf1, buf2) = self;
@@ -144,7 +152,12 @@ impl<T, D: Device, S: Shape, const N: usize> Parents<N> for [&Buffer<'_, T, D, S
     }
 }
 
+pub trait Operation {    
+    fn forward(&mut self);
+}
+
 pub trait AddOperation {
-    fn add_operation(&self, operation: impl FnOnce());
+    fn add_operation2(&self, operation: impl Operation) {}
+    unsafe fn add_operation<T: 'static, D: Device + 'static, S: Shape>(&self, out: &mut Buffer<T, D, S>, operation: impl Fn(&mut dyn Any));
     fn call_lazily(&self) {}
 }

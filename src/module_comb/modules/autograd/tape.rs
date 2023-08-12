@@ -1,8 +1,8 @@
-use core::{fmt::Debug, panic::Location, hash::BuildHasherDefault};
+use core::{fmt::Debug, hash::BuildHasherDefault, panic::Location};
 use std::collections::HashMap;
 
 use crate::{
-    module_comb::{Alloc, Buffer, Device, HasId, HashLocation, WriteBuf, LocationHasher},
+    module_comb::{Alloc, Buffer, Device, HasId, HashLocation, LocationHasher, WriteBuf},
     prelude::One,
     Shape,
 };

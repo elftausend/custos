@@ -4,9 +4,9 @@ use std::collections::HashMap;
 use crate::{
     cuda::{
         api::{
-            create_context, create_stream, cuInit,
-            cublas::{create_handle, cublasSetStream_v2, CublasHandle, cublasDestroy_v2},
-            device, Context, CudaIntDevice, FnHandle, Module, Stream, cuStreamDestroy, cumalloc,
+            create_context, create_stream, cuInit, cuStreamDestroy,
+            cublas::{create_handle, cublasDestroy_v2, cublasSetStream_v2, CublasHandle},
+            cumalloc, device, Context, CudaIntDevice, FnHandle, Module, Stream,
         },
         launch_kernel1d, AsCudaCvoidPtr, CUDAPtr, CUKernelCache, CudaSource,
     },

@@ -87,6 +87,13 @@ impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
     }
 }
 
+impl<'a, T, D: Device, S: Shape> Clone for Buffer<'a, T, D, S> {
+    #[inline]
+    fn clone(&self) -> Self {
+        todo!()
+    }
+}
+
 impl<'a, T, D: Device, S: Shape> HasId for Buffer<'a, T, D, S> {
     #[inline]
     fn id(&self) -> super::Id {

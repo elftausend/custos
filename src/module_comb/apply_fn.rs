@@ -17,7 +17,7 @@ pub trait ApplyFunction<T, S: Shape = (), D: Device = Self>: Device {
     /// assert_eq!(&*out, &[2., 4., 6., 6., 4., 2.,]);
     /// ```
     #[track_caller]
-    fn apply_fn<F>(&self, buf: &Buffer<T, D, S>, f: impl Fn(Resolve<T>) -> F) -> Buffer<T, Self, S>
+    fn apply_fn<F>(&self, buf: &Buffer<T, D, S>, f: impl Fn(Resolve<T>) -> F + Copy) -> Buffer<T, Self, S>
     where
         F: Eval<T> + MayToCLSource;
 }

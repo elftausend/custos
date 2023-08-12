@@ -1,17 +1,23 @@
-use core::{cell::RefCell, fmt::Debug, marker::PhantomData};
+use core::{cell::RefCell, fmt::Debug, marker::PhantomData, any::Any, hash::BuildHasherDefault};
+use std::collections::HashMap;
 
 use crate::{
     module_comb::{
         AddOperation, Alloc, Buffer, Device, Module, OnDropBuffer, OnNewBuffer, Parents, Retrieve,
-        Setup, TapeActions,
+        Setup, TapeActions, Operation, Id, UniqueId, NoHasher, PtrConv, HasId,
     },
     Shape,
 };
 
+use super::register_buf;
+
 #[derive(Default)]
 pub struct Lazy<Mods> {
     mods: Mods,
-    ops: RefCell<Vec<Box<dyn FnOnce() + 'static>>>,
+    outs: RefCell<HashMap<UniqueId, Box<dyn Any>, BuildHasherDefault<NoHasher>>>,
+    ops: RefCell<Vec<Box<dyn Fn(&mut dyn Any)>>>,
+    out_ids: RefCell<Vec<Id>>,
+    ops2: RefCell<Vec<Box<dyn Operation>>>,
 }
 
 impl<Mods: Debug> Debug for Lazy<Mods> {
@@ -34,23 +40,37 @@ impl<Mods: Module<D>, D: LazySetup> Module<D> for Lazy<Mods> {
     fn new() -> Self::Module {
         Lazy {
             mods: Mods::new(),
+            outs: Default::default(),
             ops: Default::default(),
+            out_ids: Default::default(),
+            ops2: Default::default(),
         }
     }
 }
 
 impl<Mods> AddOperation for Lazy<Mods> {
     #[inline]
-    fn add_operation(&self, operation: impl FnOnce()) {
-        let operation: Box<dyn FnOnce()> = Box::new(operation);
-        let operation: Box<dyn FnOnce() + 'static> = unsafe { std::mem::transmute(operation) };
+    unsafe fn add_operation<T: 'static, D: Device + 'static, S: Shape>(&self, out: &mut Buffer<T, D, S>, operation: impl Fn(&mut dyn Any)) {    
+        // operation(out);
+        self.out_ids.borrow_mut().push(out.id());
+        let operation: Box<dyn Fn(&mut dyn Any)> = Box::new(operation);
+        let operation: Box<dyn Fn(&mut dyn Any) + 'static> = unsafe { std::mem::transmute(operation) };
         self.ops.borrow_mut().push(operation)
     }
 
     #[inline]
+    fn add_operation2(&self, operation: impl Operation) {
+        let operation: Box<dyn Operation> = Box::new(operation);
+        let operation: Box<dyn Operation + 'static> = unsafe { std::mem::transmute(operation) };
+        self.ops2.borrow_mut().push(operation)
+    }
+
+    #[inline]
     fn call_lazily(&self) {
-        for op in self.ops.borrow_mut().drain(..) {
-            op()
+        for (op, out_id) in self.ops.borrow().iter().zip(self.out_ids.borrow().iter()) {
+            let mut outs = self.outs.borrow_mut();
+            let out = &mut **outs.get_mut(out_id).unwrap();
+            op(out)
         }
     }
 }
@@ -66,13 +86,15 @@ impl<D: LazySetup, Mods: Setup<D>> Setup<D> for Lazy<Mods> {
 impl<Mods: OnDropBuffer> OnDropBuffer for Lazy<Mods> {
     #[inline]
     fn on_drop_buffer<'a, T, D: Device, S: Shape>(&self, device: &'a D, buf: &Buffer<T, D, S>) {
+        super::unregister_buf(&mut self.outs.borrow_mut(), buf.id());
         self.mods.on_drop_buffer(device, buf)
     }
 }
 
-impl<T, D: Device, S: Shape, Mods: OnNewBuffer<T, D, S>> OnNewBuffer<T, D, S> for Lazy<Mods> {
+impl<T: 'static, D: Device + PtrConv + 'static, S: Shape, Mods: OnNewBuffer<T, D, S>> OnNewBuffer<T, D, S> for Lazy<Mods> {
     #[inline]
     fn on_new_buffer(&self, device: &D, new_buf: &Buffer<T, D, S>) {
+        unsafe { super::register_buf(&mut self.outs.borrow_mut(), new_buf) };
         self.mods.on_new_buffer(device, new_buf)
     }
 }
@@ -89,7 +111,7 @@ impl<Mods: TapeActions> TapeActions for Lazy<Mods> {
     }
 }
 
-impl<Mods: Retrieve<D>, D> Retrieve<D> for Lazy<Mods> {
+impl<Mods: Retrieve<D>, D: PtrConv + 'static> Retrieve<D> for Lazy<Mods> {
     #[inline]
     fn retrieve<T, S, const NUM_PARENTS: usize>(
         &self,
@@ -111,6 +133,8 @@ impl<Mods: Retrieve<D>, D> Retrieve<D> for Lazy<Mods> {
         T: 'static,
         D: Device,
     {
+        unsafe { register_buf(&mut self.outs.borrow_mut(), retrieved_buf) };
+
         // pass down
         self.mods.on_retrieve_finish(retrieved_buf)
     }
@@ -141,7 +165,7 @@ mod tests {
 
     #[test]
     fn test_lazy_execution() {
-        let device = CPU::<Base>::new();
+        let device = CPU::<Lazy<Base>>::new();
 
         let buf = Buffer::<f32, _>::new(&device, 10);
         let out = device.apply_fn(&buf, |x| x.add(3.));
