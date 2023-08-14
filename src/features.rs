@@ -1,8 +1,11 @@
-use core::{cell::{Ref, RefMut}, any::Any};
+use core::{
+    any::Any,
+    cell::{Ref, RefMut},
+};
 
-use crate::Shape;
+use crate::{Parents, Shape};
 
-use super::{Alloc, Buffer, Device, GradFn, Gradients, HasId, Id, OnDropBuffer, Tape};
+use super::{Alloc, Buffer, Device, OnDropBuffer};
 
 pub trait Feature: OnDropBuffer {}
 
@@ -25,14 +28,14 @@ pub trait Retrieve<D>: OnDropBuffer {
     where
         T: 'static, // if 'static causes any problems -> put T to => Retrieve<D, T>?
         S: Shape,
-        D: Alloc;
+        D: Device + Alloc<T>;
 
     // "actor"
     #[inline]
     fn on_retrieve_finish<T, S: Shape>(&self, _retrieved_buf: &Buffer<T, D, S>)
     where
         T: 'static,
-        D: Device,
+        D: Alloc<T>,
     {
     }
 }
@@ -44,12 +47,12 @@ pub trait HasModules<Mods> {
 pub trait TapeActions {
     // "generator" - do not forget to pass down
     #[inline]
-    fn tape(&self) -> Option<Ref<Tape>> {
+    fn tape(&self) -> Option<Ref<crate::Tape>> {
         None
     }
     // "generator" - do not forget to pass down
     #[inline]
-    fn tape_mut(&self) -> Option<RefMut<Tape>> {
+    fn tape_mut(&self) -> Option<RefMut<crate::Tape>> {
         None
     }
 
@@ -59,7 +62,7 @@ pub trait TapeActions {
     fn add_grad_fn<T, S: Shape>(
         &self,
         // ids: impl AllocGradsFrom<N>,
-        grad_fn: impl Fn(&mut Gradients) + 'static,
+        grad_fn: impl Fn(&mut crate::Gradients) + 'static,
     ) where
         T: 'static,
         Self: Device + 'static,
@@ -75,13 +78,16 @@ pub trait TapeActions {
     }
 }
 
-
-pub trait Operation {    
+pub trait Operation {
     fn forward(&mut self);
 }
 
 pub trait AddOperation {
     fn add_operation2(&self, operation: impl Operation) {}
-    unsafe fn add_operation<T: 'static, D: Device + 'static, S: Shape>(&self, out: &mut Buffer<T, D, S>, operation: impl Fn(&mut dyn Any));
+    unsafe fn add_operation<T: 'static, D: Device + 'static, S: Shape>(
+        &self,
+        out: &mut Buffer<T, D, S>,
+        operation: impl Fn(&mut dyn Any),
+    );
     fn call_lazily(&self) {}
 }

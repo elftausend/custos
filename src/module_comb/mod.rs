@@ -38,67 +38,6 @@ pub fn location() -> &'static core::panic::Location<'static> {
     core::panic::Location::caller()
 }
 
-pub trait Alloc: Sized {
-    type Data<T, S: Shape>: HasId + PtrType;
-
-    fn alloc<T, S: Shape>(&self, len: usize, flag: AllocFlag) -> Self::Data<T, S>;
-    fn alloc_from_slice<T, S: Shape>(&self, data: &[T]) -> Self::Data<T, S>
-    where
-        T: Clone;
-
-    /// If the vector `vec` was allocated previously, this function can be used in order to reduce the amount of allocations, which may be faster than using a slice of `vec`.
-    #[inline]
-    #[cfg(not(feature = "no-std"))]
-    fn alloc_from_vec<T, S: Shape>(&self, vec: Vec<T>) -> Self::Data<T, S>
-    where
-        T: Clone,
-    {
-        self.alloc_from_slice(&vec)
-    }
-
-    /// Allocates a pointer with the array provided by the `S:`[`Shape`] generic.
-    /// By default, the array is flattened and then passed to [`Alloc::with_slice`].
-    #[inline]
-    fn alloc_from_array<T, S: Shape>(&self, array: S::ARR<T>) -> Self::Data<T, S>
-    where
-        T: Clone,
-    {
-        let stack_array = StackArray::<S, T>::from_array(array);
-        self.alloc_from_slice(stack_array.flatten())
-    }
-}
-
-pub trait Module<D> {
-    type Module;
-
-    fn new() -> Self::Module;
-}
-
-/// Used for modules that should affect the device.
-pub trait Setup<D> {
-    #[inline]
-    fn setup(_device: &mut D) {}
-}
-
-pub trait Retriever: Device {
-    #[track_caller]
-    fn retrieve<T, S, const NUM_PARENTS: usize>(
-        &self,
-        len: usize,
-        parents: impl Parents<NUM_PARENTS>,
-    ) -> Buffer<T, Self, S>
-    where
-        T: 'static,
-        S: Shape;
-}
-
-/// Devices that can access the main memory / RAM of the host.
-pub trait MainMemory: Device {
-    /// Returns the respective immutable host memory pointer
-    fn as_ptr<T, S: Shape>(ptr: &Self::Data<T, S>) -> *const T;
-    /// Returns the respective mutable host memory pointer
-    fn as_ptr_mut<T, S: Shape>(ptr: &mut Self::Data<T, S>) -> *mut T;
-}
 
 #[cfg(test)]
 mod tests {

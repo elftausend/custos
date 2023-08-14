@@ -90,7 +90,7 @@ impl<T, D, S> UnaryElementWiseMayGrad<T, D, S> for D
 where
     T: 'static,
     D: ApplyFunction<T, S, D> + UnaryGrad<T, S, D> + MayTapeReturn,
-    D: for<'b> Alloc<'b, T, S> + 'static,
+    D: Alloc<T> + 'static,
     S: Shape,
 {
     #[inline(always)]

@@ -8,7 +8,7 @@ mod cl_may_unified;
 #[cfg(feature = "opencl")]
 pub use cl_may_unified::*;
 
-use crate::{Alloc, Buffer, Device, Read, WriteBuf, CPU};
+use crate::{Alloc, Base, Buffer, Device, Read, Retriever, WriteBuf, CPU};
 
 /// Moves a `Buffer` stored on device `D` to a `CPU` `Buffer`
 /// and executes the unary operation `F` with a `CPU` on the newly created `CPU` `Buffer`.
@@ -45,11 +45,11 @@ pub fn cpu_exec_unary<'a, T, D, F>(
     f: F,
 ) -> crate::Result<Buffer<'a, T, D>>
 where
-    T: Clone + Default,
+    T: Clone + Default + 'static,
     F: for<'b> Fn(&'b CPU, &Buffer<'_, T, CPU>) -> Buffer<'b, T, CPU>,
-    D: Device + Read<T> + WriteBuf<T> + for<'c> Alloc<'c, T>,
+    D: Device + Read<T> + WriteBuf<T> + Alloc<T> + Retriever,
 {
-    let cpu = CPU::new();
+    let cpu = CPU::<Base>::new();
     let cpu_buf = Buffer::<T, CPU>::from((&cpu, x.read_to_vec()));
     Ok(Buffer::from((device, f(&cpu, &cpu_buf))))
     // TODO add new node to graph
@@ -67,7 +67,7 @@ where
     F: for<'b> Fn(&'b CPU, &mut Buffer<'_, T, CPU>),
     D: Read<T> + WriteBuf<T>,
 {
-    let cpu = CPU::new();
+    let cpu = CPU::<Base>::new();
     let mut cpu_buf = Buffer::<T, CPU>::from((&cpu, x.read_to_vec()));
     f(&cpu, &mut cpu_buf);
 
@@ -111,11 +111,11 @@ pub fn cpu_exec_binary<'a, T, D, F>(
     f: F,
 ) -> Buffer<'a, T, D>
 where
-    T: Clone + Default,
+    T: Clone + Default + 'static,
     F: for<'b> Fn(&'b CPU, &Buffer<'_, T, CPU>, &Buffer<'_, T, CPU>) -> Buffer<'b, T, CPU>,
-    D: Device + Read<T> + WriteBuf<T> + for<'c> Alloc<'c, T>,
+    D: Device + Read<T> + WriteBuf<T> + Alloc<T> + Retriever,
 {
-    let cpu = CPU::new();
+    let cpu = CPU::<Base>::new();
     let cpu_lhs = Buffer::<T, CPU>::from((&cpu, lhs.read_to_vec()));
     let cpu_rhs = Buffer::<T, CPU>::from((&cpu, rhs.read_to_vec()));
     Buffer::from((device, f(&cpu, &cpu_lhs, &cpu_rhs)))
@@ -134,7 +134,7 @@ where
     F: for<'b> Fn(&'b CPU, &mut Buffer<'_, T, CPU>, &Buffer<'_, T, CPU>),
     D: Read<T> + WriteBuf<T>,
 {
-    let cpu = CPU::new();
+    let cpu = CPU::<Base>::new();
     let mut cpu_lhs = Buffer::<T, CPU>::from((&cpu, lhs.read_to_vec()));
     let cpu_rhs = Buffer::<T, CPU>::from((&cpu, rhs.read_to_vec()));
     f(&cpu, &mut cpu_lhs, &cpu_rhs);
@@ -155,7 +155,7 @@ where
 ///
 /// let device = OpenCL::new(0).unwrap();
 ///
-/// let cpu = CPU::new();
+/// let cpu = CPU::<Base>::new();
 ///
 /// let lhs = Buffer::from((&device, [1, 2, 3]));
 /// let rhs = Buffer::from((&device, [1, 2, 3]));
@@ -184,7 +184,7 @@ macro_rules! to_cpu_mut {
 ///
 /// let device = OpenCL::new(0).unwrap();
 ///
-/// let cpu = CPU::new();
+/// let cpu = CPU::<Base>::new();
 ///
 /// let lhs = Buffer::from((&device, [1, 2, 3]));
 /// let rhs = Buffer::from((&device, [1, 2, 3]));
@@ -237,7 +237,7 @@ macro_rules! to_raw_host_mut {
 /// let b = Buffer::new(&device, 10);
 /// let c = Buffer::new(&device, 10);
 ///
-/// let cpu = CPU::new();
+/// let cpu = CPU::<Base>::new();
 ///
 /// ```
 */
@@ -271,7 +271,7 @@ where
     D: Read<T>,
     F: Fn(&CPU, &Buffer<T, CPU>) -> T,
 {
-    let cpu = CPU::new();
+    let cpu = CPU::<Base>::new();
     let cpu_x = Buffer::from((&cpu, x.read_to_vec()));
     f(&cpu, &cpu_x)
 }
@@ -285,7 +285,7 @@ mod tests {
 
         let device = crate::OpenCL::new(0).unwrap();
 
-        let cpu = CPU::new();
+        let cpu = CPU::<Base>::new();
 
         let lhs = Buffer::from((&device, [1, 2, 3]));
         let rhs = Buffer::from((&device, [1, 2, 3]));

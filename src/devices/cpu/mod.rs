@@ -1,9 +1,6 @@
 //! The CPU module provides the CPU backend for custos.
 
-use crate::{
-    module_comb::{HasId, Id},
-    CommonPtrs, PtrType, ShallowCopy,
-};
+use crate::{CommonPtrs, HasId, Id, PtrType, ShallowCopy};
 #[cfg(feature = "blas")]
 pub use blas::*;
 use core::{

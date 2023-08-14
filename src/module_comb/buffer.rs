@@ -1,6 +1,22 @@
 use super::{Alloc, Base, Device, HasId, MainMemory, OnNewBuffer, WriteBuf, CPU};
 use crate::{flag::AllocFlag, PtrType, Shape};
 
+/// The underlying non-growable array structure of `custos`. A `Buffer` may be encapsulated in other data structures.
+/// By default, the `Buffer` is a f32 CPU Buffer with no statically known shape.
+/// # Example
+#[cfg_attr(feature = "cpu", doc = "```")]
+#[cfg_attr(not(feature = "cpu"), doc = "```ignore")]
+/// use custos::prelude::*;
+///
+/// fn buffer_f32_cpu(buf: &Buffer) {}
+/// fn buffer_generic<T, D: Device>(buf: &Buffer<T, D>) {}
+///
+/// let device = CPU::new();
+/// let buf = Buffer::from((&device, [0.5, 1.3, 3.2, 2.43]));
+///
+/// buffer_f32_cpu(&buf);
+/// buffer_generic(&buf);
+/// ```
 pub struct Buffer<'a, T = f32, D: Device = CPU<Base>, S: Shape = ()> {
     /// the type of pointer
     pub data: D::Data<T, S>,
@@ -9,6 +25,23 @@ pub struct Buffer<'a, T = f32, D: Device = CPU<Base>, S: Shape = ()> {
 }
 
 impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
+    /// Creates a zeroed (or values set to default) `Buffer` with the given length on the specified device.
+    /// This `Buffer` can't outlive the device specified as a parameter.
+    #[cfg_attr(feature = "cpu", doc = "```")]
+    #[cfg_attr(not(feature = "cpu"), doc = "```ignore")]
+    /// use custos::{CPU, Buffer};
+    ///
+    /// let device = CPU::new();
+    /// let mut buffer = Buffer::<i32>::new(&device, 6);
+    ///
+    /// // this only works with CPU or unified memory buffers (this creates a slice with the host pointer)
+    /// for value in &mut buffer {
+    ///     *value = 2;
+    /// }
+    ///
+    /// assert_eq!(buffer.as_slice(), &[2; 6]);
+    ///
+    /// ```
     #[inline]
     pub fn new(device: &'a D, len: usize) -> Self
     where

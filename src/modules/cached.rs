@@ -1,11 +1,8 @@
 use core::{cell::RefCell, marker::PhantomData};
 
 use crate::{
-    module_comb::{
-        Alloc, Buffer, Cache, Device, Module, OnDropBuffer, OnNewBuffer, Parents, PtrConv,
-        Retrieve, Setup, TapeActions,
-    },
-    Shape,
+    Alloc, Buffer, Cache, Device, Module, OnDropBuffer, OnNewBuffer, Parents, PtrConv, Retrieve,
+    Setup, Shape, TapeActions,
 };
 
 // creator struct
@@ -23,7 +20,7 @@ pub struct Cached<Mods> {
     }
 }*/
 
-impl<Mods: Module<D>, D: Alloc> Module<D> for Cached<Mods> {
+impl<Mods: Module<D>, D: Device> Module<D> for Cached<Mods> {
     type Module = CachedModule<Mods::Module, D>;
 
     fn new() -> Self::Module {
@@ -36,19 +33,21 @@ impl<Mods: Module<D>, D: Alloc> Module<D> for Cached<Mods> {
     }
 }
 
-pub struct CachedModule<Mods, D: Alloc> {
+impl<Mods> OnDropBuffer for Cached<Mods> {}
+
+pub struct CachedModule<Mods, D: Device> {
     pub modules: Mods,
     cache: RefCell<Cache<D>>,
 }
 
-impl<Mods: Setup<NewDev>, D: Alloc, NewDev> Setup<NewDev> for CachedModule<Mods, D> {
+impl<Mods: Setup<NewDev>, D: Device, NewDev> Setup<NewDev> for CachedModule<Mods, D> {
     #[inline]
     fn setup(device: &mut NewDev) {
         Mods::setup(device)
     }
 }
 
-impl<T, D: Device, S: Shape, Mods: OnNewBuffer<T, D, S>, SD: Alloc> OnNewBuffer<T, D, S>
+impl<T, D: Device, S: Shape, Mods: OnNewBuffer<T, D, S>, SD: Device> OnNewBuffer<T, D, S>
     for CachedModule<Mods, SD>
 {
     fn on_new_buffer(&self, device: &D, new_buf: &Buffer<T, D, S>) {
@@ -56,7 +55,7 @@ impl<T, D: Device, S: Shape, Mods: OnNewBuffer<T, D, S>, SD: Alloc> OnNewBuffer<
     }
 }
 
-impl<Mods: OnDropBuffer, SD: Alloc> OnDropBuffer for CachedModule<Mods, SD> {
+impl<Mods: OnDropBuffer, SD: Device> OnDropBuffer for CachedModule<Mods, SD> {
     #[inline]
     fn on_drop_buffer<'a, T, D: Device, S: Shape>(&self, device: &'a D, buf: &Buffer<T, D, S>) {
         self.modules.on_drop_buffer(device, buf)
@@ -64,7 +63,7 @@ impl<Mods: OnDropBuffer, SD: Alloc> OnDropBuffer for CachedModule<Mods, SD> {
 }
 
 // TODO: a more general OnDropBuffer => "Module"
-impl<Mods: Retrieve<D>, D: Alloc<T>+ PtrConv<SimpleDevice>, SimpleDevice: Alloc<T>+ PtrConv<D>>
+impl<Mods: Retrieve<D>, D: Device + PtrConv<SimpleDevice>, SimpleDevice: Device + PtrConv<D>>
     Retrieve<D> for CachedModule<Mods, SimpleDevice>
 {
     #[inline]
@@ -73,7 +72,10 @@ impl<Mods: Retrieve<D>, D: Alloc<T>+ PtrConv<SimpleDevice>, SimpleDevice: Alloc<
         device: &D,
         len: usize,
         _parents: impl Parents<NUM_PARENTS>,
-    ) -> D::Data<T, S> {
+    ) -> D::Data<T, S>
+    where
+        D: Alloc<T>,
+    {
         self.cache.borrow_mut().get(device, len, || ())
     }
 
@@ -81,13 +83,13 @@ impl<Mods: Retrieve<D>, D: Alloc<T>+ PtrConv<SimpleDevice>, SimpleDevice: Alloc<
     fn on_retrieve_finish<T, S: Shape>(&self, retrieved_buf: &Buffer<T, D, S>)
     where
         T: 'static,
-        D: Device,
+        D: Alloc<T>,
     {
         self.modules.on_retrieve_finish(retrieved_buf)
     }
 }
 
-impl<Mods: TapeActions, SD: Alloc> TapeActions for CachedModule<Mods, SD> {
+impl<Mods: TapeActions, SD: Device> TapeActions for CachedModule<Mods, SD> {
     #[inline]
     fn tape(&self) -> Option<core::cell::Ref<super::Tape>> {
         self.modules.tape()
@@ -178,7 +180,7 @@ mod tests {
     use core::{panic::Location, ptr::addr_of};
 
     // crate::modules
-    use crate::module_comb::{location, Base, Buffer, Retrieve, Retriever, CPU};
+    use crate::{location, Base, Buffer, Retrieve, Retriever, CPU};
 
     use super::Cached;
 

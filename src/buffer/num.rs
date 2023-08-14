@@ -1,11 +1,15 @@
 use core::{
+    convert::Infallible,
     ffi::c_void,
     ops::{Deref, DerefMut},
     ptr::null_mut,
 };
 
-use crate::{shape::Shape, Buffer, CloneBuf, CommonPtrs, Device, PtrType};
+use crate::{
+    flag::AllocFlag, Alloc, Buffer, CloneBuf, CommonPtrs, Device, HasId, OnDropBuffer, PtrType,
+};
 
+#[derive(Debug, Default)]
 /// Makes it possible to use a single number in a [`Buffer`].
 pub struct Num<T> {
     /// The stored number.
@@ -36,25 +40,53 @@ impl<T> CommonPtrs<T> for Num<T> {
     }
 }
 
-impl Device for () {
-    type Ptr<U, S: Shape> = Num<U>;
-    type Cache = ();
+impl<T> HasId for Num<T> {
+    fn id(&self) -> crate::Id {
+        todo!()
+    }
+}
 
-    fn new() -> crate::Result<Self> {
+impl<T> From<T> for Num<T> {
+    #[inline]
+    fn from(num: T) -> Self {
+        Num { num }
+    }
+}
+
+impl Device for () {
+    type Data<T, S: crate::Shape> = Num<T>;
+    type Error = Infallible;
+
+    fn new() -> Result<Self, Infallible> {
         Ok(())
     }
 }
+
+impl<T: Default> Alloc<T> for () {
+    #[inline]
+    fn alloc<S: crate::Shape>(&self, _len: usize, _flag: AllocFlag) -> Self::Data<T, S> {
+        Num::default()
+    }
+
+    #[inline]
+    fn alloc_from_slice<S: crate::Shape>(&self, data: &[T]) -> Self::Data<T, S>
+    where
+        T: Clone,
+    {
+        data[0].clone().into()
+    }
+}
+
+impl OnDropBuffer for () {}
 
 impl<'a, T: Clone> CloneBuf<'a, T> for () {
     #[inline]
     fn clone_buf(&self, buf: &Buffer<'a, T, Self>) -> Buffer<'a, T, Self> {
         Buffer {
-            ptr: Num {
-                num: buf.ptr.num.clone(),
+            data: Num {
+                num: buf.data.num.clone(),
             },
             device: buf.device,
-            #[cfg(not(feature = "no-std"))]
-            ident: buf.ident,
         }
     }
 }
@@ -63,10 +95,8 @@ impl<T: crate::number::Number> From<T> for Buffer<'_, T, ()> {
     #[inline]
     fn from(ptr: T) -> Self {
         Buffer {
-            ptr: Num { num: ptr },
+            data: Num { num: ptr },
             device: None,
-            #[cfg(not(feature = "no-std"))]
-            ident: None,
         }
     }
 }
@@ -80,10 +110,8 @@ impl<'a, T> Buffer<'a, T, ()> {
         T: Copy,
     {
         Buffer {
-            ptr: Num { num: self.ptr.num },
+            data: Num { num: self.data.num },
             device: self.device,
-            #[cfg(not(feature = "no-std"))]
-            ident: self.ident,
         }
     }
 
@@ -105,7 +133,7 @@ impl<'a, T> Buffer<'a, T, ()> {
     where
         T: Copy,
     {
-        self.ptr.num
+        self.data.num
     }
 }
 
@@ -114,14 +142,14 @@ impl<'a, T> Deref for Buffer<'a, T, ()> {
 
     #[inline]
     fn deref(&self) -> &Self::Target {
-        &self.ptr.num
+        &self.data.num
     }
 }
 
 impl<'a, T> DerefMut for Buffer<'a, T, ()> {
     #[inline]
     fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.ptr.num
+        &mut self.data.num
     }
 }
 
@@ -143,5 +171,12 @@ mod tests {
         let mut a = Buffer::from(5);
         *a += 10;
         assert_eq!(*a, 15);
+    }
+
+    #[test]
+    fn test_num_device() {
+        use crate::Device;
+
+        let _device = <()>::new().unwrap();
     }
 }

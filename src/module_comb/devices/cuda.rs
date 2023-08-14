@@ -133,7 +133,7 @@ impl<Mods> Drop for CUDA<Mods> {
     }
 }
 
-impl<Mods> Alloc for CUDA<Mods> {
+impl<Mods> Alloc<T>for CUDA<Mods> {
     type Data<T, S: Shape> = CUDAPtr<T>;
 
     fn alloc<T, S: Shape>(&self, len: usize, flag: crate::flag::AllocFlag) -> Self::Data<T, S> {

@@ -24,7 +24,7 @@ impl Shape for () {
 pub trait IsShapeIndep: Device {}
 
 #[cfg(not(feature = "no-std"))]
-impl<D: PtrConv> IsShapeIndep for D {}
+impl<D: PtrConv + Device> IsShapeIndep for D {}
 
 /// If the [`Shape`] is provides a fixed size, than this trait should be implemented.
 /// Forgot how this is useful.
@@ -90,16 +90,16 @@ impl<const C: usize, const B: usize, const A: usize> Shape for Dim3<C, B, A> {
 pub trait ToDim<T, I: Shape, O: Shape>: crate::Device {
     /// Converts a pointer to a different [`Shape`].
     /// This is only possible for [`Buffer`](crate::Buffer)s that are not allocated on the stack.
-    fn to_dim(&self, ptr: Self::Ptr<T, I>) -> Self::Ptr<T, O>;
+    fn to_dim(&self, ptr: Self::Data<T, I>) -> Self::Data<T, O>;
 }
 
 #[cfg(not(feature = "no-std"))]
-impl<T, D: PtrConv, I: Shape, O: Shape> ToDim<T, I, O> for D
+impl<T, D: PtrConv + Device, I: Shape, O: Shape> ToDim<T, I, O> for D
 where
-    Self::Ptr<T, ()>: crate::PtrType,
+    Self::Data<T, ()>: crate::PtrType,
 {
     #[inline]
-    fn to_dim(&self, ptr: Self::Ptr<T, I>) -> D::Ptr<T, O> {
+    fn to_dim(&self, ptr: Self::Data<T, I>) -> D::Data<T, O> {
         // resources are now mananged by the destructed raw pointer (prevents double free).
         let ptr = core::mem::ManuallyDrop::new(ptr);
 
@@ -166,9 +166,9 @@ mod tests {
     #[cfg(feature = "cpu")]
     #[test]
     fn test_transmute_of_stackless_buf() {
-        use crate::{Buffer, CPU};
+        use crate::{Base, Buffer, CPU};
 
-        let device = CPU::new();
+        let device = CPU::<Base>::new();
         let buf = Buffer::<f32, CPU, Dim2<5, 5>>::new(&device, 10);
 
         let other_buf = unsafe {

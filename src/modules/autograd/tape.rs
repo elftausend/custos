@@ -2,9 +2,7 @@ use core::{fmt::Debug, hash::BuildHasherDefault, panic::Location};
 use std::collections::HashMap;
 
 use crate::{
-    module_comb::{Alloc, Buffer, Device, HasId, HashLocation, LocationHasher, WriteBuf},
-    prelude::One,
-    Shape,
+    prelude::One, Alloc, Buffer, Device, HasId, HashLocation, LocationHasher, Shape, WriteBuf,
 };
 
 use super::Gradients;
@@ -64,7 +62,7 @@ impl Tape {
     pub fn backward_seeded<T, D: Device, S: Shape>(&mut self, buf: &Buffer<T, D, S>)
     where
         T: Clone + One + 'static,
-        D: Alloc<T>+ WriteBuf<T, S, D> + 'static,
+        D: Alloc<T> + WriteBuf<T, S, D> + 'static,
     {
         let out = self.grads.get_mut::<T, S, D>(buf.device(), buf.id());
         out.write(&vec![T::one(); out.len()]);

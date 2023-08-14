@@ -16,6 +16,20 @@ use crate::{
 
 pub trait IsCPU {}
 
+/// A CPU is used to perform calculations on the host CPU.
+/// To make new operations invocable, a trait providing new functions should be implemented for [CPU].
+///
+/// # Example
+/// ```
+/// use custos::{CPU, Read, Buffer};
+///
+/// let device = CPU::new();
+/// let a = Buffer::from((&device, [1, 2, 3]));
+///
+/// let out = device.read(&a);
+///
+/// assert_eq!(out, vec![1, 2, 3]);
+/// ```
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub struct CPU<Mods = Base> {
     pub modules: Mods,
@@ -76,7 +90,7 @@ impl<SimpleMods> CPU<SimpleMods> {
     }
 }
 
-impl<Mods> Alloc for CPU<Mods> {
+impl<Mods> Alloc<T>for CPU<Mods> {
     type Data<T, S: Shape> = CPUPtr<T>;
 
     fn alloc<T, S: Shape>(&self, mut len: usize, flag: AllocFlag) -> Self::Data<T, S> {

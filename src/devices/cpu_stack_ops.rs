@@ -4,9 +4,9 @@ use core::ops::AddAssign;
 //#[cfg(any(feature = "cpu", feature = "stack"))]
 use custos_macro::impl_stack;
 
-use crate::MayToCLSource;
 #[cfg(any(feature = "cpu", feature = "stack"))]
-use crate::{ApplyFunction, Buffer, Device, Eval, MainMemory, Resolve, Shape, ToVal, UnaryGrad};
+use crate::{ApplyFunction, Buffer, Eval, MainMemory, Resolve, Shape, ToVal, UnaryGrad};
+use crate::{MayToCLSource, OnDropBuffer, Retrieve, Retriever};
 
 #[cfg(feature = "cpu")]
 use crate::CPU;
@@ -15,9 +15,10 @@ use crate::CPU;
 use crate::Stack;
 
 #[impl_stack]
-impl<T, D, S> ApplyFunction<T, S, D> for CPU
+impl<Mods, T, D, S> ApplyFunction<T, S, D> for CPU<Mods>
 where
-    T: Copy + Default + ToVal,
+    Mods: OnDropBuffer + Retrieve<Self>,
+    T: Copy + Default + ToVal + 'static,
     D: crate::MainMemory,
     S: Shape,
 {
@@ -25,7 +26,7 @@ where
     where
         F: Eval<T> + MayToCLSource,
     {
-        let mut out = self.retrieve::<T, S>(buf.len(), buf);
+        let mut out = self.retrieve(buf.len(), buf);
 
         for (value, x) in out.iter_mut().zip(buf.iter()) {
             *value = f((*x).to_val()).eval()

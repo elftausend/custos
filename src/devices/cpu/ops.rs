@@ -1,6 +1,33 @@
-use core::ops::{Index, Range, RangeBounds};
+use core::{
+    any::Any,
+    ops::{Index, Range, RangeBounds},
+};
 
-use crate::{bounds_to_range, Buffer, ClearBuf, CopySlice, MainMemory, Read, Shape, WriteBuf, CPU};
+use crate::{
+    bounds_to_range, AddOperation, Buffer, ClearBuf, CopySlice, Device, MainMemory, OnDropBuffer,
+    Operation, Read, Shape, WriteBuf, CPU,
+};
+
+impl<Mods: AddOperation> AddOperation for CPU<Mods> {
+    #[inline]
+    unsafe fn add_operation<T: 'static, D: Device + 'static, S: Shape>(
+        &self,
+        out: &mut Buffer<T, D, S>,
+        operation: impl Fn(&mut dyn Any),
+    ) {
+        self.modules.add_operation(out, operation)
+    }
+
+    #[inline]
+    fn add_operation2(&self, operation: impl Operation) {
+        self.modules.add_operation2(operation)
+    }
+
+    #[inline]
+    fn call_lazily(&self) {
+        self.modules.call_lazily()
+    }
+}
 
 impl<T, D: MainMemory, S: Shape> Read<T, S, D> for CPU {
     type Read<'a> = &'a [T] where T: 'a, D: 'a, S: 'a;
@@ -19,7 +46,7 @@ impl<T, D: MainMemory, S: Shape> Read<T, S, D> for CPU {
     }
 }
 
-impl<T: Copy, D: MainMemory, S: Shape> WriteBuf<T, S, D> for CPU {
+impl<Mods: OnDropBuffer, T: Copy, D: MainMemory, S: Shape> WriteBuf<T, S, D> for CPU<Mods> {
     #[inline]
     fn write(&self, buf: &mut Buffer<T, D, S>, data: &[T]) {
         buf.copy_from_slice(data)

@@ -13,13 +13,8 @@ use core::{
 use std::collections::HashMap;
 
 use crate::{
-    flag::AllocFlag,
-    module_comb::{
-        Alloc, Buffer, Device, HasId, Id, Module, OnDropBuffer, OnNewBuffer, Parents, PtrConv,
-        Retrieve, Setup, TapeActions, UniqueId, WriteBuf,
-    },
-    prelude::One,
-    Shape,
+    flag::AllocFlag, prelude::One, Alloc, Buffer, Device, HasId, Id, Module, OnDropBuffer,
+    OnNewBuffer, Parents, PtrConv, Retrieve, Setup, Shape, TapeActions, UniqueId, WriteBuf,
 };
 
 use super::{Cached, CachedModule};
@@ -74,7 +69,7 @@ impl<Mods> Autograd<Mods> {
 impl<T, D, S, Mods> OnNewBuffer<T, D, S> for Autograd<Mods>
 where
     T: 'static,
-    D: Device + PtrConv + 'static,
+    D: Alloc<T> + PtrConv + 'static,
     S: Shape,
     Mods: OnNewBuffer<T, D, S>,
 {
@@ -105,7 +100,7 @@ impl<Mods: OnDropBuffer> OnDropBuffer for Autograd<Mods> {
     }
 }
 
-impl<Mods: Module<D>, D: Alloc> Module<D> for Autograd<Mods> {
+impl<Mods: Module<D>, D: Device> Module<D> for Autograd<Mods> {
     type Module = Autograd<CachedModule<Mods::Module, D>>;
 
     #[inline]
@@ -136,7 +131,7 @@ where
         parents: impl Parents<NUM_PARENTS>,
     ) -> <D>::Data<T, S>
     where
-        D: Alloc,
+        D: Alloc<T>,
         T: 'static,
         S: crate::Shape,
     {
@@ -147,7 +142,7 @@ where
     fn on_retrieve_finish<T, S: Shape>(&self, retrieved_buf: &Buffer<T, D, S>)
     where
         T: 'static,
-        D: Device,
+        D: Alloc<T>,
     {
         self.register_no_grad_buf(retrieved_buf);
 
@@ -179,7 +174,7 @@ const AUTOGRAD_NOT_AVAILABLE: &'static str = "Autograd<> is not available.";
 impl<'a, T, D, S> Buffer<'a, T, D, S>
 where
     T: Clone + One + 'static,
-    D: TapeActions + WriteBuf<T, S, D> + Alloc<T>+ 'static,
+    D: TapeActions + WriteBuf<T, S, D> + Alloc<T> + 'static,
     S: Shape,
 {
     /// Calls `.backward_seeded` on the [`Tape`].
@@ -248,10 +243,7 @@ where
 mod tests {
     use core::any::Any;
 
-    use crate::{
-        module_comb::{Base, Buffer, Cached, Device, HasId, Retriever, CPU},
-        Shape,
-    };
+    use crate::{Base, Buffer, Cached, Device, HasId, Retriever, Shape, CPU};
 
     use super::Autograd;
 

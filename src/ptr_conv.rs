@@ -1,10 +1,10 @@
 use core::mem::{align_of, size_of};
 
-use crate::{cpu::CPUPtr, flag::AllocFlag, Shape};
+use crate::{cpu::CPUPtr, flag::AllocFlag, Device, OnDropBuffer, Shape};
 
-use super::{Alloc, CPU};
+use super::CPU;
 
-pub trait PtrConv<D: Alloc = Self>: Alloc {
+pub trait PtrConv<D: Device = Self>: Device {
     unsafe fn convert<T, IS: Shape, Conv, OS: Shape>(
         data: &Self::Data<T, IS>,
         flag: AllocFlag,
@@ -12,7 +12,7 @@ pub trait PtrConv<D: Alloc = Self>: Alloc {
 }
 
 // impl for all devices
-impl<Mods, OtherMods> PtrConv<CPU<OtherMods>> for CPU<Mods> {
+impl<Mods: OnDropBuffer, OtherMods: OnDropBuffer> PtrConv<CPU<OtherMods>> for CPU<Mods> {
     #[inline]
     unsafe fn convert<T, IS: Shape, Conv, OS: Shape>(
         data: &CPUPtr<T>,

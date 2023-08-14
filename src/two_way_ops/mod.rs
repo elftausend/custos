@@ -322,9 +322,9 @@ mod tests {
     #[cfg(all(feature = "cpu", feature = "macro"))]
     #[test]
     fn test_apply_fn_cpu() {
-        use crate::{ApplyFunction, Buffer, Combiner, CPU};
+        use crate::{ApplyFunction, Base, Buffer, Combiner, CPU};
 
-        let device = CPU::new();
+        let device = CPU::<Base>::new();
 
         let buf = Buffer::from((&device, &[3, 3, 4, 5, 3, 2]));
 
@@ -350,9 +350,9 @@ mod tests {
     #[cfg(all(feature = "cpu", feature = "macro"))]
     #[test]
     fn test_run_apply_fn_cpu_more_complex() {
-        use crate::{ApplyFunction, Buffer, CPU};
+        use crate::{ApplyFunction, Base, Buffer, CPU};
 
-        let device = CPU::new();
+        let device = CPU::<Base>::new();
 
         let buf = Buffer::from((&device, &[3., 3., 4., 5., 3., 2.]));
 

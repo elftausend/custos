@@ -55,13 +55,11 @@ use core::ffi::c_void;
 
 //pub use libs::*;
 pub use buffer::*;
-pub use count::*;
 pub use devices::*;
 
 pub use error::*;
 
 use flag::AllocFlag;
-pub use graph::*;
 
 #[cfg(feature = "cpu")]
 pub use devices::cpu::CPU;
@@ -92,22 +90,38 @@ pub mod exec_on_cpu;
 pub mod devices;
 
 mod buffer;
-mod count;
 mod error;
 
+mod cache;
+mod device_traits;
+mod features;
 pub mod flag;
-mod graph;
+// mod graph;
+mod hooks;
+mod id;
+mod modules;
 mod op_traits;
+mod parents;
+mod ptr_conv;
 mod shape;
 mod two_way_ops;
 mod unary;
+
+pub use cache::*;
+pub use device_traits::*;
+pub use features::*;
+pub use hooks::*;
+pub use id::*;
+pub use modules::*;
+pub use parents::*;
+pub use ptr_conv::*;
 
 #[cfg(feature = "static-api")]
 pub mod static_api;
 
 #[cfg(feature = "autograd")]
 pub mod autograd;
-pub mod module_comb;
+// pub mod module_comb;
 pub mod number;
 pub use op_traits::*;
 pub use shape::*;
@@ -125,6 +139,11 @@ The automatic differentiation system requires caching of buffers, which is deact
 
 #[cfg(all(feature = "realloc", feature = "opt-cache"))]
 compile_error!("A typical 'cache' does not exist when the `realloc` feature is enabled.");
+
+#[cfg(test)]
+pub fn location() -> &'static core::panic::Location<'static> {
+    core::panic::Location::caller()
+}
 
 /// This trait is implemented for every pointer type.
 pub trait PtrType {
@@ -150,183 +169,15 @@ pub trait CommonPtrs<T> {
     fn ptrs_mut(&mut self) -> (*mut T, *mut c_void, u64);
 }
 
-/// This trait is the base trait for every device.
-pub trait Device: Sized + 'static {
-    /// The type of the pointer that is used for `Buffer`.
-    type Ptr<U, S: Shape>: PtrType;
-    /// The type of the cache.
-    type Cache: CacheAble<Self>;
-    //type Tape: ;
-
-    /// Creates a new device.
-    fn new() -> crate::Result<Self>;
-
-    /// Creates a new [`Buffer`] using `A`.
-    ///
-    /// # Example
-    #[cfg_attr(feature = "cpu", doc = "```")]
-    #[cfg_attr(not(feature = "cpu"), doc = "```ignore")]
-    /// use custos::{CPU, Device};
-    ///
-    /// let device = CPU::new();
-    /// let buf = device.buffer([5, 4, 3]);
-    ///
-    /// assert_eq!(buf.read(), [5, 4, 3]);
-    /// ```
-    fn buffer<'a, T, S: Shape, A>(&'a self, arr: A) -> Buffer<'a, T, Self, S>
-    where
-        Buffer<'a, T, Self, S>: From<(&'a Self, A)>,
-    {
-        Buffer::from((self, arr))
-    }
-
-    /// May allocate a new [`Buffer`] or return an existing one.
-    /// It may use the cache count provided by the cache count (identified by [`Ident`]). <br>
-    /// This depends on the type of cache and enabled features. <br>
-    /// With the `realloc` feature enabled, it is guaranteed that the returned `Buffer` is newly allocated and freed every time.
-    ///
-    /// # Example
-    #[cfg_attr(all(feature = "cpu", not(feature = "realloc")), doc = "```")]
-    #[cfg_attr(all(not(feature = "cpu"), feature = "realloc"), doc = "```ignore")]
-    /// use custos::{Device, CPU, set_count};
-    ///
-    /// let device = CPU::new();
-    ///
-    /// let buf = device.retrieve::<f32, ()>(10, ());
-    ///
-    /// // unsafe, because the next .retrieve call will then return the same buffer
-    /// unsafe { set_count(0) }
-    ///
-    /// let buf_2 = device.retrieve::<f32, ()>(10, ());
-    ///
-    /// assert_eq!(buf.ptr.ptr, buf_2.ptr.ptr);
-    ///
-    /// ```
-    #[inline]
-    fn retrieve<T, S: Shape>(&self, len: usize, add_node: impl AddGraph) -> Buffer<T, Self, S>
-    where
-        for<'a> Self: Alloc<'a, T, S>,
-    {
-        Self::Cache::retrieve(self, len, add_node)
-    }
-
-    /// May return an existing buffer using the provided [`Ident`].
-    /// This function panics if no buffer with the provided `Ident` exists.
-    ///
-    /// # Safety
-    /// This function is unsafe because it is possible to return multiple [`Buffer`] with `Ident` that share the same memory.
-    /// If this function is called twice with the same `Ident`, the returned `Buffer` will be the same.
-    /// Even though the return `Buffer`s are owned, this does not lead to double-frees (see [`AllocFlag`]).
-    #[cfg(feature = "autograd")]
-    #[inline]
-    unsafe fn get_existing_buf<T, S: Shape>(&self, ident: Ident) -> Buffer<T, Self, S> {
-        Self::Cache::get_existing_buf(self, ident).expect("A matching Buffer does not exist.")
-    }
-
-    /// Removes a `Buffer` with the provided [`Ident`] from the cache.
-    /// This function is internally called when a `Buffer` with [`AllocFlag`] `None` is dropped.
-    #[cfg(not(feature = "no-std"))]
-    #[inline]
-    fn remove(&self, ident: Ident) {
-        Self::Cache::remove(self, ident);
-    }
-
-    /// Adds a pointer that was allocated by [`Alloc`] to the cache and returns a new corresponding [`Ident`].
-    /// This function is internally called when a `Buffer` with [`AllocFlag`] `None` is created.
-    #[cfg(not(feature = "no-std"))]
-    #[inline]
-    fn add_to_cache<T, S: Shape>(&self, ptr: &Self::Ptr<T, S>) -> Option<Ident> {
-        Self::Cache::add_to_cache(self, ptr)
-    }
-}
-
 /// All type of devices that can create [`Buffer`]s
-pub trait DevicelessAble<'a, T, S: Shape = ()>: Alloc<'a, T, S> {}
+pub trait DevicelessAble<'a, T, S: Shape = ()>: Alloc<T> {}
 
 /// Devices that can access the main memory / RAM of the host.
 pub trait MainMemory: Device {
     /// Returns the respective immutable host memory pointer
-    fn as_ptr<T, S: Shape>(ptr: &Self::Ptr<T, S>) -> *const T;
+    fn as_ptr<T, S: Shape>(ptr: &Self::Data<T, S>) -> *const T;
     /// Returns the respective mutable host memory pointer
-    fn as_ptr_mut<T, S: Shape>(ptr: &mut Self::Ptr<T, S>) -> *mut T;
-}
-
-/// This trait is for allocating memory on the implemented device.
-///
-/// # Example
-#[cfg_attr(feature = "cpu", doc = "```")]
-#[cfg_attr(not(feature = "cpu"), doc = "```ignore")]
-/// use custos::{CPU, Alloc, Buffer, Read, flag::AllocFlag, GraphReturn, cpu::CPUPtr};
-///
-/// let device = CPU::new();
-/// let ptr = Alloc::<f32>::alloc(&device, 12, AllocFlag::None);
-///
-/// let buf: Buffer = Buffer {
-///     ident: None,
-///     ptr,
-///     device: Some(&device),
-/// };
-/// assert_eq!(vec![0.; 12], device.read(&buf));
-/// ```
-pub trait Alloc<'a, T, S: Shape = ()>: Device {
-    /// Allocate memory on the implemented device.
-    /// # Example
-    #[cfg_attr(feature = "cpu", doc = "```")]
-    #[cfg_attr(not(feature = "cpu"), doc = "```ignore")]
-    /// use custos::{CPU, Alloc, Buffer, Read, flag::AllocFlag, GraphReturn, cpu::CPUPtr};
-    ///
-    /// let device = CPU::new();
-    /// let ptr = Alloc::<f32>::alloc(&device, 12, AllocFlag::None);
-    ///
-    /// let buf: Buffer = Buffer {
-    ///     ident: None,
-    ///     ptr,
-    ///     device: Some(&device),
-    /// };
-    /// assert_eq!(vec![0.; 12], device.read(&buf));
-    /// ```
-    fn alloc(&'a self, len: usize, flag: AllocFlag) -> <Self as Device>::Ptr<T, S>;
-
-    /// Allocate new memory with data
-    /// # Example
-    #[cfg_attr(feature = "cpu", doc = "```")]
-    #[cfg_attr(not(feature = "cpu"), doc = "```ignore")]
-    /// use custos::{CPU, Alloc, Buffer, Read, GraphReturn, cpu::CPUPtr};
-    ///
-    /// let device = CPU::new();
-    /// let ptr = Alloc::<i32>::with_slice(&device, &[1, 5, 4, 3, 6, 9, 0, 4]);
-    ///
-    /// let buf: Buffer<i32, CPU> = Buffer {
-    ///     ident: None,
-    ///     ptr,
-    ///     device: Some(&device),
-    /// };
-    /// assert_eq!(vec![1, 5, 4, 3, 6, 9, 0, 4], device.read(&buf));
-    /// ```
-    fn with_slice(&'a self, data: &[T]) -> <Self as Device>::Ptr<T, S>
-    where
-        T: Clone;
-
-    /// If the vector `vec` was allocated previously, this function can be used in order to reduce the amount of allocations, which may be faster than using a slice of `vec`.
-    #[inline]
-    #[cfg(not(feature = "no-std"))]
-    fn alloc_with_vec(&'a self, vec: Vec<T>) -> <Self as Device>::Ptr<T, S>
-    where
-        T: Clone,
-    {
-        self.with_slice(&vec)
-    }
-
-    /// Allocates a pointer with the array provided by the `S:`[`Shape`] generic.
-    /// By default, the array is flattened and then passed to [`Alloc::with_slice`].
-    #[inline]
-    fn with_array(&'a self, array: S::ARR<T>) -> <Self as Device>::Ptr<T, S>
-    where
-        T: Clone,
-    {
-        let stack_array = StackArray::<S, T>::from_array(array);
-        self.with_slice(stack_array.flatten())
-    }
+    fn as_ptr_mut<T, S: Shape>(ptr: &mut Self::Data<T, S>) -> *mut T;
 }
 
 /// If the `autograd` feature is enabled, then this will be implemented for all types that implement [`TapeReturn`].
@@ -384,16 +235,16 @@ pub mod prelude {
     //! Typical imports for using custos.
 
     pub use crate::{
-        number::*, range, shape::*, Alloc, Buffer, CDatatype, ClearBuf, CopySlice, Device,
-        GraphReturn, Ident, MainMemory, MayTapeReturn, MayToCLSource, Read, ShallowCopy, WithShape,
-        WriteBuf,
+        number::*, shape::*, Alloc, Buffer, CDatatype, ClearBuf, CopySlice, Device, MainMemory,
+        MayTapeReturn, MayToCLSource, Read, ShallowCopy, WithShape, WriteBuf,
     };
 
     #[cfg(feature = "cpu")]
     pub use crate::{exec_on_cpu::*, CPU};
 
-    #[cfg(not(feature = "no-std"))]
-    pub use crate::{cache::CacheReturn, get_count, set_count, Cache};
+    // TODO
+    // #[cfg(not(feature = "no-std"))]
+    // pub use crate::{cache::CacheReturn, get_count, set_count, Cache};
 
     #[cfg(feature = "opencl")]
     pub use crate::opencl::{enqueue_kernel, CLBuffer, OpenCL, CL};
@@ -422,9 +273,9 @@ mod tests {
     #[cfg(feature = "cpu")]
     #[test]
     fn test_buffer_from_device() {
-        use crate::{Device, CPU};
+        use crate::{Base, Device, CPU};
 
-        let device = CPU::new();
+        let device = CPU::<Base>::new();
         let buf = device.buffer([1, 2, 3]);
 
         assert_eq!(buf.read(), [1, 2, 3])
