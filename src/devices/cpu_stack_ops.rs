@@ -14,6 +14,20 @@ use crate::CPU;
 #[cfg(feature = "stack")]
 use crate::Stack;
 
+#[inline]
+fn apply_fn_slice<T, O>(
+    x: &[T],
+    out: &mut [T],
+    f: impl Fn(crate::Resolve<T>) -> O,
+) where
+    T: Copy,
+    O: Eval<T>,
+{
+    for (x, out) in x.iter().zip(out.iter_mut()) {
+        *out = f((*x).to_val()).eval();
+    }
+}
+
 #[impl_stack]
 impl<Mods, T, D, S> ApplyFunction<T, S, D> for CPU<Mods>
 where
@@ -28,10 +42,8 @@ where
     {
         let mut out = self.retrieve(buf.len(), buf);
 
-        for (value, x) in out.iter_mut().zip(buf.iter()) {
-            *value = f((*x).to_val()).eval()
-        }
-
+        apply_fn_slice(buf, &mut out, f);
+        
         out
     }
 }

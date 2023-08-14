@@ -5,8 +5,46 @@ use core::{
 
 use crate::{
     bounds_to_range, AddOperation, Buffer, ClearBuf, CopySlice, Device, MainMemory, OnDropBuffer,
-    Operation, Read, Shape, WriteBuf, CPU,
+    Operation, Read, Shape, WriteBuf, CPU, HasId, Retriever, TapeActions, Alloc,
 };
+
+impl<Mods, T, S, D> crate::ApplyFunctionLazyTest<T, S, D> for CPU<Mods>
+where
+    Mods: crate::Retrieve<Self, T> + TapeActions + AddOperation + 'static,
+    T: Copy + Default + crate::ToVal + 'static,
+    S: Shape,
+    D: MainMemory + Alloc<T> + 'static,
+{
+    // actually take &mut Buf instead of returning an owned Buf?
+    fn apply_fn<F>(
+        &self,
+        buf: &Buffer<T, D, S>,
+        f: impl Fn(crate::Resolve<T>) -> F + Copy, // without Copy -> UB haha
+    ) -> Buffer<T, Self, S>
+    where
+        F: crate::Eval<T> + crate::MayToCLSource,
+    {
+        let mut out = self.retrieve(buf.len(), buf);
+
+        let ids = (buf.id(), out.id());
+        self.add_grad_fn::<T, S>(move |grads| {
+            let (lhs, lhs_grad, out_grad) = grads.get_double::<T, S, S, D>(ids);
+        });
+
+        unsafe {
+            self.add_operation(&mut out, move |out| {
+                let out = out.downcast_mut::<Buffer<T, D, S>>()
+                    .unwrap();
+
+                for (x, out) in buf.iter().zip(out.iter_mut()) {
+                    *out = f((*x).to_val()).eval();
+                }
+                    
+            });
+        }
+        out
+    }
+}
 
 impl<Mods: AddOperation> AddOperation for CPU<Mods> {
     #[inline]
