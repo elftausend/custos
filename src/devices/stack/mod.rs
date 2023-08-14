@@ -19,7 +19,7 @@ impl<T: Default, D: MainMemory, S: Shape> ClearBuf<T, S, D> for Stack {
 #[cfg(feature = "cpu")]
 #[cfg(test)]
 mod tests {
-    use crate::{Alloc, Buffer, Device, Dim1, MainMemory, Shape, CPU};
+    use crate::{Alloc, Buffer, Device, Dim1, MainMemory, Shape, CPU, Retriever, Base};
     use core::ops::Add;
 
     use super::stack_device::Stack;
@@ -48,7 +48,7 @@ mod tests {
     impl<T, D> AddBuf<T, D> for CPU
     where
         D: MainMemory,
-        T: Add<Output = T> + Clone,
+        T: Add<Output = T> + Clone + 'static,
     {
         fn add(&self, lhs: &Buffer<T, D>, rhs: &Buffer<T, D>) -> Buffer<T, Self> {
             let len = core::cmp::min(lhs.len(), rhs.len());
@@ -63,9 +63,9 @@ mod tests {
 
     impl<T, D, S: Shape> AddBuf<T, D, S> for Stack
     where
-        for<'a> Stack: Alloc<'a, T, S>,
+        Stack: Alloc<T>,
         D: MainMemory,
-        T: Add<Output = T> + Clone,
+        T: Add<Output = T> + Clone + 'static,
     {
         fn add(&self, lhs: &Buffer<T, D, S>, rhs: &Buffer<T, D, S>) -> Buffer<T, Self, S> {
             let mut out = self.retrieve(S::LEN, (lhs, rhs));
@@ -92,14 +92,16 @@ mod tests {
 
     #[test]
     fn test_stack() {
+        let dev = Stack::new();
+
         // TODO fix stack from_const while borrowed
         //let buf = Buffer::<f32, Stack, _>::from((&Stack, [1f32; 100]));
-        let buf = Buffer::<f32, Stack, Dim1<100>>::from((&Stack, [1f32; 100]));
+        let buf = Buffer::<f32, Stack, Dim1<100>>::from((&dev, [1f32; 100]));
 
-        let out = Stack.add(&buf, &buf);
-        assert_eq!(out.ptr.array, [2.; 100]);
+        let out = dev.add(&buf, &buf);
+        assert_eq!(out.data.array, [2.; 100]);
 
-        let cpu = CPU::new();
+        let cpu = CPU::<Base>::new();
 
         // implement Buffer::<f32, _, 100> for cpu?
         //let buf = Buffer::<f32>::new(&cpu, 100);

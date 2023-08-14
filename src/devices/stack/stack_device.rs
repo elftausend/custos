@@ -1,52 +1,84 @@
+use core::{convert::Infallible, marker::PhantomData};
+
 use crate::{
-    flag::AllocFlag, shape::Shape, Alloc, Buffer, CloneBuf, Device, DevicelessAble, MainMemory,
-    Read, StackArray, WriteBuf,
+    flag::AllocFlag, shape::Shape, Alloc, Base, Buffer, CloneBuf, Device, DevicelessAble,
+    MainMemory, OnDropBuffer, Read, StackArray, WriteBuf, impl_retriever, impl_buffer_hook_traits, Retriever,
 };
 
 /// A device that allocates memory on the stack.
 #[derive(Debug, Clone, Copy)]
-pub struct Stack;
+pub struct Stack<Mods = Base> {
+    modules: Mods,
+}
 
-impl<'a, T: Copy + Default, S: Shape> DevicelessAble<'a, T, S> for Stack {}
-
-impl Device for Stack {
-    type Ptr<U, S: Shape> = StackArray<S, U>;
-    type Cache = ();
-
-    fn new() -> crate::Result<Self> {
-        Ok(Stack)
+impl Stack {
+    pub fn new() -> Stack<Base> {
+        Stack {
+            modules: Base,
+        }
     }
 }
 
-impl MainMemory for Stack {
+impl_buffer_hook_traits!(Stack);
+
+impl<T, Mods: OnDropBuffer> Retriever<T> for Stack<Mods> {
+    fn retrieve<S, const NUM_PARENTS: usize>(
+        &self,
+        len: usize,
+        parents: impl crate::Parents<NUM_PARENTS>,
+    ) -> Buffer<T, Self, S>
+    where
+        T: 'static,
+        S: Shape {
+        todo!()
+    }
+}
+// impl_retriever!(Stack);
+
+
+impl<'a, T: Copy + Default, S: Shape> DevicelessAble<'a, T, S> for Stack {}
+
+impl<Mods: OnDropBuffer> Device for Stack<Mods> {
+    type Data<U, S: Shape> = StackArray<S, U>;
+    type Error = Infallible;
+
+    fn new() -> Result<Self, Infallible> {
+        todo!()
+    }
+}
+
+impl<Mods: OnDropBuffer> MainMemory for Stack<Mods> {
     #[inline]
-    fn as_ptr<T, S: Shape>(ptr: &Self::Ptr<T, S>) -> *const T {
+    fn as_ptr<T, S: Shape>(ptr: &Self::Data<T, S>) -> *const T {
         ptr.as_ptr()
     }
 
     #[inline]
-    fn as_ptr_mut<T, S: Shape>(ptr: &mut Self::Ptr<T, S>) -> *mut T {
+    fn as_ptr_mut<T, S: Shape>(ptr: &mut Self::Data<T, S>) -> *mut T {
         ptr.as_ptr_mut()
     }
 }
 
-impl<'a, S: Shape, T: Copy + Default> Alloc<'a, T, S> for Stack {
+impl<'a, Mods: OnDropBuffer, T: Copy + Default> Alloc<T> for Stack<Mods> {
     #[inline]
-    fn alloc(&self, _len: usize, _flag: AllocFlag) -> StackArray<S, T> {
+    fn alloc<S: Shape>(&self, _len: usize, _flag: AllocFlag) -> StackArray<S, T> {
         StackArray::new()
     }
 
     #[inline]
-    fn with_slice(&self, data: &[T]) -> Self::Ptr<T, S> {
+    fn alloc_from_slice<S: Shape>(&self, data: &[T]) -> Self::Data<T, S> {
         let mut array: StackArray<S, T> =
-            <Stack as Alloc<'_, T, S>>::alloc(self, 0, AllocFlag::None);
+            <Stack::<Mods> as Alloc<T>>::alloc(self, 0, AllocFlag::None);
         array.flatten_mut().copy_from_slice(&data[..S::LEN]);
 
         array
     }
 
     #[inline]
-    fn with_array(&'a self, array: <S as Shape>::ARR<T>) -> <Self as Device>::Ptr<T, S>
+    fn alloc_from_array<S: Shape>(
+        &self,
+        array: <S as Shape>::ARR<T>,
+    ) -> <Self as Device>::Data<T, S>
     where
         T: Clone,
     {
@@ -72,7 +104,7 @@ where
 
     #[inline]
     fn read<'a>(&self, buf: &'a Buffer<T, Stack, S>) -> Self::Read<'a> {
-        buf.ptr.array
+        buf.data.array
     }
 
     #[inline]
@@ -81,20 +113,18 @@ where
     where
         T: Default,
     {
-        buf.ptr.flatten().to_vec()
+        buf.data.flatten().to_vec()
     }
 }
 
 impl<'a, T, S: Shape> CloneBuf<'a, T, S> for Stack
 where
-    <Stack as Device>::Ptr<T, S>: Copy,
+    <Stack as Device>::Data<T, S>: Copy,
 {
     fn clone_buf(&'a self, buf: &Buffer<'a, T, Self, S>) -> Buffer<'a, T, Self, S> {
         Buffer {
-            ptr: buf.ptr,
-            device: Some(&Stack),
-            #[cfg(not(feature = "no-std"))]
-            ident: buf.ident,
+            data: buf.data,
+            device: Some(self),
         }
     }
 }
@@ -119,7 +149,9 @@ mod tests {
     #[cfg(not(feature = "no-std"))]
     #[test]
     fn test_dim2() {
-        let buf = Buffer::<f64, Stack, Dim2<2, 3>>::from((&Stack, &[3., 2., 1., 4., 7., 1.]));
+        let dev = Stack::new();
+        let buf =
+            Buffer::<f64, Stack, Dim2<2, 3>>::from((&dev, &[3., 2., 1., 4., 7., 1.]));
 
         for val in buf.iter() {
             println!("val: {val}");

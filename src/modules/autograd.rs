@@ -119,7 +119,7 @@ impl<Mods: Setup<NewDev>, NewDev> Setup<NewDev> for Autograd<Mods> {
     }
 }
 
-impl<Mods: Retrieve<D>, D> Retrieve<D> for Autograd<Mods>
+impl<G, Mods: Retrieve<D, G>, D> Retrieve<D, G> for Autograd<Mods>
 where
     D: PtrConv + Device + 'static,
 {
@@ -306,7 +306,7 @@ mod tests {
         let _lhs = Buffer::<f32, _>::new(&device, 10);
 
         for _ in 0..100 {
-            let x = device.retrieve::<f32, (), 0>(100, ());
+            let x: Buffer<f32, _> = device.retrieve::<(), 0>(100, ());
             assert_eq!(x.len(), 100)
         }
 
@@ -327,7 +327,7 @@ mod tests {
         let _lhs = Buffer::<f32, _>::new(&device, 10);
 
         for _ in 0..100 {
-            let x = device.retrieve::<f32, (), 0>(100, ());
+            let x: Buffer<f32, _> = device.retrieve::<(), 0>(100, ());
             assert_eq!(x.len(), 100)
         }
 

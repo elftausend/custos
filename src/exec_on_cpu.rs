@@ -47,7 +47,7 @@ pub fn cpu_exec_unary<'a, T, D, F>(
 where
     T: Clone + Default + 'static,
     F: for<'b> Fn(&'b CPU, &Buffer<'_, T, CPU>) -> Buffer<'b, T, CPU>,
-    D: Device + Read<T> + WriteBuf<T> + Alloc<T> + Retriever,
+    D: Device + Read<T> + WriteBuf<T> + Alloc<T> + Retriever<T>,
 {
     let cpu = CPU::<Base>::new();
     let cpu_buf = Buffer::<T, CPU>::from((&cpu, x.read_to_vec()));
@@ -113,7 +113,7 @@ pub fn cpu_exec_binary<'a, T, D, F>(
 where
     T: Clone + Default + 'static,
     F: for<'b> Fn(&'b CPU, &Buffer<'_, T, CPU>, &Buffer<'_, T, CPU>) -> Buffer<'b, T, CPU>,
-    D: Device + Read<T> + WriteBuf<T> + Alloc<T> + Retriever,
+    D: Device + Read<T> + WriteBuf<T> + Alloc<T> + Retriever<T>,
 {
     let cpu = CPU::<Base>::new();
     let cpu_lhs = Buffer::<T, CPU>::from((&cpu, lhs.read_to_vec()));

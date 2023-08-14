@@ -89,12 +89,12 @@ mod tests {
     #[cfg(feature = "stack")]
     #[test]
     fn test_with_const_dim2_stack() {
-        use crate::{Buffer, Stack, WithShape};
+        use crate::{Base, Buffer, Device, Stack, WithShape};
 
-        let device = Stack;
+        let device = Stack::<Base>::new();
 
         let buf = Buffer::with(&device, [[1.0, 2.0], [3.0, 4.0]]);
 
-        assert_eq!(buf.ptr.array, [[1.0, 2.0,], [3.0, 4.0]]);
+        assert_eq!(buf.data.array, [[1.0, 2.0,], [3.0, 4.0]]);
     }
 }

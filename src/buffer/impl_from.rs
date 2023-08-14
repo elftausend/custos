@@ -166,7 +166,7 @@ impl<'a, 'b, T, S, D> From<(&'a D, Buffer<'b, T, CPU, S>)> for Buffer<'a, T, D, 
 where
     T: 'static,
     S: Shape,
-    D: WriteBuf<T, S> + Device + Retriever,
+    D: WriteBuf<T, S> + Device + Retriever<T>,
 {
     fn from((device, buf): (&'a D, Buffer<'b, T, CPU, S>)) -> Self {
         let mut out = device.retrieve(buf.len(), &buf);

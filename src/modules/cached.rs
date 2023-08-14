@@ -63,8 +63,8 @@ impl<Mods: OnDropBuffer, SD: Device> OnDropBuffer for CachedModule<Mods, SD> {
 }
 
 // TODO: a more general OnDropBuffer => "Module"
-impl<Mods: Retrieve<D>, D: Device + PtrConv<SimpleDevice>, SimpleDevice: Device + PtrConv<D>>
-    Retrieve<D> for CachedModule<Mods, SimpleDevice>
+impl<G, Mods: Retrieve<D, G>, D: Device + PtrConv<SimpleDevice>, SimpleDevice: Device + PtrConv<D>>
+    Retrieve<D, G> for CachedModule<Mods, SimpleDevice>
 {
     #[inline]
     fn retrieve<T, S: Shape, const NUM_PARENTS: usize>(
@@ -186,7 +186,7 @@ mod tests {
 
     // forgot to add track_caller
     #[cfg(debug_assertions)]
-    fn add_bufs<Mods: Retrieve<CPU<Mods>>>(device: &CPU<Mods>) -> Buffer<f32, CPU<Mods>, ()> {
+    fn add_bufs<Mods: Retrieve<CPU<Mods>, f32>>(device: &CPU<Mods>) -> Buffer<f32, CPU<Mods>, ()> {
         retrieve!(device, 10, ())
     }
 
@@ -201,7 +201,7 @@ mod tests {
     }
 
     #[track_caller]
-    fn add_bufs_tracked<Mods: Retrieve<CPU<Mods>>>(
+    fn add_bufs_tracked<Mods: Retrieve<CPU<Mods>, f32>>(
         device: &CPU<Mods>,
     ) -> Buffer<f32, CPU<Mods>, ()> {
         retrieve!(device, 10, ())

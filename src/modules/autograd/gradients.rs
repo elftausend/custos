@@ -180,7 +180,7 @@ mod tests {
         let buf = Buffer::<i32, _>::new(&device, 10);
         // unsafe { register_buf(&mut gradients.no_grads_pool.borrow_mut().cache, &buf) }
 
-        let out = device.retrieve::<i32, (), 0>(buf.len(), ());
+        let out: Buffer<i32, _> = device.retrieve::<(), 0>(buf.len(), ());
         // unsafe { register_buf(&mut gradients.no_grads_pool.borrow_mut().cache, &out) }
 
         device
@@ -201,7 +201,7 @@ mod tests {
         let buf = Buffer::<i32, _>::new(&device, 10);
         // unsafe { register_buf(&mut gradients.no_grads_pool.borrow_mut().cache, &buf) }
 
-        let out = device.retrieve::<i64, (), 0>(buf.len(), ());
+        let out: Buffer<i64, _> = device.retrieve::<(), 0>(buf.len(), ());
         // unsafe { register_buf(&mut gradients.no_grads_pool.borrow_mut().cache, &out) }
 
         device

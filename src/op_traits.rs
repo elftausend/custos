@@ -218,7 +218,7 @@ mod tests {
     fn test_unary_ew_stack_no_autograd() {
         use crate::{Buffer, Combiner, Dim1, UnaryElementWiseMayGrad};
 
-        let device = crate::Stack;
+        let device = crate::Stack::new();
         let buf = Buffer::<_, _, Dim1<5>>::from((&device, [1, 2, 4, 5, 3]));
 
         let out = device.unary_ew(&buf, |x| x.mul(3), |x| x);

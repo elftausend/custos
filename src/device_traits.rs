@@ -75,9 +75,9 @@ pub trait Setup<D> {
     fn setup(_device: &mut D) {}
 }
 
-pub trait Retriever: Device {
+pub trait Retriever<T>: Device {
     #[track_caller]
-    fn retrieve<T, S, const NUM_PARENTS: usize>(
+    fn retrieve<S, const NUM_PARENTS: usize>(
         &self,
         len: usize,
         parents: impl Parents<NUM_PARENTS>,

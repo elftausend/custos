@@ -708,8 +708,10 @@ mod tests {
     fn test_deref_stack() -> crate::Result<()> {
         use crate::{shape::Dim1, stack::Stack};
 
+        let dev = Stack::new();
+
         //TODO
-        let buf = Buffer::<i32, _, Dim1<4>>::from((Stack, [1i32, 2, 3, 4]));
+        let buf = Buffer::<i32, _, Dim1<4>>::from((&dev, [1i32, 2, 3, 4]));
         let slice = &*buf;
         assert_eq!(slice, &[1, 2, 3, 4]);
 
@@ -755,9 +757,9 @@ mod tests {
     #[should_panic]
     #[test]
     fn test_id_stack() {
-        use crate::{Stack, WithShape};
+        use crate::{Stack, WithShape, HasId};
 
-        let device = Stack;
+        let device = Stack::new();
 
         let buf = Buffer::with(&device, [1, 2, 3, 4]);
         buf.id();

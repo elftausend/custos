@@ -115,7 +115,7 @@ impl<Mods: TapeActions> TapeActions for Lazy<Mods> {
     }
 }
 
-impl<Mods: Retrieve<D>, D: PtrConv + 'static> Retrieve<D> for Lazy<Mods> {
+impl<G, Mods: Retrieve<D, G>, D: PtrConv + 'static> Retrieve<D, G> for Lazy<Mods> {
     #[inline]
     fn retrieve<T, S, const NUM_PARENTS: usize>(
         &self,

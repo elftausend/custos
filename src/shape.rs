@@ -139,7 +139,7 @@ impl<T, D: Device, S: IsConstDim> ToDim<T, S, S> for D {
 #[cfg(feature = "stack")]
 impl<T, S: IsConstDim> ToDim<T, S, S> for crate::Stack {
     #[inline]
-    fn to_dim(&self, ptr: Self::Ptr<T, S>) -> Self::Ptr<T, S> {
+    fn to_dim(&self, ptr: Self::Data<T, S>) -> Self::Data<T, S> {
         ptr
     }
 }

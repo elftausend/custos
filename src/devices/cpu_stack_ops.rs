@@ -17,7 +17,7 @@ use crate::Stack;
 #[impl_stack]
 impl<Mods, T, D, S> ApplyFunction<T, S, D> for CPU<Mods>
 where
-    Mods: OnDropBuffer + Retrieve<Self>,
+    Mods: OnDropBuffer + Retrieve<Self, T>,
     T: Copy + Default + ToVal + 'static,
     D: crate::MainMemory,
     S: Shape,
