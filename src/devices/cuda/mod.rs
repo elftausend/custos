@@ -20,15 +20,13 @@ pub use kernel_cache::*;
 pub use kernel_launch::*;
 
 use crate::{
-    flag::AllocFlag,
-    module_comb::{HasId, Id},
-    Buffer, CDatatype, CommonPtrs, PtrType, ShallowCopy,
+    flag::AllocFlag, Buffer, CDatatype, CommonPtrs, HasId, Id, OnDropBuffer, PtrType, ShallowCopy,
 };
 
 use self::api::cufree;
 
 /// Another shorter type for Buffer<'a, T, CUDA, S>
-pub type CUBuffer<'a, T> = Buffer<'a, T, CUDA>;
+// pub type CUBuffer<'a, T> = Buffer<'a, T, impl IsCuda>;
 
 /// Reads the environment variable `CUSTOS_CU_DEVICE_IDX` and returns the value as a `usize`.
 pub fn chosen_cu_idx() -> usize {
@@ -131,7 +129,7 @@ impl<T> CommonPtrs<T> for CUDAPtr<T> {
 /// use custos::{CUDA, Buffer, Read, cuda::cu_clear};
 ///
 /// fn main() -> Result<(), custos::Error> {
-///     let device = CUDA::new(0)?;
+///     let device = CUDA::<Base>::new(0)?;
 ///     let mut lhs = Buffer::<i32, _>::from((&device, [15, 30, 21, 5, 8]));
 ///     assert_eq!(device.read(&lhs), vec![15, 30, 21, 5, 8]);
 ///
@@ -140,7 +138,10 @@ impl<T> CommonPtrs<T> for CUDAPtr<T> {
 ///     Ok(())
 /// }
 /// ```
-pub fn cu_clear<T: CDatatype>(device: &CUDA, buf: &mut Buffer<T, CUDA>) -> crate::Result<()> {
+pub fn cu_clear<T: CDatatype, Mods: OnDropBuffer>(
+    device: &CUDA<Mods>,
+    buf: &mut Buffer<T, CUDA<Mods>>,
+) -> crate::Result<()> {
     let src = format!(
         r#"extern "C" __global__ void clear({datatype}* self, int numElements)
             {{
@@ -163,12 +164,12 @@ mod tests {
 
     use crate::{
         cuda::{api::culaunch_kernel, fn_cache},
-        Buffer, Read, CUDA,
+        Base, Buffer, Read, CUDA,
     };
 
     #[test]
     fn test_cached_kernel_launch() -> crate::Result<()> {
-        let device = CUDA::new(0)?;
+        let device = CUDA::<Base>::new(0)?;
 
         let a = Buffer::from((&device, [1, 2, 3, 4, 5]));
         let b = Buffer::from((&device, [4, 1, 7, 6, 9]));

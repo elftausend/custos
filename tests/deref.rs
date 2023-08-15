@@ -49,7 +49,7 @@ fn test_deref_opencl() {
 fn test_deref_cuda() {
     use custos::CUDA;
 
-    let device = CUDA::new(0).unwrap();
+    let device = CUDA::<Base>::new(0).unwrap();
 
     let a = Buffer::from((&device, [1., 2., 3., 4.]));
     let b = Buffer::from((&device, [2., 3., 4., 5.]));

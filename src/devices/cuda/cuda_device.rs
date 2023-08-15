@@ -1,47 +1,51 @@
-use std::marker::PhantomData;
-use std::{cell::RefCell, collections::HashMap};
-
-use super::api::FnHandle;
-use super::CudaSource;
-use super::{
-    api::{
-        create_context, create_stream, cuInit, cuMemcpy, cuStreamDestroy, cu_write,
-        cublas::{create_handle, cublasDestroy_v2, cublasSetStream_v2, CublasHandle},
-        cumalloc, device, Context, CudaIntDevice, Module, Stream,
-    },
-    chosen_cu_idx, launch_kernel1d, AsCudaCvoidPtr, CUDAPtr, CUKernelCache,
-};
+use core::{cell::RefCell, marker::PhantomData};
+use std::collections::HashMap;
 
 use crate::{
-    cache::Cache, flag::AllocFlag, Addons, AddonsReturn, Alloc, Buffer, CacheReturn, CloneBuf,
-    Device, PtrConv, Shape,
+    cuda::{
+        api::{
+            create_context, create_stream, cuInit, cuStreamDestroy,
+            cublas::{create_handle, cublasDestroy_v2, cublasSetStream_v2, CublasHandle},
+            cumalloc, device, Context, CudaIntDevice, FnHandle, Module, Stream,
+        },
+        launch_kernel1d, AsCudaCvoidPtr, CUDAPtr, CUKernelCache, CudaSource,
+    },
+    flag::AllocFlag,
+    impl_buffer_hook_traits, impl_retriever, Alloc, Base, Buffer, CloneBuf, Device, LazySetup,
+    Module as CombModule, OnDropBuffer, OnNewBuffer, PtrConv, Setup, Shape,
 };
 
+use super::api::{cuMemcpy, cu_write};
+
+pub trait IsCuda: Device {}
+
 /// Used to perform calculations with a CUDA capable device.
-/// To make new calculations invocable, a trait providing new operations should be implemented for [`CUDA`].
-#[derive(Debug)]
-pub struct CUDA {
+pub struct CUDA<Mods = Base> {
+    modules: Mods,
     /// Stores compiled CUDA kernels.
     pub kernel_cache: RefCell<CUKernelCache>,
     /// Stores CUDA modules from the compiled kernels.
-    pub modules: RefCell<HashMap<FnHandle, Module>>,
+    pub cuda_modules: RefCell<HashMap<FnHandle, Module>>,
     device: CudaIntDevice,
     ctx: Context,
     stream: Stream,
     handle: CublasHandle,
-    /// Provides additional functionality for the CUDA device. e.g. a cache, a gradient [`Tape`](crate::Tape), an optimizeable [`Graph`](crate::Graph) and a [`Cache`](crate::Cache).
-    pub addons: Addons<CUDA>,
 }
 
-/// Short form for `CUDA`
-pub type CU = CUDA;
+impl_retriever!(CUDA);
+impl_buffer_hook_traits!(CUDA);
 
-impl CUDA {
+impl<SimpleMods> CUDA<SimpleMods> {
     /// Returns an [CUDA] device at the specified device index.
     /// # Errors
     /// - No device was found at the given device index
     /// - some other CUDA related errors
-    pub fn new(idx: usize) -> crate::Result<CUDA> {
+    #[inline]
+    pub fn new<NewMods>(idx: usize) -> crate::Result<CUDA<NewMods>>
+    where
+        SimpleMods: CombModule<CUDA<SimpleMods>, Module = NewMods>,
+        NewMods: Setup<CUDA<NewMods>>,
+    {
         unsafe { cuInit(0) }.to_result()?;
         let device = device(idx as i32)?;
         let ctx = create_context(&device)?;
@@ -49,17 +53,23 @@ impl CUDA {
         let handle = create_handle()?;
         unsafe { cublasSetStream_v2(handle.0, stream.0) }.to_result()?;
 
-        Ok(CUDA {
+        let mut cuda = CUDA {
+            modules: SimpleMods::new(),
             kernel_cache: Default::default(),
-            modules: Default::default(),
-            addons: Default::default(),
+            cuda_modules: Default::default(),
             device,
             ctx,
             stream,
             handle,
-        })
-    }
+        };
 
+        NewMods::setup(&mut cuda);
+
+        Ok(cuda)
+    }
+}
+
+impl<Mods> CUDA<Mods> {
     /// Returns the internal CUDA device.
     #[inline]
     pub fn device(&self) -> &CudaIntDevice {
@@ -96,7 +106,7 @@ impl CUDA {
         launch_kernel1d(
             len,
             &mut self.kernel_cache.borrow_mut(),
-            &mut self.modules.borrow_mut(),
+            &mut self.cuda_modules.borrow_mut(),
             self.stream(),
             src,
             fn_name,
@@ -105,51 +115,16 @@ impl CUDA {
     }
 }
 
-impl Device for CUDA {
-    type Ptr<U, S: Shape> = CUDAPtr<U>;
-    type Cache = Cache<CUDA>;
-
-    fn new() -> crate::Result<Self> {
-        CUDA::new(chosen_cu_idx())
-    }
+impl<Mods: OnDropBuffer> Device for CUDA<Mods> {
+    type Data<T, S: Shape> = CUDAPtr<T>;
+    type Error = i32;
 }
 
-impl AddonsReturn for CUDA {
-    #[inline]
-    fn addons(&self) -> &Addons<Self>
-    where
-        Self: Device,
-    {
-        &self.addons
-    }
-}
-
-impl PtrConv for CUDA {
-    #[inline]
-    unsafe fn convert<T, IS: Shape, Conv, OS: Shape>(
-        ptr: &Self::Ptr<T, IS>,
-        flag: AllocFlag,
-    ) -> Self::Ptr<Conv, OS> {
-        CUDAPtr {
-            ptr: ptr.ptr,
-            len: ptr.len,
-            flag,
-            p: PhantomData,
-        }
-    }
-}
-
-impl Default for CUDA {
-    #[inline]
-    fn default() -> Self {
-        CUDA::new(chosen_cu_idx()).expect("A valid CUDA device index should be set via the environment variable `CUSTOS_CL_DEVICE_IDX`")
-    }
-}
-
-impl Drop for CUDA {
+impl<Mods> Drop for CUDA<Mods> {
     fn drop(&mut self) {
         // deallocates all cached buffers before destroying the context etc
-        self.cache_mut().nodes.clear();
+        // TODO: keep in mind
+        // self.cache_mut().nodes.clear();
 
         unsafe {
             cublasDestroy_v2(self.handle.0);
@@ -158,8 +133,8 @@ impl Drop for CUDA {
     }
 }
 
-impl<T> Alloc<'_, T> for CUDA {
-    fn alloc(&self, len: usize, flag: AllocFlag) -> CUDAPtr<T> {
+impl<Mods: OnDropBuffer, T> Alloc<T> for CUDA<Mods> {
+    fn alloc<S: Shape>(&self, len: usize, flag: crate::flag::AllocFlag) -> Self::Data<T, S> {
         let ptr = cumalloc::<T>(len).unwrap();
         // TODO: use unified mem if available -> i can't test this
         CUDAPtr {
@@ -170,7 +145,10 @@ impl<T> Alloc<'_, T> for CUDA {
         }
     }
 
-    fn with_slice(&self, data: &[T]) -> CUDAPtr<T> {
+    fn alloc_from_slice<S: Shape>(&self, data: &[T]) -> Self::Data<T, S>
+    where
+        T: Clone,
+    {
         let ptr = cumalloc::<T>(data.len()).unwrap();
         cu_write(ptr, data).unwrap();
         CUDAPtr {
@@ -182,8 +160,32 @@ impl<T> Alloc<'_, T> for CUDA {
     }
 }
 
-impl<'a, T> CloneBuf<'a, T> for CUDA {
-    fn clone_buf(&'a self, buf: &Buffer<'a, T, CUDA>) -> Buffer<'a, T, CUDA> {
+impl<Mods: OnDropBuffer> IsCuda for CUDA<Mods> {}
+
+impl<Mods> LazySetup for CUDA<Mods> {
+    #[inline]
+    fn lazy_setup(&mut self) {
+        // switch to stream record mode for graph
+    }
+}
+
+impl<Mods: OnDropBuffer> PtrConv for CUDA<Mods> {
+    #[inline]
+    unsafe fn convert<T, IS: Shape, Conv, OS: Shape>(
+        ptr: &Self::Data<T, IS>,
+        flag: AllocFlag,
+    ) -> Self::Data<Conv, OS> {
+        CUDAPtr {
+            ptr: ptr.ptr,
+            len: ptr.len,
+            flag,
+            p: PhantomData,
+        }
+    }
+}
+
+impl<'a, Mods: OnDropBuffer + OnNewBuffer<T, Self, ()>, T> CloneBuf<'a, T> for CUDA<Mods> {
+    fn clone_buf(&'a self, buf: &Buffer<'a, T, CUDA<Mods>>) -> Buffer<'a, T, CUDA<Mods>> {
         let cloned = Buffer::new(self, buf.len());
         unsafe {
             cuMemcpy(
@@ -193,5 +195,23 @@ impl<'a, T> CloneBuf<'a, T> for CUDA {
             );
         }
         cloned
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::{Base, Buffer, Retriever, Shape};
+
+    use super::{IsCuda, CUDA};
+
+    fn take_cu_buffer<T, D: IsCuda + Retriever<T>, S: Shape>(device: &D, buf: &Buffer<T, D, S>) {
+        let buf = device.retrieve::<S, 0>(buf.len(), ());
+    }
+
+    #[test]
+    fn test_cu_buffer_fn() {
+        let device = CUDA::<Base>::new(0).unwrap();
+        let buf = Buffer::<f32, _, ()>::new(&device, 10);
+        take_cu_buffer(&device, &buf)
     }
 }

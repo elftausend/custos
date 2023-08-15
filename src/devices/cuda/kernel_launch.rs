@@ -1,4 +1,4 @@
-use crate::{number::Number, Buffer, CUDA};
+use crate::{number::Number, Buffer, OnDropBuffer, CUDA};
 use std::{collections::HashMap, ffi::c_void};
 
 use super::{
@@ -17,7 +17,7 @@ use super::{
 /// }
 ///
 /// fn main() -> custos::Result<()> {
-///     let device = CUDA::new(0)?;
+///     let device = CUDA::<Base>::new(0)?;
 ///
 ///     let buf = Buffer::<f32, _>::new(&device, 10);
 ///     let num = 4;
@@ -32,7 +32,7 @@ pub trait AsCudaCvoidPtr {
     /// use custos::{CUDA, Buffer, cuda::AsCudaCvoidPtr};
     ///
     /// fn main() -> custos::Result<()> {
-    ///     let device = CUDA::new(0)?;
+    ///     let device = CUDA::<Base>::new(0)?;
     ///     let buf = Buffer::<f32, _>::new(&device, 10);
     ///     
     ///     let _ptr = buf.as_cvoid_ptr();
@@ -42,27 +42,30 @@ pub trait AsCudaCvoidPtr {
     fn as_cvoid_ptr(&self) -> *mut c_void;
 }
 
-impl<'a, T> AsCudaCvoidPtr for &Buffer<'a, T, CUDA> {
+impl<'a, T, Mods: OnDropBuffer> AsCudaCvoidPtr for &Buffer<'a, T, CUDA<Mods>> {
+    #[inline]
     fn as_cvoid_ptr(&self) -> *mut c_void {
-        &self.ptr.ptr as *const u64 as *mut c_void
+        &self.data.ptr as *const u64 as *mut c_void
     }
 }
 
-impl<'a, T> AsCudaCvoidPtr for Buffer<'a, T, CUDA> {
+impl<'a, T, Mods: OnDropBuffer> AsCudaCvoidPtr for Buffer<'a, T, CUDA<Mods>> {
+    #[inline]
     fn as_cvoid_ptr(&self) -> *mut c_void {
-        &self.ptr.ptr as *const u64 as *mut c_void
+        &self.data.ptr as *const u64 as *mut c_void
     }
 }
 
 impl<T: Number> AsCudaCvoidPtr for T {
+    #[inline]
     fn as_cvoid_ptr(&self) -> *mut c_void {
         self as *const T as *mut c_void
     }
 }
 
 /// Launch a CUDA kernel with the given grid and block sizes.
-pub fn launch_kernel(
-    device: &CUDA,
+pub fn launch_kernel<Mods>(
+    device: &CUDA<Mods>,
     grid: [u32; 3],
     blocks: [u32; 3],
     shared_mem_bytes: u32,

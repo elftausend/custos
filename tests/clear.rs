@@ -1,4 +1,4 @@
-use custos::{Buffer, WithShape, CPU};
+use custos::prelude::*;
 
 use custos_macro::stack_cpu_test;
 
@@ -33,7 +33,7 @@ fn test_clear_cl() -> Result<(), custos::Error> {
 fn test_clear_cuda() -> Result<(), custos::Error> {
     use custos::CUDA;
 
-    let device = CUDA::new(0)?;
+    let device = CUDA::<Base>::new(0)?;
 
     let mut buf = Buffer::from((&device, [1., 2., 3., 4., 5., 6.]));
     assert_eq!(buf.read(), vec![1., 2., 3., 4., 5., 6.,]);

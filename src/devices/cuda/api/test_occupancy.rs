@@ -4,12 +4,12 @@ use crate::{
     cuda::api::{
         cuLaunchKernel, cuOccupancyMaxPotentialBlockSize, load_module_data, nvrtc::create_program,
     },
-    Buffer, Read, CUDA,
+    Base, Buffer, Read, CUDA,
 };
 
 #[test]
 fn test_occupancy() -> crate::Result<()> {
-    let device = CUDA::new(0)?;
+    let device = CUDA::<Base>::new(0)?;
 
     let a = Buffer::from((&device, [1, 2, 3, 4, 5]));
     let b = Buffer::from((&device, [4, 1, 7, 6, 9]));

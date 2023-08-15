@@ -211,9 +211,9 @@ mod tests {
     #[cfg(feature = "cuda")]
     #[test]
     fn test_buf_device_conversion_cu() -> crate::Result<()> {
-        use crate::{Buffer, Read, CPU, CUDA};
+        use crate::{Base, Buffer, Read, CPU, CUDA};
 
-        let device = CUDA::new(0)?;
+        let device = CUDA::<Base>::new(0)?;
 
         let cpu = CPU::<Base>::new();
         let cpu_buf = Buffer::from((&cpu, [1, 2, 4, 5]));

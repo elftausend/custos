@@ -1,13 +1,9 @@
 use super::{
-    api::{
-        load_module_data,
-        nvrtc::{create_program, nvrtcDestroyProgram},
-        FnHandle, Module,
-    },
+    api::{load_module_data, FnHandle, Module},
     CudaSource,
 };
 use crate::{Error, CUDA};
-use std::{collections::HashMap, ffi::CString};
+use std::collections::HashMap;
 
 /// This stores the previously compiled CUDA functions / kernels.
 #[derive(Debug, Default)]
@@ -25,7 +21,7 @@ impl CUKernelCache {
     /// use custos::{CUDA, cuda::KernelCacheCU};
     ///
     /// fn main() -> custos::Result<()> {
-    ///     let device = CUDA::new(0)?;
+    ///     let device = CUDA::<Base>::new(0)?;
     ///     
     ///     let mut kernel_cache = KernelCacheCU::default();
     ///     
@@ -65,9 +61,13 @@ impl CUKernelCache {
 }
 
 /// Exactly like [`KernelCacheCU`], but with a immutable source of the cache using interior mutability.
-pub fn fn_cache(device: &CUDA, src: impl CudaSource, fn_name: &str) -> crate::Result<FnHandle> {
+pub fn fn_cache<Mods>(
+    device: &CUDA<Mods>,
+    src: impl CudaSource,
+    fn_name: &str,
+) -> crate::Result<FnHandle> {
     device
         .kernel_cache
         .borrow_mut()
-        .kernel(&mut device.modules.borrow_mut(), src, fn_name)
+        .kernel(&mut device.cuda_modules.borrow_mut(), src, fn_name)
 }

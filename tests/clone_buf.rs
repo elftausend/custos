@@ -38,7 +38,7 @@ fn test_buf_clone_cl() -> custos::Result<()> {
 #[cfg(feature = "cuda")]
 #[test]
 fn test_buf_clone_cu() -> custos::Result<()> {
-    let device = custos::CUDA::new(0)?;
+    let device = custos::CUDA::<Base>::new(0)?;
 
     let buf = Buffer::from((&device, [1., 2., 6., 2., 4.]));
 

@@ -84,13 +84,13 @@ pub fn get_ptx(prog: &NvrtcProgram) -> NvrtcResult<CString> {
 mod tests {
     use crate::{
         cuda::api::{culaunch_kernel, load_module_data, nvrtc::create_program},
-        Buffer, Read, CUDA,
+        Base, Buffer, Read, CUDA,
     };
     use std::ffi::c_void;
 
     #[test]
     fn test_nvrtc() -> crate::Result<()> {
-        let device = CUDA::new(0)?;
+        let device = CUDA::<Base>::new(0)?;
 
         let a = Buffer::from((&device, [1, 2, 3, 4, 5]));
         let b = Buffer::from((&device, [4, 1, 7, 6, 9]));

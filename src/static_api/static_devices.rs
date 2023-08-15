@@ -61,7 +61,7 @@ pub fn static_opencl() -> &'static crate::OpenCL {
 #[cfg(feature = "cuda")]
 thread_local! {
     static GLOBAL_CUDA: crate::CUDA = {
-        crate::CUDA::new(chosen_cu_idx()).expect("Could not create a static CUDA device.")
+        crate::CUDA::<Base>::new(chosen_cu_idx()).expect("Could not create a static CUDA device.")
     };
 }
 

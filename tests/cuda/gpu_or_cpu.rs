@@ -1,4 +1,4 @@
-use custos::{Buffer, CDatatype, Device, CUDA};
+use custos::{Base, Buffer, CDatatype, Device, CUDA};
 
 pub struct State<'a, 'b> {
     device: &'a CUDA,
@@ -33,7 +33,7 @@ const N: usize = 20000;
 
 #[test]
 fn test_cuda_sum() {
-    let device = CUDA::new(0).unwrap();
+    let device = CUDA::<Base>::new(0).unwrap();
     let lhs = Buffer::from((&device, 0..N));
     let mut out = Buffer::from((&device, [0]));
     sum_kernel(&device, &lhs, &mut out);
@@ -49,7 +49,7 @@ fn test_cuda_sum() {
 
 #[test]
 fn test_cuda_sum_two() {
-    let device = CUDA::new(0).unwrap();
+    let device = CUDA::<Base>::new(0).unwrap();
     let lhs = Buffer::from((&device, (0..N)));
     // println!("lhs: {:?}", lhs);
 

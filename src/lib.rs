@@ -236,8 +236,8 @@ pub mod prelude {
 
     pub use crate::{
         device_traits::*, features::*, modules::*, number::*, shape::*, Alloc, Buffer, CDatatype,
-        ClearBuf, CopySlice, Device, MainMemory, MayTapeReturn, MayToCLSource, Read, ShallowCopy,
-        WithShape, WriteBuf,
+        ClearBuf, CloneBuf, CopySlice, Device, MainMemory, MayTapeReturn, MayToCLSource, Read,
+        ShallowCopy, WithShape, WriteBuf,
     };
 
     #[cfg(feature = "cpu")]
@@ -265,7 +265,7 @@ pub mod prelude {
     pub use crate::wgpu::{launch_shader, WGPU};
 
     #[cfg(feature = "cuda")]
-    pub use crate::cuda::{launch_kernel1d, CUBuffer, CU, CUDA};
+    pub use crate::cuda::{launch_kernel1d, CUDA};
 }
 
 #[cfg(test)]

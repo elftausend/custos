@@ -8,8 +8,8 @@ use crate::CPU;
 
 use crate::{
     flag::AllocFlag, shape::Shape, Alloc, Base, ClearBuf, CloneBuf, CommonPtrs, Device,
-    DevicelessAble, HasId, IsShapeIndep, MainMemory, OnNewBuffer, PtrType, Read, ShallowCopy,
-    WriteBuf,
+    DevicelessAble, HasId, IsShapeIndep, MainMemory, OnDropBuffer, OnNewBuffer, PtrType, Read,
+    ShallowCopy, WriteBuf,
 };
 
 pub use self::num::Num;
@@ -454,7 +454,7 @@ impl<'a, T, S: Shape> Buffer<'a, T, crate::OpenCL, S> {
 }
 
 #[cfg(feature = "cuda")]
-impl<'a, T> Buffer<'a, T, crate::CUDA> {
+impl<'a, Mods: OnDropBuffer, T> Buffer<'a, T, crate::CUDA<Mods>> {
     // TODO: replace buf.data.2 with this fn, do the same with cl, cpu
     /// Returns a non null CUDA pointer
     #[inline]

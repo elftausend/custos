@@ -187,7 +187,7 @@ use custos::{OpenCL, CUDA};
 fn main() -> custos::Result<()> {
     let device = OpenCL::new(0)?; 
     // or:
-    let device = CUDA::new(0)?;
+    let device = CUDA::<Base>::new(0)?;
     Ok(())
 }
 ```

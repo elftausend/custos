@@ -1,8 +1,8 @@
 use core::ops::{Range, RangeBounds};
 
 use crate::{
-    bounds_to_range, cuda::api::cu_read, Buffer, CDatatype, ClearBuf, CopySlice, Read, WriteBuf,
-    CUDA,
+    bounds_to_range, cuda::api::cu_read, Buffer, CDatatype, ClearBuf, CopySlice, OnDropBuffer,
+    Read, WriteBuf, CUDA,
 };
 
 use super::{
@@ -10,18 +10,18 @@ use super::{
     cu_clear,
 };
 
-impl<T: Default + Clone> Read<T> for CUDA {
+impl<Mods: OnDropBuffer, T: Default + Clone> Read<T> for CUDA<Mods> {
     type Read<'a> = Vec<T>
     where
         T: 'a,
-        CUDA: 'a;
+        CUDA<Mods>: 'a;
 
     #[inline]
-    fn read(&self, buf: &Buffer<T, CUDA>) -> Vec<T> {
+    fn read(&self, buf: &Buffer<T, Self>) -> Vec<T> {
         self.read_to_vec(buf)
     }
 
-    fn read_to_vec(&self, buf: &Buffer<T, CUDA>) -> Vec<T>
+    fn read_to_vec(&self, buf: &Buffer<T, Self>) -> Vec<T>
     where
         T: Default + Clone,
     {
@@ -33,19 +33,19 @@ impl<T: Default + Clone> Read<T> for CUDA {
         self.stream().sync().unwrap();
 
         let mut read = vec![T::default(); buf.len()];
-        cu_read(&mut read, buf.ptr.ptr).unwrap();
+        cu_read(&mut read, buf.data.ptr).unwrap();
         read
     }
 }
 
-impl<T: CDatatype> ClearBuf<T> for CUDA {
+impl<Mods: OnDropBuffer, T: CDatatype> ClearBuf<T> for CUDA<Mods> {
     #[inline]
-    fn clear(&self, buf: &mut Buffer<T, CUDA>) {
+    fn clear(&self, buf: &mut Buffer<T, Self>) {
         cu_clear(self, buf).unwrap()
     }
 }
 
-impl<T> CopySlice<T> for CUDA {
+impl<Mods: OnDropBuffer, T> CopySlice<T> for CUDA<Mods> {
     fn copy_slice_to<SR: RangeBounds<usize>, DR: RangeBounds<usize>>(
         &self,
         source: &Buffer<T, Self>,
@@ -62,8 +62,8 @@ impl<T> CopySlice<T> for CUDA {
 
         unsafe {
             cuMemcpy(
-                dest.ptr.ptr + (dest_range.start * size) as u64,
-                source.ptr.ptr + (source_range.start * size) as u64,
+                dest.data.ptr + (dest_range.start * size) as u64,
+                source.data.ptr + (source_range.start * size) as u64,
                 len * size,
             );
         }
@@ -81,9 +81,9 @@ impl<T> CopySlice<T> for CUDA {
     }
 }
 
-impl<T> WriteBuf<T> for CUDA {
+impl<Mods: OnDropBuffer, T> WriteBuf<T> for CUDA<Mods> {
     #[inline]
-    fn write(&self, buf: &mut Buffer<T, CUDA>, data: &[T]) {
+    fn write(&self, buf: &mut Buffer<T, Self>, data: &[T]) {
         cu_write(buf.cu_ptr(), data).unwrap();
     }
 
@@ -91,8 +91,8 @@ impl<T> WriteBuf<T> for CUDA {
     fn write_buf(&self, dst: &mut Buffer<T, Self, ()>, src: &Buffer<T, Self, ()>) {
         unsafe {
             cuMemcpy(
-                dst.ptr.ptr,
-                src.ptr.ptr,
+                dst.data.ptr,
+                src.data.ptr,
                 src.len() * std::mem::size_of::<T>(),
             );
         }

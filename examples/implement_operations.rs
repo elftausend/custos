@@ -1,4 +1,4 @@
-use custos::prelude::*;
+use custos::{prelude::*, OnDropBuffer};
 
 /// `AddBuf` will be implemented for all compute devices.<br>
 /// Because of `S: Shape`, this trait can be implemented for [`Stack`], which uses fixed size stack allocated arrays.<br>
@@ -91,9 +91,8 @@ where
 
 #[cfg(feature = "cuda")]
 // CUDA Implementation
-impl<T: CDatatype> AddBuf<T> for CUDA {
-    fn add(&self, lhs: &CUBuffer<T>, rhs: &CUBuffer<T>) -> CUBuffer<T> {
-        // CUBuffer<T> is the same as Buffer<T, CUDA>
+impl<Mods: Retrieve<Self, T>, T: CDatatype> AddBuf<T> for CUDA<Mods> {
+    fn add(&self, lhs: &Buffer<T, Self>, rhs: &Buffer<T, Self>) -> Buffer<T, Self> {
         // generic CUDA kernel
         let src = format!(
             r#"extern "C" __global__ void add({datatype}* lhs, {datatype}* rhs, {datatype}* out, int numElements)
@@ -105,12 +104,11 @@ impl<T: CDatatype> AddBuf<T> for CUDA {
                     
                 }}
         "#,
-            datatype = T::as_c_type_str()
+            datatype = T::C_DTYPE_STR
         );
 
         let len = std::cmp::min(lhs.len(), rhs.len());
-        let out = self.retrieve::<T, ()>(len, (lhs, rhs));
-        //or: let out = Cache::get::<T, CUDA, 0>(self, len, (lhs, rhs));
+        let out = self.retrieve(len, (lhs, rhs));
 
         // The kernel is compiled once with nvrtc and is cached too.
         // The arguments are specified with a vector of buffers and/or numbers.
@@ -221,7 +219,7 @@ fn main() -> custos::Result<()> {
 
     #[cfg(feature = "cuda")]
     {
-        let cuda_device = CUDA::new(0)?;
+        let cuda_device = CUDA::<Base>::new(0)?;
 
         let lhs = Buffer::from((&cuda_device, [1., 2., 3., 4., 5., 6.]));
         let rhs = Buffer::from((&cuda_device, [6., 5., 4., 3., 2., 1.]));

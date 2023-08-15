@@ -15,7 +15,7 @@ pub use ffi::*;
 
 #[cfg(test)]
 mod tests {
-    use crate::cuda::api::CUdeviceptr;
+    use crate::{cuda::api::CUdeviceptr, Base};
 
     #[test]
     fn test_cuda_alloc() {
@@ -168,7 +168,7 @@ mod tests {
     fn test_cuda_device() -> crate::Result<()> {
         use crate::{cuda::CUDA, Buffer};
 
-        let device = CUDA::new(0)?;
+        let device = CUDA::<Base>::new(0)?;
         let _a = Buffer::<f32, _>::new(&device, 10);
         Ok(())
     }

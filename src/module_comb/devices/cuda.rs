@@ -21,6 +21,7 @@ use super::Device;
 
 pub trait IsCuda: Device {}
 
+/// Used to perform calculations with a CUDA capable device.
 pub struct CUDA<Mods> {
     modules: Mods,
     /// Stores compiled CUDA kernels.
@@ -120,6 +121,13 @@ impl<Mods: OnDropBuffer> Device for CUDA<Mods> {
     type Error = i32;
 }
 
+impl<Mods> Default for CUDA<Mods> {
+    #[inline]
+    fn default() -> Self {
+        CUDA::<Base>::new(chosen_cu_idx()).expect("A valid CUDA device index should be set via the environment variable `CUSTOS_CL_DEVICE_IDX`")
+    }
+}
+
 impl<Mods> Drop for CUDA<Mods> {
     fn drop(&mut self) {
         // deallocates all cached buffers before destroying the context etc
@@ -151,7 +159,14 @@ impl<Mods> Alloc<T>for CUDA<Mods> {
     where
         T: Clone,
     {
-        todo!()
+        let ptr = cumalloc::<T>(data.len()).unwrap();
+        cu_write(ptr, data).unwrap();
+        CUDAPtr {
+            ptr,
+            len: data.len(),
+            flag: AllocFlag::None,
+            p: PhantomData,
+        }
     }
 }
 
@@ -161,6 +176,35 @@ impl<Mods> LazySetup for CUDA<Mods> {
     #[inline]
     fn lazy_setup(&mut self) {
         // switch to stream record mode for graph
+    }
+}
+
+impl<Mods> PtrConv for CUDA<Mods> {
+    #[inline]
+    unsafe fn convert<T, IS: Shape, Conv, OS: Shape>(
+        ptr: &Self::Data<T, IS>,
+        flag: AllocFlag,
+    ) -> Self::Data<Conv, OS> {
+        CUDAPtr {
+            ptr: ptr.ptr,
+            len: ptr.len,
+            flag,
+            p: PhantomData,
+        }
+    }
+}
+
+impl<'a, Mods, T> CloneBuf<'a, T> for CUDA<Mods> {
+    fn clone_buf(&'a self, buf: &Buffer<'a, T, CUDA<Mods>>) -> Buffer<'a, T, CUDA<Mods>> {
+        let cloned = Buffer::new(self, buf.len());
+        unsafe {
+            cuMemcpy(
+                cloned.ptrs().2,
+                buf.ptrs().2,
+                buf.len() * std::mem::size_of::<T>(),
+            );
+        }
+        cloned
     }
 }
 

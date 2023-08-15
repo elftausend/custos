@@ -28,7 +28,7 @@ fn get_device_test_cl() -> custos::Result<()> {
 fn get_device_test_cu() -> custos::Result<()> {
     use custos::CUDA;
 
-    let device = CUDA::new(0)?;
+    let device = CUDA::<Base>::new(0)?;
 
     let buf = Buffer::from((&device, [1., 1.5, 0.14]));
 
