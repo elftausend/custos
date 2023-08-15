@@ -3,7 +3,7 @@ use core::convert::Infallible;
 use crate::{
     cpu::CPUPtr, flag::AllocFlag, impl_buffer_hook_traits, impl_retriever, Alloc, Base, Buffer,
     Cached, CachedModule, CloneBuf, Device, HasModules, LazySetup, MainMemory, Module,
-    OnDropBuffer, OnNewBuffer, Retrieve, Retriever, Setup, Shape, TapeActions, DevicelessAble,
+    OnDropBuffer, OnNewBuffer, Setup, Shape, TapeActions, DevicelessAble,
 };
 
 pub trait IsCPU {}
@@ -13,10 +13,11 @@ pub trait IsCPU {}
 ///
 /// # Example
 /// ```
-/// use custos::{CPU, Read, Buffer};
+/// use custos::{CPU, Read, Buffer, Base, Device};
 ///
 /// let device = CPU::<Base>::new();
-/// let a = Buffer::from((&device, [1, 2, 3]));
+/// let a = device.buffer([1, 2, 3]);
+/// //let a = Buffer::from((&device, [1, 2, 3]));
 ///
 /// let out = device.read(&a);
 ///

@@ -78,6 +78,9 @@ where
         self.register_no_grad_buf(new_buf);
 
         // allocates gradient memory for the corresponding buffer id
+        // this prevents allocating with a non matching datatype
+        // -> although retrieving the grads should fail if type information does not match
+        // TODO: better solution?
         self.tape
             .borrow_mut()
             .grads
@@ -342,10 +345,12 @@ mod tests {
     }
 
     #[test]
-    #[should_panic]
+    //#[should_panic]
     fn test_tape_return_without_grad_allocation() {
         let device = CPU::<Autograd<Base>>::new();
         let buf = Buffer::<f32, _>::new(&device, 10);
+
+        // this does not panic anymore because grads are allocated if a new buffer is created (when using the Autograd module)
         buf.grad();
     }
 

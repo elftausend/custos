@@ -8,7 +8,7 @@ pub trait ClearBuf<T, S: Shape = (), D: Device = Self> {
     /// # Example
     #[cfg_attr(feature = "cpu", doc = "```")]
     #[cfg_attr(not(feature = "cpu"), doc = "```ignore")]
-    /// use custos::{CPU, ClearBuf, Buffer};
+    /// use custos::{CPU, ClearBuf, Buffer, Base};
     ///
     /// let device = CPU::<Base>::new();
     /// let mut a = Buffer::from((&device, [2, 4, 6, 8, 10, 12]));
@@ -27,7 +27,7 @@ pub trait CopySlice<T, D: Device = Self>: Sized + Device {
     ///
     #[cfg_attr(feature = "cpu", doc = "```")]
     #[cfg_attr(not(feature = "cpu"), doc = "```ignore")]
-    /// use custos::{CPU, Buffer, CopySlice};
+    /// use custos::{CPU, Buffer, CopySlice, Base};
     ///
     /// let device = CPU::<Base>::new();
     /// let buf = Buffer::from((&device, [1., 2., 6., 2., 4.,]));
@@ -53,7 +53,7 @@ pub trait CopySlice<T, D: Device = Self>: Sized + Device {
     ///
     #[cfg_attr(feature = "cpu", doc = "```")]
     #[cfg_attr(not(feature = "cpu"), doc = "```ignore")]
-    /// use custos::{CPU, Buffer, CopySlice};
+    /// use custos::{CPU, Buffer, CopySlice, Base};
     ///
     /// let device = CPU::<Base>::new();
     /// let source = Buffer::from((&device, [1., 2., 3., 4., 5.,]));
@@ -74,7 +74,7 @@ pub trait CopySlice<T, D: Device = Self>: Sized + Device {
     /// # Example
     #[cfg_attr(feature = "cpu", doc = "```")]
     #[cfg_attr(not(feature = "cpu"), doc = "```ignore")]
-    /// use custos::{Buffer, CPU, CopySlice};
+    /// use custos::{Buffer, CPU, CopySlice, Base};
     ///
     /// let device = CPU::<Base>::new();
     /// let source = Buffer::from((&device, [1., 2., 6., 2., 4.]));
@@ -111,7 +111,7 @@ pub trait Read<T, S: Shape = (), D: Device = Self>: Device {
     /// # Example
     #[cfg_attr(feature = "cpu", doc = "```")]
     #[cfg_attr(not(feature = "cpu"), doc = "```ignore")]
-    /// use custos::{CPU, Buffer, Read};
+    /// use custos::{CPU, Buffer, Read, Base};
     ///
     /// let device = CPU::<Base>::new();
     /// let a = Buffer::from((&device, [1., 2., 3., 3., 2., 1.,]));
@@ -124,7 +124,7 @@ pub trait Read<T, S: Shape = (), D: Device = Self>: Device {
     /// # Example
     #[cfg_attr(feature = "cpu", doc = "```")]
     #[cfg_attr(not(feature = "cpu"), doc = "```ignore")]
-    /// use custos::{CPU, Buffer, Read};
+    /// use custos::{CPU, Buffer, Read, Base};
     ///
     /// let device = CPU::<Base>::new();
     /// let a = Buffer::from((&device, [1., 2., 3., 3., 2., 1.,]));
@@ -143,7 +143,7 @@ pub trait WriteBuf<T, S: Shape = (), D: Device = Self>: Device {
     /// # Example
     #[cfg_attr(feature = "cpu", doc = "```")]
     #[cfg_attr(not(feature = "cpu"), doc = "```ignore")]
-    /// use custos::{CPU, Buffer, WriteBuf};
+    /// use custos::{CPU, Buffer, WriteBuf, Base}; // there is also a prelude mod
     ///
     /// let device = CPU::<Base>::new();
     /// let mut buf: Buffer<i32> = Buffer::new(&device, 4);
@@ -159,7 +159,7 @@ pub trait WriteBuf<T, S: Shape = (), D: Device = Self>: Device {
     /// # Example
     #[cfg_attr(feature = "cpu", doc = "```")]
     #[cfg_attr(not(feature = "cpu"), doc = "```ignore")]
-    /// use custos::{CPU, Buffer, WriteBuf};
+    /// use custos::{CPU, Buffer, WriteBuf, Base};
     ///
     /// let device = CPU::<Base>::new();
     ///
@@ -179,7 +179,7 @@ pub trait CloneBuf<'a, T, S: Shape = ()>: Sized + Device {
     ///
     #[cfg_attr(feature = "cpu", doc = "```")]
     #[cfg_attr(not(feature = "cpu"), doc = "```ignore")]
-    /// use custos::{CPU, Buffer, CloneBuf};
+    /// use custos::{CPU, Buffer, CloneBuf, Base};
     ///
     /// let device = CPU::<Base>::new();
     /// let buf = Buffer::from((&device, [1., 2., 6., 2., 4.,]));

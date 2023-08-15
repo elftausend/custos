@@ -47,7 +47,7 @@ impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
     /// This `Buffer` can't outlive the device specified as a parameter.
     #[cfg_attr(feature = "cpu", doc = "```")]
     #[cfg_attr(not(feature = "cpu"), doc = "```ignore")]
-    /// use custos::{CPU, Buffer};
+    /// use custos::{CPU, Buffer, Base};
     ///
     /// let device = CPU::<Base>::new();
     /// let mut buffer = Buffer::<i32>::new(&device, 6);
@@ -152,7 +152,7 @@ impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
     /// # Examples
     #[cfg_attr(feature = "cpu", doc = "```")]
     #[cfg_attr(not(feature = "cpu"), doc = "```ignore")]
-    /// use custos::{CPU, Buffer};
+    /// use custos::{CPU, Buffer, Base};
     ///
     /// let mut buf = {
     ///     let device = CPU::<Base>::new();
@@ -197,7 +197,7 @@ impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
     /// # Example
     #[cfg_attr(feature = "cpu", doc = "```")]
     #[cfg_attr(not(feature = "cpu"), doc = "```ignore")]
-    /// use custos::{CPU, Buffer};
+    /// use custos::{CPU, Buffer, Base};
     ///
     /// let device = CPU::<Base>::new();
     /// let buf = Buffer::from((&device, [1, 2, 3, 4]));
@@ -220,7 +220,7 @@ impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
     /// # Example
     #[cfg_attr(feature = "cpu", doc = "```")]
     #[cfg_attr(not(feature = "cpu"), doc = "```ignore")]
-    /// use custos::{CPU, Buffer};
+    /// use custos::{CPU, Buffer, Base};
     ///
     /// let device = CPU::<Base>::new();
     /// let mut buf = Buffer::<i32>::new(&device, 6);
@@ -250,7 +250,7 @@ impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
     /// # Example
     #[cfg_attr(feature = "cpu", doc = "```")]
     #[cfg_attr(not(feature = "cpu"), doc = "```ignore")]
-    /// use custos::{CPU, Buffer};
+    /// use custos::{CPU, Buffer, Base};
     ///
     /// let device = CPU::<Base>::new();
     /// let a = Buffer::<i32, _>::new(&device, 10);
@@ -315,7 +315,7 @@ impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
     /// # Example
     #[cfg_attr(feature = "cpu", doc = "```")]
     #[cfg_attr(not(feature = "cpu"), doc = "```ignore")]
-    /// use custos::{CPU, Buffer, Shape, Dim1, Dim2};
+    /// use custos::{CPU, Buffer, Shape, Dim1, Dim2, Base};
     ///
     /// let device = CPU::<Base>::new();
     /// let a = Buffer::<i32, CPU, Dim1<10>>::new(&device, 10);
@@ -379,7 +379,7 @@ impl<'a, T, D: Device> Buffer<'a, T, D> {
     /// Returns `true` if `Buffer` is created without a slice.
     /// # Example
     /// ```
-    /// use custos::{CPU, Buffer};
+    /// use custos::Buffer;
     ///
     /// let a = Buffer::<i32, ()>::from(5);
     /// assert!(a.is_empty())
@@ -395,11 +395,11 @@ impl<'a, T, S: Shape> Buffer<'a, T, CPU, S> {
     /// Constructs a deviceless `Buffer` out of a host pointer and a length.
     /// # Example
     /// ```
-    /// use custos::{Buffer, Alloc, CPU, Read, flag::AllocFlag};
+    /// use custos::{Buffer, Alloc, CPU, Read, flag::AllocFlag, Base};
     /// use std::ffi::c_void;
     ///
     /// let device = CPU::<Base>::new();
-    /// let mut ptr = Alloc::<f32>::alloc(&device, 10, AllocFlag::None);
+    /// let mut ptr = Alloc::<f32>::alloc::<()>(&device, 10, AllocFlag::None);
     /// let mut buf = unsafe {
     ///     Buffer::<_, _, ()>::from_raw_host(ptr.ptr, 10)
     /// };
@@ -555,7 +555,7 @@ impl<T, D: MainMemory> AsMut<[T]> for Buffer<'_, T, D> {
 ///
 #[cfg_attr(feature = "cpu", doc = "```")]
 #[cfg_attr(not(feature = "cpu"), doc = "```ignore")]
-/// use custos::{Buffer, CPU};
+/// use custos::{Buffer, CPU, Base};
 ///
 /// let device = CPU::<Base>::new();
 ///
@@ -588,7 +588,7 @@ impl<T, D: MainMemory, S: Shape> core::ops::Deref for Buffer<'_, T, D, S> {
 ///
 #[cfg_attr(feature = "cpu", doc = "```")]
 #[cfg_attr(not(feature = "cpu"), doc = "```ignore")]
-/// use custos::{Buffer, CPU};
+/// use custos::{Buffer, CPU, Base};
 ///  
 /// let device = CPU::<Base>::new();
 ///
@@ -754,14 +754,14 @@ mod tests {
 
     #[cfg(feature = "stack")]
     #[cfg(not(feature = "no-std"))]
-    #[should_panic]
+    // #[should_panic]
     #[test]
-    fn test_id_stack() {
+    fn test_id_stack() { // unsure if a stack buffer should have an id
         use crate::{Stack, WithShape, HasId};
 
         let device = Stack::new();
 
         let buf = Buffer::with(&device, [1, 2, 3, 4]);
-        buf.id();
+        assert_eq!(buf.id(), buf.data.id())
     }
 }

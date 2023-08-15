@@ -7,14 +7,13 @@ pub trait Alloc<T>: Device + Sized {
     /// # Example
     #[cfg_attr(feature = "cpu", doc = "```")]
     #[cfg_attr(not(feature = "cpu"), doc = "```ignore")]
-    /// use custos::{CPU, Alloc, Buffer, Read, flag::AllocFlag, GraphReturn, cpu::CPUPtr};
+    /// use custos::{CPU, Alloc, Buffer, Read, flag::AllocFlag, Base, cpu::CPUPtr};
     ///
     /// let device = CPU::<Base>::new();
-    /// let ptr = Alloc::<f32>::alloc(&device, 12, AllocFlag::None);
+    /// let data = Alloc::<f32>::alloc::<()>(&device, 12, AllocFlag::None);
     ///
     /// let buf: Buffer = Buffer {
-    ///     ident: None,
-    ///     ptr,
+    ///     data,
     ///     device: Some(&device),
     /// };
     /// assert_eq!(vec![0.; 12], device.read(&buf));
@@ -25,14 +24,13 @@ pub trait Alloc<T>: Device + Sized {
     /// # Example
     #[cfg_attr(feature = "cpu", doc = "```")]
     #[cfg_attr(not(feature = "cpu"), doc = "```ignore")]
-    /// use custos::{CPU, Alloc, Buffer, Read, GraphReturn, cpu::CPUPtr};
+    /// use custos::{CPU, Alloc, Buffer, Read, Base, cpu::CPUPtr};
     ///
     /// let device = CPU::<Base>::new();
-    /// let ptr = Alloc::<i32>::with_slice(&device, &[1, 5, 4, 3, 6, 9, 0, 4]);
+    /// let data = Alloc::<i32>::alloc_from_slice::<()>(&device, &[1, 5, 4, 3, 6, 9, 0, 4]);
     ///
     /// let buf: Buffer<i32, CPU> = Buffer {
-    ///     ident: None,
-    ///     ptr,
+    ///     data,
     ///     device: Some(&device),
     /// };
     /// assert_eq!(vec![1, 5, 4, 3, 6, 9, 0, 4], device.read(&buf));

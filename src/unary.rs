@@ -6,7 +6,7 @@ pub trait ApplyFunction<T, S: Shape = (), D: Device = Self>: Device {
     /// # Example
     #[cfg_attr(all(feature = "cpu", feature = "macro"), doc = "```")]
     #[cfg_attr(not(all(feature = "cpu", feature = "macro")), doc = "```ignore")]
-    /// use custos::{CPU, Buffer, ApplyFunction, Combiner};
+    /// use custos::{CPU, Buffer, ApplyFunction, Combiner, Base};
     ///
     /// let device = CPU::<Base>::new();
     /// let a = Buffer::from((&device, [1., 2., 3., 3., 2., 1.,]));
@@ -33,7 +33,7 @@ pub trait UnaryGrad<T, S: Shape = (), D: Device = Self>: Device {
     /// # Example
     #[cfg_attr(all(feature = "cpu", feature = "macro"), doc = "```")]
     #[cfg_attr(not(all(feature = "cpu", feature = "macro")), doc = "```ignore")]
-    /// use custos::{CPU, Buffer, UnaryGrad, Combiner};
+    /// use custos::{CPU, Buffer, UnaryGrad, Combiner, Base};
     ///
     /// let device = CPU::<Base>::new();
     ///
@@ -72,7 +72,7 @@ pub trait UnaryElementWiseMayGrad<T, D: Device, S: Shape>: Device {
         not(all(feature = "autograd", feature = "cpu", feature = "macro")),
         doc = "```ignore"
     )]
-    /// use custos::{CPU, Buffer, UnaryElementWiseMayGrad, Combiner};
+    /// use custos::{CPU, Buffer, UnaryElementWiseMayGrad, Combiner, Base};
     ///
     /// let device = CPU::<Base>::new();
     ///

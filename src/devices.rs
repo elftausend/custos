@@ -47,7 +47,7 @@ pub trait Device: OnDropBuffer + Sized {
     /// # Example
     #[cfg_attr(feature = "cpu", doc = "```")]
     #[cfg_attr(not(feature = "cpu"), doc = "```ignore")]
-    /// use custos::{CPU, Device};
+    /// use custos::{CPU, Device, Base};
     ///
     /// let device = CPU::<Base>::new();
     /// let buf = device.buffer([5, 4, 3]);

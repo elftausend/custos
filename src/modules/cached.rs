@@ -137,10 +137,10 @@ macro_rules! debug_assert_tracked {
 /// # Example
 /// Operation is not annotated with `#[track_caller]` and therefore will panic:
 /// ```should_panic
-/// use custos::{retrieve, module_comb::{CPU, Retriever, Buffer, Retrieve, Cached, Base}};
+/// use custos::{retrieve, CPU, Retriever, Buffer, Retrieve, Cached, Base};
 ///
-/// fn add_bufs<Mods: Retrieve<CPU<Mods>>>(device: &CPU<Mods>) -> Buffer<f32, CPU<Mods>, ()> {
-///     retrieve!(device, 10, f32)
+/// fn add_bufs<Mods: Retrieve<CPU<Mods>, f32>>(device: &CPU<Mods>) -> Buffer<f32, CPU<Mods>, ()> {
+///     retrieve!(device, 10, ())
 /// }
 ///
 /// let device = CPU::<Cached<Base>>::new();
@@ -148,12 +148,11 @@ macro_rules! debug_assert_tracked {
 /// ```
 /// Operation is annotated with `#[track_caller]`:
 /// ```
-/// use custos::{Dim1, retrieve, module_comb::{CPU, Retriever, Buffer, Retrieve, Cached, Base}};
+/// use custos::{Dim1, retrieve, CPU, Retriever, Buffer, Retrieve, Cached, Base};
 ///
 /// #[track_caller]
-/// fn add_bufs<Mods: Retrieve<CPU<Mods>>>(device: &CPU<Mods>) -> Buffer<f32, CPU<Mods>, Dim1<30>> {
-///     retrieve!(device, 10, f32, Dim1<30>); // you can also specify the shape
-///     retrieve!(device, 10) // or infer the type and shape from the output type
+/// fn add_bufs<Mods: Retrieve<CPU<Mods>, f32>>(device: &CPU<Mods>) -> Buffer<f32, CPU<Mods>, Dim1<30>> {
+///     retrieve!(device, 10, ())
 /// }
 ///
 /// let device = CPU::<Cached<Base>>::new();
