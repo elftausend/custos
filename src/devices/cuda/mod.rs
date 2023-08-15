@@ -126,7 +126,7 @@ impl<T> CommonPtrs<T> for CUDAPtr<T> {
 /// Sets the elements of a CUDA Buffer to zero.
 /// # Example
 /// ```
-/// use custos::{CUDA, Buffer, Read, cuda::cu_clear};
+/// use custos::{CUDA, Buffer, Read, cuda::cu_clear, Base};
 ///
 /// fn main() -> Result<(), custos::Error> {
 ///     let device = CUDA::<Base>::new(0)?;

@@ -43,13 +43,13 @@ impl StaticDevice for crate::CPU {
     }
 }
 
-#[cfg(feature = "stack")]
+/*#[cfg(feature = "stack")]
 impl StaticDevice for crate::Stack {
     #[inline]
     fn as_static() -> &'static Self {
         &crate::Stack
     }
-}
+}*/
 
 #[cfg(feature = "opencl")]
 impl StaticDevice for crate::OpenCL {
@@ -58,6 +58,7 @@ impl StaticDevice for crate::OpenCL {
         static_opencl()
     }
 }
+
 #[cfg(feature = "cuda")]
 impl StaticDevice for crate::CUDA {
     #[inline]

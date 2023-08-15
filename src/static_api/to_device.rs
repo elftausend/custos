@@ -1,4 +1,4 @@
-use crate::{Alloc, Buffer, Device, Read};
+use crate::{Alloc, Buffer, Device, Read, OnNewBuffer};
 
 use super::{static_cpu, StaticDevice};
 
@@ -20,7 +20,7 @@ impl<'a, T: Clone> Buffer<'a, T> {
     #[inline]
     pub fn to_dev<D>(self) -> Buffer<'static, T, D, ()>
     where
-        D: StaticDevice + Alloc<'static, T>,
+        D: StaticDevice + Alloc<T> + OnNewBuffer<T, D, ()>,
     {
         Buffer::from((D::as_static(), self.as_slice()))
     }

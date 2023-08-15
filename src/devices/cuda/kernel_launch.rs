@@ -10,7 +10,7 @@ use super::{
 /// This enables taking `Buffer` and a number `T` as an argument to an CUDA kernel.
 /// # Example
 /// ```
-/// use custos::{CUDA, Buffer, cuda::AsCudaCvoidPtr};
+/// use custos::{CUDA, Buffer, cuda::AsCudaCvoidPtr, Base};
 ///
 /// fn args(args: &[&dyn AsCudaCvoidPtr]) {
 ///     // ...
@@ -29,7 +29,7 @@ pub trait AsCudaCvoidPtr {
     /// Converts `Self` to a (cuda) *mut c_void.
     /// # Example
     /// ```
-    /// use custos::{CUDA, Buffer, cuda::AsCudaCvoidPtr};
+    /// use custos::{CUDA, Buffer, cuda::AsCudaCvoidPtr, Base};
     ///
     /// fn main() -> custos::Result<()> {
     ///     let device = CUDA::<Base>::new(0)?;

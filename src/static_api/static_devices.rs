@@ -1,4 +1,5 @@
-use crate::CPU;
+
+use crate::{CPU, Base};
 
 #[cfg(feature = "opencl")]
 use crate::opencl::chosen_cl_idx;
@@ -83,34 +84,6 @@ pub fn static_cuda() -> &'static crate::CUDA {
 mod tests {
     #[cfg(not(feature = "no-std"))]
     use crate::Buffer;
-
-    #[cfg(not(feature = "no-std"))]
-    #[cfg(not(feature = "realloc"))]
-    #[test]
-    fn test_static_cpu_cache() {
-        // for: cargo test -- --test-threads=1
-        unsafe { set_count(0) };
-        use super::static_cpu;
-        use crate::{set_count, Device, Ident};
-
-        let cpu = static_cpu();
-
-        let a = Buffer::from(&[1, 2, 3, 4]);
-        let _b = Buffer::from(&[1, 2, 3, 4]);
-
-        let out = cpu.retrieve::<_, ()>(a.len(), ());
-
-        let cache = static_cpu().addons.cache.borrow();
-        let cached = cache
-            .nodes
-            .get(&Ident {
-                idx: 2,
-                len: out.len(),
-            })
-            .unwrap();
-
-        assert_eq!(cached.ptr, out.ptr.ptr as *mut u8);
-    }
 
     #[cfg(feature = "opencl")]
     #[test]
