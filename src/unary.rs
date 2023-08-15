@@ -22,7 +22,11 @@ pub trait ApplyFunction<T, S: Shape = (), D: Device = Self>: Device {
 
 pub(crate) trait ApplyFunctionLazyTest<T, S: Shape = (), D: Device = Self>: Device {
     #[track_caller]
-    fn apply_fn<F>(&self, buf: &Buffer<T, D, S>, f: impl Fn(Resolve<T>) -> F + Copy) -> Buffer<T, Self, S>
+    fn apply_fn<F>(
+        &self,
+        buf: &Buffer<T, D, S>,
+        f: impl Fn(Resolve<T>) -> F + Copy,
+    ) -> Buffer<T, Self, S>
     where
         F: Eval<T> + MayToCLSource;
 }

@@ -47,7 +47,7 @@ impl Tape {
     }
 
     /// Calls all gradient functions in reverse order.
-    pub fn backward<D>(&mut self, device: &D) {
+    pub fn backward<D>(&mut self, _device: &D) {
         for grad_fn_id in self.grad_fn_order.iter().rev() {
             let grad_fn = self.grad_fns_loc.get(grad_fn_id).unwrap();
             grad_fn(&mut self.grads);

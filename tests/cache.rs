@@ -11,8 +11,8 @@ use custos::{Buffer, CPU};
 fn cached_add<'a>(device: &'a CPU, a: &[f32], b: &[f32]) -> Buffer<'a, f32, CPU> {
     use custos::Retriever;
 
-    let mut out = device.retrieve(10, ()); 
-    
+    let mut out = device.retrieve(10, ());
+
     for i in 0..out.len() {
         out[i] = a[i] + b[i];
     }

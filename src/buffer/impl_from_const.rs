@@ -1,4 +1,4 @@
-use crate::{prelude::Number, shape::Shape, Alloc, Buffer, Device, Dim1, Dim2, OnNewBuffer};
+use crate::{prelude::Number, shape::Shape, Alloc, Buffer, Dim1, Dim2, OnNewBuffer};
 
 /// Trait for creating [`Buffer`]s with a [`Shape`]. The [`Shape`] is inferred from the array.
 pub trait WithShape<D, C> {
@@ -89,7 +89,7 @@ mod tests {
     #[cfg(feature = "stack")]
     #[test]
     fn test_with_const_dim2_stack() {
-        use crate::{Base, Buffer, Device, Stack, WithShape};
+        use crate::{Base, Buffer, Stack, WithShape};
 
         let device = Stack::<Base>::new();
 

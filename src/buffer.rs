@@ -756,8 +756,9 @@ mod tests {
     #[cfg(not(feature = "no-std"))]
     // #[should_panic]
     #[test]
-    fn test_id_stack() { // unsure if a stack buffer should have an id
-        use crate::{Stack, WithShape, HasId};
+    fn test_id_stack() {
+        // unsure if a stack buffer should have an id
+        use crate::{HasId, Stack, WithShape};
 
         let device = Stack::new();
 

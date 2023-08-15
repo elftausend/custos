@@ -134,7 +134,6 @@ fn test_cached_cpu() {
         }
 
         prev_ptr = Some(buf.data.ptr);
-        
     }
 }
 

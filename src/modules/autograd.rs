@@ -122,7 +122,7 @@ impl<Mods: Setup<NewDev>, NewDev> Setup<NewDev> for Autograd<Mods> {
     }
 }
 
-impl<T:'static, Mods: Retrieve<D, T>, D> Retrieve<D, T> for Autograd<Mods>
+impl<T: 'static, Mods: Retrieve<D, T>, D> Retrieve<D, T> for Autograd<Mods>
 where
     D: PtrConv + Device + 'static,
 {

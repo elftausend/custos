@@ -19,7 +19,7 @@ impl<T: Default, D: MainMemory, S: Shape> ClearBuf<T, S, D> for Stack {
 #[cfg(feature = "cpu")]
 #[cfg(test)]
 mod tests {
-    use crate::{Alloc, Buffer, Device, Dim1, MainMemory, Shape, CPU, Retriever, Base};
+    use crate::{Alloc, Base, Buffer, Device, Dim1, MainMemory, Retriever, Shape, CPU};
     use core::ops::Add;
 
     use super::stack_device::Stack;

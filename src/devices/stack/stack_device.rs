@@ -1,8 +1,8 @@
 use core::convert::Infallible;
 
 use crate::{
-    flag::AllocFlag, shape::Shape, Alloc, Base, Buffer, CloneBuf, Device, DevicelessAble,
-    MainMemory, OnDropBuffer, Read, StackArray, WriteBuf, impl_retriever, impl_buffer_hook_traits,
+    flag::AllocFlag, impl_buffer_hook_traits, impl_retriever, shape::Shape, Alloc, Base, Buffer,
+    CloneBuf, Device, DevicelessAble, MainMemory, OnDropBuffer, Read, StackArray, WriteBuf,
 };
 
 /// A device that allocates memory on the stack.
@@ -13,15 +13,12 @@ pub struct Stack<Mods = Base> {
 
 impl Stack {
     pub fn new() -> Stack<Base> {
-        Stack {
-            modules: Base,
-        }
+        Stack { modules: Base }
     }
 }
 
 impl_buffer_hook_traits!(Stack);
 impl_retriever!(Stack, Copy + Default);
-
 
 impl<'a, T: Copy + Default, S: Shape> DevicelessAble<'a, T, S> for Stack {}
 
@@ -55,7 +52,7 @@ impl<'a, Mods: OnDropBuffer, T: Copy + Default> Alloc<T> for Stack<Mods> {
     #[inline]
     fn alloc_from_slice<S: Shape>(&self, data: &[T]) -> Self::Data<T, S> {
         let mut array: StackArray<S, T> =
-            <Stack::<Mods> as Alloc<T>>::alloc(self, 0, AllocFlag::None);
+            <Stack<Mods> as Alloc<T>>::alloc(self, 0, AllocFlag::None);
         array.flatten_mut().copy_from_slice(&data[..S::LEN]);
 
         array
@@ -137,8 +134,7 @@ mod tests {
     #[test]
     fn test_dim2() {
         let dev = Stack::new();
-        let buf =
-            Buffer::<f64, Stack, Dim2<2, 3>>::from((&dev, &[3., 2., 1., 4., 7., 1.]));
+        let buf = Buffer::<f64, Stack, Dim2<2, 3>>::from((&dev, &[3., 2., 1., 4., 7., 1.]));
 
         for val in buf.iter() {
             println!("val: {val}");

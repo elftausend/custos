@@ -144,7 +144,7 @@ impl<T: 'static, Mods: Retrieve<D, T>, D: PtrConv + 'static> Retrieve<D, T> for 
 
 #[cfg(test)]
 mod tests {
-    use crate::{AddOperation, Alloc, Base, Buffer, Combiner, CPU};
+    use crate::{AddOperation, Base, Buffer, Combiner, CPU};
 
     use super::Lazy;
 

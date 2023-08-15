@@ -4,8 +4,8 @@ use core::{
 };
 
 use crate::{
-    bounds_to_range, AddOperation, Buffer, ClearBuf, CopySlice, Device, MainMemory, OnDropBuffer,
-    Operation, Read, Shape, WriteBuf, CPU, HasId, Retriever, TapeActions, Alloc,
+    bounds_to_range, AddOperation, Alloc, Buffer, ClearBuf, CopySlice, Device, HasId, MainMemory,
+    OnDropBuffer, Operation, Read, Retriever, Shape, TapeActions, WriteBuf, CPU,
 };
 
 impl<Mods, T, S, D> crate::ApplyFunctionLazyTest<T, S, D> for CPU<Mods>
@@ -33,13 +33,11 @@ where
 
         unsafe {
             self.add_operation(&mut out, move |out| {
-                let out = out.downcast_mut::<Buffer<T, D, S>>()
-                    .unwrap();
+                let out = out.downcast_mut::<Buffer<T, D, S>>().unwrap();
 
                 for (x, out) in buf.iter().zip(out.iter_mut()) {
                     *out = f((*x).to_val()).eval();
                 }
-                    
             });
         }
         out

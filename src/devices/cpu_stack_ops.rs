@@ -15,11 +15,8 @@ use crate::CPU;
 use crate::Stack;
 
 #[inline]
-fn apply_fn_slice<T, O>(
-    x: &[T],
-    out: &mut [T],
-    f: impl Fn(crate::Resolve<T>) -> O,
-) where
+fn apply_fn_slice<T, O>(x: &[T], out: &mut [T], f: impl Fn(crate::Resolve<T>) -> O)
+where
     T: Copy,
     O: Eval<T>,
 {
@@ -43,7 +40,7 @@ where
         let mut out = self.retrieve(buf.len(), buf);
 
         apply_fn_slice(buf, &mut out, f);
-        
+
         out
     }
 }

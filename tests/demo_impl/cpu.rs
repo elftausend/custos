@@ -1,4 +1,4 @@
-use custos::{prelude::Number, Buffer, Device, Dim2, MainMemory, Shape, WithShape, CPU, Retriever};
+use custos::{prelude::Number, Buffer, Device, Dim2, MainMemory, Retriever, Shape, WithShape, CPU};
 use custos_macro::impl_stack;
 //use custos_macro::impl_stack;
 
@@ -72,7 +72,7 @@ fn test_const_size_buf() {
 #[cfg(feature = "stack")]
 #[test]
 fn test_impl_stack() {
-    use custos::{Dim1, Base};
+    use custos::{Base, Dim1};
 
     let device = CPU::<Base>::new();
     let buf = Buffer::<i32, _>::from((&device, [1, 2, 3, 4, 5]));

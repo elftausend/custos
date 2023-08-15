@@ -1,4 +1,4 @@
-use custos::{Buffer, CPU, Base};
+use custos::{Base, Buffer, CPU};
 
 fn main() {
     let device = CPU::<Base>::new();
