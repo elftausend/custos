@@ -3,7 +3,7 @@ use std::{collections::HashMap, ffi::c_void};
 
 use super::{
     api::{cuOccupancyMaxPotentialBlockSize, culaunch_kernel, FnHandle, Module, Stream},
-    fn_cache, CUKernelCache, CudaSource,
+    fn_cache, CUKernelCache, CudaSource, CUDAPtr,
 };
 
 /// Converts `Self` to a (cuda) *mut c_void.
@@ -53,6 +53,13 @@ impl<'a, T, Mods: OnDropBuffer> AsCudaCvoidPtr for Buffer<'a, T, CUDA<Mods>> {
     #[inline]
     fn as_cvoid_ptr(&self) -> *mut c_void {
         &self.data.ptr as *const u64 as *mut c_void
+    }
+}
+
+impl<'a, T> AsCudaCvoidPtr for CUDAPtr<T> {
+    #[inline]
+    fn as_cvoid_ptr(&self) -> *mut c_void {
+        &self.ptr as *const u64 as *mut c_void
     }
 }
 
