@@ -19,7 +19,7 @@ fn cached_add<'a>(device: &'a CPU, a: &[f32], b: &[f32]) -> Buffer<'a, f32, CPU>
 #[cfg(not(feature = "realloc"))]
 #[test]
 fn test_caching_cpu() {
-    let device = CPU::new();
+    let device = CPU::<Base>::new();
 
     let a = Buffer::<f32, _>::new(&device, 100);
     let b = Buffer::<f32, _>::new(&device, 100);

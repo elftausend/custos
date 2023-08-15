@@ -8,7 +8,7 @@ use crate::cuda::chosen_cu_idx;
 
 #[cfg(not(feature = "no-std"))]
 thread_local! {
-    static GLOBAL_CPU: CPU = CPU::new();
+    static GLOBAL_CPU: CPU = CPU::<Base>::new();
 }
 
 /// Returns a static `CPU` device.
@@ -33,7 +33,7 @@ pub fn static_cpu() -> &'static CPU {
     if let Some(cpu) = &GLOBAL_CPU {
         cpu
     } else {
-        GLOBAL_CPU = Some(CPU::new())
+        GLOBAL_CPU = Some(CPU::<Base>::new())
     }
 }
 

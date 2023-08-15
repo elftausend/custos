@@ -4,7 +4,7 @@ use custos::prelude::*;
 #[test]
 fn test_rc_get_dev() {
     {
-        let device = CPU::new();
+        let device = CPU::<Base>::new();
         let mut a = Buffer::from((&device, [1., 2., 3., 4., 5., 6.]));
 
         for _ in range(100) {
@@ -33,7 +33,7 @@ fn test_dealloc_cl() -> custos::Result<()> {
 #[cfg(not(feature = "realloc"))]
 #[test]
 fn test_dealloc_device_cache_cpu() {
-    let device = CPU::new();
+    let device = CPU::<Base>::new();
 
     assert_eq!(device.cache().nodes.len(), 0);
     let a = device.retrieve::<f32, ()>(10, ());

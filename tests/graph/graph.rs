@@ -7,7 +7,7 @@ use crate::graph::AddOp;
 
 #[test]
 fn test_graph() -> custos::Result<()> {
-    let device = CPU::new();
+    let device = CPU::<Base>::new();
 
     // idx: 0
     let a = Buffer::from((&device, [1, 2, 3, 4, 5, 6]));

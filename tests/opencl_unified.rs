@@ -189,7 +189,7 @@ fn test_unified_mem_iterate() -> custos::Result<()> {
 fn test_cpu_to_unified() -> custos::Result<()> {
     use custos::{bump_count, Device, Ident};
 
-    let device = CPU::new();
+    let device = CPU::<Base>::new();
 
     let mut buf = device.retrieve::<i32, ()>(6, ());
     buf.copy_from_slice(&[1, 2, 3, 4, 5, 6]);
@@ -212,7 +212,7 @@ fn test_cpu_to_unified_perf() -> custos::Result<()> {
     use custos::{bump_count, Device, Ident};
 
     let cl_dev = OpenCL::new(0)?;
-    let device = CPU::new();
+    let device = CPU::<Base>::new();
 
     let mut dur = 0.;
 

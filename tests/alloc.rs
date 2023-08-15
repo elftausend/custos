@@ -1,16 +1,14 @@
 use custos::prelude::*;
 use custos::Alloc;
-use custos::Ident;
 
 #[cfg(feature = "cpu")]
 #[test]
 fn test_alloc() {
-    let device = CPU::new();
-    let ptr = Alloc::<i32, ()>::with_slice(&device, &[1, 5, 4, 3, 6, 9, 0, 4]);
-    //let ptr = device.with_slice(&[1, 5, 4, 3, 6, 9, 0, 4]);
+    let device = CPU::<Base>::new();
+    let data = Alloc::<i32>::alloc_from_slice::<()>(&device, &[1, 5, 4, 3, 6, 9, 0, 4]);
+    //let data = device.with_slice(&[1, 5, 4, 3, 6, 9, 0, 4]);
     let buf: Buffer<i32, CPU, ()> = Buffer {
-        ident: Some(Ident::new_bumped(ptr.len)),
-        ptr,
+        data,
         device: Some(&device),
     };
     assert_eq!(vec![1, 5, 4, 3, 6, 9, 0, 4], device.read(&buf));

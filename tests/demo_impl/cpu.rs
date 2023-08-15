@@ -1,4 +1,4 @@
-use custos::{prelude::Number, Buffer, Device, Dim2, MainMemory, Shape, WithShape, CPU};
+use custos::{prelude::Number, Buffer, Device, Dim2, MainMemory, Shape, WithShape, CPU, Retriever};
 use custos_macro::impl_stack;
 //use custos_macro::impl_stack;
 
@@ -43,7 +43,7 @@ where
 #[cfg(feature = "wgpu")]
 #[test]
 fn test_const_size_buf() {
-    let device = CPU::new();
+    let device = CPU::<Base>::new();
 
     let lhs = Buffer::with(&device, [1, 2, 3, 4]);
     let rhs = Buffer::with(&device, [4, 1, 9, 4]);
@@ -72,15 +72,17 @@ fn test_const_size_buf() {
 #[cfg(feature = "stack")]
 #[test]
 fn test_impl_stack() {
-    use custos::Dim1;
+    use custos::{Dim1, Base};
 
-    let device = CPU::new();
+    let device = CPU::<Base>::new();
     let buf = Buffer::<i32, _>::from((&device, [1, 2, 3, 4, 5]));
     let out = device.add(&buf, &buf);
     assert_eq!(out.as_slice(), &[2, 4, 6, 8, 10]);
 
-    let buf = Buffer::<i32, Stack, Dim1<5>>::with(&Stack, [1, 2, 3, 4, 5]);
-    let out = Stack.add(&buf, &buf);
+    let stack = Stack::new();
+
+    let buf = Buffer::<i32, Stack, Dim1<5>>::with(&stack, [1, 2, 3, 4, 5]);
+    let out = stack.add(&buf, &buf);
     assert_eq!(out.as_slice(), &[2, 4, 6, 8, 10]);
 }
 

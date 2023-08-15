@@ -8,7 +8,7 @@ pub trait WithShape<D, C> {
     #[cfg_attr(not(feature = "cpu"), doc = "```ignore")]
     /// use custos::{CPU, Buffer, WithShape};
     ///
-    /// let device = CPU::new();
+    /// let device = CPU::<Base>::new();
     /// let buf = Buffer::with(&device, [1.0, 2.0, 3.0]);
     ///
     /// assert_eq!(&*buf, &[1.0, 2.0, 3.0]);

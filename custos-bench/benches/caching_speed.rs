@@ -10,7 +10,7 @@ use custos::{
 const SIZE: usize = 10000;
 
 fn bench_caching_speed(c: &mut Criterion) {
-    let device = custos::CPU::new();
+    let device = custos::CPU::<Base>::new();
 
     let lhs: Buffer = device.buffer(vec![1.0; SIZE]);
     let rhs: Buffer = device.buffer(vec![1.0; SIZE]);

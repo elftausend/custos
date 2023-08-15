@@ -3,7 +3,7 @@ use custos::prelude::*;
 #[cfg(feature = "cpu")]
 #[test]
 fn get_device_test_cpu() {
-    let device = CPU::new();
+    let device = CPU::<Base>::new();
 
     let buf = Buffer::from((&device, [1., 1.5, 0.14]));
 

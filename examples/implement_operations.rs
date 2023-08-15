@@ -5,6 +5,7 @@ use custos::prelude::*;
 /// Adding a `D: Device = Self` makes it possible to invoke operations with a `CPU` on, for example, `OpenCL` `Buffer`s (if the device uses unified memory), and `Stack` `Buffer`s.
 pub trait AddBuf<T, S: Shape = (), D: Device = Self>: Sized + Device {
     /// This operation perfoms element-wise addition.
+    #[track_caller]
     fn add(&self, lhs: &Buffer<T, D, S>, rhs: &Buffer<T, D, S>) -> Buffer<T, Self, S>;
     // ... you can add more operations if you want to do that.
 }
@@ -13,8 +14,8 @@ pub trait AddBuf<T, S: Shape = (), D: Device = Self>: Sized + Device {
 #[cfg(feature = "cpu")]
 impl<T, S: Shape, D: MainMemory> AddBuf<T, S, D> for CPU
 where
-    T: Copy + std::ops::Add<Output = T>, // you can use the custos::Number trait.
-                                         // This trait is implemented for all number types (usize, i16, f32, ...)
+    T: Copy + std::ops::Add<Output = T> + 'static, // you can use the custos::Number trait.
+                                                   // This trait is implemented for all number types (usize, i16, f32, ...)
 {
     fn add(&self, lhs: &Buffer<T, D, S>, rhs: &Buffer<T, D, S>) -> Buffer<T, Self, S> {
         let len = std::cmp::min(lhs.len(), rhs.len());
@@ -45,7 +46,7 @@ where
 #[cfg(feature = "stack")]
 impl<T, S: Shape, D: MainMemory> AddBuf<T, S, D> for Stack
 where
-    T: Copy + Default + std::ops::Add<Output = T>,
+    T: Copy + Default + std::ops::Add<Output = T> + 'static,
 {
     fn add(&self, lhs: &Buffer<T, D, S>, rhs: &Buffer<T, D, S>) -> Buffer<T, Self, S> {
         let mut out = self.retrieve(S::LEN, ()); // this works as well and in this case (Stack), does exactly the same as the line above.
@@ -153,6 +154,7 @@ impl<T> AddBuf<T> for WGPU {
 }
 
 pub trait AddOp<'a, T, D: Device> {
+    #[track_caller]
     fn add(&self, rhs: &Buffer<'a, T, D>) -> Buffer<'a, T, D>;
 }
 
@@ -172,6 +174,7 @@ impl<'a, T, D: Device> OwnStruct<'a, T, D> {
     #[allow(dead_code)]
     // consider using operator overloading for your own type
     #[inline]
+    #[track_caller]
     fn add(&self, rhs: &OwnStruct<T, D>) -> Buffer<T, D>
     where
         T: CDatatype,
@@ -192,7 +195,7 @@ impl<'a, T, D: Device> OwnStruct<'a, T, D> {
 fn main() -> custos::Result<()> {
     #[cfg(feature = "cpu")]
     {
-        let cpu = CPU::new();
+        let cpu = CPU::<Base>::new();
 
         let lhs = Buffer::from((&cpu, [1, 3, 5, 3, 2, 6]));
         let rhs = Buffer::from((&cpu, [-1, -12, -6, 3, 2, -1]));

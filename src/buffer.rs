@@ -29,7 +29,7 @@ mod num;
 /// fn buffer_f32_cpu(buf: &Buffer) {}
 /// fn buffer_generic<T, D: Device>(buf: &Buffer<T, D>) {}
 ///
-/// let device = CPU::new();
+/// let device = CPU::<Base>::new();
 /// let buf = Buffer::from((&device, [0.5, 1.3, 3.2, 2.43]));
 ///
 /// buffer_f32_cpu(&buf);
@@ -49,7 +49,7 @@ impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
     #[cfg_attr(not(feature = "cpu"), doc = "```ignore")]
     /// use custos::{CPU, Buffer};
     ///
-    /// let device = CPU::new();
+    /// let device = CPU::<Base>::new();
     /// let mut buffer = Buffer::<i32>::new(&device, 6);
     ///
     /// // this only works with CPU or unified memory buffers (this creates a slice with the host pointer)
@@ -155,7 +155,7 @@ impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
     /// use custos::{CPU, Buffer};
     ///
     /// let mut buf = {
-    ///     let device = CPU::new();
+    ///     let device = CPU::<Base>::new();
     ///     Buffer::<u8>::deviceless(&device, 5)
     /// };
     /// // buf.read(); // panics
@@ -199,7 +199,7 @@ impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
     #[cfg_attr(not(feature = "cpu"), doc = "```ignore")]
     /// use custos::{CPU, Buffer};
     ///
-    /// let device = CPU::new();
+    /// let device = CPU::<Base>::new();
     /// let buf = Buffer::from((&device, [1, 2, 3, 4]));
     ///
     /// assert_eq!(buf.read_to_vec(), vec![1, 2, 3, 4]);
@@ -222,7 +222,7 @@ impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
     #[cfg_attr(not(feature = "cpu"), doc = "```ignore")]
     /// use custos::{CPU, Buffer};
     ///
-    /// let device = CPU::new();
+    /// let device = CPU::<Base>::new();
     /// let mut buf = Buffer::<i32>::new(&device, 6);
     /// buf.write(&[4, 2, 3, 4, 5, 3]);
     ///
@@ -252,7 +252,7 @@ impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
     #[cfg_attr(not(feature = "cpu"), doc = "```ignore")]
     /// use custos::{CPU, Buffer};
     ///
-    /// let device = CPU::new();
+    /// let device = CPU::<Base>::new();
     /// let a = Buffer::<i32, _>::new(&device, 10);
     /// assert_eq!(a.len(), 10)
     /// ```
@@ -317,7 +317,7 @@ impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
     #[cfg_attr(not(feature = "cpu"), doc = "```ignore")]
     /// use custos::{CPU, Buffer, Shape, Dim1, Dim2};
     ///
-    /// let device = CPU::new();
+    /// let device = CPU::<Base>::new();
     /// let a = Buffer::<i32, CPU, Dim1<10>>::new(&device, 10);
     /// let _b = a.to_dims::<Dim2<5, 2>>();
     ///
@@ -398,7 +398,7 @@ impl<'a, T, S: Shape> Buffer<'a, T, CPU, S> {
     /// use custos::{Buffer, Alloc, CPU, Read, flag::AllocFlag};
     /// use std::ffi::c_void;
     ///
-    /// let device = CPU::new();
+    /// let device = CPU::<Base>::new();
     /// let mut ptr = Alloc::<f32>::alloc(&device, 10, AllocFlag::None);
     /// let mut buf = unsafe {
     ///     Buffer::<_, _, ()>::from_raw_host(ptr.ptr, 10)
@@ -557,7 +557,7 @@ impl<T, D: MainMemory> AsMut<[T]> for Buffer<'_, T, D> {
 #[cfg_attr(not(feature = "cpu"), doc = "```ignore")]
 /// use custos::{Buffer, CPU};
 ///
-/// let device = CPU::new();
+/// let device = CPU::<Base>::new();
 ///
 /// let a = Buffer::from((&device, [1., 2., 3., 4.,]));
 /// let b = Buffer::from((&device, [2., 3., 4., 5.,]));
@@ -590,7 +590,7 @@ impl<T, D: MainMemory, S: Shape> core::ops::Deref for Buffer<'_, T, D, S> {
 #[cfg_attr(not(feature = "cpu"), doc = "```ignore")]
 /// use custos::{Buffer, CPU};
 ///  
-/// let device = CPU::new();
+/// let device = CPU::<Base>::new();
 ///
 /// let a = Buffer::from((&device, [4., 2., 3., 4.,]));
 /// let b = Buffer::from((&device, [2., 3., 6., 5.,]));

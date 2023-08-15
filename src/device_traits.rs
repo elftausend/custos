@@ -9,7 +9,7 @@ pub trait Alloc<T>: Device + Sized {
     #[cfg_attr(not(feature = "cpu"), doc = "```ignore")]
     /// use custos::{CPU, Alloc, Buffer, Read, flag::AllocFlag, GraphReturn, cpu::CPUPtr};
     ///
-    /// let device = CPU::new();
+    /// let device = CPU::<Base>::new();
     /// let ptr = Alloc::<f32>::alloc(&device, 12, AllocFlag::None);
     ///
     /// let buf: Buffer = Buffer {
@@ -27,7 +27,7 @@ pub trait Alloc<T>: Device + Sized {
     #[cfg_attr(not(feature = "cpu"), doc = "```ignore")]
     /// use custos::{CPU, Alloc, Buffer, Read, GraphReturn, cpu::CPUPtr};
     ///
-    /// let device = CPU::new();
+    /// let device = CPU::<Base>::new();
     /// let ptr = Alloc::<i32>::with_slice(&device, &[1, 5, 4, 3, 6, 9, 0, 4]);
     ///
     /// let buf: Buffer<i32, CPU> = Buffer {

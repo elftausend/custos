@@ -6,13 +6,14 @@ pub trait MulBuf<T, S: Shape = (), D: Device = Self>: Sized + Device {
     fn mul(&self, lhs: &Buffer<T, D, S>, rhs: &Buffer<T, D, S>) -> Buffer<T, Self, S>;
 }
 
-impl<T, S, D> MulBuf<T, S, D> for CPU
+impl<Mods, T, S, D> MulBuf<T, S, D> for CPU<Mods>
 where
-    T: Mul<Output = T> + Copy,
+    Mods: Retrieve<Self, T>,
+    T: Mul<Output = T> + Copy + 'static,
     S: Shape,
     D: MainMemory,
 {
-    fn mul(&self, lhs: &Buffer<T, D, S>, rhs: &Buffer<T, D, S>) -> Buffer<T, CPU, S> {
+    fn mul(&self, lhs: &Buffer<T, D, S>, rhs: &Buffer<T, D, S>) -> Buffer<T, Self, S> {
         let mut out = self.retrieve(lhs.len(), (lhs, rhs));
 
         for ((lhs, rhs), out) in lhs.iter().zip(&*rhs).zip(&mut out) {
@@ -24,7 +25,7 @@ where
 }
 
 fn main() {
-    let device = CPU::new();
+    let device = CPU::<Base>::new();
 
     let lhs = Buffer::from((&device, &[-1, 2, 3, -4, 5, 9]));
     let rhs = Buffer::from((&device, &[4, -1, 7, 1, -2, 4]));

@@ -3,7 +3,7 @@ use custos::{Buffer, CloneBuf, CPU};
 #[cfg(feature = "cpu")]
 #[test]
 fn test_buf_clone() {
-    let device = CPU::new();
+    let device = CPU::<Base>::new();
     let buf = Buffer::from((&device, [1., 2., 6., 2., 4.]));
 
     let cloned = device.clone_buf(&buf);
@@ -13,7 +13,7 @@ fn test_buf_clone() {
 #[cfg(feature = "cpu")]
 #[test]
 fn test_self_buf_clone() {
-    let device = CPU::new();
+    let device = CPU::<Base>::new();
     let buf = Buffer::from((&device, [1., 2., 6., 2., 4.]));
 
     let cloned = buf.clone();

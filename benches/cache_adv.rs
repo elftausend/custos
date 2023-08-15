@@ -24,7 +24,7 @@ fn add<T: Default + Copy + Add<Output = T>>(device: &CPU, lhs: &Buffer<T, CPU>, 
 }
 
 pub fn bench_buf_slice_cached(c: &mut Criterion) {
-    let device = CPU::new();
+    let device = CPU::<Base>::new();
 
     let lhs = Buffer::from((&device, vec![1.1; SIZE]));
     let rhs = Buffer::from((&device, vec![0.9; SIZE]));
@@ -41,7 +41,7 @@ pub fn bench_buf_slice_cached(c: &mut Criterion) {
 }
 
 pub fn bench_buf_slice(c: &mut Criterion) {
-    let device = CPU::new();
+    let device = CPU::<Base>::new();
 
     let lhs = Buffer::from((&device, vec![1.1; SIZE]));
     let rhs = Buffer::from((&device, vec![0.9; SIZE]));

@@ -9,7 +9,7 @@ fn slice_add<T: Copy + std::ops::Add<Output = T>>(a: &[T], b: &[T], c: &mut [T])
 #[cfg(feature = "cpu")]
 #[test]
 fn test_deref_cpu() {
-    let device = CPU::new();
+    let device = CPU::<Base>::new();
     let a = Buffer::from((&device, [1., 2., 3., 4.]));
     let b = Buffer::from((&device, [2., 3., 4., 5.]));
     let mut c = Buffer::from((&device, [0.; 4]));

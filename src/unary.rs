@@ -8,18 +8,20 @@ pub trait ApplyFunction<T, S: Shape = (), D: Device = Self>: Device {
     #[cfg_attr(not(all(feature = "cpu", feature = "macro")), doc = "```ignore")]
     /// use custos::{CPU, Buffer, ApplyFunction, Combiner};
     ///
-    /// let device = CPU::new();
+    /// let device = CPU::<Base>::new();
     /// let a = Buffer::from((&device, [1., 2., 3., 3., 2., 1.,]));
     ///
     /// let out = device.apply_fn(&a, |x| x.mul(2.));
     /// assert_eq!(&*out, &[2., 4., 6., 6., 4., 2.,]);
     /// ```
+    #[track_caller]
     fn apply_fn<F>(&self, buf: &Buffer<T, D, S>, f: impl Fn(Resolve<T>) -> F) -> Buffer<T, Self, S>
     where
         F: Eval<T> + MayToCLSource;
 }
 
 pub(crate) trait ApplyFunctionLazyTest<T, S: Shape = (), D: Device = Self>: Device {
+    #[track_caller]
     fn apply_fn<F>(&self, buf: &Buffer<T, D, S>, f: impl Fn(Resolve<T>) -> F + Copy) -> Buffer<T, Self, S>
     where
         F: Eval<T> + MayToCLSource;
@@ -33,7 +35,7 @@ pub trait UnaryGrad<T, S: Shape = (), D: Device = Self>: Device {
     #[cfg_attr(not(all(feature = "cpu", feature = "macro")), doc = "```ignore")]
     /// use custos::{CPU, Buffer, UnaryGrad, Combiner};
     ///
-    /// let device = CPU::new();
+    /// let device = CPU::<Base>::new();
     ///
     /// let a = Buffer::from((&device, [1., 2., 3., 3., 2., 1.,]));
     /// let out_grad = Buffer::from((&device, [1.; 6]));
@@ -45,6 +47,7 @@ pub trait UnaryGrad<T, S: Shape = (), D: Device = Self>: Device {
     /// assert_eq!(&*lhs_grad, &[2.; 6]);
     ///
     /// ```
+    #[track_caller]
     fn add_unary_grad<F>(
         &self,
         lhs: &Buffer<T, D, S>,
@@ -71,7 +74,7 @@ pub trait UnaryElementWiseMayGrad<T, D: Device, S: Shape>: Device {
     )]
     /// use custos::{CPU, Buffer, UnaryElementWiseMayGrad, Combiner};
     ///
-    /// let device = CPU::new();
+    /// let device = CPU::<Base>::new();
     ///
     /// let buf = Buffer::from((&device, [1., 2., 3., 3., 2., 1.,]));
     /// let out = device.unary_ew(&buf, |x| x.mul(2.), |x| 2.);
@@ -81,6 +84,7 @@ pub trait UnaryElementWiseMayGrad<T, D: Device, S: Shape>: Device {
     /// out.backward();
     /// assert_eq!(&**buf.grad(), &[2.; 6]);
     /// ```
+    #[track_caller]
     fn unary_ew<FO, GO>(
         &self,
         buf: &Buffer<T, D, S>,

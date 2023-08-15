@@ -4,7 +4,7 @@ use criterion::{criterion_group, criterion_main, Criterion};
 use custos::{CPU, Ident};
 
 fn bench_cache_types(c: &mut Criterion) {
-    let old_device = CPU::new();
+    let old_device = CPU::<Base>::new();
 
     let mut borrowing_cache = custos::borrowing_cache::BorrowingCache::default();
     for _ in 0..120 {

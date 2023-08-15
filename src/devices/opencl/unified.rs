@@ -49,7 +49,7 @@ pub unsafe fn to_cached_unified<T, S: Shape>(
 /// use custos::prelude::*;
 ///
 /// fn main() -> custos::Result<()> {
-///     let cpu = CPU::new();
+///     let cpu = CPU::<Base>::new();
 ///     let mut no_drop: Buffer = cpu.retrieve(4, ());
 ///     no_drop.write(&[1., 3.1, 2.34, 0.76]);
 ///     
@@ -126,7 +126,7 @@ mod tests {
 
     #[test]
     fn test_to_unified() -> crate::Result<()> {
-        let cpu = CPU::new();
+        let cpu = CPU::<Base>::new();
         let mut no_drop: Buffer = cpu.retrieve(3, ());
         no_drop.write(&[1., 2.3, 0.76]);
 
@@ -153,7 +153,7 @@ mod tests {
 
     #[test]
     fn test_construct_buffer() -> crate::Result<()> {
-        let cpu = CPU::new();
+        let cpu = CPU::<Base>::new();
         let mut no_drop: Buffer = cpu.retrieve(3, ());
         no_drop.write(&[1., 2.3, 0.76]);
 
@@ -181,7 +181,7 @@ mod tests {
 
         for _ in range(10) {
             let cl_cpu_buf = {
-                let cpu = CPU::new();
+                let cpu = CPU::<Base>::new();
                 let mut buf = cpu.retrieve::<i32, ()>(6, ());
                 buf.copy_from_slice(&[1, 2, 3, 4, 5, 6]);
 

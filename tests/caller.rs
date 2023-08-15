@@ -44,7 +44,7 @@ pub fn add<'a, T: Add<Output = T> + Copy>(
 
 #[test]
 fn test_caller() {
-    let device = CPU::new();
+    let device = CPU::<Base>::new();
 
     let lhs = device.buffer([1, 2, 3, 4]);
     let rhs = device.buffer([1, 2, 3, 4]);

@@ -199,7 +199,7 @@ mod tests {
 
         let device = OpenCL::new(0)?;
 
-        let cpu = CPU::new();
+        let cpu = CPU::<Base>::new();
         let cpu_buf = Buffer::from((&cpu, [1, 2, 4, 5]));
 
         let out = Buffer::from((&device, cpu_buf));
@@ -215,7 +215,7 @@ mod tests {
 
         let device = CUDA::new(0)?;
 
-        let cpu = CPU::new();
+        let cpu = CPU::<Base>::new();
         let cpu_buf = Buffer::from((&cpu, [1, 2, 4, 5]));
 
         let out = Buffer::from((&device, cpu_buf));

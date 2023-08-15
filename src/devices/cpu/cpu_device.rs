@@ -15,7 +15,7 @@ pub trait IsCPU {}
 /// ```
 /// use custos::{CPU, Read, Buffer};
 ///
-/// let device = CPU::new();
+/// let device = CPU::<Base>::new();
 /// let a = Buffer::from((&device, [1, 2, 3]));
 ///
 /// let out = device.read(&a);
@@ -45,7 +45,7 @@ impl<Mods: OnDropBuffer> Device for CPU<Mods> {
 
     fn new() -> Result<Self, Self::Error> {
         todo!()
-        // Ok(CPU::new())
+        // Ok(CPU::<Base>::new())
     }
 }
 

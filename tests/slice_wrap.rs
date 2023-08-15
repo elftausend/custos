@@ -2,7 +2,7 @@
 
 #[test]
 fn test_wrap_slice() {
-    let _device = CPU::new();
+    let _device = CPU::<Base>::new();
 
     let mut slice = [1, 2, 3, 4, 5, 6];
 

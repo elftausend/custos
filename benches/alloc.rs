@@ -24,7 +24,7 @@ pub fn bench_layout_alloc(c: &mut Criterion) {
 }
 
 pub fn bench_buf_alloc(c: &mut Criterion) {
-    let device = CPU::new();
+    let device = CPU::<Base>::new();
 
     c.bench_function("bench buf alloc", |bench| {
         bench.iter(|| {

@@ -39,7 +39,7 @@ where
 
     #[cfg(feature = "realloc")]
     if device.unified_mem() {
-        let cpu = CPU::new();
+        let cpu = CPU::<Base>::new();
         return Ok(Buffer::from((
             device,
             f(&cpu, &unsafe {
@@ -64,7 +64,7 @@ where
     T: Clone + Default,
     F: for<'b> Fn(&'b CPU, &mut Buffer<'_, T, CPU>),
 {
-    let cpu = CPU::new();
+    let cpu = CPU::<Base>::new();
 
     if device.unified_mem() {
         return {
@@ -115,7 +115,7 @@ where
 
     #[cfg(feature = "realloc")]
     if device.unified_mem() {
-        let cpu = CPU::new();
+        let cpu = CPU::<Base>::new();
         return Ok(Buffer::from((
             device,
             f(
@@ -143,7 +143,7 @@ where
     T: Clone + Default,
     F: for<'b> Fn(&'b CPU, &mut Buffer<'_, T, CPU>, &Buffer<'_, T, CPU>),
 {
-    let cpu = CPU::new();
+    let cpu = CPU::<Base>::new();
 
     if device.unified_mem() {
         return {
@@ -170,7 +170,7 @@ where
     T: Default + Clone,
     F: Fn(&CPU, &Buffer<T, CPU>) -> T,
 {
-    let cpu = CPU::new();
+    let cpu = CPU::<Base>::new();
 
     if device.unified_mem() {
         return f(&cpu, &unsafe {
@@ -189,7 +189,7 @@ where
 macro_rules! cl_cpu_exec_unified {
     ($device:ident, $($t:ident),*; $op:expr) => {{
         // TODO add to graph?:     convert.node = device.graph().add(convert.len(), matrix.node.idx);
-        let cpu = CPU::new();
+        let cpu = CPU::<Base>::new();
         if $device.unified_mem() {
 
             $crate::to_raw_host!($($t),*);
@@ -232,7 +232,7 @@ macro_rules! cl_cpu_exec_unified_mut {
             $op;
 
         } else {
-            let cpu = CPU::new();
+            let cpu = CPU::<Base>::new();
             $crate::cpu_exec_mut!($device, cpu, $($t),* WRITE_TO<$($write_to, $from),*> $op);
             $device.cpu.cache_mut().nodes.clear();
         }

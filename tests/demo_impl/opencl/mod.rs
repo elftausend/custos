@@ -89,7 +89,7 @@ mod tests {
 
     #[test]
     fn test_element_wise_large_bufs_cpu() {
-        let device = CPU::new();
+        let device = CPU::<Base>::new();
 
         let lhs = Buffer::<_>::from((&device, vec![1; SIZE]));
         let rhs = Buffer::<_>::from((&device, vec![4; SIZE]));

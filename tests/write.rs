@@ -8,7 +8,7 @@ use custos_macro::stack_cpu_test;
 #[stack_cpu_test]
 #[test]
 fn test_write_cpu() {
-    let device = CPU::new();
+    let device = CPU::<Base>::new();
     let mut buf: Buffer<_, _, custos::Dim1<5>> = Buffer::new(&device, 5);
     device.write(&mut buf, &[1., 2., 3., 4., 5.]);
     assert_eq!(buf.as_slice(), &[1., 2., 3., 4., 5.])
@@ -19,7 +19,7 @@ fn test_write_cpu() {
 fn test_write_buf_cpu() {
     use custos::{Buffer, WriteBuf, CPU};
 
-    let device = CPU::new();
+    let device = CPU::<Base>::new();
 
     let mut dst: Buffer<i32, CPU, ()> = Buffer::new(&device, 4);
 

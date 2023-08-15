@@ -289,8 +289,8 @@ mod tests {
     fn test_tape_unary_ew() {
         use crate::{UnaryElementWiseMayGrad, CPU};
 
-        let device = CPU::new();
-        //let device = CPU::new();
+        let device = CPU::<Base>::new();
+        //let device = CPU::<Base>::new();
 
         let buf = Buffer::from((&device, [1., -2., 3., -4., 5., 6.]));
 
@@ -309,7 +309,7 @@ mod tests {
         use crate::{Buffer, Combiner, OpenCL, UnaryElementWiseMayGrad};
 
         let device = OpenCL::new(0)?;
-        //let device = CPU::new();
+        //let device = CPU::<Base>::new();
 
         let buf = Buffer::from((&device, [1., -2., 3., -4., 5., 6.]));
 

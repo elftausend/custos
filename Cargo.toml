@@ -66,10 +66,6 @@ name = "cpu_readme"
 required-features = ["cpu"]
 
 [[example]]
-name = "for_loop"
-required-features = ["cpu"]
-
-[[example]]
 name = "cl_readme"
 required-features = ["opencl"]
 

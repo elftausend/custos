@@ -169,7 +169,7 @@ Now, the operation is accessible via the devices.<br>
 Let's try it out with a ```CPU``` device:
 
 ```rust
-let device = CPU::new();
+let device = CPU::<Base>::new();
 
 let lhs = Buffer::from((&device, [1, 3, 5, 3, 2, 6]));
 let rhs = Buffer::from((&device, [-1, -12, -6, 3, 2, -1]));

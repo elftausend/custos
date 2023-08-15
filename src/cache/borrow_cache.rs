@@ -158,7 +158,7 @@ mod tests {
 
     /*#[test]
     fn test_comp_error() {
-        let device = CPU::new();
+        let device = CPU::<Base>::new();
 
 
         let a = {
