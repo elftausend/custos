@@ -78,9 +78,6 @@ pub use devices::stack::Stack;
 #[cfg(feature = "network")]
 pub use devices::network::Network;
 
-#[cfg(feature = "autograd")]
-pub use autograd::*;
-
 pub use unary::*;
 
 #[cfg(feature = "cpu")]
@@ -119,9 +116,6 @@ pub use ptr_conv::*;
 #[cfg(feature = "static-api")]
 pub mod static_api;
 
-#[cfg(feature = "autograd")]
-pub mod autograd;
-// pub mod module_comb;
 pub mod number;
 pub use op_traits::*;
 pub use shape::*;
