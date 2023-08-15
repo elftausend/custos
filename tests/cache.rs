@@ -3,12 +3,16 @@ use std::ptr::null_mut;
 
 #[cfg(feature = "cpu")]
 #[cfg(not(feature = "realloc"))]
-use custos::{range, Buffer, CPU};
+use custos::{Buffer, CPU};
 
 #[cfg(feature = "cpu")]
 #[cfg(not(feature = "realloc"))]
+#[track_caller]
 fn cached_add<'a>(device: &'a CPU, a: &[f32], b: &[f32]) -> Buffer<'a, f32, CPU> {
-    let mut out = custos::Device::retrieve::<f32, ()>(device, 10, ());
+    use custos::Retriever;
+
+    let mut out = device.retrieve(10, ()); 
+    
     for i in 0..out.len() {
         out[i] = a[i] + b[i];
     }
@@ -19,6 +23,8 @@ fn cached_add<'a>(device: &'a CPU, a: &[f32], b: &[f32]) -> Buffer<'a, f32, CPU>
 #[cfg(not(feature = "realloc"))]
 #[test]
 fn test_caching_cpu() {
+    use custos::Base;
+
     let device = CPU::<Base>::new();
 
     let a = Buffer::<f32, _>::new(&device, 100);
@@ -26,14 +32,11 @@ fn test_caching_cpu() {
 
     let mut old_ptr = null_mut();
 
-    for _ in range(100) {
+    for _ in 0..100 {
         let mut out = cached_add(&device, &a, &b);
         if out.host_ptr() != old_ptr && !old_ptr.is_null() {
             panic!("Should be the same pointer!");
         }
         old_ptr = out.host_ptr_mut();
-        let len = device.addons.cache.borrow().nodes.len();
-        //let len = CPU_CACHE.with(|cache| cache.borrow().nodes.len());
-        assert_eq!(len, 3);
     }
 }

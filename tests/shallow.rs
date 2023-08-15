@@ -3,6 +3,8 @@ use custos::{Buffer, CPU};
 #[cfg(feature = "cpu")]
 #[test]
 fn test_shallow_buf_copy() {
+    use custos::Base;
+
     let device = CPU::<Base>::new();
 
     let buf = Buffer::from((&device, [1, 2, 3, 4, 5]));
@@ -29,6 +31,8 @@ fn test_shallow_buf_realloc() {
 #[cfg(not(feature = "realloc"))]
 #[test]
 fn test_shallow_buf_realloc() {
+    use custos::Base;
+
     let device = CPU::<Base>::new();
 
     let buf = Buffer::from((&device, [1, 2, 3, 4, 5]));

@@ -40,9 +40,9 @@ impl<T, D: Device, S: Shape> OnNewBuffer<T, D, S> for Base {}
 
 impl OnDropBuffer for Base {}
 
-impl<D, G> Retrieve<D, G> for Base {
+impl<D, T> Retrieve<D, T> for Base {
     #[inline]
-    fn retrieve<T, S, const NUM_PARENTS: usize>(
+    fn retrieve<S, const NUM_PARENTS: usize>(
         &self,
         device: &D,
         len: usize,

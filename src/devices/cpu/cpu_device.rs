@@ -3,7 +3,7 @@ use core::convert::Infallible;
 use crate::{
     cpu::CPUPtr, flag::AllocFlag, impl_buffer_hook_traits, impl_retriever, Alloc, Base, Buffer,
     Cached, CachedModule, CloneBuf, Device, HasModules, LazySetup, MainMemory, Module,
-    OnDropBuffer, OnNewBuffer, Retrieve, Retriever, Setup, Shape, TapeActions,
+    OnDropBuffer, OnNewBuffer, Retrieve, Retriever, Setup, Shape, TapeActions, DevicelessAble,
 };
 
 pub trait IsCPU {}
@@ -47,6 +47,10 @@ impl<Mods: OnDropBuffer> Device for CPU<Mods> {
         todo!()
         // Ok(CPU::<Base>::new())
     }
+}
+
+impl<T, S: Shape> DevicelessAble<'_, T, S> for CPU<Base> {
+
 }
 
 impl<Mods: OnDropBuffer> MainMemory for CPU<Mods> {

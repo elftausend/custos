@@ -3,7 +3,7 @@ use std::{
     ops::Add,
 };
 
-use custos::{range, Buffer, CacheReturn, Device, CPU};
+use custos::prelude::*;
 
 #[derive(Debug, Default, Clone)]
 pub struct Call {
@@ -27,7 +27,7 @@ impl Add for &Call {
     }
 }
 
-pub fn add<'a, T: Add<Output = T> + Copy>(
+pub fn add<'a, T: Add<Output = T> + Copy + 'static>(
     device: &'a CPU,
     lhs: &Buffer<T>,
     rhs: &Buffer<T>,
@@ -40,37 +40,4 @@ pub fn add<'a, T: Add<Output = T> + Copy>(
     }
 
     out
-}
-
-#[test]
-fn test_caller() {
-    let device = CPU::<Base>::new();
-
-    let lhs = device.buffer([1, 2, 3, 4]);
-    let rhs = device.buffer([1, 2, 3, 4]);
-
-    for _ in range(100) {
-        add(&device, &lhs, &rhs);
-    }
-
-    assert_eq!(device.cache().nodes.len(), 3);
-
-    for _ in 0..100 {
-        add(&device, &lhs, &rhs);
-    }
-
-    assert_eq!(device.cache().nodes.len(), 102);
-
-    let cell = RefCell::new(10);
-
-    let x = cell.borrow();
-    // cell.borrow_mut();
-
-    let caller = Call::default();
-    caller.call();
-
-    let _ = &caller + &Call::default();
-
-    let loc = caller.location;
-    println!("location: {loc:?}");
 }

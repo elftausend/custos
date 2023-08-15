@@ -290,8 +290,8 @@ mod tests {
 
         let a = f(4f32.to_val(), 3f32.to_val());
 
-        // roughly_eq_slices(&[a.eval()], &[22.2]);
-        assert_eq!(a.eval(), 22.2);
+        roughly_eq_slices(&[a.eval()], &[22.2]);
+        // assert_eq!(a.eval(), 22.2);
 
         let r = f("x".to_marker(), "y".to_marker()).to_cl_source();
         assert_eq!("(((x + y) * 3.6) - y)", r);

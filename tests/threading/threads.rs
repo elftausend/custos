@@ -3,6 +3,8 @@ use custos::{Buffer, CPU};
 #[cfg(feature = "cpu")]
 #[test]
 fn test_with_threads() {
+    use custos::Base;
+
     let device = CPU::<Base>::new();
 
     //let buf = Buffer::from((&device, [1, 2, 3, 4]));

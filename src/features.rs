@@ -16,25 +16,23 @@ pub trait Feature: OnDropBuffer {}
 // how to fix this:
 // add retrieved buffer to no grads pool at the end of the chain (at device level (Retriever trait))
 // => "generator", "actor"
-pub trait Retrieve<D, G>: OnDropBuffer {
+pub trait Retrieve<D, T>: OnDropBuffer {
     // "generator"
     #[track_caller]
-    fn retrieve<T, S, const NUM_PARENTS: usize>(
+    fn retrieve<S, const NUM_PARENTS: usize>(
         &self,
         device: &D,
         len: usize,
         parents: impl Parents<NUM_PARENTS>,
     ) -> D::Data<T, S>
     where
-        T: 'static, // if 'static causes any problems -> put T to => Retrieve<D, T>?
         S: Shape,
         D: Device + Alloc<T>;
 
     // "actor"
     #[inline]
-    fn on_retrieve_finish<T, S: Shape>(&self, _retrieved_buf: &Buffer<T, D, S>)
+    fn on_retrieve_finish<S: Shape>(&self, _retrieved_buf: &Buffer<T, D, S>)
     where
-        T: 'static,
         D: Alloc<T>,
     {
     }

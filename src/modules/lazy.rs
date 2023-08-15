@@ -115,16 +115,15 @@ impl<Mods: TapeActions> TapeActions for Lazy<Mods> {
     }
 }
 
-impl<G, Mods: Retrieve<D, G>, D: PtrConv + 'static> Retrieve<D, G> for Lazy<Mods> {
+impl<T: 'static, Mods: Retrieve<D, T>, D: PtrConv + 'static> Retrieve<D, T> for Lazy<Mods> {
     #[inline]
-    fn retrieve<T, S, const NUM_PARENTS: usize>(
+    fn retrieve<S, const NUM_PARENTS: usize>(
         &self,
         device: &D,
         len: usize,
         parents: impl Parents<NUM_PARENTS>,
     ) -> <D>::Data<T, S>
     where
-        T: 'static,
         S: Shape,
         D: Alloc<T>,
     {
@@ -132,9 +131,8 @@ impl<G, Mods: Retrieve<D, G>, D: PtrConv + 'static> Retrieve<D, G> for Lazy<Mods
     }
 
     #[inline]
-    fn on_retrieve_finish<T, S: Shape>(&self, retrieved_buf: &Buffer<T, D, S>)
+    fn on_retrieve_finish<S: Shape>(&self, retrieved_buf: &Buffer<T, D, S>)
     where
-        T: 'static,
         D: Alloc<T>,
     {
         unsafe { register_buf(&mut self.outs.borrow_mut(), retrieved_buf) };

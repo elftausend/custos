@@ -30,7 +30,7 @@ pub use cdatatype::*;
 #[cfg(all(any(feature = "cpu", feature = "stack"), feature = "macro"))]
 mod cpu_stack_ops;
 
-use crate::{Alloc, Buffer, HasId, OnDropBuffer, PtrType, Shape};
+use crate::{Buffer, HasId, OnDropBuffer, PtrType, Shape};
 
 pub trait Device: OnDropBuffer + Sized {
     type Data<T, S: Shape>: HasId + PtrType;
@@ -89,8 +89,8 @@ macro_rules! impl_buffer_hook_traits {
 
 #[macro_export]
 macro_rules! impl_retriever {
-    ($device:ident) => {
-        impl<T: 'static, Mods: crate::Retrieve<Self, T>> crate::Retriever<T> for $device<Mods> {
+    ($device:ident, $($trait_bounds:tt)*) => {
+        impl<T: $( $trait_bounds )*, Mods: crate::Retrieve<Self, T>> crate::Retriever<T> for $device<Mods> {
             #[inline]
             fn retrieve<S: Shape, const NUM_PARENTS: usize>(
                 &self,
@@ -99,7 +99,7 @@ macro_rules! impl_retriever {
             ) -> Buffer<T, Self, S> {
                 let data = self
                     .modules
-                    .retrieve::<T, S, NUM_PARENTS>(self, len, parents);
+                    .retrieve::<S, NUM_PARENTS>(self, len, parents);
                 let buf = Buffer {
                     data,
                     device: Some(self),
@@ -109,4 +109,8 @@ macro_rules! impl_retriever {
             }
         }
     };
+
+    ($device:ident) => {
+        impl_retriever!($device, Sized);
+    }
 }

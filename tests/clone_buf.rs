@@ -1,8 +1,10 @@
-use custos::{Buffer, CloneBuf, CPU};
+use custos::prelude::*;
 
 #[cfg(feature = "cpu")]
 #[test]
 fn test_buf_clone() {
+    use custos::CloneBuf;
+
     let device = CPU::<Base>::new();
     let buf = Buffer::from((&device, [1., 2., 6., 2., 4.]));
 

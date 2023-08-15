@@ -1,8 +1,8 @@
-use core::{convert::Infallible, marker::PhantomData};
+use core::convert::Infallible;
 
 use crate::{
     flag::AllocFlag, shape::Shape, Alloc, Base, Buffer, CloneBuf, Device, DevicelessAble,
-    MainMemory, OnDropBuffer, Read, StackArray, WriteBuf, impl_retriever, impl_buffer_hook_traits, Retriever,
+    MainMemory, OnDropBuffer, Read, StackArray, WriteBuf, impl_retriever, impl_buffer_hook_traits,
 };
 
 /// A device that allocates memory on the stack.
@@ -20,20 +20,7 @@ impl Stack {
 }
 
 impl_buffer_hook_traits!(Stack);
-
-impl<T, Mods: OnDropBuffer> Retriever<T> for Stack<Mods> {
-    fn retrieve<S, const NUM_PARENTS: usize>(
-        &self,
-        len: usize,
-        parents: impl crate::Parents<NUM_PARENTS>,
-    ) -> Buffer<T, Self, S>
-    where
-        T: 'static,
-        S: Shape {
-        todo!()
-    }
-}
-// impl_retriever!(Stack);
+impl_retriever!(Stack, Copy + Default);
 
 
 impl<'a, T: Copy + Default, S: Shape> DevicelessAble<'a, T, S> for Stack {}

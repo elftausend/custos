@@ -48,7 +48,7 @@ mod tests {
     impl<T, D> AddBuf<T, D> for CPU
     where
         D: MainMemory,
-        T: Add<Output = T> + Clone + 'static,
+        T: Add<Output = T> + Clone,
     {
         fn add(&self, lhs: &Buffer<T, D>, rhs: &Buffer<T, D>) -> Buffer<T, Self> {
             let len = core::cmp::min(lhs.len(), rhs.len());
@@ -65,7 +65,7 @@ mod tests {
     where
         Stack: Alloc<T>,
         D: MainMemory,
-        T: Add<Output = T> + Clone + 'static,
+        T: Add<Output = T> + Copy + Default,
     {
         fn add(&self, lhs: &Buffer<T, D, S>, rhs: &Buffer<T, D, S>) -> Buffer<T, Self, S> {
             let mut out = self.retrieve(S::LEN, (lhs, rhs));

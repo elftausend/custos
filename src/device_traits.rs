@@ -83,6 +83,5 @@ pub trait Retriever<T>: Device {
         parents: impl Parents<NUM_PARENTS>,
     ) -> Buffer<T, Self, S>
     where
-        T: 'static,
         S: Shape;
 }

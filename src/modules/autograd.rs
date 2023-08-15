@@ -119,12 +119,12 @@ impl<Mods: Setup<NewDev>, NewDev> Setup<NewDev> for Autograd<Mods> {
     }
 }
 
-impl<G, Mods: Retrieve<D, G>, D> Retrieve<D, G> for Autograd<Mods>
+impl<T:'static, Mods: Retrieve<D, T>, D> Retrieve<D, T> for Autograd<Mods>
 where
     D: PtrConv + Device + 'static,
 {
     #[inline]
-    fn retrieve<T, S, const NUM_PARENTS: usize>(
+    fn retrieve<S, const NUM_PARENTS: usize>(
         &self,
         device: &D,
         len: usize,
@@ -132,16 +132,14 @@ where
     ) -> <D>::Data<T, S>
     where
         D: Alloc<T>,
-        T: 'static,
         S: crate::Shape,
     {
         self.modules.retrieve(device, len, parents)
     }
 
     #[inline]
-    fn on_retrieve_finish<T, S: Shape>(&self, retrieved_buf: &Buffer<T, D, S>)
+    fn on_retrieve_finish<S: Shape>(&self, retrieved_buf: &Buffer<T, D, S>)
     where
-        T: 'static,
         D: Alloc<T>,
     {
         self.register_no_grad_buf(retrieved_buf);

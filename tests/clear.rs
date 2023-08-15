@@ -6,7 +6,7 @@ use custos_macro::stack_cpu_test;
 #[stack_cpu_test]
 #[test]
 fn test_clear_cpu() {
-    let device = CPU::<Base>::new();
+    let device = CPU::<custos::Base>::new();
 
     let mut buf = Buffer::with(&device, [1., 2., 3., 4., 5., 6.]);
     assert_eq!(buf.read(), [1., 2., 3., 4., 5., 6.,]);
