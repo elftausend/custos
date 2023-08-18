@@ -1,6 +1,6 @@
 use core::ops::Range;
 
-use crate::{number::Number, shape::Shape, Alloc, Buffer, Device, OnNewBuffer, Retriever};
+use crate::{number::Number, shape::Shape, Alloc, Buffer, Device, OnNewBuffer, Retriever, OnDropBuffer};
 
 #[cfg(feature = "cpu")]
 use crate::{WriteBuf, CPU};
@@ -162,13 +162,13 @@ where
 }
 
 #[cfg(feature = "cpu")]
-impl<'a, 'b, T, S, D> From<(&'a D, Buffer<'b, T, CPU, S>)> for Buffer<'a, T, D, S>
+impl<'a, 'b, Mods: OnDropBuffer, T, S, D> From<(&'a D, Buffer<'b, T, CPU<Mods>, S>)> for Buffer<'a, T, D, S>
 where
     T: 'static,
     S: Shape,
     D: WriteBuf<T, S> + Device + Retriever<T>,
 {
-    fn from((device, buf): (&'a D, Buffer<'b, T, CPU, S>)) -> Self {
+    fn from((device, buf): (&'a D, Buffer<'b, T, CPU<Mods>, S>)) -> Self {
         let mut out = device.retrieve(buf.len(), &buf);
         device.write(&mut out, &buf);
         out

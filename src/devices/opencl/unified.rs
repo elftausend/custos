@@ -1,10 +1,10 @@
 use std::{ffi::c_void, rc::Rc};
 
 #[cfg(not(feature = "realloc"))]
-use crate::{AddGraph, AllocFlag, DeviceError, GraphReturn};
+use crate::{AllocFlag, DeviceError};
 
 use super::CLPtr;
-use crate::{Buffer, Ident, OpenCL, Shape, CPU};
+use crate::{Buffer, OpenCL, Shape, CPU};
 use min_cl::api::{create_buffer, MemFlags};
 
 /// Returns an OpenCL pointer that is bound to the host pointer stored in the specified buffer.
@@ -68,7 +68,6 @@ pub fn construct_buffer<'a, T, S: Shape>(
     mut no_drop: Buffer<'a, T, CPU, S>,
     add_node: impl AddGraph,
 ) -> crate::Result<Buffer<'a, T, OpenCL, S>> {
-    use crate::bump_count;
 
     if no_drop.ptr.flag == AllocFlag::None {
         return Err(DeviceError::ConstructError.into());

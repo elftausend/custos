@@ -28,7 +28,7 @@ where
 #[impl_stack]
 impl<Mods, T, D, S> ApplyFunction<T, S, D> for CPU<Mods>
 where
-    Mods: OnDropBuffer + Retrieve<Self, T>,
+    Mods: Retrieve<Self, T>,
     T: Copy + Default + ToVal + 'static,
     D: crate::MainMemory,
     S: Shape,
@@ -46,8 +46,9 @@ where
 }
 
 #[impl_stack]
-impl<T, D, S> UnaryGrad<T, S, D> for CPU
+impl<Mods, T, D, S> UnaryGrad<T, S, D> for CPU<Mods>
 where
+    Mods: OnDropBuffer,
     T: AddAssign + Copy + std::ops::Mul<Output = T>,
     S: Shape,
     D: MainMemory,

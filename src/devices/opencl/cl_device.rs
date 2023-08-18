@@ -6,8 +6,8 @@ use min_cl::api::{
 
 use super::{chosen_cl_idx, enqueue_kernel, AsClCvoidPtr, CLPtr, KernelCacheCL};
 use crate::flag::AllocFlag;
-use crate::{cache::Cache, Alloc, Buffer, CloneBuf, Device, Error, CPU};
-use crate::{Addons, AddonsReturn, PtrConv, Shape};
+use crate::{Alloc, Buffer, CloneBuf, Device, Error, CPU, Base, Module, Setup};
+use crate::{PtrConv, Shape};
 
 use std::{cell::RefCell, fmt::Debug};
 
@@ -30,34 +30,40 @@ use min_cl::api::unified_ptr;
 ///     Ok(())
 /// }
 /// ```
-pub struct OpenCL {
-    pub(crate) kernel_cache: RefCell<KernelCacheCL>,
+pub struct OpenCL<Mods = Base> {
+    pub modules: Mods,
+    pub kernel_cache: RefCell<KernelCacheCL>,
     /// The underlying OpenCL device.
     pub inner: CLDevice,
     /// A [`CPU`] used for unified memory device switching.
     pub cpu: CPU,
-    /// Provides additional functionality for the OpenCL device. e.g. a cache, a gradient [`Tape`](crate::Tape), an optimizeable [`Graph`](crate::Graph) and a [`Cache`](crate::Cache).
-    pub addons: Addons<OpenCL>,
 }
 
 /// Short form for `OpenCL`
 pub type CL = OpenCL;
 
-impl OpenCL {
+impl<SimpleMods> OpenCL<SimpleMods> {
     /// Returns an [OpenCL] device at the specified device index.
     /// # Errors
     /// - No device was found at the given device index
     /// - some other OpenCL related errors
-    pub fn new(device_idx: usize) -> Result<OpenCL, Error> {
+    #[inline]
+    pub fn new<NewMods>(device_idx: usize) -> crate::Result<OpenCL<NewMods>>
+    where
+        SimpleMods: Module<OpenCL<SimpleMods>, Module = NewMods>,
+        NewMods: Setup<OpenCL<NewMods>>,
+    {
         let inner = CLDevice::new(device_idx)?;
         Ok(OpenCL {
+            modules: SimpleMods::new(),
             inner,
             kernel_cache: Default::default(),
             cpu: Default::default(),
-            addons: Default::default(),
         })
     }
+}
 
+impl OpenCL {
     /// Sets the values of the attributes cache, kernel cache, graph and CPU to their default.
     /// This cleans up any accumulated allocations.
     pub fn reset(&'static mut self) {
@@ -161,27 +167,20 @@ impl Default for OpenCL {
 }
 
 impl Device for OpenCL {
-    type Ptr<U, S: Shape> = CLPtr<U>;
-    type Cache = Cache<Self>;
+    type Data<U, S: Shape> = CLPtr<U>;
 
     fn new() -> crate::Result<Self> {
         OpenCL::new(chosen_cl_idx())
     }
 }
 
-impl AddonsReturn for OpenCL {
-    #[inline]
-    fn addons(&self) -> &Addons<Self> {
-        &self.addons
-    }
-}
 
 impl PtrConv for OpenCL {
     #[inline]
     unsafe fn convert<T, IS, Conv, OS>(
-        ptr: &Self::Ptr<T, IS>,
+        ptr: &Self::Data<T, IS>,
         flag: AllocFlag,
-    ) -> Self::Ptr<Conv, OS>
+    ) -> Self::Data<Conv, OS>
     where
         IS: Shape,
         OS: Shape,
@@ -213,8 +212,8 @@ impl Debug for OpenCL {
     }
 }
 
-impl<T, S: Shape> Alloc<'_, T, S> for OpenCL {
-    fn alloc(&self, mut len: usize, flag: AllocFlag) -> CLPtr<T> {
+impl<T> Alloc<T> for OpenCL {
+    fn alloc<S: Shape>(&self, mut len: usize, flag: AllocFlag) -> CLPtr<T> {
         assert!(len > 0, "invalid buffer len: 0");
 
         if S::LEN > len {
@@ -237,7 +236,7 @@ impl<T, S: Shape> Alloc<'_, T, S> for OpenCL {
         }
     }
 
-    fn with_slice(&self, data: &[T]) -> CLPtr<T> {
+    fn alloc_from_slice(&self, data: &[T]) -> CLPtr<T> {
         let ptr = create_buffer::<T>(
             self.ctx(),
             MemFlags::MemReadWrite | MemFlags::MemCopyHostPtr,
@@ -294,7 +293,6 @@ mod tests {
             inner: device,
             kernel_cache: Default::default(),
             cpu: Default::default(),
-            addons: Default::default(),
         };
 
         let buf = Buffer::from((&cl, &[1, 2, 3, 4, 5, 6, 7]));
@@ -306,7 +304,6 @@ mod tests {
             inner: device,
             kernel_cache: Default::default(),
             cpu: Default::default(),
-            addons: Default::default(),
         };
 
         let buf = Buffer::from((&cl1, &[2, 2, 4, 4, 2, 1, 3]));

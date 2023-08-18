@@ -11,9 +11,9 @@ mod cl_device;
 mod kernel_cache;
 mod kernel_enqueue;
 
-#[cfg(not(feature = "realloc"))]
+// #[cfg(not(feature = "realloc"))]
 //#[cfg(unified_cl)]
-mod unified;
+// mod unified;
 
 mod ops;
 pub use ops::*;
@@ -21,14 +21,15 @@ pub use ops::*;
 pub use min_cl::*;
 
 use min_cl::api::release_mem_object;
+
 //#[cfg(unified_cl)]
-#[cfg(not(feature = "realloc"))]
-pub use unified::*;
+// #[cfg(not(feature = "realloc"))]
+// pub use unified::*;
 
 //use self::api::release_mem_object;
 use crate::{
     flag::AllocFlag,
-    module_comb::{HasId, Id},
+    HasId, Id,
     Buffer, CommonPtrs, PtrType, ShallowCopy,
 };
 

@@ -65,7 +65,7 @@ impl<Mods: AddOperation> AddOperation for CPU<Mods> {
     }
 }
 
-impl<T, D: MainMemory, S: Shape> Read<T, S, D> for CPU {
+impl<Mods: OnDropBuffer, T, D: MainMemory, S: Shape> Read<T, S, D> for CPU<Mods> {
     type Read<'a> = &'a [T] where T: 'a, D: 'a, S: 'a;
 
     #[inline]
@@ -95,7 +95,7 @@ impl<Mods: OnDropBuffer, T: Copy, D: MainMemory, S: Shape> WriteBuf<T, S, D> for
 }
 
 // #[impl_stack]
-impl<T: Default, D: MainMemory, S: Shape> ClearBuf<T, S, D> for CPU {
+impl<Mods: OnDropBuffer, T: Default, D: MainMemory, S: Shape> ClearBuf<T, S, D> for CPU<Mods> {
     fn clear(&self, buf: &mut Buffer<T, D, S>) {
         for value in buf {
             *value = T::default();
@@ -103,7 +103,7 @@ impl<T: Default, D: MainMemory, S: Shape> ClearBuf<T, S, D> for CPU {
     }
 }
 
-impl<T: Copy, D: MainMemory> CopySlice<T, D> for CPU
+impl<Mods: OnDropBuffer, T: Copy, D: MainMemory> CopySlice<T, D> for CPU<Mods>
 where
     [T]: Index<Range<usize>, Output = [T]>,
 {
