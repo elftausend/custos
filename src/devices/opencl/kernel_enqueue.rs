@@ -1,6 +1,8 @@
-use crate::{number::Number, Buffer, OpenCL, Shape};
+use crate::{number::Number, Buffer, OpenCL, Shape, OnDropBuffer};
 use min_cl::api::{enqueue_nd_range_kernel, set_kernel_arg, OCLErrorKind};
 use std::{ffi::c_void, mem::size_of};
+
+use super::CLPtr;
 
 /// Converts `Self` to a *const c_void.
 /// This enables taking `Buffer` and a number `T` as an argument to an OpenCL kernel.
@@ -72,17 +74,17 @@ pub trait AsClCvoidPtr {
     }
 }
 
-impl<'a, T, S: Shape> AsClCvoidPtr for &Buffer<'a, T, OpenCL, S> {
+impl<'a, Mods: OnDropBuffer, T, S: Shape> AsClCvoidPtr for &Buffer<'a, T, OpenCL<Mods>, S> {
     #[inline]
     fn as_cvoid_ptr(&self) -> *const c_void {
-        self.ptr.ptr
+        self.data.ptr
     }
 }
 
-impl<'a, T, S: Shape> AsClCvoidPtr for Buffer<'a, T, OpenCL, S> {
+impl<'a, Mods:OnDropBuffer, T, S: Shape> AsClCvoidPtr for Buffer<'a, T, OpenCL<Mods>, S> {
     #[inline]
     fn as_cvoid_ptr(&self) -> *const c_void {
-        self.ptr.ptr
+        self.data.ptr
     }
 }
 
@@ -100,6 +102,13 @@ impl<T: Number> AsClCvoidPtr for T {
     #[inline]
     fn is_num(&self) -> bool {
         true
+    }
+}
+
+impl<T> AsClCvoidPtr for CLPtr<T> {
+    #[inline]
+    fn as_cvoid_ptr(&self) -> *const c_void {
+        self.ptr
     }
 }
 
@@ -166,11 +175,11 @@ pub fn enqueue_kernel(
 mod tests {
     // use core::ffi::c_void;
 
-    use crate::{Buffer, CDatatype, OpenCL};
+    use crate::{Buffer, CDatatype, OpenCL, Base};
 
     #[test]
     fn test_kernel_launch() -> crate::Result<()> {
-        let device = OpenCL::new(0)?;
+        let device = OpenCL::<Base>::new(0)?;
 
         let src = format!("
             __kernel void add(__global const {datatype}* lhs, __global const {datatype}* rhs, __global {datatype}* out) 

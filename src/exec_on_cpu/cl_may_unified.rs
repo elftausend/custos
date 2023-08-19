@@ -64,7 +64,7 @@ where
     T: Clone + Default,
     F: for<'b> Fn(&'b CPU, &mut Buffer<'_, T, CPU>),
 {
-    let cpu = CPU::<Base>::new();
+    let cpu = CPU::<crate::Base>::new();
 
     if device.unified_mem() {
         return {
@@ -143,7 +143,7 @@ where
     T: Clone + Default,
     F: for<'b> Fn(&'b CPU, &mut Buffer<'_, T, CPU>, &Buffer<'_, T, CPU>),
 {
-    let cpu = CPU::<Base>::new();
+    let cpu = CPU::<crate::Base>::new();
 
     if device.unified_mem() {
         return {
@@ -170,7 +170,7 @@ where
     T: Default + Clone,
     F: Fn(&CPU, &Buffer<T, CPU>) -> T,
 {
-    let cpu = CPU::<Base>::new();
+    let cpu = CPU::<crate::Base>::new();
 
     if device.unified_mem() {
         return f(&cpu, &unsafe {

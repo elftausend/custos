@@ -6,7 +6,7 @@ use min_cl::api::{
 
 use super::{chosen_cl_idx, enqueue_kernel, AsClCvoidPtr, CLPtr, KernelCacheCL};
 use crate::flag::AllocFlag;
-use crate::{Alloc, Buffer, CloneBuf, Device, Error, CPU, Base, Module, Setup};
+use crate::{Alloc, Buffer, CloneBuf, Device, Error, CPU, Base, Module, Setup, OnDropBuffer, OnNewBuffer, impl_buffer_hook_traits, impl_retriever};
 use crate::{PtrConv, Shape};
 
 use std::{cell::RefCell, fmt::Debug};
@@ -42,6 +42,9 @@ pub struct OpenCL<Mods = Base> {
 /// Short form for `OpenCL`
 pub type CL = OpenCL;
 
+impl_buffer_hook_traits!(OpenCL);
+impl_retriever!(OpenCL);
+
 impl<SimpleMods> OpenCL<SimpleMods> {
     /// Returns an [OpenCL] device at the specified device index.
     /// # Errors
@@ -69,7 +72,6 @@ impl OpenCL {
     pub fn reset(&'static mut self) {
         self.kernel_cache = Default::default();
         self.cpu = Default::default();
-        self.addons = Default::default();
     }
 
     /// Context of the OpenCL device.
@@ -159,18 +161,20 @@ impl OpenCL {
     }
 }
 
-impl Default for OpenCL {
+/*impl Default for OpenCL {
     #[inline]
     fn default() -> Self {
         OpenCL::new(chosen_cl_idx()).expect("A valid OpenCL device index should be set via the environment variable 'CUSTOS_CL_DEVICE_IDX'.")
     }
-}
+}*/
 
-impl Device for OpenCL {
+impl<Mods: OnDropBuffer> Device for OpenCL<Mods> {
     type Data<U, S: Shape> = CLPtr<U>;
+    type Error = ();
 
-    fn new() -> crate::Result<Self> {
-        OpenCL::new(chosen_cl_idx())
+    fn new() -> Result<Self, Self::Error> {
+        todo!()
+        // OpenCL::new(chosen_cl_idx())
     }
 }
 
@@ -236,7 +240,7 @@ impl<T> Alloc<T> for OpenCL {
         }
     }
 
-    fn alloc_from_slice(&self, data: &[T]) -> CLPtr<T> {
+    fn alloc_from_slice<S: Shape>(&self, data: &[T]) -> CLPtr<T> {
         let ptr = create_buffer::<T>(
             self.ctx(),
             MemFlags::MemReadWrite | MemFlags::MemCopyHostPtr,
@@ -263,7 +267,7 @@ impl<T> Alloc<T> for OpenCL {
 impl<'a, T> CloneBuf<'a, T> for OpenCL {
     fn clone_buf(&'a self, buf: &Buffer<'a, T, OpenCL>) -> Buffer<'a, T, OpenCL> {
         let cloned = Buffer::new(self, buf.len());
-        enqueue_full_copy_buffer::<T>(self.queue(), buf.ptr.ptr, cloned.ptr.ptr, buf.len())
+        enqueue_full_copy_buffer::<T>(self.queue(), buf.data.ptr, cloned.data.ptr, buf.len())
             .unwrap();
         cloned
     }
@@ -293,6 +297,7 @@ mod tests {
             inner: device,
             kernel_cache: Default::default(),
             cpu: Default::default(),
+            modules: crate::Base,
         };
 
         let buf = Buffer::from((&cl, &[1, 2, 3, 4, 5, 6, 7]));
@@ -304,6 +309,7 @@ mod tests {
             inner: device,
             kernel_cache: Default::default(),
             cpu: Default::default(),
+            modules: crate::Base,
         };
 
         let buf = Buffer::from((&cl1, &[2, 2, 4, 4, 2, 1, 3]));

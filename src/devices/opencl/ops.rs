@@ -7,7 +7,7 @@ use min_cl::api::{
 
 use crate::{
     bounds_to_range, prelude::Number, ApplyFunction, Buffer, CDatatype, ClearBuf, CopySlice,
-    Device, OpenCL, Read, Resolve, Shape, ToCLSource, ToMarker, UnaryGrad, WriteBuf,
+    Device, OpenCL, Read, Resolve, Shape, ToCLSource, ToMarker, UnaryGrad, WriteBuf, Retriever,
 };
 
 use super::{enqueue_kernel, CLBuffer};
@@ -86,8 +86,8 @@ impl<T> CopySlice<T> for OpenCL {
 
         enqueue_copy_buffer::<T>(
             self.queue(),
-            source.ptr.ptr,
-            dest.ptr.ptr,
+            source.data.ptr,
+            dest.data.ptr,
             source_range.start,
             dest_range.start,
             source_range.end - source_range.start,
@@ -107,7 +107,7 @@ impl<T> CopySlice<T> for OpenCL {
             (from.start, to.start, len)
         });
 
-        enqueue_copy_buffers::<T, _>(self.queue(), source.ptr.ptr, dest.ptr.ptr, ranges).unwrap();
+        enqueue_copy_buffers::<T, _>(self.queue(), source.data.ptr, dest.data.ptr, ranges).unwrap();
     }
 }
 
@@ -184,7 +184,7 @@ where
         operation = f("lhs[id]".to_marker()).to_cl_source()
     );
 
-    let out = device.retrieve::<T, S>(x.len(), x);
+    let out = device.retrieve(x.len(), x);
     enqueue_kernel(device, &src, [x.len(), 0, 0], None, &[x, &out])?;
     Ok(out)
 }
@@ -241,12 +241,12 @@ where
 mod test {
     use crate::{
         opencl::{try_cl_add_unary_grad, try_cl_apply_fn},
-        Buffer, Combiner, OpenCL,
+        Buffer, Combiner, OpenCL, Base,
     };
 
     #[test]
     fn test_cl_apply_fn() -> crate::Result<()> {
-        let device = OpenCL::new(0)?;
+        let device = OpenCL::<Base>::new(0)?;
 
         let buf = Buffer::from((&device, [1, 2, 3, 4, 5, 6]));
 
@@ -258,7 +258,7 @@ mod test {
 
     #[test]
     fn test_cl_add_unary_grad() -> crate::Result<()> {
-        let device = OpenCL::new(0)?;
+        let device = OpenCL::<Base>::new(0)?;
 
         let lhs = Buffer::from((&device, [1, 2, 3, 4, 5, 6]));
         let mut lhs_grad = Buffer::from((&device, [1, 2, 3, 4, 5, 6]));

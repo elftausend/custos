@@ -59,12 +59,12 @@ impl KernelCacheCL {
 #[cfg(test)]
 mod tests {
     use super::KernelCacheCL;
-    use crate::OpenCL;
+    use crate::{OpenCL, Base};
     use std::collections::HashMap;
 
     #[test]
     fn test_kernel_cache() -> crate::Result<()> {
-        let device = OpenCL::new(0)?;
+        let device = OpenCL::<Base>::new(0)?;
 
         let mut kernel_cache = KernelCacheCL {
             kernel_cache: HashMap::new(),
