@@ -401,7 +401,7 @@ impl<'a, Mods: OnDropBuffer, T, S: Shape> Buffer<'a, T, CPU<Mods>, S> {
     /// let device = CPU::<Base>::new();
     /// let mut ptr = Alloc::<f32>::alloc::<()>(&device, 10, AllocFlag::None);
     /// let mut buf = unsafe {
-    ///     Buffer::<_, _, ()>::from_raw_host(ptr.ptr, 10)
+    ///     Buffer::<_, CPU<Base>, ()>::from_raw_host(ptr.ptr, 10)
     /// };
     /// for (idx, value) in buf.iter_mut().enumerate() {
     ///     *value += idx as f32;
