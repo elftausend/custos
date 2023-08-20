@@ -25,7 +25,7 @@ impl<T: CDatatype> ClearBuf<T> for OpenCL {
 /// use custos::{OpenCL, Buffer, Read, opencl::try_cl_clear};
 ///
 /// fn main() -> Result<(), custos::Error> {
-///     let device = OpenCL::new(0)?;
+///     let device = OpenCL::<Base>::new(0)?;
 ///     let mut lhs = Buffer::<i16, _>::from((&device, [15, 30, 21, 5, 8]));
 ///     assert_eq!(device.read(&lhs), vec![15, 30, 21, 5, 8]);
 ///
@@ -185,7 +185,7 @@ where
     );
 
     let out = device.retrieve(x.len(), x);
-    enqueue_kernel(device, &src, [x.len(), 0, 0], None, &[x, &out])?;
+    enqueue_kernel(device, &src, [x.len(), 0, 0], None, &[x, &&out])?;
     Ok(out)
 }
 

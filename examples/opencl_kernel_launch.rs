@@ -1,7 +1,7 @@
 use custos::{opencl::enqueue_kernel, Buffer, CDatatype, Device, Error, OpenCL};
 
 fn main() -> Result<(), Error> {
-    let device = OpenCL::new(0)?;
+    let device = OpenCL::<Base>::new(0)?;
 
     let lhs = Buffer::<i32, _>::from((&device, [1, 5, 3, 2, 7, 8]));
     let rhs = Buffer::<i32, _>::from((&device, [-2, -6, -4, -3, -8, -9]));

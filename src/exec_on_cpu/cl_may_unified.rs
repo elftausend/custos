@@ -19,6 +19,7 @@ where
     T: Clone + Default,
     F: for<'b> Fn(&'b CPU, &Buffer<'_, T, CPU>) -> Buffer<'b, T, CPU>,
 {
+
     // TODO: use compile time unified_cl flag -> get from custos?
     #[cfg(not(feature = "realloc"))]
     if device.unified_mem() {
@@ -28,7 +29,7 @@ where
 
         // host ptr buffer
         let no_drop = f(&device.cpu, &unsafe {
-            Buffer::from_raw_host(x.ptr.host_ptr, x.len())
+            Buffer::from_raw_host(x.data.host_ptr, x.len())
         });
 
         // convert host ptr / CPU buffer into a host ptr + OpenCL ptr buffer
@@ -69,7 +70,7 @@ where
     if device.unified_mem() {
         return {
             f(&cpu, &mut unsafe {
-                Buffer::from_raw_host(lhs.ptr.host_ptr, lhs.len())
+                Buffer::from_raw_host(lhs.data.host_ptr, lhs.len())
             });
             Ok(())
         };
@@ -103,8 +104,8 @@ where
         // host ptr buffer
         let no_drop = f(
             &device.cpu,
-            &unsafe { Buffer::from_raw_host(lhs.ptr.host_ptr, lhs.len()) },
-            &unsafe { Buffer::from_raw_host(rhs.ptr.host_ptr, rhs.len()) },
+            &unsafe { Buffer::from_raw_host(lhs.data.host_ptr, lhs.len()) },
+            &unsafe { Buffer::from_raw_host(rhs.data.host_ptr, rhs.len()) },
         );
 
         // convert host ptr / CPU buffer into a host ptr + OpenCL ptr buffer
@@ -120,8 +121,8 @@ where
             device,
             f(
                 &cpu,
-                &unsafe { Buffer::from_raw_host(lhs.ptr.host_ptr, lhs.len()) },
-                &unsafe { Buffer::from_raw_host(rhs.ptr.host_ptr, rhs.len()) },
+                &unsafe { Buffer::from_raw_host(lhs.data.host_ptr, lhs.len()) },
+                &unsafe { Buffer::from_raw_host(rhs.data.host_ptr, rhs.len()) },
             ),
         )));
     }
@@ -149,8 +150,8 @@ where
         return {
             f(
                 &cpu,
-                &mut unsafe { Buffer::from_raw_host(lhs.ptr.host_ptr, lhs.len()) },
-                &unsafe { Buffer::from_raw_host(rhs.ptr.host_ptr, rhs.len()) },
+                &mut unsafe { Buffer::from_raw_host(lhs.data.host_ptr, lhs.len()) },
+                &unsafe { Buffer::from_raw_host(rhs.data.host_ptr, rhs.len()) },
             );
             Ok(())
         };
@@ -174,7 +175,7 @@ where
 
     if device.unified_mem() {
         return f(&cpu, &unsafe {
-            Buffer::from_raw_host(x.ptr.host_ptr, x.len())
+            Buffer::from_raw_host(x.data.host_ptr, x.len())
         });
     }
     cpu_exec_reduce(x, f)

@@ -6,12 +6,12 @@ use std::collections::HashMap;
 
 #[derive(Debug, Default)]
 /// This stores the previously compiled OpenCL kernels.
-pub struct KernelCacheCL {
+pub struct CLKernelCache {
     /// Uses the kernel source code to retrieve the corresponding `Kernel`.
     pub kernel_cache: HashMap<String, Kernel>,
 }
 
-impl KernelCacheCL {
+impl CLKernelCache {
     /// Returns a cached kernel. If the kernel source code does not exist, a new kernel is created and cached.
     ///
     /// # Example
@@ -20,7 +20,7 @@ impl KernelCacheCL {
     /// use custos::{OpenCL, opencl::KernelCacheCL};
     ///
     /// fn main() -> custos::Result<()> {
-    ///     let device = OpenCL::new(0)?;
+    ///     let device = OpenCL::<Base>::new(0)?;
     ///     
     ///     let mut kernel_cache = KernelCacheCL::default();
     ///     
@@ -35,7 +35,7 @@ impl KernelCacheCL {
     ///     Ok(())
     /// }
     /// ```
-    pub fn kernel(&mut self, device: &OpenCL, src: &str) -> Result<&Kernel, Error> {
+    pub fn kernel<Mods>(&mut self, device: &OpenCL<Mods>, src: &str) -> Result<&Kernel, Error> {
         if self.kernel_cache.contains_key(src) {
             return Ok(self.kernel_cache.get(src).unwrap());
         }
@@ -58,7 +58,7 @@ impl KernelCacheCL {
 
 #[cfg(test)]
 mod tests {
-    use super::KernelCacheCL;
+    use super::CLKernelCache;
     use crate::{OpenCL, Base};
     use std::collections::HashMap;
 
@@ -66,7 +66,7 @@ mod tests {
     fn test_kernel_cache() -> crate::Result<()> {
         let device = OpenCL::<Base>::new(0)?;
 
-        let mut kernel_cache = KernelCacheCL {
+        let mut kernel_cache = CLKernelCache {
             kernel_cache: HashMap::new(),
         };
 

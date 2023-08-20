@@ -39,7 +39,7 @@ fn test_graph() -> custos::Result<()> {
 #[cfg(feature = "opencl")]
 #[test]
 fn test_graph_cl() -> custos::Result<()> {
-    let device = OpenCL::new(0)?;
+    let device = OpenCL::<Base>::new(0)?;
 
     // idx: 0
     let a = Buffer::from((&device, [1, 2, 3, 4, 5, 6]));

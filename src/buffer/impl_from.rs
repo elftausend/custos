@@ -195,9 +195,9 @@ mod tests {
     #[cfg(feature = "opencl")]
     #[test]
     fn test_buf_device_conversion_cl() -> crate::Result<()> {
-        use crate::{Buffer, OpenCL, Read, CPU};
+        use crate::{Buffer, OpenCL, Read, CPU, Base};
 
-        let device = OpenCL::new(0)?;
+        let device = OpenCL::<Base>::new(0)?;
 
         let cpu = CPU::<Base>::new();
         let cpu_buf = Buffer::from((&cpu, [1, 2, 4, 5]));

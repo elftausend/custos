@@ -208,7 +208,7 @@ fn main() -> custos::Result<()> {
 
     #[cfg(feature = "opencl")] // deactivate this block if the feature is disabled
     {
-        let cl_device = OpenCL::new(0)?;
+        let cl_device = OpenCL::<Base>::new(0)?;
 
         let lhs = Buffer::from((&cl_device, [1, 2, 3, 4, 5, 6]));
         let rhs = Buffer::from((&cl_device, [6, 5, 4, 3, 2, 1]));

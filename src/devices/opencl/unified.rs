@@ -53,7 +53,7 @@ pub unsafe fn to_cached_unified<T, S: Shape>(
 ///     let mut no_drop: Buffer = cpu.retrieve(4, ());
 ///     no_drop.write(&[1., 3.1, 2.34, 0.76]);
 ///     
-///     let device = OpenCL::new(0)?;
+///     let device = OpenCL::<Base>::new(0)?;
 ///     let buf = unsafe {
 ///         construct_buffer(&device, no_drop, ())?
 ///     };
@@ -66,10 +66,10 @@ pub unsafe fn to_cached_unified<T, S: Shape>(
 pub fn construct_buffer<'a, T, S: Shape>(
     device: &'a OpenCL,
     mut no_drop: Buffer<'a, T, CPU, S>,
-    add_node: impl AddGraph,
 ) -> crate::Result<Buffer<'a, T, OpenCL, S>> {
+    use crate::PtrType;
 
-    if no_drop.ptr.flag == AllocFlag::None {
+    if no_drop.data.flag() == AllocFlag::None {
         return Err(DeviceError::ConstructError.into());
     }
 
@@ -82,37 +82,27 @@ pub fn construct_buffer<'a, T, S: Shape>(
         .get(&Ident::new(no_drop.len()))
     {
         return Ok(Buffer {
-            ptr: CLPtr {
+            data: CLPtr {
                 ptr: rawcl.ptr,
                 host_ptr: rawcl.host_ptr as *mut T,
                 len: no_drop.len(),
-                flag: no_drop.ptr.flag,
+                flag: no_drop.data.flag(),
             },
             device: Some(device),
-            ident: Some(Ident::new(no_drop.len())),
         });
     }
-
-    // TODO: remove
-    let graph_node = device.graph_mut().add(no_drop.len(), add_node);
-
     let (host_ptr, len) = (no_drop.host_ptr_mut(), no_drop.len());
     let ptr = unsafe { to_cached_unified(device, no_drop)? };
 
-    bump_count();
 
     Ok(Buffer {
-        ptr: CLPtr {
+        data: CLPtr {
             ptr,
             host_ptr,
             len,
             flag: AllocFlag::Wrapper,
         },
         device: Some(device),
-        ident: Some(Ident {
-            idx: *device.graph_mut().idx_trans.get(&graph_node.idx).unwrap(),
-            len,
-        }),
     })
 }
 
@@ -129,7 +119,7 @@ mod tests {
         let mut no_drop: Buffer = cpu.retrieve(3, ());
         no_drop.write(&[1., 2.3, 0.76]);
 
-        let device = OpenCL::new(0)?;
+        let device = OpenCL::<Base>::new(0)?;
 
         let (host_ptr, len) = (no_drop.host_ptr_mut(), no_drop.len());
         let cl_host_ptr = unsafe { to_cached_unified(&device, no_drop)? };
@@ -156,7 +146,7 @@ mod tests {
         let mut no_drop: Buffer = cpu.retrieve(3, ());
         no_drop.write(&[1., 2.3, 0.76]);
 
-        let device = OpenCL::new(0)?;
+        let device = OpenCL::<Base>::new(0)?;
         let buf = unsafe { construct_buffer(&device, no_drop, ())? };
 
         assert_eq!(buf.read(), vec![1., 2.3, 0.76]);
@@ -165,7 +155,7 @@ mod tests {
         Ok(())
     }
 
-    // improved lifetiem annotation rendered this test useless
+    // improved lifetime annotation rendered this test useless
     /*#[cfg(unified_cl)]
     #[cfg(not(feature = "realloc"))]
     #[test]
@@ -174,7 +164,7 @@ mod tests {
 
         use crate::{range, set_count, Device, Ident, IdentHasher};
 
-        let cl_dev = OpenCL::new(0)?;
+        let cl_dev = OpenCL::<Base>::new(0)?;
 
         unsafe { set_count(0) };
 

@@ -19,7 +19,7 @@ fn test_clear_cpu() {
 fn test_clear_cl() -> Result<(), custos::Error> {
     use custos::OpenCL;
 
-    let device = OpenCL::new(0)?;
+    let device = OpenCL::<Base>::new(0)?;
 
     let mut buf = Buffer::from((&device, [1., 2., 3., 4., 5., 6.]));
     assert_eq!(buf.read(), vec![1., 2., 3., 4., 5., 6.,]);

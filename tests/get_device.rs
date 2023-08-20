@@ -16,7 +16,7 @@ fn get_device_test_cpu() {
 fn get_device_test_cl() -> custos::Result<()> {
     use custos::OpenCL;
 
-    let device = OpenCL::new(0)?;
+    let device = OpenCL::<Base>::new(0)?;
     let buf = Buffer::from((&device, [1., 1.5, 0.14]));
 
     assert_eq!(vec![1., 1.5, 0.14], buf.device().read(&buf));

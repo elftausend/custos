@@ -98,7 +98,7 @@ fn test_add_large() {
 
     println!("wgpu dur: {:?}", start.elapsed());
 
-    let device = OpenCL::new(0).unwrap();
+    let device = OpenCL::<Base>::new(0).unwrap();
 
     let lhs = Buffer::<f32, _>::from((&device, &[1.; N]));
     let rhs = Buffer::<f32, _>::from((&device, &rhs_data));

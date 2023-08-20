@@ -15,7 +15,7 @@ use super::CLPtr;
 /// }
 ///
 /// fn main() -> custos::Result<()> {
-///     let device = OpenCL::new(0)?;
+///     let device = OpenCL::<Base>::new(0)?;
 ///
 ///     let buf = Buffer::<f32, _>::new(&device, 10);
 ///     let num = 4;
@@ -30,7 +30,7 @@ pub trait AsClCvoidPtr {
     /// use custos::{OpenCL, Buffer, opencl::AsClCvoidPtr};
     ///
     /// fn main() -> custos::Result<()> {
-    ///     let device = OpenCL::new(0)?;
+    ///     let device = OpenCL::<Base>::new(0)?;
     ///     let buf = Buffer::<f32, _>::new(&device, 10);
     ///     
     ///     let ptr = buf.as_cvoid_ptr();
@@ -60,7 +60,7 @@ pub trait AsClCvoidPtr {
     /// fn main() -> custos::Result<()> {
     ///     assert_eq!(4f32.ptr_size(), 4);    
     ///
-    ///     let device = OpenCL::new(0)?;
+    ///     let device = OpenCL::<Base>::new(0)?;
     ///
     ///     let buf = Buffer::<f32, _>::new(&device, 10);
     ///     assert_eq!(buf.ptr_size(), 8);
@@ -81,7 +81,7 @@ impl<'a, Mods: OnDropBuffer, T, S: Shape> AsClCvoidPtr for &Buffer<'a, T, OpenCL
     }
 }
 
-impl<'a, Mods:OnDropBuffer, T, S: Shape> AsClCvoidPtr for Buffer<'a, T, OpenCL<Mods>, S> {
+impl<'a, Mods: OnDropBuffer, T, S: Shape> AsClCvoidPtr for Buffer<'a, T, OpenCL<Mods>, S> {
     #[inline]
     fn as_cvoid_ptr(&self) -> *const c_void {
         self.data.ptr
@@ -119,7 +119,7 @@ impl<T> AsClCvoidPtr for CLPtr<T> {
 /// use custos::{OpenCL, Buffer, opencl::enqueue_kernel};
 ///
 /// fn main() -> custos::Result<()> {
-///     let device = OpenCL::new(0)?;
+///     let device = OpenCL::<Base>::new(0)?;
 ///     let mut buf = Buffer::<f32, _>::new(&device, 10);
 ///
 ///     enqueue_kernel(&device, "
@@ -134,8 +134,8 @@ impl<T> AsClCvoidPtr for CLPtr<T> {
 ///     Ok(())
 /// }
 /// ```
-pub fn enqueue_kernel(
-    device: &OpenCL,
+pub fn enqueue_kernel<Mods>(
+    device: &OpenCL<Mods>,
     src: &str,
     gws: [usize; 3],
     lws: Option<[usize; 3]>,
@@ -211,7 +211,7 @@ mod tests {
 
     /*#[test]
     fn test_get_work_group_size() -> crate::Result<()> {
-        let device = OpenCL::new(0)?;
+        let device = OpenCL::<Base>::new(0)?;
         let mut kernel_cache = device.kernel_cache.borrow_mut();
 
         let kernel = kernel_cache.kernel_cache(&device, &ew_add_kernel::<f32>("+"))?;

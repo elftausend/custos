@@ -25,7 +25,7 @@ fn test_self_buf_clone() {
 #[cfg(feature = "opencl")]
 #[test]
 fn test_buf_clone_cl() -> custos::Result<()> {
-    let device = custos::OpenCL::new(0)?;
+    let device = custos::OpenCL::<Base>::new(0)?;
 
     let buf = Buffer::from((&device, [1., 2., 6., 2., 4.]));
 

@@ -31,7 +31,7 @@ pub fn unified_ptr<T>(cq: &CommandQueue, ptr: *mut c_void, len: usize) -> Result
 #[cfg(feature = "opencl")]
 #[test]
 fn test_unified_mem_bool() -> Result<(), Error> {
-    let device = OpenCL::new(0)?;
+    let device = OpenCL::<Base>::new(0)?;
     let um = device.unified_mem();
     println!("um: {um}");
     Ok(())
@@ -49,7 +49,7 @@ fn test_unified_mem() -> Result<(), Error> {
 
     let data = vec![1f32; len];
 
-    let device = OpenCL::new(0)?;
+    let device = OpenCL::<Base>::new(0)?;
 
     if device.unified_mem() {
         let before = Instant::now();
@@ -194,7 +194,7 @@ fn test_cpu_to_unified() -> custos::Result<()> {
     let mut buf = device.retrieve::<i32, ()>(6, ());
     buf.copy_from_slice(&[1, 2, 3, 4, 5, 6]);
 
-    let cl_dev = OpenCL::new(0)?;
+    let cl_dev = OpenCL::<Base>::new(0)?;
     let cl_cpu_buf = unsafe { custos::opencl::construct_buffer(&cl_dev, buf, ())? };
 
     assert_eq!(cl_cpu_buf.as_slice(), &[1, 2, 3, 4, 5, 6]);
@@ -211,7 +211,7 @@ fn test_cpu_to_unified_perf() -> custos::Result<()> {
 
     use custos::{bump_count, Device, Ident};
 
-    let cl_dev = OpenCL::new(0)?;
+    let cl_dev = OpenCL::<Base>::new(0)?;
     let device = CPU::<Base>::new();
 
     let mut dur = 0.;

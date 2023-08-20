@@ -41,7 +41,7 @@ pub fn static_cpu() -> &'static CPU {
 #[cfg(feature = "opencl")]
 thread_local! {
     static GLOBAL_OPENCL: crate::OpenCL = {
-        crate::OpenCL::new(chosen_cl_idx()).expect("Could not create a static OpenCL device.")
+        crate::OpenCL::<Base>::new(chosen_cl_idx()).expect("Could not create a static OpenCL device.")
     };
 }
 

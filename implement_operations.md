@@ -185,7 +185,7 @@ If you want to use another device, just update the device declaration.
 use custos::{OpenCL, CUDA};
 
 fn main() -> custos::Result<()> {
-    let device = OpenCL::new(0)?; 
+    let device = OpenCL::<Base>::new(0)?; 
     // or:
     let device = CUDA::<Base>::new(0)?;
     Ok(())

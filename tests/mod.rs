@@ -13,7 +13,7 @@ mod threading;
 fn test_debug_fmt_cl_dev() -> custos::Result<()> {
     use custos::OpenCL;
 
-    let device = OpenCL::new(0)?;
+    let device = OpenCL::<Base>::new(0)?;
     println!("device: {device:?}");
     Ok(())
 }

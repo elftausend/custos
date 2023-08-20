@@ -4,9 +4,9 @@ use min_cl::api::{
     create_buffer, enqueue_full_copy_buffer, CLIntDevice, CommandQueue, Context, MemFlags,
 };
 
-use super::{chosen_cl_idx, enqueue_kernel, AsClCvoidPtr, CLPtr, KernelCacheCL};
+use super::{enqueue_kernel, AsClCvoidPtr, CLPtr, CLKernelCache};
 use crate::flag::AllocFlag;
-use crate::{Alloc, Buffer, CloneBuf, Device, Error, CPU, Base, Module, Setup, OnDropBuffer, OnNewBuffer, impl_buffer_hook_traits, impl_retriever};
+use crate::{Alloc, Buffer, CloneBuf, Device, Error, CPU, Base, Module, Setup, OnDropBuffer, impl_buffer_hook_traits, impl_retriever};
 use crate::{PtrConv, Shape};
 
 use std::{cell::RefCell, fmt::Debug};
@@ -21,7 +21,7 @@ use min_cl::api::unified_ptr;
 /// use custos::{OpenCL, Read, Buffer, Error};
 ///
 /// fn main() -> custos::Result<()> {
-///     let device = OpenCL::new(0)?;
+///     let device = OpenCL::<Base>::new(0)?;
 ///     
 ///     let a = Buffer::from((&device, [1.3; 25]));
 ///     let out = device.read(&a);
@@ -32,11 +32,11 @@ use min_cl::api::unified_ptr;
 /// ```
 pub struct OpenCL<Mods = Base> {
     pub modules: Mods,
-    pub kernel_cache: RefCell<KernelCacheCL>,
+    pub kernel_cache: RefCell<CLKernelCache>,
     /// The underlying OpenCL device.
     pub inner: CLDevice,
     /// A [`CPU`] used for unified memory device switching.
-    pub cpu: CPU,
+    pub cpu: CPU, // TODO: this cpu does not cache buffers, which is a problem for construct_buffer (add #[cfg(unified_cl)])
 }
 
 /// Short form for `OpenCL`
@@ -66,7 +66,7 @@ impl<SimpleMods> OpenCL<SimpleMods> {
     }
 }
 
-impl OpenCL {
+impl<Mods> OpenCL<Mods> {
     /// Sets the values of the attributes cache, kernel cache, graph and CPU to their default.
     /// This cleans up any accumulated allocations.
     pub fn reset(&'static mut self) {
@@ -134,7 +134,7 @@ impl OpenCL {
     /// use custos::{OpenCL, Buffer};
     ///
     /// fn main() -> custos::Result<()> {
-    ///     let device = OpenCL::new(0)?;
+    ///     let device = OpenCL::<Base>::new(0)?;
     ///     let mut buf = Buffer::<f32, _>::new(&device, 10);
     ///
     ///     device.launch_kernel("
@@ -164,7 +164,7 @@ impl OpenCL {
 /*impl Default for OpenCL {
     #[inline]
     fn default() -> Self {
-        OpenCL::new(chosen_cl_idx()).expect("A valid OpenCL device index should be set via the environment variable 'CUSTOS_CL_DEVICE_IDX'.")
+        OpenCL::<Base>::new(chosen_cl_idx()).expect("A valid OpenCL device index should be set via the environment variable 'CUSTOS_CL_DEVICE_IDX'.")
     }
 }*/
 
@@ -174,12 +174,12 @@ impl<Mods: OnDropBuffer> Device for OpenCL<Mods> {
 
     fn new() -> Result<Self, Self::Error> {
         todo!()
-        // OpenCL::new(chosen_cl_idx())
+        // OpenCL::<Base>::new(chosen_cl_idx())
     }
 }
 
 
-impl PtrConv for OpenCL {
+impl<Mods: OnDropBuffer> PtrConv for OpenCL<Mods> {
     #[inline]
     unsafe fn convert<T, IS, Conv, OS>(
         ptr: &Self::Data<T, IS>,
@@ -216,7 +216,7 @@ impl Debug for OpenCL {
     }
 }
 
-impl<T> Alloc<T> for OpenCL {
+impl<Mods: OnDropBuffer, T> Alloc<T> for OpenCL<Mods> {
     fn alloc<S: Shape>(&self, mut len: usize, flag: AllocFlag) -> CLPtr<T> {
         assert!(len > 0, "invalid buffer len: 0");
 
