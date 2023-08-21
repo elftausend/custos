@@ -8,7 +8,7 @@ mod cl_may_unified;
 #[cfg(feature = "opencl")]
 pub use cl_may_unified::*;
 
-use crate::{Alloc, Base, Buffer, Device, Read, Retriever, WriteBuf, CPU};
+use crate::{Alloc, Base, Buffer, Device, Read, Retriever, WriteBuf, CPU, CachedCPU, Cached};
 
 /// Moves a `Buffer` stored on device `D` to a `CPU` `Buffer`
 /// and executes the unary operation `F` with a `CPU` on the newly created `CPU` `Buffer`.
@@ -46,11 +46,11 @@ pub fn cpu_exec_unary<'a, T, D, F>(
 ) -> crate::Result<Buffer<'a, T, D>>
 where
     T: Clone + Default + 'static,
-    F: for<'b> Fn(&'b CPU, &Buffer<'_, T, CPU>) -> Buffer<'b, T, CPU>,
+    F: for<'b> Fn(&'b CachedCPU, &Buffer<'_, T, CachedCPU>) -> Buffer<'b, T, CachedCPU>,
     D: Device + Read<T> + WriteBuf<T> + Alloc<T> + Retriever<T>,
 {
-    let cpu = CPU::<Base>::new();
-    let cpu_buf = Buffer::<T, CPU>::from((&cpu, x.read_to_vec()));
+    let cpu = CPU::<Cached<Base>>::new();
+    let cpu_buf = Buffer::<T, CachedCPU>::from((&cpu, x.read_to_vec()));
     Ok(Buffer::from((device, f(&cpu, &cpu_buf))))
     // TODO add new node to graph
 }
@@ -112,12 +112,12 @@ pub fn cpu_exec_binary<'a, T, D, F>(
 ) -> Buffer<'a, T, D>
 where
     T: Clone + Default + 'static,
-    F: for<'b> Fn(&'b CPU, &Buffer<'_, T, CPU>, &Buffer<'_, T, CPU>) -> Buffer<'b, T, CPU>,
+    F: for<'b> Fn(&'b CachedCPU, &Buffer<'_, T, CachedCPU>, &Buffer<'_, T, CachedCPU>) -> Buffer<'b, T, CachedCPU>,
     D: Device + Read<T> + WriteBuf<T> + Alloc<T> + Retriever<T>,
 {
-    let cpu = CPU::<Base>::new();
-    let cpu_lhs = Buffer::<T, CPU>::from((&cpu, lhs.read_to_vec()));
-    let cpu_rhs = Buffer::<T, CPU>::from((&cpu, rhs.read_to_vec()));
+    let cpu = CPU::<Cached<Base>>::new();
+    let cpu_lhs = Buffer::<T, CachedCPU>::from((&cpu, lhs.read_to_vec()));
+    let cpu_rhs = Buffer::<T, CachedCPU>::from((&cpu, rhs.read_to_vec()));
     Buffer::from((device, f(&cpu, &cpu_lhs, &cpu_rhs)))
     // TODO add new node to graph
 }

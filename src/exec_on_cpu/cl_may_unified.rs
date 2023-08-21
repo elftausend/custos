@@ -1,7 +1,7 @@
 use super::{
     cpu_exec_binary, cpu_exec_binary_mut, cpu_exec_reduce, cpu_exec_unary, cpu_exec_unary_mut,
 };
-use crate::{Buffer, OpenCL, CPU, UnifiedMemChain};
+use crate::{Buffer, OpenCL, CPU, UnifiedMemChain, CachedCPU};
 
 
 /// If the current device supports unified memory, data is not deep-copied.
@@ -16,7 +16,7 @@ pub fn cpu_exec_unary_may_unified<'a, T, F>(
 ) -> crate::Result<Buffer<'a, T, OpenCL>>
 where
     T: Clone + Default + 'static,
-    F: for<'b> Fn(&'b CPU, &Buffer<'_, T, CPU>) -> Buffer<'b, T, CPU>,
+    F: for<'b> Fn(&'b CachedCPU, &Buffer<'_, T, CachedCPU>) -> Buffer<'b, T, CachedCPU>,
 {
     // TODO: use compile time unified_cl flag -> get from custos?
     #[cfg(not(feature = "realloc"))]
@@ -91,7 +91,7 @@ pub fn cpu_exec_binary_may_unified<'a, T, F>(
 ) -> crate::Result<Buffer<'a, T, OpenCL>>
 where
     T: Clone + Default + 'static,
-    F: for<'b> Fn(&'b CPU, &Buffer<'_, T, CPU>, &Buffer<'_, T, CPU>) -> Buffer<'b, T, CPU>,
+    F: for<'b> Fn(&'b CachedCPU, &Buffer<'_, T, CachedCPU>, &Buffer<'_, T, CachedCPU>) -> Buffer<'b, T, CachedCPU>,
 {
     // TODO: use compile time unified_cl flag -> get from custos?
     #[cfg(not(feature = "realloc"))]

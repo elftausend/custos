@@ -3,7 +3,7 @@ use core::{
     cell::{Ref, RefMut},
 };
 
-use crate::{DeviceError, OpenCL, Parents, Shape};
+use crate::{DeviceError, OpenCL, Parents, Shape, Cached, Base, CachedModule, CPU};
 
 use super::{Alloc, Buffer, Device, OnDropBuffer};
 
@@ -92,15 +92,17 @@ pub trait AddOperation {
 }
 
 pub trait HasCPU<Mods> {
-    fn cpu(&self) -> &crate::CPU<Mods>;
+    fn cpu(&self) -> &CPU<Mods>;
 }
+
+pub type CachedCPU = CPU<CachedModule<Base, CPU<Cached<Base>>>>; 
 
 pub trait UnifiedMemChain<D: Device> {
     #[track_caller]
     fn construct_unified_buf_from_cpu_buf<'a, T, S: Shape>(
         &self,
         device: &'a D,
-        no_drop_buf: Buffer<'a, T, crate::CPU, S>,
+        no_drop_buf: Buffer<'a, T, CachedCPU, S>,
     ) -> crate::Result<Buffer<'a, T, D, S>>;
 }
 
@@ -113,7 +115,7 @@ macro_rules! impl_unified_mem_chain {
                 fn construct_unified_buf_from_cpu_buf<'a, T, S: Shape>(
                     &self,
                     device: &'a D,
-                    no_drop_buf: Buffer<'a, T, crate::CPU, S>
+                    no_drop_buf: Buffer<'a, T, CachedCPU, S>
                 ) -> crate::Result<Buffer<'a, T, D, S>>
                 {
                     self.modules.construct_unified_buf_from_cpu_buf(device, no_drop_buf)

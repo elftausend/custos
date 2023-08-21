@@ -53,7 +53,6 @@ fn has_device_unified_mem() -> bool {
         }
     }
 
-    let device_idx = 1;
     min_cl::CLDevice::new(device_idx)
         .unwrap_or_else(|_| panic!("Could not get an OpenCL device (at index {device_idx}). Set `CUSTOS_CL_DEVICE_IDX` to a valid device index."))
         .unified_mem

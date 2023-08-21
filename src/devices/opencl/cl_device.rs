@@ -8,7 +8,7 @@ use super::{enqueue_kernel, AsClCvoidPtr, CLKernelCache, CLPtr};
 use crate::flag::AllocFlag;
 use crate::{
     impl_buffer_hook_traits, impl_retriever, Alloc, Base, Buffer, CloneBuf, Device, Error, HasCPU,
-    Module, OnDropBuffer, Setup, CPU,
+    Module, OnDropBuffer, Setup, CPU, CachedCPU, Cached,
 };
 use crate::{PtrConv, Shape};
 
@@ -39,18 +39,18 @@ pub struct OpenCL<Mods = Base> {
     /// The underlying OpenCL device.
     pub inner: CLDevice,
     /// A [`CPU`] used for unified memory device switching.
-    pub cpu: CPU, // TODO: this cpu does not cache buffers, which is a problem for construct_buffer (add #[cfg(unified_cl)])
+    pub cpu: CachedCPU, // TODO: this cpu does not cache buffers, which is a problem for construct_buffer (add #[cfg(unified_cl)])
 }
 
 /// Short form for `OpenCL`
 pub type CL = OpenCL;
 
-impl<Mods> HasCPU<Base> for OpenCL<Mods> {
+/*impl<Mods> HasCPU<Base> for OpenCL<Mods> {
     #[inline]
     fn cpu(&self) -> &crate::CPU {
         &self.cpu
     }
-}
+}*/
 
 impl_buffer_hook_traits!(OpenCL);
 impl_retriever!(OpenCL);
@@ -71,7 +71,7 @@ impl<SimpleMods> OpenCL<SimpleMods> {
             modules: SimpleMods::new(),
             inner,
             kernel_cache: Default::default(),
-            cpu: Default::default(),
+            cpu: CPU::<Cached<Base>>::new(),
         })
     }
 }
@@ -81,7 +81,7 @@ impl<Mods> OpenCL<Mods> {
     /// This cleans up any accumulated allocations.
     pub fn reset(&'static mut self) {
         self.kernel_cache = Default::default();
-        self.cpu = Default::default();
+        self.cpu = CPU::<Cached<Base>>::new();
     }
 
     /// Context of the OpenCL device.
@@ -283,7 +283,7 @@ impl<'a, T> CloneBuf<'a, T> for OpenCL {
 }
 
 #[cfg(unified_cl)]
-impl crate::MainMemory for OpenCL {
+impl<Mods: OnDropBuffer> crate::MainMemory for OpenCL<Mods> {
     #[inline]
     fn as_ptr<T, S: Shape>(ptr: &Self::Data<T, S>) -> *const T {
         ptr.host_ptr
@@ -297,7 +297,7 @@ impl crate::MainMemory for OpenCL {
 
 #[cfg(test)]
 mod tests {
-    use crate::{opencl::cl_device::CLDevice, Buffer, OpenCL};
+    use crate::{opencl::cl_device::CLDevice, Buffer, OpenCL, Base, Cached, CPU};
 
     #[test]
     fn test_multiplie_queues() -> crate::Result<()> {
@@ -305,7 +305,7 @@ mod tests {
         let cl = OpenCL {
             inner: device,
             kernel_cache: Default::default(),
-            cpu: Default::default(),
+            cpu: CPU::<Cached<Base>>::new(),
             modules: crate::Base,
         };
 
@@ -317,7 +317,7 @@ mod tests {
         let cl1 = OpenCL {
             inner: device,
             kernel_cache: Default::default(),
-            cpu: Default::default(),
+            cpu: CPU::<Cached<Base>>::new(),
             modules: crate::Base,
         };
 

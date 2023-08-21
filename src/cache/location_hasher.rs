@@ -41,6 +41,13 @@ pub struct HashLocation<'a> {
     pub col: u32,
 }
 
+impl<'a> HashLocation<'a> {
+    #[track_caller]
+    pub fn here() -> HashLocation<'static> {
+        Location::caller().into()
+    }
+}
+
 impl PartialEq for HashLocation<'_> {
     #[inline]
     fn eq(&self, other: &Self) -> bool {
