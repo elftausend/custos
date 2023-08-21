@@ -59,7 +59,7 @@ impl CLKernelCache {
 #[cfg(test)]
 mod tests {
     use super::CLKernelCache;
-    use crate::{OpenCL, Base};
+    use crate::{Base, OpenCL};
     use std::collections::HashMap;
 
     #[test]

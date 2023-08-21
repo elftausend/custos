@@ -21,7 +21,7 @@ use super::{Cached, CachedModule};
 
 #[derive(Debug, Default)]
 pub struct Autograd<Mods> {
-    modules: Mods,
+    pub modules: Mods,
     tape: RefCell<Tape>,
 }
 

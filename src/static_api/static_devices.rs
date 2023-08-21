@@ -1,5 +1,4 @@
-
-use crate::{CPU, Base};
+use crate::{Base, CPU};
 
 #[cfg(feature = "opencl")]
 use crate::opencl::chosen_cl_idx;

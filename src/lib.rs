@@ -89,7 +89,9 @@ pub mod devices;
 mod buffer;
 mod error;
 
+#[cfg(feature = "cached")]
 mod cache;
+
 mod device_traits;
 mod features;
 pub mod flag;
@@ -104,6 +106,7 @@ mod shape;
 mod two_way_ops;
 mod unary;
 
+#[cfg(feature = "cached")]
 pub use cache::*;
 pub use device_traits::*;
 pub use features::*;
@@ -174,19 +177,19 @@ pub trait MainMemory: Device {
     fn as_ptr_mut<T, S: Shape>(ptr: &mut Self::Data<T, S>) -> *mut T;
 }
 
-/// If the `autograd` feature is enabled, then this will be implemented for all types that implement [`TapeReturn`].
+/// If the `autograd` feature is enabled, then this will be implemented for all types that implement [`TapeActions`].
 /// On the other hand, if the `autograd` feature is disabled, no [`Tape`] will be returneable.
 #[cfg(feature = "autograd")]
-pub trait MayTapeReturn: crate::TapeReturn {}
+pub trait MayTapeActions: TapeActions {}
 #[cfg(feature = "autograd")]
-impl<D: crate::TapeReturn> MayTapeReturn for D {}
+impl<D: crate::TapeActions> MayTapeActions for D {}
 
 /// If the `autograd` feature is enabled, then this will be implemented for all types that implement [`TapeReturn`].
 /// On the other hand, if the `autograd` feature is disabled, no [`Tape`] will be returneable.
 #[cfg(not(feature = "autograd"))]
-pub trait MayTapeReturn {}
+pub trait MayTapeActions {}
 #[cfg(not(feature = "autograd"))]
-impl<D> MayTapeReturn for D {}
+impl<D: Device> MayTapeActions for D {}
 
 /// If the OpenCL device selected by the environment variable `CUSTOS_CL_DEVICE_IDX` supports unified memory, then this will be `true`.
 /// In your case, this is `false`.
@@ -230,8 +233,8 @@ pub mod prelude {
 
     pub use crate::{
         device_traits::*, features::*, modules::*, number::*, shape::*, Alloc, Buffer, CDatatype,
-        ClearBuf, CloneBuf, CopySlice, Device, MainMemory, MayTapeReturn, MayToCLSource, Read,
-        ShallowCopy, WithShape, WriteBuf,
+        ClearBuf, CloneBuf, CopySlice, Device, MainMemory, /* MayTapeReturn, */ MayToCLSource,
+        Read, ShallowCopy, WithShape, WriteBuf,
     };
 
     #[cfg(feature = "cpu")]

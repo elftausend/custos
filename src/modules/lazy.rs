@@ -10,7 +10,7 @@ use super::register_buf;
 
 #[derive(Default)]
 pub struct Lazy<Mods> {
-    mods: Mods,
+    pub modules: Mods,
     outs: RefCell<HashMap<UniqueId, Box<dyn Any>, BuildHasherDefault<NoHasher>>>,
     ops: RefCell<Vec<Box<dyn Fn(&mut dyn Any)>>>,
     out_ids: RefCell<Vec<Id>>,
@@ -20,7 +20,7 @@ pub struct Lazy<Mods> {
 impl<Mods: Debug> Debug for Lazy<Mods> {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         f.debug_struct("Lazy")
-            .field("mods", &self.mods)
+            .field("mods", &self.modules)
             .field("ops_count", &self.ops.borrow().len())
             .finish()
     }
@@ -36,7 +36,7 @@ impl<Mods: Module<D>, D: LazySetup> Module<D> for Lazy<Mods> {
     #[inline]
     fn new() -> Self::Module {
         Lazy {
-            mods: Mods::new(),
+            modules: Mods::new(),
             outs: Default::default(),
             ops: Default::default(),
             out_ids: Default::default(),
@@ -89,7 +89,7 @@ impl<Mods: OnDropBuffer> OnDropBuffer for Lazy<Mods> {
     #[inline]
     fn on_drop_buffer<'a, T, D: Device, S: Shape>(&self, device: &'a D, buf: &Buffer<T, D, S>) {
         super::unregister_buf(&mut self.outs.borrow_mut(), buf.id());
-        self.mods.on_drop_buffer(device, buf)
+        self.modules.on_drop_buffer(device, buf)
     }
 }
 
@@ -99,19 +99,19 @@ impl<T: 'static, D: Device + PtrConv + 'static, S: Shape, Mods: OnNewBuffer<T, D
     #[inline]
     fn on_new_buffer(&self, device: &D, new_buf: &Buffer<T, D, S>) {
         unsafe { super::register_buf(&mut self.outs.borrow_mut(), new_buf) };
-        self.mods.on_new_buffer(device, new_buf)
+        self.modules.on_new_buffer(device, new_buf)
     }
 }
 
 impl<Mods: TapeActions> TapeActions for Lazy<Mods> {
     #[inline]
     fn tape(&self) -> Option<core::cell::Ref<super::Tape>> {
-        self.mods.tape()
+        self.modules.tape()
     }
 
     #[inline]
     fn tape_mut(&self) -> Option<core::cell::RefMut<super::Tape>> {
-        self.mods.tape_mut()
+        self.modules.tape_mut()
     }
 }
 
@@ -127,7 +127,7 @@ impl<T: 'static, Mods: Retrieve<D, T>, D: PtrConv + 'static> Retrieve<D, T> for 
         S: Shape,
         D: Alloc<T>,
     {
-        self.mods.retrieve(device, len, parents)
+        self.modules.retrieve(device, len, parents)
     }
 
     #[inline]
@@ -138,7 +138,7 @@ impl<T: 'static, Mods: Retrieve<D, T>, D: PtrConv + 'static> Retrieve<D, T> for 
         unsafe { register_buf(&mut self.outs.borrow_mut(), retrieved_buf) };
 
         // pass down
-        self.mods.on_retrieve_finish(retrieved_buf)
+        self.modules.on_retrieve_finish(retrieved_buf)
     }
 }
 

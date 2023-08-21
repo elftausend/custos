@@ -27,11 +27,7 @@ use min_cl::api::release_mem_object;
 // pub use unified::*;
 
 //use self::api::release_mem_object;
-use crate::{
-    flag::AllocFlag,
-    HasId, Id,
-    Buffer, CommonPtrs, PtrType, ShallowCopy,
-};
+use crate::{flag::AllocFlag, Buffer, CommonPtrs, HasId, Id, PtrType, ShallowCopy};
 
 /// Another type for Buffer<'a, T, OpenCL, S>
 pub type CLBuffer<'a, T, S = ()> = Buffer<'a, T, OpenCL, S>;

@@ -1,4 +1,4 @@
-use crate::{Alloc, Buffer, Device, Read, OnNewBuffer};
+use crate::{Alloc, Buffer, Device, OnNewBuffer, Read};
 
 use super::{static_cpu, StaticDevice};
 

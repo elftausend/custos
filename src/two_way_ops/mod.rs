@@ -335,7 +335,7 @@ mod tests {
     #[cfg(feature = "opencl")]
     #[test]
     fn test_run_apply_fn_opencl() -> crate::Result<()> {
-        use crate::{ApplyFunction, Buffer, Combiner, OpenCL, Base};
+        use crate::{ApplyFunction, Base, Buffer, Combiner, OpenCL};
 
         let device = OpenCL::<Base>::new(0)?;
 
@@ -373,7 +373,7 @@ mod tests {
     #[cfg(feature = "opencl")]
     #[test]
     fn test_run_apply_fn_opencl_more_complex() -> crate::Result<()> {
-        use crate::{ApplyFunction, Buffer, OpenCL, Base};
+        use crate::{ApplyFunction, Base, Buffer, OpenCL};
 
         let device = OpenCL::<Base>::new(0)?;
 

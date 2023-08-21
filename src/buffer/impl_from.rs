@@ -1,6 +1,8 @@
 use core::ops::Range;
 
-use crate::{number::Number, shape::Shape, Alloc, Buffer, Device, OnNewBuffer, Retriever, OnDropBuffer};
+use crate::{
+    number::Number, shape::Shape, Alloc, Buffer, Device, OnDropBuffer, OnNewBuffer, Retriever,
+};
 
 #[cfg(feature = "cpu")]
 use crate::{WriteBuf, CPU};
@@ -162,7 +164,8 @@ where
 }
 
 #[cfg(feature = "cpu")]
-impl<'a, 'b, Mods: OnDropBuffer, T, S, D> From<(&'a D, Buffer<'b, T, CPU<Mods>, S>)> for Buffer<'a, T, D, S>
+impl<'a, 'b, Mods: OnDropBuffer, T, S, D> From<(&'a D, Buffer<'b, T, CPU<Mods>, S>)>
+    for Buffer<'a, T, D, S>
 where
     T: 'static,
     S: Shape,
@@ -195,7 +198,7 @@ mod tests {
     #[cfg(feature = "opencl")]
     #[test]
     fn test_buf_device_conversion_cl() -> crate::Result<()> {
-        use crate::{Buffer, OpenCL, Read, CPU, Base};
+        use crate::{Base, Buffer, OpenCL, Read, CPU};
 
         let device = OpenCL::<Base>::new(0)?;
 

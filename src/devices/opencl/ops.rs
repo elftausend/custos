@@ -7,7 +7,7 @@ use min_cl::api::{
 
 use crate::{
     bounds_to_range, prelude::Number, ApplyFunction, Buffer, CDatatype, ClearBuf, CopySlice,
-    Device, OpenCL, Read, Resolve, Shape, ToCLSource, ToMarker, UnaryGrad, WriteBuf, Retriever,
+    Device, OpenCL, Read, Resolve, Retriever, Shape, ToCLSource, ToMarker, UnaryGrad, WriteBuf,
 };
 
 use super::{enqueue_kernel, CLBuffer};
@@ -241,7 +241,7 @@ where
 mod test {
     use crate::{
         opencl::{try_cl_add_unary_grad, try_cl_apply_fn},
-        Buffer, Combiner, OpenCL, Base,
+        Base, Buffer, Combiner, OpenCL,
     };
 
     #[test]

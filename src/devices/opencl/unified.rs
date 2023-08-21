@@ -1,11 +1,54 @@
+use core::panic::Location;
 use std::{ffi::c_void, rc::Rc};
 
 #[cfg(not(feature = "realloc"))]
 use crate::{AllocFlag, DeviceError};
 
 use super::CLPtr;
-use crate::{Buffer, OpenCL, Shape, CPU};
+use crate::{
+    Base, Buffer, Cache, CachedModule, Device, HashLocation, OnDropBuffer, OpenCL, Shape,
+    UnifiedMemChain, CPU,
+};
 use min_cl::api::{create_buffer, MemFlags};
+
+impl<Mods: UnifiedMemChain<Self> + OnDropBuffer> UnifiedMemChain<Self> for OpenCL<Mods> {
+    #[inline]
+    fn construct_unified_buf_from_cpu_buf<'a, T, S: Shape>(
+        &self,
+        device: &'a Self,
+        no_drop_buf: Buffer<'a, T, crate::CPU, S>,
+    ) -> crate::Result<Buffer<'a, T, Self, S>> {
+        self.modules
+            .construct_unified_buf_from_cpu_buf(device, no_drop_buf)
+    }
+}
+
+impl<Mods> UnifiedMemChain<OpenCL> for CachedModule<Mods, OpenCL> {
+    #[inline]
+    fn construct_unified_buf_from_cpu_buf<'a, T, S: Shape>(
+        &self,
+        device: &'a OpenCL,
+        no_drop_buf: Buffer<'a, T, crate::CPU, S>,
+    ) -> crate::Result<Buffer<'a, T, OpenCL, S>> {
+        construct_buffer(
+            device,
+            no_drop_buf,
+            &mut self.cache.borrow_mut(),
+            Location::caller().into(),
+        )
+    }
+}
+
+impl<D: Device> UnifiedMemChain<D> for Base {
+    #[inline]
+    fn construct_unified_buf_from_cpu_buf<'a, T, S: Shape>(
+        &self,
+        _device: &'a D,
+        _no_drop_buf: Buffer<'a, T, crate::CPU, S>,
+    ) -> crate::Result<Buffer<'a, T, D, S>> {
+        Err(DeviceError::UnifiedConstructNotAvailable.into())
+    }
+}
 
 /// Returns an OpenCL pointer that is bound to the host pointer stored in the specified buffer.
 /// This function is used in the `constuct_buffer()` function.
@@ -14,6 +57,8 @@ use min_cl::api::{create_buffer, MemFlags};
 pub unsafe fn to_cached_unified<T, S: Shape>(
     device: &OpenCL,
     no_drop: Buffer<T, CPU, S>,
+    cache: &mut Cache<OpenCL>,
+    location: HashLocation<'static>,
 ) -> crate::Result<*mut c_void> {
     // use the host pointer to create an OpenCL buffer
     let cl_ptr = create_buffer(
@@ -23,8 +68,8 @@ pub unsafe fn to_cached_unified<T, S: Shape>(
         Some(&no_drop),
     )?;
 
-    let old_ptr = device.addons.cache.borrow_mut().nodes.insert(
-        Ident::new(no_drop.len()),
+    let old_ptr = cache.nodes.insert(
+        location,
         Rc::new(CLPtr {
             ptr: cl_ptr,
             host_ptr: no_drop.host_ptr() as *mut u8,
@@ -66,21 +111,17 @@ pub unsafe fn to_cached_unified<T, S: Shape>(
 pub fn construct_buffer<'a, T, S: Shape>(
     device: &'a OpenCL,
     mut no_drop: Buffer<'a, T, CPU, S>,
+    cache: &mut Cache<OpenCL>,
+    location: HashLocation<'static>,
 ) -> crate::Result<Buffer<'a, T, OpenCL, S>> {
     use crate::PtrType;
 
     if no_drop.data.flag() == AllocFlag::None {
-        return Err(DeviceError::ConstructError.into());
+        return Err(DeviceError::UnifiedConstructInvalidInputBuffer.into());
     }
 
     // if buffer was already converted, return the cache entry.
-    if let Some(rawcl) = device
-        .addons
-        .cache
-        .borrow()
-        .nodes
-        .get(&Ident::new(no_drop.len()))
-    {
+    if let Some(rawcl) = cache.nodes.get(&location) {
         return Ok(Buffer {
             data: CLPtr {
                 ptr: rawcl.ptr,
@@ -92,8 +133,7 @@ pub fn construct_buffer<'a, T, S: Shape>(
         });
     }
     let (host_ptr, len) = (no_drop.host_ptr_mut(), no_drop.len());
-    let ptr = unsafe { to_cached_unified(device, no_drop)? };
-
+    let ptr = unsafe { to_cached_unified(device, no_drop, cache, location)? };
 
     Ok(Buffer {
         data: CLPtr {

@@ -3,7 +3,7 @@ use std::{collections::HashMap, ffi::c_void};
 
 use super::{
     api::{cuOccupancyMaxPotentialBlockSize, culaunch_kernel, FnHandle, Module, Stream},
-    fn_cache, CUKernelCache, CudaSource, CUDAPtr,
+    fn_cache, CUDAPtr, CUKernelCache, CudaSource,
 };
 
 /// Converts `Self` to a (cuda) *mut c_void.

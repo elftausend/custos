@@ -4,9 +4,12 @@ use min_cl::api::{
     create_buffer, enqueue_full_copy_buffer, CLIntDevice, CommandQueue, Context, MemFlags,
 };
 
-use super::{enqueue_kernel, AsClCvoidPtr, CLPtr, CLKernelCache};
+use super::{enqueue_kernel, AsClCvoidPtr, CLKernelCache, CLPtr};
 use crate::flag::AllocFlag;
-use crate::{Alloc, Buffer, CloneBuf, Device, Error, CPU, Base, Module, Setup, OnDropBuffer, impl_buffer_hook_traits, impl_retriever};
+use crate::{
+    impl_buffer_hook_traits, impl_retriever, Alloc, Base, Buffer, CloneBuf, Device, Error, HasCPU,
+    Module, OnDropBuffer, Setup, CPU,
+};
 use crate::{PtrConv, Shape};
 
 use std::{cell::RefCell, fmt::Debug};
@@ -41,6 +44,13 @@ pub struct OpenCL<Mods = Base> {
 
 /// Short form for `OpenCL`
 pub type CL = OpenCL;
+
+impl<Mods> HasCPU<Base> for OpenCL<Mods> {
+    #[inline]
+    fn cpu(&self) -> &crate::CPU {
+        &self.cpu
+    }
+}
 
 impl_buffer_hook_traits!(OpenCL);
 impl_retriever!(OpenCL);
@@ -177,7 +187,6 @@ impl<Mods: OnDropBuffer> Device for OpenCL<Mods> {
         // OpenCL::<Base>::new(chosen_cl_idx())
     }
 }
-
 
 impl<Mods: OnDropBuffer> PtrConv for OpenCL<Mods> {
     #[inline]

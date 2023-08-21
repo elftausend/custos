@@ -38,7 +38,9 @@ pub type Result<T> = core::result::Result<T, Error>;
 #[derive(Clone, Copy, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub enum DeviceError {
     /// Only a non-drop buffer can be converted to a CPU+OpenCL buffer.
-    ConstructError,
+    UnifiedConstructInvalidInputBuffer,
+    /// Unified construction is not available for the provided modules. Add the [`Cached`](custos::Cached) module to your device.
+    UnifiedConstructNotAvailable,
     /// Only a CPU Buffer can be converted to a CUDA Buffer
     CPUtoCUDA,
     /// This graph can't be optimized. This indicates a bug in custos.
@@ -55,7 +57,7 @@ impl DeviceError {
     /// Returns a string slice containing the error message.
     pub fn as_str(&self) -> &'static str {
         match self {
-            DeviceError::ConstructError => {
+            DeviceError::UnifiedConstructInvalidInputBuffer => {
                 "Only a non-drop buffer can be converted to a CPU+OpenCL buffer."
             }
             DeviceError::CPUtoCUDA => "Only a CPU Buffer can be converted to a CUDA Buffer",
@@ -67,6 +69,7 @@ impl DeviceError {
             DeviceError::CPUDeviceNotAvailable => {
                 "The 'cpu' feature is disabled. Hence this CPU can't be created."
             }
+            DeviceError::UnifiedConstructNotAvailable => "Unified construction is not available for the provided modules. Add the `Cached` module to your device",
         }
     }
 }

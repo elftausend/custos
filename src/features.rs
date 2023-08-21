@@ -3,7 +3,7 @@ use core::{
     cell::{Ref, RefMut},
 };
 
-use crate::{Parents, Shape};
+use crate::{DeviceError, OpenCL, Parents, Shape};
 
 use super::{Alloc, Buffer, Device, OnDropBuffer};
 
@@ -42,6 +42,7 @@ pub trait HasModules<Mods> {
     fn modules(&self) -> &Mods;
 }
 
+#[cfg(feature = "autograd")]
 pub trait TapeActions {
     // "generator" - do not forget to pass down
     #[inline]
@@ -89,3 +90,48 @@ pub trait AddOperation {
     );
     fn call_lazily(&self) {}
 }
+
+pub trait HasCPU<Mods> {
+    fn cpu(&self) -> &crate::CPU<Mods>;
+}
+
+pub trait UnifiedMemChain<D: Device> {
+    #[track_caller]
+    fn construct_unified_buf_from_cpu_buf<'a, T, S: Shape>(
+        &self,
+        device: &'a D,
+        no_drop_buf: Buffer<'a, T, crate::CPU, S>,
+    ) -> crate::Result<Buffer<'a, T, D, S>>;
+}
+
+#[macro_export]
+macro_rules! impl_unified_mem_chain {
+    ($($to_impl:ident),*) => {
+        $(
+            #[cfg(feature = "autograd")]
+            impl<Mods: UnifiedMemChain<D>, D: Device> UnifiedMemChain<D> for $to_impl<Mods> {
+                fn construct_unified_buf_from_cpu_buf<'a, T, S: Shape>(
+                    &self,
+                    device: &'a D,
+                    no_drop_buf: Buffer<'a, T, crate::CPU, S>
+                ) -> crate::Result<Buffer<'a, T, D, S>>
+                {
+                    self.modules.construct_unified_buf_from_cpu_buf(device, no_drop_buf)
+                }
+            }
+
+        )*
+    };
+}
+
+#[cfg(feature = "lazy")]
+use crate::Lazy;
+
+#[cfg(feature = "lazy")]
+impl_unified_mem_chain!(Lazy);
+
+#[cfg(feature = "autograd")]
+use crate::Autograd;
+
+#[cfg(feature = "autograd")]
+impl_unified_mem_chain!(Autograd);

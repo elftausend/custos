@@ -1,4 +1,4 @@
-use crate::{Alloc, Buffer, Device, Eval, MayTapeReturn, MayToCLSource, Resolve, Shape};
+use crate::{Alloc, Buffer, Device, Eval, MayToCLSource, Resolve, Shape};
 
 /// Applies a function to a buffer and returns a new buffer.
 pub trait ApplyFunction<T, S: Shape = (), D: Device = Self>: Device {
@@ -99,7 +99,7 @@ pub trait UnaryElementWiseMayGrad<T, D: Device, S: Shape>: Device {
         FO: Eval<T> + MayToCLSource,
         GO: Eval<T> + MayToCLSource + 'static;
 }
-
+/*
 impl<T, D, S> UnaryElementWiseMayGrad<T, D, S> for D
 where
     T: 'static,
@@ -132,3 +132,4 @@ where
         out
     }
 }
+*/

@@ -44,7 +44,7 @@ fn test_questionmark() -> Result<(), Box<dyn std::error::Error + Sync + Send>> {
 #[cfg(not(feature = "no-std"))]
 #[test]
 fn test_print_error() {
-    let err = Error::from(DeviceError::ConstructError);
+    let err = Error::from(DeviceError::UnifiedConstructInvalidInputBuffer);
     assert_eq!(
         "Only a non-drop buffer can be converted to a CPU+OpenCL buffer.",
         &format!("{err}")
@@ -58,10 +58,10 @@ fn test_print_error() {
 #[cfg(not(feature = "no-std"))]
 #[test]
 fn test_std_err() {
-    let err = Error::from(DeviceError::ConstructError);
+    let err = Error::from(DeviceError::UnifiedConstructInvalidInputBuffer);
     assert_eq!(
         err.downcast_ref::<DeviceError>(),
-        Some(&DeviceError::ConstructError)
+        Some(&DeviceError::UnifiedConstructInvalidInputBuffer)
     );
 }
 

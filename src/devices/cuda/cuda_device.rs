@@ -11,7 +11,7 @@ use crate::{
         launch_kernel1d, AsCudaCvoidPtr, CUDAPtr, CUKernelCache, CudaSource,
     },
     flag::AllocFlag,
-    impl_buffer_hook_traits, impl_retriever, Alloc, Base, Buffer, CloneBuf, Device, LazySetup,
+    impl_buffer_hook_traits, impl_retriever, Alloc, Base, Buffer, CloneBuf, Device,
     Module as CombModule, OnDropBuffer, OnNewBuffer, PtrConv, Setup, Shape,
 };
 
@@ -162,7 +162,8 @@ impl<Mods: OnDropBuffer, T> Alloc<T> for CUDA<Mods> {
 
 impl<Mods: OnDropBuffer> IsCuda for CUDA<Mods> {}
 
-impl<Mods> LazySetup for CUDA<Mods> {
+#[cfg(feature = "lazy")]
+impl<Mods> crate::LazySetup for CUDA<Mods> {
     #[inline]
     fn lazy_setup(&mut self) {
         // switch to stream record mode for graph

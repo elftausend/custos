@@ -37,7 +37,7 @@ impl<Mods> OnDropBuffer for Cached<Mods> {}
 
 pub struct CachedModule<Mods, D: Device> {
     pub modules: Mods,
-    cache: RefCell<Cache<D>>,
+    pub cache: RefCell<Cache<D>>,
 }
 
 impl<Mods: Setup<NewDev>, D: Device, NewDev> Setup<NewDev> for CachedModule<Mods, D> {

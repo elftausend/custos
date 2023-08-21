@@ -2,7 +2,7 @@ use core::any::Any;
 
 use crate::{
     flag::AllocFlag, AddOperation, Alloc, Buffer, Device, Module, OnDropBuffer, OnNewBuffer,
-    Parents, Retrieve, Setup, Shape, TapeActions,
+    Parents, Retrieve, Setup, Shape,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
@@ -56,4 +56,5 @@ impl<D, T> Retrieve<D, T> for Base {
     }
 }
 
-impl TapeActions for Base {}
+#[cfg(feature = "autograd")]
+impl crate::TapeActions for Base {}

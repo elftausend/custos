@@ -2,8 +2,8 @@ use core::convert::Infallible;
 
 use crate::{
     cpu::CPUPtr, flag::AllocFlag, impl_buffer_hook_traits, impl_retriever, Alloc, Base, Buffer,
-    Cached, CachedModule, CloneBuf, Device, DevicelessAble, HasModules, LazySetup, MainMemory,
-    Module, OnDropBuffer, OnNewBuffer, Setup, Shape, TapeActions,
+    Cached, CachedModule, CloneBuf, Device, DevicelessAble, HasModules, MainMemory, Module,
+    OnDropBuffer, OnNewBuffer, Setup, Shape, TapeActions,
 };
 
 pub trait IsCPU {}
@@ -138,7 +138,8 @@ impl<Mods: TapeActions> TapeActions for CPU<Mods> {
     }
 }
 
-impl<Mods> LazySetup for CPU<Mods> {}
+#[cfg(feature = "lazy")]
+impl<Mods> crate::LazySetup for CPU<Mods> {}
 
 impl<'a, Mods: OnDropBuffer + OnNewBuffer<T, Self, S>, T: Clone, S: Shape> CloneBuf<'a, T, S>
     for CPU<Mods>
