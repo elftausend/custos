@@ -441,7 +441,7 @@ impl<'a, Mods: OnDropBuffer, T, S: Shape> Buffer<'a, T, CPU<Mods>, S> {
 }
 
 #[cfg(feature = "opencl")]
-impl<'a, T, S: Shape> Buffer<'a, T, crate::OpenCL, S> {
+impl<'a, Mods: OnDropBuffer, T, S: Shape> Buffer<'a, T, crate::OpenCL<Mods>, S> {
     /// Returns the OpenCL pointer of the `Buffer`.
     #[inline]
     pub fn cl_ptr(&self) -> *mut c_void {

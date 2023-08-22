@@ -6,8 +6,7 @@ use min_cl::api::{
 };
 
 use crate::{
-    bounds_to_range, prelude::Number, ApplyFunction, Buffer, CDatatype, ClearBuf, CopySlice,
-    Device, OpenCL, Read, Resolve, Retriever, Shape, ToCLSource, ToMarker, UnaryGrad, WriteBuf,
+    bounds_to_range, prelude::Number, ApplyFunction, Buffer, CDatatype, ClearBuf, CopySlice, OpenCL, Read, Resolve, Retriever, Shape, ToCLSource, ToMarker, UnaryGrad, WriteBuf, OnDropBuffer,
 };
 
 use super::{enqueue_kernel, CLBuffer};
@@ -111,7 +110,7 @@ impl<T> CopySlice<T> for OpenCL {
     }
 }
 
-impl<T: Clone + Default, S: Shape> Read<T, S> for OpenCL {
+impl<Mods: OnDropBuffer + 'static, T: Clone + Default, S: Shape> Read<T, S> for OpenCL<Mods> {
     #[cfg(not(unified_cl))]
     type Read<'a> = Vec<T> where T: 'a;
     #[cfg(unified_cl)]
@@ -124,19 +123,19 @@ impl<T: Clone + Default, S: Shape> Read<T, S> for OpenCL {
 
     #[cfg(unified_cl)]
     #[inline]
-    fn read<'a>(&self, buf: &'a Buffer<T, OpenCL, S>) -> Self::Read<'a> {
+    fn read<'a>(&self, buf: &'a Buffer<T, Self, S>) -> Self::Read<'a> {
         buf.as_slice()
     }
 
     #[inline]
-    fn read_to_vec(&self, buf: &Buffer<T, OpenCL, S>) -> Vec<T> {
+    fn read_to_vec(&self, buf: &Buffer<T, Self, S>) -> Vec<T> {
         try_read_cl_buf_to_vec(self, buf).unwrap()
     }
 }
 
-fn try_read_cl_buf_to_vec<T: Clone + Default, S: Shape>(
-    device: &OpenCL,
-    buf: &Buffer<T, OpenCL, S>,
+fn try_read_cl_buf_to_vec<Mods: OnDropBuffer, T: Clone + Default, S: Shape>(
+    device: &OpenCL<Mods>,
+    buf: &Buffer<T, OpenCL<Mods>, S>,
 ) -> crate::Result<Vec<T>> {
     let mut read = vec![T::default(); buf.len()];
     let event = unsafe { enqueue_read_buffer(device.queue(), buf.cl_ptr(), &mut read, false)? };

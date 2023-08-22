@@ -1,4 +1,4 @@
-use custos::{Buffer, OpenCL};
+use custos::{Buffer, OpenCL, Base};
 
 fn main() -> custos::Result<()> {
     let device = OpenCL::<Base>::new(0)?;

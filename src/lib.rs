@@ -234,7 +234,7 @@ pub mod prelude {
     pub use crate::{
         device_traits::*, features::*, modules::*, number::*, shape::*, Alloc, Buffer, CDatatype,
         ClearBuf, CloneBuf, CopySlice, Device, MainMemory, /* MayTapeReturn, */ MayToCLSource,
-        Read, ShallowCopy, WithShape, WriteBuf,
+        Read, ShallowCopy, WithShape, WriteBuf, Error
     };
 
     #[cfg(feature = "cpu")]

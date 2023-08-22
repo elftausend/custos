@@ -1,5 +1,5 @@
 #![allow(unused)]
-use custos::{cache::Cache, range, set_count, Buffer, Error, OpenCL, Read, CPU};
+use custos::{Buffer, Error, OpenCL, Read, CPU};
 
 use min_cl::api::{clCreateBuffer, enqueue_map_buffer, CommandQueue, MemFlags, OCLErrorKind};
 
@@ -31,6 +31,8 @@ pub fn unified_ptr<T>(cq: &CommandQueue, ptr: *mut c_void, len: usize) -> Result
 #[cfg(feature = "opencl")]
 #[test]
 fn test_unified_mem_bool() -> Result<(), Error> {
+    use custos::Base;
+
     let device = OpenCL::<Base>::new(0)?;
     let um = device.unified_mem();
     println!("um: {um}");
@@ -43,6 +45,7 @@ fn test_unified_mem() -> Result<(), Error> {
     const TIMES: usize = 10000;
     use std::time::Instant;
 
+    use custos::Base;
     use min_cl::api::{create_buffer, release_mem_object, MemFlags};
 
     let len = 20000;
@@ -183,53 +186,3 @@ fn test_unified_mem_iterate() -> custos::Result<()> {
     Ok(())
 }*/
 
-#[cfg(unified_cl)]
-#[cfg(not(feature = "realloc"))]
-#[test]
-fn test_cpu_to_unified() -> custos::Result<()> {
-    use custos::{bump_count, Device, Ident};
-
-    let device = CPU::<Base>::new();
-
-    let mut buf = device.retrieve::<i32, ()>(6, ());
-    buf.copy_from_slice(&[1, 2, 3, 4, 5, 6]);
-
-    let cl_dev = OpenCL::<Base>::new(0)?;
-    let cl_cpu_buf = unsafe { custos::opencl::construct_buffer(&cl_dev, buf, ())? };
-
-    assert_eq!(cl_cpu_buf.as_slice(), &[1, 2, 3, 4, 5, 6]);
-    assert_eq!(cl_cpu_buf.read(), &[1, 2, 3, 4, 5, 6]);
-
-    Ok(())
-}
-
-#[cfg(unified_cl)]
-#[cfg(not(feature = "realloc"))]
-#[test]
-fn test_cpu_to_unified_perf() -> custos::Result<()> {
-    use std::time::Instant;
-
-    use custos::{bump_count, Device, Ident};
-
-    let cl_dev = OpenCL::<Base>::new(0)?;
-    let device = CPU::<Base>::new();
-
-    let mut dur = 0.;
-
-    for _ in range(100) {
-        let mut buf = device.retrieve::<i32, ()>(6, ());
-
-        buf.copy_from_slice(&[1, 2, 3, 4, 5, 6]);
-
-        let start = Instant::now();
-        let cl_cpu_buf = unsafe { custos::opencl::construct_buffer(&cl_dev, buf, ())? };
-        dur += start.elapsed().as_secs_f64();
-
-        assert_eq!(cl_cpu_buf.as_slice(), &[1, 2, 3, 4, 5, 6]);
-        assert_eq!(cl_cpu_buf.read(), &[1, 2, 3, 4, 5, 6]);
-    }
-
-    println!("duration: {dur}");
-
-    Ok(())
-}

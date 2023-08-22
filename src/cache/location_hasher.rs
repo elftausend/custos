@@ -43,6 +43,7 @@ pub struct HashLocation<'a> {
 
 impl<'a> HashLocation<'a> {
     #[track_caller]
+    #[inline]
     pub fn here() -> HashLocation<'static> {
         Location::caller().into()
     }

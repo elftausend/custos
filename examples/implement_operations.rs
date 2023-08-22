@@ -1,4 +1,4 @@
-use custos::{prelude::*, OnDropBuffer};
+use custos::prelude::*;
 
 /// `AddBuf` will be implemented for all compute devices.<br>
 /// Because of `S: Shape`, this trait can be implemented for [`Stack`], which uses fixed size stack allocated arrays.<br>
@@ -78,12 +78,12 @@ where
         ", datatype=T::C_DTYPE_STR);
 
         let len = std::cmp::min(lhs.len(), rhs.len());
-        let out = self.retrieve::<T, ()>(len, (lhs, rhs));
+        let out = self.retrieve(len, (lhs, rhs));
 
         // In the background, the kernel is compiled once. After that, it will be reused for every iteration.
         // The cached kernels are released (or freed) when the underlying OpenCL device is dropped.
         // The arguments are specified with a slice of buffers and/or numbers.
-        self.launch_kernel(&src, [len, 0, 0], None, &[&lhs, &rhs, &out])
+        self.launch_kernel(&src, [len, 0, 0], None, &[&lhs, &rhs, &out.data])
             .unwrap();
         out
     }

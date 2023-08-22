@@ -266,6 +266,37 @@ mod tests {
         Ok(())
     }
 
+    #[cfg(unified_cl)]
+    #[test]
+    fn test_cpu_to_unified_is_reusing_converted_buf() -> crate::Result<()> {
+        use std::time::Instant;
+
+        use crate::{Base, Retriever, Cached, HashLocation};
+
+        let cl_dev = OpenCL::<Cached<Base>>::new(0)?;
+        let device = CPU::<Cached<Base>>::new();
+
+        let mut dur = 0.;
+
+        for _ in 0..100 {
+            let mut buf = device.retrieve::<(), 0>(6, ());
+
+            buf.copy_from_slice(&[1, 2, 3, 4, 5, 6]);
+
+            let start = Instant::now();
+            let cl_cpu_buf = construct_buffer(&cl_dev, buf, &mut cl_dev.modules.cache.borrow_mut().nodes,HashLocation::here())?;
+            dur += start.elapsed().as_secs_f64();
+
+            assert_eq!(cl_cpu_buf.as_slice(), &[1, 2, 3, 4, 5, 6]);
+            assert_eq!(cl_cpu_buf.read(), &[1, 2, 3, 4, 5, 6]);
+            assert_eq!(cl_dev.modules.cache.borrow().nodes.len(), 1)
+        }
+
+        println!("duration: {dur}");
+
+        Ok(())
+    }
+
     // improved lifetime annotation rendered this test useless
     /*#[cfg(unified_cl)]
     #[cfg(not(feature = "realloc"))]

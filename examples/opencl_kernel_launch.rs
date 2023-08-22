@@ -1,4 +1,4 @@
-use custos::{opencl::enqueue_kernel, Buffer, CDatatype, Device, Error, OpenCL};
+use custos::{opencl::enqueue_kernel, Buffer, CDatatype, Error, OpenCL, Base, Retriever};
 
 fn main() -> Result<(), Error> {
     let device = OpenCL::<Base>::new(0)?;
@@ -15,7 +15,7 @@ fn main() -> Result<(), Error> {
 
     let gws = [lhs.len(), 0, 0];
 
-    let out = device.retrieve::<i32, ()>(lhs.len(), (&lhs, &rhs));
+    let out: Buffer<'_, i32, OpenCL> = device.retrieve::<(), 2>(lhs.len(), (&lhs, &rhs));
     enqueue_kernel(&device, &src, gws, None, &[&lhs, &rhs, &out])?;
     assert_eq!(out.read(), vec![-1, -1, -1, -1, -1, -1]);
     Ok(())
