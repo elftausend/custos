@@ -80,14 +80,15 @@ pub use devices::network::Network;
 
 pub use unary::*;
 
-#[cfg(feature = "cpu")]
-#[macro_use]
-pub mod exec_on_cpu;
+// #[cfg(feature = "cpu")]
+// #[macro_use]
+// pub mod exec_on_cpu;
 
 pub mod devices;
 
 mod buffer;
 mod error;
+mod backend;
 
 #[cfg(feature = "cached")]
 mod cache;
@@ -237,8 +238,8 @@ pub mod prelude {
         /* MayTapeReturn, */ MayToCLSource, Read, ShallowCopy, WithShape, WriteBuf,
     };
 
-    #[cfg(feature = "cpu")]
-    pub use crate::{exec_on_cpu::*, CPU};
+    // #[cfg(feature = "cpu")]
+    // pub use crate::{exec_on_cpu::*, CPU};
 
     // TODO
     // #[cfg(not(feature = "no-std"))]

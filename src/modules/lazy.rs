@@ -103,14 +103,14 @@ impl<T: 'static, D: Device + PtrConv + 'static, S: Shape, Mods: OnNewBuffer<T, D
     }
 }
 
-impl<Mods: TapeActions> TapeActions for Lazy<Mods> {
+impl<Mods: TapeActions<D>, D> TapeActions<D> for Lazy<Mods> {
     #[inline]
-    fn tape(&self) -> Option<core::cell::Ref<super::Tape>> {
+    fn tape(&self) -> Option<core::cell::Ref<super::Tape<D>>> {
         self.modules.tape()
     }
 
     #[inline]
-    fn tape_mut(&self) -> Option<core::cell::RefMut<super::Tape>> {
+    fn tape_mut(&self) -> Option<core::cell::RefMut<super::Tape<D>>> {
         self.modules.tape_mut()
     }
 }

@@ -184,10 +184,12 @@ mod tests {
     use crate::{location, Base, Buffer, Retrieve, Retriever, CPU};
 
     use super::Cached;
+    use crate::backend::Backend;
 
     // forgot to add track_caller
     #[cfg(debug_assertions)]
-    fn add_bufs<Mods: Retrieve<CPU<Mods>, f32>>(device: &CPU<Mods>) -> Buffer<f32, CPU<Mods>, ()> {
+    fn add_bufs<Mods: Retrieve<Backend<CPU, Mods>, f32>>(device: &Backend<CPU, Mods>) -> Buffer<f32, CPU<Mods>, ()> {
+
         retrieve!(device, 10, ())
     }
 

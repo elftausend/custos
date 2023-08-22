@@ -8,7 +8,7 @@ use crate::{
     OnDropBuffer, Operation, Read, Retriever, Shape, TapeActions, WriteBuf, CPU,
 };
 
-impl<Mods, T, S, D> crate::ApplyFunctionLazyTest<T, S, D> for CPU<Mods>
+/*impl<Mods, T, S, D> crate::ApplyFunctionLazyTest<T, S, D> for CPU<Mods>
 where
     Mods: crate::Retrieve<Self, T> + TapeActions<D> + AddOperation + 'static,
     T: Copy + Default + crate::ToVal + 'static,
@@ -43,9 +43,9 @@ where
         }
         out
     }
-}
+}*/
 
-impl<Mods: AddOperation> AddOperation for CPU<Mods> {
+/*impl<Mods: AddOperation> AddOperation for CPU<Mods> {
     #[inline]
     unsafe fn add_operation<T: 'static, D: Device + 'static, S: Shape>(
         &self,
@@ -64,9 +64,9 @@ impl<Mods: AddOperation> AddOperation for CPU<Mods> {
     fn call_lazily(&self) {
         self.modules.call_lazily()
     }
-}
+}*/
 
-impl<Mods: OnDropBuffer, T, D: MainMemory, S: Shape> Read<T, S, D> for CPU<Mods> {
+impl<T, D: MainMemory, S: Shape> Read<T, S, D> for CPU {
     type Read<'a> = &'a [T] where T: 'a, D: 'a, S: 'a;
 
     #[inline]
@@ -83,7 +83,7 @@ impl<Mods: OnDropBuffer, T, D: MainMemory, S: Shape> Read<T, S, D> for CPU<Mods>
     }
 }
 
-impl<Mods: OnDropBuffer, T: Copy, D: MainMemory, S: Shape> WriteBuf<T, S, D> for CPU<Mods> {
+impl<T: Copy, D: MainMemory, S: Shape> WriteBuf<T, S, D> for CPU {
     #[inline]
     fn write(&self, buf: &mut Buffer<T, D, S>, data: &[T]) {
         buf.copy_from_slice(data)
@@ -104,7 +104,7 @@ impl<Mods: OnDropBuffer, T: Default, D: MainMemory, S: Shape> ClearBuf<T, S, D> 
     }
 }
 
-impl<Mods: OnDropBuffer, T: Copy, D: MainMemory> CopySlice<T, D> for CPU<Mods>
+impl<T: Copy, D: MainMemory> CopySlice<T, D> for CPU
 where
     [T]: Index<Range<usize>, Output = [T]>,
 {

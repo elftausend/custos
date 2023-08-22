@@ -37,11 +37,12 @@ where
     where
         F: Eval<T> + MayToCLSource,
     {
-        let mut out = self.retrieve(buf.len(), buf);
+        todo!()
+        /*let mut out = self.retrieve(buf.len(), buf);
 
         apply_fn_slice(buf, &mut out, f);
 
-        out
+        out*/
     }
 }
 

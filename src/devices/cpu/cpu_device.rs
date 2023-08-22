@@ -1,9 +1,9 @@
-use core::convert::Infallible;
+use core::{convert::Infallible, marker::PhantomData};
 
 use crate::{
     cpu::CPUPtr, flag::AllocFlag, impl_buffer_hook_traits, impl_retriever, Alloc, Base, Buffer,
     Cached, CachedModule, CloneBuf, Device, DevicelessAble, HasModules, MainMemory, Module,
-    OnDropBuffer, OnNewBuffer, Setup, Shape, TapeActions,
+    OnDropBuffer, OnNewBuffer, Setup, Shape, TapeActions, backend::Backend,
 };
 
 pub trait IsCPU {}
@@ -24,23 +24,23 @@ pub trait IsCPU {}
 /// assert_eq!(out, vec![1, 2, 3]);
 /// ```
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
-pub struct CPU<Mods = Base> {
-    pub modules: Mods,
+pub struct CPU<Mods = ()> {
+    pub _mods: PhantomData<Mods>,
 }
 
-impl_retriever!(CPU);
-impl_buffer_hook_traits!(CPU);
+// impl_retriever!(CPU);
+// impl_buffer_hook_traits!(CPU);
 
 impl<Mods> IsCPU for CPU<Mods> {}
 
 // maybe
-impl<Mods: OnDropBuffer> CPU<Mods> {
+/*impl<Mods: OnDropBuffer> CPU<Mods> {
     pub fn default() -> CPU<CachedModule<Base, CPU<Cached<Base>>>> {
         CPU::<Cached<Base>>::new()
     }
-}
+}*/
 
-impl<Mods: OnDropBuffer> Device for CPU<Mods> {
+impl<Mods> Device for CPU<Mods> {
     type Error = Infallible;
     type Data<T, S: Shape> = CPUPtr<T>;
 
@@ -50,9 +50,13 @@ impl<Mods: OnDropBuffer> Device for CPU<Mods> {
     }
 }
 
-impl<T, S: Shape> DevicelessAble<'_, T, S> for CPU<Base> {}
+impl<Mods> OnDropBuffer for CPU<Mods> {}
+impl<Mods, T, D: Device, S: Shape> OnNewBuffer<T, D, S> for CPU<Mods> {}
 
-impl<Mods: OnDropBuffer> MainMemory for CPU<Mods> {
+impl<T, S: Shape> DevicelessAble<'_, T, S> for CPU {}
+
+// for Backend<CPU, Mods>?
+impl<Mods> MainMemory for CPU<Mods> {
     #[inline]
     fn as_ptr<T, S: Shape>(ptr: &Self::Data<T, S>) -> *const T {
         ptr.ptr
@@ -64,29 +68,23 @@ impl<Mods: OnDropBuffer> MainMemory for CPU<Mods> {
     }
 }
 
-impl<Mods> HasModules<Mods> for CPU<Mods> {
-    #[inline]
-    fn modules(&self) -> &Mods {
-        &self.modules
-    }
-}
 
 impl<SimpleMods> CPU<SimpleMods> {
-    #[inline]
-    pub fn new<NewMods>() -> CPU<NewMods>
+    pub fn new<NewMods>() -> Backend<CPU, NewMods> 
     where
-        SimpleMods: Module<CPU<SimpleMods>, Module = NewMods>,
-        NewMods: Setup<CPU<NewMods>>,
+        SimpleMods: Module<CPU, Module = NewMods>,
+        NewMods: Setup<CPU>,
     {
-        let mut cpu = CPU {
+        let mut cpu = Backend {
             modules: SimpleMods::new(),
+            device: CPU::default() 
         };
-        NewMods::setup(&mut cpu);
+        NewMods::setup(&mut cpu.device);
         cpu
     }
 }
 
-impl<T, Mods: OnDropBuffer> Alloc<T> for CPU<Mods> {
+impl<T> Alloc<T> for CPU {
     fn alloc<S: Shape>(&self, mut len: usize, flag: AllocFlag) -> Self::Data<T, S> {
         assert!(len > 0, "invalid buffer len: 0");
 
@@ -126,7 +124,7 @@ impl<T, Mods: OnDropBuffer> Alloc<T> for CPU<Mods> {
     }
 }
 
-impl<Mods: TapeActions<D>, D> TapeActions<D> for CPU<Mods> {
+/*impl<Mods: TapeActions<D>, D> TapeActions<D> for CPU<Mods> {
     #[inline]
     fn tape(&self) -> Option<core::cell::Ref<crate::Tape<D>>> {
         self.modules.tape()
@@ -136,16 +134,16 @@ impl<Mods: TapeActions<D>, D> TapeActions<D> for CPU<Mods> {
     fn tape_mut(&self) -> Option<core::cell::RefMut<crate::Tape<D>>> {
         self.modules.tape_mut()
     }
-}
+}*/
 
 #[cfg(feature = "lazy")]
 impl<Mods> crate::LazySetup for CPU<Mods> {}
 
-impl<'a, Mods: OnDropBuffer + OnNewBuffer<T, Self, S>, T: Clone, S: Shape> CloneBuf<'a, T, S>
-    for CPU<Mods>
+impl<'a, /*Mods: OnDropBuffer + OnNewBuffer<T, Self, S>,*/ T: Clone, S: Shape> CloneBuf<'a, T, S>
+    for CPU
 {
     #[inline]
-    fn clone_buf(&'a self, buf: &Buffer<'a, T, CPU<Mods>, S>) -> Buffer<'a, T, CPU<Mods>, S> {
+    fn clone_buf(&'a self, buf: &Buffer<'a, T, CPU, S>) -> Buffer<'a, T, CPU, S> {
         let mut cloned = Buffer::new(self, buf.len());
         cloned.clone_from_slice(buf);
         cloned

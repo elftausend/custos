@@ -131,7 +131,7 @@ impl<Mods: Setup<NewDev>, NewDev, D> Setup<NewDev> for AutogradModule<Mods, D> {
 
 impl<T: 'static, Mods: Retrieve<D, T>, D, SD: Device> Retrieve<D, T> for AutogradModule<Mods, SD>
 where
-    D: PtrConv + Device + 'static,
+    D: PtrConv + 'static,
 {
     #[inline]
     fn retrieve<S, const NUM_PARENTS: usize>(
