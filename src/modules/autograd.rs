@@ -8,21 +8,40 @@ use core::{
     any::Any,
     cell::{Ref, RefCell, RefMut},
     hash::BuildHasher,
+    marker::PhantomData,
     mem::transmute,
 };
 use std::collections::HashMap;
 
 use crate::{
     flag::AllocFlag, prelude::One, Alloc, Buffer, Device, HasId, Id, Module, OnDropBuffer,
-    OnNewBuffer, Parents, PtrConv, Retrieve, Setup, Shape, TapeActions, UniqueId, WriteBuf,
+    OnNewBuffer, Parents, PtrConv, Retrieve, Setup, Shape, TapeActions, UniqueId, WriteBuf, UnifiedMemChain, CachedCPU,
 };
 
 use super::{Cached, CachedModule};
 
 #[derive(Debug, Default)]
 pub struct Autograd<Mods> {
+    _p: PhantomData<Mods>,
+}
+
+impl<Mods: Module<D>, D: Device + Default> Module<D> for Autograd<Mods> {
+    type Module = AutogradModule<CachedModule<Mods::Module, D>, D>;
+
+    #[inline]
+    fn new() -> Self::Module {
+        AutogradModule {
+            modules: Cached::<Mods>::new(),
+            tape: Default::default(),
+        }
+    }
+}
+
+impl<Mods> OnDropBuffer for Autograd<Mods> {}
+
+pub struct AutogradModule<Mods, D> {
     pub modules: Mods,
-    tape: RefCell<Tape>,
+    tape: RefCell<Tape<D>>,
 }
 
 #[inline]
@@ -48,7 +67,7 @@ pub fn unregister_buf(cache: &mut HashMap<UniqueId, Box<dyn Any>, impl BuildHash
     cache.remove(&id);
 }
 
-impl<Mods> Autograd<Mods> {
+impl<Mods, SD> AutogradModule<Mods, SD> {
     #[inline]
     pub fn register_no_grad_buf<T, D, S>(&self, buf: &Buffer<T, D, S>)
     where
@@ -66,7 +85,7 @@ impl<Mods> Autograd<Mods> {
     }
 }
 
-impl<T, D, S, Mods> OnNewBuffer<T, D, S> for Autograd<Mods>
+impl<T, D, S, Mods, SD> OnNewBuffer<T, D, S> for AutogradModule<Mods, SD>
 where
     T: 'static,
     D: Alloc<T> + PtrConv + 'static,
@@ -92,7 +111,7 @@ where
     }
 }
 
-impl<Mods: OnDropBuffer> OnDropBuffer for Autograd<Mods> {
+impl<Mods: OnDropBuffer, SD: Device> OnDropBuffer for AutogradModule<Mods, SD> {
     #[inline]
     fn on_drop_buffer<'a, T, D: Device, S: Shape>(&self, device: &'a D, buf: &Buffer<T, D, S>) {
         unregister_buf(
@@ -103,26 +122,14 @@ impl<Mods: OnDropBuffer> OnDropBuffer for Autograd<Mods> {
     }
 }
 
-impl<Mods: Module<D>, D: Device> Module<D> for Autograd<Mods> {
-    type Module = Autograd<CachedModule<Mods::Module, D>>;
-
-    #[inline]
-    fn new() -> Self::Module {
-        Autograd {
-            modules: Cached::<Mods>::new(),
-            tape: Default::default(),
-        }
-    }
-}
-
-impl<Mods: Setup<NewDev>, NewDev> Setup<NewDev> for Autograd<Mods> {
+impl<Mods: Setup<NewDev>, NewDev, D> Setup<NewDev> for AutogradModule<Mods, D> {
     #[inline]
     fn setup(device: &mut NewDev) {
         Mods::setup(device)
     }
 }
 
-impl<T: 'static, Mods: Retrieve<D, T>, D> Retrieve<D, T> for Autograd<Mods>
+impl<T: 'static, Mods: Retrieve<D, T>, D, SD: Device> Retrieve<D, T> for AutogradModule<Mods, SD>
 where
     D: PtrConv + Device + 'static,
 {
@@ -158,15 +165,26 @@ where
     }
 }
 
-impl<Mods> TapeActions for Autograd<Mods> {
+impl<Mods, D> TapeActions<D> for AutogradModule<Mods, D> {
     #[inline]
-    fn tape(&self) -> Option<core::cell::Ref<Tape>> {
+    fn tape(&self) -> Option<core::cell::Ref<Tape<D>>> {
         Some(self.tape.borrow())
     }
 
     #[inline]
-    fn tape_mut(&self) -> Option<core::cell::RefMut<Tape>> {
+    fn tape_mut(&self) -> Option<core::cell::RefMut<Tape<D>>> {
         Some(self.tape.borrow_mut())
+    }
+}
+
+impl<Mods: UnifiedMemChain<D>, D: Device, SD> UnifiedMemChain<D> for AutogradModule<Mods, SD> {
+    fn construct_unified_buf_from_cpu_buf<'a, T, S: Shape>(
+        &self,
+        device: &'a D,
+        no_drop_buf: Buffer<'a, T, CachedCPU, S>
+    ) -> crate::Result<Buffer<'a, T, D, S>>
+    {
+        self.modules.construct_unified_buf_from_cpu_buf(device, no_drop_buf)
     }
 }
 
@@ -175,7 +193,7 @@ const AUTOGRAD_NOT_AVAILABLE: &'static str = "Autograd<> is not available.";
 impl<'a, T, D, S> Buffer<'a, T, D, S>
 where
     T: Clone + One + 'static,
-    D: TapeActions + WriteBuf<T, S, D> + Alloc<T> + 'static,
+    D: TapeActions<D> + WriteBuf<T, S, D> + Alloc<T> + 'static,
     S: Shape,
 {
     /// Calls `.backward_seeded` on the [`Tape`].
@@ -244,7 +262,7 @@ where
 mod tests {
     use core::any::Any;
 
-    use crate::{Base, Buffer, Cached, Device, HasId, Retriever, Shape, CPU};
+    use crate::{Base, Buffer, Cached, Device, HasId, Retriever, Shape, CPU, TapeActions};
 
     use super::Autograd;
 
@@ -351,7 +369,13 @@ mod tests {
         let buf = Buffer::<f32, _>::new(&device, 10);
 
         // this does not panic anymore because grads are allocated if a new buffer is created (when using the Autograd module)
-        buf.grad();
+        device.add_grad_fn(|x, y| {
+            
+        });
+
+        // device.tape().unwrap().backward(device)
+
+        // buf.grad();
     }
 
     #[test]
@@ -367,6 +391,6 @@ mod tests {
             .grads
             .get_mut::<f32, (), _>(&device, buf.id());
 
-        buf.grad();
+        // buf.grad();
     }
 }

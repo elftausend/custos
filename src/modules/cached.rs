@@ -63,12 +63,11 @@ impl<Mods: OnDropBuffer, SD: Device> OnDropBuffer for CachedModule<Mods, SD> {
 }
 
 // TODO: a more general OnDropBuffer => "Module"
-impl<
-        T,
-        Mods: Retrieve<D, T>,
-        D: Device + PtrConv<SimpleDevice>,
-        SimpleDevice: Device + PtrConv<D>,
-    > Retrieve<D, T> for CachedModule<Mods, SimpleDevice>
+impl<T, Mods, D, SimpleDevice> Retrieve<D, T> for CachedModule<Mods, SimpleDevice>
+where
+    Mods: Retrieve<D, T>,
+    D: Device + PtrConv<SimpleDevice>,
+    SimpleDevice: Device + PtrConv<D>,
 {
     #[inline]
     fn retrieve<S: Shape, const NUM_PARENTS: usize>(
@@ -92,14 +91,14 @@ impl<
     }
 }
 
-impl<Mods: TapeActions, SD: Device> TapeActions for CachedModule<Mods, SD> {
+impl<Mods: TapeActions<D>, D, SD: Device> TapeActions<D> for CachedModule<Mods, SD> {
     #[inline]
-    fn tape(&self) -> Option<core::cell::Ref<super::Tape>> {
+    fn tape(&self) -> Option<core::cell::Ref<super::Tape<D>>> {
         self.modules.tape()
     }
 
     #[inline]
-    fn tape_mut(&self) -> Option<core::cell::RefMut<super::Tape>> {
+    fn tape_mut(&self) -> Option<core::cell::RefMut<super::Tape<D>>> {
         self.modules.tape_mut()
     }
 }

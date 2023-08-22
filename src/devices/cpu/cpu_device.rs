@@ -126,14 +126,14 @@ impl<T, Mods: OnDropBuffer> Alloc<T> for CPU<Mods> {
     }
 }
 
-impl<Mods: TapeActions> TapeActions for CPU<Mods> {
+impl<Mods: TapeActions<D>, D> TapeActions<D> for CPU<Mods> {
     #[inline]
-    fn tape(&self) -> Option<core::cell::Ref<crate::Tape>> {
+    fn tape(&self) -> Option<core::cell::Ref<crate::Tape<D>>> {
         self.modules.tape()
     }
 
     #[inline]
-    fn tape_mut(&self) -> Option<core::cell::RefMut<crate::Tape>> {
+    fn tape_mut(&self) -> Option<core::cell::RefMut<crate::Tape<D>>> {
         self.modules.tape_mut()
     }
 }

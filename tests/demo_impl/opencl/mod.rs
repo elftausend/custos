@@ -1,4 +1,4 @@
-use custos::{opencl::enqueue_kernel, Buffer, CDatatype, OpenCL, Shape, Retriever};
+use custos::{opencl::enqueue_kernel, Buffer, CDatatype, OpenCL, Retriever, Shape};
 
 use super::ElementWise;
 
@@ -42,7 +42,7 @@ impl<T: CDatatype, S: Shape> ElementWise<T, OpenCL, S> for OpenCL {
 
 #[cfg(test)]
 mod tests {
-    use custos::{Buffer, OpenCL, WithShape, CPU, Base, Retriever};
+    use custos::{Base, Buffer, OpenCL, Retriever, WithShape, CPU};
 
     use crate::demo_impl::cpu::cpu_element_wise;
 

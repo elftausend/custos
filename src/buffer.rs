@@ -693,7 +693,7 @@ mod tests {
     #[cfg(unified_cl)]
     #[test]
     fn test_deref_cl() -> crate::Result<()> {
-        use crate::{OpenCL, Base};
+        use crate::{Base, OpenCL};
 
         let device = OpenCL::<Base>::new(0)?;
         let buf = Buffer::from((&device, [1, 2, 3, 4]));

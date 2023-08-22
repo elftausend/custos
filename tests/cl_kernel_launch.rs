@@ -3,7 +3,7 @@ use std::ffi::c_void;
 use custos::{
     opencl::{enqueue_kernel, AsClCvoidPtr},
     prelude::Float,
-    Buffer, CDatatype, OpenCL, Base, Retriever,
+    Base, Buffer, CDatatype, OpenCL, Retriever,
 };
 
 #[test]

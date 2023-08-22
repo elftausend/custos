@@ -3,7 +3,7 @@ use core::{
     cell::{Ref, RefMut},
 };
 
-use crate::{DeviceError, OpenCL, Parents, Shape, Cached, Base, CachedModule, CPU};
+use crate::{Base, Cached, CachedModule, DeviceError, OpenCL, Parents, Shape, CPU};
 
 use super::{Alloc, Buffer, Device, OnDropBuffer};
 
@@ -43,27 +43,28 @@ pub trait HasModules<Mods> {
 }
 
 #[cfg(feature = "autograd")]
-pub trait TapeActions {
+pub trait TapeActions<D> {
     // "generator" - do not forget to pass down
     #[inline]
-    fn tape(&self) -> Option<Ref<crate::Tape>> {
+    fn tape(&self) -> Option<Ref<crate::Tape<D>>> {
         None
     }
     // "generator" - do not forget to pass down
     #[inline]
-    fn tape_mut(&self) -> Option<RefMut<crate::Tape>> {
+    fn tape_mut(&self) -> Option<RefMut<crate::Tape<D>>> {
         None
     }
 
     // use track caller to identify a specific grad function
     //-> if backward is not called (.drain()), the grad fn vector will gradually fill up
     #[track_caller]
-    fn add_grad_fn<T, S: Shape>(
+    fn add_grad_fn</*T, S: Shape*/>(
         &self,
         // ids: impl AllocGradsFrom<N>,
-        grad_fn: impl Fn(&mut crate::Gradients) + 'static,
+        grad_fn: impl Fn(&mut crate::Gradients, &D) + 'static,
     ) where
-        T: 'static,
+        D: Device,
+        // T: 'static,
         Self: Device + 'static,
     {
         if let Some(mut tape) = self.tape_mut() {
@@ -95,7 +96,7 @@ pub trait HasCPU<Mods> {
     fn cpu(&self) -> &CPU<Mods>;
 }
 
-pub type CachedCPU = CPU<CachedModule<Base, CPU<Cached<Base>>>>; 
+pub type CachedCPU = CPU<CachedModule<Base, CPU<Cached<Base>>>>;
 
 pub trait UnifiedMemChain<D: Device> {
     #[track_caller]
@@ -110,7 +111,6 @@ pub trait UnifiedMemChain<D: Device> {
 macro_rules! impl_unified_mem_chain {
     ($($to_impl:ident),*) => {
         $(
-            #[cfg(feature = "autograd")]
             impl<Mods: UnifiedMemChain<D>, D: Device> UnifiedMemChain<D> for $to_impl<Mods> {
                 fn construct_unified_buf_from_cpu_buf<'a, T, S: Shape>(
                     &self,
@@ -131,9 +131,3 @@ use crate::Lazy;
 
 #[cfg(feature = "lazy")]
 impl_unified_mem_chain!(Lazy);
-
-#[cfg(feature = "autograd")]
-use crate::Autograd;
-
-#[cfg(feature = "autograd")]
-impl_unified_mem_chain!(Autograd);

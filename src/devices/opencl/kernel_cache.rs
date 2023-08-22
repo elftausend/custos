@@ -17,12 +17,12 @@ impl CLKernelCache {
     /// # Example
     /// ```
     /// use std::collections::HashMap;
-    /// use custos::{OpenCL, opencl::KernelCacheCL};
+    /// use custos::{OpenCL, opencl::CLKernelCache, Base};
     ///
     /// fn main() -> custos::Result<()> {
     ///     let device = OpenCL::<Base>::new(0)?;
     ///     
-    ///     let mut kernel_cache = KernelCacheCL::default();
+    ///     let mut kernel_cache = CLKernelCache::default();
     ///     
     ///     let mut kernel_fn = || kernel_cache.kernel(&device, "
     ///         __kernel void test(__global float* test) {}

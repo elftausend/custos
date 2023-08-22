@@ -3,7 +3,7 @@ use custos::{DeviceError, Error};
 #[cfg(feature = "opencl")]
 #[test]
 fn test_error() {
-    use custos::{ErrorKind, OpenCL, Base};
+    use custos::{Base, ErrorKind, OpenCL};
     use min_cl::api::OCLErrorKind;
 
     let device = OpenCL::<Base>::new(1000000000000000000);
@@ -28,14 +28,14 @@ fn test_error() {
 #[test]
 #[should_panic]
 fn test_error_panics() {
-    use custos::{OpenCL, Base};
+    use custos::{Base, OpenCL};
     OpenCL::<Base>::new(10000000000000000).unwrap();
 }
 
 #[cfg(feature = "opencl")]
 #[test]
 fn test_questionmark() -> Result<(), Box<dyn std::error::Error + Sync + Send>> {
-    use custos::{OpenCL, Base};
+    use custos::{Base, OpenCL};
 
     let _device = OpenCL::<Base>::new(0)?;
     Ok(())

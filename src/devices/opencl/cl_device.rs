@@ -7,8 +7,8 @@ use min_cl::api::{
 use super::{enqueue_kernel, AsClCvoidPtr, CLKernelCache, CLPtr};
 use crate::flag::AllocFlag;
 use crate::{
-    impl_buffer_hook_traits, impl_retriever, Alloc, Base, Buffer, CloneBuf, Device, Error, HasCPU,
-    Module, OnDropBuffer, Setup, CPU, CachedCPU, Cached,
+    impl_buffer_hook_traits, impl_retriever, Alloc, Base, Buffer, Cached, CachedCPU, CloneBuf,
+    Device, Error, HasCPU, Module, OnDropBuffer, Setup, CPU,
 };
 use crate::{PtrConv, Shape};
 
@@ -21,7 +21,7 @@ use min_cl::api::unified_ptr;
 /// To make new calculations invocable, a trait providing new operations should be implemented for [OpenCL].
 /// # Example
 /// ```
-/// use custos::{OpenCL, Read, Buffer, Error};
+/// use custos::{OpenCL, Read, Buffer, Error, Base};
 ///
 /// fn main() -> custos::Result<()> {
 ///     let device = OpenCL::<Base>::new(0)?;
@@ -141,7 +141,7 @@ impl<Mods> OpenCL<Mods> {
     /// # Example
     ///
     /// ```
-    /// use custos::{OpenCL, Buffer};
+    /// use custos::{OpenCL, Buffer, Base};
     ///
     /// fn main() -> custos::Result<()> {
     ///     let device = OpenCL::<Base>::new(0)?;
@@ -297,7 +297,7 @@ impl<Mods: OnDropBuffer> crate::MainMemory for OpenCL<Mods> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{opencl::cl_device::CLDevice, Buffer, OpenCL, Base, Cached, CPU};
+    use crate::{opencl::cl_device::CLDevice, Base, Buffer, Cached, OpenCL, CPU};
 
     #[test]
     fn test_multiplie_queues() -> crate::Result<()> {

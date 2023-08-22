@@ -1,4 +1,4 @@
-use crate::{Alloc, Buffer, Device, Eval, MayToCLSource, Resolve, Shape};
+use crate::{Alloc, Buffer, Device, Eval, HasId, MayTapeActions, MayToCLSource, Resolve, Shape};
 
 /// Applies a function to a buffer and returns a new buffer.
 pub trait ApplyFunction<T, S: Shape = (), D: Device = Self>: Device {
@@ -99,11 +99,11 @@ pub trait UnaryElementWiseMayGrad<T, D: Device, S: Shape>: Device {
         FO: Eval<T> + MayToCLSource,
         GO: Eval<T> + MayToCLSource + 'static;
 }
-/*
+
 impl<T, D, S> UnaryElementWiseMayGrad<T, D, S> for D
 where
     T: 'static,
-    D: ApplyFunction<T, S, D> + UnaryGrad<T, S, D> + MayTapeReturn,
+    D: ApplyFunction<T, S, D> + UnaryGrad<T, S, D> + MayTapeActions<D>,
     D: Alloc<T> + 'static,
     S: Shape,
 {
@@ -123,8 +123,8 @@ where
         #[cfg(feature = "autograd")]
         {
             let ids = (buf.id(), out.id());
-            self.tape_mut().add_grad_fn(move |grads, device| {
-                let (lhs, lhs_grad, out_grad) = grads.get_double::<T, S, S>(device, ids);
+            self.add_grad_fn(move |grads, device| {
+                let (lhs, lhs_grad, out_grad) = grads.get_double::<T, S, S, D>(ids);
                 device.add_unary_grad(&lhs, lhs_grad, out_grad, _grad_fn);
             });
         }
@@ -132,4 +132,3 @@ where
         out
     }
 }
-*/

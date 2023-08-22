@@ -8,7 +8,7 @@ use super::CLPtr;
 /// This enables taking `Buffer` and a number `T` as an argument to an OpenCL kernel.
 /// # Example
 /// ```
-/// use custos::{OpenCL, Buffer, opencl::AsClCvoidPtr};
+/// use custos::{OpenCL, Buffer, opencl::AsClCvoidPtr, Base};
 ///
 /// fn args(args: &[&dyn AsClCvoidPtr]) {
 ///     // ...
@@ -27,7 +27,7 @@ pub trait AsClCvoidPtr {
     /// Converts `Self` to a *const c_void.
     /// # Example
     /// ```
-    /// use custos::{OpenCL, Buffer, opencl::AsClCvoidPtr};
+    /// use custos::{OpenCL, Buffer, opencl::AsClCvoidPtr, Base};
     ///
     /// fn main() -> custos::Result<()> {
     ///     let device = OpenCL::<Base>::new(0)?;
@@ -55,7 +55,7 @@ pub trait AsClCvoidPtr {
     /// Returns the size of `Self` in bytes.
     /// # Example
     /// ```
-    /// use custos::{OpenCL, Buffer, opencl::AsClCvoidPtr};
+    /// use custos::{OpenCL, Buffer, opencl::AsClCvoidPtr, Base};
     ///
     /// fn main() -> custos::Result<()> {
     ///     assert_eq!(4f32.ptr_size(), 4);    
@@ -116,7 +116,7 @@ impl<T> AsClCvoidPtr for CLPtr<T> {
 /// # Example
 ///
 /// ```
-/// use custos::{OpenCL, Buffer, opencl::enqueue_kernel};
+/// use custos::{OpenCL, Buffer, opencl::enqueue_kernel, Base};
 ///
 /// fn main() -> custos::Result<()> {
 ///     let device = OpenCL::<Base>::new(0)?;

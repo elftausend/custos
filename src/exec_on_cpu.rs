@@ -8,7 +8,7 @@ mod cl_may_unified;
 #[cfg(feature = "opencl")]
 pub use cl_may_unified::*;
 
-use crate::{Alloc, Base, Buffer, Device, Read, Retriever, WriteBuf, CPU, CachedCPU, Cached};
+use crate::{Alloc, Base, Buffer, Cached, CachedCPU, Device, Read, Retriever, WriteBuf, CPU};
 
 /// Moves a `Buffer` stored on device `D` to a `CPU` `Buffer`
 /// and executes the unary operation `F` with a `CPU` on the newly created `CPU` `Buffer`.
@@ -16,7 +16,7 @@ use crate::{Alloc, Base, Buffer, Device, Read, Retriever, WriteBuf, CPU, CachedC
 /// # Example
 #[cfg_attr(feature = "opencl", doc = "```")]
 #[cfg_attr(not(feature = "opencl"), doc = "```ignore")]
-/// use custos::{exec_on_cpu::cpu_exec_unary, Buffer, Device, OpenCL};
+/// use custos::{exec_on_cpu::cpu_exec_unary, Buffer, Retriever, OpenCL, Base};
 ///
 /// fn main() -> custos::Result<()> {
 ///     let device = OpenCL::<Base>::new(0)?;
@@ -82,7 +82,7 @@ where
 /// # Example
 #[cfg_attr(feature = "opencl", doc = "```")]
 #[cfg_attr(not(feature = "opencl"), doc = "```ignore")]
-/// use custos::{exec_on_cpu::cpu_exec_binary, Buffer, Device, OpenCL};
+/// use custos::{exec_on_cpu::cpu_exec_binary, Buffer, Retriever, OpenCL, Base};
 ///
 /// fn main() -> custos::Result<()> {
 ///     let device = OpenCL::<Base>::new(0)?;
@@ -112,7 +112,11 @@ pub fn cpu_exec_binary<'a, T, D, F>(
 ) -> Buffer<'a, T, D>
 where
     T: Clone + Default + 'static,
-    F: for<'b> Fn(&'b CachedCPU, &Buffer<'_, T, CachedCPU>, &Buffer<'_, T, CachedCPU>) -> Buffer<'b, T, CachedCPU>,
+    F: for<'b> Fn(
+        &'b CachedCPU,
+        &Buffer<'_, T, CachedCPU>,
+        &Buffer<'_, T, CachedCPU>,
+    ) -> Buffer<'b, T, CachedCPU>,
     D: Device + Read<T> + WriteBuf<T> + Alloc<T> + Retriever<T>,
 {
     let cpu = CPU::<Cached<Base>>::new();
@@ -151,7 +155,7 @@ where
 /// # Example
 #[cfg_attr(feature = "opencl", doc = "```")]
 #[cfg_attr(not(feature = "opencl"), doc = "```ignore")]
-/// use custos::{CPU, Buffer, OpenCL, to_cpu};
+/// use custos::{CPU, Buffer, OpenCL, to_cpu, Base};
 ///
 /// let device = OpenCL::<Base>::new(0).unwrap();
 ///
@@ -180,7 +184,7 @@ macro_rules! to_cpu_mut {
 /// # Example
 #[cfg_attr(feature = "opencl", doc = "```")]
 #[cfg_attr(not(feature = "opencl"), doc = "```ignore")]
-/// use custos::{CPU, Buffer, OpenCL, to_cpu};
+/// use custos::{CPU, Buffer, OpenCL, to_cpu, Base};
 ///
 /// let device = OpenCL::<Base>::new(0).unwrap();
 ///

@@ -6,7 +6,9 @@ use min_cl::api::{
 };
 
 use crate::{
-    bounds_to_range, prelude::Number, ApplyFunction, Buffer, CDatatype, ClearBuf, CopySlice, OpenCL, Read, Resolve, Retriever, Shape, ToCLSource, ToMarker, UnaryGrad, WriteBuf, OnDropBuffer,
+    bounds_to_range, prelude::Number, ApplyFunction, Buffer, CDatatype, ClearBuf, CopySlice,
+    OnDropBuffer, OpenCL, Read, Resolve, Retriever, Shape, ToCLSource, ToMarker, UnaryGrad,
+    WriteBuf,
 };
 
 use super::{enqueue_kernel, CLBuffer};
@@ -21,7 +23,7 @@ impl<T: CDatatype> ClearBuf<T> for OpenCL {
 /// Sets the elements of an OpenCL Buffer to zero.
 /// # Example
 /// ```
-/// use custos::{OpenCL, Buffer, Read, opencl::try_cl_clear};
+/// use custos::{OpenCL, Buffer, Read, opencl::try_cl_clear, Base};
 ///
 /// fn main() -> Result<(), custos::Error> {
 ///     let device = OpenCL::<Base>::new(0)?;
@@ -117,7 +119,7 @@ impl<Mods: OnDropBuffer + 'static, T: Clone + Default, S: Shape> Read<T, S> for 
     type Read<'a> = &'a [T] where T: 'a;
 
     #[cfg(not(unified_cl))]
-    fn read<'a>(&self, buf: &'a Buffer<T, OpenCL, S>) -> Self::Read<'a> {
+    fn read<'a>(&self, buf: &'a Buffer<T, OpenCL<Mods>, S>) -> Self::Read<'a> {
         self.read_to_vec(buf)
     }
 

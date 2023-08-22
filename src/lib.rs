@@ -180,9 +180,9 @@ pub trait MainMemory: Device {
 /// If the `autograd` feature is enabled, then this will be implemented for all types that implement [`TapeActions`].
 /// On the other hand, if the `autograd` feature is disabled, no [`Tape`] will be returneable.
 #[cfg(feature = "autograd")]
-pub trait MayTapeActions: TapeActions {}
+pub trait MayTapeActions<D>: TapeActions<D> {}
 #[cfg(feature = "autograd")]
-impl<D: crate::TapeActions> MayTapeActions for D {}
+impl<D: crate::TapeActions<D>> MayTapeActions<D> for D {}
 
 /// If the `autograd` feature is enabled, then this will be implemented for all types that implement [`TapeReturn`].
 /// On the other hand, if the `autograd` feature is disabled, no [`Tape`] will be returneable.
@@ -233,8 +233,8 @@ pub mod prelude {
 
     pub use crate::{
         device_traits::*, features::*, modules::*, number::*, shape::*, Alloc, Buffer, CDatatype,
-        ClearBuf, CloneBuf, CopySlice, Device, MainMemory, /* MayTapeReturn, */ MayToCLSource,
-        Read, ShallowCopy, WithShape, WriteBuf, Error
+        ClearBuf, CloneBuf, CopySlice, Device, Error, MainMemory,
+        /* MayTapeReturn, */ MayToCLSource, Read, ShallowCopy, WithShape, WriteBuf,
     };
 
     #[cfg(feature = "cpu")]
