@@ -19,7 +19,10 @@ impl<T: Default, D: MainMemory, S: Shape> ClearBuf<T, S, D> for Stack {
 #[cfg(feature = "cpu")]
 #[cfg(test)]
 mod tests {
-    use crate::{Alloc, Base, Buffer, Device, Dim1, MainMemory, Retrieve, Retriever, Shape, CPU};
+    use crate::{
+        backend::Backend, Alloc, Base, Buffer, Device, Dim1, MainMemory, Retrieve, Retriever,
+        Shape, CPU,
+    };
     use core::ops::Add;
 
     use super::stack_device::Stack;
@@ -45,7 +48,7 @@ mod tests {
         }
     }*/
 
-    impl<Mods: Retrieve<Self, T>, T, D> AddBuf<T, D> for CPU<Mods>
+    impl<Mods: Retrieve<Self, T>, T, D> AddBuf<T, D> for Backend<CPU, Mods>
     where
         D: MainMemory,
         T: Add<Output = T> + Clone,

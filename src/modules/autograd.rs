@@ -14,8 +14,11 @@ use core::{
 use std::collections::HashMap;
 
 use crate::{
-    flag::AllocFlag, prelude::One, Alloc, Buffer, Device, HasId, Id, Module, OnDropBuffer,
-    OnNewBuffer, Parents, PtrConv, Retrieve, Setup, Shape, TapeActions, UniqueId, WriteBuf, UnifiedMemChain, CachedCPU,
+    backend::{BindDevice, HasDevice},
+    flag::AllocFlag,
+    prelude::One,
+    Alloc, Buffer, CachedCPU, Device, HasId, Id, Module, OnDropBuffer, OnNewBuffer, Parents,
+    PtrConv, Retrieve, Setup, Shape, TapeActions, UnifiedMemChain, UniqueId, WriteBuf,
 };
 
 use super::{Cached, CachedModule};
@@ -72,7 +75,8 @@ impl<Mods, SD> AutogradModule<Mods, SD> {
     pub fn register_no_grad_buf<T, D, S>(&self, buf: &Buffer<T, D, S>)
     where
         T: 'static,
-        D: Device + PtrConv + 'static,
+        SD: Device + PtrConv + 'static,
+        D: Device + PtrConv<SD> + BindDevice<SD> + 'static,
         S: Shape,
     {
         let no_grads_pool = &mut self.tape.borrow_mut().grads.no_grads_pool.cache;
@@ -81,14 +85,21 @@ impl<Mods, SD> AutogradModule<Mods, SD> {
             return;
         }
 
-        unsafe { register_buf(no_grads_pool, buf) };
+        // in an grad fn context, only the SD is allowed -> this converts the buf to a simple device buf
+        // TODO: create a trait that allows conversion between backend bufs and simple device bufs
+        let data = unsafe { <D as PtrConv::<SD>>::convert::<T, S, T, S>(&buf.data, AllocFlag::Wrapper) };
+        
+        let buf = Buffer { data, device: buf.device.map(|dev| dev.device()) };
+
+        unsafe { register_buf(no_grads_pool, &buf) };
     }
 }
 
 impl<T, D, S, Mods, SD> OnNewBuffer<T, D, S> for AutogradModule<Mods, SD>
 where
     T: 'static,
-    D: Alloc<T> + PtrConv + 'static,
+    D: Alloc<T> +  BindDevice<SD> + PtrConv + PtrConv<SD> + 'static,
+    SD: Alloc<T> + PtrConv + 'static,
     S: Shape,
     Mods: OnNewBuffer<T, D, S>,
 {
@@ -104,7 +115,7 @@ where
             .borrow_mut()
             .grads
             .grads_pool
-            .add_buf_once::<T, D, S>(device, new_buf.id());
+            .add_buf_once::<T, SD, S>(device.device(), new_buf.id());
 
         // pass down
         self.modules.on_new_buffer(device, new_buf)
@@ -129,9 +140,12 @@ impl<Mods: Setup<NewDev>, NewDev, D> Setup<NewDev> for AutogradModule<Mods, D> {
     }
 }
 
-impl<T: 'static, Mods: Retrieve<D, T>, D, SD: Device> Retrieve<D, T> for AutogradModule<Mods, SD>
+impl<T, Mods, D, SD> Retrieve<D, T> for AutogradModule<Mods, SD>
 where
-    D: PtrConv + 'static,
+    D: BindDevice<SD> + PtrConv<SD> + 'static,
+    SD: Alloc<T> + PtrConv + 'static,
+    T: 'static,
+    Mods: Retrieve<D, T>,
 {
     #[inline]
     fn retrieve<S, const NUM_PARENTS: usize>(
@@ -159,7 +173,7 @@ where
             .borrow_mut()
             .grads
             .grads_pool
-            .add_buf_once::<T, D, S>(retrieved_buf.device(), retrieved_buf.id());
+            .add_buf_once::<T, SD, S>(retrieved_buf.device().device(), retrieved_buf.id());
 
         self.modules.on_retrieve_finish(retrieved_buf)
     }
@@ -181,25 +195,29 @@ impl<Mods: UnifiedMemChain<D>, D: Device, SD> UnifiedMemChain<D> for AutogradMod
     fn construct_unified_buf_from_cpu_buf<'a, T, S: Shape>(
         &self,
         device: &'a D,
-        no_drop_buf: Buffer<'a, T, CachedCPU, S>
-    ) -> crate::Result<Buffer<'a, T, D, S>>
-    {
-        self.modules.construct_unified_buf_from_cpu_buf(device, no_drop_buf)
+        no_drop_buf: Buffer<'a, T, CachedCPU, S>,
+    ) -> crate::Result<Buffer<'a, T, D, S>> {
+        self.modules
+            .construct_unified_buf_from_cpu_buf(device, no_drop_buf)
     }
 }
 
 const AUTOGRAD_NOT_AVAILABLE: &'static str = "Autograd<> is not available.";
 
-impl<'a, T, D, S> Buffer<'a, T, D, S>
+impl<'a, T, B, S> Buffer<'a, T, B, S>
 where
     T: Clone + One + 'static,
-    D: TapeActions<D> + WriteBuf<T, S, D> + Alloc<T> + 'static,
+    B: TapeActions<B::Dev> + HasDevice + Device + Alloc<T> + 'static,
+    B::Dev: WriteBuf<T, S> + Alloc<T> + 'static,
     S: Shape,
 {
     /// Calls `.backward_seeded` on the [`Tape`].
     /// The seed of the gradient is set to `1` and contains `self.len()` elements.
     #[inline]
-    pub fn backward(&self) {
+    pub fn backward(&self)
+    where
+        B: BindDevice<B::Dev>,
+    {
         if let Some(mut tape) = self.device().tape_mut() {
             tape.backward_seeded(self)
         }
@@ -211,7 +229,8 @@ where
     ///
     /// Panics if the gradient was not allocated.
     #[inline]
-    pub fn grad(&self) -> Ref<Self> {
+    pub fn grad(&self) -> Ref<'a, Buffer<T, B::Dev, S>> {
+        // todo!()
         self.grad_unbound()
     }
 
@@ -220,7 +239,7 @@ where
     /// Panics if the gradient was not allocated.
     // TODO: Maybe return Result with two error variants?
     #[inline]
-    pub fn grad_unbound(&self) -> Ref<'a, Self> {
+    pub fn grad_unbound(&self) -> Ref<'a, Buffer<T, B::Dev, S>> { // TODO: Ref<Self> -> create easy replacement of the D generic (from B::Dev to B)
         Ref::map(
             self.device().tape().expect(AUTOGRAD_NOT_AVAILABLE),
             |tape| {
@@ -262,7 +281,7 @@ where
 mod tests {
     use core::any::Any;
 
-    use crate::{Base, Buffer, Cached, Device, HasId, Retriever, Shape, CPU, TapeActions};
+    use crate::{Base, Buffer, Cached, Device, HasId, Retriever, Shape, TapeActions, CPU};
 
     use super::Autograd;
 
@@ -369,13 +388,11 @@ mod tests {
         let buf = Buffer::<f32, _>::new(&device, 10);
 
         // this does not panic anymore because grads are allocated if a new buffer is created (when using the Autograd module)
-        device.add_grad_fn(|x, y| {
-            
-        });
+        device.add_grad_fn(|x, y| {});
 
-        // device.tape().unwrap().backward(device)
+        device.tape_mut().unwrap().backward(&device.device);
 
-        // buf.grad();
+        buf.grad();
     }
 
     #[test]

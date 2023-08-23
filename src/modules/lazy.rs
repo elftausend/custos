@@ -167,12 +167,13 @@ mod tests {
         let device = CPU::<Lazy<Base>>::new();
 
         let buf = Buffer::<f32, _>::new(&device, 10);
-        let out = device.apply_fn(&buf, |x| x.add(3.));
+        todo!();
+        /*let out = device.apply_fn(&buf, |x| x.add(3.));
 
         device.call_lazily();
         println!("out: {:?}", &*out);
 
         drop(out);
-        drop(buf);
+        drop(buf);*/
     }
 }

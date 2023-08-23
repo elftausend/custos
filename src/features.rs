@@ -58,7 +58,7 @@ pub trait TapeActions<D> {
     // use track caller to identify a specific grad function
     //-> if backward is not called (.drain()), the grad fn vector will gradually fill up
     #[track_caller]
-    fn add_grad_fn</*T, S: Shape*/>(
+    fn add_grad_fn(
         &self,
         // ids: impl AllocGradsFrom<N>,
         grad_fn: impl Fn(&mut crate::Gradients, &D) + 'static,

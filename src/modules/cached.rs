@@ -188,8 +188,9 @@ mod tests {
 
     // forgot to add track_caller
     #[cfg(debug_assertions)]
-    fn add_bufs<Mods: Retrieve<Backend<CPU, Mods>, f32>>(device: &Backend<CPU, Mods>) -> Buffer<f32, CPU<Mods>, ()> {
-
+    fn add_bufs<Mods: Retrieve<Backend<CPU, Mods>, f32>>(
+        device: &Backend<CPU, Mods>,
+    ) -> Buffer<f32, Backend<CPU, Mods>, ()> {
         retrieve!(device, 10, ())
     }
 
@@ -204,9 +205,9 @@ mod tests {
     }
 
     #[track_caller]
-    fn add_bufs_tracked<Mods: Retrieve<CPU<Mods>, f32>>(
-        device: &CPU<Mods>,
-    ) -> Buffer<f32, CPU<Mods>, ()> {
+    fn add_bufs_tracked<Mods: Retrieve<Backend<CPU, Mods>, f32>>(
+        device: &Backend<CPU, Mods>,
+    ) -> Buffer<f32, Backend<CPU, Mods>, ()> {
         retrieve!(device, 10, ())
     }
 

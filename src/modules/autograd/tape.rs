@@ -2,7 +2,9 @@ use core::{fmt::Debug, hash::BuildHasherDefault, panic::Location};
 use std::collections::HashMap;
 
 use crate::{
-    prelude::One, Alloc, Buffer, Device, HasId, HashLocation, LocationHasher, Shape, WriteBuf,
+    backend::{BindDevice, HasDevice},
+    prelude::One,
+    Alloc, Buffer, Device, HasId, HashLocation, LocationHasher, Shape, WriteBuf,
 };
 
 use super::Gradients;
@@ -59,14 +61,17 @@ impl<D: Device> Tape<D> {
 
     /// Backward pass with seeded gradient.
     /// The seed of the gradient contains `buf.len()` elements, all of them are set to 1.
-    pub fn backward_seeded<T, S: Shape>(&mut self, buf: &Buffer<T, D, S>)
+    pub fn backward_seeded<T, B, S: Shape>(&mut self, buf: &Buffer<T, B, S>)
     where
         T: Clone + One + 'static,
+        B: BindDevice<D>,
         D: Alloc<T> + WriteBuf<T, S, D> + 'static,
     {
-        let out = self.grads.get_mut::<T, S, D>(buf.device(), buf.id());
+        let out = self
+            .grads
+            .get_mut::<T, S, D>(buf.device().device(), buf.id());
         out.write(&vec![T::one(); out.len()]);
 
-        self.backward(buf.device())
+        self.backward(buf.device().device())
     }
 }

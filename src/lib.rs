@@ -86,9 +86,9 @@ pub use unary::*;
 
 pub mod devices;
 
+mod backend;
 mod buffer;
 mod error;
-mod backend;
 
 #[cfg(feature = "cached")]
 mod cache;
@@ -183,14 +183,14 @@ pub trait MainMemory: Device {
 #[cfg(feature = "autograd")]
 pub trait MayTapeActions<D>: TapeActions<D> {}
 #[cfg(feature = "autograd")]
-impl<D: crate::TapeActions<D>> MayTapeActions<D> for D {}
+impl<D, B: crate::TapeActions<D>> MayTapeActions<D> for B {}
 
 /// If the `autograd` feature is enabled, then this will be implemented for all types that implement [`TapeReturn`].
 /// On the other hand, if the `autograd` feature is disabled, no [`Tape`] will be returneable.
 #[cfg(not(feature = "autograd"))]
-pub trait MayTapeActions {}
+pub trait MayTapeActions<D>: TapeActions<D> {}
 #[cfg(not(feature = "autograd"))]
-impl<D: Device> MayTapeActions for D {}
+impl<D: Device, B: crate::TapeActions<D>> MayTapeActions<D> for B {}
 
 /// If the OpenCL device selected by the environment variable `CUSTOS_CL_DEVICE_IDX` supports unified memory, then this will be `true`.
 /// In your case, this is `false`.
@@ -238,12 +238,12 @@ pub mod prelude {
         /* MayTapeReturn, */ MayToCLSource, Read, ShallowCopy, WithShape, WriteBuf,
     };
 
-    // #[cfg(feature = "cpu")]
-    // pub use crate::{exec_on_cpu::*, CPU};
+    #[cfg(feature = "cpu")]
+    pub use crate::CPU;
 
     // TODO
-    // #[cfg(not(feature = "no-std"))]
-    // pub use crate::{cache::CacheReturn, get_count, set_count, Cache};
+    // #[cfg(feature = "cpu")]
+    // pub use crate::{exec_on_cpu::*, CPU};
 
     #[cfg(feature = "opencl")]
     pub use crate::opencl::{enqueue_kernel, CLBuffer, OpenCL, CL};

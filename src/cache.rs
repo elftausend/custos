@@ -84,7 +84,7 @@ mod tests {
 
     #[test]
     fn test_cache_add_node() {
-        let mut cache = Cache::<CPU<Base>>::default();
+        let mut cache = Cache::<CPU>::default();
         let device = CPU::<Base>::new();
 
         assert_eq!(cache.nodes.len(), 0);
@@ -100,7 +100,7 @@ mod tests {
 
     #[test]
     fn test_cache_get_at_different_locations() {
-        let mut cache = Cache::<CPU<Base>>::default();
+        let mut cache = Cache::<CPU>::default();
         let device = CPU::<Base>::new();
 
         assert_eq!(cache.nodes.len(), 0);
@@ -116,7 +116,7 @@ mod tests {
 
     #[test]
     fn test_cache_get_reuse_based_on_location() {
-        let mut cache = Cache::<CPU<Base>>::default();
+        let mut cache = Cache::<CPU>::default();
         let device = CPU::<Base>::new();
 
         let mut prev = None;

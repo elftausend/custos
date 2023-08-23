@@ -166,13 +166,13 @@ mod tests {
     #[cfg(feature = "cpu")]
     #[test]
     fn test_transmute_of_stackless_buf() {
-        use crate::{Base, Buffer, CPU};
+        use crate::{backend::Backend, Base, Buffer, CPU};
 
         let device = CPU::<Base>::new();
-        let buf = Buffer::<f32, CPU, Dim2<5, 5>>::new(&device, 10);
+        let buf = Buffer::<f32, _, Dim2<5, 5>>::new(&device, 10);
 
         let other_buf = unsafe {
-            &*(&buf as *const Buffer<f32, CPU, Dim2<5, 5>> as *const Buffer<f32, CPU, ()>)
+            &*(&buf as *const Buffer<f32, _, Dim2<5, 5>> as *const Buffer<f32, Backend<CPU>, ()>)
         };
 
         /*

@@ -684,7 +684,7 @@ mod tests {
         use crate::Base;
 
         let device = crate::CPU::<Base>::new();
-        let buf: Buffer<i32> = Buffer::from((&device, [1, 2, 3, 4]));
+        let buf: Buffer<i32, _> = Buffer::from((&device, [1, 2, 3, 4]));
         let slice = &*buf;
         assert_eq!(slice, &[1, 2, 3, 4]);
     }

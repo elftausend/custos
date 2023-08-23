@@ -1,4 +1,4 @@
-use crate::{Alloc, BorrowCache, Buffer, CachingError, HasId, Id, Parents, Shape};
+use crate::{Alloc, BorrowCache, Buffer, CachingError, HasId, Id, Parents, Shape, Device};
 
 const INVALID_ID: &'static str = "A matching Buffer does not exist.";
 
@@ -39,7 +39,7 @@ impl Gradients {
     where
         T: 'static,
         S: Shape,
-        D: Alloc<T> + 'static,
+        D: Device + 'static,
     {
         self.grads_pool.get_buf(ident)
     }
@@ -53,7 +53,7 @@ impl Gradients {
     where
         T: 'static,
         S: Shape,
-        D: Alloc<T> + 'static,
+        D: Device + 'static,
     {
         self.grads_pool.get_buf_mut(id)
     }
@@ -99,7 +99,7 @@ impl Gradients {
     where
         T: 'static,
         S: Shape,
-        D: Alloc<T> + 'static,
+        D: Device + 'static,
     {
         self.no_grads_pool.get_buf::<T, D, S>(id).expect(INVALID_ID)
     }
@@ -151,7 +151,7 @@ impl Gradients {
         T: 'static,
         IS: Shape,
         OS: Shape,
-        D: Alloc<T> + 'static,
+        D: /*Alloc<T> +*/ Device + 'static,
     {
         let [xid, oid] = parents.ids();
         // self.grads_pool.add_buf_once::<T, _, IS>(device, oid);
@@ -186,7 +186,10 @@ mod tests {
             .tape
             .borrow_mut()
             .grads
-            .get_double::<i32, (), (), CPU<Autograd<crate::CachedModule<Base, CPU<Autograd<Base>>>>>>((buf.id(), out.id()));
+            .get_double::<i32, (), (), crate::backend::Backend<
+                CPU,
+                crate::AutogradModule<crate::CachedModule<Base, CPU>, CPU>,
+            >>((buf.id(), out.id()));
     }
 
     #[test]
@@ -207,6 +210,9 @@ mod tests {
             .tape
             .borrow_mut()
             .grads
-            .get_double::<i32, (), (), CPU<Autograd<crate::CachedModule<Base, CPU<Autograd<Base>>>>>>((buf.id(), out.id()));
+            .get_double::<i32, (), (), crate::backend::Backend<
+                CPU,
+                crate::AutogradModule<crate::CachedModule<Base, CPU>, CPU>,
+            >>((buf.id(), out.id()));
     }
 }

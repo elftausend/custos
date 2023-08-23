@@ -1,4 +1,7 @@
-use crate::{Alloc, Buffer, Device, Eval, HasId, MayTapeActions, MayToCLSource, Resolve, Shape};
+use crate::{
+    backend::{BindDevice, HasDevice},
+    Alloc, Buffer, Device, Eval, HasId, MayTapeActions, MayToCLSource, Resolve, Retriever, Shape,
+};
 
 /// Applies a function to a buffer and returns a new buffer.
 pub trait ApplyFunction<T, S: Shape = (), D: Device = Self>: Device {
@@ -15,8 +18,12 @@ pub trait ApplyFunction<T, S: Shape = (), D: Device = Self>: Device {
     /// assert_eq!(&*out, &[2., 4., 6., 6., 4., 2.,]);
     /// ```
     #[track_caller]
-    fn apply_fn<F>(&self, buf: &Buffer<T, D, S>, f: impl Fn(Resolve<T>) -> F) -> Buffer<T, Self, S>
-    where
+    fn apply_fn<F>(
+        &self,
+        buf: &Buffer<T, D, S>,
+        out: &mut Buffer<T, D, S>,
+        f: impl Fn(Resolve<T>) -> F,
+    ) where
         F: Eval<T> + MayToCLSource;
 }
 
@@ -100,17 +107,17 @@ pub trait UnaryElementWiseMayGrad<T, D: Device, S: Shape>: Device {
         GO: Eval<T> + MayToCLSource + 'static;
 }
 
-impl<T, D, S> UnaryElementWiseMayGrad<T, D, S> for D
+impl<T, B, S> UnaryElementWiseMayGrad<T, B, S> for B
 where
     T: 'static,
-    D: ApplyFunction<T, S, D> + UnaryGrad<T, S, D> + MayTapeActions<D>,
-    D: Alloc<T> + 'static,
+    B::Dev: ApplyFunction<T, S, B> + UnaryGrad<T, S, B::Dev>,
+    B: Retriever<T> + HasDevice + BindDevice<B::Dev> + Alloc<T> + MayTapeActions<B::Dev> + 'static,
     S: Shape,
 {
     #[inline(always)]
     fn unary_ew<FO, GO>(
         &self,
-        buf: &Buffer<T, D, S>,
+        buf: &Buffer<T, B, S>,
         forward_fn: impl Fn(Resolve<T>) -> FO,
         _grad_fn: fn(Resolve<T>) -> GO,
     ) -> Buffer<T, Self, S>
@@ -118,17 +125,65 @@ where
         FO: Eval<T> + MayToCLSource,
         GO: Eval<T> + MayToCLSource + 'static,
     {
-        let out = self.apply_fn(buf, forward_fn);
+        let mut out = self.retrieve(buf.len(), buf);
+        self.device().apply_fn(buf, &mut out, forward_fn);
 
         #[cfg(feature = "autograd")]
         {
             let ids = (buf.id(), out.id());
             self.add_grad_fn(move |grads, device| {
-                let (lhs, lhs_grad, out_grad) = grads.get_double::<T, S, S, D>(ids);
+                let (lhs, lhs_grad, out_grad) = grads.get_double::<T, S, S, B::Dev>(ids);
                 device.add_unary_grad(&lhs, lhs_grad, out_grad, _grad_fn);
             });
         }
 
         out
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    #[cfg(feature = "cpu")]
+    #[test]
+    fn test_unary_elementwise() {
+        use crate::{Base, Combiner, Device, UnaryElementWiseMayGrad, CPU};
+
+        let device = CPU::<Base>::new();
+        let buf = device.buffer([1., 2., 3., 4.]);
+        let out = device.unary_ew(&buf, |x| x.sin(), |x| x.cos());
+
+        assert_eq!(
+            &*out,
+            [
+                0.8414709848078965,
+                0.9092974268256817,
+                0.1411200080598672,
+                -0.7568024953079282
+            ]
+        );
+    }
+
+    #[cfg(feature = "cpu")]
+    #[cfg(feature = "autograd")]
+    #[test]
+    fn test_unary_elementwise_may_grad() {
+        use crate::{Autograd, Base, Combiner, Device, UnaryElementWiseMayGrad, CPU};
+
+        let device = CPU::<Autograd<Base>>::new();
+        let buf = device.buffer([1., 2., 3., 4.]);
+        let out = device.unary_ew(&buf, |x| x.sin(), |x| x.cos());
+
+        assert_eq!(
+            &*out,
+            [
+                0.8414709848078965,
+                0.9092974268256817,
+                0.1411200080598672,
+                -0.7568024953079282
+            ]
+        );
+        out.backward();
+        assert_eq!(&**buf.grad(), [0.5403023058681398, -0.4161468365471424, -0.9899924966004454, -0.6536436208636119]);
+
     }
 }

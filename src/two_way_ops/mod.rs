@@ -327,9 +327,9 @@ mod tests {
         let device = CPU::<Base>::new();
 
         let buf = Buffer::from((&device, &[3, 3, 4, 5, 3, 2]));
-
-        let buf = device.apply_fn(&buf, |x| x.add(3));
-        assert_eq!(buf.read(), &[6, 6, 7, 8, 6, 5]);
+        todo!()
+        // let buf = device.apply_fn(&buf, |x| x.add(3));
+        // assert_eq!(buf.read(), &[6, 6, 7, 8, 6, 5]);
     }
 
     #[cfg(feature = "opencl")]
@@ -350,13 +350,14 @@ mod tests {
     #[cfg(all(feature = "cpu", feature = "macro"))]
     #[test]
     fn test_run_apply_fn_cpu_more_complex() {
-        use crate::{ApplyFunction, Base, Buffer, CPU};
+        use crate::{ApplyFunction, Base, Buffer, Device, CPU};
 
         let device = CPU::<Base>::new();
 
         let buf = Buffer::from((&device, &[3., 3., 4., 5., 3., 2.]));
 
-        let buf = device.apply_fn(&buf, |x| x.mul(2.).add(4.).sin().mul(x).add(1.));
+        todo!()
+        /*let buf = device.apply_fn(&buf, |x| x.mul(2.).add(4.).sin().mul(x).add(1.));
         roughly_eq_slices(
             buf.read(),
             &[
@@ -367,7 +368,7 @@ mod tests {
                 -0.6320633326681093,
                 2.978716493246764,
             ],
-        );
+        );*/
     }
 
     #[cfg(feature = "opencl")]

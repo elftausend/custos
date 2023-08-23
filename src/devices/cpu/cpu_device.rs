@@ -1,9 +1,9 @@
 use core::{convert::Infallible, marker::PhantomData};
 
 use crate::{
-    cpu::CPUPtr, flag::AllocFlag, impl_buffer_hook_traits, impl_retriever, Alloc, Base, Buffer,
-    Cached, CachedModule, CloneBuf, Device, DevicelessAble, HasModules, MainMemory, Module,
-    OnDropBuffer, OnNewBuffer, Setup, Shape, TapeActions, backend::Backend,
+    backend::Backend, cpu::CPUPtr, flag::AllocFlag, impl_buffer_hook_traits, impl_retriever, Alloc,
+    Base, Buffer, Cached, CachedModule, CloneBuf, Device, DevicelessAble, HasModules, MainMemory,
+    Module, OnDropBuffer, OnNewBuffer, Setup, Shape, TapeActions,
 };
 
 pub trait IsCPU {}
@@ -55,8 +55,7 @@ impl<Mods, T, D: Device, S: Shape> OnNewBuffer<T, D, S> for CPU<Mods> {}
 
 impl<T, S: Shape> DevicelessAble<'_, T, S> for CPU {}
 
-// for Backend<CPU, Mods>?
-impl<Mods> MainMemory for CPU<Mods> {
+impl<Mods: OnDropBuffer> MainMemory for Backend<CPU, Mods> {
     #[inline]
     fn as_ptr<T, S: Shape>(ptr: &Self::Data<T, S>) -> *const T {
         ptr.ptr
@@ -68,16 +67,27 @@ impl<Mods> MainMemory for CPU<Mods> {
     }
 }
 
+impl MainMemory for CPU {
+    #[inline]
+    fn as_ptr<T, S: Shape>(ptr: &Self::Data<T, S>) -> *const T {
+        ptr.ptr
+    }
+
+    #[inline]
+    fn as_ptr_mut<T, S: Shape>(ptr: &mut Self::Data<T, S>) -> *mut T {
+        ptr.ptr
+    }
+}
 
 impl<SimpleMods> CPU<SimpleMods> {
-    pub fn new<NewMods>() -> Backend<CPU, NewMods> 
+    pub fn new<NewMods>() -> Backend<CPU, NewMods>
     where
         SimpleMods: Module<CPU, Module = NewMods>,
         NewMods: Setup<CPU>,
     {
         let mut cpu = Backend {
             modules: SimpleMods::new(),
-            device: CPU::default() 
+            device: CPU::default(),
         };
         NewMods::setup(&mut cpu.device);
         cpu

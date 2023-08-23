@@ -26,30 +26,28 @@ where
 }
 
 #[impl_stack]
-impl<Mods, T, D, S> ApplyFunction<T, S, D> for CPU<Mods>
+impl<T, D, S> ApplyFunction<T, S, D> for CPU
 where
-    Mods: Retrieve<Self, T>,
     T: Copy + Default + ToVal + 'static,
     D: crate::MainMemory,
     S: Shape,
 {
-    fn apply_fn<F>(&self, buf: &Buffer<T, D, S>, f: impl Fn(Resolve<T>) -> F) -> Buffer<T, Self, S>
-    where
+    #[inline]
+    fn apply_fn<F>(
+        &self,
+        buf: &Buffer<T, D, S>,
+        out: &mut Buffer<T, D, S>,
+        f: impl Fn(Resolve<T>) -> F,
+    ) where
         F: Eval<T> + MayToCLSource,
     {
-        todo!()
-        /*let mut out = self.retrieve(buf.len(), buf);
-
-        apply_fn_slice(buf, &mut out, f);
-
-        out*/
+        apply_fn_slice(buf, out, f);
     }
 }
 
 #[impl_stack]
-impl<Mods, T, D, S> UnaryGrad<T, S, D> for CPU<Mods>
+impl<T, D, S> UnaryGrad<T, S, D> for CPU
 where
-    Mods: OnDropBuffer,
     T: AddAssign + Copy + std::ops::Mul<Output = T>,
     S: Shape,
     D: MainMemory,
