@@ -70,13 +70,28 @@ pub fn unregister_buf(cache: &mut HashMap<UniqueId, Box<dyn Any>, impl BuildHash
     cache.remove(&id);
 }
 
+pub trait SwapToBackend<B: Device>: Device {
+    fn swap_to_backend<'a, T, S: Shape>(&'a self, buf: &Buffer<T, Self, S>) -> Buffer<'a, T, B, S>;
+}
+
+pub trait SwapToSimpleDevice<SD: Device>: Device {
+    fn swap_to_simple_dev<'a, T, S: Shape>(&'a self, buf: &Buffer<T, Self, S>) -> Buffer<'a, T, SD, S>;
+}
+
+impl<D: PtrConv<SD> + BindDevice<SD>, SD: Device> SwapToSimpleDevice<SD> for D {
+    fn swap_to_simple_dev<'a, T, S: Shape>(&'a self, buf: &Buffer<T, Self, S>) -> Buffer<'a, T, SD, S> {
+        let data = unsafe { <D as PtrConv::<SD>>::convert::<T, S, T, S>(&buf.data, AllocFlag::Wrapper) };
+        Buffer { data, device: Some(self.device()) }
+    }
+}
+
 impl<Mods, SD> AutogradModule<Mods, SD> {
     #[inline]
     pub fn register_no_grad_buf<T, D, S>(&self, buf: &Buffer<T, D, S>)
     where
         T: 'static,
         SD: Device + PtrConv + 'static,
-        D: Device + PtrConv<SD> + BindDevice<SD> + 'static,
+        D: SwapToSimpleDevice<SD> + 'static,
         S: Shape,
     {
         let no_grads_pool = &mut self.tape.borrow_mut().grads.no_grads_pool.cache;
@@ -85,11 +100,11 @@ impl<Mods, SD> AutogradModule<Mods, SD> {
             return;
         }
 
+
         // in an grad fn context, only the SD is allowed -> this converts the buf to a simple device buf
-        // TODO: create a trait that allows conversion between backend bufs and simple device bufs
-        let data = unsafe { <D as PtrConv::<SD>>::convert::<T, S, T, S>(&buf.data, AllocFlag::Wrapper) };
-        
-        let buf = Buffer { data, device: buf.device.map(|dev| dev.device()) };
+        let buf = buf.device().swap_to_simple_dev(buf);
+        // let data = unsafe { <D as PtrConv::<SD>>::convert::<T, S, T, S>(&buf.data, AllocFlag::Wrapper) };
+        // let buf = Buffer { data, device: buf.device.map(|dev| dev.device()) };
 
         unsafe { register_buf(no_grads_pool, &buf) };
     }
