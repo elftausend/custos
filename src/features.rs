@@ -43,15 +43,15 @@ pub trait HasModules<Mods> {
 }
 
 #[cfg(feature = "autograd")]
-pub trait TapeActions<D> {
+pub trait TapeActions {
     // "generator" - do not forget to pass down
     #[inline]
-    fn tape(&self) -> Option<Ref<crate::Tape<D>>> {
+    fn tape(&self) -> Option<Ref<crate::Tape>> {
         None
     }
     // "generator" - do not forget to pass down
     #[inline]
-    fn tape_mut(&self) -> Option<RefMut<crate::Tape<D>>> {
+    fn tape_mut(&self) -> Option<RefMut<crate::Tape>> {
         None
     }
 
@@ -61,9 +61,8 @@ pub trait TapeActions<D> {
     fn add_grad_fn</*T, S: Shape*/>(
         &self,
         // ids: impl AllocGradsFrom<N>,
-        grad_fn: impl Fn(&mut crate::Gradients, &D) + 'static,
+        grad_fn: impl Fn(&mut crate::Gradients) + 'static,
     ) where
-        D: Device,
         // T: 'static,
         Self: Device + 'static,
     {

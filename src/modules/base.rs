@@ -57,4 +57,4 @@ impl<D, T> Retrieve<D, T> for Base {
 }
 
 #[cfg(feature = "autograd")]
-impl<D> crate::TapeActions<D> for Base {}
+impl crate::TapeActions for Base {}

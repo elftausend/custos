@@ -10,7 +10,7 @@ use crate::{
 
 impl<Mods, T, S, D> crate::ApplyFunctionLazyTest<T, S, D> for CPU<Mods>
 where
-    Mods: crate::Retrieve<Self, T> + TapeActions<D> + AddOperation + 'static,
+    Mods: crate::Retrieve<Self, T> + TapeActions + AddOperation + 'static,
     T: Copy + Default + crate::ToVal + 'static,
     S: Shape,
     D: MainMemory + Alloc<T> + 'static,
@@ -27,9 +27,8 @@ where
         let mut out = self.retrieve(buf.len(), buf);
 
         let ids = (buf.id(), out.id());
-        self.add_grad_fn(move |grads, _device| {
-            let (lhs, lhs_grad, out_grad) = grads.get_double::<T, S, S, D>(ids);
-            
+        self.add_grad_fn(move |grads| {
+            let (lhs, lhs_grad, out_grad) = grads.get_double::<T, S, S, D>(ids);           
         });
 
         unsafe {

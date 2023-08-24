@@ -91,14 +91,14 @@ where
     }
 }
 
-impl<Mods: TapeActions<D>, D, SD: Device> TapeActions<D> for CachedModule<Mods, SD> {
+impl<Mods: TapeActions, SD: Device> TapeActions for CachedModule<Mods, SD> {
     #[inline]
-    fn tape(&self) -> Option<core::cell::Ref<super::Tape<D>>> {
+    fn tape(&self) -> Option<core::cell::Ref<super::Tape>> {
         self.modules.tape()
     }
 
     #[inline]
-    fn tape_mut(&self) -> Option<core::cell::RefMut<super::Tape<D>>> {
+    fn tape_mut(&self) -> Option<core::cell::RefMut<super::Tape>> {
         self.modules.tape_mut()
     }
 }

@@ -8,7 +8,6 @@ use core::{
     any::Any,
     cell::{Ref, RefCell, RefMut},
     hash::BuildHasher,
-    marker::PhantomData,
     mem::transmute,
 };
 use std::collections::HashMap;
@@ -22,26 +21,20 @@ use super::{Cached, CachedModule};
 
 #[derive(Debug, Default)]
 pub struct Autograd<Mods> {
-    _p: PhantomData<Mods>,
+    pub modules: Mods,
+    tape: RefCell<Tape>,
 }
 
 impl<Mods: Module<D>, D: Device + Default> Module<D> for Autograd<Mods> {
-    type Module = AutogradModule<CachedModule<Mods::Module, D>, D>;
+    type Module = Autograd<CachedModule<Mods::Module, D>>;
 
     #[inline]
     fn new() -> Self::Module {
-        AutogradModule {
+        Autograd {
             modules: Cached::<Mods>::new(),
             tape: Default::default(),
         }
     }
-}
-
-impl<Mods> OnDropBuffer for Autograd<Mods> {}
-
-pub struct AutogradModule<Mods, D> {
-    pub modules: Mods,
-    tape: RefCell<Tape<D>>,
 }
 
 #[inline]
@@ -67,7 +60,7 @@ pub fn unregister_buf(cache: &mut HashMap<UniqueId, Box<dyn Any>, impl BuildHash
     cache.remove(&id);
 }
 
-impl<Mods, SD> AutogradModule<Mods, SD> {
+impl<Mods> Autograd<Mods> {
     #[inline]
     pub fn register_no_grad_buf<T, D, S>(&self, buf: &Buffer<T, D, S>)
     where
@@ -85,7 +78,7 @@ impl<Mods, SD> AutogradModule<Mods, SD> {
     }
 }
 
-impl<T, D, S, Mods, SD> OnNewBuffer<T, D, S> for AutogradModule<Mods, SD>
+impl<T, D, S, Mods> OnNewBuffer<T, D, S> for Autograd<Mods>
 where
     T: 'static,
     D: Alloc<T> + PtrConv + 'static,
@@ -111,7 +104,7 @@ where
     }
 }
 
-impl<Mods: OnDropBuffer, SD: Device> OnDropBuffer for AutogradModule<Mods, SD> {
+impl<Mods: OnDropBuffer> OnDropBuffer for Autograd<Mods> {
     #[inline]
     fn on_drop_buffer<'a, T, D: Device, S: Shape>(&self, device: &'a D, buf: &Buffer<T, D, S>) {
         unregister_buf(
@@ -122,14 +115,14 @@ impl<Mods: OnDropBuffer, SD: Device> OnDropBuffer for AutogradModule<Mods, SD> {
     }
 }
 
-impl<Mods: Setup<NewDev>, NewDev, D> Setup<NewDev> for AutogradModule<Mods, D> {
+impl<Mods: Setup<NewDev>, NewDev> Setup<NewDev> for Autograd<Mods> {
     #[inline]
     fn setup(device: &mut NewDev) {
         Mods::setup(device)
     }
 }
 
-impl<T: 'static, Mods: Retrieve<D, T>, D, SD: Device> Retrieve<D, T> for AutogradModule<Mods, SD>
+impl<T: 'static, Mods: Retrieve<D, T>, D> Retrieve<D, T> for Autograd<Mods>
 where
     D: PtrConv + Device + 'static,
 {
@@ -165,19 +158,19 @@ where
     }
 }
 
-impl<Mods, D> TapeActions<D> for AutogradModule<Mods, D> {
+impl<Mods> TapeActions for Autograd<Mods> {
     #[inline]
-    fn tape(&self) -> Option<core::cell::Ref<Tape<D>>> {
+    fn tape(&self) -> Option<core::cell::Ref<Tape>> {
         Some(self.tape.borrow())
     }
 
     #[inline]
-    fn tape_mut(&self) -> Option<core::cell::RefMut<Tape<D>>> {
+    fn tape_mut(&self) -> Option<core::cell::RefMut<Tape>> {
         Some(self.tape.borrow_mut())
     }
 }
 
-impl<Mods: UnifiedMemChain<D>, D: Device, SD> UnifiedMemChain<D> for AutogradModule<Mods, SD> {
+impl<Mods: UnifiedMemChain<D>, D: Device> UnifiedMemChain<D> for Autograd<Mods> {
     fn construct_unified_buf_from_cpu_buf<'a, T, S: Shape>(
         &self,
         device: &'a D,
@@ -193,7 +186,7 @@ const AUTOGRAD_NOT_AVAILABLE: &'static str = "Autograd<> is not available.";
 impl<'a, T, D, S> Buffer<'a, T, D, S>
 where
     T: Clone + One + 'static,
-    D: TapeActions<D> + WriteBuf<T, S, D> + Alloc<T> + 'static,
+    D: TapeActions + WriteBuf<T, S, D> + Alloc<T> + 'static,
     S: Shape,
 {
     /// Calls `.backward_seeded` on the [`Tape`].
@@ -365,17 +358,23 @@ mod tests {
     #[test]
     //#[should_panic]
     fn test_tape_return_without_grad_allocation() {
-        let device = CPU::<Autograd<Base>>::new();
+        let device: CPU<Autograd<crate::CachedModule<Base, CPU<Autograd<Base>>>>> = CPU::<Autograd<Base>>::new();
         let buf = Buffer::<f32, _>::new(&device, 10);
 
+        let out = Buffer::<f32, _>::new(&device, 10);
+
+        let ids = (buf.id(), out.id());
         // this does not panic anymore because grads are allocated if a new buffer is created (when using the Autograd module)
-        device.add_grad_fn(|x, y| {
-            
+        device.add_grad_fn(move |grads| {
+            let (_buf, buf_grad, _out) = grads.get_double::<f32, (), (), CPU<Autograd<crate::CachedModule<Base, CPU<Autograd<Base>>>>>>(ids);
+            for val in buf_grad.as_mut_slice() {
+                *val = 5.;
+            }
         });
 
-        // device.tape().unwrap().backward(device)
+        device.tape_mut().unwrap().backward_seeded(&out);
 
-        // buf.grad();
+        assert_eq!(&**buf.grad(), [5.; 10]);
     }
 
     #[test]
@@ -391,6 +390,6 @@ mod tests {
             .grads
             .get_mut::<f32, (), _>(&device, buf.id());
 
-        // buf.grad();
+        buf.grad();
     }
 }

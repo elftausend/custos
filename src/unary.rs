@@ -103,7 +103,7 @@ pub trait UnaryElementWiseMayGrad<T, D: Device, S: Shape>: Device {
 impl<T, D, S> UnaryElementWiseMayGrad<T, D, S> for D
 where
     T: 'static,
-    D: ApplyFunction<T, S, D> + UnaryGrad<T, S, D> + MayTapeActions<D>,
+    D: ApplyFunction<T, S, D> + UnaryGrad<T, S, D> + MayTapeActions,
     D: Alloc<T> + 'static,
     S: Shape,
 {
@@ -123,12 +123,59 @@ where
         #[cfg(feature = "autograd")]
         {
             let ids = (buf.id(), out.id());
-            self.add_grad_fn(move |grads, device| {
+            self.add_grad_fn(move |grads| {
                 let (lhs, lhs_grad, out_grad) = grads.get_double::<T, S, S, D>(ids);
-                device.add_unary_grad(&lhs, lhs_grad, out_grad, _grad_fn);
+                lhs.device().add_unary_grad(&lhs, lhs_grad, out_grad, _grad_fn);
             });
         }
 
         out
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    #[cfg(feature = "cpu")]
+    #[test]
+    fn test_unary_elementwise() {
+        use crate::{Base, Combiner, Device, UnaryElementWiseMayGrad, CPU};
+
+        let device = CPU::<Base>::new();
+        let buf = device.buffer([1., 2., 3., 4.]);
+        let out = device.unary_ew(&buf, |x| x.sin(), |x| x.cos());
+
+        assert_eq!(
+            &*out,
+            [
+                0.8414709848078965,
+                0.9092974268256817,
+                0.1411200080598672,
+                -0.7568024953079282
+            ]
+        );
+    }
+
+    #[cfg(feature = "cpu")]
+    #[cfg(feature = "autograd")]
+    #[test]
+    fn test_unary_elementwise_may_grad() {
+        use crate::{Autograd, Base, Combiner, Device, UnaryElementWiseMayGrad, CPU};
+
+        let device = CPU::<Autograd<Base>>::new();
+        let buf = device.buffer([1., 2., 3., 4.]);
+        let out = device.unary_ew(&buf, |x| x.sin(), |x| x.cos());
+
+        assert_eq!(
+            &*out,
+            [
+                0.8414709848078965,
+                0.9092974268256817,
+                0.1411200080598672,
+                -0.7568024953079282
+            ]
+        );
+        out.backward();
+        assert_eq!(&**buf.grad(), [0.5403023058681398, -0.4161468365471424, -0.9899924966004454, -0.6536436208636119]);
+
     }
 }
