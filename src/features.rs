@@ -58,7 +58,7 @@ pub trait TapeActions {
     // use track caller to identify a specific grad function
     //-> if backward is not called (.drain()), the grad fn vector will gradually fill up
     #[track_caller]
-    fn add_grad_fn</*T, S: Shape*/>(
+    fn add_grad_fn(
         &self,
         // ids: impl AllocGradsFrom<N>,
         grad_fn: impl Fn(&mut crate::Gradients) + 'static,
@@ -115,7 +115,7 @@ macro_rules! impl_unified_mem_chain {
                     &self,
                     device: &'a D,
                     no_drop_buf: Buffer<'a, T, CachedCPU, S>
-                ) -> crate::Result<Buffer<'a, T, D, S>>
+                ) -> $crate::Result<Buffer<'a, T, D, S>>
                 {
                     self.modules.construct_unified_buf_from_cpu_buf(device, no_drop_buf)
                 }

@@ -74,7 +74,7 @@ impl<SimpleMods> OpenCL<SimpleMods> {
             cpu: CPU::<Cached<Base>>::new(),
         })
     }
-    
+
     /// Returns the fastest [OpenCL] device available in your system.
     #[inline]
     pub fn fastest<NewMods>() -> crate::Result<OpenCL<NewMods>>
@@ -89,7 +89,7 @@ impl<SimpleMods> OpenCL<SimpleMods> {
             kernel_cache: Default::default(),
             cpu: CPU::<Cached<Base>>::new(),
         })
-    } 
+    }
 }
 
 impl<Mods> OpenCL<Mods> {

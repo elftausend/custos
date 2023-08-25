@@ -2,8 +2,8 @@ use core::convert::Infallible;
 
 use crate::{
     cpu::CPUPtr, flag::AllocFlag, impl_buffer_hook_traits, impl_retriever, Alloc, Base, Buffer,
-    Cached, CachedModule, CloneBuf, Device, DevicelessAble, HasModules, MainMemory, Module,
-    OnDropBuffer, OnNewBuffer, Setup, Shape, TapeActions,
+    CloneBuf, Device, DevicelessAble, HasModules, MainMemory, Module, OnDropBuffer, OnNewBuffer,
+    Setup, Shape, TapeActions,
 };
 
 pub trait IsCPU {}
@@ -32,13 +32,6 @@ impl_retriever!(CPU);
 impl_buffer_hook_traits!(CPU);
 
 impl<Mods> IsCPU for CPU<Mods> {}
-
-// maybe
-impl<Mods: OnDropBuffer> CPU<Mods> {
-    pub fn default() -> CPU<CachedModule<Base, CPU>> {
-        CPU::<Cached<Base>>::new()
-    }
-}
 
 impl<Mods: OnDropBuffer> Device for CPU<Mods> {
     type Error = Infallible;

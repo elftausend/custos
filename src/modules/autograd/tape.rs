@@ -1,9 +1,7 @@
 use core::{fmt::Debug, hash::BuildHasherDefault, panic::Location};
 use std::collections::HashMap;
 
-use crate::{
-    prelude::One, Alloc, Buffer, HasId, HashLocation, LocationHasher, Shape, WriteBuf,
-};
+use crate::{prelude::One, Alloc, Buffer, HasId, HashLocation, LocationHasher, Shape, WriteBuf};
 
 use super::Gradients;
 

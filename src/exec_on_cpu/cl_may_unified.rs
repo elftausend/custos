@@ -1,14 +1,19 @@
 use super::{
     cpu_exec_binary, cpu_exec_binary_mut, cpu_exec_reduce, cpu_exec_unary, cpu_exec_unary_mut,
 };
-use crate::{Buffer, CachedCPU, OpenCL, UnifiedMemChain, CPU, OnDropBuffer, Retrieve};
+use crate::{Buffer, CachedCPU, OnDropBuffer, OpenCL, Retrieve, UnifiedMemChain, CPU};
 
 /// If the current device supports unified memory, data is not deep-copied.
 /// This is way faster than [cpu_exec_unary], as new memory is not allocated.
 ///
 /// `cpu_exec_unary_may_unified` can be used interchangeably with [cpu_exec_unary].
 #[track_caller]
-pub fn cpu_exec_unary_may_unified<'a, T, F, Mods: OnDropBuffer + Retrieve<OpenCL<Mods>, T> + UnifiedMemChain<OpenCL<Mods>> + 'static>(
+pub fn cpu_exec_unary_may_unified<
+    'a,
+    T,
+    F,
+    Mods: OnDropBuffer + Retrieve<OpenCL<Mods>, T> + UnifiedMemChain<OpenCL<Mods>> + 'static,
+>(
     device: &'a OpenCL<Mods>,
     x: &Buffer<T, OpenCL<Mods>>,
     f: F,
@@ -16,7 +21,7 @@ pub fn cpu_exec_unary_may_unified<'a, T, F, Mods: OnDropBuffer + Retrieve<OpenCL
 where
     T: Clone + Default + 'static,
     F: for<'b> Fn(&'b CachedCPU, &Buffer<'_, T, CachedCPU>) -> Buffer<'b, T, CachedCPU>,
-{     
+{
     // TODO: use compile time unified_cl flag -> get from custos?
     #[cfg(not(feature = "realloc"))]
     if device.unified_mem() {
@@ -82,7 +87,12 @@ where
 /// This is way faster than [cpu_exec_binary], as new memory is not allocated.
 ///
 /// `cpu_exec_binary_may_unified` can be used interchangeably with [cpu_exec_binary].
-pub fn cpu_exec_binary_may_unified<'a, T, F, Mods: OnDropBuffer + UnifiedMemChain<OpenCL<Mods>> + Retrieve<OpenCL<Mods>, T> + 'static>(
+pub fn cpu_exec_binary_may_unified<
+    'a,
+    T,
+    F,
+    Mods: OnDropBuffer + UnifiedMemChain<OpenCL<Mods>> + Retrieve<OpenCL<Mods>, T> + 'static,
+>(
     device: &'a OpenCL<Mods>,
     lhs: &Buffer<T, OpenCL<Mods>>,
     rhs: &Buffer<T, OpenCL<Mods>>,

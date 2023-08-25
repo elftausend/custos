@@ -3,7 +3,7 @@ use crate::Shape;
 use super::{Buffer, Device};
 
 pub trait OnDropBuffer {
-    fn on_drop_buffer<'a, T, D: Device, S: Shape>(&self, _device: &'a D, _buf: &Buffer<T, D, S>) {}
+    fn on_drop_buffer<T, D: Device, S: Shape>(&self, _device: &D, _buf: &Buffer<T, D, S>) {}
 }
 
 pub trait OnNewBuffer<T, D: Device, S: Shape> {

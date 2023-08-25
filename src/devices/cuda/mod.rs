@@ -54,7 +54,7 @@ impl<T> HasId for CUDAPtr<T> {
     #[inline]
     fn id(&self) -> Id {
         Id {
-            id: self.ptr as u64,
+            id: self.ptr,
             len: self.len,
         }
     }

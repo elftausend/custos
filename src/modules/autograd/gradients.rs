@@ -1,6 +1,6 @@
 use crate::{Alloc, BorrowCache, Buffer, CachingError, HasId, Id, Parents, Shape};
 
-const INVALID_ID: &'static str = "A matching Buffer does not exist.";
+const INVALID_ID: &str = "A matching Buffer does not exist.";
 
 /// A cache for gradients.
 /// The cache is populated by `get_ref`, `get_like` or `get_mut_ref` calls.
@@ -186,7 +186,10 @@ mod tests {
             .tape
             .borrow_mut()
             .grads
-            .get_double::<i32, (), (), CPU<Autograd<crate::CachedModule<Base, CPU>>>>((buf.id(), out.id()));
+            .get_double::<i32, (), (), CPU<Autograd<crate::CachedModule<Base, CPU>>>>((
+                buf.id(),
+                out.id(),
+            ));
     }
 
     #[test]

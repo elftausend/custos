@@ -28,7 +28,7 @@ impl<'a, T, const N: usize> From<(&'a Stack, [T; N])> for Buffer<'a, T, Stack, D
     fn from((dev, array): (&'a Stack, [T; N])) -> Self {
         Buffer {
             data: StackArray::from_array(array),
-            device: Some(&dev),
+            device: Some(dev),
         }
     }
 }
@@ -41,7 +41,7 @@ impl<'a, T: Copy + Default, const A: usize, const B: usize, const N: usize>
         arr.copy_from_slice(&array);
         Buffer {
             data: arr,
-            device: Some(&dev),
+            device: Some(dev),
         }
     }
 }

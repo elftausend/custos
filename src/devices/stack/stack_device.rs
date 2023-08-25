@@ -6,7 +6,7 @@ use crate::{
 };
 
 /// A device that allocates memory on the stack.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Default)]
 pub struct Stack<Mods = Base> {
     modules: Mods,
 }
@@ -43,7 +43,7 @@ impl<Mods: OnDropBuffer> MainMemory for Stack<Mods> {
     }
 }
 
-impl<'a, Mods: OnDropBuffer, T: Copy + Default> Alloc<T> for Stack<Mods> {
+impl<Mods: OnDropBuffer, T: Copy + Default> Alloc<T> for Stack<Mods> {
     #[inline]
     fn alloc<S: Shape>(&self, _len: usize, _flag: AllocFlag) -> StackArray<S, T> {
         StackArray::new()

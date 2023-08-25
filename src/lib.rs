@@ -245,11 +245,11 @@ pub mod prelude {
     // pub use crate::{cache::CacheReturn, get_count, set_count, Cache};
 
     #[cfg(feature = "opencl")]
-    pub use crate::opencl::{enqueue_kernel, CLBuffer, OpenCL, CL, chosen_cl_idx};
+    pub use crate::opencl::{chosen_cl_idx, enqueue_kernel, CLBuffer, OpenCL, CL};
 
     #[cfg(feature = "opencl")]
     #[cfg(unified_cl)]
-    pub use crate::{UnifiedMemChain, opencl::construct_buffer};
+    pub use crate::{opencl::construct_buffer, UnifiedMemChain};
 
     #[cfg(feature = "stack")]
     pub use crate::stack::Stack;
@@ -261,7 +261,7 @@ pub mod prelude {
     pub use crate::wgpu::{launch_shader, WGPU};
 
     #[cfg(feature = "cuda")]
-    pub use crate::cuda::{launch_kernel1d, CUDA, chosen_cu_idx};
+    pub use crate::cuda::{chosen_cu_idx, launch_kernel1d, CUDA};
 }
 
 #[cfg(test)]

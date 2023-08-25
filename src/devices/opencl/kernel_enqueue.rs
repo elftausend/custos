@@ -175,7 +175,7 @@ pub fn enqueue_kernel<Mods>(
 mod tests {
     // use core::ffi::c_void;
 
-    use crate::{Base, Buffer, CDatatype, OpenCL, opencl::chosen_cl_idx};
+    use crate::{opencl::chosen_cl_idx, Base, Buffer, CDatatype, OpenCL};
 
     #[test]
     fn test_kernel_launch() -> crate::Result<()> {

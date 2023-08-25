@@ -70,7 +70,7 @@ impl BorrowCache {
         self.get_buf_mut(id).unwrap()
     }
 
-    pub fn add_buf_once<'a, T, D, S>(&mut self, device: &'a D, id: Id)
+    pub fn add_buf_once<T, D, S>(&mut self, device: &D, id: Id)
     where
         T: 'static,
         D: Alloc<T> + 'static,
@@ -83,7 +83,7 @@ impl BorrowCache {
         self.add_buf::<T, D, S>(device, id)
     }
 
-    pub fn add_buf<'a, T, D, S>(&mut self, device: &'a D, id: Id)
+    pub fn add_buf<T, D, S>(&mut self, device: &D, id: Id)
     where
         T: 'static,
         D: Alloc<T> + 'static,
@@ -152,7 +152,6 @@ impl BorrowCache {
 
 #[cfg(test)]
 mod tests {
-    
 
     /*#[test]
     fn test_comp_error() {

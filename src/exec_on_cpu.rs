@@ -285,7 +285,7 @@ mod tests {
     #[cfg(feature = "opencl")]
     #[test]
     fn test_to_cpu_macro() {
-        use crate::{Base, Buffer, CPU, opencl::chosen_cl_idx};
+        use crate::{opencl::chosen_cl_idx, Base, Buffer, CPU};
 
         let device = crate::OpenCL::<Base>::new(chosen_cl_idx()).unwrap();
 
@@ -302,7 +302,9 @@ mod tests {
     #[cfg(feature = "opencl")]
     #[test]
     fn test_cpu_exec_unary_cl() -> crate::Result<()> {
-        use crate::{exec_on_cpu::cpu_exec_unary, Base, Buffer, CopySlice, OpenCL, opencl::chosen_cl_idx};
+        use crate::{
+            exec_on_cpu::cpu_exec_unary, opencl::chosen_cl_idx, Base, Buffer, CopySlice, OpenCL,
+        };
         let device = OpenCL::<Base>::new(chosen_cl_idx())?;
 
         let buf = Buffer::from((&device, [1, 2, 3, 4, 5]));
@@ -317,7 +319,10 @@ mod tests {
     #[cfg(feature = "opencl")]
     #[test]
     fn test_cpu_exec_unary_cl_unified() -> crate::Result<()> {
-        use crate::{exec_on_cpu::cpu_exec_unary_may_unified, Base, Buffer, OpenCL, Retriever, opencl::chosen_cl_idx, Cached};
+        use crate::{
+            exec_on_cpu::cpu_exec_unary_may_unified, opencl::chosen_cl_idx, Base, Buffer, Cached,
+            OpenCL, Retriever,
+        };
         let device = OpenCL::<Cached<Base>>::new(chosen_cl_idx())?;
 
         let buf = Buffer::from((&device, [1, 2, 3, 4, 5]));
@@ -341,7 +346,9 @@ mod tests {
     #[cfg(feature = "opencl")]
     #[test]
     fn test_cpu_exec_binary_cl() -> crate::Result<()> {
-        use crate::{exec_on_cpu::cpu_exec_binary, Base, Buffer, OpenCL, Retriever, opencl::chosen_cl_idx};
+        use crate::{
+            exec_on_cpu::cpu_exec_binary, opencl::chosen_cl_idx, Base, Buffer, OpenCL, Retriever,
+        };
         let device = OpenCL::<Base>::new(chosen_cl_idx())?;
 
         let lhs = Buffer::from((&device, [1, 2, 3, 4, 5]));
@@ -365,7 +372,10 @@ mod tests {
     #[cfg(feature = "opencl")]
     #[test]
     fn test_cpu_exec_binary_cl_may_unified() -> crate::Result<()> {
-        use crate::{exec_on_cpu::cpu_exec_binary_may_unified, Base, Buffer, OpenCL, Retriever, opencl::chosen_cl_idx, Cached};
+        use crate::{
+            exec_on_cpu::cpu_exec_binary_may_unified, opencl::chosen_cl_idx, Base, Buffer, Cached,
+            OpenCL, Retriever,
+        };
         let device = OpenCL::<Cached<Base>>::new(chosen_cl_idx())?;
 
         let lhs = Buffer::from((&device, [1, 2, 3, 4, 5]));

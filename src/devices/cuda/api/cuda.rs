@@ -78,12 +78,12 @@ pub unsafe fn cufree(ptr: CUdeviceptr) -> CudaResult<()> {
 }
 
 pub fn cu_write<T>(dst: CUdeviceptr, src_host: &[T]) -> CudaResult<()> {
-    let bytes_to_copy = src_host.len() * std::mem::size_of::<T>();
+    let bytes_to_copy = std::mem::size_of_val(src_host);
     unsafe { cuMemcpyHtoD_v2(dst, src_host.as_ptr() as *const c_void, bytes_to_copy) }.into()
 }
 
 pub fn cu_read<T>(dst_host: &mut [T], src: CUdeviceptr) -> CudaResult<()> {
-    let bytes_to_copy = dst_host.len() * std::mem::size_of::<T>();
+    let bytes_to_copy = std::mem::size_of_val(dst_host);
     unsafe { cuMemcpyDtoH_v2(dst_host.as_mut_ptr() as *mut c_void, src, bytes_to_copy) }.into()
 }
 

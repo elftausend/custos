@@ -125,7 +125,8 @@ where
             let ids = (buf.id(), out.id());
             self.add_grad_fn(move |grads| {
                 let (lhs, lhs_grad, out_grad) = grads.get_double::<T, S, S, D>(ids);
-                lhs.device().add_unary_grad(&lhs, lhs_grad, out_grad, _grad_fn);
+                lhs.device()
+                    .add_unary_grad(lhs, lhs_grad, out_grad, _grad_fn);
             });
         }
 
@@ -175,7 +176,14 @@ mod tests {
             ]
         );
         out.backward();
-        assert_eq!(&**buf.grad(), [0.5403023058681398, -0.4161468365471424, -0.9899924966004454, -0.6536436208636119]);
-
+        assert_eq!(
+            &**buf.grad(),
+            [
+                0.5403023058681398,
+                -0.4161468365471424,
+                -0.9899924966004454,
+                -0.6536436208636119
+            ]
+        );
     }
 }

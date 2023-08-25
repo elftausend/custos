@@ -57,7 +57,7 @@ impl<T, D: Device, S: Shape, Mods: OnNewBuffer<T, D, S>, SD: Device> OnNewBuffer
 
 impl<Mods: OnDropBuffer, SD: Device> OnDropBuffer for CachedModule<Mods, SD> {
     #[inline]
-    fn on_drop_buffer<'a, T, D: Device, S: Shape>(&self, device: &'a D, buf: &Buffer<T, D, S>) {
+    fn on_drop_buffer<T, D: Device, S: Shape>(&self, device: &D, buf: &Buffer<T, D, S>) {
         self.modules.on_drop_buffer(device, buf)
     }
 }

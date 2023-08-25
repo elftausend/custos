@@ -1,4 +1,4 @@
-use custos::{prelude::*, opencl::chosen_cl_idx};
+use custos::{opencl::chosen_cl_idx, prelude::*};
 
 /// `AddBuf` will be implemented for all compute devices.<br>
 /// Because of `S: Shape`, this trait can be implemented for [`Stack`], which uses fixed size stack allocated arrays.<br>

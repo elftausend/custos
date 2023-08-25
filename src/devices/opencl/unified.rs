@@ -152,8 +152,9 @@ pub fn construct_buffer<'a, OclMods: OnDropBuffer, CpuMods: OnDropBuffer, T, S: 
 #[cfg(test)]
 mod tests {
     use crate::{
-        opencl::{CLPtr, chosen_cl_idx}, AllocFlag, Base, Buffer, Cache, Cached, Device, DeviceError, HashLocation,
-        OpenCL, Retriever, UnifiedMemChain, CPU,
+        opencl::{chosen_cl_idx, CLPtr},
+        AllocFlag, Base, Buffer, Cache, Cached, Device, DeviceError, HashLocation, OpenCL,
+        Retriever, UnifiedMemChain, CPU,
     };
 
     use super::{construct_buffer, to_cached_unified};

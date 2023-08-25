@@ -28,7 +28,7 @@ where
 
         let ids = (buf.id(), out.id());
         self.add_grad_fn(move |grads| {
-            let (lhs, lhs_grad, out_grad) = grads.get_double::<T, S, S, D>(ids);           
+            let (lhs, lhs_grad, out_grad) = grads.get_double::<T, S, S, D>(ids);
         });
 
         unsafe {

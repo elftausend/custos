@@ -1,4 +1,7 @@
-use custos::{opencl::enqueue_kernel, Base, Buffer, CDatatype, Error, OpenCL, Retriever, prelude::chosen_cl_idx};
+use custos::{
+    opencl::enqueue_kernel, prelude::chosen_cl_idx, Base, Buffer, CDatatype, Error, OpenCL,
+    Retriever,
+};
 
 fn main() -> Result<(), Error> {
     let device = OpenCL::<Base>::new(chosen_cl_idx())?;

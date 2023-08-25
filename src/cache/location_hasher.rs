@@ -56,7 +56,7 @@ impl PartialEq for HashLocation<'_> {
         if self.file.as_ptr() != other.file.as_ptr() {
             return false;
         }
-        self.line == self.line && self.col == self.col
+        self.line == other.line && self.col == other.col
     }
 }
 

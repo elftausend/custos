@@ -38,9 +38,9 @@ impl<Mods: Module<D>, D: Device + Default> Module<D> for Autograd<Mods> {
 }
 
 #[inline]
-pub unsafe fn register_buf<'a, T, D, S>(
+pub(crate) unsafe fn register_buf<T, D, S>(
     cache: &mut HashMap<UniqueId, Box<dyn Any>, impl BuildHasher>,
-    buf: &'a Buffer<T, D, S>,
+    buf: &Buffer<T, D, S>,
 ) where
     T: 'static,
     D: Device + PtrConv + 'static,
@@ -106,7 +106,7 @@ where
 
 impl<Mods: OnDropBuffer> OnDropBuffer for Autograd<Mods> {
     #[inline]
-    fn on_drop_buffer<'a, T, D: Device, S: Shape>(&self, device: &'a D, buf: &Buffer<T, D, S>) {
+    fn on_drop_buffer<T, D: Device, S: Shape>(&self, device: &D, buf: &Buffer<T, D, S>) {
         unregister_buf(
             &mut self.tape.borrow_mut().grads.no_grads_pool.cache,
             buf.id(),
@@ -170,7 +170,7 @@ impl<Mods> TapeActions for Autograd<Mods> {
     }
 }
 
-const AUTOGRAD_NOT_AVAILABLE: &'static str = "Autograd<> is not available.";
+const AUTOGRAD_NOT_AVAILABLE: &str = "Autograd<> is not available.";
 
 impl<'a, T, D, S> Buffer<'a, T, D, S>
 where
@@ -244,7 +244,7 @@ where
 mod tests {
     use core::any::Any;
 
-    use crate::{Base, Buffer, Cached, Device, HasId, Retriever, Shape, CPU, TapeActions};
+    use crate::{Base, Buffer, Cached, Device, HasId, Retriever, Shape, TapeActions, CPU};
 
     use super::Autograd;
 
@@ -355,7 +355,8 @@ mod tests {
         let ids = (buf.id(), out.id());
         // this does not panic anymore because grads are allocated if a new buffer is created (when using the Autograd module)
         device.add_grad_fn(move |grads| {
-            let (_buf, buf_grad, _out) = grads.get_double::<f32, (), (), CPU<Autograd<crate::CachedModule<Base, CPU>>>>(ids);
+            let (_buf, buf_grad, _out) =
+                grads.get_double::<f32, (), (), CPU<Autograd<crate::CachedModule<Base, CPU>>>>(ids);
             for val in buf_grad.as_mut_slice() {
                 *val = 5.;
             }

@@ -56,7 +56,7 @@ impl<'a, T, Mods: OnDropBuffer> AsCudaCvoidPtr for Buffer<'a, T, CUDA<Mods>> {
     }
 }
 
-impl<'a, T> AsCudaCvoidPtr for CUDAPtr<T> {
+impl<T> AsCudaCvoidPtr for CUDAPtr<T> {
     #[inline]
     fn as_cvoid_ptr(&self) -> *mut c_void {
         &self.ptr as *const u64 as *mut c_void
@@ -105,7 +105,7 @@ pub fn launch_kernel_with_fn(
         .map(|param| param.as_cvoid_ptr())
         .collect::<Vec<_>>();
 
-    culaunch_kernel(&func, grid, blocks, shared_mem_bytes, stream, &params)?;
+    culaunch_kernel(func, grid, blocks, shared_mem_bytes, stream, &params)?;
     Ok(())
 }
 

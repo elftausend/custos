@@ -65,8 +65,8 @@ pub trait Device: OnDropBuffer + Sized {
 #[macro_export]
 macro_rules! impl_buffer_hook_traits {
     ($device:ident) => {
-        impl<T, D: Device, S: Shape, Mods: crate::OnNewBuffer<T, D, S>> crate::OnNewBuffer<T, D, S>
-            for $device<Mods>
+        impl<T, D: Device, S: Shape, Mods: $crate::OnNewBuffer<T, D, S>>
+            $crate::OnNewBuffer<T, D, S> for $device<Mods>
         {
             #[inline]
             fn on_new_buffer(&self, device: &D, new_buf: &Buffer<T, D, S>) {
@@ -74,13 +74,9 @@ macro_rules! impl_buffer_hook_traits {
             }
         }
 
-        impl<Mods: crate::OnDropBuffer> crate::OnDropBuffer for $device<Mods> {
+        impl<Mods: $crate::OnDropBuffer> $crate::OnDropBuffer for $device<Mods> {
             #[inline]
-            fn on_drop_buffer<'a, T, D: Device, S: Shape>(
-                &self,
-                device: &'a D,
-                buf: &Buffer<T, D, S>,
-            ) {
+            fn on_drop_buffer<T, D: Device, S: Shape>(&self, device: &D, buf: &Buffer<T, D, S>) {
                 self.modules.on_drop_buffer(device, buf)
             }
         }
@@ -90,12 +86,12 @@ macro_rules! impl_buffer_hook_traits {
 #[macro_export]
 macro_rules! impl_retriever {
     ($device:ident, $($trait_bounds:tt)*) => {
-        impl<T: $( $trait_bounds )*, Mods: crate::Retrieve<Self, T>> crate::Retriever<T> for $device<Mods> {
+        impl<T: $( $trait_bounds )*, Mods: $crate::Retrieve<Self, T>> $crate::Retriever<T> for $device<Mods> {
             #[inline]
             fn retrieve<S: Shape, const NUM_PARENTS: usize>(
                 &self,
                 len: usize,
-                parents: impl crate::Parents<NUM_PARENTS>,
+                parents: impl $crate::Parents<NUM_PARENTS>,
             ) -> Buffer<T, Self, S> {
                 let data = self
                     .modules

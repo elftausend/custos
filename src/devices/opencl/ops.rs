@@ -241,7 +241,7 @@ where
 #[cfg(test)]
 mod test {
     use crate::{
-        opencl::{try_cl_add_unary_grad, try_cl_apply_fn, chosen_cl_idx},
+        opencl::{chosen_cl_idx, try_cl_add_unary_grad, try_cl_apply_fn},
         Base, Buffer, Combiner, OpenCL,
     };
 

@@ -50,7 +50,7 @@ impl<SD: Device> Cache<SD> {
     {
         let maybe_allocated = self.nodes.get(&Location::caller().into());
         match maybe_allocated {
-            Some(data) => unsafe { SD::convert(&data, AllocFlag::Wrapper) },
+            Some(data) => unsafe { SD::convert(data, AllocFlag::Wrapper) },
             None => self.add_node(device, len, callback),
         }
     }
