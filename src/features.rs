@@ -3,7 +3,7 @@ use core::{
     cell::{Ref, RefMut},
 };
 
-use crate::{Base, Cached, CachedModule, DeviceError, OpenCL, Parents, Shape, CPU};
+use crate::{Base, Cached, CachedModule, Parents, Shape, CPU};
 
 use super::{Alloc, Buffer, Device, OnDropBuffer};
 
@@ -95,7 +95,7 @@ pub trait HasCPU<Mods> {
     fn cpu(&self) -> &CPU<Mods>;
 }
 
-pub type CachedCPU = CPU<CachedModule<Base, CPU<Cached<Base>>>>;
+pub type CachedCPU = CPU<CachedModule<Base, CPU>>;
 
 pub trait UnifiedMemChain<D: Device> {
     #[track_caller]
@@ -130,3 +130,9 @@ use crate::Lazy;
 
 #[cfg(feature = "lazy")]
 impl_unified_mem_chain!(Lazy);
+
+#[cfg(feature = "autograd")]
+use crate::Autograd;
+
+#[cfg(feature = "autograd")]
+impl_unified_mem_chain!(Autograd);

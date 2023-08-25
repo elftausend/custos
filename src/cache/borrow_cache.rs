@@ -152,9 +152,7 @@ impl BorrowCache {
 
 #[cfg(test)]
 mod tests {
-    use crate::{Base, CPU};
-
-    use super::BorrowCache;
+    
 
     /*#[test]
     fn test_comp_error() {

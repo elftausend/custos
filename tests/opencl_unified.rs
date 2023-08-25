@@ -31,9 +31,9 @@ pub fn unified_ptr<T>(cq: &CommandQueue, ptr: *mut c_void, len: usize) -> Result
 #[cfg(feature = "opencl")]
 #[test]
 fn test_unified_mem_bool() -> Result<(), Error> {
-    use custos::Base;
+    use custos::{Base, prelude::chosen_cl_idx};
 
-    let device = OpenCL::<Base>::new(0)?;
+    let device = OpenCL::<Base>::new(chosen_cl_idx())?;
     let um = device.unified_mem();
     println!("um: {um}");
     Ok(())
@@ -45,14 +45,14 @@ fn test_unified_mem() -> Result<(), Error> {
     const TIMES: usize = 10000;
     use std::time::Instant;
 
-    use custos::Base;
+    use custos::{Base, prelude::chosen_cl_idx};
     use min_cl::api::{create_buffer, release_mem_object, MemFlags};
 
     let len = 20000;
 
     let data = vec![1f32; len];
 
-    let device = OpenCL::<Base>::new(0)?;
+    let device = OpenCL::<Base>::new(chosen_cl_idx())?;
 
     if device.unified_mem() {
         let before = Instant::now();

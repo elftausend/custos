@@ -186,7 +186,7 @@ mod tests {
             .tape
             .borrow_mut()
             .grads
-            .get_double::<i32, (), (), CPU<Autograd<crate::CachedModule<Base, CPU<Autograd<Base>>>>>>((buf.id(), out.id()));
+            .get_double::<i32, (), (), CPU<Autograd<crate::CachedModule<Base, CPU>>>>((buf.id(), out.id()));
     }
 
     #[test]

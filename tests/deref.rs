@@ -26,7 +26,7 @@ fn test_deref_cpu() {
 fn test_deref_opencl() {
     use custos::OpenCL;
 
-    let device = OpenCL::<Base>::new(0).unwrap();
+    let device = OpenCL::<Base>::new(chosen_cl_idx()).unwrap();
     if device.unified_mem() {
         panic!("the cpu ptr needs to be null")
     }

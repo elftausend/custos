@@ -335,9 +335,9 @@ mod tests {
     #[cfg(feature = "opencl")]
     #[test]
     fn test_run_apply_fn_opencl() -> crate::Result<()> {
-        use crate::{ApplyFunction, Base, Buffer, Combiner, OpenCL};
+        use crate::{ApplyFunction, Base, Buffer, Combiner, OpenCL, opencl::chosen_cl_idx};
 
-        let device = OpenCL::<Base>::new(0)?;
+        let device = OpenCL::<Base>::new(chosen_cl_idx())?;
 
         let buf = Buffer::from((&device, &[3, 3, 4, 5, 3, 2]));
 
@@ -373,9 +373,9 @@ mod tests {
     #[cfg(feature = "opencl")]
     #[test]
     fn test_run_apply_fn_opencl_more_complex() -> crate::Result<()> {
-        use crate::{ApplyFunction, Base, Buffer, OpenCL};
+        use crate::{ApplyFunction, Base, Buffer, OpenCL, opencl::chosen_cl_idx};
 
-        let device = OpenCL::<Base>::new(0)?;
+        let device = OpenCL::<Base>::new(chosen_cl_idx())?;
 
         let buf = Buffer::from((&device, &[3., 3., 4., 5., 3., 2.]));
 

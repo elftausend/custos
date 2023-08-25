@@ -76,9 +76,9 @@ pub trait UnaryElementWiseMayGrad<T, D: Device, S: Shape>: Device {
         not(all(feature = "autograd", feature = "cpu", feature = "macro")),
         doc = "```ignore"
     )]
-    /// use custos::{CPU, Buffer, UnaryElementWiseMayGrad, Combiner, Base};
+    /// use custos::{CPU, Buffer, UnaryElementWiseMayGrad, Combiner, Base, Autograd};
     ///
-    /// let device = CPU::<Base>::new();
+    /// let device = CPU::<Autograd<Base>>::new();
     ///
     /// let buf = Buffer::from((&device, [1., 2., 3., 3., 2., 1.,]));
     /// let out = device.unary_ew(&buf, |x| x.mul(2.), |x| 2.);

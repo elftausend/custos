@@ -100,7 +100,7 @@ pub unsafe fn to_cached_unified<OclMods: OnDropBuffer, CpuMods: OnDropBuffer, T,
 ///     let mut no_drop: Buffer = cpu.retrieve(4, ());
 ///     no_drop.write(&[1., 3.1, 2.34, 0.76]);
 ///     
-///     let device = OpenCL::<Base>::new(0)?;
+///     let device = OpenCL::<Base>::new(chosen_cl_idx())?;
 ///     let buf = unsafe {
 ///         construct_buffer(&device, no_drop, ())?
 ///     };
@@ -152,7 +152,7 @@ pub fn construct_buffer<'a, OclMods: OnDropBuffer, CpuMods: OnDropBuffer, T, S: 
 #[cfg(test)]
 mod tests {
     use crate::{
-        opencl::CLPtr, AllocFlag, Base, Buffer, Cache, Cached, Device, DeviceError, HashLocation,
+        opencl::{CLPtr, chosen_cl_idx}, AllocFlag, Base, Buffer, Cache, Cached, Device, DeviceError, HashLocation,
         OpenCL, Retriever, UnifiedMemChain, CPU,
     };
 
@@ -207,7 +207,7 @@ mod tests {
         let mut no_drop = cpu.retrieve::<(), 0>(3, ());
         no_drop.write(&[1., 2.3, 0.76]);
 
-        let device = OpenCL::<Base>::new(0)?;
+        let device = OpenCL::<Base>::new(chosen_cl_idx())?;
         let buf = device.construct_unified_buf_from_cpu_buf(&device, no_drop);
         match buf
             .err()
@@ -226,7 +226,7 @@ mod tests {
         let mut no_drop = cpu.retrieve::<(), 0>(3, ());
         no_drop.write(&[1., 2.3, 0.76]);
 
-        let device = OpenCL::<Base>::new(0)?;
+        let device = OpenCL::<Base>::new(chosen_cl_idx())?;
         let mut cache = Cache::<OpenCL>::new();
 
         let buf = construct_buffer(&device, no_drop, &mut cache.nodes, HashLocation::here());
@@ -247,7 +247,7 @@ mod tests {
         let mut no_drop = cpu.retrieve::<(), 0>(3, ());
         no_drop.write(&[1., 2.3, 0.76]);
 
-        let device = OpenCL::<Base>::new(0)?;
+        let device = OpenCL::<Base>::new(chosen_cl_idx())?;
         let mut cache = Cache::<OpenCL>::new();
 
         let (host_ptr, len) = (no_drop.host_ptr_mut(), no_drop.len());
@@ -275,7 +275,7 @@ mod tests {
         let mut no_drop = cpu.retrieve::<(), 0>(3, ());
         no_drop.write(&[1., 2.3, 0.76]);
 
-        let device = OpenCL::<Base>::new(0)?;
+        let device = OpenCL::<Base>::new(chosen_cl_idx())?;
         let mut cache = Cache::<OpenCL>::new();
 
         let buf = construct_buffer(&device, no_drop, &mut cache.nodes, HashLocation::here())?;
@@ -331,7 +331,7 @@ mod tests {
 
         use crate::{range, set_count, Device, Ident, IdentHasher};
 
-        let cl_dev = OpenCL::<Base>::new(0)?;
+        let cl_dev = OpenCL::<Base>::new(chosen_cl_idx())?;
 
         unsafe { set_count(0) };
 

@@ -3,9 +3,9 @@ use custos::{Buffer, OpenCL, Read};
 
 #[cfg(unified_cl)]
 fn main() -> custos::Result<()> {
-    use custos::Base;
+    use custos::{Base, opencl::chosen_cl_idx};
 
-    let device = OpenCL::<Base>::new(0)?;
+    let device = OpenCL::<Base>::new(chosen_cl_idx())?;
 
     // declare function with conditional compilation attribute #[cfg(unified_cl)] or check dynamically:
     // if !device.unified_mem() {

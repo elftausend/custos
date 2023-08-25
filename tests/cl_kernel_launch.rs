@@ -2,7 +2,7 @@ use std::ffi::c_void;
 
 use custos::{
     opencl::{enqueue_kernel, AsClCvoidPtr},
-    prelude::Float,
+    prelude::{Float, chosen_cl_idx},
     Base, Buffer, CDatatype, OpenCL, Retriever,
 };
 
@@ -12,7 +12,7 @@ fn test_as_cl_cvoid() -> custos::Result<()> {
     let ptr = x.as_cvoid_ptr();
     assert_eq!(ptr, &x as *const f64 as *mut c_void);
 
-    let device = OpenCL::<Base>::new(0)?;
+    let device = OpenCL::<Base>::new(chosen_cl_idx())?;
     let buf = Buffer::<f32, _>::new(&device, 100);
     let ptr = buf.as_cvoid_ptr();
     assert_eq!(ptr, buf.cl_ptr());
@@ -22,7 +22,7 @@ fn test_as_cl_cvoid() -> custos::Result<()> {
 
 #[test]
 fn test_kernel_launch() -> custos::Result<()> {
-    let device = OpenCL::<Base>::new(0)?;
+    let device = OpenCL::<Base>::new(chosen_cl_idx())?;
 
     let src_add = "
         __kernel void operation(__global const float* lhs, __global float* out, const float add) {
@@ -57,7 +57,7 @@ pub fn roughly_eq_slices<T: Float>(lhs: &[T], rhs: &[T]) {
 
 #[test]
 fn test_kernel_launch_diff_datatype() -> custos::Result<()> {
-    let device = OpenCL::<Base>::new(0)?;
+    let device = OpenCL::<Base>::new(chosen_cl_idx())?;
 
     let src_add = "
         __kernel void operation(__global const float* lhs, __global float* out, const int add) {
@@ -80,7 +80,7 @@ fn test_kernel_launch_diff_datatype() -> custos::Result<()> {
 
 #[test]
 fn test_kernel_launch_2() -> custos::Result<()> {
-    let device = OpenCL::<Base>::new(0)?;
+    let device = OpenCL::<Base>::new(chosen_cl_idx())?;
 
     let lhs = Buffer::<i32, _>::from((&device, [1, 5, 3, 2, 7, 8]));
     let rhs = Buffer::<i32, _>::from((&device, [-2, -6, -4, -3, -8, -9]));

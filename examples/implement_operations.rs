@@ -1,4 +1,4 @@
-use custos::prelude::*;
+use custos::{prelude::*, opencl::chosen_cl_idx};
 
 /// `AddBuf` will be implemented for all compute devices.<br>
 /// Because of `S: Shape`, this trait can be implemented for [`Stack`], which uses fixed size stack allocated arrays.<br>
@@ -208,7 +208,7 @@ fn main() -> custos::Result<()> {
 
     #[cfg(feature = "opencl")] // deactivate this block if the feature is disabled
     {
-        let cl_device = OpenCL::<Base>::new(0)?;
+        let cl_device = OpenCL::<Base>::new(chosen_cl_idx())?;
 
         let lhs = Buffer::from((&cl_device, [1, 2, 3, 4, 5, 6]));
         let rhs = Buffer::from((&cl_device, [6, 5, 4, 3, 2, 1]));

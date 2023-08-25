@@ -1,7 +1,7 @@
-use custos::{opencl::enqueue_kernel, Base, Buffer, CDatatype, Error, OpenCL, Retriever};
+use custos::{opencl::enqueue_kernel, Base, Buffer, CDatatype, Error, OpenCL, Retriever, prelude::chosen_cl_idx};
 
 fn main() -> Result<(), Error> {
-    let device = OpenCL::<Base>::new(0)?;
+    let device = OpenCL::<Base>::new(chosen_cl_idx())?;
 
     let lhs = Buffer::<i32, _>::from((&device, [1, 5, 3, 2, 7, 8]));
     let rhs = Buffer::<i32, _>::from((&device, [-2, -6, -4, -3, -8, -9]));

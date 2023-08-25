@@ -14,7 +14,7 @@ use std::collections::HashMap;
 
 use crate::{
     flag::AllocFlag, prelude::One, Alloc, Buffer, Device, HasId, Id, Module, OnDropBuffer,
-    OnNewBuffer, Parents, PtrConv, Retrieve, Setup, Shape, TapeActions, UniqueId, WriteBuf, UnifiedMemChain, CachedCPU,
+    OnNewBuffer, Parents, PtrConv, Retrieve, Setup, Shape, TapeActions, UniqueId, WriteBuf,
 };
 
 use super::{Cached, CachedModule};
@@ -167,17 +167,6 @@ impl<Mods> TapeActions for Autograd<Mods> {
     #[inline]
     fn tape_mut(&self) -> Option<core::cell::RefMut<Tape>> {
         Some(self.tape.borrow_mut())
-    }
-}
-
-impl<Mods: UnifiedMemChain<D>, D: Device> UnifiedMemChain<D> for Autograd<Mods> {
-    fn construct_unified_buf_from_cpu_buf<'a, T, S: Shape>(
-        &self,
-        device: &'a D,
-        no_drop_buf: Buffer<'a, T, CachedCPU, S>
-    ) -> crate::Result<Buffer<'a, T, D, S>>
-    {
-        self.modules.construct_unified_buf_from_cpu_buf(device, no_drop_buf)
     }
 }
 
@@ -358,7 +347,7 @@ mod tests {
     #[test]
     //#[should_panic]
     fn test_tape_return_without_grad_allocation() {
-        let device: CPU<Autograd<crate::CachedModule<Base, CPU<Autograd<Base>>>>> = CPU::<Autograd<Base>>::new();
+        let device: CPU<Autograd<crate::CachedModule<Base, CPU>>> = CPU::<Autograd<Base>>::new();
         let buf = Buffer::<f32, _>::new(&device, 10);
 
         let out = Buffer::<f32, _>::new(&device, 10);
@@ -366,7 +355,7 @@ mod tests {
         let ids = (buf.id(), out.id());
         // this does not panic anymore because grads are allocated if a new buffer is created (when using the Autograd module)
         device.add_grad_fn(move |grads| {
-            let (_buf, buf_grad, _out) = grads.get_double::<f32, (), (), CPU<Autograd<crate::CachedModule<Base, CPU<Autograd<Base>>>>>>(ids);
+            let (_buf, buf_grad, _out) = grads.get_double::<f32, (), (), CPU<Autograd<crate::CachedModule<Base, CPU>>>>(ids);
             for val in buf_grad.as_mut_slice() {
                 *val = 5.;
             }

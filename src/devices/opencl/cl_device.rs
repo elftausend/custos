@@ -8,7 +8,7 @@ use super::{enqueue_kernel, AsClCvoidPtr, CLKernelCache, CLPtr};
 use crate::flag::AllocFlag;
 use crate::{
     impl_buffer_hook_traits, impl_retriever, Alloc, Base, Buffer, Cached, CachedCPU, CloneBuf,
-    Device, Error, HasCPU, Module, OnDropBuffer, Setup, CPU,
+    Device, Error, Module, OnDropBuffer, Setup, CPU,
 };
 use crate::{PtrConv, Shape};
 
@@ -24,7 +24,7 @@ use min_cl::api::unified_ptr;
 /// use custos::{OpenCL, Read, Buffer, Error, Base};
 ///
 /// fn main() -> custos::Result<()> {
-///     let device = OpenCL::<Base>::new(0)?;
+///     let device = OpenCL::<Base>::new(chosen_cl_idx())?;
 ///     
 ///     let a = Buffer::from((&device, [1.3; 25]));
 ///     let out = device.read(&a);
@@ -63,7 +63,7 @@ impl<SimpleMods> OpenCL<SimpleMods> {
     #[inline]
     pub fn new<NewMods>(device_idx: usize) -> crate::Result<OpenCL<NewMods>>
     where
-        SimpleMods: Module<OpenCL<SimpleMods>, Module = NewMods>,
+        SimpleMods: Module<OpenCL, Module = NewMods>,
         NewMods: Setup<OpenCL<NewMods>>,
     {
         let inner = CLDevice::new(device_idx)?;
@@ -144,7 +144,7 @@ impl<Mods> OpenCL<Mods> {
     /// use custos::{OpenCL, Buffer, Base};
     ///
     /// fn main() -> custos::Result<()> {
-    ///     let device = OpenCL::<Base>::new(0)?;
+    ///     let device = OpenCL::<Base>::new(chosen_cl_idx())?;
     ///     let mut buf = Buffer::<f32, _>::new(&device, 10);
     ///
     ///     device.launch_kernel("
@@ -188,7 +188,7 @@ impl<Mods: OnDropBuffer> Device for OpenCL<Mods> {
     }
 }
 
-impl<Mods: OnDropBuffer> PtrConv for OpenCL<Mods> {
+impl<Mods: OnDropBuffer, OtherMods: OnDropBuffer> PtrConv<OpenCL<OtherMods>> for OpenCL<Mods> {
     #[inline]
     unsafe fn convert<T, IS, Conv, OS>(
         ptr: &Self::Data<T, IS>,

@@ -42,7 +42,7 @@ impl<T: CDatatype, S: Shape> ElementWise<T, OpenCL, S> for OpenCL {
 
 #[cfg(test)]
 mod tests {
-    use custos::{Base, Buffer, OpenCL, Retriever, WithShape, CPU};
+    use custos::{Base, Buffer, OpenCL, Retriever, WithShape, CPU, prelude::chosen_cl_idx};
 
     use crate::demo_impl::cpu::cpu_element_wise;
 
@@ -50,7 +50,7 @@ mod tests {
     fn test_cl_element_wise() {
         use super::cl_element_wise;
 
-        let device = OpenCL::<Base>::new(0).unwrap();
+        let device = OpenCL::<Base>::new(chosen_cl_idx()).unwrap();
 
         let lhs = Buffer::with(&device, [1, 2, 3, 4]);
         let rhs = Buffer::with(&device, [4, 1, 9, 4]);
@@ -69,7 +69,7 @@ mod tests {
     fn test_element_wise_large_bufs_cl() {
         use super::cl_element_wise;
 
-        let device = OpenCL::<Base>::new(0).unwrap();
+        let device = OpenCL::<Base>::new(chosen_cl_idx()).unwrap();
 
         let lhs = Buffer::from((&device, vec![1; SIZE]));
         let rhs = Buffer::from((&device, vec![4; SIZE]));

@@ -693,9 +693,9 @@ mod tests {
     #[cfg(unified_cl)]
     #[test]
     fn test_deref_cl() -> crate::Result<()> {
-        use crate::{Base, OpenCL};
+        use crate::{Base, OpenCL, opencl::chosen_cl_idx};
 
-        let device = OpenCL::<Base>::new(0)?;
+        let device = OpenCL::<Base>::new(chosen_cl_idx())?;
         let buf = Buffer::from((&device, [1, 2, 3, 4]));
         let slice = &*buf;
         assert_eq!(slice, &[1, 2, 3, 4]);

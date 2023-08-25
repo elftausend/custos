@@ -60,7 +60,7 @@ fn test_const_size_buf() {
 
     device.add(&lhs, &rhs);
 
-    let device = custos::OpenCL::<Base>::new(0).unwrap();
+    let device = custos::OpenCL::<Base>::new(chosen_cl_idx()).unwrap();
 
     let lhs = Buffer::with(&device, [1, 2, 3, 4]);
     let rhs = Buffer::with(&device, [4, 1, 9, 4]);

@@ -33,7 +33,7 @@ impl<Mods: Module<D>, D: Device> Module<D> for Cached<Mods> {
     }
 }
 
-impl<Mods> OnDropBuffer for Cached<Mods> {}
+// impl<Mods> OnDropBuffer for Cached<Mods> {}
 
 pub struct CachedModule<Mods, D: Device> {
     pub modules: Mods,

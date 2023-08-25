@@ -35,7 +35,7 @@ impl<Mods> IsCPU for CPU<Mods> {}
 
 // maybe
 impl<Mods: OnDropBuffer> CPU<Mods> {
-    pub fn default() -> CPU<CachedModule<Base, CPU<Cached<Base>>>> {
+    pub fn default() -> CPU<CachedModule<Base, CPU>> {
         CPU::<Cached<Base>>::new()
     }
 }
@@ -75,7 +75,7 @@ impl<SimpleMods> CPU<SimpleMods> {
     #[inline]
     pub fn new<NewMods>() -> CPU<NewMods>
     where
-        SimpleMods: Module<CPU<SimpleMods>, Module = NewMods>,
+        SimpleMods: Module<CPU, Module = NewMods>,
         NewMods: Setup<CPU<NewMods>>,
     {
         let mut cpu = CPU {

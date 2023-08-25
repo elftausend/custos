@@ -35,9 +35,9 @@ fn test_error_panics() {
 #[cfg(feature = "opencl")]
 #[test]
 fn test_questionmark() -> Result<(), Box<dyn std::error::Error + Sync + Send>> {
-    use custos::{Base, OpenCL};
+    use custos::{Base, OpenCL, prelude::chosen_cl_idx};
 
-    let _device = OpenCL::<Base>::new(0)?;
+    let _device = OpenCL::<Base>::new(chosen_cl_idx())?;
     Ok(())
 }
 

@@ -245,7 +245,7 @@ pub mod prelude {
     // pub use crate::{cache::CacheReturn, get_count, set_count, Cache};
 
     #[cfg(feature = "opencl")]
-    pub use crate::opencl::{enqueue_kernel, CLBuffer, OpenCL, CL};
+    pub use crate::opencl::{enqueue_kernel, CLBuffer, OpenCL, CL, chosen_cl_idx};
 
     #[cfg(feature = "opencl")]
     #[cfg(unified_cl)]
@@ -261,7 +261,7 @@ pub mod prelude {
     pub use crate::wgpu::{launch_shader, WGPU};
 
     #[cfg(feature = "cuda")]
-    pub use crate::cuda::{launch_kernel1d, CUDA};
+    pub use crate::cuda::{launch_kernel1d, CUDA, chosen_cu_idx};
 }
 
 #[cfg(test)]

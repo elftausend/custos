@@ -29,7 +29,7 @@ where
 #[cfg(feature = "opencl")]
 #[test]
 fn test_cldevice_name() -> Result<(), Error> {
-    let device = OpenCL::<Base>::new(0)?;
+    let device = OpenCL::<Base>::new(chosen_cl_idx())?;
     println!("{}", device.name()?);
 
     Ok(())
@@ -38,7 +38,7 @@ fn test_cldevice_name() -> Result<(), Error> {
 #[cfg(feature = "opencl")]
 #[test]
 fn test_cldevice_version() -> Result<(), Error> {
-    let device = OpenCL::<Base>::new(0)?;
+    let device = OpenCL::<Base>::new(chosen_cl_idx())?;
     println!("{}", device.version()?);
     Ok(())
 }
@@ -46,7 +46,7 @@ fn test_cldevice_version() -> Result<(), Error> {
 #[cfg(feature = "opencl")]
 #[test]
 fn test_cldevice_mem() -> Result<(), Error> {
-    let device = OpenCL::<Base>::new(0)?;
+    let device = OpenCL::<Base>::new(chosen_cl_idx())?;
     println!(
         "get_global_mem_size_in_gb: {}",
         device.global_mem_size_in_gb()?
@@ -58,7 +58,7 @@ fn test_cldevice_mem() -> Result<(), Error> {
 #[cfg(feature = "opencl")]
 #[test]
 fn test_buffer_from_read() -> Result<(), Error> {
-    let device = OpenCL::<Base>::new(0)?;
+    let device = OpenCL::<Base>::new(chosen_cl_idx())?;
 
     let buf = Buffer::<f32, _>::from((&device, [3.13, 3., 1., 8.]));
     assert_eq!(read(&device, &buf), vec![3.13, 3., 1., 8.,]);
@@ -81,7 +81,7 @@ fn test_buffer_alloc_and_read() -> Result<(), Error> {
     buf_slice.copy_from_slice(&[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
     assert_eq!(&[0, 1, 2, 3, 4, 5, 6, 7, 8, 9], buf_slice);
 
-    let cl = OpenCL::<Base>::new(0)?;
+    let cl = OpenCL::<Base>::new(chosen_cl_idx())?;
 
     let buf = Buffer::<f32, _>::from((&cl, [3.13, 3., 1., 8.]));
     let buf_read = read(&cl, &buf);
@@ -147,7 +147,7 @@ fn test_cached_cl() -> Result<(), custos::Error> {
     // for: cargo test -- --test-threads=1
     unsafe { set_count(0) };
 
-    let device = OpenCL::<Base>::new(0)?;
+    let device = OpenCL::<Base>::new(chosen_cl_idx())?;
     let _k = Buffer::<f32, _>::new(&device, 1);
 
     assert_eq!(1, get_count());
@@ -221,7 +221,7 @@ fn test_iterate_cpu() {
 #[cfg(feature = "opencl")]
 #[test]
 fn test_debug_print_buf() -> custos::Result<()> {
-    let device = OpenCL::<Base>::new(0)?;
+    let device = OpenCL::<Base>::new(chosen_cl_idx())?;
 
     let a = Buffer::from((&device, [1, 2, 3, 4, 5, 6]));
 
@@ -240,7 +240,7 @@ fn test_slice() {
     let buf = Buffer::from((&device, [1, 2, 3, 4, 5, 6]));
     println!("buf: {:?}", buf.as_slice());
 
-    let device = custos::OpenCL::<Base>::new(0).unwrap();
+    let device = custos::OpenCL::<Base>::new(chosen_cl_idx()).unwrap();
     let buf = Buffer::from((&device, [1, 2, 3, 4, 5, 6]));
 
     slice_add::<i32, _>(&buf);
@@ -295,14 +295,14 @@ fn test_deviceless_buf_cl() -> custos::Result<()> {
     use custos::WriteBuf;
 
     let buf = {
-        let device = OpenCL::<Base>::new(0)?;
+        let device = OpenCL::<Base>::new(chosen_cl_idx())?;
         let mut buf = Buffer::<u8, _>::deviceless(&device, 5);
         device.write(&mut buf, &[0, 1, 2, 3, 4]);
         drop(device);
         buf
     };
 
-    let device = OpenCL::<Base>::new(0)?;
+    let device = OpenCL::<Base>::new(chosen_cl_idx())?;
     assert_eq!(device.read(&buf), &[0, 1, 2, 3, 4]);
 
     Ok(())

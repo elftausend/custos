@@ -26,7 +26,7 @@ impl<T: CDatatype> ClearBuf<T> for OpenCL {
 /// use custos::{OpenCL, Buffer, Read, opencl::try_cl_clear, Base};
 ///
 /// fn main() -> Result<(), custos::Error> {
-///     let device = OpenCL::<Base>::new(0)?;
+///     let device = OpenCL::<Base>::new(chosen_cl_idx())?;
 ///     let mut lhs = Buffer::<i16, _>::from((&device, [15, 30, 21, 5, 8]));
 ///     assert_eq!(device.read(&lhs), vec![15, 30, 21, 5, 8]);
 ///
@@ -54,9 +54,9 @@ pub fn try_cl_clear<T: CDatatype>(
     Ok(())
 }
 
-impl<T, S: Shape> WriteBuf<T, S> for OpenCL {
+impl<T, S: Shape, Mods: OnDropBuffer> WriteBuf<T, S> for OpenCL<Mods> {
     #[inline]
-    fn write(&self, buf: &mut Buffer<T, OpenCL, S>, data: &[T]) {
+    fn write(&self, buf: &mut Buffer<T, Self, S>, data: &[T]) {
         let event =
             unsafe { enqueue_write_buffer(self.queue(), buf.cl_ptr(), data, true).unwrap() };
         wait_for_event(event).unwrap();
@@ -241,13 +241,13 @@ where
 #[cfg(test)]
 mod test {
     use crate::{
-        opencl::{try_cl_add_unary_grad, try_cl_apply_fn},
+        opencl::{try_cl_add_unary_grad, try_cl_apply_fn, chosen_cl_idx},
         Base, Buffer, Combiner, OpenCL,
     };
 
     #[test]
     fn test_cl_apply_fn() -> crate::Result<()> {
-        let device = OpenCL::<Base>::new(0)?;
+        let device = OpenCL::<Base>::new(chosen_cl_idx())?;
 
         let buf = Buffer::from((&device, [1, 2, 3, 4, 5, 6]));
 
@@ -259,7 +259,7 @@ mod test {
 
     #[test]
     fn test_cl_add_unary_grad() -> crate::Result<()> {
-        let device = OpenCL::<Base>::new(0)?;
+        let device = OpenCL::<Base>::new(chosen_cl_idx())?;
 
         let lhs = Buffer::from((&device, [1, 2, 3, 4, 5, 6]));
         let mut lhs_grad = Buffer::from((&device, [1, 2, 3, 4, 5, 6]));

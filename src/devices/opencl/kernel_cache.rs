@@ -20,7 +20,7 @@ impl CLKernelCache {
     /// use custos::{OpenCL, opencl::CLKernelCache, Base};
     ///
     /// fn main() -> custos::Result<()> {
-    ///     let device = OpenCL::<Base>::new(0)?;
+    ///     let device = OpenCL::<Base>::new(chosen_cl_idx())?;
     ///     
     ///     let mut kernel_cache = CLKernelCache::default();
     ///     
@@ -59,12 +59,12 @@ impl CLKernelCache {
 #[cfg(test)]
 mod tests {
     use super::CLKernelCache;
-    use crate::{Base, OpenCL};
+    use crate::{Base, OpenCL, opencl::chosen_cl_idx};
     use std::collections::HashMap;
 
     #[test]
     fn test_kernel_cache() -> crate::Result<()> {
-        let device = OpenCL::<Base>::new(0)?;
+        let device = OpenCL::<Base>::new(chosen_cl_idx())?;
 
         let mut kernel_cache = CLKernelCache {
             kernel_cache: HashMap::new(),
