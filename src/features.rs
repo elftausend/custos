@@ -3,7 +3,7 @@ use core::{
     cell::{Ref, RefMut},
 };
 
-use crate::{Base, Cached, CachedModule, Parents, Shape, CPU};
+use crate::{Base, CachedModule, Parents, Shape, CPU};
 
 use super::{Alloc, Buffer, Device, OnDropBuffer};
 
