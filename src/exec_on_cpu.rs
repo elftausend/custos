@@ -19,7 +19,7 @@ use crate::{Alloc, Base, Buffer, Cached, CachedCPU, Device, Read, Retriever, Wri
 /// use custos::{exec_on_cpu::cpu_exec_unary, Buffer, Retriever, OpenCL, Base};
 ///
 /// fn main() -> custos::Result<()> {
-///     let device = OpenCL::<Base>::new(chosen_cl_idx())?;
+///     let device = OpenCL::<Base>::new(0)?;
 ///     
 ///     let buf = Buffer::from((&device, [1, 2, 3, 4, 5]));
 ///     
@@ -85,7 +85,7 @@ where
 /// use custos::{exec_on_cpu::cpu_exec_binary, Buffer, Retriever, OpenCL, Base};
 ///
 /// fn main() -> custos::Result<()> {
-///     let device = OpenCL::<Base>::new(chosen_cl_idx())?;
+///     let device = OpenCL::<Base>::new(0)?;
 ///     
 ///     let lhs = Buffer::from((&device, [1, 2, 3, 4, 5]));
 ///     let rhs = Buffer::from((&device, [-1, -4, -1, -8, -1]));
@@ -157,7 +157,7 @@ where
 #[cfg_attr(not(feature = "opencl"), doc = "```ignore")]
 /// use custos::{CPU, Buffer, OpenCL, to_cpu, Base};
 ///
-/// let device = OpenCL::<Base>::new(chosen_cl_idx()).unwrap();
+/// let device = OpenCL::<Base>::new(0).unwrap();
 ///
 /// let cpu = CPU::<Base>::new();
 ///
@@ -186,7 +186,7 @@ macro_rules! to_cpu_mut {
 #[cfg_attr(not(feature = "opencl"), doc = "```ignore")]
 /// use custos::{CPU, Buffer, OpenCL, to_cpu, Base};
 ///
-/// let device = OpenCL::<Base>::new(chosen_cl_idx()).unwrap();
+/// let device = OpenCL::<Base>::new(0).unwrap();
 ///
 /// let cpu = CPU::<Base>::new();
 ///

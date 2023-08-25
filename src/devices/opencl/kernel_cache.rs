@@ -20,7 +20,7 @@ impl CLKernelCache {
     /// use custos::{OpenCL, opencl::CLKernelCache, Base};
     ///
     /// fn main() -> custos::Result<()> {
-    ///     let device = OpenCL::<Base>::new(chosen_cl_idx())?;
+    ///     let device = OpenCL::<Base>::new(0)?;
     ///     
     ///     let mut kernel_cache = CLKernelCache::default();
     ///     

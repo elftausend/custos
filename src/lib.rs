@@ -249,7 +249,7 @@ pub mod prelude {
 
     #[cfg(feature = "opencl")]
     #[cfg(unified_cl)]
-    pub use crate::UnifiedMemChain;
+    pub use crate::{UnifiedMemChain, opencl::construct_buffer};
 
     #[cfg(feature = "stack")]
     pub use crate::stack::Stack;

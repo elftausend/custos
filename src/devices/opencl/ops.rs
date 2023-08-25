@@ -26,7 +26,7 @@ impl<T: CDatatype> ClearBuf<T> for OpenCL {
 /// use custos::{OpenCL, Buffer, Read, opencl::try_cl_clear, Base};
 ///
 /// fn main() -> Result<(), custos::Error> {
-///     let device = OpenCL::<Base>::new(chosen_cl_idx())?;
+///     let device = OpenCL::<Base>::new(0)?;
 ///     let mut lhs = Buffer::<i16, _>::from((&device, [15, 30, 21, 5, 8]));
 ///     assert_eq!(device.read(&lhs), vec![15, 30, 21, 5, 8]);
 ///
@@ -260,7 +260,7 @@ mod test {
     #[test]
     fn test_cl_add_unary_grad() -> crate::Result<()> {
         let device = OpenCL::<Base>::new(chosen_cl_idx())?;
-
+        println!("device: {:?}", device.name());
         let lhs = Buffer::from((&device, [1, 2, 3, 4, 5, 6]));
         let mut lhs_grad = Buffer::from((&device, [1, 2, 3, 4, 5, 6]));
 

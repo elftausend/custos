@@ -24,7 +24,7 @@ use min_cl::api::unified_ptr;
 /// use custos::{OpenCL, Read, Buffer, Error, Base};
 ///
 /// fn main() -> custos::Result<()> {
-///     let device = OpenCL::<Base>::new(chosen_cl_idx())?;
+///     let device = OpenCL::<Base>::new(0)?;
 ///     
 ///     let a = Buffer::from((&device, [1.3; 25]));
 ///     let out = device.read(&a);
@@ -144,7 +144,7 @@ impl<Mods> OpenCL<Mods> {
     /// use custos::{OpenCL, Buffer, Base};
     ///
     /// fn main() -> custos::Result<()> {
-    ///     let device = OpenCL::<Base>::new(chosen_cl_idx())?;
+    ///     let device = OpenCL::<Base>::new(0)?;
     ///     let mut buf = Buffer::<f32, _>::new(&device, 10);
     ///
     ///     device.launch_kernel("

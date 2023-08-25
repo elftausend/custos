@@ -96,13 +96,13 @@ pub unsafe fn to_cached_unified<OclMods: OnDropBuffer, CpuMods: OnDropBuffer, T,
 /// use custos::prelude::*;
 ///
 /// fn main() -> custos::Result<()> {
-///     let cpu = CPU::<Base>::new();
-///     let mut no_drop: Buffer = cpu.retrieve(4, ());
+///     let cpu = CPU::<Cached<Base>>::new();
+///     let mut no_drop: Buffer<f32, _> = cpu.retrieve(4, ());
 ///     no_drop.write(&[1., 3.1, 2.34, 0.76]);
 ///     
-///     let device = OpenCL::<Base>::new(chosen_cl_idx())?;
+///     let device = OpenCL::<Cached<Base>>::new(chosen_cl_idx())?;
 ///     let buf = unsafe {
-///         construct_buffer(&device, no_drop, ())?
+///         construct_buffer(&device, no_drop, &mut device.modules.cache.borrow_mut().nodes, std::panic::Location::caller().into())?
 ///     };
 ///     
 ///     assert_eq!(buf.read(), vec![1., 3.1, 2.34, 0.76]);

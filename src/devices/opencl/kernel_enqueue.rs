@@ -15,7 +15,7 @@ use super::CLPtr;
 /// }
 ///
 /// fn main() -> custos::Result<()> {
-///     let device = OpenCL::<Base>::new(chosen_cl_idx())?;
+///     let device = OpenCL::<Base>::new(0)?;
 ///
 ///     let buf = Buffer::<f32, _>::new(&device, 10);
 ///     let num = 4;
@@ -30,7 +30,7 @@ pub trait AsClCvoidPtr {
     /// use custos::{OpenCL, Buffer, opencl::AsClCvoidPtr, Base};
     ///
     /// fn main() -> custos::Result<()> {
-    ///     let device = OpenCL::<Base>::new(chosen_cl_idx())?;
+    ///     let device = OpenCL::<Base>::new(0)?;
     ///     let buf = Buffer::<f32, _>::new(&device, 10);
     ///     
     ///     let ptr = buf.as_cvoid_ptr();
@@ -60,7 +60,7 @@ pub trait AsClCvoidPtr {
     /// fn main() -> custos::Result<()> {
     ///     assert_eq!(4f32.ptr_size(), 4);    
     ///
-    ///     let device = OpenCL::<Base>::new(chosen_cl_idx())?;
+    ///     let device = OpenCL::<Base>::new(0)?;
     ///
     ///     let buf = Buffer::<f32, _>::new(&device, 10);
     ///     assert_eq!(buf.ptr_size(), 8);
@@ -119,7 +119,7 @@ impl<T> AsClCvoidPtr for CLPtr<T> {
 /// use custos::{OpenCL, Buffer, opencl::enqueue_kernel, Base};
 ///
 /// fn main() -> custos::Result<()> {
-///     let device = OpenCL::<Base>::new(chosen_cl_idx())?;
+///     let device = OpenCL::<Base>::new(0)?;
 ///     let mut buf = Buffer::<f32, _>::new(&device, 10);
 ///
 ///     enqueue_kernel(&device, "
