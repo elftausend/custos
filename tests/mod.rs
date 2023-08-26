@@ -5,6 +5,9 @@ mod cuda;
 #[cfg(feature = "opencl")]
 mod opencl;
 
+// #[cfg(feature = "vulkan")]
+mod vk;
+
 #[cfg(feature = "opt-cache")]
 mod graph;
 

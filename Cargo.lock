@@ -184,6 +184,7 @@ checksum = "b365fabc795046672053e29c954733ec3b05e4be654ab130fe8f1f94d7051f35"
 name = "custos"
 version = "0.7.0"
 dependencies = [
+ "ash",
  "custos-macro",
  "futures-intrusive",
  "libm",
