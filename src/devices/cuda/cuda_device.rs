@@ -1,5 +1,5 @@
-use std::{cell::RefCell, collections::HashMap};
 use std::marker::PhantomData;
+use std::{cell::RefCell, collections::HashMap};
 
 use super::api::FnHandle;
 use super::{

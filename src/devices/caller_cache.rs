@@ -98,18 +98,23 @@ impl<D: PtrConv> TrackCallerCache<D> {
     }
 
     #[track_caller]
-    fn add_node<'a, T, S>(&mut self, device: &'a D, ident: Ident, callback: fn()) -> Buffer<'a, T, D, S>
+    fn add_node<'a, T, S>(
+        &mut self,
+        device: &'a D,
+        ident: Ident,
+        callback: fn(),
+    ) -> Buffer<'a, T, D, S>
     where
         D: Alloc<'a, T, S>,
         S: Shape,
     {
         let ptr = device.alloc(ident.len, AllocFlag::Wrapper);
-        
+
         let untyped_ptr = unsafe { D::convert(&ptr, AllocFlag::None) };
         self.nodes.insert(Location::caller(), Rc::new(untyped_ptr));
-        
+
         callback();
-        
+
         Buffer {
             ptr,
             device: Some(device),
@@ -125,7 +130,7 @@ impl<D: PtrConv> TrackCallerCache<D> {
 mod tests {
     use core::ops::Add;
 
-    use crate::{Buffer, Device, CPU, devices::caller_cache::CallerCacheReturn};
+    use crate::{devices::caller_cache::CallerCacheReturn, Buffer, Device, CPU};
 
     use super::Cache;
 

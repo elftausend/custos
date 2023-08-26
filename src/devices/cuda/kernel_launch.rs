@@ -80,9 +80,8 @@ pub fn launch_kernel(
     fn_name: &str,
     params: &[&dyn AsCudaCvoidPtr],
 ) -> crate::Result<()> {
-
     let func = fn_cache(device, src, fn_name)?;
-    launch_kernel_with_fn(device, &func, grid, blocks, shared_mem_bytes, params)    
+    launch_kernel_with_fn(device, &func, grid, blocks, shared_mem_bytes, params)
 }
 
 /// Launch a CUDA kernel with the given CUDA function grid and block sizes.
