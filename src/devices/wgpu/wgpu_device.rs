@@ -54,7 +54,7 @@ impl WGPU {
         let (device, queue) = pollster::block_on(adapter.request_device(
             &wgpu::DeviceDescriptor {
                 label: None,
-                features: wgpu::Features::MAPPABLE_PRIMARY_BUFFERS,
+                features: wgpu::Features::default(),
                 limits: wgpu::Limits::downlevel_defaults(),
             },
             None,

@@ -11,9 +11,9 @@ impl<T> WGPUBuffer<T> {
         let buf = device.create_buffer(&wgpu::BufferDescriptor {
             label: None,
             size: size * size_of::<T>() as u64,
-            usage: wgpu::BufferUsages::STORAGE
-                | wgpu::BufferUsages::COPY_DST
-                | wgpu::BufferUsages::COPY_SRC
+            usage: //wgpu::BufferUsages::STORAGE
+                wgpu::BufferUsages::COPY_DST
+                // | wgpu::BufferUsages::COPY_SRC
                 | wgpu::BufferUsages::MAP_READ,
             mapped_at_creation: false,
         });
@@ -29,8 +29,7 @@ impl<T> WGPUBuffer<T> {
             contents: slice_u8_cast(slice),
             usage: wgpu::BufferUsages::STORAGE
                 | wgpu::BufferUsages::COPY_DST
-                | wgpu::BufferUsages::COPY_SRC
-                | wgpu::BufferUsages::MAP_READ,
+                | wgpu::BufferUsages::COPY_SRC, //| wgpu::BufferUsages::MAP_READ,
         });
         Self {
             buf,
