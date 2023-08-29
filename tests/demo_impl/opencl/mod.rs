@@ -1,12 +1,12 @@
-use custos::{opencl::enqueue_kernel, Buffer, CDatatype, OpenCL, Retriever, Shape};
+use custos::{opencl::enqueue_kernel, Buffer, CDatatype, OpenCL, Retriever, Shape, OnDropBuffer};
 
 use super::ElementWise;
 
-pub fn cl_element_wise<T, S: Shape>(
-    device: &OpenCL,
-    lhs: &Buffer<T, OpenCL, S>,
-    rhs: &Buffer<T, OpenCL, S>,
-    out: &mut Buffer<T, OpenCL, S>,
+pub fn cl_element_wise<Mods: OnDropBuffer, T, S: Shape>(
+    device: &OpenCL<Mods>,
+    lhs: &Buffer<T, OpenCL<Mods>, S>,
+    rhs: &Buffer<T, OpenCL<Mods>, S>,
+    out: &mut Buffer<T, OpenCL<Mods>, S>,
     op: &str,
 ) -> custos::Result<()>
 where
@@ -42,7 +42,7 @@ impl<T: CDatatype, S: Shape> ElementWise<T, OpenCL, S> for OpenCL {
 
 #[cfg(test)]
 mod tests {
-    use custos::{prelude::chosen_cl_idx, Base, Buffer, OpenCL, Retriever, WithShape, CPU};
+    use custos::{prelude::chosen_cl_idx, Base, Buffer, OpenCL, Retriever, WithShape, CPU, Cached};
 
     use crate::demo_impl::cpu::cpu_element_wise;
 
@@ -69,30 +69,30 @@ mod tests {
     fn test_element_wise_large_bufs_cl() {
         use super::cl_element_wise;
 
-        let device = OpenCL::<Base>::new(chosen_cl_idx()).unwrap();
+        let device = OpenCL::<Cached<Base>>::new(chosen_cl_idx()).unwrap();
 
-        let lhs = Buffer::from((&device, vec![1; SIZE]));
-        let rhs = Buffer::from((&device, vec![4; SIZE]));
+        let lhs = Buffer::from((&device, vec![1.0f32; SIZE]));
+        let rhs = Buffer::from((&device, vec![4.0; SIZE]));
 
         let mut out = device.retrieve(lhs.len(), ());
 
         let start = std::time::Instant::now();
 
         for _ in 0..TIMES {
-            cl_element_wise::<_, ()>(&device, &lhs, &rhs, &mut out, "+").unwrap();
+            cl_element_wise::<_, _, ()>(&device, &lhs, &rhs, &mut out, "+").unwrap();
         }
 
         println!("ocl: {:?}", start.elapsed());
 
-        assert_eq!(out.read(), &[5; SIZE]);
+        assert_eq!(out.read(), &[5.0; SIZE]);
     }
 
     #[test]
     fn test_element_wise_large_bufs_cpu() {
         let device = CPU::<Base>::new();
 
-        let lhs = Buffer::<_>::from((&device, vec![1; SIZE]));
-        let rhs = Buffer::<_>::from((&device, vec![4; SIZE]));
+        let lhs = Buffer::<_>::from((&device, vec![1.0f32; SIZE]));
+        let rhs = Buffer::<_>::from((&device, vec![4.0; SIZE]));
 
         let mut out = device.retrieve::<(), 0>(lhs.len(), ());
 
@@ -102,6 +102,6 @@ mod tests {
         }
 
         println!("cpu: {:?}", start.elapsed());
-        assert_eq!(out.as_slice(), &[5; SIZE]);
+        assert_eq!(out.as_slice(), &[5.0; SIZE]);
     }
 }
