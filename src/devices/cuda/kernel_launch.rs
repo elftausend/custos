@@ -1,4 +1,4 @@
-use crate::{number::Number, Buffer, OnDropBuffer, CUDA};
+use crate::{number::Number, Buffer, OnDropBuffer, Shape, CUDA};
 use std::{collections::HashMap, ffi::c_void};
 
 use super::{
@@ -42,14 +42,14 @@ pub trait AsCudaCvoidPtr {
     fn as_cvoid_ptr(&self) -> *mut c_void;
 }
 
-impl<'a, T, Mods: OnDropBuffer> AsCudaCvoidPtr for &Buffer<'a, T, CUDA<Mods>> {
+impl<'a, T, Mods: OnDropBuffer, S: Shape> AsCudaCvoidPtr for &Buffer<'a, T, CUDA<Mods>, S> {
     #[inline]
     fn as_cvoid_ptr(&self) -> *mut c_void {
         &self.data.ptr as *const u64 as *mut c_void
     }
 }
 
-impl<'a, T, Mods: OnDropBuffer> AsCudaCvoidPtr for Buffer<'a, T, CUDA<Mods>> {
+impl<'a, T, Mods: OnDropBuffer, S: Shape> AsCudaCvoidPtr for Buffer<'a, T, CUDA<Mods>, S> {
     #[inline]
     fn as_cvoid_ptr(&self) -> *mut c_void {
         &self.data.ptr as *const u64 as *mut c_void
@@ -71,6 +71,7 @@ impl<T: Number> AsCudaCvoidPtr for T {
 }
 
 /// Launch a CUDA kernel with the given grid and block sizes.
+#[inline]
 pub fn launch_kernel<Mods>(
     device: &CUDA<Mods>,
     grid: [u32; 3],

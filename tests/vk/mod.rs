@@ -67,7 +67,8 @@ fn test_vulkan_compute_with_wgsl_and_spirv() {
 
     let props = unsafe { instance.get_physical_device_properties(device_with_queue_idx[0].0) };
     println!("props: {:?}", &unsafe {
-                ::std::ffi::CStr::from_ptr(props.device_name.as_ptr() )});
+        ::std::ffi::CStr::from_ptr(props.device_name.as_ptr())
+    });
     // let queue = unsafe { device.get_device_queue(device_with_queue_idx[0].1 as u32, 0) };
 
     let src = "@group(0)
@@ -84,7 +85,7 @@ fn test_vulkan_compute_with_wgsl_and_spirv() {
             
             
             @compute
-            @workgroup_size(1)
+            @workgroup_size(32)
             fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
                 out[global_id.x] = a[global_id.x] + b[global_id.x];
                 // a[global_id.x] = f32(global_id.x);
@@ -132,7 +133,7 @@ fn test_vulkan_compute_with_wgsl_and_spirv() {
             .unwrap()
     };
 
-    let dispatch_size = 164383;
+    let dispatch_size = 655360;
 
     pub unsafe fn create_buffer<T>(device: &ash::Device, size: usize) -> Buffer {
         let buffer_size = size * std::mem::size_of::<T>();
@@ -184,8 +185,9 @@ fn test_vulkan_compute_with_wgsl_and_spirv() {
     let mem_req = unsafe { device.get_buffer_memory_requirements(buffer1) };
     let mem1 = unsafe { allocate_memory(&instance, &device, mem_req, device_with_queue_idx[0].0) };
     unsafe { device.bind_buffer_memory(buffer1, mem1, 0).unwrap() };
-    
-    let mapping = unsafe { device.map_memory(mem1, 0, vk::WHOLE_SIZE, Default::default()) }.unwrap();
+
+    let mapping =
+        unsafe { device.map_memory(mem1, 0, vk::WHOLE_SIZE, Default::default()) }.unwrap();
     let data = unsafe { core::slice::from_raw_parts_mut(mapping as *mut f32, dispatch_size) };
     for (i, v) in data.iter_mut().enumerate() {
         *v = 3.0;
@@ -331,25 +333,28 @@ fn test_vulkan_compute_with_wgsl_and_spirv() {
             &[],
         )
     };
-    unsafe { device.cmd_dispatch(command_buffer, dispatch_size as u32, 1, 1) };
+    unsafe { device.cmd_dispatch(command_buffer, dispatch_size as u32 / 32, 1, 1) };
     unsafe { device.end_command_buffer(command_buffer) }.unwrap();
 
     // run it and wait until it is completed
     let queue = unsafe { device.get_device_queue(device_with_queue_idx[0].1 as u32, 0) };
     let submit_info =
         vk::SubmitInfo::builder().command_buffers(core::slice::from_ref(&command_buffer));
-    
+
+    const TIMES: usize = 100;
     let start = Instant::now();
-    for _ in 0..100 {
+    for _ in 0..TIMES {
         unsafe { device.queue_submit(queue, core::slice::from_ref(&submit_info), Fence::null()) }
             .unwrap();
         unsafe { device.device_wait_idle() }.unwrap();
-        println!("fin");
+        // println!("fin");
     }
-   println!("elapsed: {:?}", start.elapsed()); 
+
+    println!("elapsed: {:?}", start.elapsed() /*/ TIMES as u32 */);
 
     // check results
-    let mapping = unsafe { device.map_memory(mem2, 0, vk::WHOLE_SIZE, Default::default()) }.unwrap();
+    let mapping =
+        unsafe { device.map_memory(mem2, 0, vk::WHOLE_SIZE, Default::default()) }.unwrap();
     let check = unsafe { core::slice::from_raw_parts(mapping as *const f32, dispatch_size) };
     // println!("check: {:?}", check);
     for (i, v) in check.iter().copied().enumerate() {

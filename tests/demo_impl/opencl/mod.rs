@@ -1,4 +1,4 @@
-use custos::{opencl::enqueue_kernel, Buffer, CDatatype, OpenCL, Retriever, Shape, OnDropBuffer};
+use custos::{opencl::enqueue_kernel, Buffer, CDatatype, OnDropBuffer, OpenCL, Retriever, Shape};
 
 use super::ElementWise;
 
@@ -42,7 +42,7 @@ impl<T: CDatatype, S: Shape> ElementWise<T, OpenCL, S> for OpenCL {
 
 #[cfg(test)]
 mod tests {
-    use custos::{prelude::chosen_cl_idx, Base, Buffer, OpenCL, Retriever, WithShape, CPU, Cached};
+    use custos::{prelude::chosen_cl_idx, Base, Buffer, Cached, OpenCL, Retriever, WithShape, CPU};
 
     use crate::demo_impl::cpu::cpu_element_wise;
 
@@ -62,30 +62,28 @@ mod tests {
         assert_eq!(out.read(), &[5, 3, 12, 8]);
     }
 
-    const SIZE: usize = 164383; 
+    const SIZE: usize = 655360;
     const TIMES: usize = 100;
 
     #[test]
     fn test_element_wise_large_bufs_cl() {
         use super::cl_element_wise;
 
-        let device = OpenCL::<Cached<Base>>::new(chosen_cl_idx()).unwrap();
+        let device = OpenCL::<Base>::new(chosen_cl_idx()).unwrap();
 
         let lhs = Buffer::from((&device, vec![1.0f32; SIZE]));
         let rhs = Buffer::from((&device, vec![4.0; SIZE]));
 
-        let lhs = Buffer::<_, _, ()>::from((&device, vec![1f32; SIZE]));
-        let rhs = Buffer::<_, _, ()>::from((&device, vec![4f32; SIZE]));
-
-        let mut out = device.retrieve::<f32, ()>(lhs.len(), ());
+        let mut out = device.retrieve::<(), 0>(lhs.len(), ());
 
         let start = std::time::Instant::now();
 
         for _ in 0..TIMES {
             cl_element_wise::<_, _, ()>(&device, &lhs, &rhs, &mut out, "+").unwrap();
+            // assert_eq!(out.read(), &[5.0; SIZE]);
         }
 
-        println!("ocl: {:?}", start.elapsed());
+        println!("ocl: {:?}", start.elapsed() /*/ TIMES as u32*/);
 
         assert_eq!(out.read(), &[5.0; SIZE]);
     }
