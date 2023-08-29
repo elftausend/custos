@@ -1,7 +1,10 @@
-use std::{ffi::CStr, mem::size_of_val, ptr};
+use std::{ffi::CStr, mem::size_of_val, ptr, time::Instant};
 
 use ash::{
-    vk::{self, Fence, Instance, InstanceCreateInfo, PipelineCache, StructureType},
+    vk::{
+        self, Buffer, DeviceMemory, Fence, Instance, InstanceCreateInfo, PhysicalDevice,
+        PipelineCache, StructureType,
+    },
     Entry,
 };
 use naga::back::spv::{Options, PipelineOptions};
@@ -63,27 +66,28 @@ fn test_vulkan_compute_with_wgsl_and_spirv() {
     };
 
     let props = unsafe { instance.get_physical_device_properties(device_with_queue_idx[0].0) };
-    // println!("props: {:?}", props.device_name);
+    println!("props: {:?}", &unsafe {
+                ::std::ffi::CStr::from_ptr(props.device_name.as_ptr() )});
     // let queue = unsafe { device.get_device_queue(device_with_queue_idx[0].1 as u32, 0) };
 
     let src = "@group(0)
             @binding(0)
             var<storage, read_write> a: array<f32>;
             
-            // @group(0)
-            // @binding(1)
-            // var<storage, read_write> b: array<f32>;
+            @group(0)
+            @binding(1)
+            var<storage, read_write> b: array<f32>;
     
-            // @group(0)
-            // @binding(2)
-            // var<storage, read_write> out: array<f32>;
+            @group(0)
+            @binding(2)
+            var<storage, read_write> out: array<f32>;
             
             
             @compute
             @workgroup_size(1)
             fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
-                // out[global_id.x] = a[global_id.x] + b[global_id.x];
-                a[global_id.x] = f32(global_id.x);
+                out[global_id.x] = a[global_id.x] + b[global_id.x];
+                // a[global_id.x] = f32(global_id.x);
             }
         ";
 
@@ -128,22 +132,25 @@ fn test_vulkan_compute_with_wgsl_and_spirv() {
             .unwrap()
     };
 
-    let dispatch_size = 256;
-    let buffer_size = dispatch_size * std::mem::size_of::<f32>();
-    let buffer = unsafe {
+    let dispatch_size = 164383;
+
+    pub unsafe fn create_buffer<T>(device: &ash::Device, size: usize) -> Buffer {
+        let buffer_size = size * std::mem::size_of::<T>();
         let buffer_create_info = vk::BufferCreateInfo {
             size: buffer_size as vk::DeviceSize,
             usage: vk::BufferUsageFlags::STORAGE_BUFFER,
             ..Default::default()
         };
         device.create_buffer(&buffer_create_info, None).unwrap()
-    };
+    }
 
-    let mem_req = unsafe { device.get_buffer_memory_requirements(buffer) };
-
-    let mem = unsafe {
-        let memory_properties =
-            instance.get_physical_device_memory_properties(device_with_queue_idx[0].0);
+    pub unsafe fn allocate_memory(
+        instance: &ash::Instance,
+        device: &ash::Device,
+        mem_req: vk::MemoryRequirements,
+        physical_device: PhysicalDevice,
+    ) -> DeviceMemory {
+        let memory_properties = instance.get_physical_device_memory_properties(physical_device);
         let memory_type_index = get_memory_type_index(
             &memory_properties,
             mem_req.memory_type_bits,
@@ -156,24 +163,61 @@ fn test_vulkan_compute_with_wgsl_and_spirv() {
             ..Default::default()
         };
         device.allocate_memory(&memory_allocate_info, None).unwrap()
-    };
+    }
 
+    let buffer = unsafe { create_buffer::<f32>(&device, dispatch_size) };
+
+    let mem_req = unsafe { device.get_buffer_memory_requirements(buffer) };
+    let mem = unsafe { allocate_memory(&instance, &device, mem_req, device_with_queue_idx[0].0) };
     unsafe { device.bind_buffer_memory(buffer, mem, 0).unwrap() };
 
-    // make the pipeline layout
+    let mapping = unsafe { device.map_memory(mem, 0, vk::WHOLE_SIZE, Default::default()) }.unwrap();
+    let data = unsafe { core::slice::from_raw_parts_mut(mapping as *mut f32, dispatch_size) };
+    for (i, v) in data.iter_mut().enumerate() {
+        *v = 4.0;
+    }
+
+    unsafe { device.unmap_memory(mem) };
+
+    let buffer1 = unsafe { create_buffer::<f32>(&device, dispatch_size) };
+
+    let mem_req = unsafe { device.get_buffer_memory_requirements(buffer1) };
+    let mem1 = unsafe { allocate_memory(&instance, &device, mem_req, device_with_queue_idx[0].0) };
+    unsafe { device.bind_buffer_memory(buffer1, mem1, 0).unwrap() };
+    
+    let mapping = unsafe { device.map_memory(mem1, 0, vk::WHOLE_SIZE, Default::default()) }.unwrap();
+    let data = unsafe { core::slice::from_raw_parts_mut(mapping as *mut f32, dispatch_size) };
+    for (i, v) in data.iter_mut().enumerate() {
+        *v = 3.0;
+    }
+
+    unsafe { device.unmap_memory(mem1) };
+
+    let buffer2 = unsafe { create_buffer::<f32>(&device, dispatch_size) };
+
+    let mem_req = unsafe { device.get_buffer_memory_requirements(buffer) };
+    let mem2 = unsafe { allocate_memory(&instance, &device, mem_req, device_with_queue_idx[0].0) };
+
+    unsafe { device.bind_buffer_memory(buffer2, mem2, 0).unwrap() }; // make the pipeline layout
+
     let descriptor_set_layout = {
-        let descriptor_set_layout_bindings = [vk::DescriptorSetLayoutBinding {
-            binding: 0,
-            descriptor_type: vk::DescriptorType::STORAGE_BUFFER,
-            descriptor_count: 1,
-            stage_flags: vk::ShaderStageFlags::COMPUTE,
-            ..Default::default()
-        }];
+        let descriptor_set_layout_bindings = (0..3)
+            .map(|i| vk::DescriptorSetLayoutBinding {
+                binding: i as u32,
+                descriptor_type: vk::DescriptorType::STORAGE_BUFFER,
+                descriptor_count: 1,
+                stage_flags: vk::ShaderStageFlags::COMPUTE,
+                ..Default::default()
+            })
+            .collect::<Vec<_>>();
+
         let descriptor_set_layout_create_info =
             vk::DescriptorSetLayoutCreateInfo::builder().bindings(&descriptor_set_layout_bindings);
+
         unsafe { device.create_descriptor_set_layout(&descriptor_set_layout_create_info, None) }
             .unwrap()
     };
+
     let pipeline_layout = {
         let pipeline_layout_create_info = vk::PipelineLayoutCreateInfo::builder()
             .set_layouts(core::slice::from_ref(&descriptor_set_layout));
@@ -198,13 +242,14 @@ fn test_vulkan_compute_with_wgsl_and_spirv() {
 
     // create a pool for the descriptor we need
     let descriptor_pool = {
-        let descriptor_pool_sizes = [vk::DescriptorPoolSize {
+        let descriptor_pool_sizes = vk::DescriptorPoolSize {
             ty: vk::DescriptorType::STORAGE_BUFFER,
-            descriptor_count: 1,
-        }];
+            descriptor_count: 3,
+        };
         let descriptor_pool_create_info = vk::DescriptorPoolCreateInfo::builder()
             .max_sets(1)
-            .pool_sizes(&descriptor_pool_sizes);
+            .pool_sizes(core::slice::from_ref(&descriptor_pool_sizes));
+
         unsafe { device.create_descriptor_pool(&descriptor_pool_create_info, None) }.unwrap()
     };
 
@@ -220,13 +265,38 @@ fn test_vulkan_compute_with_wgsl_and_spirv() {
         offset: 0,
         range: vk::WHOLE_SIZE,
     }];
-
+    let descriptor_buffer_info1 = [vk::DescriptorBufferInfo {
+        buffer: buffer1,
+        offset: 0,
+        range: vk::WHOLE_SIZE,
+    }];
+    let descriptor_buffer_info2 = [vk::DescriptorBufferInfo {
+        buffer: buffer2,
+        offset: 0,
+        range: vk::WHOLE_SIZE,
+    }];
     let write_descriptor_set = vk::WriteDescriptorSet::builder()
         .dst_set(descriptor_set)
         .dst_binding(0)
         .descriptor_type(vk::DescriptorType::STORAGE_BUFFER)
         .buffer_info(&descriptor_buffer_info);
-    unsafe { device.update_descriptor_sets(core::slice::from_ref(&write_descriptor_set), &[]) };
+    let write_descriptor_set1 = vk::WriteDescriptorSet::builder()
+        .dst_set(descriptor_set)
+        .dst_binding(1)
+        .descriptor_type(vk::DescriptorType::STORAGE_BUFFER)
+        .buffer_info(&descriptor_buffer_info1);
+
+    let write_descriptor_set2 = vk::WriteDescriptorSet::builder()
+        .dst_set(descriptor_set)
+        .dst_binding(2)
+        .descriptor_type(vk::DescriptorType::STORAGE_BUFFER)
+        .buffer_info(&descriptor_buffer_info2);
+    let write_descriptor_sets = [
+        write_descriptor_set.build(),
+        write_descriptor_set1.build(),
+        write_descriptor_set2.build(),
+    ];
+    unsafe { device.update_descriptor_sets(&write_descriptor_sets, &[]) };
 
     // run a command buffer to run the shader
     let command_pool_create_info = vk::CommandPoolCreateInfo {
@@ -268,15 +338,22 @@ fn test_vulkan_compute_with_wgsl_and_spirv() {
     let queue = unsafe { device.get_device_queue(device_with_queue_idx[0].1 as u32, 0) };
     let submit_info =
         vk::SubmitInfo::builder().command_buffers(core::slice::from_ref(&command_buffer));
-    unsafe { device.queue_submit(queue, core::slice::from_ref(&submit_info), Fence::null()) }
-        .unwrap();
-    unsafe { device.device_wait_idle() }.unwrap();
+    
+    let start = Instant::now();
+    for _ in 0..100 {
+        unsafe { device.queue_submit(queue, core::slice::from_ref(&submit_info), Fence::null()) }
+            .unwrap();
+        unsafe { device.device_wait_idle() }.unwrap();
+        println!("fin");
+    }
+   println!("elapsed: {:?}", start.elapsed()); 
 
     // check results
-    let mapping = unsafe { device.map_memory(mem, 0, vk::WHOLE_SIZE, Default::default()) }.unwrap();
+    let mapping = unsafe { device.map_memory(mem2, 0, vk::WHOLE_SIZE, Default::default()) }.unwrap();
     let check = unsafe { core::slice::from_raw_parts(mapping as *const f32, dispatch_size) };
+    // println!("check: {:?}", check);
     for (i, v) in check.iter().copied().enumerate() {
-        assert_eq!(i as f32, v);
+        assert_eq!(7.0, v);
     }
     println!("compute shader run successfully!");
 
