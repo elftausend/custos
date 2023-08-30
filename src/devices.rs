@@ -15,6 +15,11 @@ pub mod opencl;
 #[cfg(feature = "stack")]
 pub mod stack;
 
+#[cfg(feature = "wgsl")]
+pub mod wgsl;
+
+#[cfg(feature = "vulkan")]
+pub mod vulkan;
 #[cfg(feature = "wgpu")]
 pub mod wgpu;
 

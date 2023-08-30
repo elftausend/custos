@@ -85,8 +85,11 @@ fn test_vulkan_compute_with_wgsl_and_spirv() {
             
             
             @compute
-            @workgroup_size(32)
+            @workgroup_size(256)
             fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
+                if global_id.x >= arrayLength(&out) {
+                    return;    
+                }
                 out[global_id.x] = a[global_id.x] + b[global_id.x];
                 // a[global_id.x] = f32(global_id.x);
             }
@@ -333,7 +336,7 @@ fn test_vulkan_compute_with_wgsl_and_spirv() {
             &[],
         )
     };
-    unsafe { device.cmd_dispatch(command_buffer, dispatch_size as u32 / 32, 1, 1) };
+    unsafe { device.cmd_dispatch(command_buffer, 256 * 16, 1, 1) };
     unsafe { device.end_command_buffer(command_buffer) }.unwrap();
 
     // run it and wait until it is completed
