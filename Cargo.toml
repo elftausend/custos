@@ -14,8 +14,8 @@ rust-version = "1.65"
 [dependencies]
 #cuwanto-client = { path = "../cuwanto/cuwanto-client", optional = true }
 #cuwanto-server = {path="../cuwanto/cuwanto-server", optional=true}
-min-cl = { version = "0.2.0", optional=true }
-#min-cl = { path="../min-cl", optional=true }
+#min-cl = { version = "0.2.0", optional=true }
+min-cl = { path="../min-cl", optional=true }
 
 # WGPU deps
 futures-intrusive = {version="0.5.0", optional=true}
@@ -34,8 +34,8 @@ nnapi = { path = "../nnapi/nnapi", optional = true }
 ndk-sys = {version = "0.4", features=["test"], optional = true}
 
 [build-dependencies]
-#min-cl = { path="../min-cl", optional=true }
-min-cl = { version = "0.2.0", optional=true }
+min-cl = { path="../min-cl", optional=true }
+#min-cl = { version = "0.2.0", optional=true }
 
 [features]
 #default = ["no-std"]
@@ -49,7 +49,7 @@ cuda = []
 realloc = []
 opt-cache = []
 blas = []
-static-api = []
+static-api = ["cpu"]
 stack = []
 no-std = ["stack", "dep:libm"]
 wgpu = ["dep:wgpu", "dep:pollster", "dep:futures-intrusive"]
@@ -62,6 +62,8 @@ nnapi = ["dep:nnapi", "dep:ndk-sys"]
 #custos-macro = {git = "https://github.com/elftausend/custos-macro"}
 custos-macro = {path = "../custos-macro"}
 #custos-macro = {version = "0.1.1"}
+naga = {version="0.13.0", default-features=false, features = ["wgsl-in", "spv-out"]}
+ash = { version="0.37" }
 
 [[example]]
 name = "cuda_readme"

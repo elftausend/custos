@@ -9,8 +9,8 @@ use std::{collections::HashMap, ffi::CString};
 /// This stores the previously compiled CUDA functions / kernels.
 #[derive(Debug, Default)]
 pub struct KernelCacheCU {
-    /// Uses the kernel source code to retrieve the corresponding `FnHandle`.
-    pub kernels: HashMap<String, FnHandle>,
+    /// Uses the kernel source code and the kernel function to retrieve the corresponding `FnHandle`.
+    pub kernels: HashMap<(String, String), FnHandle>,
 }
 
 impl KernelCacheCU {
@@ -38,12 +38,13 @@ impl KernelCacheCU {
     /// }
     /// ```
     pub fn kernel(&mut self, device: &CUDA, src: &str, fn_name: &str) -> Result<FnHandle, Error> {
-        let kernel = self.kernels.get(src);
+        let kernel = self.kernels.get(&(src.into(), fn_name.into()));
 
         if let Some(kernel) = kernel {
             return Ok(*kernel);
         }
 
+        // TODO: not optimal, if multiple functions are used in the same source code, they are compiled multiple times
         let mut x = create_program(src, "")?;
 
         x.compile(Some(vec![CString::new("--use_fast_math").unwrap()]))?;
@@ -51,9 +52,10 @@ impl KernelCacheCU {
         let module = load_module_data(x.ptx()?)?;
         let function = module.function(fn_name)?;
 
-        device.modules.borrow_mut().push(module);
+        // TODO: not optimal, if multiple functions are used in the same source code, they are compiled multiple times
+        device.modules.borrow_mut().insert(function, module);
 
-        self.kernels.insert(src.into(), function);
+        self.kernels.insert((src.into(), fn_name.into()), function);
         unsafe { nvrtcDestroyProgram(&mut x.0).to_result()? };
         Ok(function)
     }

@@ -50,6 +50,20 @@ where
     }
 }
 
+// A more general version of the above, find way to make it work
+/*#[cfg(not(feature = "no-std"))]
+impl<'a, T, D, I> From<(&'a D, I)> for Buffer<'a, T, D>
+where
+    T: Number,
+    D: Alloc<'a, T>,
+    I: IntoIterator<Item = T>,
+{
+    #[inline]
+    fn from((device, range): (&'a D, Range<usize>)) -> Self {
+        Buffer::from_vec(device, range.map(|x| T::from_usize(x)).collect())
+    }
+}*/
+
 /*impl<'a, T, D, const N: usize> From<(&'a D, [T; N])> for Buffer<'a, T, D>
 where
     T: Clone,

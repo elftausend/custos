@@ -118,7 +118,7 @@ pub fn load_module_data(src: CString) -> CudaResult<Module> {
     Ok(module)
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct FnHandle(pub CUfunction);
 
 pub fn module_get_fn(module: &Module, fn_name: &str) -> CudaResult<FnHandle> {
@@ -148,6 +148,7 @@ pub fn culaunch_kernel(
     f: &FnHandle,
     grid: [u32; 3],
     blocks: [u32; 3],
+    shared_mem_bytes: u32,
     stream: &Stream,
     params: &[*mut c_void],
 ) -> CudaResult<()> {
@@ -160,7 +161,7 @@ pub fn culaunch_kernel(
             blocks[0],
             blocks[1],
             blocks[2],
-            0,
+            shared_mem_bytes,
             stream.0,
             params.as_ptr() as *mut _,
             std::ptr::null_mut(),

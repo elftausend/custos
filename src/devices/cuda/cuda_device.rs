@@ -1,6 +1,7 @@
-use std::cell::RefCell;
 use std::marker::PhantomData;
+use std::{cell::RefCell, collections::HashMap};
 
+use super::api::FnHandle;
 use super::{
     api::{
         create_context, create_stream, cuInit, cuMemcpy, cuStreamDestroy, cu_write,
@@ -22,7 +23,7 @@ pub struct CUDA {
     /// Stores compiled CUDA kernels.
     pub kernel_cache: RefCell<KernelCacheCU>,
     /// Stores CUDA modules from the compiled kernels.
-    pub modules: RefCell<Vec<Module>>,
+    pub modules: RefCell<HashMap<FnHandle, Module>>,
     device: CudaIntDevice,
     ctx: Context,
     stream: Stream,

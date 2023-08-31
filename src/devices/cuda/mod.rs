@@ -42,7 +42,7 @@ pub struct CUDAPtr<T> {
     pub len: usize,
     /// Allocation flag for the pointer.
     pub flag: AllocFlag,
-    p: PhantomData<T>,
+    pub p: PhantomData<T>,
 }
 
 impl<T> Default for CUDAPtr<T> {
@@ -178,6 +178,7 @@ mod tests {
             &function,
             [a.len() as u32, 1, 1],
             [1, 1, 1],
+            0,
             &mut device.stream(),
             &mut [
                 &a.ptrs().2 as *const u64 as *mut c_void,

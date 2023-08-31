@@ -60,6 +60,8 @@ pub use stack_array::*;
 mod cdatatype;
 pub use cdatatype::*;
 
+mod caller_cache;
+
 #[cfg(all(any(feature = "cpu", feature = "stack"), feature = "macro"))]
 mod cpu_stack_ops;
 

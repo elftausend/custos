@@ -164,7 +164,7 @@ pub fn enqueue_kernel(
 
 #[cfg(test)]
 mod tests {
-    use core::ffi::c_void;
+    // use core::ffi::c_void;
 
     use crate::{Buffer, CDatatype, OpenCL};
 

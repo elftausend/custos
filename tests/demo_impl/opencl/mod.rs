@@ -62,19 +62,21 @@ mod tests {
         assert_eq!(out.read(), &[5, 3, 12, 8]);
     }
 
-    const SIZE: usize = 256 * 100;
-    const TIMES: usize = 1000;
+    const SIZE: usize = 164383; 
+    const TIMES: usize = 100;
 
     #[test]
     fn test_element_wise_large_bufs_cl() {
         use super::cl_element_wise;
 
-        let device = OpenCL::new(0).unwrap();
+        let device = OpenCL::new(1).unwrap();
 
-        let lhs = Buffer::from((&device, vec![1; SIZE]));
-        let rhs = Buffer::from((&device, vec![4; SIZE]));
+        println!("device name: {:?}", device.name());
 
-        let mut out = device.retrieve(lhs.len(), ());
+        let lhs = Buffer::<_, _, ()>::from((&device, vec![1f32; SIZE]));
+        let rhs = Buffer::<_, _, ()>::from((&device, vec![4f32; SIZE]));
+
+        let mut out = device.retrieve::<f32, ()>(lhs.len(), ());
 
         let start = std::time::Instant::now();
 
@@ -84,17 +86,17 @@ mod tests {
 
         println!("ocl: {:?}", start.elapsed());
 
-        assert_eq!(out.read(), &[5; SIZE]);
+        assert_eq!(out.read(), &[5f32; SIZE]);
     }
 
     #[test]
     fn test_element_wise_large_bufs_cpu() {
         let device = CPU::new();
 
-        let lhs = Buffer::<_>::from((&device, vec![1; SIZE]));
-        let rhs = Buffer::<_>::from((&device, vec![4; SIZE]));
+        let lhs = Buffer::<_>::from((&device, vec![1f32; SIZE]));
+        let rhs = Buffer::<_>::from((&device, vec![4f32; SIZE]));
 
-        let mut out = device.retrieve::<i32, ()>(lhs.len(), ());
+        let mut out = device.retrieve::<f32, ()>(lhs.len(), ());
 
         let start = std::time::Instant::now();
         for _ in 0..TIMES {
@@ -102,6 +104,6 @@ mod tests {
         }
 
         println!("cpu: {:?}", start.elapsed());
-        assert_eq!(out.as_slice(), &[5; SIZE]);
+        assert_eq!(out.as_slice(), &[5.; SIZE]);
     }
 }

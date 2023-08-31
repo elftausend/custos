@@ -2,8 +2,8 @@ use crate::{number::Number, Buffer, CUDA};
 use std::ffi::c_void;
 
 use super::{
-    api::{cuOccupancyMaxPotentialBlockSize, culaunch_kernel},
-    fn_cache,
+    api::{cuOccupancyMaxPotentialBlockSize, culaunch_kernel, FnHandle},
+    fn_cache, CUDAPtr,
 };
 
 /// Converts `Self` to a (cuda) *mut c_void.
@@ -43,21 +43,70 @@ pub trait AsCudaCvoidPtr {
 }
 
 impl<'a, T> AsCudaCvoidPtr for &Buffer<'a, T, CUDA> {
+    #[inline]
     fn as_cvoid_ptr(&self) -> *mut c_void {
         &self.ptr.ptr as *const u64 as *mut c_void
     }
 }
 
 impl<'a, T> AsCudaCvoidPtr for Buffer<'a, T, CUDA> {
+    #[inline]
     fn as_cvoid_ptr(&self) -> *mut c_void {
         &self.ptr.ptr as *const u64 as *mut c_void
     }
 }
 
+impl<'a, T> AsCudaCvoidPtr for CUDAPtr<T> {
+    #[inline]
+    fn as_cvoid_ptr(&self) -> *mut c_void {
+        &self.ptr as *const u64 as *mut c_void
+    }
+}
+
 impl<T: Number> AsCudaCvoidPtr for T {
+    #[inline]
     fn as_cvoid_ptr(&self) -> *mut c_void {
         self as *const T as *mut c_void
     }
+}
+
+/// Launch a CUDA kernel with the given grid and block sizes.
+pub fn launch_kernel(
+    device: &CUDA,
+    grid: [u32; 3],
+    blocks: [u32; 3],
+    shared_mem_bytes: u32,
+    src: &str,
+    fn_name: &str,
+    params: &[&dyn AsCudaCvoidPtr],
+) -> crate::Result<()> {
+    let func = fn_cache(device, src, fn_name)?;
+    launch_kernel_with_fn(device, &func, grid, blocks, shared_mem_bytes, params)
+}
+
+/// Launch a CUDA kernel with the given CUDA function grid and block sizes.
+pub fn launch_kernel_with_fn(
+    device: &CUDA,
+    func: &FnHandle,
+    grid: [u32; 3],
+    blocks: [u32; 3],
+    shared_mem_bytes: u32,
+    params: &[&dyn AsCudaCvoidPtr],
+) -> crate::Result<()> {
+    let params = params
+        .iter()
+        .map(|param| param.as_cvoid_ptr())
+        .collect::<Vec<_>>();
+
+    culaunch_kernel(
+        &func,
+        grid,
+        blocks,
+        shared_mem_bytes,
+        device.stream(),
+        &params,
+    )?;
+    Ok(())
 }
 
 /// uses calculated occupancy as launch configuration to launch a CUDA kernel
@@ -97,6 +146,7 @@ pub fn launch_kernel1d(
         &func,
         [grid_size as u32, 1, 1],
         [block_size as u32, 1, 1],
+        0,
         device.stream(),
         &params,
     )?;

@@ -1,4 +1,3 @@
-use super::{Combiner, Eval};
 #[cfg(not(feature = "no-std"))]
 use crate::ToCLSource;
 
@@ -127,7 +126,7 @@ impl<T> Resolve<T> {
     }
 }
 
-impl<T> Eval<T> for Resolve<T> {
+impl<T> crate::Eval<T> for Resolve<T> {
     #[inline]
     fn eval(self) -> T {
         self.val
@@ -142,4 +141,4 @@ impl<T> ToCLSource for Resolve<T> {
     }
 }
 
-impl<T> Combiner for Resolve<T> {}
+impl<T> crate::Combiner for Resolve<T> {}
