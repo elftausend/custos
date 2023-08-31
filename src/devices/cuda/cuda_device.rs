@@ -175,7 +175,8 @@ impl<Mods> crate::LazySetup for CUDA<Mods> {
 impl<Mods> crate::LazyRun for CUDA<Mods> {
     #[inline]
     fn run(&self) {
-        cuStreamEndCapture(self.stream.0);
+        let mut graph = std::ptr::null_mut();
+        cuStreamEndCapture(self.stream.0, &mut graph);
     }
 }
 
