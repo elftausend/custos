@@ -21,6 +21,9 @@ pub type CUfunction = *mut CUfunc_st;
 pub enum CUstream_st {}
 pub type CUstream = *mut CUstream_st;
 
+pub enum CUgraph_st {}
+pub type CUgraph = *mut CUgraph;
+
 #[repr(u32)]
 pub enum CUStreamCaptureMode {
     CU_STREAM_CAPTURE_MODE_GLOBAL = 0
@@ -201,8 +204,8 @@ extern "C" {
         block_size_limit: i32,
     ) -> CUresult;
     
-    pub fn cuStreamBeginCapture(stream: *mut CUstream, capture_mode: CUStreamCaptureMode);
-
+    pub fn cuStreamBeginCapture(stream: CUstream, capture_mode: CUStreamCaptureMode);
+    pub fn cuStreamEndCapture(stream: CUstream, graph: *mut CUgraph);
     // unified memory
 
 }
