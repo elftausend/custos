@@ -44,6 +44,11 @@ pub trait Setup<D> {
     fn setup(_device: &mut D) {}
 }
 
+pub trait Run<D> {
+    #[inline]
+    fn run(device: &D) {}
+}
+
 pub trait HasModules<Mods> {
     fn modules(&self) -> &Mods;
 }
