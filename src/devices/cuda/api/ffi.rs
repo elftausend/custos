@@ -193,6 +193,8 @@ extern "C" {
         dyn_smem_size: usize,
         block_size_limit: i32,
     ) -> CUresult;
+    
+    pub fn cuStreamBeginCapture(stream: *mut CUstream);
 
     // unified memory
 
