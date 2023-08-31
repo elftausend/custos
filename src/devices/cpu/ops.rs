@@ -49,7 +49,7 @@ impl<Mods: AddOperation> AddOperation for CPU<Mods> {
     unsafe fn add_operation<T: 'static, D: Device + 'static, S: Shape>(
         &self,
         out: &mut Buffer<T, D, S>,
-        operation: impl Fn(&mut dyn Any),
+        operation: impl Fn(&mut dyn Any)
     ) {
         self.modules.add_operation(out, operation)
     }
@@ -93,6 +93,9 @@ impl<Mods: OnDropBuffer, T: Copy, D: MainMemory, S: Shape> WriteBuf<T, S, D> for
         self.write(dst, src)
     }
 }
+
+
+
 
 // #[impl_stack]
 impl<Mods: OnDropBuffer, T: Default, D: MainMemory, S: Shape> ClearBuf<T, S, D> for CPU<Mods> {

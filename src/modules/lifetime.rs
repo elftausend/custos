@@ -3,8 +3,8 @@ mod tape;
 use core::cell::RefCell;
 
 use crate::{
-    AddGradFn, ApplyFunction, Buffer, Device, Eval, HasId, MayToCLSource, Module, OnDropBuffer,
-    Resolve, Retrieve, Retriever, Setup, Shape, TapeActions, CPU, OnNewBuffer,
+    ApplyFunction, Buffer, Device, Eval, HasId, MayToCLSource, Module, OnDropBuffer,
+    Resolve, Retrieve, Retriever, Setup, Shape, TapeActions, CPU, OnNewBuffer, AddGradFn, Gradients,
 };
 
 use self::tape::Tape;
@@ -14,10 +14,10 @@ pub struct Lifetime<'a, Mods> {
     tape: RefCell<Tape<'a>>,
 }
 
-impl<Mods: Module<D>, D> Module<D> for Lifetime<'_, Mods> {
-    type Module<'a> = Lifetime<'a, Mods::Module<'a>>;
+impl<'a, Mods: Module<D>, D> Module<D> for Lifetime<'a, Mods> {
+    type Module = Lifetime<'a, Mods::Module>;
 
-    fn new<'a>() -> Self::Module<'a> {
+    fn new() -> Self::Module {
         todo!()
     }
 }
@@ -26,20 +26,16 @@ impl<'a, Mods> OnDropBuffer for Lifetime<'a, Mods> {}
 impl<'a, Mods, D> Setup<D> for Lifetime<'a, Mods> {}
 
 impl<'a, Mods> AddGradFn<'a> for Lifetime<'a, Mods> {
-    fn add_grad_fn<T, S: crate::Shape>(&self, grad_fn: impl Fn(&mut crate::Gradients) + 'a)
-    where
-        T: 'a,
+    fn add_grad_fn<F: Fn(&mut Gradients) + 'a>(&'a self, grad_fn: F) 
     {
         self.tape.borrow_mut().add_grad_fn(grad_fn)
     }
 }
 
 impl<'a, Mods: AddGradFn<'a>> AddGradFn<'a> for CPU<Mods> {
-    fn add_grad_fn<T, S: crate::Shape>(&'a self, grad_fn: impl Fn(&mut crate::Gradients) + 'a)
-    where
-        T: 'a,
+    fn add_grad_fn<F: Fn(&mut Gradients) + 'a>(&'a self, grad_fn: F) 
     {
-        self.modules.add_grad_fn::<T, S>(grad_fn)
+        self.modules.add_grad_fn(grad_fn)
     }
 }
 
@@ -65,7 +61,7 @@ where
 {
     fn apply_fn_lifetime<F>(
         &'a self,
-        buf: &'a Buffer<T, Self, S>,
+        buf: &'a Buffer<'a, T, Self, S>,
         f: impl Fn(Resolve<T>) -> F,
     ) -> Buffer<'_, T, Self, S>
     where
@@ -74,7 +70,7 @@ where
         // let out = self.retrieve(buf.len(), buf);
         // let ids = (buf.id(), out.id());
 
-        self.add_grad_fn::<T, S>(move |grads| {
+        self.add_grad_fn(move |grads| {
             // grads.get_double::<T, S, S, Self>(ids);
             let x = buf;
         });
@@ -96,7 +92,8 @@ mod tests {
 
     use super::{Lifetime, ApplyFunctionLifetimeTest};
 
-    pub fn op() {
+    pub fn op<'a>(cpu: CPU<Lifetime<'a, Base>>) {
+
     }
 
     #[test]
@@ -105,7 +102,6 @@ mod tests {
         let buf: crate::Buffer<i32, CPU<Lifetime<'_, Base>>> = cpu.buffer::<i32, (), _>(&vec![1i32, 2]);
         cpu.apply_fn_lifetime(&buf, |x| x);
 
-        drop(buf);
-        drop(cpu);
+        
     }
 }

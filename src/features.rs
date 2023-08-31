@@ -3,7 +3,7 @@ use core::{
     cell::{Ref, RefMut},
 };
 
-use crate::{Parents, Shape};
+use crate::{Parents, Shape, Gradients};
 
 use super::{Alloc, Buffer, Device, OnDropBuffer};
 
@@ -74,6 +74,11 @@ pub trait TapeActions {
             tape.add_grad_fn(grad_fn)
         }
     }
+}
+
+pub trait AddGradFn<'a> {
+    fn add_grad_fn<F: Fn(&mut Gradients) + 'a>(&'a self, grad_fn: F);
+    // fn add_grad_fn(&'a self, grad_fn: impl Fn(&mut crate::Gradients) + 'static);
 }
 
 pub trait Operation {

@@ -12,3 +12,6 @@ pub use graph::*;
 
 mod lazy;
 pub use lazy::*;
+
+mod lifetime;
+pub use lifetime::*;
