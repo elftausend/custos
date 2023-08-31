@@ -3,6 +3,7 @@ use ash::{
     Instance,
 };
 
+mod context;
 mod vk_array;
 mod vulkan_device;
 
@@ -15,7 +16,6 @@ pub fn list_compute_devices(instance: &Instance) -> Vec<(PhysicalDevice, usize)>
         let queue_family = unsafe { instance.get_physical_device_queue_family_properties(device) };
         for (idx, props) in queue_family.iter().enumerate() {
             if props.queue_flags.contains(vk::QueueFlags::COMPUTE) {
-                println!("device: {device:?}, idx: {idx}");
                 physical_dev_with_queue_idx.push((device, idx));
             }
         }

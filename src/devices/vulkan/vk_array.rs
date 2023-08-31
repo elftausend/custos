@@ -1,49 +1,45 @@
+use ash::{prelude::VkResult, vk};
+use std::rc::Rc;
 
-use ash::{
-    prelude::VkResult,
-    vk,
-};
+use super::context::Context;
 
 pub struct VkArray<T> {
     len: usize,
     buf: vk::Buffer,
     mem: vk::DeviceMemory,
+    context: Rc<Context>,
     mapped_ptr: *mut T,
 }
 
 impl<T> VkArray<T> {
-    pub fn new(
-        device: &ash::Device,
-        memory_properties: &vk::PhysicalDeviceMemoryProperties,
-        len: usize,
-    ) -> crate::Result<Self> {
-        let buf = unsafe { create_buffer::<T>(device, len)? };
-        let mem_req = unsafe { device.get_buffer_memory_requirements(buf) };
+    pub fn new(context: Rc<Context>, len: usize) -> crate::Result<Self> {
+        let buf = unsafe { create_buffer::<T>(&context, len)? };
+        let mem_req = unsafe { context.get_buffer_memory_requirements(buf) };
 
-        let mem = unsafe { allocate_memory(&device, mem_req, memory_properties)? };
-        unsafe { device.bind_buffer_memory(buf, mem, 0)? };
+        let mem = unsafe { allocate_memory(&context, mem_req, &context.memory_properties)? };
+        unsafe { context.bind_buffer_memory(buf, mem, 0)? };
 
-        let mapped_ptr =
-            unsafe { device.map_memory(mem, 0, vk::WHOLE_SIZE, Default::default())? } as *mut T;
+        let mapped_ptr = unsafe {
+            context
+                .logical_device
+                .map_memory(mem, 0, vk::WHOLE_SIZE, Default::default())?
+        } as *mut T;
 
         Ok(VkArray {
             len,
             buf,
             mem,
+            context,
             mapped_ptr,
         })
     }
 
     #[inline]
-    pub fn from_slice(
-        device: &ash::Device,
-        memory_properties: &vk::PhysicalDeviceMemoryProperties,
-        data: &[T],
-    ) -> crate::Result<Self>
+    pub fn from_slice(device: Rc<Context>, data: &[T]) -> crate::Result<Self>
     where
         T: Copy,
     {
-        let mut array = VkArray::<T>::new(device, memory_properties, data.len())?;
+        let mut array = VkArray::<T>::new(device, data.len())?;
         array.as_mut_slice().copy_from_slice(data);
         Ok(array)
     }
@@ -55,6 +51,17 @@ impl<T> VkArray<T> {
     #[inline]
     pub fn as_slice(&self) -> &[T] {
         unsafe { core::slice::from_raw_parts(self.mapped_ptr, self.len) }
+    }
+}
+
+impl<T> Drop for VkArray<T> {
+    #[inline]
+    fn drop(&mut self) {
+        unsafe {
+            self.context.unmap_memory(self.mem);
+            self.context.free_memory(self.mem, None);
+            self.context.destroy_buffer(self.buf, None)
+        }
     }
 }
 
@@ -99,4 +106,17 @@ pub unsafe fn allocate_memory(
         ..Default::default()
     };
     device.allocate_memory(&memory_allocate_info, None)
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::{vulkan::vulkan_device::Vulkan, Base};
+
+    use super::VkArray;
+
+    #[test]
+    fn test_vk_array_allocation() {
+        let device = Vulkan::<Base>::new(0).unwrap();
+        let arr1 = VkArray::<f32>::new(device.context(), 10).unwrap();
+    }
 }
