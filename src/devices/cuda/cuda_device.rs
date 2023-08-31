@@ -171,6 +171,14 @@ impl<Mods> crate::LazySetup for CUDA<Mods> {
     }
 }
 
+#[cfg(feature = "lazy")]
+impl<Mods> crate::LazyRun for CUDA<Mods> {
+    #[inline]
+    fn run(&self) {
+        cuStreamEndCapture(self.stream.0);
+    }
+}
+
 impl<Mods: OnDropBuffer> PtrConv for CUDA<Mods> {
     #[inline]
     unsafe fn convert<T, IS: Shape, Conv, OS: Shape>(
