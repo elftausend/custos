@@ -512,3 +512,128 @@ impl Number for half::bf16 {
     }
 }
 
+#[cfg(feature = "half")]
+impl Float for half::f16 {
+    #[inline]
+    fn exp(&self) -> Self {
+        Self::from_f32(self.to_f32().exp())
+    }
+
+    #[inline]
+    fn powf(&self, rhs: Self) -> Self {
+        Self::from_f32(self.to_f32().powf(rhs.to_f32()))
+    }
+
+    #[inline]
+    fn powi(&self, rhs: i32) -> Self {
+        Self::from_f32(self.to_f32().powi(rhs))
+    }
+
+    #[inline]
+    fn tanh(&self) -> Self {
+        Self::from_f32(self.to_f32().tanh())
+    }
+
+    #[inline]
+    fn sin(&self) -> Self {
+        Self::from_f32(self.to_f32().sin())
+    }
+
+    #[inline]
+    fn cos(&self) -> Self { 
+        Self::from_f32(self.to_f32().cos())
+    }
+
+    #[inline]
+    fn tan(&self) -> Self {    
+        Self::from_f32(self.to_f32().cos())
+    }
+
+    #[inline]
+    fn as_generic(value: f64) -> Self {
+        Self::from_f64(value)
+    }
+
+    #[inline]
+    fn sqrt(&self) -> Self {
+        Self::from_f32(self.to_f32().sqrt())
+    }
+
+    #[inline]
+    fn log(&self, base: Self) -> Self {
+        Self::from_f32(self.to_f32().log(base.to_f32()))
+    }
+
+    #[inline]
+    fn ln(&self) -> Self {
+        Self::from_f32(self.to_f32().ln())
+    }
+
+    #[inline]
+    fn abs(&self) -> Self {
+        Self::from_f32(self.to_f32().abs())
+    }
+}
+
+#[cfg(feature = "half")]
+impl Float for half::bf16 {
+    #[inline]
+    fn exp(&self) -> Self {
+        Self::from_f32(self.to_f32().exp())
+    }
+
+    #[inline]
+    fn powf(&self, rhs: Self) -> Self {
+        Self::from_f32(self.to_f32().powf(rhs.to_f32()))
+    }
+
+    #[inline]
+    fn powi(&self, rhs: i32) -> Self {
+        Self::from_f32(self.to_f32().powi(rhs))
+    }
+
+    #[inline]
+    fn tanh(&self) -> Self {
+        Self::from_f32(self.to_f32().tanh())
+    }
+
+    #[inline]
+    fn sin(&self) -> Self {
+        Self::from_f32(self.to_f32().sin())
+    }
+
+    #[inline]
+    fn cos(&self) -> Self { 
+        Self::from_f32(self.to_f32().cos())
+    }
+
+    #[inline]
+    fn tan(&self) -> Self {    
+        Self::from_f32(self.to_f32().cos())
+    }
+
+    #[inline]
+    fn as_generic(value: f64) -> Self {
+        Self::from_f64(value)
+    }
+
+    #[inline]
+    fn sqrt(&self) -> Self {
+        Self::from_f32(self.to_f32().sqrt())
+    }
+
+    #[inline]
+    fn log(&self, base: Self) -> Self {
+        Self::from_f32(self.to_f32().log(base.to_f32()))
+    }
+
+    #[inline]
+    fn ln(&self) -> Self {
+        Self::from_f32(self.to_f32().ln())
+    }
+
+    #[inline]
+    fn abs(&self) -> Self {
+        Self::from_f32(self.to_f32().abs())
+    }
+}
