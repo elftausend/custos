@@ -89,6 +89,38 @@ typical_number_impl! {
     isize, u8, u16, u32, u64, u128, usize
 }
 
+#[cfg(feature = "half")]
+impl One for half::f16 {
+    #[inline]
+    fn one() -> Self {
+        half::f16::ONE
+    }
+}
+
+#[cfg(feature = "half")]
+impl One for half::bf16 {
+    #[inline]
+    fn one() -> Self {
+        half::bf16::ONE
+    }
+}
+
+#[cfg(feature = "half")]
+impl Two for half::f16 {
+    #[inline]
+    fn two() -> Self {
+        half::f16::ONE
+    }
+}
+
+#[cfg(feature = "half")]
+impl Two for half::bf16 {
+    #[inline]
+    fn two() -> Self {
+        half::bf16::ONE
+    }
+}
+
 /// Numeric is a trait that is implemented for all numeric types.
 pub trait Numeric:
     Sized + Default + Copy + PartialOrd + PartialEq + core::fmt::Debug + core::fmt::Display + 'static
@@ -110,6 +142,12 @@ impl Numeric for u32 {}
 impl Numeric for u64 {}
 impl Numeric for u128 {}
 impl Numeric for usize {}
+
+#[cfg(feature = "half")]
+impl Numeric for half::f16 {}
+
+#[cfg(feature = "half")]
+impl Numeric for half::bf16 {}
 
 /// Implementors of `Number` require some basic math operations.
 /// # Example
@@ -417,3 +455,60 @@ impl Float for f64 {
         libm::log10(*self) / libm::log10(base)
     }
 }
+
+#[cfg(feature = "half")]
+impl Number for half::f16 {
+    #[inline]
+    fn from_usize(value: usize) -> Self {
+        half::f16::from_f32(value as f32)
+    }
+
+    #[inline]
+    fn from_u64(value: u64) -> Self { 
+        half::f16::from_f32(value as f32)
+    }
+
+    #[inline]
+    fn as_usize(&self) -> usize {
+        self.to_f32() as usize
+    }
+
+    #[inline]
+    fn as_f64(&self) -> f64 {
+        self.to_f64()
+    }
+
+    #[inline]
+    fn max(self, rhs: Self) -> Self {
+        self.max(rhs)
+    }
+}
+
+#[cfg(feature = "half")]
+impl Number for half::bf16 {
+    #[inline]
+    fn from_usize(value: usize) -> Self {
+        half::bf16::from_f32(value as f32)
+    }
+
+    #[inline]
+    fn from_u64(value: u64) -> Self { 
+        half::bf16::from_f32(value as f32)
+    }
+
+    #[inline]
+    fn as_usize(&self) -> usize {
+        self.to_f32() as usize
+    }
+
+    #[inline]
+    fn as_f64(&self) -> f64 {
+        self.to_f64()
+    }
+
+    #[inline]
+    fn max(self, rhs: Self) -> Self {
+        self.max(rhs)
+    }
+}
+
