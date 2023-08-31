@@ -58,7 +58,7 @@ impl<'a, T: AsOperandCode, S: Shape> Alloc<'a, T, S> for NnapiDevice {
     {
         let nnapi_ptr = Alloc::<T, S>::alloc(self, data.len(), crate::flag::AllocFlag::default());
 
-        let mut ptr = CPUPtr::<T>::new(data.len(), crate::flag::AllocFlag::Wrapper);
+        let mut ptr = unsafe { CPUPtr::<T>::new(data.len(), crate::flag::AllocFlag::Wrapper) };
         ptr.clone_from_slice(data);
         let ptr = unsafe { CPU::convert::<T, S, u8, S>(&ptr, crate::flag::AllocFlag::None) };
 
