@@ -167,7 +167,7 @@ impl<Mods> crate::LazySetup for CUDA<Mods> {
     #[inline]
     fn lazy_setup(&mut self) {
         // switch to stream record mode for graph
-        cuStreamBeginCapture(self.stream.0, ...);
+        cuStreamBeginCapture(self.stream.0, CU_STREAM_CAPTURE_MODE_GLOBAL);
     }
 }
 
