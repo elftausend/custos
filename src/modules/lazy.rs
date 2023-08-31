@@ -30,6 +30,10 @@ pub trait LazySetup {
     fn lazy_setup(&mut self) {}
 }
 
+pub trait LazyRun {
+    fn run(&self);
+}
+
 impl<Mods: Module<D>, D: LazySetup> Module<D> for Lazy<Mods> {
     type Module = Lazy<Mods::Module>;
 
