@@ -22,6 +22,13 @@ pub enum CUstream_st {}
 pub type CUstream = *mut CUstream_st;
 
 #[repr(u32)]
+pub enum CUStreamCaptureMode {
+    CU_STREAM_CAPTURE_MODE_GLOBAL = 0
+    CU_STREAM_CAPTURE_MODE_THREAD_LOCAL = 1
+    CU_STREAM_CAPTURE_MODE_RELAXED = 2
+}
+
+#[repr(u32)]
 pub enum CUdevice_attribute {
     CU_DEVICE_ATTRIBUTE_MAX_THREADS_PER_BLOCK = 1,
     CU_DEVICE_ATTRIBUTE_MAX_BLOCK_DIM_X = 2,
@@ -194,7 +201,7 @@ extern "C" {
         block_size_limit: i32,
     ) -> CUresult;
     
-    pub fn cuStreamBeginCapture(stream: *mut CUstream);
+    pub fn cuStreamBeginCapture(stream: *mut CUstream, capture_mode: CUStreamCaptureMode);
 
     // unified memory
 
