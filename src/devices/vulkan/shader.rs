@@ -1,9 +1,11 @@
+use core::ffi::CStr;
+
 use ash::{
-    vk::{self, DescriptorPool, DescriptorSet, Pipeline, PipelineLayout, ShaderModule, DescriptorSetLayout},
-    Device,
+    vk::{self, DescriptorPool, DescriptorSet, Pipeline, PipelineLayout, ShaderModule, DescriptorSetLayout, PipelineCache},
+    Device, prelude::VkResult,
 };
 
-pub fn create_shader_module(code: &[u8], device: &Device) -> ShaderModule {
+pub fn create_shader_module(code: &[u8], device: &Device) -> VkResult<ShaderModule> {
     unsafe {
         let shader_module_create_info = vk::ShaderModuleCreateInfo {
             code_size: code.len(),
@@ -12,12 +14,11 @@ pub fn create_shader_module(code: &[u8], device: &Device) -> ShaderModule {
         };
         device
             .create_shader_module(&shader_module_create_info, None)
-            .unwrap()
     }
 }
 
 // add dyn AsDescriptorType ..
-pub fn create_descriptor_set_layout_from_desc_types(device: &Device, descriptor_types: &[vk::DescriptorType]) -> DescriptorSetLayout {
+pub fn create_descriptor_set_layout_from_desc_types(device: &Device, descriptor_types: &[vk::DescriptorType]) -> VkResult<DescriptorSetLayout> {
     let descriptor_set_layout_bindings = descriptor_types
         .iter()
         .copied()
@@ -39,7 +40,32 @@ pub fn create_descriptor_set_layout_from_desc_types(device: &Device, descriptor_
     };
 
     unsafe { device.create_descriptor_set_layout(&descriptor_set_layout_create_info, None) }
-        .unwrap() 
+}
+
+pub fn create_pipeline(device: &Device, descriptor_set_layout: DescriptorSetLayout, shader_module: ShaderModule) -> VkResult<Pipeline> {
+    let pipeline_layout = {
+        let pipeline_layout_create_info = vk::PipelineLayoutCreateInfo::builder()
+            .set_layouts(core::slice::from_ref(&descriptor_set_layout));
+        unsafe { device.create_pipeline_layout(&pipeline_layout_create_info, None) }.unwrap()
+    };
+
+    // create the pipeline
+    let pipeline_create_info = vk::ComputePipelineCreateInfo {
+        stage: vk::PipelineShaderStageCreateInfo {
+            stage: vk::ShaderStageFlags::COMPUTE,
+            module: shader_module,
+            p_name: unsafe { CStr::from_bytes_with_nul_unchecked(b"main\0") }.as_ptr(),
+            ..Default::default()
+        },
+        layout: pipeline_layout,
+        ..Default::default()
+    };
+
+    let pipeline = unsafe {
+        // use pipeline cache from context??
+        device.create_compute_pipelines(PipelineCache::null(), &[pipeline_create_info], None)
+    }.map_err(|(_, err)| err)?[0];
+    Ok(pipeline)
 }
 
 
