@@ -3,7 +3,7 @@ use std::collections::HashMap;
 
 use crate::{
     AddOperation, Alloc, Buffer, Device, HasId, Id, Module, NoHasher, OnDropBuffer, OnNewBuffer,
-    Operation, Parents, PtrConv, Retrieve, Setup, Shape, TapeActions, UniqueId,
+    Operation, Parents, PtrConv, Retrieve, Setup, Shape, TapeActions, UniqueId, Run,
 };
 
 use super::register_buf;
@@ -28,6 +28,10 @@ impl<Mods: Debug> Debug for Lazy<Mods> {
 
 pub trait LazySetup {
     fn lazy_setup(&mut self) {}
+}
+
+pub trait LazyRun {
+    fn run(&self);
 }
 
 impl<Mods: Module<D>, D: LazySetup> Module<D> for Lazy<Mods> {
@@ -82,6 +86,14 @@ impl<D: LazySetup, Mods: Setup<D>> Setup<D> for Lazy<Mods> {
     fn setup(device: &mut D) {
         device.lazy_setup();
         Mods::setup(device)
+    }
+}
+
+impl<Mods: Run<D>, D: LazyRun> Run<D> for Lazy<Mods> {
+    #[inline]
+    fn run(&self, device: &D) {
+        device.run();
+        self.modules.run(device);
     }
 }
 

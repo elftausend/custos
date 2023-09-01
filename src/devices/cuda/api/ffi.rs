@@ -21,6 +21,16 @@ pub type CUfunction = *mut CUfunc_st;
 pub enum CUstream_st {}
 pub type CUstream = *mut CUstream_st;
 
+pub enum CUgraph_st {}
+pub type CUgraph = *mut CUgraph_st;
+
+#[repr(u32)]
+pub enum CUStreamCaptureMode {
+    CU_STREAM_CAPTURE_MODE_GLOBAL = 0,
+    CU_STREAM_CAPTURE_MODE_THREAD_LOCAL = 1,
+    CU_STREAM_CAPTURE_MODE_RELAXED = 2,
+}
+
 #[repr(u32)]
 pub enum CUdevice_attribute {
     CU_DEVICE_ATTRIBUTE_MAX_THREADS_PER_BLOCK = 1,
@@ -193,7 +203,11 @@ extern "C" {
         dyn_smem_size: usize,
         block_size_limit: i32,
     ) -> CUresult;
+    
+    pub fn cuStreamBeginCapture(stream: CUstream, capture_mode: CUStreamCaptureMode);
+    pub fn cuStreamEndCapture(stream: CUstream, graph: *mut CUgraph);
 
+    pub fn cuGraphDestroy(graph: CUgraph);
     // unified memory
 
 }

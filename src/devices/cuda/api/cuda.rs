@@ -4,9 +4,10 @@ use super::{
     cuModuleLoadData, cuModuleUnload, cuStreamCreate, cuStreamSynchronize,
     error::{CudaErrorKind, CudaResult},
     ffi::cuMemAlloc_v2,
-    CUcontext, CUdevice, CUfunction, CUmodule, CUstream,
+    CUcontext, CUdevice, CUfunction, CUmodule, CUstream, CUgraph, cuGraphDestroy, CUgraph_st,
 };
 
+use core::ptr::NonNull;
 use std::{
     ffi::{c_void, CString},
     ptr::null_mut,
@@ -175,4 +176,14 @@ pub fn culaunch_kernel(
     //    unsafe {cuCtxSynchronize().to_result()?};
 
     Ok(())
+}
+
+pub struct Graph(pub NonNull<CUgraph_st>);
+
+impl Drop for Graph {
+    fn drop(&mut self) {
+        unsafe {
+            cuGraphDestroy(self.0.as_ptr())
+        }
+    }
 }

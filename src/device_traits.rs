@@ -67,12 +67,6 @@ pub trait Module<D> {
     fn new() -> Self::Module;
 }
 
-/// Used for modules that should affect the device.
-pub trait Setup<D> {
-    #[inline]
-    fn setup(_device: &mut D) {}
-}
-
 pub trait Retriever<T>: Device {
     #[track_caller]
     fn retrieve<S, const NUM_PARENTS: usize>(

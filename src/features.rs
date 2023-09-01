@@ -38,6 +38,17 @@ pub trait Retrieve<D, T>: OnDropBuffer {
     }
 }
 
+/// Used for modules that should affect the device.
+pub trait Setup<D> {
+    #[inline]
+    fn setup(_device: &mut D) {}
+}
+
+pub trait Run<D> {
+    #[inline]
+    fn run(&self, _device: &D) {}
+}
+
 pub trait HasModules<Mods> {
     fn modules(&self) -> &Mods;
 }
