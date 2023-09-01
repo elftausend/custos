@@ -22,13 +22,13 @@ pub enum CUstream_st {}
 pub type CUstream = *mut CUstream_st;
 
 pub enum CUgraph_st {}
-pub type CUgraph = *mut CUgraph;
+pub type CUgraph = *mut CUgraph_st;
 
 #[repr(u32)]
 pub enum CUStreamCaptureMode {
-    CU_STREAM_CAPTURE_MODE_GLOBAL = 0
-    CU_STREAM_CAPTURE_MODE_THREAD_LOCAL = 1
-    CU_STREAM_CAPTURE_MODE_RELAXED = 2
+    CU_STREAM_CAPTURE_MODE_GLOBAL = 0,
+    CU_STREAM_CAPTURE_MODE_THREAD_LOCAL = 1,
+    CU_STREAM_CAPTURE_MODE_RELAXED = 2,
 }
 
 #[repr(u32)]

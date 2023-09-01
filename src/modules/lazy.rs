@@ -3,7 +3,7 @@ use std::collections::HashMap;
 
 use crate::{
     AddOperation, Alloc, Buffer, Device, HasId, Id, Module, NoHasher, OnDropBuffer, OnNewBuffer,
-    Operation, Parents, PtrConv, Retrieve, Setup, Shape, TapeActions, UniqueId,
+    Operation, Parents, PtrConv, Retrieve, Setup, Shape, TapeActions, UniqueId, Run,
 };
 
 use super::register_buf;

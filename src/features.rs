@@ -46,7 +46,7 @@ pub trait Setup<D> {
 
 pub trait Run<D> {
     #[inline]
-    fn run(device: &D) {}
+    fn run(&self, _device: &D) {}
 }
 
 pub trait HasModules<Mods> {

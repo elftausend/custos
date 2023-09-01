@@ -15,7 +15,7 @@ use crate::{
     Module as CombModule, OnDropBuffer, OnNewBuffer, PtrConv, Setup, Shape,
 };
 
-use super::api::{cuMemcpy, cu_write};
+use super::api::{cuMemcpy, cu_write, cuStreamBeginCapture, cuStreamEndCapture, CUStreamCaptureMode};
 
 pub trait IsCuda: Device {}
 
@@ -167,7 +167,7 @@ impl<Mods> crate::LazySetup for CUDA<Mods> {
     #[inline]
     fn lazy_setup(&mut self) {
         // switch to stream record mode for graph
-        cuStreamBeginCapture(self.stream.0, CU_STREAM_CAPTURE_MODE_GLOBAL);
+        unsafe { cuStreamBeginCapture(self.stream.0, CUStreamCaptureMode::CU_STREAM_CAPTURE_MODE_GLOBAL) };
     }
 }
 
@@ -176,7 +176,7 @@ impl<Mods> crate::LazyRun for CUDA<Mods> {
     #[inline]
     fn run(&self) {
         let mut graph = std::ptr::null_mut();
-        cuStreamEndCapture(self.stream.0, &mut graph);
+        unsafe { cuStreamEndCapture(self.stream.0, &mut graph) };
     }
 }
 
