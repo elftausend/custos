@@ -1,8 +1,12 @@
 use core::ffi::CStr;
 
 use ash::{
-    vk::{self, DescriptorPool, DescriptorSet, Pipeline, PipelineLayout, ShaderModule, DescriptorSetLayout, PipelineCache},
-    Device, prelude::VkResult,
+    prelude::VkResult,
+    vk::{
+        self, DescriptorPool, DescriptorSet, DescriptorSetLayout, Pipeline, PipelineCache,
+        PipelineLayout, ShaderModule,
+    },
+    Device,
 };
 
 use crate::wgsl::Spirv;
@@ -14,13 +18,15 @@ pub fn create_shader_module(device: &Device, code: &[u8]) -> VkResult<ShaderModu
             p_code: code.as_ptr() as _,
             ..Default::default()
         };
-        device
-            .create_shader_module(&shader_module_create_info, None)
+        device.create_shader_module(&shader_module_create_info, None)
     }
 }
 
 // add dyn AsDescriptorType ..
-pub fn create_descriptor_set_layout_from_desc_types(device: &Device, descriptor_types: &[vk::DescriptorType]) -> VkResult<DescriptorSetLayout> {
+pub fn create_descriptor_set_layout_from_desc_types(
+    device: &Device,
+    descriptor_types: &[vk::DescriptorType],
+) -> VkResult<DescriptorSetLayout> {
     let descriptor_set_layout_bindings = descriptor_types
         .iter()
         .copied()
@@ -44,7 +50,11 @@ pub fn create_descriptor_set_layout_from_desc_types(device: &Device, descriptor_
     unsafe { device.create_descriptor_set_layout(&descriptor_set_layout_create_info, None) }
 }
 
-pub fn create_pipeline(device: &Device, descriptor_set_layout: DescriptorSetLayout, shader_module: ShaderModule) -> VkResult<(Pipeline, PipelineLayout)> {
+pub fn create_pipeline(
+    device: &Device,
+    descriptor_set_layout: DescriptorSetLayout,
+    shader_module: ShaderModule,
+) -> VkResult<(Pipeline, PipelineLayout)> {
     let pipeline_layout = {
         let pipeline_layout_create_info = vk::PipelineLayoutCreateInfo::builder()
             .set_layouts(core::slice::from_ref(&descriptor_set_layout));
@@ -66,11 +76,22 @@ pub fn create_pipeline(device: &Device, descriptor_set_layout: DescriptorSetLayo
     let pipeline = unsafe {
         // use pipeline cache from context??
         device.create_compute_pipelines(PipelineCache::null(), &[pipeline_create_info], None)
-    }.map_err(|(_, err)| err)?[0];
+    }
+    .map_err(|(_, err)| err)?[0];
     Ok((pipeline, pipeline_layout))
 }
 
+pub fn create_descriptor_pool(device: &Device, descriptor_count: u32) -> VkResult<DescriptorPool> {
+    let descriptor_pool_sizes = vk::DescriptorPoolSize {
+        ty: vk::DescriptorType::STORAGE_BUFFER,
+        descriptor_count,
+    };
+    let descriptor_pool_create_info = vk::DescriptorPoolCreateInfo::builder()
+        .max_sets(1)
+        .pool_sizes(core::slice::from_ref(&descriptor_pool_sizes));
 
+    unsafe { device.create_descriptor_pool(&descriptor_pool_create_info, None) }
+}
 
 pub struct Operation {
     pipeline: Pipeline,
@@ -83,9 +104,10 @@ impl Operation {
     pub fn new(device: &Device, wgsl: impl AsRef<str>, descriptor_types: &[vk::DescriptorType]) {
         let spirv = Spirv::from_wgsl(wgsl).unwrap();
         let shader_module = create_shader_module(device, spirv.as_byte_slice()).unwrap();
-        let descriptor_set_layout = create_descriptor_set_layout_from_desc_types(device, descriptor_types).unwrap();
-        let (pipeline, pipeline_layout) = create_pipeline(device, descriptor_set_layout, shader_module).unwrap();
-
+        let descriptor_set_layout =
+            create_descriptor_set_layout_from_desc_types(device, descriptor_types).unwrap();
+        let (pipeline, pipeline_layout) =
+            create_pipeline(device, descriptor_set_layout, shader_module).unwrap();
     }
 }
 
