@@ -18,3 +18,6 @@ pub use graph::*;
 mod lazy;
 #[cfg(feature = "lazy")]
 pub use lazy::*;
+
+mod fork;
+pub use fork::*;
