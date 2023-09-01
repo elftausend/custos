@@ -263,6 +263,7 @@ fn test_vulkan_compute_with_wgsl_and_spirv() {
     let descriptor_set_allocate_info = vk::DescriptorSetAllocateInfo::builder()
         .descriptor_pool(descriptor_pool)
         .set_layouts(core::slice::from_ref(&descriptor_set_layout));
+
     let descriptor_set =
         unsafe { device.allocate_descriptor_sets(&descriptor_set_allocate_info) }.unwrap()[0];
 

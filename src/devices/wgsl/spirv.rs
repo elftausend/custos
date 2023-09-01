@@ -1,4 +1,4 @@
-use core::{str::FromStr, mem::size_of_val};
+use core::{mem::size_of_val, str::FromStr};
 
 use naga::{
     back::spv::{Options, PipelineOptions},
@@ -20,7 +20,10 @@ impl Spirv {
     #[inline]
     pub fn as_byte_slice(&self) -> &[u8] {
         unsafe {
-            std::slice::from_raw_parts(self.words.as_ptr() as *const u8, size_of_val(self.words.as_slice()))
+            std::slice::from_raw_parts(
+                self.words.as_ptr() as *const u8,
+                size_of_val(self.words.as_slice()),
+            )
         }
     }
 }
