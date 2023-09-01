@@ -4,11 +4,11 @@ use std::rc::Rc;
 use super::context::Context;
 
 pub struct VkArray<T> {
-    len: usize,
-    buf: vk::Buffer,
-    mem: vk::DeviceMemory,
-    context: Rc<Context>,
-    mapped_ptr: *mut T,
+    pub len: usize,
+    pub buf: vk::Buffer,
+    pub mem: vk::DeviceMemory,
+    pub context: Rc<Context>,
+    pub mapped_ptr: *mut T,
 }
 
 impl<T> VkArray<T> {
@@ -35,11 +35,11 @@ impl<T> VkArray<T> {
     }
 
     #[inline]
-    pub fn from_slice(device: Rc<Context>, data: &[T]) -> crate::Result<Self>
+    pub fn from_slice(context: Rc<Context>, data: &[T]) -> crate::Result<Self>
     where
         T: Copy,
     {
-        let mut array = VkArray::<T>::new(device, data.len())?;
+        let mut array = VkArray::<T>::new(context, data.len())?;
         array.as_mut_slice().copy_from_slice(data);
         Ok(array)
     }
@@ -110,13 +110,22 @@ pub unsafe fn allocate_memory(
 
 #[cfg(test)]
 mod tests {
-    use crate::{vulkan::vulkan_device::Vulkan, Base};
+    use std::rc::Rc;
+
+    use crate::vulkan::context::Context;
 
     use super::VkArray;
 
     #[test]
     fn test_vk_array_allocation() {
-        let device = Vulkan::<Base>::new(0).unwrap();
-        let arr1 = VkArray::<f32>::new(device.context(), 10).unwrap();
+        let context = Rc::new(Context::new(0).unwrap());
+        let arr1 = VkArray::<f32>::new(context.clone(), 10).unwrap();
+    }
+
+    #[test]
+    fn test_vk_array_from_slice() {
+        let context = Rc::new(Context::new(0).unwrap());
+        let arr1 = VkArray::<f32>::from_slice(context.clone(), &[1., 2., 3., 4., 5., 6.]).unwrap();
+        assert_eq!(arr1.as_slice(), &[1., 2., 3., 4., 5., 6.,])
     }
 }

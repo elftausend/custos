@@ -62,7 +62,7 @@ impl Context {
         };
         let command_buffer =
             unsafe { logical_device.allocate_command_buffers(&command_buffer_allocate_info) }?[0];
-    
+
         let memory_properties =
             unsafe { instance.get_physical_device_memory_properties(physical_device) };
 
@@ -89,8 +89,6 @@ impl Deref for Context {
 impl Drop for Context {
     #[inline]
     fn drop(&mut self) {
-        unsafe {
-            
-        }
+        unsafe {}
     }
 }

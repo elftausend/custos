@@ -203,7 +203,7 @@ extern "C" {
         dyn_smem_size: usize,
         block_size_limit: i32,
     ) -> CUresult;
-    
+
     pub fn cuStreamBeginCapture(stream: CUstream, capture_mode: CUStreamCaptureMode);
     pub fn cuStreamEndCapture(stream: CUstream, graph: *mut CUgraph);
 
