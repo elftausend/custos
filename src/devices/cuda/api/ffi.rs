@@ -206,6 +206,8 @@ extern "C" {
     
     pub fn cuStreamBeginCapture(stream: CUstream, capture_mode: CUStreamCaptureMode);
     pub fn cuStreamEndCapture(stream: CUstream, graph: *mut CUgraph);
+
+    pub fn cuGraphDestroy(graph: CUgraph);
     // unified memory
 
 }
