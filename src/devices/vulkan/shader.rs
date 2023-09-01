@@ -3,8 +3,8 @@ use core::ffi::CStr;
 use ash::{
     prelude::VkResult,
     vk::{
-        self, DescriptorPool, DescriptorSet, DescriptorSetLayout, Pipeline, PipelineCache,
-        PipelineLayout, ShaderModule,
+        self, DescriptorPool, DescriptorSet, DescriptorSetLayout, DescriptorType, Pipeline,
+        PipelineCache, PipelineLayout, ShaderModule,
     },
     Device,
 };
@@ -113,7 +113,11 @@ pub struct Operation {
 }
 
 impl Operation {
-    pub fn new(device: &Device, wgsl: impl AsRef<str>, descriptor_types: &[vk::DescriptorType]) {
+    pub fn new(
+        device: &Device,
+        wgsl: impl AsRef<str>,
+        descriptor_types: &[DescriptorType],
+    ) -> Self {
         let spirv = Spirv::from_wgsl(wgsl).unwrap();
         let shader_module = create_shader_module(device, spirv.as_byte_slice()).unwrap();
         let descriptor_set_layout =
@@ -123,6 +127,16 @@ impl Operation {
 
         let descriptor_pool =
             create_descriptor_pool(device, descriptor_types.len() as u32).unwrap();
+
+        let descriptor_set =
+            allocate_descriptor_set(device, descriptor_pool, descriptor_set_layout).unwrap();
+
+        Operation {
+            pipeline,
+            pipeline_layout,
+            descriptor_pool,
+            descriptor_set,
+        }
     }
 }
 
