@@ -65,6 +65,7 @@ pub fn write_spirv(module: &naga::Module, info: &ModuleInfo) -> Result<Vec<u32>,
     Ok(words)
 }
 
+#[derive(Debug, Clone)]
 pub enum TranslateError {
     Validate(WithSpan<ValidationError>),
     Frontend(naga::front::wgsl::ParseError),
