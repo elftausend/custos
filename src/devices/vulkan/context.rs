@@ -3,7 +3,7 @@ use core::ops::Deref;
 use ash::{
     vk::{
         self, CommandBuffer, InstanceCreateInfo, PhysicalDevice, PhysicalDeviceMemoryProperties,
-        PhysicalDeviceProperties,
+        PhysicalDeviceProperties, PipelineCache,
     },
     Device, Entry,
 };
@@ -17,6 +17,7 @@ pub struct Context {
     pub device_props: PhysicalDeviceProperties,
     pub command_buffer: CommandBuffer,
     pub memory_properties: PhysicalDeviceMemoryProperties,
+    pub pipeline_cache: PipelineCache,
 }
 
 impl Context {
@@ -73,6 +74,7 @@ impl Context {
             device_props,
             command_buffer,
             memory_properties,
+            pipeline_cache: PipelineCache::default(),
         })
     }
 }

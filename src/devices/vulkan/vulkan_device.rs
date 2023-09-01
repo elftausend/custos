@@ -24,6 +24,7 @@ impl<SimpleMods> Vulkan<SimpleMods> {
 }
 
 impl<Mods> Vulkan<Mods> {
+    #[inline]
     pub fn context(&self) -> Rc<Context> {
         self.context.clone()
     }

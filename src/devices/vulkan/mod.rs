@@ -6,6 +6,7 @@ use ash::{
 mod context;
 mod vk_array;
 mod vulkan_device;
+mod shader;
 
 pub fn list_compute_devices(instance: &Instance) -> Vec<(PhysicalDevice, usize)> {
     let physical_device = unsafe { instance.enumerate_physical_devices().unwrap() };

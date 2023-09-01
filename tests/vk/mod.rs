@@ -240,6 +240,7 @@ fn test_vulkan_compute_with_wgsl_and_spirv() {
         layout: pipeline_layout,
         ..Default::default()
     };
+
     let pipeline = unsafe {
         device.create_compute_pipelines(PipelineCache::null(), &[pipeline_create_info], None)
     }
