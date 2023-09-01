@@ -93,6 +93,18 @@ pub fn create_descriptor_pool(device: &Device, descriptor_count: u32) -> VkResul
     unsafe { device.create_descriptor_pool(&descriptor_pool_create_info, None) }
 }
 
+pub fn allocate_descriptor_set(
+    device: &Device,
+    descriptor_pool: DescriptorPool,
+    descriptor_set_layout: DescriptorSetLayout,
+) -> VkResult<DescriptorSet> {
+    let descriptor_set_allocate_info = vk::DescriptorSetAllocateInfo::builder()
+        .descriptor_pool(descriptor_pool)
+        .set_layouts(core::slice::from_ref(&descriptor_set_layout));
+
+    Ok(unsafe { device.allocate_descriptor_sets(&descriptor_set_allocate_info) }?[0])
+}
+
 pub struct Operation {
     pipeline: Pipeline,
     pipeline_layout: PipelineLayout,
@@ -108,6 +120,9 @@ impl Operation {
             create_descriptor_set_layout_from_desc_types(device, descriptor_types).unwrap();
         let (pipeline, pipeline_layout) =
             create_pipeline(device, descriptor_set_layout, shader_module).unwrap();
+
+        let descriptor_pool =
+            create_descriptor_pool(device, descriptor_types.len() as u32).unwrap();
     }
 }
 
