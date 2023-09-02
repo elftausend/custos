@@ -53,6 +53,7 @@ impl<Mods> UseGpuOrCpu for Fork<Mods> {
             .get(&Location::caller().into())
             .copied()
         {
+            // behaviour at device level?
             match use_cpu {
                 true => cpu_op(),
                 false => gpu_op(),
@@ -78,7 +79,7 @@ impl<Mods> UseGpuOrCpu for Fork<Mods> {
         self.use_cpu
             .borrow_mut()
             .insert(Location::caller().into(), use_cpu);
-
+        println!("use_cpu: {use_cpu}");
         GpuOrCpu {
             use_cpu,
             is_result_cached: false,
@@ -126,7 +127,7 @@ impl<Mods: OnNewBuffer<T, D, S>, T, D: Device, S: Shape> OnNewBuffer<T, D, S> fo
 
 #[cfg(test)]
 mod tests {
-    use crate::{Base, Buffer, Device, Fork, GpuOrCpu, Module, OpenCL, UseGpuOrCpu, CPU};
+    use crate::{Base, Buffer, Device, Fork, GpuOrCpu, Module, OpenCL, UseGpuOrCpu, CPU, opencl::try_cl_clear};
 
     #[track_caller]
     pub fn clear(
@@ -161,8 +162,14 @@ mod tests {
 
     #[test]
     fn test_fork_module() {
-        let device = OpenCL::<Fork<Base>>::new(1).unwrap();
+        let device = OpenCL::<Fork<Base>>::new(0).unwrap();
 
-        let buf = device.buffer::<_, (), _>(vec![21u8; 1000000]);
+
+        let mut buf = device.buffer::<_, (), _>(vec![21u8; 10000000]);
+        
+        // this is for the jit warming
+        try_cl_clear(&device, &mut buf).unwrap();
+    
+        buf.clear();
     }
 }

@@ -319,7 +319,6 @@ impl<Mods: OnDropBuffer> crate::MainMemory for OpenCL<Mods> {
 impl<Mods> crate::ForkSetup for OpenCL<Mods> {
     #[inline]
     fn fork_setup(&mut self) {
-        println!("name: {:?}, um: {:?}", self.name(), self.unified_mem());
         assert!(
             self.unified_mem(),
             "The selected device does not support unified memory."
