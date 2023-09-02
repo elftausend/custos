@@ -15,7 +15,9 @@ use crate::{
     Module as CombModule, OnDropBuffer, OnNewBuffer, PtrConv, Setup, Shape,
 };
 
-use super::api::{cuMemcpy, cu_write, cuStreamBeginCapture, cuStreamEndCapture, CUStreamCaptureMode};
+use super::api::{
+    cuMemcpy, cuStreamBeginCapture, cuStreamEndCapture, cu_write, CUStreamCaptureMode,
+};
 
 pub trait IsCuda: Device {}
 
@@ -167,7 +169,21 @@ impl<Mods> crate::LazySetup for CUDA<Mods> {
     #[inline]
     fn lazy_setup(&mut self) {
         // switch to stream record mode for graph
-        unsafe { cuStreamBeginCapture(self.stream.0, CUStreamCaptureMode::CU_STREAM_CAPTURE_MODE_GLOBAL) };
+        unsafe {
+            cuStreamBeginCapture(
+                self.stream.0,
+                CUStreamCaptureMode::CU_STREAM_CAPTURE_MODE_GLOBAL,
+            )
+        };
+    }
+}
+
+
+#[cfg(feature = "fork")]
+impl<Mods> crate::ForkSetup for CUDA<Mods> {
+    #[inline]
+    fn fork_setup(&mut self) {
+        // TODO: maybe check if device supports unified memory
     }
 }
 

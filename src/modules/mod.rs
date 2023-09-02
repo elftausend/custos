@@ -19,5 +19,7 @@ mod lazy;
 #[cfg(feature = "lazy")]
 pub use lazy::*;
 
+#[cfg(feature = "fork")]
 mod fork;
+#[cfg(feature = "fork")]
 pub use fork::*;
