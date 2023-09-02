@@ -134,6 +134,9 @@ impl<Mods: TapeActions> TapeActions for CPU<Mods> {
 #[cfg(feature = "lazy")]
 impl<Mods> crate::LazySetup for CPU<Mods> {}
 
+#[cfg(feature = "fork")]
+impl<Mods> crate::ForkSetup for CPU<Mods> {}
+
 impl<'a, Mods: OnDropBuffer + OnNewBuffer<T, Self, S>, T: Clone, S: Shape> CloneBuf<'a, T, S>
     for CPU<Mods>
 {

@@ -13,9 +13,9 @@ use crate::{
 
 use super::{enqueue_kernel, CLBuffer};
 
-impl<T: CDatatype> ClearBuf<T> for OpenCL {
+impl<Mods: OnDropBuffer, T: CDatatype> ClearBuf<T> for OpenCL<Mods> {
     #[inline]
-    fn clear(&self, buf: &mut Buffer<T, OpenCL>) {
+    fn clear(&self, buf: &mut Buffer<T, OpenCL<Mods>>) {
         try_cl_clear(self, buf).unwrap()
     }
 }
@@ -35,9 +35,9 @@ impl<T: CDatatype> ClearBuf<T> for OpenCL {
 ///     Ok(())
 /// }
 /// ```
-pub fn try_cl_clear<T: CDatatype>(
-    device: &OpenCL,
-    lhs: &mut Buffer<T, OpenCL>,
+pub fn try_cl_clear<Mods: OnDropBuffer, T: CDatatype>(
+    device: &OpenCL<Mods>,
+    lhs: &mut Buffer<T, OpenCL<Mods>>,
 ) -> crate::Result<()> {
     let src = format!(
         "
