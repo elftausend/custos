@@ -43,18 +43,23 @@ impl<Mods: Setup<D>, D: ForkSetup> Setup<D> for Fork<Mods> {
 }
 
 impl<Mods> UseGpuOrCpu for Fork<Mods> {
-    // FIXME: if the operation assigns to  &mut out, you will get chaos 
+    // FIXME: if the operation assigns to  &mut out, you will get chaos
 
     #[inline]
     fn use_cpu_or_gpu(&self, mut cpu_op: impl FnMut(), mut gpu_op: impl FnMut()) -> GpuOrCpu {
-        if let Some(use_cpu) = self.use_cpu.borrow().get(&Location::caller().into()).copied() {
+        if let Some(use_cpu) = self
+            .use_cpu
+            .borrow()
+            .get(&Location::caller().into())
+            .copied()
+        {
             match use_cpu {
                 true => cpu_op(),
                 false => gpu_op(),
             }
             return GpuOrCpu {
                 use_cpu,
-                is_result_cached: true
+                is_result_cached: true,
             };
         }
 
@@ -74,7 +79,10 @@ impl<Mods> UseGpuOrCpu for Fork<Mods> {
             .borrow_mut()
             .insert(Location::caller().into(), use_cpu);
 
-        GpuOrCpu { use_cpu, is_result_cached: false }
+        GpuOrCpu {
+            use_cpu,
+            is_result_cached: false,
+        }
     }
 }
 
@@ -104,10 +112,14 @@ impl<Mods: UseGpuOrCpu> UseGpuOrCpu for crate::OpenCL<Mods> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{Base, Device, Fork, Module, UseGpuOrCpu, CPU, OpenCL, Buffer, GpuOrCpu};
+    use crate::{Base, Buffer, Device, Fork, GpuOrCpu, Module, OpenCL, UseGpuOrCpu, CPU};
 
     #[track_caller]
-    pub fn clear(fork: &Fork<Base>, cpu_buf: &mut Buffer<i32>, opencl_buf: &mut Buffer<i32, OpenCL>) -> GpuOrCpu {
+    pub fn clear(
+        fork: &Fork<Base>,
+        cpu_buf: &mut Buffer<i32>,
+        opencl_buf: &mut Buffer<i32, OpenCL>,
+    ) -> GpuOrCpu {
         fork.use_cpu_or_gpu(
             || {
                 cpu_buf.clear();

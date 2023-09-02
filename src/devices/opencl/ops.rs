@@ -6,9 +6,9 @@ use min_cl::api::{
 };
 
 use crate::{
-    bounds_to_range, prelude::Number, ApplyFunction, Buffer, CDatatype, ClearBuf, CopySlice,
-    OnDropBuffer, OpenCL, Read, Resolve, Retriever, Shape, ToCLSource, ToMarker, UnaryGrad,
-    WriteBuf, UseGpuOrCpu,
+    bounds_to_range, cpu::clear_slice, prelude::Number, ApplyFunction, Buffer, CDatatype, ClearBuf,
+    CopySlice, OnDropBuffer, OpenCL, Read, Resolve, Retriever, Shape, ToCLSource, ToMarker,
+    UnaryGrad, UseGpuOrCpu, WriteBuf,
 };
 
 use super::{enqueue_kernel, CLBuffer};
@@ -20,15 +20,18 @@ use super::{enqueue_kernel, CLBuffer};
     }
 }*/
 
-impl<Mods: OnDropBuffer + UseGpuOrCpu, T: CDatatype> ClearBuf<T> for OpenCL<Mods> {
+impl<Mods: OnDropBuffer + UseGpuOrCpu, T: CDatatype + Default> ClearBuf<T> for OpenCL<Mods> {
     #[inline]
     fn clear(&self, buf: &mut Buffer<T, OpenCL<Mods>>) {
-        #[cfg(unified_cl)]
-        {
-            self.use_cpu_or_gpu(, gpu_op)
-            return;
+        if cfg!(unified_cl) {
+            let mut cpu_buf = unsafe { buf.shallow() };
+            self.use_cpu_or_gpu(
+                || clear_slice(&mut cpu_buf),
+                || try_cl_clear(self, buf).unwrap(),
+            );
+        } else {
+            try_cl_clear(self, buf).unwrap()
         }
-        try_cl_clear(self, buf).unwrap()
     }
 }
 /// Sets the elements of an OpenCL Buffer to zero.

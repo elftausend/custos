@@ -178,7 +178,6 @@ impl<Mods> crate::LazySetup for CUDA<Mods> {
     }
 }
 
-
 #[cfg(feature = "fork")]
 impl<Mods> crate::ForkSetup for CUDA<Mods> {
     #[inline]

@@ -95,7 +95,7 @@ impl<Mods: OnDropBuffer, T: Copy, D: MainMemory, S: Shape> WriteBuf<T, S, D> for
 }
 
 #[inline]
-pub fn clear_slice<T: Default>(input: &mut [T]) { 
+pub fn clear_slice<T: Default>(input: &mut [T]) {
     for value in input {
         *value = T::default();
     }
