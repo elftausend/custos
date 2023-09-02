@@ -125,13 +125,27 @@ impl<Mods: OnNewBuffer<T, D, S>, T, D: Device, S: Shape> OnNewBuffer<T, D, S> fo
     }
 }
 
-pub fn measure_kernel_overhead_opencl<Mods>(device: &OpenCL<Mods>) {
+pub(crate) static mut CL_KERNEL_OVERHEAD: Option<std::time::Duration> = None;
+
+pub(crate) fn cl_kernel_overhead<Mods>(device: &OpenCl<Mods>) -> std::time::Duration {
+    unsafe {
+        match CL_KERNEL_OVERHEAD {
+            Some(overhead) => overhead
+            None => {
+                let overhead = measure_kernel_overhead_opencl(device);
+                CL_KERNEL_OVERHEAD = Some(overhead);
+                overhead
+            }
+        }
+    }
+}
+pub(crate) fn measure_kernel_overhead_opencl<Mods>(device: &OpenCL<Mods>) {
     let src = "
         __kernel void measureJit() {
             
         }
     ";
-    device.launch_kernel(src, [1, 0, 0], None, &[]);
+    device.launch_kernel(src, [1, 0, 0], None, &[]).unwrap();
 }
 
 #[cfg(test)]
