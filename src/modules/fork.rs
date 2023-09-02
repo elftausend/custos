@@ -125,6 +125,15 @@ impl<Mods: OnNewBuffer<T, D, S>, T, D: Device, S: Shape> OnNewBuffer<T, D, S> fo
     }
 }
 
+pub fn measure_kernel_overhead_opencl<Mods>(device: &OpenCL<Mods>) {
+    let src = "
+        __kernel void measureJit() {
+            
+        }
+    ";
+    device.launch_kernel(src, [1, 0, 0], None, &[]);
+}
+
 #[cfg(test)]
 mod tests {
     use crate::{Base, Buffer, Device, Fork, GpuOrCpu, Module, OpenCL, UseGpuOrCpu, CPU, opencl::try_cl_clear};
