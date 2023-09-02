@@ -140,6 +140,19 @@ impl Operation {
     }
 }
 
+// combine with other Caches 
+pub struct ShaderCache {
+    // use hash directly (prevent str->String?) => Use NoHasher
+    cache: HashMap<String, Operation>    
+}
+
+impl ShaderCache {
+    pub fn add(&mut self, device: &Device, src: impl AsRef<str>, args: &[DescriptorType]) {
+        let operation = Operation::new(device, src, args);
+        self.cache.insert(src.as_ref().to_string(), operation);
+    }
+}
+
 pub fn cached_operation() {}
 
 pub fn launch_shader(device: &Device, shader: &ShaderModule) {}
