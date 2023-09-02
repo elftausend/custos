@@ -94,12 +94,17 @@ impl<Mods: OnDropBuffer, T: Copy, D: MainMemory, S: Shape> WriteBuf<T, S, D> for
     }
 }
 
+#[inline]
+pub fn clear_slice<T: Default>(input: &mut [T]) { 
+    for value in input {
+        *value = T::default();
+    }
+}
+
 // #[impl_stack]
 impl<Mods: OnDropBuffer, T: Default, D: MainMemory, S: Shape> ClearBuf<T, S, D> for CPU<Mods> {
     fn clear(&self, buf: &mut Buffer<T, D, S>) {
-        for value in buf {
-            *value = T::default();
-        }
+        clear_slice(buf)
     }
 }
 

@@ -8,18 +8,29 @@ use min_cl::api::{
 use crate::{
     bounds_to_range, prelude::Number, ApplyFunction, Buffer, CDatatype, ClearBuf, CopySlice,
     OnDropBuffer, OpenCL, Read, Resolve, Retriever, Shape, ToCLSource, ToMarker, UnaryGrad,
-    WriteBuf,
+    WriteBuf, UseGpuOrCpu,
 };
 
 use super::{enqueue_kernel, CLBuffer};
 
-impl<Mods: OnDropBuffer, T: CDatatype> ClearBuf<T> for OpenCL<Mods> {
+/*impl<Mods: OnDropBuffer, T: CDatatype> ClearBuf<T> for OpenCL<Mods> {
     #[inline]
     fn clear(&self, buf: &mut Buffer<T, OpenCL<Mods>>) {
         try_cl_clear(self, buf).unwrap()
     }
-}
+}*/
 
+impl<Mods: OnDropBuffer + UseGpuOrCpu, T: CDatatype> ClearBuf<T> for OpenCL<Mods> {
+    #[inline]
+    fn clear(&self, buf: &mut Buffer<T, OpenCL<Mods>>) {
+        #[cfg(unified_cl)]
+        {
+            self.use_cpu_or_gpu(, gpu_op)
+            return;
+        }
+        try_cl_clear(self, buf).unwrap()
+    }
+}
 /// Sets the elements of an OpenCL Buffer to zero.
 /// # Example
 /// ```

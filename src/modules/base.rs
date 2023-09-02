@@ -56,5 +56,17 @@ impl<D, T> Retrieve<D, T> for Base {
     }
 }
 
+#[cfg(feature = "fork")]
+impl crate::UseGpuOrCpu for Base {
+    #[inline]
+    fn use_cpu_or_gpu(&self, _cpu_op: impl FnMut(), mut gpu_op: impl FnMut()) -> crate::GpuOrCpu {
+        gpu_op();
+        crate::GpuOrCpu {
+            use_cpu: false,
+            is_result_cached: false,
+        }
+    }
+}
+
 #[cfg(feature = "autograd")]
 impl crate::TapeActions for Base {}
