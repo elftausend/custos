@@ -67,12 +67,14 @@ impl<SimpleMods> OpenCL<SimpleMods> {
         NewMods: Setup<OpenCL<NewMods>>,
     {
         let inner = CLDevice::new(device_idx)?;
-        Ok(OpenCL {
+        let mut opencl = OpenCL {
             modules: SimpleMods::new(),
             inner,
             kernel_cache: Default::default(),
             cpu: CPU::<Cached<Base>>::new(),
-        })
+        }; 
+        NewMods::setup(&mut opencl);
+        Ok(opencl)
     }
 
     /// Returns the fastest [OpenCL] device available in your system.
@@ -83,12 +85,14 @@ impl<SimpleMods> OpenCL<SimpleMods> {
         NewMods: Setup<OpenCL<NewMods>>,
     {
         let inner = CLDevice::fastest()?;
-        Ok(OpenCL {
+        let mut opencl = OpenCL {
             modules: SimpleMods::new(),
             inner,
             kernel_cache: Default::default(),
             cpu: CPU::<Cached<Base>>::new(),
-        })
+        };
+        NewMods::setup(&mut opencl);
+        Ok(opencl)
     }
 }
 
