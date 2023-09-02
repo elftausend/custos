@@ -1,4 +1,4 @@
-use crate::{HashLocation, Module, Setup, OnDropBuffer};
+use crate::{HashLocation, Module, Setup, OnDropBuffer, OnNewBuffer, Device, Shape};
 use core::{cell::RefCell, panic::Location, time::Duration};
 use std::{
     collections::{BinaryHeap, HashMap},
@@ -117,6 +117,13 @@ impl<Mods: OnDropBuffer> OnDropBuffer for Fork<Mods> {
     }
 }
 
+impl<Mods: OnNewBuffer<T, D, S>, T, D: Device, S: Shape> OnNewBuffer<T, D, S> for Fork<Mods> {
+    #[inline]
+    fn on_new_buffer(&self, device: &D, new_buf: &crate::Buffer<T, D, S>) {
+        self.modules.on_new_buffer(device, new_buf)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::{Base, Buffer, Device, Fork, GpuOrCpu, Module, OpenCL, UseGpuOrCpu, CPU};
@@ -154,8 +161,8 @@ mod tests {
 
     #[test]
     fn test_fork_module() {
-        let device = OpenCL::<Fork<Base>>::new(0).unwrap();
+        let device = OpenCL::<Fork<Base>>::new(1).unwrap();
 
-        let buf = device.buffer([21u8; 1000000]);
+        let buf = device.buffer::<_, (), _>(vec![21u8; 1000000]);
     }
 }
