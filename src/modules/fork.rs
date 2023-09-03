@@ -1,5 +1,5 @@
 use crate::{
-    Device, HashLocation, LocationHasher, Module, OnDropBuffer, OnNewBuffer, Setup, Shape,
+    Device, HashLocation, LocationHasher, Module, OnDropBuffer, OnNewBuffer, Setup, Shape, OpenCL, Base, CPU,
 };
 use core::{cell::RefCell, hash::BuildHasherDefault, panic::Location, time::Duration};
 use std::{
@@ -7,10 +7,18 @@ use std::{
     time::Instant,
 };
 
+#[derive(Debug, PartialEq, Eq, PartialOrd)]
 pub struct Analyzation {
     input_lengths: Vec<usize>,
+    output_lengths: Vec<usize>,
     gpu_dur: Duration,
     cpu_dur: Duration,
+}
+
+impl Ord for Analyzation {
+    fn cmp(&self, other: &Self) -> core::cmp::Ordering {
+        self.cpu_dur.cmp(&other.cpu_dur)
+    }
 }
 
 #[derive(Debug, Clone, Copy, Default)]
@@ -165,6 +173,57 @@ pub(crate) fn measure_kernel_overhead_opencl<Mods>(device: &crate::OpenCL<Mods>)
         }
     ";
     device.launch_kernel(src, [1, 0, 0], None, &[]).unwrap();
+}
+
+#[test]
+fn test_linear() {
+    let fork = <Fork<Base> as Module<CPU>>::new();
+    let mut heap = BinaryHeap::new();
+    let anals = [
+        Analyzation {
+            input_lengths: vec![100000, 100000],
+            output_lengths: vec![100000],
+            gpu_dur: std::time::Duration::from_secs_f32(0.312),
+            cpu_dur: std::time::Duration::from_secs_f32(0.12),
+        },
+        Analyzation {
+            input_lengths: vec![140000, 140000],
+            output_lengths: vec![140000],
+            gpu_dur: std::time::Duration::from_secs_f32(0.412),
+            cpu_dur: std::time::Duration::from_secs_f32(0.52),
+        }
+    ];
+
+    let input_lengths = vec![120000, 120000];
+    let output_lengths = vec![120000];
+
+    for anal in anals {
+        heap.push(anal)
+    }
+    let input_lengths = input_lengths.iter().sum::<usize>();
+    let output_lengths = output_lengths.iter().sum::<usize>();
+    
+    let anals = heap.into_sorted_vec();
+
+    for anals in anals.windows(2) {
+        let lhs = &anals[0];
+        let rhs = &anals[1];
+
+        let input_lengths_lhs = lhs.input_lengths.iter().sum::<usize>();
+        let output_lengths_lhs = lhs.output_lengths.iter().sum::<usize>();
+        
+        let input_lengths_rhs = rhs.input_lengths.iter().sum::<usize>();
+        let output_lengths_rhs = rhs.output_lengths.iter().sum::<usize>();
+
+        if input_lengths > input_lengths_lhs && input_lengths < input_lengths_rhs {
+            let new_cpu_dur = lhs.cpu_dur + ((rhs.cpu_dur - lhs.cpu_dur) / 2);
+            println!("new_cpu_dur: {new_cpu_dur:?}");
+
+            let new_gpu_dur = lhs.gpu_dur + ((rhs.gpu_dur - lhs.gpu_dur) / 2);
+
+            println!("new_gpu_dur: {new_gpu_dur:?}");
+        }
+    }
 }
 
 #[cfg(test)]
