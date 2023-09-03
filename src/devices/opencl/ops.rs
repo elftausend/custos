@@ -25,7 +25,7 @@ impl<Mods: OnDropBuffer + UseGpuOrCpu, T: CDatatype + Default> ClearBuf<T> for O
     fn clear(&self, buf: &mut Buffer<T, OpenCL<Mods>>) {
         if cfg!(unified_cl) {
             let mut cpu_buf = unsafe { buf.shallow() };
-            self.use_cpu_or_gpu(&[buf.len()],
+            self.use_cpu_or_gpu((file!(), line!(), column!()).into(),&[buf.len()],
                 || clear_slice(&mut cpu_buf),
                 || try_cl_clear(self, buf).unwrap(),
             );

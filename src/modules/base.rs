@@ -2,7 +2,7 @@ use core::any::Any;
 
 use crate::{
     flag::AllocFlag, AddOperation, Alloc, Buffer, Device, Module, OnDropBuffer, OnNewBuffer,
-    Parents, Retrieve, Setup, Shape,
+    Parents, Retrieve, Setup, Shape, HashLocation,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
@@ -59,7 +59,7 @@ impl<D, T> Retrieve<D, T> for Base {
 #[cfg(feature = "fork")]
 impl crate::UseGpuOrCpu for Base {
     #[inline]
-    fn use_cpu_or_gpu(&self, input_lengths: &[usize], _cpu_op: impl FnMut(), mut gpu_op: impl FnMut()) -> crate::GpuOrCpu {
+    fn use_cpu_or_gpu(&self, location: HashLocation, input_lengths: &[usize], _cpu_op: impl FnMut(), mut gpu_op: impl FnMut()) -> crate::GpuOrCpu {
         gpu_op();
         crate::GpuOrCpu {
             use_cpu: false,
