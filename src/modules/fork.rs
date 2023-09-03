@@ -1,7 +1,7 @@
 use crate::{
     Device, HashLocation, LocationHasher, Module, OnDropBuffer, OnNewBuffer, Setup, Shape, OpenCL, Base, CPU,
 };
-use core::{cell::RefCell, hash::BuildHasherDefault, panic::Location, time::Duration};
+use core::{cell::RefCell, hash::BuildHasherDefault, panic::Location, time::Duration, borrow::BorrowMut};
 use std::{
     collections::{BinaryHeap, HashMap},
     time::Instant,
@@ -30,7 +30,7 @@ pub struct ForkNode {
 
 pub struct Fork<Mods> {
     modules: Mods,
-    gpu_or_cpu: HashMap<HashLocation<'static>, BinaryHeap<Analyzation>>, // should use Location of operation in file file!(), ...
+    gpu_or_cpu: RefCell<HashMap<HashLocation<'static>, BinaryHeap<Analyzation>>>, // should use Location of operation in file file!(), ...
     use_cpu: RefCell<HashMap<HashLocation<'static>, ForkNode, BuildHasherDefault<LocationHasher>>>, // uses Location::caller() as HashLocation
 }
 
@@ -75,50 +75,10 @@ pub fn should_use_cpu(mut cpu_op: impl FnMut(), mut gpu_op: impl FnMut()) -> boo
 
 impl<Mods> UseGpuOrCpu for Fork<Mods> {
     // FIXME: if the operation assigns to  &mut out, you will get chaos
+    fn use_cpu_or_gpu(&self, location: HashLocation<'static>, input_lengths: &[usize], mut cpu_op: impl FnMut(), mut gpu_op: impl FnMut()) -> GpuOrCpu {
 
-    #[inline]
-    fn use_cpu_or_gpu(&self, mut cpu_op: impl FnMut(), mut gpu_op: impl FnMut()) -> GpuOrCpu {
-        if let Some(fork_node) = self
-            .use_cpu
-            .borrow_mut()
-            .get_mut(&Location::caller().into())
-        {
-            if fork_node.retrieves == fork_node.backoff && fork_node.backoff <= 1024 {
-                fork_node.backoff *= 2;
-                let use_cpu = should_use_cpu(cpu_op, gpu_op); 
-                fork_node.use_cpu = use_cpu;
-                return GpuOrCpu {
-                    use_cpu,
-                    is_result_cached: false,
-                };
-            }
-            // behaviour at device level?
-            match fork_node.use_cpu {
-                true => cpu_op(),
-                false => gpu_op(),
-            }
-
-            fork_node.retrieves += 1;
-
-            return GpuOrCpu {
-                use_cpu: fork_node.use_cpu,
-                is_result_cached: true,
-            };
-        }
-
-        let use_cpu = should_use_cpu(cpu_op, gpu_op);
-
-        self.use_cpu.borrow_mut().insert(
-            Location::caller().into(),
-            ForkNode {
-                use_cpu,
-                backoff: 1,
-                retrieves: 0,
-            },
-        );
-        println!("use_cpu: {use_cpu}");
         GpuOrCpu {
-            use_cpu,
+            use_cpu: false,
             is_result_cached: false,
         }
     }
@@ -132,12 +92,12 @@ pub struct GpuOrCpu {
 
 pub trait UseGpuOrCpu {
     #[track_caller]
-    fn use_cpu_or_gpu(&self, cpu_op: impl FnMut(), gpu_op: impl FnMut()) -> GpuOrCpu;
+    fn use_cpu_or_gpu(&self, location: HashLocation<'static>, input_lengths: &[usize], cpu_op: impl FnMut(), gpu_op: impl FnMut()) -> GpuOrCpu;
 }
 
 impl<Mods: UseGpuOrCpu> UseGpuOrCpu for crate::OpenCL<Mods> {
-    fn use_cpu_or_gpu(&self, cpu_op: impl FnMut(), gpu_op: impl FnMut()) -> GpuOrCpu {
-        let gpu_or_cpu = self.modules.use_cpu_or_gpu(cpu_op, gpu_op);
+    fn use_cpu_or_gpu(&self, location: HashLocation<'static>, input_lengths: &[usize], cpu_op: impl FnMut(), gpu_op: impl FnMut()) -> GpuOrCpu {
+        let gpu_or_cpu = self.modules.use_cpu_or_gpu(location, input_lengths, cpu_op, gpu_op);
         if !gpu_or_cpu.is_result_cached {
             return gpu_or_cpu;
         }
@@ -239,7 +199,7 @@ mod tests {
         cpu_buf: &mut Buffer<i32>,
         opencl_buf: &mut Buffer<i32, OpenCL>,
     ) -> GpuOrCpu {
-        fork.use_cpu_or_gpu(
+        fork.use_cpu_or_gpu((file!(), line!(), column!()).into(), &[],
             || {
                 cpu_buf.clear();
             },
