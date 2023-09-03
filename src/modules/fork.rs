@@ -1,5 +1,7 @@
-use crate::{HashLocation, Module, Setup, OnDropBuffer, OnNewBuffer, Device, Shape};
-use core::{cell::RefCell, panic::Location, time::Duration};
+use crate::{
+    Device, HashLocation, LocationHasher, Module, OnDropBuffer, OnNewBuffer, Setup, Shape,
+};
+use core::{cell::RefCell, hash::BuildHasherDefault, panic::Location, time::Duration};
 use std::{
     collections::{BinaryHeap, HashMap},
     time::Instant,
@@ -11,10 +13,17 @@ pub struct Analyzation {
     cpu_dur: Duration,
 }
 
+#[derive(Debug, Clone, Copy, Default)]
+pub struct ForkNode {
+    use_cpu: bool,
+    backoff: usize,
+    retrieves: usize,
+}
+
 pub struct Fork<Mods> {
     modules: Mods,
     gpu_or_cpu: HashMap<HashLocation<'static>, BinaryHeap<Analyzation>>, // should use Location of operation in file file!(), ...
-    use_cpu: RefCell<HashMap<HashLocation<'static>, bool>>, // uses Location::caller() as HashLocation
+    use_cpu: RefCell<HashMap<HashLocation<'static>, ForkNode, BuildHasherDefault<LocationHasher>>>, // uses Location::caller() as HashLocation
 }
 
 impl<Mods: Module<D>, D> Module<D> for Fork<Mods> {
@@ -42,43 +51,63 @@ impl<Mods: Setup<D>, D: ForkSetup> Setup<D> for Fork<Mods> {
     }
 }
 
+pub fn should_use_cpu(mut cpu_op: impl FnMut(), mut gpu_op: impl FnMut()) -> bool {
+    let cpu_time_start = Instant::now();
+    cpu_op();
+    let cpu_time = cpu_time_start.elapsed();
+
+    let gpu_time_start = Instant::now();
+    // be sure to sync
+    // keep jit compilation overhead in mind
+    gpu_op();
+    let gpu_time = gpu_time_start.elapsed();
+
+    cpu_time < gpu_time
+}
+
 impl<Mods> UseGpuOrCpu for Fork<Mods> {
     // FIXME: if the operation assigns to  &mut out, you will get chaos
 
     #[inline]
     fn use_cpu_or_gpu(&self, mut cpu_op: impl FnMut(), mut gpu_op: impl FnMut()) -> GpuOrCpu {
-        if let Some(use_cpu) = self
+        if let Some(fork_node) = self
             .use_cpu
-            .borrow()
-            .get(&Location::caller().into())
-            .copied()
+            .borrow_mut()
+            .get_mut(&Location::caller().into())
         {
+            if fork_node.retrieves == fork_node.backoff && fork_node.backoff <= 1024 {
+                fork_node.backoff *= 2;
+                let use_cpu = should_use_cpu(cpu_op, gpu_op); 
+                fork_node.use_cpu = use_cpu;
+                return GpuOrCpu {
+                    use_cpu,
+                    is_result_cached: false,
+                };
+            }
             // behaviour at device level?
-            match use_cpu {
+            match fork_node.use_cpu {
                 true => cpu_op(),
                 false => gpu_op(),
             }
+
+            fork_node.retrieves += 1;
+
             return GpuOrCpu {
-                use_cpu,
+                use_cpu: fork_node.use_cpu,
                 is_result_cached: true,
             };
         }
 
-        let cpu_time_start = Instant::now();
-        cpu_op();
-        let cpu_time = cpu_time_start.elapsed();
+        let use_cpu = should_use_cpu(cpu_op, gpu_op);
 
-        let gpu_time_start = Instant::now();
-        // be sure to sync
-        // keep jit compilation overhead in mind
-        gpu_op();
-        let gpu_time = gpu_time_start.elapsed();
-
-        let use_cpu = cpu_time < gpu_time;
-
-        self.use_cpu
-            .borrow_mut()
-            .insert(Location::caller().into(), use_cpu);
+        self.use_cpu.borrow_mut().insert(
+            Location::caller().into(),
+            ForkNode {
+                use_cpu,
+                backoff: 1,
+                retrieves: 0,
+            },
+        );
         println!("use_cpu: {use_cpu}");
         GpuOrCpu {
             use_cpu,
@@ -113,7 +142,11 @@ impl<Mods: UseGpuOrCpu> UseGpuOrCpu for crate::OpenCL<Mods> {
 
 impl<Mods: OnDropBuffer> OnDropBuffer for Fork<Mods> {
     #[inline]
-    fn on_drop_buffer<T, D: crate::Device, S: crate::Shape>(&self, device: &D, buf: &crate::Buffer<T, D, S>) {
+    fn on_drop_buffer<T, D: crate::Device, S: crate::Shape>(
+        &self,
+        device: &D,
+        buf: &crate::Buffer<T, D, S>,
+    ) {
         self.modules.on_drop_buffer(device, buf)
     }
 }
@@ -125,21 +158,7 @@ impl<Mods: OnNewBuffer<T, D, S>, T, D: Device, S: Shape> OnNewBuffer<T, D, S> fo
     }
 }
 
-pub(crate) static mut CL_KERNEL_OVERHEAD: Option<std::time::Duration> = None;
-
-pub(crate) fn cl_kernel_overhead<Mods>(device: &OpenCl<Mods>) -> std::time::Duration {
-    unsafe {
-        match CL_KERNEL_OVERHEAD {
-            Some(overhead) => overhead
-            None => {
-                let overhead = measure_kernel_overhead_opencl(device);
-                CL_KERNEL_OVERHEAD = Some(overhead);
-                overhead
-            }
-        }
-    }
-}
-pub(crate) fn measure_kernel_overhead_opencl<Mods>(device: &OpenCL<Mods>) {
+pub(crate) fn measure_kernel_overhead_opencl<Mods>(device: &crate::OpenCL<Mods>) {
     let src = "
         __kernel void measureJit() {
             
@@ -150,7 +169,10 @@ pub(crate) fn measure_kernel_overhead_opencl<Mods>(device: &OpenCL<Mods>) {
 
 #[cfg(test)]
 mod tests {
-    use crate::{Base, Buffer, Device, Fork, GpuOrCpu, Module, OpenCL, UseGpuOrCpu, CPU, opencl::try_cl_clear};
+    use crate::{
+        opencl::try_cl_clear, Base, Buffer, Device, Fork, GpuOrCpu, Module, OpenCL, UseGpuOrCpu,
+        CPU,
+    };
 
     #[track_caller]
     pub fn clear(
@@ -175,9 +197,9 @@ mod tests {
 
         let opencl = OpenCL::<Base>::new(0).unwrap();
         let mut opencl_buf = opencl.buffer::<_, (), _>(vec![1; SIZE]);
-        opencl_buf.clear();
+        // opencl_buf.clear();
 
-        for _ in 0..10 {
+        for _ in 0..100 {
             let use_cpu = clear(&fork, &mut cpu_buf, &mut opencl_buf);
             println!("use_cpu: {use_cpu:?}")
         }
@@ -187,12 +209,11 @@ mod tests {
     fn test_fork_module() {
         let device = OpenCL::<Fork<Base>>::new(0).unwrap();
 
-
         let mut buf = device.buffer::<_, (), _>(vec![21u8; 10000000]);
-        
+
         // this is for the jit warming
         try_cl_clear(&device, &mut buf).unwrap();
-    
+
         buf.clear();
     }
 }

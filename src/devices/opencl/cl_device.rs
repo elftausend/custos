@@ -72,7 +72,7 @@ impl<SimpleMods> OpenCL<SimpleMods> {
             inner,
             kernel_cache: Default::default(),
             cpu: CPU::<Cached<Base>>::new(),
-        }; 
+        };
         NewMods::setup(&mut opencl);
         Ok(opencl)
     }
