@@ -122,17 +122,19 @@ impl<Mods> UseGpuOrCpu for Fork<Mods> {
             let input_lengths_rhs = rhs.input_lengths.iter().sum::<usize>();
 
             if input_lengths_sum >= input_lengths_lhs && input_lengths_sum <= input_lengths_rhs {
-                let new_cpu_dur = lhs.cpu_dur.as_secs_f32() + 0.5 * (rhs.cpu_dur.as_secs_f32() - lhs.cpu_dur.as_secs_f32());
+                let new_cpu_dur = lhs.cpu_dur.as_secs_f32()
+                    + 0.5 * (rhs.cpu_dur.as_secs_f32() - lhs.cpu_dur.as_secs_f32());
                 println!("new_cpu_dur: {new_cpu_dur:?}");
 
-                let new_gpu_dur = lhs.gpu_dur.as_secs_f32() + 0.5 * (rhs.gpu_dur.as_secs_f32() - lhs.gpu_dur.as_secs_f32());
+                let new_gpu_dur = lhs.gpu_dur.as_secs_f32()
+                    + 0.5 * (rhs.gpu_dur.as_secs_f32() - lhs.gpu_dur.as_secs_f32());
 
                 println!("new_gpu_dur: {new_gpu_dur:?}");
 
                 let use_cpu = new_cpu_dur < new_gpu_dur;
                 match use_cpu {
                     true => cpu_op(),
-                    false => gpu_op()
+                    false => gpu_op(),
                 }
                 return GpuOrCpu {
                     use_cpu,
@@ -316,8 +318,29 @@ mod tests {
         let fork = <Fork<Base> as Module<CPU>>::new();
 
         let sizes = [
-            8287587, 48_941_518, 59_579_168, 39_178_476, 29_450_127, 123943, 10031, 310, 1230, 3102, 31093,
-            21934, 132, 330, 30, 6000, 3123959, 312_582_039, 1349023, 4923490, 90, 8032, 100_000_000
+            8287587,
+            48_941_518,
+            59_579_168,
+            39_178_476,
+            29_450_127,
+            123943,
+            10031,
+            310,
+            1230,
+            3102,
+            31093,
+            21934,
+            132,
+            330,
+            30,
+            6000,
+            3123959,
+            312_582_039,
+            1349023,
+            4923490,
+            90,
+            8032,
+            100_000_000,
         ];
 
         let device = CPU::<Base>::new();
@@ -326,14 +349,15 @@ mod tests {
 
         // opencl_buf.clear();
 
-        for _ in 0..1 {
+        for _ in 0..1000 {
             for size in sizes {
-                let mut cpu_buf = device.buffer::<_, (), _>(vec![1; size]);
+                // let mut cpu_buf = device.buffer::<_, (), _>(vec![1; size]);
 
                 let mut opencl_buf = opencl.buffer::<_, (), _>(vec![1; size]);
-                let use_cpu = clear(&fork, &mut cpu_buf, &mut opencl_buf);
-                println!("use_cpu: {use_cpu:?}")
+                // let use_cpu = clear(&fork, &mut cpu_buf, &mut opencl_buf);
+                // println!("use_cpu: {use_cpu:?}")
             }
+            println!("go");
         }
         println!("{:?}", fork.gpu_or_cpu.borrow());
     }

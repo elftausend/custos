@@ -255,11 +255,11 @@ impl<Mods: OnDropBuffer, T> Alloc<T> for OpenCL<Mods> {
 
         let ptr = create_buffer::<T>(self.ctx(), MemFlags::MemReadWrite as u64, len, None).unwrap();
 
-        #[cfg(unified_cl)]
-        let host_ptr = unified_ptr::<T>(self.queue(), ptr, len).unwrap();
-
-        #[cfg(not(unified_cl))]
-        let host_ptr = std::ptr::null_mut();
+        let host_ptr = if self.unified_mem() {
+            unified_ptr::<T>(self.queue(), ptr, len).unwrap()
+        } else {
+            std::ptr::null_mut()
+        };
 
         CLPtr {
             ptr,
@@ -277,12 +277,12 @@ impl<Mods: OnDropBuffer, T> Alloc<T> for OpenCL<Mods> {
             Some(data),
         )
         .unwrap();
-
-        #[cfg(unified_cl)]
-        let host_ptr = unified_ptr::<T>(self.queue(), ptr, data.len()).unwrap();
-
-        #[cfg(not(unified_cl))]
-        let host_ptr = std::ptr::null_mut();
+ 
+        let host_ptr = if self.unified_mem() {
+            unified_ptr::<T>(self.queue(), ptr, data.len()).unwrap()
+        } else {
+            std::ptr::null_mut()
+        };
 
         CLPtr {
             ptr,

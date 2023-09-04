@@ -68,8 +68,8 @@ pub fn try_cl_clear<Mods: OnDropBuffer, T: CDatatype>(
         datatype = T::C_DTYPE_STR
     );
 
-    let gws = [(lhs.len() / 32 +1) * 32, 0, 0];
-    enqueue_kernel(device, &src, gws, Some([32, 0, 0,]), &[lhs, &lhs.len()])?;
+    let gws = [(lhs.len() / 32 + 1) * 32, 0, 0];
+    enqueue_kernel(device, &src, gws, Some([32, 0, 0]), &[lhs, &lhs.len()])?;
     Ok(())
 }
 
@@ -208,7 +208,13 @@ where
     );
 
     let out = device.retrieve(x.len(), x);
-    enqueue_kernel(device, &src, [(x.len() / 32 +1 ) *32, 0, 0], Some([32, 0, 0]), &[x, &&out, &x.len()])?;
+    enqueue_kernel(
+        device,
+        &src,
+        [(x.len() / 32 + 1) * 32, 0, 0],
+        Some([32, 0, 0]),
+        &[x, &&out, &x.len()],
+    )?;
     Ok(out)
 }
 
@@ -259,7 +265,13 @@ where
         operation = lhs_grad_fn("lhs[id]".to_marker()).to_cl_source()
     );
 
-    enqueue_kernel(device, &src, [(lhs.len() / 32 + 1 ) * 32, 0, 0], None, &[lhs, lhs_grad, out, &out.len()])?;
+    enqueue_kernel(
+        device,
+        &src,
+        [(lhs.len() / 32 + 1) * 32, 0, 0],
+        None,
+        &[lhs, lhs_grad, out, &out.len()],
+    )?;
     Ok(())
 }
 
