@@ -57,16 +57,19 @@ pub fn try_cl_clear<Mods: OnDropBuffer, T: CDatatype>(
 ) -> crate::Result<()> {
     let src = format!(
         "
-        __kernel void clear(__global {datatype}* self) {{
+        __kernel void clear(__global {datatype}* self, int len) {{
             size_t id = get_global_id(0);
+            if (id >= len) {{
+                return;
+            }}
             self[id] = 0;
         }}
     ",
         datatype = T::C_DTYPE_STR
     );
 
-    let gws = [lhs.len(), 0, 0];
-    enqueue_kernel(device, &src, gws, None, &[lhs])?;
+    let gws = [(lhs.len() / 32 +1) * 32, 0, 0];
+    enqueue_kernel(device, &src, gws, Some([32, 0, 0,]), &[lhs, &lhs.len()])?;
     Ok(())
 }
 
@@ -192,8 +195,11 @@ where
 {
     let src = format!(
         "
-        __kernel void apply_fn(__global const {datatype}* lhs, __global {datatype}* out) {{
+        __kernel void apply_fn(__global const {datatype}* lhs, __global {datatype}* out, int len) {{
             size_t id = get_global_id(0);
+            if (id >= len) {{
+                return;
+            }}
             out[id] = {operation};
         }}
     ",
@@ -202,7 +208,7 @@ where
     );
 
     let out = device.retrieve(x.len(), x);
-    enqueue_kernel(device, &src, [x.len(), 0, 0], None, &[x, &&out])?;
+    enqueue_kernel(device, &src, [(x.len() / 32 +1 ) *32, 0, 0], Some([32, 0, 0]), &[x, &&out, &x.len()])?;
     Ok(out)
 }
 
@@ -241,8 +247,11 @@ where
 {
     let src = format!(
         "
-        __kernel void add_unary_grad(__global const {datatype}* lhs, __global {datatype}* lhs_grad, __global const {datatype}* out) {{
+        __kernel void add_unary_grad(__global const {datatype}* lhs, __global {datatype}* lhs_grad, __global const {datatype}* out, int len) {{
             size_t id = get_global_id(0);
+            if (id >= len) {{
+                return;
+            }}
             lhs_grad[id] += out[id] * {operation};
         }}
     ",
@@ -250,7 +259,7 @@ where
         operation = lhs_grad_fn("lhs[id]".to_marker()).to_cl_source()
     );
 
-    enqueue_kernel(device, &src, [lhs.len(), 0, 0], None, &[lhs, lhs_grad, out])?;
+    enqueue_kernel(device, &src, [(lhs.len() / 32 + 1 ) * 32, 0, 0], None, &[lhs, lhs_grad, out, &out.len()])?;
     Ok(())
 }
 
