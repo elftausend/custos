@@ -129,8 +129,13 @@ impl<Mods> UseGpuOrCpu for Fork<Mods> {
 
                 println!("new_gpu_dur: {new_gpu_dur:?}");
 
+                let use_cpu = new_cpu_dur < new_gpu_dur;
+                match use_cpu {
+                    true => cpu_op(),
+                    false => gpu_op()
+                }
                 return GpuOrCpu {
-                    use_cpu: new_cpu_dur < new_gpu_dur,
+                    use_cpu,
                     is_result_cached: true,
                 };
             }
@@ -183,7 +188,6 @@ impl<Mods: UseGpuOrCpu> UseGpuOrCpu for crate::OpenCL<Mods> {
         }
 
         // gpu_op();
-
         gpu_or_cpu
     }
 }
@@ -318,7 +322,7 @@ mod tests {
 
         let device = CPU::<Base>::new();
 
-        let opencl = OpenCL::<Base>::new(0).unwrap();
+        let opencl = OpenCL::<Base>::new(1).unwrap();
 
         // opencl_buf.clear();
 

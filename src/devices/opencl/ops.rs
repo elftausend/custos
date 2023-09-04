@@ -57,7 +57,7 @@ pub fn try_cl_clear<Mods: OnDropBuffer, T: CDatatype>(
 ) -> crate::Result<()> {
     let src = format!(
         "
-        __kernel void clear(__global {datatype}* self, int len) {{
+        __kernel void clear(__global {datatype}* self, long len) {{
             size_t id = get_global_id(0);
             if (id >= len) {{
                 return;
@@ -195,7 +195,7 @@ where
 {
     let src = format!(
         "
-        __kernel void apply_fn(__global const {datatype}* lhs, __global {datatype}* out, int len) {{
+        __kernel void apply_fn(__global const {datatype}* lhs, __global {datatype}* out, long len) {{
             size_t id = get_global_id(0);
             if (id >= len) {{
                 return;
@@ -247,7 +247,7 @@ where
 {
     let src = format!(
         "
-        __kernel void add_unary_grad(__global const {datatype}* lhs, __global {datatype}* lhs_grad, __global const {datatype}* out, int len) {{
+        __kernel void add_unary_grad(__global const {datatype}* lhs, __global {datatype}* lhs_grad, __global const {datatype}* out, long len) {{
             size_t id = get_global_id(0);
             if (id >= len) {{
                 return;
