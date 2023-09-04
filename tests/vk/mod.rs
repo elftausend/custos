@@ -67,7 +67,8 @@ fn test_vulkan_compute_with_wgsl_and_spirv() {
 
     let props = unsafe { instance.get_physical_device_properties(device_with_queue_idx[0].0) };
     println!("props: {:?}", &unsafe {
-                ::std::ffi::CStr::from_ptr(props.device_name.as_ptr() )});
+        ::std::ffi::CStr::from_ptr(props.device_name.as_ptr())
+    });
     // let queue = unsafe { device.get_device_queue(device_with_queue_idx[0].1 as u32, 0) };
 
     let src = "@group(0)
@@ -184,8 +185,9 @@ fn test_vulkan_compute_with_wgsl_and_spirv() {
     let mem_req = unsafe { device.get_buffer_memory_requirements(buffer1) };
     let mem1 = unsafe { allocate_memory(&instance, &device, mem_req, device_with_queue_idx[0].0) };
     unsafe { device.bind_buffer_memory(buffer1, mem1, 0).unwrap() };
-    
-    let mapping = unsafe { device.map_memory(mem1, 0, vk::WHOLE_SIZE, Default::default()) }.unwrap();
+
+    let mapping =
+        unsafe { device.map_memory(mem1, 0, vk::WHOLE_SIZE, Default::default()) }.unwrap();
     let data = unsafe { core::slice::from_raw_parts_mut(mapping as *mut f32, dispatch_size) };
     for (i, v) in data.iter_mut().enumerate() {
         *v = 3.0;
@@ -338,7 +340,7 @@ fn test_vulkan_compute_with_wgsl_and_spirv() {
     let queue = unsafe { device.get_device_queue(device_with_queue_idx[0].1 as u32, 0) };
     let submit_info =
         vk::SubmitInfo::builder().command_buffers(core::slice::from_ref(&command_buffer));
-    
+
     let start = Instant::now();
     for _ in 0..100 {
         unsafe { device.queue_submit(queue, core::slice::from_ref(&submit_info), Fence::null()) }
@@ -346,10 +348,11 @@ fn test_vulkan_compute_with_wgsl_and_spirv() {
         unsafe { device.device_wait_idle() }.unwrap();
         println!("fin");
     }
-   println!("elapsed: {:?}", start.elapsed()); 
+    println!("elapsed: {:?}", start.elapsed());
 
     // check results
-    let mapping = unsafe { device.map_memory(mem2, 0, vk::WHOLE_SIZE, Default::default()) }.unwrap();
+    let mapping =
+        unsafe { device.map_memory(mem2, 0, vk::WHOLE_SIZE, Default::default()) }.unwrap();
     let check = unsafe { core::slice::from_raw_parts(mapping as *const f32, dispatch_size) };
     // println!("check: {:?}", check);
     for (i, v) in check.iter().copied().enumerate() {

@@ -62,7 +62,7 @@ mod tests {
         assert_eq!(out.read(), &[5, 3, 12, 8]);
     }
 
-    const SIZE: usize = 164383; 
+    const SIZE: usize = 164383;
     const TIMES: usize = 100;
 
     #[test]
