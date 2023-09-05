@@ -112,7 +112,7 @@ impl<Mods: Retrieve<Self, T>, T: CDatatype> AddBuf<T> for CUDA<Mods> {
 
         // The kernel is compiled once with nvrtc and is cached too.
         // The arguments are specified with a vector of buffers and/or numbers.
-        self.launch_kernel1d(len, &src, "add", &[lhs, rhs, &out, &len])
+        self.launch_kernel1d(len, &src, "add", &[lhs, rhs, &&out, &len])
             .unwrap();
         out
     }
