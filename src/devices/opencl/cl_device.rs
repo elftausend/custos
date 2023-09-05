@@ -277,7 +277,7 @@ impl<Mods: OnDropBuffer, T> Alloc<T> for OpenCL<Mods> {
             Some(data),
         )
         .unwrap();
- 
+
         let host_ptr = if self.unified_mem() {
             unified_ptr::<T>(self.queue(), ptr, data.len()).unwrap()
         } else {

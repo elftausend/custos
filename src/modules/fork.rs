@@ -1,9 +1,9 @@
 use crate::{
-    Base, Device, HashLocation, LocationHasher, Module, OnDropBuffer, OnNewBuffer, OpenCL, Setup,
-    Shape, CPU,
+    Device, HashLocation, LocationHasher, Module, OnDropBuffer, OnNewBuffer, Setup,
+    Shape,
 };
 use core::{
-    borrow::BorrowMut, cell::RefCell, hash::BuildHasherDefault, panic::Location, time::Duration,
+    cell::RefCell, hash::BuildHasherDefault, time::Duration,
 };
 use std::{
     collections::{BinaryHeap, HashMap},
@@ -212,71 +212,14 @@ impl<Mods: OnNewBuffer<T, D, S>, T, D: Device, S: Shape> OnNewBuffer<T, D, S> fo
     }
 }
 
-pub(crate) fn measure_kernel_overhead_opencl<Mods>(device: &crate::OpenCL<Mods>) {
-    let src = "
-        __kernel void measureJit() {
-            
-        }
-    ";
-    device.launch_kernel(src, [1, 0, 0], None, &[]).unwrap();
-}
-
-#[test]
-fn test_linear() {
-    let fork = <Fork<Base> as Module<CPU>>::new();
-    let mut heap = BinaryHeap::new();
-    let anals = [
-        Analyzation {
-            input_lengths: vec![100000, 100000],
-            output_lengths: vec![100000],
-            gpu_dur: std::time::Duration::from_secs_f32(0.312),
-            cpu_dur: std::time::Duration::from_secs_f32(0.12),
-        },
-        Analyzation {
-            input_lengths: vec![140000, 140000],
-            output_lengths: vec![140000],
-            gpu_dur: std::time::Duration::from_secs_f32(0.412),
-            cpu_dur: std::time::Duration::from_secs_f32(0.52),
-        },
-    ];
-
-    let input_lengths = vec![120000, 120000];
-    let output_lengths = vec![120000];
-
-    for anal in anals {
-        heap.push(anal)
-    }
-    let input_lengths = input_lengths.iter().sum::<usize>();
-    let output_lengths = output_lengths.iter().sum::<usize>();
-
-    let anals = heap.into_sorted_vec();
-
-    for anals in anals.windows(2) {
-        let lhs = &anals[0];
-        let rhs = &anals[1];
-
-        let input_lengths_lhs = lhs.input_lengths.iter().sum::<usize>();
-        let output_lengths_lhs = lhs.output_lengths.iter().sum::<usize>();
-
-        let input_lengths_rhs = rhs.input_lengths.iter().sum::<usize>();
-        let output_lengths_rhs = rhs.output_lengths.iter().sum::<usize>();
-
-        if input_lengths > input_lengths_lhs && input_lengths < input_lengths_rhs {
-            let new_cpu_dur = lhs.cpu_dur + ((rhs.cpu_dur - lhs.cpu_dur) / 2);
-            println!("new_cpu_dur: {new_cpu_dur:?}");
-
-            let new_gpu_dur = lhs.gpu_dur + ((rhs.gpu_dur - lhs.gpu_dur) / 2);
-
-            println!("new_gpu_dur: {new_gpu_dur:?}");
-        }
-    }
-}
 
 #[cfg(test)]
 mod tests {
+    use std::collections::BinaryHeap;
+
     use crate::{
         opencl::try_cl_clear, Base, Buffer, Device, Fork, GpuOrCpu, Module, OpenCL, UseGpuOrCpu,
-        CPU,
+        CPU, Analyzation,
     };
 
     #[track_caller]
@@ -351,13 +294,12 @@ mod tests {
 
         for _ in 0..1000 {
             for size in sizes {
-                // let mut cpu_buf = device.buffer::<_, (), _>(vec![1; size]);
+                let mut cpu_buf = device.buffer::<_, (), _>(vec![1; size]);
 
                 let mut opencl_buf = opencl.buffer::<_, (), _>(vec![1; size]);
-                // let use_cpu = clear(&fork, &mut cpu_buf, &mut opencl_buf);
-                // println!("use_cpu: {use_cpu:?}")
+                let use_cpu = clear(&fork, &mut cpu_buf, &mut opencl_buf);
+                println!("use_cpu: {use_cpu:?}")
             }
-            println!("go");
         }
         println!("{:?}", fork.gpu_or_cpu.borrow());
     }
@@ -372,5 +314,51 @@ mod tests {
         try_cl_clear(&device, &mut buf).unwrap();
 
         buf.clear();
+    }
+    #[test]
+    fn test_lerp_of_analyzation_time() {
+        let mut heap = BinaryHeap::new();
+        let anals = [
+            Analyzation {
+                input_lengths: vec![100000, 100000],
+                output_lengths: vec![100000],
+                gpu_dur: std::time::Duration::from_secs_f32(0.312),
+                cpu_dur: std::time::Duration::from_secs_f32(0.12),
+            },
+            Analyzation {
+                input_lengths: vec![140000, 140000],
+                output_lengths: vec![140000],
+                gpu_dur: std::time::Duration::from_secs_f32(0.412),
+                cpu_dur: std::time::Duration::from_secs_f32(0.52),
+            },
+        ];
+
+        let input_lengths = vec![120000, 120000];
+        // let output_lengths = vec![120000];
+
+        for anal in anals {
+            heap.push(anal)
+        }
+        let input_lengths = input_lengths.iter().sum::<usize>();
+
+        let anals = heap.into_sorted_vec();
+
+        for anals in anals.windows(2) {
+            let lhs = &anals[0];
+            let rhs = &anals[1];
+
+            let input_lengths_lhs = lhs.input_lengths.iter().sum::<usize>();
+
+            let input_lengths_rhs = rhs.input_lengths.iter().sum::<usize>();
+
+            if input_lengths > input_lengths_lhs && input_lengths < input_lengths_rhs {
+                let new_cpu_dur = lhs.cpu_dur + ((rhs.cpu_dur - lhs.cpu_dur) / 2);
+                let new_gpu_dur = lhs.gpu_dur + ((rhs.gpu_dur - lhs.gpu_dur) / 2);
+
+                assert_eq!(new_cpu_dur.as_secs_f32(), 0.32);
+
+                assert_eq!(new_gpu_dur.as_secs_f32(), (0.312 + (0.412 - 0.312) * 0.5));
+            }
+        }
     }
 }
