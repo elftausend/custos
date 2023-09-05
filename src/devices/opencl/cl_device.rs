@@ -17,6 +17,9 @@ use std::{cell::RefCell, fmt::Debug};
 #[cfg(unified_cl)]
 use min_cl::api::unified_ptr;
 
+#[cfg(feature = "fork")]
+use crate::{ForkSetup, UseGpuOrCpu, HashLocation, GpuOrCpuInfo};
+
 /// Used to perform calculations with an OpenCL capable device.
 /// To make new calculations invocable, a trait providing new operations should be implemented for [OpenCL].
 /// # Example
@@ -316,13 +319,28 @@ impl<Mods: OnDropBuffer> crate::MainMemory for OpenCL<Mods> {
 }
 
 #[cfg(feature = "fork")]
-impl<Mods> crate::ForkSetup for OpenCL<Mods> {
+impl<Mods> ForkSetup for OpenCL<Mods> {
     #[inline]
     fn fork_setup(&mut self) {
         assert!(
             self.unified_mem(),
             "The selected device does not support unified memory."
         )
+    }
+}
+
+#[cfg(feature = "fork")]
+impl<Mods: UseGpuOrCpu> UseGpuOrCpu for OpenCL<Mods> {
+    #[inline]
+    fn use_cpu_or_gpu(
+        &self,
+        location: HashLocation<'static>,
+        input_lengths: &[usize],
+        cpu_op: impl FnMut(),
+        gpu_op: impl FnMut(),
+    ) -> GpuOrCpuInfo {
+        self.modules
+            .use_cpu_or_gpu(location, input_lengths, cpu_op, gpu_op)
     }
 }
 

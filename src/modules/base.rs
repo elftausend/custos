@@ -61,13 +61,13 @@ impl crate::UseGpuOrCpu for Base {
     #[inline]
     fn use_cpu_or_gpu(
         &self,
-        location: HashLocation,
-        input_lengths: &[usize],
+        _location: HashLocation,
+        _input_lengths: &[usize],
         _cpu_op: impl FnMut(),
         mut gpu_op: impl FnMut(),
-    ) -> crate::GpuOrCpu {
+    ) -> crate::GpuOrCpuInfo {
         gpu_op();
-        crate::GpuOrCpu {
+        crate::GpuOrCpuInfo {
             use_cpu: false,
             is_result_cached: false,
         }

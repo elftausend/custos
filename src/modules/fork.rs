@@ -1,7 +1,11 @@
 use crate::{
     Device, HashLocation, LocationHasher, Module, OnDropBuffer, OnNewBuffer, Setup, Shape,
 };
-use core::{cell::RefCell, hash::{BuildHasherDefault, BuildHasher}, time::Duration};
+use core::{
+    cell::RefCell,
+    hash::{BuildHasher, BuildHasherDefault},
+    time::Duration,
+};
 use std::{
     collections::{BinaryHeap, HashMap},
     time::Instant,
@@ -75,7 +79,7 @@ pub fn init_binary_heap<S: BuildHasher>(
     location: HashLocation<'static>,
     input_lengths: Vec<usize>,
     gpu_or_cpu: &mut HashMap<HashLocation, BinaryHeap<Analyzation>, S>,
-) -> GpuOrCpu {
+) -> GpuOrCpuInfo {
     // removes jit compilation overhead
     // FIXME: algorithm runs twice
     gpu_op();
@@ -89,7 +93,7 @@ pub fn init_binary_heap<S: BuildHasher>(
             cpu_dur,
         }]),
     );
-    GpuOrCpu {
+    GpuOrCpuInfo {
         use_cpu,
         is_result_cached: false,
     }
@@ -103,11 +107,17 @@ impl<Mods> UseGpuOrCpu for Fork<Mods> {
         input_lengths: &[usize],
         mut cpu_op: impl FnMut(),
         mut gpu_op: impl FnMut(),
-    ) -> GpuOrCpu {
+    ) -> GpuOrCpuInfo {
         let mut gpu_or_cpu = self.gpu_or_cpu.borrow_mut();
 
         let Some(operations) = gpu_or_cpu.get_mut(&location) else {
-            return init_binary_heap(&mut cpu_op, &mut gpu_op, location, input_lengths.to_vec(), &mut gpu_or_cpu);
+            return init_binary_heap(
+                &mut cpu_op,
+                &mut gpu_op,
+                location,
+                input_lengths.to_vec(),
+                &mut gpu_or_cpu,
+            );
         };
 
         let anals = operations.clone().into_sorted_vec();
@@ -133,7 +143,7 @@ impl<Mods> UseGpuOrCpu for Fork<Mods> {
                     true => cpu_op(),
                     false => gpu_op(),
                 }
-                return GpuOrCpu {
+                return GpuOrCpuInfo {
                     use_cpu,
                     is_result_cached: true,
                 };
@@ -147,7 +157,7 @@ impl<Mods> UseGpuOrCpu for Fork<Mods> {
             gpu_dur,
             cpu_dur,
         });
-        GpuOrCpu {
+        GpuOrCpuInfo {
             use_cpu,
             is_result_cached: false,
         }
@@ -155,7 +165,7 @@ impl<Mods> UseGpuOrCpu for Fork<Mods> {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Default)]
-pub struct GpuOrCpu {
+pub struct GpuOrCpuInfo {
     pub use_cpu: bool,
     pub is_result_cached: bool,
 }
@@ -168,27 +178,7 @@ pub trait UseGpuOrCpu {
         input_lengths: &[usize],
         cpu_op: impl FnMut(),
         gpu_op: impl FnMut(),
-    ) -> GpuOrCpu;
-}
-
-impl<Mods: UseGpuOrCpu> UseGpuOrCpu for crate::OpenCL<Mods> {
-    fn use_cpu_or_gpu(
-        &self,
-        location: HashLocation<'static>,
-        input_lengths: &[usize],
-        cpu_op: impl FnMut(),
-        gpu_op: impl FnMut(),
-    ) -> GpuOrCpu {
-        let gpu_or_cpu = self
-            .modules
-            .use_cpu_or_gpu(location, input_lengths, cpu_op, gpu_op);
-        if !gpu_or_cpu.is_result_cached {
-            return gpu_or_cpu;
-        }
-
-        // gpu_op();
-        gpu_or_cpu
-    }
+    ) -> GpuOrCpuInfo;
 }
 
 impl<Mods: OnDropBuffer> OnDropBuffer for Fork<Mods> {
@@ -214,7 +204,7 @@ mod tests {
     use std::collections::BinaryHeap;
 
     use crate::{
-        opencl::try_cl_clear, Analyzation, Base, Buffer, Device, Fork, GpuOrCpu, Module, OpenCL,
+        opencl::try_cl_clear, Analyzation, Base, Buffer, Device, Fork, GpuOrCpuInfo, Module, OpenCL,
         UseGpuOrCpu, CPU,
     };
 
@@ -223,7 +213,7 @@ mod tests {
         fork: &Fork<Base>,
         cpu_buf: &mut Buffer<i32>,
         opencl_buf: &mut Buffer<i32, OpenCL>,
-    ) -> GpuOrCpu {
+    ) -> GpuOrCpuInfo {
         fork.use_cpu_or_gpu(
             (file!(), line!(), column!()).into(),
             &[cpu_buf.len()],
