@@ -1,10 +1,7 @@
 use crate::{
-    Device, HashLocation, LocationHasher, Module, OnDropBuffer, OnNewBuffer, Setup,
-    Shape,
+    Device, HashLocation, LocationHasher, Module, OnDropBuffer, OnNewBuffer, Setup, Shape,
 };
-use core::{
-    cell::RefCell, hash::BuildHasherDefault, time::Duration,
-};
+use core::{cell::RefCell, hash::{BuildHasherDefault, BuildHasher}, time::Duration};
 use std::{
     collections::{BinaryHeap, HashMap},
     time::Instant,
@@ -24,17 +21,11 @@ impl Ord for Analyzation {
     }
 }
 
-#[derive(Debug, Clone, Copy, Default)]
-pub struct ForkNode {
-    use_cpu: bool,
-    backoff: usize,
-    retrieves: usize,
-}
-
 pub struct Fork<Mods> {
     modules: Mods,
-    gpu_or_cpu: RefCell<HashMap<HashLocation<'static>, BinaryHeap<Analyzation>>>, // should use Location of operation in file file!(), ...
-    use_cpu: RefCell<HashMap<HashLocation<'static>, ForkNode, BuildHasherDefault<LocationHasher>>>, // uses Location::caller() as HashLocation
+    gpu_or_cpu: RefCell<
+        HashMap<HashLocation<'static>, BinaryHeap<Analyzation>, BuildHasherDefault<LocationHasher>>,
+    >, // should use Location of operation in file file!(), ...
 }
 
 impl<Mods: Module<D>, D> Module<D> for Fork<Mods> {
@@ -45,7 +36,6 @@ impl<Mods: Module<D>, D> Module<D> for Fork<Mods> {
         Fork {
             modules: Mods::new(),
             gpu_or_cpu: Default::default(),
-            use_cpu: Default::default(),
         }
     }
 }
@@ -63,8 +53,8 @@ impl<Mods: Setup<D>, D: ForkSetup> Setup<D> for Fork<Mods> {
 }
 
 pub fn should_use_cpu(
-    mut cpu_op: impl FnMut(),
-    mut gpu_op: impl FnMut(),
+    cpu_op: &mut impl FnMut(),
+    gpu_op: &mut impl FnMut(),
 ) -> (bool, Duration, Duration) {
     let cpu_time_start = Instant::now();
     cpu_op();
@@ -79,6 +69,32 @@ pub fn should_use_cpu(
     (cpu_time < gpu_time, cpu_time, gpu_time)
 }
 
+pub fn init_binary_heap<S: BuildHasher>(
+    cpu_op: &mut impl FnMut(),
+    gpu_op: &mut impl FnMut(),
+    location: HashLocation<'static>,
+    input_lengths: Vec<usize>,
+    gpu_or_cpu: &mut HashMap<HashLocation, BinaryHeap<Analyzation>, S>,
+) -> GpuOrCpu {
+    // removes jit compilation overhead
+    // FIXME: algorithm runs twice
+    gpu_op();
+    let (use_cpu, cpu_dur, gpu_dur) = should_use_cpu(cpu_op, gpu_op);
+    gpu_or_cpu.insert(
+        location,
+        BinaryHeap::from([Analyzation {
+            input_lengths: input_lengths.to_vec(),
+            output_lengths: vec![],
+            gpu_dur,
+            cpu_dur,
+        }]),
+    );
+    GpuOrCpu {
+        use_cpu,
+        is_result_cached: false,
+    }
+}
+
 impl<Mods> UseGpuOrCpu for Fork<Mods> {
     // FIXME: if the operation assigns to  &mut out, you will get chaos
     fn use_cpu_or_gpu(
@@ -91,23 +107,7 @@ impl<Mods> UseGpuOrCpu for Fork<Mods> {
         let mut gpu_or_cpu = self.gpu_or_cpu.borrow_mut();
 
         let Some(operations) = gpu_or_cpu.get_mut(&location) else {
-            // removes jit compilation overhead
-            // FIXME: algorithm runs twice
-            gpu_op();
-            let (use_cpu, cpu_dur, gpu_dur) = should_use_cpu(cpu_op, gpu_op);
-            gpu_or_cpu.insert(
-                location,
-                BinaryHeap::from([Analyzation {
-                    input_lengths: input_lengths.to_vec(),
-                    output_lengths: vec![],
-                    gpu_dur,
-                    cpu_dur,
-                }]),
-            );
-            return GpuOrCpu {
-                use_cpu,
-                is_result_cached: false,
-            };
+            return init_binary_heap(&mut cpu_op, &mut gpu_op, location, input_lengths.to_vec(), &mut gpu_or_cpu);
         };
 
         let anals = operations.clone().into_sorted_vec();
@@ -124,12 +124,9 @@ impl<Mods> UseGpuOrCpu for Fork<Mods> {
             if input_lengths_sum >= input_lengths_lhs && input_lengths_sum <= input_lengths_rhs {
                 let new_cpu_dur = lhs.cpu_dur.as_secs_f32()
                     + 0.5 * (rhs.cpu_dur.as_secs_f32() - lhs.cpu_dur.as_secs_f32());
-                println!("new_cpu_dur: {new_cpu_dur:?}");
 
                 let new_gpu_dur = lhs.gpu_dur.as_secs_f32()
                     + 0.5 * (rhs.gpu_dur.as_secs_f32() - lhs.gpu_dur.as_secs_f32());
-
-                println!("new_gpu_dur: {new_gpu_dur:?}");
 
                 let use_cpu = new_cpu_dur < new_gpu_dur;
                 match use_cpu {
@@ -143,7 +140,7 @@ impl<Mods> UseGpuOrCpu for Fork<Mods> {
             }
         }
 
-        let (use_cpu, cpu_dur, gpu_dur) = should_use_cpu(cpu_op, gpu_op);
+        let (use_cpu, cpu_dur, gpu_dur) = should_use_cpu(&mut cpu_op, &mut gpu_op);
         operations.push(Analyzation {
             input_lengths: input_lengths.to_vec(),
             output_lengths: vec![],
@@ -212,14 +209,13 @@ impl<Mods: OnNewBuffer<T, D, S>, T, D: Device, S: Shape> OnNewBuffer<T, D, S> fo
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use std::collections::BinaryHeap;
 
     use crate::{
-        opencl::try_cl_clear, Base, Buffer, Device, Fork, GpuOrCpu, Module, OpenCL, UseGpuOrCpu,
-        CPU, Analyzation,
+        opencl::try_cl_clear, Analyzation, Base, Buffer, Device, Fork, GpuOrCpu, Module, OpenCL,
+        UseGpuOrCpu, CPU,
     };
 
     #[track_caller]
