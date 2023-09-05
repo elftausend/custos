@@ -37,29 +37,6 @@ impl<Mods: Module<D>, D: Device + Default> Module<D> for Autograd<Mods> {
     }
 }
 
-#[inline]
-pub(crate) unsafe fn register_buf<T, D, S>(
-    cache: &mut HashMap<UniqueId, Box<dyn Any>, impl BuildHasher>,
-    buf: &Buffer<T, D, S>,
-) where
-    T: 'static,
-    D: Device + PtrConv + 'static,
-    S: Shape,
-{
-    let wrapped_data = D::convert::<T, S, T, S>(&buf.data, AllocFlag::Wrapper);
-    let buf = Buffer {
-        data: wrapped_data,
-        device: buf.device,
-    };
-    let buf: Buffer<'static, T, D, S> = transmute(buf);
-    cache.insert(*buf.id(), Box::new(buf));
-}
-
-#[inline]
-pub fn unregister_buf(cache: &mut HashMap<UniqueId, Box<dyn Any>, impl BuildHasher>, id: Id) {
-    cache.remove(&id);
-}
-
 impl<Mods> Autograd<Mods> {
     #[inline]
     pub fn register_no_grad_buf<T, D, S>(&self, buf: &Buffer<T, D, S>)

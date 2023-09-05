@@ -311,6 +311,7 @@ impl<Mods: OnDropBuffer> crate::MainMemory for OpenCL<Mods> {
     }
 }
 
+#[cfg(feature = "cached")]
 #[cfg(test)]
 mod tests {
     use crate::{opencl::cl_device::CLDevice, Base, Buffer, Cached, OpenCL, CPU};

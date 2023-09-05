@@ -2,7 +2,7 @@ use core::{cell::RefCell, marker::PhantomData};
 
 use crate::{
     Alloc, Buffer, Cache, Device, Module, OnDropBuffer, OnNewBuffer, Parents, PtrConv, Retrieve,
-    Setup, Shape, TapeActions,
+    Setup, Shape
 };
 
 // creator struct
@@ -91,7 +91,8 @@ where
     }
 }
 
-impl<Mods: TapeActions, SD: Device> TapeActions for CachedModule<Mods, SD> {
+#[cfg(feature = "autograd")]
+impl<Mods: TapeActions, SD: Device> crate::TapeActions for CachedModule<Mods, SD> {
     #[inline]
     fn tape(&self) -> Option<core::cell::Ref<super::Tape>> {
         self.modules.tape()
