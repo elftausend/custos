@@ -1,5 +1,5 @@
 use crate::{
-    Device, HashLocation, LocationHasher, Module, OnDropBuffer, OnNewBuffer, Setup, Shape,
+    Device, HashLocation, LocationHasher, Module, OnDropBuffer, OnNewBuffer, Setup, Shape, GpuOrCpuInfo, UseGpuOrCpu,
 };
 use core::{
     cell::RefCell,
@@ -164,23 +164,6 @@ impl<Mods> UseGpuOrCpu for Fork<Mods> {
             is_result_cached: false,
         }
     }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Default)]
-pub struct GpuOrCpuInfo {
-    pub use_cpu: bool,
-    pub is_result_cached: bool,
-}
-
-pub trait UseGpuOrCpu {
-    #[track_caller]
-    fn use_cpu_or_gpu(
-        &self,
-        location: HashLocation<'static>,
-        input_lengths: &[usize],
-        cpu_op: impl FnMut(),
-        gpu_op: impl FnMut(),
-    ) -> GpuOrCpuInfo;
 }
 
 impl<Mods: OnDropBuffer> OnDropBuffer for Fork<Mods> {

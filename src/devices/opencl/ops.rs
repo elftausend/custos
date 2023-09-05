@@ -23,13 +23,12 @@ use super::enqueue_kernel;
 impl<Mods: OnDropBuffer + UseGpuOrCpu, T: CDatatype + Default> ClearBuf<T> for OpenCL<Mods> {
     #[inline]
     fn clear(&self, buf: &mut Buffer<T, OpenCL<Mods>>) {
-        // crate::fork!(
-        // self,
-        // || clear_slice(buf),
-        // || try_cl_clear(self, buf).unwrap(),
-        // []
-        // );
-
+        /*crate::fork!(
+        self,
+        || clear_slice(buf),
+        || try_cl_clear(self, buf).unwrap(),
+        &[buf.len()] // could go through the params of clear_slice and add to list if buffer
+        );*/
         #[cfg(unified_cl)]
         {
             let mut cpu_buf = unsafe { &mut *(buf as *mut Buffer<_, _, _>) }; 

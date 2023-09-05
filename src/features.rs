@@ -3,7 +3,7 @@ use core::{
     cell::{Ref, RefMut},
 };
 
-use crate::{Base, CachedModule, Parents, Shape, CPU};
+use crate::{Base, CachedModule, Parents, Shape, CPU, HashLocation};
 
 use super::{Alloc, Buffer, Device, OnDropBuffer};
 
@@ -147,3 +147,21 @@ use crate::Autograd;
 
 #[cfg(feature = "autograd")]
 impl_unified_mem_chain!(Autograd);
+
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Default)]
+pub struct GpuOrCpuInfo {
+    pub use_cpu: bool,
+    pub is_result_cached: bool,
+}
+
+pub trait UseGpuOrCpu {
+    #[track_caller]
+    fn use_cpu_or_gpu(
+        &self,
+        location: HashLocation<'static>,
+        input_lengths: &[usize],
+        cpu_op: impl FnMut(),
+        gpu_op: impl FnMut(),
+    ) -> GpuOrCpuInfo;
+}
