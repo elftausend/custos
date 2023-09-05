@@ -11,6 +11,8 @@ use std::{
     time::Instant,
 };
 
+mod fork_macro;
+
 #[derive(Debug, PartialEq, Eq, PartialOrd, Clone)]
 pub struct Analyzation {
     input_lengths: Vec<usize>,
@@ -204,8 +206,8 @@ mod tests {
     use std::collections::BinaryHeap;
 
     use crate::{
-        opencl::try_cl_clear, Analyzation, Base, Buffer, Device, Fork, GpuOrCpuInfo, Module, OpenCL,
-        UseGpuOrCpu, CPU,
+        opencl::try_cl_clear, Analyzation, Base, Buffer, Device, Fork, GpuOrCpuInfo, Module,
+        OpenCL, UseGpuOrCpu, CPU,
     };
 
     #[track_caller]

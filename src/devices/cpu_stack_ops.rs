@@ -15,7 +15,7 @@ use crate::CPU;
 use crate::Stack;
 
 #[inline]
-fn apply_fn_slice<T, O>(x: &[T], out: &mut [T], f: impl Fn(crate::Resolve<T>) -> O)
+pub fn apply_fn_slice<T, O>(x: &[T], out: &mut [T], f: impl Fn(crate::Resolve<T>) -> O)
 where
     T: Copy,
     O: Eval<T>,

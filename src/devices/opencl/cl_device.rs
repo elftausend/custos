@@ -18,7 +18,7 @@ use std::{cell::RefCell, fmt::Debug};
 use min_cl::api::unified_ptr;
 
 #[cfg(feature = "fork")]
-use crate::{ForkSetup, UseGpuOrCpu, HashLocation, GpuOrCpuInfo};
+use crate::{ForkSetup, GpuOrCpuInfo, HashLocation, UseGpuOrCpu};
 
 /// Used to perform calculations with an OpenCL capable device.
 /// To make new calculations invocable, a trait providing new operations should be implemented for [OpenCL].

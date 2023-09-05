@@ -7,11 +7,11 @@ use min_cl::api::{
 
 use crate::{
     bounds_to_range, cpu::clear_slice, prelude::Number, ApplyFunction, Buffer, CDatatype, ClearBuf,
-    CopySlice, OnDropBuffer, OpenCL, Read, Resolve, Retriever, Shape, ToCLSource, ToMarker,
-    UnaryGrad, UseGpuOrCpu, WriteBuf,
+    CopySlice, OnDropBuffer, OpenCL, Read, Resolve, Retrieve, Retriever, Shape, ToCLSource,
+    ToMarker, UnaryGrad, UseGpuOrCpu, WriteBuf, Eval,
 };
 
-use super::{enqueue_kernel, CLBuffer};
+use super::enqueue_kernel;
 
 /*impl<Mods: OnDropBuffer, T: CDatatype> ClearBuf<T> for OpenCL<Mods> {
     #[inline]
@@ -23,17 +23,25 @@ use super::{enqueue_kernel, CLBuffer};
 impl<Mods: OnDropBuffer + UseGpuOrCpu, T: CDatatype + Default> ClearBuf<T> for OpenCL<Mods> {
     #[inline]
     fn clear(&self, buf: &mut Buffer<T, OpenCL<Mods>>) {
-        if cfg!(unified_cl) {
-            let mut cpu_buf = unsafe { buf.shallow() };
+        // crate::fork!(
+        // self,
+        // || clear_slice(buf),
+        // || try_cl_clear(self, buf).unwrap(),
+        // []
+        // );
+
+        #[cfg(unified_cl)]
+        {
+            let mut cpu_buf = unsafe { &mut *(buf as *mut Buffer<_, _, _>) }; 
             self.use_cpu_or_gpu(
                 (file!(), line!(), column!()).into(),
                 &[buf.len()],
                 || clear_slice(&mut cpu_buf),
                 || try_cl_clear(self, buf).unwrap(),
             );
-        } else {
-            try_cl_clear(self, buf).unwrap()
+            return;
         }
+        try_cl_clear(self, buf).unwrap()
     }
 }
 /// Sets the elements of an OpenCL Buffer to zero.
@@ -164,34 +172,52 @@ fn try_read_cl_buf_to_vec<Mods: OnDropBuffer, T: Clone + Default, S: Shape>(
     Ok(read)
 }
 
-impl<T, S> ApplyFunction<T, S> for OpenCL
+impl<T, S, Mods> ApplyFunction<T, S> for OpenCL<Mods>
 where
     T: CDatatype + Number,
     S: Shape,
+    Mods: Retrieve<Self, T> + UseGpuOrCpu,
 {
     #[inline]
     fn apply_fn<F>(
         &self,
         buf: &Buffer<T, Self, S>,
-        f: impl Fn(Resolve<T>) -> F,
+        f: impl Fn(Resolve<T>) -> F + Copy,
     ) -> Buffer<T, Self, S>
     where
-        F: ToCLSource,
+        F: ToCLSource + Eval<T>,
     {
-        try_cl_apply_fn(self, buf, f).unwrap()
+        let mut out = self.retrieve(buf.len(), buf);
+
+        #[cfg(unified_cl)]
+        {
+            let mut cpu_out = unsafe { &mut *(&mut out as *mut Buffer<_, _, _>) }; 
+            self.use_cpu_or_gpu(
+                (file!(), line!(), column!()).into(),
+                &[buf.len()],
+                || crate::devices::cpu_stack_ops::apply_fn_slice(buf, &mut cpu_out, f),
+                || try_cl_apply_fn_mut(self, buf, &mut out, f).unwrap(),
+            );
+            return out;
+        }
+        try_cl_apply_fn_mut(self, buf, &mut out, f).unwrap();
+        out
     }
 }
 
 /// A failable OpenCL version of [`apply_fn`](ApplyFunction::apply_fn).
 /// It applies a function to a buffer and returns a new buffer.
-pub fn try_cl_apply_fn<'a, T, S, F: ToCLSource>(
-    device: &'a OpenCL,
-    x: &CLBuffer<T, S>,
+pub fn try_cl_apply_fn_mut<'a, T, S, Mods, F>(
+    device: &'a OpenCL<Mods>,
+    x: &Buffer<T, OpenCL<Mods>, S>,
+    out: &mut Buffer<T, OpenCL<Mods>, S>,
     f: impl Fn(Resolve<T>) -> F,
-) -> crate::Result<CLBuffer<'a, T, S>>
+) -> crate::Result<()>
 where
     T: CDatatype + Number,
     S: Shape,
+    Mods: OnDropBuffer,
+    F: ToCLSource,
 {
     let src = format!(
         "
@@ -207,15 +233,14 @@ where
         operation = f("lhs[id]".to_marker()).to_cl_source()
     );
 
-    let out = device.retrieve(x.len(), x);
     enqueue_kernel(
         device,
         &src,
         [(x.len() / 32 + 1) * 32, 0, 0],
         Some([32, 0, 0]),
-        &[x, &&out, &x.len()],
+        &[x, out, &x.len()],
     )?;
-    Ok(out)
+    Ok(())
 }
 
 impl<T, S> UnaryGrad<T, S> for OpenCL
@@ -278,7 +303,7 @@ where
 #[cfg(test)]
 mod test {
     use crate::{
-        opencl::{chosen_cl_idx, try_cl_add_unary_grad, try_cl_apply_fn},
+        opencl::{chosen_cl_idx, try_cl_add_unary_grad, try_cl_apply_fn_mut},
         Base, Buffer, Combiner, OpenCL,
     };
 
@@ -287,8 +312,8 @@ mod test {
         let device = OpenCL::<Base>::new(chosen_cl_idx())?;
 
         let buf = Buffer::from((&device, [1, 2, 3, 4, 5, 6]));
-
-        let out = try_cl_apply_fn(&device, &buf, |x| x.mul(2))?;
+        let mut out = Buffer::new(&device, buf.len());
+        try_cl_apply_fn_mut(&device, &buf, &mut out, |x| x.mul(2))?;
         assert_eq!(out.read(), [2, 4, 6, 8, 10, 12]);
 
         Ok(())
