@@ -103,6 +103,20 @@ impl<Mods: TapeActions, SD: Device> TapeActions for CachedModule<Mods, SD> {
     }
 }
 
+#[cfg(feature = "fork")]
+impl<Mods: crate::UseGpuOrCpu, D: Device> crate::UseGpuOrCpu for CachedModule<Mods, D> {
+    #[inline]
+    fn use_cpu_or_gpu(
+        &self,
+        location: crate::HashLocation<'static>,
+        input_lengths: &[usize],
+        cpu_op: impl FnMut(),
+        gpu_op: impl FnMut(),
+    ) -> crate::GpuOrCpuInfo {
+        self.modules.use_cpu_or_gpu(location, input_lengths, cpu_op, gpu_op)
+    }
+}
+
 #[macro_export]
 macro_rules! debug_assert_tracked {
     () => {
