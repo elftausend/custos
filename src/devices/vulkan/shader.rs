@@ -4,8 +4,8 @@ use std::collections::HashMap;
 use ash::{
     prelude::VkResult,
     vk::{
-        self, DescriptorPool, DescriptorSet, DescriptorSetLayout, DescriptorType, Pipeline,
-        PipelineCache, PipelineLayout, ShaderModule,
+        self, Buffer, DescriptorPool, DescriptorSet, DescriptorSetLayout, DescriptorType, Pipeline,
+        PipelineCache, PipelineLayout, ShaderModule, CommandPool, CommandBuffer,
     },
     Device,
 };
@@ -162,14 +162,59 @@ impl ShaderCache {
         self.cache.insert(src.to_string(), operation);
         operation
     }
-    pub fn get(&mut self, device: &Device, src: impl AsRef<str>, args: &[DescriptorType]) -> Operation {
+    pub fn get(
+        &mut self,
+        device: &Device,
+        src: impl AsRef<str>,
+        args: &[DescriptorType],
+    ) -> Operation {
         match self.cache.get(src.as_ref()) {
             Some(operation) => *operation,
-            None => self.add(device, src, args)
+            None => self.add(device, src, args),
         }
     }
 }
 
+pub fn luanch_shader2(
+    device: &Device,
+    shader_cache: &mut ShaderCache,
+    command_pool: &CommandPool,
+    command_buffer: &CommandBuffer,
+    src: impl AsRef<str>,
+    args: &[Buffer],
+) {
+    let operation = shader_cache.get(
+        device,
+        src,
+        &args
+            .iter()
+            .map(|_| DescriptorType::STORAGE_BUFFER)
+            .collect::<Vec<_>>(),
+    );
+    let descriptor_infos = args
+        .iter()
+        .copied()
+        .map(|buffer| vk::DescriptorBufferInfo {
+            buffer,
+            offset: 0,
+            range: vk::WHOLE_SIZE,
+        })
+        .collect::<Vec<_>>();
+
+    let write_descriptor_sets = descriptor_infos
+        .into_iter()
+        .enumerate()
+        .map(|(idx, info)| {
+            vk::WriteDescriptorSet::builder()
+                .dst_set(operation.descriptor_set)
+                .dst_binding(idx as u32)
+                .descriptor_type(vk::DescriptorType::STORAGE_BUFFER)
+                .buffer_info(std::slice::from_ref(&info))
+                .build()
+        })
+        .collect::<Vec<_>>();
+    unsafe { device.update_descriptor_sets(&write_descriptor_sets, &[]) }
+}
 pub fn cached_operation() {}
 
 pub fn launch_shader(device: &Device, shader: &ShaderModule) {}
