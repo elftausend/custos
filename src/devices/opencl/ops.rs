@@ -27,7 +27,7 @@ impl<Mods: OnDropBuffer + UseGpuOrCpu, T: CDatatype + Default> ClearBuf<T> for O
         self,
         || clear_slice(buf),
         || try_cl_clear(self, buf).unwrap(),
-        &[buf.len()] // could go through the params of clear_slice and add to list if buffer
+        &[buf.len()] // TODO: (macro) could go through the params of clear_slice and add to list if buffer
         );*/
         #[cfg(unified_cl)]
         {
@@ -38,8 +38,9 @@ impl<Mods: OnDropBuffer + UseGpuOrCpu, T: CDatatype + Default> ClearBuf<T> for O
                 || clear_slice(&mut cpu_buf),
                 || try_cl_clear(self, buf).unwrap(),
             );
-            return;
         }
+
+        #[cfg(not(unified_cl))]
         try_cl_clear(self, buf).unwrap()
     }
 }
@@ -197,8 +198,8 @@ where
                 || crate::devices::cpu_stack_ops::apply_fn_slice(buf, &mut cpu_out, f),
                 || try_cl_apply_fn_mut(self, buf, &mut out, f).unwrap(),
             );
-            return out;
         }
+        #[cfg(not(unified_cl))]
         try_cl_apply_fn_mut(self, buf, &mut out, f).unwrap();
         out
     }

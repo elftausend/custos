@@ -159,7 +159,6 @@ impl<Mods> UseGpuOrCpu for Fork<Mods> {
 
         gpu_op();
         let (use_cpu, cpu_dur, gpu_dur) = should_use_cpu(&mut cpu_op, &mut gpu_op);
-        println!("use_cpu: {use_cpu}, cpu_dur: {cpu_dur:?}, gpu_dur: {gpu_dur:?}");
         operations.push(Analyzation {
             input_lengths: input_lengths.to_vec(),
             output_lengths: vec![],
@@ -279,9 +278,9 @@ mod tests {
                 )
             })
             .collect::<Vec<_>>();
-        for (gpu_buf, cpu_buf) in &mut bufs {
+        // for (gpu_buf, cpu_buf) in &mut bufs {
             // gpu_buf.clear();
-        }
+        // }
 
         let fork = <Fork<Base> as Module<CPU>>::new();
         for (gpu_buf, cpu_buf) in &mut bufs {
@@ -471,7 +470,7 @@ mod tests {
         assert_eq!(out.read(), [4, 5, 7, 8, 9, 10]);
 
         for _ in 0..100 {
-            let out = device.apply_fn(&buf, |x| x.add(3));
+            let _out = device.apply_fn(&buf, |x| x.add(3));
             let gpu_or_cpu = device.modules.gpu_or_cpu.borrow();
             let (_, operations) = gpu_or_cpu.iter().next().unwrap();
             assert_eq!(operations.len(), 2);
