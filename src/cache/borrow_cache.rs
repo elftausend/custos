@@ -6,11 +6,8 @@ use core::{
 };
 use std::collections::HashMap;
 
-use crate::{flag::AllocFlag, Alloc, Buffer, Device, Id, Shape};
-
+use crate::{flag::AllocFlag, Alloc, Buffer, Device, Id, Shape, UniqueId};
 use super::NoHasher;
-
-pub type UniqueId = u64;
 
 #[derive(Clone, Copy)]
 pub enum CachingError {

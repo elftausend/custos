@@ -1,9 +1,12 @@
-use core::{
-    any::Any,
-    cell::{Ref, RefMut},
-};
+use core::any::Any;
 
-use crate::{Base, CachedModule, Parents, Shape, CPU};
+#[cfg(feature = "cached")] 
+use core::cell::{Ref, RefMut};
+
+use crate::{Parents, Shape, CPU};
+
+#[cfg(feature = "cached")] 
+use crate::{Base, CachedModule};
 
 use super::{Alloc, Buffer, Device, OnDropBuffer};
 
@@ -106,8 +109,10 @@ pub trait HasCPU<Mods> {
     fn cpu(&self) -> &CPU<Mods>;
 }
 
+#[cfg(feature = "cached")] 
 pub type CachedCPU = CPU<CachedModule<Base, CPU>>;
 
+#[cfg(feature = "cached")] 
 pub trait UnifiedMemChain<D: Device> {
     #[track_caller]
     fn construct_unified_buf_from_cpu_buf<'a, T, S: Shape>(
@@ -117,6 +122,7 @@ pub trait UnifiedMemChain<D: Device> {
     ) -> crate::Result<Buffer<'a, T, D, S>>;
 }
 
+#[cfg(feature = "cached")] 
 #[macro_export]
 macro_rules! impl_unified_mem_chain {
     ($($to_impl:ident),*) => {
@@ -136,14 +142,55 @@ macro_rules! impl_unified_mem_chain {
     };
 }
 
+#[cfg(feature = "autograd")]
+use crate::Autograd;
 #[cfg(feature = "lazy")]
 use crate::Lazy;
 
 #[cfg(feature = "lazy")]
+#[cfg(feature = "cached")] 
 impl_unified_mem_chain!(Lazy);
 
 #[cfg(feature = "autograd")]
-use crate::Autograd;
+impl_unified_mem_chain!(Autograd);
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Default)]
+pub struct GpuOrCpuInfo {
+    pub use_cpu: bool,
+    pub is_result_cached: bool,
+}
+
+macro_rules! impl_use_gpu_or_cpu {
+    ($to_impl:ident) => {
+        impl<Mods: UseGpuOrCpu> UseGpuOrCpu for $to_impl<Mods> {
+            #[inline]
+            fn use_cpu_or_gpu(
+                &self,
+                location: crate::HashLocation<'static>,
+                input_lengths: &[usize],
+                cpu_op: impl FnMut(),
+                gpu_op: impl FnMut(),
+            ) -> GpuOrCpuInfo {
+                self.modules
+                    .use_cpu_or_gpu(location, input_lengths, cpu_op, gpu_op)
+            }
+        }
+    };
+}
 
 #[cfg(feature = "autograd")]
-impl_unified_mem_chain!(Autograd);
+impl_use_gpu_or_cpu!(Autograd);
+
+#[cfg(feature = "lazy")]
+impl_use_gpu_or_cpu!(Lazy);
+
+pub trait UseGpuOrCpu {
+    #[track_caller]
+    fn use_cpu_or_gpu(
+        &self,
+        location: crate::HashLocation<'static>,
+        input_lengths: &[usize],
+        cpu_op: impl FnMut(),
+        gpu_op: impl FnMut(),
+    ) -> GpuOrCpuInfo;
+}

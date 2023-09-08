@@ -178,6 +178,14 @@ impl<Mods> crate::LazySetup for CUDA<Mods> {
     }
 }
 
+#[cfg(feature = "fork")]
+impl<Mods> crate::ForkSetup for CUDA<Mods> {
+    #[inline]
+    fn fork_setup(&mut self) {
+        // TODO: maybe check if device supports unified memory
+    }
+}
+
 #[cfg(feature = "lazy")]
 impl<Mods> crate::LazyRun for CUDA<Mods> {
     #[inline]

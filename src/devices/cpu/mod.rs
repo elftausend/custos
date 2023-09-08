@@ -18,6 +18,8 @@ mod blas;
 mod cpu_device;
 mod ops;
 
+pub use ops::*;
+
 /// The pointer used for `CPU` [`Buffer`](crate::Buffer)s
 #[derive(PartialEq, Eq, Debug)]
 pub struct CPUPtr<T> {

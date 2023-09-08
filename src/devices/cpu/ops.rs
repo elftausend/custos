@@ -5,12 +5,12 @@ use core::{
 
 use crate::{
     bounds_to_range, AddOperation, Alloc, Buffer, ClearBuf, CopySlice, Device, HasId, MainMemory,
-    OnDropBuffer, Operation, Read, Retriever, Shape, TapeActions, WriteBuf, CPU,
+    OnDropBuffer, Operation, Read, Retriever, Shape, WriteBuf, CPU, MayTapeActions, TapeActions
 };
 
 impl<Mods, T, S, D> crate::ApplyFunctionLazyTest<T, S, D> for CPU<Mods>
 where
-    Mods: crate::Retrieve<Self, T> + TapeActions + AddOperation + 'static,
+    Mods: crate::Retrieve<Self, T> + MayTapeActions + AddOperation + 'static,
     T: Copy + Default + crate::ToVal + 'static,
     S: Shape,
     D: MainMemory + Alloc<T> + 'static,
@@ -27,6 +27,8 @@ where
         let mut out = self.retrieve(buf.len(), buf);
 
         let ids = (buf.id(), out.id());
+
+        #[cfg(feature = "autograd")]
         self.add_grad_fn(move |grads| {
             let (lhs, lhs_grad, out_grad) = grads.get_double::<T, S, S, D>(ids);
         });
@@ -94,12 +96,17 @@ impl<Mods: OnDropBuffer, T: Copy, D: MainMemory, S: Shape> WriteBuf<T, S, D> for
     }
 }
 
+#[inline]
+pub fn clear_slice<T: Default>(input: &mut [T]) {
+    for value in input {
+        *value = T::default();
+    }
+}
+
 // #[impl_stack]
 impl<Mods: OnDropBuffer, T: Default, D: MainMemory, S: Shape> ClearBuf<T, S, D> for CPU<Mods> {
     fn clear(&self, buf: &mut Buffer<T, D, S>) {
-        for value in buf {
-            *value = T::default();
-        }
+        clear_slice(buf)
     }
 }
 

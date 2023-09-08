@@ -1,4 +1,5 @@
 use core::ffi::CStr;
+use std::collections::HashMap;
 
 use ash::{
     prelude::VkResult,
@@ -148,8 +149,9 @@ pub struct ShaderCache {
 
 impl ShaderCache {
     pub fn add(&mut self, device: &Device, src: impl AsRef<str>, args: &[DescriptorType]) {
+        let src = src.as_ref();
         let operation = Operation::new(device, src, args);
-        self.cache.insert(src.as_ref().to_string(), operation);
+        self.cache.insert(src.to_string(), operation);
     }
 }
 

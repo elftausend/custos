@@ -79,3 +79,10 @@ impl<'a> From<&'a Location<'a>> for HashLocation<'a> {
         }
     }
 }
+
+impl<'a> From<(&'a str, u32, u32)> for HashLocation<'a> {
+    #[inline]
+    fn from((file, line, col): (&'a str, u32, u32)) -> Self {
+        Self { file, line, col }
+    }
+}

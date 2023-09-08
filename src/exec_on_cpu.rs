@@ -8,7 +8,13 @@ mod cl_may_unified;
 #[cfg(feature = "opencl")]
 pub use cl_may_unified::*;
 
-use crate::{Alloc, Base, Buffer, Cached, CachedCPU, Device, Read, Retriever, WriteBuf, CPU};
+use crate::{Base, Buffer, Read, WriteBuf, CPU};
+
+#[cfg(feature = "cached")]
+use crate::{Alloc, CachedCPU, Device, Retriever};
+
+#[cfg(feature = "cached")]
+use crate::Cached;
 
 /// Moves a `Buffer` stored on device `D` to a `CPU` `Buffer`
 /// and executes the unary operation `F` with a `CPU` on the newly created `CPU` `Buffer`.
@@ -39,6 +45,7 @@ use crate::{Alloc, Base, Buffer, Cached, CachedCPU, Device, Read, Retriever, Wri
 ///     Ok(())
 /// }
 /// ```
+#[cfg(feature = "cached")] // FIXME: shouldn't be required to have to use the cached feature?
 pub fn cpu_exec_unary<'a, T, D, F>(
     device: &'a D,
     x: &Buffer<T, D>,
@@ -104,6 +111,7 @@ where
 ///     Ok(())
 /// }
 /// ```
+#[cfg(feature = "cached")] // FIXME: shouldn't be required to have to use the cached feature?
 pub fn cpu_exec_binary<'a, T, D, F>(
     device: &'a D,
     lhs: &Buffer<T, D>,

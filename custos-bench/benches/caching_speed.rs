@@ -1,4 +1,4 @@
-use std::hint::black_box;
+/*use std::hint::black_box;
 
 use criterion::{criterion_group, criterion_main, Criterion};
 use custos::{
@@ -69,3 +69,5 @@ fn bench_caching_speed(c: &mut Criterion) {
 
 criterion_group!(benches, bench_caching_speed);
 criterion_main!(benches);
+*/
+fn main() {}

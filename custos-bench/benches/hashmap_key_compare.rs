@@ -1,4 +1,4 @@
-use std::{
+/*use std::{
     alloc::Layout,
     collections::{hash_map::RandomState, HashMap, HashSet},
     hash::{BuildHasher, BuildHasherDefault, Hash},
@@ -228,3 +228,5 @@ fn bench_alloc_speed(c: &mut Criterion) {
 
 criterion_group!(benches, bench_location_key_hash, bench_ident_key_hash);
 criterion_main!(benches);
+*/
+fn main() {}

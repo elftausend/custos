@@ -24,3 +24,7 @@ harness = false
 [[bench]]
 name = "borrowing_owning_cache"
 harness = false
+
+[[bench]]
+name = "fork"
+harness = false

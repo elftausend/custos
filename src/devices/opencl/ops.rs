@@ -6,20 +6,44 @@ use min_cl::api::{
 };
 
 use crate::{
-    bounds_to_range, prelude::Number, ApplyFunction, Buffer, CDatatype, ClearBuf, CopySlice,
-    OnDropBuffer, OpenCL, Read, Resolve, Retriever, Shape, ToCLSource, ToMarker, UnaryGrad,
-    WriteBuf,
+    bounds_to_range, cpu::clear_slice, prelude::Number, ApplyFunction, Buffer, CDatatype, ClearBuf,
+    CopySlice, Eval, OnDropBuffer, OpenCL, Read, Resolve, Retrieve, Retriever, Shape, ToCLSource,
+    ToMarker, UnaryGrad, UseGpuOrCpu, WriteBuf,
 };
 
-use super::{enqueue_kernel, CLBuffer};
+use super::enqueue_kernel;
 
-impl<T: CDatatype> ClearBuf<T> for OpenCL {
+/*impl<Mods: OnDropBuffer, T: CDatatype> ClearBuf<T> for OpenCL<Mods> {
     #[inline]
-    fn clear(&self, buf: &mut Buffer<T, OpenCL>) {
+    fn clear(&self, buf: &mut Buffer<T, OpenCL<Mods>>) {
+        try_cl_clear(self, buf).unwrap()
+    }
+}*/
+
+impl<Mods: OnDropBuffer + UseGpuOrCpu, T: CDatatype + Default> ClearBuf<T> for OpenCL<Mods> {
+    #[inline]
+    fn clear(&self, buf: &mut Buffer<T, OpenCL<Mods>>) {
+        /*crate::fork!(
+        self,
+        || clear_slice(buf),
+        || try_cl_clear(self, buf).unwrap(),
+        &[buf.len()] // TODO: (macro) could go through the params of clear_slice and add to list if buffer
+        );*/
+        #[cfg(unified_cl)]
+        {
+            let mut cpu_buf = unsafe { &mut *(buf as *mut Buffer<_, _, _>) };
+            self.use_cpu_or_gpu(
+                (file!(), line!(), column!()).into(),
+                &[buf.len()],
+                || clear_slice(&mut cpu_buf),
+                || try_cl_clear(self, buf).unwrap(),
+            );
+        }
+
+        #[cfg(not(unified_cl))]
         try_cl_clear(self, buf).unwrap()
     }
 }
-
 /// Sets the elements of an OpenCL Buffer to zero.
 /// # Example
 /// ```
@@ -35,22 +59,25 @@ impl<T: CDatatype> ClearBuf<T> for OpenCL {
 ///     Ok(())
 /// }
 /// ```
-pub fn try_cl_clear<T: CDatatype>(
-    device: &OpenCL,
-    lhs: &mut Buffer<T, OpenCL>,
+pub fn try_cl_clear<Mods: OnDropBuffer, T: CDatatype>(
+    device: &OpenCL<Mods>,
+    lhs: &mut Buffer<T, OpenCL<Mods>>,
 ) -> crate::Result<()> {
     let src = format!(
         "
-        __kernel void clear(__global {datatype}* self) {{
+        __kernel void clear(__global {datatype}* self, long len) {{
             size_t id = get_global_id(0);
+            if (id >= len) {{
+                return;
+            }}
             self[id] = 0;
         }}
     ",
         datatype = T::C_DTYPE_STR
     );
 
-    let gws = [lhs.len(), 0, 0];
-    enqueue_kernel(device, &src, gws, None, &[lhs])?;
+    let gws = [(lhs.len() / 32 + 1) * 32, 0, 0];
+    enqueue_kernel(device, &src, gws, Some([32, 0, 0]), &[lhs, &lhs.len()])?;
     Ok(())
 }
 
@@ -145,39 +172,60 @@ fn try_read_cl_buf_to_vec<Mods: OnDropBuffer, T: Clone + Default, S: Shape>(
     Ok(read)
 }
 
-impl<T, S> ApplyFunction<T, S> for OpenCL
+impl<T, S, Mods> ApplyFunction<T, S> for OpenCL<Mods>
 where
     T: CDatatype + Number,
     S: Shape,
+    Mods: Retrieve<Self, T> + UseGpuOrCpu,
 {
     #[inline]
     fn apply_fn<F>(
         &self,
         buf: &Buffer<T, Self, S>,
-        f: impl Fn(Resolve<T>) -> F,
+        f: impl Fn(Resolve<T>) -> F + Copy,
     ) -> Buffer<T, Self, S>
     where
-        F: ToCLSource,
+        F: ToCLSource + Eval<T>,
     {
-        try_cl_apply_fn(self, buf, f).unwrap()
+        let mut out = self.retrieve(buf.len(), buf);
+
+        #[cfg(unified_cl)]
+        {
+            let mut cpu_out = unsafe { &mut *(&mut out as *mut Buffer<_, _, _>) };
+            self.use_cpu_or_gpu(
+                (file!(), line!(), column!()).into(),
+                &[buf.len()],
+                || crate::devices::cpu_stack_ops::apply_fn_slice(buf, &mut cpu_out, f),
+                || try_cl_apply_fn_mut(self, buf, &mut out, f).unwrap(),
+            );
+        }
+        #[cfg(not(unified_cl))]
+        try_cl_apply_fn_mut(self, buf, &mut out, f).unwrap();
+        out
     }
 }
 
 /// A failable OpenCL version of [`apply_fn`](ApplyFunction::apply_fn).
 /// It applies a function to a buffer and returns a new buffer.
-pub fn try_cl_apply_fn<'a, T, S, F: ToCLSource>(
-    device: &'a OpenCL,
-    x: &CLBuffer<T, S>,
+pub fn try_cl_apply_fn_mut<'a, T, S, Mods, F>(
+    device: &'a OpenCL<Mods>,
+    x: &Buffer<T, OpenCL<Mods>, S>,
+    out: &mut Buffer<T, OpenCL<Mods>, S>,
     f: impl Fn(Resolve<T>) -> F,
-) -> crate::Result<CLBuffer<'a, T, S>>
+) -> crate::Result<()>
 where
     T: CDatatype + Number,
     S: Shape,
+    Mods: OnDropBuffer,
+    F: ToCLSource,
 {
     let src = format!(
         "
-        __kernel void apply_fn(__global const {datatype}* lhs, __global {datatype}* out) {{
+        __kernel void apply_fn(__global const {datatype}* lhs, __global {datatype}* out, long len) {{
             size_t id = get_global_id(0);
+            if (id >= len) {{
+                return;
+            }}
             out[id] = {operation};
         }}
     ",
@@ -185,9 +233,14 @@ where
         operation = f("lhs[id]".to_marker()).to_cl_source()
     );
 
-    let out = device.retrieve(x.len(), x);
-    enqueue_kernel(device, &src, [x.len(), 0, 0], None, &[x, &&out])?;
-    Ok(out)
+    enqueue_kernel(
+        device,
+        &src,
+        [(x.len() / 32 + 1) * 32, 0, 0],
+        Some([32, 0, 0]),
+        &[x, out, &x.len()],
+    )?;
+    Ok(())
 }
 
 impl<T, S> UnaryGrad<T, S> for OpenCL
@@ -225,8 +278,11 @@ where
 {
     let src = format!(
         "
-        __kernel void add_unary_grad(__global const {datatype}* lhs, __global {datatype}* lhs_grad, __global const {datatype}* out) {{
+        __kernel void add_unary_grad(__global const {datatype}* lhs, __global {datatype}* lhs_grad, __global const {datatype}* out, long len) {{
             size_t id = get_global_id(0);
+            if (id >= len) {{
+                return;
+            }}
             lhs_grad[id] += out[id] * {operation};
         }}
     ",
@@ -234,14 +290,20 @@ where
         operation = lhs_grad_fn("lhs[id]".to_marker()).to_cl_source()
     );
 
-    enqueue_kernel(device, &src, [lhs.len(), 0, 0], None, &[lhs, lhs_grad, out])?;
+    enqueue_kernel(
+        device,
+        &src,
+        [(lhs.len() / 32 + 1) * 32, 0, 0],
+        None,
+        &[lhs, lhs_grad, out, &out.len()],
+    )?;
     Ok(())
 }
 
 #[cfg(test)]
 mod test {
     use crate::{
-        opencl::{chosen_cl_idx, try_cl_add_unary_grad, try_cl_apply_fn},
+        opencl::{chosen_cl_idx, try_cl_add_unary_grad, try_cl_apply_fn_mut},
         Base, Buffer, Combiner, OpenCL,
     };
 
@@ -250,8 +312,8 @@ mod test {
         let device = OpenCL::<Base>::new(chosen_cl_idx())?;
 
         let buf = Buffer::from((&device, [1, 2, 3, 4, 5, 6]));
-
-        let out = try_cl_apply_fn(&device, &buf, |x| x.mul(2))?;
+        let mut out = Buffer::new(&device, buf.len());
+        try_cl_apply_fn_mut(&device, &buf, &mut out, |x| x.mul(2))?;
         assert_eq!(out.read(), [2, 4, 6, 8, 10, 12]);
 
         Ok(())

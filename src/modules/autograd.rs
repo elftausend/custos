@@ -4,17 +4,12 @@ mod tape;
 pub use gradients::*;
 pub use tape::*;
 
-use core::{
-    any::Any,
-    cell::{Ref, RefCell, RefMut},
-    hash::BuildHasher,
-    mem::transmute,
-};
-use std::collections::HashMap;
+use core::cell::{Ref, RefCell, RefMut};
+
 
 use crate::{
-    flag::AllocFlag, prelude::One, Alloc, Buffer, Device, HasId, Id, Module, OnDropBuffer,
-    OnNewBuffer, Parents, PtrConv, Retrieve, Setup, Shape, TapeActions, UniqueId, WriteBuf,
+    prelude::One, Alloc, Buffer, Device, HasId, Module, OnDropBuffer,
+    OnNewBuffer, Parents, PtrConv, Retrieve, Setup, Shape, TapeActions, WriteBuf, unregister_buf, register_buf,
 };
 
 use super::{Cached, CachedModule};
@@ -35,29 +30,6 @@ impl<Mods: Module<D>, D: Device + Default> Module<D> for Autograd<Mods> {
             tape: Default::default(),
         }
     }
-}
-
-#[inline]
-pub(crate) unsafe fn register_buf<T, D, S>(
-    cache: &mut HashMap<UniqueId, Box<dyn Any>, impl BuildHasher>,
-    buf: &Buffer<T, D, S>,
-) where
-    T: 'static,
-    D: Device + PtrConv + 'static,
-    S: Shape,
-{
-    let wrapped_data = D::convert::<T, S, T, S>(&buf.data, AllocFlag::Wrapper);
-    let buf = Buffer {
-        data: wrapped_data,
-        device: buf.device,
-    };
-    let buf: Buffer<'static, T, D, S> = transmute(buf);
-    cache.insert(*buf.id(), Box::new(buf));
-}
-
-#[inline]
-pub fn unregister_buf(cache: &mut HashMap<UniqueId, Box<dyn Any>, impl BuildHasher>, id: Id) {
-    cache.remove(&id);
 }
 
 impl<Mods> Autograd<Mods> {
