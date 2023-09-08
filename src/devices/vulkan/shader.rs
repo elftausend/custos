@@ -5,7 +5,7 @@ use ash::{
     prelude::VkResult,
     vk::{
         self, Buffer, DescriptorPool, DescriptorSet, DescriptorSetLayout, DescriptorType, Pipeline,
-        PipelineCache, PipelineLayout, ShaderModule, CommandPool, CommandBuffer,
+        PipelineCache, PipelineLayout, ShaderModule, CommandPool, CommandBuffer, Fence,
     },
     Device,
 };
@@ -177,9 +177,10 @@ impl ShaderCache {
 
 pub fn luanch_shader2(
     device: &Device,
+    gws: [u32; 3],
     shader_cache: &mut ShaderCache,
-    command_pool: &CommandPool,
-    command_buffer: &CommandBuffer,
+    command_buffer: CommandBuffer,
+    compute_family_idx: usize,
     src: impl AsRef<str>,
     args: &[Buffer],
 ) {
@@ -214,6 +215,34 @@ pub fn luanch_shader2(
         })
         .collect::<Vec<_>>();
     unsafe { device.update_descriptor_sets(&write_descriptor_sets, &[]) }
+
+
+    let command_buffer_begin_info = vk::CommandBufferBeginInfo {
+        flags: vk::CommandBufferUsageFlags::ONE_TIME_SUBMIT,
+        ..Default::default()
+    };
+    unsafe { device.begin_command_buffer(command_buffer, &command_buffer_begin_info) }.unwrap();
+    unsafe { device.cmd_bind_pipeline(command_buffer, vk::PipelineBindPoint::COMPUTE, operation.pipeline) };
+    unsafe {
+        device.cmd_bind_descriptor_sets(
+            command_buffer,
+            vk::PipelineBindPoint::COMPUTE,
+            operation.pipeline_layout,
+            0,
+            core::slice::from_ref(&operation.descriptor_set),
+            &[],
+        )
+    };
+    unsafe { device.cmd_dispatch(command_buffer, gws[0], gws[1], gws[2]) };
+    unsafe { device.end_command_buffer(command_buffer) }.unwrap();
+    let queue = unsafe { device.get_device_queue(compute_family_idx as u32, 0) };
+    let submit_info =
+        vk::SubmitInfo::builder().command_buffers(core::slice::from_ref(&command_buffer));
+
+    
+    unsafe { device.queue_submit(queue, core::slice::from_ref(&submit_info), Fence::null()) }
+        .unwrap();
+    unsafe { device.device_wait_idle() }.unwrap();
 }
 pub fn cached_operation() {}
 
