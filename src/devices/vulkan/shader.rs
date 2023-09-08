@@ -1,16 +1,20 @@
+mod operation;
+mod descriptor;
+mod command;
+
+use operation::Operation;
+
 use core::ffi::CStr;
 use std::collections::HashMap;
 
 use ash::{
     prelude::VkResult,
     vk::{
-        self, Buffer, DescriptorPool, DescriptorSet, DescriptorSetLayout, DescriptorType, Pipeline,
-        PipelineCache, PipelineLayout, ShaderModule, CommandPool, CommandBuffer, Fence,
+        self, Buffer, DescriptorSetLayout, DescriptorType, Pipeline,
+        PipelineCache, PipelineLayout, ShaderModule, CommandBuffer, Fence,
     },
     Device,
 };
-
-use crate::wgsl::Spirv;
 
 pub fn create_shader_module(device: &Device, code: &[u8]) -> VkResult<ShaderModule> {
     unsafe {
@@ -23,33 +27,6 @@ pub fn create_shader_module(device: &Device, code: &[u8]) -> VkResult<ShaderModu
     }
 }
 
-// add dyn AsDescriptorType ..
-pub fn create_descriptor_set_layout_from_desc_types(
-    device: &Device,
-    descriptor_types: &[vk::DescriptorType],
-) -> VkResult<DescriptorSetLayout> {
-    let descriptor_set_layout_bindings = descriptor_types
-        .iter()
-        .copied()
-        .enumerate()
-        .map(
-            |(binding, descriptor_type)| vk::DescriptorSetLayoutBinding {
-                binding: binding as u32,
-                descriptor_type,
-                descriptor_count: 1,
-                stage_flags: vk::ShaderStageFlags::COMPUTE,
-                ..Default::default()
-            },
-        )
-        .collect::<Vec<_>>();
-
-    let descriptor_set_layout_create_info = vk::DescriptorSetLayoutCreateInfo {
-        p_bindings: descriptor_set_layout_bindings.as_ptr(),
-        ..Default::default()
-    };
-
-    unsafe { device.create_descriptor_set_layout(&descriptor_set_layout_create_info, None) }
-}
 
 pub fn create_pipeline(
     device: &Device,
@@ -82,68 +59,6 @@ pub fn create_pipeline(
     Ok((pipeline, pipeline_layout))
 }
 
-pub fn create_descriptor_pool(device: &Device, descriptor_count: u32) -> VkResult<DescriptorPool> {
-    let descriptor_pool_sizes = vk::DescriptorPoolSize {
-        ty: vk::DescriptorType::STORAGE_BUFFER,
-        descriptor_count,
-    };
-    let descriptor_pool_create_info = vk::DescriptorPoolCreateInfo::builder()
-        .max_sets(1)
-        .pool_sizes(core::slice::from_ref(&descriptor_pool_sizes));
-
-    unsafe { device.create_descriptor_pool(&descriptor_pool_create_info, None) }
-}
-
-pub fn allocate_descriptor_set(
-    device: &Device,
-    descriptor_pool: DescriptorPool,
-    descriptor_set_layout: DescriptorSetLayout,
-) -> VkResult<DescriptorSet> {
-    let descriptor_set_allocate_info = vk::DescriptorSetAllocateInfo::builder()
-        .descriptor_pool(descriptor_pool)
-        .set_layouts(core::slice::from_ref(&descriptor_set_layout));
-
-    Ok(unsafe { device.allocate_descriptor_sets(&descriptor_set_allocate_info) }?[0])
-}
-
-#[derive(Debug, Clone, Copy)]
-pub struct Operation {
-    pipeline: Pipeline,
-    shader_module: ShaderModule,
-    pipeline_layout: PipelineLayout,
-    descriptor_pool: DescriptorPool,
-    descriptor_set: DescriptorSet,
-}
-
-impl Operation {
-    pub fn new(
-        device: &Device,
-        wgsl: impl AsRef<str>,
-        descriptor_types: &[DescriptorType],
-    ) -> Self {
-        let spirv = Spirv::from_wgsl(wgsl).unwrap();
-        let shader_module = create_shader_module(device, spirv.as_byte_slice()).unwrap();
-        let descriptor_set_layout =
-            create_descriptor_set_layout_from_desc_types(device, descriptor_types).unwrap();
-        let (pipeline, pipeline_layout) =
-            create_pipeline(device, descriptor_set_layout, shader_module).unwrap();
-
-        let descriptor_pool =
-            create_descriptor_pool(device, descriptor_types.len() as u32).unwrap();
-
-        let descriptor_set =
-            allocate_descriptor_set(device, descriptor_pool, descriptor_set_layout).unwrap();
-
-        Operation {
-            pipeline,
-            shader_module,
-            pipeline_layout,
-            descriptor_pool,
-            descriptor_set,
-        }
-    }
-}
-
 // combine with other Caches
 pub struct ShaderCache {
     // use hash directly (prevent &str->String?) => Use NoHasher
@@ -173,6 +88,10 @@ impl ShaderCache {
             None => self.add(device, src, args),
         }
     }
+}
+
+pub fn create_command_pool() {
+
 }
 
 pub fn luanch_shader2(
