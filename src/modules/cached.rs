@@ -113,7 +113,8 @@ impl<Mods: crate::UseGpuOrCpu, D: Device> crate::UseGpuOrCpu for CachedModule<Mo
         cpu_op: impl FnMut(),
         gpu_op: impl FnMut(),
     ) -> crate::GpuOrCpuInfo {
-        self.modules.use_cpu_or_gpu(location, input_lengths, cpu_op, gpu_op)
+        self.modules
+            .use_cpu_or_gpu(location, input_lengths, cpu_op, gpu_op)
     }
 }
 

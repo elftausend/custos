@@ -3,7 +3,7 @@ use core::{
     cell::{Ref, RefMut},
 };
 
-use crate::{Base, CachedModule, Parents, Shape, CPU, HashLocation};
+use crate::{Base, CachedModule, HashLocation, Parents, Shape, CPU};
 
 use super::{Alloc, Buffer, Device, OnDropBuffer};
 
@@ -136,10 +136,10 @@ macro_rules! impl_unified_mem_chain {
     };
 }
 
-#[cfg(feature = "lazy")]
-use crate::Lazy;
 #[cfg(feature = "autograd")]
 use crate::Autograd;
+#[cfg(feature = "lazy")]
+use crate::Lazy;
 
 #[cfg(feature = "lazy")]
 impl_unified_mem_chain!(Lazy);
@@ -157,8 +157,15 @@ macro_rules! impl_use_gpu_or_cpu {
     ($to_impl:ident) => {
         impl<Mods: UseGpuOrCpu> UseGpuOrCpu for $to_impl<Mods> {
             #[inline]
-            fn use_cpu_or_gpu(&self, location: HashLocation<'static>, input_lengths: &[usize], cpu_op: impl FnMut(), gpu_op: impl FnMut()) -> GpuOrCpuInfo {
-                self.modules.use_cpu_or_gpu(location, input_lengths, cpu_op, gpu_op)
+            fn use_cpu_or_gpu(
+                &self,
+                location: HashLocation<'static>,
+                input_lengths: &[usize],
+                cpu_op: impl FnMut(),
+                gpu_op: impl FnMut(),
+            ) -> GpuOrCpuInfo {
+                self.modules
+                    .use_cpu_or_gpu(location, input_lengths, cpu_op, gpu_op)
             }
         }
     };
@@ -170,8 +177,6 @@ impl_use_gpu_or_cpu!(Autograd);
 #[cfg(feature = "lazy")]
 impl_use_gpu_or_cpu!(Lazy);
 
-// TODO: write macro for trait
-// TODO: impl other traits for Fork
 pub trait UseGpuOrCpu {
     #[track_caller]
     fn use_cpu_or_gpu(

@@ -7,8 +7,8 @@ use min_cl::api::{
 
 use crate::{
     bounds_to_range, cpu::clear_slice, prelude::Number, ApplyFunction, Buffer, CDatatype, ClearBuf,
-    CopySlice, OnDropBuffer, OpenCL, Read, Resolve, Retrieve, Retriever, Shape, ToCLSource,
-    ToMarker, UnaryGrad, UseGpuOrCpu, WriteBuf, Eval,
+    CopySlice, Eval, OnDropBuffer, OpenCL, Read, Resolve, Retrieve, Retriever, Shape, ToCLSource,
+    ToMarker, UnaryGrad, UseGpuOrCpu, WriteBuf,
 };
 
 use super::enqueue_kernel;
@@ -31,7 +31,7 @@ impl<Mods: OnDropBuffer + UseGpuOrCpu, T: CDatatype + Default> ClearBuf<T> for O
         );*/
         #[cfg(unified_cl)]
         {
-            let mut cpu_buf = unsafe { &mut *(buf as *mut Buffer<_, _, _>) }; 
+            let mut cpu_buf = unsafe { &mut *(buf as *mut Buffer<_, _, _>) };
             self.use_cpu_or_gpu(
                 (file!(), line!(), column!()).into(),
                 &[buf.len()],
@@ -190,7 +190,7 @@ where
 
         #[cfg(unified_cl)]
         {
-            let mut cpu_out = unsafe { &mut *(&mut out as *mut Buffer<_, _, _>) }; 
+            let mut cpu_out = unsafe { &mut *(&mut out as *mut Buffer<_, _, _>) };
             self.use_cpu_or_gpu(
                 (file!(), line!(), column!()).into(),
                 &[buf.len()],

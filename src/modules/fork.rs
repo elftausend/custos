@@ -1,5 +1,6 @@
 use crate::{
-    Device, HashLocation, LocationHasher, Module, OnDropBuffer, OnNewBuffer, Setup, Shape, GpuOrCpuInfo, UseGpuOrCpu,
+    Alloc, Buffer, Device, GpuOrCpuInfo, HashLocation, LocationHasher, Module, OnDropBuffer,
+    OnNewBuffer, Parents, PtrConv, Retrieve, Setup, Shape, UseGpuOrCpu,
 };
 use core::{
     cell::RefCell,
@@ -22,8 +23,11 @@ pub struct Analyzation {
 }
 
 impl Ord for Analyzation {
+    #[inline]
     fn cmp(&self, other: &Self) -> core::cmp::Ordering {
-        self.cpu_dur.cmp(&other.cpu_dur)
+        // self.cpu_dur.cmp(&other.cpu_dur)
+        // self.gpu_dur.cmp(&other.gpu_dur)
+        self.input_lengths.iter().sum::<usize>().cmp(&other.input_lengths.iter().sum::<usize>())
     }
 }
 
@@ -86,6 +90,7 @@ pub fn init_binary_heap<S: BuildHasher>(
     // FIXME: algorithm runs twice
     gpu_op();
     let (use_cpu, cpu_dur, gpu_dur) = should_use_cpu(cpu_op, gpu_op);
+    println!("use_cpu: {use_cpu}, cpu_dur: {cpu_dur:?}, gpu_dur: {gpu_dur:?}");
     gpu_or_cpu.insert(
         location,
         BinaryHeap::from([Analyzation {
@@ -152,13 +157,16 @@ impl<Mods> UseGpuOrCpu for Fork<Mods> {
             }
         }
 
+        gpu_op();
         let (use_cpu, cpu_dur, gpu_dur) = should_use_cpu(&mut cpu_op, &mut gpu_op);
+        println!("use_cpu: {use_cpu}, cpu_dur: {cpu_dur:?}, gpu_dur: {gpu_dur:?}");
         operations.push(Analyzation {
             input_lengths: input_lengths.to_vec(),
             output_lengths: vec![],
             gpu_dur,
             cpu_dur,
         });
+        
         GpuOrCpuInfo {
             use_cpu,
             is_result_cached: false,
@@ -184,13 +192,38 @@ impl<Mods: OnNewBuffer<T, D, S>, T, D: Device, S: Shape> OnNewBuffer<T, D, S> fo
     }
 }
 
+impl<T: 'static, Mods: Retrieve<D, T>, D: PtrConv + 'static> Retrieve<D, T> for Fork<Mods> {
+    #[inline]
+    fn retrieve<S, const NUM_PARENTS: usize>(
+        &self,
+        device: &D,
+        len: usize,
+        parents: impl Parents<NUM_PARENTS>,
+    ) -> <D>::Data<T, S>
+    where
+        S: Shape,
+        D: Alloc<T>,
+    {
+        self.modules.retrieve(device, len, parents)
+    }
+
+    #[inline]
+    fn on_retrieve_finish<S: Shape>(&self, retrieved_buf: &Buffer<T, D, S>)
+    where
+        D: Alloc<T>,
+    {
+        // pass down
+        self.modules.on_retrieve_finish(retrieved_buf)
+    }
+}
+
 #[cfg(test)]
 mod tests {
-    use std::collections::BinaryHeap;
+    use std::{collections::BinaryHeap, time::Instant};
 
     use crate::{
-        opencl::try_cl_clear, Analyzation, Base, Buffer, Device, Fork, GpuOrCpuInfo, Module,
-        OpenCL, UseGpuOrCpu, CPU,
+        opencl::try_cl_clear, Analyzation, Base, Buffer, Cached, Device, Fork, GpuOrCpuInfo,
+        Module, OpenCL, UseGpuOrCpu, CPU, ApplyFunction, Combiner, should_use_cpu,
     };
 
     #[track_caller]
@@ -213,17 +246,108 @@ mod tests {
     fn test_use_gpu_or_cpu() {
         let fork = <Fork<Base> as Module<CPU>>::new();
         // const SIZE: usize = 100000000;
-        const SIZE: usize = 312_582_039;
+        const SIZE: usize = 48_941_518;
         let device = CPU::<Base>::new();
         let mut cpu_buf = device.buffer::<_, (), _>(vec![1; SIZE]);
 
-        let opencl = OpenCL::<Base>::new(0).unwrap();
+        let opencl = OpenCL::<Base>::new(1).unwrap();
         let mut opencl_buf = opencl.buffer::<_, (), _>(vec![1; SIZE]);
         // opencl_buf.clear();
 
         for _ in 0..100 {
             let use_cpu = clear(&fork, &mut cpu_buf, &mut opencl_buf);
             println!("use_cpu: {use_cpu:?}")
+        }
+    }
+
+    #[test]
+    fn test_diff_sizes() { 
+        let cpu = CPU::<Base>::new();
+        let gpu = OpenCL::<Base>::new(1).unwrap();
+
+        let sizes = [
+            8_287_587,
+            48_941_518,
+        ];
+
+        let mut bufs = sizes
+            .iter()
+            .map(|size| {
+                (
+                    gpu.buffer::<i32, (), _>(vec![1; *size]),
+                    cpu.buffer::<i32, (), _>(vec![1; *size]),
+                )
+            })
+            .collect::<Vec<_>>();
+        for (gpu_buf, cpu_buf) in &mut bufs {
+            // gpu_buf.clear();
+        }
+
+        let fork = <Fork<Base> as Module<CPU>>::new();
+        for (gpu_buf, cpu_buf) in &mut bufs {
+            let res = should_use_cpu(&mut || {
+                cpu_buf.clear()
+            }, &mut || {
+                gpu_buf.clear()
+            });
+            println!("res: {res:?}");
+            
+            let res = clear(&fork, cpu_buf, gpu_buf);
+            println!("gpu_or_cpu_info: {res:?}");    
+            cpu_buf.clear();
+            let start = Instant::now();
+            gpu_buf.clear();
+            let elapsed = start.elapsed();
+            println!("elapsed: {elapsed:?}")
+        }
+    }
+
+    #[test]
+    fn test_check_for_reasonable_fork_execution_time() {
+        let cpu = CPU::<Base>::new();
+        let gpu = OpenCL::<Base>::new(1).unwrap();
+    
+        let sizes = [
+            8_287_587,
+            48_941_518,
+            /*59_579_168,
+            39_178_476,
+            29_450_127,
+            123943,
+            10031,
+            310,
+            1230,
+            3102,
+            31093,
+            21934,
+            132,
+            330,
+            30,
+            6000,
+            3123959,
+            312_582_039,
+            1349023,
+            4923490,
+            90,
+            8032,
+            100_000_000,*/
+        ];
+
+        let mut bufs = sizes
+            .iter()
+            .map(|size| {
+                (
+                    gpu.buffer::<i32, (), _>(vec![1; *size]),
+                    cpu.buffer::<i32, (), _>(vec![1; *size]),
+                )
+            })
+            .collect::<Vec<_>>();
+
+
+        let fork = <Fork<Base> as Module<CPU>>::new();
+        for (gpu_buf, cpu_buf) in &mut bufs {
+            let use_cpu = clear(&fork, cpu_buf, gpu_buf);
+            println!("len: {}, use_cpu: {use_cpu:?}", gpu_buf.len());
         }
     }
 
@@ -260,8 +384,10 @@ mod tests {
         let device = CPU::<Base>::new();
 
         let opencl = OpenCL::<Base>::new(1).unwrap();
+        println!("name: {:?}", opencl.name());
 
         // opencl_buf.clear();
+        
 
         for _ in 0..1000 {
             for size in sizes {
@@ -330,6 +456,27 @@ mod tests {
 
                 assert_eq!(new_gpu_dur.as_secs_f32(), (0.312 + (0.412 - 0.312) * 0.5));
             }
+        }
+    }
+
+    #[cfg(unified_cl)]
+    #[test]
+    fn test_fork_with_opencl_device_and_apply_fn() {
+        let device = OpenCL::<Fork<Cached<Base>>>::new(0).unwrap();
+        if !device.unified_mem() {
+            return;
+        }
+        let buf = device.buffer([1, 2, 4, 5, 6, 7]);
+        let out = device.apply_fn(&buf, |x| x.add(3));
+        assert_eq!(out.read(), [4, 5, 7, 8, 9, 10]);
+
+        for _ in 0..100 {
+            let out = device.apply_fn(&buf, |x| x.add(3));
+            let gpu_or_cpu = device.modules.gpu_or_cpu.borrow();
+            let (_, operations) = gpu_or_cpu.iter().next().unwrap();
+            assert_eq!(operations.len(), 2);
+            let analyzations = operations.iter().cloned().collect::<Vec<Analyzation>>();
+            assert_eq!(&analyzations[0].input_lengths, &[6]);
         }
     }
 }
