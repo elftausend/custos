@@ -106,8 +106,10 @@ pub fn allocate_descriptor_set(
     Ok(unsafe { device.allocate_descriptor_sets(&descriptor_set_allocate_info) }?[0])
 }
 
+#[derive(Debug, Clone, Copy)]
 pub struct Operation {
     pipeline: Pipeline,
+    shader_module: ShaderModule,
     pipeline_layout: PipelineLayout,
     descriptor_pool: DescriptorPool,
     descriptor_set: DescriptorSet,
@@ -134,6 +136,7 @@ impl Operation {
 
         Operation {
             pipeline,
+            shader_module,
             pipeline_layout,
             descriptor_pool,
             descriptor_set,
@@ -141,17 +144,29 @@ impl Operation {
     }
 }
 
-// combine with other Caches 
+// combine with other Caches
 pub struct ShaderCache {
-    // use hash directly (prevent str->String?) => Use NoHasher
-    cache: HashMap<String, Operation>    
+    // use hash directly (prevent &str->String?) => Use NoHasher
+    cache: HashMap<String, Operation>,
 }
 
 impl ShaderCache {
-    pub fn add(&mut self, device: &Device, src: impl AsRef<str>, args: &[DescriptorType]) {
+    pub fn add(
+        &mut self,
+        device: &Device,
+        src: impl AsRef<str>,
+        args: &[DescriptorType],
+    ) -> Operation {
         let src = src.as_ref();
         let operation = Operation::new(device, src, args);
         self.cache.insert(src.to_string(), operation);
+        operation
+    }
+    pub fn get(&mut self, device: &Device, src: impl AsRef<str>, args: &[DescriptorType]) -> Operation {
+        match self.cache.get(src.as_ref()) {
+            Some(operation) => *operation,
+            None => self.add(device, src, args)
+        }
     }
 }
 

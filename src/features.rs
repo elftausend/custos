@@ -1,11 +1,11 @@
 use core::any::Any;
 
-#[cfg(feature = "cached")] 
+#[cfg(feature = "cached")]
 use core::cell::{Ref, RefMut};
 
 use crate::{Parents, Shape, CPU};
 
-#[cfg(feature = "cached")] 
+#[cfg(feature = "cached")]
 use crate::{Base, CachedModule};
 
 use super::{Alloc, Buffer, Device, OnDropBuffer};
@@ -109,10 +109,10 @@ pub trait HasCPU<Mods> {
     fn cpu(&self) -> &CPU<Mods>;
 }
 
-#[cfg(feature = "cached")] 
+#[cfg(feature = "cached")]
 pub type CachedCPU = CPU<CachedModule<Base, CPU>>;
 
-#[cfg(feature = "cached")] 
+#[cfg(feature = "cached")]
 pub trait UnifiedMemChain<D: Device> {
     #[track_caller]
     fn construct_unified_buf_from_cpu_buf<'a, T, S: Shape>(
@@ -122,7 +122,7 @@ pub trait UnifiedMemChain<D: Device> {
     ) -> crate::Result<Buffer<'a, T, D, S>>;
 }
 
-#[cfg(feature = "cached")] 
+#[cfg(feature = "cached")]
 #[macro_export]
 macro_rules! impl_unified_mem_chain {
     ($($to_impl:ident),*) => {
@@ -148,7 +148,7 @@ use crate::Autograd;
 use crate::Lazy;
 
 #[cfg(feature = "lazy")]
-#[cfg(feature = "cached")] 
+#[cfg(feature = "cached")]
 impl_unified_mem_chain!(Lazy);
 
 #[cfg(feature = "autograd")]
