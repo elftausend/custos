@@ -3,7 +3,7 @@ use std::collections::HashMap;
 
 use crate::{
     AddOperation, Alloc, Buffer, Device, HasId, Id, Module, NoHasher, OnDropBuffer, OnNewBuffer,
-    Operation, Parents, PtrConv, Retrieve, Run, Setup, Shape, TapeActions, UniqueId,
+    Operation, Parents, PtrConv, Retrieve, Setup, Shape, UniqueId, Run,
 };
 
 use super::register_buf;
@@ -115,7 +115,8 @@ impl<T: 'static, D: Device + PtrConv + 'static, S: Shape, Mods: OnNewBuffer<T, D
     }
 }
 
-impl<Mods: TapeActions> TapeActions for Lazy<Mods> {
+#[cfg(feature = "autograd")]
+impl<Mods: crate::TapeActions> crate::TapeActions for Lazy<Mods> {
     #[inline]
     fn tape(&self) -> Option<core::cell::Ref<super::Tape>> {
         self.modules.tape()

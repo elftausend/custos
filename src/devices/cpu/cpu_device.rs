@@ -3,7 +3,7 @@ use core::convert::Infallible;
 use crate::{
     cpu::CPUPtr, flag::AllocFlag, impl_buffer_hook_traits, impl_retriever, Alloc, Base, Buffer,
     CloneBuf, Device, DevicelessAble, HasModules, MainMemory, Module, OnDropBuffer, OnNewBuffer,
-    Setup, Shape, TapeActions,
+    Setup, Shape,
 };
 
 pub trait IsCPU {}
@@ -119,7 +119,8 @@ impl<T, Mods: OnDropBuffer> Alloc<T> for CPU<Mods> {
     }
 }
 
-impl<Mods: TapeActions> TapeActions for CPU<Mods> {
+#[cfg(feature = "autograd")]
+impl<Mods: crate::TapeActions> crate::TapeActions for CPU<Mods> {
     #[inline]
     fn tape(&self) -> Option<core::cell::Ref<crate::Tape>> {
         self.modules.tape()

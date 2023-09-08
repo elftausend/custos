@@ -89,7 +89,6 @@ pub mod devices;
 mod buffer;
 mod error;
 
-#[cfg(feature = "cached")]
 mod cache;
 
 mod device_traits;
@@ -106,7 +105,6 @@ mod shape;
 mod two_way_ops;
 mod unary;
 
-#[cfg(feature = "cached")]
 pub use cache::*;
 pub use device_traits::*;
 pub use features::*;

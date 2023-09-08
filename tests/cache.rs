@@ -24,7 +24,7 @@ fn cached_add<'a, Mods: custos::Retrieve<CPU<Mods>, f32>>(
 }
 
 #[cfg(feature = "cpu")]
-#[cfg(not(feature = "realloc"))]
+#[cfg(feature = "cached")]
 #[test]
 fn test_caching_cpu() {
     use custos::{Base, Cached};
