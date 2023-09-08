@@ -116,7 +116,7 @@ impl<T: 'static, D: Device + PtrConv + 'static, S: Shape, Mods: OnNewBuffer<T, D
 }
 
 #[cfg(feature = "autograd")]
-impl<Mods: TapeActions> crate::TapeActions for Lazy<Mods> {
+impl<Mods: crate::TapeActions> crate::TapeActions for Lazy<Mods> {
     #[inline]
     fn tape(&self) -> Option<core::cell::Ref<super::Tape>> {
         self.modules.tape()

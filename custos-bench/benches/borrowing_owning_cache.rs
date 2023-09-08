@@ -1,4 +1,4 @@
-use std::hint::black_box;
+/*use std::hint::black_box;
 
 use criterion::{criterion_group, criterion_main, Criterion};
 use custos::{CPU, Ident};
@@ -24,7 +24,7 @@ fn bench_cache_types(c: &mut Criterion) {
                 len: 1,
             }));
         }
-        
+
     }));
 
     group.bench_function("bench_owning_cache", |bench| bench.iter(|| {
@@ -34,9 +34,11 @@ fn bench_cache_types(c: &mut Criterion) {
                 len: 1,
             },  (), || ()));
         }
-        
+
     }));
 }
 
 criterion_group!(benches, bench_cache_types);
 criterion_main!(benches);
+*/
+fn main() {}

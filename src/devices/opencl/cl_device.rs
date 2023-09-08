@@ -17,6 +17,9 @@ use std::{cell::RefCell, fmt::Debug};
 #[cfg(unified_cl)]
 use min_cl::api::unified_ptr;
 
+#[cfg(feature = "fork")]
+use crate::{ForkSetup, GpuOrCpuInfo, HashLocation, UseGpuOrCpu};
+
 /// Used to perform calculations with an OpenCL capable device.
 /// To make new calculations invocable, a trait providing new operations should be implemented for [OpenCL].
 /// # Example
@@ -67,12 +70,14 @@ impl<SimpleMods> OpenCL<SimpleMods> {
         NewMods: Setup<OpenCL<NewMods>>,
     {
         let inner = CLDevice::new(device_idx)?;
-        Ok(OpenCL {
+        let mut opencl = OpenCL {
             modules: SimpleMods::new(),
             inner,
             kernel_cache: Default::default(),
             cpu: CPU::<Cached<Base>>::new(),
-        })
+        };
+        NewMods::setup(&mut opencl);
+        Ok(opencl)
     }
 
     /// Returns the fastest [OpenCL] device available in your system.
@@ -83,12 +88,14 @@ impl<SimpleMods> OpenCL<SimpleMods> {
         NewMods: Setup<OpenCL<NewMods>>,
     {
         let inner = CLDevice::fastest()?;
-        Ok(OpenCL {
+        let mut opencl = OpenCL {
             modules: SimpleMods::new(),
             inner,
             kernel_cache: Default::default(),
             cpu: CPU::<Cached<Base>>::new(),
-        })
+        };
+        NewMods::setup(&mut opencl);
+        Ok(opencl)
     }
 }
 
@@ -251,11 +258,11 @@ impl<Mods: OnDropBuffer, T> Alloc<T> for OpenCL<Mods> {
 
         let ptr = create_buffer::<T>(self.ctx(), MemFlags::MemReadWrite as u64, len, None).unwrap();
 
-        #[cfg(unified_cl)]
-        let host_ptr = unified_ptr::<T>(self.queue(), ptr, len).unwrap();
-
-        #[cfg(not(unified_cl))]
-        let host_ptr = std::ptr::null_mut();
+        let host_ptr = if self.unified_mem() {
+            unified_ptr::<T>(self.queue(), ptr, len).unwrap()
+        } else {
+            std::ptr::null_mut()
+        };
 
         CLPtr {
             ptr,
@@ -274,11 +281,11 @@ impl<Mods: OnDropBuffer, T> Alloc<T> for OpenCL<Mods> {
         )
         .unwrap();
 
-        #[cfg(unified_cl)]
-        let host_ptr = unified_ptr::<T>(self.queue(), ptr, data.len()).unwrap();
-
-        #[cfg(not(unified_cl))]
-        let host_ptr = std::ptr::null_mut();
+        let host_ptr = if self.unified_mem() {
+            unified_ptr::<T>(self.queue(), ptr, data.len()).unwrap()
+        } else {
+            std::ptr::null_mut()
+        };
 
         CLPtr {
             ptr,
@@ -311,7 +318,32 @@ impl<Mods: OnDropBuffer> crate::MainMemory for OpenCL<Mods> {
     }
 }
 
-#[cfg(feature = "cached")]
+#[cfg(feature = "fork")]
+impl<Mods> ForkSetup for OpenCL<Mods> {
+    #[inline]
+    fn fork_setup(&mut self) {
+        assert!(
+            self.unified_mem(),
+            "The selected device does not support unified memory."
+        )
+    }
+}
+
+#[cfg(feature = "fork")]
+impl<Mods: UseGpuOrCpu> UseGpuOrCpu for OpenCL<Mods> {
+    #[inline]
+    fn use_cpu_or_gpu(
+        &self,
+        location: HashLocation<'static>,
+        input_lengths: &[usize],
+        cpu_op: impl FnMut(),
+        gpu_op: impl FnMut(),
+    ) -> GpuOrCpuInfo {
+        self.modules
+            .use_cpu_or_gpu(location, input_lengths, cpu_op, gpu_op)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::{opencl::cl_device::CLDevice, Base, Buffer, Cached, OpenCL, CPU};

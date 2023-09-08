@@ -1,7 +1,4 @@
-use custos::{
-    prelude::Number,
-    Buffer, CDatatype, OnDropBuffer, Shape, CUDA, cuda::launch_kernel,
-};
+use custos::{cuda::launch_kernel, prelude::Number, Buffer, CDatatype, OnDropBuffer, Shape, CUDA};
 
 pub fn cu_element_wise<Mods: OnDropBuffer, T: Number, S: Shape>(
     device: &CUDA<Mods>,
@@ -26,12 +23,19 @@ where
         datatype = T::C_DTYPE_STR
     );
 
-    launch_kernel(&device, [lhs.len() as u32 / 32, 1, 1], [32, 1, 1], 0, &src, "cu_ew", &[lhs, rhs, out, &lhs.len()])
+    launch_kernel(
+        &device,
+        [lhs.len() as u32 / 32, 1, 1],
+        [32, 1, 1],
+        0,
+        &src,
+        "cu_ew",
+        &[lhs, rhs, out, &lhs.len()],
+    )
     // device.launch_kernel1d(lhs.len(), src, "cu_ew", &[lhs, rhs, out, &lhs.len()])
 }
 mod tests {
-    use custos::{CUDA, Base, prelude::{chosen_cu_idx}, Buffer, Retriever};
-
+    use custos::{prelude::chosen_cu_idx, Base, Buffer, Retriever, CUDA};
 
     const SIZE: usize = 655360;
     const TIMES: usize = 100;

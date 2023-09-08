@@ -120,7 +120,7 @@ impl<T, Mods: OnDropBuffer> Alloc<T> for CPU<Mods> {
 }
 
 #[cfg(feature = "autograd")]
-impl<Mods: TapeActions> crate::TapeActions for CPU<Mods> {
+impl<Mods: crate::TapeActions> crate::TapeActions for CPU<Mods> {
     #[inline]
     fn tape(&self) -> Option<core::cell::Ref<crate::Tape>> {
         self.modules.tape()
@@ -134,6 +134,9 @@ impl<Mods: TapeActions> crate::TapeActions for CPU<Mods> {
 
 #[cfg(feature = "lazy")]
 impl<Mods> crate::LazySetup for CPU<Mods> {}
+
+#[cfg(feature = "fork")]
+impl<Mods> crate::ForkSetup for CPU<Mods> {}
 
 impl<'a, Mods: OnDropBuffer + OnNewBuffer<T, Self, S>, T: Clone, S: Shape> CloneBuf<'a, T, S>
     for CPU<Mods>

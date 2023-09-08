@@ -464,7 +464,7 @@ impl Number for half::f16 {
     }
 
     #[inline]
-    fn from_u64(value: u64) -> Self { 
+    fn from_u64(value: u64) -> Self {
         half::f16::from_f32(value as f32)
     }
 
@@ -492,7 +492,7 @@ impl Number for half::bf16 {
     }
 
     #[inline]
-    fn from_u64(value: u64) -> Self { 
+    fn from_u64(value: u64) -> Self {
         half::bf16::from_f32(value as f32)
     }
 
@@ -540,12 +540,12 @@ impl Float for half::f16 {
     }
 
     #[inline]
-    fn cos(&self) -> Self { 
+    fn cos(&self) -> Self {
         Self::from_f32(self.to_f32().cos())
     }
 
     #[inline]
-    fn tan(&self) -> Self {    
+    fn tan(&self) -> Self {
         Self::from_f32(self.to_f32().cos())
     }
 
@@ -603,12 +603,12 @@ impl Float for half::bf16 {
     }
 
     #[inline]
-    fn cos(&self) -> Self { 
+    fn cos(&self) -> Self {
         Self::from_f32(self.to_f32().cos())
     }
 
     #[inline]
-    fn tan(&self) -> Self {    
+    fn tan(&self) -> Self {
         Self::from_f32(self.to_f32().cos())
     }
 

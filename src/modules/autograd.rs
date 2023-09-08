@@ -4,17 +4,12 @@ mod tape;
 pub use gradients::*;
 pub use tape::*;
 
-use core::{
-    any::Any,
-    cell::{Ref, RefCell, RefMut},
-    hash::BuildHasher,
-    mem::transmute,
-};
-use std::collections::HashMap;
+use core::cell::{Ref, RefCell, RefMut};
+
 
 use crate::{
-    flag::AllocFlag, prelude::One, Alloc, Buffer, Device, HasId, Id, Module, OnDropBuffer,
-    OnNewBuffer, Parents, PtrConv, Retrieve, Setup, Shape, TapeActions, UniqueId, WriteBuf,
+    prelude::One, Alloc, Buffer, Device, HasId, Module, OnDropBuffer,
+    OnNewBuffer, Parents, PtrConv, Retrieve, Setup, Shape, TapeActions, WriteBuf, unregister_buf, register_buf,
 };
 
 use super::{Cached, CachedModule};
