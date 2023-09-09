@@ -8,7 +8,7 @@ use ash::{
     Device, Entry,
 };
 
-use super::list_compute_devices;
+use super::{list_compute_devices, shader::{create_command_buffer, create_command_pool}};
 
 pub struct Context {
     pub physical_device: PhysicalDevice,
@@ -49,20 +49,8 @@ impl Context {
 
         let device_props = unsafe { instance.get_physical_device_properties(physical_device) };
 
-        let command_pool_create_info = vk::CommandPoolCreateInfo {
-            queue_family_index: compute_family_idx as u32,
-            ..Default::default()
-        };
-        let command_pool =
-            unsafe { logical_device.create_command_pool(&command_pool_create_info, None) }?;
-        let command_buffer_allocate_info = vk::CommandBufferAllocateInfo {
-            command_pool,
-            level: vk::CommandBufferLevel::PRIMARY,
-            command_buffer_count: 1,
-            ..Default::default()
-        };
-        let command_buffer =
-            unsafe { logical_device.allocate_command_buffers(&command_buffer_allocate_info) }?[0];
+        let command_pool = create_command_pool(&logical_device, compute_family_idx)?;
+        let command_buffer = create_command_buffer(&logical_device, command_pool)?;
 
         let memory_properties =
             unsafe { instance.get_physical_device_memory_properties(physical_device) };

@@ -3,6 +3,8 @@ mod descriptor;
 mod command;
 
 use operation::Operation;
+pub use descriptor::*;
+pub use command::*;
 
 use core::ffi::CStr;
 use std::collections::HashMap;
@@ -90,10 +92,6 @@ impl ShaderCache {
     }
 }
 
-pub fn create_command_pool() {
-
-}
-
 pub fn luanch_shader2(
     device: &Device,
     gws: [u32; 3],
@@ -166,3 +164,11 @@ pub fn luanch_shader2(
 pub fn cached_operation() {}
 
 pub fn launch_shader(device: &Device, shader: &ShaderModule) {}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn test_launch_shader() {
+
+    }
+}
