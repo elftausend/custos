@@ -20,10 +20,8 @@ pub fn create_descriptor_set_layout_from_desc_types(
         )
         .collect::<Vec<_>>();
 
-    let descriptor_set_layout_create_info = vk::DescriptorSetLayoutCreateInfo {
-        p_bindings: descriptor_set_layout_bindings.as_ptr(),
-        ..Default::default()
-    };
+    let descriptor_set_layout_create_info =
+        vk::DescriptorSetLayoutCreateInfo::builder().bindings(&descriptor_set_layout_bindings);
 
     unsafe { device.create_descriptor_set_layout(&descriptor_set_layout_create_info, None) }
 }

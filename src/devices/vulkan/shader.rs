@@ -18,13 +18,10 @@ use ash::{
     Device,
 };
 
-pub fn create_shader_module(device: &Device, code: &[u8]) -> VkResult<ShaderModule> {
+pub fn create_shader_module(device: &Device, code: &[u32]) -> VkResult<ShaderModule> {
     unsafe {
-        let shader_module_create_info = vk::ShaderModuleCreateInfo {
-            code_size: code.len(),
-            p_code: code.as_ptr() as _,
-            ..Default::default()
-        };
+        let shader_module_create_info = vk::ShaderModuleCreateInfo::builder().code(code);
+        
         device.create_shader_module(&shader_module_create_info, None)
     }
 }
@@ -55,7 +52,7 @@ pub fn create_pipeline(
 
     let pipeline = unsafe {
         // use pipeline cache from context??
-        device.create_compute_pipelines(PipelineCache::null(), &[pipeline_create_info], None)
+        device.create_compute_pipelines(PipelineCache::null(), core::slice::from_ref(&pipeline_create_info), None)
     }
     .map_err(|(_, err)| err)?[0];
     Ok((pipeline, pipeline_layout))
@@ -110,6 +107,8 @@ pub fn launch_shader2(
             .map(|_| DescriptorType::STORAGE_BUFFER)
             .collect::<Vec<_>>(),
     );
+    println!("operation");
+
     let descriptor_infos = args
         .iter()
         .copied()
@@ -139,6 +138,9 @@ pub fn launch_shader2(
         flags: vk::CommandBufferUsageFlags::ONE_TIME_SUBMIT,
         ..Default::default()
     };
+
+    println!("update desc sets");
+
     unsafe { device.begin_command_buffer(command_buffer, &command_buffer_begin_info) }.unwrap();
     unsafe { device.cmd_bind_pipeline(command_buffer, vk::PipelineBindPoint::COMPUTE, operation.pipeline) };
     unsafe {
@@ -151,6 +153,7 @@ pub fn launch_shader2(
             &[],
         )
     };
+    println!("stuff");
     unsafe { device.cmd_dispatch(command_buffer, gws[0], gws[1], gws[2]) };
     unsafe { device.end_command_buffer(command_buffer) }.unwrap();
     let queue = unsafe { device.get_device_queue(compute_family_idx as u32, 0) };
@@ -159,6 +162,7 @@ pub fn launch_shader2(
     
     unsafe { device.queue_submit(queue, core::slice::from_ref(&submit_info), Fence::null()) }
         .unwrap();
+    println!("submit");
     unsafe { device.device_wait_idle() }.unwrap();
 }
 pub fn cached_operation() {}
@@ -169,14 +173,16 @@ pub fn launch_shader(device: &Device, shader: &ShaderModule) {}
 mod tests {
     use std::rc::Rc;
 
-    use crate::vulkan::{context::Context, vk_array::{create_buffer, VkArray}};
+    use ash::vk::DescriptorType;
+
+    use crate::vulkan::{context::Context, vk_array::VkArray, shader::operation::Operation};
 
     use super::{launch_shader2, ShaderCache};
 
     #[test]
     fn test_launch_shader() {
         let context = Rc::new(Context::new(0).unwrap());
-        let mut shdaer_cache = ShaderCache::default();
+        let mut shader_cache = ShaderCache::default();
 
 
         let src = "@group(0)
@@ -203,14 +209,16 @@ mod tests {
             }
         ";
 
+        // Operation::new(&context, src, &[DescriptorType::STORAGE_BUFFER,DescriptorType::STORAGE_BUFFER,DescriptorType::STORAGE_BUFFER]);
+        
         let lhs = VkArray::from_slice(context.clone(), &[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]).unwrap();
         let rhs = VkArray::from_slice(context.clone(), &[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]).unwrap();
         let out = VkArray::<i32>::new(context.clone(), 10).unwrap();
-
+        println!("launch shader");
         launch_shader2(
             &context.logical_device,
            [1000 / 32, 1, 1],
-            &mut shdaer_cache,
+            &mut shader_cache,
             context.command_buffer,
             context.compute_family_idx,
             &src,

@@ -20,7 +20,7 @@ impl Operation {
         descriptor_types: &[DescriptorType],
     ) -> Self {
         let spirv = Spirv::from_wgsl(wgsl).unwrap();
-        let shader_module = create_shader_module(device, spirv.as_byte_slice()).unwrap();
+        let shader_module = create_shader_module(device, spirv.as_slice()).unwrap();
         let descriptor_set_layout =
             create_descriptor_set_layout_from_desc_types(device, descriptor_types).unwrap();
         let (pipeline, pipeline_layout) =

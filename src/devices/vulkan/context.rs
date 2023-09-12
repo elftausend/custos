@@ -1,4 +1,4 @@
-use core::ops::Deref;
+use core::{ops::Deref, ffi::{CStr, c_char}};
 
 use ash::{
     vk::{
@@ -25,7 +25,17 @@ impl Context {
         let entry = unsafe { Entry::load()? };
         let app_info = vk::ApplicationInfo::default();
 
+        let layer_names = unsafe { [CStr::from_bytes_with_nul_unchecked(
+            b"VK_LAYER_KHRONOS_validation\0",
+        )] };
+
+        let layers_names_raw: Vec<*const c_char> = layer_names
+            .iter()
+            .map(|raw_name| raw_name.as_ptr())
+            .collect();
+
         let instance_info = InstanceCreateInfo::builder()
+            .enabled_layer_names(&layers_names_raw)
             .application_info(&app_info)
             .build();
         let instance = unsafe { entry.create_instance(&instance_info, None).unwrap() };

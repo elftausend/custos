@@ -18,6 +18,11 @@ impl Spirv {
     }
 
     #[inline]
+    pub fn as_slice(&self) -> &[u32] {
+        &self.words
+    }
+
+    #[inline]
     pub fn as_byte_slice(&self) -> &[u8] {
         unsafe {
             std::slice::from_raw_parts(
