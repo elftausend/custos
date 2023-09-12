@@ -62,6 +62,7 @@ pub fn create_pipeline(
 }
 
 // combine with other Caches
+#[derive(Debug, Default, Clone)]
 pub struct ShaderCache {
     // use hash directly (prevent &str->String?) => Use NoHasher
     cache: HashMap<String, Operation>,
@@ -92,7 +93,7 @@ impl ShaderCache {
     }
 }
 
-pub fn luanch_shader2(
+pub fn launch_shader2(
     device: &Device,
     gws: [u32; 3],
     shader_cache: &mut ShaderCache,
@@ -131,8 +132,8 @@ pub fn luanch_shader2(
                 .build()
         })
         .collect::<Vec<_>>();
-    unsafe { device.update_descriptor_sets(&write_descriptor_sets, &[]) }
 
+    unsafe { device.update_descriptor_sets(&write_descriptor_sets, &[]) }
 
     let command_buffer_begin_info = vk::CommandBufferBeginInfo {
         flags: vk::CommandBufferUsageFlags::ONE_TIME_SUBMIT,
@@ -155,7 +156,6 @@ pub fn luanch_shader2(
     let queue = unsafe { device.get_device_queue(compute_family_idx as u32, 0) };
     let submit_info =
         vk::SubmitInfo::builder().command_buffers(core::slice::from_ref(&command_buffer));
-
     
     unsafe { device.queue_submit(queue, core::slice::from_ref(&submit_info), Fence::null()) }
         .unwrap();
@@ -167,8 +167,54 @@ pub fn launch_shader(device: &Device, shader: &ShaderModule) {}
 
 #[cfg(test)]
 mod tests {
+    use std::rc::Rc;
+
+    use crate::vulkan::{context::Context, vk_array::{create_buffer, VkArray}};
+
+    use super::{launch_shader2, ShaderCache};
+
     #[test]
     fn test_launch_shader() {
+        let context = Rc::new(Context::new(0).unwrap());
+        let mut shdaer_cache = ShaderCache::default();
 
+
+        let src = "@group(0)
+            @binding(0)
+            var<storage, read_write> a: array<f32>;
+            
+            @group(0)
+            @binding(1)
+            var<storage, read_write> b: array<f32>;
+    
+            @group(0)
+            @binding(2)
+            var<storage, read_write> out: array<f32>;
+            
+            
+            @compute
+            @workgroup_size(32)
+            fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
+                if global_id.x >= arrayLength(&out) {
+                    return;    
+                }
+                out[global_id.x] = a[global_id.x] + b[global_id.x];
+                // a[global_id.x] = f32(global_id.x);
+            }
+        ";
+
+        let lhs = VkArray::from_slice(context.clone(), &[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]).unwrap();
+        let rhs = VkArray::from_slice(context.clone(), &[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]).unwrap();
+        let out = VkArray::<i32>::new(context.clone(), 10).unwrap();
+
+        launch_shader2(
+            &context.logical_device,
+           [1000 / 32, 1, 1],
+            &mut shdaer_cache,
+            context.command_buffer,
+            context.compute_family_idx,
+            &src,
+            &[lhs.buf, rhs.buf, out.buf]
+        );
     }
 }

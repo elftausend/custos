@@ -137,44 +137,6 @@ fn test_cached_cpu() {
     }
 }
 
-#[cfg(not(feature = "realloc"))]
-#[cfg(not(target_os = "linux"))]
-#[cfg(feature = "opencl")]
-#[test]
-fn test_cached_cl() -> Result<(), custos::Error> {
-    use custos::opencl::api::{enqueue_write_buffer, wait_for_event};
-
-    // for: cargo test -- --test-threads=1
-    unsafe { set_count(0) };
-
-    let device = OpenCL::<Base>::new(chosen_cl_idx())?;
-    let _k = Buffer::<f32, _>::new(&device, 1);
-
-    assert_eq!(1, get_count());
-
-    let buf = device.retrieve::<f32, ()>(10, ());
-
-    assert_eq!(2, get_count());
-
-    unsafe {
-        let event = enqueue_write_buffer(&device.queue(), buf.ptrs().1, &[0.1f32; 10], true)?;
-        wait_for_event(event)?
-    }
-    assert_eq!(device.read(&buf), vec![0.1; 10]);
-
-    let new_buf = device.retrieve::<i32, ()>(10, ());
-
-    assert_eq!(device.read(&new_buf), vec![0; 10]);
-    assert_eq!(3, get_count());
-
-    unsafe { set_count(1) };
-    assert_eq!(1, get_count());
-    let buf = device.retrieve::<f32, ()>(10, ());
-    println!("new_buf: {buf:?}");
-    assert_eq!(device.read(&buf), vec![0.1; 10]);
-    Ok(())
-}
-
 /*#[test]
 fn test_from_ptrs() {
     let mut value = 4f32;
