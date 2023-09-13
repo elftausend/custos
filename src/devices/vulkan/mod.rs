@@ -11,6 +11,7 @@ mod vulkan_device;
 pub use context::*;
 pub use vk_array::*;
 pub use shader::*;
+pub use vulkan_device::*;
 
 pub fn list_compute_devices(instance: &Instance) -> Vec<(PhysicalDevice, usize)> {
     let physical_device = unsafe { instance.enumerate_physical_devices().unwrap() };
