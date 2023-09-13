@@ -1,5 +1,5 @@
 use super::{context::Context, VkArray};
-use crate::{Shape, Buffer, Base, Module, Setup, Alloc, Device, OnDropBuffer, impl_retriever, impl_buffer_hook_traits};
+use crate::{Shape, Buffer, Base, Module, Setup, Alloc, Device, OnDropBuffer, impl_retriever, impl_buffer_hook_traits, MainMemory};
 use std::rc::Rc;
 
 pub struct Vulkan<Mods = Base> {
@@ -51,6 +51,18 @@ impl<Mods: OnDropBuffer, T> Alloc<T> for Vulkan<Mods> {
         T: Clone 
     { 
         VkArray::from_slice(self.context(), data, crate::flag::AllocFlag::None).expect("Could not create VkArray")
+    }
+}
+
+impl<Mods: OnDropBuffer> MainMemory for Vulkan<Mods> {
+    #[inline]
+    fn as_ptr<T, S: Shape>(ptr: &Self::Data<T, S>) -> *const T {
+        ptr.mapped_ptr
+    }
+
+    #[inline]
+    fn as_ptr_mut<T, S: Shape>(ptr: &mut Self::Data<T, S>) -> *mut T {
+        ptr.mapped_ptr
     }
 }
 
