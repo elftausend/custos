@@ -130,11 +130,7 @@ mod tests {
 
     use super::Vulkan;
 
-    #[test]
-    fn test_running_compute_shader_with_vulkan_device() {
-        let device = Vulkan::<Base>::new(0).unwrap();
-
-        let buf = device.buffer([1, 2, 3, 4, 5, 9, 2, 3, 4, 3, 2]);
+    pub fn add_one<Mods>(device: &Vulkan<Mods>, buf: ash::vk::Buffer) {
         let src = "
             @group(0)
             @binding(0)
@@ -142,13 +138,63 @@ mod tests {
 
             @compute
             @workgroup_size(32)
-            fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
+            fn main(@builtin(global_invocation_id) global_id: vec3<u32>) { 
+                if global_id.x >= arrayLength(&out) {
+                    return;    
+                }
                 out[global_id.x] += 1;
             }
         ";
 
         device
-            .launch_shader([1, 1, 1], src, &[buf.data.buf])
+            .launch_shader([1, 1, 1], src, &[buf])
             .unwrap();
+    }
+
+    #[test]
+    fn test_running_compute_shader_with_vulkan_device() {
+        let device = Vulkan::<Base>::new(0).unwrap();
+
+        let buf = device.buffer([1, 2, 3, 4, 5, 9, 2, 3, 4, 3, 2]);
+        add_one(&device, buf.data.buf);
+        assert_eq!(buf.as_slice(), [2, 3, 4, 5, 6, 10, 3, 4, 5, 4, 3])
+    }
+
+    #[test]
+    fn test_using_multiple_compute_shaders() {
+        let device = Vulkan::<Base>::new(0).unwrap();
+
+        let buf = device.buffer([1, 2, 3, 4, 5, 9, 2, 3, 4, 3, 2]);
+        add_one(&device, buf.data.buf);
+        assert_eq!(buf.as_slice(), [2, 3, 4, 5, 6, 10, 3, 4, 5, 4, 3]);
+
+        let lhs = device.buffer([2; 11]);
+        let rhs = device.buffer([2; 11]);
+       
+        let src = "@group(0)
+            @binding(0)
+            var<storage, read_write> a: array<f32>;
+            
+            @group(0)
+            @binding(1)
+            var<storage, read_write> b: array<f32>;
+    
+            @group(0)
+            @binding(2)
+            var<storage, read_write> out: array<f32>;
+            
+            @compute
+            @workgroup_size(32)
+            fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
+                if global_id.x >= arrayLength(&out) {
+                    return;    
+                }
+                
+                out[global_id.x] = a[global_id.x] + b[global_id.x];
+            }
+        ";
+
+        device.launch_shader([1, 1, 1,], src, &[lhs.data.buf, rhs.data.buf, buf.data.buf]).unwrap();
+
     }
 }

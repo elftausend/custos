@@ -1,12 +1,13 @@
 use ash::{
     prelude::VkResult,
-    vk::{self, CommandBuffer, CommandPool},
+    vk::{self, CommandBuffer, CommandPool, CommandPoolCreateFlags},
     Device,
 };
 
 pub fn create_command_pool(device: &Device, compute_family_idx: usize) -> VkResult<CommandPool> {
     let command_pool_create_info = vk::CommandPoolCreateInfo {
         queue_family_index: compute_family_idx as u32,
+        flags: CommandPoolCreateFlags::RESET_COMMAND_BUFFER,
         ..Default::default()
     };
 

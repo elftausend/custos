@@ -183,6 +183,7 @@ pub fn launch_shader(
     unsafe { device.queue_submit(queue, core::slice::from_ref(&submit_info), Fence::null()) }?;
 
     unsafe { device.device_wait_idle() }?;
+    unsafe { device.reset_command_buffer(command_buffer, vk::CommandBufferResetFlags::empty()) }?;
     Ok(())
 }
 
@@ -245,7 +246,7 @@ mod tests {
             context.compute_family_idx,
             &src,
             &[lhs.buf, rhs.buf, out.buf], // &[out.buf, out2.buf]
-        );
+        ).unwrap();
 
         assert_eq!(lhs.as_slice(), [1., 2., 3., 4., 5., 6., 7., 8., 9., 10.]);
         assert_eq!(rhs.as_slice(), [1., 2., 3., 4., 5., 6., 7., 8., 9., 10.]);
@@ -268,7 +269,7 @@ mod tests {
                 context.compute_family_idx,
                 &src,
                 &[lhs.buf, rhs.buf, out.buf],
-            );
+            ).unwrap();
 
             assert_eq!(lhs.as_slice(), [1., 2., 3., 4., 5., 6., 7., 8., 9., 10.]);
             assert_eq!(rhs.as_slice(), [1., 2., 3., 4., 5., 6., 7., 8., 9., 10.]);
