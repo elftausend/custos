@@ -1,4 +1,4 @@
-use core::{mem::size_of_val, str::FromStr};
+use core::{fmt::Display, mem::size_of_val, str::FromStr};
 
 use naga::{
     back::spv::{Options, PipelineOptions},
@@ -85,3 +85,16 @@ impl FromStr for Spirv {
         Spirv::from_wgsl(s)
     }
 }
+
+impl Display for TranslateError {
+    #[inline]
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        match self {
+            TranslateError::Validate(validation_err) => validation_err.fmt(f),
+            TranslateError::Frontend(frontend_err) => frontend_err.fmt(f),
+            TranslateError::Backend(backend_err) => backend_err.fmt(f),
+        }
+    }
+}
+
+impl std::error::Error for TranslateError {}

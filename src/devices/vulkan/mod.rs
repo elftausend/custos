@@ -9,8 +9,8 @@ mod vk_array;
 mod vulkan_device;
 
 pub use context::*;
-pub use vk_array::*;
 pub use shader::*;
+pub use vk_array::*;
 pub use vulkan_device::*;
 
 pub fn list_compute_devices(instance: &Instance) -> Vec<(PhysicalDevice, usize)> {

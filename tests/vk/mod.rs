@@ -1,6 +1,11 @@
 mod with_custos_comps;
 
-use std::{ffi::{CStr, c_char}, mem::size_of_val, ptr, time::Instant};
+use std::{
+    ffi::{c_char, CStr},
+    mem::size_of_val,
+    ptr,
+    time::Instant,
+};
 
 use ash::{
     vk::{
@@ -30,9 +35,11 @@ fn test_vulkan_compute_with_wgsl_and_spirv() {
     let entry = unsafe { Entry::load().unwrap() };
     let app_info = vk::ApplicationInfo::default();
 
-    let layer_names = unsafe { [CStr::from_bytes_with_nul_unchecked(
-        b"VK_LAYER_KHRONOS_validation\0",
-    )] };
+    let layer_names = unsafe {
+        [CStr::from_bytes_with_nul_unchecked(
+            b"VK_LAYER_KHRONOS_validation\0",
+        )]
+    };
 
     let layers_names_raw: Vec<*const c_char> = layer_names
         .iter()
@@ -57,7 +64,7 @@ fn test_vulkan_compute_with_wgsl_and_spirv() {
             }
         }
     }
-    
+
     let queue_priorities = [1.0];
     let queue_info = vk::DeviceQueueCreateInfo::builder()
         .queue_family_index(device_with_queue_idx[0].1 as u32)

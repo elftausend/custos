@@ -1,4 +1,8 @@
-use ash::{Device, vk::{self, DescriptorSetLayout, DescriptorPool, DescriptorSet}, prelude::VkResult};
+use ash::{
+    prelude::VkResult,
+    vk::{self, DescriptorPool, DescriptorSet, DescriptorSetLayout},
+    Device,
+};
 
 // add dyn AsDescriptorType ..
 pub fn create_descriptor_set_layout_from_desc_types(

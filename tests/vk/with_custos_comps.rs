@@ -1,19 +1,35 @@
 use std::rc::Rc;
 
-use ash::vk::{DescriptorType, self, Fence};
-use custos::{vulkan::{Context, VkArray, Operation, create_descriptor_infos, create_write_descriptor_sets, ShaderCache}, wgsl::Spirv};
+use ash::vk::{self, DescriptorType, Fence};
+use custos::{
+    vulkan::{
+        create_descriptor_infos, create_write_descriptor_sets, Context, Operation, ShaderCache,
+        VkArray,
+    },
+    wgsl::Spirv,
+};
 
 #[test]
 fn test_with_custos_comps() {
     let context = Rc::new(Context::new(0).unwrap());
 
-    let lhs = VkArray::from_slice(context.clone(), &[1f32, 2., 3., 4., 5., 6., 7.,], custos::flag::AllocFlag::None).unwrap();
-    let rhs = VkArray::from_slice(context.clone(), &[1f32, 2., 3., 4., 5., 6., 7.,], custos::flag::AllocFlag::None).unwrap();
+    let lhs = VkArray::from_slice(
+        context.clone(),
+        &[1f32, 2., 3., 4., 5., 6., 7.],
+        custos::flag::AllocFlag::None,
+    )
+    .unwrap();
+    let rhs = VkArray::from_slice(
+        context.clone(),
+        &[1f32, 2., 3., 4., 5., 6., 7.],
+        custos::flag::AllocFlag::None,
+    )
+    .unwrap();
 
     let out = VkArray::<f32>::new(context.clone(), lhs.len, custos::flag::AllocFlag::None).unwrap();
 
     let mut shader_cache = ShaderCache::default();
-    
+
     let src = "@group(0)
             @binding(0)
             var<storage, read_write> a: array<f32>;
@@ -36,11 +52,20 @@ fn test_with_custos_comps() {
                 out[global_id.x] = a[global_id.x] + b[global_id.x];
             }
     ";
-    let operation = shader_cache.get(&context.device, src, &[DescriptorType::STORAGE_BUFFER, DescriptorType::STORAGE_BUFFER, DescriptorType::STORAGE_BUFFER]);
+    let operation = shader_cache.get(
+        &context.device,
+        src,
+        &[
+            DescriptorType::STORAGE_BUFFER,
+            DescriptorType::STORAGE_BUFFER,
+            DescriptorType::STORAGE_BUFFER,
+        ],
+    );
     // let operation = Operation::new(&context.device, &src, &[DescriptorType::STORAGE_BUFFER, DescriptorType::STORAGE_BUFFER, DescriptorType::STORAGE_BUFFER]);
-    
+
     let descriptor_infos = create_descriptor_infos(&[lhs.buf, rhs.buf, out.buf]);
-    let write_descriptor_sets = create_write_descriptor_sets(&descriptor_infos, operation.descriptor_set);
+    let write_descriptor_sets =
+        create_write_descriptor_sets(&descriptor_infos, operation.descriptor_set);
     /*let descriptor_buffer_info = [vk::DescriptorBufferInfo {
         buffer: lhs.buf,
         offset: 0,
@@ -89,7 +114,13 @@ fn test_with_custos_comps() {
         ..Default::default()
     };
     unsafe { device.begin_command_buffer(command_buffer, &command_buffer_begin_info) }.unwrap();
-    unsafe { device.cmd_bind_pipeline(command_buffer, vk::PipelineBindPoint::COMPUTE, operation.pipeline) };
+    unsafe {
+        device.cmd_bind_pipeline(
+            command_buffer,
+            vk::PipelineBindPoint::COMPUTE,
+            operation.pipeline,
+        )
+    };
     unsafe {
         device.cmd_bind_descriptor_sets(
             command_buffer,
@@ -111,6 +142,6 @@ fn test_with_custos_comps() {
     unsafe { device.queue_submit(queue, core::slice::from_ref(&submit_info), Fence::null()) }
         .unwrap();
     unsafe { device.device_wait_idle() }.unwrap();
-    
+
     println!("out: {:?}", out.as_slice());
 }

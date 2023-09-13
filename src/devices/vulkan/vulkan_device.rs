@@ -1,10 +1,15 @@
-use super::{context::Context, VkArray};
-use crate::{Shape, Buffer, Base, Module, Setup, Alloc, Device, OnDropBuffer, impl_retriever, impl_buffer_hook_traits, MainMemory, PtrConv, flag::AllocFlag};
+use super::{context::Context, launch_shader, ShaderCache, VkArray};
+use crate::{
+    flag::AllocFlag, impl_buffer_hook_traits, impl_retriever, Alloc, Base, Buffer, Device,
+    MainMemory, Module, OnDropBuffer, PtrConv, Setup, Shape,
+};
+use core::cell::RefCell;
 use std::rc::Rc;
 
 pub struct Vulkan<Mods = Base> {
     pub modules: Mods,
     pub context: Rc<Context>,
+    pub shader_cache: RefCell<ShaderCache>,
 }
 
 impl<SimpleMods> Vulkan<SimpleMods> {
@@ -17,6 +22,7 @@ impl<SimpleMods> Vulkan<SimpleMods> {
         let mut vulkan = Vulkan {
             modules: SimpleMods::new(),
             context: Rc::new(Context::new(idx)?),
+            shader_cache: Default::default(),
         };
         NewMods::setup(&mut vulkan);
         Ok(vulkan)
@@ -48,9 +54,10 @@ impl<Mods: OnDropBuffer, T> Alloc<T> for Vulkan<Mods> {
     #[inline]
     fn alloc_from_slice<S: Shape>(&self, data: &[T]) -> Self::Data<T, S>
     where
-        T: Clone 
-    { 
-        VkArray::from_slice(self.context(), data, crate::flag::AllocFlag::None).expect("Could not create VkArray")
+        T: Clone,
+    {
+        VkArray::from_slice(self.context(), data, crate::flag::AllocFlag::None)
+            .expect("Could not create VkArray")
     }
 }
 
@@ -97,9 +104,29 @@ impl<Mods: OnDropBuffer, OtherMods: OnDropBuffer> PtrConv<Vulkan<OtherMods>> for
     }
 }
 
+impl<Mods> Vulkan<Mods> {
+    #[inline]
+    pub fn launch_shader(
+        &self,
+        gws: [u32; 3],
+        src: impl AsRef<str>,
+        args: &[ash::vk::Buffer],
+    ) -> crate::Result<()> {
+        launch_shader(
+            &self.context.device,
+            gws,
+            &mut self.shader_cache.borrow_mut(),
+            self.context.command_buffer,
+            self.context.compute_family_idx,
+            src,
+            args,
+        )
+    }
+}
+
 #[cfg(test)]
 mod tests {
-    use crate::{Base, Buffer, Device};
+    use crate::{Base, Device};
 
     use super::Vulkan;
 
@@ -107,6 +134,21 @@ mod tests {
     fn test_running_compute_shader_with_vulkan_device() {
         let device = Vulkan::<Base>::new(0).unwrap();
 
-        let buf = device.buffer([1, 2, 3]);
+        let buf = device.buffer([1, 2, 3, 4, 5, 9, 2, 3, 4, 3, 2]);
+        let src = "
+            @group(0)
+            @binding(0)
+            var<storage, read_write> out: array<i32>;
+
+            @compute
+            @workgroup_size(32)
+            fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
+                out[global_id.x] += 1;
+            }
+        ";
+
+        device
+            .launch_shader([1, 1, 1], src, &[buf.data.buf])
+            .unwrap();
     }
 }

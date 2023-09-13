@@ -1,9 +1,12 @@
-use core::{convert::Infallible, mem::{align_of, size_of}};
+use core::{
+    convert::Infallible,
+    mem::{align_of, size_of},
+};
 
 use crate::{
     cpu::CPUPtr, flag::AllocFlag, impl_buffer_hook_traits, impl_retriever, Alloc, Base, Buffer,
     CloneBuf, Device, DevicelessAble, HasModules, MainMemory, Module, OnDropBuffer, OnNewBuffer,
-    Setup, Shape, PtrConv,
+    PtrConv, Setup, Shape,
 };
 
 pub trait IsCPU {}

@@ -1,4 +1,4 @@
-use core::ffi::{CStr, c_char};
+use core::ffi::{c_char, CStr};
 
 use ash::{
     vk::{
@@ -8,7 +8,10 @@ use ash::{
     Device, Entry,
 };
 
-use super::{list_compute_devices, shader::{create_command_buffer, create_command_pool}};
+use super::{
+    list_compute_devices,
+    shader::{create_command_buffer, create_command_pool},
+};
 
 pub struct Context {
     pub physical_device: PhysicalDevice,
@@ -27,9 +30,11 @@ impl Context {
         let entry = unsafe { Entry::load()? };
         let app_info = vk::ApplicationInfo::default();
 
-        let layer_names = unsafe { [CStr::from_bytes_with_nul_unchecked(
-            b"VK_LAYER_KHRONOS_validation\0",
-        )] };
+        let layer_names = unsafe {
+            [CStr::from_bytes_with_nul_unchecked(
+                b"VK_LAYER_KHRONOS_validation\0",
+            )]
+        };
 
         let layers_names_raw: Vec<*const c_char> = layer_names
             .iter()
@@ -82,6 +87,6 @@ impl Context {
 impl Drop for Context {
     #[inline]
     fn drop(&mut self) {
-        unsafe {todo!()}
+        unsafe {}
     }
 }
