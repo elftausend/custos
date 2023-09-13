@@ -117,7 +117,7 @@ pub fn create_write_descriptor_sets(descriptor_infos: &[[DescriptorBufferInfo; 1
         .collect::<Vec<_>>()
 }
 
-pub fn launch_shader2(
+pub fn launch_shader(
     device: &Device,
     gws: [u32; 3],
     shader_cache: &mut ShaderCache,
@@ -167,38 +167,17 @@ pub fn launch_shader2(
         .unwrap();
     unsafe { device.device_wait_idle() }.unwrap();
 }
-pub fn cached_operation() {}
 
-pub fn launch_shader(device: &Device, shader: &ShaderModule) {}
 
 #[cfg(test)]
 mod tests {
     use std::rc::Rc;
-    use crate::vulkan::{context::Context, vk_array::VkArray, shader::{ShaderCache, launch_shader2}};
+    use crate::vulkan::{context::Context, vk_array::VkArray, shader::{ShaderCache, launch_shader}};
 
     #[test]
     fn test_launch_shader() {
         let context = Rc::new(Context::new(0).unwrap());
         let mut shader_cache = ShaderCache::default();
-        /*let src = "
-            @group(0)
-            @binding(0)
-            var<storage, read_write> out: array<f32>;
-            
-            @group(0)
-            @binding(1)
-            var<storage, read_write> out2: array<f32>;
-
-            @compute
-            @workgroup_size(1)
-            fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
-                if global_id.x >= arrayLength(&out) {
-                    return;            
-                }
-                out[global_id.x] = 4.0;
-                out2[global_id.x] = 8.0;
-            }
-        ";*/
         let src = "@group(0)
             @binding(0)
             var<storage, read_write> a: array<f32>;
@@ -212,25 +191,24 @@ mod tests {
             var<storage, read_write> out: array<f32>;
             
             @compute
-            @workgroup_size(1)
+            @workgroup_size(32)
             fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
                 if global_id.x >= arrayLength(&out) {
                     return;    
                 }
                 
                 out[global_id.x] = a[global_id.x] + b[global_id.x];
-                // a[global_id.x] = f32(global_id.x);
             }
         ";
 
         
-        let lhs = VkArray::from_slice(context.clone(), &[1f32, 2., 3., 4., 5., 6., 7., 8., 9., 10.]).unwrap();
-        let rhs = VkArray::from_slice(context.clone(), &[1f32, 2., 3., 4., 5., 6., 7., 8., 9., 10.]).unwrap();
-        let out = VkArray::<f32>::new(context.clone(), 10).unwrap();
+        let lhs = VkArray::from_slice(context.clone(), &[1f32, 2., 3., 4., 5., 6., 7., 8., 9., 10.], crate::flag::AllocFlag::None).unwrap();
+        let rhs = VkArray::from_slice(context.clone(), &[1f32, 2., 3., 4., 5., 6., 7., 8., 9., 10.], crate::flag::AllocFlag::None).unwrap();
+        let mut out = VkArray::<f32>::new(context.clone(), 10, crate::flag::AllocFlag::None).unwrap();
         
-        launch_shader2(
+        launch_shader(
             &context.device,
-           [32, 1, 1],
+           [1, 1, 1],
             &mut shader_cache,
             context.command_buffer,
             context.compute_family_idx,
@@ -243,5 +221,27 @@ mod tests {
         assert_eq!(rhs.as_slice(), [1., 2., 3., 4., 5., 6., 7., 8., 9., 10.]);
 
         assert_eq!(out.as_slice(), [2., 4., 6., 8., 10., 12., 14., 16., 18., 20.]);
+
+        for _ in 0..10 {
+            for x in out.as_mut_slice() {
+                *x = 0.;
+            }
+            assert_eq!(out.as_slice(), [0.; 10]);
+            launch_shader(
+                &context.device,
+            [1, 1, 1],
+                &mut shader_cache,
+                context.command_buffer,
+                context.compute_family_idx,
+                &src,
+                &[lhs.buf, rhs.buf, out.buf]
+            );
+
+            assert_eq!(lhs.as_slice(), [1., 2., 3., 4., 5., 6., 7., 8., 9., 10.]);
+            assert_eq!(rhs.as_slice(), [1., 2., 3., 4., 5., 6., 7., 8., 9., 10.]);
+
+            assert_eq!(out.as_slice(), [2., 4., 6., 8., 10., 12., 14., 16., 18., 20.]);
+            
+        }
     }
 }

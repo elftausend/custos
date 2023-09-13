@@ -1,6 +1,8 @@
 use ash::{prelude::VkResult, vk};
 use std::rc::Rc;
 
+use crate::{PtrType, flag::AllocFlag, HasId};
+
 use super::context::Context;
 
 pub struct VkArray<T> {
@@ -9,10 +11,33 @@ pub struct VkArray<T> {
     pub mem: vk::DeviceMemory,
     pub context: Rc<Context>,
     pub mapped_ptr: *mut T,
+    pub flag: AllocFlag
+}
+
+impl<T> PtrType for VkArray<T> {
+    #[inline]
+    fn size(&self) -> usize {
+        self.len
+    }
+
+    #[inline]
+    fn flag(&self) -> crate::flag::AllocFlag {
+       self.flag
+    }
+}
+
+impl<T> HasId for VkArray<T> {
+    #[inline]
+    fn id(&self) -> crate::Id {
+        crate::Id {
+            id: self.mapped_ptr as u64,
+            len: self.len
+        }
+    }
 }
 
 impl<T> VkArray<T> {
-    pub fn new(context: Rc<Context>, len: usize) -> crate::Result<Self> {
+    pub fn new(context: Rc<Context>, len: usize, flag: AllocFlag) -> crate::Result<Self> {
         let buf = unsafe { create_buffer::<T>(&context.device, len)? };
         let mem_req = unsafe { context.device.get_buffer_memory_requirements(buf) };
 
@@ -31,16 +56,17 @@ impl<T> VkArray<T> {
             mem,
             context,
             mapped_ptr,
+            flag
         })
     }
 
     #[inline]
-    pub fn from_slice(context: Rc<Context>, data: &[T]) -> crate::Result<Self>
+    pub fn from_slice(context: Rc<Context>, data: &[T], flag: AllocFlag) -> crate::Result<Self>
     where
-        T: Copy,
+        T: Clone
     {
-        let mut array = VkArray::<T>::new(context, data.len())?;
-        array.as_mut_slice().copy_from_slice(data);
+        let mut array = VkArray::<T>::new(context, data.len(), flag)?;
+        array.as_mut_slice().clone_from_slice(data);
         Ok(array)
     }
 
@@ -119,13 +145,13 @@ mod tests {
     #[test]
     fn test_vk_array_allocation() {
         let context = Rc::new(Context::new(0).unwrap());
-        let arr1 = VkArray::<f32>::new(context.clone(), 10).unwrap();
+        let _arr1 = VkArray::<f32>::new(context.clone(), 10,crate::flag::AllocFlag::None,).unwrap();
     }
 
     #[test]
     fn test_vk_array_from_slice() {
         let context = Rc::new(Context::new(0).unwrap());
-        let arr1 = VkArray::<f32>::from_slice(context.clone(), &[1., 2., 3., 4., 5., 6.]).unwrap();
+        let arr1 = VkArray::<f32>::from_slice(context.clone(), &[1., 2., 3., 4., 5., 6.], crate::flag::AllocFlag::None).unwrap();
         assert_eq!(arr1.as_slice(), &[1., 2., 3., 4., 5., 6.,])
     }
 }

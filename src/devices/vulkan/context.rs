@@ -1,4 +1,4 @@
-use core::{ops::Deref, ffi::{CStr, c_char}};
+use core::ffi::{CStr, c_char};
 
 use ash::{
     vk::{
@@ -82,6 +82,6 @@ impl Context {
 impl Drop for Context {
     #[inline]
     fn drop(&mut self) {
-        unsafe {}
+        unsafe {todo!()}
     }
 }
