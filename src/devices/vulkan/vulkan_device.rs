@@ -66,6 +66,19 @@ impl<Mods: OnDropBuffer> MainMemory for Vulkan<Mods> {
     }
 }
 
+#[cfg(feature = "autograd")]
+impl<Mods: crate::TapeActions> crate::TapeActions for Vulkan<Mods> {
+    #[inline]
+    fn tape(&self) -> Option<core::cell::Ref<crate::Tape>> {
+        self.modules.tape()
+    }
+
+    #[inline]
+    fn tape_mut(&self) -> Option<core::cell::RefMut<crate::Tape>> {
+        self.modules.tape_mut()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::{Base, Buffer, Device};

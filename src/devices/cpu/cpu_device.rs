@@ -1,9 +1,9 @@
-use core::convert::Infallible;
+use core::{convert::Infallible, mem::{align_of, size_of}};
 
 use crate::{
     cpu::CPUPtr, flag::AllocFlag, impl_buffer_hook_traits, impl_retriever, Alloc, Base, Buffer,
     CloneBuf, Device, DevicelessAble, HasModules, MainMemory, Module, OnDropBuffer, OnNewBuffer,
-    Setup, Shape,
+    Setup, Shape, PtrConv,
 };
 
 pub trait IsCPU {}
@@ -146,5 +146,22 @@ impl<'a, Mods: OnDropBuffer + OnNewBuffer<T, Self, S>, T: Clone, S: Shape> Clone
         let mut cloned = Buffer::new(self, buf.len());
         cloned.clone_from_slice(buf);
         cloned
+    }
+}
+
+// impl for all devices
+impl<Mods: OnDropBuffer, OtherMods: OnDropBuffer> PtrConv<CPU<OtherMods>> for CPU<Mods> {
+    #[inline]
+    unsafe fn convert<T, IS: Shape, Conv, OS: Shape>(
+        data: &CPUPtr<T>,
+        flag: AllocFlag,
+    ) -> CPUPtr<Conv> {
+        CPUPtr {
+            ptr: data.ptr as *mut Conv,
+            len: data.len,
+            flag,
+            align: Some(align_of::<T>()),
+            size: Some(size_of::<T>()),
+        }
     }
 }
