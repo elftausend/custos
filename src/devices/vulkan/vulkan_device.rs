@@ -1,5 +1,5 @@
 use super::{context::Context, VkArray};
-use crate::{Shape, Buffer, Base, Module, Setup, Alloc, Device, OnDropBuffer, impl_retriever, impl_buffer_hook_traits, MainMemory};
+use crate::{Shape, Buffer, Base, Module, Setup, Alloc, Device, OnDropBuffer, impl_retriever, impl_buffer_hook_traits, MainMemory, PtrConv, flag::AllocFlag};
 use std::rc::Rc;
 
 pub struct Vulkan<Mods = Base> {
@@ -76,6 +76,24 @@ impl<Mods: crate::TapeActions> crate::TapeActions for Vulkan<Mods> {
     #[inline]
     fn tape_mut(&self) -> Option<core::cell::RefMut<crate::Tape>> {
         self.modules.tape_mut()
+    }
+}
+
+// impl for all devices
+impl<Mods: OnDropBuffer, OtherMods: OnDropBuffer> PtrConv<Vulkan<OtherMods>> for Vulkan<Mods> {
+    #[inline]
+    unsafe fn convert<T, IS: Shape, Conv, OS: Shape>(
+        data: &VkArray<T>,
+        flag: AllocFlag,
+    ) -> VkArray<Conv> {
+        VkArray {
+            len: data.len,
+            buf: data.buf,
+            mem: data.mem,
+            context: data.context.clone(),
+            mapped_ptr: data.mapped_ptr as *mut Conv,
+            flag,
+        }
     }
 }
 
