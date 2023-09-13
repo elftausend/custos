@@ -2,7 +2,7 @@ mod operation;
 mod descriptor;
 mod command;
 
-use operation::Operation;
+pub use operation::Operation;
 pub use descriptor::*;
 pub use command::*;
 
@@ -13,7 +13,7 @@ use ash::{
     prelude::VkResult,
     vk::{
         self, Buffer, DescriptorSetLayout, DescriptorType, Pipeline,
-        PipelineCache, PipelineLayout, ShaderModule, CommandBuffer, Fence,
+        PipelineCache, PipelineLayout, ShaderModule, CommandBuffer, Fence, DescriptorBufferInfo, DescriptorSet, WriteDescriptorSet,
     },
     Device,
 };
@@ -90,6 +90,33 @@ impl ShaderCache {
     }
 }
 
+pub fn create_descriptor_infos(bufs: &[Buffer]) -> Vec<[DescriptorBufferInfo; 1]> {
+    bufs
+        .iter()
+        .copied()
+        .map(|buffer| [vk::DescriptorBufferInfo {
+            buffer,
+            offset: 0,
+            range: vk::WHOLE_SIZE,
+        }])
+        .collect::<Vec<_>>()
+}
+
+pub fn create_write_descriptor_sets(descriptor_infos: &[[DescriptorBufferInfo; 1]], descriptor_set: DescriptorSet) -> Vec<WriteDescriptorSet> {
+    descriptor_infos
+        .into_iter()
+        .enumerate()
+        .map(|(idx, info)| {
+            vk::WriteDescriptorSet::builder()
+                .dst_set(descriptor_set)
+                .dst_binding(idx as u32)
+                .descriptor_type(vk::DescriptorType::STORAGE_BUFFER)
+                .buffer_info(info)
+                .build()
+        })
+        .collect::<Vec<_>>()
+}
+
 pub fn launch_shader2(
     device: &Device,
     gws: [u32; 3],
@@ -107,30 +134,9 @@ pub fn launch_shader2(
             .map(|_| DescriptorType::STORAGE_BUFFER)
             .collect::<Vec<_>>(),
     );
-    println!("operation");
-
-    let descriptor_infos = args
-        .iter()
-        .copied()
-        .map(|buffer| vk::DescriptorBufferInfo {
-            buffer,
-            offset: 0,
-            range: vk::WHOLE_SIZE,
-        })
-        .collect::<Vec<_>>();
-
-    let write_descriptor_sets = descriptor_infos
-        .into_iter()
-        .enumerate()
-        .map(|(idx, info)| {
-            vk::WriteDescriptorSet::builder()
-                .dst_set(operation.descriptor_set)
-                .dst_binding(idx as u32)
-                .descriptor_type(vk::DescriptorType::STORAGE_BUFFER)
-                .buffer_info(std::slice::from_ref(&info))
-                .build()
-        })
-        .collect::<Vec<_>>();
+    
+    let descriptor_infos = create_descriptor_infos(args);
+    let write_descriptor_sets = create_write_descriptor_sets(&descriptor_infos, operation.descriptor_set);
 
     unsafe { device.update_descriptor_sets(&write_descriptor_sets, &[]) }
 
@@ -138,8 +144,6 @@ pub fn launch_shader2(
         flags: vk::CommandBufferUsageFlags::ONE_TIME_SUBMIT,
         ..Default::default()
     };
-
-    println!("update desc sets");
 
     unsafe { device.begin_command_buffer(command_buffer, &command_buffer_begin_info) }.unwrap();
     unsafe { device.cmd_bind_pipeline(command_buffer, vk::PipelineBindPoint::COMPUTE, operation.pipeline) };
@@ -153,7 +157,6 @@ pub fn launch_shader2(
             &[],
         )
     };
-    println!("stuff");
     unsafe { device.cmd_dispatch(command_buffer, gws[0], gws[1], gws[2]) };
     unsafe { device.end_command_buffer(command_buffer) }.unwrap();
     let queue = unsafe { device.get_device_queue(compute_family_idx as u32, 0) };
@@ -162,7 +165,6 @@ pub fn launch_shader2(
     
     unsafe { device.queue_submit(queue, core::slice::from_ref(&submit_info), Fence::null()) }
         .unwrap();
-    println!("submit");
     unsafe { device.device_wait_idle() }.unwrap();
 }
 pub fn cached_operation() {}
@@ -172,19 +174,31 @@ pub fn launch_shader(device: &Device, shader: &ShaderModule) {}
 #[cfg(test)]
 mod tests {
     use std::rc::Rc;
-
-    use ash::vk::DescriptorType;
-
-    use crate::vulkan::{context::Context, vk_array::VkArray, shader::operation::Operation};
-
-    use super::{launch_shader2, ShaderCache};
+    use crate::vulkan::{context::Context, vk_array::VkArray, shader::{ShaderCache, launch_shader2}};
 
     #[test]
     fn test_launch_shader() {
         let context = Rc::new(Context::new(0).unwrap());
         let mut shader_cache = ShaderCache::default();
+        /*let src = "
+            @group(0)
+            @binding(0)
+            var<storage, read_write> out: array<f32>;
+            
+            @group(0)
+            @binding(1)
+            var<storage, read_write> out2: array<f32>;
 
-
+            @compute
+            @workgroup_size(1)
+            fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
+                if global_id.x >= arrayLength(&out) {
+                    return;            
+                }
+                out[global_id.x] = 4.0;
+                out2[global_id.x] = 8.0;
+            }
+        ";*/
         let src = "@group(0)
             @binding(0)
             var<storage, read_write> a: array<f32>;
@@ -197,32 +211,37 @@ mod tests {
             @binding(2)
             var<storage, read_write> out: array<f32>;
             
-            
             @compute
-            @workgroup_size(32)
+            @workgroup_size(1)
             fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
                 if global_id.x >= arrayLength(&out) {
                     return;    
                 }
+                
                 out[global_id.x] = a[global_id.x] + b[global_id.x];
                 // a[global_id.x] = f32(global_id.x);
             }
         ";
 
-        // Operation::new(&context, src, &[DescriptorType::STORAGE_BUFFER,DescriptorType::STORAGE_BUFFER,DescriptorType::STORAGE_BUFFER]);
         
-        let lhs = VkArray::from_slice(context.clone(), &[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]).unwrap();
-        let rhs = VkArray::from_slice(context.clone(), &[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]).unwrap();
-        let out = VkArray::<i32>::new(context.clone(), 10).unwrap();
-        println!("launch shader");
+        let lhs = VkArray::from_slice(context.clone(), &[1f32, 2., 3., 4., 5., 6., 7., 8., 9., 10.]).unwrap();
+        let rhs = VkArray::from_slice(context.clone(), &[1f32, 2., 3., 4., 5., 6., 7., 8., 9., 10.]).unwrap();
+        let out = VkArray::<f32>::new(context.clone(), 10).unwrap();
+        
         launch_shader2(
-            &context.logical_device,
-           [1000 / 32, 1, 1],
+            &context.device,
+           [32, 1, 1],
             &mut shader_cache,
             context.command_buffer,
             context.compute_family_idx,
             &src,
             &[lhs.buf, rhs.buf, out.buf]
+            // &[out.buf, out2.buf]
         );
+
+        assert_eq!(lhs.as_slice(), [1., 2., 3., 4., 5., 6., 7., 8., 9., 10.]);
+        assert_eq!(rhs.as_slice(), [1., 2., 3., 4., 5., 6., 7., 8., 9., 10.]);
+
+        assert_eq!(out.as_slice(), [2., 4., 6., 8., 10., 12., 14., 16., 18., 20.]);
     }
 }

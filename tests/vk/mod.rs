@@ -1,3 +1,5 @@
+mod with_custos_comps;
+
 use std::{ffi::{CStr, c_char}, mem::size_of_val, ptr, time::Instant};
 
 use ash::{
@@ -55,7 +57,7 @@ fn test_vulkan_compute_with_wgsl_and_spirv() {
             }
         }
     }
-
+    
     let queue_priorities = [1.0];
     let queue_info = vk::DeviceQueueCreateInfo::builder()
         .queue_family_index(device_with_queue_idx[0].1 as u32)
@@ -74,6 +76,7 @@ fn test_vulkan_compute_with_wgsl_and_spirv() {
             .unwrap()
     };
 
+    // let queue = unsafe { device.get_device_queue(3, 0) };
     let props = unsafe { instance.get_physical_device_properties(device_with_queue_idx[0].0) };
     println!("props: {:?}", &unsafe {
         ::std::ffi::CStr::from_ptr(props.device_name.as_ptr())

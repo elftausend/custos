@@ -13,15 +13,15 @@ pub struct VkArray<T> {
 
 impl<T> VkArray<T> {
     pub fn new(context: Rc<Context>, len: usize) -> crate::Result<Self> {
-        let buf = unsafe { create_buffer::<T>(&context, len)? };
-        let mem_req = unsafe { context.get_buffer_memory_requirements(buf) };
+        let buf = unsafe { create_buffer::<T>(&context.device, len)? };
+        let mem_req = unsafe { context.device.get_buffer_memory_requirements(buf) };
 
-        let mem = unsafe { allocate_memory(&context, mem_req, &context.memory_properties)? };
-        unsafe { context.bind_buffer_memory(buf, mem, 0)? };
+        let mem = unsafe { allocate_memory(&context.device, mem_req, &context.memory_properties)? };
+        unsafe { context.device.bind_buffer_memory(buf, mem, 0)? };
 
         let mapped_ptr = unsafe {
             context
-                .logical_device
+                .device
                 .map_memory(mem, 0, vk::WHOLE_SIZE, Default::default())?
         } as *mut T;
 
@@ -58,9 +58,9 @@ impl<T> Drop for VkArray<T> {
     #[inline]
     fn drop(&mut self) {
         unsafe {
-            self.context.unmap_memory(self.mem);
-            self.context.free_memory(self.mem, None);
-            self.context.destroy_buffer(self.buf, None)
+            self.context.device.unmap_memory(self.mem);
+            self.context.device.free_memory(self.mem, None);
+            self.context.device.destroy_buffer(self.buf, None)
         }
     }
 }

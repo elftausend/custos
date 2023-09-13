@@ -13,14 +13,16 @@ use super::{list_compute_devices, shader::{create_command_buffer, create_command
 pub struct Context {
     pub physical_device: PhysicalDevice,
     pub compute_family_idx: usize,
-    pub logical_device: Device,
+    pub device: Device,
     pub device_props: PhysicalDeviceProperties,
     pub command_buffer: CommandBuffer,
     pub memory_properties: PhysicalDeviceMemoryProperties,
     pub pipeline_cache: PipelineCache,
+    pub entry: Entry,
 }
 
 impl Context {
+    #[inline]
     pub fn new(device_idx: usize) -> crate::Result<Self> {
         let entry = unsafe { Entry::load()? };
         let app_info = vk::ApplicationInfo::default();
@@ -39,7 +41,6 @@ impl Context {
             .application_info(&app_info)
             .build();
         let instance = unsafe { entry.create_instance(&instance_info, None).unwrap() };
-
         let (physical_device, compute_family_idx) = list_compute_devices(&instance)[device_idx];
 
         let queue_priorities = [1.0];
@@ -68,21 +69,13 @@ impl Context {
         Ok(Context {
             physical_device,
             compute_family_idx,
-            logical_device,
+            device: logical_device,
             device_props,
             command_buffer,
             memory_properties,
+            entry,
             pipeline_cache: PipelineCache::default(),
         })
-    }
-}
-
-impl Deref for Context {
-    type Target = ash::Device;
-
-    #[inline]
-    fn deref(&self) -> &Self::Target {
-        &self.logical_device
     }
 }
 
