@@ -1,4 +1,4 @@
-use core::{cell::RefCell, marker::PhantomData};
+use core::{cell::RefCell, marker::PhantomData, ptr::NonNull};
 use std::collections::HashMap;
 
 use crate::{
@@ -16,7 +16,7 @@ use crate::{
 };
 
 use super::api::{
-    cuMemcpy, cuStreamBeginCapture, cuStreamEndCapture, cu_write, CUStreamCaptureMode,
+    cuMemcpy, cuStreamBeginCapture, cuStreamEndCapture, cu_write, CUStreamCaptureMode, Graph, CudaErrorKind,
 };
 
 pub trait IsCuda: Device {}
@@ -189,9 +189,13 @@ impl<Mods> crate::ForkSetup for CUDA<Mods> {
 #[cfg(feature = "lazy")]
 impl<Mods> crate::LazyRun for CUDA<Mods> {
     #[inline]
-    fn run(&self) {
+    fn run(&self) -> crate::Result<()> {
         let mut graph = std::ptr::null_mut();
-        unsafe { cuStreamEndCapture(self.stream.0, &mut graph) };
+        unsafe { cuStreamEndCapture(self.stream.0, &mut graph) }.to_result()?;
+        
+        let graph = Graph(NonNull::new(graph).ok_or(CudaErrorKind::ErrorStreamCaptureInvalidated)?);
+
+        Ok(())
     }
 }
 

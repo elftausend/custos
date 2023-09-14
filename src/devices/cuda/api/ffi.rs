@@ -204,8 +204,8 @@ extern "C" {
         block_size_limit: i32,
     ) -> CUresult;
 
-    pub fn cuStreamBeginCapture(stream: CUstream, capture_mode: CUStreamCaptureMode);
-    pub fn cuStreamEndCapture(stream: CUstream, graph: *mut CUgraph);
+    pub fn cuStreamBeginCapture(stream: CUstream, capture_mode: CUStreamCaptureMode) -> CUresult;
+    pub fn cuStreamEndCapture(stream: CUstream, graph: *mut CUgraph) -> CUresult;
 
     pub fn cuGraphDestroy(graph: CUgraph);
     // unified memory
