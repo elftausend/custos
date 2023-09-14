@@ -1,4 +1,4 @@
-use core::{cell::RefCell, marker::PhantomData, ptr::NonNull};
+use core::{cell::RefCell, marker::PhantomData};
 use std::collections::HashMap;
 
 use crate::{
@@ -15,9 +15,7 @@ use crate::{
     Module as CombModule, OnDropBuffer, OnNewBuffer, PtrConv, Setup, Shape,
 };
 
-use super::api::{
-    cuMemcpy, cuStreamBeginCapture, cuStreamEndCapture, cu_write, CUStreamCaptureMode, Graph, CudaErrorKind,
-};
+use super::{api::{cuMemcpy, cuStreamBeginCapture, cu_write, CUStreamCaptureMode, Graph}, lazy::LazyCudaGraph};
 
 pub trait IsCuda: Device {}
 
@@ -30,8 +28,9 @@ pub struct CUDA<Mods = Base> {
     pub cuda_modules: RefCell<HashMap<FnHandle, Module>>,
     device: CudaIntDevice,
     ctx: Context,
-    stream: Stream,
+    pub stream: Stream,
     handle: CublasHandle,
+    pub graph: Option<LazyCudaGraph>,
 }
 
 impl_retriever!(CUDA);
@@ -63,6 +62,7 @@ impl<SimpleMods> CUDA<SimpleMods> {
             ctx,
             stream,
             handle,
+            graph: None,
         };
 
         NewMods::setup(&mut cuda);
@@ -183,19 +183,6 @@ impl<Mods> crate::ForkSetup for CUDA<Mods> {
     #[inline]
     fn fork_setup(&mut self) {
         // TODO: maybe check if device supports unified memory
-    }
-}
-
-#[cfg(feature = "lazy")]
-impl<Mods> crate::LazyRun for CUDA<Mods> {
-    #[inline]
-    fn run(&self) -> crate::Result<()> {
-        let mut graph = std::ptr::null_mut();
-        unsafe { cuStreamEndCapture(self.stream.0, &mut graph) }.to_result()?;
-        
-        let graph = Graph(NonNull::new(graph).ok_or(CudaErrorKind::ErrorStreamCaptureInvalidated)?);
-
-        Ok(())
     }
 }
 

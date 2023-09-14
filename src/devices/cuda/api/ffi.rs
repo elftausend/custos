@@ -24,6 +24,9 @@ pub type CUstream = *mut CUstream_st;
 pub enum CUgraph_st {}
 pub type CUgraph = *mut CUgraph_st;
 
+pub enum CUgraphExec_st {}
+pub type CUgraphExec = *mut CUgraphExec_st;
+
 #[repr(u32)]
 pub enum CUStreamCaptureMode {
     CU_STREAM_CAPTURE_MODE_GLOBAL = 0,
@@ -207,7 +210,14 @@ extern "C" {
     pub fn cuStreamBeginCapture(stream: CUstream, capture_mode: CUStreamCaptureMode) -> CUresult;
     pub fn cuStreamEndCapture(stream: CUstream, graph: *mut CUgraph) -> CUresult;
 
-    pub fn cuGraphDestroy(graph: CUgraph);
+    pub fn cuGraphDestroy(graph: CUgraph) -> CUresult;
+
+    pub fn cuGraphInstantiate(graph_exec: *mut CUgraphExec, graph: CUgraph) -> CUresult;
+
+    pub fn cuGraphLaunch(graph_exec: CUgraphExec, stream: CUstream) -> CUresult;
+
+    pub fn cuGraphExecDestroy(graph_exec: CUgraphExec) -> CUresult;
+
     // unified memory
 
 }

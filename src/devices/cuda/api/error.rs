@@ -46,7 +46,7 @@ pub enum CudaErrorKind {
     LaunchOutOfResources,
     LaunchTimeout,
     LaunchIncompatibleTexturing,
-    ErrorStreamCaptureInvalidated, 
+    ErrorStreamCaptureInvalidated,
     Unknown,
 }
 

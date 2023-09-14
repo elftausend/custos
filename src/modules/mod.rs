@@ -25,9 +25,9 @@ mod fork;
 #[cfg(feature = "fork")]
 pub use fork::*;
 
+use crate::{flag::AllocFlag, Buffer, Device, HasId, Id, PtrConv, Shape, UniqueId};
 use core::{any::Any, hash::BuildHasher};
 use std::collections::HashMap;
-use crate::{UniqueId, Buffer, PtrConv, Device, Shape, flag::AllocFlag, Id, HasId};
 
 #[inline]
 pub(crate) unsafe fn register_buf<T, D, S>(

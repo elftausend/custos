@@ -8,6 +8,7 @@ pub type CUdeviceptr = core::ffi::c_ulonglong;
 mod cuda_device;
 mod kernel_cache;
 mod kernel_launch;
+mod lazy;
 mod ops;
 mod source;
 

@@ -1,10 +1,11 @@
 use super::{
-    cuCtxCreate_v2, cuCtxDestroy, cuDeviceGet, cuDeviceGetCount, cuGraphDestroy, cuInit,
-    cuLaunchKernel, cuMemFree_v2, cuMemcpyDtoH_v2, cuMemcpyHtoD_v2, cuModuleGetFunction,
-    cuModuleLoad, cuModuleLoadData, cuModuleUnload, cuStreamCreate, cuStreamSynchronize,
+    cuCtxCreate_v2, cuCtxDestroy, cuDeviceGet, cuDeviceGetCount, cuGraphDestroy,
+    cuGraphExecDestroy, cuInit, cuLaunchKernel, cuMemFree_v2, cuMemcpyDtoH_v2, cuMemcpyHtoD_v2,
+    cuModuleGetFunction, cuModuleLoad, cuModuleLoadData, cuModuleUnload, cuStreamCreate,
+    cuStreamSynchronize,
     error::{CudaErrorKind, CudaResult},
     ffi::cuMemAlloc_v2,
-    CUcontext, CUdevice, CUfunction, CUgraph, CUgraph_st, CUmodule, CUstream,
+    CUcontext, CUdevice, CUfunction, CUgraph, CUgraphExec_st, CUgraph_st, CUmodule, CUstream,
 };
 
 use core::ptr::NonNull;
@@ -183,5 +184,17 @@ pub struct Graph(pub NonNull<CUgraph_st>);
 impl Drop for Graph {
     fn drop(&mut self) {
         unsafe { cuGraphDestroy(self.0.as_ptr()) }
+            .to_result()
+            .unwrap()
+    }
+}
+
+pub struct GraphExec(pub NonNull<CUgraphExec_st>);
+
+impl Drop for GraphExec {
+    fn drop(&mut self) {
+        unsafe { cuGraphExecDestroy(self.0.as_ptr()) }
+            .to_result()
+            .unwrap()
     }
 }

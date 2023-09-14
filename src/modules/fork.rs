@@ -27,7 +27,10 @@ impl Ord for Analyzation {
     fn cmp(&self, other: &Self) -> core::cmp::Ordering {
         // self.cpu_dur.cmp(&other.cpu_dur)
         // self.gpu_dur.cmp(&other.gpu_dur)
-        self.input_lengths.iter().sum::<usize>().cmp(&other.input_lengths.iter().sum::<usize>())
+        self.input_lengths
+            .iter()
+            .sum::<usize>()
+            .cmp(&other.input_lengths.iter().sum::<usize>())
     }
 }
 
@@ -165,7 +168,7 @@ impl<Mods> UseGpuOrCpu for Fork<Mods> {
             gpu_dur,
             cpu_dur,
         });
-        
+
         GpuOrCpuInfo {
             use_cpu,
             is_result_cached: false,
@@ -226,7 +229,7 @@ impl<Mods: crate::TapeActions> crate::TapeActions for Fork<Mods> {
     #[inline]
     fn tape_mut(&self) -> Option<core::cell::RefMut<crate::Tape>> {
         self.modules.tape_mut()
-    } 
+    }
 }
 
 #[cfg(test)]
@@ -234,8 +237,8 @@ mod tests {
     use std::{collections::BinaryHeap, time::Instant};
 
     use crate::{
-        opencl::try_cl_clear, Analyzation, Base, Buffer, Cached, Device, Fork, GpuOrCpuInfo,
-        Module, OpenCL, UseGpuOrCpu, CPU, ApplyFunction, Combiner, should_use_cpu,
+        opencl::try_cl_clear, should_use_cpu, Analyzation, ApplyFunction, Base, Buffer, Cached,
+        Combiner, Device, Fork, GpuOrCpuInfo, Module, OpenCL, UseGpuOrCpu, CPU,
     };
 
     #[track_caller]
@@ -273,14 +276,11 @@ mod tests {
     }
 
     #[test]
-    fn test_diff_sizes() { 
+    fn test_diff_sizes() {
         let cpu = CPU::<Base>::new();
         let gpu = OpenCL::<Base>::new(1).unwrap();
 
-        let sizes = [
-            8_287_587,
-            48_941_518,
-        ];
+        let sizes = [8_287_587, 48_941_518];
 
         let mut bufs = sizes
             .iter()
@@ -292,20 +292,16 @@ mod tests {
             })
             .collect::<Vec<_>>();
         // for (gpu_buf, cpu_buf) in &mut bufs {
-            // gpu_buf.clear();
+        // gpu_buf.clear();
         // }
 
         let fork = <Fork<Base> as Module<CPU>>::new();
         for (gpu_buf, cpu_buf) in &mut bufs {
-            let res = should_use_cpu(&mut || {
-                cpu_buf.clear()
-            }, &mut || {
-                gpu_buf.clear()
-            });
+            let res = should_use_cpu(&mut || cpu_buf.clear(), &mut || gpu_buf.clear());
             println!("res: {res:?}");
-            
+
             let res = clear(&fork, cpu_buf, gpu_buf);
-            println!("gpu_or_cpu_info: {res:?}");    
+            println!("gpu_or_cpu_info: {res:?}");
             cpu_buf.clear();
             let start = Instant::now();
             gpu_buf.clear();
@@ -318,7 +314,7 @@ mod tests {
     fn test_check_for_reasonable_fork_execution_time() {
         let cpu = CPU::<Base>::new();
         let gpu = OpenCL::<Base>::new(1).unwrap();
-    
+
         let sizes = [
             8_287_587,
             48_941_518,
@@ -354,7 +350,6 @@ mod tests {
                 )
             })
             .collect::<Vec<_>>();
-
 
         let fork = <Fork<Base> as Module<CPU>>::new();
         for (gpu_buf, cpu_buf) in &mut bufs {
@@ -399,7 +394,6 @@ mod tests {
         println!("name: {:?}", opencl.name());
 
         // opencl_buf.clear();
-        
 
         for _ in 0..1000 {
             for size in sizes {
