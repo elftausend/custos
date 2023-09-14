@@ -169,7 +169,7 @@ mod tests {
         assert_eq!(buf.as_slice(), [2, 3, 4, 5, 6, 10, 3, 4, 5, 4, 3]);
 
         let lhs = device.buffer([2; 11]);
-        let rhs = device.buffer([2; 11]);
+        let rhs = device.buffer([3; 11]);
        
         let src = "@group(0)
             @binding(0)
@@ -190,11 +190,11 @@ mod tests {
                     return;    
                 }
                 
-                out[global_id.x] = a[global_id.x] + b[global_id.x];
+                out[global_id.x] += a[global_id.x] + b[global_id.x];
             }
         ";
 
         device.launch_shader([1, 1, 1,], src, &[lhs.data.buf, rhs.data.buf, buf.data.buf]).unwrap();
-
+        assert_eq!(buf.as_slice(), [7, 8, 9, 10, 11, 15, 8, 9, 10, 9, 8])
     }
 }
