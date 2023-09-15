@@ -15,7 +15,7 @@ use crate::{
     Module as CombModule, OnDropBuffer, OnNewBuffer, PtrConv, Setup, Shape,
 };
 
-use super::{api::{cuMemcpy, cu_write, cu_write_async}, lazy::LazyCudaGraph};
+use super::{api::{cuMemcpy, cu_write_async}, lazy::LazyCudaGraph};
 
 pub trait IsCuda: Device {}
 
@@ -28,7 +28,10 @@ pub struct CUDA<Mods = Base> {
     pub cuda_modules: RefCell<HashMap<FnHandle, Module>>,
     device: CudaIntDevice,
     ctx: Context,
+    /// The default stream used for operations.
     pub stream: Stream,
+    /// A stream used for memory transfers, like cu_write_async
+    pub mem_transfer_stream: Stream,
     handle: CublasHandle,
     pub graph: Option<LazyCudaGraph>,
 }
@@ -51,6 +54,7 @@ impl<SimpleMods> CUDA<SimpleMods> {
         let device = device(idx as i32)?;
         let ctx = create_context(&device)?;
         let stream = create_stream()?;
+        let mem_transfer_stream = create_stream()?;
         let handle = create_handle()?;
         unsafe { cublasSetStream_v2(handle.0, stream.0) }.to_result()?;
 
@@ -61,6 +65,7 @@ impl<SimpleMods> CUDA<SimpleMods> {
             device,
             ctx,
             stream,
+            mem_transfer_stream,
             handle,
             graph: None,
         };
@@ -131,6 +136,8 @@ impl<Mods> Drop for CUDA<Mods> {
         unsafe {
             cublasDestroy_v2(self.handle.0);
             cuStreamDestroy(self.stream.0);
+
+            cuStreamDestroy(self.mem_transfer_stream.0);
         }
     }
 }
@@ -152,8 +159,8 @@ impl<Mods: OnDropBuffer, T> Alloc<T> for CUDA<Mods> {
         T: Clone,
     {
         let ptr = cumalloc::<T>(data.len()).unwrap();
-        cu_write_async(ptr, data, self.stream()).unwrap();
-        self.stream.sync().unwrap();
+        cu_write_async(ptr, data, &self.mem_transfer_stream).unwrap();
+        self.mem_transfer_stream.sync().unwrap();
         CUDAPtr {
             ptr,
             len: data.len(),
