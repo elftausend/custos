@@ -177,19 +177,26 @@ extern "C" {
         src_host: *const c_void,
         bytes_to_copy: usize,
     ) -> CUresult;
-   
+
     pub fn cuMemcpyHtoDAsync_v2(
         dst_device: CUdeviceptr,
         src_host: *const c_void,
         bytes_to_copy: usize,
         stream: CUstream,
     ) -> CUresult;
-    
+
     pub fn cuMemcpyDtoH_v2(
         dst_host: *mut c_void,
         src_device: CUdeviceptr,
         bytes_to_copy: usize,
     ) -> CUresult;
+    pub fn cuMemcpyDtoHAsync_v2(
+        dst_host: *mut c_void,
+        src_device: CUdeviceptr,
+        bytes_to_copy: usize,
+        stream: CUstream,
+    ) -> CUresult;
+   
     pub fn cuModuleLoad(module: *mut CUmodule, fname: *const c_char) -> CUresult;
     pub fn cuModuleLoadData(module: *mut CUmodule, data: *const c_void) -> CUresult;
     pub fn cuModuleGetFunction(
@@ -225,7 +232,10 @@ extern "C" {
 
     pub fn cuStreamBeginCapture(stream: CUstream, capture_mode: CUStreamCaptureMode) -> CUresult;
     pub fn cuStreamEndCapture(stream: CUstream, graph: *mut CUgraph) -> CUresult;
-    pub fn cuStreamIsCapturing(stream: CUstream, capture_status: *mut CUstreamCaptureStatus) -> CUresult;
+    pub fn cuStreamIsCapturing(
+        stream: CUstream,
+        capture_status: *mut CUstreamCaptureStatus,
+    ) -> CUresult;
 
     pub fn cuGraphDestroy(graph: CUgraph) -> CUresult;
 

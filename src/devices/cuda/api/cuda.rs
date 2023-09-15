@@ -1,11 +1,12 @@
 use super::{
     cuCtxCreate_v2, cuCtxDestroy, cuDeviceGet, cuDeviceGetCount, cuGraphDestroy,
-    cuGraphExecDestroy, cuInit, cuLaunchKernel, cuMemFree_v2, cuMemcpyDtoH_v2, cuMemcpyHtoD_v2,
-    cuModuleGetFunction, cuModuleLoad, cuModuleLoadData, cuModuleUnload, cuStreamCreate,
-    cuStreamSynchronize,
+    cuGraphExecDestroy, cuInit, cuLaunchKernel, cuMemFree_v2, cuMemcpyDtoH_v2,
+    cuMemcpyHtoDAsync_v2, cuMemcpyHtoD_v2, cuModuleGetFunction, cuModuleLoad, cuModuleLoadData,
+    cuModuleUnload, cuStreamCreate, cuStreamIsCapturing, cuStreamSynchronize,
     error::{CudaErrorKind, CudaResult},
     ffi::cuMemAlloc_v2,
-    CUcontext, CUdevice, CUfunction, CUgraph, CUgraphExec_st, CUgraph_st, CUmodule, CUstream, cuMemcpyHtoDAsync_v2, CUstreamCaptureStatus, cuStreamIsCapturing,
+    CUcontext, CUdevice, CUfunction, CUgraphExec_st, CUgraph_st, CUmodule, CUstream,
+    CUstreamCaptureStatus, cuMemcpyDtoHAsync_v2,
 };
 
 use core::ptr::NonNull;
@@ -86,12 +87,25 @@ pub fn cu_write<T>(dst: CUdeviceptr, src_host: &[T]) -> CudaResult<()> {
 
 pub fn cu_write_async<T>(dst: CUdeviceptr, src_host: &[T], stream: &Stream) -> CudaResult<()> {
     let bytes_to_copy = std::mem::size_of_val(src_host);
-    unsafe { cuMemcpyHtoDAsync_v2(dst, src_host.as_ptr() as *const c_void, bytes_to_copy, stream.0) }.into()
+    unsafe {
+        cuMemcpyHtoDAsync_v2(
+            dst,
+            src_host.as_ptr() as *const c_void,
+            bytes_to_copy,
+            stream.0,
+        )
+    }
+    .into()
 }
 
 pub fn cu_read<T>(dst_host: &mut [T], src: CUdeviceptr) -> CudaResult<()> {
     let bytes_to_copy = std::mem::size_of_val(dst_host);
     unsafe { cuMemcpyDtoH_v2(dst_host.as_mut_ptr() as *mut c_void, src, bytes_to_copy) }.into()
+}
+
+pub fn cu_read_async<T>(dst_host: &mut [T], src: CUdeviceptr, stream: &Stream) -> CudaResult<()> {
+    let bytes_to_copy = std::mem::size_of_val(dst_host);
+    unsafe { cuMemcpyDtoHAsync_v2(dst_host.as_mut_ptr() as *mut c_void, src, bytes_to_copy, stream.0) }.into()
 }
 
 #[derive(Debug)]
@@ -146,9 +160,7 @@ impl Stream {
 
     pub fn is_captured(&self) -> CudaResult<CUstreamCaptureStatus> {
         let mut capture_status = CUstreamCaptureStatus::CU_STREAM_CAPTURE_STATUS_NONE;
-        unsafe {
-            cuStreamIsCapturing(self.0, &mut capture_status).to_result()?
-        };
+        unsafe { cuStreamIsCapturing(self.0, &mut capture_status).to_result()? };
         Ok(capture_status)
     }
 }

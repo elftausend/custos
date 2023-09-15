@@ -2,25 +2,31 @@ use core::ptr::NonNull;
 
 use crate::CUDA;
 
-use super::api::{cuStreamEndCapture, Graph, CudaErrorKind, GraphExec, cuGraphInstantiate, cuGraphLaunch, cuStreamBeginCapture, CUStreamCaptureMode};
-
+use super::api::{
+    cuGraphInstantiate, cuGraphLaunch, cuStreamBeginCapture, cuStreamEndCapture,
+    CUStreamCaptureMode, CudaErrorKind, Graph, GraphExec,
+};
 
 fn create_graph_from_captured_stream(stream: super::api::CUstream) -> Result<Graph, CudaErrorKind> {
     let mut graph = std::ptr::null_mut();
     unsafe { cuStreamEndCapture(stream, &mut graph) }.to_result()?;
-    
-    Ok(Graph(NonNull::new(graph).ok_or(CudaErrorKind::ErrorStreamCaptureInvalidated)?))
+
+    Ok(Graph(
+        NonNull::new(graph).ok_or(CudaErrorKind::ErrorStreamCaptureInvalidated)?,
+    ))
 }
 
 fn create_graph_execution(graph: &Graph) -> Result<GraphExec, CudaErrorKind> {
     let mut graph_exec = std::ptr::null_mut();
-    unsafe { cuGraphInstantiate(&mut graph_exec, graph.0.as_ptr())}.to_result()?;
-    Ok(GraphExec(NonNull::new(graph_exec).ok_or(CudaErrorKind::NotInitialized)?))
+    unsafe { cuGraphInstantiate(&mut graph_exec, graph.0.as_ptr()) }.to_result()?;
+    Ok(GraphExec(
+        NonNull::new(graph_exec).ok_or(CudaErrorKind::NotInitialized)?,
+    ))
 }
 
 pub struct LazyCudaGraph {
     graph: Graph,
-    graph_exec: GraphExec
+    graph_exec: GraphExec,
 }
 
 impl LazyCudaGraph {
@@ -28,14 +34,11 @@ impl LazyCudaGraph {
         let graph = create_graph_from_captured_stream(stream)?;
         let graph_exec = create_graph_execution(&graph)?;
 
-        Ok(LazyCudaGraph {
-            graph,
-            graph_exec
-        })
+        Ok(LazyCudaGraph { graph, graph_exec })
     }
 
     pub fn launch(&self, stream: super::api::CUstream) -> Result<(), CudaErrorKind> {
-        unsafe { cuGraphLaunch(self.graph_exec.0.as_ptr(), stream).to_result()? } 
+        unsafe { cuGraphLaunch(self.graph_exec.0.as_ptr(), stream).to_result()? }
         Ok(())
     }
 }
@@ -47,7 +50,7 @@ impl<Mods> crate::LazyRun for CUDA<Mods> {
         if self.graph.is_none() {
             self.graph = Some(LazyCudaGraph::new(self.stream.0)?);
         }
-        let graph = self.graph.as_ref().unwrap(); 
+        let graph = self.graph.as_ref().unwrap();
         graph.launch(self.stream.0)?;
         Ok(())
     }
@@ -63,14 +66,15 @@ impl<Mods> crate::LazySetup for CUDA<Mods> {
                 self.stream.0,
                 CUStreamCaptureMode::CU_STREAM_CAPTURE_MODE_GLOBAL,
             )
-        }.to_result()?;
+        }
+        .to_result()?;
         Ok(())
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::{CUDA, Lazy, Base, Device, Cached, CPU};
+    use crate::{Base, Cached, Device, Lazy, CPU, CUDA};
 
     #[test]
     // #[ignore]
@@ -92,7 +96,9 @@ mod tests {
             }
         "#;
 
-        device.launch_kernel1d(lhs.len(), src, "add", &[&lhs, &rhs, &mut out, &lhs.len()]).unwrap();
+        device
+            .launch_kernel1d(lhs.len(), src, "add", &[&lhs, &rhs, &mut out, &lhs.len()])
+            .unwrap();
 
         assert_eq!(out.read(), vec![0; out.len()])
     }

@@ -15,7 +15,10 @@ use crate::{
     Module as CombModule, OnDropBuffer, OnNewBuffer, PtrConv, Setup, Shape,
 };
 
-use super::{api::{cuMemcpy, cu_write_async}, lazy::LazyCudaGraph};
+use super::{
+    api::{cuMemcpy, cu_write_async},
+    lazy::LazyCudaGraph,
+};
 
 pub trait IsCuda: Device {}
 

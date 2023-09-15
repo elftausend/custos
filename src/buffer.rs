@@ -85,9 +85,9 @@ impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
     }
 
     #[inline]
-    pub fn empty_like(&self) -> Buffer<T, D, S> 
+    pub fn empty_like(&self) -> Buffer<T, D, S>
     where
-        D: Alloc<T> + OnNewBuffer<T, D, S> 
+        D: Alloc<T> + OnNewBuffer<T, D, S>,
     {
         Buffer::new(self.device(), self.len())
     }
