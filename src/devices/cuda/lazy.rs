@@ -47,3 +47,21 @@ impl<Mods> crate::LazyRun for CUDA<Mods> {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::{CUDA, Lazy, Base, Device};
+
+    #[test]
+    fn test_lazy_cuda_run() {
+        let device = CUDA::<Lazy<Base>>::new(0).unwrap();
+        let lhs = device.buffer([1, 2, 3, 4, 5, 6]);
+        let rhs = device.buffer([1, 2, 3, 4, 5, 6]);
+
+        let src = r#"
+            extern "C" __global__ void add(int* lhs, int* rhs, int len) {
+                
+            }
+        "#;
+    }
+}

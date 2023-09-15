@@ -91,9 +91,9 @@ impl<D: LazySetup, Mods: Setup<D>> Setup<D> for Lazy<Mods> {
 
 impl<Mods: Run<D>, D: LazyRun> Run<D> for Lazy<Mods> {
     #[inline]
-    fn run(&self, device: &D) {
-        device.run();
-        self.modules.run(device);
+    fn run(&self, device: &mut D) -> crate::Result<()> {
+        device.run()?;
+        self.modules.run(device)
     }
 }
 

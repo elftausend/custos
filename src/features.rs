@@ -49,7 +49,9 @@ pub trait Setup<D> {
 
 pub trait Run<D> {
     #[inline]
-    fn run(&self, _device: &D) {}
+    fn run(&self, _device: &mut D) -> crate::Result<()> {
+        Ok(())
+    }
 }
 
 pub trait HasModules<Mods> {
