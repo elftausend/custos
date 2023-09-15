@@ -5,7 +5,7 @@ use super::{
     cuStreamSynchronize,
     error::{CudaErrorKind, CudaResult},
     ffi::cuMemAlloc_v2,
-    CUcontext, CUdevice, CUfunction, CUgraph, CUgraphExec_st, CUgraph_st, CUmodule, CUstream, cuMemcpyHtoDAsync_v2,
+    CUcontext, CUdevice, CUfunction, CUgraph, CUgraphExec_st, CUgraph_st, CUmodule, CUstream, cuMemcpyHtoDAsync_v2, CUstreamCaptureStatus, cuStreamIsCapturing,
 };
 
 use core::ptr::NonNull;
@@ -142,6 +142,14 @@ pub struct Stream(pub CUstream);
 impl Stream {
     pub fn sync(&self) -> CudaResult<()> {
         unsafe { cuStreamSynchronize(self.0) }.to_result()
+    }
+
+    pub fn is_captured(&self) -> CudaResult<CUstreamCaptureStatus> {
+        let mut capture_status = CUstreamCaptureStatus::CU_STREAM_CAPTURE_STATUS_NONE;
+        unsafe {
+            cuStreamIsCapturing(self.0, &mut capture_status).to_result()?
+        };
+        Ok(capture_status)
     }
 }
 
