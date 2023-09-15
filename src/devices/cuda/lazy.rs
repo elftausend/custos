@@ -80,7 +80,6 @@ mod tests {
         // let rhs = crate::Buffer::<i32, _>::new(&device, 100);
         let lhs = device.buffer([1, 2, 3, 4, 5, 6]);
         let rhs = device.buffer([1, 2, 3, 4, 5, 6]);
-        return; 
         let mut out = lhs.empty_like();
 
         let src = r#"
@@ -94,5 +93,7 @@ mod tests {
         "#;
 
         device.launch_kernel1d(lhs.len(), src, "add", &[&lhs, &rhs, &mut out, &lhs.len()]).unwrap();
+
+        assert_eq!(out.read(), vec![0; out.len()])
     }
 }

@@ -128,6 +128,14 @@ pub enum CUresult {
     CUDA_ERROR_UNKNOWN = 999,
 }
 
+#[derive(Debug, PartialEq, Eq)]
+#[repr(C)]
+pub enum CUstreamCaptureStatus {
+    CU_STREAM_CAPTURE_STATUS_NONE = 0,
+    CU_STREAM_CAPTURE_STATUS_ACTIVE = 1,
+    CU_STREAM_CAPTURE_STATUS_INVALIDATED = 2,
+}
+
 impl From<CUresult> for CudaResult<()> {
     fn from(result: CUresult) -> Self {
         match result {
@@ -217,6 +225,7 @@ extern "C" {
 
     pub fn cuStreamBeginCapture(stream: CUstream, capture_mode: CUStreamCaptureMode) -> CUresult;
     pub fn cuStreamEndCapture(stream: CUstream, graph: *mut CUgraph) -> CUresult;
+    pub fn cuStreamIsCapturing(stream: CUstream, capture_status: *mut CUstreamCaptureStatus) -> CUresult;
 
     pub fn cuGraphDestroy(graph: CUgraph) -> CUresult;
 
