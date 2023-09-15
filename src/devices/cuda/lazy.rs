@@ -57,11 +57,18 @@ mod tests {
         let device = CUDA::<Lazy<Base>>::new(0).unwrap();
         let lhs = device.buffer([1, 2, 3, 4, 5, 6]);
         let rhs = device.buffer([1, 2, 3, 4, 5, 6]);
+        let mut out = lhs.empty_like();
 
         let src = r#"
-            extern "C" __global__ void add(int* lhs, int* rhs, int len) {
-                
+            extern "C" __global__ void add(int* lhs, int* rhs, int* out, int len) {
+                int idx = blockIdx.x * blockDim.x + threadIdx.x;
+                if (idx >= len) {
+                    return;
+                }
+                out[idx] = lhs[idx] + rhs[idx];
             }
         "#;
+
+        device.launch_kernel1d(lhs.len(), src, "add", &[&lhs, &rhs, &mut out, &lhs.len()]).unwrap();
     }
 }
