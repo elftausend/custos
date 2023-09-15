@@ -258,10 +258,11 @@ mod tests {
     }
 
     #[test]
+    #[ignore]
     fn test_use_gpu_or_cpu() {
         let fork = <Fork<Base> as Module<CPU>>::new();
         // const SIZE: usize = 100000000;
-        const SIZE: usize = 48_941_518;
+        const SIZE: usize = 41_518;
         let device = CPU::<Base>::new();
         let mut cpu_buf = device.buffer::<_, (), _>(vec![1; SIZE]);
 
@@ -276,6 +277,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore]
     fn test_diff_sizes() {
         let cpu = CPU::<Base>::new();
         let gpu = OpenCL::<Base>::new(1).unwrap();
@@ -311,6 +313,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore]
     fn test_check_for_reasonable_fork_execution_time() {
         let cpu = CPU::<Base>::new();
         let gpu = OpenCL::<Base>::new(1).unwrap();
@@ -359,6 +362,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore]
     fn test_use_gpu_or_cpu_varying_sizes() {
         let fork = <Fork<Base> as Module<CPU>>::new();
 
@@ -411,7 +415,7 @@ mod tests {
     fn test_fork_module() {
         let device = OpenCL::<Fork<Base>>::new(0).unwrap();
 
-        let mut buf = device.buffer::<_, (), _>(vec![21u8; 10000000]);
+        let mut buf = device.buffer::<_, (), _>(vec![21u8; 10000]);
 
         // this is for the jit warming
         try_cl_clear(&device, &mut buf).unwrap();

@@ -44,7 +44,7 @@ impl<SimpleMods> CUDA<SimpleMods> {
     #[inline]
     pub fn new<NewMods>(idx: usize) -> crate::Result<CUDA<NewMods>>
     where
-        SimpleMods: CombModule<CUDA<SimpleMods>, Module = NewMods>,
+        SimpleMods: CombModule<CUDA, Module = NewMods>,
         NewMods: Setup<CUDA<NewMods>>,
     {
         unsafe { cuInit(0) }.to_result()?;
