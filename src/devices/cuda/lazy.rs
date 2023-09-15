@@ -4,12 +4,12 @@ use crate::CUDA;
 
 use super::api::{
     cuGraphInstantiate, cuGraphLaunch, cuStreamBeginCapture, cuStreamEndCapture,
-    CUStreamCaptureMode, CudaErrorKind, Graph, GraphExec,
+    CUStreamCaptureMode, CudaErrorKind, Graph, GraphExec, Stream,
 };
 
-fn create_graph_from_captured_stream(stream: super::api::CUstream) -> Result<Graph, CudaErrorKind> {
+fn create_graph_from_captured_stream(stream: &Stream) -> Result<Graph, CudaErrorKind> {
     let mut graph = std::ptr::null_mut();
-    unsafe { cuStreamEndCapture(stream, &mut graph) }.to_result()?;
+    unsafe { cuStreamEndCapture(stream.0, &mut graph) }.to_result()?;
 
     Ok(Graph(
         NonNull::new(graph).ok_or(CudaErrorKind::ErrorStreamCaptureInvalidated)?,
@@ -30,7 +30,7 @@ pub struct LazyCudaGraph {
 }
 
 impl LazyCudaGraph {
-    pub fn new(stream: super::api::CUstream) -> Result<Self, CudaErrorKind> {
+    pub fn new(stream: &Stream) -> Result<Self, CudaErrorKind> {
         let graph = create_graph_from_captured_stream(stream)?;
         let graph_exec = create_graph_execution(&graph)?;
 
@@ -48,7 +48,7 @@ impl<Mods> crate::LazyRun for CUDA<Mods> {
     #[inline]
     fn run(&mut self) -> crate::Result<()> {
         if self.graph.is_none() {
-            self.graph = Some(LazyCudaGraph::new(self.stream.0)?);
+            self.graph = Some(LazyCudaGraph::new(&self.stream)?);
         }
         let graph = self.graph.as_ref().unwrap();
         graph.launch(self.stream.0)?;
