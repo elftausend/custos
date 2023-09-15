@@ -27,7 +27,9 @@ impl<Mods: Debug> Debug for Lazy<Mods> {
 }
 
 pub trait LazySetup {
-    fn lazy_setup(&mut self) {}
+    fn lazy_setup(&mut self) -> crate::Result<()> {
+        Ok(())
+    }
 }
 
 pub trait LazyRun {
@@ -83,8 +85,8 @@ impl<Mods> AddOperation for Lazy<Mods> {
 
 impl<D: LazySetup, Mods: Setup<D>> Setup<D> for Lazy<Mods> {
     #[inline]
-    fn setup(device: &mut D) {
-        device.lazy_setup();
+    fn setup(device: &mut D) -> crate::Result<()> {
+        device.lazy_setup()?;
         Mods::setup(device)
     }
 }

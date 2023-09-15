@@ -58,7 +58,7 @@ pub trait ForkSetup {
 }
 
 impl<Mods: Setup<D>, D: ForkSetup> Setup<D> for Fork<Mods> {
-    fn setup(device: &mut D) {
+    fn setup(device: &mut D) -> crate::Result<()> {
         // check if device supports unified memory
         device.fork_setup();
         Mods::setup(device)

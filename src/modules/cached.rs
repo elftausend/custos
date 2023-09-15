@@ -42,7 +42,7 @@ pub struct CachedModule<Mods, D: Device> {
 
 impl<Mods: Setup<NewDev>, D: Device, NewDev> Setup<NewDev> for CachedModule<Mods, D> {
     #[inline]
-    fn setup(device: &mut NewDev) {
+    fn setup(device: &mut NewDev) -> crate::Result<()> {
         Mods::setup(device)
     }
 }

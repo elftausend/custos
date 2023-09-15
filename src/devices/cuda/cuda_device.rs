@@ -167,14 +167,15 @@ impl<Mods: OnDropBuffer> IsCuda for CUDA<Mods> {}
 #[cfg(feature = "lazy")]
 impl<Mods> crate::LazySetup for CUDA<Mods> {
     #[inline]
-    fn lazy_setup(&mut self) {
+    fn lazy_setup(&mut self) -> crate::Result<()> {
         // switch to stream record mode for graph
         unsafe {
             cuStreamBeginCapture(
                 self.stream.0,
                 CUStreamCaptureMode::CU_STREAM_CAPTURE_MODE_GLOBAL,
             )
-        };
+        }.to_result()?;
+        Ok(())
     }
 }
 

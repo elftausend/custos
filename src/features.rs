@@ -44,7 +44,9 @@ pub trait Retrieve<D, T>: OnDropBuffer {
 /// Used for modules that should affect the device.
 pub trait Setup<D> {
     #[inline]
-    fn setup(_device: &mut D) {}
+    fn setup(_device: &mut D) -> crate::Result<()> {
+        Ok(())
+    }
 }
 
 pub trait Run<D> {

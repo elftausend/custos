@@ -88,7 +88,7 @@ impl<Mods: OnDropBuffer> OnDropBuffer for Autograd<Mods> {
 
 impl<Mods: Setup<NewDev>, NewDev> Setup<NewDev> for Autograd<Mods> {
     #[inline]
-    fn setup(device: &mut NewDev) {
+    fn setup(device: &mut NewDev) -> crate::Result<()> {
         Mods::setup(device)
     }
 }
