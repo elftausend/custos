@@ -169,6 +169,14 @@ extern "C" {
         src_host: *const c_void,
         bytes_to_copy: usize,
     ) -> CUresult;
+   
+    pub fn cuMemcpyHtoDAsync_v2(
+        dst_device: CUdeviceptr,
+        src_host: *const c_void,
+        bytes_to_copy: usize,
+        stream: CUstream,
+    ) -> CUresult;
+    
     pub fn cuMemcpyDtoH_v2(
         dst_host: *mut c_void,
         src_device: CUdeviceptr,

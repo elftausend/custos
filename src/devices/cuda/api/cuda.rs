@@ -5,7 +5,7 @@ use super::{
     cuStreamSynchronize,
     error::{CudaErrorKind, CudaResult},
     ffi::cuMemAlloc_v2,
-    CUcontext, CUdevice, CUfunction, CUgraph, CUgraphExec_st, CUgraph_st, CUmodule, CUstream,
+    CUcontext, CUdevice, CUfunction, CUgraph, CUgraphExec_st, CUgraph_st, CUmodule, CUstream, cuMemcpyHtoDAsync_v2,
 };
 
 use core::ptr::NonNull;
@@ -82,6 +82,11 @@ pub unsafe fn cufree(ptr: CUdeviceptr) -> CudaResult<()> {
 pub fn cu_write<T>(dst: CUdeviceptr, src_host: &[T]) -> CudaResult<()> {
     let bytes_to_copy = std::mem::size_of_val(src_host);
     unsafe { cuMemcpyHtoD_v2(dst, src_host.as_ptr() as *const c_void, bytes_to_copy) }.into()
+}
+
+pub fn cu_write_async<T>(dst: CUdeviceptr, src_host: &[T], stream: &Stream) -> CudaResult<()> {
+    let bytes_to_copy = std::mem::size_of_val(src_host);
+    unsafe { cuMemcpyHtoDAsync_v2(dst, src_host.as_ptr() as *const c_void, bytes_to_copy, stream.0) }.into()
 }
 
 pub fn cu_read<T>(dst_host: &mut [T], src: CUdeviceptr) -> CudaResult<()> {

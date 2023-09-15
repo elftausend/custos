@@ -15,7 +15,7 @@ use crate::{
     Module as CombModule, OnDropBuffer, OnNewBuffer, PtrConv, Setup, Shape,
 };
 
-use super::{api::{cuMemcpy, cuStreamBeginCapture, cu_write, CUStreamCaptureMode, Graph}, lazy::LazyCudaGraph};
+use super::{api::{cuMemcpy, cu_write, cu_write_async}, lazy::LazyCudaGraph};
 
 pub trait IsCuda: Device {}
 
@@ -65,7 +65,7 @@ impl<SimpleMods> CUDA<SimpleMods> {
             graph: None,
         };
 
-        NewMods::setup(&mut cuda);
+        NewMods::setup(&mut cuda)?;
 
         Ok(cuda)
     }
@@ -152,7 +152,8 @@ impl<Mods: OnDropBuffer, T> Alloc<T> for CUDA<Mods> {
         T: Clone,
     {
         let ptr = cumalloc::<T>(data.len()).unwrap();
-        cu_write(ptr, data).unwrap();
+        cu_write_async(ptr, data, self.stream()).unwrap();
+        self.stream.sync().unwrap();
         CUDAPtr {
             ptr,
             len: data.len(),
@@ -163,21 +164,6 @@ impl<Mods: OnDropBuffer, T> Alloc<T> for CUDA<Mods> {
 }
 
 impl<Mods: OnDropBuffer> IsCuda for CUDA<Mods> {}
-
-#[cfg(feature = "lazy")]
-impl<Mods> crate::LazySetup for CUDA<Mods> {
-    #[inline]
-    fn lazy_setup(&mut self) -> crate::Result<()> {
-        // switch to stream record mode for graph
-        unsafe {
-            cuStreamBeginCapture(
-                self.stream.0,
-                CUStreamCaptureMode::CU_STREAM_CAPTURE_MODE_GLOBAL,
-            )
-        }.to_result()?;
-        Ok(())
-    }
-}
 
 #[cfg(feature = "fork")]
 impl<Mods> crate::ForkSetup for CUDA<Mods> {

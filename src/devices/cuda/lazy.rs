@@ -2,7 +2,7 @@ use core::ptr::NonNull;
 
 use crate::CUDA;
 
-use super::api::{cuStreamEndCapture, Graph, CudaErrorKind, GraphExec, cuGraphInstantiate, cuGraphLaunch};
+use super::api::{cuStreamEndCapture, Graph, CudaErrorKind, GraphExec, cuGraphInstantiate, cuGraphLaunch, cuStreamBeginCapture, CUStreamCaptureMode};
 
 
 fn create_graph_from_captured_stream(stream: super::api::CUstream) -> Result<Graph, CudaErrorKind> {
@@ -53,6 +53,21 @@ impl<Mods> crate::LazyRun for CUDA<Mods> {
     }
 }
 
+#[cfg(feature = "lazy")]
+impl<Mods> crate::LazySetup for CUDA<Mods> {
+    #[inline]
+    fn lazy_setup(&mut self) -> crate::Result<()> {
+        // switch to stream record mode for graph
+        unsafe {
+            cuStreamBeginCapture(
+                self.stream.0,
+                CUStreamCaptureMode::CU_STREAM_CAPTURE_MODE_GLOBAL,
+            )
+        }.to_result()?;
+        Ok(())
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::{CUDA, Lazy, Base, Device, Cached, CPU};
@@ -60,7 +75,9 @@ mod tests {
     #[test]
     // #[ignore]
     fn test_lazy_cuda_run() {
-        let device = CUDA::<Base>::new(0).unwrap();
+        let device = CUDA::<Lazy<Base>>::new(0).unwrap();
+        // let lhs = crate::Buffer::<i32, _>::new(&device, 100);
+        // let rhs = crate::Buffer::<i32, _>::new(&device, 100);
         let lhs = device.buffer([1, 2, 3, 4, 5, 6]);
         let rhs = device.buffer([1, 2, 3, 4, 5, 6]);
         return; 
