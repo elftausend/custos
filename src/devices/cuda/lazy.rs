@@ -18,7 +18,7 @@ fn create_graph_execution(graph: &Graph) -> Result<GraphExec, CudaErrorKind> {
     Ok(GraphExec(NonNull::new(graph_exec).ok_or(CudaErrorKind::NotInitialized)?))
 }
 
-pub(super) struct LazyCudaGraph {
+pub struct LazyCudaGraph {
     graph: Graph,
     graph_exec: GraphExec
 }
@@ -33,6 +33,11 @@ impl LazyCudaGraph {
             graph_exec
         })
     }
+
+    pub fn launch(&self, stream: super::api::CUstream) -> Result<(), CudaErrorKind> {
+        unsafe { cuGraphLaunch(self.graph_exec.0.as_ptr(), stream).to_result()? } 
+        Ok(())
+    }
 }
 
 #[cfg(feature = "lazy")]
@@ -43,7 +48,7 @@ impl<Mods> crate::LazyRun for CUDA<Mods> {
             self.graph = Some(LazyCudaGraph::new(self.stream.0)?);
         }
         let graph = self.graph.as_ref().unwrap(); 
-        unsafe { cuGraphLaunch(graph.graph_exec.0.as_ptr(), self.stream.0).to_result()? } 
+        graph.launch(self.stream.0)?;
         Ok(())
     }
 }
