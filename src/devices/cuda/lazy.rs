@@ -1,4 +1,4 @@
-use core::ptr::NonNull;
+use core::{ptr::NonNull, mem::ManuallyDrop};
 
 use crate::CUDA;
 
@@ -25,14 +25,23 @@ fn create_graph_execution(graph: &Graph) -> Result<GraphExec, CudaErrorKind> {
 }
 
 pub struct LazyCudaGraph {
-    graph: Graph,
-    graph_exec: GraphExec,
+    graph_exec: ManuallyDrop<GraphExec>,
+    graph: ManuallyDrop<Graph>,
+}
+
+impl Drop for LazyCudaGraph {
+    fn drop(&mut self) {
+        unsafe {
+            ManuallyDrop::drop(&mut self.graph_exec);
+            ManuallyDrop::drop(&mut self.graph);
+        }
+    }
 }
 
 impl LazyCudaGraph {
     pub fn new(stream: &Stream) -> Result<Self, CudaErrorKind> {
-        let graph = create_graph_from_captured_stream(stream)?;
-        let graph_exec = create_graph_execution(&graph)?;
+        let graph = ManuallyDrop::new(create_graph_from_captured_stream(stream)?);
+        let graph_exec = ManuallyDrop::new(create_graph_execution(&graph)?);
 
         Ok(LazyCudaGraph { graph, graph_exec })
     }
@@ -46,11 +55,8 @@ impl LazyCudaGraph {
 #[cfg(feature = "lazy")]
 impl<Mods> crate::LazyRun for CUDA<Mods> {
     #[inline]
-    fn run(&mut self) -> crate::Result<()> {
-        if self.graph.is_none() {
-            self.graph = Some(LazyCudaGraph::new(&self.stream)?);
-        }
-        let graph = self.graph.as_ref().unwrap();
+    fn run(&self) -> crate::Result<()> {
+        let graph = self.graph.get_or_init(|| LazyCudaGraph::new(&self.stream()).unwrap());
         graph.launch(self.stream.0)?;
         Ok(())
     }
@@ -74,7 +80,7 @@ impl<Mods> crate::LazySetup for CUDA<Mods> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{Base, Cached, Device, Lazy, CPU, CUDA};
+    use crate::{Base, Cached, Device, Lazy, CPU, CUDA, LazyRun};
 
     #[test]
     // #[ignore]
@@ -100,6 +106,11 @@ mod tests {
             .launch_kernel1d(lhs.len(), src, "add", &[&lhs, &rhs, &mut out, &lhs.len()])
             .unwrap();
 
-        assert_eq!(out.read(), vec![0; out.len()])
+        assert_eq!(out.read(), vec![0; out.len()]);
+
+        device.run().unwrap();
+
+        assert_eq!(out.read(), vec![2, 4, 6, 8, 10, 12]);
+        println!("fin")
     }
 }

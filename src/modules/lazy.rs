@@ -33,7 +33,7 @@ pub trait LazySetup {
 }
 
 pub trait LazyRun {
-    fn run(&mut self) -> crate::Result<()>;
+    fn run(&self) -> crate::Result<()>;
 }
 
 impl<Mods: Module<D>, D: LazySetup> Module<D> for Lazy<Mods> {
