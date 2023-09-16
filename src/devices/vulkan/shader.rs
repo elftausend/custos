@@ -1,6 +1,7 @@
 mod command;
 mod descriptor;
 mod operation;
+mod shader_argument;
 
 pub use command::*;
 pub use descriptor::*;
