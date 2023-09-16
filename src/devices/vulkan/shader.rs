@@ -1,21 +1,21 @@
 mod command;
 mod descriptor;
 mod operation;
+mod pipeline;
 mod shader_argument;
 
 pub use command::*;
 pub use descriptor::*;
 pub use operation::Operation;
+pub use pipeline::*;
 
-use core::ffi::CStr;
 use std::collections::HashMap;
 
 use ash::{
     prelude::VkResult,
     vk::{
-        self, Buffer, CommandBuffer, DescriptorBufferInfo, DescriptorSet, DescriptorSetLayout,
-        DescriptorType, Fence, Pipeline, PipelineCache, PipelineLayout, ShaderModule,
-        WriteDescriptorSet,
+        self, Buffer, CommandBuffer, DescriptorBufferInfo, DescriptorSet, DescriptorType, Fence,
+        ShaderModule, WriteDescriptorSet,
     },
     Device,
 };
@@ -26,41 +26,6 @@ pub fn create_shader_module(device: &Device, code: &[u32]) -> VkResult<ShaderMod
 
         device.create_shader_module(&shader_module_create_info, None)
     }
-}
-
-pub fn create_pipeline(
-    device: &Device,
-    descriptor_set_layout: DescriptorSetLayout,
-    shader_module: ShaderModule,
-) -> VkResult<(Pipeline, PipelineLayout)> {
-    let pipeline_layout = {
-        let pipeline_layout_create_info = vk::PipelineLayoutCreateInfo::builder()
-            .set_layouts(core::slice::from_ref(&descriptor_set_layout));
-        unsafe { device.create_pipeline_layout(&pipeline_layout_create_info, None) }.unwrap()
-    };
-
-    // create the pipeline
-    let pipeline_create_info = vk::ComputePipelineCreateInfo {
-        stage: vk::PipelineShaderStageCreateInfo {
-            stage: vk::ShaderStageFlags::COMPUTE,
-            module: shader_module,
-            p_name: unsafe { CStr::from_bytes_with_nul_unchecked(b"main\0") }.as_ptr(),
-            ..Default::default()
-        },
-        layout: pipeline_layout,
-        ..Default::default()
-    };
-
-    let pipeline = unsafe {
-        // use pipeline cache from context??
-        device.create_compute_pipelines(
-            PipelineCache::null(),
-            core::slice::from_ref(&pipeline_create_info),
-            None,
-        )
-    }
-    .map_err(|(_, err)| err)?[0];
-    Ok((pipeline, pipeline_layout))
 }
 
 // combine with other Caches

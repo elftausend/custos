@@ -55,11 +55,11 @@ where
     S: Shape,
     Mods: OnDropBuffer,
 {
-    #[inline] 
-    fn as_arg(&self, _context: Rc<Context>) -> VkShaderArgument { 
+    #[inline]
+    fn as_arg(&self, _context: Rc<Context>) -> VkShaderArgument {
         VkShaderArgument {
             vk_array_handle: None,
             buffer: self.data.buf,
         }
-   }
+    }
 }

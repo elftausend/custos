@@ -6,11 +6,12 @@ use ash::{
 use crate::wgsl::Spirv;
 
 use super::{
-    create_pipeline, create_shader_module,
+    create_shader_module,
     descriptor::{
         allocate_descriptor_set, create_descriptor_pool,
         create_descriptor_set_layout_from_desc_types,
     },
+    pipeline::create_pipeline,
 };
 
 #[derive(Debug, Clone, Copy)]
