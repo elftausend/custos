@@ -4,6 +4,7 @@ mod operation;
 mod pipeline;
 mod shader_argument;
 
+pub use shader_argument::*;
 pub use command::*;
 pub use descriptor::*;
 pub use operation::Operation;
@@ -19,8 +20,6 @@ use ash::{
     },
     Device,
 };
-
-use self::shader_argument::AsVkShaderArgument;
 
 pub fn create_shader_module(device: &Device, code: &[u32]) -> VkResult<ShaderModule> {
     unsafe {
@@ -102,11 +101,11 @@ pub fn launch_shader(
     src: impl AsRef<str>,
     args: &[&dyn AsVkShaderArgument],
 ) -> crate::Result<()> {
-    let device = context.device;
+    let device = &context.device;
     let command_buffer = context.command_buffer;
 
     let operation = shader_cache.get(
-        &device,
+        device,
         src,
         &args
             .iter()

@@ -1,4 +1,4 @@
-use super::{context::Context, launch_shader, ShaderCache, VkArray};
+use super::{context::Context, launch_shader, ShaderCache, VkArray, AsVkShaderArgument};
 use crate::{
     flag::AllocFlag, impl_buffer_hook_traits, impl_retriever, Alloc, Base, Buffer, Device,
     MainMemory, Module, OnDropBuffer, PtrConv, Setup, Shape,
@@ -110,14 +110,12 @@ impl<Mods> Vulkan<Mods> {
         &self,
         gws: [u32; 3],
         src: impl AsRef<str>,
-        args: &[ash::vk::Buffer],
+        args: &[&dyn AsVkShaderArgument],
     ) -> crate::Result<()> {
         launch_shader(
-            &self.context.device,
+            self.context.clone(),
             gws,
             &mut self.shader_cache.borrow_mut(),
-            self.context.command_buffer,
-            self.context.compute_family_idx,
             src,
             args,
         )
@@ -146,7 +144,7 @@ mod tests {
             }
         ";
 
-        device.launch_shader([1, 1, 1], src, &[buf]).unwrap();
+        device.launch_shader([1, 1, 1], src, &[&buf]).unwrap();
     }
 
     #[test]
@@ -185,7 +183,7 @@ mod tests {
             @workgroup_size(32)
             fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
                 if global_id.x >= arrayLength(&out) {
-                    return;    
+                    return; 
                 }
                 
                 out[global_id.x] += a[global_id.x] + b[global_id.x];
@@ -193,7 +191,7 @@ mod tests {
         ";
 
         device
-            .launch_shader([1, 1, 1], src, &[lhs.data.buf, rhs.data.buf, out.data.buf])
+            .launch_shader([1, 1, 1], src, &[&lhs.data.buf, &rhs.data.buf, &out.data.buf])
             .unwrap();
         assert_eq!(out.as_slice(), [7, 8, 9, 10, 11, 15, 8, 9, 10, 9, 8])
     }
