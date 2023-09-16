@@ -109,12 +109,12 @@ impl<Mods> CUDA<Mods> {
 
     /// Lauches a CUDA kernel with the given arguments.
     #[inline]
-    pub fn launch_kernel1d(
+    pub fn launch_kernel1d<'a>(
         &self,
         len: usize,
         src: impl CudaSource,
         fn_name: &str,
-        args: &[&dyn AsCudaCvoidPtr],
+        args: &'a [&dyn AsCudaCvoidPtr],
     ) -> crate::Result<()> {
         launch_kernel1d(
             len,
