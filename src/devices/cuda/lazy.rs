@@ -9,25 +9,23 @@ use super::api::{
 
 
 pub struct LazyCudaGraph {
+    pub graph: Graph,
+    // ManuallyDrop: cuGraphExecDestroy does not exit??
     graph_exec: ManuallyDrop<GraphExec>,
-    graph: ManuallyDrop<Graph>,
 }
 
-impl Drop for LazyCudaGraph {
-    fn drop(&mut self) {
-        unsafe {
-            println!("drop");
-            ManuallyDrop::drop(&mut self.graph_exec);
-            println!("drop ge");
-            ManuallyDrop::drop(&mut self.graph);
-            println!("drop fin");
-        }
-    }
-}
+// impl Drop for LazyCudaGraph {
+//     fn drop(&mut self) {
+//         unsafe {
+//             ManuallyDrop::drop(&mut self.graph_exec);
+//             ManuallyDrop::drop(&mut self.graph);
+//         }
+//     }
+// }
 
 impl LazyCudaGraph {
     pub fn new(stream: &Stream) -> Result<Self, CudaErrorKind> {
-        let graph = ManuallyDrop::new(create_graph_from_captured_stream(stream)?);
+        let graph = create_graph_from_captured_stream(stream)?;
         let graph_exec = ManuallyDrop::new(create_graph_execution(&graph)?);
 
         Ok(LazyCudaGraph { graph, graph_exec })
@@ -71,7 +69,7 @@ impl<Mods> crate::LazySetup for CUDA<Mods> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{Base, Cached, Device, Lazy, LazyRun, CPU, CUDA};
+    use crate::{Base, Device, Lazy, LazyRun, CUDA};
 
     #[test]
     // #[ignore]
@@ -102,6 +100,5 @@ mod tests {
         device.run().unwrap();
 
         assert_eq!(out.read(), vec![2, 4, 6, 8, 10, 12]);
-        println!("fin")
     }
 }
