@@ -2,7 +2,7 @@ use core::ops::{Range, RangeBounds};
 
 use crate::{
     bounds_to_range,
-    cuda::api::{cu_read, CUstreamCaptureStatus, cu_read_async},
+    cuda::api::{cu_read, cu_read_async, CUstreamCaptureStatus},
     Buffer, CDatatype, ClearBuf, CopySlice, OnDropBuffer, Read, WriteBuf, CUDA,
 };
 
@@ -31,7 +31,7 @@ impl<Mods: OnDropBuffer, T: Default + Clone> Read<T> for CUDA<Mods> {
             "called Read::read(..) on a non CUDA buffer"
         );
         // TODO: sync here or somewhere else?
-        if self.stream().is_captured().unwrap()
+        if self.stream().capture_status().unwrap()
             == CUstreamCaptureStatus::CU_STREAM_CAPTURE_STATUS_NONE
         {
             self.stream().sync().unwrap();

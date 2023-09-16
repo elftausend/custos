@@ -136,6 +136,14 @@ pub enum CUstreamCaptureStatus {
     CU_STREAM_CAPTURE_STATUS_INVALIDATED = 2,
 }
 
+#[repr(C)]
+pub enum CUgraphInstantiate_flags {
+    CUDA_GRAPH_INSTANTIATE_FLAG_AUTO_FREE_ON_LAUNCH = 1,
+    CUDA_GRAPH_INSTANTIATE_FLAG_UPLOAD = 2,
+    CUDA_GRAPH_INSTANTIATE_FLAG_DEVICE_LAUNCH = 4,
+    CUDA_GRAPH_INSTANTIATE_FLAG_USE_NODE_PRIORITY = 8,
+}
+
 impl From<CUresult> for CudaResult<()> {
     fn from(result: CUresult) -> Self {
         match result {
@@ -196,7 +204,7 @@ extern "C" {
         bytes_to_copy: usize,
         stream: CUstream,
     ) -> CUresult;
-   
+
     pub fn cuModuleLoad(module: *mut CUmodule, fname: *const c_char) -> CUresult;
     pub fn cuModuleLoadData(module: *mut CUmodule, data: *const c_void) -> CUresult;
     pub fn cuModuleGetFunction(
@@ -239,7 +247,11 @@ extern "C" {
 
     pub fn cuGraphDestroy(graph: CUgraph) -> CUresult;
 
-    pub fn cuGraphInstantiate(graph_exec: *mut CUgraphExec, graph: CUgraph) -> CUresult;
+    pub fn cuGraphInstantiate(
+        graph_exec: *mut CUgraphExec,
+        graph: CUgraph,
+        flags: CUgraphInstantiate_flags,
+    ) -> CUresult;
 
     pub fn cuGraphLaunch(graph_exec: CUgraphExec, stream: CUstream) -> CUresult;
 

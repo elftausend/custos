@@ -1,10 +1,10 @@
-use core::{ptr::NonNull, mem::ManuallyDrop};
+use core::{mem::ManuallyDrop, ptr::NonNull};
 
 use crate::CUDA;
 
 use super::api::{
     cuGraphInstantiate, cuGraphLaunch, cuStreamBeginCapture, cuStreamEndCapture,
-    CUStreamCaptureMode, CudaErrorKind, Graph, GraphExec, Stream,
+    CUStreamCaptureMode, CUgraphInstantiate_flags, CudaErrorKind, Graph, GraphExec, Stream,
 };
 
 fn create_graph_from_captured_stream(stream: &Stream) -> Result<Graph, CudaErrorKind> {
@@ -18,7 +18,14 @@ fn create_graph_from_captured_stream(stream: &Stream) -> Result<Graph, CudaError
 
 fn create_graph_execution(graph: &Graph) -> Result<GraphExec, CudaErrorKind> {
     let mut graph_exec = std::ptr::null_mut();
-    unsafe { cuGraphInstantiate(&mut graph_exec, graph.0.as_ptr()) }.to_result()?;
+    unsafe {
+        cuGraphInstantiate(
+            &mut graph_exec,
+            graph.0.as_ptr(),
+            CUgraphInstantiate_flags::CUDA_GRAPH_INSTANTIATE_FLAG_AUTO_FREE_ON_LAUNCH,
+        )
+    }
+    .to_result()?;
     Ok(GraphExec(
         NonNull::new(graph_exec).ok_or(CudaErrorKind::NotInitialized)?,
     ))
@@ -40,8 +47,8 @@ impl Drop for LazyCudaGraph {
 
 impl LazyCudaGraph {
     pub fn new(stream: &Stream) -> Result<Self, CudaErrorKind> {
-        let graph = ManuallyDrop::new(create_graph_from_captured_stream(stream)?);
-        let graph_exec = ManuallyDrop::new(create_graph_execution(&graph)?);
+        let graph = ManuallyDrop::new(create_graph_from_captured_stream(stream).unwrap());
+        let graph_exec = ManuallyDrop::new(create_graph_execution(&graph).unwrap());
 
         Ok(LazyCudaGraph { graph, graph_exec })
     }
@@ -56,7 +63,9 @@ impl LazyCudaGraph {
 impl<Mods> crate::LazyRun for CUDA<Mods> {
     #[inline]
     fn run(&self) -> crate::Result<()> {
-        let graph = self.graph.get_or_init(|| LazyCudaGraph::new(&self.stream()).unwrap());
+        let graph = self
+            .graph
+            .get_or_init(|| LazyCudaGraph::new(&self.stream()).unwrap());
         graph.launch(self.stream.0)?;
         Ok(())
     }
@@ -80,7 +89,7 @@ impl<Mods> crate::LazySetup for CUDA<Mods> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{Base, Cached, Device, Lazy, CPU, CUDA, LazyRun};
+    use crate::{Base, Cached, Device, Lazy, LazyRun, CPU, CUDA};
 
     #[test]
     // #[ignore]

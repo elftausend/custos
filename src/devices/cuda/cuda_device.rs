@@ -1,4 +1,7 @@
-use core::{cell::{RefCell, OnceCell}, marker::PhantomData};
+use core::{
+    cell::{OnceCell, RefCell},
+    marker::PhantomData,
+};
 use std::collections::HashMap;
 
 use crate::{
@@ -36,7 +39,7 @@ pub struct CUDA<Mods = Base> {
     /// A stream used for memory transfers, like cu_write_async
     pub mem_transfer_stream: Stream,
     handle: CublasHandle,
-    pub graph: OnceCell<LazyCudaGraph>
+    pub graph: OnceCell<LazyCudaGraph>,
 }
 
 impl_retriever!(CUDA);
@@ -70,7 +73,7 @@ impl<SimpleMods> CUDA<SimpleMods> {
             stream,
             mem_transfer_stream,
             handle,
-            graph: OnceCell::new()
+            graph: OnceCell::new(),
         };
 
         NewMods::setup(&mut cuda)?;
