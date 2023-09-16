@@ -60,7 +60,7 @@ fn test_with_custos_comps() {
             DescriptorType::STORAGE_BUFFER,
             DescriptorType::STORAGE_BUFFER,
         ],
-    );
+    ).unwrap();
     // let operation = Operation::new(&context.device, &src, &[DescriptorType::STORAGE_BUFFER, DescriptorType::STORAGE_BUFFER, DescriptorType::STORAGE_BUFFER]);
 
     let descriptor_infos = create_descriptor_infos(&[lhs.buf, rhs.buf, out.buf]);
