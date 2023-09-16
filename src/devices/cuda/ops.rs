@@ -2,12 +2,12 @@ use core::ops::{Range, RangeBounds};
 
 use crate::{
     bounds_to_range,
-    cuda::api::{cu_read, cu_read_async, CUstreamCaptureStatus},
+    cuda::api::{cu_read_async, CUstreamCaptureStatus},
     Buffer, CDatatype, ClearBuf, CopySlice, OnDropBuffer, Read, WriteBuf, CUDA,
 };
 
 use super::{
-    api::{cuMemcpy, cu_write},
+    api::{cuMemcpy, cu_write_async},
     cu_clear,
 };
 
@@ -90,7 +90,7 @@ impl<Mods: OnDropBuffer, T> CopySlice<T> for CUDA<Mods> {
 impl<Mods: OnDropBuffer, T> WriteBuf<T> for CUDA<Mods> {
     #[inline]
     fn write(&self, buf: &mut Buffer<T, Self>, data: &[T]) {
-        cu_write(buf.cu_ptr(), data).unwrap();
+        cu_write_async(buf.cu_ptr(), data, &self.mem_transfer_stream).unwrap();
     }
 
     #[inline]
