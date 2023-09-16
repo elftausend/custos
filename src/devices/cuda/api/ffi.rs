@@ -24,6 +24,9 @@ pub type CUstream = *mut CUstream_st;
 pub enum CUgraph_st {}
 pub type CUgraph = *mut CUgraph_st;
 
+pub enum CUgraphExec_st {}
+pub type CUgraphExec = *mut CUgraphExec_st;
+
 #[repr(u32)]
 pub enum CUStreamCaptureMode {
     CU_STREAM_CAPTURE_MODE_GLOBAL = 0,
@@ -125,6 +128,22 @@ pub enum CUresult {
     CUDA_ERROR_UNKNOWN = 999,
 }
 
+#[derive(Debug, PartialEq, Eq)]
+#[repr(C)]
+pub enum CUstreamCaptureStatus {
+    CU_STREAM_CAPTURE_STATUS_NONE = 0,
+    CU_STREAM_CAPTURE_STATUS_ACTIVE = 1,
+    CU_STREAM_CAPTURE_STATUS_INVALIDATED = 2,
+}
+
+#[repr(C)]
+pub enum CUgraphInstantiate_flags {
+    CUDA_GRAPH_INSTANTIATE_FLAG_AUTO_FREE_ON_LAUNCH = 1,
+    CUDA_GRAPH_INSTANTIATE_FLAG_UPLOAD = 2,
+    CUDA_GRAPH_INSTANTIATE_FLAG_DEVICE_LAUNCH = 4,
+    CUDA_GRAPH_INSTANTIATE_FLAG_USE_NODE_PRIORITY = 8,
+}
+
 impl From<CUresult> for CudaResult<()> {
     fn from(result: CUresult) -> Self {
         match result {
@@ -166,11 +185,26 @@ extern "C" {
         src_host: *const c_void,
         bytes_to_copy: usize,
     ) -> CUresult;
+
+    pub fn cuMemcpyHtoDAsync_v2(
+        dst_device: CUdeviceptr,
+        src_host: *const c_void,
+        bytes_to_copy: usize,
+        stream: CUstream,
+    ) -> CUresult;
+
     pub fn cuMemcpyDtoH_v2(
         dst_host: *mut c_void,
         src_device: CUdeviceptr,
         bytes_to_copy: usize,
     ) -> CUresult;
+    pub fn cuMemcpyDtoHAsync_v2(
+        dst_host: *mut c_void,
+        src_device: CUdeviceptr,
+        bytes_to_copy: usize,
+        stream: CUstream,
+    ) -> CUresult;
+
     pub fn cuModuleLoad(module: *mut CUmodule, fname: *const c_char) -> CUresult;
     pub fn cuModuleLoadData(module: *mut CUmodule, data: *const c_void) -> CUresult;
     pub fn cuModuleGetFunction(
@@ -204,10 +238,27 @@ extern "C" {
         block_size_limit: i32,
     ) -> CUresult;
 
-    pub fn cuStreamBeginCapture(stream: CUstream, capture_mode: CUStreamCaptureMode);
-    pub fn cuStreamEndCapture(stream: CUstream, graph: *mut CUgraph);
+    pub fn cuStreamBeginCapture(stream: CUstream, capture_mode: CUStreamCaptureMode) -> CUresult;
+    pub fn cuStreamEndCapture(stream: CUstream, graph: *mut CUgraph) -> CUresult;
+    pub fn cuStreamIsCapturing(
+        stream: CUstream,
+        capture_status: *mut CUstreamCaptureStatus,
+    ) -> CUresult;
 
-    pub fn cuGraphDestroy(graph: CUgraph);
+    pub fn cuGraphDestroy(graph: CUgraph) -> CUresult;
+
+    pub fn cuGraphInstantiate(
+        graph_exec: *mut CUgraphExec,
+        graph: CUgraph,
+        error_node: *mut *mut c_void,
+        log_buffer: *mut u8,
+        buffer_size: usize,
+    ) -> CUresult;
+
+    pub fn cuGraphLaunch(graph_exec: CUgraphExec, stream: CUstream) -> CUresult;
+
+    pub fn cuGraphExecDestroy(graph_exec: CUgraphExec) -> CUresult;
+
     // unified memory
 
 }

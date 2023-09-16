@@ -10,6 +10,8 @@ mod ffi;
 pub mod cublas;
 pub mod nvrtc;
 
+pub use error::*;
+
 pub use cuda::*;
 pub use ffi::*;
 

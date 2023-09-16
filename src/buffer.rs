@@ -83,6 +83,14 @@ impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
         device.on_new_buffer(device, &buf);
         buf
     }
+
+    #[inline]
+    pub fn empty_like(&self) -> Buffer<'a, T, D, S>
+    where
+        D: Alloc<T> + OnNewBuffer<T, D, S>,
+    {
+        Buffer::new(self.device(), self.len())
+    }
 }
 
 impl<'a, T, D: Device, S: Shape> HasId for Buffer<'a, T, D, S> {

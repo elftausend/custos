@@ -209,14 +209,14 @@ mod tests {
         , datatype=T::C_DTYPE_STR)
     }
 
-    /*#[test]
+    #[test]
     fn test_get_work_group_size() -> crate::Result<()> {
         let device = OpenCL::<Base>::new(chosen_cl_idx())?;
         let mut kernel_cache = device.kernel_cache.borrow_mut();
 
-        let kernel = kernel_cache.kernel_cache(&device, &ew_add_kernel::<f32>("+"))?;
+        let kernel = kernel_cache.kernel(&device, &ew_add_kernel::<f32>("+"))?;
 
-        let mut local = 0;
+        let mut local = 0u64;
 
         unsafe {
             min_cl::api::ffi::clGetKernelWorkGroupInfo(
@@ -224,15 +224,15 @@ mod tests {
                 device.inner.device.0,
                 min_cl::api::ffi::CL_KERNEL_WORK_GROUP_SIZE,
                 core::mem::size_of_val(&local),
-                &mut local as *mut i32 as *mut c_void,
+                &mut local as *mut _ as *mut core::ffi::c_void,
                 core::ptr::null_mut()
             );
         }
 
-        // println!("local: {local}");
+        println!("local: {local}");
 
 
         Ok(())
     }
-    */
+    
 }

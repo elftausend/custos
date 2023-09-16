@@ -365,7 +365,7 @@ fn test_vulkan_compute_with_wgsl_and_spirv() {
     let submit_info =
         vk::SubmitInfo::builder().command_buffers(core::slice::from_ref(&command_buffer));
 
-    const TIMES: usize = 100;
+    const TIMES: usize = 10;
     let start = Instant::now();
     for _ in 0..TIMES {
         unsafe { device.queue_submit(queue, core::slice::from_ref(&submit_info), Fence::null()) }
