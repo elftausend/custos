@@ -96,9 +96,9 @@ impl Context {
     }
 }
 
-impl Drop for Context {
-    #[inline]
-    fn drop(&mut self) {
-        unsafe {}
-    }
-}
+// impl Drop for Context {
+//     #[inline]
+//     fn drop(&mut self) {
+//         unsafe {}
+//     }
+// }

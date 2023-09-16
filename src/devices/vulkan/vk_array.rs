@@ -1,4 +1,5 @@
 use ash::{prelude::VkResult, vk};
+use core::ops::Deref;
 use std::rc::Rc;
 
 use crate::{flag::AllocFlag, HasId, PtrType};
@@ -88,6 +89,15 @@ impl<T> Drop for VkArray<T> {
             self.context.device.free_memory(self.mem, None);
             self.context.device.destroy_buffer(self.buf, None)
         }
+    }
+}
+
+impl<T> Deref for VkArray<T> {
+    type Target = vk::Buffer;
+
+    #[inline]
+    fn deref(&self) -> &Self::Target {
+        &self.buf
     }
 }
 
