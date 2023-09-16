@@ -14,11 +14,13 @@ use std::collections::HashMap;
 use ash::{
     prelude::VkResult,
     vk::{
-        self, Buffer, CommandBuffer, DescriptorBufferInfo, DescriptorSet, DescriptorType, Fence,
+        self, Buffer, DescriptorBufferInfo, DescriptorSet, DescriptorType, Fence,
         ShaderModule, WriteDescriptorSet,
     },
     Device,
 };
+
+use self::shader_argument::AsVkShaderArgument;
 
 pub fn create_shader_module(device: &Device, code: &[u32]) -> VkResult<ShaderModule> {
     unsafe {
@@ -94,16 +96,17 @@ pub fn create_write_descriptor_sets(
 }
 
 pub fn launch_shader(
-    device: &Device,
+    context: std::rc::Rc<super::Context>,
     gws: [u32; 3],
     shader_cache: &mut ShaderCache,
-    command_buffer: CommandBuffer,
-    compute_family_idx: usize,
     src: impl AsRef<str>,
-    args: &[Buffer],
+    args: &[&dyn AsVkShaderArgument],
 ) -> crate::Result<()> {
+    let device = context.device;
+    let command_buffer = context.command_buffer;
+
     let operation = shader_cache.get(
-        device,
+        &device,
         src,
         &args
             .iter()
@@ -111,7 +114,10 @@ pub fn launch_shader(
             .collect::<Vec<_>>(),
     )?;
 
-    let descriptor_infos = create_descriptor_infos(args);
+    let args = args.iter().map(|arg| arg.as_arg(context.clone())).collect::<Vec<_>>();
+    let buffer_args = args.iter().map(|arg| arg.buffer).collect::<Vec<_>>();
+
+    let descriptor_infos = create_descriptor_infos(&buffer_args);
     let write_descriptor_sets =
         create_write_descriptor_sets(&descriptor_infos, operation.descriptor_set);
 
@@ -142,7 +148,7 @@ pub fn launch_shader(
     };
     unsafe { device.cmd_dispatch(command_buffer, gws[0], gws[1], gws[2]) };
     unsafe { device.end_command_buffer(command_buffer) }?;
-    let queue = unsafe { device.get_device_queue(compute_family_idx as u32, 0) };
+    let queue = unsafe { device.get_device_queue(context.compute_family_idx as u32, 0) };
     let submit_info =
         vk::SubmitInfo::builder().command_buffers(core::slice::from_ref(&command_buffer));
 
@@ -150,6 +156,7 @@ pub fn launch_shader(
 
     unsafe { device.device_wait_idle() }?;
     unsafe { device.reset_command_buffer(command_buffer, vk::CommandBufferResetFlags::empty()) }?;
+    drop(args);
     Ok(())
 }
 
@@ -205,11 +212,9 @@ mod tests {
             VkArray::<f32>::new(context.clone(), 10, crate::flag::AllocFlag::None).unwrap();
 
         launch_shader(
-            &context.device,
+            context.clone(),
             [1, 1, 1],
             &mut shader_cache,
-            context.command_buffer,
-            context.compute_family_idx,
             &src,
             &[lhs.buf, rhs.buf, out.buf], // &[out.buf, out2.buf]
         )
@@ -229,11 +234,9 @@ mod tests {
             }
             assert_eq!(out.as_slice(), [0.; 10]);
             launch_shader(
-                &context.device,
+                context.clone(),
                 [1, 1, 1],
                 &mut shader_cache,
-                context.command_buffer,
-                context.compute_family_idx,
                 &src,
                 &[lhs.buf, rhs.buf, out.buf],
             )
