@@ -246,7 +246,8 @@ mod tests {
             context.compute_family_idx,
             &src,
             &[lhs.buf, rhs.buf, out.buf], // &[out.buf, out2.buf]
-        ).unwrap();
+        )
+        .unwrap();
 
         assert_eq!(lhs.as_slice(), [1., 2., 3., 4., 5., 6., 7., 8., 9., 10.]);
         assert_eq!(rhs.as_slice(), [1., 2., 3., 4., 5., 6., 7., 8., 9., 10.]);
@@ -269,7 +270,8 @@ mod tests {
                 context.compute_family_idx,
                 &src,
                 &[lhs.buf, rhs.buf, out.buf],
-            ).unwrap();
+            )
+            .unwrap();
 
             assert_eq!(lhs.as_slice(), [1., 2., 3., 4., 5., 6., 7., 8., 9., 10.]);
             assert_eq!(rhs.as_slice(), [1., 2., 3., 4., 5., 6., 7., 8., 9., 10.]);

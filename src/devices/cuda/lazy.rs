@@ -43,7 +43,7 @@ impl<Mods> crate::LazyRun for CUDA<Mods> {
         let graph = self
             .graph
             .get_or_init(|| LazyCudaGraph::new(&self.stream()).unwrap());
-        
+
         graph.launch(self.stream.0)?;
         self.stream().sync()?;
         Ok(())
@@ -71,7 +71,8 @@ mod tests {
     use crate::{Base, Device, Lazy, LazyRun, CUDA};
 
     pub fn ew_src(fn_name: &str, operator: char) -> String {
-        format!(r#"
+        format!(
+            r#"
             extern "C" __global__ void {fn_name}(int* lhs, int* rhs, int* out, int len) {{
                 int idx = blockIdx.x * blockDim.x + threadIdx.x;
                 if (idx >= len) {{
@@ -79,7 +80,8 @@ mod tests {
                 }}
                 out[idx] = lhs[idx] {operator} rhs[idx];
             }}
-        "#)
+        "#
+        )
     }
 
     #[test]
@@ -93,15 +95,30 @@ mod tests {
         let mul_src = ew_src("mul", '*');
 
         device
-            .launch_kernel1d(lhs.len(), &add_src, "add", &[&lhs, &rhs, &mut out, &lhs.len()])
-            .unwrap();
-        
-        device
-            .launch_kernel1d(lhs.len(), &add_src, "add", &[&out, &lhs, &mut rhs, &lhs.len()])
+            .launch_kernel1d(
+                lhs.len(),
+                &add_src,
+                "add",
+                &[&lhs, &rhs, &mut out, &lhs.len()],
+            )
             .unwrap();
 
         device
-            .launch_kernel1d(rhs.len(), &mul_src, "mul", &[&out, &rhs, &mut lhs, &rhs.len()])
+            .launch_kernel1d(
+                lhs.len(),
+                &add_src,
+                "add",
+                &[&out, &lhs, &mut rhs, &lhs.len()],
+            )
+            .unwrap();
+
+        device
+            .launch_kernel1d(
+                rhs.len(),
+                &mul_src,
+                "mul",
+                &[&out, &rhs, &mut lhs, &rhs.len()],
+            )
             .unwrap();
 
         assert_eq!(out.read(), vec![0; out.len()]);

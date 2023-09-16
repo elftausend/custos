@@ -24,17 +24,29 @@ pub struct Context {
     pub entry: Entry,
 }
 
+pub fn validation_layers<'a>() -> Vec<&'a CStr> {
+    let use_validation_layer = std::env::var("CUSTOS_VK_USE_VALIDATION_LAYER")
+        .unwrap_or("false".into())
+        .parse::<bool>()
+        .unwrap_or_default();
+    if use_validation_layer {
+        unsafe {
+            vec![CStr::from_bytes_with_nul_unchecked(
+                b"VK_LAYER_KHRONOS_validation\0",
+            )]
+        }
+    } else {
+        vec![]
+    }
+}
+
 impl Context {
     #[inline]
     pub fn new(device_idx: usize) -> crate::Result<Self> {
         let entry = unsafe { Entry::load()? };
         let app_info = vk::ApplicationInfo::default();
 
-        let layer_names = unsafe {
-            [CStr::from_bytes_with_nul_unchecked(
-                b"VK_LAYER_KHRONOS_validation\0",
-            )]
-        };
+        let layer_names = validation_layers();
 
         let layers_names_raw: Vec<*const c_char> = layer_names
             .iter()

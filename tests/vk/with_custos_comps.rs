@@ -52,15 +52,17 @@ fn test_with_custos_comps() {
                 out[global_id.x] = a[global_id.x] + b[global_id.x];
             }
     ";
-    let operation = shader_cache.get(
-        &context.device,
-        src,
-        &[
-            DescriptorType::STORAGE_BUFFER,
-            DescriptorType::STORAGE_BUFFER,
-            DescriptorType::STORAGE_BUFFER,
-        ],
-    ).unwrap();
+    let operation = shader_cache
+        .get(
+            &context.device,
+            src,
+            &[
+                DescriptorType::STORAGE_BUFFER,
+                DescriptorType::STORAGE_BUFFER,
+                DescriptorType::STORAGE_BUFFER,
+            ],
+        )
+        .unwrap();
     // let operation = Operation::new(&context.device, &src, &[DescriptorType::STORAGE_BUFFER, DescriptorType::STORAGE_BUFFER, DescriptorType::STORAGE_BUFFER]);
 
     let descriptor_infos = create_descriptor_infos(&[lhs.buf, rhs.buf, out.buf]);

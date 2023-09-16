@@ -146,9 +146,7 @@ mod tests {
             }
         ";
 
-        device
-            .launch_shader([1, 1, 1], src, &[buf])
-            .unwrap();
+        device.launch_shader([1, 1, 1], src, &[buf]).unwrap();
     }
 
     #[test]
@@ -170,7 +168,7 @@ mod tests {
 
         let lhs = device.buffer([2; 11]);
         let rhs = device.buffer([3; 11]);
-       
+
         let src = "@group(0)
             @binding(0)
             var<storage, read_write> a: array<i32>;
@@ -194,7 +192,9 @@ mod tests {
             }
         ";
 
-        device.launch_shader([1, 1, 1,], src, &[lhs.data.buf, rhs.data.buf, out.data.buf]).unwrap();
+        device
+            .launch_shader([1, 1, 1], src, &[lhs.data.buf, rhs.data.buf, out.data.buf])
+            .unwrap();
         assert_eq!(out.as_slice(), [7, 8, 9, 10, 11, 15, 8, 9, 10, 9, 8])
     }
 }

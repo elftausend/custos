@@ -225,14 +225,12 @@ mod tests {
                 min_cl::api::ffi::CL_KERNEL_WORK_GROUP_SIZE,
                 core::mem::size_of_val(&local),
                 &mut local as *mut _ as *mut core::ffi::c_void,
-                core::ptr::null_mut()
+                core::ptr::null_mut(),
             );
         }
 
         println!("local: {local}");
 
-
         Ok(())
     }
-    
 }
