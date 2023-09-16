@@ -14,8 +14,8 @@ use std::collections::HashMap;
 use ash::{
     prelude::VkResult,
     vk::{
-        self, Buffer, DescriptorBufferInfo, DescriptorSet, DescriptorType, Fence,
-        ShaderModule, WriteDescriptorSet,
+        self, Buffer, DescriptorBufferInfo, DescriptorSet, DescriptorType, Fence, ShaderModule,
+        WriteDescriptorSet,
     },
     Device,
 };
@@ -114,7 +114,10 @@ pub fn launch_shader(
             .collect::<Vec<_>>(),
     )?;
 
-    let args = args.iter().map(|arg| arg.as_arg(context.clone())).collect::<Vec<_>>();
+    let args = args
+        .iter()
+        .map(|arg| arg.as_arg(context.clone()))
+        .collect::<Vec<_>>();
     let buffer_args = args.iter().map(|arg| arg.buffer).collect::<Vec<_>>();
 
     let descriptor_infos = create_descriptor_infos(&buffer_args);
@@ -216,7 +219,7 @@ mod tests {
             [1, 1, 1],
             &mut shader_cache,
             &src,
-            &[lhs.buf, rhs.buf, out.buf], // &[out.buf, out2.buf]
+            &[&lhs.buf, &rhs.buf, &out.buf], // &[out.buf, out2.buf]
         )
         .unwrap();
 
@@ -238,7 +241,7 @@ mod tests {
                 [1, 1, 1],
                 &mut shader_cache,
                 &src,
-                &[lhs.buf, rhs.buf, out.buf],
+                &[&lhs.buf, &rhs.buf, &out.buf],
             )
             .unwrap();
 

@@ -40,6 +40,26 @@ impl<T> AsVkShaderArgument for VkArray<T> {
     }
 }
 
+impl AsVkShaderArgument for ash::vk::Buffer {
+    #[inline]
+    fn as_arg(&self, _context: Rc<Context>) -> VkShaderArgument {
+        VkShaderArgument {
+            vk_array_handle: None,
+            buffer: *self,
+        }
+    }
+}
+
+impl AsVkShaderArgument for &ash::vk::Buffer {
+    #[inline]
+    fn as_arg(&self, _context: Rc<Context>) -> VkShaderArgument {
+        VkShaderArgument {
+            vk_array_handle: None,
+            buffer: **self,
+        }
+    }
+}
+
 impl<T> AsVkShaderArgument for &VkArray<T> {
     #[inline]
     fn as_arg(&self, _context: Rc<Context>) -> VkShaderArgument {
