@@ -1,3 +1,5 @@
+use ash::vk::BufferUsageFlags;
+
 use crate::{
     flag::AllocFlag,
     prelude::Number,
@@ -10,7 +12,7 @@ pub struct VkShaderArgument {
     // a number allocates this array, which is dealloated after usage
     pub vk_array_handle: Option<VkArray<u8>>,
     pub buffer: ash::vk::Buffer,
-    pub descriptor_type: ash::vk::DescriptorType
+    pub descriptor_type: ash::vk::DescriptorType,
 }
 
 pub trait AsVkShaderArgument {
@@ -19,7 +21,7 @@ pub trait AsVkShaderArgument {
 
 impl<T: Number> AsVkShaderArgument for T {
     fn as_arg(&self, context: Rc<Context>) -> VkShaderArgument {
-        let vk_array_handle = VkArray::from_slice(context, &[*self], AllocFlag::None).unwrap();
+        let vk_array_handle = VkArray::from_slice(context, &[*self], BufferUsageFlags::STORAGE_BUFFER, AllocFlag::None).unwrap();
         let buffer = vk_array_handle.buf;
         let vk_array_handle =
             Some(unsafe { std::mem::transmute::<_, VkArray<u8>>(vk_array_handle) });
@@ -27,7 +29,7 @@ impl<T: Number> AsVkShaderArgument for T {
         VkShaderArgument {
             vk_array_handle,
             buffer,
-            descriptor_type: ash::vk::DescriptorType::UNIFORM_BUFFER
+            descriptor_type: ash::vk::DescriptorType::STORAGE_BUFFER,
         }
     }
 }
@@ -38,7 +40,7 @@ impl<T> AsVkShaderArgument for VkArray<T> {
         VkShaderArgument {
             vk_array_handle: None,
             buffer: self.buf,
-            descriptor_type: ash::vk::DescriptorType::STORAGE_BUFFER
+            descriptor_type: ash::vk::DescriptorType::STORAGE_BUFFER,
         }
     }
 }
@@ -49,7 +51,7 @@ impl AsVkShaderArgument for ash::vk::Buffer {
         VkShaderArgument {
             vk_array_handle: None,
             buffer: *self,
-            descriptor_type: ash::vk::DescriptorType::STORAGE_BUFFER
+            descriptor_type: ash::vk::DescriptorType::STORAGE_BUFFER,
         }
     }
 }
@@ -60,7 +62,7 @@ impl AsVkShaderArgument for &ash::vk::Buffer {
         VkShaderArgument {
             vk_array_handle: None,
             buffer: **self,
-            descriptor_type: ash::vk::DescriptorType::STORAGE_BUFFER
+            descriptor_type: ash::vk::DescriptorType::STORAGE_BUFFER,
         }
     }
 }
@@ -71,7 +73,7 @@ impl<T> AsVkShaderArgument for &VkArray<T> {
         VkShaderArgument {
             vk_array_handle: None,
             buffer: self.buf,
-            descriptor_type: ash::vk::DescriptorType::STORAGE_BUFFER
+            descriptor_type: ash::vk::DescriptorType::STORAGE_BUFFER,
         }
     }
 }
@@ -86,7 +88,7 @@ where
         VkShaderArgument {
             vk_array_handle: None,
             buffer: self.data.buf,
-            descriptor_type: ash::vk::DescriptorType::STORAGE_BUFFER
+            descriptor_type: ash::vk::DescriptorType::STORAGE_BUFFER,
         }
     }
 }

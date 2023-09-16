@@ -1,4 +1,6 @@
-use super::{context::Context, launch_shader, ShaderCache, VkArray, AsVkShaderArgument};
+use ash::vk::BufferUsageFlags;
+
+use super::{context::Context, launch_shader, AsVkShaderArgument, ShaderCache, VkArray};
 use crate::{
     flag::AllocFlag, impl_buffer_hook_traits, impl_retriever, Alloc, Base, Buffer, Device,
     MainMemory, Module, OnDropBuffer, PtrConv, Setup, Shape,
@@ -48,7 +50,8 @@ impl<Mods: OnDropBuffer> Device for Vulkan<Mods> {
 impl<Mods: OnDropBuffer, T> Alloc<T> for Vulkan<Mods> {
     #[inline]
     fn alloc<S: Shape>(&self, len: usize, flag: crate::flag::AllocFlag) -> Self::Data<T, S> {
-        VkArray::new(self.context(), len, flag).expect("Could not create VkArray")
+        VkArray::new(self.context(), len, BufferUsageFlags::STORAGE_BUFFER, flag)
+            .expect("Could not create VkArray")
     }
 
     #[inline]
@@ -56,8 +59,13 @@ impl<Mods: OnDropBuffer, T> Alloc<T> for Vulkan<Mods> {
     where
         T: Clone,
     {
-        VkArray::from_slice(self.context(), data, crate::flag::AllocFlag::None)
-            .expect("Could not create VkArray")
+        VkArray::from_slice(
+            self.context(),
+            data,
+            BufferUsageFlags::STORAGE_BUFFER,
+            crate::flag::AllocFlag::None,
+        )
+        .expect("Could not create VkArray")
     }
 }
 
@@ -191,7 +199,11 @@ mod tests {
         ";
 
         device
-            .launch_shader([1, 1, 1], src, &[&lhs.data.buf, &rhs.data.buf, &out.data.buf])
+            .launch_shader(
+                [1, 1, 1],
+                src,
+                &[&lhs.data.buf, &rhs.data.buf, &out.data.buf],
+            )
             .unwrap();
         assert_eq!(out.as_slice(), [7, 8, 9, 10, 11, 15, 8, 9, 10, 9, 8])
     }

@@ -1,4 +1,7 @@
-use ash::{prelude::VkResult, vk};
+use ash::{
+    prelude::VkResult,
+    vk::{self, BufferUsageFlags},
+};
 use core::ops::Deref;
 use std::rc::Rc;
 
@@ -38,8 +41,13 @@ impl<T> HasId for VkArray<T> {
 }
 
 impl<T> VkArray<T> {
-    pub fn new(context: Rc<Context>, len: usize, flag: AllocFlag) -> crate::Result<Self> {
-        let buf = unsafe { create_buffer::<T>(&context.device, len)? };
+    pub fn new(
+        context: Rc<Context>,
+        len: usize,
+        usage_flag: BufferUsageFlags,
+        flag: AllocFlag,
+    ) -> crate::Result<Self> {
+        let buf = unsafe { create_buffer::<T>(&context.device, usage_flag, len)? };
         let mem_req = unsafe { context.device.get_buffer_memory_requirements(buf) };
 
         let mem = unsafe { allocate_memory(&context.device, mem_req, &context.memory_properties)? };
@@ -62,11 +70,16 @@ impl<T> VkArray<T> {
     }
 
     #[inline]
-    pub fn from_slice(context: Rc<Context>, data: &[T], flag: AllocFlag) -> crate::Result<Self>
+    pub fn from_slice(
+        context: Rc<Context>,
+        data: &[T],
+        usage_flag: BufferUsageFlags,
+        flag: AllocFlag,
+    ) -> crate::Result<Self>
     where
         T: Clone,
     {
-        let mut array = VkArray::<T>::new(context, data.len(), flag)?;
+        let mut array = VkArray::<T>::new(context, data.len(), usage_flag, flag)?;
         array.as_mut_slice().clone_from_slice(data);
         Ok(array)
     }
@@ -115,11 +128,15 @@ fn get_memory_type_index(
     None
 }
 
-pub unsafe fn create_buffer<T>(device: &ash::Device, size: usize) -> VkResult<vk::Buffer> {
+pub unsafe fn create_buffer<T>(
+    device: &ash::Device,
+    usage: BufferUsageFlags,
+    size: usize,
+) -> VkResult<vk::Buffer> {
     let buffer_size = size * std::mem::size_of::<T>();
     let buffer_create_info = vk::BufferCreateInfo {
         size: buffer_size as vk::DeviceSize,
-        usage: vk::BufferUsageFlags::STORAGE_BUFFER,
+        usage,
         ..Default::default()
     };
     device.create_buffer(&buffer_create_info, None)
@@ -148,6 +165,8 @@ pub unsafe fn allocate_memory(
 mod tests {
     use std::rc::Rc;
 
+    use ash::vk::BufferUsageFlags;
+
     use crate::vulkan::context::Context;
 
     use super::VkArray;
@@ -155,7 +174,13 @@ mod tests {
     #[test]
     fn test_vk_array_allocation() {
         let context = Rc::new(Context::new(0).unwrap());
-        let _arr1 = VkArray::<f32>::new(context.clone(), 10, crate::flag::AllocFlag::None).unwrap();
+        let _arr1 = VkArray::<f32>::new(
+            context.clone(),
+            10,
+            BufferUsageFlags::STORAGE_BUFFER,
+            crate::flag::AllocFlag::None,
+        )
+        .unwrap();
     }
 
     #[test]
@@ -164,6 +189,7 @@ mod tests {
         let arr1 = VkArray::<f32>::from_slice(
             context.clone(),
             &[1., 2., 3., 4., 5., 6.],
+            BufferUsageFlags::STORAGE_BUFFER,
             crate::flag::AllocFlag::None,
         )
         .unwrap();
