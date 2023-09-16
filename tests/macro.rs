@@ -1,4 +1,6 @@
+#[cfg(feature = "cuda")]
 use custos::prelude::*;
+#[cfg(feature = "cuda")]
 use custos_macro::cuda;
 
 #[cfg(feature = "cuda")]

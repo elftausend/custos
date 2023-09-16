@@ -74,7 +74,7 @@ impl<SimpleMods> CPU<SimpleMods> {
         let mut cpu = CPU {
             modules: SimpleMods::new(),
         };
-        NewMods::setup(&mut cpu);
+        NewMods::setup(&mut cpu).unwrap();
         cpu
     }
 }

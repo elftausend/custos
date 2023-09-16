@@ -1,6 +1,6 @@
 use core::{marker::PhantomData, ptr::null_mut};
 
-use crate::{flag::AllocFlag, HasId, Id, ShallowCopy, CommonPtrs, PtrType};
+use crate::{flag::AllocFlag, CommonPtrs, HasId, Id, PtrType, ShallowCopy};
 
 use super::api::cufree;
 
