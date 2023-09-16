@@ -3,10 +3,9 @@ use core::mem::ManuallyDrop;
 use crate::CUDA;
 
 use super::api::{
-    cuGraphLaunch, cuStreamBeginCapture,
-    CUStreamCaptureMode, CudaErrorKind, Graph, GraphExec, Stream, create_graph_from_captured_stream, create_graph_execution,
+    create_graph_execution, create_graph_from_captured_stream, cuGraphLaunch, cuStreamBeginCapture,
+    CUStreamCaptureMode, CudaErrorKind, Graph, GraphExec, Stream,
 };
-
 
 pub struct LazyCudaGraph {
     pub graph: Graph,

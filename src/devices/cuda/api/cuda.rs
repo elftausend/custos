@@ -4,11 +4,12 @@ use super::{
     cuCtxCreate_v2, cuCtxDestroy, cuDeviceGet, cuDeviceGetCount, cuGraphDestroy,
     cuGraphExecDestroy, cuInit, cuLaunchKernel, cuMemFree_v2, cuMemcpyDtoHAsync_v2,
     cuMemcpyDtoH_v2, cuMemcpyHtoDAsync_v2, cuMemcpyHtoD_v2, cuModuleGetFunction, cuModuleLoad,
-    cuModuleLoadData, cuModuleUnload, cuStreamCreate, cuStreamIsCapturing, cuStreamSynchronize,
+    cuModuleLoadData, cuModuleUnload, cuStreamCreate, cuStreamEndCapture, cuStreamIsCapturing,
+    cuStreamSynchronize,
     error::{CudaErrorKind, CudaResult},
     ffi::cuMemAlloc_v2,
     CUcontext, CUdevice, CUfunction, CUgraphExec_st, CUgraph_st, CUmodule, CUstream,
-    CUstreamCaptureStatus, cuStreamEndCapture,
+    CUstreamCaptureStatus,
 };
 
 use core::ptr::NonNull;
@@ -245,16 +246,8 @@ pub fn create_graph_from_captured_stream(stream: &Stream) -> Result<Graph, CudaE
 
 pub fn create_graph_execution(graph: &Graph) -> Result<GraphExec, CudaErrorKind> {
     let mut graph_exec = std::ptr::null_mut();
-    unsafe {
-        cuGraphInstantiate(
-            &mut graph_exec,
-            graph.0.as_ptr(),
-           null_mut(),
-           null_mut(),
-           0 
-        )
-    }
-    .to_result()?;
+    unsafe { cuGraphInstantiate(&mut graph_exec, graph.0.as_ptr(), null_mut(), null_mut(), 0) }
+        .to_result()?;
     Ok(GraphExec(
         NonNull::new(graph_exec).ok_or(CudaErrorKind::NotInitialized)?,
     ))
@@ -264,9 +257,11 @@ pub fn create_graph_execution(graph: &Graph) -> Result<GraphExec, CudaErrorKind>
 mod tests {
     use core::ptr::null_mut;
 
-    use crate::cuda::api::{cuInit, CudaResult, cuStreamBeginCapture, cuStreamEndCapture, cuGraphInstantiate};
+    use crate::cuda::api::{
+        cuGraphInstantiate, cuInit, cuStreamBeginCapture, cuStreamEndCapture, CudaResult,
+    };
 
-    use super::{device, create_context, create_stream};
+    use super::{create_context, create_stream, device};
 
     #[test]
     fn test_cuda_graph_creation() -> CudaResult<()> {
@@ -276,22 +271,21 @@ mod tests {
         let stream = create_stream()?;
 
         unsafe {
-            cuStreamBeginCapture(stream.0, crate::cuda::api::CUStreamCaptureMode::CU_STREAM_CAPTURE_MODE_GLOBAL).to_result()?
+            cuStreamBeginCapture(
+                stream.0,
+                crate::cuda::api::CUStreamCaptureMode::CU_STREAM_CAPTURE_MODE_GLOBAL,
+            )
+            .to_result()?
         };
 
         let mut graph = std::ptr::null_mut();
-        unsafe {
-            cuStreamEndCapture(stream.0, &mut graph).to_result()?
-        }
-
+        unsafe { cuStreamEndCapture(stream.0, &mut graph).to_result()? }
 
         let mut graph_exec = std::ptr::null_mut();
         unsafe {
             cuGraphInstantiate(&mut graph_exec, graph, null_mut(), null_mut(), 0).to_result()?;
         }
 
-
-        
         Ok(())
     }
 }
