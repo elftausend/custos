@@ -24,7 +24,7 @@ impl<SimpleMods> Vulkan<SimpleMods> {
             context: Rc::new(Context::new(idx)?),
             shader_cache: Default::default(),
         };
-        NewMods::setup(&mut vulkan);
+        NewMods::setup(&mut vulkan)?;
         Ok(vulkan)
     }
 }
@@ -164,24 +164,24 @@ mod tests {
     fn test_using_multiple_compute_shaders() {
         let device = Vulkan::<Base>::new(0).unwrap();
 
-        let buf = device.buffer([1, 2, 3, 4, 5, 9, 2, 3, 4, 3, 2]);
-        add_one(&device, buf.data.buf);
-        assert_eq!(buf.as_slice(), [2, 3, 4, 5, 6, 10, 3, 4, 5, 4, 3]);
+        let out = device.buffer([1, 2, 3, 4, 5, 9, 2, 3, 4, 3, 2]);
+        add_one(&device, out.data.buf);
+        assert_eq!(out.as_slice(), [2, 3, 4, 5, 6, 10, 3, 4, 5, 4, 3]);
 
         let lhs = device.buffer([2; 11]);
         let rhs = device.buffer([3; 11]);
        
         let src = "@group(0)
             @binding(0)
-            var<storage, read_write> a: array<f32>;
+            var<storage, read_write> a: array<i32>;
             
             @group(0)
             @binding(1)
-            var<storage, read_write> b: array<f32>;
+            var<storage, read_write> b: array<i32>;
     
             @group(0)
             @binding(2)
-            var<storage, read_write> out: array<f32>;
+            var<storage, read_write> out: array<i32>;
             
             @compute
             @workgroup_size(32)
@@ -194,7 +194,7 @@ mod tests {
             }
         ";
 
-        device.launch_shader([1, 1, 1,], src, &[lhs.data.buf, rhs.data.buf, buf.data.buf]).unwrap();
-        assert_eq!(buf.as_slice(), [7, 8, 9, 10, 11, 15, 8, 9, 10, 9, 8])
+        device.launch_shader([1, 1, 1,], src, &[lhs.data.buf, rhs.data.buf, out.data.buf]).unwrap();
+        assert_eq!(out.as_slice(), [7, 8, 9, 10, 11, 15, 8, 9, 10, 9, 8])
     }
 }
