@@ -36,7 +36,7 @@ impl<Mods: OnDropBuffer, T: Default + Clone> Read<T> for CUDA<Mods> {
         {
             self.stream().sync().unwrap();
         }
-
+        
         let mut read = vec![T::default(); buf.len()];
         cu_read_async(&mut read, buf.data.ptr, &self.mem_transfer_stream).unwrap();
         self.mem_transfer_stream.sync().unwrap();

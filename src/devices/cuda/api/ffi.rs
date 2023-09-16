@@ -250,7 +250,9 @@ extern "C" {
     pub fn cuGraphInstantiate(
         graph_exec: *mut CUgraphExec,
         graph: CUgraph,
-        flags: CUgraphInstantiate_flags,
+        error_node: *mut *mut c_void,
+        log_buffer: *mut u8,
+        buffer_size: usize,
     ) -> CUresult;
 
     pub fn cuGraphLaunch(graph_exec: CUgraphExec, stream: CUstream) -> CUresult;

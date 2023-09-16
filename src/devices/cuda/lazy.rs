@@ -1,35 +1,12 @@
-use core::{mem::ManuallyDrop, ptr::NonNull};
+use core::mem::ManuallyDrop;
 
 use crate::CUDA;
 
 use super::api::{
-    cuGraphInstantiate, cuGraphLaunch, cuStreamBeginCapture, cuStreamEndCapture,
-    CUStreamCaptureMode, CUgraphInstantiate_flags, CudaErrorKind, Graph, GraphExec, Stream,
+    cuGraphLaunch, cuStreamBeginCapture,
+    CUStreamCaptureMode, CudaErrorKind, Graph, GraphExec, Stream, create_graph_from_captured_stream, create_graph_execution,
 };
 
-fn create_graph_from_captured_stream(stream: &Stream) -> Result<Graph, CudaErrorKind> {
-    let mut graph = std::ptr::null_mut();
-    unsafe { cuStreamEndCapture(stream.0, &mut graph) }.to_result()?;
-
-    Ok(Graph(
-        NonNull::new(graph).ok_or(CudaErrorKind::ErrorStreamCaptureInvalidated)?,
-    ))
-}
-
-fn create_graph_execution(graph: &Graph) -> Result<GraphExec, CudaErrorKind> {
-    let mut graph_exec = std::ptr::null_mut();
-    unsafe {
-        cuGraphInstantiate(
-            &mut graph_exec,
-            graph.0.as_ptr(),
-            CUgraphInstantiate_flags::CUDA_GRAPH_INSTANTIATE_FLAG_AUTO_FREE_ON_LAUNCH,
-        )
-    }
-    .to_result()?;
-    Ok(GraphExec(
-        NonNull::new(graph_exec).ok_or(CudaErrorKind::NotInitialized)?,
-    ))
-}
 
 pub struct LazyCudaGraph {
     graph_exec: ManuallyDrop<GraphExec>,
@@ -39,16 +16,19 @@ pub struct LazyCudaGraph {
 impl Drop for LazyCudaGraph {
     fn drop(&mut self) {
         unsafe {
+            println!("drop");
             ManuallyDrop::drop(&mut self.graph_exec);
+            println!("drop ge");
             ManuallyDrop::drop(&mut self.graph);
+            println!("drop fin");
         }
     }
 }
 
 impl LazyCudaGraph {
     pub fn new(stream: &Stream) -> Result<Self, CudaErrorKind> {
-        let graph = ManuallyDrop::new(create_graph_from_captured_stream(stream).unwrap());
-        let graph_exec = ManuallyDrop::new(create_graph_execution(&graph).unwrap());
+        let graph = ManuallyDrop::new(create_graph_from_captured_stream(stream)?);
+        let graph_exec = ManuallyDrop::new(create_graph_execution(&graph)?);
 
         Ok(LazyCudaGraph { graph, graph_exec })
     }
@@ -66,7 +46,9 @@ impl<Mods> crate::LazyRun for CUDA<Mods> {
         let graph = self
             .graph
             .get_or_init(|| LazyCudaGraph::new(&self.stream()).unwrap());
+        println!("now launch:");
         graph.launch(self.stream.0)?;
+        self.stream().sync()?;
         Ok(())
     }
 }
