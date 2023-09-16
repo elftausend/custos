@@ -14,7 +14,6 @@ use crate::{PtrConv, Shape};
 
 use std::{cell::RefCell, fmt::Debug};
 
-#[cfg(unified_cl)]
 use min_cl::api::unified_ptr;
 
 #[cfg(feature = "fork")]
@@ -76,7 +75,7 @@ impl<SimpleMods> OpenCL<SimpleMods> {
             kernel_cache: Default::default(),
             cpu: CPU::<Cached<Base>>::new(),
         };
-        NewMods::setup(&mut opencl);
+        NewMods::setup(&mut opencl)?;
         Ok(opencl)
     }
 
@@ -94,7 +93,7 @@ impl<SimpleMods> OpenCL<SimpleMods> {
             kernel_cache: Default::default(),
             cpu: CPU::<Cached<Base>>::new(),
         };
-        NewMods::setup(&mut opencl);
+        NewMods::setup(&mut opencl)?;
         Ok(opencl)
     }
 }
