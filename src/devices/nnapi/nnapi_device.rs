@@ -1,5 +1,5 @@
 use crate::{
-    cpu::CPUPtr, Addons, AddonsReturn, Alloc, Buffer, Cache, CacheReturn, Device, Ident, PtrConv,
+    cpu::CPUPtr, Addons, AddonsReturn, Alloc, Buffer, Cache, Device, PtrConv,
     Shape, CPU,
 };
 
@@ -172,7 +172,7 @@ impl AddonsReturn for NnapiDevice {
 mod tests {
     use nnapi::{nnapi_sys::OperationCode, Operand};
 
-    use crate::{bump_count, Buffer, CacheReturn, Device, Dim1, Ident, NnapiDevice, WithShape};
+    use crate::{bump_count, Buffer, CacheReturn, Dim1, Ident, NnapiDevice, WithShape};
 
     #[test]
     fn test_running_nnapi_ops() -> crate::Result<()> {
@@ -181,7 +181,7 @@ mod tests {
         let lhs = Buffer::with(&device, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
         let rhs = Buffer::with(&device, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
 
-        let mut out = Buffer::<f32, _, Dim1<10>>::new(&device, 0);
+        let out = Buffer::<f32, _, Dim1<10>>::new(&device, 0);
 
         let mut model = device.model.borrow_mut();
 
@@ -196,7 +196,7 @@ mod tests {
             &[out.ptr.idx],
         )?;
 
-        let mut out2 = Buffer::<f32, _, Dim1<10>>::new(&device, 0);
+        let out2 = Buffer::<f32, _, Dim1<10>>::new(&device, 0);
         let activation_idx = device.add_operand(&Operand::activation()).unwrap();
         model
             .set_activation_operand_value(activation_idx as i32)
