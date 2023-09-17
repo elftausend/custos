@@ -172,7 +172,7 @@ impl AddonsReturn for NnapiDevice {
 mod tests {
     use nnapi::{nnapi_sys::OperationCode, Operand};
 
-    use crate::{Buffer, CacheReturn, Device, Dim1, Ident, NnapiDevice, WithShape};
+    use crate::{bump_count, Buffer, CacheReturn, Device, Dim1, Ident, NnapiDevice, WithShape};
 
     #[test]
     fn test_running_nnapi_ops() -> crate::Result<()> {
@@ -184,7 +184,7 @@ mod tests {
         let mut out = Buffer::<f32, _, Dim1<10>>::new(&device, 0);
 
         let mut model = device.model.borrow_mut();
-        
+
         let activation_idx = device.add_operand(&Operand::activation()).unwrap();
 
         model
@@ -237,22 +237,21 @@ mod tests {
         let out =
             device
                 .cache_mut()
-                .get::<i32, Dim1<10>>(&device, Ident::new(lhs.len()), (), |out| {
-                    let activation_idx = device.add_operand(&Operand::activation()).unwrap();
-                    let mut model = device.model.borrow_mut();
+                .get::<i32, Dim1<10>>(&device, Ident::new(lhs.len()), (), bump_count);
 
-                    model
-                        .set_activation_operand_value(activation_idx as i32)
-                        .unwrap();
-                    model
-                        .add_operation(
-                            OperationCode::ANEURALNETWORKS_ADD,
-                            &[lhs.ptr.idx, rhs.ptr.idx, activation_idx],
-                            &[out.ptr.idx],
-                        )
-                        .unwrap();
-                });
+        let activation_idx = device.add_operand(&Operand::activation()).unwrap();
+        let mut model = device.model.borrow_mut();
 
+        model
+            .set_activation_operand_value(activation_idx as i32)
+            .unwrap();
+        model
+            .add_operation(
+                OperationCode::ANEURALNETWORKS_ADD,
+                &[lhs.ptr.idx, rhs.ptr.idx, activation_idx],
+                &[out.ptr.idx],
+            )
+            .unwrap();
         // another one
         /*let out = {
             let out1 = device.retrieve::<i32, Dim1<10>>(lhs.len(), ());

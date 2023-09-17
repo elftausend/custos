@@ -275,10 +275,9 @@ mod tests {
         use crate::{Buffer, CacheReturn, Ident};
 
         let device = crate::CPU::new();
-        let cache: Buffer =
-            device
-                .cache_mut()
-                .add_node(&device, Ident { idx: 0, len: 7 }, ());
+        let cache: Buffer = device
+            .cache_mut()
+            .add_node(&device, Ident { idx: 0, len: 7 }, ());
 
         let ptr = device
             .cache()
@@ -296,18 +295,25 @@ mod tests {
     fn test_get() {
         // for: cargo test -- --test-threads=1
 
-        use crate::{set_count, Buffer, CacheReturn, Ident, bump_count};
+        use crate::{bump_count, set_count, Buffer, CacheReturn, Ident};
         unsafe { set_count(0) };
         let device = crate::CPU::new();
 
-        let cache_entry: Buffer = device.cache_mut().get(&device, Ident::new(10), (), bump_count);
-        let new_cache_entry: Buffer = device.cache_mut().get(&device, Ident::new(10), (), bump_count);
+        let cache_entry: Buffer = device
+            .cache_mut()
+            .get(&device, Ident::new(10), (), bump_count);
+        let new_cache_entry: Buffer =
+            device
+                .cache_mut()
+                .get(&device, Ident::new(10), (), bump_count);
 
         assert_ne!(cache_entry.ptrs(), new_cache_entry.ptrs());
 
         unsafe { set_count(0) };
 
-        let first_entry: Buffer = device.cache_mut().get(&device, Ident::new(10), (), bump_count);
+        let first_entry: Buffer = device
+            .cache_mut()
+            .get(&device, Ident::new(10), (), bump_count);
         assert_eq!(cache_entry.ptrs(), first_entry.ptrs());
     }
 }
