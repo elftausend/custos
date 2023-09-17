@@ -2,7 +2,7 @@ use core::ops::{Range, RangeBounds};
 
 use crate::{
     bounds_to_range,
-    cuda::api::{cu_read, cu_read_async, CUstreamCaptureStatus},
+    cuda::api::{cu_read_async, CUstreamCaptureStatus},
     Buffer, CDatatype, ClearBuf, CopySlice, OnDropBuffer, Read, WriteBuf, CUDA,
 };
 
