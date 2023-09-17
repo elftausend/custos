@@ -143,7 +143,7 @@ mod tests {
         let mul_src = ew_src("mul", '*');
 
         out.clear();
-        
+
         device
             .launch_kernel1d(
                 lhs.len(),
