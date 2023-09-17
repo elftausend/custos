@@ -152,21 +152,6 @@ impl NnapiDevice {
         self.operand_count.set(idx + 1);
         Ok(idx)
     }
-
-    /// Retrieves a [`Buffer`] from the [`Cache`].
-    /// If a new `Buffer` is created, it will call `on_new_node` with the new `Buffer`.
-    #[inline]
-    pub fn retrieve_with_init<T, S>(
-        &self,
-        len: usize,
-        on_new_node: impl FnOnce(&Buffer<T, Self, S>),
-    ) -> Buffer<T, Self, S>
-    where
-        T: AsOperandCode,
-        S: Shape,
-    {
-        self.cache_mut().get(self, Ident::new(len), (), on_new_node)
-    }
 }
 
 impl Default for NnapiDevice {
