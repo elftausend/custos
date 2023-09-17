@@ -3,7 +3,7 @@ pub use nnapi_device::*;
 
 pub use nnapi::*;
 
-use crate::{flag::AllocFlag, PtrConv, PtrType, Shape};
+use crate::{flag::AllocFlag, PtrConv, PtrType, Shape, HasId};
 
 /*pub fn log(priority: ndk_sys::android_LogPriority, msg: &str) {
     let tag = std::ffi::CString::new("MyApp").unwrap();
@@ -30,11 +30,21 @@ impl Default for NnapiPtr {
     }
 }
 
+impl HasId for NnapiPtr {
+    #[inline]
+    fn id(&self) -> crate::Id {
+        crate::Id {
+            id: self.idx as u64,
+            len: self.dtype.len
+        }
+    }
+}
+
 impl PtrConv for NnapiDevice {
     unsafe fn convert<T, IS: Shape, Conv, OS: Shape>(
-        ptr: &Self::Ptr<T, IS>,
+        ptr: &Self::Data<T, IS>,
         flag: crate::flag::AllocFlag,
-    ) -> Self::Ptr<Conv, OS> {
+    ) -> Self::Data<Conv, OS> {
         NnapiPtr {
             dtype: ptr.dtype.clone(),
             idx: ptr.idx,
