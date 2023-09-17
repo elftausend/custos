@@ -11,6 +11,7 @@ use crate::{flag::AllocFlag, PtrConv, PtrType, Shape, HasId};
     unsafe { ndk_sys::__android_log_print(priority.0 as i32, tag.as_ptr(), msg.as_ptr()) };
 }*/
 
+#[derive(Debug, Clone)]
 /// Denotes an index with a data type to a node in a nnapi model
 pub struct NnapiPtr {
     /// The data type of the node
