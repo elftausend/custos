@@ -33,7 +33,7 @@ impl<Mods: OnDropBuffer> Device for NnapiDevice<Mods> {
 }
 
 impl_buffer_hook_traits!(NnapiDevice);
-impl_retriever!(NnapiDevice);
+impl_retriever!(NnapiDevice, AsOperandCode);
 
 /// A [`CPUPtr`] with a u8 generic type.
 pub type ArrayPtr = CPUPtr<u8>;
@@ -48,7 +48,7 @@ pub fn dtype_from_shape<'a, T: AsOperandCode, S: Shape>() -> Operand {
     Operand::tensor(T::OPERAND_CODE, dims, 0., 0)
 }
 
-impl<T: AsOperandCode> Alloc<T> for NnapiDevice {
+impl<T: AsOperandCode, Mods: OnDropBuffer> Alloc<T> for NnapiDevice<Mods> {
     fn alloc<S: Shape>(&self, _len: usize, flag: crate::flag::AllocFlag) -> <Self as Device>::Data<T, S> {
         let dtype = dtype_from_shape::<T, S>();
         let idx = self.add_operand(&dtype).unwrap();
@@ -88,13 +88,13 @@ impl<SimpleMods> NnapiDevice<SimpleMods> {
             compilation: Default::default(),
         };
 
-        NewMods::setup(&mut device);
+        NewMods::setup(&mut device)?;
 
         Ok(device)
     }
 }
 
-impl NnapiDevice {
+impl<Mods: OnDropBuffer> NnapiDevice<Mods> {
     /// Compiles the model and stores it in the [`NnapiDevice`].
     /// It handles setting the inputs and outputs of the model.
     pub fn compile<T, S: Shape>(&self, out: Buffer<T, Self, S>) -> crate::Result<()> {
