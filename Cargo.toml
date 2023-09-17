@@ -33,6 +33,9 @@ ash = { version = "0.37", optional = true }
 naga = { version = "0.13", features = ["wgsl-in", "spv-out"], optional = true } 
 
 half = {version = "2.3", default-features = false, optional = true} 
+# nnapi
+nnapi = { path = "../nnapi/nnapi", optional = true }
+ndk-sys = {version = "0.4", features=["test"], optional = true}
 
 [build-dependencies]
 min-cl = { path="../min-cl", optional=true }
@@ -54,6 +57,7 @@ stack = []
 no-std = ["stack", "dep:libm"]
 wgpu = ["dep:wgpu", "dep:pollster", "dep:futures-intrusive"]
 macro = ["dep:custos-macro"]
+nnapi = ["dep:nnapi", "dep:ndk-sys"]
 
 # modules
 autograd = ["cached"]
