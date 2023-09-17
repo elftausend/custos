@@ -80,6 +80,9 @@ pub use devices::stack::Stack;
 #[cfg(feature = "network")]
 pub use devices::network::Network;
 
+#[cfg(feature = "nnapi")]
+pub use devices::nnapi::{AsOperandCode, NnapiDevice};
+
 #[cfg(feature = "autograd")]
 pub use autograd::*;
 
@@ -226,7 +229,7 @@ pub trait Device: Sized + 'static {
     /// This function is internally called when a `Buffer` with [`AllocFlag`] `None` is dropped.
     #[cfg(not(feature = "no-std"))]
     #[inline]
-    fn remove(&self, ident: Ident) {
+    fn remove_from_cache(&self, ident: Ident) {
         Self::Cache::remove(self, ident);
     }
 
@@ -404,6 +407,9 @@ pub mod prelude {
 
     #[cfg(feature = "stack")]
     pub use crate::stack::Stack;
+
+    #[cfg(feature = "nnapi")]
+    pub use crate::nnapi::NnapiDevice;
 
     #[cfg(feature = "network")]
     pub use crate::network::{Network, NetworkArray};

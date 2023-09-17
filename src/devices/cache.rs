@@ -162,7 +162,6 @@ impl<D: PtrConv + GraphReturn> Cache<D> {
         device: &'a D,
         ident: Ident,
         _add_node: impl crate::AddGraph,
-        callback: fn(),
     ) -> Buffer<'a, T, D, S>
     where
         D: Alloc<'a, T, S>,
@@ -181,8 +180,6 @@ impl<D: PtrConv + GraphReturn> Cache<D> {
 
         let untyped_ptr = unsafe { D::convert(&ptr, AllocFlag::None) };
         self.nodes.insert(ident, Rc::new(untyped_ptr));
-
-        callback();
 
         Buffer {
             ptr,
@@ -227,9 +224,11 @@ impl<D: PtrConv + GraphReturn> Cache<D> {
     {
         let may_allocated = self.nodes.get(&ident);
 
+        callback();
+
         match may_allocated {
             Some(ptr) => {
-                callback();
+                // callback();
                 let typed_ptr = unsafe { D::convert(ptr, AllocFlag::Wrapper) };
 
                 Buffer {
@@ -238,7 +237,7 @@ impl<D: PtrConv + GraphReturn> Cache<D> {
                     ident: Some(ident),
                 }
             }
-            None => self.add_node(device, ident, add_node, callback),
+            None => self.add_node(device, ident, add_node),
         }
     }
 }
@@ -273,13 +272,12 @@ mod tests {
     #[cfg(feature = "cpu")]
     #[test]
     fn test_add_node() {
-        use crate::{bump_count, Buffer, CacheReturn, Ident};
+        use crate::{Buffer, CacheReturn, Ident};
 
         let device = crate::CPU::new();
-        let cache: Buffer =
-            device
-                .cache_mut()
-                .add_node(&device, Ident { idx: 0, len: 7 }, (), bump_count);
+        let cache: Buffer = device
+            .cache_mut()
+            .add_node(&device, Ident { idx: 0, len: 7 }, ());
 
         let ptr = device
             .cache()

@@ -5,7 +5,7 @@ use crate::{flag::AllocFlag, Alloc, Buffer, Device, Ident, IdentHasher, Shape};
 
 #[derive(Debug, Default)]
 pub(crate) struct BorrowingCache {
-    pub(crate) cache: HashMap<Ident, Box<dyn Any>, BuildHasherDefault<IdentHasher>>,
+    pub(crate) cache: HashMap<Ident, Box<dyn Any + 'static>, BuildHasherDefault<IdentHasher>>,
 }
 
 // TODO: make BorrowedCache unuseable without device (=> Static get methods with D: CacheReturn)
@@ -28,7 +28,7 @@ impl BorrowingCache {
 
     pub(crate) fn add_or_get_mut<'a, T, D, S>(
         &mut self,
-        device: &D,
+        device: &'a D,
         id: Ident,
     ) -> &mut Buffer<'a, T, D, S>
     where
@@ -38,7 +38,7 @@ impl BorrowingCache {
     {
         self.add_buf_once(device, id);
         let buf_any = self.cache.get_mut(&id).unwrap();
-        unsafe { transmute(buf_any.downcast_mut::<Buffer<T, D, S>>().unwrap()) }
+        unsafe { transmute(buf_any.downcast_mut::<Buffer<'static, T, D, S>>().unwrap()) }
     }
 
     pub(crate) fn add_buf_once<'a, T, D, S>(&mut self, device: &'a D, ident: Ident)
@@ -54,6 +54,7 @@ impl BorrowingCache {
         self.add_buf(device, ident)
     }
 
+    #[inline]
     pub(crate) fn add_buf<'a, T, D, S>(&mut self, device: &'a D, ident: Ident)
     where
         T: 'static,

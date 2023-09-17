@@ -1,8 +1,6 @@
 #[cfg(not(feature = "no-std"))]
 use crate::ToCLSource;
 
-use super::{Combiner, Eval};
-
 /// Resolves to either a mathematical expression as string or a computed value.
 /// This is used to create generic kernels / operations over `OpenCL`, `CUDA` and `CPU`.
 ///
@@ -128,7 +126,7 @@ impl<T> Resolve<T> {
     }
 }
 
-impl<T> Eval<T> for Resolve<T> {
+impl<T> crate::Eval<T> for Resolve<T> {
     #[inline]
     fn eval(self) -> T {
         self.val
@@ -143,4 +141,4 @@ impl<T> ToCLSource for Resolve<T> {
     }
 }
 
-impl<T> Combiner for Resolve<T> {}
+impl<T> crate::Combiner for Resolve<T> {}
