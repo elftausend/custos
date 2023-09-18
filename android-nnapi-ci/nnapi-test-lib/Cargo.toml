@@ -1,0 +1,17 @@
+[package]
+name = "nnapi-test-lib"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["staticlib", "cdylib"]
+
+[dependencies]
+#custos = {version = "0.7.0", default-features = false, features = ["cpu"]}
+ndk-sys = {version = "0.4", features=["test"]}
+# nnapi = { path = "../nnapi/nnapi" }
+nnapi = { version = "0.2"}
+custos = { path = "../../", features = ["cpu", "nnapi"]}
+
+[target.'cfg(target_os="android")'.dependencies]
+jni = "0.19.0"
