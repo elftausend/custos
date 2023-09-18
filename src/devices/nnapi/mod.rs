@@ -1,11 +1,11 @@
 mod nnapi_device;
 mod nnapi_ptr;
 
-pub use nnapi_ptr::*;
-pub use nnapi_device::*;
 pub use nnapi::*;
+pub use nnapi_device::*;
+pub use nnapi_ptr::*;
 
-use crate::{flag::AllocFlag, HasId, PtrConv, PtrType, Shape, OnDropBuffer};
+use crate::{flag::AllocFlag, HasId, OnDropBuffer, PtrConv, PtrType, Shape};
 
 /*pub fn log(priority: ndk_sys::android_LogPriority, msg: &str) {
     let tag = std::ffi::CString::new("MyApp").unwrap();

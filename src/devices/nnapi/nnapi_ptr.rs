@@ -1,7 +1,6 @@
 use nnapi::Operand;
 
-use crate::{HasId, flag::AllocFlag, PtrType};
-
+use crate::{flag::AllocFlag, HasId, PtrType};
 
 #[derive(Debug, Clone)]
 /// Denotes an index with a data type to a node in a nnapi model

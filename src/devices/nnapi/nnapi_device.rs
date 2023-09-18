@@ -1,13 +1,10 @@
 use crate::{
-    cpu::CPUPtr, impl_buffer_hook_traits, impl_retriever, Alloc, Base, Buffer, Device, LazyRun,
-    Module, OnDropBuffer, PtrConv, Setup, Shape, CPU,
+    cpu::CPUPtr, Alloc, Base, Buffer, Device, LazyRun, Module, OnDropBuffer, PtrConv, Setup, Shape,
+    CPU,
 };
 
 use super::NnapiPtr;
-use core::{
-    cell::{Cell, RefCell},
-    ptr::null_mut,
-};
+use core::cell::{Cell, RefCell};
 use nnapi::{AsOperandCode, Compilation, Execution, Model, Operand};
 
 type ArrayId = (u32, ArrayPtr);
@@ -23,7 +20,7 @@ pub struct NnapiDevice<T, Mods = Base> {
     pub input_ptrs: RefCell<Vec<ArrayId>>,
     pub last_created_ptr: RefCell<Option<NnapiPtr>>,
     compilation: RefCell<Option<Compilation>>,
-    out_data: Cell<Vec<T>>,
+    out: Cell<Vec<T>>,
 }
 
 impl<T, Mods: OnDropBuffer> Device for NnapiDevice<T, Mods> {
@@ -55,7 +52,6 @@ impl<U, Mods: crate::OnDropBuffer> crate::OnDropBuffer for NnapiDevice<U, Mods> 
 
 // impl_buffer_hook_traits!(NnapiDevice);
 // impl_retriever!(NnapiDevice, AsOperandCode);
-
 
 /// A [`CPUPtr`] with a u8 generic type.
 pub type ArrayPtr = CPUPtr<u8>;
@@ -116,7 +112,7 @@ impl<T, SimpleMods> NnapiDevice<T, SimpleMods> {
             input_ptrs: Default::default(),
             last_created_ptr: RefCell::new(None),
             compilation: Default::default(),
-            out_data: Default::default(),
+            out: Default::default(),
         };
 
         NewMods::setup(&mut device)?;
@@ -167,31 +163,13 @@ impl<T, Mods: OnDropBuffer> NnapiDevice<T, Mods> {
 
     /// Runs the model and returns the output.
     /// It reuses the same [`Compilation`] if it exists.
-    pub fn run(&self) -> crate::Result<()>
+    #[inline]
+    pub fn run_with_vec(&self) -> crate::Result<Vec<T>>
     where
         T: Default + Copy + AsOperandCode,
     {
-        if self.compilation.borrow().is_none() {
-            self.compile(self.last_created_ptr.borrow().as_ref().unwrap().idx)?;
-        }
-        let mut compilation = self.compilation.borrow_mut();
-        let compilation = compilation
-            .as_mut()
-            .expect("Should be set during compilation");
-
-        let mut run = compilation.create_execution()?;
-        self.set_input_ptrs(&mut run)?;
-
-        // let mut out = vec![T::default(); S::LEN];
-        let len = self.last_created_ptr.borrow().as_ref().unwrap().dtype.len;
-
-        let mut out = vec![T::default(); len];
-        run.set_output(0, &mut out)?;
-        self.out_data.set(out);
-
-        run.compute()?;
-
-        Ok(())
+        LazyRun::run(self)?;
+        Ok(self.out.take())
     }
 
     /// Adds an operand to the model.
@@ -210,10 +188,33 @@ impl<T> Default for NnapiDevice<T> {
     }
 }
 
-impl<Mods> LazyRun for NnapiDevice<Mods> {
+impl<T, Mods> LazyRun for NnapiDevice<T, Mods>
+where
+    T: Copy + Default + AsOperandCode,
+    Mods: OnDropBuffer,
+{
     #[inline]
     fn run(&self) -> crate::Result<()> {
-        todo!()
+        if self.compilation.borrow().is_none() {
+            self.compile(self.last_created_ptr.borrow().as_ref().unwrap().idx)?;
+        }
+        let mut compilation = self.compilation.borrow_mut();
+        let compilation = compilation
+            .as_mut()
+            .expect("Should be set during compilation");
+
+        let mut run = compilation.create_execution()?;
+        self.set_input_ptrs(&mut run)?;
+
+        // let mut out = vec![T::default(); S::LEN];
+        let len = self.last_created_ptr.borrow().as_ref().unwrap().dtype.len;
+
+        let mut out = vec![T::default(); len];
+        run.set_output(0, &mut out)?;
+        self.out.set(out);
+
+        run.compute()?;
+        Ok(())
     }
 }
 
@@ -221,7 +222,7 @@ impl<Mods> LazyRun for NnapiDevice<Mods> {
 mod tests {
     use nnapi::{nnapi_sys::OperationCode, Operand};
 
-    use crate::{Base, Buffer, Dim1, NnapiDevice, WithShape};
+    use crate::{Base, Buffer, Dim1, NnapiDevice, WithShape, LazyRun};
 
     #[test]
     fn test_running_nnapi_ops() -> crate::Result<()> {
@@ -257,7 +258,9 @@ mod tests {
         )?;
 
         device.run()?;
-        let out = device.out_data.take();
+        let out = device.out.take();
+
+        assert_eq!(device.run_with_vec().unwrap(), out);
 
         Ok(())
     }
