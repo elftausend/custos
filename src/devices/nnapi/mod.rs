@@ -1,6 +1,8 @@
+mod as_operand_code;
 mod nnapi_device;
 mod nnapi_ptr;
 
+pub use as_operand_code::*;
 pub use nnapi::*;
 pub use nnapi_device::*;
 pub use nnapi_ptr::*;

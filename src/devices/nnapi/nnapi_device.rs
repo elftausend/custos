@@ -1,11 +1,11 @@
 use crate::{
-    cpu::CPUPtr, Alloc, Base, Buffer, Device, LazyRun, Module, OnDropBuffer, PtrConv, Setup, Shape,
-    CPU, Lazy, LazySetup, Retriever, Retrieve,
+    cpu::CPUPtr, Alloc, AsOperandCode, Base, Buffer, Device, Lazy, LazyRun, LazySetup, Module,
+    OnDropBuffer, PtrConv, Retrieve, Retriever, Setup, Shape, CPU,
 };
 
 use super::NnapiPtr;
 use core::cell::{Cell, RefCell};
-use nnapi::{AsOperandCode, Compilation, Execution, Model, Operand};
+use nnapi::{Compilation, Execution, Model, Operand};
 
 type ArrayId = (u32, ArrayPtr);
 
@@ -56,11 +56,9 @@ impl<U, Mods: Retrieve<Self, T>, T: AsOperandCode> Retriever<T> for NnapiDevice<
         parents: impl crate::Parents<NUM_PARENTS>,
     ) -> Buffer<T, Self, S>
     where
-        S: Shape 
+        S: Shape,
     {
-        let data = self
-            .modules
-            .retrieve::<S, NUM_PARENTS>(self, len, parents);
+        let data = self.modules.retrieve::<S, NUM_PARENTS>(self, len, parents);
         let buf = Buffer {
             data,
             device: Some(self),
@@ -254,7 +252,7 @@ impl<U, Mods: OnDropBuffer> PtrConv for NnapiDevice<U, Mods> {
 mod tests {
     use nnapi::{nnapi_sys::OperationCode, Operand};
 
-    use crate::{Base, Buffer, Dim1, NnapiDevice, WithShape, LazyRun, Lazy};
+    use crate::{Base, Buffer, Dim1, Lazy, LazyRun, NnapiDevice, WithShape};
 
     #[test]
     fn test_running_nnapi_ops() -> crate::Result<()> {
@@ -263,7 +261,7 @@ mod tests {
         let lhs = Buffer::with(&device, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
         let rhs = Buffer::with(&device, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
 
-        let out = Buffer::<f32, _, Dim1<10>>::new(&device, 0);
+        let out = Buffer::<i32, _, Dim1<10>>::new(&device, 0);
 
         let mut model = device.model.borrow_mut();
 
