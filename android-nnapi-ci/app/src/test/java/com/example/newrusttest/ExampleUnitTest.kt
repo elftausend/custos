@@ -12,7 +12,6 @@ import org.junit.Assert.*
 class ExampleUnitTest {
     @Test
     fun addition_isCorrect() {
-        RustBindings.greeting("hi");
         assertEquals(4, 2 + 2)
     }
 
