@@ -69,8 +69,6 @@ impl<U, Mods: Retrieve<Self, T>, T: AsOperandCode> Retriever<T> for NnapiDevice<
         buf
     }
 }
-// impl_buffer_hook_traits!(NnapiDevice);
-// crate::impl_retriever!(NnapiDevice, AsOperandCode);
 
 /// A [`CPUPtr`] with a u8 generic type.
 pub type ArrayPtr = CPUPtr<u8>;
@@ -236,6 +234,19 @@ where
 
         run.compute()?;
         Ok(())
+    }
+}
+
+impl<U, Mods: OnDropBuffer> PtrConv for NnapiDevice<U, Mods> {
+    unsafe fn convert<T, IS: Shape, Conv, OS: Shape>(
+        ptr: &Self::Data<T, IS>,
+        flag: crate::flag::AllocFlag,
+    ) -> Self::Data<Conv, OS> {
+        NnapiPtr {
+            dtype: ptr.dtype.clone(),
+            idx: ptr.idx,
+            flag,
+        }
     }
 }
 
