@@ -42,8 +42,8 @@ min-cl = { path="../min-cl", optional=true }
 #min-cl = { version = "0.2.0", optional=true }
 
 [features]
-#default = ["no-std"]
-default = ["blas", "cpu", "macro", "stack", "opencl", "autograd", "vulkan", "cuda", "half", "lazy", "fork", "nnapi"]
+default = ["nnapi", "cpu"]
+#default = ["blas", "cpu", "macro", "stack", "opencl", "autograd", "vulkan", "half", "lazy", "fork", "nnapi"]
 #default = ["stack", "macro", "cpu", "blas", "opencl", "static-api", "autograd"]
 #default = ["stack", "cpu", "blas", "static-api", "opencl", "macro"]
 cpu = []
@@ -57,7 +57,7 @@ stack = []
 no-std = ["stack", "dep:libm"]
 wgpu = ["dep:wgpu", "dep:pollster", "dep:futures-intrusive"]
 macro = ["dep:custos-macro"]
-nnapi = ["dep:nnapi", "dep:ndk-sys"]
+nnapi = ["dep:nnapi", "dep:ndk-sys", "lazy"]
 
 # modules
 autograd = ["cached"]
