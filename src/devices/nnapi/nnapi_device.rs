@@ -1,6 +1,6 @@
 use crate::{
     cpu::CPUPtr, Alloc, Base, Buffer, Device, LazyRun, Module, OnDropBuffer, PtrConv, Setup, Shape,
-    CPU,
+    CPU, Lazy, LazySetup, Retriever, Retrieve,
 };
 
 use super::NnapiPtr;
@@ -49,9 +49,28 @@ impl<U, Mods: crate::OnDropBuffer> crate::OnDropBuffer for NnapiDevice<U, Mods> 
         self.modules.on_drop_buffer(device, buf)
     }
 }
-
+impl<U, Mods: Retrieve<Self, T>, T: AsOperandCode> Retriever<T> for NnapiDevice<U, Mods> {
+    fn retrieve<S, const NUM_PARENTS: usize>(
+        &self,
+        len: usize,
+        parents: impl crate::Parents<NUM_PARENTS>,
+    ) -> Buffer<T, Self, S>
+    where
+        S: Shape 
+    {
+        let data = self
+            .modules
+            .retrieve::<S, NUM_PARENTS>(self, len, parents);
+        let buf = Buffer {
+            data,
+            device: Some(self),
+        };
+        self.modules.on_retrieve_finish(&buf);
+        buf
+    }
+}
 // impl_buffer_hook_traits!(NnapiDevice);
-// impl_retriever!(NnapiDevice, AsOperandCode);
+// crate::impl_retriever!(NnapiDevice, AsOperandCode);
 
 /// A [`CPUPtr`] with a u8 generic type.
 pub type ArrayPtr = CPUPtr<u8>;
@@ -100,10 +119,10 @@ impl<U, T: AsOperandCode, Mods: OnDropBuffer> Alloc<T> for NnapiDevice<U, Mods> 
 
 impl<T, SimpleMods> NnapiDevice<T, SimpleMods> {
     /// Creates a new [`NnapiDevice`].
-    pub fn new<NewMods>() -> crate::Result<NnapiDevice<T, NewMods>>
+    pub fn new<NewMods>() -> crate::Result<NnapiDevice<T, Lazy<NewMods>>>
     where
-        SimpleMods: Module<NnapiDevice<T>, Module = NewMods>,
-        NewMods: Setup<NnapiDevice<T, NewMods>>,
+        SimpleMods: Module<NnapiDevice<T>, Module = Lazy<NewMods>>,
+        Lazy<NewMods>: Setup<NnapiDevice<T, Lazy<NewMods>>>,
     {
         let mut device = NnapiDevice {
             modules: SimpleMods::new(),
@@ -115,7 +134,7 @@ impl<T, SimpleMods> NnapiDevice<T, SimpleMods> {
             out: Default::default(),
         };
 
-        NewMods::setup(&mut device)?;
+        Lazy::<NewMods>::setup(&mut device)?;
 
         Ok(device)
     }
@@ -181,7 +200,9 @@ impl<T, Mods: OnDropBuffer> NnapiDevice<T, Mods> {
     }
 }
 
-impl<T> Default for NnapiDevice<T> {
+impl<T, Mods> LazySetup for NnapiDevice<T, Mods> {}
+
+impl<T> Default for NnapiDevice<T, Lazy<Base>> {
     #[inline]
     fn default() -> Self {
         Self::new().unwrap()
@@ -222,11 +243,11 @@ where
 mod tests {
     use nnapi::{nnapi_sys::OperationCode, Operand};
 
-    use crate::{Base, Buffer, Dim1, NnapiDevice, WithShape, LazyRun};
+    use crate::{Base, Buffer, Dim1, NnapiDevice, WithShape, LazyRun, Lazy};
 
     #[test]
     fn test_running_nnapi_ops() -> crate::Result<()> {
-        let device = NnapiDevice::<i32, Base>::new()?;
+        let device = NnapiDevice::<i32, Lazy<Base>>::new()?;
 
         let lhs = Buffer::with(&device, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
         let rhs = Buffer::with(&device, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
