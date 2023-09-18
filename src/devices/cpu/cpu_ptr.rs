@@ -1,7 +1,8 @@
 use core::{
     alloc::Layout,
     mem::{align_of, size_of},
-    ptr::null_mut, ops::{DerefMut, Deref},
+    ops::{Deref, DerefMut},
+    ptr::null_mut,
 };
 
 use std::alloc::handle_alloc_error;
@@ -100,7 +101,7 @@ impl<T> CPUPtr<T> {
         }
     }
 
-        /// Extracts a slice containing the entire `CPUPtr`.
+    /// Extracts a slice containing the entire `CPUPtr`.
     #[inline]
     pub fn as_slice(&self) -> &[T] {
         self
