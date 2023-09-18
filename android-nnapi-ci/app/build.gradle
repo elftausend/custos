@@ -55,7 +55,7 @@ apply plugin: "com.github.willir.rust.cargo-ndk-android"
 // The following configuration is optional and works the same way by default
 cargoNdk {
     module = "nnapitestlib"
-    targets = ["arm64"]
+    targets = ["x86_64"]
 }
 
 dependencies {
