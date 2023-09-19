@@ -44,7 +44,7 @@ ndk-sys = {version = "0.4", features=["test"], optional = true}
 min-cl = { version = "0.3.0", optional=true }
 
 [features]
-default = ["cpu", "stack"]
+default = ["stack"]
 # default = ["nnapi", "cpu", "opencl", "macro", "cached", "autograd"]
 #default = ["blas", "cpu", "macro", "stack", "opencl", "autograd", "vulkan", "half", "lazy", "fork", "nnapi"]
 #default = ["stack", "macro", "cpu", "blas", "opencl", "static-api", "autograd"]

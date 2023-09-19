@@ -24,7 +24,7 @@ impl AddOperation for Base {
         out: &mut Buffer<T, D, S>,
         operation: impl Fn(&mut dyn Any),
     ) {
-        let out: &mut Buffer<T, D, S> = unsafe { std::mem::transmute(out) };
+        let out: &mut Buffer<T, D, S> = unsafe { core::mem::transmute(out) };
         operation(out);
     }
 

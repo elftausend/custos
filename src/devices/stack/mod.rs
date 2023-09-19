@@ -39,7 +39,7 @@ where
 impl<Mods, T, D, S> UnaryGrad<T, S, D> for Stack<Mods>
 where
     Mods: OnDropBuffer,
-    T: AddAssign + Copy + std::ops::Mul<Output = T>,
+    T: AddAssign + Copy + core::ops::Mul<Output = T>,
     S: Shape,
     D: MainMemory,
 {

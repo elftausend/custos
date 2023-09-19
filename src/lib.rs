@@ -207,18 +207,19 @@ pub use custos_macro::*;
 
 /// A dummy CPU. This only exists to make the code compile when the `cpu` feature is disabled
 /// because the CPU is the default type `D` for [`Buffer`]s.
+// TODO: Can be replaced with the standard cpu (now)
 #[cfg(not(feature = "cpu"))]
 pub struct CPU<Mods> {
-    _p: core::marker::PhantomData<Mods>
+    modules: Mods,
 }
 
 #[cfg(not(feature = "cpu"))]
 impl<Mods: OnDropBuffer> Device for CPU<Mods> {
-    type Ptr<U, S: Shape> = crate::Num<U>;
+    type Data<U, S: Shape> = crate::Num<U>;
 
-    type Cache = ();
+    type Error = crate::DeviceError;
 
-    fn new() -> crate::Result<Self> {
+    fn new() -> core::result::Result<Self, Self::Error> {
         #[cfg(feature = "no-std")]
         {
             unimplemented!("CPU is not available. Enable the `cpu` feature to use the CPU.")
@@ -228,6 +229,8 @@ impl<Mods: OnDropBuffer> Device for CPU<Mods> {
         Err(crate::DeviceError::CPUDeviceNotAvailable.into())
     }
 }
+
+impl_buffer_hook_traits!(CPU);
 
 pub mod prelude {
     //! Typical imports for using custos.

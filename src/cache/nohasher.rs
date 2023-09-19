@@ -3,7 +3,7 @@ pub struct NoHasher {
     hash: u64,
 }
 
-impl std::hash::Hasher for NoHasher {
+impl core::hash::Hasher for NoHasher {
     #[inline]
     fn finish(&self) -> u64 {
         self.hash

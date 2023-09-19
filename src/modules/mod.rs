@@ -27,8 +27,11 @@ pub use fork::*;
 
 use crate::{flag::AllocFlag, Buffer, Device, HasId, Id, PtrConv, Shape, UniqueId};
 use core::{any::Any, hash::BuildHasher};
+
+#[cfg(not(feature = "no-std"))]
 use std::collections::HashMap;
 
+#[cfg(not(feature = "no-std"))]
 #[inline]
 pub(crate) unsafe fn register_buf<T, D, S>(
     cache: &mut HashMap<UniqueId, Box<dyn Any>, impl BuildHasher>,
@@ -47,6 +50,7 @@ pub(crate) unsafe fn register_buf<T, D, S>(
     cache.insert(*buf.id(), Box::new(buf));
 }
 
+#[cfg(not(feature = "no-std"))]
 #[inline]
 pub fn unregister_buf(cache: &mut HashMap<UniqueId, Box<dyn Any>, impl BuildHasher>, id: Id) {
     cache.remove(&id);

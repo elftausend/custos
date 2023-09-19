@@ -19,6 +19,7 @@ pub trait Shape: 'static {
     ///
     /// assert_eq!(Dim2::<1, 2>::dims(), vec![1, 2])
     /// ```
+    #[cfg(not(feature = "no-std"))]
     fn dims() -> Vec<usize>;
 }
 
@@ -29,6 +30,7 @@ impl Shape for () {
     fn new<T>() -> Self::ARR<T> {}
 
     #[inline]
+    #[cfg(not(feature = "no-std"))]
     fn dims() -> Vec<usize> {
         vec![]
     }
@@ -62,6 +64,7 @@ impl<const N: usize> Shape for Dim1<N> {
     }
 
     #[inline]
+    #[cfg(not(feature = "no-std"))]
     fn dims() -> Vec<usize> {
         vec![N]
     }
@@ -83,6 +86,7 @@ impl<const B: usize, const A: usize> Shape for Dim2<B, A> {
     }
 
     #[inline]
+    #[cfg(not(feature = "no-std"))]
     fn dims() -> Vec<usize> {
         vec![B, A]
     }
@@ -111,6 +115,7 @@ impl<const C: usize, const B: usize, const A: usize> Shape for Dim3<C, B, A> {
     }
 
     #[inline]
+    #[cfg(not(feature = "no-std"))]
     fn dims() -> Vec<usize> {
         vec![C, B, A]
     }

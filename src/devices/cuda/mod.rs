@@ -9,6 +9,7 @@ mod cuda_device;
 mod cuda_ptr;
 mod kernel_cache;
 mod kernel_launch;
+#[cfg(feature = "lazy")]
 mod lazy;
 mod ops;
 mod source;
