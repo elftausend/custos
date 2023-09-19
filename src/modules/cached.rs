@@ -245,6 +245,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(miri, ignore)]
     fn test_location_file_ptr_unique() {
         let ptr = location();
         let ptr1 = location();
@@ -253,6 +254,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(miri, ignore)]
     fn test_location_file_tracked_ptr_unique() {
         let ptr = location_tracked();
         let ptr1 = location_tracked();

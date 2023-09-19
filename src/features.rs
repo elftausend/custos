@@ -171,7 +171,7 @@ macro_rules! impl_use_gpu_or_cpu {
             #[inline]
             fn use_cpu_or_gpu(
                 &self,
-                location: crate::HashLocation<'static>,
+                location: $crate::HashLocation<'static>,
                 input_lengths: &[usize],
                 cpu_op: impl FnMut(),
                 gpu_op: impl FnMut(),

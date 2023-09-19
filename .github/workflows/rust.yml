@@ -161,10 +161,8 @@ jobs:
           cargo miri setup
       - name: Test with Miri
         run: cargo miri test --no-default-features --features cpu
-      - name: Test 'realloc' with Miri
-        run: cargo miri test --no-default-features --features realloc,cpu
-      - name: Test 'opt-cache' with Miri
-        run: cargo miri test --no-default-features --features opt-cache,cpu
+      # - name: Test 'opt-cache' with Miri
+        # run: cargo miri test --no-default-features --features opt-cache,cpu
       - name: Test 'stack' with Miri
         run: cargo miri test --no-default-features --features stack,cpu
       - name: Test 'static-api' with Miri

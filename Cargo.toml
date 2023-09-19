@@ -44,7 +44,7 @@ ndk-sys = {version = "0.4", features=["test"], optional = true}
 min-cl = { version = "0.3.0", optional=true }
 
 [features]
-default = ["stack"]
+default = ["stack", "autograd", "cpu"]
 # default = ["nnapi", "cpu", "opencl", "macro", "cached", "autograd"]
 #default = ["blas", "cpu", "macro", "stack", "opencl", "autograd", "vulkan", "half", "lazy", "fork", "nnapi"]
 #default = ["stack", "macro", "cpu", "blas", "opencl", "static-api", "autograd"]
@@ -70,7 +70,8 @@ fork = []
 
 half = ["dep:half"]
 
-vulkan = ["dep:ash", "dep:naga"]
+vulkan = ["dep:ash", "dep:naga", "wgsl"]
+wgsl = []
 
 [dev-dependencies]
 custos-macro = {git = "https://github.com/elftausend/custos-macro"}
@@ -115,6 +116,22 @@ required-features = ["cpu", "stack"]
 
 [[example]]
 name = "mul_buf_cpu_impl"
+required-features = ["cpu"]
+
+[[test]]
+name = "write"
+required-features = ["cpu"]
+
+[[test]]
+name = "clear"
+required-features = ["cpu"]
+
+[[test]]
+name = "caller"
+required-features = ["cpu"]
+
+[[test]]
+name = "buffer"
 required-features = ["cpu"]
 
 [[test]]

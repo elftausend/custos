@@ -78,6 +78,8 @@ pub use devices::stack::Stack;
 #[cfg(feature = "network")]
 pub use devices::network::Network;
 
+#[cfg(feature = "vulkan")]
+pub use devices::vulkan::Vulkan;
 #[cfg(feature = "nnapi")]
 pub use devices::nnapi::{AsOperandCode, NnapiDevice};
 
@@ -230,6 +232,7 @@ impl<Mods: OnDropBuffer> Device for CPU<Mods> {
     }
 }
 
+#[cfg(not(feature = "cpu"))]
 impl_buffer_hook_traits!(CPU);
 
 pub mod prelude {
