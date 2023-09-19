@@ -232,6 +232,7 @@ impl<Mods: OnDropBuffer> Device for CPU<Mods> {
     }
 }
 
+#[cfg(not(feature = "cpu"))]
 impl_buffer_hook_traits!(CPU);
 
 pub mod prelude {
