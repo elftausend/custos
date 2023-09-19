@@ -58,14 +58,15 @@ nnapi | `NnapiDevice` | `Lazy` module is mandatory.
 Remaining features: 
 
 Feature | Description
+--- | --- | ---
 no-std | For no std environments, activates `stack` feature.
 static-api | Enables the creation of `Buffer`s without providing a device.
 macro | Reexport of [custos-macro]
 blas | Adds gemm functions from the system's (selected) BLAS library.
 
-Feature | Description
---- | ---
-opt-cache | Makes the 'cache graph' optimizeable, lowering the memory footprint.
+<!-- Feature | Description -->
+<!-- --- | --- -->
+<!-- opt-cache | Makes the 'cache graph' optimizeable, lowering the memory footprint. -->
 
 [custos-macro]: https://github.com/elftausend/custos-macro
 
