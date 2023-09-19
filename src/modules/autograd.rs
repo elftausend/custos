@@ -273,6 +273,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(miri, ignore)]
     fn test_buffer_new_and_retrieve() {
         let device = CPU::<Autograd<Base>>::new();
         let _lhs = Buffer::<f32, _>::new(&device, 10);
@@ -287,6 +288,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(miri, ignore)]
     fn test_cached_before_autograd() {
         // is a cached module is placed before Autograd results a problem
         // -> the retrieved buffer is not added to the no grads pool of the autograd module
