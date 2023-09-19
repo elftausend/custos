@@ -58,7 +58,7 @@ nnapi | `NnapiDevice` | `Lazy` module is mandatory.
 Remaining features: 
 
 Feature | Description
---- | --- | ---
+--- | --- 
 no-std | For no std environments, activates `stack` feature.
 static-api | Enables the creation of `Buffer`s without providing a device.
 macro | Reexport of [custos-macro]
