@@ -6,7 +6,7 @@ use min_cl::api::{
 };
 
 use crate::{
-    bounds_to_range, cpu::clear_slice, prelude::Number, ApplyFunction, Buffer, CDatatype, ClearBuf,
+    bounds_to_range, cpu_stack_ops::clear_slice, prelude::Number, ApplyFunction, Buffer, CDatatype, ClearBuf,
     CopySlice, Eval, OnDropBuffer, OpenCL, Read, Resolve, Retrieve, Retriever, Shape, ToCLSource,
     ToMarker, UnaryGrad, UseGpuOrCpu, WriteBuf,
 };

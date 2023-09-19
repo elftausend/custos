@@ -18,10 +18,7 @@ use crate::{
     Module as CombModule, OnDropBuffer, OnNewBuffer, PtrConv, Setup, Shape,
 };
 
-use super::{
-    api::{cuMemcpy, cu_write_async},
-    lazy::LazyCudaGraph,
-};
+use super::api::{cuMemcpy, cu_write_async};
 
 pub trait IsCuda: Device {}
 
@@ -39,7 +36,8 @@ pub struct CUDA<Mods = Base> {
     /// A stream used for memory transfers, like cu_write_async
     pub mem_transfer_stream: Stream,
     handle: CublasHandle,
-    pub graph: OnceCell<LazyCudaGraph>,
+    #[cfg(feature = "lazy")]
+    pub graph: OnceCell<super::lazy::LazyCudaGraph>,
 }
 
 impl_retriever!(CUDA);
@@ -73,6 +71,7 @@ impl<SimpleMods> CUDA<SimpleMods> {
             stream,
             mem_transfer_stream,
             handle,
+            #[cfg(feature = "lazy")]
             graph: OnceCell::new(),
         };
 

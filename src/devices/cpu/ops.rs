@@ -1,12 +1,15 @@
 use core::{
     any::Any,
-    ops::{Index, Range, RangeBounds},
+    ops::{Index, Range, RangeBounds, AddAssign},
 };
 
 use crate::{
     bounds_to_range, AddOperation, Alloc, Buffer, ClearBuf, CopySlice, Device, HasId, MainMemory,
-    MayTapeActions, OnDropBuffer, Operation, Read, Retriever, Shape, TapeActions, WriteBuf, CPU,
+    MayTapeActions, OnDropBuffer, Operation, Read, Retriever, Shape, WriteBuf, CPU, MayToCLSource, Eval, Resolve, UnaryGrad, ApplyFunction, Retrieve, ToVal, cpu_stack_ops::clear_slice,
 };
+
+#[cfg(feature = "autograd")]
+use crate::TapeActions;
 
 impl<Mods, T, S, D> crate::ApplyFunctionLazyTest<T, S, D> for CPU<Mods>
 where
@@ -67,6 +70,46 @@ impl<Mods: AddOperation> AddOperation for CPU<Mods> {
     }
 }
 
+impl<Mods, T, D, S> ApplyFunction<T, S, D> for CPU<Mods>
+where
+    Mods: Retrieve<Self, T>,
+    T: Copy + Default + ToVal + 'static,
+    D: crate::MainMemory,
+    S: Shape,
+{
+    fn apply_fn<F>(&self, buf: &Buffer<T, D, S>, f: impl Fn(Resolve<T>) -> F) -> Buffer<T, Self, S>
+    where
+        F: Eval<T> + MayToCLSource,
+    {
+        let mut out = self.retrieve(buf.len(), buf);
+
+        crate::cpu_stack_ops::apply_fn_slice(buf, &mut out, f);
+
+        out
+    }
+}
+
+impl<Mods, T, D, S> UnaryGrad<T, S, D> for CPU<Mods>
+where
+    Mods: OnDropBuffer,
+    T: AddAssign + Copy + std::ops::Mul<Output = T>,
+    S: Shape,
+    D: MainMemory,
+{
+    #[inline]
+    fn add_unary_grad<F>(
+        &self,
+        lhs: &Buffer<T, D, S>,
+        lhs_grad: &mut Buffer<T, D, S>,
+        out: &Buffer<T, D, S>,
+        lhs_grad_fn: impl Fn(Resolve<T>) -> F,
+    ) where
+        F: Eval<T> + MayToCLSource,
+    {
+        crate::cpu_stack_ops::add_unary_grad(lhs, out, lhs_grad, lhs_grad_fn)
+    }
+}
+
 impl<Mods: OnDropBuffer, T, D: MainMemory, S: Shape> Read<T, S, D> for CPU<Mods> {
     type Read<'a> = &'a [T] where T: 'a, D: 'a, S: 'a;
 
@@ -96,15 +139,9 @@ impl<Mods: OnDropBuffer, T: Copy, D: MainMemory, S: Shape> WriteBuf<T, S, D> for
     }
 }
 
-#[inline]
-pub fn clear_slice<T: Default>(input: &mut [T]) {
-    for value in input {
-        *value = T::default();
-    }
-}
-
 // #[impl_stack]
 impl<Mods: OnDropBuffer, T: Default, D: MainMemory, S: Shape> ClearBuf<T, S, D> for CPU<Mods> {
+    #[inline]
     fn clear(&self, buf: &mut Buffer<T, D, S>) {
         clear_slice(buf)
     }

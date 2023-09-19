@@ -26,14 +26,17 @@ pub mod wgpu;
 #[cfg(feature = "network")]
 pub mod network;
 
+#[cfg(feature = "nnapi")]
+pub mod nnapi;
+
 mod stack_array;
 pub use stack_array::*;
 
 mod cdatatype;
 pub use cdatatype::*;
 
-#[cfg(all(any(feature = "cpu", feature = "stack"), feature = "macro"))]
-mod cpu_stack_ops;
+#[cfg(any(feature = "cpu", feature = "stack"))]
+pub mod cpu_stack_ops;
 
 use crate::{Buffer, HasId, OnDropBuffer, PtrType, Shape};
 

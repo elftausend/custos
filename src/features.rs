@@ -164,6 +164,7 @@ pub struct GpuOrCpuInfo {
     pub is_result_cached: bool,
 }
 
+#[macro_export]
 macro_rules! impl_use_gpu_or_cpu {
     ($to_impl:ident) => {
         impl<Mods: UseGpuOrCpu> UseGpuOrCpu for $to_impl<Mods> {

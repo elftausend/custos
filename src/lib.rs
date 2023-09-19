@@ -80,6 +80,8 @@ pub use devices::network::Network;
 
 #[cfg(feature = "vulkan")]
 pub use devices::vulkan::Vulkan;
+#[cfg(feature = "nnapi")]
+pub use devices::nnapi::{AsOperandCode, NnapiDevice};
 
 pub use unary::*;
 
@@ -207,18 +209,19 @@ pub use custos_macro::*;
 
 /// A dummy CPU. This only exists to make the code compile when the `cpu` feature is disabled
 /// because the CPU is the default type `D` for [`Buffer`]s.
+// TODO: Can be replaced with the standard cpu (now)
 #[cfg(not(feature = "cpu"))]
-pub struct CPU {
-    _uncreateable: (),
+pub struct CPU<Mods> {
+    modules: Mods,
 }
 
 #[cfg(not(feature = "cpu"))]
-impl Device for CPU {
-    type Ptr<U, S: Shape> = crate::Num<U>;
+impl<Mods: OnDropBuffer> Device for CPU<Mods> {
+    type Data<U, S: Shape> = crate::Num<U>;
 
-    type Cache = ();
+    type Error = crate::DeviceError;
 
-    fn new() -> crate::Result<Self> {
+    fn new() -> core::result::Result<Self, Self::Error> {
         #[cfg(feature = "no-std")]
         {
             unimplemented!("CPU is not available. Enable the `cpu` feature to use the CPU.")
@@ -228,6 +231,8 @@ impl Device for CPU {
         Err(crate::DeviceError::CPUDeviceNotAvailable.into())
     }
 }
+
+impl_buffer_hook_traits!(CPU);
 
 pub mod prelude {
     //! Typical imports for using custos.
@@ -254,6 +259,9 @@ pub mod prelude {
 
     #[cfg(feature = "stack")]
     pub use crate::stack::Stack;
+
+    #[cfg(feature = "nnapi")]
+    pub use crate::nnapi::NnapiDevice;
 
     #[cfg(feature = "network")]
     pub use crate::network::{Network, NetworkArray};

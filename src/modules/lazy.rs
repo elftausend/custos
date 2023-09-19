@@ -178,6 +178,7 @@ mod tests {
     use crate::ApplyFunction;
 
     #[test]
+    #[cfg(feature = "macro")]
     fn test_lazy_execution() {
         let device = CPU::<Lazy<Base>>::new();
 

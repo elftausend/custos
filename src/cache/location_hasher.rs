@@ -7,7 +7,7 @@ pub struct LocationHasher {
 
 const K: u64 = 0x517cc1b727220a95;
 
-impl std::hash::Hasher for LocationHasher {
+impl core::hash::Hasher for LocationHasher {
     #[inline]
     fn finish(&self) -> u64 {
         self.hash
@@ -60,9 +60,9 @@ impl PartialEq for HashLocation<'_> {
     }
 }
 
-impl<'a> std::hash::Hash for HashLocation<'a> {
+impl<'a> core::hash::Hash for HashLocation<'a> {
     #[inline]
-    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+    fn hash<H: core::hash::Hasher>(&self, state: &mut H) {
         self.file.as_ptr().hash(state);
         let line_col = (self.line as u64) << 9 | self.col as u64;
         line_col.hash(state);

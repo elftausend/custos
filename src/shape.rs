@@ -5,17 +5,35 @@ use crate::{flag::AllocFlag, Device, PtrConv};
 pub trait Shape: 'static {
     /// The count of elements that fit into the shape.
     const LEN: usize = 0;
+
     /// The type of the ND-Array.
     type ARR<T>;
 
     /// Creates a new ND-Array with the default value of `T`.
     fn new<T: Copy + Default>() -> Self::ARR<T>;
+
+    /// Returns the dimension of the Shape as a vector.
+    /// # Example
+    /// ```
+    /// use custos::{Dim2, Shape};
+    ///
+    /// assert_eq!(Dim2::<1, 2>::dims(), vec![1, 2])
+    /// ```
+    #[cfg(not(feature = "no-std"))]
+    fn dims() -> Vec<usize>;
 }
 
 impl Shape for () {
     type ARR<T> = ();
 
+    #[inline]
     fn new<T>() -> Self::ARR<T> {}
+
+    #[inline]
+    #[cfg(not(feature = "no-std"))]
+    fn dims() -> Vec<usize> {
+        vec![]
+    }
 }
 
 // TODO: impl for net device
@@ -44,6 +62,12 @@ impl<const N: usize> Shape for Dim1<N> {
     fn new<T: Copy + Default>() -> Self::ARR<T> {
         [T::default(); N]
     }
+
+    #[inline]
+    #[cfg(not(feature = "no-std"))]
+    fn dims() -> Vec<usize> {
+        vec![N]
+    }
 }
 
 /// A 2D shape.
@@ -59,6 +83,12 @@ impl<const B: usize, const A: usize> Shape for Dim2<B, A> {
     #[inline]
     fn new<T: Copy + Default>() -> Self::ARR<T> {
         [[T::default(); A]; B]
+    }
+
+    #[inline]
+    #[cfg(not(feature = "no-std"))]
+    fn dims() -> Vec<usize> {
+        vec![B, A]
     }
 }
 
@@ -82,6 +112,12 @@ impl<const C: usize, const B: usize, const A: usize> Shape for Dim3<C, B, A> {
     #[inline]
     fn new<T: Copy + Default>() -> Self::ARR<T> {
         [[[T::default(); A]; B]; C]
+    }
+
+    #[inline]
+    #[cfg(not(feature = "no-std"))]
+    fn dims() -> Vec<usize> {
+        vec![C, B, A]
     }
 }
 

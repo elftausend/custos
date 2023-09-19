@@ -8,7 +8,7 @@ use super::{enqueue_kernel, AsClCvoidPtr, CLKernelCache, CLPtr};
 use crate::flag::AllocFlag;
 use crate::{
     impl_buffer_hook_traits, impl_retriever, Alloc, Base, Buffer, Cached, CachedCPU, CloneBuf,
-    Device, Error, Module, OnDropBuffer, Setup, CPU,
+    Device, Error, Module, OnDropBuffer, Setup, CPU, UseGpuOrCpu, HashLocation, GpuOrCpuInfo,
 };
 use crate::{PtrConv, Shape};
 
@@ -17,7 +17,7 @@ use std::{cell::RefCell, fmt::Debug};
 use min_cl::api::unified_ptr;
 
 #[cfg(feature = "fork")]
-use crate::{ForkSetup, GpuOrCpuInfo, HashLocation, UseGpuOrCpu};
+use crate::ForkSetup;
 
 /// Used to perform calculations with an OpenCL capable device.
 /// To make new calculations invocable, a trait providing new operations should be implemented for [OpenCL].
@@ -328,7 +328,6 @@ impl<Mods> ForkSetup for OpenCL<Mods> {
     }
 }
 
-#[cfg(feature = "fork")]
 impl<Mods: UseGpuOrCpu> UseGpuOrCpu for OpenCL<Mods> {
     #[inline]
     fn use_cpu_or_gpu(
