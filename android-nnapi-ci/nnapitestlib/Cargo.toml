@@ -11,7 +11,7 @@ crate-type = ["staticlib", "cdylib"]
 ndk-sys = {version = "0.4", features=["test"]}
 # nnapi = { path = "../nnapi/nnapi" }
 nnapi = { version = "0.2"}
-custos = { path = "../../", features = ["cpu", "nnapi"]}
+custos = { path = "../../", default-features = false, features = ["cpu", "nnapi"]}
 
 [target.'cfg(target_os="android")'.dependencies]
 jni = "0.19.0"
