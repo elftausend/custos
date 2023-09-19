@@ -74,6 +74,7 @@ pub type ArrayPtr = CPUPtr<u8>;
 /// Creates an [`Operand`] (datatype) from a shape `S`.
 #[inline]
 pub fn dtype_from_shape<'a, T: AsOperandCode, S: Shape>() -> Operand {
+    debug_assert!(S::LEN > 0);
     let dims = S::dims()
         .into_iter()
         .map(|dim| dim as u32)

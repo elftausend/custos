@@ -3,16 +3,57 @@
 mod impl_buffer;
 mod stack_device;
 
+use core::ops::AddAssign;
+
 pub use stack_device::*;
 
-use crate::{Buffer, ClearBuf, MainMemory, Shape};
+use crate::{Buffer, ClearBuf, MainMemory, Shape, cpu_stack_ops::clear_slice, ApplyFunction, Retrieve, ToVal, MayToCLSource, Resolve, Eval, UnaryGrad, OnDropBuffer, Retriever};
 
 // #[impl_stack]
 impl<T: Default, D: MainMemory, S: Shape> ClearBuf<T, S, D> for Stack {
+    #[inline]
     fn clear(&self, buf: &mut Buffer<T, D, S>) {
-        for value in buf {
-            *value = T::default();
-        }
+        clear_slice(buf)
+    }
+}
+
+impl<Mods, T, D, S> ApplyFunction<T, S, D> for Stack<Mods>
+where
+    Mods: Retrieve<Self, T>,
+    T: Copy + Default + ToVal + 'static,
+    D: crate::MainMemory,
+    S: Shape,
+{
+    fn apply_fn<F>(&self, buf: &Buffer<T, D, S>, f: impl Fn(Resolve<T>) -> F) -> Buffer<T, Self, S>
+    where
+        F: Eval<T> + MayToCLSource,
+    {
+        let mut out = self.retrieve(buf.len(), buf);
+
+        crate::cpu_stack_ops::apply_fn_slice(buf, &mut out, f);
+
+        out
+    }
+}
+
+impl<Mods, T, D, S> UnaryGrad<T, S, D> for Stack<Mods>
+where
+    Mods: OnDropBuffer,
+    T: AddAssign + Copy + std::ops::Mul<Output = T>,
+    S: Shape,
+    D: MainMemory,
+{
+    #[inline]
+    fn add_unary_grad<F>(
+        &self,
+        lhs: &Buffer<T, D, S>,
+        lhs_grad: &mut Buffer<T, D, S>,
+        out: &Buffer<T, D, S>,
+        lhs_grad_fn: impl Fn(Resolve<T>) -> F,
+    ) where
+        F: Eval<T> + MayToCLSource,
+    {
+        crate::cpu_stack_ops::add_unary_grad(lhs, out, lhs_grad, lhs_grad_fn)
     }
 }
 

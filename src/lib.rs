@@ -208,12 +208,12 @@ pub use custos_macro::*;
 /// A dummy CPU. This only exists to make the code compile when the `cpu` feature is disabled
 /// because the CPU is the default type `D` for [`Buffer`]s.
 #[cfg(not(feature = "cpu"))]
-pub struct CPU {
-    _uncreateable: (),
+pub struct CPU<Mods> {
+    _p: core::marker::PhantomData<Mods>
 }
 
 #[cfg(not(feature = "cpu"))]
-impl Device for CPU {
+impl<Mods: OnDropBuffer> Device for CPU<Mods> {
     type Ptr<U, S: Shape> = crate::Num<U>;
 
     type Cache = ();
