@@ -1,0 +1,6 @@
+.vscode/
+.VSCodeCounter/
+build/
+Cargo.lock
+target/
+

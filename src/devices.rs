@@ -21,6 +21,9 @@ pub mod wgpu;
 #[cfg(feature = "network")]
 pub mod network;
 
+#[cfg(feature = "nnapi")]
+pub mod nnapi;
+
 mod stack_array;
 pub use stack_array::*;
 

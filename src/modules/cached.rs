@@ -104,7 +104,6 @@ impl<Mods: crate::TapeActions, SD: Device> crate::TapeActions for CachedModule<M
     }
 }
 
-#[cfg(feature = "fork")]
 impl<Mods: crate::UseGpuOrCpu, D: Device> crate::UseGpuOrCpu for CachedModule<Mods, D> {
     #[inline]
     fn use_cpu_or_gpu(

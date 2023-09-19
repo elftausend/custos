@@ -5,8 +5,11 @@ use core::{
 
 use crate::{
     bounds_to_range, AddOperation, Alloc, Buffer, ClearBuf, CopySlice, Device, HasId, MainMemory,
-    MayTapeActions, OnDropBuffer, Operation, Read, Retriever, Shape, TapeActions, WriteBuf, CPU,
+    MayTapeActions, OnDropBuffer, Operation, Read, Retriever, Shape, WriteBuf, CPU,
 };
+
+#[cfg(feature = "autograd")]
+use crate::TapeActions;
 
 impl<Mods, T, S, D> crate::ApplyFunctionLazyTest<T, S, D> for CPU<Mods>
 where

@@ -14,16 +14,16 @@ rust-version = "1.69"
 [dependencies]
 #cuwanto-client = { path = "../cuwanto/cuwanto-client", optional = true }
 #cuwanto-server = {path="../cuwanto/cuwanto-server", optional=true}
-#min-cl = { version = "0.2.0", optional=true }
-min-cl = { path="../min-cl", optional=true }
+min-cl = { version = "0.3.0", optional=true }
+# min-cl = { path="../min-cl", optional=true }
 
 # WGPU deps
 futures-intrusive = {version="0.5.0", optional=true}
 pollster = {version="0.3", optional=true }
 wgpu = {version="0.15", optional=true }
 
-custos-macro = {path = "../custos-macro", optional=true}
-#custos-macro = {git = "https://github.com/elftausend/custos-macro", optional=true}
+# custos-macro = {path = "../custos-macro", optional=true}
+custos-macro = {git = "https://github.com/elftausend/custos-macro", optional=true}
 #custos-macro = {version = "0.1.1", optional=true}
 
 # no-std float math
@@ -34,16 +34,17 @@ naga = { version = "0.13", features = ["wgsl-in", "spv-out"], optional = true }
 
 half = {version = "2.3", default-features = false, optional = true} 
 # nnapi
-nnapi = { path = "../nnapi/nnapi", optional = true }
+# nnapi = { path = "../nnapi/nnapi", optional = true}
+nnapi = { version = "0.2", optional = true }
 ndk-sys = {version = "0.4", features=["test"], optional = true}
 
 [build-dependencies]
-min-cl = { path="../min-cl", optional=true }
-#min-cl = { version = "0.2.0", optional=true }
+# min-cl = { path="../min-cl", optional=true }
+min-cl = { version = "0.3.0", optional=true }
 
 [features]
-#default = ["no-std"]
-default = ["blas", "cpu", "macro", "stack", "opencl", "autograd", "vulkan", "cuda", "half", "lazy", "fork"]
+default = ["nnapi", "cpu", "opencl", "macro", "cached", "autograd"]
+#default = ["blas", "cpu", "macro", "stack", "opencl", "autograd", "vulkan", "half", "lazy", "fork", "nnapi"]
 #default = ["stack", "macro", "cpu", "blas", "opencl", "static-api", "autograd"]
 #default = ["stack", "cpu", "blas", "static-api", "opencl", "macro"]
 cpu = []
@@ -57,7 +58,7 @@ stack = []
 no-std = ["stack", "dep:libm"]
 wgpu = ["dep:wgpu", "dep:pollster", "dep:futures-intrusive"]
 macro = ["dep:custos-macro"]
-nnapi = ["dep:nnapi", "dep:ndk-sys"]
+nnapi = ["dep:nnapi", "dep:ndk-sys", "lazy"]
 
 # modules
 autograd = ["cached"]
@@ -70,8 +71,8 @@ half = ["dep:half"]
 vulkan = ["dep:ash", "dep:naga"]
 
 [dev-dependencies]
-#custos-macro = {git = "https://github.com/elftausend/custos-macro"}
-custos-macro = {path = "../custos-macro"}
+custos-macro = {git = "https://github.com/elftausend/custos-macro"}
+# custos-macro = {path = "../custos-macro"}
 #custos-macro = {version = "0.1.1"}
 
 [[example]]

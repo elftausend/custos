@@ -141,6 +141,7 @@ where
 #[cfg(test)]
 mod tests {
     #[cfg(feature = "cpu")]
+    #[cfg(feature = "macro")]
     #[test]
     fn test_unary_elementwise() {
         use crate::{Base, Combiner, Device, UnaryElementWiseMayGrad, CPU};
