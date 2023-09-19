@@ -56,7 +56,6 @@ impl<D, T> Retrieve<D, T> for Base {
     }
 }
 
-#[cfg(feature = "fork")]
 impl crate::UseGpuOrCpu for Base {
     #[inline]
     fn use_cpu_or_gpu(

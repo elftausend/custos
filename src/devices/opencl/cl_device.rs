@@ -8,7 +8,7 @@ use super::{enqueue_kernel, AsClCvoidPtr, CLKernelCache, CLPtr};
 use crate::flag::AllocFlag;
 use crate::{
     impl_buffer_hook_traits, impl_retriever, Alloc, Base, Buffer, Cached, CachedCPU, CloneBuf,
-    Device, Error, Module, OnDropBuffer, Setup, CPU,
+    Device, Error, Module, OnDropBuffer, Setup, CPU, UseGpuOrCpu, HashLocation, GpuOrCpuInfo,
 };
 use crate::{PtrConv, Shape};
 
@@ -328,7 +328,6 @@ impl<Mods> ForkSetup for OpenCL<Mods> {
     }
 }
 
-#[cfg(feature = "fork")]
 impl<Mods: UseGpuOrCpu> UseGpuOrCpu for OpenCL<Mods> {
     #[inline]
     fn use_cpu_or_gpu(
