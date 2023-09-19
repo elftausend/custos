@@ -72,13 +72,11 @@ blas | Adds gemm functions from the system's (selected) BLAS library.
 
 ## [Examples]
 
-custos only implements four `Buffer` operations. These would be the `write`, `read`, `copy_slice` and `clear` operations, however, there are also [unary] (device only) operations.<br>
-On the other hand, [custos-math] implements a lot more operations, including Matrix operations for a custom Matrix struct.<br>
 
 [examples]: https://github.com/elftausend/custos/tree/main/examples
 [unary]: https://github.com/elftausend/custos/blob/main/src/unary.rs
 
-Implement an operation for `CPU`:
+Implement an operation for `CPU`:<br>
 If you want to implement your own operations for all compute devices, consider looking here: [implement_operations.md](implement_operations.md)<br>
 or to see it at a larger scale, look here [`custos-math`](https://github.com/elftausend/custos-math) or here [`sliced`](https://github.com/elftausend/sliced) (for automatic diff examples).
 
