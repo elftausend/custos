@@ -105,6 +105,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(miri, ignore)]
     fn test_cache_get_reuse_based_on_location() {
         let mut cache = Cache::<CPU<Base>>::default();
         let device = CPU::<Base>::new();

@@ -117,6 +117,7 @@ fn test_use_number() {
 
 #[cfg(feature = "cpu")]
 #[cfg(feature = "cached")]
+#[cfg_attr(miri, ignore)]
 #[test]
 fn test_cached_cpu() {
     // for: cargo test -- --test-threads=1
