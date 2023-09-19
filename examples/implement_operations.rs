@@ -4,7 +4,7 @@ use custos::prelude::*;
 /// Because of `S: Shape`, this trait can be implemented for [`Stack`], which uses fixed size stack allocated arrays.<br>
 /// Adding a `D: Device = Self` makes it possible to invoke operations with a `CPU` on, for example, `OpenCL` `Buffer`s (if the device uses unified memory), and `Stack` `Buffer`s.
 pub trait AddBuf<T, S: Shape = (), D: Device = Self>: Sized + Device {
-    /// This operation perfoms element-wise addition.
+    /// This operation performs element-wise addition.
     #[track_caller]
     fn add(&self, lhs: &Buffer<T, D, S>, rhs: &Buffer<T, D, S>) -> Buffer<T, Self, S>;
     // ... you can add more operations if you want to do that.
