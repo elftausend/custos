@@ -119,6 +119,22 @@ name = "mul_buf_cpu_impl"
 required-features = ["cpu"]
 
 [[test]]
+name = "write"
+required-features = ["cpu"]
+
+[[test]]
+name = "clear"
+required-features = ["cpu"]
+
+[[test]]
+name = "caller"
+required-features = ["cpu"]
+
+[[test]]
+name = "buffer"
+required-features = ["cpu"]
+
+[[test]]
 name = "opencl_unified"
 required-features = ["opencl"]
 
