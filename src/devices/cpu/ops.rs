@@ -180,3 +180,31 @@ where
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::{CPU, Base, LazyRun};
+
+    #[test]
+    #[cfg(feature = "lazy")]
+    fn test_lazy_cpu_operation() {
+        use crate::{Lazy, Device, ApplyFunctionLazyTest, Combiner, AddOperation};
+
+        let device = CPU::<Lazy<Base>>::new();
+
+        let buf = device.buffer([1, 2, 3, 4, 5, 6, 7]);
+        
+        let buf1 = device.buffer([1, 2, 3, 4, 5, 6, 7]);
+
+        let out = crate::ApplyFunction::apply_fn(&device, &buf, |x| x.mul(2));
+        assert_eq!(out.read(), [2, 4, 6, 8, 10, 12, 14]) ;
+        let out = device.apply_fn(&buf1, |x| x.mul(2));
+ 
+        assert_eq!(out.read(), [0; 7]) ;
+
+        device.call_lazily();
+
+        assert_eq!(out.read(), [2, 4, 6, 8, 10, 12, 14]) ;
+
+    }
+}

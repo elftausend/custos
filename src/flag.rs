@@ -12,6 +12,7 @@ pub enum AllocFlag {
     Num,
     /// Similiar to `None`, but the resulting [`Buffer`](crate::Buffer) is borrowed and not owned.
     BorrowedCache,
+    Dangling
 }
 
 impl PartialEq for AllocFlag {

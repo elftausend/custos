@@ -44,7 +44,7 @@ ndk-sys = {version = "0.4", features=["test"], optional = true}
 min-cl = { version = "0.3.0", optional=true }
 
 [features]
-default = ["stack", "autograd", "cpu"]
+default = ["stack", "autograd", "cpu", "lazy", "true-lazy"]
 # default = ["nnapi", "cpu", "opencl", "macro", "cached", "autograd"]
 #default = ["blas", "cpu", "macro", "stack", "opencl", "autograd", "vulkan", "half", "lazy", "fork", "nnapi"]
 #default = ["stack", "macro", "cpu", "blas", "opencl", "static-api", "autograd"]
@@ -67,6 +67,7 @@ autograd = ["cached"]
 lazy = []
 cached = []
 fork = []
+true-lazy = []
 
 half = ["dep:half"]
 
@@ -79,15 +80,15 @@ custos-macro = {git = "https://github.com/elftausend/custos-macro"}
 #custos-macro = {version = "0.1.1"}
 
 [[example]]
-name = "cuda_readme"
+name = "cuda_usage"
 required-features = ["cuda"]
 
 [[example]]
-name = "cpu_readme"
+name = "cpu_usage"
 required-features = ["cpu"]
 
 [[example]]
-name = "cl_readme"
+name = "cl_usage"
 required-features = ["opencl"]
 
 [[example]]

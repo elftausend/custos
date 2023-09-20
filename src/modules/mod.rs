@@ -20,6 +20,12 @@ mod lazy;
 #[cfg(feature = "lazy")]
 pub use lazy::*;
 
+#[cfg(feature = "true-lazy")]
+mod true_lazy;
+
+#[cfg(feature = "true-lazy")]
+pub use true_lazy::*;
+
 #[cfg(feature = "fork")]
 mod fork;
 #[cfg(feature = "fork")]

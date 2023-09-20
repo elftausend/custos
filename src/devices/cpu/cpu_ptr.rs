@@ -157,7 +157,7 @@ impl<T> Default for CPUPtr<T> {
     fn default() -> Self {
         Self {
             ptr: null_mut(),
-            flag: AllocFlag::default(),
+            flag: AllocFlag::Dangling,
             len: 0,
             align: None,
             size: None,
