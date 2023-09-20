@@ -1,5 +1,4 @@
 use std::ops::Mul;
-
 use custos::prelude::*;
 
 pub trait MulBuf<T, S: Shape = (), D: Device = Self>: Sized + Device {

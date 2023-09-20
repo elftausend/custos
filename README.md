@@ -25,7 +25,7 @@ custos = "0.7.0"
 
 ### Available features: 
 
-custos provides combineable modules. Different selected modules result in different behaviour when executing operations.
+custos ships combineable modules. Different selected modules result in different behaviour when executing operations.
 New modules can be added in user code.
 ```rust
 use custos::prelude::*; 
@@ -62,7 +62,7 @@ Feature | Description
 no-std | For no std environments, activates `stack` feature.
 static-api | Enables the creation of `Buffer`s without providing a device.
 macro | Reexport of [custos-macro]
-blas | Adds gemm functions from the system's (selected) BLAS library.
+blas | Adds gemm functions of the system's (selected) BLAS library.
 
 <!-- Feature | Description -->
 <!-- --- | --- -->
@@ -77,7 +77,7 @@ blas | Adds gemm functions from the system's (selected) BLAS library.
 [unary]: https://github.com/elftausend/custos/blob/main/src/unary.rs
 
 Implement an operation for `CPU`:<br>
-If you want to implement your own operations for all compute devices, consider looking here: [implement_operations.md](implement_operations.md)<br>
+- If you want to implement your own operations for all compute devices, consider looking here: [implement_operations.md](implement_operations.md)<br>
 or to see it at a larger scale, look here [`custos-math`](https://github.com/elftausend/custos-math) or here [`sliced`](https://github.com/elftausend/sliced) (for automatic diff examples).
 
 This operation is only affected by the `Cached` module (and partially `Autograd`).
