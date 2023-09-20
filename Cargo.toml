@@ -79,15 +79,15 @@ custos-macro = {git = "https://github.com/elftausend/custos-macro"}
 #custos-macro = {version = "0.1.1"}
 
 [[example]]
-name = "cuda_readme"
+name = "cuda_usage"
 required-features = ["cuda"]
 
 [[example]]
-name = "cpu_readme"
+name = "cpu_usage"
 required-features = ["cpu"]
 
 [[example]]
-name = "cl_readme"
+name = "cl_usage"
 required-features = ["opencl"]
 
 [[example]]
