@@ -7,7 +7,7 @@ pub trait MulBuf<T, S: Shape = (), D: Device = Self>: Sized + Device {
 
 impl<Mods, T, S, D> MulBuf<T, S, D> for CPU<Mods>
 where
-    Mods: Retrieve<Self, T>,
+    Mods: Retrieve<Self, T, S>,
     T: Mul<Output = T> + Copy + 'static,
     S: Shape,
     D: MainMemory,

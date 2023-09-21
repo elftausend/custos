@@ -12,7 +12,7 @@ pub fn cpu_exec_unary_may_unified<
     'a,
     T,
     F,
-    Mods: OnDropBuffer + Retrieve<OpenCL<Mods>, T> + UnifiedMemChain<OpenCL<Mods>> + 'static,
+    Mods: OnDropBuffer + Retrieve<OpenCL<Mods>, T, ()> + UnifiedMemChain<OpenCL<Mods>> + 'static,
 >(
     device: &'a OpenCL<Mods>,
     x: &Buffer<T, OpenCL<Mods>>,
@@ -91,7 +91,7 @@ pub fn cpu_exec_binary_may_unified<
     'a,
     T,
     F,
-    Mods: OnDropBuffer + UnifiedMemChain<OpenCL<Mods>> + Retrieve<OpenCL<Mods>, T> + 'static,
+    Mods: OnDropBuffer + UnifiedMemChain<OpenCL<Mods>> + Retrieve<OpenCL<Mods>, T, ()> + 'static,
 >(
     device: &'a OpenCL<Mods>,
     lhs: &Buffer<T, OpenCL<Mods>>,

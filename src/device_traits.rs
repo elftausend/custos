@@ -67,9 +67,9 @@ pub trait Module<D> {
     fn new() -> Self::Module;
 }
 
-pub trait Retriever<T>: Device {
+pub trait Retriever<T, S>: Device {
     #[track_caller]
-    fn retrieve<S, const NUM_PARENTS: usize>(
+    fn retrieve<const NUM_PARENTS: usize>(
         &self,
         len: usize,
         parents: impl Parents<NUM_PARENTS>,

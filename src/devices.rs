@@ -94,16 +94,16 @@ macro_rules! impl_buffer_hook_traits {
 #[macro_export]
 macro_rules! impl_retriever {
     ($device:ident, $($trait_bounds:tt)*) => {
-        impl<T: $( $trait_bounds )*, Mods: $crate::Retrieve<Self, T>> $crate::Retriever<T> for $device<Mods> {
+        impl<T: $( $trait_bounds )*, S: Shape, Mods: $crate::Retrieve<Self, T, S>> $crate::Retriever<T, S> for $device<Mods> {
             #[inline]
-            fn retrieve<S: Shape, const NUM_PARENTS: usize>(
+            fn retrieve<const NUM_PARENTS: usize>(
                 &self,
                 len: usize,
                 parents: impl $crate::Parents<NUM_PARENTS>,
             ) -> Buffer<T, Self, S> {
                 let data = self
                     .modules
-                    .retrieve::<S, NUM_PARENTS>(self, len, parents);
+                    .retrieve::<NUM_PARENTS>(self, len, parents);
                 let buf = Buffer {
                     data,
                     device: Some(self),

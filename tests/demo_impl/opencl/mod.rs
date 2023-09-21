@@ -42,7 +42,7 @@ impl<T: CDatatype, S: Shape> ElementWise<T, OpenCL, S> for OpenCL {
 
 #[cfg(test)]
 mod tests {
-    use custos::{prelude::chosen_cl_idx, Base, Buffer, Cached, OpenCL, Retriever, WithShape, CPU};
+    use custos::{prelude::chosen_cl_idx, Base, Buffer, OpenCL, Retriever, WithShape, CPU};
 
     use crate::demo_impl::cpu::cpu_element_wise;
 
@@ -74,7 +74,7 @@ mod tests {
         let lhs = Buffer::from((&device, vec![1.0f32; SIZE]));
         let rhs = Buffer::from((&device, vec![4.0; SIZE]));
 
-        let mut out = device.retrieve::<(), 0>(lhs.len(), ());
+        let mut out = device.retrieve::<0>(lhs.len(), ());
 
         let start = std::time::Instant::now();
 
@@ -95,7 +95,7 @@ mod tests {
         let lhs = Buffer::<_>::from((&device, vec![1.0f32; SIZE]));
         let rhs = Buffer::<_>::from((&device, vec![4.0; SIZE]));
 
-        let mut out = device.retrieve::<(), 0>(lhs.len(), ());
+        let mut out: Buffer<_, _, ()> = device.retrieve::<0>(lhs.len(), ());
 
         let start = std::time::Instant::now();
         for _ in 0..TIMES {

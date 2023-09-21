@@ -162,11 +162,11 @@ mod tests {
     #[test]
     fn test_unified_mem_chain_ideal() -> crate::Result<()> {
         let cpu = CPU::<Cached<Base>>::new();
-        let mut no_drop = cpu.retrieve::<(), 0>(3, ());
+        let mut no_drop = cpu.retrieve::<0>(3, ());
         no_drop.write(&[1., 2.3, 0.76]);
 
         let device = OpenCL::<Cached<Base>>::new(0)?;
-        let buf = device.construct_unified_buf_from_cpu_buf(&device, no_drop)?;
+        let buf = device.construct_unified_buf_from_cpu_buf::<_, ()>(&device, no_drop)?;
         assert_eq!(buf.as_slice(), &[1., 2.3, 0.76]);
         Ok(())
     }
@@ -175,10 +175,10 @@ mod tests {
     fn test_unified_mem_chain_ideal_using_cpu_from_opencl_dev() -> crate::Result<()> {
         let device = OpenCL::<Cached<Base>>::new(0)?;
 
-        let mut no_drop = device.cpu.retrieve::<(), 0>(3, ());
+        let mut no_drop = device.cpu.retrieve::<0>(3, ());
         no_drop.write(&[1., 2.3, 0.76]);
 
-        let buf = device.construct_unified_buf_from_cpu_buf(&device, no_drop)?;
+        let buf = device.construct_unified_buf_from_cpu_buf::<_, ()>(&device, no_drop)?;
 
         assert_eq!(buf.as_slice(), &[1., 2.3, 0.76]);
         Ok(())
@@ -205,11 +205,11 @@ mod tests {
     #[test]
     fn test_unified_mem_chain_unified_construct_unavailable() -> crate::Result<()> {
         let cpu = CPU::<Cached<Base>>::new();
-        let mut no_drop = cpu.retrieve::<(), 0>(3, ());
+        let mut no_drop = cpu.retrieve::<0>(3, ());
         no_drop.write(&[1., 2.3, 0.76]);
 
         let device = OpenCL::<Base>::new(chosen_cl_idx())?;
-        let buf = device.construct_unified_buf_from_cpu_buf(&device, no_drop);
+        let buf = device.construct_unified_buf_from_cpu_buf::<_, ()>(&device, no_drop);
         match buf
             .err()
             .expect("Missing error -> failure")
@@ -224,13 +224,13 @@ mod tests {
     #[test]
     fn test_construct_buffer_missing_cached_module() -> crate::Result<()> {
         let cpu = CPU::<Base>::new();
-        let mut no_drop = cpu.retrieve::<(), 0>(3, ());
+        let mut no_drop = cpu.retrieve::<0>(3, ());
         no_drop.write(&[1., 2.3, 0.76]);
 
         let device = OpenCL::<Base>::new(chosen_cl_idx())?;
         let mut cache = Cache::<OpenCL>::new();
 
-        let buf = construct_buffer(&device, no_drop, &mut cache.nodes, HashLocation::here());
+        let buf = construct_buffer::<_, _, _, ()>(&device, no_drop, &mut cache.nodes, HashLocation::here());
         match buf
             .err()
             .expect("Missing error -> failure")
@@ -245,7 +245,7 @@ mod tests {
     #[test]
     fn test_to_unified() -> crate::Result<()> {
         let cpu = CPU::<Cached<Base>>::new();
-        let mut no_drop = cpu.retrieve::<(), 0>(3, ());
+        let mut no_drop = cpu.retrieve::<0>(3, ());
         no_drop.write(&[1., 2.3, 0.76]);
 
         let device = OpenCL::<Base>::new(chosen_cl_idx())?;
@@ -253,7 +253,7 @@ mod tests {
 
         let (host_ptr, len) = (no_drop.host_ptr_mut(), no_drop.len());
         let cl_host_ptr =
-            unsafe { to_cached_unified(&device, no_drop, &mut cache.nodes, HashLocation::here())? };
+            unsafe { to_cached_unified::<_, _, _, ()>(&device, no_drop, &mut cache.nodes, HashLocation::here())? };
 
         let buf: Buffer<f32, OpenCL> = Buffer {
             data: CLPtr {
@@ -273,13 +273,13 @@ mod tests {
     #[test]
     fn test_construct_buffer() -> crate::Result<()> {
         let cpu = CPU::<Cached<Base>>::new();
-        let mut no_drop = cpu.retrieve::<(), 0>(3, ());
+        let mut no_drop = cpu.retrieve::<0>(3, ());
         no_drop.write(&[1., 2.3, 0.76]);
 
         let device = OpenCL::<Base>::new(chosen_cl_idx())?;
         let mut cache = Cache::<OpenCL>::new();
 
-        let buf = construct_buffer(&device, no_drop, &mut cache.nodes, HashLocation::here())?;
+        let buf = construct_buffer::<_, _, _, ()>(&device, no_drop, &mut cache.nodes, HashLocation::here())?;
 
         assert_eq!(buf.read(), vec![1., 2.3, 0.76]);
         assert_eq!(buf.as_slice(), &[1., 2.3, 0.76]);
@@ -300,7 +300,7 @@ mod tests {
         let mut dur = 0.;
 
         for _ in 0..100 {
-            let mut buf = device.retrieve::<(), 0>(6, ());
+            let mut buf: Buffer<_, _, ()> = device.retrieve::<0>(6, ());
 
             buf.copy_from_slice(&[1, 2, 3, 4, 5, 6]);
 

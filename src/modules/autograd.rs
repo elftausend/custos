@@ -93,12 +93,12 @@ impl<Mods: Setup<NewDev>, NewDev> Setup<NewDev> for Autograd<Mods> {
     }
 }
 
-impl<T: 'static, Mods: Retrieve<D, T>, D> Retrieve<D, T> for Autograd<Mods>
+impl<T: 'static, S: Shape, Mods: Retrieve<D, T, S>, D> Retrieve<D, T, S> for Autograd<Mods>
 where
     D: PtrConv + Device + 'static,
 {
     #[inline]
-    fn retrieve<S, const NUM_PARENTS: usize>(
+    fn retrieve<const NUM_PARENTS: usize>(
         &self,
         device: &D,
         len: usize,
@@ -112,7 +112,7 @@ where
     }
 
     #[inline]
-    fn on_retrieve_finish<S: Shape>(&self, retrieved_buf: &Buffer<T, D, S>)
+    fn on_retrieve_finish(&self, retrieved_buf: &Buffer<T, D, S>)
     where
         D: Alloc<T>,
     {
@@ -279,7 +279,7 @@ mod tests {
         let _lhs = Buffer::<f32, _>::new(&device, 10);
 
         for _ in 0..100 {
-            let x: Buffer<f32, _> = device.retrieve::<(), 0>(100, ());
+            let x: Buffer<f32, _> = device.retrieve::<0>(100, ());
             assert_eq!(x.len(), 100)
         }
 
@@ -301,7 +301,7 @@ mod tests {
         let _lhs = Buffer::<f32, _>::new(&device, 10);
 
         for _ in 0..100 {
-            let x: Buffer<f32, _> = device.retrieve::<(), 0>(100, ());
+            let x: Buffer<f32, _> = device.retrieve::<0>(100, ());
             assert_eq!(x.len(), 100)
         }
 

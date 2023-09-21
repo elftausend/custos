@@ -19,7 +19,7 @@ impl<T: Default, D: MainMemory, S: Shape> ClearBuf<T, S, D> for Stack {
 
 impl<Mods, T, D, S> ApplyFunction<T, S, D> for Stack<Mods>
 where
-    Mods: Retrieve<Self, T>,
+    Mods: Retrieve<Self, T, S>,
     T: Copy + Default + ToVal + 'static,
     D: crate::MainMemory,
     S: Shape,
@@ -86,7 +86,7 @@ mod tests {
         }
     }*/
 
-    impl<Mods: Retrieve<Self, T>, T, D> AddBuf<T, D> for CPU<Mods>
+    impl<Mods: Retrieve<Self, T, ()>, T, D> AddBuf<T, D> for CPU<Mods>
     where
         D: MainMemory,
         T: Add<Output = T> + Clone,

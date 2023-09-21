@@ -63,14 +63,15 @@ impl<Mods: OnDropBuffer, SD: Device> OnDropBuffer for CachedModule<Mods, SD> {
 }
 
 // TODO: a more general OnDropBuffer => "Module"
-impl<T, Mods, D, SimpleDevice> Retrieve<D, T> for CachedModule<Mods, SimpleDevice>
+impl<T, Mods, D, S, SimpleDevice> Retrieve<D, T, S> for CachedModule<Mods, SimpleDevice>
 where
-    Mods: Retrieve<D, T>,
+    S: Shape,
+    Mods: Retrieve<D, T, S>,
     D: Device + PtrConv<SimpleDevice>,
     SimpleDevice: Device + PtrConv<D>,
 {
     #[inline]
-    fn retrieve<S: Shape, const NUM_PARENTS: usize>(
+    fn retrieve<const NUM_PARENTS: usize>(
         &self,
         device: &D,
         len: usize,
@@ -83,7 +84,7 @@ where
     }
 
     #[inline]
-    fn on_retrieve_finish<S: Shape>(&self, retrieved_buf: &Buffer<T, D, S>)
+    fn on_retrieve_finish(&self, retrieved_buf: &Buffer<T, D, S>)
     where
         D: Alloc<T>,
     {
@@ -157,7 +158,7 @@ macro_rules! debug_assert_tracked {
 /// ```should_panic
 /// use custos::{retrieve, CPU, Retriever, Buffer, Retrieve, Cached, Base};
 ///
-/// fn add_bufs<Mods: Retrieve<CPU<Mods>, f32>>(device: &CPU<Mods>) -> Buffer<f32, CPU<Mods>, ()> {
+/// fn add_bufs<Mods: Retrieve<CPU<Mods>, f32, ()>>(device: &CPU<Mods>) -> Buffer<f32, CPU<Mods>, ()> {
 ///     retrieve!(device, 10, ())
 /// }
 ///
@@ -169,7 +170,7 @@ macro_rules! debug_assert_tracked {
 /// use custos::{Dim1, retrieve, CPU, Retriever, Buffer, Retrieve, Cached, Base};
 ///
 /// #[track_caller]
-/// fn add_bufs<Mods: Retrieve<CPU<Mods>, f32>>(device: &CPU<Mods>) -> Buffer<f32, CPU<Mods>, Dim1<30>> {
+/// fn add_bufs<Mods: Retrieve<CPU<Mods>, f32, Dim1<30>>>(device: &CPU<Mods>) -> Buffer<f32, CPU<Mods>, Dim1<30>> {
 ///     retrieve!(device, 10, ())
 /// }
 ///
@@ -202,7 +203,7 @@ mod tests {
 
     // forgot to add track_caller
     #[cfg(debug_assertions)]
-    fn add_bufs<Mods: Retrieve<CPU<Mods>, f32>>(device: &CPU<Mods>) -> Buffer<f32, CPU<Mods>, ()> {
+    fn add_bufs<Mods: Retrieve<CPU<Mods>, f32, ()>>(device: &CPU<Mods>) -> Buffer<f32, CPU<Mods>, ()> {
         retrieve!(device, 10, ())
     }
 
@@ -217,7 +218,7 @@ mod tests {
     }
 
     #[track_caller]
-    fn add_bufs_tracked<Mods: Retrieve<CPU<Mods>, f32>>(
+    fn add_bufs_tracked<Mods: Retrieve<CPU<Mods>, f32, ()>>(
         device: &CPU<Mods>,
     ) -> Buffer<f32, CPU<Mods>, ()> {
         retrieve!(device, 10, ())

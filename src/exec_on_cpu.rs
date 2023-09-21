@@ -54,7 +54,7 @@ pub fn cpu_exec_unary<'a, T, D, F>(
 where
     T: Clone + Default + 'static,
     F: for<'b> Fn(&'b CachedCPU, &Buffer<'_, T, CachedCPU>) -> Buffer<'b, T, CachedCPU>,
-    D: Device + Read<T> + WriteBuf<T> + Alloc<T> + Retriever<T>,
+    D: Device + Read<T> + WriteBuf<T> + Alloc<T> + Retriever<T, ()>,
 {
     let cpu = CPU::<Cached<Base>>::new();
     let cpu_buf = Buffer::<T, CachedCPU>::from((&cpu, x.read_to_vec()));
@@ -125,7 +125,7 @@ where
         &Buffer<'_, T, CachedCPU>,
         &Buffer<'_, T, CachedCPU>,
     ) -> Buffer<'b, T, CachedCPU>,
-    D: Device + Read<T> + WriteBuf<T> + Alloc<T> + Retriever<T>,
+    D: Device + Read<T> + WriteBuf<T> + Alloc<T> + Retriever<T, ()>,
 {
     let cpu = CPU::<Cached<Base>>::new();
     let cpu_lhs = Buffer::<T, CachedCPU>::from((&cpu, lhs.read_to_vec()));

@@ -13,7 +13,7 @@ use crate::TapeActions;
 
 impl<Mods, T, S, D> crate::ApplyFunctionLazyTest<T, S, D> for CPU<Mods>
 where
-    Mods: crate::Retrieve<Self, T> + MayTapeActions + AddOperation + 'static,
+    Mods: crate::Retrieve<Self, T, S> + MayTapeActions + AddOperation + 'static,
     T: Copy + Default + crate::ToVal + 'static,
     S: Shape,
     D: MainMemory + Alloc<T> + 'static,
@@ -72,7 +72,7 @@ impl<Mods: AddOperation> AddOperation for CPU<Mods> {
 
 impl<Mods, T, D, S> ApplyFunction<T, S, D> for CPU<Mods>
 where
-    Mods: Retrieve<Self, T>,
+    Mods: Retrieve<Self, T, S>,
     T: Copy + Default + ToVal + 'static,
     D: crate::MainMemory,
     S: Shape,

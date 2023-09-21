@@ -6,8 +6,12 @@ pub struct TrueLazy<Mods> {
 
 impl_buffer_hook_traits!(TrueLazy);
 
-impl<Mods: OnDropBuffer, T, D> Retrieve<D, T> for TrueLazy<Mods> {
-    fn retrieve<S, const NUM_PARENTS: usize>(
+impl<Mods: OnDropBuffer, T, D, S: Shape> Retrieve<D, T, S> for TrueLazy<Mods>
+where
+    D: Device,
+    D::Data<T, S>:
+{
+    fn retrieve<const NUM_PARENTS: usize>(
         &self,
         device: &D,
         len: usize,
@@ -15,7 +19,8 @@ impl<Mods: OnDropBuffer, T, D> Retrieve<D, T> for TrueLazy<Mods> {
     ) -> <D>::Data<T, S>
     where
         S: Shape,
-        D: Device + crate::Alloc<T> {
+        D: Device + crate::Alloc<T> 
+    {
         todo!()
     }
 }

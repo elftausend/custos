@@ -176,7 +176,7 @@ impl<T, S, Mods> ApplyFunction<T, S> for OpenCL<Mods>
 where
     T: CDatatype + Number,
     S: Shape,
-    Mods: Retrieve<Self, T> + UseGpuOrCpu,
+    Mods: Retrieve<Self, T, S> + UseGpuOrCpu,
 {
     #[inline]
     fn apply_fn<F>(
