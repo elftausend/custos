@@ -9,7 +9,7 @@ impl_buffer_hook_traits!(TrueLazy);
 impl<Mods: OnDropBuffer, T, D, S: Shape> Retrieve<D, T, S> for TrueLazy<Mods>
 where
     D: Device,
-    D::Data<T, S>:
+    D::Data<T, S>: Default,
 {
     fn retrieve<const NUM_PARENTS: usize>(
         &self,

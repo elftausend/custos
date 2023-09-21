@@ -221,8 +221,8 @@ mod tests {
     use super::{IsCuda, CUDA};
 
     // compile-time isCuda test
-    fn take_cu_buffer<T, D: IsCuda + Retriever<T>, S: Shape>(device: &D, buf: &Buffer<T, D, S>) {
-        let _buf = device.retrieve::<S, 0>(buf.len(), ());
+    fn take_cu_buffer<T, D: IsCuda + Retriever<T, S>, S: Shape>(device: &D, buf: &Buffer<T, D, S>) {
+        let _buf = device.retrieve::<0>(buf.len(), ());
     }
 
     #[test]
