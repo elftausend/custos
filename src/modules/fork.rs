@@ -1,6 +1,6 @@
 use crate::{
-    Alloc, Buffer, Device, GpuOrCpuInfo, HashLocation, LocationHasher, Module, OnDropBuffer,
-    OnNewBuffer, Parents, PtrConv, Retrieve, Setup, Shape, UseGpuOrCpu,
+    flag::AllocFlag, Alloc, Buffer, Device, GpuOrCpuInfo, HashLocation, LocationHasher, Module,
+    Parents, PtrConv, Retrieve, Setup, Shape, UseGpuOrCpu,
 };
 use core::{
     cell::RefCell,
@@ -176,37 +176,21 @@ impl<Mods> UseGpuOrCpu for Fork<Mods> {
     }
 }
 
-impl<Mods: OnDropBuffer> OnDropBuffer for Fork<Mods> {
-    #[inline]
-    fn on_drop_buffer<T, D: crate::Device, S: crate::Shape>(
-        &self,
-        device: &D,
-        buf: &crate::Buffer<T, D, S>,
-    ) {
-        self.modules.on_drop_buffer(device, buf)
-    }
-}
-
-impl<Mods: OnNewBuffer<T, D, S>, T, D: Device, S: Shape> OnNewBuffer<T, D, S> for Fork<Mods> {
-    #[inline]
-    fn on_new_buffer(&self, device: &D, new_buf: &crate::Buffer<T, D, S>) {
-        self.modules.on_new_buffer(device, new_buf)
-    }
-}
-
-impl<S: Shape, T: 'static, Mods: Retrieve<D, T, S>, D: PtrConv + 'static> Retrieve<D, T, S> for Fork<Mods> {
+impl<S: Shape, T: 'static, Mods: Retrieve<D, T, S>, D: PtrConv + 'static> Retrieve<D, T, S>
+    for Fork<Mods>
+{
     #[inline]
     fn retrieve<const NUM_PARENTS: usize>(
         &self,
         device: &D,
-        len: usize,
         parents: impl Parents<NUM_PARENTS>,
+        alloc_fn: impl FnOnce(&D, AllocFlag) -> D::Data<T, S>,
     ) -> <D>::Data<T, S>
     where
         S: Shape,
         D: Alloc<T>,
     {
-        self.modules.retrieve(device, len, parents)
+        self.modules.retrieve(device, parents, alloc_fn)
     }
 
     #[inline]

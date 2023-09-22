@@ -38,9 +38,9 @@ pub use cdatatype::*;
 #[cfg(any(feature = "cpu", feature = "stack"))]
 pub mod cpu_stack_ops;
 
-use crate::{Buffer, HasId, OnDropBuffer, PtrType, Shape};
+use crate::{Buffer, HasId, PtrType, Shape};
 
-pub trait Device: OnDropBuffer + Sized {
+pub trait Device: Sized {
     type Data<T, S: Shape>: HasId + PtrType;
 
     type Error;
@@ -70,6 +70,7 @@ pub trait Device: OnDropBuffer + Sized {
     }
 }
 
+/*
 #[macro_export]
 macro_rules! impl_buffer_hook_traits {
     ($device:ident) => {
@@ -89,27 +90,36 @@ macro_rules! impl_buffer_hook_traits {
             }
         }
     };
-}
+}*/
 
 #[macro_export]
 macro_rules! impl_retriever {
     ($device:ident, $($trait_bounds:tt)*) => {
         impl<T: $( $trait_bounds )*, S: Shape, Mods: $crate::Retrieve<Self, T, S>> $crate::Retriever<T, S> for $device<Mods> {
             #[inline]
-            fn retrieve<const NUM_PARENTS: usize>(
+            fn retrieve_with_alloc_fn<const NUM_PARENTS: usize>(
                 &self,
-                len: usize,
                 parents: impl $crate::Parents<NUM_PARENTS>,
+                alloc_fn: impl FnOnce(&Self, AllocFlag) -> <$device as Device>::Data<T, S>
             ) -> Buffer<T, Self, S> {
                 let data = self
                     .modules
-                    .retrieve::<NUM_PARENTS>(self, len, parents);
+                    .retrieve::<NUM_PARENTS>(self, parents, alloc_fn);
                 let buf = Buffer {
                     data,
                     device: Some(self),
                 };
                 self.modules.on_retrieve_finish(&buf);
                 buf
+            }
+
+            #[inline]
+            fn retrieve<const NUM_PARENTS: usize>(
+                &self,
+                len: usize,
+                parents: impl $crate::Parents<NUM_PARENTS>
+            ) -> Buffer<T, Self, S> {
+                self.retrieve_with_alloc_fn(parents, |device, alloc_flag| Alloc::<T>::alloc::<S>(device, len, alloc_flag))
             }
         }
     };

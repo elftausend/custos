@@ -21,7 +21,13 @@ pub trait AsVkShaderArgument {
 
 impl<T: Number> AsVkShaderArgument for T {
     fn as_arg(&self, context: Rc<Context>) -> VkShaderArgument {
-        let vk_array_handle = VkArray::from_slice(context, &[*self], BufferUsageFlags::STORAGE_BUFFER, AllocFlag::None).unwrap();
+        let vk_array_handle = VkArray::from_slice(
+            context,
+            &[*self],
+            BufferUsageFlags::STORAGE_BUFFER,
+            AllocFlag::None,
+        )
+        .unwrap();
         let buffer = vk_array_handle.buf;
         let vk_array_handle =
             Some(unsafe { std::mem::transmute::<_, VkArray<u8>>(vk_array_handle) });

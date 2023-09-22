@@ -7,8 +7,8 @@ use min_cl::api::{
 use super::{enqueue_kernel, AsClCvoidPtr, CLKernelCache, CLPtr};
 use crate::flag::AllocFlag;
 use crate::{
-    impl_buffer_hook_traits, impl_retriever, Alloc, Base, Buffer, Cached, CachedCPU, CloneBuf,
-    Device, Error, Module, OnDropBuffer, Setup, CPU, UseGpuOrCpu, HashLocation, GpuOrCpuInfo,
+    impl_retriever, Alloc, Base, Buffer, Cached, CachedCPU, CloneBuf, Device, Error, GpuOrCpuInfo,
+    HashLocation, Module, Setup, UseGpuOrCpu, CPU,
 };
 use crate::{PtrConv, Shape};
 
@@ -54,7 +54,6 @@ pub type CL = OpenCL;
     }
 }*/
 
-impl_buffer_hook_traits!(OpenCL);
 impl_retriever!(OpenCL);
 
 impl<SimpleMods> OpenCL<SimpleMods> {
@@ -200,7 +199,7 @@ impl<Mods> OpenCL<Mods> {
     }
 }*/
 
-impl<Mods: OnDropBuffer> Device for OpenCL<Mods> {
+impl<Mods> Device for OpenCL<Mods> {
     type Data<U, S: Shape> = CLPtr<U>;
     type Error = ();
 
@@ -210,7 +209,7 @@ impl<Mods: OnDropBuffer> Device for OpenCL<Mods> {
     }
 }
 
-impl<Mods: OnDropBuffer, OtherMods: OnDropBuffer> PtrConv<OpenCL<OtherMods>> for OpenCL<Mods> {
+impl<Mods, OtherMods> PtrConv<OpenCL<OtherMods>> for OpenCL<Mods> {
     #[inline]
     unsafe fn convert<T, IS, Conv, OS>(
         ptr: &Self::Data<T, IS>,
@@ -247,7 +246,7 @@ impl Debug for OpenCL {
     }
 }
 
-impl<Mods: OnDropBuffer, T> Alloc<T> for OpenCL<Mods> {
+impl<Mods, T> Alloc<T> for OpenCL<Mods> {
     fn alloc<S: Shape>(&self, mut len: usize, flag: AllocFlag) -> CLPtr<T> {
         assert!(len > 0, "invalid buffer len: 0");
 
@@ -271,7 +270,7 @@ impl<Mods: OnDropBuffer, T> Alloc<T> for OpenCL<Mods> {
         }
     }
 
-    fn alloc_from_slice<S: Shape>(&self, data: &[T]) -> CLPtr<T> {
+    fn alloc_from_slice<S: Shape>(&self, data: &[T], alloc_flag: AllocFlag) -> CLPtr<T> {
         let ptr = create_buffer::<T>(
             self.ctx(),
             MemFlags::MemReadWrite | MemFlags::MemCopyHostPtr,
@@ -290,7 +289,7 @@ impl<Mods: OnDropBuffer, T> Alloc<T> for OpenCL<Mods> {
             ptr,
             host_ptr,
             len: data.len(),
-            flag: AllocFlag::None,
+            flag: alloc_flag,
         }
     }
 }
@@ -305,7 +304,7 @@ impl<'a, T> CloneBuf<'a, T> for OpenCL {
 }
 
 #[cfg(unified_cl)]
-impl<Mods: OnDropBuffer> crate::MainMemory for OpenCL<Mods> {
+impl<Mods> crate::MainMemory for OpenCL<Mods> {
     #[inline]
     fn as_ptr<T, S: Shape>(ptr: &Self::Data<T, S>) -> *const T {
         ptr.host_ptr

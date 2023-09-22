@@ -6,21 +6,21 @@ use min_cl::api::{
 };
 
 use crate::{
-    bounds_to_range, cpu_stack_ops::clear_slice, prelude::Number, ApplyFunction, Buffer, CDatatype, ClearBuf,
-    CopySlice, Eval, OnDropBuffer, OpenCL, Read, Resolve, Retrieve, Retriever, Shape, ToCLSource,
+    bounds_to_range, cpu_stack_ops::clear_slice, prelude::Number, ApplyFunction, Buffer, CDatatype,
+    ClearBuf, CopySlice, Eval, OpenCL, Read, Resolve, Retrieve, Retriever, Shape, ToCLSource,
     ToMarker, UnaryGrad, UseGpuOrCpu, WriteBuf,
 };
 
 use super::enqueue_kernel;
 
-/*impl<Mods: OnDropBuffer, T: CDatatype> ClearBuf<T> for OpenCL<Mods> {
+/*impl<Mods: , T: CDatatype> ClearBuf<T> for OpenCL<Mods> {
     #[inline]
     fn clear(&self, buf: &mut Buffer<T, OpenCL<Mods>>) {
         try_cl_clear(self, buf).unwrap()
     }
 }*/
 
-impl<Mods: OnDropBuffer + UseGpuOrCpu, T: CDatatype + Default> ClearBuf<T> for OpenCL<Mods> {
+impl<Mods: UseGpuOrCpu, T: CDatatype + Default> ClearBuf<T> for OpenCL<Mods> {
     #[inline]
     fn clear(&self, buf: &mut Buffer<T, OpenCL<Mods>>) {
         /*crate::fork!(
@@ -59,7 +59,7 @@ impl<Mods: OnDropBuffer + UseGpuOrCpu, T: CDatatype + Default> ClearBuf<T> for O
 ///     Ok(())
 /// }
 /// ```
-pub fn try_cl_clear<Mods: OnDropBuffer, T: CDatatype>(
+pub fn try_cl_clear<Mods, T: CDatatype>(
     device: &OpenCL<Mods>,
     lhs: &mut Buffer<T, OpenCL<Mods>>,
 ) -> crate::Result<()> {
@@ -81,7 +81,7 @@ pub fn try_cl_clear<Mods: OnDropBuffer, T: CDatatype>(
     Ok(())
 }
 
-impl<T, S: Shape, Mods: OnDropBuffer> WriteBuf<T, S> for OpenCL<Mods> {
+impl<T, S: Shape, Mods> WriteBuf<T, S> for OpenCL<Mods> {
     #[inline]
     fn write(&self, buf: &mut Buffer<T, Self, S>, data: &[T]) {
         let event =
@@ -139,7 +139,7 @@ impl<T> CopySlice<T> for OpenCL {
     }
 }
 
-impl<Mods: OnDropBuffer + 'static, T: Clone + Default, S: Shape> Read<T, S> for OpenCL<Mods> {
+impl<Mods: 'static, T: Clone + Default, S: Shape> Read<T, S> for OpenCL<Mods> {
     #[cfg(not(unified_cl))]
     type Read<'a> = Vec<T> where T: 'a;
     #[cfg(unified_cl)]
@@ -162,7 +162,7 @@ impl<Mods: OnDropBuffer + 'static, T: Clone + Default, S: Shape> Read<T, S> for 
     }
 }
 
-fn try_read_cl_buf_to_vec<Mods: OnDropBuffer, T: Clone + Default, S: Shape>(
+fn try_read_cl_buf_to_vec<Mods, T: Clone + Default, S: Shape>(
     device: &OpenCL<Mods>,
     buf: &Buffer<T, OpenCL<Mods>, S>,
 ) -> crate::Result<Vec<T>> {
@@ -216,7 +216,7 @@ pub fn try_cl_apply_fn_mut<'a, T, S, Mods, F>(
 where
     T: CDatatype + Number,
     S: Shape,
-    Mods: OnDropBuffer,
+    Mods:,
     F: ToCLSource,
 {
     let src = format!(

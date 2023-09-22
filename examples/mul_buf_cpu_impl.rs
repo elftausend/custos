@@ -1,5 +1,5 @@
-use std::ops::Mul;
 use custos::prelude::*;
+use std::ops::Mul;
 
 pub trait MulBuf<T, S: Shape = (), D: Device = Self>: Sized + Device {
     fn mul(&self, lhs: &Buffer<T, D, S>, rhs: &Buffer<T, D, S>) -> Buffer<T, Self, S>;

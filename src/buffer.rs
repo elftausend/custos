@@ -8,8 +8,8 @@ use crate::CPU;
 
 use crate::{
     flag::AllocFlag, shape::Shape, Alloc, Base, ClearBuf, CloneBuf, CommonPtrs, Device,
-    DevicelessAble, HasId, IsShapeIndep, MainMemory, OnDropBuffer, OnNewBuffer, PtrType, Read,
-    ShallowCopy, WriteBuf,
+    DevicelessAble, HasId, IsShapeIndep, MainMemory, PtrType, Read, Retriever, ShallowCopy,
+    WriteBuf,
 };
 
 pub use self::num::Num;
@@ -61,18 +61,20 @@ impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
     ///
     /// ```
     #[inline]
+    #[track_caller]
     pub fn new(device: &'a D, len: usize) -> Self
     where
-        D: OnNewBuffer<T, D, S> + Alloc<T>,
+        D: Retriever<T, S>,
     {
-        let data = device.alloc(len, crate::flag::AllocFlag::None);
-        Buffer::from_new_alloc(device, data)
+        device.retrieve(len, ())
+        // let data = device.alloc(len, crate::flag::AllocFlag::None);
+        // Buffer::from_new_alloc(device, data)
     }
 
     #[inline]
     fn from_new_alloc(device: &'a D, data: D::Data<T, S>) -> Self
     where
-        D: OnNewBuffer<T, D, S>,
+        D:,
     {
         let buf = Buffer {
             data,
@@ -80,14 +82,15 @@ impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
         };
 
         // mind: on_new_buffer must be called for user buffers!
-        device.on_new_buffer(device, &buf);
+        // device.on_new_buffer(device, &buf);
         buf
     }
 
     #[inline]
+    #[track_caller]
     pub fn empty_like(&self) -> Buffer<'a, T, D, S>
     where
-        D: Alloc<T> + OnNewBuffer<T, D, S>,
+        D: Retriever<T, S> + Alloc<T>,
     {
         Buffer::new(self.device(), self.len())
     }
@@ -100,53 +103,46 @@ impl<'a, T, D: Device, S: Shape> HasId for Buffer<'a, T, D, S> {
     }
 }
 
-impl<'a, T, D: Device, S: Shape> Drop for Buffer<'a, T, D, S> {
-    #[inline]
-    fn drop(&mut self) {
-        if self.data.flag() != AllocFlag::None {
-            return;
-        }
-
-        if let Some(device) = self.device {
-            device.on_drop_buffer(device, self)
-        }
-    }
-}
-
-impl<'a, T, D: Device + OnNewBuffer<T, D, S>, S: Shape> Buffer<'a, T, D, S> {
+impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
     /// Creates a new `Buffer` from a slice (&[T]).
     #[inline]
+    #[track_caller]
     pub fn from_slice(device: &'a D, slice: &[T]) -> Self
     where
         T: Clone,
-        D: Alloc<T>,
+        D: Retriever<T, S> + Alloc<T>,
     {
-        let data = device.alloc_from_slice(slice);
-        Buffer::from_new_alloc(device, data)
+        device.retrieve_with_alloc_fn((), |device, alloc_flag| {
+            device.alloc_from_slice(slice, alloc_flag)
+        })
     }
 
     /// Creates a new `Buffer` from a `Vec`.
     #[cfg(not(feature = "no-std"))]
     #[inline]
+    #[track_caller]
     pub fn from_vec(device: &'a D, data: Vec<T>) -> Self
     where
         T: Clone,
-        D: Alloc<T>,
+        D: Retriever<T, S> + Alloc<T>,
     {
-        let data = device.alloc_from_vec(data);
-        Buffer::from_new_alloc(device, data)
+        device.retrieve_with_alloc_fn((), |device, alloc_flag| {
+            device.alloc_from_vec(data, alloc_flag)
+        })
     }
 
     /// Creates a new `Buffer` from an nd-array.
     /// The dimension is defined by the [`Shape`].
     #[inline]
+    #[track_caller]
     pub fn from_array(device: &'a D, array: S::ARR<T>) -> Buffer<T, D, S>
     where
         T: Clone,
-        D: Alloc<T>,
+        D: Retriever<T, S> + Alloc<T>,
     {
-        let data = device.alloc_from_array(array);
-        Buffer::from_new_alloc(device, data)
+        device.retrieve_with_alloc_fn((), |device, alloc_flag| {
+            device.alloc_from_array(array, alloc_flag)
+        })
     }
 }
 
@@ -399,7 +395,7 @@ impl<'a, T, D: Device> Buffer<'a, T, D> {
 }
 
 #[cfg(feature = "cpu")]
-impl<'a, Mods: OnDropBuffer, T, S: Shape> Buffer<'a, T, CPU<Mods>, S> {
+impl<'a, Mods, T, S: Shape> Buffer<'a, T, CPU<Mods>, S> {
     /// Constructs a deviceless `Buffer` out of a host pointer and a length.
     /// # Example
     /// ```
@@ -449,7 +445,7 @@ impl<'a, Mods: OnDropBuffer, T, S: Shape> Buffer<'a, T, CPU<Mods>, S> {
 }
 
 #[cfg(feature = "opencl")]
-impl<'a, Mods: OnDropBuffer, T, S: Shape> Buffer<'a, T, crate::OpenCL<Mods>, S> {
+impl<'a, Mods, T, S: Shape> Buffer<'a, T, crate::OpenCL<Mods>, S> {
     /// Returns the OpenCL pointer of the `Buffer`.
     #[inline]
     pub fn cl_ptr(&self) -> *mut c_void {
@@ -462,7 +458,7 @@ impl<'a, Mods: OnDropBuffer, T, S: Shape> Buffer<'a, T, crate::OpenCL<Mods>, S> 
 }
 
 #[cfg(feature = "cuda")]
-impl<'a, Mods: OnDropBuffer, T> Buffer<'a, T, crate::CUDA<Mods>> {
+impl<'a, Mods, T> Buffer<'a, T, crate::CUDA<Mods>> {
     // TODO: replace buf.data.2 with this fn, do the same with cl, cpu
     /// Returns a non null CUDA pointer
     #[inline]

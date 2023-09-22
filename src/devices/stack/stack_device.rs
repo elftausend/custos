@@ -1,8 +1,8 @@
 use core::convert::Infallible;
 
 use crate::{
-    flag::AllocFlag, impl_buffer_hook_traits, impl_retriever, shape::Shape, Alloc, Base, Buffer,
-    CloneBuf, Device, DevicelessAble, MainMemory, OnDropBuffer, Read, StackArray, WriteBuf,
+    flag::AllocFlag, impl_retriever, shape::Shape, Alloc, Base, Buffer, CloneBuf, Device,
+    DevicelessAble, MainMemory, Read, StackArray, WriteBuf,
 };
 
 /// A device that allocates memory on the stack.
@@ -17,12 +17,11 @@ impl Stack {
     }
 }
 
-impl_buffer_hook_traits!(Stack);
 impl_retriever!(Stack, Copy + Default);
 
 impl<'a, T: Copy + Default, S: Shape> DevicelessAble<'a, T, S> for Stack {}
 
-impl<Mods: OnDropBuffer> Device for Stack<Mods> {
+impl<Mods> Device for Stack<Mods> {
     type Data<U, S: Shape> = StackArray<S, U>;
     type Error = Infallible;
 
@@ -31,7 +30,7 @@ impl<Mods: OnDropBuffer> Device for Stack<Mods> {
     }
 }
 
-impl<Mods: OnDropBuffer> MainMemory for Stack<Mods> {
+impl<Mods> MainMemory for Stack<Mods> {
     #[inline]
     fn as_ptr<T, S: Shape>(ptr: &Self::Data<T, S>) -> *const T {
         ptr.as_ptr()
@@ -43,14 +42,14 @@ impl<Mods: OnDropBuffer> MainMemory for Stack<Mods> {
     }
 }
 
-impl<Mods: OnDropBuffer, T: Copy + Default> Alloc<T> for Stack<Mods> {
+impl<Mods, T: Copy + Default> Alloc<T> for Stack<Mods> {
     #[inline]
     fn alloc<S: Shape>(&self, _len: usize, _flag: AllocFlag) -> StackArray<S, T> {
         StackArray::new()
     }
 
     #[inline]
-    fn alloc_from_slice<S: Shape>(&self, data: &[T]) -> Self::Data<T, S> {
+    fn alloc_from_slice<S: Shape>(&self, data: &[T], _alloc_flag: AllocFlag) -> Self::Data<T, S> {
         let mut array: StackArray<S, T> =
             <Stack<Mods> as Alloc<T>>::alloc(self, 0, AllocFlag::None);
         array.flatten_mut().copy_from_slice(&data[..S::LEN]);
@@ -62,6 +61,7 @@ impl<Mods: OnDropBuffer, T: Copy + Default> Alloc<T> for Stack<Mods> {
     fn alloc_from_array<S: Shape>(
         &self,
         array: <S as Shape>::ARR<T>,
+        _alloc_flag: AllocFlag,
     ) -> <Self as Device>::Data<T, S>
     where
         T: Clone,

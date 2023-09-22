@@ -1,12 +1,14 @@
-use crate::{Device, Shape, Retrieve, Buffer, OnDropBuffer, impl_buffer_hook_traits};
+use core::panic::Location;
+
+use crate::{flag::AllocFlag, Buffer, Device, HashLocation, Retrieve, Shape};
 
 pub struct TrueLazy<Mods> {
-    modules: Mods
+    modules: Mods,
 }
 
-impl_buffer_hook_traits!(TrueLazy);
+// impl_buffer_hook_traits!(TrueLazy);
 
-impl<Mods: OnDropBuffer, T, D, S: Shape> Retrieve<D, T, S> for TrueLazy<Mods>
+impl<Mods, T, D, S: Shape> Retrieve<D, T, S> for TrueLazy<Mods>
 where
     D: Device,
     D::Data<T, S>: Default,
@@ -14,13 +16,17 @@ where
     fn retrieve<const NUM_PARENTS: usize>(
         &self,
         device: &D,
-        len: usize,
         parents: impl crate::Parents<NUM_PARENTS>,
+        alloc_fn: impl FnOnce(&D, AllocFlag) -> D::Data<T, S>,
     ) -> <D>::Data<T, S>
     where
         S: Shape,
-        D: Device + crate::Alloc<T> 
+        D: Device + crate::Alloc<T>,
     {
-        todo!()
+        // TODO: alloc with onion for new buffer (return dangling)
+
+        let location: HashLocation = Location::caller().into();
+
+        D::Data::<T, S>::default()
     }
 }

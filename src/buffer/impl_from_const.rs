@@ -1,4 +1,4 @@
-use crate::{prelude::Number, shape::Shape, Alloc, Buffer, Dim1, Dim2, OnNewBuffer};
+use crate::{prelude::Number, shape::Shape, Alloc, Buffer, Dim1, Dim2, Retriever};
 
 /// Trait for creating [`Buffer`]s with a [`Shape`]. The [`Shape`] is inferred from the array.
 pub trait WithShape<D, C> {
@@ -14,13 +14,14 @@ pub trait WithShape<D, C> {
     /// assert_eq!(&*buf, &[1.0, 2.0, 3.0]);
     ///
     /// ```
+    #[track_caller]
     fn with(device: D, array: C) -> Self;
 }
 
 impl<'a, T, D, const N: usize> WithShape<&'a D, [T; N]> for Buffer<'a, T, D, Dim1<N>>
 where
     T: Number, // using Number here, because T could be an array type
-    D: Alloc<T> + OnNewBuffer<T, D, Dim1<N>>,
+    D: Retriever<T, Dim1<N>> + Alloc<T>,
 {
     #[inline]
     fn with(device: &'a D, array: [T; N]) -> Self {
@@ -31,7 +32,7 @@ where
 impl<'a, T, D, const N: usize> WithShape<&'a D, &[T; N]> for Buffer<'a, T, D, Dim1<N>>
 where
     T: Number,
-    D: Alloc<T> + OnNewBuffer<T, D, Dim1<N>>,
+    D: Retriever<T, Dim1<N>> + Alloc<T>,
 {
     #[inline]
     fn with(device: &'a D, array: &[T; N]) -> Self {
@@ -43,7 +44,7 @@ impl<'a, T, D, const B: usize, const A: usize> WithShape<&'a D, [[T; A]; B]>
     for Buffer<'a, T, D, Dim2<B, A>>
 where
     T: Number,
-    D: Alloc<T> + OnNewBuffer<T, D, Dim2<B, A>>,
+    D: Retriever<T, Dim2<B, A>> + Alloc<T>,
 {
     #[inline]
     fn with(device: &'a D, array: [[T; A]; B]) -> Self {
@@ -55,7 +56,7 @@ impl<'a, T, D, const B: usize, const A: usize> WithShape<&'a D, &[[T; A]; B]>
     for Buffer<'a, T, D, Dim2<B, A>>
 where
     T: Number,
-    D: Alloc<T> + OnNewBuffer<T, D, Dim2<B, A>>,
+    D: Retriever<T, Dim2<B, A>> + Alloc<T>,
 {
     #[inline]
     fn with(device: &'a D, array: &[[T; A]; B]) -> Self {
@@ -65,7 +66,7 @@ where
 
 impl<'a, T, D, S: Shape> WithShape<&'a D, ()> for Buffer<'a, T, D, S>
 where
-    D: Alloc<T> + OnNewBuffer<T, D, S>,
+    D: Retriever<T, S>,
 {
     fn with(device: &'a D, _: ()) -> Self {
         Buffer::new(device, S::LEN)

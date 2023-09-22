@@ -7,7 +7,10 @@ use core::ops::AddAssign;
 
 pub use stack_device::*;
 
-use crate::{Buffer, ClearBuf, MainMemory, Shape, cpu_stack_ops::clear_slice, ApplyFunction, Retrieve, ToVal, MayToCLSource, Resolve, Eval, UnaryGrad, OnDropBuffer, Retriever};
+use crate::{
+    cpu_stack_ops::clear_slice, ApplyFunction, Buffer, ClearBuf, Eval, MainMemory, MayToCLSource,
+    Resolve, Retrieve, Retriever, Shape, ToVal, UnaryGrad,
+};
 
 // #[impl_stack]
 impl<T: Default, D: MainMemory, S: Shape> ClearBuf<T, S, D> for Stack {
@@ -38,7 +41,6 @@ where
 
 impl<Mods, T, D, S> UnaryGrad<T, S, D> for Stack<Mods>
 where
-    Mods: OnDropBuffer,
     T: AddAssign + Copy + core::ops::Mul<Output = T>,
     S: Shape,
     D: MainMemory,

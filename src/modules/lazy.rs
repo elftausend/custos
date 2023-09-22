@@ -1,27 +1,24 @@
-use core::{any::Any, cell::RefCell, fmt::Debug, hash::BuildHasherDefault};
-use std::collections::HashMap;
+use core::{any::Any, fmt::Debug};
 
 use crate::{
-    AddOperation, Alloc, Buffer, Device, HasId, Id, Module, NoHasher, OnDropBuffer, OnNewBuffer,
-    Operation, Parents, PtrConv, Retrieve, Run, Setup, Shape, UniqueId,
+    flag::AllocFlag, AddOperation, Alloc, Buffer, Device, Module, Operation, Parents, PtrConv,
+    Retrieve, Run, Setup, Shape,
 };
-
-use super::register_buf;
 
 #[derive(Default)]
 pub struct Lazy<Mods> {
     pub modules: Mods,
-    outs: RefCell<HashMap<UniqueId, Box<dyn Any>, BuildHasherDefault<NoHasher>>>,
-    ops: RefCell<Vec<Box<dyn Fn(&mut dyn Any)>>>,
-    out_ids: RefCell<Vec<Id>>,
-    ops2: RefCell<Vec<Box<dyn Operation>>>,
+    // outs: RefCell<HashMap<UniqueId, Box<dyn Any>, BuildHasherDefault<NoHasher>>>,
+    // ops: RefCell<Vec<Box<dyn Fn(&mut dyn Any)>>>,
+    // out_ids: RefCell<Vec<Id>>,
+    // ops2: RefCell<Vec<Box<dyn Operation>>>,
 }
 
 impl<Mods: Debug> Debug for Lazy<Mods> {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         f.debug_struct("Lazy")
             .field("mods", &self.modules)
-            .field("ops_count", &self.ops.borrow().len())
+            // .field("ops_count", &self.ops.borrow().len())
             .finish()
     }
 }
@@ -43,10 +40,6 @@ impl<Mods: Module<D>, D: LazySetup> Module<D> for Lazy<Mods> {
     fn new() -> Self::Module {
         Lazy {
             modules: Mods::new(),
-            outs: Default::default(),
-            ops: Default::default(),
-            out_ids: Default::default(),
-            ops2: Default::default(),
         }
     }
 }
@@ -58,28 +51,28 @@ impl<Mods> AddOperation for Lazy<Mods> {
         out: &mut Buffer<T, D, S>,
         operation: impl Fn(&mut dyn Any),
     ) {
-        // operation(out);
-        self.out_ids.borrow_mut().push(out.id());
-        let operation: Box<dyn Fn(&mut dyn Any)> = Box::new(operation);
-        let operation: Box<dyn Fn(&mut dyn Any) + 'static> =
-            unsafe { std::mem::transmute(operation) };
-        self.ops.borrow_mut().push(operation)
+        // // operation(out);
+        // self.out_ids.borrow_mut().push(out.id());
+        // let operation: Box<dyn Fn(&mut dyn Any)> = Box::new(operation);
+        // let operation: Box<dyn Fn(&mut dyn Any) + 'static> =
+        //     unsafe { std::mem::transmute(operation) };
+        // self.ops.borrow_mut().push(operation)
     }
 
     #[inline]
     fn add_operation2(&self, operation: impl Operation) {
-        let operation: Box<dyn Operation> = Box::new(operation);
-        let operation: Box<dyn Operation + 'static> = unsafe { std::mem::transmute(operation) };
-        self.ops2.borrow_mut().push(operation)
+        // let operation: Box<dyn Operation> = Box::new(operation);
+        // let operation: Box<dyn Operation + 'static> = unsafe { std::mem::transmute(operation) };
+        // self.ops2.borrow_mut().push(operation)
     }
 
     #[inline]
     fn call_lazily(&self) {
-        for (op, out_id) in self.ops.borrow().iter().zip(self.out_ids.borrow().iter()) {
-            let mut outs = self.outs.borrow_mut();
-            let out = &mut **outs.get_mut(out_id).unwrap();
-            op(out)
-        }
+        // for (op, out_id) in self.ops.borrow().iter().zip(self.out_ids.borrow().iter()) {
+        //     let mut outs = self.outs.borrow_mut();
+        //     let out = &mut **outs.get_mut(out_id).unwrap();
+        //     op(out)
+        // }
     }
 }
 
@@ -99,24 +92,6 @@ impl<Mods: Run<D>, D: LazyRun> Run<D> for Lazy<Mods> {
     }
 }
 
-impl<Mods: OnDropBuffer> OnDropBuffer for Lazy<Mods> {
-    #[inline]
-    fn on_drop_buffer<'a, T, D: Device, S: Shape>(&self, device: &'a D, buf: &Buffer<T, D, S>) {
-        super::unregister_buf(&mut self.outs.borrow_mut(), buf.id());
-        self.modules.on_drop_buffer(device, buf)
-    }
-}
-
-impl<T: 'static, D: Device + PtrConv + 'static, S: Shape, Mods: OnNewBuffer<T, D, S>>
-    OnNewBuffer<T, D, S> for Lazy<Mods>
-{
-    #[inline]
-    fn on_new_buffer(&self, device: &D, new_buf: &Buffer<T, D, S>) {
-        unsafe { super::register_buf(&mut self.outs.borrow_mut(), new_buf) };
-        self.modules.on_new_buffer(device, new_buf)
-    }
-}
-
 #[cfg(feature = "autograd")]
 impl<Mods: crate::TapeActions> crate::TapeActions for Lazy<Mods> {
     #[inline]
@@ -130,19 +105,21 @@ impl<Mods: crate::TapeActions> crate::TapeActions for Lazy<Mods> {
     }
 }
 
-impl<T: 'static, S: Shape, Mods: Retrieve<D, T, S>, D: PtrConv + 'static> Retrieve<D, T, S> for Lazy<Mods> {
+impl<T: 'static, S: Shape, Mods: Retrieve<D, T, S>, D: PtrConv + 'static> Retrieve<D, T, S>
+    for Lazy<Mods>
+{
     #[inline]
     fn retrieve<const NUM_PARENTS: usize>(
         &self,
         device: &D,
-        len: usize,
         parents: impl Parents<NUM_PARENTS>,
+        alloc_fn: impl FnOnce(&D, AllocFlag) -> D::Data<T, S>,
     ) -> <D>::Data<T, S>
     where
         S: Shape,
         D: Alloc<T>,
     {
-        self.modules.retrieve(device, len, parents)
+        self.modules.retrieve(device, parents, alloc_fn)
     }
 
     #[inline]
@@ -150,7 +127,7 @@ impl<T: 'static, S: Shape, Mods: Retrieve<D, T, S>, D: PtrConv + 'static> Retrie
     where
         D: Alloc<T>,
     {
-        unsafe { register_buf(&mut self.outs.borrow_mut(), retrieved_buf) };
+        // unsafe { register_buf(&mut self.outs.borrow_mut(), retrieved_buf) };
 
         // pass down
         self.modules.on_retrieve_finish(retrieved_buf)

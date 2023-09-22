@@ -3,9 +3,9 @@ mod nnapi_device;
 mod nnapi_ptr;
 
 pub use as_operand_code::*;
+pub use nnapi::*;
 pub use nnapi_device::*;
 pub use nnapi_ptr::*;
-pub use nnapi::*;
 /*pub fn log(priority: ndk_sys::android_LogPriority, msg: &str) {
     let tag = std::ffi::CString::new("MyApp").unwrap();
     let msg = std::ffi::CString::new(msg).unwrap();

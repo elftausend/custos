@@ -31,8 +31,7 @@ impl<SD: Device> Cache<SD> {
     pub fn get<T, S: Shape, D: Device + Alloc<T>>(
         &mut self,
         device: &D,
-        len: usize,
-        callback: fn(),
+        alloc_fn: impl FnOnce(&D, AllocFlag) -> D::Data<T, S>,
     ) -> D::Data<T, S>
     where
         SD: PtrConv<D>,
@@ -41,7 +40,7 @@ impl<SD: Device> Cache<SD> {
         let maybe_allocated = self.nodes.get(&Location::caller().into());
         match maybe_allocated {
             Some(data) => unsafe { SD::convert(data, AllocFlag::Wrapper) },
-            None => self.add_node(device, len, callback),
+            None => self.add_node(device, alloc_fn),
         }
     }
 
@@ -49,19 +48,17 @@ impl<SD: Device> Cache<SD> {
     pub fn add_node<T, S: Shape, D: Alloc<T>>(
         &mut self,
         device: &D,
-        len: usize,
-        callback: fn(),
+        alloc_fn: impl FnOnce(&D, AllocFlag) -> D::Data<T, S>,
     ) -> D::Data<T, S>
     where
         D: PtrConv<SD>,
     {
-        let data = device.alloc::<S>(len, AllocFlag::Wrapper);
+        let data = alloc_fn(device, AllocFlag::Wrapper);
+        // let data = device.alloc::<S>(len, AllocFlag::Wrapper);
 
         let untyped_ptr = unsafe { D::convert(&data, AllocFlag::None) };
         self.nodes
             .insert(Location::caller().into(), Rc::new(untyped_ptr));
-
-        callback();
 
         data
     }
@@ -70,7 +67,7 @@ impl<SD: Device> Cache<SD> {
 #[cfg(test)]
 mod tests {
     use super::Cache;
-    use crate::{Base, CPU};
+    use crate::{Alloc, Base, CPU};
 
     #[test]
     fn test_cache_add_node() {
@@ -79,12 +76,16 @@ mod tests {
 
         assert_eq!(cache.nodes.len(), 0);
 
-        let out = cache.add_node::<f32, (), _>(&device, 10, || ());
+        let out = cache.add_node::<f32, (), _>(&device, |device, alloc_flag| {
+            device.alloc::<()>(10, alloc_flag)
+        });
 
         assert_eq!(cache.nodes.len(), 1);
         assert_eq!(out.len, 10);
 
-        let out1 = cache.get::<f32, (), _>(&device, 10, || ());
+        let out1 = cache.get::<f32, (), _>(&device, |device, alloc_flag| {
+            device.alloc::<()>(10, alloc_flag)
+        });
         assert_ne!(out.ptr, out1.ptr);
     }
 
@@ -95,10 +96,14 @@ mod tests {
 
         assert_eq!(cache.nodes.len(), 0);
 
-        let out1 = cache.get::<f32, (), _>(&device, 10, || ());
+        let out1 = cache.get::<f32, (), _>(&device, |device, alloc_flag| {
+            device.alloc::<()>(10, alloc_flag)
+        });
         assert_eq!(cache.nodes.len(), 1);
 
-        let out2 = cache.get::<f32, (), _>(&device, 10, || ());
+        let out2 = cache.get::<f32, (), _>(&device, |device, alloc_flag| {
+            device.alloc::<()>(10, alloc_flag)
+        });
 
         assert_ne!(out1.ptr, out2.ptr);
         assert_eq!(cache.nodes.len(), 2);
@@ -112,7 +117,9 @@ mod tests {
 
         let mut prev = None;
         for _ in 0..1000 {
-            let out3 = cache.get::<f32, (), _>(&device, 10, || ());
+            let out3 = cache.get::<f32, (), _>(&device, |device, alloc_flag| {
+                device.alloc::<()>(10, alloc_flag)
+            });
             if prev.is_none() {
                 prev = Some(out3.ptr);
             }

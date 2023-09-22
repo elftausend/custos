@@ -1,8 +1,6 @@
 use core::ops::Range;
 
-use crate::{
-    number::Number, shape::Shape, Alloc, Buffer, Device, OnDropBuffer, OnNewBuffer, Retriever,
-};
+use crate::{number::Number, shape::Shape, Alloc, Buffer, Device, Retriever};
 
 #[cfg(feature = "cpu")]
 use crate::{WriteBuf, CPU};
@@ -11,8 +9,9 @@ impl<'a, T, D, const N: usize> From<(&'a D, [T; N])> for Buffer<'a, T, D>
 where
     T: Clone,
     // TODO: IsShapeIndep ... find way to include Stack
-    D: Alloc<T> + OnNewBuffer<T, D, ()>,
+    D: Retriever<T, ()> + Alloc<T>,
 {
+    #[track_caller]
     #[inline]
     fn from((device, array): (&'a D, [T; N])) -> Self {
         Buffer::from_slice(device, &array)
@@ -21,8 +20,9 @@ where
 
 impl<'a, T, D> From<(&'a D, usize)> for Buffer<'a, T, D>
 where
-    D: Alloc<T> + OnNewBuffer<T, D, ()>,
+    D: Retriever<T, ()>,
 {
+    #[track_caller]
     #[inline]
     fn from((device, len): (&'a D, usize)) -> Self {
         Buffer::new(device, len)
@@ -44,8 +44,9 @@ where
 impl<'a, T, D> From<(&'a D, Range<usize>)> for Buffer<'a, T, D>
 where
     T: Number,
-    D: Alloc<T> + OnNewBuffer<T, D, ()>,
+    D: Retriever<T, ()> + Alloc<T>,
 {
+    #[track_caller]
     #[inline]
     fn from((device, range): (&'a D, Range<usize>)) -> Self {
         Buffer::from_vec(device, range.map(|x| T::from_usize(x)).collect())
@@ -86,8 +87,9 @@ impl<'a, T, D, const N: usize> From<(&'a D, &[T; N])> for Buffer<'a, T, D>
 where
     T: Clone,
     // TODO: IsShapeIndep ... find way to include Stack
-    D: Alloc<T> + OnNewBuffer<T, D, ()>,
+    D: Retriever<T, ()> + Alloc<T>,
 {
+    #[track_caller]
     #[inline]
     fn from((device, array): (&'a D, &[T; N])) -> Self {
         Buffer::from_slice(device, array)
@@ -114,8 +116,9 @@ impl<'a, T, D, S: Shape> From<(&'a D, &[T])> for Buffer<'a, T, D, S>
 where
     T: Clone,
     // TODO: IsShapeIndep ... find way to include Stack
-    D: Alloc<T> + OnNewBuffer<T, D, S>,
+    D: Retriever<T, S> + Alloc<T>,
 {
+    #[track_caller]
     #[inline]
     fn from((device, slice): (&'a D, &[T])) -> Self {
         Buffer::from_slice(device, slice)
@@ -142,8 +145,9 @@ impl<'a, T, D, S: Shape> From<(&'a D, Vec<T>)> for Buffer<'a, T, D, S>
 where
     T: Clone,
     // TODO: IsShapeIndep ... find way to include Stack
-    D: Alloc<T> + OnNewBuffer<T, D, S>,
+    D: Retriever<T, S> + Alloc<T>,
 {
+    #[track_caller]
     #[inline]
     fn from((device, vec): (&'a D, Vec<T>)) -> Self {
         Buffer::from_vec(device, vec)
@@ -155,8 +159,9 @@ impl<'a, T, D, S: Shape> From<(&'a D, &Vec<T>)> for Buffer<'a, T, D, S>
 where
     T: Clone,
     // TODO: IsShapeIndep ... find way to include Stack
-    D: Alloc<T> + OnNewBuffer<T, D, S>,
+    D: Retriever<T, S> + Alloc<T>,
 {
+    #[track_caller]
     #[inline]
     fn from((device, vec): (&'a D, &Vec<T>)) -> Self {
         Buffer::from_slice(device, vec)
@@ -164,13 +169,14 @@ where
 }
 
 #[cfg(feature = "cpu")]
-impl<'a, 'b, Mods: OnDropBuffer, T, S, D> From<(&'a D, Buffer<'b, T, CPU<Mods>, S>)>
-    for Buffer<'a, T, D, S>
+impl<'a, 'b, Mods, T, S, D> From<(&'a D, Buffer<'b, T, CPU<Mods>, S>)> for Buffer<'a, T, D, S>
 where
     T: 'static,
     S: Shape,
     D: WriteBuf<T, S> + Device + Retriever<T, S>,
 {
+    #[track_caller]
+    #[inline]
     fn from((device, buf): (&'a D, Buffer<'b, T, CPU<Mods>, S>)) -> Self {
         let mut out = device.retrieve(buf.len(), &buf);
         device.write(&mut out, &buf);

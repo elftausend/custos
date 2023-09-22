@@ -1,8 +1,8 @@
 use core::any::Any;
 
 use crate::{
-    flag::AllocFlag, AddOperation, Alloc, Buffer, Device, HashLocation, Module, OnDropBuffer,
-    OnNewBuffer, Parents, Retrieve, Setup, Shape,
+    flag::AllocFlag, AddOperation, Alloc, Buffer, Device, HashLocation, Module, Parents, Retrieve,
+    Setup, Shape,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
@@ -36,23 +36,19 @@ impl AddOperation for Base {
 
 impl<D> Setup<D> for Base {}
 
-impl<T, D: Device, S: Shape> OnNewBuffer<T, D, S> for Base {}
-
-impl OnDropBuffer for Base {}
-
 impl<D, T, S: Shape> Retrieve<D, T, S> for Base {
     #[inline]
     fn retrieve<const NUM_PARENTS: usize>(
         &self,
         device: &D,
-        len: usize,
         _parents: impl Parents<NUM_PARENTS>,
+        alloc_fn: impl FnOnce(&D, AllocFlag) -> D::Data<T, S>,
     ) -> <D>::Data<T, S>
     where
         S: crate::Shape,
         D: Alloc<T>,
     {
-        device.alloc(len, AllocFlag::None)
+        alloc_fn(device, AllocFlag::None)
     }
 }
 

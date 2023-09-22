@@ -1,7 +1,5 @@
 use custos::prelude::*;
 
-
-
 fn main() {
     let device = CPU::<Base>::new();
     let mut a = Buffer::from((&device, [1, 2, 3, 4, 5, 6]));

@@ -49,7 +49,9 @@ impl<U, Mods: crate::OnDropBuffer> crate::OnDropBuffer for NnapiDevice<U, Mods> 
         self.modules.on_drop_buffer(device, buf)
     }
 }
-impl<U, S: Shape, Mods: Retrieve<Self, T, S>, T: AsOperandCode> Retriever<T, S> for NnapiDevice<U, Mods> {
+impl<U, S: Shape, Mods: Retrieve<Self, T, S>, T: AsOperandCode> Retriever<T, S>
+    for NnapiDevice<U, Mods>
+{
     fn retrieve<const NUM_PARENTS: usize>(
         &self,
         len: usize,

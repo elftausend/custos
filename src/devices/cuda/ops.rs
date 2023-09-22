@@ -3,7 +3,7 @@ use core::ops::{Range, RangeBounds};
 use crate::{
     bounds_to_range,
     cuda::api::{cu_read_async, CUstreamCaptureStatus},
-    Buffer, CDatatype, ClearBuf, CopySlice, OnDropBuffer, Read, WriteBuf, CUDA,
+    Buffer, CDatatype, ClearBuf, CopySlice, Read, WriteBuf, CUDA,
 };
 
 use super::{
@@ -11,7 +11,7 @@ use super::{
     cu_clear,
 };
 
-impl<Mods: OnDropBuffer, T: Default + Clone> Read<T> for CUDA<Mods> {
+impl<Mods, T: Default + Clone> Read<T> for CUDA<Mods> {
     type Read<'a> = Vec<T>
     where
         T: 'a,
@@ -44,14 +44,14 @@ impl<Mods: OnDropBuffer, T: Default + Clone> Read<T> for CUDA<Mods> {
     }
 }
 
-impl<Mods: OnDropBuffer, T: CDatatype> ClearBuf<T> for CUDA<Mods> {
+impl<Mods, T: CDatatype> ClearBuf<T> for CUDA<Mods> {
     #[inline]
     fn clear(&self, buf: &mut Buffer<T, Self>) {
         cu_clear(self, buf).unwrap()
     }
 }
 
-impl<Mods: OnDropBuffer, T> CopySlice<T> for CUDA<Mods> {
+impl<Mods, T> CopySlice<T> for CUDA<Mods> {
     fn copy_slice_to<SR: RangeBounds<usize>, DR: RangeBounds<usize>>(
         &self,
         source: &Buffer<T, Self>,
@@ -87,7 +87,7 @@ impl<Mods: OnDropBuffer, T> CopySlice<T> for CUDA<Mods> {
     }
 }
 
-impl<Mods: OnDropBuffer, T> WriteBuf<T> for CUDA<Mods> {
+impl<Mods, T> WriteBuf<T> for CUDA<Mods> {
     #[inline]
     fn write(&self, buf: &mut Buffer<T, Self>, data: &[T]) {
         cu_write_async(buf.cu_ptr(), data, &self.mem_transfer_stream).unwrap();

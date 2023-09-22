@@ -14,8 +14,8 @@ use crate::{
         launch_kernel1d, AsCudaCvoidPtr, CUDAPtr, CUKernelCache, CudaSource,
     },
     flag::AllocFlag,
-    impl_buffer_hook_traits, impl_retriever, Alloc, Base, Buffer, CloneBuf, Device,
-    Module as CombModule, OnDropBuffer, OnNewBuffer, PtrConv, Setup, Shape,
+    impl_retriever, Alloc, Base, Buffer, CloneBuf, Device, Module as CombModule, PtrConv, Retrieve,
+    Setup, Shape,
 };
 
 use super::api::{cuMemcpy, cu_write_async};
@@ -41,7 +41,6 @@ pub struct CUDA<Mods = Base> {
 }
 
 impl_retriever!(CUDA);
-impl_buffer_hook_traits!(CUDA);
 
 impl<SimpleMods> CUDA<SimpleMods> {
     /// Returns an [CUDA] device at the specified device index.
@@ -127,7 +126,7 @@ impl<Mods> CUDA<Mods> {
     }
 }
 
-impl<Mods: OnDropBuffer> Device for CUDA<Mods> {
+impl<Mods> Device for CUDA<Mods> {
     type Data<T, S: Shape> = CUDAPtr<T>;
     type Error = i32;
 }
@@ -147,7 +146,7 @@ impl<Mods> Drop for CUDA<Mods> {
     }
 }
 
-impl<Mods: OnDropBuffer, T> Alloc<T> for CUDA<Mods> {
+impl<Mods, T> Alloc<T> for CUDA<Mods> {
     fn alloc<S: Shape>(&self, len: usize, flag: crate::flag::AllocFlag) -> Self::Data<T, S> {
         let ptr = cumalloc::<T>(len).unwrap();
         // TODO: use unified mem if available -> i can't test this
@@ -159,7 +158,7 @@ impl<Mods: OnDropBuffer, T> Alloc<T> for CUDA<Mods> {
         }
     }
 
-    fn alloc_from_slice<S: Shape>(&self, data: &[T]) -> Self::Data<T, S>
+    fn alloc_from_slice<S: Shape>(&self, data: &[T], alloc_flag: AllocFlag) -> Self::Data<T, S>
     where
         T: Clone,
     {
@@ -169,13 +168,13 @@ impl<Mods: OnDropBuffer, T> Alloc<T> for CUDA<Mods> {
         CUDAPtr {
             ptr,
             len: data.len(),
-            flag: AllocFlag::None,
+            flag: alloc_flag,
             p: PhantomData,
         }
     }
 }
 
-impl<Mods: OnDropBuffer> IsCuda for CUDA<Mods> {}
+impl<Mods> IsCuda for CUDA<Mods> {}
 
 #[cfg(feature = "fork")]
 impl<Mods> crate::ForkSetup for CUDA<Mods> {
@@ -185,7 +184,7 @@ impl<Mods> crate::ForkSetup for CUDA<Mods> {
     }
 }
 
-impl<Mods: OnDropBuffer> PtrConv for CUDA<Mods> {
+impl<Mods> PtrConv for CUDA<Mods> {
     #[inline]
     unsafe fn convert<T, IS: Shape, Conv, OS: Shape>(
         ptr: &Self::Data<T, IS>,
@@ -200,7 +199,7 @@ impl<Mods: OnDropBuffer> PtrConv for CUDA<Mods> {
     }
 }
 
-impl<'a, Mods: OnDropBuffer + OnNewBuffer<T, Self, ()>, T> CloneBuf<'a, T> for CUDA<Mods> {
+impl<'a, Mods: Retrieve<Self, T, ()>, T> CloneBuf<'a, T> for CUDA<Mods> {
     fn clone_buf(&'a self, buf: &Buffer<'a, T, CUDA<Mods>>) -> Buffer<'a, T, CUDA<Mods>> {
         let cloned = Buffer::new(self, buf.len());
         unsafe {

@@ -4,9 +4,8 @@ use core::{
 };
 
 use crate::{
-    cpu::CPUPtr, flag::AllocFlag, impl_buffer_hook_traits, impl_retriever, Alloc, Base, Buffer,
-    CloneBuf, Device, DevicelessAble, HasModules, MainMemory, Module, OnDropBuffer, OnNewBuffer,
-    PtrConv, Setup, Shape,
+    cpu::CPUPtr, flag::AllocFlag, impl_retriever, Alloc, Base, Buffer, CloneBuf, Device,
+    DevicelessAble, HasModules, MainMemory, Module, PtrConv, Retrieve, Setup, Shape,
 };
 
 pub trait IsCPU {}
@@ -32,11 +31,10 @@ pub struct CPU<Mods = Base> {
 }
 
 impl_retriever!(CPU);
-impl_buffer_hook_traits!(CPU);
 
 impl<Mods> IsCPU for CPU<Mods> {}
 
-impl<Mods: OnDropBuffer> Device for CPU<Mods> {
+impl<Mods> Device for CPU<Mods> {
     type Error = Infallible;
     type Data<T, S: Shape> = CPUPtr<T>;
 
@@ -48,7 +46,7 @@ impl<Mods: OnDropBuffer> Device for CPU<Mods> {
 
 impl<T, S: Shape> DevicelessAble<'_, T, S> for CPU<Base> {}
 
-impl<Mods: OnDropBuffer> MainMemory for CPU<Mods> {
+impl<Mods> MainMemory for CPU<Mods> {
     #[inline]
     fn as_ptr<T, S: Shape>(ptr: &Self::Data<T, S>) -> *const T {
         ptr.ptr
@@ -82,7 +80,7 @@ impl<SimpleMods> CPU<SimpleMods> {
     }
 }
 
-impl<T, Mods: OnDropBuffer> Alloc<T> for CPU<Mods> {
+impl<T, Mods> Alloc<T> for CPU<Mods> {
     fn alloc<S: Shape>(&self, mut len: usize, flag: AllocFlag) -> Self::Data<T, S> {
         assert!(len > 0, "invalid buffer len: 0");
 
@@ -93,7 +91,7 @@ impl<T, Mods: OnDropBuffer> Alloc<T> for CPU<Mods> {
         CPUPtr::new_initialized(len, flag)
     }
 
-    fn alloc_from_slice<S>(&self, data: &[T]) -> Self::Data<T, S>
+    fn alloc_from_slice<S>(&self, data: &[T], alloc_flag: AllocFlag) -> Self::Data<T, S>
     where
         S: Shape,
         T: Clone,
@@ -101,14 +99,14 @@ impl<T, Mods: OnDropBuffer> Alloc<T> for CPU<Mods> {
         assert!(!data.is_empty(), "invalid buffer len: 0");
         assert!(S::LEN <= data.len(), "invalid buffer len: {}", data.len());
 
-        let cpu_ptr = unsafe { CPUPtr::new(data.len(), AllocFlag::None) };
+        let cpu_ptr = unsafe { CPUPtr::new(data.len(), alloc_flag) };
         let slice = unsafe { std::slice::from_raw_parts_mut(cpu_ptr.ptr, data.len()) };
         slice.clone_from_slice(data);
 
         cpu_ptr
     }
 
-    fn alloc_from_vec<S: Shape>(&self, mut vec: Vec<T>) -> Self::Data<T, S>
+    fn alloc_from_vec<S: Shape>(&self, mut vec: Vec<T>, alloc_flag: AllocFlag) -> Self::Data<T, S>
     where
         T: Clone,
     {
@@ -118,7 +116,7 @@ impl<T, Mods: OnDropBuffer> Alloc<T> for CPU<Mods> {
         let len = vec.len();
         core::mem::forget(vec);
 
-        unsafe { CPUPtr::from_ptr(ptr, len, AllocFlag::None) }
+        unsafe { CPUPtr::from_ptr(ptr, len, alloc_flag) }
     }
 }
 
@@ -141,9 +139,7 @@ impl<Mods> crate::LazySetup for CPU<Mods> {}
 #[cfg(feature = "fork")]
 impl<Mods> crate::ForkSetup for CPU<Mods> {}
 
-impl<'a, Mods: OnDropBuffer + OnNewBuffer<T, Self, S>, T: Clone, S: Shape> CloneBuf<'a, T, S>
-    for CPU<Mods>
-{
+impl<'a, Mods: Retrieve<Self, T, S>, T: Clone, S: Shape> CloneBuf<'a, T, S> for CPU<Mods> {
     #[inline]
     fn clone_buf(&'a self, buf: &Buffer<'a, T, CPU<Mods>, S>) -> Buffer<'a, T, CPU<Mods>, S> {
         let mut cloned = Buffer::new(self, buf.len());
@@ -153,7 +149,7 @@ impl<'a, Mods: OnDropBuffer + OnNewBuffer<T, Self, S>, T: Clone, S: Shape> Clone
 }
 
 // impl for all devices
-impl<Mods: OnDropBuffer, OtherMods: OnDropBuffer> PtrConv<CPU<OtherMods>> for CPU<Mods> {
+impl<Mods, OtherMods> PtrConv<CPU<OtherMods>> for CPU<Mods> {
     #[inline]
     unsafe fn convert<T, IS: Shape, Conv, OS: Shape>(
         data: &CPUPtr<T>,

@@ -5,9 +5,7 @@ use core::{
     ptr::null_mut,
 };
 
-use crate::{
-    flag::AllocFlag, Alloc, Buffer, CloneBuf, CommonPtrs, Device, HasId, OnDropBuffer, PtrType,
-};
+use crate::{flag::AllocFlag, Alloc, Buffer, CloneBuf, CommonPtrs, Device, HasId, PtrType};
 
 #[derive(Debug, Default)]
 /// Makes it possible to use a single number in a [`Buffer`].
@@ -69,15 +67,17 @@ impl<T: Default> Alloc<T> for () {
     }
 
     #[inline]
-    fn alloc_from_slice<S: crate::Shape>(&self, data: &[T]) -> Self::Data<T, S>
+    fn alloc_from_slice<S: crate::Shape>(
+        &self,
+        data: &[T],
+        _alloc_flag: AllocFlag,
+    ) -> Self::Data<T, S>
     where
         T: Clone,
     {
         data[0].clone().into()
     }
 }
-
-impl OnDropBuffer for () {}
 
 impl<'a, T: Clone> CloneBuf<'a, T> for () {
     #[inline]

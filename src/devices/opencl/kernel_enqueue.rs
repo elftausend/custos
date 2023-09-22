@@ -1,4 +1,4 @@
-use crate::{number::Number, Buffer, OnDropBuffer, OpenCL, Shape};
+use crate::{number::Number, Buffer, OpenCL, Shape};
 use min_cl::api::{enqueue_nd_range_kernel, set_kernel_arg, OCLErrorKind};
 use std::{ffi::c_void, mem::size_of};
 
@@ -74,14 +74,14 @@ pub trait AsClCvoidPtr {
     }
 }
 
-impl<'a, Mods: OnDropBuffer, T, S: Shape> AsClCvoidPtr for &Buffer<'a, T, OpenCL<Mods>, S> {
+impl<'a, Mods, T, S: Shape> AsClCvoidPtr for &Buffer<'a, T, OpenCL<Mods>, S> {
     #[inline]
     fn as_cvoid_ptr(&self) -> *const c_void {
         self.data.ptr
     }
 }
 
-impl<'a, Mods: OnDropBuffer, T, S: Shape> AsClCvoidPtr for Buffer<'a, T, OpenCL<Mods>, S> {
+impl<'a, Mods, T, S: Shape> AsClCvoidPtr for Buffer<'a, T, OpenCL<Mods>, S> {
     #[inline]
     fn as_cvoid_ptr(&self) -> *const c_void {
         self.data.ptr

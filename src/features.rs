@@ -3,14 +3,14 @@ use core::any::Any;
 #[cfg(feature = "cached")]
 use core::cell::{Ref, RefMut};
 
-use crate::{Parents, Shape, CPU};
+use crate::{flag::AllocFlag, Parents, Shape, CPU};
 
 #[cfg(feature = "cached")]
 use crate::{Base, CachedModule};
 
-use super::{Alloc, Buffer, Device, OnDropBuffer};
+use super::{Alloc, Buffer, Device};
 
-pub trait Feature: OnDropBuffer {}
+pub trait Feature {}
 
 // is a cached module is placed before Autograd results a problem
 // -> the retrieved buffer is not added to the no grads pool of the autograd module
@@ -19,14 +19,14 @@ pub trait Feature: OnDropBuffer {}
 // how to fix this:
 // add retrieved buffer to no grads pool at the end of the chain (at device level (Retriever trait))
 // => "generator", "actor"
-pub trait Retrieve<D, T, S: Shape>: OnDropBuffer {
+pub trait Retrieve<D, T, S: Shape> {
     // "generator"
     #[track_caller]
     fn retrieve<const NUM_PARENTS: usize>(
         &self,
         device: &D,
-        len: usize,
         parents: impl Parents<NUM_PARENTS>,
+        alloc_fn: impl FnOnce(&D, AllocFlag) -> D::Data<T, S>,
     ) -> D::Data<T, S>
     where
         S: Shape,

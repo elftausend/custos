@@ -21,7 +21,7 @@ pub use cuda_device::*;
 pub use kernel_cache::*;
 pub use kernel_launch::*;
 
-use crate::{Buffer, CDatatype, OnDropBuffer};
+use crate::{Buffer, CDatatype};
 
 /// Another shorter type for Buffer<'a, T, CUDA, S>
 // pub type CUBuffer<'a, T> = Buffer<'a, T, impl IsCuda>;
@@ -51,7 +51,7 @@ pub fn chosen_cu_idx() -> usize {
 ///     Ok(())
 /// }
 /// ```
-pub fn cu_clear<T: CDatatype, Mods: OnDropBuffer>(
+pub fn cu_clear<T: CDatatype, Mods>(
     device: &CUDA<Mods>,
     buf: &mut Buffer<T, CUDA<Mods>>,
 ) -> crate::Result<()> {

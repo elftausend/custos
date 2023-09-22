@@ -7,8 +7,8 @@ pub use tape::*;
 use core::cell::{Ref, RefCell, RefMut};
 
 use crate::{
-    prelude::One, register_buf, unregister_buf, Alloc, Buffer, Device, HasId, Module, OnDropBuffer,
-    OnNewBuffer, Parents, PtrConv, Retrieve, Setup, Shape, TapeActions, WriteBuf,
+    flag::AllocFlag, prelude::One, register_buf, unregister_buf, Alloc, Buffer, Device, HasId,
+    Module, Parents, PtrConv, Retrieve, Setup, Shape, TapeActions, WriteBuf,
 };
 
 use super::{Cached, CachedModule};
@@ -49,43 +49,6 @@ impl<Mods> Autograd<Mods> {
     }
 }
 
-impl<T, D, S, Mods> OnNewBuffer<T, D, S> for Autograd<Mods>
-where
-    T: 'static,
-    D: Alloc<T> + PtrConv + 'static,
-    S: Shape,
-    Mods: OnNewBuffer<T, D, S>,
-{
-    #[inline]
-    fn on_new_buffer(&self, device: &D, new_buf: &Buffer<T, D, S>) {
-        self.register_no_grad_buf(new_buf);
-
-        // allocates gradient memory for the corresponding buffer id
-        // this prevents allocating with a non matching datatype
-        // -> although retrieving the grads should fail if type information does not match
-        // TODO: better solution?
-        self.tape
-            .borrow_mut()
-            .grads
-            .grads_pool
-            .add_buf_once::<T, D, S>(device, new_buf.id());
-
-        // pass down
-        self.modules.on_new_buffer(device, new_buf)
-    }
-}
-
-impl<Mods: OnDropBuffer> OnDropBuffer for Autograd<Mods> {
-    #[inline]
-    fn on_drop_buffer<T, D: Device, S: Shape>(&self, device: &D, buf: &Buffer<T, D, S>) {
-        unregister_buf(
-            &mut self.tape.borrow_mut().grads.no_grads_pool.cache,
-            buf.id(),
-        );
-        self.modules.on_drop_buffer(device, buf)
-    }
-}
-
 impl<Mods: Setup<NewDev>, NewDev> Setup<NewDev> for Autograd<Mods> {
     #[inline]
     fn setup(device: &mut NewDev) -> crate::Result<()> {
@@ -101,14 +64,14 @@ where
     fn retrieve<const NUM_PARENTS: usize>(
         &self,
         device: &D,
-        len: usize,
         parents: impl Parents<NUM_PARENTS>,
+        alloc_fn: impl FnOnce(&D, AllocFlag) -> D::Data<T, S>,
     ) -> <D>::Data<T, S>
     where
         D: Alloc<T>,
         S: crate::Shape,
     {
-        self.modules.retrieve(device, len, parents)
+        self.modules.retrieve(device, parents, alloc_fn)
     }
 
     #[inline]
@@ -118,7 +81,10 @@ where
     {
         self.register_no_grad_buf(retrieved_buf);
 
-        // allocates gradients
+        // allocates gradient memory for the corresponding buffer id
+        // this prevents allocating with a non matching datatype
+        // -> although retrieving the grads should fail if type information does not match
+        // TODO: better solution?
         self.tape
             .borrow_mut()
             .grads
@@ -258,6 +224,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore = "Unregistering was removed - OnDropBuffer"]
     fn test_buffer_creation_autograd_unregister() {
         let device = CPU::<Autograd<Base>>::new();
         let buf: Buffer<f32, _> = Buffer::<f32, _>::new(&device, 10);
