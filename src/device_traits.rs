@@ -75,6 +75,7 @@ pub trait Retriever<T, S>: Device {
     #[track_caller]
     fn retrieve_with_alloc_fn<const NUM_PARENTS: usize>(
         &self,
+        len: usize,
         parents: impl Parents<NUM_PARENTS>,
         alloc_fn: impl FnOnce(&Self, AllocFlag) -> Self::Data<T, S>,
     ) -> Buffer<T, Self, S>

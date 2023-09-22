@@ -99,12 +99,13 @@ macro_rules! impl_retriever {
             #[inline]
             fn retrieve_with_alloc_fn<const NUM_PARENTS: usize>(
                 &self,
+                len: usize,
                 parents: impl $crate::Parents<NUM_PARENTS>,
                 alloc_fn: impl FnOnce(&Self, AllocFlag) -> <$device as Device>::Data<T, S>
             ) -> Buffer<T, Self, S> {
                 let data = self
                     .modules
-                    .retrieve::<NUM_PARENTS>(self, parents, alloc_fn);
+                    .retrieve::<NUM_PARENTS>(self, len, parents, alloc_fn);
                 let buf = Buffer {
                     data,
                     device: Some(self),
@@ -119,7 +120,7 @@ macro_rules! impl_retriever {
                 len: usize,
                 parents: impl $crate::Parents<NUM_PARENTS>
             ) -> Buffer<T, Self, S> {
-                self.retrieve_with_alloc_fn(parents, |device, alloc_flag| Alloc::<T>::alloc::<S>(device, len, alloc_flag))
+                self.retrieve_with_alloc_fn(len, parents, |device, alloc_flag| Alloc::<T>::alloc::<S>(device, len, alloc_flag))
             }
         }
     };

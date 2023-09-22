@@ -58,6 +58,7 @@ where
     fn retrieve<const NUM_PARENTS: usize>(
         &self,
         device: &D,
+        len: usize,
         _parents: impl Parents<NUM_PARENTS>,
         alloc_fn: impl FnOnce(&D, AllocFlag) -> D::Data<T, S>,
     ) -> D::Data<T, S>

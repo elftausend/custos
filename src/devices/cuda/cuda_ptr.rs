@@ -24,6 +24,11 @@ impl<T> HasId for CUDAPtr<T> {
             len: self.len,
         }
     }
+    
+    #[inline]
+    unsafe fn set_id(&mut self, id: u64) {
+        self.ptr = id
+    }
 }
 
 impl<T> Default for CUDAPtr<T> {

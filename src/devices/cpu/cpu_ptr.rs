@@ -136,6 +136,11 @@ impl<T> HasId for CPUPtr<T> {
             len: self.len,
         }
     }
+
+    #[inline]
+    unsafe fn set_id(&mut self, id: u64) {
+        self.ptr = id as *mut u64 as *mut T
+    }
 }
 impl<T> Deref for CPUPtr<T> {
     type Target = [T];

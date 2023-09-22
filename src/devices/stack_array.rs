@@ -45,6 +45,12 @@ impl<T, S: Shape> HasId for StackArray<S, T> {
             len: self.len(),
         }
     }
+    
+    #[inline]
+    unsafe fn set_id(&mut self, _id: u64) {
+        unimplemented!()
+        // self.ptr = id
+    }
 }
 
 impl<S: Shape, T: Default + Copy> Default for StackArray<S, T> {

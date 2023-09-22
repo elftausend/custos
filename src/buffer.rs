@@ -72,21 +72,6 @@ impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
     }
 
     #[inline]
-    fn from_new_alloc(device: &'a D, data: D::Data<T, S>) -> Self
-    where
-        D:,
-    {
-        let buf = Buffer {
-            data,
-            device: Some(device),
-        };
-
-        // mind: on_new_buffer must be called for user buffers!
-        // device.on_new_buffer(device, &buf);
-        buf
-    }
-
-    #[inline]
     #[track_caller]
     pub fn empty_like(&self) -> Buffer<'a, T, D, S>
     where
@@ -101,6 +86,11 @@ impl<'a, T, D: Device, S: Shape> HasId for Buffer<'a, T, D, S> {
     fn id(&self) -> super::Id {
         self.data.id()
     }
+
+    #[inline]
+    unsafe fn set_id(&mut self, id: u64) {
+        self.data.set_id(id)
+    }
 }
 
 impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
@@ -112,7 +102,7 @@ impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
         T: Clone,
         D: Retriever<T, S> + Alloc<T>,
     {
-        device.retrieve_with_alloc_fn((), |device, alloc_flag| {
+        device.retrieve_with_alloc_fn(slice.len(),(), |device, alloc_flag| {
             device.alloc_from_slice(slice, alloc_flag)
         })
     }
@@ -126,7 +116,7 @@ impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
         T: Clone,
         D: Retriever<T, S> + Alloc<T>,
     {
-        device.retrieve_with_alloc_fn((), |device, alloc_flag| {
+        device.retrieve_with_alloc_fn(data.len(),(), |device, alloc_flag| {
             device.alloc_from_vec(data, alloc_flag)
         })
     }
@@ -140,7 +130,7 @@ impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
         T: Clone,
         D: Retriever<T, S> + Alloc<T>,
     {
-        device.retrieve_with_alloc_fn((), |device, alloc_flag| {
+        device.retrieve_with_alloc_fn(S::LEN, (), |device, alloc_flag| {
             device.alloc_from_array(array, alloc_flag)
         })
     }

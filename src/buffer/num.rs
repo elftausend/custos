@@ -42,6 +42,11 @@ impl<T> HasId for Num<T> {
     fn id(&self) -> crate::Id {
         todo!()
     }
+    
+    #[inline]
+    unsafe fn set_id(&mut self, id: u64) {
+        todo!()
+    }
 }
 
 impl<T> From<T> for Num<T> {

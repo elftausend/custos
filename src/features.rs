@@ -25,6 +25,7 @@ pub trait Retrieve<D, T, S: Shape> {
     fn retrieve<const NUM_PARENTS: usize>(
         &self,
         device: &D,
+        len: usize,
         parents: impl Parents<NUM_PARENTS>,
         alloc_fn: impl FnOnce(&D, AllocFlag) -> D::Data<T, S>,
     ) -> D::Data<T, S>

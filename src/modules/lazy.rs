@@ -112,6 +112,7 @@ impl<T: 'static, S: Shape, Mods: Retrieve<D, T, S>, D: PtrConv + 'static> Retrie
     fn retrieve<const NUM_PARENTS: usize>(
         &self,
         device: &D,
+        len: usize,
         parents: impl Parents<NUM_PARENTS>,
         alloc_fn: impl FnOnce(&D, AllocFlag) -> D::Data<T, S>,
     ) -> <D>::Data<T, S>
@@ -119,7 +120,7 @@ impl<T: 'static, S: Shape, Mods: Retrieve<D, T, S>, D: PtrConv + 'static> Retrie
         S: Shape,
         D: Alloc<T>,
     {
-        self.modules.retrieve(device, parents, alloc_fn)
+        self.modules.retrieve(device, len, parents, alloc_fn)
     }
 
     #[inline]
