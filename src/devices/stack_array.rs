@@ -51,6 +51,11 @@ impl<T, S: Shape> HasId for StackArray<S, T> {
         unimplemented!()
         // self.ptr = id
     }
+
+    #[inline]
+    fn id_mut(&mut self) -> *mut u64 {
+        self.as_ptr_mut() as *mut u64
+    }
 }
 
 impl<S: Shape, T: Default + Copy> Default for StackArray<S, T> {

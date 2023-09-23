@@ -70,6 +70,16 @@ pub trait Device: Sized {
     }
 }
 
+pub trait BufAsLcd: Device {
+    type LCD<T>: ?Sized;
+
+    fn lcd<'a, 'b, T, S: Shape>(&'a self, buf: &'b Buffer<'a, T, Self, S>) -> &'b Self::LCD<T>;
+    fn lcd_mut<'a, 'b, T, S: Shape>(
+        &'a self,
+        buf: &'b mut Buffer<'a, T, Self, S>,
+    ) -> &'b mut Self::LCD<T>;
+}
+
 /*
 #[macro_export]
 macro_rules! impl_buffer_hook_traits {

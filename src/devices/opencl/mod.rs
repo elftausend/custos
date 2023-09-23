@@ -78,6 +78,11 @@ impl<T> HasId for CLPtr<T> {
     unsafe fn set_id(&mut self, id: u64) {
         self.ptr = id as *mut u64 as *mut _
     }
+
+    #[inline]
+    fn id_mut(&mut self) -> *mut u64 {
+        self.ptr as *mut u64
+    }
 }
 
 impl<T> ShallowCopy for CLPtr<T> {

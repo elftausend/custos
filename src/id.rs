@@ -3,6 +3,7 @@ use core::ops::Deref;
 pub trait HasId {
     fn id(&self) -> Id;
     unsafe fn set_id(&mut self, id: u64);
+    fn id_mut(&mut self) -> *mut u64; 
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -31,5 +32,10 @@ impl HasId for Id {
     #[inline]
     unsafe fn set_id(&mut self, id: u64) {
         self.id = id;
+    }
+
+    #[inline]
+    fn id_mut(&mut self) -> *mut u64 {
+        &mut self.id
     }
 }

@@ -2,8 +2,8 @@ mod lazy_graph;
 mod ty;
 
 use crate::{
-    flag::AllocFlag, AddOperation, Device, HasId, LazySetup, Module, PtrType, Retrieve, Setup,
-    Shape, PtrConv, MainMemory,
+    flag::AllocFlag, AddOperation, Device, HasId, LazySetup, MainMemory, Module, PtrConv, PtrType,
+    Retrieve, Setup, Shape,
 };
 use core::cell::Cell;
 use lazy_graph::LazyGraph;
@@ -28,8 +28,6 @@ impl<Mods: Module<D>, D: LazySetup> Module<D> for TrueLazy<Mods> {
 }
 
 impl<Mods, D> Setup<D> for TrueLazy<Mods> {}
-
-// impl_buffer_hook_traits!(TrueLazy);
 
 impl<Mods, T, D, S: Shape> Retrieve<D, T, S> for TrueLazy<Mods>
 where
@@ -64,7 +62,7 @@ impl<Mods, D: Device + PtrConv> AddOperation<D> for TrueLazy<Mods> {
         out: &mut crate::Buffer<T, D, S>,
         operation: impl Fn(&mut crate::Buffer<T, D, S>),
     ) {
-        self.graph.add_operation(operation)    
+        // self.graph.add_operation(operation)
     }
 
     fn call_lazily(&self) {}

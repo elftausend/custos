@@ -5,7 +5,9 @@ use core::{
     ptr::null_mut,
 };
 
-use crate::{flag::AllocFlag, Alloc, Buffer, CloneBuf, CommonPtrs, Device, HasId, PtrType};
+use crate::{
+    flag::AllocFlag, Alloc, BufAsLcd, Buffer, CloneBuf, CommonPtrs, Device, HasId, PtrType,
+};
 
 #[derive(Debug, Default)]
 /// Makes it possible to use a single number in a [`Buffer`].
@@ -52,6 +54,10 @@ impl<T> HasId for Num<T> {
     unsafe fn set_id(&mut self, _id: u64) {
         todo!()
     }
+
+    fn id_mut(&mut self) -> *mut u64 {
+        todo!()
+    }
 }
 
 impl<T> From<T> for Num<T> {
@@ -67,6 +73,20 @@ impl Device for () {
 
     fn new() -> Result<Self, Infallible> {
         Ok(())
+    }
+}
+
+impl BufAsLcd for () {
+    type LCD<T> = Num<T>;
+
+    #[inline]
+    fn lcd<T, S: crate::Shape>(&self, buf: &Buffer<T, Self, S>) -> &Self::LCD<T> {
+        todo!()
+    }
+
+    #[inline]
+    fn lcd_mut<T, S: crate::Shape>(&self, buf: &mut Buffer<T, Self, S>) -> &mut Self::LCD<T> {
+        todo!()
     }
 }
 

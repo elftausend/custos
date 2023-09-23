@@ -91,6 +91,11 @@ impl<'a, T, D: Device, S: Shape> HasId for Buffer<'a, T, D, S> {
     unsafe fn set_id(&mut self, id: u64) {
         self.data.set_id(id)
     }
+
+    #[inline]
+    fn id_mut(&mut self) -> *mut u64 {
+        self.data.id_mut()
+    }
 }
 
 impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {

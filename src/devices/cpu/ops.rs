@@ -51,13 +51,12 @@ where
 }
 
 impl<D: Device, Mods: AddOperation<D>> AddOperation<D> for CPU<Mods> {
-    #[inline] 
+    #[inline]
     fn add_operation2<T, S: Shape>(
         &self,
         out: &mut crate::Buffer<T, D, S>,
         operation: impl Fn(&mut crate::Buffer<T, D, S>),
     ) {
-
         self.modules.add_operation2(out, operation)
     }
 
@@ -199,7 +198,7 @@ mod tests {
 
         assert_eq!(out.read(), [0; 7]);
 
-        device.call_lazily();
+        // device.call_lazily();
 
         assert_eq!(out.read(), [2, 4, 6, 8, 10, 12, 14]);
     }

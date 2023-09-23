@@ -1,7 +1,7 @@
 use core::convert::Infallible;
 
 use crate::{
-    flag::AllocFlag, impl_retriever, shape::Shape, Alloc, Base, Buffer, CloneBuf, Device,
+    flag::AllocFlag, impl_retriever, shape::Shape, Alloc, Base, BufAsLcd, Buffer, CloneBuf, Device,
     DevicelessAble, MainMemory, Read, StackArray, WriteBuf,
 };
 
@@ -27,6 +27,23 @@ impl<Mods> Device for Stack<Mods> {
 
     fn new() -> Result<Self, Infallible> {
         todo!()
+    }
+}
+
+impl<Mods> BufAsLcd for Stack<Mods> {
+    type LCD<T> = [T];
+
+    #[inline]
+    fn lcd<'a, 'b, T, S: Shape>(&'a self, buf: &'b Buffer<'a, T, Self, S>) -> &'b Self::LCD<T> {
+        &buf.data
+    }
+
+    #[inline]
+    fn lcd_mut<'a, 'b, T, S: Shape>(
+        &'a self,
+        buf: &'b mut Buffer<'a, T, Self, S>,
+    ) -> &'b mut Self::LCD<T> {
+        &mut buf.data
     }
 }
 

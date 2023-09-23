@@ -4,7 +4,7 @@ use core::{
 };
 
 use crate::{
-    cpu::CPUPtr, flag::AllocFlag, impl_retriever, Alloc, Base, Buffer, CloneBuf, Device,
+    cpu::CPUPtr, flag::AllocFlag, impl_retriever, Alloc, Base, BufAsLcd, Buffer, CloneBuf, Device,
     DevicelessAble, HasModules, MainMemory, Module, PtrConv, Retrieve, Setup, Shape,
 };
 
@@ -41,6 +41,23 @@ impl<Mods> Device for CPU<Mods> {
     fn new() -> Result<Self, Self::Error> {
         todo!()
         // Ok(CPU::<Base>::new())
+    }
+}
+
+impl<Mods> BufAsLcd for CPU<Mods> {
+    type LCD<T> = [T];
+
+    #[inline]
+    fn lcd<'a, 'b, T, S: Shape>(&'a self, buf: &'b Buffer<'a, T, Self, S>) -> &'b Self::LCD<T> {
+        buf.data.as_slice()
+    }
+
+    #[inline]
+    fn lcd_mut<'a, 'b, T, S: Shape>(
+        &'a self,
+        buf: &'b mut Buffer<'a, T, Self, S>,
+    ) -> &'b mut Self::LCD<T> {
+        buf.data.as_mut_slice()
     }
 }
 

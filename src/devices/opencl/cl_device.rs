@@ -7,8 +7,8 @@ use min_cl::api::{
 use super::{enqueue_kernel, AsClCvoidPtr, CLKernelCache, CLPtr};
 use crate::flag::AllocFlag;
 use crate::{
-    impl_retriever, Alloc, Base, Buffer, Cached, CachedCPU, CloneBuf, Device, Error, GpuOrCpuInfo,
-    HashLocation, Module, Setup, UseGpuOrCpu, CPU,
+    impl_retriever, Alloc, Base, BufAsLcd, Buffer, Cached, CachedCPU, CloneBuf, Device, Error,
+    GpuOrCpuInfo, HashLocation, Module, Setup, UseGpuOrCpu, CPU,
 };
 use crate::{PtrConv, Shape};
 
@@ -206,6 +206,23 @@ impl<Mods> Device for OpenCL<Mods> {
     fn new() -> Result<Self, Self::Error> {
         todo!()
         // OpenCL::<Base>::new(chosen_cl_idx())
+    }
+}
+
+impl<Mods> BufAsLcd for OpenCL<Mods> {
+    type LCD<T> = CLPtr<T>;
+
+    #[inline]
+    fn lcd<'a, 'b, T, S: Shape>(&'a self, buf: &'b Buffer<'a, T, Self, S>) -> &'b Self::LCD<T> {
+        &buf.data
+    }
+
+    #[inline]
+    fn lcd_mut<'a, 'b, T, S: Shape>(
+        &'a self,
+        buf: &'b mut Buffer<'a, T, Self, S>,
+    ) -> &'b mut Self::LCD<T> {
+        &mut buf.data
     }
 }
 

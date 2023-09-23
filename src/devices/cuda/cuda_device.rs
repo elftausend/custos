@@ -14,8 +14,8 @@ use crate::{
         launch_kernel1d, AsCudaCvoidPtr, CUDAPtr, CUKernelCache, CudaSource,
     },
     flag::AllocFlag,
-    impl_retriever, Alloc, Base, Buffer, CloneBuf, Device, Module as CombModule, PtrConv, Retrieve,
-    Setup, Shape,
+    impl_retriever, Alloc, Base, BufAsLcd, Buffer, CloneBuf, Device, Module as CombModule, PtrConv,
+    Retrieve, Setup, Shape,
 };
 
 use super::api::{cuMemcpy, cu_write_async};
@@ -129,6 +129,23 @@ impl<Mods> CUDA<Mods> {
 impl<Mods> Device for CUDA<Mods> {
     type Data<T, S: Shape> = CUDAPtr<T>;
     type Error = i32;
+}
+
+impl<Mods> BufAsLcd for CUDA<Mods> {
+    type LCD<T> = CUDAPtr<T>;
+
+    #[inline]
+    fn lcd<'a, 'b, T, S: Shape>(&'a self, buf: &'b Buffer<'a, T, Self, S>) -> &'b Self::LCD<T> {
+        &buf.data
+    }
+
+    #[inline]
+    fn lcd_mut<'a, 'b, T, S: Shape>(
+        &'a self,
+        buf: &'b mut Buffer<'a, T, Self, S>,
+    ) -> &'b mut Self::LCD<T> {
+        &mut buf.data
+    }
 }
 
 impl<Mods> Drop for CUDA<Mods> {
