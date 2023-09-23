@@ -1,9 +1,16 @@
-use core::cell::Cell;
+mod lazy_graph;
+mod ty;
 
-use crate::{flag::AllocFlag, Device, HasId, LazySetup, Module, PtrType, Retrieve, Setup, Shape};
+use crate::{
+    flag::AllocFlag, AddOperation, Device, HasId, LazySetup, Module, PtrType, Retrieve, Setup,
+    Shape, PtrConv, MainMemory,
+};
+use core::cell::Cell;
+use lazy_graph::LazyGraph;
 
 pub struct TrueLazy<Mods> {
     modules: Mods,
+    graph: LazyGraph,
     id: Cell<u64>,
 }
 
@@ -14,6 +21,7 @@ impl<Mods: Module<D>, D: LazySetup> Module<D> for TrueLazy<Mods> {
     fn new() -> Self::Module {
         TrueLazy {
             modules: Mods::new(),
+            graph: LazyGraph::default(),
             id: Cell::default(),
         }
     }
@@ -47,6 +55,31 @@ where
         }
         self.id.set(id + 1);
         data
+    }
+}
+
+impl<Mods, D: Device + PtrConv> AddOperation<D> for TrueLazy<Mods> {
+    fn add_operation2<T, S: Shape>(
+        &self,
+        out: &mut crate::Buffer<T, D, S>,
+        operation: impl Fn(&mut crate::Buffer<T, D, S>),
+    ) {
+        self.graph.add_operation(operation)    
+    }
+
+    fn call_lazily(&self) {}
+}
+
+#[cfg(feature = "autograd")]
+impl<Mods: crate::TapeActions> crate::TapeActions for TrueLazy<Mods> {
+    #[inline]
+    fn tape(&self) -> Option<core::cell::Ref<super::Tape>> {
+        self.modules.tape()
+    }
+
+    #[inline]
+    fn tape_mut(&self) -> Option<core::cell::RefMut<super::Tape>> {
+        self.modules.tape_mut()
     }
 }
 

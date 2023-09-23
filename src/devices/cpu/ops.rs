@@ -14,7 +14,7 @@ use crate::TapeActions;
 
 impl<Mods, T, S, D> crate::ApplyFunctionLazyTest<T, S, D> for CPU<Mods>
 where
-    Mods: crate::Retrieve<Self, T, S> + MayTapeActions + AddOperation + 'static,
+    Mods: crate::Retrieve<Self, T, S> + MayTapeActions + AddOperation<Self> + 'static,
     T: Copy + Default + crate::ToVal + 'static,
     S: Shape,
     D: MainMemory + Alloc<T> + 'static,
@@ -38,8 +38,8 @@ where
         });
 
         unsafe {
-            self.add_operation(&mut out, move |out| {
-                let out = out.downcast_mut::<Buffer<T, D, S>>().unwrap();
+            self.add_operation2(&mut out, move |out| {
+                // let out = out.downcast_mut::<Buffer<T, D, S>>().unwrap();
 
                 for (x, out) in buf.iter().zip(out.iter_mut()) {
                     *out = f((*x).to_val()).eval();
@@ -50,19 +50,15 @@ where
     }
 }
 
-impl<Mods: AddOperation> AddOperation for CPU<Mods> {
-    #[inline]
-    unsafe fn add_operation<T: 'static, D: Device + 'static, S: Shape>(
+impl<D: Device, Mods: AddOperation<D>> AddOperation<D> for CPU<Mods> {
+    #[inline] 
+    fn add_operation2<T, S: Shape>(
         &self,
-        out: &mut Buffer<T, D, S>,
-        operation: impl Fn(&mut dyn Any),
+        out: &mut crate::Buffer<T, D, S>,
+        operation: impl Fn(&mut crate::Buffer<T, D, S>),
     ) {
-        self.modules.add_operation(out, operation)
-    }
 
-    #[inline]
-    fn add_operation2(&self, operation: impl Operation) {
-        self.modules.add_operation2(operation)
+        self.modules.add_operation2(out, operation)
     }
 
     #[inline]
@@ -189,9 +185,9 @@ mod tests {
     #[cfg(feature = "lazy")]
     #[ignore]
     fn test_lazy_cpu_operation() {
-        use crate::{AddOperation, ApplyFunctionLazyTest, Combiner, Device, Lazy};
+        use crate::{AddOperation, ApplyFunctionLazyTest, Combiner, Device, Lazy, TrueLazy};
 
-        let device = CPU::<Lazy<Base>>::new();
+        let device = CPU::<TrueLazy<Base>>::new();
 
         let buf = device.buffer([1, 2, 3, 4, 5, 6, 7]);
 
