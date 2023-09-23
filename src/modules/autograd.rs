@@ -7,8 +7,8 @@ pub use tape::*;
 use core::cell::{Ref, RefCell, RefMut};
 
 use crate::{
-    flag::AllocFlag, prelude::One, register_buf, unregister_buf, Alloc, Buffer, Device, HasId,
-    Module, Parents, PtrConv, Retrieve, Setup, Shape, TapeActions, WriteBuf,
+    flag::AllocFlag, prelude::One, register_buf, Alloc, Buffer, Device, HasId, Module, Parents,
+    PtrConv, Retrieve, Setup, Shape, TapeActions, WriteBuf,
 };
 
 use super::{Cached, CachedModule};

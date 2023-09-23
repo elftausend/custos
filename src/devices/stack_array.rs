@@ -45,7 +45,7 @@ impl<T, S: Shape> HasId for StackArray<S, T> {
             len: self.len(),
         }
     }
-    
+
     #[inline]
     unsafe fn set_id(&mut self, _id: u64) {
         unimplemented!()
@@ -125,6 +125,11 @@ impl<S: Shape, T> PtrType for StackArray<S, T> {
     #[inline]
     fn flag(&self) -> crate::flag::AllocFlag {
         crate::flag::AllocFlag::None
+    }
+
+    #[inline]
+    unsafe fn set_size(&mut self, size: usize) {
+        unimplemented!("Changing size does not make size.")
     }
 }
 

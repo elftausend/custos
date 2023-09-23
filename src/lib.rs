@@ -149,6 +149,7 @@ pub fn location() -> &'static core::panic::Location<'static> {
 pub trait PtrType {
     /// Returns the element count.
     fn size(&self) -> usize;
+    unsafe fn set_size(&mut self, size: usize);
     /// Returns the [`AllocFlag`].
     fn flag(&self) -> AllocFlag;
 }

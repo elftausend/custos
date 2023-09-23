@@ -24,7 +24,7 @@ impl<T> HasId for CUDAPtr<T> {
             len: self.len,
         }
     }
-    
+
     #[inline]
     unsafe fn set_id(&mut self, id: u64) {
         self.ptr = id
@@ -74,6 +74,11 @@ impl<T> PtrType for CUDAPtr<T> {
     #[inline]
     fn size(&self) -> usize {
         self.len
+    }
+
+    #[inline]
+    unsafe fn set_size(&mut self, size: usize) {
+        self.len = size
     }
 
     #[inline]

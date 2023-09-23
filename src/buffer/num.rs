@@ -21,6 +21,11 @@ impl<T> PtrType for Num<T> {
     }
 
     #[inline]
+    unsafe fn set_size(&mut self, _size: usize) {
+        unimplemented!()
+    }
+
+    #[inline]
     fn flag(&self) -> crate::flag::AllocFlag {
         crate::flag::AllocFlag::Num
     }
@@ -42,9 +47,9 @@ impl<T> HasId for Num<T> {
     fn id(&self) -> crate::Id {
         todo!()
     }
-    
+
     #[inline]
-    unsafe fn set_id(&mut self, id: u64) {
+    unsafe fn set_id(&mut self, _id: u64) {
         todo!()
     }
 }

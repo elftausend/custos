@@ -201,6 +201,11 @@ impl<T> PtrType for CPUPtr<T> {
     }
 
     #[inline]
+    unsafe fn set_size(&mut self, size: usize) {
+        self.len = size
+    }
+
+    #[inline]
     fn flag(&self) -> AllocFlag {
         self.flag
     }

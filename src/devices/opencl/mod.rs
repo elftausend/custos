@@ -102,6 +102,11 @@ impl<T> PtrType for CLPtr<T> {
     fn flag(&self) -> AllocFlag {
         self.flag
     }
+
+    #[inline]
+    unsafe fn set_size(&mut self, size: usize) {
+        self.len = size
+    }
 }
 
 impl<T> Drop for CLPtr<T> {
