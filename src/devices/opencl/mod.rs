@@ -60,7 +60,7 @@ impl<T> Default for CLPtr<T> {
             ptr: null_mut(),
             host_ptr: null_mut(),
             len: 0,
-            flag: AllocFlag::default(),
+            flag: AllocFlag::Dangling,
         }
     }
 }
@@ -80,8 +80,9 @@ impl<T> HasId for CLPtr<T> {
     }
 
     #[inline]
-    fn id_mut(&mut self) -> *mut u64 {
-        self.ptr as *mut u64
+    fn id_mut(&mut self) -> &mut *mut u64 {
+        todo!()
+        // &mut (self.ptr as *mut u64)
     }
 }
 
@@ -111,6 +112,11 @@ impl<T> PtrType for CLPtr<T> {
     #[inline]
     unsafe fn set_size(&mut self, size: usize) {
         self.len = size
+    }
+
+    #[inline]
+    unsafe fn set_flag(&mut self, flag: AllocFlag) {
+        self.flag = flag;
     }
 }
 

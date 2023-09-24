@@ -93,7 +93,7 @@ impl<'a, T, D: Device, S: Shape> HasId for Buffer<'a, T, D, S> {
     }
 
     #[inline]
-    fn id_mut(&mut self) -> *mut u64 {
+    fn id_mut(&mut self) -> &mut *mut u64 {
         self.data.id_mut()
     }
 }

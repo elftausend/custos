@@ -143,8 +143,8 @@ impl<T> HasId for CPUPtr<T> {
     }
 
     #[inline]
-    fn id_mut(&mut self) -> *mut u64 {
-        self.ptr as *mut u64
+    fn id_mut(&mut self) -> &mut *mut u64 {
+        unsafe { core::mem::transmute(&mut self.ptr) }
     }
 }
 impl<T> Deref for CPUPtr<T> {
@@ -180,7 +180,6 @@ impl<T> Drop for CPUPtr<T> {
         if !matches!(self.flag, AllocFlag::None | AllocFlag::BorrowedCache) {
             return;
         }
-
         if self.ptr.is_null() {
             return;
         }
@@ -213,6 +212,11 @@ impl<T> PtrType for CPUPtr<T> {
     #[inline]
     fn flag(&self) -> AllocFlag {
         self.flag
+    }
+
+    #[inline]
+    unsafe fn set_flag(&mut self, flag: AllocFlag) {
+        self.flag = flag;
     }
 }
 

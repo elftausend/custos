@@ -1,6 +1,6 @@
 use core::{marker::PhantomData, mem::transmute};
 
-use crate::{BufAsLcd, Buffer, PtrConv, Shape, CPU, Device};
+use crate::{BufAsLcd, Buffer, Device, PtrConv, Shape, CPU};
 
 use super::ty::{Graphable, Type};
 
@@ -33,16 +33,18 @@ impl LazyGraph {
         for (ty, operation) in self.operations.iter_mut() {
             match ty {
                 Type::F32 => {
-                    let operation =
-                        unsafe { transmute::<_, &mut *mut dyn Fn(&mut D::Data<f32, ()>)>(operation) };
+                    let operation = unsafe {
+                        transmute::<_, &mut *mut dyn Fn(&mut D::Data<f32, ()>)>(operation)
+                    };
                     // let mut out = vec![0f32; 100];
                     // unsafe {
                     //     (**operation)(&mut out);
                     // }
                 }
                 Type::I32 => {
-                    let operation =
-                        unsafe { transmute::<_, &mut *mut dyn Fn(&mut D::Data<i32, ()>)>(operation) };
+                    let operation = unsafe {
+                        transmute::<_, &mut *mut dyn Fn(&mut D::Data<i32, ()>)>(operation)
+                    };
 
                     // let mut out = vec![0i32; 100];
                     // unsafe {

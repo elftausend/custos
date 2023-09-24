@@ -53,8 +53,9 @@ impl<T, S: Shape> HasId for StackArray<S, T> {
     }
 
     #[inline]
-    fn id_mut(&mut self) -> *mut u64 {
-        self.as_ptr_mut() as *mut u64
+    fn id_mut(&mut self) -> &mut *mut u64 {
+        todo!()
+        // &mut (self.as_ptr_mut() as *mut u64)
     }
 }
 
@@ -133,8 +134,13 @@ impl<S: Shape, T> PtrType for StackArray<S, T> {
     }
 
     #[inline]
-    unsafe fn set_size(&mut self, size: usize) {
+    unsafe fn set_size(&mut self, _size: usize) {
         unimplemented!("Changing size does not make size.")
+    }
+
+    #[inline]
+    unsafe fn set_flag(&mut self, _flag: crate::AllocFlag) {
+        unimplemented!()
     }
 }
 

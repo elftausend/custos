@@ -152,6 +152,7 @@ pub trait PtrType {
     unsafe fn set_size(&mut self, size: usize);
     /// Returns the [`AllocFlag`].
     fn flag(&self) -> AllocFlag;
+    unsafe fn set_flag(&mut self, flag: AllocFlag);
 }
 
 /// Used to shallow-copy a pointer. Use is discouraged.

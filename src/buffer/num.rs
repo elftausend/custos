@@ -31,6 +31,11 @@ impl<T> PtrType for Num<T> {
     fn flag(&self) -> crate::flag::AllocFlag {
         crate::flag::AllocFlag::Num
     }
+
+    #[inline]
+    unsafe fn set_flag(&mut self, _flag: AllocFlag) {
+        unimplemented!()
+    }
 }
 
 impl<T> CommonPtrs<T> for Num<T> {
@@ -55,7 +60,7 @@ impl<T> HasId for Num<T> {
         todo!()
     }
 
-    fn id_mut(&mut self) -> *mut u64 {
+    fn id_mut(&mut self) -> &mut *mut u64 {
         todo!()
     }
 }

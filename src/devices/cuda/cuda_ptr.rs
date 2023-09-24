@@ -30,8 +30,10 @@ impl<T> HasId for CUDAPtr<T> {
         self.ptr = id
     }
 
-    fn id_mut(&mut self) -> *mut u64 {
-        &mut self.ptr
+    fn id_mut(&mut self) -> &mut *mut u64 {
+        todo!()
+        // unsafe { core::mem::transmute(&mut self.ptr) }
+        // &mut (self.ptr as *mut u64)
     }
 }
 
@@ -41,7 +43,7 @@ impl<T> Default for CUDAPtr<T> {
         Self {
             ptr: 0,
             len: 0,
-            flag: AllocFlag::default(),
+            flag: AllocFlag::Dangling,
             p: PhantomData,
         }
     }
@@ -88,6 +90,11 @@ impl<T> PtrType for CUDAPtr<T> {
     #[inline]
     fn flag(&self) -> AllocFlag {
         self.flag
+    }
+
+    #[inline]
+    unsafe fn set_flag(&mut self, flag: AllocFlag) {
+        self.flag = flag;
     }
 }
 
