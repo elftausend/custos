@@ -1,5 +1,3 @@
-use core::any::Any;
-
 #[cfg(feature = "cached")]
 use core::cell::{Ref, RefMut};
 
@@ -96,7 +94,7 @@ pub trait TapeActions {
 }
 
 pub trait AddOperation<T, D: Device> {
-    unsafe fn add_operation<S: Shape>(
+    fn add_operation<S: Shape>(
         &self,
         out: &mut Buffer<T, D, S>,
         operation: impl Fn(&mut Buffer<T, D, S>),

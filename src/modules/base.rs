@@ -17,7 +17,7 @@ impl<D> Module<D> for Base {
 
 impl<T, D: Device> AddOperation<T, D> for Base {
     #[inline]
-    unsafe fn add_operation<S: Shape>(
+    fn add_operation<S: Shape>(
         &self,
         out: &mut Buffer<T, D, S>,
         operation: impl Fn(&mut Buffer<T, D, S>),

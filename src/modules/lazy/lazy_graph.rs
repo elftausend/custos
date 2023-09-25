@@ -1,6 +1,6 @@
 use core::{mem::transmute, any::Any, hash::BuildHasherDefault};
 use std::collections::HashMap;
-use crate::{Device, PtrConv, Shape, Buffer, Id, UniqueId, NoHasher, Alloc, OnNewBuffer};
+use crate::{Device, PtrConv, Shape, Buffer, Id, UniqueId, NoHasher};
 use super::ty::{Graphable, Type};
 
 #[derive(Debug, Default)]

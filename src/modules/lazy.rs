@@ -56,7 +56,7 @@ impl<Mods: Module<D>, D: LazySetup> Module<D> for Lazy<Mods> {
 
 impl<T: Graphable, D: Device + PtrConv, Mods> AddOperation<T, D> for Lazy<Mods> {
     #[inline]
-    unsafe fn add_operation<S: Shape>(
+    fn add_operation<S: Shape>(
         &self,
         out: &mut Buffer<T, D, S>,
         operation: impl Fn(&mut Buffer<T, D, S>),

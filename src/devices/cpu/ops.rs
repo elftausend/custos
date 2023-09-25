@@ -22,7 +22,7 @@ where
     fn apply_fn<F>(
         &self,
         buf: &Buffer<T, D, S>,
-        f: impl Fn(crate::Resolve<T>) -> F + Copy, // without Copy -> UB haha
+        f: impl Fn(crate::Resolve<T>) -> F,
     ) -> Buffer<T, Self, S>
     where
         F: crate::Eval<T> + crate::MayToCLSource,
@@ -36,20 +36,18 @@ where
             let (lhs, lhs_grad, out_grad) = grads.get_double::<T, S, S, D>(ids);
         });
 
-        unsafe {
-            self.add_operation(&mut out, move |out| {
-                for (x, out) in buf.iter().zip(out.iter_mut()) {
-                    *out = f((*x).to_val()).eval();
-                }
-            });
-        }
+        self.add_operation(&mut out, move |out| {
+            for (x, out) in buf.iter().zip(out.iter_mut()) {
+                *out = f((*x).to_val()).eval();
+            }
+        });
         out
     }
 }
 
 impl<T, D: Device, Mods: AddOperation<T, D>> AddOperation<T, D> for CPU<Mods> {
     #[inline]
-    unsafe fn add_operation<S: Shape>(
+    fn add_operation<S: Shape>(
         &self,
         out: &mut Buffer<T, D, S>,
         operation: impl Fn(&mut Buffer<T, D, S>),
