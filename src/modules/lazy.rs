@@ -1,9 +1,13 @@
+mod lazy_graph;
+mod ty;
+pub use ty::*;
+
 use core::{any::Any, cell::RefCell, fmt::Debug, hash::BuildHasherDefault};
 use std::collections::HashMap;
 
 use crate::{
     AddOperation, Alloc, Buffer, Device, HasId, Id, Module, NoHasher, OnDropBuffer, OnNewBuffer,
-    Operation, Parents, PtrConv, Retrieve, Run, Setup, Shape, UniqueId,
+    Parents, PtrConv, Retrieve, Run, Setup, Shape, UniqueId,
 };
 
 use super::register_buf;
@@ -46,9 +50,9 @@ impl<Mods: Module<D>, D: LazySetup> Module<D> for Lazy<Mods> {
     }
 }
 
-impl<Mods> AddOperation for Lazy<Mods> {
+impl<T: Graphable, D: Device, Mods> AddOperation<T, D> for Lazy<Mods> {
     #[inline]
-    unsafe fn add_operation<T: 'static, D: Device + 'static, S: Shape>(
+    unsafe fn add_operation<S: Shape>(
         &self,
         out: &mut Buffer<T, D, S>,
         operation: impl Fn(&mut Buffer<T, D, S>),

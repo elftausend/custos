@@ -95,12 +95,8 @@ pub trait TapeActions {
     }
 }
 
-pub trait Operation {
-    fn forward(&mut self);
-}
-
-pub trait AddOperation {
-    unsafe fn add_operation<T: 'static, D: Device + 'static, S: Shape>(
+pub trait AddOperation<T, D: Device> {
+    unsafe fn add_operation<S: Shape>(
         &self,
         out: &mut Buffer<T, D, S>,
         operation: impl Fn(&mut Buffer<T, D, S>),

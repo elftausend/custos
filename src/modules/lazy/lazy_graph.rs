@@ -1,6 +1,6 @@
-use core::{marker::PhantomData, mem::transmute};
+use core::mem::transmute;
 
-use crate::{BufAsLcd, Buffer, Device, PtrConv, Shape, CPU};
+use crate::{Device, PtrConv, Shape};
 
 use super::ty::{Graphable, Type};
 
