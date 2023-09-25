@@ -1,7 +1,5 @@
 use core::mem::transmute;
-
-use crate::{Device, PtrConv, Shape};
-
+use crate::{Device, PtrConv, Shape, Buffer};
 use super::ty::{Graphable, Type};
 
 #[derive(Debug, Default)]
@@ -18,7 +16,7 @@ impl Drop for LazyGraph {
 }
 
 impl LazyGraph {
-    pub fn add_operation<T, D, S>(&mut self, operation: impl Fn(&mut D::Data<T, S>))
+    pub fn add_operation<T, D, S>(&mut self, operation: impl Fn(&mut Buffer<T, D, S>))
     where
         T: Graphable,
         D: PtrConv,
@@ -34,7 +32,7 @@ impl LazyGraph {
             match ty {
                 Type::F32 => {
                     let operation = unsafe {
-                        transmute::<_, &mut *mut dyn Fn(&mut D::Data<f32, ()>)>(operation)
+                        transmute::<_, &mut *mut dyn Fn(&mut Buffer<f32, D, ()>)>(operation)
                     };
                     // let mut out = vec![0f32; 100];
                     // unsafe {
@@ -43,7 +41,7 @@ impl LazyGraph {
                 }
                 Type::I32 => {
                     let operation = unsafe {
-                        transmute::<_, &mut *mut dyn Fn(&mut D::Data<i32, ()>)>(operation)
+                        transmute::<_, &mut *mut dyn Fn(&mut Buffer<i32, D, ()>)>(operation)
                     };
 
                     // let mut out = vec![0i32; 100];

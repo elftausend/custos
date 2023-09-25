@@ -10,6 +10,8 @@ use crate::{
     Parents, PtrConv, Retrieve, Run, Setup, Shape, UniqueId,
 };
 
+use self::lazy_graph::LazyGraph;
+
 use super::register_buf;
 
 #[derive(Default)]
@@ -17,6 +19,7 @@ pub struct Lazy<Mods> {
     pub modules: Mods,
     outs: RefCell<HashMap<UniqueId, Box<dyn Any>, BuildHasherDefault<NoHasher>>>,
     out_ids: RefCell<Vec<Id>>,
+    graph: LazyGraph,
 }
 
 impl<Mods: Debug> Debug for Lazy<Mods> {
@@ -46,6 +49,7 @@ impl<Mods: Module<D>, D: LazySetup> Module<D> for Lazy<Mods> {
             modules: Mods::new(),
             outs: Default::default(),
             out_ids: Default::default(),
+            graph: Default::default(),
         }
     }
 }
