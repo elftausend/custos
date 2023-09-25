@@ -5,7 +5,7 @@ use core::{
 
 use crate::{
     bounds_to_range, AddOperation, Alloc, Buffer, ClearBuf, CopySlice, Device, HasId, MainMemory,
-    MayTapeActions, OnDropBuffer, Operation, Read, Retriever, Shape, WriteBuf, CPU, MayToCLSource, Eval, Resolve, UnaryGrad, ApplyFunction, Retrieve, ToVal, cpu_stack_ops::clear_slice,
+    MayTapeActions, OnDropBuffer, Read, Retriever, Shape, WriteBuf, CPU, MayToCLSource, Eval, Resolve, UnaryGrad, ApplyFunction, Retrieve, ToVal, cpu_stack_ops::clear_slice,
 };
 
 #[cfg(feature = "autograd")]
@@ -38,11 +38,9 @@ where
 
         unsafe {
             self.add_operation(&mut out, move |out| {
-                // let out = out.downcast_mut::<Buffer<T, D, S>>().unwrap();
-
-                // for (x, out) in buf.iter().zip(out.iter_mut()) {
-                //     *out = f((*x).to_val()).eval();
-                // }
+                for (x, out) in buf.iter().zip(out.iter_mut()) {
+                    *out = f((*x).to_val()).eval();
+                }
             });
         }
         out

@@ -19,7 +19,7 @@ pub struct Lazy<Mods> {
     pub modules: Mods,
     outs: RefCell<HashMap<UniqueId, Box<dyn Any>, BuildHasherDefault<NoHasher>>>,
     out_ids: RefCell<Vec<Id>>,
-    graph: LazyGraph,
+    graph: RefCell<LazyGraph>,
 }
 
 impl<Mods: Debug> Debug for Lazy<Mods> {
@@ -54,13 +54,15 @@ impl<Mods: Module<D>, D: LazySetup> Module<D> for Lazy<Mods> {
     }
 }
 
-impl<T: Graphable, D: Device, Mods> AddOperation<T, D> for Lazy<Mods> {
+impl<T: Graphable, D: Device + PtrConv, Mods> AddOperation<T, D> for Lazy<Mods> {
     #[inline]
     unsafe fn add_operation<S: Shape>(
         &self,
         out: &mut Buffer<T, D, S>,
         operation: impl Fn(&mut Buffer<T, D, S>),
     ) {
+        self.out_ids.borrow_mut().push(out.id());
+        self.graph.borrow_mut().add_operation(operation)
     }
 
     #[inline]
@@ -70,6 +72,12 @@ impl<T: Graphable, D: Device, Mods> AddOperation<T, D> for Lazy<Mods> {
         //     let out = &mut **outs.get_mut(out_id).unwrap();
         //     op(out)
         // }
+    }
+}
+
+impl<Mods> Lazy<Mods> {
+    pub fn call_lazily2<D: Device>(&self) {
+        self.graph.borrow_mut().call_lazily::<D>(&self.out_ids.borrow(), &mut self.outs.borrow_mut())
     }
 }
 
@@ -102,7 +110,7 @@ impl<T: 'static, D: Device + PtrConv + 'static, S: Shape, Mods: OnNewBuffer<T, D
 {
     #[inline]
     fn on_new_buffer(&self, device: &D, new_buf: &Buffer<T, D, S>) {
-        unsafe { super::register_buf(&mut self.outs.borrow_mut(), new_buf) };
+        // unsafe { super::register_buf(&mut self.outs.borrow_mut(), new_buf) };
         self.modules.on_new_buffer(device, new_buf)
     }
 }
@@ -149,7 +157,7 @@ impl<T: 'static, Mods: Retrieve<D, T>, D: PtrConv + 'static> Retrieve<D, T> for 
 
 #[cfg(test)]
 mod tests {
-    use crate::{AddOperation, Base, Buffer, Combiner, CPU};
+    use crate::{AddOperation, Base, Buffer, Combiner, CPU, ApplyFunctionLazyTest};
 
     use super::Lazy;
 
@@ -165,17 +173,15 @@ mod tests {
         // let data = device.alloc::<f32, ()>(10, crate::flag::AllocFlag::None);
     }
 
-    use crate::ApplyFunction;
-
     #[test]
-    #[cfg(feature = "macro")]
+    // #[cfg(feature = "macro")]
     fn test_lazy_execution() {
         let device = CPU::<Lazy<Base>>::new();
 
-        let buf = Buffer::<f32, _>::new(&device, 10);
+        let buf: Buffer<'_, f32, CPU<Lazy<Base>>> = Buffer::<f32, _>::new(&device, 10);
         let out = device.apply_fn(&buf, |x| x.add(3.));
 
-        device.call_lazily();
+        device.modules.call_lazily2::<CPU::<Lazy<Base>>>();
         println!("out: {:?}", &*out);
 
         drop(out);
