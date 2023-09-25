@@ -12,16 +12,13 @@ use super::register_buf;
 pub struct Lazy<Mods> {
     pub modules: Mods,
     outs: RefCell<HashMap<UniqueId, Box<dyn Any>, BuildHasherDefault<NoHasher>>>,
-    ops: RefCell<Vec<Box<dyn Fn(&mut dyn Any)>>>,
     out_ids: RefCell<Vec<Id>>,
-    ops2: RefCell<Vec<Box<dyn Operation>>>,
 }
 
 impl<Mods: Debug> Debug for Lazy<Mods> {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         f.debug_struct("Lazy")
             .field("mods", &self.modules)
-            .field("ops_count", &self.ops.borrow().len())
             .finish()
     }
 }
@@ -44,9 +41,7 @@ impl<Mods: Module<D>, D: LazySetup> Module<D> for Lazy<Mods> {
         Lazy {
             modules: Mods::new(),
             outs: Default::default(),
-            ops: Default::default(),
             out_ids: Default::default(),
-            ops2: Default::default(),
         }
     }
 }
@@ -63,23 +58,23 @@ impl<Mods> AddOperation for Lazy<Mods> {
         let operation: Box<dyn Fn(&mut dyn Any)> = Box::new(operation);
         let operation: Box<dyn Fn(&mut dyn Any) + 'static> =
             unsafe { std::mem::transmute(operation) };
-        self.ops.borrow_mut().push(operation)
+        // self.ops.borrow_mut().push(operation)
     }
 
     #[inline]
     fn add_operation2(&self, operation: impl Operation) {
         let operation: Box<dyn Operation> = Box::new(operation);
         let operation: Box<dyn Operation + 'static> = unsafe { std::mem::transmute(operation) };
-        self.ops2.borrow_mut().push(operation)
+        // self.ops2.borrow_mut().push(operation)
     }
 
     #[inline]
     fn call_lazily(&self) {
-        for (op, out_id) in self.ops.borrow().iter().zip(self.out_ids.borrow().iter()) {
-            let mut outs = self.outs.borrow_mut();
-            let out = &mut **outs.get_mut(out_id).unwrap();
-            op(out)
-        }
+        // for (op, out_id) in self.ops.borrow().iter().zip(self.out_ids.borrow().iter()) {
+        //     let mut outs = self.outs.borrow_mut();
+        //     let out = &mut **outs.get_mut(out_id).unwrap();
+        //     op(out)
+        // }
     }
 }
 
