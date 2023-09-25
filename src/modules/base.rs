@@ -1,5 +1,3 @@
-use core::any::Any;
-
 use crate::{
     flag::AllocFlag, AddOperation, Alloc, Buffer, Device, HashLocation, Module, OnDropBuffer,
     OnNewBuffer, Parents, Retrieve, Setup, Shape,
@@ -22,15 +20,9 @@ impl AddOperation for Base {
     unsafe fn add_operation<T: 'static, D: Device + 'static, S: Shape>(
         &self,
         out: &mut Buffer<T, D, S>,
-        operation: impl Fn(&mut dyn Any),
+        operation: impl Fn(&mut Buffer<T, D, S>),
     ) {
-        let out: &mut Buffer<T, D, S> = unsafe { core::mem::transmute(out) };
         operation(out);
-    }
-
-    #[inline]
-    fn add_operation2(&self, mut operation: impl crate::Operation) {
-        operation.forward()
     }
 }
 

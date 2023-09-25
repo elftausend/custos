@@ -51,21 +51,8 @@ impl<Mods> AddOperation for Lazy<Mods> {
     unsafe fn add_operation<T: 'static, D: Device + 'static, S: Shape>(
         &self,
         out: &mut Buffer<T, D, S>,
-        operation: impl Fn(&mut dyn Any),
+        operation: impl Fn(&mut Buffer<T, D, S>),
     ) {
-        // operation(out);
-        self.out_ids.borrow_mut().push(out.id());
-        let operation: Box<dyn Fn(&mut dyn Any)> = Box::new(operation);
-        let operation: Box<dyn Fn(&mut dyn Any) + 'static> =
-            unsafe { std::mem::transmute(operation) };
-        // self.ops.borrow_mut().push(operation)
-    }
-
-    #[inline]
-    fn add_operation2(&self, operation: impl Operation) {
-        let operation: Box<dyn Operation> = Box::new(operation);
-        let operation: Box<dyn Operation + 'static> = unsafe { std::mem::transmute(operation) };
-        // self.ops2.borrow_mut().push(operation)
     }
 
     #[inline]

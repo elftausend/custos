@@ -100,11 +100,10 @@ pub trait Operation {
 }
 
 pub trait AddOperation {
-    fn add_operation2(&self, _operation: impl Operation) {}
     unsafe fn add_operation<T: 'static, D: Device + 'static, S: Shape>(
         &self,
         out: &mut Buffer<T, D, S>,
-        operation: impl Fn(&mut dyn Any),
+        operation: impl Fn(&mut Buffer<T, D, S>),
     );
     fn call_lazily(&self) {}
 }

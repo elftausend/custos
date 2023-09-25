@@ -38,11 +38,11 @@ where
 
         unsafe {
             self.add_operation(&mut out, move |out| {
-                let out = out.downcast_mut::<Buffer<T, D, S>>().unwrap();
+                // let out = out.downcast_mut::<Buffer<T, D, S>>().unwrap();
 
-                for (x, out) in buf.iter().zip(out.iter_mut()) {
-                    *out = f((*x).to_val()).eval();
-                }
+                // for (x, out) in buf.iter().zip(out.iter_mut()) {
+                //     *out = f((*x).to_val()).eval();
+                // }
             });
         }
         out
@@ -54,14 +54,9 @@ impl<Mods: AddOperation> AddOperation for CPU<Mods> {
     unsafe fn add_operation<T: 'static, D: Device + 'static, S: Shape>(
         &self,
         out: &mut Buffer<T, D, S>,
-        operation: impl Fn(&mut dyn Any),
+        operation: impl Fn(&mut Buffer<T, D, S>),
     ) {
         self.modules.add_operation(out, operation)
-    }
-
-    #[inline]
-    fn add_operation2(&self, operation: impl Operation) {
-        self.modules.add_operation2(operation)
     }
 
     #[inline]
