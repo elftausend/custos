@@ -78,10 +78,10 @@ pub use devices::stack::Stack;
 #[cfg(feature = "network")]
 pub use devices::network::Network;
 
-#[cfg(feature = "vulkan")]
-pub use devices::vulkan::Vulkan;
 #[cfg(feature = "nnapi")]
 pub use devices::nnapi::{AsOperandCode, NnapiDevice};
+#[cfg(feature = "vulkan")]
+pub use devices::vulkan::Vulkan;
 
 pub use unary::*;
 

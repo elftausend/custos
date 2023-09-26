@@ -1,11 +1,12 @@
 use core::{
     any::Any,
-    ops::{Index, Range, RangeBounds, AddAssign},
+    ops::{AddAssign, Index, Range, RangeBounds},
 };
 
 use crate::{
-    bounds_to_range, AddOperation, Alloc, Buffer, ClearBuf, CopySlice, Device, HasId, MainMemory,
-    MayTapeActions, OnDropBuffer, Read, Retriever, Shape, WriteBuf, CPU, MayToCLSource, Eval, Resolve, UnaryGrad, ApplyFunction, Retrieve, ToVal, cpu_stack_ops::clear_slice,
+    bounds_to_range, cpu_stack_ops::clear_slice, AddOperation, Alloc, ApplyFunction, Buffer,
+    ClearBuf, CopySlice, Device, Eval, HasId, MainMemory, MayTapeActions, MayToCLSource,
+    OnDropBuffer, Read, Resolve, Retrieve, Retriever, Shape, ToVal, UnaryGrad, WriteBuf, CPU,
 };
 
 #[cfg(feature = "autograd")]

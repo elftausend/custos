@@ -1,7 +1,7 @@
-use core::{mem::transmute, any::Any, hash::BuildHasherDefault};
-use std::collections::HashMap;
-use crate::{Device, PtrConv, Shape, Buffer, Id, UniqueId, NoHasher};
 use super::ty::{Graphable, Type};
+use crate::{Buffer, Device, Id, NoHasher, PtrConv, Shape, UniqueId};
+use core::{any::Any, hash::BuildHasherDefault, mem::transmute};
+use std::collections::HashMap;
 
 #[derive(Debug, Default)]
 pub struct LazyGraph {
@@ -24,21 +24,26 @@ impl LazyGraph {
         S: Shape,
     {
         let operation = Box::leak(Box::new(operation));
-        self.operations
-            .push((T::TYPE, operation as *mut dyn Fn(&mut Buffer<T, D, S>) as *mut _))
+        self.operations.push((
+            T::TYPE,
+            operation as *mut dyn Fn(&mut Buffer<T, D, S>) as *mut _,
+        ))
     }
 
-    pub fn call_lazily<D: Device>(&mut self, out_buf_order: &[Id], outs_unordered: &mut HashMap<UniqueId, Box<dyn Any>, BuildHasherDefault<NoHasher>>) {
+    pub fn call_lazily<D: Device>(
+        &mut self,
+        out_buf_order: &[Id],
+        outs_unordered: &mut HashMap<UniqueId, Box<dyn Any>, BuildHasherDefault<NoHasher>>,
+    ) {
         for ((ty, operation), buf_id) in self.operations.iter_mut().zip(out_buf_order) {
-            
             let buf = &mut **outs_unordered.get_mut(&buf_id).unwrap();
             match ty {
                 Type::F32 => {
                     let operation = unsafe {
                         transmute::<_, &mut *mut dyn Fn(&mut Buffer<f32, D, ()>)>(operation)
                     };
-                    
-                    let buf: &mut Buffer<f32, D, ()> = unsafe { &mut *(buf as *mut _ as *mut _)};
+
+                    let buf: &mut Buffer<f32, D, ()> = unsafe { &mut *(buf as *mut _ as *mut _) };
                     unsafe {
                         (**operation)(buf);
                     }
@@ -47,8 +52,8 @@ impl LazyGraph {
                     let operation = unsafe {
                         transmute::<_, &mut *mut dyn Fn(&mut Buffer<i32, D, ()>)>(operation)
                     };
-                    
-                    let buf: &mut Buffer<i32, D, ()> = unsafe { &mut *(buf as *mut _ as *mut _)};
+
+                    let buf: &mut Buffer<i32, D, ()> = unsafe { &mut *(buf as *mut _ as *mut _) };
                     unsafe {
                         (**operation)(buf);
                     }

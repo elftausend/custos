@@ -168,7 +168,6 @@ use custos_macro::stack_cpu_test;
 
 //#[cfg(feature = "cpu")]
 
-
 #[stack_cpu_test]
 #[test]
 fn test_iterate_cpu() {

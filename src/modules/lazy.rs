@@ -24,9 +24,7 @@ pub struct Lazy<Mods> {
 
 impl<Mods: Debug> Debug for Lazy<Mods> {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        f.debug_struct("Lazy")
-            .field("mods", &self.modules)
-            .finish()
+        f.debug_struct("Lazy").field("mods", &self.modules).finish()
     }
 }
 
@@ -54,7 +52,9 @@ impl<Mods: Module<D>, D: LazySetup> Module<D> for Lazy<Mods> {
     }
 }
 
-impl<T: Graphable, D: Device + PtrConv, Mods> AddOperation<T, D> for Lazy<Mods> {
+impl<T: Graphable, D: Device + PtrConv, Mods: AddOperation<T, D>> AddOperation<T, D>
+    for Lazy<Mods>
+{
     #[inline]
     fn add_operation<S: Shape>(
         &self,
@@ -67,17 +67,18 @@ impl<T: Graphable, D: Device + PtrConv, Mods> AddOperation<T, D> for Lazy<Mods> 
 
     #[inline]
     fn call_lazily(&self) {
-        // for (op, out_id) in self.ops.borrow().iter().zip(self.out_ids.borrow().iter()) {
-        //     let mut outs = self.outs.borrow_mut();
-        //     let out = &mut **outs.get_mut(out_id).unwrap();
-        //     op(out)
-        // }
+        self.graph
+            .borrow_mut()
+            .call_lazily::<D>(&self.out_ids.borrow(), &mut self.outs.borrow_mut());
+        self.modules.call_lazily()
     }
 }
 
 impl<Mods> Lazy<Mods> {
     pub fn call_lazily2<D: Device>(&self) {
-        self.graph.borrow_mut().call_lazily::<D>(&self.out_ids.borrow(), &mut self.outs.borrow_mut())
+        self.graph
+            .borrow_mut()
+            .call_lazily::<D>(&self.out_ids.borrow(), &mut self.outs.borrow_mut())
     }
 }
 
@@ -89,9 +90,12 @@ impl<D: LazySetup, Mods: Setup<D>> Setup<D> for Lazy<Mods> {
     }
 }
 
-impl<Mods: Run<D>, D: LazyRun> Run<D> for Lazy<Mods> {
-    #[inline]
+impl<Mods: Run<D>, D: LazyRun + PtrConv> Run<D> for Lazy<Mods> {
+    #[inline]   
     fn run(&self, device: &mut D) -> crate::Result<()> {
+        self.graph
+            .borrow_mut()
+            .call_lazily::<D>(&self.out_ids.borrow(), &mut self.outs.borrow_mut());
         device.run()?;
         self.modules.run(device)
     }
@@ -157,7 +161,7 @@ impl<T: 'static, Mods: Retrieve<D, T>, D: PtrConv + 'static> Retrieve<D, T> for 
 
 #[cfg(test)]
 mod tests {
-    use crate::{AddOperation, Base, Buffer, Combiner, CPU, ApplyFunctionLazyTest};
+    use crate::{AddOperation, ApplyFunctionLazyTest, Base, Buffer, Combiner, CPU};
 
     use super::Lazy;
 
@@ -181,7 +185,8 @@ mod tests {
         let buf: Buffer<'_, f32, CPU<Lazy<Base>>> = Buffer::<f32, _>::new(&device, 10);
         let out = device.apply_fn(&buf, |x| x.add(3.));
 
-        device.modules.call_lazily2::<CPU::<Lazy<Base>>>();
+        // device.run();
+        device.modules.call_lazily2::<CPU<Lazy<Base>>>();
         println!("out: {:?}", &*out);
 
         drop(out);

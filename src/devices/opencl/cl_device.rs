@@ -8,7 +8,7 @@ use super::{enqueue_kernel, AsClCvoidPtr, CLKernelCache, CLPtr};
 use crate::flag::AllocFlag;
 use crate::{
     impl_buffer_hook_traits, impl_retriever, Alloc, Base, Buffer, Cached, CachedCPU, CloneBuf,
-    Device, Error, Module, OnDropBuffer, Setup, CPU, UseGpuOrCpu, HashLocation, GpuOrCpuInfo,
+    Device, Error, GpuOrCpuInfo, HashLocation, Module, OnDropBuffer, Setup, UseGpuOrCpu, CPU,
 };
 use crate::{PtrConv, Shape};
 
