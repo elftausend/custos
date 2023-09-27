@@ -6,7 +6,7 @@ use core::{
 use crate::{
     cpu::CPUPtr, flag::AllocFlag, impl_buffer_hook_traits, impl_retriever, Alloc, Base, Buffer,
     CloneBuf, Device, DevicelessAble, HasModules, MainMemory, Module, OnDropBuffer, OnNewBuffer,
-    PtrConv, Setup, Shape, Run,
+    PtrConv, Setup, Shape, RunModule,
 };
 
 pub trait IsCPU {}
@@ -122,7 +122,7 @@ impl<T, Mods: OnDropBuffer> Alloc<T> for CPU<Mods> {
     }
 }
 
-impl<Mods> Run<Self> for CPU<Mods> {
+impl<Mods> RunModule<Self> for CPU<Mods> {
 
 }
 

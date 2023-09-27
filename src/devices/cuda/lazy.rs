@@ -51,6 +51,19 @@ impl<Mods> crate::LazyRun for CUDA<Mods> {
     }
 }
 
+impl<Mods: crate::RunModule<Self>> crate::Run for CUDA<Mods> {
+    #[inline]
+    fn run(&self) -> crate::Result<()> {
+        self.modules.run(self)
+    }
+}
+
+impl<Mods> crate::RunModule<Self>  for CUDA<Mods> {
+    fn run(&self, _device: &Self) -> crate::Result<()> {
+        Ok(())
+    }
+}
+
 #[cfg(feature = "lazy")]
 impl<Mods> crate::LazySetup for CUDA<Mods> {
     #[inline]

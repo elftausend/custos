@@ -24,7 +24,7 @@ pub trait IsCuda: Device {}
 
 /// Used to perform calculations with a CUDA capable device.
 pub struct CUDA<Mods = Base> {
-    modules: Mods,
+    pub modules: Mods,
     /// Stores compiled CUDA kernels.
     pub kernel_cache: RefCell<CUKernelCache>,
     /// Stores CUDA modules from the compiled kernels.

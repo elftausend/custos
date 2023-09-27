@@ -7,7 +7,7 @@ use std::collections::HashMap;
 
 use crate::{
     AddOperation, Alloc, Buffer, Device, HasId, Id, Module, NoHasher, OnDropBuffer, OnNewBuffer,
-    Parents, PtrConv, Retrieve, Run, Setup, Shape, UniqueId,
+    Parents, PtrConv, Retrieve, RunModule, Setup, Shape, UniqueId,
 };
 
 use self::lazy_graph::LazyGraph;
@@ -90,9 +90,9 @@ impl<D: LazySetup, Mods: Setup<D>> Setup<D> for Lazy<Mods> {
     }
 }
 
-impl<Mods: Run<D>, D: LazyRun + PtrConv> Run<D> for Lazy<Mods> {
+impl<Mods: RunModule<D>, D: LazyRun + PtrConv> RunModule<D> for Lazy<Mods> {
     #[inline]   
-    fn run(&self, device: &mut D) -> crate::Result<()> {
+    fn run(&self, device: &D) -> crate::Result<()> {
         self.graph
             .borrow_mut()
             .call_lazily::<D>(&self.out_ids.borrow(), &mut self.outs.borrow_mut());
