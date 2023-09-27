@@ -101,11 +101,7 @@ pub trait TapeActions {
 }
 
 pub trait AddOperation<T, D: Device> {
-    fn add_operation<S: Shape>(
-        &self,
-        out: &mut Buffer<T, D, S>,
-        operation: impl Fn(&mut Buffer<T, D, S>),
-    );
+    fn add_op<S: Shape>(&self, out: &mut Buffer<T, D, S>, operation: impl Fn(&mut Buffer<T, D, S>));
 }
 
 pub trait HasCPU<Mods> {

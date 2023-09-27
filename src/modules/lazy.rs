@@ -2,16 +2,14 @@ mod lazy_graph;
 mod ty;
 pub use ty::*;
 
-use core::{any::Any, cell::RefCell, fmt::Debug, hash::BuildHasherDefault};
-use std::collections::HashMap;
-
 use crate::{
     AddOperation, Alloc, Buffer, Device, HasId, Id, Module, NoHasher, OnDropBuffer, OnNewBuffer,
     Parents, PtrConv, Retrieve, RunModule, Setup, Shape, UniqueId,
 };
+use core::{any::Any, cell::RefCell, fmt::Debug, hash::BuildHasherDefault};
+use std::collections::HashMap;
 
 use self::lazy_graph::LazyGraph;
-
 use super::register_buf;
 
 #[derive(Default)]
@@ -59,7 +57,7 @@ impl<T: Graphable, D: Device + PtrConv, Mods: AddOperation<T, D>> AddOperation<T
     for Lazy<Mods>
 {
     #[inline]
-    fn add_operation<S: Shape>(
+    fn add_op<S: Shape>(
         &self,
         out: &mut Buffer<T, D, S>,
         operation: impl Fn(&mut Buffer<T, D, S>),
@@ -155,28 +153,21 @@ impl<T: 'static, Mods: Retrieve<D, T>, D: PtrConv + 'static> Retrieve<D, T> for 
 
 #[cfg(test)]
 mod tests {
-    use crate::{ApplyFunctionLazyTest, Base, Buffer, Combiner, CPU};
+    use core::ops::Add;
+
+    use crate::{
+        AddOperation, ApplyFunctionLazyTest, Base, Buffer, Combiner, Device, MainMemory, Retrieve,
+        Retriever, Shape, CPU,
+    };
 
     use super::Lazy;
-
-    #[test]
-    fn test_lazy_device_use() {
-        // let device = CPU::<Lazy<Base>>::new();
-        // let data = device.alloc::<f32, ()>(10, crate::flag::AllocFlag::None);
-    }
-
-    #[test]
-    fn test_lazy_device_use_cuda() {
-        // let device = CUDA::<Lazy<Base>>::new();
-        // let data = device.alloc::<f32, ()>(10, crate::flag::AllocFlag::None);
-    }
 
     #[test]
     #[cfg(feature = "cpu")]
     fn test_lazy_apply_fn() {
         let device = CPU::<Lazy<Base>>::new();
 
-        let buf= Buffer::<i32, _>::new(&device, 10);
+        let buf = Buffer::<i32, _>::new(&device, 10);
         let out = device.apply_fn(&buf, |x| x.add(3));
 
         assert_eq!(out.read(), &[0; 10]);
@@ -186,7 +177,41 @@ mod tests {
         drop(out);
         drop(buf);
     }
-    
+
+    trait AddEw<T, D: Device, S: Shape>: Device {
+        fn add(&self, lhs: &Buffer<T, D, S>, rhs: &Buffer<T, D, S>) -> Buffer<T, Self, S>;
+    }
+
+    fn add_ew_slice<T: Add<Output = T> + Copy>(lhs: &[T], rhs: &[T], out: &mut [T]) {
+        for ((lhs, rhs), out) in lhs.iter().zip(rhs.iter()).zip(out.iter_mut()) {
+            *out = *lhs + *rhs;
+        }
+    }
+
+    impl<T, D, S, Mods> AddEw<T, D, S> for CPU<Mods>
+    where
+        T: Add<Output = T> + Copy,
+        D: MainMemory,
+        S: Shape,
+        Mods: AddOperation<T, Self> + Retrieve<Self, T>,
+    {
+        #[inline]
+        fn add(&self, lhs: &Buffer<T, D, S>, rhs: &Buffer<T, D, S>) -> Buffer<T, Self, S> {
+            let mut out = self.retrieve(lhs.len(), ());
+
+            self.add_op(&mut out, |out| add_ew_slice(lhs, rhs, out));
+
+            out
+        }
+    }
+
+    #[test]
+    fn test_custom_operation() {
+        let device = CPU::<Lazy<Base>>::new();
+        let buf = Buffer::<_, _>::from((&device, &[1, 2, 3, 4, 5, 6, 7, 8]));
+        assert_eq!(buf.read(), [1, 2, 3, 4, 5, 6, 7, 8])
+    }
+
     #[test]
     #[cfg(feature = "cpu")]
     fn test_lazy_apply_fn_with_run() {
@@ -194,11 +219,35 @@ mod tests {
 
         let device = CPU::<Lazy<Base>>::new();
 
-        let buf= Buffer::<i32, _>::new(&device, 10);
+        let buf = Buffer::<i32, _>::new(&device, 10);
         let out = device.apply_fn(&buf, |x| x.add(3));
 
         assert_eq!(out.read(), &[0; 10]);
         device.run().unwrap();
         assert_eq!(out.read(), &[3; 10]);
+    }
+
+    #[test]
+    #[cfg(feature = "cpu")]
+    fn test_lazy_add_apply_fn_with_run() {
+        use crate::Run;
+
+        let device = CPU::<Lazy<Base>>::new();
+
+        let buf = Buffer::<i32, _>::new(&device, 10);
+        let lhs = device.apply_fn(&buf, |x| x.add(3));
+
+        assert_eq!(lhs.read(), &[0; 10]);
+        let rhs = Buffer::<_, _>::from((&device, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]));
+
+        assert_eq!(rhs.read(), &[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+
+        let out = device.add(&lhs, &rhs);
+        assert_eq!(out.read(), &[0; 10]);
+
+        device.run().unwrap();
+        assert_eq!(lhs.read(), &[3; 10]);
+
+        assert_eq!(out.read(), [4, 5, 6, 7, 8, 9, 10, 11, 12, 13])
     }
 }

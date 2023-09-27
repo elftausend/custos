@@ -1,7 +1,4 @@
-use core::{
-    any::Any,
-    ops::{AddAssign, Index, Range, RangeBounds},
-};
+use core::ops::{AddAssign, Index, Range, RangeBounds};
 
 use crate::{
     bounds_to_range, cpu_stack_ops::clear_slice, AddOperation, Alloc, ApplyFunction, Buffer,
@@ -34,10 +31,10 @@ where
 
         #[cfg(feature = "autograd")]
         self.add_grad_fn(move |grads| {
-            let (lhs, lhs_grad, out_grad) = grads.get_double::<T, S, S, D>(ids);
+            let (_lhs, _lhs_grad, _out_grad) = grads.get_double::<T, S, S, D>(ids);
         });
 
-        self.add_operation(&mut out, move |out| {
+        self.add_op(&mut out, move |out| {
             for (x, out) in buf.iter().zip(out.iter_mut()) {
                 *out = f((*x).to_val()).eval();
             }
@@ -49,12 +46,12 @@ where
 
 impl<T, D: Device, Mods: AddOperation<T, D>> AddOperation<T, D> for CPU<Mods> {
     #[inline]
-    fn add_operation<S: Shape>(
+    fn add_op<S: Shape>(
         &self,
         out: &mut Buffer<T, D, S>,
         operation: impl Fn(&mut Buffer<T, D, S>),
     ) {
-        self.modules.add_operation(out, operation)
+        self.modules.add_op(out, operation)
     }
 }
 
