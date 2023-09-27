@@ -35,7 +35,10 @@ pub trait LazySetup {
 }
 
 pub trait LazyRun {
-    fn run(&self) -> crate::Result<()>;
+    #[inline]
+    fn run(&self) -> crate::Result<()> {
+        Ok(())
+    }
 }
 
 impl<Mods: Module<D>, D: LazySetup> Module<D> for Lazy<Mods> {
@@ -64,18 +67,11 @@ impl<T: Graphable, D: Device + PtrConv, Mods: AddOperation<T, D>> AddOperation<T
         self.out_ids.borrow_mut().push(out.id());
         self.graph.borrow_mut().add_operation(operation)
     }
-
-    #[inline]
-    fn call_lazily(&self) {
-        self.graph
-            .borrow_mut()
-            .call_lazily::<D>(&self.out_ids.borrow(), &mut self.outs.borrow_mut());
-        self.modules.call_lazily()
-    }
 }
 
 impl<Mods> Lazy<Mods> {
-    pub fn call_lazily2<D: Device>(&self) {
+    #[inline]
+    pub fn call_lazily<D: Device>(&self) {
         self.graph
             .borrow_mut()
             .call_lazily::<D>(&self.out_ids.borrow(), &mut self.outs.borrow_mut())
@@ -91,11 +87,9 @@ impl<D: LazySetup, Mods: Setup<D>> Setup<D> for Lazy<Mods> {
 }
 
 impl<Mods: RunModule<D>, D: LazyRun + PtrConv> RunModule<D> for Lazy<Mods> {
-    #[inline]   
+    #[inline]
     fn run(&self, device: &D) -> crate::Result<()> {
-        self.graph
-            .borrow_mut()
-            .call_lazily::<D>(&self.out_ids.borrow(), &mut self.outs.borrow_mut());
+        self.call_lazily::<D>();
         device.run()?;
         self.modules.run(device)
     }
@@ -161,7 +155,7 @@ impl<T: 'static, Mods: Retrieve<D, T>, D: PtrConv + 'static> Retrieve<D, T> for 
 
 #[cfg(test)]
 mod tests {
-    use crate::{AddOperation, ApplyFunctionLazyTest, Base, Buffer, Combiner, CPU};
+    use crate::{ApplyFunctionLazyTest, Base, Buffer, Combiner, CPU};
 
     use super::Lazy;
 
@@ -178,18 +172,33 @@ mod tests {
     }
 
     #[test]
-    // #[cfg(feature = "macro")]
-    fn test_lazy_execution() {
+    #[cfg(feature = "cpu")]
+    fn test_lazy_apply_fn() {
         let device = CPU::<Lazy<Base>>::new();
 
-        let buf: Buffer<'_, f32, CPU<Lazy<Base>>> = Buffer::<f32, _>::new(&device, 10);
-        let out = device.apply_fn(&buf, |x| x.add(3.));
+        let buf= Buffer::<i32, _>::new(&device, 10);
+        let out = device.apply_fn(&buf, |x| x.add(3));
 
-        // device.run();
-        device.modules.call_lazily2::<CPU<Lazy<Base>>>();
-        println!("out: {:?}", &*out);
+        assert_eq!(out.read(), &[0; 10]);
+        device.modules.call_lazily::<CPU<Lazy<Base>>>();
+        assert_eq!(out.read(), &[3; 10]);
 
         drop(out);
         drop(buf);
+    }
+    
+    #[test]
+    #[cfg(feature = "cpu")]
+    fn test_lazy_apply_fn_with_run() {
+        use crate::Run;
+
+        let device = CPU::<Lazy<Base>>::new();
+
+        let buf= Buffer::<i32, _>::new(&device, 10);
+        let out = device.apply_fn(&buf, |x| x.add(3));
+
+        assert_eq!(out.read(), &[0; 10]);
+        device.run().unwrap();
+        assert_eq!(out.read(), &[3; 10]);
     }
 }

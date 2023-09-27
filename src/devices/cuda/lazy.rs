@@ -58,12 +58,6 @@ impl<Mods: crate::RunModule<Self>> crate::Run for CUDA<Mods> {
     }
 }
 
-impl<Mods> crate::RunModule<Self>  for CUDA<Mods> {
-    fn run(&self, _device: &Self) -> crate::Result<()> {
-        Ok(())
-    }
-}
-
 #[cfg(feature = "lazy")]
 impl<Mods> crate::LazySetup for CUDA<Mods> {
     #[inline]
@@ -82,7 +76,7 @@ impl<Mods> crate::LazySetup for CUDA<Mods> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{Base, Device, Lazy, LazyRun, CUDA};
+    use crate::{Base, Device, Lazy, Run, CUDA};
 
     pub fn ew_src(fn_name: &str, operator: char) -> String {
         format!(
@@ -195,6 +189,54 @@ mod tests {
             device.mem_transfer_stream.sync().unwrap();
             device.run().unwrap();
         }
+
+        assert_eq!(out.read(), vec![2, 4, 6, 8, 10, 12]);
+        assert_eq!(rhs.read(), vec![3, 6, 9, 12, 15, 18]);
+        assert_eq!(lhs.read(), vec![6, 24, 54, 96, 150, 216]);
+    }
+
+    #[test]
+    fn test_cuda_eager_without_lazy() {
+        let device = CUDA::<Base>::new(0).unwrap();
+        let mut lhs = device.buffer([1, 2, 3, 4, 5, 6]);
+        let mut rhs = device.buffer([1, 2, 3, 4, 5, 6]);
+        let mut out = lhs.empty_like();
+
+        let add_src = ew_src("add", '+');
+        let mul_src = ew_src("mul", '*');
+
+        assert_eq!(out.read(), vec![0; out.len()]);
+        assert_eq!(lhs.read(), vec![1, 2, 3, 4, 5, 6]);
+        assert_eq!(rhs.read(), vec![1, 2, 3, 4, 5, 6]);
+
+        device
+            .launch_kernel1d(
+                lhs.len(),
+                &add_src,
+                "add",
+                &[&lhs, &rhs, &mut out, &lhs.len()],
+            )
+            .unwrap();
+
+        device
+            .launch_kernel1d(
+                lhs.len(),
+                &add_src,
+                "add",
+                &[&out, &lhs, &mut rhs, &lhs.len()],
+            )
+            .unwrap();
+
+        device
+            .launch_kernel1d(
+                rhs.len(),
+                &mul_src,
+                "mul",
+                &[&out, &rhs, &mut lhs, &rhs.len()],
+            )
+            .unwrap();
+
+        // device.run().unwrap();
 
         assert_eq!(out.read(), vec![2, 4, 6, 8, 10, 12]);
         assert_eq!(rhs.read(), vec![3, 6, 9, 12, 15, 18]);

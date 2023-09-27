@@ -47,12 +47,15 @@ pub trait Setup<D> {
     }
 }
 
+// only for base and lazy?
 pub trait RunModule<D> {
     #[inline]
     fn run(&self, _device: &D) -> crate::Result<()> {
         Ok(())
     }
 }
+
+impl<D> RunModule<D> for Base {}
 
 pub trait Run {
     fn run(&self) -> crate::Result<()>;
@@ -103,7 +106,6 @@ pub trait AddOperation<T, D: Device> {
         out: &mut Buffer<T, D, S>,
         operation: impl Fn(&mut Buffer<T, D, S>),
     );
-    fn call_lazily(&self) {}
 }
 
 pub trait HasCPU<Mods> {

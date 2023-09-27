@@ -42,6 +42,7 @@ where
                 *out = f((*x).to_val()).eval();
             }
         });
+
         out
     }
 }
@@ -54,11 +55,6 @@ impl<T, D: Device, Mods: AddOperation<T, D>> AddOperation<T, D> for CPU<Mods> {
         operation: impl Fn(&mut Buffer<T, D, S>),
     ) {
         self.modules.add_operation(out, operation)
-    }
-
-    #[inline]
-    fn call_lazily(&self) {
-        self.modules.call_lazily()
     }
 }
 
