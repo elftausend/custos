@@ -342,6 +342,19 @@ impl<Mods: UseGpuOrCpu> UseGpuOrCpu for OpenCL<Mods> {
     }
 }
 
+impl<Mods: crate::RunModule<Self>> crate::Run for OpenCL<Mods> {
+    #[inline]
+    fn run(&self) -> crate::Result<()> {
+        self.modules.run(self)
+    }
+}
+
+#[cfg(feature = "lazy")]
+impl<Mods> crate::LazySetup for OpenCL<Mods> {}
+
+#[cfg(feature = "lazy")]
+impl<Mods> crate::LazyRun for OpenCL<Mods> {}
+
 #[cfg(test)]
 mod tests {
     use crate::{opencl::cl_device::CLDevice, Base, Buffer, Cached, OpenCL, CPU};

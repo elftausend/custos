@@ -5,8 +5,8 @@ use core::{
 
 use crate::{
     cpu::CPUPtr, flag::AllocFlag, impl_buffer_hook_traits, impl_retriever, Alloc, Base, Buffer,
-    CloneBuf, Device, DevicelessAble, HasModules, LazyRun, MainMemory, Module,
-    OnDropBuffer, OnNewBuffer, PtrConv, Setup, Shape,
+    CloneBuf, Device, DevicelessAble, HasModules, LazyRun, MainMemory, Module, OnDropBuffer,
+    OnNewBuffer, PtrConv, Setup, Shape,
 };
 
 pub trait IsCPU {}

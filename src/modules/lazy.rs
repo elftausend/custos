@@ -214,7 +214,7 @@ mod tests {
 
     #[test]
     #[cfg(feature = "cpu")]
-    fn test_lazy_apply_fn_with_run() {
+    fn test_lazy_apply_fn_with_run_cpu() {
         use crate::Run;
 
         let device = CPU::<Lazy<Base>>::new();
@@ -227,6 +227,20 @@ mod tests {
         assert_eq!(out.read(), &[3; 10]);
     }
 
+    #[test]
+    #[cfg(feature = "opencl")]
+    fn test_lazy_apply_fn_with_run_cl() {
+        use crate::{Run, OpenCL, ApplyFunction};
+
+        let device = OpenCL::<Lazy<Base>>::new(0).unwrap();
+
+        let buf = Buffer::<i32, _>::new(&device, 10);
+        let out = device.apply_fn(&buf, |x| x.add(3));
+
+        assert_eq!(out.read(), &[0; 10]);
+        device.run().unwrap();
+        assert_eq!(out.read(), &[3; 10]);
+    }
     #[test]
     #[cfg(feature = "cpu")]
     fn test_lazy_add_apply_fn_with_run() {
