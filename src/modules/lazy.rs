@@ -230,7 +230,7 @@ mod tests {
     #[test]
     #[cfg(feature = "opencl")]
     fn test_lazy_apply_fn_with_run_cl() {
-        use crate::{Run, OpenCL, ApplyFunction};
+        use crate::{ApplyFunction, OpenCL, Run};
 
         let device = OpenCL::<Lazy<Base>>::new(0).unwrap();
 

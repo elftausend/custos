@@ -5,8 +5,8 @@ use core::{
 
 use crate::{
     cpu::CPUPtr, flag::AllocFlag, impl_buffer_hook_traits, impl_retriever, Alloc, Base, Buffer,
-    CloneBuf, Device, DevicelessAble, HasModules, LazyRun, MainMemory, Module, OnDropBuffer,
-    OnNewBuffer, PtrConv, Setup, Shape,
+    CloneBuf, Device, DevicelessAble, HasModules, MainMemory, Module, OnDropBuffer, OnNewBuffer,
+    PtrConv, Setup, Shape,
 };
 
 pub trait IsCPU {}
@@ -122,7 +122,8 @@ impl<T, Mods: OnDropBuffer> Alloc<T> for CPU<Mods> {
     }
 }
 
-impl<Mods> LazyRun for CPU<Mods> {}
+#[cfg(feature = "lazy")]
+impl<Mods> crate::LazyRun for CPU<Mods> {}
 
 impl<Mods: crate::RunModule<Self>> crate::Run for CPU<Mods> {
     #[inline]

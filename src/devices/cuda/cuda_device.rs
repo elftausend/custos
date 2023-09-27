@@ -1,7 +1,4 @@
-use core::{
-    cell::{OnceCell, RefCell},
-    marker::PhantomData,
-};
+use core::{cell::RefCell, marker::PhantomData};
 use std::collections::HashMap;
 
 use crate::{
@@ -37,7 +34,7 @@ pub struct CUDA<Mods = Base> {
     pub mem_transfer_stream: Stream,
     handle: CublasHandle,
     #[cfg(feature = "lazy")]
-    pub graph: OnceCell<super::lazy::LazyCudaGraph>,
+    pub graph: core::cell::OnceCell<super::lazy::LazyCudaGraph>,
 }
 
 impl_retriever!(CUDA);
