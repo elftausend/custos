@@ -69,7 +69,7 @@ impl<SimpleMods> CUDA<SimpleMods> {
             mem_transfer_stream,
             handle,
             #[cfg(feature = "lazy")]
-            graph: OnceCell::new(),
+            graph: core::cell::OnceCell::new(),
         };
 
         NewMods::setup(&mut cuda)?;
@@ -179,6 +179,19 @@ impl<Mods> crate::ForkSetup for CUDA<Mods> {
     #[inline]
     fn fork_setup(&mut self) {
         // TODO: maybe check if device supports unified memory
+    }
+}
+
+#[cfg(feature = "autograd")]
+impl<Mods: crate::TapeActions> crate::TapeActions for CUDA<Mods> {
+    #[inline]
+    fn tape(&self) -> Option<core::cell::Ref<crate::Tape>> {
+        self.modules.tape()
+    }
+
+    #[inline]
+    fn tape_mut(&self) -> Option<core::cell::RefMut<crate::Tape>> {
+        self.modules.tape_mut()
     }
 }
 

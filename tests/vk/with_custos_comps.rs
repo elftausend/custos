@@ -1,12 +1,8 @@
 use std::rc::Rc;
 
-use ash::vk::{self, DescriptorType, Fence};
-use custos::{
-    vulkan::{
-        create_descriptor_infos, create_write_descriptor_sets, Context, Operation, ShaderCache,
-        VkArray,
-    },
-    wgsl::Spirv,
+use ash::vk::{self, BufferUsageFlags, DescriptorType, Fence};
+use custos::vulkan::{
+    create_descriptor_infos, create_write_descriptor_sets, Context, ShaderCache, VkArray,
 };
 
 #[test]
@@ -16,17 +12,25 @@ fn test_with_custos_comps() {
     let lhs = VkArray::from_slice(
         context.clone(),
         &[1f32, 2., 3., 4., 5., 6., 7.],
+        BufferUsageFlags::STORAGE_BUFFER,
         custos::flag::AllocFlag::None,
     )
     .unwrap();
     let rhs = VkArray::from_slice(
         context.clone(),
         &[1f32, 2., 3., 4., 5., 6., 7.],
+        BufferUsageFlags::STORAGE_BUFFER,
         custos::flag::AllocFlag::None,
     )
     .unwrap();
 
-    let out = VkArray::<f32>::new(context.clone(), lhs.len, custos::flag::AllocFlag::None).unwrap();
+    let out = VkArray::<f32>::new(
+        context.clone(),
+        lhs.len,
+        BufferUsageFlags::STORAGE_BUFFER,
+        custos::flag::AllocFlag::None,
+    )
+    .unwrap();
 
     let mut shader_cache = ShaderCache::default();
 
@@ -65,7 +69,7 @@ fn test_with_custos_comps() {
         .unwrap();
     // let operation = Operation::new(&context.device, &src, &[DescriptorType::STORAGE_BUFFER, DescriptorType::STORAGE_BUFFER, DescriptorType::STORAGE_BUFFER]);
 
-    let descriptor_infos = create_descriptor_infos(&[lhs.buf, rhs.buf, out.buf]);
+    let descriptor_infos = create_descriptor_infos(&[(0, lhs.buf), (1, rhs.buf), (2, out.buf)]);
     let write_descriptor_sets =
         create_write_descriptor_sets(&descriptor_infos, operation.descriptor_set);
     /*let descriptor_buffer_info = [vk::DescriptorBufferInfo {

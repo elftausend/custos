@@ -42,7 +42,7 @@ impl<T: CDatatype, S: Shape> ElementWise<T, OpenCL, S> for OpenCL {
 
 #[cfg(test)]
 mod tests {
-    use custos::{prelude::chosen_cl_idx, Base, Buffer, Cached, OpenCL, Retriever, WithShape, CPU};
+    use custos::{prelude::chosen_cl_idx, Base, Buffer, OpenCL, Retriever, WithShape, CPU};
 
     use crate::demo_impl::cpu::cpu_element_wise;
 

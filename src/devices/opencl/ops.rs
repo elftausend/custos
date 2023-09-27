@@ -6,9 +6,9 @@ use min_cl::api::{
 };
 
 use crate::{
-    bounds_to_range, cpu_stack_ops::clear_slice, prelude::Number, ApplyFunction, Buffer, CDatatype,
-    ClearBuf, CopySlice, Eval, OnDropBuffer, OpenCL, Read, Resolve, Retrieve, Retriever, Shape,
-    ToCLSource, ToMarker, UnaryGrad, UseGpuOrCpu, WriteBuf,
+    bounds_to_range, cpu_stack_ops::clear_slice, prelude::Number, AddOperation, ApplyFunction,
+    Buffer, CDatatype, ClearBuf, CopySlice, Device, Eval, OnDropBuffer, OpenCL, Read, Resolve,
+    Retrieve, Retriever, Shape, ToCLSource, ToMarker, UnaryGrad, UseGpuOrCpu, WriteBuf,
 };
 
 use super::enqueue_kernel;
@@ -19,6 +19,16 @@ use super::enqueue_kernel;
         try_cl_clear(self, buf).unwrap()
     }
 }*/
+impl<T, D: Device, Mods: AddOperation<T, D>> AddOperation<T, D> for OpenCL<Mods> {
+    #[inline]
+    fn add_op<S: Shape>(
+        &self,
+        out: &mut Buffer<T, D, S>,
+        operation: impl Fn(&mut Buffer<T, D, S>),
+    ) {
+        self.modules.add_op(out, operation)
+    }
+}
 
 impl<Mods: OnDropBuffer + UseGpuOrCpu, T: CDatatype + Default> ClearBuf<T> for OpenCL<Mods> {
     #[inline]
@@ -176,31 +186,34 @@ impl<T, S, Mods> ApplyFunction<T, S> for OpenCL<Mods>
 where
     T: CDatatype + Number,
     S: Shape,
-    Mods: Retrieve<Self, T> + UseGpuOrCpu,
+    Mods: AddOperation<T, Self> + Retrieve<Self, T> + UseGpuOrCpu + 'static,
 {
     #[inline]
     fn apply_fn<F>(
         &self,
         buf: &Buffer<T, Self, S>,
-        f: impl Fn(Resolve<T>) -> F + Copy,
+        f: impl Fn(Resolve<T>) -> F + Copy, 
     ) -> Buffer<T, Self, S>
     where
         F: ToCLSource + Eval<T>,
     {
         let mut out = self.retrieve(buf.len(), buf);
 
-        #[cfg(unified_cl)]
-        {
-            let mut cpu_out = unsafe { &mut *(&mut out as *mut Buffer<_, _, _>) };
-            self.use_cpu_or_gpu(
-                (file!(), line!(), column!()).into(),
-                &[buf.len()],
-                || crate::devices::cpu_stack_ops::apply_fn_slice(buf, &mut cpu_out, f),
-                || try_cl_apply_fn_mut(self, buf, &mut out, f).unwrap(),
-            );
-        }
-        #[cfg(not(unified_cl))]
-        try_cl_apply_fn_mut(self, buf, &mut out, f).unwrap();
+        self.add_op(&mut out, |out| {
+            #[cfg(unified_cl)]
+            {
+                let mut cpu_out = unsafe { &mut *(out as *mut Buffer<_, _, _>) };
+                self.use_cpu_or_gpu(
+                    (file!(), line!(), column!()).into(),
+                    &[buf.len()],
+                    || crate::devices::cpu_stack_ops::apply_fn_slice(buf, &mut cpu_out, f),
+                    || try_cl_apply_fn_mut(self, buf, out, f).unwrap(),
+                );
+            }
+            #[cfg(not(unified_cl))]
+            try_cl_apply_fn_mut(self, buf, &mut out, f).unwrap();
+        });
+
         out
     }
 }
@@ -264,11 +277,11 @@ where
 
 /// A failable OpenCL version of [`add_unary_grad`](UnaryGrad::add_unary_grad).
 /// Writes the unary gradient (with chainrule) to the lhs_grad [`Buffer`].
-pub fn try_cl_add_unary_grad<T, S, F>(
-    device: &OpenCL,
-    lhs: &Buffer<T, OpenCL, S>,
-    lhs_grad: &mut Buffer<T, OpenCL, S>,
-    out: &Buffer<T, OpenCL, S>,
+pub fn try_cl_add_unary_grad<T, S, F, Mods: OnDropBuffer>(
+    device: &OpenCL<Mods>,
+    lhs: &Buffer<T, OpenCL<Mods>, S>,
+    lhs_grad: &mut Buffer<T, OpenCL<Mods>, S>,
+    out: &Buffer<T, OpenCL<Mods>, S>,
     lhs_grad_fn: impl Fn(Resolve<T>) -> F,
 ) -> crate::Result<()>
 where

@@ -1,5 +1,5 @@
 use super::ty::{Graphable, Type};
-use crate::{Buffer, Device, Id, NoHasher, PtrConv, Shape, UniqueId};
+use crate::{Buffer, Device, Id, NoHasher, PtrConv, Shape, UniqueId, DeviceError};
 use core::{any::Any, hash::BuildHasherDefault, mem::transmute};
 use std::collections::HashMap;
 
@@ -34,9 +34,9 @@ impl LazyGraph {
         &mut self,
         out_buf_order: &[Id],
         outs_unordered: &mut HashMap<UniqueId, Box<dyn Any>, BuildHasherDefault<NoHasher>>,
-    ) {
+    ) -> Result<(), DeviceError> {
         for ((ty, operation), buf_id) in self.operations.iter_mut().zip(out_buf_order) {
-            let buf = &mut **outs_unordered.get_mut(&buf_id).unwrap();
+            let buf = &mut **outs_unordered.get_mut(&buf_id).ok_or(DeviceError::InvalidLazyOutBuf)?;
             match ty {
                 Type::F32 => {
                     let operation = unsafe {
@@ -60,5 +60,6 @@ impl LazyGraph {
                 }
             }
         }
+        Ok(())
     }
 }

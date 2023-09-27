@@ -34,7 +34,7 @@ where
             let (_lhs, _lhs_grad, _out_grad) = grads.get_double::<T, S, S, D>(ids);
         });
 
-        self.add_op(&mut out, move |out| {
+        self.add_op(&mut out, |out| {
             for (x, out) in buf.iter().zip(out.iter_mut()) {
                 *out = f((*x).to_val()).eval();
             }

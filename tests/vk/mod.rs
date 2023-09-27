@@ -3,15 +3,11 @@ mod with_custos_comps;
 use std::{
     ffi::{c_char, CStr},
     mem::size_of_val,
-    ptr,
     time::Instant,
 };
 
 use ash::{
-    vk::{
-        self, Buffer, DeviceMemory, Fence, Instance, InstanceCreateInfo, PhysicalDevice,
-        PipelineCache, StructureType,
-    },
+    vk::{self, Buffer, DeviceMemory, Fence, InstanceCreateInfo, PhysicalDevice, PipelineCache},
     Entry,
 };
 use naga::back::spv::{Options, PipelineOptions};
@@ -196,7 +192,7 @@ fn test_vulkan_compute_with_wgsl_and_spirv() {
 
     let mapping = unsafe { device.map_memory(mem, 0, vk::WHOLE_SIZE, Default::default()) }.unwrap();
     let data = unsafe { core::slice::from_raw_parts_mut(mapping as *mut f32, dispatch_size) };
-    for (i, v) in data.iter_mut().enumerate() {
+    for (_i, v) in data.iter_mut().enumerate() {
         *v = 4.0;
     }
 
@@ -211,7 +207,7 @@ fn test_vulkan_compute_with_wgsl_and_spirv() {
     let mapping =
         unsafe { device.map_memory(mem1, 0, vk::WHOLE_SIZE, Default::default()) }.unwrap();
     let data = unsafe { core::slice::from_raw_parts_mut(mapping as *mut f32, dispatch_size) };
-    for (i, v) in data.iter_mut().enumerate() {
+    for (_i, v) in data.iter_mut().enumerate() {
         *v = 3.0;
     }
 
@@ -381,7 +377,7 @@ fn test_vulkan_compute_with_wgsl_and_spirv() {
         unsafe { device.map_memory(mem2, 0, vk::WHOLE_SIZE, Default::default()) }.unwrap();
     let check = unsafe { core::slice::from_raw_parts(mapping as *const f32, dispatch_size) };
     // println!("check: {:?}", check);
-    for (i, v) in check.iter().copied().enumerate() {
+    for (_i, v) in check.iter().copied().enumerate() {
         assert_eq!(7.0, v);
     }
     println!("compute shader run successfully!");

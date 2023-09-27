@@ -51,6 +51,8 @@ pub enum DeviceError {
     WGPUDeviceReturn,
     /// The 'cpu' feature is disabled. Hence this CPU can't be created.
     CPUDeviceNotAvailable,
+    /// Invalid lazy out buffer was provided in operation. Out buffer went out of scope?
+    InvalidLazyOutBuf
 }
 
 impl DeviceError {
@@ -70,6 +72,7 @@ impl DeviceError {
                 "The 'cpu' feature is disabled. Hence this CPU can't be created."
             }
             DeviceError::UnifiedConstructNotAvailable => "Unified construction is not available for the provided modules. Add the `Cached` module to your device",
+            DeviceError::InvalidLazyOutBuf => "Invalid lazy out buffer was provided in operation. Out buffer went out of scope?"
         }
     }
 }
