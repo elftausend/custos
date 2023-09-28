@@ -317,7 +317,7 @@ where
 mod test {
     use crate::{
         opencl::{chosen_cl_idx, try_cl_add_unary_grad, try_cl_apply_fn_mut},
-        Base, Buffer, Combiner, OpenCL,
+        Base, Buffer, Combiner, OpenCL, Cached, ApplyFunction,
     };
 
     #[test]
@@ -344,6 +344,17 @@ mod test {
         try_cl_add_unary_grad(&device, &lhs, &mut lhs_grad, &out, |x| x.mul(2).add(1))?;
 
         assert_eq!(lhs_grad.read(), [4, 7, 10, 13, 16, 19]);
+
+        Ok(())
+    }
+    
+    #[test]
+    fn test_cl_apply_fn_cached() -> crate::Result<()> {
+        let device = OpenCL::<crate::Cached<Base>>::new(chosen_cl_idx())?;
+        let lhs = Buffer::from((&device, [1, 2, 3, 4, 5, 6]));
+
+        device.apply_fn(&lhs, |x| x.mul(2));
+
 
         Ok(())
     }

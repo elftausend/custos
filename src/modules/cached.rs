@@ -2,7 +2,7 @@ use core::{cell::RefCell, marker::PhantomData};
 
 use crate::{
     Alloc, Buffer, Cache, Device, Module, OnDropBuffer, OnNewBuffer, Parents, PtrConv, Retrieve,
-    Setup, Shape,
+    Setup, Shape, AddOperation,
 };
 
 // creator struct
@@ -44,6 +44,13 @@ impl<Mods: Setup<NewDev>, D: Device, NewDev> Setup<NewDev> for CachedModule<Mods
     #[inline]
     fn setup(device: &mut NewDev) -> crate::Result<()> {
         Mods::setup(device)
+    }
+}
+
+impl<T, D: Device, SD: Device, Mods: AddOperation<T, D>> AddOperation<T, D> for CachedModule<Mods, SD> {
+    #[inline]
+    fn add_op<S: Shape>(&self, out: &mut Buffer<T, D, S>, operation: impl Fn(&mut Buffer<T, D, S>)) {
+        self.modules.add_op(out, operation)
     }
 }
 

@@ -1,6 +1,6 @@
 use crate::{
     Alloc, Buffer, Device, GpuOrCpuInfo, HashLocation, LocationHasher, Module, OnDropBuffer,
-    OnNewBuffer, Parents, PtrConv, Retrieve, Setup, Shape, UseGpuOrCpu,
+    OnNewBuffer, Parents, PtrConv, Retrieve, Setup, Shape, UseGpuOrCpu, AddOperation,
 };
 use core::{
     cell::RefCell,
@@ -62,6 +62,13 @@ impl<Mods: Setup<D>, D: ForkSetup> Setup<D> for Fork<Mods> {
         // check if device supports unified memory
         device.fork_setup();
         Mods::setup(device)
+    }
+}
+
+impl<T, D: Device, Mods: AddOperation<T, D>> AddOperation<T, D> for Fork<Mods> {
+    #[inline]
+    fn add_op<S: Shape>(&self, out: &mut Buffer<T, D, S>, operation: impl Fn(&mut Buffer<T, D, S>)) {
+        self.modules.add_op(out, operation)
     }
 }
 
