@@ -20,8 +20,8 @@ pub mod wgsl;
 
 #[cfg(feature = "vulkan")]
 pub mod vulkan;
-#[cfg(feature = "wgpu")]
-pub mod wgpu;
+// #[cfg(feature = "wgpu")]
+// pub mod wgpu;
 
 #[cfg(feature = "network")]
 pub mod network;
