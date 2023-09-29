@@ -349,12 +349,11 @@ mod test {
     }
     
     #[test]
-    fn test_cl_apply_fn_cached() -> crate::Result<()> {
-        let device = OpenCL::<crate::Cached<Base>>::new(chosen_cl_idx())?;
+    fn test_cl_apply_fn_autograd() -> crate::Result<()> {
+        let device = OpenCL::<crate::Autograd<Base>>::new(chosen_cl_idx())?;
         let lhs = Buffer::from((&device, [1, 2, 3, 4, 5, 6]));
 
         device.apply_fn(&lhs, |x| x.mul(2));
-
 
         Ok(())
     }

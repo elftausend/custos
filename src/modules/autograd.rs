@@ -19,7 +19,7 @@ pub struct Autograd<Mods> {
     tape: RefCell<Tape>,
 }
 
-impl<Mods: Module<D>, D: Device + Default> Module<D> for Autograd<Mods> {
+impl<Mods: Module<D>, D: Device> Module<D> for Autograd<Mods> {
     type Module = Autograd<CachedModule<Mods::Module, D>>;
 
     #[inline]
@@ -197,7 +197,7 @@ where
     /// Panics if the gradient was not allocated.
     // TODO: Maybe return Result with two error variants?
     #[inline]
-    pub fn grad_mut(&mut self) -> RefMut<Self> {
+    pub fn grad_mut(&self) -> RefMut<Self> {
         self.grad_mut_unbound()
     }
 
@@ -206,7 +206,7 @@ where
     /// Panics if the gradient was not allocated.
     // TODO: Maybe return Result with two error variants?
     #[inline]
-    pub fn grad_mut_unbound(&mut self) -> RefMut<'a, Self> {
+    pub fn grad_mut_unbound(&self) -> RefMut<'a, Self> {
         RefMut::map(
             self.device().tape_mut().expect(AUTOGRAD_NOT_AVAILABLE),
             |tape| {
