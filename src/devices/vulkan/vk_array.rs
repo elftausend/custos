@@ -164,11 +164,8 @@ pub unsafe fn allocate_memory(
 #[cfg(test)]
 mod tests {
     use std::rc::Rc;
-
     use ash::vk::BufferUsageFlags;
-
     use crate::vulkan::context::Context;
-
     use super::VkArray;
 
     #[test]

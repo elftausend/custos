@@ -5,7 +5,6 @@ use crate::{prelude::One, Alloc, Buffer, HasId, HashLocation, LocationHasher, Sh
 
 use super::Gradients;
 
-// does not require the device param ???
 pub type GradFn = Box<dyn Fn(&mut Gradients)>;
 
 /// Stores the grad functions and gradient cache.
