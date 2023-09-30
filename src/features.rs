@@ -104,6 +104,23 @@ pub trait AddOperation<T, D: Device> {
     fn add_op<S: Shape>(&self, out: &mut Buffer<T, D, S>, operation: impl Fn(&mut Buffer<T, D, S>));
 }
 
+/// Implements the [`AddOperation`] trait for any supplied device. The `add_op` call is passed down to `self.modules`.
+#[macro_export]
+macro_rules! pass_down_add_operation {
+    ($device:ident) => {
+        impl<T, D: $crate::Device, Mods: $crate::AddOperation<T, D>> $crate::AddOperation<T, D> for $device<Mods> {
+            #[inline]
+            fn add_op<S: $crate::Shape>(
+                &self,
+                out: &mut $crate::Buffer<T, D, S>,
+                operation: impl Fn(&mut $crate::Buffer<T, D, S>),
+            ) {
+                self.modules.add_op(out, operation)
+            }
+        }
+    };
+}
+
 pub trait HasCPU<Mods> {
     fn cpu(&self) -> &CPU<Mods>;
 }

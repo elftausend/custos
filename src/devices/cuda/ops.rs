@@ -3,13 +3,15 @@ use core::ops::{Range, RangeBounds};
 use crate::{
     bounds_to_range,
     cuda::api::{cu_read_async, CUstreamCaptureStatus},
-    Buffer, CDatatype, ClearBuf, CopySlice, OnDropBuffer, Read, WriteBuf, CUDA,
+    Buffer, CDatatype, ClearBuf, CopySlice, OnDropBuffer, Read, WriteBuf, CUDA, pass_down_add_operation,
 };
 
 use super::{
     api::{cuMemcpy, cu_write_async},
     cu_clear,
 };
+
+pass_down_add_operation!(CUDA);
 
 impl<Mods: OnDropBuffer, T: Default + Clone> Read<T> for CUDA<Mods> {
     type Read<'a> = Vec<T>

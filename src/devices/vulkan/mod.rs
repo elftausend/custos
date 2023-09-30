@@ -7,6 +7,7 @@ mod context;
 mod shader;
 mod vk_array;
 mod vulkan_device;
+mod ops;
 
 pub use context::*;
 pub use shader::*;

@@ -7,8 +7,8 @@ use min_cl::api::{
 
 use crate::{
     bounds_to_range, cpu_stack_ops::clear_slice, prelude::Number, AddOperation, ApplyFunction,
-    Buffer, CDatatype, ClearBuf, CopySlice, Device, Eval, OnDropBuffer, OpenCL, Read, Resolve,
-    Retrieve, Retriever, Shape, ToCLSource, ToMarker, UnaryGrad, UseGpuOrCpu, WriteBuf,
+    Buffer, CDatatype, ClearBuf, CopySlice, Eval, OnDropBuffer, OpenCL, Read, Resolve,
+    Retrieve, Retriever, Shape, ToCLSource, ToMarker, UnaryGrad, UseGpuOrCpu, WriteBuf, pass_down_add_operation,
 };
 
 use super::enqueue_kernel;
@@ -19,16 +19,8 @@ use super::enqueue_kernel;
         try_cl_clear(self, buf).unwrap()
     }
 }*/
-impl<T, D: Device, Mods: AddOperation<T, D>> AddOperation<T, D> for OpenCL<Mods> {
-    #[inline]
-    fn add_op<S: Shape>(
-        &self,
-        out: &mut Buffer<T, D, S>,
-        operation: impl Fn(&mut Buffer<T, D, S>),
-    ) {
-        self.modules.add_op(out, operation)
-    }
-}
+
+pass_down_add_operation!(OpenCL);
 
 impl<Mods: OnDropBuffer + UseGpuOrCpu, T: CDatatype + Default> ClearBuf<T> for OpenCL<Mods> {
     #[inline]

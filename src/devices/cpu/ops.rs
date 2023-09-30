@@ -3,7 +3,7 @@ use core::ops::{AddAssign, Index, Range, RangeBounds};
 use crate::{
     bounds_to_range, cpu_stack_ops::clear_slice, AddOperation, Alloc, ApplyFunction, Buffer,
     ClearBuf, CopySlice, Device, Eval, HasId, MainMemory, MayTapeActions, MayToCLSource,
-    OnDropBuffer, Read, Resolve, Retrieve, Retriever, Shape, ToVal, UnaryGrad, WriteBuf, CPU,
+    OnDropBuffer, Read, Resolve, Retrieve, Retriever, Shape, ToVal, UnaryGrad, WriteBuf, CPU, pass_down_add_operation,
 };
 
 #[cfg(feature = "autograd")]
@@ -44,16 +44,7 @@ where
     }
 }
 
-impl<T, D: Device, Mods: AddOperation<T, D>> AddOperation<T, D> for CPU<Mods> {
-    #[inline]
-    fn add_op<S: Shape>(
-        &self,
-        out: &mut Buffer<T, D, S>,
-        operation: impl Fn(&mut Buffer<T, D, S>),
-    ) {
-        self.modules.add_op(out, operation)
-    }
-}
+pass_down_add_operation!(CPU);
 
 impl<Mods, T, D, S> ApplyFunction<T, S, D> for CPU<Mods>
 where
