@@ -6,9 +6,10 @@ use min_cl::api::{
 };
 
 use crate::{
-    bounds_to_range, cpu_stack_ops::clear_slice, prelude::Number, AddOperation, ApplyFunction,
-    Buffer, CDatatype, ClearBuf, CopySlice, Eval, OnDropBuffer, OpenCL, Read, Resolve,
-    Retrieve, Retriever, Shape, ToCLSource, ToMarker, UnaryGrad, UseGpuOrCpu, WriteBuf, pass_down_add_operation,
+    bounds_to_range, cpu_stack_ops::clear_slice, pass_down_add_operation, prelude::Number,
+    AddOperation, ApplyFunction, Buffer, CDatatype, ClearBuf, CopySlice, Eval, OnDropBuffer,
+    OpenCL, Read, Resolve, Retrieve, Retriever, Shape, ToCLSource, ToMarker, UnaryGrad,
+    UseGpuOrCpu, WriteBuf,
 };
 
 use super::enqueue_kernel;
@@ -184,7 +185,7 @@ where
     fn apply_fn<F>(
         &self,
         buf: &Buffer<T, Self, S>,
-        f: impl Fn(Resolve<T>) -> F + Copy, 
+        f: impl Fn(Resolve<T>) -> F + Copy,
     ) -> Buffer<T, Self, S>
     where
         F: ToCLSource + Eval<T>,
@@ -309,7 +310,7 @@ where
 mod test {
     use crate::{
         opencl::{chosen_cl_idx, try_cl_add_unary_grad, try_cl_apply_fn_mut},
-        Base, Buffer, Combiner, OpenCL, Cached, ApplyFunction,
+        ApplyFunction, Base, Buffer, Combiner, OpenCL,
     };
 
     #[test]
@@ -339,7 +340,7 @@ mod test {
 
         Ok(())
     }
-    
+
     #[test]
     fn test_cl_apply_fn_autograd() -> crate::Result<()> {
         let device = OpenCL::<crate::Autograd<Base>>::new(chosen_cl_idx())?;

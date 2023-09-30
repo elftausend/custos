@@ -108,7 +108,9 @@ pub trait AddOperation<T, D: Device> {
 #[macro_export]
 macro_rules! pass_down_add_operation {
     ($device:ident) => {
-        impl<T, D: $crate::Device, Mods: $crate::AddOperation<T, D>> $crate::AddOperation<T, D> for $device<Mods> {
+        impl<T, D: $crate::Device, Mods: $crate::AddOperation<T, D>> $crate::AddOperation<T, D>
+            for $device<Mods>
+        {
             #[inline]
             fn add_op<S: $crate::Shape>(
                 &self,
@@ -140,7 +142,7 @@ pub trait UnifiedMemChain<D: Device> {
 
 #[cfg(feature = "cached")]
 #[macro_export]
-macro_rules! impl_unified_mem_chain {
+macro_rules! pass_down_unified_mem_chain {
     ($($to_impl:ident),*) => {
         $(
             impl<Mods: UnifiedMemChain<D>, D: Device> UnifiedMemChain<D> for $to_impl<Mods> {
@@ -165,10 +167,10 @@ use crate::Lazy;
 
 #[cfg(feature = "lazy")]
 #[cfg(feature = "cached")]
-impl_unified_mem_chain!(Lazy);
+pass_down_unified_mem_chain!(Lazy);
 
 #[cfg(feature = "autograd")]
-impl_unified_mem_chain!(Autograd);
+pass_down_unified_mem_chain!(Autograd);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Default)]
 pub struct GpuOrCpuInfo {
@@ -177,9 +179,9 @@ pub struct GpuOrCpuInfo {
 }
 
 #[macro_export]
-macro_rules! impl_use_gpu_or_cpu {
+macro_rules! pass_down_use_gpu_or_cpu {
     ($to_impl:ident) => {
-        impl<Mods: UseGpuOrCpu> UseGpuOrCpu for $to_impl<Mods> {
+        impl<Mods: $crate::UseGpuOrCpu> $crate::UseGpuOrCpu for $to_impl<Mods> {
             #[inline]
             fn use_cpu_or_gpu(
                 &self,
@@ -187,7 +189,7 @@ macro_rules! impl_use_gpu_or_cpu {
                 input_lengths: &[usize],
                 cpu_op: impl FnMut(),
                 gpu_op: impl FnMut(),
-            ) -> GpuOrCpuInfo {
+            ) -> $crate::GpuOrCpuInfo {
                 self.modules
                     .use_cpu_or_gpu(location, input_lengths, cpu_op, gpu_op)
             }
@@ -196,10 +198,10 @@ macro_rules! impl_use_gpu_or_cpu {
 }
 
 #[cfg(feature = "autograd")]
-impl_use_gpu_or_cpu!(Autograd);
+pass_down_use_gpu_or_cpu!(Autograd);
 
 #[cfg(feature = "lazy")]
-impl_use_gpu_or_cpu!(Lazy);
+pass_down_use_gpu_or_cpu!(Lazy);
 
 pub trait UseGpuOrCpu {
     #[track_caller]

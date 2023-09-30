@@ -271,7 +271,7 @@ pub mod prelude {
     pub use crate::wgpu::{launch_shader, WGPU};
 
     #[cfg(feature = "cuda")]
-    pub use crate::cuda::{chosen_cu_idx, launch_kernel1d, CUDA, CUBuffer};
+    pub use crate::cuda::{chosen_cu_idx, launch_kernel1d, CUBuffer, CUDA};
 }
 
 #[cfg(test)]

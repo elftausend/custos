@@ -214,7 +214,7 @@ mod tests {
     #[test]
     #[cfg(feature = "cpu")]
     fn test_lazy_apply_fn_with_run_cpu_drop_buf() {
-        use crate::{Run, DeviceError};
+        use crate::{DeviceError, Run};
 
         let device = CPU::<Lazy<Base>>::new();
 

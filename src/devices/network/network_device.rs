@@ -108,6 +108,7 @@ impl<'a, T> ClearBuf<T> for Network<'a> {
 
 pub struct NetworkArray<'a, T> {
     id: cuw::BufId,
+    // why client?
     client: &'a RefCell<cuw::client::Client>,
     _p: PhantomData<T>,
 }

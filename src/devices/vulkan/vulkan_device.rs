@@ -2,8 +2,8 @@ use ash::vk::BufferUsageFlags;
 
 use super::{context::Context, launch_shader, AsVkShaderArgument, ShaderCache, VkArray};
 use crate::{
-    flag::AllocFlag, impl_buffer_hook_traits, impl_retriever, Alloc, Base, Buffer, Device,
-    MainMemory, Module, OnDropBuffer, PtrConv, Setup, Shape,
+    flag::AllocFlag, impl_buffer_hook_traits, impl_retriever, pass_down_use_gpu_or_cpu, Alloc,
+    Base, Buffer, Device, MainMemory, Module, OnDropBuffer, PtrConv, Setup, Shape,
 };
 use core::cell::RefCell;
 use std::rc::Rc;
@@ -40,6 +40,7 @@ impl<Mods> Vulkan<Mods> {
 
 impl_retriever!(Vulkan);
 impl_buffer_hook_traits!(Vulkan);
+pass_down_use_gpu_or_cpu!(Vulkan);
 
 impl<Mods: OnDropBuffer> Device for Vulkan<Mods> {
     type Data<T, S: Shape> = VkArray<T>;
@@ -80,6 +81,9 @@ impl<Mods: OnDropBuffer> MainMemory for Vulkan<Mods> {
         ptr.mapped_ptr
     }
 }
+
+#[cfg(feature = "fork")]
+impl<Mods> crate::ForkSetup for Vulkan<Mods> {}
 
 #[cfg(feature = "autograd")]
 impl<Mods: crate::TapeActions> crate::TapeActions for Vulkan<Mods> {

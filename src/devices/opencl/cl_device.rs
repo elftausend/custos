@@ -7,8 +7,8 @@ use min_cl::api::{
 use super::{enqueue_kernel, AsClCvoidPtr, CLKernelCache, CLPtr};
 use crate::flag::AllocFlag;
 use crate::{
-    impl_buffer_hook_traits, impl_retriever, Alloc, Base, Buffer, Cached, CachedCPU, CloneBuf,
-    Device, Error, GpuOrCpuInfo, HashLocation, Module, OnDropBuffer, Setup, UseGpuOrCpu, CPU,
+    impl_buffer_hook_traits, impl_retriever, pass_down_use_gpu_or_cpu, Alloc, Base, Buffer, Cached,
+    CachedCPU, CloneBuf, Device, Error, Module, OnDropBuffer, Setup, CPU,
 };
 use crate::{PtrConv, Shape};
 
@@ -328,19 +328,7 @@ impl<Mods> ForkSetup for OpenCL<Mods> {
     }
 }
 
-impl<Mods: UseGpuOrCpu> UseGpuOrCpu for OpenCL<Mods> {
-    #[inline]
-    fn use_cpu_or_gpu(
-        &self,
-        location: HashLocation<'static>,
-        input_lengths: &[usize],
-        cpu_op: impl FnMut(),
-        gpu_op: impl FnMut(),
-    ) -> GpuOrCpuInfo {
-        self.modules
-            .use_cpu_or_gpu(location, input_lengths, cpu_op, gpu_op)
-    }
-}
+pass_down_use_gpu_or_cpu!(OpenCL);
 
 impl<Mods: crate::RunModule<Self>> crate::Run for OpenCL<Mods> {
     #[inline]

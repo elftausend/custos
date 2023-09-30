@@ -52,7 +52,7 @@ pub enum DeviceError {
     /// The 'cpu' feature is disabled. Hence this CPU can't be created.
     CPUDeviceNotAvailable,
     /// Invalid lazy out buffer was provided in operation. Out buffer went out of scope?
-    InvalidLazyOutBuf
+    InvalidLazyOutBuf,
 }
 
 impl DeviceError {

@@ -1,6 +1,6 @@
 use crate::{
-    Alloc, Buffer, Device, GpuOrCpuInfo, HashLocation, LocationHasher, Module, OnDropBuffer,
-    OnNewBuffer, Parents, PtrConv, Retrieve, Setup, Shape, UseGpuOrCpu, AddOperation,
+    AddOperation, Alloc, Buffer, Device, GpuOrCpuInfo, HashLocation, LocationHasher, Module,
+    OnDropBuffer, OnNewBuffer, Parents, PtrConv, Retrieve, Setup, Shape, UseGpuOrCpu,
 };
 use core::{
     cell::RefCell,
@@ -67,7 +67,11 @@ impl<Mods: Setup<D>, D: ForkSetup> Setup<D> for Fork<Mods> {
 
 impl<T, D: Device, Mods: AddOperation<T, D>> AddOperation<T, D> for Fork<Mods> {
     #[inline]
-    fn add_op<S: Shape>(&self, out: &mut Buffer<T, D, S>, operation: impl Fn(&mut Buffer<T, D, S>)) {
+    fn add_op<S: Shape>(
+        &self,
+        out: &mut Buffer<T, D, S>,
+        operation: impl Fn(&mut Buffer<T, D, S>),
+    ) {
         self.modules.add_op(out, operation)
     }
 }
@@ -100,7 +104,7 @@ pub fn init_binary_heap<S: BuildHasher>(
     // FIXME: algorithm runs twice
     gpu_op();
     let (use_cpu, cpu_dur, gpu_dur) = should_use_cpu(cpu_op, gpu_op);
-    println!("use_cpu: {use_cpu}, cpu_dur: {cpu_dur:?}, gpu_dur: {gpu_dur:?}");
+    // println!("use_cpu: {use_cpu}, cpu_dur: {cpu_dur:?}, gpu_dur: {gpu_dur:?}");
     gpu_or_cpu.insert(
         location,
         BinaryHeap::from([Analyzation {
