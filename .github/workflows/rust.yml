@@ -59,10 +59,13 @@ jobs:
 
     - uses: Swatinem/rust-cache@v1
 
-    - name: Run tests
+    - name: Run tests,fork
       run: cargo test --verbose --no-default-features --features cpu,fork
+    - name: Run tests,autograd
       run: cargo test --verbose --no-default-features --features cpu,autograd
+    - name: Run tests,lazy
       run: cargo test --verbose --no-default-features --features cpu,lazy
+    - name: Run tests,cached,fork
       run: cargo test --verbose --no-default-features --features cpu,cached,fork
 
   test-cached:
