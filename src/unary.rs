@@ -53,7 +53,7 @@ pub trait UnaryGrad<T, S: Shape = (), D: Device = Self>: Device {
         lhs: &Buffer<T, D, S>,
         lhs_grad: &mut Buffer<T, D, S>,
         out_grad: &Buffer<T, D, S>,
-        lhs_grad_fn: impl Fn(Resolve<T>) -> F,
+        lhs_grad_fn: impl Fn(Resolve<T>) -> F + Copy,
     ) where
         F: Eval<T> + MayToCLSource;
 }

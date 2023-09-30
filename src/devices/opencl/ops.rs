@@ -249,7 +249,7 @@ where
     Ok(())
 }
 
-impl<T, S> UnaryGrad<T, S> for OpenCL
+impl<T, S, Mods: OnDropBuffer + AddOperation<T, Self>> UnaryGrad<T, S> for OpenCL<Mods>
 where
     T: CDatatype + Number,
     S: Shape,
@@ -260,11 +260,13 @@ where
         lhs: &Buffer<T, Self, S>,
         lhs_grad: &mut Buffer<T, Self, S>,
         out: &Buffer<T, Self, S>,
-        lhs_grad_fn: impl Fn(Resolve<T>) -> F,
+        lhs_grad_fn: impl Fn(Resolve<T>) -> F + Copy,
     ) where
         F: ToCLSource,
     {
-        try_cl_add_unary_grad(self, lhs, lhs_grad, out, lhs_grad_fn).unwrap();
+        self.add_op(lhs_grad, |lhs_grad| {
+            try_cl_add_unary_grad(self, lhs, lhs_grad, out, lhs_grad_fn).unwrap()
+        });
     }
 }
 

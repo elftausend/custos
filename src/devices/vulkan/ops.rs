@@ -1,7 +1,7 @@
 use crate::{
     cpu_stack_ops::clear_slice, pass_down_add_operation, prelude::Number, AddOperation,
     ApplyFunction, Buffer, CDatatype, ClearBuf, OnDropBuffer, Read, Resolve, Retrieve, Retriever,
-    Shape, ToMarker, UseGpuOrCpu, Vulkan, ToWgslSource,
+    Shape, ToMarker, ToWgslSource, UseGpuOrCpu, Vulkan, UnaryGrad,
 };
 
 use super::VkArray;
@@ -133,13 +133,76 @@ where
         dtype = std::any::type_name::<T>(),
         op = f("x[global_id.x]".to_marker()).to_wgsl_source()
     );
-    println!("src: {src}");
     device.launch_shader([(32 + x.len as u32) / 32, 1, 1], src, &[x, out])
 }
 
+impl<T, S, Mods: OnDropBuffer + AddOperation<T, Self>> UnaryGrad<T, S> for Vulkan<Mods>
+where
+    T: CDatatype + Number,
+    S: Shape,
+{
+    #[inline]
+    fn add_unary_grad<F>(
+        &self,
+        lhs: &Buffer<T, Self, S>,
+        lhs_grad: &mut Buffer<T, Self, S>,
+        out: &Buffer<T, Self, S>,
+        lhs_grad_fn: impl Fn(Resolve<T>) -> F + Copy,
+    ) where
+        F: ToWgslSource,
+    {
+        self.add_op(lhs_grad, |lhs_grad| {
+            try_vk_add_unary_grad(self, &lhs.data, &mut lhs_grad.data, &out.data, lhs_grad_fn).unwrap()
+        });
+    }
+}
+pub fn try_vk_add_unary_grad<T, F, Mods: OnDropBuffer>(
+    device: &Vulkan<Mods>,
+    lhs: &VkArray<T>,
+    lhs_grad: &mut VkArray<T>,
+    out: &VkArray<T>,
+    lhs_grad_fn: impl Fn(Resolve<T>) -> F,
+) -> crate::Result<()>
+where
+    T: CDatatype + Number,
+    F: ToWgslSource,
+{
+    let src = format!(
+        "
+        @group(0)
+        @binding(0)
+        var<storage, read_write> lhs: array<{dtype}>;
+
+        @group(0)
+        @binding(1)
+        var<storage, read_write> lhs_grad: array<{dtype}>;
+        
+        @group(0)
+        @binding(2)
+        var<storage, read_write> out: array<{dtype}>;
+        
+        @compute
+        @workgroup_size(32)
+        fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {{
+            if global_id.x >= arrayLength(&out) {{
+                return;    
+            }}
+            lhs_grad[global_id.x] += out[global_id.x] * {op};
+        }}
+
+    ",
+        dtype = std::any::type_name::<T>(),
+        op = lhs_grad_fn("lhs[global_id.x]".to_marker()).to_wgsl_source()
+    );
+    device.launch_shader(
+        [(32 + lhs.len as u32) / 32, 1, 1],
+        src,
+        &[lhs, lhs_grad, out],
+    )
+}
 #[cfg(test)]
 mod tests {
-    use crate::{Base, Buffer, Combiner, Fork, Vulkan};
+    use crate::{Base, Buffer, Combiner, Fork, Vulkan, vulkan::ops::try_vk_add_unary_grad};
 
     use super::{try_vk_apply_fn_mut, try_vk_clear};
 
@@ -196,5 +259,20 @@ mod tests {
         let mut out = x.empty_like();
         try_vk_apply_fn_mut(&device, &x.data, &mut out.data, |x| x.add(1f64)).unwrap();
         assert_eq!(out.read(), [2f64, 3., 4., 5., 6., 7.,])
+    }
+
+    #[test]
+    fn test_vk_add_unary_grad() -> crate::Result<()> {
+        let device = Vulkan::<Base>::new(0)?;
+        let lhs = Buffer::from((&device, [1, 2, 3, 4, 5, 6]));
+        let mut lhs_grad = Buffer::from((&device, [1, 2, 3, 4, 5, 6]));
+
+        let out = Buffer::from((&device, [1, 1, 1, 1, 1, 1]));
+
+        try_vk_add_unary_grad(&device, &lhs.data, &mut lhs_grad.data, &out.data, |x| x.mul(2).add(1))?;
+
+        assert_eq!(lhs_grad.read(), [4, 7, 10, 13, 16, 19]);
+
+        Ok(())
     }
 }

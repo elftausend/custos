@@ -1,13 +1,12 @@
 use core::ops::{AddAssign, Index, Range, RangeBounds};
 
 use crate::{
-    bounds_to_range, cpu_stack_ops::{clear_slice, apply_fn_slice}, pass_down_add_operation, AddOperation,
-    ApplyFunction, Buffer, ClearBuf, CopySlice, Eval, MainMemory,
-    MayToCLSource, OnDropBuffer, Read, Resolve, Retrieve, Retriever, Shape, ToVal, UnaryGrad,
-    WriteBuf, CPU,
+    bounds_to_range,
+    cpu_stack_ops::{apply_fn_slice, clear_slice},
+    pass_down_add_operation, AddOperation, ApplyFunction, Buffer, ClearBuf, CopySlice, Eval,
+    MainMemory, MayToCLSource, OnDropBuffer, Read, Resolve, Retrieve, Retriever, Shape, ToVal,
+    UnaryGrad, WriteBuf, CPU,
 };
-
-
 
 pass_down_add_operation!(CPU);
 
@@ -18,7 +17,11 @@ where
     D: crate::MainMemory,
     S: Shape,
 {
-    fn apply_fn<F>(&self, buf: &Buffer<T, D, S>, f: impl Fn(Resolve<T>) -> F + Copy) -> Buffer<T, Self, S>
+    fn apply_fn<F>(
+        &self,
+        buf: &Buffer<T, D, S>,
+        f: impl Fn(Resolve<T>) -> F + Copy,
+    ) -> Buffer<T, Self, S>
     where
         F: Eval<T> + MayToCLSource,
     {
