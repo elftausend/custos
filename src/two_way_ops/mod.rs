@@ -1,6 +1,8 @@
 mod ops;
 mod resolve;
+mod to_wgsl_source;
 
+pub use to_wgsl_source::*;
 pub use resolve::*;
 
 use self::ops::{Add, Cos, Div, Eq, Exp, GEq, LEq, Mul, Neg, Pow, Sin, Sub, Tan};
@@ -39,9 +41,9 @@ impl ToCLSource for String {
 /// If the `no-std` feature is disabled, this trait is implemented for all types that implement [`ToCLSource`].
 /// In this case, `no-std` is disabled.
 #[cfg(not(feature = "no-std"))]
-pub trait MayToCLSource: ToCLSource {}
+pub trait MayToCLSource: ToCLSource + Combiner {}
 #[cfg(not(feature = "no-std"))]
-impl<T: ToCLSource> MayToCLSource for T {}
+impl<T: ToCLSource + Combiner> MayToCLSource for T {}
 
 /// If the `no-std` feature is disabled, this trait is implemented for all types that implement [`ToCLSource`].
 /// In this case, `no-std` is enabled and no C source string can be generated.

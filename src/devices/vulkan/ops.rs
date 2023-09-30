@@ -1,7 +1,7 @@
 use crate::{
-    cpu_stack_ops::clear_slice, pass_down_add_operation, prelude::Number, ApplyFunction, Buffer,
-    CDatatype, ClearBuf, OnDropBuffer, Read, Resolve, Shape, ToCLSource, ToMarker, UseGpuOrCpu,
-    Vulkan, AddOperation, Retrieve, Retriever,
+    cpu_stack_ops::clear_slice, pass_down_add_operation, prelude::Number, AddOperation,
+    ApplyFunction, Buffer, CDatatype, ClearBuf, OnDropBuffer, Read, Resolve, Retrieve, Retriever,
+    Shape, ToMarker, UseGpuOrCpu, Vulkan, ToWgslSource,
 };
 
 use super::VkArray;
@@ -76,7 +76,7 @@ where
         f: impl Fn(Resolve<T>) -> F + Copy,
     ) -> Buffer<T, Self, S>
     where
-        F: crate::Eval<T> + crate::MayToCLSource,
+        F: crate::Eval<T> + crate::MayToWgslSource,
     {
         let mut out = self.retrieve(buf.len(), buf);
 
@@ -108,7 +108,7 @@ pub fn try_vk_apply_fn_mut<'a, T, Mods, F>(
 where
     T: Number,
     Mods: OnDropBuffer,
-    F: ToCLSource,
+    F: ToWgslSource,
 {
     let src = format!(
         "
@@ -131,8 +131,9 @@ where
 
     ",
         dtype = std::any::type_name::<T>(),
-        op = f("x[global_id.x]".to_marker()).to_cl_source()
+        op = f("x[global_id.x]".to_marker()).to_wgsl_source()
     );
+    println!("src: {src}");
     device.launch_shader([(32 + x.len as u32) / 32, 1, 1], src, &[x, out])
 }
 
@@ -188,11 +189,12 @@ mod tests {
     }
 
     #[test]
+    #[ignore = "f64 currenlty not supported"]
     fn test_vk_apply_fn_f64() {
         let device = Vulkan::<Base>::new(0).unwrap();
         let x = Buffer::from((&device, [1f64, 2., 3., 4., 5., 6.]));
         let mut out = x.empty_like();
-        try_vk_apply_fn_mut(&device, &x.data, &mut out.data, |x| x.add("1.0")).unwrap();
+        try_vk_apply_fn_mut(&device, &x.data, &mut out.data, |x| x.add(1f64)).unwrap();
         assert_eq!(out.read(), [2f64, 3., 4., 5., 6., 7.,])
     }
 }
