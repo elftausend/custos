@@ -192,8 +192,7 @@ mod tests {
         let device = OpenCL::<Cached<Base>>::new(0)?;
         let buf = device.construct_unified_buf_from_cpu_buf(&device, no_drop);
         match buf
-            .err()
-            .expect("Missing error -> failure")
+            .expect_err("Missing error -> failure")
             .downcast_ref::<DeviceError>()
             .unwrap()
         {
@@ -211,8 +210,7 @@ mod tests {
         let device = OpenCL::<Base>::new(chosen_cl_idx())?;
         let buf = device.construct_unified_buf_from_cpu_buf(&device, no_drop);
         match buf
-            .err()
-            .expect("Missing error -> failure")
+            .expect_err("Missing error -> failure")
             .downcast_ref::<DeviceError>()
             .unwrap()
         {
@@ -232,8 +230,7 @@ mod tests {
 
         let buf = construct_buffer(&device, no_drop, &mut cache.nodes, HashLocation::here());
         match buf
-            .err()
-            .expect("Missing error -> failure")
+            .expect_err("Missing error -> failure")
             .downcast_ref::<DeviceError>()
             .unwrap()
         {

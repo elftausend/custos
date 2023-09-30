@@ -43,7 +43,7 @@ impl<Mods> crate::LazyRun for CUDA<Mods> {
         let graph = self
             .graph
             // TODO: change to get_or_try_init when stable
-            .get_or_init(|| LazyCudaGraph::new(&self.stream()).unwrap());
+            .get_or_init(|| LazyCudaGraph::new(self.stream()).unwrap());
 
         graph.launch(self.stream.0)?;
         self.stream().sync()?;

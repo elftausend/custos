@@ -24,11 +24,11 @@ where
     );
 
     launch_kernel(
-        &device,
+        device,
         [lhs.len() as u32 / 32, 1, 1],
         [32, 1, 1],
         0,
-        &src,
+        src,
         "cu_ew",
         &[lhs, rhs, out, &lhs.len()],
     )

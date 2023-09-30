@@ -96,7 +96,7 @@ impl<Mods: RunModule<D>, D: LazyRun + PtrConv> RunModule<D> for Lazy<Mods> {
 
 impl<Mods: OnDropBuffer> OnDropBuffer for Lazy<Mods> {
     #[inline]
-    fn on_drop_buffer<'a, T, D: Device, S: Shape>(&self, device: &'a D, buf: &Buffer<T, D, S>) {
+    fn on_drop_buffer<T, D: Device, S: Shape>(&self, device: &D, buf: &Buffer<T, D, S>) {
         super::unregister_buf(&mut self.outs.borrow_mut(), buf.id());
         self.modules.on_drop_buffer(device, buf)
     }

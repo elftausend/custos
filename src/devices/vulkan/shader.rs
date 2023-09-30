@@ -246,7 +246,7 @@ mod tests {
             context.clone(),
             [1, 1, 1],
             &mut shader_cache,
-            &src,
+            src,
             &[&lhs.buf, &rhs.buf, &out.buf, &1f32], // &[out.buf, out2.buf]
         )
         .unwrap();
@@ -313,7 +313,7 @@ mod tests {
             context.clone(),
             [1, 1, 1],
             &mut shader_cache,
-            &src,
+            src,
             &[&lhs.buf, &rhs.buf, &out.buf], // &[out.buf, out2.buf]
         )
         .unwrap();
@@ -335,7 +335,7 @@ mod tests {
                 context.clone(),
                 [1, 1, 1],
                 &mut shader_cache,
-                &src,
+                src,
                 &[&lhs.buf, &rhs.buf, &out.buf],
             )
             .unwrap();
@@ -403,7 +403,7 @@ mod tests {
             context.clone(),
             [1, 1, 1],
             &mut shader_cache,
-            &src,
+            src,
             &[&lhs.buf, &rhs.buf, &out.buf], // &[out.buf, out2.buf]
         )
         .unwrap();

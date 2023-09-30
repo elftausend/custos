@@ -116,7 +116,7 @@ mod tests {
             [a.len() as u32, 1, 1],
             [1, 1, 1],
             0,
-            &mut device.stream(),
+            device.stream(),
             &mut [
                 &a.ptrs().2 as *const u64 as *mut c_void,
                 &b.ptrs().2 as *const u64 as *mut c_void,

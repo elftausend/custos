@@ -115,7 +115,7 @@ mod tests {
             let mut out = self.retrieve(S::LEN, (lhs, rhs));
 
             for i in 0..S::LEN {
-                out[i] = lhs[i].clone() + rhs[i].clone();
+                out[i] = lhs[i] + rhs[i];
             }
             out
         }

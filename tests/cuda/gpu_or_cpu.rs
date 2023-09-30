@@ -1,4 +1,4 @@
-use custos::{Base, Buffer, CDatatype, Device, CUDA};
+use custos::{Base, Buffer, Device, CUDA};
 
 pub struct State<'a, 'b> {
     device: &'a CUDA,

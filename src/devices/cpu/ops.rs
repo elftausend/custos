@@ -7,8 +7,7 @@ use crate::{
     WriteBuf, CPU,
 };
 
-#[cfg(feature = "autograd")]
-use crate::TapeActions;
+
 
 pass_down_add_operation!(CPU);
 

@@ -15,7 +15,7 @@ where
     fn mul(&self, lhs: &Buffer<T, D, S>, rhs: &Buffer<T, D, S>) -> Buffer<T, Self, S> {
         let mut out = self.retrieve(lhs.len(), (lhs, rhs));
 
-        for ((lhs, rhs), out) in lhs.iter().zip(&*rhs).zip(&mut out) {
+        for ((lhs, rhs), out) in lhs.iter().zip(rhs).zip(&mut out) {
             *out = *lhs * *rhs;
         }
 

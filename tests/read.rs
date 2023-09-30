@@ -12,7 +12,7 @@ fn test_read_cuda() -> custos::Result<()> {
 }
 
 fn slice_u8_cast<T>(input: &[T]) -> &[u8] {
-    unsafe { std::slice::from_raw_parts(input.as_ptr() as *const u8, input.len() * size_of::<T>()) }
+    unsafe { std::slice::from_raw_parts(input.as_ptr() as *const u8, std::mem::size_of_val(input)) }
 }
 
 #[test]

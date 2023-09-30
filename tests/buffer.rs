@@ -18,12 +18,12 @@ where
 }
 
 #[cfg(not(feature = "no-std"))]
-pub fn read<'a, T, D: Alloc<T>>(device: &D, buf: &'a Buffer<T, D>) -> Vec<T>
+pub fn read<T, D: Alloc<T>>(device: &D, buf: &Buffer<T, D>) -> Vec<T>
 where
     D: Read<T> + Device,
     T: Clone + Default,
 {
-    device.read_to_vec(&buf)
+    device.read_to_vec(buf)
 }
 
 #[cfg(feature = "opencl")]

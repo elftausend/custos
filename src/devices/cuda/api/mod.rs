@@ -145,7 +145,7 @@ mod tests {
             let mut device = 0;
             let mut context: *mut CUctx_st = std::ptr::null_mut();
 
-            let a: Vec<f32> = (0..N).into_iter().map(|x| x as f32).collect();
+            let a: Vec<f32> = (0..N).map(|x| x as f32).collect();
             let mut a_d: CUdeviceptr = 0;
 
             let mut out = [0f32; N];

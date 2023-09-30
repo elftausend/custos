@@ -218,10 +218,10 @@ mod tests {
 
         println!("other_buf: {:?}", other_buf.read());
 
-        len_of_shape(&other_buf);
+        len_of_shape(other_buf);
 
         println!("other_buf: {:?}", other_buf.read());
 
-        len_of_shape(&other_buf);
+        len_of_shape(other_buf);
     }
 }

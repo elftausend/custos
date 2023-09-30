@@ -177,6 +177,6 @@ mod tests {
     fn test_num_device() {
         use crate::Device;
 
-        let _device = <()>::new().unwrap();
+        <()>::new().unwrap();
     }
 }

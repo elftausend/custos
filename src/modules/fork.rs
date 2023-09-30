@@ -452,7 +452,7 @@ mod tests {
             },
         ];
 
-        let input_lengths = vec![120000, 120000];
+        let input_lengths = [120000, 120000];
         // let output_lengths = vec![120000];
 
         for anal in anals {
