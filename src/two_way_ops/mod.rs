@@ -16,6 +16,22 @@ pub trait ToCLSource {
 impl<N: crate::number::Numeric> ToCLSource for N {
     #[inline]
     fn to_cl_source(&self) -> String {
+        format!("{:?}", self)
+    }
+}
+
+#[cfg(not(feature = "no-std"))]
+impl ToCLSource for &'static str {
+    #[inline]
+    fn to_cl_source(&self) -> String {
+        self.to_string()
+    }
+}
+
+#[cfg(not(feature = "no-std"))]
+impl ToCLSource for String {
+    #[inline]
+    fn to_cl_source(&self) -> String {
         self.to_string()
     }
 }
@@ -378,6 +394,31 @@ mod tests {
         let device = OpenCL::<Base>::new(chosen_cl_idx())?;
 
         let buf = Buffer::from((&device, &[3., 3., 4., 5., 3., 2.]));
+
+        let buf = device.apply_fn(&buf, |x| x.mul(2.).add(4.).sin().mul(x).add(1.));
+        roughly_eq_slices(
+            &buf.read(),
+            &[
+                -0.6320633326681093,
+                -0.6320633326681093,
+                -1.1462916720017398,
+                5.953036778474352,
+                -0.6320633326681093,
+                2.978716493246764,
+            ],
+        );
+
+        Ok(())
+    }
+
+    #[cfg(feature = "vulkan")]
+    #[test]
+    fn test_run_apply_fn_vulkan_more_complex() -> crate::Result<()> {
+        use crate::{ApplyFunction, Base, Buffer, Vulkan};
+
+        let device = Vulkan::<Base>::new(0)?;
+
+        let buf = Buffer::from((&device, &[3f32, 3., 4., 5., 3., 2.]));
 
         let buf = device.apply_fn(&buf, |x| x.mul(2.).add(4.).sin().mul(x).add(1.));
         roughly_eq_slices(

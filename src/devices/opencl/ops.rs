@@ -34,11 +34,11 @@ impl<Mods: OnDropBuffer + UseGpuOrCpu, T: CDatatype + Default> ClearBuf<T> for O
         );*/
         #[cfg(unified_cl)]
         {
-            let mut cpu_buf = unsafe { &mut *(buf as *mut Buffer<_, _, _>) };
+            let cpu_buf = unsafe { &mut *(buf as *mut Buffer<_, _, _>) };
             self.use_cpu_or_gpu(
                 (file!(), line!(), column!()).into(),
                 &[buf.len()],
-                || clear_slice(&mut cpu_buf),
+                || clear_slice(cpu_buf),
                 || try_cl_clear(self, buf).unwrap(),
             );
         }
