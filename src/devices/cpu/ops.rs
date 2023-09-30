@@ -1,8 +1,8 @@
 use core::ops::{AddAssign, Index, Range, RangeBounds};
 
 use crate::{
-    bounds_to_range, cpu_stack_ops::clear_slice, pass_down_add_operation, AddOperation, Alloc,
-    ApplyFunction, Buffer, ClearBuf, CopySlice, Eval, HasId, MainMemory, MayTapeActions,
+    bounds_to_range, cpu_stack_ops::{clear_slice, apply_fn_slice}, pass_down_add_operation, AddOperation,
+    ApplyFunction, Buffer, ClearBuf, CopySlice, Eval, MainMemory,
     MayToCLSource, OnDropBuffer, Read, Resolve, Retrieve, Retriever, Shape, ToVal, UnaryGrad,
     WriteBuf, CPU,
 };
@@ -10,57 +10,22 @@ use crate::{
 #[cfg(feature = "autograd")]
 use crate::TapeActions;
 
-impl<Mods, T, S, D> crate::ApplyFunctionLazyTest<T, S, D> for CPU<Mods>
-where
-    Mods: crate::Retrieve<Self, T> + MayTapeActions + AddOperation<T, Self> + 'static,
-    T: Copy + Default + crate::ToVal + 'static,
-    S: Shape,
-    D: MainMemory + Alloc<T> + 'static,
-{
-    // actually take &mut Buf instead of returning an owned Buf?
-    fn apply_fn<F>(
-        &self,
-        buf: &Buffer<T, D, S>,
-        f: impl Fn(crate::Resolve<T>) -> F,
-    ) -> Buffer<T, Self, S>
-    where
-        F: crate::Eval<T> + crate::MayToCLSource,
-    {
-        let mut out = self.retrieve(buf.len(), buf);
-
-        let ids = (buf.id(), out.id());
-
-        #[cfg(feature = "autograd")]
-        self.add_grad_fn(move |grads| {
-            let (_lhs, _lhs_grad, _out_grad) = grads.get_double::<T, S, S, D>(ids);
-        });
-
-        self.add_op(&mut out, |out| {
-            for (x, out) in buf.iter().zip(out.iter_mut()) {
-                *out = f((*x).to_val()).eval();
-            }
-        });
-
-        out
-    }
-}
-
 pass_down_add_operation!(CPU);
 
 impl<Mods, T, D, S> ApplyFunction<T, S, D> for CPU<Mods>
 where
-    Mods: Retrieve<Self, T>,
+    Mods: Retrieve<Self, T> + AddOperation<T, Self>,
     T: Copy + Default + ToVal + 'static,
     D: crate::MainMemory,
     S: Shape,
 {
-    fn apply_fn<F>(&self, buf: &Buffer<T, D, S>, f: impl Fn(Resolve<T>) -> F) -> Buffer<T, Self, S>
+    fn apply_fn<F>(&self, buf: &Buffer<T, D, S>, f: impl Fn(Resolve<T>) -> F + Copy) -> Buffer<T, Self, S>
     where
         F: Eval<T> + MayToCLSource,
     {
         let mut out = self.retrieve(buf.len(), buf);
 
-        crate::cpu_stack_ops::apply_fn_slice(buf, &mut out, f);
+        self.add_op(&mut out, |out| apply_fn_slice(buf, out, f));
 
         out
     }

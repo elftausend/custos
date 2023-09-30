@@ -192,7 +192,7 @@ impl<D: crate::TapeActions> MayTapeActions for D {}
 #[cfg(not(feature = "autograd"))]
 pub trait MayTapeActions {}
 #[cfg(not(feature = "autograd"))]
-impl<D: Device> MayTapeActions for D {}
+impl<D> MayTapeActions for D {}
 
 /// If the OpenCL device selected by the environment variable `CUSTOS_CL_DEVICE_IDX` supports unified memory, then this will be `true`.
 /// In your case, this is `false`.

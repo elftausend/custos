@@ -1,4 +1,4 @@
-use crate::{Alloc, Buffer, Device, Eval, HasId, MayTapeActions, MayToCLSource, Resolve, Shape};
+use crate::{Alloc, Buffer, Device, Eval, MayTapeActions, MayToCLSource, Resolve, Shape};
 
 /// Applies a function to a buffer and returns a new buffer.
 pub trait ApplyFunction<T, S: Shape = (), D: Device = Self>: Device {
@@ -14,17 +14,6 @@ pub trait ApplyFunction<T, S: Shape = (), D: Device = Self>: Device {
     /// let out = device.apply_fn(&a, |x| x.mul(2.));
     /// assert_eq!(&*out, &[2., 4., 6., 6., 4., 2.,]);
     /// ```
-    #[track_caller]
-    fn apply_fn<F>(
-        &self,
-        buf: &Buffer<T, D, S>,
-        f: impl Fn(Resolve<T>) -> F + Copy,
-    ) -> Buffer<T, Self, S>
-    where
-        F: Eval<T> + MayToCLSource;
-}
-
-pub(crate) trait ApplyFunctionLazyTest<T, S: Shape = (), D: Device = Self>: Device {
     #[track_caller]
     fn apply_fn<F>(
         &self,

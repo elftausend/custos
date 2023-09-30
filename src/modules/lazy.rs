@@ -157,7 +157,7 @@ mod tests {
     use core::ops::Add;
 
     use crate::{
-        AddOperation, ApplyFunctionLazyTest, Base, Buffer, Combiner, Device, MainMemory, Retrieve,
+        AddOperation, ApplyFunction, Base, Buffer, Combiner, Device, MainMemory, Retrieve,
         Retriever, Shape, CPU,
     };
 
