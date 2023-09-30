@@ -244,6 +244,7 @@ impl<Mods: crate::TapeActions> crate::TapeActions for Fork<Mods> {
 }
 
 #[cfg(test)]
+#[cfg(feature = "opencl")]
 mod tests {
     use std::{collections::BinaryHeap, time::Instant};
 

@@ -1,7 +1,10 @@
 mod ops;
 mod resolve;
+
+#[cfg(not(feature = "no-std"))]
 mod to_wgsl_source;
 
+#[cfg(not(feature = "no-std"))]
 pub use to_wgsl_source::*;
 pub use resolve::*;
 
