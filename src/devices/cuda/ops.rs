@@ -156,3 +156,53 @@ where
     device.launch_kernel1d(x.len, &src, "applyFn", &[x, out, &x.len])?;
     Ok(())
 }
+
+impl<T, S, Mods: OnDropBuffer + AddOperation<T, Self>> UnaryGrad<T, S> for CUDA<Mods>
+where
+    T: CDatatype + Number,
+    S: Shape,
+{
+    #[inline]
+    fn add_unary_grad<F>(
+        &self,
+        lhs: &Buffer<T, Self, S>,
+        lhs_grad: &mut Buffer<T, Self, S>,
+        out: &Buffer<T, Self, S>,
+        lhs_grad_fn: impl Fn(Resolve<T>) -> F + Copy,
+    ) where
+        F: ToCLSource,
+    {
+        self.add_op(lhs_grad, |lhs_grad| {
+            try_cu_add_unary_grad(self, &lhs.data, &mut lhs_grad.data, &out.data, lhs_grad_fn)
+                .unwrap()
+        });
+    }
+}
+pub fn try_cu_add_unary_grad<T, F, Mods: OnDropBuffer>(
+    device: &CUDA<Mods>,
+    lhs: &CUDAPtr<T>,
+    lhs_grad: &mut CUDAPtr<T>,
+    out: &CUDAPtr<T>,
+    lhs_grad_fn: impl Fn(Resolve<T>) -> F,
+) -> crate::Result<()>
+where
+    T: CDatatype + Number,
+    F: ToCLSource,
+{
+    let src = format!(
+        "
+        extern "C" __global__ void addUnaryGrad({datatype}* lhs, {datatype}* lhsGrad, {datatype}* out, int numElements)
+            {{
+                int idx = blockDim.x * blockIdx.x + threadIdx.x;
+                if (idx >= numElements) {{
+                    return;
+                }}
+                lhs_grad[idx] += out[idx] * {op};
+            }}
+    ",
+        dtype = std::any::type_name::<T>(),
+        op = lhs_grad_fn("lhs[idx]".to_marker()).to_cl_source()
+    );
+    device.launch_kernel1d(buf.len, &src, "addUnaryGrad", &[lhs, lhs_grad, out, &lhs.len])?;
+    Ok(())
+}
