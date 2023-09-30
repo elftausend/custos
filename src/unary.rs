@@ -41,7 +41,7 @@ pub trait UnaryGrad<T, S: Shape = (), D: Device = Self>: Device {
     /// # Example
     #[cfg_attr(all(feature = "cpu", feature = "macro"), doc = "```")]
     #[cfg_attr(not(all(feature = "cpu", feature = "macro")), doc = "```ignore")]
-    /// use custos::{CPU, Buffer, UnaryGrad, Combiner, Base};
+    /// use custos::{CPU, Buffer, UnaryGrad, Combiner, Base, ToVal};
     ///
     /// let device = CPU::<Base>::new();
     ///
@@ -50,7 +50,7 @@ pub trait UnaryGrad<T, S: Shape = (), D: Device = Self>: Device {
     ///
     /// let mut lhs_grad = Buffer::from((&device, [0.; 6]));
     ///
-    /// device.add_unary_grad(&a, &mut lhs_grad, &out_grad, |x| 2.);
+    /// device.add_unary_grad(&a, &mut lhs_grad, &out_grad, |x| 2f64.to_val());
     ///
     /// assert_eq!(&*lhs_grad, &[2.; 6]);
     ///
@@ -80,12 +80,12 @@ pub trait UnaryElementWiseMayGrad<T, D: Device, S: Shape>: Device {
         not(all(feature = "autograd", feature = "cpu", feature = "macro")),
         doc = "```ignore"
     )]
-    /// use custos::{CPU, Buffer, UnaryElementWiseMayGrad, Combiner, Base, Autograd};
+    /// use custos::{CPU, Buffer, UnaryElementWiseMayGrad, Combiner, Base, Autograd, ToVal};
     ///
     /// let device = CPU::<Autograd<Base>>::new();
     ///
     /// let buf = Buffer::from((&device, [1., 2., 3., 3., 2., 1.,]));
-    /// let out = device.unary_ew(&buf, |x| x.mul(2.), |x| 2.);
+    /// let out = device.unary_ew(&buf, |x| x.mul(2.), |x| 2f64.to_val());
     ///
     /// assert_eq!(&*out, &[2., 4., 6., 6., 4., 2.,]);
     ///
