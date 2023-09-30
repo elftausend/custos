@@ -83,11 +83,11 @@ where
         self.add_op(&mut out, |out| {
             #[cfg(unified_cl)]
             {
-                let mut cpu_out = unsafe { &mut *(out as *mut Buffer<_, _, _>) };
+                let cpu_out = unsafe { &mut *(out as *mut Buffer<_, _, _>) };
                 self.use_cpu_or_gpu(
                     (file!(), line!(), column!()).into(),
                     &[buf.len()],
-                    || crate::devices::cpu_stack_ops::apply_fn_slice(buf, &mut cpu_out, f),
+                    || crate::devices::cpu_stack_ops::apply_fn_slice(buf, cpu_out, f),
                     || try_vk_apply_fn_mut(self, &buf.data, &mut out.data, f).unwrap(),
                 );
             }
@@ -99,8 +99,8 @@ where
     }
 }
 
-pub fn try_vk_apply_fn_mut<'a, T, Mods, F>(
-    device: &'a Vulkan<Mods>,
+pub fn try_vk_apply_fn_mut<T, Mods, F>(
+    device: &Vulkan<Mods>,
     x: &VkArray<T>,
     out: &mut VkArray<T>,
     f: impl Fn(Resolve<T>) -> F,

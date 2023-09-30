@@ -56,8 +56,8 @@ pub fn write_spirv(module: &naga::Module, info: &ModuleInfo) -> Result<Vec<u32>,
         naga::back::spv::Writer::new(&Options::default()).map_err(TranslateError::Backend)?;
     writer
         .write(
-            &module,
-            &info,
+            module,
+            info,
             Some(&PipelineOptions {
                 shader_stage: naga::ShaderStage::Compute,
                 entry_point: "main".into(),

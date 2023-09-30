@@ -195,11 +195,11 @@ where
         self.add_op(&mut out, |out| {
             #[cfg(unified_cl)]
             {
-                let mut cpu_out = unsafe { &mut *(out as *mut Buffer<_, _, _>) };
+                let cpu_out = unsafe { &mut *(out as *mut Buffer<_, _, _>) };
                 self.use_cpu_or_gpu(
                     (file!(), line!(), column!()).into(),
                     &[buf.len()],
-                    || crate::devices::cpu_stack_ops::apply_fn_slice(buf, &mut cpu_out, f),
+                    || crate::devices::cpu_stack_ops::apply_fn_slice(buf, cpu_out, f),
                     || try_cl_apply_fn_mut(self, buf, out, f).unwrap(),
                 );
             }
@@ -213,8 +213,8 @@ where
 
 /// A failable OpenCL version of [`apply_fn`](ApplyFunction::apply_fn).
 /// It applies a function to a buffer and returns a new buffer.
-pub fn try_cl_apply_fn_mut<'a, T, S, Mods, F>(
-    device: &'a OpenCL<Mods>,
+pub fn try_cl_apply_fn_mut<T, S, Mods, F>(
+    device: &OpenCL<Mods>,
     x: &Buffer<T, OpenCL<Mods>, S>,
     out: &mut Buffer<T, OpenCL<Mods>, S>,
     f: impl Fn(Resolve<T>) -> F,

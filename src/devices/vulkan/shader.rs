@@ -86,7 +86,7 @@ pub fn create_write_descriptor_sets(
     descriptor_set: DescriptorSet,
 ) -> Vec<WriteDescriptorSet> {
     descriptor_infos
-        .into_iter()
+        .iter()
         .map(|(idx, info)| {
             vk::WriteDescriptorSet::builder()
                 .dst_set(descriptor_set)

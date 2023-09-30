@@ -37,7 +37,7 @@ impl LazyGraph {
     ) -> Result<(), DeviceError> {
         for ((ty, operation), buf_id) in self.operations.iter_mut().zip(out_buf_order) {
             let buf = &mut **outs_unordered
-                .get_mut(&buf_id)
+                .get_mut(buf_id)
                 .ok_or(DeviceError::InvalidLazyOutBuf)?;
             match ty {
                 Type::F32 => {

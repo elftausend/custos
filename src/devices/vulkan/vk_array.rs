@@ -148,7 +148,7 @@ pub unsafe fn allocate_memory(
     memory_properties: &vk::PhysicalDeviceMemoryProperties,
 ) -> VkResult<vk::DeviceMemory> {
     let memory_type_index = get_memory_type_index(
-        &memory_properties,
+        memory_properties,
         mem_req.memory_type_bits,
         vk::MemoryPropertyFlags::HOST_VISIBLE | vk::MemoryPropertyFlags::HOST_COHERENT,
     )
