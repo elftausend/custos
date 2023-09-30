@@ -13,6 +13,8 @@ mod kernel_launch;
 mod lazy;
 mod ops;
 mod source;
+use core::ops::{Deref, DerefMut};
+
 pub use cuda_ptr::*;
 
 pub use source::*;
@@ -21,7 +23,7 @@ pub use cuda_device::*;
 pub use kernel_cache::*;
 pub use kernel_launch::*;
 
-use crate::{Buffer, CDatatype, OnDropBuffer};
+use crate::{Buffer, CDatatype, OnDropBuffer, Shape};
 
 /// Another shorter type for Buffer<'a, T, CUDA, S>
 pub type CUBuffer<'a, T, S = ()> = Buffer<'a, T, CUDA, S>;
@@ -34,6 +36,22 @@ pub fn chosen_cu_idx() -> usize {
         .expect(
             "Environment variable 'CUSTOS_CU_DEVICE_IDX' contains an invalid CUDA device index!",
         )
+}
+
+impl<'a, T, Mods: OnDropBuffer, S: Shape> Deref for Buffer<'a, T, CUDA<Mods>, S> {
+    type Target = CUDAPtr<T>;
+
+    #[inline]
+    fn deref(&self) -> &Self::Target {
+        &self.data
+    }
+}
+
+impl<'a, T, Mods: OnDropBuffer, S: Shape> DerefMut for Buffer<'a, T, CUDA<Mods>, S> {
+    #[inline]
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.data
+    }
 }
 
 /// Sets the elements of a CUDA Buffer to zero.

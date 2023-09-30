@@ -1,7 +1,7 @@
 use crate::{
     cpu_stack_ops::clear_slice, pass_down_add_operation, prelude::Number, AddOperation,
     ApplyFunction, Buffer, CDatatype, ClearBuf, OnDropBuffer, Read, Resolve, Retrieve, Retriever,
-    Shape, ToMarker, ToWgslSource, UseGpuOrCpu, Vulkan, UnaryGrad,
+    Shape, ToMarker, ToWgslSource, UnaryGrad, UseGpuOrCpu, Vulkan,
 };
 
 use super::VkArray;
@@ -152,7 +152,8 @@ where
         F: ToWgslSource,
     {
         self.add_op(lhs_grad, |lhs_grad| {
-            try_vk_add_unary_grad(self, &lhs.data, &mut lhs_grad.data, &out.data, lhs_grad_fn).unwrap()
+            try_vk_add_unary_grad(self, &lhs.data, &mut lhs_grad.data, &out.data, lhs_grad_fn)
+                .unwrap()
         });
     }
 }
@@ -202,7 +203,7 @@ where
 }
 #[cfg(test)]
 mod tests {
-    use crate::{Base, Buffer, Combiner, Fork, Vulkan, vulkan::ops::try_vk_add_unary_grad};
+    use crate::{vulkan::ops::try_vk_add_unary_grad, Base, Buffer, Combiner, Fork, Vulkan};
 
     use super::{try_vk_apply_fn_mut, try_vk_clear};
 
@@ -269,7 +270,9 @@ mod tests {
 
         let out = Buffer::from((&device, [1, 1, 1, 1, 1, 1]));
 
-        try_vk_add_unary_grad(&device, &lhs.data, &mut lhs_grad.data, &out.data, |x| x.mul(2).add(1))?;
+        try_vk_add_unary_grad(&device, &lhs.data, &mut lhs_grad.data, &out.data, |x| {
+            x.mul(2).add(1)
+        })?;
 
         assert_eq!(lhs_grad.read(), [4, 7, 10, 13, 16, 19]);
 
