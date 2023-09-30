@@ -239,7 +239,7 @@ mod tests {
         assert_eq!(res, 9. * 9. * 9.);
 
         let res = f("x".to_marker(), "y".to_marker()).to_cl_source();
-        assert_eq!(res, "pow((x * 3), (y + 1))")
+        assert_eq!(res, "pow((x * 3.0), (y + 1.0))")
     }
 
     #[test]
@@ -321,7 +321,7 @@ mod tests {
         let f = |x: Resolve<f32>| x.add(2.).mul(x).add(x.mul(8.)).mul(5.);
 
         let r = f(Resolve::default()).to_cl_source();
-        assert_eq!("((((x + 2) * x) + (x * 8)) * 5)", r);
+        assert_eq!("((((x + 2.0) * x) + (x * 8.0)) * 5.0)", r);
     }
 
     pub fn roughly_eq_slices<T: Float>(lhs: &[T], rhs: &[T]) {

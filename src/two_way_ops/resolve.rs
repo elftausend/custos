@@ -17,7 +17,7 @@ use crate::ToCLSource;
 /// let mark = Resolve::<f32>::with_marker("x");
 /// let out = mark.mul(mark).add(2.);
 ///
-/// assert_eq!(out.to_cl_source(), "((x * x) + 2)");
+/// assert_eq!(out.to_cl_source(), "((x * x) + 2.0)");
 /// ```
 #[derive(Debug, Clone, Copy)]
 pub struct Resolve<T> {
@@ -112,7 +112,7 @@ impl<T> Resolve<T> {
     /// let mark = Resolve::<f32>::with_marker("x");
     /// let out = mark.add(mark).mul(2.);
     ///
-    /// assert_eq!(out.to_cl_source(), "((x + x) * 2)");
+    /// assert_eq!(out.to_cl_source(), "((x + x) * 2.0)");
     /// ```
     #[inline]
     pub fn with_marker(marker: &'static str) -> Self
