@@ -119,7 +119,7 @@ fn main() {
         let rhs = device.buffer([1, 2, 3, 4, 5]);
 
         let out = device.add(&lhs, &rhs);
-        device.run();
-        println!("out: {out:?}");
+        device.run().unwrap();
+        assert_eq!(out.read(), vec![2, 4, 6, 8, 10])
     }
 }

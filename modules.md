@@ -250,4 +250,6 @@ let lhs = device.buffer([1, 2, 3, 4, 5]);
 let rhs = device.buffer([1, 2, 3, 4, 5]);
 
 let out = device.add(&lhs, &rhs);
+device.run().unwrap(); // only required when using the Lazy module
+assert_eq!(out.read(), vec![2, 4, 6, 8, 10])
 ```
