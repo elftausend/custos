@@ -29,7 +29,7 @@ impl<T: Add<Output = T> + Copy, D: MainMemory, S: Shape> ElementWise<T, D, S> fo
 
 ```
 
-This operations is going to support more and more modules as we go on.
+This operation is going to support more and more modules as we go on.
 
 
 ## Cached
@@ -44,7 +44,7 @@ Provided by the `Retrieve` and `Retriever` traits.
 + let mut out = self.retrieve(lhs.len(), (lhs, rhs));
 ```
 
-As the operation now must support arbitrarily combined modules, a new generic, usually called `Mods` must be added. 
+As the operation now must support arbitrarily combined modules, a new generic, usually called `Mods`, must be added. 
 
 ```diff
 - impl<T: Add<Output = T> + Copy, D: MainMemory, S: Shape> ElementWise<T, D, S> for CPU {
@@ -74,7 +74,7 @@ impl<T: Add<Output = T> + Copy, D: MainMemory, S: Shape, Mods: Retrieve<Self, T>
 
 ## Lazy
 
-Adds lazy exection support.<br>
+Adds lazy execution support.<br>
 Provided by the `AddOperation` trait.
 
 ```diff
