@@ -92,6 +92,10 @@ name = "wgpu"
 required-features = ["wgpu"]
 
 [[example]]
+name = "modules"
+required-features = ["cpu"]
+
+[[example]]
 name = "static-api"
 required-features = ["static-api", "opencl"]
 

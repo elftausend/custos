@@ -2,8 +2,11 @@ use std::ops::{Add, AddAssign, Mul};
 
 use custos::{
     AddOperation, Buffer, Device, HasId, MainMemory, MayTapeActions, Retrieve, Retriever, Shape,
-    TapeActions, UseGpuOrCpu, CPU,
+    UseGpuOrCpu, CPU,
 };
+
+#[cfg(feature = "autograd")]
+use custos::TapeActions;
 
 pub trait ElementWise<T, D: Device, S: Shape>: Device {
     fn add(&self, lhs: &Buffer<T, D, S>, rhs: &Buffer<T, D, S>) -> Buffer<T, Self, S>;
