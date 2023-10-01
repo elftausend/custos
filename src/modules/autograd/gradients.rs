@@ -109,20 +109,19 @@ impl Gradients {
     #[inline]
     pub fn get_triple<'a, T, S, D>(
         &mut self,
-        device: &'a D,
-        (lid, rid, oid): (Id, Id, Id),
+        parents: impl Parents<3>,
     ) -> LhsRhsOut<'a, '_, T, D, S>
     where
         T: 'static,
         S: Shape,
         D: Alloc<T> + 'static,
     {
-        self.grads_pool.add_buf_once::<T, _, S>(device, rid);
-        self.grads_pool.add_buf_once::<T, _, S>(device, oid);
-        let lhs_grad_ptr = self.get_mut(device, lid) as *mut _;
+        let [lid, rid, oid] = parents.ids();
+
+        let lhs_grad_ptr = self.may_get_mut(lid).unwrap() as *mut _;
         let lhs_grad = unsafe { &mut *lhs_grad_ptr };
 
-        let rhs_grad_ptr = self.get_mut(device, rid) as *mut _;
+        let rhs_grad_ptr = self.may_get_mut(rid).unwrap() as *mut _;
         let rhs_grad = unsafe { &mut *rhs_grad_ptr };
         (
             self.get_buf_from_no_grad_pool(lid),

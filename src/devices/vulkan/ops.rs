@@ -81,18 +81,13 @@ where
         let mut out = self.retrieve(buf.len(), buf);
 
         self.add_op(&mut out, |out| {
-            #[cfg(unified_cl)]
-            {
-                let cpu_out = unsafe { &mut *(out as *mut Buffer<_, _, _>) };
-                self.use_cpu_or_gpu(
-                    (file!(), line!(), column!()).into(),
-                    &[buf.len()],
-                    || crate::devices::cpu_stack_ops::apply_fn_slice(buf, cpu_out, f),
-                    || try_vk_apply_fn_mut(self, &buf.data, &mut out.data, f).unwrap(),
-                );
-            }
-            #[cfg(not(unified_cl))]
-            try_cl_apply_fn_mut(self, buf, &mut out, f).unwrap();
+            let cpu_out = unsafe { &mut *(out as *mut Buffer<_, _, _>) };
+            self.use_cpu_or_gpu(
+                (file!(), line!(), column!()).into(),
+                &[buf.len()],
+                || crate::devices::cpu_stack_ops::apply_fn_slice(buf, cpu_out, f),
+                || try_vk_apply_fn_mut(self, &buf.data, &mut out.data, f).unwrap(),
+            );
         });
 
         out
