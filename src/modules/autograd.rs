@@ -8,7 +8,7 @@ use core::cell::{Ref, RefCell, RefMut};
 
 use crate::{
     prelude::One, register_buf, unregister_buf, AddOperation, Alloc, Buffer, Device, HasId, Module,
-    OnDropBuffer, OnNewBuffer, Parents, PtrConv, Retrieve, Setup, Shape, TapeActions, WriteBuf,
+    OnDropBuffer, OnNewBuffer, Parents, PtrConv, Retrieve, Setup, Shape, TapeActions, WriteBuf, RunModule,
 };
 
 use super::{Cached, CachedModule};
@@ -138,6 +138,13 @@ impl<Mods> TapeActions for Autograd<Mods> {
     #[inline]
     fn tape_mut(&self) -> Option<core::cell::RefMut<Tape>> {
         Some(self.tape.borrow_mut())
+    }
+}
+
+impl<Mods: RunModule<D>, D> RunModule<D> for Autograd<Mods> {
+    #[inline]
+    fn run(&self, _device: &D) -> crate::Result<()> {
+        self.modules.run(_device)
     }
 }
 

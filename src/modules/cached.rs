@@ -2,7 +2,7 @@ use core::{cell::RefCell, marker::PhantomData};
 
 use crate::{
     AddOperation, Alloc, Buffer, Cache, Device, Module, OnDropBuffer, OnNewBuffer, Parents,
-    PtrConv, Retrieve, Setup, Shape,
+    PtrConv, Retrieve, Setup, Shape, RunModule,
 };
 
 // creator struct
@@ -128,6 +128,13 @@ impl<Mods: crate::UseGpuOrCpu, D: Device> crate::UseGpuOrCpu for CachedModule<Mo
     ) -> crate::GpuOrCpuInfo {
         self.modules
             .use_cpu_or_gpu(location, input_lengths, cpu_op, gpu_op)
+    }
+}
+
+impl<Mods: RunModule<D>, D, SD: Device> RunModule<D> for CachedModule<Mods, SD> {
+    #[inline]
+    fn run(&self, _device: &D) -> crate::Result<()> {
+        self.modules.run(_device)
     }
 }
 

@@ -113,11 +113,13 @@ where
 fn main() {
     #[cfg(feature = "opencl")]
     {
-        let device = OpenCL::<custos::Base>::new(0).unwrap();
+        use custos::{Run, Fork, Cached, Base, Lazy};
+        let device = OpenCL::<Fork<Lazy<Cached<Base>>>>::new(0).unwrap();
         let lhs = device.buffer([1, 2, 3, 4, 5]);
         let rhs = device.buffer([1, 2, 3, 4, 5]);
 
         let out = device.add(&lhs, &rhs);
+        device.run();
         println!("out: {out:?}");
     }
 }

@@ -1,6 +1,6 @@
 use crate::{
     AddOperation, Alloc, Buffer, Device, GpuOrCpuInfo, HashLocation, LocationHasher, Module,
-    OnDropBuffer, OnNewBuffer, Parents, PtrConv, Retrieve, Setup, Shape, UseGpuOrCpu,
+    OnDropBuffer, OnNewBuffer, Parents, PtrConv, Retrieve, Setup, Shape, UseGpuOrCpu, RunModule,
 };
 use core::{
     cell::RefCell,
@@ -240,6 +240,13 @@ impl<Mods: crate::TapeActions> crate::TapeActions for Fork<Mods> {
     #[inline]
     fn tape_mut(&self) -> Option<core::cell::RefMut<crate::Tape>> {
         self.modules.tape_mut()
+    }
+}
+
+impl<Mods: RunModule<D>, D> RunModule<D> for Fork<Mods> {
+    #[inline]
+    fn run(&self, _device: &D) -> crate::Result<()> {
+        self.modules.run(_device)
     }
 }
 

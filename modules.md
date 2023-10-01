@@ -163,6 +163,7 @@ where
 ## Fork
 
 Decides whether the CPU or GPU is faster for an operation. It then uses the faster device for following computations. This is useful for devices with unified memory.<br>
+The trait is `UseGpuOrCpu`.
 
 Now, the `OpenCL` device is used.
 
@@ -240,4 +241,13 @@ where
         out
     }
 }
+```
+
+Try it with:
+```rust        
+let device = OpenCL::<Fork<Lazy<Cached<Base>>>>::new(0).unwrap();
+let lhs = device.buffer([1, 2, 3, 4, 5]);
+let rhs = device.buffer([1, 2, 3, 4, 5]);
+
+let out = device.add(&lhs, &rhs);
 ```
