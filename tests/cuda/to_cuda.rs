@@ -2,7 +2,7 @@ use custos::{Buffer, CudaDevice, CPU};
 
 #[test]
 fn test_to_cuda() -> custos::Result<()> {
-    let cpu = CPU::new();
+    let cpu = CPU::<Base>::new();
 
     let buf = Buffer::from((&cpu, [1., 2., 4., 1., 5., 1.]));
 

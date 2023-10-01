@@ -1,4 +1,4 @@
-use custos::{Buffer, WithShape, CPU};
+use custos::prelude::*;
 
 use custos_macro::stack_cpu_test;
 
@@ -6,7 +6,7 @@ use custos_macro::stack_cpu_test;
 #[stack_cpu_test]
 #[test]
 fn test_clear_cpu() {
-    let device = CPU::new();
+    let device = CPU::<custos::Base>::new();
 
     let mut buf = Buffer::with(&device, [1., 2., 3., 4., 5., 6.]);
     assert_eq!(buf.read(), [1., 2., 3., 4., 5., 6.,]);
@@ -19,7 +19,7 @@ fn test_clear_cpu() {
 fn test_clear_cl() -> Result<(), custos::Error> {
     use custos::OpenCL;
 
-    let device = OpenCL::new(0)?;
+    let device = OpenCL::<Base>::new(chosen_cl_idx())?;
 
     let mut buf = Buffer::from((&device, [1., 2., 3., 4., 5., 6.]));
     assert_eq!(buf.read(), vec![1., 2., 3., 4., 5., 6.,]);
@@ -33,7 +33,7 @@ fn test_clear_cl() -> Result<(), custos::Error> {
 fn test_clear_cuda() -> Result<(), custos::Error> {
     use custos::CUDA;
 
-    let device = CUDA::new(0)?;
+    let device = CUDA::<Base>::new(0)?;
 
     let mut buf = Buffer::from((&device, [1., 2., 3., 4., 5., 6.]));
     assert_eq!(buf.read(), vec![1., 2., 3., 4., 5., 6.,]);

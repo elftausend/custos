@@ -5,7 +5,7 @@ mod cuda;
 #[cfg(feature = "opencl")]
 mod opencl;
 
-// #[cfg(feature = "vulkan")]
+#[cfg(feature = "vulkan")]
 mod vk;
 
 #[cfg(feature = "opt-cache")]
@@ -17,9 +17,9 @@ mod threading;
 #[cfg(feature = "opencl")]
 #[test]
 fn test_debug_fmt_cl_dev() -> custos::Result<()> {
-    use custos::OpenCL;
+    use custos::{prelude::chosen_cl_idx, Base, OpenCL};
 
-    let device = OpenCL::new(0)?;
+    let device = OpenCL::<Base>::new(chosen_cl_idx())?;
     println!("device: {device:?}");
     Ok(())
 }

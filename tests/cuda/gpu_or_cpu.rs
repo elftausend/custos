@@ -1,4 +1,4 @@
-use custos::{Buffer, CDatatype, Device, CUDA};
+use custos::{Base, Buffer, Device, CUDA};
 
 pub struct State<'a, 'b> {
     device: &'a CUDA,
@@ -25,15 +25,15 @@ pub fn sum_kernel(device: &CUDA, x: &Buffer<i32, CUDA>, out: &mut Buffer<i32, CU
     "#;
 
     device
-        .launch_kernel1d(x.len(), &src, "countZeros", &[x, out, &x.len()])
+        .launch_kernel1d(x.len(), src, "countZeros", &[x, out, &x.len()])
         .unwrap();
 }
 
-const N: usize = 2;
+const N: usize = 20000;
 
 #[test]
 fn test_cuda_sum() {
-    let device = CUDA::new(0).unwrap();
+    let device = CUDA::<Base>::new(0).unwrap();
     let lhs = Buffer::from((&device, 0..N));
     let mut out = Buffer::from((&device, [0]));
     sum_kernel(&device, &lhs, &mut out);
@@ -41,7 +41,7 @@ fn test_cuda_sum() {
     let start = std::time::Instant::now();
     sum_kernel(&device, &lhs, &mut out);
 
-    assert_eq!(out.read(), [N as i32 * (N as i32 - 1) / 2]);
+    assert_eq!(out.read(), [(N as i128 * (N as i128 - 1) / 2) as i32]);
     println!("Time: {:?}", start.elapsed());
 }
 
@@ -49,15 +49,15 @@ fn test_cuda_sum() {
 
 #[test]
 fn test_cuda_sum_two() {
-    let device = CUDA::new(0).unwrap();
+    let device = CUDA::<Base>::new(0).unwrap();
     let lhs = Buffer::from((&device, (0..N)));
     // println!("lhs: {:?}", lhs);
 
     let start = std::time::Instant::now();
 
     assert_eq!(
-        lhs.read().iter().sum::<i32>(),
-        N as i32 * (N as i32 - 1) / 2
+        lhs.read().iter().sum::<i32>() as i128,
+        N as i128 * (N as i128 - 1) / 2
     );
     println!("Time: {:?}", start.elapsed());
 }

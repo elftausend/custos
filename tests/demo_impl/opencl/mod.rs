@@ -1,12 +1,12 @@
-use custos::{opencl::enqueue_kernel, Buffer, CDatatype, Device, OpenCL, Shape};
+use custos::{opencl::enqueue_kernel, Buffer, CDatatype, OnDropBuffer, OpenCL, Retriever, Shape};
 
 use super::ElementWise;
 
-pub fn cl_element_wise<T, S: Shape>(
-    device: &OpenCL,
-    lhs: &Buffer<T, OpenCL, S>,
-    rhs: &Buffer<T, OpenCL, S>,
-    out: &mut Buffer<T, OpenCL, S>,
+pub fn cl_element_wise<Mods: OnDropBuffer, T, S: Shape>(
+    device: &OpenCL<Mods>,
+    lhs: &Buffer<T, OpenCL<Mods>, S>,
+    rhs: &Buffer<T, OpenCL<Mods>, S>,
+    out: &mut Buffer<T, OpenCL<Mods>, S>,
     op: &str,
 ) -> custos::Result<()>
 where
@@ -18,7 +18,7 @@ where
 
             out[idx] = lhs[idx] {op} rhs[idx];
         }}"
-    , datatype=T::as_c_type_str());
+    , datatype=T::C_DTYPE_STR);
 
     enqueue_kernel(device, &src, [lhs.len(), 0, 0], None, &[lhs, rhs, out])?;
     Ok(())
@@ -42,7 +42,7 @@ impl<T: CDatatype, S: Shape> ElementWise<T, OpenCL, S> for OpenCL {
 
 #[cfg(test)]
 mod tests {
-    use custos::{Buffer, Device, OpenCL, WithShape, CPU};
+    use custos::{prelude::chosen_cl_idx, Base, Buffer, OpenCL, Retriever, WithShape, CPU};
 
     use crate::demo_impl::cpu::cpu_element_wise;
 
@@ -50,7 +50,7 @@ mod tests {
     fn test_cl_element_wise() {
         use super::cl_element_wise;
 
-        let device = OpenCL::new(0).unwrap();
+        let device = OpenCL::<Base>::new(chosen_cl_idx()).unwrap();
 
         let lhs = Buffer::with(&device, [1, 2, 3, 4]);
         let rhs = Buffer::with(&device, [4, 1, 9, 4]);
@@ -62,41 +62,40 @@ mod tests {
         assert_eq!(out.read(), &[5, 3, 12, 8]);
     }
 
-    const SIZE: usize = 164383;
+    const SIZE: usize = 655360;
     const TIMES: usize = 100;
 
     #[test]
     fn test_element_wise_large_bufs_cl() {
         use super::cl_element_wise;
 
-        let device = OpenCL::new(1).unwrap();
+        let device = OpenCL::<Base>::new(chosen_cl_idx()).unwrap();
 
-        println!("device name: {:?}", device.name());
+        let lhs = Buffer::from((&device, vec![1.0f32; SIZE]));
+        let rhs = Buffer::from((&device, vec![4.0; SIZE]));
 
-        let lhs = Buffer::<_, _, ()>::from((&device, vec![1f32; SIZE]));
-        let rhs = Buffer::<_, _, ()>::from((&device, vec![4f32; SIZE]));
-
-        let mut out = device.retrieve::<f32, ()>(lhs.len(), ());
+        let mut out = device.retrieve::<(), 0>(lhs.len(), ());
 
         let start = std::time::Instant::now();
 
         for _ in 0..TIMES {
-            cl_element_wise::<_, ()>(&device, &lhs, &rhs, &mut out, "+").unwrap();
+            cl_element_wise::<_, _, ()>(&device, &lhs, &rhs, &mut out, "+").unwrap();
+            // assert_eq!(out.read(), &[5.0; SIZE]);
         }
 
-        println!("ocl: {:?}", start.elapsed());
+        println!("ocl: {:?}", start.elapsed() /*/ TIMES as u32*/);
 
-        assert_eq!(out.read(), &[5f32; SIZE]);
+        assert_eq!(out.read(), &[5.0; SIZE]);
     }
 
     #[test]
     fn test_element_wise_large_bufs_cpu() {
-        let device = CPU::new();
+        let device = CPU::<Base>::new();
 
-        let lhs = Buffer::<_>::from((&device, vec![1f32; SIZE]));
-        let rhs = Buffer::<_>::from((&device, vec![4f32; SIZE]));
+        let lhs = Buffer::<_>::from((&device, vec![1.0f32; SIZE]));
+        let rhs = Buffer::<_>::from((&device, vec![4.0; SIZE]));
 
-        let mut out = device.retrieve::<f32, ()>(lhs.len(), ());
+        let mut out = device.retrieve::<(), 0>(lhs.len(), ());
 
         let start = std::time::Instant::now();
         for _ in 0..TIMES {
@@ -104,6 +103,6 @@ mod tests {
         }
 
         println!("cpu: {:?}", start.elapsed());
-        assert_eq!(out.as_slice(), &[5.; SIZE]);
+        assert_eq!(out.as_slice(), &[5.0; SIZE]);
     }
 }

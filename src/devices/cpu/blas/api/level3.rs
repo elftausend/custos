@@ -1,11 +1,11 @@
 //#[cfg_attr(link(name = "BLAS", kind = "framework"))]
-//#[cfg_attr(target_os = "windows", link(name = "BLAS"))] ??
 
 use crate::devices::cpu::{Order, Transpose};
 
-#[link(name = "blas")]
-//#[cfg_attr(target_os = "macos", link(name = "blas"))]
-//#[cfg_attr(target_os = "linux", link(name = "openblas"))]
+//#[link(name = "blas")]
+#[cfg_attr(target_os = "windows", link(name = "BLAS"))]
+#[cfg_attr(target_os = "macos", link(name = "blas"))]
+#[cfg_attr(target_os = "linux", link(name = "openblas"))]
 extern "C" {
 
     pub(crate) fn cblas_sgemm(

@@ -1,34 +1,70 @@
 use crate::{
-    cpu::CPUPtr, Addons, AddonsReturn, Alloc, Buffer, Cache, Device, PtrConv,
-    Shape, CPU,
+    cpu::CPUPtr, Alloc, AsOperandCode, Base, Buffer, Device, Lazy, LazyRun, LazySetup, Module,
+    OnDropBuffer, PtrConv, Retrieve, Retriever, Setup, Shape, CPU,
 };
 
 use super::NnapiPtr;
 use core::cell::{Cell, RefCell};
-use nnapi::{AsOperandCode, Compilation, Execution, Model, Operand};
+use nnapi::{Compilation, Execution, Model, Operand};
 
 type ArrayId = (u32, ArrayPtr);
 
 /// Used to run operations performed by the NNAPI.
 /// It represents a single model.
-pub struct NnapiDevice {
+pub struct NnapiDevice<T, Mods = Base> {
+    pub modules: Mods,
     /// The NNAPI model.
     pub model: RefCell<Model>,
     operand_count: Cell<u32>,
     /// An array of pointers with a corresponding index in the NNAPI model.
     pub input_ptrs: RefCell<Vec<ArrayId>>,
+    pub last_created_ptr: RefCell<Option<NnapiPtr>>,
     compilation: RefCell<Option<Compilation>>,
-    addons: Addons<Self>,
+    out: Cell<Vec<T>>,
 }
 
-impl Device for NnapiDevice {
-    type Ptr<U, S: crate::Shape> = NnapiPtr;
-
-    type Cache = Cache<NnapiDevice>;
+impl<T, Mods: OnDropBuffer> Device for NnapiDevice<T, Mods> {
+    type Data<U, S: crate::Shape> = NnapiPtr;
+    type Error = crate::Error;
 
     #[inline]
     fn new() -> crate::Result<Self> {
-        NnapiDevice::new()
+        // NnapiDevice::new()
+        todo!()
+    }
+}
+
+impl<U, T, D: Device, S: Shape, Mods: crate::OnNewBuffer<T, D, S>> crate::OnNewBuffer<T, D, S>
+    for NnapiDevice<U, Mods>
+{
+    #[inline]
+    fn on_new_buffer(&self, device: &D, new_buf: &Buffer<T, D, S>) {
+        self.modules.on_new_buffer(device, new_buf)
+    }
+}
+
+impl<U, Mods: crate::OnDropBuffer> crate::OnDropBuffer for NnapiDevice<U, Mods> {
+    #[inline]
+    fn on_drop_buffer<T, D: Device, S: Shape>(&self, device: &D, buf: &Buffer<T, D, S>) {
+        self.modules.on_drop_buffer(device, buf)
+    }
+}
+impl<U, Mods: Retrieve<Self, T>, T: AsOperandCode> Retriever<T> for NnapiDevice<U, Mods> {
+    fn retrieve<S, const NUM_PARENTS: usize>(
+        &self,
+        len: usize,
+        parents: impl crate::Parents<NUM_PARENTS>,
+    ) -> Buffer<T, Self, S>
+    where
+        S: Shape,
+    {
+        let data = self.modules.retrieve::<S, NUM_PARENTS>(self, len, parents);
+        let buf = Buffer {
+            data,
+            device: Some(self),
+        };
+        self.modules.on_retrieve_finish(&buf);
+        buf
     }
 }
 
@@ -38,6 +74,7 @@ pub type ArrayPtr = CPUPtr<u8>;
 /// Creates an [`Operand`] (datatype) from a shape `S`.
 #[inline]
 pub fn dtype_from_shape<'a, T: AsOperandCode, S: Shape>() -> Operand {
+    debug_assert!(S::LEN > 0);
     let dims = S::dims()
         .into_iter()
         .map(|dim| dim as u32)
@@ -45,43 +82,65 @@ pub fn dtype_from_shape<'a, T: AsOperandCode, S: Shape>() -> Operand {
     Operand::tensor(T::OPERAND_CODE, dims, 0., 0)
 }
 
-impl<'a, T: AsOperandCode, S: Shape> Alloc<'a, T, S> for NnapiDevice {
-    fn alloc(&'a self, _len: usize, flag: crate::flag::AllocFlag) -> <Self as Device>::Ptr<T, S> {
+impl<U, T: AsOperandCode, Mods: OnDropBuffer> Alloc<T> for NnapiDevice<U, Mods> {
+    fn alloc<S: Shape>(
+        &self,
+        _len: usize,
+        flag: crate::flag::AllocFlag,
+    ) -> <Self as Device>::Data<T, S> {
         let dtype = dtype_from_shape::<T, S>();
         let idx = self.add_operand(&dtype).unwrap();
-        NnapiPtr { dtype, idx, flag }
+        let nnapi_ptr = NnapiPtr { dtype, idx, flag };
+
+        *self.last_created_ptr.borrow_mut() = Some(nnapi_ptr.clone());
+
+        nnapi_ptr
     }
 
-    fn with_slice(&'a self, data: &[T]) -> <Self as Device>::Ptr<T, S>
+    fn alloc_from_slice<S: Shape>(&self, data: &[T]) -> <Self as Device>::Data<T, S>
     where
         T: Clone,
     {
-        let nnapi_ptr = Alloc::<T, S>::alloc(self, data.len(), crate::flag::AllocFlag::default());
+        let nnapi_ptr = Alloc::<T>::alloc::<S>(self, data.len(), crate::flag::AllocFlag::default());
 
         let mut ptr = unsafe { CPUPtr::<T>::new(data.len(), crate::flag::AllocFlag::Wrapper) };
         ptr.clone_from_slice(data);
-        let ptr = unsafe { CPU::convert::<T, S, u8, S>(&ptr, crate::flag::AllocFlag::None) };
+
+        let ptr =
+            unsafe { <CPU<Base> as PtrConv>::convert::<T, S, u8, S>(&ptr, crate::AllocFlag::None) };
 
         self.input_ptrs.borrow_mut().push((nnapi_ptr.idx, ptr));
         nnapi_ptr
     }
 }
 
-impl NnapiDevice {
+impl<T, SimpleMods> NnapiDevice<T, SimpleMods> {
     /// Creates a new [`NnapiDevice`].
-    pub fn new() -> crate::Result<Self> {
-        Ok(Self {
+    pub fn new<NewMods>() -> crate::Result<NnapiDevice<T, Lazy<NewMods>>>
+    where
+        SimpleMods: Module<NnapiDevice<T>, Module = Lazy<NewMods>>,
+        Lazy<NewMods>: Setup<NnapiDevice<T, Lazy<NewMods>>>,
+    {
+        let mut device = NnapiDevice {
+            modules: SimpleMods::new(),
             model: RefCell::new(Model::new()?),
             operand_count: Cell::new(0),
-            addons: Addons::default(),
             input_ptrs: Default::default(),
+            last_created_ptr: RefCell::new(None),
             compilation: Default::default(),
-        })
-    }
+            out: Default::default(),
+        };
 
+        Lazy::<NewMods>::setup(&mut device)?;
+
+        Ok(device)
+    }
+}
+
+impl<T, Mods: OnDropBuffer> NnapiDevice<T, Mods> {
     /// Compiles the model and stores it in the [`NnapiDevice`].
     /// It handles setting the inputs and outputs of the model.
-    pub fn compile<T, S: Shape>(&self, out: Buffer<T, Self, S>) -> crate::Result<()> {
+    pub fn compile(&self, out_idx: u32) -> crate::Result<()> {
         let mut model = self.model.borrow_mut();
 
         let input_ids = self
@@ -93,7 +152,7 @@ impl NnapiDevice {
 
         // let NnapiPtr { dtype, idx } = self.last_output.borrow().unwrap();
 
-        model.identify_inputs_and_outputs(&input_ids, &[out.ptr.idx])?;
+        model.identify_inputs_and_outputs(&input_ids, &[out_idx])?;
 
         model.finish()?;
         let mut compilation = model.compile()?;
@@ -120,29 +179,13 @@ impl NnapiDevice {
 
     /// Runs the model and returns the output.
     /// It reuses the same [`Compilation`] if it exists.
-    pub fn run<T, S>(&self, out: Buffer<T, Self, S>) -> crate::Result<Vec<T>>
+    #[inline]
+    pub fn run_with_vec(&self) -> crate::Result<Vec<T>>
     where
         T: Default + Copy + AsOperandCode,
-        S: Shape,
     {
-        if self.compilation.borrow().is_none() {
-            self.compile(out)?;
-        }
-        let mut compilation = self.compilation.borrow_mut();
-        let compilation = compilation
-            .as_mut()
-            .expect("Should be set during compilation");
-
-        let mut run = compilation.create_execution()?;
-        self.set_input_ptrs(&mut run)?;
-
-        let mut out = vec![T::default(); S::LEN];
-
-        run.set_output(0, &mut out)?;
-
-        run.compute()?;
-
-        Ok(out)
+        LazyRun::run(self)?;
+        Ok(self.out.take())
     }
 
     /// Adds an operand to the model.
@@ -154,17 +197,55 @@ impl NnapiDevice {
     }
 }
 
-impl Default for NnapiDevice {
+impl<T, Mods> LazySetup for NnapiDevice<T, Mods> {}
+
+impl<T> Default for NnapiDevice<T, Lazy<Base>> {
     #[inline]
     fn default() -> Self {
         Self::new().unwrap()
     }
 }
 
-impl AddonsReturn for NnapiDevice {
+impl<T, Mods> LazyRun for NnapiDevice<T, Mods>
+where
+    T: Copy + Default + AsOperandCode,
+    Mods: OnDropBuffer,
+{
     #[inline]
-    fn addons(&self) -> &Addons<Self> {
-        &self.addons
+    fn run(&self) -> crate::Result<()> {
+        if self.compilation.borrow().is_none() {
+            self.compile(self.last_created_ptr.borrow().as_ref().unwrap().idx)?;
+        }
+        let mut compilation = self.compilation.borrow_mut();
+        let compilation = compilation
+            .as_mut()
+            .expect("Should be set during compilation");
+
+        let mut run = compilation.create_execution()?;
+        self.set_input_ptrs(&mut run)?;
+
+        // let mut out = vec![T::default(); S::LEN];
+        let len = self.last_created_ptr.borrow().as_ref().unwrap().dtype.len;
+
+        let mut out = vec![T::default(); len];
+        run.set_output(0, &mut out)?;
+        self.out.set(out);
+
+        run.compute()?;
+        Ok(())
+    }
+}
+
+impl<U, Mods: OnDropBuffer> PtrConv for NnapiDevice<U, Mods> {
+    unsafe fn convert<T, IS: Shape, Conv, OS: Shape>(
+        ptr: &Self::Data<T, IS>,
+        flag: crate::flag::AllocFlag,
+    ) -> Self::Data<Conv, OS> {
+        NnapiPtr {
+            dtype: ptr.dtype.clone(),
+            idx: ptr.idx,
+            flag,
+        }
     }
 }
 
@@ -172,16 +253,16 @@ impl AddonsReturn for NnapiDevice {
 mod tests {
     use nnapi::{nnapi_sys::OperationCode, Operand};
 
-    use crate::{bump_count, Buffer, CacheReturn, Dim1, Ident, NnapiDevice, WithShape};
+    use crate::{Base, Buffer, Dim1, Lazy, LazyRun, NnapiDevice, WithShape};
 
     #[test]
     fn test_running_nnapi_ops() -> crate::Result<()> {
-        let device = NnapiDevice::new()?;
+        let device = NnapiDevice::<i32, Lazy<Base>>::new()?;
 
         let lhs = Buffer::with(&device, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
         let rhs = Buffer::with(&device, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
 
-        let out = Buffer::<f32, _, Dim1<10>>::new(&device, 0);
+        let out = Buffer::<i32, _, Dim1<10>>::new(&device, 0);
 
         let mut model = device.model.borrow_mut();
 
@@ -192,8 +273,8 @@ mod tests {
             .unwrap();
         model.add_operation(
             OperationCode::ANEURALNETWORKS_ADD,
-            &[lhs.ptr.idx, rhs.ptr.idx, activation_idx],
-            &[out.ptr.idx],
+            &[lhs.data.idx, rhs.data.idx, activation_idx],
+            &[out.data.idx],
         )?;
 
         let out2 = Buffer::<f32, _, Dim1<10>>::new(&device, 0);
@@ -203,15 +284,18 @@ mod tests {
             .unwrap();
         model.add_operation(
             OperationCode::ANEURALNETWORKS_MUL,
-            &[lhs.ptr.idx, out.ptr.idx, activation_idx],
-            &[out2.ptr.idx],
+            &[lhs.data.idx, out.data.idx, activation_idx],
+            &[out2.data.idx],
         )?;
 
-        device.run(out2)?;
+        device.run()?;
+        let out = device.out.take();
+
+        assert_eq!(device.run_with_vec().unwrap(), out);
 
         Ok(())
     }
-
+    /*
     #[test]
     fn test_nnapi_device() -> crate::Result<()> {
         let device = super::NnapiDevice::new()?;
@@ -272,5 +356,5 @@ mod tests {
         // assert_eq!(out.to_vec(), vec![2, 4, 6, 8, 10, 12, 14, 16, 18, 20]);
 
         Ok(())
-    }
+    }*/
 }

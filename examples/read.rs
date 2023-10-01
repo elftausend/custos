@@ -1,7 +1,7 @@
-use custos::{Buffer, CPU};
+use custos::{Base, Buffer, CPU};
 
 fn main() {
-    let device = CPU::new();
+    let device = CPU::<Base>::new();
 
     let a = Buffer::from((&device, [5, 7, 2, 10]));
     assert_eq!(a.read(), vec![5, 7, 2, 10])

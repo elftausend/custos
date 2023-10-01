@@ -1,6 +1,6 @@
 use core::ops::{Bound, Range, RangeBounds};
 
-use crate::{shape::Shape, Alloc, Buffer, Device};
+use crate::{shape::Shape, Alloc, Buffer, Device, OnDropBuffer, OnNewBuffer};
 
 /// Trait for implementing the clear() operation for the compute devices.
 pub trait ClearBuf<T, S: Shape = (), D: Device = Self> {
@@ -8,9 +8,9 @@ pub trait ClearBuf<T, S: Shape = (), D: Device = Self> {
     /// # Example
     #[cfg_attr(feature = "cpu", doc = "```")]
     #[cfg_attr(not(feature = "cpu"), doc = "```ignore")]
-    /// use custos::{CPU, ClearBuf, Buffer};
+    /// use custos::{CPU, ClearBuf, Buffer, Base};
     ///
-    /// let device = CPU::new();
+    /// let device = CPU::<Base>::new();
     /// let mut a = Buffer::from((&device, [2, 4, 6, 8, 10, 12]));
     /// assert_eq!(a.read(), vec![2, 4, 6, 8, 10, 12]);
     ///
@@ -27,9 +27,9 @@ pub trait CopySlice<T, D: Device = Self>: Sized + Device {
     ///
     #[cfg_attr(feature = "cpu", doc = "```")]
     #[cfg_attr(not(feature = "cpu"), doc = "```ignore")]
-    /// use custos::{CPU, Buffer, CopySlice};
+    /// use custos::{CPU, Buffer, CopySlice, Base};
     ///
-    /// let device = CPU::new();
+    /// let device = CPU::<Base>::new();
     /// let buf = Buffer::from((&device, [1., 2., 6., 2., 4.,]));
     /// let slice = device.copy_slice(&buf, 1..3);
     /// assert_eq!(slice.read(), &[2., 6.]);
@@ -40,7 +40,7 @@ pub trait CopySlice<T, D: Device = Self>: Sized + Device {
         range: R,
     ) -> Buffer<'a, T, Self>
     where
-        Self: for<'b> Alloc<'b, T>,
+        Self: Alloc<T> + OnDropBuffer + OnNewBuffer<T, Self, ()>,
     {
         let range = bounds_to_range(range, buf.len());
         let mut copied = Buffer::new(self, range.end - range.start);
@@ -53,9 +53,9 @@ pub trait CopySlice<T, D: Device = Self>: Sized + Device {
     ///
     #[cfg_attr(feature = "cpu", doc = "```")]
     #[cfg_attr(not(feature = "cpu"), doc = "```ignore")]
-    /// use custos::{CPU, Buffer, CopySlice};
+    /// use custos::{CPU, Buffer, CopySlice, Base};
     ///
-    /// let device = CPU::new();
+    /// let device = CPU::<Base>::new();
     /// let source = Buffer::from((&device, [1., 2., 3., 4., 5.,]));
     /// let mut dest = Buffer::from((&device, [5., 4., 3., 2., 1.,]));
     /// let slice = device.copy_slice_to(&source, 1..3, &mut dest, 3..5);
@@ -74,9 +74,9 @@ pub trait CopySlice<T, D: Device = Self>: Sized + Device {
     /// # Example
     #[cfg_attr(feature = "cpu", doc = "```")]
     #[cfg_attr(not(feature = "cpu"), doc = "```ignore")]
-    /// use custos::{Buffer, CPU, CopySlice};
+    /// use custos::{Buffer, CPU, CopySlice, Base};
     ///
-    /// let device = CPU::new();
+    /// let device = CPU::<Base>::new();
     /// let source = Buffer::from((&device, [1., 2., 6., 2., 4.]));
     ///
     /// let mut dest = Buffer::new(&device, 10);
@@ -111,9 +111,9 @@ pub trait Read<T, S: Shape = (), D: Device = Self>: Device {
     /// # Example
     #[cfg_attr(feature = "cpu", doc = "```")]
     #[cfg_attr(not(feature = "cpu"), doc = "```ignore")]
-    /// use custos::{CPU, Buffer, Read};
+    /// use custos::{CPU, Buffer, Read, Base};
     ///
-    /// let device = CPU::new();
+    /// let device = CPU::<Base>::new();
     /// let a = Buffer::from((&device, [1., 2., 3., 3., 2., 1.,]));
     /// let read = device.read(&a);
     /// assert_eq!(&[1., 2., 3., 3., 2., 1.,], read);
@@ -124,9 +124,9 @@ pub trait Read<T, S: Shape = (), D: Device = Self>: Device {
     /// # Example
     #[cfg_attr(feature = "cpu", doc = "```")]
     #[cfg_attr(not(feature = "cpu"), doc = "```ignore")]
-    /// use custos::{CPU, Buffer, Read};
+    /// use custos::{CPU, Buffer, Read, Base};
     ///
-    /// let device = CPU::new();
+    /// let device = CPU::<Base>::new();
     /// let a = Buffer::from((&device, [1., 2., 3., 3., 2., 1.,]));
     /// let read = device.read_to_vec(&a);
     /// assert_eq!(vec![1., 2., 3., 3., 2., 1.,], read);
@@ -143,9 +143,9 @@ pub trait WriteBuf<T, S: Shape = (), D: Device = Self>: Device {
     /// # Example
     #[cfg_attr(feature = "cpu", doc = "```")]
     #[cfg_attr(not(feature = "cpu"), doc = "```ignore")]
-    /// use custos::{CPU, Buffer, WriteBuf};
+    /// use custos::{CPU, Buffer, WriteBuf, Base}; // there is also a prelude mod
     ///
-    /// let device = CPU::new();
+    /// let device = CPU::<Base>::new();
     /// let mut buf: Buffer<i32> = Buffer::new(&device, 4);
     /// device.write(&mut buf, &[9, 3, 2, -4]);
     /// assert_eq!(buf.as_slice(), &[9, 3, 2, -4])
@@ -159,9 +159,9 @@ pub trait WriteBuf<T, S: Shape = (), D: Device = Self>: Device {
     /// # Example
     #[cfg_attr(feature = "cpu", doc = "```")]
     #[cfg_attr(not(feature = "cpu"), doc = "```ignore")]
-    /// use custos::{CPU, Buffer, WriteBuf};
+    /// use custos::{CPU, Buffer, WriteBuf, Base};
     ///
-    /// let device = CPU::new();
+    /// let device = CPU::<Base>::new();
     ///
     /// let mut dst: Buffer<i32> = Buffer::new(&device, 4);
     ///
@@ -179,9 +179,9 @@ pub trait CloneBuf<'a, T, S: Shape = ()>: Sized + Device {
     ///
     #[cfg_attr(feature = "cpu", doc = "```")]
     #[cfg_attr(not(feature = "cpu"), doc = "```ignore")]
-    /// use custos::{CPU, Buffer, CloneBuf};
+    /// use custos::{CPU, Buffer, CloneBuf, Base};
     ///
-    /// let device = CPU::new();
+    /// let device = CPU::<Base>::new();
     /// let buf = Buffer::from((&device, [1., 2., 6., 2., 4.,]));
     ///
     /// let cloned = device.clone_buf(&buf);
@@ -218,7 +218,7 @@ mod tests {
     fn test_unary_ew_stack_no_autograd() {
         use crate::{Buffer, Combiner, Dim1, UnaryElementWiseMayGrad};
 
-        let device = crate::Stack;
+        let device = crate::Stack::new();
         let buf = Buffer::<_, _, Dim1<5>>::from((&device, [1, 2, 4, 5, 3]));
 
         let out = device.unary_ew(&buf, |x| x.mul(3), |x| x);

@@ -9,7 +9,7 @@ fn slice_add<T: Copy + std::ops::Add<Output = T>>(a: &[T], b: &[T], c: &mut [T])
 #[cfg(feature = "cpu")]
 #[test]
 fn test_deref_cpu() {
-    let device = CPU::new();
+    let device = CPU::<Base>::new();
     let a = Buffer::from((&device, [1., 2., 3., 4.]));
     let b = Buffer::from((&device, [2., 3., 4., 5.]));
     let mut c = Buffer::from((&device, [0.; 4]));
@@ -26,7 +26,7 @@ fn test_deref_cpu() {
 fn test_deref_opencl() {
     use custos::OpenCL;
 
-    let device = OpenCL::new(0).unwrap();
+    let device = OpenCL::<Base>::new(chosen_cl_idx()).unwrap();
     if device.unified_mem() {
         panic!("the cpu ptr needs to be null")
     }
@@ -49,7 +49,7 @@ fn test_deref_opencl() {
 fn test_deref_cuda() {
     use custos::CUDA;
 
-    let device = CUDA::new(0).unwrap();
+    let device = CUDA::<Base>::new(0).unwrap();
 
     let a = Buffer::from((&device, [1., 2., 3., 4.]));
     let b = Buffer::from((&device, [2., 3., 4., 5.]));

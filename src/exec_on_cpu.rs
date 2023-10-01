@@ -8,7 +8,13 @@ mod cl_may_unified;
 #[cfg(feature = "opencl")]
 pub use cl_may_unified::*;
 
-use crate::{Alloc, Buffer, Device, Read, WriteBuf, CPU};
+use crate::{Base, Buffer, Read, WriteBuf, CPU};
+
+#[cfg(feature = "cached")]
+use crate::{Alloc, CachedCPU, Device, Retriever};
+
+#[cfg(feature = "cached")]
+use crate::Cached;
 
 /// Moves a `Buffer` stored on device `D` to a `CPU` `Buffer`
 /// and executes the unary operation `F` with a `CPU` on the newly created `CPU` `Buffer`.
@@ -16,10 +22,10 @@ use crate::{Alloc, Buffer, Device, Read, WriteBuf, CPU};
 /// # Example
 #[cfg_attr(feature = "opencl", doc = "```")]
 #[cfg_attr(not(feature = "opencl"), doc = "```ignore")]
-/// use custos::{exec_on_cpu::cpu_exec_unary, Buffer, Device, OpenCL};
+/// use custos::{exec_on_cpu::cpu_exec_unary, Buffer, Retriever, OpenCL, Base};
 ///
 /// fn main() -> custos::Result<()> {
-///     let device = OpenCL::new(0)?;
+///     let device = OpenCL::<Base>::new(0)?;
 ///     
 ///     let buf = Buffer::from((&device, [1, 2, 3, 4, 5]));
 ///     
@@ -39,18 +45,19 @@ use crate::{Alloc, Buffer, Device, Read, WriteBuf, CPU};
 ///     Ok(())
 /// }
 /// ```
+#[cfg(feature = "cached")] // FIXME: shouldn't be required to have to use the cached feature?
 pub fn cpu_exec_unary<'a, T, D, F>(
     device: &'a D,
     x: &Buffer<T, D>,
     f: F,
 ) -> crate::Result<Buffer<'a, T, D>>
 where
-    T: Clone + Default,
-    F: for<'b> Fn(&'b CPU, &Buffer<'_, T, CPU>) -> Buffer<'b, T, CPU>,
-    D: Device + Read<T> + WriteBuf<T> + for<'c> Alloc<'c, T>,
+    T: Clone + Default + 'static,
+    F: for<'b> Fn(&'b CachedCPU, &Buffer<'_, T, CachedCPU>) -> Buffer<'b, T, CachedCPU>,
+    D: Device + Read<T> + WriteBuf<T> + Alloc<T> + Retriever<T>,
 {
-    let cpu = CPU::new();
-    let cpu_buf = Buffer::<T, CPU>::from((&cpu, x.read_to_vec()));
+    let cpu = CPU::<Cached<Base>>::new();
+    let cpu_buf = Buffer::<T, CachedCPU>::from((&cpu, x.read_to_vec()));
     Ok(Buffer::from((device, f(&cpu, &cpu_buf))))
     // TODO add new node to graph
 }
@@ -67,7 +74,7 @@ where
     F: for<'b> Fn(&'b CPU, &mut Buffer<'_, T, CPU>),
     D: Read<T> + WriteBuf<T>,
 {
-    let cpu = CPU::new();
+    let cpu = CPU::<Base>::new();
     let mut cpu_buf = Buffer::<T, CPU>::from((&cpu, x.read_to_vec()));
     f(&cpu, &mut cpu_buf);
 
@@ -82,10 +89,10 @@ where
 /// # Example
 #[cfg_attr(feature = "opencl", doc = "```")]
 #[cfg_attr(not(feature = "opencl"), doc = "```ignore")]
-/// use custos::{exec_on_cpu::cpu_exec_binary, Buffer, Device, OpenCL};
+/// use custos::{exec_on_cpu::cpu_exec_binary, Buffer, Retriever, OpenCL, Base};
 ///
 /// fn main() -> custos::Result<()> {
-///     let device = OpenCL::new(0)?;
+///     let device = OpenCL::<Base>::new(0)?;
 ///     
 ///     let lhs = Buffer::from((&device, [1, 2, 3, 4, 5]));
 ///     let rhs = Buffer::from((&device, [-1, -4, -1, -8, -1]));
@@ -104,6 +111,7 @@ where
 ///     Ok(())
 /// }
 /// ```
+#[cfg(feature = "cached")] // FIXME: shouldn't be required to have to use the cached feature?
 pub fn cpu_exec_binary<'a, T, D, F>(
     device: &'a D,
     lhs: &Buffer<T, D>,
@@ -111,13 +119,17 @@ pub fn cpu_exec_binary<'a, T, D, F>(
     f: F,
 ) -> Buffer<'a, T, D>
 where
-    T: Clone + Default,
-    F: for<'b> Fn(&'b CPU, &Buffer<'_, T, CPU>, &Buffer<'_, T, CPU>) -> Buffer<'b, T, CPU>,
-    D: Device + Read<T> + WriteBuf<T> + for<'c> Alloc<'c, T>,
+    T: Clone + Default + 'static,
+    F: for<'b> Fn(
+        &'b CachedCPU,
+        &Buffer<'_, T, CachedCPU>,
+        &Buffer<'_, T, CachedCPU>,
+    ) -> Buffer<'b, T, CachedCPU>,
+    D: Device + Read<T> + WriteBuf<T> + Alloc<T> + Retriever<T>,
 {
-    let cpu = CPU::new();
-    let cpu_lhs = Buffer::<T, CPU>::from((&cpu, lhs.read_to_vec()));
-    let cpu_rhs = Buffer::<T, CPU>::from((&cpu, rhs.read_to_vec()));
+    let cpu = CPU::<Cached<Base>>::new();
+    let cpu_lhs = Buffer::<T, CachedCPU>::from((&cpu, lhs.read_to_vec()));
+    let cpu_rhs = Buffer::<T, CachedCPU>::from((&cpu, rhs.read_to_vec()));
     Buffer::from((device, f(&cpu, &cpu_lhs, &cpu_rhs)))
     // TODO add new node to graph
 }
@@ -134,7 +146,7 @@ where
     F: for<'b> Fn(&'b CPU, &mut Buffer<'_, T, CPU>, &Buffer<'_, T, CPU>),
     D: Read<T> + WriteBuf<T>,
 {
-    let cpu = CPU::new();
+    let cpu = CPU::<Base>::new();
     let mut cpu_lhs = Buffer::<T, CPU>::from((&cpu, lhs.read_to_vec()));
     let cpu_rhs = Buffer::<T, CPU>::from((&cpu, rhs.read_to_vec()));
     f(&cpu, &mut cpu_lhs, &cpu_rhs);
@@ -151,11 +163,11 @@ where
 /// # Example
 #[cfg_attr(feature = "opencl", doc = "```")]
 #[cfg_attr(not(feature = "opencl"), doc = "```ignore")]
-/// use custos::{CPU, Buffer, OpenCL, to_cpu};
+/// use custos::{CPU, Buffer, OpenCL, to_cpu, Base};
 ///
-/// let device = OpenCL::new(0).unwrap();
+/// let device = OpenCL::<Base>::new(0).unwrap();
 ///
-/// let cpu = CPU::new();
+/// let cpu = CPU::<Base>::new();
 ///
 /// let lhs = Buffer::from((&device, [1, 2, 3]));
 /// let rhs = Buffer::from((&device, [1, 2, 3]));
@@ -180,11 +192,11 @@ macro_rules! to_cpu_mut {
 /// # Example
 #[cfg_attr(feature = "opencl", doc = "```")]
 #[cfg_attr(not(feature = "opencl"), doc = "```ignore")]
-/// use custos::{CPU, Buffer, OpenCL, to_cpu};
+/// use custos::{CPU, Buffer, OpenCL, to_cpu, Base};
 ///
-/// let device = OpenCL::new(0).unwrap();
+/// let device = OpenCL::<Base>::new(0).unwrap();
 ///
-/// let cpu = CPU::new();
+/// let cpu = CPU::<Base>::new();
 ///
 /// let lhs = Buffer::from((&device, [1, 2, 3]));
 /// let rhs = Buffer::from((&device, [1, 2, 3]));
@@ -231,13 +243,13 @@ macro_rules! to_raw_host_mut {
 #[cfg_attr(not(feature = "opencl"), doc = "```ignore")]
 /// use custos::{OpenCL, Buffer, CPU};
 ///
-/// let device = OpenCL::new(0).unwrap();
+/// let device = OpenCL::<Base>::new(chosen_cl_idx()).unwrap();
 ///
 /// let a = Buffer::new(&device, 10);
 /// let b = Buffer::new(&device, 10);
 /// let c = Buffer::new(&device, 10);
 ///
-/// let cpu = CPU::new();
+/// let cpu = CPU::<Base>::new();
 ///
 /// ```
 */
@@ -271,7 +283,7 @@ where
     D: Read<T>,
     F: Fn(&CPU, &Buffer<T, CPU>) -> T,
 {
-    let cpu = CPU::new();
+    let cpu = CPU::<Base>::new();
     let cpu_x = Buffer::from((&cpu, x.read_to_vec()));
     f(&cpu, &cpu_x)
 }
@@ -281,11 +293,11 @@ mod tests {
     #[cfg(feature = "opencl")]
     #[test]
     fn test_to_cpu_macro() {
-        use crate::{Buffer, CPU};
+        use crate::{opencl::chosen_cl_idx, Base, Buffer, CPU};
 
-        let device = crate::OpenCL::new(0).unwrap();
+        let device = crate::OpenCL::<Base>::new(chosen_cl_idx()).unwrap();
 
-        let cpu = CPU::new();
+        let cpu = CPU::<Base>::new();
 
         let lhs = Buffer::from((&device, [1, 2, 3]));
         let rhs = Buffer::from((&device, [1, 2, 3]));
@@ -298,8 +310,10 @@ mod tests {
     #[cfg(feature = "opencl")]
     #[test]
     fn test_cpu_exec_unary_cl() -> crate::Result<()> {
-        use crate::{exec_on_cpu::cpu_exec_unary, Buffer, CopySlice, OpenCL};
-        let device = OpenCL::new(0)?;
+        use crate::{
+            exec_on_cpu::cpu_exec_unary, opencl::chosen_cl_idx, Base, Buffer, CopySlice, OpenCL,
+        };
+        let device = OpenCL::<Base>::new(chosen_cl_idx())?;
 
         let buf = Buffer::from((&device, [1, 2, 3, 4, 5]));
 
@@ -313,8 +327,11 @@ mod tests {
     #[cfg(feature = "opencl")]
     #[test]
     fn test_cpu_exec_unary_cl_unified() -> crate::Result<()> {
-        use crate::{exec_on_cpu::cpu_exec_unary_may_unified, Buffer, Device, OpenCL};
-        let device = OpenCL::new(0)?;
+        use crate::{
+            exec_on_cpu::cpu_exec_unary_may_unified, opencl::chosen_cl_idx, Base, Buffer, Cached,
+            OpenCL, Retriever,
+        };
+        let device = OpenCL::<Cached<Base>>::new(chosen_cl_idx())?;
 
         let buf = Buffer::from((&device, [1, 2, 3, 4, 5]));
 
@@ -337,8 +354,10 @@ mod tests {
     #[cfg(feature = "opencl")]
     #[test]
     fn test_cpu_exec_binary_cl() -> crate::Result<()> {
-        use crate::{exec_on_cpu::cpu_exec_binary, Buffer, Device, OpenCL};
-        let device = OpenCL::new(0)?;
+        use crate::{
+            exec_on_cpu::cpu_exec_binary, opencl::chosen_cl_idx, Base, Buffer, OpenCL, Retriever,
+        };
+        let device = OpenCL::<Base>::new(chosen_cl_idx())?;
 
         let lhs = Buffer::from((&device, [1, 2, 3, 4, 5]));
         let rhs = Buffer::from((&device, [-1, -4, -1, -8, -1]));
@@ -361,8 +380,11 @@ mod tests {
     #[cfg(feature = "opencl")]
     #[test]
     fn test_cpu_exec_binary_cl_may_unified() -> crate::Result<()> {
-        use crate::{exec_on_cpu::cpu_exec_binary_may_unified, Buffer, Device, OpenCL};
-        let device = OpenCL::new(0)?;
+        use crate::{
+            exec_on_cpu::cpu_exec_binary_may_unified, opencl::chosen_cl_idx, Base, Buffer, Cached,
+            OpenCL, Retriever,
+        };
+        let device = OpenCL::<Cached<Base>>::new(chosen_cl_idx())?;
 
         let lhs = Buffer::from((&device, [1, 2, 3, 4, 5]));
         let rhs = Buffer::from((&device, [-1, -4, -1, -8, -1]));

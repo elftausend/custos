@@ -1,23 +1,26 @@
 use super::{
     cpu_exec_binary, cpu_exec_binary_mut, cpu_exec_reduce, cpu_exec_unary, cpu_exec_unary_mut,
 };
-use crate::{Buffer, OpenCL, CPU};
-
-#[cfg(not(feature = "realloc"))]
-use crate::opencl::construct_buffer;
+use crate::{Buffer, CachedCPU, OnDropBuffer, OpenCL, Retrieve, UnifiedMemChain, CPU};
 
 /// If the current device supports unified memory, data is not deep-copied.
 /// This is way faster than [cpu_exec_unary], as new memory is not allocated.
 ///
 /// `cpu_exec_unary_may_unified` can be used interchangeably with [cpu_exec_unary].
-pub fn cpu_exec_unary_may_unified<'a, T, F>(
-    device: &'a OpenCL,
-    x: &Buffer<T, OpenCL>,
+#[track_caller]
+pub fn cpu_exec_unary_may_unified<
+    'a,
+    T,
+    F,
+    Mods: OnDropBuffer + Retrieve<OpenCL<Mods>, T> + UnifiedMemChain<OpenCL<Mods>> + 'static,
+>(
+    device: &'a OpenCL<Mods>,
+    x: &Buffer<T, OpenCL<Mods>>,
     f: F,
-) -> crate::Result<Buffer<'a, T, OpenCL>>
+) -> crate::Result<Buffer<'a, T, OpenCL<Mods>>>
 where
-    T: Clone + Default,
-    F: for<'b> Fn(&'b CPU, &Buffer<'_, T, CPU>) -> Buffer<'b, T, CPU>,
+    T: Clone + Default + 'static,
+    F: for<'b> Fn(&'b CachedCPU, &Buffer<'_, T, CachedCPU>) -> Buffer<'b, T, CachedCPU>,
 {
     // TODO: use compile time unified_cl flag -> get from custos?
     #[cfg(not(feature = "realloc"))]
@@ -28,18 +31,19 @@ where
 
         // host ptr buffer
         let no_drop = f(&device.cpu, &unsafe {
-            Buffer::from_raw_host(x.ptr.host_ptr, x.len())
+            Buffer::from_raw_host(x.data.host_ptr, x.len())
         });
 
         // convert host ptr / CPU buffer into a host ptr + OpenCL ptr buffer
-        return unsafe {
+        return device.construct_unified_buf_from_cpu_buf(device, no_drop);
+        /*return unsafe {
             construct_buffer(device, no_drop, /*buf.node.idx*/ ())
-        };
+        };*/
     }
 
     #[cfg(feature = "realloc")]
     if device.unified_mem() {
-        let cpu = CPU::new();
+        let cpu = CPU::<Base>::new();
         return Ok(Buffer::from((
             device,
             f(&cpu, &unsafe {
@@ -64,12 +68,12 @@ where
     T: Clone + Default,
     F: for<'b> Fn(&'b CPU, &mut Buffer<'_, T, CPU>),
 {
-    let cpu = CPU::new();
+    let cpu = CPU::<crate::Base>::new();
 
     if device.unified_mem() {
         return {
             f(&cpu, &mut unsafe {
-                Buffer::from_raw_host(lhs.ptr.host_ptr, lhs.len())
+                Buffer::from_raw_host(lhs.data.host_ptr, lhs.len())
             });
             Ok(())
         };
@@ -83,15 +87,24 @@ where
 /// This is way faster than [cpu_exec_binary], as new memory is not allocated.
 ///
 /// `cpu_exec_binary_may_unified` can be used interchangeably with [cpu_exec_binary].
-pub fn cpu_exec_binary_may_unified<'a, T, F>(
-    device: &'a OpenCL,
-    lhs: &Buffer<T, OpenCL>,
-    rhs: &Buffer<T, OpenCL>,
+pub fn cpu_exec_binary_may_unified<
+    'a,
+    T,
+    F,
+    Mods: OnDropBuffer + UnifiedMemChain<OpenCL<Mods>> + Retrieve<OpenCL<Mods>, T> + 'static,
+>(
+    device: &'a OpenCL<Mods>,
+    lhs: &Buffer<T, OpenCL<Mods>>,
+    rhs: &Buffer<T, OpenCL<Mods>>,
     f: F,
-) -> crate::Result<Buffer<'a, T, OpenCL>>
+) -> crate::Result<Buffer<'a, T, OpenCL<Mods>>>
 where
-    T: Clone + Default,
-    F: for<'b> Fn(&'b CPU, &Buffer<'_, T, CPU>, &Buffer<'_, T, CPU>) -> Buffer<'b, T, CPU>,
+    T: Clone + Default + 'static,
+    F: for<'b> Fn(
+        &'b CachedCPU,
+        &Buffer<'_, T, CachedCPU>,
+        &Buffer<'_, T, CachedCPU>,
+    ) -> Buffer<'b, T, CachedCPU>,
 {
     // TODO: use compile time unified_cl flag -> get from custos?
     #[cfg(not(feature = "realloc"))]
@@ -103,25 +116,26 @@ where
         // host ptr buffer
         let no_drop = f(
             &device.cpu,
-            &unsafe { Buffer::from_raw_host(lhs.ptr.host_ptr, lhs.len()) },
-            &unsafe { Buffer::from_raw_host(rhs.ptr.host_ptr, rhs.len()) },
+            &unsafe { Buffer::from_raw_host(lhs.data.host_ptr, lhs.len()) },
+            &unsafe { Buffer::from_raw_host(rhs.data.host_ptr, rhs.len()) },
         );
 
         // convert host ptr / CPU buffer into a host ptr + OpenCL ptr buffer
-        return unsafe {
+        return device.construct_unified_buf_from_cpu_buf(device, no_drop);
+        /*return unsafe {
             construct_buffer(device, no_drop, /*buf.node.idx*/ ())
-        };
+        };*/
     }
 
     #[cfg(feature = "realloc")]
     if device.unified_mem() {
-        let cpu = CPU::new();
+        let cpu = CPU::<Base>::new();
         return Ok(Buffer::from((
             device,
             f(
                 &cpu,
-                &unsafe { Buffer::from_raw_host(lhs.ptr.host_ptr, lhs.len()) },
-                &unsafe { Buffer::from_raw_host(rhs.ptr.host_ptr, rhs.len()) },
+                &unsafe { Buffer::from_raw_host(lhs.data.host_ptr, lhs.len()) },
+                &unsafe { Buffer::from_raw_host(rhs.data.host_ptr, rhs.len()) },
             ),
         )));
     }
@@ -143,14 +157,14 @@ where
     T: Clone + Default,
     F: for<'b> Fn(&'b CPU, &mut Buffer<'_, T, CPU>, &Buffer<'_, T, CPU>),
 {
-    let cpu = CPU::new();
+    let cpu = CPU::<crate::Base>::new();
 
     if device.unified_mem() {
         return {
             f(
                 &cpu,
-                &mut unsafe { Buffer::from_raw_host(lhs.ptr.host_ptr, lhs.len()) },
-                &unsafe { Buffer::from_raw_host(rhs.ptr.host_ptr, rhs.len()) },
+                &mut unsafe { Buffer::from_raw_host(lhs.data.host_ptr, lhs.len()) },
+                &unsafe { Buffer::from_raw_host(rhs.data.host_ptr, rhs.len()) },
             );
             Ok(())
         };
@@ -170,11 +184,11 @@ where
     T: Default + Clone,
     F: Fn(&CPU, &Buffer<T, CPU>) -> T,
 {
-    let cpu = CPU::new();
+    let cpu = CPU::<crate::Base>::new();
 
     if device.unified_mem() {
         return f(&cpu, &unsafe {
-            Buffer::from_raw_host(x.ptr.host_ptr, x.len())
+            Buffer::from_raw_host(x.data.host_ptr, x.len())
         });
     }
     cpu_exec_reduce(x, f)
@@ -189,7 +203,7 @@ where
 macro_rules! cl_cpu_exec_unified {
     ($device:ident, $($t:ident),*; $op:expr) => {{
         // TODO add to graph?:     convert.node = device.graph().add(convert.len(), matrix.node.idx);
-        let cpu = CPU::new();
+        let cpu = CPU::<Base>::new();
         if $device.unified_mem() {
 
             $crate::to_raw_host!($($t),*);
@@ -232,7 +246,7 @@ macro_rules! cl_cpu_exec_unified_mut {
             $op;
 
         } else {
-            let cpu = CPU::new();
+            let cpu = CPU::<Base>::new();
             $crate::cpu_exec_mut!($device, cpu, $($t),* WRITE_TO<$($write_to, $from),*> $op);
             $device.cpu.cache_mut().nodes.clear();
         }

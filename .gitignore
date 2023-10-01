@@ -4,3 +4,10 @@ target
 .idea
 .coverage
 Cargo.lock
+jniLibs
+*.iml
+.gradle
+build
+.cxx
+.externalNativeBuild
+/captures

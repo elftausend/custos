@@ -10,12 +10,14 @@ mod ffi;
 pub mod cublas;
 pub mod nvrtc;
 
+pub use error::*;
+
 pub use cuda::*;
 pub use ffi::*;
 
 #[cfg(test)]
 mod tests {
-    use crate::cuda::api::CUdeviceptr;
+    use crate::{cuda::api::CUdeviceptr, Base};
 
     #[test]
     fn test_cuda_alloc() {
@@ -143,7 +145,7 @@ mod tests {
             let mut device = 0;
             let mut context: *mut CUctx_st = std::ptr::null_mut();
 
-            let a: Vec<f32> = (0..N).into_iter().map(|x| x as f32).collect();
+            let a: Vec<f32> = (0..N).map(|x| x as f32).collect();
             let mut a_d: CUdeviceptr = 0;
 
             let mut out = [0f32; N];
@@ -168,7 +170,7 @@ mod tests {
     fn test_cuda_device() -> crate::Result<()> {
         use crate::{cuda::CUDA, Buffer};
 
-        let device = CUDA::new(0)?;
+        let device = CUDA::<Base>::new(0)?;
         let _a = Buffer::<f32, _>::new(&device, 10);
         Ok(())
     }

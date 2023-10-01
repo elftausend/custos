@@ -169,7 +169,7 @@ Now, the operation is accessible via the devices.<br>
 Let's try it out with a ```CPU``` device:
 
 ```rust
-let device = CPU::new();
+let device = CPU::<Base>::new();
 
 let lhs = Buffer::from((&device, [1, 3, 5, 3, 2, 6]));
 let rhs = Buffer::from((&device, [-1, -12, -6, 3, 2, -1]));
@@ -185,9 +185,9 @@ If you want to use another device, just update the device declaration.
 use custos::{OpenCL, CUDA};
 
 fn main() -> custos::Result<()> {
-    let device = OpenCL::new(0)?; 
+    let device = OpenCL::<Base>::new(0)?; 
     // or:
-    let device = CUDA::new(0)?;
+    let device = CUDA::<Base>::new(0)?;
     Ok(())
 }
 ```

@@ -1,8 +1,60 @@
-use core::ops::{Index, Range, RangeBounds};
+use core::ops::{AddAssign, Index, Range, RangeBounds};
 
-use crate::{bounds_to_range, Buffer, ClearBuf, CopySlice, MainMemory, Read, Shape, WriteBuf, CPU};
+use crate::{
+    bounds_to_range,
+    cpu_stack_ops::{apply_fn_slice, clear_slice},
+    pass_down_add_operation, AddOperation, ApplyFunction, Buffer, ClearBuf, CopySlice, Eval,
+    MainMemory, MayToCLSource, OnDropBuffer, Read, Resolve, Retrieve, Retriever, Shape, ToVal,
+    UnaryGrad, WriteBuf, CPU,
+};
 
-impl<T, D: MainMemory, S: Shape> Read<T, S, D> for CPU {
+pass_down_add_operation!(CPU);
+
+impl<Mods, T, D, S> ApplyFunction<T, S, D> for CPU<Mods>
+where
+    Mods: Retrieve<Self, T> + AddOperation<T, Self>,
+    T: Copy + Default + ToVal + 'static,
+    D: crate::MainMemory,
+    S: Shape,
+{
+    fn apply_fn<F>(
+        &self,
+        buf: &Buffer<T, D, S>,
+        f: impl Fn(Resolve<T>) -> F + Copy,
+    ) -> Buffer<T, Self, S>
+    where
+        F: Eval<T> + MayToCLSource,
+    {
+        let mut out = self.retrieve(buf.len(), buf);
+
+        self.add_op(&mut out, |out| apply_fn_slice(buf, out, f));
+
+        out
+    }
+}
+
+impl<Mods, T, D, S> UnaryGrad<T, S, D> for CPU<Mods>
+where
+    Mods: OnDropBuffer,
+    T: AddAssign + Copy + std::ops::Mul<Output = T>,
+    S: Shape,
+    D: MainMemory,
+{
+    #[inline]
+    fn add_unary_grad<F>(
+        &self,
+        lhs: &Buffer<T, D, S>,
+        lhs_grad: &mut Buffer<T, D, S>,
+        out: &Buffer<T, D, S>,
+        lhs_grad_fn: impl Fn(Resolve<T>) -> F,
+    ) where
+        F: Eval<T> + MayToCLSource,
+    {
+        crate::cpu_stack_ops::add_unary_grad(lhs, out, lhs_grad, lhs_grad_fn)
+    }
+}
+
+impl<Mods: OnDropBuffer, T, D: MainMemory, S: Shape> Read<T, S, D> for CPU<Mods> {
     type Read<'a> = &'a [T] where T: 'a, D: 'a, S: 'a;
 
     #[inline]
@@ -19,7 +71,7 @@ impl<T, D: MainMemory, S: Shape> Read<T, S, D> for CPU {
     }
 }
 
-impl<T: Copy, D: MainMemory, S: Shape> WriteBuf<T, S, D> for CPU {
+impl<Mods: OnDropBuffer, T: Copy, D: MainMemory, S: Shape> WriteBuf<T, S, D> for CPU<Mods> {
     #[inline]
     fn write(&self, buf: &mut Buffer<T, D, S>, data: &[T]) {
         buf.copy_from_slice(data)
@@ -32,15 +84,14 @@ impl<T: Copy, D: MainMemory, S: Shape> WriteBuf<T, S, D> for CPU {
 }
 
 // #[impl_stack]
-impl<T: Default, D: MainMemory, S: Shape> ClearBuf<T, S, D> for CPU {
+impl<Mods: OnDropBuffer, T: Default, D: MainMemory, S: Shape> ClearBuf<T, S, D> for CPU<Mods> {
+    #[inline]
     fn clear(&self, buf: &mut Buffer<T, D, S>) {
-        for value in buf {
-            *value = T::default();
-        }
+        clear_slice(buf)
     }
 }
 
-impl<T: Copy, D: MainMemory> CopySlice<T, D> for CPU
+impl<Mods: OnDropBuffer, T: Copy, D: MainMemory> CopySlice<T, D> for CPU<Mods>
 where
     [T]: Index<Range<usize>, Output = [T]>,
 {

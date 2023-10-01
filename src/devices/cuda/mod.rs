@@ -6,22 +6,27 @@ pub mod api;
 pub type CUdeviceptr = core::ffi::c_ulonglong;
 
 mod cuda_device;
+mod cuda_ptr;
 mod kernel_cache;
 mod kernel_launch;
+#[cfg(feature = "lazy")]
+mod lazy;
 mod ops;
+mod source;
+use core::ops::{Deref, DerefMut};
 
-use std::{marker::PhantomData, ptr::null_mut};
+pub use cuda_ptr::*;
+
+pub use source::*;
 
 pub use cuda_device::*;
 pub use kernel_cache::*;
 pub use kernel_launch::*;
 
-use crate::{flag::AllocFlag, Buffer, CDatatype, CommonPtrs, PtrType, ShallowCopy};
-
-use self::api::cufree;
+use crate::{Buffer, CDatatype, OnDropBuffer, Shape};
 
 /// Another shorter type for Buffer<'a, T, CUDA, S>
-pub type CUBuffer<'a, T> = Buffer<'a, T, CUDA>;
+pub type CUBuffer<'a, T, S = ()> = Buffer<'a, T, CUDA, S>;
 
 /// Reads the environment variable `CUSTOS_CU_DEVICE_IDX` and returns the value as a `usize`.
 pub fn chosen_cu_idx() -> usize {
@@ -33,88 +38,29 @@ pub fn chosen_cu_idx() -> usize {
         )
 }
 
-/// The pointer used for `CUDA` [`Buffer`](crate::Buffer)s
-#[derive(Debug, PartialEq, Eq)]
-pub struct CUDAPtr<T> {
-    /// The pointer to the CUDA memory object.
-    pub ptr: u64,
-    /// The number of elements addressable
-    pub len: usize,
-    /// Allocation flag for the pointer.
-    pub flag: AllocFlag,
-    pub p: PhantomData<T>,
-}
+impl<'a, T, Mods: OnDropBuffer, S: Shape> Deref for Buffer<'a, T, CUDA<Mods>, S> {
+    type Target = CUDAPtr<T>;
 
-impl<T> Default for CUDAPtr<T> {
     #[inline]
-    fn default() -> Self {
-        Self {
-            ptr: 0,
-            len: 0,
-            flag: AllocFlag::default(),
-            p: PhantomData,
-        }
+    fn deref(&self) -> &Self::Target {
+        &self.data
     }
 }
 
-impl<T> Drop for CUDAPtr<T> {
-    fn drop(&mut self) {
-        if !matches!(self.flag, AllocFlag::None | AllocFlag::BorrowedCache) {
-            return;
-        }
-
-        if self.ptr == 0 {
-            return;
-        }
-        unsafe {
-            cufree(self.ptr).unwrap();
-        }
-    }
-}
-
-impl<T> ShallowCopy for CUDAPtr<T> {
+impl<'a, T, Mods: OnDropBuffer, S: Shape> DerefMut for Buffer<'a, T, CUDA<Mods>, S> {
     #[inline]
-    unsafe fn shallow(&self) -> Self {
-        CUDAPtr {
-            ptr: self.ptr,
-            len: self.len,
-            flag: AllocFlag::Wrapper,
-            p: PhantomData,
-        }
-    }
-}
-
-impl<T> PtrType for CUDAPtr<T> {
-    #[inline]
-    fn size(&self) -> usize {
-        self.len
-    }
-
-    #[inline]
-    fn flag(&self) -> AllocFlag {
-        self.flag
-    }
-}
-
-impl<T> CommonPtrs<T> for CUDAPtr<T> {
-    #[inline]
-    fn ptrs(&self) -> (*const T, *mut std::ffi::c_void, u64) {
-        (null_mut(), null_mut(), self.ptr)
-    }
-
-    #[inline]
-    fn ptrs_mut(&mut self) -> (*mut T, *mut std::ffi::c_void, u64) {
-        (null_mut(), null_mut(), self.ptr)
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.data
     }
 }
 
 /// Sets the elements of a CUDA Buffer to zero.
 /// # Example
 /// ```
-/// use custos::{CUDA, Buffer, Read, cuda::cu_clear};
+/// use custos::{CUDA, Buffer, Read, cuda::cu_clear, Base};
 ///
 /// fn main() -> Result<(), custos::Error> {
-///     let device = CUDA::new(0)?;
+///     let device = CUDA::<Base>::new(0)?;
 ///     let mut lhs = Buffer::<i32, _>::from((&device, [15, 30, 21, 5, 8]));
 ///     assert_eq!(device.read(&lhs), vec![15, 30, 21, 5, 8]);
 ///
@@ -123,7 +69,10 @@ impl<T> CommonPtrs<T> for CUDAPtr<T> {
 ///     Ok(())
 /// }
 /// ```
-pub fn cu_clear<T: CDatatype>(device: &CUDA, buf: &mut Buffer<T, CUDA>) -> crate::Result<()> {
+pub fn cu_clear<T: CDatatype, Mods: OnDropBuffer>(
+    device: &CUDA<Mods>,
+    buf: &mut Buffer<T, CUDA<Mods>>,
+) -> crate::Result<()> {
     let src = format!(
         r#"extern "C" __global__ void clear({datatype}* self, int numElements)
             {{
@@ -134,9 +83,9 @@ pub fn cu_clear<T: CDatatype>(device: &CUDA, buf: &mut Buffer<T, CUDA>) -> crate
                 
             }}
     "#,
-        datatype = T::as_c_type_str()
+        datatype = T::C_DTYPE_STR
     );
-    launch_kernel1d(buf.len(), device, &src, "clear", &[buf, &buf.len()])?;
+    device.launch_kernel1d(buf.len(), &src, "clear", &[buf, &buf.len()])?;
     Ok(())
 }
 
@@ -146,12 +95,12 @@ mod tests {
 
     use crate::{
         cuda::{api::culaunch_kernel, fn_cache},
-        Buffer, Read, CUDA,
+        Base, Buffer, Read, CUDA,
     };
 
     #[test]
     fn test_cached_kernel_launch() -> crate::Result<()> {
-        let device = CUDA::new(0)?;
+        let device = CUDA::<Base>::new(0)?;
 
         let a = Buffer::from((&device, [1, 2, 3, 4, 5]));
         let b = Buffer::from((&device, [4, 1, 7, 6, 9]));
@@ -179,7 +128,7 @@ mod tests {
             [a.len() as u32, 1, 1],
             [1, 1, 1],
             0,
-            &mut device.stream(),
+            device.stream(),
             &mut [
                 &a.ptrs().2 as *const u64 as *mut c_void,
                 &b.ptrs().2 as *const u64 as *mut c_void,

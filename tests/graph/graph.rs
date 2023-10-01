@@ -7,7 +7,7 @@ use crate::graph::AddOp;
 
 #[test]
 fn test_graph() -> custos::Result<()> {
-    let device = CPU::new();
+    let device = CPU::<Base>::new();
 
     // idx: 0
     let a = Buffer::from((&device, [1, 2, 3, 4, 5, 6]));
@@ -39,7 +39,7 @@ fn test_graph() -> custos::Result<()> {
 #[cfg(feature = "opencl")]
 #[test]
 fn test_graph_cl() -> custos::Result<()> {
-    let device = OpenCL::new(0)?;
+    let device = OpenCL::<Base>::new(chosen_cl_idx())?;
 
     // idx: 0
     let a = Buffer::from((&device, [1, 2, 3, 4, 5, 6]));
@@ -73,7 +73,7 @@ fn test_graph_cl() -> custos::Result<()> {
 fn test_graph_cu() -> custos::Result<()> {
     use custos::CUDA;
 
-    let device = CUDA::new(0)?;
+    let device = CUDA::<Base>::new(0)?;
 
     // idx: 0
     let a = Buffer::from((&device, [1, 2, 3, 4, 5, 6]));

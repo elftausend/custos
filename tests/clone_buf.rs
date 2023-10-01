@@ -1,9 +1,11 @@
-use custos::{Buffer, CloneBuf, CPU};
+use custos::prelude::*;
 
 #[cfg(feature = "cpu")]
 #[test]
 fn test_buf_clone() {
-    let device = CPU::new();
+    use custos::CloneBuf;
+
+    let device = CPU::<Base>::new();
     let buf = Buffer::from((&device, [1., 2., 6., 2., 4.]));
 
     let cloned = device.clone_buf(&buf);
@@ -13,7 +15,7 @@ fn test_buf_clone() {
 #[cfg(feature = "cpu")]
 #[test]
 fn test_self_buf_clone() {
-    let device = CPU::new();
+    let device = CPU::<Base>::new();
     let buf = Buffer::from((&device, [1., 2., 6., 2., 4.]));
 
     let cloned = buf.clone();
@@ -23,7 +25,7 @@ fn test_self_buf_clone() {
 #[cfg(feature = "opencl")]
 #[test]
 fn test_buf_clone_cl() -> custos::Result<()> {
-    let device = custos::OpenCL::new(0)?;
+    let device = custos::OpenCL::<Base>::new(chosen_cl_idx())?;
 
     let buf = Buffer::from((&device, [1., 2., 6., 2., 4.]));
 
@@ -36,7 +38,7 @@ fn test_buf_clone_cl() -> custos::Result<()> {
 #[cfg(feature = "cuda")]
 #[test]
 fn test_buf_clone_cu() -> custos::Result<()> {
-    let device = custos::CUDA::new(0)?;
+    let device = custos::CUDA::<Base>::new(0)?;
 
     let buf = Buffer::from((&device, [1., 2., 6., 2., 4.]));
 

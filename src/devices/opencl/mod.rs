@@ -11,8 +11,7 @@ mod cl_device;
 mod kernel_cache;
 mod kernel_enqueue;
 
-#[cfg(not(feature = "realloc"))]
-//#[cfg(unified_cl)]
+// #[cfg(unified_cl)]
 mod unified;
 
 mod ops;
@@ -21,12 +20,12 @@ pub use ops::*;
 pub use min_cl::*;
 
 use min_cl::api::release_mem_object;
-//#[cfg(unified_cl)]
-#[cfg(not(feature = "realloc"))]
+
+// #[cfg(unified_cl)]
 pub use unified::*;
 
 //use self::api::release_mem_object;
-use crate::{flag::AllocFlag, Buffer, CommonPtrs, PtrType, ShallowCopy};
+use crate::{flag::AllocFlag, Buffer, CommonPtrs, HasId, Id, PtrType, ShallowCopy};
 
 /// Another type for Buffer<'a, T, OpenCL, S>
 pub type CLBuffer<'a, T, S = ()> = Buffer<'a, T, OpenCL, S>;
@@ -62,6 +61,16 @@ impl<T> Default for CLPtr<T> {
             host_ptr: null_mut(),
             len: 0,
             flag: AllocFlag::default(),
+        }
+    }
+}
+
+impl<T> HasId for CLPtr<T> {
+    #[inline]
+    fn id(&self) -> Id {
+        Id {
+            id: self.ptr as u64,
+            len: self.len,
         }
     }
 }

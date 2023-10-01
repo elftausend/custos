@@ -4,24 +4,29 @@ use min_cl::api::{
     create_buffer, enqueue_full_copy_buffer, CLIntDevice, CommandQueue, Context, MemFlags,
 };
 
-use super::{chosen_cl_idx, enqueue_kernel, AsClCvoidPtr, CLPtr, KernelCacheCL};
+use super::{enqueue_kernel, AsClCvoidPtr, CLKernelCache, CLPtr};
 use crate::flag::AllocFlag;
-use crate::{cache::Cache, Alloc, Buffer, CloneBuf, Device, Error, CPU};
-use crate::{Addons, AddonsReturn, PtrConv, Shape};
+use crate::{
+    impl_buffer_hook_traits, impl_retriever, pass_down_use_gpu_or_cpu, Alloc, Base, Buffer, Cached,
+    CachedCPU, CloneBuf, Device, Error, Module, OnDropBuffer, Setup, CPU,
+};
+use crate::{PtrConv, Shape};
 
 use std::{cell::RefCell, fmt::Debug};
 
-#[cfg(unified_cl)]
 use min_cl::api::unified_ptr;
+
+#[cfg(feature = "fork")]
+use crate::ForkSetup;
 
 /// Used to perform calculations with an OpenCL capable device.
 /// To make new calculations invocable, a trait providing new operations should be implemented for [OpenCL].
 /// # Example
 /// ```
-/// use custos::{OpenCL, Read, Buffer, Error};
+/// use custos::{OpenCL, Read, Buffer, Error, Base};
 ///
 /// fn main() -> custos::Result<()> {
-///     let device = OpenCL::new(0)?;
+///     let device = OpenCL::<Base>::new(0)?;
 ///     
 ///     let a = Buffer::from((&device, [1.3; 25]));
 ///     let out = device.read(&a);
@@ -30,40 +35,75 @@ use min_cl::api::unified_ptr;
 ///     Ok(())
 /// }
 /// ```
-pub struct OpenCL {
-    pub(crate) kernel_cache: RefCell<KernelCacheCL>,
+pub struct OpenCL<Mods = Base> {
+    pub modules: Mods,
+    pub kernel_cache: RefCell<CLKernelCache>,
     /// The underlying OpenCL device.
     pub inner: CLDevice,
     /// A [`CPU`] used for unified memory device switching.
-    pub cpu: CPU,
-    /// Provides additional functionality for the OpenCL device. e.g. a cache, a gradient [`Tape`](crate::Tape), an optimizeable [`Graph`](crate::Graph) and a [`Cache`](crate::Cache).
-    pub addons: Addons<OpenCL>,
+    pub cpu: CachedCPU, // TODO: this cpu does not cache buffers, which is a problem for construct_buffer (add #[cfg(unified_cl)])
 }
 
 /// Short form for `OpenCL`
 pub type CL = OpenCL;
 
-impl OpenCL {
+/*impl<Mods> HasCPU<Base> for OpenCL<Mods> {
+    #[inline]
+    fn cpu(&self) -> &crate::CPU {
+        &self.cpu
+    }
+}*/
+
+impl_buffer_hook_traits!(OpenCL);
+impl_retriever!(OpenCL);
+
+impl<SimpleMods> OpenCL<SimpleMods> {
     /// Returns an [OpenCL] device at the specified device index.
     /// # Errors
     /// - No device was found at the given device index
     /// - some other OpenCL related errors
-    pub fn new(device_idx: usize) -> Result<OpenCL, Error> {
+    #[inline]
+    pub fn new<NewMods>(device_idx: usize) -> crate::Result<OpenCL<NewMods>>
+    where
+        SimpleMods: Module<OpenCL, Module = NewMods>,
+        NewMods: Setup<OpenCL<NewMods>>,
+    {
         let inner = CLDevice::new(device_idx)?;
-        Ok(OpenCL {
+        let mut opencl = OpenCL {
+            modules: SimpleMods::new(),
             inner,
             kernel_cache: Default::default(),
-            cpu: Default::default(),
-            addons: Default::default(),
-        })
+            cpu: CPU::<Cached<Base>>::new(),
+        };
+        NewMods::setup(&mut opencl)?;
+        Ok(opencl)
     }
 
+    /// Returns the fastest [OpenCL] device available in your system.
+    #[inline]
+    pub fn fastest<NewMods>() -> crate::Result<OpenCL<NewMods>>
+    where
+        SimpleMods: Module<OpenCL, Module = NewMods>,
+        NewMods: Setup<OpenCL<NewMods>>,
+    {
+        let inner = CLDevice::fastest()?;
+        let mut opencl = OpenCL {
+            modules: SimpleMods::new(),
+            inner,
+            kernel_cache: Default::default(),
+            cpu: CPU::<Cached<Base>>::new(),
+        };
+        NewMods::setup(&mut opencl)?;
+        Ok(opencl)
+    }
+}
+
+impl<Mods> OpenCL<Mods> {
     /// Sets the values of the attributes cache, kernel cache, graph and CPU to their default.
     /// This cleans up any accumulated allocations.
     pub fn reset(&'static mut self) {
         self.kernel_cache = Default::default();
-        self.cpu = Default::default();
-        self.addons = Default::default();
+        self.cpu = CPU::<Cached<Base>>::new();
     }
 
     /// Context of the OpenCL device.
@@ -123,10 +163,10 @@ impl OpenCL {
     /// # Example
     ///
     /// ```
-    /// use custos::{OpenCL, Buffer};
+    /// use custos::{OpenCL, Buffer, Base};
     ///
     /// fn main() -> custos::Result<()> {
-    ///     let device = OpenCL::new(0)?;
+    ///     let device = OpenCL::<Base>::new(0)?;
     ///     let mut buf = Buffer::<f32, _>::new(&device, 10);
     ///
     ///     device.launch_kernel("
@@ -153,35 +193,29 @@ impl OpenCL {
     }
 }
 
-impl Default for OpenCL {
+/*impl Default for OpenCL {
     #[inline]
     fn default() -> Self {
-        OpenCL::new(chosen_cl_idx()).expect("A valid OpenCL device index should be set via the environment variable 'CUSTOS_CL_DEVICE_IDX'.")
+        OpenCL::<Base>::new(chosen_cl_idx()).expect("A valid OpenCL device index should be set via the environment variable 'CUSTOS_CL_DEVICE_IDX'.")
+    }
+}*/
+
+impl<Mods: OnDropBuffer> Device for OpenCL<Mods> {
+    type Data<U, S: Shape> = CLPtr<U>;
+    type Error = ();
+
+    fn new() -> Result<Self, Self::Error> {
+        todo!()
+        // OpenCL::<Base>::new(chosen_cl_idx())
     }
 }
 
-impl Device for OpenCL {
-    type Ptr<U, S: Shape> = CLPtr<U>;
-    type Cache = Cache<Self>;
-
-    fn new() -> crate::Result<Self> {
-        OpenCL::new(chosen_cl_idx())
-    }
-}
-
-impl AddonsReturn for OpenCL {
-    #[inline]
-    fn addons(&self) -> &Addons<Self> {
-        &self.addons
-    }
-}
-
-impl PtrConv for OpenCL {
+impl<Mods: OnDropBuffer, OtherMods: OnDropBuffer> PtrConv<OpenCL<OtherMods>> for OpenCL<Mods> {
     #[inline]
     unsafe fn convert<T, IS, Conv, OS>(
-        ptr: &Self::Ptr<T, IS>,
+        ptr: &Self::Data<T, IS>,
         flag: AllocFlag,
-    ) -> Self::Ptr<Conv, OS>
+    ) -> Self::Data<Conv, OS>
     where
         IS: Shape,
         OS: Shape,
@@ -213,8 +247,8 @@ impl Debug for OpenCL {
     }
 }
 
-impl<T, S: Shape> Alloc<'_, T, S> for OpenCL {
-    fn alloc(&self, mut len: usize, flag: AllocFlag) -> CLPtr<T> {
+impl<Mods: OnDropBuffer, T> Alloc<T> for OpenCL<Mods> {
+    fn alloc<S: Shape>(&self, mut len: usize, flag: AllocFlag) -> CLPtr<T> {
         assert!(len > 0, "invalid buffer len: 0");
 
         if S::LEN > len {
@@ -223,11 +257,11 @@ impl<T, S: Shape> Alloc<'_, T, S> for OpenCL {
 
         let ptr = create_buffer::<T>(self.ctx(), MemFlags::MemReadWrite as u64, len, None).unwrap();
 
-        #[cfg(unified_cl)]
-        let host_ptr = unified_ptr::<T>(self.queue(), ptr, len).unwrap();
-
-        #[cfg(not(unified_cl))]
-        let host_ptr = std::ptr::null_mut();
+        let host_ptr = if self.unified_mem() {
+            unified_ptr::<T>(self.queue(), ptr, len).unwrap()
+        } else {
+            std::ptr::null_mut()
+        };
 
         CLPtr {
             ptr,
@@ -237,7 +271,7 @@ impl<T, S: Shape> Alloc<'_, T, S> for OpenCL {
         }
     }
 
-    fn with_slice(&self, data: &[T]) -> CLPtr<T> {
+    fn alloc_from_slice<S: Shape>(&self, data: &[T]) -> CLPtr<T> {
         let ptr = create_buffer::<T>(
             self.ctx(),
             MemFlags::MemReadWrite | MemFlags::MemCopyHostPtr,
@@ -246,11 +280,11 @@ impl<T, S: Shape> Alloc<'_, T, S> for OpenCL {
         )
         .unwrap();
 
-        #[cfg(unified_cl)]
-        let host_ptr = unified_ptr::<T>(self.queue(), ptr, data.len()).unwrap();
-
-        #[cfg(not(unified_cl))]
-        let host_ptr = std::ptr::null_mut();
+        let host_ptr = if self.unified_mem() {
+            unified_ptr::<T>(self.queue(), ptr, data.len()).unwrap()
+        } else {
+            std::ptr::null_mut()
+        };
 
         CLPtr {
             ptr,
@@ -264,28 +298,67 @@ impl<T, S: Shape> Alloc<'_, T, S> for OpenCL {
 impl<'a, T> CloneBuf<'a, T> for OpenCL {
     fn clone_buf(&'a self, buf: &Buffer<'a, T, OpenCL>) -> Buffer<'a, T, OpenCL> {
         let cloned = Buffer::new(self, buf.len());
-        enqueue_full_copy_buffer::<T>(self.queue(), buf.ptr.ptr, cloned.ptr.ptr, buf.len())
+        enqueue_full_copy_buffer::<T>(self.queue(), buf.data.ptr, cloned.data.ptr, buf.len())
             .unwrap();
         cloned
     }
 }
 
 #[cfg(unified_cl)]
-impl crate::MainMemory for OpenCL {
+impl<Mods: OnDropBuffer> crate::MainMemory for OpenCL<Mods> {
     #[inline]
-    fn as_ptr<T, S: Shape>(ptr: &Self::Ptr<T, S>) -> *const T {
+    fn as_ptr<T, S: Shape>(ptr: &Self::Data<T, S>) -> *const T {
         ptr.host_ptr
     }
 
     #[inline]
-    fn as_ptr_mut<T, S: Shape>(ptr: &mut Self::Ptr<T, S>) -> *mut T {
+    fn as_ptr_mut<T, S: Shape>(ptr: &mut Self::Data<T, S>) -> *mut T {
         ptr.host_ptr
+    }
+}
+
+#[cfg(feature = "fork")]
+impl<Mods> ForkSetup for OpenCL<Mods> {
+    #[inline]
+    fn fork_setup(&mut self) {
+        assert!(
+            self.unified_mem(),
+            "The selected device does not support unified memory."
+        )
+    }
+}
+
+pass_down_use_gpu_or_cpu!(OpenCL);
+
+impl<Mods: crate::RunModule<Self>> crate::Run for OpenCL<Mods> {
+    #[inline]
+    fn run(&self) -> crate::Result<()> {
+        self.modules.run(self)
+    }
+}
+
+#[cfg(feature = "lazy")]
+impl<Mods> crate::LazySetup for OpenCL<Mods> {}
+
+#[cfg(feature = "lazy")]
+impl<Mods> crate::LazyRun for OpenCL<Mods> {}
+
+#[cfg(feature = "autograd")]
+impl<Mods: crate::TapeActions> crate::TapeActions for OpenCL<Mods> {
+    #[inline]
+    fn tape(&self) -> Option<core::cell::Ref<crate::Tape>> {
+        self.modules.tape()
+    }
+
+    #[inline]
+    fn tape_mut(&self) -> Option<core::cell::RefMut<crate::Tape>> {
+        self.modules.tape_mut()
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::{opencl::cl_device::CLDevice, Buffer, OpenCL};
+    use crate::{opencl::cl_device::CLDevice, Base, Buffer, Cached, OpenCL, CPU};
 
     #[test]
     fn test_multiplie_queues() -> crate::Result<()> {
@@ -293,8 +366,8 @@ mod tests {
         let cl = OpenCL {
             inner: device,
             kernel_cache: Default::default(),
-            cpu: Default::default(),
-            addons: Default::default(),
+            cpu: CPU::<Cached<Base>>::new(),
+            modules: crate::Base,
         };
 
         let buf = Buffer::from((&cl, &[1, 2, 3, 4, 5, 6, 7]));
@@ -305,8 +378,8 @@ mod tests {
         let cl1 = OpenCL {
             inner: device,
             kernel_cache: Default::default(),
-            cpu: Default::default(),
-            addons: Default::default(),
+            cpu: CPU::<Cached<Base>>::new(),
+            modules: crate::Base,
         };
 
         let buf = Buffer::from((&cl1, &[2, 2, 4, 4, 2, 1, 3]));

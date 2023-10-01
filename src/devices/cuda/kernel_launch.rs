@@ -1,23 +1,23 @@
-use crate::{number::Number, Buffer, CUDA};
-use std::ffi::c_void;
+use crate::{number::Number, Buffer, OnDropBuffer, Shape, CUDA};
+use std::{collections::HashMap, ffi::c_void};
 
 use super::{
-    api::{cuOccupancyMaxPotentialBlockSize, culaunch_kernel, FnHandle},
-    fn_cache, CUDAPtr,
+    api::{cuOccupancyMaxPotentialBlockSize, culaunch_kernel, FnHandle, Module, Stream},
+    fn_cache, CUDAPtr, CUKernelCache, CudaSource,
 };
 
 /// Converts `Self` to a (cuda) *mut c_void.
 /// This enables taking `Buffer` and a number `T` as an argument to an CUDA kernel.
 /// # Example
 /// ```
-/// use custos::{CUDA, Buffer, cuda::AsCudaCvoidPtr};
+/// use custos::{CUDA, Buffer, cuda::AsCudaCvoidPtr, Base};
 ///
 /// fn args(args: &[&dyn AsCudaCvoidPtr]) {
 ///     // ...
 /// }
 ///
 /// fn main() -> custos::Result<()> {
-///     let device = CUDA::new(0)?;
+///     let device = CUDA::<Base>::new(0)?;
 ///
 ///     let buf = Buffer::<f32, _>::new(&device, 10);
 ///     let num = 4;
@@ -29,10 +29,10 @@ pub trait AsCudaCvoidPtr {
     /// Converts `Self` to a (cuda) *mut c_void.
     /// # Example
     /// ```
-    /// use custos::{CUDA, Buffer, cuda::AsCudaCvoidPtr};
+    /// use custos::{CUDA, Buffer, cuda::AsCudaCvoidPtr, Base};
     ///
     /// fn main() -> custos::Result<()> {
-    ///     let device = CUDA::new(0)?;
+    ///     let device = CUDA::<Base>::new(0)?;
     ///     let buf = Buffer::<f32, _>::new(&device, 10);
     ///     
     ///     let _ptr = buf.as_cvoid_ptr();
@@ -42,21 +42,21 @@ pub trait AsCudaCvoidPtr {
     fn as_cvoid_ptr(&self) -> *mut c_void;
 }
 
-impl<'a, T> AsCudaCvoidPtr for &Buffer<'a, T, CUDA> {
+impl<'a, T, Mods: OnDropBuffer, S: Shape> AsCudaCvoidPtr for &Buffer<'a, T, CUDA<Mods>, S> {
     #[inline]
     fn as_cvoid_ptr(&self) -> *mut c_void {
-        &self.ptr.ptr as *const u64 as *mut c_void
+        &self.data.ptr as *const u64 as *mut c_void
     }
 }
 
-impl<'a, T> AsCudaCvoidPtr for Buffer<'a, T, CUDA> {
+impl<'a, T, Mods: OnDropBuffer, S: Shape> AsCudaCvoidPtr for Buffer<'a, T, CUDA<Mods>, S> {
     #[inline]
     fn as_cvoid_ptr(&self) -> *mut c_void {
-        &self.ptr.ptr as *const u64 as *mut c_void
+        &self.data.ptr as *const u64 as *mut c_void
     }
 }
 
-impl<'a, T> AsCudaCvoidPtr for CUDAPtr<T> {
+impl<T> AsCudaCvoidPtr for CUDAPtr<T> {
     #[inline]
     fn as_cvoid_ptr(&self) -> *mut c_void {
         &self.ptr as *const u64 as *mut c_void
@@ -71,22 +71,30 @@ impl<T: Number> AsCudaCvoidPtr for T {
 }
 
 /// Launch a CUDA kernel with the given grid and block sizes.
-pub fn launch_kernel(
-    device: &CUDA,
+#[inline]
+pub fn launch_kernel<Mods>(
+    device: &CUDA<Mods>,
     grid: [u32; 3],
     blocks: [u32; 3],
     shared_mem_bytes: u32,
-    src: &str,
+    src: impl CudaSource,
     fn_name: &str,
     params: &[&dyn AsCudaCvoidPtr],
 ) -> crate::Result<()> {
     let func = fn_cache(device, src, fn_name)?;
-    launch_kernel_with_fn(device, &func, grid, blocks, shared_mem_bytes, params)
+    launch_kernel_with_fn(
+        device.stream(),
+        &func,
+        grid,
+        blocks,
+        shared_mem_bytes,
+        params,
+    )
 }
 
 /// Launch a CUDA kernel with the given CUDA function grid and block sizes.
 pub fn launch_kernel_with_fn(
-    device: &CUDA,
+    stream: &Stream,
     func: &FnHandle,
     grid: [u32; 3],
     blocks: [u32; 3],
@@ -98,14 +106,7 @@ pub fn launch_kernel_with_fn(
         .map(|param| param.as_cvoid_ptr())
         .collect::<Vec<_>>();
 
-    culaunch_kernel(
-        &func,
-        grid,
-        blocks,
-        shared_mem_bytes,
-        device.stream(),
-        &params,
-    )?;
+    culaunch_kernel(func, grid, blocks, shared_mem_bytes, stream, &params)?;
     Ok(())
 }
 
@@ -114,8 +115,10 @@ pub fn launch_kernel_with_fn(
 /// All kernel arguments must be set.
 pub fn launch_kernel1d(
     len: usize,
-    device: &CUDA,
-    src: &str,
+    kernel_cache: &mut CUKernelCache,
+    modules: &mut HashMap<FnHandle, Module>,
+    stream: &Stream,
+    src: impl CudaSource,
     fn_name: &str,
     params: &[&dyn AsCudaCvoidPtr],
 ) -> crate::Result<()> {
@@ -124,7 +127,7 @@ pub fn launch_kernel1d(
         .map(|param| param.as_cvoid_ptr())
         .collect::<Vec<_>>();
 
-    let func = fn_cache(device, src, fn_name)?;
+    let func = kernel_cache.kernel(modules, src, fn_name)?;
 
     let mut min_grid_size = 0;
     let mut block_size = 0;
@@ -147,7 +150,7 @@ pub fn launch_kernel1d(
         [grid_size as u32, 1, 1],
         [block_size as u32, 1, 1],
         0,
-        device.stream(),
+        stream,
         &params,
     )?;
     Ok(())

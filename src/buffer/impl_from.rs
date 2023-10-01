@@ -1,6 +1,8 @@
 use core::ops::Range;
 
-use crate::{number::Number, shape::Shape, Alloc, Buffer};
+use crate::{
+    number::Number, shape::Shape, Alloc, Buffer, Device, OnDropBuffer, OnNewBuffer, Retriever,
+};
 
 #[cfg(feature = "cpu")]
 use crate::{WriteBuf, CPU};
@@ -9,7 +11,7 @@ impl<'a, T, D, const N: usize> From<(&'a D, [T; N])> for Buffer<'a, T, D>
 where
     T: Clone,
     // TODO: IsShapeIndep ... find way to include Stack
-    D: Alloc<'a, T>,
+    D: Alloc<T> + OnNewBuffer<T, D, ()>,
 {
     #[inline]
     fn from((device, array): (&'a D, [T; N])) -> Self {
@@ -19,7 +21,7 @@ where
 
 impl<'a, T, D> From<(&'a D, usize)> for Buffer<'a, T, D>
 where
-    D: Alloc<'a, T>,
+    D: Alloc<T> + OnNewBuffer<T, D, ()>,
 {
     #[inline]
     fn from((device, len): (&'a D, usize)) -> Self {
@@ -30,7 +32,7 @@ where
 /*impl<'a, T, D> Buffer<'a, T, D>
 where
     T: Clone,
-    D: Alloc<'a, T>
+    D: Alloc<T>+ OnNewBuffer<T, D, ()>
 {
     #[inline]
     pub fn from_iter<I: IntoIterator<Item = T>>(device: &'a D, iter: I) -> Self {
@@ -42,7 +44,7 @@ where
 impl<'a, T, D> From<(&'a D, Range<usize>)> for Buffer<'a, T, D>
 where
     T: Number,
-    D: Alloc<'a, T>,
+    D: Alloc<T> + OnNewBuffer<T, D, ()>,
 {
     #[inline]
     fn from((device, range): (&'a D, Range<usize>)) -> Self {
@@ -55,7 +57,7 @@ where
 impl<'a, T, D, I> From<(&'a D, I)> for Buffer<'a, T, D>
 where
     T: Number,
-    D: Alloc<'a, T>,
+    D: Alloc<T>+ OnNewBuffer<T, D, ()>,
     I: IntoIterator<Item = T>,
 {
     #[inline]
@@ -67,7 +69,7 @@ where
 /*impl<'a, T, D, const N: usize> From<(&'a D, [T; N])> for Buffer<'a, T, D>
 where
     T: Clone,
-    D: Alloc<'a, T> + IsShapeIndep,
+    D: Alloc<T>+ OnNewBuffer<T, D, ()> + IsShapeIndep,
 {
     fn from((device, array): (&'a D, [T; N])) -> Self {
         Buffer {
@@ -84,7 +86,7 @@ impl<'a, T, D, const N: usize> From<(&'a D, &[T; N])> for Buffer<'a, T, D>
 where
     T: Clone,
     // TODO: IsShapeIndep ... find way to include Stack
-    D: Alloc<'a, T>,
+    D: Alloc<T> + OnNewBuffer<T, D, ()>,
 {
     #[inline]
     fn from((device, array): (&'a D, &[T; N])) -> Self {
@@ -95,7 +97,7 @@ where
 /*impl<'a, T, D, const N: usize> From<(&'a D, &[T; N])> for Buffer<'a, T, D>
 where
     T: Clone,
-    D: Alloc<'a, T> + IsShapeIndep,
+    D: Alloc<T>+ OnNewBuffer<T, D, ()> + IsShapeIndep,
 {
     fn from((device, array): (&'a D, &[T; N])) -> Self {
         Buffer {
@@ -112,7 +114,7 @@ impl<'a, T, D, S: Shape> From<(&'a D, &[T])> for Buffer<'a, T, D, S>
 where
     T: Clone,
     // TODO: IsShapeIndep ... find way to include Stack
-    D: Alloc<'a, T, S>,
+    D: Alloc<T> + OnNewBuffer<T, D, S>,
 {
     #[inline]
     fn from((device, slice): (&'a D, &[T])) -> Self {
@@ -123,7 +125,7 @@ where
 /*impl<'a, T, D, S: Shape> From<(&'a D, &[T])> for Buffer<'a, T, D, S>
 where
     T: Clone,
-    D: Alloc<'a, T, S> + IsShapeIndep,
+    D: Alloc<T>+ OnNewBuffer<T, D, ()> + IsShapeIndep,
 {
     fn from((device, slice): (&'a D, &[T])) -> Self {
         Buffer {
@@ -140,7 +142,7 @@ impl<'a, T, D, S: Shape> From<(&'a D, Vec<T>)> for Buffer<'a, T, D, S>
 where
     T: Clone,
     // TODO: IsShapeIndep ... find way to include Stack
-    D: Alloc<'a, T, S>,
+    D: Alloc<T> + OnNewBuffer<T, D, S>,
 {
     #[inline]
     fn from((device, vec): (&'a D, Vec<T>)) -> Self {
@@ -153,7 +155,7 @@ impl<'a, T, D, S: Shape> From<(&'a D, &Vec<T>)> for Buffer<'a, T, D, S>
 where
     T: Clone,
     // TODO: IsShapeIndep ... find way to include Stack
-    D: Alloc<'a, T, S>,
+    D: Alloc<T> + OnNewBuffer<T, D, S>,
 {
     #[inline]
     fn from((device, vec): (&'a D, &Vec<T>)) -> Self {
@@ -162,12 +164,14 @@ where
 }
 
 #[cfg(feature = "cpu")]
-impl<'a, 'b, T, S, D> From<(&'a D, Buffer<'b, T, CPU, S>)> for Buffer<'a, T, D, S>
+impl<'a, 'b, Mods: OnDropBuffer, T, S, D> From<(&'a D, Buffer<'b, T, CPU<Mods>, S>)>
+    for Buffer<'a, T, D, S>
 where
+    T: 'static,
     S: Shape,
-    D: WriteBuf<T, S> + for<'c> Alloc<'c, T, S>,
+    D: WriteBuf<T, S> + Device + Retriever<T>,
 {
-    fn from((device, buf): (&'a D, Buffer<'b, T, CPU, S>)) -> Self {
+    fn from((device, buf): (&'a D, Buffer<'b, T, CPU<Mods>, S>)) -> Self {
         let mut out = device.retrieve(buf.len(), &buf);
         device.write(&mut out, &buf);
         out
@@ -180,11 +184,11 @@ mod tests {
     #[cfg(feature = "cpu")]
     #[test]
     fn test_buf_device_conversion_cpu() {
-        use crate::{Buffer, Read, CPU};
+        use crate::{Base, Buffer, Read, CPU};
 
-        let device = CPU::new();
+        let device = CPU::<Base>::new();
 
-        let cpu = CPU::new();
+        let cpu = CPU::<Base>::new();
         let cpu_buf = Buffer::from((&cpu, [1, 2, 4, 5]));
 
         let out = Buffer::from((&device, cpu_buf));
@@ -194,11 +198,12 @@ mod tests {
     #[cfg(feature = "opencl")]
     #[test]
     fn test_buf_device_conversion_cl() -> crate::Result<()> {
-        use crate::{Buffer, OpenCL, Read, CPU};
+        use crate::{opencl::chosen_cl_idx, Base, Buffer, OpenCL, Read, CPU};
 
-        let device = OpenCL::new(0)?;
+        let device = OpenCL::<Base>::new(chosen_cl_idx())?;
+        println!("name: {:?}", device.name());
 
-        let cpu = CPU::new();
+        let cpu = CPU::<Base>::new();
         let cpu_buf = Buffer::from((&cpu, [1, 2, 4, 5]));
 
         let out = Buffer::from((&device, cpu_buf));
@@ -210,11 +215,11 @@ mod tests {
     #[cfg(feature = "cuda")]
     #[test]
     fn test_buf_device_conversion_cu() -> crate::Result<()> {
-        use crate::{Buffer, Read, CPU, CUDA};
+        use crate::{Base, Buffer, Read, CPU, CUDA};
 
-        let device = CUDA::new(0)?;
+        let device = CUDA::<Base>::new(0)?;
 
-        let cpu = CPU::new();
+        let cpu = CPU::<Base>::new();
         let cpu_buf = Buffer::from((&cpu, [1, 2, 4, 5]));
 
         let out = Buffer::from((&device, cpu_buf));

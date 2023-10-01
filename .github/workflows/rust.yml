@@ -24,10 +24,8 @@ jobs:
     - uses: Swatinem/rust-cache@v1
     - name: Build
       run: cargo build --verbose --no-default-features
-    - name: Build (opt-cache)
-      run: cargo build --verbose --no-default-features --features opt-cache,cpu
-    - name: Build (realloc)
-      run: cargo build --verbose --no-default-features --features realloc,cpu
+    - name: Build (cached)
+      run: cargo build --verbose --no-default-features --features cached,cpu
     - name: Build (stack)
       run: cargo build --verbose --no-default-features --features stack,cpu
       
@@ -48,7 +46,29 @@ jobs:
     - name: Run tests
       run: cargo test --verbose --no-default-features --features cpu
 
-  test-realloc:
+  test-modules:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+
+    - uses: actions-rs/toolchain@v1
+      with:
+        profile: minimal
+        toolchain: stable
+
+    - uses: Swatinem/rust-cache@v1
+
+    - name: Run tests,fork
+      run: cargo test --verbose --no-default-features --features cpu,fork
+    - name: Run tests,autograd
+      run: cargo test --verbose --no-default-features --features cpu,autograd
+    - name: Run tests,lazy
+      run: cargo test --verbose --no-default-features --features cpu,lazy
+    - name: Run tests,cached,fork
+      run: cargo test --verbose --no-default-features --features cpu,cached,fork
+
+  test-cached:
   
     runs-on: ubuntu-latest
     
@@ -62,25 +82,25 @@ jobs:
 
     - uses: Swatinem/rust-cache@v1
 
-    - name: Run 'realloc' tests
-      run: cargo test --verbose --no-default-features --features realloc,cpu
+    - name: Run 'cached' tests
+      run: cargo test --verbose --no-default-features --features cached,cpu
 
-  test-opt-cache:
+  # test-opt-cache:
   
-    runs-on: ubuntu-latest
+  #   runs-on: ubuntu-latest
     
-    steps:
-    - uses: actions/checkout@v3
+  #   steps:
+  #   - uses: actions/checkout@v3
 
-    - uses: actions-rs/toolchain@v1
-      with:
-        profile: minimal
-        toolchain: stable
+  #   - uses: actions-rs/toolchain@v1
+  #     with:
+  #       profile: minimal
+  #       toolchain: stable
 
-    - uses: Swatinem/rust-cache@v1
+  #   - uses: Swatinem/rust-cache@v1
 
-    - name: Run 'opt-cache' tests
-      run: cargo test --verbose --no-default-features --features opt-cache,cpu
+  #   - name: Run 'opt-cache' tests
+  #     run: cargo test --verbose --no-default-features --features opt-cache,cpu
 
   test-stack:
   
@@ -163,10 +183,8 @@ jobs:
           cargo miri setup
       - name: Test with Miri
         run: cargo miri test --no-default-features --features cpu
-      - name: Test 'realloc' with Miri
-        run: cargo miri test --no-default-features --features realloc,cpu
-      - name: Test 'opt-cache' with Miri
-        run: cargo miri test --no-default-features --features opt-cache,cpu
+      # - name: Test 'opt-cache' with Miri
+        # run: cargo miri test --no-default-features --features opt-cache,cpu
       - name: Test 'stack' with Miri
         run: cargo miri test --no-default-features --features stack,cpu
       - name: Test 'static-api' with Miri

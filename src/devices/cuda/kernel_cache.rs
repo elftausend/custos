@@ -1,32 +1,31 @@
-use super::api::{
-    load_module_data,
-    nvrtc::{create_program, nvrtcDestroyProgram},
-    FnHandle,
+use super::{
+    api::{load_module_data, FnHandle, Module},
+    CudaSource,
 };
 use crate::{Error, CUDA};
-use std::{collections::HashMap, ffi::CString};
+use std::collections::HashMap;
 
 /// This stores the previously compiled CUDA functions / kernels.
 #[derive(Debug, Default)]
-pub struct KernelCacheCU {
+pub struct CUKernelCache {
     /// Uses the kernel source code and the kernel function to retrieve the corresponding `FnHandle`.
     pub kernels: HashMap<(String, String), FnHandle>,
 }
 
-impl KernelCacheCU {
+impl CUKernelCache {
     /// Returns a cached kernel. If the kernel source code does not exist, a new kernel is created and cached.
     ///
     /// # Example
     /// ```
     /// use std::collections::HashMap;
-    /// use custos::{CUDA, cuda::KernelCacheCU};
+    /// use custos::{CUDA, cuda::CUKernelCache, Base};
     ///
     /// fn main() -> custos::Result<()> {
-    ///     let device = CUDA::new(0)?;
+    ///     let device = CUDA::<Base>::new(0)?;
     ///     
-    ///     let mut kernel_cache = KernelCacheCU::default();
+    ///     let mut kernel_cache = CUKernelCache::default();
     ///     
-    ///     let mut kernel_fn = || kernel_cache.kernel(&device, r#"
+    ///     let mut kernel_fn = || kernel_cache.kernel(&mut device.cuda_modules.borrow_mut(), r#"
     ///         extern "C" __global__ void test(float* test) {}
     ///     "#, "test").unwrap().0;
     ///     
@@ -37,34 +36,38 @@ impl KernelCacheCU {
     ///     Ok(())
     /// }
     /// ```
-    pub fn kernel(&mut self, device: &CUDA, src: &str, fn_name: &str) -> Result<FnHandle, Error> {
-        let kernel = self.kernels.get(&(src.into(), fn_name.into()));
+    pub fn kernel(
+        &mut self,
+        modules: &mut HashMap<FnHandle, Module>,
+        src: impl CudaSource,
+        fn_name: &str,
+    ) -> Result<FnHandle, Error> {
+        let kernel = self.kernels.get(&(src.as_src_str(), fn_name.into()));
 
         if let Some(kernel) = kernel {
             return Ok(*kernel);
         }
 
-        // TODO: not optimal, if multiple functions are used in the same source code, they are compiled multiple times
-        let mut x = create_program(src, "")?;
-
-        x.compile(Some(vec![CString::new("--use_fast_math").unwrap()]))?;
-
-        let module = load_module_data(x.ptx()?)?;
+        let module = load_module_data(src.ptx()?)?;
         let function = module.function(fn_name)?;
 
         // TODO: not optimal, if multiple functions are used in the same source code, they are compiled multiple times
-        device.modules.borrow_mut().insert(function, module);
+        modules.insert(function, module);
 
-        self.kernels.insert((src.into(), fn_name.into()), function);
-        unsafe { nvrtcDestroyProgram(&mut x.0).to_result()? };
+        self.kernels
+            .insert((src.as_src_str(), fn_name.into()), function);
         Ok(function)
     }
 }
 
 /// Exactly like [`KernelCacheCU`], but with a immutable source of the cache using interior mutability.
-pub fn fn_cache(device: &CUDA, src: &str, fn_name: &str) -> crate::Result<FnHandle> {
+pub fn fn_cache<Mods>(
+    device: &CUDA<Mods>,
+    src: impl CudaSource,
+    fn_name: &str,
+) -> crate::Result<FnHandle> {
     device
         .kernel_cache
         .borrow_mut()
-        .kernel(device, src, fn_name)
+        .kernel(&mut device.cuda_modules.borrow_mut(), src, fn_name)
 }

@@ -1,19 +1,21 @@
-use crate::{number::Number, Buffer, OpenCL, Shape};
+use crate::{number::Number, Buffer, OnDropBuffer, OpenCL, Shape};
 use min_cl::api::{enqueue_nd_range_kernel, set_kernel_arg, OCLErrorKind};
 use std::{ffi::c_void, mem::size_of};
+
+use super::CLPtr;
 
 /// Converts `Self` to a *const c_void.
 /// This enables taking `Buffer` and a number `T` as an argument to an OpenCL kernel.
 /// # Example
 /// ```
-/// use custos::{OpenCL, Buffer, opencl::AsClCvoidPtr};
+/// use custos::{OpenCL, Buffer, opencl::AsClCvoidPtr, Base};
 ///
 /// fn args(args: &[&dyn AsClCvoidPtr]) {
 ///     // ...
 /// }
 ///
 /// fn main() -> custos::Result<()> {
-///     let device = OpenCL::new(0)?;
+///     let device = OpenCL::<Base>::new(0)?;
 ///
 ///     let buf = Buffer::<f32, _>::new(&device, 10);
 ///     let num = 4;
@@ -25,10 +27,10 @@ pub trait AsClCvoidPtr {
     /// Converts `Self` to a *const c_void.
     /// # Example
     /// ```
-    /// use custos::{OpenCL, Buffer, opencl::AsClCvoidPtr};
+    /// use custos::{OpenCL, Buffer, opencl::AsClCvoidPtr, Base};
     ///
     /// fn main() -> custos::Result<()> {
-    ///     let device = OpenCL::new(0)?;
+    ///     let device = OpenCL::<Base>::new(0)?;
     ///     let buf = Buffer::<f32, _>::new(&device, 10);
     ///     
     ///     let ptr = buf.as_cvoid_ptr();
@@ -53,12 +55,12 @@ pub trait AsClCvoidPtr {
     /// Returns the size of `Self` in bytes.
     /// # Example
     /// ```
-    /// use custos::{OpenCL, Buffer, opencl::AsClCvoidPtr};
+    /// use custos::{OpenCL, Buffer, opencl::AsClCvoidPtr, Base};
     ///
     /// fn main() -> custos::Result<()> {
     ///     assert_eq!(4f32.ptr_size(), 4);    
     ///
-    ///     let device = OpenCL::new(0)?;
+    ///     let device = OpenCL::<Base>::new(0)?;
     ///
     ///     let buf = Buffer::<f32, _>::new(&device, 10);
     ///     assert_eq!(buf.ptr_size(), 8);
@@ -72,17 +74,17 @@ pub trait AsClCvoidPtr {
     }
 }
 
-impl<'a, T, S: Shape> AsClCvoidPtr for &Buffer<'a, T, OpenCL, S> {
+impl<'a, Mods: OnDropBuffer, T, S: Shape> AsClCvoidPtr for &Buffer<'a, T, OpenCL<Mods>, S> {
     #[inline]
     fn as_cvoid_ptr(&self) -> *const c_void {
-        self.ptr.ptr
+        self.data.ptr
     }
 }
 
-impl<'a, T, S: Shape> AsClCvoidPtr for Buffer<'a, T, OpenCL, S> {
+impl<'a, Mods: OnDropBuffer, T, S: Shape> AsClCvoidPtr for Buffer<'a, T, OpenCL<Mods>, S> {
     #[inline]
     fn as_cvoid_ptr(&self) -> *const c_void {
-        self.ptr.ptr
+        self.data.ptr
     }
 }
 
@@ -103,14 +105,21 @@ impl<T: Number> AsClCvoidPtr for T {
     }
 }
 
+impl<T> AsClCvoidPtr for CLPtr<T> {
+    #[inline]
+    fn as_cvoid_ptr(&self) -> *const c_void {
+        self.ptr
+    }
+}
+
 /// Executes a cached OpenCL kernel.
 /// # Example
 ///
 /// ```
-/// use custos::{OpenCL, Buffer, opencl::enqueue_kernel};
+/// use custos::{OpenCL, Buffer, opencl::enqueue_kernel, Base};
 ///
 /// fn main() -> custos::Result<()> {
-///     let device = OpenCL::new(0)?;
+///     let device = OpenCL::<Base>::new(0)?;
 ///     let mut buf = Buffer::<f32, _>::new(&device, 10);
 ///
 ///     enqueue_kernel(&device, "
@@ -125,8 +134,8 @@ impl<T: Number> AsClCvoidPtr for T {
 ///     Ok(())
 /// }
 /// ```
-pub fn enqueue_kernel(
-    device: &OpenCL,
+pub fn enqueue_kernel<Mods>(
+    device: &OpenCL<Mods>,
     src: &str,
     gws: [usize; 3],
     lws: Option<[usize; 3]>,
@@ -166,11 +175,11 @@ pub fn enqueue_kernel(
 mod tests {
     // use core::ffi::c_void;
 
-    use crate::{Buffer, CDatatype, OpenCL};
+    use crate::{opencl::chosen_cl_idx, Base, Buffer, CDatatype, OpenCL};
 
     #[test]
     fn test_kernel_launch() -> crate::Result<()> {
-        let device = OpenCL::new(0)?;
+        let device = OpenCL::<Base>::new(chosen_cl_idx())?;
 
         let src = format!("
             __kernel void add(__global const {datatype}* lhs, __global const {datatype}* rhs, __global {datatype}* out) 
@@ -178,7 +187,7 @@ mod tests {
                 size_t id = get_global_id(0);
                 out[id] = lhs[id] + rhs[id];
             }}
-        ", datatype=f32::as_c_type_str());
+        ", datatype=f32::C_DTYPE_STR);
 
         let lhs = Buffer::from((&device, [1f32, 5.1, 1.2, 2.3, 4.6]));
         let rhs = Buffer::from((&device, [1f32, 5.1, 1.2, 2.3, 4.6]));
@@ -197,17 +206,17 @@ mod tests {
     
                 out[idx] = lhs[idx] {op} rhs[idx];
             }}"
-        , datatype=T::as_c_type_str())
+        , datatype=T::C_DTYPE_STR)
     }
 
-    /*#[test]
+    #[test]
     fn test_get_work_group_size() -> crate::Result<()> {
-        let device = OpenCL::new(0)?;
+        let device = OpenCL::<Base>::new(chosen_cl_idx())?;
         let mut kernel_cache = device.kernel_cache.borrow_mut();
 
-        let kernel = kernel_cache.kernel_cache(&device, &ew_add_kernel::<f32>("+"))?;
+        let kernel = kernel_cache.kernel(&device, &ew_add_kernel::<f32>("+"))?;
 
-        let mut local = 0;
+        let mut local = 0u64;
 
         unsafe {
             min_cl::api::ffi::clGetKernelWorkGroupInfo(
@@ -215,15 +224,13 @@ mod tests {
                 device.inner.device.0,
                 min_cl::api::ffi::CL_KERNEL_WORK_GROUP_SIZE,
                 core::mem::size_of_val(&local),
-                &mut local as *mut i32 as *mut c_void,
-                core::ptr::null_mut()
+                &mut local as *mut _ as *mut core::ffi::c_void,
+                core::ptr::null_mut(),
             );
         }
 
-        // println!("local: {local}");
-
+        println!("local: {local}");
 
         Ok(())
     }
-    */
 }

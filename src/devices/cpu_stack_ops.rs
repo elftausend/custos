@@ -1,58 +1,37 @@
-#[cfg(any(feature = "cpu", feature = "stack"))]
 use core::ops::AddAssign;
+use core::ops::Mul;
 
-//#[cfg(any(feature = "cpu", feature = "stack"))]
-use custos_macro::impl_stack;
+use crate::{Eval, ToVal};
 
-use crate::MayToCLSource;
-#[cfg(any(feature = "cpu", feature = "stack"))]
-use crate::{ApplyFunction, Buffer, Device, Eval, MainMemory, Resolve, Shape, ToVal, UnaryGrad};
-
-#[cfg(feature = "cpu")]
-use crate::CPU;
-
-#[cfg(feature = "stack")]
-use crate::Stack;
-
-#[impl_stack]
-impl<T, D, S> ApplyFunction<T, S, D> for CPU
+#[inline]
+pub fn apply_fn_slice<T, O>(x: &[T], out: &mut [T], f: impl Fn(crate::Resolve<T>) -> O)
 where
-    T: Copy + Default + ToVal,
-    D: crate::MainMemory,
-    S: Shape,
+    T: Copy,
+    O: Eval<T>,
 {
-    fn apply_fn<F>(&self, buf: &Buffer<T, D, S>, f: impl Fn(Resolve<T>) -> F) -> Buffer<T, Self, S>
-    where
-        F: Eval<T> + MayToCLSource,
-    {
-        let mut out = self.retrieve::<T, S>(buf.len(), buf);
-
-        for (value, x) in out.iter_mut().zip(buf.iter()) {
-            *value = f((*x).to_val()).eval()
-        }
-
-        out
+    for (x, out) in x.iter().zip(out.iter_mut()) {
+        *out = f((*x).to_val()).eval();
     }
 }
 
-#[impl_stack]
-impl<T, D, S> UnaryGrad<T, S, D> for CPU
-where
-    T: AddAssign + Copy + std::ops::Mul<Output = T>,
-    S: Shape,
-    D: MainMemory,
+#[inline]
+pub fn add_unary_grad<T, O>(
+    lhs: &[T],
+    out: &[T],
+    lhs_grad: &mut [T],
+    lhs_grad_fn: impl Fn(crate::Resolve<T>) -> O,
+) where
+    T: Copy + AddAssign + Mul<Output = T>,
+    O: Eval<T>,
 {
-    fn add_unary_grad<F>(
-        &self,
-        lhs: &Buffer<T, D, S>,
-        lhs_grad: &mut Buffer<T, D, S>,
-        out: &Buffer<T, D, S>,
-        lhs_grad_fn: impl Fn(Resolve<T>) -> F,
-    ) where
-        F: Eval<T> + MayToCLSource,
-    {
-        for ((lhs, lhs_grad), out) in lhs.iter().zip(lhs_grad.iter_mut()).zip(out.iter()) {
-            *lhs_grad += *out * lhs_grad_fn((*lhs).to_val()).eval();
-        }
+    for ((lhs, lhs_grad), out) in lhs.iter().zip(lhs_grad.iter_mut()).zip(out.iter()) {
+        *lhs_grad += *out * lhs_grad_fn((*lhs).to_val()).eval();
+    }
+}
+
+#[inline]
+pub fn clear_slice<T: Default>(input: &mut [T]) {
+    for value in input {
+        *value = T::default();
     }
 }

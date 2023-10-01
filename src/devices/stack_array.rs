@@ -3,7 +3,7 @@ use core::{
     ptr::null_mut,
 };
 
-use crate::{shape::Shape, CommonPtrs, PtrType, ShallowCopy};
+use crate::{shape::Shape, CommonPtrs, HasId, PtrType, ShallowCopy};
 
 /// A possibly multi-dimensional array allocated on the stack.
 /// It uses `S:`[`Shape`] to get the type of the array.
@@ -34,6 +34,16 @@ impl<S: Shape, T: Default + Copy> StackArray<S, T> {
     #[inline]
     pub fn array_mut(&mut self) -> &mut S::ARR<T> {
         &mut self.array
+    }
+}
+
+impl<T, S: Shape> HasId for StackArray<S, T> {
+    #[inline]
+    fn id(&self) -> crate::Id {
+        crate::Id {
+            id: self.as_ptr() as u64,
+            len: self.len(),
+        }
     }
 }
 

@@ -10,3 +10,6 @@ mod opencl;
 
 #[cfg(feature = "wgpu")]
 mod wgpu;
+
+#[cfg(feature = "cuda")]
+mod cuda;

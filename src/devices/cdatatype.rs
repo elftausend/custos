@@ -1,87 +1,51 @@
 // TODO: different types for cuda and opencl
 /// enables easy generic kernel creation
 pub trait CDatatype: 'static {
-    // TODO: this would make more sense as an associated constant
-
-    /// Returns the equivalent C type as a string
-    fn as_c_type_str() -> &'static str;
+    const C_DTYPE_STR: &'static str;
 }
 
 impl CDatatype for bool {
-    #[inline]
-    fn as_c_type_str() -> &'static str {
-        "bool"
-    }
+    const C_DTYPE_STR: &'static str = "bool";
 }
 
 #[cfg(any(not(target_os = "macos"), not(feature = "opencl")))]
 impl CDatatype for f64 {
-    #[inline]
-    fn as_c_type_str() -> &'static str {
-        "double"
-    }
+    const C_DTYPE_STR: &'static str = "double";
 }
 
 impl CDatatype for f32 {
-    #[inline]
-    fn as_c_type_str() -> &'static str {
-        "float"
-    }
+    const C_DTYPE_STR: &'static str = "float";
 }
 
 impl CDatatype for i32 {
-    #[inline]
-    fn as_c_type_str() -> &'static str {
-        "int"
-    }
+    const C_DTYPE_STR: &'static str = "int";
 }
 
 impl CDatatype for u32 {
-    #[inline]
-    fn as_c_type_str() -> &'static str {
-        "uint"
-    }
+    const C_DTYPE_STR: &'static str = "uint";
 }
 
 impl CDatatype for i8 {
-    #[inline]
-    fn as_c_type_str() -> &'static str {
-        "char"
-    }
+    const C_DTYPE_STR: &'static str = "char";
 }
 
 impl CDatatype for u8 {
-    #[inline]
-    fn as_c_type_str() -> &'static str {
-        // TODO: different types for cuda and opencl
-        //"uchar"
-        "unsigned char"
-    }
+    // TODO: different types for cuda and opencl
+    //"uchar"
+    const C_DTYPE_STR: &'static str = "unsigned char";
 }
 
 impl CDatatype for i16 {
-    #[inline]
-    fn as_c_type_str() -> &'static str {
-        "short"
-    }
+    const C_DTYPE_STR: &'static str = "short";
 }
 impl CDatatype for u16 {
-    #[inline]
-    fn as_c_type_str() -> &'static str {
-        "ushort"
-    }
+    const C_DTYPE_STR: &'static str = "ushort";
 }
 
 impl CDatatype for i64 {
-    #[inline]
-    fn as_c_type_str() -> &'static str {
-        "long"
-    }
+    const C_DTYPE_STR: &'static str = "long";
 }
 
 impl CDatatype for u64 {
-    #[inline]
-    fn as_c_type_str() -> &'static str {
-        "ulong"
-    }
+    const C_DTYPE_STR: &'static str = "ulong";
 }

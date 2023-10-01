@@ -1,7 +1,12 @@
 mod ops;
 mod resolve;
 
+#[cfg(not(feature = "no-std"))]
+mod to_wgsl_source;
+
 pub use resolve::*;
+#[cfg(not(feature = "no-std"))]
+pub use to_wgsl_source::*;
 
 use self::ops::{Add, Cos, Div, Eq, Exp, GEq, LEq, Mul, Neg, Pow, Sin, Sub, Tan};
 
@@ -16,6 +21,22 @@ pub trait ToCLSource {
 impl<N: crate::number::Numeric> ToCLSource for N {
     #[inline]
     fn to_cl_source(&self) -> String {
+        format!("{:?}", self)
+    }
+}
+
+#[cfg(not(feature = "no-std"))]
+impl ToCLSource for &'static str {
+    #[inline]
+    fn to_cl_source(&self) -> String {
+        self.to_string()
+    }
+}
+
+#[cfg(not(feature = "no-std"))]
+impl ToCLSource for String {
+    #[inline]
+    fn to_cl_source(&self) -> String {
         self.to_string()
     }
 }
@@ -23,9 +44,9 @@ impl<N: crate::number::Numeric> ToCLSource for N {
 /// If the `no-std` feature is disabled, this trait is implemented for all types that implement [`ToCLSource`].
 /// In this case, `no-std` is disabled.
 #[cfg(not(feature = "no-std"))]
-pub trait MayToCLSource: ToCLSource {}
+pub trait MayToCLSource: ToCLSource + Combiner {}
 #[cfg(not(feature = "no-std"))]
-impl<T: ToCLSource> MayToCLSource for T {}
+impl<T: ToCLSource + Combiner> MayToCLSource for T {}
 
 /// If the `no-std` feature is disabled, this trait is implemented for all types that implement [`ToCLSource`].
 /// In this case, `no-std` is enabled and no C source string can be generated.
@@ -221,7 +242,7 @@ mod tests {
         assert_eq!(res, 9. * 9. * 9.);
 
         let res = f("x".to_marker(), "y".to_marker()).to_cl_source();
-        assert_eq!(res, "pow((x * 3), (y + 1))")
+        assert_eq!(res, "pow((x * 3.0), (y + 1.0))")
     }
 
     #[test]
@@ -291,6 +312,7 @@ mod tests {
         let a = f(4f32.to_val(), 3f32.to_val());
 
         roughly_eq_slices(&[a.eval()], &[22.2]);
+        // assert_eq!(a.eval(), 22.2);
 
         let r = f("x".to_marker(), "y".to_marker()).to_cl_source();
         assert_eq!("(((x + y) * 3.6) - y)", r);
@@ -302,7 +324,7 @@ mod tests {
         let f = |x: Resolve<f32>| x.add(2.).mul(x).add(x.mul(8.)).mul(5.);
 
         let r = f(Resolve::default()).to_cl_source();
-        assert_eq!("((((x + 2) * x) + (x * 8)) * 5)", r);
+        assert_eq!("((((x + 2.0) * x) + (x * 8.0)) * 5.0)", r);
     }
 
     pub fn roughly_eq_slices<T: Float>(lhs: &[T], rhs: &[T]) {
@@ -321,9 +343,9 @@ mod tests {
     #[cfg(all(feature = "cpu", feature = "macro"))]
     #[test]
     fn test_apply_fn_cpu() {
-        use crate::{ApplyFunction, Buffer, Combiner, CPU};
+        use crate::{ApplyFunction, Base, Buffer, Combiner, CPU};
 
-        let device = CPU::new();
+        let device = CPU::<Base>::new();
 
         let buf = Buffer::from((&device, &[3, 3, 4, 5, 3, 2]));
 
@@ -334,9 +356,9 @@ mod tests {
     #[cfg(feature = "opencl")]
     #[test]
     fn test_run_apply_fn_opencl() -> crate::Result<()> {
-        use crate::{ApplyFunction, Buffer, Combiner, OpenCL};
+        use crate::{opencl::chosen_cl_idx, ApplyFunction, Base, Buffer, Combiner, OpenCL};
 
-        let device = OpenCL::new(0)?;
+        let device = OpenCL::<Base>::new(chosen_cl_idx())?;
 
         let buf = Buffer::from((&device, &[3, 3, 4, 5, 3, 2]));
 
@@ -349,9 +371,9 @@ mod tests {
     #[cfg(all(feature = "cpu", feature = "macro"))]
     #[test]
     fn test_run_apply_fn_cpu_more_complex() {
-        use crate::{ApplyFunction, Buffer, CPU};
+        use crate::{ApplyFunction, Base, Buffer, CPU};
 
-        let device = CPU::new();
+        let device = CPU::<Base>::new();
 
         let buf = Buffer::from((&device, &[3., 3., 4., 5., 3., 2.]));
 
@@ -372,15 +394,15 @@ mod tests {
     #[cfg(feature = "opencl")]
     #[test]
     fn test_run_apply_fn_opencl_more_complex() -> crate::Result<()> {
-        use crate::{ApplyFunction, Buffer, OpenCL};
+        use crate::{opencl::chosen_cl_idx, ApplyFunction, Base, Buffer, OpenCL};
 
-        let device = OpenCL::new(0)?;
+        let device = OpenCL::<Base>::new(chosen_cl_idx())?;
 
         let buf = Buffer::from((&device, &[3., 3., 4., 5., 3., 2.]));
 
         let buf = device.apply_fn(&buf, |x| x.mul(2.).add(4.).sin().mul(x).add(1.));
         roughly_eq_slices(
-            &buf.read(),
+            buf.read(),
             &[
                 -0.6320633326681093,
                 -0.6320633326681093,
@@ -388,6 +410,31 @@ mod tests {
                 5.953036778474352,
                 -0.6320633326681093,
                 2.978716493246764,
+            ],
+        );
+
+        Ok(())
+    }
+
+    #[cfg(feature = "vulkan")]
+    #[test]
+    fn test_run_apply_fn_vulkan_more_complex() -> crate::Result<()> {
+        use crate::{ApplyFunction, Base, Buffer, Vulkan};
+
+        let device = Vulkan::<Base>::new(0)?;
+
+        let buf = Buffer::from((&device, &[3f32, 3., 4., 5., 3., 2.]));
+
+        let buf = device.apply_fn(&buf, |x| x.mul(2.).add(4.).sin().mul(x).add(1.));
+        roughly_eq_slices(
+            buf.read(),
+            &[
+                -0.632_063_3,
+                -0.632_063_3,
+                -1.146_291_6,
+                5.953_037,
+                -0.632_063_3,
+                2.978_716_6,
             ],
         );
 

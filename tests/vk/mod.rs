@@ -1,10 +1,13 @@
-use std::{ffi::CStr, mem::size_of_val, ptr, time::Instant};
+mod with_custos_comps;
+
+use std::{
+    ffi::{c_char, CStr},
+    mem::size_of_val,
+    time::Instant,
+};
 
 use ash::{
-    vk::{
-        self, Buffer, DeviceMemory, Fence, Instance, InstanceCreateInfo, PhysicalDevice,
-        PipelineCache, StructureType,
-    },
+    vk::{self, Buffer, DeviceMemory, Fence, InstanceCreateInfo, PhysicalDevice, PipelineCache},
     Entry,
 };
 use naga::back::spv::{Options, PipelineOptions};
@@ -28,7 +31,18 @@ fn test_vulkan_compute_with_wgsl_and_spirv() {
     let entry = unsafe { Entry::load().unwrap() };
     let app_info = vk::ApplicationInfo::default();
 
+    let layer_names = unsafe {
+        [CStr::from_bytes_with_nul_unchecked(
+            b"VK_LAYER_KHRONOS_validation\0",
+        )]
+    };
+
+    let layers_names_raw: Vec<*const c_char> = layer_names
+        .iter()
+        .map(|raw_name| raw_name.as_ptr())
+        .collect();
     let instance_info = InstanceCreateInfo::builder()
+        .enabled_layer_names(&layers_names_raw)
         .application_info(&app_info)
         .build();
     let instance = unsafe { entry.create_instance(&instance_info, None).unwrap() };
@@ -65,6 +79,7 @@ fn test_vulkan_compute_with_wgsl_and_spirv() {
             .unwrap()
     };
 
+    // let queue = unsafe { device.get_device_queue(3, 0) };
     let props = unsafe { instance.get_physical_device_properties(device_with_queue_idx[0].0) };
     println!("props: {:?}", &unsafe {
         ::std::ffi::CStr::from_ptr(props.device_name.as_ptr())
@@ -85,8 +100,11 @@ fn test_vulkan_compute_with_wgsl_and_spirv() {
             
             
             @compute
-            @workgroup_size(1)
+            @workgroup_size(256)
             fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
+                if global_id.x >= arrayLength(&out) {
+                    return;    
+                }
                 out[global_id.x] = a[global_id.x] + b[global_id.x];
                 // a[global_id.x] = f32(global_id.x);
             }
@@ -133,7 +151,7 @@ fn test_vulkan_compute_with_wgsl_and_spirv() {
             .unwrap()
     };
 
-    let dispatch_size = 164383;
+    let dispatch_size = 655360;
 
     pub unsafe fn create_buffer<T>(device: &ash::Device, size: usize) -> Buffer {
         let buffer_size = size * std::mem::size_of::<T>();
@@ -174,7 +192,7 @@ fn test_vulkan_compute_with_wgsl_and_spirv() {
 
     let mapping = unsafe { device.map_memory(mem, 0, vk::WHOLE_SIZE, Default::default()) }.unwrap();
     let data = unsafe { core::slice::from_raw_parts_mut(mapping as *mut f32, dispatch_size) };
-    for (i, v) in data.iter_mut().enumerate() {
+    for (_i, v) in data.iter_mut().enumerate() {
         *v = 4.0;
     }
 
@@ -189,7 +207,7 @@ fn test_vulkan_compute_with_wgsl_and_spirv() {
     let mapping =
         unsafe { device.map_memory(mem1, 0, vk::WHOLE_SIZE, Default::default()) }.unwrap();
     let data = unsafe { core::slice::from_raw_parts_mut(mapping as *mut f32, dispatch_size) };
-    for (i, v) in data.iter_mut().enumerate() {
+    for (_i, v) in data.iter_mut().enumerate() {
         *v = 3.0;
     }
 
@@ -237,6 +255,7 @@ fn test_vulkan_compute_with_wgsl_and_spirv() {
         layout: pipeline_layout,
         ..Default::default()
     };
+
     let pipeline = unsafe {
         device.create_compute_pipelines(PipelineCache::null(), &[pipeline_create_info], None)
     }
@@ -259,6 +278,7 @@ fn test_vulkan_compute_with_wgsl_and_spirv() {
     let descriptor_set_allocate_info = vk::DescriptorSetAllocateInfo::builder()
         .descriptor_pool(descriptor_pool)
         .set_layouts(core::slice::from_ref(&descriptor_set_layout));
+
     let descriptor_set =
         unsafe { device.allocate_descriptor_sets(&descriptor_set_allocate_info) }.unwrap()[0];
 
@@ -333,7 +353,7 @@ fn test_vulkan_compute_with_wgsl_and_spirv() {
             &[],
         )
     };
-    unsafe { device.cmd_dispatch(command_buffer, dispatch_size as u32, 1, 1) };
+    unsafe { device.cmd_dispatch(command_buffer, 256 * 16, 1, 1) };
     unsafe { device.end_command_buffer(command_buffer) }.unwrap();
 
     // run it and wait until it is completed
@@ -341,21 +361,23 @@ fn test_vulkan_compute_with_wgsl_and_spirv() {
     let submit_info =
         vk::SubmitInfo::builder().command_buffers(core::slice::from_ref(&command_buffer));
 
+    const TIMES: usize = 10;
     let start = Instant::now();
-    for _ in 0..100 {
+    for _ in 0..TIMES {
         unsafe { device.queue_submit(queue, core::slice::from_ref(&submit_info), Fence::null()) }
             .unwrap();
         unsafe { device.device_wait_idle() }.unwrap();
-        println!("fin");
+        // println!("fin");
     }
-    println!("elapsed: {:?}", start.elapsed());
+
+    println!("elapsed: {:?}", start.elapsed() /*/ TIMES as u32 */);
 
     // check results
     let mapping =
         unsafe { device.map_memory(mem2, 0, vk::WHOLE_SIZE, Default::default()) }.unwrap();
     let check = unsafe { core::slice::from_raw_parts(mapping as *const f32, dispatch_size) };
     // println!("check: {:?}", check);
-    for (i, v) in check.iter().copied().enumerate() {
+    for (_i, v) in check.iter().copied().enumerate() {
         assert_eq!(7.0, v);
     }
     println!("compute shader run successfully!");

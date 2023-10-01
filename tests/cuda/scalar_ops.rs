@@ -1,4 +1,4 @@
-use custos::{cuda::launch_kernel1d, Buffer, Device, Read, CUDA};
+use custos::prelude::*;
 
 fn scalar_apply<'a>(
     device: &'a CUDA,
@@ -16,20 +16,18 @@ fn scalar_apply<'a>(
     "#;
 
     let out: Buffer<f32, _> = device.retrieve(lhs.len(), ());
-    launch_kernel1d(
+    device.launch_kernel1d(
         lhs.len(),
-        &device,
-        &src,
+        src,
         "scalar_add",
         &[&lhs, &rhs, &out, &lhs.len()],
     )?;
-
     Ok(out)
 }
 
 #[test]
 fn test_scalar_op_cuda() -> custos::Result<()> {
-    let device = CUDA::new(0)?;
+    let device = CUDA::<Base>::new(0)?;
 
     let lhs = Buffer::from((&device, [1f32, 2., 3., 4., 5.]));
 

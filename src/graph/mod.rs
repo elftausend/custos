@@ -445,7 +445,7 @@ mod tests {
     fn test_from_retrieve_sine_neural_net() {
         use crate::{Buffer, Device, GraphReturn, CPU};
 
-        let device = CPU::new();
+        let device = CPU::<Base>::new();
 
         let w1 = Buffer::from((&device, [1; 10 * 64]));
         let b1 = Buffer::from((&device, [1; 64]));
@@ -511,7 +511,7 @@ mod tests {
     fn test_from_retrieve_sliced_chained_perf_example() {
         use crate::{Buffer, Device, GraphReturn, CPU};
 
-        let device = CPU::new();
+        let device = CPU::<Base>::new();
 
         // idx: 0, deps: []
         let x: Buffer = device.buffer([1.; 1000]);
@@ -551,7 +551,7 @@ mod tests {
     fn test_from_retrieve_sliced_chained_perf_example_optimize_cache() {
         use crate::{Buffer, CacheReturn, Device, GraphOpt, CPU};
 
-        let device = CPU::new();
+        let device = CPU::<Base>::new();
 
         // idx: 0, deps: []
         let x: Buffer = device.buffer([1.; 1000]);

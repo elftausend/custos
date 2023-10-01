@@ -3,7 +3,9 @@ use custos::{Buffer, CPU};
 #[cfg(feature = "cpu")]
 #[test]
 fn test_shallow_buf_copy() {
-    let device = CPU::new();
+    use custos::Base;
+
+    let device = CPU::<Base>::new();
 
     let buf = Buffer::from((&device, [1, 2, 3, 4, 5]));
     let mut owned = unsafe { buf.shallow() };
@@ -15,7 +17,7 @@ fn test_shallow_buf_copy() {
 #[cfg(feature = "realloc")]
 #[test]
 fn test_shallow_buf_realloc() {
-    let device = CPU::new();
+    let device = CPU::<Base>::new();
 
     let buf = Buffer::from((&device, [1, 2, 3, 4, 5]));
     let mut cloned = unsafe { buf.shallow_or_clone() };
@@ -29,7 +31,9 @@ fn test_shallow_buf_realloc() {
 #[cfg(not(feature = "realloc"))]
 #[test]
 fn test_shallow_buf_realloc() {
-    let device = CPU::new();
+    use custos::Base;
+
+    let device = CPU::<Base>::new();
 
     let buf = Buffer::from((&device, [1, 2, 3, 4, 5]));
     let mut cloned = unsafe { buf.shallow_or_clone() };

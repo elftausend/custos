@@ -3,10 +3,10 @@ use custos::{DeviceError, Error};
 #[cfg(feature = "opencl")]
 #[test]
 fn test_error() {
-    use custos::{ErrorKind, OpenCL};
+    use custos::{Base, ErrorKind, OpenCL};
     use min_cl::api::OCLErrorKind;
 
-    let device = OpenCL::new(1000000000000000000);
+    let device = OpenCL::<Base>::new(1000000000000000000);
 
     match device {
         Ok(_) => println!("ok?"),
@@ -28,23 +28,23 @@ fn test_error() {
 #[test]
 #[should_panic]
 fn test_error_panics() {
-    use custos::OpenCL;
-    OpenCL::new(10000000000000000).unwrap();
+    use custos::{Base, OpenCL};
+    OpenCL::<Base>::new(10000000000000000).unwrap();
 }
 
 #[cfg(feature = "opencl")]
 #[test]
 fn test_questionmark() -> Result<(), Box<dyn std::error::Error + Sync + Send>> {
-    use custos::OpenCL;
+    use custos::{prelude::chosen_cl_idx, Base, OpenCL};
 
-    let _device = OpenCL::new(0)?;
+    let _device = OpenCL::<Base>::new(chosen_cl_idx())?;
     Ok(())
 }
 
 #[cfg(not(feature = "no-std"))]
 #[test]
 fn test_print_error() {
-    let err = Error::from(DeviceError::ConstructError);
+    let err = Error::from(DeviceError::UnifiedConstructInvalidInputBuffer);
     assert_eq!(
         "Only a non-drop buffer can be converted to a CPU+OpenCL buffer.",
         &format!("{err}")
@@ -58,10 +58,10 @@ fn test_print_error() {
 #[cfg(not(feature = "no-std"))]
 #[test]
 fn test_std_err() {
-    let err = Error::from(DeviceError::ConstructError);
+    let err = Error::from(DeviceError::UnifiedConstructInvalidInputBuffer);
     assert_eq!(
         err.downcast_ref::<DeviceError>(),
-        Some(&DeviceError::ConstructError)
+        Some(&DeviceError::UnifiedConstructInvalidInputBuffer)
     );
 }
 
