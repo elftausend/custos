@@ -37,10 +37,12 @@ To make specific modules useable for building a device, activate the correspondi
 Feature | Module | Description
 --- | --- | ---
 on by default | `Base` | Default behaviour.
-autograd | `Autograd` | Enables to run automatic differentiation.
+autograd | `Autograd` | Enables running automatic differentiation.
 cached | `Cached` | Reuses allocations on demand.
 fork | `Fork` | Decides whether the CPU or GPU is faster for an operation. It then uses the faster device for following computations. (unified memory devices)
-lazy | `Lazy` | Currently enables support for CUDA graphs. However, "true laziness" should also be possible.
+lazy | `Lazy` | Lazy execution of operations. Enables support for CUDA graphs. However, allocations are not lazy at the moment.
+
+Usage of these modules when writing custom operations: [`modules.md`](modules.md)
 
 If an operations wants to be affected by a module, specific custos code must be called in that operation.
 

@@ -19,9 +19,9 @@ where
     }
 }
 
-impl<'a, T, D> From<(&'a D, usize)> for Buffer<'a, T, D>
+impl<'a, T, D, S: Shape> From<(&'a D, usize)> for Buffer<'a, T, D, S>
 where
-    D: Alloc<T> + OnNewBuffer<T, D, ()>,
+    D: Alloc<T> + OnNewBuffer<T, D, S>,
 {
     #[inline]
     fn from((device, len): (&'a D, usize)) -> Self {
