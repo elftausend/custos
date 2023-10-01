@@ -3,8 +3,9 @@ use core::ops::{Range, RangeBounds};
 use crate::{
     bounds_to_range,
     cuda::api::{cu_read_async, CUstreamCaptureStatus},
-    pass_down_add_operation, ApplyFunction, Buffer, CDatatype, ClearBuf, CopySlice, OnDropBuffer,
-    Read, Resolve, Retrieve, Retriever, Shape, ToCLSource, ToMarker, WriteBuf, CUDA, AddOperation, UnaryGrad,
+    pass_down_add_operation, AddOperation, ApplyFunction, Buffer, CDatatype, ClearBuf, CopySlice,
+    OnDropBuffer, Read, Resolve, Retrieve, Retriever, Shape, ToCLSource, ToMarker, UnaryGrad,
+    WriteBuf, CUDA,
 };
 
 use super::{
@@ -188,7 +189,7 @@ pub fn try_cu_add_unary_grad<T, F, Mods: OnDropBuffer>(
 where
     T: CDatatype + Default,
     F: ToCLSource,
-{ 
+{
     let src = format!(
         r#"
         extern "C" __global__ void addUnaryGrad({dtype}* lhs, {dtype}* lhsGrad, {dtype}* out, int numElements)
@@ -203,14 +204,22 @@ where
         dtype = T::C_DTYPE_STR,
         op = lhs_grad_fn("lhs[idx]".to_marker()).to_cl_source()
     );
-    device.launch_kernel1d(lhs.len, &src, "addUnaryGrad", &[lhs, lhs_grad, out, &lhs.len])?;
-    
+    device.launch_kernel1d(
+        lhs.len,
+        &src,
+        "addUnaryGrad",
+        &[lhs, lhs_grad, out, &lhs.len],
+    )?;
+
     Ok(())
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::{CUDA, Base, Buffer, cuda::ops::{try_cu_apply_fn_mut, try_cu_add_unary_grad}, Combiner};
+    use crate::{
+        cuda::ops::{try_cu_add_unary_grad, try_cu_apply_fn_mut},
+        Base, Buffer, Combiner, CUDA,
+    };
 
     #[test]
     fn test_cu_apply_fn() {
@@ -220,7 +229,7 @@ mod tests {
         try_cu_apply_fn_mut(&device, &x.data, &mut out.data, |x| x.add("1.0")).unwrap();
         assert_eq!(out.read(), [2f32, 3., 4., 5., 6., 7.,])
     }
-    
+
     #[test]
     fn test_cu_add_unary_grad() -> crate::Result<()> {
         let device = CUDA::<Base>::new(0)?;
