@@ -202,6 +202,7 @@ where
                     || crate::devices::cpu_stack_ops::apply_fn_slice(buf, cpu_out, f),
                     || try_cl_apply_fn_mut(self, buf, out, f).unwrap(),
                 );
+                Ok(())
             }
             #[cfg(not(unified_cl))]
             try_cl_apply_fn_mut(self, buf, &mut out, f).unwrap();
@@ -265,7 +266,7 @@ where
         F: ToCLSource,
     {
         self.add_op(lhs_grad, |lhs_grad| {
-            try_cl_add_unary_grad(self, lhs, lhs_grad, out, lhs_grad_fn).unwrap()
+            try_cl_add_unary_grad(self, lhs, lhs_grad, out, lhs_grad_fn)
         });
     }
 }

@@ -3,9 +3,11 @@ use crate::{Buffer, Device, DeviceError, Id, NoHasher, PtrConv, Shape, UniqueId}
 use core::{any::Any, hash::BuildHasherDefault, mem::transmute};
 use std::collections::HashMap;
 
+pub type ForwardFn = *mut dyn Fn(&'static ()) -> crate::Result<()>;
+
 #[derive(Debug, Default)]
 pub struct LazyGraph {
-    operations: Vec<(Type, *mut dyn Fn(&'static ()))>,
+    operations: Vec<(Type, ForwardFn)>,
 }
 
 impl Drop for LazyGraph {
@@ -17,7 +19,7 @@ impl Drop for LazyGraph {
 }
 
 impl LazyGraph {
-    pub fn add_operation<T, D, S>(&mut self, operation: impl Fn(&mut Buffer<T, D, S>))
+    pub fn add_operation<T, D, S>(&mut self, operation: impl Fn(&mut Buffer<T, D, S>) -> crate::Result<()>)
     where
         T: Graphable,
         D: PtrConv,
@@ -26,7 +28,7 @@ impl LazyGraph {
         let operation = Box::leak(Box::new(operation));
         self.operations.push((
             T::TYPE,
-            operation as *mut dyn Fn(&mut Buffer<T, D, S>) as *mut _,
+            operation as *mut dyn Fn(&mut Buffer<T, D, S>) -> crate::Result<()> as *mut _,
         ))
     }
 

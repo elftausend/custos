@@ -60,10 +60,10 @@ impl<T: Graphable, D: Device + PtrConv, Mods: AddOperation<T, D>> AddOperation<T
     fn add_op<S: Shape>(
         &self,
         out: &mut Buffer<T, D, S>,
-        operation: impl Fn(&mut Buffer<T, D, S>),
+        operation: impl Fn(&mut Buffer<T, D, S>) -> crate::Result<()>,
     ) {
         self.out_ids.borrow_mut().push(out.id());
-        self.graph.borrow_mut().add_operation(operation)
+        self.graph.borrow_mut().add_operation(operation);
     }
 }
 
@@ -199,7 +199,7 @@ mod tests {
         #[inline]
         fn add(&self, lhs: &Buffer<T, D, S>, rhs: &Buffer<T, D, S>) -> Buffer<T, Self, S> {
             let mut out = self.retrieve(lhs.len(), ());
-            self.add_op(&mut out, |out| add_ew_slice(lhs, rhs, out));
+            self.add_op(&mut out, |out| Ok(add_ew_slice(lhs, rhs, out)));
             out
         }
     }

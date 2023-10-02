@@ -14,12 +14,19 @@ use std::{
 
 mod fork_macro;
 
-#[derive(Debug, PartialEq, Eq, PartialOrd, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Analyzation {
     input_lengths: Vec<usize>,
     output_lengths: Vec<usize>,
     gpu_dur: Duration,
     cpu_dur: Duration,
+}
+
+impl PartialOrd for Analyzation {
+    #[inline]
+    fn partial_cmp(&self, other: &Self) -> Option<core::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
 }
 
 impl Ord for Analyzation {
@@ -70,7 +77,7 @@ impl<T, D: Device, Mods: AddOperation<T, D>> AddOperation<T, D> for Fork<Mods> {
     fn add_op<S: Shape>(
         &self,
         out: &mut Buffer<T, D, S>,
-        operation: impl Fn(&mut Buffer<T, D, S>),
+        operation: impl Fn(&mut Buffer<T, D, S>) -> crate::Result<()>,
     ) {
         self.modules.add_op(out, operation)
     }

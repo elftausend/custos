@@ -9,7 +9,7 @@ use custos::{
 use custos::TapeActions;
 
 pub trait ElementWise<T, D: Device, S: Shape>: Device {
-    fn add(&self, lhs: &Buffer<T, D, S>, rhs: &Buffer<T, D, S>) -> Buffer<T, Self, S>;
+    fn add(&self, lhs: &Buffer<T, D, S>, rhs: &Buffer<T, D, S>) -> custos::Result<Buffer<T, Self, S>>;
 }
 
 pub fn add_ew_slice<T: Add<Output = T> + Copy>(lhs: &[T], rhs: &[T], out: &mut [T]) {
@@ -36,7 +36,7 @@ where
     Mods: Retrieve<Self, T> + AddOperation<T, Self> + MayTapeActions + 'static,
 {
     #[track_caller]
-    fn add(&self, lhs: &Buffer<T, D, S>, rhs: &Buffer<T, D, S>) -> Buffer<T, Self, S> {
+    fn add(&self, lhs: &Buffer<T, D, S>, rhs: &Buffer<T, D, S>) -> custos::Result<Buffer<T, Self, S>> {
         let mut out = self.retrieve(lhs.len(), (lhs, rhs));
 
         #[cfg(feature = "autograd")]
@@ -48,8 +48,8 @@ where
                 add_ew_grad_slice(lhs_grad, rhs_grad, out_grad) // execute grad function
             });
         }
-        self.add_op(&mut out, |out| add_ew_slice(lhs, rhs, out));
-        out
+        self.add_op(&mut out, |out| Ok(add_ew_slice(lhs, rhs, out)));
+        Ok(out)
     }
 }
 
@@ -91,7 +91,7 @@ where
     S: Shape,
     Mods: Retrieve<Self, T> + AddOperation<T, Self> + UseGpuOrCpu,
 {
-    fn add(&self, lhs: &Buffer<T, Self, S>, rhs: &Buffer<T, Self, S>) -> Buffer<T, Self, S> {
+    fn add(&self, lhs: &Buffer<T, Self, S>, rhs: &Buffer<T, Self, S>) -> custos::Result<Buffer<T, Self, S>> {
         let mut out = self.retrieve(lhs.len(), (lhs, rhs));
 
         self.add_op(&mut out, |out| {
@@ -105,11 +105,12 @@ where
                     || try_add_ew_cl(self, &lhs.data, &rhs.data, &mut out.data).unwrap(),
                 );
             }
-            #[cfg(not(unified_cl))]
-            try_add_ew_cl(self, lhs, rhs, out).unwrap();
+            // #[cfg(not(unified_cl))]
+            try_add_ew_cl(self, &lhs.data, &rhs.data, &mut out.data)?;
+            Ok(())
         });
 
-        out
+        Ok(out)
     }
 }
 
@@ -121,7 +122,7 @@ fn main() {
         let lhs = device.buffer([1, 2, 3, 4, 5]);
         let rhs = device.buffer([1, 2, 3, 4, 5]);
 
-        let out = device.add(&lhs, &rhs);
+        let out = device.add(&lhs, &rhs).unwrap();
         device.run().unwrap();
         assert_eq!(out.read(), vec![2, 4, 6, 8, 10])
     }

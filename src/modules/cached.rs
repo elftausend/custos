@@ -54,7 +54,7 @@ impl<T, D: Device, SD: Device, Mods: AddOperation<T, D>> AddOperation<T, D>
     fn add_op<S: Shape>(
         &self,
         out: &mut Buffer<T, D, S>,
-        operation: impl Fn(&mut Buffer<T, D, S>),
+        operation: impl Fn(&mut Buffer<T, D, S>) -> crate::Result<()>,
     ) {
         self.modules.add_op(out, operation)
     }

@@ -18,7 +18,7 @@ pub fn ew_add_slice<T: Add<Output = T> + Copy>(lhs: &[T], rhs: &[T], out: &mut [
 }
 
 // A base implementation for the `CPU` device. ("base" meaning only supporting the `Base` module)
-// MainMemory: all devices that can access the RAM of a physical device. (e.g. device with unified memory )
+// MainMemory: all devices that can access the RAM of a physical device. (e.g. device with unified memory)
 impl<T: Add<Output = T> + Copy, D: MainMemory, S: Shape> ElementWise<T, D, S> for CPU {
     fn add(&self, lhs: &Buffer<T, D, S>, rhs: &Buffer<T, D, S>) -> Buffer<T, Self, S> {
         let mut out = self.buffer(lhs.len());
@@ -52,7 +52,7 @@ As the operation now must support arbitrarily combined modules, a new generic, u
 +    ElementWise<T, D, S> for CPU<Mods>
 ```
 
-The caching (and autograd) system use `#[track_caller]` to determine the required cache entry.
+The caching (and autograd) systems use `#[track_caller]` to determine the required cache entry.
 
 ```diff
 + #[track_caller]

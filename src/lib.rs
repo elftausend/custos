@@ -1,6 +1,10 @@
 // #![warn(missing_docs)]
 #![cfg_attr(feature = "no-std", no_std)]
 
+// A compute kernel launch may wants to modify memory. Clippy does not know this.
+// To declare that a value is mutated, a "needless" mutable reference is used.
+#![allow(clippy::needless_pass_by_ref_mut)]
+
 //! A minimal OpenCL, WGPU, CUDA and host CPU array manipulation engine / framework written in Rust.
 //! This crate provides the tools for executing custom array operations with the CPU, as well as with CUDA, WGPU and OpenCL devices.<br>
 //! This guide demonstrates how operations can be implemented for the compute devices: [implement_operations.md](implement_operations.md)<br>

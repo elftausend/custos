@@ -209,7 +209,7 @@ impl<T> CommonPtrs<T> for CPUPtr<T> {
 
     #[inline]
     fn ptrs_mut(&mut self) -> (*mut T, *mut core::ffi::c_void, u64) {
-        (self.ptr as *mut T, null_mut(), 0)
+        (self.ptr, null_mut(), 0)
     }
 }
 

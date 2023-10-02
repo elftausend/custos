@@ -88,6 +88,7 @@ where
                 || crate::devices::cpu_stack_ops::apply_fn_slice(buf, cpu_out, f),
                 || try_vk_apply_fn_mut(self, &buf.data, &mut out.data, f).unwrap(),
             );
+            Ok(())
         });
 
         out
@@ -148,7 +149,6 @@ where
     {
         self.add_op(lhs_grad, |lhs_grad| {
             try_vk_add_unary_grad(self, &lhs.data, &mut lhs_grad.data, &out.data, lhs_grad_fn)
-                .unwrap()
         });
     }
 }

@@ -101,7 +101,7 @@ pub trait TapeActions {
 }
 
 pub trait AddOperation<T, D: Device> {
-    fn add_op<S: Shape>(&self, out: &mut Buffer<T, D, S>, operation: impl Fn(&mut Buffer<T, D, S>));
+    fn add_op<S: Shape>(&self, out: &mut Buffer<T, D, S>, operation: impl Fn(&mut Buffer<T, D, S>) -> crate::Result<()>);
 }
 
 /// Implements the [`AddOperation`] trait for any supplied device. The `add_op` call is passed down to `self.modules`.
@@ -115,7 +115,7 @@ macro_rules! pass_down_add_operation {
             fn add_op<S: $crate::Shape>(
                 &self,
                 out: &mut $crate::Buffer<T, D, S>,
-                operation: impl Fn(&mut $crate::Buffer<T, D, S>),
+                operation: impl Fn(&mut $crate::Buffer<T, D, S>) -> $crate::Result<()>,
             ) {
                 self.modules.add_op(out, operation)
             }

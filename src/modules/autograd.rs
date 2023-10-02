@@ -153,7 +153,7 @@ impl<T, D: Device, Mods: AddOperation<T, D>> AddOperation<T, D> for Autograd<Mod
     fn add_op<S: Shape>(
         &self,
         out: &mut Buffer<T, D, S>,
-        operation: impl Fn(&mut Buffer<T, D, S>),
+        operation: impl Fn(&mut Buffer<T, D, S>) -> crate::Result<()>,
     ) {
         self.modules.add_op(out, operation)
     }
