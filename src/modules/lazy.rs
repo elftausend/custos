@@ -293,10 +293,11 @@ mod tests {
         {
             let a = Buffer::<i32, _, ()>::from_slice(&device, &[1, 2, 3, 4]);
             let b = Buffer::<i32, _, ()>::from_slice(&device, &[1, 2, 3, 4]);
-            device.add_op(&mut out,  |out| {
+            device.add_op(&mut out,  |out| {            
                 for ((lhs, rhs), out) in a.iter().zip(&b).zip(out.iter_mut()) {
                     *out = lhs + rhs;
                 }
+                Ok(())
             })
         }
         unsafe { device.run().unwrap() };
