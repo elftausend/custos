@@ -58,7 +58,7 @@ pub trait RunModule<D> {
 impl<D> RunModule<D> for crate::Base {}
 
 pub trait Run {
-    fn run(&self) -> crate::Result<()>;
+    unsafe fn run(&self) -> crate::Result<()>;
 }
 
 pub trait HasModules<Mods> {
