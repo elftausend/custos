@@ -224,7 +224,7 @@ mod tests {
             assert_eq!(out.read(), &[0; 10]);
         }
 
-        if DeviceError::InvalidLazyOutBuf != *device.run().err().unwrap().downcast().unwrap() {
+        if DeviceError::InvalidLazyOutBuf != unsafe {*device.run().err().unwrap().downcast().unwrap() } {
             panic!("")
         }
     }
@@ -239,8 +239,7 @@ mod tests {
         let out = device.apply_fn(&buf, |x| x.add(3));
 
         assert_eq!(out.read(), &[0; 10]);
-        device.run().unwrap();
-        assert_eq!(out.read(), &[3; 10]);
+        unsafe { device.run().unwrap() }; assert_eq!(out.read(), &[3; 10]);
     }
 
     #[test]
@@ -254,7 +253,7 @@ mod tests {
         let out = device.apply_fn(&buf, |x| x.add(3));
 
         assert_eq!(out.read(), &[0; 10]);
-        device.run().unwrap();
+        unsafe { device.run().unwrap() }
         assert_eq!(out.read(), &[3; 10]);
     }
     #[test]
@@ -275,9 +274,31 @@ mod tests {
         let out = device.add(&lhs, &rhs);
         assert_eq!(out.read(), &[0; 10]);
 
-        device.run().unwrap();
+        unsafe { device.run().unwrap() };
         assert_eq!(lhs.read(), &[3; 10]);
 
         assert_eq!(out.read(), [4, 5, 6, 7, 8, 9, 10, 11, 12, 13])
+    }
+
+    #[cfg(feature = "cpu")]
+    #[ignore = "causes UB"]
+    #[test]
+    fn test_lazy_exec_ub_testing() {
+        use crate::Run;
+
+        let device = CPU::<Lazy<Base>>::new();
+
+        let mut out: Buffer<i32, _> = device.retrieve(4, ());
+
+        {
+            let a = Buffer::<i32, _, ()>::from_slice(&device, &[1, 2, 3, 4]);
+            let b = Buffer::<i32, _, ()>::from_slice(&device, &[1, 2, 3, 4]);
+            device.add_op(&mut out,  |out| {
+                for ((lhs, rhs), out) in a.iter().zip(&b).zip(out.iter_mut()) {
+                    *out = lhs + rhs;
+                }
+            })
+        }
+        unsafe { device.run().unwrap() };
     }
 }
