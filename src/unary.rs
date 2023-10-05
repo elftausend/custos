@@ -144,7 +144,7 @@ mod tests {
         let out = device.unary_ew(&buf, |x| x.sin(), |x| x.cos());
 
         assert_eq!(
-            &*out,
+            &**out,
             [
                 0.8414709848078965,
                 0.9092974268256817,
