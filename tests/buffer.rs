@@ -1,8 +1,5 @@
 use custos::{prelude::*, CommonPtrs};
 
-#[cfg(unified_cl)]
-use custos::MainMemory;
-
 pub fn get_mut_slice<'a, T, D: Device>(buf: &'a mut Buffer<T, D>) -> &'a mut [T]
 where
     D::Data<T, ()>: CommonPtrs<T>,
@@ -193,7 +190,7 @@ fn test_debug_print_buf() -> custos::Result<()> {
 }
 
 #[cfg(unified_cl)]
-fn slice_add<T, D: MainMemory>(_lhs: &Buffer<T, D>) {}
+fn slice_add<T, D>(_lhs: &Buffer<T, D>) where D: Device, D::Data<T, ()>: std::ops::Deref<Target = [T]>{}
 
 #[cfg(unified_cl)]
 #[test]
@@ -275,7 +272,7 @@ fn test_deviceless_buf_cl() -> custos::Result<()> {
 #[test]
 fn test_buf_num() {
     let buf = Buffer::from(5);
-    assert_eq!(*buf, 5);
+    assert_eq!(**buf, 5);
 }
 
 #[cfg(feature = "cpu")]

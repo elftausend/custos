@@ -124,7 +124,7 @@ impl<'a, T> Buffer<'a, T, ()> {
     /// use custos::Buffer;
     ///
     /// let x: Buffer<f32, _> = 7f32.into();
-    /// assert_eq!(*x, 7.);
+    /// assert_eq!(**x, 7.);
     /// assert_eq!(x.item(), 7.);
     ///
     /// ```
@@ -137,19 +137,19 @@ impl<'a, T> Buffer<'a, T, ()> {
     }
 }
 
-impl<'a, T> Deref for Buffer<'a, T, ()> {
+impl<'a, T> Deref for Num<T> {
     type Target = T;
 
     #[inline]
     fn deref(&self) -> &Self::Target {
-        &self.data.num
+        &self.num
     }
 }
 
-impl<'a, T> DerefMut for Buffer<'a, T, ()> {
+impl<'a, T> DerefMut for Num<T> {
     #[inline]
     fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.data.num
+        &mut self.num
     }
 }
 
@@ -162,15 +162,15 @@ mod tests {
         let a = Buffer::from(5);
         let b = Buffer::from(7);
 
-        let c = *a + *b;
+        let c = **a + **b;
         assert_eq!(c, 12);
     }
 
     #[test]
     fn test_deref_mut() {
         let mut a = Buffer::from(5);
-        *a += 10;
-        assert_eq!(*a, 15);
+        **a += 10;
+        assert_eq!(**a, 15);
     }
 
     #[test]

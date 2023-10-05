@@ -97,12 +97,13 @@ where
     Mods: Retrieve<Self, T>,
     T: Mul<Output = T> + Copy + 'static,
     S: Shape,
-    D: MainMemory,
+    D: Device,
+    D::Data<T, S>: core::ops::Deref<Target = [T]>
 {
     fn mul(&self, lhs: &Buffer<T, D, S>, rhs: &Buffer<T, D, S>) -> Buffer<T, Self, S> {
         let mut out = self.retrieve(lhs.len(), (lhs, rhs));
 
-        for ((lhs, rhs), out) in lhs.iter().zip(&*rhs).zip(&mut out) {
+        for ((lhs, rhs), out) in lhs.iter().zip(rhs.iter()).zip(&mut out) {
             *out = *lhs * *rhs;
         }
 

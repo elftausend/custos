@@ -2,7 +2,7 @@ use core::{cell::RefCell, marker::PhantomData};
 
 use crate::{
     AddOperation, Alloc, Buffer, Cache, Device, Module, OnDropBuffer, OnNewBuffer, Parents,
-    PtrConv, Retrieve, Setup, Shape, RunModule,
+    PtrConv, Retrieve, RunModule, Setup, Shape,
 };
 
 // creator struct

@@ -20,6 +20,7 @@ pub trait ApplyFunction<T, S: Shape = (), D: Device = Self>: Device {
     #[track_caller]
     fn apply_fn<F>(
         &self,
+        // buf: &D::Data<T, S>,
         buf: &Buffer<T, D, S>,
         f: impl Fn(Resolve<T>) -> F + Copy,
     ) -> Buffer<T, Self, S>
@@ -157,24 +158,27 @@ mod tests {
     #[cfg(feature = "autograd")]
     #[test]
     fn test_unary_elementwise_may_grad() {
-        use crate::{Autograd, Base, Combiner, Device, UnaryElementWiseMayGrad, CPU};
+        use crate::{
+            two_way_ops::tests_ex::roughly_eq_slices, Autograd, Base, Combiner, Device,
+            UnaryElementWiseMayGrad, CPU,
+        };
 
         let device = CPU::<Autograd<Base>>::new();
         let buf = device.buffer([1., 2., 3., 4.]);
         let out = device.unary_ew(&buf, |x| x.sin(), |x| x.cos());
-
-        assert_eq!(
-            &*out,
-            [
+        roughly_eq_slices(
+            out.as_slice(),
+            &[
                 0.8414709848078965,
                 0.9092974268256817,
                 0.1411200080598672,
-                -0.7568024953079282
-            ]
+                -0.7568024953079282,
+            ],
         );
+
         out.backward();
         assert_eq!(
-            &**buf.grad(),
+            buf.grad().as_slice(),
             [
                 0.5403023058681398,
                 -0.4161468365471424,

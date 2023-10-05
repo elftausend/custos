@@ -15,7 +15,7 @@ use super::register_buf;
 #[derive(Default)]
 pub struct Lazy<Mods> {
     pub modules: Mods,
-    outs: RefCell<HashMap<UniqueId, Box<dyn Any>, BuildHasherDefault<NoHasher>>>,
+    buffers: RefCell<HashMap<UniqueId, Box<dyn Any>, BuildHasherDefault<NoHasher>>>,
     out_ids: RefCell<Vec<Id>>,
     graph: RefCell<LazyGraph>,
 }
@@ -46,7 +46,7 @@ impl<Mods: Module<D>, D: LazySetup> Module<D> for Lazy<Mods> {
     fn new() -> Self::Module {
         Lazy {
             modules: Mods::new(),
-            outs: Default::default(),
+            buffers: Default::default(),
             out_ids: Default::default(),
             graph: Default::default(),
         }
@@ -72,7 +72,7 @@ impl<Mods> Lazy<Mods> {
     pub fn call_lazily<D: Device>(&self) -> crate::Result<()> {
         self.graph
             .borrow_mut()
-            .call_lazily::<D>(&self.out_ids.borrow(), &mut self.outs.borrow_mut())?;
+            .call_lazily::<D>(&self.out_ids.borrow(), &mut self.buffers.borrow_mut())?;
         Ok(())
     }
 }
@@ -97,7 +97,7 @@ impl<Mods: RunModule<D>, D: LazyRun + PtrConv> RunModule<D> for Lazy<Mods> {
 impl<Mods: OnDropBuffer> OnDropBuffer for Lazy<Mods> {
     #[inline]
     fn on_drop_buffer<T, D: Device, S: Shape>(&self, device: &D, buf: &Buffer<T, D, S>) {
-        super::unregister_buf(&mut self.outs.borrow_mut(), buf.id());
+        super::unregister_buf(&mut self.buffers.borrow_mut(), buf.id());
         self.modules.on_drop_buffer(device, buf)
     }
 }
@@ -145,7 +145,7 @@ impl<T: 'static, Mods: Retrieve<D, T>, D: PtrConv + 'static> Retrieve<D, T> for 
     where
         D: Alloc<T>,
     {
-        unsafe { register_buf(&mut self.outs.borrow_mut(), retrieved_buf) };
+        unsafe { register_buf(&mut self.buffers.borrow_mut(), retrieved_buf) };
 
         // pass down
         self.modules.on_retrieve_finish(retrieved_buf)
@@ -154,11 +154,11 @@ impl<T: 'static, Mods: Retrieve<D, T>, D: PtrConv + 'static> Retrieve<D, T> for 
 
 #[cfg(test)]
 mod tests {
-    use core::ops::Add;
+    use core::ops::{Add, Deref};
 
     use crate::{
-        AddOperation, ApplyFunction, Base, Buffer, Combiner, Device, MainMemory, Retrieve,
-        Retriever, Shape, CPU,
+        AddOperation, ApplyFunction, Base, Buffer, Combiner, Device, Retrieve, Retriever, Shape,
+        CPU,
     };
 
     use super::Lazy;
@@ -192,7 +192,8 @@ mod tests {
     impl<T, D, S, Mods> AddEw<T, D, S> for CPU<Mods>
     where
         T: Add<Output = T> + Copy,
-        D: MainMemory,
+        D: Device,
+        D::Data<T, S>: Deref<Target = [T]>,
         S: Shape,
         Mods: AddOperation<T, Self> + Retrieve<Self, T>,
     {
@@ -224,7 +225,9 @@ mod tests {
             assert_eq!(out.read(), &[0; 10]);
         }
 
-        if DeviceError::InvalidLazyOutBuf != unsafe {*device.run().err().unwrap().downcast().unwrap() } {
+        if DeviceError::InvalidLazyOutBuf
+            != unsafe { *device.run().err().unwrap().downcast().unwrap() }
+        {
             panic!("")
         }
     }
@@ -239,7 +242,8 @@ mod tests {
         let out = device.apply_fn(&buf, |x| x.add(3));
 
         assert_eq!(out.read(), &[0; 10]);
-        unsafe { device.run().unwrap() }; assert_eq!(out.read(), &[3; 10]);
+        unsafe { device.run().unwrap() };
+        assert_eq!(out.read(), &[3; 10]);
     }
 
     #[test]
@@ -293,8 +297,43 @@ mod tests {
         {
             let a = Buffer::<i32, _, ()>::from_slice(&device, &[1, 2, 3, 4]);
             let b = Buffer::<i32, _, ()>::from_slice(&device, &[1, 2, 3, 4]);
-            device.add_op(&mut out,  |out| {            
+            device.add_op(&mut out, |out| {
                 for ((lhs, rhs), out) in a.iter().zip(&b).zip(out.iter_mut()) {
+                    *out = lhs + rhs;
+                }
+                Ok(())
+            })
+        }
+        unsafe { device.run().unwrap() };
+    }
+
+    #[cfg(feature = "cpu")]
+    #[should_panic]
+    #[test]
+    fn test_lazy_exec_ub_testing_semi_fixed() {
+        use crate::{HasId, Run};
+
+        let device = CPU::<Lazy<Base>>::new();
+
+        let mut out: Buffer<i32, _> = device.retrieve(4, ());
+
+        {
+            let a = Buffer::<i32, _, ()>::from_slice(&device, &[1, 2, 3, 4]);
+            let b = Buffer::<i32, _, ()>::from_slice(&device, &[1, 2, 3, 4]);
+            let (a, b) = (a.id(), b.id());
+            device.add_op(&mut out, |out| {
+                let buffers = out.device().modules.buffers.borrow();
+                let a = buffers
+                    .get(&a)
+                    .expect("a went out of scope")
+                    .downcast_ref::<Buffer<i32, CPU<Lazy<Base>>>>()
+                    .unwrap();
+                let b = buffers
+                    .get(&b)
+                    .expect("b went out of scope")
+                    .downcast_ref::<Buffer<i32, CPU<Lazy<Base>>>>()
+                    .unwrap();
+                for ((lhs, rhs), out) in a.iter().zip(b).zip(out.iter_mut()) {
                     *out = lhs + rhs;
                 }
                 Ok(())

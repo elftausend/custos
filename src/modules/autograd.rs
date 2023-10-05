@@ -8,7 +8,8 @@ use core::cell::{Ref, RefCell, RefMut};
 
 use crate::{
     prelude::One, register_buf, unregister_buf, AddOperation, Alloc, Buffer, Device, HasId, Module,
-    OnDropBuffer, OnNewBuffer, Parents, PtrConv, Retrieve, Setup, Shape, TapeActions, WriteBuf, RunModule,
+    OnDropBuffer, OnNewBuffer, Parents, PtrConv, Retrieve, RunModule, Setup, Shape, TapeActions,
+    WriteBuf,
 };
 
 use super::{Cached, CachedModule};
@@ -355,7 +356,7 @@ mod tests {
 
         device.tape_mut().unwrap().backward_seeded(&out);
 
-        assert_eq!(&**buf.grad(), [5.; 10]);
+        assert_eq!(&***buf.grad(), [5.; 10]);
     }
 
     #[test]

@@ -181,10 +181,13 @@ pub fn launch_shader(
 mod tests {
     use ash::vk::BufferUsageFlags;
 
-    use crate::vulkan::{
-        context::Context,
-        shader::{launch_shader, ShaderCache},
-        vk_array::VkArray,
+    use crate::{
+        vulkan::{
+            context::Context,
+            shader::{launch_shader, ShaderCache},
+            vk_array::VkArray,
+        },
+        HostPtr,
     };
     use std::rc::Rc;
 

@@ -199,7 +199,7 @@ pub trait Combiner {
 }
 
 #[cfg(test)]
-mod tests {
+pub mod tests_ex {
     use crate::{prelude::Float, Combiner, Eval, Resolve, ToVal};
 
     #[cfg(not(feature = "no-std"))]

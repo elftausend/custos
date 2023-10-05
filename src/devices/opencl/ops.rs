@@ -34,7 +34,7 @@ impl<Mods: OnDropBuffer + UseGpuOrCpu, T: CDatatype + Default> ClearBuf<T> for O
         );*/
         #[cfg(unified_cl)]
         {
-            let cpu_buf = unsafe { &mut *(buf as *mut Buffer<_, _, _>) };
+            let cpu_buf = unsafe { &mut *(buf as *mut Buffer<_, OpenCL<Mods>, _>) };
             self.use_cpu_or_gpu(
                 (file!(), line!(), column!()).into(),
                 &[buf.len()],
@@ -156,6 +156,8 @@ impl<Mods: OnDropBuffer + 'static, T: Clone + Default, S: Shape> Read<T, S> for 
     #[cfg(unified_cl)]
     #[inline]
     fn read<'a>(&self, buf: &'a Buffer<T, Self, S>) -> Self::Read<'a> {
+        use crate::HostPtr;
+
         buf.as_slice()
     }
 
@@ -195,7 +197,7 @@ where
         self.add_op(&mut out, |out| {
             #[cfg(unified_cl)]
             {
-                let cpu_out = unsafe { &mut *(out as *mut Buffer<_, _, _>) };
+                let cpu_out = unsafe { &mut *(out as *mut Buffer<_, OpenCL<Mods>, _>) };
                 self.use_cpu_or_gpu(
                     (file!(), line!(), column!()).into(),
                     &[buf.len()],
@@ -205,7 +207,7 @@ where
                 Ok(())
             }
             #[cfg(not(unified_cl))]
-            try_cl_apply_fn_mut(self, buf, &mut out, f).unwrap();
+            try_cl_apply_fn_mut(self, buf, out, f)
         });
 
         out

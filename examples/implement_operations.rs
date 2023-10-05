@@ -1,3 +1,5 @@
+use std::ops::Deref;
+
 use custos::prelude::*;
 
 /// `AddBuf` will be implemented for all compute devices.<br>
@@ -12,10 +14,12 @@ pub trait AddBuf<T, S: Shape = (), D: Device = Self>: Sized + Device {
 
 // Host CPU implementation
 #[cfg(feature = "cpu")]
-impl<T, S: Shape, D: MainMemory> AddBuf<T, S, D> for CPU
+impl<T, S, D> AddBuf<T, S, D> for CPU
 where
     T: Copy + std::ops::Add<Output = T> + 'static, // you can use the custos::Number trait.
-                                                   // This trait is implemented for all number types (usize, i16, f32, ...)
+    S: Shape, // This trait is implemented for all number types (usize, i16, f32, ...)
+    D: Device,
+    D::Data<T, S>: Deref<Target = [T]>,
 {
     fn add(&self, lhs: &Buffer<T, D, S>, rhs: &Buffer<T, D, S>) -> Buffer<T, Self, S> {
         let len = std::cmp::min(lhs.len(), rhs.len());
@@ -44,9 +48,12 @@ where
 // can be placed on top of the CPU implementation to automatically
 // generate a Stack implementation.
 #[cfg(feature = "stack")]
-impl<T, S: Shape, D: MainMemory> AddBuf<T, S, D> for Stack
+impl<T, S, D> AddBuf<T, S, D> for Stack
 where
     T: Copy + Default + std::ops::Add<Output = T> + 'static,
+    S: Shape,
+    D: Device,
+    D::Data<T, S>: Deref<Target = [T]>,
 {
     fn add(&self, lhs: &Buffer<T, D, S>, rhs: &Buffer<T, D, S>) -> Buffer<T, Self, S> {
         let mut out = self.retrieve(S::LEN, ()); // this works as well and in this case (Stack), does exactly the same as the line above.

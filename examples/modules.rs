@@ -1,7 +1,7 @@
-use std::ops::{Add, AddAssign, Mul};
+use std::ops::{Add, AddAssign, Deref, Mul};
 
 use custos::{
-    AddOperation, Buffer, Device, HasId, MainMemory, MayTapeActions, Retrieve, Retriever, Shape,
+    AddOperation, Buffer, Device, HasId, MayTapeActions, Retrieve, Retriever, Shape,
     UseGpuOrCpu, CPU,
 };
 
@@ -9,7 +9,11 @@ use custos::{
 use custos::TapeActions;
 
 pub trait ElementWise<T, D: Device, S: Shape>: Device {
-    fn add(&self, lhs: &Buffer<T, D, S>, rhs: &Buffer<T, D, S>) -> custos::Result<Buffer<T, Self, S>>;
+    fn add(
+        &self,
+        lhs: &Buffer<T, D, S>,
+        rhs: &Buffer<T, D, S>,
+    ) -> custos::Result<Buffer<T, Self, S>>;
 }
 
 pub fn add_ew_slice<T: Add<Output = T> + Copy>(lhs: &[T], rhs: &[T], out: &mut [T]) {
@@ -31,12 +35,17 @@ where
 impl<T, D, S, Mods> ElementWise<T, D, S> for CPU<Mods>
 where
     T: Add<Output = T> + AddAssign + Mul<Output = T> + Copy + 'static,
-    D: MainMemory,
+    D: Device,
+    D::Data<T, S>: Deref<Target = [T]>,
     S: Shape,
     Mods: Retrieve<Self, T> + AddOperation<T, Self> + MayTapeActions + 'static,
 {
     #[track_caller]
-    fn add(&self, lhs: &Buffer<T, D, S>, rhs: &Buffer<T, D, S>) -> custos::Result<Buffer<T, Self, S>> {
+    fn add(
+        &self,
+        lhs: &Buffer<T, D, S>,
+        rhs: &Buffer<T, D, S>,
+    ) -> custos::Result<Buffer<T, Self, S>> {
         let mut out = self.retrieve(lhs.len(), (lhs, rhs));
 
         #[cfg(feature = "autograd")]
@@ -91,13 +100,17 @@ where
     S: Shape,
     Mods: Retrieve<Self, T> + AddOperation<T, Self> + UseGpuOrCpu,
 {
-    fn add(&self, lhs: &Buffer<T, Self, S>, rhs: &Buffer<T, Self, S>) -> custos::Result<Buffer<T, Self, S>> {
+    fn add(
+        &self,
+        lhs: &Buffer<T, Self, S>,
+        rhs: &Buffer<T, Self, S>,
+    ) -> custos::Result<Buffer<T, Self, S>> {
         let mut out = self.retrieve(lhs.len(), (lhs, rhs));
 
         self.add_op(&mut out, |out| {
             #[cfg(unified_cl)]
             {
-                let cpu_out = unsafe { &mut *(out as *mut Buffer<_, _, _>) };
+                let cpu_out = unsafe { &mut *(out as *mut Buffer<_, OpenCL<Mods>, _>) };
                 self.use_cpu_or_gpu(
                     (file!(), line!(), column!()).into(),
                     &[lhs.len()],
@@ -117,13 +130,13 @@ where
 fn main() {
     #[cfg(feature = "opencl")]
     {
-        use custos::{Run, Fork, Cached, Base, Lazy};
+        use custos::{Base, Cached, Fork, Lazy, Run};
         let device = OpenCL::<Fork<Lazy<Cached<Base>>>>::new(0).unwrap();
         let lhs = device.buffer([1, 2, 3, 4, 5]);
         let rhs = device.buffer([1, 2, 3, 4, 5]);
 
         let out = device.add(&lhs, &rhs).unwrap();
-        device.run().unwrap();
+        unsafe { device.run().unwrap() };
         assert_eq!(out.read(), vec![2, 4, 6, 8, 10])
     }
 }

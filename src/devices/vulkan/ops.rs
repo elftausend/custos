@@ -1,7 +1,7 @@
 use crate::{
     cpu_stack_ops::clear_slice, pass_down_add_operation, prelude::Number, AddOperation,
-    ApplyFunction, Buffer, CDatatype, ClearBuf, OnDropBuffer, Read, Resolve, Retrieve, Retriever,
-    Shape, ToMarker, ToWgslSource, UnaryGrad, UseGpuOrCpu, Vulkan,
+    ApplyFunction, Buffer, CDatatype, ClearBuf, HostPtr, OnDropBuffer, Read, Resolve, Retrieve,
+    Retriever, Shape, ToMarker, ToWgslSource, UnaryGrad, UseGpuOrCpu, Vulkan,
 };
 
 use super::VkArray;
@@ -11,7 +11,7 @@ pass_down_add_operation!(Vulkan);
 impl<Mods: OnDropBuffer + UseGpuOrCpu, T: CDatatype + Default> ClearBuf<T> for Vulkan<Mods> {
     #[inline]
     fn clear(&self, buf: &mut Buffer<T, Vulkan<Mods>>) {
-        let cpu_buf = unsafe { &mut *(buf as *mut Buffer<_, _, _>) };
+        let cpu_buf = unsafe { &mut *(buf as *mut Buffer<T, Vulkan<Mods>>) };
         self.use_cpu_or_gpu(
             (file!(), line!(), column!()).into(),
             &[buf.len()],
@@ -81,7 +81,7 @@ where
         let mut out = self.retrieve(buf.len(), buf);
 
         self.add_op(&mut out, |out| {
-            let cpu_out = unsafe { &mut *(out as *mut Buffer<_, _, _>) };
+            let cpu_out = unsafe { &mut *(out as *mut Buffer<T, Vulkan<Mods>, _>) };
             self.use_cpu_or_gpu(
                 (file!(), line!(), column!()).into(),
                 &[buf.len()],

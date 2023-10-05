@@ -3,7 +3,7 @@ use ash::vk::BufferUsageFlags;
 use super::{context::Context, launch_shader, AsVkShaderArgument, ShaderCache, VkArray};
 use crate::{
     flag::AllocFlag, impl_buffer_hook_traits, impl_retriever, pass_down_use_gpu_or_cpu, Alloc,
-    Base, Buffer, Device, MainMemory, Module, OnDropBuffer, PtrConv, Setup, Shape,
+    Base, Buffer, Device, Module, OnDropBuffer, PtrConv, Setup, Shape,
 };
 use core::cell::RefCell;
 use std::rc::Rc;
@@ -70,18 +70,6 @@ impl<Mods: OnDropBuffer, T> Alloc<T> for Vulkan<Mods> {
     }
 }
 
-impl<Mods: OnDropBuffer> MainMemory for Vulkan<Mods> {
-    #[inline]
-    fn as_ptr<T, S: Shape>(ptr: &Self::Data<T, S>) -> *const T {
-        ptr.mapped_ptr
-    }
-
-    #[inline]
-    fn as_ptr_mut<T, S: Shape>(ptr: &mut Self::Data<T, S>) -> *mut T {
-        ptr.mapped_ptr
-    }
-}
-
 #[cfg(feature = "fork")]
 impl<Mods> crate::ForkSetup for Vulkan<Mods> {}
 
@@ -136,7 +124,7 @@ impl<Mods> Vulkan<Mods> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{Base, Device};
+    use crate::{Base, Device, HostPtr};
 
     use super::Vulkan;
 

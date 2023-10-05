@@ -1,8 +1,11 @@
 use std::rc::Rc;
 
 use ash::vk::{self, BufferUsageFlags, DescriptorType, Fence};
-use custos::vulkan::{
-    create_descriptor_infos, create_write_descriptor_sets, Context, ShaderCache, VkArray,
+use custos::{
+    vulkan::{
+        create_descriptor_infos, create_write_descriptor_sets, Context, ShaderCache, VkArray,
+    },
+    HostPtr,
 };
 
 #[test]

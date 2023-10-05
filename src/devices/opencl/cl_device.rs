@@ -304,19 +304,6 @@ impl<'a, T> CloneBuf<'a, T> for OpenCL {
     }
 }
 
-#[cfg(unified_cl)]
-impl<Mods: OnDropBuffer> crate::MainMemory for OpenCL<Mods> {
-    #[inline]
-    fn as_ptr<T, S: Shape>(ptr: &Self::Data<T, S>) -> *const T {
-        ptr.host_ptr
-    }
-
-    #[inline]
-    fn as_ptr_mut<T, S: Shape>(ptr: &mut Self::Data<T, S>) -> *mut T {
-        ptr.host_ptr
-    }
-}
-
 #[cfg(feature = "fork")]
 impl<Mods> ForkSetup for OpenCL<Mods> {
     #[inline]

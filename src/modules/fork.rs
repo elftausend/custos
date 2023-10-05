@@ -1,6 +1,6 @@
 use crate::{
     AddOperation, Alloc, Buffer, Device, GpuOrCpuInfo, HashLocation, LocationHasher, Module,
-    OnDropBuffer, OnNewBuffer, Parents, PtrConv, Retrieve, Setup, Shape, UseGpuOrCpu, RunModule,
+    OnDropBuffer, OnNewBuffer, Parents, PtrConv, Retrieve, RunModule, Setup, Shape, UseGpuOrCpu,
 };
 use core::{
     cell::RefCell,

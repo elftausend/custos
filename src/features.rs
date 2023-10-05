@@ -58,6 +58,11 @@ pub trait RunModule<D> {
 impl<D> RunModule<D> for crate::Base {}
 
 pub trait Run {
+    /// Executes a lazy graph.
+    ///
+    /// # Safety
+    /// The lifetime of captured references is ignored!
+    /// Specific style of writing operations should prevent UB altogether (at the cost of convenience).
     unsafe fn run(&self) -> crate::Result<()>;
 }
 
@@ -101,7 +106,11 @@ pub trait TapeActions {
 }
 
 pub trait AddOperation<T, D: Device> {
-    fn add_op<S: Shape>(&self, out: &mut Buffer<T, D, S>, operation: impl Fn(&mut Buffer<T, D, S>) -> crate::Result<()>);
+    fn add_op<S: Shape>(
+        &self,
+        out: &mut Buffer<T, D, S>,
+        operation: impl Fn(&mut Buffer<T, D, S>) -> crate::Result<()>,
+    );
 }
 
 /// Implements the [`AddOperation`] trait for any supplied device. The `add_op` call is passed down to `self.modules`.

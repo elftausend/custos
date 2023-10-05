@@ -3,17 +3,23 @@
 mod impl_buffer;
 mod stack_device;
 
-use core::ops::AddAssign;
+use core::ops::{AddAssign, Deref, DerefMut};
 
 pub use stack_device::*;
 
 use crate::{
-    cpu_stack_ops::clear_slice, ApplyFunction, Buffer, ClearBuf, Eval, MainMemory, MayToCLSource,
+    cpu_stack_ops::clear_slice, ApplyFunction, Buffer, ClearBuf, Device, Eval, MayToCLSource,
     OnDropBuffer, Resolve, Retrieve, Retriever, Shape, ToVal, UnaryGrad,
 };
 
 // #[impl_stack]
-impl<T: Default, D: MainMemory, S: Shape> ClearBuf<T, S, D> for Stack {
+impl<T, D, S> ClearBuf<T, S, D> for Stack
+where
+    T: Default,
+    D: Device,
+    D::Data<T, S>: DerefMut<Target = [T]>,
+    S: Shape,
+{
     #[inline]
     fn clear(&self, buf: &mut Buffer<T, D, S>) {
         clear_slice(buf)
@@ -24,7 +30,8 @@ impl<Mods, T, D, S> ApplyFunction<T, S, D> for Stack<Mods>
 where
     Mods: Retrieve<Self, T>,
     T: Copy + Default + ToVal + 'static,
-    D: crate::MainMemory,
+    D: Device,
+    D::Data<T, S>: Deref<Target = [T]>,
     S: Shape,
 {
     fn apply_fn<F>(&self, buf: &Buffer<T, D, S>, f: impl Fn(Resolve<T>) -> F) -> Buffer<T, Self, S>
@@ -44,7 +51,8 @@ where
     Mods: OnDropBuffer,
     T: AddAssign + Copy + core::ops::Mul<Output = T>,
     S: Shape,
-    D: MainMemory,
+    D: Device,
+    D::Data<T, S>: Deref<Target = [T]> + DerefMut,
 {
     #[inline]
     fn add_unary_grad<F>(
@@ -63,8 +71,8 @@ where
 #[cfg(feature = "cpu")]
 #[cfg(test)]
 mod tests {
-    use crate::{Alloc, Base, Buffer, Device, Dim1, MainMemory, Retrieve, Retriever, Shape, CPU};
-    use core::ops::Add;
+    use crate::{Alloc, Base, Buffer, Device, Dim1, Retrieve, Retriever, Shape, CPU};
+    use core::ops::{Add, Deref};
 
     use super::stack_device::Stack;
 
@@ -91,7 +99,8 @@ mod tests {
 
     impl<Mods: Retrieve<Self, T>, T, D> AddBuf<T, D> for CPU<Mods>
     where
-        D: MainMemory,
+        D: Device,
+        D::Data<T, ()>: Deref<Target = [T]>,
         T: Add<Output = T> + Clone,
     {
         fn add(&self, lhs: &Buffer<T, D>, rhs: &Buffer<T, D>) -> Buffer<T, Self> {
@@ -108,7 +117,8 @@ mod tests {
     impl<T, D, S: Shape> AddBuf<T, D, S> for Stack
     where
         Stack: Alloc<T>,
-        D: MainMemory,
+        D: Device,
+        D::Data<T, S>: Deref<Target = [T]>,
         T: Add<Output = T> + Copy + Default,
     {
         fn add(&self, lhs: &Buffer<T, D, S>, rhs: &Buffer<T, D, S>) -> Buffer<T, Self, S> {
@@ -151,6 +161,6 @@ mod tests {
         //let buf = Buffer::<f32>::new(&cpu, 100);
         let buf = Buffer::from((&cpu, [1f32; 100]));
         let out = cpu.add(&buf, &buf);
-        assert_eq!(&*out, &[2.; 100]);
+        assert_eq!(&**out, &[2.; 100]);
     }
 }

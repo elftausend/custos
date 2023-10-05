@@ -1,4 +1,6 @@
-use custos::{prelude::Number, Buffer, Device, Dim2, MainMemory, Retriever, Shape, WithShape, CPU};
+use std::ops::Deref;
+
+use custos::{prelude::Number, Buffer, Device, Dim2, Retriever, Shape, WithShape, CPU};
 use custos_macro::impl_stack;
 //use custos_macro::impl_stack;
 
@@ -24,7 +26,8 @@ where
 impl<T, D, S> ElementWise<T, D, S> for CPU
 where
     T: Number,
-    D: MainMemory,
+    D: Device,
+    D::Data<T, S>: Deref<Target = [T]>,
     S: Shape,
 {
     fn add(&self, lhs: &Buffer<T, D, S>, rhs: &Buffer<T, D, S>) -> Buffer<T, CPU, S> {
@@ -83,7 +86,7 @@ fn test_impl_stack() {
 
     let buf = Buffer::<i32, Stack, Dim1<5>>::with(&stack, [1, 2, 3, 4, 5]);
     let out = stack.add(&buf, &buf);
-    assert_eq!(out.as_slice(), &[2, 4, 6, 8, 10]);
+    assert_eq!(&**out, &[2, 4, 6, 8, 10]);
 }
 
 /*

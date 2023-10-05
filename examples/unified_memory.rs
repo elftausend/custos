@@ -3,7 +3,7 @@ use custos::{Buffer, OpenCL, Read};
 
 #[cfg(unified_cl)]
 fn main() -> custos::Result<()> {
-    use custos::{opencl::chosen_cl_idx, Base};
+    use custos::{opencl::chosen_cl_idx, Base, HostPtr};
 
     let device = OpenCL::<Base>::new(chosen_cl_idx())?;
 

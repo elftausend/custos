@@ -38,22 +38,6 @@ pub fn chosen_cu_idx() -> usize {
         )
 }
 
-impl<'a, T, Mods: OnDropBuffer, S: Shape> Deref for Buffer<'a, T, CUDA<Mods>, S> {
-    type Target = CUDAPtr<T>;
-
-    #[inline]
-    fn deref(&self) -> &Self::Target {
-        &self.data
-    }
-}
-
-impl<'a, T, Mods: OnDropBuffer, S: Shape> DerefMut for Buffer<'a, T, CUDA<Mods>, S> {
-    #[inline]
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.data
-    }
-}
-
 /// Sets the elements of a CUDA Buffer to zero.
 /// # Example
 /// ```

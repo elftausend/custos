@@ -74,7 +74,7 @@ pub unsafe fn to_cached_unified<OclMods: OnDropBuffer, CpuMods: OnDropBuffer, T,
         location,
         Rc::new(CLPtr {
             ptr: cl_ptr,
-            host_ptr: no_drop.host_ptr() as *mut u8,
+            host_ptr: no_drop.data.ptr as *mut u8,
             len: no_drop.len(),
             flag: AllocFlag::None,
         }),
@@ -112,7 +112,7 @@ pub unsafe fn to_cached_unified<OclMods: OnDropBuffer, CpuMods: OnDropBuffer, T,
 /// ```
 pub fn construct_buffer<'a, OclMods: OnDropBuffer, CpuMods: OnDropBuffer, T, S: Shape>(
     device: &'a OpenCL<OclMods>,
-    mut no_drop: Buffer<'a, T, CPU<CpuMods>, S>,
+    no_drop: Buffer<'a, T, CPU<CpuMods>, S>,
     cache: &mut HashMap<HashLocation<'static>, Rc<CLPtr<u8>>, BuildHasherDefault<LocationHasher>>,
     location: HashLocation<'static>,
 ) -> crate::Result<Buffer<'a, T, OpenCL<OclMods>, S>> {
@@ -134,7 +134,7 @@ pub fn construct_buffer<'a, OclMods: OnDropBuffer, CpuMods: OnDropBuffer, T, S: 
             device: Some(device),
         });
     }
-    let (host_ptr, len) = (no_drop.host_ptr_mut(), no_drop.len());
+    let (host_ptr, len) = (no_drop.data.ptr, no_drop.len());
     let ptr = unsafe { to_cached_unified(device, no_drop, cache, location)? };
 
     Ok(Buffer {
@@ -153,7 +153,7 @@ pub fn construct_buffer<'a, OclMods: OnDropBuffer, CpuMods: OnDropBuffer, T, S: 
 mod tests {
     use crate::{
         opencl::{chosen_cl_idx, CLPtr},
-        AllocFlag, Base, Buffer, Cache, Cached, Device, DeviceError, HashLocation, OpenCL,
+        AllocFlag, Base, Buffer, Cache, Cached, Device, DeviceError, HashLocation, HostPtr, OpenCL,
         Retriever, UnifiedMemChain, CPU,
     };
 
@@ -248,7 +248,7 @@ mod tests {
         let device = OpenCL::<Base>::new(chosen_cl_idx())?;
         let mut cache = Cache::<OpenCL>::new();
 
-        let (host_ptr, len) = (no_drop.host_ptr_mut(), no_drop.len());
+        let (host_ptr, len) = (no_drop.data.ptr, no_drop.len());
         let cl_host_ptr =
             unsafe { to_cached_unified(&device, no_drop, &mut cache.nodes, HashLocation::here())? };
 

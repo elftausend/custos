@@ -2,10 +2,10 @@ use ash::{
     prelude::VkResult,
     vk::{self, BufferUsageFlags},
 };
-use core::ops::Deref;
+use core::ops::{Deref, DerefMut};
 use std::rc::Rc;
 
-use crate::{flag::AllocFlag, HasId, PtrType};
+use crate::{flag::AllocFlag, HasId, HostPtr, PtrType};
 
 use super::context::Context;
 
@@ -80,17 +80,8 @@ impl<T> VkArray<T> {
         T: Clone,
     {
         let mut array = VkArray::<T>::new(context, data.len(), usage_flag, flag)?;
-        array.as_mut_slice().clone_from_slice(data);
+        array.clone_from_slice(data);
         Ok(array)
-    }
-
-    #[inline]
-    pub fn as_mut_slice(&mut self) -> &mut [T] {
-        unsafe { core::slice::from_raw_parts_mut(self.mapped_ptr, self.len) }
-    }
-    #[inline]
-    pub fn as_slice(&self) -> &[T] {
-        unsafe { core::slice::from_raw_parts(self.mapped_ptr, self.len) }
     }
 }
 
@@ -105,12 +96,31 @@ impl<T> Drop for VkArray<T> {
     }
 }
 
+impl<T> HostPtr<T> for VkArray<T> {
+    #[inline]
+    fn ptr(&self) -> *const T {
+        self.mapped_ptr
+    }
+
+    #[inline]
+    fn ptr_mut(&mut self) -> *mut T {
+        self.mapped_ptr
+    }
+}
+
 impl<T> Deref for VkArray<T> {
-    type Target = vk::Buffer;
+    type Target = [T];
 
     #[inline]
     fn deref(&self) -> &Self::Target {
-        &self.buf
+        unsafe { std::slice::from_raw_parts(self.ptr(), self.size()) }
+    }
+}
+
+impl<T> DerefMut for VkArray<T> {
+    #[inline]
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        unsafe { std::slice::from_raw_parts_mut(self.ptr_mut(), self.size()) }
     }
 }
 
@@ -164,7 +174,7 @@ pub unsafe fn allocate_memory(
 #[cfg(test)]
 mod tests {
     use super::VkArray;
-    use crate::vulkan::context::Context;
+    use crate::{vulkan::context::Context, HostPtr};
     use ash::vk::BufferUsageFlags;
     use std::rc::Rc;
 

@@ -1,5 +1,6 @@
 //! The OpenCL module provides the OpenCL backend for custos.
 
+use core::ops::{Deref, DerefMut};
 use std::{ffi::c_void, ptr::null_mut};
 
 pub use cl_device::{OpenCL, CL};
@@ -25,7 +26,7 @@ use min_cl::api::release_mem_object;
 pub use unified::*;
 
 //use self::api::release_mem_object;
-use crate::{flag::AllocFlag, Buffer, CommonPtrs, HasId, Id, PtrType, ShallowCopy};
+use crate::{flag::AllocFlag, Buffer, CommonPtrs, HasId, HostPtr, Id, PtrType, ShallowCopy};
 
 /// Another type for Buffer<'a, T, OpenCL, S>
 pub type CLBuffer<'a, T, S = ()> = Buffer<'a, T, OpenCL, S>;
@@ -96,6 +97,35 @@ impl<T> PtrType for CLPtr<T> {
     #[inline]
     fn flag(&self) -> AllocFlag {
         self.flag
+    }
+}
+
+#[cfg(unified_cl)]
+impl<T> HostPtr<T> for CLPtr<T> {
+    #[inline]
+    fn ptr(&self) -> *const T {
+        self.host_ptr
+    }
+
+    #[inline]
+    fn ptr_mut(&mut self) -> *mut T {
+        self.host_ptr
+    }
+}
+
+impl<T> Deref for CLPtr<T> {
+    type Target = [T];
+
+    #[inline]
+    fn deref(&self) -> &Self::Target {
+        self.as_slice()
+    }
+}
+
+impl<T> DerefMut for CLPtr<T> {
+    #[inline]
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        self.as_mut_slice()
     }
 }
 

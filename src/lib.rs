@@ -1,6 +1,5 @@
 // #![warn(missing_docs)]
 #![cfg_attr(feature = "no-std", no_std)]
-
 // A compute kernel launch may wants to modify memory. Clippy does not know this.
 // To declare that a value is mutated, a "needless" mutable reference is used.
 #![allow(clippy::needless_pass_by_ref_mut)]
@@ -38,12 +37,13 @@
 //! where
 //!     T: Mul<Output = T> + Copy,
 //!     S: Shape,
-//!     D: MainMemory,
+//!     D: Device,
+//!     D::Data<T, S>: core::ops::Deref<Target = [T]>
 //! {
 //!     fn mul(&self, lhs: &Buffer<T, D, S>, rhs: &Buffer<T, D, S>) -> Buffer<T, CPU, S> {
 //!         let mut out = self.retrieve(lhs.len(), (lhs, rhs));
 //!
-//!         for ((lhs, rhs), out) in lhs.iter().zip(&*rhs).zip(&mut out) {
+//!         for ((lhs, rhs), out) in lhs.iter().zip(rhs.iter()).zip(&mut out) {
 //!             *out = *lhs * *rhs;
 //!         }
 //!
@@ -157,6 +157,21 @@ pub trait PtrType {
     fn flag(&self) -> AllocFlag;
 }
 
+pub trait HostPtr<T>: PtrType {
+    fn ptr(&self) -> *const T;
+    fn ptr_mut(&mut self) -> *mut T;
+
+    #[inline]
+    fn as_slice(&self) -> &[T] {
+        unsafe { std::slice::from_raw_parts(self.ptr(), self.size()) }
+    }
+
+    #[inline]
+    fn as_mut_slice(&mut self) -> &mut [T] {
+        unsafe { std::slice::from_raw_parts_mut(self.ptr_mut(), self.size()) }
+    }
+}
+
 /// Used to shallow-copy a pointer. Use is discouraged.
 pub trait ShallowCopy {
     /// # Safety
@@ -175,14 +190,6 @@ pub trait CommonPtrs<T> {
 
 /// All type of devices that can create [`Buffer`]s
 pub trait DevicelessAble<'a, T, S: Shape = ()>: Alloc<T> {}
-
-/// Devices that can access the main memory / RAM of the host.
-pub trait MainMemory: Device {
-    /// Returns the respective immutable host memory pointer
-    fn as_ptr<T, S: Shape>(ptr: &Self::Data<T, S>) -> *const T;
-    /// Returns the respective mutable host memory pointer
-    fn as_ptr_mut<T, S: Shape>(ptr: &mut Self::Data<T, S>) -> *mut T;
-}
 
 /// If the `autograd` feature is enabled, then this will be implemented for all types that implement [`TapeActions`].
 /// On the other hand, if the `autograd` feature is disabled, no [`Tape`] will be returneable.
@@ -244,8 +251,8 @@ pub mod prelude {
 
     pub use crate::{
         device_traits::*, features::*, modules::*, number::*, shape::*, Alloc, Buffer, CDatatype,
-        ClearBuf, CloneBuf, CopySlice, Device, Error, MainMemory,
-        /* MayTapeReturn, */ MayToCLSource, Read, ShallowCopy, WithShape, WriteBuf,
+        ClearBuf, CloneBuf, CopySlice, Device, Error,
+        /* MayTapeReturn, */ MayToCLSource, Read, ShallowCopy, WithShape, WriteBuf, HostPtr
     };
 
     #[cfg(feature = "cpu")]

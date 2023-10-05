@@ -5,7 +5,7 @@ use core::{
 
 use crate::{
     cpu::CPUPtr, flag::AllocFlag, impl_buffer_hook_traits, impl_retriever, Alloc, Base, Buffer,
-    CloneBuf, Device, DevicelessAble, HasModules, MainMemory, Module, OnDropBuffer, OnNewBuffer,
+    CloneBuf, Device, DevicelessAble, HasModules, Module, OnDropBuffer, OnNewBuffer,
     PtrConv, Setup, Shape,
 };
 
@@ -47,18 +47,6 @@ impl<Mods: OnDropBuffer> Device for CPU<Mods> {
 }
 
 impl<T, S: Shape> DevicelessAble<'_, T, S> for CPU<Base> {}
-
-impl<Mods: OnDropBuffer> MainMemory for CPU<Mods> {
-    #[inline]
-    fn as_ptr<T, S: Shape>(ptr: &Self::Data<T, S>) -> *const T {
-        ptr.ptr
-    }
-
-    #[inline]
-    fn as_ptr_mut<T, S: Shape>(ptr: &mut Self::Data<T, S>) -> *mut T {
-        ptr.ptr
-    }
-}
 
 impl<Mods> HasModules<Mods> for CPU<Mods> {
     #[inline]

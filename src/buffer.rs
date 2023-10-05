@@ -1,4 +1,8 @@
-use core::{ffi::c_void, mem::ManuallyDrop};
+use core::{
+    ffi::c_void,
+    mem::ManuallyDrop,
+    ops::{Deref, DerefMut},
+};
 
 #[cfg(feature = "cpu")]
 use crate::cpu::{CPUPtr, CPU};
@@ -8,7 +12,7 @@ use crate::CPU;
 
 use crate::{
     flag::AllocFlag, shape::Shape, Alloc, Base, ClearBuf, CloneBuf, CommonPtrs, Device,
-    DevicelessAble, HasId, IsShapeIndep, MainMemory, OnDropBuffer, OnNewBuffer, PtrType, Read,
+    DevicelessAble, HasId, IsShapeIndep, OnDropBuffer, OnNewBuffer, PtrType, Read,
     ShallowCopy, WriteBuf,
 };
 
@@ -234,7 +238,7 @@ impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
     /// let mut buf = Buffer::<i32>::new(&device, 6);
     /// buf.write(&[4, 2, 3, 4, 5, 3]);
     ///
-    /// assert_eq!(&*buf, [4, 2, 3, 4, 5, 3]);
+    /// assert_eq!(&**buf, [4, 2, 3, 4, 5, 3]);
     /// ```
     #[inline]
     pub fn write(&mut self, data: &[T])
@@ -475,46 +479,6 @@ impl<'a, Mods: OnDropBuffer, T> Buffer<'a, T, crate::CUDA<Mods>> {
     }
 }
 
-impl<'a, T, D: MainMemory, S: Shape> Buffer<'a, T, D, S> {
-    /// Returns a CPU slice. This does not work with CUDA or raw OpenCL buffers.
-    #[inline(always)]
-    pub fn as_slice(&self) -> &[T] {
-        self
-    }
-
-    /// Returns a mutable CPU slice.
-    #[inline(always)]
-    pub fn as_mut_slice(&mut self) -> &mut [T] {
-        self
-    }
-}
-
-// custos v0.5 compatability
-impl<'a, T, D: MainMemory, S: Shape> Buffer<'a, T, D, S>
-where
-    D::Data<T, S>: CommonPtrs<T>,
-{
-    /// Returns a non null host pointer
-    #[inline]
-    pub fn host_ptr(&self) -> *const T {
-        assert!(
-            !self.ptrs().0.is_null(),
-            "called host_ptr() on an invalid CPU buffer (this would dereference a null pointer)"
-        );
-        self.ptrs().0
-    }
-
-    /// Returns a non null host pointer
-    #[inline]
-    pub fn host_ptr_mut(&mut self) -> *mut T {
-        assert!(
-            !self.ptrs().0.is_null(),
-            "called host_ptr_mut() on an invalid CPU buffer (this would dereference a null pointer)"
-        );
-        self.ptrs_mut().0
-    }
-}
-
 impl<'a, T, D, S> Clone for Buffer<'a, T, D, S>
 where
     T: Clone,
@@ -543,79 +507,41 @@ where
     }
 }
 
-impl<T, D: MainMemory> AsRef<[T]> for Buffer<'_, T, D> {
+impl<T, D: Device> AsRef<[T]> for Buffer<'_, T, D>
+where
+    D::Data<T, ()>: Deref<Target = [T]>,
+{
     #[inline]
     fn as_ref(&self) -> &[T] {
         self
     }
 }
 
-impl<T, D: MainMemory> AsMut<[T]> for Buffer<'_, T, D> {
+impl<T, D: Device> AsMut<[T]> for Buffer<'_, T, D>
+where
+    D::Data<T, ()>: DerefMut<Target = [T]>,
+{
     #[inline]
     fn as_mut(&mut self) -> &mut [T] {
         self
     }
 }
 
-/// A main memory `Buffer` dereferences into a slice.
-///
-/// # Examples
-///
-#[cfg_attr(feature = "cpu", doc = "```")]
-#[cfg_attr(not(feature = "cpu"), doc = "```ignore")]
-/// use custos::{Buffer, CPU, Base};
-///
-/// let device = CPU::<Base>::new();
-///
-/// let a = Buffer::from((&device, [1., 2., 3., 4.,]));
-/// let b = Buffer::from((&device, [2., 3., 4., 5.,]));
-///
-/// let mut c = Buffer::from((&device, [0.; 4]));
-///
-/// let slice_add = |a: &[f64], b: &[f64], c: &mut [f64]| {
-///     for i in 0..c.len() {
-///         c[i] = a[i] + b[i];
-///     }
-/// };
-///
-/// slice_add(&a, &b, &mut c);
-/// assert_eq!(c.as_slice(), &[3., 5., 7., 9.,]);
-/// ```
-impl<T, D: MainMemory, S: Shape> core::ops::Deref for Buffer<'_, T, D, S> {
-    type Target = [T];
+/// A main memory `Buffer` dereferences into `Data` type.
+impl<T, D: Device, S: Shape> core::ops::Deref for Buffer<'_, T, D, S> {
+    type Target = D::Data<T, S>;
 
     #[inline]
     fn deref(&self) -> &Self::Target {
-        unsafe { core::slice::from_raw_parts(D::as_ptr(&self.data), self.len()) }
+        &self.data
     }
 }
 
-/// A main memory `Buffer` dereferences into a mutable slice.
-///
-/// # Examples
-///
-#[cfg_attr(feature = "cpu", doc = "```")]
-#[cfg_attr(not(feature = "cpu"), doc = "```ignore")]
-/// use custos::{Buffer, CPU, Base};
-///  
-/// let device = CPU::<Base>::new();
-///
-/// let a = Buffer::from((&device, [4., 2., 3., 4.,]));
-/// let b = Buffer::from((&device, [2., 3., 6., 5.,]));
-/// let mut c = Buffer::from((&device, [0.; 4]));
-///
-/// let slice_add = |a: &[f64], b: &[f64], c: &mut [f64]| {
-///     for i in 0..c.len() {
-///         c[i] = a[i] + b[i];
-///     }
-/// };
-/// slice_add(&a, &b, &mut c);
-/// assert_eq!(c.as_slice(), &[6., 5., 9., 9.,]);
-/// ```
-impl<T, D: MainMemory, S: Shape> core::ops::DerefMut for Buffer<'_, T, D, S> {
+/// A main memory `Buffer` dereferences into `Data` type.
+impl<T, D: Device, S: Shape> core::ops::DerefMut for Buffer<'_, T, D, S> {
     #[inline]
     fn deref_mut(&mut self) -> &mut Self::Target {
-        unsafe { core::slice::from_raw_parts_mut(D::as_ptr_mut(&mut self.data), self.len()) }
+        &mut self.data
     }
 }
 
@@ -660,7 +586,10 @@ where
     }
 }
 
-impl<'a, T, D: MainMemory, S: Shape> core::iter::IntoIterator for &'a Buffer<'_, T, D, S> {
+impl<'a, T, D: Device, S: Shape> core::iter::IntoIterator for &'a Buffer<'_, T, D, S>
+where
+    D::Data<T, S>: Deref<Target = [T]>,
+{
     type Item = &'a T;
 
     type IntoIter = core::slice::Iter<'a, T>;
@@ -671,7 +600,10 @@ impl<'a, T, D: MainMemory, S: Shape> core::iter::IntoIterator for &'a Buffer<'_,
     }
 }
 
-impl<'a, T, D: MainMemory, S: Shape> core::iter::IntoIterator for &'a mut Buffer<'_, T, D, S> {
+impl<'a, T, D: Device, S: Shape> core::iter::IntoIterator for &'a mut Buffer<'_, T, D, S>
+where
+    D::Data<T, S>: DerefMut<Target = [T]>,
+{
     type Item = &'a mut T;
 
     type IntoIter = core::slice::IterMut<'a, T>;
@@ -693,7 +625,7 @@ mod tests {
 
         let device = crate::CPU::<Base>::new();
         let buf: Buffer<i32> = Buffer::from((&device, [1, 2, 3, 4]));
-        let slice = &*buf;
+        let slice = &**buf;
         assert_eq!(slice, &[1, 2, 3, 4]);
     }
 
@@ -705,7 +637,7 @@ mod tests {
 
         let device = OpenCL::<Base>::new(chosen_cl_idx())?;
         let buf = Buffer::from((&device, [1, 2, 3, 4]));
-        let slice = &*buf;
+        let slice = &**buf;
         assert_eq!(slice, &[1, 2, 3, 4]);
 
         Ok(())
@@ -720,7 +652,7 @@ mod tests {
 
         //TODO
         let buf = Buffer::<i32, _, Dim1<4>>::from((&dev, [1i32, 2, 3, 4]));
-        let slice = &*buf;
+        let slice = &**buf;
         assert_eq!(slice, &[1, 2, 3, 4]);
 
         Ok(())

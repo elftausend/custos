@@ -11,7 +11,7 @@ pub trait WithShape<D, C> {
     /// let device = CPU::<Base>::new();
     /// let buf = Buffer::with(&device, [1.0, 2.0, 3.0]);
     ///
-    /// assert_eq!(&*buf, &[1.0, 2.0, 3.0]);
+    /// assert_eq!(&**buf, &[1.0, 2.0, 3.0]);
     ///
     /// ```
     fn with(device: D, array: C) -> Self;
@@ -83,7 +83,7 @@ mod tests {
 
         let buf = Buffer::with(&device, [[1.0, 2.0], [3.0, 4.0]]);
 
-        assert_eq!(&*buf, &[1.0, 2.0, 3.0, 4.0]);
+        assert_eq!(&**buf, &[1.0, 2.0, 3.0, 4.0]);
     }
 
     #[cfg(feature = "stack")]

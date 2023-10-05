@@ -19,8 +19,10 @@ impl Drop for LazyGraph {
 }
 
 impl LazyGraph {
-    pub fn add_operation<T, D, S>(&mut self, operation: impl Fn(&mut Buffer<T, D, S>) -> crate::Result<()>)
-    where
+    pub fn add_operation<T, D, S>(
+        &mut self,
+        operation: impl Fn(&mut Buffer<T, D, S>) -> crate::Result<()>,
+    ) where
         T: Graphable,
         D: PtrConv,
         S: Shape,

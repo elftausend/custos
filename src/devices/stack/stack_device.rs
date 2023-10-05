@@ -2,7 +2,7 @@ use core::convert::Infallible;
 
 use crate::{
     flag::AllocFlag, impl_buffer_hook_traits, impl_retriever, shape::Shape, Alloc, Base, Buffer,
-    CloneBuf, Device, DevicelessAble, MainMemory, OnDropBuffer, Read, StackArray, WriteBuf,
+    CloneBuf, Device, DevicelessAble, OnDropBuffer, Read, StackArray, WriteBuf,
 };
 
 /// A device that allocates memory on the stack.
@@ -28,18 +28,6 @@ impl<Mods: OnDropBuffer> Device for Stack<Mods> {
 
     fn new() -> Result<Self, Infallible> {
         todo!()
-    }
-}
-
-impl<Mods: OnDropBuffer> MainMemory for Stack<Mods> {
-    #[inline]
-    fn as_ptr<T, S: Shape>(ptr: &Self::Data<T, S>) -> *const T {
-        ptr.as_ptr()
-    }
-
-    #[inline]
-    fn as_ptr_mut<T, S: Shape>(ptr: &mut Self::Data<T, S>) -> *mut T {
-        ptr.as_ptr_mut()
     }
 }
 

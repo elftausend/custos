@@ -1,11 +1,11 @@
-use core::ops::{AddAssign, Index, Range, RangeBounds};
+use core::ops::{AddAssign, Deref, DerefMut, Index, Range, RangeBounds};
 
 use crate::{
     bounds_to_range,
     cpu_stack_ops::{apply_fn_slice, clear_slice},
-    pass_down_add_operation, AddOperation, ApplyFunction, Buffer, ClearBuf, CopySlice, Eval,
-    MainMemory, MayToCLSource, OnDropBuffer, Read, Resolve, Retrieve, Retriever, Shape, ToVal,
-    UnaryGrad, WriteBuf, CPU,
+    pass_down_add_operation, AddOperation, ApplyFunction, Buffer, ClearBuf, CopySlice, Device,
+    Eval, MayToCLSource, OnDropBuffer, Read, Resolve, Retrieve, Retriever, Shape, ToVal, UnaryGrad,
+    WriteBuf, CPU,
 };
 
 pass_down_add_operation!(CPU);
@@ -14,7 +14,8 @@ impl<Mods, T, D, S> ApplyFunction<T, S, D> for CPU<Mods>
 where
     Mods: Retrieve<Self, T> + AddOperation<T, Self>,
     T: Copy + Default + ToVal + 'static,
-    D: crate::MainMemory,
+    D: Device,
+    D::Data<T, S>: Deref<Target = [T]>,
     S: Shape,
 {
     fn apply_fn<F>(
@@ -38,7 +39,8 @@ where
     Mods: OnDropBuffer,
     T: AddAssign + Copy + std::ops::Mul<Output = T>,
     S: Shape,
-    D: MainMemory,
+    D: Device,
+    D::Data<T, S>: Deref<Target = [T]> + DerefMut<Target = [T]>,
 {
     #[inline]
     fn add_unary_grad<F>(
@@ -54,12 +56,18 @@ where
     }
 }
 
-impl<Mods: OnDropBuffer, T, D: MainMemory, S: Shape> Read<T, S, D> for CPU<Mods> {
+impl<Mods, T, D, S> Read<T, S, D> for CPU<Mods>
+where
+    Mods: OnDropBuffer,
+    D: Device,
+    D::Data<T, S>: Deref<Target = [T]>,
+    S: Shape,
+{
     type Read<'a> = &'a [T] where T: 'a, D: 'a, S: 'a;
 
     #[inline]
     fn read<'a>(&self, buf: &'a Buffer<T, D, S>) -> Self::Read<'a> {
-        buf.as_slice()
+        &**buf
     }
 
     #[inline]
@@ -71,7 +79,14 @@ impl<Mods: OnDropBuffer, T, D: MainMemory, S: Shape> Read<T, S, D> for CPU<Mods>
     }
 }
 
-impl<Mods: OnDropBuffer, T: Copy, D: MainMemory, S: Shape> WriteBuf<T, S, D> for CPU<Mods> {
+impl<Mods, T, D, S> WriteBuf<T, S, D> for CPU<Mods>
+where
+    Mods: OnDropBuffer,
+    T: Copy,
+    D: Device,
+    D::Data<T, S>: DerefMut<Target = [T]>,
+    S: Shape,
+{
     #[inline]
     fn write(&self, buf: &mut Buffer<T, D, S>, data: &[T]) {
         buf.copy_from_slice(data)
@@ -84,16 +99,27 @@ impl<Mods: OnDropBuffer, T: Copy, D: MainMemory, S: Shape> WriteBuf<T, S, D> for
 }
 
 // #[impl_stack]
-impl<Mods: OnDropBuffer, T: Default, D: MainMemory, S: Shape> ClearBuf<T, S, D> for CPU<Mods> {
+impl<Mods, T, D, S> ClearBuf<T, S, D> for CPU<Mods>
+where
+    Mods: OnDropBuffer,
+    T: Default,
+    D: Device,
+    D::Data<T, S>: DerefMut<Target = [T]>,
+    S: Shape,
+{
     #[inline]
     fn clear(&self, buf: &mut Buffer<T, D, S>) {
         clear_slice(buf)
     }
 }
 
-impl<Mods: OnDropBuffer, T: Copy, D: MainMemory> CopySlice<T, D> for CPU<Mods>
+impl<Mods, T, D> CopySlice<T, D> for CPU<Mods>
 where
     [T]: Index<Range<usize>, Output = [T]>,
+    Mods: OnDropBuffer,
+    T: Copy,
+    D: Device,
+    D::Data<T, ()>: Deref<Target = [T]>,
 {
     fn copy_slice_to<SR: RangeBounds<usize>, DR: RangeBounds<usize>>(
         &self,
