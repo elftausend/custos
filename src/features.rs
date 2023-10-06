@@ -112,7 +112,7 @@ pub trait AddOperation<T, D: Device> {
         out: &mut Buffer<T, D, S>,
         operation: impl Fn(&mut Buffer<T, D, S>) -> crate::Result<()>,
     );
-    fn exec_now(range_bounds: impl RangeBounds<usize>) {}
+    fn exec_now(&self, range_bounds: impl RangeBounds<usize>) {}
 }
 
 /// Implements the [`AddOperation`] trait for any supplied device. The `add_op` call is passed down to `self.modules`.

@@ -7,7 +7,7 @@ pub type ForwardFn = *mut dyn Fn(&'static ()) -> crate::Result<()>;
 
 #[derive(Debug, Default)]
 pub struct LazyGraph {
-    operations: Vec<(Type, ForwardFn)>,
+    pub operations: Vec<(Type, ForwardFn)>,
 }
 
 impl Drop for LazyGraph {

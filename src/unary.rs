@@ -15,7 +15,7 @@ pub trait ApplyFunction<T, S: Shape = (), D: Device = Self>: Device {
     /// let a = Buffer::from((&device, [1., 2., 3., 3., 2., 1.,]));
     ///
     /// let out = device.apply_fn(&a, |x| x.mul(2.));
-    /// assert_eq!(&*out, &[2., 4., 6., 6., 4., 2.,]);
+    /// assert_eq!(&**out, &[2., 4., 6., 6., 4., 2.,]);
     /// ```
     #[track_caller]
     fn apply_fn<F>(
@@ -45,7 +45,7 @@ pub trait UnaryGrad<T, S: Shape = (), D: Device = Self>: Device {
     ///
     /// device.add_unary_grad(&a, &mut lhs_grad, &out_grad, |x| 2f64.to_val());
     ///
-    /// assert_eq!(&*lhs_grad, &[2.; 6]);
+    /// assert_eq!(&**lhs_grad, &[2.; 6]);
     ///
     /// ```
     #[track_caller]
@@ -80,10 +80,10 @@ pub trait UnaryElementWiseMayGrad<T, D: Device, S: Shape>: Device {
     /// let buf = Buffer::from((&device, [1., 2., 3., 3., 2., 1.,]));
     /// let out = device.unary_ew(&buf, |x| x.mul(2.), |x| 2f64.to_val());
     ///
-    /// assert_eq!(&*out, &[2., 4., 6., 6., 4., 2.,]);
+    /// assert_eq!(&**out, &[2., 4., 6., 6., 4., 2.,]);
     ///
     /// out.backward();
-    /// assert_eq!(&**buf.grad(), &[2.; 6]);
+    /// assert_eq!(buf.grad().as_slice(), &[2.; 6]);
     /// ```
     #[track_caller]
     fn unary_ew<FO, GO>(

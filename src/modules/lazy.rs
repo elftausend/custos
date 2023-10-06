@@ -4,7 +4,7 @@ pub use ty::*;
 
 use crate::{
     AddOperation, Alloc, Buffer, Device, HasId, Id, Module, NoHasher, OnDropBuffer, OnNewBuffer,
-    Parents, PtrConv, Retrieve, RunModule, Setup, Shape, UniqueId,
+    Parents, PtrConv, Retrieve, RunModule, Setup, Shape, UniqueId, bounds_to_range,
 };
 use core::{any::Any, cell::RefCell, fmt::Debug, hash::BuildHasherDefault};
 use std::collections::HashMap;
@@ -66,8 +66,8 @@ impl<T: Graphable, D: Device + PtrConv, Mods: AddOperation<T, D>> AddOperation<T
         self.graph.borrow_mut().add_operation(operation);
     }
 
-    fn exec_now(range_bounds: impl core::ops::RangeBounds<usize>) {
-        
+    fn exec_now(&self, range_bounds: impl core::ops::RangeBounds<usize>) {
+        let range = bounds_to_range(range_bounds, self.graph.borrow().operations.len());
     }
 }
 
