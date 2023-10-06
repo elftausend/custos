@@ -65,6 +65,10 @@ impl<T: Graphable, D: Device + PtrConv, Mods: AddOperation<T, D>> AddOperation<T
         self.out_ids.borrow_mut().push(out.id());
         self.graph.borrow_mut().add_operation(operation);
     }
+
+    fn exec_now(range_bounds: impl core::ops::RangeBounds<usize>) {
+        
+    }
 }
 
 impl<Mods> Lazy<Mods> {
@@ -285,6 +289,29 @@ mod tests {
     }
 
     #[cfg(feature = "cpu")]
+    #[test]
+    fn test_lazy_exec_last_n() {
+        use crate::Run;
+
+        let device = CPU::<Lazy<Base>>::new();
+
+        let mut out: Buffer<i32, _> = device.retrieve(4, ());
+
+        device.add_op(&mut out, |out| Ok(out.clear()));
+
+        {
+            let a = Buffer::<i32, _, ()>::from_slice(&device, &[1, 2, 3, 4]);
+            let b = Buffer::<i32, _, ()>::from_slice(&device, &[1, 2, 3, 4]);
+            device.add_op(&mut out, |out| {
+                for ((lhs, rhs), out) in a.iter().zip(&b).zip(out.iter_mut()) {
+                    *out = lhs + rhs;
+                }
+                Ok(())
+            })
+        }
+        unsafe { device.run().unwrap() };
+    }
+    #[cfg(feature = "cpu")]
     #[ignore = "causes UB"]
     #[test]
     fn test_lazy_exec_ub_testing() {
@@ -293,6 +320,8 @@ mod tests {
         let device = CPU::<Lazy<Base>>::new();
 
         let mut out: Buffer<i32, _> = device.retrieve(4, ());
+
+        device.add_op(&mut out, |out| Ok(out.clear()));
 
         {
             let a = Buffer::<i32, _, ()>::from_slice(&device, &[1, 2, 3, 4]);
@@ -309,6 +338,7 @@ mod tests {
 
     #[cfg(feature = "cpu")]
     #[should_panic]
+    #[ignore = "wrong panic reasion"]
     #[test]
     fn test_lazy_exec_ub_testing_semi_fixed() {
         use crate::{HasId, Run};

@@ -44,8 +44,8 @@ ndk-sys = {version = "0.4", features=["test"], optional = true}
 min-cl = { version = "0.3.0", optional=true }
 
 [features]
-default = ["cpu", "autograd", "macro"]
-# default = ["stack", "autograd", "cpu", "opencl", "fork", "lazy", "autograd",]
+# default = ["cpu", "autograd", "macro"]
+default = ["stack", "autograd", "cpu", "opencl", "fork", "lazy", "autograd",]
 cpu = []
 opencl = ["dep:min-cl", "cpu", "cached"]
 #network = ["cuwanto-client"]

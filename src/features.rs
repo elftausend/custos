@@ -1,7 +1,8 @@
 #[cfg(feature = "cached")]
 use core::cell::{Ref, RefMut};
+use core::ops::RangeBounds;
 
-use crate::{Parents, Shape, CPU};
+use crate::{Parents, Shape, CPU, bounds_to_range};
 
 #[cfg(feature = "cached")]
 use crate::{Base, CachedModule};
@@ -111,6 +112,7 @@ pub trait AddOperation<T, D: Device> {
         out: &mut Buffer<T, D, S>,
         operation: impl Fn(&mut Buffer<T, D, S>) -> crate::Result<()>,
     );
+    fn exec_now(range_bounds: impl RangeBounds<usize>) {}
 }
 
 /// Implements the [`AddOperation`] trait for any supplied device. The `add_op` call is passed down to `self.modules`.
