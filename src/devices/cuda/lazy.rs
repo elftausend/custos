@@ -187,7 +187,7 @@ mod tests {
             lhs.write(&[1, 2, 3, 4, 5, 6]);
             rhs.write(&[1, 2, 3, 4, 5, 6]);
             device.mem_transfer_stream.sync().unwrap();
-            unsafe {device.run().unwrap()};
+            unsafe { device.run().unwrap() };
         }
 
         assert_eq!(out.read(), vec![2, 4, 6, 8, 10, 12]);

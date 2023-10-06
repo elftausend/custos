@@ -1,8 +1,8 @@
 use std::ops::{Add, AddAssign, Deref, Mul};
 
 use custos::{
-    AddOperation, Buffer, Device, HasId, MayTapeActions, Retrieve, Retriever, Shape,
-    UseGpuOrCpu, CPU,
+    AddOperation, Buffer, Device, HasId, MayTapeActions, Retrieve, Retriever, Shape, UseGpuOrCpu,
+    CPU,
 };
 
 #[cfg(feature = "autograd")]

@@ -3,8 +3,8 @@ mod ty;
 pub use ty::*;
 
 use crate::{
-    AddOperation, Alloc, Buffer, Device, HasId, Id, Module, NoHasher, OnDropBuffer, OnNewBuffer,
-    Parents, PtrConv, Retrieve, RunModule, Setup, Shape, UniqueId, bounds_to_range,
+    bounds_to_range, AddOperation, Alloc, Buffer, Device, HasId, Id, Module, NoHasher,
+    OnDropBuffer, OnNewBuffer, Parents, PtrConv, Retrieve, RunModule, Setup, Shape, UniqueId,
 };
 use core::{any::Any, cell::RefCell, fmt::Debug, hash::BuildHasherDefault};
 use std::collections::HashMap;
@@ -176,9 +176,7 @@ mod tests {
         let out = device.apply_fn(&buf, |x| x.add(3));
 
         assert_eq!(out.read(), &[0; 10]);
-        unsafe {
-            device.modules.call_lazily::<CPU<Lazy<Base>>>().unwrap()
-        }
+        unsafe { device.modules.call_lazily::<CPU<Lazy<Base>>>().unwrap() }
         assert_eq!(out.read(), &[3; 10]);
 
         drop(out);

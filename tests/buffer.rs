@@ -190,7 +190,12 @@ fn test_debug_print_buf() -> custos::Result<()> {
 }
 
 #[cfg(unified_cl)]
-fn slice_add<T, D>(_lhs: &Buffer<T, D>) where D: Device, D::Data<T, ()>: std::ops::Deref<Target = [T]>{}
+fn slice_add<T, D>(_lhs: &Buffer<T, D>)
+where
+    D: Device,
+    D::Data<T, ()>: std::ops::Deref<Target = [T]>,
+{
+}
 
 #[cfg(unified_cl)]
 #[test]

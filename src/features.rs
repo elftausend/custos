@@ -2,7 +2,7 @@
 use core::cell::{Ref, RefMut};
 use core::ops::RangeBounds;
 
-use crate::{Parents, Shape, CPU, bounds_to_range};
+use crate::{bounds_to_range, Parents, Shape, CPU};
 
 #[cfg(feature = "cached")]
 use crate::{Base, CachedModule};
