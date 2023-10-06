@@ -4,6 +4,7 @@ use core::{any::Any, hash::BuildHasherDefault, mem::transmute};
 use std::collections::HashMap;
 
 pub type ForwardFn = *mut dyn Fn(&'static ()) -> crate::Result<()>;
+pub type TypedForwardFn<'a, T, D, S> = *mut (dyn Fn(&mut Buffer<T, D, S>) -> crate::Result<()> + 'a);
 
 #[derive(Debug, Default)]
 pub struct LazyGraph {
@@ -30,15 +31,17 @@ impl LazyGraph {
         let operation = Box::leak(Box::new(operation));
         self.operations.push((
             T::TYPE,
-            operation as *mut dyn Fn(&mut Buffer<T, D, S>) -> crate::Result<()> as *mut _,
+            operation as TypedForwardFn<T, D, S> as *mut _,
         ))
     }
 
-    pub fn call_lazily<D: Device>(
+    /// # Safety
+    /// The required 'static lifetime is ignored when adding operations. Hence, all captured variables must live long enough.
+    pub unsafe fn call_lazily<D: Device>(
         &mut self,
         out_buf_order: &[Id],
         outs_unordered: &mut HashMap<UniqueId, Box<dyn Any>, BuildHasherDefault<NoHasher>>,
-    ) -> Result<(), DeviceError> {
+    ) -> crate::Result<()> {
         for ((ty, operation), buf_id) in self.operations.iter_mut().zip(out_buf_order) {
             let buf = &mut **outs_unordered
                 .get_mut(buf_id)
@@ -46,22 +49,22 @@ impl LazyGraph {
             match ty {
                 Type::F32 => {
                     let operation = unsafe {
-                        transmute::<_, &mut *mut dyn Fn(&mut Buffer<f32, D, ()>)>(operation)
+                        transmute::<_, &mut *mut dyn Fn(&mut Buffer<f32, D, ()>) -> crate::Result<()>>(operation)
                     };
 
                     let buf: &mut Buffer<f32, D, ()> = unsafe { &mut *(buf as *mut _ as *mut _) };
                     unsafe {
-                        (**operation)(buf);
+                        (**operation)(buf)?;
                     }
                 }
                 Type::I32 => {
                     let operation = unsafe {
-                        transmute::<_, &mut *mut dyn Fn(&mut Buffer<i32, D, ()>)>(operation)
+                        transmute::<_, &mut *mut dyn Fn(&mut Buffer<i32, D, ()>) -> crate::Result<()>>(operation)
                     };
 
                     let buf: &mut Buffer<i32, D, ()> = unsafe { &mut *(buf as *mut _ as *mut _) };
                     unsafe {
-                        (**operation)(buf);
+                        (**operation)(buf)?;
                     }
                 }
             }

@@ -73,7 +73,7 @@ impl<T: Graphable, D: Device + PtrConv, Mods: AddOperation<T, D>> AddOperation<T
 
 impl<Mods> Lazy<Mods> {
     #[inline]
-    pub fn call_lazily<D: Device>(&self) -> crate::Result<()> {
+    pub unsafe fn call_lazily<D: Device>(&self) -> crate::Result<()> {
         self.graph
             .borrow_mut()
             .call_lazily::<D>(&self.out_ids.borrow(), &mut self.buffers.borrow_mut())?;
@@ -92,7 +92,7 @@ impl<D: LazySetup, Mods: Setup<D>> Setup<D> for Lazy<Mods> {
 impl<Mods: RunModule<D>, D: LazyRun + PtrConv> RunModule<D> for Lazy<Mods> {
     #[inline]
     fn run(&self, device: &D) -> crate::Result<()> {
-        self.call_lazily::<D>()?;
+        unsafe { self.call_lazily::<D>()? };
         device.run()?;
         self.modules.run(device)
     }
@@ -176,7 +176,9 @@ mod tests {
         let out = device.apply_fn(&buf, |x| x.add(3));
 
         assert_eq!(out.read(), &[0; 10]);
-        device.modules.call_lazily::<CPU<Lazy<Base>>>().unwrap();
+        unsafe {
+            device.modules.call_lazily::<CPU<Lazy<Base>>>().unwrap()
+        }
         assert_eq!(out.read(), &[3; 10]);
 
         drop(out);
