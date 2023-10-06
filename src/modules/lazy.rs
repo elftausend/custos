@@ -4,12 +4,12 @@ pub use ty::*;
 
 use crate::{
     bounds_to_range, AddOperation, Alloc, Buffer, Device, HasId, Id, Module, NoHasher,
-    OnDropBuffer, OnNewBuffer, Parents, PtrConv, Retrieve, RunModule, Setup, Shape, UniqueId,
+    OnDropBuffer, OnNewBuffer, Parents, PtrConv, Retrieve, RunModule, Setup, Shape, UniqueId, DeviceError,
 };
 use core::{any::Any, cell::RefCell, fmt::Debug, hash::BuildHasherDefault};
 use std::collections::HashMap;
 
-use self::lazy_graph::LazyGraph;
+use self::lazy_graph::{LazyGraph, execute_operation};
 use super::register_buf;
 
 #[derive(Default)]
@@ -66,8 +66,24 @@ impl<T: Graphable, D: Device + PtrConv, Mods: AddOperation<T, D>> AddOperation<T
         self.graph.borrow_mut().add_operation(operation);
     }
 
-    fn exec_now(&self, range_bounds: impl core::ops::RangeBounds<usize>) {
+    fn exec_now(&self, range_bounds: impl core::ops::RangeBounds<usize>) -> crate::Result<()> {
         let range = bounds_to_range(range_bounds, self.graph.borrow().operations.len());
+
+        for ((ty, mut operation), out_id) in self
+            .graph
+            .borrow_mut()
+            .operations
+            .drain(range.clone())
+            .zip(self.out_ids.borrow_mut().drain(range))
+        {
+            let mut buffers = self.buffers.borrow_mut();
+            let out = buffers 
+                .get_mut(&out_id)
+                .ok_or(DeviceError::InvalidLazyOutBuf)?;
+
+            execute_operation::<D>(ty, &mut operation, out)?;
+        }
+        Ok(())
     }
 }
 

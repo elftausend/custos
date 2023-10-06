@@ -20,30 +20,25 @@ impl Drop for LazyGraph {
     }
 }
 
+pub fn execute_with_type<T, D: Device>(
+    operation: &mut ForwardFn,
+    buf: &mut dyn Any,
+) -> crate::Result<()> {
+    let operation = unsafe { transmute::<_, &mut TypedForwardFn<T, D, ()>>(operation) };
+
+    let buf: &mut Buffer<T, D, ()> = unsafe { &mut *(buf as *mut _ as *mut _) };
+    unsafe { (**operation)(buf) }
+}
+
 pub fn execute_operation<D: Device>(
     ty: Type,
     operation: &mut ForwardFn,
     buf: &mut dyn Any,
 ) -> crate::Result<()> {
     match ty {
-        Type::F32 => {
-            let operation = unsafe { transmute::<_, &mut TypedForwardFn<f32, D, ()>>(operation) };
-
-            let buf: &mut Buffer<f32, D, ()> = unsafe { &mut *(buf as *mut _ as *mut _) };
-            unsafe {
-                (**operation)(buf)?;
-            }
-        }
-        Type::I32 => {
-            let operation = unsafe { transmute::<_, &mut TypedForwardFn<i32, D, ()>>(operation) };
-
-            let buf: &mut Buffer<i32, D, ()> = unsafe { &mut *(buf as *mut _ as *mut _) };
-            unsafe {
-                (**operation)(buf)?;
-            }
-        }
+        Type::F32 => execute_with_type::<f32, D>(operation, buf),
+        Type::I32 => execute_with_type::<i32, D>(operation, buf),
     }
-    Ok(())
 }
 
 impl LazyGraph {
