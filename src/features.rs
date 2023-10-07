@@ -2,7 +2,7 @@
 use core::cell::{Ref, RefMut};
 use core::ops::RangeBounds;
 
-use crate::{bounds_to_range, Parents, Shape, CPU};
+use crate::{Parents, Shape, CPU};
 
 #[cfg(feature = "cached")]
 use crate::{Base, CachedModule};
@@ -112,7 +112,10 @@ pub trait AddOperation<T, D: Device> {
         out: &mut Buffer<T, D, S>,
         operation: impl Fn(&mut Buffer<T, D, S>) -> crate::Result<()>,
     );
-    fn exec_now(&self, range_bounds: impl RangeBounds<usize>) -> crate::Result<()> {Ok(())}
+}
+
+pub trait ExecNow<D = Self> {
+    fn exec_now(&self, range_bounds: impl RangeBounds<usize>) -> crate::Result<()>; 
 }
 
 /// Implements the [`AddOperation`] trait for any supplied device. The `add_op` call is passed down to `self.modules`.
@@ -129,6 +132,35 @@ macro_rules! pass_down_add_operation {
                 operation: impl Fn(&mut $crate::Buffer<T, D, S>) -> $crate::Result<()>,
             ) {
                 self.modules.add_op(out, operation)
+            }
+        }
+
+    };
+}
+
+#[macro_export]
+macro_rules! pass_down_exec_now_module {
+    ($device:ident) => { 
+        impl<D: $crate::Device, Mods: $crate::ExecNow<D>> $crate::ExecNow<D>
+            for $device<Mods>
+        {
+            #[inline]
+            fn exec_now(&self, range_bounds: impl core::ops::RangeBounds<usize>) -> crate::Result<()> {
+                self.modules.exec_now(range_bounds)
+            }
+        }
+    };
+}
+
+#[macro_export]
+macro_rules! pass_down_exec_now {
+    ($device:ident) => {
+        impl<Mods: $crate::ExecNow<Self>> $crate::ExecNow<Self>
+            for $device<Mods>
+        {
+            #[inline]
+            fn exec_now(&self, range_bounds: impl core::ops::RangeBounds<usize>) -> crate::Result<()> {
+                self.modules.exec_now(range_bounds)
             }
         }
     };

@@ -6,10 +6,10 @@ use min_cl::api::{
 };
 
 use crate::{
-    bounds_to_range, cpu_stack_ops::clear_slice, pass_down_add_operation, prelude::Number,
+    bounds_to_range, cpu_stack_ops::clear_slice, prelude::Number,
     AddOperation, ApplyFunction, Buffer, CDatatype, ClearBuf, CopySlice, Eval, OnDropBuffer,
     OpenCL, Read, Resolve, Retrieve, Retriever, Shape, ToCLSource, ToMarker, UnaryGrad,
-    UseGpuOrCpu, WriteBuf,
+    UseGpuOrCpu, WriteBuf, pass_down_add_operation, pass_down_exec_now,
 };
 
 use super::enqueue_kernel;
@@ -22,6 +22,7 @@ use super::enqueue_kernel;
 }*/
 
 pass_down_add_operation!(OpenCL);
+pass_down_exec_now!(OpenCL);
 
 impl<Mods: OnDropBuffer + UseGpuOrCpu, T: CDatatype + Default> ClearBuf<T> for OpenCL<Mods> {
     #[inline]

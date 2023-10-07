@@ -26,7 +26,7 @@ pub fn execute_with_type<T, D: Device>(
 ) -> crate::Result<()> {
     let operation = unsafe { transmute::<_, &mut TypedForwardFn<T, D, ()>>(operation) };
 
-    let buf: &mut Buffer<T, D, ()> = unsafe { &mut *(buf as *mut _ as *mut _) };
+    let buf: &mut Buffer<T, D, ()> = unsafe { &mut *(buf as *mut dyn Any as *mut Buffer<T, D, ()>) };
     unsafe { (**operation)(buf) }
 }
 

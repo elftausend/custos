@@ -1,12 +1,13 @@
 use crate::{
     cpu_stack_ops::clear_slice, pass_down_add_operation, prelude::Number, AddOperation,
     ApplyFunction, Buffer, CDatatype, ClearBuf, HostPtr, OnDropBuffer, Read, Resolve, Retrieve,
-    Retriever, Shape, ToMarker, ToWgslSource, UnaryGrad, UseGpuOrCpu, Vulkan,
+    Retriever, Shape, ToMarker, ToWgslSource, UnaryGrad, UseGpuOrCpu, Vulkan, pass_down_exec_now,
 };
 
 use super::VkArray;
 
 pass_down_add_operation!(Vulkan);
+pass_down_exec_now!(Vulkan);
 
 impl<Mods: OnDropBuffer + UseGpuOrCpu, T: CDatatype + Default> ClearBuf<T> for Vulkan<Mods> {
     #[inline]

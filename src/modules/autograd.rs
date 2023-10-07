@@ -7,9 +7,9 @@ pub use tape::*;
 use core::cell::{Ref, RefCell, RefMut};
 
 use crate::{
-    prelude::One, register_buf, unregister_buf, AddOperation, Alloc, Buffer, Device, HasId, Module,
+    prelude::One, register_buf, unregister_buf, Alloc, Buffer, Device, HasId, Module,
     OnDropBuffer, OnNewBuffer, Parents, PtrConv, Retrieve, RunModule, Setup, Shape, TapeActions,
-    WriteBuf,
+    WriteBuf, pass_down_add_operation, pass_down_exec_now_module,
 };
 
 use super::{Cached, CachedModule};
@@ -149,16 +149,8 @@ impl<Mods: RunModule<D>, D> RunModule<D> for Autograd<Mods> {
     }
 }
 
-impl<T, D: Device, Mods: AddOperation<T, D>> AddOperation<T, D> for Autograd<Mods> {
-    #[inline]
-    fn add_op<S: Shape>(
-        &self,
-        out: &mut Buffer<T, D, S>,
-        operation: impl Fn(&mut Buffer<T, D, S>) -> crate::Result<()>,
-    ) {
-        self.modules.add_op(out, operation)
-    }
-}
+pass_down_add_operation!(Autograd);
+pass_down_exec_now_module!(Autograd);
 
 const AUTOGRAD_NOT_AVAILABLE: &str = "Autograd<> is not available.";
 

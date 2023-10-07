@@ -1,6 +1,6 @@
 use crate::{
-    AddOperation, Alloc, Buffer, Device, GpuOrCpuInfo, HashLocation, LocationHasher, Module,
-    OnDropBuffer, OnNewBuffer, Parents, PtrConv, Retrieve, RunModule, Setup, Shape, UseGpuOrCpu,
+    Alloc, Buffer, Device, GpuOrCpuInfo, HashLocation, LocationHasher, Module,
+    OnDropBuffer, OnNewBuffer, Parents, PtrConv, Retrieve, RunModule, Setup, Shape, UseGpuOrCpu, pass_down_add_operation, pass_down_exec_now,
 };
 use core::{
     cell::RefCell,
@@ -72,16 +72,8 @@ impl<Mods: Setup<D>, D: ForkSetup> Setup<D> for Fork<Mods> {
     }
 }
 
-impl<T, D: Device, Mods: AddOperation<T, D>> AddOperation<T, D> for Fork<Mods> {
-    #[inline]
-    fn add_op<S: Shape>(
-        &self,
-        out: &mut Buffer<T, D, S>,
-        operation: impl Fn(&mut Buffer<T, D, S>) -> crate::Result<()>,
-    ) {
-        self.modules.add_op(out, operation)
-    }
-}
+pass_down_add_operation!(Fork);
+pass_down_exec_now!(Fork);
 
 pub fn should_use_cpu(
     cpu_op: &mut impl FnMut(),

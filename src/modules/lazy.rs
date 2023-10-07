@@ -4,7 +4,7 @@ pub use ty::*;
 
 use crate::{
     bounds_to_range, AddOperation, Alloc, Buffer, Device, HasId, Id, Module, NoHasher,
-    OnDropBuffer, OnNewBuffer, Parents, PtrConv, Retrieve, RunModule, Setup, Shape, UniqueId, DeviceError,
+    OnDropBuffer, OnNewBuffer, Parents, PtrConv, Retrieve, RunModule, Setup, Shape, UniqueId, DeviceError, ExecNow,
 };
 use core::{any::Any, cell::RefCell, fmt::Debug, hash::BuildHasherDefault};
 use std::collections::HashMap;
@@ -66,6 +66,9 @@ impl<T: Graphable, D: Device + PtrConv, Mods: AddOperation<T, D>> AddOperation<T
         self.graph.borrow_mut().add_operation(operation);
     }
 
+}
+
+impl<D: Device, Mods> ExecNow<D> for Lazy<Mods> {
     fn exec_now(&self, range_bounds: impl core::ops::RangeBounds<usize>) -> crate::Result<()> {
         let range = bounds_to_range(range_bounds, self.graph.borrow().operations.len());
 
@@ -307,10 +310,9 @@ mod tests {
     #[cfg(feature = "cpu")]
     #[test]
     fn test_lazy_exec_last_n() {
-        use crate::Run;
+        use crate::{Run, ExecNow};
 
         let device = CPU::<Lazy<Base>>::new();
-
         let mut out: Buffer<i32, _> = device.retrieve(4, ());
 
         device.add_op(&mut out, |out| Ok(out.clear()));
@@ -323,7 +325,8 @@ mod tests {
                     *out = lhs + rhs;
                 }
                 Ok(())
-            })
+            });
+            device.exec_now(1..).unwrap();
         }
         unsafe { device.run().unwrap() };
     }
@@ -354,7 +357,7 @@ mod tests {
 
     #[cfg(feature = "cpu")]
     #[should_panic]
-    #[ignore = "wrong panic reasion"]
+    #[ignore = "currently wrong panic reasion"]
     #[test]
     fn test_lazy_exec_ub_testing_semi_fixed() {
         use crate::{HasId, Run};

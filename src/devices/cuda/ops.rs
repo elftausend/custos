@@ -5,7 +5,7 @@ use crate::{
     cuda::api::{cu_read_async, CUstreamCaptureStatus},
     pass_down_add_operation, AddOperation, ApplyFunction, Buffer, CDatatype, ClearBuf, CopySlice,
     OnDropBuffer, Read, Resolve, Retrieve, Retriever, Shape, ToCLSource, ToMarker, UnaryGrad,
-    WriteBuf, CUDA,
+    WriteBuf, CUDA, pass_down_exec_now,
 };
 
 use super::{
@@ -14,6 +14,7 @@ use super::{
 };
 
 pass_down_add_operation!(CUDA);
+pass_down_exec_now!(CUDA);
 
 impl<Mods: OnDropBuffer, T: Default + Clone> Read<T> for CUDA<Mods> {
     type Read<'a> = Vec<T>
