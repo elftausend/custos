@@ -81,7 +81,7 @@ where
     {
         let mut out = self.retrieve(buf.len(), buf);
 
-        self.add_op(&mut out, |out| {
+        self.add_op(&mut out, move |out| {
             let cpu_out = unsafe { &mut *(out as *mut Buffer<T, Vulkan<Mods>, _>) };
             self.use_cpu_or_gpu(
                 (file!(), line!(), column!()).into(),
@@ -148,7 +148,7 @@ where
     ) where
         F: ToWgslSource,
     {
-        self.add_op(lhs_grad, |lhs_grad| {
+        self.add_op(lhs_grad, move |lhs_grad| {
             try_vk_add_unary_grad(self, &lhs.data, &mut lhs_grad.data, &out.data, lhs_grad_fn)
         });
     }

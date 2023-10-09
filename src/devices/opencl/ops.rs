@@ -195,7 +195,7 @@ where
     {
         let mut out = self.retrieve(buf.len(), buf);
 
-        self.add_op(&mut out, |out| {
+        self.add_op(&mut out, move |out| {
             #[cfg(unified_cl)]
             {
                 let cpu_out = unsafe { &mut *(out as *mut Buffer<_, OpenCL<Mods>, _>) };
@@ -268,7 +268,7 @@ where
     ) where
         F: ToCLSource,
     {
-        self.add_op(lhs_grad, |lhs_grad| {
+        self.add_op(lhs_grad, move |lhs_grad| {
             try_cl_add_unary_grad(self, lhs, lhs_grad, out, lhs_grad_fn)
         });
     }
