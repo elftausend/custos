@@ -1,7 +1,7 @@
 use crate::{
-    cpu_stack_ops::clear_slice, pass_down_add_operation, prelude::Number, AddOperation,
-    ApplyFunction, Buffer, CDatatype, ClearBuf, HostPtr, OnDropBuffer, Read, Resolve, Retrieve,
-    Retriever, Shape, ToMarker, ToWgslSource, UnaryGrad, UseGpuOrCpu, Vulkan, pass_down_exec_now,
+    cpu_stack_ops::clear_slice, pass_down_add_operation, pass_down_exec_now, prelude::Number,
+    AddOperation, ApplyFunction, Buffer, CDatatype, ClearBuf, HostPtr, OnDropBuffer, Read, Resolve,
+    Retrieve, Retriever, Shape, ToMarker, ToWgslSource, UnaryGrad, UseGpuOrCpu, Vulkan,
 };
 
 use super::VkArray;

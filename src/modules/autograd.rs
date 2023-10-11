@@ -7,9 +7,9 @@ pub use tape::*;
 use core::cell::{Ref, RefCell, RefMut};
 
 use crate::{
-    prelude::One, register_buf, unregister_buf, Alloc, Buffer, Device, HasId, Module,
-    OnDropBuffer, OnNewBuffer, Parents, PtrConv, Retrieve, RunModule, Setup, Shape, TapeActions,
-    WriteBuf, pass_down_add_operation, pass_down_exec_now_module,
+    pass_down_add_operation, pass_down_exec_now_module, prelude::One, register_buf, unregister_buf,
+    Alloc, Buffer, Device, HasId, Module, OnDropBuffer, OnNewBuffer, Parents, PtrConv, Retrieve,
+    RunModule, Setup, Shape, TapeActions, WriteBuf,
 };
 
 use super::{Cached, CachedModule};

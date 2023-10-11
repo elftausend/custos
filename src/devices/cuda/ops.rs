@@ -3,9 +3,9 @@ use core::ops::{Range, RangeBounds};
 use crate::{
     bounds_to_range,
     cuda::api::{cu_read_async, CUstreamCaptureStatus},
-    pass_down_add_operation, AddOperation, ApplyFunction, Buffer, CDatatype, ClearBuf, CopySlice,
-    OnDropBuffer, Read, Resolve, Retrieve, Retriever, Shape, ToCLSource, ToMarker, UnaryGrad,
-    WriteBuf, CUDA, pass_down_exec_now,
+    pass_down_add_operation, pass_down_exec_now, AddOperation, ApplyFunction, Buffer, CDatatype,
+    ClearBuf, CopySlice, OnDropBuffer, Read, Resolve, Retrieve, Retriever, Shape, ToCLSource,
+    ToMarker, UnaryGrad, WriteBuf, CUDA,
 };
 
 use super::{

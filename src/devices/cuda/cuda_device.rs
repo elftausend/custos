@@ -228,7 +228,7 @@ impl<'a, Mods: OnDropBuffer + OnNewBuffer<T, Self, ()>, T> CloneBuf<'a, T> for C
 
 #[cfg(test)]
 mod tests {
-    use crate::{Base, Buffer, Retriever, Shape, Device, ClearBuf};
+    use crate::{Base, Buffer, ClearBuf, Device, Retriever, Shape};
 
     use super::{IsCuda, CUDA};
 
@@ -248,7 +248,7 @@ mod tests {
     fn test_cross_distinct_devices() {
         let dev1 = CUDA::<Base>::new(0).unwrap();
         let mut buf1 = dev1.buffer([1, 2, 3, 4, 5, 6]);
-        
+
         let dev2 = CUDA::<Base>::new(0).unwrap();
         let mut buf2 = dev1.buffer([1, 2, 3, 4, 5, 6]);
 
@@ -258,6 +258,5 @@ mod tests {
         println!("fin");
         assert_eq!(buf1.read(), [0; 6]);
         assert_eq!(buf2.read(), [0; 6]);
-
     }
 }

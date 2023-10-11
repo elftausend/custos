@@ -6,10 +6,10 @@ use min_cl::api::{
 };
 
 use crate::{
-    bounds_to_range, cpu_stack_ops::clear_slice, prelude::Number,
-    AddOperation, ApplyFunction, Buffer, CDatatype, ClearBuf, CopySlice, Eval, OnDropBuffer,
-    OpenCL, Read, Resolve, Retrieve, Retriever, Shape, ToCLSource, ToMarker, UnaryGrad,
-    UseGpuOrCpu, WriteBuf, pass_down_add_operation, pass_down_exec_now,
+    bounds_to_range, cpu_stack_ops::clear_slice, pass_down_add_operation, pass_down_exec_now,
+    prelude::Number, AddOperation, ApplyFunction, Buffer, CDatatype, ClearBuf, CopySlice, Eval,
+    OnDropBuffer, OpenCL, Read, Resolve, Retrieve, Retriever, Shape, ToCLSource, ToMarker,
+    UnaryGrad, UseGpuOrCpu, WriteBuf,
 };
 
 use super::enqueue_kernel;

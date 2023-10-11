@@ -1,6 +1,6 @@
 use crate::{
-    flag::AllocFlag, AddOperation, Alloc, Buffer, Device, HashLocation, Module, OnDropBuffer,
-    OnNewBuffer, Parents, Retrieve, Setup, Shape, ExecNow,
+    flag::AllocFlag, AddOperation, Alloc, Buffer, Device, ExecNow, HashLocation, Module,
+    OnDropBuffer, OnNewBuffer, Parents, Retrieve, Setup, Shape,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]

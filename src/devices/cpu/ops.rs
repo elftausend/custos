@@ -3,9 +3,9 @@ use core::ops::{AddAssign, Deref, DerefMut, Index, Range, RangeBounds};
 use crate::{
     bounds_to_range,
     cpu_stack_ops::{apply_fn_slice, clear_slice},
-    pass_down_add_operation, AddOperation, ApplyFunction, Buffer, ClearBuf, CopySlice, Device,
-    Eval, MayToCLSource, OnDropBuffer, Read, Resolve, Retrieve, Retriever, Shape, ToVal, UnaryGrad,
-    WriteBuf, CPU, pass_down_exec_now,
+    pass_down_add_operation, pass_down_exec_now, AddOperation, ApplyFunction, Buffer, ClearBuf,
+    CopySlice, Device, Eval, MayToCLSource, OnDropBuffer, Read, Resolve, Retrieve, Retriever,
+    Shape, ToVal, UnaryGrad, WriteBuf, CPU,
 };
 
 pass_down_add_operation!(CPU);
