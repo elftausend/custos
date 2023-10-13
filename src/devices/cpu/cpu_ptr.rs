@@ -24,6 +24,25 @@ pub struct CPUPtr<T> {
     pub size: Option<usize>,
 }
 
+#[cfg(feature = "serde")]
+use serde::ser::SerializeSeq;
+
+#[cfg(feature = "serde")]
+impl<T: serde::Serialize> serde::Serialize for CPUPtr<T> {
+    #[inline]
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer 
+    {
+        let mut seq = serializer.serialize_seq(Some(self.len()))?;
+        for e in self.iter() {
+            seq.serialize_element(e)?;
+        }
+    
+        seq.end()
+    }
+}
+
 impl<T> CPUPtr<T> {
     /// Create a new `CPUPtr` with the given length and allocation flag
     ///

@@ -39,12 +39,14 @@ half = {version = "2.3", default-features = false, optional = true}
 nnapi = { version = "0.2", optional = true }
 ndk-sys = {version = "0.4", features=["test"], optional = true}
 
+serde = { version = "1.0", features = ["derive"], optional = true }
+
 [build-dependencies]
 # min-cl = { path="../min-cl", optional=true }
 min-cl = { version = "0.3.0", optional=true }
 
 [features]
-default = ["cpu", "autograd", "macro"]
+default = ["cpu", "autograd", "macro", "serde"]
 # default = ["stack", "autograd", "cpu", "opencl", "fork", "lazy", "autograd",]
 cpu = []
 opencl = ["dep:min-cl", "cpu", "cached"]
@@ -69,6 +71,8 @@ half = ["dep:half"]
 
 vulkan = ["dep:ash", "dep:naga", "wgsl"]
 wgsl = []
+
+serde = ["dep:serde"]
 
 [dev-dependencies]
 custos-macro = {git = "https://github.com/elftausend/custos-macro"}
