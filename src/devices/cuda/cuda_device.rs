@@ -145,15 +145,9 @@ impl<Mods> Drop for CUDA<Mods> {
 }
 
 impl<Mods: OnDropBuffer, T> Alloc<T> for CUDA<Mods> {
+    #[inline]
     fn alloc<S: Shape>(&self, len: usize, flag: crate::flag::AllocFlag) -> Self::Data<T, S> {
-        let ptr = cumalloc::<T>(len).unwrap();
-        // TODO: use unified mem if available -> i can't test this
-        CUDAPtr {
-            ptr,
-            len,
-            flag,
-            p: PhantomData,
-        }
+        CUDAPtr::new(len, flag)
     }
 
     fn alloc_from_slice<S: Shape>(&self, data: &[T]) -> Self::Data<T, S>

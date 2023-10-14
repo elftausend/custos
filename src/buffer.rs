@@ -12,8 +12,8 @@ use crate::CPU;
 
 use crate::{
     flag::AllocFlag, shape::Shape, Alloc, Base, ClearBuf, CloneBuf, CommonPtrs, Device,
-    DevicelessAble, HasId, IsShapeIndep, OnDropBuffer, OnNewBuffer, PtrType, Read,
-    ShallowCopy, WriteBuf,
+    DevicelessAble, HasId, IsShapeIndep, OnDropBuffer, OnNewBuffer, PtrType, Read, ShallowCopy,
+    WriteBuf,
 };
 
 pub use self::num::Num;
@@ -39,10 +39,12 @@ mod num;
 /// buffer_f32_cpu(&buf);
 /// buffer_generic(&buf);
 /// ```
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Buffer<'a, T = f32, D: Device = CPU<Base>, S: Shape = ()> {
     /// the type of pointer
     pub data: D::Data<T, S>,
     /// A reference to the corresponding device. Mainly used for operations without a device parameter.
+    #[cfg_attr(feature = "serde", serde(skip))]
     pub device: Option<&'a D>,
 }
 

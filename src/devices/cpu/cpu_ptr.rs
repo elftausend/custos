@@ -10,7 +10,7 @@ use std::alloc::handle_alloc_error;
 use crate::{flag::AllocFlag, CommonPtrs, HasId, Id, PtrType, ShallowCopy};
 
 /// The pointer used for `CPU` [`Buffer`](crate::Buffer)s
-#[derive(PartialEq, Eq, Debug)]
+#[derive(Debug)]
 pub struct CPUPtr<T> {
     /// The pointer to the data
     pub ptr: *mut T,
@@ -23,6 +23,14 @@ pub struct CPUPtr<T> {
     /// The size of type `T`
     pub size: Option<usize>,
 }
+
+impl<T: PartialEq> PartialEq for CPUPtr<T> {
+    fn eq(&self, other: &Self) -> bool {
+        self.as_slice() == other.as_slice()
+    }
+}
+
+impl<T: Eq> Eq for CPUPtr<T> {}
 
 impl<T> CPUPtr<T> {
     /// Create a new `CPUPtr` with the given length and allocation flag
@@ -222,6 +230,116 @@ impl<T> ShallowCopy for CPUPtr<T> {
             flag: AllocFlag::Wrapper,
             align: self.align,
             size: self.size,
+        }
+    }
+}
+
+#[cfg(feature = "serde")]
+pub mod serde {
+    use core::{fmt, marker::PhantomData};
+
+    use serde::{
+        de::{SeqAccess, Visitor},
+        ser::SerializeSeq,
+        Deserialize,
+    };
+
+    use super::CPUPtr;
+
+    impl<T: serde::Serialize> serde::Serialize for CPUPtr<T> {
+        #[inline]
+        fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+        where
+            S: serde::Serializer,
+        {
+            let mut seq = serializer.serialize_seq(Some(self.len()))?;
+
+            for e in self.iter() {
+                seq.serialize_element(e)?;
+            }
+
+            seq.end()
+        }
+    }
+    pub struct CpuPtrVisitor<T> {
+        pub marker: PhantomData<T>,
+    }
+
+    impl<'de, T> Visitor<'de> for CpuPtrVisitor<T>
+    where
+        T: Deserialize<'de>,
+    {
+        type Value = CPUPtr<T>;
+
+        fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+            formatter.write_str("a sequence")
+        }
+
+        fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
+        where
+            A: SeqAccess<'de>,
+        {
+            let values = unsafe {
+                CPUPtr::<T>::new(
+                    seq.size_hint().unwrap_or_default(),
+                    crate::flag::AllocFlag::None,
+                )
+            };
+
+            let mut offset = 0;
+            while let Some(value) = seq.next_element::<T>()? {
+                unsafe {
+                    let end = values.ptr.add(offset);
+                    end.write(value)
+                }
+                offset += 1;
+            }
+
+            Ok(values)
+        }
+    }
+
+    impl<'a, T: serde::Deserialize<'a>> serde::Deserialize<'a> for CPUPtr<T> {
+        #[inline]
+        fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+        where
+            D: serde::Deserializer<'a>,
+        {
+            deserializer.deserialize_seq(CpuPtrVisitor {
+                marker: PhantomData,
+            })
+        }
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use serde_test::{assert_tokens, Token};
+
+        use crate::cpu::CPUPtr;
+
+        #[test]
+        fn test_ser_de_of_cpu_ptr_filled() {
+            let mut cpu_ptr = CPUPtr::<i32>::new_initialized(10, crate::flag::AllocFlag::None);
+            cpu_ptr
+                .as_mut_slice()
+                .copy_from_slice(&[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+            assert_tokens(
+                &cpu_ptr,
+                &[
+                    Token::Seq { len: Some(10) },
+                    Token::I32(1),
+                    Token::I32(2),
+                    Token::I32(3),
+                    Token::I32(4),
+                    Token::I32(5),
+                    Token::I32(6),
+                    Token::I32(7),
+                    Token::I32(8),
+                    Token::I32(9),
+                    Token::I32(10),
+                    Token::SeqEnd,
+                ],
+            );
         }
     }
 }
