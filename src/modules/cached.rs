@@ -58,6 +58,11 @@ impl<T, D: Device, SD: Device, Mods: AddOperation<T, D>> AddOperation<T, D>
     ) {
         self.modules.add_op(out, operation)
     }
+
+    #[inline]
+    fn ops_count(&self) -> usize {
+        self.modules.ops_count()
+    }
 }
 
 impl<D: Device, SD: Device, Mods: ExecNow<D>> ExecNow<D> for CachedModule<Mods, SD> {

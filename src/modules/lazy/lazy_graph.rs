@@ -26,7 +26,6 @@ pub fn execute_with_type<T: 'static, D: Device + 'static>(
 ) -> crate::Result<()> {
     let operation = unsafe { transmute::<_, &mut TypedForwardFn<T, D, ()>>(operation) };
 
-    let x = buf.downcast_mut::<Buffer<'static, T, D, ()>>().unwrap();
     let buf: &mut Buffer<T, D, ()> =
         unsafe { &mut *(buf as *mut dyn Any as *mut Buffer<T, D, ()>) };
     unsafe { (**operation)(buf) }

@@ -112,10 +112,20 @@ pub trait AddOperation<T, D: Device> {
         out: &mut Buffer<T, D, S>,
         operation: impl Fn(&mut Buffer<T, D, S>) -> crate::Result<()>,
     );
+    fn ops_count(&self) -> usize;
 }
 
 pub trait ExecNow<D = Self> {
     fn exec_now(&self, range_bounds: impl RangeBounds<usize>) -> crate::Result<()>;
+
+    #[inline]
+    fn exec_last_n(&self, last_n: usize) -> crate::Result<()> 
+    where
+        D: Device,
+        Self: AddOperation<(), D>
+    {
+        self.exec_now(self.ops_count() - last_n..)
+    }
 }
 
 /// Implements the [`AddOperation`] trait for any supplied device. The `add_op` call is passed down to `self.modules`.
@@ -132,6 +142,11 @@ macro_rules! pass_down_add_operation {
                 operation: impl Fn(&mut $crate::Buffer<T, D, S>) -> $crate::Result<()>,
             ) {
                 self.modules.add_op(out, operation)
+            }
+
+            #[inline]
+            fn ops_count(&self) -> usize {
+                self.modules.ops_count()
             }
         }
     };

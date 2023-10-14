@@ -3,14 +3,14 @@ mod ty;
 pub use ty::*;
 
 use crate::{
-    bounds_to_range, AddOperation, Alloc, Buffer, Device, DeviceError, ExecNow, HasId, Id, Module,
+    AddOperation, Alloc, Buffer, Device, ExecNow, HasId, Id, Module,
     NoHasher, OnDropBuffer, OnNewBuffer, Parents, PtrConv, Retrieve, RunModule, Setup, Shape,
     UniqueId,
 };
 use core::{any::Any, cell::RefCell, fmt::Debug, hash::BuildHasherDefault};
 use std::collections::HashMap;
 
-use self::lazy_graph::{execute_operation, LazyGraph};
+use self::lazy_graph::LazyGraph;
 use super::register_buf;
 
 #[derive(Default)]
@@ -65,6 +65,11 @@ impl<T: Graphable, D: Device + PtrConv, Mods: AddOperation<T, D>> AddOperation<T
     ) {
         self.out_ids.borrow_mut().push(out.id());
         self.graph.borrow_mut().add_operation(operation);
+    }
+
+    #[inline]
+    fn ops_count(&self) -> usize {
+        self.buffers.borrow().len()
     }
 }
 

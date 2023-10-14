@@ -24,6 +24,11 @@ impl<T, D: Device> AddOperation<T, D> for Base {
     ) {
         operation(out);
     }
+
+    #[inline]
+    fn ops_count(&self) -> usize {
+        0
+    }
 }
 
 impl<D: Device> ExecNow<D> for Base {
