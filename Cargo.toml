@@ -76,6 +76,7 @@ serde = ["dep:serde"]
 
 [dev-dependencies]
 custos-macro = {git = "https://github.com/elftausend/custos-macro"}
+serde_test = "1"
 # custos-macro = {path = "../custos-macro"}
 #custos-macro = {version = "0.1.1"}
 
