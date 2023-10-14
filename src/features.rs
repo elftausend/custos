@@ -122,7 +122,7 @@ pub trait ExecNow<D = Self> {
     fn exec_last_n(&self, last_n: usize) -> crate::Result<()> 
     where
         D: Device,
-        Self: AddOperation<(), D>
+        Self: AddOperation<i32, D>
     {
         self.exec_now(self.ops_count() - last_n..)
     }

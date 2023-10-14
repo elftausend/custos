@@ -69,7 +69,7 @@ impl<T: Graphable, D: Device + PtrConv, Mods: AddOperation<T, D>> AddOperation<T
 
     #[inline]
     fn ops_count(&self) -> usize {
-        self.buffers.borrow().len()
+        self.out_ids.borrow().len()
     }
 }
 
@@ -320,7 +320,7 @@ mod tests {
 
     #[cfg(feature = "cpu")]
     #[test]
-    fn test_lazy_exec_last_n() {
+    fn test_lazy_exec_with_range() {
         use crate::{ExecNow, Run};
 
         let device = CPU::<Lazy<Base>>::new();
@@ -338,10 +338,40 @@ mod tests {
                 Ok(())
             });
             device.exec_now(1..).unwrap();
+            assert_eq!(out.as_slice(), [2, 4, 6, 8])
 
         }
         unsafe { device.run().unwrap() };
+        assert_eq!(out.as_slice(), [0; 4])
     }
+
+    #[cfg(feature = "cpu")]
+    #[test]
+    fn test_lazy_exec_last_n() {
+        use crate::{ExecNow, Run};
+
+        let device = CPU::<Lazy<Base>>::new();
+        let mut out: Buffer<i32, _, ()> = device.retrieve(4, ());
+
+        device.add_op(&mut out, |out| Ok(out.clear()));
+
+        {
+            let a = Buffer::<i32, _, ()>::from_slice(&device, &[1, 2, 3, 4]);
+            let b = Buffer::<i32, _, ()>::from_slice(&device, &[1, 2, 3, 4]);
+            device.add_op(&mut out, |out| {
+                for ((lhs, rhs), out) in a.iter().zip(&b).zip(out.iter_mut()) {
+                    *out = lhs + rhs;
+                }
+                Ok(())
+            });
+            device.exec_last_n(1).unwrap();
+            assert_eq!(out.as_slice(), [2, 4, 6, 8])
+        }
+        unsafe { device.run().unwrap() };
+            
+        assert_eq!(out.as_slice(), [0; 4])
+    }
+
     #[cfg(feature = "cpu")]
     #[ignore = "causes UB"]
     #[test]
