@@ -40,6 +40,8 @@ pub struct CUDA<Mods = Base> {
 impl_retriever!(CUDA);
 impl_buffer_hook_traits!(CUDA);
 
+// TODO: convert to device with other mods
+
 impl<SimpleMods> CUDA<SimpleMods> {
     /// Returns an [CUDA] device at the specified device index.
     /// # Errors
@@ -220,7 +222,7 @@ impl<'a, Mods: OnDropBuffer + OnNewBuffer<T, Self, ()>, T> CloneBuf<'a, T> for C
 
 #[cfg(test)]
 mod tests {
-    use crate::{Base, Buffer, Retriever, Shape};
+    use crate::{Base, Buffer, ClearBuf, Device, Retriever, Shape};
 
     use super::{IsCuda, CUDA};
 
@@ -234,5 +236,22 @@ mod tests {
         let device = CUDA::<Base>::new(0).unwrap();
         let buf = Buffer::<f32, _, ()>::new(&device, 10);
         take_cu_buffer(&device, &buf)
+    }
+
+    #[test]
+    #[ignore = "does not work at the moment"]
+    fn test_cross_distinct_devices() {
+        let dev1 = CUDA::<Base>::new(0).unwrap();
+        let mut buf1 = dev1.buffer([1, 2, 3, 4, 5, 6]);
+
+        let dev2 = CUDA::<Base>::new(0).unwrap();
+        let mut buf2 = dev1.buffer([1, 2, 3, 4, 5, 6]);
+
+        dev2.clear(&mut buf1);
+        dev1.clear(&mut buf2);
+
+        println!("fin");
+        assert_eq!(buf1.read(), [0; 6]);
+        assert_eq!(buf2.read(), [0; 6]);
     }
 }

@@ -3,9 +3,9 @@ use core::ops::{Range, RangeBounds};
 use crate::{
     bounds_to_range,
     cuda::api::{cu_read_async, CUstreamCaptureStatus},
-    pass_down_add_operation, AddOperation, ApplyFunction, Buffer, CDatatype, ClearBuf, CopySlice,
-    OnDropBuffer, Read, Resolve, Retrieve, Retriever, Shape, ToCLSource, ToMarker, UnaryGrad,
-    WriteBuf, CUDA,
+    pass_down_add_operation, pass_down_exec_now, AddOperation, ApplyFunction, Buffer, CDatatype,
+    ClearBuf, CopySlice, OnDropBuffer, Read, Resolve, Retrieve, Retriever, Shape, ToCLSource,
+    ToMarker, UnaryGrad, WriteBuf, CUDA,
 };
 
 use super::{
@@ -14,6 +14,7 @@ use super::{
 };
 
 pass_down_add_operation!(CUDA);
+pass_down_exec_now!(CUDA);
 
 impl<Mods: OnDropBuffer, T: Default + Clone> Read<T> for CUDA<Mods> {
     type Read<'a> = Vec<T>
@@ -173,7 +174,7 @@ where
     ) where
         F: ToCLSource,
     {
-        self.add_op(lhs_grad, |lhs_grad| {
+        self.add_op(lhs_grad, move |lhs_grad| {
             try_cu_add_unary_grad(self, &lhs.data, &mut lhs_grad.data, &out.data, lhs_grad_fn)
         });
     }

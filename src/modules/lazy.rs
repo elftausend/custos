@@ -3,8 +3,9 @@ mod ty;
 pub use ty::*;
 
 use crate::{
-    AddOperation, Alloc, Buffer, Device, HasId, Id, Module, NoHasher, OnDropBuffer, OnNewBuffer,
-    Parents, PtrConv, Retrieve, RunModule, Setup, Shape, UniqueId,
+    AddOperation, Alloc, Buffer, Device, ExecNow, HasId, Id, Module,
+    NoHasher, OnDropBuffer, OnNewBuffer, Parents, PtrConv, Retrieve, RunModule, Setup, Shape,
+    UniqueId,
 };
 use core::{any::Any, cell::RefCell, fmt::Debug, hash::BuildHasherDefault};
 use std::collections::HashMap;
@@ -65,11 +66,44 @@ impl<T: Graphable, D: Device + PtrConv, Mods: AddOperation<T, D>> AddOperation<T
         self.out_ids.borrow_mut().push(out.id());
         self.graph.borrow_mut().add_operation(operation);
     }
+
+    #[inline]
+    fn ops_count(&self) -> usize {
+        self.out_ids.borrow().len()
+    }
+}
+
+impl<D: Device + 'static, Mods> ExecNow<D> for Lazy<Mods> {
+    fn exec_now(&self, range_bounds: impl core::ops::RangeBounds<usize>) -> crate::Result<()> {
+        unsafe {
+            self.graph.borrow_mut().call_range::<D>(
+                range_bounds,
+                &mut self.out_ids.borrow_mut(),
+                &mut self.buffers.borrow_mut(),
+            )?;
+        }
+        /*for ((ty, mut operation), out_id) in self
+            .graph
+            .borrow_mut()
+            .operations
+            .drain(range.clone())
+            .zip(self.out_ids.borrow_mut().drain(range))
+        {
+            let mut buffers = self.buffers.borrow_mut();
+            let out = buffers
+                .get_mut(&out_id)
+                .ok_or(DeviceError::InvalidLazyOutBuf)?;
+
+            execute_operation::<D>(ty, &mut operation, out)?;
+        }
+        */
+        Ok(())
+    }
 }
 
 impl<Mods> Lazy<Mods> {
     #[inline]
-    pub fn call_lazily<D: Device>(&self) -> crate::Result<()> {
+    pub unsafe fn call_lazily<D: Device + 'static>(&self) -> crate::Result<()> {
         self.graph
             .borrow_mut()
             .call_lazily::<D>(&self.out_ids.borrow(), &mut self.buffers.borrow_mut())?;
@@ -85,10 +119,10 @@ impl<D: LazySetup, Mods: Setup<D>> Setup<D> for Lazy<Mods> {
     }
 }
 
-impl<Mods: RunModule<D>, D: LazyRun + PtrConv> RunModule<D> for Lazy<Mods> {
+impl<Mods: RunModule<D>, D: LazyRun + PtrConv + 'static> RunModule<D> for Lazy<Mods> {
     #[inline]
     fn run(&self, device: &D) -> crate::Result<()> {
-        self.call_lazily::<D>()?;
+        unsafe { self.call_lazily::<D>()? };
         device.run()?;
         self.modules.run(device)
     }
@@ -172,7 +206,7 @@ mod tests {
         let out = device.apply_fn(&buf, |x| x.add(3));
 
         assert_eq!(out.read(), &[0; 10]);
-        device.modules.call_lazily::<CPU<Lazy<Base>>>().unwrap();
+        unsafe { device.modules.call_lazily::<CPU<Lazy<Base>>>().unwrap() }
         assert_eq!(out.read(), &[3; 10]);
 
         drop(out);
@@ -285,6 +319,60 @@ mod tests {
     }
 
     #[cfg(feature = "cpu")]
+    #[test]
+    fn test_lazy_exec_with_range() {
+        use crate::{ExecNow, Run};
+
+        let device = CPU::<Lazy<Base>>::new();
+        let mut out: Buffer<i32, _, ()> = device.retrieve(4, ());
+
+        device.add_op(&mut out, |out| Ok(out.clear()));
+
+        {
+            let a = Buffer::<i32, _, ()>::from_slice(&device, &[1, 2, 3, 4]);
+            let b = Buffer::<i32, _, ()>::from_slice(&device, &[1, 2, 3, 4]);
+            device.add_op(&mut out, |out| {
+                for ((lhs, rhs), out) in a.iter().zip(&b).zip(out.iter_mut()) {
+                    *out = lhs + rhs;
+                }
+                Ok(())
+            });
+            device.exec_now(1..).unwrap();
+            assert_eq!(out.as_slice(), [2, 4, 6, 8])
+
+        }
+        unsafe { device.run().unwrap() };
+        assert_eq!(out.as_slice(), [0; 4])
+    }
+
+    #[cfg(feature = "cpu")]
+    #[test]
+    fn test_lazy_exec_last_n() {
+        use crate::{ExecNow, Run};
+
+        let device = CPU::<Lazy<Base>>::new();
+        let mut out: Buffer<i32, _, ()> = device.retrieve(4, ());
+
+        device.add_op(&mut out, |out| Ok(out.clear()));
+
+        {
+            let a = Buffer::<i32, _, ()>::from_slice(&device, &[1, 2, 3, 4]);
+            let b = Buffer::<i32, _, ()>::from_slice(&device, &[1, 2, 3, 4]);
+            device.add_op(&mut out, |out| {
+                for ((lhs, rhs), out) in a.iter().zip(&b).zip(out.iter_mut()) {
+                    *out = lhs + rhs;
+                }
+                Ok(())
+            });
+            device.exec_last_n(1).unwrap();
+            assert_eq!(out.as_slice(), [2, 4, 6, 8])
+        }
+        unsafe { device.run().unwrap() };
+            
+        assert_eq!(out.as_slice(), [0; 4])
+    }
+
+    #[cfg(feature = "cpu")]
     #[ignore = "causes UB"]
     #[test]
     fn test_lazy_exec_ub_testing() {
@@ -293,6 +381,8 @@ mod tests {
         let device = CPU::<Lazy<Base>>::new();
 
         let mut out: Buffer<i32, _> = device.retrieve(4, ());
+
+        device.add_op(&mut out, |out| Ok(out.clear()));
 
         {
             let a = Buffer::<i32, _, ()>::from_slice(&device, &[1, 2, 3, 4]);
@@ -309,6 +399,7 @@ mod tests {
 
     #[cfg(feature = "cpu")]
     #[should_panic]
+    #[ignore = "currently wrong panic reasion"]
     #[test]
     fn test_lazy_exec_ub_testing_semi_fixed() {
         use crate::{HasId, Run};

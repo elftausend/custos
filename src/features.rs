@@ -1,5 +1,6 @@
 #[cfg(feature = "cached")]
 use core::cell::{Ref, RefMut};
+use core::ops::RangeBounds;
 
 use crate::{Parents, Shape, CPU};
 
@@ -111,6 +112,20 @@ pub trait AddOperation<T, D: Device> {
         out: &mut Buffer<T, D, S>,
         operation: impl Fn(&mut Buffer<T, D, S>) -> crate::Result<()>,
     );
+    fn ops_count(&self) -> usize;
+}
+
+pub trait ExecNow<D = Self> {
+    fn exec_now(&self, range_bounds: impl RangeBounds<usize>) -> crate::Result<()>;
+
+    #[inline]
+    fn exec_last_n(&self, last_n: usize) -> crate::Result<()> 
+    where
+        D: Device,
+        Self: AddOperation<i32, D>
+    {
+        self.exec_now(self.ops_count() - last_n..)
+    }
 }
 
 /// Implements the [`AddOperation`] trait for any supplied device. The `add_op` call is passed down to `self.modules`.
@@ -127,6 +142,41 @@ macro_rules! pass_down_add_operation {
                 operation: impl Fn(&mut $crate::Buffer<T, D, S>) -> $crate::Result<()>,
             ) {
                 self.modules.add_op(out, operation)
+            }
+
+            #[inline]
+            fn ops_count(&self) -> usize {
+                self.modules.ops_count()
+            }
+        }
+    };
+}
+
+#[macro_export]
+macro_rules! pass_down_exec_now_module {
+    ($device:ident) => {
+        impl<D: $crate::Device, Mods: $crate::ExecNow<D>> $crate::ExecNow<D> for $device<Mods> {
+            #[inline]
+            fn exec_now(
+                &self,
+                range_bounds: impl core::ops::RangeBounds<usize>,
+            ) -> crate::Result<()> {
+                self.modules.exec_now(range_bounds)
+            }
+        }
+    };
+}
+
+#[macro_export]
+macro_rules! pass_down_exec_now {
+    ($device:ident) => {
+        impl<Mods: $crate::ExecNow<Self>> $crate::ExecNow<Self> for $device<Mods> {
+            #[inline]
+            fn exec_now(
+                &self,
+                range_bounds: impl core::ops::RangeBounds<usize>,
+            ) -> crate::Result<()> {
+                self.modules.exec_now(range_bounds)
             }
         }
     };

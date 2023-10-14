@@ -1,12 +1,13 @@
 use crate::{
-    cpu_stack_ops::clear_slice, pass_down_add_operation, prelude::Number, AddOperation,
-    ApplyFunction, Buffer, CDatatype, ClearBuf, HostPtr, OnDropBuffer, Read, Resolve, Retrieve,
-    Retriever, Shape, ToMarker, ToWgslSource, UnaryGrad, UseGpuOrCpu, Vulkan,
+    cpu_stack_ops::clear_slice, pass_down_add_operation, pass_down_exec_now, prelude::Number,
+    AddOperation, ApplyFunction, Buffer, CDatatype, ClearBuf, HostPtr, OnDropBuffer, Read, Resolve,
+    Retrieve, Retriever, Shape, ToMarker, ToWgslSource, UnaryGrad, UseGpuOrCpu, Vulkan,
 };
 
 use super::VkArray;
 
 pass_down_add_operation!(Vulkan);
+pass_down_exec_now!(Vulkan);
 
 impl<Mods: OnDropBuffer + UseGpuOrCpu, T: CDatatype + Default> ClearBuf<T> for Vulkan<Mods> {
     #[inline]
@@ -80,7 +81,7 @@ where
     {
         let mut out = self.retrieve(buf.len(), buf);
 
-        self.add_op(&mut out, |out| {
+        self.add_op(&mut out, move |out| {
             let cpu_out = unsafe { &mut *(out as *mut Buffer<T, Vulkan<Mods>, _>) };
             self.use_cpu_or_gpu(
                 (file!(), line!(), column!()).into(),
@@ -147,7 +148,7 @@ where
     ) where
         F: ToWgslSource,
     {
-        self.add_op(lhs_grad, |lhs_grad| {
+        self.add_op(lhs_grad, move |lhs_grad| {
             try_vk_add_unary_grad(self, &lhs.data, &mut lhs_grad.data, &out.data, lhs_grad_fn)
         });
     }

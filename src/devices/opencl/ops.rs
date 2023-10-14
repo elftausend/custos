@@ -6,10 +6,10 @@ use min_cl::api::{
 };
 
 use crate::{
-    bounds_to_range, cpu_stack_ops::clear_slice, pass_down_add_operation, prelude::Number,
-    AddOperation, ApplyFunction, Buffer, CDatatype, ClearBuf, CopySlice, Eval, OnDropBuffer,
-    OpenCL, Read, Resolve, Retrieve, Retriever, Shape, ToCLSource, ToMarker, UnaryGrad,
-    UseGpuOrCpu, WriteBuf,
+    bounds_to_range, cpu_stack_ops::clear_slice, pass_down_add_operation, pass_down_exec_now,
+    prelude::Number, AddOperation, ApplyFunction, Buffer, CDatatype, ClearBuf, CopySlice, Eval,
+    OnDropBuffer, OpenCL, Read, Resolve, Retrieve, Retriever, Shape, ToCLSource, ToMarker,
+    UnaryGrad, UseGpuOrCpu, WriteBuf,
 };
 
 use super::enqueue_kernel;
@@ -22,6 +22,7 @@ use super::enqueue_kernel;
 }*/
 
 pass_down_add_operation!(OpenCL);
+pass_down_exec_now!(OpenCL);
 
 impl<Mods: OnDropBuffer + UseGpuOrCpu, T: CDatatype + Default> ClearBuf<T> for OpenCL<Mods> {
     #[inline]
@@ -194,7 +195,7 @@ where
     {
         let mut out = self.retrieve(buf.len(), buf);
 
-        self.add_op(&mut out, |out| {
+        self.add_op(&mut out, move |out| {
             #[cfg(unified_cl)]
             {
                 let cpu_out = unsafe { &mut *(out as *mut Buffer<_, OpenCL<Mods>, _>) };
@@ -267,7 +268,7 @@ where
     ) where
         F: ToCLSource,
     {
-        self.add_op(lhs_grad, |lhs_grad| {
+        self.add_op(lhs_grad, move |lhs_grad| {
             try_cl_add_unary_grad(self, lhs, lhs_grad, out, lhs_grad_fn)
         });
     }

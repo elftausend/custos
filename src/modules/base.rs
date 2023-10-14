@@ -1,6 +1,6 @@
 use crate::{
-    flag::AllocFlag, AddOperation, Alloc, Buffer, Device, HashLocation, Module, OnDropBuffer,
-    OnNewBuffer, Parents, Retrieve, Setup, Shape,
+    flag::AllocFlag, AddOperation, Alloc, Buffer, Device, ExecNow, HashLocation, Module,
+    OnDropBuffer, OnNewBuffer, Parents, Retrieve, Setup, Shape,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
@@ -23,6 +23,18 @@ impl<T, D: Device> AddOperation<T, D> for Base {
         operation: impl Fn(&mut Buffer<T, D, S>) -> crate::Result<()>,
     ) {
         operation(out);
+    }
+
+    #[inline]
+    fn ops_count(&self) -> usize {
+        0
+    }
+}
+
+impl<D: Device> ExecNow<D> for Base {
+    #[inline]
+    fn exec_now(&self, _range_bounds: impl core::ops::RangeBounds<usize>) -> crate::Result<()> {
+        Ok(())
     }
 }
 
