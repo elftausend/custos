@@ -12,8 +12,8 @@ use crate::CPU;
 
 use crate::{
     flag::AllocFlag, shape::Shape, Alloc, Base, ClearBuf, CloneBuf, CommonPtrs, Device,
-    DevicelessAble, HasId, IsShapeIndep, OnDropBuffer, OnNewBuffer, PtrType, Read,
-    ShallowCopy, WriteBuf,
+    DevicelessAble, HasId, IsShapeIndep, OnDropBuffer, OnNewBuffer, PtrType, Read, ShallowCopy,
+    WriteBuf,
 };
 
 pub use self::num::Num;

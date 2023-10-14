@@ -24,25 +24,6 @@ pub struct CPUPtr<T> {
     pub size: Option<usize>,
 }
 
-#[cfg(feature = "serde")]
-use serde::ser::SerializeSeq;
-
-#[cfg(feature = "serde")]
-impl<T: serde::Serialize> serde::Serialize for CPUPtr<T> {
-    #[inline]
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer 
-    {
-        let mut seq = serializer.serialize_seq(Some(self.len()))?;
-        for e in self.iter() {
-            seq.serialize_element(e)?;
-        }
-    
-        seq.end()
-    }
-}
-
 impl<T> CPUPtr<T> {
     /// Create a new `CPUPtr` with the given length and allocation flag
     ///
@@ -241,6 +222,74 @@ impl<T> ShallowCopy for CPUPtr<T> {
             flag: AllocFlag::Wrapper,
             align: self.align,
             size: self.size,
+        }
+    }
+}
+
+#[cfg(feature = "serde")]
+mod serde {
+    use core::{marker::PhantomData, fmt};
+
+    use serde::{ser::SerializeSeq, de::{Visitor, SeqAccess}, Deserialize};
+
+    use super::CPUPtr;
+
+    impl<T: serde::Serialize> serde::Serialize for CPUPtr<T> {
+        #[inline]
+        fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+        where
+            S: serde::Serializer,
+        {
+            let mut seq = serializer.serialize_seq(Some(self.len()))?;
+            for e in self.iter() {
+                seq.serialize_element(e)?;
+            }
+
+            seq.end()
+        }
+    }
+    struct CpuPtrVisitor<T> {
+        marker: PhantomData<T>,
+    }
+
+    impl<'de, T> Visitor<'de> for CpuPtrVisitor<T>
+    where
+        T: Deserialize<'de>,
+    {
+        type Value = CPUPtr<T>;
+
+        fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+            formatter.write_str("a sequence")
+        }
+
+        fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
+        where
+            A: SeqAccess<'de>,
+        {
+            let values = unsafe { CPUPtr::<T>::new(seq.size_hint().unwrap_or_default(), crate::flag::AllocFlag::None) };
+
+            let mut offset = 0;
+            while let Some(value) = seq.next_element::<T>()? {
+                unsafe {
+                    let end = values.ptr.add(offset);
+                    end.write(value)
+                }
+                offset += 1;
+            }
+
+            Ok(values)
+        }
+    }
+    
+    impl<'a, T: serde::Deserialize<'a>> serde::Deserialize<'a> for CPUPtr<T> {
+        #[inline]
+        fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+        where
+            D: serde::Deserializer<'a>,
+        {
+            deserializer.deserialize_seq(CpuPtrVisitor {
+                marker: PhantomData
+            })
         }
     }
 }
