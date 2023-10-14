@@ -235,7 +235,7 @@ impl<T> ShallowCopy for CPUPtr<T> {
 }
 
 #[cfg(feature = "serde")]
-mod serde {
+pub mod serde {
     use core::{fmt, marker::PhantomData};
 
     use serde::{
@@ -261,8 +261,8 @@ mod serde {
             seq.end()
         }
     }
-    struct CpuPtrVisitor<T> {
-        marker: PhantomData<T>,
+    pub struct CpuPtrVisitor<T> {
+        pub marker: PhantomData<T>,
     }
 
     impl<'de, T> Visitor<'de> for CpuPtrVisitor<T>
@@ -320,21 +320,26 @@ mod serde {
         #[test]
         fn test_ser_de_of_cpu_ptr_filled() {
             let mut cpu_ptr = CPUPtr::<i32>::new_initialized(10, crate::flag::AllocFlag::None);
-            cpu_ptr.as_mut_slice().copy_from_slice(&[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
-            assert_tokens(&cpu_ptr, &[
-                Token::Seq { len: Some(10) },
-                Token::I32(1),
-                Token::I32(2),
-                Token::I32(3),
-                Token::I32(4),
-                Token::I32(5),
-                Token::I32(6),
-                Token::I32(7),
-                Token::I32(8),
-                Token::I32(9),
-                Token::I32(10),
-                Token::SeqEnd
-            ]);
+            cpu_ptr
+                .as_mut_slice()
+                .copy_from_slice(&[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+            assert_tokens(
+                &cpu_ptr,
+                &[
+                    Token::Seq { len: Some(10) },
+                    Token::I32(1),
+                    Token::I32(2),
+                    Token::I32(3),
+                    Token::I32(4),
+                    Token::I32(5),
+                    Token::I32(6),
+                    Token::I32(7),
+                    Token::I32(8),
+                    Token::I32(9),
+                    Token::I32(10),
+                    Token::SeqEnd,
+                ],
+            );
         }
     }
 }
