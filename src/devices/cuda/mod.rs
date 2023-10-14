@@ -13,7 +13,6 @@ mod kernel_launch;
 mod lazy;
 mod ops;
 mod source;
-use core::ops::{Deref, DerefMut};
 
 pub use cuda_ptr::*;
 
@@ -23,7 +22,7 @@ pub use cuda_device::*;
 pub use kernel_cache::*;
 pub use kernel_launch::*;
 
-use crate::{Buffer, CDatatype, OnDropBuffer, Shape};
+use crate::{Buffer, CDatatype, OnDropBuffer};
 
 /// Another shorter type for Buffer<'a, T, CUDA, S>
 pub type CUBuffer<'a, T, S = ()> = Buffer<'a, T, CUDA, S>;
