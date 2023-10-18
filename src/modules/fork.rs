@@ -43,8 +43,8 @@ impl Ord for Analyzation {
 }
 
 pub struct Fork<Mods> {
-    modules: Mods,
-    gpu_or_cpu: RefCell<
+    pub modules: Mods,
+    pub gpu_or_cpu: RefCell<
         HashMap<HashLocation<'static>, BinaryHeap<Analyzation>, BuildHasherDefault<LocationHasher>>,
     >, // should use Location of operation in file file!(), ...
 }

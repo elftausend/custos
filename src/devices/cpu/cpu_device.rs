@@ -70,6 +70,38 @@ impl<SimpleMods> CPU<SimpleMods> {
     }
 }
 
+pub trait AddLayer<CurrentMods, NewMods> {
+    type Wrapped;
+    fn wrap_layer(inner_mods: NewMods) -> Self::Wrapped;
+}
+
+impl<CurrentMods, NewMods> AddLayer<CurrentMods, NewMods> for crate::Fork<CurrentMods> {
+    type Wrapped = crate::Fork<NewMods>;
+
+    fn wrap_layer(inner_mods: NewMods) -> Self::Wrapped {
+        crate::Fork {
+            modules: inner_mods,
+            gpu_or_cpu: Default::default(),
+        }
+    }
+}
+
+impl<Mods> CPU<Mods> {
+    pub fn add_layer<Mod, NewMods>(&self) -> CPU<NewMods> 
+    where
+        Mod: AddLayer<(), NewMods>,
+        Mod::Wrapped: Module<CPU, Module = NewMods>
+    {
+        todo!()
+    }
+}
+
+#[test]
+fn test_add_layer() {
+    let cpu = CPU::<Base>::new();
+    cpu.add_layer::<crate::Fork<()>, _>();
+}
+
 impl<T, Mods: OnDropBuffer> Alloc<T> for CPU<Mods> {
     fn alloc<S: Shape>(&self, mut len: usize, flag: AllocFlag) -> Self::Data<T, S> {
         assert!(len > 0, "invalid buffer len: 0");
