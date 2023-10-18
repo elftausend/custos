@@ -3,9 +3,8 @@ mod ty;
 pub use ty::*;
 
 use crate::{
-    AddOperation, Alloc, Buffer, Device, ExecNow, HasId, Id, Module,
-    NoHasher, OnDropBuffer, OnNewBuffer, Parents, PtrConv, Retrieve, RunModule, Setup, Shape,
-    UniqueId,
+    AddOperation, Alloc, Buffer, Device, ExecNow, HasId, Id, Module, NoHasher, OnDropBuffer,
+    OnNewBuffer, Parents, PtrConv, Retrieve, RunModule, Setup, Shape, UniqueId,
 };
 use core::{any::Any, cell::RefCell, fmt::Debug, hash::BuildHasherDefault};
 use std::collections::HashMap;
@@ -339,7 +338,6 @@ mod tests {
             });
             device.exec_now(1..).unwrap();
             assert_eq!(out.as_slice(), [2, 4, 6, 8])
-
         }
         unsafe { device.run().unwrap() };
         assert_eq!(out.as_slice(), [0; 4])
@@ -368,7 +366,7 @@ mod tests {
             assert_eq!(out.as_slice(), [2, 4, 6, 8])
         }
         unsafe { device.run().unwrap() };
-            
+
         assert_eq!(out.as_slice(), [0; 4])
     }
 

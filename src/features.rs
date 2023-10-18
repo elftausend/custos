@@ -119,10 +119,10 @@ pub trait ExecNow<D = Self> {
     fn exec_now(&self, range_bounds: impl RangeBounds<usize>) -> crate::Result<()>;
 
     #[inline]
-    fn exec_last_n(&self, last_n: usize) -> crate::Result<()> 
+    fn exec_last_n(&self, last_n: usize) -> crate::Result<()>
     where
         D: Device,
-        Self: AddOperation<i32, D>
+        Self: AddOperation<i32, D>,
     {
         self.exec_now(self.ops_count() - last_n..)
     }

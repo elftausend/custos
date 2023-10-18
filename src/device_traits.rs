@@ -61,7 +61,7 @@ pub trait Alloc<T>: Device + Sized {
     }
 }
 
-pub trait Module<D> {
+pub trait Module<D = ()> {
     type Module;
 
     fn new() -> Self::Module;

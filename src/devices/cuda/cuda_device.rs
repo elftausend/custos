@@ -1,27 +1,16 @@
-use core::{cell::RefCell, marker::PhantomData};
+use core::cell::RefCell;
 use std::collections::HashMap;
 
-use crate::{
-    cuda::{
-        api::{
-            create_context, create_stream, cuInit, cuStreamDestroy,
-            cublas::{create_handle, cublasDestroy_v2, cublasSetStream_v2, CublasHandle},
-            cumalloc, device, Context, CudaIntDevice, FnHandle, Module, Stream,
-        },
-        launch_kernel1d, AsCudaCvoidPtr, CUDAPtr, CUKernelCache, CudaSource,
+use super::{
+    api::{
+        create_context, create_stream, cuInit, cuStreamDestroy,
+        cublas::{create_handle, cublasDestroy_v2, cublasSetStream_v2, CublasHandle},
+        device, Context, CudaIntDevice, FnHandle, Module, Stream,
     },
-    flag::AllocFlag,
-    impl_buffer_hook_traits, impl_retriever, Alloc, Base, Buffer, CloneBuf, Device,
-    Module as CombModule, OnDropBuffer, OnNewBuffer, PtrConv, Setup, Shape,
+    AsCudaCvoidPtr, CUKernelCache, CudaSource,
 };
 
-use super::api::{cuMemcpy, cu_write_async};
-
-pub trait IsCuda: Device {}
-
-/// Used to perform calculations with a CUDA capable device.
-pub struct CUDA<Mods = Base> {
-    pub modules: Mods,
+pub struct CudaDevice {
     /// Stores compiled CUDA kernels.
     pub kernel_cache: RefCell<CUKernelCache>,
     /// Stores CUDA modules from the compiled kernels.
@@ -32,27 +21,13 @@ pub struct CUDA<Mods = Base> {
     pub stream: Stream,
     /// A stream used for memory transfers, like cu_write_async
     pub mem_transfer_stream: Stream,
-    handle: CublasHandle,
+    pub handle: CublasHandle,
     #[cfg(feature = "lazy")]
     pub graph: core::cell::OnceCell<super::lazy::LazyCudaGraph>,
 }
 
-impl_retriever!(CUDA);
-impl_buffer_hook_traits!(CUDA);
-
-// TODO: convert to device with other mods
-
-impl<SimpleMods> CUDA<SimpleMods> {
-    /// Returns an [CUDA] device at the specified device index.
-    /// # Errors
-    /// - No device was found at the given device index
-    /// - some other CUDA related errors
-    #[inline]
-    pub fn new<NewMods>(idx: usize) -> crate::Result<CUDA<NewMods>>
-    where
-        SimpleMods: CombModule<CUDA, Module = NewMods>,
-        NewMods: Setup<CUDA<NewMods>>,
-    {
+impl CudaDevice {
+    pub fn new(idx: usize) -> crate::Result<Self> {
         unsafe { cuInit(0) }.to_result()?;
         let device = device(idx as i32)?;
         let ctx = create_context(&device)?;
@@ -61,8 +36,7 @@ impl<SimpleMods> CUDA<SimpleMods> {
         let handle = create_handle()?;
         unsafe { cublasSetStream_v2(handle.0, stream.0) }.to_result()?;
 
-        let mut cuda = CUDA {
-            modules: SimpleMods::new(),
+        Ok(Self {
             kernel_cache: Default::default(),
             cuda_modules: Default::default(),
             device,
@@ -72,15 +46,11 @@ impl<SimpleMods> CUDA<SimpleMods> {
             handle,
             #[cfg(feature = "lazy")]
             graph: core::cell::OnceCell::new(),
-        };
-
-        NewMods::setup(&mut cuda)?;
-
-        Ok(cuda)
+        })
     }
 }
 
-impl<Mods> CUDA<Mods> {
+impl CudaDevice {
     /// Returns the internal CUDA device.
     #[inline]
     pub fn device(&self) -> &CudaIntDevice {
@@ -114,7 +84,7 @@ impl<Mods> CUDA<Mods> {
         fn_name: &str,
         args: &[&dyn AsCudaCvoidPtr],
     ) -> crate::Result<()> {
-        launch_kernel1d(
+        super::launch_kernel1d(
             len,
             &mut self.kernel_cache.borrow_mut(),
             &mut self.cuda_modules.borrow_mut(),
@@ -126,12 +96,7 @@ impl<Mods> CUDA<Mods> {
     }
 }
 
-impl<Mods: OnDropBuffer> Device for CUDA<Mods> {
-    type Data<T, S: Shape> = CUDAPtr<T>;
-    type Error = i32;
-}
-
-impl<Mods> Drop for CUDA<Mods> {
+impl Drop for CudaDevice {
     fn drop(&mut self) {
         // deallocates all cached buffers before destroying the context etc
         // TODO: keep in mind
@@ -143,115 +108,5 @@ impl<Mods> Drop for CUDA<Mods> {
 
             cuStreamDestroy(self.mem_transfer_stream.0);
         }
-    }
-}
-
-impl<Mods: OnDropBuffer, T> Alloc<T> for CUDA<Mods> {
-    #[inline]
-    fn alloc<S: Shape>(&self, len: usize, flag: crate::flag::AllocFlag) -> Self::Data<T, S> {
-        CUDAPtr::new(len, flag)
-    }
-
-    fn alloc_from_slice<S: Shape>(&self, data: &[T]) -> Self::Data<T, S>
-    where
-        T: Clone,
-    {
-        let ptr = cumalloc::<T>(data.len()).unwrap();
-        cu_write_async(ptr, data, &self.mem_transfer_stream).unwrap();
-        self.mem_transfer_stream.sync().unwrap();
-        CUDAPtr {
-            ptr,
-            len: data.len(),
-            flag: AllocFlag::None,
-            p: PhantomData,
-        }
-    }
-}
-
-impl<Mods: OnDropBuffer> IsCuda for CUDA<Mods> {}
-
-#[cfg(feature = "fork")]
-impl<Mods> crate::ForkSetup for CUDA<Mods> {
-    #[inline]
-    fn fork_setup(&mut self) {
-        // TODO: maybe check if device supports unified memory
-    }
-}
-
-#[cfg(feature = "autograd")]
-impl<Mods: crate::TapeActions> crate::TapeActions for CUDA<Mods> {
-    #[inline]
-    fn tape(&self) -> Option<core::cell::Ref<crate::Tape>> {
-        self.modules.tape()
-    }
-
-    #[inline]
-    fn tape_mut(&self) -> Option<core::cell::RefMut<crate::Tape>> {
-        self.modules.tape_mut()
-    }
-}
-
-impl<Mods: OnDropBuffer> PtrConv for CUDA<Mods> {
-    #[inline]
-    unsafe fn convert<T, IS: Shape, Conv, OS: Shape>(
-        ptr: &Self::Data<T, IS>,
-        flag: AllocFlag,
-    ) -> Self::Data<Conv, OS> {
-        CUDAPtr {
-            ptr: ptr.ptr,
-            len: ptr.len,
-            flag,
-            p: PhantomData,
-        }
-    }
-}
-
-impl<'a, Mods: OnDropBuffer + OnNewBuffer<T, Self, ()>, T> CloneBuf<'a, T> for CUDA<Mods> {
-    fn clone_buf(&'a self, buf: &Buffer<'a, T, CUDA<Mods>>) -> Buffer<'a, T, CUDA<Mods>> {
-        let cloned = Buffer::new(self, buf.len());
-        unsafe {
-            cuMemcpy(
-                cloned.ptrs().2,
-                buf.ptrs().2,
-                buf.len() * std::mem::size_of::<T>(),
-            );
-        }
-        cloned
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use crate::{Base, Buffer, ClearBuf, Device, Retriever, Shape};
-
-    use super::{IsCuda, CUDA};
-
-    // compile-time isCuda test
-    fn take_cu_buffer<T, D: IsCuda + Retriever<T>, S: Shape>(device: &D, buf: &Buffer<T, D, S>) {
-        let _buf = device.retrieve::<S, 0>(buf.len(), ());
-    }
-
-    #[test]
-    fn test_cu_buffer_fn() {
-        let device = CUDA::<Base>::new(0).unwrap();
-        let buf = Buffer::<f32, _, ()>::new(&device, 10);
-        take_cu_buffer(&device, &buf)
-    }
-
-    #[test]
-    #[ignore = "does not work at the moment"]
-    fn test_cross_distinct_devices() {
-        let dev1 = CUDA::<Base>::new(0).unwrap();
-        let mut buf1 = dev1.buffer([1, 2, 3, 4, 5, 6]);
-
-        let dev2 = CUDA::<Base>::new(0).unwrap();
-        let mut buf2 = dev1.buffer([1, 2, 3, 4, 5, 6]);
-
-        dev2.clear(&mut buf1);
-        dev1.clear(&mut buf2);
-
-        println!("fin");
-        assert_eq!(buf1.read(), [0; 6]);
-        assert_eq!(buf2.read(), [0; 6]);
     }
 }

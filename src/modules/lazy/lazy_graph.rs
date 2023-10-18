@@ -80,7 +80,9 @@ impl LazyGraph {
         outs_unordered: &mut HashMap<UniqueId, Box<dyn Any>, BuildHasherDefault<NoHasher>>,
     ) -> crate::Result<()> {
         let range = bounds_to_range(bounds, out_buf_order.len());
-        for ((ty, mut operation), buf_id) in self.operations.drain(range.clone())
+        for ((ty, mut operation), buf_id) in self
+            .operations
+            .drain(range.clone())
             .zip(out_buf_order.drain(range))
         {
             let buf = &mut **outs_unordered
@@ -88,9 +90,7 @@ impl LazyGraph {
                 .ok_or(DeviceError::InvalidLazyOutBuf)?;
 
             execute_operation::<D>(ty, &mut operation, buf)?;
-            unsafe {
-                drop(Box::from_raw(operation))
-            }
+            unsafe { drop(Box::from_raw(operation)) }
         }
         Ok(())
     }

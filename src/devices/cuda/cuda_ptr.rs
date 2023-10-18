@@ -170,17 +170,17 @@ mod serde {
             ];
             assert_ser_tokens(&cuda_ptr, &tokens);
 
-        //     let mut de = serde_test::de::Deserializer::new(&tokens);
-        //     let mut deserialized_val = match T::deserialize(&mut de) {
-        //         Ok(v) => {
-        //             assert_eq!(v, *value);
-        //             v
-        //         }
-        //         Err(e) => panic!("tokens failed to deserialize: {}", e),
-        //     };
-        //     if de.remaining() > 0 {
-        //         panic!("{} remaining tokens", de.remaining());
-        //     }
+            //     let mut de = serde_test::de::Deserializer::new(&tokens);
+            //     let mut deserialized_val = match T::deserialize(&mut de) {
+            //         Ok(v) => {
+            //             assert_eq!(v, *value);
+            //             v
+            //         }
+            //         Err(e) => panic!("tokens failed to deserialize: {}", e),
+            //     };
+            //     if de.remaining() > 0 {
+            //         panic!("{} remaining tokens", de.remaining());
+            //     }
         }
     }
 }
