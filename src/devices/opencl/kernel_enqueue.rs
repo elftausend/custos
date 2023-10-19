@@ -1,5 +1,5 @@
 use crate::{number::Number, Buffer, OnDropBuffer, OpenCL, Shape};
-use min_cl::api::{enqueue_nd_range_kernel, set_kernel_arg, OCLErrorKind};
+use min_cl::{api::{enqueue_nd_range_kernel, set_kernel_arg, OCLErrorKind}, CLDevice};
 use std::{ffi::c_void, mem::size_of};
 
 use super::CLPtr;
@@ -134,8 +134,8 @@ impl<T> AsClCvoidPtr for CLPtr<T> {
 ///     Ok(())
 /// }
 /// ```
-pub fn enqueue_kernel<Mods>(
-    device: &OpenCL<Mods>,
+pub fn enqueue_kernel(
+    device: &CLDevice,
     src: &str,
     gws: [usize; 3],
     lws: Option<[usize; 3]>,
