@@ -1,18 +1,19 @@
 use min_cl::CLDevice;
 
 use min_cl::api::{
-    create_buffer, enqueue_full_copy_buffer, CLIntDevice, CommandQueue, Context, MemFlags,
+    create_buffer, enqueue_full_copy_buffer, MemFlags,
 };
 
-use super::{enqueue_kernel, AsClCvoidPtr, CLKernelCache, CLPtr};
+use super::{enqueue_kernel, AsClCvoidPtr, CLPtr};
 use crate::flag::AllocFlag;
 use crate::{
     impl_buffer_hook_traits, impl_retriever, pass_down_use_gpu_or_cpu, Alloc, Base, Buffer, Cached,
-    CachedCPU, CloneBuf, Device, Error, Module, OnDropBuffer, Setup, CPU,
+    CachedCPU, CloneBuf, Device, Module, OnDropBuffer, Setup, CPU,
 };
 use crate::{PtrConv, Shape};
 
-use std::{cell::RefCell, fmt::Debug};
+use core::ops::{Deref, DerefMut};
+use std::fmt::Debug;
 
 use min_cl::api::unified_ptr;
 
@@ -37,9 +38,8 @@ use crate::ForkSetup;
 /// ```
 pub struct OpenCL<Mods = Base> {
     pub modules: Mods,
-    pub kernel_cache: RefCell<CLKernelCache>,
     /// The underlying OpenCL device.
-    pub inner: CLDevice,
+    pub device: CLDevice,
     /// A [`CPU`] used for unified memory device switching.
     pub cpu: CachedCPU, // TODO: this cpu does not cache buffers, which is a problem for construct_buffer (add #[cfg(unified_cl)])
 }
@@ -53,6 +53,22 @@ pub type CL = OpenCL;
         &self.cpu
     }
 }*/
+
+impl<Mods> Deref for OpenCL<Mods> {
+    type Target = CLDevice;
+
+    #[inline]
+    fn deref(&self) -> &Self::Target {
+        &self.device
+    }
+}
+
+impl<Mods> DerefMut for OpenCL<Mods> {
+    #[inline]
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.device
+    }
+}
 
 impl_buffer_hook_traits!(OpenCL);
 impl_retriever!(OpenCL);
@@ -68,11 +84,9 @@ impl<SimpleMods> OpenCL<SimpleMods> {
         SimpleMods: Module<OpenCL, Module = NewMods>,
         NewMods: Setup<OpenCL<NewMods>>,
     {
-        let inner = CLDevice::new(device_idx)?;
         let mut opencl = OpenCL {
             modules: SimpleMods::new(),
-            inner,
-            kernel_cache: Default::default(),
+            device: CLDevice::new(device_idx)?,
             cpu: CPU::<Cached<Base>>::new(),
         };
         NewMods::setup(&mut opencl)?;
@@ -86,11 +100,9 @@ impl<SimpleMods> OpenCL<SimpleMods> {
         SimpleMods: Module<OpenCL, Module = NewMods>,
         NewMods: Setup<OpenCL<NewMods>>,
     {
-        let inner = CLDevice::fastest()?;
         let mut opencl = OpenCL {
             modules: SimpleMods::new(),
-            inner,
-            kernel_cache: Default::default(),
+            device: CLDevice::fastest()?,
             cpu: CPU::<Cached<Base>>::new(),
         };
         NewMods::setup(&mut opencl)?;
@@ -102,61 +114,8 @@ impl<Mods> OpenCL<Mods> {
     /// Sets the values of the attributes cache, kernel cache, graph and CPU to their default.
     /// This cleans up any accumulated allocations.
     pub fn reset(&'static mut self) {
-        self.kernel_cache = Default::default();
+        self.device.kernel_cache = Default::default();
         self.cpu = CPU::<Cached<Base>>::new();
-    }
-
-    /// Context of the OpenCL device.
-    #[inline]
-    pub fn ctx(&self) -> &Context {
-        &self.inner.ctx
-    }
-
-    /// Command queue of the OpenCL device.
-    #[inline]
-    pub fn queue(&self) -> &CommandQueue {
-        &self.inner.queue
-    }
-
-    /// CLIntDevice of the OpenCL device.
-    #[inline]
-    pub fn device(&self) -> CLIntDevice {
-        self.inner.device
-    }
-
-    /// Returns the global memory size in GB.
-    pub fn global_mem_size_in_gb(&self) -> Result<f64, Error> {
-        Ok(self.device().get_global_mem()? as f64 * 10f64.powi(-9))
-    }
-
-    /// Returns the maximum memory allocation size in GB.
-    pub fn max_mem_alloc_in_gb(&self) -> Result<f64, Error> {
-        Ok(self.device().get_max_mem_alloc()? as f64 * 10f64.powi(-9))
-    }
-
-    /// Returns the name of the OpenCL device.
-    pub fn name(&self) -> Result<String, Error> {
-        self.device().get_name()
-    }
-
-    /// Returns the OpenCL version of the device.
-    pub fn version(&self) -> Result<String, Error> {
-        self.device().get_version()
-    }
-
-    /// Checks whether the device supports unified memory.
-    #[inline]
-    pub fn unified_mem(&self) -> bool {
-        self.inner.unified_mem
-    }
-
-    /// Sets whether the device should use unified memory.
-    #[deprecated(
-        since = "0.6.0",
-        note = "Use the environment variable 'CUSTOS_USE_UNIFIED' set to 'true', 'false' or 'default'[=hardware dependent] instead."
-    )]
-    pub fn set_unified_mem(&mut self, unified_mem: bool) {
-        self.inner.unified_mem = unified_mem;
     }
 
     /// Executes a cached OpenCL kernel.
@@ -351,8 +310,7 @@ mod tests {
     fn test_multiplie_queues() -> crate::Result<()> {
         let device = CLDevice::new(0)?;
         let cl = OpenCL {
-            inner: device,
-            kernel_cache: Default::default(),
+            device,
             cpu: CPU::<Cached<Base>>::new(),
             modules: crate::Base,
         };
@@ -363,8 +321,7 @@ mod tests {
         let device = CLDevice::new(0)?;
 
         let cl1 = OpenCL {
-            inner: device,
-            kernel_cache: Default::default(),
+            device,
             cpu: CPU::<Cached<Base>>::new(),
             modules: crate::Base,
         };

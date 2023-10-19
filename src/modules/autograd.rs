@@ -368,23 +368,24 @@ mod tests {
     }
 
     #[cfg(feature = "autograd")]
-    pub trait UnaryByMods<T, Mods> {
+    pub trait UnaryByMods<Mods> {
        fn unary_ew(&self, mods: &Mods); 
     }
 
     #[cfg(feature = "autograd")]
-    impl<T, Mods: MayTapeActions> UnaryByMods<T, Mods> for CPU {
+    impl<Mods: MayTapeActions + 'static> UnaryByMods<Mods> for CPU {
         fn unary_ew(&self, mods: &Mods) {
-            // mods.add_grad_fn(|grads| {
+            mods.add_grad_fn(|_grads| {
 
-            // });
+            });
         }
     }
 
+    #[cfg(feature = "autograd")]
     #[test]
     fn test_autograd_by_separate_module() {
         let autograd = <Autograd<Base> as Module<CPU>>::new();
         let device = CPU::<Base>::new();
-
+        device.unary_ew(&autograd);
     }
 }

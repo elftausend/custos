@@ -221,7 +221,7 @@ mod tests {
         unsafe {
             min_cl::api::ffi::clGetKernelWorkGroupInfo(
                 kernel.0,
-                device.inner.device.0,
+                device.device.device.0,
                 min_cl::api::ffi::CL_KERNEL_WORK_GROUP_SIZE,
                 core::mem::size_of_val(&local),
                 &mut local as *mut _ as *mut core::ffi::c_void,

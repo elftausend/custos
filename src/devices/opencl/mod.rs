@@ -4,12 +4,10 @@ use core::ops::{Deref, DerefMut};
 use std::{ffi::c_void, ptr::null_mut};
 
 pub use cl_device::{OpenCL, CL};
-pub use kernel_cache::*;
 pub use kernel_enqueue::*;
 
 //pub mod api;
 mod cl_device;
-mod kernel_cache;
 mod kernel_enqueue;
 
 // #[cfg(unified_cl)]
