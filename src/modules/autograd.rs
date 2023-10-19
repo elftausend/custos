@@ -226,7 +226,7 @@ where
 mod tests {
     use core::any::Any;
 
-    use crate::{Base, Buffer, Cached, Device, HasId, Retriever, Shape, TapeActions, CPU};
+    use crate::{Base, Buffer, Cached, Device, HasId, Retriever, Shape, TapeActions, CPU, Module, Retrieve, MayTapeActions};
 
     use super::Autograd;
 
@@ -365,5 +365,26 @@ mod tests {
             .get_mut::<f32, (), _>(&device, buf.id());
 
         buf.grad();
+    }
+
+    #[cfg(feature = "autograd")]
+    pub trait UnaryByMods<T, Mods> {
+       fn unary_ew(&self, mods: &Mods); 
+    }
+
+    #[cfg(feature = "autograd")]
+    impl<T, Mods: MayTapeActions> UnaryByMods<T, Mods> for CPU {
+        fn unary_ew(&self, mods: &Mods) {
+            // mods.add_grad_fn(|grads| {
+
+            // });
+        }
+    }
+
+    #[test]
+    fn test_autograd_by_separate_module() {
+        let autograd = <Autograd<Base> as Module<CPU>>::new();
+        let device = CPU::<Base>::new();
+
     }
 }

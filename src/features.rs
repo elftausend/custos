@@ -93,7 +93,7 @@ pub trait TapeActions {
         grad_fn: impl Fn(&mut crate::Gradients) + 'static,
     ) where
         // T: 'static,
-        Self: Device + 'static,
+        Self: 'static,
     {
         if let Some(mut tape) = self.tape_mut() {
             // the type T must match for every Id!
