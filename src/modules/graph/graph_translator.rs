@@ -8,9 +8,9 @@ use super::opt_graph::OptGraph;
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct GraphTranslator {
     pub buf_id_to_idx: HashMap<UniqueId, usize, BuildHasherDefault<NoHasher>>,
-    added_to_graph: HashSet<HashLocation<'static>>,
+    pub added_to_graph: HashSet<HashLocation<'static>>,
     pub next_idx: usize,
-    opt_graph: OptGraph,
+    pub opt_graph: OptGraph,
 }
 
 impl GraphTranslator {
@@ -33,11 +33,16 @@ impl GraphTranslator {
 
     #[track_caller]
     pub fn add_leaf(&mut self, len: usize) {
-        self.add_node(len, &());
+        self.opt_graph.add_node(len, vec![]);
+        self.next_idx = self.opt_graph.nodes.len();
     }
 
     #[track_caller]
-    pub fn add_node<const NUM_PARENTS: usize>(&mut self, len: usize, deps: &impl Parents<NUM_PARENTS>) {
+    pub fn add_node<const NUM_PARENTS: usize>(
+        &mut self,
+        len: usize,
+        deps: &impl Parents<NUM_PARENTS>,
+    ) {
         self.add_node_type(|graph_trans| {
             let deps = deps
                 .ids()

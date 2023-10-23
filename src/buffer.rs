@@ -76,6 +76,7 @@ impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
     }
 
     #[inline]
+    #[track_caller]
     fn from_new_alloc(device: &'a D, data: D::Data<T, S>) -> Self
     where
         D: OnNewBuffer<T, D, S>,
