@@ -1,6 +1,6 @@
 use crate::{Buffer, Device, HasId, Id, Shape};
 
-pub trait Parents<const N: usize> {
+pub trait Parents<const N: usize>: Copy {
     fn ids(&self) -> [Id; N];
 }
 

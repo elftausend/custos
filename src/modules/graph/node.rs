@@ -32,6 +32,9 @@ impl Node {
     /// ```
     #[inline]
     pub fn is_leaf(&self) -> bool {
-        self.idx == self.deps[0] && self.idx == self.deps[1]
+        if self.deps.is_empty() {
+            return true;
+        }
+        self.deps.iter().all(|dep| *dep == self.idx)
     }
 }

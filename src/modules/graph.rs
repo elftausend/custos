@@ -1,15 +1,17 @@
 mod add_graph;
-mod graph_struct2;
+mod opt_graph;
 mod node;
+mod graph_translator;
 
 use core::cell::RefCell;
 
 use crate::{
-    pass_down_add_operation, pass_down_exec_now, pass_down_exec_now_module,
+    pass_down_add_operation, pass_down_exec_now_module,
     pass_down_unified_mem_chain, Buffer, Device, HasId, Module, OnDropBuffer, OnNewBuffer, Shape, pass_down_use_gpu_or_cpu, Retrieve, PtrConv, Parents, Alloc,
 };
 
-use self::graph_struct2::GraphTranslator;
+use self::graph_translator::GraphTranslator;
+
 
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct Graph<Mods> {
@@ -64,7 +66,14 @@ impl<T: 'static, Mods: Retrieve<D, T>, D: PtrConv + 'static> Retrieve<D, T> for 
         S: Shape,
         D: Alloc<T>,
     {
-        self.modules.retrieve(device, len, parents)
+        let data = self.modules.retrieve(device, len, parents);
+        let mut graph_trans = self.graph_trans.borrow_mut();
+
+        let next_idx = graph_trans.next_idx;
+        graph_trans.buf_id_to_idx.insert(data.id().id, next_idx);
+
+        graph_trans.add_node(len, &parents);
+        data
     }
 
     #[inline]

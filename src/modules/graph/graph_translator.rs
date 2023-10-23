@@ -1,38 +1,13 @@
 use core::{hash::BuildHasherDefault, panic::Location};
 use std::collections::{HashMap, HashSet};
 
-use crate::{HashLocation, Id, LocationHasher, NoHasher, Parents, UniqueId};
+use crate::{HashLocation, NoHasher, Parents, UniqueId};
 
-use super::node::Node;
-
-#[derive(Debug, Clone, PartialEq, Eq, Default)]
-pub struct OptGraph {
-    pub nodes: Vec<Node>,
-}
-
-impl OptGraph {
-    /// Adds a leaf node to the graph.
-    pub fn add_leaf(&mut self, len: usize) {
-        let idx = self.nodes.len();
-        let node = Node {
-            idx,
-            deps: vec![],
-            len,
-        };
-        self.nodes.push(node);
-    }
-
-    /// Adds a node to the graph using lhs_idx and rhs_idx as dependencies.
-    pub fn add_node(&mut self, len: usize, deps: Vec<usize>) {
-        let idx = self.nodes.len();
-        let node = Node { idx, deps, len };
-        self.nodes.push(node);
-    }
-}
+use super::opt_graph::OptGraph;
 
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct GraphTranslator {
-    pub buf_id_to_idx: HashMap<UniqueId, usize>,
+    pub buf_id_to_idx: HashMap<UniqueId, usize, BuildHasherDefault<NoHasher>>,
     added_to_graph: HashSet<HashLocation<'static>>,
     pub next_idx: usize,
     opt_graph: OptGraph,
@@ -58,11 +33,11 @@ impl GraphTranslator {
 
     #[track_caller]
     pub fn add_leaf(&mut self, len: usize) {
-        self.add_node_type(|graph_trans| graph_trans.opt_graph.add_leaf(len));
+        self.add_node(len, &());
     }
 
     #[track_caller]
-    pub fn add_node(&mut self, len: usize, deps: impl Parents<2>) {
+    pub fn add_node<const NUM_PARENTS: usize>(&mut self, len: usize, deps: &impl Parents<NUM_PARENTS>) {
         self.add_node_type(|graph_trans| {
             let deps = deps
                 .ids()
