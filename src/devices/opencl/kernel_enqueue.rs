@@ -1,5 +1,8 @@
 use crate::{number::Number, Buffer, OnDropBuffer, OpenCL, Shape};
-use min_cl::{api::{enqueue_nd_range_kernel, set_kernel_arg, OCLErrorKind}, CLDevice};
+use min_cl::{
+    api::{enqueue_nd_range_kernel, set_kernel_arg, OCLErrorKind},
+    CLDevice,
+};
 use std::{ffi::c_void, mem::size_of};
 
 use super::CLPtr;

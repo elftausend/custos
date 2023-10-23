@@ -1,12 +1,20 @@
 mod add_graph;
-mod node;
 mod graph_struct2;
+mod node;
 
-use crate::Module;
+use core::cell::RefCell;
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Default)]
+use crate::{
+    pass_down_add_operation, pass_down_exec_now, pass_down_exec_now_module,
+    pass_down_unified_mem_chain, Buffer, Device, HasId, Module, OnDropBuffer, OnNewBuffer, Shape, pass_down_use_gpu_or_cpu, Retrieve, PtrConv, Parents, Alloc,
+};
+
+use self::graph_struct2::GraphTranslator;
+
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct Graph<Mods> {
     modules: Mods,
+    graph_trans: RefCell<GraphTranslator>,
 }
 
 impl<Mods: Module<D>, D> Module<D> for Graph<Mods> {
@@ -14,10 +22,61 @@ impl<Mods: Module<D>, D> Module<D> for Graph<Mods> {
 
     fn new() -> Self::Module {
         Graph {
-            modules: Mods::new()
+            modules: Mods::new(),
+            graph_trans: Default::default(),
         }
     }
 }
+
+impl<Mods: OnNewBuffer<T, D, S>, T, D: Device, S: Shape> OnNewBuffer<T, D, S> for Graph<Mods> {
+    fn on_new_buffer(&self, _device: &D, new_buf: &crate::Buffer<T, D, S>) {
+        let mut graph_trans = self.graph_trans.borrow_mut();
+        let next_idx = graph_trans.next_idx;
+
+        graph_trans.buf_id_to_idx.insert(new_buf.id().id, next_idx);
+        graph_trans.add_leaf(new_buf.len());
+
+        self.modules.on_new_buffer(_device, new_buf)
+    }
+}
+
+impl<Mods: OnDropBuffer> OnDropBuffer for Graph<Mods> {
+    #[inline]
+    fn on_drop_buffer<T, D: Device, S: Shape>(&self, device: &D, buf: &crate::Buffer<T, D, S>) {
+        self.modules.on_drop_buffer(device, buf)
+    }
+}
+
+pass_down_add_operation!(Graph);
+pass_down_exec_now_module!(Graph);
+pass_down_unified_mem_chain!(Graph);
+pass_down_use_gpu_or_cpu!(Graph);
+
+impl<T: 'static, Mods: Retrieve<D, T>, D: PtrConv + 'static> Retrieve<D, T> for Graph<Mods> {
+    #[inline]
+    fn retrieve<S, const NUM_PARENTS: usize>(
+        &self,
+        device: &D,
+        len: usize,
+        parents: impl Parents<NUM_PARENTS>,
+    ) -> <D>::Data<T, S>
+    where
+        S: Shape,
+        D: Alloc<T>,
+    {
+        self.modules.retrieve(device, len, parents)
+    }
+
+    #[inline]
+    fn on_retrieve_finish<S: Shape>(&self, retrieved_buf: &Buffer<T, D, S>)
+    where
+        D: Alloc<T>,
+    {
+        // pass down
+        self.modules.on_retrieve_finish(retrieved_buf)
+    }
+}
+
 /*
 
 use core::cell::{Ref, RefMut};

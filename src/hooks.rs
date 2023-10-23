@@ -7,5 +7,6 @@ pub trait OnDropBuffer {
 }
 
 pub trait OnNewBuffer<T, D: Device, S: Shape> {
+    #[track_caller]
     fn on_new_buffer(&self, _device: &D, _new_buf: &Buffer<T, D, S>) {}
 }

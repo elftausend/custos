@@ -204,11 +204,11 @@ pub trait UnifiedMemChain<D: Device> {
 macro_rules! pass_down_unified_mem_chain {
     ($($to_impl:ident),*) => {
         $(
-            impl<Mods: UnifiedMemChain<D>, D: Device> UnifiedMemChain<D> for $to_impl<Mods> {
+            impl<Mods: crate::UnifiedMemChain<D>, D: Device> crate::UnifiedMemChain<D> for $to_impl<Mods> {
                 fn construct_unified_buf_from_cpu_buf<'a, T, S: Shape>(
                     &self,
                     device: &'a D,
-                    no_drop_buf: Buffer<'a, T, CachedCPU, S>
+                    no_drop_buf: Buffer<'a, T, crate::CachedCPU, S>
                 ) -> $crate::Result<Buffer<'a, T, D, S>>
                 {
                     self.modules.construct_unified_buf_from_cpu_buf(device, no_drop_buf)

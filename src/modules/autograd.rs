@@ -226,7 +226,10 @@ where
 mod tests {
     use core::any::Any;
 
-    use crate::{Base, Buffer, Cached, Device, HasId, Retriever, Shape, TapeActions, CPU, Module, Retrieve, MayTapeActions};
+    use crate::{
+        Base, Buffer, Cached, Device, HasId, MayTapeActions, Module, Retrieve, Retriever, Shape,
+        TapeActions, CPU,
+    };
 
     use super::Autograd;
 
@@ -369,15 +372,13 @@ mod tests {
 
     #[cfg(feature = "autograd")]
     pub trait UnaryByMods<Mods> {
-       fn unary_ew(&self, mods: &Mods); 
+        fn unary_ew(&self, mods: &Mods);
     }
 
     #[cfg(feature = "autograd")]
     impl<Mods: MayTapeActions + 'static> UnaryByMods<Mods> for CPU {
         fn unary_ew(&self, mods: &Mods) {
-            mods.add_grad_fn(|_grads| {
-
-            });
+            mods.add_grad_fn(|_grads| {});
         }
     }
 
