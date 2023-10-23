@@ -152,13 +152,6 @@ impl<Mods> OpenCL<Mods> {
     }
 }
 
-/*impl Default for OpenCL {
-    #[inline]
-    fn default() -> Self {
-        OpenCL::<Base>::new(chosen_cl_idx()).expect("A valid OpenCL device index should be set via the environment variable 'CUSTOS_CL_DEVICE_IDX'.")
-    }
-}*/
-
 impl<Mods: OnDropBuffer> Device for OpenCL<Mods> {
     type Data<U, S: Shape> = CLPtr<U>;
     type Error = ();
@@ -188,7 +181,7 @@ impl<Mods: OnDropBuffer, OtherMods: OnDropBuffer> PtrConv<OpenCL<OtherMods>> for
     }
 }
 
-impl Debug for OpenCL {
+impl<Mods> Debug for OpenCL<Mods> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
