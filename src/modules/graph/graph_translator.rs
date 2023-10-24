@@ -8,6 +8,8 @@ use super::opt_graph::OptGraph;
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct GraphTranslator {
     pub buf_id_to_idx: HashMap<UniqueId, usize, BuildHasherDefault<NoHasher>>,
+    // As only non-leafs can be located in a CacheTrace, this contains buffers created via retrieving.
+    pub idx_to_buf_location: HashMap<usize, HashLocation<'static>>,
     pub added_to_graph: HashSet<HashLocation<'static>>,
     pub next_idx: usize,
     pub opt_graph: OptGraph,

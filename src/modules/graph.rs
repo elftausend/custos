@@ -2,7 +2,7 @@ mod graph_translator;
 mod node;
 mod opt_graph;
 
-use core::cell::RefCell;
+use core::{cell::RefCell, panic::Location};
 
 use crate::{
     pass_down_add_operation, pass_down_exec_now_module, pass_down_unified_mem_chain,
@@ -76,6 +76,7 @@ impl<T: 'static, Mods: Retrieve<D, T>, D: PtrConv + 'static> Retrieve<D, T> for 
 
         let next_idx = graph_trans.next_idx;
         graph_trans.buf_id_to_idx.insert(data.id().id, next_idx);
+        graph_trans.idx_to_buf_location.insert(next_idx, Location::caller().into());
 
         graph_trans.add_node(len, &parents);
         data
@@ -93,81 +94,10 @@ impl<T: 'static, Mods: Retrieve<D, T>, D: PtrConv + 'static> Retrieve<D, T> for 
 
 /*
 
-use core::cell::{Ref, RefMut};
-
-#[cfg(feature = "opt-cache")]
-use crate::{CacheReturn, DeviceError};
-
-// pub use add_graph::*;
-pub use node::*;
-
-mod node;
-
-#[cfg(not(feature = "no-std"))]
-mod graph_struct;
-
-#[cfg(not(feature = "no-std"))]
-pub use graph_struct::*;
-
-/// Returns the next index for a [`Node`].
-pub trait NodeIdx {
-    /// Returns the next index for a [`Node`].
-    #[inline]
-    fn idx(nodes: &[Node]) -> usize {
-        nodes.len()
-    }
-}
-
-/// Uses the global count as the next index for a [`Node`].
-#[derive(Debug, Default)]
-pub struct GlobalCount;
-
-#[cfg(feature = "no-std")]
-impl NodeIdx for GlobalCount {}
-
-/// A dummy graph for no-std.
-#[cfg(feature = "no-std")]
-pub struct Graph<IdxFrom: NodeIdx> {
-    _p: core::marker::PhantomData<IdxFrom>,
-}
-
-#[cfg(feature = "no-std")]
-impl<IdxFrom: NodeIdx> Graph<IdxFrom> {
-    /// This function will panic. Disable the `no-std` feature to use this function.
-    #[inline]
-    pub fn add_leaf(&mut self, _len: usize) -> Node {
-        unimplemented!("Not available in no-std mode")
-    }
-
-    /// This function will panic. Disable the `no-std` feature to use this function.
-    #[inline]
-    pub fn add_node(&mut self, _len: usize, _lhs_idx: usize, _rhs_idx: usize) -> Node {
-        unimplemented!("Not available in no-std mode")
-    }
-}
-
-/// A `CacheTrace` is a list of nodes that shows which [`Buffer`](crate::Buffer)s could use the same cache.
-#[cfg(not(feature = "no-std"))]
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
-pub struct CacheTrace {
-    /// This identifier is the common cache index / ident. All the other idents in `use_cache_ids` can use this ident to share memory.
-    pub cache_id: Ident,
-    /// The identifiers of the nodes that can use the common cache entry of `cache_id`.
-    pub use_cache_ids: Vec<Ident>,
-}
-
-/// Returns a mutable reference to the graph.
-pub trait GraphReturn<IdxFrom: NodeIdx = GlobalCount> {
-    /// Returns a reference to [`Graph`].
-    fn graph(&self) -> Ref<Graph<IdxFrom>>;
-    /// Returns a mutable reference to [`Graph`].
-    fn graph_mut(&self) -> RefMut<Graph<IdxFrom>>;
-}
-
-/// Optimizes [`Graph`] and [`Cache`](crate::Cache) to achive a lower memory footprint.
+/// Optimizes [`Graph`] and [`Cache`](crate::Cache) to achieve a lower memory footprint.
 #[cfg(feature = "opt-cache")]
 pub trait GraphOpt {
-    /// Optimizes [`Graph`] and [`Cache`](crate::Cache) to achive a lower memory footprint.
+    /// Optimizes [`Graph`] and [`Cache`](crate::Cache) to achieve a lower memory footprint.
     fn optimize(&self) -> crate::Result<()>
     where
         Self: GraphReturn + CacheReturn + crate::PtrConv,
