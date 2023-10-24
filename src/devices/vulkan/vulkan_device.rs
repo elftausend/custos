@@ -3,7 +3,7 @@ use ash::vk::BufferUsageFlags;
 use super::{context::Context, launch_shader, AsVkShaderArgument, ShaderCache, VkArray};
 use crate::{
     flag::AllocFlag, impl_buffer_hook_traits, impl_retriever, pass_down_use_gpu_or_cpu, Alloc,
-    Base, Buffer, Device, Module, OnDropBuffer, PtrConv, Setup, Shape,
+    Base, Buffer, Device, Module, OnDropBuffer, PtrConv, Setup, Shape, pass_down_optimize_mem_graph,
 };
 use core::cell::RefCell;
 use std::rc::Rc;
@@ -41,6 +41,7 @@ impl<Mods> Vulkan<Mods> {
 impl_retriever!(Vulkan);
 impl_buffer_hook_traits!(Vulkan);
 pass_down_use_gpu_or_cpu!(Vulkan);
+pass_down_optimize_mem_graph!(Vulkan);
 
 impl<Mods: OnDropBuffer> Device for Vulkan<Mods> {
     type Data<T, S: Shape> = VkArray<T>;

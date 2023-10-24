@@ -6,7 +6,7 @@ use core::{
 use crate::{
     cpu::CPUPtr, flag::AllocFlag, impl_buffer_hook_traits, impl_retriever, Alloc, Base, Buffer,
     CloneBuf, Device, DevicelessAble, HasModules, Module, OnDropBuffer, OnNewBuffer, PtrConv,
-    Setup, Shape,
+    Setup, Shape, pass_down_optimize_mem_graph,
 };
 
 pub trait IsCPU {}
@@ -109,6 +109,8 @@ impl<T, Mods: OnDropBuffer> Alloc<T> for CPU<Mods> {
         unsafe { CPUPtr::from_ptr(ptr, len, AllocFlag::None) }
     }
 }
+
+pass_down_optimize_mem_graph!(CPU);
 
 #[cfg(feature = "lazy")]
 impl<Mods> crate::LazyRun for CPU<Mods> {}

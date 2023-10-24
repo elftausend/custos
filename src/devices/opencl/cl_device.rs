@@ -6,7 +6,7 @@ use super::{enqueue_kernel, AsClCvoidPtr, CLPtr};
 use crate::flag::AllocFlag;
 use crate::{
     impl_buffer_hook_traits, impl_retriever, pass_down_use_gpu_or_cpu, Alloc, Base, Buffer, Cached,
-    CachedCPU, CloneBuf, Device, Module, OnDropBuffer, Setup, CPU,
+    CachedCPU, CloneBuf, Device, Module, OnDropBuffer, Setup, CPU, pass_down_optimize_mem_graph,
 };
 use crate::{PtrConv, Shape};
 
@@ -266,6 +266,7 @@ impl<Mods> ForkSetup for OpenCL<Mods> {
 }
 
 pass_down_use_gpu_or_cpu!(OpenCL);
+pass_down_optimize_mem_graph!(OpenCL);
 
 impl<Mods: crate::RunModule<Self>> crate::Run for OpenCL<Mods> {
     #[inline]

@@ -227,7 +227,7 @@ mod tests {
     use core::any::Any;
 
     use crate::{
-        Base, Buffer, Cached, Device, HasId, MayTapeActions, Module, Retrieve, Retriever, Shape,
+        Base, Buffer, Cached, Device, HasId, MayTapeActions, Module, Retriever, Shape,
         TapeActions, CPU,
     };
 
