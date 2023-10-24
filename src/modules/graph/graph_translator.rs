@@ -16,11 +16,6 @@ pub struct GraphTranslator {
 }
 
 impl GraphTranslator {
-    #[inline]
-    pub fn new() -> Self {
-        Self::default()
-    }
-
     #[track_caller]
     pub fn add_node_type(&mut self, mut node_type_fn: impl FnMut(&mut GraphTranslator)) {
         if self.added_to_graph.contains(&Location::caller().into()) {

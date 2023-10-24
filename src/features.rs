@@ -204,11 +204,11 @@ pub trait UnifiedMemChain<D: Device> {
 macro_rules! pass_down_unified_mem_chain {
     ($($to_impl:ident),*) => {
         $(
-            impl<Mods: crate::UnifiedMemChain<D>, D: Device> crate::UnifiedMemChain<D> for $to_impl<Mods> {
+            impl<Mods: $crate::UnifiedMemChain<D>, D: Device> $crate::UnifiedMemChain<D> for $to_impl<Mods> {
                 fn construct_unified_buf_from_cpu_buf<'a, T, S: Shape>(
                     &self,
                     device: &'a D,
-                    no_drop_buf: Buffer<'a, T, crate::CachedCPU, S>
+                    no_drop_buf: Buffer<'a, T, $crate::CachedCPU, S>
                 ) -> $crate::Result<Buffer<'a, T, D, S>>
                 {
                     self.modules.construct_unified_buf_from_cpu_buf(device, no_drop_buf)
@@ -280,8 +280,8 @@ pub trait OptimizeMemGraph {
 #[macro_export]
 macro_rules! pass_down_optimize_mem_graph {
     ($to_impl:ident) => {
-        impl<Mods: crate::OptimizeMemGraph> crate::OptimizeMemGraph for $to_impl<Mods> {
-            fn optimize_mem_graph(&self, cache_traces: Option<&[crate::TranslatedCacheTrace]>) {
+        impl<Mods: $crate::OptimizeMemGraph> $crate::OptimizeMemGraph for $to_impl<Mods> {
+            fn optimize_mem_graph(&self, cache_traces: Option<&[$crate::TranslatedCacheTrace]>) {
                 self.modules.optimize_mem_graph(cache_traces)
             }
         }
