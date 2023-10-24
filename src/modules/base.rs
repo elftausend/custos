@@ -1,6 +1,6 @@
 use crate::{
     flag::AllocFlag, AddOperation, Alloc, Buffer, Device, ExecNow, HashLocation, Module,
-    OnDropBuffer, OnNewBuffer, Parents, Retrieve, Setup, Shape,
+    OnDropBuffer, OnNewBuffer, OptimizeMemGraph, Parents, Retrieve, Setup, Shape,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
@@ -75,6 +75,11 @@ impl crate::UseGpuOrCpu for Base {
             is_result_cached: false,
         }
     }
+}
+
+impl OptimizeMemGraph for Base {
+    #[inline]
+    fn optimize_mem_graph(&self, _cache_traces: Option<&[crate::TranslatedCacheTrace]>) {}
 }
 
 #[cfg(feature = "autograd")]

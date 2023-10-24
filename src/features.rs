@@ -285,6 +285,5 @@ macro_rules! pass_down_optimize_mem_graph {
                 self.modules.optimize_mem_graph(cache_traces)
             }
         }
-    }
+    };
 }
- 

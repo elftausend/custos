@@ -5,8 +5,9 @@ use min_cl::api::{create_buffer, enqueue_full_copy_buffer, MemFlags};
 use super::{enqueue_kernel, AsClCvoidPtr, CLPtr};
 use crate::flag::AllocFlag;
 use crate::{
-    impl_buffer_hook_traits, impl_retriever, pass_down_use_gpu_or_cpu, Alloc, Base, Buffer, Cached,
-    CachedCPU, CloneBuf, Device, Module, OnDropBuffer, Setup, CPU, pass_down_optimize_mem_graph,
+    impl_buffer_hook_traits, impl_retriever, pass_down_optimize_mem_graph,
+    pass_down_use_gpu_or_cpu, Alloc, Base, Buffer, Cached, CachedCPU, CloneBuf, Device, Module,
+    OnDropBuffer, Setup, CPU,
 };
 use crate::{PtrConv, Shape};
 

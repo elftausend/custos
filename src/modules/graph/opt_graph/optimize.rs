@@ -493,35 +493,40 @@ mod tests {
     #[cfg(feature = "cpu")]
     #[test]
     fn test_from_retrieve_sliced_chained_perf_example_optimize_cache() {
-        /*
-        use crate::{Buffer, CacheReturn, Device, GraphOpt, CPU};
+        use crate::{Base, Buffer, Cached, Device, Graph, HasId, OptimizeMemGraph, Retriever, CPU};
 
-        let device = CPU::<Base>::new();
+        let device = CPU::<Graph<Cached<Base>>>::new();
 
         // idx: 0, deps: []
-        let x: Buffer = device.buffer([1.; 1000]);
+        let x: Buffer<f32, _> = device.buffer([1.; 1000]);
         // idx: 1, deps: []
-        let b: Buffer = device.buffer([1.1; 1000]);
+        let b: Buffer<f32, _> = device.buffer([1.1; 1000]);
 
-        // idx: 2, deps: [0, 0]
-        let squared = device.retrieve::<(), 2>(1000, (&x, &x));
-        // idx: 3, deps: [1, 0]
-        let add = device.retrieve::<f32, ()>(1000, (&b, &x));
-        // idx: 4, deps: [3, 1]
-        let mul_b = device.retrieve::<f32, ()>(1000, (&add, &b));
-        // idx: 5, deps: [2, 0]
-        let mul = device.retrieve::<f32, ()>(1000, (&squared, &x));
-        // idx: 6, deps: [5, 4]
-        let out = device.retrieve::<f32, ()>(1000, (&mul, &mul_b));
+        for i in 0..2 {
+            // idx: 2, deps: [0, 0]
+            let squared: Buffer<f32, _> = device.retrieve::<(), 2>(1000, (&x, &x));
+            // idx: 3, deps: [1, 0]
+            let add: Buffer<f32, _> = device.retrieve::<(), 2>(1000, (&b, &x));
+            // idx: 4, deps: [3, 1]
+            let mul_b: Buffer<f32, _> = device.retrieve::<(), 2>(1000, (&add, &b));
+            // idx: 5, deps: [2, 0]
+            let mul: Buffer<f32, _> = device.retrieve::<(), 2>(1000, (&squared, &x));
+            // idx: 6, deps: [5, 4]
+            let out: Buffer<f32, _> = device.retrieve::<(), 2>(1000, (&mul, &mul_b));
 
-        device.optimize().unwrap();
-        let nodes = device.cache().nodes.clone();
+            if i == 0 {
+                assert_ne!(squared.id(), mul.id());
+            }
 
-        assert_eq!(nodes.get(&squared.id()), nodes.get(&mul.id()));
-        assert_eq!(nodes.get(&squared.id()), nodes.get(&out.id()));
-
-        assert_eq!(nodes.get(&add.id()), nodes.get(&mul_b.id()));
-        */
+            if i == 1 {
+                assert_eq!(squared.id(), mul.id());
+                assert_eq!(squared.id(), out.id());
+                
+                assert_eq!(add.id(), mul_b.id());
+                break;
+            }
+            device.optimize_mem_graph(None);
+        }
     }
 
     #[test]

@@ -227,8 +227,8 @@ mod tests {
     use core::any::Any;
 
     use crate::{
-        Base, Buffer, Cached, Device, HasId, MayTapeActions, Module, Retriever, Shape,
-        TapeActions, CPU,
+        Base, Buffer, Cached, Device, HasId, MayTapeActions, Module, Retriever, Shape, TapeActions,
+        CPU,
     };
 
     use super::Autograd;

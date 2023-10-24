@@ -2,8 +2,9 @@ use ash::vk::BufferUsageFlags;
 
 use super::{context::Context, launch_shader, AsVkShaderArgument, ShaderCache, VkArray};
 use crate::{
-    flag::AllocFlag, impl_buffer_hook_traits, impl_retriever, pass_down_use_gpu_or_cpu, Alloc,
-    Base, Buffer, Device, Module, OnDropBuffer, PtrConv, Setup, Shape, pass_down_optimize_mem_graph,
+    flag::AllocFlag, impl_buffer_hook_traits, impl_retriever, pass_down_optimize_mem_graph,
+    pass_down_use_gpu_or_cpu, Alloc, Base, Buffer, Device, Module, OnDropBuffer, PtrConv, Setup,
+    Shape,
 };
 use core::cell::RefCell;
 use std::rc::Rc;

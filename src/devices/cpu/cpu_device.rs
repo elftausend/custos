@@ -4,9 +4,9 @@ use core::{
 };
 
 use crate::{
-    cpu::CPUPtr, flag::AllocFlag, impl_buffer_hook_traits, impl_retriever, Alloc, Base, Buffer,
-    CloneBuf, Device, DevicelessAble, HasModules, Module, OnDropBuffer, OnNewBuffer, PtrConv,
-    Setup, Shape, pass_down_optimize_mem_graph,
+    cpu::CPUPtr, flag::AllocFlag, impl_buffer_hook_traits, impl_retriever,
+    pass_down_optimize_mem_graph, Alloc, Base, Buffer, CloneBuf, Device, DevicelessAble,
+    HasModules, Module, OnDropBuffer, OnNewBuffer, PtrConv, Setup, Shape,
 };
 
 pub trait IsCPU {}

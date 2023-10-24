@@ -6,8 +6,8 @@ use core::{
 use crate::{
     cuda::{api::cumalloc, CUDAPtr},
     flag::AllocFlag,
-    impl_buffer_hook_traits, impl_retriever, Alloc, Base, Buffer, CloneBuf, Device,
-    Module as CombModule, OnDropBuffer, OnNewBuffer, PtrConv, Setup, Shape, pass_down_optimize_mem_graph,
+    impl_buffer_hook_traits, impl_retriever, pass_down_optimize_mem_graph, Alloc, Base, Buffer,
+    CloneBuf, Device, Module as CombModule, OnDropBuffer, OnNewBuffer, PtrConv, Setup, Shape,
 };
 
 use super::{
