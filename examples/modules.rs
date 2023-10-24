@@ -57,7 +57,10 @@ where
                 add_ew_grad_slice(lhs_grad, rhs_grad, out_grad) // execute grad function
             });
         }
-        self.add_op(&mut out, |out| Ok(add_ew_slice(lhs, rhs, out)));
+        self.add_op(&mut out, |out| {
+            add_ew_slice(lhs, rhs, out);
+            Ok(())
+        });
         Ok(out)
     }
 }

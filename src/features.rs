@@ -160,7 +160,7 @@ macro_rules! pass_down_exec_now_module {
             fn exec_now(
                 &self,
                 range_bounds: impl core::ops::RangeBounds<usize>,
-            ) -> crate::Result<()> {
+            ) -> $crate::Result<()> {
                 self.modules.exec_now(range_bounds)
             }
         }
@@ -175,7 +175,7 @@ macro_rules! pass_down_exec_now {
             fn exec_now(
                 &self,
                 range_bounds: impl core::ops::RangeBounds<usize>,
-            ) -> crate::Result<()> {
+            ) -> $crate::Result<()> {
                 self.modules.exec_now(range_bounds)
             }
         }

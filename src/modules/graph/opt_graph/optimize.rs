@@ -317,7 +317,7 @@ mod tests {
         let b2 = graph.add_leaf(64);
         let w3 = graph.add_leaf(64 * 64);
         let b3 = graph.add_leaf(64);
-        let w4 = graph.add_leaf(64 * 1);
+        let w4 = graph.add_leaf(64);
         let b4 = graph.add_leaf(1);
 
         let a1 = graph.add_node(100 * 64, vec![inputs, w1]);
@@ -404,7 +404,7 @@ mod tests {
         let b2 = Buffer::from((&device, [1; 64]));
         let w3 = Buffer::from((&device, [1; 64 * 64]));
         let b3 = Buffer::from((&device, [1; 64]));
-        let w4 = Buffer::from((&device, [1; 64 * 1]));
+        let w4 = Buffer::from((&device, [1; 64]));
         let b4 = Buffer::from((&device, [1; 1]));
 
         let inputs = Buffer::from((&device, [1; 10 * 100]));
@@ -420,8 +420,8 @@ mod tests {
         let a5: Buffer<i32, _> = device.retrieve::<(), 2>(100 * 64, (&a4, &w3));
         let a6: Buffer<i32, _> = device.retrieve::<(), 2>(100 * 64, (&a5, &b3));
         let a6: Buffer<i32, _> = device.retrieve::<(), 2>(100 * 64, (&a6, &a6));
-        let a7: Buffer<i32, _> = device.retrieve::<(), 2>(100 * 1, (&a6, &w4));
-        let a8: Buffer<i32, _> = device.retrieve::<(), 2>(100 * 1, (&a7, &b4));
+        let a7: Buffer<i32, _> = device.retrieve::<(), 2>(100, (&a6, &w4));
+        let a8: Buffer<i32, _> = device.retrieve::<(), 2>(100, (&a7, &b4));
         let _loss: Buffer<i32, _> = device.retrieve::<(), 2>(100, (&a8, &targets));
 
         let cts = device

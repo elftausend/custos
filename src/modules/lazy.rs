@@ -233,7 +233,10 @@ mod tests {
         #[inline]
         fn add(&self, lhs: &Buffer<T, D, S>, rhs: &Buffer<T, D, S>) -> Buffer<T, Self, S> {
             let mut out = self.retrieve(lhs.len(), ());
-            self.add_op(&mut out, |out| Ok(add_ew_slice(lhs, rhs, out)));
+            self.add_op(&mut out, |out| {
+                add_ew_slice(lhs, rhs, out);
+                Ok(())
+            });
             out
         }
     }
@@ -325,7 +328,10 @@ mod tests {
         let device = CPU::<Lazy<Base>>::new();
         let mut out: Buffer<i32, _, ()> = device.retrieve(4, ());
 
-        device.add_op(&mut out, |out| Ok(out.clear()));
+        device.add_op(&mut out, |out| {
+            out.clear();
+            Ok(())
+        });
 
         {
             let a = Buffer::<i32, _, ()>::from_slice(&device, &[1, 2, 3, 4]);
@@ -351,7 +357,10 @@ mod tests {
         let device = CPU::<Lazy<Base>>::new();
         let mut out: Buffer<i32, _, ()> = device.retrieve(4, ());
 
-        device.add_op(&mut out, |out| Ok(out.clear()));
+        device.add_op(&mut out, |out| {
+            out.clear();
+            Ok(())
+        });
 
         {
             let a = Buffer::<i32, _, ()>::from_slice(&device, &[1, 2, 3, 4]);
@@ -380,7 +389,10 @@ mod tests {
 
         let mut out: Buffer<i32, _> = device.retrieve(4, ());
 
-        device.add_op(&mut out, |out| Ok(out.clear()));
+        device.add_op(&mut out, |out| {
+            out.clear();
+            Ok(())
+        });
 
         {
             let a = Buffer::<i32, _, ()>::from_slice(&device, &[1, 2, 3, 4]);

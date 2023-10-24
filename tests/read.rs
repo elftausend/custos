@@ -1,5 +1,5 @@
 use custos::prelude::*;
-use std::mem::size_of;
+
 
 #[cfg(feature = "cuda")]
 #[test]
