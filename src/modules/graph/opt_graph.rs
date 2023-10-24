@@ -1,5 +1,7 @@
 mod optimize;
 
+pub use optimize::*;
+
 use super::node::Node;
 
 #[derive(Debug, Clone, PartialEq, Eq, Default)]

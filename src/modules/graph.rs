@@ -2,12 +2,14 @@ mod graph_translator;
 mod node;
 mod opt_graph;
 
+pub use opt_graph::*;
+
 use core::{cell::RefCell, panic::Location};
 
 use crate::{
     pass_down_add_operation, pass_down_exec_now_module, pass_down_unified_mem_chain,
     pass_down_use_gpu_or_cpu, Alloc, Buffer, Device, HasId, Module, OnDropBuffer, OnNewBuffer,
-    Parents, PtrConv, Retrieve, Setup, Shape,
+    OptimizeMemGraph, Parents, PtrConv, Retrieve, Setup, Shape,
 };
 
 use self::graph_translator::GraphTranslator;
@@ -32,6 +34,33 @@ impl<Mods: Module<D>, D> Module<D> for Graph<Mods> {
 impl<Mods, D> Setup<D> for Graph<Mods> {
     fn setup(_device: &mut D) -> crate::Result<()> {
         Ok(())
+    }
+}
+
+impl<Mods: OptimizeMemGraph> OptimizeMemGraph for Graph<Mods> {
+    fn optimize_mem_graph(&self, cache_traces: Option<&[TranslatedCacheTrace]>) {
+        match cache_traces {
+            Some(cache_traces) => self.modules.optimize_mem_graph(Some(cache_traces)),
+            None => {
+                let graph_trans = self.graph_trans.borrow();
+                let idx_to_loc = &graph_trans.idx_to_buf_location;
+                let cache_traces = graph_trans.opt_graph.cache_traces();
+
+                let cache_traces = cache_traces
+                    .into_iter()
+                    .map(|cache_trace| TranslatedCacheTrace {
+                        cache_idx: *idx_to_loc.get(&cache_trace.cache_idx).unwrap(),
+                        use_cache_idxs: cache_trace
+                            .use_cache_idxs
+                            .into_iter()
+                            .map(|cache_idx| *idx_to_loc.get(&cache_idx).unwrap())
+                            .collect(),
+                    })
+                    .collect::<Vec<_>>();
+
+                self.modules.optimize_mem_graph(Some(&cache_traces))
+            }
+        }
     }
 }
 
@@ -76,7 +105,9 @@ impl<T: 'static, Mods: Retrieve<D, T>, D: PtrConv + 'static> Retrieve<D, T> for 
 
         let next_idx = graph_trans.next_idx;
         graph_trans.buf_id_to_idx.insert(data.id().id, next_idx);
-        graph_trans.idx_to_buf_location.insert(next_idx, Location::caller().into());
+        graph_trans
+            .idx_to_buf_location
+            .insert(next_idx, Location::caller().into());
 
         graph_trans.add_node(len, &parents);
         data

@@ -2,7 +2,7 @@
 use core::cell::{Ref, RefMut};
 use core::ops::RangeBounds;
 
-use crate::{Parents, Shape, CPU};
+use crate::{Parents, Shape, TranslatedCacheTrace, CPU};
 
 #[cfg(feature = "cached")]
 use crate::{Base, CachedModule};
@@ -271,4 +271,8 @@ pub trait UseGpuOrCpu {
         cpu_op: impl FnMut(),
         gpu_op: impl FnMut(),
     ) -> GpuOrCpuInfo;
+}
+
+pub trait OptimizeMemGraph {
+    fn optimize_mem_graph(&self, cache_traces: Option<&[TranslatedCacheTrace]>);
 }

@@ -1,8 +1,8 @@
 use core::{cell::RefCell, marker::PhantomData};
 
 use crate::{
-    AddOperation, Alloc, Buffer, Cache, Device, ExecNow, Module, OnDropBuffer, OnNewBuffer,
-    Parents, PtrConv, Retrieve, RunModule, Setup, Shape,
+    AddOperation, Alloc, Buffer, Cache, Device, DeviceError, ExecNow, Module, OnDropBuffer,
+    OnNewBuffer, OptimizeMemGraph, Parents, PtrConv, Retrieve, RunModule, Setup, Shape,
 };
 
 // creator struct
@@ -147,6 +147,28 @@ impl<Mods: RunModule<D>, D, SD: Device> RunModule<D> for CachedModule<Mods, SD> 
     #[inline]
     fn run(&self, _device: &D) -> crate::Result<()> {
         self.modules.run(_device)
+    }
+}
+
+impl<Mods: OptimizeMemGraph, SD: Device> OptimizeMemGraph for CachedModule<Mods, SD> {
+    fn optimize_mem_graph(&self, cache_traces: Option<&[crate::TranslatedCacheTrace]>) {
+        let Some(cache_traces) = cache_traces else {
+            return;
+        };
+
+        let mut cache = self.cache.borrow_mut();
+        for cache_trace in cache_traces {
+            let used_to_replace = cache
+                .nodes
+                .get(&cache_trace.cache_idx)
+                .ok_or(DeviceError::GraphOptimization)
+                .unwrap() // mind unwrap
+                .clone();
+
+            for to_replace in &cache_trace.use_cache_idxs {
+                cache.nodes.insert(*to_replace, used_to_replace.clone());
+            }
+        }
     }
 }
 

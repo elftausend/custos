@@ -1,14 +1,19 @@
 use super::OptGraph;
-use crate::modules::graph::node::Node;
+use crate::{modules::graph::node::Node, HashLocation};
 use std::collections::HashSet;
 
 /// A `CacheTrace` is a list of nodes that shows which [`Buffer`](crate::Buffer)s could use the same cache.
 #[derive(Debug, PartialEq, Eq, Default)]
 pub struct CacheTrace {
     /// This identifier is the common cache index / ident. All the other idents in `use_cache_ids` can use this ident to share memory.
-    cache_idx: usize,
+    pub cache_idx: usize,
     /// The identifiers of the nodes that can use the common cache entry of `cache_id`.
-    use_cache_idxs: Vec<usize>,
+    pub use_cache_idxs: Vec<usize>,
+}
+
+pub struct TranslatedCacheTrace {
+    pub cache_idx: HashLocation<'static>,
+    pub use_cache_idxs: Vec<HashLocation<'static>>,
 }
 
 type TraceIdx = usize;
