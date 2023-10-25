@@ -123,36 +123,3 @@ impl<T: 'static, Mods: Retrieve<D, T>, D: PtrConv + 'static> Retrieve<D, T> for 
         self.modules.on_retrieve_finish(retrieved_buf)
     }
 }
-
-/*
-
-/// Optimizes [`Graph`] and [`Cache`](crate::Cache) to achieve a lower memory footprint.
-#[cfg(feature = "opt-cache")]
-pub trait GraphOpt {
-    /// Optimizes [`Graph`] and [`Cache`](crate::Cache) to achieve a lower memory footprint.
-    fn optimize(&self) -> crate::Result<()>
-    where
-        Self: GraphReturn + CacheReturn + crate::PtrConv,
-    {
-        let mut cache = self.cache_mut();
-        for trace in self.graph().cache_traces() {
-            for node in &trace.use_cache_ids {
-                // insert the common / optimized pointer in all the other nodes
-                // this deallocates the old pointers
-                let ptr = cache
-                    .nodes
-                    .get(&trace.cache_id)
-                    .ok_or(DeviceError::GraphOptimization)?
-                    .clone();
-                cache.nodes.insert(*node, ptr);
-            }
-        }
-        Ok(())
-    }
-}
-
-#[cfg(feature = "opt-cache")]
-impl<D: GraphReturn> GraphOpt for D {}
-
-
-*/
