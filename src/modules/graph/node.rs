@@ -17,7 +17,7 @@ impl Node {
     ///
     /// let node = Node {
     ///     idx: 0,
-    ///     deps: [0, 0],
+    ///     deps: vec![0, 0],
     ///     len: 10,
     /// };
     ///
@@ -25,7 +25,7 @@ impl Node {
     ///
     /// let node = Node {
     ///     idx: 1,
-    ///     deps: [0, 0],
+    ///     deps: vec![0, 0],
     ///     len: 10,
     /// };
     /// assert!(!node.is_leaf());

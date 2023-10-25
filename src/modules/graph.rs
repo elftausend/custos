@@ -3,6 +3,7 @@ mod node;
 mod opt_graph;
 
 pub use opt_graph::*;
+pub use node::Node;
 
 use core::{cell::RefCell, panic::Location};
 

@@ -95,16 +95,16 @@ impl OptGraph {
     /// let a = graph.add_leaf(10);
     /// let b = graph.add_leaf(10);
     ///     
-    /// let c = graph.add_node(10, a.idx, b.idx);
+    /// let c = graph.add_node(10, vec![a, b]);
     ///     
-    /// let d = graph.add_node(10, c.idx, c.idx);
+    /// let d = graph.add_node(10, vec![c, c]);
     ///     
-    /// let _u = graph.add_node(10, d.idx, a.idx);
+    /// let _u = graph.add_node(10, vec![d, a]);
     ///     
-    /// let _e = graph.add_node(10, d.idx, b.idx);
+    /// let _e = graph.add_node(10, vec![d, b]);
     ///     
-    /// assert!(graph.is_path_optimizable(&c));
-    /// assert!(!graph.is_path_optimizable(&d));
+    /// assert!(graph.is_path_optimizable(graph.node(c)));
+    /// assert!(!graph.is_path_optimizable(graph.node(d)));
     /// ```
     pub fn is_path_optimizable(&self, check_at: &Node) -> bool {
         if check_at.is_leaf() {
