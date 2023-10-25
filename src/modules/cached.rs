@@ -151,24 +151,22 @@ impl<Mods: RunModule<D>, D, SD: Device> RunModule<D> for CachedModule<Mods, SD> 
 }
 
 impl<Mods: OptimizeMemGraph, SD: Device> OptimizeMemGraph for CachedModule<Mods, SD> {
-    fn optimize_mem_graph(&self, cache_traces: Option<&[crate::TranslatedCacheTrace]>) {
-        let Some(cache_traces) = cache_traces else {
-            return;
-        };
+    fn optimize_mem_graph(&self, cache_traces: Option<&[crate::TranslatedCacheTrace]>) -> crate::Result<()> {
+        let cache_traces = cache_traces.ok_or(DeviceError::MissingCacheTraces)?;
 
         let mut cache = self.cache.borrow_mut();
         for cache_trace in cache_traces {
             let used_to_replace = cache
                 .nodes
                 .get(&cache_trace.cache_idx)
-                .ok_or(DeviceError::GraphOptimization)
-                .unwrap() // mind unwrap
+                .ok_or(DeviceError::GraphOptimization)?
                 .clone();
 
             for to_replace in &cache_trace.use_cache_idxs {
                 cache.nodes.insert(*to_replace, used_to_replace.clone());
             }
         }
+        Ok(())
     }
 }
 

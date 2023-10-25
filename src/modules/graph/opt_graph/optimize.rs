@@ -525,7 +525,7 @@ mod tests {
                 assert_eq!(add.id(), mul_b.id());
                 break;
             }
-            device.optimize_mem_graph(None);
+            device.optimize_mem_graph(None).unwrap();
         }
     }
 

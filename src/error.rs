@@ -43,6 +43,8 @@ pub enum DeviceError {
     UnifiedConstructNotAvailable,
     /// Only a CPU Buffer can be converted to a CUDA Buffer
     CPUtoCUDA,
+    /// No cache traces were given.
+    MissingCacheTraces,
     /// This graph can't be optimized. This indicates a bug in custos.
     GraphOptimization, // probably a bug
     /// An address was not supplied for a Network device.
@@ -63,6 +65,7 @@ impl DeviceError {
                 "Only a non-drop buffer can be converted to a CPU+OpenCL buffer."
             }
             DeviceError::CPUtoCUDA => "Only a CPU Buffer can be converted to a CUDA Buffer",
+            DeviceError::MissingCacheTraces => "No cache traces were given",
             DeviceError::GraphOptimization => {
                 "This graph can't be optimized. This indicates a bug in custos."
             }

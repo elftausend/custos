@@ -39,7 +39,7 @@ impl<Mods, D> Setup<D> for Graph<Mods> {
 }
 
 impl<Mods: OptimizeMemGraph> OptimizeMemGraph for Graph<Mods> {
-    fn optimize_mem_graph(&self, cache_traces: Option<&[TranslatedCacheTrace]>) {
+    fn optimize_mem_graph(&self, cache_traces: Option<&[TranslatedCacheTrace]>) -> crate::Result<()> {
         match cache_traces {
             Some(cache_traces) => self.modules.optimize_mem_graph(Some(cache_traces)),
             None => {
