@@ -61,9 +61,10 @@ impl<T: Graphable, D: Device + PtrConv, Mods: AddOperation<T, D>> AddOperation<T
         &self,
         out: &mut Buffer<T, D, S>,
         operation: impl Fn(&mut Buffer<T, D, S>) -> crate::Result<()>,
-    ) {
+    ) -> crate::Result<()> {
         self.out_ids.borrow_mut().push(out.id());
         self.graph.borrow_mut().add_operation(operation);
+        Ok(())
     }
 
     #[inline]
@@ -236,7 +237,7 @@ mod tests {
             self.add_op(&mut out, |out| {
                 add_ew_slice(lhs, rhs, out);
                 Ok(())
-            });
+            }).unwrap();
             out
         }
     }
@@ -331,7 +332,7 @@ mod tests {
         device.add_op(&mut out, |out| {
             out.clear();
             Ok(())
-        });
+        }).unwrap();
 
         {
             let a = Buffer::<i32, _, ()>::from_slice(&device, &[1, 2, 3, 4]);
@@ -341,7 +342,7 @@ mod tests {
                     *out = lhs + rhs;
                 }
                 Ok(())
-            });
+            }).unwrap();
             device.exec_now(1..).unwrap();
             assert_eq!(out.as_slice(), [2, 4, 6, 8])
         }
@@ -360,7 +361,7 @@ mod tests {
         device.add_op(&mut out, |out| {
             out.clear();
             Ok(())
-        });
+        }).unwrap();
 
         {
             let a = Buffer::<i32, _, ()>::from_slice(&device, &[1, 2, 3, 4]);
@@ -370,7 +371,7 @@ mod tests {
                     *out = lhs + rhs;
                 }
                 Ok(())
-            });
+            }).unwrap();
             device.exec_last_n(1).unwrap();
             assert_eq!(out.as_slice(), [2, 4, 6, 8])
         }
@@ -392,7 +393,7 @@ mod tests {
         device.add_op(&mut out, |out| {
             out.clear();
             Ok(())
-        });
+        }).unwrap();
 
         {
             let a = Buffer::<i32, _, ()>::from_slice(&device, &[1, 2, 3, 4]);
@@ -402,7 +403,7 @@ mod tests {
                     *out = lhs + rhs;
                 }
                 Ok(())
-            })
+            }).unwrap()
         }
         unsafe { device.run().unwrap() };
     }
@@ -438,7 +439,7 @@ mod tests {
                     *out = lhs + rhs;
                 }
                 Ok(())
-            })
+            }).unwrap();
         }
         unsafe { device.run().unwrap() };
     }

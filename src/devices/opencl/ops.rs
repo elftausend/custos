@@ -209,7 +209,7 @@ where
             }
             #[cfg(not(unified_cl))]
             try_cl_apply_fn_mut(self, buf, out, f)
-        });
+        }).unwrap();
 
         out
     }
@@ -270,7 +270,7 @@ where
     {
         self.add_op(lhs_grad, move |lhs_grad| {
             try_cl_add_unary_grad(self, lhs, lhs_grad, out, lhs_grad_fn)
-        });
+        }).unwrap();
     }
 }
 
