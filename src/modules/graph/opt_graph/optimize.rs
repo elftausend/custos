@@ -11,11 +11,6 @@ pub struct CacheTrace {
     pub use_cache_idxs: Vec<usize>,
 }
 
-pub struct TranslatedCacheTrace {
-    pub cache_idx: HashLocation<'static>,
-    pub use_cache_idxs: Vec<HashLocation<'static>>,
-}
-
 type TraceIdx = usize;
 
 impl OptGraph {

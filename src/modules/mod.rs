@@ -12,7 +12,9 @@ mod cached;
 #[cfg(feature = "cached")]
 pub use cached::*;
 
+#[cfg(feature = "graph")]
 mod graph;
+#[cfg(feature = "graph")]
 pub use graph::*;
 
 #[cfg(feature = "lazy")]
@@ -25,11 +27,16 @@ mod fork;
 #[cfg(feature = "fork")]
 pub use fork::*;
 
-use crate::{flag::AllocFlag, Buffer, Device, HasId, Id, PtrConv, Shape, UniqueId};
+use crate::{flag::AllocFlag, Buffer, Device, HasId, Id, PtrConv, Shape, UniqueId, HashLocation};
 use core::{any::Any, hash::BuildHasher};
 
 #[cfg(not(feature = "no-std"))]
 use std::collections::HashMap;
+
+pub struct TranslatedCacheTrace {
+    pub cache_idx: HashLocation<'static>,
+    pub use_cache_idxs: Vec<HashLocation<'static>>,
+}
 
 #[cfg(not(feature = "no-std"))]
 #[inline]

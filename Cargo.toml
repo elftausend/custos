@@ -49,13 +49,12 @@ min-cl = { path="../min-cl", optional=true }
 
 [features]
 # default = ["cpu", "autograd", "macro"]
-default = ["stack", "autograd", "cpu", "opencl", "fork", "lazy", "cuda", "vulkan"]
+default = ["graph", "stack", "autograd", "cpu", "opencl", "fork", "lazy", "cuda", "vulkan"]
 
 cpu = []
 opencl = ["dep:min-cl", "cpu", "cached"]
 #network = ["cuwanto-client"]
 cuda = []
-opt-cache = []
 blas = []
 static-api = ["cpu"]
 stack = []
@@ -69,6 +68,7 @@ autograd = ["cached"]
 lazy = []
 cached = []
 fork = []
+graph = []
 
 half = ["dep:half"]
 

@@ -8,7 +8,7 @@ mod opencl;
 #[cfg(feature = "vulkan")]
 mod vk;
 
-#[cfg(feature = "opt-cache")]
+#[cfg(feature = "graph")]
 mod graph;
 
 mod demo_impl;

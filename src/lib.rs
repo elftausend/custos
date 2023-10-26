@@ -131,19 +131,6 @@ pub use op_traits::*;
 pub use shape::*;
 pub use two_way_ops::*;
 
-#[cfg(feature = "autograd")]
-#[cfg(feature = "opt-cache")]
-compile_error!("The `autograd` and `opt-cache` feature are currently incompatible. 
-This is because the logic for detecting if a forward buffer is used during gradient calculation isn't implemented yet.");
-
-#[cfg(feature = "autograd")]
-#[cfg(feature = "realloc")]
-compile_error!("The `autograd` and `realloc` feature are incompatible. 
-The automatic differentiation system requires caching of buffers, which is deactivated when using the `realloc` feature.");
-
-#[cfg(all(feature = "realloc", feature = "opt-cache"))]
-compile_error!("A typical 'cache' does not exist when the `realloc` feature is enabled.");
-
 #[cfg(test)]
 pub fn location() -> &'static core::panic::Location<'static> {
     core::panic::Location::caller()

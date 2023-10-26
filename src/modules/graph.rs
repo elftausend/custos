@@ -10,15 +10,15 @@ use core::{cell::RefCell, panic::Location};
 use crate::{
     pass_down_add_operation, pass_down_exec_now_module, pass_down_unified_mem_chain,
     pass_down_use_gpu_or_cpu, Alloc, Buffer, Device, HasId, Module, OnDropBuffer, OnNewBuffer,
-    OptimizeMemGraph, Parents, PtrConv, Retrieve, Setup, Shape,
+    OptimizeMemGraph, Parents, PtrConv, Retrieve, Setup, Shape, TranslatedCacheTrace,
 };
 
 use self::graph_translator::GraphTranslator;
 
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct Graph<Mods> {
-    modules: Mods,
-    graph_trans: RefCell<GraphTranslator>,
+    pub modules: Mods,
+    pub graph_trans: RefCell<GraphTranslator>,
 }
 
 impl<Mods: Module<D>, D> Module<D> for Graph<Mods> {
