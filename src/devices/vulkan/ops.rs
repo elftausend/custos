@@ -4,7 +4,7 @@ use crate::{
     Retrieve, Retriever, Shape, ToMarker, ToWgslSource, UnaryGrad, UseGpuOrCpu, Vulkan,
 };
 
-use super::VkArray;
+use super::{VkArray, VkDevice};
 
 pass_down_add_operation!(Vulkan);
 pass_down_exec_now!(Vulkan);
@@ -22,7 +22,7 @@ impl<Mods: OnDropBuffer + UseGpuOrCpu, T: CDatatype + Default> ClearBuf<T> for V
     }
 }
 
-pub fn try_vk_clear<Mods, T>(device: &Vulkan<Mods>, buf: &mut VkArray<T>) -> crate::Result<()> {
+pub fn try_vk_clear<T>(device: &VkDevice, buf: &mut VkArray<T>) -> crate::Result<()> {
     let src = format!(
         "@group(0)
             @binding(0)
@@ -96,15 +96,14 @@ where
     }
 }
 
-pub fn try_vk_apply_fn_mut<T, Mods, F>(
-    device: &Vulkan<Mods>,
+pub fn try_vk_apply_fn_mut<T, F>(
+    device: &VkDevice,
     x: &VkArray<T>,
     out: &mut VkArray<T>,
     f: impl Fn(Resolve<T>) -> F,
 ) -> crate::Result<()>
 where
     T: Number,
-    Mods: OnDropBuffer,
     F: ToWgslSource,
 {
     let src = format!(
@@ -153,8 +152,8 @@ where
         }).unwrap();
     }
 }
-pub fn try_vk_add_unary_grad<T, F, Mods: OnDropBuffer>(
-    device: &Vulkan<Mods>,
+pub fn try_vk_add_unary_grad<T, F>(
+    device: &VkDevice,
     lhs: &VkArray<T>,
     lhs_grad: &mut VkArray<T>,
     out: &VkArray<T>,

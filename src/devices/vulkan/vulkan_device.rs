@@ -6,13 +6,42 @@ use crate::{
     pass_down_use_gpu_or_cpu, Alloc, Base, Buffer, Device, Module, OnDropBuffer, PtrConv, Setup,
     Shape,
 };
-use core::cell::RefCell;
+use core::{cell::RefCell, ops::{Deref, DerefMut}};
 use std::rc::Rc;
+
+pub struct VkDevice {
+    pub context: Rc<Context>,
+    pub shader_cache: RefCell<ShaderCache>,
+}
+
+impl VkDevice {
+    pub fn new(idx: usize) -> crate::Result<Self> {
+        Ok(VkDevice {
+            context: Rc::new(Context::new(idx)?),
+            shader_cache: Default::default()
+        })
+    }
+    
+    #[inline]
+    pub fn launch_shader(
+        &self,
+        gws: [u32; 3],
+        src: impl AsRef<str>,
+        args: &[&dyn AsVkShaderArgument],
+    ) -> crate::Result<()> {
+        launch_shader(
+            self.context.clone(),
+            gws,
+            &mut self.shader_cache.borrow_mut(),
+            src,
+            args,
+        )
+    }
+}
 
 pub struct Vulkan<Mods = Base> {
     pub modules: Mods,
-    pub context: Rc<Context>,
-    pub shader_cache: RefCell<ShaderCache>,
+    pub device: VkDevice,
 }
 
 impl<SimpleMods> Vulkan<SimpleMods> {
@@ -24,11 +53,26 @@ impl<SimpleMods> Vulkan<SimpleMods> {
     {
         let mut vulkan = Vulkan {
             modules: SimpleMods::new(),
-            context: Rc::new(Context::new(idx)?),
-            shader_cache: Default::default(),
+            device: VkDevice::new(idx)?,
         };
         NewMods::setup(&mut vulkan)?;
         Ok(vulkan)
+    }
+}
+
+impl<Mods> Deref for Vulkan<Mods> {
+    type Target = VkDevice;
+
+    #[inline]
+    fn deref(&self) -> &Self::Target {
+        &self.device
+    }
+}
+
+impl<Mods> DerefMut for Vulkan<Mods> {
+    #[inline]
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.device
     }
 }
 
@@ -103,24 +147,6 @@ impl<Mods: OnDropBuffer, OtherMods: OnDropBuffer> PtrConv<Vulkan<OtherMods>> for
             mapped_ptr: data.mapped_ptr as *mut Conv,
             flag,
         }
-    }
-}
-
-impl<Mods> Vulkan<Mods> {
-    #[inline]
-    pub fn launch_shader(
-        &self,
-        gws: [u32; 3],
-        src: impl AsRef<str>,
-        args: &[&dyn AsVkShaderArgument],
-    ) -> crate::Result<()> {
-        launch_shader(
-            self.context.clone(),
-            gws,
-            &mut self.shader_cache.borrow_mut(),
-            src,
-            args,
-        )
     }
 }
 
