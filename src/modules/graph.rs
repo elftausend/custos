@@ -104,12 +104,17 @@ impl<T: 'static, Mods: Retrieve<D, T>, D: PtrConv + 'static> Retrieve<D, T> for 
         let data = self.modules.retrieve(device, len, parents);
         let mut graph_trans = self.graph_trans.borrow_mut();
 
+        if graph_trans.added_to_graph.contains(&Location::caller().into()) {
+            // return data;
+        }
+
         let next_idx = graph_trans.next_idx;
         graph_trans.buf_id_to_idx.insert(data.id().id, next_idx);
         graph_trans
             .idx_to_buf_location
             .insert(next_idx, Location::caller().into());
 
+        // does a hash location check internally (again)
         graph_trans.add_node(len, &parents);
         data
     }

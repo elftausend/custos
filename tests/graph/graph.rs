@@ -1,4 +1,4 @@
-use custos::{Buffer, CPU, Base, OptimizeMemGraph, Graph};
+use custos::{Buffer, CPU, Base, OptimizeMemGraph, Graph, Cached};
 
 #[cfg(feature = "opencl")]
 use custos::OpenCL;
@@ -7,7 +7,7 @@ use crate::graph::AddOp;
 
 #[test]
 fn test_graph() -> custos::Result<()> {
-    let device = CPU::<Graph<Base>>::new();
+    let device = CPU::<Graph<Cached<Base>>>::new();
 
     // idx: 0
     let a = Buffer::from((&device, [1, 2, 3, 4, 5, 6]));
@@ -31,7 +31,7 @@ fn test_graph() -> custos::Result<()> {
             assert_eq!(c.ptr, d.ptr);
             assert_eq!(c.ptr, e.ptr);
         }
-        device.optimize_mem_graph(None);
+        device.optimize_mem_graph(None).unwrap();
     }
     Ok(())
 }
@@ -41,14 +41,14 @@ fn test_graph() -> custos::Result<()> {
 fn test_graph_cl() -> custos::Result<()> {
     use custos::prelude::chosen_cl_idx;
 
-    let device = OpenCL::<Graph<Base>>::new(chosen_cl_idx())?;
+    let device = OpenCL::<Graph<Cached<Base>>>::new(chosen_cl_idx())?;
 
     // idx: 0
     let a = Buffer::from((&device, [1, 2, 3, 4, 5, 6]));
     // idx: 1
     let b = Buffer::from((&device, [2, 3, 1, 4, 0, 5]));
 
-    for ep in 0..1 {
+    for ep in 0..=1 {
         // idx: 2, deps: [0, 1]
         let c = a.add(&b);
         assert_eq!(vec![3, 5, 4, 8, 5, 11], c.read());
@@ -65,7 +65,7 @@ fn test_graph_cl() -> custos::Result<()> {
             assert_eq!(c.ptr, d.ptr);
             assert_eq!(c.ptr, e.ptr);
         }
-        device.optimize_mem_graph(None);
+        device.optimize_mem_graph(None).unwrap();
     }
     Ok(())
 }
@@ -73,16 +73,16 @@ fn test_graph_cl() -> custos::Result<()> {
 #[cfg(feature = "cuda")]
 #[test]
 fn test_graph_cu() -> custos::Result<()> {
-    use custos::CUDA;
+    use custos::{CUDA, Cached};
 
-    let device = CUDA::<Graph<Base>>::new(0)?;
+    let device = CUDA::<Graph<Cached<Base>>>::new(0)?;
 
     // idx: 0
     let a = Buffer::from((&device, [1, 2, 3, 4, 5, 6]));
     // idx: 1
     let b = Buffer::from((&device, [2, 3, 1, 4, 0, 5]));
 
-    for ep in 0..1 {
+    for ep in 0..=1 {
         // idx: 2, deps: [0, 1]
         let c = a.add(&b);
         assert_eq!(vec![3, 5, 4, 8, 5, 11], c.read());
@@ -99,7 +99,7 @@ fn test_graph_cu() -> custos::Result<()> {
             assert_eq!(c.ptr, d.ptr);
             assert_eq!(c.ptr, e.ptr);
         }
-        device.optimize_mem_graph(None);
+        device.optimize_mem_graph(None).unwrap();
     }
     Ok(())
 }

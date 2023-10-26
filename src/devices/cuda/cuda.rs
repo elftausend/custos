@@ -116,7 +116,7 @@ impl<Mods: crate::TapeActions> crate::TapeActions for CUDA<Mods> {
     }
 }
 
-impl<Mods: OnDropBuffer> PtrConv for CUDA<Mods> {
+impl<Mods: OnDropBuffer, OtherMods: OnDropBuffer> PtrConv<CUDA<OtherMods>> for CUDA<Mods> {
     #[inline]
     unsafe fn convert<T, IS: Shape, Conv, OS: Shape>(
         ptr: &Self::Data<T, IS>,

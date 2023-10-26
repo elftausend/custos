@@ -210,10 +210,11 @@ macro_rules! cl_cpu_exec_unified {
 
             #[cfg(not(feature = "realloc"))]
             {
-                unsafe {
-                    // TODO mind graph opt trace -> ()
-                    $crate::opencl::construct_buffer(&$device, $op, ())
-                }
+                $device.construct_unified_buf_from_cpu_buf(&$device, $op)
+                // unsafe {
+                //     // TODO mind graph opt trace -> ()
+                //     $crate::opencl::construct_buffer(&$device, $op, ())
+                // }
             }
 
             #[cfg(feature = "realloc")]

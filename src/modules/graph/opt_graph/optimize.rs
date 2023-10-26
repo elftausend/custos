@@ -1,5 +1,5 @@
 use super::OptGraph;
-use crate::{modules::graph::node::Node, HashLocation};
+use crate::modules::graph::node::Node;
 use std::collections::HashSet;
 
 /// A `CacheTrace` is a list of nodes that shows which [`Buffer`](crate::Buffer)s could use the same cache.

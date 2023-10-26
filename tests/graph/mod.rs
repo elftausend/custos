@@ -119,7 +119,7 @@ impl<T: CDatatype, Mods: Retrieve<Self, T>> AddBuf<T, Self> for CUDA<Mods> {
         );
 
         let out = self.retrieve(lhs.len(), lhs);
-        self.launch_kernel1d(lhs.len, &src, "add", &[lhs, &out.data, &lhs.len]).unwrap();
+        self.launch_kernel1d(lhs.len, &src, "relu", &[lhs, &out.data, &lhs.len]).unwrap();
         out
     }
 }

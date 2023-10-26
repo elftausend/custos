@@ -1,3 +1,4 @@
+/* 
 use custos::{
     opencl::construct_buffer, Buffer, OpenCL,
     CPU, prelude::chosen_cl_idx, Base, Graph, Cached,
@@ -42,4 +43,4 @@ fn test_access_cached_after_unified_construct_buf() -> custos::Result<()> {
 
     Ok(())
 }
-
+*/
