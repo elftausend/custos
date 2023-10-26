@@ -10,7 +10,7 @@ use crate::{
 
 use super::{
     api::{cuMemcpy, cu_write_async},
-    cu_clear, CUDAPtr,
+    cu_clear, CUDAPtr, CudaDevice,
 };
 
 pass_down_add_operation!(CUDA);
@@ -131,14 +131,13 @@ where
     }
 }
 
-pub fn try_cu_apply_fn_mut<T, Mods, F>(
-    device: &CUDA<Mods>,
+pub fn try_cu_apply_fn_mut<T, F>(
+    device: &CudaDevice,
     x: &CUDAPtr<T>,
     out: &mut CUDAPtr<T>,
     f: impl Fn(Resolve<T>) -> F,
 ) -> crate::Result<()>
 where
-    Mods: OnDropBuffer,
     F: ToCLSource,
     T: CDatatype + Default,
 {
@@ -179,8 +178,8 @@ where
         }).unwrap();
     }
 }
-pub fn try_cu_add_unary_grad<T, F, Mods: OnDropBuffer>(
-    device: &CUDA<Mods>,
+pub fn try_cu_add_unary_grad<T, F>(
+    device: &CudaDevice,
     lhs: &CUDAPtr<T>,
     lhs_grad: &mut CUDAPtr<T>,
     out: &CUDAPtr<T>,

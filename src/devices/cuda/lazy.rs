@@ -76,7 +76,7 @@ impl<Mods> crate::LazySetup for CUDA<Mods> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{Base, Device, Lazy, Module, Run, CUDA};
+    use crate::{Base, Device, Lazy, Run, CUDA};
 
     pub fn ew_src(fn_name: &str, operator: char) -> String {
         format!(
