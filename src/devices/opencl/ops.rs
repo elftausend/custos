@@ -1,9 +1,9 @@
 use core::ops::{Range, RangeBounds};
 
-use min_cl::api::{
+use min_cl::{api::{
     enqueue_copy_buffer, enqueue_copy_buffers, enqueue_full_copy_buffer, enqueue_read_buffer,
     enqueue_write_buffer, wait_for_event,
-};
+}, CLDevice};
 
 use crate::{
     bounds_to_range, cpu_stack_ops::clear_slice, pass_down_add_operation, pass_down_exec_now,
@@ -12,7 +12,7 @@ use crate::{
     UnaryGrad, UseGpuOrCpu, WriteBuf,
 };
 
-use super::enqueue_kernel;
+use super::{enqueue_kernel, CLPtr};
 
 /*impl<Mods: OnDropBuffer, T: CDatatype> ClearBuf<T> for OpenCL<Mods> {
     #[inline]
@@ -63,9 +63,9 @@ impl<Mods: OnDropBuffer + UseGpuOrCpu, T: CDatatype + Default> ClearBuf<T> for O
 ///     Ok(())
 /// }
 /// ```
-pub fn try_cl_clear<Mods: OnDropBuffer, T: CDatatype>(
-    device: &OpenCL<Mods>,
-    lhs: &mut Buffer<T, OpenCL<Mods>>,
+pub fn try_cl_clear<T: CDatatype>(
+    device: &CLDevice,
+    lhs: &mut CLPtr<T>
 ) -> crate::Result<()> {
     let src = format!(
         "
@@ -168,12 +168,12 @@ impl<Mods: OnDropBuffer + 'static, T: Clone + Default, S: Shape> Read<T, S> for 
     }
 }
 
-fn try_read_cl_buf_to_vec<Mods: OnDropBuffer, T: Clone + Default, S: Shape>(
-    device: &OpenCL<Mods>,
-    buf: &Buffer<T, OpenCL<Mods>, S>,
+fn try_read_cl_buf_to_vec<T: Clone + Default>(
+    device: &CLDevice,
+    buf: &CLPtr<T>,
 ) -> crate::Result<Vec<T>> {
     let mut read = vec![T::default(); buf.len()];
-    let event = unsafe { enqueue_read_buffer(device.queue(), buf.cl_ptr(), &mut read, false)? };
+    let event = unsafe { enqueue_read_buffer(device.queue(), buf.ptr, &mut read, false)? };
     wait_for_event(event).unwrap();
     Ok(read)
 }
@@ -217,16 +217,14 @@ where
 
 /// A failable OpenCL version of [`apply_fn`](ApplyFunction::apply_fn).
 /// It applies a function to a buffer and returns a new buffer.
-pub fn try_cl_apply_fn_mut<T, S, Mods, F>(
-    device: &OpenCL<Mods>,
-    x: &Buffer<T, OpenCL<Mods>, S>,
-    out: &mut Buffer<T, OpenCL<Mods>, S>,
+pub fn try_cl_apply_fn_mut<T, F>(
+    device: &CLDevice,
+    x: &CLPtr<T>,
+    out: &mut CLPtr<T>,
     f: impl Fn(Resolve<T>) -> F,
 ) -> crate::Result<()>
 where
     T: CDatatype + Number,
-    S: Shape,
-    Mods: OnDropBuffer,
     F: ToCLSource,
 {
     let src = format!(
@@ -324,7 +322,7 @@ mod test {
         let device = OpenCL::<Base>::new(chosen_cl_idx())?;
 
         let buf = Buffer::from((&device, [1, 2, 3, 4, 5, 6]));
-        let mut out = Buffer::new(&device, buf.len());
+        let mut out = Buffer::<_, _>::new(&device, buf.len());
         try_cl_apply_fn_mut(&device, &buf, &mut out, |x| x.mul(2))?;
         assert_eq!(out.read(), [2, 4, 6, 8, 10, 12]);
 
