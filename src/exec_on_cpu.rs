@@ -221,7 +221,7 @@ macro_rules! to_cpu {
 macro_rules! to_raw_host {
     ($($t:ident),*) => {
         $(
-            let $t = &unsafe { Buffer::<_, _, ()>::from_raw_host($t.ptr.host_ptr, $t.len()) };
+            let $t = &unsafe { Buffer::<_, _, ()>::from_raw_host($t.data.host_ptr, $t.len()) };
         )*
     };
 }
@@ -232,7 +232,7 @@ macro_rules! to_raw_host {
 macro_rules! to_raw_host_mut {
     ($($t:ident, $cpu_name:ident),*) => {
         $(
-            let mut $cpu_name = &mut unsafe { Buffer::<_, _, ()>::from_raw_host($t.ptr.host_ptr, $t.len()) };
+            let mut $cpu_name = &mut unsafe { Buffer::<_, _, ()>::from_raw_host($t.data.host_ptr, $t.len()) };
         )*
     };
 }
