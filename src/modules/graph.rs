@@ -105,7 +105,7 @@ impl<T: 'static, Mods: Retrieve<D, T>, D: PtrConv + 'static> Retrieve<D, T> for 
         let mut graph_trans = self.graph_trans.borrow_mut();
 
         if graph_trans.added_to_graph.contains(&Location::caller().into()) {
-            // return data;
+            return data;
         }
 
         let next_idx = graph_trans.next_idx;
