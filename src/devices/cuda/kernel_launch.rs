@@ -3,7 +3,7 @@ use std::{collections::HashMap, ffi::c_void};
 
 use super::{
     api::{cuOccupancyMaxPotentialBlockSize, culaunch_kernel, FnHandle, Module, Stream},
-    fn_cache, CUDAPtr, CUKernelCache, CudaSource,
+    fn_cache, CUDAPtr, CUKernelCache, CudaSource, CudaDevice,
 };
 
 /// Converts `Self` to a (cuda) *mut c_void.
@@ -72,8 +72,8 @@ impl<T: Number> AsCudaCvoidPtr for T {
 
 /// Launch a CUDA kernel with the given grid and block sizes.
 #[inline]
-pub fn launch_kernel<Mods>(
-    device: &CUDA<Mods>,
+pub fn launch_kernel(
+    device: &CudaDevice,
     grid: [u32; 3],
     blocks: [u32; 3],
     shared_mem_bytes: u32,

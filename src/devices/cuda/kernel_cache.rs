@@ -1,8 +1,8 @@
 use super::{
     api::{load_module_data, FnHandle, Module},
-    CudaSource,
+    CudaSource, CudaDevice,
 };
-use crate::{Error, CUDA};
+use crate::Error;
 use std::collections::HashMap;
 
 /// This stores the previously compiled CUDA functions / kernels.
@@ -61,8 +61,8 @@ impl CUKernelCache {
 }
 
 /// Exactly like [`KernelCacheCU`], but with a immutable source of the cache using interior mutability.
-pub fn fn_cache<Mods>(
-    device: &CUDA<Mods>,
+pub fn fn_cache(
+    device: &CudaDevice,
     src: impl CudaSource,
     fn_name: &str,
 ) -> crate::Result<FnHandle> {
