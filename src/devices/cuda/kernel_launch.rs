@@ -3,7 +3,7 @@ use std::{collections::HashMap, ffi::c_void};
 
 use super::{
     api::{cuOccupancyMaxPotentialBlockSize, culaunch_kernel, FnHandle, Module, Stream},
-    fn_cache, CUDAPtr, CUKernelCache, CudaSource, CudaDevice,
+    fn_cache, CUDAPtr, KernelCache, CudaSource, CudaDevice,
 };
 
 /// Converts `Self` to a (cuda) *mut c_void.
@@ -115,7 +115,7 @@ pub fn launch_kernel_with_fn(
 /// All kernel arguments must be set.
 pub fn launch_kernel1d(
     len: usize,
-    kernel_cache: &mut CUKernelCache,
+    kernel_cache: &mut KernelCache,
     modules: &mut HashMap<FnHandle, Module>,
     stream: &Stream,
     src: impl CudaSource,

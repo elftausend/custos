@@ -7,12 +7,12 @@ use std::collections::HashMap;
 
 /// This stores the previously compiled CUDA functions / kernels.
 #[derive(Debug, Default)]
-pub struct CUKernelCache {
+pub struct KernelCache {
     /// Uses the kernel source code and the kernel function to retrieve the corresponding `FnHandle`.
     pub kernels: HashMap<(String, String), FnHandle>,
 }
 
-impl CUKernelCache {
+impl KernelCache {
     /// Returns a cached kernel. If the kernel source code does not exist, a new kernel is created and cached.
     ///
     /// # Example

@@ -7,12 +7,12 @@ use super::{
         cublas::{create_handle, cublasDestroy_v2, cublasSetStream_v2, CublasHandle},
         device, Context, CudaIntDevice, FnHandle, Module, Stream,
     },
-    AsCudaCvoidPtr, CUKernelCache, CudaSource,
+    AsCudaCvoidPtr, KernelCache, CudaSource,
 };
 
 pub struct CudaDevice {
     /// Stores compiled CUDA kernels.
-    pub kernel_cache: RefCell<CUKernelCache>,
+    pub kernel_cache: RefCell<KernelCache>,
     /// Stores CUDA modules from the compiled kernels.
     pub cuda_modules: RefCell<HashMap<FnHandle, Module>>,
     device: CudaIntDevice,
