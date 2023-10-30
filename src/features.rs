@@ -1,8 +1,8 @@
 #[cfg(feature = "cached")]
 use core::cell::{Ref, RefMut};
-use core::ops::RangeBounds;
+use core::{fmt::Debug, ops::RangeBounds};
 
-use crate::{Parents, Shape, TranslatedCacheTrace, CPU};
+use crate::{Parents, Shape, TranslatedCacheTrace, UniqueId, CPU, HasId};
 
 #[cfg(feature = "cached")]
 use crate::{Base, CachedModule};
@@ -104,6 +104,32 @@ pub trait TapeActions {
             tape.add_grad_fn(grad_fn)
         }
     }
+}
+
+pub trait OpArgs {
+    fn as_ids(&self) -> [UniqueId; 2];
+    // fn update_vals(&mut self, cache ..)
+    // fn from_cache(cache: &std::collections::HashMap<UniqueId, ()>, ids: [UniqueId; N]) -> Self;
+}
+
+impl<'a, 'b, T, D: Device, S: Shape> OpArgs for (&Buffer<'a, T, D, S>, &Buffer<'b, T, D, S>) {
+    fn as_ids(&self) -> [UniqueId; 2] {
+        [*self.0.id(), *self.1.id()]
+    }
+
+    // fn from_cache(cache: &std::collections::HashMap<UniqueId, ()>, ids: [UniqueId; 2]) -> Self {
+    //     todo!()
+    // }
+}
+
+pub trait AddOperationOpArgs<T, D: Device> {
+    fn add_op<S: Shape, Args: OpArgs>(
+        &self,
+        out: &mut Buffer<T, D, S>,
+        args: Args,
+        operation: impl Fn(&mut Buffer<T, D, S>, Args) -> crate::Result<()>,
+    ) -> crate::Result<()>;
+    fn ops_count(&self) -> usize;
 }
 
 pub trait AddOperation<T, D: Device> {
@@ -274,14 +300,20 @@ pub trait UseGpuOrCpu {
 }
 
 pub trait OptimizeMemGraph {
-    fn optimize_mem_graph(&self, cache_traces: Option<&[TranslatedCacheTrace]>) -> crate::Result<()>;
+    fn optimize_mem_graph(
+        &self,
+        cache_traces: Option<&[TranslatedCacheTrace]>,
+    ) -> crate::Result<()>;
 }
 
 #[macro_export]
 macro_rules! pass_down_optimize_mem_graph {
     ($to_impl:ident) => {
         impl<Mods: $crate::OptimizeMemGraph> $crate::OptimizeMemGraph for $to_impl<Mods> {
-            fn optimize_mem_graph(&self, cache_traces: Option<&[$crate::TranslatedCacheTrace]>) -> crate::Result<()> {
+            fn optimize_mem_graph(
+                &self,
+                cache_traces: Option<&[$crate::TranslatedCacheTrace]>,
+            ) -> crate::Result<()> {
                 self.modules.optimize_mem_graph(cache_traces)
             }
         }

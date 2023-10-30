@@ -54,10 +54,7 @@ pub fn chosen_cu_idx() -> usize {
 ///     Ok(())
 /// }
 /// ```
-pub fn cu_clear<T: CDatatype>(
-    device: &CudaDevice,
-    buf: &mut CUDAPtr<T>,
-) -> crate::Result<()> {
+pub fn cu_clear<T: CDatatype>(device: &CudaDevice, buf: &mut CUDAPtr<T>) -> crate::Result<()> {
     let src = format!(
         r#"extern "C" __global__ void clear({datatype}* self, int numElements)
             {{

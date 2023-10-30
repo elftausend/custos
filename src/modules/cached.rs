@@ -151,7 +151,10 @@ impl<Mods: RunModule<D>, D, SD: Device> RunModule<D> for CachedModule<Mods, SD> 
 }
 
 impl<Mods: OptimizeMemGraph, SD: Device> OptimizeMemGraph for CachedModule<Mods, SD> {
-    fn optimize_mem_graph(&self, cache_traces: Option<&[crate::TranslatedCacheTrace]>) -> crate::Result<()> {
+    fn optimize_mem_graph(
+        &self,
+        cache_traces: Option<&[crate::TranslatedCacheTrace]>,
+    ) -> crate::Result<()> {
         let cache_traces = cache_traces.ok_or(DeviceError::MissingCacheTraces)?;
 
         let mut cache = self.cache.borrow_mut();

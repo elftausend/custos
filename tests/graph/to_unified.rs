@@ -1,4 +1,4 @@
-/* 
+/*
 use custos::{
     opencl::construct_buffer, Buffer, OpenCL,
     CPU, prelude::chosen_cl_idx, Base, Graph, Cached,
@@ -20,7 +20,7 @@ fn test_access_cached_after_unified_construct_buf() -> custos::Result<()> {
 
     let device = CPU::<Base>::new();
     let no_drop = device.add(&c, &b);
-    
+
     let cache = cl_dev
         .modules
         .modules

@@ -1,6 +1,5 @@
 use custos::prelude::*;
 
-
 #[cfg(feature = "cuda")]
 #[test]
 fn test_read_cuda() -> custos::Result<()> {

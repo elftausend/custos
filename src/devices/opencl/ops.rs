@@ -1,9 +1,12 @@
 use core::ops::{Range, RangeBounds};
 
-use min_cl::{api::{
-    enqueue_copy_buffer, enqueue_copy_buffers, enqueue_full_copy_buffer, enqueue_read_buffer,
-    enqueue_write_buffer, wait_for_event,
-}, CLDevice};
+use min_cl::{
+    api::{
+        enqueue_copy_buffer, enqueue_copy_buffers, enqueue_full_copy_buffer, enqueue_read_buffer,
+        enqueue_write_buffer, wait_for_event,
+    },
+    CLDevice,
+};
 
 use crate::{
     bounds_to_range, cpu_stack_ops::clear_slice, pass_down_add_operation, pass_down_exec_now,
@@ -63,10 +66,7 @@ impl<Mods: OnDropBuffer + UseGpuOrCpu, T: CDatatype + Default> ClearBuf<T> for O
 ///     Ok(())
 /// }
 /// ```
-pub fn try_cl_clear<T: CDatatype>(
-    device: &CLDevice,
-    lhs: &mut CLPtr<T>
-) -> crate::Result<()> {
+pub fn try_cl_clear<T: CDatatype>(device: &CLDevice, lhs: &mut CLPtr<T>) -> crate::Result<()> {
     let src = format!(
         "
         __kernel void clear(__global {datatype}* self, long len) {{
@@ -209,7 +209,8 @@ where
             }
             #[cfg(not(unified_cl))]
             try_cl_apply_fn_mut(self, buf, out, f)
-        }).unwrap();
+        })
+        .unwrap();
 
         out
     }
@@ -268,7 +269,8 @@ where
     {
         self.add_op(lhs_grad, move |lhs_grad| {
             try_cl_add_unary_grad(self, lhs, lhs_grad, out, lhs_grad_fn)
-        }).unwrap();
+        })
+        .unwrap();
     }
 }
 

@@ -6,7 +6,10 @@ use crate::{
     pass_down_use_gpu_or_cpu, Alloc, Base, Buffer, Device, Module, OnDropBuffer, PtrConv, Setup,
     Shape,
 };
-use core::{cell::RefCell, ops::{Deref, DerefMut}};
+use core::{
+    cell::RefCell,
+    ops::{Deref, DerefMut},
+};
 use std::rc::Rc;
 
 pub struct VkDevice {
@@ -18,10 +21,10 @@ impl VkDevice {
     pub fn new(idx: usize) -> crate::Result<Self> {
         Ok(VkDevice {
             context: Rc::new(Context::new(idx)?),
-            shader_cache: Default::default()
+            shader_cache: Default::default(),
         })
     }
-    
+
     #[inline]
     pub fn launch_shader(
         &self,

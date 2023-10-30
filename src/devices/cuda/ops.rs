@@ -175,7 +175,8 @@ where
     {
         self.add_op(lhs_grad, move |lhs_grad| {
             try_cu_add_unary_grad(self, &lhs.data, &mut lhs_grad.data, &out.data, lhs_grad_fn)
-        }).unwrap();
+        })
+        .unwrap();
     }
 }
 pub fn try_cu_add_unary_grad<T, F>(

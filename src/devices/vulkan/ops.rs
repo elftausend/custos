@@ -90,7 +90,8 @@ where
                 || try_vk_apply_fn_mut(self, &buf.data, &mut out.data, f).unwrap(),
             );
             Ok(())
-        }).unwrap();
+        })
+        .unwrap();
 
         out
     }
@@ -149,7 +150,8 @@ where
     {
         self.add_op(lhs_grad, move |lhs_grad| {
             try_vk_add_unary_grad(self, &lhs.data, &mut lhs_grad.data, &out.data, lhs_grad_fn)
-        }).unwrap();
+        })
+        .unwrap();
     }
 }
 pub fn try_vk_add_unary_grad<T, F>(

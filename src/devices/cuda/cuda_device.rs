@@ -7,7 +7,7 @@ use super::{
         cublas::{create_handle, cublasDestroy_v2, cublasSetStream_v2, CublasHandle},
         device, Context, CudaIntDevice, FnHandle, Module, Stream,
     },
-    AsCudaCvoidPtr, KernelCache, CudaSource,
+    AsCudaCvoidPtr, CudaSource, KernelCache,
 };
 
 pub struct CudaDevice {

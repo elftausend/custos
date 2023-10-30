@@ -32,7 +32,8 @@ where
         self.add_op(&mut out, move |out| {
             apply_fn_slice(buf, out, f);
             Ok(())
-        }).unwrap();
+        })
+        .unwrap();
 
         out
     }

@@ -1,4 +1,4 @@
-use custos::{Buffer, CPU, Base, OptimizeMemGraph, Graph, Cached};
+use custos::{Base, Buffer, Cached, Graph, OptimizeMemGraph, CPU};
 
 #[cfg(feature = "opencl")]
 use custos::OpenCL;
@@ -73,7 +73,7 @@ fn test_graph_cl() -> custos::Result<()> {
 #[cfg(feature = "cuda")]
 #[test]
 fn test_graph_cu() -> custos::Result<()> {
-    use custos::{CUDA, Cached};
+    use custos::{Cached, CUDA};
 
     let device = CUDA::<Graph<Cached<Base>>>::new(0)?;
 

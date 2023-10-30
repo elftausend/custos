@@ -79,7 +79,10 @@ impl crate::UseGpuOrCpu for Base {
 
 impl OptimizeMemGraph for Base {
     #[inline]
-    fn optimize_mem_graph(&self, _cache_traces: Option<&[crate::TranslatedCacheTrace]>) -> crate::Result<()> {
+    fn optimize_mem_graph(
+        &self,
+        _cache_traces: Option<&[crate::TranslatedCacheTrace]>,
+    ) -> crate::Result<()> {
         Ok(())
     }
 }
