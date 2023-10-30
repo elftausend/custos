@@ -104,6 +104,7 @@ impl<T: 'static, Mods: Retrieve<D, T>, D: PtrConv + 'static> Retrieve<D, T> for 
         S: Shape,
         D: Alloc<T>,
     {
+        let ids = parents.ids();
         let data = self.modules.retrieve(device, len, parents);
         let mut graph_trans = self.graph_trans.borrow_mut();
 
@@ -121,7 +122,7 @@ impl<T: 'static, Mods: Retrieve<D, T>, D: PtrConv + 'static> Retrieve<D, T> for 
             .insert(next_idx, Location::caller().into());
 
         // does a hash location check internally (again)
-        graph_trans.add_node(len, &parents);
+        graph_trans.add_node(len, &ids);
         data
     }
 

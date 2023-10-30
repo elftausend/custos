@@ -2,7 +2,7 @@
 use core::cell::{Ref, RefMut};
 use core::{fmt::Debug, ops::RangeBounds};
 
-use crate::{Parents, Shape, TranslatedCacheTrace, UniqueId, CPU, HasId};
+use crate::{HasId, Parents, Shape, TranslatedCacheTrace, UniqueId, CPU};
 
 #[cfg(feature = "cached")]
 use crate::{Base, CachedModule};
