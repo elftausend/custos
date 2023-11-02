@@ -11,17 +11,17 @@ impl Parents<0> for () {
     }
 }
 
-impl Parents<1> for Id {
+impl<T: HasId> Parents<1> for T {
     #[inline]
     fn ids(&self) -> [Id; 1] {
-        [*self]
+        [self.id()]
     }
 }
-
-impl Parents<2> for (Id, Id) {
+impl<T: HasId, T1: HasId> Parents<2> for (T, T1) {
     #[inline]
     fn ids(&self) -> [Id; 2] {
-        [self.0, self.1]
+        let (first, second) = self;
+        [first.id(), second.id()]
     }
 }
 
@@ -29,30 +29,6 @@ impl Parents<3> for (Id, Id, Id) {
     #[inline]
     fn ids(&self) -> [Id; 3] {
         [self.0, self.1, self.2]
-    }
-}
-
-impl<const N: usize> Parents<N> for [Id; N] {
-    #[inline]
-    fn ids(&self) -> [Id; N] {
-        *self
-    }
-}
-
-impl<T, D: Device, S: Shape> Parents<1> for &Buffer<'_, T, D, S> {
-    #[inline]
-    fn ids(&self) -> [Id; 1] {
-        [self.id()]
-    }
-}
-
-impl<T, D: Device, S: Shape, T1, D1: Device, S1: Shape> Parents<2>
-    for (&Buffer<'_, T, D, S>, &Buffer<'_, T1, D1, S1>)
-{
-    #[inline]
-    fn ids(&self) -> [Id; 2] {
-        let (lhs, rhs) = self;
-        [lhs.id(), rhs.id()]
     }
 }
 
@@ -70,8 +46,7 @@ impl<T, D: Device, S: Shape, T1, D1: Device, S1: Shape, T2, D2: Device, S2: Shap
     }
 }
 
-impl<T, D: Device, S: Shape, const N: usize> Parents<N> for [&Buffer<'_, T, D, S>; N] {
-    #[inline]
+impl<T: HasId + Copy, const N: usize> Parents<N> for [T; N] {
     fn ids(&self) -> [Id; N] {
         self.map(|buf| buf.id())
     }

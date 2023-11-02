@@ -29,11 +29,11 @@ where
     {
         let mut out = self.retrieve(buf.len(), buf);
 
-        self.add_op(&mut out, move |out| {
-            apply_fn_slice(buf, out, f);
-            Ok(())
-        })
-        .unwrap();
+        // self.add_op(buf, &mut out, move |out, buf| {
+            apply_fn_slice(buf, &mut out, f);
+            // Ok(())
+        // })
+        // .unwrap();
 
         out
     }

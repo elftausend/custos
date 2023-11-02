@@ -3,7 +3,13 @@ use crate::{
     bounds_to_range, Buffer, Device, DeviceError, Id, NoHasher, OpArgs, Parents, PtrConv, Shape,
     UniqueId,
 };
-use core::{any::Any, hash::BuildHasherDefault, mem::transmute, ops::RangeBounds};
+use core::{
+    alloc::Layout,
+    any::Any,
+    hash::BuildHasherDefault,
+    mem::{align_of, size_of, transmute},
+    ops::RangeBounds,
+};
 use std::collections::HashMap;
 
 pub type ForwardFn = *mut dyn Fn(&'static ()) -> crate::Result<()>;
@@ -16,8 +22,10 @@ pub type ForwardFn2 = *mut dyn Fn(&'static (), *mut ()) -> crate::Result<()>;
 pub struct LazyGraph {
     pub operations: Vec<(Type, ForwardFn)>,
     pub operations2: Vec<(Type, ForwardFn2)>,
-    pub args: Vec<*mut ()>,
     pub ids_to_check: Vec<Vec<UniqueId>>,
+    pub ops: Vec<fn(*mut (), *mut ()) -> crate::Result<()>>,
+    pub args: Vec<*mut ()>,
+    pub arg_dealloc_info: Vec<(usize, usize)>,
 }
 
 impl Drop for LazyGraph {
@@ -25,8 +33,10 @@ impl Drop for LazyGraph {
         for (_, operation) in self.operations.iter_mut() {
             unsafe { drop(Box::from_raw(*operation)) }
         }
-        for arg in self.args.iter_mut() {
-            unsafe { drop(Box::from_raw(*arg)) }
+
+        for (arg_ptr, (align, size)) in self.args.iter().zip(&self.arg_dealloc_info) {
+            let layout = Layout::from_size_align(*size, *align).unwrap();
+            unsafe { std::alloc::dealloc(*arg_ptr as *mut u8, layout) }
         }
     }
 }
@@ -57,28 +67,27 @@ pub type TypedForwardFn2<'a, T, D, S, Args> =
     *mut (dyn Fn(&mut Buffer<T, D, S>, &Args) -> crate::Result<()> + 'a);
 
 impl LazyGraph {
+    // TODO: could use a broader range of Args! (limited to Parents<N>)
     pub fn add_operation_op_args<T, D, S, Args: Parents<N>, const N: usize>(
         &mut self,
         args: Args,
-        operation: impl Fn(&mut Buffer<T, D, S>, &Args) -> crate::Result<()>,
+        op: fn(&mut Buffer<T, D, S>, &Args) -> crate::Result<()>,
     ) where
         T: Graphable,
         D: PtrConv,
         S: Shape,
     {
-        let args: &mut dyn Parents<N> = Box::leak(Box::new(args));
+        self.arg_dealloc_info
+            .push((align_of::<Args>(), size_of::<Args>()));
+
+        let args = Box::leak(Box::new(args));
 
         // store ids and test if buffers are still in cache
         self.ids_to_check
             .push(args.ids().into_iter().map(|id| *id).collect());
 
-        self.args.push((args as *mut dyn Parents<N>).cast());
-
-        let operation = Box::leak(Box::new(operation));
-        self.operations2.push((
-            T::TYPE,
-            operation as TypedForwardFn2<T, D, S, Args> as *mut _,
-        ))
+        self.args.push(args as *mut Args as *mut _);
+        unsafe { self.ops.push(transmute(op)) }
     }
 
     pub unsafe fn call_lazily_op_args<D: Device + 'static>(
@@ -86,34 +95,24 @@ impl LazyGraph {
         out_buf_order: &[Id],
         outs_unordered: &mut HashMap<UniqueId, Box<dyn Any>, BuildHasherDefault<NoHasher>>,
     ) -> crate::Result<()> {
-        for ((((ty, operation), buf_id), op_arg), ids_to_check) in self
-            .operations2
-            .iter_mut()
-            .zip(out_buf_order)
-            .zip(&self.args)
+        for (((args, op), ids_to_check), out_id) in self
+            .args
+            .iter()
+            .zip(&self.ops)
             .zip(&self.ids_to_check)
+            .zip(out_buf_order)
         {
             for id_to_check in ids_to_check.iter() {
-                outs_unordered.get(id_to_check).ok_or(DeviceError::InvalidLazyOutBuf)?;
+                outs_unordered
+                    .get(id_to_check)
+                    .ok_or(DeviceError::InvalidLazyOutBuf)?;
             }
 
-            let buf = &mut **outs_unordered
-                .get_mut(buf_id)
-                .ok_or(DeviceError::InvalidLazyOutBuf)?;
+            let out = &mut **outs_unordered
+                .get_mut(&out_id)
+                .ok_or(DeviceError::InvalidLazyOutBuf)? as *mut _ as *mut ();
 
-            match ty {
-                Type::F32 => {
-                    let operation =
-                        transmute::<_, &mut *mut dyn Fn(&Buffer<f32, D, ()>, &())>(operation);
-
-                    let buf: &mut Buffer<f32, D, ()> =
-                        unsafe { &mut *(buf as *mut dyn Any as *mut Buffer<f32, D, ()>) };
-
-                    unsafe { (**operation)(buf, &**op_arg) }
-                }
-                Type::I32 => todo!(),
-            }
-            // execute_operation::<D>(*ty, operation, buf)?;
+            op(out, *args)?;
         }
         Ok(())
     }
@@ -174,10 +173,39 @@ impl LazyGraph {
 #[cfg(test)]
 mod tests {
     use std::collections::HashMap;
-
     use crate::{register_buf, Base, Buffer, Device, HasId, Retriever, CPU};
-
     use super::LazyGraph;
+     
+    #[test]
+    #[should_panic]
+    fn test_lazy_op_args_args_out_of_scope() {
+        let device = CPU::<Base>::new();
+        let mut graph = LazyGraph::default();
+        let mut outs_unordered = HashMap::default();
+
+        let out_id = {
+            let lhs = device.buffer([1f32, 2., 3., 4., 5.]);
+            let rhs = device.buffer([1f32, 2., 6., 4., 5.]);
+            let out: Buffer = device.retrieve(lhs.len(), (&lhs, &rhs));
+            unsafe { register_buf(&mut outs_unordered, &out) };
+            // outs_unordered.insert(out.id(), )
+
+            graph.add_operation_op_args::<f32, CPU, (), _, 2>((&lhs, &rhs), |_out, args| {
+                let (lhs, rhs) = *args;
+                assert_eq!(lhs.as_slice(), &[1f32, 2., 3., 4., 5.,]);
+                assert_eq!(rhs.as_slice(), &[1f32, 2., 6., 4., 5.,]);
+                Ok(())
+            });
+
+            out.id()
+        };
+
+        unsafe {
+            graph
+                .call_lazily_op_args::<CPU>(&[out_id], &mut outs_unordered)
+                .unwrap()
+        }
+    }
 
     #[test]
     fn test_lazy_op_args() {
@@ -195,14 +223,17 @@ mod tests {
         unsafe { register_buf(&mut outs_unordered, &out) };
         // outs_unordered.insert(out.id(), )
 
-        graph.add_operation_op_args::<f32, CPU, (), _, 2>((&lhs, &rhs), |out, args| {
+        graph.add_operation_op_args::<f32, CPU, (), _, 2>((&lhs, &rhs), |_out, args| {
             let (lhs, rhs) = *args;
-            println!("args: {lhs:?}");
+            assert_eq!(lhs.as_slice(), &[1f32, 2., 3., 4., 5.,]);
+            assert_eq!(rhs.as_slice(), &[1f32, 2., 6., 4., 5.,]);
             Ok(())
         });
 
         unsafe {
-            graph.call_lazily_op_args::<CPU>(&[out.id()], &mut outs_unordered).unwrap()
+            graph
+                .call_lazily_op_args::<CPU>(&[out.id()], &mut outs_unordered)
+                .unwrap()
         }
     }
 }

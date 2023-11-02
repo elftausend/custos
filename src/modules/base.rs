@@ -17,12 +17,13 @@ impl<D> Module<D> for Base {
 
 impl<T, D: Device> AddOperation<T, D> for Base {
     #[inline]
-    fn add_op<S: Shape>(
+    fn add_op<S: Shape, Args: Parents<N>, const N: usize>(
         &self,
+        args: Args,
         out: &mut Buffer<T, D, S>,
-        operation: impl Fn(&mut Buffer<T, D, S>) -> crate::Result<()>,
+        operation: fn(&mut Buffer<T, D, S>, &Args) -> crate::Result<()>
     ) -> crate::Result<()> {
-        operation(out)
+        operation(out, &args)
     }
 
     #[inline]

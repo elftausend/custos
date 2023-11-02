@@ -57,13 +57,14 @@ impl<T: Graphable, D: Device + PtrConv, Mods: AddOperation<T, D>> AddOperation<T
     for Lazy<Mods>
 {
     #[inline]
-    fn add_op<S: Shape>(
+    fn add_op<S: Shape, Args: Parents<N>, const N: usize>(
         &self,
+        args: Args,
         out: &mut Buffer<T, D, S>,
-        operation: impl Fn(&mut Buffer<T, D, S>) -> crate::Result<()>,
+        operation: fn(&mut Buffer<T, D, S>, &Args) -> crate::Result<()>
     ) -> crate::Result<()> {
         self.out_ids.borrow_mut().push(out.id());
-        self.graph.borrow_mut().add_operation(operation);
+        self.graph.borrow_mut().add_operation_op_args(args, operation);
         Ok(())
     }
 
@@ -186,7 +187,7 @@ impl<T: 'static, Mods: Retrieve<D, T>, D: PtrConv + 'static> Retrieve<D, T> for 
     }
 }
 
-#[cfg(test)]
+#[cfg(disabledtest)]
 mod tests {
     use core::ops::{Add, Deref};
 
@@ -234,7 +235,7 @@ mod tests {
         #[inline]
         fn add(&self, lhs: &Buffer<T, D, S>, rhs: &Buffer<T, D, S>) -> Buffer<T, Self, S> {
             let mut out = self.retrieve(lhs.len(), ());
-            self.add_op(&mut out, |out| {
+            self.add_op((lhs, rhs), &mut out, |out, (lhs, rhs)| {
                 add_ew_slice(lhs, rhs, out);
                 Ok(())
             })

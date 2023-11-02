@@ -122,21 +122,12 @@ impl<'a, 'b, T, D: Device, S: Shape> OpArgs for (&Buffer<'a, T, D, S>, &Buffer<'
     // }
 }
 
-pub trait AddOperationOpArgs<T, D: Device> {
-    fn add_op<S: Shape, Args: OpArgs>(
-        &self,
-        out: &mut Buffer<T, D, S>,
-        args: Args,
-        operation: impl Fn(&mut Buffer<T, D, S>, Args) -> crate::Result<()>,
-    ) -> crate::Result<()>;
-    fn ops_count(&self) -> usize;
-}
-
 pub trait AddOperation<T, D: Device> {
-    fn add_op<S: Shape>(
+    fn add_op<S: Shape, Args: Parents<N>, const N: usize>(
         &self,
+        args: Args,
         out: &mut Buffer<T, D, S>,
-        operation: impl Fn(&mut Buffer<T, D, S>) -> crate::Result<()>,
+        operation: fn(&mut Buffer<T, D, S>, &Args) -> crate::Result<()>
     ) -> crate::Result<()>;
     fn ops_count(&self) -> usize;
 }
@@ -162,12 +153,13 @@ macro_rules! pass_down_add_operation {
             for $device<Mods>
         {
             #[inline]
-            fn add_op<S: $crate::Shape>(
+            fn add_op<S: Shape, Args: $crate::Parents<N>, const N: usize>(
                 &self,
+                args: Args,
                 out: &mut $crate::Buffer<T, D, S>,
-                operation: impl Fn(&mut $crate::Buffer<T, D, S>) -> $crate::Result<()>,
+                operation: fn(&mut Buffer<T, D, S>, &Args) -> crate::Result<()>
             ) -> $crate::Result<()> {
-                self.modules.add_op(out, operation)
+                self.modules.add_op(args, out, operation)
             }
 
             #[inline]

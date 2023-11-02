@@ -51,12 +51,13 @@ impl<T, D: Device, SD: Device, Mods: AddOperation<T, D>> AddOperation<T, D>
     for CachedModule<Mods, SD>
 {
     #[inline]
-    fn add_op<S: Shape>(
+    fn add_op<S: Shape, Args: Parents<N>, const N: usize>(
         &self,
+        args: Args,
         out: &mut Buffer<T, D, S>,
-        operation: impl Fn(&mut Buffer<T, D, S>) -> crate::Result<()>,
+        operation: fn(&mut Buffer<T, D, S>, &Args) -> crate::Result<()>
     ) -> crate::Result<()> {
-        self.modules.add_op(out, operation)
+        self.modules.add_op(args, out, operation)
     }
 
     #[inline]
