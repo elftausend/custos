@@ -84,7 +84,7 @@ impl LazyGraph {
 
         // store ids and test if buffers are still in cache
         self.ids_to_check
-            .push(args.ids().into_iter().map(|id| *id).collect());
+            .push(args.maybe_ids().into_iter().flatten().map(|id| *id).collect());
 
         self.args.push(args as *mut Args as *mut _);
         unsafe { self.ops.push(transmute(op)) }
@@ -172,10 +172,10 @@ impl LazyGraph {
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashMap;
-    use crate::{register_buf, Base, Buffer, Device, HasId, Retriever, CPU};
     use super::LazyGraph;
-     
+    use crate::{register_buf, Base, Buffer, Device, HasId, Retriever, CPU, AsNoId};
+    use std::collections::HashMap;
+
     #[test]
     #[should_panic]
     fn test_lazy_op_args_args_out_of_scope() {
@@ -227,6 +227,44 @@ mod tests {
             let (lhs, rhs) = *args;
             assert_eq!(lhs.as_slice(), &[1f32, 2., 3., 4., 5.,]);
             assert_eq!(rhs.as_slice(), &[1f32, 2., 6., 4., 5.,]);
+            Ok(())
+        });
+
+        unsafe {
+            graph
+                .call_lazily_op_args::<CPU>(&[out.id()], &mut outs_unordered)
+                .unwrap()
+        }
+    }
+    
+    #[test]
+    fn test_lazy_op_args_with_ew_fn() {
+        let device = CPU::<Base>::new();
+        let mut graph = LazyGraph::default();
+
+        let lhs = device.buffer([1f32, 2., 3., 4., 5.]);
+        let rhs = device.buffer([1f32, 2., 6., 4., 5.]);
+
+        let mut outs_unordered = HashMap::default();
+
+        let out: Buffer = device.retrieve(lhs.len(), (&lhs, &rhs));
+        unsafe { register_buf(&mut outs_unordered, &lhs) };
+        unsafe { register_buf(&mut outs_unordered, &rhs) };
+        unsafe { register_buf(&mut outs_unordered, &out) };
+
+        let ew_fn = |x: f32| x + 10.;
+
+        // outs_unordered.insert(out.id(), )
+
+        graph.add_operation_op_args::<f32, CPU, (), _, 3>((&lhs, &rhs, ew_fn.no_id()), |_out, args| {
+            let (lhs, rhs, ew_fn) = *args;
+            assert_eq!(lhs.as_slice(), &[1f32, 2., 3., 4., 5.,]);
+            assert_eq!(rhs.as_slice(), &[1f32, 2., 6., 4., 5.,]);
+
+            for (out, lhs) in _out.iter_mut().zip(lhs.iter()) {
+                *out = ew_fn(*lhs);
+            }
+
             Ok(())
         });
 

@@ -61,10 +61,12 @@ impl<T: Graphable, D: Device + PtrConv, Mods: AddOperation<T, D>> AddOperation<T
         &self,
         args: Args,
         out: &mut Buffer<T, D, S>,
-        operation: fn(&mut Buffer<T, D, S>, &Args) -> crate::Result<()>
+        operation: fn(&mut Buffer<T, D, S>, &Args) -> crate::Result<()>,
     ) -> crate::Result<()> {
         self.out_ids.borrow_mut().push(out.id());
-        self.graph.borrow_mut().add_operation_op_args(args, operation);
+        self.graph
+            .borrow_mut()
+            .add_operation_op_args(args, operation);
         Ok(())
     }
 

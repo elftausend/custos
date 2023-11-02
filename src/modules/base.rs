@@ -21,7 +21,7 @@ impl<T, D: Device> AddOperation<T, D> for Base {
         &self,
         args: Args,
         out: &mut Buffer<T, D, S>,
-        operation: fn(&mut Buffer<T, D, S>, &Args) -> crate::Result<()>
+        operation: fn(&mut Buffer<T, D, S>, &Args) -> crate::Result<()>,
     ) -> crate::Result<()> {
         operation(out, &args)
     }

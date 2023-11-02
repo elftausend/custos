@@ -30,8 +30,8 @@ where
         let mut out = self.retrieve(buf.len(), buf);
 
         // self.add_op(buf, &mut out, move |out, buf| {
-            apply_fn_slice(buf, &mut out, f);
-            // Ok(())
+        apply_fn_slice(buf, &mut out, f);
+        // Ok(())
         // })
         // .unwrap();
 

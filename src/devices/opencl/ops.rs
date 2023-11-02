@@ -196,19 +196,19 @@ where
         let mut out = self.retrieve(buf.len(), buf);
 
         // self.add_op(&mut out, move |out| {
-            #[cfg(unified_cl)]
-            {
-                let cpu_out = unsafe { &mut *(&mut out as *mut Buffer<_, OpenCL<Mods>, _>) };
-                self.use_cpu_or_gpu(
-                    (file!(), line!(), column!()).into(),
-                    &[buf.len()],
-                    || crate::devices::cpu_stack_ops::apply_fn_slice(buf, cpu_out, f),
-                    || try_cl_apply_fn_mut(self, buf, &mut out, f).unwrap(),
-                );
-                // Ok(())
-            }
-            #[cfg(not(unified_cl))]
-            try_cl_apply_fn_mut(self, buf, out, f);
+        #[cfg(unified_cl)]
+        {
+            let cpu_out = unsafe { &mut *(&mut out as *mut Buffer<_, OpenCL<Mods>, _>) };
+            self.use_cpu_or_gpu(
+                (file!(), line!(), column!()).into(),
+                &[buf.len()],
+                || crate::devices::cpu_stack_ops::apply_fn_slice(buf, cpu_out, f),
+                || try_cl_apply_fn_mut(self, buf, &mut out, f).unwrap(),
+            );
+            // Ok(())
+        }
+        #[cfg(not(unified_cl))]
+        try_cl_apply_fn_mut(self, buf, out, f);
         // })
         // .unwrap();
 
@@ -268,7 +268,7 @@ where
         F: ToCLSource,
     {
         // self.add_op(lhs_grad, move |lhs_grad| {
-            try_cl_add_unary_grad(self, lhs, lhs_grad, out, lhs_grad_fn);
+        try_cl_add_unary_grad(self, lhs, lhs_grad, out, lhs_grad_fn);
         // })
         // .unwrap();
     }

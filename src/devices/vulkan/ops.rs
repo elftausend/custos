@@ -82,14 +82,14 @@ where
         let mut out = self.retrieve(buf.len(), buf);
 
         // self.add_op(&mut out, move |out| {
-            let cpu_out = unsafe { &mut *(&mut out as *mut Buffer<T, Vulkan<Mods>, _>) };
-            self.use_cpu_or_gpu(
-                (file!(), line!(), column!()).into(),
-                &[buf.len()],
-                || crate::devices::cpu_stack_ops::apply_fn_slice(buf, cpu_out, f),
-                || try_vk_apply_fn_mut(self, &buf.data, &mut out.data, f).unwrap(),
-            );
-            // Ok(())
+        let cpu_out = unsafe { &mut *(&mut out as *mut Buffer<T, Vulkan<Mods>, _>) };
+        self.use_cpu_or_gpu(
+            (file!(), line!(), column!()).into(),
+            &[buf.len()],
+            || crate::devices::cpu_stack_ops::apply_fn_slice(buf, cpu_out, f),
+            || try_vk_apply_fn_mut(self, &buf.data, &mut out.data, f).unwrap(),
+        );
+        // Ok(())
         // })
         // .unwrap();
 
@@ -149,7 +149,7 @@ where
         F: ToWgslSource,
     {
         // self.add_op(lhs_grad, move |lhs_grad| {
-            try_vk_add_unary_grad(self, &lhs.data, &mut lhs_grad.data, &out.data, lhs_grad_fn);
+        try_vk_add_unary_grad(self, &lhs.data, &mut lhs_grad.data, &out.data, lhs_grad_fn);
         // })
         // .unwrap();
     }
