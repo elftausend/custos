@@ -64,9 +64,7 @@ impl<T: Graphable, D: Device + PtrConv, Mods: AddOperation<T, D>> AddOperation<T
         operation: fn(&mut Option<&mut Buffer<T, D, S>>, &mut Args) -> crate::Result<()>,
     ) -> crate::Result<()> {
         self.out_ids.borrow_mut().push(out.map(|out| out.id()));
-        self.graph
-            .borrow_mut()
-            .add_operation(args, operation);
+        self.graph.borrow_mut().add_operation(args, operation);
         Ok(())
     }
 
@@ -324,7 +322,7 @@ mod tests {
 
         assert_eq!(out.read(), [4, 5, 6, 7, 8, 9, 10, 11, 12, 13])
     }
-    /*
+
     #[cfg(feature = "cpu")]
     #[test]
     fn test_lazy_exec_with_range() {
@@ -334,8 +332,8 @@ mod tests {
         let mut out: Buffer<i32, _, ()> = device.retrieve(4, ());
 
         device
-            .add_op(&mut out, |out| {
-                out.clear();
+            .add_op((), Some(&mut out), |out, _| {
+                out.as_mut().unwrap().clear();
                 Ok(())
             })
             .unwrap();
@@ -344,8 +342,10 @@ mod tests {
             let a = Buffer::<i32, _, ()>::from_slice(&device, &[1, 2, 3, 4]);
             let b = Buffer::<i32, _, ()>::from_slice(&device, &[1, 2, 3, 4]);
             device
-                .add_op(&mut out, |out| {
-                    for ((lhs, rhs), out) in a.iter().zip(&b).zip(out.iter_mut()) {
+                .add_op((&a, &b), Some(&mut out), |out, (a, b)| {
+                    for ((lhs, rhs), out) in
+                        a.iter().zip(b.iter()).zip(out.as_mut().unwrap().iter_mut())
+                    {
                         *out = lhs + rhs;
                     }
                     Ok(())
@@ -357,6 +357,7 @@ mod tests {
         unsafe { device.run().unwrap() };
         assert_eq!(out.as_slice(), [0; 4])
     }
+    /*
 
     #[cfg(feature = "cpu")]
     #[test]
