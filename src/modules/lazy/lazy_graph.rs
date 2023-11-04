@@ -92,7 +92,7 @@ impl LazyGraph {
 
     pub unsafe fn call_lazily_op_args<D: Device + 'static>(
         &mut self,
-        out_buf_order: &[Id],
+        out_buf_order: &[Option<Id>],
         outs_unordered: &mut HashMap<UniqueId, Box<dyn Any>, BuildHasherDefault<NoHasher>>,
     ) -> crate::Result<()> {
         for (((args, op), ids_to_check), out_id) in self
@@ -109,7 +109,7 @@ impl LazyGraph {
             }
 
             let out = &mut **outs_unordered
-                .get_mut(&out_id)
+                .get_mut(&out_id.unwrap())
                 .ok_or(DeviceError::InvalidLazyOutBuf)? as *mut _ as *mut ();
 
             op(out, *args)?;
@@ -202,7 +202,7 @@ mod tests {
 
         unsafe {
             graph
-                .call_lazily_op_args::<CPU>(&[out_id], &mut outs_unordered)
+                .call_lazily_op_args::<CPU>(&[Some(out_id)], &mut outs_unordered)
                 .unwrap()
         }
     }
@@ -232,7 +232,7 @@ mod tests {
 
         unsafe {
             graph
-                .call_lazily_op_args::<CPU>(&[out.id()], &mut outs_unordered)
+                .call_lazily_op_args::<CPU>(&[Some(out.id())], &mut outs_unordered)
                 .unwrap()
         }
     }
@@ -270,7 +270,7 @@ mod tests {
 
         unsafe {
             graph
-                .call_lazily_op_args::<CPU>(&[out.id()], &mut outs_unordered)
+                .call_lazily_op_args::<CPU>(&[Some(out.id())], &mut outs_unordered)
                 .unwrap()
         }
     }
