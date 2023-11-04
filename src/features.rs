@@ -127,7 +127,7 @@ pub trait AddOperation<T, D: Device> {
         &self,
         args: Args,
         out: &mut Buffer<T, D, S>,
-        operation: fn(&mut Buffer<T, D, S>, &Args) -> crate::Result<()>,
+        operation: fn(&mut Buffer<T, D, S>, &mut Args) -> crate::Result<()>,
     ) -> crate::Result<()>;
     fn ops_count(&self) -> usize;
 }
@@ -157,7 +157,7 @@ macro_rules! pass_down_add_operation {
                 &self,
                 args: Args,
                 out: &mut $crate::Buffer<T, D, S>,
-                operation: fn(&mut Buffer<T, D, S>, &Args) -> crate::Result<()>,
+                operation: fn(&mut Buffer<T, D, S>, &mut Args) -> crate::Result<()>,
             ) -> $crate::Result<()> {
                 self.modules.add_op(args, out, operation)
             }

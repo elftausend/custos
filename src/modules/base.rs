@@ -19,11 +19,11 @@ impl<T, D: Device> AddOperation<T, D> for Base {
     #[inline]
     fn add_op<S: Shape, Args: Parents<N>, const N: usize>(
         &self,
-        args: Args,
+        mut args: Args,
         out: &mut Buffer<T, D, S>,
-        operation: fn(&mut Buffer<T, D, S>, &Args) -> crate::Result<()>,
+        operation: fn(&mut Buffer<T, D, S>, &mut Args) -> crate::Result<()>,
     ) -> crate::Result<()> {
-        operation(out, &args)
+        operation(out, &mut args)
     }
 
     #[inline]

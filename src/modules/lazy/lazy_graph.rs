@@ -71,7 +71,7 @@ impl LazyGraph {
     pub fn add_operation_op_args<T, D, S, Args: Parents<N>, const N: usize>(
         &mut self,
         args: Args,
-        op: fn(&mut Buffer<T, D, S>, &Args) -> crate::Result<()>,
+        op: fn(&mut Buffer<T, D, S>, &mut Args) -> crate::Result<()>,
     ) where
         T: Graphable,
         D: PtrConv,
