@@ -38,7 +38,7 @@ macro_rules! impl_parents {
                 let ($($to_impl,)+) = self;
                 [$($to_impl.id(),)+]
             }
-            
+
             #[inline]
             fn maybe_ids(&self) -> [Option<Id>; $num] {
                 #[allow(non_snake_case)]
@@ -62,7 +62,7 @@ impl<T: HasId + Copy, const N: usize> Parents<N> for [T; N] {
     fn ids(&self) -> [Id; N] {
         self.map(|buf| buf.id())
     }
-    
+
     #[inline]
     fn maybe_ids(&self) -> [Option<Id>; N] {
         self.map(|buf| buf.maybe_id())

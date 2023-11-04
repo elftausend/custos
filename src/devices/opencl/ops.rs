@@ -10,8 +10,8 @@ use min_cl::{
 
 use crate::{
     bounds_to_range, cpu_stack_ops::clear_slice, pass_down_add_operation, pass_down_exec_now,
-    prelude::Number, AddOperation, ApplyFunction, Buffer, CDatatype, ClearBuf, CopySlice, Eval,
-    OnDropBuffer, OpenCL, Read, Resolve, Retrieve, Retriever, Shape, ToCLSource, ToMarker,
+    prelude::Number, AddOperation, ApplyFunction, AsNoId, Buffer, CDatatype, ClearBuf, CopySlice,
+    Eval, OnDropBuffer, OpenCL, Read, Resolve, Retrieve, Retriever, Shape, ToCLSource, ToMarker,
     UnaryGrad, UseGpuOrCpu, WriteBuf,
 };
 
@@ -195,22 +195,27 @@ where
     {
         let mut out = self.retrieve(buf.len(), buf);
 
-        // self.add_op(&mut out, move |out| {
-        #[cfg(unified_cl)]
-        {
-            let cpu_out = unsafe { &mut *(&mut out as *mut Buffer<_, OpenCL<Mods>, _>) };
-            self.use_cpu_or_gpu(
-                (file!(), line!(), column!()).into(),
-                &[buf.len()],
-                || crate::devices::cpu_stack_ops::apply_fn_slice(buf, cpu_out, f),
-                || try_cl_apply_fn_mut(self, buf, &mut out, f).unwrap(),
-            );
-            // Ok(())
-        }
-        #[cfg(not(unified_cl))]
-        try_cl_apply_fn_mut(self, buf, out, f);
-        // })
-        // .unwrap();
+        self.add_op(
+            (self.no_id(), buf, f.no_id()),
+            Some(&mut out),
+            |out, (dev, buf, f)| {
+                let out: &mut Buffer<'_, T, OpenCL<Mods>, S> = out.as_mut().unwrap();
+                #[cfg(unified_cl)]
+                {
+                    let cpu_out = unsafe { &mut *(out as *mut Buffer<_, OpenCL<Mods>, _>) };
+                    dev.use_cpu_or_gpu(
+                        (file!(), line!(), column!()).into(),
+                        &[buf.len()],
+                        || crate::devices::cpu_stack_ops::apply_fn_slice(buf, cpu_out, **f),
+                        || try_cl_apply_fn_mut(dev, buf, out, **f).unwrap(),
+                    );
+                    Ok(())
+                }
+                #[cfg(not(unified_cl))]
+                try_cl_apply_fn_mut(dev, buf, out, f);
+            },
+        )
+        .unwrap();
 
         out
     }

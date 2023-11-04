@@ -3,9 +3,9 @@ use core::ops::{AddAssign, Deref, DerefMut, Index, Range, RangeBounds};
 use crate::{
     bounds_to_range,
     cpu_stack_ops::{apply_fn_slice, clear_slice},
-    pass_down_add_operation, pass_down_exec_now, AddOperation, ApplyFunction, Buffer, ClearBuf,
-    CopySlice, Device, Eval, MayToCLSource, OnDropBuffer, Read, Resolve, Retrieve, Retriever,
-    Shape, ToVal, UnaryGrad, WriteBuf, CPU,
+    pass_down_add_operation, pass_down_exec_now, AddOperation, ApplyFunction, AsNoId, Buffer,
+    ClearBuf, CopySlice, Device, Eval, MayToCLSource, OnDropBuffer, Read, Resolve, Retrieve,
+    Retriever, Shape, ToVal, UnaryGrad, WriteBuf, CPU,
 };
 
 pass_down_add_operation!(CPU);
@@ -29,11 +29,11 @@ where
     {
         let mut out = self.retrieve(buf.len(), buf);
 
-        // self.add_op(buf, &mut out, move |out, buf| {
-        apply_fn_slice(buf, &mut out, f);
-        // Ok(())
-        // })
-        // .unwrap();
+        self.add_op((buf, f.no_id()), Some(&mut out), move |out, (buf, f)| {
+            apply_fn_slice(buf, out.as_mut().unwrap(), **f);
+            Ok(())
+        })
+        .unwrap();
 
         out
     }

@@ -66,7 +66,7 @@ impl<T: Graphable, D: Device + PtrConv, Mods: AddOperation<T, D>> AddOperation<T
         self.out_ids.borrow_mut().push(out.map(|out| out.id()));
         self.graph
             .borrow_mut()
-            .add_operation_op_args(args, operation);
+            .add_operation(args, operation);
         Ok(())
     }
 
@@ -189,7 +189,7 @@ impl<T: 'static, Mods: Retrieve<D, T>, D: PtrConv + 'static> Retrieve<D, T> for 
     }
 }
 
-#[cfg(disabledtest)]
+#[cfg(test)]
 mod tests {
     use core::ops::{Add, Deref};
 
@@ -237,8 +237,8 @@ mod tests {
         #[inline]
         fn add(&self, lhs: &Buffer<T, D, S>, rhs: &Buffer<T, D, S>) -> Buffer<T, Self, S> {
             let mut out = self.retrieve(lhs.len(), ());
-            self.add_op((lhs, rhs), &mut out, |out, (lhs, rhs)| {
-                add_ew_slice(lhs, rhs, out);
+            self.add_op((lhs, rhs), Some(&mut out), |out, (lhs, rhs)| {
+                add_ew_slice(lhs, rhs, out.as_mut().unwrap());
                 Ok(())
             })
             .unwrap();
@@ -324,7 +324,7 @@ mod tests {
 
         assert_eq!(out.read(), [4, 5, 6, 7, 8, 9, 10, 11, 12, 13])
     }
-
+    /*
     #[cfg(feature = "cpu")]
     #[test]
     fn test_lazy_exec_with_range() {
@@ -461,4 +461,5 @@ mod tests {
         }
         unsafe { device.run().unwrap() };
     }
+    */
 }

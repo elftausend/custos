@@ -6,7 +6,6 @@ use custos_macro::cuda;
 #[cfg(feature = "cuda")]
 #[test]
 fn test_cuda_macro() {
-
     let ptx = cuda!(
         template<typename T>
         __global__ void add(T* lhs, T* rhs, T* out, int size) {
