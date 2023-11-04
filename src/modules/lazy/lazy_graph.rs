@@ -71,7 +71,7 @@ impl LazyGraph {
     pub fn add_operation_op_args<T, D, S, Args: Parents<N>, const N: usize>(
         &mut self,
         args: Args,
-        op: fn(&mut Buffer<T, D, S>, &mut Args) -> crate::Result<()>,
+        op: fn(&mut Option<&mut Buffer<T, D, S>>, &mut Args) -> crate::Result<()>,
     ) where
         T: Graphable,
         D: PtrConv,
@@ -107,12 +107,25 @@ impl LazyGraph {
                     .get(id_to_check)
                     .ok_or(DeviceError::InvalidLazyOutBuf)?;
             }
+            match out_id {
+                Some(out_id) => {
+                    let mut val = outs_unordered
+                        .get_mut(out_id).map(|out| &mut **out);
+                    
+                    let out = &mut val as *mut _ as *mut ();
+                    op(out, *args)?;
+                }
+                None => {
+                    let mut val = None::<*mut ()>;
+                    let out = &mut val as *mut _ as *mut (); 
+                    op(out, *args)?;
+                }
+            };
 
-            let out = &mut **outs_unordered
-                .get_mut(&out_id.unwrap())
-                .ok_or(DeviceError::InvalidLazyOutBuf)? as *mut _ as *mut ();
+            // let out = &mut **outs_unordered
+            //     .get_mut(&out_id.unwrap())
+            //     .ok_or(DeviceError::InvalidLazyOutBuf)? as *mut _ as *mut ();
 
-            op(out, *args)?;
         }
         Ok(())
     }
@@ -134,15 +147,15 @@ impl LazyGraph {
     /// The required 'static lifetime is ignored when adding operations. Hence, all captured variables must live long enough.
     pub unsafe fn call_lazily<D: Device + 'static>(
         &mut self,
-        out_buf_order: &[Id],
+        out_buf_order: &[Option<Id>],
         outs_unordered: &mut HashMap<UniqueId, Box<dyn Any>, BuildHasherDefault<NoHasher>>,
     ) -> crate::Result<()> {
         for ((ty, operation), buf_id) in self.operations.iter_mut().zip(out_buf_order) {
-            let buf = &mut **outs_unordered
-                .get_mut(buf_id)
-                .ok_or(DeviceError::InvalidLazyOutBuf)?;
+            // let buf = &mut **outs_unordered
+            //     .get_mut(buf_id)
+            //     .ok_or(DeviceError::InvalidLazyOutBuf)?;
 
-            execute_operation::<D>(*ty, operation, buf)?;
+            // execute_operation::<D>(*ty, operation, buf)?;
         }
         Ok(())
     }
@@ -150,7 +163,7 @@ impl LazyGraph {
     pub unsafe fn call_range<D: Device + 'static>(
         &mut self,
         bounds: impl RangeBounds<usize>,
-        out_buf_order: &mut Vec<Id>,
+        out_buf_order: &mut Vec<Option<Id>>,
         outs_unordered: &mut HashMap<UniqueId, Box<dyn Any>, BuildHasherDefault<NoHasher>>,
     ) -> crate::Result<()> {
         let range = bounds_to_range(bounds, out_buf_order.len());
@@ -159,12 +172,12 @@ impl LazyGraph {
             .drain(range.clone())
             .zip(out_buf_order.drain(range))
         {
-            let buf = &mut **outs_unordered
-                .get_mut(&buf_id)
-                .ok_or(DeviceError::InvalidLazyOutBuf)?;
+            // let buf = &mut **outs_unordered
+            //     .get_mut(&buf_id)
+            //     .ok_or(DeviceError::InvalidLazyOutBuf)?;
 
-            execute_operation::<D>(ty, &mut operation, buf)?;
-            unsafe { drop(Box::from_raw(operation)) }
+            // execute_operation::<D>(ty, &mut operation, buf)?;
+            // unsafe { drop(Box::from_raw(operation)) }
         }
         Ok(())
     }
@@ -238,6 +251,40 @@ mod tests {
     }
     
     #[test]
+    fn test_lazy_op_args_no_out_but_use() {
+        let device = CPU::<Base>::new();
+        let mut graph = LazyGraph::default();
+
+        let lhs = device.buffer([1f32, 2., 3., 4., 5.]);
+        let rhs = device.buffer([1f32, 2., 6., 4., 5.]);
+
+        let mut outs_unordered = HashMap::default();
+
+        let out: Buffer = device.retrieve(lhs.len(), (&lhs, &rhs));
+        unsafe { register_buf(&mut outs_unordered, &lhs) };
+        unsafe { register_buf(&mut outs_unordered, &rhs) };
+        unsafe { register_buf(&mut outs_unordered, &out) };
+        // outs_unordered.insert(out.id(), )
+
+        graph.add_operation_op_args::<f32, CPU, (), _, 2>((&lhs, &rhs), |_out, args| {
+            let (lhs, rhs) = *args;
+            assert_eq!(lhs.as_slice(), &[1f32, 2., 3., 4., 5.,]);
+            assert_eq!(rhs.as_slice(), &[1f32, 2., 6., 4., 5.,]);
+
+            if _out.is_some() {
+                panic!();
+            }
+            Ok(())
+        });
+
+        unsafe {
+            graph
+                .call_lazily_op_args::<CPU>(&[None], &mut outs_unordered)
+                .unwrap()
+        }
+    }
+    
+    #[test]
     fn test_lazy_op_args_with_ew_fn() {
         let device = CPU::<Base>::new();
         let mut graph = LazyGraph::default();
@@ -261,7 +308,7 @@ mod tests {
             assert_eq!(lhs.as_slice(), &[1f32, 2., 3., 4., 5.,]);
             assert_eq!(rhs.as_slice(), &[1f32, 2., 6., 4., 5.,]);
 
-            for (out, lhs) in _out.iter_mut().zip(lhs.iter()) {
+            for (out, lhs) in _out.as_mut().unwrap().iter_mut().zip(lhs.iter()) {
                 *out = ew_fn(*lhs);
             }
 

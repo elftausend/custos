@@ -16,7 +16,7 @@ use super::register_buf;
 pub struct Lazy<Mods> {
     pub modules: Mods,
     buffers: RefCell<HashMap<UniqueId, Box<dyn Any>, BuildHasherDefault<NoHasher>>>,
-    out_ids: RefCell<Vec<Id>>,
+    out_ids: RefCell<Vec<Option<Id>>>,
     graph: RefCell<LazyGraph>,
 }
 
@@ -60,10 +60,10 @@ impl<T: Graphable, D: Device + PtrConv, Mods: AddOperation<T, D>> AddOperation<T
     fn add_op<S: Shape, Args: Parents<N>, const N: usize>(
         &self,
         args: Args,
-        out: &mut Buffer<T, D, S>,
-        operation: fn(&mut Buffer<T, D, S>, &mut Args) -> crate::Result<()>,
+        out: Option<&mut Buffer<T, D, S>>,
+        operation: fn(&mut Option<&mut Buffer<T, D, S>>, &mut Args) -> crate::Result<()>,
     ) -> crate::Result<()> {
-        self.out_ids.borrow_mut().push(out.id());
+        self.out_ids.borrow_mut().push(out.map(|out| out.id()));
         self.graph
             .borrow_mut()
             .add_operation_op_args(args, operation);
