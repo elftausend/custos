@@ -1,14 +1,8 @@
-use super::ty::Graphable;
 use crate::{
-    bounds_to_range, Buffer, Device, DeviceError, Id, NoHasher, Parents, PtrConv, Shape, UniqueId, AllParents,
+    bounds_to_range, AllParents, Buffer, Device, DeviceError, Id, NoHasher, Parents, PtrConv,
+    Shape, UniqueId,
 };
-use core::{
-    alloc::Layout,
-    any::Any,
-    hash::BuildHasherDefault,
-    mem::{align_of, size_of, transmute},
-    ops::RangeBounds,
-};
+use core::{any::Any, hash::BuildHasherDefault, mem::transmute, ops::RangeBounds};
 use std::collections::HashMap;
 
 #[derive(Default)]
@@ -16,25 +10,7 @@ pub struct LazyGraph {
     pub ids_to_check: Vec<Vec<UniqueId>>,
     pub ops: Vec<fn(*mut (), *mut ()) -> crate::Result<()>>,
     pub args: Vec<Box<dyn AllParents>>,
-    // pub args: Vec<*mut ()>,
-    pub arg_dealloc_info: Vec<(usize, usize)>,
 }
-
-impl Drop for LazyGraph {
-    fn drop(&mut self) {
-        // for (arg_ptr, (align, size)) in self.args.iter().zip(&self.arg_dealloc_info) {
-        //     unsafe {
-        //         std::ptr::drop_in_place(*arg_ptr);
-        //     }
-        //     // arg_ptr.drop_in_place() 
-        //     let layout = Layout::from_size_align(*size, *align).unwrap();
-        //     if layout.size() != 0 {
-        //         unsafe { std::alloc::dealloc(*arg_ptr as *mut u8, layout) }
-        //     }
-        // }
-    }
-}
-
 
 impl LazyGraph {
     // TODO: could use a broader range of Args! (limited to Parents<N>)
@@ -43,13 +19,9 @@ impl LazyGraph {
         args: Args,
         op: fn(&mut Option<&mut Buffer<T, D, S>>, &mut Args) -> crate::Result<()>,
     ) where
-        T: Graphable,
         D: PtrConv,
         S: Shape,
     {
-        self.arg_dealloc_info
-            .push((align_of::<Args>(), size_of::<Args>()));
-        
         // store ids and test if buffers are still in cache
         self.ids_to_check.push(
             args.maybe_ids()
@@ -65,7 +37,7 @@ impl LazyGraph {
         let args: Box<dyn AllParents> = Box::new(args);
 
         // self.args.push(args as *mut Args as *mut _);
-        self.args.push(unsafe { transmute(args)});
+        self.args.push(unsafe { transmute(args) });
         unsafe { self.ops.push(transmute(op)) }
     }
 
@@ -111,13 +83,12 @@ impl LazyGraph {
         outs_unordered: &mut HashMap<UniqueId, Box<dyn Any>, BuildHasherDefault<NoHasher>>,
     ) -> crate::Result<()> {
         let range = bounds_to_range(bounds, out_buf_order.len());
-        for ((((mut args, op), ids_to_check), out_id), (align, size)) in self
+        for (((mut args, op), ids_to_check), out_id) in self
             .args
             .drain(range.clone())
             .zip(self.ops.drain(range.clone()))
             .zip(self.ids_to_check.drain(range.clone()))
             .zip(out_buf_order.drain(range.clone()))
-            .zip(self.arg_dealloc_info.drain(range))
         {
             for id_to_check in ids_to_check.iter() {
                 outs_unordered
@@ -140,11 +111,6 @@ impl LazyGraph {
                     op(out, args)?;
                 }
             }
-
-        //     let layout = Layout::from_size_align(size, align).unwrap();
-        //     if layout.size() != 0 {
-        //         unsafe { std::alloc::dealloc(args as *mut u8, layout) }
-        //     }
         }
 
         Ok(())
@@ -297,9 +263,10 @@ mod tests {
         {
             let vec = vec![1, 2, 3, 4];
             graph.add_operation::<u8, CPU, (), _, 1>(vec.no_id(), |_, vec| {
-
+                assert_eq!(vec.as_slice(), &[1, 2, 3, 4]);
                 Ok(())
             });
         }
+        unsafe { graph.call_lazily::<CPU>(&[None], &mut HashMap::default()) }.unwrap();
     }
 }

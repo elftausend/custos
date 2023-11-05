@@ -195,27 +195,23 @@ where
     {
         let mut out = self.retrieve(buf.len(), buf);
 
-        self.add_op(
-            (buf, f.no_id()),
-            Some(&mut out),
-            |out, (buf, f)| {
-                let dev = buf.device();
-                let out: &mut Buffer<'_, T, OpenCL<Mods>, S> = out.as_mut().unwrap();
-                #[cfg(unified_cl)]
-                {
-                    let cpu_out = unsafe { &mut *(out as *mut Buffer<_, OpenCL<Mods>, _>) };
-                    dev.use_cpu_or_gpu(
-                        (file!(), line!(), column!()).into(),
-                        &[buf.len()],
-                        || crate::devices::cpu_stack_ops::apply_fn_slice(buf, cpu_out, **f),
-                        || try_cl_apply_fn_mut(dev, buf, out, **f).unwrap(),
-                    );
-                    Ok(())
-                }
-                #[cfg(not(unified_cl))]
-                try_cl_apply_fn_mut(dev, buf, out, f);
-            },
-        )
+        self.add_op((buf, f.no_id()), Some(&mut out), |out, (buf, f)| {
+            let dev = buf.device();
+            let out: &mut Buffer<'_, T, OpenCL<Mods>, S> = out.as_mut().unwrap();
+            #[cfg(unified_cl)]
+            {
+                let cpu_out = unsafe { &mut *(out as *mut Buffer<_, OpenCL<Mods>, _>) };
+                dev.use_cpu_or_gpu(
+                    (file!(), line!(), column!()).into(),
+                    &[buf.len()],
+                    || crate::devices::cpu_stack_ops::apply_fn_slice(buf, cpu_out, **f),
+                    || try_cl_apply_fn_mut(dev, buf, out, **f).unwrap(),
+                );
+                Ok(())
+            }
+            #[cfg(not(unified_cl))]
+            try_cl_apply_fn_mut(dev, buf, out, f);
+        })
         .unwrap();
 
         out

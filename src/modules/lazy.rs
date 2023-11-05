@@ -398,7 +398,7 @@ mod tests {
     // #[ignore = "causes UB"]
     #[test]
     fn test_lazy_exec_ub_testing() {
-        use crate::{Run, AsNoId};
+        use crate::{AsNoId, Run};
 
         let device = CPU::<Lazy<Base>>::new();
 
@@ -417,14 +417,18 @@ mod tests {
             let b = Buffer::<i32, _, ()>::from_slice(&device, &[1, 2, 3, 4]);
             let vec = vec![1, 2, 3];
             device
-                .add_op((a.no_id(), &b, vec.no_id()), Some(&mut out), |out, (a, b, _vec)| {
-                    for ((lhs, rhs), out) in
-                        a.iter().zip(b.iter()).zip(out.as_mut().unwrap().iter_mut())
-                    {
-                        *out = lhs + rhs;
-                    }
-                    Ok(())
-                })
+                .add_op(
+                    (a.no_id(), &b, vec.no_id()),
+                    Some(&mut out),
+                    |out, (a, b, _vec)| {
+                        for ((lhs, rhs), out) in
+                            a.iter().zip(b.iter()).zip(out.as_mut().unwrap().iter_mut())
+                        {
+                            *out = lhs + rhs;
+                        }
+                        Ok(())
+                    },
+                )
                 .unwrap();
         }
 
