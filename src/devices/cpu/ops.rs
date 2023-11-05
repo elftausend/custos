@@ -22,7 +22,7 @@ where
     fn apply_fn<F>(
         &self,
         buf: &Buffer<T, D, S>,
-        f: impl Fn(Resolve<T>) -> F + Copy,
+        f: impl Fn(Resolve<T>) -> F + Copy + 'static,
     ) -> Buffer<T, Self, S>
     where
         F: Eval<T> + MayToCLSource,

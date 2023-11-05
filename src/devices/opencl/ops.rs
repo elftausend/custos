@@ -188,7 +188,7 @@ where
     fn apply_fn<F>(
         &self,
         buf: &Buffer<T, Self, S>,
-        f: impl Fn(Resolve<T>) -> F + Copy,
+        f: impl Fn(Resolve<T>) -> F + Copy + 'static,
     ) -> Buffer<T, Self, S>
     where
         F: ToCLSource + Eval<T>,
@@ -196,9 +196,10 @@ where
         let mut out = self.retrieve(buf.len(), buf);
 
         self.add_op(
-            (self.no_id(), buf, f.no_id()),
+            (buf, f.no_id()),
             Some(&mut out),
-            |out, (dev, buf, f)| {
+            |out, (buf, f)| {
+                let dev = buf.device();
                 let out: &mut Buffer<'_, T, OpenCL<Mods>, S> = out.as_mut().unwrap();
                 #[cfg(unified_cl)]
                 {

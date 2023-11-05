@@ -398,7 +398,7 @@ mod tests {
     // #[ignore = "causes UB"]
     #[test]
     fn test_lazy_exec_ub_testing() {
-        use crate::Run;
+        use crate::{Run, AsNoId};
 
         let device = CPU::<Lazy<Base>>::new();
 
@@ -413,9 +413,11 @@ mod tests {
 
         {
             let a = Buffer::<i32, _, ()>::from_slice(&device, &[1, 2, 3, 4]);
+            let a = a.to_deviceless();
             let b = Buffer::<i32, _, ()>::from_slice(&device, &[1, 2, 3, 4]);
+            let vec = vec![1, 2, 3];
             device
-                .add_op((a, b), Some(&mut out), |out, (a, b)| {
+                .add_op((a.no_id(), &b, vec.no_id()), Some(&mut out), |out, (a, b, _vec)| {
                     for ((lhs, rhs), out) in
                         a.iter().zip(b.iter()).zip(out.as_mut().unwrap().iter_mut())
                     {
@@ -423,9 +425,12 @@ mod tests {
                     }
                     Ok(())
                 })
-                .unwrap()
+                .unwrap();
         }
-        unsafe { device.run().unwrap() };
+
+        if let Ok(_) = unsafe { device.run() } {
+            panic!()
+        }
     }
 
     /*

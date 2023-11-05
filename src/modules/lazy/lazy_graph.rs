@@ -1,6 +1,6 @@
 use super::ty::Graphable;
 use crate::{
-    bounds_to_range, Buffer, Device, DeviceError, Id, NoHasher, Parents, PtrConv, Shape, UniqueId,
+    bounds_to_range, Buffer, Device, DeviceError, Id, NoHasher, Parents, PtrConv, Shape, UniqueId, AllParents,
 };
 use core::{
     alloc::Layout,
@@ -15,24 +15,26 @@ use std::collections::HashMap;
 pub struct LazyGraph {
     pub ids_to_check: Vec<Vec<UniqueId>>,
     pub ops: Vec<fn(*mut (), *mut ()) -> crate::Result<()>>,
-    pub args: Vec<*mut ()>,
+    pub args: Vec<Box<dyn AllParents>>,
+    // pub args: Vec<*mut ()>,
     pub arg_dealloc_info: Vec<(usize, usize)>,
 }
 
 impl Drop for LazyGraph {
     fn drop(&mut self) {
-        for (arg_ptr, (align, size)) in self.args.iter().zip(&self.arg_dealloc_info) {
-            unsafe {
-                std::ptr::drop_in_place(*arg_ptr);
-            }
-            // arg_ptr.drop_in_place() 
-            let layout = Layout::from_size_align(*size, *align).unwrap();
-            if layout.size() != 0 {
-                unsafe { std::alloc::dealloc(*arg_ptr as *mut u8, layout) }
-            }
-        }
+        // for (arg_ptr, (align, size)) in self.args.iter().zip(&self.arg_dealloc_info) {
+        //     unsafe {
+        //         std::ptr::drop_in_place(*arg_ptr);
+        //     }
+        //     // arg_ptr.drop_in_place() 
+        //     let layout = Layout::from_size_align(*size, *align).unwrap();
+        //     if layout.size() != 0 {
+        //         unsafe { std::alloc::dealloc(*arg_ptr as *mut u8, layout) }
+        //     }
+        // }
     }
 }
+
 
 impl LazyGraph {
     // TODO: could use a broader range of Args! (limited to Parents<N>)
@@ -47,9 +49,7 @@ impl LazyGraph {
     {
         self.arg_dealloc_info
             .push((align_of::<Args>(), size_of::<Args>()));
-
-        let args = Box::leak(Box::new(args));
-
+        
         // store ids and test if buffers are still in cache
         self.ids_to_check.push(
             args.maybe_ids()
@@ -59,7 +59,13 @@ impl LazyGraph {
                 .collect(),
         );
 
-        self.args.push(args as *mut Args as *mut _);
+        // let args = Box::leak(Box::new(args));
+        // let args: Box<dyn Any> = unsafe { transmute::<Box<dyn Any + 'static>, _>(Box::new(args)) };
+
+        let args: Box<dyn AllParents> = Box::new(args);
+
+        // self.args.push(args as *mut Args as *mut _);
+        self.args.push(unsafe { transmute(args)});
         unsafe { self.ops.push(transmute(op)) }
     }
 
@@ -80,17 +86,18 @@ impl LazyGraph {
                     .get(id_to_check)
                     .ok_or(DeviceError::InvalidLazyBuf)?;
             }
+            let args = &mut **args as *mut _ as *mut ();
             match out_id {
                 Some(out_id) => {
                     let mut val = outs_unordered.get_mut(out_id).map(|out| &mut **out);
 
                     let out = &mut val as *mut _ as *mut ();
-                    op(out, *args)?;
+                    op(out, args)?;
                 }
                 None => {
                     let mut val = None::<*mut ()>;
                     let out = &mut val as *mut _ as *mut ();
-                    op(out, *args)?;
+                    op(out, args)?;
                 }
             };
         }
@@ -104,7 +111,7 @@ impl LazyGraph {
         outs_unordered: &mut HashMap<UniqueId, Box<dyn Any>, BuildHasherDefault<NoHasher>>,
     ) -> crate::Result<()> {
         let range = bounds_to_range(bounds, out_buf_order.len());
-        for ((((args, op), ids_to_check), out_id), (align, size)) in self
+        for ((((mut args, op), ids_to_check), out_id), (align, size)) in self
             .args
             .drain(range.clone())
             .zip(self.ops.drain(range.clone()))
@@ -117,6 +124,8 @@ impl LazyGraph {
                     .get(id_to_check)
                     .ok_or(DeviceError::InvalidLazyBuf)?;
             }
+
+            let args = &mut *args as *mut _ as *mut ();
 
             match out_id {
                 Some(out_id) => {
@@ -132,10 +141,10 @@ impl LazyGraph {
                 }
             }
 
-            let layout = Layout::from_size_align(size, align).unwrap();
-            if layout.size() != 0 {
-                unsafe { std::alloc::dealloc(args as *mut u8, layout) }
-            }
+        //     let layout = Layout::from_size_align(size, align).unwrap();
+        //     if layout.size() != 0 {
+        //         unsafe { std::alloc::dealloc(args as *mut u8, layout) }
+        //     }
         }
 
         Ok(())
@@ -278,6 +287,19 @@ mod tests {
             graph
                 .call_lazily::<CPU>(&[Some(out.id())], &mut outs_unordered)
                 .unwrap()
+        }
+    }
+
+    #[test]
+    fn test_lazy_graph_exec_with_vecs() {
+        let mut graph = LazyGraph::default();
+
+        {
+            let vec = vec![1, 2, 3, 4];
+            graph.add_operation::<u8, CPU, (), _, 1>(vec.no_id(), |_, vec| {
+
+                Ok(())
+            });
         }
     }
 }

@@ -52,7 +52,7 @@ impl<T> HasId for NoId<T> {
     }
 }
 
-impl<T> From<T> for NoId<T> {
+impl<T: 'static> From<T> for NoId<T> {
     #[inline]
     fn from(value: T) -> Self {
         NoId { data: value }

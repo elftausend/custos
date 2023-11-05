@@ -1,6 +1,6 @@
 use crate::{HasId, Id};
 
-pub trait Parents<const N: usize> {
+pub trait Parents<const N: usize>: AllParents {
     fn ids(&self) -> [Id; N];
     fn maybe_ids(&self) -> [Option<Id>; N];
 }
@@ -17,6 +17,8 @@ impl Parents<0> for () {
     }
 }
 
+impl AllParents for () {}
+
 impl<T: HasId> Parents<1> for T {
     #[inline]
     fn ids(&self) -> [Id; 1] {
@@ -28,6 +30,8 @@ impl<T: HasId> Parents<1> for T {
         [self.maybe_id()]
     }
 }
+
+impl<T: HasId> AllParents for T {}
 
 macro_rules! impl_parents {
     ($num:expr, $($to_impl:ident),+) => {
@@ -46,6 +50,7 @@ macro_rules! impl_parents {
                 [$($to_impl.maybe_id(),)+]
             }
         }
+        impl<$($to_impl: $crate::HasId, )+> AllParents for ($($to_impl,)+) {}
     };
 }
 
@@ -68,3 +73,7 @@ impl<T: HasId + Copy, const N: usize> Parents<N> for [T; N] {
         self.map(|buf| buf.maybe_id())
     }
 }
+
+impl<T: HasId + Copy, const N: usize> AllParents for [T; N] {}
+
+pub trait AllParents {}
