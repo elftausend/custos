@@ -12,7 +12,7 @@ use crate::{
     bounds_to_range, cpu_stack_ops::clear_slice, pass_down_add_operation, pass_down_exec_now,
     prelude::Number, AddOperation, ApplyFunction, AsNoId, Buffer, CDatatype, ClearBuf, CopySlice,
     Eval, OnDropBuffer, OpenCL, Read, Resolve, Retrieve, Retriever, Shape, ToCLSource, ToMarker,
-    UnaryGrad, UseGpuOrCpu, WriteBuf,
+    UnaryGrad, UseGpuOrCpu, WriteBuf, BufAsNoId,
 };
 
 use super::{enqueue_kernel, CLPtr};
@@ -265,14 +265,14 @@ where
         lhs: &Buffer<T, Self, S>,
         lhs_grad: &mut Buffer<T, Self, S>,
         out: &Buffer<T, Self, S>,
-        lhs_grad_fn: impl Fn(Resolve<T>) -> F + Copy,
+        lhs_grad_fn: impl Fn(Resolve<T>) -> F + Copy + 'static,
     ) where
         F: ToCLSource,
     {
-        // self.add_op(lhs_grad, move |lhs_grad| {
-        try_cl_add_unary_grad(self, lhs, lhs_grad, out, lhs_grad_fn);
-        // })
-        // .unwrap();
+        self.add_op::<S, _, 4>((lhs, lhs_grad.buf_no_id(), out, lhs_grad_fn.no_id()), None, move |_, (lhs, lhs_grad, out, lhs_grad_fn)| {
+            try_cl_add_unary_grad(lhs.device(), lhs, &mut **lhs_grad, out, **lhs_grad_fn)
+        })
+        .unwrap();
     }
 }
 

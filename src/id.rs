@@ -1,5 +1,7 @@
 use core::ops::{Deref, DerefMut};
 
+use crate::{Buffer, Device, Shape};
+
 pub trait HasId {
     const HAS_NO_ID: bool = false;
     fn id(&self) -> Id;
@@ -36,7 +38,7 @@ impl HasId for Id {
 
 #[derive(Debug, Clone, Copy)]
 pub struct NoId<T> {
-    pub data: T,
+    pub(crate) data: T,
 }
 
 impl<T> HasId for NoId<T> {
@@ -59,17 +61,6 @@ impl<T: 'static> From<T> for NoId<T> {
     }
 }
 
-pub trait AsNoId: Sized {
-    fn no_id(self) -> NoId<Self>;
-}
-
-impl<T: Into<NoId<T>>> AsNoId for T {
-    #[inline]
-    fn no_id(self) -> NoId<Self> {
-        self.into()
-    }
-}
-
 impl<T> Deref for NoId<T> {
     type Target = T;
 
@@ -83,5 +74,34 @@ impl<T> DerefMut for NoId<T> {
     #[inline]
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.data
+    }
+}
+
+pub trait AsNoId: Sized {
+    fn no_id(self) -> NoId<Self>;
+}
+
+impl<T: Into<NoId<T>>> AsNoId for T {
+    #[inline]
+    fn no_id(self) -> NoId<Self> {
+        self.into()
+    }
+}
+
+pub trait BufAsNoId: Sized {
+    fn buf_no_id(self) -> NoId<Self>;
+}
+
+impl<'a, T, D: Device, S: Shape> BufAsNoId for &Buffer<'a, T, D, S> {
+    #[inline]
+    fn buf_no_id(self) -> NoId<Self> {
+        NoId { data: self }
+    }
+}
+
+impl<'a, T, D: Device, S: Shape> BufAsNoId for &mut Buffer<'a, T, D, S> {
+    #[inline]
+    fn buf_no_id(self) -> NoId<Self> {
+        NoId { data: self }
     }
 }
