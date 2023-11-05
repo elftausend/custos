@@ -49,7 +49,7 @@ min-cl = { path="../min-cl", optional=true }
 
 [features]
 # default = ["cpu", "autograd", "macro"]
-default = ["graph", "stack", "autograd", "cpu", "opencl", "fork", "lazy", "vulkan"]
+default = ["graph", "stack", "autograd", "cpu", "opencl", "fork", "lazy" ]
 
 cpu = []
 opencl = ["dep:min-cl", "cpu", "cached"]

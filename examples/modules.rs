@@ -57,10 +57,10 @@ where
                 add_ew_grad_slice(lhs_grad, rhs_grad, out_grad) // execute grad function
             });
         }
-        self.add_op(&mut out, |out| {
-            add_ew_slice(lhs, rhs, out);
+        self.add_op((lhs, rhs), Some(&mut out), |out, (lhs, rhs)| {
+            add_ew_slice(lhs, rhs, out.as_mut().unwrap());
             Ok(())
-        });
+        })?;
         Ok(out)
     }
 }
@@ -110,21 +110,23 @@ where
     ) -> custos::Result<Buffer<T, Self, S>> {
         let mut out = self.retrieve(lhs.len(), (lhs, rhs));
 
-        self.add_op(&mut out, |out| {
+        self.add_op((lhs, rhs), Some(&mut out), |out, (lhs, rhs)| {
+            let dev = lhs.device();
+            let out = out.as_mut().unwrap();
             #[cfg(unified_cl)]
             {
-                let cpu_out = unsafe { &mut *(out as *mut Buffer<_, OpenCL<Mods>, _>) };
-                self.use_cpu_or_gpu(
+                let cpu_out = unsafe { &mut *(*out as *mut Buffer<_, OpenCL<Mods>, _>) };
+                dev.use_cpu_or_gpu(
                     (file!(), line!(), column!()).into(),
                     &[lhs.len()],
                     || add_ew_slice(lhs, rhs, cpu_out),
-                    || try_add_ew_cl(self, &lhs.data, &rhs.data, &mut out.data).unwrap(),
+                    || try_add_ew_cl(dev, &lhs.data, &rhs.data, &mut out.data).unwrap(),
                 );
             }
             // #[cfg(not(unified_cl))]
-            try_add_ew_cl(self, &lhs.data, &rhs.data, &mut out.data)?;
+            try_add_ew_cl(dev, &lhs.data, &rhs.data, &mut out.data)?;
             Ok(())
-        });
+        })?;
 
         Ok(out)
     }
