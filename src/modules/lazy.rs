@@ -264,7 +264,7 @@ mod tests {
             assert_eq!(out.read(), &[0; 10]);
         }
 
-        if DeviceError::InvalidLazyOutBuf
+        if DeviceError::InvalidLazyBuf
             != unsafe { *device.run().err().unwrap().downcast().unwrap() }
         {
             panic!("")
@@ -357,7 +357,6 @@ mod tests {
         unsafe { device.run().unwrap() };
         assert_eq!(out.as_slice(), [0; 4])
     }
-    /*
 
     #[cfg(feature = "cpu")]
     #[test]
@@ -368,8 +367,8 @@ mod tests {
         let mut out: Buffer<i32, _, ()> = device.retrieve(4, ());
 
         device
-            .add_op(&mut out, |out| {
-                out.clear();
+            .add_op((), Some(&mut out), |out, _| {
+                out.as_mut().unwrap().clear();
                 Ok(())
             })
             .unwrap();
@@ -378,8 +377,10 @@ mod tests {
             let a = Buffer::<i32, _, ()>::from_slice(&device, &[1, 2, 3, 4]);
             let b = Buffer::<i32, _, ()>::from_slice(&device, &[1, 2, 3, 4]);
             device
-                .add_op(&mut out, |out| {
-                    for ((lhs, rhs), out) in a.iter().zip(&b).zip(out.iter_mut()) {
+                .add_op((&a, &b), Some(&mut out), |out, (a, b)| {
+                    for ((lhs, rhs), out) in
+                        a.iter().zip(b.iter()).zip(out.as_mut().unwrap().iter_mut())
+                    {
                         *out = lhs + rhs;
                     }
                     Ok(())
@@ -394,7 +395,7 @@ mod tests {
     }
 
     #[cfg(feature = "cpu")]
-    #[ignore = "causes UB"]
+    // #[ignore = "causes UB"]
     #[test]
     fn test_lazy_exec_ub_testing() {
         use crate::Run;
@@ -404,8 +405,8 @@ mod tests {
         let mut out: Buffer<i32, _> = device.retrieve(4, ());
 
         device
-            .add_op(&mut out, |out| {
-                out.clear();
+            .add_op((), Some(&mut out), |out, _| {
+                out.as_mut().unwrap().clear();
                 Ok(())
             })
             .unwrap();
@@ -414,8 +415,10 @@ mod tests {
             let a = Buffer::<i32, _, ()>::from_slice(&device, &[1, 2, 3, 4]);
             let b = Buffer::<i32, _, ()>::from_slice(&device, &[1, 2, 3, 4]);
             device
-                .add_op(&mut out, |out| {
-                    for ((lhs, rhs), out) in a.iter().zip(&b).zip(out.iter_mut()) {
+                .add_op((a, b), Some(&mut out), |out, (a, b)| {
+                    for ((lhs, rhs), out) in
+                        a.iter().zip(b.iter()).zip(out.as_mut().unwrap().iter_mut())
+                    {
                         *out = lhs + rhs;
                     }
                     Ok(())
@@ -425,6 +428,7 @@ mod tests {
         unsafe { device.run().unwrap() };
     }
 
+    /*
     #[cfg(feature = "cpu")]
     #[should_panic]
     #[ignore = "currently wrong panic reasion"]

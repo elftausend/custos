@@ -1,7 +1,6 @@
 use super::ty::Graphable;
 use crate::{
-    bounds_to_range, Buffer, Device, DeviceError, Id, NoHasher, Parents, PtrConv, Shape,
-    UniqueId,
+    bounds_to_range, Buffer, Device, DeviceError, Id, NoHasher, Parents, PtrConv, Shape, UniqueId,
 };
 use core::{
     alloc::Layout,
@@ -23,7 +22,10 @@ pub struct LazyGraph {
 impl Drop for LazyGraph {
     fn drop(&mut self) {
         for (arg_ptr, (align, size)) in self.args.iter().zip(&self.arg_dealloc_info) {
-            println!("{align}, {size}");
+            unsafe {
+                std::ptr::drop_in_place(*arg_ptr);
+            }
+            // arg_ptr.drop_in_place() 
             let layout = Layout::from_size_align(*size, *align).unwrap();
             if layout.size() != 0 {
                 unsafe { std::alloc::dealloc(*arg_ptr as *mut u8, layout) }
@@ -76,7 +78,7 @@ impl LazyGraph {
             for id_to_check in ids_to_check.iter() {
                 outs_unordered
                     .get(id_to_check)
-                    .ok_or(DeviceError::InvalidLazyOutBuf)?;
+                    .ok_or(DeviceError::InvalidLazyBuf)?;
             }
             match out_id {
                 Some(out_id) => {
@@ -113,9 +115,9 @@ impl LazyGraph {
             for id_to_check in ids_to_check.iter() {
                 outs_unordered
                     .get(id_to_check)
-                    .ok_or(DeviceError::InvalidLazyOutBuf)?;
+                    .ok_or(DeviceError::InvalidLazyBuf)?;
             }
-            
+
             match out_id {
                 Some(out_id) => {
                     let mut val = outs_unordered.get_mut(&out_id).map(|out| &mut **out);
