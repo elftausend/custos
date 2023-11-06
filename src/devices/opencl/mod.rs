@@ -24,10 +24,10 @@ use min_cl::api::release_mem_object;
 pub use unified::*;
 
 //use self::api::release_mem_object;
-use crate::{flag::AllocFlag, Buffer, CommonPtrs, HasId, HostPtr, Id, PtrType, ShallowCopy};
+use crate::{flag::AllocFlag, CommonPtrs, HasId, HostPtr, Id, PtrType, ShallowCopy};
 
-/// Another type for Buffer<'a, T, OpenCL, S>
-pub type CLBuffer<'a, T, S = ()> = Buffer<'a, T, OpenCL, S>;
+/// Another type for [`CLPtr`]
+pub type CLBuffer<T> = CLPtr<T>;
 
 /// Reads the environment variable `CUSTOS_CL_DEVICE_IDX` and returns the value as a `usize`.
 pub fn chosen_cl_idx() -> usize {

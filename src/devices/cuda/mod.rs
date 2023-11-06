@@ -26,8 +26,8 @@ pub use kernel_launch::*;
 
 use crate::{Buffer, CDatatype};
 
-/// Another shorter type for Buffer<'a, T, CUDA, S>
-pub type CUBuffer<'a, T, S = ()> = Buffer<'a, T, CUDA, S>;
+/// Another type for [`CUPtr`]
+pub type CUBuffer<T> = CUPtr<T>;
 
 /// Reads the environment variable `CUSTOS_CU_DEVICE_IDX` and returns the value as a `usize`.
 pub fn chosen_cu_idx() -> usize {
