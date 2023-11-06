@@ -75,6 +75,7 @@ impl<T: Graphable, D: Device + PtrConv, Mods: AddOperation<T, D>> AddOperation<T
 }
 
 impl<D: Device + 'static, Mods> ExecNow<D> for Lazy<Mods> {
+    #[inline]
     fn exec_now(&self, range_bounds: impl core::ops::RangeBounds<usize>) -> crate::Result<()> {
         unsafe {
             self.graph.borrow_mut().call_range::<D>(
@@ -83,21 +84,6 @@ impl<D: Device + 'static, Mods> ExecNow<D> for Lazy<Mods> {
                 &mut self.buffers.borrow_mut(),
             )?;
         }
-        /*for ((ty, mut operation), out_id) in self
-            .graph
-            .borrow_mut()
-            .operations
-            .drain(range.clone())
-            .zip(self.out_ids.borrow_mut().drain(range))
-        {
-            let mut buffers = self.buffers.borrow_mut();
-            let out = buffers
-                .get_mut(&out_id)
-                .ok_or(DeviceError::InvalidLazyOutBuf)?;
-
-            execute_operation::<D>(ty, &mut operation, out)?;
-        }
-        */
         Ok(())
     }
 }

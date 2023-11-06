@@ -349,6 +349,7 @@ mod test {
         Ok(())
     }
 
+    #[cfg(feature = "autograd")]
     #[test]
     fn test_cl_apply_fn_autograd() -> crate::Result<()> {
         let device = OpenCL::<crate::Autograd<Base>>::new(chosen_cl_idx())?;
@@ -357,5 +358,22 @@ mod test {
         device.apply_fn(&lhs, |x| x.mul(2));
 
         Ok(())
+    }
+
+    #[cfg(feature = "lazy")]
+    #[test]
+    fn test_cl_lazy_unary_grad_exec() {
+        use crate::{Lazy, UnaryGrad, Run};
+
+        let device = OpenCL::<Lazy<Base>>::new(0).unwrap();
+        let lhs = Buffer::from((&device, [1, 2, 3, 4, 5, 6]));
+        let mut lhs_grad = Buffer::from((&device, [1, 2, 3, 4, 5, 6]));
+
+        let out = Buffer::from((&device, [1, 1, 1, 1, 1, 1]));
+
+        device.add_unary_grad(&lhs, &mut lhs_grad, &out, |x| x.mul(2).add(1));
+        unsafe { device.run().unwrap() };
+
+        assert_eq!(lhs_grad.read(), [4, 7, 10, 13, 16, 19]);
     }
 }

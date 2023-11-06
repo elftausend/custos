@@ -101,12 +101,12 @@ mod error;
 mod cache;
 
 mod device_traits;
-mod features;
+pub mod features;
 pub mod flag;
 // mod graph;
-mod hooks;
+pub mod hooks;
 mod id;
-mod modules;
+pub mod modules;
 mod op_traits;
 mod parents;
 mod ptr_conv;
