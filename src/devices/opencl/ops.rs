@@ -1,15 +1,18 @@
 use core::ops::{Range, RangeBounds};
 
-use min_cl::{api::{
-    enqueue_copy_buffer, enqueue_copy_buffers, enqueue_full_copy_buffer, enqueue_read_buffer,
-    enqueue_write_buffer, wait_for_event,
-}, CLDevice};
+use min_cl::{
+    api::{
+        enqueue_copy_buffer, enqueue_copy_buffers, enqueue_full_copy_buffer, enqueue_read_buffer,
+        enqueue_write_buffer, wait_for_event,
+    },
+    CLDevice,
+};
 
 use crate::{
     bounds_to_range, cpu_stack_ops::clear_slice, pass_down_add_operation, pass_down_exec_now,
-    prelude::Number, AddOperation, ApplyFunction, Buffer, CDatatype, ClearBuf, CopySlice, Eval,
-    OnDropBuffer, OpenCL, Read, Resolve, Retrieve, Retriever, Shape, ToCLSource, ToMarker,
-    UnaryGrad, UseGpuOrCpu, WriteBuf,
+    prelude::Number, AddOperation, ApplyFunction, AsNoId, BufAsNoId, Buffer, CDatatype, ClearBuf,
+    CopySlice, Eval, OnDropBuffer, OpenCL, Read, Resolve, Retrieve, Retriever, Shape, ToCLSource,
+    ToMarker, UnaryGrad, UseGpuOrCpu, WriteBuf,
 };
 
 use super::{enqueue_kernel, CLPtr};
@@ -63,10 +66,7 @@ impl<Mods: OnDropBuffer + UseGpuOrCpu, T: CDatatype + Default> ClearBuf<T> for O
 ///     Ok(())
 /// }
 /// ```
-pub fn try_cl_clear<T: CDatatype>(
-    device: &CLDevice,
-    lhs: &mut CLPtr<T>
-) -> crate::Result<()> {
+pub fn try_cl_clear<T: CDatatype>(device: &CLDevice, lhs: &mut CLPtr<T>) -> crate::Result<()> {
     let src = format!(
         "
         __kernel void clear(__global {datatype}* self, long len) {{
@@ -188,28 +188,31 @@ where
     fn apply_fn<F>(
         &self,
         buf: &Buffer<T, Self, S>,
-        f: impl Fn(Resolve<T>) -> F + Copy,
+        f: impl Fn(Resolve<T>) -> F + Copy + 'static,
     ) -> Buffer<T, Self, S>
     where
         F: ToCLSource + Eval<T>,
     {
         let mut out = self.retrieve(buf.len(), buf);
 
-        self.add_op(&mut out, move |out| {
+        self.add_op((buf, f.no_id()), Some(&mut out), |out, (buf, f)| {
+            let dev = buf.device();
+            let out: &mut Buffer<'_, T, OpenCL<Mods>, S> = out.as_mut().unwrap();
             #[cfg(unified_cl)]
             {
                 let cpu_out = unsafe { &mut *(out as *mut Buffer<_, OpenCL<Mods>, _>) };
-                self.use_cpu_or_gpu(
+                dev.use_cpu_or_gpu(
                     (file!(), line!(), column!()).into(),
                     &[buf.len()],
-                    || crate::devices::cpu_stack_ops::apply_fn_slice(buf, cpu_out, f),
-                    || try_cl_apply_fn_mut(self, buf, out, f).unwrap(),
+                    || crate::devices::cpu_stack_ops::apply_fn_slice(buf, cpu_out, **f),
+                    || try_cl_apply_fn_mut(dev, buf, out, **f).unwrap(),
                 );
                 Ok(())
             }
             #[cfg(not(unified_cl))]
-            try_cl_apply_fn_mut(self, buf, out, f)
-        }).unwrap();
+            try_cl_apply_fn_mut(dev, buf, out, f);
+        })
+        .unwrap();
 
         out
     }
@@ -262,13 +265,18 @@ where
         lhs: &Buffer<T, Self, S>,
         lhs_grad: &mut Buffer<T, Self, S>,
         out: &Buffer<T, Self, S>,
-        lhs_grad_fn: impl Fn(Resolve<T>) -> F + Copy,
+        lhs_grad_fn: impl Fn(Resolve<T>) -> F + Copy + 'static,
     ) where
         F: ToCLSource,
     {
-        self.add_op(lhs_grad, move |lhs_grad| {
-            try_cl_add_unary_grad(self, lhs, lhs_grad, out, lhs_grad_fn)
-        }).unwrap();
+        self.add_op::<S, _, 4>(
+            (lhs, lhs_grad.buf_no_id(), out, lhs_grad_fn.no_id()),
+            None,
+            move |_, (lhs, lhs_grad, out, lhs_grad_fn)| {
+                try_cl_add_unary_grad(lhs.device(), lhs, &mut **lhs_grad, out, **lhs_grad_fn)
+            },
+        )
+        .unwrap();
     }
 }
 
@@ -345,6 +353,7 @@ mod test {
         Ok(())
     }
 
+    #[cfg(feature = "autograd")]
     #[test]
     fn test_cl_apply_fn_autograd() -> crate::Result<()> {
         let device = OpenCL::<crate::Autograd<Base>>::new(chosen_cl_idx())?;
@@ -353,5 +362,22 @@ mod test {
         device.apply_fn(&lhs, |x| x.mul(2));
 
         Ok(())
+    }
+
+    #[cfg(feature = "lazy")]
+    #[test]
+    fn test_cl_lazy_unary_grad_exec() {
+        use crate::{Lazy, Run, UnaryGrad};
+
+        let device = OpenCL::<Lazy<Base>>::new(0).unwrap();
+        let lhs = Buffer::from((&device, [1, 2, 3, 4, 5, 6]));
+        let mut lhs_grad = Buffer::from((&device, [1, 2, 3, 4, 5, 6]));
+
+        let out = Buffer::from((&device, [1, 1, 1, 1, 1, 1]));
+
+        device.add_unary_grad(&lhs, &mut lhs_grad, &out, |x| x.mul(2).add(1));
+        unsafe { device.run().unwrap() };
+
+        assert_eq!(lhs_grad.read(), [4, 7, 10, 13, 16, 19]);
     }
 }

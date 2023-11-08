@@ -2,8 +2,8 @@ mod graph_translator;
 mod node;
 mod opt_graph;
 
-pub use opt_graph::*;
 pub use node::Node;
+pub use opt_graph::*;
 
 use core::{cell::RefCell, panic::Location};
 
@@ -39,7 +39,10 @@ impl<Mods, D> Setup<D> for Graph<Mods> {
 }
 
 impl<Mods: OptimizeMemGraph> OptimizeMemGraph for Graph<Mods> {
-    fn optimize_mem_graph(&self, cache_traces: Option<&[TranslatedCacheTrace]>) -> crate::Result<()> {
+    fn optimize_mem_graph(
+        &self,
+        cache_traces: Option<&[TranslatedCacheTrace]>,
+    ) -> crate::Result<()> {
         match cache_traces {
             Some(cache_traces) => self.modules.optimize_mem_graph(Some(cache_traces)),
             None => {
@@ -101,10 +104,14 @@ impl<T: 'static, Mods: Retrieve<D, T>, D: PtrConv + 'static> Retrieve<D, T> for 
         S: Shape,
         D: Alloc<T>,
     {
+        let ids = parents.ids();
         let data = self.modules.retrieve(device, len, parents);
         let mut graph_trans = self.graph_trans.borrow_mut();
 
-        if graph_trans.added_to_graph.contains(&Location::caller().into()) {
+        if graph_trans
+            .added_to_graph
+            .contains(&Location::caller().into())
+        {
             return data;
         }
 
@@ -115,7 +122,7 @@ impl<T: 'static, Mods: Retrieve<D, T>, D: PtrConv + 'static> Retrieve<D, T> for 
             .insert(next_idx, Location::caller().into());
 
         // does a hash location check internally (again)
-        graph_trans.add_node(len, &parents);
+        graph_trans.add_node(len, &ids);
         data
     }
 

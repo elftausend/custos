@@ -24,10 +24,10 @@ pub use cuda_device::*;
 pub use kernel_cache::*;
 pub use kernel_launch::*;
 
-use crate::{Buffer, CDatatype};
+use crate::CDatatype;
 
-/// Another shorter type for Buffer<'a, T, CUDA, S>
-pub type CUBuffer<'a, T, S = ()> = Buffer<'a, T, CUDA, S>;
+/// Another type for [`CUDAPtr`]
+pub type CUBuffer<T> = CUDAPtr<T>;
 
 /// Reads the environment variable `CUSTOS_CU_DEVICE_IDX` and returns the value as a `usize`.
 pub fn chosen_cu_idx() -> usize {
@@ -54,10 +54,7 @@ pub fn chosen_cu_idx() -> usize {
 ///     Ok(())
 /// }
 /// ```
-pub fn cu_clear<T: CDatatype>(
-    device: &CudaDevice,
-    buf: &mut CUDAPtr<T>,
-) -> crate::Result<()> {
+pub fn cu_clear<T: CDatatype>(device: &CudaDevice, buf: &mut CUDAPtr<T>) -> crate::Result<()> {
     let src = format!(
         r#"extern "C" __global__ void clear({datatype}* self, int numElements)
             {{

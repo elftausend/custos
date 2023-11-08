@@ -3,9 +3,9 @@ use core::ops::{Range, RangeBounds};
 use crate::{
     bounds_to_range,
     cuda::api::{cu_read_async, CUstreamCaptureStatus},
-    pass_down_add_operation, pass_down_exec_now, AddOperation, ApplyFunction, Buffer, CDatatype,
-    ClearBuf, CopySlice, OnDropBuffer, Read, Resolve, Retrieve, Retriever, Shape, ToCLSource,
-    ToMarker, UnaryGrad, WriteBuf, CUDA,
+    pass_down_add_operation, pass_down_exec_now, AddOperation, ApplyFunction, AsNoId, BufAsNoId,
+    Buffer, CDatatype, ClearBuf, CopySlice, OnDropBuffer, Read, Resolve, Retrieve, Retriever,
+    Shape, ToCLSource, ToMarker, UnaryGrad, WriteBuf, CUDA,
 };
 
 use super::{
@@ -169,13 +169,24 @@ where
         lhs: &Buffer<T, Self, S>,
         lhs_grad: &mut Buffer<T, Self, S>,
         out: &Buffer<T, Self, S>,
-        lhs_grad_fn: impl Fn(Resolve<T>) -> F + Copy,
+        lhs_grad_fn: impl Fn(Resolve<T>) -> F + Copy + 'static,
     ) where
         F: ToCLSource,
     {
-        self.add_op(lhs_grad, move |lhs_grad| {
-            try_cu_add_unary_grad(self, &lhs.data, &mut lhs_grad.data, &out.data, lhs_grad_fn)
-        }).unwrap();
+        self.add_op::<(), _, 4>(
+            (lhs, lhs_grad.buf_no_id(), out, lhs_grad_fn.no_id()),
+            None,
+            move |_, (lhs, lhs_grad, out, lhs_grad_fn)| {
+                try_cu_add_unary_grad(
+                    lhs.device(),
+                    &lhs.data,
+                    &mut lhs_grad.data,
+                    &out.data,
+                    **lhs_grad_fn,
+                )
+            },
+        )
+        .unwrap();
     }
 }
 pub fn try_cu_add_unary_grad<T, F>(
@@ -244,5 +255,26 @@ mod tests {
         assert_eq!(lhs_grad.read(), [4, 7, 10, 13, 16, 19]);
 
         Ok(())
+    }
+
+    #[cfg(feature = "lazy")]
+    #[test]
+    fn test_cu_add_unary_grad_lazy_graph() {
+        use crate::{Lazy, UnaryGrad, Run};
+
+        let device = CUDA::<Lazy<Base>>::new(0).unwrap();
+
+        let lhs = Buffer::from((&device, [1, 2, 3, 4, 5, 6]));
+        let mut lhs_grad = Buffer::from((&device, [1, 2, 3, 4, 5, 6]));
+
+        let out = Buffer::from((&device, [1, 1, 1, 1, 1, 1]));
+        device.add_unary_grad(&lhs, &mut lhs_grad, &out, |lhs| lhs.add(2));
+
+        assert_eq!(lhs_grad.read(), vec![1, 2, 3, 4, 5, 6]);
+
+        unsafe { device.run().unwrap() }
+
+        assert_eq!(lhs_grad.read(), vec![4, 6, 8, 10, 12, 14]);
+
     }
 }

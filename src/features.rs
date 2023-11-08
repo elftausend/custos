@@ -1,8 +1,8 @@
 #[cfg(feature = "cached")]
 use core::cell::{Ref, RefMut};
-use core::ops::RangeBounds;
+use core::{fmt::Debug, ops::RangeBounds};
 
-use crate::{Parents, Shape, TranslatedCacheTrace, CPU};
+use crate::{HasId, Parents, Shape, TranslatedCacheTrace, UniqueId, CPU};
 
 #[cfg(feature = "cached")]
 use crate::{Base, CachedModule};
@@ -106,11 +106,28 @@ pub trait TapeActions {
     }
 }
 
+pub trait OpArgs {
+    fn as_ids(&self) -> [UniqueId; 2];
+    // fn update_vals(&mut self, cache ..)
+    // fn from_cache(cache: &std::collections::HashMap<UniqueId, ()>, ids: [UniqueId; N]) -> Self;
+}
+
+impl<'a, 'b, T, D: Device, S: Shape> OpArgs for (&Buffer<'a, T, D, S>, &Buffer<'b, T, D, S>) {
+    fn as_ids(&self) -> [UniqueId; 2] {
+        [*self.0.id(), *self.1.id()]
+    }
+
+    // fn from_cache(cache: &std::collections::HashMap<UniqueId, ()>, ids: [UniqueId; 2]) -> Self {
+    //     todo!()
+    // }
+}
+
 pub trait AddOperation<T, D: Device> {
-    fn add_op<S: Shape>(
+    fn add_op<S: Shape, Args: Parents<N>, const N: usize>(
         &self,
-        out: &mut Buffer<T, D, S>,
-        operation: impl Fn(&mut Buffer<T, D, S>) -> crate::Result<()>,
+        args: Args,
+        out: Option<&mut Buffer<T, D, S>>,
+        operation: fn(&mut Option<&mut Buffer<T, D, S>>, &mut Args) -> crate::Result<()>,
     ) -> crate::Result<()>;
     fn ops_count(&self) -> usize;
 }
@@ -136,12 +153,13 @@ macro_rules! pass_down_add_operation {
             for $device<Mods>
         {
             #[inline]
-            fn add_op<S: $crate::Shape>(
+            fn add_op<S: Shape, Args: $crate::Parents<N>, const N: usize>(
                 &self,
-                out: &mut $crate::Buffer<T, D, S>,
-                operation: impl Fn(&mut $crate::Buffer<T, D, S>) -> $crate::Result<()>,
+                args: Args,
+                out: Option<&mut $crate::Buffer<T, D, S>>,
+                operation: fn(&mut Option<&mut Buffer<T, D, S>>, &mut Args) -> crate::Result<()>,
             ) -> $crate::Result<()> {
-                self.modules.add_op(out, operation)
+                self.modules.add_op(args, out, operation)
             }
 
             #[inline]
@@ -274,14 +292,20 @@ pub trait UseGpuOrCpu {
 }
 
 pub trait OptimizeMemGraph {
-    fn optimize_mem_graph(&self, cache_traces: Option<&[TranslatedCacheTrace]>) -> crate::Result<()>;
+    fn optimize_mem_graph(
+        &self,
+        cache_traces: Option<&[TranslatedCacheTrace]>,
+    ) -> crate::Result<()>;
 }
 
 #[macro_export]
 macro_rules! pass_down_optimize_mem_graph {
     ($to_impl:ident) => {
         impl<Mods: $crate::OptimizeMemGraph> $crate::OptimizeMemGraph for $to_impl<Mods> {
-            fn optimize_mem_graph(&self, cache_traces: Option<&[$crate::TranslatedCacheTrace]>) -> crate::Result<()> {
+            fn optimize_mem_graph(
+                &self,
+                cache_traces: Option<&[$crate::TranslatedCacheTrace]>,
+            ) -> crate::Result<()> {
                 self.modules.optimize_mem_graph(cache_traces)
             }
         }

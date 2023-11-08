@@ -16,7 +16,7 @@ use super::register_buf;
 pub struct Lazy<Mods> {
     pub modules: Mods,
     buffers: RefCell<HashMap<UniqueId, Box<dyn Any>, BuildHasherDefault<NoHasher>>>,
-    out_ids: RefCell<Vec<Id>>,
+    out_ids: RefCell<Vec<Option<Id>>>,
     graph: RefCell<LazyGraph>,
 }
 
@@ -57,13 +57,14 @@ impl<T: Graphable, D: Device + PtrConv, Mods: AddOperation<T, D>> AddOperation<T
     for Lazy<Mods>
 {
     #[inline]
-    fn add_op<S: Shape>(
+    fn add_op<S: Shape, Args: Parents<N>, const N: usize>(
         &self,
-        out: &mut Buffer<T, D, S>,
-        operation: impl Fn(&mut Buffer<T, D, S>) -> crate::Result<()>,
+        args: Args,
+        out: Option<&mut Buffer<T, D, S>>,
+        operation: fn(&mut Option<&mut Buffer<T, D, S>>, &mut Args) -> crate::Result<()>,
     ) -> crate::Result<()> {
-        self.out_ids.borrow_mut().push(out.id());
-        self.graph.borrow_mut().add_operation(operation);
+        self.out_ids.borrow_mut().push(out.map(|out| out.id()));
+        self.graph.borrow_mut().add_operation(args, operation);
         Ok(())
     }
 
@@ -74,6 +75,7 @@ impl<T: Graphable, D: Device + PtrConv, Mods: AddOperation<T, D>> AddOperation<T
 }
 
 impl<D: Device + 'static, Mods> ExecNow<D> for Lazy<Mods> {
+    #[inline]
     fn exec_now(&self, range_bounds: impl core::ops::RangeBounds<usize>) -> crate::Result<()> {
         unsafe {
             self.graph.borrow_mut().call_range::<D>(
@@ -82,21 +84,6 @@ impl<D: Device + 'static, Mods> ExecNow<D> for Lazy<Mods> {
                 &mut self.buffers.borrow_mut(),
             )?;
         }
-        /*for ((ty, mut operation), out_id) in self
-            .graph
-            .borrow_mut()
-            .operations
-            .drain(range.clone())
-            .zip(self.out_ids.borrow_mut().drain(range))
-        {
-            let mut buffers = self.buffers.borrow_mut();
-            let out = buffers
-                .get_mut(&out_id)
-                .ok_or(DeviceError::InvalidLazyOutBuf)?;
-
-            execute_operation::<D>(ty, &mut operation, out)?;
-        }
-        */
         Ok(())
     }
 }
@@ -141,7 +128,7 @@ impl<T: 'static, D: Device + PtrConv + 'static, S: Shape, Mods: OnNewBuffer<T, D
 {
     #[inline]
     fn on_new_buffer(&self, device: &D, new_buf: &Buffer<T, D, S>) {
-        // unsafe { super::register_buf(&mut self.outs.borrow_mut(), new_buf) };
+        unsafe { super::register_buf(&mut self.buffers.borrow_mut(), new_buf) };
         self.modules.on_new_buffer(device, new_buf)
     }
 }
@@ -234,10 +221,11 @@ mod tests {
         #[inline]
         fn add(&self, lhs: &Buffer<T, D, S>, rhs: &Buffer<T, D, S>) -> Buffer<T, Self, S> {
             let mut out = self.retrieve(lhs.len(), ());
-            self.add_op(&mut out, |out| {
-                add_ew_slice(lhs, rhs, out);
+            self.add_op((lhs, rhs), Some(&mut out), |out, (lhs, rhs)| {
+                add_ew_slice(lhs, rhs, out.as_mut().unwrap());
                 Ok(())
-            }).unwrap();
+            })
+            .unwrap();
             out
         }
     }
@@ -262,7 +250,7 @@ mod tests {
             assert_eq!(out.read(), &[0; 10]);
         }
 
-        if DeviceError::InvalidLazyOutBuf
+        if DeviceError::InvalidLazyBuf
             != unsafe { *device.run().err().unwrap().downcast().unwrap() }
         {
             panic!("")
@@ -329,20 +317,26 @@ mod tests {
         let device = CPU::<Lazy<Base>>::new();
         let mut out: Buffer<i32, _, ()> = device.retrieve(4, ());
 
-        device.add_op(&mut out, |out| {
-            out.clear();
-            Ok(())
-        }).unwrap();
+        device
+            .add_op((), Some(&mut out), |out, _| {
+                out.as_mut().unwrap().clear();
+                Ok(())
+            })
+            .unwrap();
 
         {
             let a = Buffer::<i32, _, ()>::from_slice(&device, &[1, 2, 3, 4]);
             let b = Buffer::<i32, _, ()>::from_slice(&device, &[1, 2, 3, 4]);
-            device.add_op(&mut out, |out| {
-                for ((lhs, rhs), out) in a.iter().zip(&b).zip(out.iter_mut()) {
-                    *out = lhs + rhs;
-                }
-                Ok(())
-            }).unwrap();
+            device
+                .add_op((&a, &b), Some(&mut out), |out, (a, b)| {
+                    for ((lhs, rhs), out) in
+                        a.iter().zip(b.iter()).zip(out.as_mut().unwrap().iter_mut())
+                    {
+                        *out = lhs + rhs;
+                    }
+                    Ok(())
+                })
+                .unwrap();
             device.exec_now(1..).unwrap();
             assert_eq!(out.as_slice(), [2, 4, 6, 8])
         }
@@ -358,20 +352,26 @@ mod tests {
         let device = CPU::<Lazy<Base>>::new();
         let mut out: Buffer<i32, _, ()> = device.retrieve(4, ());
 
-        device.add_op(&mut out, |out| {
-            out.clear();
-            Ok(())
-        }).unwrap();
+        device
+            .add_op((), Some(&mut out), |out, _| {
+                out.as_mut().unwrap().clear();
+                Ok(())
+            })
+            .unwrap();
 
         {
             let a = Buffer::<i32, _, ()>::from_slice(&device, &[1, 2, 3, 4]);
             let b = Buffer::<i32, _, ()>::from_slice(&device, &[1, 2, 3, 4]);
-            device.add_op(&mut out, |out| {
-                for ((lhs, rhs), out) in a.iter().zip(&b).zip(out.iter_mut()) {
-                    *out = lhs + rhs;
-                }
-                Ok(())
-            }).unwrap();
+            device
+                .add_op((&a, &b), Some(&mut out), |out, (a, b)| {
+                    for ((lhs, rhs), out) in
+                        a.iter().zip(b.iter()).zip(out.as_mut().unwrap().iter_mut())
+                    {
+                        *out = lhs + rhs;
+                    }
+                    Ok(())
+                })
+                .unwrap();
             device.exec_last_n(1).unwrap();
             assert_eq!(out.as_slice(), [2, 4, 6, 8])
         }
@@ -381,33 +381,49 @@ mod tests {
     }
 
     #[cfg(feature = "cpu")]
-    #[ignore = "causes UB"]
+    // #[ignore = "causes UB"]
     #[test]
     fn test_lazy_exec_ub_testing() {
-        use crate::Run;
+        use crate::{AsNoId, Run};
 
         let device = CPU::<Lazy<Base>>::new();
 
         let mut out: Buffer<i32, _> = device.retrieve(4, ());
 
-        device.add_op(&mut out, |out| {
-            out.clear();
-            Ok(())
-        }).unwrap();
+        device
+            .add_op((), Some(&mut out), |out, _| {
+                out.as_mut().unwrap().clear();
+                Ok(())
+            })
+            .unwrap();
 
         {
             let a = Buffer::<i32, _, ()>::from_slice(&device, &[1, 2, 3, 4]);
+            let a = a.to_deviceless();
             let b = Buffer::<i32, _, ()>::from_slice(&device, &[1, 2, 3, 4]);
-            device.add_op(&mut out, |out| {
-                for ((lhs, rhs), out) in a.iter().zip(&b).zip(out.iter_mut()) {
-                    *out = lhs + rhs;
-                }
-                Ok(())
-            }).unwrap()
+            let vec = vec![1, 2, 3];
+            device
+                .add_op(
+                    (a.no_id(), &b, vec.no_id()),
+                    Some(&mut out),
+                    |out, (a, b, _vec)| {
+                        for ((lhs, rhs), out) in
+                            a.iter().zip(b.iter()).zip(out.as_mut().unwrap().iter_mut())
+                        {
+                            *out = lhs + rhs;
+                        }
+                        Ok(())
+                    },
+                )
+                .unwrap();
         }
-        unsafe { device.run().unwrap() };
+
+        if let Ok(_) = unsafe { device.run() } {
+            panic!()
+        }
     }
 
+    /*
     #[cfg(feature = "cpu")]
     #[should_panic]
     #[ignore = "currently wrong panic reasion"]
@@ -423,24 +439,27 @@ mod tests {
             let a = Buffer::<i32, _, ()>::from_slice(&device, &[1, 2, 3, 4]);
             let b = Buffer::<i32, _, ()>::from_slice(&device, &[1, 2, 3, 4]);
             let (a, b) = (a.id(), b.id());
-            device.add_op(&mut out, |out| {
-                let buffers = out.device().modules.buffers.borrow();
-                let a = buffers
-                    .get(&a)
-                    .expect("a went out of scope")
-                    .downcast_ref::<Buffer<i32, CPU<Lazy<Base>>>>()
-                    .unwrap();
-                let b = buffers
-                    .get(&b)
-                    .expect("b went out of scope")
-                    .downcast_ref::<Buffer<i32, CPU<Lazy<Base>>>>()
-                    .unwrap();
-                for ((lhs, rhs), out) in a.iter().zip(b).zip(out.iter_mut()) {
-                    *out = lhs + rhs;
-                }
-                Ok(())
-            }).unwrap();
+            device
+                .add_op(&mut out, |out| {
+                    let buffers = out.device().modules.buffers.borrow();
+                    let a = buffers
+                        .get(&a)
+                        .expect("a went out of scope")
+                        .downcast_ref::<Buffer<i32, CPU<Lazy<Base>>>>()
+                        .unwrap();
+                    let b = buffers
+                        .get(&b)
+                        .expect("b went out of scope")
+                        .downcast_ref::<Buffer<i32, CPU<Lazy<Base>>>>()
+                        .unwrap();
+                    for ((lhs, rhs), out) in a.iter().zip(b).zip(out.iter_mut()) {
+                        *out = lhs + rhs;
+                    }
+                    Ok(())
+                })
+                .unwrap();
         }
         unsafe { device.run().unwrap() };
     }
+    */
 }

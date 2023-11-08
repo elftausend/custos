@@ -6,9 +6,9 @@ use custos_macro::cuda;
 #[cfg(feature = "cuda")]
 #[test]
 fn test_cuda_macro() {
-    // generic kernel
     let ptx = cuda!(
-        r#"extern "C" __global__ void add(int* lhs, int* rhs, int* out, int size) {
+        template<typename T>
+        __global__ void add(T* lhs, T* rhs, T* out, int size) {
             int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
             if (idx >= size) {
@@ -16,7 +16,23 @@ fn test_cuda_macro() {
             }
 
             out[idx] = lhs[idx] + rhs[idx];
-        }"#
+        }
+    );
+
+    println!("ptx: {ptx}");
+    return;
+
+    // generic kernel
+    let ptx = cuda!(
+        extern "C" __global__ void add(int* lhs, int* rhs, int* out, int size) {
+            int idx = blockIdx.x * blockDim.x + threadIdx.x;
+
+            if (idx >= size) {
+                return;
+            }
+
+            out[idx] = lhs[idx] + rhs[idx];
+        }
     );
 
     println!("ptx: {ptx}");

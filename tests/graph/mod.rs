@@ -1,6 +1,6 @@
 use std::ops::Deref;
 
-use custos::{number::Number, Buffer, CDatatype, Device, CPU, Retriever, Retrieve};
+use custos::{number::Number, Buffer, CDatatype, Device, Retrieve, Retriever, CPU};
 
 #[cfg(feature = "opencl")]
 use custos::{opencl::enqueue_kernel, OpenCL};
@@ -100,7 +100,8 @@ impl<T: CDatatype, Mods: Retrieve<Self, T>> AddBuf<T, Self> for CUDA<Mods> {
         );
 
         let out = self.retrieve(lhs.len(), (lhs, rhs));
-        self.launch_kernel1d(lhs.len, &src, "add", &[lhs, rhs, &out.data, &lhs.len]).unwrap();
+        self.launch_kernel1d(lhs.len, &src, "add", &[lhs, rhs, &out.data, &lhs.len])
+            .unwrap();
         out
     }
 
@@ -119,7 +120,8 @@ impl<T: CDatatype, Mods: Retrieve<Self, T>> AddBuf<T, Self> for CUDA<Mods> {
         );
 
         let out = self.retrieve(lhs.len(), lhs);
-        self.launch_kernel1d(lhs.len, &src, "relu", &[lhs, &out.data, &lhs.len]).unwrap();
+        self.launch_kernel1d(lhs.len, &src, "relu", &[lhs, &out.data, &lhs.len])
+            .unwrap();
         out
     }
 }

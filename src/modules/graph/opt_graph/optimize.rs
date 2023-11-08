@@ -516,7 +516,7 @@ mod tests {
             if i == 1 {
                 assert_eq!(squared.id(), mul.id());
                 assert_eq!(squared.id(), out.id());
-                
+
                 assert_eq!(add.id(), mul_b.id());
                 break;
             }

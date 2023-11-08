@@ -100,7 +100,22 @@ impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
     }
 }
 
-impl<'a, T, D: Device, S: Shape> HasId for Buffer<'a, T, D, S> {
+// DO NOT implement!
+// impl<'a, T, D: Device, S: Shape> HasId for Buffer<'a, T, D, S> {
+//     #[inline]
+//     fn id(&self) -> super::Id {
+//         self.data.id()
+//     }
+// }
+
+impl<'a, T, D: Device, S: Shape> HasId for &Buffer<'a, T, D, S> {
+    #[inline]
+    fn id(&self) -> super::Id {
+        self.data.id()
+    }
+}
+
+impl<'a, T, D: Device, S: Shape> HasId for &mut Buffer<'a, T, D, S> {
     #[inline]
     fn id(&self) -> super::Id {
         self.data.id()
@@ -188,6 +203,24 @@ impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
             data: device.alloc(len, AllocFlag::None),
             device: None,
         }
+    }
+
+    #[inline]
+    pub fn to_deviceless<'b>(self) -> Buffer<'b, T, D, S>
+    where
+        D::Data<T, S>: Default,
+    {
+        if let Some(device) = self.device {
+            if self.data.flag() != AllocFlag::None {
+                device.on_drop_buffer(device, &self)
+            }
+        }
+
+        let mut val = ManuallyDrop::new(self);
+
+        let data = core::mem::take(&mut val.data);
+
+        Buffer { data, device: None }
     }
 
     /// Returns the device of the `Buffer`.

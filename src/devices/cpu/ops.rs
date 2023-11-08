@@ -3,9 +3,9 @@ use core::ops::{AddAssign, Deref, DerefMut, Index, Range, RangeBounds};
 use crate::{
     bounds_to_range,
     cpu_stack_ops::{apply_fn_slice, clear_slice},
-    pass_down_add_operation, pass_down_exec_now, AddOperation, ApplyFunction, Buffer, ClearBuf,
-    CopySlice, Device, Eval, MayToCLSource, OnDropBuffer, Read, Resolve, Retrieve, Retriever,
-    Shape, ToVal, UnaryGrad, WriteBuf, CPU,
+    pass_down_add_operation, pass_down_exec_now, AddOperation, ApplyFunction, AsNoId, Buffer,
+    ClearBuf, CopySlice, Device, Eval, MayToCLSource, OnDropBuffer, Read, Resolve, Retrieve,
+    Retriever, Shape, ToVal, UnaryGrad, WriteBuf, CPU,
 };
 
 pass_down_add_operation!(CPU);
@@ -22,17 +22,18 @@ where
     fn apply_fn<F>(
         &self,
         buf: &Buffer<T, D, S>,
-        f: impl Fn(Resolve<T>) -> F + Copy,
+        f: impl Fn(Resolve<T>) -> F + Copy + 'static,
     ) -> Buffer<T, Self, S>
     where
         F: Eval<T> + MayToCLSource,
     {
         let mut out = self.retrieve(buf.len(), buf);
 
-        self.add_op(&mut out, move |out| {
-            apply_fn_slice(buf, out, f);
+        self.add_op((buf, f.no_id()), Some(&mut out), move |out, (buf, f)| {
+            apply_fn_slice(buf, out.as_mut().unwrap(), **f);
             Ok(())
-        }).unwrap();
+        })
+        .unwrap();
 
         out
     }

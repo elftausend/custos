@@ -17,12 +17,13 @@ impl<D> Module<D> for Base {
 
 impl<T, D: Device> AddOperation<T, D> for Base {
     #[inline]
-    fn add_op<S: Shape>(
+    fn add_op<S: Shape, Args: Parents<N>, const N: usize>(
         &self,
-        out: &mut Buffer<T, D, S>,
-        operation: impl Fn(&mut Buffer<T, D, S>) -> crate::Result<()>,
+        mut args: Args,
+        mut out: Option<&mut Buffer<T, D, S>>,
+        operation: fn(&mut Option<&mut Buffer<T, D, S>>, &mut Args) -> crate::Result<()>,
     ) -> crate::Result<()> {
-        operation(out)
+        operation(&mut out, &mut args)
     }
 
     #[inline]
@@ -79,7 +80,10 @@ impl crate::UseGpuOrCpu for Base {
 
 impl OptimizeMemGraph for Base {
     #[inline]
-    fn optimize_mem_graph(&self, _cache_traces: Option<&[crate::TranslatedCacheTrace]>) -> crate::Result<()> {
+    fn optimize_mem_graph(
+        &self,
+        _cache_traces: Option<&[crate::TranslatedCacheTrace]>,
+    ) -> crate::Result<()> {
         Ok(())
     }
 }

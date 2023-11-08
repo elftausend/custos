@@ -51,12 +51,13 @@ impl<T, D: Device, SD: Device, Mods: AddOperation<T, D>> AddOperation<T, D>
     for CachedModule<Mods, SD>
 {
     #[inline]
-    fn add_op<S: Shape>(
+    fn add_op<S: Shape, Args: Parents<N>, const N: usize>(
         &self,
-        out: &mut Buffer<T, D, S>,
-        operation: impl Fn(&mut Buffer<T, D, S>) -> crate::Result<()>,
+        args: Args,
+        out: Option<&mut Buffer<T, D, S>>,
+        operation: fn(&mut Option<&mut Buffer<T, D, S>>, &mut Args) -> crate::Result<()>,
     ) -> crate::Result<()> {
-        self.modules.add_op(out, operation)
+        self.modules.add_op(args, out, operation)
     }
 
     #[inline]
@@ -151,7 +152,10 @@ impl<Mods: RunModule<D>, D, SD: Device> RunModule<D> for CachedModule<Mods, SD> 
 }
 
 impl<Mods: OptimizeMemGraph, SD: Device> OptimizeMemGraph for CachedModule<Mods, SD> {
-    fn optimize_mem_graph(&self, cache_traces: Option<&[crate::TranslatedCacheTrace]>) -> crate::Result<()> {
+    fn optimize_mem_graph(
+        &self,
+        cache_traces: Option<&[crate::TranslatedCacheTrace]>,
+    ) -> crate::Result<()> {
         let cache_traces = cache_traces.ok_or(DeviceError::MissingCacheTraces)?;
 
         let mut cache = self.cache.borrow_mut();
