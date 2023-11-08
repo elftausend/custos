@@ -256,4 +256,25 @@ mod tests {
 
         Ok(())
     }
+
+    #[cfg(feature = "lazy")]
+    #[test]
+    fn test_cu_add_unary_grad_lazy_graph() {
+        use crate::{Lazy, UnaryGrad, Run};
+
+        let device = CUDA::<Lazy<Base>>::new(0).unwrap();
+
+        let lhs = Buffer::from((&device, [1, 2, 3, 4, 5, 6]));
+        let mut lhs_grad = Buffer::from((&device, [1, 2, 3, 4, 5, 6]));
+
+        let out = Buffer::from((&device, [1, 1, 1, 1, 1, 1]));
+        device.add_unary_grad(&lhs, &mut lhs_grad, &out, |lhs| lhs.add(2));
+
+        assert_eq!(lhs_grad.read(), vec![1, 2, 3, 4, 5, 6]);
+
+        unsafe { device.run().unwrap() }
+
+        assert_eq!(lhs_grad.read(), vec![4, 6, 8, 10, 12, 14]);
+
+    }
 }
