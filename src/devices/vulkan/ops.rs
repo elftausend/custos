@@ -1,7 +1,7 @@
 use crate::{
     cpu_stack_ops::clear_slice, pass_down_add_operation, pass_down_exec_now, prelude::Number,
     AddOperation, ApplyFunction, Buffer, CDatatype, ClearBuf, HostPtr, OnDropBuffer, Read, Resolve,
-    Retrieve, Retriever, Shape, ToMarker, ToWgslSource, UnaryGrad, UseGpuOrCpu, Vulkan,
+    Retrieve, Retriever, Shape, ToMarker, ToWgslSource, UnaryGrad, UseGpuOrCpu, Vulkan, BufAsNoId, AsNoId,
 };
 
 use super::{VkArray, VkDevice};
@@ -144,14 +144,14 @@ where
         lhs: &Buffer<T, Self, S>,
         lhs_grad: &mut Buffer<T, Self, S>,
         out: &Buffer<T, Self, S>,
-        lhs_grad_fn: impl Fn(Resolve<T>) -> F + Copy,
+        lhs_grad_fn: impl Fn(Resolve<T>) -> F + Copy + 'static,
     ) where
         F: ToWgslSource,
     {
-        // self.add_op(lhs_grad, move |lhs_grad| {
-        try_vk_add_unary_grad(self, &lhs.data, &mut lhs_grad.data, &out.data, lhs_grad_fn);
-        // })
-        // .unwrap();
+        self.add_op::<S, _, 4>((lhs, lhs_grad.buf_no_id(), out, lhs_grad_fn.no_id()), None, move |_, (lhs, lhs_grad, out, lhs_grad_fn)| {
+            try_vk_add_unary_grad(lhs.device(), &lhs.data, &mut lhs_grad.data, &out.data, **lhs_grad_fn)
+        })
+        .unwrap();
     }
 }
 pub fn try_vk_add_unary_grad<T, F>(
