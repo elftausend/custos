@@ -18,12 +18,12 @@ impl KernelCache {
     /// # Example
     /// ```
     /// use std::collections::HashMap;
-    /// use custos::{CUDA, cuda::CUKernelCache, Base};
+    /// use custos::{CUDA, cuda::KernelCache, Base};
     ///
     /// fn main() -> custos::Result<()> {
     ///     let device = CUDA::<Base>::new(0)?;
     ///     
-    ///     let mut kernel_cache = CUKernelCache::default();
+    ///     let mut kernel_cache = KernelCache::default();
     ///     
     ///     let mut kernel_fn = || kernel_cache.kernel(&mut device.cuda_modules.borrow_mut(), r#"
     ///         extern "C" __global__ void test(float* test) {}

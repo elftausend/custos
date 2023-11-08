@@ -10,9 +10,9 @@ use min_cl::{
 
 use crate::{
     bounds_to_range, cpu_stack_ops::clear_slice, pass_down_add_operation, pass_down_exec_now,
-    prelude::Number, AddOperation, ApplyFunction, AsNoId, Buffer, CDatatype, ClearBuf, CopySlice,
-    Eval, OnDropBuffer, OpenCL, Read, Resolve, Retrieve, Retriever, Shape, ToCLSource, ToMarker,
-    UnaryGrad, UseGpuOrCpu, WriteBuf, BufAsNoId,
+    prelude::Number, AddOperation, ApplyFunction, AsNoId, BufAsNoId, Buffer, CDatatype, ClearBuf,
+    CopySlice, Eval, OnDropBuffer, OpenCL, Read, Resolve, Retrieve, Retriever, Shape, ToCLSource,
+    ToMarker, UnaryGrad, UseGpuOrCpu, WriteBuf,
 };
 
 use super::{enqueue_kernel, CLPtr};
@@ -269,9 +269,13 @@ where
     ) where
         F: ToCLSource,
     {
-        self.add_op::<S, _, 4>((lhs, lhs_grad.buf_no_id(), out, lhs_grad_fn.no_id()), None, move |_, (lhs, lhs_grad, out, lhs_grad_fn)| {
-            try_cl_add_unary_grad(lhs.device(), lhs, &mut **lhs_grad, out, **lhs_grad_fn)
-        })
+        self.add_op::<S, _, 4>(
+            (lhs, lhs_grad.buf_no_id(), out, lhs_grad_fn.no_id()),
+            None,
+            move |_, (lhs, lhs_grad, out, lhs_grad_fn)| {
+                try_cl_add_unary_grad(lhs.device(), lhs, &mut **lhs_grad, out, **lhs_grad_fn)
+            },
+        )
         .unwrap();
     }
 }
@@ -363,7 +367,7 @@ mod test {
     #[cfg(feature = "lazy")]
     #[test]
     fn test_cl_lazy_unary_grad_exec() {
-        use crate::{Lazy, UnaryGrad, Run};
+        use crate::{Lazy, Run, UnaryGrad};
 
         let device = OpenCL::<Lazy<Base>>::new(0).unwrap();
         let lhs = Buffer::from((&device, [1, 2, 3, 4, 5, 6]));

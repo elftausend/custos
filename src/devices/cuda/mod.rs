@@ -24,10 +24,10 @@ pub use cuda_device::*;
 pub use kernel_cache::*;
 pub use kernel_launch::*;
 
-use crate::{Buffer, CDatatype};
+use crate::CDatatype;
 
-/// Another type for [`CUPtr`]
-pub type CUBuffer<T> = CUPtr<T>;
+/// Another type for [`CUDAPtr`]
+pub type CUBuffer<T> = CUDAPtr<T>;
 
 /// Reads the environment variable `CUSTOS_CU_DEVICE_IDX` and returns the value as a `usize`.
 pub fn chosen_cu_idx() -> usize {
