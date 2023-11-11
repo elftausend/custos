@@ -55,6 +55,8 @@ pub enum DeviceError {
     CPUDeviceNotAvailable,
     /// Invalid lazy out buffer was provided in operation. Out buffer went out of scope?
     InvalidLazyBuf,
+    /// Location was already used.
+    LocationAlreadyInUse
 }
 
 impl DeviceError {
@@ -75,7 +77,8 @@ impl DeviceError {
                 "The 'cpu' feature is disabled. Hence this CPU can't be created."
             }
             DeviceError::UnifiedConstructNotAvailable => "Unified construction is not available for the provided modules. Add the `Cached` module to your device",
-            DeviceError::InvalidLazyBuf => "Invalid lazy buffer was provided in operation. Did the buffer go out of scope?"
+            DeviceError::InvalidLazyBuf => "Invalid lazy buffer was provided in operation. Did the buffer go out of scope?",
+            DeviceError::LocationAlreadyInUse => "Location is already in use.",
         }
     }
 }

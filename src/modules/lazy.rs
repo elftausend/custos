@@ -64,8 +64,7 @@ impl<T: Graphable, D: Device + PtrConv, Mods: AddOperation<T, D>> AddOperation<T
         operation: fn(&mut Option<&mut Buffer<T, D, S>>, &mut Args) -> crate::Result<()>,
     ) -> crate::Result<()> {
         self.out_ids.borrow_mut().push(out.map(|out| out.id()));
-        self.graph.borrow_mut().add_operation(args, operation);
-        Ok(())
+        self.graph.borrow_mut().add_operation(args, operation)
     }
 
     #[inline]
@@ -307,6 +306,30 @@ mod tests {
         assert_eq!(lhs.read(), &[3; 10]);
 
         assert_eq!(out.read(), [4, 5, 6, 7, 8, 9, 10, 11, 12, 13])
+    }
+    
+    #[test]
+    #[should_panic]
+    #[cfg(feature = "cpu")]
+    fn test_lazy_loop_add_apply_fn_with_run() {
+        use crate::UnaryGrad;
+
+        let device = CPU::<Lazy<Base>>::new();
+
+        let lhs = Buffer::<i32, _>::new(&device, 10);
+        let mut lhs_grad = lhs.empty_like();
+        let out_grad = device.buffer([1; 10]);
+
+        for _ in 0..100 {
+            device.add_unary_grad(&lhs, &mut lhs_grad, &out_grad, |x| x.add(1));
+        }
+
+        // assert_eq!(lhs_grad.as_slice(), [0; 10]);
+
+        // unsafe { device.run().unwrap() };
+
+        // assert_eq!(lhs_grad.as_slice(), [100; 10]);
+
     }
 
     #[cfg(feature = "cpu")]

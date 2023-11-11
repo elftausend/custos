@@ -1,27 +1,37 @@
 use crate::{
     bounds_to_range, AllParents, Buffer, Device, DeviceError, Id, NoHasher, Parents, PtrConv,
-    Shape, UniqueId,
+    Shape, UniqueId, HashLocation,
 };
-use core::{any::Any, hash::BuildHasherDefault, mem::transmute, ops::RangeBounds};
-use std::collections::HashMap;
+use core::{any::Any, hash::BuildHasherDefault, mem::transmute, ops::RangeBounds, panic::Location};
+use std::collections::{HashMap, HashSet};
 
 #[derive(Default)]
 pub struct LazyGraph {
     pub ids_to_check: Vec<Vec<UniqueId>>,
     pub ops: Vec<fn(*mut (), *mut ()) -> crate::Result<()>>,
+    // if a location was already used -> error
+    consumed_locations: HashSet<HashLocation<'static>>,
+    // indexmap?
+    consumed_locations_order: Vec<HashLocation<'static>>,
     pub args: Vec<Box<dyn AllParents>>,
 }
 
 impl LazyGraph {
     // TODO: could use a broader range of Args! (limited to Parents<N>)
+    #[track_caller]
     pub fn add_operation<T, D, S, Args: Parents<N>, const N: usize>(
         &mut self,
         args: Args,
         op: fn(&mut Option<&mut Buffer<T, D, S>>, &mut Args) -> crate::Result<()>,
-    ) where
+    ) -> crate::Result<()> 
+    where
         D: PtrConv,
         S: Shape,
     {
+        if self.consumed_locations.contains(&Location::caller().into()) {
+            return Err(DeviceError::LocationAlreadyInUse.into())
+        }
+
         // store ids and test if buffers are still in cache
         self.ids_to_check.push(
             args.maybe_ids()
@@ -31,6 +41,8 @@ impl LazyGraph {
                 .collect(),
         );
 
+        self.consumed_locations.insert(Location::caller().into());
+
         // let args = Box::leak(Box::new(args));
         // let args: Box<dyn Any> = unsafe { transmute::<Box<dyn Any + 'static>, _>(Box::new(args)) };
 
@@ -38,7 +50,9 @@ impl LazyGraph {
 
         // self.args.push(args as *mut Args as *mut _);
         self.args.push(unsafe { transmute(args) });
-        unsafe { self.ops.push(transmute(op)) }
+        unsafe { self.ops.push(transmute(op)) };
+
+        Ok(())
     }
 
     pub unsafe fn call_lazily<D: Device + 'static>(
@@ -83,13 +97,16 @@ impl LazyGraph {
         outs_unordered: &mut HashMap<UniqueId, Box<dyn Any>, BuildHasherDefault<NoHasher>>,
     ) -> crate::Result<()> {
         let range = bounds_to_range(bounds, out_buf_order.len());
-        for (((mut args, op), ids_to_check), out_id) in self
+        for ((((mut args, op), ids_to_check), out_id), location) in self
             .args
             .drain(range.clone())
             .zip(self.ops.drain(range.clone()))
             .zip(self.ids_to_check.drain(range.clone()))
             .zip(out_buf_order.drain(range.clone()))
+            .zip(self.consumed_locations_order.drain(range))
         {
+            self.consumed_locations.remove(&location);
+
             for id_to_check in ids_to_check.iter() {
                 outs_unordered
                     .get(id_to_check)
@@ -142,7 +159,7 @@ mod tests {
                 assert_eq!(lhs.as_slice(), &[1f32, 2., 3., 4., 5.,]);
                 assert_eq!(rhs.as_slice(), &[1f32, 2., 6., 4., 5.,]);
                 Ok(())
-            });
+            }).unwrap();
 
             out.id()
         };
@@ -175,7 +192,7 @@ mod tests {
             assert_eq!(lhs.as_slice(), &[1f32, 2., 3., 4., 5.,]);
             assert_eq!(rhs.as_slice(), &[1f32, 2., 6., 4., 5.,]);
             Ok(())
-        });
+        }).unwrap();
 
         unsafe {
             graph
@@ -209,7 +226,7 @@ mod tests {
                 panic!();
             }
             Ok(())
-        });
+        }).unwrap();
 
         unsafe {
             graph
@@ -247,7 +264,7 @@ mod tests {
             }
 
             Ok(())
-        });
+        }).unwrap();
 
         unsafe {
             graph
@@ -265,7 +282,7 @@ mod tests {
             graph.add_operation::<u8, CPU, (), _, 1>(vec.no_id(), |_, vec| {
                 assert_eq!(vec.as_slice(), &[1, 2, 3, 4]);
                 Ok(())
-            });
+            }).unwrap();
         }
         unsafe { graph.call_lazily::<CPU>(&[None], &mut HashMap::default()) }.unwrap();
     }

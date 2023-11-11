@@ -5,7 +5,7 @@ use crate::{
     cpu_stack_ops::{apply_fn_slice, clear_slice},
     pass_down_add_operation, pass_down_exec_now, AddOperation, ApplyFunction, AsNoId, Buffer,
     ClearBuf, CopySlice, Device, Eval, MayToCLSource, OnDropBuffer, Read, Resolve, Retrieve,
-    Retriever, Shape, ToVal, UnaryGrad, WriteBuf, CPU,
+    Retriever, Shape, ToVal, UnaryGrad, WriteBuf, CPU, BufAsNoId,
 };
 
 pass_down_add_operation!(CPU);
@@ -41,7 +41,7 @@ where
 
 impl<Mods, T, D, S> UnaryGrad<T, S, D> for CPU<Mods>
 where
-    Mods: OnDropBuffer,
+    Mods: AddOperation<T, Self> + OnDropBuffer,
     T: AddAssign + Copy + std::ops::Mul<Output = T>,
     S: Shape,
     D: Device,
@@ -53,11 +53,14 @@ where
         lhs: &Buffer<T, D, S>,
         lhs_grad: &mut Buffer<T, D, S>,
         out: &Buffer<T, D, S>,
-        lhs_grad_fn: impl Fn(Resolve<T>) -> F,
+        lhs_grad_fn: impl Fn(Resolve<T>) -> F + Copy + 'static,
     ) where
         F: Eval<T> + MayToCLSource,
     {
-        crate::cpu_stack_ops::add_unary_grad(lhs, out, lhs_grad, lhs_grad_fn)
+        self.add_op::<S, _, 4>((lhs, lhs_grad.buf_no_id(), out, lhs_grad_fn.no_id()), None, |_, (lhs, lhs_grad, out, lhs_grad_fn)| {
+            crate::cpu_stack_ops::add_unary_grad(lhs, out, lhs_grad, **lhs_grad_fn);
+            Ok(())
+        }).unwrap();
     }
 }
 

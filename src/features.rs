@@ -123,6 +123,7 @@ impl<'a, 'b, T, D: Device, S: Shape> OpArgs for (&Buffer<'a, T, D, S>, &Buffer<'
 }
 
 pub trait AddOperation<T, D: Device> {
+    #[track_caller]
     fn add_op<S: Shape, Args: Parents<N>, const N: usize>(
         &self,
         args: Args,
