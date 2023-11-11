@@ -59,9 +59,9 @@ where
 /// This is way faster than [cpu_exec_unary_mut], as new memory is not allocated.
 ///
 /// `cpu_exec_unary_may_unified` can be used interchangeably with [cpu_exec_unary_mut].
-pub fn cpu_exec_unary_may_unified_mut<'a, T, F>(
-    device: &'a OpenCL,
-    lhs: &mut Buffer<T, OpenCL>,
+pub fn cpu_exec_unary_may_unified_mut<'a, T, F, Mods: OnDropBuffer + 'static>(
+    device: &'a OpenCL<Mods>,
+    lhs: &mut Buffer<T, OpenCL<Mods>>,
     f: F,
 ) -> crate::Result<()>
 where
@@ -147,10 +147,10 @@ where
 /// This is way faster than [cpu_exec_binary_mut], as new memory is not allocated.
 ///
 /// `cpu_exec_binary_may_unified` can be used interchangeably with [cpu_exec_binary_mut].
-pub fn cpu_exec_binary_may_unified_mut<'a, T, F>(
-    device: &'a OpenCL,
-    lhs: &mut Buffer<T, OpenCL>,
-    rhs: &Buffer<T, OpenCL>,
+pub fn cpu_exec_binary_may_unified_mut<'a, T, F, Mods: OnDropBuffer + 'static>(
+    device: &'a OpenCL<Mods>,
+    lhs: &mut Buffer<T, OpenCL<Mods>>,
+    rhs: &Buffer<T, OpenCL<Mods>>,
     f: F,
 ) -> crate::Result<()>
 where
@@ -242,14 +242,36 @@ macro_rules! cl_cpu_exec_unified_mut {
     ($device:ident, $($t:ident),* WRITE_TO<$($write_to:ident, $from:ident),*> $op:expr) => {{
         // TODO: add to graph?:     convert.node = device.graph().add(convert.len(), matrix.node.idx);
         if $device.unified_mem() {
-            $crate::to_raw_host!($($t),*);
-            $crate::to_raw_host_mut!($($write_to, $from),*);
+            $crate::to_raw_host!($crate::CPU::<$crate::CachedModule<$crate::Base, $crate::CPU>>, $($t),*);
+            $crate::to_raw_host_mut!($crate::CPU::<$crate::CachedModule<$crate::Base, $crate::CPU>>, $($write_to, $from),*);
             $op;
 
         } else {
-            let cpu = CPU::<Base>::new();
+            let cpu = $crate::CPU::<$crate::Cached<Base>>::new();
             $crate::cpu_exec_mut!($device, cpu, $($t),* WRITE_TO<$($write_to, $from),*> $op);
             $device.cpu.modules.cache.borrow_mut().nodes.clear();
         }
     }};
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::{OpenCL, Base, Device, WriteBuf};
+
+    #[cfg(unified_cl)]
+    #[test]
+    fn test_cl_cpu_exec_unified_mut() {
+        let device = OpenCL::<Base>::new(0).unwrap();
+        let buf = device.buffer([1, 2, 3, 4, 5]);
+        let mut out = device.buffer::<i32, (), _>(5);
+        let out = &mut out;
+
+        cl_cpu_exec_unified_mut!(device, buf WRITE_TO<out, out_cpu> {
+            for (out, buf) in out_cpu.iter_mut().zip(buf.iter()) {
+                *out += buf + 1;
+            }
+        });
+
+        assert_eq!(out.read(), [2, 3, 4, 5, 6,]);
+    }
 }

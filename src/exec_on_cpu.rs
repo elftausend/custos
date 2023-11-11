@@ -182,7 +182,7 @@ macro_rules! to_cpu_mut {
     ($cpu:ident, $($t:ident, $cpu_name:ident),*) => {
         $(
             #[allow(unused_mut)]
-            let mut $cpu_name = Buffer::<_, CPU>::from((&$cpu, $t.read_to_vec()));
+            let mut $cpu_name = $crate::Buffer::<_, _>::from((&$cpu, $t.read_to_vec()));
         )*
     };
 }
@@ -210,7 +210,7 @@ macro_rules! to_cpu_mut {
 macro_rules! to_cpu {
     ($cpu:ident, $($t:ident),*) => {
         $(
-            let $t = Buffer::<_, CPU>::from((&$cpu, $t.read_to_vec()));
+            let $t = $crate::Buffer::<_, _>::from((&$cpu, $t.read_to_vec()));
         )*
     };
 }
@@ -219,9 +219,9 @@ macro_rules! to_cpu {
 /// The old `Buffer`s are shadowed.
 #[macro_export]
 macro_rules! to_raw_host {
-    ($($t:ident),*) => {
+    ($cpu_ty:ty, $($t:ident),*) => {
         $(
-            let $t = &unsafe { Buffer::<_, _, ()>::from_raw_host($t.data.host_ptr, $t.len()) };
+            let $t = &unsafe { $crate::Buffer::<_, $cpu_ty, ()>::from_raw_host($t.data.host_ptr, $t.len()) };
         )*
     };
 }
@@ -230,9 +230,9 @@ macro_rules! to_raw_host {
 /// New names for the `CPU` `Buffer`s are provided by the user.
 #[macro_export]
 macro_rules! to_raw_host_mut {
-    ($($t:ident, $cpu_name:ident),*) => {
+    ($cpu_ty:ty, $($t:ident, $cpu_name:ident),*) => {
         $(
-            let mut $cpu_name = &mut unsafe { Buffer::<_, _, ()>::from_raw_host($t.data.host_ptr, $t.len()) };
+            let $cpu_name = &mut unsafe { $crate::Buffer::<_, $cpu_ty, ()>::from_raw_host($t.data.host_ptr, $t.len()) };
         )*
     };
 }
