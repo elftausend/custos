@@ -1,6 +1,6 @@
 use core::ops::{Deref, DerefMut};
 
-use crate::{Buffer, Device, Shape};
+use crate::{Buffer, Device, Shape, UpdateArg};
 
 pub trait HasId {
     const HAS_NO_ID: bool = false;
@@ -85,6 +85,19 @@ impl<T: Into<NoId<T>>> AsNoId for T {
     #[inline]
     fn no_id(self) -> NoId<Self> {
         self.into()
+    }
+}
+
+impl<T> UpdateArg for NoId<T> {
+    #[inline]
+    fn update_arg(
+        &mut self,
+        _buffers: &std::collections::HashMap<
+            crate::UniqueId,
+            Box<dyn core::any::Any>,
+            core::hash::BuildHasherDefault<crate::NoHasher>,
+        >,
+    ) {
     }
 }
 

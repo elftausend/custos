@@ -113,6 +113,7 @@ mod ptr_conv;
 mod shape;
 mod two_way_ops;
 mod unary;
+mod update_args;
 
 pub use cache::*;
 pub use device_traits::*;
@@ -122,6 +123,7 @@ pub use id::*;
 pub use modules::*;
 pub use parents::*;
 pub use ptr_conv::*;
+pub use update_args::*;
 
 #[cfg(feature = "static-api")]
 pub mod static_api;

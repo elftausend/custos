@@ -1,6 +1,6 @@
 use crate::{
-    bounds_to_range, AllParents, Buffer, Device, DeviceError, Id, NoHasher, Parents, PtrConv,
-    Shape, UniqueId, HashLocation,
+    bounds_to_range, AllParents, Buffer, Device, DeviceError, HashLocation, Id, NoHasher, Parents,
+    PtrConv, Shape, UniqueId,
 };
 use core::{any::Any, hash::BuildHasherDefault, mem::transmute, ops::RangeBounds, panic::Location};
 use std::collections::{HashMap, HashSet};
@@ -23,13 +23,13 @@ impl LazyGraph {
         &mut self,
         args: Args,
         op: fn(&mut Option<&mut Buffer<T, D, S>>, &mut Args) -> crate::Result<()>,
-    ) -> crate::Result<()> 
+    ) -> crate::Result<()>
     where
         D: PtrConv,
         S: Shape,
     {
         if self.consumed_locations.contains(&Location::caller().into()) {
-            return Err(DeviceError::LocationAlreadyInUse.into())
+            return Err(DeviceError::LocationAlreadyInUse.into());
         }
 
         // store ids and test if buffers are still in cache
@@ -42,9 +42,7 @@ impl LazyGraph {
         );
 
         self.consumed_locations.insert(Location::caller().into());
-
-        // let args = Box::leak(Box::new(args));
-        // let args: Box<dyn Any> = unsafe { transmute::<Box<dyn Any + 'static>, _>(Box::new(args)) };
+        self.consumed_locations_order.push(Location::caller().into());
 
         let args: Box<dyn AllParents> = Box::new(args);
 
@@ -154,12 +152,14 @@ mod tests {
             unsafe { register_buf(&mut outs_unordered, &out) };
             // outs_unordered.insert(out.id(), )
 
-            graph.add_operation::<f32, CPU, (), _, 2>((&lhs, &rhs), |_out, args| {
-                let (lhs, rhs) = *args;
-                assert_eq!(lhs.as_slice(), &[1f32, 2., 3., 4., 5.,]);
-                assert_eq!(rhs.as_slice(), &[1f32, 2., 6., 4., 5.,]);
-                Ok(())
-            }).unwrap();
+            graph
+                .add_operation::<f32, CPU, (), _, 2>((&lhs, &rhs), |_out, args| {
+                    let (lhs, rhs) = *args;
+                    assert_eq!(lhs.as_slice(), &[1f32, 2., 3., 4., 5.,]);
+                    assert_eq!(rhs.as_slice(), &[1f32, 2., 6., 4., 5.,]);
+                    Ok(())
+                })
+                .unwrap();
 
             out.id()
         };
@@ -187,12 +187,14 @@ mod tests {
         unsafe { register_buf(&mut outs_unordered, &out) };
         // outs_unordered.insert(out.id(), )
 
-        graph.add_operation::<f32, CPU, (), _, 2>((&lhs, &rhs), |_out, args| {
-            let (lhs, rhs) = *args;
-            assert_eq!(lhs.as_slice(), &[1f32, 2., 3., 4., 5.,]);
-            assert_eq!(rhs.as_slice(), &[1f32, 2., 6., 4., 5.,]);
-            Ok(())
-        }).unwrap();
+        graph
+            .add_operation::<f32, CPU, (), _, 2>((&lhs, &rhs), |_out, args| {
+                let (lhs, rhs) = *args;
+                assert_eq!(lhs.as_slice(), &[1f32, 2., 3., 4., 5.,]);
+                assert_eq!(rhs.as_slice(), &[1f32, 2., 6., 4., 5.,]);
+                Ok(())
+            })
+            .unwrap();
 
         unsafe {
             graph
@@ -217,16 +219,18 @@ mod tests {
         unsafe { register_buf(&mut outs_unordered, &out) };
         // outs_unordered.insert(out.id(), )
 
-        graph.add_operation::<f32, CPU, (), _, 2>((&lhs, &rhs), |_out, args| {
-            let (lhs, rhs) = *args;
-            assert_eq!(lhs.as_slice(), &[1f32, 2., 3., 4., 5.,]);
-            assert_eq!(rhs.as_slice(), &[1f32, 2., 6., 4., 5.,]);
+        graph
+            .add_operation::<f32, CPU, (), _, 2>((&lhs, &rhs), |_out, args| {
+                let (lhs, rhs) = *args;
+                assert_eq!(lhs.as_slice(), &[1f32, 2., 3., 4., 5.,]);
+                assert_eq!(rhs.as_slice(), &[1f32, 2., 6., 4., 5.,]);
 
-            if _out.is_some() {
-                panic!();
-            }
-            Ok(())
-        }).unwrap();
+                if _out.is_some() {
+                    panic!();
+                }
+                Ok(())
+            })
+            .unwrap();
 
         unsafe {
             graph
@@ -254,17 +258,19 @@ mod tests {
 
         // outs_unordered.insert(out.id(), )
 
-        graph.add_operation::<f32, CPU, (), _, 3>((&lhs, &rhs, ew_fn.no_id()), |_out, args| {
-            let (lhs, rhs, ew_fn) = *args;
-            assert_eq!(lhs.as_slice(), &[1f32, 2., 3., 4., 5.,]);
-            assert_eq!(rhs.as_slice(), &[1f32, 2., 6., 4., 5.,]);
+        graph
+            .add_operation::<f32, CPU, (), _, 3>((&lhs, &rhs, ew_fn.no_id()), |_out, args| {
+                let (lhs, rhs, ew_fn) = *args;
+                assert_eq!(lhs.as_slice(), &[1f32, 2., 3., 4., 5.,]);
+                assert_eq!(rhs.as_slice(), &[1f32, 2., 6., 4., 5.,]);
 
-            for (out, lhs) in _out.as_mut().unwrap().iter_mut().zip(lhs.iter()) {
-                *out = ew_fn(*lhs);
-            }
+                for (out, lhs) in _out.as_mut().unwrap().iter_mut().zip(lhs.iter()) {
+                    *out = ew_fn(*lhs);
+                }
 
-            Ok(())
-        }).unwrap();
+                Ok(())
+            })
+            .unwrap();
 
         unsafe {
             graph
@@ -279,11 +285,23 @@ mod tests {
 
         {
             let vec = vec![1, 2, 3, 4];
-            graph.add_operation::<u8, CPU, (), _, 1>(vec.no_id(), |_, vec| {
-                assert_eq!(vec.as_slice(), &[1, 2, 3, 4]);
-                Ok(())
-            }).unwrap();
+            graph
+                .add_operation::<u8, CPU, (), _, 1>(vec.no_id(), |_, vec| {
+                    assert_eq!(vec.as_slice(), &[1, 2, 3, 4]);
+                    Ok(())
+                })
+                .unwrap();
         }
         unsafe { graph.call_lazily::<CPU>(&[None], &mut HashMap::default()) }.unwrap();
+    }
+
+    #[test]
+    fn test_args_ref_updating() {
+        let x = 5;
+        let y = 3.;
+        let mut args = (&x, 10, &y);
+
+        let replace_x = &x;
+        args.0 = replace_x;
     }
 }

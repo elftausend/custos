@@ -389,11 +389,11 @@ mod tests {
         let device = CPU::<Base>::new();
         device.unary_ew(&autograd);
     }
-    
+
     #[cfg(all(feature = "autograd", feature = "lazy"))]
     #[test]
     fn test_grad_used_in_lazy_forward_fn() {
-        use crate::{Lazy, AddOperation};
+        use crate::{AddOperation, Lazy};
 
         let device = CPU::<Lazy<Autograd<Base>>>::new();
 
@@ -405,7 +405,7 @@ mod tests {
         #[cfg(feature = "autograd")]
         {
             // device.add_grad_fn((&lhs, &rhs), Some(&mut out), |out, (lhs, rhs)| {
-            //     lhs.device().add_ew_grad(lhs.grad(), rhs.grad(), out.unwrap().grad()); 
+            //     lhs.device().add_ew_grad(lhs.grad(), rhs.grad(), out.unwrap().grad());
             // });
         }
     }

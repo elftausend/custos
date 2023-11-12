@@ -307,7 +307,7 @@ mod tests {
 
         assert_eq!(out.read(), [4, 5, 6, 7, 8, 9, 10, 11, 12, 13])
     }
-    
+
     #[test]
     #[should_panic]
     #[cfg(feature = "cpu")]
@@ -329,7 +329,6 @@ mod tests {
         // unsafe { device.run().unwrap() };
 
         // assert_eq!(lhs_grad.as_slice(), [100; 10]);
-
     }
 
     #[cfg(feature = "cpu")]

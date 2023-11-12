@@ -56,7 +56,7 @@ pub enum DeviceError {
     /// Invalid lazy out buffer was provided in operation. Out buffer went out of scope?
     InvalidLazyBuf,
     /// Location was already used.
-    LocationAlreadyInUse
+    LocationAlreadyInUse,
 }
 
 impl DeviceError {

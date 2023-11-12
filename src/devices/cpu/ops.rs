@@ -3,9 +3,9 @@ use core::ops::{AddAssign, Deref, DerefMut, Index, Range, RangeBounds};
 use crate::{
     bounds_to_range,
     cpu_stack_ops::{apply_fn_slice, clear_slice},
-    pass_down_add_operation, pass_down_exec_now, AddOperation, ApplyFunction, AsNoId, Buffer,
-    ClearBuf, CopySlice, Device, Eval, MayToCLSource, OnDropBuffer, Read, Resolve, Retrieve,
-    Retriever, Shape, ToVal, UnaryGrad, WriteBuf, CPU, BufAsNoId,
+    pass_down_add_operation, pass_down_exec_now, AddOperation, ApplyFunction, AsNoId, BufAsNoId,
+    Buffer, ClearBuf, CopySlice, Device, Eval, MayToCLSource, OnDropBuffer, Read, Resolve,
+    Retrieve, Retriever, Shape, ToVal, UnaryGrad, WriteBuf, CPU,
 };
 
 pass_down_add_operation!(CPU);
@@ -57,10 +57,15 @@ where
     ) where
         F: Eval<T> + MayToCLSource,
     {
-        self.add_op::<S, _, 4>((lhs, lhs_grad.buf_no_id(), out, lhs_grad_fn.no_id()), None, |_, (lhs, lhs_grad, out, lhs_grad_fn)| {
-            crate::cpu_stack_ops::add_unary_grad(lhs, out, lhs_grad, **lhs_grad_fn);
-            Ok(())
-        }).unwrap();
+        self.add_op::<S, _, 4>(
+            (lhs, lhs_grad.buf_no_id(), out, lhs_grad_fn.no_id()),
+            None,
+            |_, (lhs, lhs_grad, out, lhs_grad_fn)| {
+                crate::cpu_stack_ops::add_unary_grad(lhs, out, lhs_grad, **lhs_grad_fn);
+                Ok(())
+            },
+        )
+        .unwrap();
     }
 }
 

@@ -256,7 +256,7 @@ macro_rules! cl_cpu_exec_unified_mut {
 
 #[cfg(test)]
 mod tests {
-    use crate::{OpenCL, Base, Device, WriteBuf};
+    use crate::{Base, Device, OpenCL, WriteBuf};
 
     #[cfg(unified_cl)]
     #[test]

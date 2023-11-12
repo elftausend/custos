@@ -51,8 +51,21 @@ macro_rules! impl_parents {
             }
         }
         impl<$($to_impl: $crate::HasId, )+> AllParents for ($($to_impl,)+) {}
+
+        #[cfg(not(feature = "no-std"))]
+        impl<$($to_impl: $crate::UpdateArg + $crate::HasId, )+> $crate::UpdateArgs for ($($to_impl,)+) {
+            fn update_args(&mut self,
+                buffers: &HashMap<$crate::UniqueId, Box<dyn std::any::Any>, core::hash::BuildHasherDefault<$crate::NoHasher>>)
+            {
+                #[allow(non_snake_case)]
+                let ($($to_impl,)+) = self;
+                $($to_impl.update_arg(buffers);)*
+            }
+        }
     };
 }
+
+use std::collections::HashMap;
 
 impl_parents!(2, T, T1);
 impl_parents!(3, T, T1, T2);

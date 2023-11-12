@@ -260,7 +260,7 @@ mod tests {
     #[cfg(feature = "lazy")]
     #[test]
     fn test_cu_add_unary_grad_lazy_graph() {
-        use crate::{Lazy, UnaryGrad, Run};
+        use crate::{Lazy, Run, UnaryGrad};
 
         let device = CUDA::<Lazy<Base>>::new(0).unwrap();
 
@@ -275,6 +275,5 @@ mod tests {
         unsafe { device.run().unwrap() }
 
         assert_eq!(lhs_grad.read(), vec![4, 6, 8, 10, 12, 14]);
-
     }
 }
