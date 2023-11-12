@@ -47,22 +47,20 @@ impl<Mods: Setup<NewDev>, D: Device, NewDev> Setup<NewDev> for CachedModule<Mods
     }
 }
 
-impl<T, D: Device, SD: Device, Mods: AddOperation<T, D>> AddOperation<T, D>
+impl<SD: Device, Mods: AddOperation> AddOperation
     for CachedModule<Mods, SD>
 {
     #[inline]
-    fn add_op<S: Shape, Args: Parents<N>, const N: usize>(
-        &self,
-        args: Args,
-        out: Option<&mut Buffer<T, D, S>>,
-        operation: fn(&mut Option<&mut Buffer<T, D, S>>, &mut Args) -> crate::Result<()>,
-    ) -> crate::Result<()> {
-        self.modules.add_op(args, out, operation)
-    }
-
-    #[inline]
     fn ops_count(&self) -> usize {
         self.modules.ops_count()
+    }
+
+    fn add_op<Args: Parents<N>, const N: usize>(
+        &self,
+        mut args: Args,
+        operation: fn(&mut Args) -> crate::Result<()>,
+    ) -> crate::Result<()> {
+        operation(&mut args)
     }
 }
 

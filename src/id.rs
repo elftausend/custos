@@ -1,6 +1,9 @@
-use core::ops::{Deref, DerefMut};
+use core::{
+    any::Any,
+    ops::{Deref, DerefMut},
+};
 
-use crate::{Buffer, Device, Shape, UpdateArg};
+use crate::{Buffer, Device, DeviceError, Shape, UniqueId, UpdateArg};
 
 pub trait HasId {
     const HAS_NO_ID: bool = false;
@@ -92,15 +95,65 @@ impl<T> UpdateArg for NoId<T> {
     #[inline]
     fn update_arg(
         &mut self,
-        _buffers: &std::collections::HashMap<
+        _id: Option<UniqueId>,
+        _buffers: &mut std::collections::HashMap<
             crate::UniqueId,
             Box<dyn core::any::Any>,
             core::hash::BuildHasherDefault<crate::NoHasher>,
         >,
-    ) {
+    ) -> crate::Result<()> {
+        Ok(())
     }
 }
 
+impl<'a, T: 'static, D: Device + 'static, S: Shape + 'static> UpdateArg for &Buffer<'a, T, D, S> {
+    fn update_arg(
+        &mut self,
+        id: Option<UniqueId>,
+        buffers: &mut std::collections::HashMap<
+            crate::UniqueId,
+            Box<dyn core::any::Any>,
+            core::hash::BuildHasherDefault<crate::NoHasher>,
+        >,
+    ) -> crate::Result<()> {
+        let buf = buffers.get(&id.unwrap())
+            .ok_or(DeviceError::InvalidLazyBuf)?;
+        *self = unsafe { &*(&**buf as *const dyn Any as *const Buffer<T, D, S>) };
+        //    *self = buffers.get(&self.id()).unwrap().downcast_ref().unwrap();
+        Ok(())
+    }
+}
+
+impl<'a, T: 'static, D: Device + 'static, S: Shape + 'static> UpdateArg
+    for &mut Buffer<'a, T, D, S>
+{
+    fn update_arg(
+        &mut self,
+        id: Option<UniqueId>,
+        buffers: &mut std::collections::HashMap<
+            crate::UniqueId,
+            Box<dyn core::any::Any>,
+            core::hash::BuildHasherDefault<crate::NoHasher>,
+        >,
+    ) -> crate::Result<()> {
+        let buf = buffers
+            .get_mut(&id.unwrap())
+            .ok_or(DeviceError::InvalidLazyBuf)?;
+        *self = unsafe { &mut *(&mut **buf as *mut dyn Any as *mut Buffer<T, D, S>) };
+        Ok(())
+        //    *self = buffers.get(&self.id()).unwrap().downcast_ref().unwrap();
+    }
+}
+/*impl<'a, T: 'static, D: Device + 'static, S: Shape + 'static> UpdateArg for &mut Buffer<'a, T, D, S> {
+    fn update_arg(
+        &mut self,
+        buffers: &std::collections::HashMap<crate::UniqueId, Box<dyn core::any::Any>, core::hash::BuildHasherDefault<crate::NoHasher>>,
+    ) {
+        let buf = buffers.get(&self.id()).unwrap();
+        *self = unsafe {&*(&**buf as *const dyn Any as *const Buffer<T, D, S>)};
+    //    *self = buffers.get(&self.id()).unwrap().downcast_ref().unwrap();
+    }
+}*/
 pub trait BufAsNoId: Sized {
     fn buf_no_id(self) -> NoId<Self>;
 }

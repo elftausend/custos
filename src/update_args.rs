@@ -1,27 +1,42 @@
 use core::hash::BuildHasherDefault;
 use std::collections::HashMap;
 
-use crate::{HasId, NoHasher};
+use crate::{HasId, NoHasher, UniqueId};
 
 pub trait UpdateArgs {
     fn update_args(
         &mut self,
-        buffers: &HashMap<crate::UniqueId, Box<dyn core::any::Any>, BuildHasherDefault<NoHasher>>,
-    );
+        ids: &[Option<UniqueId>],
+        buffers: &mut HashMap<
+            crate::UniqueId,
+            Box<dyn core::any::Any>,
+            BuildHasherDefault<NoHasher>,
+        >,
+    ) -> crate::Result<()>;
 }
 
-pub trait UpdateArg: HasId {
+pub trait UpdateArg {
     fn update_arg(
         &mut self,
-        buffers: &HashMap<crate::UniqueId, Box<dyn core::any::Any>, BuildHasherDefault<NoHasher>>,
-    );
+        id: Option<UniqueId>,
+        buffers: &mut HashMap<
+            crate::UniqueId,
+            Box<dyn core::any::Any>,
+            BuildHasherDefault<NoHasher>,
+        >,
+    ) -> crate::Result<()>;
 }
 
-impl<T: UpdateArg + HasId> UpdateArgs for (T,) {
+impl<T: UpdateArg> UpdateArgs for T {
     fn update_args(
         &mut self,
-        buffers: &HashMap<crate::UniqueId, Box<dyn core::any::Any>, BuildHasherDefault<NoHasher>>,
-    ) {
-        self.0.update_arg(buffers);
+        ids: &[Option<UniqueId>],
+        buffers: &mut HashMap<
+            crate::UniqueId,
+            Box<dyn core::any::Any>,
+            BuildHasherDefault<NoHasher>,
+        >,
+    ) -> crate::Result<()> {
+        self.update_arg(ids[0], buffers)
     }
 }

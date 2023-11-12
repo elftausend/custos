@@ -2,7 +2,7 @@
 use core::cell::{Ref, RefMut};
 use core::{fmt::Debug, ops::RangeBounds};
 
-use crate::{HasId, Parents, Shape, TranslatedCacheTrace, UniqueId, CPU};
+use crate::{HasId, Parents, Shape, TranslatedCacheTrace, UniqueId, UpdateArgs, CPU};
 
 #[cfg(feature = "cached")]
 use crate::{Base, CachedModule};
@@ -122,13 +122,12 @@ impl<'a, 'b, T, D: Device, S: Shape> OpArgs for (&Buffer<'a, T, D, S>, &Buffer<'
     // }
 }
 
-pub trait AddOperation<T, D: Device> {
+pub trait AddOperation {
     #[track_caller]
-    fn add_op<S: Shape, Args: Parents<N>, const N: usize>(
+    fn add_op<Args: Parents<N> + UpdateArgs, const N: usize>(
         &self,
         args: Args,
-        out: Option<&mut Buffer<T, D, S>>,
-        operation: fn(&mut Option<&mut Buffer<T, D, S>>, &mut Args) -> crate::Result<()>,
+        operation: fn(&mut Args) -> crate::Result<()>,
     ) -> crate::Result<()>;
     fn ops_count(&self) -> usize;
 }
@@ -140,7 +139,7 @@ pub trait ExecNow<D = Self> {
     fn exec_last_n(&self, last_n: usize) -> crate::Result<()>
     where
         D: Device,
-        Self: AddOperation<i32, D>,
+        Self: AddOperation,
     {
         self.exec_now(self.ops_count() - last_n..)
     }
@@ -150,17 +149,16 @@ pub trait ExecNow<D = Self> {
 #[macro_export]
 macro_rules! pass_down_add_operation {
     ($device:ident) => {
-        impl<T, D: $crate::Device, Mods: $crate::AddOperation<T, D>> $crate::AddOperation<T, D>
+        impl<Mods: $crate::AddOperation> $crate::AddOperation
             for $device<Mods>
         {
             #[inline]
-            fn add_op<S: Shape, Args: $crate::Parents<N>, const N: usize>(
+            fn add_op<Args: $crate::Parents<N> + $crate::UpdateArgs, const N: usize>(
                 &self,
                 args: Args,
-                out: Option<&mut $crate::Buffer<T, D, S>>,
-                operation: fn(&mut Option<&mut Buffer<T, D, S>>, &mut Args) -> crate::Result<()>,
+                operation: fn(&mut Args) -> crate::Result<()>,
             ) -> $crate::Result<()> {
-                self.modules.add_op(args, out, operation)
+                self.modules.add_op(args, operation)
             }
 
             #[inline]

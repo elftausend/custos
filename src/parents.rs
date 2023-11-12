@@ -1,4 +1,4 @@
-use crate::{HasId, Id};
+use crate::{HasId, Id, UpdateArg};
 
 pub trait Parents<const N: usize>: AllParents {
     fn ids(&self) -> [Id; N];
@@ -18,6 +18,19 @@ impl Parents<0> for () {
 }
 
 impl AllParents for () {}
+impl UpdateArg for () {
+    fn update_arg(
+        &mut self,
+        _id: Option<crate::UniqueId>,
+        _buffers: &mut HashMap<
+            crate::UniqueId,
+            Box<dyn core::any::Any>,
+            core::hash::BuildHasherDefault<crate::NoHasher>,
+        >,
+    ) -> crate::Result<()> {
+        Ok(())
+    }
+}
 
 impl<T: HasId> Parents<1> for T {
     #[inline]
@@ -55,11 +68,15 @@ macro_rules! impl_parents {
         #[cfg(not(feature = "no-std"))]
         impl<$($to_impl: $crate::UpdateArg + $crate::HasId, )+> $crate::UpdateArgs for ($($to_impl,)+) {
             fn update_args(&mut self,
-                buffers: &HashMap<$crate::UniqueId, Box<dyn std::any::Any>, core::hash::BuildHasherDefault<$crate::NoHasher>>)
-            {
+                ids: &[Option<$crate::UniqueId>],
+                buffers: &mut HashMap<$crate::UniqueId, Box<dyn std::any::Any>, core::hash::BuildHasherDefault<$crate::NoHasher>>)
+             -> crate::Result<()>
+             {
+                let mut ids = ids.iter();
                 #[allow(non_snake_case)]
                 let ($($to_impl,)+) = self;
-                $($to_impl.update_arg(buffers);)*
+                $($to_impl.update_arg(*ids.next().unwrap(), buffers)?;)*
+                Ok(())
             }
         }
     };

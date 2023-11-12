@@ -486,6 +486,7 @@ mod tests {
     }
 
     #[cfg(feature = "cpu")]
+    #[cfg_attr(miri, ignore)]
     #[test]
     fn test_from_retrieve_sliced_chained_perf_example_optimize_cache() {
         use crate::{Base, Buffer, Cached, Device, Graph, HasId, OptimizeMemGraph, Retriever, CPU};

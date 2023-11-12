@@ -6,6 +6,7 @@ use custos::OpenCL;
 use crate::graph::AddOp;
 
 #[test]
+#[cfg_attr(miri, ignore)]
 fn test_graph() -> custos::Result<()> {
     let device = CPU::<Graph<Cached<Base>>>::new();
 

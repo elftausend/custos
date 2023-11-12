@@ -13,9 +13,9 @@ pass_down_exec_now!(CPU);
 
 impl<Mods, T, D, S> ApplyFunction<T, S, D> for CPU<Mods>
 where
-    Mods: Retrieve<Self, T> + AddOperation<T, Self>,
+    Mods: Retrieve<Self, T> + AddOperation + 'static,
     T: Copy + Default + ToVal + 'static,
-    D: Device,
+    D: Device + 'static,
     D::Data<T, S>: Deref<Target = [T]>,
     S: Shape,
 {
@@ -29,11 +29,17 @@ where
     {
         let mut out = self.retrieve(buf.len(), buf);
 
-        self.add_op((buf, f.no_id()), Some(&mut out), move |out, (buf, f)| {
-            apply_fn_slice(buf, out.as_mut().unwrap(), **f);
+        self.add_op((&mut out, buf, f.no_id()), move |(out, buf, f)| {
+            apply_fn_slice(buf, out, **f);
             Ok(())
         })
         .unwrap();
+
+        // self.add_op((buf, f.no_id()), Some(&mut out), move |out, (buf, f)| {
+        //     apply_fn_slice(buf, out.as_mut().unwrap(), **f);
+        //     Ok(())
+        // })
+        // .unwrap();
 
         out
     }
@@ -41,10 +47,10 @@ where
 
 impl<Mods, T, D, S> UnaryGrad<T, S, D> for CPU<Mods>
 where
-    Mods: AddOperation<T, Self> + OnDropBuffer,
-    T: AddAssign + Copy + std::ops::Mul<Output = T>,
+    Mods: AddOperation + OnDropBuffer,
+    T: AddAssign + Copy + std::ops::Mul<Output = T> + 'static,
     S: Shape,
-    D: Device,
+    D: Device + 'static,
     D::Data<T, S>: Deref<Target = [T]> + DerefMut<Target = [T]>,
 {
     #[inline]
@@ -57,10 +63,10 @@ where
     ) where
         F: Eval<T> + MayToCLSource,
     {
-        self.add_op::<S, _, 4>(
+        self.add_op::<_, 4>(
             (lhs, lhs_grad.buf_no_id(), out, lhs_grad_fn.no_id()),
-            None,
-            |_, (lhs, lhs_grad, out, lhs_grad_fn)| {
+            // None,
+            |(lhs, lhs_grad, out, lhs_grad_fn)| {
                 crate::cpu_stack_ops::add_unary_grad(lhs, out, lhs_grad, **lhs_grad_fn);
                 Ok(())
             },

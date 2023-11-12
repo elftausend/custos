@@ -1,5 +1,5 @@
 use crate::{
-    flag::AllocFlag, AddOperation, Alloc, Buffer, Device, ExecNow, HashLocation, Module,
+    flag::AllocFlag, AddOperation, Alloc, Device, ExecNow, HashLocation, Module,
     OnDropBuffer, OnNewBuffer, OptimizeMemGraph, Parents, Retrieve, Setup, Shape,
 };
 
@@ -15,20 +15,18 @@ impl<D> Module<D> for Base {
     }
 }
 
-impl<T, D: Device> AddOperation<T, D> for Base {
-    #[inline]
-    fn add_op<S: Shape, Args: Parents<N>, const N: usize>(
-        &self,
-        mut args: Args,
-        mut out: Option<&mut Buffer<T, D, S>>,
-        operation: fn(&mut Option<&mut Buffer<T, D, S>>, &mut Args) -> crate::Result<()>,
-    ) -> crate::Result<()> {
-        operation(&mut out, &mut args)
-    }
-
+impl AddOperation for Base {
     #[inline]
     fn ops_count(&self) -> usize {
         0
+    }
+
+    fn add_op<Args: Parents<N>, const N: usize>(
+        &self,
+        mut args: Args,
+        operation: fn(&mut Args) -> crate::Result<()>,
+    ) -> crate::Result<()> {
+        operation(&mut args)
     }
 }
 

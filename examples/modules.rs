@@ -35,10 +35,10 @@ where
 impl<T, D, S, Mods> ElementWise<T, D, S> for CPU<Mods>
 where
     T: Add<Output = T> + AddAssign + Mul<Output = T> + Copy + 'static,
-    D: Device,
+    D: Device + 'static,
     D::Data<T, S>: Deref<Target = [T]>,
     S: Shape,
-    Mods: Retrieve<Self, T> + AddOperation<T, Self> + MayTapeActions + 'static,
+    Mods: Retrieve<Self, T> + AddOperation + MayTapeActions + 'static,
 {
     #[track_caller]
     fn add(
@@ -57,8 +57,8 @@ where
                 add_ew_grad_slice(lhs_grad, rhs_grad, out_grad) // execute grad function
             });
         }
-        self.add_op((lhs, rhs), Some(&mut out), |out, (lhs, rhs)| {
-            add_ew_slice(lhs, rhs, out.as_mut().unwrap());
+        self.add_op((lhs, rhs, &mut out), |(lhs, rhs, out)| {
+            add_ew_slice(lhs, rhs, out);
             Ok(())
         })?;
         Ok(out)
