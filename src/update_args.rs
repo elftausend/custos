@@ -1,7 +1,7 @@
 use core::hash::BuildHasherDefault;
 use std::collections::HashMap;
 
-use crate::{HasId, NoHasher, UniqueId};
+use crate::{NoHasher, UniqueId};
 
 pub trait UpdateArgs {
     fn update_args(

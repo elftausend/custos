@@ -71,6 +71,10 @@ pub trait HasModules<Mods> {
     fn modules(&self) -> &Mods;
 }
 
+pub trait AddGradFn {
+    
+}
+
 #[cfg(feature = "autograd")]
 pub trait TapeActions {
     // "generator" - do not forget to pass down
