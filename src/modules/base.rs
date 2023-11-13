@@ -1,5 +1,5 @@
 use crate::{
-    flag::AllocFlag, AddOperation, Alloc, Device, ExecNow, HashLocation, Module,
+    flag::AllocFlag, AddGradFn, AddOperation, Alloc, Device, ExecNow, HashLocation, Module,
     OnDropBuffer, OnNewBuffer, OptimizeMemGraph, Parents, Retrieve, Setup, Shape,
 };
 
@@ -83,6 +83,16 @@ impl OptimizeMemGraph for Base {
         _cache_traces: Option<&[crate::TranslatedCacheTrace]>,
     ) -> crate::Result<()> {
         Ok(())
+    }
+}
+
+impl AddGradFn for Base {
+    #[inline]
+    fn add_grad_fn2<Args: Parents<N> + crate::UpdateArgs, const N: usize>(
+        &self,
+        _args: Args,
+        _op: fn(&mut Args) -> crate::Result<()>,
+    ) {
     }
 }
 

@@ -4,12 +4,12 @@ mod tape;
 pub use gradients::*;
 pub use tape::*;
 
-use core::cell::{Ref, RefCell, RefMut};
+use core::cell::{Ref, RefCell, RefMut, UnsafeCell};
 
 use crate::{
     pass_down_add_operation, pass_down_exec_now_module, prelude::One, register_buf, unregister_buf,
-    Alloc, Buffer, Device, HasId, Module, OnDropBuffer, OnNewBuffer, Parents, PtrConv, Retrieve,
-    RunModule, Setup, Shape, TapeActions, WriteBuf,
+    AddGradFn, Alloc, Buffer, Device, HasId, Module, OnDropBuffer, OnNewBuffer, Parents, PtrConv,
+    Retrieve, RunModule, Setup, Shape, TapeActions, WriteBuf,
 };
 
 use super::{Cached, CachedModule};
@@ -40,6 +40,7 @@ impl<Mods> Autograd<Mods> {
         D: Device + PtrConv + 'static,
         S: Shape,
     {
+        // let no_grads_pool = unsafe { self.tape.get() };
         let no_grads_pool = &mut self.tape.borrow_mut().grads.no_grads_pool.cache;
 
         if no_grads_pool.get(&buf.id()).is_some() {
@@ -149,6 +150,17 @@ impl<Mods: RunModule<D>, D> RunModule<D> for Autograd<Mods> {
     }
 }
 
+impl<Mods: AddGradFn> AddGradFn for Autograd<Mods> {
+    #[inline]
+    fn add_grad_fn2<Args: Parents<N> + crate::UpdateArgs, const N: usize>(
+        &self,
+        args: Args,
+        op: fn(&mut Args) -> crate::Result<()>,
+    ) {
+        self.tape.borrow_mut().add_grad_fn2(args, op)
+    }
+}
+
 pass_down_add_operation!(Autograd);
 pass_down_exec_now_module!(Autograd);
 
@@ -228,7 +240,7 @@ mod tests {
 
     use crate::{
         Base, Buffer, Cached, Device, HasId, MayTapeActions, Module, Retriever, Shape, TapeActions,
-        CPU,
+        CPU, UnaryGrad, Combiner,
     };
 
     use super::Autograd;
@@ -408,5 +420,24 @@ mod tests {
             //     lhs.device().add_ew_grad(lhs.grad(), rhs.grad(), out.unwrap().grad());
             // });
         }
+    }
+    
+    #[test]
+    fn test_grad_new_api() {
+        use crate::{AddOperation, Lazy, AddGradFn};
+
+        let device = CPU::<Autograd<Base>>::new();
+
+        let lhs = device.buffer([1, 2, 3, 4]);
+        let mut out = lhs.empty_like();
+
+        device.add_grad_fn2((&lhs, &mut out), |(lhs, out)| {
+                lhs.device()
+                    .add_unary_grad(lhs, &mut lhs.grad_mut(), &out.grad(), |x| x.add(3));
+            // lhs.device().add_ew_grad(lhs.grad(), rhs.grad(), out.grad());
+            Ok(())
+        });
+
+        device.tape_mut().unwrap().backward();
     }
 }

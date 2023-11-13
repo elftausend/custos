@@ -116,7 +116,8 @@ impl<'a, T: 'static, D: Device + 'static, S: Shape + 'static> UpdateArg for &Buf
             core::hash::BuildHasherDefault<crate::NoHasher>,
         >,
     ) -> crate::Result<()> {
-        let buf = buffers.get(&id.unwrap())
+        let buf = buffers
+            .get(&id.unwrap())
             .ok_or(DeviceError::InvalidLazyBuf)?;
         *self = unsafe { &*(&**buf as *const dyn Any as *const Buffer<T, D, S>) };
         //    *self = buffers.get(&self.id()).unwrap().downcast_ref().unwrap();

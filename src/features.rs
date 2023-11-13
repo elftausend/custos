@@ -72,7 +72,23 @@ pub trait HasModules<Mods> {
 }
 
 pub trait AddGradFn {
-    
+    fn add_grad_fn2<Args: Parents<N> + UpdateArgs, const N: usize>(
+        &self,
+        args: Args,
+        op: fn(&mut Args) -> crate::Result<()>,
+    );
+}
+
+impl<Mods: AddGradFn> AddGradFn for crate::CPU<Mods> {
+    #[track_caller]
+    #[inline]
+    fn add_grad_fn2<Args: Parents<N> + UpdateArgs, const N: usize>(
+        &self,
+        args: Args,
+        op: fn(&mut Args) -> crate::Result<()>,
+    ) {
+        self.modules.add_grad_fn2(args, op)
+    }
 }
 
 #[cfg(feature = "autograd")]
@@ -132,7 +148,7 @@ pub trait AddOperation {
         &self,
         args: Args,
         operation: fn(&mut Args) -> crate::Result<()>,
-    ) -> crate::Result<()>;
+    ) -> crate::Result<()>; // TODO: unrequired result?-  remove
     fn ops_count(&self) -> usize;
 }
 
@@ -153,9 +169,7 @@ pub trait ExecNow<D = Self> {
 #[macro_export]
 macro_rules! pass_down_add_operation {
     ($device:ident) => {
-        impl<Mods: $crate::AddOperation> $crate::AddOperation
-            for $device<Mods>
-        {
+        impl<Mods: $crate::AddOperation> $crate::AddOperation for $device<Mods> {
             #[inline]
             fn add_op<Args: $crate::Parents<N> + $crate::UpdateArgs, const N: usize>(
                 &self,

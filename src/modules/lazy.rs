@@ -9,7 +9,7 @@ use crate::{
 use core::{any::Any, cell::RefCell, fmt::Debug, hash::BuildHasherDefault};
 use std::collections::HashMap;
 
-use self::lazy_graph::LazyGraph;
+pub use self::lazy_graph::LazyGraph;
 use super::register_buf;
 
 #[derive(Default)]
@@ -51,9 +51,7 @@ impl<Mods: Module<D>, D: LazySetup> Module<D> for Lazy<Mods> {
     }
 }
 
-impl<Mods: AddOperation> AddOperation
-    for Lazy<Mods>
-{
+impl<Mods: AddOperation> AddOperation for Lazy<Mods> {
     #[inline]
     fn ops_count(&self) -> usize {
         self.graph.borrow().ops.len()
@@ -64,7 +62,7 @@ impl<Mods: AddOperation> AddOperation
         args: Args,
         operation: fn(&mut Args) -> crate::Result<()>,
     ) -> crate::Result<()> {
-        self.graph.borrow_mut().add_operation(args, operation)
+        Ok(self.graph.borrow_mut().add_operation(args, operation))
     }
 }
 
@@ -72,10 +70,9 @@ impl<D: Device + 'static, Mods> ExecNow<D> for Lazy<Mods> {
     #[inline]
     fn exec_now(&self, range_bounds: impl core::ops::RangeBounds<usize>) -> crate::Result<()> {
         unsafe {
-            self.graph.borrow_mut().call_range::<D>(
-                range_bounds,
-                &mut self.buffers.borrow_mut(),
-            )?;
+            self.graph
+                .borrow_mut()
+                .call_range::<D>(range_bounds, &mut self.buffers.borrow_mut())?;
         }
         Ok(())
     }
@@ -337,7 +334,7 @@ mod tests {
         let mut out: Buffer<i32, _, ()> = device.retrieve(4, ());
 
         device
-            .add_op(&mut out, |out,| {
+            .add_op(&mut out, |out| {
                 out.clear();
                 Ok(())
             })
@@ -348,9 +345,7 @@ mod tests {
             let b = Buffer::<i32, _, ()>::from_slice(&device, &[1, 2, 3, 4]);
             device
                 .add_op((&a, &b, &mut out), |(a, b, out)| {
-                    for ((lhs, rhs), out) in
-                        a.iter().zip(b.iter()).zip(out.iter_mut())
-                    {
+                    for ((lhs, rhs), out) in a.iter().zip(b.iter()).zip(out.iter_mut()) {
                         *out = lhs + rhs;
                     }
                     Ok(())
@@ -383,9 +378,7 @@ mod tests {
             let b = Buffer::<i32, _, ()>::from_slice(&device, &[1, 2, 3, 4]);
             device
                 .add_op((&a, &b, &mut out), |(a, b, out)| {
-                    for ((lhs, rhs), out) in
-                        a.iter().zip(b.iter()).zip(out.iter_mut())
-                    {
+                    for ((lhs, rhs), out) in a.iter().zip(b.iter()).zip(out.iter_mut()) {
                         *out = lhs + rhs;
                     }
                     Ok(())
@@ -425,9 +418,7 @@ mod tests {
                 .add_op(
                     (&mut out, a.no_id(), &b, vec.no_id()),
                     |(out, a, b, _vec)| {
-                        for ((lhs, rhs), out) in
-                            a.iter().zip(b.iter()).zip(out.iter_mut())
-                        {
+                        for ((lhs, rhs), out) in a.iter().zip(b.iter()).zip(out.iter_mut()) {
                             *out = lhs + rhs;
                         }
                         Ok(())

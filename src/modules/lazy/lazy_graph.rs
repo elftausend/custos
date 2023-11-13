@@ -1,8 +1,44 @@
-use crate::{
-    bounds_to_range, Device, NoHasher, Parents, UniqueId, UpdateArgs,
-};
+use crate::{bounds_to_range, Device, NoHasher, Parents, UniqueId, UpdateArgs};
 use core::{any::Any, hash::BuildHasherDefault, mem::transmute, ops::RangeBounds};
 use std::collections::HashMap;
+
+pub struct ExecIter<'a> {
+    ids_to_check: std::slice::Iter<'a, Vec<Option<UniqueId>>>,
+    ops: std::slice::Iter<'a, fn(*mut ()) -> crate::Result<()>>,
+    args: std::slice::IterMut<'a, Box<dyn UpdateArgs>>,
+    buffers: &'a mut HashMap<UniqueId, Box<dyn Any>, BuildHasherDefault<NoHasher>>,
+}
+
+fn exec_op(
+    args: &mut Box<dyn UpdateArgs>,
+    op: &fn(*mut ()) -> crate::Result<()>,
+    ids_to_check: &[Option<UniqueId>],
+    buffers: &mut HashMap<UniqueId, Box<dyn Any>, BuildHasherDefault<NoHasher>>,
+) -> crate::Result<()> {
+    args.update_args(ids_to_check, buffers)?;
+
+    let args = &mut **args as *mut _ as *mut ();
+    op(args)
+}
+impl<'a> Iterator for ExecIter<'a> {
+    type Item = crate::Result<()>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let ids_to_check = self.ids_to_check.next()?;
+        let op = self.ops.next()?;
+        let args = self.args.next()?;
+        Some(exec_op(args, op, ids_to_check, self.buffers))
+    }
+}
+
+impl<'a> DoubleEndedIterator for ExecIter<'a> {
+    fn next_back(&mut self) -> Option<Self::Item> {
+        let ids_to_check = self.ids_to_check.next_back()?;
+        let op = self.ops.next_back()?;
+        let args = self.args.next_back()?;
+        Some(exec_op(args, op, ids_to_check, self.buffers))
+    }
+}
 
 #[derive(Default)]
 pub struct LazyGraph {
@@ -12,12 +48,32 @@ pub struct LazyGraph {
 }
 
 impl LazyGraph {
+    #[inline]
+    pub fn iter_with<'a>(
+        &'a mut self,
+        buffers: &'a mut HashMap<UniqueId, Box<dyn Any>, BuildHasherDefault<NoHasher>>,
+    ) -> ExecIter {
+        ExecIter {
+            ids_to_check: self.ids_to_check.iter(),
+            ops: self.ops.iter(),
+            args: self.args.iter_mut(),
+            buffers,
+        }
+    }
+
+    #[inline]
+    pub fn clear(&mut self) {
+        self.ids_to_check.clear();
+        self.ops.clear();
+        self.args.clear();
+    }
+
     #[track_caller]
     pub fn add_operation<Args: Parents<N> + UpdateArgs, const N: usize>(
         &mut self,
         args: Args,
         op: fn(&mut Args) -> crate::Result<()>,
-    ) -> crate::Result<()> {
+    ) {
         // store ids and test if buffers are still in cache
         self.ids_to_check.push(
             args.maybe_ids()
@@ -30,25 +86,23 @@ impl LazyGraph {
 
         self.args.push(unsafe { transmute(args) });
         unsafe { self.ops.push(transmute(op)) };
-
-        Ok(())
     }
 
     pub unsafe fn call_lazily<D: Device + 'static>(
         &mut self,
         outs_unordered: &mut HashMap<UniqueId, Box<dyn Any>, BuildHasherDefault<NoHasher>>,
     ) -> crate::Result<()> {
-        for ((args, op), ids_to_check) in self
-            .args
-            .iter_mut()
-            .zip(&self.ops)
-            .zip(&self.ids_to_check)
-        {
-            args.update_args(&ids_to_check, outs_unordered)?;
-
-            let args = &mut **args as *mut _ as *mut ();
-            op(args)?;
+        for args in self.iter_with(outs_unordered) {
+            args?;
         }
+        // for ((args, op), ids_to_check) in
+        //     self.args.iter_mut().zip(&self.ops).zip(&self.ids_to_check)
+        // {
+        //     args.update_args(&ids_to_check, outs_unordered)?;
+
+        //     let args = &mut **args as *mut _ as *mut ();
+        //     op(args)?;
+        // }
         Ok(())
     }
 
@@ -64,11 +118,12 @@ impl LazyGraph {
             .zip(self.ops.drain(range.clone()))
             .zip(self.ids_to_check.drain(range.clone()))
         {
-            args.update_args(&ids_to_check, outs_unordered)?;
+            exec_op(&mut args, &op, &ids_to_check, outs_unordered)?;
+            // args.update_args(&ids_to_check, outs_unordered)?;
 
-            let args = &mut *args as *mut _ as *mut ();
-            op(args)?;
-       }
+            // let args = &mut *args as *mut _ as *mut ();
+            // op(args)?;
+        }
 
         Ok(())
     }
@@ -100,8 +155,7 @@ mod tests {
                     assert_eq!(lhs.as_slice(), &[1f32, 2., 3., 4., 5.,]);
                     assert_eq!(rhs.as_slice(), &[1f32, 2., 6., 4., 5.,]);
                     Ok(())
-                })
-                .unwrap();
+                });
 
             out.id()
         };
@@ -131,8 +185,7 @@ mod tests {
                 assert_eq!(lhs.as_slice(), &[1f32, 2., 3., 4., 5.,]);
                 assert_eq!(rhs.as_slice(), &[1f32, 2., 6., 4., 5.,]);
                 Ok(())
-            })
-            .unwrap();
+            });
 
         unsafe { graph.call_lazily::<CPU>(&mut outs_unordered).unwrap() }
     }
@@ -164,8 +217,7 @@ mod tests {
                     //     panic!();
                     // }
                     Ok(())
-                })
-                .unwrap();
+                });
         }
 
         unsafe { graph.call_lazily::<CPU>(&mut outs_unordered).unwrap() }
@@ -193,8 +245,7 @@ mod tests {
                 assert_eq!(rhs.as_slice(), &[1f32, 2., 6., 4., 5.,]);
 
                 Ok(())
-            })
-            .unwrap();
+            });
 
         unsafe { graph.call_lazily::<CPU>(&mut outs_unordered).unwrap() }
     }
@@ -231,8 +282,7 @@ mod tests {
 
                     Ok(())
                 },
-            )
-            .unwrap();
+            );
 
         unsafe { graph.call_lazily::<CPU>(&mut outs_unordered).unwrap() }
     }
@@ -247,8 +297,7 @@ mod tests {
                 .add_operation::<_, 1>(vec.no_id(), |vec| {
                     assert_eq!(vec.as_slice(), &[1, 2, 3, 4]);
                     Ok(())
-                })
-                .unwrap();
+                });
         }
         unsafe { graph.call_lazily::<CPU>(&mut HashMap::default()) }.unwrap();
     }

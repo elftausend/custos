@@ -1,7 +1,10 @@
 use core::{fmt::Debug, hash::BuildHasherDefault, panic::Location};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
-use crate::{prelude::One, Alloc, Buffer, HasId, HashLocation, LocationHasher, Shape, WriteBuf};
+use crate::{
+    prelude::One, Alloc, Buffer, HasId, HashLocation, LazyGraph, LocationHasher, Parents, Shape,
+    UpdateArgs, WriteBuf,
+};
 
 use super::Gradients;
 
@@ -15,6 +18,10 @@ pub struct Tape {
     grad_fns: Vec<GradFn>,
     grad_fns_loc: HashMap<HashLocation<'static>, GradFn, BuildHasherDefault<LocationHasher>>,
     grad_fn_order: Vec<HashLocation<'static>>,
+
+    unconsumed_locations: HashSet<HashLocation<'static>>,
+
+    pub lazy_graph: LazyGraph,
 }
 
 impl Debug for Tape {
@@ -27,6 +34,20 @@ impl Debug for Tape {
 }
 
 impl Tape {
+    #[inline]
+    #[track_caller]
+    pub fn add_grad_fn2<Args: Parents<N> + UpdateArgs, const N: usize>(
+        &mut self,
+        args: Args,
+        op: fn(&mut Args) -> crate::Result<()>,
+    ) {
+        if self.unconsumed_locations.contains(&Location::caller().into()) {
+            return
+        }
+        self.lazy_graph.add_operation(args, op);
+        self.unconsumed_locations.insert(Location::caller().into());
+    }
+
     /// Adds a gradient function to the tape.
     #[inline]
     #[track_caller]
@@ -45,11 +66,20 @@ impl Tape {
 
     /// Calls all gradient functions in reverse order.
     pub fn backward(&mut self) {
-        for grad_fn_id in self.grad_fn_order.iter().rev() {
-            let grad_fn = self.grad_fns_loc.get(grad_fn_id).unwrap();
-            grad_fn(&mut self.grads);
+        // for grad_fn_id in self.grad_fn_order.iter().rev() {
+        //     let grad_fn = self.grad_fns_loc.get(grad_fn_id).unwrap();
+        //     grad_fn(&mut self.grads);
+        // }
+
+        for val in self
+            .lazy_graph
+            .iter_with(&mut self.grads.grads_pool.cache)
+            .rev()
+        {
+            val.unwrap();
         }
-        /*for grad_fn in self.grad_fns.drain(..).rev() {
+        self.unconsumed_locations.clear();
+        self.lazy_graph.clear();        /*for grad_fn in self.grad_fns.drain(..).rev() {
             grad_fn(&mut self.grads);
         }*/
     }

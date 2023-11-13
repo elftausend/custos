@@ -2,7 +2,7 @@ use core::{cell::RefCell, marker::PhantomData};
 
 use crate::{
     AddOperation, Alloc, Buffer, Cache, Device, DeviceError, ExecNow, Module, OnDropBuffer,
-    OnNewBuffer, OptimizeMemGraph, Parents, PtrConv, Retrieve, RunModule, Setup, Shape,
+    OnNewBuffer, OptimizeMemGraph, Parents, PtrConv, Retrieve, RunModule, Setup, Shape, AddGradFn,
 };
 
 // creator struct
@@ -47,9 +47,7 @@ impl<Mods: Setup<NewDev>, D: Device, NewDev> Setup<NewDev> for CachedModule<Mods
     }
 }
 
-impl<SD: Device, Mods: AddOperation> AddOperation
-    for CachedModule<Mods, SD>
-{
+impl<SD: Device, Mods: AddOperation> AddOperation for CachedModule<Mods, SD> {
     #[inline]
     fn ops_count(&self) -> usize {
         self.modules.ops_count()
@@ -125,6 +123,17 @@ impl<Mods: crate::TapeActions, SD: Device> crate::TapeActions for CachedModule<M
     #[inline]
     fn tape_mut(&self) -> Option<core::cell::RefMut<super::Tape>> {
         self.modules.tape_mut()
+    }
+}
+
+impl<Mods: AddGradFn, D: Device> AddGradFn for CachedModule<Mods, D> {
+    #[inline]
+    fn add_grad_fn2<Args: Parents<N> + crate::UpdateArgs, const N: usize>(
+        &self,
+        args: Args,
+        op: fn(&mut Args) -> crate::Result<()>,
+    ) {
+        self.modules.add_grad_fn2(args, op)
     }
 }
 
