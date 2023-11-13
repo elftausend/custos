@@ -17,7 +17,7 @@ use super::{Cached, CachedModule};
 #[derive(Debug, Default)]
 pub struct Autograd<Mods> {
     pub modules: Mods,
-    tape: RefCell<Tape>,
+    tape: UnsafeCell<Tape>,
 }
 
 impl<Mods: Module<D>, D: Device> Module<D> for Autograd<Mods> {
@@ -40,8 +40,8 @@ impl<Mods> Autograd<Mods> {
         D: Device + PtrConv + 'static,
         S: Shape,
     {
-        // let no_grads_pool = unsafe { self.tape.get() };
-        let no_grads_pool = &mut self.tape.borrow_mut().grads.no_grads_pool.cache;
+        let no_grads_pool = unsafe { &mut (*(self.tape.get())).grads.no_grads_pool.cache };
+        // let no_grads_pool = &mut self.tape.borrow_mut().grads.no_grads_pool.cache;
 
         if no_grads_pool.get(&buf.id()).is_some() {
             return;
@@ -66,11 +66,13 @@ where
         // this prevents allocating with a non matching datatype
         // -> although retrieving the grads should fail if type information does not match
         // TODO: better solution?
-        self.tape
-            .borrow_mut()
-            .grads
-            .grads_pool
-            .add_buf_once::<T, D, S>(device, new_buf.id());
+        unsafe {
+            (*self.tape
+                .get())                
+                .grads
+                .grads_pool
+                .add_buf_once::<T, D, S>(device, new_buf.id());
+        }
 
         // pass down
         self.modules.on_new_buffer(device, new_buf)
@@ -81,7 +83,7 @@ impl<Mods: OnDropBuffer> OnDropBuffer for Autograd<Mods> {
     #[inline]
     fn on_drop_buffer<T, D: Device, S: Shape>(&self, device: &D, buf: &Buffer<T, D, S>) {
         unregister_buf(
-            &mut self.tape.borrow_mut().grads.no_grads_pool.cache,
+            unsafe {&mut (*(self.tape.get())).grads.no_grads_pool.cache },
             buf.id(),
         );
         self.modules.on_drop_buffer(device, buf)
@@ -121,11 +123,13 @@ where
         self.register_no_grad_buf(retrieved_buf);
 
         // allocates gradients
-        self.tape
-            .borrow_mut()
-            .grads
-            .grads_pool
-            .add_buf_once::<T, D, S>(retrieved_buf.device(), retrieved_buf.id());
+        unsafe {
+            (*self.tape
+                .get())
+                .grads
+                .grads_pool
+                .add_buf_once::<T, D, S>(retrieved_buf.device(), retrieved_buf.id());
+        }
 
         self.modules.on_retrieve_finish(retrieved_buf)
     }
@@ -134,12 +138,14 @@ where
 impl<Mods> TapeActions for Autograd<Mods> {
     #[inline]
     fn tape(&self) -> Option<core::cell::Ref<Tape>> {
-        Some(self.tape.borrow())
+        todo!()
+        // Some(self.tape.borrow())
     }
 
     #[inline]
     fn tape_mut(&self) -> Option<core::cell::RefMut<Tape>> {
-        Some(self.tape.borrow_mut())
+        todo!()
+        // Some(self.tape.borrow_mut())
     }
 }
 
@@ -157,7 +163,7 @@ impl<Mods: AddGradFn> AddGradFn for Autograd<Mods> {
         args: Args,
         op: fn(&mut Args) -> crate::Result<()>,
     ) {
-        self.tape.borrow_mut().add_grad_fn2(args, op)
+        unsafe {(*self.tape.get()).add_grad_fn2(args, op) }
     }
 }
 
