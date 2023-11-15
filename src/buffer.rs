@@ -19,6 +19,7 @@ use crate::{
 pub use self::num::Num;
 pub use impl_from_const::*;
 
+mod impl_autograd;
 mod impl_from;
 mod impl_from_const;
 mod num;

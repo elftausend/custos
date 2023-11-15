@@ -114,17 +114,8 @@ impl<T: Copy, S: Shape> WriteBuf<T, S> for Stack {
 }
 
 #[cfg(feature = "autograd")]
-impl<Mods: crate::TapeActions> crate::TapeActions for Stack<Mods> {
-    #[inline]
-    fn tape(&self) -> Option<core::cell::Ref<crate::Tape>> {
-        None
-    }
+impl<Mods: crate::TapeActions> crate::TapeActions for Stack<Mods> {}
 
-    #[inline]
-    fn tape_mut(&self) -> Option<core::cell::RefMut<crate::Tape>> {
-        None
-    }
-}
 #[cfg(test)]
 mod tests {
     #[cfg(not(feature = "no-std"))]

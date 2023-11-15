@@ -1,7 +1,7 @@
 use crate::{
-    pass_down_add_operation, pass_down_exec_now, Alloc, Buffer, Device, GpuOrCpuInfo, HashLocation,
-    LocationHasher, Module, OnDropBuffer, OnNewBuffer, Parents, PtrConv, Retrieve, RunModule,
-    Setup, Shape, UseGpuOrCpu,
+    pass_down_add_operation, pass_down_exec_now, pass_down_tape_actions, Alloc, Buffer, Device,
+    GpuOrCpuInfo, HashLocation, LocationHasher, Module, OnDropBuffer, OnNewBuffer, Parents,
+    PtrConv, Retrieve, RunModule, Setup, Shape, UseGpuOrCpu,
 };
 use core::{
     cell::RefCell,
@@ -230,18 +230,7 @@ impl<T: 'static, Mods: Retrieve<D, T>, D: PtrConv + 'static> Retrieve<D, T> for 
     }
 }
 
-#[cfg(feature = "autograd")]
-impl<Mods: crate::TapeActions> crate::TapeActions for Fork<Mods> {
-    #[inline]
-    fn tape(&self) -> Option<core::cell::Ref<crate::Tape>> {
-        self.modules.tape()
-    }
-
-    #[inline]
-    fn tape_mut(&self) -> Option<core::cell::RefMut<crate::Tape>> {
-        self.modules.tape_mut()
-    }
-}
+pass_down_tape_actions!(Fork);
 
 impl<Mods: RunModule<D>, D> RunModule<D> for Fork<Mods> {
     #[inline]

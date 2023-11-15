@@ -77,30 +77,41 @@ pub trait AddGradFn {
         args: Args,
         op: fn(&mut Args) -> crate::Result<()>,
     );
+
+    fn backward(&mut self) {}
 }
 
-impl<Mods: AddGradFn> AddGradFn for crate::CPU<Mods> {
-    #[track_caller]
-    #[inline]
-    fn add_grad_fn2<Args: Parents<N> + UpdateArgs, const N: usize>(
-        &self,
-        args: Args,
-        op: fn(&mut Args) -> crate::Result<()>,
-    ) {
-        self.modules.add_grad_fn2(args, op)
-    }
+#[macro_export]
+macro_rules! pass_down_grad_fn {
+    ($to_impl:ident) => {
+        impl<Mods: $crate::AddGradFn> $crate::AddGradFn for $to_impl<Mods> {
+            #[inline]
+            fn add_grad_fn2<Args: $crate::Parents<N> + $crate::UpdateArgs, const N: usize>(
+                &self,
+                args: Args,
+                op: fn(&mut Args) -> crate::Result<()>,
+            ) {
+                self.modules.add_grad_fn2(args, op)
+            }
+
+            #[inline]
+            fn backward(&mut self) {
+                self.modules.backward()
+            }
+        }
+    };
 }
 
 #[cfg(feature = "autograd")]
 pub trait TapeActions {
     // "generator" - do not forget to pass down
     #[inline]
-    fn tape(&self) -> Option<Ref<crate::Tape>> {
+    unsafe fn tape(&self) -> Option<&crate::Tape> {
         None
     }
     // "generator" - do not forget to pass down
     #[inline]
-    fn tape_mut(&self) -> Option<RefMut<crate::Tape>> {
+    unsafe fn tape_mut(&self) -> Option<&mut crate::Tape> {
         None
     }
 
@@ -115,7 +126,7 @@ pub trait TapeActions {
         // T: 'static,
         Self: 'static,
     {
-        if let Some(mut tape) = self.tape_mut() {
+        if let Some(mut tape) = unsafe { self.tape_mut() } {
             // the type T must match for every Id!
             // for id in ids.ids() {
             //     tape.grads.grads_pool.add_buf_once::<T, Self, S>(self, id)
@@ -124,6 +135,24 @@ pub trait TapeActions {
             tape.add_grad_fn(grad_fn)
         }
     }
+}
+
+#[macro_export]
+macro_rules! pass_down_tape_actions {
+    ($to_impl:ident) => {
+        #[cfg(feature = "autograd")]
+        impl<Mods: $crate::TapeActions> $crate::TapeActions for $to_impl<Mods> {
+            #[inline]
+            unsafe fn tape(&self) -> Option<&$crate::Tape> {
+                self.modules.tape()
+            }
+
+            #[inline]
+            unsafe fn tape_mut(&self) -> Option<&mut $crate::Tape> {
+                self.modules.tape_mut()
+            }
+        }
+    };
 }
 
 pub trait OpArgs {

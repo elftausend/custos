@@ -41,8 +41,11 @@ impl Tape {
         args: Args,
         op: fn(&mut Args) -> crate::Result<()>,
     ) {
-        if self.unconsumed_locations.contains(&Location::caller().into()) {
-            return
+        if self
+            .unconsumed_locations
+            .contains(&Location::caller().into())
+        {
+            return;
         }
         self.lazy_graph.add_operation(args, op);
         self.unconsumed_locations.insert(Location::caller().into());
@@ -73,15 +76,15 @@ impl Tape {
 
         for val in self
             .lazy_graph
-            .iter_with(&mut self.grads.grads_pool.cache)
+            .iter_with(&mut self.grads.no_grads_pool.cache)
             .rev()
         {
             val.unwrap();
         }
         self.unconsumed_locations.clear();
-        self.lazy_graph.clear();        /*for grad_fn in self.grad_fns.drain(..).rev() {
-            grad_fn(&mut self.grads);
-        }*/
+        self.lazy_graph.clear(); /*for grad_fn in self.grad_fns.drain(..).rev() {
+                                     grad_fn(&mut self.grads);
+                                 }*/
     }
 
     /// Backward pass with seeded gradient.

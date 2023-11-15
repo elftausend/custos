@@ -3,8 +3,9 @@ mod ty;
 pub use ty::*;
 
 use crate::{
-    AddOperation, Alloc, Buffer, Device, ExecNow, HasId, Module, NoHasher, OnDropBuffer,
-    OnNewBuffer, Parents, PtrConv, Retrieve, RunModule, Setup, Shape, UniqueId, UpdateArgs,
+    pass_down_tape_actions, AddOperation, Alloc, Buffer, Device, ExecNow, HasId, Module, NoHasher,
+    OnDropBuffer, OnNewBuffer, Parents, PtrConv, Retrieve, RunModule, Setup, Shape, UniqueId,
+    UpdateArgs,
 };
 use core::{any::Any, cell::RefCell, fmt::Debug, hash::BuildHasherDefault};
 use std::collections::HashMap;
@@ -126,18 +127,7 @@ impl<T: 'static, D: Device + PtrConv + 'static, S: Shape, Mods: OnNewBuffer<T, D
     }
 }
 
-#[cfg(feature = "autograd")]
-impl<Mods: crate::TapeActions> crate::TapeActions for Lazy<Mods> {
-    #[inline]
-    fn tape(&self) -> Option<core::cell::Ref<super::Tape>> {
-        self.modules.tape()
-    }
-
-    #[inline]
-    fn tape_mut(&self) -> Option<core::cell::RefMut<super::Tape>> {
-        self.modules.tape_mut()
-    }
-}
+pass_down_tape_actions!(Lazy);
 
 impl<T: 'static, Mods: Retrieve<D, T>, D: PtrConv + 'static> Retrieve<D, T> for Lazy<Mods> {
     #[inline]

@@ -4,9 +4,9 @@ use core::{
 };
 
 use crate::{
-    cpu::CPUPtr, flag::AllocFlag, impl_buffer_hook_traits, impl_retriever,
-    pass_down_optimize_mem_graph, Alloc, Base, Buffer, CloneBuf, Device, DevicelessAble,
-    HasModules, Module, OnDropBuffer, OnNewBuffer, PtrConv, Setup, Shape,
+    cpu::CPUPtr, flag::AllocFlag, impl_buffer_hook_traits, impl_retriever, pass_down_grad_fn,
+    pass_down_optimize_mem_graph, pass_down_tape_actions, Alloc, Base, Buffer, CloneBuf, Device,
+    DevicelessAble, HasModules, Module, OnDropBuffer, OnNewBuffer, PtrConv, Setup, Shape,
 };
 
 pub trait IsCPU {}
@@ -111,6 +111,7 @@ impl<T, Mods: OnDropBuffer> Alloc<T> for CPU<Mods> {
 }
 
 pass_down_optimize_mem_graph!(CPU);
+pass_down_grad_fn!(CPU);
 
 #[cfg(feature = "lazy")]
 impl<Mods> crate::LazyRun for CPU<Mods> {}
@@ -122,18 +123,7 @@ impl<Mods: crate::RunModule<Self>> crate::Run for CPU<Mods> {
     }
 }
 
-#[cfg(feature = "autograd")]
-impl<Mods: crate::TapeActions> crate::TapeActions for CPU<Mods> {
-    #[inline]
-    fn tape(&self) -> Option<core::cell::Ref<crate::Tape>> {
-        self.modules.tape()
-    }
-
-    #[inline]
-    fn tape_mut(&self) -> Option<core::cell::RefMut<crate::Tape>> {
-        self.modules.tape_mut()
-    }
-}
+pass_down_tape_actions!(CPU);
 
 #[cfg(feature = "lazy")]
 impl<Mods> crate::LazySetup for CPU<Mods> {}

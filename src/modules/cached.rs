@@ -1,8 +1,9 @@
 use core::{cell::RefCell, marker::PhantomData};
 
 use crate::{
-    AddOperation, Alloc, Buffer, Cache, Device, DeviceError, ExecNow, Module, OnDropBuffer,
-    OnNewBuffer, OptimizeMemGraph, Parents, PtrConv, Retrieve, RunModule, Setup, Shape, AddGradFn,
+    AddGradFn, AddOperation, Alloc, Buffer, Cache, Device, DeviceError, ExecNow, Module,
+    OnDropBuffer, OnNewBuffer, OptimizeMemGraph, Parents, PtrConv, Retrieve, RunModule, Setup,
+    Shape,
 };
 
 // creator struct
@@ -116,12 +117,12 @@ where
 #[cfg(feature = "autograd")]
 impl<Mods: crate::TapeActions, SD: Device> crate::TapeActions for CachedModule<Mods, SD> {
     #[inline]
-    fn tape(&self) -> Option<core::cell::Ref<super::Tape>> {
+    unsafe fn tape(&self) -> Option<&super::Tape> {
         self.modules.tape()
     }
 
     #[inline]
-    fn tape_mut(&self) -> Option<core::cell::RefMut<super::Tape>> {
+    unsafe fn tape_mut(&self) -> Option<&mut super::Tape> {
         self.modules.tape_mut()
     }
 }

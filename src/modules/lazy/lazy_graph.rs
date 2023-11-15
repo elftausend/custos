@@ -149,13 +149,12 @@ mod tests {
             unsafe { register_buf(&mut outs_unordered, &out) };
             // outs_unordered.insert(out.id(), )
 
-            graph
-                .add_operation::<_, 3>((&out, &lhs, &rhs), |args| {
-                    let (_out, lhs, rhs) = *args;
-                    assert_eq!(lhs.as_slice(), &[1f32, 2., 3., 4., 5.,]);
-                    assert_eq!(rhs.as_slice(), &[1f32, 2., 6., 4., 5.,]);
-                    Ok(())
-                });
+            graph.add_operation::<_, 3>((&out, &lhs, &rhs), |args| {
+                let (_out, lhs, rhs) = *args;
+                assert_eq!(lhs.as_slice(), &[1f32, 2., 3., 4., 5.,]);
+                assert_eq!(rhs.as_slice(), &[1f32, 2., 6., 4., 5.,]);
+                Ok(())
+            });
 
             out.id()
         };
@@ -179,13 +178,12 @@ mod tests {
         unsafe { register_buf(&mut outs_unordered, &out) };
         // outs_unordered.insert(out.id(), )
 
-        graph
-            .add_operation::<_, 3>((&out, &lhs, &rhs), |args| {
-                let (_out, lhs, rhs) = *args;
-                assert_eq!(lhs.as_slice(), &[1f32, 2., 3., 4., 5.,]);
-                assert_eq!(rhs.as_slice(), &[1f32, 2., 6., 4., 5.,]);
-                Ok(())
-            });
+        graph.add_operation::<_, 3>((&out, &lhs, &rhs), |args| {
+            let (_out, lhs, rhs) = *args;
+            assert_eq!(lhs.as_slice(), &[1f32, 2., 3., 4., 5.,]);
+            assert_eq!(rhs.as_slice(), &[1f32, 2., 6., 4., 5.,]);
+            Ok(())
+        });
 
         unsafe { graph.call_lazily::<CPU>(&mut outs_unordered).unwrap() }
     }
@@ -207,17 +205,16 @@ mod tests {
         // outs_unordered.insert(out.id(), )
 
         for _ in 0..10 {
-            graph
-                .add_operation::<_, 3>((&lhs, &rhs, &mut out), |(lhs, rhs, _out)| {
-                    // println!("ih");
-                    assert_eq!(lhs.as_slice(), &[1f32, 2., 3., 4., 5.,]);
-                    assert_eq!(rhs.as_slice(), &[1f32, 2., 6., 4., 5.,]);
+            graph.add_operation::<_, 3>((&lhs, &rhs, &mut out), |(lhs, rhs, _out)| {
+                // println!("ih");
+                assert_eq!(lhs.as_slice(), &[1f32, 2., 3., 4., 5.,]);
+                assert_eq!(rhs.as_slice(), &[1f32, 2., 6., 4., 5.,]);
 
-                    // if _out.is_some() {
-                    //     panic!();
-                    // }
-                    Ok(())
-                });
+                // if _out.is_some() {
+                //     panic!();
+                // }
+                Ok(())
+            });
         }
 
         unsafe { graph.call_lazily::<CPU>(&mut outs_unordered).unwrap() }
@@ -238,14 +235,13 @@ mod tests {
         unsafe { register_buf(&mut outs_unordered, &out) };
         // outs_unordered.insert(out.id(), )
 
-        graph
-            .add_operation::<_, 2>((&lhs, &rhs), |args| {
-                let (lhs, rhs) = *args;
-                assert_eq!(lhs.as_slice(), &[1f32, 2., 3., 4., 5.,]);
-                assert_eq!(rhs.as_slice(), &[1f32, 2., 6., 4., 5.,]);
+        graph.add_operation::<_, 2>((&lhs, &rhs), |args| {
+            let (lhs, rhs) = *args;
+            assert_eq!(lhs.as_slice(), &[1f32, 2., 3., 4., 5.,]);
+            assert_eq!(rhs.as_slice(), &[1f32, 2., 6., 4., 5.,]);
 
-                Ok(())
-            });
+            Ok(())
+        });
 
         unsafe { graph.call_lazily::<CPU>(&mut outs_unordered).unwrap() }
     }
@@ -269,20 +265,19 @@ mod tests {
 
         // outs_unordered.insert(out.id(), )
 
-        graph
-            .add_operation::<_, 4>(
-                (&mut out, &lhs, &rhs, ew_fn.no_id()),
-                |(_out, lhs, rhs, ew_fn)| {
-                    assert_eq!(lhs.as_slice(), &[1f32, 2., 3., 4., 5.,]);
-                    assert_eq!(rhs.as_slice(), &[1f32, 2., 6., 4., 5.,]);
+        graph.add_operation::<_, 4>(
+            (&mut out, &lhs, &rhs, ew_fn.no_id()),
+            |(_out, lhs, rhs, ew_fn)| {
+                assert_eq!(lhs.as_slice(), &[1f32, 2., 3., 4., 5.,]);
+                assert_eq!(rhs.as_slice(), &[1f32, 2., 6., 4., 5.,]);
 
-                    for (out, lhs) in _out.iter_mut().zip(lhs.iter()) {
-                        *out = ew_fn(*lhs);
-                    }
+                for (out, lhs) in _out.iter_mut().zip(lhs.iter()) {
+                    *out = ew_fn(*lhs);
+                }
 
-                    Ok(())
-                },
-            );
+                Ok(())
+            },
+        );
 
         unsafe { graph.call_lazily::<CPU>(&mut outs_unordered).unwrap() }
     }
@@ -293,11 +288,10 @@ mod tests {
 
         {
             let vec = vec![1, 2, 3, 4];
-            graph
-                .add_operation::<_, 1>(vec.no_id(), |vec| {
-                    assert_eq!(vec.as_slice(), &[1, 2, 3, 4]);
-                    Ok(())
-                });
+            graph.add_operation::<_, 1>(vec.no_id(), |vec| {
+                assert_eq!(vec.as_slice(), &[1, 2, 3, 4]);
+                Ok(())
+            });
         }
         unsafe { graph.call_lazily::<CPU>(&mut HashMap::default()) }.unwrap();
     }
