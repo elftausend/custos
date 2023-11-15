@@ -31,9 +31,6 @@ where
                 .expect(AUTOGRAD_NOT_AVAILABLE)
                 .grads
                 .get_ref(self.device(), self.id())
-            // .expect(
-            //     "Gradient was not allocated for this buffer. Did you forget to call `backward`?",
-            // )
         }
     }
 
@@ -43,7 +40,7 @@ where
     pub fn try_grad(&self) -> Option<&'a Self> {
          unsafe {
             self.device()
-                .tape_mut()?
+                .tape()?
                 .grads
                 .may_get_ref(self.id()).ok()
         } 
@@ -68,11 +65,22 @@ where
                 .expect(AUTOGRAD_NOT_AVAILABLE)
                 .grads
                 .get_mut(self.device(), self.id())
-            // .expect(
-            //     "Gradient was not allocated for this buffer. Did you forget to call `backward`?",
-            // )
         }
     }
+    
+    /// Returns a mutable reference to the gradient of this buffer.
+    /// Returns none either if the autograd feature is disabled, no tape was found (add [`Autograd`] module) or no gradient was allocated previously.
+    // TODO: Maybe return Result with two error variants?
+    pub fn try_grad_mut(&self) -> Option<&'a mut Self> {
+         unsafe {
+            self.device()
+                .tape_mut()?
+                .grads
+                .may_get_mut(self.id()).ok()
+        } 
+    }
+
+
     
     /// In this case, this is just a dummy function.
     /// Activate the `autograd` feature to make this function useable.
