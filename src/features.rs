@@ -119,7 +119,7 @@ pub trait TapeActions {
     unsafe fn gradients(&self) -> Option<&crate::Gradients> {
         None
     }
-    
+
     #[inline]
     unsafe fn gradients_mut(&self) -> Option<&mut crate::Gradients> {
         None
@@ -161,7 +161,7 @@ macro_rules! pass_down_tape_actions {
             unsafe fn tape_mut(&self) -> Option<&mut $crate::Tape> {
                 self.modules.tape_mut()
             }
-             
+
             #[inline]
             unsafe fn gradients(&self) -> Option<&$crate::Gradients> {
                 self.modules.gradients()

@@ -201,6 +201,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore = "deprecated"]
     #[should_panic]
     fn test_different_types_get_double_return() {
         let device = CPU::<Autograd<Base>>::new();

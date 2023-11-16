@@ -1,9 +1,9 @@
-use core::{fmt::Debug, hash::BuildHasherDefault, panic::Location, any::Any};
+use core::{any::Any, fmt::Debug, hash::BuildHasherDefault, panic::Location};
 use std::collections::{HashMap, HashSet};
 
 use crate::{
-    prelude::One, Alloc, Buffer, HasId, HashLocation, LazyGraph, LocationHasher, Parents, Shape,
-    UpdateArgs, WriteBuf, UniqueId, NoHasher, TapeActions,
+    prelude::One, Alloc, Buffer, HasId, HashLocation, LazyGraph, LocationHasher, NoHasher, Parents,
+    Shape, TapeActions, UniqueId, UpdateArgs, WriteBuf,
 };
 
 use super::Gradients;
@@ -41,11 +41,14 @@ impl Tape {
         args: Args,
         op: fn(&mut Args) -> crate::Result<()>,
     ) {
-        if self.unconsumed_locations.contains(&Location::caller().into()) {
-            return
-        }
+        // if self
+        //     .unconsumed_locations
+        //     .contains(&Location::caller().into())
+        // {
+        //     return;
+        // }
         self.lazy_graph.add_operation(args, op);
-        self.unconsumed_locations.insert(Location::caller().into());
+        // self.unconsumed_locations.insert(Location::caller().into());
     }
 
     /// Adds a gradient function to the tape.
@@ -65,7 +68,10 @@ impl Tape {
     }
 
     /// Calls all gradient functions in reverse order.
-    pub fn backward(&mut self, buffers: &mut HashMap<UniqueId, Box<dyn Any>, BuildHasherDefault<NoHasher>>) {
+    pub fn backward(
+        &mut self,
+        buffers: &mut HashMap<UniqueId, Box<dyn Any>, BuildHasherDefault<NoHasher>>,
+    ) {
         // for grad_fn_id in self.grad_fn_order.iter().rev() {
         //     let grad_fn = self.grad_fns_loc.get(grad_fn_id).unwrap();
         //     grad_fn(&mut self.grads);
@@ -80,9 +86,9 @@ impl Tape {
             val.unwrap();
         }
         self.unconsumed_locations.clear();
-        self.lazy_graph.clear();        /*for grad_fn in self.grad_fns.drain(..).rev() {
-            grad_fn(&mut self.grads);
-        }*/
+        self.lazy_graph.clear(); /*for grad_fn in self.grad_fns.drain(..).rev() {
+                                     grad_fn(&mut self.grads);
+                                 }*/
     }
 
     /// Backward pass with seeded gradient.
@@ -98,7 +104,6 @@ impl Tape {
 
             let out = gradients.get_mut::<T, S, D>(buf.device(), buf.id());
             out.write(&vec![T::one(); out.len()]);
-
 
             let no_grads = &mut gradients.no_grads_pool.cache;
             core::mem::take(no_grads)

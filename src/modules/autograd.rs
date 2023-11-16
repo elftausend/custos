@@ -203,8 +203,8 @@ mod tests {
     use core::any::Any;
 
     use crate::{
-        Base, Buffer, Cached, Combiner, Device, HasId, MayTapeActions, Module, Retriever, Shape,
-        TapeActions, UnaryGrad, CPU, AddGradFn,
+        AddGradFn, Base, Buffer, Cached, Combiner, Device, HasId, MayTapeActions, Module,
+        Retriever, Shape, TapeActions, UnaryGrad, CPU,
     };
 
     use super::Autograd;

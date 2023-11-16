@@ -195,4 +195,75 @@ mod tests {
             ]
         );
     }
+    #[cfg(feature = "cpu")]
+    #[cfg(feature = "autograd")]
+    #[test]
+    fn test_unary_elementwise_may_grad_multiple_times() {
+        use crate::{
+            two_way_ops::tests_ex::roughly_eq_slices, Autograd, Base, Combiner, Device,
+            UnaryElementWiseMayGrad, CPU,
+        };
+
+        let device = CPU::<Autograd<Base>>::new();
+        let buf = device.buffer([1., 2., 3., 4.]);
+
+        for _ in 0..10 {
+            let out = device.unary_ew(&buf, |x| x.sin(), |x| x.cos());
+            roughly_eq_slices(
+                out.as_slice(),
+                &[
+                    0.8414709848078965,
+                    0.9092974268256817,
+                    0.1411200080598672,
+                    -0.7568024953079282,
+                ],
+            );
+
+            out.backward();
+            assert_eq!(
+                buf.grad().as_slice(),
+                [
+                    0.5403023058681398,
+                    -0.4161468365471424,
+                    -0.9899924966004454,
+                    -0.6536436208636119
+                ]
+            );
+
+            buf.grad_mut().clear();
+        }
+    }
+
+    #[cfg(feature = "cpu")]
+    #[cfg(feature = "autograd")]
+    #[cfg_attr(miri, ignore("location is always different with miri - caching etc does not work"))]
+    #[test]
+    fn test_unary_elementwise_may_grad_multiple_times_backwards_at_end() {
+        use crate::{
+            two_way_ops::tests_ex::roughly_eq_slices, Autograd, Base, Combiner, Device,
+            UnaryElementWiseMayGrad, CPU,
+        };
+
+        let device = CPU::<Autograd<Base>>::new();
+        let buf = device.buffer([1., 2., 3., 4.]);
+
+        for i in 0..9 {
+            let _out = device.unary_ew(&buf, |x| x.sin(), |x| x.cos());
+            if i == 0 {
+                _out.grad_mut().write(&[1., 1., 1., 1.]);
+            }
+        }
+        let out = device.unary_ew(&buf, |x| x.sin(), |x| x.cos());
+        out.backward();
+
+        roughly_eq_slices(
+            buf.grad().as_slice(),
+            &[
+                0.5403023058681398 * 10.,
+                -0.4161468365471424 * 10.,
+                -0.9899924966004454 * 10.,
+                -0.6536436208636119 * 10.,
+            ],
+        );
+    }
 }
