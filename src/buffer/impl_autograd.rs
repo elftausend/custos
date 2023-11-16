@@ -92,7 +92,7 @@ where
     {
         #[cfg(feature = "autograd")]
         unsafe {
-            self.device().tape_mut()?.grads.may_get_mut(self.id()).ok()
+            self.device().gradients_mut()?.may_get_mut(self.id()).ok()
         }
 
         #[cfg(not(feature = "autograd"))]

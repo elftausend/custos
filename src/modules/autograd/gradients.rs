@@ -180,14 +180,14 @@ mod tests {
         let out: Buffer<i32, _> = device.retrieve::<(), 0>(buf.len(), ());
         // unsafe { register_buf(&mut gradients.no_grads_pool.borrow_mut().cache, &out) }
 
-        unsafe {
-            (*device.modules.tape.get())
-                .grads
-                .get_double::<i32, (), (), CPU<Autograd<crate::CachedModule<Base, CPU>>>>((
-                    buf.id(),
-                    out.id(),
-                ));
-        }
+        // unsafe {
+        //     (*device.modules.tape.get())
+        //         .grads
+        //         .get_double::<i32, (), (), CPU<Autograd<crate::CachedModule<Base, CPU>>>>((
+        //             buf.id(),
+        //             out.id(),
+        //         ));
+        // }
 
         // device
         //     .modules
@@ -213,10 +213,10 @@ mod tests {
         let out: Buffer<i64, _> = device.retrieve::<(), 0>(buf.len(), ());
         // unsafe { register_buf(&mut gradients.no_grads_pool.borrow_mut().cache, &out) }
 
-        unsafe {
-            (*device.modules.tape.get()).grads
-            .get_double::<i32, (), (), CPU<Autograd<crate::CachedModule<Base, CPU<Autograd<Base>>>>>>((buf.id(), out.id()));
-        }
+        // unsafe {
+        //     (*device.modules.tape.get()).grads
+        //     .get_double::<i32, (), (), CPU<Autograd<crate::CachedModule<Base, CPU<Autograd<Base>>>>>>((buf.id(), out.id()));
+        // }
 
         // unsafe {
         //     device

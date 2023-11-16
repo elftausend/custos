@@ -13,8 +13,8 @@ pub type GradFn = Box<dyn Fn(&mut Gradients)>;
 /// Stores the grad functions and gradient cache.
 #[derive(Default)]
 pub struct Tape {
-    /// Caches gradients for each [`Buffer`]'s id ([`Ident`]).
-    pub grads: Gradients,
+    // Caches gradients for each [`Buffer`]'s id ([`Ident`]).
+    // pub grads: Gradients,
     grad_fns: Vec<GradFn>,
     grad_fns_loc: HashMap<HashLocation<'static>, GradFn, BuildHasherDefault<LocationHasher>>,
     grad_fn_order: Vec<HashLocation<'static>>,
@@ -27,7 +27,7 @@ pub struct Tape {
 impl Debug for Tape {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         f.debug_struct("Tape")
-            .field("grads", &self.grads)
+            // .field("grads", &self.grads)
             .field("grad_fns", &self.grad_fns.len())
             .finish()
     }

@@ -204,7 +204,7 @@ mod tests {
 
     use crate::{
         Base, Buffer, Cached, Combiner, Device, HasId, MayTapeActions, Module, Retriever, Shape,
-        TapeActions, UnaryGrad, CPU,
+        TapeActions, UnaryGrad, CPU, AddGradFn,
     };
 
     use super::Autograd;
@@ -224,7 +224,7 @@ mod tests {
 
         let autograd = &device.modules;
         {
-            let no_grads_pool = unsafe { &(*autograd.tape.get()).grads.no_grads_pool };
+            let no_grads_pool = unsafe { &(*autograd.grads.get()).no_grads_pool };
             // let no_grads_pool = &mut autograd.tape.grads.no_grads_pool;
             let buf_any = no_grads_pool.cache.get(&buf.id()).unwrap();
 
@@ -240,7 +240,7 @@ mod tests {
 
         let autograd = &device.modules;
         {
-            let no_grads_pool = unsafe { &mut (*autograd.tape.get()).grads.no_grads_pool };
+            let no_grads_pool = unsafe { &mut (*autograd.grads.get()).no_grads_pool };
             // let no_grads_pool = &mut autograd.tape.borrow_mut().grads.no_grads_pool;
             let buf1 = no_grads_pool
                 .get_buf_with_dev::<f32, _, ()>(buf.id(), &device)
@@ -259,7 +259,7 @@ mod tests {
         drop(buf);
 
         {
-            let no_grads_pool = unsafe { &(*autograd.tape.get()).grads.no_grads_pool };
+            let no_grads_pool = unsafe { &(*autograd.grads.get()).no_grads_pool };
             // let no_grads_pool = &autograd.tape.borrow_mut().grads.no_grads_pool;
             assert!(no_grads_pool.cache.get(&id).is_none());
         }
@@ -276,7 +276,7 @@ mod tests {
             assert_eq!(x.len(), 100)
         }
 
-        let no_grads_pool = unsafe { &(*device.modules.tape.get()).grads.no_grads_pool };
+        let no_grads_pool = unsafe { &(*device.modules.grads.get()).no_grads_pool };
         // let no_grads_pool = &device.modules.tape.borrow().grads.no_grads_pool;
         assert_eq!(no_grads_pool.cache.len(), 2);
     }
@@ -299,7 +299,7 @@ mod tests {
             assert_eq!(x.len(), 100)
         }
 
-        let no_grads_pool = unsafe { &(*device.modules.modules.tape.get()).grads.no_grads_pool };
+        let no_grads_pool = unsafe { &(*device.modules.modules.grads.get()).no_grads_pool };
         // let no_grads_pool = &device.modules.modules.tape.borrow().grads.no_grads_pool;
         assert_eq!(no_grads_pool.cache.len(), 2);
     }
@@ -320,7 +320,14 @@ mod tests {
 
         let out = Buffer::<f32, _>::new(&device, 10);
 
-        let ids = (buf.id(), out.id());
+        device.add_grad_fn2((&buf, &out), |(buf, _out)| {
+            for val in buf.grad_mut() {
+                *val = 5.;
+            }
+            Ok(())
+        });
+
+        /*let ids = (buf.id(), out.id());
         // this does not panic anymore because grads are allocated if a new buffer is created (when using the Autograd module)
         device.add_grad_fn(move |grads| {
             let (_buf, buf_grad, _out) =
@@ -328,7 +335,7 @@ mod tests {
             for val in buf_grad.as_mut_slice() {
                 *val = 5.;
             }
-        });
+        });*/
 
         out.backward();
 
