@@ -17,6 +17,8 @@ use super::{Cached, CachedModule};
 #[derive(Debug, Default)]
 pub struct Autograd<Mods> {
     pub modules: Mods,
+    /// Caches gradients for each [`Buffer`]'s id ([`Ident`]).
+    pub grads: UnsafeCell<Gradients>,
     tape: UnsafeCell<Tape>,
 }
 
@@ -27,6 +29,7 @@ impl<Mods: Module<D>, D: Device> Module<D> for Autograd<Mods> {
     fn new() -> Self::Module {
         Autograd {
             modules: Cached::<Mods>::new(),
+            grads: Default::default(),
             tape: Default::default(),
         }
     }
@@ -40,7 +43,7 @@ impl<Mods> Autograd<Mods> {
         D: Device + PtrConv + 'static,
         S: Shape,
     {
-        let no_grads_pool = unsafe { &mut (*(self.tape.get())).grads.no_grads_pool.cache };
+        let no_grads_pool = unsafe { &mut (*(self.grads.get())).no_grads_pool.cache };
         // let no_grads_pool = &mut self.tape.borrow_mut().grads.no_grads_pool.cache;
 
         if no_grads_pool.get(&buf.id()).is_some() {
@@ -66,12 +69,12 @@ where
         // this prevents allocating with a non matching datatype
         // -> although retrieving the grads should fail if type information does not match
         // TODO: better solution?
-        unsafe {
-            (*self.tape.get())
-                .grads
-                .grads_pool
-                .add_buf_once::<T, D, S>(device, new_buf.id());
-        }
+        // unsafe {
+        //     (*self.tape.get())
+        //         .grads
+        //         .grads_pool
+        //         .add_buf_once::<T, D, S>(device, new_buf.id());
+        // }
 
         // pass down
         self.modules.on_new_buffer(device, new_buf)
@@ -82,7 +85,7 @@ impl<Mods: OnDropBuffer> OnDropBuffer for Autograd<Mods> {
     #[inline]
     fn on_drop_buffer<T, D: Device, S: Shape>(&self, device: &D, buf: &Buffer<T, D, S>) {
         unregister_buf(
-            unsafe { &mut (*(self.tape.get())).grads.no_grads_pool.cache },
+            unsafe { &mut (*(self.grads.get())).no_grads_pool.cache },
             buf.id(),
         );
         self.modules.on_drop_buffer(device, buf)
@@ -122,12 +125,12 @@ where
         self.register_no_grad_buf(retrieved_buf);
 
         // allocates gradients
-        unsafe {
-            (*self.tape.get())
-                .grads
-                .grads_pool
-                .add_buf_once::<T, D, S>(retrieved_buf.device(), retrieved_buf.id());
-        }
+        // unsafe {
+        //     (*self.tape.get())
+        //         .grads
+        //         .grads_pool
+        //         .add_buf_once::<T, D, S>(retrieved_buf.device(), retrieved_buf.id());
+        // }
 
         self.modules.on_retrieve_finish(retrieved_buf)
     }
@@ -142,11 +145,35 @@ impl<Mods> TapeActions for Autograd<Mods> {
 
     #[inline]
     unsafe fn tape_mut(&self) -> Option<&mut Tape> {
-        let tape = self.tape.get();
-        let tape = &mut *tape;
-        Some(tape)
+        Some(&mut *self.tape.get())
         // Some(unsafe {&mut (self.tape.get_mut()) })
         // Some(self.tape.borrow_mut())
+    }
+
+    unsafe fn gradients(&self) -> Option<&crate::Gradients> {
+        Some(&*self.grads.get())
+    }
+
+    unsafe fn gradients_mut(&self) -> Option<&mut crate::Gradients> {
+        Some(&mut *self.grads.get())
+    }
+
+    fn add_grad_fn(
+        &self,
+        // ids: impl AllocGradsFrom<N>,
+        grad_fn: impl Fn(&mut crate::Gradients) + 'static,
+    ) where
+        // T: 'static,
+        Self: 'static,
+    {
+        if let Some(mut tape) = unsafe { self.tape_mut() } {
+            // the type T must match for every Id!
+            // for id in ids.ids() {
+            //     tape.grads.grads_pool.add_buf_once::<T, Self, S>(self, id)
+            // }
+
+            tape.add_grad_fn(grad_fn)
+        }
     }
 }
 
@@ -375,7 +402,7 @@ mod tests {
         let mut out = lhs.empty_like();
 
         device.add_grad_fn2((&lhs, &mut out), |(lhs, out)| {
-            println!("lhs: {:?}", lhs);
+            // lhs.grad();
             lhs.device()
                 .add_unary_grad(lhs, &mut lhs.grad_mut(), &out.grad(), |x| x.add(3));
             // lhs.device().add_ew_grad(lhs.grad(), rhs.grad(), out.grad());
@@ -383,5 +410,7 @@ mod tests {
         });
 
         out.backward();
+
+        assert_eq!(lhs.try_grad().unwrap().as_slice(), [4, 5, 6, 7]);
     }
 }

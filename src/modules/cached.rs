@@ -125,6 +125,34 @@ impl<Mods: crate::TapeActions, SD: Device> crate::TapeActions for CachedModule<M
     unsafe fn tape_mut(&self) -> Option<&mut super::Tape> {
         self.modules.tape_mut()
     }
+
+    #[inline]
+    unsafe fn gradients(&self) -> Option<&crate::Gradients> {
+        self.modules.gradients()
+    }
+
+    #[inline]
+    unsafe fn gradients_mut(&self) -> Option<&mut crate::Gradients> {
+        self.modules.gradients_mut()
+    }
+
+    fn add_grad_fn(
+        &self,
+        // ids: impl AllocGradsFrom<N>,
+        grad_fn: impl Fn(&mut crate::Gradients) + 'static,
+    ) where
+        // T: 'static,
+        Self: 'static,
+    {
+        if let Some(mut tape) = unsafe { self.tape_mut() } {
+            // the type T must match for every Id!
+            // for id in ids.ids() {
+            //     tape.grads.grads_pool.add_buf_once::<T, Self, S>(self, id)
+            // }
+
+            tape.add_grad_fn(grad_fn)
+        }
+    }
 }
 
 impl<Mods: AddGradFn, D: Device> AddGradFn for CachedModule<Mods, D> {

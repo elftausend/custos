@@ -115,6 +115,16 @@ pub trait TapeActions {
         None
     }
 
+    #[inline]
+    unsafe fn gradients(&self) -> Option<&crate::Gradients> {
+        None
+    }
+    
+    #[inline]
+    unsafe fn gradients_mut(&self) -> Option<&mut crate::Gradients> {
+        None
+    }
+
     // use track caller to identify a specific grad function
     //-> if backward is not called (.drain()), the grad fn vector will gradually fill up
     #[track_caller]
@@ -150,6 +160,16 @@ macro_rules! pass_down_tape_actions {
             #[inline]
             unsafe fn tape_mut(&self) -> Option<&mut $crate::Tape> {
                 self.modules.tape_mut()
+            }
+             
+            #[inline]
+            unsafe fn gradients(&self) -> Option<&$crate::Gradients> {
+                self.modules.gradients()
+            }
+
+            #[inline]
+            unsafe fn gradients_mut(&self) -> Option<&mut $crate::Gradients> {
+                self.modules.gradients_mut()
             }
         }
     };

@@ -1,4 +1,6 @@
-use crate::{Alloc, Buffer, Device, Eval, MayTapeActions, MayToCLSource, Resolve, Shape};
+use crate::{
+    AddGradFn, Alloc, AsNoId, Buffer, Device, Eval, MayTapeActions, MayToCLSource, Resolve, Shape,
+};
 
 #[cfg(feature = "autograd")]
 use crate::HasId;
@@ -100,7 +102,7 @@ pub trait UnaryElementWiseMayGrad<T, D: Device, S: Shape>: Device {
 impl<T, D, S> UnaryElementWiseMayGrad<T, D, S> for D
 where
     T: 'static,
-    D: ApplyFunction<T, S, D> + UnaryGrad<T, S, D> + MayTapeActions,
+    D: AddGradFn + ApplyFunction<T, S, D> + UnaryGrad<T, S, D> + MayTapeActions,
     D: Alloc<T> + 'static,
     S: Shape,
 {
@@ -116,6 +118,12 @@ where
         GO: Eval<T> + MayToCLSource + 'static,
     {
         let out = self.apply_fn(buf, forward_fn);
+
+        self.add_grad_fn2((buf, &out, _grad_fn.no_id()), |(buf, out, grad_fn)| {
+            buf.device()
+                .add_unary_grad(buf, buf.grad_mut(), out.grad(), **grad_fn);
+            Ok(())
+        });
 
         #[cfg(feature = "autograd")]
         {
