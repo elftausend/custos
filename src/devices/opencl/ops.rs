@@ -182,7 +182,7 @@ impl<T, S, Mods> ApplyFunction<T, S> for OpenCL<Mods>
 where
     T: CDatatype + Number,
     S: Shape,
-    Mods: AddOperation<T, Self> + Retrieve<Self, T> + UseGpuOrCpu + 'static,
+    Mods: AddOperation + Retrieve<Self, T> + UseGpuOrCpu + 'static,
 {
     #[inline]
     fn apply_fn<F>(
@@ -195,9 +195,10 @@ where
     {
         let mut out = self.retrieve(buf.len(), buf);
 
-        self.add_op((buf, f.no_id()), Some(&mut out), |out, (buf, f)| {
+        self.add_op((buf, f.no_id(), &mut out), |(buf, f, out)| {
             let dev = buf.device();
-            let out: &mut Buffer<'_, T, OpenCL<Mods>, S> = out.as_mut().unwrap();
+            // let out: &mut Buffer<'_, T, OpenCL<Mods>, S> = out.as_mut().unwrap();
+            let out = &mut **out;
             #[cfg(unified_cl)]
             {
                 let cpu_out = unsafe { &mut *(out as *mut Buffer<_, OpenCL<Mods>, _>) };
@@ -254,7 +255,7 @@ where
     Ok(())
 }
 
-impl<T, S, Mods: OnDropBuffer + AddOperation<T, Self>> UnaryGrad<T, S> for OpenCL<Mods>
+impl<T, S, Mods: OnDropBuffer + AddOperation + 'static> UnaryGrad<T, S> for OpenCL<Mods>
 where
     T: CDatatype + Number,
     S: Shape,
@@ -269,10 +270,9 @@ where
     ) where
         F: ToCLSource,
     {
-        self.add_op::<S, _, 4>(
+        self.add_op::<_, 4>(
             (lhs, lhs_grad.buf_no_id(), out, lhs_grad_fn.no_id()),
-            None,
-            move |_, (lhs, lhs_grad, out, lhs_grad_fn)| {
+            move |(lhs, lhs_grad, out, lhs_grad_fn)| {
                 try_cl_add_unary_grad(lhs.device(), lhs, &mut **lhs_grad, out, **lhs_grad_fn)
             },
         )

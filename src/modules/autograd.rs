@@ -401,7 +401,7 @@ mod tests {
 
     #[test]
     fn test_grad_new_api() {
-        use crate::{AddGradFn, AddOperation, Lazy};
+        use crate::AddGradFn;
 
         let device = CPU::<Autograd<Base>>::new();
 

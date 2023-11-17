@@ -101,7 +101,7 @@ impl<T, S, Mods> ElementWise<T, Self, S> for custos::OpenCL<Mods>
 where
     T: Add<Output = T> + Copy + CDatatype + Default,
     S: Shape,
-    Mods: Retrieve<Self, T> + AddOperation<T, Self> + UseGpuOrCpu,
+    Mods: Retrieve<Self, T> + AddOperation + UseGpuOrCpu + 'static,
 {
     fn add(
         &self,
@@ -110,12 +110,12 @@ where
     ) -> custos::Result<Buffer<T, Self, S>> {
         let mut out = self.retrieve(lhs.len(), (lhs, rhs));
 
-        self.add_op((lhs, rhs), Some(&mut out), |out, (lhs, rhs)| {
+        self.add_op((lhs, rhs, &mut out), |(lhs, rhs, out)| {
             let dev = lhs.device();
-            let out = out.as_mut().unwrap();
+            let out = &mut **out;
             #[cfg(unified_cl)]
             {
-                let cpu_out = unsafe { &mut *(*out as *mut Buffer<_, OpenCL<Mods>, _>) };
+                let cpu_out = unsafe { &mut *(out as *mut Buffer<_, OpenCL<Mods>, _>) };
                 dev.use_cpu_or_gpu(
                     (file!(), line!(), column!()).into(),
                     &[lhs.len()],

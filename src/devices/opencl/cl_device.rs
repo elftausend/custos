@@ -7,7 +7,7 @@ use crate::flag::AllocFlag;
 use crate::{
     impl_buffer_hook_traits, impl_retriever, pass_down_optimize_mem_graph,
     pass_down_use_gpu_or_cpu, Alloc, Base, Buffer, Cached, CachedCPU, CloneBuf, Device, Module,
-    OnDropBuffer, Setup, CPU,
+    OnDropBuffer, Setup, CPU, pass_down_tape_actions,
 };
 use crate::{PtrConv, Shape};
 
@@ -281,19 +281,8 @@ impl<Mods> crate::LazySetup for OpenCL<Mods> {}
 
 #[cfg(feature = "lazy")]
 impl<Mods> crate::LazyRun for OpenCL<Mods> {}
-
-#[cfg(feature = "autograd")]
-impl<Mods: crate::TapeActions> crate::TapeActions for OpenCL<Mods> {
-    #[inline]
-    fn tape(&self) -> Option<core::cell::Ref<crate::Tape>> {
-        self.modules.tape()
-    }
-
-    #[inline]
-    fn tape_mut(&self) -> Option<core::cell::RefMut<crate::Tape>> {
-        self.modules.tape_mut()
-    }
-}
+ 
+pass_down_tape_actions!(OpenCL);
 
 #[cfg(test)]
 mod tests {
