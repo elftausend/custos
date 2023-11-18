@@ -2,9 +2,9 @@ use ash::vk::BufferUsageFlags;
 
 use super::{context::Context, launch_shader, AsVkShaderArgument, ShaderCache, VkArray};
 use crate::{
-    flag::AllocFlag, impl_buffer_hook_traits, impl_retriever, pass_down_optimize_mem_graph,
-    pass_down_use_gpu_or_cpu, Alloc, Base, Buffer, Device, Module, OnDropBuffer, PtrConv, Setup,
-    Shape,
+    flag::AllocFlag, impl_buffer_hook_traits, impl_retriever, pass_down_grad_fn,
+    pass_down_optimize_mem_graph, pass_down_tape_actions, pass_down_use_gpu_or_cpu, Alloc, Base,
+    Buffer, Device, Module, OnDropBuffer, PtrConv, Setup, Shape,
 };
 use core::{
     cell::RefCell,
@@ -122,18 +122,8 @@ impl<Mods: OnDropBuffer, T> Alloc<T> for Vulkan<Mods> {
 #[cfg(feature = "fork")]
 impl<Mods> crate::ForkSetup for Vulkan<Mods> {}
 
-#[cfg(feature = "autograd")]
-impl<Mods: crate::TapeActions> crate::TapeActions for Vulkan<Mods> {
-    #[inline]
-    fn tape(&self) -> Option<core::cell::Ref<crate::Tape>> {
-        self.modules.tape()
-    }
-
-    #[inline]
-    fn tape_mut(&self) -> Option<core::cell::RefMut<crate::Tape>> {
-        self.modules.tape_mut()
-    }
-}
+pass_down_tape_actions!(Vulkan);
+pass_down_grad_fn!(Vulkan);
 
 // impl for all devices
 impl<Mods: OnDropBuffer, OtherMods: OnDropBuffer> PtrConv<Vulkan<OtherMods>> for Vulkan<Mods> {
@@ -229,5 +219,16 @@ mod tests {
             )
             .unwrap();
         assert_eq!(out.as_slice(), [7, 8, 9, 10, 11, 15, 8, 9, 10, 9, 8])
+    }
+
+    #[cfg(feature = "autograd")]
+    #[test]
+    fn test_vulkan_autograd() {
+        use crate::{Autograd, Cached};
+
+        let dev = Vulkan::<Cached<Autograd<Base>>>::new(0).unwrap();
+
+        let lhs = dev.buffer([1, 2, 3, 4]);
+        lhs.grad();
     }
 }

@@ -1,5 +1,3 @@
-#[cfg(feature = "cached")]
-use core::cell::{Ref, RefMut};
 use core::{fmt::Debug, ops::RangeBounds};
 
 use crate::{HasId, Parents, Shape, TranslatedCacheTrace, UniqueId, UpdateArgs, CPU};
@@ -72,11 +70,24 @@ pub trait HasModules<Mods> {
 }
 
 pub trait AddGradFn {
-    fn add_grad_fn2<Args: Parents<N> + UpdateArgs, const N: usize>(
+    fn add_grad_fn<Args: Parents<N> + UpdateArgs, const N: usize>(
         &self,
         args: Args,
         op: fn(&mut Args) -> crate::Result<()>,
     );
+
+    fn add_grad_and_forward_fn<Args: Parents<N> + UpdateArgs + Clone, const N: usize>(
+        &self,
+        args: Args,
+        forward_fn: fn(&mut Args) -> crate::Result<()>,
+        grad_fn: fn(&mut Args) -> crate::Result<()>,
+    ) 
+    where
+        Self: AddOperation
+    {
+        self.add_op(args.clone(), forward_fn).unwrap();
+        self.add_grad_fn(args, grad_fn)
+    }
 
     fn backward(&mut self) {}
 }
@@ -86,12 +97,12 @@ macro_rules! pass_down_grad_fn {
     ($to_impl:ident) => {
         impl<Mods: $crate::AddGradFn> $crate::AddGradFn for $to_impl<Mods> {
             #[inline]
-            fn add_grad_fn2<Args: $crate::Parents<N> + $crate::UpdateArgs, const N: usize>(
+            fn add_grad_fn<Args: $crate::Parents<N> + $crate::UpdateArgs, const N: usize>(
                 &self,
                 args: Args,
                 op: fn(&mut Args) -> crate::Result<()>,
             ) {
-                self.modules.add_grad_fn2(args, op)
+                self.modules.add_grad_fn(args, op)
             }
 
             #[inline]
@@ -123,27 +134,6 @@ pub trait TapeActions {
     #[inline]
     unsafe fn gradients_mut(&self) -> Option<&mut crate::Gradients> {
         None
-    }
-
-    // use track caller to identify a specific grad function
-    //-> if backward is not called (.drain()), the grad fn vector will gradually fill up
-    #[track_caller]
-    fn add_grad_fn(
-        &self,
-        // ids: impl AllocGradsFrom<N>,
-        grad_fn: impl Fn(&mut crate::Gradients) + 'static,
-    ) where
-        // T: 'static,
-        Self: 'static,
-    {
-        if let Some(mut tape) = unsafe { self.tape_mut() } {
-            // the type T must match for every Id!
-            // for id in ids.ids() {
-            //     tape.grads.grads_pool.add_buf_once::<T, Self, S>(self, id)
-            // }
-
-            tape.add_grad_fn(grad_fn)
-        }
     }
 }
 

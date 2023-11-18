@@ -158,23 +158,23 @@ impl<Mods> TapeActions for Autograd<Mods> {
         Some(&mut *self.grads.get())
     }
 
-    fn add_grad_fn(
-        &self,
-        // ids: impl AllocGradsFrom<N>,
-        grad_fn: impl Fn(&mut crate::Gradients) + 'static,
-    ) where
-        // T: 'static,
-        Self: 'static,
-    {
-        if let Some(mut tape) = unsafe { self.tape_mut() } {
-            // the type T must match for every Id!
-            // for id in ids.ids() {
-            //     tape.grads.grads_pool.add_buf_once::<T, Self, S>(self, id)
-            // }
+    // fn add_grad_fn(
+    //     &self,
+    //     // ids: impl AllocGradsFrom<N>,
+    //     grad_fn: impl Fn(&mut crate::Gradients) + 'static,
+    // ) where
+    //     // T: 'static,
+    //     Self: 'static,
+    // {
+    //     if let Some(mut tape) = unsafe { self.tape_mut() } {
+    //         // the type T must match for every Id!
+    //         // for id in ids.ids() {
+    //         //     tape.grads.grads_pool.add_buf_once::<T, Self, S>(self, id)
+    //         // }
 
-            tape.add_grad_fn(grad_fn)
-        }
-    }
+    //         tape.add_grad_fn(grad_fn)
+    //     }
+    // }
 }
 
 impl<Mods: RunModule<D>, D> RunModule<D> for Autograd<Mods> {
@@ -186,7 +186,7 @@ impl<Mods: RunModule<D>, D> RunModule<D> for Autograd<Mods> {
 
 impl<Mods: AddGradFn> AddGradFn for Autograd<Mods> {
     #[inline]
-    fn add_grad_fn2<Args: Parents<N> + crate::UpdateArgs, const N: usize>(
+    fn add_grad_fn<Args: Parents<N> + crate::UpdateArgs, const N: usize>(
         &self,
         args: Args,
         op: fn(&mut Args) -> crate::Result<()>,
@@ -203,8 +203,8 @@ mod tests {
     use core::any::Any;
 
     use crate::{
-        AddGradFn, Base, Buffer, Cached, Combiner, Device, HasId, MayTapeActions, Module,
-        Retriever, Shape, TapeActions, UnaryGrad, CPU,
+        AddGradFn, Base, Buffer, Cached, Combiner, Device, HasId, Module,
+        Retriever, Shape, UnaryGrad, CPU,
     };
 
     use super::Autograd;
@@ -320,7 +320,7 @@ mod tests {
 
         let out = Buffer::<f32, _>::new(&device, 10);
 
-        device.add_grad_fn2((&buf, &out), |(buf, _out)| {
+        device.add_grad_fn((&buf, &out), |(buf, _out)| {
             for val in buf.grad_mut() {
                 *val = 5.;
             }
@@ -365,9 +365,11 @@ mod tests {
     }
 
     #[cfg(feature = "autograd")]
-    impl<Mods: MayTapeActions + 'static> UnaryByMods<Mods> for CPU {
+    impl<Mods: AddGradFn + 'static> UnaryByMods<Mods> for CPU {
         fn unary_ew(&self, mods: &Mods) {
-            mods.add_grad_fn(|_grads| {});
+            mods.add_grad_fn((), |_| {
+                Ok(())
+            });
         }
     }
 
@@ -379,26 +381,6 @@ mod tests {
         device.unary_ew(&autograd);
     }
 
-    #[cfg(all(feature = "autograd", feature = "lazy"))]
-    #[test]
-    fn test_grad_used_in_lazy_forward_fn() {
-        use crate::{AddOperation, Lazy};
-
-        let device = CPU::<Lazy<Autograd<Base>>>::new();
-
-        let lhs = device.buffer([1, 2, 3, 4]);
-        let rhs = device.buffer([2, 3, 4, 5]);
-
-        let mut out = lhs.empty_like();
-
-        #[cfg(feature = "autograd")]
-        {
-            // device.add_grad_fn((&lhs, &rhs), Some(&mut out), |out, (lhs, rhs)| {
-            //     lhs.device().add_ew_grad(lhs.grad(), rhs.grad(), out.unwrap().grad());
-            // });
-        }
-    }
-
     #[test]
     fn test_grad_new_api() {
         use crate::AddGradFn;
@@ -408,7 +390,7 @@ mod tests {
         let lhs = device.buffer([1, 2, 3, 4]);
         let out = lhs.empty_like();
 
-        device.add_grad_fn2((&lhs, &out), |(lhs, out)| {
+        device.add_grad_fn((&lhs, &out), |(lhs, out)| {
             // lhs.grad();
             lhs.device()
                 .add_unary_grad(lhs, lhs.grad_mut(), out.grad(), |x| x.add(3));

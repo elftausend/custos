@@ -119,21 +119,21 @@ where
     {
         let out = self.apply_fn(buf, forward_fn);
 
-        self.add_grad_fn2((buf, &out, _grad_fn.no_id()), |(buf, out, grad_fn)| {
+        self.add_grad_fn((buf, &out, _grad_fn.no_id()), |(buf, out, grad_fn)| {
             buf.device()
                 .add_unary_grad(buf, buf.grad_mut(), out.grad(), **grad_fn);
             Ok(())
         });
 
-        #[cfg(feature = "autograd")]
-        {
-            let ids = (buf.id(), out.id());
-            self.add_grad_fn(move |grads| {
-                let (lhs, lhs_grad, out_grad) = grads.get_double::<T, S, S, D>(ids);
-                lhs.device()
-                    .add_unary_grad(lhs, lhs_grad, out_grad, _grad_fn);
-            });
-        }
+        // #[cfg(feature = "autograd")]
+        // {
+        //     let ids = (buf.id(), out.id());
+        //     self.add_grad_fn(move |grads| {
+        //         let (lhs, lhs_grad, out_grad) = grads.get_double::<T, S, S, D>(ids);
+        //         lhs.device()
+        //             .add_unary_grad(lhs, lhs_grad, out_grad, _grad_fn);
+        //     });
+        // }
 
         out
     }
@@ -141,7 +141,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::{tests_ex::roughly_eq_slices, Device, UnaryElementWiseMayGrad};
+    use crate::tests_ex::roughly_eq_slices;
 
     #[cfg(feature = "cpu")]
     #[cfg(feature = "macro")]
@@ -171,7 +171,7 @@ mod tests {
             + crate::WriteBuf<f32>
             + crate::Read<f32>
             + crate::TapeActions
-            + UnaryElementWiseMayGrad<f32, D, ()>
+            + crate::UnaryElementWiseMayGrad<f32, D, ()>
             + crate::Alloc<f32>
             + crate::OnNewBuffer<f32, D, ()>,
     {
@@ -196,8 +196,8 @@ mod tests {
                 0.5403023058681398,
                 -0.4161468365471424,
                 -0.9899924966004454,
-                -0.6536436208636119
-            ]
+                -0.6536436208636119,
+            ],
         );
     }
 
@@ -205,7 +205,7 @@ mod tests {
     #[cfg(feature = "autograd")]
     #[test]
     fn test_unary_elementwise_grad() {
-        use crate::{CPU, Autograd, Base};
+        use crate::{Autograd, Base, CPU};
 
         let device = CPU::<Autograd<Base>>::new();
         test_unary_autograd(&device)
@@ -215,27 +215,27 @@ mod tests {
     #[cfg(feature = "autograd")]
     #[test]
     fn test_unary_elementwise_grad_cl() {
-        use crate::{OpenCL, Autograd, Base};
+        use crate::{Autograd, Base, OpenCL};
 
         let device = OpenCL::<Autograd<Base>>::new(0).unwrap();
         test_unary_autograd(&device);
     }
-    
+
     #[cfg(feature = "cuda")]
     #[cfg(feature = "autograd")]
     #[test]
     fn test_unary_elementwise_grad_cu() {
-        use crate::{CUDA, Autograd, Base};
+        use crate::{Autograd, Base, CUDA};
 
         let device = CUDA::<Autograd<Base>>::new(0).unwrap();
         test_unary_autograd(&device);
     }
-    
+
     #[cfg(feature = "vulkan")]
     #[cfg(feature = "autograd")]
     #[test]
     fn test_unary_elementwise_grad_vk() {
-        use crate::{Vulkan, Autograd, Base};
+        use crate::{Autograd, Base, Vulkan};
 
         let device = Vulkan::<Autograd<Base>>::new(0).unwrap();
         test_unary_autograd(&device);

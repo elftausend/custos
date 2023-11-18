@@ -2,7 +2,7 @@ use crate::{
     cpu_stack_ops::clear_slice, pass_down_add_operation, pass_down_exec_now, prelude::Number,
     AddOperation, ApplyFunction, AsNoId, BufAsNoId, Buffer, CDatatype, ClearBuf, HostPtr,
     OnDropBuffer, Read, Resolve, Retrieve, Retriever, Shape, ToMarker, ToWgslSource, UnaryGrad,
-    UseGpuOrCpu, Vulkan,
+    UseGpuOrCpu, Vulkan, WriteBuf,
 };
 
 use super::{VkArray, VkDevice};
@@ -134,10 +134,11 @@ where
     device.launch_shader([(32 + x.len as u32) / 32, 1, 1], src, &[x, out])
 }
 
-impl<T, S, Mods: OnDropBuffer + AddOperation> UnaryGrad<T, S> for Vulkan<Mods>
+impl<T, S, Mods> UnaryGrad<T, S> for Vulkan<Mods>
 where
     T: CDatatype + Number,
     S: Shape,
+    Mods: OnDropBuffer + AddOperation + 'static,
 {
     #[inline]
     fn add_unary_grad<F>(
@@ -149,10 +150,9 @@ where
     ) where
         F: ToWgslSource,
     {
-        self.add_op::<S, _, 4>(
+        self.add_op::<_, 4>(
             (lhs, lhs_grad.buf_no_id(), out, lhs_grad_fn.no_id()),
-            None,
-            move |_, (lhs, lhs_grad, out, lhs_grad_fn)| {
+            move |(lhs, lhs_grad, out, lhs_grad_fn)| {
                 try_vk_add_unary_grad(
                     lhs.device(),
                     &lhs.data,
@@ -209,6 +209,19 @@ where
         &[lhs, lhs_grad, out],
     )
 }
+
+impl<Mods: OnDropBuffer, T: Clone, S: Shape> WriteBuf<T, S> for Vulkan<Mods> {
+    #[inline]
+    fn write(&self, buf: &mut Buffer<T, Self, S>, data: &[T]) {
+        buf.as_mut_slice().clone_from_slice(data)
+    }
+
+    #[inline]
+    fn write_buf(&self, dst: &mut Buffer<T, Self, S>, src: &Buffer<T, Self, S>) {
+        dst.write(src);
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::{vulkan::ops::try_vk_add_unary_grad, Base, Buffer, Combiner, Fork, Vulkan};

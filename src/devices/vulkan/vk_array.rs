@@ -88,6 +88,9 @@ impl<T> VkArray<T> {
 impl<T> Drop for VkArray<T> {
     #[inline]
     fn drop(&mut self) {
+        if self.flag != AllocFlag::None {
+            return
+        }
         unsafe {
             self.context.device.unmap_memory(self.mem);
             self.context.device.free_memory(self.mem, None);

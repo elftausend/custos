@@ -1,12 +1,9 @@
-use std::ops::{Add, AddAssign, Deref, Mul};
+use std::ops::{Add, AddAssign, Deref, Mul, DerefMut};
 
 use custos::{
-    AddOperation, Buffer, Device, HasId, MayTapeActions, Retrieve, Retriever, Shape, UseGpuOrCpu,
-    CPU,
+    AddOperation, Buffer, Device, MayTapeActions, Retrieve, Retriever, Shape, UseGpuOrCpu,
+    CPU, AddGradFn, Alloc,
 };
-
-#[cfg(feature = "autograd")]
-use custos::TapeActions;
 
 pub trait ElementWise<T, D: Device, S: Shape>: Device {
     fn add(
@@ -35,10 +32,10 @@ where
 impl<T, D, S, Mods> ElementWise<T, D, S> for CPU<Mods>
 where
     T: Add<Output = T> + AddAssign + Mul<Output = T> + Copy + 'static,
-    D: Device + 'static,
-    D::Data<T, S>: Deref<Target = [T]>,
+    D: Device + Alloc<T> + MayTapeActions + 'static,
+    D::Data<T, S>: Deref<Target = [T]> + DerefMut,
     S: Shape,
-    Mods: Retrieve<Self, T> + AddOperation + MayTapeActions + 'static,
+    Mods: Retrieve<Self, T> + AddOperation + MayTapeActions + AddGradFn + 'static,
 {
     #[track_caller]
     fn add(
@@ -48,15 +45,11 @@ where
     ) -> custos::Result<Buffer<T, Self, S>> {
         let mut out = self.retrieve(lhs.len(), (lhs, rhs));
 
-        #[cfg(feature = "autograd")]
-        {
-            let ids = (lhs.id(), rhs.id(), out.id()); // trackable buffer ids
-            self.add_grad_fn(move |grads| {
-                let (_lhs, _rhs, lhs_grad, rhs_grad, out_grad) =
-                    grads.get_triple::<T, S, Self>(ids); // retrieve buffers from gradient cache
-                add_ew_grad_slice(lhs_grad, rhs_grad, out_grad) // execute grad function
-            });
-        }
+        self.add_grad_fn((lhs, rhs, &mut out), |(lhs, rhs, out)| {
+            add_ew_grad_slice(lhs.grad_mut(), rhs.grad_mut(), out.grad()); // execute grad function
+            Ok(())
+        });
+
         self.add_op((lhs, rhs, &mut out), |(lhs, rhs, out)| {
             add_ew_slice(lhs, rhs, out);
             Ok(())
