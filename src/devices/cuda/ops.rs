@@ -158,10 +158,11 @@ where
     Ok(())
 }
 
-impl<T, S, Mods: OnDropBuffer + AddOperation<T, Self>> UnaryGrad<T, S> for CUDA<Mods>
+impl<T, S, Mods> UnaryGrad<T, S> for CUDA<Mods>
 where
     T: CDatatype + Default,
     S: Shape,
+    Mods: OnDropBuffer + AddOperation + 'static,
 {
     #[inline]
     fn add_unary_grad<F>(
@@ -173,10 +174,9 @@ where
     ) where
         F: ToCLSource,
     {
-        self.add_op::<(), _, 4>(
+        self.add_op::<_, 4>(
             (lhs, lhs_grad.buf_no_id(), out, lhs_grad_fn.no_id()),
-            None,
-            move |_, (lhs, lhs_grad, out, lhs_grad_fn)| {
+            move |(lhs, lhs_grad, out, lhs_grad_fn)| {
                 try_cu_add_unary_grad(
                     lhs.device(),
                     &lhs.data,

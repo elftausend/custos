@@ -6,8 +6,9 @@ use core::{
 use crate::{
     cuda::{api::cumalloc, CUDAPtr},
     flag::AllocFlag,
-    impl_buffer_hook_traits, impl_retriever, pass_down_optimize_mem_graph, Alloc, Base, Buffer,
-    CloneBuf, Device, Module as CombModule, OnDropBuffer, OnNewBuffer, PtrConv, Setup, Shape,
+    impl_buffer_hook_traits, impl_retriever, pass_down_grad_fn, pass_down_optimize_mem_graph,
+    pass_down_tape_actions, Alloc, Base, Buffer, CloneBuf, Device, Module as CombModule,
+    OnDropBuffer, OnNewBuffer, PtrConv, Setup, Shape,
 };
 
 use super::{
@@ -103,18 +104,8 @@ impl<Mods> crate::ForkSetup for CUDA<Mods> {
     }
 }
 
-#[cfg(feature = "autograd")]
-impl<Mods: crate::TapeActions> crate::TapeActions for CUDA<Mods> {
-    #[inline]
-    fn tape(&self) -> Option<core::cell::Ref<crate::Tape>> {
-        self.modules.tape()
-    }
-
-    #[inline]
-    fn tape_mut(&self) -> Option<core::cell::RefMut<crate::Tape>> {
-        self.modules.tape_mut()
-    }
-}
+pass_down_tape_actions!(CUDA);
+pass_down_grad_fn!(CUDA);
 
 impl<Mods: OnDropBuffer, OtherMods: OnDropBuffer> PtrConv<CUDA<OtherMods>> for CUDA<Mods> {
     #[inline]

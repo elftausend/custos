@@ -7,9 +7,9 @@ pub use tape::*;
 use core::cell::UnsafeCell;
 
 use crate::{
-    pass_down_add_operation, pass_down_exec_now_module, register_buf, unregister_buf,
-    AddGradFn, Alloc, Buffer, Device, HasId, Module, OnDropBuffer, OnNewBuffer, Parents, PtrConv,
-    Retrieve, RunModule, Setup, Shape, TapeActions,
+    pass_down_add_operation, pass_down_exec_now_module, register_buf, unregister_buf, AddGradFn,
+    Alloc, Buffer, Device, HasId, Module, OnDropBuffer, OnNewBuffer, Parents, PtrConv, Retrieve,
+    RunModule, Setup, Shape, TapeActions,
 };
 
 use super::{Cached, CachedModule};

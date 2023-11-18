@@ -68,7 +68,7 @@ impl<Mods: OnDropBuffer, T, S: Shape> Read<T, S> for Vulkan<Mods> {
 impl<Mods, T, S> ApplyFunction<T, S> for Vulkan<Mods>
 where
     T: Number,
-    Mods: AddOperation<T, Self> + Retrieve<Self, T> + UseGpuOrCpu + 'static,
+    Mods: AddOperation + Retrieve<Self, T> + UseGpuOrCpu + 'static,
     S: Shape,
 {
     #[inline]
@@ -134,7 +134,7 @@ where
     device.launch_shader([(32 + x.len as u32) / 32, 1, 1], src, &[x, out])
 }
 
-impl<T, S, Mods: OnDropBuffer + AddOperation<T, Self>> UnaryGrad<T, S> for Vulkan<Mods>
+impl<T, S, Mods: OnDropBuffer + AddOperation> UnaryGrad<T, S> for Vulkan<Mods>
 where
     T: CDatatype + Number,
     S: Shape,

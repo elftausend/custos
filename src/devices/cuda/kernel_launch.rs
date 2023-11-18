@@ -127,7 +127,7 @@ pub fn launch_kernel1d(
         .map(|param| param.as_cvoid_ptr())
         .collect::<Vec<_>>();
 
-    let func = kernel_cache.kernel(modules, src, fn_name)?;
+    let func = kernel_cache.kernel(modules, src, fn_name).unwrap();
 
     let mut min_grid_size = 0;
     let mut block_size = 0;

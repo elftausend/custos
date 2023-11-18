@@ -141,6 +141,8 @@ where
 
 #[cfg(test)]
 mod tests {
+    use crate::{tests_ex::roughly_eq_slices, Device, UnaryElementWiseMayGrad};
+
     #[cfg(feature = "cpu")]
     #[cfg(feature = "macro")]
     #[test]
@@ -162,20 +164,23 @@ mod tests {
         );
     }
 
-    #[cfg(feature = "cpu")]
     #[cfg(feature = "autograd")]
-    #[test]
-    fn test_unary_elementwise_may_grad() {
-        use crate::{
-            two_way_ops::tests_ex::roughly_eq_slices, Autograd, Base, Combiner, Device,
-            UnaryElementWiseMayGrad, CPU,
-        };
+    fn test_unary_autograd<D>(device: &D)
+    where
+        D: 'static
+            + crate::WriteBuf<f32>
+            + crate::Read<f32>
+            + crate::TapeActions
+            + UnaryElementWiseMayGrad<f32, D, ()>
+            + crate::Alloc<f32>
+            + crate::OnNewBuffer<f32, D, ()>,
+    {
+        use crate::Combiner;
 
-        let device = CPU::<Autograd<Base>>::new();
         let buf = device.buffer([1., 2., 3., 4.]);
         let out = device.unary_ew(&buf, |x| x.sin(), |x| x.cos());
         roughly_eq_slices(
-            out.as_slice(),
+            &out.read_to_vec(),
             &[
                 0.8414709848078965,
                 0.9092974268256817,
@@ -185,9 +190,9 @@ mod tests {
         );
 
         out.backward();
-        assert_eq!(
-            buf.grad().as_slice(),
-            [
+        roughly_eq_slices(
+            &buf.grad().read_to_vec(),
+            &[
                 0.5403023058681398,
                 -0.4161468365471424,
                 -0.9899924966004454,
@@ -195,6 +200,47 @@ mod tests {
             ]
         );
     }
+
+    #[cfg(feature = "cpu")]
+    #[cfg(feature = "autograd")]
+    #[test]
+    fn test_unary_elementwise_grad() {
+        use crate::{CPU, Autograd, Base};
+
+        let device = CPU::<Autograd<Base>>::new();
+        test_unary_autograd(&device)
+    }
+
+    #[cfg(feature = "opencl")]
+    #[cfg(feature = "autograd")]
+    #[test]
+    fn test_unary_elementwise_grad_cl() {
+        use crate::{OpenCL, Autograd, Base};
+
+        let device = OpenCL::<Autograd<Base>>::new(0).unwrap();
+        test_unary_autograd(&device);
+    }
+    
+    #[cfg(feature = "cuda")]
+    #[cfg(feature = "autograd")]
+    #[test]
+    fn test_unary_elementwise_grad_cu() {
+        use crate::{CUDA, Autograd, Base};
+
+        let device = CUDA::<Autograd<Base>>::new(0).unwrap();
+        test_unary_autograd(&device);
+    }
+    
+    #[cfg(feature = "vulkan")]
+    #[cfg(feature = "autograd")]
+    #[test]
+    fn test_unary_elementwise_grad_vk() {
+        use crate::{Vulkan, Autograd, Base};
+
+        let device = Vulkan::<Autograd<Base>>::new(0).unwrap();
+        test_unary_autograd(&device);
+    }
+
     #[cfg(feature = "cpu")]
     #[cfg(feature = "autograd")]
     #[test]
@@ -236,7 +282,10 @@ mod tests {
 
     #[cfg(feature = "cpu")]
     #[cfg(feature = "autograd")]
-    #[cfg_attr(miri, ignore("location is always different with miri - caching etc does not work"))]
+    #[cfg_attr(
+        miri,
+        ignore("location is always different with miri - caching etc does not work")
+    )]
     #[test]
     fn test_unary_elementwise_may_grad_multiple_times_backwards_at_end() {
         use crate::{

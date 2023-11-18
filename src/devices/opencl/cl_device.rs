@@ -5,9 +5,9 @@ use min_cl::api::{create_buffer, enqueue_full_copy_buffer, MemFlags};
 use super::{enqueue_kernel, AsClCvoidPtr, CLPtr};
 use crate::flag::AllocFlag;
 use crate::{
-    impl_buffer_hook_traits, impl_retriever, pass_down_optimize_mem_graph,
-    pass_down_use_gpu_or_cpu, Alloc, Base, Buffer, Cached, CachedCPU, CloneBuf, Device, Module,
-    OnDropBuffer, Setup, CPU, pass_down_tape_actions,
+    impl_buffer_hook_traits, impl_retriever, pass_down_grad_fn, pass_down_optimize_mem_graph,
+    pass_down_tape_actions, pass_down_use_gpu_or_cpu, Alloc, Base, Buffer, Cached, CachedCPU,
+    CloneBuf, Device, Module, OnDropBuffer, Setup, CPU,
 };
 use crate::{PtrConv, Shape};
 
@@ -281,8 +281,9 @@ impl<Mods> crate::LazySetup for OpenCL<Mods> {}
 
 #[cfg(feature = "lazy")]
 impl<Mods> crate::LazyRun for OpenCL<Mods> {}
- 
+
 pass_down_tape_actions!(OpenCL);
+pass_down_grad_fn!(OpenCL);
 
 #[cfg(test)]
 mod tests {
