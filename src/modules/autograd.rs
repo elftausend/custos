@@ -4,12 +4,12 @@ mod tape;
 pub use gradients::*;
 pub use tape::*;
 
-use core::cell::{Ref, RefCell, RefMut, UnsafeCell};
+use core::cell::UnsafeCell;
 
 use crate::{
-    pass_down_add_operation, pass_down_exec_now_module, prelude::One, register_buf, unregister_buf,
+    pass_down_add_operation, pass_down_exec_now_module, register_buf, unregister_buf,
     AddGradFn, Alloc, Buffer, Device, HasId, Module, OnDropBuffer, OnNewBuffer, Parents, PtrConv,
-    Retrieve, RunModule, Setup, Shape, TapeActions, WriteBuf,
+    Retrieve, RunModule, Setup, Shape, TapeActions,
 };
 
 use super::{Cached, CachedModule};
@@ -406,12 +406,12 @@ mod tests {
         let device = CPU::<Autograd<Base>>::new();
 
         let lhs = device.buffer([1, 2, 3, 4]);
-        let mut out = lhs.empty_like();
+        let out = lhs.empty_like();
 
-        device.add_grad_fn2((&lhs, &mut out), |(lhs, out)| {
+        device.add_grad_fn2((&lhs, &out), |(lhs, out)| {
             // lhs.grad();
             lhs.device()
-                .add_unary_grad(lhs, &mut lhs.grad_mut(), &out.grad(), |x| x.add(3));
+                .add_unary_grad(lhs, lhs.grad_mut(), out.grad(), |x| x.add(3));
             // lhs.device().add_ew_grad(lhs.grad(), rhs.grad(), out.grad());
             Ok(())
         });
