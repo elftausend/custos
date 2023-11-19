@@ -206,7 +206,7 @@ macro_rules! cl_cpu_exec_unified {
         let cpu = CPU::<Base>::new();
         if $device.unified_mem() {
 
-            $crate::to_raw_host!($($t),*);
+            $crate::to_raw_host!($crate::CPU::<$crate::CachedModule<$crate::Base, $crate::CPU>>, $($t),*);
 
             #[cfg(not(feature = "realloc"))]
             {

@@ -39,6 +39,7 @@ impl<Mods> IsCPU for CPU<Mods> {}
 impl<Mods: OnDropBuffer> Device for CPU<Mods> {
     type Error = Infallible;
     type Data<T, S: Shape> = CPUPtr<T>;
+    // type WrappedData<T, S: Shape> = Mods;
 
     fn new() -> Result<Self, Self::Error> {
         todo!()
