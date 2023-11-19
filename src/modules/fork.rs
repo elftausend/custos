@@ -198,9 +198,9 @@ impl<Mods: OnDropBuffer> OnDropBuffer for Fork<Mods> {
     }
 }
 
-impl<Mods: OnNewBuffer<T, D, S>, T, D: Device, S: Shape> OnNewBuffer<T, D, S> for Fork<Mods> {
+impl<Mods: OnNewBuffer<T, D>, T, D: Device> OnNewBuffer<T, D> for Fork<Mods> {
     #[inline]
-    fn on_new_buffer(&self, device: &D, new_buf: &crate::Buffer<T, D, S>) {
+    fn on_new_buffer<S: Shape>(&self, device: &D, new_buf: &crate::Buffer<T, D, S>) {
         self.modules.on_new_buffer(device, new_buf)
     }
 }

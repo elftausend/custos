@@ -20,7 +20,7 @@ pub trait WithShape<D, C> {
 impl<'a, T, D, const N: usize> WithShape<&'a D, [T; N]> for Buffer<'a, T, D, Dim1<N>>
 where
     T: Number, // using Number here, because T could be an array type
-    D: Alloc<T> + OnNewBuffer<T, D, Dim1<N>>,
+    D: Alloc<T> + OnNewBuffer<T, D>,
 {
     #[inline]
     fn with(device: &'a D, array: [T; N]) -> Self {
@@ -31,7 +31,7 @@ where
 impl<'a, T, D, const N: usize> WithShape<&'a D, &[T; N]> for Buffer<'a, T, D, Dim1<N>>
 where
     T: Number,
-    D: Alloc<T> + OnNewBuffer<T, D, Dim1<N>>,
+    D: Alloc<T> + OnNewBuffer<T, D>,
 {
     #[inline]
     fn with(device: &'a D, array: &[T; N]) -> Self {
@@ -43,7 +43,7 @@ impl<'a, T, D, const B: usize, const A: usize> WithShape<&'a D, [[T; A]; B]>
     for Buffer<'a, T, D, Dim2<B, A>>
 where
     T: Number,
-    D: Alloc<T> + OnNewBuffer<T, D, Dim2<B, A>>,
+    D: Alloc<T> + OnNewBuffer<T, D>,
 {
     #[inline]
     fn with(device: &'a D, array: [[T; A]; B]) -> Self {
@@ -55,7 +55,7 @@ impl<'a, T, D, const B: usize, const A: usize> WithShape<&'a D, &[[T; A]; B]>
     for Buffer<'a, T, D, Dim2<B, A>>
 where
     T: Number,
-    D: Alloc<T> + OnNewBuffer<T, D, Dim2<B, A>>,
+    D: Alloc<T> + OnNewBuffer<T, D>,
 {
     #[inline]
     fn with(device: &'a D, array: &[[T; A]; B]) -> Self {
@@ -65,7 +65,7 @@ where
 
 impl<'a, T, D, S: Shape> WithShape<&'a D, ()> for Buffer<'a, T, D, S>
 where
-    D: Alloc<T> + OnNewBuffer<T, D, S>,
+    D: Alloc<T> + OnNewBuffer<T, D>,
 {
     fn with(device: &'a D, _: ()) -> Self {
         Buffer::new(device, S::LEN)

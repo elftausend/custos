@@ -173,7 +173,7 @@ mod tests {
             + crate::TapeActions
             + crate::UnaryElementWiseMayGrad<f32, D, ()>
             + crate::Alloc<f32>
-            + crate::OnNewBuffer<f32, D, ()>,
+            + crate::OnNewBuffer<f32, D>,
     {
         use crate::Combiner;
 

@@ -70,10 +70,10 @@ impl<D: Device, SD: Device, Mods: ExecNow<D>> ExecNow<D> for CachedModule<Mods, 
     }
 }
 
-impl<T, D: Device, S: Shape, Mods: OnNewBuffer<T, D, S>, SD: Device> OnNewBuffer<T, D, S>
+impl<T, D: Device, Mods: OnNewBuffer<T, D>, SD: Device> OnNewBuffer<T, D>
     for CachedModule<Mods, SD>
 {
-    fn on_new_buffer(&self, device: &D, new_buf: &Buffer<T, D, S>) {
+    fn on_new_buffer<S: Shape>(&self, device: &D, new_buf: &Buffer<T, D, S>) {
         self.modules.on_new_buffer(device, new_buf)
     }
 }

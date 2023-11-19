@@ -54,15 +54,14 @@ impl<Mods> Autograd<Mods> {
     }
 }
 
-impl<T, D, S, Mods> OnNewBuffer<T, D, S> for Autograd<Mods>
+impl<T, D, Mods> OnNewBuffer<T, D> for Autograd<Mods>
 where
     T: 'static,
     D: Alloc<T> + PtrConv + 'static,
-    S: Shape,
-    Mods: OnNewBuffer<T, D, S>,
+    Mods: OnNewBuffer<T, D>,
 {
     #[inline]
-    fn on_new_buffer(&self, device: &D, new_buf: &Buffer<T, D, S>) {
+    fn on_new_buffer<S: Shape>(&self, device: &D, new_buf: &Buffer<T, D, S>) {
         self.register_no_grad_buf(new_buf);
 
         // allocates gradient memory for the corresponding buffer id

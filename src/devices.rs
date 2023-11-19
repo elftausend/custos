@@ -74,11 +74,11 @@ pub trait Device: OnDropBuffer + Sized {
 #[macro_export]
 macro_rules! impl_buffer_hook_traits {
     ($device:ident) => {
-        impl<T, D: Device, S: Shape, Mods: $crate::OnNewBuffer<T, D, S>>
-            $crate::OnNewBuffer<T, D, S> for $device<Mods>
+        impl<T, D: Device, Mods: $crate::OnNewBuffer<T, D>>
+            $crate::OnNewBuffer<T, D> for $device<Mods>
         {
             #[inline]
-            fn on_new_buffer(&self, device: &D, new_buf: &Buffer<T, D, S>) {
+            fn on_new_buffer<S: Shape>(&self, device: &D, new_buf: &Buffer<T, D, S>) {
                 self.modules.on_new_buffer(device, new_buf)
             }
         }
