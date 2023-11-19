@@ -3,6 +3,27 @@ use crate::{prelude::Float, Combiner, Eval};
 #[cfg(not(feature = "no-std"))]
 use super::ToCLSource;
 
+pub struct Identity<C> {
+    pub comb: C,
+}
+
+impl<C> Combiner for Identity<C> {}
+
+impl<T: Float, C: Eval<T>> Eval<T> for Identity<C> {
+    #[inline]
+    fn eval(self) -> T {
+        self.comb.eval()
+    }
+}
+
+#[cfg(not(feature = "no-std"))]
+impl<C: ToCLSource> ToCLSource for Identity<C> {
+    #[inline]
+    fn to_cl_source(&self) -> String {
+        self.comb.to_cl_source()
+    }
+}
+
 pub struct Exp<C> {
     pub comb: C,
 }

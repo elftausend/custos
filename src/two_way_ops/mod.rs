@@ -8,9 +8,9 @@ pub use resolve::*;
 #[cfg(not(feature = "no-std"))]
 pub use to_wgsl_source::*;
 
-use crate::prelude::{Numeric, One};
+use crate::prelude::Numeric;
 
-use self::ops::{Add, Cos, Div, Eq, Exp, GEq, LEq, Mul, Neg, Pow, Sin, Sub, Tan, Tanh};
+use self::ops::{Add, Cos, Div, Eq, Exp, GEq, Identity, LEq, Mul, Neg, Pow, Sin, Sub, Tan, Tanh};
 
 /// Evaluates a combined (via [`Combiner`]) math operations chain to a valid OpenCL C (and possibly CUDA) source string.
 #[cfg(not(feature = "no-std"))]
@@ -165,6 +165,11 @@ pub trait Combiner: Sized {
     #[inline]
     fn tanh(self) -> Tanh<Self> {
         Tanh { comb: self }
+    }
+
+    #[inline]
+    fn identity(self) -> Identity<Self> {
+        Identity { comb: self }
     }
 }
 
