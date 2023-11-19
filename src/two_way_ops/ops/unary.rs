@@ -12,7 +12,8 @@ impl<C> Combiner for Exp<C> {}
 impl<T: Float, C: Eval<T>> Eval<T> for Exp<C> {
     #[inline]
     fn eval(self) -> T {
-        self.comb.eval().exp()
+        Float::exp(&self.comb.eval())
+        // self.comb.eval().exp()
     }
 }
 
@@ -33,7 +34,8 @@ impl<C> Combiner for Sin<C> {}
 impl<T: Float, C: Eval<T>> Eval<T> for Sin<C> {
     #[inline]
     fn eval(self) -> T {
-        self.comb.eval().sin()
+        Float::sin(&self.comb.eval())
+        // self.comb.eval().sin()
     }
 }
 
@@ -54,7 +56,8 @@ impl<C> Combiner for Cos<C> {}
 impl<T: Float, C: Eval<T>> Eval<T> for Cos<C> {
     #[inline]
     fn eval(self) -> T {
-        self.comb.eval().cos()
+        Float::cos(&self.comb.eval())
+        // self.comb.eval().cos()
     }
 }
 
@@ -75,7 +78,8 @@ impl<C> Combiner for Tan<C> {}
 impl<T: Float, C: Eval<T>> Eval<T> for Tan<C> {
     #[inline]
     fn eval(self) -> T {
-        self.comb.eval().tan()
+        Float::tan(&self.comb.eval())
+        // self.comb.eval().tan()
     }
 }
 

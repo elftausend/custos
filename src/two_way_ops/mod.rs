@@ -8,6 +8,8 @@ pub use resolve::*;
 #[cfg(not(feature = "no-std"))]
 pub use to_wgsl_source::*;
 
+use crate::prelude::{Numeric, One};
+
 use self::ops::{Add, Cos, Div, Eq, Exp, GEq, LEq, Mul, Neg, Pow, Sin, Sub, Tan};
 
 /// Evaluates a combined (via [`Combiner`]) math operations chain to a valid OpenCL C (and possibly CUDA) source string.
@@ -76,6 +78,8 @@ impl<T: Copy> Eval<T> for T {
         self
     }
 }
+
+impl<T: Numeric> Combiner for T {}
 
 /// A trait that allows combining math operations.
 /// (Similiar to an Iterator)
@@ -270,6 +274,20 @@ pub mod tests_ex {
         {
             let res = f(Resolve::with_marker("var_x")).to_cl_source();
             assert_eq!(res, "((var_x >= 0) * var_x)");
+        }
+    }
+    
+    #[test]
+    fn test_add_3() {
+        let f = |x: Resolve<i32>| x.add(3);
+
+        let res = f(Resolve::with_val(3)).eval();
+        assert_eq!(res, 6);
+
+        #[cfg(not(feature = "no-std"))]
+        {
+            let res = f(Resolve::with_marker("var_x")).to_cl_source();
+            assert_eq!(res, "(var_x + 3)");
         }
     }
 
