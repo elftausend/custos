@@ -202,8 +202,8 @@ mod tests {
     use core::any::Any;
 
     use crate::{
-        AddGradFn, Base, Buffer, Cached, Combiner, Device, HasId, Module,
-        Retriever, Shape, UnaryGrad, CPU,
+        AddGradFn, Base, Buffer, Cached, Combiner, Device, HasId, Module, Retriever, Shape,
+        UnaryGrad, CPU,
     };
 
     use super::Autograd;
@@ -366,9 +366,7 @@ mod tests {
     #[cfg(feature = "autograd")]
     impl<Mods: AddGradFn + 'static> UnaryByMods<Mods> for CPU {
         fn unary_ew(&self, mods: &Mods) {
-            mods.add_grad_fn((), |_| {
-                Ok(())
-            });
+            mods.add_grad_fn((), |_| Ok(()));
         }
     }
 

@@ -81,9 +81,8 @@ pub trait AddGradFn {
         args: Args,
         forward_fn: fn(&mut Args) -> crate::Result<()>,
         grad_fn: fn(&mut Args) -> crate::Result<()>,
-    ) 
-    where
-        Self: AddOperation
+    ) where
+        Self: AddOperation,
     {
         self.add_op(args.clone(), forward_fn).unwrap();
         self.add_grad_fn(args, grad_fn)

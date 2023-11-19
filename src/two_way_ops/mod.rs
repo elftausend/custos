@@ -10,7 +10,7 @@ pub use to_wgsl_source::*;
 
 use crate::prelude::{Numeric, One};
 
-use self::ops::{Add, Cos, Div, Eq, Exp, GEq, LEq, Mul, Neg, Pow, Sin, Sub, Tan};
+use self::ops::{Add, Cos, Div, Eq, Exp, GEq, LEq, Mul, Neg, Pow, Sin, Sub, Tan, Tanh};
 
 /// Evaluates a combined (via [`Combiner`]) math operations chain to a valid OpenCL C (and possibly CUDA) source string.
 #[cfg(not(feature = "no-std"))]
@@ -83,122 +83,88 @@ impl<T: Numeric> Combiner for T {}
 
 /// A trait that allows combining math operations.
 /// (Similiar to an Iterator)
-pub trait Combiner {
+pub trait Combiner: Sized {
     /// Combines two values into a new one via an addition.
     #[inline]
-    fn add<R>(self, rhs: R) -> Add<Self, R>
-    where
-        Self: Sized,
-    {
+    fn add<R>(self, rhs: R) -> Add<Self, R> {
         Add::new(self, rhs)
     }
 
     /// Combines two values into a new one via an multiplication.
     #[inline]
-    fn mul<R>(self, rhs: R) -> Mul<Self, R>
-    where
-        Self: Sized,
-    {
+    fn mul<R>(self, rhs: R) -> Mul<Self, R> {
         Mul::new(self, rhs)
     }
 
     /// Combines two values into a new one via an subtraction.
     #[inline]
-    fn sub<R>(self, rhs: R) -> Sub<Self, R>
-    where
-        Self: Sized,
-    {
+    fn sub<R>(self, rhs: R) -> Sub<Self, R> {
         Sub::new(self, rhs)
     }
 
     /// Combines two values into a new one via an division.
     #[inline]
-    fn div<R>(self, rhs: R) -> Div<Self, R>
-    where
-        Self: Sized,
-    {
+    fn div<R>(self, rhs: R) -> Div<Self, R> {
         Div::new(self, rhs)
     }
 
     /// Calculates the sine of a value.
     #[inline]
-    fn sin(self) -> Sin<Self>
-    where
-        Self: Sized,
-    {
+    fn sin(self) -> Sin<Self> {
         Sin { comb: self }
     }
 
     /// Calculates the cosine of a value.
     #[inline]
-    fn cos(self) -> Cos<Self>
-    where
-        Self: Sized,
-    {
+    fn cos(self) -> Cos<Self> {
         Cos { comb: self }
     }
 
     /// Calculates the tangent of a value.
     #[inline]
-    fn tan(self) -> Tan<Self>
-    where
-        Self: Sized,
-    {
+    fn tan(self) -> Tan<Self> {
         Tan { comb: self }
     }
 
     /// Combined two values into a new one via exponentiation.
     #[inline]
-    fn pow<R>(self, rhs: R) -> Pow<Self, R>
-    where
-        Self: Sized,
-    {
+    fn pow<R>(self, rhs: R) -> Pow<Self, R> {
         Pow::new(self, rhs)
     }
 
     /// Checks if the left value is greater than the right value.
     #[inline]
-    fn geq<R>(self, rhs: R) -> GEq<Self, R>
-    where
-        Self: Sized,
-    {
+    fn geq<R>(self, rhs: R) -> GEq<Self, R> {
         GEq { comb: self, rhs }
     }
 
     /// Checks if the left value is less than the right value.
     #[inline]
-    fn leq<R>(self, rhs: R) -> LEq<Self, R>
-    where
-        Self: Sized,
-    {
+    fn leq<R>(self, rhs: R) -> LEq<Self, R> {
         LEq { comb: self, rhs }
     }
 
     /// Checks if the left value is equal to the right value.
     #[inline]
-    fn eq<R>(self, rhs: R) -> Eq<Self, R>
-    where
-        Self: Sized,
-    {
+    fn eq<R>(self, rhs: R) -> Eq<Self, R> {
         Eq { comb: self, rhs }
     }
 
     /// Negates a value.
     #[inline]
-    fn neg(self) -> Neg<Self>
-    where
-        Self: Sized,
-    {
+    fn neg(self) -> Neg<Self> {
         Neg { comb: self }
     }
 
     /// Calculates the e^x of a value.
     #[inline]
-    fn exp(self) -> Exp<Self>
-    where
-        Self: Sized,
-    {
+    fn exp(self) -> Exp<Self> {
         Exp { comb: self }
+    }
+
+    #[inline]
+    fn tanh(self) -> Tanh<Self> {
+        Tanh { comb: self }
     }
 }
 
@@ -276,7 +242,7 @@ pub mod tests_ex {
             assert_eq!(res, "((var_x >= 0) * var_x)");
         }
     }
-    
+
     #[test]
     fn test_add_3() {
         let f = |x: Resolve<i32>| x.add(3);

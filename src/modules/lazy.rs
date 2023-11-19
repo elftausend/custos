@@ -117,8 +117,8 @@ impl<Mods: OnDropBuffer> OnDropBuffer for Lazy<Mods> {
     }
 }
 
-impl<T: 'static, D: Device + PtrConv + 'static, Mods: OnNewBuffer<T, D>>
-    OnNewBuffer<T, D> for Lazy<Mods>
+impl<T: 'static, D: Device + PtrConv + 'static, Mods: OnNewBuffer<T, D>> OnNewBuffer<T, D>
+    for Lazy<Mods>
 {
     #[inline]
     fn on_new_buffer<S: Shape>(&self, device: &D, new_buf: &Buffer<T, D, S>) {
