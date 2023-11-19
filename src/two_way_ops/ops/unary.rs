@@ -91,6 +91,27 @@ impl<C: ToCLSource> ToCLSource for Tan<C> {
     }
 }
 
+pub struct Tanh<C> {
+    pub comb: C,
+}
+
+impl<C> Combiner for Tanh<C> {}
+
+impl<T: Float, C: Eval<T>> Eval<T> for Tanh<C> {
+    #[inline]
+    fn eval(self) -> T {
+        Float::tanh(&self.comb.eval())
+    }
+}
+
+#[cfg(not(feature = "no-std"))]
+impl<C: ToCLSource> ToCLSource for Tanh<C> {
+    #[inline]
+    fn to_cl_source(&self) -> String {
+        format!("tanh({})", self.comb.to_cl_source())
+    }
+}
+
 pub struct Neg<C> {
     pub comb: C,
 }
