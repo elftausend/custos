@@ -1,6 +1,6 @@
 // TODO: move to devices folder ig
 
-use crate::{flag::AllocFlag, prelude::Device, Buffer, Parents, Shape, StackArray};
+use crate::{flag::AllocFlag, prelude::Device, Buffer, Parents, Shape, StackArray, HasId};
 
 pub trait Alloc<T>: Device + Sized {
     /// Allocate memory on the implemented device.
@@ -61,8 +61,9 @@ pub trait Alloc<T>: Device + Sized {
     }
 }
 
-pub trait Module<D = ()> {
+pub trait Module<D: Device> {
     type Module;
+    // type Data<T, S: Shape>: HasId = D::Data<T, S>;
 
     fn new() -> Self::Module;
 }

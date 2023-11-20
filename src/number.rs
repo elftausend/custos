@@ -339,7 +339,7 @@ float_apply!(f32, f64);
 impl Float for f32 {
     #[inline]
     fn from_f64(value: f64) -> f32 {
-        value as f32 
+        value as f32
     }
 
     #[inline]

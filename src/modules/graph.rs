@@ -21,7 +21,7 @@ pub struct Graph<Mods> {
     pub graph_trans: RefCell<GraphTranslator>,
 }
 
-impl<Mods: Module<D>, D> Module<D> for Graph<Mods> {
+impl<Mods: Module<D>, D: Device> Module<D> for Graph<Mods> {
     type Module = Graph<Mods::Module>;
 
     fn new() -> Self::Module {

@@ -49,7 +49,7 @@ pub struct Fork<Mods> {
     >, // should use Location of operation in file file!(), ...
 }
 
-impl<Mods: Module<D>, D> Module<D> for Fork<Mods> {
+impl<Mods: Module<D>, D: Device> Module<D> for Fork<Mods> {
     type Module = Fork<Mods::Module>;
 
     #[inline]

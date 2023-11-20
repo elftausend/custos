@@ -6,7 +6,7 @@ use core::{
 use crate::{
     cpu::CPUPtr, flag::AllocFlag, impl_buffer_hook_traits, impl_retriever, pass_down_grad_fn,
     pass_down_optimize_mem_graph, pass_down_tape_actions, Alloc, Base, Buffer, CloneBuf, Device,
-    DevicelessAble, HasModules, Module, OnDropBuffer, OnNewBuffer, PtrConv, Setup, Shape,
+    DevicelessAble, HasModules, Module, OnDropBuffer, OnNewBuffer, PtrConv, Setup, Shape, WrappedData,
 };
 
 pub trait IsCPU {}
@@ -36,10 +36,14 @@ impl_buffer_hook_traits!(CPU);
 
 impl<Mods> IsCPU for CPU<Mods> {}
 
+impl<Mods: OnDropBuffer + Module<CPU>> WrappedData for CPU<Mods> {
+    // type WrappedData<T, S: Shape> = Mods::Data<T, S>;
+}
+
 impl<Mods: OnDropBuffer> Device for CPU<Mods> {
     type Error = Infallible;
     type Data<T, S: Shape> = CPUPtr<T>;
-    // type WrappedData<T, S: Shape> = Mods;
+    // type WrappedData<T, S: Shape> = ;
 
     fn new() -> Result<Self, Self::Error> {
         todo!()

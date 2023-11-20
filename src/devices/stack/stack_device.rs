@@ -29,6 +29,7 @@ impl<Mods: OnDropBuffer> Device for Stack<Mods> {
     fn new() -> Result<Self, Infallible> {
         todo!()
     }
+
 }
 
 impl<Mods: OnDropBuffer, T: Copy + Default> Alloc<T> for Stack<Mods> {

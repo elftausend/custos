@@ -39,8 +39,19 @@ pub trait LazyRun {
     }
 }
 
-impl<Mods: Module<D>, D: LazySetup> Module<D> for Lazy<Mods> {
+pub struct LazyWrapper<T> {
+    data: T
+}
+
+impl<T: HasId> HasId for LazyWrapper<T> {
+    fn id(&self) -> crate::Id {
+        todo!()
+    }
+}
+
+impl<Mods: Module<D>, D: LazySetup + Device> Module<D> for Lazy<Mods> {
     type Module = Lazy<Mods::Module>;
+    // type Data<T, S: Shape> = LazyWrapper<Mods::Data<T, S>>;
 
     #[inline]
     fn new() -> Self::Module {
