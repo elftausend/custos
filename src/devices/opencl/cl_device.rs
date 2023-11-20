@@ -7,7 +7,7 @@ use crate::flag::AllocFlag;
 use crate::{
     impl_buffer_hook_traits, impl_retriever, pass_down_grad_fn, pass_down_optimize_mem_graph,
     pass_down_tape_actions, pass_down_use_gpu_or_cpu, Alloc, Base, Buffer, Cached, CachedCPU,
-    CloneBuf, Device, Module, OnDropBuffer, Setup, CPU,
+    CloneBuf, Device, Module, OnDropBuffer, Setup, CPU, OnNewBuffer,
 };
 use crate::{PtrConv, Shape};
 
@@ -246,8 +246,8 @@ impl<Mods: OnDropBuffer, T> Alloc<T> for OpenCL<Mods> {
     }
 }
 
-impl<'a, T> CloneBuf<'a, T> for OpenCL {
-    fn clone_buf(&'a self, buf: &Buffer<'a, T, OpenCL>) -> Buffer<'a, T, OpenCL> {
+impl<'a, T, Mods: OnDropBuffer + OnNewBuffer<T, Self>> CloneBuf<'a, T> for OpenCL<Mods> {
+    fn clone_buf(&'a self, buf: &Buffer<'a, T, Self>) -> Buffer<'a, T, Self> {
         let cloned = Buffer::new(self, buf.len());
         enqueue_full_copy_buffer::<T>(self.queue(), buf.data.ptr, cloned.data.ptr, buf.len())
             .unwrap();
