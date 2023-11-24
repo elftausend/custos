@@ -1,3 +1,4 @@
+mod derivative;
 mod ops;
 mod resolve;
 
@@ -171,6 +172,11 @@ pub trait Combiner: Sized {
     fn identity(self) -> Identity<Self> {
         Identity { comb: self }
     }
+
+    #[inline]
+    fn i(self) -> Identity<Self> {
+        Identity { comb: self }
+    }
 }
 
 #[cfg(test)]
@@ -246,6 +252,11 @@ pub mod tests_ex {
             let res = f(Resolve::with_marker("var_x")).to_cl_source();
             assert_eq!(res, "((var_x >= 0) * var_x)");
         }
+    }
+
+    #[test]
+    fn test_operator_overloading_with_ident() {
+        let _f = |x: Resolve<i32>| ((x.i() - x).i() / (x.i() + x).i()).i() * x;
     }
 
     #[test]

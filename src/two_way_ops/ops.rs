@@ -24,6 +24,15 @@ impl<C, R> Mul<C, R> {
 
 impl<C, R> Combiner for Mul<C, R> {}
 
+impl<R: Combiner, T> core::ops::Mul<R> for Identity<T> {
+    type Output = Mul<T, R>;
+
+    #[inline]
+    fn mul(self, rhs: R) -> Self::Output {
+        Mul::new(self.comb, rhs)
+    }
+}
+
 #[cfg(not(feature = "no-std"))]
 impl<C: ToCLSource, R: ToCLSource> ToCLSource for Mul<C, R> {
     #[inline]
@@ -56,6 +65,15 @@ impl<C, R> Add<C, R> {
 }
 
 impl<C, R> Combiner for Add<C, R> {}
+
+impl<R: Combiner, T> core::ops::Add<R> for Identity<T> {
+    type Output = Add<T, R>;
+
+    #[inline]
+    fn add(self, rhs: R) -> Self::Output {
+        Add::new(self.comb, rhs)
+    }
+}
 
 #[cfg(not(feature = "no-std"))]
 impl<C: ToCLSource, R: ToCLSource> ToCLSource for Add<C, R> {
@@ -90,6 +108,15 @@ impl<C, R> Sub<C, R> {
 
 impl<C, R> Combiner for Sub<C, R> {}
 
+impl<R: Combiner, T> core::ops::Sub<R> for Identity<T> {
+    type Output = Sub<T, R>;
+
+    #[inline]
+    fn sub(self, rhs: R) -> Self::Output {
+        Sub::new(self.comb, rhs)
+    }
+}
+
 #[cfg(not(feature = "no-std"))]
 impl<C: ToCLSource, R: ToCLSource> ToCLSource for Sub<C, R> {
     #[inline]
@@ -122,6 +149,15 @@ impl<C, R> Div<C, R> {
 }
 
 impl<C, R> Combiner for Div<C, R> {}
+
+impl<R: Combiner, T> core::ops::Div<R> for Identity<T> {
+    type Output = Div<T, R>;
+
+    #[inline]
+    fn div(self, rhs: R) -> Self::Output {
+        Div::new(self.comb, rhs)
+    }
+}
 
 #[cfg(not(feature = "no-std"))]
 impl<C: ToCLSource, R: ToCLSource> ToCLSource for Div<C, R> {

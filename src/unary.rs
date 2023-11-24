@@ -92,7 +92,7 @@ pub trait UnaryElementWiseMayGrad<T, D: Device, S: Shape>: Device {
         &self,
         buf: &Buffer<T, D, S>,
         forward_fn: impl Fn(Resolve<T>) -> FO + Copy + 'static,
-        grad_fn: fn(Resolve<T>) -> GO,
+        grad_fn: impl Fn(Resolve<T>) -> GO + Copy + 'static,
     ) -> Buffer<T, Self, S>
     where
         FO: Eval<T> + MayToCLSource,
@@ -111,7 +111,7 @@ where
         &self,
         buf: &Buffer<T, D, S>,
         forward_fn: impl Fn(Resolve<T>) -> FO + Copy + 'static,
-        _grad_fn: fn(Resolve<T>) -> GO,
+        _grad_fn: impl Fn(Resolve<T>) -> GO + Copy + 'static,
     ) -> Buffer<T, Self, S>
     where
         FO: Eval<T> + MayToCLSource,

@@ -33,8 +33,6 @@ impl Deref for Id {
 }
 
 impl HasId for Id {
-    const HAS_NO_ID: bool = false;
-
     #[inline]
     fn id(&self) -> Id {
         *self

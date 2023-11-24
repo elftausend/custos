@@ -24,7 +24,7 @@ pub struct Resolve<T> {
     /// Acts as the seed value.
     pub val: T,
     /// Acts as the variable name for the expression.
-    pub marker: &'static str,
+    pub marker: [char; 32],
 }
 
 /// Converts a &'static str to a [`Resolve`].
@@ -79,9 +79,11 @@ impl<T> ToVal<T> for T {
 impl<T: Default> Default for Resolve<T> {
     #[inline]
     fn default() -> Self {
+        let mut marker = ['\0'; 32];
+        marker[0] = 'x';
         Self {
             val: T::default(),
-            marker: "x",
+            marker,
         }
     }
 }
@@ -100,7 +102,9 @@ impl<T> Resolve<T> {
     /// ```
     #[inline]
     pub fn with_val(val: T) -> Self {
-        Resolve { val, marker: "x" }
+        let mut marker = ['\0'; 32];
+        marker[0] = 'x';
+        Resolve { val, marker }
     }
 
     /// Creates a `Resolve` with a marker.
@@ -115,10 +119,14 @@ impl<T> Resolve<T> {
     /// assert_eq!(out.to_cl_source(), "((x + x) * 2.0)");
     /// ```
     #[inline]
-    pub fn with_marker(marker: &'static str) -> Self
+    pub fn with_marker(marker_str: &'static str) -> Self
     where
         T: Default,
     {
+        let mut marker = ['\0'; 32];
+        for (src, dst) in marker_str.chars().zip(&mut marker) {
+            *dst = src;
+        }
         Resolve {
             val: T::default(),
             marker,
@@ -137,7 +145,8 @@ impl<T> crate::Eval<T> for Resolve<T> {
 impl<T> ToCLSource for Resolve<T> {
     #[inline]
     fn to_cl_source(&self) -> String {
-        self.marker.to_string()
+        self.marker.into_iter().filter(|x| *x != '\0').collect()
+        // self.marker.to_string()
     }
 }
 

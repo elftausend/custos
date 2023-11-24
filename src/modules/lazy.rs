@@ -1,3 +1,4 @@
+mod fusing;
 mod lazy_graph;
 mod ty;
 pub use ty::*;
@@ -40,7 +41,7 @@ pub trait LazyRun {
 }
 
 pub struct LazyWrapper<T> {
-    data: T
+    data: T,
 }
 
 impl<T: HasId> HasId for LazyWrapper<T> {

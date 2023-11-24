@@ -7,7 +7,7 @@ use crate::flag::AllocFlag;
 use crate::{
     impl_buffer_hook_traits, impl_retriever, pass_down_grad_fn, pass_down_optimize_mem_graph,
     pass_down_tape_actions, pass_down_use_gpu_or_cpu, Alloc, Base, Buffer, Cached, CachedCPU,
-    CloneBuf, Device, Module, OnDropBuffer, Setup, CPU, OnNewBuffer,
+    CloneBuf, Device, Module, OnDropBuffer, OnNewBuffer, Setup, CPU,
 };
 use crate::{PtrConv, Shape};
 
