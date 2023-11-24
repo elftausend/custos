@@ -33,9 +33,15 @@ impl Deref for Id {
 }
 
 impl HasId for Id {
+    const HAS_NO_ID: bool = false;
+
     #[inline]
     fn id(&self) -> Id {
         *self
+    }
+
+    fn maybe_id(&self) -> Option<Id> {
+        Some(self.id())
     }
 }
 
@@ -46,6 +52,7 @@ pub struct NoId<T> {
 
 impl<T> HasId for NoId<T> {
     const HAS_NO_ID: bool = true;
+
     #[inline]
     fn id(&self) -> Id {
         unimplemented!("This type is marked as a no-id.");
