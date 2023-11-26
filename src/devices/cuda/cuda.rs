@@ -122,7 +122,7 @@ impl<Mods: OnDropBuffer, OtherMods: OnDropBuffer> PtrConv<CUDA<OtherMods>> for C
     }
 }
 
-impl<'a, Mods: OnDropBuffer + OnNewBuffer<T, Self, ()>, T> CloneBuf<'a, T> for CUDA<Mods> {
+impl<'a, Mods: OnDropBuffer + OnNewBuffer<T, Self>, T> CloneBuf<'a, T> for CUDA<Mods> {
     fn clone_buf(&'a self, buf: &Buffer<'a, T, CUDA<Mods>>) -> Buffer<'a, T, CUDA<Mods>> {
         let cloned = Buffer::new(self, buf.len());
         unsafe {
