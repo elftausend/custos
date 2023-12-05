@@ -40,7 +40,7 @@ pub trait LazyRun {
 }
 
 pub struct LazyWrapper<T> {
-    data: T
+    data: T,
 }
 
 impl<T: HasId> HasId for LazyWrapper<T> {
@@ -69,12 +69,15 @@ impl<Mods: AddOperation> AddOperation for Lazy<Mods> {
         self.graph.borrow().ops.len()
     }
 
+    #[inline]
     fn add_op<Args: Parents<N> + UpdateArgs, const N: usize>(
         &self,
         args: Args,
         operation: fn(&mut Args) -> crate::Result<()>,
     ) -> crate::Result<()> {
-        Ok(self.graph.borrow_mut().add_operation(args, operation))
+        Ok(self.graph.try_borrow_mut()
+            .expect("already borrowed: BorrowMutError - is the inner operation trying to add an operation as well?")
+            .add_operation(args, operation))
     }
 }
 

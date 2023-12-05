@@ -120,15 +120,15 @@ where
 // #[impl_stack]
 impl<Mods, T, D, S> ClearBuf<T, S, D> for CPU<Mods>
 where
-    Mods: OnDropBuffer,
-    T: Default,
-    D: Device,
+    Mods: OnDropBuffer + AddOperation,
+    T: Default + 'static,
+    D: Device + 'static,
     D::Data<T, S>: DerefMut<Target = [T]>,
     S: Shape,
 {
     #[inline]
     fn clear(&self, buf: &mut Buffer<T, D, S>) {
-        clear_slice(buf)
+        clear_slice(buf);
     }
 }
 

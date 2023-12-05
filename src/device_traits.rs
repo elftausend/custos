@@ -1,6 +1,6 @@
 // TODO: move to devices folder ig
 
-use crate::{flag::AllocFlag, prelude::Device, Buffer, Parents, Shape, StackArray, HasId};
+use crate::{flag::AllocFlag, prelude::Device, Buffer, HasId, Parents, Shape, StackArray};
 
 pub trait Alloc<T>: Device + Sized {
     /// Allocate memory on the implemented device.

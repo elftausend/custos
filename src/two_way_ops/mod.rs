@@ -58,7 +58,6 @@ pub trait MayToCLSource {}
 impl<T> MayToCLSource for T {}
 
 /// Evaluates a combined (via [`Combiner`]) math operations chain to a value.
-/// ```
 pub trait Eval<T> {
     /// Evaluates a combined (via [`Combiner`]) math operations chain to a value.
     /// # Example
