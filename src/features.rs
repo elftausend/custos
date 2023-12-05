@@ -346,6 +346,7 @@ pub trait UseGpuOrCpu {
     ) -> GpuOrCpuInfo;
 }
 
+#[cfg(feature = "graph")]
 pub trait OptimizeMemGraph {
     fn optimize_mem_graph(
         &self,

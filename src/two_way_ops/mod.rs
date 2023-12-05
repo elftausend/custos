@@ -58,11 +58,11 @@ pub trait MayToCLSource {}
 impl<T> MayToCLSource for T {}
 
 /// Evaluates a combined (via [`Combiner`]) math operations chain to a value.
+/// ```
 pub trait Eval<T> {
     /// Evaluates a combined (via [`Combiner`]) math operations chain to a value.
     /// # Example
     /// ```
-    /// use std::ops::{Add, Mul};
     /// use custos::{Eval, Combiner};
     ///
     /// let x = 1.5f32.add(2.5).mul(3.5).eval();

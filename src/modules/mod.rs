@@ -27,12 +27,15 @@ mod fork;
 #[cfg(feature = "fork")]
 pub use fork::*;
 
+#[cfg(not(feature = "no-std"))]
 use crate::{flag::AllocFlag, Buffer, Device, HasId, HashLocation, Id, PtrConv, Shape, UniqueId};
+#[cfg(not(feature = "no-std"))]
 use core::{any::Any, hash::BuildHasher};
 
 #[cfg(not(feature = "no-std"))]
 use std::collections::HashMap;
 
+#[cfg(not(feature = "no-std"))]
 pub struct TranslatedCacheTrace {
     pub cache_idx: HashLocation<'static>,
     pub use_cache_idxs: Vec<HashLocation<'static>>,

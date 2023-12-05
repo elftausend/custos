@@ -126,6 +126,8 @@ where
 }
 
 fn main() {
+    #[cfg(feature = "fork")]
+    #[cfg(feature = "lazy")]
     #[cfg(feature = "opencl")]
     {
         use custos::{Base, Cached, Fork, Lazy, Run};
