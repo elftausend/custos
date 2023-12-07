@@ -1,9 +1,9 @@
-use core::{cell::RefCell, marker::PhantomData};
+use core::{cell::RefCell, marker::PhantomData, ops::Deref};
 
 use crate::{
     AddGradFn, AddOperation, Alloc, Buffer, Cache, Device, DeviceError, ExecNow, Module,
     OnDropBuffer, OnNewBuffer, OptimizeMemGraph, Parents, PtrConv, Retrieve, RunModule, Setup,
-    Shape,
+    Shape, WrappedData, HasId, PtrType,
 };
 
 // creator struct
@@ -20,6 +20,9 @@ pub struct Cached<Mods> {
         todo!()
     }
 }*/
+impl<Mods: WrappedData, SD: Device> WrappedData for CachedModule<Mods, SD> {
+    type WrappedData<Base: HasId + PtrType + Deref> = Mods::WrappedData<Base>;
+}
 
 impl<Mods: Module<D>, D: Device> Module<D> for Cached<Mods> {
     type Module = CachedModule<Mods::Module, D>;

@@ -5,9 +5,9 @@ pub use ty::*;
 use crate::{
     pass_down_tape_actions, AddOperation, Alloc, Buffer, Device, ExecNow, HasId, Module, NoHasher,
     OnDropBuffer, OnNewBuffer, Parents, PtrConv, Retrieve, RunModule, Setup, Shape, UniqueId,
-    UpdateArgs,
+    UpdateArgs, PtrType, WrappedData,
 };
-use core::{any::Any, cell::RefCell, fmt::Debug, hash::BuildHasherDefault};
+use core::{any::Any, cell::RefCell, fmt::Debug, hash::BuildHasherDefault, ops::Deref};
 use std::collections::HashMap;
 
 pub use self::lazy_graph::LazyGraph;
@@ -47,6 +47,10 @@ impl<T: HasId> HasId for LazyWrapper<T> {
     fn id(&self) -> crate::Id {
         todo!()
     }
+}
+
+impl<Mods: WrappedData> WrappedData for Lazy<Mods> {
+    type WrappedData<Base: HasId + PtrType + Deref> = Mods::WrappedData<Base>;
 }
 
 impl<Mods: Module<D>, D: LazySetup + Device> Module<D> for Lazy<Mods> {

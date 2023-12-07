@@ -1,10 +1,16 @@
+use core::ops::Deref;
+
 use crate::{
     flag::AllocFlag, AddGradFn, AddOperation, Alloc, Device, ExecNow, HashLocation, Module,
-    OnDropBuffer, OnNewBuffer, OptimizeMemGraph, Parents, Retrieve, Setup, Shape,
+    OnDropBuffer, OnNewBuffer, OptimizeMemGraph, Parents, Retrieve, Setup, Shape, WrappedData, PtrType, HasId,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub struct Base;
+
+impl WrappedData for Base {
+    type WrappedData<Base: HasId + PtrType + Deref> = Base;
+}
 
 impl<D: Device> Module<D> for Base {
     type Module = Base;

@@ -1,6 +1,8 @@
 // TODO: move to devices folder ig
 
-use crate::{flag::AllocFlag, prelude::Device, Buffer, HasId, Parents, Shape, StackArray};
+use core::ops::Deref;
+
+use crate::{flag::AllocFlag, prelude::Device, Buffer, HasId, Parents, Shape, StackArray, PtrType};
 
 pub trait Alloc<T>: Device + Sized {
     /// Allocate memory on the implemented device.
@@ -61,9 +63,12 @@ pub trait Alloc<T>: Device + Sized {
     }
 }
 
-pub trait Module<D: Device> {
+pub trait WrappedData {
+    type WrappedData<Base: HasId + PtrType + Deref>: HasId + PtrType + Deref;
+}
+
+pub trait Module<D> {
     type Module;
-    // type Data<T, S: Shape>: HasId = D::Data<T, S>;
 
     fn new() -> Self::Module;
 }

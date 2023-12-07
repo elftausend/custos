@@ -6,7 +6,7 @@ use core::{
 };
 
 use crate::{
-    flag::AllocFlag, Alloc, Buffer, CloneBuf, CommonPtrs, Device, HasId, OnDropBuffer, PtrType,
+    flag::AllocFlag, Alloc, Buffer, CloneBuf, CommonPtrs, Device, HasId, OnDropBuffer, PtrType, WrappedData,
 };
 
 #[derive(Debug, Default)]
@@ -75,6 +75,10 @@ impl<T: Default> Alloc<T> for () {
     {
         data[0].clone().into()
     }
+}
+
+impl WrappedData for () {
+    type WrappedData<Base: crate::HasId + crate::PtrType + Deref> = Base;
 }
 
 impl OnDropBuffer for () {}

@@ -4,12 +4,12 @@ mod tape;
 pub use gradients::*;
 pub use tape::*;
 
-use core::cell::UnsafeCell;
+use core::{cell::UnsafeCell, ops::Deref};
 
 use crate::{
     pass_down_add_operation, pass_down_exec_now_module, register_buf, unregister_buf, AddGradFn,
     Alloc, Buffer, Device, HasId, Module, OnDropBuffer, OnNewBuffer, Parents, PtrConv, Retrieve,
-    RunModule, Setup, Shape, TapeActions,
+    RunModule, Setup, Shape, TapeActions, PtrType, WrappedData,
 };
 
 use super::{Cached, CachedModule};
@@ -20,6 +20,10 @@ pub struct Autograd<Mods> {
     /// Caches gradients for each [`Buffer`]'s id ([`Ident`]).
     pub grads: UnsafeCell<Gradients>,
     tape: UnsafeCell<Tape>,
+}
+
+impl<Mods: WrappedData> WrappedData for Autograd<Mods> {
+    type WrappedData<Base: HasId + PtrType + Deref> = Mods::WrappedData<Base>;
 }
 
 impl<Mods: Module<D>, D: Device> Module<D> for Autograd<Mods> {
@@ -33,6 +37,7 @@ impl<Mods: Module<D>, D: Device> Module<D> for Autograd<Mods> {
             tape: Default::default(),
         }
     }
+
 }
 
 impl<Mods> Autograd<Mods> {

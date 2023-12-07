@@ -5,12 +5,12 @@ mod opt_graph;
 pub use node::Node;
 pub use opt_graph::*;
 
-use core::{cell::RefCell, panic::Location};
+use core::{cell::RefCell, panic::Location, ops::Deref};
 
 use crate::{
     pass_down_add_operation, pass_down_exec_now_module, pass_down_unified_mem_chain,
     pass_down_use_gpu_or_cpu, Alloc, Buffer, Device, HasId, Module, OnDropBuffer, OnNewBuffer,
-    OptimizeMemGraph, Parents, PtrConv, Retrieve, Setup, Shape, TranslatedCacheTrace,
+    OptimizeMemGraph, Parents, PtrConv, Retrieve, Setup, Shape, TranslatedCacheTrace, WrappedData, PtrType,
 };
 
 use self::graph_translator::GraphTranslator;
@@ -19,6 +19,10 @@ use self::graph_translator::GraphTranslator;
 pub struct Graph<Mods> {
     pub modules: Mods,
     pub graph_trans: RefCell<GraphTranslator>,
+}
+
+impl<Mods: WrappedData> WrappedData for Graph<Mods> {
+    type WrappedData<Base: HasId + PtrType + Deref> = Mods::WrappedData<Base>;
 }
 
 impl<Mods: Module<D>, D: Device> Module<D> for Graph<Mods> {

@@ -1,12 +1,12 @@
 use crate::{
     pass_down_add_operation, pass_down_exec_now, pass_down_tape_actions, Alloc, Buffer, Device,
     GpuOrCpuInfo, HashLocation, LocationHasher, Module, OnDropBuffer, OnNewBuffer, Parents,
-    PtrConv, Retrieve, RunModule, Setup, Shape, UseGpuOrCpu,
+    PtrConv, Retrieve, RunModule, Setup, Shape, UseGpuOrCpu, WrappedData, PtrType, HasId,
 };
 use core::{
     cell::RefCell,
     hash::{BuildHasher, BuildHasherDefault},
-    time::Duration,
+    time::Duration, ops::Deref,
 };
 use std::{
     collections::{BinaryHeap, HashMap},
@@ -47,6 +47,10 @@ pub struct Fork<Mods> {
     gpu_or_cpu: RefCell<
         HashMap<HashLocation<'static>, BinaryHeap<Analyzation>, BuildHasherDefault<LocationHasher>>,
     >, // should use Location of operation in file file!(), ...
+}
+
+impl<Mods: WrappedData> WrappedData for Fork<Mods> {
+    type WrappedData<Base: HasId + PtrType + Deref> = Mods::WrappedData<Base>;
 }
 
 impl<Mods: Module<D>, D: Device> Module<D> for Fork<Mods> {

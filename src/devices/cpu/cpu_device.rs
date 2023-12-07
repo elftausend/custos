@@ -1,6 +1,6 @@
 use core::{
     convert::Infallible,
-    mem::{align_of, size_of},
+    mem::{align_of, size_of}, ops::Deref,
 };
 
 use crate::{
@@ -37,9 +37,9 @@ impl_buffer_hook_traits!(CPU);
 
 impl<Mods> IsCPU for CPU<Mods> {}
 
-impl<Mods: OnDropBuffer + Module<CPU>> WrappedData for CPU<Mods> {
+// impl<Mods: OnDropBuffer + Module<CPU>> WrappedData for CPU<Mods> {
     // type WrappedData<T, S: Shape> = Mods::Data<T, S>;
-}
+// }
 
 impl<Mods: OnDropBuffer> Device for CPU<Mods> {
     type Error = Infallible;
@@ -50,6 +50,10 @@ impl<Mods: OnDropBuffer> Device for CPU<Mods> {
         todo!()
         // Ok(CPU::<Base>::new())
     }
+}
+
+impl<Mods: WrappedData> WrappedData for CPU<Mods> {
+    type WrappedData<Base: crate::HasId + crate::PtrType + Deref> = Mods::WrappedData<Base>;
 }
 
 impl<T, S: Shape> DevicelessAble<'_, T, S> for CPU<Base> {}
