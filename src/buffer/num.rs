@@ -6,7 +6,8 @@ use core::{
 };
 
 use crate::{
-    flag::AllocFlag, Alloc, Buffer, CloneBuf, CommonPtrs, Device, HasId, OnDropBuffer, PtrType, WrappedData,
+    flag::AllocFlag, Alloc, Buffer, CloneBuf, CommonPtrs, Device, HasId, OnDropBuffer, PtrType,
+    WrappedData,
 };
 
 #[derive(Debug, Default)]
@@ -78,7 +79,12 @@ impl<T: Default> Alloc<T> for () {
 }
 
 impl WrappedData for () {
-    type WrappedData<Base: crate::HasId + crate::PtrType + Deref> = Base;
+    type Wrap<Base: crate::HasId + crate::PtrType> = Base;
+
+    #[inline]
+    fn wrap_in_base<Base: HasId + PtrType>(&self, _base: Base) -> Self::Wrap<Base> {
+        unimplemented!()
+    }
 }
 
 impl OnDropBuffer for () {}

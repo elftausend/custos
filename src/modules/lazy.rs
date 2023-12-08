@@ -4,8 +4,8 @@ pub use ty::*;
 
 use crate::{
     pass_down_tape_actions, AddOperation, Alloc, Buffer, Device, ExecNow, HasId, Module, NoHasher,
-    OnDropBuffer, OnNewBuffer, Parents, PtrConv, Retrieve, RunModule, Setup, Shape, UniqueId,
-    UpdateArgs, PtrType, WrappedData,
+    OnDropBuffer, OnNewBuffer, Parents, PtrConv, PtrType, Retrieve, RunModule, Setup, Shape,
+    UniqueId, UpdateArgs, WrappedData,
 };
 use core::{any::Any, cell::RefCell, fmt::Debug, hash::BuildHasherDefault, ops::Deref};
 use std::collections::HashMap;
@@ -39,18 +39,45 @@ pub trait LazyRun {
     }
 }
 
-pub struct LazyWrapper<T> {
-    data: T,
+pub struct LazyWrapper<Data> {
+    data: Data,
 }
 
-impl<T: HasId> HasId for LazyWrapper<T> {
+impl<Data: HasId> HasId for LazyWrapper<Data> {
+    #[inline]
     fn id(&self) -> crate::Id {
-        todo!()
+        self.data.id()
+    }
+}
+
+impl<Data: PtrType> PtrType for LazyWrapper<Data> {
+    #[inline]
+    fn size(&self) -> usize {
+        self.data.size()
+    }
+
+    #[inline]
+    fn flag(&self) -> crate::flag::AllocFlag {
+        self.data.flag()
+    }
+}
+
+impl<Data> Deref for LazyWrapper<Data> {
+    type Target = Data;
+
+    #[inline]
+    fn deref(&self) -> &Self::Target {
+        &self.data
     }
 }
 
 impl<Mods: WrappedData> WrappedData for Lazy<Mods> {
-    type WrappedData<Base: HasId + PtrType + Deref> = Mods::WrappedData<Base>;
+    type Wrap<Base: HasId + PtrType> = Mods::Wrap<Base>;
+
+    #[inline]
+    fn wrap_in_base<Base: HasId + PtrType>(&self, base: Base) -> Self::Wrap<Base> {
+        self.modules.wrap_in_base(base)
+    }
 }
 
 impl<Mods: Module<D>, D: LazySetup + Device> Module<D> for Lazy<Mods> {
@@ -179,8 +206,8 @@ mod tests {
     use core::ops::{Add, Deref};
 
     use crate::{
-        AddOperation, ApplyFunction, Base, Buffer, Combiner, Device, Retrieve, Retriever, Shape,
-        CPU,
+        cpu::CPUPtr, AddOperation, ApplyFunction, Base, Buffer, Combiner, Device, Retrieve,
+        Retriever, Shape, CPU,
     };
 
     use super::Lazy;
@@ -216,6 +243,7 @@ mod tests {
         T: Add<Output = T> + Copy + 'static,
         D: Device + 'static,
         D::Data<T, S>: Deref<Target = [T]>,
+        Mods::Wrap<CPUPtr<T>>: core::ops::DerefMut<Target = [T]>,
         S: Shape,
         Mods: AddOperation + Retrieve<Self, T> + 'static,
     {

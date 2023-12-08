@@ -2,7 +2,7 @@
 
 use core::ops::Deref;
 
-use crate::{flag::AllocFlag, prelude::Device, Buffer, HasId, Parents, Shape, StackArray, PtrType};
+use crate::{flag::AllocFlag, prelude::Device, Buffer, HasId, Parents, PtrType, Shape, StackArray};
 
 pub trait Alloc<T>: Device + Sized {
     /// Allocate memory on the implemented device.
@@ -64,7 +64,9 @@ pub trait Alloc<T>: Device + Sized {
 }
 
 pub trait WrappedData {
-    type WrappedData<Base: HasId + PtrType + Deref>: HasId + PtrType + Deref;
+    type Wrap<Base: HasId + PtrType>: HasId + PtrType;
+
+    fn wrap_in_base<Base: HasId + PtrType>(&self, base: Base) -> Self::Wrap<Base>;
 }
 
 pub trait Module<D> {

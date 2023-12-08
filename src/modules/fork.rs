@@ -1,12 +1,12 @@
 use crate::{
     pass_down_add_operation, pass_down_exec_now, pass_down_tape_actions, Alloc, Buffer, Device,
-    GpuOrCpuInfo, HashLocation, LocationHasher, Module, OnDropBuffer, OnNewBuffer, Parents,
-    PtrConv, Retrieve, RunModule, Setup, Shape, UseGpuOrCpu, WrappedData, PtrType, HasId,
+    GpuOrCpuInfo, HasId, HashLocation, LocationHasher, Module, OnDropBuffer, OnNewBuffer, Parents,
+    PtrConv, PtrType, Retrieve, RunModule, Setup, Shape, UseGpuOrCpu, WrappedData,
 };
 use core::{
     cell::RefCell,
     hash::{BuildHasher, BuildHasherDefault},
-    time::Duration, ops::Deref,
+    time::Duration,
 };
 use std::{
     collections::{BinaryHeap, HashMap},
@@ -50,7 +50,12 @@ pub struct Fork<Mods> {
 }
 
 impl<Mods: WrappedData> WrappedData for Fork<Mods> {
-    type WrappedData<Base: HasId + PtrType + Deref> = Mods::WrappedData<Base>;
+    type Wrap<Base: HasId + PtrType> = Mods::Wrap<Base>;
+
+    #[inline]
+    fn wrap_in_base<Base: HasId + PtrType>(&self, base: Base) -> Self::Wrap<Base> {
+        self.modules.wrap_in_base(base)
+    }
 }
 
 impl<Mods: Module<D>, D: Device> Module<D> for Fork<Mods> {

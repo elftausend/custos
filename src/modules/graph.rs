@@ -5,12 +5,13 @@ mod opt_graph;
 pub use node::Node;
 pub use opt_graph::*;
 
-use core::{cell::RefCell, panic::Location, ops::Deref};
+use core::{cell::RefCell, panic::Location};
 
 use crate::{
     pass_down_add_operation, pass_down_exec_now_module, pass_down_unified_mem_chain,
     pass_down_use_gpu_or_cpu, Alloc, Buffer, Device, HasId, Module, OnDropBuffer, OnNewBuffer,
-    OptimizeMemGraph, Parents, PtrConv, Retrieve, Setup, Shape, TranslatedCacheTrace, WrappedData, PtrType,
+    OptimizeMemGraph, Parents, PtrType, Retrieve, Setup, Shape, TranslatedCacheTrace,
+    WrappedData,
 };
 
 use self::graph_translator::GraphTranslator;
@@ -22,7 +23,12 @@ pub struct Graph<Mods> {
 }
 
 impl<Mods: WrappedData> WrappedData for Graph<Mods> {
-    type WrappedData<Base: HasId + PtrType + Deref> = Mods::WrappedData<Base>;
+    type Wrap<Base: HasId + PtrType> = Mods::Wrap<Base>;
+
+    #[inline]
+    fn wrap_in_base<Base: HasId + PtrType>(&self, base: Base) -> Self::Wrap<Base> {
+        self.modules.wrap_in_base(base)
+    }
 }
 
 impl<Mods: Module<D>, D: Device> Module<D> for Graph<Mods> {
@@ -96,7 +102,7 @@ pass_down_exec_now_module!(Graph);
 pass_down_unified_mem_chain!(Graph);
 pass_down_use_gpu_or_cpu!(Graph);
 
-impl<T: 'static, Mods: Retrieve<D, T>, D: PtrConv + 'static> Retrieve<D, T> for Graph<Mods> {
+impl<T: 'static, Mods: Retrieve<D, T>, D: 'static> Retrieve<D, T> for Graph<Mods> {
     #[inline]
     fn retrieve<S, const NUM_PARENTS: usize>(
         &self,

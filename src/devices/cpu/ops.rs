@@ -11,12 +11,15 @@ use crate::{
 pass_down_add_operation!(CPU);
 pass_down_exec_now!(CPU);
 
+pub fn slice<T>(x: &[T]) {}
+
 impl<Mods, T, D, S> ApplyFunction<T, S, D> for CPU<Mods>
 where
     Mods: Retrieve<Self, T> + AddOperation + 'static,
     T: Copy + Default + ToVal + 'static,
     D: Device + 'static,
     D::Data<T, S>: Deref<Target = [T]>,
+    Self::Data<T, S>: DerefMut<Target = [T]>,
     S: Shape,
 {
     fn apply_fn<F>(
@@ -139,6 +142,7 @@ where
     T: Copy,
     D: Device,
     D::Data<T, ()>: Deref<Target = [T]>,
+    Self::Data<T, ()>: DerefMut<Target = [T]>,
 {
     fn copy_slice_to<SR: RangeBounds<usize>, DR: RangeBounds<usize>>(
         &self,

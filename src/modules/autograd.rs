@@ -4,12 +4,12 @@ mod tape;
 pub use gradients::*;
 pub use tape::*;
 
-use core::{cell::UnsafeCell, ops::Deref};
+use core::cell::UnsafeCell;
 
 use crate::{
     pass_down_add_operation, pass_down_exec_now_module, register_buf, unregister_buf, AddGradFn,
-    Alloc, Buffer, Device, HasId, Module, OnDropBuffer, OnNewBuffer, Parents, PtrConv, Retrieve,
-    RunModule, Setup, Shape, TapeActions, PtrType, WrappedData,
+    Alloc, Buffer, Device, HasId, Module, OnDropBuffer, OnNewBuffer, Parents, PtrConv, PtrType,
+    Retrieve, RunModule, Setup, Shape, TapeActions, WrappedData,
 };
 
 use super::{Cached, CachedModule};
@@ -23,7 +23,12 @@ pub struct Autograd<Mods> {
 }
 
 impl<Mods: WrappedData> WrappedData for Autograd<Mods> {
-    type WrappedData<Base: HasId + PtrType + Deref> = Mods::WrappedData<Base>;
+    type Wrap<Base: HasId + PtrType> = Mods::Wrap<Base>;
+
+    #[inline]
+    fn wrap_in_base<Base: HasId + PtrType>(&self, base: Base) -> Self::Wrap<Base> {
+        self.modules.wrap_in_base(base)
+    }
 }
 
 impl<Mods: Module<D>, D: Device> Module<D> for Autograd<Mods> {
@@ -37,7 +42,6 @@ impl<Mods: Module<D>, D: Device> Module<D> for Autograd<Mods> {
             tape: Default::default(),
         }
     }
-
 }
 
 impl<Mods> Autograd<Mods> {

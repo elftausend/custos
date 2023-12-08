@@ -13,7 +13,7 @@ use crate::CPU;
 use crate::{
     flag::AllocFlag, shape::Shape, Alloc, Base, ClearBuf, CloneBuf, CommonPtrs, Device,
     DevicelessAble, HasId, IsShapeIndep, OnDropBuffer, OnNewBuffer, PtrType, Read, ShallowCopy,
-    WriteBuf,
+    WrappedData, WriteBuf,
 };
 
 pub use self::num::Num;
@@ -464,10 +464,12 @@ impl<'a, Mods: OnDropBuffer, T, S: Shape> Buffer<'a, T, CPU<Mods>, S> {
     /// The `Buffer` does not manage deallocation of the allocated memory.
     #[inline]
     pub unsafe fn from_raw_host(ptr: *mut T, len: usize) -> Buffer<'a, T, CPU<Mods>, S> {
-        Buffer {
-            data: CPUPtr::from_ptr(ptr, len, AllocFlag::Wrapper),
-            device: None,
-        }
+        let x = 2;
+        todo!()
+        // Buffer {
+        //     data: self.wrap_in_base(CPUPtr::from_ptr(ptr, len, AllocFlag::Wrapper)),
+        //     device: None,
+        // }
     }
 
     /// Constructs a `Buffer` out of a host pointer and a length.
@@ -483,7 +485,7 @@ impl<'a, Mods: OnDropBuffer, T, S: Shape> Buffer<'a, T, CPU<Mods>, S> {
         len: usize,
     ) -> Buffer<'a, T, CPU<Mods>, S> {
         Buffer {
-            data: CPUPtr::from_ptr(ptr, len, AllocFlag::Wrapper),
+            data: device.wrap_in_base(CPUPtr::from_ptr(ptr, len, AllocFlag::Wrapper)),
             device: Some(device),
         }
     }

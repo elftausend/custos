@@ -1,9 +1,9 @@
-use core::{cell::RefCell, marker::PhantomData, ops::Deref};
+use core::{cell::RefCell, marker::PhantomData};
 
 use crate::{
-    AddGradFn, AddOperation, Alloc, Buffer, Cache, Device, DeviceError, ExecNow, Module,
-    OnDropBuffer, OnNewBuffer, OptimizeMemGraph, Parents, PtrConv, Retrieve, RunModule, Setup,
-    Shape, WrappedData, HasId, PtrType,
+    AddGradFn, AddOperation, Alloc, Buffer, Cache, Device, DeviceError, ExecNow, HasId, Module,
+    OnDropBuffer, OnNewBuffer, OptimizeMemGraph, Parents, PtrConv, PtrType, Retrieve, RunModule,
+    Setup, Shape, WrappedData,
 };
 
 // creator struct
@@ -21,7 +21,12 @@ pub struct Cached<Mods> {
     }
 }*/
 impl<Mods: WrappedData, SD: Device> WrappedData for CachedModule<Mods, SD> {
-    type WrappedData<Base: HasId + PtrType + Deref> = Mods::WrappedData<Base>;
+    type Wrap<Base: HasId + PtrType> = Mods::Wrap<Base>;
+
+    #[inline]
+    fn wrap_in_base<Base: HasId + PtrType>(&self, base: Base) -> Self::Wrap<Base> {
+        self.modules.wrap_in_base(base)
+    }
 }
 
 impl<Mods: Module<D>, D: Device> Module<D> for Cached<Mods> {
