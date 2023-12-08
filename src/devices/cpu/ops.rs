@@ -11,8 +11,6 @@ use crate::{
 pass_down_add_operation!(CPU);
 pass_down_exec_now!(CPU);
 
-pub fn slice<T>(x: &[T]) {}
-
 impl<Mods, T, D, S> ApplyFunction<T, S, D> for CPU<Mods>
 where
     Mods: Retrieve<Self, T> + AddOperation + 'static,

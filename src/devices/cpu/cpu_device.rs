@@ -8,7 +8,7 @@ use crate::{
     cpu::CPUPtr, flag::AllocFlag, impl_buffer_hook_traits, impl_retriever, pass_down_grad_fn,
     pass_down_optimize_mem_graph, pass_down_tape_actions, Alloc, Base, Buffer, CloneBuf, Device,
     DevicelessAble, HasModules, Module, OnDropBuffer, OnNewBuffer, PtrConv, Setup, Shape,
-    WrappedData,
+    WrappedData, PtrType,
 };
 
 pub trait IsCPU {}
@@ -163,6 +163,7 @@ impl<Mods: OnDropBuffer, OtherMods: OnDropBuffer> PtrConv<CPU<OtherMods>> for CP
         data: &Mods::Wrap<CPUPtr<T>>,
         flag: AllocFlag,
     ) -> OtherMods::Wrap<CPUPtr<Conv>> {
+        // data.flag()
         todo!()
         // CPUPtr {
         //     ptr: data.ptr as *mut Conv,

@@ -1,7 +1,5 @@
 // TODO: move to devices folder ig
 
-use core::ops::Deref;
-
 use crate::{flag::AllocFlag, prelude::Device, Buffer, HasId, Parents, PtrType, Shape, StackArray};
 
 pub trait Alloc<T>: Device + Sized {

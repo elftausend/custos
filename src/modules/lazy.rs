@@ -60,6 +60,11 @@ impl<Data: PtrType> PtrType for LazyWrapper<Data> {
     fn flag(&self) -> crate::flag::AllocFlag {
         self.data.flag()
     }
+
+    #[inline]
+    unsafe fn set_flag(&mut self, flag: crate::flag::AllocFlag) {
+        self.data.set_flag(flag)
+    }
 }
 
 impl<Data> Deref for LazyWrapper<Data> {
@@ -145,7 +150,7 @@ impl<D: LazySetup, Mods: Setup<D>> Setup<D> for Lazy<Mods> {
     }
 }
 
-impl<Mods: RunModule<D>, D: LazyRun + PtrConv + 'static> RunModule<D> for Lazy<Mods> {
+impl<Mods: RunModule<D>, D: LazyRun + Device + 'static> RunModule<D> for Lazy<Mods> {
     #[inline]
     fn run(&self, device: &D) -> crate::Result<()> {
         unsafe { self.call_lazily::<D>()? };

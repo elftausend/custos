@@ -144,6 +144,7 @@ pub trait PtrType {
     fn size(&self) -> usize;
     /// Returns the [`AllocFlag`].
     fn flag(&self) -> AllocFlag;
+    unsafe fn set_flag(&mut self, flag: AllocFlag);
 }
 
 pub trait HostPtr<T>: PtrType {

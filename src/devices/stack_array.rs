@@ -120,6 +120,9 @@ impl<S: Shape, T> PtrType for StackArray<S, T> {
     fn flag(&self) -> crate::flag::AllocFlag {
         crate::flag::AllocFlag::None
     }
+
+    #[inline]
+    unsafe fn set_flag(&mut self, _flag: crate::flag::AllocFlag) {}
 }
 
 impl<S: Shape, T> CommonPtrs<T> for StackArray<S, T> {

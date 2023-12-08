@@ -27,6 +27,9 @@ impl<T> PtrType for Num<T> {
     fn flag(&self) -> crate::flag::AllocFlag {
         crate::flag::AllocFlag::Num
     }
+
+    #[inline]
+    unsafe fn set_flag(&mut self, _flag: AllocFlag) {}
 }
 
 impl<T> CommonPtrs<T> for Num<T> {
