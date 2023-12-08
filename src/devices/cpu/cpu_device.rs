@@ -38,7 +38,7 @@ impl_buffer_hook_traits!(CPU);
 impl<Mods> IsCPU for CPU<Mods> {}
 
 // impl<Mods: OnDropBuffer + Module<CPU>> WrappedData for CPU<Mods> {
-    // type WrappedData<T, S: Shape> = Mods::Data<T, S>;
+//     type WrappedData<T, S: Shape> = Mods::Data<T, S>;
 // }
 
 impl<Mods: OnDropBuffer> Device for CPU<Mods> {
