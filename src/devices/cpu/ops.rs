@@ -13,7 +13,7 @@ pass_down_exec_now!(CPU);
 
 impl<Mods, T, D, S> ApplyFunction<T, S, D> for CPU<Mods>
 where
-    Mods: Retrieve<Self, T> + AddOperation + 'static,
+    Mods: Retrieve<Self, T, S> + AddOperation + 'static,
     T: Copy + Default + ToVal + 'static,
     D: Device + 'static,
     D::Data<T, S>: Deref<Target = [T]>,

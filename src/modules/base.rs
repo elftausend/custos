@@ -1,6 +1,7 @@
 use crate::{
     flag::AllocFlag, AddGradFn, AddOperation, Alloc, Device, ExecNow, HasId, HashLocation, Module,
-    OnDropBuffer, OnNewBuffer, OptimizeMemGraph, Parents, PtrType, Retrieve, Setup, WrappedData, Shape,
+    OnDropBuffer, OnNewBuffer, OptimizeMemGraph, Parents, PtrType, Retrieve, Setup, Shape,
+    WrappedData,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
@@ -52,16 +53,15 @@ impl<T, D: Device, S: Shape> OnNewBuffer<T, D, S> for Base {}
 
 impl OnDropBuffer for Base {}
 
-impl<D, T> Retrieve<D, T> for Base {
+impl<D, T, S: Shape> Retrieve<D, T, S> for Base {
     #[inline]
-    fn retrieve<S, const NUM_PARENTS: usize>(
+    fn retrieve<const NUM_PARENTS: usize>(
         &self,
         device: &D,
         len: usize,
         _parents: impl Parents<NUM_PARENTS>,
     ) -> <D>::Data<T, S>
     where
-        S: crate::Shape,
         D: Alloc<T>,
     {
         device.alloc(len, AllocFlag::None)

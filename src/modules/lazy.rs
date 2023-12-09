@@ -5,8 +5,8 @@ pub use ty::*;
 
 use crate::{
     pass_down_tape_actions, AddOperation, Alloc, Buffer, Device, ExecNow, HasId, Module, NoHasher,
-    OnDropBuffer, OnNewBuffer, Parents, PtrConv, Retrieve, RunModule, Setup, Shape, UniqueId,
-    UpdateArgs,
+    OnDropBuffer, OnNewBuffer, Parents, PtrConv, Retrieve, RunModule, Setup, ShallowCopy, Shape,
+    UniqueId, UpdateArgs,
 };
 use core::{any::Any, cell::RefCell, fmt::Debug, hash::BuildHasherDefault};
 use std::collections::HashMap;
@@ -122,8 +122,13 @@ impl<Mods: OnDropBuffer> OnDropBuffer for Lazy<Mods> {
     }
 }
 
-impl<T: 'static, D: Device + PtrConv + 'static, Mods: OnNewBuffer<T, D, S>, S: Shape>
-    OnNewBuffer<T, D, S> for Lazy<Mods>
+impl<T, D, Mods, S> OnNewBuffer<T, D, S> for Lazy<Mods>
+where
+    T: 'static,
+    D: Device + PtrConv + 'static,
+    D::Data<T, S>: ShallowCopy,
+    Mods: OnNewBuffer<T, D, S>,
+    S: Shape,
 {
     #[inline]
     fn on_new_buffer(&self, device: &D, new_buf: &Buffer<T, D, S>) {
@@ -134,9 +139,16 @@ impl<T: 'static, D: Device + PtrConv + 'static, Mods: OnNewBuffer<T, D, S>, S: S
 
 pass_down_tape_actions!(Lazy);
 
-impl<T: 'static, Mods: Retrieve<D, T>, D: PtrConv + 'static> Retrieve<D, T> for Lazy<Mods> {
+impl<T, Mods, D, S> Retrieve<D, T, S> for Lazy<Mods>
+where
+    T: 'static,
+    Mods: Retrieve<D, T, S>,
+    D: PtrConv + 'static,
+    D::Data<T, S>: ShallowCopy,
+    S: Shape,
+{
     #[inline]
-    fn retrieve<S, const NUM_PARENTS: usize>(
+    fn retrieve<const NUM_PARENTS: usize>(
         &self,
         device: &D,
         len: usize,
@@ -150,7 +162,7 @@ impl<T: 'static, Mods: Retrieve<D, T>, D: PtrConv + 'static> Retrieve<D, T> for 
     }
 
     #[inline]
-    fn on_retrieve_finish<S: Shape>(&self, retrieved_buf: &Buffer<T, D, S>)
+    fn on_retrieve_finish(&self, retrieved_buf: &Buffer<T, D, S>)
     where
         D: Alloc<T>,
     {
@@ -205,7 +217,7 @@ mod tests {
         D::Data<T, S>: Deref<Target = [T]>,
         Mods::Wrap<T, CPUPtr<T>>: core::ops::DerefMut<Target = [T]>,
         S: Shape,
-        Mods: AddOperation + Retrieve<Self, T> + 'static,
+        Mods: AddOperation + Retrieve<Self, T, S> + 'static,
     {
         #[inline]
         fn add(&self, lhs: &Buffer<T, D, S>, rhs: &Buffer<T, D, S>) -> Buffer<T, Self, S> {
@@ -324,7 +336,7 @@ mod tests {
     #[cfg(feature = "cpu")]
     #[test]
     fn test_lazy_exec_with_range() {
-        use crate::{ExecNow, Run, HostPtr};
+        use crate::{ExecNow, HostPtr, Run};
 
         let device = CPU::<Lazy<Base>>::new();
         let mut out: Buffer<i32, _, ()> = device.retrieve(4, ());

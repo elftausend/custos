@@ -51,10 +51,10 @@ pub(crate) unsafe fn register_buf<T, D, S>(
 ) where
     T: 'static,
     D: Device + PtrConv + 'static,
-    // D::Data<T, S>: ShallowCopy,
+    D::Data<T, S>: ShallowCopy,
     S: Shape,
 {
-    // buf.data
+    // buf.data.
     let wrapped_data = D::convert::<T, S, T, S>(&buf.data, AllocFlag::Wrapper);
     let buf = Buffer {
         data: wrapped_data,

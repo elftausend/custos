@@ -169,7 +169,7 @@ impl<'a, 'b, Mods: OnDropBuffer, T, S, D> From<(&'a D, Buffer<'b, T, CPU<Mods>, 
 where
     T: 'static,
     S: Shape,
-    D: WriteBuf<T, S> + Device + Retriever<T>,
+    D: WriteBuf<T, S> + Device + Retriever<T, S>,
     <CPU<Mods> as Device>::Data<T, S>: core::ops::Deref<Target = [T]>,
 {
     fn from((device, buf): (&'a D, Buffer<'b, T, CPU<Mods>, S>)) -> Self {

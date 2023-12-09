@@ -94,14 +94,14 @@ impl<Mods: OnDropBuffer, SD: Device> OnDropBuffer for CachedModule<Mods, SD> {
 }
 
 // TODO: a more general OnDropBuffer => "Module"
-impl<T, Mods, D, SimpleDevice> Retrieve<D, T> for CachedModule<Mods, SimpleDevice>
+impl<T, Mods, D, SimpleDevice, S: Shape> Retrieve<D, T, S> for CachedModule<Mods, SimpleDevice>
 where
-    Mods: Retrieve<D, T>,
+    Mods: Retrieve<D, T, S>,
     D: Device + PtrConv<SimpleDevice>,
     SimpleDevice: Device + PtrConv<D>,
 {
     #[inline]
-    fn retrieve<S: Shape, const NUM_PARENTS: usize>(
+    fn retrieve<const NUM_PARENTS: usize>(
         &self,
         device: &D,
         len: usize,
@@ -114,7 +114,7 @@ where
     }
 
     #[inline]
-    fn on_retrieve_finish<S: Shape>(&self, retrieved_buf: &Buffer<T, D, S>)
+    fn on_retrieve_finish(&self, retrieved_buf: &Buffer<T, D, S>)
     where
         D: Alloc<T>,
     {

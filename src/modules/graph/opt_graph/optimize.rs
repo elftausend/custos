@@ -405,19 +405,19 @@ mod tests {
         let inputs = Buffer::from((&device, [1; 10 * 100]));
         let targets = Buffer::from((&device, [2; 100]));
 
-        let a1: Buffer<i32, _> = device.retrieve::<(), 2>(100 * 64, (&inputs, &w1));
-        let a2: Buffer<i32, _> = device.retrieve::<(), 2>(100 * 64, (&a1, &b1));
-        let a2: Buffer<i32, _> = device.retrieve::<(), 2>(100 * 64, (&a2, &a2));
+        let a1: Buffer<i32, _> = device.retrieve::<2>(100 * 64, (&inputs, &w1));
+        let a2: Buffer<i32, _> = device.retrieve::<2>(100 * 64, (&a1, &b1));
+        let a2: Buffer<i32, _> = device.retrieve::<2>(100 * 64, (&a2, &a2));
 
-        let a3: Buffer<i32, _> = device.retrieve::<(), 2>(100 * 64, (&a2, &w2));
-        let a4: Buffer<i32, _> = device.retrieve::<(), 2>(100 * 64, (&a3, &b2));
-        let a4: Buffer<i32, _> = device.retrieve::<(), 2>(100 * 64, (&a4, &a4));
-        let a5: Buffer<i32, _> = device.retrieve::<(), 2>(100 * 64, (&a4, &w3));
-        let a6: Buffer<i32, _> = device.retrieve::<(), 2>(100 * 64, (&a5, &b3));
-        let a6: Buffer<i32, _> = device.retrieve::<(), 2>(100 * 64, (&a6, &a6));
-        let a7: Buffer<i32, _> = device.retrieve::<(), 2>(100, (&a6, &w4));
-        let a8: Buffer<i32, _> = device.retrieve::<(), 2>(100, (&a7, &b4));
-        let _loss: Buffer<i32, _> = device.retrieve::<(), 2>(100, (&a8, &targets));
+        let a3: Buffer<i32, _> = device.retrieve::<2>(100 * 64, (&a2, &w2));
+        let a4: Buffer<i32, _> = device.retrieve::<2>(100 * 64, (&a3, &b2));
+        let a4: Buffer<i32, _> = device.retrieve::<2>(100 * 64, (&a4, &a4));
+        let a5: Buffer<i32, _> = device.retrieve::<2>(100 * 64, (&a4, &w3));
+        let a6: Buffer<i32, _> = device.retrieve::<2>(100 * 64, (&a5, &b3));
+        let a6: Buffer<i32, _> = device.retrieve::<2>(100 * 64, (&a6, &a6));
+        let a7: Buffer<i32, _> = device.retrieve::<2>(100, (&a6, &w4));
+        let a8: Buffer<i32, _> = device.retrieve::<2>(100, (&a7, &b4));
+        let _loss: Buffer<i32, _> = device.retrieve::<2>(100, (&a8, &targets));
 
         let cts = device
             .modules
@@ -453,15 +453,15 @@ mod tests {
         let b: Buffer<f32, _> = device.buffer([1.1; 1000]);
 
         // idx: 2, deps: [0, 0]
-        let squared: Buffer<f32, _> = device.retrieve::<(), 2>(1000, (&x, &x));
+        let squared: Buffer<f32, _> = device.retrieve::<2>(1000, (&x, &x));
         // idx: 3, deps: [1, 0]
-        let add: Buffer<f32, _> = device.retrieve::<(), 2>(1000, (&b, &x));
+        let add: Buffer<f32, _> = device.retrieve::<2>(1000, (&b, &x));
         // idx: 4, deps: [3, 1]
-        let mul_b: Buffer<f32, _> = device.retrieve::<(), 2>(1000, (&add, &b));
+        let mul_b: Buffer<f32, _> = device.retrieve::<2>(1000, (&add, &b));
         // idx: 5, deps: [2, 0]
-        let mul: Buffer<f32, _> = device.retrieve::<(), 2>(1000, (&squared, &x));
+        let mul: Buffer<f32, _> = device.retrieve::<2>(1000, (&squared, &x));
         // idx: 6, deps: [5, 4]
-        let _out: Buffer<f32, _> = device.retrieve::<(), 2>(1000, (&mul, &mul_b));
+        let _out: Buffer<f32, _> = device.retrieve::<2>(1000, (&mul, &mul_b));
 
         let traces = device
             .modules
@@ -500,15 +500,15 @@ mod tests {
 
         for i in 0..2 {
             // idx: 2, deps: [0, 0]
-            let squared: Buffer<f32, _> = device.retrieve::<(), 2>(1000, (&x, &x));
+            let squared: Buffer<f32, _> = device.retrieve::<2>(1000, (&x, &x));
             // idx: 3, deps: [1, 0]
-            let add: Buffer<f32, _> = device.retrieve::<(), 2>(1000, (&b, &x));
+            let add: Buffer<f32, _> = device.retrieve::<2>(1000, (&b, &x));
             // idx: 4, deps: [3, 1]
-            let mul_b: Buffer<f32, _> = device.retrieve::<(), 2>(1000, (&add, &b));
+            let mul_b: Buffer<f32, _> = device.retrieve::<2>(1000, (&add, &b));
             // idx: 5, deps: [2, 0]
-            let mul: Buffer<f32, _> = device.retrieve::<(), 2>(1000, (&squared, &x));
+            let mul: Buffer<f32, _> = device.retrieve::<2>(1000, (&squared, &x));
             // idx: 6, deps: [5, 4]
-            let out: Buffer<f32, _> = device.retrieve::<(), 2>(1000, (&mul, &mul_b));
+            let out: Buffer<f32, _> = device.retrieve::<2>(1000, (&mul, &mul_b));
 
             if i == 0 {
                 assert_ne!(squared.id(), mul.id());

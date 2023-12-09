@@ -101,16 +101,15 @@ pass_down_exec_now_module!(Graph);
 pass_down_unified_mem_chain!(Graph);
 pass_down_use_gpu_or_cpu!(Graph);
 
-impl<T: 'static, Mods: Retrieve<D, T>, D: 'static> Retrieve<D, T> for Graph<Mods> {
+impl<T: 'static, Mods: Retrieve<D, T, S>, D: 'static, S: Shape> Retrieve<D, T, S> for Graph<Mods> {
     #[inline]
-    fn retrieve<S, const NUM_PARENTS: usize>(
+    fn retrieve<const NUM_PARENTS: usize>(
         &self,
         device: &D,
         len: usize,
         parents: impl Parents<NUM_PARENTS>,
     ) -> <D>::Data<T, S>
     where
-        S: Shape,
         D: Alloc<T>,
     {
         let ids = parents.ids();
@@ -136,7 +135,7 @@ impl<T: 'static, Mods: Retrieve<D, T>, D: 'static> Retrieve<D, T> for Graph<Mods
     }
 
     #[inline]
-    fn on_retrieve_finish<S: Shape>(&self, retrieved_buf: &Buffer<T, D, S>)
+    fn on_retrieve_finish(&self, retrieved_buf: &Buffer<T, D, S>)
     where
         D: Alloc<T>,
     {
