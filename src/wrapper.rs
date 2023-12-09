@@ -5,7 +5,3 @@ pub trait WrappedData {
 
     fn wrap_in_base<T, Base: HasId + PtrType>(&self, base: Base) -> Self::Wrap<T, Base>;
 }
-
-pub trait AsSlice<T> {
-
-}
