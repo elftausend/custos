@@ -324,7 +324,7 @@ mod tests {
     #[cfg(feature = "cpu")]
     #[test]
     fn test_lazy_exec_with_range() {
-        use crate::{ExecNow, Run};
+        use crate::{ExecNow, Run, HostPtr};
 
         let device = CPU::<Lazy<Base>>::new();
         let mut out: Buffer<i32, _, ()> = device.retrieve(4, ());
@@ -357,7 +357,7 @@ mod tests {
     #[cfg(feature = "cpu")]
     #[test]
     fn test_lazy_exec_last_n() {
-        use crate::{ExecNow, Run};
+        use crate::{ExecNow, Run, HostPtr};
 
         let device = CPU::<Lazy<Base>>::new();
         let mut out: Buffer<i32, _, ()> = device.retrieve(4, ());
