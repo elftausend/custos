@@ -50,7 +50,7 @@ impl<Mods> Autograd<Mods> {
     where
         T: 'static,
         D: Device + PtrConv + 'static,
-        // D::Data<T, S>: ShallowCopy,
+        D::Data<T, S>: ShallowCopy,
         S: Shape,
     {
         let no_grads_pool = unsafe { &mut (*(self.grads.get())).no_grads_pool.cache };
@@ -68,7 +68,7 @@ impl<T, D, Mods, S: Shape> OnNewBuffer<T, D, S> for Autograd<Mods>
 where
     T: 'static,
     D: Alloc<T> + PtrConv + 'static,
-    // D::Data<T, S>: ShallowCopy,
+    D::Data<T, S>: ShallowCopy,
     Mods: OnNewBuffer<T, D, S>,
 {
     #[inline]
