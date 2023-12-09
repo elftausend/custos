@@ -40,7 +40,7 @@ impl<Mods> IsCPU for CPU<Mods> {}
 
 impl<Mods: OnDropBuffer> Device for CPU<Mods> {
     type Error = Infallible;
-    type Data<T, S: Shape> = Mods::Wrap<CPUPtr<T>>;
+    type Data<T, S: Shape> = Mods::Wrap<T, CPUPtr<T>>;
     // type WrappedData<T, S: Shape> = ;
 
     fn new() -> Result<Self, Self::Error> {
@@ -50,10 +50,10 @@ impl<Mods: OnDropBuffer> Device for CPU<Mods> {
 }
 
 impl<Mods: WrappedData> WrappedData for CPU<Mods> {
-    type Wrap<Base: crate::HasId + crate::PtrType> = Mods::Wrap<Base>;
+    type Wrap<T, Base: crate::HasId + crate::PtrType> = Mods::Wrap<T, Base>;
 
     #[inline]
-    fn wrap_in_base<Base: crate::HasId + crate::PtrType>(&self, base: Base) -> Self::Wrap<Base> {
+    fn wrap_in_base<T, Base: crate::HasId + crate::PtrType>(&self, base: Base) -> Self::Wrap<T, Base> {
         self.modules.wrap_in_base(base)
     }
 }
@@ -160,9 +160,9 @@ where
 impl<Mods: OnDropBuffer, OtherMods: OnDropBuffer> PtrConv<CPU<OtherMods>> for CPU<Mods> {
     #[inline]
     unsafe fn convert<T, IS: Shape, Conv, OS: Shape>(
-        data: &Mods::Wrap<CPUPtr<T>>,
+        data: &Mods::Wrap<T, CPUPtr<T>>,
         flag: AllocFlag,
-    ) -> OtherMods::Wrap<CPUPtr<Conv>> {
+    ) -> OtherMods::Wrap<Conv, CPUPtr<Conv>> {
         // data.flag()
         todo!()
         // CPUPtr {

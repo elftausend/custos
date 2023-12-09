@@ -50,10 +50,10 @@ pub struct Fork<Mods> {
 }
 
 impl<Mods: WrappedData> WrappedData for Fork<Mods> {
-    type Wrap<Base: HasId + PtrType> = Mods::Wrap<Base>;
+    type Wrap<T, Base: HasId + PtrType> = Mods::Wrap<T, Base>;
 
     #[inline]
-    fn wrap_in_base<Base: HasId + PtrType>(&self, base: Base) -> Self::Wrap<Base> {
+    fn wrap_in_base<T, Base: HasId + PtrType>(&self, base: Base) -> Self::Wrap<T, Base> {
         self.modules.wrap_in_base(base)
     }
 }

@@ -82,10 +82,10 @@ impl<T: Default> Alloc<T> for () {
 }
 
 impl WrappedData for () {
-    type Wrap<Base: crate::HasId + crate::PtrType> = Base;
+    type Wrap<T, Base: crate::HasId + crate::PtrType> = Base;
 
     #[inline]
-    fn wrap_in_base<Base: HasId + PtrType>(&self, _base: Base) -> Self::Wrap<Base> {
+    fn wrap_in_base<T, Base: HasId + PtrType>(&self, _base: Base) -> Self::Wrap<T, Base> {
         unimplemented!()
     }
 }

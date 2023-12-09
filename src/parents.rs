@@ -18,6 +18,7 @@ impl Parents<0> for () {
 }
 
 impl AllParents for () {}
+
 impl UpdateArg for () {
     fn update_arg(
         &mut self,

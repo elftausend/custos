@@ -61,12 +61,6 @@ pub trait Alloc<T>: Device + Sized {
     }
 }
 
-pub trait WrappedData {
-    type Wrap<Base: HasId + PtrType>: HasId + PtrType;
-
-    fn wrap_in_base<Base: HasId + PtrType>(&self, base: Base) -> Self::Wrap<Base>;
-}
-
 pub trait Module<D> {
     type Module;
 

@@ -40,7 +40,7 @@ impl std::error::Error for CachingError {}
 
 #[derive(Debug, Default)]
 pub struct BorrowCache {
-    pub cache: HashMap<UniqueId, Box<dyn Any>, BuildHasherDefault<NoHasher>>,
+    pub(crate) cache: HashMap<UniqueId, Box<dyn Any>, BuildHasherDefault<NoHasher>>,
 }
 
 // TODO: make BorrowedCache unuseable without device (=> Static get methods with D: CacheReturn)

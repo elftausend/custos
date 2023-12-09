@@ -7,10 +7,10 @@ use crate::{
 pub struct Base;
 
 impl WrappedData for Base {
-    type Wrap<Base: HasId + PtrType> = Base;
+    type Wrap<T, Base: HasId + PtrType> = Base;
 
     #[inline]
-    fn wrap_in_base<Base: HasId + PtrType>(&self, base: Base) -> Self::Wrap<Base> {
+    fn wrap_in_base<T, Base: HasId + PtrType>(&self, base: Base) -> Self::Wrap<T, Base> {
         base
     }
 }

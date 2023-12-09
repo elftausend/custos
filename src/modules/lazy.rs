@@ -1,13 +1,14 @@
 mod lazy_graph;
 mod ty;
+mod wrapper;
 pub use ty::*;
 
 use crate::{
     pass_down_tape_actions, AddOperation, Alloc, Buffer, Device, ExecNow, HasId, Module, NoHasher,
-    OnDropBuffer, OnNewBuffer, Parents, PtrConv, PtrType, Retrieve, RunModule, Setup, Shape,
-    UniqueId, UpdateArgs, WrappedData,
+    OnDropBuffer, OnNewBuffer, Parents, PtrConv, Retrieve, RunModule, Setup, Shape,
+    UniqueId, UpdateArgs,
 };
-use core::{any::Any, cell::RefCell, fmt::Debug, hash::BuildHasherDefault, ops::Deref};
+use core::{any::Any, cell::RefCell, fmt::Debug, hash::BuildHasherDefault};
 use std::collections::HashMap;
 
 pub use self::lazy_graph::LazyGraph;
@@ -36,52 +37,6 @@ pub trait LazyRun {
     #[inline]
     fn run(&self) -> crate::Result<()> {
         Ok(())
-    }
-}
-
-pub struct LazyWrapper<Data> {
-    data: Data,
-}
-
-impl<Data: HasId> HasId for LazyWrapper<Data> {
-    #[inline]
-    fn id(&self) -> crate::Id {
-        self.data.id()
-    }
-}
-
-impl<Data: PtrType> PtrType for LazyWrapper<Data> {
-    #[inline]
-    fn size(&self) -> usize {
-        self.data.size()
-    }
-
-    #[inline]
-    fn flag(&self) -> crate::flag::AllocFlag {
-        self.data.flag()
-    }
-
-    #[inline]
-    unsafe fn set_flag(&mut self, flag: crate::flag::AllocFlag) {
-        self.data.set_flag(flag)
-    }
-}
-
-impl<Data> Deref for LazyWrapper<Data> {
-    type Target = Data;
-
-    #[inline]
-    fn deref(&self) -> &Self::Target {
-        &self.data
-    }
-}
-
-impl<Mods: WrappedData> WrappedData for Lazy<Mods> {
-    type Wrap<Base: HasId + PtrType> = Mods::Wrap<Base>;
-
-    #[inline]
-    fn wrap_in_base<Base: HasId + PtrType>(&self, base: Base) -> Self::Wrap<Base> {
-        self.modules.wrap_in_base(base)
     }
 }
 
@@ -248,7 +203,7 @@ mod tests {
         T: Add<Output = T> + Copy + 'static,
         D: Device + 'static,
         D::Data<T, S>: Deref<Target = [T]>,
-        Mods::Wrap<CPUPtr<T>>: core::ops::DerefMut<Target = [T]>,
+        Mods::Wrap<T, CPUPtr<T>>: core::ops::DerefMut<Target = [T]>,
         S: Shape,
         Mods: AddOperation + Retrieve<Self, T> + 'static,
     {
@@ -396,7 +351,7 @@ mod tests {
             assert_eq!(out.as_slice(), [2, 4, 6, 8])
         }
         unsafe { device.run().unwrap() };
-        assert_eq!(out.as_slice(), [0; 4])
+        assert_eq!(&**out, [0; 4])
     }
 
     #[cfg(feature = "cpu")]
