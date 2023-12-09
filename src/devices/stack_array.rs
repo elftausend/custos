@@ -3,7 +3,7 @@ use core::{
     ptr::null_mut,
 };
 
-use crate::{shape::Shape, CommonPtrs, HasId, PtrType, ShallowCopy, HostPtr};
+use crate::{shape::Shape, CommonPtrs, HasId, HostPtr, PtrType, ShallowCopy};
 
 /// A possibly multi-dimensional array allocated on the stack.
 /// It uses `S:`[`Shape`] to get the type of the array.

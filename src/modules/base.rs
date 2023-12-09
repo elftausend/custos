@@ -1,6 +1,6 @@
 use crate::{
     flag::AllocFlag, AddGradFn, AddOperation, Alloc, Device, ExecNow, HasId, HashLocation, Module,
-    OnDropBuffer, OnNewBuffer, OptimizeMemGraph, Parents, PtrType, Retrieve, Setup, WrappedData,
+    OnDropBuffer, OnNewBuffer, OptimizeMemGraph, Parents, PtrType, Retrieve, Setup, WrappedData, Shape,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
@@ -48,7 +48,7 @@ impl<D: Device> ExecNow<D> for Base {
 
 impl<D> Setup<D> for Base {}
 
-impl<T, D: Device> OnNewBuffer<T, D> for Base {}
+impl<T, D: Device, S: Shape> OnNewBuffer<T, D, S> for Base {}
 
 impl OnDropBuffer for Base {}
 

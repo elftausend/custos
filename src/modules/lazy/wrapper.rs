@@ -1,14 +1,16 @@
-use core::{ops::{Deref, DerefMut}, marker::PhantomData};
+use core::{
+    marker::PhantomData,
+    ops::{Deref, DerefMut},
+};
 
-use crate::{HasId, PtrType, WrappedData, Lazy, HostPtr, Id, ShallowCopy};
+use crate::{HasId, HostPtr, Id, Lazy, PtrType, ShallowCopy, WrappedData};
 
 #[derive(Debug, Default)]
 pub struct LazyWrapper<Data, T> {
     data: Option<Data>,
     id: Option<Id>,
-    _pd: PhantomData<T>
+    _pd: PhantomData<T>,
 }
-
 
 impl<Mods: WrappedData> WrappedData for Lazy<Mods> {
     type Wrap<T, Base: HasId + PtrType> = LazyWrapper<Mods::Wrap<T, Base>, T>;
@@ -79,7 +81,7 @@ impl<Data: ShallowCopy, T> ShallowCopy for LazyWrapper<Data, T> {
         LazyWrapper {
             id: self.id,
             data: self.data.as_ref().map(|data| data.shallow()),
-            _pd: PhantomData
+            _pd: PhantomData,
         }
     }
 }

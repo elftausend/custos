@@ -9,7 +9,7 @@ use core::cell::UnsafeCell;
 use crate::{
     pass_down_add_operation, pass_down_exec_now_module, register_buf, unregister_buf, AddGradFn,
     Alloc, Buffer, Device, HasId, Module, OnDropBuffer, OnNewBuffer, Parents, PtrConv, PtrType,
-    Retrieve, RunModule, Setup, Shape, TapeActions, WrappedData, ShallowCopy,
+    Retrieve, RunModule, Setup, ShallowCopy, Shape, TapeActions, WrappedData,
 };
 
 use super::{Cached, CachedModule};
@@ -64,15 +64,15 @@ impl<Mods> Autograd<Mods> {
     }
 }
 
-impl<T, D, Mods> OnNewBuffer<T, D> for Autograd<Mods>
+impl<T, D, Mods, S: Shape> OnNewBuffer<T, D, S> for Autograd<Mods>
 where
     T: 'static,
     D: Alloc<T> + PtrConv + 'static,
     // D::Data<T, S>: ShallowCopy,
-    Mods: OnNewBuffer<T, D>,
+    Mods: OnNewBuffer<T, D, S>,
 {
     #[inline]
-    fn on_new_buffer<S: Shape>(&self, device: &D, new_buf: &Buffer<T, D, S>) {
+    fn on_new_buffer(&self, device: &D, new_buf: &Buffer<T, D, S>) {
         self.register_no_grad_buf(new_buf);
 
         // allocates gradient memory for the corresponding buffer id

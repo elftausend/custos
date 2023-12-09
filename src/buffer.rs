@@ -70,7 +70,7 @@ impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
     #[inline]
     pub fn new(device: &'a D, len: usize) -> Self
     where
-        D: OnNewBuffer<T, D> + Alloc<T>,
+        D: OnNewBuffer<T, D, S> + Alloc<T>,
     {
         let data = device.alloc(len, crate::flag::AllocFlag::None);
         Buffer::from_new_alloc(device, data)
@@ -80,7 +80,7 @@ impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
     #[track_caller]
     fn from_new_alloc(device: &'a D, data: D::Data<T, S>) -> Self
     where
-        D: OnNewBuffer<T, D>,
+        D: OnNewBuffer<T, D, S>,
     {
         let buf = Buffer {
             data,
@@ -95,7 +95,7 @@ impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
     #[inline]
     pub fn empty_like(&self) -> Buffer<'a, T, D, S>
     where
-        D: Alloc<T> + OnNewBuffer<T, D>,
+        D: Alloc<T> + OnNewBuffer<T, D, S>,
     {
         Buffer::new(self.device(), self.len())
     }
@@ -136,7 +136,7 @@ impl<'a, T, D: Device, S: Shape> Drop for Buffer<'a, T, D, S> {
     }
 }
 
-impl<'a, T, D: Device + OnNewBuffer<T, D>, S: Shape> Buffer<'a, T, D, S> {
+impl<'a, T, D: Device + OnNewBuffer<T, D, S>, S: Shape> Buffer<'a, T, D, S> {
     /// Creates a new `Buffer` from a slice (&[T]).
     #[inline]
     pub fn from_slice(device: &'a D, slice: &[T]) -> Self

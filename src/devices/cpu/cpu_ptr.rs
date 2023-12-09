@@ -7,7 +7,7 @@ use core::{
 
 use std::alloc::handle_alloc_error;
 
-use crate::{flag::AllocFlag, CommonPtrs, HasId, Id, PtrType, ShallowCopy, HostPtr};
+use crate::{flag::AllocFlag, CommonPtrs, HasId, HostPtr, Id, PtrType, ShallowCopy};
 
 /// The pointer used for `CPU` [`Buffer`](crate::Buffer)s
 #[derive(Debug)]

@@ -10,8 +10,7 @@ use core::{cell::RefCell, panic::Location};
 use crate::{
     pass_down_add_operation, pass_down_exec_now_module, pass_down_unified_mem_chain,
     pass_down_use_gpu_or_cpu, Alloc, Buffer, Device, HasId, Module, OnDropBuffer, OnNewBuffer,
-    OptimizeMemGraph, Parents, PtrType, Retrieve, Setup, Shape, TranslatedCacheTrace,
-    WrappedData,
+    OptimizeMemGraph, Parents, PtrType, Retrieve, Setup, Shape, TranslatedCacheTrace, WrappedData,
 };
 
 use self::graph_translator::GraphTranslator;
@@ -78,8 +77,8 @@ impl<Mods: OptimizeMemGraph> OptimizeMemGraph for Graph<Mods> {
     }
 }
 
-impl<Mods: OnNewBuffer<T, D>, T, D: Device> OnNewBuffer<T, D> for Graph<Mods> {
-    fn on_new_buffer<S: Shape>(&self, _device: &D, new_buf: &crate::Buffer<T, D, S>) {
+impl<Mods: OnNewBuffer<T, D, S>, T, D: Device, S: Shape> OnNewBuffer<T, D, S> for Graph<Mods> {
+    fn on_new_buffer(&self, _device: &D, new_buf: &crate::Buffer<T, D, S>) {
         let mut graph_trans = self.graph_trans.borrow_mut();
         let next_idx = graph_trans.next_idx;
 

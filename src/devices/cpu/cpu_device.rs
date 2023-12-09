@@ -7,8 +7,8 @@ use core::{
 use crate::{
     cpu::CPUPtr, flag::AllocFlag, impl_buffer_hook_traits, impl_retriever, pass_down_grad_fn,
     pass_down_optimize_mem_graph, pass_down_tape_actions, Alloc, Base, Buffer, CloneBuf, Device,
-    DevicelessAble, HasModules, Module, OnDropBuffer, OnNewBuffer, PtrConv, Setup, Shape,
-    WrappedData, PtrType,
+    DevicelessAble, HasModules, Module, OnDropBuffer, OnNewBuffer, PtrConv, PtrType, Setup, Shape,
+    WrappedData,
 };
 
 pub trait IsCPU {}
@@ -53,7 +53,10 @@ impl<Mods: WrappedData> WrappedData for CPU<Mods> {
     type Wrap<T, Base: crate::HasId + crate::PtrType> = Mods::Wrap<T, Base>;
 
     #[inline]
-    fn wrap_in_base<T, Base: crate::HasId + crate::PtrType>(&self, base: Base) -> Self::Wrap<T, Base> {
+    fn wrap_in_base<T, Base: crate::HasId + crate::PtrType>(
+        &self,
+        base: Base,
+    ) -> Self::Wrap<T, Base> {
         self.modules.wrap_in_base(base)
     }
 }
@@ -143,9 +146,9 @@ impl<Mods> crate::LazySetup for CPU<Mods> {}
 #[cfg(feature = "fork")]
 impl<Mods> crate::ForkSetup for CPU<Mods> {}
 
-impl<'a, Mods: OnDropBuffer + OnNewBuffer<T, Self>, T: Clone, S: Shape> CloneBuf<'a, T, S>
+impl<'a, Mods: OnDropBuffer + OnNewBuffer<T, Self, S>, T: Clone, S: Shape> CloneBuf<'a, T, S>
     for CPU<Mods>
-where 
+where
     Self::Data<T, S>: DerefMut<Target = [T]>,
 {
     #[inline]
