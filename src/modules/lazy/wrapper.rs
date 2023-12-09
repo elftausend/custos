@@ -3,7 +3,7 @@ use core::{
     ops::{Deref, DerefMut},
 };
 
-use crate::{HasId, HostPtr, Id, Lazy, PtrType, ShallowCopy, WrappedData};
+use crate::{HasId, HostPtr, Id, Lazy, PtrType, ShallowCopy, Shape, WrappedData};
 
 #[derive(Debug, Default)]
 pub struct LazyWrapper<Data, T> {
@@ -87,6 +87,21 @@ impl<Data: ShallowCopy, T> ShallowCopy for LazyWrapper<Data, T> {
         LazyWrapper {
             id: self.id,
             data: self.data.as_ref().map(|data| data.shallow()),
+            _pd: PhantomData,
+        }
+    }
+}
+
+impl<Data: crate::ConvPtr<NewT, NewS, ConvertTo = Data>, T, NewT, NewS: Shape>
+    crate::ConvPtr<NewT, NewS> for LazyWrapper<Data, T>
+{
+    type ConvertTo = LazyWrapper<Data, NewT>;
+
+    #[inline]
+    unsafe fn convert(&self, flag: crate::flag::AllocFlag) -> Self::ConvertTo {
+        LazyWrapper {
+            id: self.id,
+            data: self.data.as_ref().map(|data| data.convert(flag)),
             _pd: PhantomData,
         }
     }

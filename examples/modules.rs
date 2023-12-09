@@ -34,8 +34,9 @@ where
     T: Add<Output = T> + AddAssign + Mul<Output = T> + Copy + 'static,
     D: Device + Alloc<T> + MayTapeActions + 'static,
     D::Data<T, S>: Deref<Target = [T]> + DerefMut,
+    Self::Data<T, S>: DerefMut<Target = [T]>,
     S: Shape,
-    Mods: Retrieve<Self, T> + AddOperation + MayTapeActions + AddGradFn + 'static,
+    Mods: Retrieve<Self, T, S> + AddOperation + MayTapeActions + AddGradFn + 'static,
 {
     #[track_caller]
     fn add(

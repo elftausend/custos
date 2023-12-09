@@ -28,9 +28,7 @@ mod fork;
 pub use fork::*;
 
 #[cfg(not(feature = "no-std"))]
-use crate::{
-    flag::AllocFlag, Buffer, Device, HasId, HashLocation, Id, PtrConv, ShallowCopy, Shape, UniqueId,
-};
+use crate::{Buffer, Device, HasId, HashLocation, Id, PtrConv, ShallowCopy, Shape, UniqueId};
 #[cfg(not(feature = "no-std"))]
 use core::{any::Any, hash::BuildHasher};
 

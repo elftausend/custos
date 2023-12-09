@@ -1,4 +1,4 @@
-use std::ops::Deref;
+use std::ops::{Deref, DerefMut};
 
 use custos::{number::Number, Buffer, CDatatype, Device, Retrieve, Retriever, CPU};
 
@@ -25,6 +25,7 @@ where
     Mods: Retrieve<Self, T>,
     D: Device,
     D::Data<T, ()>: Deref<Target = [T]>,
+    Self::Data<T, ()>: DerefMut<Target = [T]>,
     T: Number,
 {
     fn add(&self, lhs: &Buffer<T, D>, rhs: &Buffer<T, D>) -> Buffer<T, Self> {

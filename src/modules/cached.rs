@@ -3,7 +3,7 @@ use core::{cell::RefCell, marker::PhantomData};
 use crate::{
     AddGradFn, AddOperation, Alloc, Buffer, Cache, Device, DeviceError, ExecNow, HasId, Module,
     OnDropBuffer, OnNewBuffer, OptimizeMemGraph, Parents, PtrConv, PtrType, Retrieve, RunModule,
-    Setup, Shape, WrappedData,
+    Setup, ShallowCopy, Shape, WrappedData,
 };
 
 // creator struct
@@ -35,18 +35,19 @@ impl<Mods: Module<D>, D: Device> Module<D> for Cached<Mods> {
     fn new() -> Self::Module {
         CachedModule {
             modules: Mods::new(),
-            cache: RefCell::new(Cache {
-                nodes: Default::default(),
-            }),
+            cache: RefCell::new(Cache::new()),
+            pd: PhantomData
         }
     }
 }
 
 // impl<Mods> OnDropBuffer for Cached<Mods> {}
 
+// TODO: could remove D generic and therefore CachedModule
 pub struct CachedModule<Mods, D: Device> {
     pub modules: Mods,
-    pub cache: RefCell<Cache<D>>,
+    pub cache: RefCell<Cache>,
+    pd: PhantomData<D>
 }
 
 impl<Mods: Setup<NewDev>, D: Device, NewDev> Setup<NewDev> for CachedModule<Mods, D> {
@@ -97,7 +98,8 @@ impl<Mods: OnDropBuffer, SD: Device> OnDropBuffer for CachedModule<Mods, SD> {
 impl<T, Mods, D, SimpleDevice, S: Shape> Retrieve<D, T, S> for CachedModule<Mods, SimpleDevice>
 where
     Mods: Retrieve<D, T, S>,
-    D: Device + PtrConv<SimpleDevice>,
+    D: Device + PtrConv<SimpleDevice> + 'static,
+    D::Data<T, S>: ShallowCopy + 'static,
     SimpleDevice: Device + PtrConv<D>,
 {
     #[inline]
@@ -251,7 +253,7 @@ macro_rules! debug_assert_tracked {
 /// use custos::{Dim1, retrieve, CPU, Retriever, Buffer, Retrieve, Cached, Base};
 ///
 /// #[track_caller]
-/// fn add_bufs<Mods: Retrieve<CPU<Mods>, f32>>(device: &CPU<Mods>) -> Buffer<f32, CPU<Mods>, Dim1<30>> {
+/// fn add_bufs<Mods: Retrieve<CPU<Mods>, f32, Dim1<30>>>(device: &CPU<Mods>) -> Buffer<f32, CPU<Mods>, Dim1<30>> {
 ///     retrieve!(device, 10, ())
 /// }
 ///

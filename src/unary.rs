@@ -284,7 +284,7 @@ mod tests {
     #[cfg(feature = "autograd")]
     #[cfg_attr(
         miri,
-        ignore("location is always different with miri - caching etc does not work")
+        ignore = "location is always different with miri - caching etc does not work"
     )]
     #[test]
     fn test_unary_elementwise_may_grad_multiple_times_backwards_at_end() {
