@@ -2,7 +2,7 @@ use core::{cell::RefCell, marker::PhantomData};
 
 use crate::{
     AddGradFn, AddOperation, Alloc, Buffer, Cache, Device, DeviceError, ExecNow, HasId, Module,
-    OnDropBuffer, OnNewBuffer, OptimizeMemGraph, Parents, PtrConv, PtrType, Retrieve, RunModule,
+    OnDropBuffer, OnNewBuffer, OptimizeMemGraph, Parents, PtrType, Retrieve, RunModule,
     Setup, ShallowCopy, Shape, WrappedData,
 };
 
@@ -36,7 +36,7 @@ impl<Mods: Module<D>, D: Device> Module<D> for Cached<Mods> {
         CachedModule {
             modules: Mods::new(),
             cache: RefCell::new(Cache::new()),
-            pd: PhantomData
+            pd: PhantomData,
         }
     }
 }
@@ -47,7 +47,7 @@ impl<Mods: Module<D>, D: Device> Module<D> for Cached<Mods> {
 pub struct CachedModule<Mods, D: Device> {
     pub modules: Mods,
     pub cache: RefCell<Cache>,
-    pd: PhantomData<D>
+    pd: PhantomData<D>,
 }
 
 impl<Mods: Setup<NewDev>, D: Device, NewDev> Setup<NewDev> for CachedModule<Mods, D> {
@@ -98,9 +98,9 @@ impl<Mods: OnDropBuffer, SD: Device> OnDropBuffer for CachedModule<Mods, SD> {
 impl<T, Mods, D, SimpleDevice, S: Shape> Retrieve<D, T, S> for CachedModule<Mods, SimpleDevice>
 where
     Mods: Retrieve<D, T, S>,
-    D: Device + PtrConv<SimpleDevice> + 'static,
+    D: Device + 'static,
     D::Data<T, S>: ShallowCopy + 'static,
-    SimpleDevice: Device + PtrConv<D>,
+    SimpleDevice: Device,
 {
     #[inline]
     fn retrieve<const NUM_PARENTS: usize>(

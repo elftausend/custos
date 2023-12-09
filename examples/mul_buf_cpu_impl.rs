@@ -1,5 +1,5 @@
 use custos::prelude::*;
-use std::ops::{Deref, Mul, DerefMut};
+use std::ops::{Deref, DerefMut, Mul};
 
 pub trait MulBuf<T, S: Shape = (), D: Device = Self>: Sized + Device {
     fn mul(&self, lhs: &Buffer<T, D, S>, rhs: &Buffer<T, D, S>) -> Buffer<T, Self, S>;
