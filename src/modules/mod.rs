@@ -54,8 +54,11 @@ pub(crate) unsafe fn register_buf<T, D, S>(
     D::Data<T, S>: ShallowCopy,
     S: Shape,
 {
-    // buf.data.
-    let wrapped_data = D::convert::<T, S, T, S>(&buf.data, AllocFlag::Wrapper);
+    // shallow copy sets flag to AllocFlag::Wrapper
+    let wrapped_data = buf.data.shallow();
+
+    // let wrapped_data = D::convert::<T, S, T, S>(&buf.data, AllocFlag::Wrapper);
+
     let buf = Buffer {
         data: wrapped_data,
         device: buf.device,

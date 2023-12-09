@@ -178,8 +178,8 @@ mod tests {
     use core::ops::{Add, Deref};
 
     use crate::{
-        cpu::CPUPtr, AddOperation, ApplyFunction, Base, Buffer, Combiner, Device, Retrieve,
-        Retriever, Shape, CPU,
+        AddOperation, ApplyFunction, Base, Buffer, Combiner, Device, HostPtr, Retrieve, Retriever,
+        Shape, CPU,
     };
 
     use super::Lazy;
@@ -215,7 +215,7 @@ mod tests {
         T: Add<Output = T> + Copy + 'static,
         D: Device + 'static,
         D::Data<T, S>: Deref<Target = [T]>,
-        Mods::Wrap<T, CPUPtr<T>>: core::ops::DerefMut<Target = [T]>,
+        Self::Data<T, S>: HostPtr<T>,
         S: Shape,
         Mods: AddOperation + Retrieve<Self, T, S> + 'static,
     {
@@ -223,7 +223,7 @@ mod tests {
         fn add(&self, lhs: &Buffer<T, D, S>, rhs: &Buffer<T, D, S>) -> Buffer<T, Self, S> {
             let mut out = self.retrieve(lhs.len(), ());
             self.add_op((lhs, rhs, &mut out), |(lhs, rhs, out)| {
-                add_ew_slice(lhs, rhs, out);
+                add_ew_slice(lhs, rhs, out.as_mut_slice());
                 Ok(())
             })
             .unwrap();

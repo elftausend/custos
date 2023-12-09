@@ -18,15 +18,21 @@ impl<Mods: WrappedData> WrappedData for Lazy<Mods> {
 
     #[inline]
     fn wrap_in_base<T, Base: HasId + PtrType>(&self, base: Base) -> Self::Wrap<T, Base> {
-        todo!()
-        // self.modules.wrap_in_base(base)
+        LazyWrapper {
+            data: Some(self.modules.wrap_in_base(base)),
+            id: None,
+            _pd: PhantomData,
+        }
     }
 }
 
 impl<Data: HasId, T> HasId for LazyWrapper<Data, T> {
     #[inline]
     fn id(&self) -> crate::Id {
-        self.id.unwrap()
+        match self.id {
+            Some(id) => id,
+            None => self.data.as_ref().unwrap().id(),
+        }
     }
 }
 
