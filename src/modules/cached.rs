@@ -2,8 +2,8 @@ use core::{cell::RefCell, marker::PhantomData};
 
 use crate::{
     AddGradFn, AddOperation, Alloc, Buffer, Cache, Device, DeviceError, ExecNow, HasId, Module,
-    OnDropBuffer, OnNewBuffer, OptimizeMemGraph, Parents, PtrType, Retrieve, RunModule,
-    Setup, ShallowCopy, Shape, WrappedData,
+    OnDropBuffer, OnNewBuffer, OptimizeMemGraph, Parents, PtrType, Retrieve, RunModule, Setup,
+    ShallowCopy, Shape, WrappedData,
 };
 
 // creator struct

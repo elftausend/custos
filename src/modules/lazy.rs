@@ -4,11 +4,16 @@ mod wrapper;
 pub use ty::*;
 
 use crate::{
-    pass_down_tape_actions, AddOperation, Alloc, Buffer, Device, ExecNow, HasId, Module, NoHasher,
-    OnDropBuffer, OnNewBuffer, Parents, PtrConv, Retrieve, RunModule, Setup, ShallowCopy, Shape,
-    UniqueId, UpdateArgs, WrappedData,
+    pass_down_tape_actions, AddOperation, Alloc, Buffer, Device, ExecNow, HasId, Id, Module,
+    NoHasher, OnDropBuffer, OnNewBuffer, Parents, PtrConv, Retrieve, RunModule, Setup, ShallowCopy,
+    Shape, UniqueId, UpdateArgs, WrappedData,
 };
-use core::{any::Any, cell::RefCell, fmt::Debug, hash::BuildHasherDefault};
+use core::{
+    any::Any,
+    cell::{Cell, RefCell},
+    fmt::Debug,
+    hash::BuildHasherDefault,
+};
 use std::collections::HashMap;
 
 pub use self::lazy_graph::LazyGraph;
@@ -18,6 +23,7 @@ use super::register_buf;
 #[derive(Default)]
 pub struct Lazy<Mods> {
     pub modules: Mods,
+    pub id_count: Cell<u64>,
     buffers: RefCell<HashMap<UniqueId, Box<dyn Any>, BuildHasherDefault<NoHasher>>>,
     graph: RefCell<LazyGraph>,
 }
@@ -51,6 +57,7 @@ impl<Mods: Module<D>, D: LazySetup + Device> Module<D> for Lazy<Mods> {
             modules: Mods::new(),
             buffers: Default::default(),
             graph: Default::default(),
+            id_count: Default::default(),
         }
     }
 }
@@ -151,10 +158,9 @@ where
     #[inline]
     fn retrieve<const NUM_PARENTS: usize>(
         &self,
-        device: &D,
+        _device: &D,
         len: usize,
-        parents: impl Parents<NUM_PARENTS>,
-    // ) -> D::Data<T, S>
+        _parents: impl Parents<NUM_PARENTS>,
     ) -> Self::Wrap<T, D::Base<T, S>>
     where
         S: Shape,
@@ -162,9 +168,11 @@ where
     {
         // self.modules.retrieve(device, len, parents)
         LazyWrapper {
-            data: Some(self.modules.retrieve(device, len, parents)),
-            // id: Some(),
-            id: None,
+            data: None,
+            id: Some(Id {
+                id: self.id_count.get(),
+                len,
+            }),
             _pd: core::marker::PhantomData,
         }
     }
@@ -174,7 +182,7 @@ where
     where
         D: Alloc<T>,
     {
-        unsafe { register_buf(&mut self.buffers.borrow_mut(), retrieved_buf) };
+        // unsafe { register_buf(&mut self.buffers.borrow_mut(), retrieved_buf) };
 
         // pass down
         self.modules.on_retrieve_finish(retrieved_buf)
@@ -201,7 +209,6 @@ mod tests {
 
         let x: Buffer<i32, _> = device.retrieve(10, ());
         let res = &x.data;
-
     }
 
     #[test]

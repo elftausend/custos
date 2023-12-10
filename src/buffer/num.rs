@@ -60,7 +60,7 @@ impl<T> From<T> for Num<T> {
 impl Device for () {
     type Data<T, S: crate::Shape> = Self::Base<T, S>;
     type Base<T, S> = Num<T>;
-    
+
     type Error = Infallible;
 
     fn new() -> Result<Self, Infallible> {
@@ -71,12 +71,14 @@ impl Device for () {
     fn base_to_data<T, S: crate::Shape>(&self, base: Self::Base<T, S>) -> Self::Data<T, S> {
         base
     }
-    
+
     #[inline(always)]
-    fn wrap_to_data<T, S: crate::Shape>(&self, wrap: Self::Wrap<T, Self::Base<T, S>>) -> Self::Data<T, S> {
+    fn wrap_to_data<T, S: crate::Shape>(
+        &self,
+        wrap: Self::Wrap<T, Self::Base<T, S>>,
+    ) -> Self::Data<T, S> {
         wrap
     }
-
 }
 
 impl<T: Default> Alloc<T> for () {

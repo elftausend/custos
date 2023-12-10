@@ -1,7 +1,4 @@
-use core::{
-    convert::Infallible,
-    ops::DerefMut,
-};
+use core::{convert::Infallible, ops::DerefMut};
 
 use crate::{
     cpu::CPUPtr, flag::AllocFlag, impl_buffer_hook_traits, impl_retriever, pass_down_grad_fn,

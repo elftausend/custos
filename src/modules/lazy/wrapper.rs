@@ -3,7 +3,7 @@ use core::{
     ops::{Deref, DerefMut},
 };
 
-use crate::{HasId, HostPtr, Id, Lazy, PtrType, ShallowCopy, Shape, WrappedData};
+use crate::{flag::AllocFlag, HasId, HostPtr, Id, Lazy, PtrType, ShallowCopy, Shape, WrappedData};
 
 #[derive(Debug, Default)]
 pub struct LazyWrapper<Data, T> {
@@ -46,12 +46,15 @@ impl<Data: PtrType, T> PtrType for LazyWrapper<Data, T> {
     }
 
     #[inline]
-    fn flag(&self) -> crate::flag::AllocFlag {
-        self.data.as_ref().unwrap().flag()
+    fn flag(&self) -> AllocFlag {
+        self.data
+            .as_ref()
+            .map(|data| data.flag())
+            .unwrap_or(AllocFlag::Lazy)
     }
 
     #[inline]
-    unsafe fn set_flag(&mut self, flag: crate::flag::AllocFlag) {
+    unsafe fn set_flag(&mut self, flag: AllocFlag) {
         self.data.as_mut().unwrap().set_flag(flag)
     }
 }
