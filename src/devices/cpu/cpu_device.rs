@@ -1,13 +1,12 @@
 use core::{
     convert::Infallible,
-    mem::{align_of, size_of},
-    ops::{Deref, DerefMut},
+    ops::DerefMut,
 };
 
 use crate::{
     cpu::CPUPtr, flag::AllocFlag, impl_buffer_hook_traits, impl_retriever, pass_down_grad_fn,
     pass_down_optimize_mem_graph, pass_down_tape_actions, Alloc, Base, Buffer, CloneBuf, Device,
-    DevicelessAble, HasModules, Module, OnDropBuffer, OnNewBuffer, PtrConv, PtrType, Setup, Shape,
+    DevicelessAble, HasModules, Module, OnDropBuffer, OnNewBuffer, PtrConv, Setup, Shape,
     WrappedData,
 };
 
@@ -111,7 +110,7 @@ impl<T, Mods: OnDropBuffer> Alloc<T> for CPU<Mods> {
         CPUPtr::new_initialized(len, flag)
     }
 
-    fn alloc_from_slice<S>(&self, data: &[T]) -> Self::Data<T, S>
+    fn alloc_from_slice<S>(&self, data: &[T]) -> Self::Base<T, S>
     where
         S: Shape,
         T: Clone,
@@ -123,10 +122,10 @@ impl<T, Mods: OnDropBuffer> Alloc<T> for CPU<Mods> {
         let slice = unsafe { std::slice::from_raw_parts_mut(cpu_ptr.ptr, data.len()) };
         slice.clone_from_slice(data);
 
-        self.wrap_in_base(cpu_ptr)
+        cpu_ptr
     }
 
-    fn alloc_from_vec<S: Shape>(&self, mut vec: Vec<T>) -> Self::Data<T, S>
+    fn alloc_from_vec<S: Shape>(&self, mut vec: Vec<T>) -> Self::Base<T, S>
     where
         T: Clone,
     {
@@ -136,7 +135,7 @@ impl<T, Mods: OnDropBuffer> Alloc<T> for CPU<Mods> {
         let len = vec.len();
         core::mem::forget(vec);
 
-        self.wrap_in_base(unsafe { CPUPtr::from_ptr(ptr, len, AllocFlag::None) })
+        unsafe { CPUPtr::from_ptr(ptr, len, AllocFlag::None) }
     }
 }
 

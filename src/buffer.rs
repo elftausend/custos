@@ -72,17 +72,17 @@ impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
     where
         D: OnNewBuffer<T, D, S> + Alloc<T>,
     {
-        let data = device.alloc(len, crate::flag::AllocFlag::None);
-        let data = device.base_to_data(data);
-        Buffer::from_new_alloc(device, data)
+        let base = device.alloc(len, crate::flag::AllocFlag::None);
+        Buffer::from_new_alloc(device, base)
     }
 
     #[inline]
     #[track_caller]
-    fn from_new_alloc(device: &'a D, data: D::Data<T, S>) -> Self
+    fn from_new_alloc(device: &'a D, base: D::Base<T, S>) -> Self
     where
         D: OnNewBuffer<T, D, S>,
     {
+        let data = device.base_to_data(base);
         let buf = Buffer {
             data,
             device: Some(device),
