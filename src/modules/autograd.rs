@@ -120,7 +120,7 @@ where
         device: &D,
         len: usize,
         parents: impl Parents<NUM_PARENTS>,
-    ) -> <D>::Data<T, S>
+    ) -> Self::Wrap<T, D::Base<T, S>>
     where
         D: Alloc<T>,
     {

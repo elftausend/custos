@@ -154,17 +154,19 @@ where
         device: &D,
         len: usize,
         parents: impl Parents<NUM_PARENTS>,
-    ) -> D::Data<T, S>
+    // ) -> D::Data<T, S>
+    ) -> Self::Wrap<T, D::Base<T, S>>
     where
         S: Shape,
         D: Alloc<T>,
     {
-        self.modules.retrieve(device, len, parents)
-        // LazyWrapper {
-        //     data: None,
-        //     id: Some(),
-        //     _pd: core::marker::PhantomData,
-        // }
+        // self.modules.retrieve(device, len, parents)
+        LazyWrapper {
+            data: Some(self.modules.retrieve(device, len, parents)),
+            // id: Some(),
+            id: None,
+            _pd: core::marker::PhantomData,
+        }
     }
 
     #[inline]

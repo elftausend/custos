@@ -223,7 +223,7 @@ impl<T: 'static, Mods: Retrieve<D, T, S>, D: PtrConv + 'static, S: Shape> Retrie
         device: &D,
         len: usize,
         parents: impl Parents<NUM_PARENTS>,
-    ) -> <D>::Data<T, S>
+    ) -> Self::Wrap<T, D::Base<T, S>>
     where
         S: Shape,
         D: Alloc<T>,

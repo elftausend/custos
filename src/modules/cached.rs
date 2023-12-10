@@ -99,7 +99,7 @@ impl<T, Mods, D, SimpleDevice, S: Shape> Retrieve<D, T, S> for CachedModule<Mods
 where
     Mods: Retrieve<D, T, S>,
     D: Device + 'static,
-    D::Data<T, S>: ShallowCopy + 'static,
+    D::Base<T, S>: ShallowCopy + 'static,
     SimpleDevice: Device,
 {
     #[inline]
@@ -108,11 +108,11 @@ where
         device: &D,
         len: usize,
         _parents: impl Parents<NUM_PARENTS>,
-    ) -> D::Data<T, S>
+    ) -> Self::Wrap<T, D::Base<T, S>>
     where
         D: Alloc<T>,
     {
-        self.cache.borrow_mut().get(device, len, || ())
+        self.wrap_in_base(self.cache.borrow_mut().get(device, len, || ()))
     }
 
     #[inline]

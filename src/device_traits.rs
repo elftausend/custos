@@ -18,7 +18,7 @@ pub trait Alloc<T>: Device + Sized {
     /// };
     /// assert_eq!(vec![0.; 12], device.read(&buf));
     /// ```
-    fn alloc<S: Shape>(&self, len: usize, flag: AllocFlag) -> Self::Data<T, S>;
+    fn alloc<S: Shape>(&self, len: usize, flag: AllocFlag) -> Self::Base<T, S>;
 
     /// Allocate new memory with data
     /// # Example

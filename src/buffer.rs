@@ -73,6 +73,7 @@ impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
         D: OnNewBuffer<T, D, S> + Alloc<T>,
     {
         let data = device.alloc(len, crate::flag::AllocFlag::None);
+        let data = device.base_to_data(data);
         Buffer::from_new_alloc(device, data)
     }
 
@@ -145,6 +146,7 @@ impl<'a, T, D: Device + OnNewBuffer<T, D, S>, S: Shape> Buffer<'a, T, D, S> {
         D: Alloc<T>,
     {
         let data = device.alloc_from_slice(slice);
+        // let data = device.wrap_in_base2(data);
         Buffer::from_new_alloc(device, data)
     }
 
@@ -201,7 +203,7 @@ impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
         D: DevicelessAble<'b, T, S>,
     {
         Buffer {
-            data: device.alloc(len, AllocFlag::None),
+            data: device.base_to_data(device.alloc(len, AllocFlag::None)),
             device: None,
         }
     }

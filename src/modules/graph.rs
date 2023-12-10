@@ -108,7 +108,7 @@ impl<T: 'static, Mods: Retrieve<D, T, S>, D: 'static, S: Shape> Retrieve<D, T, S
         device: &D,
         len: usize,
         parents: impl Parents<NUM_PARENTS>,
-    ) -> <D>::Data<T, S>
+    ) -> Self::Wrap<T, D::Base<T, S>>
     where
         D: Alloc<T>,
     {

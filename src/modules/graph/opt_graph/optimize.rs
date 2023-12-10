@@ -486,6 +486,7 @@ mod tests {
     }
 
     #[cfg(feature = "cpu")]
+    #[cfg(feature = "cached")]
     #[cfg_attr(miri, ignore)]
     #[test]
     fn test_from_retrieve_sliced_chained_perf_example_optimize_cache() {

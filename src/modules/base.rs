@@ -1,6 +1,6 @@
 use crate::{
     flag::AllocFlag, AddGradFn, AddOperation, Alloc, Device, ExecNow, HasId, HashLocation, Module,
-    OnDropBuffer, OnNewBuffer, OptimizeMemGraph, Parents, PtrType, Retrieve, Setup, Shape,
+    OnDropBuffer, OnNewBuffer, Parents, PtrType, Retrieve, Setup, Shape,
     WrappedData,
 };
 
@@ -60,7 +60,7 @@ impl<D, T, S: Shape> Retrieve<D, T, S> for Base {
         device: &D,
         len: usize,
         _parents: impl Parents<NUM_PARENTS>,
-    ) -> <D>::Data<T, S>
+    ) -> Self::Wrap<T, D::Base<T, S>>
     where
         D: Alloc<T>,
     {
@@ -85,7 +85,8 @@ impl crate::UseGpuOrCpu for Base {
     }
 }
 
-impl OptimizeMemGraph for Base {
+#[cfg(feature = "graph")]
+impl crate::OptimizeMemGraph for Base {
     #[inline]
     fn optimize_mem_graph(
         &self,

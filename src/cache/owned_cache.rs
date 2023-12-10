@@ -28,15 +28,15 @@ impl Cache {
 
     #[track_caller]
     #[inline]
-    pub fn get<T, S, D>(&mut self, device: &D, len: usize, callback: fn()) -> D::Data<T, S>
+    pub fn get<T, S, D>(&mut self, device: &D, len: usize, callback: fn()) -> D::Base<T, S>
     where
         D: Alloc<T> + 'static,
-        D::Data<T, S>: ShallowCopy + 'static,
+        D::Base<T, S>: ShallowCopy + 'static,
         S: Shape,
     {
         let maybe_allocated = self.nodes.get(&Location::caller().into());
         match maybe_allocated {
-            Some(data) => unsafe { data.downcast_ref::<D::Data<T, S>>().unwrap().shallow() },
+            Some(data) => unsafe { data.downcast_ref::<D::Base<T, S>>().unwrap().shallow() },
             None => self.add_node(device, len, callback),
         }
     }
@@ -47,10 +47,10 @@ impl Cache {
         device: &D,
         len: usize,
         callback: fn(),
-    ) -> <D as Device>::Data<T, S>
+    ) -> <D as Device>::Base<T, S>
     where
         D: Alloc<T>,
-        D::Data<T, S>: ShallowCopy + 'static,
+        D::Base<T, S>: ShallowCopy + 'static,
         S: Shape,
     {
         let data = device.alloc::<S>(len, AllocFlag::None);

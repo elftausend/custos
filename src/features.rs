@@ -24,8 +24,7 @@ pub trait Retrieve<D, T, S: Shape = ()>: OnDropBuffer {
         device: &D,
         len: usize,
         parents: impl Parents<NUM_PARENTS>,
-    ) -> D::Data<T, S>
-    // ) -> Self::Wrap<T, >
+    ) -> Self::Wrap<T, D::Base<T, S>>
     where
         S: Shape,
         D: Device + Alloc<T>;

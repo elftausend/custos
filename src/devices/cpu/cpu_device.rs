@@ -41,13 +41,26 @@ impl<Mods> IsCPU for CPU<Mods> {}
 impl<Mods: OnDropBuffer> Device for CPU<Mods> {
     type Error = Infallible;
     type Base<T, S> = CPUPtr<T>;
-    type Data<T, S: Shape> = Mods::Wrap<T, Self::Base<T, S>>;
+    type Data<T, S: Shape> = Self::Wrap<T, Self::Base<T, S>>;
     // type WrappedData<T, S: Shape> = ;
 
     fn new() -> Result<Self, Self::Error> {
         todo!()
         // Ok(CPU::<Base>::new())
     }
+
+    #[inline(always)]
+    fn base_to_data<T, S: Shape>(&self, base: Self::Base<T, S>) -> Self::Data<T, S> {
+        self.wrap_in_base(base)
+    }
+
+    #[inline(always)]
+    fn wrap_to_data<T, S: Shape>(&self, wrap: Self::Wrap<T, Self::Base<T, S>>) -> Self::Data<T, S> {
+        wrap
+    }
+
+    // #[inline]
+    // fn wrap(&self) {}
 }
 
 impl<Mods: WrappedData> WrappedData for CPU<Mods> {
@@ -87,14 +100,15 @@ impl<SimpleMods> CPU<SimpleMods> {
 }
 
 impl<T, Mods: OnDropBuffer> Alloc<T> for CPU<Mods> {
-    fn alloc<S: Shape>(&self, mut len: usize, flag: AllocFlag) -> Self::Data<T, S> {
+    fn alloc<S: Shape>(&self, mut len: usize, flag: AllocFlag) -> Self::Base<T, S> {
         assert!(len > 0, "invalid buffer len: 0");
 
         if S::LEN > len {
             len = S::LEN
         }
 
-        self.wrap_in_base(CPUPtr::new_initialized(len, flag))
+        // self.wrap_in_base(CPUPtr::new_initialized(len, flag))
+        CPUPtr::new_initialized(len, flag)
     }
 
     fn alloc_from_slice<S>(&self, data: &[T]) -> Self::Data<T, S>
@@ -126,6 +140,7 @@ impl<T, Mods: OnDropBuffer> Alloc<T> for CPU<Mods> {
     }
 }
 
+#[cfg(feature = "cached")]
 pass_down_optimize_mem_graph!(CPU);
 pass_down_grad_fn!(CPU);
 
