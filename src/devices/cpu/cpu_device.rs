@@ -40,7 +40,8 @@ impl<Mods> IsCPU for CPU<Mods> {}
 
 impl<Mods: OnDropBuffer> Device for CPU<Mods> {
     type Error = Infallible;
-    type Data<T, S: Shape> = Mods::Wrap<T, CPUPtr<T>>;
+    type Base<T, S> = CPUPtr<T>;
+    type Data<T, S: Shape> = Mods::Wrap<T, Self::Base<T, S>>;
     // type WrappedData<T, S: Shape> = ;
 
     fn new() -> Result<Self, Self::Error> {

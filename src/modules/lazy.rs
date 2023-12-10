@@ -6,12 +6,13 @@ pub use ty::*;
 use crate::{
     pass_down_tape_actions, AddOperation, Alloc, Buffer, Device, ExecNow, HasId, Module, NoHasher,
     OnDropBuffer, OnNewBuffer, Parents, PtrConv, Retrieve, RunModule, Setup, ShallowCopy, Shape,
-    UniqueId, UpdateArgs,
+    UniqueId, UpdateArgs, WrappedData,
 };
 use core::{any::Any, cell::RefCell, fmt::Debug, hash::BuildHasherDefault};
 use std::collections::HashMap;
 
 pub use self::lazy_graph::LazyGraph;
+use self::wrapper::LazyWrapper;
 use super::register_buf;
 
 #[derive(Default)]
@@ -153,12 +154,17 @@ where
         device: &D,
         len: usize,
         parents: impl Parents<NUM_PARENTS>,
-    ) -> <D>::Data<T, S>
+    ) -> D::Data<T, S>
     where
         S: Shape,
         D: Alloc<T>,
     {
         self.modules.retrieve(device, len, parents)
+        // LazyWrapper {
+        //     data: None,
+        //     id: Some(),
+        //     _pd: core::marker::PhantomData,
+        // }
     }
 
     #[inline]
@@ -183,6 +189,18 @@ mod tests {
     };
 
     use super::Lazy;
+
+    #[test]
+    #[cfg(feature = "cpu")]
+    fn test_lazy_retrieve() {
+        let device = CPU::<Lazy<Base>>::new();
+        let buf = Buffer::<i32, _>::new(&device, 10);
+        let res = &buf.data;
+
+        let x: Buffer<i32, _> = device.retrieve(10, ());
+        let res = &x.data;
+
+    }
 
     #[test]
     #[cfg(feature = "cpu")]

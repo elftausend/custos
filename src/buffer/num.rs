@@ -58,12 +58,15 @@ impl<T> From<T> for Num<T> {
 }
 
 impl Device for () {
-    type Data<T, S: crate::Shape> = Num<T>;
+    type Data<T, S: crate::Shape> = Self::Base<T, S>;
+    type Base<T, S> = Num<T>;
+    
     type Error = Infallible;
 
     fn new() -> Result<Self, Infallible> {
         Ok(())
     }
+
 }
 
 impl<T: Default> Alloc<T> for () {

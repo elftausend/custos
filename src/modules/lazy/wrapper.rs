@@ -7,9 +7,9 @@ use crate::{HasId, HostPtr, Id, Lazy, PtrType, ShallowCopy, Shape, WrappedData};
 
 #[derive(Debug, Default)]
 pub struct LazyWrapper<Data, T> {
-    data: Option<Data>,
-    id: Option<Id>,
-    _pd: PhantomData<T>,
+    pub data: Option<Data>,
+    pub id: Option<Id>,
+    pub _pd: PhantomData<T>,
 }
 
 impl<Mods: WrappedData> WrappedData for Lazy<Mods> {
@@ -39,7 +39,10 @@ impl<Data: HasId, T> HasId for LazyWrapper<Data, T> {
 impl<Data: PtrType, T> PtrType for LazyWrapper<Data, T> {
     #[inline]
     fn size(&self) -> usize {
-        self.data.as_ref().unwrap().size()
+        match self.id {
+            Some(id) => id.len,
+            None => self.data.as_ref().unwrap().size(),
+        }
     }
 
     #[inline]
