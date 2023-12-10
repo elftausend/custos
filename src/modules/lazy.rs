@@ -6,7 +6,7 @@ pub use ty::*;
 use crate::{
     pass_down_tape_actions, AddOperation, Alloc, Buffer, Device, ExecNow, HasId, Id, Module,
     NoHasher, OnDropBuffer, OnNewBuffer, Parents, PtrConv, Retrieve, RunModule, Setup, ShallowCopy,
-    Shape, UniqueId, UpdateArgs, WrappedData,
+    Shape, UniqueId, UpdateArgs,
 };
 use core::{
     any::Any,
@@ -18,13 +18,15 @@ use std::collections::HashMap;
 
 pub use self::lazy_graph::LazyGraph;
 use self::wrapper::LazyWrapper;
-use super::register_buf;
+
+type Buffers = HashMap<UniqueId, Box<dyn Any>, BuildHasherDefault<NoHasher>>;
 
 #[derive(Default)]
 pub struct Lazy<Mods> {
     pub modules: Mods,
-    pub id_count: Cell<u64>,
-    buffers: RefCell<HashMap<UniqueId, Box<dyn Any>, BuildHasherDefault<NoHasher>>>,
+    alloc_later: RefCell<Vec<(Id, fn(&mut Buffers, Id, &dyn Any))>>,
+    allocated: Cell<bool>,
+    buffers: RefCell<Buffers>,
     graph: RefCell<LazyGraph>,
 }
 
@@ -57,7 +59,8 @@ impl<Mods: Module<D>, D: LazySetup + Device> Module<D> for Lazy<Mods> {
             modules: Mods::new(),
             buffers: Default::default(),
             graph: Default::default(),
-            id_count: Default::default(),
+            alloc_later: Default::default(),
+            allocated: Default::default(),
         }
     }
 }
@@ -103,6 +106,14 @@ impl<Mods> Lazy<Mods> {
         //     .call_lazily::<D>(&self.out_ids.borrow(), &mut self.buffers.borrow_mut())?;
         Ok(())
     }
+
+    fn alloc_later<D: 'static>(&self, device: &D) {
+        let mut buffers = self.buffers.borrow_mut();
+        // could use drain - no allocated flag
+        for (id, alloc_fn) in self.alloc_later.borrow().iter() {
+            alloc_fn(&mut buffers, *id, device);
+        }
+    }
 }
 
 impl<D: LazySetup, Mods: Setup<D>> Setup<D> for Lazy<Mods> {
@@ -116,6 +127,10 @@ impl<D: LazySetup, Mods: Setup<D>> Setup<D> for Lazy<Mods> {
 impl<Mods: RunModule<D>, D: LazyRun + Device + 'static> RunModule<D> for Lazy<Mods> {
     #[inline]
     fn run(&self, device: &D) -> crate::Result<()> {
+        if !self.allocated.get() {
+            self.alloc_later(device);
+            self.allocated.set(true);
+        }
         unsafe { self.call_lazily::<D>()? };
         device.run()?;
         self.modules.run(device)
@@ -166,13 +181,35 @@ where
         S: Shape,
         D: Alloc<T>,
     {
-        // self.modules.retrieve(device, len, parents)
+        let mut alloc_later = self.alloc_later.borrow_mut();
+        let id = Id {
+            id: alloc_later.len() as UniqueId,
+            len,
+        };
+
+        // alloc later callback in order to keep type information
+        alloc_later.push((id, |buffers, id, device| {
+            let device = device.downcast_ref::<D>().unwrap();
+            // TODO: should be fixable - (lazy) -> either return error or fix
+            assert!(
+                !buffers.contains_key(&id.id),
+                "IDs collided! Maybe pointing address already occupied this ID."
+            );
+
+            let base = device.alloc::<S>(id.len, crate::flag::AllocFlag::None);
+            let data = device.base_to_data(base);
+            let buffer = Buffer {
+                data,
+                device: Some(device),
+            };
+
+            let buffer: Buffer<'static, T, D, S> = unsafe { core::mem::transmute(buffer) };
+            buffers.insert(id.id, Box::new(buffer));
+        }));
+
         LazyWrapper {
             data: None,
-            id: Some(Id {
-                id: self.id_count.get(),
-                len,
-            }),
+            id: Some(id),
             _pd: core::marker::PhantomData,
         }
     }
@@ -206,23 +243,39 @@ mod tests {
         let device = CPU::<Lazy<Base>>::new();
         let buf = Buffer::<i32, _>::new(&device, 10);
         let res = &buf.data;
+        assert_eq!(res.id, None);
 
         let x: Buffer<i32, _> = device.retrieve(10, ());
         let res = &x.data;
+        assert_eq!(res.id, Some(crate::Id { id: 0, len: 10 }));
+
+        let x: Buffer<i32, _> = device.retrieve(10, ());
+        let res = &x.data;
+        assert_eq!(res.id, Some(crate::Id { id: 1, len: 10 }));
     }
 
     #[test]
     #[cfg(feature = "cpu")]
     fn test_lazy_apply_fn() {
+        use crate::HasId;
+
         let device = CPU::<Lazy<Base>>::new();
 
         let buf = Buffer::<i32, _>::new(&device, 10);
         let out = device.apply_fn(&buf, |x| x.add(3));
 
-        assert_eq!(out.read(), &[0; 10]);
+        // assert_eq!(out.read(), &[0; 10]); -- should not work
+        device.modules.alloc_later(&device);
         unsafe { device.modules.call_lazily::<CPU<Lazy<Base>>>().unwrap() }
-        assert_eq!(out.read(), &[3; 10]);
+        // assert_eq!(out.read(), &[3; 10]); -- should work
 
+        {
+            let binding = device.modules.buffers.borrow();
+            let out = binding.get(&out.id().id).unwrap().downcast_ref::<Buffer::<i32, CPU<Lazy<Base>>>>().unwrap();
+            
+            assert_eq!(out.read(), &[3; 10]);
+        }
+        
         drop(out);
         drop(buf);
     }
