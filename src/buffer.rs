@@ -13,7 +13,7 @@ use crate::CPU;
 use crate::{
     flag::AllocFlag, shape::Shape, Alloc, Base, ClearBuf, CloneBuf, CommonPtrs, Device,
     DevicelessAble, HasId, IsShapeIndep, OnDropBuffer, OnNewBuffer, PtrType, Read, ShallowCopy,
-    WrappedData, WriteBuf,
+    WrappedData, WriteBuf, ReplaceBuf,
 };
 
 pub use self::num::Num;
@@ -352,11 +352,20 @@ impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
     }
 
     /// Sets all elements in `Buffer` to the default value.
+    #[inline]
     pub fn clear(&mut self)
     where
         D: ClearBuf<T, S, D>,
     {
         self.device().clear(self)
+    }
+
+    #[inline]
+    pub fn replace(&self) -> &Buffer<T, D, S> 
+    where
+        D: ReplaceBuf<T, D, S>
+    {
+        self.device().replace_buf(self)
     }
 }
 

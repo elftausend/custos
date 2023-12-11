@@ -4,7 +4,7 @@ use crate::{
     cpu::CPUPtr, flag::AllocFlag, impl_buffer_hook_traits, impl_retriever, pass_down_grad_fn,
     pass_down_optimize_mem_graph, pass_down_tape_actions, Alloc, Base, Buffer, CloneBuf, Device,
     DevicelessAble, HasModules, Module, OnDropBuffer, OnNewBuffer, PtrConv, Setup, Shape,
-    WrappedData,
+    WrappedData, pass_down_replace_buf,
 };
 
 pub trait IsCPU {}
@@ -151,6 +151,8 @@ impl<Mods: crate::RunModule<Self>> crate::Run for CPU<Mods> {
 }
 
 pass_down_tape_actions!(CPU);
+
+pass_down_replace_buf!(CPU);
 
 #[cfg(feature = "lazy")]
 impl<Mods> crate::LazySetup for CPU<Mods> {}

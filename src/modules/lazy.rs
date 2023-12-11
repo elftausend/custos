@@ -6,7 +6,7 @@ pub use ty::*;
 use crate::{
     pass_down_tape_actions, AddOperation, Alloc, Buffer, Device, ExecNow, HasId, Id, Module,
     NoHasher, OnDropBuffer, OnNewBuffer, Parents, PtrConv, Retrieve, RunModule, Setup, ShallowCopy,
-    Shape, UniqueId, UpdateArgs,
+    Shape, UniqueId, UpdateArgs, ReplaceBuf,
 };
 use core::{
     any::Any,
@@ -196,7 +196,8 @@ where
                 "IDs collided! Maybe pointing address already occupied this ID."
             );
 
-            let base = device.alloc::<S>(id.len, crate::flag::AllocFlag::None);
+            // safety: AllocFlag::Lazy prevents accessing device when dropping
+            let base = device.alloc::<S>(id.len, crate::flag::AllocFlag::Lazy);
             let data = device.base_to_data(base);
             let buffer = Buffer {
                 data,
@@ -223,6 +224,19 @@ where
 
         // pass down
         self.modules.on_retrieve_finish(retrieved_buf)
+    }
+}
+
+impl<T: 'static, D: Device + 'static, S: Shape, Mods: OnDropBuffer> ReplaceBuf<T, D, S> for Lazy<Mods> {
+    #[inline]
+    fn replace_buf<'a, 'b, 'c>(&'c self, buffer: &'c Buffer<'a, T, D, S>) -> &'c Buffer<'a, T, D, S> {
+        match self.buffers.borrow().get(&buffer.id()) {
+            Some(buf) => {
+                let buf = &**buf;
+                unsafe { &*(buf as *const _ as *const Buffer<T, D, S>) }
+            }
+            None => buffer
+        }
     }
 }
 
@@ -257,8 +271,6 @@ mod tests {
     #[test]
     #[cfg(feature = "cpu")]
     fn test_lazy_apply_fn() {
-        use crate::HasId;
-
         let device = CPU::<Lazy<Base>>::new();
 
         let buf = Buffer::<i32, _>::new(&device, 10);
@@ -268,15 +280,7 @@ mod tests {
         device.modules.alloc_later(&device);
         unsafe { device.modules.call_lazily::<CPU<Lazy<Base>>>().unwrap() }
         // assert_eq!(out.read(), &[3; 10]); -- should work
-
-        {
-            let binding = device.modules.buffers.borrow();
-            let out = binding.get(&out.id().id).unwrap().downcast_ref::<Buffer::<i32, CPU<Lazy<Base>>>>().unwrap();
-            
-            assert_eq!(out.read(), &[3; 10]);
-        }
-        
-        drop(out);
+        assert_eq!(out.replace().read(), &[3; 10]);
         drop(buf);
     }
 
