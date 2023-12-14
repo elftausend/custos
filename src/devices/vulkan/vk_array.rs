@@ -88,7 +88,7 @@ impl<T> VkArray<T> {
 impl<T> Drop for VkArray<T> {
     #[inline]
     fn drop(&mut self) {
-        if self.flag != AllocFlag::None {
+        if !self.flag.continue_deallocation() {
             return;
         }
         unsafe {

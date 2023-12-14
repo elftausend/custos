@@ -59,19 +59,21 @@ impl<Data: PtrType, T> PtrType for LazyWrapper<Data, T> {
     }
 }
 
+const MISSING_DATA: &'static str = "This lazy buffer does not contain any data. Try with a buffer.replace() call.";
+
 impl<Data: Deref<Target = [T]>, T> Deref for LazyWrapper<Data, T> {
     type Target = [T];
 
     #[inline]
     fn deref(&self) -> &Self::Target {
-        self.data.as_ref().unwrap()
+        self.data.as_ref().expect(MISSING_DATA)
     }
 }
 
 impl<Data: DerefMut<Target = [T]>, T> DerefMut for LazyWrapper<Data, T> {
     #[inline]
     fn deref_mut(&mut self) -> &mut Self::Target {
-        self.data.as_mut().unwrap()
+        self.data.as_mut().expect(MISSING_DATA)
     }
 }
 

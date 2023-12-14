@@ -21,3 +21,10 @@ impl PartialEq for AllocFlag {
         core::mem::discriminant(self) == core::mem::discriminant(other)
     }
 }
+
+impl AllocFlag {
+    #[inline]
+    pub fn continue_deallocation(&self) -> bool {
+        matches!(self, AllocFlag::None | AllocFlag::BorrowedCache | AllocFlag::Lazy)
+    }
+}

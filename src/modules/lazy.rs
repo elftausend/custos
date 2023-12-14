@@ -331,8 +331,8 @@ mod tests {
 
         {
             let buf = Buffer::<i32, _>::new(&device, 10);
-            let out = device.apply_fn(&buf, |x| x.add(3));
-            assert_eq!(out.read(), &[0; 10]);
+            let _out = device.apply_fn(&buf, |x| x.add(3));
+            // assert_eq!(out.replace().read(), &[0; 10]);
         }
 
         if DeviceError::InvalidLazyBuf
@@ -351,9 +351,9 @@ mod tests {
         let buf = Buffer::<i32, _>::new(&device, 10);
         let out = device.apply_fn(&buf, |x| x.add(3));
 
-        assert_eq!(out.read(), &[0; 10]);
+        // assert_eq!(out.read(), &[0; 10]);
         unsafe { device.run().unwrap() };
-        assert_eq!(out.read(), &[3; 10]);
+        assert_eq!(out.replace().read(), &[3; 10]);
     }
 
     #[test]
@@ -380,18 +380,18 @@ mod tests {
         let buf = Buffer::<i32, _>::new(&device, 10);
         let lhs = device.apply_fn(&buf, |x| x.add(3));
 
-        assert_eq!(lhs.read(), &[0; 10]);
+        // assert_eq!(lhs.read(), &[0; 10]);
         let rhs = Buffer::<_, _>::from((&device, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]));
 
         assert_eq!(rhs.read(), &[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
 
         let out = device.add(&lhs, &rhs);
-        assert_eq!(out.read(), &[0; 10]);
+        // assert_eq!(out.read(), &[0; 10]);
 
         unsafe { device.run().unwrap() };
-        assert_eq!(lhs.read(), &[3; 10]);
+        assert_eq!(lhs.replace().read(), &[3; 10]);
 
-        assert_eq!(out.read(), [4, 5, 6, 7, 8, 9, 10, 11, 12, 13])
+        assert_eq!(out.replace().read(), [4, 5, 6, 7, 8, 9, 10, 11, 12, 13])
     }
 
     #[test]

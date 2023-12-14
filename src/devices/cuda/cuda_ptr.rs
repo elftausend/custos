@@ -53,7 +53,7 @@ impl<T> Default for CUDAPtr<T> {
 
 impl<T> Drop for CUDAPtr<T> {
     fn drop(&mut self) {
-        if !matches!(self.flag, AllocFlag::None | AllocFlag::BorrowedCache) {
+        if !self.flag.continue_deallocation() {
             return;
         }
 

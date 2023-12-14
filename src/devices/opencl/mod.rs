@@ -129,7 +129,7 @@ impl<T> DerefMut for CLPtr<T> {
 
 impl<T> Drop for CLPtr<T> {
     fn drop(&mut self) {
-        if !matches!(self.flag, AllocFlag::None | AllocFlag::BorrowedCache) {
+        if !self.flag.continue_deallocation() {
             return;
         }
 
