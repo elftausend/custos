@@ -25,6 +25,9 @@ impl PartialEq for AllocFlag {
 impl AllocFlag {
     #[inline]
     pub fn continue_deallocation(&self) -> bool {
-        matches!(self, AllocFlag::None | AllocFlag::BorrowedCache | AllocFlag::Lazy)
+        matches!(
+            self,
+            AllocFlag::None | AllocFlag::BorrowedCache | AllocFlag::Lazy
+        )
     }
 }

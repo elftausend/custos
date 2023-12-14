@@ -188,9 +188,14 @@ pub trait ReplaceBuf<T, D: Device, S: Shape>: OnDropBuffer {
 #[macro_export]
 macro_rules! pass_down_replace_buf {
     ($device:ident) => {
-        impl<T, S: Shape, Mods: $crate::ReplaceBuf<T, Self, S>> $crate::ReplaceBuf<T, Self, S> for $device<Mods> {
+        impl<T, S: Shape, Mods: $crate::ReplaceBuf<T, Self, S>> $crate::ReplaceBuf<T, Self, S>
+            for $device<Mods>
+        {
             #[inline]
-            fn replace_buf<'a, 'c>(&'c self, buffer: &'c Buffer<'a, T, Self, S>) -> &'c Buffer<'a, T, Self, S> {
+            fn replace_buf<'a, 'c>(
+                &'c self,
+                buffer: &'c Buffer<'a, T, Self, S>,
+            ) -> &'c Buffer<'a, T, Self, S> {
                 self.modules.replace_buf(buffer)
             }
         }

@@ -2,9 +2,9 @@ use core::{convert::Infallible, ops::DerefMut};
 
 use crate::{
     cpu::CPUPtr, flag::AllocFlag, impl_buffer_hook_traits, impl_retriever, pass_down_grad_fn,
-    pass_down_optimize_mem_graph, pass_down_tape_actions, Alloc, Base, Buffer, CloneBuf, Device,
-    DevicelessAble, HasModules, Module, OnDropBuffer, OnNewBuffer, PtrConv, Setup, Shape,
-    WrappedData, pass_down_replace_buf,
+    pass_down_optimize_mem_graph, pass_down_replace_buf, pass_down_tape_actions, Alloc, Base,
+    Buffer, CloneBuf, Device, DevicelessAble, HasModules, Module, OnDropBuffer, OnNewBuffer,
+    PtrConv, Setup, Shape, WrappedData, impl_wrapped_data,
 };
 
 pub trait IsCPU {}
@@ -59,17 +59,7 @@ impl<Mods: OnDropBuffer> Device for CPU<Mods> {
     // fn wrap(&self) {}
 }
 
-impl<Mods: WrappedData> WrappedData for CPU<Mods> {
-    type Wrap<T, Base: crate::HasId + crate::PtrType> = Mods::Wrap<T, Base>;
-
-    #[inline]
-    fn wrap_in_base<T, Base: crate::HasId + crate::PtrType>(
-        &self,
-        base: Base,
-    ) -> Self::Wrap<T, Base> {
-        self.modules.wrap_in_base(base)
-    }
-}
+impl_wrapped_data!(CPU);
 
 impl<T, S: Shape> DevicelessAble<'_, T, S> for CPU<Base> {}
 

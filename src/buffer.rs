@@ -12,8 +12,8 @@ use crate::CPU;
 
 use crate::{
     flag::AllocFlag, shape::Shape, Alloc, Base, ClearBuf, CloneBuf, CommonPtrs, Device,
-    DevicelessAble, HasId, IsShapeIndep, OnDropBuffer, OnNewBuffer, PtrType, Read, ShallowCopy,
-    WrappedData, WriteBuf, ReplaceBuf,
+    DevicelessAble, HasId, IsShapeIndep, OnDropBuffer, OnNewBuffer, PtrType, Read, ReplaceBuf,
+    ShallowCopy, WrappedData, WriteBuf,
 };
 
 pub use self::num::Num;
@@ -361,9 +361,9 @@ impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
     }
 
     #[inline]
-    pub fn replace(&self) -> &Buffer<T, D, S> 
+    pub fn replace(&self) -> &Buffer<T, D, S>
     where
-        D: ReplaceBuf<T, D, S>
+        D: ReplaceBuf<T, D, S>,
     {
         self.device().replace_buf(self)
     }

@@ -59,7 +59,8 @@ impl<Data: PtrType, T> PtrType for LazyWrapper<Data, T> {
     }
 }
 
-const MISSING_DATA: &'static str = "This lazy buffer does not contain any data. Try with a buffer.replace() call.";
+const MISSING_DATA: &'static str =
+    "This lazy buffer does not contain any data. Try with a buffer.replace() call.";
 
 impl<Data: Deref<Target = [T]>, T> Deref for LazyWrapper<Data, T> {
     type Target = [T];

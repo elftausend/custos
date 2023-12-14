@@ -5,8 +5,8 @@ pub use ty::*;
 
 use crate::{
     pass_down_tape_actions, AddOperation, Alloc, Buffer, Device, ExecNow, HasId, Id, Module,
-    NoHasher, OnDropBuffer, OnNewBuffer, Parents, PtrConv, Retrieve, RunModule, Setup, ShallowCopy,
-    Shape, UniqueId, UpdateArgs, ReplaceBuf,
+    NoHasher, OnDropBuffer, OnNewBuffer, Parents, PtrConv, ReplaceBuf, Retrieve, RunModule, Setup,
+    ShallowCopy, Shape, UniqueId, UpdateArgs,
 };
 use core::{
     any::Any,
@@ -227,15 +227,20 @@ where
     }
 }
 
-impl<T: 'static, D: Device + 'static, S: Shape, Mods: OnDropBuffer> ReplaceBuf<T, D, S> for Lazy<Mods> {
+impl<T: 'static, D: Device + 'static, S: Shape, Mods: OnDropBuffer> ReplaceBuf<T, D, S>
+    for Lazy<Mods>
+{
     #[inline]
-    fn replace_buf<'a, 'b, 'c>(&'c self, buffer: &'c Buffer<'a, T, D, S>) -> &'c Buffer<'a, T, D, S> {
+    fn replace_buf<'a, 'b, 'c>(
+        &'c self,
+        buffer: &'c Buffer<'a, T, D, S>,
+    ) -> &'c Buffer<'a, T, D, S> {
         match self.buffers.borrow().get(&buffer.id()) {
             Some(buf) => {
                 let buf = &**buf;
                 unsafe { &*(buf as *const _ as *const Buffer<T, D, S>) }
             }
-            None => buffer
+            None => buffer,
         }
     }
 }

@@ -69,7 +69,18 @@ impl<SimpleMods> CUDA<SimpleMods> {
 
 impl<Mods: OnDropBuffer> Device for CUDA<Mods> {
     type Data<T, S: Shape> = CUDAPtr<T>;
+    type Base<T, S> = CUDAPtr<T>;
     type Error = i32;
+
+    #[inline(always)]
+    fn base_to_data<T, S: Shape>(&self, base: Self::Base<T, S>) -> Self::Data<T, S> {
+        self.wrap_in_base(base)
+    }
+
+    #[inline(always)]
+    fn wrap_to_data<T, S: Shape>(&self, wrap: Self::Wrap<T, Self::Base<T, S>>) -> Self::Data<T, S> {
+        wrap
+    }
 }
 
 impl<Mods: OnDropBuffer, T> Alloc<T> for CUDA<Mods> {
@@ -122,7 +133,7 @@ impl<Mods: OnDropBuffer, OtherMods: OnDropBuffer> PtrConv<CUDA<OtherMods>> for C
     }
 }
 
-impl<'a, Mods: OnDropBuffer + OnNewBuffer<T, Self>, T> CloneBuf<'a, T> for CUDA<Mods> {
+impl<'a, Mods: OnDropBuffer + OnNewBuffer<T, Self, ()>, T> CloneBuf<'a, T> for CUDA<Mods> {
     fn clone_buf(&'a self, buf: &Buffer<'a, T, CUDA<Mods>>) -> Buffer<'a, T, CUDA<Mods>> {
         let cloned = Buffer::new(self, buf.len());
         unsafe {
