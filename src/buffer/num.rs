@@ -59,7 +59,7 @@ impl<T> From<T> for Num<T> {
 
 impl Device for () {
     type Data<T, S: crate::Shape> = Self::Base<T, S>;
-    type Base<T, S> = Num<T>;
+    type Base<T, S: crate::Shape> = Num<T>;
 
     type Error = Infallible;
 

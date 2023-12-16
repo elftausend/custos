@@ -41,7 +41,7 @@ pub mod cpu_stack_ops;
 use crate::{Buffer, HasId, OnDropBuffer, PtrType, Shape};
 
 pub trait Device: OnDropBuffer + Sized {
-    type Base<T, S>: HasId + PtrType;
+    type Base<T, S: Shape>: HasId + PtrType;
     type Data<T, S: Shape>: HasId + PtrType;
 
     type Error;
