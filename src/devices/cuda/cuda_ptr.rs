@@ -88,6 +88,11 @@ impl<T> PtrType for CUDAPtr<T> {
     fn flag(&self) -> AllocFlag {
         self.flag
     }
+
+    #[inline]
+    unsafe fn set_flag(&mut self, flag: AllocFlag) {
+        self.flag = flag;
+    }
 }
 
 impl<T> CommonPtrs<T> for CUDAPtr<T> {
