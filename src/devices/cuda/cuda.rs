@@ -82,7 +82,13 @@ impl<Mods: OnDropBuffer> Device for CUDA<Mods> {
         wrap
     }
 
+    #[inline(always)]
     fn data_as_wrap<'a, T, S: Shape>(&self, data: &'a Self::Data<T, S>) -> &'a Self::Wrap<T, Self::Base<T, S>> {
+        data
+    }
+
+    #[inline(always)]
+    fn data_as_wrap_mut<'a, T, S: Shape>(&self, data: &'a mut Self::Data<T, S>) -> &'a mut Self::Wrap<T, Self::Base<T, S>> {
         data
     }
 }

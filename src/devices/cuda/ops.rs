@@ -73,8 +73,8 @@ impl<Mods: OnDropBuffer, T> CopySlice<T> for CUDA<Mods> {
 
         unsafe {
             cuMemcpy(
-                dest.data.ptr + (dest_range.start * size) as u64,
-                source.data.ptr + (source_range.start * size) as u64,
+                dest.base().ptr + (dest_range.start * size) as u64,
+                source.base().ptr + (source_range.start * size) as u64,
                 len * size,
             );
         }
@@ -102,8 +102,8 @@ impl<Mods: OnDropBuffer, T> WriteBuf<T> for CUDA<Mods> {
     fn write_buf(&self, dst: &mut Buffer<T, Self, ()>, src: &Buffer<T, Self, ()>) {
         unsafe {
             cuMemcpy(
-                dst.data.ptr,
-                src.data.ptr,
+                dst.base().ptr,
+                src.base().ptr,
                 src.len() * std::mem::size_of::<T>(),
             );
         }
@@ -113,7 +113,7 @@ impl<Mods: OnDropBuffer, T> WriteBuf<T> for CUDA<Mods> {
 impl<Mods, T, S> ApplyFunction<T, S> for CUDA<Mods>
 where
     T: CDatatype + Default,
-    Mods: Retrieve<Self, T> + 'static,
+    Mods: Retrieve<Self, T, S> + 'static,
     S: Shape,
 {
     #[inline]
@@ -179,9 +179,9 @@ where
             move |(lhs, lhs_grad, out, lhs_grad_fn)| {
                 try_cu_add_unary_grad(
                     lhs.device(),
-                    &lhs.data,
-                    &mut lhs_grad.data,
-                    &out.data,
+                    lhs,
+                    lhs_grad,
+                    out,
                     **lhs_grad_fn,
                 )
             },
