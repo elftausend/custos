@@ -1,5 +1,5 @@
 use custos::prelude::*;
-use std::ops::{Deref, DerefMut, Mul};
+use std::ops::{Deref, Mul};
 
 pub trait MulBuf<T, S: Shape = (), D: Device = Self>: Sized + Device {
     fn mul(&self, lhs: &Buffer<T, D, S>, rhs: &Buffer<T, D, S>) -> Buffer<T, Self, S>;
@@ -11,8 +11,7 @@ where
     T: Mul<Output = T> + Copy + 'static,
     S: Shape,
     D: Device,
-    Self::Data<T, S>: DerefMut<Target = [T]>,
-    D::Data<T, S>: Deref<Target = [T]>,
+    D::Base<T, S>: Deref<Target = [T]>,
 {
     fn mul(&self, lhs: &Buffer<T, D, S>, rhs: &Buffer<T, D, S>) -> Buffer<T, Self, S> {
         let mut out = self.retrieve(lhs.len(), (lhs, rhs));

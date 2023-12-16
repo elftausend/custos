@@ -5,6 +5,7 @@ pub trait WrappedData {
 
     fn wrap_in_base<T, Base: HasId + PtrType>(&self, base: Base) -> Self::Wrap<T, Base>;
     fn wrapped_as_base<'a, T, Base: HasId + PtrType>(&self, wrap: &'a Self::Wrap<T, Base>) -> &'a Base;
+    fn wrapped_as_base_mut<'a, T, Base: HasId + PtrType>(&self, wrap: &'a mut Self::Wrap<T, Base>) -> &'a mut Base;
 }
 
 #[macro_export]
@@ -28,6 +29,14 @@ macro_rules! impl_wrapped_data {
             ) -> &'a Base {
                 self.modules.wrapped_as_base(wrap)
             }
+            
+            #[inline]
+            fn wrapped_as_base_mut<'a, T, Base: $crate::HasId + $crate::PtrType>(
+                &self,
+                wrap: &'a mut Self::Wrap<T, Base>,
+            ) -> &'a mut Base {
+                self.modules.wrapped_as_base_mut(wrap)
+            }
         }
     };
 }
@@ -42,5 +51,6 @@ mod tests {
 
         let device = CPU::<Lazy<Base>>::new();
         let buf = device.buffer([1, 2, 3, 4]);
+        
     }
 }

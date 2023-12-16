@@ -303,8 +303,7 @@ mod tests {
     where
         T: Add<Output = T> + Copy + 'static,
         D: Device + 'static,
-        D::Data<T, S>: Deref<Target = [T]>,
-        Self::Data<T, S>: HostPtr<T>,
+        D::Base<T, S>: Deref<Target = [T]>,
         S: Shape,
         Mods: AddOperation + Retrieve<Self, T, S> + 'static,
     {

@@ -81,6 +81,10 @@ impl<Mods: OnDropBuffer> Device for CUDA<Mods> {
     fn wrap_to_data<T, S: Shape>(&self, wrap: Self::Wrap<T, Self::Base<T, S>>) -> Self::Data<T, S> {
         wrap
     }
+
+    fn data_as_wrap<'a, T, S: Shape>(&self, data: &'a Self::Data<T, S>) -> &'a Self::Wrap<T, Self::Base<T, S>> {
+        data
+    }
 }
 
 impl_wrapped_data!(CUDA);

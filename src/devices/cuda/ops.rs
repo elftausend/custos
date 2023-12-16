@@ -32,7 +32,7 @@ impl<Mods: OnDropBuffer, T: Default + Clone> Read<T> for CUDA<Mods> {
         T: Default + Clone,
     {
         assert!(
-            buf.ptrs().2 != 0,
+            buf.base().ptr != 0,
             "called Read::read(..) on a non CUDA buffer"
         );
         // TODO: sync here or somewhere else?
@@ -43,7 +43,7 @@ impl<Mods: OnDropBuffer, T: Default + Clone> Read<T> for CUDA<Mods> {
         }
 
         let mut read = vec![T::default(); buf.len()];
-        cu_read_async(&mut read, buf.data.ptr, &self.mem_transfer_stream).unwrap();
+        cu_read_async(&mut read, buf.base().ptr, &self.mem_transfer_stream).unwrap();
         self.mem_transfer_stream.sync().unwrap();
         read
     }

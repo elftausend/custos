@@ -19,7 +19,7 @@ where
     T: Copy + std::ops::Add<Output = T> + 'static, // you can use the custos::Number trait.
     S: Shape, // This trait is implemented for all number types (usize, i16, f32, ...)
     D: Device,
-    D::Data<T, S>: Deref<Target = [T]>,
+    D::Base<T, S>: Deref<Target = [T]>,
 {
     fn add(&self, lhs: &Buffer<T, D, S>, rhs: &Buffer<T, D, S>) -> Buffer<T, Self, S> {
         let len = std::cmp::min(lhs.len(), rhs.len());

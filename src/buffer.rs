@@ -367,6 +367,18 @@ impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
     {
         self.device().replace_buf(self)
     }
+
+    #[inline]
+    pub fn base(&self) -> &D::Base<T, S> {
+        let device = self.device();
+        device.wrapped_as_base(device.data_as_wrap(&self.data))
+    }
+    
+    #[inline]
+    pub fn base_mut(&mut self) -> &mut D::Base<T, S> {
+        let device = self.device();
+        device.wrapped_as_base_mut(device.data_as_wrap_mut(&mut self.data))
+    }
 }
 
 // TODO better solution for the to_dims stack problem?
@@ -415,12 +427,6 @@ impl<'a, T, D: IsShapeIndep, S: Shape> Buffer<'a, T, D, S> {
     #[inline]
     pub fn as_dims_mut<'b, O: Shape>(&mut self) -> &mut Buffer<'b, T, D, O> {
         unsafe { &mut *(self as *mut Self).cast() }
-    }
-
-    #[inline]
-    pub fn base(&self) -> &D::Base<T, S> {
-        let device = self.device();
-        device.wrapped_as_base(&device.data_as_wrap(&self.data))
     }
 }
 
@@ -528,10 +534,10 @@ impl<'a, Mods: OnDropBuffer, T> Buffer<'a, T, crate::CUDA<Mods>> {
     #[inline]
     pub fn cu_ptr(&self) -> u64 {
         assert!(
-            self.ptrs().2 != 0,
+            self.base().ptr != 0,
             "called cu_ptr() on an invalid CUDA buffer"
         );
-        self.data.ptr
+        self.base().ptr
     }
 }
 
@@ -569,7 +575,7 @@ where
 {
     #[inline]
     fn as_ref(&self) -> &[T] {
-        self
+        &self.data
     }
 }
 
@@ -579,17 +585,17 @@ where
 {
     #[inline]
     fn as_mut(&mut self) -> &mut [T] {
-        self
+        &mut self.data
     }
 }
 
 /// A main memory `Buffer` dereferences into `Data` type.
 impl<T, D: Device, S: Shape> core::ops::Deref for Buffer<'_, T, D, S> {
-    type Target = D::Data<T, S>;
+    type Target = D::Base<T, S>;
 
     #[inline]
     fn deref(&self) -> &Self::Target {
-        &self.data
+        self.base()
     }
 }
 
@@ -597,7 +603,7 @@ impl<T, D: Device, S: Shape> core::ops::Deref for Buffer<'_, T, D, S> {
 impl<T, D: Device, S: Shape> core::ops::DerefMut for Buffer<'_, T, D, S> {
     #[inline]
     fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.data
+        self.base_mut()
     }
 }
 
@@ -644,7 +650,7 @@ where
 
 impl<'a, T, D: Device, S: Shape> core::iter::IntoIterator for &'a Buffer<'_, T, D, S>
 where
-    D::Data<T, S>: Deref<Target = [T]>,
+    D::Base<T, S>: Deref<Target = [T]>,
 {
     type Item = &'a T;
 
@@ -658,7 +664,7 @@ where
 
 impl<'a, T, D: Device, S: Shape> core::iter::IntoIterator for &'a mut Buffer<'_, T, D, S>
 where
-    D::Data<T, S>: DerefMut<Target = [T]>,
+    D::Base<T, S>: DerefMut<Target = [T]>,
 {
     type Item = &'a mut T;
 
