@@ -32,6 +32,11 @@ impl<Mods: WrappedData, SD: Device> WrappedData for CachedModule<Mods, SD> {
     fn wrapped_as_base<'a, T, Base: HasId + PtrType>(&self, wrap: &'a Self::Wrap<T, Base>) -> &'a Base {
         self.modules.wrapped_as_base(wrap)
     }
+
+    #[inline]
+    fn wrapped_as_base_mut<'a, T, Base: HasId + PtrType>(&self, wrap: &'a mut Self::Wrap<T, Base>) -> &'a mut Base {
+        self.modules.wrapped_as_base_mut(wrap)
+    }
 }
 
 impl<Mods: Module<D>, D: Device> Module<D> for Cached<Mods> {
