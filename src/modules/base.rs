@@ -15,12 +15,16 @@ impl WrappedData for Base {
     }
 
     #[inline]
-    fn wrapped_as_base<'a, T, Base: HasId + PtrType>(&self, wrap: &'a Self::Wrap<T, Base>) -> &'a Base {
+    fn wrapped_as_base<'a, T, Base: HasId + PtrType>(
+        wrap: &'a Self::Wrap<T, Base>,
+    ) -> &'a Base {
         wrap
     }
 
     #[inline]
-    fn wrapped_as_base_mut<'a, T, Base: HasId + PtrType>(&self, wrap: &'a mut Self::Wrap<T, Base>) -> &'a mut Base {
+    fn wrapped_as_base_mut<'a, T, Base: HasId + PtrType>(
+        wrap: &'a mut Self::Wrap<T, Base>,
+    ) -> &'a mut Base {
         wrap
     }
 }
@@ -51,7 +55,7 @@ impl AddOperation for Base {
 
 impl<D: Device> ExecNow<D> for Base {
     #[inline]
-    fn exec_now(&self, _range_bounds: impl core::ops::RangeBounds<usize>) -> crate::Result<()> {
+    fn exec_now(&self, device: &D, _range_bounds: impl core::ops::RangeBounds<usize>) -> crate::Result<()> {
         Ok(())
     }
 }

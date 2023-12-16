@@ -81,11 +81,15 @@ impl Device for () {
     }
 
     #[inline(always)]
-    fn data_as_wrap<'a, T, S: crate::Shape>(&self, data: &'a Self::Data<T, S>) -> &'a Self::Wrap<T, Self::Base<T, S>> {
+    fn data_as_wrap<'a, T, S: crate::Shape>(
+        data: &'a Self::Data<T, S>,
+    ) -> &'a Self::Wrap<T, Self::Base<T, S>> {
         data
     }
 
-    fn data_as_wrap_mut<'a, T, S: crate::Shape>(&self, data: &'a mut Self::Data<T, S>) -> &'a mut Self::Wrap<T, Self::Base<T, S>> {
+    fn data_as_wrap_mut<'a, T, S: crate::Shape>(
+        data: &'a mut Self::Data<T, S>,
+    ) -> &'a mut Self::Wrap<T, Self::Base<T, S>> {
         data
     }
 }
@@ -114,12 +118,16 @@ impl WrappedData for () {
     }
 
     #[inline]
-    fn wrapped_as_base<'a, T, Base: HasId + PtrType>(&self, wrap: &'a Self::Wrap<T, Base>) -> &'a Base {
+    fn wrapped_as_base<'a, T, Base: HasId + PtrType>(
+        wrap: &'a Self::Wrap<T, Base>,
+    ) -> &'a Base {
         wrap
     }
 
     #[inline]
-    fn wrapped_as_base_mut<'a, T, Base: HasId + PtrType>(&self, wrap: &'a mut Self::Wrap<T, Base>) -> &'a mut Base {
+    fn wrapped_as_base_mut<'a, T, Base: HasId + PtrType>(
+        wrap: &'a mut Self::Wrap<T, Base>,
+    ) -> &'a mut Base {
         wrap
     }
 }

@@ -6,9 +6,9 @@ use core::{
 use crate::{
     cuda::{api::cumalloc, CUDAPtr},
     flag::AllocFlag,
-    impl_buffer_hook_traits, impl_retriever, pass_down_grad_fn, pass_down_optimize_mem_graph,
-    pass_down_tape_actions, Alloc, Base, Buffer, CloneBuf, Device, Module as CombModule,
-    OnDropBuffer, OnNewBuffer, PtrConv, Setup, Shape, impl_wrapped_data, WrappedData,
+    impl_buffer_hook_traits, impl_retriever, impl_wrapped_data, pass_down_grad_fn,
+    pass_down_optimize_mem_graph, pass_down_tape_actions, Alloc, Base, Buffer, CloneBuf, Device,
+    Module as CombModule, OnDropBuffer, OnNewBuffer, PtrConv, Setup, Shape, WrappedData,
 };
 
 use super::{
@@ -83,12 +83,18 @@ impl<Mods: OnDropBuffer> Device for CUDA<Mods> {
     }
 
     #[inline(always)]
-    fn data_as_wrap<'a, T, S: Shape>(&self, data: &'a Self::Data<T, S>) -> &'a Self::Wrap<T, Self::Base<T, S>> {
+    fn data_as_wrap<'a, T, S: Shape>(
+        &self,
+        data: &'a Self::Data<T, S>,
+    ) -> &'a Self::Wrap<T, Self::Base<T, S>> {
         data
     }
 
     #[inline(always)]
-    fn data_as_wrap_mut<'a, T, S: Shape>(&self, data: &'a mut Self::Data<T, S>) -> &'a mut Self::Wrap<T, Self::Base<T, S>> {
+    fn data_as_wrap_mut<'a, T, S: Shape>(
+        &self,
+        data: &'a mut Self::Data<T, S>,
+    ) -> &'a mut Self::Wrap<T, Self::Base<T, S>> {
         data
     }
 }

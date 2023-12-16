@@ -58,13 +58,17 @@ impl<Mods: WrappedData> WrappedData for Fork<Mods> {
     }
 
     #[inline]
-    fn wrapped_as_base<'a, T, Base: HasId + PtrType>(&self, wrap: &'a Self::Wrap<T, Base>) -> &'a Base {
-        self.modules.wrapped_as_base(wrap)
+    fn wrapped_as_base<'a, T, Base: HasId + PtrType>(
+        wrap: &'a Self::Wrap<T, Base>,
+    ) -> &'a Base {
+        Mods::wrapped_as_base(wrap)
     }
 
     #[inline]
-    fn wrapped_as_base_mut<'a, T, Base: HasId + PtrType>(&self, wrap: &'a mut Self::Wrap<T, Base>) -> &'a mut Base {
-        self.modules.wrapped_as_base_mut(wrap)
+    fn wrapped_as_base_mut<'a, T, Base: HasId + PtrType>(
+        wrap: &'a mut Self::Wrap<T, Base>,
+    ) -> &'a mut Base {
+        Mods::wrapped_as_base_mut(wrap)
     }
 }
 

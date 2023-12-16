@@ -213,15 +213,15 @@ pub trait AddOperation {
 }
 
 pub trait ExecNow<D = Self> {
-    fn exec_now(&self, range_bounds: impl RangeBounds<usize>) -> crate::Result<()>;
+    fn exec_now(&self, device: &D, range_bounds: impl RangeBounds<usize>) -> crate::Result<()>;
 
     #[inline]
-    fn exec_last_n(&self, last_n: usize) -> crate::Result<()>
+    fn exec_last_n(&self, device: &D, last_n: usize) -> crate::Result<()>
     where
         D: Device,
         Self: AddOperation,
     {
-        self.exec_now(self.ops_count() - last_n..)
+        self.exec_now(device, self.ops_count() - last_n..)
     }
 }
 
@@ -254,14 +254,16 @@ macro_rules! pass_down_exec_now_module {
             #[inline]
             fn exec_now(
                 &self,
+                device: &D,
                 range_bounds: impl core::ops::RangeBounds<usize>,
             ) -> $crate::Result<()> {
-                self.modules.exec_now(range_bounds)
+                self.modules.exec_now(device, range_bounds)
             }
         }
     };
 }
 
+// FIXME may remove for device and another trait for devices (mind device ref in exec noe)
 #[macro_export]
 macro_rules! pass_down_exec_now {
     ($device:ident) => {
@@ -269,9 +271,10 @@ macro_rules! pass_down_exec_now {
             #[inline]
             fn exec_now(
                 &self,
+                device: &Self,
                 range_bounds: impl core::ops::RangeBounds<usize>,
             ) -> $crate::Result<()> {
-                self.modules.exec_now(range_bounds)
+                self.modules.exec_now(device, range_bounds)
             }
         }
     };

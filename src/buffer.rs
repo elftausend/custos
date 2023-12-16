@@ -370,14 +370,12 @@ impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
 
     #[inline]
     pub fn base(&self) -> &D::Base<T, S> {
-        let device = self.device();
-        device.wrapped_as_base(device.data_as_wrap(&self.data))
+        D::wrapped_as_base(D::data_as_wrap(&self.data))
     }
-    
+
     #[inline]
     pub fn base_mut(&mut self) -> &mut D::Base<T, S> {
-        let device = self.device();
-        device.wrapped_as_base_mut(device.data_as_wrap_mut(&mut self.data))
+        D::wrapped_as_base_mut(D::data_as_wrap_mut(&mut self.data))
     }
 }
 

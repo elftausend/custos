@@ -85,7 +85,11 @@ impl<Mods: AddOperation> AddOperation for Lazy<Mods> {
 
 impl<D: Device + 'static, Mods> ExecNow<D> for Lazy<Mods> {
     #[inline]
-    fn exec_now(&self, range_bounds: impl core::ops::RangeBounds<usize>) -> crate::Result<()> {
+    fn exec_now(&self, device: &D, range_bounds: impl core::ops::RangeBounds<usize>) -> crate::Result<()> {
+        if !self.allocated.get() {
+            self.alloc_later(device);
+            self.allocated.set(true);
+        }
         unsafe {
             self.graph
                 .borrow_mut()
@@ -250,8 +254,8 @@ mod tests {
     use core::ops::{Add, Deref};
 
     use crate::{
-        AddOperation, ApplyFunction, Base, Buffer, Combiner, Device, HostPtr, Retrieve, Retriever,
-        Shape, CPU,
+        AddOperation, ApplyFunction, Base, Buffer, Combiner, Device, Retrieve, Retriever, Shape,
+        CPU,
     };
 
     use super::Lazy;
@@ -424,7 +428,7 @@ mod tests {
     #[cfg(feature = "cpu")]
     #[test]
     fn test_lazy_exec_with_range() {
-        use crate::{ExecNow, HostPtr, Run};
+        use crate::{ExecNow, Run};
 
         let device = CPU::<Lazy<Base>>::new();
         let mut out: Buffer<i32, _, ()> = device.retrieve(4, ());
@@ -447,17 +451,17 @@ mod tests {
                     Ok(())
                 })
                 .unwrap();
-            device.exec_now(1..).unwrap();
-            assert_eq!(out.as_slice(), [2, 4, 6, 8])
+            device.exec_now(&device, 1..).unwrap();
+            assert_eq!(out.replace().as_slice(), [2, 4, 6, 8])
         }
         unsafe { device.run().unwrap() };
-        assert_eq!(&**out, [0; 4])
+        assert_eq!(out.replace().as_slice(), [0; 4])
     }
 
     #[cfg(feature = "cpu")]
     #[test]
     fn test_lazy_exec_last_n() {
-        use crate::{ExecNow, HostPtr, Run};
+        use crate::{ExecNow, Run};
 
         let device = CPU::<Lazy<Base>>::new();
         let mut out: Buffer<i32, _, ()> = device.retrieve(4, ());
@@ -480,12 +484,12 @@ mod tests {
                     Ok(())
                 })
                 .unwrap();
-            device.exec_last_n(1).unwrap();
-            assert_eq!(out.as_slice(), [2, 4, 6, 8])
+            device.exec_last_n(&device, 1).unwrap();
+            assert_eq!(out.replace().as_slice(), [2, 4, 6, 8])
         }
         unsafe { device.run().unwrap() };
 
-        assert_eq!(out.as_slice(), [0; 4])
+        assert_eq!(out.replace().as_slice(), [0; 4])
     }
 
     #[cfg(feature = "cpu")]
