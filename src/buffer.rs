@@ -416,6 +416,12 @@ impl<'a, T, D: IsShapeIndep, S: Shape> Buffer<'a, T, D, S> {
     pub fn as_dims_mut<'b, O: Shape>(&mut self) -> &mut Buffer<'b, T, D, O> {
         unsafe { &mut *(self as *mut Self).cast() }
     }
+
+    #[inline]
+    pub fn base(&self) -> &D::Base<T, S> {
+        let device = self.device();
+        device.wrapped_as_base(&device.data_as_wrap(&self.data))
+    }
 }
 
 impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S>

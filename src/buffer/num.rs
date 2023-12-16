@@ -79,6 +79,11 @@ impl Device for () {
     ) -> Self::Data<T, S> {
         wrap
     }
+
+    #[inline(always)]
+    fn data_as_wrap<'a, T, S: crate::Shape>(&self, data: &'a Self::Data<T, S>) -> &'a Self::Wrap<T, Self::Base<T, S>> {
+        data
+    }
 }
 
 impl<T: Default> Alloc<T> for () {

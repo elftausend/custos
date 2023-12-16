@@ -54,6 +54,7 @@ pub trait Device: OnDropBuffer + Sized {
     // add default impl if GAT default go stable
     fn base_to_data<T, S: Shape>(&self, base: Self::Base<T, S>) -> Self::Data<T, S>;
     fn wrap_to_data<T, S: Shape>(&self, wrap: Self::Wrap<T, Self::Base<T, S>>) -> Self::Data<T, S>;
+    fn data_as_wrap<'a, T, S: Shape>(&self, data: &'a Self::Data<T, S>) -> &'a Self::Wrap<T, Self::Base<T, S>>;
 
     /// Creates a new [`Buffer`] using `A`.
     ///

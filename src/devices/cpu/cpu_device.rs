@@ -55,6 +55,11 @@ impl<Mods: OnDropBuffer> Device for CPU<Mods> {
         wrap
     }
 
+    #[inline(always)]
+    fn data_as_wrap<'a, T, S: Shape>(&self, data: &'a Self::Data<T, S>) -> &'a Self::Wrap<T, Self::Base<T, S>> {
+        data
+    }
+
     // #[inline]
     // fn wrap(&self) {}
 }
