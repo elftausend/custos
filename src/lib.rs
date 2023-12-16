@@ -38,7 +38,7 @@
 //!     T: Mul<Output = T> + Copy,
 //!     S: Shape,
 //!     D: Device,
-//!     D::Data<T, S>: core::ops::Deref<Target = [T]>
+//!     D::Base<T, S>: core::ops::Deref<Target = [T]>
 //! {
 //!     fn mul(&self, lhs: &Buffer<T, D, S>, rhs: &Buffer<T, D, S>) -> Buffer<T, CPU, S> {
 //!         let mut out = self.retrieve(lhs.len(), (lhs, rhs));
