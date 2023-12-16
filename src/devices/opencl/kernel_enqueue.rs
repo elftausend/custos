@@ -80,14 +80,14 @@ pub trait AsClCvoidPtr {
 impl<'a, Mods: OnDropBuffer, T, S: Shape> AsClCvoidPtr for &Buffer<'a, T, OpenCL<Mods>, S> {
     #[inline]
     fn as_cvoid_ptr(&self) -> *const c_void {
-        self.data.ptr
+        self.base().ptr
     }
 }
 
 impl<'a, Mods: OnDropBuffer, T, S: Shape> AsClCvoidPtr for Buffer<'a, T, OpenCL<Mods>, S> {
     #[inline]
     fn as_cvoid_ptr(&self) -> *const c_void {
-        self.data.ptr
+        self.base().ptr
     }
 }
 

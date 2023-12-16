@@ -31,7 +31,7 @@ where
 
         // host ptr buffer
         let no_drop = f(&device.cpu, &unsafe {
-            Buffer::from_raw_host(x.data.host_ptr, x.len())
+            Buffer::from_raw_host(x.base().host_ptr, x.len())
         });
 
         // convert host ptr / CPU buffer into a host ptr + OpenCL ptr buffer
@@ -73,7 +73,7 @@ where
     if device.unified_mem() {
         return {
             f(&cpu, &mut unsafe {
-                Buffer::from_raw_host(lhs.data.host_ptr, lhs.len())
+                Buffer::from_raw_host(lhs.base().host_ptr, lhs.len())
             });
             Ok(())
         };
@@ -116,8 +116,8 @@ where
         // host ptr buffer
         let no_drop = f(
             &device.cpu,
-            &unsafe { Buffer::from_raw_host(lhs.data.host_ptr, lhs.len()) },
-            &unsafe { Buffer::from_raw_host(rhs.data.host_ptr, rhs.len()) },
+            &unsafe { Buffer::from_raw_host(lhs.base().host_ptr, lhs.len()) },
+            &unsafe { Buffer::from_raw_host(rhs.base().host_ptr, rhs.len()) },
         );
 
         // convert host ptr / CPU buffer into a host ptr + OpenCL ptr buffer
@@ -163,8 +163,8 @@ where
         return {
             f(
                 &cpu,
-                &mut unsafe { Buffer::from_raw_host(lhs.data.host_ptr, lhs.len()) },
-                &unsafe { Buffer::from_raw_host(rhs.data.host_ptr, rhs.len()) },
+                &mut unsafe { Buffer::from_raw_host(lhs.base().host_ptr, lhs.len()) },
+                &unsafe { Buffer::from_raw_host(rhs.base().host_ptr, rhs.len()) },
             );
             Ok(())
         };

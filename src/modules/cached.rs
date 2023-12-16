@@ -6,7 +6,8 @@ use crate::{
     ShallowCopy, Shape, WrappedData,
 };
 
-// creator struct
+// creator struct, however =>
+// TODO: could remove D generic and therefore CachedModule
 #[derive(Debug, PartialEq, Eq, Default)]
 pub struct Cached<Mods> {
     pd: PhantomData<Mods>,
@@ -20,6 +21,7 @@ pub struct Cached<Mods> {
         todo!()
     }
 }*/
+
 impl<Mods: WrappedData, SD: Device> WrappedData for CachedModule<Mods, SD> {
     type Wrap<T, Base: HasId + PtrType> = Mods::Wrap<T, Base>;
 

@@ -518,7 +518,7 @@ impl<'a, Mods: OnDropBuffer, T, S: Shape> Buffer<'a, T, crate::OpenCL<Mods>, S> 
     #[inline]
     pub fn cl_ptr(&self) -> *mut c_void {
         assert!(
-            !self.data.ptr.is_null(),
+            !self.base().ptr.is_null(),
             "called cl_ptr() on an invalid OpenCL buffer"
         );
         self.ptrs().1

@@ -188,18 +188,21 @@ impl<Mods: OnDropBuffer> Device for OpenCL<Mods> {
 
 
 }
-
 impl<Mods: OnDropBuffer, OtherMods: OnDropBuffer> PtrConv<OpenCL<OtherMods>> for OpenCL<Mods> {
     #[inline]
-    unsafe fn convert<T, IS, Conv, OS>(
-        ptr: &Self::Data<T, IS>,
+    unsafe fn convert<T, IS: Shape, Conv, OS: Shape>(
+        data: &Mods::Wrap<T, CLPtr<T>>,
         flag: AllocFlag,
-    ) -> Self::Data<Conv, OS>
-    where
-        IS: Shape,
-        OS: Shape,
-    {
-       todo!() 
+    ) -> OtherMods::Wrap<Conv, CLPtr<Conv>> {
+        // data.flag()
+        todo!()
+        // CPUPtr {
+        //     ptr: data.ptr as *mut Conv,
+        //     len: data.len,
+        //     flag,
+        //     align: Some(align_of::<T>()),
+        //     size: Some(size_of::<T>()),
+        // }
     }
 }
 

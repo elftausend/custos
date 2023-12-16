@@ -96,6 +96,11 @@ impl<T> PtrType for CLPtr<T> {
     fn flag(&self) -> AllocFlag {
         self.flag
     }
+
+    #[inline]
+    unsafe fn set_flag(&mut self, flag: AllocFlag) {
+        self.flag = flag;
+    }
 }
 
 #[cfg(unified_cl)]

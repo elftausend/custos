@@ -74,7 +74,7 @@ pub unsafe fn to_cached_unified<OclMods: OnDropBuffer, CpuMods: OnDropBuffer, T,
         location,
         Rc::new(CLPtr {
             ptr: cl_ptr,
-            host_ptr: no_drop.data.ptr as *mut u8,
+            host_ptr: no_drop.base().ptr as *mut u8,
             len: no_drop.len(),
             flag: AllocFlag::None,
         }),
@@ -134,7 +134,7 @@ pub fn construct_buffer<'a, OclMods: OnDropBuffer, CpuMods: OnDropBuffer, T, S: 
             device: Some(device),
         });
     }
-    let (host_ptr, len) = (no_drop.data.ptr, no_drop.len());
+    let (host_ptr, len) = (no_drop.base().ptr, no_drop.len());
     let ptr = unsafe { to_cached_unified(device, no_drop, cache, location)? };
 
     Ok(Buffer {
@@ -162,11 +162,11 @@ mod tests {
     #[test]
     fn test_unified_mem_chain_ideal() -> crate::Result<()> {
         let cpu = CPU::<Cached<Base>>::new();
-        let mut no_drop = cpu.retrieve::<(), 0>(3, ());
+        let mut no_drop = cpu.retrieve::<0>(3, ());
         no_drop.write(&[1., 2.3, 0.76]);
 
         let device = OpenCL::<Cached<Base>>::new(0)?;
-        let buf = device.construct_unified_buf_from_cpu_buf(&device, no_drop)?;
+        let buf = device.construct_unified_buf_from_cpu_buf::<_, ()>(&device, no_drop)?;
         assert_eq!(buf.as_slice(), &[1., 2.3, 0.76]);
         Ok(())
     }
@@ -175,10 +175,10 @@ mod tests {
     fn test_unified_mem_chain_ideal_using_cpu_from_opencl_dev() -> crate::Result<()> {
         let device = OpenCL::<Cached<Base>>::new(0)?;
 
-        let mut no_drop = device.cpu.retrieve::<(), 0>(3, ());
+        let mut no_drop = device.cpu.retrieve::<0>(3, ());
         no_drop.write(&[1., 2.3, 0.76]);
 
-        let buf = device.construct_unified_buf_from_cpu_buf(&device, no_drop)?;
+        let buf = device.construct_unified_buf_from_cpu_buf::<_, ()>(&device, no_drop)?;
 
         assert_eq!(buf.as_slice(), &[1., 2.3, 0.76]);
         Ok(())
@@ -204,7 +204,7 @@ mod tests {
     #[test]
     fn test_unified_mem_chain_unified_construct_unavailable() -> crate::Result<()> {
         let cpu = CPU::<Cached<Base>>::new();
-        let mut no_drop = cpu.retrieve::<(), 0>(3, ());
+        let mut no_drop = cpu.retrieve::<0>(3, ());
         no_drop.write(&[1., 2.3, 0.76]);
 
         let device = OpenCL::<Base>::new(chosen_cl_idx())?;
@@ -222,11 +222,11 @@ mod tests {
     #[test]
     fn test_construct_buffer_missing_cached_module() -> crate::Result<()> {
         let cpu = CPU::<Base>::new();
-        let mut no_drop = cpu.retrieve::<(), 0>(3, ());
+        let mut no_drop = cpu.retrieve::<0>(3, ());
         no_drop.write(&[1., 2.3, 0.76]);
 
         let device = OpenCL::<Base>::new(chosen_cl_idx())?;
-        let mut cache = Cache::<OpenCL>::new();
+        let mut cache = Cache::new();
 
         let buf = construct_buffer(&device, no_drop, &mut cache.nodes, HashLocation::here());
         match buf
@@ -242,7 +242,7 @@ mod tests {
     #[test]
     fn test_to_unified() -> crate::Result<()> {
         let cpu = CPU::<Cached<Base>>::new();
-        let mut no_drop = cpu.retrieve::<(), 0>(3, ());
+        let mut no_drop = cpu.retrieve::<0>(3, ());
         no_drop.write(&[1., 2.3, 0.76]);
 
         let device = OpenCL::<Base>::new(chosen_cl_idx())?;
@@ -270,7 +270,7 @@ mod tests {
     #[test]
     fn test_construct_buffer() -> crate::Result<()> {
         let cpu = CPU::<Cached<Base>>::new();
-        let mut no_drop = cpu.retrieve::<(), 0>(3, ());
+        let mut no_drop = cpu.retrieve::<0>(3, ());
         no_drop.write(&[1., 2.3, 0.76]);
 
         let device = OpenCL::<Base>::new(chosen_cl_idx())?;
@@ -297,7 +297,7 @@ mod tests {
         let mut dur = 0.;
 
         for _ in 0..100 {
-            let mut buf = device.retrieve::<(), 0>(6, ());
+            let mut buf = device.retrieve::<0>(6, ());
 
             buf.copy_from_slice(&[1, 2, 3, 4, 5, 6]);
 
