@@ -8,7 +8,7 @@ use crate::{
     flag::AllocFlag,
     impl_buffer_hook_traits, impl_retriever, pass_down_grad_fn, pass_down_optimize_mem_graph,
     pass_down_tape_actions, Alloc, Base, Buffer, CloneBuf, Device, Module as CombModule,
-    OnDropBuffer, OnNewBuffer, PtrConv, Setup, Shape,
+    OnDropBuffer, OnNewBuffer, PtrConv, Setup, Shape, impl_wrapped_data, WrappedData,
 };
 
 use super::{
@@ -68,7 +68,7 @@ impl<SimpleMods> CUDA<SimpleMods> {
 }
 
 impl<Mods: OnDropBuffer> Device for CUDA<Mods> {
-    type Data<T, S: Shape> = CUDAPtr<T>;
+    type Data<T, S: Shape> = Mods::Wrap<T, CUDAPtr<T>>;
     type Base<T, S> = CUDAPtr<T>;
     type Error = i32;
 
@@ -83,13 +83,15 @@ impl<Mods: OnDropBuffer> Device for CUDA<Mods> {
     }
 }
 
+impl_wrapped_data!(CUDA);
+
 impl<Mods: OnDropBuffer, T> Alloc<T> for CUDA<Mods> {
     #[inline]
-    fn alloc<S: Shape>(&self, len: usize, flag: crate::flag::AllocFlag) -> Self::Data<T, S> {
+    fn alloc<S: Shape>(&self, len: usize, flag: crate::flag::AllocFlag) -> Self::Base<T, S> {
         CUDAPtr::new(len, flag)
     }
 
-    fn alloc_from_slice<S: Shape>(&self, data: &[T]) -> Self::Data<T, S>
+    fn alloc_from_slice<S: Shape>(&self, data: &[T]) -> Self::Base<T, S>
     where
         T: Clone,
     {
@@ -121,15 +123,10 @@ pass_down_grad_fn!(CUDA);
 impl<Mods: OnDropBuffer, OtherMods: OnDropBuffer> PtrConv<CUDA<OtherMods>> for CUDA<Mods> {
     #[inline]
     unsafe fn convert<T, IS: Shape, Conv, OS: Shape>(
-        ptr: &Self::Data<T, IS>,
+        data: &Mods::Wrap<T, CUDAPtr<T>>,
         flag: AllocFlag,
-    ) -> Self::Data<Conv, OS> {
-        CUDAPtr {
-            ptr: ptr.ptr,
-            len: ptr.len,
-            flag,
-            p: PhantomData,
-        }
+    ) -> OtherMods::Wrap<Conv, CUDAPtr<Conv>> {
+        todo!()
     }
 }
 
@@ -138,8 +135,8 @@ impl<'a, Mods: OnDropBuffer + OnNewBuffer<T, Self, ()>, T> CloneBuf<'a, T> for C
         let cloned = Buffer::new(self, buf.len());
         unsafe {
             cuMemcpy(
-                cloned.ptrs().2,
-                buf.ptrs().2,
+                cloned.cu_ptr(),
+                buf.cu_ptr(),
                 buf.len() * std::mem::size_of::<T>(),
             );
         }
@@ -157,7 +154,7 @@ mod tests {
 
     // compile-time isCuda test
     fn take_cu_buffer<T, D: IsCuda + Retriever<T>, S: Shape>(device: &D, buf: &Buffer<T, D, S>) {
-        let _buf = device.retrieve::<S, 0>(buf.len(), ());
+        let _buf = device.retrieve::<0>(buf.len(), ());
     }
 
     #[test]

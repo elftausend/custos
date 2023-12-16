@@ -13,6 +13,11 @@ impl WrappedData for Base {
     fn wrap_in_base<T, Base: HasId + PtrType>(&self, base: Base) -> Self::Wrap<T, Base> {
         base
     }
+
+    #[inline]
+    fn wrapped_as_base<'a, T, Base: HasId + PtrType>(&self, wrap: &'a Self::Wrap<T, Base>) -> &'a Base {
+        wrap
+    }
 }
 
 impl<D: Device> Module<D> for Base {

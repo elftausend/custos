@@ -56,6 +56,11 @@ impl<Mods: WrappedData> WrappedData for Fork<Mods> {
     fn wrap_in_base<T, Base: HasId + PtrType>(&self, base: Base) -> Self::Wrap<T, Base> {
         self.modules.wrap_in_base(base)
     }
+
+    #[inline]
+    fn wrapped_as_base<'a, T, Base: HasId + PtrType>(&self, wrap: &'a Self::Wrap<T, Base>) -> &'a Base {
+        self.modules.wrapped_as_base(wrap)
+    }
 }
 
 impl<Mods: Module<D>, D: Device> Module<D> for Fork<Mods> {

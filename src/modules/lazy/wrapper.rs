@@ -24,6 +24,11 @@ impl<Mods: WrappedData> WrappedData for Lazy<Mods> {
             _pd: PhantomData,
         }
     }
+
+    #[inline]
+    fn wrapped_as_base<'a, T, Base: HasId + PtrType>(&self, wrap: &'a Self::Wrap<T, Base>) -> &'a Base {
+        self.modules.wrapped_as_base(wrap.data.as_ref().expect(MISSING_DATA))
+    }
 }
 
 impl<Data: HasId, T> HasId for LazyWrapper<Data, T> {
