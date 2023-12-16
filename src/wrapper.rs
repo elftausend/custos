@@ -4,9 +4,7 @@ pub trait WrappedData {
     type Wrap<T, Base: HasId + PtrType>: HasId + PtrType;
 
     fn wrap_in_base<T, Base: HasId + PtrType>(&self, base: Base) -> Self::Wrap<T, Base>;
-    fn wrapped_as_base<'a, T, Base: HasId + PtrType>(
-        wrap: &'a Self::Wrap<T, Base>,
-    ) -> &'a Base;
+    fn wrapped_as_base<'a, T, Base: HasId + PtrType>(wrap: &'a Self::Wrap<T, Base>) -> &'a Base;
     fn wrapped_as_base_mut<'a, T, Base: HasId + PtrType>(
         wrap: &'a mut Self::Wrap<T, Base>,
     ) -> &'a mut Base;

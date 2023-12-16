@@ -62,7 +62,7 @@ impl<T: CDatatype, Mods: Retrieve<Self, T>> AddBuf<T, Self> for OpenCL<Mods> {
 
         let gws = [lhs.len(), 0, 0];
         let out = self.retrieve(lhs.len(), (lhs, rhs));
-        enqueue_kernel(self, &src, gws, None, &[lhs, rhs, &out.data]).unwrap();
+        enqueue_kernel(self, &src, gws, None, &[lhs, rhs, &out]).unwrap();
         out
     }
 
@@ -78,7 +78,7 @@ impl<T: CDatatype, Mods: Retrieve<Self, T>> AddBuf<T, Self> for OpenCL<Mods> {
         );
 
         let out = self.retrieve(lhs.len(), lhs);
-        enqueue_kernel(self, &src, [lhs.len(), 0, 0], None, &[lhs, &out.data]).unwrap();
+        enqueue_kernel(self, &src, [lhs.len(), 0, 0], None, &[lhs, &out]).unwrap();
         out
     }
 }

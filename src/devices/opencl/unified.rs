@@ -13,7 +13,7 @@ use min_cl::api::{create_buffer, MemFlags};
 
 impl<Mods: UnifiedMemChain<Self> + OnDropBuffer> UnifiedMemChain<Self> for OpenCL<Mods> {
     #[inline]
-    fn construct_unified_buf_from_cpu_buf<'a, T, S: Shape>(
+    fn construct_unified_buf_from_cpu_buf<'a, T: 'static, S: Shape>(
         &self,
         device: &'a Self,
         no_drop_buf: Buffer<'a, T, CachedCPU, S>,
@@ -27,7 +27,7 @@ impl<Mods, OclMods: OnDropBuffer, SimpleMods: OnDropBuffer> UnifiedMemChain<Open
     for CachedModule<Mods, OpenCL<SimpleMods>>
 {
     #[inline]
-    fn construct_unified_buf_from_cpu_buf<'a, T, S: Shape>(
+    fn construct_unified_buf_from_cpu_buf<'a, T: 'static, S: Shape>(
         &self,
         device: &'a OpenCL<OclMods>,
         no_drop_buf: Buffer<'a, T, CachedCPU, S>,
@@ -59,7 +59,11 @@ impl<D: Device> UnifiedMemChain<D> for Base {
 pub unsafe fn to_cached_unified<OclMods: OnDropBuffer, CpuMods: OnDropBuffer, T, S: Shape>(
     device: &OpenCL<OclMods>,
     no_drop: Buffer<T, CPU<CpuMods>, S>,
-    cache: &mut HashMap<HashLocation<'static>, Rc<CLPtr<u8>>, BuildHasherDefault<LocationHasher>>,
+    cache: &mut HashMap<
+        HashLocation<'static>,
+        Rc<dyn core::any::Any>,
+        BuildHasherDefault<LocationHasher>,
+    >,
     location: HashLocation<'static>,
 ) -> crate::Result<*mut c_void> {
     // use the host pointer to create an OpenCL buffer
@@ -110,10 +114,14 @@ pub unsafe fn to_cached_unified<OclMods: OnDropBuffer, CpuMods: OnDropBuffer, T,
 ///     Ok(())
 /// }
 /// ```
-pub fn construct_buffer<'a, OclMods: OnDropBuffer, CpuMods: OnDropBuffer, T, S: Shape>(
+pub fn construct_buffer<'a, OclMods: OnDropBuffer, CpuMods: OnDropBuffer, T: 'static, S: Shape>(
     device: &'a OpenCL<OclMods>,
     no_drop: Buffer<'a, T, CPU<CpuMods>, S>,
-    cache: &mut HashMap<HashLocation<'static>, Rc<CLPtr<u8>>, BuildHasherDefault<LocationHasher>>,
+    cache: &mut HashMap<
+        HashLocation<'static>,
+        Rc<dyn core::any::Any>,
+        BuildHasherDefault<LocationHasher>,
+    >,
     location: HashLocation<'static>,
 ) -> crate::Result<Buffer<'a, T, OpenCL<OclMods>, S>> {
     use crate::PtrType;
@@ -124,26 +132,30 @@ pub fn construct_buffer<'a, OclMods: OnDropBuffer, CpuMods: OnDropBuffer, T, S: 
 
     // if buffer was already converted, return the cache entry.
     if let Some(rawcl) = cache.get(&location) {
+        let rawcl = rawcl.downcast_ref::<<OpenCL::<OclMods> as Device>::Base<T, S>>().unwrap();
+        let data = device.base_to_data::<T, S>(CLPtr {
+            ptr: rawcl.ptr,
+            host_ptr: rawcl.host_ptr as *mut T,
+            len: no_drop.len(),
+            flag: no_drop.data.flag(),
+        });
         return Ok(Buffer {
-            data: CLPtr {
-                ptr: rawcl.ptr,
-                host_ptr: rawcl.host_ptr as *mut T,
-                len: no_drop.len(),
-                flag: no_drop.data.flag(),
-            },
+            data,
             device: Some(device),
         });
     }
     let (host_ptr, len) = (no_drop.base().ptr, no_drop.len());
     let ptr = unsafe { to_cached_unified(device, no_drop, cache, location)? };
 
+    let data = device.base_to_data::<T, S>(CLPtr {
+        ptr,
+        host_ptr,
+        len,
+        flag: AllocFlag::Wrapper,
+    });
+
     Ok(Buffer {
-        data: CLPtr {
-            ptr,
-            host_ptr,
-            len,
-            flag: AllocFlag::Wrapper,
-        },
+        data,
         device: Some(device),
     })
 }
@@ -242,11 +254,11 @@ mod tests {
     #[test]
     fn test_to_unified() -> crate::Result<()> {
         let cpu = CPU::<Cached<Base>>::new();
-        let mut no_drop = cpu.retrieve::<0>(3, ());
+        let mut no_drop: Buffer<_, _> = cpu.retrieve::<0>(3, ());
         no_drop.write(&[1., 2.3, 0.76]);
 
         let device = OpenCL::<Base>::new(chosen_cl_idx())?;
-        let mut cache = Cache::<OpenCL>::new();
+        let mut cache = Cache::new();
 
         let (host_ptr, len) = (no_drop.data.ptr, no_drop.len());
         let cl_host_ptr =
@@ -274,9 +286,10 @@ mod tests {
         no_drop.write(&[1., 2.3, 0.76]);
 
         let device = OpenCL::<Base>::new(chosen_cl_idx())?;
-        let mut cache = Cache::<OpenCL>::new();
+        let mut cache = Cache::new();
 
-        let buf = construct_buffer(&device, no_drop, &mut cache.nodes, HashLocation::here())?;
+        let buf: Buffer<_, _> =
+            construct_buffer(&device, no_drop, &mut cache.nodes, HashLocation::here())?;
 
         assert_eq!(buf.read(), vec![1., 2.3, 0.76]);
         assert_eq!(buf.as_slice(), &[1., 2.3, 0.76]);
@@ -297,7 +310,7 @@ mod tests {
         let mut dur = 0.;
 
         for _ in 0..100 {
-            let mut buf = device.retrieve::<0>(6, ());
+            let mut buf: Buffer<i32,  _> = device.retrieve::<0>(6, ());
 
             buf.copy_from_slice(&[1, 2, 3, 4, 5, 6]);
 

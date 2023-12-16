@@ -15,9 +15,7 @@ impl WrappedData for Base {
     }
 
     #[inline]
-    fn wrapped_as_base<'a, T, Base: HasId + PtrType>(
-        wrap: &'a Self::Wrap<T, Base>,
-    ) -> &'a Base {
+    fn wrapped_as_base<'a, T, Base: HasId + PtrType>(wrap: &'a Self::Wrap<T, Base>) -> &'a Base {
         wrap
     }
 
@@ -55,7 +53,11 @@ impl AddOperation for Base {
 
 impl<D: Device> ExecNow<D> for Base {
     #[inline]
-    fn exec_now(&self, device: &D, _range_bounds: impl core::ops::RangeBounds<usize>) -> crate::Result<()> {
+    fn exec_now(
+        &self,
+        device: &D,
+        _range_bounds: impl core::ops::RangeBounds<usize>,
+    ) -> crate::Result<()> {
         Ok(())
     }
 }

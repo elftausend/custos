@@ -5,9 +5,10 @@ use min_cl::api::{create_buffer, enqueue_full_copy_buffer, MemFlags};
 use super::{enqueue_kernel, AsClCvoidPtr, CLPtr};
 use crate::flag::AllocFlag;
 use crate::{
-    impl_buffer_hook_traits, impl_retriever, pass_down_grad_fn, pass_down_optimize_mem_graph,
-    pass_down_tape_actions, pass_down_use_gpu_or_cpu, Alloc, Base, Buffer, Cached, CachedCPU,
-    CloneBuf, Device, Module, OnDropBuffer, OnNewBuffer, Setup, CPU, WrappedData, impl_wrapped_data,
+    impl_buffer_hook_traits, impl_retriever, impl_wrapped_data, pass_down_grad_fn,
+    pass_down_optimize_mem_graph, pass_down_tape_actions, pass_down_use_gpu_or_cpu, Alloc, Base,
+    Buffer, Cached, CachedCPU, CloneBuf, Device, Module, OnDropBuffer, OnNewBuffer, Setup,
+    WrappedData, CPU,
 };
 use crate::{PtrConv, Shape};
 
@@ -185,8 +186,6 @@ impl<Mods: OnDropBuffer> Device for OpenCL<Mods> {
     ) -> &'a mut Self::Wrap<T, Self::Base<T, S>> {
         data
     }
-
-
 }
 impl<Mods: OnDropBuffer, OtherMods: OnDropBuffer> PtrConv<OpenCL<OtherMods>> for OpenCL<Mods> {
     #[inline]

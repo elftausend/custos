@@ -31,9 +31,7 @@ impl<Mods: WrappedData, SD: Device> WrappedData for CachedModule<Mods, SD> {
     }
 
     #[inline]
-    fn wrapped_as_base<'a, T, Base: HasId + PtrType>(
-        wrap: &'a Self::Wrap<T, Base>,
-    ) -> &'a Base {
+    fn wrapped_as_base<'a, T, Base: HasId + PtrType>(wrap: &'a Self::Wrap<T, Base>) -> &'a Base {
         Mods::wrapped_as_base(wrap)
     }
 
@@ -90,7 +88,11 @@ impl<SD: Device, Mods: AddOperation> AddOperation for CachedModule<Mods, SD> {
 
 impl<D: Device, SD: Device, Mods: ExecNow<D>> ExecNow<D> for CachedModule<Mods, SD> {
     #[inline]
-    fn exec_now(&self, device: &D, range_bounds: impl core::ops::RangeBounds<usize>) -> crate::Result<()> {
+    fn exec_now(
+        &self,
+        device: &D,
+        range_bounds: impl core::ops::RangeBounds<usize>,
+    ) -> crate::Result<()> {
         self.modules.exec_now(device, range_bounds)
     }
 }

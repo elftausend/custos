@@ -31,9 +31,7 @@ impl<Mods: WrappedData> WrappedData for Autograd<Mods> {
     }
 
     #[inline]
-    fn wrapped_as_base<'a, T, Base: HasId + PtrType>(
-        wrap: &'a Self::Wrap<T, Base>,
-    ) -> &'a Base {
+    fn wrapped_as_base<'a, T, Base: HasId + PtrType>(wrap: &'a Self::Wrap<T, Base>) -> &'a Base {
         Mods::wrapped_as_base(wrap)
     }
 

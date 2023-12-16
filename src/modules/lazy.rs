@@ -85,7 +85,11 @@ impl<Mods: AddOperation> AddOperation for Lazy<Mods> {
 
 impl<D: Device + 'static, Mods> ExecNow<D> for Lazy<Mods> {
     #[inline]
-    fn exec_now(&self, device: &D, range_bounds: impl core::ops::RangeBounds<usize>) -> crate::Result<()> {
+    fn exec_now(
+        &self,
+        device: &D,
+        range_bounds: impl core::ops::RangeBounds<usize>,
+    ) -> crate::Result<()> {
         if !self.allocated.get() {
             self.alloc_later(device);
             self.allocated.set(true);

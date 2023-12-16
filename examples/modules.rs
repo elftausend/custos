@@ -94,7 +94,7 @@ impl<T, S, Mods> ElementWise<T, Self, S> for custos::OpenCL<Mods>
 where
     T: Add<Output = T> + Copy + CDatatype + Default,
     S: Shape,
-    Mods: Retrieve<Self, T> + AddOperation + UseGpuOrCpu + 'static,
+    Mods: Retrieve<Self, T, S> + AddOperation + UseGpuOrCpu + 'static,
 {
     fn add(
         &self,
@@ -113,11 +113,11 @@ where
                     (file!(), line!(), column!()).into(),
                     &[lhs.len()],
                     || add_ew_slice(lhs, rhs, cpu_out),
-                    || try_add_ew_cl(dev, &lhs.data, &rhs.data, &mut out.data).unwrap(),
+                    || try_add_ew_cl(dev, lhs, rhs, out).unwrap(),
                 );
             }
             // #[cfg(not(unified_cl))]
-            try_add_ew_cl(dev, &lhs.data, &rhs.data, &mut out.data)?;
+            try_add_ew_cl(dev, lhs, rhs, out)?;
             Ok(())
         })?;
 
