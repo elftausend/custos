@@ -1,8 +1,9 @@
 use core::convert::Infallible;
 
 use crate::{
-    flag::AllocFlag, impl_buffer_hook_traits, impl_retriever, shape::Shape, Alloc, Base, Buffer,
-    CloneBuf, Device, DevicelessAble, OnDropBuffer, Read, StackArray, WriteBuf, impl_wrapped_data, WrappedData,
+    flag::AllocFlag, impl_buffer_hook_traits, impl_retriever, impl_wrapped_data, shape::Shape,
+    Alloc, Base, Buffer, CloneBuf, Device, DevicelessAble, OnDropBuffer, Read, StackArray,
+    WrappedData, WriteBuf,
 };
 
 /// A device that allocates memory on the stack.
@@ -73,10 +74,7 @@ impl<Mods: OnDropBuffer, T: Copy + Default> Alloc<T> for Stack<Mods> {
     }
 
     #[inline]
-    fn alloc_from_array<S: Shape>(
-        &self,
-        array: <S as Shape>::ARR<T>,
-    ) -> Self::Base<T, S>
+    fn alloc_from_array<S: Shape>(&self, array: <S as Shape>::ARR<T>) -> Self::Base<T, S>
     where
         T: Clone,
     {

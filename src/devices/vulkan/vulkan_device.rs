@@ -100,7 +100,6 @@ impl<Mods: OnDropBuffer> Device for Vulkan<Mods> {
 
     type Error = ();
 
-    #[inline]
     fn base_to_data<T, S: Shape>(&self, base: Self::Base<T, S>) -> Self::Data<T, S> {
         self.wrap_in_base(base)
     }
