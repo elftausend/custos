@@ -8,8 +8,8 @@ use core::cell::UnsafeCell;
 
 use crate::{
     pass_down_add_operation, pass_down_exec_now_module, register_buf, unregister_buf, AddGradFn,
-    Alloc, Buffer, Device, HasId, Module, OnDropBuffer, OnNewBuffer, Parents, PtrConv, PtrType,
-    Retrieve, RunModule, Setup, ShallowCopy, Shape, TapeActions, WrappedData,
+    Alloc, Buffer, Device, HasId, IsShapeIndep, Module, OnDropBuffer, OnNewBuffer, Parents,
+    PtrType, Retrieve, RunModule, Setup, ShallowCopy, Shape, TapeActions, WrappedData,
 };
 
 use super::{Cached, CachedModule};
@@ -61,7 +61,7 @@ impl<Mods> Autograd<Mods> {
     pub fn register_no_grad_buf<T, D, S>(&self, buf: &Buffer<T, D, S>)
     where
         T: 'static,
-        D: Device + PtrConv + 'static,
+        D: Device + IsShapeIndep + 'static,
         D::Data<T, S>: ShallowCopy,
         S: Shape,
     {
@@ -79,7 +79,7 @@ impl<Mods> Autograd<Mods> {
 impl<T, D, Mods, S: Shape> OnNewBuffer<T, D, S> for Autograd<Mods>
 where
     T: 'static,
-    D: Alloc<T> + PtrConv + 'static,
+    D: Alloc<T> + IsShapeIndep + 'static,
     D::Data<T, S>: ShallowCopy,
     Mods: OnNewBuffer<T, D, S>,
 {
@@ -123,7 +123,7 @@ impl<Mods: Setup<NewDev>, NewDev> Setup<NewDev> for Autograd<Mods> {
 
 impl<T: 'static, Mods: Retrieve<D, T, S>, D, S: Shape> Retrieve<D, T, S> for Autograd<Mods>
 where
-    D: PtrConv + Device + 'static,
+    D: IsShapeIndep + Device + 'static,
     D::Data<T, S>: ShallowCopy,
 {
     #[inline]

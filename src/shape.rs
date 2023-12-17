@@ -1,4 +1,4 @@
-use crate::{flag::AllocFlag, Device, PtrConv};
+use crate::{Device, ShallowCopy};
 
 /// Determines the shape of a [`Buffer`](crate::Buffer).
 /// `Shape` is used to get the size and ND-Array for a stack allocated `Buffer`.
@@ -40,9 +40,6 @@ impl Shape for () {
 // this is used to
 /// If the [`Shape`] does not matter for a specific device [`Buffer`](crate::Buffer), than this trait should be implemented.
 pub unsafe trait IsShapeIndep: Device {}
-
-#[cfg(not(feature = "no-std"))]
-unsafe impl<D: PtrConv + Device> IsShapeIndep for D {}
 
 /// If the [`Shape`] is provides a fixed size, than this trait should be implemented.
 /// Forgot how this is useful.
@@ -130,17 +127,21 @@ pub trait ToDim<T, I: Shape, O: Shape>: crate::Device {
 }
 
 #[cfg(not(feature = "no-std"))]
-impl<T, D: PtrConv + Device, I: Shape, O: Shape> ToDim<T, I, O> for D
+impl<T, D, I, O> ToDim<T, I, O> for D
 where
-    Self::Data<T, ()>: crate::PtrType,
+    D::Data<T, O>: crate::PtrType + ShallowCopy,
+    D: IsShapeIndep + Device,
+    I: Shape,
+    O: Shape,
 {
     #[inline]
     fn to_dim(&self, ptr: Self::Data<T, I>) -> D::Data<T, O> {
         // resources are now mananged by the destructed raw pointer (prevents double free).
+        // could set alloc flag as well
         let ptr = core::mem::ManuallyDrop::new(ptr);
 
-        // TODO: test if this is correct
-        unsafe { D::convert(&ptr, AllocFlag::None) }
+        let shape_changed = unsafe { &*(&*ptr as *const D::Data<T, I> as *const D::Data<T, O>) };
+        unsafe { shape_changed.shallow() }
     }
 }
 

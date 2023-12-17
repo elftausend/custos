@@ -55,7 +55,7 @@ impl<D: Device> ExecNow<D> for Base {
     #[inline]
     fn exec_now(
         &self,
-        device: &D,
+        _device: &D,
         _range_bounds: impl core::ops::RangeBounds<usize>,
     ) -> crate::Result<()> {
         Ok(())

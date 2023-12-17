@@ -1,7 +1,7 @@
 use crate::{
     pass_down_add_operation, pass_down_exec_now, pass_down_tape_actions, Alloc, Buffer, Device,
-    GpuOrCpuInfo, HasId, HashLocation, LocationHasher, Module, OnDropBuffer, OnNewBuffer, Parents,
-    PtrConv, PtrType, Retrieve, RunModule, Setup, Shape, UseGpuOrCpu, WrappedData,
+    GpuOrCpuInfo, HasId, HashLocation, IsShapeIndep, LocationHasher, Module, OnDropBuffer,
+    OnNewBuffer, Parents, PtrType, Retrieve, RunModule, Setup, Shape, UseGpuOrCpu, WrappedData,
 };
 use core::{
     cell::RefCell,
@@ -226,7 +226,7 @@ impl<Mods: OnNewBuffer<T, D, S>, T, D: Device, S: Shape> OnNewBuffer<T, D, S> fo
     }
 }
 
-impl<T: 'static, Mods: Retrieve<D, T, S>, D: PtrConv + 'static, S: Shape> Retrieve<D, T, S>
+impl<T: 'static, Mods: Retrieve<D, T, S>, D: IsShapeIndep + 'static, S: Shape> Retrieve<D, T, S>
     for Fork<Mods>
 {
     #[inline]

@@ -4,13 +4,13 @@ use min_cl::api::{create_buffer, enqueue_full_copy_buffer, MemFlags};
 
 use super::{enqueue_kernel, AsClCvoidPtr, CLPtr};
 use crate::flag::AllocFlag;
+use crate::Shape;
 use crate::{
     impl_buffer_hook_traits, impl_retriever, impl_wrapped_data, pass_down_grad_fn,
-    pass_down_optimize_mem_graph, pass_down_tape_actions, pass_down_use_gpu_or_cpu, Alloc, Base,
-    Buffer, Cached, CachedCPU, CloneBuf, Device, Module, OnDropBuffer, OnNewBuffer, Setup,
-    WrappedData, CPU, pass_down_replace_buf,
+    pass_down_optimize_mem_graph, pass_down_replace_buf, pass_down_tape_actions,
+    pass_down_use_gpu_or_cpu, Alloc, Base, Buffer, Cached, CachedCPU, CloneBuf, Device,
+    IsShapeIndep, Module, OnDropBuffer, OnNewBuffer, Setup, WrappedData, CPU,
 };
-use crate::{PtrConv, Shape};
 
 use core::ops::{Deref, DerefMut};
 use std::fmt::Debug;
@@ -187,23 +187,8 @@ impl<Mods: OnDropBuffer> Device for OpenCL<Mods> {
         data
     }
 }
-impl<Mods: OnDropBuffer, OtherMods: OnDropBuffer> PtrConv<OpenCL<OtherMods>> for OpenCL<Mods> {
-    #[inline]
-    unsafe fn convert<T, IS: Shape, Conv, OS: Shape>(
-        data: &Mods::Wrap<T, CLPtr<T>>,
-        flag: AllocFlag,
-    ) -> OtherMods::Wrap<Conv, CLPtr<Conv>> {
-        // data.flag()
-        todo!()
-        // CPUPtr {
-        //     ptr: data.ptr as *mut Conv,
-        //     len: data.len,
-        //     flag,
-        //     align: Some(align_of::<T>()),
-        //     size: Some(size_of::<T>()),
-        // }
-    }
-}
+
+unsafe impl<Mods: OnDropBuffer> IsShapeIndep for OpenCL<Mods> {}
 
 impl<Mods> Debug for OpenCL<Mods> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {

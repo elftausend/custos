@@ -400,7 +400,8 @@ impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
     {
         let buf = ManuallyDrop::new(self);
 
-        let data = buf.device().to_dim(unsafe { buf.data.shallow() });
+        let mut data = buf.device().to_dim(unsafe { buf.data.shallow() });
+        unsafe { data.set_flag(AllocFlag::None) };
 
         Buffer {
             data,
@@ -490,7 +491,6 @@ impl<'a, T, S: Shape> Buffer<'a, T, CPU<Base>, S> {
             device: None,
         }
     }
-
 }
 
 #[cfg(feature = "cpu")]
@@ -732,11 +732,9 @@ mod tests {
     }
 
     #[cfg(feature = "cpu")]
-    #[ignore = "fix later"]
     #[test]
     fn test_to_dims() {
         use crate::{Base, Dim2};
-        let x = 3;
         let device = crate::CPU::<Base>::new();
         let buf = Buffer::from((&device, [1, 2, 3, 4, 5, 6]));
         let buf_dim2 = buf.to_dims::<Dim2<3, 2>>();

@@ -4,8 +4,8 @@ mod wrapper;
 pub use ty::*;
 
 use crate::{
-    pass_down_tape_actions, AddOperation, Alloc, Buffer, Device, ExecNow, HasId, Id, Module,
-    NoHasher, OnDropBuffer, OnNewBuffer, Parents, PtrConv, ReplaceBuf, Retrieve, RunModule, Setup,
+    pass_down_tape_actions, AddOperation, Alloc, Buffer, Device, ExecNow, HasId, Id, IsShapeIndep,
+    Module, NoHasher, OnDropBuffer, OnNewBuffer, Parents, ReplaceBuf, Retrieve, RunModule, Setup,
     ShallowCopy, Shape, UniqueId, UpdateArgs,
 };
 use core::{
@@ -156,7 +156,7 @@ impl<Mods: OnDropBuffer> OnDropBuffer for Lazy<Mods> {
 impl<T, D, Mods, S> OnNewBuffer<T, D, S> for Lazy<Mods>
 where
     T: 'static,
-    D: Device + PtrConv + 'static,
+    D: Device + IsShapeIndep + 'static,
     D::Data<T, S>: ShallowCopy,
     Mods: OnNewBuffer<T, D, S>,
     S: Shape,
@@ -174,7 +174,7 @@ impl<T, Mods, D, S> Retrieve<D, T, S> for Lazy<Mods>
 where
     T: 'static,
     Mods: Retrieve<D, T, S>,
-    D: PtrConv + 'static,
+    D: IsShapeIndep + 'static,
     D::Data<T, S>: ShallowCopy,
     S: Shape,
 {
@@ -386,7 +386,6 @@ mod tests {
         assert_eq!(out.replace().read(), &[0; 10]);
         unsafe { device.run().unwrap() };
         assert_eq!(out.replace().read(), &[3; 10]);
-
     }
 
     #[test]

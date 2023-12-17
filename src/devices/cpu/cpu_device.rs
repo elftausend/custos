@@ -3,8 +3,8 @@ use core::{convert::Infallible, ops::DerefMut};
 use crate::{
     cpu::CPUPtr, flag::AllocFlag, impl_buffer_hook_traits, impl_retriever, impl_wrapped_data,
     pass_down_grad_fn, pass_down_optimize_mem_graph, pass_down_replace_buf, pass_down_tape_actions,
-    Alloc, Base, Buffer, CloneBuf, Device, DevicelessAble, HasModules, Module, OnDropBuffer,
-    OnNewBuffer, PtrConv, Setup, Shape, WrappedData,
+    Alloc, Base, Buffer, CloneBuf, Device, DevicelessAble, HasModules, IsShapeIndep, Module,
+    OnDropBuffer, OnNewBuffer, Setup, Shape, WrappedData,
 };
 
 pub trait IsCPU {}
@@ -177,21 +177,4 @@ where
     }
 }
 
-// impl for all devices
-impl<Mods: OnDropBuffer, OtherMods: OnDropBuffer> PtrConv<CPU<OtherMods>> for CPU<Mods> {
-    #[inline]
-    unsafe fn convert<T, IS: Shape, Conv, OS: Shape>(
-        data: &Mods::Wrap<T, CPUPtr<T>>,
-        flag: AllocFlag,
-    ) -> OtherMods::Wrap<Conv, CPUPtr<Conv>> {
-        // data.flag()
-        todo!()
-        // CPUPtr {
-        //     ptr: data.ptr as *mut Conv,
-        //     len: data.len,
-        //     flag,
-        //     align: Some(align_of::<T>()),
-        //     size: Some(size_of::<T>()),
-        // }
-    }
-}
+unsafe impl<Mods: OnDropBuffer> IsShapeIndep for CPU<Mods> {}
