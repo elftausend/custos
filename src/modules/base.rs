@@ -2,7 +2,7 @@ use core::ops::Deref;
 
 use crate::{
     flag::AllocFlag, AddGradFn, AddOperation, Alloc, Device, ExecNow, HashLocation, Module,
-    OnDropBuffer, OnNewBuffer, OptimizeMemGraph, Parents, Retrieve, Setup, Shape, WrappedData, PtrType, HasId,
+    OnDropBuffer, OnNewBuffer, Parents, Retrieve, Setup, Shape, WrappedData, PtrType, HasId,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
@@ -82,7 +82,8 @@ impl crate::UseGpuOrCpu for Base {
     }
 }
 
-impl OptimizeMemGraph for Base {
+#[cfg(feature = "graph")]
+impl crate::OptimizeMemGraph for Base {
     #[inline]
     fn optimize_mem_graph(
         &self,

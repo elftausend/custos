@@ -2,7 +2,7 @@ use crate::{Shape, WrappedData};
 
 use super::{Buffer, Device};
 
-pub trait OnDropBuffer: WrappedData {
+pub trait OnDropBuffer {
     fn on_drop_buffer<T, D: Device, S: Shape>(&self, _device: &D, _buf: &Buffer<T, D, S>) {}
 }
 

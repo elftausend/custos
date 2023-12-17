@@ -120,6 +120,7 @@ impl<T, Mods: OnDropBuffer> Alloc<T> for CPU<Mods> {
     }
 }
 
+#[cfg(feature = "graph")]
 pass_down_optimize_mem_graph!(CPU);
 pass_down_grad_fn!(CPU);
 

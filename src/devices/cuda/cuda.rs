@@ -136,6 +136,7 @@ impl<'a, Mods: OnDropBuffer + OnNewBuffer<T, Self>, T> CloneBuf<'a, T> for CUDA<
     }
 }
 
+#[cfg(feature = "graph")]
 pass_down_optimize_mem_graph!(CUDA);
 
 #[cfg(test)]

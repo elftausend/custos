@@ -267,6 +267,7 @@ impl<Mods> ForkSetup for OpenCL<Mods> {
 }
 
 pass_down_use_gpu_or_cpu!(OpenCL);
+#[cfg(feature = "graph")]
 pass_down_optimize_mem_graph!(OpenCL);
 
 impl<Mods: crate::RunModule<Self>> crate::Run for OpenCL<Mods> {
