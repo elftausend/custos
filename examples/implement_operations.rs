@@ -53,7 +53,7 @@ where
     T: Copy + Default + std::ops::Add<Output = T> + 'static,
     S: Shape,
     D: Device,
-    D::Data<T, S>: Deref<Target = [T]>,
+    D::Base<T, S>: Deref<Target = [T]>,
 {
     fn add(&self, lhs: &Buffer<T, D, S>, rhs: &Buffer<T, D, S>) -> Buffer<T, Self, S> {
         let mut out = self.retrieve(S::LEN, ()); // this works as well and in this case (Stack), does exactly the same as the line above.
