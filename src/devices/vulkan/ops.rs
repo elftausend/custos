@@ -18,7 +18,7 @@ impl<Mods: OnDropBuffer + UseGpuOrCpu, T: CDatatype + Default> ClearBuf<T> for V
             (file!(), line!(), column!()).into(),
             &[buf.len()],
             || clear_slice(cpu_buf),
-            || try_vk_clear(self, &mut buf.data).unwrap(),
+            || try_vk_clear(self, buf).unwrap(),
         );
     }
 }
@@ -68,7 +68,7 @@ impl<Mods: OnDropBuffer, T, S: Shape> Read<T, S> for Vulkan<Mods> {
 impl<Mods, T, S> ApplyFunction<T, S> for Vulkan<Mods>
 where
     T: Number,
-    Mods: AddOperation + Retrieve<Self, T> + UseGpuOrCpu + 'static,
+    Mods: AddOperation + Retrieve<Self, T, S> + UseGpuOrCpu + 'static,
     S: Shape,
 {
     #[inline]
@@ -88,7 +88,7 @@ where
             (file!(), line!(), column!()).into(),
             &[buf.len()],
             || crate::devices::cpu_stack_ops::apply_fn_slice(buf, cpu_out, f),
-            || try_vk_apply_fn_mut(self, &buf.data, &mut out.data, f).unwrap(),
+            || try_vk_apply_fn_mut(self, &buf, &mut out, f).unwrap(),
         );
         // Ok(())
         // })
@@ -153,13 +153,7 @@ where
         self.add_op::<_, 4>(
             (lhs, lhs_grad.buf_no_id(), out, lhs_grad_fn.no_id()),
             move |(lhs, lhs_grad, out, lhs_grad_fn)| {
-                try_vk_add_unary_grad(
-                    lhs.device(),
-                    &lhs.data,
-                    &mut lhs_grad.data,
-                    &out.data,
-                    **lhs_grad_fn,
-                )
+                try_vk_add_unary_grad(lhs.device(), lhs, lhs_grad, out, **lhs_grad_fn)
             },
         )
         .unwrap();

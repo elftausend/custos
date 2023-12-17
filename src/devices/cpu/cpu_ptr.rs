@@ -19,7 +19,7 @@ pub struct CPUPtr<T> {
     /// Allocation flag for the pointer
     pub flag: AllocFlag,
     /// The alignment of type `T`
-    pub align: Option<usize>,
+    pub align: Option<usize>, // if no type conversions are required -> could remove this
     /// The size of type `T`
     pub size: Option<usize>,
 }

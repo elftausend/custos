@@ -51,5 +51,7 @@ mod tests {
 
         let device = CPU::<Lazy<Base>>::new();
         let buf = device.buffer([1, 2, 3, 4]);
+        let base = buf.base();
+        assert_eq!(base.as_slice(), [1, 2, 3, 4])
     }
 }
