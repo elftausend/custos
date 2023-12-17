@@ -461,7 +461,7 @@ impl<'a, T, D: Device> Buffer<'a, T, D> {
 }
 
 #[cfg(feature = "cpu")]
-impl<'a, Mods: OnDropBuffer, T, S: Shape> Buffer<'a, T, CPU<Mods>, S> {
+impl<'a, T, S: Shape> Buffer<'a, T, CPU<Base>, S> {
     /// Constructs a deviceless `Buffer` out of a host pointer and a length.
     /// # Example
     /// ```
@@ -484,15 +484,17 @@ impl<'a, Mods: OnDropBuffer, T, S: Shape> Buffer<'a, T, CPU<Mods>, S> {
     /// The pointer must be valid.
     /// The `Buffer` does not manage deallocation of the allocated memory.
     #[inline]
-    pub unsafe fn from_raw_host(ptr: *mut T, len: usize) -> Buffer<'a, T, CPU<Mods>, S> {
-        let x = 2;
-        todo!()
-        // Buffer {
-        //     data: self.wrap_in_base(CPUPtr::from_ptr(ptr, len, AllocFlag::Wrapper)),
-        //     device: None,
-        // }
+    pub unsafe fn from_raw_host(ptr: *mut T, len: usize) -> Buffer<'a, T, CPU<Base>, S> {
+        Buffer {
+            data: CPUPtr::from_ptr(ptr, len, AllocFlag::Wrapper),
+            device: None,
+        }
     }
 
+}
+
+#[cfg(feature = "cpu")]
+impl<'a, Mods: OnDropBuffer, T, S: Shape> Buffer<'a, T, CPU<Mods>, S> {
     /// Constructs a `Buffer` out of a host pointer and a length.
     /// The provided device can be used to shorten operation calls.
     ///

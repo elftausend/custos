@@ -24,7 +24,7 @@ type Buffers = HashMap<UniqueId, Box<dyn Any>, BuildHasherDefault<NoHasher>>;
 #[derive(Default)]
 pub struct Lazy<Mods> {
     pub modules: Mods,
-    alloc_later: RefCell<Vec<(Id, fn(&mut Buffers, Id, &dyn Any))>>,
+    alloc_later: RefCell<Vec<(Id, fn(&mut Buffers, Id, &dyn Any))>>, // could use D generic instead of dyn Any (required LazyModule structure)
     allocated: Cell<bool>,
     buffers: RefCell<Buffers>,
     graph: RefCell<LazyGraph>,
@@ -199,6 +199,9 @@ where
         alloc_later.push((id, |buffers, id, device| {
             let device = device.downcast_ref::<D>().unwrap();
             // TODO: should be fixable - (lazy) -> either return error or fix
+            // creating buffers (with data) is not lazy - they are allocated instantly
+            // these are then added to `buffers` with their ID (which is the pointing address)
+            // new IDs start at 0. 1, 2, 3, ... till a collision with an address happens.
             assert!(
                 !buffers.contains_key(&id.id),
                 "IDs collided! Maybe pointing address already occupied this ID."
@@ -368,6 +371,24 @@ mod tests {
         assert_eq!(out.replace().read(), &[3; 10]);
     }
 
+    #[cfg(feature = "cpu")]
+    #[test]
+    fn test_lazy_alloc_later() {
+        use crate::Run;
+
+        let device = CPU::<Lazy<Base>>::new();
+
+        let buf = Buffer::<i32, _>::new(&device, 10);
+        let out = device.apply_fn(&buf, |x| x.add(3));
+
+        device.modules.alloc_later(&device);
+        device.modules.allocated.set(true);
+        assert_eq!(out.replace().read(), &[0; 10]);
+        unsafe { device.run().unwrap() };
+        assert_eq!(out.replace().read(), &[3; 10]);
+
+    }
+
     #[test]
     #[cfg(feature = "opencl")]
     fn test_lazy_apply_fn_with_run_cl() {
@@ -378,9 +399,8 @@ mod tests {
         let buf = Buffer::<i32, _>::new(&device, 10);
         let out = device.apply_fn(&buf, |x| x.add(3));
 
-        assert_eq!(out.read(), &[0; 10]);
         unsafe { device.run().unwrap() }
-        assert_eq!(out.read(), &[3; 10]);
+        assert_eq!(out.replace().read(), &[3; 10]);
     }
     #[test]
     #[cfg(feature = "cpu")]

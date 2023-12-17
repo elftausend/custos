@@ -31,7 +31,7 @@ where
 
         // host ptr buffer
         let no_drop = f(&device.cpu, &unsafe {
-            Buffer::from_raw_host(x.base().host_ptr, x.len())
+            Buffer::from_raw_host_device(&device.cpu, x.base().host_ptr, x.len())
         });
 
         // convert host ptr / CPU buffer into a host ptr + OpenCL ptr buffer
@@ -73,7 +73,7 @@ where
     if device.unified_mem() {
         return {
             f(&cpu, &mut unsafe {
-                Buffer::from_raw_host(lhs.base().host_ptr, lhs.len())
+                Buffer::from_raw_host_device(&cpu, lhs.base().host_ptr, lhs.len())
             });
             Ok(())
         };
@@ -87,12 +87,7 @@ where
 /// This is way faster than [cpu_exec_binary], as new memory is not allocated.
 ///
 /// `cpu_exec_binary_may_unified` can be used interchangeably with [cpu_exec_binary].
-pub fn cpu_exec_binary_may_unified<
-    'a,
-    T,
-    F,
-    Mods: OnDropBuffer + UnifiedMemChain<OpenCL<Mods>> + Retrieve<OpenCL<Mods>, T> + 'static,
->(
+pub fn cpu_exec_binary_may_unified<'a, T, F, Mods>(
     device: &'a OpenCL<Mods>,
     lhs: &Buffer<T, OpenCL<Mods>>,
     rhs: &Buffer<T, OpenCL<Mods>>,
@@ -105,6 +100,7 @@ where
         &Buffer<'_, T, CachedCPU>,
         &Buffer<'_, T, CachedCPU>,
     ) -> Buffer<'b, T, CachedCPU>,
+    Mods: UnifiedMemChain<OpenCL<Mods>> + Retrieve<OpenCL<Mods>, T> + 'static,
 {
     // TODO: use compile time unified_cl flag -> get from custos?
     #[cfg(not(feature = "realloc"))]
@@ -116,8 +112,8 @@ where
         // host ptr buffer
         let no_drop = f(
             &device.cpu,
-            &unsafe { Buffer::from_raw_host(lhs.base().host_ptr, lhs.len()) },
-            &unsafe { Buffer::from_raw_host(rhs.base().host_ptr, rhs.len()) },
+            &unsafe { Buffer::from_raw_host_device(&device.cpu, lhs.base().host_ptr, lhs.len()) },
+            &unsafe { Buffer::from_raw_host_device(&device.cpu, rhs.base().host_ptr, rhs.len()) },
         );
 
         // convert host ptr / CPU buffer into a host ptr + OpenCL ptr buffer
@@ -163,8 +159,8 @@ where
         return {
             f(
                 &cpu,
-                &mut unsafe { Buffer::from_raw_host(lhs.base().host_ptr, lhs.len()) },
-                &unsafe { Buffer::from_raw_host(rhs.base().host_ptr, rhs.len()) },
+                &mut unsafe { Buffer::from_raw_host_device(&cpu, lhs.base().host_ptr, lhs.len()) },
+                &unsafe { Buffer::from_raw_host_device(&cpu, rhs.base().host_ptr, rhs.len()) },
             );
             Ok(())
         };
@@ -242,8 +238,8 @@ macro_rules! cl_cpu_exec_unified_mut {
     ($device:ident, $($t:ident),* WRITE_TO<$($write_to:ident, $from:ident),*> $op:expr) => {{
         // TODO: add to graph?:     convert.node = device.graph().add(convert.len(), matrix.node.idx);
         if $device.unified_mem() {
-            $crate::to_raw_host!($crate::CPU::<$crate::CachedModule<$crate::Base, $crate::CPU>>, $($t),*);
-            $crate::to_raw_host_mut!($crate::CPU::<$crate::CachedModule<$crate::Base, $crate::CPU>>, $($write_to, $from),*);
+            $crate::to_raw_host!(&$device.cpu, $($t),*);
+            $crate::to_raw_host_mut!(&$device.cpu, $($write_to, $from),*);
             $op;
 
         } else {

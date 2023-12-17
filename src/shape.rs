@@ -39,10 +39,10 @@ impl Shape for () {
 // TODO: impl for net device
 // this is used to
 /// If the [`Shape`] does not matter for a specific device [`Buffer`](crate::Buffer), than this trait should be implemented.
-pub trait IsShapeIndep: Device {}
+pub unsafe trait IsShapeIndep: Device {}
 
 #[cfg(not(feature = "no-std"))]
-impl<D: PtrConv + Device> IsShapeIndep for D {}
+unsafe impl<D: PtrConv + Device> IsShapeIndep for D {}
 
 /// If the [`Shape`] is provides a fixed size, than this trait should be implemented.
 /// Forgot how this is useful.

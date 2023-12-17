@@ -8,7 +8,7 @@ use crate::{
     impl_buffer_hook_traits, impl_retriever, impl_wrapped_data, pass_down_grad_fn,
     pass_down_optimize_mem_graph, pass_down_tape_actions, pass_down_use_gpu_or_cpu, Alloc, Base,
     Buffer, Cached, CachedCPU, CloneBuf, Device, Module, OnDropBuffer, OnNewBuffer, Setup,
-    WrappedData, CPU,
+    WrappedData, CPU, pass_down_replace_buf,
 };
 use crate::{PtrConv, Shape};
 
@@ -309,6 +309,7 @@ impl<Mods> crate::LazyRun for OpenCL<Mods> {}
 
 pass_down_tape_actions!(OpenCL);
 pass_down_grad_fn!(OpenCL);
+pass_down_replace_buf!(OpenCL);
 
 #[cfg(test)]
 mod tests {

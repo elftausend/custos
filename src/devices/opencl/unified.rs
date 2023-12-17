@@ -56,7 +56,7 @@ impl<D: Device> UnifiedMemChain<D> for Base {
 /// This function is used in the `constuct_buffer()` function.
 /// # Safety
 /// The host pointer inside the no_drop `Buffer` must live as long as the resulting pointer.
-pub unsafe fn to_cached_unified<OclMods: OnDropBuffer, CpuMods: OnDropBuffer, T, S: Shape>(
+pub unsafe fn to_cached_unified<OclMods, CpuMods, T, S>(
     device: &OpenCL<OclMods>,
     no_drop: Buffer<T, CPU<CpuMods>, S>,
     cache: &mut HashMap<
@@ -65,7 +65,13 @@ pub unsafe fn to_cached_unified<OclMods: OnDropBuffer, CpuMods: OnDropBuffer, T,
         BuildHasherDefault<LocationHasher>,
     >,
     location: HashLocation<'static>,
-) -> crate::Result<*mut c_void> {
+) -> crate::Result<*mut c_void>
+where
+    OclMods: OnDropBuffer,
+    CpuMods: OnDropBuffer,
+    T: 'static,
+    S: Shape,
+{
     // use the host pointer to create an OpenCL buffer
     let cl_ptr = create_buffer(
         device.ctx(),
@@ -78,7 +84,7 @@ pub unsafe fn to_cached_unified<OclMods: OnDropBuffer, CpuMods: OnDropBuffer, T,
         location,
         Rc::new(CLPtr {
             ptr: cl_ptr,
-            host_ptr: no_drop.base().ptr as *mut u8,
+            host_ptr: no_drop.base().ptr as *mut T,
             len: no_drop.len(),
             flag: AllocFlag::None,
         }),
@@ -132,7 +138,9 @@ pub fn construct_buffer<'a, OclMods: OnDropBuffer, CpuMods: OnDropBuffer, T: 'st
 
     // if buffer was already converted, return the cache entry.
     if let Some(rawcl) = cache.get(&location) {
-        let rawcl = rawcl.downcast_ref::<<OpenCL::<OclMods> as Device>::Base<T, S>>().unwrap();
+        let rawcl = rawcl
+            .downcast_ref::<<OpenCL<OclMods> as Device>::Base<T, S>>()
+            .unwrap();
         let data = device.base_to_data::<T, S>(CLPtr {
             ptr: rawcl.ptr,
             host_ptr: rawcl.host_ptr as *mut T,
@@ -300,9 +308,8 @@ mod tests {
     #[cfg(unified_cl)]
     #[test]
     fn test_cpu_to_unified_is_reusing_converted_buf() -> crate::Result<()> {
-        use std::time::Instant;
-
         use crate::{Base, Cached, HashLocation, Retriever};
+        use std::time::Instant;
 
         let cl_dev = OpenCL::<Cached<Base>>::new(0)?;
         let device = CPU::<Cached<Base>>::new();
@@ -310,7 +317,7 @@ mod tests {
         let mut dur = 0.;
 
         for _ in 0..100 {
-            let mut buf: Buffer<i32,  _> = device.retrieve::<0>(6, ());
+            let mut buf: Buffer<i32, _> = device.retrieve::<0>(6, ());
 
             buf.copy_from_slice(&[1, 2, 3, 4, 5, 6]);
 
