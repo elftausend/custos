@@ -218,9 +218,11 @@ impl<Mods: OnDropBuffer, T: Clone, S: Shape> WriteBuf<T, S> for Vulkan<Mods> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{vulkan::ops::try_vk_add_unary_grad, Base, Buffer, Combiner, Fork, Vulkan};
-
     use super::{try_vk_apply_fn_mut, try_vk_clear};
+    use crate::{vulkan::ops::try_vk_add_unary_grad, Base, Buffer, Combiner, Vulkan};
+
+    #[cfg(feature = "fork")]
+    use crate::Fork;
 
     #[test]
     fn test_try_vk_clear() {
@@ -228,7 +230,7 @@ mod tests {
         let mut buf = Buffer::from((&device, [1f32, 2., 3., 4., 5., 6.]));
 
         try_vk_clear(&device, &mut buf.data).unwrap();
-        assert_eq!(buf.read(), [0f32; 6])
+        assert_eq!(buf.read(), [0f32; 6]);
     }
 
     #[test]

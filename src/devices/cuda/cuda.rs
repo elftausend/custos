@@ -8,7 +8,7 @@ use crate::{
     flag::AllocFlag,
     impl_buffer_hook_traits, impl_retriever, impl_wrapped_data, pass_down_grad_fn,
     pass_down_optimize_mem_graph, pass_down_tape_actions, Alloc, Base, Buffer, CloneBuf, Device,
-    Module as CombModule, OnDropBuffer, OnNewBuffer, Setup, Shape, WrappedData, IsShapeIndep,
+    IsShapeIndep, Module as CombModule, OnDropBuffer, OnNewBuffer, Setup, Shape, WrappedData,
 };
 
 use super::{
@@ -135,7 +135,6 @@ impl<Mods> crate::ForkSetup for CUDA<Mods> {
 
 pass_down_tape_actions!(CUDA);
 pass_down_grad_fn!(CUDA);
-
 
 impl<'a, Mods: OnDropBuffer + OnNewBuffer<T, Self, ()>, T> CloneBuf<'a, T> for CUDA<Mods> {
     fn clone_buf(&'a self, buf: &Buffer<'a, T, CUDA<Mods>>) -> Buffer<'a, T, CUDA<Mods>> {

@@ -44,6 +44,7 @@ macro_rules! impl_wrapped_data {
 #[cfg(test)]
 mod tests {
 
+    #[cfg(feature = "lazy")]
     #[cfg(feature = "cpu")]
     #[test]
     fn test_wrapped_as_base() {

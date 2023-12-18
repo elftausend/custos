@@ -3,9 +3,8 @@ use ash::vk::BufferUsageFlags;
 use super::{context::Context, launch_shader, AsVkShaderArgument, ShaderCache, VkArray};
 use crate::{
     impl_buffer_hook_traits, impl_retriever, impl_wrapped_data, pass_down_grad_fn,
-    pass_down_optimize_mem_graph, pass_down_replace_buf, pass_down_tape_actions,
-    pass_down_use_gpu_or_cpu, Alloc, Base, Buffer, Device, IsShapeIndep, Module, OnDropBuffer,
-    Setup, Shape, WrappedData,
+    pass_down_replace_buf, pass_down_tape_actions, pass_down_use_gpu_or_cpu, Alloc, Base, Buffer,
+    Device, IsShapeIndep, Module, OnDropBuffer, Setup, Shape, WrappedData,
 };
 use core::{
     cell::RefCell,
@@ -40,6 +39,12 @@ impl VkDevice {
             src,
             args,
         )
+    }
+}
+
+impl Drop for VkDevice {
+    fn drop(&mut self) {
+        unsafe { self.shader_cache.borrow_mut().destroy(&self.context.device) }
     }
 }
 
@@ -90,7 +95,8 @@ impl<Mods> Vulkan<Mods> {
 impl_retriever!(Vulkan);
 impl_buffer_hook_traits!(Vulkan);
 pass_down_use_gpu_or_cpu!(Vulkan);
-pass_down_optimize_mem_graph!(Vulkan);
+#[cfg(feature = "graph")]
+crate::pass_down_optimize_mem_graph!(Vulkan);
 pass_down_replace_buf!(Vulkan);
 impl_wrapped_data!(Vulkan);
 

@@ -1,6 +1,7 @@
 use crate::{
-    cpu::CPUPtr, Alloc, AsOperandCode, Base, Buffer, ConvPtr, Device, Lazy,
-    LazyRun, LazySetup, Module, OnDropBuffer, Retrieve, Retriever, Setup, Shape, WrappedData, HasId, PtrType, IsShapeIndep,
+    cpu::CPUPtr, Alloc, AsOperandCode, Base, Buffer, ConvPtr, Device, HasId, IsShapeIndep, Lazy,
+    LazyRun, LazySetup, Module, OnDropBuffer, PtrType, Retrieve, Retriever, Setup, Shape,
+    WrappedData,
 };
 
 use super::NnapiPtr;
@@ -72,17 +73,12 @@ impl<U, Mods: WrappedData> WrappedData for NnapiDevice<U, Mods> {
     type Wrap<T, Base: HasId + PtrType> = Mods::Wrap<T, Base>;
 
     #[inline]
-    fn wrap_in_base<T, Base: HasId + PtrType>(
-        &self,
-        base: Base,
-    ) -> Self::Wrap<T, Base> {
+    fn wrap_in_base<T, Base: HasId + PtrType>(&self, base: Base) -> Self::Wrap<T, Base> {
         self.modules.wrap_in_base(base)
     }
 
     #[inline]
-    fn wrapped_as_base<'a, T, Base: HasId + PtrType>(
-        wrap: &'a Self::Wrap<T, Base>,
-    ) -> &'a Base {
+    fn wrapped_as_base<'a, T, Base: HasId + PtrType>(wrap: &'a Self::Wrap<T, Base>) -> &'a Base {
         Mods::wrapped_as_base(wrap)
     }
 
@@ -101,13 +97,14 @@ impl<U, Mods: OnDropBuffer> OnDropBuffer for NnapiDevice<U, Mods> {
     }
 }
 
-impl<U, Mods: Retrieve<Self, T, S>, T: AsOperandCode, S: Shape> Retriever<T, S> for NnapiDevice<U, Mods> {
+impl<U, Mods: Retrieve<Self, T, S>, T: AsOperandCode, S: Shape> Retriever<T, S>
+    for NnapiDevice<U, Mods>
+{
     fn retrieve<const NUM_PARENTS: usize>(
         &self,
         len: usize,
         parents: impl crate::Parents<NUM_PARENTS>,
-    ) -> Buffer<T, Self, S>
-    {
+    ) -> Buffer<T, Self, S> {
         let data = self.modules.retrieve::<NUM_PARENTS>(self, len, parents);
         let buf = Buffer {
             data,
@@ -133,11 +130,7 @@ pub fn dtype_from_shape<'a, T: AsOperandCode, S: Shape>() -> Operand {
 }
 
 impl<U, T: AsOperandCode, Mods: OnDropBuffer> Alloc<T> for NnapiDevice<U, Mods> {
-    fn alloc<S: Shape>(
-        &self,
-        _len: usize,
-        flag: crate::flag::AllocFlag,
-    ) -> Self::Base<T, S> {
+    fn alloc<S: Shape>(&self, _len: usize, flag: crate::flag::AllocFlag) -> Self::Base<T, S> {
         let dtype = dtype_from_shape::<T, S>();
         let idx = self.add_operand(&dtype).unwrap();
         let nnapi_ptr = NnapiPtr { dtype, idx, flag };
@@ -147,7 +140,7 @@ impl<U, T: AsOperandCode, Mods: OnDropBuffer> Alloc<T> for NnapiDevice<U, Mods> 
         nnapi_ptr
     }
 
-    fn alloc_from_slice<S: Shape>(&self, data: &[T]) ->Self::Base<T, S> 
+    fn alloc_from_slice<S: Shape>(&self, data: &[T]) -> Self::Base<T, S>
     where
         T: Clone,
     {

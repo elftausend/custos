@@ -61,6 +61,13 @@ impl ShaderCache {
             None => self.add(device, src, args),
         }
     }
+
+    pub unsafe fn destroy(&mut self, device: &Device) {
+        for op in self.cache.values() {
+            device.destroy_shader_module(op.shader_module, None);
+            device.destroy_descriptor_pool(op.descriptor_pool, None)
+        }
+    }
 }
 
 pub fn create_descriptor_infos(
