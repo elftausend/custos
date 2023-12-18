@@ -8,7 +8,7 @@ use crate::{
     flag::AllocFlag,
     impl_buffer_hook_traits, impl_retriever, impl_wrapped_data, pass_down_grad_fn,
     pass_down_optimize_mem_graph, pass_down_tape_actions, Alloc, Base, Buffer, CloneBuf, Device,
-    Module as CombModule, OnDropBuffer, OnNewBuffer, PtrConv, Setup, Shape, WrappedData,
+    Module as CombModule, OnDropBuffer, OnNewBuffer, Setup, Shape, WrappedData, IsShapeIndep,
 };
 
 use super::{
@@ -69,7 +69,7 @@ impl<SimpleMods> CUDA<SimpleMods> {
 
 impl<Mods: OnDropBuffer> Device for CUDA<Mods> {
     type Data<T, S: Shape> = Mods::Wrap<T, CUDAPtr<T>>;
-    type Base<T, S> = CUDAPtr<T>;
+    type Base<T, S: Shape> = CUDAPtr<T>;
     type Error = i32;
 
     #[inline(always)]
@@ -84,7 +84,6 @@ impl<Mods: OnDropBuffer> Device for CUDA<Mods> {
 
     #[inline(always)]
     fn data_as_wrap<'a, T, S: Shape>(
-        &self,
         data: &'a Self::Data<T, S>,
     ) -> &'a Self::Wrap<T, Self::Base<T, S>> {
         data
@@ -92,7 +91,6 @@ impl<Mods: OnDropBuffer> Device for CUDA<Mods> {
 
     #[inline(always)]
     fn data_as_wrap_mut<'a, T, S: Shape>(
-        &self,
         data: &'a mut Self::Data<T, S>,
     ) -> &'a mut Self::Wrap<T, Self::Base<T, S>> {
         data
@@ -123,6 +121,8 @@ impl<Mods: OnDropBuffer, T> Alloc<T> for CUDA<Mods> {
     }
 }
 
+unsafe impl<Mods: OnDropBuffer> IsShapeIndep for CUDA<Mods> {}
+
 impl<Mods: OnDropBuffer> IsCuda for CUDA<Mods> {}
 
 #[cfg(feature = "fork")]
@@ -136,15 +136,6 @@ impl<Mods> crate::ForkSetup for CUDA<Mods> {
 pass_down_tape_actions!(CUDA);
 pass_down_grad_fn!(CUDA);
 
-impl<Mods: OnDropBuffer, OtherMods: OnDropBuffer> PtrConv<CUDA<OtherMods>> for CUDA<Mods> {
-    #[inline]
-    unsafe fn convert<T, IS: Shape, Conv, OS: Shape>(
-        data: &Mods::Wrap<T, CUDAPtr<T>>,
-        flag: AllocFlag,
-    ) -> OtherMods::Wrap<Conv, CUDAPtr<Conv>> {
-        todo!()
-    }
-}
 
 impl<'a, Mods: OnDropBuffer + OnNewBuffer<T, Self, ()>, T> CloneBuf<'a, T> for CUDA<Mods> {
     fn clone_buf(&'a self, buf: &Buffer<'a, T, CUDA<Mods>>) -> Buffer<'a, T, CUDA<Mods>> {
