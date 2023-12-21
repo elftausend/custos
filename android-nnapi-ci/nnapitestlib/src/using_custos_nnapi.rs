@@ -50,8 +50,8 @@ pub fn run_custos_model() -> custos::Result<String> {
         model
             .add_operation(
                 OperationCode::ANEURALNETWORKS_ADD,
-                &[lhs.data.idx, rhs.data.idx, activation_idx],
-                &[out.data.idx],
+                &[lhs.base().idx, rhs.base().idx, activation_idx],
+                &[out.base().idx],
             )
             .unwrap();
     }
@@ -67,8 +67,8 @@ pub fn run_custos_model() -> custos::Result<String> {
         model
             .add_operation(
                 OperationCode::ANEURALNETWORKS_MUL,
-                &[out.data.idx, rhs.data.idx, activation_idx],
-                &[out1.data.idx],
+                &[out.base().idx, rhs.base().idx, activation_idx],
+                &[out1.base().idx],
             )
             .unwrap();
     }
