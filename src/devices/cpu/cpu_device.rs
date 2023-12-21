@@ -2,7 +2,7 @@ use core::{convert::Infallible, ops::DerefMut};
 
 use crate::{
     cpu::CPUPtr, flag::AllocFlag, impl_buffer_hook_traits, impl_retriever, impl_wrapped_data,
-    pass_down_grad_fn, pass_down_optimize_mem_graph, pass_down_replace_buf, pass_down_tape_actions,
+    pass_down_grad_fn, pass_down_replace_buf, pass_down_tape_actions,
     Alloc, Base, Buffer, CloneBuf, Device, DevicelessAble, HasModules, IsShapeIndep, Module,
     OnDropBuffer, OnNewBuffer, Setup, Shape, WrappedData,
 };
@@ -140,8 +140,8 @@ impl<T, Mods: OnDropBuffer> Alloc<T> for CPU<Mods> {
     }
 }
 
-#[cfg(feature = "cached")]
-pass_down_optimize_mem_graph!(CPU);
+#[cfg(feature = "graph")]
+crate::pass_down_optimize_mem_graph!(CPU);
 pass_down_grad_fn!(CPU);
 
 #[cfg(feature = "lazy")]

@@ -2,9 +2,12 @@ use core::{cell::RefCell, marker::PhantomData};
 
 use crate::{
     AddGradFn, AddOperation, Alloc, Buffer, Cache, Device, DeviceError, ExecNow, HasId, Module,
-    OnDropBuffer, OnNewBuffer, OptimizeMemGraph, Parents, PtrType, Retrieve, RunModule, Setup,
+    OnDropBuffer, OnNewBuffer, Parents, PtrType, Retrieve, RunModule, Setup,
     ShallowCopy, Shape, WrappedData,
 };
+
+#[cfg(feature = "graph")]
+use crate::OptimizeMemGraph;
 
 // creator struct, however =>
 // TODO: could remove D generic and therefore CachedModule
@@ -197,6 +200,7 @@ impl<Mods: RunModule<D>, D, SD: Device> RunModule<D> for CachedModule<Mods, SD> 
     }
 }
 
+#[cfg(feature = "graph")]
 impl<Mods: OptimizeMemGraph, SD: Device> OptimizeMemGraph for CachedModule<Mods, SD> {
     fn optimize_mem_graph(
         &self,

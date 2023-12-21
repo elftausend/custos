@@ -7,7 +7,7 @@ use crate::{
     cuda::{api::cumalloc, CUDAPtr},
     flag::AllocFlag,
     impl_buffer_hook_traits, impl_retriever, impl_wrapped_data, pass_down_grad_fn,
-    pass_down_optimize_mem_graph, pass_down_tape_actions, Alloc, Base, Buffer, CloneBuf, Device,
+    pass_down_tape_actions, Alloc, Base, Buffer, CloneBuf, Device,
     IsShapeIndep, Module as CombModule, OnDropBuffer, OnNewBuffer, Setup, Shape, WrappedData,
 };
 
@@ -150,7 +150,8 @@ impl<'a, Mods: OnDropBuffer + OnNewBuffer<T, Self, ()>, T> CloneBuf<'a, T> for C
     }
 }
 
-pass_down_optimize_mem_graph!(CUDA);
+#[cfg(feature = "graph")]
+crate::pass_down_optimize_mem_graph!(CUDA);
 
 #[cfg(test)]
 mod tests {
