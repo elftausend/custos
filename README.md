@@ -7,6 +7,7 @@
 [![Rust](https://github.com/elftausend/custos/actions/workflows/rust.yml/badge.svg)](https://github.com/elftausend/custos/actions/workflows/rust.yml)
 [![GPU](https://github.com/elftausend/custos/actions/workflows/gpu.yml/badge.svg)](https://github.com/elftausend/custos/actions/workflows/gpu.yml)
 [![rust-clippy](https://github.com/elftausend/custos/actions/workflows/rust-clippy.yml/badge.svg)](https://github.com/elftausend/custos/actions/workflows/rust-clippy.yml)
+[![Android NNAPI](https://github.com/elftausend/custos/actions/workflows/android.yml/badge.svg)](https://github.com/elftausend/custos/actions/workflows/android.yml)
 
 A minimal, extensible OpenCL, Vulkan (with WGSL), CUDA, NNAPI (Android) and host CPU array manipulation engine / framework written in Rust. 
 This crate provides tools for executing custom array and automatic differentiation operations.<br>
