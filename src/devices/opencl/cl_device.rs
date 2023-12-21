@@ -7,9 +7,9 @@ use crate::flag::AllocFlag;
 use crate::Shape;
 use crate::{
     impl_buffer_hook_traits, impl_retriever, impl_wrapped_data, pass_down_grad_fn,
-    pass_down_optimize_mem_graph, pass_down_replace_buf, pass_down_tape_actions,
-    pass_down_use_gpu_or_cpu, Alloc, Base, Buffer, Cached, CachedCPU, CloneBuf, Device,
-    IsShapeIndep, Module, OnDropBuffer, OnNewBuffer, Setup, WrappedData, CPU,
+    pass_down_replace_buf, pass_down_tape_actions, pass_down_use_gpu_or_cpu, Alloc, Base, Buffer,
+    Cached, CachedCPU, CloneBuf, Device, IsShapeIndep, Module, OnDropBuffer, OnNewBuffer, Setup,
+    WrappedData, CPU,
 };
 
 use core::ops::{Deref, DerefMut};
@@ -277,7 +277,8 @@ impl<Mods> ForkSetup for OpenCL<Mods> {
 }
 
 pass_down_use_gpu_or_cpu!(OpenCL);
-pass_down_optimize_mem_graph!(OpenCL);
+#[cfg(feature = "graph")]
+crate::pass_down_optimize_mem_graph!(OpenCL);
 
 impl<Mods: crate::RunModule<Self>> crate::Run for OpenCL<Mods> {
     #[inline]

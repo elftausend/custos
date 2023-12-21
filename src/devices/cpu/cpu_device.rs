@@ -2,9 +2,9 @@ use core::{convert::Infallible, ops::DerefMut};
 
 use crate::{
     cpu::CPUPtr, flag::AllocFlag, impl_buffer_hook_traits, impl_retriever, impl_wrapped_data,
-    pass_down_grad_fn, pass_down_replace_buf, pass_down_tape_actions,
-    Alloc, Base, Buffer, CloneBuf, Device, DevicelessAble, HasModules, IsShapeIndep, Module,
-    OnDropBuffer, OnNewBuffer, Setup, Shape, WrappedData,
+    pass_down_grad_fn, pass_down_replace_buf, pass_down_tape_actions, Alloc, Base, Buffer,
+    CloneBuf, Device, DevicelessAble, HasModules, IsShapeIndep, Module, OnDropBuffer, OnNewBuffer,
+    Setup, Shape, WrappedData,
 };
 
 pub trait IsCPU {}

@@ -26,7 +26,6 @@ pub trait UpdateArgs {
 #[cfg(feature = "no-std")]
 pub trait UpdateArg {}
 
-
 #[cfg(not(feature = "no-std"))]
 pub trait UpdateArg {
     fn update_arg(

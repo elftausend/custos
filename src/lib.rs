@@ -234,7 +234,6 @@ impl<Mods: OnDropBuffer> Device for CPU<Mods> {
         Err(crate::DeviceError::CPUDeviceNotAvailable.into())
     }
 
-
     fn base_to_data<T, S: Shape>(&self, base: Self::Base<T, S>) -> Self::Data<T, S> {
         self.modules.wrap_in_base(base)
     }
