@@ -174,10 +174,6 @@ impl<'a, 'b, T, D: Device, S: Shape> OpArgs for (&Buffer<'a, T, D, S>, &Buffer<'
     fn as_ids(&self) -> [UniqueId; 2] {
         [*self.0.id(), *self.1.id()]
     }
-
-    // fn from_cache(cache: &std::collections::HashMap<UniqueId, ()>, ids: [UniqueId; 2]) -> Self {
-    //     todo!()
-    // }
 }
 
 // seems useless, however, this is used to retrieve potential lazy buffer information
