@@ -1,6 +1,9 @@
 use core::{fmt::Debug, ops::RangeBounds};
 
-use crate::{HasId, Parents, Shape, TranslatedCacheTrace, UniqueId, UpdateArgs, CPU};
+use crate::{HasId, Parents, Shape, UniqueId, UpdateArgs, CPU};
+
+#[cfg(feature = "graph")]
+use crate::TranslatedCacheTrace;
 
 #[cfg(feature = "cached")]
 use crate::{Base, CachedModule};

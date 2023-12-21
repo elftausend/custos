@@ -20,6 +20,7 @@ impl Parents<0> for () {
 impl AllParents for () {}
 
 impl UpdateArg for () {
+    #[cfg(not(feature = "no-std"))]
     fn update_arg(
         &mut self,
         _id: Option<crate::UniqueId>,
@@ -66,8 +67,8 @@ macro_rules! impl_parents {
         }
         impl<$($to_impl: $crate::HasId, )+> AllParents for ($($to_impl,)+) {}
 
-        #[cfg(not(feature = "no-std"))]
         impl<$($to_impl: $crate::UpdateArg + $crate::HasId, )+> $crate::UpdateArgs for ($($to_impl,)+) {
+            #[cfg(not(feature = "no-std"))]
             fn update_args(&mut self,
                 ids: &[Option<$crate::UniqueId>],
                 buffers: &mut HashMap<$crate::UniqueId, Box<dyn std::any::Any>, core::hash::BuildHasherDefault<$crate::NoHasher>>)
@@ -83,6 +84,7 @@ macro_rules! impl_parents {
     };
 }
 
+#[cfg(not(feature = "no-std"))]
 use std::collections::HashMap;
 
 impl_parents!(2, T, T1);

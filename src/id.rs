@@ -100,6 +100,7 @@ impl<T: Into<NoId<T>>> AsNoId for T {
 
 impl<T> UpdateArg for NoId<T> {
     #[inline]
+    #[cfg(not(feature = "no-std"))]
     fn update_arg(
         &mut self,
         _id: Option<UniqueId>,
@@ -114,6 +115,7 @@ impl<T> UpdateArg for NoId<T> {
 }
 
 impl<'a, T: 'static, D: Device + 'static, S: Shape + 'static> UpdateArg for &Buffer<'a, T, D, S> {
+    #[cfg(not(feature = "no-std"))]
     fn update_arg(
         &mut self,
         id: Option<UniqueId>,
@@ -135,6 +137,7 @@ impl<'a, T: 'static, D: Device + 'static, S: Shape + 'static> UpdateArg for &Buf
 impl<'a, T: 'static, D: Device + 'static, S: Shape + 'static> UpdateArg
     for &mut Buffer<'a, T, D, S>
 {
+    #[cfg(not(feature = "no-std"))]
     fn update_arg(
         &mut self,
         id: Option<UniqueId>,
