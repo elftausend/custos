@@ -1,22 +1,32 @@
 mod lazy_graph;
 mod ty;
+mod wrapper;
 pub use ty::*;
 
 use crate::{
-    pass_down_tape_actions, AddOperation, Alloc, Buffer, Device, ExecNow, HasId, Module, NoHasher,
-    OnDropBuffer, OnNewBuffer, Parents, PtrConv, Retrieve, RunModule, Setup, Shape, UniqueId,
-    UpdateArgs, PtrType, WrappedData,
+    pass_down_tape_actions, AddOperation, Alloc, Buffer, Device, ExecNow, HasId, Id, IsShapeIndep,
+    Module, NoHasher, OnDropBuffer, OnNewBuffer, Parents, ReplaceBuf, Retrieve, RunModule, Setup,
+    ShallowCopy, Shape, UniqueId, UpdateArgs,
 };
-use core::{any::Any, cell::RefCell, fmt::Debug, hash::BuildHasherDefault, ops::Deref};
+use core::{
+    any::Any,
+    cell::{Cell, RefCell},
+    fmt::Debug,
+    hash::BuildHasherDefault,
+};
 use std::collections::HashMap;
 
 pub use self::lazy_graph::LazyGraph;
-use super::register_buf;
+use self::wrapper::LazyWrapper;
+
+type Buffers = HashMap<UniqueId, Box<dyn Any>, BuildHasherDefault<NoHasher>>;
 
 #[derive(Default)]
 pub struct Lazy<Mods> {
     pub modules: Mods,
-    buffers: RefCell<HashMap<UniqueId, Box<dyn Any>, BuildHasherDefault<NoHasher>>>,
+    alloc_later: RefCell<Vec<(Id, fn(&mut Buffers, Id, &dyn Any))>>, // could use D generic instead of dyn Any (required LazyModule structure)
+    allocated: Cell<bool>,
+    buffers: RefCell<Buffers>,
     graph: RefCell<LazyGraph>,
 }
 
@@ -39,20 +49,6 @@ pub trait LazyRun {
     }
 }
 
-pub struct LazyWrapper<T> {
-    data: T,
-}
-
-impl<T: HasId> HasId for LazyWrapper<T> {
-    fn id(&self) -> crate::Id {
-        todo!()
-    }
-}
-
-impl<Mods: WrappedData> WrappedData for Lazy<Mods> {
-    type WrappedData<Base: HasId + PtrType + Deref> = Mods::WrappedData<Base>;
-}
-
 impl<Mods: Module<D>, D: LazySetup + Device> Module<D> for Lazy<Mods> {
     type Module = Lazy<Mods::Module>;
     // type Data<T, S: Shape> = LazyWrapper<Mods::Data<T, S>>;
@@ -63,6 +59,8 @@ impl<Mods: Module<D>, D: LazySetup + Device> Module<D> for Lazy<Mods> {
             modules: Mods::new(),
             buffers: Default::default(),
             graph: Default::default(),
+            alloc_later: Default::default(),
+            allocated: Default::default(),
         }
     }
 }
@@ -87,7 +85,15 @@ impl<Mods: AddOperation> AddOperation for Lazy<Mods> {
 
 impl<D: Device + 'static, Mods> ExecNow<D> for Lazy<Mods> {
     #[inline]
-    fn exec_now(&self, range_bounds: impl core::ops::RangeBounds<usize>) -> crate::Result<()> {
+    fn exec_now(
+        &self,
+        device: &D,
+        range_bounds: impl core::ops::RangeBounds<usize>,
+    ) -> crate::Result<()> {
+        if !self.allocated.get() {
+            self.alloc_later(device);
+            self.allocated.set(true);
+        }
         unsafe {
             self.graph
                 .borrow_mut()
@@ -108,6 +114,14 @@ impl<Mods> Lazy<Mods> {
         //     .call_lazily::<D>(&self.out_ids.borrow(), &mut self.buffers.borrow_mut())?;
         Ok(())
     }
+
+    fn alloc_later<D: 'static>(&self, device: &D) {
+        let mut buffers = self.buffers.borrow_mut();
+        // could use drain - no allocated flag
+        for (id, alloc_fn) in self.alloc_later.borrow().iter() {
+            alloc_fn(&mut buffers, *id, device);
+        }
+    }
 }
 
 impl<D: LazySetup, Mods: Setup<D>> Setup<D> for Lazy<Mods> {
@@ -118,9 +132,13 @@ impl<D: LazySetup, Mods: Setup<D>> Setup<D> for Lazy<Mods> {
     }
 }
 
-impl<Mods: RunModule<D>, D: LazyRun + PtrConv + 'static> RunModule<D> for Lazy<Mods> {
+impl<Mods: RunModule<D>, D: LazyRun + Device + 'static> RunModule<D> for Lazy<Mods> {
     #[inline]
     fn run(&self, device: &D) -> crate::Result<()> {
+        if !self.allocated.get() {
+            self.alloc_later(device);
+            self.allocated.set(true);
+        }
         unsafe { self.call_lazily::<D>()? };
         device.run()?;
         self.modules.run(device)
@@ -135,11 +153,16 @@ impl<Mods: OnDropBuffer> OnDropBuffer for Lazy<Mods> {
     }
 }
 
-impl<T: 'static, D: Device + PtrConv + 'static, Mods: OnNewBuffer<T, D>> OnNewBuffer<T, D>
-    for Lazy<Mods>
+impl<T, D, Mods, S> OnNewBuffer<T, D, S> for Lazy<Mods>
+where
+    T: 'static,
+    D: Device + IsShapeIndep + 'static,
+    D::Data<T, S>: ShallowCopy,
+    Mods: OnNewBuffer<T, D, S>,
+    S: Shape,
 {
     #[inline]
-    fn on_new_buffer<S: Shape>(&self, device: &D, new_buf: &Buffer<T, D, S>) {
+    fn on_new_buffer(&self, device: &D, new_buf: &Buffer<T, D, S>) {
         unsafe { super::register_buf(&mut self.buffers.borrow_mut(), new_buf) };
         self.modules.on_new_buffer(device, new_buf)
     }
@@ -147,30 +170,89 @@ impl<T: 'static, D: Device + PtrConv + 'static, Mods: OnNewBuffer<T, D>> OnNewBu
 
 pass_down_tape_actions!(Lazy);
 
-impl<T: 'static, Mods: Retrieve<D, T>, D: PtrConv + 'static> Retrieve<D, T> for Lazy<Mods> {
+impl<T, Mods, D, S> Retrieve<D, T, S> for Lazy<Mods>
+where
+    T: 'static,
+    Mods: Retrieve<D, T, S>,
+    D: IsShapeIndep + 'static,
+    D::Data<T, S>: ShallowCopy,
+    S: Shape,
+{
     #[inline]
-    fn retrieve<S, const NUM_PARENTS: usize>(
+    fn retrieve<const NUM_PARENTS: usize>(
         &self,
-        device: &D,
+        _device: &D,
         len: usize,
-        parents: impl Parents<NUM_PARENTS>,
-    ) -> <D>::Data<T, S>
+        _parents: impl Parents<NUM_PARENTS>,
+    ) -> Self::Wrap<T, D::Base<T, S>>
     where
         S: Shape,
         D: Alloc<T>,
     {
-        self.modules.retrieve(device, len, parents)
+        let mut alloc_later = self.alloc_later.borrow_mut();
+        let id = Id {
+            id: alloc_later.len() as UniqueId,
+            len,
+        };
+
+        // alloc later callback in order to keep type information
+        alloc_later.push((id, |buffers, id, device| {
+            let device = device.downcast_ref::<D>().unwrap();
+            // TODO: should be fixable - (lazy) -> either return error or fix
+            // creating buffers (with data) is not lazy - they are allocated instantly
+            // these are then added to `buffers` with their ID (which is the pointing address)
+            // new IDs start at 0. 1, 2, 3, ... till a collision with an address happens.
+            assert!(
+                !buffers.contains_key(&id.id),
+                "IDs collided! Maybe pointing address already occupied this ID."
+            );
+
+            // safety: AllocFlag::Lazy prevents accessing device when dropping
+            let base = device.alloc::<S>(id.len, crate::flag::AllocFlag::Lazy);
+            let data = device.base_to_data(base);
+            let buffer = Buffer {
+                data,
+                device: Some(device),
+            };
+
+            let buffer: Buffer<'static, T, D, S> = unsafe { core::mem::transmute(buffer) };
+            buffers.insert(id.id, Box::new(buffer));
+        }));
+
+        LazyWrapper {
+            data: None,
+            id: Some(id),
+            _pd: core::marker::PhantomData,
+        }
     }
 
     #[inline]
-    fn on_retrieve_finish<S: Shape>(&self, retrieved_buf: &Buffer<T, D, S>)
+    fn on_retrieve_finish(&self, retrieved_buf: &Buffer<T, D, S>)
     where
         D: Alloc<T>,
     {
-        unsafe { register_buf(&mut self.buffers.borrow_mut(), retrieved_buf) };
+        // unsafe { register_buf(&mut self.buffers.borrow_mut(), retrieved_buf) };
 
         // pass down
         self.modules.on_retrieve_finish(retrieved_buf)
+    }
+}
+
+impl<T: 'static, D: Device + 'static, S: Shape, Mods: OnDropBuffer> ReplaceBuf<T, D, S>
+    for Lazy<Mods>
+{
+    #[inline]
+    fn replace_buf<'a, 'b, 'c>(
+        &'c self,
+        buffer: &'c Buffer<'a, T, D, S>,
+    ) -> &'c Buffer<'a, T, D, S> {
+        match self.buffers.borrow().get(&buffer.id()) {
+            Some(buf) => {
+                let buf = &**buf;
+                unsafe { &*(buf as *const _ as *const Buffer<T, D, S>) }
+            }
+            None => buffer,
+        }
     }
 }
 
@@ -187,17 +269,34 @@ mod tests {
 
     #[test]
     #[cfg(feature = "cpu")]
+    fn test_lazy_retrieve() {
+        let device = CPU::<Lazy<Base>>::new();
+        let buf = Buffer::<i32, _>::new(&device, 10);
+        let res = &buf.data;
+        assert_eq!(res.id, None);
+
+        let x: Buffer<i32, _> = device.retrieve(10, ());
+        let res = &x.data;
+        assert_eq!(res.id, Some(crate::Id { id: 0, len: 10 }));
+
+        let x: Buffer<i32, _> = device.retrieve(10, ());
+        let res = &x.data;
+        assert_eq!(res.id, Some(crate::Id { id: 1, len: 10 }));
+    }
+
+    #[test]
+    #[cfg(feature = "cpu")]
     fn test_lazy_apply_fn() {
         let device = CPU::<Lazy<Base>>::new();
 
         let buf = Buffer::<i32, _>::new(&device, 10);
         let out = device.apply_fn(&buf, |x| x.add(3));
 
-        assert_eq!(out.read(), &[0; 10]);
+        // assert_eq!(out.read(), &[0; 10]); -- should not work
+        device.modules.alloc_later(&device);
         unsafe { device.modules.call_lazily::<CPU<Lazy<Base>>>().unwrap() }
-        assert_eq!(out.read(), &[3; 10]);
-
-        drop(out);
+        // assert_eq!(out.read(), &[3; 10]); -- should work
+        assert_eq!(out.replace().read(), &[3; 10]);
         drop(buf);
     }
 
@@ -215,15 +314,15 @@ mod tests {
     where
         T: Add<Output = T> + Copy + 'static,
         D: Device + 'static,
-        D::Data<T, S>: Deref<Target = [T]>,
+        D::Base<T, S>: Deref<Target = [T]>,
         S: Shape,
-        Mods: AddOperation + Retrieve<Self, T> + 'static,
+        Mods: AddOperation + Retrieve<Self, T, S> + 'static,
     {
         #[inline]
         fn add(&self, lhs: &Buffer<T, D, S>, rhs: &Buffer<T, D, S>) -> Buffer<T, Self, S> {
             let mut out = self.retrieve(lhs.len(), ());
             self.add_op((lhs, rhs, &mut out), |(lhs, rhs, out)| {
-                add_ew_slice(lhs, rhs, out);
+                add_ew_slice(lhs, rhs, out.as_mut_slice());
                 Ok(())
             })
             .unwrap();
@@ -247,8 +346,8 @@ mod tests {
 
         {
             let buf = Buffer::<i32, _>::new(&device, 10);
-            let out = device.apply_fn(&buf, |x| x.add(3));
-            assert_eq!(out.read(), &[0; 10]);
+            let _out = device.apply_fn(&buf, |x| x.add(3));
+            // assert_eq!(out.replace().read(), &[0; 10]);
         }
 
         if DeviceError::InvalidLazyBuf
@@ -267,9 +366,26 @@ mod tests {
         let buf = Buffer::<i32, _>::new(&device, 10);
         let out = device.apply_fn(&buf, |x| x.add(3));
 
-        assert_eq!(out.read(), &[0; 10]);
+        // assert_eq!(out.read(), &[0; 10]);
         unsafe { device.run().unwrap() };
-        assert_eq!(out.read(), &[3; 10]);
+        assert_eq!(out.replace().read(), &[3; 10]);
+    }
+
+    #[cfg(feature = "cpu")]
+    #[test]
+    fn test_lazy_alloc_later() {
+        use crate::Run;
+
+        let device = CPU::<Lazy<Base>>::new();
+
+        let buf = Buffer::<i32, _>::new(&device, 10);
+        let out = device.apply_fn(&buf, |x| x.add(3));
+
+        device.modules.alloc_later(&device);
+        device.modules.allocated.set(true);
+        assert_eq!(out.replace().read(), &[0; 10]);
+        unsafe { device.run().unwrap() };
+        assert_eq!(out.replace().read(), &[3; 10]);
     }
 
     #[test]
@@ -282,9 +398,8 @@ mod tests {
         let buf = Buffer::<i32, _>::new(&device, 10);
         let out = device.apply_fn(&buf, |x| x.add(3));
 
-        assert_eq!(out.read(), &[0; 10]);
         unsafe { device.run().unwrap() }
-        assert_eq!(out.read(), &[3; 10]);
+        assert_eq!(out.replace().read(), &[3; 10]);
     }
     #[test]
     #[cfg(feature = "cpu")]
@@ -296,18 +411,18 @@ mod tests {
         let buf = Buffer::<i32, _>::new(&device, 10);
         let lhs = device.apply_fn(&buf, |x| x.add(3));
 
-        assert_eq!(lhs.read(), &[0; 10]);
+        // assert_eq!(lhs.read(), &[0; 10]);
         let rhs = Buffer::<_, _>::from((&device, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]));
 
         assert_eq!(rhs.read(), &[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
 
         let out = device.add(&lhs, &rhs);
-        assert_eq!(out.read(), &[0; 10]);
+        // assert_eq!(out.read(), &[0; 10]);
 
         unsafe { device.run().unwrap() };
-        assert_eq!(lhs.read(), &[3; 10]);
+        assert_eq!(lhs.replace().read(), &[3; 10]);
 
-        assert_eq!(out.read(), [4, 5, 6, 7, 8, 9, 10, 11, 12, 13])
+        assert_eq!(out.replace().read(), [4, 5, 6, 7, 8, 9, 10, 11, 12, 13])
     }
 
     #[test]
@@ -359,11 +474,11 @@ mod tests {
                     Ok(())
                 })
                 .unwrap();
-            device.exec_now(1..).unwrap();
-            assert_eq!(out.as_slice(), [2, 4, 6, 8])
+            device.exec_now(&device, 1..).unwrap();
+            assert_eq!(out.replace().as_slice(), [2, 4, 6, 8])
         }
         unsafe { device.run().unwrap() };
-        assert_eq!(out.as_slice(), [0; 4])
+        assert_eq!(out.replace().as_slice(), [0; 4])
     }
 
     #[cfg(feature = "cpu")]
@@ -392,12 +507,12 @@ mod tests {
                     Ok(())
                 })
                 .unwrap();
-            device.exec_last_n(1).unwrap();
-            assert_eq!(out.as_slice(), [2, 4, 6, 8])
+            device.exec_last_n(&device, 1).unwrap();
+            assert_eq!(out.replace().as_slice(), [2, 4, 6, 8])
         }
         unsafe { device.run().unwrap() };
 
-        assert_eq!(out.as_slice(), [0; 4])
+        assert_eq!(out.replace().as_slice(), [0; 4])
     }
 
     #[cfg(feature = "cpu")]

@@ -93,7 +93,7 @@ where
     fn as_arg(&self, _context: Rc<Context>) -> VkShaderArgument {
         VkShaderArgument {
             vk_array_handle: None,
-            buffer: self.data.buf,
+            buffer: self.base().buf,
             descriptor_type: ash::vk::DescriptorType::STORAGE_BUFFER,
         }
     }

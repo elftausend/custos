@@ -40,7 +40,7 @@ pub trait CopySlice<T, D: Device = Self>: Sized + Device {
         range: R,
     ) -> Buffer<'a, T, Self>
     where
-        Self: Alloc<T> + OnDropBuffer + OnNewBuffer<T, Self>,
+        Self: Alloc<T> + OnDropBuffer + OnNewBuffer<T, Self, ()>,
     {
         let range = bounds_to_range(range, buf.len());
         let mut copied = Buffer::new(self, range.end - range.start);

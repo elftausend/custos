@@ -17,7 +17,7 @@ impl<T, D, S> ClearBuf<T, S, D> for Stack
 where
     T: Default,
     D: Device,
-    D::Data<T, S>: DerefMut<Target = [T]>,
+    D::Base<T, S>: DerefMut<Target = [T]>,
     S: Shape,
 {
     #[inline]
@@ -28,10 +28,10 @@ where
 
 impl<Mods, T, D, S> ApplyFunction<T, S, D> for Stack<Mods>
 where
-    Mods: Retrieve<Self, T>,
+    Mods: Retrieve<Self, T, S>,
     T: Copy + Default + ToVal + 'static,
     D: Device,
-    D::Data<T, S>: Deref<Target = [T]>,
+    D::Base<T, S>: Deref<Target = [T]>,
     S: Shape,
 {
     fn apply_fn<F>(&self, buf: &Buffer<T, D, S>, f: impl Fn(Resolve<T>) -> F) -> Buffer<T, Self, S>
@@ -52,7 +52,7 @@ where
     T: AddAssign + Copy + core::ops::Mul<Output = T>,
     S: Shape,
     D: Device,
-    D::Data<T, S>: Deref<Target = [T]> + DerefMut,
+    D::Base<T, S>: Deref<Target = [T]> + DerefMut,
 {
     #[inline]
     fn add_unary_grad<F>(
@@ -100,7 +100,7 @@ mod tests {
     impl<Mods: Retrieve<Self, T>, T, D> AddBuf<T, D> for CPU<Mods>
     where
         D: Device,
-        D::Data<T, ()>: Deref<Target = [T]>,
+        D::Base<T, ()>: Deref<Target = [T]>,
         T: Add<Output = T> + Clone,
     {
         fn add(&self, lhs: &Buffer<T, D>, rhs: &Buffer<T, D>) -> Buffer<T, Self> {
@@ -118,7 +118,7 @@ mod tests {
     where
         Stack: Alloc<T>,
         D: Device,
-        D::Data<T, S>: Deref<Target = [T]>,
+        D::Base<T, S>: Deref<Target = [T]>,
         T: Add<Output = T> + Copy + Default,
     {
         fn add(&self, lhs: &Buffer<T, D, S>, rhs: &Buffer<T, D, S>) -> Buffer<T, Self, S> {

@@ -96,6 +96,11 @@ impl<T> PtrType for CLPtr<T> {
     fn flag(&self) -> AllocFlag {
         self.flag
     }
+
+    #[inline]
+    unsafe fn set_flag(&mut self, flag: AllocFlag) {
+        self.flag = flag;
+    }
 }
 
 #[cfg(unified_cl)]
@@ -129,7 +134,7 @@ impl<T> DerefMut for CLPtr<T> {
 
 impl<T> Drop for CLPtr<T> {
     fn drop(&mut self) {
-        if !matches!(self.flag, AllocFlag::None | AllocFlag::BorrowedCache) {
+        if !self.flag.continue_deallocation() {
             return;
         }
 

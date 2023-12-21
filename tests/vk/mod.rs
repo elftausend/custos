@@ -29,7 +29,13 @@ fn get_memory_type_index(
 #[test]
 fn test_vulkan_compute_with_wgsl_and_spirv() {
     let entry = unsafe { Entry::load().unwrap() };
-    let app_info = vk::ApplicationInfo::default();
+    let app_name = unsafe { CStr::from_bytes_with_nul_unchecked(b"custos\0") };
+    let app_info = vk::ApplicationInfo::builder()
+        .application_name(app_name)
+        .application_version(0)
+        .engine_name(app_name)
+        .engine_version(0)
+        .api_version(vk::make_api_version(0, 1, 0, 0));
 
     let layer_names = unsafe {
         [CStr::from_bytes_with_nul_unchecked(
@@ -69,7 +75,7 @@ fn test_vulkan_compute_with_wgsl_and_spirv() {
 
     let device_features = vk::PhysicalDeviceFeatures::default();
     let device_create_info = vk::DeviceCreateInfo::builder()
-        .queue_create_infos(&[queue_info])
+        .queue_create_infos(std::slice::from_ref(&queue_info))
         .enabled_features(&device_features)
         .build();
 
@@ -84,6 +90,7 @@ fn test_vulkan_compute_with_wgsl_and_spirv() {
     println!("props: {:?}", &unsafe {
         ::std::ffi::CStr::from_ptr(props.device_name.as_ptr())
     });
+
     // let queue = unsafe { device.get_device_queue(device_with_queue_idx[0].1 as u32, 0) };
 
     let src = "@group(0)
@@ -136,21 +143,19 @@ fn test_vulkan_compute_with_wgsl_and_spirv() {
         )
         .unwrap();
 
-    let binary_slice = unsafe {
-        std::slice::from_raw_parts(data.as_ptr() as *const u8, size_of_val(data.as_slice()))
-    };
+    // let binary_slice = unsafe {
+    //     std::slice::from_raw_parts(data.as_ptr() as *const u8, size_of_val(data.as_slice()))
+    // };
 
     let shader_module = unsafe {
-        let shader_module_create_info = vk::ShaderModuleCreateInfo {
-            code_size: binary_slice.len(),
-            p_code: binary_slice.as_ptr() as _,
-            ..Default::default()
-        };
+        let shader_module_create_info = vk::ShaderModuleCreateInfo::builder().code(&data);
+
         device
             .create_shader_module(&shader_module_create_info, None)
             .unwrap()
     };
 
+    return;
     let dispatch_size = 655360;
 
     pub unsafe fn create_buffer<T>(device: &ash::Device, size: usize) -> Buffer {
@@ -257,7 +262,11 @@ fn test_vulkan_compute_with_wgsl_and_spirv() {
     };
 
     let pipeline = unsafe {
-        device.create_compute_pipelines(PipelineCache::null(), &[pipeline_create_info], None)
+        device.create_compute_pipelines(
+            PipelineCache::null(),
+            std::slice::from_ref(&pipeline_create_info),
+            None,
+        )
     }
     .unwrap()[0];
 

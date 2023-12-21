@@ -4,12 +4,12 @@ mod tape;
 pub use gradients::*;
 pub use tape::*;
 
-use core::{cell::UnsafeCell, ops::Deref};
+use core::cell::UnsafeCell;
 
 use crate::{
     pass_down_add_operation, pass_down_exec_now_module, register_buf, unregister_buf, AddGradFn,
-    Alloc, Buffer, Device, HasId, Module, OnDropBuffer, OnNewBuffer, Parents, PtrConv, Retrieve,
-    RunModule, Setup, Shape, TapeActions, PtrType, WrappedData,
+    Alloc, Buffer, Device, HasId, IsShapeIndep, Module, OnDropBuffer, OnNewBuffer, Parents,
+    PtrType, Retrieve, RunModule, Setup, ShallowCopy, Shape, TapeActions, WrappedData,
 };
 
 use super::{Cached, CachedModule};
@@ -23,7 +23,24 @@ pub struct Autograd<Mods> {
 }
 
 impl<Mods: WrappedData> WrappedData for Autograd<Mods> {
-    type WrappedData<Base: HasId + PtrType + Deref> = Mods::WrappedData<Base>;
+    type Wrap<T, Base: HasId + PtrType> = Mods::Wrap<T, Base>;
+
+    #[inline]
+    fn wrap_in_base<T, Base: HasId + PtrType>(&self, base: Base) -> Self::Wrap<T, Base> {
+        self.modules.wrap_in_base(base)
+    }
+
+    #[inline]
+    fn wrapped_as_base<'a, T, Base: HasId + PtrType>(wrap: &'a Self::Wrap<T, Base>) -> &'a Base {
+        Mods::wrapped_as_base(wrap)
+    }
+
+    #[inline]
+    fn wrapped_as_base_mut<'a, T, Base: HasId + PtrType>(
+        wrap: &'a mut Self::Wrap<T, Base>,
+    ) -> &'a mut Base {
+        Mods::wrapped_as_base_mut(wrap)
+    }
 }
 
 impl<Mods: Module<D>, D: Device> Module<D> for Autograd<Mods> {
@@ -37,7 +54,6 @@ impl<Mods: Module<D>, D: Device> Module<D> for Autograd<Mods> {
             tape: Default::default(),
         }
     }
-
 }
 
 impl<Mods> Autograd<Mods> {
@@ -45,7 +61,8 @@ impl<Mods> Autograd<Mods> {
     pub fn register_no_grad_buf<T, D, S>(&self, buf: &Buffer<T, D, S>)
     where
         T: 'static,
-        D: Device + PtrConv + 'static,
+        D: Device + IsShapeIndep + 'static,
+        D::Data<T, S>: ShallowCopy,
         S: Shape,
     {
         let no_grads_pool = unsafe { &mut (*(self.grads.get())).no_grads_pool.cache };
@@ -59,14 +76,15 @@ impl<Mods> Autograd<Mods> {
     }
 }
 
-impl<T, D, Mods> OnNewBuffer<T, D> for Autograd<Mods>
+impl<T, D, Mods, S: Shape> OnNewBuffer<T, D, S> for Autograd<Mods>
 where
     T: 'static,
-    D: Alloc<T> + PtrConv + 'static,
-    Mods: OnNewBuffer<T, D>,
+    D: Alloc<T> + IsShapeIndep + 'static,
+    D::Data<T, S>: ShallowCopy,
+    Mods: OnNewBuffer<T, D, S>,
 {
     #[inline]
-    fn on_new_buffer<S: Shape>(&self, device: &D, new_buf: &Buffer<T, D, S>) {
+    fn on_new_buffer(&self, device: &D, new_buf: &Buffer<T, D, S>) {
         self.register_no_grad_buf(new_buf);
 
         // allocates gradient memory for the corresponding buffer id
@@ -103,26 +121,26 @@ impl<Mods: Setup<NewDev>, NewDev> Setup<NewDev> for Autograd<Mods> {
     }
 }
 
-impl<T: 'static, Mods: Retrieve<D, T>, D> Retrieve<D, T> for Autograd<Mods>
+impl<T: 'static, Mods: Retrieve<D, T, S>, D, S: Shape> Retrieve<D, T, S> for Autograd<Mods>
 where
-    D: PtrConv + Device + 'static,
+    D: IsShapeIndep + Device + 'static,
+    D::Data<T, S>: ShallowCopy,
 {
     #[inline]
-    fn retrieve<S, const NUM_PARENTS: usize>(
+    fn retrieve<const NUM_PARENTS: usize>(
         &self,
         device: &D,
         len: usize,
         parents: impl Parents<NUM_PARENTS>,
-    ) -> <D>::Data<T, S>
+    ) -> Self::Wrap<T, D::Base<T, S>>
     where
         D: Alloc<T>,
-        S: crate::Shape,
     {
         self.modules.retrieve(device, len, parents)
     }
 
     #[inline]
-    fn on_retrieve_finish<S: Shape>(&self, retrieved_buf: &Buffer<T, D, S>)
+    fn on_retrieve_finish(&self, retrieved_buf: &Buffer<T, D, S>)
     where
         D: Alloc<T>,
     {
@@ -276,7 +294,7 @@ mod tests {
         let _lhs = Buffer::<f32, _>::new(&device, 10);
 
         for _ in 0..100 {
-            let x: Buffer<f32, _> = device.retrieve::<(), 0>(100, ());
+            let x: Buffer<f32, _> = device.retrieve::<0>(100, ());
             assert_eq!(x.len(), 100)
         }
 
@@ -299,7 +317,7 @@ mod tests {
         let _lhs = Buffer::<f32, _>::new(&device, 10);
 
         for _ in 0..100 {
-            let x: Buffer<f32, _> = device.retrieve::<(), 0>(100, ());
+            let x: Buffer<f32, _> = device.retrieve::<0>(100, ());
             assert_eq!(x.len(), 100)
         }
 

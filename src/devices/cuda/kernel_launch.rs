@@ -45,14 +45,14 @@ pub trait AsCudaCvoidPtr {
 impl<'a, T, Mods: OnDropBuffer, S: Shape> AsCudaCvoidPtr for &Buffer<'a, T, CUDA<Mods>, S> {
     #[inline]
     fn as_cvoid_ptr(&self) -> *mut c_void {
-        &self.data.ptr as *const u64 as *mut c_void
+        &self.base().ptr as *const u64 as *mut c_void
     }
 }
 
 impl<'a, T, Mods: OnDropBuffer, S: Shape> AsCudaCvoidPtr for Buffer<'a, T, CUDA<Mods>, S> {
     #[inline]
     fn as_cvoid_ptr(&self) -> *mut c_void {
-        &self.data.ptr as *const u64 as *mut c_void
+        &self.base().ptr as *const u64 as *mut c_void
     }
 }
 

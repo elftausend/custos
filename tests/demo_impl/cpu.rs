@@ -27,7 +27,7 @@ impl<T, D, S> ElementWise<T, D, S> for CPU
 where
     T: Number,
     D: Device,
-    D::Data<T, S>: Deref<Target = [T]>,
+    D::Base<T, S>: Deref<Target = [T]>,
     S: Shape,
 {
     fn add(&self, lhs: &Buffer<T, D, S>, rhs: &Buffer<T, D, S>) -> Buffer<T, CPU, S> {

@@ -1,4 +1,4 @@
-use std::ops::Deref;
+use std::ops::{Deref, DerefMut};
 
 use custos::{number::Number, Buffer, CDatatype, Device, Retrieve, Retriever, CPU};
 
@@ -24,7 +24,7 @@ impl<T, D, Mods> AddBuf<T, D> for CPU<Mods>
 where
     Mods: Retrieve<Self, T>,
     D: Device,
-    D::Data<T, ()>: Deref<Target = [T]>,
+    D::Base<T, ()>: Deref<Target = [T]>,
     T: Number,
 {
     fn add(&self, lhs: &Buffer<T, D>, rhs: &Buffer<T, D>) -> Buffer<T, Self> {
@@ -62,7 +62,7 @@ impl<T: CDatatype, Mods: Retrieve<Self, T>> AddBuf<T, Self> for OpenCL<Mods> {
 
         let gws = [lhs.len(), 0, 0];
         let out = self.retrieve(lhs.len(), (lhs, rhs));
-        enqueue_kernel(self, &src, gws, None, &[lhs, rhs, &out.data]).unwrap();
+        enqueue_kernel(self, &src, gws, None, &[lhs, rhs, &out]).unwrap();
         out
     }
 
@@ -78,7 +78,7 @@ impl<T: CDatatype, Mods: Retrieve<Self, T>> AddBuf<T, Self> for OpenCL<Mods> {
         );
 
         let out = self.retrieve(lhs.len(), lhs);
-        enqueue_kernel(self, &src, [lhs.len(), 0, 0], None, &[lhs, &out.data]).unwrap();
+        enqueue_kernel(self, &src, [lhs.len(), 0, 0], None, &[lhs, &out]).unwrap();
         out
     }
 }
@@ -100,7 +100,7 @@ impl<T: CDatatype, Mods: Retrieve<Self, T>> AddBuf<T, Self> for CUDA<Mods> {
         );
 
         let out = self.retrieve(lhs.len(), (lhs, rhs));
-        self.launch_kernel1d(lhs.len, &src, "add", &[lhs, rhs, &out.data, &lhs.len])
+        self.launch_kernel1d(lhs.len, &src, "add", &[lhs, rhs, &out, &lhs.len])
             .unwrap();
         out
     }
@@ -120,7 +120,7 @@ impl<T: CDatatype, Mods: Retrieve<Self, T>> AddBuf<T, Self> for CUDA<Mods> {
         );
 
         let out = self.retrieve(lhs.len(), lhs);
-        self.launch_kernel1d(lhs.len, &src, "relu", &[lhs, &out.data, &lhs.len])
+        self.launch_kernel1d(lhs.len, &src, "relu", &[lhs, &out, &lhs.len])
             .unwrap();
         out
     }

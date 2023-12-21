@@ -219,9 +219,9 @@ macro_rules! to_cpu {
 /// The old `Buffer`s are shadowed.
 #[macro_export]
 macro_rules! to_raw_host {
-    ($cpu_ty:ty, $($t:ident),*) => {
+    ($cpu:expr, $($t:ident),*) => {
         $(
-            let $t = &unsafe { $crate::Buffer::<_, $cpu_ty, ()>::from_raw_host($t.data.host_ptr, $t.len()) };
+            let $t = &unsafe { $crate::Buffer::<_, _, ()>::from_raw_host_device($cpu, $t.data.host_ptr, $t.len()) };
         )*
     };
 }
@@ -230,10 +230,10 @@ macro_rules! to_raw_host {
 /// New names for the `CPU` `Buffer`s are provided by the user.
 #[macro_export]
 macro_rules! to_raw_host_mut {
-    ($cpu_ty:ty, $($t:ident, $cpu_name:ident),*) => {
+    ($cpu:expr, $($t:ident, $cpu_name:ident),*) => {
         $(
             #[allow(unused_mut)]
-            let mut $cpu_name = &mut unsafe { $crate::Buffer::<_, $cpu_ty, ()>::from_raw_host($t.data.host_ptr, $t.len()) };
+            let mut $cpu_name = &mut unsafe { $crate::Buffer::<_, _, ()>::from_raw_host_device($cpu, $t.data.host_ptr, $t.len()) };
         )*
     };
 }

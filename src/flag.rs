@@ -13,10 +13,21 @@ pub enum AllocFlag {
     Num,
     /// Similiar to `None`, but the resulting [`Buffer`](crate::Buffer) is borrowed and not owned.
     BorrowedCache,
+    Lazy,
 }
 
 impl PartialEq for AllocFlag {
     fn eq(&self, other: &Self) -> bool {
         core::mem::discriminant(self) == core::mem::discriminant(other)
+    }
+}
+
+impl AllocFlag {
+    #[inline]
+    pub fn continue_deallocation(&self) -> bool {
+        matches!(
+            self,
+            AllocFlag::None | AllocFlag::BorrowedCache | AllocFlag::Lazy
+        )
     }
 }

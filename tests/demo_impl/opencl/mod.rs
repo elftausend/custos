@@ -74,7 +74,7 @@ mod tests {
         let lhs = Buffer::from((&device, vec![1.0f32; SIZE]));
         let rhs = Buffer::from((&device, vec![4.0; SIZE]));
 
-        let mut out = device.retrieve::<(), 0>(lhs.len(), ());
+        let mut out = device.retrieve::<0>(lhs.len(), ());
 
         let start = std::time::Instant::now();
 
@@ -95,7 +95,7 @@ mod tests {
         let lhs = Buffer::<_>::from((&device, vec![1.0f32; SIZE]));
         let rhs = Buffer::<_>::from((&device, vec![4.0; SIZE]));
 
-        let mut out = device.retrieve::<(), 0>(lhs.len(), ());
+        let mut out: Buffer = device.retrieve::<0>(lhs.len(), ());
 
         let start = std::time::Instant::now();
         for _ in 0..TIMES {

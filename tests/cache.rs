@@ -8,17 +8,18 @@ use custos::{Buffer, CPU};
 #[cfg(feature = "cpu")]
 #[cfg(not(feature = "realloc"))]
 #[track_caller]
-fn cached_add<'a, Mods: custos::Retrieve<CPU<Mods>, f32>>(
-    device: &'a CPU<Mods>,
-    a: &[f32],
-    b: &[f32],
-) -> Buffer<'a, f32, CPU<Mods>> {
-    use custos::Retriever;
+fn cached_add<'a, Mods>(device: &'a CPU<Mods>, a: &[f32], b: &[f32]) -> Buffer<'a, f32, CPU<Mods>>
+where
+    Mods: custos::Retrieve<CPU<Mods>, f32>,
+    Mods::Wrap<f32, custos::cpu::CPUPtr<f32>>: custos::HostPtr<f32>,
+{
+    use custos::{Device, HostPtr, Retriever};
 
     let mut out = device.retrieve(10, ());
 
-    for i in 0..out.len() {
-        out[i] = a[i] + b[i];
+    let out_slice = out.as_mut_slice();
+    for i in 0..out_slice.len() {
+        out_slice[i] = a[i] + b[i];
     }
     out
 }

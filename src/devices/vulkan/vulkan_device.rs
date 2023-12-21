@@ -2,9 +2,9 @@ use ash::vk::BufferUsageFlags;
 
 use super::{context::Context, launch_shader, AsVkShaderArgument, ShaderCache, VkArray};
 use crate::{
-    flag::AllocFlag, impl_buffer_hook_traits, impl_retriever, pass_down_grad_fn,
-    pass_down_optimize_mem_graph, pass_down_tape_actions, pass_down_use_gpu_or_cpu, Alloc, Base,
-    Buffer, Device, Module, OnDropBuffer, PtrConv, Setup, Shape,
+    impl_buffer_hook_traits, impl_retriever, impl_wrapped_data, pass_down_grad_fn,
+    pass_down_replace_buf, pass_down_tape_actions, pass_down_use_gpu_or_cpu, Alloc, Base, Buffer,
+    Device, IsShapeIndep, Module, OnDropBuffer, Setup, Shape, WrappedData,
 };
 use core::{
     cell::RefCell,
@@ -39,6 +39,12 @@ impl VkDevice {
             src,
             args,
         )
+    }
+}
+
+impl Drop for VkDevice {
+    fn drop(&mut self) {
+        unsafe { self.shader_cache.borrow_mut().destroy(&self.context.device) }
     }
 }
 
@@ -90,23 +96,49 @@ impl_retriever!(Vulkan);
 impl_buffer_hook_traits!(Vulkan);
 pass_down_use_gpu_or_cpu!(Vulkan);
 #[cfg(feature = "graph")]
-pass_down_optimize_mem_graph!(Vulkan);
+crate::pass_down_optimize_mem_graph!(Vulkan);
+pass_down_replace_buf!(Vulkan);
+impl_wrapped_data!(Vulkan);
 
 impl<Mods: OnDropBuffer> Device for Vulkan<Mods> {
-    type Data<T, S: Shape> = VkArray<T>;
+    type Data<T, S: Shape> = Mods::Wrap<T, Self::Base<T, S>>;
+    type Base<T, S: Shape> = VkArray<T>;
 
     type Error = ();
+
+    fn base_to_data<T, S: Shape>(&self, base: Self::Base<T, S>) -> Self::Data<T, S> {
+        self.wrap_in_base(base)
+    }
+
+    #[inline]
+    fn wrap_to_data<T, S: Shape>(&self, wrap: Self::Wrap<T, Self::Base<T, S>>) -> Self::Data<T, S> {
+        wrap
+    }
+
+    #[inline]
+    fn data_as_wrap<'a, T, S: Shape>(
+        data: &'a Self::Data<T, S>,
+    ) -> &'a Self::Wrap<T, Self::Base<T, S>> {
+        data
+    }
+
+    #[inline]
+    fn data_as_wrap_mut<'a, T, S: Shape>(
+        data: &'a mut Self::Data<T, S>,
+    ) -> &'a mut Self::Wrap<T, Self::Base<T, S>> {
+        data
+    }
 }
 
 impl<Mods: OnDropBuffer, T> Alloc<T> for Vulkan<Mods> {
     #[inline]
-    fn alloc<S: Shape>(&self, len: usize, flag: crate::flag::AllocFlag) -> Self::Data<T, S> {
+    fn alloc<S: Shape>(&self, len: usize, flag: crate::flag::AllocFlag) -> Self::Base<T, S> {
         VkArray::new(self.context(), len, BufferUsageFlags::STORAGE_BUFFER, flag)
             .expect("Could not create VkArray")
     }
 
     #[inline]
-    fn alloc_from_slice<S: Shape>(&self, data: &[T]) -> Self::Data<T, S>
+    fn alloc_from_slice<S: Shape>(&self, data: &[T]) -> Self::Base<T, S>
     where
         T: Clone,
     {
@@ -126,23 +158,7 @@ impl<Mods> crate::ForkSetup for Vulkan<Mods> {}
 pass_down_tape_actions!(Vulkan);
 pass_down_grad_fn!(Vulkan);
 
-// impl for all devices
-impl<Mods: OnDropBuffer, OtherMods: OnDropBuffer> PtrConv<Vulkan<OtherMods>> for Vulkan<Mods> {
-    #[inline]
-    unsafe fn convert<T, IS: Shape, Conv, OS: Shape>(
-        data: &VkArray<T>,
-        flag: AllocFlag,
-    ) -> VkArray<Conv> {
-        VkArray {
-            len: data.len,
-            buf: data.buf,
-            mem: data.mem,
-            context: data.context.clone(),
-            mapped_ptr: data.mapped_ptr as *mut Conv,
-            flag,
-        }
-    }
-}
+unsafe impl<Mods: OnDropBuffer> IsShapeIndep for Vulkan<Mods> {}
 
 #[cfg(test)]
 mod tests {

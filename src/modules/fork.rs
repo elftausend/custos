@@ -1,12 +1,12 @@
 use crate::{
     pass_down_add_operation, pass_down_exec_now, pass_down_tape_actions, Alloc, Buffer, Device,
-    GpuOrCpuInfo, HashLocation, LocationHasher, Module, OnDropBuffer, OnNewBuffer, Parents,
-    PtrConv, Retrieve, RunModule, Setup, Shape, UseGpuOrCpu, WrappedData, PtrType, HasId,
+    GpuOrCpuInfo, HasId, HashLocation, IsShapeIndep, LocationHasher, Module, OnDropBuffer,
+    OnNewBuffer, Parents, PtrType, Retrieve, RunModule, Setup, Shape, UseGpuOrCpu, WrappedData,
 };
 use core::{
     cell::RefCell,
     hash::{BuildHasher, BuildHasherDefault},
-    time::Duration, ops::Deref,
+    time::Duration,
 };
 use std::{
     collections::{BinaryHeap, HashMap},
@@ -50,7 +50,24 @@ pub struct Fork<Mods> {
 }
 
 impl<Mods: WrappedData> WrappedData for Fork<Mods> {
-    type WrappedData<Base: HasId + PtrType + Deref> = Mods::WrappedData<Base>;
+    type Wrap<T, Base: HasId + PtrType> = Mods::Wrap<T, Base>;
+
+    #[inline]
+    fn wrap_in_base<T, Base: HasId + PtrType>(&self, base: Base) -> Self::Wrap<T, Base> {
+        self.modules.wrap_in_base(base)
+    }
+
+    #[inline]
+    fn wrapped_as_base<'a, T, Base: HasId + PtrType>(wrap: &'a Self::Wrap<T, Base>) -> &'a Base {
+        Mods::wrapped_as_base(wrap)
+    }
+
+    #[inline]
+    fn wrapped_as_base_mut<'a, T, Base: HasId + PtrType>(
+        wrap: &'a mut Self::Wrap<T, Base>,
+    ) -> &'a mut Base {
+        Mods::wrapped_as_base_mut(wrap)
+    }
 }
 
 impl<Mods: Module<D>, D: Device> Module<D> for Fork<Mods> {
@@ -202,21 +219,23 @@ impl<Mods: OnDropBuffer> OnDropBuffer for Fork<Mods> {
     }
 }
 
-impl<Mods: OnNewBuffer<T, D>, T, D: Device> OnNewBuffer<T, D> for Fork<Mods> {
+impl<Mods: OnNewBuffer<T, D, S>, T, D: Device, S: Shape> OnNewBuffer<T, D, S> for Fork<Mods> {
     #[inline]
-    fn on_new_buffer<S: Shape>(&self, device: &D, new_buf: &crate::Buffer<T, D, S>) {
+    fn on_new_buffer(&self, device: &D, new_buf: &crate::Buffer<T, D, S>) {
         self.modules.on_new_buffer(device, new_buf)
     }
 }
 
-impl<T: 'static, Mods: Retrieve<D, T>, D: PtrConv + 'static> Retrieve<D, T> for Fork<Mods> {
+impl<T: 'static, Mods: Retrieve<D, T, S>, D: IsShapeIndep + 'static, S: Shape> Retrieve<D, T, S>
+    for Fork<Mods>
+{
     #[inline]
-    fn retrieve<S, const NUM_PARENTS: usize>(
+    fn retrieve<const NUM_PARENTS: usize>(
         &self,
         device: &D,
         len: usize,
         parents: impl Parents<NUM_PARENTS>,
-    ) -> <D>::Data<T, S>
+    ) -> Self::Wrap<T, D::Base<T, S>>
     where
         S: Shape,
         D: Alloc<T>,
@@ -225,7 +244,7 @@ impl<T: 'static, Mods: Retrieve<D, T>, D: PtrConv + 'static> Retrieve<D, T> for 
     }
 
     #[inline]
-    fn on_retrieve_finish<S: Shape>(&self, retrieved_buf: &Buffer<T, D, S>)
+    fn on_retrieve_finish(&self, retrieved_buf: &Buffer<T, D, S>)
     where
         D: Alloc<T>,
     {

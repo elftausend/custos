@@ -3,22 +3,22 @@ use std::collections::HashMap;
 
 use std::rc::Rc;
 
-use crate::{flag::AllocFlag, Alloc, Device, HashLocation, LocationHasher, PtrConv, Shape};
+use crate::{flag::AllocFlag, Alloc, Device, HashLocation, LocationHasher, ShallowCopy, Shape};
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Cache<D: Device> {
+#[derive(Debug, Clone)]
+pub struct Cache {
     pub nodes:
-        HashMap<HashLocation<'static>, Rc<D::Data<u8, ()>>, BuildHasherDefault<LocationHasher>>,
+        HashMap<HashLocation<'static>, Rc<dyn core::any::Any>, BuildHasherDefault<LocationHasher>>,
 }
 
-impl<D: Device> Default for Cache<D> {
+impl Default for Cache {
     #[inline]
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl<SD: Device> Cache<SD> {
+impl Cache {
     #[inline]
     pub fn new() -> Self {
         Self {
@@ -28,42 +28,38 @@ impl<SD: Device> Cache<SD> {
 
     #[track_caller]
     #[inline]
-    pub fn get<T, S: Shape, D: Device + Alloc<T>>(
-        &mut self,
-        device: &D,
-        len: usize,
-        callback: fn(),
-    ) -> D::Data<T, S>
+    pub fn get<T, S, D>(&mut self, device: &D, len: usize, callback: fn()) -> D::Base<T, S>
     where
-        SD: PtrConv<D>,
-        D: PtrConv<SD>,
+        D: Alloc<T> + 'static,
+        D::Base<T, S>: ShallowCopy + 'static,
+        S: Shape,
     {
         let maybe_allocated = self.nodes.get(&Location::caller().into());
         match maybe_allocated {
-            Some(data) => unsafe { SD::convert(data, AllocFlag::Wrapper) },
+            Some(data) => unsafe { data.downcast_ref::<D::Base<T, S>>().unwrap().shallow() },
             None => self.add_node(device, len, callback),
         }
     }
 
     #[track_caller]
-    pub fn add_node<T, S: Shape, D: Alloc<T>>(
+    fn add_node<T, S, D>(
         &mut self,
         device: &D,
         len: usize,
         callback: fn(),
-    ) -> D::Data<T, S>
+    ) -> <D as Device>::Base<T, S>
     where
-        D: PtrConv<SD>,
+        D: Alloc<T>,
+        D::Base<T, S>: ShallowCopy + 'static,
+        S: Shape,
     {
-        let data = device.alloc::<S>(len, AllocFlag::Wrapper);
+        let data = device.alloc::<S>(len, AllocFlag::None);
+        let shallow_data = unsafe { data.shallow() };
 
-        let untyped_ptr = unsafe { D::convert(&data, AllocFlag::None) };
-        self.nodes
-            .insert(Location::caller().into(), Rc::new(untyped_ptr));
-
+        self.nodes.insert(Location::caller().into(), Rc::new(data));
         callback();
 
-        data
+        shallow_data
     }
 }
 
@@ -74,7 +70,7 @@ mod tests {
 
     #[test]
     fn test_cache_add_node() {
-        let mut cache = Cache::<CPU<Base>>::default();
+        let mut cache = Cache::default();
         let device = CPU::<Base>::new();
 
         assert_eq!(cache.nodes.len(), 0);
@@ -90,7 +86,7 @@ mod tests {
 
     #[test]
     fn test_cache_get_at_different_locations() {
-        let mut cache = Cache::<CPU<Base>>::default();
+        let mut cache = Cache::default();
         let device = CPU::<Base>::new();
 
         assert_eq!(cache.nodes.len(), 0);
@@ -107,7 +103,7 @@ mod tests {
     #[test]
     #[cfg_attr(miri, ignore)]
     fn test_cache_get_reuse_based_on_location() {
-        let mut cache = Cache::<CPU<Base>>::default();
+        let mut cache = Cache::default();
         let device = CPU::<Base>::new();
 
         let mut prev = None;

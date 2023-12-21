@@ -1,15 +1,30 @@
-use core::ops::Deref;
-
 use crate::{
-    flag::AllocFlag, AddGradFn, AddOperation, Alloc, Device, ExecNow, HashLocation, Module,
-    OnDropBuffer, OnNewBuffer, Parents, Retrieve, Setup, Shape, WrappedData, PtrType, HasId,
+    flag::AllocFlag, AddGradFn, AddOperation, Alloc, Device, ExecNow, HasId, HashLocation, Module,
+    OnDropBuffer, OnNewBuffer, Parents, PtrType, Retrieve, Setup, Shape, WrappedData,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub struct Base;
 
 impl WrappedData for Base {
-    type WrappedData<Base: HasId + PtrType + Deref> = Base;
+    type Wrap<T, Base: HasId + PtrType> = Base;
+
+    #[inline]
+    fn wrap_in_base<T, Base: HasId + PtrType>(&self, base: Base) -> Self::Wrap<T, Base> {
+        base
+    }
+
+    #[inline]
+    fn wrapped_as_base<'a, T, Base: HasId + PtrType>(wrap: &'a Self::Wrap<T, Base>) -> &'a Base {
+        wrap
+    }
+
+    #[inline]
+    fn wrapped_as_base_mut<'a, T, Base: HasId + PtrType>(
+        wrap: &'a mut Self::Wrap<T, Base>,
+    ) -> &'a mut Base {
+        wrap
+    }
 }
 
 impl<D: Device> Module<D> for Base {
@@ -38,27 +53,30 @@ impl AddOperation for Base {
 
 impl<D: Device> ExecNow<D> for Base {
     #[inline]
-    fn exec_now(&self, _range_bounds: impl core::ops::RangeBounds<usize>) -> crate::Result<()> {
+    fn exec_now(
+        &self,
+        _device: &D,
+        _range_bounds: impl core::ops::RangeBounds<usize>,
+    ) -> crate::Result<()> {
         Ok(())
     }
 }
 
 impl<D> Setup<D> for Base {}
 
-impl<T, D: Device> OnNewBuffer<T, D> for Base {}
+impl<T, D: Device, S: Shape> OnNewBuffer<T, D, S> for Base {}
 
 impl OnDropBuffer for Base {}
 
-impl<D, T> Retrieve<D, T> for Base {
+impl<D, T, S: Shape> Retrieve<D, T, S> for Base {
     #[inline]
-    fn retrieve<S, const NUM_PARENTS: usize>(
+    fn retrieve<const NUM_PARENTS: usize>(
         &self,
         device: &D,
         len: usize,
         _parents: impl Parents<NUM_PARENTS>,
-    ) -> <D>::Data<T, S>
+    ) -> Self::Wrap<T, D::Base<T, S>>
     where
-        S: crate::Shape,
         D: Alloc<T>,
     {
         device.alloc(len, AllocFlag::None)

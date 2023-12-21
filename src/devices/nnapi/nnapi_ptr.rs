@@ -1,4 +1,4 @@
-use crate::{flag::AllocFlag, HasId, PtrType};
+use crate::{flag::AllocFlag, HasId, PtrType, ShallowCopy};
 use nnapi::Operand;
 
 #[derive(Debug, Clone)]
@@ -40,5 +40,20 @@ impl PtrType for NnapiPtr {
     #[inline]
     fn flag(&self) -> crate::flag::AllocFlag {
         self.flag
+    }
+
+    #[inline]
+    unsafe fn set_flag(&mut self, flag: AllocFlag) {
+        self.flag = flag;
+    }
+}
+
+impl ShallowCopy for NnapiPtr {
+    unsafe fn shallow(&self) -> Self {
+        NnapiPtr {
+            dtype: self.dtype.clone(),
+            idx: self.idx,
+            flag: crate::flag::AllocFlag::Wrapper,
+        }
     }
 }

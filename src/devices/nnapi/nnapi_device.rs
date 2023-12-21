@@ -1,6 +1,7 @@
 use crate::{
-    cpu::CPUPtr, Alloc, AsOperandCode, Base, Buffer, Device, Lazy, LazyRun, LazySetup, Module,
-    OnDropBuffer, PtrConv, Retrieve, Retriever, Setup, Shape, CPU,
+    cpu::CPUPtr, Alloc, AsOperandCode, Base, Buffer, ConvPtr, Device, HasId, IsShapeIndep, Lazy,
+    LazyRun, LazySetup, Module, OnDropBuffer, PtrType, Retrieve, Retriever, Setup, Shape,
+    WrappedData,
 };
 
 use super::NnapiPtr;
@@ -23,8 +24,9 @@ pub struct NnapiDevice<T, Mods = Base> {
     out: Cell<Vec<T>>,
 }
 
-impl<T, Mods: OnDropBuffer> Device for NnapiDevice<T, Mods> {
-    type Data<U, S: crate::Shape> = NnapiPtr;
+impl<U, Mods: OnDropBuffer> Device for NnapiDevice<U, Mods> {
+    type Data<T, S: crate::Shape> = Mods::Wrap<T, NnapiPtr>;
+    type Base<T, S: Shape> = NnapiPtr;
     type Error = crate::Error;
 
     #[inline]
@@ -32,7 +34,32 @@ impl<T, Mods: OnDropBuffer> Device for NnapiDevice<T, Mods> {
         // NnapiDevice::new()
         todo!()
     }
+
+    fn base_to_data<T, S: Shape>(&self, base: Self::Base<T, S>) -> Self::Data<T, S> {
+        self.wrap_in_base(base)
+    }
+
+    #[inline]
+    fn wrap_to_data<T, S: Shape>(&self, wrap: Self::Wrap<T, Self::Base<T, S>>) -> Self::Data<T, S> {
+        wrap
+    }
+
+    #[inline]
+    fn data_as_wrap<'a, T, S: Shape>(
+        data: &'a Self::Data<T, S>,
+    ) -> &'a Self::Wrap<T, Self::Base<T, S>> {
+        data
+    }
+
+    #[inline]
+    fn data_as_wrap_mut<'a, T, S: Shape>(
+        data: &'a mut Self::Data<T, S>,
+    ) -> &'a mut Self::Wrap<T, Self::Base<T, S>> {
+        data
+    }
 }
+
+unsafe impl<U, Mods: OnDropBuffer> IsShapeIndep for NnapiDevice<U, Mods> {}
 
 impl<U, T, D: Device, S: Shape, Mods: crate::OnNewBuffer<T, D, S>> crate::OnNewBuffer<T, D, S>
     for NnapiDevice<U, Mods>
@@ -42,23 +69,43 @@ impl<U, T, D: Device, S: Shape, Mods: crate::OnNewBuffer<T, D, S>> crate::OnNewB
         self.modules.on_new_buffer(device, new_buf)
     }
 }
+impl<U, Mods: WrappedData> WrappedData for NnapiDevice<U, Mods> {
+    type Wrap<T, Base: HasId + PtrType> = Mods::Wrap<T, Base>;
 
-impl<U, Mods: crate::OnDropBuffer> crate::OnDropBuffer for NnapiDevice<U, Mods> {
+    #[inline]
+    fn wrap_in_base<T, Base: HasId + PtrType>(&self, base: Base) -> Self::Wrap<T, Base> {
+        self.modules.wrap_in_base(base)
+    }
+
+    #[inline]
+    fn wrapped_as_base<'a, T, Base: HasId + PtrType>(wrap: &'a Self::Wrap<T, Base>) -> &'a Base {
+        Mods::wrapped_as_base(wrap)
+    }
+
+    #[inline]
+    fn wrapped_as_base_mut<'a, T, Base: HasId + PtrType>(
+        wrap: &'a mut Self::Wrap<T, Base>,
+    ) -> &'a mut Base {
+        Mods::wrapped_as_base_mut(wrap)
+    }
+}
+
+impl<U, Mods: OnDropBuffer> OnDropBuffer for NnapiDevice<U, Mods> {
     #[inline]
     fn on_drop_buffer<T, D: Device, S: Shape>(&self, device: &D, buf: &Buffer<T, D, S>) {
         self.modules.on_drop_buffer(device, buf)
     }
 }
-impl<U, Mods: Retrieve<Self, T>, T: AsOperandCode> Retriever<T> for NnapiDevice<U, Mods> {
-    fn retrieve<S, const NUM_PARENTS: usize>(
+
+impl<U, Mods: Retrieve<Self, T, S>, T: AsOperandCode, S: Shape> Retriever<T, S>
+    for NnapiDevice<U, Mods>
+{
+    fn retrieve<const NUM_PARENTS: usize>(
         &self,
         len: usize,
         parents: impl crate::Parents<NUM_PARENTS>,
-    ) -> Buffer<T, Self, S>
-    where
-        S: Shape,
-    {
-        let data = self.modules.retrieve::<S, NUM_PARENTS>(self, len, parents);
+    ) -> Buffer<T, Self, S> {
+        let data = self.modules.retrieve::<NUM_PARENTS>(self, len, parents);
         let buf = Buffer {
             data,
             device: Some(self),
@@ -83,11 +130,7 @@ pub fn dtype_from_shape<'a, T: AsOperandCode, S: Shape>() -> Operand {
 }
 
 impl<U, T: AsOperandCode, Mods: OnDropBuffer> Alloc<T> for NnapiDevice<U, Mods> {
-    fn alloc<S: Shape>(
-        &self,
-        _len: usize,
-        flag: crate::flag::AllocFlag,
-    ) -> <Self as Device>::Data<T, S> {
+    fn alloc<S: Shape>(&self, _len: usize, flag: crate::flag::AllocFlag) -> Self::Base<T, S> {
         let dtype = dtype_from_shape::<T, S>();
         let idx = self.add_operand(&dtype).unwrap();
         let nnapi_ptr = NnapiPtr { dtype, idx, flag };
@@ -97,7 +140,7 @@ impl<U, T: AsOperandCode, Mods: OnDropBuffer> Alloc<T> for NnapiDevice<U, Mods> 
         nnapi_ptr
     }
 
-    fn alloc_from_slice<S: Shape>(&self, data: &[T]) -> <Self as Device>::Data<T, S>
+    fn alloc_from_slice<S: Shape>(&self, data: &[T]) -> Self::Base<T, S>
     where
         T: Clone,
     {
@@ -106,8 +149,7 @@ impl<U, T: AsOperandCode, Mods: OnDropBuffer> Alloc<T> for NnapiDevice<U, Mods> 
         let mut ptr = unsafe { CPUPtr::<T>::new(data.len(), crate::flag::AllocFlag::Wrapper) };
         ptr.clone_from_slice(data);
 
-        let ptr =
-            unsafe { <CPU<Base> as PtrConv>::convert::<T, S, u8, S>(&ptr, crate::AllocFlag::None) };
+        let ptr = unsafe { ConvPtr::<_, ()>::convert(&ptr, crate::flag::AllocFlag::None) };
 
         self.input_ptrs.borrow_mut().push((nnapi_ptr.idx, ptr));
         nnapi_ptr
@@ -236,19 +278,6 @@ where
     }
 }
 
-impl<U, Mods: OnDropBuffer> PtrConv for NnapiDevice<U, Mods> {
-    unsafe fn convert<T, IS: Shape, Conv, OS: Shape>(
-        ptr: &Self::Data<T, IS>,
-        flag: crate::flag::AllocFlag,
-    ) -> Self::Data<Conv, OS> {
-        NnapiPtr {
-            dtype: ptr.dtype.clone(),
-            idx: ptr.idx,
-            flag,
-        }
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use nnapi::{nnapi_sys::OperationCode, Operand};
@@ -273,8 +302,8 @@ mod tests {
             .unwrap();
         model.add_operation(
             OperationCode::ANEURALNETWORKS_ADD,
-            &[lhs.data.idx, rhs.data.idx, activation_idx],
-            &[out.data.idx],
+            &[lhs.base().idx, rhs.base().idx, activation_idx],
+            &[out.base().idx],
         )?;
 
         let out2 = Buffer::<f32, _, Dim1<10>>::new(&device, 0);
@@ -284,8 +313,8 @@ mod tests {
             .unwrap();
         model.add_operation(
             OperationCode::ANEURALNETWORKS_MUL,
-            &[lhs.data.idx, out.data.idx, activation_idx],
-            &[out2.data.idx],
+            &[lhs.base().idx, out.base().idx, activation_idx],
+            &[out2.base().idx],
         )?;
 
         device.run()?;

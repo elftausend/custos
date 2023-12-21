@@ -5,12 +5,12 @@ mod opt_graph;
 pub use node::Node;
 pub use opt_graph::*;
 
-use core::{cell::RefCell, panic::Location, ops::Deref};
+use core::{cell::RefCell, panic::Location};
 
 use crate::{
     pass_down_add_operation, pass_down_exec_now_module, pass_down_unified_mem_chain,
     pass_down_use_gpu_or_cpu, Alloc, Buffer, Device, HasId, Module, OnDropBuffer, OnNewBuffer,
-    OptimizeMemGraph, Parents, PtrConv, Retrieve, Setup, Shape, TranslatedCacheTrace, WrappedData, PtrType,
+    OptimizeMemGraph, Parents, PtrType, Retrieve, Setup, Shape, TranslatedCacheTrace, WrappedData,
 };
 
 use self::graph_translator::GraphTranslator;
@@ -22,7 +22,24 @@ pub struct Graph<Mods> {
 }
 
 impl<Mods: WrappedData> WrappedData for Graph<Mods> {
-    type WrappedData<Base: HasId + PtrType + Deref> = Mods::WrappedData<Base>;
+    type Wrap<T, Base: HasId + PtrType> = Mods::Wrap<T, Base>;
+
+    #[inline]
+    fn wrap_in_base<T, Base: HasId + PtrType>(&self, base: Base) -> Self::Wrap<T, Base> {
+        self.modules.wrap_in_base(base)
+    }
+
+    #[inline]
+    fn wrapped_as_base<'a, T, Base: HasId + PtrType>(wrap: &'a Self::Wrap<T, Base>) -> &'a Base {
+        Mods::wrapped_as_base(wrap)
+    }
+
+    #[inline]
+    fn wrapped_as_base_mut<'a, T, Base: HasId + PtrType>(
+        wrap: &'a mut Self::Wrap<T, Base>,
+    ) -> &'a mut Base {
+        Mods::wrapped_as_base_mut(wrap)
+    }
 }
 
 impl<Mods: Module<D>, D: Device> Module<D> for Graph<Mods> {
@@ -72,8 +89,8 @@ impl<Mods: OptimizeMemGraph> OptimizeMemGraph for Graph<Mods> {
     }
 }
 
-impl<Mods: OnNewBuffer<T, D>, T, D: Device> OnNewBuffer<T, D> for Graph<Mods> {
-    fn on_new_buffer<S: Shape>(&self, _device: &D, new_buf: &crate::Buffer<T, D, S>) {
+impl<Mods: OnNewBuffer<T, D, S>, T, D: Device, S: Shape> OnNewBuffer<T, D, S> for Graph<Mods> {
+    fn on_new_buffer(&self, _device: &D, new_buf: &crate::Buffer<T, D, S>) {
         let mut graph_trans = self.graph_trans.borrow_mut();
         let next_idx = graph_trans.next_idx;
 
@@ -96,16 +113,15 @@ pass_down_exec_now_module!(Graph);
 pass_down_unified_mem_chain!(Graph);
 pass_down_use_gpu_or_cpu!(Graph);
 
-impl<T: 'static, Mods: Retrieve<D, T>, D: PtrConv + 'static> Retrieve<D, T> for Graph<Mods> {
+impl<T: 'static, Mods: Retrieve<D, T, S>, D: 'static, S: Shape> Retrieve<D, T, S> for Graph<Mods> {
     #[inline]
-    fn retrieve<S, const NUM_PARENTS: usize>(
+    fn retrieve<const NUM_PARENTS: usize>(
         &self,
         device: &D,
         len: usize,
         parents: impl Parents<NUM_PARENTS>,
-    ) -> <D>::Data<T, S>
+    ) -> Self::Wrap<T, D::Base<T, S>>
     where
-        S: Shape,
         D: Alloc<T>,
     {
         let ids = parents.ids();
@@ -131,7 +147,7 @@ impl<T: 'static, Mods: Retrieve<D, T>, D: PtrConv + 'static> Retrieve<D, T> for 
     }
 
     #[inline]
-    fn on_retrieve_finish<S: Shape>(&self, retrieved_buf: &Buffer<T, D, S>)
+    fn on_retrieve_finish(&self, retrieved_buf: &Buffer<T, D, S>)
     where
         D: Alloc<T>,
     {

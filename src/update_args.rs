@@ -1,8 +1,15 @@
 use core::hash::BuildHasherDefault;
+
+#[cfg(not(feature = "no-std"))]
 use std::collections::HashMap;
 
 use crate::{NoHasher, UniqueId};
 
+/// A dummy trait for no-std context. [`UpdateArgs`] requires standard library code.
+#[cfg(feature = "no-std")]
+pub trait UpdateArgs {}
+
+#[cfg(not(feature = "no-std"))]
 pub trait UpdateArgs {
     fn update_args(
         &mut self,
@@ -15,6 +22,11 @@ pub trait UpdateArgs {
     ) -> crate::Result<()>;
 }
 
+/// A dummy trait for no-std context. [`UpdateArg`] requires standard library code.
+#[cfg(feature = "no-std")]
+pub trait UpdateArg {}
+
+#[cfg(not(feature = "no-std"))]
 pub trait UpdateArg {
     fn update_arg(
         &mut self,
@@ -27,6 +39,7 @@ pub trait UpdateArg {
     ) -> crate::Result<()>;
 }
 
+#[cfg(not(feature = "no-std"))]
 impl<T: UpdateArg> UpdateArgs for T {
     fn update_args(
         &mut self,

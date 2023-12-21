@@ -1,12 +1,16 @@
-use core::{cell::RefCell, marker::PhantomData, ops::Deref};
+use core::{cell::RefCell, marker::PhantomData};
 
 use crate::{
-    AddGradFn, AddOperation, Alloc, Buffer, Cache, Device, DeviceError, ExecNow, Module,
-    OnDropBuffer, OnNewBuffer, OptimizeMemGraph, Parents, PtrConv, Retrieve, RunModule, Setup,
-    Shape, WrappedData, HasId, PtrType,
+    AddGradFn, AddOperation, Alloc, Buffer, Cache, Device, DeviceError, ExecNow, HasId, Module,
+    OnDropBuffer, OnNewBuffer, Parents, PtrType, Retrieve, RunModule, Setup, ShallowCopy, Shape,
+    WrappedData,
 };
 
-// creator struct
+#[cfg(feature = "graph")]
+use crate::OptimizeMemGraph;
+
+// creator struct, however =>
+// TODO: could remove D generic and therefore CachedModule
 #[derive(Debug, PartialEq, Eq, Default)]
 pub struct Cached<Mods> {
     pd: PhantomData<Mods>,
@@ -20,8 +24,26 @@ pub struct Cached<Mods> {
         todo!()
     }
 }*/
+
 impl<Mods: WrappedData, SD: Device> WrappedData for CachedModule<Mods, SD> {
-    type WrappedData<Base: HasId + PtrType + Deref> = Mods::WrappedData<Base>;
+    type Wrap<T, Base: HasId + PtrType> = Mods::Wrap<T, Base>;
+
+    #[inline]
+    fn wrap_in_base<T, Base: HasId + PtrType>(&self, base: Base) -> Self::Wrap<T, Base> {
+        self.modules.wrap_in_base(base)
+    }
+
+    #[inline]
+    fn wrapped_as_base<'a, T, Base: HasId + PtrType>(wrap: &'a Self::Wrap<T, Base>) -> &'a Base {
+        Mods::wrapped_as_base(wrap)
+    }
+
+    #[inline]
+    fn wrapped_as_base_mut<'a, T, Base: HasId + PtrType>(
+        wrap: &'a mut Self::Wrap<T, Base>,
+    ) -> &'a mut Base {
+        Mods::wrapped_as_base_mut(wrap)
+    }
 }
 
 impl<Mods: Module<D>, D: Device> Module<D> for Cached<Mods> {
@@ -30,18 +52,19 @@ impl<Mods: Module<D>, D: Device> Module<D> for Cached<Mods> {
     fn new() -> Self::Module {
         CachedModule {
             modules: Mods::new(),
-            cache: RefCell::new(Cache {
-                nodes: Default::default(),
-            }),
+            cache: RefCell::new(Cache::new()),
+            pd: PhantomData,
         }
     }
 }
 
 // impl<Mods> OnDropBuffer for Cached<Mods> {}
 
+// TODO: could remove D generic and therefore CachedModule
 pub struct CachedModule<Mods, D: Device> {
     pub modules: Mods,
-    pub cache: RefCell<Cache<D>>,
+    pub cache: RefCell<Cache>,
+    pd: PhantomData<D>,
 }
 
 impl<Mods: Setup<NewDev>, D: Device, NewDev> Setup<NewDev> for CachedModule<Mods, D> {
@@ -68,15 +91,19 @@ impl<SD: Device, Mods: AddOperation> AddOperation for CachedModule<Mods, SD> {
 
 impl<D: Device, SD: Device, Mods: ExecNow<D>> ExecNow<D> for CachedModule<Mods, SD> {
     #[inline]
-    fn exec_now(&self, range_bounds: impl core::ops::RangeBounds<usize>) -> crate::Result<()> {
-        self.modules.exec_now(range_bounds)
+    fn exec_now(
+        &self,
+        device: &D,
+        range_bounds: impl core::ops::RangeBounds<usize>,
+    ) -> crate::Result<()> {
+        self.modules.exec_now(device, range_bounds)
     }
 }
 
-impl<T, D: Device, Mods: OnNewBuffer<T, D>, SD: Device> OnNewBuffer<T, D>
+impl<T, D: Device, Mods: OnNewBuffer<T, D, S>, SD: Device, S: Shape> OnNewBuffer<T, D, S>
     for CachedModule<Mods, SD>
 {
-    fn on_new_buffer<S: Shape>(&self, device: &D, new_buf: &Buffer<T, D, S>) {
+    fn on_new_buffer(&self, device: &D, new_buf: &Buffer<T, D, S>) {
         self.modules.on_new_buffer(device, new_buf)
     }
 }
@@ -89,27 +116,28 @@ impl<Mods: OnDropBuffer, SD: Device> OnDropBuffer for CachedModule<Mods, SD> {
 }
 
 // TODO: a more general OnDropBuffer => "Module"
-impl<T, Mods, D, SimpleDevice> Retrieve<D, T> for CachedModule<Mods, SimpleDevice>
+impl<T, Mods, D, SimpleDevice, S: Shape> Retrieve<D, T, S> for CachedModule<Mods, SimpleDevice>
 where
-    Mods: Retrieve<D, T>,
-    D: Device + PtrConv<SimpleDevice>,
-    SimpleDevice: Device + PtrConv<D>,
+    Mods: Retrieve<D, T, S>,
+    D: Device + 'static,
+    D::Base<T, S>: ShallowCopy + 'static,
+    SimpleDevice: Device,
 {
     #[inline]
-    fn retrieve<S: Shape, const NUM_PARENTS: usize>(
+    fn retrieve<const NUM_PARENTS: usize>(
         &self,
         device: &D,
         len: usize,
         _parents: impl Parents<NUM_PARENTS>,
-    ) -> D::Data<T, S>
+    ) -> Self::Wrap<T, D::Base<T, S>>
     where
         D: Alloc<T>,
     {
-        self.cache.borrow_mut().get(device, len, || ())
+        self.wrap_in_base(self.cache.borrow_mut().get(device, len, || ()))
     }
 
     #[inline]
-    fn on_retrieve_finish<S: Shape>(&self, retrieved_buf: &Buffer<T, D, S>)
+    fn on_retrieve_finish(&self, retrieved_buf: &Buffer<T, D, S>)
     where
         D: Alloc<T>,
     {
@@ -172,6 +200,7 @@ impl<Mods: RunModule<D>, D, SD: Device> RunModule<D> for CachedModule<Mods, SD> 
     }
 }
 
+#[cfg(feature = "graph")]
 impl<Mods: OptimizeMemGraph, SD: Device> OptimizeMemGraph for CachedModule<Mods, SD> {
     fn optimize_mem_graph(
         &self,
@@ -246,7 +275,7 @@ macro_rules! debug_assert_tracked {
 /// use custos::{Dim1, retrieve, CPU, Retriever, Buffer, Retrieve, Cached, Base};
 ///
 /// #[track_caller]
-/// fn add_bufs<Mods: Retrieve<CPU<Mods>, f32>>(device: &CPU<Mods>) -> Buffer<f32, CPU<Mods>, Dim1<30>> {
+/// fn add_bufs<Mods: Retrieve<CPU<Mods>, f32, Dim1<30>>>(device: &CPU<Mods>) -> Buffer<f32, CPU<Mods>, Dim1<30>> {
 ///     retrieve!(device, 10, ())
 /// }
 ///

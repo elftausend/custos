@@ -32,7 +32,7 @@ impl<Mods: OnDropBuffer, T: Default + Clone> Read<T> for CUDA<Mods> {
         T: Default + Clone,
     {
         assert!(
-            buf.ptrs().2 != 0,
+            buf.base().ptr != 0,
             "called Read::read(..) on a non CUDA buffer"
         );
         // TODO: sync here or somewhere else?
@@ -43,7 +43,7 @@ impl<Mods: OnDropBuffer, T: Default + Clone> Read<T> for CUDA<Mods> {
         }
 
         let mut read = vec![T::default(); buf.len()];
-        cu_read_async(&mut read, buf.data.ptr, &self.mem_transfer_stream).unwrap();
+        cu_read_async(&mut read, buf.base().ptr, &self.mem_transfer_stream).unwrap();
         self.mem_transfer_stream.sync().unwrap();
         read
     }
@@ -73,8 +73,8 @@ impl<Mods: OnDropBuffer, T> CopySlice<T> for CUDA<Mods> {
 
         unsafe {
             cuMemcpy(
-                dest.data.ptr + (dest_range.start * size) as u64,
-                source.data.ptr + (source_range.start * size) as u64,
+                dest.base().ptr + (dest_range.start * size) as u64,
+                source.base().ptr + (source_range.start * size) as u64,
                 len * size,
             );
         }
@@ -102,8 +102,8 @@ impl<Mods: OnDropBuffer, T> WriteBuf<T> for CUDA<Mods> {
     fn write_buf(&self, dst: &mut Buffer<T, Self, ()>, src: &Buffer<T, Self, ()>) {
         unsafe {
             cuMemcpy(
-                dst.data.ptr,
-                src.data.ptr,
+                dst.base().ptr,
+                src.base().ptr,
                 src.len() * std::mem::size_of::<T>(),
             );
         }
@@ -113,7 +113,7 @@ impl<Mods: OnDropBuffer, T> WriteBuf<T> for CUDA<Mods> {
 impl<Mods, T, S> ApplyFunction<T, S> for CUDA<Mods>
 where
     T: CDatatype + Default,
-    Mods: Retrieve<Self, T> + 'static,
+    Mods: Retrieve<Self, T, S> + 'static,
     S: Shape,
 {
     #[inline]
@@ -177,13 +177,7 @@ where
         self.add_op::<_, 4>(
             (lhs, lhs_grad.buf_no_id(), out, lhs_grad_fn.no_id()),
             move |(lhs, lhs_grad, out, lhs_grad_fn)| {
-                try_cu_add_unary_grad(
-                    lhs.device(),
-                    &lhs.data,
-                    &mut lhs_grad.data,
-                    &out.data,
-                    **lhs_grad_fn,
-                )
+                try_cu_add_unary_grad(lhs.device(), lhs, lhs_grad, out, **lhs_grad_fn)
             },
         )
         .unwrap();

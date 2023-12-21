@@ -11,7 +11,7 @@ impl<'a, T, D, const N: usize> From<(&'a D, [T; N])> for Buffer<'a, T, D>
 where
     T: Clone,
     // TODO: IsShapeIndep ... find way to include Stack
-    D: Alloc<T> + OnNewBuffer<T, D>,
+    D: Alloc<T> + OnNewBuffer<T, D, ()>,
 {
     #[inline]
     fn from((device, array): (&'a D, [T; N])) -> Self {
@@ -21,7 +21,7 @@ where
 
 impl<'a, T, D, S: Shape> From<(&'a D, usize)> for Buffer<'a, T, D, S>
 where
-    D: Alloc<T> + OnNewBuffer<T, D>,
+    D: Alloc<T> + OnNewBuffer<T, D, S>,
 {
     #[inline]
     fn from((device, len): (&'a D, usize)) -> Self {
@@ -44,7 +44,7 @@ where
 impl<'a, T, D> From<(&'a D, Range<usize>)> for Buffer<'a, T, D>
 where
     T: Number,
-    D: Alloc<T> + OnNewBuffer<T, D>,
+    D: Alloc<T> + OnNewBuffer<T, D, ()>,
 {
     #[inline]
     fn from((device, range): (&'a D, Range<usize>)) -> Self {
@@ -86,7 +86,7 @@ impl<'a, T, D, const N: usize> From<(&'a D, &[T; N])> for Buffer<'a, T, D>
 where
     T: Clone,
     // TODO: IsShapeIndep ... find way to include Stack
-    D: Alloc<T> + OnNewBuffer<T, D>,
+    D: Alloc<T> + OnNewBuffer<T, D, ()>,
 {
     #[inline]
     fn from((device, array): (&'a D, &[T; N])) -> Self {
@@ -114,7 +114,7 @@ impl<'a, T, D, S: Shape> From<(&'a D, &[T])> for Buffer<'a, T, D, S>
 where
     T: Clone,
     // TODO: IsShapeIndep ... find way to include Stack
-    D: Alloc<T> + OnNewBuffer<T, D>,
+    D: Alloc<T> + OnNewBuffer<T, D, S>,
 {
     #[inline]
     fn from((device, slice): (&'a D, &[T])) -> Self {
@@ -142,7 +142,7 @@ impl<'a, T, D, S: Shape> From<(&'a D, Vec<T>)> for Buffer<'a, T, D, S>
 where
     T: Clone,
     // TODO: IsShapeIndep ... find way to include Stack
-    D: Alloc<T> + OnNewBuffer<T, D>,
+    D: Alloc<T> + OnNewBuffer<T, D, S>,
 {
     #[inline]
     fn from((device, vec): (&'a D, Vec<T>)) -> Self {
@@ -155,7 +155,7 @@ impl<'a, T, D, S: Shape> From<(&'a D, &Vec<T>)> for Buffer<'a, T, D, S>
 where
     T: Clone,
     // TODO: IsShapeIndep ... find way to include Stack
-    D: Alloc<T> + OnNewBuffer<T, D>,
+    D: Alloc<T> + OnNewBuffer<T, D, S>,
 {
     #[inline]
     fn from((device, vec): (&'a D, &Vec<T>)) -> Self {
@@ -169,7 +169,8 @@ impl<'a, 'b, Mods: OnDropBuffer, T, S, D> From<(&'a D, Buffer<'b, T, CPU<Mods>, 
 where
     T: 'static,
     S: Shape,
-    D: WriteBuf<T, S> + Device + Retriever<T>,
+    D: WriteBuf<T, S> + Device + Retriever<T, S>,
+    <CPU<Mods> as Device>::Data<T, S>: core::ops::Deref<Target = [T]>,
 {
     fn from((device, buf): (&'a D, Buffer<'b, T, CPU<Mods>, S>)) -> Self {
         let mut out = device.retrieve(buf.len(), &buf);

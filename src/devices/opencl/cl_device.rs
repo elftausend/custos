@@ -4,12 +4,13 @@ use min_cl::api::{create_buffer, enqueue_full_copy_buffer, MemFlags};
 
 use super::{enqueue_kernel, AsClCvoidPtr, CLPtr};
 use crate::flag::AllocFlag;
+use crate::Shape;
 use crate::{
-    impl_buffer_hook_traits, impl_retriever, pass_down_grad_fn, pass_down_optimize_mem_graph,
-    pass_down_tape_actions, pass_down_use_gpu_or_cpu, Alloc, Base, Buffer, Cached, CachedCPU,
-    CloneBuf, Device, Module, OnDropBuffer, OnNewBuffer, Setup, CPU,
+    impl_buffer_hook_traits, impl_retriever, impl_wrapped_data, pass_down_grad_fn,
+    pass_down_replace_buf, pass_down_tape_actions, pass_down_use_gpu_or_cpu, Alloc, Base, Buffer,
+    Cached, CachedCPU, CloneBuf, Device, IsShapeIndep, Module, OnDropBuffer, OnNewBuffer, Setup,
+    WrappedData, CPU,
 };
-use crate::{PtrConv, Shape};
 
 use core::ops::{Deref, DerefMut};
 use std::fmt::Debug;
@@ -52,6 +53,8 @@ pub type CL = OpenCL;
         &self.cpu
     }
 }*/
+
+impl_wrapped_data!(OpenCL);
 
 impl<Mods> Deref for OpenCL<Mods> {
     type Target = CLDevice;
@@ -152,33 +155,40 @@ impl<Mods> OpenCL<Mods> {
 }
 
 impl<Mods: OnDropBuffer> Device for OpenCL<Mods> {
-    type Data<U, S: Shape> = CLPtr<U>;
+    type Data<T, S: Shape> = Self::Wrap<T, Self::Base<T, S>>;
+    type Base<U, S: Shape> = CLPtr<U>;
     type Error = ();
 
     fn new() -> Result<Self, Self::Error> {
         todo!()
         // OpenCL::<Base>::new(chosen_cl_idx())
     }
-}
+    #[inline(always)]
+    fn base_to_data<T, S: Shape>(&self, base: Self::Base<T, S>) -> Self::Data<T, S> {
+        self.wrap_in_base(base)
+    }
 
-impl<Mods: OnDropBuffer, OtherMods: OnDropBuffer> PtrConv<OpenCL<OtherMods>> for OpenCL<Mods> {
-    #[inline]
-    unsafe fn convert<T, IS, Conv, OS>(
-        ptr: &Self::Data<T, IS>,
-        flag: AllocFlag,
-    ) -> Self::Data<Conv, OS>
-    where
-        IS: Shape,
-        OS: Shape,
-    {
-        CLPtr {
-            ptr: ptr.ptr,
-            host_ptr: ptr.host_ptr.cast(),
-            len: ptr.len,
-            flag,
-        }
+    #[inline(always)]
+    fn wrap_to_data<T, S: Shape>(&self, wrap: Self::Wrap<T, Self::Base<T, S>>) -> Self::Data<T, S> {
+        wrap
+    }
+
+    #[inline(always)]
+    fn data_as_wrap<'a, T, S: Shape>(
+        data: &'a Self::Data<T, S>,
+    ) -> &'a Self::Wrap<T, Self::Base<T, S>> {
+        data
+    }
+
+    #[inline(always)]
+    fn data_as_wrap_mut<'a, T, S: Shape>(
+        data: &'a mut Self::Data<T, S>,
+    ) -> &'a mut Self::Wrap<T, Self::Base<T, S>> {
+        data
     }
 }
+
+unsafe impl<Mods: OnDropBuffer> IsShapeIndep for OpenCL<Mods> {}
 
 impl<Mods> Debug for OpenCL<Mods> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -246,10 +256,10 @@ impl<Mods: OnDropBuffer, T> Alloc<T> for OpenCL<Mods> {
     }
 }
 
-impl<'a, T, Mods: OnDropBuffer + OnNewBuffer<T, Self>> CloneBuf<'a, T> for OpenCL<Mods> {
+impl<'a, T, Mods: OnDropBuffer + OnNewBuffer<T, Self, ()>> CloneBuf<'a, T> for OpenCL<Mods> {
     fn clone_buf(&'a self, buf: &Buffer<'a, T, Self>) -> Buffer<'a, T, Self> {
         let cloned = Buffer::new(self, buf.len());
-        enqueue_full_copy_buffer::<T>(self.queue(), buf.data.ptr, cloned.data.ptr, buf.len())
+        enqueue_full_copy_buffer::<T>(self.queue(), buf.base().ptr, cloned.base().ptr, buf.len())
             .unwrap();
         cloned
     }
@@ -268,7 +278,7 @@ impl<Mods> ForkSetup for OpenCL<Mods> {
 
 pass_down_use_gpu_or_cpu!(OpenCL);
 #[cfg(feature = "graph")]
-pass_down_optimize_mem_graph!(OpenCL);
+crate::pass_down_optimize_mem_graph!(OpenCL);
 
 impl<Mods: crate::RunModule<Self>> crate::Run for OpenCL<Mods> {
     #[inline]
@@ -285,6 +295,7 @@ impl<Mods> crate::LazyRun for OpenCL<Mods> {}
 
 pass_down_tape_actions!(OpenCL);
 pass_down_grad_fn!(OpenCL);
+pass_down_replace_buf!(OpenCL);
 
 #[cfg(test)]
 mod tests {

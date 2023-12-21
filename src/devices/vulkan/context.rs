@@ -2,10 +2,10 @@ use core::ffi::{c_char, CStr};
 
 use ash::{
     vk::{
-        self, CommandBuffer, InstanceCreateInfo, PhysicalDevice, PhysicalDeviceMemoryProperties,
-        PhysicalDeviceProperties, PipelineCache,
+        self, CommandBuffer, CommandPool, InstanceCreateInfo, PhysicalDevice,
+        PhysicalDeviceMemoryProperties, PhysicalDeviceProperties, PipelineCache,
     },
-    Device, Entry,
+    Device, Entry, Instance,
 };
 
 use super::{
@@ -19,6 +19,8 @@ pub struct Context {
     pub device: Device,
     pub device_props: PhysicalDeviceProperties,
     pub command_buffer: CommandBuffer,
+    pub command_pool: CommandPool,
+    pub instance: Instance,
     pub memory_properties: PhysicalDeviceMemoryProperties,
     pub pipeline_cache: PipelineCache,
     pub entry: Entry,
@@ -44,7 +46,13 @@ impl Context {
     #[inline]
     pub fn new(device_idx: usize) -> crate::Result<Self> {
         let entry = unsafe { Entry::load()? };
-        let app_info = vk::ApplicationInfo::default();
+        let app_name = unsafe { CStr::from_bytes_with_nul_unchecked(b"custos\0") };
+        let app_info = vk::ApplicationInfo::builder()
+            .application_name(app_name)
+            .application_version(0)
+            .engine_name(app_name)
+            .engine_version(0)
+            .api_version(vk::make_api_version(0, 1, 0, 0));
 
         let layer_names = validation_layers();
 
@@ -68,7 +76,7 @@ impl Context {
 
         let device_features = vk::PhysicalDeviceFeatures::default();
         let device_create_info = vk::DeviceCreateInfo::builder()
-            .queue_create_infos(&[queue_info])
+            .queue_create_infos(std::slice::from_ref(&queue_info))
             .enabled_features(&device_features)
             .build();
 
@@ -89,16 +97,23 @@ impl Context {
             device: logical_device,
             device_props,
             command_buffer,
+            command_pool,
             memory_properties,
             entry,
+            instance,
             pipeline_cache: PipelineCache::default(),
         })
     }
 }
 
-// impl Drop for Context {
-//     #[inline]
-//     fn drop(&mut self) {
-//         unsafe {}
-//     }
-// }
+impl Drop for Context {
+    #[inline]
+    fn drop(&mut self) {
+        unsafe {
+            self.device.destroy_command_pool(self.command_pool, None);
+            self.device.destroy_device(None);
+
+            self.instance.destroy_instance(None);
+        }
+    }
+}

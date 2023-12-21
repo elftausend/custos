@@ -6,9 +6,9 @@ use core::{
 use crate::{
     cuda::{api::cumalloc, CUDAPtr},
     flag::AllocFlag,
-    impl_buffer_hook_traits, impl_retriever, pass_down_grad_fn, pass_down_optimize_mem_graph,
-    pass_down_tape_actions, Alloc, Base, Buffer, CloneBuf, Device, Module as CombModule,
-    OnDropBuffer, OnNewBuffer, PtrConv, Setup, Shape,
+    impl_buffer_hook_traits, impl_retriever, impl_wrapped_data, pass_down_grad_fn,
+    pass_down_tape_actions, Alloc, Base, Buffer, CloneBuf, Device, IsShapeIndep,
+    Module as CombModule, OnDropBuffer, OnNewBuffer, Setup, Shape, WrappedData,
 };
 
 use super::{
@@ -68,17 +68,44 @@ impl<SimpleMods> CUDA<SimpleMods> {
 }
 
 impl<Mods: OnDropBuffer> Device for CUDA<Mods> {
-    type Data<T, S: Shape> = CUDAPtr<T>;
+    type Data<T, S: Shape> = Mods::Wrap<T, CUDAPtr<T>>;
+    type Base<T, S: Shape> = CUDAPtr<T>;
     type Error = i32;
+
+    #[inline(always)]
+    fn base_to_data<T, S: Shape>(&self, base: Self::Base<T, S>) -> Self::Data<T, S> {
+        self.wrap_in_base(base)
+    }
+
+    #[inline(always)]
+    fn wrap_to_data<T, S: Shape>(&self, wrap: Self::Wrap<T, Self::Base<T, S>>) -> Self::Data<T, S> {
+        wrap
+    }
+
+    #[inline(always)]
+    fn data_as_wrap<'a, T, S: Shape>(
+        data: &'a Self::Data<T, S>,
+    ) -> &'a Self::Wrap<T, Self::Base<T, S>> {
+        data
+    }
+
+    #[inline(always)]
+    fn data_as_wrap_mut<'a, T, S: Shape>(
+        data: &'a mut Self::Data<T, S>,
+    ) -> &'a mut Self::Wrap<T, Self::Base<T, S>> {
+        data
+    }
 }
+
+impl_wrapped_data!(CUDA);
 
 impl<Mods: OnDropBuffer, T> Alloc<T> for CUDA<Mods> {
     #[inline]
-    fn alloc<S: Shape>(&self, len: usize, flag: crate::flag::AllocFlag) -> Self::Data<T, S> {
+    fn alloc<S: Shape>(&self, len: usize, flag: crate::flag::AllocFlag) -> Self::Base<T, S> {
         CUDAPtr::new(len, flag)
     }
 
-    fn alloc_from_slice<S: Shape>(&self, data: &[T]) -> Self::Data<T, S>
+    fn alloc_from_slice<S: Shape>(&self, data: &[T]) -> Self::Base<T, S>
     where
         T: Clone,
     {
@@ -94,6 +121,8 @@ impl<Mods: OnDropBuffer, T> Alloc<T> for CUDA<Mods> {
     }
 }
 
+unsafe impl<Mods: OnDropBuffer> IsShapeIndep for CUDA<Mods> {}
+
 impl<Mods: OnDropBuffer> IsCuda for CUDA<Mods> {}
 
 #[cfg(feature = "fork")]
@@ -107,28 +136,13 @@ impl<Mods> crate::ForkSetup for CUDA<Mods> {
 pass_down_tape_actions!(CUDA);
 pass_down_grad_fn!(CUDA);
 
-impl<Mods: OnDropBuffer, OtherMods: OnDropBuffer> PtrConv<CUDA<OtherMods>> for CUDA<Mods> {
-    #[inline]
-    unsafe fn convert<T, IS: Shape, Conv, OS: Shape>(
-        ptr: &Self::Data<T, IS>,
-        flag: AllocFlag,
-    ) -> Self::Data<Conv, OS> {
-        CUDAPtr {
-            ptr: ptr.ptr,
-            len: ptr.len,
-            flag,
-            p: PhantomData,
-        }
-    }
-}
-
-impl<'a, Mods: OnDropBuffer + OnNewBuffer<T, Self>, T> CloneBuf<'a, T> for CUDA<Mods> {
+impl<'a, Mods: OnDropBuffer + OnNewBuffer<T, Self, ()>, T> CloneBuf<'a, T> for CUDA<Mods> {
     fn clone_buf(&'a self, buf: &Buffer<'a, T, CUDA<Mods>>) -> Buffer<'a, T, CUDA<Mods>> {
         let cloned = Buffer::new(self, buf.len());
         unsafe {
             cuMemcpy(
-                cloned.ptrs().2,
-                buf.ptrs().2,
+                cloned.cu_ptr(),
+                buf.cu_ptr(),
                 buf.len() * std::mem::size_of::<T>(),
             );
         }
@@ -137,7 +151,7 @@ impl<'a, Mods: OnDropBuffer + OnNewBuffer<T, Self>, T> CloneBuf<'a, T> for CUDA<
 }
 
 #[cfg(feature = "graph")]
-pass_down_optimize_mem_graph!(CUDA);
+crate::pass_down_optimize_mem_graph!(CUDA);
 
 #[cfg(test)]
 mod tests {
@@ -147,7 +161,7 @@ mod tests {
 
     // compile-time isCuda test
     fn take_cu_buffer<T, D: IsCuda + Retriever<T>, S: Shape>(device: &D, buf: &Buffer<T, D, S>) {
-        let _buf = device.retrieve::<S, 0>(buf.len(), ());
+        let _buf = device.retrieve::<0>(buf.len(), ());
     }
 
     #[test]

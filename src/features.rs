@@ -1,6 +1,9 @@
 use core::{fmt::Debug, ops::RangeBounds};
 
-use crate::{HasId, Parents, Shape, TranslatedCacheTrace, UniqueId, UpdateArgs, CPU};
+use crate::{HasId, Parents, Shape, UniqueId, UpdateArgs, CPU};
+
+#[cfg(feature = "graph")]
+use crate::TranslatedCacheTrace;
 
 #[cfg(feature = "cached")]
 use crate::{Base, CachedModule};
@@ -16,22 +19,22 @@ pub trait Feature: OnDropBuffer {}
 // how to fix this:
 // add retrieved buffer to no grads pool at the end of the chain (at device level (Retriever trait))
 // => "generator", "actor"
-pub trait Retrieve<D, T>: OnDropBuffer {
+pub trait Retrieve<D, T, S: Shape = ()>: OnDropBuffer {
     // "generator"
     #[track_caller]
-    fn retrieve<S, const NUM_PARENTS: usize>(
+    fn retrieve<const NUM_PARENTS: usize>(
         &self,
         device: &D,
         len: usize,
         parents: impl Parents<NUM_PARENTS>,
-    ) -> D::Data<T, S>
+    ) -> Self::Wrap<T, D::Base<T, S>>
     where
         S: Shape,
         D: Device + Alloc<T>;
 
     // "actor"
     #[inline]
-    fn on_retrieve_finish<S: Shape>(&self, _retrieved_buf: &Buffer<T, D, S>)
+    fn on_retrieve_finish(&self, _retrieved_buf: &Buffer<T, D, S>)
     where
         D: Alloc<T>,
     {
@@ -174,10 +177,28 @@ impl<'a, 'b, T, D: Device, S: Shape> OpArgs for (&Buffer<'a, T, D, S>, &Buffer<'
     fn as_ids(&self) -> [UniqueId; 2] {
         [*self.0.id(), *self.1.id()]
     }
+}
 
-    // fn from_cache(cache: &std::collections::HashMap<UniqueId, ()>, ids: [UniqueId; 2]) -> Self {
-    //     todo!()
-    // }
+// seems useless, however, this is used to retrieve potential lazy buffer information
+pub trait ReplaceBuf<T, D: Device, S: Shape>: OnDropBuffer {
+    fn replace_buf<'a, 'c>(&'c self, buffer: &'c Buffer<'a, T, D, S>) -> &'c Buffer<'a, T, D, S>;
+}
+
+#[macro_export]
+macro_rules! pass_down_replace_buf {
+    ($device:ident) => {
+        impl<T, S: Shape, Mods: $crate::ReplaceBuf<T, Self, S>> $crate::ReplaceBuf<T, Self, S>
+            for $device<Mods>
+        {
+            #[inline]
+            fn replace_buf<'a, 'c>(
+                &'c self,
+                buffer: &'c Buffer<'a, T, Self, S>,
+            ) -> &'c Buffer<'a, T, Self, S> {
+                self.modules.replace_buf(buffer)
+            }
+        }
+    };
 }
 
 pub trait AddOperation {
@@ -191,15 +212,15 @@ pub trait AddOperation {
 }
 
 pub trait ExecNow<D = Self> {
-    fn exec_now(&self, range_bounds: impl RangeBounds<usize>) -> crate::Result<()>;
+    fn exec_now(&self, device: &D, range_bounds: impl RangeBounds<usize>) -> crate::Result<()>;
 
     #[inline]
-    fn exec_last_n(&self, last_n: usize) -> crate::Result<()>
+    fn exec_last_n(&self, device: &D, last_n: usize) -> crate::Result<()>
     where
         D: Device,
         Self: AddOperation,
     {
-        self.exec_now(self.ops_count() - last_n..)
+        self.exec_now(device, self.ops_count() - last_n..)
     }
 }
 
@@ -232,14 +253,16 @@ macro_rules! pass_down_exec_now_module {
             #[inline]
             fn exec_now(
                 &self,
+                device: &D,
                 range_bounds: impl core::ops::RangeBounds<usize>,
             ) -> $crate::Result<()> {
-                self.modules.exec_now(range_bounds)
+                self.modules.exec_now(device, range_bounds)
             }
         }
     };
 }
 
+// FIXME may remove for device and another trait for devices (mind device ref in exec noe)
 #[macro_export]
 macro_rules! pass_down_exec_now {
     ($device:ident) => {
@@ -247,9 +270,10 @@ macro_rules! pass_down_exec_now {
             #[inline]
             fn exec_now(
                 &self,
+                device: &Self,
                 range_bounds: impl core::ops::RangeBounds<usize>,
             ) -> $crate::Result<()> {
-                self.modules.exec_now(range_bounds)
+                self.modules.exec_now(device, range_bounds)
             }
         }
     };
@@ -265,7 +289,7 @@ pub type CachedCPU = CPU<CachedModule<Base, CPU>>;
 #[cfg(feature = "cached")]
 pub trait UnifiedMemChain<D: Device> {
     #[track_caller]
-    fn construct_unified_buf_from_cpu_buf<'a, T, S: Shape>(
+    fn construct_unified_buf_from_cpu_buf<'a, T: 'static, S: Shape>(
         &self,
         device: &'a D,
         no_drop_buf: Buffer<'a, T, CachedCPU, S>,
@@ -278,7 +302,7 @@ macro_rules! pass_down_unified_mem_chain {
     ($($to_impl:ident),*) => {
         $(
             impl<Mods: $crate::UnifiedMemChain<D>, D: Device> $crate::UnifiedMemChain<D> for $to_impl<Mods> {
-                fn construct_unified_buf_from_cpu_buf<'a, T, S: Shape>(
+                fn construct_unified_buf_from_cpu_buf<'a, T: 'static, S: Shape>(
                     &self,
                     device: &'a D,
                     no_drop_buf: Buffer<'a, T, $crate::CachedCPU, S>

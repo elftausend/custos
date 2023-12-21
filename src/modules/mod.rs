@@ -28,7 +28,7 @@ mod fork;
 pub use fork::*;
 
 #[cfg(not(feature = "no-std"))]
-use crate::{flag::AllocFlag, Buffer, Device, HasId, HashLocation, Id, PtrConv, Shape, UniqueId};
+use crate::{Buffer, Device, HasId, HashLocation, Id, ShallowCopy, Shape, UniqueId};
 #[cfg(not(feature = "no-std"))]
 use core::{any::Any, hash::BuildHasher};
 
@@ -48,10 +48,16 @@ pub(crate) unsafe fn register_buf<T, D, S>(
     buf: &Buffer<T, D, S>,
 ) where
     T: 'static,
-    D: Device + PtrConv + 'static,
+    D: Device + crate::IsShapeIndep + 'static,
+    D::Data<T, S>: ShallowCopy,
     S: Shape,
 {
-    let wrapped_data = D::convert::<T, S, T, S>(&buf.data, AllocFlag::Wrapper);
+    // shallow copy sets flag to AllocFlag::Wrapper
+
+    let wrapped_data = buf.data.shallow();
+
+    // let wrapped_data = D::convert::<T, S, T, S>(&buf.data, AllocFlag::Wrapper);
+
     let buf = Buffer {
         data: wrapped_data,
         device: buf.device,

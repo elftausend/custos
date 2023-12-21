@@ -5,7 +5,7 @@ use ash::{
 use core::ops::{Deref, DerefMut};
 use std::rc::Rc;
 
-use crate::{flag::AllocFlag, HasId, HostPtr, PtrType};
+use crate::{flag::AllocFlag, HasId, HostPtr, PtrType, ShallowCopy};
 
 use super::context::Context;
 
@@ -27,6 +27,10 @@ impl<T> PtrType for VkArray<T> {
     #[inline]
     fn flag(&self) -> crate::flag::AllocFlag {
         self.flag
+    }
+
+    unsafe fn set_flag(&mut self, flag: AllocFlag) {
+        self.flag = flag;
     }
 }
 
@@ -85,10 +89,24 @@ impl<T> VkArray<T> {
     }
 }
 
+impl<T> ShallowCopy for VkArray<T> {
+    #[inline]
+    unsafe fn shallow(&self) -> Self {
+        VkArray {
+            len: self.len,
+            buf: self.buf,
+            mem: self.mem,
+            context: self.context.clone(),
+            mapped_ptr: self.mapped_ptr,
+            flag: AllocFlag::Wrapper,
+        }
+    }
+}
+
 impl<T> Drop for VkArray<T> {
     #[inline]
     fn drop(&mut self) {
-        if self.flag != AllocFlag::None {
+        if !self.flag.continue_deallocation() {
             return;
         }
         unsafe {
