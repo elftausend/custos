@@ -4,7 +4,7 @@ use min_cl::api::{create_buffer, enqueue_full_copy_buffer, MemFlags};
 
 use super::{enqueue_kernel, AsClCvoidPtr, CLPtr};
 use crate::flag::AllocFlag;
-use crate::Shape;
+use crate::{Shape, HasModules};
 use crate::{
     impl_buffer_hook_traits, impl_retriever, impl_wrapped_data, pass_down_grad_fn,
     pass_down_replace_buf, pass_down_tape_actions, pass_down_use_gpu_or_cpu, Alloc, Base, Buffer,
@@ -253,6 +253,13 @@ impl<Mods: OnDropBuffer, T> Alloc<T> for OpenCL<Mods> {
             len: data.len(),
             flag: AllocFlag::None,
         }
+    }
+}
+
+impl<Mods> HasModules<Mods> for OpenCL<Mods> {
+    #[inline]
+    fn modules(&self) -> &Mods {
+        &self.modules
     }
 }
 

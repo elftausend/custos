@@ -21,7 +21,7 @@ macro_rules! impl_wrapped_data {
                 &self,
                 base: Base,
             ) -> Self::Wrap<T, Base> {
-                self.modules.wrap_in_base(base)
+                self.modules().wrap_in_base(base)
             }
 
             #[inline]

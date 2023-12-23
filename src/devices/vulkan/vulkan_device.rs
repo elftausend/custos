@@ -4,7 +4,7 @@ use super::{context::Context, launch_shader, AsVkShaderArgument, ShaderCache, Vk
 use crate::{
     impl_buffer_hook_traits, impl_retriever, impl_wrapped_data, pass_down_grad_fn,
     pass_down_replace_buf, pass_down_tape_actions, pass_down_use_gpu_or_cpu, Alloc, Base, Buffer,
-    Device, IsShapeIndep, Module, OnDropBuffer, Setup, Shape, WrappedData,
+    Device, IsShapeIndep, Module, OnDropBuffer, Setup, Shape, WrappedData, HasModules,
 };
 use core::{
     cell::RefCell,
@@ -66,6 +66,13 @@ impl<SimpleMods> Vulkan<SimpleMods> {
         };
         NewMods::setup(&mut vulkan)?;
         Ok(vulkan)
+    }
+}
+
+impl<Mods> HasModules<Mods> for Vulkan<Mods> {
+    #[inline]
+    fn modules(&self) -> &Mods {
+        &self.modules
     }
 }
 

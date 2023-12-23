@@ -3,7 +3,7 @@ use core::convert::Infallible;
 use crate::{
     flag::AllocFlag, impl_buffer_hook_traits, impl_retriever, impl_wrapped_data, shape::Shape,
     Alloc, Base, Buffer, CloneBuf, Device, DevicelessAble, OnDropBuffer, Read, StackArray,
-    WrappedData, WriteBuf,
+    WrappedData, WriteBuf, HasModules,
 };
 
 /// A device that allocates memory on the stack.
@@ -140,6 +140,13 @@ impl<T: Copy, S: Shape> WriteBuf<T, S> for Stack {
 
 #[cfg(feature = "autograd")]
 impl<Mods: crate::TapeActions> crate::TapeActions for Stack<Mods> {}
+
+impl<Mods> HasModules<Mods> for Stack<Mods> {
+    #[inline]
+    fn modules(&self) -> &Mods {
+        &self.modules
+    }
+}
 
 #[cfg(test)]
 mod tests {

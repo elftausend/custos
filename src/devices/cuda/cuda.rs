@@ -8,7 +8,7 @@ use crate::{
     flag::AllocFlag,
     impl_buffer_hook_traits, impl_retriever, impl_wrapped_data, pass_down_grad_fn,
     pass_down_tape_actions, Alloc, Base, Buffer, CloneBuf, Device, IsShapeIndep,
-    Module as CombModule, OnDropBuffer, OnNewBuffer, Setup, Shape, WrappedData,
+    Module as CombModule, OnDropBuffer, OnNewBuffer, Setup, Shape, WrappedData, HasModules,
 };
 
 use super::{
@@ -152,6 +152,13 @@ impl<'a, Mods: OnDropBuffer + OnNewBuffer<T, Self, ()>, T> CloneBuf<'a, T> for C
 
 #[cfg(feature = "graph")]
 crate::pass_down_optimize_mem_graph!(CUDA);
+
+impl<Mods> HasModules<Mods> for CUDA<Mods> {
+    #[inline]
+    fn modules(&self) -> &Mods {
+        &self.modules
+    }
+}
 
 #[cfg(test)]
 mod tests {

@@ -1,7 +1,7 @@
 use crate::{
     cpu::CPUPtr, Alloc, AsOperandCode, Base, Buffer, ConvPtr, Device, HasId, IsShapeIndep, Lazy,
     LazyRun, LazySetup, Module, OnDropBuffer, PtrType, Retrieve, Retriever, Setup, Shape,
-    WrappedData,
+    WrappedData, HasModules,
 };
 
 use super::NnapiPtr;
@@ -176,6 +176,13 @@ impl<T, SimpleMods> NnapiDevice<T, SimpleMods> {
         Lazy::<NewMods>::setup(&mut device)?;
 
         Ok(device)
+    }
+}
+
+impl<T, Mods> HasModules<Mods> for NnapiDevice<T, Mods> {
+    #[inline]
+    fn modules(&self) -> &Mods {
+        &self.modules
     }
 }
 

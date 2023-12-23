@@ -29,6 +29,9 @@ pub mod network;
 #[cfg(feature = "nnapi")]
 pub mod nnapi;
 
+#[cfg(feature = "untyped")]
+pub mod untyped;
+
 mod stack_array;
 pub use stack_array::*;
 
@@ -90,14 +93,14 @@ macro_rules! impl_buffer_hook_traits {
         {
             #[inline]
             fn on_new_buffer(&self, device: &D, new_buf: &Buffer<T, D, S>) {
-                self.modules.on_new_buffer(device, new_buf)
+                self.modules().on_new_buffer(device, new_buf)
             }
         }
 
         impl<Mods: $crate::OnDropBuffer> $crate::OnDropBuffer for $device<Mods> {
             #[inline]
             fn on_drop_buffer<T, D: Device, S: Shape>(&self, device: &D, buf: &Buffer<T, D, S>) {
-                self.modules.on_drop_buffer(device, buf)
+                self.modules().on_drop_buffer(device, buf)
             }
         }
     };

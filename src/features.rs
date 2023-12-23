@@ -146,22 +146,22 @@ macro_rules! pass_down_tape_actions {
         impl<Mods: $crate::TapeActions> $crate::TapeActions for $to_impl<Mods> {
             #[inline]
             unsafe fn tape(&self) -> Option<&$crate::Tape> {
-                self.modules.tape()
+                self.modules().tape()
             }
 
             #[inline]
             unsafe fn tape_mut(&self) -> Option<&mut $crate::Tape> {
-                self.modules.tape_mut()
+                self.modules().tape_mut()
             }
 
             #[inline]
             unsafe fn gradients(&self) -> Option<&$crate::Gradients> {
-                self.modules.gradients()
+                self.modules().gradients()
             }
 
             #[inline]
             unsafe fn gradients_mut(&self) -> Option<&mut $crate::Gradients> {
-                self.modules.gradients_mut()
+                self.modules().gradients_mut()
             }
         }
     };
