@@ -1,4 +1,4 @@
-use crate::{CUDA, CPU, Device, cuda::CUDAPtr, OnDropBuffer, impl_buffer_hook_traits, Buffer, Shape, impl_wrapped_data, WrappedData, OnNewBuffer, HasModules, PtrType, HasId};
+use crate::{CUDA, CPU, Device, cuda::CUDAPtr, OnDropBuffer, impl_buffer_hook_traits, Buffer, Shape, impl_wrapped_data, WrappedData, OnNewBuffer, HasModules, PtrType, HasId, cpu::CPUPtr, ApplyFunction, AddOperation, Retrieve, cpu_stack_ops::apply_fn_slice};
 
 
 pub enum UntypedDevice<Mods> {
@@ -7,11 +7,16 @@ pub enum UntypedDevice<Mods> {
 }
 
 pub enum CpuData {
+    F32(CPUPtr<f32>),
+}
 
+pub enum CudaData {
+    F32(CUDAPtr<f32>),
 }
 
 pub enum UntypedData {
-    CPU(CpuData)
+    CPU(CpuData),
+    CUDA(CudaData)
 }
 
 impl PtrType for UntypedData {
@@ -80,3 +85,35 @@ impl<Mods> HasModules<Mods> for Untyped<Mods> {
 
 impl_wrapped_data!(Untyped);
 impl_buffer_hook_traits!(Untyped);
+
+macro_rules! call_fn {
+    ($device:ident, $fun:expr) => {
+
+    };
+}
+
+impl<Mods: OnDropBuffer + AddOperation + Retrieve<CPU<Mods>, f32>> ApplyFunction<()> for Untyped<Mods> {
+    fn apply_fn<F>(
+        &self,
+        buf: &Buffer<(), Self, ()>,
+        f: impl Fn(crate::Resolve<()>) -> F + Copy + 'static,
+    ) -> Buffer<(), Self, ()>
+    where
+        F: crate::Eval<()> + crate::MayToCLSource 
+    {
+        
+        match &self.device {
+            UntypedDevice::CPU(cpu) => {
+                if let UntypedData::CPU(data) = buf.base() {
+                    match data {
+                        CpuData::F32(data) => todo!(),
+                    };
+                }
+            }
+            UntypedDevice::CUDA(cuda) => {
+
+            }
+        }
+        todo!()
+    }
+}
