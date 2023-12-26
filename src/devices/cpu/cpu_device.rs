@@ -1,8 +1,7 @@
 use core::{convert::Infallible, ops::DerefMut};
 
 use crate::{
-    cpu::CPUPtr, flag::AllocFlag, impl_buffer_hook_traits, impl_retriever, impl_wrapped_data,
-    pass_down_grad_fn, pass_down_replace_buf, pass_down_tape_actions, Alloc, Base, Buffer,
+    cpu::CPUPtr, flag::AllocFlag, impl_device_traits, impl_retriever, Alloc, Base, Buffer,
     CloneBuf, Device, DevicelessAble, HasModules, IsShapeIndep, Module, OnDropBuffer, OnNewBuffer,
     Setup, Shape, WrappedData,
 };
@@ -29,8 +28,7 @@ pub struct CPU<Mods = Base> {
     pub modules: Mods,
 }
 
-impl_retriever!(CPU);
-impl_buffer_hook_traits!(CPU);
+impl_device_traits!(CPU);
 
 impl<Mods> IsCPU for CPU<Mods> {}
 
@@ -72,8 +70,6 @@ impl<Mods: OnDropBuffer> Device for CPU<Mods> {
     // #[inline]
     // fn wrap(&self) {}
 }
-
-impl_wrapped_data!(CPU);
 
 impl<T, S: Shape> DevicelessAble<'_, T, S> for CPU<Base> {}
 
@@ -140,10 +136,6 @@ impl<T, Mods: OnDropBuffer> Alloc<T> for CPU<Mods> {
     }
 }
 
-#[cfg(feature = "graph")]
-crate::pass_down_optimize_mem_graph!(CPU);
-pass_down_grad_fn!(CPU);
-
 #[cfg(feature = "lazy")]
 impl<Mods> crate::LazyRun for CPU<Mods> {}
 
@@ -153,10 +145,6 @@ impl<Mods: crate::RunModule<Self>> crate::Run for CPU<Mods> {
         self.modules.run(self)
     }
 }
-
-pass_down_tape_actions!(CPU);
-
-pass_down_replace_buf!(CPU);
 
 #[cfg(feature = "lazy")]
 impl<Mods> crate::LazySetup for CPU<Mods> {}

@@ -2,9 +2,8 @@ use ash::vk::BufferUsageFlags;
 
 use super::{context::Context, launch_shader, AsVkShaderArgument, ShaderCache, VkArray};
 use crate::{
-    impl_buffer_hook_traits, impl_retriever, impl_wrapped_data, pass_down_grad_fn,
-    pass_down_replace_buf, pass_down_tape_actions, pass_down_use_gpu_or_cpu, Alloc, Base, Buffer,
-    Device, IsShapeIndep, Module, OnDropBuffer, Setup, Shape, WrappedData,
+    impl_device_traits, pass_down_use_gpu_or_cpu, Alloc, Base, Buffer, Device, IsShapeIndep,
+    Module, OnDropBuffer, Setup, Shape, WrappedData,
 };
 use core::{
     cell::RefCell,
@@ -92,13 +91,8 @@ impl<Mods> Vulkan<Mods> {
     }
 }
 
-impl_retriever!(Vulkan);
-impl_buffer_hook_traits!(Vulkan);
+impl_device_traits!(Vulkan);
 pass_down_use_gpu_or_cpu!(Vulkan);
-#[cfg(feature = "graph")]
-crate::pass_down_optimize_mem_graph!(Vulkan);
-pass_down_replace_buf!(Vulkan);
-impl_wrapped_data!(Vulkan);
 
 impl<Mods: OnDropBuffer> Device for Vulkan<Mods> {
     type Data<T, S: Shape> = Mods::Wrap<T, Self::Base<T, S>>;
@@ -154,9 +148,6 @@ impl<Mods: OnDropBuffer, T> Alloc<T> for Vulkan<Mods> {
 
 #[cfg(feature = "fork")]
 impl<Mods> crate::ForkSetup for Vulkan<Mods> {}
-
-pass_down_tape_actions!(Vulkan);
-pass_down_grad_fn!(Vulkan);
 
 unsafe impl<Mods: OnDropBuffer> IsShapeIndep for Vulkan<Mods> {}
 

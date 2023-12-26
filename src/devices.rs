@@ -104,6 +104,32 @@ macro_rules! impl_buffer_hook_traits {
 }
 
 #[macro_export]
+macro_rules! impl_has_modules {
+    ($device:ident) => {
+        #[cfg(feature = "autograd")]
+        impl<Mods: $crate::HasAutograd> $crate::HasAutograd for $device<Mods> {}
+    };
+}
+
+#[macro_export]
+macro_rules! impl_device_traits {
+    ($device:ident) => {
+        $crate::impl_retriever!($device);
+        $crate::impl_buffer_hook_traits!($device);
+        $crate::impl_wrapped_data!($device);
+
+        #[cfg(feature = "graph")]
+        crate::pass_down_optimize_mem_graph!($device);
+
+        $crate::pass_down_grad_fn!($device);
+        $crate::pass_down_tape_actions!($device);
+
+        $crate::pass_down_replace_buf!($device);
+        $crate::impl_has_modules!($device);
+    };
+}
+
+#[macro_export]
 macro_rules! impl_retriever {
     ($device:ident, $($trait_bounds:tt)*) => {
         impl<T: $( $trait_bounds )*, Mods: $crate::Retrieve<Self, T, S>, S: $crate::Shape> $crate::Retriever<T, S> for $device<Mods> {
@@ -127,6 +153,6 @@ macro_rules! impl_retriever {
     };
 
     ($device:ident) => {
-        impl_retriever!($device, Sized);
+        $crate::impl_retriever!($device, Sized);
     }
 }

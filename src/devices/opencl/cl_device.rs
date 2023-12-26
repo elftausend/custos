@@ -4,13 +4,13 @@ use min_cl::api::{create_buffer, enqueue_full_copy_buffer, MemFlags};
 
 use super::{enqueue_kernel, AsClCvoidPtr, CLPtr};
 use crate::flag::AllocFlag;
-use crate::Shape;
 use crate::{
     impl_buffer_hook_traits, impl_retriever, impl_wrapped_data, pass_down_grad_fn,
     pass_down_replace_buf, pass_down_tape_actions, pass_down_use_gpu_or_cpu, Alloc, Base, Buffer,
     Cached, CachedCPU, CloneBuf, Device, IsShapeIndep, Module, OnDropBuffer, OnNewBuffer, Setup,
     WrappedData, CPU,
 };
+use crate::{impl_device_traits, Shape};
 
 use core::ops::{Deref, DerefMut};
 use std::fmt::Debug;
@@ -53,8 +53,7 @@ pub type CL = OpenCL;
         &self.cpu
     }
 }*/
-
-impl_wrapped_data!(OpenCL);
+impl_device_traits!(OpenCL);
 
 impl<Mods> Deref for OpenCL<Mods> {
     type Target = CLDevice;
@@ -71,9 +70,6 @@ impl<Mods> DerefMut for OpenCL<Mods> {
         &mut self.device
     }
 }
-
-impl_buffer_hook_traits!(OpenCL);
-impl_retriever!(OpenCL);
 
 impl<SimpleMods> OpenCL<SimpleMods> {
     /// Returns an [OpenCL] device at the specified device index.
@@ -277,8 +273,6 @@ impl<Mods> ForkSetup for OpenCL<Mods> {
 }
 
 pass_down_use_gpu_or_cpu!(OpenCL);
-#[cfg(feature = "graph")]
-crate::pass_down_optimize_mem_graph!(OpenCL);
 
 impl<Mods: crate::RunModule<Self>> crate::Run for OpenCL<Mods> {
     #[inline]
@@ -292,10 +286,6 @@ impl<Mods> crate::LazySetup for OpenCL<Mods> {}
 
 #[cfg(feature = "lazy")]
 impl<Mods> crate::LazyRun for OpenCL<Mods> {}
-
-pass_down_tape_actions!(OpenCL);
-pass_down_grad_fn!(OpenCL);
-pass_down_replace_buf!(OpenCL);
 
 #[cfg(test)]
 mod tests {

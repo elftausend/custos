@@ -6,9 +6,8 @@ use core::{
 use crate::{
     cuda::{api::cumalloc, CUDAPtr},
     flag::AllocFlag,
-    impl_buffer_hook_traits, impl_retriever, impl_wrapped_data, pass_down_grad_fn,
-    pass_down_tape_actions, Alloc, Base, Buffer, CloneBuf, Device, IsShapeIndep,
-    Module as CombModule, OnDropBuffer, OnNewBuffer, Setup, Shape, WrappedData,
+    impl_device_traits, Alloc, Base, Buffer, CloneBuf, Device, IsShapeIndep, Module as CombModule,
+    OnDropBuffer, OnNewBuffer, Setup, Shape, WrappedData,
 };
 
 use super::{
@@ -24,8 +23,7 @@ pub struct CUDA<Mods = Base> {
     pub device: CudaDevice,
 }
 
-impl_retriever!(CUDA);
-impl_buffer_hook_traits!(CUDA);
+impl_device_traits!(CUDA);
 
 impl<Mods> Deref for CUDA<Mods> {
     type Target = CudaDevice;
@@ -97,8 +95,6 @@ impl<Mods: OnDropBuffer> Device for CUDA<Mods> {
     }
 }
 
-impl_wrapped_data!(CUDA);
-
 impl<Mods: OnDropBuffer, T> Alloc<T> for CUDA<Mods> {
     #[inline]
     fn alloc<S: Shape>(&self, len: usize, flag: crate::flag::AllocFlag) -> Self::Base<T, S> {
@@ -133,9 +129,6 @@ impl<Mods> crate::ForkSetup for CUDA<Mods> {
     }
 }
 
-pass_down_tape_actions!(CUDA);
-pass_down_grad_fn!(CUDA);
-
 impl<'a, Mods: OnDropBuffer + OnNewBuffer<T, Self, ()>, T> CloneBuf<'a, T> for CUDA<Mods> {
     fn clone_buf(&'a self, buf: &Buffer<'a, T, CUDA<Mods>>) -> Buffer<'a, T, CUDA<Mods>> {
         let cloned = Buffer::new(self, buf.len());
@@ -149,9 +142,6 @@ impl<'a, Mods: OnDropBuffer + OnNewBuffer<T, Self, ()>, T> CloneBuf<'a, T> for C
         cloned
     }
 }
-
-#[cfg(feature = "graph")]
-crate::pass_down_optimize_mem_graph!(CUDA);
 
 #[cfg(test)]
 mod tests {
