@@ -6,23 +6,30 @@ const AUTOGRAD_NOT_AVAILABLE: &str = "Autograd<> is not available.";
 impl<'a, T, D, S> Buffer<'a, T, D, S>
 where
     T: 'static,
-    D: Device + 'static,
+    D: HasAutograd + Device + 'static,
     S: Shape,
 {
     /// Calls `.backward_seeded` on the [`Tape`].
-    /// The seed of the gradient is set to `1` and contains `self.len()` elements.
     #[inline]
-    #[cfg(feature = "autograd")]
     pub fn backward(&self)
     where
         T: Clone + One + 'static,
         D: TapeActions + WriteBuf<T, S, D> + Alloc<T> + 'static,
     {
+        // should never be None
         if let Some(tape) = unsafe { self.device().tape_mut() } {
             tape.backward_seeded(self)
         }
     }
 
+}
+
+impl<'a, T, D, S> Buffer<'a, T, D, S>
+where
+    T: 'static,
+    D: Device + 'static,
+    S: Shape,
+{ 
     /// Returns a reference to the gradient of this buffer.
     /// This allocates a gradient buffer if it wasn't previously.
     ///

@@ -171,6 +171,7 @@ mod tests {
             + crate::WriteBuf<f32>
             + crate::Read<f32>
             + crate::TapeActions
+            + crate::HasAutograd
             + crate::UnaryElementWiseMayGrad<f32, D, ()>
             + crate::Alloc<f32>
             + crate::OnNewBuffer<f32, D, ()>,

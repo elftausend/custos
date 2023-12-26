@@ -3,7 +3,7 @@ use core::{cell::RefCell, marker::PhantomData};
 use crate::{
     AddGradFn, AddOperation, Alloc, Buffer, Cache, Device, DeviceError, ExecNow, HasId, Module,
     OnDropBuffer, OnNewBuffer, Parents, PtrType, Retrieve, RunModule, Setup, ShallowCopy, Shape,
-    WrappedData,
+    WrappedData, HasAutograd,
 };
 
 #[cfg(feature = "graph")]
@@ -145,6 +145,8 @@ where
         self.modules.on_retrieve_finish(retrieved_buf)
     }
 }
+
+impl<Mods: HasAutograd, SD: Device> HasAutograd for CachedModule<Mods, SD> {}
 
 #[cfg(feature = "autograd")]
 impl<Mods: crate::TapeActions, SD: Device> crate::TapeActions for CachedModule<Mods, SD> {
