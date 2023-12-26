@@ -143,6 +143,9 @@ pub trait TapeActions {
 macro_rules! pass_down_tape_actions {
     ($to_impl:ident) => {
         #[cfg(feature = "autograd")]
+        impl<Mods: $crate::HasAutograd> $crate::HasAutograd for $to_impl<Mods> {}
+
+        #[cfg(feature = "autograd")]
         impl<Mods: $crate::TapeActions> $crate::TapeActions for $to_impl<Mods> {
             #[inline]
             unsafe fn tape(&self) -> Option<&$crate::Tape> {

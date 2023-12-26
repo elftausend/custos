@@ -1,7 +1,7 @@
 use core::{convert::Infallible, ops::DerefMut};
 
 use crate::{
-    cpu::CPUPtr, flag::AllocFlag, impl_device_traits, impl_retriever, Alloc, Base, Buffer,
+    cpu::CPUPtr, flag::AllocFlag, impl_device_traits, Alloc, Base, Buffer,
     CloneBuf, Device, DevicelessAble, HasModules, IsShapeIndep, Module, OnDropBuffer, OnNewBuffer,
     Setup, Shape, WrappedData,
 };

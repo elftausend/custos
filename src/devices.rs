@@ -104,14 +104,6 @@ macro_rules! impl_buffer_hook_traits {
 }
 
 #[macro_export]
-macro_rules! impl_has_modules {
-    ($device:ident) => {
-        #[cfg(feature = "autograd")]
-        impl<Mods: $crate::HasAutograd> $crate::HasAutograd for $device<Mods> {}
-    };
-}
-
-#[macro_export]
 macro_rules! impl_device_traits {
     ($device:ident) => {
         $crate::impl_retriever!($device);
@@ -125,7 +117,6 @@ macro_rules! impl_device_traits {
         $crate::pass_down_tape_actions!($device);
 
         $crate::pass_down_replace_buf!($device);
-        $crate::impl_has_modules!($device);
     };
 }
 
