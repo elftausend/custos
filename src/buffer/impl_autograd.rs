@@ -3,6 +3,7 @@ use crate::MayTapeActions;
 
 const AUTOGRAD_NOT_AVAILABLE: &str = "Autograd<> is not available.";
 
+#[cfg(feature = "autograd")]
 impl<'a, T, D, S> Buffer<'a, T, D, S>
 where
     T: 'static,
