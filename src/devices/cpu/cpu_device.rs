@@ -1,9 +1,9 @@
 use core::{convert::Infallible, ops::DerefMut};
 
 use crate::{
-    cpu::CPUPtr, flag::AllocFlag, impl_device_traits, Alloc, Base, Buffer,
-    CloneBuf, Device, DevicelessAble, HasModules, IsShapeIndep, Module, OnDropBuffer, OnNewBuffer,
-    Setup, Shape, WrappedData,
+    cpu::CPUPtr, flag::AllocFlag, impl_device_traits, AddLayer, Alloc, Base, Buffer, CloneBuf,
+    Device, DevicelessAble, HasModules, IsShapeIndep, Module, OnDropBuffer, OnNewBuffer,
+    RemoveLayer, Setup, Shape, WrappedData,
 };
 
 pub trait IsCPU {}
@@ -82,7 +82,7 @@ impl<Mods> HasModules<Mods> for CPU<Mods> {
 
 impl<SimpleMods> CPU<SimpleMods> {
     #[inline]
-    pub fn new<NewMods>() -> CPU<NewMods>
+    pub fn new<NewMods>() -> CPU<SimpleMods::Module>
     where
         SimpleMods: Module<CPU, Module = NewMods>,
         NewMods: Setup<CPU<NewMods>>,
@@ -92,6 +92,27 @@ impl<SimpleMods> CPU<SimpleMods> {
         };
         NewMods::setup(&mut cpu).unwrap();
         cpu
+    }
+}
+
+impl<Mods> CPU<Mods> {
+    #[inline]
+    pub fn add_layer<Mod>(self) -> CPU<Mod::Wrapped>
+    where
+        Mod: AddLayer<Mods, CPU>,
+    {
+        CPU {
+            modules: Mod::wrap_layer(self.modules),
+        }
+    }
+
+    pub fn remove_layer<NewMods>(self) -> CPU<NewMods>
+    where
+        Mods: RemoveLayer<NewMods>,
+    {
+        CPU {
+            modules: self.modules.inner_mods(),
+        }
     }
 }
 
@@ -166,3 +187,19 @@ where
 }
 
 unsafe impl<Mods: OnDropBuffer> IsShapeIndep for CPU<Mods> {}
+
+#[cfg(test)]
+mod tests {
+    use crate::{Base, CPU};
+
+     #[cfg(feature = "fork")]
+     #[cfg(feature = "cached")]
+    #[test]
+    fn test_add_layer_cpu() {
+        let cpu = CPU::<Base>::new();
+        let cpu = cpu.add_layer::<crate::Cached<()>>();
+        let cpu = cpu.add_layer::<crate::Fork<()>>();
+
+        let _cpu = cpu.remove_layer();
+    }
+}

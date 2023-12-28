@@ -4,9 +4,9 @@ mod wrapper;
 pub use ty::*;
 
 use crate::{
-    pass_down_tape_actions, AddOperation, Alloc, Buffer, Device, ExecNow, HasId, Id, IsShapeIndep,
-    Module, NoHasher, OnDropBuffer, OnNewBuffer, Parents, ReplaceBuf, Retrieve, RunModule, Setup,
-    ShallowCopy, Shape, UniqueId, UpdateArgs,
+    impl_remove_layer, pass_down_tape_actions, AddLayer, AddOperation, Alloc, Buffer, Device,
+    ExecNow, HasId, Id, IsShapeIndep, Module, NoHasher, OnDropBuffer, OnNewBuffer, Parents,
+    ReplaceBuf, Retrieve, RunModule, Setup, ShallowCopy, Shape, UniqueId, UpdateArgs,
 };
 use core::{
     any::Any,
@@ -169,6 +169,23 @@ where
 }
 
 pass_down_tape_actions!(Lazy);
+
+impl_remove_layer!(Lazy);
+
+impl<NewMods, SD> AddLayer<NewMods, SD> for Lazy<()> {
+    type Wrapped = crate::Lazy<NewMods>;
+
+    #[inline]
+    fn wrap_layer(inner_mods: NewMods) -> Self::Wrapped {
+        Lazy {
+            modules: inner_mods,
+            buffers: Default::default(),
+            graph: Default::default(),
+            alloc_later: Default::default(),
+            allocated: Default::default(),
+        }
+    }
+}
 
 impl<T, Mods, D, S> Retrieve<D, T, S> for Lazy<Mods>
 where

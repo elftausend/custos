@@ -7,9 +7,10 @@ pub use tape::*;
 use core::cell::UnsafeCell;
 
 use crate::{
-    pass_down_add_operation, pass_down_exec_now_module, register_buf, unregister_buf, AddGradFn,
-    Alloc, Buffer, Device, HasId, IsShapeIndep, Module, OnDropBuffer, OnNewBuffer, Parents,
-    PtrType, Retrieve, RunModule, Setup, ShallowCopy, Shape, TapeActions, WrappedData,
+    impl_remove_layer, pass_down_add_operation, pass_down_exec_now_module, register_buf,
+    unregister_buf, AddGradFn, AddLayer, Alloc, Buffer, Device, HasId, IsShapeIndep, Module,
+    OnDropBuffer, OnNewBuffer, Parents, PtrType, Retrieve, RunModule, Setup, ShallowCopy, Shape,
+    TapeActions, WrappedData,
 };
 
 use super::{Cached, CachedModule};
@@ -121,6 +122,21 @@ impl<Mods: Setup<NewDev>, NewDev> Setup<NewDev> for Autograd<Mods> {
     #[inline]
     fn setup(device: &mut NewDev) -> crate::Result<()> {
         Mods::setup(device)
+    }
+}
+
+impl_remove_layer!(Autograd);
+
+impl<NewMods, SD> AddLayer<NewMods, SD> for Autograd<()> {
+    type Wrapped = crate::Autograd<NewMods>;
+
+    #[inline]
+    fn wrap_layer(inner_mods: NewMods) -> Self::Wrapped {
+        Autograd {
+            modules: inner_mods,
+            grads: Default::default(),
+            tape: Default::default(),
+        }
     }
 }
 

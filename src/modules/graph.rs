@@ -8,9 +8,10 @@ pub use opt_graph::*;
 use core::{cell::RefCell, panic::Location};
 
 use crate::{
-    pass_down_add_operation, pass_down_exec_now_module, pass_down_unified_mem_chain,
-    pass_down_use_gpu_or_cpu, Alloc, Buffer, Device, HasId, Module, OnDropBuffer, OnNewBuffer,
-    OptimizeMemGraph, Parents, PtrType, Retrieve, Setup, Shape, TranslatedCacheTrace, WrappedData,
+    impl_remove_layer, pass_down_add_operation, pass_down_exec_now_module,
+    pass_down_unified_mem_chain, pass_down_use_gpu_or_cpu, AddLayer, Alloc, Buffer, Device, HasId,
+    Module, OnDropBuffer, OnNewBuffer, OptimizeMemGraph, Parents, PtrType, Retrieve, Setup, Shape,
+    TranslatedCacheTrace, WrappedData,
 };
 
 use self::graph_translator::GraphTranslator;
@@ -112,6 +113,20 @@ pass_down_add_operation!(Graph);
 pass_down_exec_now_module!(Graph);
 pass_down_unified_mem_chain!(Graph);
 pass_down_use_gpu_or_cpu!(Graph);
+
+impl_remove_layer!(Graph);
+
+impl<NewMods, SD> AddLayer<NewMods, SD> for Graph<()> {
+    type Wrapped = crate::Graph<NewMods>;
+
+    #[inline]
+    fn wrap_layer(inner_mods: NewMods) -> Self::Wrapped {
+        Graph {
+            modules: inner_mods,
+            graph_trans: Default::default(),
+        }
+    }
+}
 
 impl<T: 'static, Mods: Retrieve<D, T, S>, D: 'static, S: Shape> Retrieve<D, T, S> for Graph<Mods> {
     #[inline]
