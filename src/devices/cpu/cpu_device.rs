@@ -1,9 +1,9 @@
 use core::{convert::Infallible, ops::DerefMut};
 
 use crate::{
-    cpu::CPUPtr, flag::AllocFlag, impl_device_traits, Alloc, Base, Buffer,
-    CloneBuf, Device, DevicelessAble, HasModules, IsShapeIndep, Module, OnDropBuffer, OnNewBuffer,
-    Setup, Shape, WrappedData, AddLayer, RemoveLayer,
+    cpu::CPUPtr, flag::AllocFlag, impl_device_traits, AddLayer, Alloc, Base, Buffer, CloneBuf,
+    Device, DevicelessAble, HasModules, IsShapeIndep, Module, OnDropBuffer, OnNewBuffer,
+    RemoveLayer, Setup, Shape, WrappedData,
 };
 
 pub trait IsCPU {}
@@ -97,21 +97,21 @@ impl<SimpleMods> CPU<SimpleMods> {
 
 impl<Mods> CPU<Mods> {
     #[inline]
-    pub fn add_layer<Mod>(self) -> CPU<Mod::Wrapped> 
+    pub fn add_layer<Mod>(self) -> CPU<Mod::Wrapped>
     where
         Mod: AddLayer<Mods, CPU>,
     {
         CPU {
-            modules: Mod::wrap_layer(self.modules)
+            modules: Mod::wrap_layer(self.modules),
         }
     }
 
-    pub fn remove_layer<NewMods>(self) -> CPU::<NewMods>
+    pub fn remove_layer<NewMods>(self) -> CPU<NewMods>
     where
-        Mods: RemoveLayer<NewMods> 
+        Mods: RemoveLayer<NewMods>,
     {
         CPU {
-            modules: self.modules.inner_mods()
+            modules: self.modules.inner_mods(),
         }
     }
 }
@@ -190,7 +190,7 @@ unsafe impl<Mods: OnDropBuffer> IsShapeIndep for CPU<Mods> {}
 
 #[cfg(test)]
 mod tests {
-    use crate::{CPU, Base};
+    use crate::{Base, CPU};
 
     #[test]
     fn test_add_layer() {

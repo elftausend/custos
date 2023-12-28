@@ -21,7 +21,6 @@ where
             tape.backward_seeded(self)
         }
     }
-
 }
 
 impl<'a, T, D, S> Buffer<'a, T, D, S>
@@ -29,7 +28,7 @@ where
     T: 'static,
     D: Device + 'static,
     S: Shape,
-{ 
+{
     /// Returns a reference to the gradient of this buffer.
     /// This allocates a gradient buffer if it wasn't previously.
     ///

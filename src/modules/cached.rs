@@ -1,9 +1,9 @@
 use core::{cell::RefCell, marker::PhantomData};
 
 use crate::{
-    AddGradFn, AddOperation, Alloc, Buffer, Cache, Device, DeviceError, ExecNow, HasId, Module,
-    OnDropBuffer, OnNewBuffer, Parents, PtrType, Retrieve, RunModule, Setup, ShallowCopy, Shape,
-    WrappedData, HasAutograd, AddLayer, RemoveLayer,
+    AddGradFn, AddLayer, AddOperation, Alloc, Buffer, Cache, Device, DeviceError, ExecNow,
+    HasAutograd, HasId, Module, OnDropBuffer, OnNewBuffer, Parents, PtrType, RemoveLayer, Retrieve,
+    RunModule, Setup, ShallowCopy, Shape, WrappedData,
 };
 
 #[cfg(feature = "graph")]

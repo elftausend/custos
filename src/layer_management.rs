@@ -1,4 +1,3 @@
-
 pub trait AddLayer<NewMods, SD> {
     type Wrapped;
     fn wrap_layer(inner_mods: NewMods) -> Self::Wrapped;

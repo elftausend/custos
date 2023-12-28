@@ -106,6 +106,7 @@ pub mod flag;
 // mod graph;
 pub mod hooks;
 mod id;
+mod layer_management;
 pub mod modules;
 mod op_traits;
 mod parents;
@@ -115,19 +116,18 @@ mod two_way_ops;
 mod unary;
 mod update_args;
 mod wrapper;
-mod layer_management;
 
 pub use cache::*;
 pub use device_traits::*;
 pub use features::*;
 pub use hooks::*;
 pub use id::*;
+pub use layer_management::*;
 pub use modules::*;
 pub use parents::*;
 pub use ptr_conv::*;
 pub use update_args::*;
 pub use wrapper::*;
-pub use layer_management::*;
 
 #[cfg(feature = "static-api")]
 pub mod static_api;
