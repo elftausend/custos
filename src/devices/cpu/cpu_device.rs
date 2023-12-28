@@ -3,7 +3,7 @@ use core::{convert::Infallible, ops::DerefMut};
 use crate::{
     cpu::CPUPtr, flag::AllocFlag, impl_device_traits, Alloc, Base, Buffer,
     CloneBuf, Device, DevicelessAble, HasModules, IsShapeIndep, Module, OnDropBuffer, OnNewBuffer,
-    Setup, Shape, WrappedData,
+    Setup, Shape, WrappedData, AddLayer, RemoveLayer,
 };
 
 pub trait IsCPU {}
@@ -82,7 +82,7 @@ impl<Mods> HasModules<Mods> for CPU<Mods> {
 
 impl<SimpleMods> CPU<SimpleMods> {
     #[inline]
-    pub fn new<NewMods>() -> CPU<NewMods>
+    pub fn new<NewMods>() -> CPU<SimpleMods::Module>
     where
         SimpleMods: Module<CPU, Module = NewMods>,
         NewMods: Setup<CPU<NewMods>>,
@@ -95,36 +95,25 @@ impl<SimpleMods> CPU<SimpleMods> {
     }
 }
 
-pub trait AddLayer<CurrentMods, NewMods> {
-    type Wrapped;
-    fn wrap_layer(inner_mods: NewMods) -> Self::Wrapped;
-}
-
-impl<CurrentMods, NewMods> AddLayer<CurrentMods, NewMods> for crate::Fork<CurrentMods> {
-    type Wrapped = crate::Fork<NewMods>;
-
-    fn wrap_layer(inner_mods: NewMods) -> Self::Wrapped {
-        crate::Fork {
-            modules: inner_mods,
-            gpu_or_cpu: Default::default(),
+impl<Mods> CPU<Mods> {
+    #[inline]
+    pub fn add_layer<Mod>(self) -> CPU<Mod::Wrapped> 
+    where
+        Mod: AddLayer<Mods, CPU>,
+    {
+        CPU {
+            modules: Mod::wrap_layer(self.modules)
         }
     }
-}
 
-impl<Mods> CPU<Mods> {
-    pub fn add_layer<Mod, NewMods>(&self) -> CPU<NewMods> 
+    pub fn remove_layer<NewMods>(self) -> CPU::<NewMods>
     where
-        Mod: AddLayer<(), NewMods>,
-        Mod::Wrapped: Module<CPU, Module = NewMods>
+        Mods: RemoveLayer<NewMods> 
     {
-        todo!()
+        CPU {
+            modules: self.modules.inner_mods()
+        }
     }
-}
-
-#[test]
-fn test_add_layer() {
-    let cpu = CPU::<Base>::new();
-    cpu.add_layer::<crate::Fork<()>, _>();
 }
 
 impl<T, Mods: OnDropBuffer> Alloc<T> for CPU<Mods> {
@@ -198,3 +187,17 @@ where
 }
 
 unsafe impl<Mods: OnDropBuffer> IsShapeIndep for CPU<Mods> {}
+
+#[cfg(test)]
+mod tests {
+    use crate::{CPU, Base};
+
+    #[test]
+    fn test_add_layer() {
+        let cpu = CPU::<Base>::new();
+        let cpu = cpu.add_layer::<crate::Cached<()>>();
+        let cpu = cpu.add_layer::<crate::Fork<()>>();
+
+        let _cpu = cpu.remove_layer();
+    }
+}

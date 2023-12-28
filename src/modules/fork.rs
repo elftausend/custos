@@ -1,7 +1,7 @@
 use crate::{
     pass_down_add_operation, pass_down_exec_now, pass_down_tape_actions, Alloc, Buffer, Device,
     GpuOrCpuInfo, HasId, HashLocation, IsShapeIndep, LocationHasher, Module, OnDropBuffer,
-    OnNewBuffer, Parents, PtrType, Retrieve, RunModule, Setup, Shape, UseGpuOrCpu, WrappedData,
+    OnNewBuffer, Parents, PtrType, Retrieve, RunModule, Setup, Shape, UseGpuOrCpu, WrappedData, RemoveLayer, AddLayer,
 };
 use core::{
     cell::RefCell,
@@ -259,6 +259,26 @@ impl<Mods: RunModule<D>, D> RunModule<D> for Fork<Mods> {
     #[inline]
     fn run(&self, _device: &D) -> crate::Result<()> {
         self.modules.run(_device)
+    }
+}
+
+impl<Mods> RemoveLayer<Mods> for Fork<Mods> {
+    #[inline]
+    fn inner_mods(self) -> Mods {
+        self.modules
+    }
+}
+
+
+impl<NewMods, SD> AddLayer<NewMods, SD> for Fork<()> {
+    type Wrapped = crate::Fork<NewMods>;
+
+    #[inline]
+    fn wrap_layer(inner_mods: NewMods) -> Self::Wrapped {
+        Fork {
+            modules: inner_mods,
+            gpu_or_cpu: Default::default(),
+        }
     }
 }
 

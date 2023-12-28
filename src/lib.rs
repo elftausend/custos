@@ -115,6 +115,7 @@ mod two_way_ops;
 mod unary;
 mod update_args;
 mod wrapper;
+mod layer_management;
 
 pub use cache::*;
 pub use device_traits::*;
@@ -126,6 +127,7 @@ pub use parents::*;
 pub use ptr_conv::*;
 pub use update_args::*;
 pub use wrapper::*;
+pub use layer_management::*;
 
 #[cfg(feature = "static-api")]
 pub mod static_api;

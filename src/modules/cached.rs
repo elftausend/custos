@@ -3,7 +3,7 @@ use core::{cell::RefCell, marker::PhantomData};
 use crate::{
     AddGradFn, AddOperation, Alloc, Buffer, Cache, Device, DeviceError, ExecNow, HasId, Module,
     OnDropBuffer, OnNewBuffer, Parents, PtrType, Retrieve, RunModule, Setup, ShallowCopy, Shape,
-    WrappedData, HasAutograd,
+    WrappedData, HasAutograd, AddLayer, RemoveLayer,
 };
 
 #[cfg(feature = "graph")]
@@ -64,7 +64,7 @@ impl<Mods: Module<D>, D: Device> Module<D> for Cached<Mods> {
 pub struct CachedModule<Mods, D: Device> {
     pub modules: Mods,
     pub cache: RefCell<Cache>,
-    pd: PhantomData<D>,
+    pub(crate) pd: PhantomData<D>,
 }
 
 impl<Mods: Setup<NewDev>, D: Device, NewDev> Setup<NewDev> for CachedModule<Mods, D> {
@@ -168,6 +168,26 @@ impl<Mods: crate::TapeActions, SD: Device> crate::TapeActions for CachedModule<M
     #[inline]
     unsafe fn gradients_mut(&self) -> Option<&mut crate::Gradients> {
         self.modules.gradients_mut()
+    }
+}
+
+impl<CurrentMods, SD: Device> AddLayer<CurrentMods, SD> for Cached<()> {
+    type Wrapped = crate::CachedModule<CurrentMods, SD>;
+
+    #[inline]
+    fn wrap_layer(inner_mods: CurrentMods) -> Self::Wrapped {
+        crate::CachedModule {
+            modules: inner_mods,
+            cache: Default::default(),
+            pd: core::marker::PhantomData,
+        }
+    }
+}
+
+impl<Mods, SD: Device> RemoveLayer<Mods> for CachedModule<Mods, SD> {
+    #[inline]
+    fn inner_mods(self) -> Mods {
+        self.modules
     }
 }
 
