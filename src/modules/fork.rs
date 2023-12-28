@@ -1,7 +1,7 @@
 use crate::{
-    pass_down_add_operation, pass_down_exec_now, pass_down_tape_actions, AddLayer, Alloc, Buffer,
-    Device, HasId, HashLocation, IsShapeIndep, LocationHasher, Module, OnDropBuffer, OnNewBuffer,
-    Parents, PtrType, RemoveLayer, Retrieve, RunModule, Setup, Shape, WrappedData,
+    impl_remove_layer, pass_down_add_operation, pass_down_exec_now, pass_down_tape_actions,
+    AddLayer, Alloc, Buffer, Device, HasId, HashLocation, IsShapeIndep, LocationHasher, Module,
+    OnDropBuffer, OnNewBuffer, Parents, PtrType, Retrieve, RunModule, Setup, Shape, WrappedData,
 };
 use core::{cell::RefCell, hash::BuildHasherDefault};
 use std::collections::{BinaryHeap, HashMap};
@@ -122,12 +122,7 @@ impl<Mods: RunModule<D>, D> RunModule<D> for Fork<Mods> {
     }
 }
 
-impl<Mods> RemoveLayer<Mods> for Fork<Mods> {
-    #[inline]
-    fn inner_mods(self) -> Mods {
-        self.modules
-    }
-}
+impl_remove_layer!(Fork);
 
 impl<NewMods, SD> AddLayer<NewMods, SD> for Fork<()> {
     type Wrapped = crate::Fork<NewMods>;
