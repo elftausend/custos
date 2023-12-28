@@ -7,6 +7,7 @@ use core::{
 
 use crate::{
     flag::AllocFlag, Alloc, Buffer, CloneBuf, CommonPtrs, Device, HasId, OnDropBuffer, PtrType,
+    WrappedData,
 };
 
 #[derive(Debug, Default)]
@@ -26,6 +27,9 @@ impl<T> PtrType for Num<T> {
     fn flag(&self) -> crate::flag::AllocFlag {
         crate::flag::AllocFlag::Num
     }
+
+    #[inline]
+    unsafe fn set_flag(&mut self, _flag: AllocFlag) {}
 }
 
 impl<T> CommonPtrs<T> for Num<T> {
@@ -54,11 +58,39 @@ impl<T> From<T> for Num<T> {
 }
 
 impl Device for () {
-    type Data<T, S: crate::Shape> = Num<T>;
+    type Data<T, S: crate::Shape> = Self::Base<T, S>;
+    type Base<T, S: crate::Shape> = Num<T>;
+
     type Error = Infallible;
 
     fn new() -> Result<Self, Infallible> {
         Ok(())
+    }
+
+    #[inline(always)]
+    fn base_to_data<T, S: crate::Shape>(&self, base: Self::Base<T, S>) -> Self::Data<T, S> {
+        base
+    }
+
+    #[inline(always)]
+    fn wrap_to_data<T, S: crate::Shape>(
+        &self,
+        wrap: Self::Wrap<T, Self::Base<T, S>>,
+    ) -> Self::Data<T, S> {
+        wrap
+    }
+
+    #[inline(always)]
+    fn data_as_wrap<'a, T, S: crate::Shape>(
+        data: &'a Self::Data<T, S>,
+    ) -> &'a Self::Wrap<T, Self::Base<T, S>> {
+        data
+    }
+
+    fn data_as_wrap_mut<'a, T, S: crate::Shape>(
+        data: &'a mut Self::Data<T, S>,
+    ) -> &'a mut Self::Wrap<T, Self::Base<T, S>> {
+        data
     }
 }
 
@@ -74,6 +106,27 @@ impl<T: Default> Alloc<T> for () {
         T: Clone,
     {
         data[0].clone().into()
+    }
+}
+
+impl WrappedData for () {
+    type Wrap<T, Base: crate::HasId + crate::PtrType> = Base;
+
+    #[inline]
+    fn wrap_in_base<T, Base: HasId + PtrType>(&self, base: Base) -> Self::Wrap<T, Base> {
+        base
+    }
+
+    #[inline]
+    fn wrapped_as_base<'a, T, Base: HasId + PtrType>(wrap: &'a Self::Wrap<T, Base>) -> &'a Base {
+        wrap
+    }
+
+    #[inline]
+    fn wrapped_as_base_mut<'a, T, Base: HasId + PtrType>(
+        wrap: &'a mut Self::Wrap<T, Base>,
+    ) -> &'a mut Base {
+        wrap
     }
 }
 

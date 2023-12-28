@@ -1,10 +1,11 @@
 use crate::{
     cpu_stack_ops::clear_slice, pass_down_add_operation, pass_down_exec_now, prelude::Number,
-    AddOperation, ApplyFunction, Buffer, CDatatype, ClearBuf, HostPtr, OnDropBuffer, Read, Resolve,
-    Retrieve, Retriever, Shape, ToMarker, ToWgslSource, UnaryGrad, UseGpuOrCpu, Vulkan,
+    AddOperation, ApplyFunction, AsNoId, BufAsNoId, Buffer, CDatatype, ClearBuf, HostPtr,
+    OnDropBuffer, Read, Resolve, Retrieve, Retriever, Shape, ToMarker, ToWgslSource, UnaryGrad,
+    UseGpuOrCpu, Vulkan, WriteBuf,
 };
 
-use super::VkArray;
+use super::{VkArray, VkDevice};
 
 pass_down_add_operation!(Vulkan);
 pass_down_exec_now!(Vulkan);
@@ -17,12 +18,12 @@ impl<Mods: OnDropBuffer + UseGpuOrCpu, T: CDatatype + Default> ClearBuf<T> for V
             (file!(), line!(), column!()).into(),
             &[buf.len()],
             || clear_slice(cpu_buf),
-            || try_vk_clear(self, &mut buf.data).unwrap(),
+            || try_vk_clear(self, buf).unwrap(),
         );
     }
 }
 
-pub fn try_vk_clear<Mods, T>(device: &Vulkan<Mods>, buf: &mut VkArray<T>) -> crate::Result<()> {
+pub fn try_vk_clear<T>(device: &VkDevice, buf: &mut VkArray<T>) -> crate::Result<()> {
     let src = format!(
         "@group(0)
             @binding(0)
@@ -67,7 +68,7 @@ impl<Mods: OnDropBuffer, T, S: Shape> Read<T, S> for Vulkan<Mods> {
 impl<Mods, T, S> ApplyFunction<T, S> for Vulkan<Mods>
 where
     T: Number,
-    Mods: AddOperation<T, Self> + Retrieve<Self, T> + UseGpuOrCpu + 'static,
+    Mods: AddOperation + Retrieve<Self, T, S> + UseGpuOrCpu + 'static,
     S: Shape,
 {
     #[inline]
@@ -81,30 +82,30 @@ where
     {
         let mut out = self.retrieve(buf.len(), buf);
 
-        self.add_op(&mut out, move |out| {
-            let cpu_out = unsafe { &mut *(out as *mut Buffer<T, Vulkan<Mods>, _>) };
-            self.use_cpu_or_gpu(
-                (file!(), line!(), column!()).into(),
-                &[buf.len()],
-                || crate::devices::cpu_stack_ops::apply_fn_slice(buf, cpu_out, f),
-                || try_vk_apply_fn_mut(self, &buf.data, &mut out.data, f).unwrap(),
-            );
-            Ok(())
-        });
+        // self.add_op(&mut out, move |out| {
+        let cpu_out = unsafe { &mut *(&mut out as *mut Buffer<T, Vulkan<Mods>, _>) };
+        self.use_cpu_or_gpu(
+            (file!(), line!(), column!()).into(),
+            &[buf.len()],
+            || crate::devices::cpu_stack_ops::apply_fn_slice(buf, cpu_out, f),
+            || try_vk_apply_fn_mut(self, &buf, &mut out, f).unwrap(),
+        );
+        // Ok(())
+        // })
+        // .unwrap();
 
         out
     }
 }
 
-pub fn try_vk_apply_fn_mut<T, Mods, F>(
-    device: &Vulkan<Mods>,
+pub fn try_vk_apply_fn_mut<T, F>(
+    device: &VkDevice,
     x: &VkArray<T>,
     out: &mut VkArray<T>,
     f: impl Fn(Resolve<T>) -> F,
 ) -> crate::Result<()>
 where
     T: Number,
-    Mods: OnDropBuffer,
     F: ToWgslSource,
 {
     let src = format!(
@@ -133,10 +134,11 @@ where
     device.launch_shader([(32 + x.len as u32) / 32, 1, 1], src, &[x, out])
 }
 
-impl<T, S, Mods: OnDropBuffer + AddOperation<T, Self>> UnaryGrad<T, S> for Vulkan<Mods>
+impl<T, S, Mods> UnaryGrad<T, S> for Vulkan<Mods>
 where
     T: CDatatype + Number,
     S: Shape,
+    Mods: OnDropBuffer + AddOperation + 'static,
 {
     #[inline]
     fn add_unary_grad<F>(
@@ -144,17 +146,21 @@ where
         lhs: &Buffer<T, Self, S>,
         lhs_grad: &mut Buffer<T, Self, S>,
         out: &Buffer<T, Self, S>,
-        lhs_grad_fn: impl Fn(Resolve<T>) -> F + Copy,
+        lhs_grad_fn: impl Fn(Resolve<T>) -> F + Copy + 'static,
     ) where
         F: ToWgslSource,
     {
-        self.add_op(lhs_grad, move |lhs_grad| {
-            try_vk_add_unary_grad(self, &lhs.data, &mut lhs_grad.data, &out.data, lhs_grad_fn)
-        });
+        self.add_op::<_, 4>(
+            (lhs, lhs_grad.buf_no_id(), out, lhs_grad_fn.no_id()),
+            move |(lhs, lhs_grad, out, lhs_grad_fn)| {
+                try_vk_add_unary_grad(lhs.device(), lhs, lhs_grad, out, **lhs_grad_fn)
+            },
+        )
+        .unwrap();
     }
 }
-pub fn try_vk_add_unary_grad<T, F, Mods: OnDropBuffer>(
-    device: &Vulkan<Mods>,
+pub fn try_vk_add_unary_grad<T, F>(
+    device: &VkDevice,
     lhs: &VkArray<T>,
     lhs_grad: &mut VkArray<T>,
     out: &VkArray<T>,
@@ -197,11 +203,26 @@ where
         &[lhs, lhs_grad, out],
     )
 }
+
+impl<Mods: OnDropBuffer, T: Clone, S: Shape> WriteBuf<T, S> for Vulkan<Mods> {
+    #[inline]
+    fn write(&self, buf: &mut Buffer<T, Self, S>, data: &[T]) {
+        buf.as_mut_slice().clone_from_slice(data)
+    }
+
+    #[inline]
+    fn write_buf(&self, dst: &mut Buffer<T, Self, S>, src: &Buffer<T, Self, S>) {
+        dst.write(src);
+    }
+}
+
 #[cfg(test)]
 mod tests {
-    use crate::{vulkan::ops::try_vk_add_unary_grad, Base, Buffer, Combiner, Fork, Vulkan};
-
     use super::{try_vk_apply_fn_mut, try_vk_clear};
+    use crate::{vulkan::ops::try_vk_add_unary_grad, Base, Buffer, Combiner, Vulkan};
+
+    #[cfg(feature = "fork")]
+    use crate::Fork;
 
     #[test]
     fn test_try_vk_clear() {
@@ -209,7 +230,7 @@ mod tests {
         let mut buf = Buffer::from((&device, [1f32, 2., 3., 4., 5., 6.]));
 
         try_vk_clear(&device, &mut buf.data).unwrap();
-        assert_eq!(buf.read(), [0f32; 6])
+        assert_eq!(buf.read(), [0f32; 6]);
     }
 
     #[test]

@@ -3,7 +3,7 @@ use std::{collections::HashMap, ffi::c_void};
 
 use super::{
     api::{cuOccupancyMaxPotentialBlockSize, culaunch_kernel, FnHandle, Module, Stream},
-    fn_cache, CUDAPtr, CUKernelCache, CudaSource,
+    fn_cache, CUDAPtr, CudaDevice, CudaSource, KernelCache,
 };
 
 /// Converts `Self` to a (cuda) *mut c_void.
@@ -45,14 +45,14 @@ pub trait AsCudaCvoidPtr {
 impl<'a, T, Mods: OnDropBuffer, S: Shape> AsCudaCvoidPtr for &Buffer<'a, T, CUDA<Mods>, S> {
     #[inline]
     fn as_cvoid_ptr(&self) -> *mut c_void {
-        &self.data.ptr as *const u64 as *mut c_void
+        &self.base().ptr as *const u64 as *mut c_void
     }
 }
 
 impl<'a, T, Mods: OnDropBuffer, S: Shape> AsCudaCvoidPtr for Buffer<'a, T, CUDA<Mods>, S> {
     #[inline]
     fn as_cvoid_ptr(&self) -> *mut c_void {
-        &self.data.ptr as *const u64 as *mut c_void
+        &self.base().ptr as *const u64 as *mut c_void
     }
 }
 
@@ -72,8 +72,8 @@ impl<T: Number> AsCudaCvoidPtr for T {
 
 /// Launch a CUDA kernel with the given grid and block sizes.
 #[inline]
-pub fn launch_kernel<Mods>(
-    device: &CUDA<Mods>,
+pub fn launch_kernel(
+    device: &CudaDevice,
     grid: [u32; 3],
     blocks: [u32; 3],
     shared_mem_bytes: u32,
@@ -115,7 +115,7 @@ pub fn launch_kernel_with_fn(
 /// All kernel arguments must be set.
 pub fn launch_kernel1d(
     len: usize,
-    kernel_cache: &mut CUKernelCache,
+    kernel_cache: &mut KernelCache,
     modules: &mut HashMap<FnHandle, Module>,
     stream: &Stream,
     src: impl CudaSource,
@@ -127,7 +127,7 @@ pub fn launch_kernel1d(
         .map(|param| param.as_cvoid_ptr())
         .collect::<Vec<_>>();
 
-    let func = kernel_cache.kernel(modules, src, fn_name)?;
+    let func = kernel_cache.kernel(modules, src, fn_name).unwrap();
 
     let mut min_grid_size = 0;
     let mut block_size = 0;

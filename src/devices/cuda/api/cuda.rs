@@ -146,7 +146,9 @@ pub fn load_module(fname: &str) -> CudaResult<Module> {
 
 pub fn load_module_data(src: CString) -> CudaResult<Module> {
     let mut module = Module(null_mut());
-    unsafe { cuModuleLoadData(&mut module.0, src.as_ptr() as *const c_void) }.to_result()?;
+    unsafe { cuModuleLoadData(&mut module.0, src.as_ptr() as *const c_void) }
+        .to_result()
+        .unwrap();
     Ok(module)
 }
 

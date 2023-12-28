@@ -2,109 +2,28 @@ use ash::vk::BufferUsageFlags;
 
 use super::{context::Context, launch_shader, AsVkShaderArgument, ShaderCache, VkArray};
 use crate::{
-    flag::AllocFlag, impl_buffer_hook_traits, impl_retriever, pass_down_use_gpu_or_cpu, Alloc,
-    Base, Buffer, Device, Module, OnDropBuffer, PtrConv, Setup, Shape,
+    impl_device_traits, pass_down_use_gpu_or_cpu, Alloc, Base, Buffer, Device, IsShapeIndep,
+    Module, OnDropBuffer, Setup, Shape, WrappedData,
 };
-use core::cell::RefCell;
+use core::{
+    cell::RefCell,
+    ops::{Deref, DerefMut},
+};
 use std::rc::Rc;
 
-pub struct Vulkan<Mods = Base> {
-    pub modules: Mods,
+pub struct VkDevice {
     pub context: Rc<Context>,
     pub shader_cache: RefCell<ShaderCache>,
 }
 
-impl<SimpleMods> Vulkan<SimpleMods> {
-    #[inline]
-    pub fn new<NewMods>(idx: usize) -> crate::Result<Vulkan<NewMods>>
-    where
-        SimpleMods: Module<Vulkan, Module = NewMods>,
-        NewMods: Setup<Vulkan<NewMods>>,
-    {
-        let mut vulkan = Vulkan {
-            modules: SimpleMods::new(),
+impl VkDevice {
+    pub fn new(idx: usize) -> crate::Result<Self> {
+        Ok(VkDevice {
             context: Rc::new(Context::new(idx)?),
             shader_cache: Default::default(),
-        };
-        NewMods::setup(&mut vulkan)?;
-        Ok(vulkan)
-    }
-}
-
-impl<Mods> Vulkan<Mods> {
-    #[inline]
-    pub fn context(&self) -> Rc<Context> {
-        self.context.clone()
-    }
-}
-
-impl_retriever!(Vulkan);
-impl_buffer_hook_traits!(Vulkan);
-pass_down_use_gpu_or_cpu!(Vulkan);
-
-impl<Mods: OnDropBuffer> Device for Vulkan<Mods> {
-    type Data<T, S: Shape> = VkArray<T>;
-
-    type Error = ();
-}
-
-impl<Mods: OnDropBuffer, T> Alloc<T> for Vulkan<Mods> {
-    #[inline]
-    fn alloc<S: Shape>(&self, len: usize, flag: crate::flag::AllocFlag) -> Self::Data<T, S> {
-        VkArray::new(self.context(), len, BufferUsageFlags::STORAGE_BUFFER, flag)
-            .expect("Could not create VkArray")
+        })
     }
 
-    #[inline]
-    fn alloc_from_slice<S: Shape>(&self, data: &[T]) -> Self::Data<T, S>
-    where
-        T: Clone,
-    {
-        VkArray::from_slice(
-            self.context(),
-            data,
-            BufferUsageFlags::STORAGE_BUFFER,
-            crate::flag::AllocFlag::None,
-        )
-        .expect("Could not create VkArray")
-    }
-}
-
-#[cfg(feature = "fork")]
-impl<Mods> crate::ForkSetup for Vulkan<Mods> {}
-
-#[cfg(feature = "autograd")]
-impl<Mods: crate::TapeActions> crate::TapeActions for Vulkan<Mods> {
-    #[inline]
-    fn tape(&self) -> Option<core::cell::Ref<crate::Tape>> {
-        self.modules.tape()
-    }
-
-    #[inline]
-    fn tape_mut(&self) -> Option<core::cell::RefMut<crate::Tape>> {
-        self.modules.tape_mut()
-    }
-}
-
-// impl for all devices
-impl<Mods: OnDropBuffer, OtherMods: OnDropBuffer> PtrConv<Vulkan<OtherMods>> for Vulkan<Mods> {
-    #[inline]
-    unsafe fn convert<T, IS: Shape, Conv, OS: Shape>(
-        data: &VkArray<T>,
-        flag: AllocFlag,
-    ) -> VkArray<Conv> {
-        VkArray {
-            len: data.len,
-            buf: data.buf,
-            mem: data.mem,
-            context: data.context.clone(),
-            mapped_ptr: data.mapped_ptr as *mut Conv,
-            flag,
-        }
-    }
-}
-
-impl<Mods> Vulkan<Mods> {
     #[inline]
     pub fn launch_shader(
         &self,
@@ -121,6 +40,116 @@ impl<Mods> Vulkan<Mods> {
         )
     }
 }
+
+impl Drop for VkDevice {
+    fn drop(&mut self) {
+        unsafe { self.shader_cache.borrow_mut().destroy(&self.context.device) }
+    }
+}
+
+pub struct Vulkan<Mods = Base> {
+    pub modules: Mods,
+    pub device: VkDevice,
+}
+
+impl<SimpleMods> Vulkan<SimpleMods> {
+    #[inline]
+    pub fn new<NewMods>(idx: usize) -> crate::Result<Vulkan<NewMods>>
+    where
+        SimpleMods: Module<Vulkan, Module = NewMods>,
+        NewMods: Setup<Vulkan<NewMods>>,
+    {
+        let mut vulkan = Vulkan {
+            modules: SimpleMods::new(),
+            device: VkDevice::new(idx)?,
+        };
+        NewMods::setup(&mut vulkan)?;
+        Ok(vulkan)
+    }
+}
+
+impl<Mods> Deref for Vulkan<Mods> {
+    type Target = VkDevice;
+
+    #[inline]
+    fn deref(&self) -> &Self::Target {
+        &self.device
+    }
+}
+
+impl<Mods> DerefMut for Vulkan<Mods> {
+    #[inline]
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.device
+    }
+}
+
+impl<Mods> Vulkan<Mods> {
+    #[inline]
+    pub fn context(&self) -> Rc<Context> {
+        self.context.clone()
+    }
+}
+
+impl_device_traits!(Vulkan);
+pass_down_use_gpu_or_cpu!(Vulkan);
+
+impl<Mods: OnDropBuffer> Device for Vulkan<Mods> {
+    type Data<T, S: Shape> = Mods::Wrap<T, Self::Base<T, S>>;
+    type Base<T, S: Shape> = VkArray<T>;
+
+    type Error = ();
+
+    fn base_to_data<T, S: Shape>(&self, base: Self::Base<T, S>) -> Self::Data<T, S> {
+        self.wrap_in_base(base)
+    }
+
+    #[inline]
+    fn wrap_to_data<T, S: Shape>(&self, wrap: Self::Wrap<T, Self::Base<T, S>>) -> Self::Data<T, S> {
+        wrap
+    }
+
+    #[inline]
+    fn data_as_wrap<'a, T, S: Shape>(
+        data: &'a Self::Data<T, S>,
+    ) -> &'a Self::Wrap<T, Self::Base<T, S>> {
+        data
+    }
+
+    #[inline]
+    fn data_as_wrap_mut<'a, T, S: Shape>(
+        data: &'a mut Self::Data<T, S>,
+    ) -> &'a mut Self::Wrap<T, Self::Base<T, S>> {
+        data
+    }
+}
+
+impl<Mods: OnDropBuffer, T> Alloc<T> for Vulkan<Mods> {
+    #[inline]
+    fn alloc<S: Shape>(&self, len: usize, flag: crate::flag::AllocFlag) -> Self::Base<T, S> {
+        VkArray::new(self.context(), len, BufferUsageFlags::STORAGE_BUFFER, flag)
+            .expect("Could not create VkArray")
+    }
+
+    #[inline]
+    fn alloc_from_slice<S: Shape>(&self, data: &[T]) -> Self::Base<T, S>
+    where
+        T: Clone,
+    {
+        VkArray::from_slice(
+            self.context(),
+            data,
+            BufferUsageFlags::STORAGE_BUFFER,
+            crate::flag::AllocFlag::None,
+        )
+        .expect("Could not create VkArray")
+    }
+}
+
+#[cfg(feature = "fork")]
+impl<Mods> crate::ForkSetup for Vulkan<Mods> {}
+
+unsafe impl<Mods: OnDropBuffer> IsShapeIndep for Vulkan<Mods> {}
 
 #[cfg(test)]
 mod tests {
@@ -198,5 +227,16 @@ mod tests {
             )
             .unwrap();
         assert_eq!(out.as_slice(), [7, 8, 9, 10, 11, 15, 8, 9, 10, 9, 8])
+    }
+
+    #[cfg(feature = "autograd")]
+    #[test]
+    fn test_vulkan_autograd() {
+        use crate::{Autograd, Cached};
+
+        let dev = Vulkan::<Cached<Autograd<Base>>>::new(0).unwrap();
+
+        let lhs = dev.buffer([1, 2, 3, 4]);
+        lhs.grad();
     }
 }

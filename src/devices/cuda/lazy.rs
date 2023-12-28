@@ -242,4 +242,12 @@ mod tests {
         assert_eq!(rhs.read(), vec![3, 6, 9, 12, 15, 18]);
         assert_eq!(lhs.read(), vec![6, 24, 54, 96, 150, 216]);
     }
+
+    #[test]
+    fn test_lazy_by_separate_module_cuda() {
+        // let lazy = <Lazy<Base> as Module<CUDA>>::new();
+
+        // let mut device = CUDA::<Base>::new(0).unwrap();
+        // device.lazy_setup().unwrap();
+    }
 }

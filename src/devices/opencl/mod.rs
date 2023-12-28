@@ -4,12 +4,10 @@ use core::ops::{Deref, DerefMut};
 use std::{ffi::c_void, ptr::null_mut};
 
 pub use cl_device::{OpenCL, CL};
-pub use kernel_cache::*;
 pub use kernel_enqueue::*;
 
 //pub mod api;
 mod cl_device;
-mod kernel_cache;
 mod kernel_enqueue;
 
 // #[cfg(unified_cl)]
@@ -26,10 +24,10 @@ use min_cl::api::release_mem_object;
 pub use unified::*;
 
 //use self::api::release_mem_object;
-use crate::{flag::AllocFlag, Buffer, CommonPtrs, HasId, HostPtr, Id, PtrType, ShallowCopy};
+use crate::{flag::AllocFlag, CommonPtrs, HasId, HostPtr, Id, PtrType, ShallowCopy};
 
-/// Another type for Buffer<'a, T, OpenCL, S>
-pub type CLBuffer<'a, T, S = ()> = Buffer<'a, T, OpenCL, S>;
+/// Another type for [`CLPtr`]
+pub type CLBuffer<T> = CLPtr<T>;
 
 /// Reads the environment variable `CUSTOS_CL_DEVICE_IDX` and returns the value as a `usize`.
 pub fn chosen_cl_idx() -> usize {
@@ -98,6 +96,11 @@ impl<T> PtrType for CLPtr<T> {
     fn flag(&self) -> AllocFlag {
         self.flag
     }
+
+    #[inline]
+    unsafe fn set_flag(&mut self, flag: AllocFlag) {
+        self.flag = flag;
+    }
 }
 
 #[cfg(unified_cl)]
@@ -131,7 +134,7 @@ impl<T> DerefMut for CLPtr<T> {
 
 impl<T> Drop for CLPtr<T> {
     fn drop(&mut self) {
-        if !matches!(self.flag, AllocFlag::None | AllocFlag::BorrowedCache) {
+        if !self.flag.continue_deallocation() {
             return;
         }
 

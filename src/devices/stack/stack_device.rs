@@ -1,8 +1,9 @@
 use core::convert::Infallible;
 
 use crate::{
-    flag::AllocFlag, impl_buffer_hook_traits, impl_retriever, shape::Shape, Alloc, Base, Buffer,
-    CloneBuf, Device, DevicelessAble, OnDropBuffer, Read, StackArray, WriteBuf,
+    flag::AllocFlag, impl_buffer_hook_traits, impl_retriever, impl_wrapped_data, shape::Shape,
+    Alloc, Base, Buffer, CloneBuf, Device, DevicelessAble, OnDropBuffer, Read, StackArray,
+    WrappedData, WriteBuf,
 };
 
 /// A device that allocates memory on the stack.
@@ -19,15 +20,41 @@ impl Stack {
 
 impl_buffer_hook_traits!(Stack);
 impl_retriever!(Stack, Copy + Default);
+impl_wrapped_data!(Stack);
 
 impl<'a, T: Copy + Default, S: Shape> DevicelessAble<'a, T, S> for Stack {}
 
 impl<Mods: OnDropBuffer> Device for Stack<Mods> {
-    type Data<U, S: Shape> = StackArray<S, U>;
+    type Data<U, S: Shape> = Self::Wrap<U, Self::Base<U, S>>;
+    type Base<T, S: Shape> = StackArray<S, T>;
     type Error = Infallible;
 
     fn new() -> Result<Self, Infallible> {
         todo!()
+    }
+
+    #[inline]
+    fn base_to_data<T, S: Shape>(&self, base: Self::Base<T, S>) -> Self::Data<T, S> {
+        self.wrap_in_base(base)
+    }
+
+    #[inline]
+    fn wrap_to_data<T, S: Shape>(&self, wrap: Self::Wrap<T, Self::Base<T, S>>) -> Self::Data<T, S> {
+        wrap
+    }
+
+    #[inline]
+    fn data_as_wrap<'a, T, S: Shape>(
+        data: &'a Self::Data<T, S>,
+    ) -> &'a Self::Wrap<T, Self::Base<T, S>> {
+        data
+    }
+
+    #[inline]
+    fn data_as_wrap_mut<'a, T, S: Shape>(
+        data: &'a mut Self::Data<T, S>,
+    ) -> &'a mut Self::Wrap<T, Self::Base<T, S>> {
+        data
     }
 }
 
@@ -38,7 +65,7 @@ impl<Mods: OnDropBuffer, T: Copy + Default> Alloc<T> for Stack<Mods> {
     }
 
     #[inline]
-    fn alloc_from_slice<S: Shape>(&self, data: &[T]) -> Self::Data<T, S> {
+    fn alloc_from_slice<S: Shape>(&self, data: &[T]) -> Self::Base<T, S> {
         let mut array: StackArray<S, T> =
             <Stack<Mods> as Alloc<T>>::alloc(self, 0, AllocFlag::None);
         array.flatten_mut().copy_from_slice(&data[..S::LEN]);
@@ -47,10 +74,7 @@ impl<Mods: OnDropBuffer, T: Copy + Default> Alloc<T> for Stack<Mods> {
     }
 
     #[inline]
-    fn alloc_from_array<S: Shape>(
-        &self,
-        array: <S as Shape>::ARR<T>,
-    ) -> <Self as Device>::Data<T, S>
+    fn alloc_from_array<S: Shape>(&self, array: <S as Shape>::ARR<T>) -> Self::Base<T, S>
     where
         T: Clone,
     {
@@ -93,6 +117,7 @@ impl<'a, T, S: Shape> CloneBuf<'a, T, S> for Stack
 where
     <Stack as Device>::Data<T, S>: Copy,
 {
+    #[inline]
     fn clone_buf(&'a self, buf: &Buffer<'a, T, Self, S>) -> Buffer<'a, T, Self, S> {
         Buffer {
             data: buf.data,
@@ -114,17 +139,8 @@ impl<T: Copy, S: Shape> WriteBuf<T, S> for Stack {
 }
 
 #[cfg(feature = "autograd")]
-impl<Mods: crate::TapeActions> crate::TapeActions for Stack<Mods> {
-    #[inline]
-    fn tape(&self) -> Option<core::cell::Ref<crate::Tape>> {
-        None
-    }
+impl<Mods: crate::TapeActions> crate::TapeActions for Stack<Mods> {}
 
-    #[inline]
-    fn tape_mut(&self) -> Option<core::cell::RefMut<crate::Tape>> {
-        None
-    }
-}
 #[cfg(test)]
 mod tests {
     #[cfg(not(feature = "no-std"))]

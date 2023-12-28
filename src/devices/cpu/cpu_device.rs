@@ -1,12 +1,9 @@
-use core::{
-    convert::Infallible,
-    mem::{align_of, size_of},
-};
+use core::{convert::Infallible, ops::DerefMut};
 
 use crate::{
-    cpu::CPUPtr, flag::AllocFlag, impl_buffer_hook_traits, impl_retriever, Alloc, Base, Buffer,
-    CloneBuf, Device, DevicelessAble, HasModules, Module, OnDropBuffer, OnNewBuffer, PtrConv,
-    Setup, Shape,
+    cpu::CPUPtr, flag::AllocFlag, impl_device_traits, Alloc, Base, Buffer,
+    CloneBuf, Device, DevicelessAble, HasModules, IsShapeIndep, Module, OnDropBuffer, OnNewBuffer,
+    Setup, Shape, WrappedData,
 };
 
 pub trait IsCPU {}
@@ -31,19 +28,47 @@ pub struct CPU<Mods = Base> {
     pub modules: Mods,
 }
 
-impl_retriever!(CPU);
-impl_buffer_hook_traits!(CPU);
+impl_device_traits!(CPU);
 
 impl<Mods> IsCPU for CPU<Mods> {}
 
 impl<Mods: OnDropBuffer> Device for CPU<Mods> {
     type Error = Infallible;
-    type Data<T, S: Shape> = CPUPtr<T>;
+    type Base<T, S: Shape> = CPUPtr<T>;
+    type Data<T, S: Shape> = Self::Wrap<T, Self::Base<T, S>>;
+    // type WrappedData<T, S: Shape> = ;
 
     fn new() -> Result<Self, Self::Error> {
         todo!()
         // Ok(CPU::<Base>::new())
     }
+
+    #[inline(always)]
+    fn base_to_data<T, S: Shape>(&self, base: Self::Base<T, S>) -> Self::Data<T, S> {
+        self.wrap_in_base(base)
+    }
+
+    #[inline(always)]
+    fn wrap_to_data<T, S: Shape>(&self, wrap: Self::Wrap<T, Self::Base<T, S>>) -> Self::Data<T, S> {
+        wrap
+    }
+
+    #[inline(always)]
+    fn data_as_wrap<'a, T, S: Shape>(
+        data: &'a Self::Data<T, S>,
+    ) -> &'a Self::Wrap<T, Self::Base<T, S>> {
+        data
+    }
+
+    #[inline(always)]
+    fn data_as_wrap_mut<'a, T, S: Shape>(
+        data: &'a mut Self::Data<T, S>,
+    ) -> &'a mut Self::Wrap<T, Self::Base<T, S>> {
+        data
+    }
+
+    // #[inline]
+    // fn wrap(&self) {}
 }
 
 impl<T, S: Shape> DevicelessAble<'_, T, S> for CPU<Base> {}
@@ -103,17 +128,18 @@ fn test_add_layer() {
 }
 
 impl<T, Mods: OnDropBuffer> Alloc<T> for CPU<Mods> {
-    fn alloc<S: Shape>(&self, mut len: usize, flag: AllocFlag) -> Self::Data<T, S> {
+    fn alloc<S: Shape>(&self, mut len: usize, flag: AllocFlag) -> Self::Base<T, S> {
         assert!(len > 0, "invalid buffer len: 0");
 
         if S::LEN > len {
             len = S::LEN
         }
 
+        // self.wrap_in_base(CPUPtr::new_initialized(len, flag))
         CPUPtr::new_initialized(len, flag)
     }
 
-    fn alloc_from_slice<S>(&self, data: &[T]) -> Self::Data<T, S>
+    fn alloc_from_slice<S>(&self, data: &[T]) -> Self::Base<T, S>
     where
         S: Shape,
         T: Clone,
@@ -128,7 +154,7 @@ impl<T, Mods: OnDropBuffer> Alloc<T> for CPU<Mods> {
         cpu_ptr
     }
 
-    fn alloc_from_vec<S: Shape>(&self, mut vec: Vec<T>) -> Self::Data<T, S>
+    fn alloc_from_vec<S: Shape>(&self, mut vec: Vec<T>) -> Self::Base<T, S>
     where
         T: Clone,
     {
@@ -152,19 +178,6 @@ impl<Mods: crate::RunModule<Self>> crate::Run for CPU<Mods> {
     }
 }
 
-#[cfg(feature = "autograd")]
-impl<Mods: crate::TapeActions> crate::TapeActions for CPU<Mods> {
-    #[inline]
-    fn tape(&self) -> Option<core::cell::Ref<crate::Tape>> {
-        self.modules.tape()
-    }
-
-    #[inline]
-    fn tape_mut(&self) -> Option<core::cell::RefMut<crate::Tape>> {
-        self.modules.tape_mut()
-    }
-}
-
 #[cfg(feature = "lazy")]
 impl<Mods> crate::LazySetup for CPU<Mods> {}
 
@@ -173,6 +186,8 @@ impl<Mods> crate::ForkSetup for CPU<Mods> {}
 
 impl<'a, Mods: OnDropBuffer + OnNewBuffer<T, Self, S>, T: Clone, S: Shape> CloneBuf<'a, T, S>
     for CPU<Mods>
+where
+    Self::Data<T, S>: DerefMut<Target = [T]>,
 {
     #[inline]
     fn clone_buf(&'a self, buf: &Buffer<'a, T, CPU<Mods>, S>) -> Buffer<'a, T, CPU<Mods>, S> {
@@ -182,19 +197,4 @@ impl<'a, Mods: OnDropBuffer + OnNewBuffer<T, Self, S>, T: Clone, S: Shape> Clone
     }
 }
 
-// impl for all devices
-impl<Mods: OnDropBuffer, OtherMods: OnDropBuffer> PtrConv<CPU<OtherMods>> for CPU<Mods> {
-    #[inline]
-    unsafe fn convert<T, IS: Shape, Conv, OS: Shape>(
-        data: &CPUPtr<T>,
-        flag: AllocFlag,
-    ) -> CPUPtr<Conv> {
-        CPUPtr {
-            ptr: data.ptr as *mut Conv,
-            len: data.len,
-            flag,
-            align: Some(align_of::<T>()),
-            size: Some(size_of::<T>()),
-        }
-    }
-}
+unsafe impl<Mods: OnDropBuffer> IsShapeIndep for CPU<Mods> {}

@@ -1,7 +1,7 @@
 use crate::{
-    pass_down_add_operation, pass_down_exec_now, Alloc, Buffer, Device, GpuOrCpuInfo, HashLocation,
-    LocationHasher, Module, OnDropBuffer, OnNewBuffer, Parents, PtrConv, Retrieve, RunModule,
-    Setup, Shape, UseGpuOrCpu,
+    pass_down_add_operation, pass_down_exec_now, pass_down_tape_actions, Alloc, Buffer, Device,
+    GpuOrCpuInfo, HasId, HashLocation, IsShapeIndep, LocationHasher, Module, OnDropBuffer,
+    OnNewBuffer, Parents, PtrType, Retrieve, RunModule, Setup, Shape, UseGpuOrCpu, WrappedData,
 };
 use core::{
     cell::RefCell,
@@ -49,7 +49,28 @@ pub struct Fork<Mods> {
     >, // should use Location of operation in file file!(), ...
 }
 
-impl<Mods: Module<D>, D> Module<D> for Fork<Mods> {
+impl<Mods: WrappedData> WrappedData for Fork<Mods> {
+    type Wrap<T, Base: HasId + PtrType> = Mods::Wrap<T, Base>;
+
+    #[inline]
+    fn wrap_in_base<T, Base: HasId + PtrType>(&self, base: Base) -> Self::Wrap<T, Base> {
+        self.modules.wrap_in_base(base)
+    }
+
+    #[inline]
+    fn wrapped_as_base<'a, T, Base: HasId + PtrType>(wrap: &'a Self::Wrap<T, Base>) -> &'a Base {
+        Mods::wrapped_as_base(wrap)
+    }
+
+    #[inline]
+    fn wrapped_as_base_mut<'a, T, Base: HasId + PtrType>(
+        wrap: &'a mut Self::Wrap<T, Base>,
+    ) -> &'a mut Base {
+        Mods::wrapped_as_base_mut(wrap)
+    }
+}
+
+impl<Mods: Module<D>, D: Device> Module<D> for Fork<Mods> {
     type Module = Fork<Mods::Module>;
 
     #[inline]
@@ -205,14 +226,16 @@ impl<Mods: OnNewBuffer<T, D, S>, T, D: Device, S: Shape> OnNewBuffer<T, D, S> fo
     }
 }
 
-impl<T: 'static, Mods: Retrieve<D, T>, D: PtrConv + 'static> Retrieve<D, T> for Fork<Mods> {
+impl<T: 'static, Mods: Retrieve<D, T, S>, D: IsShapeIndep + 'static, S: Shape> Retrieve<D, T, S>
+    for Fork<Mods>
+{
     #[inline]
-    fn retrieve<S, const NUM_PARENTS: usize>(
+    fn retrieve<const NUM_PARENTS: usize>(
         &self,
         device: &D,
         len: usize,
         parents: impl Parents<NUM_PARENTS>,
-    ) -> <D>::Data<T, S>
+    ) -> Self::Wrap<T, D::Base<T, S>>
     where
         S: Shape,
         D: Alloc<T>,
@@ -221,7 +244,7 @@ impl<T: 'static, Mods: Retrieve<D, T>, D: PtrConv + 'static> Retrieve<D, T> for 
     }
 
     #[inline]
-    fn on_retrieve_finish<S: Shape>(&self, retrieved_buf: &Buffer<T, D, S>)
+    fn on_retrieve_finish(&self, retrieved_buf: &Buffer<T, D, S>)
     where
         D: Alloc<T>,
     {
@@ -230,18 +253,7 @@ impl<T: 'static, Mods: Retrieve<D, T>, D: PtrConv + 'static> Retrieve<D, T> for 
     }
 }
 
-#[cfg(feature = "autograd")]
-impl<Mods: crate::TapeActions> crate::TapeActions for Fork<Mods> {
-    #[inline]
-    fn tape(&self) -> Option<core::cell::Ref<crate::Tape>> {
-        self.modules.tape()
-    }
-
-    #[inline]
-    fn tape_mut(&self) -> Option<core::cell::RefMut<crate::Tape>> {
-        self.modules.tape_mut()
-    }
-}
+pass_down_tape_actions!(Fork);
 
 impl<Mods: RunModule<D>, D> RunModule<D> for Fork<Mods> {
     #[inline]

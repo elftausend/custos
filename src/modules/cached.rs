@@ -1,11 +1,16 @@
 use core::{cell::RefCell, marker::PhantomData};
 
 use crate::{
-    AddOperation, Alloc, Buffer, Cache, Device, ExecNow, Module, OnDropBuffer, OnNewBuffer,
-    Parents, PtrConv, Retrieve, RunModule, Setup, Shape,
+    AddGradFn, AddOperation, Alloc, Buffer, Cache, Device, DeviceError, ExecNow, HasId, Module,
+    OnDropBuffer, OnNewBuffer, Parents, PtrType, Retrieve, RunModule, Setup, ShallowCopy, Shape,
+    WrappedData, HasAutograd,
 };
 
-// creator struct
+#[cfg(feature = "graph")]
+use crate::OptimizeMemGraph;
+
+// creator struct, however =>
+// TODO: could remove D generic and therefore CachedModule
 #[derive(Debug, PartialEq, Eq, Default)]
 pub struct Cached<Mods> {
     pd: PhantomData<Mods>,
@@ -20,24 +25,46 @@ pub struct Cached<Mods> {
     }
 }*/
 
+impl<Mods: WrappedData, SD: Device> WrappedData for CachedModule<Mods, SD> {
+    type Wrap<T, Base: HasId + PtrType> = Mods::Wrap<T, Base>;
+
+    #[inline]
+    fn wrap_in_base<T, Base: HasId + PtrType>(&self, base: Base) -> Self::Wrap<T, Base> {
+        self.modules.wrap_in_base(base)
+    }
+
+    #[inline]
+    fn wrapped_as_base<'a, T, Base: HasId + PtrType>(wrap: &'a Self::Wrap<T, Base>) -> &'a Base {
+        Mods::wrapped_as_base(wrap)
+    }
+
+    #[inline]
+    fn wrapped_as_base_mut<'a, T, Base: HasId + PtrType>(
+        wrap: &'a mut Self::Wrap<T, Base>,
+    ) -> &'a mut Base {
+        Mods::wrapped_as_base_mut(wrap)
+    }
+}
+
 impl<Mods: Module<D>, D: Device> Module<D> for Cached<Mods> {
     type Module = CachedModule<Mods::Module, D>;
 
     fn new() -> Self::Module {
         CachedModule {
             modules: Mods::new(),
-            cache: RefCell::new(Cache {
-                nodes: Default::default(),
-            }),
+            cache: RefCell::new(Cache::new()),
+            pd: PhantomData,
         }
     }
 }
 
 // impl<Mods> OnDropBuffer for Cached<Mods> {}
 
+// TODO: could remove D generic and therefore CachedModule
 pub struct CachedModule<Mods, D: Device> {
     pub modules: Mods,
-    pub cache: RefCell<Cache<D>>,
+    pub cache: RefCell<Cache>,
+    pd: PhantomData<D>,
 }
 
 impl<Mods: Setup<NewDev>, D: Device, NewDev> Setup<NewDev> for CachedModule<Mods, D> {
@@ -47,34 +74,36 @@ impl<Mods: Setup<NewDev>, D: Device, NewDev> Setup<NewDev> for CachedModule<Mods
     }
 }
 
-impl<T, D: Device, SD: Device, Mods: AddOperation<T, D>> AddOperation<T, D>
-    for CachedModule<Mods, SD>
-{
-    #[inline]
-    fn add_op<S: Shape>(
-        &self,
-        out: &mut Buffer<T, D, S>,
-        operation: impl Fn(&mut Buffer<T, D, S>) -> crate::Result<()>,
-    ) {
-        self.modules.add_op(out, operation)
-    }
-
+impl<SD: Device, Mods: AddOperation> AddOperation for CachedModule<Mods, SD> {
     #[inline]
     fn ops_count(&self) -> usize {
         self.modules.ops_count()
+    }
+
+    fn add_op<Args: Parents<N>, const N: usize>(
+        &self,
+        mut args: Args,
+        operation: fn(&mut Args) -> crate::Result<()>,
+    ) -> crate::Result<()> {
+        operation(&mut args)
     }
 }
 
 impl<D: Device, SD: Device, Mods: ExecNow<D>> ExecNow<D> for CachedModule<Mods, SD> {
     #[inline]
-    fn exec_now(&self, range_bounds: impl core::ops::RangeBounds<usize>) -> crate::Result<()> {
-        self.modules.exec_now(range_bounds)
+    fn exec_now(
+        &self,
+        device: &D,
+        range_bounds: impl core::ops::RangeBounds<usize>,
+    ) -> crate::Result<()> {
+        self.modules.exec_now(device, range_bounds)
     }
 }
 
-impl<T, D: Device, S: Shape, Mods: OnNewBuffer<T, D, S>, SD: Device> OnNewBuffer<T, D, S>
+impl<T, D: Device, Mods: OnNewBuffer<T, D, S>, SD: Device, S: Shape> OnNewBuffer<T, D, S>
     for CachedModule<Mods, SD>
 {
+    #[inline]
     fn on_new_buffer(&self, device: &D, new_buf: &Buffer<T, D, S>) {
         self.modules.on_new_buffer(device, new_buf)
     }
@@ -88,27 +117,28 @@ impl<Mods: OnDropBuffer, SD: Device> OnDropBuffer for CachedModule<Mods, SD> {
 }
 
 // TODO: a more general OnDropBuffer => "Module"
-impl<T, Mods, D, SimpleDevice> Retrieve<D, T> for CachedModule<Mods, SimpleDevice>
+impl<T, Mods, D, SimpleDevice, S: Shape> Retrieve<D, T, S> for CachedModule<Mods, SimpleDevice>
 where
-    Mods: Retrieve<D, T>,
-    D: Device + PtrConv<SimpleDevice>,
-    SimpleDevice: Device + PtrConv<D>,
+    Mods: Retrieve<D, T, S>,
+    D: Device + 'static,
+    D::Base<T, S>: ShallowCopy + 'static,
+    SimpleDevice: Device,
 {
     #[inline]
-    fn retrieve<S: Shape, const NUM_PARENTS: usize>(
+    fn retrieve<const NUM_PARENTS: usize>(
         &self,
         device: &D,
         len: usize,
         _parents: impl Parents<NUM_PARENTS>,
-    ) -> D::Data<T, S>
+    ) -> Self::Wrap<T, D::Base<T, S>>
     where
         D: Alloc<T>,
     {
-        self.cache.borrow_mut().get(device, len, || ())
+        self.wrap_in_base(self.cache.borrow_mut().get(device, len, || ()))
     }
 
     #[inline]
-    fn on_retrieve_finish<S: Shape>(&self, retrieved_buf: &Buffer<T, D, S>)
+    fn on_retrieve_finish(&self, retrieved_buf: &Buffer<T, D, S>)
     where
         D: Alloc<T>,
     {
@@ -116,16 +146,39 @@ where
     }
 }
 
+impl<Mods: HasAutograd, SD: Device> HasAutograd for CachedModule<Mods, SD> {}
+
 #[cfg(feature = "autograd")]
 impl<Mods: crate::TapeActions, SD: Device> crate::TapeActions for CachedModule<Mods, SD> {
     #[inline]
-    fn tape(&self) -> Option<core::cell::Ref<super::Tape>> {
+    unsafe fn tape(&self) -> Option<&super::Tape> {
         self.modules.tape()
     }
 
     #[inline]
-    fn tape_mut(&self) -> Option<core::cell::RefMut<super::Tape>> {
+    unsafe fn tape_mut(&self) -> Option<&mut super::Tape> {
         self.modules.tape_mut()
+    }
+
+    #[inline]
+    unsafe fn gradients(&self) -> Option<&crate::Gradients> {
+        self.modules.gradients()
+    }
+
+    #[inline]
+    unsafe fn gradients_mut(&self) -> Option<&mut crate::Gradients> {
+        self.modules.gradients_mut()
+    }
+}
+
+impl<Mods: AddGradFn, D: Device> AddGradFn for CachedModule<Mods, D> {
+    #[inline]
+    fn add_grad_fn<Args: Parents<N> + crate::UpdateArgs, const N: usize>(
+        &self,
+        args: Args,
+        op: fn(&mut Args) -> crate::Result<()>,
+    ) {
+        self.modules.add_grad_fn(args, op)
     }
 }
 
@@ -147,6 +200,30 @@ impl<Mods: RunModule<D>, D, SD: Device> RunModule<D> for CachedModule<Mods, SD> 
     #[inline]
     fn run(&self, _device: &D) -> crate::Result<()> {
         self.modules.run(_device)
+    }
+}
+
+#[cfg(feature = "graph")]
+impl<Mods: OptimizeMemGraph, SD: Device> OptimizeMemGraph for CachedModule<Mods, SD> {
+    fn optimize_mem_graph(
+        &self,
+        cache_traces: Option<&[crate::TranslatedCacheTrace]>,
+    ) -> crate::Result<()> {
+        let cache_traces = cache_traces.ok_or(DeviceError::MissingCacheTraces)?;
+
+        let mut cache = self.cache.borrow_mut();
+        for cache_trace in cache_traces {
+            let used_to_replace = cache
+                .nodes
+                .get(&cache_trace.cache_idx)
+                .ok_or(DeviceError::GraphOptimization)?
+                .clone();
+
+            for to_replace in &cache_trace.use_cache_idxs {
+                cache.nodes.insert(*to_replace, used_to_replace.clone());
+            }
+        }
+        Ok(())
     }
 }
 
@@ -201,7 +278,7 @@ macro_rules! debug_assert_tracked {
 /// use custos::{Dim1, retrieve, CPU, Retriever, Buffer, Retrieve, Cached, Base};
 ///
 /// #[track_caller]
-/// fn add_bufs<Mods: Retrieve<CPU<Mods>, f32>>(device: &CPU<Mods>) -> Buffer<f32, CPU<Mods>, Dim1<30>> {
+/// fn add_bufs<Mods: Retrieve<CPU<Mods>, f32, Dim1<30>>>(device: &CPU<Mods>) -> Buffer<f32, CPU<Mods>, Dim1<30>> {
 ///     retrieve!(device, 10, ())
 /// }
 ///

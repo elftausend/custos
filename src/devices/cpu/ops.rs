@@ -3,9 +3,9 @@ use core::ops::{AddAssign, Deref, DerefMut, Index, Range, RangeBounds};
 use crate::{
     bounds_to_range,
     cpu_stack_ops::{apply_fn_slice, clear_slice},
-    pass_down_add_operation, pass_down_exec_now, AddOperation, ApplyFunction, Buffer, ClearBuf,
-    CopySlice, Device, Eval, MayToCLSource, OnDropBuffer, Read, Resolve, Retrieve, Retriever,
-    Shape, ToVal, UnaryGrad, WriteBuf, CPU,
+    pass_down_add_operation, pass_down_exec_now, AddOperation, ApplyFunction, AsNoId, BufAsNoId,
+    Buffer, ClearBuf, CopySlice, Device, Eval, MayToCLSource, OnDropBuffer, Read, Resolve,
+    Retrieve, Retriever, Shape, ToVal, UnaryGrad, WriteBuf, CPU,
 };
 
 pass_down_add_operation!(CPU);
@@ -13,23 +13,33 @@ pass_down_exec_now!(CPU);
 
 impl<Mods, T, D, S> ApplyFunction<T, S, D> for CPU<Mods>
 where
-    Mods: Retrieve<Self, T> + AddOperation<T, Self>,
+    Mods: Retrieve<Self, T, S> + AddOperation + 'static,
     T: Copy + Default + ToVal + 'static,
-    D: Device,
-    D::Data<T, S>: Deref<Target = [T]>,
+    D: Device + 'static,
+    D::Base<T, S>: Deref<Target = [T]>,
     S: Shape,
 {
     fn apply_fn<F>(
         &self,
         buf: &Buffer<T, D, S>,
-        f: impl Fn(Resolve<T>) -> F + Copy,
+        f: impl Fn(Resolve<T>) -> F + Copy + 'static,
     ) -> Buffer<T, Self, S>
     where
         F: Eval<T> + MayToCLSource,
     {
         let mut out = self.retrieve(buf.len(), buf);
 
-        self.add_op(&mut out, move |out| Ok(apply_fn_slice(buf, out, f)));
+        self.add_op((&mut out, buf, f.no_id()), move |(out, buf, f)| {
+            apply_fn_slice(buf, out, **f);
+            Ok(())
+        })
+        .unwrap();
+
+        // self.add_op((buf, f.no_id()), Some(&mut out), move |out, (buf, f)| {
+        //     apply_fn_slice(buf, out.as_mut().unwrap(), **f);
+        //     Ok(())
+        // })
+        // .unwrap();
 
         out
     }
@@ -37,11 +47,11 @@ where
 
 impl<Mods, T, D, S> UnaryGrad<T, S, D> for CPU<Mods>
 where
-    Mods: OnDropBuffer,
-    T: AddAssign + Copy + std::ops::Mul<Output = T>,
+    Mods: AddOperation + OnDropBuffer,
+    T: AddAssign + Copy + std::ops::Mul<Output = T> + 'static,
     S: Shape,
-    D: Device,
-    D::Data<T, S>: Deref<Target = [T]> + DerefMut<Target = [T]>,
+    D: Device + 'static,
+    D::Base<T, S>: Deref<Target = [T]> + DerefMut<Target = [T]>,
 {
     #[inline]
     fn add_unary_grad<F>(
@@ -49,11 +59,19 @@ where
         lhs: &Buffer<T, D, S>,
         lhs_grad: &mut Buffer<T, D, S>,
         out: &Buffer<T, D, S>,
-        lhs_grad_fn: impl Fn(Resolve<T>) -> F,
+        lhs_grad_fn: impl Fn(Resolve<T>) -> F + Copy + 'static,
     ) where
         F: Eval<T> + MayToCLSource,
     {
-        crate::cpu_stack_ops::add_unary_grad(lhs, out, lhs_grad, lhs_grad_fn)
+        self.add_op::<_, 4>(
+            (lhs, lhs_grad.buf_no_id(), out, lhs_grad_fn.no_id()),
+            // None,
+            |(lhs, lhs_grad, out, lhs_grad_fn)| {
+                crate::cpu_stack_ops::add_unary_grad(lhs, out, lhs_grad, **lhs_grad_fn);
+                Ok(())
+            },
+        )
+        .unwrap();
     }
 }
 
@@ -61,7 +79,7 @@ impl<Mods, T, D, S> Read<T, S, D> for CPU<Mods>
 where
     Mods: OnDropBuffer,
     D: Device,
-    D::Data<T, S>: Deref<Target = [T]>,
+    D::Base<T, S>: Deref<Target = [T]>,
     S: Shape,
 {
     type Read<'a> = &'a [T] where T: 'a, D: 'a, S: 'a;
@@ -85,7 +103,7 @@ where
     Mods: OnDropBuffer,
     T: Copy,
     D: Device,
-    D::Data<T, S>: DerefMut<Target = [T]>,
+    D::Base<T, S>: DerefMut<Target = [T]>,
     S: Shape,
 {
     #[inline]
@@ -102,15 +120,15 @@ where
 // #[impl_stack]
 impl<Mods, T, D, S> ClearBuf<T, S, D> for CPU<Mods>
 where
-    Mods: OnDropBuffer,
-    T: Default,
-    D: Device,
-    D::Data<T, S>: DerefMut<Target = [T]>,
+    Mods: OnDropBuffer + AddOperation,
+    T: Default + 'static,
+    D: Device + 'static,
+    D::Base<T, S>: DerefMut<Target = [T]>,
     S: Shape,
 {
     #[inline]
     fn clear(&self, buf: &mut Buffer<T, D, S>) {
-        clear_slice(buf)
+        clear_slice(buf);
     }
 }
 
@@ -120,7 +138,7 @@ where
     Mods: OnDropBuffer,
     T: Copy,
     D: Device,
-    D::Data<T, ()>: Deref<Target = [T]>,
+    D::Base<T, ()>: Deref<Target = [T]>,
 {
     fn copy_slice_to<SR: RangeBounds<usize>, DR: RangeBounds<usize>>(
         &self,

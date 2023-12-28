@@ -53,7 +53,7 @@ impl<T> Default for CUDAPtr<T> {
 
 impl<T> Drop for CUDAPtr<T> {
     fn drop(&mut self) {
-        if !matches!(self.flag, AllocFlag::None | AllocFlag::BorrowedCache) {
+        if !self.flag.continue_deallocation() {
             return;
         }
 
@@ -87,6 +87,11 @@ impl<T> PtrType for CUDAPtr<T> {
     #[inline]
     fn flag(&self) -> AllocFlag {
         self.flag
+    }
+
+    #[inline]
+    unsafe fn set_flag(&mut self, flag: AllocFlag) {
+        self.flag = flag;
     }
 }
 
@@ -170,17 +175,17 @@ mod serde {
             ];
             assert_ser_tokens(&cuda_ptr, &tokens);
 
-        //     let mut de = serde_test::de::Deserializer::new(&tokens);
-        //     let mut deserialized_val = match T::deserialize(&mut de) {
-        //         Ok(v) => {
-        //             assert_eq!(v, *value);
-        //             v
-        //         }
-        //         Err(e) => panic!("tokens failed to deserialize: {}", e),
-        //     };
-        //     if de.remaining() > 0 {
-        //         panic!("{} remaining tokens", de.remaining());
-        //     }
+            //     let mut de = serde_test::de::Deserializer::new(&tokens);
+            //     let mut deserialized_val = match T::deserialize(&mut de) {
+            //         Ok(v) => {
+            //             assert_eq!(v, *value);
+            //             v
+            //         }
+            //         Err(e) => panic!("tokens failed to deserialize: {}", e),
+            //     };
+            //     if de.remaining() > 0 {
+            //         panic!("{} remaining tokens", de.remaining());
+            //     }
         }
     }
 }

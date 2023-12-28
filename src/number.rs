@@ -234,6 +234,7 @@ number_apply! {
 }
 
 pub trait Float: Neg<Output = Self> + Number {
+    fn from_f64(value: f64) -> Self;
     #[inline]
     fn squared(lhs: Self) -> Self {
         lhs * lhs
@@ -263,6 +264,10 @@ macro_rules! float_apply {
     ($($t:ident),*) => {
         $(
             impl Float for $t {
+                #[inline]
+                fn from_f64(value: f64) -> $t {
+                    value as $t
+                }
 
                 #[inline]
                 fn squared(lhs: $t) -> $t {
@@ -333,6 +338,11 @@ float_apply!(f32, f64);
 #[cfg(feature = "no-std")]
 impl Float for f32 {
     #[inline]
+    fn from_f64(value: f64) -> f32 {
+        value as f32
+    }
+
+    #[inline]
     fn exp(&self) -> Self {
         libm::expf(*self)
     }
@@ -395,6 +405,11 @@ impl Float for f32 {
 
 #[cfg(feature = "no-std")]
 impl Float for f64 {
+    #[inline]
+    fn from_f64(value: f64) -> f64 {
+        value
+    }
+
     #[inline]
     fn exp(&self) -> Self {
         libm::exp(*self)

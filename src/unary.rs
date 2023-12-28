@@ -1,4 +1,6 @@
-use crate::{Alloc, Buffer, Device, Eval, MayTapeActions, MayToCLSource, Resolve, Shape};
+use crate::{
+    AddGradFn, Alloc, AsNoId, Buffer, Device, Eval, MayTapeActions, MayToCLSource, Resolve, Shape,
+};
 
 #[cfg(feature = "autograd")]
 use crate::HasId;
@@ -22,7 +24,7 @@ pub trait ApplyFunction<T, S: Shape = (), D: Device = Self>: Device {
         &self,
         // buf: &D::Data<T, S>,
         buf: &Buffer<T, D, S>,
-        f: impl Fn(Resolve<T>) -> F + Copy,
+        f: impl Fn(Resolve<T>) -> F + Copy + 'static,
     ) -> Buffer<T, Self, S>
     where
         F: Eval<T> + MayToCLSource;
@@ -54,7 +56,7 @@ pub trait UnaryGrad<T, S: Shape = (), D: Device = Self>: Device {
         lhs: &Buffer<T, D, S>,
         lhs_grad: &mut Buffer<T, D, S>,
         out_grad: &Buffer<T, D, S>,
-        lhs_grad_fn: impl Fn(Resolve<T>) -> F + Copy,
+        lhs_grad_fn: impl Fn(Resolve<T>) -> F + Copy + 'static,
     ) where
         F: Eval<T> + MayToCLSource;
 }
@@ -89,7 +91,7 @@ pub trait UnaryElementWiseMayGrad<T, D: Device, S: Shape>: Device {
     fn unary_ew<FO, GO>(
         &self,
         buf: &Buffer<T, D, S>,
-        forward_fn: impl Fn(Resolve<T>) -> FO + Copy,
+        forward_fn: impl Fn(Resolve<T>) -> FO + Copy + 'static,
         grad_fn: fn(Resolve<T>) -> GO,
     ) -> Buffer<T, Self, S>
     where
@@ -100,7 +102,7 @@ pub trait UnaryElementWiseMayGrad<T, D: Device, S: Shape>: Device {
 impl<T, D, S> UnaryElementWiseMayGrad<T, D, S> for D
 where
     T: 'static,
-    D: ApplyFunction<T, S, D> + UnaryGrad<T, S, D> + MayTapeActions,
+    D: AddGradFn + ApplyFunction<T, S, D> + UnaryGrad<T, S, D> + MayTapeActions,
     D: Alloc<T> + 'static,
     S: Shape,
 {
@@ -108,7 +110,7 @@ where
     fn unary_ew<FO, GO>(
         &self,
         buf: &Buffer<T, D, S>,
-        forward_fn: impl Fn(Resolve<T>) -> FO + Copy,
+        forward_fn: impl Fn(Resolve<T>) -> FO + Copy + 'static,
         _grad_fn: fn(Resolve<T>) -> GO,
     ) -> Buffer<T, Self, S>
     where
@@ -117,15 +119,21 @@ where
     {
         let out = self.apply_fn(buf, forward_fn);
 
-        #[cfg(feature = "autograd")]
-        {
-            let ids = (buf.id(), out.id());
-            self.add_grad_fn(move |grads| {
-                let (lhs, lhs_grad, out_grad) = grads.get_double::<T, S, S, D>(ids);
-                lhs.device()
-                    .add_unary_grad(lhs, lhs_grad, out_grad, _grad_fn);
-            });
-        }
+        self.add_grad_fn((buf, &out, _grad_fn.no_id()), |(buf, out, grad_fn)| {
+            buf.device()
+                .add_unary_grad(buf, buf.grad_mut(), out.grad(), **grad_fn);
+            Ok(())
+        });
+
+        // #[cfg(feature = "autograd")]
+        // {
+        //     let ids = (buf.id(), out.id());
+        //     self.add_grad_fn(move |grads| {
+        //         let (lhs, lhs_grad, out_grad) = grads.get_double::<T, S, S, D>(ids);
+        //         lhs.device()
+        //             .add_unary_grad(lhs, lhs_grad, out_grad, _grad_fn);
+        //     });
+        // }
 
         out
     }
@@ -133,6 +141,8 @@ where
 
 #[cfg(test)]
 mod tests {
+    use crate::tests_ex::roughly_eq_slices;
+
     #[cfg(feature = "cpu")]
     #[cfg(feature = "macro")]
     #[test]
@@ -154,20 +164,24 @@ mod tests {
         );
     }
 
-    #[cfg(feature = "cpu")]
     #[cfg(feature = "autograd")]
-    #[test]
-    fn test_unary_elementwise_may_grad() {
-        use crate::{
-            two_way_ops::tests_ex::roughly_eq_slices, Autograd, Base, Combiner, Device,
-            UnaryElementWiseMayGrad, CPU,
-        };
+    fn test_unary_autograd<D>(device: &D)
+    where
+        D: 'static
+            + crate::WriteBuf<f32>
+            + crate::Read<f32>
+            + crate::TapeActions
+            + crate::HasAutograd
+            + crate::UnaryElementWiseMayGrad<f32, D, ()>
+            + crate::Alloc<f32>
+            + crate::OnNewBuffer<f32, D, ()>,
+    {
+        use crate::Combiner;
 
-        let device = CPU::<Autograd<Base>>::new();
         let buf = device.buffer([1., 2., 3., 4.]);
         let out = device.unary_ew(&buf, |x| x.sin(), |x| x.cos());
         roughly_eq_slices(
-            out.as_slice(),
+            &out.read_to_vec(),
             &[
                 0.8414709848078965,
                 0.9092974268256817,
@@ -177,14 +191,129 @@ mod tests {
         );
 
         out.backward();
-        assert_eq!(
-            buf.grad().as_slice(),
-            [
+        roughly_eq_slices(
+            &buf.grad().read_to_vec(),
+            &[
                 0.5403023058681398,
                 -0.4161468365471424,
                 -0.9899924966004454,
-                -0.6536436208636119
-            ]
+                -0.6536436208636119,
+            ],
+        );
+    }
+
+    #[cfg(feature = "cpu")]
+    #[cfg(feature = "autograd")]
+    #[test]
+    fn test_unary_elementwise_grad() {
+        use crate::{Autograd, Base, CPU};
+
+        let device = CPU::<Autograd<Base>>::new();
+        test_unary_autograd(&device)
+    }
+
+    #[cfg(feature = "opencl")]
+    #[cfg(feature = "autograd")]
+    #[test]
+    fn test_unary_elementwise_grad_cl() {
+        use crate::{Autograd, Base, OpenCL};
+
+        let device = OpenCL::<Autograd<Base>>::new(0).unwrap();
+        test_unary_autograd(&device);
+    }
+
+    #[cfg(feature = "cuda")]
+    #[cfg(feature = "autograd")]
+    #[test]
+    fn test_unary_elementwise_grad_cu() {
+        use crate::{Autograd, Base, CUDA};
+
+        let device = CUDA::<Autograd<Base>>::new(0).unwrap();
+        test_unary_autograd(&device);
+    }
+
+    #[cfg(feature = "vulkan")]
+    #[cfg(feature = "autograd")]
+    #[test]
+    fn test_unary_elementwise_grad_vk() {
+        use crate::{Autograd, Base, Vulkan};
+
+        let device = Vulkan::<Autograd<Base>>::new(0).unwrap();
+        test_unary_autograd(&device);
+    }
+
+    #[cfg(feature = "cpu")]
+    #[cfg(feature = "autograd")]
+    #[test]
+    fn test_unary_elementwise_may_grad_multiple_times() {
+        use crate::{
+            two_way_ops::tests_ex::roughly_eq_slices, Autograd, Base, Combiner, Device,
+            UnaryElementWiseMayGrad, CPU,
+        };
+
+        let device = CPU::<Autograd<Base>>::new();
+        let buf = device.buffer([1., 2., 3., 4.]);
+
+        for _ in 0..10 {
+            let out = device.unary_ew(&buf, |x| x.sin(), |x| x.cos());
+            roughly_eq_slices(
+                out.as_slice(),
+                &[
+                    0.8414709848078965,
+                    0.9092974268256817,
+                    0.1411200080598672,
+                    -0.7568024953079282,
+                ],
+            );
+
+            out.backward();
+            assert_eq!(
+                buf.grad().as_slice(),
+                [
+                    0.5403023058681398,
+                    -0.4161468365471424,
+                    -0.9899924966004454,
+                    -0.6536436208636119
+                ]
+            );
+
+            buf.grad_mut().clear();
+        }
+    }
+
+    #[cfg(feature = "cpu")]
+    #[cfg(feature = "autograd")]
+    #[cfg_attr(
+        miri,
+        ignore = "location is always different with miri - caching etc does not work"
+    )]
+    #[test]
+    fn test_unary_elementwise_may_grad_multiple_times_backwards_at_end() {
+        use crate::{
+            two_way_ops::tests_ex::roughly_eq_slices, Autograd, Base, Combiner, Device,
+            UnaryElementWiseMayGrad, CPU,
+        };
+
+        let device = CPU::<Autograd<Base>>::new();
+        let buf = device.buffer([1., 2., 3., 4.]);
+
+        for i in 0..9 {
+            let _out = device.unary_ew(&buf, |x| x.sin(), |x| x.cos());
+            if i == 0 {
+                _out.grad_mut().write(&[1., 1., 1., 1.]);
+            }
+        }
+        let out = device.unary_ew(&buf, |x| x.sin(), |x| x.cos());
+        out.backward();
+
+        roughly_eq_slices(
+            buf.grad().as_slice(),
+            &[
+                0.5403023058681398 * 10.,
+                -0.4161468365471424 * 10.,
+                -0.9899924966004454 * 10.,
+                -0.6536436208636119 * 10.,
+            ],
         );
     }
 }

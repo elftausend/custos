@@ -7,6 +7,7 @@
 [![Rust](https://github.com/elftausend/custos/actions/workflows/rust.yml/badge.svg)](https://github.com/elftausend/custos/actions/workflows/rust.yml)
 [![GPU](https://github.com/elftausend/custos/actions/workflows/gpu.yml/badge.svg)](https://github.com/elftausend/custos/actions/workflows/gpu.yml)
 [![rust-clippy](https://github.com/elftausend/custos/actions/workflows/rust-clippy.yml/badge.svg)](https://github.com/elftausend/custos/actions/workflows/rust-clippy.yml)
+[![Android NNAPI](https://github.com/elftausend/custos/actions/workflows/android.yml/badge.svg)](https://github.com/elftausend/custos/actions/workflows/android.yml)
 
 A minimal, extensible OpenCL, Vulkan (with WGSL), CUDA, NNAPI (Android) and host CPU array manipulation engine / framework written in Rust. 
 This crate provides tools for executing custom array and automatic differentiation operations.<br>
@@ -41,6 +42,7 @@ autograd | `Autograd` | Enables running automatic differentiation.
 cached | `Cached` | Reuses allocations on demand.
 fork | `Fork` | Decides whether the CPU or GPU is faster for an operation. It then uses the faster device for following computations. (unified memory devices)
 lazy | `Lazy` | Lazy execution of operations. Enables support for CUDA graphs. However, allocations are not lazy at the moment.
+graph | `Graph` | Adds a memory usage optimizeable graph.
 
 Usage of these modules when writing custom operations: [`modules.md`](modules.md)
 

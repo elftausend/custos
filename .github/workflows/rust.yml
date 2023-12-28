@@ -191,6 +191,8 @@ jobs:
         run: cargo miri test --no-default-features --features static-api,cpu
       - name: Test 'autograd' with Miri
         run: cargo miri test --no-default-features --features autograd,cpu,macro
+      - name: Test 'lazy' with Miri
+        run: cargo miri test --no-default-features --features lazy,cpu,macro
 
 #  bench:
 #  

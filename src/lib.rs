@@ -38,7 +38,7 @@
 //!     T: Mul<Output = T> + Copy,
 //!     S: Shape,
 //!     D: Device,
-//!     D::Data<T, S>: core::ops::Deref<Target = [T]>
+//!     D::Base<T, S>: core::ops::Deref<Target = [T]>
 //! {
 //!     fn mul(&self, lhs: &Buffer<T, D, S>, rhs: &Buffer<T, D, S>) -> Buffer<T, CPU, S> {
 //!         let mut out = self.retrieve(lhs.len(), (lhs, rhs));
@@ -101,18 +101,20 @@ mod error;
 mod cache;
 
 mod device_traits;
-mod features;
+pub mod features;
 pub mod flag;
 // mod graph;
-mod hooks;
+pub mod hooks;
 mod id;
-mod modules;
+pub mod modules;
 mod op_traits;
 mod parents;
 mod ptr_conv;
 mod shape;
 mod two_way_ops;
 mod unary;
+mod update_args;
+mod wrapper;
 
 pub use cache::*;
 pub use device_traits::*;
@@ -122,6 +124,8 @@ pub use id::*;
 pub use modules::*;
 pub use parents::*;
 pub use ptr_conv::*;
+pub use update_args::*;
+pub use wrapper::*;
 
 #[cfg(feature = "static-api")]
 pub mod static_api;
@@ -130,19 +134,6 @@ pub mod number;
 pub use op_traits::*;
 pub use shape::*;
 pub use two_way_ops::*;
-
-#[cfg(feature = "autograd")]
-#[cfg(feature = "opt-cache")]
-compile_error!("The `autograd` and `opt-cache` feature are currently incompatible. 
-This is because the logic for detecting if a forward buffer is used during gradient calculation isn't implemented yet.");
-
-#[cfg(feature = "autograd")]
-#[cfg(feature = "realloc")]
-compile_error!("The `autograd` and `realloc` feature are incompatible. 
-The automatic differentiation system requires caching of buffers, which is deactivated when using the `realloc` feature.");
-
-#[cfg(all(feature = "realloc", feature = "opt-cache"))]
-compile_error!("A typical 'cache' does not exist when the `realloc` feature is enabled.");
 
 #[cfg(test)]
 pub fn location() -> &'static core::panic::Location<'static> {
@@ -155,6 +146,7 @@ pub trait PtrType {
     fn size(&self) -> usize;
     /// Returns the [`AllocFlag`].
     fn flag(&self) -> AllocFlag;
+    unsafe fn set_flag(&mut self, flag: AllocFlag);
 }
 
 pub trait HostPtr<T>: PtrType {
@@ -228,8 +220,8 @@ pub struct CPU<Mods> {
 
 #[cfg(not(feature = "cpu"))]
 impl<Mods: OnDropBuffer> Device for CPU<Mods> {
-    type Data<U, S: Shape> = crate::Num<U>;
-
+    type Data<U, S: Shape> = Mods::Wrap<U, crate::Num<U>>;
+    type Base<T, S: Shape> = crate::Num<T>;
     type Error = crate::DeviceError;
 
     fn new() -> core::result::Result<Self, Self::Error> {
@@ -241,17 +233,39 @@ impl<Mods: OnDropBuffer> Device for CPU<Mods> {
         #[cfg(not(feature = "no-std"))]
         Err(crate::DeviceError::CPUDeviceNotAvailable.into())
     }
+
+    fn base_to_data<T, S: Shape>(&self, base: Self::Base<T, S>) -> Self::Data<T, S> {
+        self.modules.wrap_in_base(base)
+    }
+
+    fn wrap_to_data<T, S: Shape>(&self, wrap: Self::Wrap<T, Self::Base<T, S>>) -> Self::Data<T, S> {
+        wrap
+    }
+
+    fn data_as_wrap<'a, T, S: Shape>(
+        data: &'a Self::Data<T, S>,
+    ) -> &'a Self::Wrap<T, Self::Base<T, S>> {
+        data
+    }
+
+    fn data_as_wrap_mut<'a, T, S: Shape>(
+        data: &'a mut Self::Data<T, S>,
+    ) -> &'a mut Self::Wrap<T, Self::Base<T, S>> {
+        data
+    }
 }
 
 #[cfg(not(feature = "cpu"))]
 impl_buffer_hook_traits!(CPU);
+#[cfg(not(feature = "cpu"))]
+crate::impl_wrapped_data!(CPU);
 
 pub mod prelude {
     //! Typical imports for using custos.
 
     pub use crate::{
         device_traits::*, features::*, modules::*, number::*, shape::*, Alloc, Buffer, CDatatype,
-        ClearBuf, CloneBuf, CopySlice, Device, Error, HostPtr,
+        ClearBuf, CloneBuf, CopySlice, Device, Error, HasId, HostPtr,
         /* MayTapeReturn, */ MayToCLSource, Read, ShallowCopy, WithShape, WriteBuf,
     };
 

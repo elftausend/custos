@@ -117,7 +117,7 @@ mod tests {
             [1, 1, 1],
             0,
             device.stream(),
-            &mut [
+            &[
                 &a.ptrs().2 as *const u64 as *mut c_void,
                 &b.ptrs().2 as *const u64 as *mut c_void,
                 &c.ptrs().2 as *const u64 as *mut c_void,

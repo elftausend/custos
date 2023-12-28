@@ -19,7 +19,7 @@ where
     T: Copy + std::ops::Add<Output = T> + 'static, // you can use the custos::Number trait.
     S: Shape, // This trait is implemented for all number types (usize, i16, f32, ...)
     D: Device,
-    D::Data<T, S>: Deref<Target = [T]>,
+    D::Base<T, S>: Deref<Target = [T]>,
 {
     fn add(&self, lhs: &Buffer<T, D, S>, rhs: &Buffer<T, D, S>) -> Buffer<T, Self, S> {
         let len = std::cmp::min(lhs.len(), rhs.len());
@@ -53,7 +53,7 @@ where
     T: Copy + Default + std::ops::Add<Output = T> + 'static,
     S: Shape,
     D: Device,
-    D::Data<T, S>: Deref<Target = [T]>,
+    D::Base<T, S>: Deref<Target = [T]>,
 {
     fn add(&self, lhs: &Buffer<T, D, S>, rhs: &Buffer<T, D, S>) -> Buffer<T, Self, S> {
         let mut out = self.retrieve(S::LEN, ()); // this works as well and in this case (Stack), does exactly the same as the line above.
@@ -73,7 +73,7 @@ where
     T: CDatatype, // the custos::CDatatype trait is used to
                   // get the OpenCL C type string for creating generic OpenCL kernels.
 {
-    fn add(&self, lhs: &CLBuffer<T>, rhs: &CLBuffer<T>) -> CLBuffer<T> {
+    fn add(&self, lhs: &Buffer<T, OpenCL>, rhs: &Buffer<T, OpenCL>) -> Buffer<T, OpenCL> {
         // CLBuffer<T> is the same as Buffer<T, OpenCL>
         // generic OpenCL kernel
         let src = format!("

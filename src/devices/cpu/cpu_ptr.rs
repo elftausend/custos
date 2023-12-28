@@ -7,7 +7,7 @@ use core::{
 
 use std::alloc::handle_alloc_error;
 
-use crate::{flag::AllocFlag, CommonPtrs, HasId, Id, PtrType, ShallowCopy};
+use crate::{flag::AllocFlag, CommonPtrs, HasId, HostPtr, Id, PtrType, ShallowCopy};
 
 /// The pointer used for `CPU` [`Buffer`](crate::Buffer)s
 #[derive(Debug)]
@@ -19,7 +19,7 @@ pub struct CPUPtr<T> {
     /// Allocation flag for the pointer
     pub flag: AllocFlag,
     /// The alignment of type `T`
-    pub align: Option<usize>,
+    pub align: Option<usize>, // if no type conversions are required -> could remove this
     /// The size of type `T`
     pub size: Option<usize>,
 }
@@ -136,6 +136,18 @@ impl<T> CPUPtr<T> {
     }
 }
 
+impl<T> HostPtr<T> for CPUPtr<T> {
+    #[inline]
+    fn ptr(&self) -> *const T {
+        self.ptr
+    }
+
+    #[inline]
+    fn ptr_mut(&mut self) -> *mut T {
+        self.ptr
+    }
+}
+
 impl<T> HasId for CPUPtr<T> {
     #[inline]
     fn id(&self) -> Id {
@@ -175,7 +187,7 @@ impl<T> Default for CPUPtr<T> {
 
 impl<T> Drop for CPUPtr<T> {
     fn drop(&mut self) {
-        if !matches!(self.flag, AllocFlag::None | AllocFlag::BorrowedCache) {
+        if !self.flag.continue_deallocation() {
             return;
         }
 
@@ -206,6 +218,11 @@ impl<T> PtrType for CPUPtr<T> {
     #[inline]
     fn flag(&self) -> AllocFlag {
         self.flag
+    }
+
+    #[inline]
+    unsafe fn set_flag(&mut self, flag: AllocFlag) {
+        self.flag = flag
     }
 }
 

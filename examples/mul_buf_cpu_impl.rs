@@ -7,11 +7,11 @@ pub trait MulBuf<T, S: Shape = (), D: Device = Self>: Sized + Device {
 
 impl<Mods, T, S, D> MulBuf<T, S, D> for CPU<Mods>
 where
-    Mods: Retrieve<Self, T>,
+    Mods: Retrieve<Self, T, S>,
     T: Mul<Output = T> + Copy + 'static,
     S: Shape,
     D: Device,
-    D::Data<T, S>: Deref<Target = [T]>,
+    D::Base<T, S>: Deref<Target = [T]>,
 {
     fn mul(&self, lhs: &Buffer<T, D, S>, rhs: &Buffer<T, D, S>) -> Buffer<T, Self, S> {
         let mut out = self.retrieve(lhs.len(), (lhs, rhs));

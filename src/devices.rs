@@ -41,6 +41,7 @@ pub mod cpu_stack_ops;
 use crate::{Buffer, HasId, OnDropBuffer, PtrType, Shape};
 
 pub trait Device: OnDropBuffer + Sized {
+    type Base<T, S: Shape>: HasId + PtrType;
     type Data<T, S: Shape>: HasId + PtrType;
 
     type Error;
@@ -49,6 +50,17 @@ pub trait Device: OnDropBuffer + Sized {
     fn new() -> Result<Self, Self::Error> {
         todo!()
     }
+
+    // add default impl if GAT default go stable
+    // FIXME: probably a better way to realize these
+    fn base_to_data<T, S: Shape>(&self, base: Self::Base<T, S>) -> Self::Data<T, S>;
+    fn wrap_to_data<T, S: Shape>(&self, wrap: Self::Wrap<T, Self::Base<T, S>>) -> Self::Data<T, S>;
+    fn data_as_wrap<'a, T, S: Shape>(
+        data: &'a Self::Data<T, S>,
+    ) -> &'a Self::Wrap<T, Self::Base<T, S>>;
+    fn data_as_wrap_mut<'a, T, S: Shape>(
+        data: &'a mut Self::Data<T, S>,
+    ) -> &'a mut Self::Wrap<T, Self::Base<T, S>>;
 
     /// Creates a new [`Buffer`] using `A`.
     ///
@@ -92,18 +104,35 @@ macro_rules! impl_buffer_hook_traits {
 }
 
 #[macro_export]
+macro_rules! impl_device_traits {
+    ($device:ident) => {
+        $crate::impl_retriever!($device);
+        $crate::impl_buffer_hook_traits!($device);
+        $crate::impl_wrapped_data!($device);
+
+        #[cfg(feature = "graph")]
+        crate::pass_down_optimize_mem_graph!($device);
+
+        $crate::pass_down_grad_fn!($device);
+        $crate::pass_down_tape_actions!($device);
+
+        $crate::pass_down_replace_buf!($device);
+    };
+}
+
+#[macro_export]
 macro_rules! impl_retriever {
     ($device:ident, $($trait_bounds:tt)*) => {
-        impl<T: $( $trait_bounds )*, Mods: $crate::Retrieve<Self, T>> $crate::Retriever<T> for $device<Mods> {
+        impl<T: $( $trait_bounds )*, Mods: $crate::Retrieve<Self, T, S>, S: $crate::Shape> $crate::Retriever<T, S> for $device<Mods> {
             #[inline]
-            fn retrieve<S: Shape, const NUM_PARENTS: usize>(
+            fn retrieve<const NUM_PARENTS: usize>(
                 &self,
                 len: usize,
                 parents: impl $crate::Parents<NUM_PARENTS>,
             ) -> Buffer<T, Self, S> {
                 let data = self
                     .modules
-                    .retrieve::<S, NUM_PARENTS>(self, len, parents);
+                    .retrieve::<NUM_PARENTS>(self, len, parents);
                 let buf = Buffer {
                     data,
                     device: Some(self),
@@ -115,6 +144,6 @@ macro_rules! impl_retriever {
     };
 
     ($device:ident) => {
-        impl_retriever!($device, Sized);
+        $crate::impl_retriever!($device, Sized);
     }
 }

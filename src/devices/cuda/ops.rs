@@ -3,14 +3,14 @@ use core::ops::{Range, RangeBounds};
 use crate::{
     bounds_to_range,
     cuda::api::{cu_read_async, CUstreamCaptureStatus},
-    pass_down_add_operation, pass_down_exec_now, AddOperation, ApplyFunction, Buffer, CDatatype,
-    ClearBuf, CopySlice, OnDropBuffer, Read, Resolve, Retrieve, Retriever, Shape, ToCLSource,
-    ToMarker, UnaryGrad, WriteBuf, CUDA,
+    pass_down_add_operation, pass_down_exec_now, AddOperation, ApplyFunction, AsNoId, BufAsNoId,
+    Buffer, CDatatype, ClearBuf, CopySlice, OnDropBuffer, Read, Resolve, Retrieve, Retriever,
+    Shape, ToCLSource, ToMarker, UnaryGrad, WriteBuf, CUDA,
 };
 
 use super::{
     api::{cuMemcpy, cu_write_async},
-    cu_clear, CUDAPtr,
+    cu_clear, CUDAPtr, CudaDevice,
 };
 
 pass_down_add_operation!(CUDA);
@@ -32,7 +32,7 @@ impl<Mods: OnDropBuffer, T: Default + Clone> Read<T> for CUDA<Mods> {
         T: Default + Clone,
     {
         assert!(
-            buf.ptrs().2 != 0,
+            buf.base().ptr != 0,
             "called Read::read(..) on a non CUDA buffer"
         );
         // TODO: sync here or somewhere else?
@@ -43,7 +43,7 @@ impl<Mods: OnDropBuffer, T: Default + Clone> Read<T> for CUDA<Mods> {
         }
 
         let mut read = vec![T::default(); buf.len()];
-        cu_read_async(&mut read, buf.data.ptr, &self.mem_transfer_stream).unwrap();
+        cu_read_async(&mut read, buf.base().ptr, &self.mem_transfer_stream).unwrap();
         self.mem_transfer_stream.sync().unwrap();
         read
     }
@@ -73,8 +73,8 @@ impl<Mods: OnDropBuffer, T> CopySlice<T> for CUDA<Mods> {
 
         unsafe {
             cuMemcpy(
-                dest.data.ptr + (dest_range.start * size) as u64,
-                source.data.ptr + (source_range.start * size) as u64,
+                dest.base().ptr + (dest_range.start * size) as u64,
+                source.base().ptr + (source_range.start * size) as u64,
                 len * size,
             );
         }
@@ -102,8 +102,8 @@ impl<Mods: OnDropBuffer, T> WriteBuf<T> for CUDA<Mods> {
     fn write_buf(&self, dst: &mut Buffer<T, Self, ()>, src: &Buffer<T, Self, ()>) {
         unsafe {
             cuMemcpy(
-                dst.data.ptr,
-                src.data.ptr,
+                dst.base().ptr,
+                src.base().ptr,
                 src.len() * std::mem::size_of::<T>(),
             );
         }
@@ -113,7 +113,7 @@ impl<Mods: OnDropBuffer, T> WriteBuf<T> for CUDA<Mods> {
 impl<Mods, T, S> ApplyFunction<T, S> for CUDA<Mods>
 where
     T: CDatatype + Default,
-    Mods: Retrieve<Self, T> + 'static,
+    Mods: Retrieve<Self, T, S> + 'static,
     S: Shape,
 {
     #[inline]
@@ -131,14 +131,13 @@ where
     }
 }
 
-pub fn try_cu_apply_fn_mut<T, Mods, F>(
-    device: &CUDA<Mods>,
+pub fn try_cu_apply_fn_mut<T, F>(
+    device: &CudaDevice,
     x: &CUDAPtr<T>,
     out: &mut CUDAPtr<T>,
     f: impl Fn(Resolve<T>) -> F,
 ) -> crate::Result<()>
 where
-    Mods: OnDropBuffer,
     F: ToCLSource,
     T: CDatatype + Default,
 {
@@ -159,10 +158,11 @@ where
     Ok(())
 }
 
-impl<T, S, Mods: OnDropBuffer + AddOperation<T, Self>> UnaryGrad<T, S> for CUDA<Mods>
+impl<T, S, Mods> UnaryGrad<T, S> for CUDA<Mods>
 where
     T: CDatatype + Default,
     S: Shape,
+    Mods: OnDropBuffer + AddOperation + 'static,
 {
     #[inline]
     fn add_unary_grad<F>(
@@ -170,17 +170,21 @@ where
         lhs: &Buffer<T, Self, S>,
         lhs_grad: &mut Buffer<T, Self, S>,
         out: &Buffer<T, Self, S>,
-        lhs_grad_fn: impl Fn(Resolve<T>) -> F + Copy,
+        lhs_grad_fn: impl Fn(Resolve<T>) -> F + Copy + 'static,
     ) where
         F: ToCLSource,
     {
-        self.add_op(lhs_grad, move |lhs_grad| {
-            try_cu_add_unary_grad(self, &lhs.data, &mut lhs_grad.data, &out.data, lhs_grad_fn)
-        });
+        self.add_op::<_, 4>(
+            (lhs, lhs_grad.buf_no_id(), out, lhs_grad_fn.no_id()),
+            move |(lhs, lhs_grad, out, lhs_grad_fn)| {
+                try_cu_add_unary_grad(lhs.device(), lhs, lhs_grad, out, **lhs_grad_fn)
+            },
+        )
+        .unwrap();
     }
 }
-pub fn try_cu_add_unary_grad<T, F, Mods: OnDropBuffer>(
-    device: &CUDA<Mods>,
+pub fn try_cu_add_unary_grad<T, F>(
+    device: &CudaDevice,
     lhs: &CUDAPtr<T>,
     lhs_grad: &mut CUDAPtr<T>,
     out: &CUDAPtr<T>,
@@ -245,5 +249,25 @@ mod tests {
         assert_eq!(lhs_grad.read(), [4, 7, 10, 13, 16, 19]);
 
         Ok(())
+    }
+
+    #[cfg(feature = "lazy")]
+    #[test]
+    fn test_cu_add_unary_grad_lazy_graph() {
+        use crate::{Lazy, Run, UnaryGrad};
+
+        let device = CUDA::<Lazy<Base>>::new(0).unwrap();
+
+        let lhs = Buffer::from((&device, [1, 2, 3, 4, 5, 6]));
+        let mut lhs_grad = Buffer::from((&device, [1, 2, 3, 4, 5, 6]));
+
+        let out = Buffer::from((&device, [1, 1, 1, 1, 1, 1]));
+        device.add_unary_grad(&lhs, &mut lhs_grad, &out, |lhs| lhs.add(2));
+
+        assert_eq!(lhs_grad.read(), vec![1, 2, 3, 4, 5, 6]);
+
+        unsafe { device.run().unwrap() }
+
+        assert_eq!(lhs_grad.read(), vec![4, 6, 8, 10, 12, 14]);
     }
 }

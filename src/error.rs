@@ -43,6 +43,8 @@ pub enum DeviceError {
     UnifiedConstructNotAvailable,
     /// Only a CPU Buffer can be converted to a CUDA Buffer
     CPUtoCUDA,
+    /// No cache traces were given.
+    MissingCacheTraces,
     /// This graph can't be optimized. This indicates a bug in custos.
     GraphOptimization, // probably a bug
     /// An address was not supplied for a Network device.
@@ -52,7 +54,9 @@ pub enum DeviceError {
     /// The 'cpu' feature is disabled. Hence this CPU can't be created.
     CPUDeviceNotAvailable,
     /// Invalid lazy out buffer was provided in operation. Out buffer went out of scope?
-    InvalidLazyOutBuf,
+    InvalidLazyBuf,
+    /// Location was already used.
+    LocationAlreadyInUse,
 }
 
 impl DeviceError {
@@ -63,6 +67,7 @@ impl DeviceError {
                 "Only a non-drop buffer can be converted to a CPU+OpenCL buffer."
             }
             DeviceError::CPUtoCUDA => "Only a CPU Buffer can be converted to a CUDA Buffer",
+            DeviceError::MissingCacheTraces => "No cache traces were given",
             DeviceError::GraphOptimization => {
                 "This graph can't be optimized. This indicates a bug in custos."
             }
@@ -72,7 +77,8 @@ impl DeviceError {
                 "The 'cpu' feature is disabled. Hence this CPU can't be created."
             }
             DeviceError::UnifiedConstructNotAvailable => "Unified construction is not available for the provided modules. Add the `Cached` module to your device",
-            DeviceError::InvalidLazyOutBuf => "Invalid lazy out buffer was provided in operation. Out buffer went out of scope?"
+            DeviceError::InvalidLazyBuf => "Invalid lazy buffer was provided in operation. Did the buffer go out of scope?",
+            DeviceError::LocationAlreadyInUse => "Location is already in use.",
         }
     }
 }

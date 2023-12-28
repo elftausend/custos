@@ -1,5 +1,8 @@
 use crate::{number::Number, Buffer, OnDropBuffer, OpenCL, Shape};
-use min_cl::api::{enqueue_nd_range_kernel, set_kernel_arg, OCLErrorKind};
+use min_cl::{
+    api::{enqueue_nd_range_kernel, set_kernel_arg, OCLErrorKind},
+    CLDevice,
+};
 use std::{ffi::c_void, mem::size_of};
 
 use super::CLPtr;
@@ -77,14 +80,14 @@ pub trait AsClCvoidPtr {
 impl<'a, Mods: OnDropBuffer, T, S: Shape> AsClCvoidPtr for &Buffer<'a, T, OpenCL<Mods>, S> {
     #[inline]
     fn as_cvoid_ptr(&self) -> *const c_void {
-        self.data.ptr
+        self.base().ptr
     }
 }
 
 impl<'a, Mods: OnDropBuffer, T, S: Shape> AsClCvoidPtr for Buffer<'a, T, OpenCL<Mods>, S> {
     #[inline]
     fn as_cvoid_ptr(&self) -> *const c_void {
-        self.data.ptr
+        self.base().ptr
     }
 }
 
@@ -134,8 +137,8 @@ impl<T> AsClCvoidPtr for CLPtr<T> {
 ///     Ok(())
 /// }
 /// ```
-pub fn enqueue_kernel<Mods>(
-    device: &OpenCL<Mods>,
+pub fn enqueue_kernel(
+    device: &CLDevice,
     src: &str,
     gws: [usize; 3],
     lws: Option<[usize; 3]>,
@@ -221,7 +224,7 @@ mod tests {
         unsafe {
             min_cl::api::ffi::clGetKernelWorkGroupInfo(
                 kernel.0,
-                device.inner.device.0,
+                device.device.device.0,
                 min_cl::api::ffi::CL_KERNEL_WORK_GROUP_SIZE,
                 core::mem::size_of_val(&local),
                 &mut local as *mut _ as *mut core::ffi::c_void,
