@@ -616,7 +616,7 @@ where
     T: Debug + Default + Clone + 'a,
     D: Read<T> + Device + 'a,
     for<'b> <D as Read<T>>::Read<'b>: Debug,
-    D::Data<T, ()>: CommonPtrs<T>,
+    D::Base<T, ()>: CommonPtrs<T>,
 {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         f.debug_struct("Buffer")
