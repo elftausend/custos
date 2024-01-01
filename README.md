@@ -41,7 +41,7 @@ on by default | `Base` | Default behaviour.
 autograd | `Autograd` | Enables running automatic differentiation.
 cached | `Cached` | Reuses allocations on demand.
 fork | `Fork` | Decides whether the CPU or GPU is faster for an operation. It then uses the faster device for following computations. (unified memory devices)
-lazy | `Lazy` | Lazy execution of operations. Enables support for CUDA graphs. However, allocations are not lazy at the moment.
+lazy | `Lazy` | Lazy execution of operations and intermediate allocations. Enables support for CUDA graphs.
 graph | `Graph` | Adds a memory usage optimizeable graph.
 
 Usage of these modules when writing custom operations: [`modules.md`](modules.md)
@@ -53,7 +53,7 @@ To make specific devices useable, activate the corresponding features:
 Feature | Device | Notes
 --- | --- | ---
 cpu | `CPU` | Uses heap allocations.
-stack | `Stack` | Useable in `no-std` environments as it uses stack allocated `Buffer`s. Practically only supports the `Base` module.
+stack | `Stack` | Useable in `no-std` environments as it uses stack allocated `Buffer`s without requiring `alloc`. Practically only supports the `Base` module.
 opencl | `OpenCL` | Currently the only device that supports automatic unified memory mapping. 
 cuda | `CUDA` |
 vulkan | `Vulkan` | Shaders are written in WGSL.
