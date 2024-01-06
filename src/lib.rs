@@ -137,6 +137,8 @@ pub use op_traits::*;
 pub use shape::*;
 pub use two_way_ops::*;
 
+pub const VERSION: &str = env!("CARGO_PKG_VERSION");
+
 #[cfg(test)]
 pub fn location() -> &'static core::panic::Location<'static> {
     core::panic::Location::caller()

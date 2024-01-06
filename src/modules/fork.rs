@@ -1,24 +1,25 @@
 use crate::{
     impl_remove_layer, pass_down_add_operation, pass_down_exec_now, pass_down_tape_actions,
-    AddLayer, Alloc, Buffer, Device, HasId, HashLocation, IsShapeIndep, LocationHasher, Module,
-    OnDropBuffer, OnNewBuffer, Parents, PtrType, Retrieve, RunModule, Setup, Shape, WrappedData,
+    AddLayer, Alloc, Buffer, Device, HasId, IsShapeIndep, Module, OnDropBuffer, OnNewBuffer,
+    Parents, PtrType, Retrieve, RunModule, Setup, Shape, WrappedData,
 };
-use core::{cell::RefCell, hash::BuildHasherDefault};
-use std::collections::{BinaryHeap, HashMap};
+use core::cell::RefCell;
 
 mod analyzation;
+mod fork_data;
 mod fork_macro;
-mod use_gpu_or_cpu;
+#[cfg(feature = "serde")]
 mod serde;
+mod use_gpu_or_cpu;
 
 pub use analyzation::Analyzation;
 pub use use_gpu_or_cpu::*;
 
+use self::fork_data::ForkData;
+
 pub struct Fork<Mods> {
     pub modules: Mods,
-    pub gpu_or_cpu: RefCell<
-        HashMap<HashLocation<'static>, BinaryHeap<Analyzation>, BuildHasherDefault<LocationHasher>>,
-    >, // should use Location of operation in file file!(), ...
+    pub gpu_or_cpu: RefCell<ForkData>, // should use Location of operation in file file!(), ...
 }
 
 impl<Mods: WrappedData> WrappedData for Fork<Mods> {

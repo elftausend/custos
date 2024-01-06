@@ -1,34 +1,36 @@
 use core::cell::RefCell;
-use std::collections::HashMap;
-use serde::ser::SerializeMap;
 
-use super::Fork;
+use serde::{ser::SerializeStruct,
+    Deserialize, Deserializer, Serialize, Serializer,
+};
 
-#[cfg(feature = "serde")]
-impl<Mods> serde::Serialize for Fork<Mods> {
+use crate::VERSION;
+
+use super::{Fork, fork_data::ForkData};
+
+impl<Mods> Serialize for Fork<Mods> {
     #[inline]
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
-        S: serde::Serializer 
+        S: Serializer,
     {
         let data = self.gpu_or_cpu.borrow();
 
-        // serde/serde_json does not automatically convert customs key struct in a map to a string:
-        let mut map = serializer.serialize_map(Some(data.len()))?;
-        for (k, v) in data.iter() {
-            map.serialize_entry(&k.to_string(), &v)?;
-        }
-        map.end()
+        let mut state = serializer.serialize_struct("Fork", 2)?;
+        state.serialize_field("version", VERSION)?;
+        state.serialize_field("gpu_or_cpu", &*data)?;
+        state.end()
     }
 }
 
-#[cfg(all(feature = "serde", not(feature = "no-std")))]
+
 impl<Mods> Fork<Mods> {
     #[inline]
-    pub fn load_from_deserializer<D: serde::Deserializer<'static>>(&mut self, deserializer: D) -> Result<(), D::Error> {
-        use serde::Deserialize;
-
-        self.gpu_or_cpu = RefCell::new(HashMap::deserialize(deserializer)?);
+    pub fn load_from_deserializer<D: Deserializer<'static>>(
+        &mut self,
+        deserializer: D,
+    ) -> Result<(), D::Error> {
+        self.gpu_or_cpu = RefCell::new(ForkData::deserialize(deserializer)?);
         Ok(())
     }
 
@@ -44,7 +46,7 @@ impl<Mods> Fork<Mods> {
     pub fn load_from_json_read(&mut self, reader: impl std::io::Read) -> serde_json::Result<()> {
         self.load_from_deserializer(&mut serde_json::Deserializer::from_reader(reader))
     }
-    
+
     #[cfg(feature = "json")]
     #[inline]
     pub fn load_from_json(&mut self, path: impl AsRef<std::path::Path>) -> crate::Result<()> {
@@ -64,9 +66,9 @@ mod tests {
 
         use serde::Serialize;
 
-        use crate::{OpenCL, Fork, Cached, Base, ApplyFunction, Device, Combiner};
+        use crate::{ApplyFunction, Base, Cached, Combiner, Device, Fork, OpenCL};
 
-        let device = OpenCL::<Fork<Cached<Base>>>::new(0).unwrap();
+        let mut device = OpenCL::<Fork<Cached<Base>>>::new(0).unwrap();
         if !device.unified_mem() {
             return;
         }
@@ -83,15 +85,26 @@ mod tests {
             assert_eq!(&analyzations[0].input_lengths, &[6]);
         }
 
-        let mut json = vec![0,];
+        let mut json = vec![];
         let mut serializer = serde_json::Serializer::new(&mut json);
 
-        let map = HashMap::from([((32, 32), 53)]);
+        drop(buf);
+        drop(out);
 
-        map.serialize(&mut serializer).unwrap();
-        println!("json: {json:?}");
+        // let map = HashMap::from([((32, 32), 53)]);
+
+        device.modules.serialize(&mut serializer).unwrap();
+
+        let json = Box::leak(json.into_boxed_slice());
+
+        let mut de = serde_json::Deserializer::from_slice(json);
+
+        device.modules.load_from_deserializer(&mut de).unwrap();
+        // let json = String::from_utf8(json).unwrap();
+
+
+
+        // println!("json: {json:?}");
         // device.modules.save_as_json(".")
     }
-
-   
 }

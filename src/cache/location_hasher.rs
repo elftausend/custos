@@ -1,4 +1,4 @@
-use core::{ops::BitXor, panic::Location, fmt::Display};
+use core::{fmt::Display, ops::BitXor, panic::Location};
 
 #[derive(Default)]
 pub struct LocationHasher {
