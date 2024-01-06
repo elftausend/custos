@@ -35,6 +35,7 @@ impl core::hash::Hasher for LocationHasher {
 }
 
 #[derive(Debug, Clone, Copy, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct HashLocation<'a> {
     pub file: &'a str,
     pub line: u32,

@@ -41,6 +41,7 @@ nnapi = { version = "0.2", optional = true }
 ndk-sys = {version = "0.4", features=["test"], optional = true}
 
 serde = { version = "1.0", features = ["derive"], optional = true }
+serde_json = { version = "1", optional = true }
 
 [build-dependencies]
 #min-cl = { path="../min-cl", optional=true }
@@ -49,7 +50,7 @@ min-cl = { git = "https://github.com/elftausend/min-cl", optional = true }
 
 [features]
 # default = ["cpu", "autograd", "macro"]
-default = ["cpu", "lazy", "static-api", "opencl", "graph", "autograd", "fork"]
+default = ["cpu", "lazy", "static-api", "opencl", "graph", "autograd", "fork", "serde", "json"]
 
 cpu = []
 opencl = ["dep:min-cl", "cpu", "cached"]
@@ -76,6 +77,7 @@ vulkan = ["dep:ash", "dep:naga", "wgsl"]
 wgsl = []
 
 serde = ["dep:serde"]
+json = ["dep:serde_json"]
 
 [dev-dependencies]
 custos-macro = {git = "https://github.com/elftausend/custos-macro"}
