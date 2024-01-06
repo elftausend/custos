@@ -1,4 +1,4 @@
-use core::{ops::BitXor, panic::Location};
+use core::{fmt::Display, ops::BitXor, panic::Location};
 
 #[derive(Default)]
 pub struct LocationHasher {
@@ -35,6 +35,7 @@ impl core::hash::Hasher for LocationHasher {
 }
 
 #[derive(Debug, Clone, Copy, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct HashLocation<'a> {
     pub file: &'a str,
     pub line: u32,
@@ -84,5 +85,12 @@ impl<'a> From<(&'a str, u32, u32)> for HashLocation<'a> {
     #[inline]
     fn from((file, line, col): (&'a str, u32, u32)) -> Self {
         Self { file, line, col }
+    }
+}
+
+impl<'a> Display for HashLocation<'a> {
+    #[inline]
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        write!(f, "{},{},{}", self.file, self.line, self.col)
     }
 }
