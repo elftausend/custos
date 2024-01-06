@@ -1,5 +1,7 @@
 use core::cell::RefCell;
 use std::collections::HashMap;
+use serde::ser::SerializeMap;
+
 use super::Fork;
 
 #[cfg(feature = "serde")]
@@ -9,7 +11,14 @@ impl<Mods> serde::Serialize for Fork<Mods> {
     where
         S: serde::Serializer 
     {
-        self.gpu_or_cpu.borrow().serialize(serializer)
+        let data = self.gpu_or_cpu.borrow();
+
+        // serde/serde_json does not automatically convert customs key struct in a map to a string:
+        let mut map = serializer.serialize_map(Some(data.len()))?;
+        for (k, v) in data.iter() {
+            map.serialize_entry(&k.to_string(), &v)?;
+        }
+        map.end()
     }
 }
 
@@ -78,6 +87,7 @@ mod tests {
         let mut serializer = serde_json::Serializer::new(&mut json);
 
         let map = HashMap::from([((32, 32), 53)]);
+
         map.serialize(&mut serializer).unwrap();
         println!("json: {json:?}");
         // device.modules.save_as_json(".")
