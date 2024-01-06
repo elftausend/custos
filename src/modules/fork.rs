@@ -1,7 +1,7 @@
 use crate::{
     impl_remove_layer, pass_down_add_operation, pass_down_exec_now, pass_down_tape_actions,
     AddLayer, Alloc, Buffer, Device, HasId, IsShapeIndep, Module, OnDropBuffer, OnNewBuffer,
-    Parents, PtrType, Retrieve, RunModule, Setup, Shape, WrappedData,
+    Parents, PtrType, Retrieve, RunModule, Setup, Shape, WrappedData, VERSION,
 };
 use core::cell::RefCell;
 
@@ -9,7 +9,7 @@ mod analyzation;
 mod fork_data;
 mod fork_macro;
 #[cfg(feature = "serde")]
-mod serde;
+mod impl_serde;
 mod use_gpu_or_cpu;
 
 pub use analyzation::Analyzation;
@@ -17,8 +17,11 @@ pub use use_gpu_or_cpu::*;
 
 use self::fork_data::ForkData;
 
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Fork<Mods> {
+    #[cfg_attr(feature = "serde", serde(skip))]
     pub modules: Mods,
+    pub version: &'static str,
     pub gpu_or_cpu: RefCell<ForkData>, // should use Location of operation in file file!(), ...
 }
 
@@ -50,6 +53,7 @@ impl<Mods: Module<D>, D: Device> Module<D> for Fork<Mods> {
     fn new() -> Self::Module {
         Fork {
             modules: Mods::new(),
+            version: VERSION,
             gpu_or_cpu: Default::default(),
         }
     }
@@ -134,6 +138,7 @@ impl<NewMods, SD> AddLayer<NewMods, SD> for Fork<()> {
     fn wrap_layer(inner_mods: NewMods) -> Self::Wrapped {
         Fork {
             modules: inner_mods,
+            version: VERSION,
             gpu_or_cpu: Default::default(),
         }
     }

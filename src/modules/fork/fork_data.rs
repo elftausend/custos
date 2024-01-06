@@ -8,7 +8,7 @@ use crate::{Analyzation, HashLocation, LocationHasher};
 
 #[derive(Debug, Default)]
 pub struct ForkData {
-    data:
+    pub data:
         HashMap<HashLocation<'static>, BinaryHeap<Analyzation>, BuildHasherDefault<LocationHasher>>,
 }
 
@@ -46,6 +46,8 @@ mod serde {
         Deserialize, Serialize,
     };
 
+    use crate::HashLocation;
+
     use super::ForkData;
 
     impl Serialize for ForkData {
@@ -75,7 +77,7 @@ mod serde {
         where
             M: MapAccess<'static>,
         {
-            let mut data = HashMap::with_capacity_and_hasher(
+            let mut data: HashMap<&str, _> = HashMap::with_capacity_and_hasher(
                 access.size_hint().unwrap_or(0),
                 Default::default(),
             );
@@ -83,6 +85,17 @@ mod serde {
             while let Some((key, value)) = access.next_entry()? {
                 data.insert(key, value);
             }
+
+            let data = data
+                .into_iter()
+                .map(|(key, value)| {
+                    let mut key_split = key.split(',');
+                    let file = key_split.next().unwrap();
+                    let line = key_split.next().unwrap().parse().unwrap();
+                    let col = key_split.next().unwrap().parse().unwrap();
+                    (HashLocation { file, line, col }, value)
+                })
+                .collect();
 
             Ok(ForkData { data })
         }

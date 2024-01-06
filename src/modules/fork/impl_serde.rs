@@ -1,28 +1,16 @@
-use core::cell::RefCell;
+use serde::{Deserialize, Deserializer};
 
-use serde::{ser::SerializeStruct,
-    Deserialize, Deserializer, Serialize, Serializer,
-};
+use super::Fork;
+use crate::Base;
 
-use crate::VERSION;
-
-use super::{Fork, fork_data::ForkData};
-
-impl<Mods> Serialize for Fork<Mods> {
-    #[inline]
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        let data = self.gpu_or_cpu.borrow();
-
-        let mut state = serializer.serialize_struct("Fork", 2)?;
-        state.serialize_field("version", VERSION)?;
-        state.serialize_field("gpu_or_cpu", &*data)?;
-        state.end()
-    }
-}
-
+// impl Deserialize<'static> for Fork<Base> {
+//     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+//     where
+//         D: Deserializer<'static>
+//     {
+//         deserializer.deserialize_struct("Fork", &["version", "gpu_or_cpu"], )
+//     }
+// }
 
 impl<Mods> Fork<Mods> {
     #[inline]
@@ -30,7 +18,8 @@ impl<Mods> Fork<Mods> {
         &mut self,
         deserializer: D,
     ) -> Result<(), D::Error> {
-        self.gpu_or_cpu = RefCell::new(ForkData::deserialize(deserializer)?);
+        let de_fork = Fork::<Base>::deserialize(deserializer)?;
+        self.gpu_or_cpu = de_fork.gpu_or_cpu;
         Ok(())
     }
 
@@ -62,13 +51,13 @@ mod tests {
     #[cfg(feature = "opencl")]
     #[test]
     fn test_fork_deserialize() {
-        use std::collections::HashMap;
-
         use serde::Serialize;
 
         use crate::{ApplyFunction, Base, Cached, Combiner, Device, Fork, OpenCL};
 
         let mut device = OpenCL::<Fork<Cached<Base>>>::new(0).unwrap();
+        // let data_prev = device.modules.gpu_or_cpu.borrow().clone();
+
         if !device.unified_mem() {
             return;
         }
@@ -100,11 +89,8 @@ mod tests {
         let mut de = serde_json::Deserializer::from_slice(json);
 
         device.modules.load_from_deserializer(&mut de).unwrap();
-        // let json = String::from_utf8(json).unwrap();
-
-
-
-        // println!("json: {json:?}");
-        // device.modules.save_as_json(".")
+        // let data_now = device.modules.gpu_or_cpu.borrow().clone();
+        // println!("data_now: {data_now:?}");
+        // assert_eq!(data_now, data_prev);
     }
 }
