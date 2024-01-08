@@ -50,7 +50,7 @@ min-cl = { git = "https://github.com/elftausend/min-cl", optional = true }
 
 [features]
 # default = ["cpu", "autograd", "macro"]
-default = ["cpu", "lazy", "static-api", "opencl", "graph", "autograd", "fork", "serde", "json"]
+default = ["cpu", "lazy", "static-api", "opencl", "graph", "autograd", "fork",]
 
 cpu = []
 opencl = ["dep:min-cl", "cpu", "cached"]

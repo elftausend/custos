@@ -14,7 +14,7 @@ use crate::{
     TranslatedCacheTrace, WrappedData,
 };
 
-use self::graph_translator::GraphTranslator;
+pub use self::graph_translator::GraphTranslator;
 
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct Graph<Mods> {
@@ -169,4 +169,12 @@ impl<T: 'static, Mods: Retrieve<D, T, S>, D: 'static, S: Shape> Retrieve<D, T, S
         // pass down
         self.modules.on_retrieve_finish(retrieved_buf)
     }
+}
+
+#[cfg(test)]
+mod tests {
+    #[cfg(feature = "lazy")]
+    #[cfg(feature = "cached")]
+    #[test]
+    fn test_lazy_graph_cached() {}
 }
