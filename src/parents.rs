@@ -24,11 +24,7 @@ impl UpdateArg for () {
     fn update_arg(
         &mut self,
         _id: Option<crate::UniqueId>,
-        _buffers: &mut HashMap<
-            crate::UniqueId,
-            Box<dyn core::any::Any>,
-            core::hash::BuildHasherDefault<crate::NoHasher>,
-        >,
+        _buffers: &mut crate::Buffers,
     ) -> crate::Result<()> {
         Ok(())
     }
@@ -71,7 +67,7 @@ macro_rules! impl_parents {
             #[cfg(not(feature = "no-std"))]
             fn update_args(&mut self,
                 ids: &[Option<$crate::UniqueId>],
-                buffers: &mut HashMap<$crate::UniqueId, Box<dyn std::any::Any>, core::hash::BuildHasherDefault<$crate::NoHasher>>)
+                buffers: &mut $crate::Buffers)
              -> crate::Result<()>
              {
                 let mut ids = ids.iter();

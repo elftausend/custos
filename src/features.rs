@@ -3,7 +3,7 @@ use core::{fmt::Debug, ops::RangeBounds};
 use crate::{HasId, Parents, Shape, UniqueId, UpdateArgs, CPU};
 
 #[cfg(feature = "graph")]
-use crate::TranslatedCacheTrace;
+use crate::HashLocationCacheTrace;
 
 #[cfg(feature = "cached")]
 use crate::{Base, CachedModule};
@@ -377,7 +377,6 @@ pub trait UseGpuOrCpu {
 pub trait OptimizeMemGraph {
     fn optimize_mem_graph(
         &self,
-        // cache_traces: Option<&[crate::TranslatedCacheTrace]>,
         graph_translator: Option<&crate::modules::GraphTranslator>,
     ) -> crate::Result<()>;
 }

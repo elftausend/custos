@@ -3,7 +3,7 @@ use std::collections::{HashMap, HashSet};
 
 use crate::{
     prelude::One, Alloc, Buffer, HasId, HashLocation, LazyGraph, LocationHasher, NoHasher, Parents,
-    Shape, TapeActions, UniqueId, UpdateArgs, WriteBuf,
+    Shape, TapeActions, UniqueId, UpdateArgs, WriteBuf, Buffers,
 };
 
 use super::Gradients;
@@ -70,7 +70,7 @@ impl Tape {
     /// Calls all gradient functions in reverse order.
     pub fn backward(
         &mut self,
-        buffers: &mut HashMap<UniqueId, Box<dyn Any>, BuildHasherDefault<NoHasher>>,
+        buffers: &mut Buffers,
     ) {
         // for grad_fn_id in self.grad_fn_order.iter().rev() {
         //     let grad_fn = self.grad_fns_loc.get(grad_fn_id).unwrap();

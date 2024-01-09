@@ -104,11 +104,7 @@ impl<T> UpdateArg for NoId<T> {
     fn update_arg(
         &mut self,
         _id: Option<UniqueId>,
-        _buffers: &mut std::collections::HashMap<
-            crate::UniqueId,
-            Box<dyn core::any::Any>,
-            core::hash::BuildHasherDefault<crate::NoHasher>,
-        >,
+        _buffers: &mut crate::Buffers 
     ) -> crate::Result<()> {
         Ok(())
     }
@@ -119,11 +115,7 @@ impl<'a, T: 'static, D: Device + 'static, S: Shape + 'static> UpdateArg for &Buf
     fn update_arg(
         &mut self,
         id: Option<UniqueId>,
-        buffers: &mut std::collections::HashMap<
-            crate::UniqueId,
-            Box<dyn core::any::Any>,
-            core::hash::BuildHasherDefault<crate::NoHasher>,
-        >,
+        buffers: &mut crate::Buffers 
     ) -> crate::Result<()> {
         let buf = buffers
             .get(&id.unwrap())
@@ -141,12 +133,9 @@ impl<'a, T: 'static, D: Device + 'static, S: Shape + 'static> UpdateArg
     fn update_arg(
         &mut self,
         id: Option<UniqueId>,
-        buffers: &mut std::collections::HashMap<
-            crate::UniqueId,
-            Box<dyn core::any::Any>,
-            core::hash::BuildHasherDefault<crate::NoHasher>,
-        >,
+        buffers: &mut crate::Buffers 
     ) -> crate::Result<()> {
+
         let buf = buffers
             .get_mut(&id.unwrap())
             .ok_or(DeviceError::InvalidLazyBuf)?;

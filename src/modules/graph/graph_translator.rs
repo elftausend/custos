@@ -1,13 +1,14 @@
 use core::{hash::BuildHasherDefault, panic::Location};
 use std::collections::{HashMap, HashSet};
 
-use crate::{CacheTrace, HashLocation, NoHasher, Parents, TranslatedCacheTrace, UniqueId};
+use crate::{CacheTrace, HashLocation, HashLocationCacheTrace, NoHasher, Parents, UniqueId};
 
 use super::opt_graph::OptGraph;
 
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct GraphTranslator {
     pub buf_id_to_idx: HashMap<UniqueId, usize, BuildHasherDefault<NoHasher>>,
+    pub idx_to_buf_id: HashMap<usize, UniqueId, BuildHasherDefault<NoHasher>>,
     // As only non-leafs can be located in a CacheTrace, this contains buffers created via retrieving.
     pub idx_to_buf_location: HashMap<usize, HashLocation<'static>>,
     pub added_to_graph: HashSet<HashLocation<'static>>,
@@ -51,13 +52,13 @@ impl GraphTranslator {
         });
     }
 
-    pub fn translate_cache_traces(
+    pub fn to_hash_location_cache_traces(
         &self,
         cache_traces: Vec<CacheTrace>,
-    ) -> Vec<TranslatedCacheTrace> {
+    ) -> Vec<HashLocationCacheTrace> {
         cache_traces
             .into_iter()
-            .map(|cache_trace| TranslatedCacheTrace {
+            .map(|cache_trace| HashLocationCacheTrace {
                 cache_idx: *self
                     .idx_to_buf_location
                     .get(&cache_trace.cache_idx)

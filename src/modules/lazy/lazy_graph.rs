@@ -1,4 +1,4 @@
-use crate::{bounds_to_range, Device, NoHasher, Parents, UniqueId, UpdateArgs};
+use crate::{bounds_to_range, Device, NoHasher, Parents, UniqueId, UpdateArgs, Buffers};
 use core::{any::Any, hash::BuildHasherDefault, mem::transmute, ops::RangeBounds};
 use std::collections::HashMap;
 
@@ -6,14 +6,14 @@ pub struct ExecIter<'a> {
     ids_to_check: std::slice::Iter<'a, Vec<Option<UniqueId>>>,
     ops: std::slice::Iter<'a, fn(*mut ()) -> crate::Result<()>>,
     args: std::slice::IterMut<'a, Box<dyn UpdateArgs>>,
-    buffers: &'a mut HashMap<UniqueId, Box<dyn Any>, BuildHasherDefault<NoHasher>>,
+    buffers: &'a mut Buffers,
 }
 
 fn exec_op(
     args: &mut Box<dyn UpdateArgs>,
     op: &fn(*mut ()) -> crate::Result<()>,
     ids_to_check: &[Option<UniqueId>],
-    buffers: &mut HashMap<UniqueId, Box<dyn Any>, BuildHasherDefault<NoHasher>>,
+    buffers: &mut Buffers,
 ) -> crate::Result<()> {
     args.update_args(ids_to_check, buffers)?;
 
@@ -51,7 +51,7 @@ impl LazyGraph {
     #[inline]
     pub fn iter_with<'a>(
         &'a mut self,
-        buffers: &'a mut HashMap<UniqueId, Box<dyn Any>, BuildHasherDefault<NoHasher>>,
+        buffers: &'a mut Buffers,
     ) -> ExecIter {
         ExecIter {
             ids_to_check: self.ids_to_check.iter(),
@@ -90,7 +90,7 @@ impl LazyGraph {
 
     pub unsafe fn call_lazily<D: Device + 'static>(
         &mut self,
-        outs_unordered: &mut HashMap<UniqueId, Box<dyn Any>, BuildHasherDefault<NoHasher>>,
+        outs_unordered: &mut Buffers,
     ) -> crate::Result<()> {
         for args in self.iter_with(outs_unordered) {
             args?;
@@ -109,7 +109,7 @@ impl LazyGraph {
     pub unsafe fn call_range<D: Device + 'static>(
         &mut self,
         bounds: impl RangeBounds<usize>,
-        outs_unordered: &mut HashMap<UniqueId, Box<dyn Any>, BuildHasherDefault<NoHasher>>,
+        outs_unordered: &mut Buffers,
     ) -> crate::Result<()> {
         let range = bounds_to_range(bounds, self.args.len());
         for ((mut args, op), ids_to_check) in self

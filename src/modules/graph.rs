@@ -11,7 +11,7 @@ use crate::{
     impl_remove_layer, pass_down_add_operation, pass_down_exec_now_module,
     pass_down_unified_mem_chain, pass_down_use_gpu_or_cpu, AddLayer, Alloc, Buffer, Device, HasId,
     Module, OnDropBuffer, OnNewBuffer, OptimizeMemGraph, Parents, PtrType, Retrieve, Setup, Shape,
-    TranslatedCacheTrace, WrappedData,
+    WrappedData,
 };
 
 pub use self::graph_translator::GraphTranslator;
@@ -64,7 +64,6 @@ impl<Mods: OptimizeMemGraph> OptimizeMemGraph for Graph<Mods> {
     fn optimize_mem_graph(
         &self,
         graph_translator: Option<&crate::GraphTranslator>,
-        // cache_traces: Option<&[TranslatedCacheTrace]>,
     ) -> crate::Result<()> {
         match graph_translator {
             Some(graph_translator) => self.modules.optimize_mem_graph(Some(graph_translator)),
@@ -138,6 +137,8 @@ impl<T: 'static, Mods: Retrieve<D, T, S>, D: 'static, S: Shape> Retrieve<D, T, S
 
         let next_idx = graph_trans.next_idx;
         graph_trans.buf_id_to_idx.insert(data.id().id, next_idx);
+        graph_trans.idx_to_buf_id.insert(next_idx, data.id().id);
+        
         graph_trans
             .idx_to_buf_location
             .insert(next_idx, Location::caller().into());

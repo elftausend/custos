@@ -6,6 +6,8 @@ use core::{
 };
 use std::collections::HashMap;
 
+use std::rc::Rc;
+
 use super::NoHasher;
 use crate::{flag::AllocFlag, Alloc, Buffer, Device, Id, Shape, UniqueId};
 
@@ -38,9 +40,12 @@ impl Display for CachingError {
 
 impl std::error::Error for CachingError {}
 
+
+pub(crate) type Buffers = HashMap<UniqueId, Box<dyn Any>, BuildHasherDefault<NoHasher>>;
+
 #[derive(Debug, Default)]
 pub struct BorrowCache {
-    pub(crate) cache: HashMap<UniqueId, Box<dyn Any>, BuildHasherDefault<NoHasher>>,
+    pub(crate) cache: Buffers,
 }
 
 // TODO: make BorrowedCache unuseable without device (=> Static get methods with D: CacheReturn)

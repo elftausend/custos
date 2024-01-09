@@ -5,8 +5,9 @@ pub use ty::*;
 
 use crate::{
     impl_remove_layer, pass_down_tape_actions, AddLayer, AddOperation, Alloc, Buffer, Device,
-    ExecNow, HasId, Id, IsShapeIndep, Module, NoHasher, OnDropBuffer, OnNewBuffer, Parents,
-    ReplaceBuf, Retrieve, RunModule, Setup, ShallowCopy, Shape, UniqueId, UpdateArgs,
+    DeviceError, ExecNow, HasId, Id, IsShapeIndep, Module, NoHasher, OnDropBuffer, OnNewBuffer,
+    OptimizeMemGraph, Parents, ReplaceBuf, Retrieve, RunModule, Setup, ShallowCopy, Shape,
+    UniqueId, UpdateArgs,
 };
 use core::{
     any::Any,
@@ -270,6 +271,24 @@ impl<T: 'static, D: Device + 'static, S: Shape, Mods: OnDropBuffer> ReplaceBuf<T
             }
             None => buffer,
         }
+    }
+}
+
+impl<Mods> OptimizeMemGraph for Lazy<Mods> {
+    fn optimize_mem_graph(
+        &self,
+        graph_translator: Option<&crate::modules::GraphTranslator>,
+    ) -> crate::Result<()> {
+        let graph_translator = graph_translator.ok_or(DeviceError::MissingCacheTraces)?;
+        for cache_trace in graph_translator.opt_graph.cache_traces() {
+            let buf_id = graph_translator.idx_to_buf_id.get(&cache_trace.cache_idx).ok_or(DeviceError::GraphOptimization)?;
+            let buf = self.buffers.borrow().get(buf_id).unwrap().clone();
+            for to_replace in cache_trace.use_cache_idxs {
+
+            }
+            // graph_translator.
+        }
+        Ok(())
     }
 }
 

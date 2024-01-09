@@ -36,7 +36,7 @@ use core::{any::Any, hash::BuildHasher};
 use std::collections::HashMap;
 
 #[cfg(not(feature = "no-std"))]
-pub struct TranslatedCacheTrace {
+pub struct HashLocationCacheTrace {
     pub cache_idx: HashLocation<'static>,
     pub use_cache_idxs: Vec<HashLocation<'static>>,
 }
