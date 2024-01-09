@@ -19,7 +19,7 @@ impl Parents<0> for () {
 
 impl AllParents for () {}
 
-impl UpdateArg for () {
+impl UpdateArg<crate::Buffers> for () {
     #[cfg(not(feature = "no-std"))]
     fn update_arg(
         &mut self,
@@ -63,7 +63,7 @@ macro_rules! impl_parents {
         }
         impl<$($to_impl: $crate::HasId, )+> AllParents for ($($to_impl,)+) {}
 
-        impl<$($to_impl: $crate::UpdateArg + $crate::HasId, )+> $crate::UpdateArgs for ($($to_impl,)+) {
+        impl<$($to_impl: $crate::UpdateArg<$crate::Buffers> + $crate::HasId, )+> $crate::UpdateArgs<$crate::Buffers> for ($($to_impl,)+) {
             #[cfg(not(feature = "no-std"))]
             fn update_args(&mut self,
                 ids: &[Option<$crate::UniqueId>],

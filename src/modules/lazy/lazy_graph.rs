@@ -2,15 +2,15 @@ use crate::{bounds_to_range, Device, NoHasher, Parents, UniqueId, UpdateArgs, Bu
 use core::{any::Any, hash::BuildHasherDefault, mem::transmute, ops::RangeBounds};
 use std::collections::HashMap;
 
-pub struct ExecIter<'a> {
+pub struct ExecIter<'a, B> {
     ids_to_check: std::slice::Iter<'a, Vec<Option<UniqueId>>>,
     ops: std::slice::Iter<'a, fn(*mut ()) -> crate::Result<()>>,
-    args: std::slice::IterMut<'a, Box<dyn UpdateArgs>>,
+    args: std::slice::IterMut<'a, Box<dyn UpdateArgs<B>>>,
     buffers: &'a mut Buffers,
 }
 
 fn exec_op(
-    args: &mut Box<dyn UpdateArgs>,
+    args: &mut Box<dyn UpdateArgs<Buffers>>,
     op: &fn(*mut ()) -> crate::Result<()>,
     ids_to_check: &[Option<UniqueId>],
     buffers: &mut Buffers,
@@ -20,7 +20,7 @@ fn exec_op(
     let args = &mut **args as *mut _ as *mut ();
     op(args)
 }
-impl<'a> Iterator for ExecIter<'a> {
+impl<'a> Iterator for ExecIter<'a, Buffers> {
     type Item = crate::Result<()>;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -31,7 +31,7 @@ impl<'a> Iterator for ExecIter<'a> {
     }
 }
 
-impl<'a> DoubleEndedIterator for ExecIter<'a> {
+impl<'a> DoubleEndedIterator for ExecIter<'a, Buffers> {
     fn next_back(&mut self) -> Option<Self::Item> {
         let ids_to_check = self.ids_to_check.next_back()?;
         let op = self.ops.next_back()?;
@@ -44,7 +44,7 @@ impl<'a> DoubleEndedIterator for ExecIter<'a> {
 pub struct LazyGraph {
     pub ids_to_check: Vec<Vec<Option<UniqueId>>>,
     pub ops: Vec<fn(*mut ()) -> crate::Result<()>>,
-    pub args: Vec<Box<dyn UpdateArgs>>,
+    pub args: Vec<Box<dyn UpdateArgs<Buffers>>>,
 }
 
 impl LazyGraph {
@@ -52,7 +52,7 @@ impl LazyGraph {
     pub fn iter_with<'a>(
         &'a mut self,
         buffers: &'a mut Buffers,
-    ) -> ExecIter {
+    ) -> ExecIter<Buffers> {
         ExecIter {
             ids_to_check: self.ids_to_check.iter(),
             ops: self.ops.iter(),
@@ -69,7 +69,7 @@ impl LazyGraph {
     }
 
     #[track_caller]
-    pub fn add_operation<Args: Parents<N> + UpdateArgs, const N: usize>(
+    pub fn add_operation<Args: Parents<N> + UpdateArgs<Buffers>, const N: usize>(
         &mut self,
         args: Args,
         op: fn(&mut Args) -> crate::Result<()>,
@@ -82,7 +82,7 @@ impl LazyGraph {
                 .collect(),
         );
 
-        let args: Box<dyn UpdateArgs> = Box::new(args);
+        let args: Box<dyn UpdateArgs<Buffers>> = Box::new(args);
 
         self.args.push(unsafe { transmute(args) });
         unsafe { self.ops.push(transmute(op)) };

@@ -10,11 +10,11 @@ use crate::{NoHasher, UniqueId, Buffers};
 pub trait UpdateArgs {}
 
 #[cfg(not(feature = "no-std"))]
-pub trait UpdateArgs {
+pub trait UpdateArgs<B> {
     fn update_args(
         &mut self,
         ids: &[Option<UniqueId>],
-        buffers: &mut Buffers,
+        buffers: &mut B,
     ) -> crate::Result<()>;
 }
 
@@ -23,20 +23,20 @@ pub trait UpdateArgs {
 pub trait UpdateArg {}
 
 #[cfg(not(feature = "no-std"))]
-pub trait UpdateArg {
+pub trait UpdateArg<B> {
     fn update_arg(
         &mut self,
         id: Option<UniqueId>,
-        buffers: &mut Buffers,
+        buffers: &mut B,
     ) -> crate::Result<()>;
 }
 
 #[cfg(not(feature = "no-std"))]
-impl<T: UpdateArg> UpdateArgs for T {
+impl<T: UpdateArg<crate::Buffers>> UpdateArgs<crate::Buffers> for T {
     fn update_args(
         &mut self,
         ids: &[Option<UniqueId>],
-        buffers: &mut Buffers,
+        buffers: &mut crate::Buffers,
     ) -> crate::Result<()> {
         self.update_arg(ids[0], buffers)
     }

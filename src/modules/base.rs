@@ -1,6 +1,6 @@
 use crate::{
     flag::AllocFlag, AddGradFn, AddOperation, Alloc, Device, ExecNow, HasId, HashLocation, Module,
-    OnDropBuffer, OnNewBuffer, Parents, PtrType, Retrieve, Setup, Shape, WrappedData,
+    OnDropBuffer, OnNewBuffer, Parents, PtrType, Retrieve, Setup, Shape, WrappedData, Buffers,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
@@ -113,7 +113,7 @@ impl crate::OptimizeMemGraph for Base {
 
 impl AddGradFn for Base {
     #[inline]
-    fn add_grad_fn<Args: Parents<N> + crate::UpdateArgs, const N: usize>(
+    fn add_grad_fn<Args: Parents<N> + crate::UpdateArgs<Buffers>, const N: usize>(
         &self,
         _args: Args,
         _op: fn(&mut Args) -> crate::Result<()>,

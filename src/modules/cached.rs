@@ -3,7 +3,7 @@ use core::{cell::RefCell, marker::PhantomData};
 use crate::{
     AddGradFn, AddLayer, AddOperation, Alloc, Buffer, Cache, Device, DeviceError, ExecNow, HasId,
     Module, OnDropBuffer, OnNewBuffer, Parents, PtrType, RemoveLayer, Retrieve, RunModule, Setup,
-    ShallowCopy, Shape, WrappedData,
+    ShallowCopy, Shape, WrappedData, Buffers,
 };
 
 #[cfg(feature = "graph")]
@@ -194,7 +194,7 @@ impl<Mods, SD: Device> RemoveLayer<Mods> for CachedModule<Mods, SD> {
 
 impl<Mods: AddGradFn, D: Device> AddGradFn for CachedModule<Mods, D> {
     #[inline]
-    fn add_grad_fn<Args: Parents<N> + crate::UpdateArgs, const N: usize>(
+    fn add_grad_fn<Args: Parents<N> + crate::UpdateArgs<Buffers>, const N: usize>(
         &self,
         args: Args,
         op: fn(&mut Args) -> crate::Result<()>,

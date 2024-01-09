@@ -1,6 +1,6 @@
 use core::{fmt::Debug, ops::RangeBounds};
 
-use crate::{HasId, Parents, Shape, UniqueId, UpdateArgs, CPU};
+use crate::{HasId, Parents, Shape, UniqueId, UpdateArgs, CPU, Buffers};
 
 #[cfg(feature = "graph")]
 use crate::HashLocationCacheTrace;
@@ -73,13 +73,13 @@ pub trait HasModules<Mods> {
 }
 
 pub trait AddGradFn {
-    fn add_grad_fn<Args: Parents<N> + UpdateArgs, const N: usize>(
+    fn add_grad_fn<Args: Parents<N> + UpdateArgs<Buffers>, const N: usize>(
         &self,
         args: Args,
         op: fn(&mut Args) -> crate::Result<()>,
     );
 
-    fn add_grad_and_forward_fn<Args: Parents<N> + UpdateArgs + Clone, const N: usize>(
+    fn add_grad_and_forward_fn<Args: Parents<N> + UpdateArgs<Buffers> + Clone, const N: usize>(
         &self,
         args: Args,
         forward_fn: fn(&mut Args) -> crate::Result<()>,
@@ -99,7 +99,7 @@ macro_rules! pass_down_grad_fn {
     ($to_impl:ident) => {
         impl<Mods: $crate::AddGradFn> $crate::AddGradFn for $to_impl<Mods> {
             #[inline]
-            fn add_grad_fn<Args: $crate::Parents<N> + $crate::UpdateArgs, const N: usize>(
+            fn add_grad_fn<Args: $crate::Parents<N> + $crate::UpdateArgs<$crate::Buffers>, const N: usize>(
                 &self,
                 args: Args,
                 op: fn(&mut Args) -> crate::Result<()>,
@@ -206,7 +206,7 @@ macro_rules! pass_down_replace_buf {
 
 pub trait AddOperation {
     #[track_caller]
-    fn add_op<Args: Parents<N> + UpdateArgs, const N: usize>(
+    fn add_op<Args: Parents<N> + UpdateArgs<Buffers>, const N: usize>(
         &self,
         args: Args,
         operation: fn(&mut Args) -> crate::Result<()>,
@@ -233,7 +233,7 @@ macro_rules! pass_down_add_operation {
     ($device:ident) => {
         impl<Mods: $crate::AddOperation> $crate::AddOperation for $device<Mods> {
             #[inline]
-            fn add_op<Args: $crate::Parents<N> + $crate::UpdateArgs, const N: usize>(
+            fn add_op<Args: $crate::Parents<N> + $crate::UpdateArgs<$crate::Buffers>, const N: usize>(
                 &self,
                 args: Args,
                 operation: fn(&mut Args) -> crate::Result<()>,

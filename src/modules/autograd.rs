@@ -10,7 +10,7 @@ use crate::{
     impl_remove_layer, pass_down_add_operation, pass_down_exec_now_module, register_buf,
     unregister_buf, AddGradFn, AddLayer, Alloc, Buffer, Device, HasId, IsShapeIndep, Module,
     OnDropBuffer, OnNewBuffer, Parents, PtrType, Retrieve, RunModule, Setup, ShallowCopy, Shape,
-    TapeActions, WrappedData,
+    TapeActions, WrappedData, Buffers,
 };
 
 use super::{Cached, CachedModule};
@@ -227,7 +227,7 @@ impl<Mods: RunModule<D>, D> RunModule<D> for Autograd<Mods> {
 
 impl<Mods: AddGradFn> AddGradFn for Autograd<Mods> {
     #[inline]
-    fn add_grad_fn<Args: Parents<N> + crate::UpdateArgs, const N: usize>(
+    fn add_grad_fn<Args: Parents<N> + crate::UpdateArgs<Buffers>, const N: usize>(
         &self,
         args: Args,
         op: fn(&mut Args) -> crate::Result<()>,

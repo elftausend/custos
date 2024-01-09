@@ -73,7 +73,7 @@ impl<Mods: AddOperation> AddOperation for Lazy<Mods> {
     }
 
     #[inline]
-    fn add_op<Args: Parents<N> + UpdateArgs, const N: usize>(
+    fn add_op<Args: Parents<N> + UpdateArgs<Buffers>, const N: usize>(
         &self,
         args: Args,
         operation: fn(&mut Args) -> crate::Result<()>,
