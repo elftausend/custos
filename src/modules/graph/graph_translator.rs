@@ -1,7 +1,7 @@
 use core::{hash::BuildHasherDefault, panic::Location};
 use std::collections::{HashMap, HashSet};
 
-use crate::{HashLocation, NoHasher, Parents, UniqueId};
+use crate::{CacheTrace, HashLocation, NoHasher, Parents, TranslatedCacheTrace, UniqueId};
 
 use super::opt_graph::OptGraph;
 
@@ -49,5 +49,25 @@ impl GraphTranslator {
 
             graph_trans.opt_graph.add_node(len, deps);
         });
+    }
+
+    pub fn translate_cache_traces(
+        &self,
+        cache_traces: Vec<CacheTrace>,
+    ) -> Vec<TranslatedCacheTrace> {
+        cache_traces
+            .into_iter()
+            .map(|cache_trace| TranslatedCacheTrace {
+                cache_idx: *self
+                    .idx_to_buf_location
+                    .get(&cache_trace.cache_idx)
+                    .unwrap(),
+                use_cache_idxs: cache_trace
+                    .use_cache_idxs
+                    .into_iter()
+                    .map(|cache_idx| *self.idx_to_buf_location.get(&cache_idx).unwrap())
+                    .collect(),
+            })
+            .collect::<Vec<_>>()
     }
 }

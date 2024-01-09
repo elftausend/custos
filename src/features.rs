@@ -377,8 +377,8 @@ pub trait UseGpuOrCpu {
 pub trait OptimizeMemGraph {
     fn optimize_mem_graph(
         &self,
-        cache_traces: Option<&[crate::TranslatedCacheTrace]>,
-        // graph_translator: Option<crate::modules::GraphTranslator>,
+        // cache_traces: Option<&[crate::TranslatedCacheTrace]>,
+        graph_translator: Option<&crate::modules::GraphTranslator>,
     ) -> crate::Result<()>;
 }
 
@@ -388,9 +388,9 @@ macro_rules! pass_down_optimize_mem_graph {
         impl<Mods: $crate::OptimizeMemGraph> $crate::OptimizeMemGraph for $to_impl<Mods> {
             fn optimize_mem_graph(
                 &self,
-                cache_traces: Option<&[$crate::TranslatedCacheTrace]>,
+                graph_translator: Option<&crate::modules::GraphTranslator>,
             ) -> crate::Result<()> {
-                self.modules.optimize_mem_graph(cache_traces)
+                self.modules.optimize_mem_graph(graph_translator)
             }
         }
     };

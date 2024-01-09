@@ -105,7 +105,7 @@ impl crate::OptimizeMemGraph for Base {
     #[inline]
     fn optimize_mem_graph(
         &self,
-        _cache_traces: Option<&[crate::TranslatedCacheTrace]>,
+        _graph_translator: Option<&crate::GraphTranslator>,
     ) -> crate::Result<()> {
         Ok(())
     }

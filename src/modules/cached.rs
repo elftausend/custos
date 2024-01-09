@@ -228,9 +228,12 @@ impl<Mods: RunModule<D>, D, SD: Device> RunModule<D> for CachedModule<Mods, SD> 
 impl<Mods: OptimizeMemGraph, SD: Device> OptimizeMemGraph for CachedModule<Mods, SD> {
     fn optimize_mem_graph(
         &self,
-        cache_traces: Option<&[crate::TranslatedCacheTrace]>,
+        graph_translator: Option<&crate::GraphTranslator>,
+        //cache_traces: Option<&[crate::TranslatedCacheTrace]>,
     ) -> crate::Result<()> {
-        let cache_traces = cache_traces.ok_or(DeviceError::MissingCacheTraces)?;
+        let graph_translator = graph_translator.ok_or(DeviceError::MissingCacheTraces)?;
+        let cache_traces =
+            graph_translator.translate_cache_traces(graph_translator.opt_graph.cache_traces());
 
         let mut cache = self.cache.borrow_mut();
         for cache_trace in cache_traces {

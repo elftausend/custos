@@ -63,28 +63,14 @@ impl<Mods, D> Setup<D> for Graph<Mods> {
 impl<Mods: OptimizeMemGraph> OptimizeMemGraph for Graph<Mods> {
     fn optimize_mem_graph(
         &self,
-        cache_traces: Option<&[TranslatedCacheTrace]>,
+        graph_translator: Option<&crate::GraphTranslator>,
+        // cache_traces: Option<&[TranslatedCacheTrace]>,
     ) -> crate::Result<()> {
-        match cache_traces {
-            Some(cache_traces) => self.modules.optimize_mem_graph(Some(cache_traces)),
+        match graph_translator {
+            Some(graph_translator) => self.modules.optimize_mem_graph(Some(graph_translator)),
             None => {
-                let graph_trans = self.graph_trans.borrow();
-                let idx_to_loc = &graph_trans.idx_to_buf_location;
-                let cache_traces = graph_trans.opt_graph.cache_traces();
-
-                let cache_traces = cache_traces
-                    .into_iter()
-                    .map(|cache_trace| TranslatedCacheTrace {
-                        cache_idx: *idx_to_loc.get(&cache_trace.cache_idx).unwrap(),
-                        use_cache_idxs: cache_trace
-                            .use_cache_idxs
-                            .into_iter()
-                            .map(|cache_idx| *idx_to_loc.get(&cache_idx).unwrap())
-                            .collect(),
-                    })
-                    .collect::<Vec<_>>();
-
-                self.modules.optimize_mem_graph(Some(&cache_traces))
+                let graph_translator = self.graph_trans.borrow();
+                self.modules.optimize_mem_graph(Some(&graph_translator))
             }
         }
     }

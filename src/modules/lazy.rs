@@ -583,7 +583,6 @@ mod tests {
         let rhs = device.buffer([1, 2, 3, 4]);
 
         let _out: Buffer<i32, _> = device.retrieve(10, (&lhs, &rhs));
-
     }
 
     /*
