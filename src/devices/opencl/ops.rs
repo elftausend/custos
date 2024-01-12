@@ -211,7 +211,10 @@ where
                 Ok(())
             }
             #[cfg(not(unified_cl))]
-            try_cl_apply_fn_mut(dev, buf, out, f);
+            {
+                try_cl_apply_fn_mut(dev, buf, out, **f)?;
+                Ok(())
+            }
         })
         .unwrap();
 

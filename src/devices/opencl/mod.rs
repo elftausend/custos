@@ -74,6 +74,12 @@ impl<T> HasId for CLPtr<T> {
     }
 }
 
+impl<T> CLPtr<T> {
+    pub fn len(&self) -> usize {
+        self.len
+    }
+}
+
 impl<T> ShallowCopy for CLPtr<T> {
     #[inline]
     unsafe fn shallow(&self) -> Self {
@@ -116,6 +122,7 @@ impl<T> HostPtr<T> for CLPtr<T> {
     }
 }
 
+#[cfg(unified_cl)]
 impl<T> Deref for CLPtr<T> {
     type Target = [T];
 
@@ -125,6 +132,7 @@ impl<T> Deref for CLPtr<T> {
     }
 }
 
+#[cfg(unified_cl)]
 impl<T> DerefMut for CLPtr<T> {
     #[inline]
     fn deref_mut(&mut self) -> &mut Self::Target {
