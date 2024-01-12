@@ -221,7 +221,7 @@ macro_rules! to_cpu {
 macro_rules! to_raw_host {
     ($cpu:expr, $($t:ident),*) => {
         $(
-            let $t = &unsafe { $crate::Buffer::<_, _, ()>::from_raw_host_device($cpu, $t.data.host_ptr, $t.len()) };
+            let $t = &unsafe { $crate::Buffer::<_, _, ()>::from_raw_host_device($cpu, $t.base().host_ptr, $t.len()) };
         )*
     };
 }
@@ -233,7 +233,7 @@ macro_rules! to_raw_host_mut {
     ($cpu:expr, $($t:ident, $cpu_name:ident),*) => {
         $(
             #[allow(unused_mut)]
-            let mut $cpu_name = &mut unsafe { $crate::Buffer::<_, _, ()>::from_raw_host_device($cpu, $t.data.host_ptr, $t.len()) };
+            let mut $cpu_name = &mut unsafe { $crate::Buffer::<_, _, ()>::from_raw_host_device($cpu, $t.base().host_ptr, $t.len()) };
         )*
     };
 }
