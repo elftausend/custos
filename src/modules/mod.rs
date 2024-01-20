@@ -44,7 +44,7 @@ pub struct HashLocationCacheTrace {
 #[cfg(not(feature = "no-std"))]
 #[inline]
 pub(crate) unsafe fn register_buf<T, D, S>(
-    cache: &mut HashMap<UniqueId, Box<dyn Any>, impl BuildHasher>,
+    cache: &mut HashMap<UniqueId, Box<dyn ShallowCopyable>, impl BuildHasher>,
     buf: &Buffer<T, D, S>,
 ) where
     T: 'static,
@@ -68,6 +68,9 @@ pub(crate) unsafe fn register_buf<T, D, S>(
 
 #[cfg(not(feature = "no-std"))]
 #[inline]
-pub fn unregister_buf(cache: &mut HashMap<UniqueId, Box<dyn Any>, impl BuildHasher>, id: Id) {
+pub fn unregister_buf(
+    cache: &mut HashMap<UniqueId, Box<dyn crate::ShallowCopyable>, impl BuildHasher>,
+    id: Id,
+) {
     cache.remove(&id);
 }

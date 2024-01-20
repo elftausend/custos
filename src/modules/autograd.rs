@@ -227,7 +227,7 @@ impl<Mods: RunModule<D>, D> RunModule<D> for Autograd<Mods> {
 
 impl<Mods: AddGradFn> AddGradFn for Autograd<Mods> {
     #[inline]
-    fn add_grad_fn<Args: Parents<N> + crate::UpdateArgs<Buffers>, const N: usize>(
+    fn add_grad_fn<Args: Parents<N> + crate::UpdateArgs, const N: usize>(
         &self,
         args: Args,
         op: fn(&mut Args) -> crate::Result<()>,
@@ -244,18 +244,18 @@ mod tests {
     use core::any::Any;
 
     use crate::{
-        AddGradFn, Base, Buffer, Cached, Combiner, Device, HasId, Module, Retriever, Shape,
-        UnaryGrad, CPU,
+        AddGradFn, Base, Buffer, Cached, Combiner, Device, HasId, Module, Retriever,
+        ShallowCopyable, Shape, UnaryGrad, CPU,
     };
 
     use super::Autograd;
 
     #[inline]
     pub fn downcast_val<'a, 'b, T: 'static, D: Device + 'static, S: Shape>(
-        buf_any: &'b Box<dyn Any>,
+        buf_any: &'b Box<dyn ShallowCopyable>,
         _device: &'a D,
     ) -> Option<&'b Buffer<'a, T, D, S>> {
-        buf_any.downcast_ref::<Buffer<T, D, S>>()
+        (buf_any as &dyn Any).downcast_ref::<Buffer<T, D, S>>()
     }
 
     #[test]

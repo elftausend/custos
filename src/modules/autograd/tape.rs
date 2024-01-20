@@ -36,7 +36,7 @@ impl Debug for Tape {
 impl Tape {
     #[inline]
     #[track_caller]
-    pub fn add_grad_fn2<Args: Parents<N> + UpdateArgs<Buffers>, const N: usize>(
+    pub fn add_grad_fn2<Args: Parents<N> + UpdateArgs, const N: usize>(
         &mut self,
         args: Args,
         op: fn(&mut Args) -> crate::Result<()>,
@@ -94,6 +94,7 @@ impl Tape {
     where
         T: Clone + One + 'static,
         D: Alloc<T> + WriteBuf<T, S, D> + TapeActions + 'static,
+        D::Data<T, S>: crate::ShallowCopy,
     {
         let mut no_grads = {
             // unique mutable access to gradients

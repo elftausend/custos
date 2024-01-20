@@ -8,6 +8,7 @@ impl<'a, T, D, S> Buffer<'a, T, D, S>
 where
     T: 'static,
     D: HasAutograd + Device + 'static,
+    D::Data<T, S>: crate::ShallowCopy,
     S: Shape,
 {
     /// Calls `.backward_seeded` on the [`Tape`].
@@ -39,6 +40,7 @@ where
     pub fn grad(&self) -> &'a Self
     where
         D: MayTapeActions + Alloc<T>,
+        D::Data<T, S>: crate::ShallowCopy,
     {
         unsafe {
             self.device()
@@ -80,6 +82,7 @@ where
     pub fn grad_mut(&self) -> &'a mut Self
     where
         D: MayTapeActions + Alloc<T>,
+        D::Data<T, S>: crate::ShallowCopy,
     {
         unsafe {
             self.device()
@@ -96,6 +99,7 @@ where
     pub fn try_grad_mut(&self) -> Option<&'a mut Self>
     where
         D: MayTapeActions + Alloc<T>,
+        D::Data<T, S>: crate::ShallowCopy,
     {
         #[cfg(feature = "autograd")]
         unsafe {

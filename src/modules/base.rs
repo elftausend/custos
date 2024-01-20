@@ -113,7 +113,7 @@ impl crate::OptimizeMemGraph for Base {
 
 impl AddGradFn for Base {
     #[inline]
-    fn add_grad_fn<Args: Parents<N> + crate::UpdateArgs<Buffers>, const N: usize>(
+    fn add_grad_fn<Args: Parents<N> + crate::UpdateArgs, const N: usize>(
         &self,
         _args: Args,
         _op: fn(&mut Args) -> crate::Result<()>,

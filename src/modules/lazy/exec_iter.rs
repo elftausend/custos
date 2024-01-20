@@ -1,14 +1,14 @@
 use crate::{Buffers, UniqueId, UpdateArgs};
 
-pub struct ExecIter<'a, B> {
+pub struct ExecIter<'a> {
     pub(super) ids_to_check: std::slice::Iter<'a, Vec<Option<UniqueId>>>,
     pub(super) ops: std::slice::Iter<'a, fn(*mut ()) -> crate::Result<()>>,
-    pub(super) args: std::slice::IterMut<'a, Box<dyn UpdateArgs<B>>>,
+    pub(super) args: std::slice::IterMut<'a, Box<dyn UpdateArgs>>,
     pub(super) buffers: &'a mut Buffers,
 }
 
 pub fn exec_op(
-    args: &mut Box<dyn UpdateArgs<Buffers>>,
+    args: &mut Box<dyn UpdateArgs>,
     op: &fn(*mut ()) -> crate::Result<()>,
     ids_to_check: &[Option<UniqueId>],
     buffers: &mut Buffers,
@@ -19,7 +19,7 @@ pub fn exec_op(
     op(args)
 }
 
-impl<'a> Iterator for ExecIter<'a, Buffers> {
+impl<'a> Iterator for ExecIter<'a> {
     type Item = crate::Result<()>;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -30,7 +30,7 @@ impl<'a> Iterator for ExecIter<'a, Buffers> {
     }
 }
 
-impl<'a> DoubleEndedIterator for ExecIter<'a, Buffers> {
+impl<'a> DoubleEndedIterator for ExecIter<'a> {
     fn next_back(&mut self) -> Option<Self::Item> {
         let ids_to_check = self.ids_to_check.next_back()?;
         let op = self.ops.next_back()?;
@@ -39,7 +39,7 @@ impl<'a> DoubleEndedIterator for ExecIter<'a, Buffers> {
     }
 }
 
-impl<'a> ExactSizeIterator for ExecIter<'a, Buffers> {
+impl<'a> ExactSizeIterator for ExecIter<'a> {
     fn len(&self) -> usize {
         self.ids_to_check.len()
     }

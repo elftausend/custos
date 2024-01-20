@@ -98,7 +98,7 @@ impl<T: Into<NoId<T>>> AsNoId for T {
     }
 }
 
-impl<T> UpdateArg<crate::Buffers> for NoId<T> {
+impl<T> UpdateArg for NoId<T> {
     #[inline]
     #[cfg(not(feature = "no-std"))]
     fn update_arg(
@@ -110,25 +110,25 @@ impl<T> UpdateArg<crate::Buffers> for NoId<T> {
     }
 }
 
-impl<'a, T: 'static, D: Device + 'static, S: Shape + 'static> UpdateArg<crate::Buffers>
-    for &Buffer<'a, T, D, S>
-{
+impl<'a, T: 'static, D: Device + 'static, S: Shape + 'static> UpdateArg for &Buffer<'a, T, D, S> {
     #[cfg(not(feature = "no-std"))]
     fn update_arg(
         &mut self,
         id: Option<UniqueId>,
         buffers: &mut crate::Buffers,
     ) -> crate::Result<()> {
+        use crate::ShallowCopyable;
+
         let buf = buffers
             .get(&id.unwrap())
             .ok_or(DeviceError::InvalidLazyBuf)?;
-        *self = unsafe { &*(&**buf as *const dyn Any as *const Buffer<T, D, S>) };
+        *self = unsafe { &*(&**buf as *const dyn ShallowCopyable as *const Buffer<T, D, S>) };
         //    *self = buffers.get(&self.id()).unwrap().downcast_ref().unwrap();
         Ok(())
     }
 }
 
-impl<'a, T: 'static, D: Device + 'static, S: Shape + 'static> UpdateArg<crate::Buffers>
+impl<'a, T: 'static, D: Device + 'static, S: Shape + 'static> UpdateArg
     for &mut Buffer<'a, T, D, S>
 {
     #[cfg(not(feature = "no-std"))]
@@ -137,10 +137,12 @@ impl<'a, T: 'static, D: Device + 'static, S: Shape + 'static> UpdateArg<crate::B
         id: Option<UniqueId>,
         buffers: &mut crate::Buffers,
     ) -> crate::Result<()> {
+        use crate::ShallowCopyable;
+
         let buf = buffers
             .get_mut(&id.unwrap())
             .ok_or(DeviceError::InvalidLazyBuf)?;
-        *self = unsafe { &mut *(&mut **buf as *mut dyn Any as *mut Buffer<T, D, S>) };
+        *self = unsafe { &mut *(&mut **buf as *mut dyn ShallowCopyable as *mut Buffer<T, D, S>) };
         Ok(())
         //    *self = buffers.get(&self.id()).unwrap().downcast_ref().unwrap();
     }

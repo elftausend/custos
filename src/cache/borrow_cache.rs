@@ -40,9 +40,10 @@ impl Display for CachingError {
 
 impl std::error::Error for CachingError {}
 
-pub(crate) type Buffers = HashMap<UniqueId, Box<dyn Any>, BuildHasherDefault<NoHasher>>;
+pub(crate) type Buffers =
+    HashMap<UniqueId, Box<dyn crate::ShallowCopyable>, BuildHasherDefault<NoHasher>>;
 
-#[derive(Debug, Default)]
+#[derive(Default)]
 pub struct BorrowCache {
     pub(crate) cache: Buffers,
 }
@@ -53,11 +54,13 @@ impl BorrowCache {
     where
         T: 'static,
         D: Alloc<T> + 'static,
+        D::Data<T, S>: crate::ShallowCopy,
         S: Shape,
     {
         self.add_buf_once::<T, D, S>(device, id);
 
         let buf_any = self.cache.get(&id).unwrap();
+        let buf_any = buf_any as &dyn Any;
         buf_any.downcast_ref().unwrap()
     }
 
@@ -65,6 +68,7 @@ impl BorrowCache {
     where
         T: 'static,
         D: Alloc<T> + 'static,
+        D::Data<T, S>: crate::ShallowCopy,
         S: Shape,
     {
         self.add_buf_once::<T, D, S>(device, id);
@@ -75,6 +79,7 @@ impl BorrowCache {
     where
         T: 'static,
         D: Alloc<T> + 'static,
+        D::Data<T, S>: crate::ShallowCopy,
         S: Shape,
     {
         if self.cache.get(&id).is_some() {
@@ -88,6 +93,7 @@ impl BorrowCache {
     where
         T: 'static,
         D: Alloc<T> + 'static,
+        D::Data<T, S>: crate::ShallowCopy,
         S: Shape,
     {
         // not using ::new, because this buf would get added to the cache of the device.
@@ -112,7 +118,7 @@ impl BorrowCache {
         D: Alloc<T> + 'static,
         S: Shape,
     {
-        self.cache.get(&id)?.downcast_ref()
+        (self.cache.get(&id)? as &dyn Any).downcast_ref()
     }
 
     #[inline]
@@ -122,9 +128,7 @@ impl BorrowCache {
         D: Device + 'static,
         S: Shape,
     {
-        self.cache
-            .get(&id)
-            .ok_or(CachingError::InvalidId)?
+        (self.cache.get(&id).ok_or(CachingError::InvalidId)? as &dyn Any)
             .downcast_ref()
             .ok_or(CachingError::InvalidTypeInfo)
     }
@@ -137,13 +141,12 @@ impl BorrowCache {
     where
         T: 'static,
         D: Device + 'static,
+        D::Data<T, S>: crate::ShallowCopy,
         S: Shape,
     {
         unsafe {
             transmute(
-                self.cache
-                    .get_mut(&id)
-                    .ok_or(CachingError::InvalidId)?
+                (self.cache.get_mut(&id).ok_or(CachingError::InvalidId)? as &mut dyn Any)
                     .downcast_mut::<Buffer<T, D, S>>()
                     .ok_or(CachingError::InvalidTypeInfo),
             )

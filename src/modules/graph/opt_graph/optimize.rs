@@ -486,6 +486,42 @@ mod tests {
     }
 
     #[cfg(feature = "cpu")]
+    #[cfg(feature = "lazy")]
+    #[cfg_attr(miri, ignore)]
+    #[test]
+    fn test_lazy_from_retrieve_sliced_chained_perf_example_optimize() {
+        use crate::{Base, Buffer, Device, Graph, HasId, Lazy, OptimizeMemGraph, Retriever, Run, CPU};
+
+        let device = CPU::<Graph<Lazy<Base>>>::new();
+
+        // idx: 0, deps: []
+        let x: Buffer<f32, _> = device.buffer([1.; 1000]);
+        // idx: 1, deps: []
+        let b: Buffer<f32, _> = device.buffer([1.1; 1000]);
+
+        // idx: 2, deps: [0, 0]
+        let squared: Buffer<f32, _> = device.retrieve::<2>(1000, (&x, &x));
+        // idx: 3, deps: [1, 0]
+        let add: Buffer<f32, _> = device.retrieve::<2>(1000, (&b, &x));
+        // idx: 4, deps: [3, 1]
+        let mul_b: Buffer<f32, _> = device.retrieve::<2>(1000, (&add, &b));
+        // idx: 5, deps: [2, 0]
+        let mul: Buffer<f32, _> = device.retrieve::<2>(1000, (&squared, &x));
+        // idx: 6, deps: [5, 4]
+        let out: Buffer<f32, _> = device.retrieve::<2>(1000, (&mul, &mul_b));
+
+        unsafe { device.run().unwrap() };
+
+        device.optimize_mem_graph(None).unwrap();
+
+        assert_eq!(squared.replace().id(), mul.replace().id());
+        assert_eq!(squared.replace().id(), out.replace().id());
+
+        assert_eq!(add.replace().id(), mul_b.replace().id());
+
+    }
+
+    #[cfg(feature = "cpu")]
     #[cfg(feature = "cached")]
     #[cfg_attr(miri, ignore)]
     #[test]

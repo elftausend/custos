@@ -8,10 +8,7 @@ pub use opt_graph::*;
 use core::{cell::RefCell, panic::Location};
 
 use crate::{
-    impl_remove_layer, pass_down_add_operation, pass_down_exec_now_module,
-    pass_down_unified_mem_chain, pass_down_use_gpu_or_cpu, AddLayer, Alloc, Buffer, Device, HasId,
-    Module, OnDropBuffer, OnNewBuffer, OptimizeMemGraph, Parents, PtrType, Retrieve, Setup, Shape,
-    WrappedData,
+    impl_remove_layer, pass_down_add_operation, pass_down_exec_now_module, pass_down_replace_buf_dev, pass_down_replace_buf_module, pass_down_unified_mem_chain, pass_down_use_gpu_or_cpu, AddLayer, Alloc, Buffer, Device, HasId, Module, OnDropBuffer, OnNewBuffer, OptimizeMemGraph, Parents, PtrType, Retrieve, RunModule, Setup, Shape, WrappedData
 };
 
 pub use self::graph_translator::GraphTranslator;
@@ -98,8 +95,16 @@ pass_down_add_operation!(Graph);
 pass_down_exec_now_module!(Graph);
 pass_down_unified_mem_chain!(Graph);
 pass_down_use_gpu_or_cpu!(Graph);
+pass_down_replace_buf_module!(Graph);
 
 impl_remove_layer!(Graph);
+
+impl<Mods: RunModule<D>, D> RunModule<D> for Graph<Mods> {
+    #[inline]
+    fn run(&self, _device: &D) -> crate::Result<()> {
+        self.modules.run(_device)
+    }
+}
 
 impl<NewMods, SD> AddLayer<NewMods, SD> for Graph<()> {
     type Wrapped = crate::Graph<NewMods>;

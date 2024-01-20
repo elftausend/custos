@@ -194,7 +194,7 @@ impl<Mods, SD: Device> RemoveLayer<Mods> for CachedModule<Mods, SD> {
 
 impl<Mods: AddGradFn, D: Device> AddGradFn for CachedModule<Mods, D> {
     #[inline]
-    fn add_grad_fn<Args: Parents<N> + crate::UpdateArgs<Buffers>, const N: usize>(
+    fn add_grad_fn<Args: Parents<N> + crate::UpdateArgs, const N: usize>(
         &self,
         args: Args,
         op: fn(&mut Args) -> crate::Result<()>,

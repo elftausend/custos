@@ -1,5 +1,5 @@
-use crate::{bounds_to_range, Buffers, Device, Parents, UniqueId, UpdateArgs};
-use core::{mem::transmute, ops::RangeBounds};
+use crate::{bounds_to_range, Buffers, Device, Parents, ShallowCopy, UniqueId, UpdateArgs};
+use core::{fmt::Debug, mem::transmute, ops::RangeBounds};
 
 use super::exec_iter::{exec_op, ExecIter};
 
@@ -7,12 +7,23 @@ use super::exec_iter::{exec_op, ExecIter};
 pub struct LazyGraph {
     pub ids_to_check: Vec<Vec<Option<UniqueId>>>,
     pub ops: Vec<fn(*mut ()) -> crate::Result<()>>,
-    pub args: Vec<Box<dyn UpdateArgs<Buffers>>>,
+    pub args: Vec<Box<dyn UpdateArgs>>,
+}
+
+pub trait ShallowCopyable {
+    fn shallow_copy(&self) -> Box<dyn ShallowCopyable>;
+}
+
+impl<T: ShallowCopy + 'static> ShallowCopyable for T {
+    #[inline]
+    fn shallow_copy(&self) -> Box<dyn ShallowCopyable> {
+        Box::new(unsafe { self.shallow() })
+    }
 }
 
 impl LazyGraph {
     #[inline]
-    pub fn iter_with<'a>(&'a mut self, buffers: &'a mut Buffers) -> ExecIter<Buffers> {
+    pub fn iter_with<'a>(&'a mut self, buffers: &'a mut Buffers) -> ExecIter {
         ExecIter {
             ids_to_check: self.ids_to_check.iter(),
             ops: self.ops.iter(),
@@ -29,7 +40,7 @@ impl LazyGraph {
     }
 
     #[track_caller]
-    pub fn add_operation<Args: Parents<N> + UpdateArgs<Buffers>, const N: usize>(
+    pub fn add_operation<Args: Parents<N> + UpdateArgs, const N: usize>(
         &mut self,
         args: Args,
         op: fn(&mut Args) -> crate::Result<()>,
@@ -42,7 +53,7 @@ impl LazyGraph {
                 .collect(),
         );
 
-        let args: Box<dyn UpdateArgs<Buffers>> = Box::new(args);
+        let args: Box<dyn UpdateArgs> = Box::new(args);
 
         self.args.push(unsafe { transmute(args) });
         unsafe { self.ops.push(transmute(op)) };
@@ -119,6 +130,7 @@ mod tests {
             out.id()
         };
 
+        // todo!()
         unsafe { graph.call_lazily::<CPU>(&mut outs_unordered).unwrap() }
     }
 

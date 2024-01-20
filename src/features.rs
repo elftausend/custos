@@ -73,13 +73,13 @@ pub trait HasModules<Mods> {
 }
 
 pub trait AddGradFn {
-    fn add_grad_fn<Args: Parents<N> + UpdateArgs<Buffers>, const N: usize>(
+    fn add_grad_fn<Args: Parents<N> + UpdateArgs, const N: usize>(
         &self,
         args: Args,
         op: fn(&mut Args) -> crate::Result<()>,
     );
 
-    fn add_grad_and_forward_fn<Args: Parents<N> + UpdateArgs<Buffers> + Clone, const N: usize>(
+    fn add_grad_and_forward_fn<Args: Parents<N> + UpdateArgs + Clone, const N: usize>(
         &self,
         args: Args,
         forward_fn: fn(&mut Args) -> crate::Result<()>,
@@ -99,10 +99,7 @@ macro_rules! pass_down_grad_fn {
     ($to_impl:ident) => {
         impl<Mods: $crate::AddGradFn> $crate::AddGradFn for $to_impl<Mods> {
             #[inline]
-            fn add_grad_fn<
-                Args: $crate::Parents<N> + $crate::UpdateArgs<$crate::Buffers>,
-                const N: usize,
-            >(
+            fn add_grad_fn<Args: $crate::Parents<N> + $crate::UpdateArgs, const N: usize>(
                 &self,
                 args: Args,
                 op: fn(&mut Args) -> crate::Result<()>,
@@ -191,7 +188,7 @@ pub trait ReplaceBuf<T, D: Device, S: Shape>: OnDropBuffer {
 }
 
 #[macro_export]
-macro_rules! pass_down_replace_buf {
+macro_rules! pass_down_replace_buf_dev {
     ($device:ident) => {
         impl<T, S: Shape, Mods: $crate::ReplaceBuf<T, Self, S>> $crate::ReplaceBuf<T, Self, S>
             for $device<Mods>
@@ -207,9 +204,26 @@ macro_rules! pass_down_replace_buf {
     };
 }
 
+#[macro_export]
+macro_rules! pass_down_replace_buf_module {
+    ($module:ident) => {
+        impl<T, S: Shape, Mods: $crate::ReplaceBuf<T, D, S>, D: $crate::Device>
+            $crate::ReplaceBuf<T, D, S> for $module<Mods>
+        {
+            #[inline]
+            fn replace_buf<'a, 'c>(
+                &'c self,
+                buffer: &'c Buffer<'a, T, D, S>,
+            ) -> &'c Buffer<'a, T, D, S> {
+                self.modules.replace_buf(buffer)
+            }
+        }
+    };
+}
+
 pub trait AddOperation {
     #[track_caller]
-    fn add_op<Args: Parents<N> + UpdateArgs<Buffers>, const N: usize>(
+    fn add_op<Args: Parents<N> + UpdateArgs, const N: usize>(
         &self,
         args: Args,
         operation: fn(&mut Args) -> crate::Result<()>,
@@ -236,10 +250,7 @@ macro_rules! pass_down_add_operation {
     ($device:ident) => {
         impl<Mods: $crate::AddOperation> $crate::AddOperation for $device<Mods> {
             #[inline]
-            fn add_op<
-                Args: $crate::Parents<N> + $crate::UpdateArgs<$crate::Buffers>,
-                const N: usize,
-            >(
+            fn add_op<Args: $crate::Parents<N> + $crate::UpdateArgs, const N: usize>(
                 &self,
                 args: Args,
                 operation: fn(&mut Args) -> crate::Result<()>,

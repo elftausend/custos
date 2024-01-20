@@ -1,4 +1,4 @@
-use crate::{Alloc, BorrowCache, Buffer, CachingError, HasId, Id, Parents, Shape};
+use crate::{Alloc, BorrowCache, Buffer, CachingError, HasId, Id, Parents, ShallowCopy, Shape};
 
 const INVALID_ID: &str = "A matching Buffer does not exist.";
 
@@ -13,7 +13,7 @@ pub struct Gradients {
 impl core::fmt::Debug for Gradients {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         f.debug_struct("Gradients")
-            .field("cache", &self.grads_pool)
+            // .field("cache", &self.grads_pool)
             .finish()
     }
 }
@@ -53,6 +53,7 @@ impl Gradients {
     where
         T: 'static,
         S: Shape,
+        D::Data<T, S>: crate::ShallowCopy,
         D: Alloc<T> + 'static,
     {
         self.grads_pool.get_buf_mut(id)
@@ -65,6 +66,7 @@ impl Gradients {
     where
         T: 'static,
         S: Shape,
+        D::Data<T, S>: crate::ShallowCopy,
         D: Alloc<T> + 'static,
     {
         self.grads_pool.add_or_get(device, id)
@@ -78,6 +80,7 @@ impl Gradients {
         T: 'static,
         S: Shape,
         D: Alloc<T> + 'static,
+        D::Data<T, S>: crate::ShallowCopy,
     {
         self.grads_pool.add_or_get_mut(device, id)
     }
@@ -89,7 +92,7 @@ impl Gradients {
         T: 'static,
         S: Shape,
         D: Alloc<T> + 'static,
-        D::Data<T, S>: HasId,
+        D::Data<T, S>: HasId + ShallowCopy,
     {
         self.get_ref(buf.device(), buf.id())
     }
@@ -114,6 +117,7 @@ impl Gradients {
     where
         T: 'static,
         S: Shape,
+        D::Data<T, S>: crate::ShallowCopy,
         D: Alloc<T> + 'static,
     {
         let [lid, rid, oid] = parents.ids();
@@ -151,6 +155,7 @@ impl Gradients {
         IS: Shape,
         OS: Shape,
         D: Alloc<T> + 'static,
+        D::Data<T, IS>: crate::ShallowCopy,
     {
         let [xid, oid] = parents.ids();
         // self.grads_pool.add_buf_once::<T, _, IS>(device, oid);

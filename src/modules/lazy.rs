@@ -3,6 +3,7 @@ mod lazy_graph;
 mod ty;
 mod wrapper;
 
+pub use lazy_graph::ShallowCopyable;
 pub use ty::*;
 
 use crate::{
@@ -22,7 +23,7 @@ use std::collections::HashMap;
 pub use self::lazy_graph::LazyGraph;
 use self::wrapper::LazyWrapper;
 
-type Buffers = HashMap<UniqueId, Box<dyn Any>, BuildHasherDefault<NoHasher>>;
+type Buffers = HashMap<UniqueId, Box<dyn ShallowCopyable>, BuildHasherDefault<NoHasher>>;
 
 #[derive(Default)]
 pub struct Lazy<Mods> {
@@ -76,7 +77,7 @@ impl<Mods: AddOperation> AddOperation for Lazy<Mods> {
     }
 
     #[inline]
-    fn add_op<Args: Parents<N> + UpdateArgs<Buffers>, const N: usize>(
+    fn add_op<Args: Parents<N> + UpdateArgs, const N: usize>(
         &self,
         args: Args,
         operation: fn(&mut Args) -> crate::Result<()>,
@@ -288,8 +289,14 @@ impl<Mods> OptimizeMemGraph for Lazy<Mods> {
                 .idx_to_buf_id
                 .get(&cache_trace.cache_idx)
                 .ok_or(DeviceError::GraphOptimization)?;
-            let buf = self.buffers.borrow().get(buf_id).unwrap().clone();
-            for to_replace in cache_trace.use_cache_idxs {}
+            let mut buffers = self.buffers.borrow_mut();
+            let buf = buffers.get(buf_id).unwrap().shallow_copy();
+
+            for to_replace in cache_trace.use_cache_idxs {
+                let id = graph_translator.idx_to_buf_id.get(&to_replace).unwrap();
+                buffers.insert(*id, buf.shallow_copy());
+            }
+
             // graph_translator.
         }
         Ok(())
