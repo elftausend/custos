@@ -406,13 +406,11 @@ mod tests {
     #[cfg(feature = "cpu")]
     #[test]
     fn test_cached_return_retrieve() {
-        use crate::cpu::CPUPtr;
-
-        let x = {
+        // invalid!
+        let _x = {
             let device = CPU::<Cached<Base>>::new();
             // let buf: Buffer<f32, _> = device.retrieve(10, ());
             unsafe { Retrieve::<_, f32, ()>::retrieve(&device.modules, &device, 10, ()) }
         };
-        x.as_slice();
     }
 }
