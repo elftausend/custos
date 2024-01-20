@@ -1,4 +1,4 @@
-use crate::{bounds_to_range, Device, NoHasher, Parents, UniqueId, UpdateArgs, Buffers};
+use crate::{bounds_to_range, Buffers, Device, NoHasher, Parents, UniqueId, UpdateArgs};
 use core::{any::Any, hash::BuildHasherDefault, mem::transmute, ops::RangeBounds};
 use std::collections::HashMap;
 
@@ -49,10 +49,7 @@ pub struct LazyGraph {
 
 impl LazyGraph {
     #[inline]
-    pub fn iter_with<'a>(
-        &'a mut self,
-        buffers: &'a mut Buffers,
-    ) -> ExecIter<Buffers> {
+    pub fn iter_with<'a>(&'a mut self, buffers: &'a mut Buffers) -> ExecIter<Buffers> {
         ExecIter {
             ids_to_check: self.ids_to_check.iter(),
             ops: self.ops.iter(),

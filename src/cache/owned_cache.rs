@@ -26,9 +26,11 @@ impl Cache {
         }
     }
 
+    /// # Safety
+    /// Lifetime of data must be at least as long as the lifetime of the cache (usually the device).
     #[track_caller]
     #[inline]
-    pub fn get<T, S, D>(&mut self, device: &D, len: usize, callback: fn()) -> D::Base<T, S>
+    pub unsafe fn get<T, S, D>(&mut self, device: &D, len: usize, callback: fn()) -> D::Base<T, S>
     where
         D: Alloc<T> + 'static,
         D::Base<T, S>: ShallowCopy + 'static,
@@ -80,7 +82,7 @@ mod tests {
         assert_eq!(cache.nodes.len(), 1);
         assert_eq!(out.len, 10);
 
-        let out1 = cache.get::<f32, (), _>(&device, 10, || ());
+        let out1 = unsafe { cache.get::<f32, (), _>(&device, 10, || ()) };
         assert_ne!(out.ptr, out1.ptr);
     }
 
@@ -91,10 +93,10 @@ mod tests {
 
         assert_eq!(cache.nodes.len(), 0);
 
-        let out1 = cache.get::<f32, (), _>(&device, 10, || ());
+        let out1 = unsafe { cache.get::<f32, (), _>(&device, 10, || ()) };
         assert_eq!(cache.nodes.len(), 1);
 
-        let out2 = cache.get::<f32, (), _>(&device, 10, || ());
+        let out2 = unsafe { cache.get::<f32, (), _>(&device, 10, || ()) };
 
         assert_ne!(out1.ptr, out2.ptr);
         assert_eq!(cache.nodes.len(), 2);
@@ -108,7 +110,7 @@ mod tests {
 
         let mut prev = None;
         for _ in 0..1000 {
-            let out3 = cache.get::<f32, (), _>(&device, 10, || ());
+            let out3 = unsafe { cache.get::<f32, (), _>(&device, 10, || ()) };
             if prev.is_none() {
                 prev = Some(out3.ptr);
             }

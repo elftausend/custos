@@ -115,7 +115,7 @@ impl<NewMods, SD> AddLayer<NewMods, SD> for Graph<()> {
 
 impl<T: 'static, Mods: Retrieve<D, T, S>, D: 'static, S: Shape> Retrieve<D, T, S> for Graph<Mods> {
     #[inline]
-    fn retrieve<const NUM_PARENTS: usize>(
+    unsafe fn retrieve<const NUM_PARENTS: usize>(
         &self,
         device: &D,
         len: usize,
@@ -138,7 +138,7 @@ impl<T: 'static, Mods: Retrieve<D, T, S>, D: 'static, S: Shape> Retrieve<D, T, S
         let next_idx = graph_trans.next_idx;
         graph_trans.buf_id_to_idx.insert(data.id().id, next_idx);
         graph_trans.idx_to_buf_id.insert(next_idx, data.id().id);
-        
+
         graph_trans
             .idx_to_buf_location
             .insert(next_idx, Location::caller().into());

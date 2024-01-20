@@ -2,8 +2,8 @@ use core::{any::Any, fmt::Debug, hash::BuildHasherDefault, panic::Location};
 use std::collections::{HashMap, HashSet};
 
 use crate::{
-    prelude::One, Alloc, Buffer, HasId, HashLocation, LazyGraph, LocationHasher, NoHasher, Parents,
-    Shape, TapeActions, UniqueId, UpdateArgs, WriteBuf, Buffers,
+    prelude::One, Alloc, Buffer, Buffers, HasId, HashLocation, LazyGraph, LocationHasher, NoHasher,
+    Parents, Shape, TapeActions, UniqueId, UpdateArgs, WriteBuf,
 };
 
 use super::Gradients;
@@ -68,10 +68,7 @@ impl Tape {
     }
 
     /// Calls all gradient functions in reverse order.
-    pub fn backward(
-        &mut self,
-        buffers: &mut Buffers,
-    ) {
+    pub fn backward(&mut self, buffers: &mut Buffers) {
         // for grad_fn_id in self.grad_fn_order.iter().rev() {
         //     let grad_fn = self.grad_fns_loc.get(grad_fn_id).unwrap();
         //     grad_fn(&mut self.grads);

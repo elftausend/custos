@@ -40,7 +40,6 @@ impl Display for CachingError {
 
 impl std::error::Error for CachingError {}
 
-
 pub(crate) type Buffers = HashMap<UniqueId, Box<dyn Any>, BuildHasherDefault<NoHasher>>;
 
 #[derive(Debug, Default)]

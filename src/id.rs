@@ -104,18 +104,20 @@ impl<T> UpdateArg<crate::Buffers> for NoId<T> {
     fn update_arg(
         &mut self,
         _id: Option<UniqueId>,
-        _buffers: &mut crate::Buffers 
+        _buffers: &mut crate::Buffers,
     ) -> crate::Result<()> {
         Ok(())
     }
 }
 
-impl<'a, T: 'static, D: Device + 'static, S: Shape + 'static> UpdateArg<crate::Buffers> for &Buffer<'a, T, D, S> {
+impl<'a, T: 'static, D: Device + 'static, S: Shape + 'static> UpdateArg<crate::Buffers>
+    for &Buffer<'a, T, D, S>
+{
     #[cfg(not(feature = "no-std"))]
     fn update_arg(
         &mut self,
         id: Option<UniqueId>,
-        buffers: &mut crate::Buffers 
+        buffers: &mut crate::Buffers,
     ) -> crate::Result<()> {
         let buf = buffers
             .get(&id.unwrap())
@@ -133,9 +135,8 @@ impl<'a, T: 'static, D: Device + 'static, S: Shape + 'static> UpdateArg<crate::B
     fn update_arg(
         &mut self,
         id: Option<UniqueId>,
-        buffers: &mut crate::Buffers 
+        buffers: &mut crate::Buffers,
     ) -> crate::Result<()> {
-
         let buf = buffers
             .get_mut(&id.unwrap())
             .ok_or(DeviceError::InvalidLazyBuf)?;

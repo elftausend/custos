@@ -1,9 +1,9 @@
 use core::{cell::RefCell, marker::PhantomData};
 
 use crate::{
-    AddGradFn, AddLayer, AddOperation, Alloc, Buffer, Cache, Device, DeviceError, ExecNow, HasId,
-    Module, OnDropBuffer, OnNewBuffer, Parents, PtrType, RemoveLayer, Retrieve, RunModule, Setup,
-    ShallowCopy, Shape, WrappedData, Buffers,
+    AddGradFn, AddLayer, AddOperation, Alloc, Buffer, Buffers, Cache, Device, DeviceError, ExecNow,
+    HasId, Module, OnDropBuffer, OnNewBuffer, Parents, PtrType, RemoveLayer, Retrieve, RunModule,
+    Setup, ShallowCopy, Shape, WrappedData,
 };
 
 #[cfg(feature = "graph")]
@@ -125,7 +125,7 @@ where
     SimpleDevice: Device,
 {
     #[inline]
-    fn retrieve<const NUM_PARENTS: usize>(
+    unsafe fn retrieve<const NUM_PARENTS: usize>(
         &self,
         device: &D,
         len: usize,
@@ -401,5 +401,18 @@ mod tests {
         let ptr1 = location();
         // good
         assert_ne!(ptr.file().as_ptr(), ptr1.file().as_ptr());
+    }
+
+    #[cfg(feature = "cpu")]
+    #[test]
+    fn test_cached_return_retrieve() {
+        use crate::cpu::CPUPtr;
+
+        let x = {
+            let device = CPU::<Cached<Base>>::new();
+            // let buf: Buffer<f32, _> = device.retrieve(10, ());
+            unsafe { Retrieve::<_, f32, ()>::retrieve(&device.modules, &device, 10, ()) }
+        };
+        x.as_slice();
     }
 }

@@ -1,6 +1,6 @@
 use core::{fmt::Debug, ops::RangeBounds};
 
-use crate::{HasId, Parents, Shape, UniqueId, UpdateArgs, CPU, Buffers};
+use crate::{Buffers, HasId, Parents, Shape, UniqueId, UpdateArgs, CPU};
 
 #[cfg(feature = "graph")]
 use crate::HashLocationCacheTrace;
@@ -22,7 +22,7 @@ pub trait Feature: OnDropBuffer {}
 pub trait Retrieve<D, T, S: Shape = ()>: OnDropBuffer {
     // "generator"
     #[track_caller]
-    fn retrieve<const NUM_PARENTS: usize>(
+    unsafe fn retrieve<const NUM_PARENTS: usize>(
         &self,
         device: &D,
         len: usize,
@@ -99,7 +99,10 @@ macro_rules! pass_down_grad_fn {
     ($to_impl:ident) => {
         impl<Mods: $crate::AddGradFn> $crate::AddGradFn for $to_impl<Mods> {
             #[inline]
-            fn add_grad_fn<Args: $crate::Parents<N> + $crate::UpdateArgs<$crate::Buffers>, const N: usize>(
+            fn add_grad_fn<
+                Args: $crate::Parents<N> + $crate::UpdateArgs<$crate::Buffers>,
+                const N: usize,
+            >(
                 &self,
                 args: Args,
                 op: fn(&mut Args) -> crate::Result<()>,
@@ -233,7 +236,10 @@ macro_rules! pass_down_add_operation {
     ($device:ident) => {
         impl<Mods: $crate::AddOperation> $crate::AddOperation for $device<Mods> {
             #[inline]
-            fn add_op<Args: $crate::Parents<N> + $crate::UpdateArgs<$crate::Buffers>, const N: usize>(
+            fn add_op<
+                Args: $crate::Parents<N> + $crate::UpdateArgs<$crate::Buffers>,
+                const N: usize,
+            >(
                 &self,
                 args: Args,
                 operation: fn(&mut Args) -> crate::Result<()>,

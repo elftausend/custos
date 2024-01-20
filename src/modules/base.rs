@@ -1,6 +1,6 @@
 use crate::{
-    flag::AllocFlag, AddGradFn, AddOperation, Alloc, Device, ExecNow, HasId, HashLocation, Module,
-    OnDropBuffer, OnNewBuffer, Parents, PtrType, Retrieve, Setup, Shape, WrappedData, Buffers,
+    flag::AllocFlag, AddGradFn, AddOperation, Alloc, Buffers, Device, ExecNow, HasId, HashLocation,
+    Module, OnDropBuffer, OnNewBuffer, Parents, PtrType, Retrieve, Setup, Shape, WrappedData,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
@@ -70,7 +70,7 @@ impl OnDropBuffer for Base {}
 
 impl<D, T, S: Shape> Retrieve<D, T, S> for Base {
     #[inline]
-    fn retrieve<const NUM_PARENTS: usize>(
+    unsafe fn retrieve<const NUM_PARENTS: usize>(
         &self,
         device: &D,
         len: usize,

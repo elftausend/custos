@@ -38,6 +38,7 @@ impl<Mods: Debug> Debug for Lazy<Mods> {
 }
 
 pub trait LazySetup {
+    #[inline]
     fn lazy_setup(&mut self) -> crate::Result<()> {
         Ok(())
     }
@@ -197,7 +198,7 @@ where
     S: Shape,
 {
     #[inline]
-    fn retrieve<const NUM_PARENTS: usize>(
+    unsafe fn retrieve<const NUM_PARENTS: usize>(
         &self,
         _device: &D,
         len: usize,
@@ -281,11 +282,12 @@ impl<Mods> OptimizeMemGraph for Lazy<Mods> {
     ) -> crate::Result<()> {
         let graph_translator = graph_translator.ok_or(DeviceError::MissingCacheTraces)?;
         for cache_trace in graph_translator.opt_graph.cache_traces() {
-            let buf_id = graph_translator.idx_to_buf_id.get(&cache_trace.cache_idx).ok_or(DeviceError::GraphOptimization)?;
+            let buf_id = graph_translator
+                .idx_to_buf_id
+                .get(&cache_trace.cache_idx)
+                .ok_or(DeviceError::GraphOptimization)?;
             let buf = self.buffers.borrow().get(buf_id).unwrap().clone();
-            for to_replace in cache_trace.use_cache_idxs {
-
-            }
+            for to_replace in cache_trace.use_cache_idxs {}
             // graph_translator.
         }
         Ok(())
