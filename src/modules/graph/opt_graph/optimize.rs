@@ -490,7 +490,9 @@ mod tests {
     #[cfg_attr(miri, ignore)]
     #[test]
     fn test_lazy_from_retrieve_sliced_chained_perf_example_optimize() {
-        use crate::{Base, Buffer, Device, Graph, HasId, Lazy, OptimizeMemGraph, Retriever, Run, CPU};
+        use crate::{
+            Base, Buffer, Device, Graph, HasId, Lazy, OptimizeMemGraph, Retriever, Run, CPU,
+        };
 
         let device = CPU::<Graph<Lazy<Base>>>::new();
 
@@ -518,7 +520,6 @@ mod tests {
         assert_eq!(squared.replace().id(), out.replace().id());
 
         assert_eq!(add.replace().id(), mul_b.replace().id());
-
     }
 
     #[cfg(feature = "cpu")]

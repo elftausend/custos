@@ -127,6 +127,41 @@ impl<Mods> Lazy<Mods> {
             alloc_fn(&mut buffers, *id, device);
         }
     }
+
+    #[cfg(feature = "graph")]
+    fn alloc_later_optimized<D: 'static>(
+        &self,
+        device: &D,
+        graph_trans: &crate::GraphTranslator,
+    ) -> crate::Result<()> {
+        let cache_traces = graph_trans.opt_graph.cache_traces();
+        'id: for (id, alloc_fn) in self.alloc_later.borrow().iter() {
+            for cache_trace in &cache_traces {
+                let buf_id = graph_trans
+                    .idx_to_buf_id
+                    .get(&cache_trace.cache_idx)
+                    .ok_or(DeviceError::GraphOptimization)?;
+
+                if *buf_id != id.id {
+                    continue 'id;
+                }
+                alloc_fn(&mut self.buffers.borrow_mut(), *id, device);
+                let buf = self.buffers.borrow().get(&id.id).unwrap().shallow_copy();
+
+                for use_id_as_well in &cache_trace.use_cache_idxs {
+                    let use_id_as_well_id = graph_trans
+                        .idx_to_buf_id
+                        .get(&use_id_as_well)
+                        .ok_or(DeviceError::GraphOptimization)?;
+
+                    self.buffers
+                        .borrow_mut()
+                        .insert(*use_id_as_well_id, buf.shallow_copy());
+                }
+            }
+        }
+        Ok(())
+    }
 }
 
 impl<D: LazySetup, Mods: Setup<D>> Setup<D> for Lazy<Mods> {
