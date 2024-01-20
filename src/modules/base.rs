@@ -103,8 +103,9 @@ impl crate::UseGpuOrCpu for Base {
 #[cfg(feature = "graph")]
 impl crate::OptimizeMemGraph for Base {
     #[inline]
-    fn optimize_mem_graph(
+    fn optimize_mem_graph<D: 'static>(
         &self,
+        _device: &D,
         _graph_translator: Option<&crate::GraphTranslator>,
     ) -> crate::Result<()> {
         Ok(())

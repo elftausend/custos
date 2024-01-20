@@ -512,9 +512,8 @@ mod tests {
         // idx: 6, deps: [5, 4]
         let out: Buffer<f32, _> = device.retrieve::<2>(1000, (&mul, &mul_b));
 
+        device.optimize_mem_graph(&device, None).unwrap();
         unsafe { device.run().unwrap() };
-
-        device.optimize_mem_graph(None).unwrap();
 
         assert_eq!(squared.replace().id(), mul.replace().id());
         assert_eq!(squared.replace().id(), out.replace().id());
@@ -559,7 +558,7 @@ mod tests {
                 assert_eq!(add.id(), mul_b.id());
                 break;
             }
-            device.optimize_mem_graph(None).unwrap();
+            device.optimize_mem_graph(&device, None).unwrap();
         }
     }
 

@@ -135,7 +135,7 @@ impl<Mods> Lazy<Mods> {
         graph_trans: &crate::GraphTranslator,
     ) -> crate::Result<()> {
         let cache_traces = graph_trans.opt_graph.cache_traces();
-        'id: for (id, alloc_fn) in self.alloc_later.borrow().iter() {
+        for (id, alloc_fn) in self.alloc_later.borrow().iter() {
             for cache_trace in &cache_traces {
                 let buf_id = graph_trans
                     .idx_to_buf_id
@@ -143,8 +143,9 @@ impl<Mods> Lazy<Mods> {
                     .ok_or(DeviceError::GraphOptimization)?;
 
                 if *buf_id != id.id {
-                    continue 'id;
+                    continue;
                 }
+
                 alloc_fn(&mut self.buffers.borrow_mut(), *id, device);
                 let buf = self.buffers.borrow().get(&id.id).unwrap().shallow_copy();
 
@@ -314,26 +315,18 @@ impl<T: 'static, D: Device + 'static, S: Shape, Mods: OnDropBuffer> ReplaceBuf<T
 }
 
 impl<Mods> OptimizeMemGraph for Lazy<Mods> {
-    fn optimize_mem_graph(
+    fn optimize_mem_graph<D: 'static>(
         &self,
-        graph_translator: Option<&crate::modules::GraphTranslator>,
+        device: &D,
+        graph_translator: Option<&crate::GraphTranslator>,
     ) -> crate::Result<()> {
-        let graph_translator = graph_translator.ok_or(DeviceError::MissingCacheTraces)?;
-        for cache_trace in graph_translator.opt_graph.cache_traces() {
-            let buf_id = graph_translator
-                .idx_to_buf_id
-                .get(&cache_trace.cache_idx)
-                .ok_or(DeviceError::GraphOptimization)?;
-            let mut buffers = self.buffers.borrow_mut();
-            let buf = buffers.get(buf_id).unwrap().shallow_copy();
-
-            for to_replace in cache_trace.use_cache_idxs {
-                let id = graph_translator.idx_to_buf_id.get(&to_replace).unwrap();
-                buffers.insert(*id, buf.shallow_copy());
-            }
-
-            // graph_translator.
+        if !self.allocated.get() {
+            self.alloc_later_optimized(
+                device,
+                graph_translator.ok_or(DeviceError::MissingCacheTraces)?,
+            )?;
         }
+        self.allocated.set(true);
         Ok(())
     }
 }

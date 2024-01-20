@@ -255,7 +255,7 @@ mod tests {
         buf_any: &'b Box<dyn ShallowCopyable>,
         _device: &'a D,
     ) -> Option<&'b Buffer<'a, T, D, S>> {
-        (buf_any as &dyn Any).downcast_ref::<Buffer<T, D, S>>()
+        buf_any.as_any().downcast_ref::<Buffer<T, D, S>>()
     }
 
     #[test]

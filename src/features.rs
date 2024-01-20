@@ -392,8 +392,9 @@ pub trait UseGpuOrCpu {
 
 #[cfg(feature = "graph")]
 pub trait OptimizeMemGraph {
-    fn optimize_mem_graph(
+    fn optimize_mem_graph<D: 'static>(
         &self,
+        device: &D,
         graph_translator: Option<&crate::modules::GraphTranslator>,
     ) -> crate::Result<()>;
 }
@@ -402,11 +403,12 @@ pub trait OptimizeMemGraph {
 macro_rules! pass_down_optimize_mem_graph {
     ($to_impl:ident) => {
         impl<Mods: $crate::OptimizeMemGraph> $crate::OptimizeMemGraph for $to_impl<Mods> {
-            fn optimize_mem_graph(
+            fn optimize_mem_graph<D: 'static>(
                 &self,
+                device: &D,
                 graph_translator: Option<&crate::modules::GraphTranslator>,
             ) -> crate::Result<()> {
-                self.modules.optimize_mem_graph(graph_translator)
+                self.modules.optimize_mem_graph(device, graph_translator)
             }
         }
     };

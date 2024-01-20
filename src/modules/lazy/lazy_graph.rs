@@ -12,12 +12,24 @@ pub struct LazyGraph {
 
 pub trait ShallowCopyable {
     fn shallow_copy(&self) -> Box<dyn ShallowCopyable>;
+    fn as_any(&self) -> &dyn core::any::Any;
+    fn as_any_mut(&mut self) -> &mut dyn core::any::Any;
 }
 
 impl<T: ShallowCopy + 'static> ShallowCopyable for T {
     #[inline]
     fn shallow_copy(&self) -> Box<dyn ShallowCopyable> {
         Box::new(unsafe { self.shallow() })
+    }
+
+    #[inline]
+    fn as_any(&self) -> &dyn core::any::Any {
+        self
+    }
+
+    #[inline]
+    fn as_any_mut(&mut self) -> &mut dyn core::any::Any {
+        self
     }
 }
 

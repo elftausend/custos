@@ -60,7 +60,7 @@ impl BorrowCache {
         self.add_buf_once::<T, D, S>(device, id);
 
         let buf_any = self.cache.get(&id).unwrap();
-        let buf_any = buf_any as &dyn Any;
+        let buf_any = buf_any.as_any();
         buf_any.downcast_ref().unwrap()
     }
 
@@ -118,7 +118,7 @@ impl BorrowCache {
         D: Alloc<T> + 'static,
         S: Shape,
     {
-        (self.cache.get(&id)? as &dyn Any).downcast_ref()
+        self.cache.get(&id)?.as_any().downcast_ref()
     }
 
     #[inline]
@@ -128,7 +128,10 @@ impl BorrowCache {
         D: Device + 'static,
         S: Shape,
     {
-        (self.cache.get(&id).ok_or(CachingError::InvalidId)? as &dyn Any)
+        self.cache
+            .get(&id)
+            .ok_or(CachingError::InvalidId)?
+            .as_any()
             .downcast_ref()
             .ok_or(CachingError::InvalidTypeInfo)
     }
@@ -146,7 +149,10 @@ impl BorrowCache {
     {
         unsafe {
             transmute(
-                (self.cache.get_mut(&id).ok_or(CachingError::InvalidId)? as &mut dyn Any)
+                self.cache
+                    .get_mut(&id)
+                    .ok_or(CachingError::InvalidId)?
+                    .as_any_mut()
                     .downcast_mut::<Buffer<T, D, S>>()
                     .ok_or(CachingError::InvalidTypeInfo),
             )

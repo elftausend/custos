@@ -226,8 +226,9 @@ impl<Mods: RunModule<D>, D, SD: Device> RunModule<D> for CachedModule<Mods, SD> 
 
 #[cfg(feature = "graph")]
 impl<Mods: OptimizeMemGraph, SD: Device> OptimizeMemGraph for CachedModule<Mods, SD> {
-    fn optimize_mem_graph(
+    fn optimize_mem_graph<D: 'static>(
         &self,
+        device: &D,
         graph_translator: Option<&crate::GraphTranslator>,
         //cache_traces: Option<&[crate::TranslatedCacheTrace]>,
     ) -> crate::Result<()> {
