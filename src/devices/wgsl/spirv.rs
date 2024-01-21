@@ -7,30 +7,33 @@ use naga::{
 };
 
 pub struct Spirv {
-    words: Vec<u32>,
+    words_of_entries: Vec<Vec<u32>>,
 }
 
 impl Spirv {
     pub fn from_wgsl(src: impl AsRef<str>) -> Result<Self, TranslateError> {
         let (module, info) = parse_and_validate_src(src.as_ref())?;
 
-        let entry_point = &module.entry_points[0];
+        let words_of_entries = module
+            .entry_points
+            .iter()
+            .map(|entry_point| write_spirv(&module, &info, entry_point.stage, &entry_point.name))
+            .collect::<Result<Vec<_>, _>>()?;
 
-        let words = write_spirv(&module, &info, entry_point.stage, &entry_point.name)?;
-        Ok(Spirv { words })
+        Ok(Spirv { words_of_entries })
     }
 
     #[inline]
-    pub fn as_slice(&self) -> &[u32] {
-        &self.words
+    pub fn as_slice(&self, idx: usize) -> &[u32] {
+        &self.words_of_entries[idx]
     }
 
     #[inline]
-    pub fn as_byte_slice(&self) -> &[u8] {
+    pub fn as_byte_slice(&self, idx: usize) -> &[u8] {
         unsafe {
             std::slice::from_raw_parts(
-                self.words.as_ptr() as *const u8,
-                size_of_val(self.words.as_slice()),
+                self.words_of_entries[idx].as_ptr() as *const u8,
+                size_of_val(self.words_of_entries[idx].as_slice()),
             )
         }
     }
@@ -52,7 +55,12 @@ pub fn parse_and_validate_src(src: &str) -> Result<(naga::Module, ModuleInfo), T
     Ok((module, info))
 }
 
-pub fn write_spirv(module: &naga::Module, info: &ModuleInfo, shader_stage: naga::ShaderStage, entry_point: &str) -> Result<Vec<u32>, TranslateError> {
+pub fn write_spirv(
+    module: &naga::Module,
+    info: &ModuleInfo,
+    shader_stage: naga::ShaderStage,
+    entry_point: &str,
+) -> Result<Vec<u32>, TranslateError> {
     let mut words = Vec::new();
 
     let mut writer =
@@ -71,6 +79,15 @@ pub fn write_spirv(module: &naga::Module, info: &ModuleInfo, shader_stage: naga:
         .map_err(TranslateError::Backend)?;
 
     Ok(words)
+}
+
+impl FromStr for Spirv {
+    type Err = TranslateError;
+
+    #[inline]
+    fn from_str(src: &str) -> Result<Self, Self::Err> {
+        Self::from_wgsl(src)
+    }
 }
 
 #[derive(Debug, Clone)]
