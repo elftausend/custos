@@ -1,10 +1,11 @@
-use core::{fmt::Display, mem::size_of_val, str::FromStr};
+use core::{mem::size_of_val, str::FromStr};
 
 use naga::{
     back::spv::{Options, PipelineOptions},
-    valid::{ModuleInfo, ValidationError},
-    WithSpan,
+    valid::ModuleInfo,
 };
+
+use super::error::TranslateError;
 
 pub struct Spirv {
     words_of_entries: Vec<Vec<u32>>,
@@ -64,7 +65,7 @@ pub fn write_spirv(
     let mut words = Vec::new();
 
     let mut writer =
-        naga::back::spv::Writer::new(&Options::default()).map_err(TranslateError::Backend)?;
+        naga::back::spv::Writer::new(&Options::default()).map_err(TranslateError::BackendSpv)?;
     writer
         .write(
             module,
@@ -76,7 +77,7 @@ pub fn write_spirv(
             &None,
             &mut words,
         )
-        .map_err(TranslateError::Backend)?;
+        .map_err(TranslateError::BackendSpv)?;
 
     Ok(words)
 }
@@ -89,23 +90,3 @@ impl FromStr for Spirv {
         Self::from_wgsl(src)
     }
 }
-
-#[derive(Debug, Clone)]
-pub enum TranslateError {
-    Validate(WithSpan<ValidationError>),
-    Frontend(naga::front::wgsl::ParseError),
-    Backend(naga::back::spv::Error),
-}
-
-impl Display for TranslateError {
-    #[inline]
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        match self {
-            TranslateError::Validate(validation_err) => validation_err.fmt(f),
-            TranslateError::Frontend(frontend_err) => frontend_err.fmt(f),
-            TranslateError::Backend(backend_err) => backend_err.fmt(f),
-        }
-    }
-}
-
-impl std::error::Error for TranslateError {}
