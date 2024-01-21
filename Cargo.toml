@@ -63,7 +63,7 @@ min-cl = { git = "https://github.com/elftausend/min-cl", optional = true }
 
 [features]
 # default = ["cpu", "autograd", "macro"]
-default = ["cpu", "lazy", "static-api", "webgl"]
+default = ["cpu", "lazy", "static-api", "webgl", "vulkan"]
 
 cpu = []
 opencl = ["dep:min-cl", "cpu", "cached"]
@@ -87,7 +87,7 @@ graph = []
 half = ["dep:half"]
 
 vulkan = ["dep:ash", "wgsl"]
-webgl = ["wgsl", "js-sys"]
+webgl = ["wgsl", "dep:js-sys", "dep:web-sys"]
 wgsl = ["dep:naga"]
 
 serde = ["dep:serde"]

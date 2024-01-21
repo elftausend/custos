@@ -13,7 +13,10 @@ pub struct Spirv {
 impl Spirv {
     pub fn from_wgsl(src: impl AsRef<str>) -> Result<Self, TranslateError> {
         let (module, info) = parse_and_validate_src(src.as_ref())?;
-        let words = write_spirv(&module, &info)?;
+
+        let entry_point = &module.entry_points[0];
+
+        let words = write_spirv(&module, &info, entry_point.stage, &entry_point.name)?;
         Ok(Spirv { words })
     }
 
@@ -49,7 +52,7 @@ pub fn parse_and_validate_src(src: &str) -> Result<(naga::Module, ModuleInfo), T
     Ok((module, info))
 }
 
-pub fn write_spirv(module: &naga::Module, info: &ModuleInfo) -> Result<Vec<u32>, TranslateError> {
+pub fn write_spirv(module: &naga::Module, info: &ModuleInfo, shader_stage: naga::ShaderStage, entry_point: &str) -> Result<Vec<u32>, TranslateError> {
     let mut words = Vec::new();
 
     let mut writer =
@@ -59,8 +62,8 @@ pub fn write_spirv(module: &naga::Module, info: &ModuleInfo) -> Result<Vec<u32>,
             module,
             info,
             Some(&PipelineOptions {
-                shader_stage: naga::ShaderStage::Compute,
-                entry_point: "main".into(),
+                shader_stage,
+                entry_point: entry_point.into(),
             }),
             &None,
             &mut words,
@@ -75,15 +78,6 @@ pub enum TranslateError {
     Validate(WithSpan<ValidationError>),
     Frontend(naga::front::wgsl::ParseError),
     Backend(naga::back::spv::Error),
-}
-
-impl FromStr for Spirv {
-    type Err = TranslateError;
-
-    #[inline]
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Spirv::from_wgsl(s)
-    }
 }
 
 impl Display for TranslateError {
