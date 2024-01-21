@@ -1,7 +1,6 @@
 use core::fmt::Display;
 
-use naga::{WithSpan, valid::ValidationError};
-
+use naga::{valid::ValidationError, WithSpan};
 
 #[derive(Debug)]
 pub enum TranslateError {
