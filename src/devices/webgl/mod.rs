@@ -9,6 +9,7 @@ use crate::{
 use self::context::Context;
 
 mod context;
+mod shader;
 
 pub struct WebGL<Mods = Base> {
     pub modules: Mods,
