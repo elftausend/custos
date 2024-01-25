@@ -1,3 +1,5 @@
+use core::ops::{Deref, DerefMut};
+
 use js_sys::wasm_bindgen::JsValue;
 use web_sys::Element;
 
@@ -68,6 +70,22 @@ impl<Mods: OnDropBuffer> Device for WebGL<Mods> {
         data: &'a mut Self::Data<T, S>,
     ) -> &'a mut Self::Wrap<T, Self::Base<T, S>> {
         data
+    }
+}
+
+impl<Mods> Deref for WebGL<Mods> {
+    type Target = Context;
+
+    #[inline]
+    fn deref(&self) -> &Self::Target {
+        &self.context
+    }
+}
+
+impl<Mods> DerefMut for WebGL<Mods> {
+    #[inline]
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.context
     }
 }
 

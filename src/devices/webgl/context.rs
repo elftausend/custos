@@ -1,8 +1,10 @@
+use core::ops::{Deref, DerefMut};
+
 use js_sys::wasm_bindgen::{JsCast, JsValue};
 use web_sys::Element;
 
 pub struct Context {
-    pub(crate) context: web_sys::WebGl2RenderingContext,
+    pub context: web_sys::WebGl2RenderingContext,
 }
 
 impl Context {
@@ -15,5 +17,21 @@ impl Context {
             .dyn_into::<web_sys::WebGl2RenderingContext>()?;
 
         Ok(Self { context })
+    }
+}
+
+impl Deref for Context {
+    type Target = web_sys::WebGl2RenderingContext;
+
+    #[inline]
+    fn deref(&self) -> &Self::Target {
+        &self.context
+    }
+}
+
+impl DerefMut for Context {
+    #[inline]
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.context
     }
 }
