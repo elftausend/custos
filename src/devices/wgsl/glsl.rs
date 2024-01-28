@@ -7,6 +7,12 @@ use web_sys::{WebGl2RenderingContext, WebGlShader};
 
 use super::{parse_and_output, error::TranslateError};
 
+mod shader;
+pub use shader::*;
+
+mod error;
+pub use error::*;
+
 #[derive(Debug, Clone)]
 pub struct Glsl {
     pub sources: Vec<Shader>
@@ -21,7 +27,7 @@ impl Glsl {
     }
 
     #[inline]
-    pub fn compile_all(&self, context: &WebGl2RenderingContext) -> Result<Vec<WebGlShader>, String> {
+    pub fn compile_all(&self, context: &WebGl2RenderingContext) -> Result<Vec<WebGlShader>, GlslError> {
         self.sources.iter().map(|s| s.compile(context)).collect()
     }
 }
@@ -54,48 +60,6 @@ pub fn write_glsl(
         shader_stage,
         src: glsl
     })
-}
-
-#[derive(Debug, Clone)]
-pub struct Shader {
-    pub shader_stage: ShaderStage,
-    pub src: String
-}
-
-impl Shader {
-    pub fn compile(&self, context: &WebGl2RenderingContext) -> Result<WebGlShader, String> {
-        let shader_type = match self.shader_stage {
-            ShaderStage::Vertex => WebGl2RenderingContext::VERTEX_SHADER,
-            ShaderStage::Fragment => WebGl2RenderingContext::FRAGMENT_SHADER,
-            _ => panic!("Unsupported shader stage: {:?}", self.shader_stage)
-        };
-        compile_shader(context, shader_type, &self.src)
-    }
-}
-
-
-pub fn compile_shader(
-    context: &WebGl2RenderingContext,
-    shader_type: u32,
-    source: &str,
-) -> Result<WebGlShader, String> {
-    let shader = context
-        .create_shader(shader_type)
-        .ok_or_else(|| String::from("Unable to create shader object"))?;
-    context.shader_source(&shader, source);
-    context.compile_shader(&shader);
-
-    if context
-        .get_shader_parameter(&shader, WebGl2RenderingContext::COMPILE_STATUS)
-        .as_bool()
-        .unwrap_or(false)
-    {
-        Ok(shader)
-    } else {
-        Err(context
-            .get_shader_info_log(&shader)
-            .unwrap_or_else(|| String::from("Unknown error creating shader")))
-    }
 }
 
 #[cfg(test)]
