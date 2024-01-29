@@ -1,4 +1,4 @@
-use core::hash::BuildHasherDefault;
+use core::{any::Any, hash::BuildHasherDefault, ops::Deref};
 
 #[cfg(not(feature = "no-std"))]
 use std::collections::HashMap;
@@ -11,7 +11,7 @@ pub trait UpdateArgs {}
 
 #[cfg(not(feature = "no-std"))]
 pub trait UpdateArgs {
-    fn update_args(&mut self, ids: &[Option<UniqueId>], buffers: &mut Buffers)
+    fn update_args<B: AsAny>(&mut self, ids: &[Option<UniqueId>], buffers: &mut Buffers<B>)
         -> crate::Result<()>;
 }
 
@@ -21,16 +21,37 @@ pub trait UpdateArg {}
 
 #[cfg(not(feature = "no-std"))]
 pub trait UpdateArg {
-    fn update_arg(&mut self, id: Option<UniqueId>, buffers: &mut Buffers) -> crate::Result<()>;
+    fn update_arg<B: AsAny>(&mut self, id: Option<UniqueId>, buffers: &mut Buffers<B>) -> crate::Result<()>;
 }
 
 #[cfg(not(feature = "no-std"))]
 impl<T: UpdateArg> UpdateArgs for T {
-    fn update_args(
+    fn update_args<B: AsAny>(
         &mut self,
         ids: &[Option<UniqueId>],
-        buffers: &mut crate::Buffers,
+        buffers: &mut crate::Buffers<B>,
     ) -> crate::Result<()> {
         self.update_arg(ids[0], buffers)
     }
+}
+
+pub trait UpdateArgsDynable<B> {
+    fn update_args_dynable(&mut self, ids: &[Option<UniqueId>], buffers: &mut Buffers<B>)
+        -> crate::Result<()>;
+}
+
+impl<A: UpdateArgs, T: AsAny> UpdateArgsDynable<T> for A {
+    #[inline]
+    fn update_args_dynable(
+        &mut self,
+        ids: &[Option<UniqueId>],
+        buffers: &mut Buffers<T>,
+    ) -> crate::Result<()> {
+        self.update_args(ids, buffers)
+    }
+}
+
+pub trait AsAny {
+    fn as_any(&self) -> &dyn core::any::Any;
+    fn as_any_mut(&mut self) -> &mut dyn core::any::Any;
 }

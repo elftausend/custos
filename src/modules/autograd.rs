@@ -7,10 +7,7 @@ pub use tape::*;
 use core::cell::UnsafeCell;
 
 use crate::{
-    impl_remove_layer, pass_down_add_operation, pass_down_exec_now_module, register_buf,
-    unregister_buf, AddGradFn, AddLayer, Alloc, Buffer, Buffers, Device, HasId, IsShapeIndep,
-    Module, OnDropBuffer, OnNewBuffer, Parents, PtrType, Retrieve, RunModule, Setup, ShallowCopy,
-    Shape, TapeActions, WrappedData,
+    impl_remove_layer, pass_down_add_operation, pass_down_exec_now_module, register_buf_any, register_buf_copyable, unregister_buf_any, unregister_buf_copyable, AddGradFn, AddLayer, Alloc, Buffer, Buffers, Device, HasId, IsShapeIndep, Module, OnDropBuffer, OnNewBuffer, Parents, PtrType, Retrieve, RunModule, Setup, ShallowCopy, Shape, TapeActions, WrappedData
 };
 
 use super::{Cached, CachedModule};
@@ -73,7 +70,7 @@ impl<Mods> Autograd<Mods> {
             return;
         }
 
-        unsafe { register_buf(no_grads_pool, buf) };
+        unsafe { register_buf_any(no_grads_pool, buf) };
     }
 }
 
@@ -107,7 +104,7 @@ where
 impl<Mods: OnDropBuffer> OnDropBuffer for Autograd<Mods> {
     #[inline]
     fn on_drop_buffer<T, D: Device, S: Shape>(&self, device: &D, buf: &Buffer<T, D, S>) {
-        unregister_buf(
+        unregister_buf_any(
             unsafe { &mut (*(self.grads.get())).no_grads_pool.cache },
             buf.id(),
         );
@@ -245,17 +242,17 @@ mod tests {
 
     use crate::{
         AddGradFn, Base, Buffer, Cached, Combiner, Device, HasId, Module, Retriever,
-        ShallowCopyable, Shape, UnaryGrad, CPU,
+        BoxedShallowCopy, Shape, UnaryGrad, CPU,
     };
 
     use super::Autograd;
 
     #[inline]
     pub fn downcast_val<'a, 'b, T: 'static, D: Device + 'static, S: Shape>(
-        buf_any: &'b Box<dyn ShallowCopyable>,
+        buf_any: &'b Box<dyn Any>,
         _device: &'a D,
     ) -> Option<&'b Buffer<'a, T, D, S>> {
-        buf_any.as_any().downcast_ref::<Buffer<T, D, S>>()
+        buf_any.downcast_ref::<Buffer<T, D, S>>()
     }
 
     #[test]

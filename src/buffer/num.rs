@@ -7,7 +7,7 @@ use core::{
 
 use crate::{
     flag::AllocFlag, Alloc, Buffer, CloneBuf, CommonPtrs, Device, HasId, OnDropBuffer, PtrType,
-    WrappedData,
+    ShallowCopy, WrappedData,
 };
 
 #[derive(Debug, Default)]
@@ -54,6 +54,13 @@ impl<T> From<T> for Num<T> {
     #[inline]
     fn from(num: T) -> Self {
         Num { num }
+    }
+}
+
+impl<T> ShallowCopy for Num<T> {
+    #[inline]
+    unsafe fn shallow(&self) -> Self {
+        unimplemented!()
     }
 }
 

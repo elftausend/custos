@@ -53,7 +53,6 @@ impl Gradients {
     where
         T: 'static,
         S: Shape,
-        D::Data<T, S>: crate::ShallowCopy,
         D: Alloc<T> + 'static,
     {
         self.grads_pool.get_buf_mut(id)
@@ -66,7 +65,6 @@ impl Gradients {
     where
         T: 'static,
         S: Shape,
-        D::Data<T, S>: crate::ShallowCopy,
         D: Alloc<T> + 'static,
     {
         self.grads_pool.add_or_get(device, id)
@@ -80,7 +78,6 @@ impl Gradients {
         T: 'static,
         S: Shape,
         D: Alloc<T> + 'static,
-        D::Data<T, S>: crate::ShallowCopy,
     {
         self.grads_pool.add_or_get_mut(device, id)
     }
@@ -92,7 +89,7 @@ impl Gradients {
         T: 'static,
         S: Shape,
         D: Alloc<T> + 'static,
-        D::Data<T, S>: HasId + ShallowCopy,
+        D::Data<T, S>: HasId,
     {
         self.get_ref(buf.device(), buf.id())
     }
@@ -117,7 +114,6 @@ impl Gradients {
     where
         T: 'static,
         S: Shape,
-        D::Data<T, S>: crate::ShallowCopy,
         D: Alloc<T> + 'static,
     {
         let [lid, rid, oid] = parents.ids();

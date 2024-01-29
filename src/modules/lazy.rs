@@ -3,7 +3,7 @@ mod lazy_graph;
 mod ty;
 mod wrapper;
 
-pub use lazy_graph::ShallowCopyable;
+pub use lazy_graph::BoxedShallowCopy;
 pub use ty::*;
 
 use crate::{
@@ -23,7 +23,7 @@ use std::collections::HashMap;
 pub use self::lazy_graph::LazyGraph;
 use self::wrapper::LazyWrapper;
 
-type Buffers = HashMap<UniqueId, Box<dyn ShallowCopyable>, BuildHasherDefault<NoHasher>>;
+type Buffers = HashMap<UniqueId, Box<dyn BoxedShallowCopy>, BuildHasherDefault<NoHasher>>;
 
 #[derive(Default)]
 pub struct Lazy<Mods> {
@@ -31,7 +31,7 @@ pub struct Lazy<Mods> {
     alloc_later: RefCell<Vec<(Id, fn(&mut Buffers, Id, &dyn Any))>>, // could use D generic instead of dyn Any (required LazyModule structure)
     allocated: Cell<bool>,
     buffers: RefCell<Buffers>,
-    graph: RefCell<LazyGraph>,
+    graph: RefCell<LazyGraph<Box<dyn BoxedShallowCopy>>>,
 }
 
 impl<Mods: Debug> Debug for Lazy<Mods> {
@@ -189,7 +189,7 @@ impl<Mods: RunModule<D>, D: LazyRun + Device + 'static> RunModule<D> for Lazy<Mo
 impl<Mods: OnDropBuffer> OnDropBuffer for Lazy<Mods> {
     #[inline]
     fn on_drop_buffer<T, D: Device, S: Shape>(&self, device: &D, buf: &Buffer<T, D, S>) {
-        super::unregister_buf(&mut self.buffers.borrow_mut(), buf.id());
+        super::unregister_buf_copyable(&mut self.buffers.borrow_mut(), buf.id());
         self.modules.on_drop_buffer(device, buf)
     }
 }
@@ -204,7 +204,7 @@ where
 {
     #[inline]
     fn on_new_buffer(&self, device: &D, new_buf: &Buffer<T, D, S>) {
-        unsafe { super::register_buf(&mut self.buffers.borrow_mut(), new_buf) };
+        unsafe { super::register_buf_copyable(&mut self.buffers.borrow_mut(), new_buf) };
         self.modules.on_new_buffer(device, new_buf)
     }
 }

@@ -21,7 +21,7 @@ pub struct Tape {
 
     unconsumed_locations: HashSet<HashLocation<'static>>,
 
-    pub lazy_graph: LazyGraph,
+    pub lazy_graph: LazyGraph<Box<dyn Any>>,
 }
 
 impl Debug for Tape {
@@ -68,7 +68,7 @@ impl Tape {
     }
 
     /// Calls all gradient functions in reverse order.
-    pub fn backward(&mut self, buffers: &mut Buffers) {
+    pub fn backward(&mut self, buffers: &mut Buffers<Box<dyn Any>>) {
         // for grad_fn_id in self.grad_fn_order.iter().rev() {
         //     let grad_fn = self.grad_fns_loc.get(grad_fn_id).unwrap();
         //     grad_fn(&mut self.grads);
@@ -94,7 +94,6 @@ impl Tape {
     where
         T: Clone + One + 'static,
         D: Alloc<T> + WriteBuf<T, S, D> + TapeActions + 'static,
-        D::Data<T, S>: crate::ShallowCopy,
     {
         let mut no_grads = {
             // unique mutable access to gradients

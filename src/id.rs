@@ -101,10 +101,10 @@ impl<T: Into<NoId<T>>> AsNoId for T {
 impl<T> UpdateArg for NoId<T> {
     #[inline]
     #[cfg(not(feature = "no-std"))]
-    fn update_arg(
+    fn update_arg<B>(
         &mut self,
         _id: Option<UniqueId>,
-        _buffers: &mut crate::Buffers,
+        _buffers: &mut crate::Buffers<B>,
     ) -> crate::Result<()> {
         Ok(())
     }
@@ -112,17 +112,18 @@ impl<T> UpdateArg for NoId<T> {
 
 impl<'a, T: 'static, D: Device + 'static, S: Shape + 'static> UpdateArg for &Buffer<'a, T, D, S> {
     #[cfg(not(feature = "no-std"))]
-    fn update_arg(
+    fn update_arg<B: crate::AsAny>(
         &mut self,
         id: Option<UniqueId>,
-        buffers: &mut crate::Buffers,
+        buffers: &mut crate::Buffers<B>,
     ) -> crate::Result<()> {
-        use crate::ShallowCopyable;
+        // use crate::ShallowCopyable;
 
         let buf = buffers
             .get(&id.unwrap())
             .ok_or(DeviceError::InvalidLazyBuf)?;
-        *self = unsafe { &*(&**buf as *const dyn ShallowCopyable as *const Buffer<T, D, S>) };
+        // let any = buf.as_any();
+        *self = unsafe { &*(buf.as_any() as *const dyn Any as *const Buffer<T, D, S>) };
         //    *self = buffers.get(&self.id()).unwrap().downcast_ref().unwrap();
         Ok(())
     }
@@ -132,17 +133,17 @@ impl<'a, T: 'static, D: Device + 'static, S: Shape + 'static> UpdateArg
     for &mut Buffer<'a, T, D, S>
 {
     #[cfg(not(feature = "no-std"))]
-    fn update_arg(
+    fn update_arg<B>(
         &mut self,
         id: Option<UniqueId>,
-        buffers: &mut crate::Buffers,
+        buffers: &mut crate::Buffers<B>,
     ) -> crate::Result<()> {
-        use crate::ShallowCopyable;
-
+        // use crate::ShallowCopyable;
+        todo!();
         let buf = buffers
             .get_mut(&id.unwrap())
             .ok_or(DeviceError::InvalidLazyBuf)?;
-        *self = unsafe { &mut *(&mut **buf as *mut dyn ShallowCopyable as *mut Buffer<T, D, S>) };
+        // *self = unsafe { &mut *(&mut **buf as *mut dyn ShallowCopyable as *mut Buffer<T, D, S>) };
         Ok(())
         //    *self = buffers.get(&self.id()).unwrap().downcast_ref().unwrap();
     }

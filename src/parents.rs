@@ -21,10 +21,10 @@ impl AllParents for () {}
 
 impl UpdateArg for () {
     #[cfg(not(feature = "no-std"))]
-    fn update_arg(
+    fn update_arg<B>(
         &mut self,
         _id: Option<crate::UniqueId>,
-        _buffers: &mut crate::Buffers,
+        _buffers: &mut crate::Buffers<B>,
     ) -> crate::Result<()> {
         Ok(())
     }
@@ -65,9 +65,9 @@ macro_rules! impl_parents {
 
         impl<$($to_impl: $crate::UpdateArg + $crate::HasId, )+> $crate::UpdateArgs for ($($to_impl,)+) {
             #[cfg(not(feature = "no-std"))]
-            fn update_args(&mut self,
+            fn update_args<B: $crate::AsAny>(&mut self,
                 ids: &[Option<$crate::UniqueId>],
-                buffers: &mut $crate::Buffers)
+                buffers: &mut $crate::Buffers<B>)
              -> crate::Result<()>
              {
                 let mut ids = ids.iter();

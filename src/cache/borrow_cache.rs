@@ -6,8 +6,6 @@ use core::{
 };
 use std::collections::HashMap;
 
-use std::rc::Rc;
-
 use super::NoHasher;
 use crate::{flag::AllocFlag, Alloc, Buffer, Device, Id, Shape, UniqueId};
 
@@ -40,12 +38,14 @@ impl Display for CachingError {
 
 impl std::error::Error for CachingError {}
 
-pub(crate) type Buffers =
-    HashMap<UniqueId, Box<dyn crate::ShallowCopyable>, BuildHasherDefault<NoHasher>>;
+pub(crate) type Buffers<B> =
+    HashMap<UniqueId, B, BuildHasherDefault<NoHasher>>;
+
+pub(crate) type AnyBuffers = HashMap<UniqueId, Box<dyn Any>, BuildHasherDefault<NoHasher>>;
 
 #[derive(Default)]
 pub struct BorrowCache {
-    pub(crate) cache: Buffers,
+    pub(crate) cache: AnyBuffers,
 }
 
 // TODO: make BorrowedCache unuseable without device (=> Static get methods with D: CacheReturn)
@@ -54,13 +54,11 @@ impl BorrowCache {
     where
         T: 'static,
         D: Alloc<T> + 'static,
-        D::Data<T, S>: crate::ShallowCopy,
         S: Shape,
     {
         self.add_buf_once::<T, D, S>(device, id);
 
         let buf_any = self.cache.get(&id).unwrap();
-        let buf_any = buf_any.as_any();
         buf_any.downcast_ref().unwrap()
     }
 
@@ -68,7 +66,6 @@ impl BorrowCache {
     where
         T: 'static,
         D: Alloc<T> + 'static,
-        D::Data<T, S>: crate::ShallowCopy,
         S: Shape,
     {
         self.add_buf_once::<T, D, S>(device, id);
@@ -79,7 +76,6 @@ impl BorrowCache {
     where
         T: 'static,
         D: Alloc<T> + 'static,
-        D::Data<T, S>: crate::ShallowCopy,
         S: Shape,
     {
         if self.cache.get(&id).is_some() {
@@ -93,7 +89,6 @@ impl BorrowCache {
     where
         T: 'static,
         D: Alloc<T> + 'static,
-        D::Data<T, S>: crate::ShallowCopy,
         S: Shape,
     {
         // not using ::new, because this buf would get added to the cache of the device.
@@ -118,7 +113,7 @@ impl BorrowCache {
         D: Alloc<T> + 'static,
         S: Shape,
     {
-        self.cache.get(&id)?.as_any().downcast_ref()
+        self.cache.get(&id)?.downcast_ref()
     }
 
     #[inline]
@@ -131,7 +126,6 @@ impl BorrowCache {
         self.cache
             .get(&id)
             .ok_or(CachingError::InvalidId)?
-            .as_any()
             .downcast_ref()
             .ok_or(CachingError::InvalidTypeInfo)
     }
@@ -144,7 +138,6 @@ impl BorrowCache {
     where
         T: 'static,
         D: Device + 'static,
-        D::Data<T, S>: crate::ShallowCopy,
         S: Shape,
     {
         unsafe {
@@ -152,7 +145,6 @@ impl BorrowCache {
                 self.cache
                     .get_mut(&id)
                     .ok_or(CachingError::InvalidId)?
-                    .as_any_mut()
                     .downcast_mut::<Buffer<T, D, S>>()
                     .ok_or(CachingError::InvalidTypeInfo),
             )
