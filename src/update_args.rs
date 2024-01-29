@@ -29,7 +29,7 @@ pub trait UpdateArg {}
 #[cfg(not(feature = "no-std"))]
 pub trait UpdateArg {
     fn update_arg(
-        &mut self,
+        to_update: &mut Self,
         id: Option<UniqueId>,
         buffers: &mut HashMap<
             crate::UniqueId,
@@ -50,6 +50,6 @@ impl<T: UpdateArg> UpdateArgs for T {
             BuildHasherDefault<NoHasher>,
         >,
     ) -> crate::Result<()> {
-        self.update_arg(ids[0], buffers)
+        T::update_arg(self, ids[0], buffers)
     }
 }

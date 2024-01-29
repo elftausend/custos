@@ -22,7 +22,7 @@ impl AllParents for () {}
 impl UpdateArg for () {
     #[cfg(not(feature = "no-std"))]
     fn update_arg(
-        &mut self,
+        to_update: &mut Self,
         _id: Option<crate::UniqueId>,
         _buffers: &mut HashMap<
             crate::UniqueId,
@@ -77,7 +77,7 @@ macro_rules! impl_parents {
                 let mut ids = ids.iter();
                 #[allow(non_snake_case)]
                 let ($($to_impl,)+) = self;
-                $($to_impl.update_arg(*ids.next().unwrap(), buffers)?;)*
+                $($to_impl::update_arg($to_impl, *ids.next().unwrap(), buffers)?;)*
                 Ok(())
             }
         }
