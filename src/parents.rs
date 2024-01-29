@@ -22,7 +22,7 @@ impl AllParents for () {}
 impl UpdateArg for () {
     #[cfg(not(feature = "no-std"))]
     fn update_arg(
-        to_update: &mut Self,
+        _to_update: &mut Self,
         _id: Option<crate::UniqueId>,
         _buffers: &mut HashMap<
             crate::UniqueId,
