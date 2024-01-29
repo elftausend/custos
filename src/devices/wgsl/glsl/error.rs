@@ -1,4 +1,4 @@
-use core::fmt::Display;
+use core::fmt::{Debug, Display};
 
 pub enum GlslError {
     CreationError,
@@ -15,3 +15,9 @@ impl Display for GlslError {
     }
 }
 
+impl Debug for GlslError {
+    #[inline]
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        Display::fmt(self, f)
+    }
+}
