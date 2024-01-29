@@ -21,7 +21,7 @@ pub trait UpdateArg {}
 
 #[cfg(not(feature = "no-std"))]
 pub trait UpdateArg {
-    fn update_arg<B: AsAny>(&mut self, id: Option<UniqueId>, buffers: &mut Buffers<B>) -> crate::Result<()>;
+    fn update_arg<B: AsAny>(to_update: &mut Self, id: Option<UniqueId>, buffers: &mut Buffers<B>) -> crate::Result<()>;
 }
 
 #[cfg(not(feature = "no-std"))]
@@ -31,7 +31,7 @@ impl<T: UpdateArg> UpdateArgs for T {
         ids: &[Option<UniqueId>],
         buffers: &mut crate::Buffers<B>,
     ) -> crate::Result<()> {
-        self.update_arg(ids[0], buffers)
+        T::update_arg(self, ids[0], buffers)
     }
 }
 

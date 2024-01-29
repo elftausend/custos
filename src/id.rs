@@ -102,7 +102,7 @@ impl<T> UpdateArg for NoId<T> {
     #[inline]
     #[cfg(not(feature = "no-std"))]
     fn update_arg<B>(
-        &mut self,
+        _to_update: &mut Self,
         _id: Option<UniqueId>,
         _buffers: &mut crate::Buffers<B>,
     ) -> crate::Result<()> {
@@ -113,7 +113,7 @@ impl<T> UpdateArg for NoId<T> {
 impl<'a, T: 'static, D: Device + 'static, S: Shape + 'static> UpdateArg for &Buffer<'a, T, D, S> {
     #[cfg(not(feature = "no-std"))]
     fn update_arg<B: crate::AsAny>(
-        &mut self,
+        to_update: &mut Self,
         id: Option<UniqueId>,
         buffers: &mut crate::Buffers<B>,
     ) -> crate::Result<()> {
@@ -123,7 +123,7 @@ impl<'a, T: 'static, D: Device + 'static, S: Shape + 'static> UpdateArg for &Buf
             .get(&id.unwrap())
             .ok_or(DeviceError::InvalidLazyBuf)?;
         // let any = buf.as_any();
-        *self = unsafe { &*(buf.as_any() as *const dyn Any as *const Buffer<T, D, S>) };
+        *to_update = unsafe { &*(buf.as_any() as *const dyn Any as *const Buffer<T, D, S>) };
         //    *self = buffers.get(&self.id()).unwrap().downcast_ref().unwrap();
         Ok(())
     }
@@ -133,8 +133,8 @@ impl<'a, T: 'static, D: Device + 'static, S: Shape + 'static> UpdateArg
     for &mut Buffer<'a, T, D, S>
 {
     #[cfg(not(feature = "no-std"))]
-    fn update_arg<B>(
-        &mut self,
+    fn update_arg<B: crate::AsAny>(
+        to_update: &mut Self,
         id: Option<UniqueId>,
         buffers: &mut crate::Buffers<B>,
     ) -> crate::Result<()> {
@@ -143,7 +143,7 @@ impl<'a, T: 'static, D: Device + 'static, S: Shape + 'static> UpdateArg
         let buf = buffers
             .get_mut(&id.unwrap())
             .ok_or(DeviceError::InvalidLazyBuf)?;
-        // *self = unsafe { &mut *(&mut **buf as *mut dyn ShallowCopyable as *mut Buffer<T, D, S>) };
+        // *to_update = unsafe { &mut *(&mut **buf as *mut dyn Any as *mut Buffer<T, D, S>) };
         Ok(())
         //    *self = buffers.get(&self.id()).unwrap().downcast_ref().unwrap();
     }

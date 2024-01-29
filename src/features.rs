@@ -102,7 +102,7 @@ macro_rules! pass_down_grad_fn {
             fn add_grad_fn<Args: $crate::Parents<N> + $crate::UpdateArgs, const N: usize>(
                 &self,
                 args: Args,
-                op: fn(&mut Args) -> crate::Result<()>,
+                op: fn(&mut Args) -> $crate::Result<()>,
             ) {
                 self.modules.add_grad_fn(args, op)
             }
@@ -253,7 +253,7 @@ macro_rules! pass_down_add_operation {
             fn add_op<Args: $crate::Parents<N> + $crate::UpdateArgs, const N: usize>(
                 &self,
                 args: Args,
-                operation: fn(&mut Args) -> crate::Result<()>,
+                operation: fn(&mut Args) -> $crate::Result<()>,
             ) -> $crate::Result<()> {
                 self.modules.add_op(args, operation)
             }

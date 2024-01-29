@@ -11,4 +11,3 @@ mod cpu_ptr;
 mod ops;
 
 pub use cpu_ptr::*;
-pub use ops::*;

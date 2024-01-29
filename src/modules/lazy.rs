@@ -82,9 +82,10 @@ impl<Mods: AddOperation> AddOperation for Lazy<Mods> {
         args: Args,
         operation: fn(&mut Args) -> crate::Result<()>,
     ) -> crate::Result<()> {
-        Ok(self.graph.try_borrow_mut()
-            .expect("already borrowed: BorrowMutError - is the inner operation trying to add an operation as well?")
-            .add_operation(args, operation))
+        self.graph.try_borrow_mut()
+        .expect("already borrowed: BorrowMutError - is the inner operation trying to add an operation as well?")
+        .add_operation(args, operation);
+        Ok(())
     }
 }
 
