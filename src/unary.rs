@@ -2,9 +2,6 @@ use crate::{
     AddGradFn, Alloc, AsNoId, Buffer, Device, Eval, MayTapeActions, MayToCLSource, Resolve, Shape,
 };
 
-#[cfg(feature = "autograd")]
-use crate::HasId;
-
 /// Applies a function to a buffer and returns a new buffer.
 pub trait ApplyFunction<T, S: Shape = (), D: Device = Self>: Device {
     /// Applies a function to a buffer and returns a new buffer.

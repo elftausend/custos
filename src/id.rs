@@ -102,7 +102,7 @@ impl<T> UpdateArg for NoId<T> {
     #[inline]
     #[cfg(not(feature = "no-std"))]
     fn update_arg(
-        to_update: &mut Self,
+        _to_update: &mut Self,
         _id: Option<UniqueId>,
         _buffers: &mut std::collections::HashMap<
             crate::UniqueId,

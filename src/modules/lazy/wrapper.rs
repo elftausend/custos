@@ -26,14 +26,12 @@ impl<Mods: WrappedData> WrappedData for Lazy<Mods> {
     }
 
     #[inline]
-    fn wrapped_as_base<'a, T, Base: HasId + PtrType>(wrap: &'a Self::Wrap<T, Base>) -> &'a Base {
+    fn wrapped_as_base<T, Base: HasId + PtrType>(wrap: &Self::Wrap<T, Base>) -> &Base {
         Mods::wrapped_as_base(wrap.data.as_ref().expect(MISSING_DATA))
     }
 
     #[inline]
-    fn wrapped_as_base_mut<'a, T, Base: HasId + PtrType>(
-        wrap: &'a mut Self::Wrap<T, Base>,
-    ) -> &'a mut Base {
+    fn wrapped_as_base_mut<T, Base: HasId + PtrType>(wrap: &mut Self::Wrap<T, Base>) -> &mut Base {
         Mods::wrapped_as_base_mut(wrap.data.as_mut().expect(MISSING_DATA))
     }
 }
@@ -71,7 +69,7 @@ impl<Data: PtrType, T> PtrType for LazyWrapper<Data, T> {
     }
 }
 
-const MISSING_DATA: &'static str =
+const MISSING_DATA: &str =
     "This lazy buffer does not contain any data. Try with a buffer.replace() call.";
 
 impl<Data: Deref<Target = [T]>, T> Deref for LazyWrapper<Data, T> {
