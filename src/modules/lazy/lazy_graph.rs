@@ -2,11 +2,7 @@ use crate::{
     bounds_to_range, AsAny, Buffers, Device, Parents, ShallowCopy, UniqueId, UpdateArgs,
     UpdateArgsDynable,
 };
-use core::{
-    any::Any,
-    mem::transmute,
-    ops::{RangeBounds},
-};
+use core::{any::Any, mem::transmute, ops::RangeBounds};
 
 use super::exec_iter::{exec_op, ExecIter};
 

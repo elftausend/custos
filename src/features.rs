@@ -2,8 +2,6 @@ use core::{fmt::Debug, ops::RangeBounds};
 
 use crate::{HasId, Parents, Shape, UniqueId, UpdateArgs, CPU};
 
-
-
 #[cfg(feature = "cached")]
 use crate::{Base, CachedModule};
 

@@ -1,7 +1,4 @@
-use core::{
-    any::Any,
-    ops::{Deref, DerefMut},
-};
+use core::ops::{Deref, DerefMut};
 
 use crate::{Buffer, Device, DeviceError, Shape, UniqueId, UpdateArg};
 
@@ -143,7 +140,6 @@ impl<'a, T: 'static, D: Device + 'static, S: Shape + 'static> UpdateArg
         let buf = buffers
             .get_mut(&id.unwrap())
             .ok_or(DeviceError::InvalidLazyBuf)?;
-        // let _to_update = buf.as_any_mut().downcast_mut::<Buffer<T, D, S>>().unwrap();
         *to_update = unsafe { &mut *(buf.as_any_mut() as *mut Buffer<T, D, S>) };
         Ok(())
         //    *self = buffers.get(&self.id()).unwrap().downcast_ref().unwrap();

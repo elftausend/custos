@@ -8,10 +8,13 @@ pub use ty::*;
 
 use crate::{
     impl_remove_layer, pass_down_tape_actions, AddLayer, AddOperation, Alloc, Buffer, Device,
-    DeviceError, ExecNow, HasId, Id, IsShapeIndep, Module, NoHasher, OnDropBuffer, OnNewBuffer,
-    OptimizeMemGraph, Parents, ReplaceBuf, Retrieve, RunModule, Setup, ShallowCopy, Shape,
-    UniqueId, UpdateArgs,
+    ExecNow, HasId, Id, IsShapeIndep, Module, NoHasher, OnDropBuffer, OnNewBuffer, Parents,
+    ReplaceBuf, Retrieve, RunModule, Setup, ShallowCopy, Shape, UniqueId, UpdateArgs,
 };
+
+#[cfg(feature = "graph")]
+use crate::DeviceError;
+
 use core::{
     any::Any,
     cell::{Cell, RefCell},
@@ -315,7 +318,8 @@ impl<T: 'static, D: Device + 'static, S: Shape, Mods: OnDropBuffer> ReplaceBuf<T
     }
 }
 
-impl<Mods> OptimizeMemGraph for Lazy<Mods> {
+#[cfg(feature = "graph")]
+impl<Mods> crate::OptimizeMemGraph for Lazy<Mods> {
     fn optimize_mem_graph<D: 'static>(
         &self,
         device: &D,

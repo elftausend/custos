@@ -80,8 +80,6 @@ macro_rules! impl_parents {
     };
 }
 
-
-
 impl_parents!(2, T, T1);
 impl_parents!(3, T, T1, T2);
 impl_parents!(4, T, T1, T2, T3);
