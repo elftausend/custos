@@ -1,5 +1,12 @@
-use crate::{bounds_to_range, AsAny, Buffer, Buffers, Device, Parents, ShallowCopy, UniqueId, UpdateArgs, UpdateArgsDynable};
-use core::{any::Any, mem::transmute, ops::{Deref, DerefMut, RangeBounds}};
+use crate::{
+    bounds_to_range, AsAny, Buffer, Buffers, Device, Parents, ShallowCopy, UniqueId, UpdateArgs,
+    UpdateArgsDynable,
+};
+use core::{
+    any::Any,
+    mem::transmute,
+    ops::{Deref, DerefMut, RangeBounds},
+};
 
 use super::exec_iter::{exec_op, ExecIter};
 
@@ -20,7 +27,7 @@ impl<B> Default for LazyGraph<B> {
     }
 }
 
-pub trait BoxedShallowCopy: 'static{
+pub trait BoxedShallowCopy: 'static {
     fn shallow_copy(&self) -> Box<dyn BoxedShallowCopy>;
 }
 
@@ -33,35 +40,29 @@ impl<T: ShallowCopy + 'static> BoxedShallowCopy for T {
 
 impl AsAny for Box<dyn BoxedShallowCopy> {
     #[inline]
-    fn as_any(&self) -> &dyn Any {
-        self
+    fn as_any(&self) -> *const () {
+        let data = &**self;
+        data as *const _ as *const ()
     }
 
     #[inline]
-    fn as_any_mut(&mut self) -> &mut dyn Any {
-        self
+    fn as_any_mut(&mut self) -> *mut () {
+        let data = &mut **self;
+        data as *mut _ as *mut ()
     }
 }
 
 impl AsAny for Box<dyn Any> {
     #[inline]
-    fn as_any(&self) -> &dyn Any {
-        self
+    fn as_any(&self) -> *const () {
+        (&**self) as *const _ as *const ()
     }
 
     #[inline]
-    fn as_any_mut(&mut self) -> &mut dyn Any {
-        self
+    fn as_any_mut(&mut self) -> *mut () {
+        (&mut **self) as *mut _ as *mut ()
     }
 }
-
-
-// impl<B, A: UpdateArgs> UpdateArgsDynable<B> for A {
-//     fn update_args_dynable(&mut self, ids: &[Option<UniqueId>], buffers: &mut Buffers<B>)
-//         -> crate::Result<()> {
-//         todo!()
-//     }
-// }
 
 impl<B: AsAny> LazyGraph<B> {
     #[inline]
@@ -145,7 +146,10 @@ impl<B: AsAny> LazyGraph<B> {
 #[cfg(test)]
 mod tests {
     use super::LazyGraph;
-    use crate::{register_buf_copyable, AsNoId, Base, Buffer, Device, HasId, Retriever, BoxedShallowCopy, CPU};
+    use crate::{
+        register_buf_copyable, AsNoId, Base, BoxedShallowCopy, Buffer, Device, HasId, Retriever,
+        CPU,
+    };
     use std::collections::HashMap;
 
     #[test]

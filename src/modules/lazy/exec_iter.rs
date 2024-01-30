@@ -1,6 +1,5 @@
 use crate::{Buffers, UniqueId, UpdateArgs, UpdateArgsDynable};
 
-
 pub struct ExecIter<'a, B> {
     pub(super) ids_to_check: std::slice::Iter<'a, Vec<Option<UniqueId>>>,
     pub(super) ops: std::slice::Iter<'a, fn(*mut ()) -> crate::Result<()>>,

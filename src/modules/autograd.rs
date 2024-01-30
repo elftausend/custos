@@ -7,7 +7,10 @@ pub use tape::*;
 use core::cell::UnsafeCell;
 
 use crate::{
-    impl_remove_layer, pass_down_add_operation, pass_down_exec_now_module, register_buf_any, register_buf_copyable, unregister_buf_any, unregister_buf_copyable, AddGradFn, AddLayer, Alloc, Buffer, Buffers, Device, HasId, IsShapeIndep, Module, OnDropBuffer, OnNewBuffer, Parents, PtrType, Retrieve, RunModule, Setup, ShallowCopy, Shape, TapeActions, WrappedData
+    impl_remove_layer, pass_down_add_operation, pass_down_exec_now_module, register_buf_any,
+    register_buf_copyable, unregister_buf_any, unregister_buf_copyable, AddGradFn, AddLayer, Alloc,
+    Buffer, Buffers, Device, HasId, IsShapeIndep, Module, OnDropBuffer, OnNewBuffer, Parents,
+    PtrType, Retrieve, RunModule, Setup, ShallowCopy, Shape, TapeActions, WrappedData,
 };
 
 use super::{Cached, CachedModule};
@@ -239,8 +242,8 @@ mod tests {
     use core::any::Any;
 
     use crate::{
-        AddGradFn, Base, Buffer, Cached, Combiner, Device, HasId, Module, Retriever,
-        BoxedShallowCopy, Shape, UnaryGrad, CPU,
+        AddGradFn, Base, BoxedShallowCopy, Buffer, Cached, Combiner, Device, HasId, Module,
+        Retriever, Shape, UnaryGrad, CPU,
     };
 
     use super::Autograd;

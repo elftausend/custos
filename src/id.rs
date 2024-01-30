@@ -3,7 +3,7 @@ use core::{
     ops::{Deref, DerefMut},
 };
 
-use crate::{Buffer, Device, DeviceError, Shape, UniqueId, UpdateArg};
+use crate::{Buffer, Buffers, Device, DeviceError, Shape, UniqueId, UpdateArg};
 
 pub trait HasId {
     const HAS_NO_ID: bool = false;
@@ -123,7 +123,9 @@ impl<'a, T: 'static, D: Device + 'static, S: Shape + 'static> UpdateArg for &Buf
             .get(&id.unwrap())
             .ok_or(DeviceError::InvalidLazyBuf)?;
         // let any = buf.as_any();
-        *to_update = unsafe { &*(buf.as_any() as *const dyn Any as *const Buffer<T, D, S>) };
+        // let _to_update = buf.as_any().downcast_ref::<Buffer<T, D, S>>().unwrap();
+        // todo!();
+        *to_update = unsafe { &*(buf.as_any() as *const Buffer<T, D, S>) };
         //    *self = buffers.get(&self.id()).unwrap().downcast_ref().unwrap();
         Ok(())
     }
@@ -138,12 +140,11 @@ impl<'a, T: 'static, D: Device + 'static, S: Shape + 'static> UpdateArg
         id: Option<UniqueId>,
         buffers: &mut crate::Buffers<B>,
     ) -> crate::Result<()> {
-        // use crate::ShallowCopyable;
-        todo!();
         let buf = buffers
             .get_mut(&id.unwrap())
             .ok_or(DeviceError::InvalidLazyBuf)?;
-        // *to_update = unsafe { &mut *(&mut **buf as *mut dyn Any as *mut Buffer<T, D, S>) };
+        // let _to_update = buf.as_any_mut().downcast_mut::<Buffer<T, D, S>>().unwrap();
+        *to_update = unsafe { &mut *(buf.as_any_mut() as *mut Buffer<T, D, S>) };
         Ok(())
         //    *self = buffers.get(&self.id()).unwrap().downcast_ref().unwrap();
     }

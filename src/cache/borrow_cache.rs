@@ -38,8 +38,7 @@ impl Display for CachingError {
 
 impl std::error::Error for CachingError {}
 
-pub(crate) type Buffers<B> =
-    HashMap<UniqueId, B, BuildHasherDefault<NoHasher>>;
+pub(crate) type Buffers<B> = HashMap<UniqueId, B, BuildHasherDefault<NoHasher>>;
 
 pub(crate) type AnyBuffers = HashMap<UniqueId, Box<dyn Any>, BuildHasherDefault<NoHasher>>;
 
