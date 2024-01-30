@@ -1,13 +1,13 @@
 use core::{cell::RefCell, marker::PhantomData};
 
 use crate::{
-    AddGradFn, AddLayer, AddOperation, Alloc, Buffer, Cache, Device, ExecNow, HasId,
-    Module, OnDropBuffer, OnNewBuffer, Parents, PtrType, RemoveLayer, Retrieve, RunModule, Setup,
+    AddGradFn, AddLayer, AddOperation, Alloc, Buffer, Cache, Device, ExecNow, HasId, Module,
+    OnDropBuffer, OnNewBuffer, Parents, PtrType, RemoveLayer, Retrieve, RunModule, Setup,
     ShallowCopy, Shape, WrappedData,
 };
 
 #[cfg(feature = "graph")]
-use crate::{OptimizeMemGraph, DeviceError};
+use crate::{DeviceError, OptimizeMemGraph};
 
 // creator struct, however =>
 // TODO: could remove D generic and therefore CachedModule

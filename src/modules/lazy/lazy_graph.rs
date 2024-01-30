@@ -1,10 +1,12 @@
 use crate::{
-    bounds_to_range, AsAny, Buffers, Device, Parents, ShallowCopy, UniqueId, UpdateArgs,
-    UpdateArgsDynable,
+    bounds_to_range, AsAny, Buffers, Device, Parents, UniqueId, UpdateArgs, UpdateArgsDynable,
 };
-use core::{any::Any, mem::transmute, ops::RangeBounds};
+use core::{mem::transmute, ops::RangeBounds};
 
-use super::exec_iter::{exec_op, ExecIter};
+use super::{
+    exec_iter::{exec_op, ExecIter},
+    generic_support::BoxedShallowCopy,
+};
 
 pub struct LazyGraph<B = Box<dyn BoxedShallowCopy>> {
     pub ids_to_check: Vec<Vec<Option<UniqueId>>>,
@@ -20,43 +22,6 @@ impl<B> Default for LazyGraph<B> {
             ops: Vec::default(),
             args: Vec::default(),
         }
-    }
-}
-
-pub trait BoxedShallowCopy: 'static {
-    fn shallow_copy(&self) -> Box<dyn BoxedShallowCopy>;
-}
-
-impl<T: ShallowCopy + 'static> BoxedShallowCopy for T {
-    #[inline]
-    fn shallow_copy(&self) -> Box<dyn BoxedShallowCopy> {
-        Box::new(unsafe { self.shallow() })
-    }
-}
-
-impl AsAny for Box<dyn BoxedShallowCopy> {
-    #[inline]
-    fn as_any(&self) -> *const () {
-        let data = &**self;
-        data as *const _ as *const ()
-    }
-
-    #[inline]
-    fn as_any_mut(&mut self) -> *mut () {
-        let data = &mut **self;
-        data as *mut _ as *mut ()
-    }
-}
-
-impl AsAny for Box<dyn Any> {
-    #[inline]
-    fn as_any(&self) -> *const () {
-        (&**self) as *const _ as *const ()
-    }
-
-    #[inline]
-    fn as_any_mut(&mut self) -> *mut () {
-        (&mut **self) as *mut _ as *mut ()
     }
 }
 
@@ -143,8 +108,8 @@ impl<B: AsAny> LazyGraph<B> {
 mod tests {
     use super::LazyGraph;
     use crate::{
-        register_buf_copyable, AsNoId, Base, BoxedShallowCopy, Buffer, Device, HasId, Retriever,
-        CPU,
+        modules::lazy::{generic_support::BoxedShallowCopy, register_buf_copyable},
+        AsNoId, Base, Buffer, Device, HasId, Retriever, CPU,
     };
     use std::collections::HashMap;
 

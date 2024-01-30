@@ -242,8 +242,8 @@ mod tests {
     use core::any::Any;
 
     use crate::{
-        AddGradFn, Base, BoxedShallowCopy, Buffer, Cached, Combiner, Device, HasId, Module,
-        Retriever, Shape, UnaryGrad, CPU,
+        AddGradFn, Base, Buffer, Cached, Combiner, Device, HasId, Module, Retriever, Shape,
+        UnaryGrad, CPU,
     };
 
     use super::Autograd;
