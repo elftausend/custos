@@ -11,8 +11,8 @@ pub use ty::*;
 
 use crate::{
     impl_remove_layer, pass_down_tape_actions, AddLayer, AddOperation, Alloc, Buffer, Device,
-    ExecNow, HasId, Id, IsShapeIndep, Module, NoHasher, OnDropBuffer, OnNewBuffer, Parents,
-    ReplaceBuf, Retrieve, RunModule, Setup, ShallowCopy, Shape, UniqueId, UpdateArgs,
+    ExecNow, HasId, Id, IsShapeIndep, Module, OnDropBuffer, OnNewBuffer, Parents, ReplaceBuf,
+    Retrieve, RunModule, Setup, ShallowCopy, Shape, UniqueId, UpdateArgs,
 };
 
 #[cfg(feature = "graph")]
@@ -22,14 +22,12 @@ use core::{
     any::Any,
     cell::{Cell, RefCell},
     fmt::Debug,
-    hash::BuildHasherDefault,
 };
-use std::collections::HashMap;
 
 pub use self::lazy_graph::LazyGraph;
 use self::{generic_support::BoxedShallowCopy, wrapper::LazyWrapper};
 
-type Buffers = HashMap<UniqueId, Box<dyn BoxedShallowCopy>, BuildHasherDefault<NoHasher>>;
+type Buffers = crate::Buffers<Box<dyn BoxedShallowCopy>>;
 
 #[derive(Default)]
 pub struct Lazy<Mods> {

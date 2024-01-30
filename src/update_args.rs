@@ -1,6 +1,7 @@
-use crate::{Buffers, UniqueId};
+use crate::UniqueId;
 
 #[cfg(not(feature = "no-std"))]
+use crate::Buffers;
 
 /// A dummy trait for no-std context. [`UpdateArgs`] requires standard library code.
 #[cfg(feature = "no-std")]
@@ -39,6 +40,7 @@ impl<T: UpdateArg> UpdateArgs for T {
     }
 }
 
+#[cfg(not(feature = "no-std"))]
 pub trait UpdateArgsDynable<B> {
     fn update_args_dynable(
         &mut self,
@@ -47,6 +49,7 @@ pub trait UpdateArgsDynable<B> {
     ) -> crate::Result<()>;
 }
 
+#[cfg(not(feature = "no-std"))]
 impl<A: UpdateArgs, T: AsAny> UpdateArgsDynable<T> for A {
     #[inline]
     fn update_args_dynable(
