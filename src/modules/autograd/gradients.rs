@@ -1,4 +1,4 @@
-use crate::{Alloc, BorrowCache, Buffer, CachingError, HasId, Id, Parents, ShallowCopy, Shape};
+use crate::{Alloc, BorrowCache, Buffer, CachingError, HasId, Id, Parents, Shape};
 
 const INVALID_ID: &str = "A matching Buffer does not exist.";
 

@@ -153,7 +153,7 @@ impl<Mods> Lazy<Mods> {
                 for use_id_as_well in &cache_trace.use_cache_idxs {
                     let use_id_as_well_id = graph_trans
                         .idx_to_buf_id
-                        .get(&use_id_as_well)
+                        .get(use_id_as_well)
                         .ok_or(DeviceError::GraphOptimization)?;
 
                     self.buffers

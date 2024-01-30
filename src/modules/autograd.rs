@@ -7,9 +7,8 @@ pub use tape::*;
 use core::cell::UnsafeCell;
 
 use crate::{
-    impl_remove_layer, pass_down_add_operation, pass_down_exec_now_module, register_buf_any,
-    register_buf_copyable, unregister_buf_any, unregister_buf_copyable, AddGradFn, AddLayer, Alloc,
-    Buffer, Buffers, Device, HasId, IsShapeIndep, Module, OnDropBuffer, OnNewBuffer, Parents,
+    impl_remove_layer, pass_down_add_operation, pass_down_exec_now_module, register_buf_any, unregister_buf_any, AddGradFn, AddLayer, Alloc,
+    Buffer, Device, HasId, IsShapeIndep, Module, OnDropBuffer, OnNewBuffer, Parents,
     PtrType, Retrieve, RunModule, Setup, ShallowCopy, Shape, TapeActions, WrappedData,
 };
 

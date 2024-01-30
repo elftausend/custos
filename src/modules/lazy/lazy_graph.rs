@@ -1,11 +1,11 @@
 use crate::{
-    bounds_to_range, AsAny, Buffer, Buffers, Device, Parents, ShallowCopy, UniqueId, UpdateArgs,
+    bounds_to_range, AsAny, Buffers, Device, Parents, ShallowCopy, UniqueId, UpdateArgs,
     UpdateArgsDynable,
 };
 use core::{
     any::Any,
     mem::transmute,
-    ops::{Deref, DerefMut, RangeBounds},
+    ops::{RangeBounds},
 };
 
 use super::exec_iter::{exec_op, ExecIter};

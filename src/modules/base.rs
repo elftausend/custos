@@ -1,5 +1,5 @@
 use crate::{
-    flag::AllocFlag, AddGradFn, AddOperation, Alloc, Buffers, Device, ExecNow, HasId, HashLocation,
+    flag::AllocFlag, AddGradFn, AddOperation, Alloc, Device, ExecNow, HasId, HashLocation,
     Module, OnDropBuffer, OnNewBuffer, Parents, PtrType, Retrieve, Setup, Shape, WrappedData,
 };
 

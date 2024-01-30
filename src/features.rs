@@ -1,9 +1,8 @@
 use core::{fmt::Debug, ops::RangeBounds};
 
-use crate::{Buffers, HasId, Parents, Shape, UniqueId, UpdateArgs, CPU};
+use crate::{HasId, Parents, Shape, UniqueId, UpdateArgs, CPU};
 
-#[cfg(feature = "graph")]
-use crate::HashLocationCacheTrace;
+
 
 #[cfg(feature = "cached")]
 use crate::{Base, CachedModule};
@@ -406,7 +405,7 @@ macro_rules! pass_down_optimize_mem_graph {
             fn optimize_mem_graph<D: 'static>(
                 &self,
                 device: &D,
-                graph_translator: Option<&crate::modules::GraphTranslator>,
+                graph_translator: Option<&$crate::modules::GraphTranslator>,
             ) -> crate::Result<()> {
                 self.modules.optimize_mem_graph(device, graph_translator)
             }

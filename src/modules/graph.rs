@@ -8,8 +8,7 @@ pub use opt_graph::*;
 use core::{cell::RefCell, panic::Location};
 
 use crate::{
-    impl_remove_layer, pass_down_add_operation, pass_down_exec_now_module,
-    pass_down_replace_buf_dev, pass_down_replace_buf_module, pass_down_unified_mem_chain,
+    impl_remove_layer, pass_down_add_operation, pass_down_exec_now_module, pass_down_replace_buf_module, pass_down_unified_mem_chain,
     pass_down_use_gpu_or_cpu, AddLayer, Alloc, Buffer, Device, HasId, Module, OnDropBuffer,
     OnNewBuffer, OptimizeMemGraph, Parents, PtrType, Retrieve, RunModule, Setup, Shape,
     WrappedData,

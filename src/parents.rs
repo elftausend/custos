@@ -80,8 +80,7 @@ macro_rules! impl_parents {
     };
 }
 
-#[cfg(not(feature = "no-std"))]
-use std::collections::HashMap;
+
 
 impl_parents!(2, T, T1);
 impl_parents!(3, T, T1, T2);

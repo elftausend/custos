@@ -38,7 +38,7 @@ pub use cdatatype::*;
 #[cfg(any(feature = "cpu", feature = "stack"))]
 pub mod cpu_stack_ops;
 
-use crate::{Buffer, HasId, OnDropBuffer, PtrType, ShallowCopy, Shape};
+use crate::{Buffer, HasId, OnDropBuffer, PtrType, Shape};
 
 pub trait Device: OnDropBuffer + Sized {
     type Base<T, S: Shape>: HasId + PtrType;

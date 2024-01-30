@@ -3,7 +3,7 @@ use core::{
     ops::{Deref, DerefMut},
 };
 
-use crate::{Buffer, Buffers, Device, DeviceError, Shape, UniqueId, UpdateArg};
+use crate::{Buffer, Device, DeviceError, Shape, UniqueId, UpdateArg};
 
 pub trait HasId {
     const HAS_NO_ID: bool = false;

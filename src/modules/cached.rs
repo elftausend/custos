@@ -1,7 +1,7 @@
 use core::{cell::RefCell, marker::PhantomData};
 
 use crate::{
-    AddGradFn, AddLayer, AddOperation, Alloc, Buffer, Buffers, Cache, Device, DeviceError, ExecNow,
+    AddGradFn, AddLayer, AddOperation, Alloc, Buffer, Cache, Device, DeviceError, ExecNow,
     HasId, Module, OnDropBuffer, OnNewBuffer, Parents, PtrType, RemoveLayer, Retrieve, RunModule,
     Setup, ShallowCopy, Shape, WrappedData,
 };
@@ -226,7 +226,7 @@ impl<Mods: RunModule<D>, D, SD: Device> RunModule<D> for CachedModule<Mods, SD> 
 impl<Mods: OptimizeMemGraph, SD: Device> OptimizeMemGraph for CachedModule<Mods, SD> {
     fn optimize_mem_graph<D: 'static>(
         &self,
-        device: &D,
+        _device: &D,
         graph_translator: Option<&crate::GraphTranslator>,
         //cache_traces: Option<&[crate::TranslatedCacheTrace]>,
     ) -> crate::Result<()> {
