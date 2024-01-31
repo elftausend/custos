@@ -31,9 +31,22 @@ custos-macro = {git = "https://github.com/elftausend/custos-macro", optional=tru
 libm = { version="0.2.6", optional = true }
 
 ash = { version = "0.37", optional = true } 
-naga = { version = "0.19", features = ["wgsl-in", "spv-out"], optional = true } 
+naga = { version = "0.19", features = ["wgsl-in"], optional = true } 
 
 half = {version = "2.3", default-features = false, optional = true} 
+
+# web
+js-sys = { version = "0.3", optional = true }
+web-sys = { version = "0.3", optional = true, features = [
+    'Document',
+    'Element',
+    'HtmlCanvasElement',
+    'WebGlBuffer',
+    'WebGlVertexArrayObject',
+    'WebGl2RenderingContext',
+    'WebGlProgram',
+    'WebGlShader',
+    'Window'] }
 
 # nnapi
 # nnapi = { path = "../nnapi/nnapi", optional = true}
@@ -49,8 +62,9 @@ min-cl = { git = "https://github.com/elftausend/min-cl", optional = true }
 # min-cl = { version = "0.3.0", optional=true }
 
 [features]
-default = ["cpu", "graph", "cached"]
-# default = ["cpu", "lazy", "static-api", "graph", "autograd", "fork", "serde", "json"]
+# default = ["cpu", "autograd", "macro"]
+default = ["cpu", "lazy", "static-api", "webgl", "vulkan"]
+
 
 cpu = []
 opencl = ["dep:min-cl", "cpu", "cached"]
@@ -73,8 +87,12 @@ graph = []
 
 half = ["dep:half"]
 
-vulkan = ["dep:ash", "dep:naga", "wgsl"]
-wgsl = []
+vulkan = ["dep:ash", "wgsl", "spv"]
+webgl = ["wgsl", "dep:js-sys", "dep:web-sys", "glsl"]
+
+spv = ["naga/spv-out"]
+glsl = ["naga/glsl-out"]
+wgsl = ["dep:naga"]
 
 serde = ["dep:serde"]
 json = ["dep:serde_json"]
