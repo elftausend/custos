@@ -9,7 +9,7 @@ use core::{cell::RefCell, panic::Location};
 
 use crate::{
     impl_remove_layer, pass_down_add_operation, pass_down_exec_now_module,
-    pass_down_replace_buf_module, pass_down_unified_mem_chain, pass_down_use_gpu_or_cpu, AddLayer,
+    pass_down_replace_buf_module, pass_down_use_gpu_or_cpu, AddLayer,
     Alloc, Buffer, Device, HasId, Module, OnDropBuffer, OnNewBuffer, OptimizeMemGraph, Parents,
     PtrType, Retrieve, RunModule, Setup, Shape, WrappedData,
 };
@@ -98,7 +98,8 @@ impl<Mods: OnDropBuffer> OnDropBuffer for Graph<Mods> {
 
 pass_down_add_operation!(Graph);
 pass_down_exec_now_module!(Graph);
-pass_down_unified_mem_chain!(Graph);
+#[cfg(feature = "cached")]
+crate::pass_down_unified_mem_chain!(Graph);
 pass_down_use_gpu_or_cpu!(Graph);
 pass_down_replace_buf_module!(Graph);
 

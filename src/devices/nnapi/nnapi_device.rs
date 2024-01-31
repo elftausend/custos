@@ -159,6 +159,7 @@ impl<U, T: AsOperandCode, Mods: OnDropBuffer> Alloc<T> for NnapiDevice<U, Mods> 
 impl<T, SimpleMods> NnapiDevice<T, SimpleMods> {
     /// Creates a new [`NnapiDevice`].
     pub fn new<NewMods>() -> crate::Result<NnapiDevice<T, NewMods>>
+    // TODO keep in mind that lazy module requirement would make sense here
     where
         SimpleMods: Module<NnapiDevice<T>, Module = NewMods>,
         NewMods: Setup<NnapiDevice<T, NewMods>>,
