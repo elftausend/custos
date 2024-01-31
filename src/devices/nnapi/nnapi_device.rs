@@ -105,7 +105,7 @@ impl<U, Mods: Retrieve<Self, T, S>, T: AsOperandCode, S: Shape> Retriever<T, S>
         len: usize,
         parents: impl crate::Parents<NUM_PARENTS>,
     ) -> Buffer<T, Self, S> {
-        let data = self.modules.retrieve::<NUM_PARENTS>(self, len, parents);
+        let data = unsafe { self.modules.retrieve::<NUM_PARENTS>(self, len, parents) };
         let buf = Buffer {
             data,
             device: Some(self),
