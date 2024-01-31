@@ -5,7 +5,7 @@ use nnapi::{nnapi_sys::OperationCode, Operand};
 use crate::log;
 
 pub fn run_custos_model() -> custos::Result<String> {
-    let device = NnapiDevice::<i32, Lazy<Base>>::new()?;
+    let device = NnapiDevice::<i32, Base>::new()?;
 
     let lhs = Buffer::with(&device, [1, 2, 3, 4, 5, 6, 7, 8, 9, 11]);
     let rhs = Buffer::with(&device, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
