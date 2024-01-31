@@ -95,7 +95,7 @@ impl<T: 'static, Mods: Retrieve<D, T, S>, D: IsShapeIndep + 'static, S: Shape> R
     for Fork<Mods>
 {
     #[inline]
-    fn retrieve<const NUM_PARENTS: usize>(
+    unsafe fn retrieve<const NUM_PARENTS: usize>(
         &self,
         device: &D,
         len: usize,

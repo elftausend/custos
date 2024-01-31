@@ -264,6 +264,10 @@ impl_buffer_hook_traits!(CPU);
 #[cfg(not(feature = "cpu"))]
 crate::impl_wrapped_data!(CPU);
 
+#[cfg(not(feature = "no-std"))]
+pub(crate) type Buffers<B> =
+    std::collections::HashMap<UniqueId, B, std::hash::BuildHasherDefault<NoHasher>>;
+
 pub mod prelude {
     //! Typical imports for using custos.
 

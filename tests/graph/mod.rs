@@ -5,10 +5,10 @@ use custos::{number::Number, Buffer, CDatatype, Device, Retrieve, Retriever, CPU
 #[cfg(feature = "opencl")]
 use custos::{opencl::enqueue_kernel, OpenCL};
 
-#[cfg(not(feature = "realloc"))]
+#[cfg(feature = "cached")]
 mod graph;
 
-#[cfg(not(feature = "realloc"))]
+#[cfg(feature = "cached")]
 #[cfg(unified_cl)]
 mod to_unified;
 

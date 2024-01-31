@@ -32,7 +32,7 @@ fn test_graph() -> custos::Result<()> {
             assert_eq!(c.ptr, d.ptr);
             assert_eq!(c.ptr, e.ptr);
         }
-        device.optimize_mem_graph(None).unwrap();
+        device.optimize_mem_graph(&device, None).unwrap();
     }
     Ok(())
 }
@@ -66,7 +66,7 @@ fn test_graph_cl() -> custos::Result<()> {
             assert_eq!(c.ptr, d.ptr);
             assert_eq!(c.ptr, e.ptr);
         }
-        device.optimize_mem_graph(None).unwrap();
+        device.optimize_mem_graph(&device, None).unwrap();
     }
     Ok(())
 }

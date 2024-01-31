@@ -7,8 +7,8 @@ pub use tape::*;
 use core::cell::UnsafeCell;
 
 use crate::{
-    impl_remove_layer, pass_down_add_operation, pass_down_exec_now_module, register_buf,
-    unregister_buf, AddGradFn, AddLayer, Alloc, Buffer, Device, HasId, IsShapeIndep, Module,
+    impl_remove_layer, pass_down_add_operation, pass_down_exec_now_module, register_buf_any,
+    unregister_buf_any, AddGradFn, AddLayer, Alloc, Buffer, Device, HasId, IsShapeIndep, Module,
     OnDropBuffer, OnNewBuffer, Parents, PtrType, Retrieve, RunModule, Setup, ShallowCopy, Shape,
     TapeActions, WrappedData,
 };
@@ -71,7 +71,7 @@ impl<Mods> Autograd<Mods> {
             return;
         }
 
-        unsafe { register_buf(no_grads_pool, buf) };
+        unsafe { register_buf_any(no_grads_pool, buf) };
     }
 }
 
@@ -105,7 +105,7 @@ where
 impl<Mods: OnDropBuffer> OnDropBuffer for Autograd<Mods> {
     #[inline]
     fn on_drop_buffer<T, D: Device, S: Shape>(&self, device: &D, buf: &Buffer<T, D, S>) {
-        unregister_buf(
+        unregister_buf_any(
             unsafe { &mut (*(self.grads.get())).no_grads_pool.cache },
             buf.id(),
         );
@@ -144,7 +144,7 @@ where
     D::Data<T, S>: ShallowCopy,
 {
     #[inline]
-    fn retrieve<const NUM_PARENTS: usize>(
+    unsafe fn retrieve<const NUM_PARENTS: usize>(
         &self,
         device: &D,
         len: usize,

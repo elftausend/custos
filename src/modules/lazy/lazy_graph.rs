@@ -1,58 +1,33 @@
-use crate::{bounds_to_range, Device, NoHasher, Parents, UniqueId, UpdateArgs};
-use core::{any::Any, hash::BuildHasherDefault, mem::transmute, ops::RangeBounds};
-use std::collections::HashMap;
+use crate::{
+    bounds_to_range, AsAny, Buffers, Device, Parents, UniqueId, UpdateArgs, UpdateArgsDynable,
+};
+use core::{mem::transmute, ops::RangeBounds};
 
-pub struct ExecIter<'a> {
-    ids_to_check: std::slice::Iter<'a, Vec<Option<UniqueId>>>,
-    ops: std::slice::Iter<'a, fn(*mut ()) -> crate::Result<()>>,
-    args: std::slice::IterMut<'a, Box<dyn UpdateArgs>>,
-    buffers: &'a mut HashMap<UniqueId, Box<dyn Any>, BuildHasherDefault<NoHasher>>,
-}
+use super::{
+    exec_iter::{exec_op, ExecIter},
+    generic_support::BoxedShallowCopy,
+};
 
-fn exec_op(
-    args: &mut Box<dyn UpdateArgs>,
-    op: &fn(*mut ()) -> crate::Result<()>,
-    ids_to_check: &[Option<UniqueId>],
-    buffers: &mut HashMap<UniqueId, Box<dyn Any>, BuildHasherDefault<NoHasher>>,
-) -> crate::Result<()> {
-    args.update_args(ids_to_check, buffers)?;
-
-    let args = &mut **args as *mut _ as *mut ();
-    op(args)
-}
-impl<'a> Iterator for ExecIter<'a> {
-    type Item = crate::Result<()>;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        let ids_to_check = self.ids_to_check.next()?;
-        let op = self.ops.next()?;
-        let args = self.args.next()?;
-        Some(exec_op(args, op, ids_to_check, self.buffers))
-    }
-}
-
-impl<'a> DoubleEndedIterator for ExecIter<'a> {
-    fn next_back(&mut self) -> Option<Self::Item> {
-        let ids_to_check = self.ids_to_check.next_back()?;
-        let op = self.ops.next_back()?;
-        let args = self.args.next_back()?;
-        Some(exec_op(args, op, ids_to_check, self.buffers))
-    }
-}
-
-#[derive(Default)]
-pub struct LazyGraph {
+pub struct LazyGraph<B = Box<dyn BoxedShallowCopy>> {
     pub ids_to_check: Vec<Vec<Option<UniqueId>>>,
     pub ops: Vec<fn(*mut ()) -> crate::Result<()>>,
-    pub args: Vec<Box<dyn UpdateArgs>>,
+    pub args: Vec<Box<dyn UpdateArgsDynable<B>>>,
 }
 
-impl LazyGraph {
+impl<B> Default for LazyGraph<B> {
     #[inline]
-    pub fn iter_with<'a>(
-        &'a mut self,
-        buffers: &'a mut HashMap<UniqueId, Box<dyn Any>, BuildHasherDefault<NoHasher>>,
-    ) -> ExecIter {
+    fn default() -> Self {
+        Self {
+            ids_to_check: Vec::default(),
+            ops: Vec::default(),
+            args: Vec::default(),
+        }
+    }
+}
+
+impl<B: AsAny> LazyGraph<B> {
+    #[inline]
+    pub fn iter_with<'a>(&'a mut self, buffers: &'a mut Buffers<B>) -> ExecIter<B> {
         ExecIter {
             ids_to_check: self.ids_to_check.iter(),
             ops: self.ops.iter(),
@@ -82,7 +57,7 @@ impl LazyGraph {
                 .collect(),
         );
 
-        let args: Box<dyn UpdateArgs> = Box::new(args);
+        let args: Box<dyn UpdateArgsDynable<B>> = Box::new(args);
 
         self.args.push(unsafe { transmute(args) });
         unsafe { self.ops.push(transmute(op)) };
@@ -90,7 +65,7 @@ impl LazyGraph {
 
     pub unsafe fn call_lazily<D: Device + 'static>(
         &mut self,
-        outs_unordered: &mut HashMap<UniqueId, Box<dyn Any>, BuildHasherDefault<NoHasher>>,
+        outs_unordered: &mut Buffers<B>,
     ) -> crate::Result<()> {
         for args in self.iter_with(outs_unordered) {
             args?;
@@ -109,7 +84,7 @@ impl LazyGraph {
     pub unsafe fn call_range<D: Device + 'static>(
         &mut self,
         bounds: impl RangeBounds<usize>,
-        outs_unordered: &mut HashMap<UniqueId, Box<dyn Any>, BuildHasherDefault<NoHasher>>,
+        outs_unordered: &mut Buffers<B>,
     ) -> crate::Result<()> {
         let range = bounds_to_range(bounds, self.args.len());
         for ((mut args, op), ids_to_check) in self
@@ -132,7 +107,10 @@ impl LazyGraph {
 #[cfg(test)]
 mod tests {
     use super::LazyGraph;
-    use crate::{register_buf, AsNoId, Base, Buffer, Device, HasId, Retriever, CPU};
+    use crate::{
+        modules::lazy::{generic_support::BoxedShallowCopy, register_buf_copyable},
+        AsNoId, Base, Buffer, Device, HasId, Retriever, CPU,
+    };
     use std::collections::HashMap;
 
     #[test]
@@ -146,7 +124,7 @@ mod tests {
             let lhs = device.buffer([1f32, 2., 3., 4., 5.]);
             let rhs = device.buffer([1f32, 2., 6., 4., 5.]);
             let out: Buffer = device.retrieve(lhs.len(), (&lhs, &rhs));
-            unsafe { register_buf(&mut outs_unordered, &out) };
+            unsafe { register_buf_copyable(&mut outs_unordered, &out) };
             // outs_unordered.insert(out.id(), )
 
             graph.add_operation::<_, 3>((&out, &lhs, &rhs), |args| {
@@ -159,6 +137,7 @@ mod tests {
             out.id()
         };
 
+        // todo!()
         unsafe { graph.call_lazily::<CPU>(&mut outs_unordered).unwrap() }
     }
 
@@ -173,9 +152,9 @@ mod tests {
         let mut outs_unordered = HashMap::default();
 
         let out: Buffer = device.retrieve(lhs.len(), (&lhs, &rhs));
-        unsafe { register_buf(&mut outs_unordered, &lhs) };
-        unsafe { register_buf(&mut outs_unordered, &rhs) };
-        unsafe { register_buf(&mut outs_unordered, &out) };
+        unsafe { register_buf_copyable(&mut outs_unordered, &lhs) };
+        unsafe { register_buf_copyable(&mut outs_unordered, &rhs) };
+        unsafe { register_buf_copyable(&mut outs_unordered, &out) };
         // outs_unordered.insert(out.id(), )
 
         graph.add_operation::<_, 3>((&out, &lhs, &rhs), |args| {
@@ -199,9 +178,9 @@ mod tests {
         let mut outs_unordered = HashMap::default();
 
         let mut out: Buffer = device.retrieve(lhs.len(), (&lhs, &rhs));
-        unsafe { register_buf(&mut outs_unordered, &lhs) };
-        unsafe { register_buf(&mut outs_unordered, &rhs) };
-        unsafe { register_buf(&mut outs_unordered, &out) };
+        unsafe { register_buf_copyable(&mut outs_unordered, &lhs) };
+        unsafe { register_buf_copyable(&mut outs_unordered, &rhs) };
+        unsafe { register_buf_copyable(&mut outs_unordered, &out) };
         // outs_unordered.insert(out.id(), )
 
         for _ in 0..10 {
@@ -230,9 +209,9 @@ mod tests {
         let mut outs_unordered = HashMap::default();
 
         let out: Buffer = device.retrieve(lhs.len(), (&lhs, &rhs));
-        unsafe { register_buf(&mut outs_unordered, &lhs) };
-        unsafe { register_buf(&mut outs_unordered, &rhs) };
-        unsafe { register_buf(&mut outs_unordered, &out) };
+        unsafe { register_buf_copyable(&mut outs_unordered, &lhs) };
+        unsafe { register_buf_copyable(&mut outs_unordered, &rhs) };
+        unsafe { register_buf_copyable(&mut outs_unordered, &out) };
         // outs_unordered.insert(out.id(), )
 
         graph.add_operation::<_, 2>((&lhs, &rhs), |args| {
@@ -257,9 +236,9 @@ mod tests {
         let mut outs_unordered = HashMap::default();
 
         let mut out: Buffer = device.retrieve(lhs.len(), (&lhs, &rhs));
-        unsafe { register_buf(&mut outs_unordered, &lhs) };
-        unsafe { register_buf(&mut outs_unordered, &rhs) };
-        unsafe { register_buf(&mut outs_unordered, &out) };
+        unsafe { register_buf_copyable(&mut outs_unordered, &lhs) };
+        unsafe { register_buf_copyable(&mut outs_unordered, &rhs) };
+        unsafe { register_buf_copyable(&mut outs_unordered, &out) };
 
         let ew_fn = |x: f32| x + 10.;
 
@@ -284,7 +263,7 @@ mod tests {
 
     #[test]
     fn test_lazy_graph_exec_with_vecs() {
-        let mut graph = LazyGraph::default();
+        let mut graph = LazyGraph::<Box<dyn BoxedShallowCopy>>::default();
 
         {
             let vec = vec![1, 2, 3, 4];

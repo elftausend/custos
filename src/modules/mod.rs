@@ -36,14 +36,14 @@ use core::{any::Any, hash::BuildHasher};
 use std::collections::HashMap;
 
 #[cfg(not(feature = "no-std"))]
-pub struct TranslatedCacheTrace {
+pub struct HashLocationCacheTrace {
     pub cache_idx: HashLocation<'static>,
     pub use_cache_idxs: Vec<HashLocation<'static>>,
 }
 
 #[cfg(not(feature = "no-std"))]
 #[inline]
-pub(crate) unsafe fn register_buf<T, D, S>(
+pub(crate) unsafe fn register_buf_any<T, D, S>(
     cache: &mut HashMap<UniqueId, Box<dyn Any>, impl BuildHasher>,
     buf: &Buffer<T, D, S>,
 ) where
@@ -68,6 +68,6 @@ pub(crate) unsafe fn register_buf<T, D, S>(
 
 #[cfg(not(feature = "no-std"))]
 #[inline]
-pub fn unregister_buf(cache: &mut HashMap<UniqueId, Box<dyn Any>, impl BuildHasher>, id: Id) {
+pub fn unregister_buf_any(cache: &mut HashMap<UniqueId, Box<dyn Any>, impl BuildHasher>, id: Id) {
     cache.remove(&id);
 }

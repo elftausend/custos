@@ -39,6 +39,7 @@ where
     pub fn grad(&self) -> &'a Self
     where
         D: MayTapeActions + Alloc<T>,
+        // D::Data<T, S>: crate::ShallowCopy,
     {
         unsafe {
             self.device()

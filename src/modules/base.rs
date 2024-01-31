@@ -68,7 +68,7 @@ impl OnDropBuffer for Base {}
 
 impl<D, T, S: Shape> Retrieve<D, T, S> for Base {
     #[inline]
-    fn retrieve<const NUM_PARENTS: usize>(
+    unsafe fn retrieve<const NUM_PARENTS: usize>(
         &self,
         device: &D,
         len: usize,
@@ -101,9 +101,10 @@ impl crate::UseGpuOrCpu for Base {
 #[cfg(feature = "graph")]
 impl crate::OptimizeMemGraph for Base {
     #[inline]
-    fn optimize_mem_graph(
+    fn optimize_mem_graph<D: 'static>(
         &self,
-        _cache_traces: Option<&[crate::TranslatedCacheTrace]>,
+        _device: &D,
+        _graph_translator: Option<&crate::GraphTranslator>,
     ) -> crate::Result<()> {
         Ok(())
     }

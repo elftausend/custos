@@ -67,6 +67,10 @@ jobs:
       run: cargo test --verbose --no-default-features --features cpu,lazy
     - name: Run tests,cached,fork
       run: cargo test --verbose --no-default-features --features cpu,cached,fork
+    - name: Run graph 
+      run: cargo test --verbose --no-default-features --features cpu,graph
+    - name: Run cached 
+      run: cargo test --verbose --no-default-features --features cpu,cached
 
   test-cached:
   

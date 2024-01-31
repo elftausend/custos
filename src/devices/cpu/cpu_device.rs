@@ -188,12 +188,12 @@ unsafe impl<Mods: OnDropBuffer> IsShapeIndep for CPU<Mods> {}
 
 #[cfg(test)]
 mod tests {
-    use crate::{Base, CPU};
-
     #[cfg(feature = "fork")]
     #[cfg(feature = "cached")]
     #[test]
     fn test_add_layer_cpu() {
+        use crate::{Base, CPU};
+
         let cpu = CPU::<Base>::new();
         let cpu = cpu.add_layer::<crate::Cached<()>>();
         let cpu = cpu.add_layer::<crate::Fork<()>>();

@@ -100,6 +100,7 @@ impl<T, D, S> UnaryElementWiseMayGrad<T, D, S> for D
 where
     T: 'static,
     D: AddGradFn + ApplyFunction<T, S, D> + UnaryGrad<T, S, D> + MayTapeActions,
+    D::Data<T, S>: crate::ShallowCopy,
     D: Alloc<T> + 'static,
     S: Shape,
 {
@@ -164,6 +165,7 @@ mod tests {
     #[cfg(feature = "autograd")]
     fn test_unary_autograd<D>(device: &D)
     where
+        D::Data<f32, ()>: crate::ShallowCopy,
         D: 'static
             + crate::WriteBuf<f32>
             + crate::Read<f32>
