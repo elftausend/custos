@@ -485,6 +485,77 @@ mod tests {
         );
     }
 
+    #[cfg(feature = "lazy")]
+    fn test_lazy_from_retrieve<D>(device: &D)
+    where
+        D: crate::Device
+            + crate::OptimizeMemGraph
+            + crate::Retriever<f32, ()>
+            + crate::Run
+            + crate::ReplaceBuf<f32, D, ()>
+            + crate::Alloc<f32>
+            + crate::OnNewBuffer<f32, D, ()>
+            + 'static,
+    {
+        // idx: 0, deps: []
+
+        use crate::{Buffer, HasId};
+        let x: Buffer<f32, _> = device.buffer([1.; 1000]);
+        // idx: 1, deps: []
+        let b: Buffer<f32, _> = device.buffer([1.1; 1000]);
+
+        // idx: 2, deps: [0, 0]
+        let squared: Buffer<f32, _> = device.retrieve::<2>(1000, (&x, &x));
+        // idx: 3, deps: [1, 0]
+        let add: Buffer<f32, _> = device.retrieve::<2>(1000, (&b, &x));
+        // idx: 4, deps: [3, 1]
+        let mul_b: Buffer<f32, _> = device.retrieve::<2>(1000, (&add, &b));
+        // idx: 5, deps: [2, 0]
+        let mul: Buffer<f32, _> = device.retrieve::<2>(1000, (&squared, &x));
+        // idx: 6, deps: [5, 4]
+        let out: Buffer<f32, _> = device.retrieve::<2>(1000, (&mul, &mul_b));
+
+        device.optimize_mem_graph(device, None).unwrap();
+        unsafe { device.run().unwrap() };
+
+        assert_eq!(squared.replace().id(), mul.replace().id());
+        assert_eq!(squared.replace().id(), out.replace().id());
+
+        assert_eq!(add.replace().id(), mul_b.replace().id());
+    }
+
+    #[cfg(feature = "cpu")]
+    #[cfg(feature = "lazy")]
+    #[cfg_attr(miri, ignore)]
+    #[test]
+    fn test_lazy_from_retrieve_sliced_chained_perf_example_optimize_cpu() {
+        use crate::{Base, Graph, Lazy, CPU};
+
+        let device = CPU::<Graph<Lazy<Base>>>::new();
+        test_lazy_from_retrieve(&device);
+    }
+
+    #[cfg(feature = "opencl")]
+    #[cfg(feature = "lazy")]
+    #[cfg_attr(miri, ignore)]
+    #[test]
+    fn test_lazy_from_retrieve_sliced_chained_perf_example_optimize_cl() {
+        use crate::{Base, Graph, Lazy, OpenCL};
+
+        let device = OpenCL::<Graph<Lazy<Base>>>::new(0).unwrap();
+        test_lazy_from_retrieve(&device);
+    }
+    #[cfg(feature = "cuda")]
+    #[cfg(feature = "lazy")]
+    #[cfg_attr(miri, ignore)]
+    #[test]
+    fn test_lazy_from_retrieve_sliced_chained_perf_example_optimize_cu() {
+        use crate::{Base, Graph, Lazy, CUDA};
+
+        let device = CUDA::<Graph<Lazy<Base>>>::new(0).unwrap();
+        test_lazy_from_retrieve(&device);
+    }
+
     #[cfg(feature = "cpu")]
     #[cfg(feature = "cached")]
     #[cfg_attr(miri, ignore)]
@@ -522,7 +593,7 @@ mod tests {
                 assert_eq!(add.id(), mul_b.id());
                 break;
             }
-            device.optimize_mem_graph(None).unwrap();
+            device.optimize_mem_graph(&device, None).unwrap();
         }
     }
 

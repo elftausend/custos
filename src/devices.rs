@@ -58,12 +58,10 @@ pub trait Device: OnDropBuffer + Sized {
     // FIXME: probably a better way to realize these
     fn base_to_data<T, S: Shape>(&self, base: Self::Base<T, S>) -> Self::Data<T, S>;
     fn wrap_to_data<T, S: Shape>(&self, wrap: Self::Wrap<T, Self::Base<T, S>>) -> Self::Data<T, S>;
-    fn data_as_wrap<'a, T, S: Shape>(
-        data: &'a Self::Data<T, S>,
-    ) -> &'a Self::Wrap<T, Self::Base<T, S>>;
-    fn data_as_wrap_mut<'a, T, S: Shape>(
-        data: &'a mut Self::Data<T, S>,
-    ) -> &'a mut Self::Wrap<T, Self::Base<T, S>>;
+    fn data_as_wrap<T, S: Shape>(data: &Self::Data<T, S>) -> &Self::Wrap<T, Self::Base<T, S>>;
+    fn data_as_wrap_mut<T, S: Shape>(
+        data: &mut Self::Data<T, S>,
+    ) -> &mut Self::Wrap<T, Self::Base<T, S>>;
 
     /// Creates a new [`Buffer`] using `A`.
     ///
@@ -114,12 +112,12 @@ macro_rules! impl_device_traits {
         $crate::impl_wrapped_data!($device);
 
         #[cfg(feature = "graph")]
-        crate::pass_down_optimize_mem_graph!($device);
+        $crate::pass_down_optimize_mem_graph!($device);
 
         $crate::pass_down_grad_fn!($device);
         $crate::pass_down_tape_actions!($device);
 
-        $crate::pass_down_replace_buf!($device);
+        $crate::pass_down_replace_buf_dev!($device);
     };
 }
 
@@ -133,9 +131,9 @@ macro_rules! impl_retriever {
                 len: usize,
                 parents: impl $crate::Parents<NUM_PARENTS>,
             ) -> Buffer<T, Self, S> {
-                let data = self
+                let data = unsafe { self
                     .modules
-                    .retrieve::<NUM_PARENTS>(self, len, parents);
+                    .retrieve::<NUM_PARENTS>(self, len, parents) };
                 let buf = Buffer {
                     data,
                     device: Some(self),

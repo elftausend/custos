@@ -9,12 +9,12 @@ use core::{cell::RefCell, panic::Location};
 
 use crate::{
     impl_remove_layer, pass_down_add_operation, pass_down_exec_now_module,
-    pass_down_unified_mem_chain, pass_down_use_gpu_or_cpu, AddLayer, Alloc, Buffer, Device, HasId,
-    Module, OnDropBuffer, OnNewBuffer, OptimizeMemGraph, Parents, PtrType, Retrieve, Setup, Shape,
-    TranslatedCacheTrace, WrappedData,
+    pass_down_replace_buf_module, pass_down_use_gpu_or_cpu, AddLayer,
+    Alloc, Buffer, Device, HasId, Module, OnDropBuffer, OnNewBuffer, OptimizeMemGraph, Parents,
+    PtrType, Retrieve, RunModule, Setup, Shape, WrappedData,
 };
 
-use self::graph_translator::GraphTranslator;
+pub use self::graph_translator::GraphTranslator;
 
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct Graph<Mods> {
@@ -31,14 +31,12 @@ impl<Mods: WrappedData> WrappedData for Graph<Mods> {
     }
 
     #[inline]
-    fn wrapped_as_base<'a, T, Base: HasId + PtrType>(wrap: &'a Self::Wrap<T, Base>) -> &'a Base {
+    fn wrapped_as_base<T, Base: HasId + PtrType>(wrap: &Self::Wrap<T, Base>) -> &Base {
         Mods::wrapped_as_base(wrap)
     }
 
     #[inline]
-    fn wrapped_as_base_mut<'a, T, Base: HasId + PtrType>(
-        wrap: &'a mut Self::Wrap<T, Base>,
-    ) -> &'a mut Base {
+    fn wrapped_as_base_mut<T, Base: HasId + PtrType>(wrap: &mut Self::Wrap<T, Base>) -> &mut Base {
         Mods::wrapped_as_base_mut(wrap)
     }
 }
@@ -61,30 +59,19 @@ impl<Mods, D> Setup<D> for Graph<Mods> {
 }
 
 impl<Mods: OptimizeMemGraph> OptimizeMemGraph for Graph<Mods> {
-    fn optimize_mem_graph(
+    fn optimize_mem_graph<D: 'static>(
         &self,
-        cache_traces: Option<&[TranslatedCacheTrace]>,
+        device: &D,
+        graph_translator: Option<&crate::GraphTranslator>,
     ) -> crate::Result<()> {
-        match cache_traces {
-            Some(cache_traces) => self.modules.optimize_mem_graph(Some(cache_traces)),
+        match graph_translator {
+            Some(graph_translator) => self
+                .modules
+                .optimize_mem_graph(device, Some(graph_translator)),
             None => {
-                let graph_trans = self.graph_trans.borrow();
-                let idx_to_loc = &graph_trans.idx_to_buf_location;
-                let cache_traces = graph_trans.opt_graph.cache_traces();
-
-                let cache_traces = cache_traces
-                    .into_iter()
-                    .map(|cache_trace| TranslatedCacheTrace {
-                        cache_idx: *idx_to_loc.get(&cache_trace.cache_idx).unwrap(),
-                        use_cache_idxs: cache_trace
-                            .use_cache_idxs
-                            .into_iter()
-                            .map(|cache_idx| *idx_to_loc.get(&cache_idx).unwrap())
-                            .collect(),
-                    })
-                    .collect::<Vec<_>>();
-
-                self.modules.optimize_mem_graph(Some(&cache_traces))
+                let graph_translator = self.graph_trans.borrow();
+                self.modules
+                    .optimize_mem_graph(device, Some(&graph_translator))
             }
         }
     }
@@ -111,10 +98,19 @@ impl<Mods: OnDropBuffer> OnDropBuffer for Graph<Mods> {
 
 pass_down_add_operation!(Graph);
 pass_down_exec_now_module!(Graph);
-pass_down_unified_mem_chain!(Graph);
+#[cfg(feature = "cached")]
+crate::pass_down_unified_mem_chain!(Graph);
 pass_down_use_gpu_or_cpu!(Graph);
+pass_down_replace_buf_module!(Graph);
 
 impl_remove_layer!(Graph);
+
+impl<Mods: RunModule<D>, D> RunModule<D> for Graph<Mods> {
+    #[inline]
+    fn run(&self, _device: &D) -> crate::Result<()> {
+        self.modules.run(_device)
+    }
+}
 
 impl<NewMods, SD> AddLayer<NewMods, SD> for Graph<()> {
     type Wrapped = crate::Graph<NewMods>;
@@ -130,7 +126,7 @@ impl<NewMods, SD> AddLayer<NewMods, SD> for Graph<()> {
 
 impl<T: 'static, Mods: Retrieve<D, T, S>, D: 'static, S: Shape> Retrieve<D, T, S> for Graph<Mods> {
     #[inline]
-    fn retrieve<const NUM_PARENTS: usize>(
+    unsafe fn retrieve<const NUM_PARENTS: usize>(
         &self,
         device: &D,
         len: usize,
@@ -152,6 +148,8 @@ impl<T: 'static, Mods: Retrieve<D, T, S>, D: 'static, S: Shape> Retrieve<D, T, S
 
         let next_idx = graph_trans.next_idx;
         graph_trans.buf_id_to_idx.insert(data.id().id, next_idx);
+        graph_trans.idx_to_buf_id.insert(next_idx, data.id().id);
+
         graph_trans
             .idx_to_buf_location
             .insert(next_idx, Location::caller().into());
@@ -169,4 +167,12 @@ impl<T: 'static, Mods: Retrieve<D, T, S>, D: 'static, S: Shape> Retrieve<D, T, S
         // pass down
         self.modules.on_retrieve_finish(retrieved_buf)
     }
+}
+
+#[cfg(test)]
+mod tests {
+    #[cfg(feature = "lazy")]
+    #[cfg(feature = "cached")]
+    #[test]
+    fn test_lazy_graph_cached() {}
 }

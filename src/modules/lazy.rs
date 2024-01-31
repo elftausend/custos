@@ -1,25 +1,33 @@
+mod exec_iter;
+mod generic_support;
 mod lazy_graph;
+mod register_buf;
 mod ty;
 mod wrapper;
+
+use register_buf::*;
+
 pub use ty::*;
 
 use crate::{
     impl_remove_layer, pass_down_tape_actions, AddLayer, AddOperation, Alloc, Buffer, Device,
-    ExecNow, HasId, Id, IsShapeIndep, Module, NoHasher, OnDropBuffer, OnNewBuffer, Parents,
-    ReplaceBuf, Retrieve, RunModule, Setup, ShallowCopy, Shape, UniqueId, UpdateArgs,
+    ExecNow, HasId, Id, IsShapeIndep, Module, OnDropBuffer, OnNewBuffer, Parents, ReplaceBuf,
+    Retrieve, RunModule, Setup, ShallowCopy, Shape, UniqueId, UpdateArgs,
 };
+
+#[cfg(feature = "graph")]
+use crate::DeviceError;
+
 use core::{
     any::Any,
     cell::{Cell, RefCell},
     fmt::Debug,
-    hash::BuildHasherDefault,
 };
-use std::collections::HashMap;
 
 pub use self::lazy_graph::LazyGraph;
-use self::wrapper::LazyWrapper;
+use self::{generic_support::BoxedShallowCopy, wrapper::LazyWrapper};
 
-type Buffers = HashMap<UniqueId, Box<dyn Any>, BuildHasherDefault<NoHasher>>;
+type Buffers = crate::Buffers<Box<dyn BoxedShallowCopy>>;
 
 #[derive(Default)]
 pub struct Lazy<Mods> {
@@ -27,7 +35,7 @@ pub struct Lazy<Mods> {
     alloc_later: RefCell<Vec<(Id, fn(&mut Buffers, Id, &dyn Any))>>, // could use D generic instead of dyn Any (required LazyModule structure)
     allocated: Cell<bool>,
     buffers: RefCell<Buffers>,
-    graph: RefCell<LazyGraph>,
+    graph: RefCell<LazyGraph<Box<dyn BoxedShallowCopy>>>,
 }
 
 impl<Mods: Debug> Debug for Lazy<Mods> {
@@ -37,6 +45,7 @@ impl<Mods: Debug> Debug for Lazy<Mods> {
 }
 
 pub trait LazySetup {
+    #[inline]
     fn lazy_setup(&mut self) -> crate::Result<()> {
         Ok(())
     }
@@ -77,9 +86,10 @@ impl<Mods: AddOperation> AddOperation for Lazy<Mods> {
         args: Args,
         operation: fn(&mut Args) -> crate::Result<()>,
     ) -> crate::Result<()> {
-        Ok(self.graph.try_borrow_mut()
-            .expect("already borrowed: BorrowMutError - is the inner operation trying to add an operation as well?")
-            .add_operation(args, operation))
+        self.graph.try_borrow_mut()
+        .expect("already borrowed: BorrowMutError - is the inner operation trying to add an operation as well?")
+        .add_operation(args, operation);
+        Ok(())
     }
 }
 
@@ -122,6 +132,42 @@ impl<Mods> Lazy<Mods> {
             alloc_fn(&mut buffers, *id, device);
         }
     }
+
+    #[cfg(feature = "graph")]
+    fn alloc_later_optimized<D: 'static>(
+        &self,
+        device: &D,
+        graph_trans: &crate::GraphTranslator,
+    ) -> crate::Result<()> {
+        let cache_traces = graph_trans.opt_graph.cache_traces();
+        for (id, alloc_fn) in self.alloc_later.borrow().iter() {
+            for cache_trace in &cache_traces {
+                let buf_id = graph_trans
+                    .idx_to_buf_id
+                    .get(&cache_trace.cache_idx)
+                    .ok_or(DeviceError::GraphOptimization)?;
+
+                if *buf_id != id.id {
+                    continue;
+                }
+
+                alloc_fn(&mut self.buffers.borrow_mut(), *id, device);
+                let buf = self.buffers.borrow().get(&id.id).unwrap().shallow_copy();
+
+                for use_id_as_well in &cache_trace.use_cache_idxs {
+                    let use_id_as_well_id = graph_trans
+                        .idx_to_buf_id
+                        .get(use_id_as_well)
+                        .ok_or(DeviceError::GraphOptimization)?;
+
+                    self.buffers
+                        .borrow_mut()
+                        .insert(*use_id_as_well_id, buf.shallow_copy());
+                }
+            }
+        }
+        Ok(())
+    }
 }
 
 impl<D: LazySetup, Mods: Setup<D>> Setup<D> for Lazy<Mods> {
@@ -148,7 +194,7 @@ impl<Mods: RunModule<D>, D: LazyRun + Device + 'static> RunModule<D> for Lazy<Mo
 impl<Mods: OnDropBuffer> OnDropBuffer for Lazy<Mods> {
     #[inline]
     fn on_drop_buffer<T, D: Device, S: Shape>(&self, device: &D, buf: &Buffer<T, D, S>) {
-        super::unregister_buf(&mut self.buffers.borrow_mut(), buf.id());
+        unregister_buf_copyable(&mut self.buffers.borrow_mut(), buf.id());
         self.modules.on_drop_buffer(device, buf)
     }
 }
@@ -163,7 +209,7 @@ where
 {
     #[inline]
     fn on_new_buffer(&self, device: &D, new_buf: &Buffer<T, D, S>) {
-        unsafe { super::register_buf(&mut self.buffers.borrow_mut(), new_buf) };
+        unsafe { register_buf_copyable(&mut self.buffers.borrow_mut(), new_buf) };
         self.modules.on_new_buffer(device, new_buf)
     }
 }
@@ -196,7 +242,7 @@ where
     S: Shape,
 {
     #[inline]
-    fn retrieve<const NUM_PARENTS: usize>(
+    unsafe fn retrieve<const NUM_PARENTS: usize>(
         &self,
         _device: &D,
         len: usize,
@@ -270,6 +316,24 @@ impl<T: 'static, D: Device + 'static, S: Shape, Mods: OnDropBuffer> ReplaceBuf<T
             }
             None => buffer,
         }
+    }
+}
+
+#[cfg(feature = "graph")]
+impl<Mods> crate::OptimizeMemGraph for Lazy<Mods> {
+    fn optimize_mem_graph<D: 'static>(
+        &self,
+        device: &D,
+        graph_translator: Option<&crate::GraphTranslator>,
+    ) -> crate::Result<()> {
+        if !self.allocated.get() {
+            self.alloc_later_optimized(
+                device,
+                graph_translator.ok_or(DeviceError::MissingCacheTraces)?,
+            )?;
+        }
+        self.allocated.set(true);
+        Ok(())
     }
 }
 
@@ -570,6 +634,19 @@ mod tests {
         if let Ok(_) = unsafe { device.run() } {
             panic!()
         }
+    }
+
+    #[cfg(feature = "cached")]
+    #[test]
+    fn test_lazy_cached_two_producers() {
+        use crate::Cached;
+
+        let device = CPU::<Lazy<Cached<Base>>>::new();
+
+        let lhs = device.buffer([1, 2, 3, 4]);
+        let rhs = device.buffer([1, 2, 3, 4]);
+
+        let _out: Buffer<i32, _> = device.retrieve(10, (&lhs, &rhs));
     }
 
     /*

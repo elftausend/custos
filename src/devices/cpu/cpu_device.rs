@@ -54,16 +54,14 @@ impl<Mods: OnDropBuffer> Device for CPU<Mods> {
     }
 
     #[inline(always)]
-    fn data_as_wrap<'a, T, S: Shape>(
-        data: &'a Self::Data<T, S>,
-    ) -> &'a Self::Wrap<T, Self::Base<T, S>> {
+    fn data_as_wrap<T, S: Shape>(data: &Self::Data<T, S>) -> &Self::Wrap<T, Self::Base<T, S>> {
         data
     }
 
     #[inline(always)]
-    fn data_as_wrap_mut<'a, T, S: Shape>(
-        data: &'a mut Self::Data<T, S>,
-    ) -> &'a mut Self::Wrap<T, Self::Base<T, S>> {
+    fn data_as_wrap_mut<T, S: Shape>(
+        data: &mut Self::Data<T, S>,
+    ) -> &mut Self::Wrap<T, Self::Base<T, S>> {
         data
     }
 
@@ -190,12 +188,12 @@ unsafe impl<Mods: OnDropBuffer> IsShapeIndep for CPU<Mods> {}
 
 #[cfg(test)]
 mod tests {
-    use crate::{Base, CPU};
-
     #[cfg(feature = "fork")]
     #[cfg(feature = "cached")]
     #[test]
     fn test_add_layer_cpu() {
+        use crate::{Base, CPU};
+
         let cpu = CPU::<Base>::new();
         let cpu = cpu.add_layer::<crate::Cached<()>>();
         let cpu = cpu.add_layer::<crate::Fork<()>>();

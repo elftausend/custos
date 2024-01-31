@@ -1,13 +1,13 @@
 use core::{cell::RefCell, marker::PhantomData};
 
 use crate::{
-    AddGradFn, AddLayer, AddOperation, Alloc, Buffer, Cache, Device, DeviceError, ExecNow, HasId,
-    Module, OnDropBuffer, OnNewBuffer, Parents, PtrType, RemoveLayer, Retrieve, RunModule, Setup,
+    AddGradFn, AddLayer, AddOperation, Alloc, Buffer, Cache, Device, ExecNow, HasId, Module,
+    OnDropBuffer, OnNewBuffer, Parents, PtrType, RemoveLayer, Retrieve, RunModule, Setup,
     ShallowCopy, Shape, WrappedData,
 };
 
 #[cfg(feature = "graph")]
-use crate::OptimizeMemGraph;
+use crate::{DeviceError, OptimizeMemGraph};
 
 // creator struct, however =>
 // TODO: could remove D generic and therefore CachedModule
@@ -34,14 +34,12 @@ impl<Mods: WrappedData, SD: Device> WrappedData for CachedModule<Mods, SD> {
     }
 
     #[inline]
-    fn wrapped_as_base<'a, T, Base: HasId + PtrType>(wrap: &'a Self::Wrap<T, Base>) -> &'a Base {
+    fn wrapped_as_base<T, Base: HasId + PtrType>(wrap: &Self::Wrap<T, Base>) -> &Base {
         Mods::wrapped_as_base(wrap)
     }
 
     #[inline]
-    fn wrapped_as_base_mut<'a, T, Base: HasId + PtrType>(
-        wrap: &'a mut Self::Wrap<T, Base>,
-    ) -> &'a mut Base {
+    fn wrapped_as_base_mut<T, Base: HasId + PtrType>(wrap: &mut Self::Wrap<T, Base>) -> &mut Base {
         Mods::wrapped_as_base_mut(wrap)
     }
 }
@@ -125,7 +123,7 @@ where
     SimpleDevice: Device,
 {
     #[inline]
-    fn retrieve<const NUM_PARENTS: usize>(
+    unsafe fn retrieve<const NUM_PARENTS: usize>(
         &self,
         device: &D,
         len: usize,
@@ -226,11 +224,15 @@ impl<Mods: RunModule<D>, D, SD: Device> RunModule<D> for CachedModule<Mods, SD> 
 
 #[cfg(feature = "graph")]
 impl<Mods: OptimizeMemGraph, SD: Device> OptimizeMemGraph for CachedModule<Mods, SD> {
-    fn optimize_mem_graph(
+    fn optimize_mem_graph<D: 'static>(
         &self,
-        cache_traces: Option<&[crate::TranslatedCacheTrace]>,
+        _device: &D,
+        graph_translator: Option<&crate::GraphTranslator>,
+        //cache_traces: Option<&[crate::TranslatedCacheTrace]>,
     ) -> crate::Result<()> {
-        let cache_traces = cache_traces.ok_or(DeviceError::MissingCacheTraces)?;
+        let graph_translator = graph_translator.ok_or(DeviceError::MissingCacheTraces)?;
+        let cache_traces = graph_translator
+            .to_hash_location_cache_traces(graph_translator.opt_graph.cache_traces());
 
         let mut cache = self.cache.borrow_mut();
         for cache_trace in cache_traces {
@@ -398,5 +400,16 @@ mod tests {
         let ptr1 = location();
         // good
         assert_ne!(ptr.file().as_ptr(), ptr1.file().as_ptr());
+    }
+
+    #[cfg(feature = "cpu")]
+    #[test]
+    fn test_cached_return_retrieve() {
+        // invalid!
+        let _x = {
+            let device = CPU::<Cached<Base>>::new();
+            // let buf: Buffer<f32, _> = device.retrieve(10, ());
+            unsafe { Retrieve::<_, f32, ()>::retrieve(&device.modules, &device, 10, ()) }
+        };
     }
 }

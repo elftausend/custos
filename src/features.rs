@@ -2,9 +2,6 @@ use core::{fmt::Debug, ops::RangeBounds};
 
 use crate::{HasId, Parents, Shape, UniqueId, UpdateArgs, CPU};
 
-#[cfg(feature = "graph")]
-use crate::TranslatedCacheTrace;
-
 #[cfg(feature = "cached")]
 use crate::{Base, CachedModule};
 
@@ -22,7 +19,7 @@ pub trait Feature: OnDropBuffer {}
 pub trait Retrieve<D, T, S: Shape = ()>: OnDropBuffer {
     // "generator"
     #[track_caller]
-    fn retrieve<const NUM_PARENTS: usize>(
+    unsafe fn retrieve<const NUM_PARENTS: usize>(
         &self,
         device: &D,
         len: usize,
@@ -102,7 +99,7 @@ macro_rules! pass_down_grad_fn {
             fn add_grad_fn<Args: $crate::Parents<N> + $crate::UpdateArgs, const N: usize>(
                 &self,
                 args: Args,
-                op: fn(&mut Args) -> crate::Result<()>,
+                op: fn(&mut Args) -> $crate::Result<()>,
             ) {
                 self.modules.add_grad_fn(args, op)
             }
@@ -188,7 +185,7 @@ pub trait ReplaceBuf<T, D: Device, S: Shape>: OnDropBuffer {
 }
 
 #[macro_export]
-macro_rules! pass_down_replace_buf {
+macro_rules! pass_down_replace_buf_dev {
     ($device:ident) => {
         impl<T, S: Shape, Mods: $crate::ReplaceBuf<T, Self, S>> $crate::ReplaceBuf<T, Self, S>
             for $device<Mods>
@@ -198,6 +195,23 @@ macro_rules! pass_down_replace_buf {
                 &'c self,
                 buffer: &'c Buffer<'a, T, Self, S>,
             ) -> &'c Buffer<'a, T, Self, S> {
+                self.modules.replace_buf(buffer)
+            }
+        }
+    };
+}
+
+#[macro_export]
+macro_rules! pass_down_replace_buf_module {
+    ($module:ident) => {
+        impl<T, S: Shape, Mods: $crate::ReplaceBuf<T, D, S>, D: $crate::Device>
+            $crate::ReplaceBuf<T, D, S> for $module<Mods>
+        {
+            #[inline]
+            fn replace_buf<'a, 'c>(
+                &'c self,
+                buffer: &'c Buffer<'a, T, D, S>,
+            ) -> &'c Buffer<'a, T, D, S> {
                 self.modules.replace_buf(buffer)
             }
         }
@@ -236,7 +250,7 @@ macro_rules! pass_down_add_operation {
             fn add_op<Args: $crate::Parents<N> + $crate::UpdateArgs, const N: usize>(
                 &self,
                 args: Args,
-                operation: fn(&mut Args) -> crate::Result<()>,
+                operation: fn(&mut Args) -> $crate::Result<()>,
             ) -> $crate::Result<()> {
                 self.modules.add_op(args, operation)
             }
@@ -375,9 +389,10 @@ pub trait UseGpuOrCpu {
 
 #[cfg(feature = "graph")]
 pub trait OptimizeMemGraph {
-    fn optimize_mem_graph(
+    fn optimize_mem_graph<D: 'static>(
         &self,
-        cache_traces: Option<&[TranslatedCacheTrace]>,
+        device: &D,
+        graph_translator: Option<&crate::modules::GraphTranslator>,
     ) -> crate::Result<()>;
 }
 
@@ -385,11 +400,12 @@ pub trait OptimizeMemGraph {
 macro_rules! pass_down_optimize_mem_graph {
     ($to_impl:ident) => {
         impl<Mods: $crate::OptimizeMemGraph> $crate::OptimizeMemGraph for $to_impl<Mods> {
-            fn optimize_mem_graph(
+            fn optimize_mem_graph<D: 'static>(
                 &self,
-                cache_traces: Option<&[$crate::TranslatedCacheTrace]>,
+                device: &D,
+                graph_translator: Option<&$crate::modules::GraphTranslator>,
             ) -> crate::Result<()> {
-                self.modules.optimize_mem_graph(cache_traces)
+                self.modules.optimize_mem_graph(device, graph_translator)
             }
         }
     };

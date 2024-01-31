@@ -58,6 +58,7 @@ fn has_device_unified_mem() -> bool {
         .unified_mem
 }
 
+#[cfg(feature = "cuda")]
 use std::path::{Path, PathBuf};
 
 // https://github.com/coreylowman/cudarc/blob/main/build.rs

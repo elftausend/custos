@@ -13,7 +13,7 @@ pub struct Gradients {
 impl core::fmt::Debug for Gradients {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         f.debug_struct("Gradients")
-            .field("cache", &self.grads_pool)
+            // .field("cache", &self.grads_pool)
             .finish()
     }
 }
@@ -151,6 +151,7 @@ impl Gradients {
         IS: Shape,
         OS: Shape,
         D: Alloc<T> + 'static,
+        D::Data<T, IS>: crate::ShallowCopy,
     {
         let [xid, oid] = parents.ids();
         // self.grads_pool.add_buf_once::<T, _, IS>(device, oid);

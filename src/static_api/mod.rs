@@ -16,7 +16,6 @@ mod macros;
 mod static_devices;
 mod to_device;
 
-pub use macros::*;
 pub use static_devices::*;
 
 use crate::Device;

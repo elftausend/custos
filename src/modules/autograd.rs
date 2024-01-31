@@ -7,8 +7,8 @@ pub use tape::*;
 use core::cell::UnsafeCell;
 
 use crate::{
-    impl_remove_layer, pass_down_add_operation, pass_down_exec_now_module, register_buf,
-    unregister_buf, AddGradFn, AddLayer, Alloc, Buffer, Device, HasId, IsShapeIndep, Module,
+    impl_remove_layer, pass_down_add_operation, pass_down_exec_now_module, register_buf_any,
+    unregister_buf_any, AddGradFn, AddLayer, Alloc, Buffer, Device, HasId, IsShapeIndep, Module,
     OnDropBuffer, OnNewBuffer, Parents, PtrType, Retrieve, RunModule, Setup, ShallowCopy, Shape,
     TapeActions, WrappedData,
 };
@@ -32,14 +32,12 @@ impl<Mods: WrappedData> WrappedData for Autograd<Mods> {
     }
 
     #[inline]
-    fn wrapped_as_base<'a, T, Base: HasId + PtrType>(wrap: &'a Self::Wrap<T, Base>) -> &'a Base {
+    fn wrapped_as_base<T, Base: HasId + PtrType>(wrap: &Self::Wrap<T, Base>) -> &Base {
         Mods::wrapped_as_base(wrap)
     }
 
     #[inline]
-    fn wrapped_as_base_mut<'a, T, Base: HasId + PtrType>(
-        wrap: &'a mut Self::Wrap<T, Base>,
-    ) -> &'a mut Base {
+    fn wrapped_as_base_mut<T, Base: HasId + PtrType>(wrap: &mut Self::Wrap<T, Base>) -> &mut Base {
         Mods::wrapped_as_base_mut(wrap)
     }
 }
@@ -73,7 +71,7 @@ impl<Mods> Autograd<Mods> {
             return;
         }
 
-        unsafe { register_buf(no_grads_pool, buf) };
+        unsafe { register_buf_any(no_grads_pool, buf) };
     }
 }
 
@@ -107,7 +105,7 @@ where
 impl<Mods: OnDropBuffer> OnDropBuffer for Autograd<Mods> {
     #[inline]
     fn on_drop_buffer<T, D: Device, S: Shape>(&self, device: &D, buf: &Buffer<T, D, S>) {
-        unregister_buf(
+        unregister_buf_any(
             unsafe { &mut (*(self.grads.get())).no_grads_pool.cache },
             buf.id(),
         );
@@ -146,7 +144,7 @@ where
     D::Data<T, S>: ShallowCopy,
 {
     #[inline]
-    fn retrieve<const NUM_PARENTS: usize>(
+    unsafe fn retrieve<const NUM_PARENTS: usize>(
         &self,
         device: &D,
         len: usize,

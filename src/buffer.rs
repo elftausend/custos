@@ -541,6 +541,18 @@ impl<'a, Mods: OnDropBuffer, T> Buffer<'a, T, crate::CUDA<Mods>> {
     }
 }
 
+impl<'a, T, D, S> ShallowCopy for Buffer<'a, T, D, S>
+where
+    D: Device,
+    D::Data<T, S>: ShallowCopy,
+    S: Shape,
+{
+    #[inline]
+    unsafe fn shallow(&self) -> Self {
+        self.shallow()
+    }
+}
+
 impl<'a, T, D, S> Clone for Buffer<'a, T, D, S>
 where
     T: Clone,

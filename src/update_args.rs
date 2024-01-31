@@ -1,9 +1,7 @@
-use core::hash::BuildHasherDefault;
+use crate::UniqueId;
 
 #[cfg(not(feature = "no-std"))]
-use std::collections::HashMap;
-
-use crate::{NoHasher, UniqueId};
+use crate::Buffers;
 
 /// A dummy trait for no-std context. [`UpdateArgs`] requires standard library code.
 #[cfg(feature = "no-std")]
@@ -11,14 +9,10 @@ pub trait UpdateArgs {}
 
 #[cfg(not(feature = "no-std"))]
 pub trait UpdateArgs {
-    fn update_args(
+    fn update_args<B: AsAny>(
         &mut self,
         ids: &[Option<UniqueId>],
-        buffers: &mut HashMap<
-            crate::UniqueId,
-            Box<dyn core::any::Any>,
-            BuildHasherDefault<NoHasher>,
-        >,
+        buffers: &mut Buffers<B>,
     ) -> crate::Result<()>;
 }
 
@@ -28,28 +22,46 @@ pub trait UpdateArg {}
 
 #[cfg(not(feature = "no-std"))]
 pub trait UpdateArg {
-    fn update_arg(
-        &mut self,
+    fn update_arg<B: AsAny>(
+        to_update: &mut Self,
         id: Option<UniqueId>,
-        buffers: &mut HashMap<
-            crate::UniqueId,
-            Box<dyn core::any::Any>,
-            BuildHasherDefault<NoHasher>,
-        >,
+        buffers: &mut Buffers<B>,
     ) -> crate::Result<()>;
 }
 
 #[cfg(not(feature = "no-std"))]
 impl<T: UpdateArg> UpdateArgs for T {
-    fn update_args(
+    fn update_args<B: AsAny>(
         &mut self,
         ids: &[Option<UniqueId>],
-        buffers: &mut HashMap<
-            crate::UniqueId,
-            Box<dyn core::any::Any>,
-            BuildHasherDefault<NoHasher>,
-        >,
+        buffers: &mut crate::Buffers<B>,
     ) -> crate::Result<()> {
-        self.update_arg(ids[0], buffers)
+        T::update_arg(self, ids[0], buffers)
     }
+}
+
+#[cfg(not(feature = "no-std"))]
+pub trait UpdateArgsDynable<B> {
+    fn update_args_dynable(
+        &mut self,
+        ids: &[Option<UniqueId>],
+        buffers: &mut Buffers<B>,
+    ) -> crate::Result<()>;
+}
+
+#[cfg(not(feature = "no-std"))]
+impl<A: UpdateArgs, T: AsAny> UpdateArgsDynable<T> for A {
+    #[inline]
+    fn update_args_dynable(
+        &mut self,
+        ids: &[Option<UniqueId>],
+        buffers: &mut Buffers<T>,
+    ) -> crate::Result<()> {
+        self.update_args(ids, buffers)
+    }
+}
+
+pub trait AsAny {
+    fn as_any(&self) -> *const ();
+    fn as_any_mut(&mut self) -> *mut ();
 }

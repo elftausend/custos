@@ -31,7 +31,7 @@ custos-macro = {git = "https://github.com/elftausend/custos-macro", optional=tru
 libm = { version="0.2.6", optional = true }
 
 ash = { version = "0.37", optional = true } 
-naga = { version = "0.14", features = ["wgsl-in"], optional = true } 
+naga = { version = "0.19", features = ["wgsl-in"], optional = true } 
 
 half = {version = "2.3", default-features = false, optional = true} 
 
@@ -64,6 +64,7 @@ min-cl = { git = "https://github.com/elftausend/min-cl", optional = true }
 [features]
 # default = ["cpu", "autograd", "macro"]
 default = ["cpu", "lazy", "static-api", "webgl", "vulkan"]
+
 
 cpu = []
 opencl = ["dep:min-cl", "cpu", "cached"]

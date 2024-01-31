@@ -105,7 +105,7 @@ impl<U, Mods: Retrieve<Self, T, S>, T: AsOperandCode, S: Shape> Retriever<T, S>
         len: usize,
         parents: impl crate::Parents<NUM_PARENTS>,
     ) -> Buffer<T, Self, S> {
-        let data = self.modules.retrieve::<NUM_PARENTS>(self, len, parents);
+        let data = unsafe { self.modules.retrieve::<NUM_PARENTS>(self, len, parents) };
         let buf = Buffer {
             data,
             device: Some(self),
@@ -158,10 +158,11 @@ impl<U, T: AsOperandCode, Mods: OnDropBuffer> Alloc<T> for NnapiDevice<U, Mods> 
 
 impl<T, SimpleMods> NnapiDevice<T, SimpleMods> {
     /// Creates a new [`NnapiDevice`].
-    pub fn new<NewMods>() -> crate::Result<NnapiDevice<T, Lazy<NewMods>>>
+    pub fn new<NewMods>() -> crate::Result<NnapiDevice<T, NewMods>>
+    // TODO keep in mind that lazy module requirement would make sense here
     where
-        SimpleMods: Module<NnapiDevice<T>, Module = Lazy<NewMods>>,
-        Lazy<NewMods>: Setup<NnapiDevice<T, Lazy<NewMods>>>,
+        SimpleMods: Module<NnapiDevice<T>, Module = NewMods>,
+        NewMods: Setup<NnapiDevice<T, NewMods>>,
     {
         let mut device = NnapiDevice {
             modules: SimpleMods::new(),

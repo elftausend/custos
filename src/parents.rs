@@ -21,14 +21,10 @@ impl AllParents for () {}
 
 impl UpdateArg for () {
     #[cfg(not(feature = "no-std"))]
-    fn update_arg(
-        &mut self,
+    fn update_arg<B>(
+        _to_update: &mut Self,
         _id: Option<crate::UniqueId>,
-        _buffers: &mut HashMap<
-            crate::UniqueId,
-            Box<dyn core::any::Any>,
-            core::hash::BuildHasherDefault<crate::NoHasher>,
-        >,
+        _buffers: &mut crate::Buffers<B>,
     ) -> crate::Result<()> {
         Ok(())
     }
@@ -69,23 +65,20 @@ macro_rules! impl_parents {
 
         impl<$($to_impl: $crate::UpdateArg + $crate::HasId, )+> $crate::UpdateArgs for ($($to_impl,)+) {
             #[cfg(not(feature = "no-std"))]
-            fn update_args(&mut self,
+            fn update_args<B: $crate::AsAny>(&mut self,
                 ids: &[Option<$crate::UniqueId>],
-                buffers: &mut HashMap<$crate::UniqueId, Box<dyn std::any::Any>, core::hash::BuildHasherDefault<$crate::NoHasher>>)
+                buffers: &mut $crate::Buffers<B>)
              -> crate::Result<()>
              {
                 let mut ids = ids.iter();
                 #[allow(non_snake_case)]
                 let ($($to_impl,)+) = self;
-                $($to_impl.update_arg(*ids.next().unwrap(), buffers)?;)*
+                $($to_impl::update_arg($to_impl, *ids.next().unwrap(), buffers)?;)*
                 Ok(())
             }
         }
     };
 }
-
-#[cfg(not(feature = "no-std"))]
-use std::collections::HashMap;
 
 impl_parents!(2, T, T1);
 impl_parents!(3, T, T1, T2);

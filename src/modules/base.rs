@@ -15,14 +15,12 @@ impl WrappedData for Base {
     }
 
     #[inline]
-    fn wrapped_as_base<'a, T, Base: HasId + PtrType>(wrap: &'a Self::Wrap<T, Base>) -> &'a Base {
+    fn wrapped_as_base<T, Base: HasId + PtrType>(wrap: &Self::Wrap<T, Base>) -> &Base {
         wrap
     }
 
     #[inline]
-    fn wrapped_as_base_mut<'a, T, Base: HasId + PtrType>(
-        wrap: &'a mut Self::Wrap<T, Base>,
-    ) -> &'a mut Base {
+    fn wrapped_as_base_mut<T, Base: HasId + PtrType>(wrap: &mut Self::Wrap<T, Base>) -> &mut Base {
         wrap
     }
 }
@@ -70,7 +68,7 @@ impl OnDropBuffer for Base {}
 
 impl<D, T, S: Shape> Retrieve<D, T, S> for Base {
     #[inline]
-    fn retrieve<const NUM_PARENTS: usize>(
+    unsafe fn retrieve<const NUM_PARENTS: usize>(
         &self,
         device: &D,
         len: usize,
@@ -103,9 +101,10 @@ impl crate::UseGpuOrCpu for Base {
 #[cfg(feature = "graph")]
 impl crate::OptimizeMemGraph for Base {
     #[inline]
-    fn optimize_mem_graph(
+    fn optimize_mem_graph<D: 'static>(
         &self,
-        _cache_traces: Option<&[crate::TranslatedCacheTrace]>,
+        _device: &D,
+        _graph_translator: Option<&crate::GraphTranslator>,
     ) -> crate::Result<()> {
         Ok(())
     }
