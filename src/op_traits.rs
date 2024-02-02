@@ -131,7 +131,7 @@ pub trait Read<T, S: Shape = (), D: Device = Self>: Device {
     /// let read = device.read_to_vec(&a);
     /// assert_eq!(vec![1., 2., 3., 3., 2., 1.,], read);
     /// ```
-    #[cfg(not(feature = "no-std"))]
+    #[cfg(feature = "std")]
     fn read_to_vec(&self, buf: &Buffer<T, D, S>) -> Vec<T>
     where
         T: Default + Clone;

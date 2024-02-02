@@ -40,7 +40,7 @@ where
     }
 }*/
 
-#[cfg(not(feature = "no-std"))]
+#[cfg(feature = "std")]
 impl<'a, T, D> From<(&'a D, Range<usize>)> for Buffer<'a, T, D>
 where
     T: Number,
@@ -53,7 +53,7 @@ where
 }
 
 // A more general version of the above, find way to make it work
-/*#[cfg(not(feature = "no-std"))]
+/*#[cfg(feature = "std")]
 impl<'a, T, D, I> From<(&'a D, I)> for Buffer<'a, T, D>
 where
     T: Number,
@@ -137,7 +137,7 @@ where
     }
 }*/
 
-#[cfg(not(feature = "no-std"))]
+#[cfg(feature = "std")]
 impl<'a, T, D, S: Shape> From<(&'a D, Vec<T>)> for Buffer<'a, T, D, S>
 where
     T: Clone,
@@ -150,7 +150,7 @@ where
     }
 }
 
-#[cfg(not(feature = "no-std"))]
+#[cfg(feature = "std")]
 impl<'a, T, D, S: Shape> From<(&'a D, &Vec<T>)> for Buffer<'a, T, D, S>
 where
     T: Clone,

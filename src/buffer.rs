@@ -151,7 +151,7 @@ impl<'a, T, D: Device + OnNewBuffer<T, D, S>, S: Shape> Buffer<'a, T, D, S> {
     }
 
     /// Creates a new `Buffer` from a `Vec`.
-    #[cfg(not(feature = "no-std"))]
+    #[cfg(feature = "std")]
     #[inline]
     pub fn from_vec(device: &'a D, data: Vec<T>) -> Self
     where
@@ -256,7 +256,7 @@ impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
     /// assert_eq!(buf.read_to_vec(), vec![1, 2, 3, 4]);
     /// ```
     #[inline]
-    #[cfg(not(feature = "no-std"))]
+    #[cfg(feature = "std")]
     pub fn read_to_vec(&self) -> Vec<T>
     where
         D: Read<T, S>,
@@ -619,10 +619,10 @@ impl<T, D: Device, S: Shape> core::ops::DerefMut for Buffer<'_, T, D, S> {
     }
 }
 
-#[cfg(not(feature = "no-std"))]
+#[cfg(feature = "std")]
 use core::fmt::Debug;
 
-#[cfg(not(feature = "no-std"))]
+#[cfg(feature = "std")]
 impl<'a, T, D> Debug for Buffer<'a, T, D>
 where
     T: Debug + Default + Clone + 'a,
@@ -766,7 +766,7 @@ mod tests {
     }
 
     #[cfg(feature = "stack")]
-    #[cfg(not(feature = "no-std"))]
+    #[cfg(feature = "std")]
     // #[should_panic]
     #[test]
     fn test_id_stack() {

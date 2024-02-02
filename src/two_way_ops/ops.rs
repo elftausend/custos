@@ -3,7 +3,7 @@ mod unary;
 
 use crate::prelude::Float;
 
-#[cfg(not(feature = "no-std"))]
+#[cfg(feature = "std")]
 use crate::ToCLSource;
 
 use super::{Combiner, Eval};
@@ -24,7 +24,7 @@ impl<C, R> Mul<C, R> {
 
 impl<C, R> Combiner for Mul<C, R> {}
 
-#[cfg(not(feature = "no-std"))]
+#[cfg(feature = "std")]
 impl<C: ToCLSource, R: ToCLSource> ToCLSource for Mul<C, R> {
     #[inline]
     fn to_cl_source(&self) -> String {
@@ -57,7 +57,7 @@ impl<C, R> Add<C, R> {
 
 impl<C, R> Combiner for Add<C, R> {}
 
-#[cfg(not(feature = "no-std"))]
+#[cfg(feature = "std")]
 impl<C: ToCLSource, R: ToCLSource> ToCLSource for Add<C, R> {
     #[inline]
     fn to_cl_source(&self) -> String {
@@ -90,7 +90,7 @@ impl<C, R> Sub<C, R> {
 
 impl<C, R> Combiner for Sub<C, R> {}
 
-#[cfg(not(feature = "no-std"))]
+#[cfg(feature = "std")]
 impl<C: ToCLSource, R: ToCLSource> ToCLSource for Sub<C, R> {
     #[inline]
     fn to_cl_source(&self) -> String {
@@ -123,7 +123,7 @@ impl<C, R> Div<C, R> {
 
 impl<C, R> Combiner for Div<C, R> {}
 
-#[cfg(not(feature = "no-std"))]
+#[cfg(feature = "std")]
 impl<C: ToCLSource, R: ToCLSource> ToCLSource for Div<C, R> {
     #[inline]
     fn to_cl_source(&self) -> String {
@@ -156,7 +156,7 @@ impl<C, R> Pow<C, R> {
 
 impl<C, R> Combiner for Pow<C, R> {}
 
-#[cfg(not(feature = "no-std"))]
+#[cfg(feature = "std")]
 impl<C: ToCLSource, R: ToCLSource> ToCLSource for Pow<C, R> {
     #[inline]
     fn to_cl_source(&self) -> String {

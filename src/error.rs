@@ -1,4 +1,4 @@
-#[cfg(not(feature = "no-std"))]
+#[cfg(feature = "std")]
 mod std_err {
     /// A type alias for Box<dyn std::error::Error + Send + Sync>
     pub type Error = Box<dyn std::error::Error + Send + Sync>;
@@ -18,20 +18,20 @@ mod std_err {
     impl std::error::Error for crate::DeviceError {}
 }
 
-#[cfg(not(feature = "no-std"))]
+#[cfg(feature = "std")]
 pub use std_err::*;
 
 /// A type alias for `Result<T, Error>`.
-#[cfg(not(feature = "no-std"))]
+#[cfg(feature = "std")]
 pub type Result<T> = core::result::Result<T, self::std_err::Error>;
 
 /// An error for no-std.
-#[cfg(feature = "no-std")]
+#[cfg(not(feature = "std"))]
 #[derive(Debug)]
 pub struct Error {}
 
 /// A type alias for `Result<T, Error>`.
-#[cfg(feature = "no-std")]
+#[cfg(not(feature = "std"))]
 pub type Result<T> = core::result::Result<T, Error>;
 
 /// 'generic' device errors that can occur on any device.

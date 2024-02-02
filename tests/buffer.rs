@@ -14,7 +14,7 @@ where
     unsafe { std::slice::from_raw_parts(buf.ptrs().0, buf.len()) }
 }
 
-#[cfg(not(feature = "no-std"))]
+#[cfg(feature = "std")]
 pub fn read<T, D: Alloc<T>>(device: &D, buf: &Buffer<T, D>) -> Vec<T>
 where
     D: Read<T> + Device,
