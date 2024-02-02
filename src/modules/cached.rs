@@ -199,6 +199,11 @@ impl<Mods: AddGradFn, D: Device> AddGradFn for CachedModule<Mods, D> {
     ) {
         self.modules.add_grad_fn(args, op)
     }
+
+    #[inline]
+    fn set_grad_enabled(&self, enabled: bool) {
+        self.modules.set_grad_enabled(enabled)
+    }
 }
 
 impl<Mods: crate::UseGpuOrCpu, D: Device> crate::UseGpuOrCpu for CachedModule<Mods, D> {
