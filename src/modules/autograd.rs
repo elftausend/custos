@@ -4,7 +4,7 @@ mod tape;
 pub use gradients::*;
 pub use tape::*;
 
-use core::cell::UnsafeCell;
+use core::cell::{Cell, UnsafeCell};
 
 use crate::{
     impl_remove_layer, pass_down_add_operation, pass_down_exec_now_module, register_buf_any,
@@ -21,6 +21,7 @@ pub struct Autograd<Mods> {
     /// Caches gradients for each [`Buffer`]'s id ([`Ident`]).
     pub grads: UnsafeCell<Gradients>,
     tape: UnsafeCell<Tape>,
+    pub enabled: Cell<bool>,
 }
 
 impl<Mods: WrappedData> WrappedData for Autograd<Mods> {
@@ -51,6 +52,7 @@ impl<Mods: Module<D>, D: Device> Module<D> for Autograd<Mods> {
             modules: Cached::<Mods>::new(),
             grads: Default::default(),
             tape: Default::default(),
+            enabled: Cell::new(true),
         }
     }
 }
@@ -134,6 +136,7 @@ impl<NewMods, SD> AddLayer<NewMods, SD> for Autograd<()> {
             modules: inner_mods,
             grads: Default::default(),
             tape: Default::default(),
+            enabled: Cell::new(true),
         }
     }
 }
@@ -230,7 +233,19 @@ impl<Mods: AddGradFn> AddGradFn for Autograd<Mods> {
         args: Args,
         op: fn(&mut Args) -> crate::Result<()>,
     ) {
+        if !self.enabled.get() {
+            return;
+        }
         unsafe { (*self.tape.get()).add_grad_fn2(args, op) }
+    }
+    #[inline]
+    fn is_grad_enabled(&self) -> bool {
+        self.enabled.get()
+    }
+
+    #[inline]
+    fn set_grad_enabled(&self, enabled: bool) {
+        self.enabled.set(enabled);
     }
 }
 
@@ -432,6 +447,38 @@ mod tests {
             lhs.device()
                 .add_unary_grad(lhs, lhs.grad_mut(), out.grad(), |x| x.add(3));
             // lhs.device().add_ew_grad(lhs.grad(), rhs.grad(), out.grad());
+            Ok(())
+        });
+
+        out.backward();
+
+        assert_eq!(lhs.try_grad().unwrap().as_slice(), [4, 5, 6, 7]);
+    }
+
+    #[test]
+    fn test_autograd_disabling() {
+        let device = CPU::<Autograd<Base>>::new();
+
+        let lhs = device.buffer([1, 2, 3, 4]);
+        let out = lhs.empty_like();
+        
+        device.disable_grad();
+
+        device.add_grad_fn((&lhs, &out), |(lhs, out)| {
+            lhs.device()
+                .add_unary_grad(lhs, lhs.grad_mut(), out.grad(), |x| x.add(3));
+            panic!("should not be called");
+        });
+
+        out.backward();
+
+        assert!(lhs.try_grad().is_none());
+
+        device.enable_grad();
+        
+        device.add_grad_fn((&lhs, &out), |(lhs, out)| {
+            lhs.device()
+                .add_unary_grad(lhs, lhs.grad_mut(), out.grad(), |x| x.add(3));
             Ok(())
         });
 

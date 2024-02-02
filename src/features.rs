@@ -89,6 +89,21 @@ pub trait AddGradFn {
     }
 
     fn backward(&mut self) {}
+
+    #[inline]
+    fn disable_grad(&self) {
+        self.set_grad_enabled(false)
+    }
+
+    #[inline]
+    fn enable_grad(&self) {
+        self.set_grad_enabled(true)
+    }
+
+    fn set_grad_enabled(&self, enabled: bool);
+    fn is_grad_enabled(&self) -> bool {
+        false
+    }
 }
 
 #[macro_export]
@@ -107,6 +122,11 @@ macro_rules! pass_down_grad_fn {
             #[inline]
             fn backward(&mut self) {
                 self.modules.backward()
+            }
+
+            #[inline]
+            fn set_grad_enabled(&self, enabled: bool) {
+                self.modules.set_grad_enabled(enabled)
             }
         }
     };

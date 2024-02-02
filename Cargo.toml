@@ -49,8 +49,7 @@ min-cl = { git = "https://github.com/elftausend/min-cl", optional = true }
 # min-cl = { version = "0.3.0", optional=true }
 
 [features]
-default = ["no-std"]
-# default = ["cpu", "graph", "cached"]
+default = ["cpu", "graph", "cached", "autograd"]
 # default = ["cpu", "lazy", "static-api", "graph", "autograd", "fork", "serde", "json"]
 
 std = []

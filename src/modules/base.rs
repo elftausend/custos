@@ -118,6 +118,10 @@ impl AddGradFn for Base {
         _op: fn(&mut Args) -> crate::Result<()>,
     ) {
     }
+
+    fn set_grad_enabled(&self, _enabled: bool) {
+        
+    }
 }
 
 #[cfg(feature = "autograd")]
