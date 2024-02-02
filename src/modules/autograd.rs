@@ -1,5 +1,6 @@
 mod gradients;
 mod tape;
+mod wrapper;
 
 pub use gradients::*;
 pub use tape::*;
@@ -13,6 +14,8 @@ use crate::{
     TapeActions, WrappedData,
 };
 
+use self::wrapper::ReqGradWrapper;
+
 use super::{Cached, CachedModule};
 
 #[derive(Debug, Default)]
@@ -24,7 +27,7 @@ pub struct Autograd<Mods> {
     pub enabled: Cell<bool>,
 }
 
-impl<Mods: WrappedData> WrappedData for Autograd<Mods> {
+/*impl<Mods: WrappedData> WrappedData for Autograd<Mods> {
     type Wrap<T, Base: HasId + PtrType> = Mods::Wrap<T, Base>;
 
     #[inline]
@@ -41,7 +44,7 @@ impl<Mods: WrappedData> WrappedData for Autograd<Mods> {
     fn wrapped_as_base_mut<T, Base: HasId + PtrType>(wrap: &mut Self::Wrap<T, Base>) -> &mut Base {
         Mods::wrapped_as_base_mut(wrap)
     }
-}
+}*/
 
 impl<Mods: Module<D>, D: Device> Module<D> for Autograd<Mods> {
     type Module = Autograd<CachedModule<Mods::Module, D>>;
@@ -156,7 +159,13 @@ where
     where
         D: Alloc<T>,
     {
-        self.modules.retrieve(device, len, parents)
+        let data = self.modules.retrieve(device, len, parents);
+    
+        ReqGradWrapper {
+            requires_grad: true, // if parents require grad, then true
+            data,
+            _pd: core::marker::PhantomData,
+        }
     }
 
     #[inline]
@@ -283,7 +292,7 @@ mod tests {
             let buf_any = no_grads_pool.cache.get(&buf.id()).unwrap();
 
             let buf1 = downcast_val::<f32, _, ()>(buf_any, &device).unwrap();
-            assert_eq!(buf1.data.ptr, buf.data.ptr);
+            assert_eq!(buf1.base().ptr, buf.base().ptr);
         }
     }
 
@@ -299,7 +308,7 @@ mod tests {
             let buf1 = no_grads_pool
                 .get_buf_with_dev::<f32, _, ()>(buf.id(), &device)
                 .unwrap();
-            assert_eq!(buf1.data.ptr, buf.data.ptr);
+            assert_eq!(buf1.base().ptr, buf.base().ptr);
         }
     }
 
