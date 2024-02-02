@@ -52,28 +52,30 @@ min-cl = { git = "https://github.com/elftausend/min-cl", optional = true }
 default = ["cpu", "graph", "cached", "autograd"]
 # default = ["cpu", "lazy", "static-api", "graph", "autograd", "fork", "serde", "json"]
 
-cpu = []
-opencl = ["dep:min-cl", "cpu", "cached"]
+std = []
+
+cpu = ["std"]
+opencl = ["std", "dep:min-cl", "cpu", "cached"]
 #network = ["cuwanto-client"]
-cuda = []
+cuda = ["std"]
 blas = []
 static-api = ["cpu"]
 stack = []
 no-std = ["stack", "dep:libm"]
 # wgpu = ["dep:wgpu", "dep:pollster", "dep:futures-intrusive"]
 macro = ["dep:custos-macro"]
-nnapi = ["dep:nnapi", "dep:ndk-sys", "lazy"]
+nnapi = ["std", "dep:nnapi", "dep:ndk-sys", "lazy"]
 
 # modules
-autograd = ["cached", "lazy"]
-lazy = []
-cached = []
-fork = []
-graph = []
+autograd = ["std", "cached", "lazy"]
+lazy = ["std"]
+cached = ["std"]
+fork = ["std"]
+graph = ["std"]
 
 half = ["dep:half"]
 
-vulkan = ["dep:ash", "dep:naga", "wgsl"]
+vulkan = ["std", "dep:ash", "dep:naga", "wgsl"]
 wgsl = []
 
 serde = ["dep:serde"]

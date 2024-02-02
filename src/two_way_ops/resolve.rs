@@ -1,4 +1,4 @@
-#[cfg(not(feature = "no-std"))]
+#[cfg(feature = "std")]
 use crate::ToCLSource;
 
 /// Resolves to either a mathematical expression as string or a computed value.
@@ -133,7 +133,7 @@ impl<T> crate::Eval<T> for Resolve<T> {
     }
 }
 
-#[cfg(not(feature = "no-std"))]
+#[cfg(feature = "std")]
 impl<T> ToCLSource for Resolve<T> {
     #[inline]
     fn to_cl_source(&self) -> String {

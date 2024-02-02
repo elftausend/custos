@@ -104,7 +104,7 @@ where
     }
 
     #[inline]
-    #[cfg(not(feature = "no-std"))]
+    #[cfg(feature = "std")]
     fn read_to_vec(&self, buf: &Buffer<T, Stack, S>) -> Vec<T>
     where
         T: Default,
@@ -143,10 +143,10 @@ impl<Mods: crate::TapeActions> crate::TapeActions for Stack<Mods> {}
 
 #[cfg(test)]
 mod tests {
-    #[cfg(not(feature = "no-std"))]
+    #[cfg(feature = "std")]
     use crate::{shape::Dim2, Buffer, Stack};
 
-    #[cfg(not(feature = "no-std"))]
+    #[cfg(feature = "std")]
     #[test]
     fn test_dim2() {
         let dev = Stack::new();
