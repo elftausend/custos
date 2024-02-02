@@ -10,8 +10,8 @@ use core::cell::{Cell, UnsafeCell};
 use crate::{
     impl_remove_layer, pass_down_add_operation, pass_down_exec_now_module, register_buf_any,
     unregister_buf_any, AddGradFn, AddLayer, Alloc, Buffer, Device, HasId, IsShapeIndep, Module,
-    OnDropBuffer, OnNewBuffer, Parents, PtrType, Retrieve, RunModule, Setup, ShallowCopy, Shape,
-    TapeActions, WrappedData,
+    OnDropBuffer, OnNewBuffer, Parents, Retrieve, RunModule, Setup, ShallowCopy, Shape,
+    TapeActions,
 };
 
 use self::wrapper::ReqGradWrapper;
@@ -26,25 +26,6 @@ pub struct Autograd<Mods> {
     tape: UnsafeCell<Tape>,
     pub enabled: Cell<bool>,
 }
-
-/*impl<Mods: WrappedData> WrappedData for Autograd<Mods> {
-    type Wrap<T, Base: HasId + PtrType> = Mods::Wrap<T, Base>;
-
-    #[inline]
-    fn wrap_in_base<T, Base: HasId + PtrType>(&self, base: Base) -> Self::Wrap<T, Base> {
-        self.modules.wrap_in_base(base)
-    }
-
-    #[inline]
-    fn wrapped_as_base<T, Base: HasId + PtrType>(wrap: &Self::Wrap<T, Base>) -> &Base {
-        Mods::wrapped_as_base(wrap)
-    }
-
-    #[inline]
-    fn wrapped_as_base_mut<T, Base: HasId + PtrType>(wrap: &mut Self::Wrap<T, Base>) -> &mut Base {
-        Mods::wrapped_as_base_mut(wrap)
-    }
-}*/
 
 impl<Mods: Module<D>, D: Device> Module<D> for Autograd<Mods> {
     type Module = Autograd<CachedModule<Mods::Module, D>>;
@@ -160,7 +141,7 @@ where
         D: Alloc<T>,
     {
         let data = self.modules.retrieve(device, len, parents);
-    
+
         ReqGradWrapper {
             requires_grad: true, // if parents require grad, then true
             data,
@@ -470,7 +451,7 @@ mod tests {
 
         let lhs = device.buffer([1, 2, 3, 4]);
         let out = lhs.empty_like();
-        
+
         device.disable_grad();
 
         device.add_grad_fn((&lhs, &out), |(lhs, out)| {
@@ -484,7 +465,7 @@ mod tests {
         assert!(lhs.try_grad().is_none());
 
         device.enable_grad();
-        
+
         device.add_grad_fn((&lhs, &out), |(lhs, out)| {
             lhs.device()
                 .add_unary_grad(lhs, lhs.grad_mut(), out.grad(), |x| x.add(3));
