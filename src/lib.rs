@@ -1,5 +1,5 @@
 // #![warn(missing_docs)]
-#![cfg_attr(feature = "no-std", no_std)]
+#![cfg_attr(not(feature = "std"), no_std)]
 // A compute kernel launch may wants to modify memory. Clippy does not know this.
 // To declare that a value is mutated, a "needless" mutable reference is used.
 #![allow(clippy::needless_pass_by_ref_mut)]
@@ -229,12 +229,12 @@ impl<Mods: OnDropBuffer> Device for CPU<Mods> {
     type Error = crate::DeviceError;
 
     fn new() -> core::result::Result<Self, Self::Error> {
-        #[cfg(feature = "no-std")]
+        #[cfg(not(feature = "std"))]
         {
             unimplemented!("CPU is not available. Enable the `cpu` feature to use the CPU.")
         }
 
-        #[cfg(not(feature = "no-std"))]
+        #[cfg(feature = "std")]
         Err(crate::DeviceError::CPUDeviceNotAvailable.into())
     }
 
@@ -264,7 +264,7 @@ impl_buffer_hook_traits!(CPU);
 #[cfg(not(feature = "cpu"))]
 crate::impl_wrapped_data!(CPU);
 
-#[cfg(not(feature = "no-std"))]
+#[cfg(feature = "std")]
 pub(crate) type Buffers<B> =
     std::collections::HashMap<UniqueId, B, std::hash::BuildHasherDefault<NoHasher>>;
 
@@ -281,7 +281,7 @@ pub mod prelude {
     pub use crate::{exec_on_cpu::*, CPU};
 
     // TODO
-    // #[cfg(not(feature = "no-std"))]
+    // #[cfg(feature = "std")]
     // pub use crate::{cache::CacheReturn, get_count, set_count, Cache};
 
     #[cfg(feature = "opencl")]

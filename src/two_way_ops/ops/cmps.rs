@@ -1,6 +1,6 @@
 use crate::{prelude::Number, Combiner, Eval};
 
-#[cfg(not(feature = "no-std"))]
+#[cfg(feature = "std")]
 use super::ToCLSource;
 
 pub struct GEq<C, R> {
@@ -15,7 +15,7 @@ impl<C, R> GEq<C, R> {
     }
 }
 
-#[cfg(not(feature = "no-std"))]
+#[cfg(feature = "std")]
 impl<C: ToCLSource, R: ToCLSource> ToCLSource for GEq<C, R> {
     #[inline]
     fn to_cl_source(&self) -> String {
@@ -48,7 +48,7 @@ impl<C, R> LEq<C, R> {
     }
 }
 
-#[cfg(not(feature = "no-std"))]
+#[cfg(feature = "std")]
 impl<C: ToCLSource, R: ToCLSource> ToCLSource for LEq<C, R> {
     #[inline]
     fn to_cl_source(&self) -> String {
@@ -81,7 +81,7 @@ impl<C, R> Eq<C, R> {
     }
 }
 
-#[cfg(not(feature = "no-std"))]
+#[cfg(feature = "std")]
 impl<C: ToCLSource, R: ToCLSource> ToCLSource for Eq<C, R> {
     #[inline]
     fn to_cl_source(&self) -> String {

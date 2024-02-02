@@ -27,21 +27,21 @@ mod fork;
 #[cfg(feature = "fork")]
 pub use fork::*;
 
-#[cfg(not(feature = "no-std"))]
+#[cfg(feature = "std")]
 use crate::{Buffer, Device, HasId, HashLocation, Id, ShallowCopy, Shape, UniqueId};
-#[cfg(not(feature = "no-std"))]
+#[cfg(feature = "std")]
 use core::{any::Any, hash::BuildHasher};
 
-#[cfg(not(feature = "no-std"))]
+#[cfg(feature = "std")]
 use std::collections::HashMap;
 
-#[cfg(not(feature = "no-std"))]
+#[cfg(feature = "std")]
 pub struct HashLocationCacheTrace {
     pub cache_idx: HashLocation<'static>,
     pub use_cache_idxs: Vec<HashLocation<'static>>,
 }
 
-#[cfg(not(feature = "no-std"))]
+#[cfg(feature = "std")]
 #[inline]
 pub(crate) unsafe fn register_buf_any<T, D, S>(
     cache: &mut HashMap<UniqueId, Box<dyn Any>, impl BuildHasher>,
@@ -66,7 +66,7 @@ pub(crate) unsafe fn register_buf_any<T, D, S>(
     cache.insert(*buf.id(), Box::new(buf));
 }
 
-#[cfg(not(feature = "no-std"))]
+#[cfg(feature = "std")]
 #[inline]
 pub fn unregister_buf_any(cache: &mut HashMap<UniqueId, Box<dyn Any>, impl BuildHasher>, id: Id) {
     cache.remove(&id);

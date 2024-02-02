@@ -123,7 +123,7 @@ impl OptGraph {
     }
 }
 
-#[cfg(not(feature = "no-std"))]
+#[cfg(feature = "std")]
 #[cfg(test)]
 mod tests {
     use crate::modules::graph::opt_graph::{optimize::CacheTrace, OptGraph};

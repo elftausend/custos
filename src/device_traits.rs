@@ -41,7 +41,7 @@ pub trait Alloc<T>: Device + Sized {
 
     /// If the vector `vec` was allocated previously, this function can be used in order to reduce the amount of allocations, which may be faster than using a slice of `vec`.
     #[inline]
-    #[cfg(not(feature = "no-std"))]
+    #[cfg(feature = "std")]
     fn alloc_from_vec<S: Shape>(&self, vec: Vec<T>) -> Self::Base<T, S>
     where
         T: Clone,

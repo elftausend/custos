@@ -41,7 +41,7 @@ fn test_questionmark() -> Result<(), Box<dyn std::error::Error + Sync + Send>> {
     Ok(())
 }
 
-#[cfg(not(feature = "no-std"))]
+#[cfg(feature = "std")]
 #[test]
 fn test_print_error() {
     let err = Error::from(DeviceError::UnifiedConstructInvalidInputBuffer);
@@ -55,7 +55,7 @@ fn test_print_error() {
     );
 }
 
-#[cfg(not(feature = "no-std"))]
+#[cfg(feature = "std")]
 #[test]
 fn test_std_err() {
     let err = Error::from(DeviceError::UnifiedConstructInvalidInputBuffer);

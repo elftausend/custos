@@ -1,6 +1,6 @@
 use crate::{prelude::Float, Combiner, Eval};
 
-#[cfg(not(feature = "no-std"))]
+#[cfg(feature = "std")]
 use super::ToCLSource;
 
 pub struct Identity<C> {
@@ -16,7 +16,7 @@ impl<T: Float, C: Eval<T>> Eval<T> for Identity<C> {
     }
 }
 
-#[cfg(not(feature = "no-std"))]
+#[cfg(feature = "std")]
 impl<C: ToCLSource> ToCLSource for Identity<C> {
     #[inline]
     fn to_cl_source(&self) -> String {
@@ -38,7 +38,7 @@ impl<T: Float, C: Eval<T>> Eval<T> for Exp<C> {
     }
 }
 
-#[cfg(not(feature = "no-std"))]
+#[cfg(feature = "std")]
 impl<C: ToCLSource> ToCLSource for Exp<C> {
     #[inline]
     fn to_cl_source(&self) -> String {
@@ -60,7 +60,7 @@ impl<T: Float, C: Eval<T>> Eval<T> for Sin<C> {
     }
 }
 
-#[cfg(not(feature = "no-std"))]
+#[cfg(feature = "std")]
 impl<C: ToCLSource> ToCLSource for Sin<C> {
     #[inline]
     fn to_cl_source(&self) -> String {
@@ -82,7 +82,7 @@ impl<T: Float, C: Eval<T>> Eval<T> for Cos<C> {
     }
 }
 
-#[cfg(not(feature = "no-std"))]
+#[cfg(feature = "std")]
 impl<C: ToCLSource> ToCLSource for Cos<C> {
     #[inline]
     fn to_cl_source(&self) -> String {
@@ -104,7 +104,7 @@ impl<T: Float, C: Eval<T>> Eval<T> for Tan<C> {
     }
 }
 
-#[cfg(not(feature = "no-std"))]
+#[cfg(feature = "std")]
 impl<C: ToCLSource> ToCLSource for Tan<C> {
     #[inline]
     fn to_cl_source(&self) -> String {
@@ -125,7 +125,7 @@ impl<T: Float, C: Eval<T>> Eval<T> for Tanh<C> {
     }
 }
 
-#[cfg(not(feature = "no-std"))]
+#[cfg(feature = "std")]
 impl<C: ToCLSource> ToCLSource for Tanh<C> {
     #[inline]
     fn to_cl_source(&self) -> String {
@@ -146,7 +146,7 @@ impl<T: core::ops::Neg<Output = T>, C: Eval<T>> Eval<T> for Neg<C> {
     }
 }
 
-#[cfg(not(feature = "no-std"))]
+#[cfg(feature = "std")]
 impl<C: ToCLSource> ToCLSource for Neg<C> {
     #[inline]
     fn to_cl_source(&self) -> String {
