@@ -10,7 +10,7 @@ pub use to_wgsl_source::*;
 
 use crate::prelude::Numeric;
 
-use self::ops::{Add, Cos, Div, Eq, Exp, GEq, Identity, LEq, Max, Min, Mul, Neg, Pow, Sin, Sub, Tan, Tanh};
+use self::ops::{Add, Cos, Div, Eq, Exp, GEq, Identity, LEq, Ln, Max, Min, Mul, Neg, Pow, Sin, Sub, Tan, Tanh};
 
 /// Evaluates a combined (via [`Combiner`]) math operations chain to a valid OpenCL C (and possibly CUDA) source string.
 #[cfg(feature = "std")]
@@ -179,6 +179,11 @@ pub trait Combiner: Sized {
     #[inline]
     fn max<R>(self, rhs: R) -> Max<Self, R> {
         Max { comb: self, rhs }
+    }
+
+    #[inline]
+    fn ln(self) -> Ln<Self> {
+        Ln { comb: self }
     }
 
 }

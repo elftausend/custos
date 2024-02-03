@@ -153,3 +153,24 @@ impl<C: ToCLSource> ToCLSource for Neg<C> {
         format!("-({})", self.comb.to_cl_source())
     }
 }
+
+pub struct Ln<C> {
+    pub comb: C,
+}
+
+impl<C> Combiner for Ln<C> {}
+
+impl<T: Float, C: Eval<T>> Eval<T> for Ln<C> {
+    #[inline]
+    fn eval(self) -> T {
+        Float::ln(&self.comb.eval())
+    }
+}
+
+#[cfg(feature = "std")]
+impl<C: ToCLSource> ToCLSource for Ln<C> {
+    #[inline]
+    fn to_cl_source(&self) -> String {
+        format!("log({})", self.comb.to_cl_source())
+    }
+}
