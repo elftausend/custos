@@ -187,7 +187,24 @@ pub trait Number:
     fn from_u64(value: u64) -> Self;
     fn as_usize(&self) -> usize;
     fn as_f64(&self) -> f64;
-    fn max(self, rhs: Self) -> Self;
+
+#[inline]
+                fn max(self, rhs: Self) -> Self {
+                    if self > rhs {
+                        self
+                    } else {
+                        rhs
+                    }
+                }
+
+    #[inline]
+    fn min(self, rhs: Self) -> Self {
+        if self < rhs {
+            self
+        } else {
+            rhs
+        }
+    }
 }
 
 macro_rules! number_apply {
@@ -212,15 +229,6 @@ macro_rules! number_apply {
                 #[inline]
                 fn as_f64(&self) -> f64 {
                     *self as f64
-                }
-
-                #[inline]
-                fn max(self, rhs: Self) -> Self {
-                    if self > rhs {
-                        self
-                    } else {
-                        rhs
-                    }
                 }
             }
         )*
