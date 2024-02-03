@@ -17,18 +17,19 @@ where
         T: Clone + One + 'static,
         D: TapeActions + WriteBuf<T, S, D> + Alloc<T> + 'static,
     {
-        self.backward_with(self)
+        self.backward_with(&vec![T::one(); self.len()]);
     }
-    
+
+    /// Calls `.backward_seeded` on the [`Tape`] with the given buffer.
     #[inline]
-    pub fn backward_with(&self, seed: &Buffer<T, D, S>)
+    pub fn backward_with(&self, seed: &[T])
     where
-        T: Clone + One + 'static,
+        T: Clone  + 'static,
         D: TapeActions + WriteBuf<T, S, D> + Alloc<T> + 'static,
     {
         // should never be None
         if let Some(tape) = unsafe { self.device().tape_mut() } {
-            tape.backward_seeded(seed)
+            tape.backward_seeded(self, seed)
         }
     }
 }

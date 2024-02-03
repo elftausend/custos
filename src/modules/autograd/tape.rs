@@ -2,7 +2,7 @@ use core::{any::Any, fmt::Debug, hash::BuildHasherDefault, panic::Location};
 use std::collections::{HashMap, HashSet};
 
 use crate::{
-    prelude::One, Alloc, Buffer, Buffers, HasId, HashLocation, LazyGraph, LocationHasher, Parents,
+    Alloc, Buffer, Buffers, HasId, HashLocation, LazyGraph, LocationHasher, Parents,
     Shape, TapeActions, UpdateArgs, WriteBuf,
 };
 
@@ -89,10 +89,9 @@ impl Tape {
     }
 
     /// Backward pass with seeded gradient.
-    /// The seed of the gradient contains `buf.len()` elements, all of them are set to 1.
-    pub fn backward_seeded<T, D, S: Shape>(&mut self, buf: &Buffer<T, D, S>)
+    pub fn backward_seeded<T, D, S: Shape>(&mut self, buf: &Buffer<T, D, S>, seed: &[T])
     where
-        T: Clone + One + 'static,
+        T: Clone + 'static,
         D: Alloc<T> + WriteBuf<T, S, D> + TapeActions + 'static,
     {
         let mut no_grads = {
@@ -100,7 +99,7 @@ impl Tape {
             let gradients = unsafe { buf.device().gradients_mut() }.unwrap();
 
             let out = gradients.get_mut::<T, S, D>(buf.device(), buf.id());
-            out.write(&vec![T::one(); out.len()]);
+            out.write(seed);
 
             let no_grads = &mut gradients.no_grads_pool.cache;
             core::mem::take(no_grads)
