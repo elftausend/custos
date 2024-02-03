@@ -226,4 +226,3 @@ impl<C: Eval<T>, R: Eval<T>, T: Float> Eval<T> for Max<C, R> {
         self.comb.eval().max(self.rhs.eval())
     }
 }
-

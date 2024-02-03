@@ -188,14 +188,14 @@ pub trait Number:
     fn as_usize(&self) -> usize;
     fn as_f64(&self) -> f64;
 
-#[inline]
-                fn max(self, rhs: Self) -> Self {
-                    if self > rhs {
-                        self
-                    } else {
-                        rhs
-                    }
-                }
+    #[inline]
+    fn max(self, rhs: Self) -> Self {
+        if self > rhs {
+            self
+        } else {
+            rhs
+        }
+    }
 
     #[inline]
     fn min(self, rhs: Self) -> Self {

@@ -417,4 +417,34 @@ mod tests {
             unsafe { Retrieve::<_, f32, ()>::retrieve(&device.modules, &device, 10, ()) }
         };
     }
+
+    #[track_caller]
+    #[cfg(feature = "cpu")]
+    fn level1<Mods: crate::Retrieve<CPU<Mods>, f32, ()>>(device: &CPU<Mods>) {
+        let _buf: Buffer<f32, _> = device.retrieve(10, ());
+        level2(device);
+        level2(device);
+        level3(device);
+    }
+
+    #[track_caller]
+    #[cfg(feature = "cpu")]
+    fn level3<Mods: crate::Retrieve<CPU<Mods>, f32, ()>>(device: &CPU<Mods>) {
+        level2(device);
+    }
+
+    #[track_caller]
+    #[cfg(feature = "cpu")]
+    fn level2<Mods: crate::Retrieve<CPU<Mods>, f32, ()>>(device: &CPU<Mods>) {
+        let buf: Buffer<f32, _> = device.retrieve(20, ());
+        location();
+        assert_eq!(buf.len(), 20);
+    }
+
+    #[cfg(feature = "cpu")]
+    #[test]
+    fn test_multi_level_retrieve() {
+        let device = CPU::<Cached<Base>>::new();
+        level1(&device);
+    }
 }

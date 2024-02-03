@@ -24,7 +24,7 @@ where
     #[inline]
     pub fn backward_with(&self, seed: &[T])
     where
-        T: Clone  + 'static,
+        T: Clone + 'static,
         D: TapeActions + WriteBuf<T, S, D> + Alloc<T> + 'static,
     {
         // should never be None

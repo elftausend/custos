@@ -119,9 +119,7 @@ impl AddGradFn for Base {
     ) {
     }
 
-    fn set_grad_enabled(&self, _enabled: bool) {
-        
-    }
+    fn set_grad_enabled(&self, _enabled: bool) {}
 }
 
 #[cfg(feature = "autograd")]

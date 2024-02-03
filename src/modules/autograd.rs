@@ -461,7 +461,7 @@ mod tests {
 
         let lhs = device.buffer([1, 2, 3, 4]);
         let out = lhs.empty_like();
-        
+
         device.disable_grad();
 
         device.add_grad_fn((&lhs, &out), |(lhs, out)| {
@@ -475,7 +475,7 @@ mod tests {
         assert!(lhs.try_grad().is_none());
 
         device.enable_grad();
-        
+
         device.add_grad_fn((&lhs, &out), |(lhs, out)| {
             lhs.device()
                 .add_unary_grad(lhs, lhs.grad_mut(), out.grad(), |x| x.add(3));
