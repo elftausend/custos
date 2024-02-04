@@ -1,8 +1,17 @@
-use crate::{HasId, Id, UpdateArg};
+use core::hash::Hasher;
+
+use crate::{FxHasher, HasId, Id, UpdateArg};
 
 pub trait Parents<const N: usize>: AllParents {
     fn ids(&self) -> [Id; N];
     fn maybe_ids(&self) -> [Option<Id>; N];
+
+    #[inline]
+    fn hash(&self) -> u64 {
+        let mut hasher = FxHasher::default();
+        core::hash::Hash::hash(&self.ids(), &mut hasher);
+        hasher.finish()
+    }
 }
 
 impl Parents<0> for () {
@@ -103,3 +112,67 @@ impl<T: HasId + Copy, const N: usize> Parents<N> for [T; N] {
 impl<T: HasId + Copy, const N: usize> AllParents for [T; N] {}
 
 pub trait AllParents {}
+
+#[cfg(test)]
+mod tests {
+
+    #[cfg(feature = "std")]
+    #[ignore = "slow"]
+    #[test]
+    fn test_collisions() {
+        use std::collections::HashSet;
+        use crate::{Id, Parents};
+
+        let handle = std::thread::spawn(|| {
+            let mut hashes = HashSet::new();
+            for i in 20000..30000u16 {
+                for j in 20000..30000 {
+                    let i = Id {
+                        id: i as u64,
+                        len: 0,
+                    };
+                    let j = Id {
+                        id: j,
+                        len: 0,
+                    };
+                    let parents = (i, j);
+                    let hash = parents.hash();
+                    if hashes.contains(&(hash)) {
+                        panic!("collision {}, {}, hash: {hash}", i.id, j.id,);
+                    }
+                    hashes.insert(hash);
+                }
+                if i % 1000 == 0 {
+                    println!("i: {}", i);
+                }
+            }
+            hashes
+        });
+        let mut hashes = HashSet::new();
+
+        for i in 10000..20000 {
+            for j in 10000..20000 {
+                let i = Id {
+                    id: i,
+                    len: 0,
+                };
+                let j = Id {
+                    id: j,
+                    len: 0,
+                };
+                let parents = (i, j);
+                let hash = parents.hash();
+                if hashes.contains(&(hash)) {
+                    panic!("collision");
+                }
+                hashes.insert(hash);
+            }
+            if i % 1000 == 0 {
+                println!("i: {}", i);
+            }
+        }
+
+        let other_hashes = handle.join().unwrap();
+        assert_eq!(hashes.intersection(&other_hashes).count(), 0);
+    }
+}

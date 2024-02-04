@@ -3,12 +3,12 @@ use std::collections::HashMap;
 
 use std::rc::Rc;
 
-use crate::{flag::AllocFlag, Alloc, Device, HashLocation, LocationHasher, ShallowCopy, Shape};
+use crate::{flag::AllocFlag, Alloc, Device, HashLocation, FxHasher, ShallowCopy, Shape};
 
 #[derive(Debug, Clone)]
 pub struct Cache {
     pub nodes:
-        HashMap<HashLocation<'static>, Rc<dyn core::any::Any>, BuildHasherDefault<LocationHasher>>,
+        HashMap<HashLocation<'static>, Rc<dyn core::any::Any>, BuildHasherDefault<FxHasher>>,
 }
 
 impl Default for Cache {

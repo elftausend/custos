@@ -6,7 +6,7 @@ use crate::{AllocFlag, DeviceError};
 
 use super::CLPtr;
 use crate::{
-    Base, Buffer, CachedCPU, CachedModule, Device, HashLocation, LocationHasher, OnDropBuffer,
+    Base, Buffer, CachedCPU, CachedModule, Device, HashLocation, FxHasher, OnDropBuffer,
     OpenCL, Shape, UnifiedMemChain, CPU,
 };
 use min_cl::api::{create_buffer, MemFlags};
@@ -62,7 +62,7 @@ pub unsafe fn to_cached_unified<OclMods, CpuMods, T, S>(
     cache: &mut HashMap<
         HashLocation<'static>,
         Rc<dyn core::any::Any>,
-        BuildHasherDefault<LocationHasher>,
+        BuildHasherDefault<FxHasher>,
     >,
     location: HashLocation<'static>,
 ) -> crate::Result<*mut c_void>
@@ -126,7 +126,7 @@ pub fn construct_buffer<'a, OclMods: OnDropBuffer, CpuMods: OnDropBuffer, T: 'st
     cache: &mut HashMap<
         HashLocation<'static>,
         Rc<dyn core::any::Any>,
-        BuildHasherDefault<LocationHasher>,
+        BuildHasherDefault<FxHasher>,
     >,
     location: HashLocation<'static>,
 ) -> crate::Result<Buffer<'a, T, OpenCL<OclMods>, S>> {

@@ -20,6 +20,13 @@ pub struct Id {
     pub len: usize,
 }
 
+impl core::hash::Hash for Id {
+    #[inline]
+    fn hash<H: core::hash::Hasher>(&self, state: &mut H) {
+        self.id.hash(state);
+    }
+}
+
 impl Deref for Id {
     type Target = u64;
 

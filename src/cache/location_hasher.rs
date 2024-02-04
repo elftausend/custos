@@ -1,13 +1,13 @@
 use core::{fmt::Display, ops::BitXor, panic::Location};
 
 #[derive(Default)]
-pub struct LocationHasher {
+pub struct FxHasher {
     hash: u64,
 }
 
 const K: u64 = 0x517cc1b727220a95;
 
-impl core::hash::Hasher for LocationHasher {
+impl core::hash::Hasher for FxHasher {
     #[inline]
     fn finish(&self) -> u64 {
         self.hash
@@ -15,7 +15,7 @@ impl core::hash::Hasher for LocationHasher {
 
     #[inline]
     fn write(&mut self, _bytes: &[u8]) {
-        unimplemented!("LocationHasher only hashes u64, (u32 and usize as u64 cast).")
+        unimplemented!("(this) FxHasher only hashes u64, (u32 and usize as u64 cast).")
     }
 
     #[inline]

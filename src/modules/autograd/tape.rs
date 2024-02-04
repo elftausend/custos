@@ -2,7 +2,7 @@ use core::{any::Any, fmt::Debug, hash::BuildHasherDefault, panic::Location};
 use std::collections::{HashMap, HashSet};
 
 use crate::{
-    Alloc, Buffer, Buffers, HasId, HashLocation, LazyGraph, LocationHasher, Parents, Shape,
+    Alloc, Buffer, Buffers, HasId, HashLocation, LazyGraph, FxHasher, Parents, Shape,
     TapeActions, UpdateArgs, WriteBuf,
 };
 
@@ -16,7 +16,7 @@ pub struct Tape {
     // Caches gradients for each [`Buffer`]'s id ([`Ident`]).
     // pub grads: Gradients,
     grad_fns: Vec<GradFn>,
-    grad_fns_loc: HashMap<HashLocation<'static>, GradFn, BuildHasherDefault<LocationHasher>>,
+    grad_fns_loc: HashMap<HashLocation<'static>, GradFn, BuildHasherDefault<FxHasher>>,
     grad_fn_order: Vec<HashLocation<'static>>,
 
     unconsumed_locations: HashSet<HashLocation<'static>>,
