@@ -101,7 +101,7 @@ impl Tape {
             let out = gradients.get_mut::<T, S, D>(buf.device(), buf.id());
             out.write(seed);
 
-            let no_grads = &mut gradients.no_grads_pool.cache;
+            let no_grads = &mut gradients.no_grads_pool;
             core::mem::take(no_grads)
 
             // ... destroy unique mutable access
@@ -111,7 +111,7 @@ impl Tape {
         self.backward(&mut no_grads);
 
         let gradients = unsafe { buf.device().gradients_mut() }.unwrap();
-        let no_grads_src = &mut gradients.no_grads_pool.cache;
+        let no_grads_src = &mut gradients.no_grads_pool;
         *no_grads_src = no_grads;
     }
 }

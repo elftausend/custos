@@ -1,4 +1,4 @@
-use crate::{Alloc, BorrowCache, Buffer, CachingError, HasId, Id, Parents, Shape};
+use crate::{Alloc, AnyBuffers, BorrowCache, Buffer, CachingError, HasId, Id, Parents, Shape};
 
 const INVALID_ID: &str = "A matching Buffer does not exist.";
 
@@ -7,7 +7,7 @@ const INVALID_ID: &str = "A matching Buffer does not exist.";
 #[derive(Default)]
 pub struct Gradients {
     pub grads_pool: BorrowCache,
-    pub no_grads_pool: BorrowCache,
+    pub no_grads_pool: AnyBuffers,
 }
 
 impl core::fmt::Debug for Gradients {
@@ -101,11 +101,19 @@ impl Gradients {
         S: Shape,
         D: Alloc<T> + 'static,
     {
-        self.no_grads_pool.get_buf::<T, D, S>(id).expect(INVALID_ID)
+        self.no_grads_pool
+            .get(&id)
+            .ok_or(CachingError::InvalidId).expect(INVALID_ID)
+            .downcast_ref()
+            .ok_or(CachingError::InvalidTypeInfo).expect(INVALID_ID)
     }
 
     /// Returns the forward [`Buffer`]s lhs and and rhs, and the gradient `Buffer`s lhs_grad, rhs_grad and out_grad.
     /// Usefull for binary operations.
+    #[deprecated(
+        since = "0.8.0",
+        note = "call .grad() on corresponding buffer"
+    )]
     #[inline]
     pub fn get_triple<'a, T, S, D>(
         &mut self,
@@ -135,6 +143,10 @@ impl Gradients {
     /// Returns the forward [`Buffer`] x and the gradient `Buffer`s x_grad and out_grad.
     /// Useful for unary operations.
     ///
+    #[deprecated(
+        since = "0.8.0",
+        note = "call .grad() on corresponding buffer"
+    )]
     #[inline]
     pub fn get_double<'a, T, IS, OS, D>(
         &mut self,

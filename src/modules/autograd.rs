@@ -66,7 +66,7 @@ impl<Mods> Autograd<Mods> {
         D::Data<T, S>: ShallowCopy,
         S: Shape,
     {
-        let no_grads_pool = unsafe { &mut (*(self.grads.get())).no_grads_pool.cache };
+        let no_grads_pool = unsafe { &mut (*(self.grads.get())).no_grads_pool };
         // let no_grads_pool = &mut self.tape.borrow_mut().grads.no_grads_pool.cache;
 
         if no_grads_pool.get(&buf.id()).is_some() {
@@ -108,7 +108,7 @@ impl<Mods: OnDropBuffer> OnDropBuffer for Autograd<Mods> {
     #[inline]
     fn on_drop_buffer<T, D: Device, S: Shape>(&self, device: &D, buf: &Buffer<T, D, S>) {
         unregister_buf_any(
-            unsafe { &mut (*(self.grads.get())).no_grads_pool.cache },
+            unsafe { &mut (*(self.grads.get())).no_grads_pool },
             buf.id(),
         );
         self.modules.on_drop_buffer(device, buf)
@@ -280,7 +280,7 @@ mod tests {
         {
             let no_grads_pool = unsafe { &(*autograd.grads.get()).no_grads_pool };
             // let no_grads_pool = &mut autograd.tape.grads.no_grads_pool;
-            let buf_any = no_grads_pool.cache.get(&buf.id()).unwrap();
+            let buf_any = no_grads_pool.get(&buf.id()).unwrap();
 
             let buf1 = downcast_val::<f32, _, ()>(buf_any, &device).unwrap();
             assert_eq!(buf1.data.ptr, buf.data.ptr);
@@ -289,16 +289,15 @@ mod tests {
 
     #[test]
     fn test_buffer_creation_autograd_get_buf() {
-        let device = CPU::<Autograd<Base>>::new();
+        let device: CPU<Autograd<crate::CachedModule<Base, CPU>>> = CPU::<Autograd<Base>>::new();
         let buf: Buffer<f32, _> = Buffer::<f32, _>::new(&device, 10);
 
         let autograd = &device.modules;
         {
             let no_grads_pool = unsafe { &mut (*autograd.grads.get()).no_grads_pool };
+            let buf1: &Buffer<f32, CPU<Autograd<crate::CachedModule<Base, CPU>>>> = no_grads_pool.get(&buf.id()).unwrap().downcast_ref().unwrap();
             // let no_grads_pool = &mut autograd.tape.borrow_mut().grads.no_grads_pool;
-            let buf1 = no_grads_pool
-                .get_buf_with_dev::<f32, _, ()>(buf.id(), &device)
-                .unwrap();
+            
             assert_eq!(buf1.data.ptr, buf.data.ptr);
         }
     }
@@ -315,7 +314,7 @@ mod tests {
         {
             let no_grads_pool = unsafe { &(*autograd.grads.get()).no_grads_pool };
             // let no_grads_pool = &autograd.tape.borrow_mut().grads.no_grads_pool;
-            assert!(no_grads_pool.cache.get(&id).is_none());
+            assert!(no_grads_pool.get(&id).is_none());
         }
     }
 
@@ -332,7 +331,7 @@ mod tests {
 
         let no_grads_pool = unsafe { &(*device.modules.grads.get()).no_grads_pool };
         // let no_grads_pool = &device.modules.tape.borrow().grads.no_grads_pool;
-        assert_eq!(no_grads_pool.cache.len(), 2);
+        assert_eq!(no_grads_pool.len(), 2);
     }
 
     #[test]
@@ -355,7 +354,7 @@ mod tests {
 
         let no_grads_pool = unsafe { &(*device.modules.modules.grads.get()).no_grads_pool };
         // let no_grads_pool = &device.modules.modules.tape.borrow().grads.no_grads_pool;
-        assert_eq!(no_grads_pool.cache.len(), 2);
+        assert_eq!(no_grads_pool.len(), 2);
     }
 
     #[test]
