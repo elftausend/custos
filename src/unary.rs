@@ -100,7 +100,7 @@ impl<T, D, S> UnaryElementWiseMayGrad<T, D, S> for D
 where
     T: 'static,
     D: AddGradFn + ApplyFunction<T, S, D> + UnaryGrad<T, S, D> + MayTapeActions,
-    D::Data<T, S>: crate::ShallowCopy,
+    // D::Data<T, S>: crate::ShallowCopy,
     D: Alloc<T> + 'static,
     S: Shape,
 {

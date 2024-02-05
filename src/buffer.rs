@@ -377,6 +377,24 @@ impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
     pub fn base_mut(&mut self) -> &mut D::Base<T, S> {
         D::wrapped_as_base_mut(D::data_as_wrap_mut(&mut self.data))
     }
+
+    #[inline]
+    pub fn to_device_type<'b, DO>(self, device: &'b DO) -> Buffer<'b, T, DO, S>
+    where
+        DO: Device,
+        D::Data<T, S>: Default,
+        D::Base<T, S>: ShallowCopy,
+        DO::Base<T, S>: From<D::Base<T, S>>,
+    {
+        let val = ManuallyDrop::new(self);
+
+        let base = unsafe { val.base().shallow() };
+
+        Buffer {
+            data: device.base_to_data(base.into()),
+            device: Some(device),
+        }
+    }
 }
 
 // TODO better solution for the to_dims stack problem?

@@ -447,4 +447,38 @@ mod tests {
         let device = CPU::<Cached<Base>>::new();
         level1(&device);
     }
+
+    #[cfg(feature = "cpu")]
+    #[test]
+    fn test_add_cached_layer() {
+        use crate::{ApplyFunction, Combiner, UnaryElementWiseMayGrad};
+
+        let device = CPU::<Base>::new();
+        let buf_base: Buffer<f32, _> = device.retrieve(10, ());
+
+        let device = device.add_layer::<Cached<()>>();
+
+        for _ in 0..10 {
+            let buf: Buffer<f32, _> = device.retrieve(10, &buf_base);
+            
+            for (base, cached) in buf_base.iter().zip(buf.iter()) {
+                assert_eq!(base, cached);
+            }
+
+            let _x = device.apply_fn(&buf_base, |x| x.exp());
+            assert_eq!(buf.len(), buf_base.len());
+        }
+
+        let buf_base = buf_base.to_device_type(&device);
+        for _ in 0..10 {
+            let buf: Buffer<f32, _> = device.retrieve(10, &buf_base);
+            
+            for (base, cached) in buf_base.iter().zip(buf.iter()) {
+                assert_eq!(base, cached);
+            }
+
+            let _x = device.unary_ew(&buf_base, |x| x.exp(), |x| x.exp());
+            assert_eq!(buf.len(), buf_base.len());
+        }
+    }
 }
