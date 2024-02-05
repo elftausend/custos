@@ -381,19 +381,24 @@ impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
     #[inline]
     pub fn to_device_type<'b, DO>(self, device: &'b DO) -> Buffer<'b, T, DO, S>
     where
-        DO: Device,
+        DO: Device + OnNewBuffer<T, DO, S>,
         D::Data<T, S>: Default,
         D::Base<T, S>: ShallowCopy,
         DO::Base<T, S>: From<D::Base<T, S>>,
     {
         let val = ManuallyDrop::new(self);
 
+        // Buffer is moved - it would stay useable on the previous device without on_drop_buffer
+        if let Some(previous_device) = val.device {
+            if val.data.flag() != AllocFlag::None {
+                previous_device.on_drop_buffer(previous_device, &val)
+            }
+        }
+
         let base = unsafe { val.base().shallow() };
 
-        Buffer {
-            data: device.base_to_data(base.into()),
-            device: Some(device),
-        }
+        // register new buffer by calling on_new_buffer inside
+        Buffer::from_new_alloc(device, base.into())
     }
 }
 
