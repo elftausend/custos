@@ -2,8 +2,8 @@ use core::{any::Any, fmt::Debug, hash::BuildHasherDefault, panic::Location};
 use std::collections::{HashMap, HashSet};
 
 use crate::{
-    Alloc, Buffer, Buffers, HasId, HashLocation, LazyGraph, FxHasher, Parents, Shape,
-    TapeActions, UpdateArgs, WriteBuf,
+    Alloc, Buffer, Buffers, FxHasher, HasId, HashLocation, LazyGraph, Parents, Shape, TapeActions,
+    UpdateArgs, WriteBuf,
 };
 
 use super::Gradients;

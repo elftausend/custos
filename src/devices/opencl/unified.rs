@@ -1,4 +1,4 @@
-use core::{hash::BuildHasherDefault, panic::Location};
+use core::hash::BuildHasherDefault;
 use std::{collections::HashMap, ffi::c_void, rc::Rc};
 
 #[cfg(not(feature = "realloc"))]
@@ -6,20 +6,21 @@ use crate::{AllocFlag, DeviceError};
 
 use super::CLPtr;
 use crate::{
-    Base, Buffer, CachedCPU, CachedModule, Device, HashLocation, FxHasher, OnDropBuffer,
-    OpenCL, Shape, UnifiedMemChain, CPU,
+    Base, Buffer, CachedCPU, CachedModule, Device, NoHasher, OnDropBuffer, OpenCL, Parents, Shape,
+    UnifiedMemChain, CPU,
 };
 use min_cl::api::{create_buffer, MemFlags};
 
 impl<Mods: UnifiedMemChain<Self> + OnDropBuffer> UnifiedMemChain<Self> for OpenCL<Mods> {
     #[inline]
-    fn construct_unified_buf_from_cpu_buf<'a, T: 'static, S: Shape>(
+    fn construct_unified_buf_from_cpu_buf<'a, T: 'static, S: Shape, const N: usize>(
         &self,
         device: &'a Self,
         no_drop_buf: Buffer<'a, T, CachedCPU, S>,
+        parents: impl Parents<N>,
     ) -> crate::Result<Buffer<'a, T, Self, S>> {
         self.modules
-            .construct_unified_buf_from_cpu_buf(device, no_drop_buf)
+            .construct_unified_buf_from_cpu_buf(device, no_drop_buf, parents)
     }
 }
 
@@ -27,26 +28,28 @@ impl<Mods, OclMods: OnDropBuffer, SimpleMods: OnDropBuffer> UnifiedMemChain<Open
     for CachedModule<Mods, OpenCL<SimpleMods>>
 {
     #[inline]
-    fn construct_unified_buf_from_cpu_buf<'a, T: 'static, S: Shape>(
+    fn construct_unified_buf_from_cpu_buf<'a, T: 'static, S: Shape, const N: usize>(
         &self,
         device: &'a OpenCL<OclMods>,
         no_drop_buf: Buffer<'a, T, CachedCPU, S>,
+        parents: impl Parents<N>,
     ) -> crate::Result<Buffer<'a, T, OpenCL<OclMods>, S>> {
         construct_buffer(
             device,
             no_drop_buf,
             &mut self.cache.borrow_mut().nodes,
-            Location::caller().into(),
+            parents.hash(),
         )
     }
 }
 
 impl<D: Device> UnifiedMemChain<D> for Base {
     #[inline]
-    fn construct_unified_buf_from_cpu_buf<'a, T, S: Shape>(
+    fn construct_unified_buf_from_cpu_buf<'a, T, S: Shape, const N: usize>(
         &self,
         _device: &'a D,
         _no_drop_buf: Buffer<'a, T, CachedCPU, S>,
+        _parents: impl Parents<N>,
     ) -> crate::Result<Buffer<'a, T, D, S>> {
         Err(DeviceError::UnifiedConstructNotAvailable.into())
     }
@@ -59,12 +62,8 @@ impl<D: Device> UnifiedMemChain<D> for Base {
 pub unsafe fn to_cached_unified<OclMods, CpuMods, T, S>(
     device: &OpenCL<OclMods>,
     no_drop: Buffer<T, CPU<CpuMods>, S>,
-    cache: &mut HashMap<
-        HashLocation<'static>,
-        Rc<dyn core::any::Any>,
-        BuildHasherDefault<FxHasher>,
-    >,
-    location: HashLocation<'static>,
+    cache: &mut HashMap<u64, Rc<dyn core::any::Any>, BuildHasherDefault<NoHasher>>,
+    look_up_hash: u64,
 ) -> crate::Result<*mut c_void>
 where
     OclMods: OnDropBuffer,
@@ -81,7 +80,7 @@ where
     )?;
 
     let old_ptr = cache.insert(
-        location,
+        look_up_hash,
         Rc::new(CLPtr {
             ptr: cl_ptr,
             host_ptr: no_drop.base().ptr as *mut T,
@@ -97,7 +96,6 @@ where
     Ok(cl_ptr)
 }
 
-#[cfg(not(feature = "realloc"))]
 /// Converts an 'only' CPU buffer into an OpenCL + CPU (unified memory) buffer.
 ///
 /// # Example
@@ -123,12 +121,8 @@ where
 pub fn construct_buffer<'a, OclMods: OnDropBuffer, CpuMods: OnDropBuffer, T: 'static, S: Shape>(
     device: &'a OpenCL<OclMods>,
     no_drop: Buffer<'a, T, CPU<CpuMods>, S>,
-    cache: &mut HashMap<
-        HashLocation<'static>,
-        Rc<dyn core::any::Any>,
-        BuildHasherDefault<FxHasher>,
-    >,
-    location: HashLocation<'static>,
+    cache: &mut HashMap<u64, Rc<dyn core::any::Any>, BuildHasherDefault<NoHasher>>,
+    look_up_hash: u64,
 ) -> crate::Result<Buffer<'a, T, OpenCL<OclMods>, S>> {
     use crate::PtrType;
 
@@ -137,7 +131,7 @@ pub fn construct_buffer<'a, OclMods: OnDropBuffer, CpuMods: OnDropBuffer, T: 'st
     }
 
     // if buffer was already converted, return the cache entry.
-    if let Some(rawcl) = cache.get(&location) {
+    if let Some(rawcl) = cache.get(&look_up_hash) {
         let rawcl = rawcl
             .downcast_ref::<<OpenCL<OclMods> as Device>::Base<T, S>>()
             .unwrap();
@@ -153,7 +147,7 @@ pub fn construct_buffer<'a, OclMods: OnDropBuffer, CpuMods: OnDropBuffer, T: 'st
         });
     }
     let (host_ptr, len) = (no_drop.base().ptr, no_drop.len());
-    let ptr = unsafe { to_cached_unified(device, no_drop, cache, location)? };
+    let ptr = unsafe { to_cached_unified(device, no_drop, cache, look_up_hash)? };
 
     let data = device.base_to_data::<T, S>(CLPtr {
         ptr,
@@ -173,7 +167,7 @@ pub fn construct_buffer<'a, OclMods: OnDropBuffer, CpuMods: OnDropBuffer, T: 'st
 mod tests {
     use crate::{
         opencl::{chosen_cl_idx, CLPtr},
-        AllocFlag, Base, Buffer, Cache, Cached, Device, DeviceError, HashLocation, HostPtr, OpenCL,
+        AllocFlag, Base, Buffer, Cache, Cached, Device, DeviceError, HostPtr, Id, OpenCL,
         Retriever, UnifiedMemChain, CPU,
     };
 
@@ -186,7 +180,11 @@ mod tests {
         no_drop.write(&[1., 2.3, 0.76]);
 
         let device = OpenCL::<Cached<Base>>::new(0)?;
-        let buf = device.construct_unified_buf_from_cpu_buf::<_, ()>(&device, no_drop)?;
+        let buf = device.construct_unified_buf_from_cpu_buf::<_, (), 1>(
+            &device,
+            no_drop,
+            Id { id: 0, len: 0 },
+        )?;
         assert_eq!(buf.as_slice(), &[1., 2.3, 0.76]);
         Ok(())
     }
@@ -198,8 +196,11 @@ mod tests {
         let mut no_drop = device.cpu.retrieve::<0>(3, ());
         no_drop.write(&[1., 2.3, 0.76]);
 
-        let buf = device.construct_unified_buf_from_cpu_buf::<_, ()>(&device, no_drop)?;
-
+        let buf = device.construct_unified_buf_from_cpu_buf::<_, (), 1>(
+            &device,
+            no_drop,
+            Id { id: 0, len: 0 },
+        )?;
         assert_eq!(buf.as_slice(), &[1., 2.3, 0.76]);
         Ok(())
     }
@@ -210,7 +211,11 @@ mod tests {
         let no_drop = cpu.buffer([1, 2, 3]);
 
         let device = OpenCL::<Cached<Base>>::new(0)?;
-        let buf = device.construct_unified_buf_from_cpu_buf(&device, no_drop);
+        let buf = device.construct_unified_buf_from_cpu_buf::<_, (), 1>(
+            &device,
+            no_drop,
+            Id { id: 0, len: 0 },
+        );
         match buf
             .expect_err("Missing error -> failure")
             .downcast_ref::<DeviceError>()
@@ -228,7 +233,11 @@ mod tests {
         no_drop.write(&[1., 2.3, 0.76]);
 
         let device = OpenCL::<Base>::new(chosen_cl_idx())?;
-        let buf = device.construct_unified_buf_from_cpu_buf(&device, no_drop);
+        let buf = device.construct_unified_buf_from_cpu_buf::<_, (), 1>(
+            &device,
+            no_drop,
+            Id { id: 0, len: 0 },
+        );
         match buf
             .expect_err("Missing error -> failure")
             .downcast_ref::<DeviceError>()
@@ -248,7 +257,7 @@ mod tests {
         let device = OpenCL::<Base>::new(chosen_cl_idx())?;
         let mut cache = Cache::new();
 
-        let buf = construct_buffer(&device, no_drop, &mut cache.nodes, HashLocation::here());
+        let buf = construct_buffer(&device, no_drop, &mut cache.nodes, 0);
         match buf
             .expect_err("Missing error -> failure")
             .downcast_ref::<DeviceError>()
@@ -269,8 +278,7 @@ mod tests {
         let mut cache = Cache::new();
 
         let (host_ptr, len) = (no_drop.data.ptr, no_drop.len());
-        let cl_host_ptr =
-            unsafe { to_cached_unified(&device, no_drop, &mut cache.nodes, HashLocation::here())? };
+        let cl_host_ptr = unsafe { to_cached_unified(&device, no_drop, &mut cache.nodes, 0)? };
 
         let buf: Buffer<f32, OpenCL> = Buffer {
             data: CLPtr {
@@ -296,8 +304,7 @@ mod tests {
         let device = OpenCL::<Base>::new(chosen_cl_idx())?;
         let mut cache = Cache::new();
 
-        let buf: Buffer<_, _> =
-            construct_buffer(&device, no_drop, &mut cache.nodes, HashLocation::here())?;
+        let buf: Buffer<_, _> = construct_buffer(&device, no_drop, &mut cache.nodes, 0)?;
 
         assert_eq!(buf.read(), vec![1., 2.3, 0.76]);
         assert_eq!(buf.as_slice(), &[1., 2.3, 0.76]);
@@ -308,7 +315,7 @@ mod tests {
     #[cfg(unified_cl)]
     #[test]
     fn test_cpu_to_unified_is_reusing_converted_buf() -> crate::Result<()> {
-        use crate::{Base, Cached, HashLocation, Retriever};
+        use crate::{Base, Cached, Retriever};
         use std::time::Instant;
 
         let cl_dev = OpenCL::<Cached<Base>>::new(0)?;
@@ -326,7 +333,7 @@ mod tests {
                 &cl_dev,
                 buf,
                 &mut cl_dev.modules.cache.borrow_mut().nodes,
-                HashLocation::here(),
+                0,
             )?;
             dur += start.elapsed().as_secs_f64();
 

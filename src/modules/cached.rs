@@ -132,7 +132,11 @@ where
     where
         D: Alloc<T>,
     {
-        self.wrap_in_base(self.cache.borrow_mut().get(device, len, || ()))
+        self.wrap_in_base(
+            self.cache
+                .borrow_mut()
+                .get(device, len, || (), _parents.hash()),
+        )
     }
 
     #[inline]
@@ -446,5 +450,11 @@ mod tests {
     fn test_multi_level_retrieve() {
         let device = CPU::<Cached<Base>>::new();
         level1(&device);
+    }
+
+    #[cfg(feature = "cpu")]
+    #[test]
+    fn test_add_cached_layer_afterwards() {
+        let device = CPU::<Base>::new();
     }
 }

@@ -326,10 +326,11 @@ pub type CachedCPU = CPU<CachedModule<Base, CPU>>;
 #[cfg(feature = "cached")]
 pub trait UnifiedMemChain<D: Device> {
     #[track_caller]
-    fn construct_unified_buf_from_cpu_buf<'a, T: 'static, S: Shape>(
+    fn construct_unified_buf_from_cpu_buf<'a, T: 'static, S: Shape, const N: usize>(
         &self,
         device: &'a D,
         no_drop_buf: Buffer<'a, T, CachedCPU, S>,
+        parents: impl Parents<N>,
     ) -> crate::Result<Buffer<'a, T, D, S>>;
 }
 
@@ -339,13 +340,14 @@ macro_rules! pass_down_unified_mem_chain {
     ($($to_impl:ident),*) => {
         $(
             impl<Mods: $crate::UnifiedMemChain<D>, D: Device> $crate::UnifiedMemChain<D> for $to_impl<Mods> {
-                fn construct_unified_buf_from_cpu_buf<'a, T: 'static, S: Shape>(
+                fn construct_unified_buf_from_cpu_buf<'a, T: 'static, S: Shape, const N: usize>(
                     &self,
                     device: &'a D,
-                    no_drop_buf: Buffer<'a, T, $crate::CachedCPU, S>
+                    no_drop_buf: Buffer<'a, T, $crate::CachedCPU, S>,
+                    parents: impl $crate::Parents<N>
                 ) -> $crate::Result<Buffer<'a, T, D, S>>
                 {
-                    self.modules.construct_unified_buf_from_cpu_buf(device, no_drop_buf)
+                    self.modules.construct_unified_buf_from_cpu_buf(device, no_drop_buf, parents)
                 }
             }
 

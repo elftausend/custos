@@ -3,12 +3,11 @@ use std::collections::HashMap;
 
 use std::rc::Rc;
 
-use crate::{flag::AllocFlag, Alloc, Device, HashLocation, FxHasher, ShallowCopy, Shape};
+use crate::{flag::AllocFlag, Alloc, Device, FxHasher, HashLocation, NoHasher, ShallowCopy, Shape};
 
 #[derive(Debug, Clone)]
 pub struct Cache {
-    pub nodes:
-        HashMap<HashLocation<'static>, Rc<dyn core::any::Any>, BuildHasherDefault<FxHasher>>,
+    pub nodes: HashMap<u64, Rc<dyn core::any::Any>, BuildHasherDefault<NoHasher>>,
 }
 
 impl Default for Cache {
@@ -30,16 +29,22 @@ impl Cache {
     /// Lifetime of data must be at least as long as the lifetime of the cache (usually the device).
     #[track_caller]
     #[inline]
-    pub unsafe fn get<T, S, D>(&mut self, device: &D, len: usize, callback: fn()) -> D::Base<T, S>
+    pub unsafe fn get<T, S, D>(
+        &mut self,
+        device: &D,
+        len: usize,
+        callback: fn(),
+        look_up_hash: u64,
+    ) -> D::Base<T, S>
     where
         D: Alloc<T> + 'static,
         D::Base<T, S>: ShallowCopy + 'static,
         S: Shape,
     {
-        let maybe_allocated = self.nodes.get(&Location::caller().into());
+        let maybe_allocated = self.nodes.get(&look_up_hash);
         match maybe_allocated {
             Some(data) => unsafe { data.downcast_ref::<D::Base<T, S>>().unwrap().shallow() },
-            None => self.add_node(device, len, callback),
+            None => self.add_node(device, len, callback, look_up_hash),
         }
     }
 
@@ -49,6 +54,7 @@ impl Cache {
         device: &D,
         len: usize,
         callback: fn(),
+        look_up_hash: u64,
     ) -> <D as Device>::Base<T, S>
     where
         D: Alloc<T>,
@@ -58,7 +64,7 @@ impl Cache {
         let data = device.alloc::<S>(len, AllocFlag::None);
         let shallow_data = unsafe { data.shallow() };
 
-        self.nodes.insert(Location::caller().into(), Rc::new(data));
+        self.nodes.insert(look_up_hash, Rc::new(data));
         callback();
 
         shallow_data
@@ -77,12 +83,12 @@ mod tests {
 
         assert_eq!(cache.nodes.len(), 0);
 
-        let out = cache.add_node::<f32, (), _>(&device, 10, || ());
+        let out = cache.add_node::<f32, (), _>(&device, 10, || (), 0);
 
         assert_eq!(cache.nodes.len(), 1);
         assert_eq!(out.len, 10);
 
-        let out1 = unsafe { cache.get::<f32, (), _>(&device, 10, || ()) };
+        let out1 = unsafe { cache.get::<f32, (), _>(&device, 10, || (), 1) };
         assert_ne!(out.ptr, out1.ptr);
     }
 
@@ -93,10 +99,10 @@ mod tests {
 
         assert_eq!(cache.nodes.len(), 0);
 
-        let out1 = unsafe { cache.get::<f32, (), _>(&device, 10, || ()) };
+        let out1 = unsafe { cache.get::<f32, (), _>(&device, 10, || (), 0) };
         assert_eq!(cache.nodes.len(), 1);
 
-        let out2 = unsafe { cache.get::<f32, (), _>(&device, 10, || ()) };
+        let out2 = unsafe { cache.get::<f32, (), _>(&device, 10, || (), 1) };
 
         assert_ne!(out1.ptr, out2.ptr);
         assert_eq!(cache.nodes.len(), 2);
@@ -110,7 +116,7 @@ mod tests {
 
         let mut prev = None;
         for _ in 0..1000 {
-            let out3 = unsafe { cache.get::<f32, (), _>(&device, 10, || ()) };
+            let out3 = unsafe { cache.get::<f32, (), _>(&device, 10, || (), 0) };
             if prev.is_none() {
                 prev = Some(out3.ptr);
             }

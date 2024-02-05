@@ -35,7 +35,7 @@ where
         });
 
         // convert host ptr / CPU buffer into a host ptr + OpenCL ptr buffer
-        return device.construct_unified_buf_from_cpu_buf(device, no_drop);
+        return device.construct_unified_buf_from_cpu_buf(device, no_drop, x);
         /*return unsafe {
             construct_buffer(device, no_drop, /*buf.node.idx*/ ())
         };*/
@@ -117,7 +117,7 @@ where
         );
 
         // convert host ptr / CPU buffer into a host ptr + OpenCL ptr buffer
-        return device.construct_unified_buf_from_cpu_buf(device, no_drop);
+        return device.construct_unified_buf_from_cpu_buf(device, no_drop, (lhs, rhs));
         /*return unsafe {
             construct_buffer(device, no_drop, /*buf.node.idx*/ ())
         };*/

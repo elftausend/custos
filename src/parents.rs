@@ -120,8 +120,8 @@ mod tests {
     #[ignore = "slow"]
     #[test]
     fn test_collisions() {
-        use std::collections::HashSet;
         use crate::{Id, Parents};
+        use std::collections::HashSet;
 
         let handle = std::thread::spawn(|| {
             let mut hashes = HashSet::new();
@@ -131,10 +131,7 @@ mod tests {
                         id: i as u64,
                         len: 0,
                     };
-                    let j = Id {
-                        id: j,
-                        len: 0,
-                    };
+                    let j = Id { id: j, len: 0 };
                     let parents = (i, j);
                     let hash = parents.hash();
                     if hashes.contains(&(hash)) {
@@ -152,14 +149,8 @@ mod tests {
 
         for i in 10000..20000 {
             for j in 10000..20000 {
-                let i = Id {
-                    id: i,
-                    len: 0,
-                };
-                let j = Id {
-                    id: j,
-                    len: 0,
-                };
+                let i = Id { id: i, len: 0 };
+                let j = Id { id: j, len: 0 };
                 let parents = (i, j);
                 let hash = parents.hash();
                 if hashes.contains(&(hash)) {
