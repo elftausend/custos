@@ -8,7 +8,7 @@ const INVALID_ID: &str = "A matching Buffer does not exist.";
 pub struct Gradients {
     pub grads_pool: BorrowCache,
     pub no_grads_pool: BorrowCache,
-    pub zero_grad_cbs: Vec<fn(&mut dyn core::any::Any)>,
+    pub zero_grad_cbs: Vec<(Id, fn(&mut dyn core::any::Any))>,
 }
 
 impl core::fmt::Debug for Gradients {
@@ -23,14 +23,18 @@ impl Gradients {
     /// Clears the cache.
     #[inline]
     pub fn zero_grad(&mut self) {
-        self.grads_pool.cache.clear();
+        for (id, cb) in &self.zero_grad_cbs {
+            let buf = self.grads_pool.cache.get_mut(id).unwrap();
+            cb(&mut **buf);
+        }
+        // self.grads_pool.cache.clear();
     }
 
-    pub fn add_zero_grad_cb<T: 'static, D: Device + ZeroGrad<T> + 'static, S: Shape>(&mut self) {
-        self.zero_grad_cbs.push(|buf| {
+    pub fn add_zero_grad_cb<T: 'static, D: Device + ZeroGrad<T> + 'static, S: Shape>(&mut self, id: &Id) {
+        self.zero_grad_cbs.push((*id, |buf| {
             let buf = buf.downcast_mut::<Buffer<T, D, S>>().unwrap();
             buf.device().zero_grad(buf);
-        });
+        }));
     }
 
     /// May get a reference to a gradient [`Buffer`].
@@ -73,7 +77,7 @@ impl Gradients {
             .add_buf_once::<T, D, S>(device, id, &mut new_buf);
 
         if new_buf {
-            self.add_zero_grad_cb::<T, D, S>();
+            self.add_zero_grad_cb::<T, D, S>(&id);
         }
         self.grads_pool.get_buf(id).unwrap()
     }
@@ -92,7 +96,7 @@ impl Gradients {
             .add_buf_once::<T, D, S>(device, id, &mut new_buf);
 
         if new_buf {
-            self.add_zero_grad_cb::<T, D, S>();
+            self.add_zero_grad_cb::<T, D, S>(&id);
         }
         self.grads_pool.get_buf_mut(id).unwrap()
     }
