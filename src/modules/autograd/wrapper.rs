@@ -17,7 +17,7 @@ impl<Mods: WrappedData> WrappedData for Autograd<Mods> {
         base: Base,
     ) -> Self::Wrap<T, Base> {
         ReqGradWrapper {
-            requires_grad: false,
+            requires_grad: true,
             data: self.modules.wrap_in_base(base),
             _pd: PhantomData,
         }
@@ -58,7 +58,7 @@ impl<Data: PtrType, T> PtrType for ReqGradWrapper<Data, T> {
 
     #[inline]
     unsafe fn set_flag(&mut self, flag: AllocFlag) {
-        self.set_flag(flag)
+        self.data.set_flag(flag)
     }
 }
 
