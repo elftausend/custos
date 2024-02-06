@@ -47,29 +47,39 @@ pub struct BorrowCache {
 
 // TODO: make BorrowedCache unuseable without device (=> Static get methods with D: CacheReturn)
 impl BorrowCache {
-    pub fn add_or_get<'a, T, D, S>(&mut self, device: &'a D, id: Id) -> &Buffer<'a, T, D, S>
+    pub fn add_or_get<'a, T, D, S>(
+        &mut self,
+        device: &'a D,
+        id: Id,
+        new_buf: &mut bool,
+    ) -> &Buffer<'a, T, D, S>
     where
         T: 'static,
         D: Alloc<T> + 'static,
         S: Shape,
     {
-        self.add_buf_once::<T, D, S>(device, id);
+        self.add_buf_once::<T, D, S>(device, id, new_buf);
 
         let buf_any = self.cache.get(&id).unwrap();
         buf_any.downcast_ref().unwrap()
     }
 
-    pub fn add_or_get_mut<'a, T, D, S>(&mut self, device: &D, id: Id) -> &mut Buffer<'a, T, D, S>
+    pub fn add_or_get_mut<'a, T, D, S>(
+        &mut self,
+        device: &D,
+        id: Id,
+        new_buf: &mut bool,
+    ) -> &mut Buffer<'a, T, D, S>
     where
         T: 'static,
         D: Alloc<T> + 'static,
         S: Shape,
     {
-        self.add_buf_once::<T, D, S>(device, id);
+        self.add_buf_once::<T, D, S>(device, id, new_buf);
         self.get_buf_mut(id).unwrap()
     }
 
-    pub fn add_buf_once<T, D, S>(&mut self, device: &D, id: Id)
+    pub fn add_buf_once<T, D, S>(&mut self, device: &D, id: Id, new_buf: &mut bool)
     where
         T: 'static,
         D: Alloc<T> + 'static,
@@ -78,7 +88,7 @@ impl BorrowCache {
         if self.cache.get(&id).is_some() {
             return;
         }
-
+        *new_buf = true;
         self.add_buf::<T, D, S>(device, id)
     }
 

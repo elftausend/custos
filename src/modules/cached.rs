@@ -4,7 +4,9 @@ use core::{
 };
 
 use crate::{
-    AddGradFn, AddLayer, AddOperation, Alloc, Buffer, Cache, Cursor, Device, ExecNow, HasId, Module, OnDropBuffer, OnNewBuffer, Parents, PtrType, RemoveLayer, Retrieve, RunModule, Setup, ShallowCopy, Shape, UniqueId, WrappedData
+    AddGradFn, AddLayer, AddOperation, Alloc, Buffer, Cache, Cursor, Device, ExecNow, HasId,
+    Module, OnDropBuffer, OnNewBuffer, Parents, PtrType, RemoveLayer, Retrieve, RunModule, Setup,
+    ShallowCopy, Shape, UniqueId, WrappedData,
 };
 
 #[cfg(feature = "graph")]
@@ -251,8 +253,8 @@ impl<Mods: OptimizeMemGraph, SD: Device> OptimizeMemGraph for CachedModule<Mods,
         graph_translator: Option<&crate::GraphTranslator>,
     ) -> crate::Result<()> {
         let graph_translator = graph_translator.ok_or(DeviceError::MissingCacheTraces)?;
-        let cache_traces = graph_translator
-            .to_cursor_cache_traces(graph_translator.opt_graph.cache_traces());
+        let cache_traces =
+            graph_translator.to_cursor_cache_traces(graph_translator.opt_graph.cache_traces());
 
         let mut cache = self.cache.borrow_mut();
         for cache_trace in cache_traces {
@@ -263,7 +265,9 @@ impl<Mods: OptimizeMemGraph, SD: Device> OptimizeMemGraph for CachedModule<Mods,
                 .clone();
 
             for to_replace in &cache_trace.use_cache_idxs {
-                cache.nodes.insert(*to_replace as UniqueId, used_to_replace.clone());
+                cache
+                    .nodes
+                    .insert(*to_replace as UniqueId, used_to_replace.clone());
             }
         }
         Ok(())
