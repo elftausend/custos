@@ -1,9 +1,10 @@
-use core::{cell::RefCell, marker::PhantomData};
+use core::{
+    cell::{Cell, RefCell},
+    marker::PhantomData,
+};
 
 use crate::{
-    AddGradFn, AddLayer, AddOperation, Alloc, Buffer, Cache, Device, ExecNow, HasId, Module,
-    OnDropBuffer, OnNewBuffer, Parents, PtrType, RemoveLayer, Retrieve, RunModule, Setup,
-    ShallowCopy, Shape, WrappedData,
+    AddGradFn, AddLayer, AddOperation, Alloc, Buffer, Cache, Cursor, Device, ExecNow, HasId, Module, OnDropBuffer, OnNewBuffer, Parents, PtrType, RemoveLayer, Retrieve, RunModule, Setup, ShallowCopy, Shape, UniqueId, WrappedData
 };
 
 #[cfg(feature = "graph")]
@@ -52,6 +53,7 @@ impl<Mods: Module<D>, D: Device> Module<D> for Cached<Mods> {
             modules: Mods::new(),
             cache: RefCell::new(Cache::new()),
             pd: PhantomData,
+            cursor: Default::default(),
         }
     }
 }
@@ -63,6 +65,7 @@ pub struct CachedModule<Mods, D: Device> {
     pub modules: Mods,
     pub cache: RefCell<Cache>,
     pub(crate) pd: PhantomData<D>,
+    cursor: Cell<usize>, // would move this to `Cache`, however -> RefCell; TODO: maybe add a Cursor Module
 }
 
 impl<Mods: Setup<NewDev>, D: Device, NewDev> Setup<NewDev> for CachedModule<Mods, D> {
@@ -118,7 +121,7 @@ impl<Mods: OnDropBuffer, SD: Device> OnDropBuffer for CachedModule<Mods, SD> {
 impl<T, Mods, D, SimpleDevice, S: Shape> Retrieve<D, T, S> for CachedModule<Mods, SimpleDevice>
 where
     Mods: Retrieve<D, T, S>,
-    D: Device + 'static,
+    D: Device + Cursor + 'static,
     D::Base<T, S>: ShallowCopy + 'static,
     SimpleDevice: Device,
 {
@@ -141,6 +144,18 @@ where
         D: Alloc<T>,
     {
         self.modules.on_retrieve_finish(retrieved_buf)
+    }
+}
+
+impl<Mods, SD: Device> Cursor for CachedModule<Mods, SD> {
+    #[inline]
+    fn cursor(&self) -> usize {
+        self.cursor.get()
+    }
+
+    #[inline]
+    unsafe fn set_cursor(&self, cursor: usize) {
+        self.cursor.set(cursor)
     }
 }
 
@@ -179,6 +194,7 @@ impl<CurrentMods, SD: Device> AddLayer<CurrentMods, SD> for Cached<()> {
             modules: inner_mods,
             cache: Default::default(),
             pd: core::marker::PhantomData,
+            cursor: Default::default(),
         }
     }
 }
@@ -233,22 +249,21 @@ impl<Mods: OptimizeMemGraph, SD: Device> OptimizeMemGraph for CachedModule<Mods,
         &self,
         _device: &D,
         graph_translator: Option<&crate::GraphTranslator>,
-        //cache_traces: Option<&[crate::TranslatedCacheTrace]>,
     ) -> crate::Result<()> {
         let graph_translator = graph_translator.ok_or(DeviceError::MissingCacheTraces)?;
         let cache_traces = graph_translator
-            .to_hash_location_cache_traces(graph_translator.opt_graph.cache_traces());
+            .to_cursor_cache_traces(graph_translator.opt_graph.cache_traces());
 
         let mut cache = self.cache.borrow_mut();
         for cache_trace in cache_traces {
             let used_to_replace = cache
                 .nodes
-                .get(&cache_trace.cache_idx)
+                .get(&(cache_trace.cache_idx as UniqueId))
                 .ok_or(DeviceError::GraphOptimization)?
                 .clone();
 
             for to_replace in &cache_trace.use_cache_idxs {
-                cache.nodes.insert(*to_replace, used_to_replace.clone());
+                cache.nodes.insert(*to_replace as UniqueId, used_to_replace.clone());
             }
         }
         Ok(())
@@ -460,7 +475,7 @@ mod tests {
 
         for _ in 0..10 {
             let buf: Buffer<f32, _> = device.retrieve(10, &buf_base);
-            
+
             for (base, cached) in buf_base.iter().zip(buf.iter()) {
                 assert_eq!(base, cached);
             }
@@ -472,7 +487,7 @@ mod tests {
         let buf_base = buf_base.to_device_type(&device);
         for _ in 0..10 {
             let buf: Buffer<f32, _> = device.retrieve(10, &buf_base);
-            
+
             for (base, cached) in buf_base.iter().zip(buf.iter()) {
                 assert_eq!(base, cached);
             }

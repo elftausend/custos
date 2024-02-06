@@ -7,10 +7,10 @@ pub use tape::*;
 use core::cell::{Cell, UnsafeCell};
 
 use crate::{
-    impl_remove_layer, pass_down_add_operation, pass_down_exec_now_module, register_buf_any,
-    unregister_buf_any, AddGradFn, AddLayer, Alloc, Buffer, Device, HasId, IsShapeIndep, Module,
-    OnDropBuffer, OnNewBuffer, Parents, PtrType, Retrieve, RunModule, Setup, ShallowCopy, Shape,
-    TapeActions, WrappedData,
+    impl_remove_layer, pass_down_add_operation, pass_down_cursor, pass_down_exec_now_module,
+    register_buf_any, unregister_buf_any, AddGradFn, AddLayer, Alloc, Buffer, Device, HasId,
+    IsShapeIndep, Module, OnDropBuffer, OnNewBuffer, Parents, PtrType, Retrieve, RunModule, Setup,
+    ShallowCopy, Shape, TapeActions, WrappedData,
 };
 
 use super::{Cached, CachedModule};
@@ -178,6 +178,8 @@ where
     }
 }
 
+pass_down_cursor!(Autograd);
+
 impl<Mods> TapeActions for Autograd<Mods> {
     #[inline]
     unsafe fn tape(&self) -> Option<&Tape> {
@@ -257,7 +259,7 @@ mod tests {
     use core::any::Any;
 
     use crate::{
-        AddGradFn, Base, Buffer, Cached, Combiner, Device, HasId, Module, Retriever, Shape,
+        AddGradFn, Base, Buffer, Cached, Combiner, Cursor, Device, HasId, Module, Retriever, Shape,
         UnaryGrad, CPU,
     };
 
@@ -320,12 +322,11 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(miri, ignore)]
     fn test_buffer_new_and_retrieve() {
         let device = CPU::<Autograd<Base>>::new();
         let _lhs = Buffer::<f32, _>::new(&device, 10);
 
-        for _ in 0..100 {
+        for _ in device.range(0..100) {
             let x: Buffer<f32, _> = device.retrieve::<0>(100, ());
             assert_eq!(x.len(), 100)
         }
@@ -336,7 +337,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(miri, ignore)]
     fn test_cached_before_autograd() {
         // is a cached module is placed before Autograd results a problem
         // -> the retrieved buffer is not added to the no grads pool of the autograd module
@@ -348,7 +348,7 @@ mod tests {
 
         let _lhs = Buffer::<f32, _>::new(&device, 10);
 
-        for _ in 0..100 {
+        for _ in device.range(0..100) {
             let x: Buffer<f32, _> = device.retrieve::<0>(100, ());
             assert_eq!(x.len(), 100)
         }

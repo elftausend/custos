@@ -115,6 +115,7 @@ macro_rules! impl_device_traits {
         $crate::pass_down_tape_actions!($device);
 
         $crate::pass_down_replace_buf_dev!($device);
+        $crate::pass_down_cursor!($device);
     };
 }
 

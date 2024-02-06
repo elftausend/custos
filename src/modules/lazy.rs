@@ -10,9 +10,9 @@ use register_buf::*;
 pub use ty::*;
 
 use crate::{
-    impl_remove_layer, pass_down_tape_actions, AddLayer, AddOperation, Alloc, Buffer, Device,
-    ExecNow, HasId, Id, IsShapeIndep, Module, OnDropBuffer, OnNewBuffer, Parents, ReplaceBuf,
-    Retrieve, RunModule, Setup, ShallowCopy, Shape, UniqueId, UpdateArgs,
+    impl_remove_layer, pass_down_tape_actions, AddLayer, AddOperation, Alloc, Buffer, Cursor,
+    Device, ExecNow, HasId, Id, IsShapeIndep, Module, OnDropBuffer, OnNewBuffer, Parents,
+    ReplaceBuf, Retrieve, RunModule, Setup, ShallowCopy, Shape, UniqueId, UpdateArgs,
 };
 
 #[cfg(feature = "graph")]
@@ -36,6 +36,7 @@ pub struct Lazy<Mods> {
     allocated: Cell<bool>,
     buffers: RefCell<Buffers>,
     graph: RefCell<LazyGraph<Box<dyn BoxedShallowCopy>>>,
+    cursor: Cell<usize>,
 }
 
 impl<Mods: Debug> Debug for Lazy<Mods> {
@@ -70,6 +71,7 @@ impl<Mods: Module<D>, D: LazySetup + Device> Module<D> for Lazy<Mods> {
             graph: Default::default(),
             alloc_later: Default::default(),
             allocated: Default::default(),
+            cursor: Default::default(),
         }
     }
 }
@@ -87,8 +89,8 @@ impl<Mods: AddOperation> AddOperation for Lazy<Mods> {
         operation: fn(&mut Args) -> crate::Result<()>,
     ) -> crate::Result<()> {
         self.graph.try_borrow_mut()
-        .expect("already borrowed: BorrowMutError - is the inner operation trying to add an operation as well?")
-        .add_operation(args, operation);
+            .expect("already borrowed: BorrowMutError - is the inner operation trying to add an operation as well?")
+            .add_operation(args, operation);
         Ok(())
     }
 }
@@ -229,6 +231,7 @@ impl<NewMods, SD> AddLayer<NewMods, SD> for Lazy<()> {
             graph: Default::default(),
             alloc_later: Default::default(),
             allocated: Default::default(),
+            cursor: Default::default(),
         }
     }
 }
@@ -282,6 +285,8 @@ where
             buffers.insert(id.id, Box::new(buffer));
         }));
 
+        unsafe { self.bump_cursor() };
+
         LazyWrapper {
             data: None,
             id: Some(id),
@@ -298,6 +303,18 @@ where
 
         // pass down
         self.modules.on_retrieve_finish(retrieved_buf)
+    }
+}
+
+impl<Mods> Cursor for Lazy<Mods> {
+    #[inline]
+    fn cursor(&self) -> usize {
+        self.cursor.get()
+    }
+
+    #[inline]
+    unsafe fn set_cursor(&self, cursor: usize) {
+        self.cursor.set(cursor)
     }
 }
 

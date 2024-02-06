@@ -387,11 +387,12 @@ mod tests {
     }
 
     #[cfg(feature = "cpu")]
+    #[cfg(feature = "cached")]
     #[test]
     fn test_from_retrieve_sine_neural_net() {
-        use crate::{Base, Buffer, Graph, Retriever, CPU};
+        use crate::{Base, Buffer, Cached, Graph, Retriever, CPU};
 
-        let device = CPU::<Graph<Base>>::new();
+        let device = CPU::<Graph<Cached<Base>>>::new();
 
         let w1 = Buffer::from((&device, [1; 10 * 64]));
         let b1 = Buffer::from((&device, [1; 64]));
@@ -441,11 +442,12 @@ mod tests {
     }
 
     #[cfg(feature = "cpu")]
+    #[cfg(feature = "cached")]
     #[test]
     fn test_from_retrieve_sliced_chained_perf_example() {
-        use crate::{Base, Buffer, Device, Graph, Retriever, CPU};
+        use crate::{Base, Buffer, Cached, Device, Graph, Retriever, CPU};
 
-        let device = CPU::<Graph<Base>>::new();
+        let device = CPU::<Graph<Cached<Base>>>::new();
 
         // idx: 0, deps: []
         let x: Buffer<f32, _> = device.buffer([1.; 1000]);
@@ -526,7 +528,6 @@ mod tests {
 
     #[cfg(feature = "cpu")]
     #[cfg(feature = "lazy")]
-    #[cfg_attr(miri, ignore)]
     #[test]
     fn test_lazy_from_retrieve_sliced_chained_perf_example_optimize_cpu() {
         use crate::{Base, Graph, Lazy, CPU};
@@ -558,10 +559,9 @@ mod tests {
 
     #[cfg(feature = "cpu")]
     #[cfg(feature = "cached")]
-    #[cfg_attr(miri, ignore)]
     #[test]
     fn test_from_retrieve_sliced_chained_perf_example_optimize_cache() {
-        use crate::{Base, Buffer, Cached, Device, Graph, HasId, OptimizeMemGraph, Retriever, CPU};
+        use crate::{Base, Buffer, Cached, Cursor, Device, Graph, HasId, OptimizeMemGraph, Retriever, CPU};
 
         let device = CPU::<Graph<Cached<Base>>>::new();
 
@@ -570,7 +570,8 @@ mod tests {
         // idx: 1, deps: []
         let b: Buffer<f32, _> = device.buffer([1.1; 1000]);
 
-        for i in 0..2 {
+
+        for i in device.range(0..2) {
             // idx: 2, deps: [0, 0]
             let squared: Buffer<f32, _> = device.retrieve::<2>(1000, (&x, &x));
             // idx: 3, deps: [1, 0]

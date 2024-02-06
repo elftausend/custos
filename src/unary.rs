@@ -16,7 +16,6 @@ pub trait ApplyFunction<T, S: Shape = (), D: Device = Self>: Device {
     /// let out = device.apply_fn(&a, |x| x.mul(2.));
     /// assert_eq!(&**out, &[2., 4., 6., 6., 4., 2.,]);
     /// ```
-    #[track_caller]
     fn apply_fn<F>(
         &self,
         // buf: &D::Data<T, S>,
@@ -47,7 +46,6 @@ pub trait UnaryGrad<T, S: Shape = (), D: Device = Self>: Device {
     /// assert_eq!(&**lhs_grad, &[2.; 6]);
     ///
     /// ```
-    #[track_caller]
     fn add_unary_grad<F>(
         &self,
         lhs: &Buffer<T, D, S>,
@@ -84,7 +82,6 @@ pub trait UnaryElementWiseMayGrad<T, D: Device, S: Shape>: Device {
     /// out.backward();
     /// assert_eq!(buf.grad().as_slice(), &[2.; 6]);
     /// ```
-    #[track_caller]
     fn unary_ew<FO, GO>(
         &self,
         buf: &Buffer<T, D, S>,
@@ -151,14 +148,14 @@ mod tests {
         let buf = device.buffer([1., 2., 3., 4.]);
         let out = device.unary_ew(&buf, |x| x.sin(), |x| x.cos());
 
-        assert_eq!(
+        roughly_eq_slices(
             &**out,
-            [
+            &[
                 0.8414709848078965,
                 0.9092974268256817,
                 0.1411200080598672,
-                -0.7568024953079282
-            ]
+                -0.7568024953079282,
+            ],
         );
     }
 
@@ -282,21 +279,21 @@ mod tests {
 
     #[cfg(feature = "cpu")]
     #[cfg(feature = "autograd")]
-    #[cfg_attr(
-        miri,
-        ignore = "location is always different with miri - caching etc does not work"
-    )]
+    // #[cfg_attr(
+    //     miri,
+    //     ignore = "location is always different with miri - caching etc does not work"
+    // )]
     #[test]
     fn test_unary_elementwise_may_grad_multiple_times_backwards_at_end() {
         use crate::{
-            two_way_ops::tests_ex::roughly_eq_slices, Autograd, Base, Combiner, Device,
+            two_way_ops::tests_ex::roughly_eq_slices, Autograd, Base, Combiner, Cursor, Device,
             UnaryElementWiseMayGrad, CPU,
         };
 
         let device = CPU::<Autograd<Base>>::new();
         let buf = device.buffer([1., 2., 3., 4.]);
 
-        for i in 0..9 {
+        for i in device.range(0..9) {
             let _out = device.unary_ew(&buf, |x| x.sin(), |x| x.cos());
             if i == 0 {
                 _out.grad_mut().write(&[1., 1., 1., 1.]);

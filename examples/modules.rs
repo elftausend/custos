@@ -37,7 +37,6 @@ where
     S: Shape,
     Mods: Retrieve<Self, T, S> + AddOperation + MayTapeActions + AddGradFn + 'static,
 {
-    #[track_caller]
     fn add(
         &self,
         lhs: &Buffer<T, D, S>,
