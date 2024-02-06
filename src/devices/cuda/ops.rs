@@ -1,7 +1,11 @@
 use core::ops::{Range, RangeBounds};
 
 use crate::{
-    bounds_to_range, cuda::api::{cu_read_async, CUstreamCaptureStatus}, pass_down_add_operation, pass_down_exec_now, AddOperation, ApplyFunction, AsNoId, BufAsNoId, Buffer, CDatatype, ClearBuf, CopySlice, OnDropBuffer, Read, Resolve, Retrieve, Retriever, Shape, ToCLSource, ToMarker, UnaryGrad, WriteBuf, ZeroGrad, CUDA
+    bounds_to_range,
+    cuda::api::{cu_read_async, CUstreamCaptureStatus},
+    pass_down_add_operation, pass_down_exec_now, AddOperation, ApplyFunction, AsNoId, BufAsNoId,
+    Buffer, CDatatype, ClearBuf, CopySlice, OnDropBuffer, Read, Resolve, Retrieve, Retriever,
+    Shape, ToCLSource, ToMarker, UnaryGrad, WriteBuf, ZeroGrad, CUDA,
 };
 
 use super::{

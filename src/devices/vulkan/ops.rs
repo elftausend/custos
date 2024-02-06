@@ -23,8 +23,7 @@ impl<Mods: OnDropBuffer + UseGpuOrCpu, T: CDatatype + Default> ClearBuf<T> for V
     }
 }
 
-impl<Mods: OnDropBuffer, T> ZeroGrad<T> for Vulkan<Mods>
-{
+impl<Mods: OnDropBuffer, T> ZeroGrad<T> for Vulkan<Mods> {
     #[inline]
     fn zero_grad<S: Shape>(&self, data: &mut Self::Base<T, S>) {
         try_vk_clear(self, data).unwrap()

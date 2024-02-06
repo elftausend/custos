@@ -16,7 +16,7 @@ where
     pub fn backward(&self)
     where
         T: Clone + One + 'static,
-        D: TapeActions + WriteBuf<T, S, D> + Alloc<T> + 'static,
+        D: TapeActions + ZeroGrad<T> + WriteBuf<T, S, D> + Alloc<T> + 'static,
     {
         self.backward_with(&vec![T::one(); self.len()]);
     }
@@ -26,7 +26,7 @@ where
     pub fn backward_with(&self, seed: &[T])
     where
         T: Clone + 'static,
-        D: TapeActions + WriteBuf<T, S, D> + Alloc<T> + 'static,
+        D: TapeActions + ZeroGrad<T> + WriteBuf<T, S, D> + Alloc<T> + 'static,
     {
         // should never be None
         if let Some(tape) = unsafe { self.device().tape_mut() } {
@@ -38,7 +38,7 @@ where
 impl<'a, T, D, S> Buffer<'a, T, D, S>
 where
     T: 'static,
-    D: Device + ZeroGrad<T> + 'static,
+    D: Device + 'static,
     S: Shape,
 {
     /// Returns a reference to the gradient of this buffer.
@@ -49,7 +49,7 @@ where
     #[cfg(feature = "autograd")]
     pub fn grad(&self) -> &'a Self
     where
-        D: MayTapeActions + Alloc<T>,
+        D: ZeroGrad<T> + MayTapeActions + Alloc<T>,
         // D::Data<T, S>: crate::ShallowCopy,
     {
         unsafe {
@@ -91,7 +91,7 @@ where
     #[cfg(feature = "autograd")]
     pub fn grad_mut(&self) -> &'a mut Self
     where
-        D: MayTapeActions + Alloc<T>,
+        D: MayTapeActions + Alloc<T> + ZeroGrad<T>,
     {
         unsafe {
             self.device()

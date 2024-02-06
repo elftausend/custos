@@ -1,4 +1,4 @@
-use crate::{Alloc, BorrowCache, Buffer, CachingError, ClearBuf, Device, HasId, Id, Shape, ZeroGrad};
+use crate::{Alloc, BorrowCache, Buffer, CachingError, Device, HasId, Id, Shape, ZeroGrad};
 
 const INVALID_ID: &str = "A matching Buffer does not exist.";
 
@@ -8,7 +8,7 @@ const INVALID_ID: &str = "A matching Buffer does not exist.";
 pub struct Gradients {
     pub grads_pool: BorrowCache,
     pub no_grads_pool: BorrowCache,
-    pub zero_grad_cbs: Vec<fn(&dyn core::any::Any)>,
+    pub zero_grad_cbs: Vec<fn(&mut dyn core::any::Any)>,
 }
 
 impl core::fmt::Debug for Gradients {
@@ -26,11 +26,11 @@ impl Gradients {
         self.grads_pool.cache.clear();
     }
 
-    pub fn add_zero_grad_cb<T, D: Device + ZeroGrad<T>, S: Shape>(&self) {
-        // self.zero_grad_cbs.push(|buf| {
-        //     let buf = buf.downcast_ref::<Buffer<T, D, S>>().unwrap();
-        //     // buf.clear();
-        // });
+    pub fn add_zero_grad_cb<T: 'static, D: Device + ZeroGrad<T> + 'static, S: Shape>(&mut self) {
+        self.zero_grad_cbs.push(|buf| {
+            let buf = buf.downcast_mut::<Buffer<T, D, S>>().unwrap();
+            buf.device().zero_grad(buf);
+        });
     }
 
     /// May get a reference to a gradient [`Buffer`].
@@ -69,9 +69,9 @@ impl Gradients {
     {
         // because of rust, thx
         let mut new_buf = false;
-        let buf = self
-            .grads_pool
-            .add_or_get::<T, D, S>(device, id, &mut new_buf);
+        self.grads_pool
+            .add_buf_once::<T, D, S>(device, id, &mut new_buf);
+
         if new_buf {
             self.add_zero_grad_cb::<T, D, S>();
         }
@@ -85,16 +85,15 @@ impl Gradients {
     where
         T: 'static,
         S: Shape,
-        D: Alloc<T> + 'static,
+        D: ZeroGrad<T> + Alloc<T> + 'static,
     {
         let mut new_buf = false;
-        let buf = self
-            .grads_pool
-            .add_or_get_mut::<T, D, S>(device, id, &mut new_buf);
-        if new_buf {
-            // self.add_zero_grad_cb();
-        }
+        self.grads_pool
+            .add_buf_once::<T, D, S>(device, id, &mut new_buf);
 
+        if new_buf {
+            self.add_zero_grad_cb::<T, D, S>();
+        }
         self.grads_pool.get_buf_mut(id).unwrap()
     }
 
