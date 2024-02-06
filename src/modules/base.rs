@@ -1,6 +1,6 @@
 use crate::{
-    flag::AllocFlag, AddGradFn, AddOperation, Alloc, Device, ExecNow, HasId, HashLocation, Module,
-    OnDropBuffer, OnNewBuffer, Parents, PtrType, Retrieve, Setup, Shape, WrappedData,
+    flag::AllocFlag, AddGradFn, AddOperation, Alloc, Cursor, Device, ExecNow, HasId, HashLocation,
+    Module, OnDropBuffer, OnNewBuffer, Parents, PtrType, Retrieve, Setup, Shape, WrappedData,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
@@ -79,6 +79,16 @@ impl<D, T, S: Shape> Retrieve<D, T, S> for Base {
     {
         device.alloc(len, AllocFlag::None)
     }
+}
+
+impl Cursor for Base {
+    #[inline]
+    fn cursor(&self) -> usize {
+        0
+    }
+
+    #[inline]
+    unsafe fn set_cursor(&self, _cursor: usize) {}
 }
 
 impl crate::UseGpuOrCpu for Base {

@@ -1,10 +1,45 @@
+use crate::Cursor;
 use core::ops::{Range, RangeInclusive};
 
-// pub struct ExecRange<'a, D: Cursor> {
-//     start: usize,
-//     end: usize,
-//     device: &'a Dev
-// }
+pub struct CursorRange<'a, D> {
+    start: usize,
+    end: usize,
+    device: &'a D,
+}
+
+pub struct CursorRangeIter<'a, D> {
+    range: CursorRange<'a, D>,
+    previous_cursor: usize,
+}
+
+impl<'a, D: Cursor> Iterator for CursorRangeIter<'a, D> {
+    type Item = usize;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.range.start >= self.range.end {
+            return None;
+        }
+        unsafe {
+            self.range.device.set_cursor(self.previous_cursor);
+        }
+        let epoch = self.range.start;
+        self.range.start += 1;
+        Some(epoch)
+    }
+}
+
+impl<'a, D: Cursor> IntoIterator for CursorRange<'a, D> {
+    type Item = usize;
+    type IntoIter = CursorRangeIter<'a, D>;
+
+    #[inline]
+    fn into_iter(self) -> Self::IntoIter {
+        CursorRangeIter {
+            previous_cursor: self.device.cursor(),
+            range: self,
+        }
+    }
+}
 
 /// Converts ranges into a start and end index.
 pub trait AsRange {

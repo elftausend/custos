@@ -10,7 +10,9 @@ use register_buf::*;
 pub use ty::*;
 
 use crate::{
-    impl_remove_layer, pass_down_cursor, pass_down_tape_actions, AddLayer, AddOperation, Alloc, Buffer, Device, ExecNow, HasId, Id, IsShapeIndep, Module, OnDropBuffer, OnNewBuffer, Parents, ReplaceBuf, Retrieve, RunModule, Setup, ShallowCopy, Shape, UniqueId, UpdateArgs
+    impl_remove_layer, pass_down_cursor, pass_down_tape_actions, AddLayer, AddOperation, Alloc,
+    Buffer, Device, ExecNow, HasId, Id, IsShapeIndep, Module, OnDropBuffer, OnNewBuffer, Parents,
+    ReplaceBuf, Retrieve, RunModule, Setup, ShallowCopy, Shape, UniqueId, UpdateArgs,
 };
 
 #[cfg(feature = "graph")]

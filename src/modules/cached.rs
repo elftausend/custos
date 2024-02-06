@@ -1,7 +1,12 @@
-use core::{cell::{Cell, RefCell}, marker::PhantomData};
+use core::{
+    cell::{Cell, RefCell},
+    marker::PhantomData,
+};
 
 use crate::{
-    AddGradFn, AddLayer, AddOperation, Alloc, Buffer, Cache, Cursor, Device, ExecNow, HasId, Module, OnDropBuffer, OnNewBuffer, Parents, PtrType, RemoveLayer, Retrieve, RunModule, Setup, ShallowCopy, Shape, WrappedData
+    AddGradFn, AddLayer, AddOperation, Alloc, Buffer, Cache, Cursor, Device, ExecNow, HasId,
+    Module, OnDropBuffer, OnNewBuffer, Parents, PtrType, RemoveLayer, Retrieve, RunModule, Setup,
+    ShallowCopy, Shape, WrappedData,
 };
 
 #[cfg(feature = "graph")]
@@ -50,7 +55,7 @@ impl<Mods: Module<D>, D: Device> Module<D> for Cached<Mods> {
             modules: Mods::new(),
             cache: RefCell::new(Cache::new()),
             pd: PhantomData,
-            cursor: Default::default()
+            cursor: Default::default(),
         }
     }
 }
@@ -156,7 +161,6 @@ impl<Mods, SD: Device> Cursor for CachedModule<Mods, SD> {
     }
 }
 
-
 #[cfg(feature = "autograd")]
 impl<Mods: crate::HasAutograd, SD: Device> crate::HasAutograd for CachedModule<Mods, SD> {}
 
@@ -192,7 +196,7 @@ impl<CurrentMods, SD: Device> AddLayer<CurrentMods, SD> for Cached<()> {
             modules: inner_mods,
             cache: Default::default(),
             pd: core::marker::PhantomData,
-            cursor: Default::default()
+            cursor: Default::default(),
         }
     }
 }
@@ -474,7 +478,7 @@ mod tests {
 
         for _ in 0..10 {
             let buf: Buffer<f32, _> = device.retrieve(10, &buf_base);
-            
+
             for (base, cached) in buf_base.iter().zip(buf.iter()) {
                 assert_eq!(base, cached);
             }
@@ -486,7 +490,7 @@ mod tests {
         let buf_base = buf_base.to_device_type(&device);
         for _ in 0..10 {
             let buf: Buffer<f32, _> = device.retrieve(10, &buf_base);
-            
+
             for (base, cached) in buf_base.iter().zip(buf.iter()) {
                 assert_eq!(base, cached);
             }
