@@ -74,7 +74,7 @@ pub trait UnaryElementWiseMayGrad<T, D: Device, S: Shape>: Device {
     ///
     /// let device = CPU::<Autograd<Base>>::new();
     ///
-    /// let buf = Buffer::from((&device, [1., 2., 3., 3., 2., 1.,]));
+    /// let buf = Buffer::from((&device, [1., 2., 3., 3., 2., 1.,])).require_grad();
     /// let out = device.unary_ew(&buf, |x| x.mul(2.), |x| 2f64.to_val());
     ///
     /// assert_eq!(&**out, &[2., 4., 6., 6., 4., 2.,]);
