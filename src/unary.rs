@@ -1,6 +1,5 @@
 use crate::{
-    AddGradFn, Alloc, AsNoId, Buffer, Device, Eval, MayTapeActions, MayToCLSource, Resolve, Shape,
-    ZeroGrad,
+    AddGradFn, Alloc, AsNoId, Buffer, Device, Eval, HasId, MayTapeActions, MayToCLSource, Resolve, Shape, ZeroGrad
 };
 
 /// Applies a function to a buffer and returns a new buffer.
@@ -75,7 +74,7 @@ pub trait UnaryElementWiseMayGrad<T, D: Device, S: Shape>: Device {
     ///
     /// let device = CPU::<Autograd<Base>>::new();
     ///
-    /// let buf = Buffer::from((&device, [1., 2., 3., 3., 2., 1.,]));
+    /// let buf = Buffer::from((&device, [1., 2., 3., 3., 2., 1.,])).require_grad();
     /// let out = device.unary_ew(&buf, |x| x.mul(2.), |x| 2f64.to_val());
     ///
     /// assert_eq!(&**out, &[2., 4., 6., 6., 4., 2.,]);
@@ -116,6 +115,9 @@ where
         let out = self.apply_fn(buf, forward_fn);
 
         self.add_grad_fn((buf, &out, _grad_fn.no_id()), |(buf, out, grad_fn)| {
+            if !buf.requires_grad() {
+                return Ok(());
+            }
             buf.device()
                 .add_unary_grad(buf, buf.grad_mut(), out.grad(), **grad_fn);
             Ok(())
@@ -176,7 +178,7 @@ mod tests {
     {
         use crate::Combiner;
 
-        let buf = device.buffer([1., 2., 3., 4.]);
+        let buf = device.buffer([1., 2., 3., 4.]).require_grad();
         let out = device.unary_ew(&buf, |x| x.sin(), |x| x.cos());
         roughly_eq_slices(
             &out.read_to_vec(),
@@ -250,7 +252,7 @@ mod tests {
         };
 
         let device = CPU::<Autograd<Base>>::new();
-        let buf = device.buffer([1., 2., 3., 4.]);
+        let buf = device.buffer([1., 2., 3., 4.]).require_grad();
 
         for _ in 0..10 {
             let out = device.unary_ew(&buf, |x| x.sin(), |x| x.cos());
@@ -293,7 +295,7 @@ mod tests {
         };
 
         let device = CPU::<Autograd<Base>>::new();
-        let buf = device.buffer([1., 2., 3., 4.]);
+        let buf = device.buffer([1., 2., 3., 4.]).require_grad();
 
         for i in device.range(0..9) {
             let _out = device.unary_ew(&buf, |x| x.sin(), |x| x.cos());

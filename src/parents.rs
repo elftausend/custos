@@ -3,6 +3,9 @@ use crate::{HasId, Id, UpdateArg};
 pub trait Parents<const N: usize>: AllParents {
     fn ids(&self) -> [Id; N];
     fn maybe_ids(&self) -> [Option<Id>; N];
+    fn requires_grads(&self) -> [bool; N] {
+        [true; N]
+    }
 }
 
 impl Parents<0> for () {
@@ -40,6 +43,11 @@ impl<T: HasId> Parents<1> for T {
     fn maybe_ids(&self) -> [Option<Id>; 1] {
         [self.maybe_id()]
     }
+
+    #[inline]
+    fn requires_grads(&self) -> [bool; 1] {
+        [self.requires_grad()] 
+    }
 }
 
 impl<T: HasId> AllParents for T {}
@@ -59,6 +67,13 @@ macro_rules! impl_parents {
                 #[allow(non_snake_case)]
                 let ($($to_impl,)+) = self;
                 [$($to_impl.maybe_id(),)+]
+            }
+
+            #[inline]
+            fn requires_grads(&self) -> [bool; $num] {
+                #[allow(non_snake_case)]
+                let ($($to_impl,)+) = self;
+                [$($to_impl.requires_grad(),)+]
             }
         }
         impl<$($to_impl: $crate::HasId, )+> AllParents for ($($to_impl,)+) {}

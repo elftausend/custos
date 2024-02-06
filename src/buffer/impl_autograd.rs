@@ -52,6 +52,10 @@ where
         D: ZeroGrad<T> + MayTapeActions + Alloc<T>,
         // D::Data<T, S>: crate::ShallowCopy,
     {
+        // TODO: consider activating this check -> 
+        // e.g. binary grad ops are computed in a single function where differentiating between 
+        // req grad and no req grad is not possible/ difficult
+        // assert!(self.requires_grad(), "Buffer does not require gradient.");
         unsafe {
             self.device()
                 .gradients_mut()
@@ -68,6 +72,10 @@ where
     where
         D: MayTapeActions + Alloc<T>,
     {
+        if !self.requires_grad() {
+            return None;
+        }
+
         #[cfg(feature = "autograd")]
         unsafe {
             self.device().gradients()?.may_get_ref(self.id()).ok()
@@ -93,6 +101,10 @@ where
     where
         D: MayTapeActions + Alloc<T> + ZeroGrad<T>,
     {
+        // TODO: consider activating this check -> 
+        // e.g. binary grad ops are computed in a single function where differentiating between 
+        // req grad and no req grad is not possible/ difficult
+        // assert!(self.requires_grad(), "Buffer does not require gradient.");
         unsafe {
             self.device()
                 .gradients_mut()
@@ -109,6 +121,10 @@ where
     where
         D: MayTapeActions + Alloc<T>,
     {
+        if !self.requires_grad() {
+            return None;
+        }
+
         #[cfg(feature = "autograd")]
         unsafe {
             self.device().gradients_mut()?.may_get_mut(self.id()).ok()

@@ -1,5 +1,6 @@
 mod gradients;
 mod tape;
+mod wrapper;
 
 pub use gradients::*;
 pub use tape::*;
@@ -9,9 +10,11 @@ use core::cell::{Cell, UnsafeCell};
 use crate::{
     impl_remove_layer, pass_down_add_operation, pass_down_cursor, pass_down_exec_now_module,
     register_buf_any, unregister_buf_any, AddGradFn, AddLayer, Alloc, Buffer, Device, HasId,
-    IsShapeIndep, Module, OnDropBuffer, OnNewBuffer, Parents, PtrType, Retrieve, RunModule, Setup,
-    ShallowCopy, Shape, TapeActions, WrappedData,
+    IsShapeIndep, Module, OnDropBuffer, OnNewBuffer, Parents, Retrieve, RunModule, Setup,
+    ShallowCopy, Shape, TapeActions,
 };
+
+use self::wrapper::ReqGradWrapper;
 
 use super::{Cached, CachedModule};
 
@@ -22,25 +25,6 @@ pub struct Autograd<Mods> {
     pub grads: UnsafeCell<Gradients>,
     tape: UnsafeCell<Tape>,
     pub enabled: Cell<bool>,
-}
-
-impl<Mods: WrappedData> WrappedData for Autograd<Mods> {
-    type Wrap<T, Base: HasId + PtrType> = Mods::Wrap<T, Base>;
-
-    #[inline]
-    fn wrap_in_base<T, Base: HasId + PtrType>(&self, base: Base) -> Self::Wrap<T, Base> {
-        self.modules.wrap_in_base(base)
-    }
-
-    #[inline]
-    fn wrapped_as_base<T, Base: HasId + PtrType>(wrap: &Self::Wrap<T, Base>) -> &Base {
-        Mods::wrapped_as_base(wrap)
-    }
-
-    #[inline]
-    fn wrapped_as_base_mut<T, Base: HasId + PtrType>(wrap: &mut Self::Wrap<T, Base>) -> &mut Base {
-        Mods::wrapped_as_base_mut(wrap)
-    }
 }
 
 impl<Mods: Module<D>, D: Device> Module<D> for Autograd<Mods> {
@@ -156,7 +140,14 @@ where
     where
         D: Alloc<T>,
     {
-        self.modules.retrieve(device, len, parents)
+        let requires_grad = parents.requires_grads().iter().any(|&x| x); 
+        let data = self.modules.retrieve(device, len, parents);
+
+        ReqGradWrapper {
+            requires_grad,
+            data,
+            _pd: core::marker::PhantomData,
+        }
     }
 
     #[inline]
@@ -285,7 +276,7 @@ mod tests {
             let buf_any = no_grads_pool.cache.get(&buf.id()).unwrap();
 
             let buf1 = downcast_val::<f32, _, ()>(buf_any, &device).unwrap();
-            assert_eq!(buf1.data.ptr, buf.data.ptr);
+            assert_eq!(buf1.base().ptr, buf.base().ptr);
         }
     }
 
@@ -301,7 +292,7 @@ mod tests {
             let buf1 = no_grads_pool
                 .get_buf_with_dev::<f32, _, ()>(buf.id(), &device)
                 .unwrap();
-            assert_eq!(buf1.data.ptr, buf.data.ptr);
+            assert_eq!(buf1.base().ptr, buf.base().ptr);
         }
     }
 
@@ -439,7 +430,7 @@ mod tests {
 
         let device = CPU::<Autograd<Base>>::new();
 
-        let lhs = device.buffer([1, 2, 3, 4]);
+        let lhs = device.buffer([1, 2, 3, 4]).require_grad();
         let out = lhs.empty_like();
 
         device.add_grad_fn((&lhs, &out), |(lhs, out)| {
@@ -459,7 +450,7 @@ mod tests {
     fn test_autograd_disabling() {
         let device = CPU::<Autograd<Base>>::new();
 
-        let lhs = device.buffer([1, 2, 3, 4]);
+        let lhs = device.buffer([1, 2, 3, 4]).require_grad();
         let out = lhs.empty_like();
 
         device.disable_grad();
@@ -485,5 +476,30 @@ mod tests {
         out.backward();
 
         assert_eq!(lhs.try_grad().unwrap().as_slice(), [4, 5, 6, 7]);
+    }
+
+    #[test]
+    fn test_req_grad_chaining() {
+        let device = CPU::<Autograd<Base>>::new();
+
+        let lhs = device.buffer([1i32, 2, 3, 4]).require_grad();
+        assert!(lhs.requires_grad());
+        
+        let no_grad = device.buffer([1i32, 2, 3, 4]);
+        let rhs = device.buffer([1i32, 2, 3, 4]);
+        assert!(!rhs.requires_grad());
+
+        let out: Buffer<i32, _> = device.retrieve(rhs.len(), (&lhs, &rhs));
+        assert!(out.requires_grad());
+        
+        let out: Buffer<i32, _> = device.retrieve(rhs.len(), &lhs);
+        assert!(out.requires_grad());
+        
+        let out: Buffer<i32, _> = device.retrieve(rhs.len(), &rhs);
+        assert!(!out.requires_grad());
+        
+        let out: Buffer<i32, _> = device.retrieve(rhs.len(), (&no_grad, &rhs));
+        assert!(!out.requires_grad());
+
     }
 }
