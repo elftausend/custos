@@ -23,6 +23,7 @@ pass_down_cursor!(Stack);
 pass_down_grad_fn!(Stack);
 pass_down_tape_actions!(Stack);
 pass_down_use_gpu_or_cpu!(Stack);
+#[cfg(feature = "graph")]
 pass_down_optimize_mem_graph!(Stack);
 
 impl<'a, T: Copy + Default, S: Shape> DevicelessAble<'a, T, S> for Stack {}
