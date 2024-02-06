@@ -1,9 +1,7 @@
 use core::convert::Infallible;
 
 use crate::{
-    flag::AllocFlag, impl_buffer_hook_traits, impl_retriever, impl_wrapped_data, shape::Shape,
-    Alloc, Base, Buffer, CloneBuf, Device, DevicelessAble, OnDropBuffer, Read, StackArray,
-    WrappedData, WriteBuf,
+    flag::AllocFlag, impl_buffer_hook_traits, impl_retriever, impl_wrapped_data, pass_down_cursor, pass_down_grad_fn, pass_down_optimize_mem_graph, pass_down_tape_actions, pass_down_use_gpu_or_cpu, shape::Shape, Alloc, Base, Buffer, CloneBuf, Device, DevicelessAble, OnDropBuffer, Read, StackArray, WrappedData, WriteBuf
 };
 
 /// A device that allocates memory on the stack.
@@ -21,6 +19,11 @@ impl Stack {
 impl_buffer_hook_traits!(Stack);
 impl_retriever!(Stack, Copy + Default);
 impl_wrapped_data!(Stack);
+pass_down_cursor!(Stack);
+pass_down_grad_fn!(Stack);
+pass_down_tape_actions!(Stack);
+pass_down_use_gpu_or_cpu!(Stack);
+pass_down_optimize_mem_graph!(Stack);
 
 impl<'a, T: Copy + Default, S: Shape> DevicelessAble<'a, T, S> for Stack {}
 
@@ -137,9 +140,6 @@ impl<T: Copy, S: Shape> WriteBuf<T, S> for Stack {
         self.write(dst, src)
     }
 }
-
-#[cfg(feature = "autograd")]
-impl<Mods: crate::TapeActions> crate::TapeActions for Stack<Mods> {}
 
 #[cfg(test)]
 mod tests {
