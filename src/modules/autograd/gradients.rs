@@ -1,3 +1,5 @@
+use core::any::Any;
+
 use crate::{Alloc, BorrowCache, Buffer, CachingError, Device, HasId, Id, Shape, ZeroGrad};
 
 const INVALID_ID: &str = "A matching Buffer does not exist.";
@@ -8,7 +10,7 @@ const INVALID_ID: &str = "A matching Buffer does not exist.";
 pub struct Gradients {
     pub grads_pool: BorrowCache,
     pub no_grads_pool: BorrowCache,
-    pub zero_grad_cbs: Vec<(Id, fn(&mut dyn core::any::Any))>,
+    pub zero_grad_cbs: Vec<(Id, fn(&mut dyn Any, &dyn Any))>,
 }
 
 impl core::fmt::Debug for Gradients {
@@ -24,19 +26,21 @@ impl Gradients {
     #[inline]
     pub fn zero_grad(&mut self) {
         for (id, cb) in &self.zero_grad_cbs {
-            let buf = self.grads_pool.cache.get_mut(id).unwrap();
-            cb(&mut **buf);
+            let grad_buf = self.grads_pool.cache.get_mut(id).unwrap();
+            let buf = self.no_grads_pool.cache.get_mut(id).unwrap();
+            cb(&mut **grad_buf, &**buf);
         }
         // self.grads_pool.cache.clear();
     }
 
     pub fn add_zero_grad_cb<T: 'static, D: Device + ZeroGrad<T> + 'static, S: Shape>(&mut self, id: &Id) {
-        self.zero_grad_cbs.push((*id, |buf| {
-            let buf = buf.downcast_mut::<Buffer<T, D, S>>().unwrap();
+        self.zero_grad_cbs.push((*id, |grad_buf, buf| {
+            let grad_buf = grad_buf.downcast_mut::<Buffer<T, D, S>>().unwrap();
+            let buf = buf.downcast_ref::<Buffer<T, D, S>>().unwrap();
 
-            // the callback is only added if the grad buffer was used in a grad op, so this check isn't necessary
-            if true || buf.requires_grad() {
-                buf.device().zero_grad(buf);
+            // the callback is only added if the grad buffer was used in a grad op, so this check should not be necessary (but it is)
+            if buf.requires_grad() {
+                grad_buf.device().zero_grad(grad_buf);
             }
         }));
     }
