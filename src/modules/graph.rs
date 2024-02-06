@@ -9,7 +9,10 @@ use core::{cell::RefCell, hash::BuildHasherDefault};
 use std::collections::HashSet;
 
 use crate::{
-    impl_remove_layer, pass_down_add_operation, pass_down_cursor, pass_down_exec_now_module, pass_down_replace_buf_module, pass_down_use_gpu_or_cpu, AddLayer, Alloc, Buffer, Cursor, Device, HasId, Module, NoHasher, OnDropBuffer, OnNewBuffer, OptimizeMemGraph, Parents, PtrType, Retrieve, RunModule, Setup, Shape, UniqueId, WrappedData
+    impl_remove_layer, pass_down_add_operation, pass_down_cursor, pass_down_exec_now_module,
+    pass_down_replace_buf_module, pass_down_use_gpu_or_cpu, AddLayer, Alloc, Buffer, Cursor,
+    Device, HasId, Module, NoHasher, OnDropBuffer, OnNewBuffer, OptimizeMemGraph, Parents, PtrType,
+    Retrieve, RunModule, Setup, Shape, UniqueId, WrappedData,
 };
 
 pub use self::graph_translator::GraphTranslator;
@@ -144,7 +147,7 @@ where
     {
         let ids = parents.ids();
         let data = self.modules.retrieve(device, len, parents);
-        
+
         let mut contains_ids = self.contains_ids.borrow_mut();
 
         // subtracting 1 because retrieving increments the cursor (cached and lazy modules)
@@ -161,9 +164,7 @@ where
         graph_trans.buf_id_to_idx.insert(data.id().id, next_idx);
         graph_trans.idx_to_buf_id.insert(next_idx, data.id().id);
 
-        graph_trans
-            .idx_to_cursor
-            .insert(next_idx, cursor);
+        graph_trans.idx_to_cursor.insert(next_idx, cursor);
 
         // does a hash location check internally (again)
         graph_trans.add_node(len, &ids);

@@ -1,4 +1,4 @@
-use crate::{Alloc, BorrowCache, Buffer, CachingError, HasId, Id, Parents, Shape};
+use crate::{Alloc, BorrowCache, Buffer, CachingError, ClearBuf, Device, HasId, Id, Shape, ZeroGrad};
 
 const INVALID_ID: &str = "A matching Buffer does not exist.";
 
@@ -8,6 +8,7 @@ const INVALID_ID: &str = "A matching Buffer does not exist.";
 pub struct Gradients {
     pub grads_pool: BorrowCache,
     pub no_grads_pool: BorrowCache,
+    pub zero_grad_cbs: Vec<fn(&dyn core::any::Any)>,
 }
 
 impl core::fmt::Debug for Gradients {
@@ -23,6 +24,13 @@ impl Gradients {
     #[inline]
     pub fn zero_grad(&mut self) {
         self.grads_pool.cache.clear();
+    }
+
+    pub fn add_zero_grad_cb<T, D: Device + ZeroGrad<T>, S: Shape>(&self) {
+        // self.zero_grad_cbs.push(|buf| {
+        //     let buf = buf.downcast_ref::<Buffer<T, D, S>>().unwrap();
+        //     // buf.clear();
+        // });
     }
 
     /// May get a reference to a gradient [`Buffer`].
@@ -57,9 +65,17 @@ impl Gradients {
     where
         T: 'static,
         S: Shape,
-        D: Alloc<T> + 'static,
+        D: Alloc<T> + ZeroGrad<T> + 'static,
     {
-        self.grads_pool.add_or_get(device, id)
+        // because of rust, thx
+        let mut new_buf = false;
+        let buf = self
+            .grads_pool
+            .add_or_get::<T, D, S>(device, id, &mut new_buf);
+        if new_buf {
+            self.add_zero_grad_cb::<T, D, S>();
+        }
+        self.grads_pool.get_buf(id).unwrap()
     }
 
     /// Returns a mutable reference to a gradient [`Buffer`].
@@ -71,7 +87,15 @@ impl Gradients {
         S: Shape,
         D: Alloc<T> + 'static,
     {
-        self.grads_pool.add_or_get_mut(device, id)
+        let mut new_buf = false;
+        let buf = self
+            .grads_pool
+            .add_or_get_mut::<T, D, S>(device, id, &mut new_buf);
+        if new_buf {
+            // self.add_zero_grad_cb();
+        }
+
+        self.grads_pool.get_buf_mut(id).unwrap()
     }
 
     /// Returns a reference to a gradient [`Buffer`] using information from `buf`.
@@ -80,7 +104,7 @@ impl Gradients {
     where
         T: 'static,
         S: Shape,
-        D: Alloc<T> + 'static,
+        D: Alloc<T> + ZeroGrad<T> + 'static,
         D::Data<T, S>: HasId,
     {
         self.get_ref(buf.device(), buf.id())

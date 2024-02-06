@@ -42,17 +42,11 @@ impl GraphTranslator {
         });
     }
 
-    pub fn to_cursor_cache_traces(
-        &self,
-        cache_traces: Vec<CacheTrace>,
-    ) -> Vec<CacheTrace> {
+    pub fn to_cursor_cache_traces(&self, cache_traces: Vec<CacheTrace>) -> Vec<CacheTrace> {
         cache_traces
             .into_iter()
             .map(|cache_trace| CacheTrace {
-                cache_idx: *self
-                    .idx_to_cursor
-                    .get(&cache_trace.cache_idx)
-                    .unwrap() as usize,
+                cache_idx: *self.idx_to_cursor.get(&cache_trace.cache_idx).unwrap() as usize,
                 use_cache_idxs: cache_trace
                     .use_cache_idxs
                     .into_iter()

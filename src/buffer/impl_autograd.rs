@@ -1,5 +1,6 @@
 use crate::prelude::*;
 use crate::MayTapeActions;
+use crate::ZeroGrad;
 
 const AUTOGRAD_NOT_AVAILABLE: &str = "Autograd<> is not available.";
 
@@ -37,7 +38,7 @@ where
 impl<'a, T, D, S> Buffer<'a, T, D, S>
 where
     T: 'static,
-    D: Device + 'static,
+    D: Device + ZeroGrad<T> + 'static,
     S: Shape,
 {
     /// Returns a reference to the gradient of this buffer.

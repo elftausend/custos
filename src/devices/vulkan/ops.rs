@@ -2,7 +2,7 @@ use crate::{
     cpu_stack_ops::clear_slice, pass_down_add_operation, pass_down_exec_now, prelude::Number,
     AddOperation, ApplyFunction, AsNoId, BufAsNoId, Buffer, CDatatype, ClearBuf, HostPtr,
     OnDropBuffer, Read, Resolve, Retrieve, Retriever, Shape, ToMarker, ToWgslSource, UnaryGrad,
-    UseGpuOrCpu, Vulkan, WriteBuf,
+    UseGpuOrCpu, Vulkan, WriteBuf, ZeroGrad,
 };
 
 use super::{VkArray, VkDevice};
@@ -20,6 +20,14 @@ impl<Mods: OnDropBuffer + UseGpuOrCpu, T: CDatatype + Default> ClearBuf<T> for V
             || clear_slice(cpu_buf),
             || try_vk_clear(self, buf).unwrap(),
         );
+    }
+}
+
+impl<Mods: OnDropBuffer, T> ZeroGrad<T> for Vulkan<Mods>
+{
+    #[inline]
+    fn zero_grad<S: Shape>(&self, data: &mut Self::Base<T, S>) {
+        try_vk_clear(self, data).unwrap()
     }
 }
 

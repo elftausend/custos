@@ -561,7 +561,9 @@ mod tests {
     #[cfg(feature = "cached")]
     #[test]
     fn test_from_retrieve_sliced_chained_perf_example_optimize_cache() {
-        use crate::{Base, Buffer, Cached, Cursor, Device, Graph, HasId, OptimizeMemGraph, Retriever, CPU};
+        use crate::{
+            Base, Buffer, Cached, Cursor, Device, Graph, HasId, OptimizeMemGraph, Retriever, CPU,
+        };
 
         let device = CPU::<Graph<Cached<Base>>>::new();
 
@@ -569,7 +571,6 @@ mod tests {
         let x: Buffer<f32, _> = device.buffer([1.; 1000]);
         // idx: 1, deps: []
         let b: Buffer<f32, _> = device.buffer([1.1; 1000]);
-
 
         for i in device.range(0..2) {
             // idx: 2, deps: [0, 0]

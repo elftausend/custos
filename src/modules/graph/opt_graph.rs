@@ -1,7 +1,7 @@
 mod optimize;
 
-pub use optimize::*;
 use super::node::Node;
+pub use optimize::*;
 
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct OptGraph {

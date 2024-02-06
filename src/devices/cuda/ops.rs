@@ -1,11 +1,7 @@
 use core::ops::{Range, RangeBounds};
 
 use crate::{
-    bounds_to_range,
-    cuda::api::{cu_read_async, CUstreamCaptureStatus},
-    pass_down_add_operation, pass_down_exec_now, AddOperation, ApplyFunction, AsNoId, BufAsNoId,
-    Buffer, CDatatype, ClearBuf, CopySlice, OnDropBuffer, Read, Resolve, Retrieve, Retriever,
-    Shape, ToCLSource, ToMarker, UnaryGrad, WriteBuf, CUDA,
+    bounds_to_range, cuda::api::{cu_read_async, CUstreamCaptureStatus}, pass_down_add_operation, pass_down_exec_now, AddOperation, ApplyFunction, AsNoId, BufAsNoId, Buffer, CDatatype, ClearBuf, CopySlice, OnDropBuffer, Read, Resolve, Retrieve, Retriever, Shape, ToCLSource, ToMarker, UnaryGrad, WriteBuf, ZeroGrad, CUDA
 };
 
 use super::{
@@ -53,6 +49,13 @@ impl<Mods: OnDropBuffer, T: CDatatype> ClearBuf<T> for CUDA<Mods> {
     #[inline]
     fn clear(&self, buf: &mut Buffer<T, Self>) {
         cu_clear(self, buf).unwrap()
+    }
+}
+
+impl<Mods: OnDropBuffer, T: CDatatype> ZeroGrad<T> for CUDA<Mods> {
+    #[inline]
+    fn zero_grad<S: Shape>(&self, data: &mut Self::Base<T, S>) {
+        cu_clear(self, data).unwrap()
     }
 }
 

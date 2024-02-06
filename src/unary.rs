@@ -1,5 +1,5 @@
 use crate::{
-    AddGradFn, Alloc, AsNoId, Buffer, Device, Eval, MayTapeActions, MayToCLSource, Resolve, Shape,
+    AddGradFn, Alloc, AsNoId, Buffer, Device, Eval, MayTapeActions, MayToCLSource, Resolve, Shape, ZeroGrad,
 };
 
 /// Applies a function to a buffer and returns a new buffer.
@@ -98,7 +98,7 @@ where
     T: 'static,
     D: AddGradFn + ApplyFunction<T, S, D> + UnaryGrad<T, S, D> + MayTapeActions,
     // D::Data<T, S>: crate::ShallowCopy,
-    D: Alloc<T> + 'static,
+    D: Alloc<T> + ZeroGrad<T> + 'static,
     S: Shape,
 {
     #[inline(always)]
@@ -170,6 +170,7 @@ mod tests {
             + crate::HasAutograd
             + crate::UnaryElementWiseMayGrad<f32, D, ()>
             + crate::Alloc<f32>
+            + crate::ZeroGrad<f32>
             + crate::OnNewBuffer<f32, D, ()>,
     {
         use crate::Combiner;
