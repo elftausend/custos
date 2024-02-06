@@ -52,17 +52,11 @@ As the operation now must support arbitrarily combined modules, a new generic, u
 +    ElementWise<T, D, S> for CPU<Mods>
 ```
 
-The caching (and autograd) systems use `#[track_caller]` to determine the required cache entry.
-
-```diff
-+ #[track_caller]
-```
 
 ```rust
 impl<T: Add<Output = T> + Copy, D: MainMemory, S: Shape, Mods: Retrieve<Self, T>>
     ElementWise<T, D, S> for CPU<Mods>
 {
-    #[track_caller]
     fn add(&self, lhs: &Buffer<T, D, S>, rhs: &Buffer<T, D, S>) -> Buffer<T, Self, S> {
         let mut out = self.retrieve(lhs.len(), (lhs, rhs));
         ew_add_slice(lhs, rhs, &mut out);
@@ -91,7 +85,6 @@ where
     S: Shape,
     Mods: Retrieve<Self, T> + AddOperation<T, Self>,
 {
-    #[track_caller]
     fn add(&self, lhs: &Buffer<T, D, S>, rhs: &Buffer<T, D, S>) -> Buffer<T, Self, S> {
         let mut out = self.retrieve(lhs.len(), (lhs, rhs));
         self.add_op(&mut out, |out| ew_add_slice(lhs, rhs, out));
@@ -140,7 +133,6 @@ where
     S: Shape,
     Mods: Retrieve<Self, T> + MayTapeActions + 'static,
 {
-    #[track_caller]
     fn add(&self, lhs: &Buffer<T, D, S>, rhs: &Buffer<T, D, S>) -> Buffer<T, Self, S> {
         let mut out = self.retrieve(lhs.len(), (lhs, rhs));
 

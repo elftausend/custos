@@ -7,7 +7,6 @@ use custos::{Buffer, CPU};
 
 #[cfg(feature = "cpu")]
 #[cfg(not(feature = "realloc"))]
-#[track_caller]
 fn cached_add<'a, Mods>(device: &'a CPU<Mods>, a: &[f32], b: &[f32]) -> Buffer<'a, f32, CPU<Mods>>
 where
     Mods: custos::Retrieve<CPU<Mods>, f32>,

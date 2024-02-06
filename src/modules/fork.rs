@@ -153,7 +153,6 @@ mod tests {
         Combiner, Device, Fork, GpuOrCpuInfo, Module, OpenCL, UseGpuOrCpu, CPU,
     };
 
-    #[track_caller]
     pub fn clear(
         fork: &Fork<Base>,
         cpu_buf: &mut Buffer<i32>,

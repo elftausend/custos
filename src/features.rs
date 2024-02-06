@@ -286,7 +286,6 @@ macro_rules! pass_down_replace_buf_module {
 }
 
 pub trait AddOperation {
-    #[track_caller]
     fn add_op<Args: Parents<N> + UpdateArgs, const N: usize>(
         &self,
         args: Args,
@@ -372,7 +371,6 @@ pub type CachedCPU = CPU<CachedModule<Base, CPU>>;
 
 #[cfg(feature = "cached")]
 pub trait UnifiedMemChain<D: Device> {
-    #[track_caller]
     fn construct_unified_buf_from_cpu_buf<'a, T: 'static, S: Shape>(
         &self,
         device: &'a D,
@@ -444,7 +442,6 @@ pass_down_use_gpu_or_cpu!(Autograd);
 pass_down_use_gpu_or_cpu!(Lazy);
 
 pub trait UseGpuOrCpu {
-    #[track_caller]
     fn use_cpu_or_gpu(
         &self,
         location: crate::HashLocation<'static>,

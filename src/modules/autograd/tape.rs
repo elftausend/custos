@@ -35,7 +35,6 @@ impl Debug for Tape {
 
 impl Tape {
     #[inline]
-    #[track_caller]
     pub fn add_grad_fn2<Args: Parents<N> + UpdateArgs, const N: usize>(
         &mut self,
         args: Args,

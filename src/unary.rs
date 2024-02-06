@@ -16,7 +16,6 @@ pub trait ApplyFunction<T, S: Shape = (), D: Device = Self>: Device {
     /// let out = device.apply_fn(&a, |x| x.mul(2.));
     /// assert_eq!(&**out, &[2., 4., 6., 6., 4., 2.,]);
     /// ```
-    #[track_caller]
     fn apply_fn<F>(
         &self,
         // buf: &D::Data<T, S>,
@@ -47,7 +46,6 @@ pub trait UnaryGrad<T, S: Shape = (), D: Device = Self>: Device {
     /// assert_eq!(&**lhs_grad, &[2.; 6]);
     ///
     /// ```
-    #[track_caller]
     fn add_unary_grad<F>(
         &self,
         lhs: &Buffer<T, D, S>,
@@ -84,7 +82,6 @@ pub trait UnaryElementWiseMayGrad<T, D: Device, S: Shape>: Device {
     /// out.backward();
     /// assert_eq!(buf.grad().as_slice(), &[2.; 6]);
     /// ```
-    #[track_caller]
     fn unary_ew<FO, GO>(
         &self,
         buf: &Buffer<T, D, S>,
