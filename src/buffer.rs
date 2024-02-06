@@ -395,7 +395,8 @@ impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
             }
         }
 
-        let base = unsafe { val.base().shallow() };
+        let mut base = unsafe { val.base().shallow() };
+        unsafe { base.set_flag(AllocFlag::None) };
 
         // register new buffer by calling on_new_buffer inside
         Buffer::from_new_alloc(device, base.into())
