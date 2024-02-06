@@ -29,7 +29,7 @@ where
 #[cfg_attr(miri, ignore)]
 #[test]
 fn test_caching_cpu() {
-    use custos::{Base, Cached};
+    use custos::{Base, Cached, Cursor};
 
     let device = CPU::<Cached<Base>>::new();
 
@@ -38,7 +38,7 @@ fn test_caching_cpu() {
 
     let mut old_ptr = null_mut();
 
-    for _ in 0..100 {
+    for _ in device.range(0..100) {
         let out = cached_add(&device, &a, &b);
         if out.data.ptr != old_ptr && !old_ptr.is_null() {
             panic!("Should be the same pointer!");

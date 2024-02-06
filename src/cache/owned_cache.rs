@@ -1,12 +1,9 @@
-use core::{hash::BuildHasherDefault, panic::Location};
+use core::hash::BuildHasherDefault;
 use std::collections::HashMap;
 
 use std::rc::Rc;
 
-use crate::{
-    flag::AllocFlag, Alloc, Cursor, Device, HashLocation, LocationHasher, NoHasher, ShallowCopy,
-    Shape, UniqueId,
-};
+use crate::{flag::AllocFlag, Alloc, Cursor, Device, NoHasher, PtrType, ShallowCopy, Shape, UniqueId};
 
 #[derive(Debug, Clone)]
 pub struct Cache {
@@ -39,9 +36,15 @@ impl Cache {
         S: Shape,
     {
         let maybe_allocated = self.nodes.get(&(device.cursor() as UniqueId));
-        unsafe { device.bump_cursor() };
         match maybe_allocated {
-            Some(data) => unsafe { data.downcast_ref::<D::Base<T, S>>().unwrap().shallow() },
+            Some(data) => {
+                unsafe { device.bump_cursor() };
+                let data = unsafe { data.downcast_ref::<D::Base<T, S>>().unwrap().shallow() };
+
+                // TODO: not necessary, could add length to hashmap
+                assert_eq!(data.size(), len, "Data size mismatch! Did you use e.g. if conditions in a (cursor) loop retrieving buffers with a different size?");
+                data
+            }
             None => self.add_node(device, len, callback),
         }
     }
@@ -63,6 +66,7 @@ impl Cache {
 
         self.nodes
             .insert(device.cursor() as UniqueId, Rc::new(data));
+        unsafe { device.bump_cursor() };
         callback();
 
         shallow_data
@@ -72,12 +76,12 @@ impl Cache {
 #[cfg(test)]
 mod tests {
     use super::Cache;
-    use crate::{Base, CPU};
+    use crate::{Base, Cached, CPU};
 
     #[test]
     fn test_cache_add_node() {
         let mut cache = Cache::default();
-        let device = CPU::<Base>::new();
+        let device = CPU::<Cached<Base>>::new();
 
         assert_eq!(cache.nodes.len(), 0);
 
@@ -93,7 +97,7 @@ mod tests {
     #[test]
     fn test_cache_get_at_different_locations() {
         let mut cache = Cache::default();
-        let device = CPU::<Base>::new();
+        let device = CPU::<crate::Cached<Base>>::new();
 
         assert_eq!(cache.nodes.len(), 0);
 

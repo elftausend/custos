@@ -67,7 +67,7 @@ pub struct CachedModule<Mods, D: Device> {
     pub modules: Mods,
     pub cache: RefCell<Cache>,
     pub(crate) pd: PhantomData<D>,
-    cursor: Cell<usize>,
+    cursor: Cell<usize>, // would move this to `Cache`, however -> RefCell; TODO: maybe add a Cursor Module
 }
 
 impl<Mods: Setup<NewDev>, D: Device, NewDev> Setup<NewDev> for CachedModule<Mods, D> {

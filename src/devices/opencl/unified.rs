@@ -114,7 +114,7 @@ where
 ///     
 ///     let device = OpenCL::<Cached<Base>>::new(chosen_cl_idx())?;
 ///     let buf = unsafe {
-///         construct_buffer(&device, no_drop, &mut device.modules.cache.borrow_mut().nodes, std::panic::Location::caller().into())?
+///         construct_buffer(&device, no_drop, &mut device.modules.cache.borrow_mut().nodes, 0)?
 ///     };
 ///     
 ///     assert_eq!(buf.read(), vec![1., 3.1, 2.34, 0.76]);
