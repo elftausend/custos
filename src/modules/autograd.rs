@@ -140,10 +140,11 @@ where
     where
         D: Alloc<T>,
     {
+        let requires_grad = parents.requires_grads().iter().any(|&x| x); 
         let data = self.modules.retrieve(device, len, parents);
 
         ReqGradWrapper {
-            requires_grad: true, // if parents require grad, then true
+            requires_grad,
             data,
             _pd: core::marker::PhantomData,
         }

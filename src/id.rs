@@ -10,6 +10,16 @@ pub trait HasId {
     fn maybe_id(&self) -> Option<Id> {
         Some(self.id())
     }
+
+    // TODO: maybe move this to another trait -> `RequiresGrad`, probably needs to be added as trait bound for D::Data/Base
+    #[inline]
+    fn requires_grad(&self) -> bool {
+        true
+    }
+
+    // TODO: maybe move this to another trait -> `RequiresGrad`, probably needs to be added as trait bound for D::Data/Base
+    #[inline]
+    fn set_requires_grad(&mut self, _requires_grad: bool) {}
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
