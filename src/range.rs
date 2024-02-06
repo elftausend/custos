@@ -96,3 +96,60 @@ impl AsRange for (usize, usize) {
         self.1
     }
 }
+
+#[cfg(test)]
+mod tests {
+    #[cfg(feature = "cpu")]
+    #[cfg(feature = "cached")]
+    #[test]
+    fn test_cursor_range() {
+        use crate::{Base, Cached, Cursor, CPU};
+
+        let device = CPU::<Cached<Base>>::new();
+        for _ in device.range(10) {
+            assert_eq!(device.cursor(), 0);
+            unsafe { device.bump_cursor() };
+
+            assert_eq!(device.cursor(), 1);
+
+            for _ in device.range(20) {
+                unsafe { device.bump_cursor() };
+                unsafe { device.bump_cursor() };
+                assert_eq!(device.cursor(), 3);
+            }
+
+            assert_eq!(device.cursor(), 3);
+            unsafe { device.bump_cursor() };
+            assert_eq!(device.cursor(), 4);
+        }
+    }
+    
+    #[cfg(feature = "cpu")]
+    #[cfg(feature = "cached")]
+    #[test]
+    fn test_cursor_range_pre_bumped() {
+        use crate::{Base, Cached, Cursor, CPU};
+
+        let device = CPU::<Cached<Base>>::new();
+
+        unsafe { device.bump_cursor() };
+        unsafe { device.bump_cursor() };
+
+        for _ in device.range(10) {
+            assert_eq!(device.cursor(), 2);
+            unsafe { device.bump_cursor() };
+
+            assert_eq!(device.cursor(), 3);
+
+            for _ in device.range(20) {
+                unsafe { device.bump_cursor() };
+                unsafe { device.bump_cursor() };
+                assert_eq!(device.cursor(), 5);
+            }
+
+            assert_eq!(device.cursor(), 5);
+            unsafe { device.bump_cursor() };
+            assert_eq!(device.cursor(), 6);
+        }
+    }
+}

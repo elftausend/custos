@@ -41,6 +41,16 @@ pub trait Retrieve<D, T, S: Shape = ()>: OnDropBuffer {
 pub trait Cursor {
     fn cursor(&self) -> usize;
     unsafe fn set_cursor(&self, cursor: usize);
+    
+    #[inline]
+    unsafe fn inc_cursor(&self, inc: usize) {
+        self.set_cursor(self.cursor() + inc)
+    }
+
+    #[inline]
+    unsafe fn bump_cursor(&self) {
+        self.inc_cursor(1)
+    }
 
     #[inline]
     fn range(&self, range: impl AsRange) -> CursorRange<Self> 
