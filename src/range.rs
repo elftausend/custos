@@ -2,9 +2,9 @@ use crate::Cursor;
 use core::ops::{Range, RangeInclusive};
 
 pub struct CursorRange<'a, D> {
-    start: usize,
-    end: usize,
-    device: &'a D,
+    pub start: usize,
+    pub end: usize,
+    pub device: &'a D,
 }
 
 pub struct CursorRangeIter<'a, D> {

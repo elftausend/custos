@@ -1,6 +1,6 @@
 use core::{fmt::Debug, ops::RangeBounds};
 
-use crate::{HasId, Parents, Shape, UniqueId, UpdateArgs, CPU};
+use crate::{range::{AsRange, CursorRange}, HasId, Parents, Shape, UniqueId, UpdateArgs, CPU};
 
 #[cfg(feature = "cached")]
 use crate::{Base, CachedModule};
@@ -41,6 +41,18 @@ pub trait Retrieve<D, T, S: Shape = ()>: OnDropBuffer {
 pub trait Cursor {
     fn cursor(&self) -> usize;
     unsafe fn set_cursor(&self, cursor: usize);
+
+    #[inline]
+    fn range(&self, range: impl AsRange) -> CursorRange<Self> 
+    where
+        Self: Sized 
+    {
+        CursorRange {
+            start: range.start(),
+            end: range.end(),
+            device: self
+        }
+    }
 }
 
 #[macro_export]
