@@ -3,12 +3,14 @@ use std::collections::HashMap;
 
 use std::rc::Rc;
 
-use crate::{flag::AllocFlag, Alloc, Device, HashLocation, LocationHasher, ShallowCopy, Shape};
+use crate::{
+    flag::AllocFlag, Alloc, Cursor, Device, HashLocation, LocationHasher, NoHasher, ShallowCopy,
+    Shape, UniqueId,
+};
 
 #[derive(Debug, Clone)]
 pub struct Cache {
-    pub nodes:
-        HashMap<HashLocation<'static>, Rc<dyn core::any::Any>, BuildHasherDefault<LocationHasher>>,
+    pub nodes: HashMap<UniqueId, Rc<dyn core::any::Any>, BuildHasherDefault<NoHasher>>,
 }
 
 impl Default for Cache {
@@ -32,11 +34,12 @@ impl Cache {
     #[inline]
     pub unsafe fn get<T, S, D>(&mut self, device: &D, len: usize, callback: fn()) -> D::Base<T, S>
     where
-        D: Alloc<T> + 'static,
+        D: Alloc<T> + Cursor + 'static,
         D::Base<T, S>: ShallowCopy + 'static,
         S: Shape,
     {
-        let maybe_allocated = self.nodes.get(&Location::caller().into());
+        let maybe_allocated = self.nodes.get(&(device.cursor() as UniqueId));
+        unsafe { device.bump_cursor() };
         match maybe_allocated {
             Some(data) => unsafe { data.downcast_ref::<D::Base<T, S>>().unwrap().shallow() },
             None => self.add_node(device, len, callback),
@@ -51,14 +54,15 @@ impl Cache {
         callback: fn(),
     ) -> <D as Device>::Base<T, S>
     where
-        D: Alloc<T>,
+        D: Alloc<T> + Cursor,
         D::Base<T, S>: ShallowCopy + 'static,
         S: Shape,
     {
         let data = device.alloc::<S>(len, AllocFlag::None);
         let shallow_data = unsafe { data.shallow() };
 
-        self.nodes.insert(Location::caller().into(), Rc::new(data));
+        self.nodes
+            .insert(device.cursor() as UniqueId, Rc::new(data));
         callback();
 
         shallow_data

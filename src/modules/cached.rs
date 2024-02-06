@@ -123,7 +123,7 @@ impl<Mods: OnDropBuffer, SD: Device> OnDropBuffer for CachedModule<Mods, SD> {
 impl<T, Mods, D, SimpleDevice, S: Shape> Retrieve<D, T, S> for CachedModule<Mods, SimpleDevice>
 where
     Mods: Retrieve<D, T, S>,
-    D: Device + 'static,
+    D: Device + Cursor + 'static,
     D::Base<T, S>: ShallowCopy + 'static,
     SimpleDevice: Device,
 {

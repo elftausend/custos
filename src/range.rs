@@ -123,7 +123,7 @@ mod tests {
             assert_eq!(device.cursor(), 4);
         }
     }
-    
+
     #[cfg(feature = "cpu")]
     #[cfg(feature = "cached")]
     #[test]
