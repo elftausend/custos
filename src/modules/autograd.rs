@@ -430,7 +430,7 @@ mod tests {
 
         let device = CPU::<Autograd<Base>>::new();
 
-        let lhs = device.buffer([1, 2, 3, 4]);
+        let lhs = device.buffer([1, 2, 3, 4]).require_grad();
         let out = lhs.empty_like();
 
         device.add_grad_fn((&lhs, &out), |(lhs, out)| {
@@ -450,7 +450,7 @@ mod tests {
     fn test_autograd_disabling() {
         let device = CPU::<Autograd<Base>>::new();
 
-        let lhs = device.buffer([1, 2, 3, 4]);
+        let lhs = device.buffer([1, 2, 3, 4]).require_grad();
         let out = lhs.empty_like();
 
         device.disable_grad();

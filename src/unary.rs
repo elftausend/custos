@@ -178,7 +178,7 @@ mod tests {
     {
         use crate::Combiner;
 
-        let buf = device.buffer([1., 2., 3., 4.]);
+        let buf = device.buffer([1., 2., 3., 4.]).require_grad();
         let out = device.unary_ew(&buf, |x| x.sin(), |x| x.cos());
         roughly_eq_slices(
             &out.read_to_vec(),
@@ -252,7 +252,7 @@ mod tests {
         };
 
         let device = CPU::<Autograd<Base>>::new();
-        let buf = device.buffer([1., 2., 3., 4.]);
+        let buf = device.buffer([1., 2., 3., 4.]).require_grad();
 
         for _ in 0..10 {
             let out = device.unary_ew(&buf, |x| x.sin(), |x| x.cos());
@@ -295,7 +295,7 @@ mod tests {
         };
 
         let device = CPU::<Autograd<Base>>::new();
-        let buf = device.buffer([1., 2., 3., 4.]);
+        let buf = device.buffer([1., 2., 3., 4.]).require_grad();
 
         for i in device.range(0..9) {
             let _out = device.unary_ew(&buf, |x| x.sin(), |x| x.cos());

@@ -52,7 +52,10 @@ where
         D: ZeroGrad<T> + MayTapeActions + Alloc<T>,
         // D::Data<T, S>: crate::ShallowCopy,
     {
-        assert!(self.requires_grad(), "Buffer does not require gradient.");
+        // TODO: consider activating this check -> 
+        // e.g. binary grad ops are computed in a single function where differentiating between 
+        // req grad and no req grad is not possible/ difficult
+        // assert!(self.requires_grad(), "Buffer does not require gradient.");
         unsafe {
             self.device()
                 .gradients_mut()
@@ -98,7 +101,10 @@ where
     where
         D: MayTapeActions + Alloc<T> + ZeroGrad<T>,
     {
-        assert!(self.requires_grad(), "Buffer does not require gradient.");
+        // TODO: consider activating this check -> 
+        // e.g. binary grad ops are computed in a single function where differentiating between 
+        // req grad and no req grad is not possible/ difficult
+        // assert!(self.requires_grad(), "Buffer does not require gradient.");
         unsafe {
             self.device()
                 .gradients_mut()

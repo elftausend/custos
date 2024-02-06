@@ -33,7 +33,11 @@ impl Gradients {
     pub fn add_zero_grad_cb<T: 'static, D: Device + ZeroGrad<T> + 'static, S: Shape>(&mut self, id: &Id) {
         self.zero_grad_cbs.push((*id, |buf| {
             let buf = buf.downcast_mut::<Buffer<T, D, S>>().unwrap();
-            buf.device().zero_grad(buf);
+
+            // the callback is only added if the grad buffer was used in a grad op, so this check isn't necessary
+            if true || buf.requires_grad() {
+                buf.device().zero_grad(buf);
+            }
         }));
     }
 
