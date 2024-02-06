@@ -28,18 +28,12 @@ mod fork;
 pub use fork::*;
 
 #[cfg(feature = "std")]
-use crate::{Buffer, Device, HasId, HashLocation, Id, ShallowCopy, Shape, UniqueId};
+use crate::{Buffer, Device, HasId, Id, ShallowCopy, Shape, UniqueId};
 #[cfg(feature = "std")]
 use core::{any::Any, hash::BuildHasher};
 
 #[cfg(feature = "std")]
 use std::collections::HashMap;
-
-#[cfg(feature = "std")]
-pub struct HashLocationCacheTrace {
-    pub cache_idx: HashLocation<'static>,
-    pub use_cache_idxs: Vec<HashLocation<'static>>,
-}
 
 #[cfg(feature = "std")]
 #[inline]

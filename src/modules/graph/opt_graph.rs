@@ -1,18 +1,11 @@
 mod optimize;
 
-use core::hash::BuildHasherDefault;
-use std::collections::HashSet;
-
 pub use optimize::*;
-
-use crate::{NoHasher, UniqueId};
-
 use super::node::Node;
 
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct OptGraph {
     pub nodes: Vec<Node>,
-    pub contains_ids: HashSet<UniqueId, BuildHasherDefault<NoHasher>>
 }
 
 impl OptGraph {

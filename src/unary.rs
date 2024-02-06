@@ -157,8 +157,8 @@ mod tests {
                 0.8414709848078965,
                 0.9092974268256817,
                 0.1411200080598672,
-                -0.7568024953079282
-            ]
+                -0.7568024953079282,
+            ],
         );
     }
 
@@ -289,7 +289,8 @@ mod tests {
     #[test]
     fn test_unary_elementwise_may_grad_multiple_times_backwards_at_end() {
         use crate::{
-            two_way_ops::tests_ex::roughly_eq_slices, Autograd, Base, Combiner, Cursor, Device, UnaryElementWiseMayGrad, CPU
+            two_way_ops::tests_ex::roughly_eq_slices, Autograd, Base, Combiner, Cursor, Device,
+            UnaryElementWiseMayGrad, CPU,
         };
 
         let device = CPU::<Autograd<Base>>::new();

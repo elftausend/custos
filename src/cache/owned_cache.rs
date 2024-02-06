@@ -3,7 +3,9 @@ use std::collections::HashMap;
 
 use std::rc::Rc;
 
-use crate::{flag::AllocFlag, Alloc, Cursor, Device, NoHasher, PtrType, ShallowCopy, Shape, UniqueId};
+use crate::{
+    flag::AllocFlag, Alloc, Cursor, Device, NoHasher, PtrType, ShallowCopy, Shape, UniqueId,
+};
 
 #[derive(Debug, Clone)]
 pub struct Cache {
