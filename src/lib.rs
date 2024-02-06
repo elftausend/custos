@@ -111,6 +111,7 @@ pub mod modules;
 mod op_traits;
 mod parents;
 mod ptr_conv;
+mod range;
 mod shape;
 mod two_way_ops;
 mod unary;

@@ -9,7 +9,7 @@ pub use stack_device::*;
 
 use crate::{
     cpu_stack_ops::clear_slice, ApplyFunction, Buffer, ClearBuf, Device, Eval, MayToCLSource,
-    OnDropBuffer, Resolve, Retrieve, Retriever, Shape, ToVal, UnaryGrad,
+    OnDropBuffer, Resolve, Retrieve, Retriever, Shape, ToVal, UnaryGrad, ZeroGrad,
 };
 
 // #[impl_stack]
@@ -23,6 +23,17 @@ where
     #[inline]
     fn clear(&self, buf: &mut Buffer<T, D, S>) {
         clear_slice(buf)
+    }
+}
+
+impl<Mods, T> ZeroGrad<T> for Stack<Mods>
+where
+    T: Default,
+    Mods: OnDropBuffer,
+{
+    #[inline]
+    fn zero_grad<S: Shape>(&self, data: &mut Self::Base<T, S>) {
+        clear_slice(data)
     }
 }
 

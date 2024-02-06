@@ -10,7 +10,9 @@ pub use to_wgsl_source::*;
 
 use crate::prelude::Numeric;
 
-use self::ops::{Add, Cos, Div, Eq, Exp, GEq, Identity, LEq, Mul, Neg, Pow, Sin, Sub, Tan, Tanh};
+use self::ops::{
+    Add, Cos, Div, Eq, Exp, GEq, Identity, LEq, Ln, Max, Min, Mul, Neg, Pow, Sin, Sub, Tan, Tanh,
+};
 
 /// Evaluates a combined (via [`Combiner`]) math operations chain to a valid OpenCL C (and possibly CUDA) source string.
 #[cfg(feature = "std")]
@@ -170,6 +172,21 @@ pub trait Combiner: Sized {
     fn identity(self) -> Identity<Self> {
         Identity { comb: self }
     }
+
+    #[inline]
+    fn min<R>(self, rhs: R) -> Min<Self, R> {
+        Min { comb: self, rhs }
+    }
+
+    #[inline]
+    fn max<R>(self, rhs: R) -> Max<Self, R> {
+        Max { comb: self, rhs }
+    }
+
+    #[inline]
+    fn ln(self) -> Ln<Self> {
+        Ln { comb: self }
+    }
 }
 
 #[cfg(test)]
@@ -328,6 +345,37 @@ pub mod tests_ex {
                 )
             }
         }
+    }
+
+    #[cfg(feature = "cpu")]
+    #[test]
+    fn test_apply_clip_cpu() {
+        use crate::{ApplyFunction, Base, Device, CPU};
+
+        let min = 3.;
+        let max = 5.;
+
+        let device = CPU::<Base>::new();
+
+        let x = device.buffer(&[1., 3., 4., 6., 3., 2.]);
+
+        let out = device.apply_fn(&x, move |x| x.max(min).min(max));
+        assert_eq!(out.read(), &[3., 3., 4., 5., 3., 3.]);
+    }
+    #[cfg(feature = "opencl")]
+    #[test]
+    fn test_apply_clip_cl() {
+        use crate::{prelude::chosen_cl_idx, ApplyFunction, Base, Device, OpenCL};
+
+        let min = 3.;
+        let max = 5.;
+
+        let device = OpenCL::<Base>::new(chosen_cl_idx()).unwrap();
+
+        let x = device.buffer(&[1., 3., 4., 6., 3., 2.]);
+
+        let out = device.apply_fn(&x, move |x| x.max(min).min(max));
+        assert_eq!(out.read(), &[3., 3., 4., 5., 3., 3.]);
     }
 
     #[cfg(all(feature = "cpu", feature = "macro"))]

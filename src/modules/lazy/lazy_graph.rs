@@ -43,7 +43,6 @@ impl<B: AsAny> LazyGraph<B> {
         self.args.clear();
     }
 
-    #[track_caller]
     pub fn add_operation<Args: Parents<N> + UpdateArgs, const N: usize>(
         &mut self,
         args: Args,

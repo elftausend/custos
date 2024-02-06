@@ -1,4 +1,4 @@
-use crate::{Alloc, BorrowCache, Buffer, CachingError, HasId, Id, Parents, Shape};
+use crate::{Alloc, BorrowCache, Buffer, CachingError, Device, HasId, Id, Shape, ZeroGrad};
 
 const INVALID_ID: &str = "A matching Buffer does not exist.";
 
@@ -8,6 +8,7 @@ const INVALID_ID: &str = "A matching Buffer does not exist.";
 pub struct Gradients {
     pub grads_pool: BorrowCache,
     pub no_grads_pool: BorrowCache,
+    pub zero_grad_cbs: Vec<(Id, fn(&mut dyn core::any::Any))>,
 }
 
 impl core::fmt::Debug for Gradients {
@@ -18,19 +19,22 @@ impl core::fmt::Debug for Gradients {
     }
 }
 
-type LhsRhsOut<'a, 'b, T, D, S> = (
-    &'b Buffer<'a, T, D, S>,
-    &'b Buffer<'a, T, D, S>,
-    &'b mut Buffer<'a, T, D, S>,
-    &'b mut Buffer<'a, T, D, S>,
-    &'b Buffer<'a, T, D, S>,
-);
-
 impl Gradients {
     /// Clears the cache.
     #[inline]
     pub fn zero_grad(&mut self) {
-        self.grads_pool.cache.clear();
+        for (id, cb) in &self.zero_grad_cbs {
+            let buf = self.grads_pool.cache.get_mut(id).unwrap();
+            cb(&mut **buf);
+        }
+        // self.grads_pool.cache.clear();
+    }
+
+    pub fn add_zero_grad_cb<T: 'static, D: Device + ZeroGrad<T> + 'static, S: Shape>(&mut self, id: &Id) {
+        self.zero_grad_cbs.push((*id, |buf| {
+            let buf = buf.downcast_mut::<Buffer<T, D, S>>().unwrap();
+            buf.device().zero_grad(buf);
+        }));
     }
 
     /// May get a reference to a gradient [`Buffer`].
@@ -65,9 +69,17 @@ impl Gradients {
     where
         T: 'static,
         S: Shape,
-        D: Alloc<T> + 'static,
+        D: Alloc<T> + ZeroGrad<T> + 'static,
     {
-        self.grads_pool.add_or_get(device, id)
+        // because of rust, thx
+        let mut new_buf = false;
+        self.grads_pool
+            .add_buf_once::<T, D, S>(device, id, &mut new_buf);
+
+        if new_buf {
+            self.add_zero_grad_cb::<T, D, S>(&id);
+        }
+        self.grads_pool.get_buf(id).unwrap()
     }
 
     /// Returns a mutable reference to a gradient [`Buffer`].
@@ -77,9 +89,16 @@ impl Gradients {
     where
         T: 'static,
         S: Shape,
-        D: Alloc<T> + 'static,
+        D: ZeroGrad<T> + Alloc<T> + 'static,
     {
-        self.grads_pool.add_or_get_mut(device, id)
+        let mut new_buf = false;
+        self.grads_pool
+            .add_buf_once::<T, D, S>(device, id, &mut new_buf);
+
+        if new_buf {
+            self.add_zero_grad_cb::<T, D, S>(&id);
+        }
+        self.grads_pool.get_buf_mut(id).unwrap()
     }
 
     /// Returns a reference to a gradient [`Buffer`] using information from `buf`.
@@ -88,7 +107,7 @@ impl Gradients {
     where
         T: 'static,
         S: Shape,
-        D: Alloc<T> + 'static,
+        D: Alloc<T> + ZeroGrad<T> + 'static,
         D::Data<T, S>: HasId,
     {
         self.get_ref(buf.device(), buf.id())
@@ -102,66 +121,6 @@ impl Gradients {
         D: Alloc<T> + 'static,
     {
         self.no_grads_pool.get_buf::<T, D, S>(id).expect(INVALID_ID)
-    }
-
-    /// Returns the forward [`Buffer`]s lhs and and rhs, and the gradient `Buffer`s lhs_grad, rhs_grad and out_grad.
-    /// Usefull for binary operations.
-    #[inline]
-    pub fn get_triple<'a, T, S, D>(
-        &mut self,
-        parents: impl Parents<3>,
-    ) -> LhsRhsOut<'a, '_, T, D, S>
-    where
-        T: 'static,
-        S: Shape,
-        D: Alloc<T> + 'static,
-    {
-        let [lid, rid, oid] = parents.ids();
-
-        let lhs_grad_ptr = self.may_get_mut(lid).unwrap() as *mut _;
-        let lhs_grad = unsafe { &mut *lhs_grad_ptr };
-
-        let rhs_grad_ptr = self.may_get_mut(rid).unwrap() as *mut _;
-        let rhs_grad = unsafe { &mut *rhs_grad_ptr };
-        (
-            self.get_buf_from_no_grad_pool(lid),
-            self.get_buf_from_no_grad_pool(rid),
-            lhs_grad,
-            rhs_grad,
-            self.may_get_ref(oid).unwrap(),
-        )
-    }
-
-    /// Returns the forward [`Buffer`] x and the gradient `Buffer`s x_grad and out_grad.
-    /// Useful for unary operations.
-    ///
-    #[inline]
-    pub fn get_double<'a, T, IS, OS, D>(
-        &mut self,
-        // device: &'a D,
-        parents: impl Parents<2>,
-        // (xid, oid): (Id, Id),
-    ) -> (
-        &Buffer<'a, T, D, IS>,
-        &mut Buffer<'a, T, D, IS>,
-        &Buffer<'a, T, D, OS>,
-    )
-    where
-        T: 'static,
-        IS: Shape,
-        OS: Shape,
-        D: Alloc<T> + 'static,
-        D::Data<T, IS>: crate::ShallowCopy,
-    {
-        let [xid, oid] = parents.ids();
-        // self.grads_pool.add_buf_once::<T, _, IS>(device, oid);
-
-        // let x_grad_ptr = self.get_mut(device, xid) as *mut _;
-        let x_grad_ptr = self.may_get_mut(xid).unwrap() as *mut _;
-        let x_grad_mut = unsafe { &mut *x_grad_ptr };
-        let o_grad = self.may_get_ref(oid).unwrap();
-
-        (self.get_buf_from_no_grad_pool(xid), x_grad_mut, o_grad)
     }
 }
 

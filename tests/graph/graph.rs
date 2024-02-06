@@ -1,4 +1,4 @@
-use custos::{Base, Buffer, Cached, Graph, OptimizeMemGraph, CPU};
+use custos::{Base, Buffer, Cached, Cursor, Graph, OptimizeMemGraph, CPU};
 
 #[cfg(feature = "opencl")]
 use custos::OpenCL;
@@ -6,7 +6,6 @@ use custos::OpenCL;
 use crate::graph::AddOp;
 
 #[test]
-#[cfg_attr(miri, ignore)]
 fn test_graph() -> custos::Result<()> {
     let device = CPU::<Graph<Cached<Base>>>::new();
 
@@ -15,7 +14,7 @@ fn test_graph() -> custos::Result<()> {
     // idx: 1
     let b = Buffer::from((&device, [2, 3, 1, 4, 0, 5]));
 
-    for ep in 0..=1 {
+    for ep in device.range(0..=1) {
         // idx: 2, deps: [0, 1]
         let c = a.add(&b);
         assert_eq!(vec![3, 5, 4, 8, 5, 11], c.read());
@@ -49,7 +48,7 @@ fn test_graph_cl() -> custos::Result<()> {
     // idx: 1
     let b = Buffer::from((&device, [2, 3, 1, 4, 0, 5]));
 
-    for ep in 0..=1 {
+    for ep in device.range(0..=1) {
         // idx: 2, deps: [0, 1]
         let c = a.add(&b);
         assert_eq!(vec![3, 5, 4, 8, 5, 11], c.read());

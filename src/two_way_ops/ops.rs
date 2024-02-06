@@ -174,3 +174,55 @@ impl<C: Eval<T>, R: Eval<T>, T: Float> Eval<T> for Pow<C, R> {
         self.comb.eval().powf(self.rhs.eval())
     }
 }
+
+pub struct Min<C, R> {
+    pub comb: C,
+    pub rhs: R,
+}
+
+impl<C, R> Combiner for Min<C, R> {}
+
+#[cfg(feature = "std")]
+impl<C: ToCLSource, R: ToCLSource> ToCLSource for Min<C, R> {
+    #[inline]
+    fn to_cl_source(&self) -> String {
+        format!(
+            "min({}, {})",
+            self.comb.to_cl_source(),
+            self.rhs.to_cl_source()
+        )
+    }
+}
+
+impl<C: Eval<T>, R: Eval<T>, T: Float> Eval<T> for Min<C, R> {
+    #[inline]
+    fn eval(self) -> T {
+        self.comb.eval().min(self.rhs.eval())
+    }
+}
+
+pub struct Max<C, R> {
+    pub comb: C,
+    pub rhs: R,
+}
+
+impl<C, R> Combiner for Max<C, R> {}
+
+#[cfg(feature = "std")]
+impl<C: ToCLSource, R: ToCLSource> ToCLSource for Max<C, R> {
+    #[inline]
+    fn to_cl_source(&self) -> String {
+        format!(
+            "max({}, {})",
+            self.comb.to_cl_source(),
+            self.rhs.to_cl_source()
+        )
+    }
+}
+
+impl<C: Eval<T>, R: Eval<T>, T: Float> Eval<T> for Max<C, R> {
+    #[inline]
+    fn eval(self) -> T {
+        self.comb.eval().max(self.rhs.eval())
+    }
+}

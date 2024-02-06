@@ -5,7 +5,7 @@ use crate::{
     cpu_stack_ops::{apply_fn_slice, clear_slice},
     pass_down_add_operation, pass_down_exec_now, AddOperation, ApplyFunction, AsNoId, BufAsNoId,
     Buffer, ClearBuf, CopySlice, Device, Eval, MayToCLSource, OnDropBuffer, Read, Resolve,
-    Retrieve, Retriever, Shape, ToVal, UnaryGrad, WriteBuf, CPU,
+    Retrieve, Retriever, Shape, ToVal, UnaryGrad, WriteBuf, ZeroGrad, CPU,
 };
 
 pass_down_add_operation!(CPU);
@@ -129,6 +129,17 @@ where
     #[inline]
     fn clear(&self, buf: &mut Buffer<T, D, S>) {
         clear_slice(buf);
+    }
+}
+
+impl<Mods, T> ZeroGrad<T> for CPU<Mods>
+where
+    T: Default,
+    Mods: OnDropBuffer,
+{
+    #[inline]
+    fn zero_grad<S: Shape>(&self, data: &mut Self::Base<T, S>) {
+        clear_slice(data)
     }
 }
 

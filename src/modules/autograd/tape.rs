@@ -2,8 +2,8 @@ use core::{any::Any, fmt::Debug, hash::BuildHasherDefault, panic::Location};
 use std::collections::{HashMap, HashSet};
 
 use crate::{
-    prelude::One, Alloc, Buffer, Buffers, HasId, HashLocation, LazyGraph, LocationHasher, Parents,
-    Shape, TapeActions, UpdateArgs, WriteBuf,
+    Alloc, Buffer, Buffers, HasId, HashLocation, LazyGraph, LocationHasher, Parents, Shape,
+    TapeActions, UpdateArgs, WriteBuf, ZeroGrad,
 };
 
 use super::Gradients;
@@ -35,7 +35,6 @@ impl Debug for Tape {
 
 impl Tape {
     #[inline]
-    #[track_caller]
     pub fn add_grad_fn2<Args: Parents<N> + UpdateArgs, const N: usize>(
         &mut self,
         args: Args,
@@ -89,18 +88,17 @@ impl Tape {
     }
 
     /// Backward pass with seeded gradient.
-    /// The seed of the gradient contains `buf.len()` elements, all of them are set to 1.
-    pub fn backward_seeded<T, D, S: Shape>(&mut self, buf: &Buffer<T, D, S>)
+    pub fn backward_seeded<T, D, S: Shape>(&mut self, buf: &Buffer<T, D, S>, seed: &[T])
     where
-        T: Clone + One + 'static,
-        D: Alloc<T> + WriteBuf<T, S, D> + TapeActions + 'static,
+        T: Clone + 'static,
+        D: Alloc<T> + ZeroGrad<T> + WriteBuf<T, S, D> + TapeActions + 'static,
     {
         let mut no_grads = {
             // unique mutable access to gradients
             let gradients = unsafe { buf.device().gradients_mut() }.unwrap();
 
             let out = gradients.get_mut::<T, S, D>(buf.device(), buf.id());
-            out.write(&vec![T::one(); out.len()]);
+            out.write(seed);
 
             let no_grads = &mut gradients.no_grads_pool.cache;
             core::mem::take(no_grads)

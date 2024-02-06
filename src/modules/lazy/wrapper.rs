@@ -73,7 +73,7 @@ const MISSING_DATA: &str =
     "This lazy buffer does not contain any data. Try with a buffer.replace() call.";
 
 impl<Data: Deref<Target = [T]>, T> Deref for LazyWrapper<Data, T> {
-    type Target = [T];
+    type Target = Data;
 
     #[inline]
     fn deref(&self) -> &Self::Target {
