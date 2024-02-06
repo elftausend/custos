@@ -8,10 +8,7 @@ pub use opt_graph::*;
 use core::{cell::RefCell, panic::Location};
 
 use crate::{
-    impl_remove_layer, pass_down_add_operation, pass_down_exec_now_module,
-    pass_down_replace_buf_module, pass_down_use_gpu_or_cpu, AddLayer, Alloc, Buffer, Device, HasId,
-    Module, OnDropBuffer, OnNewBuffer, OptimizeMemGraph, Parents, PtrType, Retrieve, RunModule,
-    Setup, Shape, WrappedData,
+    impl_remove_layer, pass_down_add_operation, pass_down_cursor, pass_down_exec_now_module, pass_down_replace_buf_module, pass_down_use_gpu_or_cpu, AddLayer, Alloc, Buffer, Device, HasId, Module, OnDropBuffer, OnNewBuffer, OptimizeMemGraph, Parents, PtrType, Retrieve, RunModule, Setup, Shape, WrappedData
 };
 
 pub use self::graph_translator::GraphTranslator;
@@ -168,6 +165,8 @@ impl<T: 'static, Mods: Retrieve<D, T, S>, D: 'static, S: Shape> Retrieve<D, T, S
         self.modules.on_retrieve_finish(retrieved_buf)
     }
 }
+
+pass_down_cursor!(Graph);
 
 #[cfg(test)]
 mod tests {

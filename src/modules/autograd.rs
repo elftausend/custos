@@ -7,10 +7,7 @@ pub use tape::*;
 use core::cell::{Cell, UnsafeCell};
 
 use crate::{
-    impl_remove_layer, pass_down_add_operation, pass_down_exec_now_module, register_buf_any,
-    unregister_buf_any, AddGradFn, AddLayer, Alloc, Buffer, Device, HasId, IsShapeIndep, Module,
-    OnDropBuffer, OnNewBuffer, Parents, PtrType, Retrieve, RunModule, Setup, ShallowCopy, Shape,
-    TapeActions, WrappedData,
+    impl_remove_layer, pass_down_add_operation, pass_down_cursor, pass_down_exec_now_module, register_buf_any, unregister_buf_any, AddGradFn, AddLayer, Alloc, Buffer, Device, HasId, IsShapeIndep, Module, OnDropBuffer, OnNewBuffer, Parents, PtrType, Retrieve, RunModule, Setup, ShallowCopy, Shape, TapeActions, WrappedData
 };
 
 use super::{Cached, CachedModule};
@@ -177,6 +174,8 @@ where
         self.modules.on_retrieve_finish(retrieved_buf)
     }
 }
+
+pass_down_cursor!(Autograd);
 
 impl<Mods> TapeActions for Autograd<Mods> {
     #[inline]

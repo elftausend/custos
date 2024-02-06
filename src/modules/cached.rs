@@ -1,9 +1,7 @@
-use core::{cell::RefCell, marker::PhantomData};
+use core::{cell::{Cell, RefCell}, marker::PhantomData};
 
 use crate::{
-    AddGradFn, AddLayer, AddOperation, Alloc, Buffer, Cache, Device, ExecNow, HasId, Module,
-    OnDropBuffer, OnNewBuffer, Parents, PtrType, RemoveLayer, Retrieve, RunModule, Setup,
-    ShallowCopy, Shape, WrappedData,
+    AddGradFn, AddLayer, AddOperation, Alloc, Buffer, Cache, Cursor, Device, ExecNow, HasId, Module, OnDropBuffer, OnNewBuffer, Parents, PtrType, RemoveLayer, Retrieve, RunModule, Setup, ShallowCopy, Shape, WrappedData
 };
 
 #[cfg(feature = "graph")]
@@ -52,6 +50,7 @@ impl<Mods: Module<D>, D: Device> Module<D> for Cached<Mods> {
             modules: Mods::new(),
             cache: RefCell::new(Cache::new()),
             pd: PhantomData,
+            cursor: Default::default()
         }
     }
 }
@@ -63,6 +62,7 @@ pub struct CachedModule<Mods, D: Device> {
     pub modules: Mods,
     pub cache: RefCell<Cache>,
     pub(crate) pd: PhantomData<D>,
+    cursor: Cell<usize>,
 }
 
 impl<Mods: Setup<NewDev>, D: Device, NewDev> Setup<NewDev> for CachedModule<Mods, D> {
@@ -144,6 +144,19 @@ where
     }
 }
 
+impl<Mods, SD: Device> Cursor for CachedModule<Mods, SD> {
+    #[inline]
+    fn cursor(&self) -> usize {
+        self.cursor.get()
+    }
+
+    #[inline]
+    unsafe fn set_cursor(&self, cursor: usize) {
+        self.cursor.set(cursor)
+    }
+}
+
+
 #[cfg(feature = "autograd")]
 impl<Mods: crate::HasAutograd, SD: Device> crate::HasAutograd for CachedModule<Mods, SD> {}
 
@@ -179,6 +192,7 @@ impl<CurrentMods, SD: Device> AddLayer<CurrentMods, SD> for Cached<()> {
             modules: inner_mods,
             cache: Default::default(),
             pd: core::marker::PhantomData,
+            cursor: Default::default()
         }
     }
 }

@@ -116,6 +116,7 @@ mod two_way_ops;
 mod unary;
 mod update_args;
 mod wrapper;
+mod range;
 
 pub use cache::*;
 pub use device_traits::*;

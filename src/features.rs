@@ -38,6 +38,28 @@ pub trait Retrieve<D, T, S: Shape = ()>: OnDropBuffer {
     }
 }
 
+pub trait Cursor {
+    fn cursor(&self) -> usize;
+    unsafe fn set_cursor(&self, cursor: usize);
+}
+
+#[macro_export]
+macro_rules! pass_down_cursor {
+    ($to_impl:ident) => {
+        impl<Mods: $crate::Cursor> $crate::Cursor for $to_impl<Mods> {
+            #[inline]
+            fn cursor(&self) -> usize {
+                self.modules.cursor()
+            }
+
+            #[inline]
+            unsafe fn set_cursor(&self, cursor: usize) {
+                self.modules.set_cursor(cursor)
+            }
+        }
+    };
+}
+
 /// Used for modules that should affect the device.
 pub trait Setup<D> {
     #[inline]
