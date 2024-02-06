@@ -52,6 +52,7 @@ where
         D: ZeroGrad<T> + MayTapeActions + Alloc<T>,
         // D::Data<T, S>: crate::ShallowCopy,
     {
+        assert!(self.requires_grad(), "Buffer does not require gradient.");
         unsafe {
             self.device()
                 .gradients_mut()
@@ -68,6 +69,10 @@ where
     where
         D: MayTapeActions + Alloc<T>,
     {
+        if !self.requires_grad() {
+            return None;
+        }
+
         #[cfg(feature = "autograd")]
         unsafe {
             self.device().gradients()?.may_get_ref(self.id()).ok()
@@ -93,6 +98,7 @@ where
     where
         D: MayTapeActions + Alloc<T> + ZeroGrad<T>,
     {
+        assert!(self.requires_grad(), "Buffer does not require gradient.");
         unsafe {
             self.device()
                 .gradients_mut()
@@ -109,6 +115,10 @@ where
     where
         D: MayTapeActions + Alloc<T>,
     {
+        if !self.requires_grad() {
+            return None;
+        }
+
         #[cfg(feature = "autograd")]
         unsafe {
             self.device().gradients_mut()?.may_get_mut(self.id()).ok()

@@ -1,6 +1,5 @@
 use crate::{
-    AddGradFn, Alloc, AsNoId, Buffer, Device, Eval, MayTapeActions, MayToCLSource, Resolve, Shape,
-    ZeroGrad,
+    AddGradFn, Alloc, AsNoId, Buffer, Device, Eval, HasId, MayTapeActions, MayToCLSource, Resolve, Shape, ZeroGrad
 };
 
 /// Applies a function to a buffer and returns a new buffer.
@@ -116,6 +115,9 @@ where
         let out = self.apply_fn(buf, forward_fn);
 
         self.add_grad_fn((buf, &out, _grad_fn.no_id()), |(buf, out, grad_fn)| {
+            if !buf.requires_grad() {
+                return Ok(());
+            }
             buf.device()
                 .add_unary_grad(buf, buf.grad_mut(), out.grad(), **grad_fn);
             Ok(())

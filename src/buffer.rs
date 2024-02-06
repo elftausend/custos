@@ -100,6 +100,13 @@ impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
     {
         Buffer::new(self.device(), self.len())
     }
+
+    #[inline]
+    pub fn require_grad(self) -> Buffer<'a, T, D, S> {
+        let mut buf = self;
+        buf.set_requires_grad(true);
+        buf
+    }
 }
 
 // DO NOT implement!
@@ -110,10 +117,37 @@ impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
 //     }
 // }
 
+impl<'a, T, D: Device, S: Shape> HasId for Buffer<'a, T, D, S> {
+    #[inline]
+    fn id(&self) -> super::Id {
+        self.data.id()
+    }
+
+    #[inline]
+    fn requires_grad(&self) -> bool {
+        self.data.requires_grad()
+    }
+
+    #[inline]
+    fn set_requires_grad(&mut self, requires_grad: bool) {
+        self.data.set_requires_grad(requires_grad);
+    }
+}
+
 impl<'a, T, D: Device, S: Shape> HasId for &Buffer<'a, T, D, S> {
     #[inline]
     fn id(&self) -> super::Id {
         self.data.id()
+    }
+
+    #[inline]
+    fn requires_grad(&self) -> bool {
+        self.data.requires_grad()
+    }
+
+    #[inline]
+    fn set_requires_grad(&mut self, _requires_grad: bool) {
+        unimplemented!("Cannot use on &Buffer. Use on &mut Buffer.");
     }
 }
 
@@ -121,6 +155,16 @@ impl<'a, T, D: Device, S: Shape> HasId for &mut Buffer<'a, T, D, S> {
     #[inline]
     fn id(&self) -> super::Id {
         self.data.id()
+    }
+
+    #[inline]
+    fn requires_grad(&self) -> bool {
+        self.data.requires_grad()
+    }
+
+    #[inline]
+    fn set_requires_grad(&mut self, requires_grad: bool) {
+        self.data.set_requires_grad(requires_grad);
     }
 }
 

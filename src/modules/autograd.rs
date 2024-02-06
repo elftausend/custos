@@ -477,4 +477,29 @@ mod tests {
 
         assert_eq!(lhs.try_grad().unwrap().as_slice(), [4, 5, 6, 7]);
     }
+
+    #[test]
+    fn test_req_grad_chaining() {
+        let device = CPU::<Autograd<Base>>::new();
+
+        let lhs = device.buffer([1i32, 2, 3, 4]).require_grad();
+        assert!(lhs.requires_grad());
+        
+        let no_grad = device.buffer([1i32, 2, 3, 4]);
+        let rhs = device.buffer([1i32, 2, 3, 4]);
+        assert!(!rhs.requires_grad());
+
+        let out: Buffer<i32, _> = device.retrieve(rhs.len(), (&lhs, &rhs));
+        assert!(out.requires_grad());
+        
+        let out: Buffer<i32, _> = device.retrieve(rhs.len(), &lhs);
+        assert!(out.requires_grad());
+        
+        let out: Buffer<i32, _> = device.retrieve(rhs.len(), &rhs);
+        assert!(!out.requires_grad());
+        
+        let out: Buffer<i32, _> = device.retrieve(rhs.len(), (&no_grad, &rhs));
+        assert!(!out.requires_grad());
+
+    }
 }

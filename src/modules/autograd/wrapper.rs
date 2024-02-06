@@ -17,7 +17,7 @@ impl<Mods: WrappedData> WrappedData for Autograd<Mods> {
         base: Base,
     ) -> Self::Wrap<T, Base> {
         ReqGradWrapper {
-            requires_grad: true,
+            requires_grad: false,
             data: self.modules.wrap_in_base(base),
             _pd: PhantomData,
         }
