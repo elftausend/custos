@@ -80,6 +80,7 @@ mod tests {
     use super::Cache;
     use crate::{Base, Cached, CPU};
 
+    #[cfg(feauture = "cpu")]
     #[test]
     fn test_cache_add_node() {
         let mut cache = Cache::default();
@@ -96,6 +97,7 @@ mod tests {
         assert_ne!(out.ptr, out1.ptr);
     }
 
+    #[cfg(feauture = "cpu")]
     #[test]
     fn test_cache_get_at_different_locations() {
         let mut cache = Cache::default();
@@ -112,6 +114,7 @@ mod tests {
         assert_eq!(cache.nodes.len(), 2);
     }
 
+    #[cfg(feauture = "cpu")]
     #[test]
     #[cfg_attr(miri, ignore)]
     fn test_cache_get_reuse_based_on_location() {

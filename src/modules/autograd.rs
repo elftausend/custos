@@ -246,6 +246,7 @@ pass_down_add_operation!(Autograd);
 pass_down_exec_now_module!(Autograd);
 
 #[cfg(test)]
+#[cfg(feauture = "cpu")]
 mod tests {
     use core::any::Any;
 

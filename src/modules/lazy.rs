@@ -656,6 +656,7 @@ mod tests {
     }
 
     #[cfg(feature = "cached")]
+    #[cfg(feauture = "cpu")]
     #[test]
     fn test_lazy_cached_two_producers() {
         use crate::Cached;

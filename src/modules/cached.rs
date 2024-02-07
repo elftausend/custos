@@ -357,11 +357,13 @@ mod tests {
     use super::Cached;
 
     // forgot to add track_caller
+    #[cfg(feauture = "cpu")]
     #[cfg(debug_assertions)]
     fn add_bufs<Mods: Retrieve<CPU<Mods>, f32>>(device: &CPU<Mods>) -> Buffer<f32, CPU<Mods>, ()> {
         retrieve!(device, 10, ())
     }
 
+    #[cfg(feauture = "cpu")]
     #[test]
     #[cfg(debug_assertions)]
     #[should_panic]
@@ -372,6 +374,7 @@ mod tests {
         let _out = add_bufs(&device);
     }
 
+    #[cfg(feauture = "cpu")]
     #[track_caller]
     fn add_bufs_tracked<Mods: Retrieve<CPU<Mods>, f32>>(
         device: &CPU<Mods>,
@@ -379,6 +382,7 @@ mod tests {
         retrieve!(device, 10, ())
     }
 
+    #[cfg(feauture = "cpu")]
     #[test]
     fn test_added_track_caller() {
         let device = CPU::<Cached<Base>>::new();

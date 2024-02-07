@@ -140,6 +140,7 @@ mod tests {
     use crate::{Autograd, Base, Buffer, HasId, Retriever, CPU};
 
     #[test]
+    #[cfg(feauture = "cpu")]
     fn test_same_types_get_double_return() {
         let device = CPU::<Autograd<Base>>::new();
 
@@ -172,6 +173,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feauture = "cpu")]
     #[ignore = "deprecated"]
     #[should_panic]
     fn test_different_types_get_double_return() {
