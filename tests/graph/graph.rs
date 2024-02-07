@@ -73,7 +73,7 @@ fn test_graph_cl() -> custos::Result<()> {
 #[cfg(feature = "cuda")]
 #[test]
 fn test_graph_cu() -> custos::Result<()> {
-    use custos::{Cached, CUDA, Cursor};
+    use custos::{Cached, Cursor, CUDA};
 
     let device = CUDA::<Graph<Cached<Base>>>::new(0)?;
 

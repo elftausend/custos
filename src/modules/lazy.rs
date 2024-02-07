@@ -663,7 +663,7 @@ mod tests {
     //     device.add_op(buf, |buf| {
     //         Ok(())
     //     });
-        
+
     //     device.add_op(buf.no_id(), |buf| {
     //         Ok(())
     //     });

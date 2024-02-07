@@ -107,7 +107,6 @@ impl<SimpleMods> OpenCL<SimpleMods> {
         NewMods::setup(&mut opencl)?;
         Ok(opencl)
     }
-
 }
 
 impl<Mods> OpenCL<Mods> {
