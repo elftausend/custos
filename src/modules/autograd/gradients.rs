@@ -33,7 +33,10 @@ impl Gradients {
         // self.grads_pool.cache.clear();
     }
 
-    pub fn add_zero_grad_cb<T: 'static, D: Device + ZeroGrad<T> + 'static, S: Shape>(&mut self, id: &Id) {
+    pub fn add_zero_grad_cb<T: 'static, D: Device + ZeroGrad<T> + 'static, S: Shape>(
+        &mut self,
+        id: &Id,
+    ) {
         self.zero_grad_cbs.push((*id, |grad_buf, buf| {
             let grad_buf = grad_buf.downcast_mut::<Buffer<T, D, S>>().unwrap();
             let buf = buf.downcast_ref::<Buffer<T, D, S>>().unwrap();

@@ -102,9 +102,9 @@ impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
     }
 
     #[inline]
-    pub fn require_grad(self) -> Buffer<'a, T, D, S> 
+    pub fn require_grad(self) -> Buffer<'a, T, D, S>
     where
-        D: OnNewBuffer<T, D, S>, 
+        D: OnNewBuffer<T, D, S>,
     {
         if let Some(device) = self.device {
             device.on_drop_buffer(device, &self);

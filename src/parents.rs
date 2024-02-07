@@ -46,7 +46,7 @@ impl<T: HasId> Parents<1> for T {
 
     #[inline]
     fn requires_grads(&self) -> [bool; 1] {
-        [self.requires_grad()] 
+        [self.requires_grad()]
     }
 }
 

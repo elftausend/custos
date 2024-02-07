@@ -140,7 +140,7 @@ where
     where
         D: Alloc<T>,
     {
-        let requires_grad = parents.requires_grads().iter().any(|&x| x); 
+        let requires_grad = parents.requires_grads().iter().any(|&x| x);
         let data = self.modules.retrieve(device, len, parents);
 
         ReqGradWrapper {
@@ -484,22 +484,21 @@ mod tests {
 
         let lhs = device.buffer([1i32, 2, 3, 4]).require_grad();
         assert!(lhs.requires_grad());
-        
+
         let no_grad = device.buffer([1i32, 2, 3, 4]);
         let rhs = device.buffer([1i32, 2, 3, 4]);
         assert!(!rhs.requires_grad());
 
         let out: Buffer<i32, _> = device.retrieve(rhs.len(), (&lhs, &rhs));
         assert!(out.requires_grad());
-        
+
         let out: Buffer<i32, _> = device.retrieve(rhs.len(), &lhs);
         assert!(out.requires_grad());
-        
+
         let out: Buffer<i32, _> = device.retrieve(rhs.len(), &rhs);
         assert!(!out.requires_grad());
-        
+
         let out: Buffer<i32, _> = device.retrieve(rhs.len(), (&no_grad, &rhs));
         assert!(!out.requires_grad());
-
     }
 }
