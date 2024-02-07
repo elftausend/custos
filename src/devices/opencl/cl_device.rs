@@ -305,6 +305,11 @@ mod tests {
     use crate::{opencl::cl_device::CLDevice, Base, Buffer, Cached, OpenCL, CPU};
 
     #[test]
+    fn test_fastest_cl_device() {
+        let _device = OpenCL::<Base>::fastest().unwrap();
+    }
+
+    #[test]
     fn test_multiplie_queues() -> crate::Result<()> {
         let device = CLDevice::new(0)?;
         let cl = OpenCL {
