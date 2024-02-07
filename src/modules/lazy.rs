@@ -408,6 +408,7 @@ mod tests {
         }
     }
 
+    #[cfg(feature = "cpu")]
     impl<T, D, S, Mods> AddEw<T, D, S> for CPU<Mods>
     where
         T: Add<Output = T> + Copy + 'static,
@@ -428,6 +429,7 @@ mod tests {
         }
     }
 
+    #[cfg(feature = "cpu")]
     #[test]
     fn test_custom_operation() {
         let device = CPU::<Lazy<Base>>::new();

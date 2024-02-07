@@ -72,6 +72,8 @@ jobs:
       run: cargo test --verbose --no-default-features --features opencl,autograd
     - name: Run tests (OpenCL, graph)
       run: cargo test --verbose --no-default-features --features opencl,graph
+    - name: Run tests (OpenCL, modules)
+      run: cargo test --verbose --no-default-features --features opencl,autograd,graph,cpu
   
   test-cuda:
   
@@ -93,6 +95,10 @@ jobs:
       run: cargo test --verbose --no-default-features --features cuda,autograd
     - name: Run tests (CUDA, graph)
       run: cargo test --verbose --no-default-features --features cuda,graph
+    - name: Run tests (CUDA, cpu)
+      run: cargo test --verbose --no-default-features --features cuda,cpu
+    - name: Run tests (CUDA, modules)
+      run: cargo test --verbose --no-default-features --features cuda,autograd,graph,cpu
 
   test-all:
   
@@ -112,3 +118,5 @@ jobs:
       run: cargo test --verbose --no-default-features --features cuda,opencl,lazy
     - name: Run tests (CUDA, OpenCL, autograd)
       run: cargo test --verbose --no-default-features --features cuda,opencl,autograd
+    - name: Run tests (CUDA, OpenCL, graph)
+      run: cargo test --verbose --no-default-features --features cuda,opencl,graph

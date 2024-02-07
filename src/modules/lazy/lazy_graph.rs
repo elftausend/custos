@@ -103,6 +103,7 @@ impl<B: AsAny> LazyGraph<B> {
     }
 }
 
+#[cfg(feature = "cpu")]
 #[cfg(test)]
 mod tests {
     use super::LazyGraph;
