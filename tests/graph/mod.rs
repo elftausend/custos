@@ -20,6 +20,7 @@ pub trait AddBuf<T, D: Device>: Device {
     fn relu(&self, lhs: &Buffer<T, D>) -> Buffer<T, Self>;
 }
 
+#[cfg(feature = "cpu")]
 impl<T, D, Mods> AddBuf<T, D> for CPU<Mods>
 where
     Mods: Retrieve<Self, T>,
