@@ -1,6 +1,5 @@
 use crate::{CUDA, CPU, Device, cuda::CUDAPtr, OnDropBuffer, impl_buffer_hook_traits, Buffer, Shape, impl_wrapped_data, WrappedData, OnNewBuffer, HasModules, PtrType, HasId, cpu::CPUPtr, ApplyFunction, AddOperation, Retrieve, cpu_stack_ops::apply_fn_slice};
 
-
 pub enum UntypedDevice<Mods> {
     CPU(CPU<Mods>),
     CUDA(CUDA<Mods>),
@@ -14,9 +13,23 @@ pub enum CudaData {
     F32(CUDAPtr<f32>),
 }
 
-pub enum UntypedData {
-    CPU(CpuData),
-    CUDA(CudaData)
+
+pub struct UntypedData {
+    ty: Type,
+    data: Data
+}
+
+pub enum Data {
+    CPU(CPUPtr<Type>),
+    CUDA(CUDAPtr<Type>)
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum Type {
+    F32,
+    F64,
+    I32,
+    I64,
 }
 
 impl PtrType for UntypedData {
@@ -92,23 +105,27 @@ macro_rules! call_fn {
     };
 }
 
-impl<Mods: OnDropBuffer + AddOperation + Retrieve<CPU<Mods>, f32>> ApplyFunction<()> for Untyped<Mods> {
+impl<Mods: OnDropBuffer + AddOperation + Retrieve<CPU<Mods>, Type>> ApplyFunction<Type> for Untyped<Mods> {
     fn apply_fn<F>(
         &self,
-        buf: &Buffer<(), Self, ()>,
-        f: impl Fn(crate::Resolve<()>) -> F + Copy + 'static,
-    ) -> Buffer<(), Self, ()>
+        buf: &Buffer<Type, Self, ()>,
+        f: impl Fn(crate::Resolve<Type>) -> F + Copy + 'static,
+    ) -> Buffer<Type, Self, ()>
     where
-        F: crate::Eval<()> + crate::MayToCLSource 
+        F: crate::Eval<Type> + crate::MayToCLSource 
     {
         
         match &self.device {
             UntypedDevice::CPU(cpu) => {
-                if let UntypedData::CPU(data) = buf.base() {
-                    match data {
-                        CpuData::F32(data) => todo!(),
-                    };
-                }
+                cpu.apply_fn(buf, f);
+                // if let UntypedData::CPU(data) = buf.base() {
+
+                    /*match data {
+                        CpuData::F32(data) => {
+                            // cpu.apply_fn(buf, f)
+                        },
+                    };*/
+                // }
             }
             UntypedDevice::CUDA(cuda) => {
 
