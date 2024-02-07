@@ -99,7 +99,7 @@ fn test_graph_cu() -> custos::Result<()> {
             assert_eq!(c.ptr, d.ptr);
             assert_eq!(c.ptr, e.ptr);
         }
-        device.optimize_mem_graph(None).unwrap();
+        device.optimize_mem_graph(&device, None).unwrap();
     }
     Ok(())
 }
