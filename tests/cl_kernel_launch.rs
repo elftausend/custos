@@ -73,7 +73,7 @@ fn test_kernel_launch_diff_datatype() -> custos::Result<()> {
     let gws = [lhs.len(), 0, 0];
     enqueue_kernel(&device, src_add, gws, None, &[&lhs, &out, &3i32])?;
 
-    roughly_eq_slices(out.read(), &[1., 27., 216., 64., 1., 64.]);
+    roughly_eq_slices(&out.read_to_vec(), &[1., 27., 216., 64., 1., 64.]);
 
     Ok(())
 }
