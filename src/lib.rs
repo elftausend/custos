@@ -219,7 +219,7 @@ pub use custos_macro::*;
 /// because the CPU is the default type `D` for [`Buffer`]s.
 // TODO: Can be replaced with the standard cpu (now)
 #[cfg(not(feature = "cpu"))]
-pub struct CPU<Mods> {
+pub struct CPU<Mods = Base> {
     modules: Mods,
 }
 
