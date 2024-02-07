@@ -289,64 +289,6 @@ macro_rules! debug_assert_tracked {
     };
 }
 
-/// This macro is nothing but a mechanism to ensure that the specific operation is annotated with `#[track_caller]`.
-/// If the operation is not annotated with `#[track_caller]`, then the macro will cause a panic (in debug mode).
-///
-/// This macro turns the device, length and optionally type information into the following line of code:
-/// ## From:
-/// ```ignore
-/// retrieve!(device, 10, f32)
-/// ```
-/// ## To:
-/// ```ignore
-/// custos::debug_assert_tracked!();
-/// device.retrieve::<f32, ()>(10)
-/// ```
-///
-/// If you ensure that the operation is annotated with `#[track_caller]`, then you can just write the following:
-/// ```ignore
-/// device.retrieve::<f32, ()>(10)
-/// ```
-///
-/// # Example
-/// Operation is not annotated with `#[track_caller]` and therefore will panic:
-/// ```should_panic
-/// use custos::{retrieve, CPU, Retriever, Buffer, Retrieve, Cached, Base};
-///
-/// fn add_bufs<Mods: Retrieve<CPU<Mods>, f32>>(device: &CPU<Mods>) -> Buffer<f32, CPU<Mods>, ()> {
-///     retrieve!(device, 10, ())
-/// }
-///
-/// let device = CPU::<Cached<Base>>::new();
-/// add_bufs(&device);
-/// ```
-/// Operation is annotated with `#[track_caller]`:
-/// ```
-/// use custos::{Dim1, retrieve, CPU, Retriever, Buffer, Retrieve, Cached, Base};
-///
-/// #[track_caller]
-/// fn add_bufs<Mods: Retrieve<CPU<Mods>, f32, Dim1<30>>>(device: &CPU<Mods>) -> Buffer<f32, CPU<Mods>, Dim1<30>> {
-///     retrieve!(device, 10, ())
-/// }
-///
-/// let device = CPU::<Cached<Base>>::new();
-/// add_bufs(&device);
-/// ```
-#[macro_export]
-macro_rules! retrieve {
-    ($device:ident, $len:expr, $parents:expr) => {{
-        $crate::debug_assert_tracked!();
-        $device.retrieve($len, $parents)
-    }}; /*($device:ident, $len:expr, $dtype:ty, ) => {{
-            $crate::debug_assert_tracked!();
-            $device.retrieve::<$dtype, ()>($len)
-        }};
-        ($device:ident, $len:expr, $dtype:ty, $shape:ty) => {{
-            $crate::debug_assert_tracked!();
-            $device.retrieve::<$dtype, $shape>($len)
-        }};*/
-}
-
 #[cfg(test)]
 mod tests {
     use core::{panic::Location, ptr::addr_of};
@@ -355,42 +297,6 @@ mod tests {
     use crate::{location, Base, Buffer, Retrieve, Retriever, CPU};
 
     use super::Cached;
-
-    // forgot to add track_caller
-    #[cfg(feauture = "cpu")]
-    #[cfg(debug_assertions)]
-    fn add_bufs<Mods: Retrieve<CPU<Mods>, f32>>(device: &CPU<Mods>) -> Buffer<f32, CPU<Mods>, ()> {
-        retrieve!(device, 10, ())
-    }
-
-    #[cfg(feauture = "cpu")]
-    #[test]
-    #[cfg(debug_assertions)]
-    #[should_panic]
-    fn test_forgot_track_caller_runtime_detection() {
-        let device = CPU::<Cached<Base>>::new();
-
-        let _out = add_bufs(&device);
-        let _out = add_bufs(&device);
-    }
-
-    #[cfg(feauture = "cpu")]
-    #[track_caller]
-    fn add_bufs_tracked<Mods: Retrieve<CPU<Mods>, f32>>(
-        device: &CPU<Mods>,
-    ) -> Buffer<f32, CPU<Mods>, ()> {
-        retrieve!(device, 10, ())
-    }
-
-    #[cfg(feauture = "cpu")]
-    #[test]
-    fn test_added_track_caller() {
-        let device = CPU::<Cached<Base>>::new();
-
-        let _out = add_bufs_tracked(&device);
-        let _out = add_bufs_tracked(&device);
-    }
-
     #[test]
     fn test_location_ref_unique() {
         let ptr = location();

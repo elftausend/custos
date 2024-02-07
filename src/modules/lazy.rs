@@ -655,6 +655,20 @@ mod tests {
         }
     }
 
+    // #[cfg(feature = "cpu")]
+    // #[test]
+    // fn test_owned_buf_in_add_op_should_comp_fail() {
+    //     let device = CPU::<Lazy<Base>>::new();
+    //     let mut buf = device.buffer([1, 2, 3, 4]);
+    //     device.add_op(buf, |buf| {
+    //         Ok(())
+    //     });
+        
+    //     device.add_op(buf.no_id(), |buf| {
+    //         Ok(())
+    //     });
+    // }
+
     #[cfg(feature = "cached")]
     #[cfg(feauture = "cpu")]
     #[test]
