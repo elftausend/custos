@@ -66,10 +66,14 @@ jobs:
 
     - name: Run tests (OpenCL)
       run: cargo test --verbose --no-default-features --features opencl
-    - name: Run tests (OpenCL, realloc)
-      run: cargo test --verbose --no-default-features --features opencl,realloc
-    - name: Run tests (OpenCL, opt-cache)
-      run: cargo test --verbose --no-default-features --features opencl,opt-cache
+    - name: Run tests (OpenCL, lazy)
+      run: cargo test --verbose --no-default-features --features opencl,lazy
+    - name: Run tests (OpenCL, autograd)
+      run: cargo test --verbose --no-default-features --features opencl,autograd
+    - name: Run tests (OpenCL, graph)
+      run: cargo test --verbose --no-default-features --features opencl,graph
+    - name: Run tests (OpenCL, modules)
+      run: cargo test --verbose --no-default-features --features opencl,autograd,graph,cpu
   
   test-cuda:
   
@@ -85,10 +89,16 @@ jobs:
 
     - name: Run tests (CUDA)
       run: cargo test --verbose --no-default-features --features cuda
-    - name: Run tests (CUDA, realloc)
-      run: cargo test --verbose --no-default-features --features cuda,realloc
-    - name: Run tests (CUDA, opt-cache)
-      run: cargo test --verbose --no-default-features --features cuda,opt-cache
+    - name: Run tests (CUDA, lazy)
+      run: cargo test --verbose --no-default-features --features cuda,lazy
+    - name: Run tests (CUDA, autograd)
+      run: cargo test --verbose --no-default-features --features cuda,autograd
+    - name: Run tests (CUDA, graph)
+      run: cargo test --verbose --no-default-features --features cuda,graph
+    - name: Run tests (CUDA, cpu)
+      run: cargo test --verbose --no-default-features --features cuda,cpu
+    - name: Run tests (CUDA, modules)
+      run: cargo test --verbose --no-default-features --features cuda,autograd,graph,cpu
 
   test-all:
   
@@ -104,7 +114,9 @@ jobs:
 
     - name: Run tests (CUDA, OpenCL)
       run: cargo test --verbose --no-default-features --features cuda,opencl
-    - name: Run tests (CUDA, OpenCL, opt-cache)
-      run: cargo test --verbose --no-default-features --features cuda,opencl,opt-cache
-    - name: Run tests (CUDA, OpenCL, realloc)
-      run: cargo test --verbose --no-default-features --features cuda,opencl,realloc
+    - name: Run tests (CUDA, OpenCL, lazy)
+      run: cargo test --verbose --no-default-features --features cuda,opencl,lazy
+    - name: Run tests (CUDA, OpenCL, autograd)
+      run: cargo test --verbose --no-default-features --features cuda,opencl,autograd
+    - name: Run tests (CUDA, OpenCL, graph)
+      run: cargo test --verbose --no-default-features --features cuda,opencl,graph

@@ -1,8 +1,10 @@
 #[cfg(feature = "cuda")]
 use custos::prelude::*;
 #[cfg(feature = "cuda")]
+#[cfg(feature = "macro")]
 use custos_macro::cuda;
 
+#[cfg(feature = "macro")]
 #[cfg(feature = "cuda")]
 #[test]
 fn test_cuda_macro() {

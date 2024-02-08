@@ -214,6 +214,7 @@ mod tests {
     }
 
     #[cfg(feature = "cuda")]
+    #[cfg(feature = "cpu")]
     #[test]
     fn test_buf_device_conversion_cu() -> crate::Result<()> {
         use crate::{Base, Buffer, Read, CPU, CUDA};

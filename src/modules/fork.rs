@@ -70,6 +70,7 @@ impl<Mods: Setup<D>, D: ForkSetup> Setup<D> for Fork<Mods> {
     }
 }
 
+crate::pass_down_cursor!(Fork);
 pass_down_add_operation!(Fork);
 pass_down_exec_now!(Fork);
 
@@ -152,7 +153,6 @@ mod tests {
         Combiner, Device, Fork, GpuOrCpuInfo, Module, OpenCL, UseGpuOrCpu, CPU,
     };
 
-    #[track_caller]
     pub fn clear(
         fork: &Fork<Base>,
         cpu_buf: &mut Buffer<i32>,

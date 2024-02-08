@@ -7,7 +7,6 @@ use crate::{Buffer, CachedCPU, OnDropBuffer, OpenCL, Retrieve, UnifiedMemChain, 
 /// This is way faster than [cpu_exec_unary], as new memory is not allocated.
 ///
 /// `cpu_exec_unary_may_unified` can be used interchangeably with [cpu_exec_unary].
-#[track_caller]
 pub fn cpu_exec_unary_may_unified<
     'a,
     T,

@@ -41,7 +41,7 @@ on by default | `Base` | Default behaviour.
 autograd | `Autograd` | Enables running automatic differentiation.
 cached | `Cached` | Reuses allocations on demand.
 fork | `Fork` | Decides whether the CPU or GPU is faster for an operation. It then uses the faster device for following computations. (unified memory devices)
-lazy | `Lazy` | Lazy execution of operations and intermediate allocations. Enables support for CUDA graphs.
+lazy | `Lazy` | Lazy execution of operations and lazy intermediate allocations. Enables support for CUDA graphs.
 graph | `Graph` | Adds a memory usage optimizeable graph.
 
 Usage of these modules when writing custom operations: [`modules.md`](modules.md)
@@ -68,10 +68,6 @@ static-api | Enables the creation of `Buffer`s without providing a device.
 macro | Reexport of [custos-macro]
 blas | Adds gemm functions of the system's (selected) BLAS library.
 
-<!-- Feature | Description -->
-<!-- --- | --- -->
-<!-- opt-cache | Makes the 'cache graph' optimizeable, lowering the memory footprint. -->
-
 [custos-macro]: https://github.com/elftausend/custos-macro
 
 ## [Examples]
@@ -96,11 +92,11 @@ pub trait MulBuf<T, S: Shape = (), D: Device = Self>: Sized + Device {
 
 impl<Mods, T, S, D> MulBuf<T, S, D> for CPU<Mods>
 where
-    Mods: Retrieve<Self, T>,
+    Mods: Retrieve<Self, T, S>,
     T: Mul<Output = T> + Copy + 'static,
     S: Shape,
     D: Device,
-    D::Data<T, S>: core::ops::Deref<Target = [T]>
+    D::Base<T, S>: core::ops::Deref<Target = [T]>
 {
     fn mul(&self, lhs: &Buffer<T, D, S>, rhs: &Buffer<T, D, S>) -> Buffer<T, Self, S> {
         let mut out = self.retrieve(lhs.len(), (lhs, rhs));

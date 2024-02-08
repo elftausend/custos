@@ -1,5 +1,6 @@
 pub type CudaResult<T> = std::result::Result<T, CudaErrorKind>;
 
+#[derive(Clone, Copy)]
 pub enum CudaErrorKind {
     InvalidAllocSize,
     InvalidDeviceIdx,

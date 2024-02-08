@@ -3,7 +3,7 @@ use std::collections::{HashMap, HashSet};
 
 use crate::{
     Alloc, Buffer, Buffers, HasId, HashLocation, LazyGraph, LocationHasher, Parents, Shape,
-    TapeActions, UpdateArgs, WriteBuf,
+    TapeActions, UpdateArgs, WriteBuf, ZeroGrad,
 };
 
 use super::Gradients;
@@ -35,7 +35,6 @@ impl Debug for Tape {
 
 impl Tape {
     #[inline]
-    #[track_caller]
     pub fn add_grad_fn2<Args: Parents<N> + UpdateArgs, const N: usize>(
         &mut self,
         args: Args,
@@ -92,7 +91,7 @@ impl Tape {
     pub fn backward_seeded<T, D, S: Shape>(&mut self, buf: &Buffer<T, D, S>, seed: &[T])
     where
         T: Clone + 'static,
-        D: Alloc<T> + WriteBuf<T, S, D> + TapeActions + 'static,
+        D: Alloc<T> + ZeroGrad<T> + WriteBuf<T, S, D> + TapeActions + 'static,
     {
         let mut no_grads = {
             // unique mutable access to gradients

@@ -20,6 +20,10 @@ pub trait ClearBuf<T, S: Shape = (), D: Device = Self> {
     fn clear(&self, buf: &mut Buffer<T, D, S>);
 }
 
+pub trait ZeroGrad<T>: Device {
+    fn zero_grad<S: Shape>(&self, data: &mut Self::Base<T, S>);
+}
+
 /// Trait for copying a slice of a buffer, to implement the slice() operation.
 pub trait CopySlice<T, D: Device = Self>: Sized + Device {
     /// Copy a slice of the given buffer into a new buffer.

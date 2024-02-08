@@ -1,14 +1,15 @@
-use core::{hash::BuildHasherDefault, panic::Location};
+use core::hash::BuildHasherDefault;
 use std::collections::HashMap;
 
 use std::rc::Rc;
 
-use crate::{flag::AllocFlag, Alloc, Device, HashLocation, LocationHasher, ShallowCopy, Shape};
+use crate::{
+    flag::AllocFlag, Alloc, Cursor, Device, NoHasher, PtrType, ShallowCopy, Shape, UniqueId,
+};
 
 #[derive(Debug, Clone)]
 pub struct Cache {
-    pub nodes:
-        HashMap<HashLocation<'static>, Rc<dyn core::any::Any>, BuildHasherDefault<LocationHasher>>,
+    pub nodes: HashMap<UniqueId, Rc<dyn core::any::Any>, BuildHasherDefault<NoHasher>>,
 }
 
 impl Default for Cache {
@@ -32,13 +33,20 @@ impl Cache {
     #[inline]
     pub unsafe fn get<T, S, D>(&mut self, device: &D, len: usize, callback: fn()) -> D::Base<T, S>
     where
-        D: Alloc<T> + 'static,
+        D: Alloc<T> + Cursor + 'static,
         D::Base<T, S>: ShallowCopy + 'static,
         S: Shape,
     {
-        let maybe_allocated = self.nodes.get(&Location::caller().into());
+        let maybe_allocated = self.nodes.get(&(device.cursor() as UniqueId));
         match maybe_allocated {
-            Some(data) => unsafe { data.downcast_ref::<D::Base<T, S>>().unwrap().shallow() },
+            Some(data) => {
+                unsafe { device.bump_cursor() };
+                let data = unsafe { data.downcast_ref::<D::Base<T, S>>().unwrap().shallow() };
+
+                // TODO: not necessary, could add length to hashmap
+                assert_eq!(data.size(), len, "Data size mismatch! Did you use e.g. if conditions in a (cursor) loop retrieving buffers with a different size?");
+                data
+            }
             None => self.add_node(device, len, callback),
         }
     }
@@ -51,14 +59,16 @@ impl Cache {
         callback: fn(),
     ) -> <D as Device>::Base<T, S>
     where
-        D: Alloc<T>,
+        D: Alloc<T> + Cursor,
         D::Base<T, S>: ShallowCopy + 'static,
         S: Shape,
     {
         let data = device.alloc::<S>(len, AllocFlag::None);
         let shallow_data = unsafe { data.shallow() };
 
-        self.nodes.insert(Location::caller().into(), Rc::new(data));
+        self.nodes
+            .insert(device.cursor() as UniqueId, Rc::new(data));
+        unsafe { device.bump_cursor() };
         callback();
 
         shallow_data
@@ -68,12 +78,13 @@ impl Cache {
 #[cfg(test)]
 mod tests {
     use super::Cache;
-    use crate::{Base, CPU};
+    use crate::{Base, Cached, CPU};
 
+    #[cfg(feauture = "cpu")]
     #[test]
     fn test_cache_add_node() {
         let mut cache = Cache::default();
-        let device = CPU::<Base>::new();
+        let device = CPU::<Cached<Base>>::new();
 
         assert_eq!(cache.nodes.len(), 0);
 
@@ -86,10 +97,11 @@ mod tests {
         assert_ne!(out.ptr, out1.ptr);
     }
 
+    #[cfg(feauture = "cpu")]
     #[test]
     fn test_cache_get_at_different_locations() {
         let mut cache = Cache::default();
-        let device = CPU::<Base>::new();
+        let device = CPU::<crate::Cached<Base>>::new();
 
         assert_eq!(cache.nodes.len(), 0);
 
@@ -102,6 +114,7 @@ mod tests {
         assert_eq!(cache.nodes.len(), 2);
     }
 
+    #[cfg(feauture = "cpu")]
     #[test]
     #[cfg_attr(miri, ignore)]
     fn test_cache_get_reuse_based_on_location() {

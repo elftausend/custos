@@ -85,6 +85,7 @@ impl<SimpleMods> OpenCL<SimpleMods> {
             device: CLDevice::new(device_idx)?,
             cpu: CPU::<Cached<Base>>::new(),
         };
+        opencl.unified_mem_check();
         NewMods::setup(&mut opencl)?;
         Ok(opencl)
     }
@@ -101,12 +102,25 @@ impl<SimpleMods> OpenCL<SimpleMods> {
             device: CLDevice::fastest()?,
             cpu: CPU::<Cached<Base>>::new(),
         };
+        opencl.unified_mem_check();
+
         NewMods::setup(&mut opencl)?;
         Ok(opencl)
     }
 }
 
 impl<Mods> OpenCL<Mods> {
+    pub fn unified_mem_check(&self) {
+        #[cfg(unified_cl)]
+        if !self.unified_mem() {
+            panic!("
+                Your selected compute device does not support unified memory! 
+                You are probably using a laptop.
+                Launch with environment variable `CUSTOS_USE_UNIFIED=false` or change `CUSTOS_CL_DEVICE_IDX=<idx:default=0>`
+            ")
+        }
+    }
+
     /// Sets the values of the attributes cache, kernel cache, graph and CPU to their default.
     /// This cleans up any accumulated allocations.
     pub fn reset(&'static mut self) {
@@ -288,6 +302,11 @@ impl<Mods> crate::LazyRun for OpenCL<Mods> {}
 #[cfg(test)]
 mod tests {
     use crate::{opencl::cl_device::CLDevice, Base, Buffer, Cached, OpenCL, CPU};
+
+    #[test]
+    fn test_fastest_cl_device() {
+        let _device = OpenCL::<Base>::fastest().unwrap();
+    }
 
     #[test]
     fn test_multiplie_queues() -> crate::Result<()> {

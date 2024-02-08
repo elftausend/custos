@@ -7,7 +7,6 @@ use custos::prelude::*;
 /// Adding a `D: Device = Self` makes it possible to invoke operations with a `CPU` on, for example, `OpenCL` `Buffer`s (if the device uses unified memory), and `Stack` `Buffer`s.
 pub trait AddBuf<T, S: Shape = (), D: Device = Self>: Sized + Device {
     /// This operation performs element-wise addition.
-    #[track_caller]
     fn add(&self, lhs: &Buffer<T, D, S>, rhs: &Buffer<T, D, S>) -> Buffer<T, Self, S>;
     // ... you can add more operations if you want to do that.
 }
@@ -159,7 +158,6 @@ impl<T> AddBuf<T> for WGPU {
 }
 
 pub trait AddOp<'a, T, D: Device> {
-    #[track_caller]
     fn add(&self, rhs: &Buffer<'a, T, D>) -> Buffer<'a, T, D>;
 }
 
@@ -179,7 +177,6 @@ impl<'a, T, D: Device> OwnStruct<'a, T, D> {
     #[allow(dead_code)]
     // consider using operator overloading for your own type
     #[inline]
-    #[track_caller]
     fn add(&self, rhs: &OwnStruct<T, D>) -> Buffer<T, D>
     where
         T: CDatatype,
