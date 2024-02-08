@@ -17,7 +17,8 @@ impl<Mods: WrappedData> WrappedData for Autograd<Mods> {
         base: Base,
     ) -> Self::Wrap<T, Base> {
         ReqGradWrapper {
-            requires_grad: false,
+            // by default: true -> if lazy layer is (accidentally) put before autograd, all gradients will be computed instead of none.. subject to change
+            requires_grad: true,
             data: self.modules.wrap_in_base(base),
             _pd: PhantomData,
         }
