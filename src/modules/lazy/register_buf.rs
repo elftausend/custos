@@ -1,9 +1,7 @@
 use core::hash::BuildHasher;
 use std::collections::HashMap;
 
-use crate::{Buffer, Device, HasId, Id, ShallowCopy, Shape, UniqueId};
-
-use super::generic_support::BoxedShallowCopy;
+use crate::{BoxedShallowCopy, Buffer, Device, HasId, Id, ShallowCopy, Shape, UniqueId};
 
 #[inline]
 pub(crate) unsafe fn register_buf_copyable<T, D, S>(

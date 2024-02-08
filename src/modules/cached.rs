@@ -4,9 +4,9 @@ use core::{
 };
 
 use crate::{
-    AddGradFn, AddLayer, AddOperation, Alloc, Buffer, Cache, Cursor, Device, ExecNow, HasId,
-    Module, OnDropBuffer, OnNewBuffer, Parents, PtrType, RemoveLayer, Retrieve, RunModule, Setup,
-    ShallowCopy, Shape, UniqueId, WrappedData,
+    AddGradFn, AddLayer, AddOperation, Alloc, Buffer, Cache, CachedBuffers, Cursor, Device,
+    ExecNow, HasId, Module, OnDropBuffer, OnNewBuffer, Parents, PtrType, RemoveLayer, Retrieve,
+    RunModule, Setup, ShallowCopy, Shape, UniqueId, WrappedData,
 };
 
 #[cfg(feature = "graph")]
@@ -287,6 +287,16 @@ macro_rules! debug_assert_tracked {
             );
         }
     };
+}
+
+impl<Mods: OnDropBuffer, D: Device> CachedBuffers for CachedModule<Mods, D> {
+    #[inline]
+    unsafe fn buffers_mut(
+        &self,
+    ) -> Option<core::cell::RefMut<crate::Buffers<Box<dyn crate::BoxedShallowCopy>>>> {
+        // self.cache.borrow_mut().nodes
+        todo!()
+    }
 }
 
 #[cfg(test)]

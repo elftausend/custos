@@ -33,6 +33,19 @@ where
             tape.backward_seeded(self, seed)
         }
     }
+    
+    #[inline]
+    pub fn backward_with2(&self, seed: &[T])
+    where
+        T: Clone + 'static,
+        D: CachedBuffers + TapeActions + ZeroGrad<T> + WriteBuf<T, S, D> + Alloc<T> + 'static,
+    {
+        // should never be None
+        if let Some(tape) = unsafe { self.device().tape_mut() } {
+            let mut buffers = unsafe { self.device().buffers_mut() }.unwrap();
+            tape.backward_seeded_with_buffers(self, seed, &mut buffers)
+        }
+    }
 }
 
 impl<'a, T, D, S> Buffer<'a, T, D, S>

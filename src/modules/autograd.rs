@@ -8,10 +8,10 @@ pub use tape::*;
 use core::cell::{Cell, UnsafeCell};
 
 use crate::{
-    impl_remove_layer, pass_down_add_operation, pass_down_cursor, pass_down_exec_now_module,
-    register_buf_any, unregister_buf_any, AddGradFn, AddLayer, Alloc, Buffer, Device, HasId,
-    IsShapeIndep, Module, OnDropBuffer, OnNewBuffer, Parents, Retrieve, RunModule, Setup,
-    ShallowCopy, Shape, TapeActions,
+    impl_remove_layer, pass_down_add_operation, pass_down_cached_buffers, pass_down_cursor,
+    pass_down_exec_now_module, register_buf_any, unregister_buf_any, AddGradFn, AddLayer, Alloc,
+    Buffer, CachedBuffers, Device, HasId, IsShapeIndep, Module, OnDropBuffer, OnNewBuffer, Parents,
+    Retrieve, RunModule, Setup, ShallowCopy, Shape, TapeActions,
 };
 
 use self::wrapper::ReqGradWrapper;
@@ -244,6 +244,7 @@ impl<Mods: AddGradFn> AddGradFn for Autograd<Mods> {
 
 pass_down_add_operation!(Autograd);
 pass_down_exec_now_module!(Autograd);
+pass_down_cached_buffers!(Autograd);
 
 #[cfg(test)]
 #[cfg(feauture = "cpu")]
@@ -289,7 +290,11 @@ mod tests {
         let autograd = &device.modules;
         {
             let no_grads_pool = unsafe { &mut (*autograd.grads.get()).no_grads_pool };
-            let buf1: &Buffer<f32, CPU<Autograd<crate::CachedModule<Base, CPU>>>> = no_grads_pool.get(&buf.id()).unwrap().downcast_ref().unwrap();
+            let buf1: &Buffer<f32, CPU<Autograd<crate::CachedModule<Base, CPU>>>> = no_grads_pool
+                .get(&buf.id())
+                .unwrap()
+                .downcast_ref()
+                .unwrap();
             // let no_grads_pool = &mut autograd.tape.borrow_mut().grads.no_grads_pool;
             let buf1 = no_grads_pool
                 .get_buf_with_dev::<f32, _, ()>(buf.id(), &device)

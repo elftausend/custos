@@ -89,6 +89,9 @@ pub use devices::vulkan::Vulkan;
 
 pub use unary::*;
 
+#[cfg(feature = "std")]
+pub use boxed_shallow_copy::*;
+
 #[cfg(feature = "cpu")]
 #[macro_use]
 pub mod exec_on_cpu;
@@ -104,6 +107,8 @@ mod device_traits;
 pub mod features;
 pub mod flag;
 // mod graph;
+#[cfg(feature = "std")]
+mod boxed_shallow_copy;
 pub mod hooks;
 mod id;
 mod layer_management;

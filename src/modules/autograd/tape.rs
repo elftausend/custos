@@ -2,8 +2,7 @@ use core::{any::Any, fmt::Debug, hash::BuildHasherDefault, panic::Location};
 use std::collections::{HashMap, HashSet};
 
 use crate::{
-    Alloc, Buffer, Buffers, HasId, HashLocation, LazyGraph, LocationHasher, Parents, Shape,
-    TapeActions, UpdateArgs, WriteBuf, ZeroGrad,
+    Alloc, BoxedShallowCopy, Buffer, Buffers, HasId, HashLocation, LazyGraph, LocationHasher, Parents, Shape, TapeActions, UpdateArgs, WriteBuf, ZeroGrad
 };
 
 use super::Gradients;
@@ -85,6 +84,24 @@ impl Tape {
         self.lazy_graph.clear(); /*for grad_fn in self.grad_fns.drain(..).rev() {
                                      grad_fn(&mut self.grads);
                                  }*/
+    }
+
+    pub fn backward_seeded_with_buffers<T, D, S: Shape>(
+        &mut self,
+        buf: &Buffer<T, D, S>,
+        seed: &[T],
+        buffers: &mut Buffers<Box<dyn BoxedShallowCopy>>,
+    ) where
+        T: Clone + 'static,
+        D: Alloc<T> + ZeroGrad<T> + WriteBuf<T, S, D> + TapeActions + 'static,
+    {
+        {
+            let gradients = unsafe { buf.device().gradients_mut() }.unwrap();
+
+            let out = gradients.get_mut::<T, S, D>(buf.device(), buf.id());
+            out.write(seed);
+        }
+        // self.backward(buffers)
     }
 
     /// Backward pass with seeded gradient.

@@ -1,5 +1,4 @@
 mod exec_iter;
-mod generic_support;
 mod lazy_graph;
 mod register_buf;
 mod ty;
@@ -10,9 +9,10 @@ use register_buf::*;
 pub use ty::*;
 
 use crate::{
-    impl_remove_layer, pass_down_tape_actions, AddLayer, AddOperation, Alloc, Buffer, Cursor,
-    Device, ExecNow, HasId, Id, IsShapeIndep, Module, OnDropBuffer, OnNewBuffer, Parents,
-    ReplaceBuf, Retrieve, RunModule, Setup, ShallowCopy, Shape, UniqueId, UpdateArgs,
+    impl_remove_layer, pass_down_tape_actions, AddLayer, AddOperation, Alloc, BoxedShallowCopy,
+    Buffer, CachedBuffers, Cursor, Device, ExecNow, HasId, Id, IsShapeIndep, Module, OnDropBuffer,
+    OnNewBuffer, Parents, ReplaceBuf, Retrieve, RunModule, Setup, ShallowCopy, Shape, UniqueId,
+    UpdateArgs,
 };
 
 #[cfg(feature = "graph")]
@@ -25,7 +25,7 @@ use core::{
 };
 
 pub use self::lazy_graph::LazyGraph;
-use self::{generic_support::BoxedShallowCopy, wrapper::LazyWrapper};
+use self::wrapper::LazyWrapper;
 
 type Buffers = crate::Buffers<Box<dyn BoxedShallowCopy>>;
 
@@ -351,6 +351,15 @@ impl<Mods> crate::OptimizeMemGraph for Lazy<Mods> {
         }
         self.allocated.set(true);
         Ok(())
+    }
+}
+
+impl<Mods> CachedBuffers for Lazy<Mods> {
+    #[inline]
+    unsafe fn buffers_mut(
+        &self,
+    ) -> Option<core::cell::RefMut<crate::Buffers<Box<dyn crate::BoxedShallowCopy>>>> {
+        Some(self.buffers.borrow_mut())
     }
 }
 

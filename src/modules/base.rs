@@ -1,6 +1,7 @@
 use crate::{
-    flag::AllocFlag, AddGradFn, AddOperation, Alloc, Cursor, Device, ExecNow, HasId, HashLocation,
-    Module, OnDropBuffer, OnNewBuffer, Parents, PtrType, Retrieve, Setup, Shape, WrappedData,
+    flag::AllocFlag, AddGradFn, AddOperation, Alloc, CachedBuffers, Cursor, Device, ExecNow, HasId,
+    HashLocation, Module, OnDropBuffer, OnNewBuffer, Parents, PtrType, Retrieve, Setup, Shape,
+    WrappedData,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
@@ -134,3 +135,5 @@ impl AddGradFn for Base {
 
 #[cfg(feature = "autograd")]
 impl crate::TapeActions for Base {}
+
+impl CachedBuffers for Base {}

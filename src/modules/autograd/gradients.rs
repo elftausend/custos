@@ -1,6 +1,8 @@
 use core::any::Any;
 
-use crate::{Alloc, AnyBuffers, BorrowCache, Buffer, CachingError, Device, HasId, Id, Shape, ZeroGrad};
+use crate::{
+    Alloc, AnyBuffers, BorrowCache, Buffer, CachingError, Device, HasId, Id, Shape, ZeroGrad,
+};
 
 const INVALID_ID: &str = "A matching Buffer does not exist.";
 
@@ -133,9 +135,11 @@ impl Gradients {
     {
         self.no_grads_pool
             .get(&id)
-            .ok_or(CachingError::InvalidId).expect(INVALID_ID)
+            .ok_or(CachingError::InvalidId)
+            .expect(INVALID_ID)
             .downcast_ref()
-            .ok_or(CachingError::InvalidTypeInfo).expect(INVALID_ID)
+            .ok_or(CachingError::InvalidTypeInfo)
+            .expect(INVALID_ID)
     }
 }
 

@@ -1,4 +1,4 @@
-use core::{fmt::Debug, ops::RangeBounds};
+use core::{cell::RefMut, fmt::Debug, ops::RangeBounds};
 
 use crate::{
     range::{AsRange, CursorRange},
@@ -470,6 +470,28 @@ macro_rules! pass_down_optimize_mem_graph {
                 graph_translator: Option<&$crate::modules::GraphTranslator>,
             ) -> crate::Result<()> {
                 self.modules.optimize_mem_graph(device, graph_translator)
+            }
+        }
+    };
+}
+
+pub trait CachedBuffers {
+    unsafe fn buffers_mut(
+        &self,
+    ) -> Option<RefMut<crate::Buffers<Box<dyn crate::BoxedShallowCopy>>>> {
+        None
+    }
+}
+
+#[macro_export]
+macro_rules! pass_down_cached_buffers {
+    ($to_impl:ident) => {
+        impl<Mods: $crate::CachedBuffers> $crate::CachedBuffers for $to_impl<Mods> {
+            #[inline]
+            unsafe fn buffers_mut(
+                &self,
+            ) -> Option<core::cell::RefMut<crate::Buffers<Box<dyn crate::BoxedShallowCopy>>>> {
+                self.modules.buffers_mut()
             }
         }
     };
