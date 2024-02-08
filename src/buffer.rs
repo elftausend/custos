@@ -102,7 +102,7 @@ impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
     }
 
     #[inline]
-    pub fn require_grad(self) -> Buffer<'a, T, D, S>
+    pub fn set_require_grad(self, require_grad: bool) -> Buffer<'a, T, D, S>
     where
         D: OnNewBuffer<T, D, S>,
     {
@@ -110,9 +110,25 @@ impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
             device.on_drop_buffer(device, &self);
         }
         let mut buf = self;
-        buf.set_requires_grad(true);
+        buf.set_requires_grad(require_grad);
         buf.device().on_new_buffer(buf.device(), &buf);
         buf
+    }
+
+    #[inline]
+    pub fn require_grad(self) -> Buffer<'a, T, D, S>
+    where
+        D: OnNewBuffer<T, D, S>,
+    {
+        self.set_require_grad(true)
+    }
+
+    #[inline]
+    pub fn no_grad(self) -> Buffer<'a, T, D, S>
+    where
+        D: OnNewBuffer<T, D, S>,
+    {
+        self.set_require_grad(false)
     }
 }
 
