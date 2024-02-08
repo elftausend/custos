@@ -20,7 +20,7 @@ pub struct Tape {
 
     unconsumed_locations: HashSet<HashLocation<'static>>,
 
-    pub lazy_graph: LazyGraph<Box<dyn Any>>,
+    pub lazy_graph: LazyGraph<Box<dyn BoxedShallowCopy>>,
 }
 
 impl Debug for Tape {
@@ -66,7 +66,7 @@ impl Tape {
     }
 
     /// Calls all gradient functions in reverse order.
-    pub fn backward(&mut self, buffers: &mut Buffers<Box<dyn Any>>) {
+    pub fn backward(&mut self, buffers: &mut Buffers<Box<dyn BoxedShallowCopy>>) {
         // for grad_fn_id in self.grad_fn_order.iter().rev() {
         //     let grad_fn = self.grad_fns_loc.get(grad_fn_id).unwrap();
         //     grad_fn(&mut self.grads);
@@ -101,7 +101,7 @@ impl Tape {
             let out = gradients.get_mut::<T, S, D>(buf.device(), buf.id());
             out.write(seed);
         }
-        // self.backward(buffers)
+        self.backward(buffers)
     }
 
     /// Backward pass with seeded gradient.
@@ -124,7 +124,7 @@ impl Tape {
         };
 
         // unique mutable access required for "buf.grad()"s in grad functions
-        self.backward(&mut no_grads);
+        // self.backward(&mut no_grads);
 
         let gradients = unsafe { buf.device().gradients_mut() }.unwrap();
         let no_grads_src = &mut gradients.no_grads_pool;

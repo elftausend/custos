@@ -174,6 +174,7 @@ mod tests {
             + crate::HasAutograd
             + crate::UnaryElementWiseMayGrad<f32, D, ()>
             + crate::Alloc<f32>
+            + crate::CachedBuffers
             + crate::ZeroGrad<f32>
             + crate::OnNewBuffer<f32, D, ()>,
     {

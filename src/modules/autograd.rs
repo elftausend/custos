@@ -28,12 +28,14 @@ pub struct Autograd<Mods> {
 }
 
 impl<Mods: Module<D>, D: Device> Module<D> for Autograd<Mods> {
-    type Module = Autograd<CachedModule<Mods::Module, D>>;
+    // type Module = Autograd<CachedModule<Mods::Module, D>>;
+    type Module = Autograd<Mods::Module>;
 
     #[inline]
     fn new() -> Self::Module {
         Autograd {
-            modules: Cached::<Mods>::new(),
+            // modules: Cached::<Mods>::new(),
+            modules: Mods::new(),
             grads: Default::default(),
             tape: Default::default(),
             enabled: Cell::new(true),
@@ -247,13 +249,12 @@ pass_down_exec_now_module!(Autograd);
 pass_down_cached_buffers!(Autograd);
 
 #[cfg(test)]
-#[cfg(feauture = "cpu")]
+#[cfg(feature = "cpu")]
 mod tests {
     use core::any::Any;
 
     use crate::{
-        AddGradFn, Base, Buffer, Cached, Combiner, Cursor, Device, HasId, Module, Retriever, Shape,
-        UnaryGrad, CPU,
+        AddGradFn, Base, Buffer, Cached, Combiner, Cursor, Device, HasId, Lazy, Module, Retriever, Shape, UnaryGrad, CPU
     };
 
     use super::Autograd;
@@ -284,7 +285,7 @@ mod tests {
 
     #[test]
     fn test_buffer_creation_autograd_get_buf() {
-        let device: CPU<Autograd<crate::CachedModule<Base, CPU>>> = CPU::<Autograd<Base>>::new();
+        let device: CPU<Autograd<crate::CachedModule<Base, CPU>>> = CPU::<Autograd<Cached<Base>>>::new();
         let buf: Buffer<f32, _> = Buffer::<f32, _>::new(&device, 10);
 
         let autograd = &device.modules;
@@ -296,9 +297,6 @@ mod tests {
                 .downcast_ref()
                 .unwrap();
             // let no_grads_pool = &mut autograd.tape.borrow_mut().grads.no_grads_pool;
-            let buf1 = no_grads_pool
-                .get_buf_with_dev::<f32, _, ()>(buf.id(), &device)
-                .unwrap();
             assert_eq!(buf1.base().ptr, buf.base().ptr);
         }
     }
@@ -367,14 +365,14 @@ mod tests {
     #[test]
     //#[should_panic]
     fn test_tape_return_without_grad_allocation() {
-        let device: CPU<Autograd<crate::CachedModule<Base, CPU>>> = CPU::<Autograd<Base>>::new();
-        let buf = Buffer::<f32, _>::new(&device, 10);
+        let device = CPU::<Autograd<Lazy<Base>>>::new();
+        let buf = Buffer::<f32, _>::new(&device, 10).require_grad();
 
         let out = Buffer::<f32, _>::new(&device, 10);
 
         device.add_grad_fn((&buf, &out), |(buf, _out)| {
-            for val in buf.grad_mut() {
-                *val = 5.;
+            for (val, grad) in buf.grad_mut().iter_mut().zip(_out.grad().iter()) {
+                *val = 5. * grad;
             }
             Ok(())
         });
