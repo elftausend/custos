@@ -486,8 +486,8 @@ mod tests {
         let lhs = device.buffer([1i32, 2, 3, 4]).require_grad();
         assert!(lhs.requires_grad());
 
-        let no_grad = device.buffer([1i32, 2, 3, 4]);
-        let rhs = device.buffer([1i32, 2, 3, 4]);
+        let no_grad = device.buffer([1i32, 2, 3, 4]).no_grad();
+        let rhs = device.buffer([1i32, 2, 3, 4]).no_grad();
         assert!(!rhs.requires_grad());
 
         let out: Buffer<i32, _> = device.retrieve(rhs.len(), (&lhs, &rhs));
