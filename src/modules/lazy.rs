@@ -19,7 +19,7 @@ use crate::{
 use crate::DeviceError;
 
 use core::{
-    any::Any,
+    any::{Any, TypeId},
     cell::{Cell, RefCell},
     fmt::Debug,
 };
@@ -155,6 +155,8 @@ impl<Mods> Lazy<Mods> {
 
                 alloc_fn(&mut self.buffers.borrow_mut(), *id, device);
                 let buf = self.buffers.borrow().get(&id.id).unwrap().shallow_copy();
+
+                // TODO: add type check - lower assert_eq to debug in lazy replace buf
 
                 for use_id_as_well in &cache_trace.use_cache_idxs {
                     let use_id_as_well_id = graph_trans
@@ -329,6 +331,11 @@ impl<T: 'static, D: Device + 'static, S: Shape, Mods: OnDropBuffer> ReplaceBuf<T
         match self.buffers.borrow().get(&buffer.id()) {
             Some(buf) => {
                 let buf = &**buf;
+                assert_eq!(
+                    buf.as_any().type_id(),
+                    TypeId::of::<Buffer<T, D, S>>(),
+                    "Type data does not match! e.g. optimized graph with different types"
+                );
                 unsafe { &*(buf as *const _ as *const Buffer<T, D, S>) }
             }
             None => buffer,
