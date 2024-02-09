@@ -2,6 +2,7 @@ use core::{
     cell::{Cell, RefCell},
     marker::PhantomData,
 };
+use std::collections::HashMap;
 
 use crate::{
     AddGradFn, AddLayer, AddOperation, Alloc, Buffer, Cache, CachedBuffers, Cursor, Device,
@@ -54,6 +55,8 @@ impl<Mods: Module<D>, D: Device> Module<D> for Cached<Mods> {
         CachedModule {
             modules: Mods::new(),
             cache: RefCell::new(Cache::new()),
+            buffers_cache: Default::default(),
+            cursor_to_id: Default::default(),
             pd: PhantomData,
             cursor: Default::default(),
         }
@@ -66,6 +69,9 @@ impl<Mods: Module<D>, D: Device> Module<D> for Cached<Mods> {
 pub struct CachedModule<Mods, D: Device> {
     pub modules: Mods,
     pub cache: RefCell<Cache>,
+    pub buffers_cache: RefCell<crate::Buffers<Box<dyn crate::BoxedShallowCopy>>>,
+    pub cursor_to_id: RefCell<HashMap<usize, UniqueId>>,
+
     pub(crate) pd: PhantomData<D>,
     cursor: Cell<usize>, // would move this to `Cache`, however -> RefCell; TODO: maybe add a Cursor Module
 }
@@ -137,7 +143,9 @@ where
     where
         D: Alloc<T>,
     {
-        self.wrap_in_base(self.cache.borrow_mut().get(device, len, || ()))
+        self.wrap_in_base(self.cache.borrow_mut().get(device, len, |cursor, base| {
+            self.cursor_to_id.borrow_mut().insert(cursor, *base.id());
+        }))
     }
 
     #[inline]
@@ -195,6 +203,8 @@ impl<CurrentMods, SD: Device> AddLayer<CurrentMods, SD> for Cached<()> {
         crate::CachedModule {
             modules: inner_mods,
             cache: Default::default(),
+            buffers_cache: Default::default(),
+            cursor_to_id: Default::default(),
             pd: core::marker::PhantomData,
             cursor: Default::default(),
         }

@@ -1,4 +1,4 @@
-use core::hash::BuildHasherDefault;
+use core::{any::Any, hash::BuildHasherDefault};
 use std::{collections::HashMap, ffi::c_void, rc::Rc};
 
 #[cfg(not(feature = "realloc"))]
@@ -6,8 +6,8 @@ use crate::{AllocFlag, DeviceError};
 
 use super::CLPtr;
 use crate::{
-    Base, Buffer, CachedCPU, CachedModule, Cursor, Device, OnDropBuffer, OpenCL, Shape,
-    UnifiedMemChain, UniqueId, CPU,
+    Base, BoxedShallowCopy, Buffer, CachedCPU, CachedModule, Cursor, Device, OnDropBuffer, OpenCL,
+    Shape, UnifiedMemChain, UniqueId, CPU,
 };
 use min_cl::api::{create_buffer, MemFlags};
 
@@ -64,7 +64,7 @@ pub unsafe fn to_cached_unified<OclMods, CpuMods, T, S>(
     no_drop: Buffer<T, CPU<CpuMods>, S>,
     cache: &mut HashMap<
         crate::UniqueId,
-        Rc<dyn core::any::Any>,
+        Rc<dyn BoxedShallowCopy>,
         BuildHasherDefault<crate::NoHasher>,
     >,
     id: crate::UniqueId,
@@ -111,12 +111,12 @@ where
 ///     let cpu = CPU::<Cached<Base>>::new();
 ///     let mut no_drop: Buffer<f32, _> = cpu.retrieve(4, ());
 ///     no_drop.write(&[1., 3.1, 2.34, 0.76]);
-///     
+///
 ///     let device = OpenCL::<Cached<Base>>::new(chosen_cl_idx())?;
 ///     let buf = unsafe {
 ///         construct_buffer(&device, no_drop, &mut device.modules.cache.borrow_mut().nodes, 0)?
 ///     };
-///     
+///
 ///     assert_eq!(buf.read(), vec![1., 3.1, 2.34, 0.76]);
 ///     assert_eq!(buf.as_slice(), &[1., 3.1, 2.34, 0.76]);
 ///     Ok(())
@@ -127,7 +127,7 @@ pub fn construct_buffer<'a, OclMods, CpuMods, T, S>(
     no_drop: Buffer<'a, T, CPU<CpuMods>, S>,
     cache: &mut HashMap<
         crate::UniqueId,
-        Rc<dyn core::any::Any>,
+        Rc<dyn BoxedShallowCopy>,
         BuildHasherDefault<crate::NoHasher>,
     >,
     id: crate::UniqueId,
@@ -149,6 +149,7 @@ where
     // if buffer was already converted, return the cache entry.
     if let Some(rawcl) = cache.get(&id) {
         let rawcl = rawcl
+            .as_any()
             .downcast_ref::<<OpenCL<OclMods> as Device>::Base<T, S>>()
             .unwrap();
         let data = device.base_to_data::<T, S>(CLPtr {

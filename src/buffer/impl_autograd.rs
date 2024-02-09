@@ -17,7 +17,7 @@ where
     where
         T: Clone + One + 'static,
         D: TapeActions + ZeroGrad<T> + WriteBuf<T, S, D> + Alloc<T> + 'static,
-        D: CachedBuffers
+        D: CachedBuffers,
     {
         self.backward_with2(&vec![T::one(); self.len()]);
     }
@@ -34,7 +34,7 @@ where
             tape.backward_seeded(self, seed)
         }
     }
-    
+
     #[inline]
     pub fn backward_with2(&self, seed: &[T])
     where
