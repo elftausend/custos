@@ -598,6 +598,7 @@ mod tests {
     }
 
     #[cfg(feature = "cpu")]
+    #[cfg(feature = "cached")]
     #[test]
     fn test_mismatched_optimized_types_cached() {
         use crate::{
@@ -638,11 +639,12 @@ mod tests {
     }
 
     #[cfg(feature = "cpu")]
+    #[cfg(feature = "lazy")]
     #[should_panic]
     #[test]
     fn test_mismatched_optimized_types_lazy() {
         use crate::{
-            Base, Buffer, Cursor, Device, Graph, HasId, Lazy, OptimizeMemGraph, Retriever, Run, CPU,
+            Base, Buffer, Device, Graph, HasId, Lazy, OptimizeMemGraph, Retriever, Run, CPU,
         };
 
         let device = CPU::<Graph<Lazy<Base>>>::new();
