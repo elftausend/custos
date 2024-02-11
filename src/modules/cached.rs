@@ -281,9 +281,9 @@ impl<Mods: OptimizeMemGraph, SD: Device> OptimizeMemGraph for CachedModule<Mods,
                     .nodes
                     .get(&(*to_replace as UniqueId))
                     .unwrap()
-                    .deref()
+                    .as_any()
                     .type_id()
-                    != used_to_replace.deref().type_id()
+                    != used_to_replace.as_any().type_id()
                 {
                     continue;
                 }
