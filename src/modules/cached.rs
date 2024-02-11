@@ -1,15 +1,13 @@
 use core::{
-    any::Any,
     cell::{Cell, RefCell},
     marker::PhantomData,
-    ops::Deref,
 };
-use std::collections::HashMap;
 
 use crate::{
-    AddGradFn, AddLayer, AddOperation, Alloc, Buffer, Cache, CachedBuffers, Cursor, Device,
-    ExecNow, HasId, Module, OnDropBuffer, OnNewBuffer, Parents, PtrType, RemoveLayer, Retrieve,
-    RunModule, Setup, ShallowCopy, Shape, UniqueId, WrappedData,
+    register_buf_copyable, unregister_buf_copyable, AddGradFn, AddLayer, AddOperation, Alloc,
+    Buffer, Cache, CachedBuffers, Cursor, Device, ExecNow, HasId, IsShapeIndep, Module,
+    OnDropBuffer, OnNewBuffer, Parents, PtrType, RemoveLayer, Retrieve, RunModule, Setup,
+    ShallowCopy, Shape, UniqueId, WrappedData,
 };
 
 #[cfg(feature = "graph")]
@@ -58,7 +56,6 @@ impl<Mods: Module<D>, D: Device> Module<D> for Cached<Mods> {
             modules: Mods::new(),
             cache: RefCell::new(Cache::new()),
             buffers_cache: Default::default(),
-            cursor_to_id: Default::default(),
             pd: PhantomData,
             cursor: Default::default(),
         }
@@ -72,8 +69,6 @@ pub struct CachedModule<Mods, D: Device> {
     pub modules: Mods,
     pub cache: RefCell<Cache>,
     pub buffers_cache: RefCell<crate::Buffers<Box<dyn crate::BoxedShallowCopy>>>,
-    pub cursor_to_id: RefCell<HashMap<usize, UniqueId>>,
-
     pub(crate) pd: PhantomData<D>,
     cursor: Cell<usize>, // would move this to `Cache`, however -> RefCell; TODO: maybe add a Cursor Module
 }
@@ -111,11 +106,18 @@ impl<D: Device, SD: Device, Mods: ExecNow<D>> ExecNow<D> for CachedModule<Mods, 
     }
 }
 
-impl<T, D: Device, Mods: OnNewBuffer<T, D, S>, SD: Device, S: Shape> OnNewBuffer<T, D, S>
-    for CachedModule<Mods, SD>
+impl<T, D, Mods, SD, S> OnNewBuffer<T, D, S> for CachedModule<Mods, SD>
+where
+    T: 'static,
+    D: Device + IsShapeIndep + 'static,
+    Mods: OnNewBuffer<T, D, S>,
+    D::Data<T, S>: ShallowCopy,
+    SD: Device,
+    S: Shape,
 {
     #[inline]
     fn on_new_buffer(&self, device: &D, new_buf: &Buffer<T, D, S>) {
+        unsafe { register_buf_copyable(&mut self.buffers_cache.borrow_mut(), new_buf) };
         self.modules.on_new_buffer(device, new_buf)
     }
 }
@@ -123,6 +125,7 @@ impl<T, D: Device, Mods: OnNewBuffer<T, D, S>, SD: Device, S: Shape> OnNewBuffer
 impl<Mods: OnDropBuffer, SD: Device> OnDropBuffer for CachedModule<Mods, SD> {
     #[inline]
     fn on_drop_buffer<T, D: Device, S: Shape>(&self, device: &D, buf: &Buffer<T, D, S>) {
+        unregister_buf_copyable(&mut self.buffers_cache.borrow_mut(), buf.id());
         self.modules.on_drop_buffer(device, buf)
     }
 }
@@ -130,9 +133,11 @@ impl<Mods: OnDropBuffer, SD: Device> OnDropBuffer for CachedModule<Mods, SD> {
 // TODO: a more general OnDropBuffer => "Module"
 impl<T, Mods, D, SimpleDevice, S: Shape> Retrieve<D, T, S> for CachedModule<Mods, SimpleDevice>
 where
+    T: 'static,
     Mods: Retrieve<D, T, S>,
-    D: Device + Cursor + 'static,
+    D: Device + IsShapeIndep + Cursor + 'static,
     D::Base<T, S>: ShallowCopy + 'static,
+    D::Data<T, S>: ShallowCopy + 'static,
     SimpleDevice: Device,
 {
     #[inline]
@@ -145,9 +150,11 @@ where
     where
         D: Alloc<T>,
     {
-        self.wrap_in_base(self.cache.borrow_mut().get(device, len, |cursor, base| {
-            self.cursor_to_id.borrow_mut().insert(cursor, *base.id());
-        }))
+        self.wrap_in_base(
+            self.cache
+                .borrow_mut()
+                .get(device, len, |_cursor, _base| {}),
+        )
     }
 
     #[inline]
@@ -155,6 +162,7 @@ where
     where
         D: Alloc<T>,
     {
+        unsafe { register_buf_copyable(&mut self.buffers_cache.borrow_mut(), retrieved_buf) };
         self.modules.on_retrieve_finish(retrieved_buf)
     }
 }
@@ -206,7 +214,6 @@ impl<CurrentMods, SD: Device> AddLayer<CurrentMods, SD> for Cached<()> {
             modules: inner_mods,
             cache: Default::default(),
             buffers_cache: Default::default(),
-            cursor_to_id: Default::default(),
             pd: core::marker::PhantomData,
             cursor: Default::default(),
         }
@@ -316,8 +323,7 @@ impl<Mods: OnDropBuffer, D: Device> CachedBuffers for CachedModule<Mods, D> {
     unsafe fn buffers_mut(
         &self,
     ) -> Option<core::cell::RefMut<crate::Buffers<Box<dyn crate::BoxedShallowCopy>>>> {
-        // self.cache.borrow_mut().nodes
-        todo!()
+        Some(self.buffers_cache.borrow_mut())
     }
 }
 

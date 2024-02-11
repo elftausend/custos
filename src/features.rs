@@ -476,6 +476,7 @@ macro_rules! pass_down_optimize_mem_graph {
 }
 
 pub trait CachedBuffers {
+    #[cfg(feature = "std")]
     unsafe fn buffers_mut(
         &self,
     ) -> Option<RefMut<crate::Buffers<Box<dyn crate::BoxedShallowCopy>>>> {
@@ -487,6 +488,7 @@ pub trait CachedBuffers {
 macro_rules! pass_down_cached_buffers {
     ($to_impl:ident) => {
         impl<Mods: $crate::CachedBuffers> $crate::CachedBuffers for $to_impl<Mods> {
+            #[cfg(feature = "std")]
             #[inline]
             unsafe fn buffers_mut(
                 &self,

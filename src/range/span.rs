@@ -3,11 +3,7 @@ use std::collections::HashMap;
 
 use crate::{Cursor, HashLocation, LocationHasher};
 
-pub type SpanStorage = HashMap<
-    HashLocation<'static>,
-    usize,
-    BuildHasherDefault<LocationHasher>,
->;
+pub type SpanStorage = HashMap<HashLocation<'static>, usize, BuildHasherDefault<LocationHasher>>;
 
 #[inline]
 pub fn span_update<D: Cursor>(

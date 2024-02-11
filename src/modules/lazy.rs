@@ -1,18 +1,16 @@
 mod exec_iter;
 mod lazy_graph;
-mod register_buf;
 mod ty;
 mod wrapper;
-
-use register_buf::*;
 
 pub use ty::*;
 
 use crate::{
-    impl_remove_layer, pass_down_grad_fn, pass_down_tape_actions, AddLayer, AddOperation, Alloc,
-    BoxedShallowCopy, Buffer, CachedBuffers, Cursor, Device, ExecNow, HasId, Id, IsShapeIndep,
-    Module, OnDropBuffer, OnNewBuffer, Parents, ReplaceBuf, Retrieve, RunModule, Setup,
-    ShallowCopy, Shape, UniqueId, UpdateArgs,
+    impl_remove_layer, pass_down_grad_fn, pass_down_tape_actions, register_buf_copyable,
+    unregister_buf_copyable, AddLayer, AddOperation, Alloc, BoxedShallowCopy, Buffer,
+    CachedBuffers, Cursor, Device, ExecNow, HasId, Id, IsShapeIndep, Module, OnDropBuffer,
+    OnNewBuffer, Parents, ReplaceBuf, Retrieve, RunModule, Setup, ShallowCopy, Shape, UniqueId,
+    UpdateArgs,
 };
 
 #[cfg(feature = "graph")]

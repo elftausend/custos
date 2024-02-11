@@ -48,7 +48,8 @@ impl Cache {
             Some(data) => {
                 unsafe { device.bump_cursor() };
                 let data = unsafe {
-                    (**data).as_any()
+                    (**data)
+                        .as_any()
                         .downcast_ref::<D::Base<T, S>>()
                         .expect("Invalid request for data type!")
                         .shallow()

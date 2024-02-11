@@ -106,8 +106,8 @@ impl<B: AsAny> LazyGraph<B> {
 mod tests {
     use super::LazyGraph;
     use crate::{
-        modules::lazy::register_buf_copyable, AsNoId, Base, BoxedShallowCopy, Buffer, Device,
-        HasId, Retriever, CPU,
+        register_buf_copyable, AsNoId, Base, BoxedShallowCopy, Buffer, Device, HasId, Retriever,
+        CPU,
     };
     use std::collections::HashMap;
 

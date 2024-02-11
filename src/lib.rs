@@ -132,9 +132,9 @@ pub use layer_management::*;
 pub use modules::*;
 pub use parents::*;
 pub use ptr_conv::*;
+pub use range::*;
 pub use update_args::*;
 pub use wrapper::*;
-pub use range::*;
 
 #[cfg(feature = "static-api")]
 pub mod static_api;
