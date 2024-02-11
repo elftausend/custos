@@ -1,6 +1,8 @@
 use core::{
+    any::Any,
     cell::{Cell, RefCell},
     marker::PhantomData,
+    ops::Deref,
 };
 use std::collections::HashMap;
 
@@ -275,6 +277,16 @@ impl<Mods: OptimizeMemGraph, SD: Device> OptimizeMemGraph for CachedModule<Mods,
                 .clone();
 
             for to_replace in &cache_trace.use_cache_idxs {
+                if cache
+                    .nodes
+                    .get(&(*to_replace as UniqueId))
+                    .unwrap()
+                    .deref()
+                    .type_id()
+                    != used_to_replace.deref().type_id()
+                {
+                    continue;
+                }
                 cache
                     .nodes
                     .insert(*to_replace as UniqueId, used_to_replace.clone());

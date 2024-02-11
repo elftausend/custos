@@ -14,7 +14,7 @@ pub trait HasId {
     // TODO: maybe move this to another trait -> `RequiresGrad`, probably needs to be added as trait bound for D::Data/Base
     #[inline]
     fn requires_grad(&self) -> bool {
-        true
+        false
     }
 
     // TODO: maybe move this to another trait -> `RequiresGrad`, probably needs to be added as trait bound for D::Data/Base

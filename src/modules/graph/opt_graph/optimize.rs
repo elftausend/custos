@@ -89,15 +89,15 @@ impl OptGraph {
     /// let mut graph = OptGraph::default();
     /// let a = graph.add_leaf(10);
     /// let b = graph.add_leaf(10);
-    ///     
+    ///
     /// let c = graph.add_node(10, vec![a, b]);
-    ///     
+    ///
     /// let d = graph.add_node(10, vec![c, c]);
-    ///     
+    ///
     /// let _u = graph.add_node(10, vec![d, a]);
-    ///     
+    ///
     /// let _e = graph.add_node(10, vec![d, b]);
-    ///     
+    ///
     /// assert!(graph.is_path_optimizable(graph.node(c)));
     /// assert!(!graph.is_path_optimizable(graph.node(d)));
     /// ```
@@ -595,6 +595,82 @@ mod tests {
             }
             device.optimize_mem_graph(&device, None).unwrap();
         }
+    }
+
+    #[cfg(feature = "cpu")]
+    #[cfg(feature = "cached")]
+    #[test]
+    fn test_mismatched_optimized_types_cached() {
+        use crate::{
+            Base, Buffer, Cached, Cursor, Device, Graph, HasId, OptimizeMemGraph, Retriever, CPU,
+        };
+
+        let device = CPU::<Graph<Cached<Base>>>::new();
+
+        // idx: 0, deps: []
+        let x: Buffer<f32, _> = device.buffer([1.; 1000]);
+        // idx: 1, deps: []
+        let b: Buffer<f32, _> = device.buffer([1.1; 1000]);
+
+        for i in device.range(2) {
+            // idx: 2, deps: [0, 0]
+            let squared: Buffer<f32, _> = device.retrieve::<2>(1000, (&x, &x));
+            // idx: 3, deps: [1, 0]
+            let add: Buffer<f32, _> = device.retrieve::<2>(1000, (&b, &x));
+            // idx: 4, deps: [3, 1]
+            let mul_b: Buffer<u8, _> = device.retrieve::<2>(1000, (&add, &b));
+            // idx: 5, deps: [2, 0]
+            let mul: Buffer<f32, _> = device.retrieve::<2>(1000, (&squared, &x));
+            // idx: 6, deps: [5, 4]
+            let out: Buffer<f32, _> = device.retrieve::<2>(1000, (&mul, &mul_b));
+
+            if i == 0 {
+                assert_ne!(squared.id(), mul.id());
+            }
+
+            if i == 1 {
+                assert_eq!(squared.id(), mul.id());
+                assert_eq!(squared.id(), out.id());
+
+                break;
+            }
+            device.optimize_mem_graph(&device, None).unwrap();
+        }
+    }
+
+    #[cfg(feature = "cpu")]
+    #[cfg(feature = "lazy")]
+    #[should_panic]
+    #[test]
+    fn test_mismatched_optimized_types_lazy() {
+        use crate::{
+            Base, Buffer, Device, Graph, HasId, Lazy, OptimizeMemGraph, Retriever, Run, CPU,
+        };
+
+        let device = CPU::<Graph<Lazy<Base>>>::new();
+
+        // idx: 0, deps: []
+        let x: Buffer<f32, _> = device.buffer([1.; 1000]);
+        // idx: 1, deps: []
+        let b: Buffer<f32, _> = device.buffer([1.1; 1000]);
+        // idx: 2, deps: [0, 0]
+        let squared: Buffer<f32, _> = device.retrieve::<2>(1000, (&x, &x));
+        // idx: 3, deps: [1, 0]
+        let add: Buffer<f32, _> = device.retrieve::<2>(1000, (&b, &x));
+        // idx: 4, deps: [3, 1]
+        let mul_b: Buffer<u8, _> = device.retrieve::<2>(1000, (&add, &b));
+        // idx: 5, deps: [2, 0]
+        let mul: Buffer<f32, _> = device.retrieve::<2>(1000, (&squared, &x));
+        // idx: 6, deps: [5, 4]
+        let out: Buffer<f32, _> = device.retrieve::<2>(1000, (&mul, &mul_b));
+
+        device.optimize_mem_graph(&device, None).unwrap();
+        let _err = unsafe { device.run() };
+
+        assert_eq!(squared.replace().id(), mul.replace().id());
+        assert_eq!(squared.replace().id(), out.replace().id());
+
+        assert_eq!(add.replace().id(), mul_b.replace().id());
     }
 
     #[test]
