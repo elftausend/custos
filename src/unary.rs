@@ -249,11 +249,10 @@ mod tests {
     #[test]
     fn test_unary_elementwise_may_grad_multiple_times() {
         use crate::{
-            two_way_ops::tests_ex::roughly_eq_slices, Autograd, Base, Combiner, Device,
-            UnaryElementWiseMayGrad, CPU,
+            two_way_ops::tests_ex::roughly_eq_slices, Autograd, Base, Cached, Combiner, Device, UnaryElementWiseMayGrad, CPU
         };
 
-        let device = CPU::<Autograd<Base>>::new();
+        let device = CPU::<Autograd<Cached<Base>>>::new();
         let buf = device.buffer([1., 2., 3., 4.]).require_grad();
 
         for _ in 0..10 {
@@ -292,11 +291,10 @@ mod tests {
     #[test]
     fn test_unary_elementwise_may_grad_multiple_times_backwards_at_end() {
         use crate::{
-            two_way_ops::tests_ex::roughly_eq_slices, Autograd, Base, Combiner, Cursor, Device,
-            UnaryElementWiseMayGrad, CPU,
+            two_way_ops::tests_ex::roughly_eq_slices, Autograd, Base, Cached, Combiner, Cursor, Device, UnaryElementWiseMayGrad, CPU
         };
 
-        let device = CPU::<Autograd<Base>>::new();
+        let device = CPU::<Autograd<Cached<Base>>>::new();
         let buf = device.buffer([1., 2., 3., 4.]).require_grad();
 
         for i in device.range(0..9) {

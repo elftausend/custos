@@ -9,10 +9,9 @@ use core::cell::{Cell, UnsafeCell};
 
 use crate::{
     impl_remove_layer, pass_down_add_operation, pass_down_cached_buffers, pass_down_cursor,
-    pass_down_exec_now_module, register_buf_any, register_buf_copyable, unregister_buf_any,
-    unregister_buf_copyable, AddGradFn, AddLayer, Alloc, Buffer, Device, HasId, IsShapeIndep,
-    Module, OnDropBuffer, OnNewBuffer, Parents, Retrieve, RunModule, Setup, ShallowCopy, Shape,
-    TapeActions,
+    pass_down_exec_now_module, register_buf_copyable, unregister_buf_copyable, AddGradFn, AddLayer,
+    Alloc, Buffer, Device, HasId, IsShapeIndep, Module, OnDropBuffer, OnNewBuffer, Parents,
+    Retrieve, RunModule, Setup, ShallowCopy, Shape, TapeActions,
 };
 
 use self::wrapper::ReqGradWrapper;
@@ -29,14 +28,14 @@ pub struct Autograd<Mods> {
 }
 
 impl<Mods: Module<D>, D: Device> Module<D> for Autograd<Mods> {
-    type Module = Autograd<CachedModule<Mods::Module, D>>;
-    // type Module = Autograd<Mods::Module>;
+    // type Module = Autograd<CachedModule<Mods::Module, D>>;
+    type Module = Autograd<Mods::Module>;
 
     #[inline]
     fn new() -> Self::Module {
         Autograd {
-            modules: Cached::<Mods>::new(),
-            // modules: Mods::new(),
+            // modules: Cached::<Mods>::new(),
+            modules: Mods::new(),
             grads: Default::default(),
             tape: Default::default(),
             enabled: Cell::new(true),
@@ -252,8 +251,6 @@ pass_down_cached_buffers!(Autograd);
 #[cfg(test)]
 #[cfg(feature = "cpu")]
 mod tests {
-    use core::any::Any;
-
     use crate::{
         AddGradFn, Base, BoxedShallowCopy, Buffer, Cached, Combiner, Cursor, Device, HasId, Lazy,
         Module, Retriever, Shape, UnaryGrad, CPU,
@@ -271,7 +268,7 @@ mod tests {
 
     #[test]
     fn test_buffer_creation_autograd_register_manual() {
-        let device = CPU::<Autograd<Base>>::new();
+        let device = CPU::<Autograd<Cached<Base>>>::new();
         let buf: Buffer<f32, _> = Buffer::<f32, _>::new(&device, 10);
 
         let autograd = &device.modules;
@@ -287,7 +284,7 @@ mod tests {
 
     #[test]
     fn test_buffer_creation_autograd_get_buf() {
-        let device: CPU<Autograd<crate::CachedModule<Base, CPU>>> = CPU::<Autograd<Base>>::new();
+        let device: CPU<Autograd<crate::CachedModule<Base, CPU>>> = CPU::<Autograd<Cached<Base>>>::new();
         let buf: Buffer<f32, _> = Buffer::<f32, _>::new(&device, 10);
 
         let autograd = &device.modules;
@@ -306,7 +303,7 @@ mod tests {
 
     #[test]
     fn test_buffer_creation_autograd_unregister() {
-        let device = CPU::<Autograd<Base>>::new();
+        let device = CPU::<Autograd<Cached<Base>>>::new();
         let buf: Buffer<f32, _> = Buffer::<f32, _>::new(&device, 10);
         let id = buf.id();
         let autograd = &device.modules;
@@ -322,7 +319,7 @@ mod tests {
 
     #[test]
     fn test_buffer_new_and_retrieve() {
-        let device = CPU::<Autograd<Base>>::new();
+        let device = CPU::<Autograd<Cached<Base>>>::new();
         let _lhs = Buffer::<f32, _>::new(&device, 10);
 
         for _ in device.range(0..100) {

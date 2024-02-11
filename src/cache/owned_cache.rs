@@ -4,13 +4,13 @@ use std::collections::HashMap;
 use std::rc::Rc;
 
 use crate::{
-    flag::AllocFlag, Alloc, BoxedShallowCopy, Cursor, Device, NoHasher, PtrType, ShallowCopy,
+    flag::AllocFlag, Alloc, Cursor, Device, NoHasher, PtrType, ShallowCopy,
     Shape, UniqueId,
 };
 
 #[derive(Clone)]
 pub struct Cache {
-    pub nodes: HashMap<UniqueId, Rc<dyn BoxedShallowCopy>, BuildHasherDefault<NoHasher>>,
+    pub nodes: HashMap<UniqueId, Rc<dyn Any>, BuildHasherDefault<NoHasher>>,
 }
 
 impl Default for Cache {
@@ -48,8 +48,7 @@ impl Cache {
             Some(data) => {
                 unsafe { device.bump_cursor() };
                 let data = unsafe {
-                    (**data)
-                        .as_any()
+                    data
                         .downcast_ref::<D::Base<T, S>>()
                         .expect("Invalid request for data type!")
                         .shallow()
@@ -89,7 +88,9 @@ impl Cache {
 
 #[cfg(test)]
 mod tests {
+    #[cfg(feauture = "cpu")]
     use super::Cache;
+    #[cfg(feauture = "cpu")]
     use crate::{Base, Cached, CPU};
 
     #[cfg(feauture = "cpu")]

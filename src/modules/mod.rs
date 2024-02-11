@@ -62,7 +62,7 @@ pub(crate) unsafe fn register_buf_any<T, D, S>(
 
 #[cfg(feature = "std")]
 #[inline]
-pub fn unregister_buf_any(cache: &mut HashMap<UniqueId, Box<dyn Any>, impl BuildHasher>, id: Id) {
+pub(crate) fn unregister_buf_any(cache: &mut HashMap<UniqueId, Box<dyn Any>, impl BuildHasher>, id: Id) {
     cache.remove(&id);
 }
 

@@ -4,7 +4,7 @@ use core::{
 };
 
 use crate::{
-    AddGradFn, AddLayer, AddOperation, Alloc, BoxedShallowCopy, Buffer, Buffers, Cache,
+    AddGradFn, AddLayer, AddOperation, Alloc, Buffer, Cache,
     CachedBuffers, Cursor, Device, ExecNow, HasId, IsShapeIndep, Module, OnDropBuffer, OnNewBuffer,
     Parents, PtrType, RemoveLayer, Retrieve, RunModule, Setup, ShallowCopy, Shape, UniqueId,
     WrappedData,
@@ -282,9 +282,8 @@ impl<Mods: OptimizeMemGraph, SD: Device> OptimizeMemGraph for CachedModule<Mods,
                     .nodes
                     .get(&(*to_replace as UniqueId))
                     .unwrap()
-                    .as_any()
                     .type_id()
-                    != used_to_replace.as_any().type_id()
+                    != used_to_replace.type_id()
                 {
                     continue;
                 }
