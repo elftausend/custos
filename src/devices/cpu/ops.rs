@@ -1,7 +1,4 @@
-use core::{
-    fmt::Debug,
-    ops::{AddAssign, Deref, DerefMut, Index, Range, RangeBounds},
-};
+use core::ops::{AddAssign, Deref, DerefMut, Index, Range, RangeBounds};
 
 use crate::{
     bounds_to_range,

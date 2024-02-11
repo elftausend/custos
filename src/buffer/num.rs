@@ -195,7 +195,7 @@ impl<'a, T> Buffer<'a, T, ()> {
     }
 }
 
-impl<'a, T> Deref for Num<T> {
+impl<T> Deref for Num<T> {
     type Target = T;
 
     #[inline]
@@ -204,7 +204,7 @@ impl<'a, T> Deref for Num<T> {
     }
 }
 
-impl<'a, T> DerefMut for Num<T> {
+impl<T> DerefMut for Num<T> {
     #[inline]
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.num

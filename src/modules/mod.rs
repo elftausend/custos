@@ -37,6 +37,7 @@ use std::collections::HashMap;
 
 #[cfg(feature = "std")]
 #[inline]
+#[allow(unused)]
 pub(crate) unsafe fn register_buf_any<T, D, S>(
     cache: &mut HashMap<UniqueId, Box<dyn Any>, impl BuildHasher>,
     buf: &Buffer<T, D, S>,
@@ -50,8 +51,6 @@ pub(crate) unsafe fn register_buf_any<T, D, S>(
 
     let wrapped_data = buf.data.shallow();
 
-    // let wrapped_data = D::convert::<T, S, T, S>(&buf.data, AllocFlag::Wrapper);
-
     let buf = Buffer {
         data: wrapped_data,
         device: buf.device,
@@ -62,6 +61,7 @@ pub(crate) unsafe fn register_buf_any<T, D, S>(
 
 #[cfg(feature = "std")]
 #[inline]
+#[allow(unused)]
 pub(crate) fn unregister_buf_any(
     cache: &mut HashMap<UniqueId, Box<dyn Any>, impl BuildHasher>,
     id: Id,

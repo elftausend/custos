@@ -284,7 +284,7 @@ where
         self.add_op::<_, 4>(
             (lhs, lhs_grad.buf_no_id(), out, lhs_grad_fn.no_id()),
             move |(lhs, lhs_grad, out, lhs_grad_fn)| {
-                try_cl_add_unary_grad(lhs.device(), lhs, &mut **lhs_grad, out, **lhs_grad_fn)
+                try_cl_add_unary_grad(lhs.device(), lhs, **lhs_grad, out, **lhs_grad_fn)
             },
         )
         .unwrap();
