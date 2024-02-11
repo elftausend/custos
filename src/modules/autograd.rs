@@ -9,14 +9,13 @@ use core::cell::{Cell, UnsafeCell};
 
 use crate::{
     impl_remove_layer, pass_down_add_operation, pass_down_cached_buffers, pass_down_cursor,
-    pass_down_exec_now_module, register_buf_copyable, unregister_buf_copyable, AddGradFn, AddLayer,
-    Alloc, Buffer, Device, HasId, IsShapeIndep, Module, OnDropBuffer, OnNewBuffer, Parents,
-    Retrieve, RunModule, Setup, ShallowCopy, Shape, TapeActions,
+    pass_down_exec_now_module, pass_down_replace_buf_module, register_buf_copyable,
+    unregister_buf_copyable, AddGradFn, AddLayer, Alloc, Buffer, Device, HasId, IsShapeIndep,
+    Module, OnDropBuffer, OnNewBuffer, Parents, Retrieve, RunModule, Setup, ShallowCopy, Shape,
+    TapeActions,
 };
 
 use self::wrapper::ReqGradWrapper;
-
-use super::{Cached, CachedModule};
 
 #[derive(Debug, Default)]
 pub struct Autograd<Mods> {
@@ -247,6 +246,7 @@ impl<Mods: AddGradFn> AddGradFn for Autograd<Mods> {
 pass_down_add_operation!(Autograd);
 pass_down_exec_now_module!(Autograd);
 pass_down_cached_buffers!(Autograd);
+pass_down_replace_buf_module!(Autograd);
 
 #[cfg(test)]
 #[cfg(feature = "cpu")]
@@ -364,8 +364,7 @@ mod tests {
     }
 
     #[test]
-    //#[should_panic]
-    fn test_tape_return_without_grad_allocation() {
+    fn test_grad_fn_with_lazy_buffer_source_but_no_true_lazy() {
         let device = CPU::<Autograd<Lazy<Base>>>::new();
         let buf = Buffer::<f32, _>::new(&device, 10).require_grad();
 
@@ -377,16 +376,6 @@ mod tests {
             }
             Ok(())
         });
-
-        /*let ids = (buf.id(), out.id());
-        // this does not panic anymore because grads are allocated if a new buffer is created (when using the Autograd module)
-        device.add_grad_fn(move |grads| {
-            let (_buf, buf_grad, _out) =
-                grads.get_double::<f32, (), (), CPU<Autograd<crate::CachedModule<Base, CPU>>>>(ids);
-            for val in buf_grad.as_mut_slice() {
-                *val = 5.;
-            }
-        });*/
 
         out.backward();
 

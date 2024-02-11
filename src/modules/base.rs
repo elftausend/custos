@@ -41,12 +41,21 @@ impl AddOperation for Base {
         0
     }
 
+    #[inline]
     fn add_op<Args: Parents<N>, const N: usize>(
         &self,
         mut args: Args,
         operation: fn(&mut Args) -> crate::Result<()>,
     ) -> crate::Result<()> {
         operation(&mut args)
+    }
+
+    #[inline]
+    fn set_lazy_enabled(&self, _enabled: bool) {}
+
+    #[inline]
+    fn is_lazy_enabled(&self) -> bool {
+        false
     }
 }
 

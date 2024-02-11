@@ -35,6 +35,7 @@ pub struct Lazy<Mods> {
     buffers: RefCell<Buffers>,
     graph: RefCell<LazyGraph<Box<dyn BoxedShallowCopy>>>,
     cursor: Cell<usize>,
+    enabled: Cell<bool>,
 }
 
 impl<Mods: Debug> Debug for Lazy<Mods> {
@@ -70,6 +71,7 @@ impl<Mods: Module<D>, D: LazySetup + Device> Module<D> for Lazy<Mods> {
             alloc_later: Default::default(),
             allocated: Default::default(),
             cursor: Default::default(),
+            enabled: Cell::new(true),
         }
     }
 }
@@ -86,10 +88,24 @@ impl<Mods: AddOperation> AddOperation for Lazy<Mods> {
         args: Args,
         operation: fn(&mut Args) -> crate::Result<()>,
     ) -> crate::Result<()> {
-        self.graph.try_borrow_mut()
+        if self.enabled.get() {
+            self.graph.try_borrow_mut()
             .expect("already borrowed: BorrowMutError - is the inner operation trying to add an operation as well?")
             .add_operation(args, operation);
+        } else {
+            return self.modules.add_op(args, operation);
+        }
         Ok(())
+    }
+
+    #[inline]
+    fn set_lazy_enabled(&self, enabled: bool) {
+        self.enabled.set(enabled);
+    }
+
+    #[inline]
+    fn is_lazy_enabled(&self) -> bool {
+        self.enabled.get()
     }
 }
 
@@ -232,6 +248,7 @@ impl<NewMods, SD> AddLayer<NewMods, SD> for Lazy<()> {
             alloc_later: Default::default(),
             allocated: Default::default(),
             cursor: Default::default(),
+            enabled: Cell::new(true),
         }
     }
 }

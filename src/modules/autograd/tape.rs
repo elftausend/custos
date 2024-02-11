@@ -2,8 +2,8 @@ use core::{fmt::Debug, hash::BuildHasherDefault, panic::Location};
 use std::collections::{HashMap, HashSet};
 
 use crate::{
-    Alloc, BoxedShallowCopy, Buffer, Buffers, HasId, HashLocation, LazyGraph, LocationHasher,
-    Parents, Shape, TapeActions, UpdateArgs, WriteBuf, ZeroGrad,
+    AddOperation, Alloc, BoxedShallowCopy, Buffer, Buffers, HasId, HashLocation, LazyGraph,
+    LocationHasher, Parents, Shape, TapeActions, UpdateArgs, WriteBuf, ZeroGrad,
 };
 
 use super::Gradients;
@@ -67,7 +67,11 @@ impl Tape {
     }
 
     /// Calls all gradient functions in reverse order.
-    pub fn backward(&mut self, buffers: &mut Buffers<Box<dyn BoxedShallowCopy>>) {
+    pub fn backward(
+        &mut self,
+        buffers: &mut Buffers<Box<dyn BoxedShallowCopy>>,
+        lazy_enabled: bool,
+    ) {
         // for grad_fn_id in self.grad_fn_order.iter().rev() {
         //     let grad_fn = self.grad_fns_loc.get(grad_fn_id).unwrap();
         //     grad_fn(&mut self.grads);
@@ -82,9 +86,12 @@ impl Tape {
             val.unwrap();
         }
         self.unconsumed_locations.clear();
-        self.lazy_graph.clear(); /*for grad_fn in self.grad_fns.drain(..).rev() {
-                                     grad_fn(&mut self.grads);
-                                 }*/
+        if !lazy_enabled {
+            self.lazy_graph.clear();
+        }
+        /*for grad_fn in self.grad_fns.drain(..).rev() {
+            grad_fn(&mut self.grads);
+        }*/
     }
 
     pub fn seed_grad_for_buf<T, D, S>(&self, buf: &Buffer<T, D, S>, seed: &[T])
@@ -106,10 +113,14 @@ impl Tape {
         buffers: &mut Buffers<Box<dyn BoxedShallowCopy>>,
     ) where
         T: 'static,
-        D: Alloc<T> + ZeroGrad<T> + WriteBuf<T, S, D> + TapeActions + 'static,
+        D: Alloc<T> + ZeroGrad<T> + WriteBuf<T, S, D> + TapeActions + AddOperation + 'static,
     {
         self.seed_grad_for_buf(buf, seed);
-        self.backward(buffers)
+
+        let is_lazy_enabled = buf.device().is_lazy_enabled();
+        buf.device()
+            .eagerly(|| self.backward(buffers, is_lazy_enabled));
+        // self.backward(buffers)
     }
 
     pub fn backward_seeded_maybe_with_buffers<T, D, S: Shape>(
@@ -119,7 +130,7 @@ impl Tape {
         buffers: Option<&mut Buffers<Box<dyn BoxedShallowCopy>>>,
     ) where
         T: 'static,
-        D: Alloc<T> + ZeroGrad<T> + WriteBuf<T, S, D> + TapeActions + 'static,
+        D: Alloc<T> + ZeroGrad<T> + WriteBuf<T, S, D> + TapeActions + AddOperation + 'static,
     {
         match buffers {
             Some(buffers) => self.backward_seeded_with_buffers(buf, seed, buffers),

@@ -292,6 +292,24 @@ pub trait AddOperation {
         operation: fn(&mut Args) -> crate::Result<()>,
     ) -> crate::Result<()>; // TODO: unrequired result?-  remove
     fn ops_count(&self) -> usize;
+    fn set_lazy_enabled(&self, enabled: bool);
+    #[inline]
+    fn enable_lazy(&self) {
+        self.set_lazy_enabled(true)
+    }
+    #[inline]
+    fn disable_lazy(&self) {
+        self.set_lazy_enabled(false)
+    }
+    fn is_lazy_enabled(&self) -> bool;
+    #[inline]
+    fn eagerly(&self, op: impl FnOnce()) {
+        // use enabled_before -> if eager is called in an already disabled lazy context, it should not be enabled after the call
+        let enabled_before = self.is_lazy_enabled();
+        self.set_lazy_enabled(false);
+        op();
+        self.set_lazy_enabled(enabled_before);
+    }
 }
 
 pub trait ExecNow<D = Self> {
@@ -324,6 +342,16 @@ macro_rules! pass_down_add_operation {
             #[inline]
             fn ops_count(&self) -> usize {
                 self.modules.ops_count()
+            }
+
+            #[inline]
+            fn set_lazy_enabled(&self, enabled: bool) {
+                self.modules.set_lazy_enabled(enabled)
+            }
+
+            #[inline]
+            fn is_lazy_enabled(&self) -> bool {
+                self.modules.is_lazy_enabled()
             }
         }
     };
@@ -468,7 +496,7 @@ macro_rules! pass_down_optimize_mem_graph {
                 &self,
                 device: &D,
                 graph_translator: Option<&$crate::modules::GraphTranslator>,
-            ) -> crate::Result<()> {
+            ) -> $crate::Result<()> {
                 self.modules.optimize_mem_graph(device, graph_translator)
             }
         }
@@ -492,7 +520,7 @@ macro_rules! pass_down_cached_buffers {
             #[inline]
             unsafe fn buffers_mut(
                 &self,
-            ) -> Option<core::cell::RefMut<crate::Buffers<Box<dyn crate::BoxedShallowCopy>>>> {
+            ) -> Option<core::cell::RefMut<$crate::Buffers<Box<dyn $crate::BoxedShallowCopy>>>> {
                 self.modules.buffers_mut()
             }
         }

@@ -1,10 +1,13 @@
-use core::ops::{AddAssign, Deref, DerefMut, Index, Range, RangeBounds};
+use core::{
+    fmt::Debug,
+    ops::{AddAssign, Deref, DerefMut, Index, Range, RangeBounds},
+};
 
 use crate::{
     bounds_to_range,
     cpu_stack_ops::{apply_fn_slice, clear_slice},
     pass_down_add_operation, pass_down_exec_now, AddOperation, ApplyFunction, AsNoId, BufAsNoId,
-    Buffer, ClearBuf, CopySlice, Device, Eval, MayToCLSource, OnDropBuffer, Read, Resolve,
+    Buffer, ClearBuf, CopySlice, Device, Eval, HasId, MayToCLSource, OnDropBuffer, Read, Resolve,
     Retrieve, Retriever, Shape, ToVal, UnaryGrad, WriteBuf, ZeroGrad, CPU,
 };
 
@@ -48,7 +51,7 @@ where
 impl<Mods, T, D, S> UnaryGrad<T, S, D> for CPU<Mods>
 where
     Mods: AddOperation + OnDropBuffer,
-    T: AddAssign + Copy + std::ops::Mul<Output = T> + 'static,
+    T: AddAssign + Copy + std::ops::Mul<Output = T> + 'static + Debug,
     S: Shape,
     D: Device + 'static,
     D::Base<T, S>: Deref<Target = [T]> + DerefMut<Target = [T]>,
@@ -65,7 +68,6 @@ where
     {
         self.add_op::<_, 4>(
             (lhs, lhs_grad.buf_no_id(), out, lhs_grad_fn.no_id()),
-            // None,
             |(lhs, lhs_grad, out, lhs_grad_fn)| {
                 crate::cpu_stack_ops::add_unary_grad(lhs, out, lhs_grad, **lhs_grad_fn);
                 Ok(())

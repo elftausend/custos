@@ -90,6 +90,16 @@ impl<SD: Device, Mods: AddOperation> AddOperation for CachedModule<Mods, SD> {
     ) -> crate::Result<()> {
         operation(&mut args)
     }
+
+    #[inline]
+    fn set_lazy_enabled(&self, enabled: bool) {
+        self.modules.set_lazy_enabled(enabled)
+    }
+
+    #[inline]
+    fn is_lazy_enabled(&self) -> bool {
+        self.modules.is_lazy_enabled()
+    }
 }
 
 impl<D: Device, SD: Device, Mods: ExecNow<D>> ExecNow<D> for CachedModule<Mods, SD> {
