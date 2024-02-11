@@ -1,7 +1,7 @@
 use core::any::Any;
 
 use crate::{
-    Alloc, AnyBuffers, BorrowCache, BoxedShallowCopy, Buffer, Buffers, CachingError, Device, HasId,
+    Alloc, BorrowCache, BoxedShallowCopy, Buffer, Buffers, CachingError, Device, HasId,
     Id, Shape, ZeroGrad,
 };
 

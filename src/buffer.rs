@@ -454,7 +454,7 @@ impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
     }
 
     #[inline]
-    pub fn to_device_type<'b, DO>(self, device: &'b DO) -> Buffer<'b, T, DO, S>
+    pub fn to_device_type<DO>(self, device: &DO) -> Buffer<'_, T, DO, S>
     where
         DO: Device + OnNewBuffer<T, DO, S>,
         D::Data<T, S>: Default,

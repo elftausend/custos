@@ -83,7 +83,7 @@ where
         id,
         Rc::new(CLPtr {
             ptr: cl_ptr,
-            host_ptr: no_drop.base().ptr as *mut T,
+            host_ptr: no_drop.base().ptr,
             len: no_drop.len(),
             flag: AllocFlag::None,
         }),
@@ -145,7 +145,7 @@ where
             .unwrap();
         let data = device.base_to_data::<T, S>(CLPtr {
             ptr: rawcl.ptr,
-            host_ptr: rawcl.host_ptr as *mut T,
+            host_ptr: rawcl.host_ptr,
             len: no_drop.len(),
             flag: no_drop.data.flag(),
         });
