@@ -19,15 +19,6 @@ pub struct Cached<Mods> {
     pd: PhantomData<Mods>,
 }
 
-/*impl<Mods, D> Retrieve<D> for Cached<Mods> {
-    fn retrieve<T, S: Shape>(&self, device: &D, len: usize) -> <D>::Data<T, S>
-    where
-        D: Alloc
-    {
-        todo!()
-    }
-}*/
-
 impl<Mods: WrappedData, SD: Device> WrappedData for CachedModule<Mods, SD> {
     type Wrap<T, Base: HasId + PtrType> = Mods::Wrap<T, Base>;
 
@@ -303,22 +294,6 @@ impl<Mods: OptimizeMemGraph, SD: Device> OptimizeMemGraph for CachedModule<Mods,
         }
         Ok(())
     }
-}
-
-#[macro_export]
-#[deprecated]
-macro_rules! debug_assert_tracked {
-    () => {
-        #[cfg(debug_assertions)]
-        {
-            let location = core::panic::Location::caller();
-            assert_ne!(
-                (file!(), line!(), column!()),
-                (location.file(), location.line(), location.column()),
-                "Function and operation must be annotated with `#[track_caller]`."
-            );
-        }
-    };
 }
 
 impl<Mods: OnDropBuffer, D: Device> CachedBuffers for CachedModule<Mods, D> {

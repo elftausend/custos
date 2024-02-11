@@ -67,14 +67,6 @@ impl<B: AsAny> LazyGraph<B> {
         for args in self.iter_with(outs_unordered) {
             args?;
         }
-        // for ((args, op), ids_to_check) in
-        //     self.args.iter_mut().zip(&self.ops).zip(&self.ids_to_check)
-        // {
-        //     args.update_args(&ids_to_check, outs_unordered)?;
-
-        //     let args = &mut **args as *mut _ as *mut ();
-        //     op(args)?;
-        // }
         Ok(())
     }
 
@@ -91,10 +83,6 @@ impl<B: AsAny> LazyGraph<B> {
             .zip(self.ids_to_check.drain(range.clone()))
         {
             exec_op(&mut args, &op, &ids_to_check, outs_unordered)?;
-            // args.update_args(&ids_to_check, outs_unordered)?;
-
-            // let args = &mut *args as *mut _ as *mut ();
-            // op(args)?;
         }
 
         Ok(())

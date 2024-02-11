@@ -1,8 +1,8 @@
 use core::any::Any;
 
 use crate::{
-    Alloc, BorrowCache, BoxedShallowCopy, Buffer, Buffers, CachingError, Device, HasId,
-    Id, Shape, ZeroGrad,
+    Alloc, BorrowCache, BoxedShallowCopy, Buffer, Buffers, CachingError, Device, HasId, Id, Shape,
+    ZeroGrad,
 };
 
 const INVALID_ID: &str = "A matching Buffer does not exist.";
@@ -147,68 +147,4 @@ impl Gradients {
 
 #[cfg(test)]
 mod tests {
-    use crate::{Autograd, Base, Buffer, HasId, Retriever, CPU};
-
-    #[test]
-    #[cfg(feauture = "cpu")]
-    fn test_same_types_get_double_return() {
-        let device = CPU::<Autograd<Base>>::new();
-
-        // let mut gradients = Gradients::default();
-
-        let buf = Buffer::<i32, _>::new(&device, 10);
-        // unsafe { register_buf(&mut gradients.no_grads_pool.borrow_mut().cache, &buf) }
-
-        let out: Buffer<i32, _> = device.retrieve::<0>(buf.len(), ());
-        // unsafe { register_buf(&mut gradients.no_grads_pool.borrow_mut().cache, &out) }
-
-        // unsafe {
-        //     (*device.modules.tape.get())
-        //         .grads
-        //         .get_double::<i32, (), (), CPU<Autograd<crate::CachedModule<Base, CPU>>>>((
-        //             buf.id(),
-        //             out.id(),
-        //         ));
-        // }
-
-        // device
-        //     .modules
-        //     .tape
-        //     .borrow_mut()
-        //     .grads
-        //     .get_double::<i32, (), (), CPU<Autograd<crate::CachedModule<Base, CPU>>>>((
-        //         buf.id(),
-        //         out.id(),
-        //     ));
-    }
-
-    #[test]
-    #[cfg(feauture = "cpu")]
-    #[ignore = "deprecated"]
-    #[should_panic]
-    fn test_different_types_get_double_return() {
-        let device = CPU::<Autograd<Base>>::new();
-
-        // let mut gradients = Gradients::default();
-
-        let buf = Buffer::<i32, _>::new(&device, 10);
-        // unsafe { register_buf(&mut gradients.no_grads_pool.borrow_mut().cache, &buf) }
-
-        let out: Buffer<i64, _> = device.retrieve::<0>(buf.len(), ());
-        // unsafe { register_buf(&mut gradients.no_grads_pool.borrow_mut().cache, &out) }
-
-        // unsafe {
-        //     (*device.modules.tape.get()).grads
-        //     .get_double::<i32, (), (), CPU<Autograd<crate::CachedModule<Base, CPU<Autograd<Base>>>>>>((buf.id(), out.id()));
-        // }
-
-        // unsafe {
-        //     device
-        //     .modules
-        //     .tape
-        //     .borrow_mut()
-        //     .grads
-        //     .get_double::<i32, (), (), CPU<Autograd<crate::CachedModule<Base, CPU<Autograd<Base>>>>>>((buf.id(), out.id()))
-        // }
-    }
 }

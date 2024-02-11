@@ -21,7 +21,7 @@ use self::wrapper::ReqGradWrapper;
 pub struct Autograd<Mods> {
     pub modules: Mods,
     /// Caches gradients for each [`Buffer`]'s id ([`Ident`]).
-    pub grads: UnsafeCell<Gradients>,
+    pub grads: UnsafeCell<Gradients>, // could use RefCell
     tape: UnsafeCell<Tape>,
     pub enabled: Cell<bool>,
 }
@@ -52,7 +52,6 @@ impl<Mods> Autograd<Mods> {
         S: Shape,
     {
         let no_grads_pool = unsafe { &mut (*(self.grads.get())).no_grads_pool };
-        // let no_grads_pool = &mut self.tape.borrow_mut().grads.no_grads_pool.cache;
 
         if no_grads_pool.get(&buf.id()).is_some() {
             return;
@@ -72,17 +71,6 @@ where
     #[inline]
     fn on_new_buffer(&self, device: &D, new_buf: &Buffer<T, D, S>) {
         self.register_no_grad_buf(new_buf);
-
-        // allocates gradient memory for the corresponding buffer id
-        // this prevents allocating with a non matching datatype
-        // -> although retrieving the grads should fail if type information does not match
-        // TODO: better solution?
-        // unsafe {
-        //     (*self.tape.get())
-        //         .grads
-        //         .grads_pool
-        //         .add_buf_once::<T, D, S>(device, new_buf.id());
-        // }
 
         // pass down
         self.modules.on_new_buffer(device, new_buf)
@@ -158,14 +146,6 @@ where
     {
         self.register_no_grad_buf(retrieved_buf);
 
-        // allocates gradients
-        // unsafe {
-        //     (*self.tape.get())
-        //         .grads
-        //         .grads_pool
-        //         .add_buf_once::<T, D, S>(retrieved_buf.device(), retrieved_buf.id());
-        // }
-
         self.modules.on_retrieve_finish(retrieved_buf)
     }
 }
@@ -193,24 +173,6 @@ impl<Mods> TapeActions for Autograd<Mods> {
     unsafe fn gradients_mut(&self) -> Option<&mut crate::Gradients> {
         Some(&mut *self.grads.get())
     }
-
-    // fn add_grad_fn(
-    //     &self,
-    //     // ids: impl AllocGradsFrom<N>,
-    //     grad_fn: impl Fn(&mut crate::Gradients) + 'static,
-    // ) where
-    //     // T: 'static,
-    //     Self: 'static,
-    // {
-    //     if let Some(mut tape) = unsafe { self.tape_mut() } {
-    //         // the type T must match for every Id!
-    //         // for id in ids.ids() {
-    //         //     tape.grads.grads_pool.add_buf_once::<T, Self, S>(self, id)
-    //         // }
-
-    //         tape.add_grad_fn(grad_fn)
-    //     }
-    // }
 }
 
 impl<Mods: RunModule<D>, D> RunModule<D> for Autograd<Mods> {
@@ -230,7 +192,7 @@ impl<Mods: AddGradFn> AddGradFn for Autograd<Mods> {
         if !self.enabled.get() {
             return;
         }
-        unsafe { (*self.tape.get()).add_grad_fn2(args, op) }
+        unsafe { (*self.tape.get()).add_grad_fn(args, op) }
     }
     #[inline]
     fn is_grad_enabled(&self) -> bool {

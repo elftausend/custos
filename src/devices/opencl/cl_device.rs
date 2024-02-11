@@ -182,9 +182,7 @@ impl<Mods: OnDropBuffer> Device for OpenCL<Mods> {
     }
 
     #[inline(always)]
-    fn data_as_wrap<T, S: Shape>(
-        data: &Self::Data<T, S>,
-    ) -> &Self::Wrap<T, Self::Base<T, S>> {
+    fn data_as_wrap<T, S: Shape>(data: &Self::Data<T, S>) -> &Self::Wrap<T, Self::Base<T, S>> {
         data
     }
 

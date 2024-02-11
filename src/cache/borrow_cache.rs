@@ -45,7 +45,6 @@ pub struct BorrowCache {
     pub(crate) cache: AnyBuffers,
 }
 
-// TODO: make BorrowedCache unuseable without device (=> Static get methods with D: CacheReturn)
 impl BorrowCache {
     pub fn add_or_get<'a, T, D, S>(
         &mut self,

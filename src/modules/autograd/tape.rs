@@ -1,10 +1,8 @@
-use core::{fmt::Debug, hash::BuildHasherDefault, panic::Location};
-use std::collections::{HashMap, HashSet};
-
 use crate::{
-    AddOperation, Alloc, BoxedShallowCopy, Buffer, Buffers, HasId, HashLocation, LazyGraph,
-    LocationHasher, Parents, Shape, TapeActions, UpdateArgs, WriteBuf, ZeroGrad,
+    AddOperation, Alloc, BoxedShallowCopy, Buffer, Buffers, HasId, LazyGraph, Parents, Shape,
+    TapeActions, UpdateArgs, WriteBuf, ZeroGrad,
 };
+use core::fmt::Debug;
 
 use super::Gradients;
 
@@ -13,14 +11,7 @@ pub type GradFn = Box<dyn Fn(&mut Gradients)>;
 /// Stores the grad functions and gradient cache.
 #[derive(Default)]
 pub struct Tape {
-    // Caches gradients for each [`Buffer`]'s id ([`Ident`]).
-    // pub grads: Gradients,
     grad_fns: Vec<GradFn>,
-    grad_fns_loc: HashMap<HashLocation<'static>, GradFn, BuildHasherDefault<LocationHasher>>,
-    grad_fn_order: Vec<HashLocation<'static>>,
-
-    unconsumed_locations: HashSet<HashLocation<'static>>,
-
     pub lazy_graph: LazyGraph<Box<dyn BoxedShallowCopy>>,
 }
 
@@ -35,35 +26,12 @@ impl Debug for Tape {
 
 impl Tape {
     #[inline]
-    pub fn add_grad_fn2<Args: Parents<N> + UpdateArgs, const N: usize>(
+    pub fn add_grad_fn<Args: Parents<N> + UpdateArgs, const N: usize>(
         &mut self,
         args: Args,
         op: fn(&mut Args) -> crate::Result<()>,
     ) {
-        // if self
-        //     .unconsumed_locations
-        //     .contains(&Location::caller().into())
-        // {
-        //     return;
-        // }
         self.lazy_graph.add_operation(args, op);
-        // self.unconsumed_locations.insert(Location::caller().into());
-    }
-
-    /// Adds a gradient function to the tape.
-    #[inline]
-    #[track_caller]
-    pub fn add_grad_fn<F: Fn(&mut Gradients) + 'static>(&mut self, grad_fn: F) {
-        let hash_location = Location::caller().into();
-
-        if self.grad_fns_loc.contains_key(&hash_location) {
-            return;
-        }
-
-        self.grad_fns_loc.insert(hash_location, Box::new(grad_fn));
-        self.grad_fn_order.push(hash_location)
-
-        // self.grad_fns.push(Box::new(grad_fn))
     }
 
     /// Calls all gradient functions in reverse order.
@@ -72,26 +40,16 @@ impl Tape {
         buffers: &mut Buffers<Box<dyn BoxedShallowCopy>>,
         lazy_enabled: bool,
     ) {
-        // for grad_fn_id in self.grad_fn_order.iter().rev() {
-        //     let grad_fn = self.grad_fns_loc.get(grad_fn_id).unwrap();
-        //     grad_fn(&mut self.grads);
-        // }
-
         for val in self
             .lazy_graph
-            // .iter_with(&mut self.grads.no_grads_pool.cache)
             .iter_with(buffers)
             .rev()
         {
             val.unwrap();
         }
-        self.unconsumed_locations.clear();
         if !lazy_enabled {
             self.lazy_graph.clear();
         }
-        /*for grad_fn in self.grad_fns.drain(..).rev() {
-            grad_fn(&mut self.grads);
-        }*/
     }
 
     pub fn seed_grad_for_buf<T, D, S>(&self, buf: &Buffer<T, D, S>, seed: &[T])
@@ -120,7 +78,6 @@ impl Tape {
         let is_lazy_enabled = buf.device().is_lazy_enabled();
         buf.device()
             .eagerly(|| self.backward(buffers, is_lazy_enabled));
-        // self.backward(buffers)
     }
 
     pub fn backward_seeded_maybe_with_buffers<T, D, S: Shape>(

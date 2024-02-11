@@ -528,7 +528,8 @@ macro_rules! pass_down_cached_buffers {
             #[inline]
             unsafe fn buffers_mut(
                 &self,
-            ) -> Option<core::cell::RefMut<$crate::Buffers<Box<dyn $crate::BoxedShallowCopy>>>> {
+            ) -> Option<core::cell::RefMut<$crate::Buffers<Box<dyn $crate::BoxedShallowCopy>>>>
+            {
                 self.modules.buffers_mut()
             }
         }

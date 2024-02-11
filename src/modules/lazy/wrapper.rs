@@ -14,7 +14,6 @@ pub struct LazyWrapper<Data, T> {
 
 impl<Mods: WrappedData> WrappedData for Lazy<Mods> {
     type Wrap<T, Base: HasId + PtrType> = LazyWrapper<Mods::Wrap<T, Base>, T>;
-    // type Wrap<T, Base: HasId + PtrType> = Mods::Wrap<T, Base>;
 
     #[inline]
     fn wrap_in_base<T, Base: HasId + PtrType>(&self, base: Base) -> Self::Wrap<T, Base> {
