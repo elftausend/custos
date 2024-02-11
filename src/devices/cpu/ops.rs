@@ -7,7 +7,7 @@ use crate::{
     bounds_to_range,
     cpu_stack_ops::{apply_fn_slice, clear_slice},
     pass_down_add_operation, pass_down_exec_now, AddOperation, ApplyFunction, AsNoId, BufAsNoId,
-    Buffer, ClearBuf, CopySlice, Device, Eval, HasId, MayToCLSource, OnDropBuffer, Read, Resolve,
+    Buffer, ClearBuf, CopySlice, Device, Eval, MayToCLSource, OnDropBuffer, Read, Resolve,
     Retrieve, Retriever, Shape, ToVal, UnaryGrad, WriteBuf, ZeroGrad, CPU,
 };
 
@@ -51,7 +51,7 @@ where
 impl<Mods, T, D, S> UnaryGrad<T, S, D> for CPU<Mods>
 where
     Mods: AddOperation + OnDropBuffer,
-    T: AddAssign + Copy + std::ops::Mul<Output = T> + 'static + Debug,
+    T: AddAssign + Copy + std::ops::Mul<Output = T> + 'static,
     S: Shape,
     D: Device + 'static,
     D::Base<T, S>: Deref<Target = [T]> + DerefMut<Target = [T]>,

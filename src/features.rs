@@ -148,8 +148,16 @@ pub trait AddGradFn {
     }
 
     fn set_grad_enabled(&self, enabled: bool);
+    #[inline]
     fn is_grad_enabled(&self) -> bool {
         false
+    }
+    #[inline]
+    fn no_grad_ctx(&self, op: impl FnOnce()) {
+        let enabled_before = self.is_grad_enabled();
+        self.set_grad_enabled(false);
+        op();
+        self.set_grad_enabled(enabled_before);
     }
 }
 

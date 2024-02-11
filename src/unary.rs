@@ -119,7 +119,6 @@ where
             if !buf.requires_grad() {
                 return Ok(());
             }
-
             // lazy execution is already disabled during backward pass
             buf.device().eagerly(|| {
                 buf.device()
@@ -317,6 +316,48 @@ mod tests {
             out.replace().backward();
             roughly_eq_slices(
                 buf.grad().as_slice(),
+                &[
+                    0.5403023058681398 * i as f64,
+                    -0.4161468365471424 * i as f64,
+                    -0.9899924966004454 * i as f64,
+                    -0.6536436208636119 * i as f64,
+                ]
+            );
+        }
+    }
+
+    #[cfg(feature = "cpu")]
+    #[cfg(feature = "autograd")]
+    #[test]
+    fn test_unary_elementwise_may_grad_multiple_times_lazy_with_lazy_input() {
+        use crate::{
+            two_way_ops::tests_ex::roughly_eq_slices, ApplyFunction, Autograd, Base, Combiner, Device, Lazy, Run, UnaryElementWiseMayGrad, CPU
+        };
+
+        let device = CPU::<Autograd<Lazy<Base>>>::new();
+        let buf = device.buffer([0., 1., 2., 3.]).require_grad();
+        let buf1 = device.apply_fn(&buf, |x| x.add(1.));
+        
+        // println!("buf: {:?}", buf.replace());
+
+        let out = device.unary_ew(&buf1, |x| x.sin(), |x| x.cos());
+
+        for i in 1..10 {
+            unsafe { device.run() }.unwrap();
+            roughly_eq_slices(
+                out.replace().as_slice(),
+                &[
+                    0.8414709848078965,
+                    0.9092974268256817,
+                    0.1411200080598672,
+                    -0.7568024953079282,
+                ],
+            );
+
+
+            out.replace().backward();
+            roughly_eq_slices(
+                buf1.replace().grad().as_slice(),
                 &[
                     0.5403023058681398 * i as f64,
                     -0.4161468365471424 * i as f64,
