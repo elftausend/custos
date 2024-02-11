@@ -6,8 +6,8 @@ use crate::{AllocFlag, DeviceError};
 
 use super::CLPtr;
 use crate::{
-    Base, BoxedShallowCopy, Buffer, CachedCPU, CachedModule, Cursor, Device, OnDropBuffer, OpenCL,
-    Shape, UnifiedMemChain, UniqueId, CPU,
+    Base, Buffer, CachedCPU, CachedModule, Cursor, Device, OnDropBuffer, OpenCL, Shape,
+    UnifiedMemChain, UniqueId, CPU,
 };
 use min_cl::api::{create_buffer, MemFlags};
 
@@ -62,11 +62,7 @@ impl<D: Device> UnifiedMemChain<D> for Base {
 pub unsafe fn to_cached_unified<OclMods, CpuMods, T, S>(
     device: &OpenCL<OclMods>,
     no_drop: Buffer<T, CPU<CpuMods>, S>,
-    cache: &mut HashMap<
-        crate::UniqueId,
-        Rc<dyn BoxedShallowCopy>,
-        BuildHasherDefault<crate::NoHasher>,
-    >,
+    cache: &mut HashMap<crate::UniqueId, Rc<dyn Any>, BuildHasherDefault<crate::NoHasher>>,
     id: crate::UniqueId,
 ) -> crate::Result<*mut c_void>
 where
@@ -125,11 +121,7 @@ where
 pub fn construct_buffer<'a, OclMods, CpuMods, T, S>(
     device: &'a OpenCL<OclMods>,
     no_drop: Buffer<'a, T, CPU<CpuMods>, S>,
-    cache: &mut HashMap<
-        crate::UniqueId,
-        Rc<dyn BoxedShallowCopy>,
-        BuildHasherDefault<crate::NoHasher>,
-    >,
+    cache: &mut HashMap<crate::UniqueId, Rc<dyn Any>, BuildHasherDefault<crate::NoHasher>>,
     id: crate::UniqueId,
 ) -> crate::Result<Buffer<'a, T, OpenCL<OclMods>, S>>
 where
@@ -149,7 +141,6 @@ where
     // if buffer was already converted, return the cache entry.
     if let Some(rawcl) = cache.get(&id) {
         let rawcl = rawcl
-            .as_any()
             .downcast_ref::<<OpenCL<OclMods> as Device>::Base<T, S>>()
             .unwrap();
         let data = device.base_to_data::<T, S>(CLPtr {

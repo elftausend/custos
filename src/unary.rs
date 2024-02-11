@@ -249,7 +249,8 @@ mod tests {
     #[test]
     fn test_unary_elementwise_may_grad_multiple_times() {
         use crate::{
-            two_way_ops::tests_ex::roughly_eq_slices, Autograd, Base, Cached, Combiner, Device, UnaryElementWiseMayGrad, CPU
+            two_way_ops::tests_ex::roughly_eq_slices, Autograd, Base, Cached, Combiner, Device,
+            UnaryElementWiseMayGrad, CPU,
         };
 
         let device = CPU::<Autograd<Cached<Base>>>::new();
@@ -291,7 +292,8 @@ mod tests {
     #[test]
     fn test_unary_elementwise_may_grad_multiple_times_backwards_at_end() {
         use crate::{
-            two_way_ops::tests_ex::roughly_eq_slices, Autograd, Base, Cached, Combiner, Cursor, Device, UnaryElementWiseMayGrad, CPU
+            two_way_ops::tests_ex::roughly_eq_slices, Autograd, Base, Cached, Combiner, Cursor,
+            Device, UnaryElementWiseMayGrad, CPU,
         };
 
         let device = CPU::<Autograd<Cached<Base>>>::new();

@@ -284,7 +284,8 @@ mod tests {
 
     #[test]
     fn test_buffer_creation_autograd_get_buf() {
-        let device: CPU<Autograd<crate::CachedModule<Base, CPU>>> = CPU::<Autograd<Cached<Base>>>::new();
+        let device: CPU<Autograd<crate::CachedModule<Base, CPU>>> =
+            CPU::<Autograd<Cached<Base>>>::new();
         let buf: Buffer<f32, _> = Buffer::<f32, _>::new(&device, 10);
 
         let autograd = &device.modules;

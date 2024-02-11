@@ -4,8 +4,7 @@ use std::collections::HashMap;
 use std::rc::Rc;
 
 use crate::{
-    flag::AllocFlag, Alloc, Cursor, Device, NoHasher, PtrType, ShallowCopy,
-    Shape, UniqueId,
+    flag::AllocFlag, Alloc, Cursor, Device, NoHasher, PtrType, ShallowCopy, Shape, UniqueId,
 };
 
 #[derive(Clone)]
@@ -48,8 +47,7 @@ impl Cache {
             Some(data) => {
                 unsafe { device.bump_cursor() };
                 let data = unsafe {
-                    data
-                        .downcast_ref::<D::Base<T, S>>()
+                    data.downcast_ref::<D::Base<T, S>>()
                         .expect("Invalid request for data type!")
                         .shallow()
                 };
