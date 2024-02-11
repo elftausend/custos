@@ -4,10 +4,10 @@ use core::{
 };
 
 use crate::{
-    register_buf_copyable, unregister_buf_copyable, AddGradFn, AddLayer, AddOperation, Alloc,
-    Buffer, Cache, CachedBuffers, Cursor, Device, ExecNow, HasId, IsShapeIndep, Module,
-    OnDropBuffer, OnNewBuffer, Parents, PtrType, RemoveLayer, Retrieve, RunModule, Setup,
-    ShallowCopy, Shape, UniqueId, WrappedData,
+    AddGradFn, AddLayer, AddOperation, Alloc, BoxedShallowCopy, Buffer, Buffers, Cache,
+    CachedBuffers, Cursor, Device, ExecNow, HasId, IsShapeIndep, Module, OnDropBuffer, OnNewBuffer,
+    Parents, PtrType, RemoveLayer, Retrieve, RunModule, Setup, ShallowCopy, Shape, UniqueId,
+    WrappedData,
 };
 
 #[cfg(feature = "graph")]
@@ -55,7 +55,6 @@ impl<Mods: Module<D>, D: Device> Module<D> for Cached<Mods> {
         CachedModule {
             modules: Mods::new(),
             cache: RefCell::new(Cache::new()),
-            buffers_cache: Default::default(),
             pd: PhantomData,
             cursor: Default::default(),
         }
@@ -68,7 +67,6 @@ impl<Mods: Module<D>, D: Device> Module<D> for Cached<Mods> {
 pub struct CachedModule<Mods, D: Device> {
     pub modules: Mods,
     pub cache: RefCell<Cache>,
-    pub buffers_cache: RefCell<crate::Buffers<Box<dyn crate::BoxedShallowCopy>>>,
     pub(crate) pd: PhantomData<D>,
     cursor: Cell<usize>, // would move this to `Cache`, however -> RefCell; TODO: maybe add a Cursor Module
 }
@@ -117,7 +115,6 @@ where
 {
     #[inline]
     fn on_new_buffer(&self, device: &D, new_buf: &Buffer<T, D, S>) {
-        unsafe { register_buf_copyable(&mut self.buffers_cache.borrow_mut(), new_buf) };
         self.modules.on_new_buffer(device, new_buf)
     }
 }
@@ -125,7 +122,6 @@ where
 impl<Mods: OnDropBuffer, SD: Device> OnDropBuffer for CachedModule<Mods, SD> {
     #[inline]
     fn on_drop_buffer<T, D: Device, S: Shape>(&self, device: &D, buf: &Buffer<T, D, S>) {
-        unregister_buf_copyable(&mut self.buffers_cache.borrow_mut(), buf.id());
         self.modules.on_drop_buffer(device, buf)
     }
 }
@@ -162,7 +158,6 @@ where
     where
         D: Alloc<T>,
     {
-        unsafe { register_buf_copyable(&mut self.buffers_cache.borrow_mut(), retrieved_buf) };
         self.modules.on_retrieve_finish(retrieved_buf)
     }
 }
@@ -213,7 +208,6 @@ impl<CurrentMods, SD: Device> AddLayer<CurrentMods, SD> for Cached<()> {
         crate::CachedModule {
             modules: inner_mods,
             cache: Default::default(),
-            buffers_cache: Default::default(),
             pd: core::marker::PhantomData,
             cursor: Default::default(),
         }
@@ -304,6 +298,7 @@ impl<Mods: OptimizeMemGraph, SD: Device> OptimizeMemGraph for CachedModule<Mods,
 }
 
 #[macro_export]
+#[deprecated]
 macro_rules! debug_assert_tracked {
     () => {
         #[cfg(debug_assertions)]
@@ -323,7 +318,8 @@ impl<Mods: OnDropBuffer, D: Device> CachedBuffers for CachedModule<Mods, D> {
     unsafe fn buffers_mut(
         &self,
     ) -> Option<core::cell::RefMut<crate::Buffers<Box<dyn crate::BoxedShallowCopy>>>> {
-        Some(self.buffers_cache.borrow_mut())
+        // Use the stored buffers in autograd module -> optimizing isn't possible anyway
+        None
     }
 }
 

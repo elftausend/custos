@@ -1,7 +1,8 @@
 use core::any::Any;
 
 use crate::{
-    Alloc, AnyBuffers, BorrowCache, Buffer, CachingError, Device, HasId, Id, Shape, ZeroGrad,
+    Alloc, AnyBuffers, BorrowCache, BoxedShallowCopy, Buffer, Buffers, CachingError, Device, HasId,
+    Id, Shape, ZeroGrad,
 };
 
 const INVALID_ID: &str = "A matching Buffer does not exist.";
@@ -11,8 +12,8 @@ const INVALID_ID: &str = "A matching Buffer does not exist.";
 #[derive(Default)]
 pub struct Gradients {
     pub grads_pool: BorrowCache,
-    pub no_grads_pool: AnyBuffers,
-    pub zero_grad_cbs: Vec<(Id, fn(&mut dyn Any, &dyn Any))>,
+    pub no_grads_pool: Buffers<Box<dyn BoxedShallowCopy>>,
+    pub zero_grad_cbs: Vec<(Id, fn(&mut dyn Any, &dyn BoxedShallowCopy))>,
 }
 
 impl core::fmt::Debug for Gradients {
@@ -41,7 +42,7 @@ impl Gradients {
     ) {
         self.zero_grad_cbs.push((*id, |grad_buf, buf| {
             let grad_buf = grad_buf.downcast_mut::<Buffer<T, D, S>>().unwrap();
-            let buf = buf.downcast_ref::<Buffer<T, D, S>>().unwrap();
+            let buf = buf.as_any().downcast_ref::<Buffer<T, D, S>>().unwrap();
 
             // the callback is only added if the grad buffer was used in a grad op, so this check should not be necessary (but it is)
             if buf.requires_grad() {
@@ -137,6 +138,7 @@ impl Gradients {
             .get(&id)
             .ok_or(CachingError::InvalidId)
             .expect(INVALID_ID)
+            .as_any()
             .downcast_ref()
             .ok_or(CachingError::InvalidTypeInfo)
             .expect(INVALID_ID)

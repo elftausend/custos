@@ -1,4 +1,4 @@
-use core::{any::Any, fmt::Debug, hash::BuildHasherDefault, panic::Location};
+use core::{fmt::Debug, hash::BuildHasherDefault, panic::Location};
 use std::collections::{HashMap, HashSet};
 
 use crate::{
@@ -87,48 +87,60 @@ impl Tape {
                                  }*/
     }
 
+    pub fn seed_grad_for_buf<T, D, S>(&self, buf: &Buffer<T, D, S>, seed: &[T])
+    where
+        T: 'static,
+        D: WriteBuf<T, S, D> + TapeActions + ZeroGrad<T> + Alloc<T> + 'static,
+        S: Shape,
+    {
+        let gradients = unsafe { buf.device().gradients_mut() }.unwrap();
+
+        let out = gradients.get_mut::<T, S, D>(buf.device(), buf.id());
+        out.write(seed);
+    }
+
     pub fn backward_seeded_with_buffers<T, D, S: Shape>(
         &mut self,
         buf: &Buffer<T, D, S>,
         seed: &[T],
         buffers: &mut Buffers<Box<dyn BoxedShallowCopy>>,
     ) where
-        T: Clone + 'static,
+        T: 'static,
         D: Alloc<T> + ZeroGrad<T> + WriteBuf<T, S, D> + TapeActions + 'static,
     {
-        {
-            let gradients = unsafe { buf.device().gradients_mut() }.unwrap();
-
-            let out = gradients.get_mut::<T, S, D>(buf.device(), buf.id());
-            out.write(seed);
-        }
+        self.seed_grad_for_buf(buf, seed);
         self.backward(buffers)
     }
 
-    /// Backward pass with seeded gradient.
-    pub fn backward_seeded<T, D, S: Shape>(&mut self, buf: &Buffer<T, D, S>, seed: &[T])
-    where
-        T: Clone + 'static,
+    pub fn backward_seeded_maybe_with_buffers<T, D, S: Shape>(
+        &mut self,
+        buf: &Buffer<T, D, S>,
+        seed: &[T],
+        buffers: Option<&mut Buffers<Box<dyn BoxedShallowCopy>>>,
+    ) where
+        T: 'static,
         D: Alloc<T> + ZeroGrad<T> + WriteBuf<T, S, D> + TapeActions + 'static,
     {
-        let mut no_grads = {
-            // unique mutable access to gradients
-            let gradients = unsafe { buf.device().gradients_mut() }.unwrap();
+        match buffers {
+            Some(buffers) => self.backward_seeded_with_buffers(buf, seed, buffers),
+            None => {
+                let mut no_grads = {
+                    // unique mutable access to gradients
+                    let gradients = unsafe { buf.device().gradients_mut() }.unwrap();
 
-            let out = gradients.get_mut::<T, S, D>(buf.device(), buf.id());
-            out.write(seed);
+                    let no_grads = &mut gradients.no_grads_pool;
+                    core::mem::take(no_grads)
 
-            let no_grads = &mut gradients.no_grads_pool;
-            core::mem::take(no_grads)
+                    // ... destroy unique mutable access
+                };
 
-            // ... destroy unique mutable access
-        };
+                // unique mutable access required for "buf.grad()"s in grad functions
+                self.backward_seeded_with_buffers(buf, seed, &mut no_grads);
 
-        // unique mutable access required for "buf.grad()"s in grad functions
-        // self.backward(&mut no_grads);
-
-        let gradients = unsafe { buf.device().gradients_mut() }.unwrap();
-        let no_grads_src = &mut gradients.no_grads_pool;
-        *no_grads_src = no_grads;
+                let gradients = unsafe { buf.device().gradients_mut() }.unwrap();
+                let no_grads_src = &mut gradients.no_grads_pool;
+                *no_grads_src = no_grads;
+            }
+        }
     }
 }

@@ -9,9 +9,10 @@ use core::cell::{Cell, UnsafeCell};
 
 use crate::{
     impl_remove_layer, pass_down_add_operation, pass_down_cached_buffers, pass_down_cursor,
-    pass_down_exec_now_module, register_buf_any, unregister_buf_any, AddGradFn, AddLayer, Alloc,
-    Buffer, Device, HasId, IsShapeIndep, Module, OnDropBuffer, OnNewBuffer, Parents,
-    Retrieve, RunModule, Setup, ShallowCopy, Shape, TapeActions,
+    pass_down_exec_now_module, register_buf_any, register_buf_copyable, unregister_buf_any,
+    unregister_buf_copyable, AddGradFn, AddLayer, Alloc, Buffer, Device, HasId, IsShapeIndep,
+    Module, OnDropBuffer, OnNewBuffer, Parents, Retrieve, RunModule, Setup, ShallowCopy, Shape,
+    TapeActions,
 };
 
 use self::wrapper::ReqGradWrapper;
@@ -59,7 +60,7 @@ impl<Mods> Autograd<Mods> {
             return;
         }
 
-        unsafe { register_buf_any(no_grads_pool, buf) };
+        unsafe { register_buf_copyable(no_grads_pool, buf) };
     }
 }
 
@@ -93,7 +94,7 @@ where
 impl<Mods: OnDropBuffer> OnDropBuffer for Autograd<Mods> {
     #[inline]
     fn on_drop_buffer<T, D: Device, S: Shape>(&self, device: &D, buf: &Buffer<T, D, S>) {
-        unregister_buf_any(
+        unregister_buf_copyable(
             unsafe { &mut (*(self.grads.get())).no_grads_pool },
             buf.id(),
         );
@@ -254,18 +255,18 @@ mod tests {
     use core::any::Any;
 
     use crate::{
-        AddGradFn, Base, Buffer, Cached, Combiner, Cursor, Device, HasId, Lazy, Module, Retriever,
-        Shape, UnaryGrad, CPU,
+        AddGradFn, Base, BoxedShallowCopy, Buffer, Cached, Combiner, Cursor, Device, HasId, Lazy,
+        Module, Retriever, Shape, UnaryGrad, CPU,
     };
 
     use super::Autograd;
 
     #[inline]
     pub fn downcast_val<'a, 'b, T: 'static, D: Device + 'static, S: Shape>(
-        buf_any: &'b Box<dyn Any>,
+        buf_any: &'b Box<dyn BoxedShallowCopy>,
         _device: &'a D,
     ) -> Option<&'b Buffer<'a, T, D, S>> {
-        buf_any.downcast_ref::<Buffer<T, D, S>>()
+        buf_any.as_any().downcast_ref::<Buffer<T, D, S>>()
     }
 
     #[test]
@@ -295,6 +296,7 @@ mod tests {
             let buf1: &Buffer<f32, CPU<Autograd<crate::CachedModule<Base, CPU>>>> = no_grads_pool
                 .get(&buf.id())
                 .unwrap()
+                .as_any()
                 .downcast_ref()
                 .unwrap();
             // let no_grads_pool = &mut autograd.tape.borrow_mut().grads.no_grads_pool;
