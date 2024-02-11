@@ -1,3 +1,9 @@
+#[cfg(feature = "std")]
+mod span;
+
+#[cfg(feature = "std")]
+pub use span::*;
+
 use crate::Cursor;
 use core::ops::{Range, RangeInclusive};
 
@@ -151,5 +157,54 @@ mod tests {
             unsafe { device.bump_cursor() };
             assert_eq!(device.cursor(), 6);
         }
+        assert_eq!(device.cursor(), 6);
+
+        for _ in device.range(10) {
+            assert_eq!(device.cursor(), 6);
+            unsafe { device.bump_cursor() };
+
+            assert_eq!(device.cursor(), 7);
+
+            for _ in device.range(20) {
+                unsafe { device.bump_cursor() };
+                unsafe { device.bump_cursor() };
+                assert_eq!(device.cursor(), 9);
+            }
+
+            assert_eq!(device.cursor(), 9);
+            unsafe { device.bump_cursor() };
+            assert_eq!(device.cursor(), 10);
+        }
+    }
+
+    #[cfg(feature = "cpu")]
+    #[cfg(feature = "cached")]
+    #[test]
+    fn test_cache_span_resetting() {
+        use crate::{range::SpanStorage, span, Base, Cached, Cursor, CPU};
+
+        let mut span_storage = SpanStorage::default();
+
+        let device = CPU::<Cached<Base>>::new();
+
+        for _ in 0..10 {
+            span!(device, span_storage);
+
+            unsafe { device.bump_cursor() };
+            assert_eq!(device.cursor(), 1);
+
+            for _ in 0..20 {
+                span!(device, span_storage);
+
+                unsafe { device.bump_cursor() };
+                unsafe { device.bump_cursor() };
+                assert_eq!(device.cursor(), 3);
+            }
+
+            unsafe { device.bump_cursor() };
+            assert_eq!(device.cursor(), 4);
+        }
+
+        assert_eq!(device.cursor(), 4);
     }
 }
