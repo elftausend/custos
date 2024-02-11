@@ -1,4 +1,4 @@
-use core::hash::BuildHasherDefault;
+use core::{any::Any, hash::BuildHasherDefault};
 use std::{collections::HashMap, ffi::c_void, rc::Rc};
 
 #[cfg(not(feature = "realloc"))]
@@ -62,11 +62,7 @@ impl<D: Device> UnifiedMemChain<D> for Base {
 pub unsafe fn to_cached_unified<OclMods, CpuMods, T, S>(
     device: &OpenCL<OclMods>,
     no_drop: Buffer<T, CPU<CpuMods>, S>,
-    cache: &mut HashMap<
-        crate::UniqueId,
-        Rc<dyn core::any::Any>,
-        BuildHasherDefault<crate::NoHasher>,
-    >,
+    cache: &mut HashMap<crate::UniqueId, Rc<dyn Any>, BuildHasherDefault<crate::NoHasher>>,
     id: crate::UniqueId,
 ) -> crate::Result<*mut c_void>
 where
@@ -111,12 +107,12 @@ where
 ///     let cpu = CPU::<Cached<Base>>::new();
 ///     let mut no_drop: Buffer<f32, _> = cpu.retrieve(4, ());
 ///     no_drop.write(&[1., 3.1, 2.34, 0.76]);
-///     
+///
 ///     let device = OpenCL::<Cached<Base>>::new(chosen_cl_idx())?;
 ///     let buf = unsafe {
 ///         construct_buffer(&device, no_drop, &mut device.modules.cache.borrow_mut().nodes, 0)?
 ///     };
-///     
+///
 ///     assert_eq!(buf.read(), vec![1., 3.1, 2.34, 0.76]);
 ///     assert_eq!(buf.as_slice(), &[1., 3.1, 2.34, 0.76]);
 ///     Ok(())
@@ -125,11 +121,7 @@ where
 pub fn construct_buffer<'a, OclMods, CpuMods, T, S>(
     device: &'a OpenCL<OclMods>,
     no_drop: Buffer<'a, T, CPU<CpuMods>, S>,
-    cache: &mut HashMap<
-        crate::UniqueId,
-        Rc<dyn core::any::Any>,
-        BuildHasherDefault<crate::NoHasher>,
-    >,
+    cache: &mut HashMap<crate::UniqueId, Rc<dyn Any>, BuildHasherDefault<crate::NoHasher>>,
     id: crate::UniqueId,
 ) -> crate::Result<Buffer<'a, T, OpenCL<OclMods>, S>>
 where

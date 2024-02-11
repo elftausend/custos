@@ -1,6 +1,7 @@
 use crate::{
-    flag::AllocFlag, AddGradFn, AddOperation, Alloc, Cursor, Device, ExecNow, HasId, HashLocation,
-    Module, OnDropBuffer, OnNewBuffer, Parents, PtrType, Retrieve, Setup, Shape, WrappedData,
+    flag::AllocFlag, AddGradFn, AddOperation, Alloc, CachedBuffers, Cursor, Device, ExecNow, HasId,
+    HashLocation, Module, OnDropBuffer, OnNewBuffer, Parents, PtrType, Retrieve, Setup, Shape,
+    WrappedData,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
@@ -40,12 +41,21 @@ impl AddOperation for Base {
         0
     }
 
+    #[inline]
     fn add_op<Args: Parents<N>, const N: usize>(
         &self,
         mut args: Args,
         operation: fn(&mut Args) -> crate::Result<()>,
     ) -> crate::Result<()> {
         operation(&mut args)
+    }
+
+    #[inline]
+    fn set_lazy_enabled(&self, _enabled: bool) {}
+
+    #[inline]
+    fn is_lazy_enabled(&self) -> bool {
+        false
     }
 }
 
@@ -134,3 +144,5 @@ impl AddGradFn for Base {
 
 #[cfg(feature = "autograd")]
 impl crate::TapeActions for Base {}
+
+impl CachedBuffers for Base {}

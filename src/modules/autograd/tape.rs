@@ -1,9 +1,9 @@
-use core::{any::Any, fmt::Debug, hash::BuildHasherDefault, panic::Location};
+use core::{fmt::Debug, hash::BuildHasherDefault, panic::Location};
 use std::collections::{HashMap, HashSet};
 
 use crate::{
-    Alloc, Buffer, Buffers, HasId, HashLocation, LazyGraph, LocationHasher, Parents, Shape,
-    TapeActions, UpdateArgs, WriteBuf, ZeroGrad,
+    AddOperation, Alloc, BoxedShallowCopy, Buffer, Buffers, HasId, HashLocation, LazyGraph,
+    LocationHasher, Parents, Shape, TapeActions, UpdateArgs, WriteBuf, ZeroGrad,
 };
 
 use super::Gradients;
@@ -21,7 +21,7 @@ pub struct Tape {
 
     unconsumed_locations: HashSet<HashLocation<'static>>,
 
-    pub lazy_graph: LazyGraph<Box<dyn Any>>,
+    pub lazy_graph: LazyGraph<Box<dyn BoxedShallowCopy>>,
 }
 
 impl Debug for Tape {
@@ -67,7 +67,11 @@ impl Tape {
     }
 
     /// Calls all gradient functions in reverse order.
-    pub fn backward(&mut self, buffers: &mut Buffers<Box<dyn Any>>) {
+    pub fn backward(
+        &mut self,
+        buffers: &mut Buffers<Box<dyn BoxedShallowCopy>>,
+        lazy_enabled: bool,
+    ) {
         // for grad_fn_id in self.grad_fn_order.iter().rev() {
         //     let grad_fn = self.grad_fns_loc.get(grad_fn_id).unwrap();
         //     grad_fn(&mut self.grads);
@@ -82,35 +86,72 @@ impl Tape {
             val.unwrap();
         }
         self.unconsumed_locations.clear();
-        self.lazy_graph.clear(); /*for grad_fn in self.grad_fns.drain(..).rev() {
-                                     grad_fn(&mut self.grads);
-                                 }*/
+        if !lazy_enabled {
+            self.lazy_graph.clear();
+        }
+        /*for grad_fn in self.grad_fns.drain(..).rev() {
+            grad_fn(&mut self.grads);
+        }*/
     }
 
-    /// Backward pass with seeded gradient.
-    pub fn backward_seeded<T, D, S: Shape>(&mut self, buf: &Buffer<T, D, S>, seed: &[T])
+    pub fn seed_grad_for_buf<T, D, S>(&self, buf: &Buffer<T, D, S>, seed: &[T])
     where
-        T: Clone + 'static,
-        D: Alloc<T> + ZeroGrad<T> + WriteBuf<T, S, D> + TapeActions + 'static,
+        T: 'static,
+        D: WriteBuf<T, S, D> + TapeActions + ZeroGrad<T> + Alloc<T> + 'static,
+        S: Shape,
     {
-        let mut no_grads = {
-            // unique mutable access to gradients
-            let gradients = unsafe { buf.device().gradients_mut() }.unwrap();
-
-            let out = gradients.get_mut::<T, S, D>(buf.device(), buf.id());
-            out.write(seed);
-
-            let no_grads = &mut gradients.no_grads_pool.cache;
-            core::mem::take(no_grads)
-
-            // ... destroy unique mutable access
-        };
-
-        // unique mutable access required for "buf.grad()"s in grad functions
-        self.backward(&mut no_grads);
-
         let gradients = unsafe { buf.device().gradients_mut() }.unwrap();
-        let no_grads_src = &mut gradients.no_grads_pool.cache;
-        *no_grads_src = no_grads;
+
+        let out = gradients.get_mut::<T, S, D>(buf.device(), buf.id());
+        out.write(seed);
+    }
+
+    pub fn backward_seeded_with_buffers<T, D, S: Shape>(
+        &mut self,
+        buf: &Buffer<T, D, S>,
+        seed: &[T],
+        buffers: &mut Buffers<Box<dyn BoxedShallowCopy>>,
+    ) where
+        T: 'static,
+        D: Alloc<T> + ZeroGrad<T> + WriteBuf<T, S, D> + TapeActions + AddOperation + 'static,
+    {
+        self.seed_grad_for_buf(buf, seed);
+
+        let is_lazy_enabled = buf.device().is_lazy_enabled();
+        buf.device()
+            .eagerly(|| self.backward(buffers, is_lazy_enabled));
+        // self.backward(buffers)
+    }
+
+    pub fn backward_seeded_maybe_with_buffers<T, D, S: Shape>(
+        &mut self,
+        buf: &Buffer<T, D, S>,
+        seed: &[T],
+        buffers: Option<&mut Buffers<Box<dyn BoxedShallowCopy>>>,
+    ) where
+        T: 'static,
+        D: Alloc<T> + ZeroGrad<T> + WriteBuf<T, S, D> + TapeActions + AddOperation + 'static,
+    {
+        match buffers {
+            Some(buffers) => self.backward_seeded_with_buffers(buf, seed, buffers),
+            None => {
+                let mut no_grads = {
+                    // unique mutable access to gradients
+                    let gradients = unsafe { buf.device().gradients_mut() }.unwrap();
+
+                    let no_grads = &mut gradients.no_grads_pool;
+                    core::mem::take(no_grads)
+
+                    // ... destroy unique mutable access
+                };
+
+                // unique mutable access required for "buf.grad()"s in grad functions
+                self.backward_seeded_with_buffers(buf, seed, &mut no_grads);
+
+                let gradients = unsafe { buf.device().gradients_mut() }.unwrap();
+                let no_grads_src = &mut gradients.no_grads_pool;
+                *no_grads_src = no_grads;
+            }
+        }
     }
 }

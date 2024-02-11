@@ -1,18 +1,16 @@
 mod exec_iter;
-mod generic_support;
 mod lazy_graph;
-mod register_buf;
 mod ty;
 mod wrapper;
-
-use register_buf::*;
 
 pub use ty::*;
 
 use crate::{
-    impl_remove_layer, pass_down_tape_actions, AddLayer, AddOperation, Alloc, Buffer, Cursor,
-    Device, ExecNow, HasId, Id, IsShapeIndep, Module, OnDropBuffer, OnNewBuffer, Parents,
-    ReplaceBuf, Retrieve, RunModule, Setup, ShallowCopy, Shape, UniqueId, UpdateArgs,
+    impl_remove_layer, pass_down_grad_fn, pass_down_tape_actions, register_buf_copyable,
+    unregister_buf_copyable, AddLayer, AddOperation, Alloc, BoxedShallowCopy, Buffer,
+    CachedBuffers, Cursor, Device, ExecNow, HasId, Id, IsShapeIndep, Module, OnDropBuffer,
+    OnNewBuffer, Parents, ReplaceBuf, Retrieve, RunModule, Setup, ShallowCopy, Shape, UniqueId,
+    UpdateArgs,
 };
 
 #[cfg(feature = "graph")]
@@ -25,7 +23,7 @@ use core::{
 };
 
 pub use self::lazy_graph::LazyGraph;
-use self::{generic_support::BoxedShallowCopy, wrapper::LazyWrapper};
+use self::wrapper::LazyWrapper;
 
 type Buffers = crate::Buffers<Box<dyn BoxedShallowCopy>>;
 
@@ -37,6 +35,7 @@ pub struct Lazy<Mods> {
     buffers: RefCell<Buffers>,
     graph: RefCell<LazyGraph<Box<dyn BoxedShallowCopy>>>,
     cursor: Cell<usize>,
+    enabled: Cell<bool>,
 }
 
 impl<Mods: Debug> Debug for Lazy<Mods> {
@@ -72,6 +71,7 @@ impl<Mods: Module<D>, D: LazySetup + Device> Module<D> for Lazy<Mods> {
             alloc_later: Default::default(),
             allocated: Default::default(),
             cursor: Default::default(),
+            enabled: Cell::new(true),
         }
     }
 }
@@ -88,10 +88,24 @@ impl<Mods: AddOperation> AddOperation for Lazy<Mods> {
         args: Args,
         operation: fn(&mut Args) -> crate::Result<()>,
     ) -> crate::Result<()> {
-        self.graph.try_borrow_mut()
+        if self.enabled.get() {
+            self.graph.try_borrow_mut()
             .expect("already borrowed: BorrowMutError - is the inner operation trying to add an operation as well?")
             .add_operation(args, operation);
+        } else {
+            return self.modules.add_op(args, operation);
+        }
         Ok(())
+    }
+
+    #[inline]
+    fn set_lazy_enabled(&self, enabled: bool) {
+        self.enabled.set(enabled);
+    }
+
+    #[inline]
+    fn is_lazy_enabled(&self) -> bool {
+        self.enabled.get()
     }
 }
 
@@ -219,7 +233,7 @@ where
 }
 
 pass_down_tape_actions!(Lazy);
-
+pass_down_grad_fn!(Lazy);
 impl_remove_layer!(Lazy);
 
 impl<NewMods, SD> AddLayer<NewMods, SD> for Lazy<()> {
@@ -234,6 +248,7 @@ impl<NewMods, SD> AddLayer<NewMods, SD> for Lazy<()> {
             alloc_later: Default::default(),
             allocated: Default::default(),
             cursor: Default::default(),
+            enabled: Cell::new(true),
         }
     }
 }
@@ -358,6 +373,15 @@ impl<Mods> crate::OptimizeMemGraph for Lazy<Mods> {
         }
         self.allocated.set(true);
         Ok(())
+    }
+}
+
+impl<Mods> CachedBuffers for Lazy<Mods> {
+    #[inline]
+    unsafe fn buffers_mut(
+        &self,
+    ) -> Option<core::cell::RefMut<crate::Buffers<Box<dyn crate::BoxedShallowCopy>>>> {
+        Some(self.buffers.borrow_mut())
     }
 }
 

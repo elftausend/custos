@@ -1,4 +1,7 @@
-use core::ops::{AddAssign, Deref, DerefMut, Index, Range, RangeBounds};
+use core::{
+    fmt::Debug,
+    ops::{AddAssign, Deref, DerefMut, Index, Range, RangeBounds},
+};
 
 use crate::{
     bounds_to_range,
@@ -65,7 +68,6 @@ where
     {
         self.add_op::<_, 4>(
             (lhs, lhs_grad.buf_no_id(), out, lhs_grad_fn.no_id()),
-            // None,
             |(lhs, lhs_grad, out, lhs_grad_fn)| {
                 crate::cpu_stack_ops::add_unary_grad(lhs, out, lhs_grad, **lhs_grad_fn);
                 Ok(())

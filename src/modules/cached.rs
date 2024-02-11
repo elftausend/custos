@@ -1,14 +1,12 @@
 use core::{
-    any::Any,
     cell::{Cell, RefCell},
     marker::PhantomData,
-    ops::Deref,
 };
 
 use crate::{
-    AddGradFn, AddLayer, AddOperation, Alloc, Buffer, Cache, Cursor, Device, ExecNow, HasId,
-    Module, OnDropBuffer, OnNewBuffer, Parents, PtrType, RemoveLayer, Retrieve, RunModule, Setup,
-    ShallowCopy, Shape, UniqueId, WrappedData,
+    AddGradFn, AddLayer, AddOperation, Alloc, Buffer, Cache, CachedBuffers, Cursor, Device,
+    ExecNow, HasId, IsShapeIndep, Module, OnDropBuffer, OnNewBuffer, Parents, PtrType, RemoveLayer,
+    Retrieve, RunModule, Setup, ShallowCopy, Shape, UniqueId, WrappedData,
 };
 
 #[cfg(feature = "graph")]
@@ -92,6 +90,16 @@ impl<SD: Device, Mods: AddOperation> AddOperation for CachedModule<Mods, SD> {
     ) -> crate::Result<()> {
         operation(&mut args)
     }
+
+    #[inline]
+    fn set_lazy_enabled(&self, enabled: bool) {
+        self.modules.set_lazy_enabled(enabled)
+    }
+
+    #[inline]
+    fn is_lazy_enabled(&self) -> bool {
+        self.modules.is_lazy_enabled()
+    }
 }
 
 impl<D: Device, SD: Device, Mods: ExecNow<D>> ExecNow<D> for CachedModule<Mods, SD> {
@@ -105,8 +113,14 @@ impl<D: Device, SD: Device, Mods: ExecNow<D>> ExecNow<D> for CachedModule<Mods, 
     }
 }
 
-impl<T, D: Device, Mods: OnNewBuffer<T, D, S>, SD: Device, S: Shape> OnNewBuffer<T, D, S>
-    for CachedModule<Mods, SD>
+impl<T, D, Mods, SD, S> OnNewBuffer<T, D, S> for CachedModule<Mods, SD>
+where
+    T: 'static,
+    D: Device + IsShapeIndep + 'static,
+    Mods: OnNewBuffer<T, D, S>,
+    D::Data<T, S>: ShallowCopy,
+    SD: Device,
+    S: Shape,
 {
     #[inline]
     fn on_new_buffer(&self, device: &D, new_buf: &Buffer<T, D, S>) {
@@ -124,9 +138,11 @@ impl<Mods: OnDropBuffer, SD: Device> OnDropBuffer for CachedModule<Mods, SD> {
 // TODO: a more general OnDropBuffer => "Module"
 impl<T, Mods, D, SimpleDevice, S: Shape> Retrieve<D, T, S> for CachedModule<Mods, SimpleDevice>
 where
+    T: 'static,
     Mods: Retrieve<D, T, S>,
-    D: Device + Cursor + 'static,
+    D: Device + IsShapeIndep + Cursor + 'static,
     D::Base<T, S>: ShallowCopy + 'static,
+    D::Data<T, S>: ShallowCopy + 'static,
     SimpleDevice: Device,
 {
     #[inline]
@@ -139,7 +155,11 @@ where
     where
         D: Alloc<T>,
     {
-        self.wrap_in_base(self.cache.borrow_mut().get(device, len, || ()))
+        self.wrap_in_base(
+            self.cache
+                .borrow_mut()
+                .get(device, len, |_cursor, _base| {}),
+        )
     }
 
     #[inline]
@@ -271,9 +291,8 @@ impl<Mods: OptimizeMemGraph, SD: Device> OptimizeMemGraph for CachedModule<Mods,
                     .nodes
                     .get(&(*to_replace as UniqueId))
                     .unwrap()
-                    .deref()
                     .type_id()
-                    != used_to_replace.deref().type_id()
+                    != used_to_replace.type_id()
                 {
                     continue;
                 }
@@ -287,6 +306,7 @@ impl<Mods: OptimizeMemGraph, SD: Device> OptimizeMemGraph for CachedModule<Mods,
 }
 
 #[macro_export]
+#[deprecated]
 macro_rules! debug_assert_tracked {
     () => {
         #[cfg(debug_assertions)]
@@ -299,6 +319,16 @@ macro_rules! debug_assert_tracked {
             );
         }
     };
+}
+
+impl<Mods: OnDropBuffer, D: Device> CachedBuffers for CachedModule<Mods, D> {
+    #[inline]
+    unsafe fn buffers_mut(
+        &self,
+    ) -> Option<core::cell::RefMut<crate::Buffers<Box<dyn crate::BoxedShallowCopy>>>> {
+        // Use the stored buffers in autograd module -> optimizing isn't possible anyway
+        None
+    }
 }
 
 #[cfg(test)]

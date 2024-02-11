@@ -8,15 +8,14 @@ pub use tape::*;
 use core::cell::{Cell, UnsafeCell};
 
 use crate::{
-    impl_remove_layer, pass_down_add_operation, pass_down_cursor, pass_down_exec_now_module,
-    register_buf_any, unregister_buf_any, AddGradFn, AddLayer, Alloc, Buffer, Device, HasId,
-    IsShapeIndep, Module, OnDropBuffer, OnNewBuffer, Parents, Retrieve, RunModule, Setup,
-    ShallowCopy, Shape, TapeActions,
+    impl_remove_layer, pass_down_add_operation, pass_down_cached_buffers, pass_down_cursor,
+    pass_down_exec_now_module, pass_down_replace_buf_module, register_buf_copyable,
+    unregister_buf_copyable, AddGradFn, AddLayer, Alloc, Buffer, Device, HasId, IsShapeIndep,
+    Module, OnDropBuffer, OnNewBuffer, Parents, Retrieve, RunModule, Setup, ShallowCopy, Shape,
+    TapeActions,
 };
 
 use self::wrapper::ReqGradWrapper;
-
-use super::{Cached, CachedModule};
 
 #[derive(Debug, Default)]
 pub struct Autograd<Mods> {
@@ -28,12 +27,14 @@ pub struct Autograd<Mods> {
 }
 
 impl<Mods: Module<D>, D: Device> Module<D> for Autograd<Mods> {
-    type Module = Autograd<CachedModule<Mods::Module, D>>;
+    // type Module = Autograd<CachedModule<Mods::Module, D>>;
+    type Module = Autograd<Mods::Module>;
 
     #[inline]
     fn new() -> Self::Module {
         Autograd {
-            modules: Cached::<Mods>::new(),
+            // modules: Cached::<Mods>::new(),
+            modules: Mods::new(),
             grads: Default::default(),
             tape: Default::default(),
             enabled: Cell::new(true),
@@ -50,14 +51,14 @@ impl<Mods> Autograd<Mods> {
         D::Data<T, S>: ShallowCopy,
         S: Shape,
     {
-        let no_grads_pool = unsafe { &mut (*(self.grads.get())).no_grads_pool.cache };
+        let no_grads_pool = unsafe { &mut (*(self.grads.get())).no_grads_pool };
         // let no_grads_pool = &mut self.tape.borrow_mut().grads.no_grads_pool.cache;
 
         if no_grads_pool.get(&buf.id()).is_some() {
             return;
         }
 
-        unsafe { register_buf_any(no_grads_pool, buf) };
+        unsafe { register_buf_copyable(no_grads_pool, buf) };
     }
 }
 
@@ -91,8 +92,8 @@ where
 impl<Mods: OnDropBuffer> OnDropBuffer for Autograd<Mods> {
     #[inline]
     fn on_drop_buffer<T, D: Device, S: Shape>(&self, device: &D, buf: &Buffer<T, D, S>) {
-        unregister_buf_any(
-            unsafe { &mut (*(self.grads.get())).no_grads_pool.cache },
+        unregister_buf_copyable(
+            unsafe { &mut (*(self.grads.get())).no_grads_pool },
             buf.id(),
         );
         self.modules.on_drop_buffer(device, buf)
@@ -244,37 +245,37 @@ impl<Mods: AddGradFn> AddGradFn for Autograd<Mods> {
 
 pass_down_add_operation!(Autograd);
 pass_down_exec_now_module!(Autograd);
+pass_down_cached_buffers!(Autograd);
+pass_down_replace_buf_module!(Autograd);
 
 #[cfg(test)]
 #[cfg(feature = "cpu")]
 mod tests {
-    use core::any::Any;
-
     use crate::{
-        AddGradFn, Base, Buffer, Cached, Combiner, Cursor, Device, HasId, Module, Retriever, Shape,
-        UnaryGrad, CPU,
+        AddGradFn, Base, BoxedShallowCopy, Buffer, Cached, Combiner, Cursor, Device, HasId, Lazy,
+        Module, Retriever, Shape, UnaryGrad, CPU,
     };
 
     use super::Autograd;
 
     #[inline]
     pub fn downcast_val<'a, 'b, T: 'static, D: Device + 'static, S: Shape>(
-        buf_any: &'b Box<dyn Any>,
+        buf_any: &'b Box<dyn BoxedShallowCopy>,
         _device: &'a D,
     ) -> Option<&'b Buffer<'a, T, D, S>> {
-        buf_any.downcast_ref::<Buffer<T, D, S>>()
+        buf_any.as_any().downcast_ref::<Buffer<T, D, S>>()
     }
 
     #[test]
     fn test_buffer_creation_autograd_register_manual() {
-        let device = CPU::<Autograd<Base>>::new();
+        let device = CPU::<Autograd<Cached<Base>>>::new();
         let buf: Buffer<f32, _> = Buffer::<f32, _>::new(&device, 10);
 
         let autograd = &device.modules;
         {
             let no_grads_pool = unsafe { &(*autograd.grads.get()).no_grads_pool };
             // let no_grads_pool = &mut autograd.tape.grads.no_grads_pool;
-            let buf_any = no_grads_pool.cache.get(&buf.id()).unwrap();
+            let buf_any = no_grads_pool.get(&buf.id()).unwrap();
 
             let buf1 = downcast_val::<f32, _, ()>(buf_any, &device).unwrap();
             assert_eq!(buf1.base().ptr, buf.base().ptr);
@@ -283,23 +284,27 @@ mod tests {
 
     #[test]
     fn test_buffer_creation_autograd_get_buf() {
-        let device = CPU::<Autograd<Base>>::new();
+        let device: CPU<Autograd<crate::CachedModule<Base, CPU>>> =
+            CPU::<Autograd<Cached<Base>>>::new();
         let buf: Buffer<f32, _> = Buffer::<f32, _>::new(&device, 10);
 
         let autograd = &device.modules;
         {
             let no_grads_pool = unsafe { &mut (*autograd.grads.get()).no_grads_pool };
-            // let no_grads_pool = &mut autograd.tape.borrow_mut().grads.no_grads_pool;
-            let buf1 = no_grads_pool
-                .get_buf_with_dev::<f32, _, ()>(buf.id(), &device)
+            let buf1: &Buffer<f32, CPU<Autograd<crate::CachedModule<Base, CPU>>>> = no_grads_pool
+                .get(&buf.id())
+                .unwrap()
+                .as_any()
+                .downcast_ref()
                 .unwrap();
+            // let no_grads_pool = &mut autograd.tape.borrow_mut().grads.no_grads_pool;
             assert_eq!(buf1.base().ptr, buf.base().ptr);
         }
     }
 
     #[test]
     fn test_buffer_creation_autograd_unregister() {
-        let device = CPU::<Autograd<Base>>::new();
+        let device = CPU::<Autograd<Cached<Base>>>::new();
         let buf: Buffer<f32, _> = Buffer::<f32, _>::new(&device, 10);
         let id = buf.id();
         let autograd = &device.modules;
@@ -309,13 +314,13 @@ mod tests {
         {
             let no_grads_pool = unsafe { &(*autograd.grads.get()).no_grads_pool };
             // let no_grads_pool = &autograd.tape.borrow_mut().grads.no_grads_pool;
-            assert!(no_grads_pool.cache.get(&id).is_none());
+            assert!(no_grads_pool.get(&id).is_none());
         }
     }
 
     #[test]
     fn test_buffer_new_and_retrieve() {
-        let device = CPU::<Autograd<Base>>::new();
+        let device = CPU::<Autograd<Cached<Base>>>::new();
         let _lhs = Buffer::<f32, _>::new(&device, 10);
 
         for _ in device.range(0..100) {
@@ -325,7 +330,7 @@ mod tests {
 
         let no_grads_pool = unsafe { &(*device.modules.grads.get()).no_grads_pool };
         // let no_grads_pool = &device.modules.tape.borrow().grads.no_grads_pool;
-        assert_eq!(no_grads_pool.cache.len(), 2);
+        assert_eq!(no_grads_pool.len(), 2);
     }
 
     #[test]
@@ -347,7 +352,7 @@ mod tests {
 
         let no_grads_pool = unsafe { &(*device.modules.modules.grads.get()).no_grads_pool };
         // let no_grads_pool = &device.modules.modules.tape.borrow().grads.no_grads_pool;
-        assert_eq!(no_grads_pool.cache.len(), 2);
+        assert_eq!(no_grads_pool.len(), 2);
     }
 
     #[test]
@@ -359,29 +364,18 @@ mod tests {
     }
 
     #[test]
-    //#[should_panic]
-    fn test_tape_return_without_grad_allocation() {
-        let device: CPU<Autograd<crate::CachedModule<Base, CPU>>> = CPU::<Autograd<Base>>::new();
-        let buf = Buffer::<f32, _>::new(&device, 10);
+    fn test_grad_fn_with_lazy_buffer_source_but_no_true_lazy() {
+        let device = CPU::<Autograd<Lazy<Base>>>::new();
+        let buf = Buffer::<f32, _>::new(&device, 10).require_grad();
 
         let out = Buffer::<f32, _>::new(&device, 10);
 
         device.add_grad_fn((&buf, &out), |(buf, _out)| {
-            for val in buf.grad_mut() {
-                *val = 5.;
+            for (val, grad) in buf.grad_mut().iter_mut().zip(_out.grad().iter()) {
+                *val = 5. * grad;
             }
             Ok(())
         });
-
-        /*let ids = (buf.id(), out.id());
-        // this does not panic anymore because grads are allocated if a new buffer is created (when using the Autograd module)
-        device.add_grad_fn(move |grads| {
-            let (_buf, buf_grad, _out) =
-                grads.get_double::<f32, (), (), CPU<Autograd<crate::CachedModule<Base, CPU>>>>(ids);
-            for val in buf_grad.as_mut_slice() {
-                *val = 5.;
-            }
-        });*/
 
         out.backward();
 

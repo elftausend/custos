@@ -13,7 +13,7 @@ use crate::CPU;
 use crate::{
     flag::AllocFlag, shape::Shape, Alloc, Base, ClearBuf, CloneBuf, CommonPtrs, Device,
     DevicelessAble, HasId, IsShapeIndep, OnDropBuffer, OnNewBuffer, PtrType, Read, ReplaceBuf,
-    ShallowCopy, WrappedData, WriteBuf,
+    ShallowCopy, WrappedData, WriteBuf, ZeroGrad,
 };
 
 pub use self::num::Num;
@@ -425,6 +425,14 @@ impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
         D: ClearBuf<T, S, D>,
     {
         self.device().clear(self)
+    }
+
+    #[inline]
+    pub fn zero_grad(&mut self)
+    where
+        D: ZeroGrad<T>,
+    {
+        self.device().zero_grad(self)
     }
 
     #[inline]

@@ -1,6 +1,5 @@
-use core::any::Any;
-
 use crate::{AsAny, ShallowCopy};
+use core::any::Any;
 
 pub trait BoxedShallowCopy: 'static {
     fn shallow_copy(&self) -> Box<dyn BoxedShallowCopy>;

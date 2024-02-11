@@ -1,12 +1,10 @@
 use crate::{
-    bounds_to_range, AsAny, Buffers, Device, Parents, UniqueId, UpdateArgs, UpdateArgsDynable,
+    bounds_to_range, AsAny, BoxedShallowCopy, Buffers, Device, Parents, UniqueId, UpdateArgs,
+    UpdateArgsDynable,
 };
 use core::{mem::transmute, ops::RangeBounds};
 
-use super::{
-    exec_iter::{exec_op, ExecIter},
-    generic_support::BoxedShallowCopy,
-};
+use super::exec_iter::{exec_op, ExecIter};
 
 pub struct LazyGraph<B = Box<dyn BoxedShallowCopy>> {
     pub ids_to_check: Vec<Vec<Option<UniqueId>>>,
@@ -108,8 +106,8 @@ impl<B: AsAny> LazyGraph<B> {
 mod tests {
     use super::LazyGraph;
     use crate::{
-        modules::lazy::{generic_support::BoxedShallowCopy, register_buf_copyable},
-        AsNoId, Base, Buffer, Device, HasId, Retriever, CPU,
+        register_buf_copyable, AsNoId, Base, BoxedShallowCopy, Buffer, Device, HasId, Retriever,
+        CPU,
     };
     use std::collections::HashMap;
 

@@ -179,6 +179,7 @@ mod tests {
 
     #[cfg(feature = "cpu")]
     #[cfg(feature = "cached")]
+    #[cfg_attr(miri, ignore)]
     #[test]
     fn test_cache_span_resetting() {
         use crate::{range::SpanStorage, span, Base, Cached, Cursor, CPU};

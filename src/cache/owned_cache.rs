@@ -1,4 +1,4 @@
-use core::hash::BuildHasherDefault;
+use core::{any::Any, hash::BuildHasherDefault};
 use std::collections::HashMap;
 
 use std::rc::Rc;
@@ -7,9 +7,9 @@ use crate::{
     flag::AllocFlag, Alloc, Cursor, Device, NoHasher, PtrType, ShallowCopy, Shape, UniqueId,
 };
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct Cache {
-    pub nodes: HashMap<UniqueId, Rc<dyn core::any::Any>, BuildHasherDefault<NoHasher>>,
+    pub nodes: HashMap<UniqueId, Rc<dyn Any>, BuildHasherDefault<NoHasher>>,
 }
 
 impl Default for Cache {
@@ -31,7 +31,12 @@ impl Cache {
     /// Lifetime of data must be at least as long as the lifetime of the cache (usually the device).
     #[track_caller]
     #[inline]
-    pub unsafe fn get<T, S, D>(&mut self, device: &D, len: usize, callback: fn()) -> D::Base<T, S>
+    pub unsafe fn get<T, S, D>(
+        &mut self,
+        device: &D,
+        len: usize,
+        new_buf_callback: impl FnMut(usize, &D::Base<T, S>),
+    ) -> D::Base<T, S>
     where
         D: Alloc<T> + Cursor + 'static,
         D::Base<T, S>: ShallowCopy + 'static,
@@ -41,13 +46,17 @@ impl Cache {
         match maybe_allocated {
             Some(data) => {
                 unsafe { device.bump_cursor() };
-                let data = unsafe { data.downcast_ref::<D::Base<T, S>>().unwrap().shallow() };
+                let data = unsafe {
+                    data.downcast_ref::<D::Base<T, S>>()
+                        .expect("Invalid request for data type!")
+                        .shallow()
+                };
 
                 // TODO: not necessary, could add length to hashmap
                 assert_eq!(data.size(), len, "Data size mismatch! Did you use e.g. if conditions in a (cursor) loop retrieving buffers with a different size?");
                 data
             }
-            None => self.add_node(device, len, callback),
+            None => self.add_node(device, len, new_buf_callback),
         }
     }
 
@@ -56,7 +65,7 @@ impl Cache {
         &mut self,
         device: &D,
         len: usize,
-        callback: fn(),
+        mut callback: impl FnMut(usize, &D::Base<T, S>),
     ) -> <D as Device>::Base<T, S>
     where
         D: Alloc<T> + Cursor,
@@ -66,10 +75,10 @@ impl Cache {
         let data = device.alloc::<S>(len, AllocFlag::None);
         let shallow_data = unsafe { data.shallow() };
 
+        callback(device.cursor(), &shallow_data);
         self.nodes
             .insert(device.cursor() as UniqueId, Rc::new(data));
         unsafe { device.bump_cursor() };
-        callback();
 
         shallow_data
     }
@@ -77,7 +86,9 @@ impl Cache {
 
 #[cfg(test)]
 mod tests {
+    #[cfg(feauture = "cpu")]
     use super::Cache;
+    #[cfg(feauture = "cpu")]
     use crate::{Base, Cached, CPU};
 
     #[cfg(feauture = "cpu")]
