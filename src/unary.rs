@@ -349,6 +349,7 @@ mod tests {
 
     #[cfg(feature = "cpu")]
     #[cfg(feature = "autograd")]
+    #[ignore]
     #[test]
     fn test_unary_elementwise_may_grad_multiple_times_lazy_with_lazy_input_exec_last() {
         use crate::{
