@@ -321,8 +321,10 @@ pub trait AddOperation {
 }
 
 pub trait ExecNow<D = Self> {
+    /// This drains the affected operations!
     fn exec_now(&self, device: &D, range_bounds: impl RangeBounds<usize>) -> crate::Result<()>;
 
+    /// This drains the affected operations!
     #[inline]
     fn exec_last_n(&self, device: &D, last_n: usize) -> crate::Result<()>
     where

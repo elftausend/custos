@@ -130,9 +130,6 @@ impl<Mods> Lazy<Mods> {
         self.graph
             .borrow_mut()
             .call_lazily::<D>(&mut self.buffers.borrow_mut())?;
-        // self.graph
-        //     .borrow_mut()
-        //     .call_lazily::<D>(&self.out_ids.borrow(), &mut self.buffers.borrow_mut())?;
         Ok(())
     }
 

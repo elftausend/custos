@@ -349,7 +349,6 @@ mod tests {
 
     #[cfg(feature = "cpu")]
     #[cfg(feature = "autograd")]
-    #[ignore]
     #[test]
     fn test_unary_elementwise_may_grad_multiple_times_lazy_with_lazy_input_exec_last() {
         use crate::{
@@ -361,33 +360,13 @@ mod tests {
         let buf = device.buffer([0., 1., 2., 3.]).require_grad();
         let buf1 = device.apply_fn(&buf, |x| x.add(1.));
 
+        // this executes the operation above and consumes it
+        // this results in apply_fn being only executed once
         device.exec_last_n(&device, 1).unwrap();
 
         let out = device.unary_ew(&buf1, |x| x.sin(), |x| x.cos());
 
-        for i in 1..10 {
-            device.exec_last_n(&device, 1).unwrap();
-            // unsafe { device.run() }.unwrap();
-            roughly_eq_slices(
-                out.replace().as_slice(),
-                &[
-                    0.8414709848078965,
-                    0.9092974268256817,
-                    0.1411200080598672,
-                    -0.7568024953079282,
-                ],
-            );
-            out.replace().backward();
-            roughly_eq_slices(
-                buf.replace().grad().as_slice(),
-                &[
-                    0.5403023058681398 * i as f64,
-                    -0.4161468365471424 * i as f64,
-                    -0.9899924966004454 * i as f64,
-                    -0.6536436208636119 * i as f64,
-                ],
-            );
-        }
+        run_several_times!(device, buf1, out);
     }
 
     #[cfg(feature = "cpu")]
