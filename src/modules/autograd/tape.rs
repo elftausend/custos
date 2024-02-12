@@ -40,11 +40,7 @@ impl Tape {
         buffers: &mut Buffers<Box<dyn BoxedShallowCopy>>,
         lazy_enabled: bool,
     ) {
-        for val in self
-            .lazy_graph
-            .iter_with(buffers)
-            .rev()
-        {
+        for val in self.lazy_graph.iter_with(buffers).rev() {
             val.unwrap();
         }
         if !lazy_enabled {

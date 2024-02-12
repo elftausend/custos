@@ -117,9 +117,9 @@ impl<D: Device + 'static, Mods> ExecNow<D> for Lazy<Mods> {
         range_bounds: impl core::ops::RangeBounds<usize>,
     ) -> crate::Result<()> {
         if !self.allocated.get() {
-            self.alloc_later(device);
             self.allocated.set(true);
         }
+        self.alloc_later(device);
         unsafe {
             self.graph
                 .borrow_mut()
@@ -143,9 +143,8 @@ impl<Mods> Lazy<Mods> {
 
     fn alloc_later<D: 'static>(&self, device: &D) {
         let mut buffers = self.buffers.borrow_mut();
-        // could use drain - no allocated flag
-        for (id, alloc_fn) in self.alloc_later.borrow().iter() {
-            alloc_fn(&mut buffers, *id, device);
+        for (id, alloc_fn) in self.alloc_later.borrow_mut().drain(..) {
+            alloc_fn(&mut buffers, id, device);
         }
     }
 

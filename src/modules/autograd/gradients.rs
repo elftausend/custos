@@ -146,5 +146,4 @@ impl Gradients {
 }
 
 #[cfg(test)]
-mod tests {
-}
+mod tests {}
