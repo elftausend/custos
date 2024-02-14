@@ -13,15 +13,6 @@ pub struct LazyCudaGraph {
     graph_exec: ManuallyDrop<GraphExec>,
 }
 
-// impl Drop for LazyCudaGraph {
-//     fn drop(&mut self) {
-//         unsafe {
-//             ManuallyDrop::drop(&mut self.graph_exec);
-//             ManuallyDrop::drop(&mut self.graph);
-//         }
-//     }
-// }
-
 impl LazyCudaGraph {
     pub fn new(stream: &Stream) -> Result<Self, CudaErrorKind> {
         let graph = create_graph_from_captured_stream(stream)?;
