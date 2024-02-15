@@ -6,7 +6,11 @@ mod wrapper;
 pub use ty::*;
 
 use crate::{
-    impl_remove_layer, pass_down_grad_fn, pass_down_tape_actions, register_buf_copyable, unregister_buf_copyable, AddLayer, AddOperation, Alloc, BoxedShallowCopy, Buffer, CachedBuffers, Cursor, Device, ExecNow, HasId, Id, IsShapeIndep, Module, NoHasher, OnDropBuffer, OnNewBuffer, Parents, ReplaceBuf, Retrieve, RunModule, Setup, ShallowCopy, Shape, UniqueId, UpdateArgs
+    impl_remove_layer, pass_down_grad_fn, pass_down_tape_actions, register_buf_copyable,
+    unregister_buf_copyable, AddLayer, AddOperation, Alloc, BoxedShallowCopy, Buffer,
+    CachedBuffers, Cursor, Device, ExecNow, HasId, Id, IsShapeIndep, Module, NoHasher,
+    OnDropBuffer, OnNewBuffer, Parents, ReplaceBuf, Retrieve, RunModule, Setup, ShallowCopy, Shape,
+    UniqueId, UpdateArgs,
 };
 
 #[cfg(feature = "graph")]
@@ -15,7 +19,8 @@ use crate::DeviceError;
 use core::{
     any::{Any, TypeId},
     cell::{Cell, RefCell},
-    fmt::Debug, hash::BuildHasherDefault,
+    fmt::Debug,
+    hash::BuildHasherDefault,
 };
 use std::collections::HashSet;
 
@@ -162,7 +167,12 @@ impl<Mods> Lazy<Mods> {
                     continue;
                 }
 
-                alloc_fn(&mut self.buffers.borrow_mut(), &mut self.allocated_ids.borrow_mut(), id, device);
+                alloc_fn(
+                    &mut self.buffers.borrow_mut(),
+                    &mut self.allocated_ids.borrow_mut(),
+                    id,
+                    device,
+                );
                 let buf = self.buffers.borrow().get(&id.id).unwrap().shallow_copy();
 
                 // TODO: add type check - lower assert_eq to debug in lazy replace buf
@@ -276,7 +286,7 @@ where
 
             // TODO: remove later if 'buffers' is used for collision avoidance
             if allocated_ids.contains(&id.id) {
-                return
+                return;
             }
 
             // TODO: should be fixable - (lazy) -> either return error or fix

@@ -6,7 +6,7 @@ use core::{
 use crate::{
     AddGradFn, AddLayer, AddOperation, Alloc, Buffer, Cache, CachedBuffers, Cursor, Device,
     ExecNow, HasId, IsShapeIndep, Module, OnDropBuffer, OnNewBuffer, Parents, PtrType, RemoveLayer,
-    Retrieve, RunModule, Setup, ShallowCopy, Shape, UniqueId, WrappedData,
+    ReplaceBuf, Retrieve, RunModule, Setup, ShallowCopy, Shape, UniqueId, WrappedData,
 };
 
 #[cfg(feature = "graph")]
@@ -303,6 +303,19 @@ impl<Mods: OnDropBuffer, D: Device> CachedBuffers for CachedModule<Mods, D> {
     ) -> Option<core::cell::RefMut<crate::Buffers<Box<dyn crate::BoxedShallowCopy>>>> {
         // Use the stored buffers in autograd module -> optimizing isn't possible anyway
         None
+    }
+}
+
+impl<Mods, D, T, S, SD> ReplaceBuf<T, D, S> for CachedModule<Mods, SD>
+where
+    Mods: ReplaceBuf<T, D, S>,
+    D: Device,
+    S: Shape,
+    SD: Device,
+{
+    #[inline]
+    fn replace_buf<'a, 'c>(&'c self, buffer: &'c Buffer<'a, T, D, S>) -> &'c Buffer<'a, T, D, S> {
+        self.modules.replace_buf(buffer)
     }
 }
 

@@ -240,7 +240,5 @@ mod tests {
 
     #[cfg(feature = "lazy")]
     #[test]
-    fn test_num_device_lazy() {
-        
-    }
+    fn test_num_device_lazy() {}
 }
