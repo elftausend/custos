@@ -1,7 +1,5 @@
 use crate::{
-    flag::AllocFlag, AddGradFn, AddOperation, Alloc, CachedBuffers, Cursor, Device, ExecNow, HasId,
-    HashLocation, Module, OnDropBuffer, OnNewBuffer, Parents, PtrType, Retrieve, Setup, Shape,
-    WrappedData,
+    flag::AllocFlag, AddGradFn, AddOperation, Alloc, CachedBuffers, Cursor, Device, ExecNow, HasId, HashLocation, Module, OnDropBuffer, OnNewBuffer, Parents, PtrType, ReplaceBuf, Retrieve, Setup, Shape, WrappedData
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
@@ -146,3 +144,9 @@ impl AddGradFn for Base {
 impl crate::TapeActions for Base {}
 
 impl CachedBuffers for Base {}
+impl<T, D: Device, S: Shape> ReplaceBuf<T, D, S> for Base {
+    #[inline]
+    fn replace_buf<'a, 'c>(&'c self, buffer: &'c crate::Buffer<'a, T, D, S>) -> &'c crate::Buffer<'a, T, D, S> {
+        buffer
+    }
+}
