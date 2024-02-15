@@ -6,11 +6,7 @@ mod wrapper;
 pub use ty::*;
 
 use crate::{
-    impl_remove_layer, pass_down_grad_fn, pass_down_tape_actions, register_buf_copyable,
-    unregister_buf_copyable, AddLayer, AddOperation, Alloc, BoxedShallowCopy, Buffer,
-    CachedBuffers, Cursor, Device, ExecNow, HasId, Id, IsShapeIndep, Module, OnDropBuffer,
-    OnNewBuffer, Parents, ReplaceBuf, Retrieve, RunModule, Setup, ShallowCopy, Shape, UniqueId,
-    UpdateArgs,
+    impl_remove_layer, pass_down_grad_fn, pass_down_tape_actions, register_buf_copyable, unregister_buf_copyable, AddLayer, AddOperation, Alloc, BoxedShallowCopy, Buffer, CachedBuffers, Cursor, Device, ExecNow, HasId, Id, IsShapeIndep, Module, NoHasher, OnDropBuffer, OnNewBuffer, Parents, ReplaceBuf, Retrieve, RunModule, Setup, ShallowCopy, Shape, UniqueId, UpdateArgs
 };
 
 #[cfg(feature = "graph")]
@@ -19,19 +15,25 @@ use crate::DeviceError;
 use core::{
     any::{Any, TypeId},
     cell::{Cell, RefCell},
-    fmt::Debug,
+    fmt::Debug, hash::BuildHasherDefault,
 };
+use std::collections::HashSet;
 
 pub use self::lazy_graph::LazyGraph;
 use self::wrapper::LazyWrapper;
 
 type Buffers = crate::Buffers<Box<dyn BoxedShallowCopy>>;
+type AllocatedIds = HashSet<UniqueId, BuildHasherDefault<NoHasher>>;
 
 #[derive(Default)]
 pub struct Lazy<Mods> {
     pub modules: Mods,
-    alloc_later: RefCell<Vec<(Id, fn(&mut Buffers, Id, &dyn Any))>>, // could use D generic instead of dyn Any (required LazyModule structure)
+    alloc_later: RefCell<Vec<(Id, fn(&mut Buffers, &mut AllocatedIds, Id, &dyn Any))>>, // could use D generic instead of dyn Any (required LazyModule structure)
     buffers: RefCell<Buffers>,
+    // `buffers` shares buffers, that are either lazily allocated or instantly (via new, from..).
+    // This ensures to only allocate a buffer once, without having to remove the ID/address collision check
+    // TODO: remove this, fix id and address collision - then just use `buffers` for duplicate calls
+    allocated_ids: RefCell<AllocatedIds>,
     graph: RefCell<LazyGraph<Box<dyn BoxedShallowCopy>>>,
     cursor: Cell<usize>,
     enabled: Cell<bool>,
@@ -68,6 +70,7 @@ impl<Mods: Module<D>, D: LazySetup + Device> Module<D> for Lazy<Mods> {
             buffers: Default::default(),
             graph: Default::default(),
             alloc_later: Default::default(),
+            allocated_ids: Default::default(),
             cursor: Default::default(),
             enabled: Cell::new(true),
         }
@@ -135,8 +138,9 @@ impl<Mods> Lazy<Mods> {
 
     fn alloc_later<D: 'static>(&self, device: &D) {
         let mut buffers = self.buffers.borrow_mut();
+        let mut allocated_ids = self.allocated_ids.borrow_mut();
         for (id, alloc_fn) in self.alloc_later.borrow_mut().drain(..) {
-            alloc_fn(&mut buffers, id, device);
+            alloc_fn(&mut buffers, &mut allocated_ids, id, device);
         }
     }
 
@@ -158,7 +162,7 @@ impl<Mods> Lazy<Mods> {
                     continue;
                 }
 
-                alloc_fn(&mut self.buffers.borrow_mut(), id, device);
+                alloc_fn(&mut self.buffers.borrow_mut(), &mut self.allocated_ids.borrow_mut(), id, device);
                 let buf = self.buffers.borrow().get(&id.id).unwrap().shallow_copy();
 
                 // TODO: add type check - lower assert_eq to debug in lazy replace buf
@@ -234,6 +238,7 @@ impl<NewMods, SD> AddLayer<NewMods, SD> for Lazy<()> {
             buffers: Default::default(),
             graph: Default::default(),
             alloc_later: Default::default(),
+            allocated_ids: Default::default(),
             cursor: Default::default(),
             enabled: Cell::new(true),
         }
@@ -266,8 +271,14 @@ where
         };
 
         // alloc later callback in order to keep type information
-        alloc_later.push((id, |buffers, id, device| {
+        alloc_later.push((id, |buffers, allocated_ids, id, device| {
             let device = device.downcast_ref::<D>().unwrap();
+
+            // TODO: remove later if 'buffers' is used for collision avoidance
+            if allocated_ids.contains(&id.id) {
+                return
+            }
+
             // TODO: should be fixable - (lazy) -> either return error or fix
             // creating buffers (with data) is not lazy - they are allocated instantly
             // these are then added to `buffers` with their ID (which is the pointing address)
@@ -286,6 +297,7 @@ where
             };
 
             let buffer: Buffer<'static, T, D, S> = unsafe { core::mem::transmute(buffer) };
+            allocated_ids.insert(id.id);
             buffers.insert(id.id, Box::new(buffer));
         }));
 

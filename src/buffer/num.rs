@@ -237,4 +237,10 @@ mod tests {
 
         <()>::new().unwrap();
     }
+
+    #[cfg(feature = "lazy")]
+    #[test]
+    fn test_num_device_lazy() {
+        
+    }
 }
