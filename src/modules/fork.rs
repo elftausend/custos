@@ -148,6 +148,8 @@ impl<NewMods, SD> AddLayer<NewMods, SD> for Fork<()> {
 mod tests {
     use std::{collections::BinaryHeap, time::Instant};
 
+    use min_cl::CLDevice;
+
     use crate::{
         opencl::try_cl_clear, should_use_cpu, Analyzation, ApplyFunction, Base, Buffer, Cached,
         Combiner, Device, Fork, GpuOrCpuInfo, Module, OpenCL, UseGpuOrCpu, CPU,
@@ -322,8 +324,14 @@ mod tests {
         println!("{:?}", fork.gpu_or_cpu.borrow());
     }
 
+    #[cfg(unified_cl)]
     #[test]
     fn test_fork_module() {
+        // inside ForkSetup -> unified mem assert
+        // the setup is called inside the OpenCL::new fn!
+        if !CLDevice::new(0).unwrap().unified_mem() {
+            return;
+        }
         let device = OpenCL::<Fork<Base>>::new(0).unwrap();
 
         let mut buf = device.buffer::<_, (), _>(vec![21u8; 10000]);
