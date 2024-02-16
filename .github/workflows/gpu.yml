@@ -74,6 +74,8 @@ jobs:
       run: cargo test --verbose --no-default-features --features opencl,graph
     - name: Run tests (OpenCL, modules)
       run: cargo test --verbose --no-default-features --features opencl,autograd,graph,cpu
+    - name: Run tests (OpenCL, fork)
+      run: CUSTOS_USE_UNIFIED=false cargo test --verbose --no-default-features --features opencl,fork
   
   test-cuda:
   
