@@ -34,7 +34,7 @@ type AllocatedIds = HashSet<UniqueId, BuildHasherDefault<NoHasher>>;
 pub struct Lazy<Mods> {
     pub modules: Mods,
     alloc_later: RefCell<Vec<(Id, fn(&mut Buffers, &mut AllocatedIds, Id, &dyn Any))>>, // could use D generic instead of dyn Any (required LazyModule structure)
-    buffers: RefCell<Buffers>,
+    pub buffers: RefCell<Buffers>,
     // `buffers` shares buffers, that are either lazily allocated or instantly (via new, from..).
     // This ensures to only allocate a buffer once, without having to remove the ID/address collision check
     // TODO: remove this, fix id and address collision - then just use `buffers` for duplicate calls

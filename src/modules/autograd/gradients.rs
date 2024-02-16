@@ -1,8 +1,9 @@
-use core::any::Any;
+use core::{any::Any, hash::BuildHasherDefault};
+use std::collections::HashMap;
 
 use crate::{
-    Alloc, BorrowCache, BoxedShallowCopy, Buffer, Buffers, CachingError, Device, HasId, Id, Shape,
-    ZeroGrad,
+    Alloc, BorrowCache, BoxedShallowCopy, Buffer, Buffers, CachingError, Device, HasId, Id,
+    NoHasher, Shape, UniqueId, ZeroGrad,
 };
 
 const INVALID_ID: &str = "A matching Buffer does not exist.";
@@ -13,7 +14,8 @@ const INVALID_ID: &str = "A matching Buffer does not exist.";
 pub struct Gradients {
     pub grads_pool: BorrowCache,
     pub no_grads_pool: Buffers<Box<dyn BoxedShallowCopy>>,
-    pub zero_grad_cbs: Vec<(Id, fn(&mut dyn Any, &dyn BoxedShallowCopy))>,
+    pub zero_grad_cbs: Vec<(Id, fn(&mut dyn Any))>,
+    pub buf_requires_grad: HashMap<UniqueId, bool, BuildHasherDefault<NoHasher>>,
 }
 
 impl core::fmt::Debug for Gradients {
@@ -30,8 +32,12 @@ impl Gradients {
     pub fn zero_grad(&mut self) {
         for (id, cb) in &self.zero_grad_cbs {
             let grad_buf = self.grads_pool.cache.get_mut(id).unwrap();
-            let buf = self.no_grads_pool.get_mut(id).unwrap();
-            cb(&mut **grad_buf, &**buf);
+
+            // the callback is only added if the grad buffer was used in a grad op, so this check should not be necessary (but it is)
+            let req_grad = *self.buf_requires_grad.get(id).unwrap_or(&true);
+            if req_grad {
+                cb(&mut **grad_buf);
+            }
         }
         // self.grads_pool.cache.clear();
     }
@@ -42,14 +48,10 @@ impl Gradients {
         D: Device + ZeroGrad<T> + 'static,
         S: Shape,
     {
-        self.zero_grad_cbs.push((*id, |grad_buf, buf| {
+        self.zero_grad_cbs.push((*id, |grad_buf| {
             let grad_buf = grad_buf.downcast_mut::<Buffer<T, D, S>>().unwrap();
-            let buf = buf.as_any().downcast_ref::<Buffer<T, D, S>>().unwrap();
 
-            // the callback is only added if the grad buffer was used in a grad op, so this check should not be necessary (but it is)
-            if buf.requires_grad() {
-                grad_buf.device().zero_grad(grad_buf);
-            }
+            grad_buf.device().zero_grad(grad_buf);
         }));
     }
 

@@ -51,7 +51,7 @@ impl<Mods> Autograd<Mods> {
         D::Data<T, S>: ShallowCopy,
         S: Shape,
     {
-        let no_grads_pool = unsafe { &mut (*(self.grads.get())).no_grads_pool };
+        let no_grads_pool = unsafe { &mut (*self.grads.get()).no_grads_pool };
 
         if no_grads_pool.get(&buf.id()).is_some() {
             return;
@@ -70,6 +70,11 @@ where
 {
     #[inline]
     fn on_new_buffer(&self, device: &D, new_buf: &Buffer<T, D, S>) {
+        unsafe {
+            (*self.grads.get())
+                .buf_requires_grad
+                .insert(*new_buf.id(), new_buf.requires_grad())
+        };
         self.register_no_grad_buf(new_buf);
 
         // pass down
@@ -80,10 +85,8 @@ where
 impl<Mods: OnDropBuffer> OnDropBuffer for Autograd<Mods> {
     #[inline]
     fn on_drop_buffer<T, D: Device, S: Shape>(&self, device: &D, buf: &Buffer<T, D, S>) {
-        unregister_buf_copyable(
-            unsafe { &mut (*(self.grads.get())).no_grads_pool },
-            buf.id(),
-        );
+        unsafe { (*self.grads.get()).buf_requires_grad.remove(&*buf.id()) };
+        unregister_buf_copyable(unsafe { &mut (*self.grads.get()).no_grads_pool }, buf.id());
         self.modules.on_drop_buffer(device, buf)
     }
 }
@@ -131,6 +134,11 @@ where
     {
         let requires_grad = parents.requires_grads().iter().any(|&x| x);
         let data = self.modules.retrieve(device, len, parents);
+        unsafe {
+            (*self.grads.get())
+                .buf_requires_grad
+                .insert(*data.id(), requires_grad)
+        };
 
         ReqGradWrapper {
             requires_grad,
@@ -440,13 +448,17 @@ mod tests {
         let device = CPU::<Autograd<Base>>::new();
 
         let lhs = device.buffer([1i32, 2, 3, 4]).require_grad();
+        assert!(*unsafe { (*device.modules.grads.get()).buf_requires_grad.get(&*lhs.id()).unwrap() });
         assert!(lhs.requires_grad());
 
         let no_grad = device.buffer([1i32, 2, 3, 4]).no_grad();
+        assert!(!*unsafe { (*device.modules.grads.get()).buf_requires_grad.get(&*no_grad.id()).unwrap() });
         let rhs = device.buffer([1i32, 2, 3, 4]).no_grad();
+        assert!(!*unsafe { (*device.modules.grads.get()).buf_requires_grad.get(&*rhs.id()).unwrap() });
         assert!(!rhs.requires_grad());
 
         let out: Buffer<i32, _> = device.retrieve(rhs.len(), (&lhs, &rhs));
+        assert!(*unsafe { (*device.modules.grads.get()).buf_requires_grad.get(&*out.id()).unwrap() });
         assert!(out.requires_grad());
 
         let out: Buffer<i32, _> = device.retrieve(rhs.len(), &lhs);
