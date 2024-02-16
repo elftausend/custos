@@ -150,4 +150,30 @@ impl Gradients {
 }
 
 #[cfg(test)]
-mod tests {}
+mod tests {
+
+    #[cfg(feature = "cpu")]
+    #[test]
+    fn test_zero_grad_on_gradients() {
+        use crate::{Base, Device, Gradients, HasId, CPU};
+
+        let dev = CPU::<Base>::new();
+
+        let mut grads = Gradients::default();
+
+        let lhs = dev.buffer([1, 2, 3, 4]);
+        {
+            let grad = grads.get_mut::<i32, (), _>(&dev, lhs.id());
+
+            for val in grad.iter_mut() {
+                *val = 4;
+            }
+
+            assert_eq!(grad.as_slice(), &[4; 4]);
+        }
+
+        grads.zero_grad();
+        let grad = grads.get_ref::<i32, (), _>(&dev, lhs.id());
+        assert_eq!(grad.as_slice(), &[0; 4]);
+    }
+}

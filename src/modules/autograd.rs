@@ -87,6 +87,13 @@ impl<Mods: OnDropBuffer> OnDropBuffer for Autograd<Mods> {
     fn on_drop_buffer<T, D: Device, S: Shape>(&self, device: &D, buf: &Buffer<T, D, S>) {
         unsafe { (*self.grads.get()).buf_requires_grad.remove(&*buf.id()) };
         unregister_buf_copyable(unsafe { &mut (*self.grads.get()).no_grads_pool }, buf.id());
+
+        // TODO
+        // FIXME if an alloc flag None buffer goes out of scope and it has used it's gradient buffer before, 
+        // the gradient buffer will stay allocated
+        // - deallocate directly -> however, the id could still be used to retrieve the grad buf
+        // - add to id set of potentially unused buffers
+
         self.modules.on_drop_buffer(device, buf)
     }
 }
@@ -448,17 +455,37 @@ mod tests {
         let device = CPU::<Autograd<Base>>::new();
 
         let lhs = device.buffer([1i32, 2, 3, 4]).require_grad();
-        assert!(*unsafe { (*device.modules.grads.get()).buf_requires_grad.get(&*lhs.id()).unwrap() });
+        assert!(*unsafe {
+            (*device.modules.grads.get())
+                .buf_requires_grad
+                .get(&*lhs.id())
+                .unwrap()
+        });
         assert!(lhs.requires_grad());
 
         let no_grad = device.buffer([1i32, 2, 3, 4]).no_grad();
-        assert!(!*unsafe { (*device.modules.grads.get()).buf_requires_grad.get(&*no_grad.id()).unwrap() });
+        assert!(!*unsafe {
+            (*device.modules.grads.get())
+                .buf_requires_grad
+                .get(&*no_grad.id())
+                .unwrap()
+        });
         let rhs = device.buffer([1i32, 2, 3, 4]).no_grad();
-        assert!(!*unsafe { (*device.modules.grads.get()).buf_requires_grad.get(&*rhs.id()).unwrap() });
+        assert!(!*unsafe {
+            (*device.modules.grads.get())
+                .buf_requires_grad
+                .get(&*rhs.id())
+                .unwrap()
+        });
         assert!(!rhs.requires_grad());
 
         let out: Buffer<i32, _> = device.retrieve(rhs.len(), (&lhs, &rhs));
-        assert!(*unsafe { (*device.modules.grads.get()).buf_requires_grad.get(&*out.id()).unwrap() });
+        assert!(*unsafe {
+            (*device.modules.grads.get())
+                .buf_requires_grad
+                .get(&*out.id())
+                .unwrap()
+        });
         assert!(out.requires_grad());
 
         let out: Buffer<i32, _> = device.retrieve(rhs.len(), &lhs);
