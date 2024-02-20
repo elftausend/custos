@@ -1,7 +1,6 @@
 use core::{any::Any, hash::BuildHasherDefault};
 use std::{collections::HashMap, ffi::c_void, rc::Rc};
 
-#[cfg(not(feature = "realloc"))]
 use crate::{AllocFlag, DeviceError};
 
 use super::CLPtr;

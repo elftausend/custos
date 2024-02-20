@@ -396,28 +396,6 @@ impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
         }
     }
 
-    /// Returns a shallow copy of &self, if the `realloc` feature is deactivated.
-    /// If the `realloc` feature is activated, it returns a deep copy / clone.
-    ///
-    /// # Safety
-    /// Itself, this function does not need to be unsafe.
-    /// However, declaring this function as unsafe highlights the violation of possibly creating two or more owners for one resource.
-    /// Furthermore, the resulting `Buffer` can outlive `self`.
-    pub unsafe fn shallow_or_clone(&self) -> Buffer<'a, T, D, S>
-    where
-        <D as Device>::Data<T, S>: ShallowCopy,
-        T: Clone,
-        D: CloneBuf<'a, T, S>,
-    {
-        {
-            #[cfg(not(feature = "realloc"))]
-            self.shallow()
-        }
-
-        #[cfg(feature = "realloc")]
-        self.clone()
-    }
-
     /// Sets all elements in `Buffer` to the default value.
     #[inline]
     pub fn clear(&mut self)
