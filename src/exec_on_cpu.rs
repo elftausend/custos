@@ -59,7 +59,6 @@ where
     let cpu = CPU::<Cached<Base>>::new();
     let cpu_buf = Buffer::<T, CachedCPU>::from((&cpu, x.read_to_vec()));
     Ok(Buffer::from((device, f(&cpu, &cpu_buf))))
-    // TODO add new node to graph
 }
 
 /// Moves a single `Buffer` stored on another device to a `CPU` `Buffer`s and executes an operation on the `CPU`.
@@ -172,7 +171,7 @@ where
 /// let lhs = Buffer::from((&device, [1, 2, 3]));
 /// let rhs = Buffer::from((&device, [1, 2, 3]));
 ///
-/// to_cpu!(cpu, lhs, rhs);
+/// to_cpu!(&cpu, lhs, rhs);
 ///
 /// assert_eq!(lhs.len(), 3);
 /// assert_eq!(rhs.len(), 3);
@@ -201,7 +200,7 @@ macro_rules! to_cpu_mut {
 /// let lhs = Buffer::from((&device, [1, 2, 3]));
 /// let rhs = Buffer::from((&device, [1, 2, 3]));
 ///
-/// to_cpu!(cpu, lhs, rhs);
+/// to_cpu!(&cpu, lhs, rhs);
 ///
 /// assert_eq!(lhs.len(), 3);
 /// assert_eq!(rhs.len(), 3);
