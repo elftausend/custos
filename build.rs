@@ -1,8 +1,6 @@
 fn main() {
     println!("cargo:rerun-if-changed=build.rs");
 
-    // TODO: execute other opencl test to know whether opencl can actually be used
-
     if std::env::var("DOCS_RS").is_ok() {
         return;
     }
@@ -12,11 +10,33 @@ fn main() {
     if has_device_unified_mem() {
         println!("cargo:rustc-cfg=unified_cl");
     }
+    
+    #[cfg(not(docsrs))]
+    #[cfg(feature = "opencl")]
+    cl_check_kernel_exec();
 
     #[cfg(not(docsrs))]
     #[cfg(feature = "cuda")]
-    // maybe add a configurable option whether linking should happen at "runtime" -> cuda editing even on non cuda machines
+    // TODO maybe add a configurable option whether linking should happen at "runtime" -> cuda editing even on non cuda machines
     link_cuda();
+}
+
+#[cfg(not(docsrs))]
+#[cfg(feature = "opencl")]
+fn cl_check_kernel_exec() {
+    use min_cl::CLDevice;
+    
+    println!("cargo:rerun-if-env-changed=CUSTOS_CL_KERNEL_EXEC_ON_BUILD");
+
+    let run_cl_check = std::env::var("CUSTOS_CL_KERNEL_EXEC_ON_BUILD")
+        .unwrap_or_else(|_| "false".into())
+        .parse::<bool>()
+        .expect("CUSTOS_CL_KERNEL_EXEC_ON_BUILD must be either true or false");
+
+    if run_cl_check {
+        // Runs a simple kernel to measure performance and functionality in general
+        CLDevice::fastest().unwrap();
+    }
 }
 
 #[cfg(not(docsrs))]

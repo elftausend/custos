@@ -39,11 +39,11 @@ pub struct OpenCL<Mods = Base> {
     /// The underlying OpenCL device.
     pub device: CLDevice,
     /// A [`CPU`] used for unified memory device switching.
-    pub cpu: CachedCPU, // TODO: this cpu does not cache buffers, which is a problem for construct_buffer (add #[cfg(unified_cl)])
+    pub cpu: CachedCPU,
 }
 
 /// Short form for `OpenCL`
-pub type CL = OpenCL;
+pub type CL<Mods> = OpenCL<Mods>;
 
 /*impl<Mods> HasCPU<Base> for OpenCL<Mods> {
     #[inline]
