@@ -1,7 +1,7 @@
-use super::{
-    cpu_exec_binary, cpu_exec_binary_mut, cpu_exec_reduce, cpu_exec_unary, cpu_exec_unary_mut,
+use super::{cpu_exec_binary, cpu_exec_binary_mut, cpu_exec_reduce, cpu_exec_unary_mut};
+use crate::{
+    Base, Buffer, Cached, CachedCPU, OnDropBuffer, OpenCL, Retrieve, UnifiedMemChain, CPU,
 };
-use crate::{Buffer, CachedCPU, OnDropBuffer, OpenCL, Retrieve, UnifiedMemChain, CPU};
 
 /// If the current device supports unified memory, data is not deep-copied.
 /// This is way faster than [cpu_exec_unary], as new memory is not allocated.
@@ -43,8 +43,8 @@ where
             }),
         )));
     }
-    // TODO: add to graph?:     convert.node = device.graph().add(convert.len(), matrix.node.idx);
-    cpu_exec_unary(device, x, f)
+    let cpu = CPU::<Cached<Base>>::new();
+    Ok(crate::cpu_exec!(device, &cpu, x; f(&cpu, &x)))
 }
 
 /// If the current device supports unified memory, data is not deep-copied.
@@ -123,7 +123,8 @@ where
         )));
     }
 
-    Ok(cpu_exec_binary(device, lhs, rhs, f))
+    let cpu = CPU::<Cached<Base>>::new();
+    Ok(crate::cpu_exec!(device, &cpu, lhs, rhs; f(&cpu, &lhs, &rhs)))
 }
 
 /// If the current device supports unified memory, data is not deep-copied.
@@ -225,7 +226,7 @@ macro_rules! cl_cpu_exec_unified_mut {
 
         } else {
             let cpu = $crate::CPU::<$crate::Cached<Base>>::new();
-            $crate::cpu_exec_mut!($device, &cpu, $($t),* WRITE_TO<$($write_to, $from),*> $op);
+            $crate::cpu_exec_mut!($device, &cpu, $($t),*; WRITE_TO<$($write_to, $from),*> $op);
             $device.cpu.modules.cache.borrow_mut().nodes.clear();
         }
     }};
