@@ -239,20 +239,26 @@ macro_rules! to_raw_host_mut {
 
 /// Moves `n` `Buffer`s stored on another device to `n` `CPU` `Buffer`s and executes an operation on the `CPU`.
 /// # Example
-/* TODO #[cfg_attr(feature = "opencl", doc = "```")]
+#[cfg_attr(feature = "opencl", doc = "```")]
 #[cfg_attr(not(feature = "opencl"), doc = "```ignore")]
-/// use custos::{OpenCL, Buffer, CPU};
+/// use custos::{Base, Device, OpenCL, Buffer, CPU, Retriever, opencl::chosen_cl_idx};
 ///
 /// let device = OpenCL::<Base>::new(chosen_cl_idx()).unwrap();
 ///
-/// let a = Buffer::new(&device, 10);
-/// let b = Buffer::new(&device, 10);
-/// let c = Buffer::new(&device, 10);
+/// let a = device.buffer([1, 2, 3, 4]);
+/// let b = device.buffer([4, 5, 6, 7]);
 ///
 /// let cpu = CPU::<Base>::new();
-///
+/// let c: Buffer<i32, _> = custos::cpu_exec!(&device, &cpu, a, b; {
+///     let mut c = cpu.retrieve(a.len(), (&a, &b));
+///     for ((a, b), c) in a.iter().zip(&b).zip(c.iter_mut()) {
+///         *c = a + b;
+///     }
+///     c
+/// });
+/// 
+/// assert_eq!(c.read(), vec![5, 7, 9, 11]);
 /// ```
-*/
 #[macro_export]
 macro_rules! cpu_exec {
     ($device:expr, $cpu:expr, $($t:ident),*; $op:expr) => {{
