@@ -7,12 +7,7 @@ use crate::{Buffer, CachedCPU, OnDropBuffer, OpenCL, Retrieve, UnifiedMemChain, 
 /// This is way faster than [cpu_exec_unary], as new memory is not allocated.
 ///
 /// `cpu_exec_unary_may_unified` can be used interchangeably with [cpu_exec_unary].
-pub fn cpu_exec_unary_may_unified<
-    'a,
-    T,
-    F,
-    Mods: OnDropBuffer + Retrieve<OpenCL<Mods>, T> + UnifiedMemChain<OpenCL<Mods>> + 'static,
->(
+pub fn cpu_exec_unary_may_unified<'a, T, F, Mods>(
     device: &'a OpenCL<Mods>,
     x: &Buffer<T, OpenCL<Mods>>,
     f: F,
@@ -20,6 +15,7 @@ pub fn cpu_exec_unary_may_unified<
 where
     T: Clone + Default + 'static,
     F: for<'b> Fn(&'b CachedCPU, &Buffer<'_, T, CachedCPU>) -> Buffer<'b, T, CachedCPU>,
+    Mods: OnDropBuffer + Retrieve<OpenCL<Mods>, T> + UnifiedMemChain<OpenCL<Mods>> + 'static,
 {
     // TODO: use compile time unified_cl flag -> get from custos?
     #[cfg(not(feature = "realloc"))]
@@ -35,9 +31,6 @@ where
 
         // convert host ptr / CPU buffer into a host ptr + OpenCL ptr buffer
         return device.construct_unified_buf_from_cpu_buf(device, no_drop);
-        /*return unsafe {
-            construct_buffer(device, no_drop, /*buf.node.idx*/ ())
-        };*/
     }
 
     #[cfg(feature = "realloc")]
@@ -78,7 +71,6 @@ where
         };
     }
 
-    // TODO: add to graph?:     convert.node = device.graph().add(convert.len(), matrix.node.idx);
     cpu_exec_unary_mut(device, lhs, f)
 }
 
@@ -101,7 +93,6 @@ where
     ) -> Buffer<'b, T, CachedCPU>,
     Mods: UnifiedMemChain<OpenCL<Mods>> + Retrieve<OpenCL<Mods>, T> + 'static,
 {
-    // TODO: use compile time unified_cl flag -> get from custos?
     #[cfg(not(feature = "realloc"))]
     if device.unified_mem() {
         // Using a CPU stored in a OpenCL in order to get a (correct) cache entry.
@@ -117,9 +108,6 @@ where
 
         // convert host ptr / CPU buffer into a host ptr + OpenCL ptr buffer
         return device.construct_unified_buf_from_cpu_buf(device, no_drop);
-        /*return unsafe {
-            construct_buffer(device, no_drop, /*buf.node.idx*/ ())
-        };*/
     }
 
     #[cfg(feature = "realloc")]
@@ -234,7 +222,7 @@ macro_rules! cl_cpu_exec_unified {
 /// Syntax is different from [cpu_exec](crate::cpu_exec)!
 #[macro_export]
 macro_rules! cl_cpu_exec_unified_mut {
-    ($device:ident, $($t:ident),* WRITE_TO<$($write_to:ident, $from:ident),*> $op:expr) => {{
+    ($device:expr, $($t:ident),* WRITE_TO<$($write_to:ident, $from:ident),*> $op:expr) => {{
         // TODO: add to graph?:     convert.node = device.graph().add(convert.len(), matrix.node.idx);
         if $device.unified_mem() {
             $crate::to_raw_host!(&$device.cpu, $($t),*);
@@ -243,7 +231,7 @@ macro_rules! cl_cpu_exec_unified_mut {
 
         } else {
             let cpu = $crate::CPU::<$crate::Cached<Base>>::new();
-            $crate::cpu_exec_mut!($device, cpu, $($t),* WRITE_TO<$($write_to, $from),*> $op);
+            $crate::cpu_exec_mut!($device, &cpu, $($t),* WRITE_TO<$($write_to, $from),*> $op);
             $device.cpu.modules.cache.borrow_mut().nodes.clear();
         }
     }};

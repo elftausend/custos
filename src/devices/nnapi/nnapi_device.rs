@@ -268,7 +268,13 @@ where
         self.set_input_ptrs(&mut run)?;
 
         // let mut out = vec![T::default(); S::LEN];
-        let dtype = self.last_created_ptr.borrow().as_ref().unwrap().dtype.clone();
+        let dtype = self
+            .last_created_ptr
+            .borrow()
+            .as_ref()
+            .unwrap()
+            .dtype
+            .clone();
         if T::OPERAND_CODE as i32 != dtype.inner.type_ {
             return Err("Datatype mismatch for output array".into());
         }

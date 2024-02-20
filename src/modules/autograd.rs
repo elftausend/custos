@@ -89,7 +89,7 @@ impl<Mods: OnDropBuffer> OnDropBuffer for Autograd<Mods> {
         unregister_buf_copyable(unsafe { &mut (*self.grads.get()).no_grads_pool }, buf.id());
 
         // TODO
-        // FIXME if an alloc flag None buffer goes out of scope and it has used it's gradient buffer before, 
+        // FIXME if an alloc flag None buffer goes out of scope and it has used it's gradient buffer before,
         // the gradient buffer will stay allocated
         // - deallocate directly -> however, the id could still be used to retrieve the grad buf
         // - add to id set of potentially unused buffers
