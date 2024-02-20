@@ -15,10 +15,21 @@ fn main() {
     #[cfg(feature = "opencl")]
     cl_check_kernel_exec();
 
-    #[cfg(not(docsrs))]
-    #[cfg(feature = "cuda")]
-    // TODO maybe add a configurable option whether linking should happen at "runtime" -> cuda editing even on non cuda machines
-    link_cuda();
+    {
+        #[cfg(target_os = "macos")]
+        {
+            // check if debug or release
+            if Ok("debug".into()) == std::env::var("PROFILE") {
+                std::env::set_var("CUSTOS_CUDA_LINK_ON_BUILD", "false");
+            }
+        }
+
+        #[cfg(not(docsrs))]
+        #[cfg(feature = "cuda")]
+        if check_cuda_link() {
+            link_cuda();
+        }
+    }
 }
 
 #[cfg(not(docsrs))]
@@ -80,6 +91,15 @@ fn has_device_unified_mem() -> bool {
 
 #[cfg(feature = "cuda")]
 use std::path::{Path, PathBuf};
+
+fn check_cuda_link() -> bool {
+    println!("cargo:rerun-if-env-changed=CUSTOS_CUDA_LINK_ON_BUILD");
+    std::env::var("CUSTOS_CUDA_LINK_ON_BUILD")
+        .unwrap_or_else(|_| "false".into())
+        .parse::<bool>()
+        .expect("CUSTOS_CUDA_LINK_ON_BUILD must be either true or false")
+
+}
 
 // https://github.com/coreylowman/cudarc/blob/main/build.rs
 #[cfg(feature = "cuda")]
