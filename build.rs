@@ -92,10 +92,11 @@ fn has_device_unified_mem() -> bool {
 #[cfg(feature = "cuda")]
 use std::path::{Path, PathBuf};
 
+#[cfg(feature = "cuda")]
 fn check_cuda_link() -> bool {
     println!("cargo:rerun-if-env-changed=CUSTOS_CUDA_LINK_ON_BUILD");
     std::env::var("CUSTOS_CUDA_LINK_ON_BUILD")
-        .unwrap_or_else(|_| "false".into())
+        .unwrap_or_else(|_| "true".into())
         .parse::<bool>()
         .expect("CUSTOS_CUDA_LINK_ON_BUILD must be either true or false")
 
