@@ -606,7 +606,6 @@ impl<'a, Mods: OnDropBuffer, T, S: Shape> Buffer<'a, T, crate::OpenCL<Mods>, S> 
 
 #[cfg(feature = "cuda")]
 impl<'a, Mods: OnDropBuffer, T> Buffer<'a, T, crate::CUDA<Mods>> {
-    // TODO: replace buf.data.2 with this fn, do the same with cl, cpu
     /// Returns a non null CUDA pointer
     #[inline]
     pub fn cu_ptr(&self) -> u64 {

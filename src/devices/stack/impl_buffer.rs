@@ -62,8 +62,6 @@ impl<'a, T: Copy + Default, const N: usize, const A: usize, const B: usize>
         let mut arr = StackArray::new();
         arr.copy_from_slice(array);
         Buffer {
-            // TODO: is this correct
-            // ident: Some(Ident::new_bumped(arr.len())),
             data: arr,
             device: Some(dev),
         }

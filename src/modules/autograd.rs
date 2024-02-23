@@ -91,7 +91,7 @@ impl<Mods: OnDropBuffer> OnDropBuffer for Autograd<Mods> {
         // TODO
         // FIXME if an alloc flag None buffer goes out of scope and it has used it's gradient buffer before,
         // the gradient buffer will stay allocated
-        // - deallocate directly -> however, the id could still be used to retrieve the grad buf
+        // - deallocate directly -> however, a user storing the id maybe wants to retrieve the grad buf
         // - add to id set of potentially unused buffers
 
         self.modules.on_drop_buffer(device, buf)
