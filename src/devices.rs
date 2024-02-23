@@ -35,10 +35,13 @@ pub use stack_array::*;
 mod cdatatype;
 pub use cdatatype::*;
 
+mod alloc;
+pub use alloc::*;
+
 #[cfg(any(feature = "cpu", feature = "stack"))]
 pub mod cpu_stack_ops;
 
-use crate::{Buffer, HasId, OnDropBuffer, PtrType, Shape};
+use crate::{Buffer, HasId, OnDropBuffer, Parents, PtrType, Shape};
 
 pub trait Device: OnDropBuffer + Sized {
     type Base<T, S: Shape>: HasId + PtrType;
@@ -118,6 +121,15 @@ macro_rules! impl_device_traits {
         $crate::pass_down_cursor!($device);
         $crate::pass_down_cached_buffers!($device);
     };
+}
+
+pub trait Retriever<T, S: Shape = ()>: Device {
+    #[track_caller]
+    fn retrieve<const NUM_PARENTS: usize>(
+        &self,
+        len: usize,
+        parents: impl Parents<NUM_PARENTS>,
+    ) -> Buffer<T, Self, S>;
 }
 
 #[macro_export]

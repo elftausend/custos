@@ -35,6 +35,12 @@ use core::{any::Any, hash::BuildHasher};
 #[cfg(feature = "std")]
 use std::collections::HashMap;
 
+pub trait Module<D, Mods = ()> {
+    type Module;
+
+    fn new() -> Self::Module;
+}
+
 #[cfg(feature = "std")]
 #[inline]
 #[allow(unused)]

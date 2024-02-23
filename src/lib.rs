@@ -103,7 +103,6 @@ mod error;
 
 mod cache;
 
-mod device_traits;
 pub mod features;
 pub mod flag;
 // mod graph;
@@ -124,7 +123,6 @@ mod update_args;
 mod wrapper;
 
 pub use cache::*;
-pub use device_traits::*;
 pub use features::*;
 pub use hooks::*;
 pub use id::*;
@@ -279,7 +277,7 @@ pub mod prelude {
     //! Typical imports for using custos.
 
     pub use crate::{
-        device_traits::*, features::*, modules::*, number::*, shape::*, Alloc, Buffer, CDatatype,
+        features::*, modules::*, number::*, shape::*, Alloc, Buffer, CDatatype,
         ClearBuf, CloneBuf, CopySlice, Device, Error, HasId, HostPtr,
         /* MayTapeReturn, */ MayToCLSource, Read, ShallowCopy, WithShape, WriteBuf,
     };
