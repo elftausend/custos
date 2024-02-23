@@ -298,7 +298,7 @@ pub trait AddOperation {
         &self,
         args: Args,
         operation: fn(&mut Args) -> crate::Result<()>,
-    ) -> crate::Result<()>; // TODO: unrequired result?-  remove
+    ) -> crate::Result<()>;
     fn ops_count(&self) -> usize;
     fn set_lazy_enabled(&self, enabled: bool);
     #[inline]
