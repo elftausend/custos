@@ -277,17 +277,13 @@ pub mod prelude {
     //! Typical imports for using custos.
 
     pub use crate::{
-        features::*, modules::*, number::*, shape::*, Alloc, Buffer, CDatatype,
+        features::*, devices::*, modules::*, number::*, shape::*, Alloc, Buffer, CDatatype,
         ClearBuf, CloneBuf, CopySlice, Device, Error, HasId, HostPtr,
-        /* MayTapeReturn, */ MayToCLSource, Read, ShallowCopy, WithShape, WriteBuf,
+        MayToCLSource, Read, ShallowCopy, WithShape, WriteBuf,
     };
 
     #[cfg(feature = "cpu")]
     pub use crate::{exec_on_cpu::*, CPU};
-
-    // TODO
-    // #[cfg(feature = "std")]
-    // pub use crate::{cache::CacheReturn, get_count, set_count, Cache};
 
     #[cfg(feature = "opencl")]
     pub use crate::opencl::{chosen_cl_idx, enqueue_kernel, CLBuffer, OpenCL, CL};
