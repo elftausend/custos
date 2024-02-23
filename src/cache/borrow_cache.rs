@@ -172,24 +172,36 @@ mod tests {
         };
     }*/
 
-    /*#[test]
-    fn test_get_borrowed() {
+    #[cfg(feature = "cpu")]
+    #[test]
+    fn test_caching_of_borrowed_cached() {
+        use crate::{Base, BorrowCache, Buffer, Id, CPU};
+
         let device = CPU::<Base>::default();
         let mut cache = BorrowCache::default();
 
         let (fid, sid, tid) = (
-            Id::new_bumped(10),
-            Id::new_bumped(10),
-            Id::new_bumped(10),
+            Id {
+                id: 0,
+                len: 10
+            },
+            Id {
+                id: 1,
+                len: 10
+            },
+            Id {
+                id: 2,
+                len: 10
+            },
         );
 
-        cache.add_buf_once::<f32, _, ()>(&device, fid);
-        cache.add_buf_once::<f32, _, ()>(&device, sid);
-        cache.add_buf_once::<f32, _, ()>(&device, tid);
+        cache.add_buf_once::<f32, _, ()>(&device, fid, &mut false);
+        cache.add_buf_once::<f32, _, ()>(&device, sid, &mut false);
+        cache.add_buf_once::<f32, _, ()>(&device, tid, &mut false);
 
-        let a = cache.get_buf::<f32, _, ()>(fid).unwrap();
-        let b = cache.get_buf::<f32, _, ()>(fid).unwrap();
+        let a: &Buffer = cache.get_buf::<f32, _, ()>(fid).unwrap();
+        let b: &Buffer = cache.get_buf::<f32, _, ()>(fid).unwrap();
 
         assert_eq!(a.ptr, b.ptr);
-    }*/
+    }
 }

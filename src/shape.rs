@@ -145,34 +145,6 @@ where
     }
 }
 
-/*
-impl<T, D: crate::RawConv, I: IsConstDim> ToDim<T, I, ()> for D
-where
-    Self::Ptr<T, I>: crate::PtrType,
-{
-    #[inline]
-    fn to_dim(&self, ptr: Self::Ptr<T, I>) -> D::Ptr<T, ()> {
-        // resources are now mananged by the destructed raw pointer (prevents double free).
-        let ptr = core::mem::ManuallyDrop::new(ptr);
-        // TODO: mind default node!
-        let raw_ptr = D::construct(&ptr, ptr.len(), Default::default());
-        let (ptr, _) = D::destruct(&raw_ptr, ptr.flag());
-
-        core::mem::forget(raw_ptr);
-
-        ptr
-    }
-}*/
-
-/*
-impl<T, D: Device, S: IsConstDim> ToDim<T, S, S> for D {
-    #[inline]
-    fn to_dim(&self, ptr: Self::Ptr<T, S>) -> D::Ptr<T, S> {
-        ptr
-    }
-}
-*/
-
 #[cfg(feature = "stack")]
 impl<T, S: IsConstDim> ToDim<T, S, S> for crate::Stack {
     #[inline]
