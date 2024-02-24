@@ -1,3 +1,41 @@
+//! Modules provide toggleable functionality for compute devices.
+//! Modules are capable of swapping the used data structure used in [`Buffer`](crate::Buffer).
+//! Custom modules can be created by implementing the [`Module`](crate::Module), [Setup](crate::Setup) traits and serveral pass down traits.
+//! # Example
+#![cfg_attr(feature = "cpu", doc = "```")]
+#![cfg_attr(not(feature = "cpu"), doc = "```ignore")]
+//! use custos::{Base, Module, Setup, CPU};
+//!
+//! pub struct CustomModule<Mods> {
+//!     mods: Mods,
+//! }
+//!
+//! impl<D, Mods: Module<D>> Module<D> for CustomModule<Mods> {
+//!     type Module = CustomModule<Mods::Module>;
+//!
+//!     fn new() -> Self::Module {
+//!         CustomModule {
+//!             mods: Mods::new(),
+//!         }
+//!     }
+//! }
+//!
+//! impl<Mods, D> Setup<D> for CustomModule<Mods>
+//! where
+//!     Mods: Setup<D>,
+//! {
+//!     fn setup(device: &mut D) -> custos::Result<()> {
+//!         Mods::setup(device)
+//!     }
+//! }
+//!
+//! fn main() {
+//!     let dev = CPU::<CustomModule<Base>>::new();
+//!     // for actual usage, implement pass down traits / features
+//! }
+//! ```
+//! The example above creates a custom module that wraps the [`Base``](crate::Base) module.
+
 #[cfg(feature = "autograd")]
 mod autograd;
 

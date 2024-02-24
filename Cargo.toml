@@ -132,6 +132,10 @@ required-features = ["cpu", "stack"]
 name = "mul_buf_cpu_impl"
 required-features = ["cpu"]
 
+[[example]]
+name = "custom_module"
+required-features = ["cpu"]
+
 [[test]]
 name = "write"
 required-features = ["cpu"]

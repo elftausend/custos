@@ -43,6 +43,7 @@ pub mod cpu_stack_ops;
 
 use crate::{Buffer, HasId, OnDropBuffer, Parents, PtrType, Shape};
 
+/// The `Device` trait is the main trait for all compute devices.
 pub trait Device: OnDropBuffer + Sized {
     type Base<T, S: Shape>: HasId + PtrType;
     type Data<T, S: Shape>: HasId + PtrType;
@@ -123,6 +124,8 @@ macro_rules! impl_device_traits {
     };
 }
 
+/// A module affected trait. 
+/// Retrieves a [`Buffer`] from the device.
 pub trait Retriever<T, S: Shape = ()>: Device {
     #[track_caller]
     fn retrieve<const NUM_PARENTS: usize>(

@@ -1,3 +1,7 @@
+//! This module contains traits that are used to provide functionality to the modules.
+//! Different modules can implement these traits to provide different functionality.
+//! If the module does not need to alter the functionality, pass downs macros should be used to pass down the functionality to the wrapped module.
+
 use core::{cell::RefMut, fmt::Debug, ops::RangeBounds};
 
 use crate::{
