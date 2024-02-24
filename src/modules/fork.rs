@@ -1,7 +1,7 @@
 use crate::{
     impl_remove_layer, pass_down_add_operation, pass_down_exec_now, pass_down_tape_actions,
     AddLayer, Alloc, Buffer, Device, HasId, IsShapeIndep, Module, OnDropBuffer, OnNewBuffer,
-    Parents, PtrType, Retrieve, RunModule, Setup, Shape, WrappedData, VERSION,
+    Parents, PtrType, Retrieve, RunModule, Setup, Shape, WrappedData, VERSION
 };
 use core::cell::RefCell;
 
@@ -51,7 +51,7 @@ impl<Mods: Module<D>, D: Device> Module<D> for Fork<Mods> {
     fn new() -> Self::Module {
         Fork {
             modules: Mods::new(),
-            version: VERSION,
+            version: VERSION.unwrap(),
             gpu_or_cpu: Default::default(),
         }
     }
@@ -137,7 +137,7 @@ impl<NewMods, SD> AddLayer<NewMods, SD> for Fork<()> {
     fn wrap_layer(inner_mods: NewMods) -> Self::Wrapped {
         Fork {
             modules: inner_mods,
-            version: VERSION,
+            version: VERSION.unwrap(),
             gpu_or_cpu: Default::default(),
         }
     }
