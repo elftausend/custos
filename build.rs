@@ -10,7 +10,7 @@ fn main() {
     if has_device_unified_mem() {
         println!("cargo:rustc-cfg=unified_cl");
     }
-    
+
     #[cfg(not(docsrs))]
     #[cfg(feature = "opencl")]
     cl_check_kernel_exec();
@@ -36,7 +36,7 @@ fn main() {
 #[cfg(feature = "opencl")]
 fn cl_check_kernel_exec() {
     use min_cl::CLDevice;
-    
+
     println!("cargo:rerun-if-env-changed=CUSTOS_CL_KERNEL_EXEC_ON_BUILD");
 
     let run_cl_check = std::env::var("CUSTOS_CL_KERNEL_EXEC_ON_BUILD")
@@ -99,7 +99,6 @@ fn check_cuda_link() -> bool {
         .unwrap_or_else(|_| "true".into())
         .parse::<bool>()
         .expect("CUSTOS_CUDA_LINK_ON_BUILD must be either true or false")
-
 }
 
 // https://github.com/coreylowman/cudarc/blob/main/build.rs

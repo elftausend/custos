@@ -57,7 +57,6 @@ where
     pub fn grad(&self) -> &'a Self
     where
         D: ZeroGrad<T> + MayTapeActions + Alloc<T>,
-        // D::Data<T, S>: crate::ShallowCopy,
     {
         // TODO: consider activating this check ->
         // e.g. binary grad ops are computed in a single function where differentiating between

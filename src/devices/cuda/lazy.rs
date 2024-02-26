@@ -73,7 +73,9 @@ impl<Mods> crate::LazySetup for CUDA<Mods> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{Base, Device, Lazy, Run, CUDA};
+    use crate::{
+        AddOperation, AsNoId, Base, Buffer, Device, HasId, Lazy, Retrieve, Retriever, Run, CUDA,
+    };
 
     pub fn ew_src(fn_name: &str, operator: char) -> String {
         format!(
@@ -246,5 +248,62 @@ mod tests {
 
         // let mut device = CUDA::<Base>::new(0).unwrap();
         // device.lazy_setup().unwrap();
+    }
+
+    fn cuda_ew<'a, Mods>(
+        device: &'a CUDA<Mods>,
+        lhs: &Buffer<i32, CUDA<Mods>>,
+        rhs: &Buffer<i32, CUDA<Mods>>,
+        src: String,
+        fn_name: &'static str,
+    ) -> Buffer<'a, i32, CUDA<Mods>>
+    where
+        Mods: 'static + AddOperation + Retrieve<CUDA<Mods>, i32, ()>,
+    {
+        let mut out = device.retrieve(lhs.len(), (lhs.id(), rhs.id()));
+
+        device
+            .add_op(
+                (lhs, rhs, &mut out, src.no_id(), fn_name.no_id()),
+                |(lhs, rhs, out, src, fn_name)| {
+                    let device = lhs.device();
+                    device.launch_kernel1d(
+                        lhs.len(),
+                        &**src,
+                        fn_name,
+                        &[lhs, rhs, *out, &lhs.len()],
+                    )
+                },
+            )
+            .unwrap();
+
+        out
+    }
+
+    #[test]
+    fn test_cuda_add_ew_op() {
+        let device = CUDA::<Base>::new(0).unwrap();
+
+        let lhs = device.buffer([1, 2, 3, 4, 5, 6]);
+        let rhs = device.buffer([1, 2, 3, 4, 5, 6]);
+
+        let out = cuda_ew(&device, &lhs, &rhs, ew_src("add", '+'), "add");
+        assert_eq!(out.read(), [2, 4, 6, 8, 10, 12]);
+    }
+
+    #[test]
+    fn test_cuda_lazy_retrieving_exec_op() {
+        let device = CUDA::<Lazy<Base>>::new(0).unwrap();
+
+        let lhs = device.buffer([1, 2, 3, 4, 5, 6]);
+        let rhs = device.buffer([1, 2, 3, 4, 5, 6]);
+
+        let out = cuda_ew(&device, &lhs, &rhs, ew_src("add", '+'), "add");
+        let out2 = cuda_ew(&device, &out, &rhs, ew_src("add", '+'), "add");
+
+        let _ = unsafe { device.run() };
+
+        assert_eq!(out.replace().read(), [2, 4, 6, 8, 10, 12]);
+        assert_eq!(out2.replace().read(), [3, 6, 9, 12, 15, 18]);
     }
 }

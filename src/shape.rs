@@ -36,8 +36,6 @@ impl Shape for () {
     }
 }
 
-// TODO: impl for net device
-// this is used to
 /// If the [`Shape`] does not matter for a specific device [`Buffer`](crate::Buffer), than this trait should be implemented.
 pub unsafe trait IsShapeIndep: Device {}
 
