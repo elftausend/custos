@@ -1,3 +1,5 @@
+use core::fmt::Debug;
+
 use crate::{
     cpu_stack_ops::clear_slice, pass_down_add_operation, pass_down_exec_now, prelude::Number,
     AddOperation, ApplyFunction, AsNoId, BufAsNoId, Buffer, CDatatype, ClearBuf, HostPtr,
@@ -10,7 +12,7 @@ use super::{VkArray, VkDevice};
 pass_down_add_operation!(Vulkan);
 pass_down_exec_now!(Vulkan);
 
-impl<Mods: OnDropBuffer + UseGpuOrCpu, T: CDatatype + Default> ClearBuf<T> for Vulkan<Mods> {
+impl<Mods: OnDropBuffer + UseGpuOrCpu, T: CDatatype + Default + Debug> ClearBuf<T> for Vulkan<Mods> {
     #[inline]
     fn clear(&self, buf: &mut Buffer<T, Vulkan<Mods>>) {
         let cpu_buf = unsafe { &mut *(buf as *mut Buffer<T, Vulkan<Mods>>) };
@@ -23,29 +25,30 @@ impl<Mods: OnDropBuffer + UseGpuOrCpu, T: CDatatype + Default> ClearBuf<T> for V
     }
 }
 
-impl<Mods: OnDropBuffer, T> ZeroGrad<T> for Vulkan<Mods> {
+impl<Mods: OnDropBuffer, T: Default + Debug> ZeroGrad<T> for Vulkan<Mods> {
     #[inline]
     fn zero_grad<S: Shape>(&self, data: &mut Self::Base<T, S>) {
         try_vk_clear(self, data).unwrap()
     }
 }
 
-pub fn try_vk_clear<T>(device: &VkDevice, buf: &mut VkArray<T>) -> crate::Result<()> {
+pub fn try_vk_clear<T: Default + Debug>(device: &VkDevice, buf: &mut VkArray<T>) -> crate::Result<()> {
     let src = format!(
         "@group(0)
-            @binding(0)
-            var<storage, read_write> buf: array<{dtype}>;
-            
-            @compute
-            @workgroup_size(32)
-            fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {{
-                if global_id.x >= arrayLength(&buf) {{
-                    return;    
-                }}
-                buf[global_id.x] = 0; 
+        @binding(0)
+        var<storage, read_write> buf: array<{dtype}>;
+        
+        @compute
+        @workgroup_size(32)
+        fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {{
+            if global_id.x >= arrayLength(&buf) {{
+                return;    
             }}
+            buf[global_id.x] = {default:?}; 
+        }}
     ",
-        dtype = std::any::type_name::<T>()
+        dtype = std::any::type_name::<T>(),
+        default = T::default(),
     );
 
     device.launch_shader([(32 + buf.len as u32) / 32, 1, 1], src, &[buf])
