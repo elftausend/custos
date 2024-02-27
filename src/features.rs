@@ -156,6 +156,25 @@ pub trait AddGradFn {
     fn is_grad_enabled(&self) -> bool {
         false
     }
+
+    /// This disables gradient function tracking, calls `op`, then reverts to the previous tracking mode
+    /// # Example
+    #[cfg_attr(all(feature = "cpu", feature = "autograd"), doc = "```")]
+    #[cfg_attr(not(all(feature = "cpu", feature = "autograd")), doc = "```ignore")]
+    /// use custos::prelude::*;
+    ///
+    /// let device = CPU::<Autograd<Base>>::new();
+    /// 
+    /// let lhs = device.buffer([1, 2, 3, 4, 5]);
+    /// device.no_grad_ctx(|| {
+    ///     device.add_grad_fn(&lhs, |lhs| {
+    ///         panic!("should not execute!");
+    ///         Ok(())
+    ///     }) 
+    /// });
+    ///
+    /// lhs.backward();
+    /// ```
     #[inline]
     fn no_grad_ctx(&self, op: impl FnOnce()) {
         let enabled_before = self.is_grad_enabled();
@@ -248,8 +267,6 @@ macro_rules! pass_down_tape_actions {
 
 pub trait OpArgs {
     fn as_ids(&self) -> [UniqueId; 2];
-    // fn update_vals(&mut self, cache ..)
-    // fn from_cache(cache: &std::collections::HashMap<UniqueId, ()>, ids: [UniqueId; N]) -> Self;
 }
 
 impl<'a, 'b, T, D: Device, S: Shape> OpArgs for (&Buffer<'a, T, D, S>, &Buffer<'b, T, D, S>) {
@@ -314,6 +331,7 @@ pub trait AddOperation {
         self.set_lazy_enabled(false)
     }
     fn is_lazy_enabled(&self) -> bool;
+
     #[inline]
     fn eagerly(&self, op: impl FnOnce()) {
         // use enabled_before -> if eager is called in an already disabled lazy context, it should not be enabled after the call
