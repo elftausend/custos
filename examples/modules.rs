@@ -105,8 +105,9 @@ where
         self.add_op((lhs, rhs, &mut out), |(lhs, rhs, out)| {
             let dev = lhs.device();
             let out = &mut **out;
-            #[cfg(unified_cl)]
-            {
+
+            if dev.unified_mem() {
+
                 let cpu_out = unsafe { &mut *(out as *mut Buffer<_, OpenCL<Mods>, _>) };
                 dev.use_cpu_or_gpu(
                     (file!(), line!(), column!()).into(),
@@ -114,9 +115,10 @@ where
                     || add_ew_slice(lhs, rhs, cpu_out),
                     || try_add_ew_cl(dev, lhs, rhs, out).unwrap(),
                 );
+            } else {
+                // #[cfg(not(unified_cl))]
+                try_add_ew_cl(dev, lhs, rhs, out)?;
             }
-            // #[cfg(not(unified_cl))]
-            try_add_ew_cl(dev, lhs, rhs, out)?;
             Ok(())
         })?;
 
@@ -129,13 +131,13 @@ fn main() {
     #[cfg(feature = "lazy")]
     #[cfg(feature = "opencl")]
     {
-        use custos::{Base, Cached, Fork, Lazy, Run};
-        let device = OpenCL::<Fork<Lazy<Cached<Base>>>>::new(0).unwrap();
+        use custos::{Base, Fork, Lazy, Run};
+        let device = OpenCL::<Fork<Lazy<Base>>>::new(0).unwrap();
         let lhs = device.buffer([1, 2, 3, 4, 5]);
         let rhs = device.buffer([1, 2, 3, 4, 5]);
 
         let out = device.add(&lhs, &rhs).unwrap();
         unsafe { device.run().unwrap() };
-        assert_eq!(out.read(), vec![2, 4, 6, 8, 10])
+        assert_eq!(out.replace().read(), vec![2, 4, 6, 8, 10])
     }
 }

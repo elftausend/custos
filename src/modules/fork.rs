@@ -1,7 +1,5 @@
 use crate::{
-    impl_remove_layer, pass_down_add_operation, pass_down_exec_now, pass_down_tape_actions,
-    AddLayer, Alloc, Buffer, Device, HasId, IsShapeIndep, Module, OnDropBuffer, OnNewBuffer,
-    Parents, PtrType, Retrieve, RunModule, Setup, Shape, WrappedData, VERSION
+    impl_remove_layer, pass_down_add_operation, pass_down_exec_now, pass_down_replace_buf_module, pass_down_tape_actions, AddLayer, Alloc, Buffer, Device, HasId, IsShapeIndep, Module, OnDropBuffer, OnNewBuffer, Parents, PtrType, Retrieve, RunModule, Setup, Shape, WrappedData, VERSION
 };
 use core::cell::RefCell;
 
@@ -128,6 +126,7 @@ impl<Mods: RunModule<D>, D> RunModule<D> for Fork<Mods> {
     }
 }
 
+pass_down_replace_buf_module!(Fork);
 impl_remove_layer!(Fork);
 
 impl<NewMods, SD> AddLayer<NewMods, SD> for Fork<()> {
