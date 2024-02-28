@@ -58,6 +58,11 @@ impl<Mods: Module<D>, D: Device> Module<D> for Fork<Mods> {
 pub trait ForkSetup {
     #[inline]
     fn fork_setup(&mut self) {}
+
+    #[inline]
+    fn has_unified_mem(&self) -> bool {
+        false
+    }
 }
 
 impl<Mods: Setup<D>, D: ForkSetup> Setup<D> for Fork<Mods> {

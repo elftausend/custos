@@ -280,6 +280,11 @@ impl<Mods> ForkSetup for OpenCL<Mods> {
             "The selected device does not support unified memory."
         )
     }
+
+    #[inline] 
+    fn has_unified_mem(&self) -> bool {
+        self.unified_mem()
+    }
 }
 
 pass_down_use_gpu_or_cpu!(OpenCL);

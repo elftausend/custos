@@ -105,9 +105,9 @@ where
         self.add_op((lhs, rhs, &mut out), |(lhs, rhs, out)| {
             let dev = lhs.device();
             let out = &mut **out;
-
-            if dev.unified_mem() {
-
+            
+            #[cfg(unified_cl)]
+            {
                 let cpu_out = unsafe { &mut *(out as *mut Buffer<_, OpenCL<Mods>, _>) };
                 dev.use_cpu_or_gpu(
                     (file!(), line!(), column!()).into(),
@@ -115,10 +115,9 @@ where
                     || add_ew_slice(lhs, rhs, cpu_out),
                     || try_add_ew_cl(dev, lhs, rhs, out).unwrap(),
                 );
-            } else {
-                // #[cfg(not(unified_cl))]
-                try_add_ew_cl(dev, lhs, rhs, out)?;
             }
+            // #[cfg(not(unified_cl))]
+            try_add_ew_cl(dev, lhs, rhs, out)?;
             Ok(())
         })?;
 
