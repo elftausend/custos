@@ -130,7 +130,7 @@ jobs:
         toolchain: stable
 
     - name: Run tests (vulkan)
-      run: cargo test --verbose --no-default-features --featuresvulkan 
+      run: cargo test --verbose --no-default-features --features vulkan 
     - name: Run tests (vulkan, lazy)
       run: cargo test --verbose --no-default-features --features vulkan,lazy
     - name: Run tests (vulkan, autograd)
