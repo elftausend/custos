@@ -1,5 +1,13 @@
+mod eval;
 mod ops;
 mod resolve;
+pub use eval::*;
+
+#[cfg(feature = "std")]
+mod to_cl_source;
+#[cfg(feature = "std")]
+pub use to_cl_source::*;
+
 mod combiner;
 pub use combiner::*;
 
@@ -10,7 +18,12 @@ pub use resolve::*;
 #[cfg(feature = "std")]
 pub use to_wgsl_source::*;
 
-use crate::prelude::Numeric;
+/// If the `no-std` feature is disabled, this trait is implemented for all types that implement [`ToCLSource`].
+/// In this case, `no-std` is enabled and no C source string can be generated.
+#[cfg(not(feature = "std"))]
+pub trait MayToCLSource {}
+#[cfg(not(feature = "std"))]
+impl<T> MayToCLSource for T {}
 
 #[cfg(feature = "std")]
 pub trait TwoWay<T>: Eval<T> + ToCLSource {}
@@ -32,74 +45,6 @@ impl<T, A: Eval<T> + ToCLSource> TwoWay<T> for A {}
 //     //     self.eval()
 //     // }
 // }
-
-/// Evaluates a combined (via [`Combiner`]) math operations chain to a valid OpenCL C (and possibly CUDA) source string.
-#[cfg(feature = "std")]
-pub trait ToCLSource {
-    /// Evaluates a combined (via [`Combiner`]) math operations chain to a valid OpenCL C (and possibly CUDA) source string.
-    fn to_cl_source(&self) -> String;
-}
-
-#[cfg(feature = "std")]
-impl<N: crate::number::Numeric> ToCLSource for N {
-    #[inline]
-    fn to_cl_source(&self) -> String {
-        format!("{:?}", self)
-    }
-}
-
-#[cfg(feature = "std")]
-impl ToCLSource for &'static str {
-    #[inline]
-    fn to_cl_source(&self) -> String {
-        self.to_string()
-    }
-}
-
-#[cfg(feature = "std")]
-impl ToCLSource for String {
-    #[inline]
-    fn to_cl_source(&self) -> String {
-        self.to_string()
-    }
-}
-
-/// If the `no-std` feature is disabled, this trait is implemented for all types that implement [`ToCLSource`].
-/// In this case, `no-std` is disabled.
-#[cfg(feature = "std")]
-pub trait MayToCLSource: ToCLSource + Combiner {}
-#[cfg(feature = "std")]
-impl<T: ToCLSource + Combiner> MayToCLSource for T {}
-
-/// If the `no-std` feature is disabled, this trait is implemented for all types that implement [`ToCLSource`].
-/// In this case, `no-std` is enabled and no C source string can be generated.
-#[cfg(not(feature = "std"))]
-pub trait MayToCLSource {}
-#[cfg(not(feature = "std"))]
-impl<T> MayToCLSource for T {}
-
-/// Evaluates a combined (via [`Combiner`]) math operations chain to a value.
-pub trait Eval<T> {
-    /// Evaluates a combined (via [`Combiner`]) math operations chain to a value.
-    /// # Example
-    /// ```
-    /// use custos::{Eval, Combiner};
-    ///
-    /// let x = 1.5f32.add(2.5).mul(3.5).eval();
-    ///
-    /// assert_eq!(x, 14.);
-    /// ```
-    fn eval(&self) -> T;
-}
-
-impl<T: Copy> Eval<T> for T {
-    #[inline]
-    fn eval(&self) -> T {
-        *self
-    }
-}
-
-impl<T: Numeric> Combiner for T {}
 
 #[cfg(test)]
 pub mod tests_ex {
