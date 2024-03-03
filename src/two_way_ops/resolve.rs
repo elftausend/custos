@@ -64,7 +64,7 @@ pub trait ToVal<T = Self> {
     ///
     /// let resolve: Resolve<f32> = 1.5.to_val();
     ///
-    /// assert_eq!(<Resolve<f32> as Eval<f32>>::eval(resolve), 1.5);
+    /// assert_eq!(<Resolve<f32> as Eval<f32>>::eval(&resolve), 1.5);
     /// ```
     fn to_val(self) -> Resolve<T>;
 }
