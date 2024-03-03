@@ -233,9 +233,9 @@ pub mod prelude {
     //! Typical imports for using custos.
 
     pub use crate::{
-        features::*, devices::*, modules::*, number::*, shape::*, Alloc, Buffer, CDatatype,
-        ClearBuf, CloneBuf, CopySlice, Device, Error, HasId, HostPtr,
-        MayToCLSource, Read, ShallowCopy, WithShape, WriteBuf,
+        devices::*, features::*, modules::*, number::*, shape::*, Alloc, Buffer, CDatatype,
+        ClearBuf, CloneBuf, CopySlice, Device, Error, HasId, HostPtr, MayToCLSource, Read,
+        ShallowCopy, WithShape, WriteBuf,
     };
 
     #[cfg(feature = "cpu")]

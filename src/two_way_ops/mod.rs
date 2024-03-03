@@ -14,6 +14,27 @@ use self::ops::{
     Add, Cos, Div, Eq, Exp, GEq, Identity, LEq, Ln, Max, Min, Mul, Neg, Pow, Sin, Sub, Tan, Tanh,
 };
 
+#[cfg(feature = "std")]
+pub trait TwoWay<T>: Eval<T> + ToCLSource {}
+
+#[cfg(feature = "std")]
+impl<T, A: Eval<T> + ToCLSource> TwoWay<T> for A {}
+
+// impl<T> dyn TwoWay<T> + '_ {
+//     pub fn eval(&self) -> T
+//     where
+//         Self: Eval<T>
+//     {
+//         Eval::<T>::eval(self)
+//     }
+// }
+
+// impl<T: Eval<F>, F> TwoWay<F> for T {
+//     // fn eval(&self) -> F {
+//     //     self.eval()
+//     // }
+// }
+
 /// Evaluates a combined (via [`Combiner`]) math operations chain to a valid OpenCL C (and possibly CUDA) source string.
 #[cfg(feature = "std")]
 pub trait ToCLSource {
@@ -70,13 +91,13 @@ pub trait Eval<T> {
     ///
     /// assert_eq!(x, 14.);
     /// ```
-    fn eval(self) -> T;
+    fn eval(&self) -> T;
 }
 
 impl<T: Copy> Eval<T> for T {
     #[inline]
-    fn eval(self) -> T {
-        self
+    fn eval(&self) -> T {
+        *self
     }
 }
 
@@ -477,5 +498,63 @@ pub mod tests_ex {
         );
 
         Ok(())
+    }
+
+    #[cfg(feature = "std")]
+    fn test(x: &dyn crate::TwoWay<f32>) {
+        x.to_cl_source();
+        let a: f32 = x.eval();
+        // x.eval::<f32>();
+    }
+
+    #[cfg(feature = "std")]
+    fn add_op<T, O: crate::TwoWay<T> + 'static>(
+        op: impl Fn(Resolve<T>) -> O + 'static,
+        ops: &mut Vec<Box<dyn Fn(Resolve<T>) -> Box<dyn crate::TwoWay<T>>>>,
+    ) {
+        let dyn_op = move |x: Resolve<T>| {
+            let op: Box<dyn crate::TwoWay<T>> = Box::new(op(x));
+            op
+        };
+        ops.push(Box::new(dyn_op));
+    }
+
+    #[cfg(feature = "std")]
+    #[test]
+    fn test_storing_of_two_ops() {
+        let mut ops = vec![];
+
+        let f = |x: Resolve<f32>| x.ln();
+        add_op(f, &mut ops);
+        let f = |x: Resolve<f32>| x.cos();
+        add_op(f, &mut ops);
+        let f = |x: Resolve<f32>| x.sin();
+        add_op(f, &mut ops);
+
+        let mut src = String::new();
+        let mut val_out = 3.4;
+        for op in ops {
+            let resolve = Resolve {
+                val: val_out,
+                marker: "x",
+            };
+
+            let out = op(resolve);
+            src.push_str(&format!(
+                "{marker} = {src};\n",
+                marker = resolve.marker,
+                src = out.to_cl_source()
+            ));
+            val_out = out.eval();
+            test(&*out);
+        }
+        println!("src: {src}");
+        assert_eq!(val_out, (3.4f32).ln().cos().sin());
+        // let out = f(3f32.to_val());
+        // test(&out);
+
+        // let y: f32 = f(3f32.to_val()).eval();
+
+        let src = f("x".to_marker()).to_cl_source();
     }
 }

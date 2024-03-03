@@ -105,7 +105,7 @@ where
         self.add_op((lhs, rhs, &mut out), |(lhs, rhs, out)| {
             let dev = lhs.device();
             let out = &mut **out;
-            
+
             #[cfg(unified_cl)]
             {
                 let cpu_out = unsafe { &mut *(out as *mut Buffer<_, OpenCL<Mods>, _>) };

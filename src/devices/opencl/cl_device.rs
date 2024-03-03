@@ -281,7 +281,7 @@ impl<Mods> ForkSetup for OpenCL<Mods> {
         )
     }
 
-    #[inline] 
+    #[inline]
     fn has_unified_mem(&self) -> bool {
         self.unified_mem()
     }

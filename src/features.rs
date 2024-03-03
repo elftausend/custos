@@ -164,13 +164,13 @@ pub trait AddGradFn {
     /// use custos::prelude::*;
     ///
     /// let device = CPU::<Autograd<Base>>::new();
-    /// 
+    ///
     /// let lhs = device.buffer([1, 2, 3, 4, 5]);
     /// device.no_grad_ctx(|| {
     ///     device.add_grad_fn(&lhs, |lhs| {
     ///         panic!("should not execute!");
     ///         Ok(())
-    ///     }) 
+    ///     })
     /// });
     ///
     /// lhs.backward();

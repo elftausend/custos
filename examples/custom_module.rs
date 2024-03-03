@@ -8,9 +8,7 @@ impl<D, Mods: Module<D>> Module<D> for CustomModule<Mods> {
     type Module = CustomModule<Mods::Module>;
 
     fn new() -> Self::Module {
-        CustomModule {
-            mods: Mods::new(),
-        }
+        CustomModule { mods: Mods::new() }
     }
 }
 

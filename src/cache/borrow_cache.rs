@@ -181,18 +181,9 @@ mod tests {
         let mut cache = BorrowCache::default();
 
         let (fid, sid, tid) = (
-            Id {
-                id: 0,
-                len: 10
-            },
-            Id {
-                id: 1,
-                len: 10
-            },
-            Id {
-                id: 2,
-                len: 10
-            },
+            Id { id: 0, len: 10 },
+            Id { id: 1, len: 10 },
+            Id { id: 2, len: 10 },
         );
 
         cache.add_buf_once::<f32, _, ()>(&device, fid, &mut false);

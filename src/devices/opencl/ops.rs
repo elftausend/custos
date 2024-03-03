@@ -9,7 +9,10 @@ use min_cl::{
 };
 
 use crate::{
-    bounds_to_range, cpu_stack_ops::clear_slice, location, pass_down_add_operation, pass_down_exec_now, prelude::Number, AddOperation, ApplyFunction, AsNoId, BufAsNoId, Buffer, CDatatype, ClearBuf, CopySlice, Eval, OnDropBuffer, OpenCL, Read, Resolve, Retrieve, Retriever, Shape, ToCLSource, ToMarker, UnaryGrad, UseGpuOrCpu, WriteBuf, ZeroGrad
+    bounds_to_range, cpu_stack_ops::clear_slice, location, pass_down_add_operation,
+    pass_down_exec_now, prelude::Number, AddOperation, ApplyFunction, AsNoId, BufAsNoId, Buffer,
+    CDatatype, ClearBuf, CopySlice, Eval, OnDropBuffer, OpenCL, Read, Resolve, Retrieve, Retriever,
+    Shape, ToCLSource, ToMarker, UnaryGrad, UseGpuOrCpu, WriteBuf, ZeroGrad,
 };
 
 use super::{enqueue_kernel, CLPtr};

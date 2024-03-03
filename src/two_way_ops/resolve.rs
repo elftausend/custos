@@ -126,9 +126,9 @@ impl<T> Resolve<T> {
     }
 }
 
-impl<T> crate::Eval<T> for Resolve<T> {
+impl<T: Copy> crate::Eval<T> for Resolve<T> {
     #[inline]
-    fn eval(self) -> T {
+    fn eval(&self) -> T {
         self.val
     }
 }

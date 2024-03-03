@@ -1,4 +1,4 @@
-use crate::{impl_buffer_hook_traits, Base, Device, OnDropBuffer, Shape, Buffer};
+use crate::{impl_buffer_hook_traits, Base, Buffer, Device, OnDropBuffer, Shape};
 
 /// A dummy CPU. This only exists to make the code compile when the `cpu` feature is disabled
 /// because the CPU is the default type `D` for [`Buffer`]s.

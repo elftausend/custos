@@ -23,7 +23,7 @@ macro_rules! buf {
             $crate::Buffer::from(vec![$elem; $n])
         }
     );
-    
+
     ($($x:expr),+ $(,)?) => (
         $crate::Buffer::<_, $crate::CPU, ()>::from([$($x),+])
     );

@@ -122,7 +122,7 @@ macro_rules! impl_device_traits {
     };
 }
 
-/// A module affected trait. 
+/// A module affected trait.
 /// Retrieves a [`Buffer`] from the device.
 pub trait Retriever<T, S: Shape = ()>: Device {
     #[track_caller]

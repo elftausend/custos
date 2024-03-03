@@ -12,7 +12,9 @@ use super::{VkArray, VkDevice};
 pass_down_add_operation!(Vulkan);
 pass_down_exec_now!(Vulkan);
 
-impl<Mods: OnDropBuffer + UseGpuOrCpu, T: CDatatype + Default + Debug> ClearBuf<T> for Vulkan<Mods> {
+impl<Mods: OnDropBuffer + UseGpuOrCpu, T: CDatatype + Default + Debug> ClearBuf<T>
+    for Vulkan<Mods>
+{
     #[inline]
     fn clear(&self, buf: &mut Buffer<T, Vulkan<Mods>>) {
         let cpu_buf = unsafe { &mut *(buf as *mut Buffer<T, Vulkan<Mods>>) };
@@ -32,7 +34,10 @@ impl<Mods: OnDropBuffer, T: Default + Debug> ZeroGrad<T> for Vulkan<Mods> {
     }
 }
 
-pub fn try_vk_clear<T: Default + Debug>(device: &VkDevice, buf: &mut VkArray<T>) -> crate::Result<()> {
+pub fn try_vk_clear<T: Default + Debug>(
+    device: &VkDevice,
+    buf: &mut VkArray<T>,
+) -> crate::Result<()> {
     let src = format!(
         "@group(0)
         @binding(0)

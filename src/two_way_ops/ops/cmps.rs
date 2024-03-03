@@ -29,7 +29,7 @@ impl<C: ToCLSource, R: ToCLSource> ToCLSource for GEq<C, R> {
 
 impl<C: Eval<T>, R: Eval<T>, T: Number> Eval<T> for GEq<C, R> {
     #[inline]
-    fn eval(self) -> T {
+    fn eval(&self) -> T {
         T::from_usize(self.comb.eval().ge(&self.rhs.eval()) as usize)
     }
 }
@@ -62,7 +62,7 @@ impl<C: ToCLSource, R: ToCLSource> ToCLSource for LEq<C, R> {
 
 impl<C: Eval<T>, R: Eval<T>, T: Number> Eval<T> for LEq<C, R> {
     #[inline]
-    fn eval(self) -> T {
+    fn eval(&self) -> T {
         T::from_usize(self.comb.eval().le(&self.rhs.eval()) as usize)
     }
 }
@@ -95,7 +95,7 @@ impl<C: ToCLSource, R: ToCLSource> ToCLSource for Eq<C, R> {
 
 impl<C: Eval<T>, R: Eval<T>, T: Number> Eval<T> for Eq<C, R> {
     #[inline]
-    fn eval(self) -> T {
+    fn eval(&self) -> T {
         T::from_usize(self.comb.eval().le(&self.rhs.eval()) as usize)
     }
 }
