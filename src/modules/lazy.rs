@@ -2,16 +2,15 @@ mod exec_iter;
 mod lazy_graph;
 mod ty;
 mod wrapper;
-mod op_hint;
 
 pub use ty::*;
 
 use crate::{
-    impl_remove_layer, pass_down_grad_fn, pass_down_tape_actions, register_buf_copyable,
-    unregister_buf_copyable, AddLayer, AddOperation, Alloc, BoxedShallowCopy, Buffer,
-    CachedBuffers, Cursor, Device, ExecNow, HasId, Id, IsShapeIndep, Module, NoHasher,
-    OnDropBuffer, OnNewBuffer, Parents, ReplaceBuf, Retrieve, RunModule, Setup, ShallowCopy, Shape,
-    UniqueId, UpdateArgs,
+    impl_remove_layer, op_hint::OpHint, pass_down_grad_fn, pass_down_tape_actions,
+    register_buf_copyable, unregister_buf_copyable, AddLayer, AddOperation, Alloc,
+    BoxedShallowCopy, Buffer, CachedBuffers, Cursor, Device, ExecNow, HasId, Id, IsShapeIndep,
+    Module, NoHasher, OnDropBuffer, OnNewBuffer, Parents, ReplaceBuf, Retrieve, RunModule,
+    SetOpHint, Setup, ShallowCopy, Shape, UniqueId, UpdateArgs,
 };
 
 #[cfg(feature = "graph")]
@@ -22,6 +21,7 @@ use core::{
     cell::{Cell, RefCell},
     fmt::Debug,
     hash::BuildHasherDefault,
+    marker::PhantomData,
 };
 use std::collections::HashSet;
 
@@ -32,7 +32,7 @@ type Buffers = crate::Buffers<Box<dyn BoxedShallowCopy>>;
 type AllocatedIds = HashSet<UniqueId, BuildHasherDefault<NoHasher>>;
 
 #[derive(Default)]
-pub struct Lazy<Mods> {
+pub struct Lazy<Mods, T = f32> {
     pub modules: Mods,
     alloc_later: RefCell<Vec<(Id, fn(&mut Buffers, &mut AllocatedIds, Id, &dyn Any))>>, // could use D generic instead of dyn Any (required LazyModule structure)
     pub buffers: RefCell<Buffers>,
@@ -40,9 +40,10 @@ pub struct Lazy<Mods> {
     // This ensures to only allocate a buffer once, without having to remove the ID/address collision check
     // TODO: remove this, fix id and address collision - then just use `buffers` for duplicate calls
     allocated_ids: RefCell<AllocatedIds>,
-    graph: RefCell<LazyGraph<Box<dyn BoxedShallowCopy>>>,
+    graph: RefCell<LazyGraph<Box<dyn BoxedShallowCopy>, T>>,
     cursor: Cell<usize>,
     enabled: Cell<bool>,
+    pd: PhantomData<T>,
 }
 
 impl<Mods: Debug> Debug for Lazy<Mods> {
@@ -79,6 +80,7 @@ impl<Mods: Module<D>, D: LazySetup + Device> Module<D> for Lazy<Mods> {
             allocated_ids: Default::default(),
             cursor: Default::default(),
             enabled: Cell::new(true),
+            pd: PhantomData,
         }
     }
 }
@@ -113,6 +115,15 @@ impl<Mods: AddOperation> AddOperation for Lazy<Mods> {
     #[inline]
     fn is_lazy_enabled(&self) -> bool {
         self.enabled.get()
+    }
+}
+
+impl<T, Mods> SetOpHint<T> for Lazy<Mods, T> {
+    #[inline]
+    fn set_op_hint(&self, op_hint: OpHint<T>) {
+        if let Some(op) = self.graph.borrow_mut().operations.last_mut() {
+            op.op_hint = op_hint;
+        }
     }
 }
 
@@ -252,6 +263,7 @@ impl<NewMods, SD> AddLayer<NewMods, SD> for Lazy<()> {
             allocated_ids: Default::default(),
             cursor: Default::default(),
             enabled: Cell::new(true),
+            pd: PhantomData,
         }
     }
 }

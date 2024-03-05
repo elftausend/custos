@@ -1,7 +1,7 @@
 use crate::{
     flag::AllocFlag, AddGradFn, AddOperation, Alloc, CachedBuffers, Cursor, Device, ExecNow, HasId,
-    HashLocation, Module, OnDropBuffer, OnNewBuffer, Parents, PtrType, ReplaceBuf, Retrieve, Setup,
-    Shape, WrappedData,
+    HashLocation, Module, OnDropBuffer, OnNewBuffer, Parents, PtrType, ReplaceBuf, Retrieve,
+    SetOpHint, Setup, Shape, WrappedData,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
@@ -58,6 +58,8 @@ impl AddOperation for Base {
         false
     }
 }
+
+impl<T> SetOpHint<T> for Base {}
 
 impl<D: Device> ExecNow<D> for Base {
     #[inline]

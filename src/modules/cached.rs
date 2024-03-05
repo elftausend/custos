@@ -6,7 +6,7 @@ use core::{
 use crate::{
     AddGradFn, AddLayer, AddOperation, Alloc, Buffer, Cache, CachedBuffers, Cursor, Device,
     ExecNow, HasId, IsShapeIndep, Module, OnDropBuffer, OnNewBuffer, Parents, PtrType, RemoveLayer,
-    ReplaceBuf, Retrieve, RunModule, Setup, ShallowCopy, Shape, WrappedData,
+    ReplaceBuf, Retrieve, RunModule, SetOpHint, Setup, ShallowCopy, Shape, WrappedData,
 };
 
 #[cfg(feature = "graph")]
@@ -90,6 +90,13 @@ impl<SD: Device, Mods: AddOperation> AddOperation for CachedModule<Mods, SD> {
     #[inline]
     fn is_lazy_enabled(&self) -> bool {
         self.modules.is_lazy_enabled()
+    }
+}
+
+impl<T, Mods: SetOpHint<T>, SD: Device> SetOpHint<T> for CachedModule<Mods, SD> {
+    #[inline]
+    fn set_op_hint(&self, op_hint: crate::op_hint::OpHint<T>) {
+        self.modules.set_op_hint(op_hint)
     }
 }
 

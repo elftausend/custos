@@ -112,6 +112,7 @@ pub mod hooks;
 mod id;
 mod layer_management;
 pub mod modules;
+mod op_hint;
 mod op_traits;
 mod parents;
 mod ptr_conv;
