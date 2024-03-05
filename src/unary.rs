@@ -323,7 +323,7 @@ mod tests {
             UnaryElementWiseMayGrad, CPU,
         };
 
-        let device = CPU::<Autograd<Lazy<Base>>>::new();
+        let device = CPU::<Autograd<Lazy<Base, f64>>>::new();
         let buf = device.buffer([1., 2., 3., 4.]).require_grad();
 
         let out = device.unary_ew(&buf, |x| x.sin(), |x| x.cos());
@@ -339,7 +339,7 @@ mod tests {
             Device, Lazy, Run, UnaryElementWiseMayGrad, CPU,
         };
 
-        let device = CPU::<Autograd<Lazy<Base>>>::new();
+        let device = CPU::<Autograd<Lazy<Base, f64>>>::new();
         let buf = device.buffer([0., 1., 2., 3.]).require_grad();
         let buf1 = device.apply_fn(&buf, |x| x.add(1.));
 
@@ -356,7 +356,7 @@ mod tests {
             Device, ExecNow, Lazy, Run, UnaryElementWiseMayGrad, CPU,
         };
 
-        let device = CPU::<Autograd<Lazy<Base>>>::new();
+        let device = CPU::<Autograd<Lazy<Base, f64>>>::new();
         let buf = device.buffer([0., 1., 2., 3.]).require_grad();
         let buf1 = device.apply_fn(&buf, |x| x.add(1.));
 
