@@ -3,8 +3,8 @@ use core::fmt::Debug;
 use crate::{
     cpu_stack_ops::clear_slice, pass_down_add_operation, pass_down_exec_now, prelude::Number,
     AddOperation, ApplyFunction, AsNoId, BufAsNoId, Buffer, CDatatype, ClearBuf, HostPtr,
-    OnDropBuffer, Read, Resolve, Retrieve, Retriever, Shape, ToMarker, ToWgslSource, UnaryGrad,
-    UseGpuOrCpu, Vulkan, WriteBuf, ZeroGrad,
+    OnDropBuffer, Read, Resolve, Retrieve, Retriever, Shape, ToCLSource, ToMarker, ToWgslSource,
+    UnaryGrad, UseGpuOrCpu, Vulkan, WriteBuf, ZeroGrad,
 };
 
 use super::{VkArray, VkDevice};
@@ -93,7 +93,7 @@ where
         f: impl Fn(Resolve<T>) -> F + Copy,
     ) -> Buffer<T, Self, S>
     where
-        F: crate::Eval<T> + crate::MayToWgslSource,
+        F: crate::Eval<T> + crate::MayToCLSource,
     {
         let mut out = self.retrieve(buf.len(), buf);
 
@@ -121,7 +121,8 @@ pub fn try_vk_apply_fn_mut<T, F>(
 ) -> crate::Result<()>
 where
     T: Number,
-    F: ToWgslSource,
+    // TODO: use ToWgslSource
+    F: ToCLSource,
 {
     let src = format!(
         "
@@ -144,7 +145,7 @@ where
 
     ",
         dtype = std::any::type_name::<T>(),
-        op = f("x[global_id.x]".to_marker()).to_wgsl_source()
+        op = f("x[global_id.x]".to_marker()).to_cl_source()
     );
     device.launch_shader([(32 + x.len as u32) / 32, 1, 1], src, &[x, out])
 }
@@ -163,7 +164,7 @@ where
         out: &Buffer<T, Self, S>,
         lhs_grad_fn: impl Fn(Resolve<T>) -> F + Copy + 'static,
     ) where
-        F: ToWgslSource,
+        F: ToCLSource,
     {
         self.add_op::<_, 4>(
             (lhs, lhs_grad.buf_no_id(), out, lhs_grad_fn.no_id()),
@@ -183,7 +184,8 @@ pub fn try_vk_add_unary_grad<T, F>(
 ) -> crate::Result<()>
 where
     T: CDatatype + Number,
-    F: ToWgslSource,
+    // TODO Use Towgslsource
+    F: ToCLSource,
 {
     let src = format!(
         "
@@ -210,7 +212,7 @@ where
 
     ",
         dtype = std::any::type_name::<T>(),
-        op = lhs_grad_fn("lhs[global_id.x]".to_marker()).to_wgsl_source()
+        op = lhs_grad_fn("lhs[global_id.x]".to_marker()).to_cl_source()
     );
     device.launch_shader(
         [(32 + lhs.len as u32) / 32, 1, 1],
