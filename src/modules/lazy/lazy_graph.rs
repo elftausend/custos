@@ -4,17 +4,17 @@ use crate::{
 };
 use core::{mem::transmute, ops::RangeBounds};
 
-use super::exec_iter::{exec_op, ExecIter};
+use super::{exec_iter::{exec_op, ExecIter}, op_hint::OpHint};
 
-pub struct Operation<B> {
-    // op_hint: OpHint
+pub struct Operation<B, T> {
+    pub op_hint: OpHint<T>,
     pub arg_ids: Vec<Option<UniqueId>>,
     pub op: fn(*mut ()) -> crate::Result<()>,
     pub args: Box<dyn UpdateArgsDynable<B>>,
 }
 
-pub struct LazyGraph<B = Box<dyn BoxedShallowCopy>> {
-    pub operations: Vec<Operation<B>>,
+pub struct LazyGraph<B = Box<dyn BoxedShallowCopy>, T = ()> {
+    pub operations: Vec<Operation<B, T>>,
 }
 
 impl<B> Default for LazyGraph<B> {
@@ -26,9 +26,9 @@ impl<B> Default for LazyGraph<B> {
     }
 }
 
-impl<B: AsAny> LazyGraph<B> {
+impl<B: AsAny, T> LazyGraph<B, T> {
     #[inline]
-    pub fn iter_with<'a>(&'a mut self, buffers: &'a mut Buffers<B>) -> ExecIter<B> {
+    pub fn iter_with<'a>(&'a mut self, buffers: &'a mut Buffers<B>) -> ExecIter<B, T> {
         ExecIter {
             operations: self.operations.iter_mut(),
             buffers,
@@ -58,6 +58,7 @@ impl<B: AsAny> LazyGraph<B> {
             arg_ids,
             op: unsafe { transmute(op) },
             args: unsafe { transmute(args) },
+            op_hint: OpHint::None
         })
     }
 

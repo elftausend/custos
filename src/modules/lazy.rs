@@ -2,6 +2,7 @@ mod exec_iter;
 mod lazy_graph;
 mod ty;
 mod wrapper;
+mod op_hint;
 
 pub use ty::*;
 

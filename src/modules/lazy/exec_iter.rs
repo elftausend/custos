@@ -2,8 +2,8 @@ use crate::{Buffers, UniqueId, UpdateArgsDynable};
 
 use super::lazy_graph::Operation;
 
-pub struct ExecIter<'a, B> {
-    pub(super) operations: std::slice::IterMut<'a, Operation<B>>,
+pub struct ExecIter<'a, B, T> {
+    pub(super) operations: std::slice::IterMut<'a, Operation<B, T>>,
     pub(super) buffers: &'a mut Buffers<B>,
 }
 
@@ -19,7 +19,7 @@ pub fn exec_op<B>(
     op(args)
 }
 
-impl<'a, B> Iterator for ExecIter<'a, B> {
+impl<'a, B, T> Iterator for ExecIter<'a, B, T> {
     type Item = crate::Result<()>;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -28,14 +28,14 @@ impl<'a, B> Iterator for ExecIter<'a, B> {
     }
 }
 
-impl<'a, B> DoubleEndedIterator for ExecIter<'a, B> {
+impl<'a, B, T> DoubleEndedIterator for ExecIter<'a, B, T> {
     fn next_back(&mut self) -> Option<Self::Item> {
         let op = self.operations.next_back()?;
         Some(exec_op(&mut op.args, &op.op, &op.arg_ids, self.buffers))
     }
 }
 
-impl<'a, B> ExactSizeIterator for ExecIter<'a, B> {
+impl<'a, B, T> ExactSizeIterator for ExecIter<'a, B, T> {
     fn len(&self) -> usize {
         self.operations.len()
     }
