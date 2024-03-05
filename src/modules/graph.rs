@@ -5,7 +5,7 @@ mod opt_graph;
 pub use node::Node;
 pub use opt_graph::*;
 
-use core::{cell::RefCell, hash::BuildHasherDefault};
+use core::{cell::RefCell, hash::BuildHasherDefault, marker::PhantomData};
 use std::collections::HashSet;
 
 use crate::{
@@ -18,10 +18,11 @@ use crate::{
 pub use self::graph_translator::GraphTranslator;
 
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
-pub struct Graph<Mods> {
+pub struct Graph<Mods, T = f32> {
     pub modules: Mods,
     pub graph_trans: RefCell<GraphTranslator>,
     pub contains_ids: RefCell<HashSet<UniqueId, BuildHasherDefault<NoHasher>>>,
+    pub pd: PhantomData<T>,
 }
 
 impl<Mods: WrappedData> WrappedData for Graph<Mods> {
@@ -51,6 +52,7 @@ impl<Mods: Module<D>, D: Device> Module<D> for Graph<Mods> {
             modules: Mods::new(),
             graph_trans: Default::default(),
             contains_ids: Default::default(),
+            pd: PhantomData,
         }
     }
 }
@@ -124,6 +126,7 @@ impl<NewMods, SD> AddLayer<NewMods, SD> for Graph<()> {
             modules: inner_mods,
             graph_trans: Default::default(),
             contains_ids: Default::default(),
+            pd: PhantomData,
         }
     }
 }

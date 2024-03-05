@@ -339,7 +339,7 @@ pub mod tests_ex {
     #[cfg(feature = "std")]
     fn test(x: &dyn crate::TwoWay<f32>) {
         x.to_cl_source();
-        let a: f32 = x.eval();
+        let _a: f32 = x.eval();
         // x.eval::<f32>();
     }
 
@@ -391,6 +391,6 @@ pub mod tests_ex {
 
         // let y: f32 = f(3f32.to_val()).eval();
 
-        let src = f("x".to_marker()).to_cl_source();
+        let _src = f("x".to_marker()).to_cl_source();
     }
 }

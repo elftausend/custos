@@ -1,9 +1,9 @@
 use crate::{Buffers, UniqueId, UpdateArgsDynable};
 
-pub struct ExecIter<'a, B> {
-    pub(super) ids_to_check: std::slice::Iter<'a, Vec<Option<UniqueId>>>,
-    pub(super) ops: std::slice::Iter<'a, fn(*mut ()) -> crate::Result<()>>,
-    pub(super) args: std::slice::IterMut<'a, Box<dyn UpdateArgsDynable<B>>>,
+use super::lazy_graph::Operation;
+
+pub struct ExecIter<'a, B, T> {
+    pub(super) operations: std::slice::IterMut<'a, Operation<B, T>>,
     pub(super) buffers: &'a mut Buffers<B>,
 }
 
@@ -19,28 +19,24 @@ pub fn exec_op<B>(
     op(args)
 }
 
-impl<'a, B> Iterator for ExecIter<'a, B> {
+impl<'a, B, T> Iterator for ExecIter<'a, B, T> {
     type Item = crate::Result<()>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let ids_to_check = self.ids_to_check.next()?;
-        let op = self.ops.next()?;
-        let args = self.args.next()?;
-        Some(exec_op(args, op, ids_to_check, self.buffers))
+        let op = self.operations.next()?;
+        Some(exec_op(&mut op.args, &op.op, &op.arg_ids, self.buffers))
     }
 }
 
-impl<'a, B> DoubleEndedIterator for ExecIter<'a, B> {
+impl<'a, B, T> DoubleEndedIterator for ExecIter<'a, B, T> {
     fn next_back(&mut self) -> Option<Self::Item> {
-        let ids_to_check = self.ids_to_check.next_back()?;
-        let op = self.ops.next_back()?;
-        let args = self.args.next_back()?;
-        Some(exec_op(args, op, ids_to_check, self.buffers))
+        let op = self.operations.next_back()?;
+        Some(exec_op(&mut op.args, &op.op, &op.arg_ids, self.buffers))
     }
 }
 
-impl<'a, B> ExactSizeIterator for ExecIter<'a, B> {
+impl<'a, B, T> ExactSizeIterator for ExecIter<'a, B, T> {
     fn len(&self) -> usize {
-        self.ids_to_check.len()
+        self.operations.len()
     }
 }

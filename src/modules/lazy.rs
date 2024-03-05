@@ -2,6 +2,7 @@ mod exec_iter;
 mod lazy_graph;
 mod ty;
 mod wrapper;
+mod op_hint;
 
 pub use ty::*;
 
@@ -85,7 +86,7 @@ impl<Mods: Module<D>, D: LazySetup + Device> Module<D> for Lazy<Mods> {
 impl<Mods: AddOperation> AddOperation for Lazy<Mods> {
     #[inline]
     fn ops_count(&self) -> usize {
-        self.graph.borrow().ops.len()
+        self.graph.borrow().operations.len()
     }
 
     #[inline]
