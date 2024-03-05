@@ -5,7 +5,7 @@ use crate::{
     cpu_stack_ops::{apply_fn_slice, clear_slice},
     pass_down_add_operation, pass_down_exec_now, AddOperation, ApplyFunction, AsNoId, BufAsNoId,
     Buffer, ClearBuf, CopySlice, Device, Eval, MayToCLSource, OnDropBuffer, Read, Resolve,
-    Retrieve, Retriever, Shape, ToVal, UnaryGrad, WriteBuf, ZeroGrad, CPU,
+    Retrieve, Retriever, SetOpHint, Shape, ToVal, UnaryGrad, WriteBuf, ZeroGrad, CPU,
 };
 
 pass_down_add_operation!(CPU);
@@ -13,7 +13,7 @@ pass_down_exec_now!(CPU);
 
 impl<Mods, T, D, S> ApplyFunction<T, S, D> for CPU<Mods>
 where
-    Mods: Retrieve<Self, T, S> + AddOperation + 'static,
+    Mods: Retrieve<Self, T, S> + AddOperation + SetOpHint<T> + 'static,
     T: Copy + Default + ToVal + 'static,
     D: Device + 'static,
     D::Base<T, S>: Deref<Target = [T]>,
