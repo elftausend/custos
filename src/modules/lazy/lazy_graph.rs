@@ -6,19 +6,22 @@ use core::{mem::transmute, ops::RangeBounds};
 
 use super::exec_iter::{exec_op, ExecIter};
 
+pub struct Operation<B> {
+    // op_hint: OpHint
+    pub arg_ids: Vec<Option<UniqueId>>,
+    pub op: fn(*mut ()) -> crate::Result<()>,
+    pub args: Box<dyn UpdateArgsDynable<B>>,
+}
+
 pub struct LazyGraph<B = Box<dyn BoxedShallowCopy>> {
-    pub ids_to_check: Vec<Vec<Option<UniqueId>>>,
-    pub ops: Vec<fn(*mut ()) -> crate::Result<()>>,
-    pub args: Vec<Box<dyn UpdateArgsDynable<B>>>,
+    pub operations: Vec<Operation<B>>,
 }
 
 impl<B> Default for LazyGraph<B> {
     #[inline]
     fn default() -> Self {
         Self {
-            ids_to_check: Vec::default(),
-            ops: Vec::default(),
-            args: Vec::default(),
+            operations: Vec::new(),
         }
     }
 }
@@ -27,18 +30,14 @@ impl<B: AsAny> LazyGraph<B> {
     #[inline]
     pub fn iter_with<'a>(&'a mut self, buffers: &'a mut Buffers<B>) -> ExecIter<B> {
         ExecIter {
-            ids_to_check: self.ids_to_check.iter(),
-            ops: self.ops.iter(),
-            args: self.args.iter_mut(),
+            operations: self.operations.iter_mut(),
             buffers,
         }
     }
 
     #[inline]
     pub fn clear(&mut self) {
-        self.ids_to_check.clear();
-        self.ops.clear();
-        self.args.clear();
+        self.operations.clear();
     }
 
     pub fn add_operation<Args: Parents<N> + UpdateArgs, const N: usize>(
@@ -47,17 +46,19 @@ impl<B: AsAny> LazyGraph<B> {
         op: fn(&mut Args) -> crate::Result<()>,
     ) {
         // store ids and test if buffers are still in cache
-        self.ids_to_check.push(
-            args.maybe_ids()
-                .into_iter()
-                .map(|id| id.map(|id| *id))
-                .collect(),
-        );
+        let arg_ids = args
+            .maybe_ids()
+            .into_iter()
+            .map(|id| id.map(|id| *id))
+            .collect();
 
         let args: Box<dyn UpdateArgsDynable<B>> = Box::new(args);
 
-        self.args.push(unsafe { transmute(args) });
-        unsafe { self.ops.push(transmute(op)) };
+        self.operations.push(Operation {
+            arg_ids,
+            op: unsafe { transmute(op) },
+            args: unsafe { transmute(args) },
+        })
     }
 
     pub unsafe fn call_lazily<D: Device + 'static>(
@@ -75,16 +76,10 @@ impl<B: AsAny> LazyGraph<B> {
         bounds: impl RangeBounds<usize>,
         outs_unordered: &mut Buffers<B>,
     ) -> crate::Result<()> {
-        let range = bounds_to_range(bounds, self.args.len());
-        for ((mut args, op), ids_to_check) in self
-            .args
-            .drain(range.clone())
-            .zip(self.ops.drain(range.clone()))
-            .zip(self.ids_to_check.drain(range.clone()))
-        {
-            exec_op(&mut args, &op, &ids_to_check, outs_unordered)?;
+        let range = bounds_to_range(bounds, self.operations.len());
+        for mut op in self.operations.drain(range) {
+            exec_op(&mut op.args, &op.op, &op.arg_ids, outs_unordered)?;
         }
-
         Ok(())
     }
 }

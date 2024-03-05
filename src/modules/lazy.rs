@@ -85,7 +85,7 @@ impl<Mods: Module<D>, D: LazySetup + Device> Module<D> for Lazy<Mods> {
 impl<Mods: AddOperation> AddOperation for Lazy<Mods> {
     #[inline]
     fn ops_count(&self) -> usize {
-        self.graph.borrow().ops.len()
+        self.graph.borrow().operations.len()
     }
 
     #[inline]
