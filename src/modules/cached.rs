@@ -301,14 +301,14 @@ impl<Mods: Optimize, SD: Device> Optimize for CachedModule<Mods, SD> {
         }
         Ok(())
     }
-    
+
     #[inline]
     fn unary_fusing<D: 'static>(
         &self,
-        device: &D,
-        graph_translator: Option<&crate::modules::GraphTranslator>,
+        _device: &D,
+        _graph_translator: Option<&crate::modules::GraphTranslator>,
     ) -> crate::Result<()> {
-        todo!()
+        Err(DeviceError::UnaryFusingUnsupported.into())
     }
 }
 

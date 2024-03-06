@@ -202,6 +202,32 @@ impl<T, Mods> Lazy<Mods, T> {
         }
         Ok(())
     }
+
+    #[cfg(feature = "graph")]
+    fn fuse_unary_ops<D: 'static>(
+        &self,
+        device: &D,
+        graph_trans: &crate::GraphTranslator,
+    ) -> crate::Result<()> {
+        let cache_traces = graph_trans.opt_graph.cache_traces();
+        let ops = &self.graph.borrow().operations;
+        let unary_ops = cache_traces.into_iter().map(|mut cache_trace| {
+            let mut ids = vec![cache_trace.cache_idx];
+            ids.append(&mut cache_trace.use_cache_idxs);
+            (ids.iter()
+                .map_while(|id| match &ops[*id].op_hint {
+                    OpHint::Unary(op) => Some(op),
+                    OpHint::None => None,
+                    OpHint::PhantomData(_) => None,
+                })
+                .collect::<Vec<_>>(), ids)
+        }).collect::<Vec<_>>();
+        
+        // for mut cache_trace in cache_traces {
+        //     vec![cache_trace.cache_idx].append(&mut cache_trace.use_cache_idxs)
+        // }
+        Ok(())
+    }
 }
 
 impl<T, D: LazySetup, Mods: Setup<D>> Setup<D> for Lazy<Mods, T> {
@@ -444,14 +470,18 @@ impl<T, Mods> crate::Optimize for Lazy<Mods, T> {
         )?;
         Ok(())
     }
-    
+
     #[inline]
     fn unary_fusing<D: 'static>(
         &self,
         device: &D,
-        graph_translator: Option<&crate::modules::GraphTranslator>,
+        graph_translator: Option<&crate::GraphTranslator>,
     ) -> crate::Result<()> {
-        todo!()
+        self.fuse_unary_ops(
+            device,
+            graph_translator.ok_or(DeviceError::MissingCacheTraces)?,
+        )?;
+        Ok(())
     }
 }
 

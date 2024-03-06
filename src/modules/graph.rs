@@ -80,14 +80,20 @@ impl<Mods: Optimize> Optimize for Graph<Mods> {
             }
         }
     }
-    
+
     #[inline]
     fn unary_fusing<D: 'static>(
         &self,
         device: &D,
         graph_translator: Option<&crate::modules::GraphTranslator>,
     ) -> crate::Result<()> {
-        todo!()
+        match graph_translator {
+            Some(graph_translator) => self.modules.unary_fusing(device, Some(graph_translator)),
+            None => {
+                let graph_translator = self.graph_trans.borrow();
+                self.modules.unary_fusing(device, Some(&graph_translator))
+            }
+        }
     }
 }
 
