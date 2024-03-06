@@ -99,7 +99,7 @@ mod tests {
             assert_eq!(*out, buf.sin().cos().ln());
         }
     }
-    
+
     #[cfg(feature = "cpu")]
     #[cfg(feature = "lazy")]
     #[cfg(feature = "graph")]
@@ -113,7 +113,7 @@ mod tests {
         let out = dev.apply_fn(&buf, |x| x.sin());
         let out = dev.apply_fn(&out, |x| x.cos());
         let _out = dev.apply_fn(&out, |x| x.ln());
-        
+
         let cts = dev.modules.graph_trans.borrow().opt_graph.cache_traces();
         println!("{cts:?}");
 
@@ -173,7 +173,7 @@ mod tests {
         }
 
         println!("cpu automatic fusing: {:?}", start.elapsed());
-        
+
         let mut should = buf.clone();
 
         let start = Instant::now();
@@ -183,7 +183,6 @@ mod tests {
         }
 
         println!("cpu manual fusing: {:?}", start.elapsed());
-        
 
         for (should, out) in should.iter().zip(out.iter()) {
             assert_eq!(out, should);

@@ -432,6 +432,7 @@ impl<T: 'static, D: Device + 'static, S: Shape, Mods: OnDropBuffer, T2> ReplaceB
 
 #[cfg(feature = "graph")]
 impl<T, Mods> crate::Optimize for Lazy<Mods, T> {
+    #[inline]
     fn optimize_mem_graph<D: 'static>(
         &self,
         device: &D,
@@ -442,6 +443,15 @@ impl<T, Mods> crate::Optimize for Lazy<Mods, T> {
             graph_translator.ok_or(DeviceError::MissingCacheTraces)?,
         )?;
         Ok(())
+    }
+    
+    #[inline]
+    fn unary_fusing<D: 'static>(
+        &self,
+        device: &D,
+        graph_translator: Option<&crate::modules::GraphTranslator>,
+    ) -> crate::Result<()> {
+        todo!()
     }
 }
 

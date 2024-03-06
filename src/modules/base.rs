@@ -130,6 +130,15 @@ impl crate::Optimize for Base {
     ) -> crate::Result<()> {
         Ok(())
     }
+    
+    #[inline]
+    fn unary_fusing<D: 'static>(
+        &self,
+        device: &D,
+        graph_translator: Option<&crate::modules::GraphTranslator>,
+    ) -> crate::Result<()> {
+        todo!()
+    }
 }
 
 impl AddGradFn for Base {

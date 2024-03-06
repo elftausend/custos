@@ -80,6 +80,15 @@ impl<Mods: Optimize> Optimize for Graph<Mods> {
             }
         }
     }
+    
+    #[inline]
+    fn unary_fusing<D: 'static>(
+        &self,
+        device: &D,
+        graph_translator: Option<&crate::modules::GraphTranslator>,
+    ) -> crate::Result<()> {
+        todo!()
+    }
 }
 
 impl<Mods: OnNewBuffer<T, D, S>, T, D: Device, S: Shape> OnNewBuffer<T, D, S> for Graph<Mods> {

@@ -25,10 +25,8 @@ pub trait MayToCLSource {}
 #[cfg(not(feature = "std"))]
 impl<T> MayToCLSource for T {}
 
-#[cfg(feature = "std")]
 pub trait TwoWay<T>: Eval<T> + MayToCLSource {}
 
-#[cfg(feature = "std")]
 impl<T, A: Eval<T> + MayToCLSource> TwoWay<T> for A {}
 
 // impl<T> dyn TwoWay<T> + '_ {
