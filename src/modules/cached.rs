@@ -10,7 +10,7 @@ use crate::{
 };
 
 #[cfg(feature = "graph")]
-use crate::{DeviceError, OptimizeMemGraph, UniqueId};
+use crate::{DeviceError, Optimize, UniqueId};
 
 // creator struct, however =>
 // TODO: could remove D generic and therefore CachedModule
@@ -266,7 +266,7 @@ impl<Mods: RunModule<D>, D, SD: Device> RunModule<D> for CachedModule<Mods, SD> 
 }
 
 #[cfg(feature = "graph")]
-impl<Mods: OptimizeMemGraph, SD: Device> OptimizeMemGraph for CachedModule<Mods, SD> {
+impl<Mods: Optimize, SD: Device> Optimize for CachedModule<Mods, SD> {
     fn optimize_mem_graph<D: 'static>(
         &self,
         _device: &D,

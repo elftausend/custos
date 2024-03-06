@@ -491,7 +491,7 @@ mod tests {
     fn test_lazy_from_retrieve<D>(device: &D)
     where
         D: crate::Device
-            + crate::OptimizeMemGraph
+            + crate::Optimize
             + crate::Retriever<f32, ()>
             + crate::Run
             + crate::ReplaceBuf<f32, D, ()>
@@ -560,7 +560,7 @@ mod tests {
     #[test]
     fn test_from_retrieve_sliced_chained_perf_example_optimize_cache() {
         use crate::{
-            Base, Buffer, Cached, Cursor, Device, Graph, HasId, OptimizeMemGraph, Retriever, CPU,
+            Base, Buffer, Cached, Cursor, Device, Graph, HasId, Optimize, Retriever, CPU,
         };
 
         let device = CPU::<Graph<Cached<Base>>>::new();
@@ -602,7 +602,7 @@ mod tests {
     #[test]
     fn test_mismatched_optimized_types_cached() {
         use crate::{
-            Base, Buffer, Cached, Cursor, Device, Graph, HasId, OptimizeMemGraph, Retriever, CPU,
+            Base, Buffer, Cached, Cursor, Device, Graph, HasId, Optimize, Retriever, CPU,
         };
 
         let device = CPU::<Graph<Cached<Base>>>::new();
@@ -644,7 +644,7 @@ mod tests {
     #[test]
     fn test_mismatched_optimized_types_lazy() {
         use crate::{
-            Base, Buffer, Device, Graph, HasId, Lazy, OptimizeMemGraph, Retriever, Run, CPU,
+            Base, Buffer, Device, Graph, HasId, Lazy, Optimize, Retriever, Run, CPU,
         };
 
         let device = CPU::<Graph<Lazy<Base>>>::new();

@@ -431,7 +431,7 @@ impl<T: 'static, D: Device + 'static, S: Shape, Mods: OnDropBuffer, T2> ReplaceB
 }
 
 #[cfg(feature = "graph")]
-impl<T, Mods> crate::OptimizeMemGraph for Lazy<Mods, T> {
+impl<T, Mods> crate::Optimize for Lazy<Mods, T> {
     fn optimize_mem_graph<D: 'static>(
         &self,
         device: &D,

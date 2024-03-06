@@ -99,6 +99,42 @@ mod tests {
             assert_eq!(*out, buf.sin().cos().ln());
         }
     }
+    
+    #[cfg(feature = "cpu")]
+    #[cfg(feature = "lazy")]
+    #[cfg(feature = "graph")]
+    #[test]
+    fn test_op_hint_unary_chain_fuse_graph() {
+        use crate::{ApplyFunction, Base, Combiner, Device, Graph, Lazy, Optimize, CPU};
+
+        let dev = CPU::<Graph<Lazy<Base>>>::new();
+
+        let buf = dev.buffer([1., 2., 3., 4., 5.]);
+        let out = dev.apply_fn(&buf, |x| x.sin());
+        let out = dev.apply_fn(&out, |x| x.cos());
+        let _out = dev.apply_fn(&out, |x| x.ln());
+        
+        let cts = dev.modules.graph_trans.borrow().opt_graph.cache_traces();
+        println!("{cts:?}");
+
+        let mut out = buf.clone();
+
+        for out in out.iter_mut() {
+            for op in &dev.modules.modules.graph.borrow().operations {
+                let resolve = Resolve {
+                    val: *out,
+                    marker: "x",
+                };
+                if let OpHint::Unary(op) = &op.op_hint {
+                    *out = op(resolve).eval();
+                }
+            }
+        }
+
+        for (buf, out) in buf.iter().zip(out.iter()) {
+            assert_eq!(*out, buf.sin().cos().ln());
+        }
+    }
 
     #[cfg(feature = "cpu")]
     #[cfg(feature = "lazy")]

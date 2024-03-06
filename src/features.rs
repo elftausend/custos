@@ -524,7 +524,7 @@ pub trait UseGpuOrCpu {
 }
 
 #[cfg(feature = "graph")]
-pub trait OptimizeMemGraph {
+pub trait Optimize {
     fn optimize_mem_graph<D: 'static>(
         &self,
         device: &D,
@@ -535,7 +535,7 @@ pub trait OptimizeMemGraph {
 #[macro_export]
 macro_rules! pass_down_optimize_mem_graph {
     ($to_impl:ident) => {
-        impl<Mods: $crate::OptimizeMemGraph> $crate::OptimizeMemGraph for $to_impl<Mods> {
+        impl<Mods: $crate::Optimize> $crate::Optimize for $to_impl<Mods> {
             fn optimize_mem_graph<D: 'static>(
                 &self,
                 device: &D,
