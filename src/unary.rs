@@ -1,6 +1,5 @@
 use crate::{
-    AddGradFn, AddOperation, Alloc, AsNoId, Buffer, Device, Eval, HasId, MayTapeActions,
-    MayToCLSource, Resolve, Shape, ZeroGrad,
+    AddGradFn, AddOperation, Alloc, AsNoId, Buffer, Device, Eval, HasId, MayTapeActions, MayToCLSource, Resolve, Shape, TwoWay, ZeroGrad
 };
 
 /// Applies a function to a buffer and returns a new buffer.
@@ -24,7 +23,7 @@ pub trait ApplyFunction<T, S: Shape = (), D: Device = Self>: Device {
         f: impl Fn(Resolve<T>) -> F + Copy + 'static,
     ) -> Buffer<T, Self, S>
     where
-        F: Eval<T> + MayToCLSource;
+        F: TwoWay<T> + 'static;
 }
 
 /// Writes the unary gradient (with chainrule) to the lhs_grad buffer.

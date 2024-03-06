@@ -8,3 +8,13 @@ pub enum OpHint<T> {
     None,
     PhantomData(PhantomData<T>),
 }
+
+#[cfg(feature = "std")]
+pub fn unary<T, O: crate::TwoWay<T> + 'static>(op: impl Fn(Resolve<T>) -> O + 'static) -> OpHint<T> {
+    let dyn_op = move |x: Resolve<T>| {
+        let op: Box<dyn crate::TwoWay<T>> = Box::new(op(x));
+        op
+    };
+    // Box::new(dyn_op)
+    OpHint::Unary(Box::new(dyn_op))
+}

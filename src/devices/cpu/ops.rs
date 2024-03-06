@@ -1,11 +1,7 @@
 use core::ops::{AddAssign, Deref, DerefMut, Index, Range, RangeBounds};
 
 use crate::{
-    bounds_to_range,
-    cpu_stack_ops::{apply_fn_slice, clear_slice},
-    pass_down_add_operation, pass_down_exec_now, AddOperation, ApplyFunction, AsNoId, BufAsNoId,
-    Buffer, ClearBuf, CopySlice, Device, Eval, MayToCLSource, OnDropBuffer, Read, Resolve,
-    Retrieve, Retriever, SetOpHint, Shape, ToVal, UnaryGrad, WriteBuf, ZeroGrad, CPU,
+    bounds_to_range, cpu_stack_ops::{apply_fn_slice, clear_slice}, op_hint::{unary, OpHint}, pass_down_add_operation, pass_down_exec_now, AddOperation, ApplyFunction, AsNoId, BufAsNoId, Buffer, ClearBuf, CopySlice, Device, Eval, MayToCLSource, OnDropBuffer, Read, Resolve, Retrieve, Retriever, SetOpHint, Shape, ToVal, TwoWay, UnaryGrad, WriteBuf, ZeroGrad, CPU
 };
 
 pass_down_add_operation!(CPU);
@@ -25,7 +21,7 @@ where
         f: impl Fn(Resolve<T>) -> F + Copy + 'static,
     ) -> Buffer<T, Self, S>
     where
-        F: Eval<T> + MayToCLSource,
+        F: TwoWay<T> + 'static,
     {
         let mut out = self.retrieve(buf.len(), buf);
 
@@ -34,6 +30,8 @@ where
             Ok(())
         })
         .unwrap();
+
+        self.set_op_hint(unary(f));
 
         // self.add_op((buf, f.no_id()), Some(&mut out), move |out, (buf, f)| {
         //     apply_fn_slice(buf, out.as_mut().unwrap(), **f);
