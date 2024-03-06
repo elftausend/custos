@@ -250,7 +250,7 @@ where
 impl<Mods: crate::HasAutograd, T> crate::HasAutograd for Lazy<Mods, T> {}
 
 #[cfg(feature = "autograd")]
-impl<Mods: crate::TapeActions> crate::TapeActions for Lazy<Mods> {
+impl<Mods: crate::TapeActions, T> crate::TapeActions for Lazy<Mods, T> {
     #[inline]
     unsafe fn tape(&self) -> Option<&crate::Tape> {
         self.modules.tape()
