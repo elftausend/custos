@@ -39,7 +39,7 @@ pub struct Lazy<Mods, T = f32> {
     // This ensures to only allocate a buffer once, without having to remove the ID/address collision check
     // TODO: remove this, fix id and address collision - then just use `buffers` for duplicate calls
     allocated_ids: RefCell<AllocatedIds>,
-    graph: RefCell<LazyGraph<Box<dyn BoxedShallowCopy>, T>>,
+    pub graph: RefCell<LazyGraph<Box<dyn BoxedShallowCopy>, T>>,
     cursor: Cell<usize>,
     enabled: Cell<bool>,
     pd: PhantomData<T>,
