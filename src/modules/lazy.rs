@@ -246,12 +246,15 @@ impl<T, Mods> Lazy<Mods, T> {
         let mut buffers = self.buffers.borrow_mut();
 
         for unary_ops in unary_ops {
-            // skip first as first node is used for fusing
-            for to_no_op_idx in unary_ops.1.iter().skip(1) {
+            // skip first and last as first and last nodes are used for fusing
+            for to_no_op_idx in unary_ops.1[1..unary_ops.1.len() - 1].iter() {
                 graph.operations[*to_no_op_idx] = Operation::no_op();
             } 
+            let last_idx = *unary_ops.1.last().unwrap();
             let (update_idx, op) = device.fuse_unary_ops(&graph, unary_ops, &graph_trans, &mut buffers);
             graph.operations[update_idx] = op;
+            // only arg id information is required for last op, not the op itself
+            graph.operations[last_idx] = Operation::no_op();
         }
 
         // for mut cache_trace in cache_traces {

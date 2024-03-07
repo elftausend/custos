@@ -209,7 +209,17 @@ impl<Mods: OnDropBuffer + 'static> UnaryFusing for CPU<Mods> {
 
         let first_op = &lazy_graph.operations[to_insert_idx];
 
-        let arg_ids = first_op
+        let first_arg_ids = first_op
+            .arg_ids
+            .iter()
+            .flatten()
+            .copied()
+            .collect::<Vec<_>>();
+
+        let last_op = &lazy_graph.operations[*affected_op_idxs.last().unwrap()];
+
+        // use last op in the unary fuse chain as the output buffer
+        let last_arg_ids = last_op
             .arg_ids
             .iter()
             .flatten()
@@ -217,12 +227,12 @@ impl<Mods: OnDropBuffer + 'static> UnaryFusing for CPU<Mods> {
             .collect::<Vec<_>>();
 
         let out = unsafe {
-            &mut *(buffers.get_mut(&arg_ids[0]).unwrap().as_any_mut()
+            &mut *(buffers.get_mut(&last_arg_ids[0]).unwrap().as_any_mut()
                 as *mut Buffer<T, CPU<Mods>, ()>)
         };
 
         let buf = unsafe {
-            &*(buffers.get(&arg_ids[1]).unwrap().as_any() as *const Buffer<T, CPU<Mods>, ()>)
+            &*(buffers.get(&first_arg_ids[1]).unwrap().as_any() as *const Buffer<T, CPU<Mods>, ()>)
         };
 
         let op: fn(
@@ -251,7 +261,7 @@ impl<Mods: OnDropBuffer + 'static> UnaryFusing for CPU<Mods> {
         };
         // using the buffers out of the 'buffers' hashmaps results in using allocated buffers that are not in the 'buffers' hashmap
         // if the lazy graph is executed, it updates the references to the corresponding buffers -> new ids would not be found -> invalid lazy buffer panic
-        operation.arg_ids = vec![Some(arg_ids[0]), Some(arg_ids[1]), None];
+        operation.arg_ids = vec![Some(last_arg_ids[0]), Some(first_arg_ids[1]), None];
 
         (to_insert_idx, operation)
         // lazy_graph.add_operation((out, buf, ops.no_id()), op);

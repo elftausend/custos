@@ -116,7 +116,7 @@ mod tests {
 
         dev.optimize_mem_graph(&dev, None).unwrap();
         dev.unary_fusing(&dev, None).unwrap();
-        unsafe { dev.run().unwrap()}
+        unsafe { dev.run().unwrap()};
 
 /*        let mut out = buf.clone();
 
@@ -131,10 +131,10 @@ mod tests {
                 }
             }
         }
-
-        for (buf, out) in buf.iter().zip(out.iter()) {
+*/
+        for (buf, out) in buf.iter().zip(_out.replace().iter()) {
             assert_eq!(*out, buf.sin().cos().ln());
-        }*/
+        }
     }
 
     #[cfg(feature = "cpu")]
