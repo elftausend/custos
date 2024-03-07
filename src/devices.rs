@@ -173,5 +173,5 @@ pub trait UnaryFusing: IsShapeIndep {
         ),
         graph_trans: &crate::GraphTranslator,
         buffers: &mut crate::Buffers<Box<dyn crate::BoxedShallowCopy>>,
-    ) -> crate::Operation<Box<dyn crate::BoxedShallowCopy>, T>;
+    ) -> (usize, crate::Operation<Box<dyn crate::BoxedShallowCopy>, T>);
 }

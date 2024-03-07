@@ -221,7 +221,14 @@ impl<T, Mods> Lazy<Mods, T> {
         let unary_ops = cache_traces
             .into_iter()
             .map(|mut cache_trace| {
-                let mut ids = vec![cache_trace.cache_idx];
+                // graph idx is incremented by 1 if a new leaf is added, op count is usually only incremented when retrieving 
+                // TODO e.g. add another tranlation to idx without leafs
+                let mut ids = vec![cache_trace.cache_idx -1];
+                
+                for uci in cache_trace.use_cache_idxs.iter_mut() {
+                    *uci -= 1;
+                }
+
                 ids.append(&mut cache_trace.use_cache_idxs);
                 (
                     ids.iter()
@@ -239,7 +246,12 @@ impl<T, Mods> Lazy<Mods, T> {
         let mut buffers = self.buffers.borrow_mut();
 
         for unary_ops in unary_ops {
-            device.fuse_unary_ops(&graph, unary_ops, &graph_trans, &mut buffers);
+            // skip first as first node is used for fusing
+            for to_no_op_idx in unary_ops.1.iter().skip(1) {
+                graph.operations[*to_no_op_idx] = Operation::no_op();
+            } 
+            let (update_idx, op) = device.fuse_unary_ops(&graph, unary_ops, &graph_trans, &mut buffers);
+            graph.operations[update_idx] = op;
         }
 
         // for mut cache_trace in cache_traces {

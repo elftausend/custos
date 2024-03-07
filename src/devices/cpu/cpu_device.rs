@@ -1,7 +1,9 @@
-use core::{convert::Infallible, ops};
+use core::convert::Infallible;
 
 use crate::{
-    cpu::CPUPtr, flag::AllocFlag, impl_device_traits, AddLayer, Alloc, AsAny, Base, Buffer, CloneBuf, Device, DevicelessAble, HasModules, IsShapeIndep, Module, NoId, OnDropBuffer, OnNewBuffer, RemoveLayer, Resolve, Setup, Shape, UnaryFusing, WrappedData
+    cpu::CPUPtr, flag::AllocFlag, impl_device_traits, AddLayer, Alloc, AsAny, Base, Buffer,
+    CloneBuf, Device, DevicelessAble, HasModules, IsShapeIndep, Module, NoId, OnDropBuffer,
+    OnNewBuffer, RemoveLayer, Resolve, Setup, Shape, UnaryFusing, WrappedData,
 };
 
 pub trait IsCPU {}
@@ -199,7 +201,7 @@ impl<Mods: OnDropBuffer + 'static> UnaryFusing for CPU<Mods> {
         ),
         graph_trans: &crate::GraphTranslator,
         buffers: &mut crate::Buffers<Box<dyn crate::BoxedShallowCopy>>,
-    ) -> crate::Operation<Box<dyn crate::BoxedShallowCopy>, T> {
+    ) -> (usize, crate::Operation<Box<dyn crate::BoxedShallowCopy>, T>) {
         use crate::{AsNoId, LazyGraph};
 
         let (ops, affected_op_idxs) = ops;
@@ -223,7 +225,6 @@ impl<Mods: OnDropBuffer + 'static> UnaryFusing for CPU<Mods> {
             &*(buffers.get(&arg_ids[1]).unwrap().as_any() as *const Buffer<T, CPU<Mods>, ()>)
         };
 
-
         let op: fn(
             &mut (
                 &mut Buffer<'_, T, CPU<Mods>, ()>,
@@ -236,7 +237,7 @@ impl<Mods: OnDropBuffer + 'static> UnaryFusing for CPU<Mods> {
                 for op in ops.iter() {
                     let resolve = Resolve {
                         val: current_val,
-                        marker: "x"
+                        marker: "x",
                     };
                     current_val = op(resolve).eval();
                 }
@@ -245,7 +246,9 @@ impl<Mods: OnDropBuffer + 'static> UnaryFusing for CPU<Mods> {
             Ok(())
         };
 
-        unsafe { LazyGraph::convert_to_operation((out, buf, ops.no_id()), op) }
+        (to_insert_idx, unsafe {
+            LazyGraph::convert_to_operation((out, buf, ops.no_id()), op)
+        })
         // lazy_graph.add_operation((out, buf, ops.no_id()), op);
 
         // let out = unsafe { &*(args[0].as_any_mut() as *const Buffer<T, CPU<Mods>, ()>) };

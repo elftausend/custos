@@ -13,6 +13,17 @@ pub struct Operation<B, T> {
     pub args: Box<dyn UpdateArgsDynable<B>>,
 }
 
+impl<B: AsAny, T> Operation<B, T> {
+    pub fn no_op() -> Self {
+        Self {
+            op_hint: OpHint::None,
+            arg_ids: Vec::new(),
+            op: |_: *mut ()| Ok(()),
+            args: Box::new(()),
+        }
+    }
+}
+
 pub struct LazyGraph<B = Box<dyn BoxedShallowCopy>, T = ()> {
     pub operations: Vec<Operation<B, T>>,
 }
