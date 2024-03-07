@@ -1,9 +1,7 @@
-use core::convert::Infallible;
+use core::{convert::Infallible, ops};
 
 use crate::{
-    cpu::CPUPtr, flag::AllocFlag, impl_device_traits, AddLayer, Alloc, Base, Buffer, CloneBuf,
-    Device, DevicelessAble, HasModules, IsShapeIndep, Module, OnDropBuffer, OnNewBuffer,
-    RemoveLayer, Setup, Shape, WrappedData,
+    cpu::CPUPtr, flag::AllocFlag, impl_device_traits, AddLayer, Alloc, AsAny, Base, Buffer, CloneBuf, Device, DevicelessAble, HasModules, IsShapeIndep, Module, NoId, OnDropBuffer, OnNewBuffer, RemoveLayer, Resolve, Setup, Shape, UnaryFusing, WrappedData
 };
 
 pub trait IsCPU {}
@@ -186,6 +184,74 @@ impl<'a, Mods: OnDropBuffer + OnNewBuffer<T, Self, S>, T: Clone, S: Shape> Clone
         let mut cloned = Buffer::new(self, buf.len());
         cloned.clone_from_slice(buf);
         cloned
+    }
+}
+
+impl<Mods: OnDropBuffer + 'static> UnaryFusing for CPU<Mods> {
+    #[cfg(feature = "lazy")]
+    #[cfg(feature = "graph")]
+    fn fuse_unary_ops<T: Copy + 'static>(
+        &self,
+        lazy_graph: &crate::LazyGraph<Box<dyn crate::BoxedShallowCopy>, T>,
+        ops: (
+            Vec<std::rc::Rc<dyn Fn(crate::Resolve<T>) -> Box<dyn crate::TwoWay<T>>>>,
+            Vec<usize>,
+        ),
+        graph_trans: &crate::GraphTranslator,
+        buffers: &mut crate::Buffers<Box<dyn crate::BoxedShallowCopy>>,
+    ) -> crate::Operation<Box<dyn crate::BoxedShallowCopy>, T> {
+        use crate::{AsNoId, LazyGraph};
+
+        let (ops, affected_op_idxs) = ops;
+        let to_insert_idx: usize = affected_op_idxs[0];
+
+        let first_op = &lazy_graph.operations[to_insert_idx];
+
+        let arg_ids = first_op
+            .arg_ids
+            .iter()
+            .flatten()
+            .copied()
+            .collect::<Vec<_>>();
+
+        let out = unsafe {
+            &mut *(buffers.get_mut(&arg_ids[0]).unwrap().as_any_mut()
+                as *mut Buffer<T, CPU<Mods>, ()>)
+        };
+
+        let buf = unsafe {
+            &*(buffers.get(&arg_ids[1]).unwrap().as_any() as *const Buffer<T, CPU<Mods>, ()>)
+        };
+
+
+        let op: fn(
+            &mut (
+                &mut Buffer<'_, T, CPU<Mods>, ()>,
+                &Buffer<'_, T, CPU<Mods>, ()>,
+                NoId<Vec<std::rc::Rc<dyn Fn(Resolve<T>) -> Box<dyn crate::TwoWay<T>>>>>,
+            ),
+        ) -> crate::Result<()> = |(out, buf, ops)| {
+            for (out, buf) in out.iter_mut().zip(buf.iter()) {
+                let mut current_val = *buf;
+                for op in ops.iter() {
+                    let resolve = Resolve {
+                        val: current_val,
+                        marker: "x"
+                    };
+                    current_val = op(resolve).eval();
+                }
+                *out = current_val;
+            }
+            Ok(())
+        };
+
+        unsafe { LazyGraph::convert_to_operation((out, buf, ops.no_id()), op) }
+        // lazy_graph.add_operation((out, buf, ops.no_id()), op);
+
+        // let out = unsafe { &*(args[0].as_any_mut() as *const Buffer<T, CPU<Mods>, ()>) };
+
+        // .downcast_ref::<Buffer<T, CPU<Mods>, ()>>()
+        // .unwrap();
     }
 }
 

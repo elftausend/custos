@@ -531,7 +531,7 @@ pub trait Optimize {
         graph_translator: Option<&crate::modules::GraphTranslator>,
     ) -> crate::Result<()>;
 
-    fn unary_fusing<D: 'static>(
+    fn unary_fusing<D: crate::UnaryFusing + 'static>(
         &self,
         device: &D,
         graph_translator: Option<&crate::modules::GraphTranslator>,
@@ -549,7 +549,7 @@ macro_rules! pass_down_optimize_mem_graph {
             ) -> $crate::Result<()> {
                 self.modules.optimize_mem_graph(device, graph_translator)
             }
-            fn unary_fusing<D: 'static>(
+            fn unary_fusing<D: $crate::UnaryFusing + 'static>(
                 &self,
                 device: &D,
                 graph_translator: Option<&$crate::modules::GraphTranslator>,

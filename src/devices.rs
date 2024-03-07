@@ -39,7 +39,7 @@ pub use alloc::*;
 #[cfg(any(feature = "cpu", feature = "stack"))]
 pub mod cpu_stack_ops;
 
-use crate::{Buffer, HasId, OnDropBuffer, Parents, PtrType, Shape};
+use crate::{Buffer, HasId, IsShapeIndep, OnDropBuffer, Parents, PtrType, Shape};
 
 /// The `Device` trait is the main trait for all compute devices.
 pub trait Device: OnDropBuffer + Sized {
@@ -159,4 +159,19 @@ macro_rules! impl_retriever {
     ($device:ident) => {
         $crate::impl_retriever!($device, Sized);
     }
+}
+
+pub trait UnaryFusing: IsShapeIndep {
+    #[cfg(feature = "lazy")]
+    #[cfg(feature = "graph")]
+    fn fuse_unary_ops<T: Copy + 'static>(
+        &self,
+        lazy_graph: &crate::LazyGraph<Box<dyn crate::BoxedShallowCopy>, T>,
+        ops: (
+            Vec<std::rc::Rc<dyn Fn(crate::Resolve<T>) -> Box<dyn crate::TwoWay<T>>>>,
+            Vec<usize>,
+        ),
+        graph_trans: &crate::GraphTranslator,
+        buffers: &mut crate::Buffers<Box<dyn crate::BoxedShallowCopy>>,
+    ) -> crate::Operation<Box<dyn crate::BoxedShallowCopy>, T>;
 }

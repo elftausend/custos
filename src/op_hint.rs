@@ -4,7 +4,7 @@ use crate::Resolve;
 
 pub enum OpHint<T> {
     #[cfg(feature = "std")]
-    Unary(Box<dyn Fn(Resolve<T>) -> Box<dyn crate::TwoWay<T>>>),
+    Unary(std::rc::Rc<dyn Fn(Resolve<T>) -> Box<dyn crate::TwoWay<T>>>),
     None,
     PhantomData(PhantomData<T>),
 }
@@ -17,7 +17,7 @@ pub fn unary<T, O: crate::TwoWay<T> + 'static>(
         let op: Box<dyn crate::TwoWay<T>> = Box::new(op(x));
         op
     };
-    OpHint::Unary(Box::new(dyn_op))
+    OpHint::Unary(std::rc::Rc::new(dyn_op))
 }
 
 #[cfg(test)]

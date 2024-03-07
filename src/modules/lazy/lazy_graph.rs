@@ -40,11 +40,10 @@ impl<B: AsAny, T> LazyGraph<B, T> {
         self.operations.clear();
     }
 
-    pub fn add_operation<Args: Parents<N> + UpdateArgs, const N: usize>(
-        &mut self,
+    pub unsafe fn convert_to_operation<Args: Parents<N> + UpdateArgs, const N: usize>(
         args: Args,
         op: fn(&mut Args) -> crate::Result<()>,
-    ) {
+    ) -> Operation<B, T> {
         // store ids and test if buffers are still in cache
         let arg_ids = args
             .maybe_ids()
@@ -54,12 +53,21 @@ impl<B: AsAny, T> LazyGraph<B, T> {
 
         let args: Box<dyn UpdateArgsDynable<B>> = Box::new(args);
 
-        self.operations.push(Operation {
+        Operation {
             arg_ids,
-            op: unsafe { transmute(op) },
-            args: unsafe { transmute(args) },
+            op: transmute(op),
+            args: transmute(args),
             op_hint: OpHint::None,
-        })
+        }
+    }
+
+    pub fn add_operation<Args: Parents<N> + UpdateArgs, const N: usize>(
+        &mut self,
+        args: Args,
+        op: fn(&mut Args) -> crate::Result<()>,
+    ) {
+        let operation = unsafe { Self::convert_to_operation(args, op) };
+        self.operations.push(operation)
     }
 
     pub unsafe fn call_lazily<D: Device + 'static>(

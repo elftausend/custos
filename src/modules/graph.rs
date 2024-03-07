@@ -82,7 +82,7 @@ impl<Mods: Optimize> Optimize for Graph<Mods> {
     }
 
     #[inline]
-    fn unary_fusing<D: 'static>(
+    fn unary_fusing<D: crate::UnaryFusing + 'static>(
         &self,
         device: &D,
         graph_translator: Option<&crate::modules::GraphTranslator>,

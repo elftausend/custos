@@ -26,6 +26,7 @@ use std::collections::HashSet;
 
 pub use self::lazy_graph::LazyGraph;
 use self::wrapper::LazyWrapper;
+pub use lazy_graph::*;
 
 type Buffers = crate::Buffers<Box<dyn BoxedShallowCopy>>;
 type AllocatedIds = HashSet<UniqueId, BuildHasherDefault<NoHasher>>;
@@ -204,25 +205,43 @@ impl<T, Mods> Lazy<Mods, T> {
     }
 
     #[cfg(feature = "graph")]
-    fn fuse_unary_ops<D: 'static>(
+    fn fuse_unary_ops<D>(
         &self,
         device: &D,
         graph_trans: &crate::GraphTranslator,
-    ) -> crate::Result<()> {
+    ) -> crate::Result<()>
+    where
+        D: crate::UnaryFusing + 'static,
+        T: Copy + 'static,
+    {
         let cache_traces = graph_trans.opt_graph.cache_traces();
-        let ops = &self.graph.borrow().operations;
-        let unary_ops = cache_traces.into_iter().map(|mut cache_trace| {
-            let mut ids = vec![cache_trace.cache_idx];
-            ids.append(&mut cache_trace.use_cache_idxs);
-            (ids.iter()
-                .map_while(|id| match &ops[*id].op_hint {
-                    OpHint::Unary(op) => Some(op),
-                    OpHint::None => None,
-                    OpHint::PhantomData(_) => None,
-                })
-                .collect::<Vec<_>>(), ids)
-        }).collect::<Vec<_>>();
-        
+        let mut graph = self.graph.borrow_mut();
+        let ops = &graph.operations;
+
+        let unary_ops = cache_traces
+            .into_iter()
+            .map(|mut cache_trace| {
+                let mut ids = vec![cache_trace.cache_idx];
+                ids.append(&mut cache_trace.use_cache_idxs);
+                (
+                    ids.iter()
+                        .map_while(|id| match &ops[*id].op_hint {
+                            OpHint::Unary(op) => Some(op.clone()),
+                            OpHint::None => None,
+                            OpHint::PhantomData(_) => None,
+                        })
+                        .collect::<Vec<_>>(),
+                    ids,
+                )
+            })
+            .collect::<Vec<_>>();
+
+        let mut buffers = self.buffers.borrow_mut();
+
+        for unary_ops in unary_ops {
+            device.fuse_unary_ops(&graph, unary_ops, &graph_trans, &mut buffers);
+        }
+
         // for mut cache_trace in cache_traces {
         //     vec![cache_trace.cache_idx].append(&mut cache_trace.use_cache_idxs)
         // }
@@ -457,7 +476,7 @@ impl<T: 'static, D: Device + 'static, S: Shape, Mods: OnDropBuffer, T2> ReplaceB
 }
 
 #[cfg(feature = "graph")]
-impl<T, Mods> crate::Optimize for Lazy<Mods, T> {
+impl<T: Copy + 'static, Mods> crate::Optimize for Lazy<Mods, T> {
     #[inline]
     fn optimize_mem_graph<D: 'static>(
         &self,
@@ -472,7 +491,7 @@ impl<T, Mods> crate::Optimize for Lazy<Mods, T> {
     }
 
     #[inline]
-    fn unary_fusing<D: 'static>(
+    fn unary_fusing<D: crate::UnaryFusing + 'static>(
         &self,
         device: &D,
         graph_translator: Option<&crate::GraphTranslator>,
