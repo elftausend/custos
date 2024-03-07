@@ -202,7 +202,7 @@ impl<Mods: OnDropBuffer + 'static> UnaryFusing for CPU<Mods> {
         graph_trans: &crate::GraphTranslator,
         buffers: &mut crate::Buffers<Box<dyn crate::BoxedShallowCopy>>,
     ) -> (usize, crate::Operation<Box<dyn crate::BoxedShallowCopy>, T>) {
-        use crate::{AsNoId, LazyGraph};
+        use crate::{AsNoId, HasId, LazyGraph};
 
         let (ops, affected_op_idxs) = ops;
         let to_insert_idx: usize = affected_op_idxs[0];
@@ -246,9 +246,14 @@ impl<Mods: OnDropBuffer + 'static> UnaryFusing for CPU<Mods> {
             Ok(())
         };
 
-        (to_insert_idx, unsafe {
+        let mut operation = unsafe {
             LazyGraph::convert_to_operation((out, buf, ops.no_id()), op)
-        })
+        };
+        // using the buffers out of the 'buffers' hashmaps results in using allocated buffers that are not in the 'buffers' hashmap
+        // if the lazy graph is executed, it updates the references to the corresponding buffers -> new ids would not be found -> invalid lazy buffer panic
+        operation.arg_ids = vec![Some(arg_ids[0]), Some(arg_ids[1]), None];
+
+        (to_insert_idx, operation)
         // lazy_graph.add_operation((out, buf, ops.no_id()), op);
 
         // let out = unsafe { &*(args[0].as_any_mut() as *const Buffer<T, CPU<Mods>, ()>) };

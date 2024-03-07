@@ -17,7 +17,7 @@ impl<B: AsAny, T> Operation<B, T> {
     pub fn no_op() -> Self {
         Self {
             op_hint: OpHint::None,
-            arg_ids: Vec::new(),
+            arg_ids: vec![None],
             op: |_: *mut ()| Ok(()),
             args: Box::new(()),
         }
