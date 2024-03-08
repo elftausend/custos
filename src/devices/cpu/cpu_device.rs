@@ -192,56 +192,17 @@ impl<'a, Mods: OnDropBuffer + OnNewBuffer<T, Self, S>, T: Clone, S: Shape> Clone
 impl<Mods: OnDropBuffer + 'static> UnaryFusing for CPU<Mods> {
     #[cfg(feature = "lazy")]
     #[cfg(feature = "graph")]
-    fn fuse_unary_ops<T: Copy + 'static>(
+    #[inline]
+    fn unary_fuse_op<T: Copy + 'static>(
         &self,
-        lazy_graph: &crate::LazyGraph<Box<dyn crate::BoxedShallowCopy>, T>,
-        ops: (
-            Vec<std::rc::Rc<dyn Fn(crate::Resolve<T>) -> Box<dyn crate::TwoWay<T>>>>,
-            Vec<usize>,
+    ) -> fn(
+        &mut (
+            &mut Buffer<'_, T, Self, ()>,
+            &Buffer<'_, T, Self, ()>,
+            crate::NoId<Vec<std::rc::Rc<dyn Fn(crate::Resolve<T>) -> Box<dyn crate::TwoWay<T>>>>>,
         ),
-        graph_trans: &crate::GraphTranslator,
-        buffers: &mut crate::Buffers<Box<dyn crate::BoxedShallowCopy>>,
-    ) -> (usize, crate::Operation<Box<dyn crate::BoxedShallowCopy>, T>) {
-        use crate::{AsNoId, HasId, LazyGraph};
-
-        let (ops, affected_op_idxs) = ops;
-        let to_insert_idx: usize = affected_op_idxs[0];
-
-        let first_op = &lazy_graph.operations[to_insert_idx];
-
-        let first_arg_ids = first_op
-            .arg_ids
-            .iter()
-            .flatten()
-            .copied()
-            .collect::<Vec<_>>();
-
-        let last_op = &lazy_graph.operations[*affected_op_idxs.last().unwrap()];
-
-        // use last op in the unary fuse chain as the output buffer
-        let last_arg_ids = last_op
-            .arg_ids
-            .iter()
-            .flatten()
-            .copied()
-            .collect::<Vec<_>>();
-
-        let out = unsafe {
-            &mut *(buffers.get_mut(&last_arg_ids[0]).unwrap().as_any_mut()
-                as *mut Buffer<T, CPU<Mods>, ()>)
-        };
-
-        let buf = unsafe {
-            &*(buffers.get(&first_arg_ids[1]).unwrap().as_any() as *const Buffer<T, CPU<Mods>, ()>)
-        };
-
-        let op: fn(
-            &mut (
-                &mut Buffer<'_, T, CPU<Mods>, ()>,
-                &Buffer<'_, T, CPU<Mods>, ()>,
-                NoId<Vec<std::rc::Rc<dyn Fn(Resolve<T>) -> Box<dyn crate::TwoWay<T>>>>>,
-            ),
-        ) -> crate::Result<()> = |(out, buf, ops)| {
+    ) -> crate::Result<()> {
+        |(out, buf, ops)| {
             for (out, buf) in out.iter_mut().zip(buf.iter()) {
                 let mut current_val = *buf;
                 for op in ops.iter() {
@@ -254,22 +215,7 @@ impl<Mods: OnDropBuffer + 'static> UnaryFusing for CPU<Mods> {
                 *out = current_val;
             }
             Ok(())
-        };
-
-        let mut operation = unsafe {
-            LazyGraph::convert_to_operation((out, buf, ops.no_id()), op)
-        };
-        // using the buffers out of the 'buffers' hashmaps results in using allocated buffers that are not in the 'buffers' hashmap
-        // if the lazy graph is executed, it updates the references to the corresponding buffers -> new ids would not be found -> invalid lazy buffer panic
-        operation.arg_ids = vec![Some(last_arg_ids[0]), Some(first_arg_ids[1]), None];
-
-        (to_insert_idx, operation)
-        // lazy_graph.add_operation((out, buf, ops.no_id()), op);
-
-        // let out = unsafe { &*(args[0].as_any_mut() as *const Buffer<T, CPU<Mods>, ()>) };
-
-        // .downcast_ref::<Buffer<T, CPU<Mods>, ()>>()
-        // .unwrap();
+        }
     }
 }
 

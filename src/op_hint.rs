@@ -116,22 +116,22 @@ mod tests {
 
         dev.optimize_mem_graph(&dev, None).unwrap();
         dev.unary_fusing(&dev, None).unwrap();
-        unsafe { dev.run().unwrap()};
+        unsafe { dev.run().unwrap() };
 
-/*        let mut out = buf.clone();
+        /*        let mut out = buf.clone();
 
-        for out in out.iter_mut() {
-            for op in &dev.modules.modules.graph.borrow().operations {
-                let resolve = Resolve {
-                    val: *out,
-                    marker: "x",
-                };
-                if let OpHint::Unary(op) = &op.op_hint {
-                    *out = op(resolve).eval();
+                for out in out.iter_mut() {
+                    for op in &dev.modules.modules.graph.borrow().operations {
+                        let resolve = Resolve {
+                            val: *out,
+                            marker: "x",
+                        };
+                        if let OpHint::Unary(op) = &op.op_hint {
+                            *out = op(resolve).eval();
+                        }
+                    }
                 }
-            }
-        }
-*/
+        */
         for (buf, out) in buf.iter().zip(_out.replace().iter()) {
             assert_eq!(*out, buf.sin().cos().ln());
         }
