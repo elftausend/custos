@@ -10,6 +10,8 @@ use super::{Combiner, Eval};
 pub use cmps::*;
 pub use unary::*;
 
+// TODO: maybe use a macro to generate these
+
 pub struct Mul<C, R> {
     comb: C,
     rhs: R,

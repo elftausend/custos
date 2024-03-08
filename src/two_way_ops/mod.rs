@@ -191,7 +191,7 @@ pub mod tests_ex {
 
     pub fn roughly_eq_slices<T: Float>(lhs: &[T], rhs: &[T]) {
         for (a, b) in lhs.iter().zip(rhs) {
-            if (*a - *b).abs() >= T::as_generic(0.1) {
+            if Float::abs(&(*a - *b)) >= T::as_generic(0.1) {
                 panic!(
                     "Slices 
                     left {lhs:?} 

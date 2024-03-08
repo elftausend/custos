@@ -118,22 +118,38 @@ mod tests {
         dev.unary_fusing(&dev, None).unwrap();
         unsafe { dev.run().unwrap() };
 
-        /*        let mut out = buf.clone();
-
-                for out in out.iter_mut() {
-                    for op in &dev.modules.modules.graph.borrow().operations {
-                        let resolve = Resolve {
-                            val: *out,
-                            marker: "x",
-                        };
-                        if let OpHint::Unary(op) = &op.op_hint {
-                            *out = op(resolve).eval();
-                        }
-                    }
-                }
-        */
         for (buf, out) in buf.iter().zip(_out.replace().iter()) {
             assert_eq!(*out, buf.sin().cos().ln());
+        }
+    }
+    
+    #[cfg(feature = "cpu")]
+    #[cfg(feature = "lazy")]
+    #[cfg(feature = "graph")]
+    #[test]
+    fn test_op_hint_unary_chain_fuse_graph_complex() {
+        use crate::{ApplyFunction, Base, Combiner, Device, Graph, Lazy, Optimize, Run, CPU};
+
+        let dev = CPU::<Graph<Lazy<Base>>>::new();
+
+        let buf = dev.buffer([1., 2., 3., 4., 5.]);
+        let rhs = dev.buffer([8., 2., 3., 4., 5.]);
+        let out1 = dev.apply_fn(&buf, |x| x.sin());
+        let out = dev.apply_fn(&rhs, |x| x.sin());
+        let _out2 = dev.apply_fn(&out, |x| x.cos());
+        let out1 = dev.apply_fn(&out1, |x| x.abs());
+        let _out = dev.apply_fn(&out1, |x| x.ln());
+
+        dev.optimize_mem_graph(&dev, None).unwrap();
+        dev.unary_fusing(&dev, None).unwrap();
+        unsafe { dev.run().unwrap() };
+
+        for (buf, out) in buf.iter().zip(_out.replace().iter()) {
+            assert_eq!(*out, buf.sin().abs().ln());
+        }
+        
+        for (buf, out) in rhs.iter().zip(_out2.replace().iter()) {
+            assert_eq!(*out, buf.sin().cos());
         }
     }
 

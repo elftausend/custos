@@ -174,3 +174,24 @@ impl<C: ToCLSource> ToCLSource for Ln<C> {
         format!("log({})", self.comb.to_cl_source())
     }
 }
+
+pub struct Abs<C> {
+    pub comb: C,
+}
+
+impl<C> Combiner for Abs<C> {}
+
+impl<T: Float, C: Eval<T>> Eval<T> for Abs<C> {
+    #[inline]
+    fn eval(&self) -> T {
+        Float::abs(&self.comb.eval())
+    }
+}
+
+#[cfg(feature = "std")]
+impl<C: ToCLSource> ToCLSource for Abs<C> {
+    #[inline]
+    fn to_cl_source(&self) -> String {
+        format!("abs({})", self.comb.to_cl_source())
+    }
+}
