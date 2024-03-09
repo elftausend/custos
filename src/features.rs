@@ -510,9 +510,6 @@ macro_rules! pass_down_use_gpu_or_cpu {
 #[cfg(feature = "autograd")]
 pass_down_use_gpu_or_cpu!(Autograd);
 
-#[cfg(feature = "lazy")]
-pass_down_use_gpu_or_cpu!(Lazy);
-
 pub trait UseGpuOrCpu {
     fn use_cpu_or_gpu(
         &self,

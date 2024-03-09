@@ -316,6 +316,10 @@ impl<Mods: OnDropBuffer> UnaryFusing for OpenCL<Mods> {
         ),
     ) -> crate::Result<()> {
         |(out, buf, ops)| {
+            if ops.is_empty() {
+                return Ok(());
+            }
+
             let mut fused_operation = String::new();
             for op in &**ops {
                 let resolve = crate::Resolve {
@@ -328,6 +332,7 @@ impl<Mods: OnDropBuffer> UnaryFusing for OpenCL<Mods> {
                     marker = resolve.marker,
                     src = op(resolve).to_cl_source()
                 ));
+                println!("fused_operation: {fused_operation}");
             }
 
             let src = format!(
@@ -344,6 +349,8 @@ impl<Mods: OnDropBuffer> UnaryFusing for OpenCL<Mods> {
             ",
                 datatype = T::C_DTYPE_STR,
             );
+
+            println!("src: {src}");
 
             buf.device().launch_kernel(
                 &src,

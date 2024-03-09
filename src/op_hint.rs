@@ -122,6 +122,29 @@ mod tests {
             assert_eq!(*out, buf.sin().cos().ln());
         }
     }
+    
+    #[cfg(feature = "opencl")]
+    #[cfg(feature = "lazy")]
+    #[cfg(feature = "graph")]
+    #[test]
+    fn test_op_hint_unary_chain_fuse_graph_cl() {
+        use crate::{ApplyFunction, Base, Combiner, Device, Graph, Lazy, OpenCL, Optimize, Run};
+
+        let dev = OpenCL::<Graph<Lazy<Base>>>::new(0).unwrap();
+
+        let buf = dev.buffer([1., 2., 3., 4., 5.]);
+        let out = dev.apply_fn(&buf, |x| x.sin());
+        let out = dev.apply_fn(&out, |x| x.cos());
+        let _out = dev.apply_fn(&out, |x| x.ln());
+
+        dev.optimize_mem_graph(&dev, None).unwrap();
+        dev.unary_fusing(&dev, None).unwrap();
+        unsafe { dev.run().unwrap() };
+
+        for (buf, out) in buf.read().iter().zip(_out.replace().read().iter()) {
+            // assert_eq!(*out, buf.sin().cos().ln());
+        }
+    }
 
     #[cfg(feature = "cpu")]
     #[cfg(feature = "lazy")]

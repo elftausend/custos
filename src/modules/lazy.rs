@@ -11,7 +11,7 @@ use crate::{
     op_hint::OpHint, register_buf_copyable, unregister_buf_copyable, AddLayer, AddOperation, Alloc,
     BoxedShallowCopy, Buffer, CachedBuffers, Cursor, Device, ExecNow, HasId, Id, IsShapeIndep,
     Module, NoHasher, OnDropBuffer, OnNewBuffer, Parents, ReplaceBuf, Retrieve, RunModule,
-    SetOpHint, Setup, ShallowCopy, Shape, UniqueId, UpdateArgs,
+    SetOpHint, Setup, ShallowCopy, Shape, UniqueId, UpdateArgs, UseGpuOrCpu,
 };
 
 #[cfg(feature = "graph")]
@@ -390,6 +390,18 @@ impl<T: 'static, D: Device + 'static, S: Shape, Mods: OnDropBuffer, T2> ReplaceB
     }
 }
 
+impl<T, Mods: UseGpuOrCpu> UseGpuOrCpu for Lazy<Mods, T> {
+    fn use_cpu_or_gpu(
+        &self,
+        location: crate::HashLocation<'static>,
+        input_lengths: &[usize],
+        cpu_op: impl FnMut(),
+        gpu_op: impl FnMut(),
+    ) -> crate::GpuOrCpuInfo {
+        self.modules.use_cpu_or_gpu(location, input_lengths, cpu_op, gpu_op)
+    }
+}
+
 #[cfg(feature = "graph")]
 impl<T: crate::Numeric + crate::CDatatype, Mods> crate::Optimize for Lazy<Mods, T> {
     #[inline]
@@ -566,7 +578,7 @@ mod tests {
     fn test_lazy_apply_fn_with_run_cl() {
         use crate::{ApplyFunction, OpenCL, Run};
 
-        let device = OpenCL::<Lazy<Base>>::new(0).unwrap();
+        let device = OpenCL::<Lazy<Base, i32>>::new(0).unwrap();
 
         let buf = Buffer::<i32, _>::new(&device, 10);
         let out = device.apply_fn(&buf, |x| x.add(3));
