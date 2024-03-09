@@ -1,4 +1,4 @@
-use core::marker::PhantomData;
+use core::{fmt::Debug, marker::PhantomData};
 
 use crate::Resolve;
 
@@ -6,7 +6,20 @@ pub enum OpHint<T> {
     #[cfg(feature = "std")]
     Unary(std::rc::Rc<dyn Fn(Resolve<T>) -> Box<dyn crate::TwoWay<T>>>),
     None,
+    UnaryFused,
     PhantomData(PhantomData<T>),
+}
+
+impl<T> Debug for OpHint<T> {
+    #[inline]
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        match self {
+            OpHint::Unary(_) => write!(f, "Unary(...)"),
+            OpHint::None => write!(f, "None"),
+            OpHint::PhantomData(_) => write!(f, "PhantomData"),
+            OpHint::UnaryFused => write!(f, "UnaryFused"),
+        }
+    }
 }
 
 #[cfg(feature = "std")]
@@ -122,7 +135,7 @@ mod tests {
             assert_eq!(*out, buf.sin().cos().ln());
         }
     }
-    
+
     #[cfg(feature = "opencl")]
     #[cfg(feature = "lazy")]
     #[cfg(feature = "graph")]
@@ -142,7 +155,7 @@ mod tests {
         unsafe { dev.run().unwrap() };
 
         for (buf, out) in buf.read().iter().zip(_out.replace().read().iter()) {
-            // assert_eq!(*out, buf.sin().cos().ln());
+            assert_eq!(*out, buf.sin().cos().ln());
         }
     }
 
@@ -180,14 +193,12 @@ mod tests {
     #[cfg(feature = "lazy")]
     #[ignore = "too long runtime"]
     #[test]
-    fn test_op_hint_unary_chain_fuse_perf() {
+    fn test_op_hint_unary_chain_fuse_manual_perf() {
         use std::time::Instant;
 
         use crate::{ApplyFunction, Base, Combiner, Device, Lazy, CPU};
 
         let dev = CPU::<Lazy<Base>>::new();
-
-        const N: usize = 100000000;
 
         let buf = dev.buffer::<_, (), _>(vec![1.; N]);
         let out = dev.apply_fn(&buf, |x| x.sin());
@@ -226,6 +237,49 @@ mod tests {
 
         for (should, out) in should.iter().zip(out.iter()) {
             assert_eq!(out, should);
+        }
+    }
+
+    const N: usize = 100000000;
+
+    #[cfg(feature = "opencl")]
+    #[cfg(feature = "lazy")]
+    #[ignore = "too long runtime"]
+    #[test]
+    fn test_op_hint_unary_chain_fuse_automatic_perf() {
+        use std::time::Instant;
+
+        use crate::{
+            ApplyFunction, Base, Combiner, Device, Graph, Lazy, OpenCL, Optimize, Run, CPU,
+        };
+
+        // let dev = CPU::<Graph<Lazy<Base>>>::new();
+        let dev = OpenCL::<Graph<Lazy<Base>>>::new(0).unwrap();
+
+        let buf = dev.buffer::<_, (), _>(vec![1.; N]);
+        let out = dev.apply_fn(&buf, |x| x.sin());
+        let out = dev.apply_fn(&out, |x| x.cos());
+        let out = dev.apply_fn(&out, |x| x.ln());
+
+        let start = Instant::now();
+        dev.optimize_mem_graph(&dev, None).unwrap();
+        println!("optimize mem graph: {:?}", start.elapsed());
+        let start = Instant::now();
+
+        dev.unary_fusing(&dev, None).unwrap();
+      
+        println!("unary fusing: {:?}", start.elapsed());
+
+        unsafe { dev.run().unwrap() };
+
+        let start = Instant::now();
+
+        unsafe { dev.run().unwrap() };
+
+        println!("perf automatic fusing: {:?}", start.elapsed());
+
+        for (buf, out) in buf.read().iter().zip(out.replace().read().iter()) {
+            assert_eq!(*out, buf.sin().cos().ln());
         }
     }
 }

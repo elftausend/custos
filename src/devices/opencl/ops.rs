@@ -9,7 +9,10 @@ use min_cl::{
 };
 
 use crate::{
-    bounds_to_range, cpu_stack_ops::clear_slice, location, op_hint::unary, pass_down_add_operation, pass_down_exec_now, prelude::Number, AddOperation, ApplyFunction, AsNoId, BufAsNoId, Buffer, CDatatype, ClearBuf, CopySlice, Eval, OnDropBuffer, OpenCL, Read, Resolve, Retrieve, Retriever, SetOpHint, Shape, ToCLSource, ToMarker, UnaryGrad, UseGpuOrCpu, WriteBuf, ZeroGrad
+    bounds_to_range, cpu_stack_ops::clear_slice, location, op_hint::unary, pass_down_add_operation,
+    pass_down_exec_now, prelude::Number, AddOperation, ApplyFunction, AsNoId, BufAsNoId, Buffer,
+    CDatatype, ClearBuf, CopySlice, Eval, OnDropBuffer, OpenCL, Read, Resolve, Retrieve, Retriever,
+    SetOpHint, Shape, ToCLSource, ToMarker, UnaryGrad, UseGpuOrCpu, WriteBuf, ZeroGrad,
 };
 
 use super::{enqueue_kernel, CLPtr};
@@ -200,7 +203,7 @@ where
     {
         let mut out = self.retrieve(buf.len(), buf);
 
-        self.add_op((buf, f.no_id(), &mut out), |(buf, f, out)| {
+        self.add_op((&mut out, buf, f.no_id()), |(out, buf, f)| {
             let dev = buf.device();
             // let out: &mut Buffer<'_, T, OpenCL<Mods>, S> = out.as_mut().unwrap();
             let out = &mut **out;

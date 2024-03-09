@@ -185,7 +185,6 @@ pub trait UnaryFusing: IsShapeIndep {
             Vec<std::rc::Rc<dyn Fn(crate::Resolve<T>) -> Box<dyn crate::TwoWay<T>>>>,
             Vec<usize>,
         ),
-        graph_trans: &crate::GraphTranslator,
         buffers: &mut crate::Buffers<Box<dyn crate::BoxedShallowCopy>>,
     ) -> (usize, crate::Operation<Box<dyn crate::BoxedShallowCopy>, T>)
     where
@@ -230,6 +229,7 @@ pub trait UnaryFusing: IsShapeIndep {
         // using the buffers out of the 'buffers' hashmaps results in using allocated buffers that are not in the 'buffers' hashmap
         // if the lazy graph is executed, it updates the references to the corresponding buffers -> new ids would not be found -> invalid lazy buffer panic
         operation.arg_ids = vec![Some(last_arg_ids[0]), Some(first_arg_ids[1]), None];
+        operation.op_hint = crate::op_hint::OpHint::UnaryFused;
 
         (to_insert_idx, operation)
     }

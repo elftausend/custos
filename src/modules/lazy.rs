@@ -1,9 +1,9 @@
 mod exec_iter;
 mod lazy_graph;
-mod ty;
-mod wrapper;
 #[cfg(feature = "graph")]
 mod optimization;
+mod ty;
+mod wrapper;
 
 pub use ty::*;
 
@@ -155,7 +155,7 @@ impl<T, Mods> Lazy<Mods, T> {
         Ok(())
     }
 
-    fn alloc_later<D: 'static>(&self, device: &D) {
+    pub fn alloc_later<D: 'static>(&self, device: &D) {
         let mut buffers = self.buffers.borrow_mut();
         let mut allocated_ids = self.allocated_ids.borrow_mut();
         for (id, alloc_fn) in self.alloc_later.borrow_mut().drain(..) {
@@ -398,7 +398,8 @@ impl<T, Mods: UseGpuOrCpu> UseGpuOrCpu for Lazy<Mods, T> {
         cpu_op: impl FnMut(),
         gpu_op: impl FnMut(),
     ) -> crate::GpuOrCpuInfo {
-        self.modules.use_cpu_or_gpu(location, input_lengths, cpu_op, gpu_op)
+        self.modules
+            .use_cpu_or_gpu(location, input_lengths, cpu_op, gpu_op)
     }
 }
 

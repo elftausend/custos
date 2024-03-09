@@ -1,7 +1,7 @@
 use crate::{op_hint::OpHint, DeviceError, Lazy, Operation};
 
 impl<T, Mods> Lazy<Mods, T> {
-    pub(super) fn alloc_later_optimized<D: 'static>(
+    pub(crate) fn alloc_later_optimized<D: 'static>(
         &self,
         device: &D,
         graph_trans: &crate::GraphTranslator,
@@ -67,8 +67,7 @@ impl<T, Mods> Lazy<Mods, T> {
                     ids.iter()
                         .map_while(|id| match &ops[*id].op_hint {
                             OpHint::Unary(op) => Some(op.clone()),
-                            OpHint::None => None,
-                            OpHint::PhantomData(_) => None,
+                            _ => None,
                         })
                         .collect::<Vec<_>>(),
                     ids,
@@ -87,7 +86,7 @@ impl<T, Mods> Lazy<Mods, T> {
 
             // safety: only unary ops are fused. Adding unary ops to the graph require type T.
             let (update_idx, op) =
-                unsafe { device.fuse_unary_ops(&graph, unary_ops, &graph_trans, &mut buffers) };
+                unsafe { device.fuse_unary_ops(&graph, unary_ops, &mut buffers) };
             graph.operations[update_idx] = op;
             // only arg id information is required for last op, not the op itself
             graph.operations[last_idx] = Operation::no_op();
