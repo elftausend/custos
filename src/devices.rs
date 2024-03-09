@@ -164,7 +164,7 @@ macro_rules! impl_retriever {
 pub trait UnaryFusing: IsShapeIndep {
     #[cfg(feature = "lazy")]
     #[cfg(feature = "graph")]
-    fn unary_fuse_op<T: Copy + 'static>(
+    fn unary_fuse_op<T: CDatatype + crate::Numeric>(
         &self,
     ) -> fn(
         &mut (
@@ -178,7 +178,7 @@ pub trait UnaryFusing: IsShapeIndep {
     #[cfg(feature = "graph")]
     /// # Safety
     /// Does not check if specific retrieved buffers contain data of type `T`.
-    unsafe fn fuse_unary_ops<T: Copy + 'static>(
+    unsafe fn fuse_unary_ops<T: CDatatype + crate::Numeric>(
         &self,
         lazy_graph: &crate::LazyGraph<Box<dyn crate::BoxedShallowCopy>, T>,
         ops: (
@@ -187,9 +187,9 @@ pub trait UnaryFusing: IsShapeIndep {
         ),
         graph_trans: &crate::GraphTranslator,
         buffers: &mut crate::Buffers<Box<dyn crate::BoxedShallowCopy>>,
-    ) -> (usize, crate::Operation<Box<dyn crate::BoxedShallowCopy>, T>) 
-    where 
-        Self: 'static
+    ) -> (usize, crate::Operation<Box<dyn crate::BoxedShallowCopy>, T>)
+    where
+        Self: 'static,
     {
         use crate::{AsAny, AsNoId};
 
@@ -225,7 +225,8 @@ pub trait UnaryFusing: IsShapeIndep {
         };
 
         let op = self.unary_fuse_op::<T>();
-        let mut operation = unsafe { crate::LazyGraph::convert_to_operation((out, buf, ops.no_id()), op) };
+        let mut operation =
+            unsafe { crate::LazyGraph::convert_to_operation((out, buf, ops.no_id()), op) };
         // using the buffers out of the 'buffers' hashmaps results in using allocated buffers that are not in the 'buffers' hashmap
         // if the lazy graph is executed, it updates the references to the corresponding buffers -> new ids would not be found -> invalid lazy buffer panic
         operation.arg_ids = vec![Some(last_arg_ids[0]), Some(first_arg_ids[1]), None];

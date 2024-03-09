@@ -1,9 +1,9 @@
 use core::convert::Infallible;
 
 use crate::{
-    cpu::CPUPtr, flag::AllocFlag, impl_device_traits, AddLayer, Alloc, AsAny, Base, Buffer,
-    CloneBuf, Device, DevicelessAble, HasModules, IsShapeIndep, Module, NoId, OnDropBuffer,
-    OnNewBuffer, RemoveLayer, Resolve, Setup, Shape, UnaryFusing, WrappedData,
+    cpu::CPUPtr, flag::AllocFlag, impl_device_traits, AddLayer, Alloc, Base, Buffer, CloneBuf,
+    Device, DevicelessAble, HasModules, IsShapeIndep, Module, OnDropBuffer, OnNewBuffer,
+    RemoveLayer, Resolve, Setup, Shape, UnaryFusing, WrappedData,
 };
 
 pub trait IsCPU {}

@@ -122,7 +122,7 @@ mod tests {
             assert_eq!(*out, buf.sin().cos().ln());
         }
     }
-    
+
     #[cfg(feature = "cpu")]
     #[cfg(feature = "lazy")]
     #[cfg(feature = "graph")]
@@ -147,7 +147,7 @@ mod tests {
         for (buf, out) in buf.iter().zip(_out.replace().iter()) {
             assert_eq!(*out, buf.sin().abs().ln());
         }
-        
+
         for (buf, out) in rhs.iter().zip(_out2.replace().iter()) {
             assert_eq!(*out, buf.sin().cos());
         }

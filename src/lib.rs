@@ -129,6 +129,7 @@ pub use hooks::*;
 pub use id::*;
 pub use layer_management::*;
 pub use modules::*;
+pub use number::*;
 pub use parents::*;
 pub use ptr_conv::*;
 pub use range::*;
