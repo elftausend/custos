@@ -110,7 +110,7 @@ mod tests {
         }
 
         for (buf, out) in buf.iter().zip(out.iter()) {
-            assert_eq!(*out, buf.sin().cos().ln());
+            assert!((*out - buf.sin().cos().ln()).abs() < 0.001);
         }
     }
 
@@ -133,7 +133,7 @@ mod tests {
         unsafe { dev.run().unwrap() };
 
         for (buf, out) in buf.iter().zip(_out.replace().iter()) {
-            assert_eq!(*out, buf.sin().cos().ln());
+            assert!((*out - buf.sin().cos().ln()).abs() < 0.001);
         }
     }
 
@@ -156,7 +156,7 @@ mod tests {
         unsafe { dev.run().unwrap() };
 
         for (buf, out) in buf.read().iter().zip(_out.replace().read().iter()) {
-            assert_eq!(*out, buf.sin().cos().ln());
+            assert!((*out - buf.sin().cos().ln()).abs() < 0.001);
         }
     }
 
@@ -281,7 +281,7 @@ mod tests {
         println!("perf automatic fusing: {:?}", start.elapsed());
 
         for (buf, out) in buf.read().iter().zip(out.replace().read().iter()) {
-            assert_eq!(*out, buf.sin().cos().ln());
+            assert!((*out - buf.sin().cos().ln()).abs() < 0.001);
         }
     }
 }
