@@ -245,6 +245,7 @@ mod tests {
 
     #[cfg(feature = "opencl")]
     #[cfg(feature = "lazy")]
+    #[cfg(feature = "graph")]
     #[ignore = "too long runtime"]
     #[test]
     fn test_op_hint_unary_chain_fuse_automatic_perf() {
