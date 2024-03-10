@@ -25,11 +25,9 @@ pub trait MayToCLSource {}
 #[cfg(not(feature = "std"))]
 impl<T> MayToCLSource for T {}
 
-#[cfg(feature = "std")]
-pub trait TwoWay<T>: Eval<T> + ToCLSource {}
+pub trait TwoWay<T>: Eval<T> + MayToCLSource {}
 
-#[cfg(feature = "std")]
-impl<T, A: Eval<T> + ToCLSource> TwoWay<T> for A {}
+impl<T, A: Eval<T> + MayToCLSource> TwoWay<T> for A {}
 
 // impl<T> dyn TwoWay<T> + '_ {
 //     pub fn eval(&self) -> T
@@ -193,7 +191,7 @@ pub mod tests_ex {
 
     pub fn roughly_eq_slices<T: Float>(lhs: &[T], rhs: &[T]) {
         for (a, b) in lhs.iter().zip(rhs) {
-            if (*a - *b).abs() >= T::as_generic(0.1) {
+            if Float::abs(&(*a - *b)) >= T::as_generic(0.1) {
                 panic!(
                     "Slices 
                     left {lhs:?} 

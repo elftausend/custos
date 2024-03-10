@@ -1,5 +1,3 @@
-use crate::Combiner;
-
 /// Evaluates a combined (via [`Combiner`]) math operations chain to a valid OpenCL C (and possibly CUDA) source string.
 pub trait ToCLSource {
     /// Evaluates a combined (via [`Combiner`]) math operations chain to a valid OpenCL C (and possibly CUDA) source string.
@@ -29,5 +27,5 @@ impl ToCLSource for String {
 
 /// If the `no-std` feature is disabled, this trait is implemented for all types that implement [`ToCLSource`].
 /// In this case, `no-std` is disabled.
-pub trait MayToCLSource: ToCLSource + Combiner {}
-impl<T: ToCLSource + Combiner> MayToCLSource for T {}
+pub trait MayToCLSource: ToCLSource {}
+impl<T: ToCLSource> MayToCLSource for T {}

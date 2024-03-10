@@ -1,9 +1,9 @@
-use core::{convert::Infallible, ops::DerefMut};
+use core::convert::Infallible;
 
 use crate::{
     cpu::CPUPtr, flag::AllocFlag, impl_device_traits, AddLayer, Alloc, Base, Buffer, CloneBuf,
     Device, DevicelessAble, HasModules, IsShapeIndep, Module, OnDropBuffer, OnNewBuffer,
-    RemoveLayer, Setup, Shape, WrappedData,
+    RemoveLayer, Resolve, Setup, Shape, UnaryFusing, WrappedData,
 };
 
 pub trait IsCPU {}
@@ -180,14 +180,42 @@ impl<Mods> crate::ForkSetup for CPU<Mods> {}
 
 impl<'a, Mods: OnDropBuffer + OnNewBuffer<T, Self, S>, T: Clone, S: Shape> CloneBuf<'a, T, S>
     for CPU<Mods>
-where
-    Self::Data<T, S>: DerefMut<Target = [T]>,
 {
     #[inline]
     fn clone_buf(&'a self, buf: &Buffer<'a, T, CPU<Mods>, S>) -> Buffer<'a, T, CPU<Mods>, S> {
         let mut cloned = Buffer::new(self, buf.len());
         cloned.clone_from_slice(buf);
         cloned
+    }
+}
+
+impl<Mods: OnDropBuffer + 'static> UnaryFusing for CPU<Mods> {
+    #[cfg(feature = "lazy")]
+    #[cfg(feature = "graph")]
+    #[inline]
+    fn unary_fuse_op<T: Copy + 'static>(
+        &self,
+    ) -> fn(
+        &mut (
+            &mut Buffer<'_, T, Self, ()>,
+            &Buffer<'_, T, Self, ()>,
+            crate::NoId<Vec<std::rc::Rc<dyn Fn(crate::Resolve<T>) -> Box<dyn crate::TwoWay<T>>>>>,
+        ),
+    ) -> crate::Result<()> {
+        |(out, buf, ops)| {
+            for (out, buf) in out.iter_mut().zip(buf.iter()) {
+                let mut current_val = *buf;
+                for op in ops.iter() {
+                    let resolve = Resolve {
+                        val: current_val,
+                        marker: "x",
+                    };
+                    current_val = op(resolve).eval();
+                }
+                *out = current_val;
+            }
+            Ok(())
+        }
     }
 }
 

@@ -1,5 +1,6 @@
 use super::ops::{
-    Add, Cos, Div, Eq, Exp, GEq, Identity, LEq, Ln, Max, Min, Mul, Neg, Pow, Sin, Sub, Tan, Tanh,
+    Abs, Add, Cos, Div, Eq, Exp, GEq, Identity, LEq, Ln, Max, Min, Mul, Neg, Pow, Sin, Sub, Tan,
+    Tanh,
 };
 
 /// A trait that allows combining math operations.
@@ -106,5 +107,10 @@ pub trait Combiner: Sized {
     #[inline]
     fn ln(self) -> Ln<Self> {
         Ln { comb: self }
+    }
+
+    #[inline]
+    fn abs(self) -> Abs<Self> {
+        Abs { comb: self }
     }
 }

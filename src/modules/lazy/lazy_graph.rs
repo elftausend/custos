@@ -1,10 +1,10 @@
 use crate::{
-    bounds_to_range, AsAny, BoxedShallowCopy, Buffers, Device, Parents, UniqueId, UpdateArgs,
-    UpdateArgsDynable,
+    bounds_to_range, op_hint::OpHint, AsAny, BoxedShallowCopy, Buffers, Device, Parents, UniqueId,
+    UpdateArgs, UpdateArgsDynable,
 };
 use core::{mem::transmute, ops::RangeBounds};
 
-use super::{exec_iter::{exec_op, ExecIter}, op_hint::OpHint};
+use super::exec_iter::{exec_op, ExecIter};
 
 pub struct Operation<B, T> {
     pub op_hint: OpHint<T>,
@@ -13,11 +13,22 @@ pub struct Operation<B, T> {
     pub args: Box<dyn UpdateArgsDynable<B>>,
 }
 
+impl<B: AsAny, T> Operation<B, T> {
+    pub fn no_op() -> Self {
+        Self {
+            op_hint: OpHint::None,
+            arg_ids: vec![None],
+            op: |_: *mut ()| Ok(()),
+            args: Box::new(()),
+        }
+    }
+}
+
 pub struct LazyGraph<B = Box<dyn BoxedShallowCopy>, T = ()> {
     pub operations: Vec<Operation<B, T>>,
 }
 
-impl<B> Default for LazyGraph<B> {
+impl<B, T> Default for LazyGraph<B, T> {
     #[inline]
     fn default() -> Self {
         Self {
@@ -40,11 +51,10 @@ impl<B: AsAny, T> LazyGraph<B, T> {
         self.operations.clear();
     }
 
-    pub fn add_operation<Args: Parents<N> + UpdateArgs, const N: usize>(
-        &mut self,
+    pub unsafe fn convert_to_operation<Args: Parents<N> + UpdateArgs, const N: usize>(
         args: Args,
         op: fn(&mut Args) -> crate::Result<()>,
-    ) {
+    ) -> Operation<B, T> {
         // store ids and test if buffers are still in cache
         let arg_ids = args
             .maybe_ids()
@@ -54,12 +64,21 @@ impl<B: AsAny, T> LazyGraph<B, T> {
 
         let args: Box<dyn UpdateArgsDynable<B>> = Box::new(args);
 
-        self.operations.push(Operation {
+        Operation {
             arg_ids,
-            op: unsafe { transmute(op) },
-            args: unsafe { transmute(args) },
-            op_hint: OpHint::None
-        })
+            op: transmute(op),
+            args: transmute(args),
+            op_hint: OpHint::None,
+        }
+    }
+
+    pub fn add_operation<Args: Parents<N> + UpdateArgs, const N: usize>(
+        &mut self,
+        args: Args,
+        op: fn(&mut Args) -> crate::Result<()>,
+    ) {
+        let operation = unsafe { Self::convert_to_operation(args, op) };
+        self.operations.push(operation)
     }
 
     pub unsafe fn call_lazily<D: Device + 'static>(
@@ -99,7 +118,7 @@ mod tests {
     #[should_panic]
     fn test_lazy_op_args_args_out_of_scope() {
         let device = CPU::<Base>::new();
-        let mut graph = LazyGraph::default();
+        let mut graph: LazyGraph = LazyGraph::default();
         let mut outs_unordered = HashMap::default();
 
         let _out_id = {
@@ -126,7 +145,7 @@ mod tests {
     #[test]
     fn test_lazy_op_args() {
         let device = CPU::<Base>::new();
-        let mut graph = LazyGraph::default();
+        let mut graph: LazyGraph = LazyGraph::default();
 
         let lhs = device.buffer([1f32, 2., 3., 4., 5.]);
         let rhs = device.buffer([1f32, 2., 6., 4., 5.]);
@@ -152,7 +171,8 @@ mod tests {
     #[test]
     fn test_lazy_op_args_no_out_but_use_loop() {
         let device = CPU::<Base>::new();
-        let mut graph = LazyGraph::default();
+
+        let mut graph: LazyGraph = LazyGraph::default();
 
         let lhs = device.buffer([1f32, 2., 3., 4., 5.]);
         let rhs = device.buffer([1f32, 2., 6., 4., 5.]);
@@ -183,7 +203,8 @@ mod tests {
     #[test]
     fn test_lazy_op_args_no_out_but_use() {
         let device = CPU::<Base>::new();
-        let mut graph = LazyGraph::default();
+
+        let mut graph: LazyGraph = LazyGraph::default();
 
         let lhs = device.buffer([1f32, 2., 3., 4., 5.]);
         let rhs = device.buffer([1f32, 2., 6., 4., 5.]);
@@ -210,7 +231,8 @@ mod tests {
     #[test]
     fn test_lazy_op_args_with_ew_fn() {
         let device = CPU::<Base>::new();
-        let mut graph = LazyGraph::default();
+
+        let mut graph: LazyGraph = LazyGraph::default();
 
         let lhs = device.buffer([1f32, 2., 3., 4., 5.]);
         let rhs = device.buffer([1f32, 2., 6., 4., 5.]);

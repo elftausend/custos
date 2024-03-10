@@ -1,7 +1,7 @@
 use crate::{prelude::Numeric, Combiner};
 
 /// Evaluates a combined (via [`Combiner`]) math operations chain to a value.
-pub trait Eval<T> {
+pub trait Eval<T>: 'static {
     /// Evaluates a combined (via [`Combiner`]) math operations chain to a value.
     /// # Example
     /// ```
@@ -14,7 +14,7 @@ pub trait Eval<T> {
     fn eval(&self) -> T;
 }
 
-impl<T: Copy> Eval<T> for T {
+impl<T: Copy + 'static> Eval<T> for T {
     #[inline]
     fn eval(&self) -> T {
         *self

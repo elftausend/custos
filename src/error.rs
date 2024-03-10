@@ -57,6 +57,8 @@ pub enum DeviceError {
     InvalidLazyBuf,
     /// Location was already used.
     LocationAlreadyInUse,
+    /// Unary fusing not supported.
+    UnaryFusingUnsupported,
 }
 
 impl DeviceError {
@@ -79,6 +81,7 @@ impl DeviceError {
             DeviceError::UnifiedConstructNotAvailable => "Unified construction is not available for the provided modules. Add the `Cached` module to your device",
             DeviceError::InvalidLazyBuf => "Invalid lazy buffer was provided in operation. Did the buffer go out of scope?",
             DeviceError::LocationAlreadyInUse => "Location is already in use.",
+            DeviceError::UnaryFusingUnsupported => "Unary fusing is not supported for this module configuration."
         }
     }
 }

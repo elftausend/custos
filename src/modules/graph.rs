@@ -11,7 +11,7 @@ use std::collections::HashSet;
 use crate::{
     impl_remove_layer, pass_down_add_operation, pass_down_cursor, pass_down_exec_now_module,
     pass_down_replace_buf_module, pass_down_use_gpu_or_cpu, AddLayer, Alloc, Buffer, Cursor,
-    Device, HasId, Module, NoHasher, OnDropBuffer, OnNewBuffer, OptimizeMemGraph, Parents, PtrType,
+    Device, HasId, Module, NoHasher, OnDropBuffer, OnNewBuffer, Optimize, Parents, PtrType,
     Retrieve, RunModule, Setup, Shape, UniqueId, WrappedData,
 };
 
@@ -63,7 +63,7 @@ impl<Mods, D> Setup<D> for Graph<Mods> {
     }
 }
 
-impl<Mods: OptimizeMemGraph> OptimizeMemGraph for Graph<Mods> {
+impl<Mods: Optimize> Optimize for Graph<Mods> {
     fn optimize_mem_graph<D: 'static>(
         &self,
         device: &D,
@@ -77,6 +77,21 @@ impl<Mods: OptimizeMemGraph> OptimizeMemGraph for Graph<Mods> {
                 let graph_translator = self.graph_trans.borrow();
                 self.modules
                     .optimize_mem_graph(device, Some(&graph_translator))
+            }
+        }
+    }
+
+    #[inline]
+    fn unary_fusing<D: crate::UnaryFusing + 'static>(
+        &self,
+        device: &D,
+        graph_translator: Option<&crate::modules::GraphTranslator>,
+    ) -> crate::Result<()> {
+        match graph_translator {
+            Some(graph_translator) => self.modules.unary_fusing(device, Some(graph_translator)),
+            None => {
+                let graph_translator = self.graph_trans.borrow();
+                self.modules.unary_fusing(device, Some(&graph_translator))
             }
         }
     }

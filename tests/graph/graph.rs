@@ -1,4 +1,4 @@
-use custos::{Base, Buffer, Cached, Cursor, Graph, OptimizeMemGraph, CPU};
+use custos::{Base, Buffer, Cached, Cursor, Graph, Optimize, CPU};
 
 #[cfg(feature = "opencl")]
 use custos::OpenCL;

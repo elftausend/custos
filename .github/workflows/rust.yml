@@ -171,7 +171,7 @@ jobs:
 
     - uses: Swatinem/rust-cache@v1
 
-    - name: Run 'autograd' tests
+    - name: Run 'no-std' tests
       run: cargo test --no-default-features --features no-std
   
 

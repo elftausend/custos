@@ -1,7 +1,7 @@
 use crate::{
     flag::AllocFlag, AddGradFn, AddOperation, Alloc, CachedBuffers, Cursor, Device, ExecNow, HasId,
-    HashLocation, Module, OnDropBuffer, OnNewBuffer, Parents, PtrType, ReplaceBuf, Retrieve, Setup,
-    Shape, WrappedData,
+    HashLocation, Module, OnDropBuffer, OnNewBuffer, Parents, PtrType, ReplaceBuf, Retrieve,
+    SetOpHint, Setup, Shape, WrappedData,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
@@ -58,6 +58,8 @@ impl AddOperation for Base {
         false
     }
 }
+
+impl<T> SetOpHint<T> for Base {}
 
 impl<D: Device> ExecNow<D> for Base {
     #[inline]
@@ -119,12 +121,21 @@ impl crate::UseGpuOrCpu for Base {
 }
 
 #[cfg(feature = "graph")]
-impl crate::OptimizeMemGraph for Base {
+impl crate::Optimize for Base {
     #[inline]
     fn optimize_mem_graph<D: 'static>(
         &self,
         _device: &D,
         _graph_translator: Option<&crate::GraphTranslator>,
+    ) -> crate::Result<()> {
+        Ok(())
+    }
+
+    #[inline]
+    fn unary_fusing<D: 'static>(
+        &self,
+        _device: &D,
+        _graph_translator: Option<&crate::modules::GraphTranslator>,
     ) -> crate::Result<()> {
         Ok(())
     }
