@@ -39,11 +39,11 @@ pub struct OpenCL<Mods = Base> {
     /// The underlying OpenCL device.
     pub device: CLDevice,
     /// A [`CPU`] used for unified memory device switching.
-    pub cpu: CachedCPU, // TODO: this cpu does not cache buffers, which is a problem for construct_buffer (add #[cfg(unified_cl)])
+    pub cpu: CachedCPU,
 }
 
 /// Short form for `OpenCL`
-pub type CL = OpenCL;
+pub type CL<Mods> = OpenCL<Mods>;
 
 /*impl<Mods> HasCPU<Base> for OpenCL<Mods> {
     #[inline]
@@ -85,6 +85,7 @@ impl<SimpleMods> OpenCL<SimpleMods> {
             device: CLDevice::new(device_idx)?,
             cpu: CPU::<Cached<Base>>::new(),
         };
+        opencl.unified_mem_check();
         NewMods::setup(&mut opencl)?;
         Ok(opencl)
     }
@@ -101,12 +102,25 @@ impl<SimpleMods> OpenCL<SimpleMods> {
             device: CLDevice::fastest()?,
             cpu: CPU::<Cached<Base>>::new(),
         };
+        opencl.unified_mem_check();
+
         NewMods::setup(&mut opencl)?;
         Ok(opencl)
     }
 }
 
 impl<Mods> OpenCL<Mods> {
+    pub fn unified_mem_check(&self) {
+        #[cfg(unified_cl)]
+        if !self.unified_mem() {
+            panic!("
+                Your selected compute device does not support unified memory! 
+                You are probably using a laptop.
+                Launch with environment variable `CUSTOS_USE_UNIFIED=false` or change `CUSTOS_CL_DEVICE_IDX=<idx:default=0>`
+            ")
+        }
+    }
+
     /// Sets the values of the attributes cache, kernel cache, graph and CPU to their default.
     /// This cleans up any accumulated allocations.
     pub fn reset(&'static mut self) {
@@ -168,16 +182,14 @@ impl<Mods: OnDropBuffer> Device for OpenCL<Mods> {
     }
 
     #[inline(always)]
-    fn data_as_wrap<'a, T, S: Shape>(
-        data: &'a Self::Data<T, S>,
-    ) -> &'a Self::Wrap<T, Self::Base<T, S>> {
+    fn data_as_wrap<T, S: Shape>(data: &Self::Data<T, S>) -> &Self::Wrap<T, Self::Base<T, S>> {
         data
     }
 
     #[inline(always)]
-    fn data_as_wrap_mut<'a, T, S: Shape>(
-        data: &'a mut Self::Data<T, S>,
-    ) -> &'a mut Self::Wrap<T, Self::Base<T, S>> {
+    fn data_as_wrap_mut<T, S: Shape>(
+        data: &mut Self::Data<T, S>,
+    ) -> &mut Self::Wrap<T, Self::Base<T, S>> {
         data
     }
 }
@@ -268,6 +280,11 @@ impl<Mods> ForkSetup for OpenCL<Mods> {
             "The selected device does not support unified memory."
         )
     }
+
+    #[inline]
+    fn has_unified_mem(&self) -> bool {
+        self.unified_mem()
+    }
 }
 
 pass_down_use_gpu_or_cpu!(OpenCL);
@@ -288,6 +305,11 @@ impl<Mods> crate::LazyRun for OpenCL<Mods> {}
 #[cfg(test)]
 mod tests {
     use crate::{opencl::cl_device::CLDevice, Base, Buffer, Cached, OpenCL, CPU};
+
+    #[test]
+    fn test_fastest_cl_device() {
+        let _device = OpenCL::<Base>::fastest().unwrap();
+    }
 
     #[test]
     fn test_multiplie_queues() -> crate::Result<()> {

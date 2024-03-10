@@ -5,7 +5,7 @@ use super::{
     api::{
         create_context, create_stream, cuInit, cuStreamDestroy,
         cublas::{create_handle, cublasDestroy_v2, cublasSetStream_v2, CublasHandle},
-        device, Context, CudaIntDevice, FnHandle, Module, Stream,
+        device, Context, CudaErrorKind, CudaIntDevice, FnHandle, Module, Stream,
     },
     AsCudaCvoidPtr, CudaSource, KernelCache,
 };
@@ -23,7 +23,8 @@ pub struct CudaDevice {
     pub mem_transfer_stream: Stream,
     pub handle: CublasHandle,
     #[cfg(feature = "lazy")]
-    pub graph: core::cell::OnceCell<super::lazy::LazyCudaGraph>,
+    // TODO: remove result when get_or_try_init becomes stable
+    pub graph: core::cell::OnceCell<Result<super::lazy::LazyCudaGraph, CudaErrorKind>>,
 }
 
 impl CudaDevice {

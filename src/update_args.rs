@@ -1,13 +1,13 @@
 use crate::UniqueId;
 
-#[cfg(not(feature = "no-std"))]
+#[cfg(feature = "std")]
 use crate::Buffers;
 
 /// A dummy trait for no-std context. [`UpdateArgs`] requires standard library code.
-#[cfg(feature = "no-std")]
+#[cfg(not(feature = "std"))]
 pub trait UpdateArgs {}
 
-#[cfg(not(feature = "no-std"))]
+#[cfg(feature = "std")]
 pub trait UpdateArgs {
     fn update_args<B: AsAny>(
         &mut self,
@@ -17,10 +17,10 @@ pub trait UpdateArgs {
 }
 
 /// A dummy trait for no-std context. [`UpdateArg`] requires standard library code.
-#[cfg(feature = "no-std")]
+#[cfg(not(feature = "std"))]
 pub trait UpdateArg {}
 
-#[cfg(not(feature = "no-std"))]
+#[cfg(feature = "std")]
 pub trait UpdateArg {
     fn update_arg<B: AsAny>(
         to_update: &mut Self,
@@ -29,7 +29,7 @@ pub trait UpdateArg {
     ) -> crate::Result<()>;
 }
 
-#[cfg(not(feature = "no-std"))]
+#[cfg(feature = "std")]
 impl<T: UpdateArg> UpdateArgs for T {
     fn update_args<B: AsAny>(
         &mut self,
@@ -40,7 +40,7 @@ impl<T: UpdateArg> UpdateArgs for T {
     }
 }
 
-#[cfg(not(feature = "no-std"))]
+#[cfg(feature = "std")]
 pub trait UpdateArgsDynable<B> {
     fn update_args_dynable(
         &mut self,
@@ -49,7 +49,7 @@ pub trait UpdateArgsDynable<B> {
     ) -> crate::Result<()>;
 }
 
-#[cfg(not(feature = "no-std"))]
+#[cfg(feature = "std")]
 impl<A: UpdateArgs, T: AsAny> UpdateArgsDynable<T> for A {
     #[inline]
     fn update_args_dynable(

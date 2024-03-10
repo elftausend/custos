@@ -45,31 +45,40 @@ pub struct BorrowCache {
     pub(crate) cache: AnyBuffers,
 }
 
-// TODO: make BorrowedCache unuseable without device (=> Static get methods with D: CacheReturn)
 impl BorrowCache {
-    pub fn add_or_get<'a, T, D, S>(&mut self, device: &'a D, id: Id) -> &Buffer<'a, T, D, S>
+    pub fn add_or_get<'a, T, D, S>(
+        &mut self,
+        device: &'a D,
+        id: Id,
+        new_buf: &mut bool,
+    ) -> &Buffer<'a, T, D, S>
     where
         T: 'static,
         D: Alloc<T> + 'static,
         S: Shape,
     {
-        self.add_buf_once::<T, D, S>(device, id);
+        self.add_buf_once::<T, D, S>(device, id, new_buf);
 
         let buf_any = self.cache.get(&id).unwrap();
         buf_any.downcast_ref().unwrap()
     }
 
-    pub fn add_or_get_mut<'a, T, D, S>(&mut self, device: &D, id: Id) -> &mut Buffer<'a, T, D, S>
+    pub fn add_or_get_mut<'a, T, D, S>(
+        &mut self,
+        device: &D,
+        id: Id,
+        new_buf: &mut bool,
+    ) -> &mut Buffer<'a, T, D, S>
     where
         T: 'static,
         D: Alloc<T> + 'static,
         S: Shape,
     {
-        self.add_buf_once::<T, D, S>(device, id);
+        self.add_buf_once::<T, D, S>(device, id, new_buf);
         self.get_buf_mut(id).unwrap()
     }
 
-    pub fn add_buf_once<T, D, S>(&mut self, device: &D, id: Id)
+    pub fn add_buf_once<T, D, S>(&mut self, device: &D, id: Id, new_buf: &mut bool)
     where
         T: 'static,
         D: Alloc<T> + 'static,
@@ -78,7 +87,7 @@ impl BorrowCache {
         if self.cache.get(&id).is_some() {
             return;
         }
-
+        *new_buf = true;
         self.add_buf::<T, D, S>(device, id)
     }
 
@@ -163,24 +172,27 @@ mod tests {
         };
     }*/
 
-    /*#[test]
-    fn test_get_borrowed() {
+    #[cfg(feature = "cpu")]
+    #[test]
+    fn test_caching_of_borrowed_cached() {
+        use crate::{Base, BorrowCache, Buffer, Id, CPU};
+
         let device = CPU::<Base>::default();
         let mut cache = BorrowCache::default();
 
         let (fid, sid, tid) = (
-            Id::new_bumped(10),
-            Id::new_bumped(10),
-            Id::new_bumped(10),
+            Id { id: 0, len: 10 },
+            Id { id: 1, len: 10 },
+            Id { id: 2, len: 10 },
         );
 
-        cache.add_buf_once::<f32, _, ()>(&device, fid);
-        cache.add_buf_once::<f32, _, ()>(&device, sid);
-        cache.add_buf_once::<f32, _, ()>(&device, tid);
+        cache.add_buf_once::<f32, _, ()>(&device, fid, &mut false);
+        cache.add_buf_once::<f32, _, ()>(&device, sid, &mut false);
+        cache.add_buf_once::<f32, _, ()>(&device, tid, &mut false);
 
-        let a = cache.get_buf::<f32, _, ()>(fid).unwrap();
-        let b = cache.get_buf::<f32, _, ()>(fid).unwrap();
+        let a: &Buffer = cache.get_buf::<f32, _, ()>(fid).unwrap();
+        let b: &Buffer = cache.get_buf::<f32, _, ()>(fid).unwrap();
 
         assert_eq!(a.ptr, b.ptr);
-    }*/
+    }
 }

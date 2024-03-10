@@ -1,6 +1,6 @@
-// TODO: move to devices folder ig
+use crate::{flag::AllocFlag, Device, Shape};
 
-use crate::{flag::AllocFlag, prelude::Device, Buffer, Parents, Shape, StackArray};
+use super::StackArray;
 
 pub trait Alloc<T>: Device + Sized {
     /// Allocate memory on the implemented device.
@@ -41,7 +41,7 @@ pub trait Alloc<T>: Device + Sized {
 
     /// If the vector `vec` was allocated previously, this function can be used in order to reduce the amount of allocations, which may be faster than using a slice of `vec`.
     #[inline]
-    #[cfg(not(feature = "no-std"))]
+    #[cfg(feature = "std")]
     fn alloc_from_vec<S: Shape>(&self, vec: Vec<T>) -> Self::Base<T, S>
     where
         T: Clone,
@@ -59,19 +59,4 @@ pub trait Alloc<T>: Device + Sized {
         let stack_array = StackArray::<S, T>::from_array(array);
         self.alloc_from_slice(stack_array.flatten())
     }
-}
-
-pub trait Module<D, Mods = ()> {
-    type Module;
-
-    fn new() -> Self::Module;
-}
-
-pub trait Retriever<T, S: Shape = ()>: Device {
-    #[track_caller]
-    fn retrieve<const NUM_PARENTS: usize>(
-        &self,
-        len: usize,
-        parents: impl Parents<NUM_PARENTS>,
-    ) -> Buffer<T, Self, S>;
 }

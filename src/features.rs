@@ -1,6 +1,13 @@
-use core::{fmt::Debug, ops::RangeBounds};
+//! This module contains traits that are used to provide functionality to the modules.
+//! Different modules can implement these traits to provide different functionality.
+//! If the module does not need to alter the functionality, pass downs macros should be used to pass down the functionality to the wrapped module.
 
-use crate::{HasId, Parents, Shape, UniqueId, UpdateArgs, CPU};
+use core::{cell::RefMut, fmt::Debug, ops::RangeBounds};
+
+use crate::{
+    range::{AsRange, CursorRange},
+    HasId, Parents, Shape, UniqueId, UpdateArgs, CPU,
+};
 
 #[cfg(feature = "cached")]
 use crate::{Base, CachedModule};
@@ -36,6 +43,50 @@ pub trait Retrieve<D, T, S: Shape = ()>: OnDropBuffer {
         D: Alloc<T>,
     {
     }
+}
+
+pub trait Cursor {
+    fn cursor(&self) -> usize;
+    unsafe fn set_cursor(&self, cursor: usize);
+
+    #[inline]
+    unsafe fn inc_cursor(&self, inc: usize) {
+        self.set_cursor(self.cursor() + inc)
+    }
+
+    #[inline]
+    unsafe fn bump_cursor(&self) {
+        self.inc_cursor(1)
+    }
+
+    #[inline]
+    fn range(&self, range: impl AsRange) -> CursorRange<Self>
+    where
+        Self: Sized,
+    {
+        CursorRange {
+            start: range.start(),
+            end: range.end(),
+            device: self,
+        }
+    }
+}
+
+#[macro_export]
+macro_rules! pass_down_cursor {
+    ($to_impl:ident) => {
+        impl<Mods: $crate::Cursor> $crate::Cursor for $to_impl<Mods> {
+            #[inline]
+            fn cursor(&self) -> usize {
+                self.modules.cursor()
+            }
+
+            #[inline]
+            unsafe fn set_cursor(&self, cursor: usize) {
+                self.modules.set_cursor(cursor)
+            }
+        }
+    };
 }
 
 /// Used for modules that should affect the device.
@@ -89,6 +140,48 @@ pub trait AddGradFn {
     }
 
     fn backward(&mut self) {}
+
+    #[inline]
+    fn disable_grad(&self) {
+        self.set_grad_enabled(false)
+    }
+
+    #[inline]
+    fn enable_grad(&self) {
+        self.set_grad_enabled(true)
+    }
+
+    fn set_grad_enabled(&self, enabled: bool);
+    #[inline]
+    fn is_grad_enabled(&self) -> bool {
+        false
+    }
+
+    /// This disables gradient function tracking, calls `op`, then reverts to the previous tracking mode
+    /// # Example
+    #[cfg_attr(all(feature = "cpu", feature = "autograd"), doc = "```")]
+    #[cfg_attr(not(all(feature = "cpu", feature = "autograd")), doc = "```ignore")]
+    /// use custos::prelude::*;
+    ///
+    /// let device = CPU::<Autograd<Base>>::new();
+    ///
+    /// let lhs = device.buffer([1, 2, 3, 4, 5]);
+    /// device.no_grad_ctx(|| {
+    ///     device.add_grad_fn(&lhs, |lhs| {
+    ///         panic!("should not execute!");
+    ///         Ok(())
+    ///     })
+    /// });
+    ///
+    /// lhs.backward();
+    /// ```
+    #[inline]
+    fn no_grad_ctx(&self, op: impl FnOnce()) {
+        let enabled_before = self.is_grad_enabled();
+        self.set_grad_enabled(false);
+        op();
+        self.set_grad_enabled(enabled_before);
+    }
 }
 
 #[macro_export]
@@ -107,6 +200,11 @@ macro_rules! pass_down_grad_fn {
             #[inline]
             fn backward(&mut self) {
                 self.modules.backward()
+            }
+
+            #[inline]
+            fn set_grad_enabled(&self, enabled: bool) {
+                self.modules.set_grad_enabled(enabled)
             }
         }
     };
@@ -169,8 +267,6 @@ macro_rules! pass_down_tape_actions {
 
 pub trait OpArgs {
     fn as_ids(&self) -> [UniqueId; 2];
-    // fn update_vals(&mut self, cache ..)
-    // fn from_cache(cache: &std::collections::HashMap<UniqueId, ()>, ids: [UniqueId; N]) -> Self;
 }
 
 impl<'a, 'b, T, D: Device, S: Shape> OpArgs for (&Buffer<'a, T, D, S>, &Buffer<'b, T, D, S>) {
@@ -219,18 +315,38 @@ macro_rules! pass_down_replace_buf_module {
 }
 
 pub trait AddOperation {
-    #[track_caller]
     fn add_op<Args: Parents<N> + UpdateArgs, const N: usize>(
         &self,
         args: Args,
         operation: fn(&mut Args) -> crate::Result<()>,
-    ) -> crate::Result<()>; // TODO: unrequired result?-  remove
+    ) -> crate::Result<()>;
     fn ops_count(&self) -> usize;
+    fn set_lazy_enabled(&self, enabled: bool);
+    #[inline]
+    fn enable_lazy(&self) {
+        self.set_lazy_enabled(true)
+    }
+    #[inline]
+    fn disable_lazy(&self) {
+        self.set_lazy_enabled(false)
+    }
+    fn is_lazy_enabled(&self) -> bool;
+
+    #[inline]
+    fn eagerly(&self, op: impl FnOnce()) {
+        // use enabled_before -> if eager is called in an already disabled lazy context, it should not be enabled after the call
+        let enabled_before = self.is_lazy_enabled();
+        self.set_lazy_enabled(false);
+        op();
+        self.set_lazy_enabled(enabled_before);
+    }
 }
 
 pub trait ExecNow<D = Self> {
+    /// This drains the affected operations!
     fn exec_now(&self, device: &D, range_bounds: impl RangeBounds<usize>) -> crate::Result<()>;
 
+    /// This drains the affected operations!
     #[inline]
     fn exec_last_n(&self, device: &D, last_n: usize) -> crate::Result<()>
     where
@@ -258,6 +374,16 @@ macro_rules! pass_down_add_operation {
             #[inline]
             fn ops_count(&self) -> usize {
                 self.modules.ops_count()
+            }
+
+            #[inline]
+            fn set_lazy_enabled(&self, enabled: bool) {
+                self.modules.set_lazy_enabled(enabled)
+            }
+
+            #[inline]
+            fn is_lazy_enabled(&self) -> bool {
+                self.modules.is_lazy_enabled()
             }
         }
     };
@@ -305,7 +431,6 @@ pub type CachedCPU = CPU<CachedModule<Base, CPU>>;
 
 #[cfg(feature = "cached")]
 pub trait UnifiedMemChain<D: Device> {
-    #[track_caller]
     fn construct_unified_buf_from_cpu_buf<'a, T: 'static, S: Shape>(
         &self,
         device: &'a D,
@@ -377,7 +502,6 @@ pass_down_use_gpu_or_cpu!(Autograd);
 pass_down_use_gpu_or_cpu!(Lazy);
 
 pub trait UseGpuOrCpu {
-    #[track_caller]
     fn use_cpu_or_gpu(
         &self,
         location: crate::HashLocation<'static>,
@@ -404,8 +528,33 @@ macro_rules! pass_down_optimize_mem_graph {
                 &self,
                 device: &D,
                 graph_translator: Option<&$crate::modules::GraphTranslator>,
-            ) -> crate::Result<()> {
+            ) -> $crate::Result<()> {
                 self.modules.optimize_mem_graph(device, graph_translator)
+            }
+        }
+    };
+}
+
+pub trait CachedBuffers {
+    #[cfg(feature = "std")]
+    unsafe fn buffers_mut(
+        &self,
+    ) -> Option<RefMut<crate::Buffers<Box<dyn crate::BoxedShallowCopy>>>> {
+        None
+    }
+}
+
+#[macro_export]
+macro_rules! pass_down_cached_buffers {
+    ($to_impl:ident) => {
+        impl<Mods: $crate::CachedBuffers> $crate::CachedBuffers for $to_impl<Mods> {
+            #[cfg(feature = "std")]
+            #[inline]
+            unsafe fn buffers_mut(
+                &self,
+            ) -> Option<core::cell::RefMut<$crate::Buffers<Box<dyn $crate::BoxedShallowCopy>>>>
+            {
+                self.modules.buffers_mut()
             }
         }
     };

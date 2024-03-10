@@ -3,7 +3,7 @@ mod unary;
 
 use crate::prelude::Float;
 
-#[cfg(not(feature = "no-std"))]
+#[cfg(feature = "std")]
 use crate::ToCLSource;
 
 use super::{Combiner, Eval};
@@ -24,7 +24,7 @@ impl<C, R> Mul<C, R> {
 
 impl<C, R> Combiner for Mul<C, R> {}
 
-#[cfg(not(feature = "no-std"))]
+#[cfg(feature = "std")]
 impl<C: ToCLSource, R: ToCLSource> ToCLSource for Mul<C, R> {
     #[inline]
     fn to_cl_source(&self) -> String {
@@ -38,7 +38,7 @@ impl<C: ToCLSource, R: ToCLSource> ToCLSource for Mul<C, R> {
 
 impl<C: Eval<T>, R: Eval<T>, T: core::ops::Mul<Output = T>> Eval<T> for Mul<C, R> {
     #[inline]
-    fn eval(self) -> T {
+    fn eval(&self) -> T {
         self.comb.eval() * self.rhs.eval()
     }
 }
@@ -57,7 +57,7 @@ impl<C, R> Add<C, R> {
 
 impl<C, R> Combiner for Add<C, R> {}
 
-#[cfg(not(feature = "no-std"))]
+#[cfg(feature = "std")]
 impl<C: ToCLSource, R: ToCLSource> ToCLSource for Add<C, R> {
     #[inline]
     fn to_cl_source(&self) -> String {
@@ -71,7 +71,7 @@ impl<C: ToCLSource, R: ToCLSource> ToCLSource for Add<C, R> {
 
 impl<C: Eval<T>, R: Eval<T>, T: core::ops::Add<Output = T>> Eval<T> for Add<C, R> {
     #[inline]
-    fn eval(self) -> T {
+    fn eval(&self) -> T {
         self.comb.eval() + self.rhs.eval()
     }
 }
@@ -90,7 +90,7 @@ impl<C, R> Sub<C, R> {
 
 impl<C, R> Combiner for Sub<C, R> {}
 
-#[cfg(not(feature = "no-std"))]
+#[cfg(feature = "std")]
 impl<C: ToCLSource, R: ToCLSource> ToCLSource for Sub<C, R> {
     #[inline]
     fn to_cl_source(&self) -> String {
@@ -104,7 +104,7 @@ impl<C: ToCLSource, R: ToCLSource> ToCLSource for Sub<C, R> {
 
 impl<C: Eval<T>, R: Eval<T>, T: core::ops::Sub<Output = T>> Eval<T> for Sub<C, R> {
     #[inline]
-    fn eval(self) -> T {
+    fn eval(&self) -> T {
         self.comb.eval() - self.rhs.eval()
     }
 }
@@ -123,7 +123,7 @@ impl<C, R> Div<C, R> {
 
 impl<C, R> Combiner for Div<C, R> {}
 
-#[cfg(not(feature = "no-std"))]
+#[cfg(feature = "std")]
 impl<C: ToCLSource, R: ToCLSource> ToCLSource for Div<C, R> {
     #[inline]
     fn to_cl_source(&self) -> String {
@@ -137,7 +137,7 @@ impl<C: ToCLSource, R: ToCLSource> ToCLSource for Div<C, R> {
 
 impl<C: Eval<T>, R: Eval<T>, T: core::ops::Div<Output = T>> Eval<T> for Div<C, R> {
     #[inline]
-    fn eval(self) -> T {
+    fn eval(&self) -> T {
         self.comb.eval() / self.rhs.eval()
     }
 }
@@ -156,7 +156,7 @@ impl<C, R> Pow<C, R> {
 
 impl<C, R> Combiner for Pow<C, R> {}
 
-#[cfg(not(feature = "no-std"))]
+#[cfg(feature = "std")]
 impl<C: ToCLSource, R: ToCLSource> ToCLSource for Pow<C, R> {
     #[inline]
     fn to_cl_source(&self) -> String {
@@ -170,7 +170,59 @@ impl<C: ToCLSource, R: ToCLSource> ToCLSource for Pow<C, R> {
 
 impl<C: Eval<T>, R: Eval<T>, T: Float> Eval<T> for Pow<C, R> {
     #[inline]
-    fn eval(self) -> T {
+    fn eval(&self) -> T {
         self.comb.eval().powf(self.rhs.eval())
+    }
+}
+
+pub struct Min<C, R> {
+    pub comb: C,
+    pub rhs: R,
+}
+
+impl<C, R> Combiner for Min<C, R> {}
+
+#[cfg(feature = "std")]
+impl<C: ToCLSource, R: ToCLSource> ToCLSource for Min<C, R> {
+    #[inline]
+    fn to_cl_source(&self) -> String {
+        format!(
+            "min({}, {})",
+            self.comb.to_cl_source(),
+            self.rhs.to_cl_source()
+        )
+    }
+}
+
+impl<C: Eval<T>, R: Eval<T>, T: Float> Eval<T> for Min<C, R> {
+    #[inline]
+    fn eval(&self) -> T {
+        self.comb.eval().min(self.rhs.eval())
+    }
+}
+
+pub struct Max<C, R> {
+    pub comb: C,
+    pub rhs: R,
+}
+
+impl<C, R> Combiner for Max<C, R> {}
+
+#[cfg(feature = "std")]
+impl<C: ToCLSource, R: ToCLSource> ToCLSource for Max<C, R> {
+    #[inline]
+    fn to_cl_source(&self) -> String {
+        format!(
+            "max({}, {})",
+            self.comb.to_cl_source(),
+            self.rhs.to_cl_source()
+        )
+    }
+}
+
+impl<C: Eval<T>, R: Eval<T>, T: Float> Eval<T> for Max<C, R> {
+    #[inline]
+    fn eval(&self) -> T {
+        self.comb.eval().max(self.rhs.eval())
     }
 }

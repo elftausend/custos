@@ -9,10 +9,10 @@ use min_cl::{
 };
 
 use crate::{
-    bounds_to_range, cpu_stack_ops::clear_slice, pass_down_add_operation, pass_down_exec_now,
-    prelude::Number, AddOperation, ApplyFunction, AsNoId, BufAsNoId, Buffer, CDatatype, ClearBuf,
-    CopySlice, Eval, OnDropBuffer, OpenCL, Read, Resolve, Retrieve, Retriever, Shape, ToCLSource,
-    ToMarker, UnaryGrad, UseGpuOrCpu, WriteBuf,
+    bounds_to_range, cpu_stack_ops::clear_slice, location, pass_down_add_operation,
+    pass_down_exec_now, prelude::Number, AddOperation, ApplyFunction, AsNoId, BufAsNoId, Buffer,
+    CDatatype, ClearBuf, CopySlice, Eval, OnDropBuffer, OpenCL, Read, Resolve, Retrieve, Retriever,
+    Shape, ToCLSource, ToMarker, UnaryGrad, UseGpuOrCpu, WriteBuf, ZeroGrad,
 };
 
 use super::{enqueue_kernel, CLPtr};
@@ -40,7 +40,7 @@ impl<Mods: OnDropBuffer + UseGpuOrCpu, T: CDatatype + Default> ClearBuf<T> for O
         {
             let cpu_buf = unsafe { &mut *(buf as *mut Buffer<_, OpenCL<Mods>, _>) };
             self.use_cpu_or_gpu(
-                (file!(), line!(), column!()).into(),
+                location!(),
                 &[buf.len()],
                 || clear_slice(cpu_buf),
                 || try_cl_clear(self, buf).unwrap(),
@@ -51,6 +51,14 @@ impl<Mods: OnDropBuffer + UseGpuOrCpu, T: CDatatype + Default> ClearBuf<T> for O
         try_cl_clear(self, buf).unwrap()
     }
 }
+
+impl<Mods: OnDropBuffer, T: CDatatype> ZeroGrad<T> for OpenCL<Mods> {
+    #[inline]
+    fn zero_grad<S: Shape>(&self, data: &mut Self::Base<T, S>) {
+        try_cl_clear(self, data).unwrap()
+    }
+}
+
 /// Sets the elements of an OpenCL Buffer to zero.
 /// # Example
 /// ```
@@ -276,7 +284,7 @@ where
         self.add_op::<_, 4>(
             (lhs, lhs_grad.buf_no_id(), out, lhs_grad_fn.no_id()),
             move |(lhs, lhs_grad, out, lhs_grad_fn)| {
-                try_cl_add_unary_grad(lhs.device(), lhs, &mut **lhs_grad, out, **lhs_grad_fn)
+                try_cl_add_unary_grad(lhs.device(), lhs, **lhs_grad, out, **lhs_grad_fn)
             },
         )
         .unwrap();

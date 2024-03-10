@@ -33,7 +33,7 @@ libm = { version="0.2.6", optional = true }
 ash = { version = "0.37", optional = true } 
 naga = { version = "0.19", features = ["wgsl-in"], optional = true } 
 
-half = {version = "2.3", default-features = false, optional = true} 
+half = {version = "2.3", default-features = false, optional = true}
 
 # web
 js-sys = { version = "0.3", optional = true }
@@ -66,24 +66,26 @@ min-cl = { git = "https://github.com/elftausend/min-cl", optional = true }
 default = ["cpu", "lazy", "static-api", "webgl", "vulkan"]
 
 
-cpu = []
-opencl = ["dep:min-cl", "cpu", "cached"]
+std = []
+
+cpu = ["std"]
+opencl = ["std", "dep:min-cl", "cpu", "cached"]
 #network = ["cuwanto-client"]
-cuda = []
+cuda = ["std"]
 blas = []
 static-api = ["cpu"]
 stack = []
 no-std = ["stack", "dep:libm"]
 # wgpu = ["dep:wgpu", "dep:pollster", "dep:futures-intrusive"]
 macro = ["dep:custos-macro"]
-nnapi = ["dep:nnapi", "dep:ndk-sys", "lazy"]
+nnapi = ["std", "dep:nnapi", "dep:ndk-sys", "lazy"]
 
 # modules
-autograd = ["cached", "lazy"]
-lazy = []
-cached = []
-fork = []
-graph = []
+autograd = ["std", "cached", "lazy"]
+lazy = ["std"]
+cached = ["std"]
+fork = ["std"]
+graph = ["std"]
 
 half = ["dep:half"]
 
@@ -145,6 +147,10 @@ required-features = ["cpu", "stack"]
 
 [[example]]
 name = "mul_buf_cpu_impl"
+required-features = ["cpu"]
+
+[[example]]
+name = "custom_module"
 required-features = ["cpu"]
 
 [[test]]

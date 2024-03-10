@@ -13,7 +13,7 @@ use crate::CPU;
 use crate::{
     flag::AllocFlag, shape::Shape, Alloc, Base, ClearBuf, CloneBuf, CommonPtrs, Device,
     DevicelessAble, HasId, IsShapeIndep, OnDropBuffer, OnNewBuffer, PtrType, Read, ReplaceBuf,
-    ShallowCopy, WrappedData, WriteBuf,
+    ShallowCopy, WrappedData, WriteBuf, ZeroGrad,
 };
 
 pub use self::num::Num;
@@ -100,6 +100,36 @@ impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
     {
         Buffer::new(self.device(), self.len())
     }
+
+    #[inline]
+    pub fn set_require_grad(self, require_grad: bool) -> Buffer<'a, T, D, S>
+    where
+        D: OnNewBuffer<T, D, S>,
+    {
+        if let Some(device) = self.device {
+            device.on_drop_buffer(device, &self);
+        }
+        let mut buf = self;
+        buf.set_requires_grad(require_grad);
+        buf.device().on_new_buffer(buf.device(), &buf);
+        buf
+    }
+
+    #[inline]
+    pub fn require_grad(self) -> Buffer<'a, T, D, S>
+    where
+        D: OnNewBuffer<T, D, S>,
+    {
+        self.set_require_grad(true)
+    }
+
+    #[inline]
+    pub fn no_grad(self) -> Buffer<'a, T, D, S>
+    where
+        D: OnNewBuffer<T, D, S>,
+    {
+        self.set_require_grad(false)
+    }
 }
 
 // DO NOT implement!
@@ -110,10 +140,37 @@ impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
 //     }
 // }
 
+impl<'a, T, D: Device, S: Shape> HasId for Buffer<'a, T, D, S> {
+    #[inline]
+    fn id(&self) -> super::Id {
+        self.data.id()
+    }
+
+    #[inline]
+    fn requires_grad(&self) -> bool {
+        self.data.requires_grad()
+    }
+
+    #[inline]
+    fn set_requires_grad(&mut self, requires_grad: bool) {
+        self.data.set_requires_grad(requires_grad);
+    }
+}
+
 impl<'a, T, D: Device, S: Shape> HasId for &Buffer<'a, T, D, S> {
     #[inline]
     fn id(&self) -> super::Id {
         self.data.id()
+    }
+
+    #[inline]
+    fn requires_grad(&self) -> bool {
+        self.data.requires_grad()
+    }
+
+    #[inline]
+    fn set_requires_grad(&mut self, _requires_grad: bool) {
+        unimplemented!("Cannot use on &Buffer. Use on &mut Buffer.");
     }
 }
 
@@ -121,6 +178,16 @@ impl<'a, T, D: Device, S: Shape> HasId for &mut Buffer<'a, T, D, S> {
     #[inline]
     fn id(&self) -> super::Id {
         self.data.id()
+    }
+
+    #[inline]
+    fn requires_grad(&self) -> bool {
+        self.data.requires_grad()
+    }
+
+    #[inline]
+    fn set_requires_grad(&mut self, requires_grad: bool) {
+        self.data.set_requires_grad(requires_grad);
     }
 }
 
@@ -151,7 +218,7 @@ impl<'a, T, D: Device + OnNewBuffer<T, D, S>, S: Shape> Buffer<'a, T, D, S> {
     }
 
     /// Creates a new `Buffer` from a `Vec`.
-    #[cfg(not(feature = "no-std"))]
+    #[cfg(feature = "std")]
     #[inline]
     pub fn from_vec(device: &'a D, data: Vec<T>) -> Self
     where
@@ -256,7 +323,7 @@ impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
     /// assert_eq!(buf.read_to_vec(), vec![1, 2, 3, 4]);
     /// ```
     #[inline]
-    #[cfg(not(feature = "no-std"))]
+    #[cfg(feature = "std")]
     pub fn read_to_vec(&self) -> Vec<T>
     where
         D: Read<T, S>,
@@ -329,28 +396,6 @@ impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
         }
     }
 
-    /// Returns a shallow copy of &self, if the `realloc` feature is deactivated.
-    /// If the `realloc` feature is activated, it returns a deep copy / clone.
-    ///
-    /// # Safety
-    /// Itself, this function does not need to be unsafe.
-    /// However, declaring this function as unsafe highlights the violation of possibly creating two or more owners for one resource.
-    /// Furthermore, the resulting `Buffer` can outlive `self`.
-    pub unsafe fn shallow_or_clone(&self) -> Buffer<'a, T, D, S>
-    where
-        <D as Device>::Data<T, S>: ShallowCopy,
-        T: Clone,
-        D: CloneBuf<'a, T, S>,
-    {
-        {
-            #[cfg(not(feature = "realloc"))]
-            self.shallow()
-        }
-
-        #[cfg(feature = "realloc")]
-        self.clone()
-    }
-
     /// Sets all elements in `Buffer` to the default value.
     #[inline]
     pub fn clear(&mut self)
@@ -358,6 +403,14 @@ impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
         D: ClearBuf<T, S, D>,
     {
         self.device().clear(self)
+    }
+
+    #[inline]
+    pub fn zero_grad(&mut self)
+    where
+        D: ZeroGrad<T>,
+    {
+        self.device().zero_grad(self)
     }
 
     #[inline]
@@ -376,6 +429,30 @@ impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
     #[inline]
     pub fn base_mut(&mut self) -> &mut D::Base<T, S> {
         D::wrapped_as_base_mut(D::data_as_wrap_mut(&mut self.data))
+    }
+
+    #[inline]
+    pub fn to_device_type<DO>(self, device: &DO) -> Buffer<'_, T, DO, S>
+    where
+        DO: Device + OnNewBuffer<T, DO, S>,
+        D::Data<T, S>: Default,
+        D::Base<T, S>: ShallowCopy,
+        DO::Base<T, S>: From<D::Base<T, S>>,
+    {
+        let val = ManuallyDrop::new(self);
+
+        // Buffer is moved - it would stay useable on the previous device without on_drop_buffer
+        if let Some(previous_device) = val.device {
+            if val.data.flag() != AllocFlag::None {
+                previous_device.on_drop_buffer(previous_device, &val)
+            }
+        }
+
+        let mut base = unsafe { val.base().shallow() };
+        unsafe { base.set_flag(AllocFlag::None) };
+
+        // register new buffer by calling on_new_buffer inside
+        Buffer::from_new_alloc(device, base.into())
     }
 }
 
@@ -529,7 +606,6 @@ impl<'a, Mods: OnDropBuffer, T, S: Shape> Buffer<'a, T, crate::OpenCL<Mods>, S> 
 
 #[cfg(feature = "cuda")]
 impl<'a, Mods: OnDropBuffer, T> Buffer<'a, T, crate::CUDA<Mods>> {
-    // TODO: replace buf.data.2 with this fn, do the same with cl, cpu
     /// Returns a non null CUDA pointer
     #[inline]
     pub fn cu_ptr(&self) -> u64 {
@@ -619,10 +695,10 @@ impl<T, D: Device, S: Shape> core::ops::DerefMut for Buffer<'_, T, D, S> {
     }
 }
 
-#[cfg(not(feature = "no-std"))]
+#[cfg(feature = "std")]
 use core::fmt::Debug;
 
-#[cfg(not(feature = "no-std"))]
+#[cfg(feature = "std")]
 impl<'a, T, D> Debug for Buffer<'a, T, D>
 where
     T: Debug + Default + Clone + 'a,
@@ -766,7 +842,7 @@ mod tests {
     }
 
     #[cfg(feature = "stack")]
-    #[cfg(not(feature = "no-std"))]
+    #[cfg(feature = "std")]
     // #[should_panic]
     #[test]
     fn test_id_stack() {

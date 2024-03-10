@@ -14,7 +14,7 @@ where
     unsafe { std::slice::from_raw_parts(buf.ptrs().0, buf.len()) }
 }
 
-#[cfg(not(feature = "no-std"))]
+#[cfg(feature = "std")]
 pub fn read<T, D: Alloc<T>>(device: &D, buf: &Buffer<T, D>) -> Vec<T>
 where
     D: Read<T> + Device,
@@ -124,7 +124,7 @@ fn test_cached_cpu() {
 
     let mut prev_ptr = None;
 
-    for _ in 0..100 {
+    for _ in device.range(0..100) {
         let buf: Buffer<f32, _> = device.retrieve::<0>(10, ());
 
         if prev_ptr.is_some() {

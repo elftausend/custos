@@ -1,4 +1,10 @@
-use crate::{Alloc, BorrowCache, Buffer, CachingError, HasId, Id, Parents, Shape};
+use core::{any::Any, hash::BuildHasherDefault};
+use std::collections::HashMap;
+
+use crate::{
+    Alloc, BorrowCache, BoxedShallowCopy, Buffer, Buffers, CachingError, Device, HasId, Id,
+    NoHasher, Shape, UniqueId, ZeroGrad,
+};
 
 const INVALID_ID: &str = "A matching Buffer does not exist.";
 
@@ -7,7 +13,9 @@ const INVALID_ID: &str = "A matching Buffer does not exist.";
 #[derive(Default)]
 pub struct Gradients {
     pub grads_pool: BorrowCache,
-    pub no_grads_pool: BorrowCache,
+    pub no_grads_pool: Buffers<Box<dyn BoxedShallowCopy>>,
+    pub zero_grad_cbs: Vec<(Id, fn(&mut dyn Any))>,
+    pub buf_requires_grad: HashMap<UniqueId, bool, BuildHasherDefault<NoHasher>>,
 }
 
 impl core::fmt::Debug for Gradients {
@@ -18,19 +26,33 @@ impl core::fmt::Debug for Gradients {
     }
 }
 
-type LhsRhsOut<'a, 'b, T, D, S> = (
-    &'b Buffer<'a, T, D, S>,
-    &'b Buffer<'a, T, D, S>,
-    &'b mut Buffer<'a, T, D, S>,
-    &'b mut Buffer<'a, T, D, S>,
-    &'b Buffer<'a, T, D, S>,
-);
-
 impl Gradients {
     /// Clears the cache.
     #[inline]
     pub fn zero_grad(&mut self) {
-        self.grads_pool.cache.clear();
+        for (id, cb) in &self.zero_grad_cbs {
+            let grad_buf = self.grads_pool.cache.get_mut(id).unwrap();
+
+            // the callback is only added if the grad buffer was used in a grad op, so this check should not be necessary (but it is)
+            let req_grad = *self.buf_requires_grad.get(id).unwrap_or(&true);
+            if req_grad {
+                cb(&mut **grad_buf);
+            }
+        }
+        // self.grads_pool.cache.clear();
+    }
+
+    pub fn add_zero_grad_cb<T, D, S>(&mut self, id: &Id)
+    where
+        T: 'static,
+        D: Device + ZeroGrad<T> + 'static,
+        S: Shape,
+    {
+        self.zero_grad_cbs.push((*id, |grad_buf| {
+            let grad_buf = grad_buf.downcast_mut::<Buffer<T, D, S>>().unwrap();
+
+            grad_buf.device().zero_grad(grad_buf);
+        }));
     }
 
     /// May get a reference to a gradient [`Buffer`].
@@ -65,9 +87,17 @@ impl Gradients {
     where
         T: 'static,
         S: Shape,
-        D: Alloc<T> + 'static,
+        D: Alloc<T> + ZeroGrad<T> + 'static,
     {
-        self.grads_pool.add_or_get(device, id)
+        // because of rust, thx
+        let mut new_buf = false;
+        self.grads_pool
+            .add_buf_once::<T, D, S>(device, id, &mut new_buf);
+
+        if new_buf {
+            self.add_zero_grad_cb::<T, D, S>(&id);
+        }
+        self.grads_pool.get_buf(id).unwrap()
     }
 
     /// Returns a mutable reference to a gradient [`Buffer`].
@@ -77,9 +107,16 @@ impl Gradients {
     where
         T: 'static,
         S: Shape,
-        D: Alloc<T> + 'static,
+        D: ZeroGrad<T> + Alloc<T> + 'static,
     {
-        self.grads_pool.add_or_get_mut(device, id)
+        let mut new_buf = false;
+        self.grads_pool
+            .add_buf_once::<T, D, S>(device, id, &mut new_buf);
+
+        if new_buf {
+            self.add_zero_grad_cb::<T, D, S>(&id);
+        }
+        self.grads_pool.get_buf_mut(id).unwrap()
     }
 
     /// Returns a reference to a gradient [`Buffer`] using information from `buf`.
@@ -88,7 +125,7 @@ impl Gradients {
     where
         T: 'static,
         S: Shape,
-        D: Alloc<T> + 'static,
+        D: Alloc<T> + ZeroGrad<T> + 'static,
         D::Data<T, S>: HasId,
     {
         self.get_ref(buf.device(), buf.id())
@@ -101,132 +138,42 @@ impl Gradients {
         S: Shape,
         D: Alloc<T> + 'static,
     {
-        self.no_grads_pool.get_buf::<T, D, S>(id).expect(INVALID_ID)
-    }
-
-    /// Returns the forward [`Buffer`]s lhs and and rhs, and the gradient `Buffer`s lhs_grad, rhs_grad and out_grad.
-    /// Usefull for binary operations.
-    #[inline]
-    pub fn get_triple<'a, T, S, D>(
-        &mut self,
-        parents: impl Parents<3>,
-    ) -> LhsRhsOut<'a, '_, T, D, S>
-    where
-        T: 'static,
-        S: Shape,
-        D: Alloc<T> + 'static,
-    {
-        let [lid, rid, oid] = parents.ids();
-
-        let lhs_grad_ptr = self.may_get_mut(lid).unwrap() as *mut _;
-        let lhs_grad = unsafe { &mut *lhs_grad_ptr };
-
-        let rhs_grad_ptr = self.may_get_mut(rid).unwrap() as *mut _;
-        let rhs_grad = unsafe { &mut *rhs_grad_ptr };
-        (
-            self.get_buf_from_no_grad_pool(lid),
-            self.get_buf_from_no_grad_pool(rid),
-            lhs_grad,
-            rhs_grad,
-            self.may_get_ref(oid).unwrap(),
-        )
-    }
-
-    /// Returns the forward [`Buffer`] x and the gradient `Buffer`s x_grad and out_grad.
-    /// Useful for unary operations.
-    ///
-    #[inline]
-    pub fn get_double<'a, T, IS, OS, D>(
-        &mut self,
-        // device: &'a D,
-        parents: impl Parents<2>,
-        // (xid, oid): (Id, Id),
-    ) -> (
-        &Buffer<'a, T, D, IS>,
-        &mut Buffer<'a, T, D, IS>,
-        &Buffer<'a, T, D, OS>,
-    )
-    where
-        T: 'static,
-        IS: Shape,
-        OS: Shape,
-        D: Alloc<T> + 'static,
-        D::Data<T, IS>: crate::ShallowCopy,
-    {
-        let [xid, oid] = parents.ids();
-        // self.grads_pool.add_buf_once::<T, _, IS>(device, oid);
-
-        // let x_grad_ptr = self.get_mut(device, xid) as *mut _;
-        let x_grad_ptr = self.may_get_mut(xid).unwrap() as *mut _;
-        let x_grad_mut = unsafe { &mut *x_grad_ptr };
-        let o_grad = self.may_get_ref(oid).unwrap();
-
-        (self.get_buf_from_no_grad_pool(xid), x_grad_mut, o_grad)
+        self.no_grads_pool
+            .get(&id)
+            .ok_or(CachingError::InvalidId)
+            .expect(INVALID_ID)
+            .as_any()
+            .downcast_ref()
+            .ok_or(CachingError::InvalidTypeInfo)
+            .expect(INVALID_ID)
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::{Autograd, Base, Buffer, HasId, Retriever, CPU};
 
+    #[cfg(feature = "cpu")]
     #[test]
-    fn test_same_types_get_double_return() {
-        let device = CPU::<Autograd<Base>>::new();
+    fn test_zero_grad_on_gradients() {
+        use crate::{Base, Device, Gradients, HasId, CPU};
 
-        // let mut gradients = Gradients::default();
+        let dev = CPU::<Base>::new();
 
-        let buf = Buffer::<i32, _>::new(&device, 10);
-        // unsafe { register_buf(&mut gradients.no_grads_pool.borrow_mut().cache, &buf) }
+        let mut grads = Gradients::default();
 
-        let out: Buffer<i32, _> = device.retrieve::<0>(buf.len(), ());
-        // unsafe { register_buf(&mut gradients.no_grads_pool.borrow_mut().cache, &out) }
+        let lhs = dev.buffer([1, 2, 3, 4]);
+        {
+            let grad = grads.get_mut::<i32, (), _>(&dev, lhs.id());
 
-        // unsafe {
-        //     (*device.modules.tape.get())
-        //         .grads
-        //         .get_double::<i32, (), (), CPU<Autograd<crate::CachedModule<Base, CPU>>>>((
-        //             buf.id(),
-        //             out.id(),
-        //         ));
-        // }
+            for val in grad.iter_mut() {
+                *val = 4;
+            }
 
-        // device
-        //     .modules
-        //     .tape
-        //     .borrow_mut()
-        //     .grads
-        //     .get_double::<i32, (), (), CPU<Autograd<crate::CachedModule<Base, CPU>>>>((
-        //         buf.id(),
-        //         out.id(),
-        //     ));
-    }
+            assert_eq!(grad.as_slice(), &[4; 4]);
+        }
 
-    #[test]
-    #[ignore = "deprecated"]
-    #[should_panic]
-    fn test_different_types_get_double_return() {
-        let device = CPU::<Autograd<Base>>::new();
-
-        // let mut gradients = Gradients::default();
-
-        let buf = Buffer::<i32, _>::new(&device, 10);
-        // unsafe { register_buf(&mut gradients.no_grads_pool.borrow_mut().cache, &buf) }
-
-        let out: Buffer<i64, _> = device.retrieve::<0>(buf.len(), ());
-        // unsafe { register_buf(&mut gradients.no_grads_pool.borrow_mut().cache, &out) }
-
-        // unsafe {
-        //     (*device.modules.tape.get()).grads
-        //     .get_double::<i32, (), (), CPU<Autograd<crate::CachedModule<Base, CPU<Autograd<Base>>>>>>((buf.id(), out.id()));
-        // }
-
-        // unsafe {
-        //     device
-        //     .modules
-        //     .tape
-        //     .borrow_mut()
-        //     .grads
-        //     .get_double::<i32, (), (), CPU<Autograd<crate::CachedModule<Base, CPU<Autograd<Base>>>>>>((buf.id(), out.id()))
-        // }
+        grads.zero_grad();
+        let grad = grads.get_ref::<i32, (), _>(&dev, lhs.id());
+        assert_eq!(grad.as_slice(), &[0; 4]);
     }
 }

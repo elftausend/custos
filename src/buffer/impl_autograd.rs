@@ -1,5 +1,6 @@
 use crate::prelude::*;
 use crate::MayTapeActions;
+use crate::ZeroGrad;
 
 const AUTOGRAD_NOT_AVAILABLE: &str = "Autograd<> is not available.";
 
@@ -15,11 +16,28 @@ where
     pub fn backward(&self)
     where
         T: Clone + One + 'static,
-        D: TapeActions + WriteBuf<T, S, D> + Alloc<T> + 'static,
+        D: TapeActions + ZeroGrad<T> + WriteBuf<T, S, D> + Alloc<T> + AddOperation + 'static,
+        D: CachedBuffers,
+    {
+        self.backward_with(&vec![T::one(); self.len()]);
+    }
+    /// Calls `.backward_seeded_maybe_with_buffers` on the [`Tape`] with the given buffer.
+    #[inline]
+    pub fn backward_with(&self, seed: &[T])
+    where
+        T: Clone + 'static,
+        D: CachedBuffers
+            + TapeActions
+            + ZeroGrad<T>
+            + WriteBuf<T, S, D>
+            + Alloc<T>
+            + AddOperation
+            + 'static,
     {
         // should never be None
         if let Some(tape) = unsafe { self.device().tape_mut() } {
-            tape.backward_seeded(self)
+            let mut buffers = unsafe { self.device().buffers_mut() };
+            tape.backward_seeded_maybe_with_buffers(self, seed, buffers.as_deref_mut())
         }
     }
 }
@@ -38,9 +56,12 @@ where
     #[cfg(feature = "autograd")]
     pub fn grad(&self) -> &'a Self
     where
-        D: MayTapeActions + Alloc<T>,
-        // D::Data<T, S>: crate::ShallowCopy,
+        D: ZeroGrad<T> + MayTapeActions + Alloc<T>,
     {
+        // TODO: consider activating this check ->
+        // e.g. binary grad ops are computed in a single function where differentiating between
+        // req grad and no req grad is not possible/ difficult
+        // assert!(self.requires_grad(), "Buffer does not require gradient.");
         unsafe {
             self.device()
                 .gradients_mut()
@@ -57,6 +78,10 @@ where
     where
         D: MayTapeActions + Alloc<T>,
     {
+        if !self.requires_grad() {
+            return None;
+        }
+
         #[cfg(feature = "autograd")]
         unsafe {
             self.device().gradients()?.may_get_ref(self.id()).ok()
@@ -80,8 +105,12 @@ where
     #[cfg(feature = "autograd")]
     pub fn grad_mut(&self) -> &'a mut Self
     where
-        D: MayTapeActions + Alloc<T>,
+        D: MayTapeActions + Alloc<T> + ZeroGrad<T>,
     {
+        // TODO: consider activating this check ->
+        // e.g. binary grad ops are computed in a single function where differentiating between
+        // req grad and no req grad is not possible/ difficult
+        // assert!(self.requires_grad(), "Buffer does not require gradient.");
         unsafe {
             self.device()
                 .gradients_mut()
@@ -98,6 +127,10 @@ where
     where
         D: MayTapeActions + Alloc<T>,
     {
+        if !self.requires_grad() {
+            return None;
+        }
+
         #[cfg(feature = "autograd")]
         unsafe {
             self.device().gradients_mut()?.may_get_mut(self.id()).ok()

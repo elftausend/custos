@@ -2,7 +2,7 @@ use std::ops::{Add, AddAssign, Deref, DerefMut, Mul};
 
 use custos::{
     AddGradFn, AddOperation, Alloc, Buffer, Device, MayTapeActions, Retrieve, Retriever, Shape,
-    UseGpuOrCpu, CPU,
+    UseGpuOrCpu, ZeroGrad, CPU,
 };
 
 pub trait ElementWise<T, D: Device, S: Shape>: Device {
@@ -31,13 +31,12 @@ where
 
 impl<T, D, S, Mods> ElementWise<T, D, S> for CPU<Mods>
 where
-    T: Add<Output = T> + AddAssign + Mul<Output = T> + Copy + 'static,
-    D: Device + Alloc<T> + MayTapeActions + 'static,
+    T: Add<Output = T> + AddAssign + Mul<Output = T> + Default + Copy + 'static,
+    D: Device + ZeroGrad<T> + Alloc<T> + MayTapeActions + 'static,
     D::Base<T, S>: Deref<Target = [T]> + DerefMut,
     S: Shape,
     Mods: Retrieve<Self, T, S> + AddOperation + MayTapeActions + AddGradFn + 'static,
 {
-    #[track_caller]
     fn add(
         &self,
         lhs: &Buffer<T, D, S>,
@@ -106,6 +105,7 @@ where
         self.add_op((lhs, rhs, &mut out), |(lhs, rhs, out)| {
             let dev = lhs.device();
             let out = &mut **out;
+
             #[cfg(unified_cl)]
             {
                 let cpu_out = unsafe { &mut *(out as *mut Buffer<_, OpenCL<Mods>, _>) };
@@ -130,13 +130,13 @@ fn main() {
     #[cfg(feature = "lazy")]
     #[cfg(feature = "opencl")]
     {
-        use custos::{Base, Cached, Fork, Lazy, Run};
-        let device = OpenCL::<Fork<Lazy<Cached<Base>>>>::new(0).unwrap();
+        use custos::{Base, Fork, Lazy, Run};
+        let device = OpenCL::<Fork<Lazy<Base>>>::new(0).unwrap();
         let lhs = device.buffer([1, 2, 3, 4, 5]);
         let rhs = device.buffer([1, 2, 3, 4, 5]);
 
         let out = device.add(&lhs, &rhs).unwrap();
         unsafe { device.run().unwrap() };
-        assert_eq!(out.read(), vec![2, 4, 6, 8, 10])
+        assert_eq!(out.replace().read(), vec![2, 4, 6, 8, 10])
     }
 }

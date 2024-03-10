@@ -37,8 +37,7 @@ jobs:
 
     - name: Build (CUDA)
       run: cargo build --verbose --no-default-features --features cuda
-
-  build-both:
+  build-vulkan:
 
     runs-on: self-hosted
 
@@ -49,8 +48,24 @@ jobs:
         profile: minimal
         toolchain: stable
 
-    - name: Build (CUDA)
+    - name: Build (Vulkan)
+      run: cargo build --verbose --no-default-features --features vulkan
+
+  build-all:
+
+    runs-on: self-hosted
+
+    steps:
+    - uses: actions/checkout@v3
+    - uses: actions-rs/toolchain@v1
+      with:
+        profile: minimal
+        toolchain: stable
+
+    - name: Build (cuda,opencl)
       run: cargo build --verbose --no-default-features --features cuda,opencl
+    - name: Build (all)
+      run: cargo build --verbose --no-default-features --features cuda,opencl,vulkan
       
   test-opencl:
   
@@ -66,10 +81,16 @@ jobs:
 
     - name: Run tests (OpenCL)
       run: cargo test --verbose --no-default-features --features opencl
-    - name: Run tests (OpenCL, realloc)
-      run: cargo test --verbose --no-default-features --features opencl,realloc
-    - name: Run tests (OpenCL, opt-cache)
-      run: cargo test --verbose --no-default-features --features opencl,opt-cache
+    - name: Run tests (OpenCL, lazy)
+      run: cargo test --verbose --no-default-features --features opencl,lazy
+    - name: Run tests (OpenCL, autograd)
+      run: cargo test --verbose --no-default-features --features opencl,autograd
+    - name: Run tests (OpenCL, graph)
+      run: cargo test --verbose --no-default-features --features opencl,graph
+    - name: Run tests (OpenCL, modules)
+      run: cargo test --verbose --no-default-features --features opencl,autograd,graph,cpu
+    - name: Run tests (OpenCL, fork)
+      run: CUSTOS_USE_UNIFIED=false cargo test --verbose --no-default-features --features opencl,fork
   
   test-cuda:
   
@@ -85,10 +106,41 @@ jobs:
 
     - name: Run tests (CUDA)
       run: cargo test --verbose --no-default-features --features cuda
-    - name: Run tests (CUDA, realloc)
-      run: cargo test --verbose --no-default-features --features cuda,realloc
-    - name: Run tests (CUDA, opt-cache)
-      run: cargo test --verbose --no-default-features --features cuda,opt-cache
+    - name: Run tests (CUDA, lazy)
+      run: cargo test --verbose --no-default-features --features cuda,lazy
+    - name: Run tests (CUDA, autograd)
+      run: cargo test --verbose --no-default-features --features cuda,autograd
+    - name: Run tests (CUDA, graph)
+      run: cargo test --verbose --no-default-features --features cuda,graph
+    - name: Run tests (CUDA, cpu)
+      run: cargo test --verbose --no-default-features --features cuda,cpu
+    - name: Run tests (CUDA, modules)
+      run: cargo test --verbose --no-default-features --features cuda,autograd,graph,cpu
+  
+  test-vulkan:
+  
+    runs-on: self-hosted
+    
+    steps:
+    - uses: actions/checkout@v3
+
+    - uses: actions-rs/toolchain@v1
+      with:
+        profile: minimal
+        toolchain: stable
+
+    - name: Run tests (vulkan)
+      run: cargo test --verbose --no-default-features --features vulkan 
+    - name: Run tests (vulkan, lazy)
+      run: cargo test --verbose --no-default-features --features vulkan,lazy
+    - name: Run tests (vulkan, autograd)
+      run: cargo test --verbose --no-default-features --features vulkan,autograd
+    - name: Run tests (vulkan, graph)
+      run: cargo test --verbose --no-default-features --features vulkan,graph
+    - name: Run tests (vulkan, cpu)
+      run: cargo test --verbose --no-default-features --features vulkan,cpu
+    - name: Run tests (vulkan, modules)
+      run: cargo test --verbose --no-default-features --features vulkan,autograd,graph,cpu
 
   test-all:
   
@@ -102,9 +154,11 @@ jobs:
         profile: minimal
         toolchain: stable
 
-    - name: Run tests (CUDA, OpenCL)
-      run: cargo test --verbose --no-default-features --features cuda,opencl
-    - name: Run tests (CUDA, OpenCL, opt-cache)
-      run: cargo test --verbose --no-default-features --features cuda,opencl,opt-cache
-    - name: Run tests (CUDA, OpenCL, realloc)
-      run: cargo test --verbose --no-default-features --features cuda,opencl,realloc
+    - name: Run tests (CUDA, OpenCL, vulkan)
+      run: cargo test --verbose --no-default-features --features cuda,opencl,vulkan
+    - name: Run tests (CUDA, OpenCL, lazy, vulkan)
+      run: cargo test --verbose --no-default-features --features cuda,opencl,lazy,vulkan
+    - name: Run tests (CUDA, OpenCL, autograd, vulkan)
+      run: cargo test --verbose --no-default-features --features cuda,opencl,autograd,vulkan
+    - name: Run tests (CUDA, OpenCL, graph, vulkan)
+      run: cargo test --verbose --no-default-features --features cuda,opencl,graph,vulkan

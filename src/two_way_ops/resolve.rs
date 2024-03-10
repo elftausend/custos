@@ -1,4 +1,4 @@
-#[cfg(not(feature = "no-std"))]
+#[cfg(feature = "std")]
 use crate::ToCLSource;
 
 /// Resolves to either a mathematical expression as string or a computed value.
@@ -64,7 +64,7 @@ pub trait ToVal<T = Self> {
     ///
     /// let resolve: Resolve<f32> = 1.5.to_val();
     ///
-    /// assert_eq!(<Resolve<f32> as Eval<f32>>::eval(resolve), 1.5);
+    /// assert_eq!(<Resolve<f32> as Eval<f32>>::eval(&resolve), 1.5);
     /// ```
     fn to_val(self) -> Resolve<T>;
 }
@@ -126,14 +126,14 @@ impl<T> Resolve<T> {
     }
 }
 
-impl<T> crate::Eval<T> for Resolve<T> {
+impl<T: Copy> crate::Eval<T> for Resolve<T> {
     #[inline]
-    fn eval(self) -> T {
+    fn eval(&self) -> T {
         self.val
     }
 }
 
-#[cfg(not(feature = "no-std"))]
+#[cfg(feature = "std")]
 impl<T> ToCLSource for Resolve<T> {
     #[inline]
     fn to_cl_source(&self) -> String {

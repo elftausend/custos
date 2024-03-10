@@ -1,9 +1,10 @@
 use core::convert::Infallible;
 
 use crate::{
-    flag::AllocFlag, impl_buffer_hook_traits, impl_retriever, impl_wrapped_data, shape::Shape,
-    Alloc, Base, Buffer, CloneBuf, Device, DevicelessAble, OnDropBuffer, Read, StackArray,
-    WrappedData, WriteBuf,
+    flag::AllocFlag, impl_buffer_hook_traits, impl_retriever, impl_wrapped_data,
+    pass_down_add_operation, pass_down_cursor, pass_down_grad_fn, pass_down_optimize_mem_graph,
+    pass_down_tape_actions, pass_down_use_gpu_or_cpu, shape::Shape, Alloc, Base, Buffer, CloneBuf,
+    Device, DevicelessAble, OnDropBuffer, Read, StackArray, WrappedData, WriteBuf,
 };
 
 /// A device that allocates memory on the stack.
@@ -21,6 +22,13 @@ impl Stack {
 impl_buffer_hook_traits!(Stack);
 impl_retriever!(Stack, Copy + Default);
 impl_wrapped_data!(Stack);
+pass_down_cursor!(Stack);
+pass_down_grad_fn!(Stack);
+pass_down_tape_actions!(Stack);
+pass_down_use_gpu_or_cpu!(Stack);
+#[cfg(feature = "graph")]
+pass_down_optimize_mem_graph!(Stack);
+pass_down_add_operation!(Stack);
 
 impl<'a, T: Copy + Default, S: Shape> DevicelessAble<'a, T, S> for Stack {}
 
@@ -82,12 +90,6 @@ impl<Mods: OnDropBuffer, T: Copy + Default> Alloc<T> for Stack<Mods> {
     }
 }
 
-/*impl GraphReturn for Stack {
-    fn graph(&self) -> core::cell::RefMut<crate::Graph> {
-        unimplemented!()
-    }
-}*/
-
 impl<T: Copy, S: Shape> Read<T, S> for Stack
 where
     S::ARR<T>: Copy,
@@ -104,7 +106,7 @@ where
     }
 
     #[inline]
-    #[cfg(not(feature = "no-std"))]
+    #[cfg(feature = "std")]
     fn read_to_vec(&self, buf: &Buffer<T, Stack, S>) -> Vec<T>
     where
         T: Default,
@@ -138,15 +140,12 @@ impl<T: Copy, S: Shape> WriteBuf<T, S> for Stack {
     }
 }
 
-#[cfg(feature = "autograd")]
-impl<Mods: crate::TapeActions> crate::TapeActions for Stack<Mods> {}
-
 #[cfg(test)]
 mod tests {
-    #[cfg(not(feature = "no-std"))]
+    #[cfg(feature = "std")]
     use crate::{shape::Dim2, Buffer, Stack};
 
-    #[cfg(not(feature = "no-std"))]
+    #[cfg(feature = "std")]
     #[test]
     fn test_dim2() {
         let dev = Stack::new();

@@ -23,8 +23,6 @@ pub mod webgl;
 
 #[cfg(feature = "vulkan")]
 pub mod vulkan;
-// #[cfg(feature = "wgpu")]
-// pub mod wgpu;
 
 #[cfg(feature = "network")]
 pub mod network;
@@ -38,11 +36,15 @@ pub use stack_array::*;
 mod cdatatype;
 pub use cdatatype::*;
 
+mod alloc;
+pub use alloc::*;
+
 #[cfg(any(feature = "cpu", feature = "stack"))]
 pub mod cpu_stack_ops;
 
-use crate::{Buffer, HasId, OnDropBuffer, PtrType, Shape};
+use crate::{Buffer, HasId, OnDropBuffer, Parents, PtrType, Shape};
 
+/// The `Device` trait is the main trait for all compute devices.
 pub trait Device: OnDropBuffer + Sized {
     type Base<T, S: Shape>: HasId + PtrType;
     type Data<T, S: Shape>: HasId + PtrType;
@@ -118,7 +120,20 @@ macro_rules! impl_device_traits {
         $crate::pass_down_tape_actions!($device);
 
         $crate::pass_down_replace_buf_dev!($device);
+        $crate::pass_down_cursor!($device);
+        $crate::pass_down_cached_buffers!($device);
     };
+}
+
+/// A module affected trait.
+/// Retrieves a [`Buffer`] from the device.
+pub trait Retriever<T, S: Shape = ()>: Device {
+    #[track_caller]
+    fn retrieve<const NUM_PARENTS: usize>(
+        &self,
+        len: usize,
+        parents: impl Parents<NUM_PARENTS>,
+    ) -> Buffer<T, Self, S>;
 }
 
 #[macro_export]

@@ -1,7 +1,8 @@
 use crate::{
-    impl_remove_layer, pass_down_add_operation, pass_down_exec_now, pass_down_tape_actions,
-    AddLayer, Alloc, Buffer, Device, HasId, IsShapeIndep, Module, OnDropBuffer, OnNewBuffer,
-    Parents, PtrType, Retrieve, RunModule, Setup, Shape, WrappedData, VERSION,
+    impl_remove_layer, pass_down_add_operation, pass_down_exec_now, pass_down_replace_buf_module,
+    pass_down_tape_actions, AddLayer, Alloc, Buffer, Device, HasId, IsShapeIndep, Module,
+    OnDropBuffer, OnNewBuffer, Parents, PtrType, Retrieve, RunModule, Setup, Shape, WrappedData,
+    VERSION,
 };
 use core::cell::RefCell;
 
@@ -51,7 +52,7 @@ impl<Mods: Module<D>, D: Device> Module<D> for Fork<Mods> {
     fn new() -> Self::Module {
         Fork {
             modules: Mods::new(),
-            version: VERSION,
+            version: VERSION.unwrap(),
             gpu_or_cpu: Default::default(),
         }
     }
@@ -60,6 +61,11 @@ impl<Mods: Module<D>, D: Device> Module<D> for Fork<Mods> {
 pub trait ForkSetup {
     #[inline]
     fn fork_setup(&mut self) {}
+
+    #[inline]
+    fn has_unified_mem(&self) -> bool {
+        false
+    }
 }
 
 impl<Mods: Setup<D>, D: ForkSetup> Setup<D> for Fork<Mods> {
@@ -70,6 +76,7 @@ impl<Mods: Setup<D>, D: ForkSetup> Setup<D> for Fork<Mods> {
     }
 }
 
+crate::pass_down_cursor!(Fork);
 pass_down_add_operation!(Fork);
 pass_down_exec_now!(Fork);
 
@@ -127,6 +134,7 @@ impl<Mods: RunModule<D>, D> RunModule<D> for Fork<Mods> {
     }
 }
 
+pass_down_replace_buf_module!(Fork);
 impl_remove_layer!(Fork);
 
 impl<NewMods, SD> AddLayer<NewMods, SD> for Fork<()> {
@@ -136,7 +144,7 @@ impl<NewMods, SD> AddLayer<NewMods, SD> for Fork<()> {
     fn wrap_layer(inner_mods: NewMods) -> Self::Wrapped {
         Fork {
             modules: inner_mods,
-            version: VERSION,
+            version: VERSION.unwrap(),
             gpu_or_cpu: Default::default(),
         }
     }
@@ -147,12 +155,13 @@ impl<NewMods, SD> AddLayer<NewMods, SD> for Fork<()> {
 mod tests {
     use std::{collections::BinaryHeap, time::Instant};
 
+    use min_cl::CLDevice;
+
     use crate::{
         opencl::try_cl_clear, should_use_cpu, Analyzation, ApplyFunction, Base, Buffer, Cached,
         Combiner, Device, Fork, GpuOrCpuInfo, Module, OpenCL, UseGpuOrCpu, CPU,
     };
 
-    #[track_caller]
     pub fn clear(
         fork: &Fork<Base>,
         cpu_buf: &mut Buffer<i32>,
@@ -322,8 +331,14 @@ mod tests {
         println!("{:?}", fork.gpu_or_cpu.borrow());
     }
 
+    #[cfg(unified_cl)]
     #[test]
     fn test_fork_module() {
+        // inside ForkSetup -> unified mem assert
+        // the setup is called inside the OpenCL::new fn!
+        if !CLDevice::new(0).unwrap().unified_mem() {
+            return;
+        }
         let device = OpenCL::<Fork<Base>>::new(0).unwrap();
 
         let mut buf = device.buffer::<_, (), _>(vec![21u8; 10000]);

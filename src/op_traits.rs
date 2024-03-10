@@ -20,6 +20,10 @@ pub trait ClearBuf<T, S: Shape = (), D: Device = Self> {
     fn clear(&self, buf: &mut Buffer<T, D, S>);
 }
 
+pub trait ZeroGrad<T>: Device {
+    fn zero_grad<S: Shape>(&self, data: &mut Self::Base<T, S>);
+}
+
 /// Trait for copying a slice of a buffer, to implement the slice() operation.
 pub trait CopySlice<T, D: Device = Self>: Sized + Device {
     /// Copy a slice of the given buffer into a new buffer.
@@ -131,7 +135,7 @@ pub trait Read<T, S: Shape = (), D: Device = Self>: Device {
     /// let read = device.read_to_vec(&a);
     /// assert_eq!(vec![1., 2., 3., 3., 2., 1.,], read);
     /// ```
-    #[cfg(not(feature = "no-std"))]
+    #[cfg(feature = "std")]
     fn read_to_vec(&self, buf: &Buffer<T, D, S>) -> Vec<T>
     where
         T: Default + Clone;

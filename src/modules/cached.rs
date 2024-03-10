@@ -1,9 +1,12 @@
-use core::{cell::RefCell, marker::PhantomData};
+use core::{
+    cell::{Cell, RefCell},
+    marker::PhantomData,
+};
 
 use crate::{
-    AddGradFn, AddLayer, AddOperation, Alloc, Buffer, Cache, Device, ExecNow, HasId, Module,
-    OnDropBuffer, OnNewBuffer, Parents, PtrType, RemoveLayer, Retrieve, RunModule, Setup,
-    ShallowCopy, Shape, WrappedData,
+    AddGradFn, AddLayer, AddOperation, Alloc, Buffer, Cache, CachedBuffers, Cursor, Device,
+    ExecNow, HasId, IsShapeIndep, Module, OnDropBuffer, OnNewBuffer, Parents, PtrType, RemoveLayer,
+    ReplaceBuf, Retrieve, RunModule, Setup, ShallowCopy, Shape, UniqueId, WrappedData,
 };
 
 #[cfg(feature = "graph")]
@@ -15,15 +18,6 @@ use crate::{DeviceError, OptimizeMemGraph};
 pub struct Cached<Mods> {
     pd: PhantomData<Mods>,
 }
-
-/*impl<Mods, D> Retrieve<D> for Cached<Mods> {
-    fn retrieve<T, S: Shape>(&self, device: &D, len: usize) -> <D>::Data<T, S>
-    where
-        D: Alloc
-    {
-        todo!()
-    }
-}*/
 
 impl<Mods: WrappedData, SD: Device> WrappedData for CachedModule<Mods, SD> {
     type Wrap<T, Base: HasId + PtrType> = Mods::Wrap<T, Base>;
@@ -52,6 +46,7 @@ impl<Mods: Module<D>, D: Device> Module<D> for Cached<Mods> {
             modules: Mods::new(),
             cache: RefCell::new(Cache::new()),
             pd: PhantomData,
+            cursor: Default::default(),
         }
     }
 }
@@ -63,6 +58,7 @@ pub struct CachedModule<Mods, D: Device> {
     pub modules: Mods,
     pub cache: RefCell<Cache>,
     pub(crate) pd: PhantomData<D>,
+    cursor: Cell<usize>, // would move this to `Cache`, however -> RefCell; TODO: maybe add a Cursor Module
 }
 
 impl<Mods: Setup<NewDev>, D: Device, NewDev> Setup<NewDev> for CachedModule<Mods, D> {
@@ -85,6 +81,16 @@ impl<SD: Device, Mods: AddOperation> AddOperation for CachedModule<Mods, SD> {
     ) -> crate::Result<()> {
         operation(&mut args)
     }
+
+    #[inline]
+    fn set_lazy_enabled(&self, enabled: bool) {
+        self.modules.set_lazy_enabled(enabled)
+    }
+
+    #[inline]
+    fn is_lazy_enabled(&self) -> bool {
+        self.modules.is_lazy_enabled()
+    }
 }
 
 impl<D: Device, SD: Device, Mods: ExecNow<D>> ExecNow<D> for CachedModule<Mods, SD> {
@@ -98,8 +104,14 @@ impl<D: Device, SD: Device, Mods: ExecNow<D>> ExecNow<D> for CachedModule<Mods, 
     }
 }
 
-impl<T, D: Device, Mods: OnNewBuffer<T, D, S>, SD: Device, S: Shape> OnNewBuffer<T, D, S>
-    for CachedModule<Mods, SD>
+impl<T, D, Mods, SD, S> OnNewBuffer<T, D, S> for CachedModule<Mods, SD>
+where
+    T: 'static,
+    D: Device + IsShapeIndep + 'static,
+    Mods: OnNewBuffer<T, D, S>,
+    D::Data<T, S>: ShallowCopy,
+    SD: Device,
+    S: Shape,
 {
     #[inline]
     fn on_new_buffer(&self, device: &D, new_buf: &Buffer<T, D, S>) {
@@ -117,9 +129,11 @@ impl<Mods: OnDropBuffer, SD: Device> OnDropBuffer for CachedModule<Mods, SD> {
 // TODO: a more general OnDropBuffer => "Module"
 impl<T, Mods, D, SimpleDevice, S: Shape> Retrieve<D, T, S> for CachedModule<Mods, SimpleDevice>
 where
+    T: 'static,
     Mods: Retrieve<D, T, S>,
-    D: Device + 'static,
+    D: Device + IsShapeIndep + Cursor + 'static,
     D::Base<T, S>: ShallowCopy + 'static,
+    D::Data<T, S>: ShallowCopy + 'static,
     SimpleDevice: Device,
 {
     #[inline]
@@ -132,7 +146,11 @@ where
     where
         D: Alloc<T>,
     {
-        self.wrap_in_base(self.cache.borrow_mut().get(device, len, || ()))
+        self.wrap_in_base(
+            self.cache
+                .borrow_mut()
+                .get(device, len, |_cursor, _base| {}),
+        )
     }
 
     #[inline]
@@ -141,6 +159,18 @@ where
         D: Alloc<T>,
     {
         self.modules.on_retrieve_finish(retrieved_buf)
+    }
+}
+
+impl<Mods, SD: Device> Cursor for CachedModule<Mods, SD> {
+    #[inline]
+    fn cursor(&self) -> usize {
+        self.cursor.get()
+    }
+
+    #[inline]
+    unsafe fn set_cursor(&self, cursor: usize) {
+        self.cursor.set(cursor)
     }
 }
 
@@ -179,6 +209,7 @@ impl<CurrentMods, SD: Device> AddLayer<CurrentMods, SD> for Cached<()> {
             modules: inner_mods,
             cache: Default::default(),
             pd: core::marker::PhantomData,
+            cursor: Default::default(),
         }
     }
 }
@@ -198,6 +229,11 @@ impl<Mods: AddGradFn, D: Device> AddGradFn for CachedModule<Mods, D> {
         op: fn(&mut Args) -> crate::Result<()>,
     ) {
         self.modules.add_grad_fn(args, op)
+    }
+
+    #[inline]
+    fn set_grad_enabled(&self, enabled: bool) {
+        self.modules.set_grad_enabled(enabled)
     }
 }
 
@@ -228,99 +264,59 @@ impl<Mods: OptimizeMemGraph, SD: Device> OptimizeMemGraph for CachedModule<Mods,
         &self,
         _device: &D,
         graph_translator: Option<&crate::GraphTranslator>,
-        //cache_traces: Option<&[crate::TranslatedCacheTrace]>,
     ) -> crate::Result<()> {
         let graph_translator = graph_translator.ok_or(DeviceError::MissingCacheTraces)?;
-        let cache_traces = graph_translator
-            .to_hash_location_cache_traces(graph_translator.opt_graph.cache_traces());
+        let cache_traces =
+            graph_translator.to_cursor_cache_traces(graph_translator.opt_graph.cache_traces());
 
         let mut cache = self.cache.borrow_mut();
         for cache_trace in cache_traces {
             let used_to_replace = cache
                 .nodes
-                .get(&cache_trace.cache_idx)
+                .get(&(cache_trace.cache_idx as UniqueId))
                 .ok_or(DeviceError::GraphOptimization)?
                 .clone();
 
             for to_replace in &cache_trace.use_cache_idxs {
-                cache.nodes.insert(*to_replace, used_to_replace.clone());
+                if cache
+                    .nodes
+                    .get(&(*to_replace as UniqueId))
+                    .unwrap()
+                    .type_id()
+                    != used_to_replace.type_id()
+                {
+                    continue;
+                }
+                cache
+                    .nodes
+                    .insert(*to_replace as UniqueId, used_to_replace.clone());
             }
         }
         Ok(())
     }
 }
 
-#[macro_export]
-macro_rules! debug_assert_tracked {
-    () => {
-        #[cfg(debug_assertions)]
-        {
-            let location = core::panic::Location::caller();
-            assert_ne!(
-                (file!(), line!(), column!()),
-                (location.file(), location.line(), location.column()),
-                "Function and operation must be annotated with `#[track_caller]`."
-            );
-        }
-    };
+impl<Mods: OnDropBuffer, D: Device> CachedBuffers for CachedModule<Mods, D> {
+    #[inline]
+    unsafe fn buffers_mut(
+        &self,
+    ) -> Option<core::cell::RefMut<crate::Buffers<Box<dyn crate::BoxedShallowCopy>>>> {
+        // Use the stored buffers in autograd module -> optimizing isn't possible anyway
+        None
+    }
 }
 
-/// This macro is nothing but a mechanism to ensure that the specific operation is annotated with `#[track_caller]`.
-/// If the operation is not annotated with `#[track_caller]`, then the macro will cause a panic (in debug mode).
-///
-/// This macro turns the device, length and optionally type information into the following line of code:
-/// ## From:
-/// ```ignore
-/// retrieve!(device, 10, f32)
-/// ```
-/// ## To:
-/// ```ignore
-/// custos::debug_assert_tracked!();
-/// device.retrieve::<f32, ()>(10)
-/// ```
-///
-/// If you ensure that the operation is annotated with `#[track_caller]`, then you can just write the following:
-/// ```ignore
-/// device.retrieve::<f32, ()>(10)
-/// ```
-///
-/// # Example
-/// Operation is not annotated with `#[track_caller]` and therefore will panic:
-/// ```should_panic
-/// use custos::{retrieve, CPU, Retriever, Buffer, Retrieve, Cached, Base};
-///
-/// fn add_bufs<Mods: Retrieve<CPU<Mods>, f32>>(device: &CPU<Mods>) -> Buffer<f32, CPU<Mods>, ()> {
-///     retrieve!(device, 10, ())
-/// }
-///
-/// let device = CPU::<Cached<Base>>::new();
-/// add_bufs(&device);
-/// ```
-/// Operation is annotated with `#[track_caller]`:
-/// ```
-/// use custos::{Dim1, retrieve, CPU, Retriever, Buffer, Retrieve, Cached, Base};
-///
-/// #[track_caller]
-/// fn add_bufs<Mods: Retrieve<CPU<Mods>, f32, Dim1<30>>>(device: &CPU<Mods>) -> Buffer<f32, CPU<Mods>, Dim1<30>> {
-///     retrieve!(device, 10, ())
-/// }
-///
-/// let device = CPU::<Cached<Base>>::new();
-/// add_bufs(&device);
-/// ```
-#[macro_export]
-macro_rules! retrieve {
-    ($device:ident, $len:expr, $parents:expr) => {{
-        $crate::debug_assert_tracked!();
-        $device.retrieve($len, $parents)
-    }}; /*($device:ident, $len:expr, $dtype:ty, ) => {{
-            $crate::debug_assert_tracked!();
-            $device.retrieve::<$dtype, ()>($len)
-        }};
-        ($device:ident, $len:expr, $dtype:ty, $shape:ty) => {{
-            $crate::debug_assert_tracked!();
-            $device.retrieve::<$dtype, $shape>($len)
-        }};*/
+impl<Mods, D, T, S, SD> ReplaceBuf<T, D, S> for CachedModule<Mods, SD>
+where
+    Mods: ReplaceBuf<T, D, S>,
+    D: Device,
+    S: Shape,
+    SD: Device,
+{
+    #[inline]
+    fn replace_buf<'a, 'c>(&'c self, buffer: &'c Buffer<'a, T, D, S>) -> &'c Buffer<'a, T, D, S> {
+        self.modules.replace_buf(buffer)
+    }
 }
 
 #[cfg(test)]
@@ -331,38 +327,6 @@ mod tests {
     use crate::{location, Base, Buffer, Retrieve, Retriever, CPU};
 
     use super::Cached;
-
-    // forgot to add track_caller
-    #[cfg(debug_assertions)]
-    fn add_bufs<Mods: Retrieve<CPU<Mods>, f32>>(device: &CPU<Mods>) -> Buffer<f32, CPU<Mods>, ()> {
-        retrieve!(device, 10, ())
-    }
-
-    #[test]
-    #[cfg(debug_assertions)]
-    #[should_panic]
-    fn test_forgot_track_caller_runtime_detection() {
-        let device = CPU::<Cached<Base>>::new();
-
-        let _out = add_bufs(&device);
-        let _out = add_bufs(&device);
-    }
-
-    #[track_caller]
-    fn add_bufs_tracked<Mods: Retrieve<CPU<Mods>, f32>>(
-        device: &CPU<Mods>,
-    ) -> Buffer<f32, CPU<Mods>, ()> {
-        retrieve!(device, 10, ())
-    }
-
-    #[test]
-    fn test_added_track_caller() {
-        let device = CPU::<Cached<Base>>::new();
-
-        let _out = add_bufs_tracked(&device);
-        let _out = add_bufs_tracked(&device);
-    }
-
     #[test]
     fn test_location_ref_unique() {
         let ptr = location();
@@ -411,5 +375,69 @@ mod tests {
             // let buf: Buffer<f32, _> = device.retrieve(10, ());
             unsafe { Retrieve::<_, f32, ()>::retrieve(&device.modules, &device, 10, ()) }
         };
+    }
+
+    #[track_caller]
+    #[cfg(feature = "cpu")]
+    fn level1<Mods: crate::Retrieve<CPU<Mods>, f32, ()>>(device: &CPU<Mods>) {
+        let _buf: Buffer<f32, _> = device.retrieve(10, ());
+        level2(device);
+        level2(device);
+        level3(device);
+    }
+
+    #[track_caller]
+    #[cfg(feature = "cpu")]
+    fn level3<Mods: crate::Retrieve<CPU<Mods>, f32, ()>>(device: &CPU<Mods>) {
+        level2(device);
+    }
+
+    #[track_caller]
+    #[cfg(feature = "cpu")]
+    fn level2<Mods: crate::Retrieve<CPU<Mods>, f32, ()>>(device: &CPU<Mods>) {
+        let buf: Buffer<f32, _> = device.retrieve(20, ());
+        location();
+        assert_eq!(buf.len(), 20);
+    }
+
+    #[cfg(feature = "cpu")]
+    #[test]
+    fn test_multi_level_retrieve() {
+        let device = CPU::<Cached<Base>>::new();
+        level1(&device);
+    }
+
+    #[cfg(feature = "cpu")]
+    #[test]
+    fn test_add_cached_layer() {
+        use crate::{ApplyFunction, Combiner, UnaryElementWiseMayGrad};
+
+        let device = CPU::<Base>::new();
+        let buf_base: Buffer<f32, _> = device.retrieve(10, ());
+
+        let device = device.add_layer::<Cached<()>>();
+
+        for _ in 0..10 {
+            let buf: Buffer<f32, _> = device.retrieve(10, &buf_base);
+
+            for (base, cached) in buf_base.iter().zip(buf.iter()) {
+                assert_eq!(base, cached);
+            }
+
+            let _x = device.apply_fn(&buf_base, |x| x.exp());
+            assert_eq!(buf.len(), buf_base.len());
+        }
+
+        let buf_base = buf_base.to_device_type(&device);
+        for _ in 0..10 {
+            let buf: Buffer<f32, _> = device.retrieve(10, &buf_base);
+
+            for (base, cached) in buf_base.iter().zip(buf.iter()) {
+                assert_eq!(base, cached);
+            }
+
+            let _x = device.unary_ew(&buf_base, |x| x.exp(), |x| x.exp());
+            assert_eq!(buf.len(), buf_base.len());
+        }
     }
 }

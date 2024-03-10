@@ -93,6 +93,13 @@ impl<SimpleMods> CPU<SimpleMods> {
     }
 }
 
+impl CPU {
+    #[inline]
+    pub fn based() -> CPU<Base> {
+        CPU::<Base>::new()
+    }
+}
+
 impl<Mods> CPU<Mods> {
     #[inline]
     pub fn add_layer<Mod>(self) -> CPU<Mod::Wrapped>

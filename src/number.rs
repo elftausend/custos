@@ -187,7 +187,24 @@ pub trait Number:
     fn from_u64(value: u64) -> Self;
     fn as_usize(&self) -> usize;
     fn as_f64(&self) -> f64;
-    fn max(self, rhs: Self) -> Self;
+
+    #[inline]
+    fn max(self, rhs: Self) -> Self {
+        if self > rhs {
+            self
+        } else {
+            rhs
+        }
+    }
+
+    #[inline]
+    fn min(self, rhs: Self) -> Self {
+        if self < rhs {
+            self
+        } else {
+            rhs
+        }
+    }
 }
 
 macro_rules! number_apply {
@@ -212,15 +229,6 @@ macro_rules! number_apply {
                 #[inline]
                 fn as_f64(&self) -> f64 {
                     *self as f64
-                }
-
-                #[inline]
-                fn max(self, rhs: Self) -> Self {
-                    if self > rhs {
-                        self
-                    } else {
-                        rhs
-                    }
                 }
             }
         )*
@@ -259,7 +267,7 @@ pub trait Float: Neg<Output = Self> + Number {
     fn abs(&self) -> Self;
 }
 
-#[cfg(not(feature = "no-std"))]
+#[cfg(feature = "std")]
 macro_rules! float_apply {
     ($($t:ident),*) => {
         $(
@@ -332,9 +340,10 @@ macro_rules! float_apply {
     };
 }
 
-#[cfg(not(feature = "no-std"))]
+#[cfg(feature = "std")]
 float_apply!(f32, f64);
 
+#[cfg(not(feature = "std"))]
 #[cfg(feature = "no-std")]
 impl Float for f32 {
     #[inline]
@@ -403,6 +412,7 @@ impl Float for f32 {
     }
 }
 
+#[cfg(not(feature = "std"))]
 #[cfg(feature = "no-std")]
 impl Float for f64 {
     #[inline]

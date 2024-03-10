@@ -84,7 +84,6 @@ pub fn bench_fork(c: &mut Criterion) {
         })
         .collect::<Vec<_>>();
 
-    #[track_caller]
     pub fn clear(
         fork: &Fork<Base>,
         cpu_buf: &mut Buffer<f32>,

@@ -1,25 +1,48 @@
 mod ops;
 mod resolve;
 
-#[cfg(not(feature = "no-std"))]
+#[cfg(feature = "std")]
 mod to_wgsl_source;
 
 pub use resolve::*;
-#[cfg(not(feature = "no-std"))]
+#[cfg(feature = "std")]
 pub use to_wgsl_source::*;
 
 use crate::prelude::Numeric;
 
-use self::ops::{Add, Cos, Div, Eq, Exp, GEq, Identity, LEq, Mul, Neg, Pow, Sin, Sub, Tan, Tanh};
+use self::ops::{
+    Add, Cos, Div, Eq, Exp, GEq, Identity, LEq, Ln, Max, Min, Mul, Neg, Pow, Sin, Sub, Tan, Tanh,
+};
+
+#[cfg(feature = "std")]
+pub trait TwoWay<T>: Eval<T> + ToCLSource {}
+
+#[cfg(feature = "std")]
+impl<T, A: Eval<T> + ToCLSource> TwoWay<T> for A {}
+
+// impl<T> dyn TwoWay<T> + '_ {
+//     pub fn eval(&self) -> T
+//     where
+//         Self: Eval<T>
+//     {
+//         Eval::<T>::eval(self)
+//     }
+// }
+
+// impl<T: Eval<F>, F> TwoWay<F> for T {
+//     // fn eval(&self) -> F {
+//     //     self.eval()
+//     // }
+// }
 
 /// Evaluates a combined (via [`Combiner`]) math operations chain to a valid OpenCL C (and possibly CUDA) source string.
-#[cfg(not(feature = "no-std"))]
+#[cfg(feature = "std")]
 pub trait ToCLSource {
     /// Evaluates a combined (via [`Combiner`]) math operations chain to a valid OpenCL C (and possibly CUDA) source string.
     fn to_cl_source(&self) -> String;
 }
 
-#[cfg(not(feature = "no-std"))]
+#[cfg(feature = "std")]
 impl<N: crate::number::Numeric> ToCLSource for N {
     #[inline]
     fn to_cl_source(&self) -> String {
@@ -27,7 +50,7 @@ impl<N: crate::number::Numeric> ToCLSource for N {
     }
 }
 
-#[cfg(not(feature = "no-std"))]
+#[cfg(feature = "std")]
 impl ToCLSource for &'static str {
     #[inline]
     fn to_cl_source(&self) -> String {
@@ -35,7 +58,7 @@ impl ToCLSource for &'static str {
     }
 }
 
-#[cfg(not(feature = "no-std"))]
+#[cfg(feature = "std")]
 impl ToCLSource for String {
     #[inline]
     fn to_cl_source(&self) -> String {
@@ -45,16 +68,16 @@ impl ToCLSource for String {
 
 /// If the `no-std` feature is disabled, this trait is implemented for all types that implement [`ToCLSource`].
 /// In this case, `no-std` is disabled.
-#[cfg(not(feature = "no-std"))]
+#[cfg(feature = "std")]
 pub trait MayToCLSource: ToCLSource + Combiner {}
-#[cfg(not(feature = "no-std"))]
+#[cfg(feature = "std")]
 impl<T: ToCLSource + Combiner> MayToCLSource for T {}
 
 /// If the `no-std` feature is disabled, this trait is implemented for all types that implement [`ToCLSource`].
 /// In this case, `no-std` is enabled and no C source string can be generated.
-#[cfg(feature = "no-std")]
+#[cfg(not(feature = "std"))]
 pub trait MayToCLSource {}
-#[cfg(feature = "no-std")]
+#[cfg(not(feature = "std"))]
 impl<T> MayToCLSource for T {}
 
 /// Evaluates a combined (via [`Combiner`]) math operations chain to a value.
@@ -68,13 +91,13 @@ pub trait Eval<T> {
     ///
     /// assert_eq!(x, 14.);
     /// ```
-    fn eval(self) -> T;
+    fn eval(&self) -> T;
 }
 
 impl<T: Copy> Eval<T> for T {
     #[inline]
-    fn eval(self) -> T {
-        self
+    fn eval(&self) -> T {
+        *self
     }
 }
 
@@ -170,15 +193,31 @@ pub trait Combiner: Sized {
     fn identity(self) -> Identity<Self> {
         Identity { comb: self }
     }
+
+    #[inline]
+    fn min<R>(self, rhs: R) -> Min<Self, R> {
+        Min { comb: self, rhs }
+    }
+
+    #[inline]
+    fn max<R>(self, rhs: R) -> Max<Self, R> {
+        Max { comb: self, rhs }
+    }
+
+    #[inline]
+    fn ln(self) -> Ln<Self> {
+        Ln { comb: self }
+    }
 }
 
 #[cfg(test)]
 pub mod tests_ex {
     use crate::{prelude::Float, Combiner, Eval, Resolve, ToVal};
 
-    #[cfg(not(feature = "no-std"))]
+    #[cfg(feature = "std")]
     use crate::{ToCLSource, ToMarker};
 
+    #[cfg(any(feature = "std", feature = "no-std"))]
     #[test]
     fn test_exp() {
         let f = |x: Resolve<f32>| x.exp();
@@ -186,13 +225,14 @@ pub mod tests_ex {
         let res: f32 = f(1f32.to_val()).eval();
         assert_eq!(res, core::f32::consts::E);
 
-        #[cfg(not(feature = "no-std"))]
+        #[cfg(feature = "std")]
         {
             let res = f("x".to_marker()).to_cl_source();
             assert_eq!(res, "exp(x)");
         }
     }
 
+    #[cfg(any(feature = "std", feature = "no-std"))]
     #[test]
     fn test_neg_tan() {
         let f = |x: Resolve<f32>| x.tan().neg();
@@ -200,14 +240,14 @@ pub mod tests_ex {
         let res: f32 = f(2f32.to_val()).eval();
         roughly_eq_slices(&[res], &[2.1850398]);
 
-        #[cfg(not(feature = "no-std"))]
+        #[cfg(feature = "std")]
         {
             let res = f("val".to_marker()).to_cl_source();
             assert_eq!(res, "-(tan(val))")
         }
     }
 
-    #[cfg(not(feature = "no-std"))]
+    #[cfg(feature = "std")]
     #[test]
     fn test_pow() {
         let f = |x: Resolve<f32>, y: Resolve<f32>| x.mul(3.).pow(y.add(1.));
@@ -226,7 +266,7 @@ pub mod tests_ex {
         let res: i32 = f(3.to_val(), 3.to_val()).eval();
         assert_eq!(res, 1);
 
-        #[cfg(not(feature = "no-std"))]
+        #[cfg(feature = "std")]
         {
             let res = f("var_x".to_marker(), "other".to_marker()).to_cl_source();
             assert_eq!(res, "(var_x == other)");
@@ -240,7 +280,7 @@ pub mod tests_ex {
         let res = f(Resolve::with_val(3)).eval();
         assert_eq!(res, 3);
 
-        #[cfg(not(feature = "no-std"))]
+        #[cfg(feature = "std")]
         {
             let res = f(Resolve::with_marker("var_x")).to_cl_source();
             assert_eq!(res, "((var_x >= 0) * var_x)");
@@ -254,7 +294,7 @@ pub mod tests_ex {
         let res = f(Resolve::with_val(3)).eval();
         assert_eq!(res, 6);
 
-        #[cfg(not(feature = "no-std"))]
+        #[cfg(feature = "std")]
         {
             let res = f(Resolve::with_marker("var_x")).to_cl_source();
             assert_eq!(res, "(var_x + 3)");
@@ -268,14 +308,14 @@ pub mod tests_ex {
         let res = f(Resolve::with_val(3)).eval();
         assert_eq!(res, 0);
 
-        #[cfg(not(feature = "no-std"))]
+        #[cfg(feature = "std")]
         {
             let res = f(Resolve::with_marker("var_x")).to_cl_source();
             assert_eq!(res, "(var_x >= 4)");
         }
     }
 
-    #[cfg(not(feature = "no-std"))]
+    #[cfg(feature = "std")]
     #[test]
     fn test_eval() {
         let f = |x: Resolve<i32>| x.add(2).add(x.mul(8));
@@ -283,7 +323,7 @@ pub mod tests_ex {
         assert_eq!(f(Resolve::with_val(4)).eval(), 38);
     }
 
-    #[cfg(not(feature = "no-std"))]
+    #[cfg(feature = "std")]
     #[test]
     fn test_str_result_two_args() {
         let f = |x: Resolve<f32>, y: Resolve<f32>| x.add(y);
@@ -292,7 +332,7 @@ pub mod tests_ex {
         assert_eq!("(x + y)", r);
     }
 
-    #[cfg(not(feature = "no-std"))]
+    #[cfg(feature = "std")]
     #[test]
     fn test_str_result_two_args2() {
         let f = |x: Resolve<f32>, y: Resolve<f32>| x.add(y).mul(3.6).sub(y);
@@ -306,7 +346,7 @@ pub mod tests_ex {
         assert_eq!("(((x + y) * 3.6) - y)", r);
     }
 
-    #[cfg(not(feature = "no-std"))]
+    #[cfg(feature = "std")]
     #[test]
     fn test_str_result() {
         let f = |x: Resolve<f32>| x.add(2.).mul(x).add(x.mul(8.)).mul(5.);
@@ -326,6 +366,37 @@ pub mod tests_ex {
                 )
             }
         }
+    }
+
+    #[cfg(feature = "cpu")]
+    #[test]
+    fn test_apply_clip_cpu() {
+        use crate::{ApplyFunction, Base, Device, CPU};
+
+        let min = 3.;
+        let max = 5.;
+
+        let device = CPU::<Base>::new();
+
+        let x = device.buffer(&[1., 3., 4., 6., 3., 2.]);
+
+        let out = device.apply_fn(&x, move |x| x.max(min).min(max));
+        assert_eq!(out.read(), &[3., 3., 4., 5., 3., 3.]);
+    }
+    #[cfg(feature = "opencl")]
+    #[test]
+    fn test_apply_clip_cl() {
+        use crate::{prelude::chosen_cl_idx, ApplyFunction, Base, Device, OpenCL};
+
+        let min = 3.;
+        let max = 5.;
+
+        let device = OpenCL::<Base>::new(chosen_cl_idx()).unwrap();
+
+        let x = device.buffer(&[1., 3., 4., 6., 3., 2.]);
+
+        let out = device.apply_fn(&x, move |x| x.max(min).min(max));
+        assert_eq!(out.read(), &[3., 3., 4., 5., 3., 3.]);
     }
 
     #[cfg(all(feature = "cpu", feature = "macro"))]
@@ -427,5 +498,63 @@ pub mod tests_ex {
         );
 
         Ok(())
+    }
+
+    #[cfg(feature = "std")]
+    fn test(x: &dyn crate::TwoWay<f32>) {
+        x.to_cl_source();
+        let a: f32 = x.eval();
+        // x.eval::<f32>();
+    }
+
+    #[cfg(feature = "std")]
+    fn add_op<T, O: crate::TwoWay<T> + 'static>(
+        op: impl Fn(Resolve<T>) -> O + 'static,
+        ops: &mut Vec<Box<dyn Fn(Resolve<T>) -> Box<dyn crate::TwoWay<T>>>>,
+    ) {
+        let dyn_op = move |x: Resolve<T>| {
+            let op: Box<dyn crate::TwoWay<T>> = Box::new(op(x));
+            op
+        };
+        ops.push(Box::new(dyn_op));
+    }
+
+    #[cfg(feature = "std")]
+    #[test]
+    fn test_storing_of_two_ops() {
+        let mut ops = vec![];
+
+        let f = |x: Resolve<f32>| x.ln();
+        add_op(f, &mut ops);
+        let f = |x: Resolve<f32>| x.cos();
+        add_op(f, &mut ops);
+        let f = |x: Resolve<f32>| x.sin();
+        add_op(f, &mut ops);
+
+        let mut src = String::new();
+        let mut val_out = 3.4;
+        for op in ops {
+            let resolve = Resolve {
+                val: val_out,
+                marker: "x",
+            };
+
+            let out = op(resolve);
+            src.push_str(&format!(
+                "{marker} = {src};\n",
+                marker = resolve.marker,
+                src = out.to_cl_source()
+            ));
+            val_out = out.eval();
+            test(&*out);
+        }
+        println!("src: {src}");
+        assert_eq!(val_out, (3.4f32).ln().cos().sin());
+        // let out = f(3f32.to_val());
+        // test(&out);
+
+        // let y: f32 = f(3f32.to_val()).eval();
+
+        let src = f("x".to_marker()).to_cl_source();
     }
 }

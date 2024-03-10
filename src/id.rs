@@ -10,6 +10,16 @@ pub trait HasId {
     fn maybe_id(&self) -> Option<Id> {
         Some(self.id())
     }
+
+    // TODO: maybe move this to another trait -> `RequiresGrad`, probably needs to be added as trait bound for D::Data/Base
+    #[inline]
+    fn requires_grad(&self) -> bool {
+        false
+    }
+
+    // TODO: maybe move this to another trait -> `RequiresGrad`, probably needs to be added as trait bound for D::Data/Base
+    #[inline]
+    fn set_requires_grad(&mut self, _requires_grad: bool) {}
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -97,7 +107,7 @@ impl<T: Into<NoId<T>>> AsNoId for T {
 
 impl<T> UpdateArg for NoId<T> {
     #[inline]
-    #[cfg(not(feature = "no-std"))]
+    #[cfg(feature = "std")]
     fn update_arg<B>(
         _to_update: &mut Self,
         _id: Option<UniqueId>,
@@ -108,7 +118,7 @@ impl<T> UpdateArg for NoId<T> {
 }
 
 impl<'a, T: 'static, D: Device + 'static, S: Shape + 'static> UpdateArg for &Buffer<'a, T, D, S> {
-    #[cfg(not(feature = "no-std"))]
+    #[cfg(feature = "std")]
     fn update_arg<B: crate::AsAny>(
         to_update: &mut Self,
         id: Option<UniqueId>,
@@ -131,7 +141,7 @@ impl<'a, T: 'static, D: Device + 'static, S: Shape + 'static> UpdateArg for &Buf
 impl<'a, T: 'static, D: Device + 'static, S: Shape + 'static> UpdateArg
     for &mut Buffer<'a, T, D, S>
 {
-    #[cfg(not(feature = "no-std"))]
+    #[cfg(feature = "std")]
     fn update_arg<B: crate::AsAny>(
         to_update: &mut Self,
         id: Option<UniqueId>,

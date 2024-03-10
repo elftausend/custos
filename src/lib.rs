@@ -1,5 +1,5 @@
 // #![warn(missing_docs)]
-#![cfg_attr(feature = "no-std", no_std)]
+#![cfg_attr(not(feature = "std"), no_std)]
 // A compute kernel launch may wants to modify memory. Clippy does not know this.
 // To declare that a value is mutated, a "needless" mutable reference is used.
 #![allow(clippy::needless_pass_by_ref_mut)]
@@ -93,6 +93,9 @@ pub use devices::webgl::WebGL;
 
 pub use unary::*;
 
+#[cfg(feature = "std")]
+pub use boxed_shallow_copy::*;
+
 #[cfg(feature = "cpu")]
 #[macro_use]
 pub mod exec_on_cpu;
@@ -104,10 +107,11 @@ mod error;
 
 mod cache;
 
-mod device_traits;
 pub mod features;
 pub mod flag;
 // mod graph;
+#[cfg(feature = "std")]
+mod boxed_shallow_copy;
 pub mod hooks;
 mod id;
 mod layer_management;
@@ -115,6 +119,7 @@ pub mod modules;
 mod op_traits;
 mod parents;
 mod ptr_conv;
+mod range;
 mod shape;
 mod two_way_ops;
 mod unary;
@@ -122,7 +127,6 @@ mod update_args;
 mod wrapper;
 
 pub use cache::*;
-pub use device_traits::*;
 pub use features::*;
 pub use hooks::*;
 pub use id::*;
@@ -130,8 +134,15 @@ pub use layer_management::*;
 pub use modules::*;
 pub use parents::*;
 pub use ptr_conv::*;
+pub use range::*;
 pub use update_args::*;
 pub use wrapper::*;
+
+#[cfg(not(feature = "cpu"))]
+pub mod dummy_cpu;
+
+#[cfg(not(feature = "cpu"))]
+pub use dummy_cpu::*;
 
 #[cfg(feature = "static-api")]
 pub mod static_api;
@@ -141,7 +152,7 @@ pub use op_traits::*;
 pub use shape::*;
 pub use two_way_ops::*;
 
-pub const VERSION: &str = env!("CARGO_PKG_VERSION");
+pub const VERSION: Option<&str> = option_env!("CARGO_PKG_VERSION");
 
 #[cfg(test)]
 pub fn location() -> &'static core::panic::Location<'static> {
@@ -218,57 +229,7 @@ pub const UNIFIED_CL_MEM: bool = true;
 #[cfg(feature = "macro")]
 pub use custos_macro::*;
 
-/// A dummy CPU. This only exists to make the code compile when the `cpu` feature is disabled
-/// because the CPU is the default type `D` for [`Buffer`]s.
-// TODO: Can be replaced with the standard cpu (now)
-#[cfg(not(feature = "cpu"))]
-pub struct CPU<Mods> {
-    modules: Mods,
-}
-
-#[cfg(not(feature = "cpu"))]
-impl<Mods: OnDropBuffer> Device for CPU<Mods> {
-    type Data<U, S: Shape> = Mods::Wrap<U, crate::Num<U>>;
-    type Base<T, S: Shape> = crate::Num<T>;
-    type Error = crate::DeviceError;
-
-    fn new() -> core::result::Result<Self, Self::Error> {
-        #[cfg(feature = "no-std")]
-        {
-            unimplemented!("CPU is not available. Enable the `cpu` feature to use the CPU.")
-        }
-
-        #[cfg(not(feature = "no-std"))]
-        Err(crate::DeviceError::CPUDeviceNotAvailable.into())
-    }
-
-    fn base_to_data<T, S: Shape>(&self, base: Self::Base<T, S>) -> Self::Data<T, S> {
-        self.modules.wrap_in_base(base)
-    }
-
-    fn wrap_to_data<T, S: Shape>(&self, wrap: Self::Wrap<T, Self::Base<T, S>>) -> Self::Data<T, S> {
-        wrap
-    }
-
-    fn data_as_wrap<'a, T, S: Shape>(
-        data: &'a Self::Data<T, S>,
-    ) -> &'a Self::Wrap<T, Self::Base<T, S>> {
-        data
-    }
-
-    fn data_as_wrap_mut<'a, T, S: Shape>(
-        data: &'a mut Self::Data<T, S>,
-    ) -> &'a mut Self::Wrap<T, Self::Base<T, S>> {
-        data
-    }
-}
-
-#[cfg(not(feature = "cpu"))]
-impl_buffer_hook_traits!(CPU);
-#[cfg(not(feature = "cpu"))]
-crate::impl_wrapped_data!(CPU);
-
-#[cfg(not(feature = "no-std"))]
+#[cfg(feature = "std")]
 pub(crate) type Buffers<B> =
     std::collections::HashMap<UniqueId, B, std::hash::BuildHasherDefault<NoHasher>>;
 
@@ -276,17 +237,13 @@ pub mod prelude {
     //! Typical imports for using custos.
 
     pub use crate::{
-        device_traits::*, features::*, modules::*, number::*, shape::*, Alloc, Buffer, CDatatype,
-        ClearBuf, CloneBuf, CopySlice, Device, Error, HasId, HostPtr,
-        /* MayTapeReturn, */ MayToCLSource, Read, ShallowCopy, WithShape, WriteBuf,
+        devices::*, features::*, modules::*, number::*, shape::*, Alloc, Buffer, CDatatype,
+        ClearBuf, CloneBuf, CopySlice, Device, Error, HasId, HostPtr, MayToCLSource, Read,
+        ShallowCopy, WithShape, WriteBuf,
     };
 
     #[cfg(feature = "cpu")]
     pub use crate::{exec_on_cpu::*, CPU};
-
-    // TODO
-    // #[cfg(not(feature = "no-std"))]
-    // pub use crate::{cache::CacheReturn, get_count, set_count, Cache};
 
     #[cfg(feature = "opencl")]
     pub use crate::opencl::{chosen_cl_idx, enqueue_kernel, CLBuffer, OpenCL, CL};

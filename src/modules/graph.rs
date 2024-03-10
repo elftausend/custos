@@ -5,13 +5,14 @@ mod opt_graph;
 pub use node::Node;
 pub use opt_graph::*;
 
-use core::{cell::RefCell, panic::Location};
+use core::{cell::RefCell, hash::BuildHasherDefault};
+use std::collections::HashSet;
 
 use crate::{
-    impl_remove_layer, pass_down_add_operation, pass_down_exec_now_module,
-    pass_down_replace_buf_module, pass_down_use_gpu_or_cpu, AddLayer,
-    Alloc, Buffer, Device, HasId, Module, OnDropBuffer, OnNewBuffer, OptimizeMemGraph, Parents,
-    PtrType, Retrieve, RunModule, Setup, Shape, WrappedData,
+    impl_remove_layer, pass_down_add_operation, pass_down_cursor, pass_down_exec_now_module,
+    pass_down_replace_buf_module, pass_down_use_gpu_or_cpu, AddLayer, Alloc, Buffer, Cursor,
+    Device, HasId, Module, NoHasher, OnDropBuffer, OnNewBuffer, OptimizeMemGraph, Parents, PtrType,
+    Retrieve, RunModule, Setup, Shape, UniqueId, WrappedData,
 };
 
 pub use self::graph_translator::GraphTranslator;
@@ -20,6 +21,7 @@ pub use self::graph_translator::GraphTranslator;
 pub struct Graph<Mods> {
     pub modules: Mods,
     pub graph_trans: RefCell<GraphTranslator>,
+    pub contains_ids: RefCell<HashSet<UniqueId, BuildHasherDefault<NoHasher>>>,
 }
 
 impl<Mods: WrappedData> WrappedData for Graph<Mods> {
@@ -48,6 +50,7 @@ impl<Mods: Module<D>, D: Device> Module<D> for Graph<Mods> {
         Graph {
             modules: Mods::new(),
             graph_trans: Default::default(),
+            contains_ids: Default::default(),
         }
     }
 }
@@ -120,11 +123,18 @@ impl<NewMods, SD> AddLayer<NewMods, SD> for Graph<()> {
         Graph {
             modules: inner_mods,
             graph_trans: Default::default(),
+            contains_ids: Default::default(),
         }
     }
 }
 
-impl<T: 'static, Mods: Retrieve<D, T, S>, D: 'static, S: Shape> Retrieve<D, T, S> for Graph<Mods> {
+impl<T, Mods, D, S> Retrieve<D, T, S> for Graph<Mods>
+where
+    T: 'static,
+    Mods: Retrieve<D, T, S>,
+    D: Cursor + 'static,
+    S: Shape,
+{
     #[inline]
     unsafe fn retrieve<const NUM_PARENTS: usize>(
         &self,
@@ -137,22 +147,24 @@ impl<T: 'static, Mods: Retrieve<D, T, S>, D: 'static, S: Shape> Retrieve<D, T, S
     {
         let ids = parents.ids();
         let data = self.modules.retrieve(device, len, parents);
-        let mut graph_trans = self.graph_trans.borrow_mut();
 
-        if graph_trans
-            .added_to_graph
-            .contains(&Location::caller().into())
-        {
+        let mut contains_ids = self.contains_ids.borrow_mut();
+
+        // subtracting 1 because retrieving increments the cursor (cached and lazy modules)
+        let cursor = device.cursor() as UniqueId - 1;
+
+        if contains_ids.get(&cursor).is_some() {
             return data;
         }
+        contains_ids.insert(cursor);
+
+        let mut graph_trans = self.graph_trans.borrow_mut();
 
         let next_idx = graph_trans.next_idx;
         graph_trans.buf_id_to_idx.insert(data.id().id, next_idx);
         graph_trans.idx_to_buf_id.insert(next_idx, data.id().id);
 
-        graph_trans
-            .idx_to_buf_location
-            .insert(next_idx, Location::caller().into());
+        graph_trans.idx_to_cursor.insert(next_idx, cursor);
 
         // does a hash location check internally (again)
         graph_trans.add_node(len, &ids);
@@ -168,6 +180,8 @@ impl<T: 'static, Mods: Retrieve<D, T, S>, D: 'static, S: Shape> Retrieve<D, T, S
         self.modules.on_retrieve_finish(retrieved_buf)
     }
 }
+
+pass_down_cursor!(Graph);
 
 #[cfg(test)]
 mod tests {

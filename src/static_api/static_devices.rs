@@ -6,13 +6,13 @@ use crate::opencl::chosen_cl_idx;
 #[cfg(feature = "cuda")]
 use crate::cuda::chosen_cu_idx;
 
-#[cfg(not(feature = "no-std"))]
+#[cfg(feature = "std")]
 thread_local! {
     static GLOBAL_CPU: CPU = CPU::<Base>::new();
 }
 
 /// Returns a static `CPU` device.
-#[cfg(not(feature = "no-std"))]
+#[cfg(feature = "std")]
 #[inline]
 pub fn static_cpu() -> &'static CPU {
     // Safety: GLOBAL_CPU should live long enough
@@ -24,11 +24,11 @@ pub fn static_cpu() -> &'static CPU {
     }
 }
 
-#[cfg(feature = "no-std")]
+#[cfg(not(feature = "std"))]
 static GLOBAL_CPU: Option<CPU> = None;
 
 /// Returns a static `CPU` device.
-#[cfg(feature = "no-std")]
+#[cfg(not(feature = "std"))]
 pub fn static_cpu() -> &'static CPU {
     if let Some(cpu) = &GLOBAL_CPU {
         cpu
@@ -81,7 +81,7 @@ pub fn static_cuda() -> &'static crate::CUDA {
 
 #[cfg(test)]
 mod tests {
-    #[cfg(not(feature = "no-std"))]
+    #[cfg(feature = "std")]
     use crate::Buffer;
 
     #[cfg(feature = "opencl")]

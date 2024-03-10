@@ -1,15 +1,20 @@
-use core::any::Any;
-
 use crate::{AsAny, ShallowCopy};
+use core::any::Any;
 
 pub trait BoxedShallowCopy: 'static {
     fn shallow_copy(&self) -> Box<dyn BoxedShallowCopy>;
+    fn as_any(&self) -> &dyn Any;
 }
 
 impl<T: ShallowCopy + 'static> BoxedShallowCopy for T {
     #[inline]
     fn shallow_copy(&self) -> Box<dyn BoxedShallowCopy> {
         Box::new(unsafe { self.shallow() })
+    }
+
+    #[inline]
+    fn as_any(&self) -> &dyn Any {
+        self
     }
 }
 

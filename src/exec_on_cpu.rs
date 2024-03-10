@@ -8,13 +8,7 @@ mod cl_may_unified;
 #[cfg(feature = "opencl")]
 pub use cl_may_unified::*;
 
-use crate::{Base, Buffer, Read, WriteBuf, CPU};
-
-#[cfg(feature = "cached")]
-use crate::{Alloc, CachedCPU, Device, Retriever};
-
-#[cfg(feature = "cached")]
-use crate::Cached;
+use crate::{Alloc, Base, Buffer, Device, Read, Retriever, WriteBuf, CPU};
 
 /// Moves a `Buffer` stored on device `D` to a `CPU` `Buffer`
 /// and executes the unary operation `F` with a `CPU` on the newly created `CPU` `Buffer`.
@@ -45,7 +39,6 @@ use crate::Cached;
 ///     Ok(())
 /// }
 /// ```
-#[cfg(feature = "cached")] // FIXME: shouldn't be required to have to use the cached feature?
 pub fn cpu_exec_unary<'a, T, D, F>(
     device: &'a D,
     x: &Buffer<T, D>,
@@ -53,13 +46,11 @@ pub fn cpu_exec_unary<'a, T, D, F>(
 ) -> crate::Result<Buffer<'a, T, D>>
 where
     T: Clone + Default + 'static,
-    F: for<'b> Fn(&'b CachedCPU, &Buffer<'_, T, CachedCPU>) -> Buffer<'b, T, CachedCPU>,
-    D: Device + Read<T> + WriteBuf<T> + Alloc<T> + Retriever<T>,
+    F: for<'b> Fn(&'b CPU, &Buffer<'_, T, CPU>) -> Buffer<'b, T, CPU>,
+    D: Read<T> + WriteBuf<T> + Alloc<T> + Retriever<T>,
 {
-    let cpu = CPU::<Cached<Base>>::new();
-    let cpu_buf = Buffer::<T, CachedCPU>::from((&cpu, x.read_to_vec()));
-    Ok(Buffer::from((device, f(&cpu, &cpu_buf))))
-    // TODO add new node to graph
+    let cpu = CPU::<Base>::new();
+    Ok(crate::cpu_exec!(device, &cpu, x; f(&cpu, &x)))
 }
 
 /// Moves a single `Buffer` stored on another device to a `CPU` `Buffer`s and executes an operation on the `CPU`.
@@ -75,6 +66,9 @@ where
     D: Read<T> + WriteBuf<T>,
 {
     let cpu = CPU::<Base>::new();
+
+    // Works too
+    // crate::cpu_exec_mut!(device, &cpu, ; WRITE_TO<x, x_cpu> f(&cpu, &mut x_cpu));
     let mut cpu_buf = Buffer::<T, CPU>::from((&cpu, x.read_to_vec()));
     f(&cpu, &mut cpu_buf);
 
@@ -111,7 +105,6 @@ where
 ///     Ok(())
 /// }
 /// ```
-#[cfg(feature = "cached")] // FIXME: shouldn't be required to have to use the cached feature?
 pub fn cpu_exec_binary<'a, T, D, F>(
     device: &'a D,
     lhs: &Buffer<T, D>,
@@ -120,18 +113,11 @@ pub fn cpu_exec_binary<'a, T, D, F>(
 ) -> Buffer<'a, T, D>
 where
     T: Clone + Default + 'static,
-    F: for<'b> Fn(
-        &'b CachedCPU,
-        &Buffer<'_, T, CachedCPU>,
-        &Buffer<'_, T, CachedCPU>,
-    ) -> Buffer<'b, T, CachedCPU>,
+    F: for<'b> Fn(&'b CPU, &Buffer<'_, T, CPU>, &Buffer<'_, T, CPU>) -> Buffer<'b, T, CPU>,
     D: Device + Read<T> + WriteBuf<T> + Alloc<T> + Retriever<T>,
 {
-    let cpu = CPU::<Cached<Base>>::new();
-    let cpu_lhs = Buffer::<T, CachedCPU>::from((&cpu, lhs.read_to_vec()));
-    let cpu_rhs = Buffer::<T, CachedCPU>::from((&cpu, rhs.read_to_vec()));
-    Buffer::from((device, f(&cpu, &cpu_lhs, &cpu_rhs)))
-    // TODO add new node to graph
+    let cpu = CPU::<Base>::new();
+    crate::cpu_exec!(device, &cpu, lhs, rhs; f(&cpu, &lhs, &rhs))
 }
 
 /// Inplace version of [cpu_exec_binary]
@@ -147,6 +133,9 @@ where
     D: Read<T> + WriteBuf<T>,
 {
     let cpu = CPU::<Base>::new();
+
+    // Should work too
+    // crate::cpu_exec_mut!(device, &cpu, rhs; WRITE_TO<lhs, lhs_cpu> f(&cpu, &mut lhs_cpu, &rhs));
     let mut cpu_lhs = Buffer::<T, CPU>::from((&cpu, lhs.read_to_vec()));
     let cpu_rhs = Buffer::<T, CPU>::from((&cpu, rhs.read_to_vec()));
     f(&cpu, &mut cpu_lhs, &cpu_rhs);
@@ -172,17 +161,17 @@ where
 /// let lhs = Buffer::from((&device, [1, 2, 3]));
 /// let rhs = Buffer::from((&device, [1, 2, 3]));
 ///
-/// to_cpu!(cpu, lhs, rhs);
+/// to_cpu!(&cpu, lhs, rhs);
 ///
 /// assert_eq!(lhs.len(), 3);
 /// assert_eq!(rhs.len(), 3);
 /// ```
 #[macro_export]
 macro_rules! to_cpu_mut {
-    ($cpu:ident, $($t:ident, $cpu_name:ident),*) => {
+    ($cpu:expr, $($t:ident, $cpu_name:ident),*) => {
         $(
             #[allow(unused_mut)]
-            let mut $cpu_name = $crate::Buffer::<_, _>::from((&$cpu, $t.read_to_vec()));
+            let mut $cpu_name = $crate::Buffer::<_, _>::from(($cpu, $t.read_to_vec()));
         )*
     };
 }
@@ -201,16 +190,16 @@ macro_rules! to_cpu_mut {
 /// let lhs = Buffer::from((&device, [1, 2, 3]));
 /// let rhs = Buffer::from((&device, [1, 2, 3]));
 ///
-/// to_cpu!(cpu, lhs, rhs);
+/// to_cpu!(&cpu, lhs, rhs);
 ///
 /// assert_eq!(lhs.len(), 3);
 /// assert_eq!(rhs.len(), 3);
 /// ```
 #[macro_export]
 macro_rules! to_cpu {
-    ($cpu:ident, $($t:ident),*) => {
+    ($cpu:expr, $($t:ident),*) => {
         $(
-            let $t = $crate::Buffer::<_, _>::from((&$cpu, $t.read_to_vec()));
+            let $t = $crate::Buffer::<_, _>::from(($cpu, $t.read_to_vec()));
         )*
     };
 }
@@ -240,25 +229,31 @@ macro_rules! to_raw_host_mut {
 
 /// Moves `n` `Buffer`s stored on another device to `n` `CPU` `Buffer`s and executes an operation on the `CPU`.
 /// # Example
-/* TODO #[cfg_attr(feature = "opencl", doc = "```")]
+#[cfg_attr(feature = "opencl", doc = "```")]
 #[cfg_attr(not(feature = "opencl"), doc = "```ignore")]
-/// use custos::{OpenCL, Buffer, CPU};
+/// use custos::{Base, Device, OpenCL, Buffer, CPU, Retriever, opencl::chosen_cl_idx};
 ///
 /// let device = OpenCL::<Base>::new(chosen_cl_idx()).unwrap();
 ///
-/// let a = Buffer::new(&device, 10);
-/// let b = Buffer::new(&device, 10);
-/// let c = Buffer::new(&device, 10);
+/// let a = device.buffer([1, 2, 3, 4]);
+/// let b = device.buffer([4, 5, 6, 7]);
 ///
 /// let cpu = CPU::<Base>::new();
+/// let c: Buffer<i32, _> = custos::cpu_exec!(&device, &cpu, a, b; {
+///     let mut c = cpu.retrieve(a.len(), (&a, &b));
+///     for ((a, b), c) in a.iter().zip(&b).zip(c.iter_mut()) {
+///         *c = a + b;
+///     }
+///     c
+/// });
 ///
+/// assert_eq!(c.read(), vec![5, 7, 9, 11]);
 /// ```
-*/
 #[macro_export]
 macro_rules! cpu_exec {
-    ($device:ident, $cpu:ident, $($t:ident),*; $op:expr) => {{
+    ($device:expr, $cpu:expr, $($t:ident),*; $op:expr) => {{
         $crate::to_cpu!($cpu, $($t),*);
-        Buffer::from((&$device, $op))
+        $crate::Buffer::from(($device, $op))
     }};
 }
 
@@ -266,7 +261,7 @@ macro_rules! cpu_exec {
 /// The results are written back to the original `Buffer`s.
 #[macro_export]
 macro_rules! cpu_exec_mut {
-    ($device:ident, $cpu:ident, $($t:ident),* WRITE_TO<$($write_to:ident, $from:ident),*> $op:expr) => {{
+    ($device:expr, $cpu:expr, $($t:ident),*; WRITE_TO<$($write_to:ident, $from:ident),*> $op:expr) => {{
         $crate::to_cpu!($cpu, $($t),*);
         $crate::to_cpu_mut!($cpu, $($write_to, $from),*);
         $op;
@@ -298,7 +293,7 @@ mod tests {
 
         let device = crate::OpenCL::<Base>::new(chosen_cl_idx()).unwrap();
 
-        let cpu = CPU::<Base>::new();
+        let cpu = &CPU::<Base>::new();
 
         let lhs = Buffer::from((&device, [1, 2, 3]));
         let rhs = Buffer::from((&device, [1, 2, 3]));
@@ -306,6 +301,28 @@ mod tests {
         to_cpu!(cpu, lhs, rhs);
         assert_eq!(lhs.len(), 3);
         assert_eq!(rhs.len(), 3);
+    }
+
+    #[cfg(feature = "opencl")]
+    #[test]
+    fn test_exec_cpu_macro() {
+        use crate::{prelude::chosen_cl_idx, Base, Device, Retriever};
+
+        let device = crate::OpenCL::<Base>::new(chosen_cl_idx()).unwrap();
+
+        let lhs = device.buffer([1, 2, 3, 4]);
+        let rhs = device.buffer([1, 2, 3, 4]);
+
+        let a: crate::Buffer<i32, crate::OpenCL> = cpu_exec!(
+            &device, &device.cpu, lhs, rhs; {
+                let mut out = device.cpu.retrieve(lhs.len(), (&lhs, &rhs));
+                for ((lhs, rhs), out) in lhs.iter().zip(rhs.iter()).zip(out.iter_mut()) {
+                    *out = lhs + rhs;
+                }
+                out
+            }
+        );
+        assert_eq!(a.read(), vec![2, 4, 6, 8])
     }
 
     #[cfg(feature = "opencl")]

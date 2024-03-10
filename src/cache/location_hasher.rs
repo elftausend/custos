@@ -94,3 +94,10 @@ impl<'a> Display for HashLocation<'a> {
         write!(f, "{},{},{}", self.file, self.line, self.col)
     }
 }
+
+#[macro_export]
+macro_rules! location {
+    () => {
+        $crate::HashLocation::from((file!(), line!(), column!()))
+    };
+}
