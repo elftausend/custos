@@ -14,6 +14,7 @@ impl<T> Debug for OpHint<T> {
     #[inline]
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         match self {
+            #[cfg(feature = "std")]
             OpHint::Unary(_) => write!(f, "Unary(...)"),
             OpHint::None => write!(f, "None"),
             OpHint::PhantomData(_) => write!(f, "PhantomData"),
