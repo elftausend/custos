@@ -1,3 +1,4 @@
+mod alloc;
 mod with_custos_comps;
 
 use std::{

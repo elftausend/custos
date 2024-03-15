@@ -269,7 +269,7 @@ mod tests {
         let start = Instant::now();
 
         dev.unary_fusing(&dev, None).unwrap();
-      
+
         println!("unary fusing: {:?}", start.elapsed());
 
         unsafe { dev.run().unwrap() };

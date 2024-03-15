@@ -54,13 +54,20 @@ impl<T> VkArray<T> {
         let buf = unsafe { create_buffer::<T>(&context.device, usage_flag, len)? };
         let mem_req = unsafe { context.device.get_buffer_memory_requirements(buf) };
 
-        let mem = unsafe { allocate_memory(&context.device, mem_req, &context.memory_properties)? };
+        let mem = unsafe {
+            allocate_memory(
+                &context.device,
+                mem_req,
+                &context.memory_properties,
+                vk::MemoryPropertyFlags::HOST_VISIBLE | vk::MemoryPropertyFlags::HOST_COHERENT,
+            )?
+        };
         unsafe { context.device.bind_buffer_memory(buf, mem, 0)? };
 
         let mapped_ptr = unsafe {
             context
                 .device
-                .map_memory(mem, 0, vk::WHOLE_SIZE, Default::default())?
+                .map_memory(mem, 0, vk::WHOLE_SIZE, vk::MemoryMapFlags::empty())?
         } as *mut T;
 
         Ok(VkArray {
@@ -177,13 +184,11 @@ pub unsafe fn allocate_memory(
     device: &ash::Device,
     mem_req: vk::MemoryRequirements,
     memory_properties: &vk::PhysicalDeviceMemoryProperties,
+    mem_prop_flags: vk::MemoryPropertyFlags,
 ) -> VkResult<vk::DeviceMemory> {
-    let memory_type_index = get_memory_type_index(
-        memory_properties,
-        mem_req.memory_type_bits,
-        vk::MemoryPropertyFlags::HOST_VISIBLE | vk::MemoryPropertyFlags::HOST_COHERENT,
-    )
-    .expect("no suitable memory type found");
+    let memory_type_index =
+        get_memory_type_index(memory_properties, mem_req.memory_type_bits, mem_prop_flags)
+            .expect("no suitable memory type found");
     let memory_allocate_info = vk::MemoryAllocateInfo {
         allocation_size: mem_req.size,
         memory_type_index,
