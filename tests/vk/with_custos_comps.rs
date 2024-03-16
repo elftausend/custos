@@ -62,7 +62,6 @@ fn test_with_custos_comps() {
     ";
     let operation = shader_cache
         .get(
-            &context.device,
             src,
             &[
                 DescriptorType::STORAGE_BUFFER,
@@ -153,5 +152,5 @@ fn test_with_custos_comps() {
         .unwrap();
     unsafe { device.device_wait_idle() }.unwrap();
 
-    println!("out: {:?}", out.read_to_vec());
+    println!("out: {:?}", out.read_staged_to_vec());
 }

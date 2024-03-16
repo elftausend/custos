@@ -75,7 +75,7 @@ impl<Mods: OnDropBuffer, T: Default + Clone, S: Shape> Read<T, S> for Vulkan<Mod
     where
         T: Default + Clone,
     {
-        buf.read_to_vec()
+        buf.read_staged_to_vec()
     }
 }
 

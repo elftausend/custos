@@ -219,7 +219,7 @@ impl<T> VkArray<T> {
     }
 
     #[inline]
-    pub fn read_to_vec(&self) -> Vec<T>
+    pub fn read_staged_to_vec(&self) -> Vec<T>
     where
         T: Clone,
     {
@@ -373,7 +373,9 @@ mod tests {
         let arr1 = VkArray::<f32>::new(
             context.clone(),
             9,
-            BufferUsageFlags::STORAGE_BUFFER,
+            BufferUsageFlags::STORAGE_BUFFER
+                | BufferUsageFlags::TRANSFER_DST
+                | BufferUsageFlags::TRANSFER_SRC,
             crate::flag::AllocFlag::None,
             vk::MemoryPropertyFlags::DEVICE_LOCAL,
         )
@@ -381,7 +383,7 @@ mod tests {
 
         arr1.write_staged(&[1., 3., 5., 7., 9., 11., 13., 15., 17.]);
 
-        let out = arr1.read_to_vec();
+        let out = arr1.read_staged_to_vec();
         assert_eq!(out, [1., 3., 5., 7., 9., 11., 13., 15., 17.])
     }
 }
