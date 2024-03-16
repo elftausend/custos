@@ -158,9 +158,7 @@ unsafe impl<Mods: OnDropBuffer> IsShapeIndep for Vulkan<Mods> {}
 
 #[cfg(test)]
 mod tests {
-    use core::ops::Deref;
-
-    use crate::{Base, Device, HostPtr};
+    use crate::{Base, Device};
 
     use super::Vulkan;
 

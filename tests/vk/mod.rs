@@ -3,7 +3,6 @@ mod with_custos_comps;
 
 use std::{
     ffi::{c_char, CStr},
-    mem::size_of_val,
     time::Instant,
 };
 

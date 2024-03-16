@@ -1,10 +1,7 @@
 use std::rc::Rc;
 
-use ash::vk::{self, BufferUsageFlags, DescriptorType, Fence, MemoryPropertyFlags};
-use custos::vulkan::{
-    allocate_memory, create_buffer, create_descriptor_infos, create_write_descriptor_sets, Context,
-    ShaderCache, VkArray,
-};
+use ash::vk::{BufferUsageFlags, MemoryPropertyFlags};
+use custos::vulkan::{allocate_memory, create_buffer, Context, VkArray};
 
 #[test]
 // #[ignore = "reason"]
