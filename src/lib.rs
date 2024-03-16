@@ -264,6 +264,9 @@ pub mod prelude {
 
     #[cfg(feature = "cuda")]
     pub use crate::cuda::{chosen_cu_idx, launch_kernel1d, CUBuffer, CUDA};
+
+    #[cfg(feature = "vulkan")]
+    pub use crate::Vulkan;
 }
 
 #[cfg(test)]

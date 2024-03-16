@@ -127,6 +127,7 @@ impl<Mods: Retrieve<Self, T>, T: CDatatype> AddBuf<T> for CUDA<Mods> {
 }
 
 /// vulkan implementation
+// could add a `S: Shape`, or `Mods` here, too
 #[cfg(feature = "vulkan")]
 impl<T> AddBuf<T> for custos::Vulkan {
     fn add(&self, lhs: &Buffer<T, Self>, rhs: &Buffer<T, Self>) -> Buffer<T, Self> {
@@ -145,7 +146,7 @@ impl<T> AddBuf<T> for custos::Vulkan {
             
             
             @compute
-            @workgroup_size(1)
+            @workgroup_size(32)
             fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {{
                 out[global_id.x] = a[global_id.x] + b[global_id.x];
             }}
@@ -155,7 +156,8 @@ impl<T> AddBuf<T> for custos::Vulkan {
 
         let mut out = self.retrieve(lhs.len(), (lhs, rhs));
 
-        self.launch_shader(&src, [lhs.len() as u32, 1, 1], &[lhs, rhs, &mut out]);
+        self.launch_shader(&src, [lhs.len() as u32, 1, 1], &[lhs, rhs, &mut out])
+            .unwrap();
         out
     }
 }
@@ -235,15 +237,15 @@ fn main() -> custos::Result<()> {
         assert_eq!(out.read(), &[7., 7., 7., 7., 7., 7.]);
     }
 
-    #[cfg(feature = "wgpu")]
+    #[cfg(feature = "vulkan")]
     {
-        let wgpu_device = WGPU::new(wgpu::Backends::all())?;
+        let vk_device = Vulkan::<Base>::new(0)?;
 
-        let lhs = Buffer::from((&wgpu_device, [1f32, 2., 3., 4., 5., 6.]));
-        let rhs = Buffer::from((&wgpu_device, [6., 5., 4., 3., 2., 1.]));
+        let lhs = Buffer::from((&vk_device, [1f32, 2., 3., 4., 5., 6.]));
+        let rhs = Buffer::from((&vk_device, [6., 5., 4., 3., 2., 1.]));
 
-        let out = wgpu_device.add(&lhs, &rhs);
-        assert_eq!(out.read(), &[7., 7., 7., 7., 7., 7.]);
+        let out = vk_device.add(&lhs, &rhs);
+        assert_eq!(out.read_to_vec(), &[7., 7., 7., 7., 7., 7.]);
     }
 
     Ok(())
