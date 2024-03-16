@@ -36,7 +36,7 @@ fn test_with_custos_comps() {
     )
     .unwrap();
 
-    let mut shader_cache = ShaderCache::default();
+    let mut shader_cache = ShaderCache::new(context.clone());
 
     let src = "@group(0)
             @binding(0)

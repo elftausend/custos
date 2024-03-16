@@ -21,6 +21,8 @@ use ash::{
     Device,
 };
 
+use super::Context;
+
 pub fn create_shader_module(device: &Device, code: &[u32]) -> VkResult<ShaderModule> {
     unsafe {
         let shader_module_create_info = vk::ShaderModuleCreateInfo::builder().code(code);
@@ -30,42 +32,51 @@ pub fn create_shader_module(device: &Device, code: &[u32]) -> VkResult<ShaderMod
 }
 
 // combine with other Caches
-#[derive(Debug, Default, Clone)]
+#[derive(Clone)]
 pub struct ShaderCache {
     // use hash directly (prevent &str->String?) => Use NoHasher
     cache: HashMap<String, Operation>,
+    context: std::rc::Rc<Context>,
 }
 
 impl ShaderCache {
+    pub fn new(context: std::rc::Rc<Context>) -> Self {
+        Self {
+            cache: Default::default(),
+            context,
+        }
+    }
     pub fn add(
         &mut self,
-        device: &Device,
         src: impl AsRef<str>,
         args: &[DescriptorType],
-    ) -> crate::Result<Operation> {
+    ) -> crate::Result<&Operation> {
         let src = src.as_ref();
-        let operation = Operation::new(device, src, args)?;
+        let operation = Operation::new(self.context.clone(), src, args)?;
         self.cache.insert(src.to_string(), operation);
-        Ok(operation)
+        Ok(self.cache.get(src).unwrap())
     }
 
     #[inline]
-    pub fn get(
-        &mut self,
-        device: &Device,
+    pub fn get<'a>(
+        &'a mut self,
         src: impl AsRef<str>,
         args: &[DescriptorType],
-    ) -> crate::Result<Operation> {
-        match self.cache.get(src.as_ref()) {
-            Some(operation) => Ok(*operation),
-            None => self.add(device, src, args),
+    ) -> crate::Result<&'a Operation> {
+        if !self.cache.contains_key(src.as_ref()) {
+            return self.add(&src, args);
         }
+        Ok(self.cache.get(src.as_ref()).unwrap())
     }
 
-    pub unsafe fn destroy(&mut self, device: &Device) {
+    pub unsafe fn destroy(&mut self) {
         for op in self.cache.values() {
-            device.destroy_shader_module(op.shader_module, None);
-            device.destroy_descriptor_pool(op.descriptor_pool, None)
+            self.context
+                .device
+                .destroy_shader_module(op.shader_module, None);
+            self.context
+                .device
+                .destroy_descriptor_pool(op.descriptor_pool, None)
         }
     }
 }
@@ -121,7 +132,6 @@ pub fn launch_shader(
         .collect::<Vec<_>>();
 
     let operation = shader_cache.get(
-        device,
         src,
         &args
             .iter()
@@ -194,6 +204,13 @@ pub fn submit_and_wait(
     Ok(())
 }
 
+impl Drop for ShaderCache {
+    #[inline]
+    fn drop(&mut self) {
+        unsafe { self.destroy() }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use ash::vk::{self, BufferUsageFlags};
@@ -209,7 +226,7 @@ mod tests {
     #[test]
     fn test_launch_vk_shader_with_num_as_arg() {
         let context = Rc::new(Context::new(0).unwrap());
-        let mut shader_cache = ShaderCache::default();
+        let mut shader_cache = ShaderCache::new(context.clone());
 
         let src = "@group(0)
             @binding(0)
@@ -279,7 +296,7 @@ mod tests {
     #[test]
     fn test_launch_vk_shader_multiple_times() {
         let context = Rc::new(Context::new(0).unwrap());
-        let mut shader_cache = ShaderCache::default();
+        let mut shader_cache = ShaderCache::new(context.clone());
         let src = "@group(0)
             @binding(0)
             var<storage, read_write> a: array<f32>;
@@ -364,7 +381,7 @@ mod tests {
     #[test]
     fn test_launch_vk_shader() {
         let context = Rc::new(Context::new(0).unwrap());
-        let mut shader_cache = ShaderCache::default();
+        let mut shader_cache = ShaderCache::new(context.clone());
         let src = "@group(0)
             @binding(0)
             var<storage, read_write> a: array<f32>;

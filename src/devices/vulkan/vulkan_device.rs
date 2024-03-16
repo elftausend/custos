@@ -18,9 +18,10 @@ pub struct VkDevice {
 
 impl VkDevice {
     pub fn new(idx: usize) -> crate::Result<Self> {
+        let context = Rc::new(Context::new(idx)?);
         Ok(VkDevice {
-            context: Rc::new(Context::new(idx)?),
-            shader_cache: Default::default(),
+            shader_cache: RefCell::new(ShaderCache::new(context.clone())),
+            context,
         })
     }
 
@@ -38,12 +39,6 @@ impl VkDevice {
             src,
             args,
         )
-    }
-}
-
-impl Drop for VkDevice {
-    fn drop(&mut self) {
-        unsafe { self.shader_cache.borrow_mut().destroy(&self.context.device) }
     }
 }
 
