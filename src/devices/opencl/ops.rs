@@ -168,7 +168,7 @@ impl<Mods: OnDropBuffer + 'static, T: Clone + Default, S: Shape> Read<T, S> for 
     fn read<'a>(&self, buf: &'a Buffer<T, Self, S>) -> Self::Read<'a> {
         use crate::HostPtr;
 
-        buf.as_slice()
+        unsafe { buf.as_slice() }
     }
 
     #[inline]

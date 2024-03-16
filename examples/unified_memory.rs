@@ -3,7 +3,7 @@ use custos::{Buffer, OpenCL, Read};
 
 #[cfg(unified_cl)]
 fn main() -> custos::Result<()> {
-    use custos::{opencl::chosen_cl_idx, Base, HostPtr};
+    use custos::{opencl::chosen_cl_idx, Base};
 
     let device = OpenCL::<Base>::new(chosen_cl_idx())?;
 
@@ -25,7 +25,7 @@ fn main() -> custos::Result<()> {
     // Read OpenCL buffer.
     // This yields the same data as the corresponding CPU slice.
     let cl_data = device.read(&a);
-    assert_eq!(a.as_slice(), cl_data);
+    assert_eq!(a.read(), cl_data);
     assert_eq!(&cl_data, &[3, 4, 5, 6, 7,]);
 
     Ok(())

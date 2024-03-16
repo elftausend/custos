@@ -133,7 +133,7 @@ impl<T> Deref for CLPtr<T> {
 
     #[inline]
     fn deref(&self) -> &Self::Target {
-        self.as_slice()
+        unsafe { self.as_slice() }
     }
 }
 
@@ -141,7 +141,7 @@ impl<T> Deref for CLPtr<T> {
 impl<T> DerefMut for CLPtr<T> {
     #[inline]
     fn deref_mut(&mut self) -> &mut Self::Target {
-        self.as_mut_slice()
+        unsafe { self.as_mut_slice() }
     }
 }
 

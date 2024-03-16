@@ -174,7 +174,7 @@ where
 mod tests {
     use crate::{
         opencl::{chosen_cl_idx, CLPtr},
-        AllocFlag, Base, Buffer, Cache, Cached, Device, DeviceError, HostPtr, OpenCL, Retriever,
+        AllocFlag, Base, Buffer, Cache, Cached, Device, DeviceError, OpenCL, Retriever,
         UnifiedMemChain, CPU,
     };
 
@@ -188,7 +188,7 @@ mod tests {
 
         let device = OpenCL::<Cached<Base>>::new(0)?;
         let buf = device.construct_unified_buf_from_cpu_buf::<_, ()>(&device, no_drop)?;
-        assert_eq!(buf.as_slice(), &[1., 2.3, 0.76]);
+        assert_eq!(buf.read(), &[1., 2.3, 0.76]);
         Ok(())
     }
 
@@ -201,7 +201,7 @@ mod tests {
 
         let buf = device.construct_unified_buf_from_cpu_buf::<_, ()>(&device, no_drop)?;
 
-        assert_eq!(buf.as_slice(), &[1., 2.3, 0.76]);
+        assert_eq!(buf.read(), &[1., 2.3, 0.76]);
         Ok(())
     }
 
@@ -283,7 +283,7 @@ mod tests {
         };
 
         assert_eq!(buf.read(), vec![1., 2.3, 0.76]);
-        assert_eq!(buf.as_slice(), &[1., 2.3, 0.76]);
+        assert_eq!(buf.read(), &[1., 2.3, 0.76]);
         Ok(())
     }
 
@@ -299,7 +299,7 @@ mod tests {
         let buf: Buffer<_, _> = construct_buffer(&device, no_drop, &mut cache.nodes, 0)?;
 
         assert_eq!(buf.read(), vec![1., 2.3, 0.76]);
-        assert_eq!(buf.as_slice(), &[1., 2.3, 0.76]);
+        assert_eq!(buf.read(), &[1., 2.3, 0.76]);
 
         Ok(())
     }
@@ -329,7 +329,7 @@ mod tests {
             )?;
             dur += start.elapsed().as_secs_f64();
 
-            assert_eq!(cl_cpu_buf.as_slice(), &[1, 2, 3, 4, 5, 6]);
+            assert_eq!(cl_cpu_buf.read(), &[1, 2, 3, 4, 5, 6]);
             assert_eq!(cl_cpu_buf.read(), &[1, 2, 3, 4, 5, 6]);
             assert_eq!(cl_dev.modules.cache.borrow().nodes.len(), 1)
         }
