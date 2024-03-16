@@ -28,8 +28,8 @@ impl VkDevice {
     #[inline]
     pub fn launch_shader(
         &self,
-        gws: [u32; 3],
         src: impl AsRef<str>,
+        gws: [u32; 3],
         args: &[&dyn AsVkShaderArgument],
     ) -> crate::Result<()> {
         launch_shader(
@@ -178,7 +178,7 @@ mod tests {
             }
         ";
 
-        device.launch_shader([1, 1, 1], src, &[&buf]).unwrap();
+        device.launch_shader(src, [1, 1, 1], &[&buf]).unwrap();
     }
 
     #[test]
@@ -226,8 +226,8 @@ mod tests {
 
         device
             .launch_shader(
-                [1, 1, 1],
                 src,
+                [1, 1, 1],
                 &[&lhs.data.buf, &rhs.data.buf, &out.data.buf],
             )
             .unwrap();

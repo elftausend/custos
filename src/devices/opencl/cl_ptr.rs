@@ -1,4 +1,8 @@
-use core::{ffi::c_void, ops::{Deref, DerefMut}, ptr::null_mut};
+use core::{
+    ffi::c_void,
+    ops::{Deref, DerefMut},
+    ptr::null_mut,
+};
 
 use min_cl::api::release_mem_object;
 

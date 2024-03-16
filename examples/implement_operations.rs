@@ -13,12 +13,13 @@ pub trait AddBuf<T, S: Shape = (), D: Device = Self>: Sized + Device {
 
 // Host CPU implementation
 #[cfg(feature = "cpu")]
-impl<T, S, D> AddBuf<T, S, D> for CPU
+impl<T, S, D, Mods> AddBuf<T, S, D> for CPU<Mods>
 where
     T: Copy + std::ops::Add<Output = T> + 'static, // you can use the custos::Number trait.
     S: Shape, // This trait is implemented for all number types (usize, i16, f32, ...)
     D: Device,
     D::Base<T, S>: Deref<Target = [T]>,
+    Mods: Retrieve<Self, T, S>,
 {
     fn add(&self, lhs: &Buffer<T, D, S>, rhs: &Buffer<T, D, S>) -> Buffer<T, Self, S> {
         let len = std::cmp::min(lhs.len(), rhs.len());
@@ -31,8 +32,7 @@ where
         // By default, the Buffer dereferences to a slice.
         // Therefore, standard indexing can be used.
         // You can pass a CPU Buffer to a function that takes a slice as a parameter, too.
-        // However, the corresponding device needs to implement the
-        // `MainMemory` trait (definitely the case for CPU and Stack, and for unified memory devices OpenCL).
+        // However, the underlying storage type must dereference to a slice (definitely the case for CPU and Stack, and for unified memory devices OpenCL).
         for i in 0..len {
             // indexing Buffers appears to be slower than indexing slices.
             // Therefore, it is recommended to convert the Buffer to a slice before indexing.
@@ -47,12 +47,13 @@ where
 // can be placed on top of the CPU implementation to automatically
 // generate a Stack implementation.
 #[cfg(feature = "stack")]
-impl<T, S, D> AddBuf<T, S, D> for Stack
+impl<T, S, D, Mods> AddBuf<T, S, D> for Stack<Mods>
 where
     T: Copy + Default + std::ops::Add<Output = T> + 'static,
     S: Shape,
     D: Device,
     D::Base<T, S>: Deref<Target = [T]>,
+    Mods: Retrieve<Self, T, S>,
 {
     fn add(&self, lhs: &Buffer<T, D, S>, rhs: &Buffer<T, D, S>) -> Buffer<T, Self, S> {
         let mut out = self.retrieve(S::LEN, ()); // this works as well and in this case (Stack), does exactly the same as the line above.
@@ -67,13 +68,14 @@ where
 
 #[cfg(feature = "opencl")]
 // OpenCL implementation
-impl<T> AddBuf<T> for OpenCL
+// S: Shape is not used here, but it could
+impl<T, Mods> AddBuf<T> for OpenCL<Mods>
 where
+    Mods: Retrieve<Self, T>,
     T: CDatatype, // the custos::CDatatype trait is used to
                   // get the OpenCL C type string for creating generic OpenCL kernels.
 {
-    fn add(&self, lhs: &Buffer<T, OpenCL>, rhs: &Buffer<T, OpenCL>) -> Buffer<T, OpenCL> {
-        // CLBuffer<T> is the same as Buffer<T, OpenCL>
+    fn add(&self, lhs: &Buffer<T, Self>, rhs: &Buffer<T, Self>) -> Buffer<T, Self> {
         // generic OpenCL kernel
         let src = format!("
             __kernel void add(__global const {datatype}* lhs, __global const {datatype}* rhs, __global {datatype}* out) 
@@ -89,7 +91,7 @@ where
         // In the background, the kernel is compiled once. After that, it will be reused for every iteration.
         // The cached kernels are released (or freed) when the underlying OpenCL device is dropped.
         // The arguments are specified with a slice of buffers and/or numbers.
-        self.launch_kernel(&src, [len, 0, 0], None, &[&lhs, &rhs, &out.data])
+        self.launch_kernel(&src, [len, 0, 0], None, &[&lhs, &rhs, &out])
             .unwrap();
         out
     }
@@ -124,9 +126,9 @@ impl<Mods: Retrieve<Self, T>, T: CDatatype> AddBuf<T> for CUDA<Mods> {
     }
 }
 
-/// WGPU implementation
-#[cfg(feature = "wgpu")]
-impl<T> AddBuf<T> for WGPU {
+/// vulkan implementation
+#[cfg(feature = "vulkan")]
+impl<T> AddBuf<T> for custos::Vulkan {
     fn add(&self, lhs: &Buffer<T, Self>, rhs: &Buffer<T, Self>) -> Buffer<T, Self> {
         let src = format!(
             "@group(0)
@@ -152,7 +154,8 @@ impl<T> AddBuf<T> for WGPU {
         );
 
         let mut out = self.retrieve(lhs.len(), (lhs, rhs));
-        self.launch_kernel(&src, [lhs.len() as u32, 1, 1], &[lhs, rhs, &mut out]);
+
+        self.launch_shader(&src, [lhs.len() as u32, 1, 1], &[lhs, rhs, &mut out]);
         out
     }
 }

@@ -56,7 +56,7 @@ pub fn try_vk_clear<T: Default + Debug>(
         default = T::default(),
     );
 
-    device.launch_shader([(32 + buf.len as u32) / 32, 1, 1], src, &[buf])
+    device.launch_shader(src, [(32 + buf.len as u32) / 32, 1, 1], &[buf])
 }
 
 impl<Mods: OnDropBuffer, T: Default + Clone, S: Shape> Read<T, S> for Vulkan<Mods> {
@@ -168,7 +168,7 @@ where
         dtype = std::any::type_name::<T>(),
         op = f("x[global_id.x]".to_marker()).to_cl_source()
     );
-    device.launch_shader([(32 + x.len as u32) / 32, 1, 1], src, &[x, out])
+    device.launch_shader(src, [(32 + x.len as u32) / 32, 1, 1], &[x, out])
 }
 
 impl<T, S, Mods> UnaryGrad<T, S> for Vulkan<Mods>
@@ -236,8 +236,8 @@ where
         op = lhs_grad_fn("lhs[global_id.x]".to_marker()).to_cl_source()
     );
     device.launch_shader(
-        [(32 + lhs.len as u32) / 32, 1, 1],
         src,
+        [(32 + lhs.len as u32) / 32, 1, 1],
         &[lhs, lhs_grad, out],
     )
 }
