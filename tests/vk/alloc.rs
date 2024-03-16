@@ -1,30 +1,28 @@
-use std::{ops::Deref, rc::Rc};
+use std::rc::Rc;
 
 use ash::vk::{self, BufferUsageFlags, DescriptorType, Fence, MemoryPropertyFlags};
-use custos::{
-    vulkan::{
-        allocate_memory, create_buffer, create_descriptor_infos, create_write_descriptor_sets,
-        Context, ShaderCache, VkArray,
-    },
-    HostPtr,
+use custos::vulkan::{
+    allocate_memory, create_buffer, create_descriptor_infos, create_write_descriptor_sets, Context,
+    ShaderCache, VkArray,
 };
 
 #[test]
+// #[ignore = "reason"]
 fn test_vk_alloc() {
     let context = Rc::new(Context::new(0).unwrap());
 
-    let data = (0..80_000_000).map(|x| x as f32).collect::<Vec<_>>();
+    let data = (0..1_000_800).map(|x| x as f32).collect::<Vec<_>>();
 
-    let lhs = VkArray::from_slice(
+    let _lhs = VkArray::from_slice(
         context.clone(),
         &data,
         BufferUsageFlags::STORAGE_BUFFER,
         custos::flag::AllocFlag::None,
     )
     .unwrap();
-    println!("lhs: {:?}", &lhs[10_000_000..10_000_700]);
+    // println!("lhs: {:?}", &lhs[1_000_000..1_000_700]);
 
-    let x = VkArray::<f32>::new(
+    let _x = VkArray::<f32>::new(
         context.clone(),
         data.len(),
         BufferUsageFlags::STORAGE_BUFFER,
@@ -35,23 +33,26 @@ fn test_vk_alloc() {
 
     let len = data.len();
     let buf = unsafe {
-        create_buffer::<i32>(&context.device, BufferUsageFlags::STORAGE_BUFFER, len).unwrap()
+        create_buffer::<i32>(
+            &context.device,
+            BufferUsageFlags::STORAGE_BUFFER
+                | BufferUsageFlags::TRANSFER_SRC
+                | BufferUsageFlags::TRANSFER_DST,
+            len,
+        )
+        .unwrap()
     };
     let mem_req = unsafe { context.device.get_buffer_memory_requirements(buf) };
 
-    let mem = unsafe {
+    let _mem = unsafe {
         allocate_memory(
             &context.device,
             mem_req,
             &context.memory_properties,
-            vk::MemoryPropertyFlags::DEVICE_LOCAL
-                | vk::MemoryPropertyFlags::HOST_VISIBLE
-                | vk::MemoryPropertyFlags::HOST_CACHED,
+            MemoryPropertyFlags::DEVICE_LOCAL,
         )
         .unwrap()
     };
-
-    loop {}
 }
 
 #[ignore = "reason"]
@@ -163,5 +164,5 @@ fn test_with_custos_comps() {
         .unwrap();
     unsafe { device.device_wait_idle() }.unwrap();
 
-    println!("out: {:?}", out.read_staged());
+    println!("out: {:?}", out.read_to_vec());
 }

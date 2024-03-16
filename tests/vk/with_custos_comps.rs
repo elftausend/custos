@@ -30,7 +30,7 @@ fn test_with_custos_comps() {
     let out = VkArray::<f32>::new(
         context.clone(),
         lhs.len,
-        BufferUsageFlags::STORAGE_BUFFER,
+        BufferUsageFlags::STORAGE_BUFFER | BufferUsageFlags::TRANSFER_SRC,
         custos::flag::AllocFlag::None,
         MemoryPropertyFlags::DEVICE_LOCAL,
     )
@@ -153,5 +153,5 @@ fn test_with_custos_comps() {
         .unwrap();
     unsafe { device.device_wait_idle() }.unwrap();
 
-    println!("out: {:?}", out.read_staged());
+    println!("out: {:?}", out.read_to_vec());
 }

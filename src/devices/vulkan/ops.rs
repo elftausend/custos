@@ -1,12 +1,10 @@
-use core::{fmt::Debug, mem::size_of};
-
-use ash::vk::{BufferUsageFlags, Fence};
+use core::fmt::Debug;
 
 use crate::{
     cpu_stack_ops::clear_slice, pass_down_add_operation, pass_down_exec_now, prelude::Number,
-    vulkan::submit_and_wait, AddOperation, ApplyFunction, AsNoId, BufAsNoId, Buffer, CDatatype,
-    ClearBuf, HostPtr, OnDropBuffer, Read, Resolve, Retrieve, Retriever, Shape, ToCLSource,
-    ToMarker, ToWgslSource, UnaryGrad, UseGpuOrCpu, Vulkan, WriteBuf, ZeroGrad,
+    AddOperation, ApplyFunction, AsNoId, BufAsNoId, Buffer, CDatatype, ClearBuf, OnDropBuffer,
+    Read, Resolve, Retrieve, Retriever, Shape, ToCLSource, ToMarker, UnaryGrad, UseGpuOrCpu,
+    Vulkan, WriteBuf, ZeroGrad,
 };
 
 use super::{VkArray, VkDevice};
@@ -62,7 +60,7 @@ pub fn try_vk_clear<T: Default + Debug>(
 }
 
 impl<Mods: OnDropBuffer, T: Default + Clone, S: Shape> Read<T, S> for Vulkan<Mods> {
-    type Read<'a> = Vec<T>
+    type Read<'a> = VkArray<T>
     where
         T: 'a,
         Self: 'a,
@@ -70,14 +68,14 @@ impl<Mods: OnDropBuffer, T: Default + Clone, S: Shape> Read<T, S> for Vulkan<Mod
 
     #[inline]
     fn read<'a>(&self, buf: &'a Buffer<T, Self, S>) -> Self::Read<'a> {
-        self.read_to_vec(buf)
+        buf.read_staged()
     }
 
     fn read_to_vec(&self, buf: &Buffer<T, Self, S>) -> Vec<T>
     where
         T: Default + Clone,
     {
-        buf.read_staged()
+        buf.read_to_vec()
     }
 }
 
@@ -247,12 +245,13 @@ where
 impl<Mods: OnDropBuffer, T: Clone, S: Shape> WriteBuf<T, S> for Vulkan<Mods> {
     #[inline]
     fn write(&self, buf: &mut Buffer<T, Self, S>, data: &[T]) {
+        // TODO: use unified mem when possible
         buf.write_staged(data)
     }
 
     #[inline]
     fn write_buf(&self, dst: &mut Buffer<T, Self, S>, src: &Buffer<T, Self, S>) {
-        dst.write(src);
+        dst.write_buf(src)
     }
 }
 
@@ -270,7 +269,7 @@ mod tests {
         let mut buf = Buffer::from((&device, [1f32, 2., 3., 4., 5., 6.]));
 
         try_vk_clear(&device, &mut buf.data).unwrap();
-        assert_eq!(buf.read(), [0f32; 6]);
+        assert_eq!(&*buf.read(), [0f32; 6]);
     }
 
     #[test]
@@ -278,7 +277,7 @@ mod tests {
         let device = Vulkan::<Base>::new(0).unwrap();
         let mut buf = Buffer::from((&device, [1f32, 2., 3., 4., 5., 6.]));
         buf.clear();
-        assert_eq!(buf.read(), [0f32; 6])
+        assert_eq!(&*buf.read(), [0f32; 6])
     }
 
     #[cfg(feature = "fork")]
@@ -287,7 +286,7 @@ mod tests {
         let device = Vulkan::<Fork<Base>>::new(0).unwrap();
         let mut buf = Buffer::from((&device, [1f32, 2., 3., 4., 5., 6.]));
         buf.clear();
-        assert_eq!(buf.read(), [0f32; 6])
+        assert_eq!(&*buf.read(), [0f32; 6])
     }
 
     #[cfg(feature = "fork")]
@@ -297,7 +296,7 @@ mod tests {
         let device = Vulkan::<Fork<Base>>::new(1).unwrap();
         let mut buf = Buffer::from((&device, vec![1; 10000000]));
         buf.clear();
-        assert_eq!(buf.read(), vec![0; 10000000])
+        assert_eq!(&*buf.read(), vec![0; 10000000])
     }
 
     #[test]
@@ -306,7 +305,7 @@ mod tests {
         let x = Buffer::from((&device, [1f32, 2., 3., 4., 5., 6.]));
         let mut out = x.empty_like();
         try_vk_apply_fn_mut(&device, &x.data, &mut out.data, |x| x.add("1.0")).unwrap();
-        assert_eq!(out.read(), [2f32, 3., 4., 5., 6., 7.,])
+        assert_eq!(&*out.read(), [2f32, 3., 4., 5., 6., 7.,])
     }
 
     #[test]
@@ -316,7 +315,7 @@ mod tests {
         let x = Buffer::from((&device, [1f64, 2., 3., 4., 5., 6.]));
         let mut out = x.empty_like();
         try_vk_apply_fn_mut(&device, &x.data, &mut out.data, |x| x.add(1f64)).unwrap();
-        assert_eq!(out.read(), [2f64, 3., 4., 5., 6., 7.,])
+        assert_eq!(&*out.read(), [2f64, 3., 4., 5., 6., 7.,])
     }
 
     #[test]
@@ -331,7 +330,7 @@ mod tests {
             x.mul(2).add(1)
         })?;
 
-        assert_eq!(lhs_grad.read(), [4, 7, 10, 13, 16, 19]);
+        assert_eq!(&*lhs_grad.read(), [4, 7, 10, 13, 16, 19]);
 
         Ok(())
     }

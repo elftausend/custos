@@ -130,7 +130,9 @@ impl<Mods: OnDropBuffer, T> Alloc<T> for Vulkan<Mods> {
         VkArray::new(
             self.context(),
             len,
-            BufferUsageFlags::STORAGE_BUFFER,
+            BufferUsageFlags::STORAGE_BUFFER
+                | BufferUsageFlags::TRANSFER_SRC
+                | BufferUsageFlags::TRANSFER_DST,
             flag,
             vk::MemoryPropertyFlags::DEVICE_LOCAL,
         )
@@ -145,7 +147,9 @@ impl<Mods: OnDropBuffer, T> Alloc<T> for Vulkan<Mods> {
         VkArray::from_slice(
             self.context(),
             data,
-            BufferUsageFlags::STORAGE_BUFFER,
+            BufferUsageFlags::STORAGE_BUFFER
+                | BufferUsageFlags::TRANSFER_SRC
+                | BufferUsageFlags::TRANSFER_DST,
             crate::flag::AllocFlag::None,
         )
         .expect("Could not create VkArray")
@@ -190,7 +194,7 @@ mod tests {
 
         let buf = device.buffer([1, 2, 3, 4, 5, 9, 2, 3, 4, 3, 2]);
         add_one(&device, buf.data.buf);
-        assert_eq!(buf.read(), [2, 3, 4, 5, 6, 10, 3, 4, 5, 4, 3])
+        assert_eq!(&*buf.read(), [2, 3, 4, 5, 6, 10, 3, 4, 5, 4, 3])
     }
 
     #[test]
@@ -199,7 +203,7 @@ mod tests {
 
         let out = device.buffer([1, 2, 3, 4, 5, 9, 2, 3, 4, 3, 2]);
         add_one(&device, out.data.buf);
-        assert_eq!(out.read(), [2, 3, 4, 5, 6, 10, 3, 4, 5, 4, 3]);
+        assert_eq!(&*out.read(), [2, 3, 4, 5, 6, 10, 3, 4, 5, 4, 3]);
 
         let lhs = device.buffer([2; 11]);
         let rhs = device.buffer([3; 11]);
@@ -234,7 +238,7 @@ mod tests {
                 &[&lhs.data.buf, &rhs.data.buf, &out.data.buf],
             )
             .unwrap();
-        assert_eq!(out.read(), [7, 8, 9, 10, 11, 15, 8, 9, 10, 9, 8])
+        assert_eq!(&*out.read(), [7, 8, 9, 10, 11, 15, 8, 9, 10, 9, 8])
     }
 
     #[cfg(feature = "autograd")]

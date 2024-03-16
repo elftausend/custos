@@ -126,7 +126,7 @@ impl<T> VkArray<T> {
         let mut src_buffer = VkArray::<T>::new(
             self.context.clone(),
             self.len(),
-            BufferUsageFlags::STORAGE_BUFFER,
+            BufferUsageFlags::STORAGE_BUFFER | BufferUsageFlags::TRANSFER_SRC,
             crate::flag::AllocFlag::None,
             vk::MemoryPropertyFlags::HOST_VISIBLE | vk::MemoryPropertyFlags::HOST_COHERENT,
         )
@@ -171,7 +171,7 @@ impl<T> VkArray<T> {
         submit_and_wait(device, command_buffer, ctx.compute_family_idx as u32).unwrap();
     }
 
-    pub fn read_staged(&self) -> Vec<T>
+    pub fn read_staged(&self) -> VkArray<T>
     where
         T: Clone,
     {
@@ -187,7 +187,9 @@ impl<T> VkArray<T> {
         let dst_buffer = VkArray::<T>::new(
             ctx.clone(),
             self.len(),
-            BufferUsageFlags::STORAGE_BUFFER,
+            BufferUsageFlags::STORAGE_BUFFER
+                | BufferUsageFlags::TRANSFER_DST
+                | BufferUsageFlags::TRANSFER_SRC,
             crate::flag::AllocFlag::None,
             vk::MemoryPropertyFlags::HOST_VISIBLE | vk::MemoryPropertyFlags::HOST_COHERENT,
         )
@@ -213,7 +215,15 @@ impl<T> VkArray<T> {
         unsafe { device.end_command_buffer(command_buffer).unwrap() };
         submit_and_wait(device, command_buffer, ctx.compute_family_idx as u32).unwrap();
 
-        dst_buffer.to_vec()
+        dst_buffer
+    }
+
+    #[inline]
+    pub fn read_to_vec(&self) -> Vec<T>
+    where
+        T: Clone,
+    {
+        self.read_staged().to_vec()
     }
 }
 
@@ -238,7 +248,9 @@ impl<T> Drop for VkArray<T> {
             return;
         }
         unsafe {
-            self.context.device.unmap_memory(self.mem);
+            if !self.mapped_ptr.is_null() {
+                self.context.device.unmap_memory(self.mem);
+            }
             self.context.device.free_memory(self.mem, None);
             self.context.device.destroy_buffer(self.buf, None)
         }
@@ -353,5 +365,23 @@ mod tests {
         )
         .unwrap();
         assert_eq!(arr1.deref(), &[1., 2., 3., 4., 5., 6.,])
+    }
+
+    #[test]
+    fn test_vk_array_write_read_staged() {
+        let context = Rc::new(Context::new(0).unwrap());
+        let arr1 = VkArray::<f32>::new(
+            context.clone(),
+            9,
+            BufferUsageFlags::STORAGE_BUFFER,
+            crate::flag::AllocFlag::None,
+            vk::MemoryPropertyFlags::DEVICE_LOCAL,
+        )
+        .unwrap();
+
+        arr1.write_staged(&[1., 3., 5., 7., 9., 11., 13., 15., 17.]);
+
+        let out = arr1.read_to_vec();
+        assert_eq!(out, [1., 3., 5., 7., 9., 11., 13., 15., 17.])
     }
 }
