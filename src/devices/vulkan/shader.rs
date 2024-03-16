@@ -172,7 +172,17 @@ pub fn launch_shader(
     };
     unsafe { device.cmd_dispatch(command_buffer, gws[0], gws[1], gws[2]) };
     unsafe { device.end_command_buffer(command_buffer) }?;
-    let queue = unsafe { device.get_device_queue(context.compute_family_idx as u32, 0) };
+    submit_and_wait(device, command_buffer, context.compute_family_idx as u32)?;
+    drop(args);
+    Ok(())
+}
+
+pub fn submit_and_wait(
+    device: &ash::Device,
+    command_buffer: vk::CommandBuffer,
+    queue_family_idx: u32,
+) -> crate::Result<()> {
+    let queue = unsafe { device.get_device_queue(queue_family_idx, 0) };
     let submit_info =
         vk::SubmitInfo::builder().command_buffers(core::slice::from_ref(&command_buffer));
 
@@ -180,22 +190,20 @@ pub fn launch_shader(
 
     unsafe { device.device_wait_idle() }?;
     unsafe { device.reset_command_buffer(command_buffer, vk::CommandBufferResetFlags::empty()) }?;
-    drop(args);
+
     Ok(())
 }
 
 #[cfg(test)]
 mod tests {
-    use ash::vk::BufferUsageFlags;
+    use ash::vk::{self, BufferUsageFlags};
 
-    use crate::{
-        vulkan::{
-            context::Context,
-            shader::{launch_shader, ShaderCache},
-            vk_array::VkArray,
-        },
-        HostPtr,
+    use crate::vulkan::{
+        context::Context,
+        shader::{launch_shader, ShaderCache},
+        vk_array::VkArray,
     };
+    use core::ops::{Deref, DerefMut};
     use std::rc::Rc;
 
     #[test]
@@ -249,6 +257,7 @@ mod tests {
             10,
             BufferUsageFlags::STORAGE_BUFFER,
             crate::flag::AllocFlag::None,
+            vk::MemoryPropertyFlags::HOST_VISIBLE | vk::MemoryPropertyFlags::HOST_COHERENT,
         )
         .unwrap();
 
@@ -261,13 +270,10 @@ mod tests {
         )
         .unwrap();
 
-        assert_eq!(lhs.as_slice(), [1., 2., 3., 4., 5., 6., 7., 8., 9., 10.]);
-        assert_eq!(rhs.as_slice(), [1., 2., 3., 4., 5., 6., 7., 8., 9., 10.]);
+        assert_eq!(lhs.deref(), [1., 2., 3., 4., 5., 6., 7., 8., 9., 10.]);
+        assert_eq!(rhs.deref(), [1., 2., 3., 4., 5., 6., 7., 8., 9., 10.]);
 
-        assert_eq!(
-            out.as_slice(),
-            [3., 5., 7., 9., 11., 13., 15., 17., 19., 21.]
-        );
+        assert_eq!(out.deref(), [3., 5., 7., 9., 11., 13., 15., 17., 19., 21.]);
     }
 
     #[test]
@@ -316,6 +322,7 @@ mod tests {
             10,
             BufferUsageFlags::STORAGE_BUFFER,
             crate::flag::AllocFlag::None,
+            vk::MemoryPropertyFlags::HOST_VISIBLE | vk::MemoryPropertyFlags::HOST_COHERENT,
         )
         .unwrap();
 
@@ -328,19 +335,16 @@ mod tests {
         )
         .unwrap();
 
-        assert_eq!(lhs.as_slice(), [1., 2., 3., 4., 5., 6., 7., 8., 9., 10.]);
-        assert_eq!(rhs.as_slice(), [1., 2., 3., 4., 5., 6., 7., 8., 9., 10.]);
+        assert_eq!(lhs.deref(), [1., 2., 3., 4., 5., 6., 7., 8., 9., 10.]);
+        assert_eq!(rhs.deref(), [1., 2., 3., 4., 5., 6., 7., 8., 9., 10.]);
 
-        assert_eq!(
-            out.as_slice(),
-            [2., 4., 6., 8., 10., 12., 14., 16., 18., 20.]
-        );
+        assert_eq!(out.deref(), [2., 4., 6., 8., 10., 12., 14., 16., 18., 20.]);
 
         for _ in 0..10 {
-            for x in out.as_mut_slice() {
+            for x in out.deref_mut() {
                 *x = 0.;
             }
-            assert_eq!(out.as_slice(), [0.; 10]);
+            assert_eq!(out.deref(), [0.; 10]);
             launch_shader(
                 context.clone(),
                 [1, 1, 1],
@@ -350,13 +354,10 @@ mod tests {
             )
             .unwrap();
 
-            assert_eq!(lhs.as_slice(), [1., 2., 3., 4., 5., 6., 7., 8., 9., 10.]);
-            assert_eq!(rhs.as_slice(), [1., 2., 3., 4., 5., 6., 7., 8., 9., 10.]);
+            assert_eq!(lhs.deref(), [1., 2., 3., 4., 5., 6., 7., 8., 9., 10.]);
+            assert_eq!(rhs.deref(), [1., 2., 3., 4., 5., 6., 7., 8., 9., 10.]);
 
-            assert_eq!(
-                out.as_slice(),
-                [2., 4., 6., 8., 10., 12., 14., 16., 18., 20.]
-            );
+            assert_eq!(out.deref(), [2., 4., 6., 8., 10., 12., 14., 16., 18., 20.]);
         }
     }
 
@@ -406,6 +407,7 @@ mod tests {
             10,
             BufferUsageFlags::STORAGE_BUFFER,
             crate::flag::AllocFlag::None,
+            vk::MemoryPropertyFlags::HOST_VISIBLE | vk::MemoryPropertyFlags::HOST_COHERENT,
         )
         .unwrap();
 
@@ -418,12 +420,9 @@ mod tests {
         )
         .unwrap();
 
-        assert_eq!(lhs.as_slice(), [1., 2., 3., 4., 5., 6., 7., 8., 9., 10.]);
-        assert_eq!(rhs.as_slice(), [1., 2., 3., 4., 5., 6., 7., 8., 9., 10.]);
+        assert_eq!(lhs.deref(), [1., 2., 3., 4., 5., 6., 7., 8., 9., 10.]);
+        assert_eq!(rhs.deref(), [1., 2., 3., 4., 5., 6., 7., 8., 9., 10.]);
 
-        assert_eq!(
-            out.as_slice(),
-            [2., 4., 6., 8., 10., 12., 14., 16., 18., 20.]
-        );
+        assert_eq!(out.deref(), [2., 4., 6., 8., 10., 12., 14., 16., 18., 20.]);
     }
 }

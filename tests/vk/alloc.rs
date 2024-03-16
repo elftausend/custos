@@ -1,9 +1,10 @@
-use std::rc::Rc;
+use std::{ops::Deref, rc::Rc};
 
-use ash::vk::{self, BufferUsageFlags, DescriptorType, Fence};
+use ash::vk::{self, BufferUsageFlags, DescriptorType, Fence, MemoryPropertyFlags};
 use custos::{
     vulkan::{
-        create_descriptor_infos, create_write_descriptor_sets, Context, ShaderCache, VkArray,
+        allocate_memory, create_buffer, create_descriptor_infos, create_write_descriptor_sets,
+        Context, ShaderCache, VkArray,
     },
     HostPtr,
 };
@@ -12,7 +13,7 @@ use custos::{
 fn test_vk_alloc() {
     let context = Rc::new(Context::new(0).unwrap());
 
-    let data = (0..50_000_000).map(|x| x as f32).collect::<Vec<_>>();
+    let data = (0..80_000_000).map(|x| x as f32).collect::<Vec<_>>();
 
     let lhs = VkArray::from_slice(
         context.clone(),
@@ -28,8 +29,29 @@ fn test_vk_alloc() {
         data.len(),
         BufferUsageFlags::STORAGE_BUFFER,
         custos::flag::AllocFlag::None,
+        MemoryPropertyFlags::DEVICE_LOCAL,
     )
     .unwrap();
+
+    let len = data.len();
+    let buf = unsafe {
+        create_buffer::<i32>(&context.device, BufferUsageFlags::STORAGE_BUFFER, len).unwrap()
+    };
+    let mem_req = unsafe { context.device.get_buffer_memory_requirements(buf) };
+
+    let mem = unsafe {
+        allocate_memory(
+            &context.device,
+            mem_req,
+            &context.memory_properties,
+            vk::MemoryPropertyFlags::DEVICE_LOCAL
+                | vk::MemoryPropertyFlags::HOST_VISIBLE
+                | vk::MemoryPropertyFlags::HOST_CACHED,
+        )
+        .unwrap()
+    };
+
+    loop {}
 }
 
 #[ignore = "reason"]
@@ -57,6 +79,7 @@ fn test_with_custos_comps() {
         lhs.len,
         BufferUsageFlags::STORAGE_BUFFER,
         custos::flag::AllocFlag::None,
+        MemoryPropertyFlags::DEVICE_LOCAL,
     )
     .unwrap();
 
@@ -140,5 +163,5 @@ fn test_with_custos_comps() {
         .unwrap();
     unsafe { device.device_wait_idle() }.unwrap();
 
-    println!("out: {:?}", out.as_slice());
+    println!("out: {:?}", out.read_staged());
 }

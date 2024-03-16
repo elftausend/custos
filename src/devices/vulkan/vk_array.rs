@@ -2,12 +2,16 @@ use ash::{
     prelude::VkResult,
     vk::{self, BufferUsageFlags},
 };
-use core::ops::{Deref, DerefMut};
+use core::{
+    mem::size_of,
+    ops::{Deref, DerefMut},
+    ptr::null_mut,
+};
 use std::rc::Rc;
 
 use crate::{flag::AllocFlag, HasId, HostPtr, PtrType, ShallowCopy};
 
-use super::context::Context;
+use super::{context::Context, submit_and_wait};
 
 pub struct VkArray<T> {
     pub len: usize,
@@ -50,6 +54,7 @@ impl<T> VkArray<T> {
         len: usize,
         usage_flag: BufferUsageFlags,
         flag: AllocFlag,
+        mem_prop_flags: vk::MemoryPropertyFlags,
     ) -> crate::Result<Self> {
         let buf = unsafe { create_buffer::<T>(&context.device, usage_flag, len)? };
         let mem_req = unsafe { context.device.get_buffer_memory_requirements(buf) };
@@ -59,16 +64,24 @@ impl<T> VkArray<T> {
                 &context.device,
                 mem_req,
                 &context.memory_properties,
-                vk::MemoryPropertyFlags::HOST_VISIBLE | vk::MemoryPropertyFlags::HOST_COHERENT,
+                mem_prop_flags,
             )?
         };
         unsafe { context.device.bind_buffer_memory(buf, mem, 0)? };
 
-        let mapped_ptr = unsafe {
-            context
-                .device
-                .map_memory(mem, 0, vk::WHOLE_SIZE, vk::MemoryMapFlags::empty())?
-        } as *mut T;
+        let mapped_ptr = if vk::MemoryPropertyFlags::HOST_VISIBLE
+            | vk::MemoryPropertyFlags::HOST_COHERENT
+            == mem_prop_flags
+        {
+            unsafe {
+                context
+                    .device
+                    .map_memory(mem, 0, vk::WHOLE_SIZE, vk::MemoryMapFlags::empty())?
+                    as *mut T
+            }
+        } else {
+            null_mut()
+        };
 
         Ok(VkArray {
             len,
@@ -81,6 +94,11 @@ impl<T> VkArray<T> {
     }
 
     #[inline]
+    pub fn len(&self) -> usize {
+        self.len
+    }
+
+    #[inline]
     pub fn from_slice(
         context: Rc<Context>,
         data: &[T],
@@ -90,9 +108,112 @@ impl<T> VkArray<T> {
     where
         T: Clone,
     {
-        let mut array = VkArray::<T>::new(context, data.len(), usage_flag, flag)?;
+        let mut array = VkArray::<T>::new(
+            context,
+            data.len(),
+            usage_flag,
+            flag,
+            vk::MemoryPropertyFlags::HOST_VISIBLE | vk::MemoryPropertyFlags::HOST_COHERENT,
+        )?;
         array.clone_from_slice(data);
         Ok(array)
+    }
+
+    pub fn write_staged(&self, data: &[T])
+    where
+        T: Clone,
+    {
+        let mut src_buffer = VkArray::<T>::new(
+            self.context.clone(),
+            self.len(),
+            BufferUsageFlags::STORAGE_BUFFER,
+            crate::flag::AllocFlag::None,
+            vk::MemoryPropertyFlags::HOST_VISIBLE | vk::MemoryPropertyFlags::HOST_COHERENT,
+        )
+        .unwrap();
+
+        src_buffer.deref_mut().clone_from_slice(data);
+
+        self.write_buf(&src_buffer)
+    }
+
+    pub fn write_buf(&self, src_buf: &VkArray<T>)
+    where
+        T: Clone,
+    {
+        let ctx = &self.context;
+        let device = &ctx.device;
+        let command_buffer = ctx.command_buffer;
+
+        let command_buffer_begin_info = vk::CommandBufferBeginInfo {
+            flags: vk::CommandBufferUsageFlags::ONE_TIME_SUBMIT,
+            ..Default::default()
+        };
+
+        unsafe { device.begin_command_buffer(command_buffer, &command_buffer_begin_info) }.unwrap();
+
+        let buffer_copy_region = vk::BufferCopy::builder()
+            .dst_offset(0)
+            .src_offset(0)
+            .size((self.len() * size_of::<T>()) as u64)
+            .build();
+
+        unsafe {
+            device.cmd_copy_buffer(
+                command_buffer,
+                src_buf.buf,
+                self.buf,
+                core::slice::from_ref(&buffer_copy_region),
+            )
+        };
+
+        unsafe { device.end_command_buffer(command_buffer).unwrap() };
+        submit_and_wait(device, command_buffer, ctx.compute_family_idx as u32).unwrap();
+    }
+
+    pub fn read_staged(&self) -> Vec<T>
+    where
+        T: Clone,
+    {
+        let ctx = &self.context;
+        let device = &ctx.device;
+        let command_buffer = ctx.command_buffer;
+
+        let command_buffer_begin_info = vk::CommandBufferBeginInfo {
+            flags: vk::CommandBufferUsageFlags::ONE_TIME_SUBMIT,
+            ..Default::default()
+        };
+
+        let dst_buffer = VkArray::<T>::new(
+            ctx.clone(),
+            self.len(),
+            BufferUsageFlags::STORAGE_BUFFER,
+            crate::flag::AllocFlag::None,
+            vk::MemoryPropertyFlags::HOST_VISIBLE | vk::MemoryPropertyFlags::HOST_COHERENT,
+        )
+        .unwrap();
+
+        unsafe { device.begin_command_buffer(command_buffer, &command_buffer_begin_info) }.unwrap();
+
+        let buffer_copy_region = vk::BufferCopy::builder()
+            .dst_offset(0)
+            .src_offset(0)
+            .size((self.len() * size_of::<T>()) as u64)
+            .build();
+
+        unsafe {
+            device.cmd_copy_buffer(
+                command_buffer,
+                self.buf,
+                dst_buffer.buf,
+                core::slice::from_ref(&buffer_copy_region),
+            )
+        };
+
+        unsafe { device.end_command_buffer(command_buffer).unwrap() };
+        submit_and_wait(device, command_buffer, ctx.compute_family_idx as u32).unwrap();
+
+        dst_buffer.to_vec()
     }
 }
 
@@ -136,11 +257,13 @@ impl<T> HostPtr<T> for VkArray<T> {
     }
 }
 
+// TODO: impl deref only when using unified memory
 impl<T> Deref for VkArray<T> {
     type Target = [T];
 
     #[inline]
     fn deref(&self) -> &Self::Target {
+        assert!(!self.ptr().is_null());
         unsafe { std::slice::from_raw_parts(self.ptr(), self.size()) }
     }
 }
@@ -148,6 +271,7 @@ impl<T> Deref for VkArray<T> {
 impl<T> DerefMut for VkArray<T> {
     #[inline]
     fn deref_mut(&mut self) -> &mut Self::Target {
+        assert!(!self.ptr_mut().is_null());
         unsafe { std::slice::from_raw_parts_mut(self.ptr_mut(), self.size()) }
     }
 }
@@ -200,8 +324,9 @@ pub unsafe fn allocate_memory(
 #[cfg(test)]
 mod tests {
     use super::VkArray;
-    use crate::{vulkan::context::Context, HostPtr};
-    use ash::vk::BufferUsageFlags;
+    use crate::vulkan::context::Context;
+    use ash::vk::{self, BufferUsageFlags};
+    use core::ops::Deref;
     use std::rc::Rc;
 
     #[test]
@@ -212,6 +337,7 @@ mod tests {
             10,
             BufferUsageFlags::STORAGE_BUFFER,
             crate::flag::AllocFlag::None,
+            vk::MemoryPropertyFlags::HOST_VISIBLE | vk::MemoryPropertyFlags::HOST_COHERENT,
         )
         .unwrap();
     }
@@ -226,6 +352,6 @@ mod tests {
             crate::flag::AllocFlag::None,
         )
         .unwrap();
-        assert_eq!(arr1.as_slice(), &[1., 2., 3., 4., 5., 6.,])
+        assert_eq!(arr1.deref(), &[1., 2., 3., 4., 5., 6.,])
     }
 }

@@ -171,13 +171,13 @@ pub trait HostPtr<T>: PtrType {
     fn ptr_mut(&mut self) -> *mut T;
 
     #[inline]
-    fn as_slice(&self) -> &[T] {
-        unsafe { core::slice::from_raw_parts(self.ptr(), self.size()) }
+    unsafe fn as_slice(&self) -> &[T] {
+        core::slice::from_raw_parts(self.ptr(), self.size())
     }
 
     #[inline]
-    fn as_mut_slice(&mut self) -> &mut [T] {
-        unsafe { core::slice::from_raw_parts_mut(self.ptr_mut(), self.size()) }
+    unsafe fn as_mut_slice(&mut self) -> &mut [T] {
+        core::slice::from_raw_parts_mut(self.ptr_mut(), self.size())
     }
 }
 

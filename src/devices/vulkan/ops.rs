@@ -1,10 +1,12 @@
-use core::fmt::Debug;
+use core::{fmt::Debug, mem::size_of};
+
+use ash::vk::{BufferUsageFlags, Fence};
 
 use crate::{
     cpu_stack_ops::clear_slice, pass_down_add_operation, pass_down_exec_now, prelude::Number,
-    AddOperation, ApplyFunction, AsNoId, BufAsNoId, Buffer, CDatatype, ClearBuf, HostPtr,
-    OnDropBuffer, Read, Resolve, Retrieve, Retriever, Shape, ToCLSource, ToMarker, ToWgslSource,
-    UnaryGrad, UseGpuOrCpu, Vulkan, WriteBuf, ZeroGrad,
+    vulkan::submit_and_wait, AddOperation, ApplyFunction, AsNoId, BufAsNoId, Buffer, CDatatype,
+    ClearBuf, HostPtr, OnDropBuffer, Read, Resolve, Retrieve, Retriever, Shape, ToCLSource,
+    ToMarker, ToWgslSource, UnaryGrad, UseGpuOrCpu, Vulkan, WriteBuf, ZeroGrad,
 };
 
 use super::{VkArray, VkDevice};
@@ -59,8 +61,8 @@ pub fn try_vk_clear<T: Default + Debug>(
     device.launch_shader([(32 + buf.len as u32) / 32, 1, 1], src, &[buf])
 }
 
-impl<Mods: OnDropBuffer, T, S: Shape> Read<T, S> for Vulkan<Mods> {
-    type Read<'a> = &'a [T]
+impl<Mods: OnDropBuffer, T: Default + Clone, S: Shape> Read<T, S> for Vulkan<Mods> {
+    type Read<'a> = Vec<T>
     where
         T: 'a,
         Self: 'a,
@@ -68,17 +70,38 @@ impl<Mods: OnDropBuffer, T, S: Shape> Read<T, S> for Vulkan<Mods> {
 
     #[inline]
     fn read<'a>(&self, buf: &'a Buffer<T, Self, S>) -> Self::Read<'a> {
-        buf.as_slice()
+        self.read_to_vec(buf)
     }
 
-    #[inline]
     fn read_to_vec(&self, buf: &Buffer<T, Self, S>) -> Vec<T>
     where
         T: Default + Clone,
     {
-        buf.as_slice().to_vec()
+        buf.read_staged()
     }
 }
+
+// TODO: use something like unified_cl
+// impl<Mods: OnDropBuffer, T, S: Shape> Read<T, S> for Vulkan<Mods> {
+//     type Read<'a> = &'a [T]
+//     where
+//         T: 'a,
+//         Self: 'a,
+//         S: 'a;
+
+//     #[inline]
+//     fn read<'a>(&self, buf: &'a Buffer<T, Self, S>) -> Self::Read<'a> {
+//         buf.as_slice()
+//     }
+
+//     #[inline]
+//     fn read_to_vec(&self, buf: &Buffer<T, Self, S>) -> Vec<T>
+//     where
+//         T: Default + Clone,
+//     {
+//         buf.as_slice().to_vec()
+//     }
+// }
 
 impl<Mods, T, S> ApplyFunction<T, S> for Vulkan<Mods>
 where
@@ -224,7 +247,7 @@ where
 impl<Mods: OnDropBuffer, T: Clone, S: Shape> WriteBuf<T, S> for Vulkan<Mods> {
     #[inline]
     fn write(&self, buf: &mut Buffer<T, Self, S>, data: &[T]) {
-        buf.as_mut_slice().clone_from_slice(data)
+        buf.write_staged(data)
     }
 
     #[inline]

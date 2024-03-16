@@ -320,7 +320,7 @@ pub mod tests_ex {
 
         let buf = device.apply_fn(&buf, |x| x.mul(2.).add(4.).sin().mul(x).add(1.));
         roughly_eq_slices(
-            buf.read(),
+            &buf.read(),
             &[
                 -0.632_063_3,
                 -0.632_063_3,

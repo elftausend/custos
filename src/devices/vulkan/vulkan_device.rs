@@ -1,4 +1,4 @@
-use ash::vk::BufferUsageFlags;
+use ash::vk::{self, BufferUsageFlags};
 
 use super::{context::Context, launch_shader, AsVkShaderArgument, ShaderCache, VkArray};
 use crate::{
@@ -127,8 +127,14 @@ impl<Mods: OnDropBuffer> Device for Vulkan<Mods> {
 impl<Mods: OnDropBuffer, T> Alloc<T> for Vulkan<Mods> {
     #[inline]
     fn alloc<S: Shape>(&self, len: usize, flag: crate::flag::AllocFlag) -> Self::Base<T, S> {
-        VkArray::new(self.context(), len, BufferUsageFlags::STORAGE_BUFFER, flag)
-            .expect("Could not create VkArray")
+        VkArray::new(
+            self.context(),
+            len,
+            BufferUsageFlags::STORAGE_BUFFER,
+            flag,
+            vk::MemoryPropertyFlags::DEVICE_LOCAL,
+        )
+        .expect("Could not create VkArray")
     }
 
     #[inline]
@@ -153,6 +159,8 @@ unsafe impl<Mods: OnDropBuffer> IsShapeIndep for Vulkan<Mods> {}
 
 #[cfg(test)]
 mod tests {
+    use core::ops::Deref;
+
     use crate::{Base, Device, HostPtr};
 
     use super::Vulkan;
@@ -182,7 +190,7 @@ mod tests {
 
         let buf = device.buffer([1, 2, 3, 4, 5, 9, 2, 3, 4, 3, 2]);
         add_one(&device, buf.data.buf);
-        assert_eq!(buf.as_slice(), [2, 3, 4, 5, 6, 10, 3, 4, 5, 4, 3])
+        assert_eq!(buf.read(), [2, 3, 4, 5, 6, 10, 3, 4, 5, 4, 3])
     }
 
     #[test]
@@ -191,7 +199,7 @@ mod tests {
 
         let out = device.buffer([1, 2, 3, 4, 5, 9, 2, 3, 4, 3, 2]);
         add_one(&device, out.data.buf);
-        assert_eq!(out.as_slice(), [2, 3, 4, 5, 6, 10, 3, 4, 5, 4, 3]);
+        assert_eq!(out.read(), [2, 3, 4, 5, 6, 10, 3, 4, 5, 4, 3]);
 
         let lhs = device.buffer([2; 11]);
         let rhs = device.buffer([3; 11]);
@@ -226,7 +234,7 @@ mod tests {
                 &[&lhs.data.buf, &rhs.data.buf, &out.data.buf],
             )
             .unwrap();
-        assert_eq!(out.as_slice(), [7, 8, 9, 10, 11, 15, 8, 9, 10, 9, 8])
+        assert_eq!(out.read(), [7, 8, 9, 10, 11, 15, 8, 9, 10, 9, 8])
     }
 
     #[cfg(feature = "autograd")]

@@ -96,6 +96,7 @@ pub fn try_cl_clear<T: CDatatype>(device: &CLDevice, lhs: &mut CLPtr<T>) -> crat
 impl<T, S: Shape, Mods: OnDropBuffer> WriteBuf<T, S> for OpenCL<Mods> {
     #[inline]
     fn write(&self, buf: &mut Buffer<T, Self, S>, data: &[T]) {
+        // TODO: use unified memory for write -> check for unified memory
         let event =
             unsafe { enqueue_write_buffer(self.queue(), buf.cl_ptr(), data, true).unwrap() };
         wait_for_event(event).unwrap();

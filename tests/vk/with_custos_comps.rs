@@ -1,6 +1,6 @@
-use std::rc::Rc;
+use std::{ops::Deref, rc::Rc};
 
-use ash::vk::{self, BufferUsageFlags, DescriptorType, Fence};
+use ash::vk::{self, BufferUsageFlags, DescriptorType, Fence, MemoryPropertyFlags};
 use custos::{
     vulkan::{
         create_descriptor_infos, create_write_descriptor_sets, Context, ShaderCache, VkArray,
@@ -32,6 +32,7 @@ fn test_with_custos_comps() {
         lhs.len,
         BufferUsageFlags::STORAGE_BUFFER,
         custos::flag::AllocFlag::None,
+        MemoryPropertyFlags::DEVICE_LOCAL,
     )
     .unwrap();
 
@@ -152,5 +153,5 @@ fn test_with_custos_comps() {
         .unwrap();
     unsafe { device.device_wait_idle() }.unwrap();
 
-    println!("out: {:?}", out.as_slice());
+    println!("out: {:?}", out.read_staged());
 }
