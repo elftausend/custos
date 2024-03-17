@@ -284,4 +284,13 @@ mod tests {
             assert!((*out - buf.sin().cos().ln()).abs() < 0.001);
         }
     }
+
+    #[cfg(feature = "opencl")]
+    #[cfg(feature = "lazy")]
+    #[test]
+    fn test_cl_fused_kernel_creation() {
+        use crate::{Base, Graph, Lazy, OpenCL};
+
+        let dev = OpenCL::<Graph<Lazy<Base>>>::new(0).unwrap();
+    }
 }

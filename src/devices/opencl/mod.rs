@@ -10,6 +10,8 @@ mod kernel_enqueue;
 // #[cfg(unified_cl)]
 mod unified;
 
+mod fusing;
+
 mod ops;
 pub use ops::*;
 

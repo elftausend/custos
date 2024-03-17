@@ -1,4 +1,7 @@
-use custos::{Alloc, Base, Device, HasId, Module, OnDropBuffer, PtrType, Retrieve, Setup, Shape, WrappedData, CPU};
+use custos::{
+    Alloc, Base, Device, HasId, Module, OnDropBuffer, PtrType, Retrieve, Setup, Shape, WrappedData,
+    CPU,
+};
 
 pub struct CustomModule<Mods> {
     pub mods: Mods,
@@ -22,7 +25,6 @@ where
         Mods::setup(device)
     }
 }
-
 
 fn main() {
     let _dev = CPU::<CustomModule<Base>>::new();
@@ -54,7 +56,11 @@ impl<Mods: WrappedData> WrappedData for CustomModule<Mods> {
 
 impl<Mods: OnDropBuffer + WrappedData> OnDropBuffer for CustomModule<Mods> {
     #[inline]
-    fn on_drop_buffer<T, D: Device, S: Shape>(&self, _device: &D, _buf: &custos::prelude::Buffer<T, D, S>) {
+    fn on_drop_buffer<T, D: Device, S: Shape>(
+        &self,
+        _device: &D,
+        _buf: &custos::prelude::Buffer<T, D, S>,
+    ) {
         self.mods.on_drop_buffer(_device, _buf)
     }
 }
@@ -73,13 +79,13 @@ where
     ) -> Self::Wrap<T, <D>::Base<T, S>>
     where
         S: Shape,
-        D: Device + Alloc<T> 
+        D: Device + Alloc<T>,
     {
         // inject custom behaviour in this body
 
         self.mods.retrieve(device, len, parents)
     }
-    
+
     fn on_retrieve_finish(&self, _retrieved_buf: &custos::prelude::Buffer<T, D, S>)
     where
         D: Alloc<T>,

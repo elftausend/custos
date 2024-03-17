@@ -4,7 +4,7 @@ use min_cl::api::{create_buffer, enqueue_full_copy_buffer, MemFlags};
 
 use super::{enqueue_kernel, AsClCvoidPtr, CLPtr};
 use crate::flag::AllocFlag;
-use crate::{impl_device_traits, Shape, UnaryFusing};
+use crate::{impl_device_traits, Shape};
 use crate::{
     pass_down_use_gpu_or_cpu, Alloc, Base, Buffer, Cached, CachedCPU, CloneBuf, Device,
     IsShapeIndep, Module, OnDropBuffer, OnNewBuffer, Setup, WrappedData, CPU,
@@ -301,63 +301,6 @@ impl<Mods> crate::LazySetup for OpenCL<Mods> {}
 
 #[cfg(feature = "lazy")]
 impl<Mods> crate::LazyRun for OpenCL<Mods> {}
-
-impl<Mods: OnDropBuffer> UnaryFusing for OpenCL<Mods> {
-    #[cfg(feature = "lazy")]
-    #[cfg(feature = "graph")]
-    #[inline]
-    fn unary_fuse_op<T: crate::CDatatype + crate::Numeric>(
-        &self,
-    ) -> fn(
-        &mut (
-            &mut Buffer<'_, T, Self, ()>,
-            &Buffer<'_, T, Self, ()>,
-            crate::NoId<Vec<std::rc::Rc<dyn Fn(crate::Resolve<T>) -> Box<dyn crate::TwoWay<T>>>>>,
-        ),
-    ) -> crate::Result<()> {
-        |(out, buf, ops)| {
-            if ops.is_empty() {
-                return Ok(());
-            }
-
-            let mut fused_operation = String::new();
-            for op in &**ops {
-                let resolve = crate::Resolve {
-                    val: T::default(),
-                    marker: "x",
-                };
-
-                fused_operation.push_str(&format!(
-                    "{marker} = {src};\n",
-                    marker = resolve.marker,
-                    src = op(resolve).to_cl_source()
-                ));
-            }
-
-            let src = format!(
-                "
-                __kernel void apply_fn(__global const {datatype}* lhs, __global {datatype}* out, long len) {{
-                    size_t id = get_global_id(0);
-                    if (id >= len) {{
-                        return;
-                    }}
-                    {datatype} x = lhs[id];
-                    {fused_operation}
-                    out[id] = x;
-                }}
-            ",
-                datatype = T::C_DTYPE_STR,
-            );
-
-            buf.device().launch_kernel(
-                &src,
-                [(buf.len() / 32 + 1) * 32, 0, 0],
-                Some([32, 0, 0]),
-                &[buf, *out, &buf.len()],
-            )
-        }
-    }
-}
 
 #[cfg(test)]
 mod tests {
