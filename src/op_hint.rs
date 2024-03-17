@@ -310,10 +310,11 @@ mod tests {
 
     #[cfg(feature = "opencl")]
     #[cfg(feature = "lazy")]
+    #[cfg(feature = "graph")]
     #[test]
     fn test_cl_fused_kernel_creation() {
         use crate::{Base, Graph, Lazy, OpenCL};
 
-        let dev = OpenCL::<Graph<Lazy<Base>>>::new(0).unwrap();
+        let _dev = OpenCL::<Graph<Lazy<Base>>>::new(0).unwrap();
     }
 }
