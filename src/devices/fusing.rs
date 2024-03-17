@@ -98,7 +98,8 @@ mod tests {
     #[test]
     fn test_operations_to_fused_src() {
         use crate::{
-            op_hint::{unary, OpHint}, operations_to_fused_src, Combiner, Resolve
+            op_hint::{unary, OpHint},
+            operations_to_fused_src, Combiner, Resolve,
         };
 
         let mut ops = vec![];
@@ -106,10 +107,13 @@ mod tests {
         ops.push(unary(|x: Resolve<f32>| x.neg()));
         ops.push(unary(|x: Resolve<f32>| x.cos()));
 
-        let ops = ops.into_iter().map(|op| {
-            let OpHint::Unary(op) = op else { panic!() };
-            op
-        }).collect::<Vec<_>>();
+        let ops = ops
+            .into_iter()
+            .map(|op| {
+                let OpHint::Unary(op) = op else { panic!() };
+                op
+            })
+            .collect::<Vec<_>>();
 
         let src = operations_to_fused_src(&ops);
         assert_eq!(src, "x = sin(x);\nx = -(x);\nx = cos(x);\n")

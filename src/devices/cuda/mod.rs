@@ -8,6 +8,7 @@ pub type CUdeviceptr = core::ffi::c_ulonglong;
 mod cuda;
 mod cuda_device;
 mod cuda_ptr;
+mod fusing;
 mod kernel_cache;
 mod kernel_launch;
 #[cfg(feature = "lazy")]

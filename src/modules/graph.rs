@@ -57,9 +57,10 @@ impl<Mods: Module<D>, D: Device> Module<D> for Graph<Mods> {
     }
 }
 
-impl<Mods, D> Setup<D> for Graph<Mods> {
-    fn setup(_device: &mut D) -> crate::Result<()> {
-        Ok(())
+impl<Mods: Setup<D>, D> Setup<D> for Graph<Mods> {
+    #[inline]
+    fn setup(device: &mut D) -> crate::Result<()> {
+        Mods::setup(device)
     }
 }
 

@@ -146,7 +146,7 @@ mod tests {
 
         let dev = OpenCL::<Graph<Lazy<Base>>>::new(0).unwrap();
 
-        let buf = dev.buffer([1., 2., 3., 4., 5.]);
+        let buf = dev.buffer([1f32, 2., 3., 4., 5.]);
         let out = dev.apply_fn(&buf, |x| x.sin());
         let out = dev.apply_fn(&out, |x| x.cos());
         let _out = dev.apply_fn(&out, |x| x.ln());
@@ -154,6 +154,29 @@ mod tests {
         dev.optimize_mem_graph(&dev, None).unwrap();
         dev.unary_fusing(&dev, None).unwrap();
         unsafe { dev.run().unwrap() };
+
+        for (buf, out) in buf.read().iter().zip(_out.replace().read().iter()) {
+            assert!((*out - buf.sin().cos().ln()).abs() < 0.001);
+        }
+    }
+
+    #[cfg(feature = "cuda")]
+    #[cfg(feature = "lazy")]
+    #[cfg(feature = "graph")]
+    #[test]
+    fn test_op_hint_unary_chain_fuse_graph_cu() {
+        use crate::{ApplyFunction, Base, Combiner, Device, Graph, Lazy, Optimize, Run, CUDA};
+
+        let dev = CUDA::<Graph<Lazy<Base>>>::new(0).unwrap();
+
+        let buf = dev.buffer([1f32, 2., 3., 4., 5.]);
+        let out = dev.apply_fn(&buf, |x| x.sin());
+        let out = dev.apply_fn(&out, |x| x.cos());
+        let _out = dev.apply_fn(&out, |x| x.ln());
+
+        dev.optimize_mem_graph(&dev, None).unwrap();
+        dev.unary_fusing(&dev, None).unwrap();
+        let _ = unsafe { dev.run() };
 
         for (buf, out) in buf.read().iter().zip(_out.replace().read().iter()) {
             assert!((*out - buf.sin().cos().ln()).abs() < 0.001);
