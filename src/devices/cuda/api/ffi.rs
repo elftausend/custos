@@ -48,7 +48,7 @@ pub enum CUdevice_attribute {
 
 #[repr(u32)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
-#[allow(non_camel_case_types)]
+// #[allow(non_camel_case_types)]
 pub enum CUresult {
     CUDA_SUCCESS = 0,
     CUDA_ERROR_INVALID_VALUE = 1,

@@ -242,7 +242,7 @@ pub fn create_graph_from_captured_stream(stream: &Stream) -> Result<Graph, CudaE
     unsafe { cuStreamEndCapture(stream.0, &mut graph) }.to_result()?;
 
     Ok(Graph(
-        NonNull::new(graph).ok_or(CudaErrorKind::ErrorStreamCaptureInvalidated)?,
+        NonNull::new(graph).ok_or(CudaErrorKind::StreamCaptureInvalidated)?,
     ))
 }
 
