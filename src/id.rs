@@ -155,16 +155,7 @@ impl<'a, T: 'static, D: Device + 'static, S: Shape + 'static> UpdateArg
         //    *self = buffers.get(&self.id()).unwrap().downcast_ref().unwrap();
     }
 }
-/*impl<'a, T: 'static, D: Device + 'static, S: Shape + 'static> UpdateArg for &mut Buffer<'a, T, D, S> {
-    fn update_arg(
-        &mut self,
-        buffers: &std::collections::HashMap<crate::UniqueId, Box<dyn core::any::Any>, core::hash::BuildHasherDefault<crate::NoHasher>>,
-    ) {
-        let buf = buffers.get(&self.id()).unwrap();
-        *self = unsafe {&*(&**buf as *const dyn Any as *const Buffer<T, D, S>)};
-    //    *self = buffers.get(&self.id()).unwrap().downcast_ref().unwrap();
-    }
-}*/
+
 pub trait BufAsNoId: Sized {
     fn buf_no_id(self) -> NoId<Self>;
 }

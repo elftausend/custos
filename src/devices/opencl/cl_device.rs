@@ -45,12 +45,6 @@ pub struct OpenCL<Mods = Base> {
 /// Short form for `OpenCL`
 pub type CL<Mods> = OpenCL<Mods>;
 
-/*impl<Mods> HasCPU<Base> for OpenCL<Mods> {
-    #[inline]
-    fn cpu(&self) -> &crate::CPU {
-        &self.cpu
-    }
-}*/
 impl_device_traits!(OpenCL);
 
 impl<Mods> Deref for OpenCL<Mods> {

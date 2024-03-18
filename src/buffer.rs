@@ -640,11 +640,6 @@ where
     }
 }
 
-/*#[cfg(feature = "safe")]
-unsafe impl<T> Send for Buffer<'a, T> {}
-#[cfg(feature = "safe")]
-unsafe impl<T> Sync for Buffer<'a, T> {}*/
-
 impl<'a, T, D: Device, S: Shape> Default for Buffer<'a, T, D, S>
 where
     D::Data<T, S>: Default,

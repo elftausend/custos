@@ -62,6 +62,7 @@ impl CudaErrorKind {
 
 impl From<u32> for CudaErrorKind {
     fn from(value: u32) -> Self {
+        // TODO: add conversion
         println!("cuda value: {value}");
         CudaErrorKind::Unknown
         /*match value {

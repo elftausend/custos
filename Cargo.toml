@@ -38,7 +38,9 @@ half = {version = "2.3", default-features = false, optional = true}
 # nnapi
 # nnapi = { path = "../nnapi/nnapi", optional = true}
 nnapi = { version = "0.2", optional = true }
-ndk-sys = {version = "0.4", features=["test"], optional = true}
+
+# only used for logging
+# ndk-sys = {version = "0.5", features=["test"], optional = true}
 
 serde = { version = "1.0", features = ["derive"], optional = true }
 serde_json = { version = "1", optional = true }
@@ -65,7 +67,8 @@ stack = []
 no-std = ["stack", "dep:libm"]
 # wgpu = ["dep:wgpu", "dep:pollster", "dep:futures-intrusive"]
 macro = ["dep:custos-macro"]
-nnapi = ["std", "dep:nnapi", "dep:ndk-sys", "lazy"]
+# nnapi = ["std", "dep:nnapi", "dep:ndk-sys", "lazy"]
+nnapi = ["std", "dep:nnapi", "lazy"]
 
 # modules
 autograd = ["std", "cached", "lazy"]
