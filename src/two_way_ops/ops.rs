@@ -1,7 +1,7 @@
 mod cmps;
 mod unary;
 
-use crate::prelude::Float;
+use crate::{prelude::Float, ToWgslSource};
 
 #[cfg(feature = "std")]
 use crate::ToCLSource;
@@ -34,6 +34,18 @@ impl<C: ToCLSource, R: ToCLSource> ToCLSource for Mul<C, R> {
             "({} * {})",
             self.comb.to_cl_source(),
             self.rhs.to_cl_source()
+        )
+    }
+}
+
+#[cfg(feature = "std")]
+impl<C: ToWgslSource, R: ToWgslSource> ToWgslSource for Mul<C, R> {
+    #[inline]
+    fn to_wgsl_source(&self) -> String {
+        format!(
+            "({} * {})",
+            self.comb.to_wgsl_source(),
+            self.rhs.to_wgsl_source()
         )
     }
 }
@@ -71,6 +83,18 @@ impl<C: ToCLSource, R: ToCLSource> ToCLSource for Add<C, R> {
     }
 }
 
+#[cfg(feature = "std")]
+impl<C: ToWgslSource, R: ToWgslSource> ToWgslSource for Add<C, R> {
+    #[inline]
+    fn to_wgsl_source(&self) -> String {
+        format!(
+            "({} + {})",
+            self.comb.to_wgsl_source(),
+            self.rhs.to_wgsl_source()
+        )
+    }
+}
+
 impl<C: Eval<T>, R: Eval<T>, T: core::ops::Add<Output = T>> Eval<T> for Add<C, R> {
     #[inline]
     fn eval(&self) -> T {
@@ -100,6 +124,18 @@ impl<C: ToCLSource, R: ToCLSource> ToCLSource for Sub<C, R> {
             "({} - {})",
             self.comb.to_cl_source(),
             self.rhs.to_cl_source()
+        )
+    }
+}
+
+#[cfg(feature = "std")]
+impl<C: ToWgslSource, R: ToWgslSource> ToWgslSource for Sub<C, R> {
+    #[inline]
+    fn to_wgsl_source(&self) -> String {
+        format!(
+            "({} - {})",
+            self.comb.to_wgsl_source(),
+            self.rhs.to_wgsl_source()
         )
     }
 }
@@ -137,6 +173,18 @@ impl<C: ToCLSource, R: ToCLSource> ToCLSource for Div<C, R> {
     }
 }
 
+#[cfg(feature = "std")]
+impl<C: ToWgslSource, R: ToWgslSource> ToWgslSource for Div<C, R> {
+    #[inline]
+    fn to_wgsl_source(&self) -> String {
+        format!(
+            "({} / {})",
+            self.comb.to_wgsl_source(),
+            self.rhs.to_wgsl_source()
+        )
+    }
+}
+
 impl<C: Eval<T>, R: Eval<T>, T: core::ops::Div<Output = T>> Eval<T> for Div<C, R> {
     #[inline]
     fn eval(&self) -> T {
@@ -170,6 +218,18 @@ impl<C: ToCLSource, R: ToCLSource> ToCLSource for Pow<C, R> {
     }
 }
 
+#[cfg(feature = "std")]
+impl<C: ToWgslSource, R: ToWgslSource> ToWgslSource for Pow<C, R> {
+    #[inline]
+    fn to_wgsl_source(&self) -> String {
+        format!(
+            "pow({}, {})",
+            self.comb.to_wgsl_source(),
+            self.rhs.to_wgsl_source()
+        )
+    }
+}
+
 impl<C: Eval<T>, R: Eval<T>, T: Float> Eval<T> for Pow<C, R> {
     #[inline]
     fn eval(&self) -> T {
@@ -196,6 +256,18 @@ impl<C: ToCLSource, R: ToCLSource> ToCLSource for Min<C, R> {
     }
 }
 
+#[cfg(feature = "std")]
+impl<C: ToWgslSource, R: ToWgslSource> ToWgslSource for Min<C, R> {
+    #[inline]
+    fn to_wgsl_source(&self) -> String {
+        format!(
+            "min({}, {})",
+            self.comb.to_wgsl_source(),
+            self.rhs.to_wgsl_source()
+        )
+    }
+}
+
 impl<C: Eval<T>, R: Eval<T>, T: Float> Eval<T> for Min<C, R> {
     #[inline]
     fn eval(&self) -> T {
@@ -218,6 +290,18 @@ impl<C: ToCLSource, R: ToCLSource> ToCLSource for Max<C, R> {
             "max({}, {})",
             self.comb.to_cl_source(),
             self.rhs.to_cl_source()
+        )
+    }
+}
+
+#[cfg(feature = "std")]
+impl<C: ToWgslSource, R: ToWgslSource> ToWgslSource for Max<C, R> {
+    #[inline]
+    fn to_wgsl_source(&self) -> String {
+        format!(
+            "max({}, {})",
+            self.comb.to_wgsl_source(),
+            self.rhs.to_wgsl_source()
         )
     }
 }

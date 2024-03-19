@@ -44,6 +44,7 @@ impl VkDevice {
 
 impl<Mods> WgslShaderLaunch for Vulkan<Mods> {
     type ShaderArg = dyn AsVkShaderArgument;
+
     #[inline]
     fn launch_shader(
         &self,
