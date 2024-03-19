@@ -42,7 +42,8 @@ impl VkDevice {
     }
 }
 
-impl<Mods> WgslShaderLaunch<dyn AsVkShaderArgument> for Vulkan<Mods> {
+impl<Mods> WgslShaderLaunch for Vulkan<Mods> {
+    type ShaderArg = dyn AsVkShaderArgument;
     #[inline]
     fn launch_shader(
         &self,
