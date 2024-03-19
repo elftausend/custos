@@ -1,6 +1,5 @@
 pub type CudaResult<T> = std::result::Result<T, CudaErrorKind>;
 
-
 impl CudaErrorKind {
     pub fn as_str(&self) -> &'static str {
         match self {
@@ -79,12 +78,13 @@ impl CudaErrorKind {
             Self::Timeout => "Timeout",
             Self::GraphExecUpdateFailure => "Graph exec update failure",
             Self::Unknown => "Unknown error",
-            Self::InvalidDeviceIdx => "(InvalidDeviceIdx) Invalid device idx, specific CUDA device not found",
+            Self::InvalidDeviceIdx => {
+                "(InvalidDeviceIdx) Invalid device idx, specific CUDA device not found"
+            }
             Self::InvalidAllocSize => "(InvalidAllocSize) Invalid allocation size",
         }
     }
 }
-
 
 #[derive(Clone, Copy)]
 pub enum CudaErrorKind {

@@ -2,8 +2,8 @@ use ash::vk::{self, BufferUsageFlags};
 
 use super::{context::Context, launch_shader, AsVkShaderArgument, ShaderCache, VkArray};
 use crate::{
-    impl_device_traits, pass_down_use_gpu_or_cpu, Alloc, Base, Buffer, Device, IsShapeIndep,
-    Module, OnDropBuffer, Setup, Shape, WrappedData,
+    impl_device_traits, pass_down_use_gpu_or_cpu, wgsl::WgslShaderLaunch, Alloc, Base, Buffer,
+    Device, IsShapeIndep, Module, OnDropBuffer, Setup, Shape, WrappedData,
 };
 use core::{
     cell::RefCell,
@@ -39,6 +39,18 @@ impl VkDevice {
             src,
             args,
         )
+    }
+}
+
+impl<Mods> WgslShaderLaunch<dyn AsVkShaderArgument> for Vulkan<Mods> {
+    #[inline]
+    fn launch_shader(
+        &self,
+        src: impl AsRef<str>,
+        gws: [u32; 3],
+        args: &[&dyn AsVkShaderArgument],
+    ) -> crate::Result<()> {
+        self.device.launch_shader(src, gws, args)
     }
 }
 
