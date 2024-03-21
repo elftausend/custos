@@ -131,7 +131,7 @@ where
         f: impl Fn(Resolve<T>) -> F + Copy + 'static,
     ) -> Buffer<T, Self, S>
     where
-        F: crate::Eval<T> + crate::MayToCLSource,
+        F: crate::TwoWay<T>,
     {
         let mut out = self.retrieve(buf.len(), buf);
         self.add_op((&mut out, buf, f.no_id()), |(out, buf, f)| {
