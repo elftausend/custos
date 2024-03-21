@@ -3,8 +3,8 @@ use core::fmt::Debug;
 use crate::{
     cpu_stack_ops::clear_slice, pass_down_add_operation, pass_down_exec_now, prelude::Number,
     AddOperation, ApplyFunction, AsNoId, BufAsNoId, Buffer, CDatatype, ClearBuf, OnDropBuffer,
-    Read, Resolve, Retrieve, Retriever, Shape, ToCLSource, ToMarker, UnaryGrad, UseGpuOrCpu,
-    Vulkan, WriteBuf, ZeroGrad,
+    Read, Resolve, Retrieve, Retriever, Shape, ToCLSource, ToMarker, ToWgslSource, UnaryGrad,
+    UseGpuOrCpu, Vulkan, WriteBuf, ZeroGrad,
 };
 
 use super::{VkArray, VkDevice};
@@ -100,7 +100,6 @@ impl<Mods: OnDropBuffer, T: Default + Clone, S: Shape> Read<T, S> for Vulkan<Mod
 //         buf.as_slice().to_vec()
 //     }
 // }
-
 impl<Mods, T, S> ApplyFunction<T, S> for Vulkan<Mods>
 where
     T: Number,
@@ -114,7 +113,7 @@ where
         f: impl Fn(Resolve<T>) -> F + Copy,
     ) -> Buffer<T, Self, S>
     where
-        F: crate::Eval<T> + crate::MayToCLSource,
+        F: crate::Eval<T> + crate::MayToCLSource + crate::MayToWgslSource,
     {
         let mut out = self.retrieve(buf.len(), buf);
 
@@ -142,8 +141,7 @@ pub fn try_vk_apply_fn_mut<T, F>(
 ) -> crate::Result<()>
 where
     T: Number,
-    // TODO: use ToWgslSource
-    F: ToCLSource,
+    F: ToWgslSource,
 {
     let src = format!(
         "
@@ -166,7 +164,7 @@ where
 
     ",
         dtype = std::any::type_name::<T>(),
-        op = f("x[global_id.x]".to_marker()).to_cl_source()
+        op = f("x[global_id.x]".to_marker()).to_wgsl_source()
     );
     device.launch_shader(src, [(32 + x.len as u32) / 32, 1, 1], &[x, out])
 }

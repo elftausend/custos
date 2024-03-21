@@ -1,6 +1,6 @@
 use crate::{
     AddGradFn, AddOperation, Alloc, AsNoId, Buffer, Device, Eval, HasId, MayTapeActions,
-    MayToCLSource, Resolve, Shape, TwoWay, ZeroGrad,
+    MayToCLSource, MayToWgslSource, Resolve, Shape, TwoWay, ZeroGrad,
 };
 
 /// Applies a function to a buffer and returns a new buffer.
@@ -90,7 +90,7 @@ pub trait UnaryElementWiseMayGrad<T, D: Device, S: Shape>: Device {
         grad_fn: fn(Resolve<T>) -> GO,
     ) -> Buffer<T, Self, S>
     where
-        FO: Eval<T> + MayToCLSource,
+        FO: TwoWay<T>,
         GO: Eval<T> + MayToCLSource + 'static;
 }
 
@@ -110,7 +110,7 @@ where
         _grad_fn: fn(Resolve<T>) -> GO,
     ) -> Buffer<T, Self, S>
     where
-        FO: Eval<T> + MayToCLSource,
+        FO: TwoWay<T>,
         GO: Eval<T> + MayToCLSource + 'static,
     {
         let out = self.apply_fn(buf, forward_fn);

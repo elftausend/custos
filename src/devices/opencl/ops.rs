@@ -11,8 +11,8 @@ use min_cl::{
 use crate::{
     bounds_to_range, cpu_stack_ops::clear_slice, location, op_hint::unary, pass_down_add_operation,
     pass_down_exec_now, prelude::Number, AddOperation, ApplyFunction, AsNoId, BufAsNoId, Buffer,
-    CDatatype, ClearBuf, CopySlice, Eval, OnDropBuffer, OpenCL, Read, Resolve, Retrieve, Retriever,
-    SetOpHint, Shape, ToCLSource, ToMarker, UnaryGrad, UseGpuOrCpu, WriteBuf, ZeroGrad,
+    CDatatype, ClearBuf, CopySlice, OnDropBuffer, OpenCL, Read, Resolve, Retrieve, Retriever,
+    SetOpHint, Shape, ToCLSource, ToMarker, TwoWay, UnaryGrad, UseGpuOrCpu, WriteBuf, ZeroGrad,
 };
 
 use super::{enqueue_kernel, CLPtr};
@@ -199,7 +199,7 @@ where
         f: impl Fn(Resolve<T>) -> F + Copy + 'static,
     ) -> Buffer<T, Self, S>
     where
-        F: ToCLSource + Eval<T>,
+        F: TwoWay<T>,
     {
         let mut out = self.retrieve(buf.len(), buf);
 

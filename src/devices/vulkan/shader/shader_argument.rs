@@ -14,7 +14,7 @@ pub struct VkShaderArgument<'a> {
     pub vk_array_handle: Option<VkArray<u8>>,
     pub buffer: ash::vk::Buffer,
     pub descriptor_type: ash::vk::DescriptorType,
-    pd: PhantomData<&'a u8>
+    pd: PhantomData<&'a u8>,
 }
 
 pub trait AsVkShaderArgument {
@@ -38,7 +38,7 @@ impl<T: Number> AsVkShaderArgument for T {
             vk_array_handle,
             buffer,
             descriptor_type: ash::vk::DescriptorType::STORAGE_BUFFER,
-            pd: PhantomData
+            pd: PhantomData,
         }
     }
 }
@@ -50,7 +50,7 @@ impl<T> AsVkShaderArgument for VkArray<T> {
             vk_array_handle: None,
             buffer: self.buf,
             descriptor_type: ash::vk::DescriptorType::STORAGE_BUFFER,
-            pd: PhantomData
+            pd: PhantomData,
         }
     }
 }
@@ -62,7 +62,7 @@ impl AsVkShaderArgument for ash::vk::Buffer {
             vk_array_handle: None,
             buffer: *self,
             descriptor_type: ash::vk::DescriptorType::STORAGE_BUFFER,
-            pd: PhantomData
+            pd: PhantomData,
         }
     }
 }
@@ -74,7 +74,7 @@ impl AsVkShaderArgument for &ash::vk::Buffer {
             vk_array_handle: None,
             buffer: **self,
             descriptor_type: ash::vk::DescriptorType::STORAGE_BUFFER,
-            pd: PhantomData
+            pd: PhantomData,
         }
     }
 }
@@ -86,7 +86,7 @@ impl<T> AsVkShaderArgument for &VkArray<T> {
             vk_array_handle: None,
             buffer: self.buf,
             descriptor_type: ash::vk::DescriptorType::STORAGE_BUFFER,
-            pd: PhantomData
+            pd: PhantomData,
         }
     }
 }
@@ -102,7 +102,7 @@ where
             vk_array_handle: None,
             buffer: self.base().buf,
             descriptor_type: ash::vk::DescriptorType::STORAGE_BUFFER,
-            pd: PhantomData
+            pd: PhantomData,
         }
     }
 }
