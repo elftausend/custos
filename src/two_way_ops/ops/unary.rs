@@ -1,7 +1,7 @@
-use crate::{prelude::Float, Combiner, Eval, ToWgslSource};
+use crate::{prelude::Float, Combiner, Eval};
 
 #[cfg(feature = "std")]
-use super::ToCLSource;
+use super::{ToCLSource, ToWgslSource};
 
 pub struct Identity<C> {
     pub comb: C,

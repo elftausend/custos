@@ -1,7 +1,7 @@
-use crate::{prelude::Number, Combiner, Eval, ToWgslSource};
+use crate::{prelude::Number, Combiner, Eval};
 
 #[cfg(feature = "std")]
-use super::ToCLSource;
+use super::{ToCLSource, ToWgslSource};
 
 pub struct GEq<C, R> {
     pub comb: C,

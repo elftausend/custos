@@ -1,10 +1,10 @@
 mod cmps;
 mod unary;
 
-use crate::{prelude::Float, ToWgslSource};
+use crate::prelude::Float;
 
 #[cfg(feature = "std")]
-use crate::ToCLSource;
+use crate::{ToCLSource, ToWgslSource};
 
 use super::{Combiner, Eval};
 pub use cmps::*;

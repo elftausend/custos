@@ -1,5 +1,6 @@
 #[cfg(feature = "std")]
 use crate::ToCLSource;
+#[cfg(feature = "std")]
 use crate::ToWgslSource;
 
 /// Resolves to either a mathematical expression as string or a computed value.
