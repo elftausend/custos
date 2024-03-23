@@ -1,8 +1,8 @@
 use crate::{
     impl_remove_layer, pass_down_add_operation, pass_down_exec_now, pass_down_replace_buf_module,
     pass_down_tape_actions, AddLayer, Alloc, Buffer, Device, HasId, IsShapeIndep, Module,
-    OnDropBuffer, OnNewBuffer, Parents, PtrType, Retrieve, RunModule, Setup, Shape, WrappedData,
-    VERSION,
+    OnDropBuffer, OnNewBuffer, Parents, PtrType, Retrieve, RunModule, Setup, Shape, UseGpuOrCpu,
+    WrappedData, VERSION,
 };
 use core::cell::{Cell, RefCell};
 
@@ -70,9 +70,11 @@ pub trait ForkSetup {
     }
 }
 
-impl<Mods: Setup<D>, D: ForkSetup> Setup<D> for Fork<Mods> {
+impl<Mods: Setup<D>, D: UseGpuOrCpu + ForkSetup> Setup<D> for Fork<Mods> {
     fn setup(device: &mut D) -> crate::Result<()> {
-        // check if device supports unified memory
+        // if the device does not have unified memory, then disable the fork
+        // this results in directly executing the gpu function
+        device.set_fork_enabled(device.has_unified_mem());
         device.fork_setup();
         Mods::setup(device)
     }

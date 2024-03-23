@@ -57,12 +57,11 @@ impl<Mods> UseGpuOrCpu for Fork<Mods> {
         mut cpu_op: impl FnMut(),
         mut gpu_op: impl FnMut(),
     ) -> GpuOrCpuInfo {
-
         if !self.enabled.get() {
             gpu_op();
             return GpuOrCpuInfo {
                 use_cpu: false,
-                is_result_cached: false
+                is_result_cached: false,
             };
         }
 
@@ -128,7 +127,7 @@ impl<Mods> UseGpuOrCpu for Fork<Mods> {
         self.enabled.set(enabled);
     }
 
-    #[inline] 
+    #[inline]
     fn is_fork_enabled(&self) -> bool {
         self.enabled.get()
     }

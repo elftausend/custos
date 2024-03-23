@@ -504,8 +504,7 @@ macro_rules! pass_down_use_gpu_or_cpu {
                     .use_cpu_or_gpu(location, input_lengths, cpu_op, gpu_op)
             }
 
-
-            #[inline] 
+            #[inline]
             fn set_fork_enabled(&self, enabled: bool) {
                 self.modules.set_fork_enabled(enabled);
             }
@@ -535,13 +534,13 @@ pub trait UseGpuOrCpu {
     fn disable_fork(&self) {
         self.set_fork_enabled(false)
     }
-    
+
     #[inline]
     fn enable_fork(&self) {
         self.set_fork_enabled(true)
     }
 
-    fn is_fork_enabled(&self) -> bool; 
+    fn is_fork_enabled(&self) -> bool;
 }
 
 #[cfg(feature = "graph")]

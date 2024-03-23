@@ -119,7 +119,7 @@ impl crate::UseGpuOrCpu for Base {
         }
     }
 
-    #[inline] 
+    #[inline]
     fn set_fork_enabled(&self, _enabled: bool) {}
 
     #[inline]
