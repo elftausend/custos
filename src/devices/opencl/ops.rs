@@ -36,19 +36,13 @@ impl<Mods: OnDropBuffer + UseGpuOrCpu, T: CDatatype + Default> ClearBuf<T> for O
         || try_cl_clear(self, buf).unwrap(),
         &[buf.len()] // TODO: (macro) could go through the params of clear_slice and add to list if buffer
         );*/
-        #[cfg(unified_cl)]
-        {
-            let cpu_buf = unsafe { &mut *(buf as *mut Buffer<_, OpenCL<Mods>, _>) };
-            self.use_cpu_or_gpu(
-                location!(),
-                &[buf.len()],
-                || clear_slice(cpu_buf),
-                || try_cl_clear(self, buf).unwrap(),
-            );
-        }
-
-        #[cfg(not(unified_cl))]
-        try_cl_clear(self, buf).unwrap()
+        let cpu_buf = unsafe { &mut *(buf as *mut Buffer<_, OpenCL<Mods>, _>) };
+        self.use_cpu_or_gpu(
+            location!(),
+            &[buf.len()],
+            || clear_slice(cpu_buf),
+            || try_cl_clear(self, buf).unwrap(),
+        );
     }
 }
 
@@ -207,22 +201,14 @@ where
             let dev = buf.device();
             // let out: &mut Buffer<'_, T, OpenCL<Mods>, S> = out.as_mut().unwrap();
             let out = &mut **out;
-            #[cfg(unified_cl)]
-            {
-                let cpu_out = unsafe { &mut *(out as *mut Buffer<_, OpenCL<Mods>, _>) };
-                dev.use_cpu_or_gpu(
-                    (file!(), line!(), column!()).into(),
-                    &[buf.len()],
-                    || crate::devices::cpu_stack_ops::apply_fn_slice(buf, cpu_out, **f),
-                    || try_cl_apply_fn_mut(dev, buf, out, **f).unwrap(),
-                );
-                Ok(())
-            }
-            #[cfg(not(unified_cl))]
-            {
-                try_cl_apply_fn_mut(dev, buf, out, **f)?;
-                Ok(())
-            }
+            let cpu_out = unsafe { &mut *(out as *mut Buffer<_, OpenCL<Mods>, _>) };
+            dev.use_cpu_or_gpu(
+                (file!(), line!(), column!()).into(),
+                &[buf.len()],
+                || crate::devices::cpu_stack_ops::apply_fn_slice(buf, cpu_out, **f),
+                || try_cl_apply_fn_mut(dev, buf, out, **f).unwrap(),
+            );
+            Ok(())
         })
         .unwrap();
         self.set_op_hint(unary(f));
