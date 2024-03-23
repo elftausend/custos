@@ -4,7 +4,7 @@ use crate::{
     OnDropBuffer, OnNewBuffer, Parents, PtrType, Retrieve, RunModule, Setup, Shape, WrappedData,
     VERSION,
 };
-use core::cell::RefCell;
+use core::cell::{Cell, RefCell};
 
 mod analyzation;
 mod fork_data;
@@ -24,6 +24,7 @@ pub struct Fork<Mods> {
     pub modules: Mods,
     pub version: &'static str,
     pub gpu_or_cpu: RefCell<ForkData>, // should use Location of operation in file file!(), ...
+    pub enabled: Cell<bool>,
 }
 
 impl<Mods: WrappedData> WrappedData for Fork<Mods> {
@@ -54,6 +55,7 @@ impl<Mods: Module<D>, D: Device> Module<D> for Fork<Mods> {
             modules: Mods::new(),
             version: VERSION.unwrap(),
             gpu_or_cpu: Default::default(),
+            enabled: Cell::new(true),
         }
     }
 }
@@ -146,6 +148,7 @@ impl<NewMods, SD> AddLayer<NewMods, SD> for Fork<()> {
             modules: inner_mods,
             version: VERSION.unwrap(),
             gpu_or_cpu: Default::default(),
+            enabled: Cell::new(true),
         }
     }
 }

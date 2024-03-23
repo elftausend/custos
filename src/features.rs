@@ -503,6 +503,16 @@ macro_rules! pass_down_use_gpu_or_cpu {
                 self.modules
                     .use_cpu_or_gpu(location, input_lengths, cpu_op, gpu_op)
             }
+
+
+            #[inline] 
+            fn set_fork_enabled(&self, enabled: bool) {
+                self.modules.set_fork_enabled(enabled);
+            }
+
+            fn is_fork_enabled(&self) -> bool {
+                self.modules.is_fork_enabled()
+            }
         }
     };
 }
@@ -518,6 +528,20 @@ pub trait UseGpuOrCpu {
         cpu_op: impl FnMut(),
         gpu_op: impl FnMut(),
     ) -> GpuOrCpuInfo;
+
+    fn set_fork_enabled(&self, _enabled: bool);
+
+    #[inline]
+    fn disable_fork(&self) {
+        self.set_fork_enabled(false)
+    }
+    
+    #[inline]
+    fn enable_fork(&self) {
+        self.set_fork_enabled(true)
+    }
+
+    fn is_fork_enabled(&self) -> bool; 
 }
 
 #[cfg(feature = "graph")]

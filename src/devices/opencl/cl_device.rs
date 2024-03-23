@@ -269,10 +269,10 @@ impl<'a, T, Mods: OnDropBuffer + OnNewBuffer<T, Self, ()>> CloneBuf<'a, T> for O
 impl<Mods> ForkSetup for OpenCL<Mods> {
     #[inline]
     fn fork_setup(&mut self) {
-        assert!(
-            self.unified_mem(),
-            "The selected device does not support unified memory."
-        )
+        // assert!(
+        //     self.unified_mem(),
+        //     "The selected device does not support unified memory."
+        // )
     }
 
     #[inline]

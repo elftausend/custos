@@ -118,6 +118,14 @@ impl crate::UseGpuOrCpu for Base {
             is_result_cached: false,
         }
     }
+
+    #[inline] 
+    fn set_fork_enabled(&self, _enabled: bool) {}
+
+    #[inline]
+    fn is_fork_enabled(&self) -> bool {
+        false
+    }
 }
 
 #[cfg(feature = "graph")]
