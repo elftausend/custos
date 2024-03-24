@@ -1,10 +1,10 @@
 use crate::{
     impl_remove_layer, pass_down_add_operation, pass_down_exec_now, pass_down_replace_buf_module,
     pass_down_tape_actions, AddLayer, Alloc, Buffer, Device, HasId, IsShapeIndep, Module,
-    OnDropBuffer, OnNewBuffer, Parents, PtrType, Retrieve, RunModule, Setup, Shape, WrappedData,
-    VERSION,
+    OnDropBuffer, OnNewBuffer, Parents, PtrType, Retrieve, RunModule, Setup, Shape, UseGpuOrCpu,
+    WrappedData, VERSION,
 };
-use core::cell::RefCell;
+use core::cell::{Cell, RefCell};
 
 mod analyzation;
 mod fork_data;
@@ -24,6 +24,7 @@ pub struct Fork<Mods> {
     pub modules: Mods,
     pub version: &'static str,
     pub gpu_or_cpu: RefCell<ForkData>, // should use Location of operation in file file!(), ...
+    pub enabled: Cell<bool>,
 }
 
 impl<Mods: WrappedData> WrappedData for Fork<Mods> {
@@ -54,6 +55,7 @@ impl<Mods: Module<D>, D: Device> Module<D> for Fork<Mods> {
             modules: Mods::new(),
             version: VERSION.unwrap(),
             gpu_or_cpu: Default::default(),
+            enabled: Cell::new(true),
         }
     }
 }
@@ -68,9 +70,11 @@ pub trait ForkSetup {
     }
 }
 
-impl<Mods: Setup<D>, D: ForkSetup> Setup<D> for Fork<Mods> {
+impl<Mods: Setup<D>, D: UseGpuOrCpu + ForkSetup> Setup<D> for Fork<Mods> {
     fn setup(device: &mut D) -> crate::Result<()> {
-        // check if device supports unified memory
+        // if the device does not have unified memory, then disable the fork
+        // this results in directly executing the gpu function
+        device.set_fork_enabled(device.has_unified_mem());
         device.fork_setup();
         Mods::setup(device)
     }
@@ -146,6 +150,7 @@ impl<NewMods, SD> AddLayer<NewMods, SD> for Fork<()> {
             modules: inner_mods,
             version: VERSION.unwrap(),
             gpu_or_cpu: Default::default(),
+            enabled: Cell::new(true),
         }
     }
 }
