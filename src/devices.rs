@@ -27,6 +27,9 @@ pub mod network;
 #[cfg(feature = "nnapi")]
 pub mod nnapi;
 
+#[cfg(feature = "untyped")]
+pub mod untyped;
+
 mod stack_array;
 pub use stack_array::*;
 
