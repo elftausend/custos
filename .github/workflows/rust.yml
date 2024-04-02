@@ -173,6 +173,25 @@ jobs:
 
     - name: Run 'no-std' tests
       run: cargo test --no-default-features --features no-std
+   
+   test-half:
+  
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+
+    - uses: actions-rs/toolchain@v1
+      with:
+        profile: minimal
+        toolchain: stable
+
+    - uses: Swatinem/rust-cache@v1
+
+    - name: Run 'half' tests
+      run: cargo test --no-default-features --features cpu,half
+    - name: Run 'half' tests
+      run: cargo test --no-default-features --features half,std
   
 
   miri:
