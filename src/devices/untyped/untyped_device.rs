@@ -1,21 +1,21 @@
 use crate::{
-    cpu::CPUPtr, cpu_stack_ops::apply_fn_slice, cuda::CUDAPtr, impl_buffer_hook_traits,
-    impl_wrapped_data, AddOperation, ApplyFunction, Base, Buffer, Device, HasId, HasModules,
-    OnDropBuffer, OnNewBuffer, PtrType, Retrieve, Shape, WrappedData, CPU, CUDA,
+    Buffer, Device, HasId, HasModules,
+    OnDropBuffer, PtrType, Shape, WrappedData, CPU, CUDA,
 };
+
+use super::storages::{CpuStorage, CudaStorage};
+
+#[cfg(feature = "cuda")]
+pub type Cuda<Mods> = CUDA<Mods>;
+
+#[cfg(not(feature = "cuda"))]
+pub type Cuda<Mods> = super::CUDA<Mods>;
 
 pub enum UntypedDevice<Mods> {
     CPU(CPU<Mods>),
-    CUDA(CUDA<Mods>),
+    CUDA(Cuda<Mods>),
 }
 
-pub enum CpuStorage {
-    F32(CPUPtr<f32>),
-}
-
-pub enum CudaStorage {
-    F32(CUDAPtr<f32>),
-}
 
 pub enum UntypedData {
     CPU(CpuStorage),
@@ -23,16 +23,28 @@ pub enum UntypedData {
 }
 
 impl PtrType for UntypedData {
+    #[inline]
     fn size(&self) -> usize {
-        todo!()
+        match self {
+            UntypedData::CPU(cpu) => cpu.size(),
+            UntypedData::CUDA(cuda) => cuda.size(),
+        }
     }
 
+    #[inline]
     fn flag(&self) -> crate::flag::AllocFlag {
-        todo!()
+        match self {
+            UntypedData::CPU(cpu) => cpu.flag(),
+            UntypedData::CUDA(cuda) => cuda.flag(),
+        }
     }
 
+    #[inline]
     unsafe fn set_flag(&mut self, flag: crate::flag::AllocFlag) {
-        todo!()
+        match self {
+            UntypedData::CPU(cpu) => cpu.set_flag(flag),
+            UntypedData::CUDA(cuda) => cuda.set_flag(flag),
+        }
     }
 }
 
