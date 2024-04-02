@@ -24,6 +24,8 @@ pub struct CPUPtr<T> {
     pub size: Option<usize>,
 }
 
+unsafe impl<T> Send for CPUPtr<T> {}
+
 impl<T: PartialEq> PartialEq for CPUPtr<T> {
     fn eq(&self, other: &Self) -> bool {
         self.as_slice() == other.as_slice()

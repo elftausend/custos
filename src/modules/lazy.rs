@@ -401,6 +401,16 @@ impl<T, Mods: UseGpuOrCpu> UseGpuOrCpu for Lazy<Mods, T> {
         self.modules
             .use_cpu_or_gpu(location, input_lengths, cpu_op, gpu_op)
     }
+
+    #[inline]
+    fn set_fork_enabled(&self, _enabled: bool) {
+        self.modules.set_fork_enabled(_enabled)
+    }
+
+    #[inline]
+    fn is_fork_enabled(&self) -> bool {
+        self.modules.is_fork_enabled()
+    }
 }
 
 #[cfg(feature = "graph")]

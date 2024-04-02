@@ -242,10 +242,6 @@ impl<'a, T, D: Device + OnNewBuffer<T, D, S>, S: Shape> Buffer<'a, T, D, S> {
     }
 }
 
-unsafe impl<'a, T, D: Device, S: Shape> Send for Buffer<'a, T, D, S> {}
-
-unsafe impl<'a, T, D: Device, S: Shape> Sync for Buffer<'a, T, D, S> {}
-
 impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
     /// Buffers created with this method can outlive the device used to create this `Buffer`.<br>
     /// No operations can be performed on this `Buffer` without a device parameter.
