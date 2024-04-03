@@ -1,12 +1,12 @@
 use crate::{
     Buffer, Device, HasId, HasModules,
-    OnDropBuffer, PtrType, Shape, WrappedData, CPU, CUDA,
+    OnDropBuffer, PtrType, Shape, WrappedData, CPU,
 };
 
 use super::storages::{CpuStorage, CudaStorage};
 
 #[cfg(feature = "cuda")]
-pub type Cuda<Mods> = CUDA<Mods>;
+pub type Cuda<Mods> = crate::CUDA<Mods>;
 
 #[cfg(not(feature = "cuda"))]
 pub type Cuda<Mods> = super::CUDA<Mods>;
@@ -49,8 +49,12 @@ impl PtrType for UntypedData {
 }
 
 impl HasId for UntypedData {
+    #[inline]
     fn id(&self) -> crate::Id {
-        todo!()
+        match self {
+            UntypedData::CPU(cpu) => cpu.id(),
+            UntypedData::CUDA(cuda) => cuda.id()
+        }
     }
 }
 

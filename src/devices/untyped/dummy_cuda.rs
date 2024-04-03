@@ -1,7 +1,7 @@
 use crate::{impl_buffer_hook_traits, Base, Buffer, Device, OnDropBuffer, Shape};
 
 pub struct CUDA<Mods = Base> {
-    modules: Mods,
+    pub modules: Mods,
 }
 
 impl<Mods: OnDropBuffer> Device for CUDA<Mods> {
