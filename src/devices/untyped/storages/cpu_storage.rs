@@ -1,4 +1,6 @@
-use crate::{cpu::CPUPtr, HasId, PtrType};
+use core::any::{Any, TypeId};
+
+use crate::{cpu::CPUPtr, untyped::{AsType, Type}, HasId, PtrType};
 
 #[derive(Debug)]
 pub enum CpuStorage {
@@ -77,3 +79,17 @@ impl HasId for CpuStorage {
     }
 }
 
+impl crate::untyped::MatchesType for CpuStorage {
+    fn matches_storage_type<T: AsType>(&self) -> Result<(), String> {
+        match (T::TYPE, self) {
+            (Type::U8, CpuStorage::U8(_)) => Ok(()),
+            (Type::U32, CpuStorage::U32(_)) => Ok(()),
+            (Type::I64, CpuStorage::I64(_)) => Ok(()),
+            (Type::BF16, CpuStorage::BF16(_)) => Ok(()),
+            (Type::F16, CpuStorage::F16(_)) => Ok(()),
+            (Type::F32, CpuStorage::F32(_)) => Ok(()),
+            (Type::F64, CpuStorage::F64(_)) => Ok(()),
+            _ => Err("Storage type mismatch".into()),
+        }
+    }
+}
