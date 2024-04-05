@@ -1,6 +1,9 @@
 #[cfg(feature = "cuda")]
 use crate::cuda::CUDAPtr;
-use crate::{untyped::{AsType, MatchesType, Type}, HasId, PtrType};
+use crate::{
+    untyped::{AsType, MatchesType, Type},
+    HasId, PtrType,
+};
 
 #[cfg(feature = "cuda")]
 #[derive(Debug)]
@@ -60,7 +63,6 @@ impl PtrType for CudaStorage {
             CudaStorage::F16(ptr) => ptr.set_flag(flag),
             CudaStorage::F32(ptr) => ptr.set_flag(flag),
             CudaStorage::F64(ptr) => ptr.set_flag(flag),
-
         }
     }
 }
@@ -99,7 +101,6 @@ impl crate::untyped::MatchesType for CudaStorage {
     }
 }
 
-
 #[cfg(not(feature = "cuda"))]
 pub enum CudaStorage {}
 
@@ -117,7 +118,6 @@ impl PtrType for CudaStorage {
         unimplemented!()
     }
 }
-
 
 #[cfg(not(feature = "cuda"))]
 impl HasId for CudaStorage {

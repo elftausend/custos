@@ -7,6 +7,6 @@ mod dummy_cuda;
 #[cfg(not(feature = "cuda"))]
 pub use dummy_cuda::*;
 
-mod ops;
 mod matches_type;
+mod ops;
 pub use matches_type::*;

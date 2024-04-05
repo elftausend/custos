@@ -6,6 +6,7 @@ pub trait AsDeviceType {
     const DEVICE_TYPE: DeviceType;
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DeviceType {
     CPU,
     CUDA,
@@ -28,6 +29,7 @@ impl AsType for u8 {
     const TYPE: Type = Type::U8;
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Type {
     U8,
     U32,

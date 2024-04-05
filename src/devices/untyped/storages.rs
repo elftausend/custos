@@ -1,12 +1,14 @@
 mod cpu_storage;
+use core::mem::transmute;
+
 pub use cpu_storage::*;
 
 mod cuda_storage;
 pub use cuda_storage::*;
 
-use crate::{Device, HasId, PtrType, Shape};
+use crate::{untyped::DeviceType, Device, HasId, PtrType, Shape};
 
-use super::MatchesType;
+use super::{AsDeviceType, AsType, MatchesType};
 
 pub enum UntypedData {
     CPU(CpuStorage),
@@ -44,7 +46,7 @@ impl HasId for UntypedData {
     fn id(&self) -> crate::Id {
         match self {
             UntypedData::CPU(cpu) => cpu.id(),
-            UntypedData::CUDA(cuda) => cuda.id()
+            UntypedData::CUDA(cuda) => cuda.id(),
         }
     }
 }
@@ -60,13 +62,45 @@ impl MatchesType for UntypedData {
 }
 
 impl UntypedData {
-    pub fn convert_to_typed<T, D: Device, S: Shape>(&self) -> &D::Data<T, S> {
+    pub fn convert_to_typed<T: AsType, D: AsDeviceType + Device, S: Shape>(
+        &self,
+    ) -> Option<&D::Base<T, S>> {
+        self.matches_storage_type::<T>().ok()?;
         match self {
             UntypedData::CPU(cpu) => {
-                
-                todo!()
-            },
-            UntypedData::CUDA(cuda) => todo!(),
+                if D::DEVICE_TYPE != DeviceType::CPU {
+                    return None;
+                }
+                Some(match cpu {
+                    CpuStorage::U8(data) => unsafe { transmute(data) },
+                    CpuStorage::U32(data) => unsafe { transmute(data) },
+                    CpuStorage::I64(data) => unsafe { transmute(data) },
+                    CpuStorage::BF16(data) => unsafe { transmute(data) },
+                    CpuStorage::F16(data) => unsafe { transmute(data) },
+                    CpuStorage::F32(data) => unsafe { transmute(data) },
+                    CpuStorage::F64(data) => unsafe { transmute(data) },
+                })
+            }
+            UntypedData::CUDA(cuda) => {
+                if D::DEVICE_TYPE != DeviceType::CUDA {
+                    return None;
+                }
+                #[cfg(feature = "cuda")]
+                {
+                    Some(match cuda {
+                        CudaStorage::U8(data) => unsafe { transmute(data) },
+                        CudaStorage::U32(data) => unsafe { transmute(data) },
+                        CudaStorage::I64(data) => unsafe { transmute(data) },
+                        CudaStorage::BF16(data) => unsafe { transmute(data) },
+                        CudaStorage::F16(data) => unsafe { transmute(data) },
+                        CudaStorage::F32(data) => unsafe { transmute(data) },
+                        CudaStorage::F64(data) => unsafe { transmute(data) },
+                    })
+                }
+
+                #[cfg(not(feature = "cuda"))]
+                None
+            }
         }
     }
 }

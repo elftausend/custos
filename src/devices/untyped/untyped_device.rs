@@ -1,7 +1,4 @@
-use crate::{
-    Buffer, Device, HasId, HasModules,
-    OnDropBuffer, PtrType, Shape, WrappedData, CPU,
-};
+use crate::{Buffer, Device, HasId, HasModules, OnDropBuffer, PtrType, Shape, WrappedData, CPU};
 
 use super::storages::{CpuStorage, CudaStorage, UntypedData};
 

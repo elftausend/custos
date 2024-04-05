@@ -1,4 +1,8 @@
-use crate::{cpu::CPUPtr, untyped::{AsType, Type}, HasId, PtrType};
+use crate::{
+    cpu::CPUPtr,
+    untyped::{AsType, Type},
+    HasId, PtrType,
+};
 
 #[derive(Debug)]
 pub enum CpuStorage {
