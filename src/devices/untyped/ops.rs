@@ -1,9 +1,9 @@
 use crate::{ApplyFunction, Retrieve, Shape};
 
-use super::untyped_device::Untyped;
+use super::{untyped_device::Untyped, AsType, MatchesType};
 
 
-impl<Mods: Retrieve<Self, T, S>, T, S: Shape> ApplyFunction<T, S> for Untyped<Mods> {
+impl<Mods: Retrieve<Self, T, S>, T: AsType, S: Shape> ApplyFunction<T, S> for Untyped<Mods> {
     fn apply_fn<F>(
         &self,
         // buf: &D::Data<T, S>,
@@ -13,6 +13,8 @@ impl<Mods: Retrieve<Self, T, S>, T, S: Shape> ApplyFunction<T, S> for Untyped<Mo
     where
         F: crate::TwoWay<T> + 'static 
     {
+        let res = buf.base();
+        buf.base().matches_storage_type::<T>().unwrap();
         todo!()
     }
 }

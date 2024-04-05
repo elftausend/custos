@@ -1,6 +1,6 @@
 #[cfg(feature = "cuda")]
 use crate::cuda::CUDAPtr;
-use crate::{HasId, PtrType};
+use crate::{untyped::{AsType, MatchesType, Type}, HasId, PtrType};
 
 #[cfg(feature = "cuda")]
 #[derive(Debug)]
@@ -65,6 +65,7 @@ impl PtrType for CudaStorage {
     }
 }
 
+#[cfg(feature = "cuda")]
 impl HasId for CudaStorage {
     #[inline]
     fn id(&self) -> crate::Id {
@@ -78,6 +79,22 @@ impl HasId for CudaStorage {
             CudaStorage::F16(ptr) => ptr.id(),
             CudaStorage::F32(ptr) => ptr.id(),
             CudaStorage::F64(ptr) => ptr.id(),
+        }
+    }
+}
+
+#[cfg(feature = "cuda")]
+impl crate::untyped::MatchesType for CudaStorage {
+    fn matches_storage_type<T: AsType>(&self) -> Result<(), String> {
+        match (T::TYPE, self) {
+            (Type::U8, CudaStorage::U8(_)) => Ok(()),
+            (Type::U32, CudaStorage::U32(_)) => Ok(()),
+            (Type::I64, CudaStorage::I64(_)) => Ok(()),
+            (Type::BF16, CudaStorage::BF16(_)) => Ok(()),
+            (Type::F16, CudaStorage::F16(_)) => Ok(()),
+            (Type::F32, CudaStorage::F32(_)) => Ok(()),
+            (Type::F64, CudaStorage::F64(_)) => Ok(()),
+            _ => Err("Storage type mismatch".into()),
         }
     }
 }
@@ -105,6 +122,13 @@ impl PtrType for CudaStorage {
 #[cfg(not(feature = "cuda"))]
 impl HasId for CudaStorage {
     fn id(&self) -> crate::Id {
+        unimplemented!()
+    }
+}
+
+#[cfg(not(feature = "cuda"))]
+impl MatchesType for CudaStorage {
+    fn matches_storage_type<T: AsType>(&self) -> Result<(), String> {
         unimplemented!()
     }
 }

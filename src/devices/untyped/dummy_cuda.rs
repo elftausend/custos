@@ -42,3 +42,7 @@ impl<Mods: OnDropBuffer> Device for CUDA<Mods> {
 
 impl_buffer_hook_traits!(CUDA);
 crate::impl_wrapped_data!(CUDA);
+
+impl<Mods> super::AsDeviceType for CUDA<Mods> {
+    const DEVICE_TYPE: super::DeviceType = super::DeviceType::CUDA;
+}

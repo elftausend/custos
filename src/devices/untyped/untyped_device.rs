@@ -3,7 +3,7 @@ use crate::{
     OnDropBuffer, PtrType, Shape, WrappedData, CPU,
 };
 
-use super::storages::{CpuStorage, CudaStorage};
+use super::storages::{CpuStorage, CudaStorage, UntypedData};
 
 #[cfg(feature = "cuda")]
 pub type Cuda<Mods> = crate::CUDA<Mods>;
@@ -14,48 +14,6 @@ pub type Cuda<Mods> = super::CUDA<Mods>;
 pub enum UntypedDevice<Mods> {
     CPU(CPU<Mods>),
     CUDA(Cuda<Mods>),
-}
-
-
-pub enum UntypedData {
-    CPU(CpuStorage),
-    CUDA(CudaStorage),
-}
-
-impl PtrType for UntypedData {
-    #[inline]
-    fn size(&self) -> usize {
-        match self {
-            UntypedData::CPU(cpu) => cpu.size(),
-            UntypedData::CUDA(cuda) => cuda.size(),
-        }
-    }
-
-    #[inline]
-    fn flag(&self) -> crate::flag::AllocFlag {
-        match self {
-            UntypedData::CPU(cpu) => cpu.flag(),
-            UntypedData::CUDA(cuda) => cuda.flag(),
-        }
-    }
-
-    #[inline]
-    unsafe fn set_flag(&mut self, flag: crate::flag::AllocFlag) {
-        match self {
-            UntypedData::CPU(cpu) => cpu.set_flag(flag),
-            UntypedData::CUDA(cuda) => cuda.set_flag(flag),
-        }
-    }
-}
-
-impl HasId for UntypedData {
-    #[inline]
-    fn id(&self) -> crate::Id {
-        match self {
-            UntypedData::CPU(cpu) => cpu.id(),
-            UntypedData::CUDA(cuda) => cuda.id()
-        }
-    }
 }
 
 pub struct Untyped<Mods> {
