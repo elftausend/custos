@@ -122,6 +122,24 @@ jobs:
 
     - name: Run 'stack' tests
       run: cargo test --no-default-features --features stack,cpu
+  
+  test-untyped:
+  
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+
+    - uses: actions-rs/toolchain@v1
+      with:
+        profile: minimal
+        toolchain: stable
+
+    - uses: Swatinem/rust-cache@v1
+
+    - name: Run 'untyped' device tests
+      run: cargo test --no-default-features --features untyped,half
+
 
   test-static-api:
   

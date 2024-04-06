@@ -92,7 +92,9 @@ impl MatchesType for CudaStorage {
             (Type::U8, CudaStorage::U8(_)) => Ok(()),
             (Type::U32, CudaStorage::U32(_)) => Ok(()),
             (Type::I64, CudaStorage::I64(_)) => Ok(()),
+            #[cfg(feature = "half")]
             (Type::BF16, CudaStorage::BF16(_)) => Ok(()),
+            #[cfg(feature = "half")]
             (Type::F16, CudaStorage::F16(_)) => Ok(()),
             (Type::F32, CudaStorage::F32(_)) => Ok(()),
             (Type::F64, CudaStorage::F64(_)) => Ok(()),
@@ -108,7 +110,9 @@ impl<T: AsType> From<CUDAPtr<T>> for CudaStorage {
             Type::U8 => CudaStorage::U8(unsafe { std::mem::transmute(data) }),
             Type::U32 => CudaStorage::U32(unsafe { std::mem::transmute(data) }),
             Type::I64 => CudaStorage::I64(unsafe { std::mem::transmute(data) }),
+            #[cfg(feature = "half")]
             Type::BF16 => CudaStorage::BF16(unsafe { std::mem::transmute(data) }),
+            #[cfg(feature = "half")]
             Type::F16 => CudaStorage::F16(unsafe { std::mem::transmute(data) }),
             Type::F32 => CudaStorage::F32(unsafe { std::mem::transmute(data) }),
             Type::F64 => CudaStorage::F64(unsafe { std::mem::transmute(data) }),
@@ -144,13 +148,6 @@ impl HasId for CudaStorage {
 #[cfg(not(feature = "cuda"))]
 impl MatchesType for CudaStorage {
     fn matches_storage_type<T: AsType>(&self) -> Result<(), String> {
-        unimplemented!()
-    }
-}
-
-#[cfg(not(feature = "cuda"))]
-impl<T: AsType> From<CUDAPtr<T>> for CudaStorage {
-    fn from(value: CUDAPtr<T>) -> Self {
         unimplemented!()
     }
 }

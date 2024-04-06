@@ -1,6 +1,6 @@
 use crate::{
-    Alloc, Base, Buffer, Device, HasId, HasModules, OnDropBuffer, PtrType, Retrieve, Retriever,
-    Shape, WrappedData, CPU,
+    Alloc, Base, Buffer, Device, HasId, HasModules, IsShapeIndep, OnDropBuffer, OnNewBuffer,
+    PtrType, Retriever, Shape, WrappedData, CPU,
 };
 
 use super::{
@@ -26,7 +26,7 @@ pub struct Untyped {
 impl Device for Untyped {
     type Base<T, S: crate::Shape> = UntypedData;
     type Data<T, S: crate::Shape> = UntypedData;
-    type Error = ();
+    type Error = crate::Error;
 
     #[inline]
     fn base_to_data<T, S: crate::Shape>(&self, base: Self::Base<T, S>) -> Self::Data<T, S> {
@@ -54,7 +54,19 @@ impl Device for Untyped {
     ) -> &'a mut Self::Wrap<T, Self::Base<T, S>> {
         data
     }
+
+    #[inline]
+    fn new() -> Result<Self, Self::Error> {
+        Ok(Untyped {
+            #[cfg(not(feature = "cuda"))]
+            device: UntypedDevice::CPU(CPU::based()),
+            #[cfg(feature = "cuda")]
+            device: UntypedDevice::CUDA(crate::CUDA::<Base>::new(crate::cuda::chosen_cu_idx())?),
+        })
+    }
 }
+
+unsafe impl IsShapeIndep for Untyped {}
 
 impl HasModules<Base> for Untyped {
     #[inline]
@@ -66,10 +78,8 @@ impl HasModules<Base> for Untyped {
     }
 }
 
-impl OnDropBuffer for Untyped {
-    #[inline]
-    fn on_drop_buffer<T, D: Device, S: Shape>(&self, _device: &D, _buf: &Buffer<T, D, S>) {}
-}
+impl OnDropBuffer for Untyped {}
+impl<T, D: Device, S: Shape> OnNewBuffer<T, D, S> for Untyped {}
 
 impl WrappedData for Untyped {
     type Wrap<T, Base: HasId + PtrType> = Base;
@@ -104,7 +114,12 @@ impl<T: AsType> Alloc<T> for Untyped {
                 UntypedData::CPU(CpuStorage::from(Alloc::<T>::alloc::<S>(cpu, len, flag)))
             }
             UntypedDevice::CUDA(cuda) => {
-                UntypedData::CUDA(CudaStorage::from(Alloc::<T>::alloc::<S>(cuda, len, flag)))
+                #[cfg(feature = "cuda")]
+                {
+                    UntypedData::CUDA(CudaStorage::from(Alloc::<T>::alloc::<S>(cuda, len, flag)))
+                }
+                #[cfg(not(feature = "cuda"))]
+                unimplemented!()
             }
         }
     }
@@ -117,14 +132,23 @@ impl<T: AsType> Alloc<T> for Untyped {
             UntypedDevice::CPU(cpu) => UntypedData::CPU(CpuStorage::from(
                 Alloc::<T>::alloc_from_slice::<S>(cpu, data),
             )),
-            UntypedDevice::CUDA(cuda) => UntypedData::CUDA(CudaStorage::from(
-                Alloc::<T>::alloc_from_slice::<S>(cuda, data),
-            )),
+            UntypedDevice::CUDA(cuda) => {
+                #[cfg(feature = "cuda")]
+                {
+                    UntypedData::CUDA(CudaStorage::from(Alloc::<T>::alloc_from_slice::<S>(
+                        cuda, data,
+                    )))
+                }
+
+                #[cfg(not(feature = "cuda"))]
+                unimplemented!()
+            }
         }
     }
 }
 
 impl<T: AsType, S: Shape> Retriever<T, S> for Untyped {
+    #[inline]
     fn retrieve<const NUM_PARENTS: usize>(
         &self,
         len: usize,

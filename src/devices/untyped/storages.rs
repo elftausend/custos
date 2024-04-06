@@ -72,7 +72,9 @@ macro_rules! convert_to_typed {
                     CpuStorage::U8(data) => unsafe { transmute(data) },
                     CpuStorage::U32(data) => unsafe { transmute(data) },
                     CpuStorage::I64(data) => unsafe { transmute(data) },
+                    #[cfg(feature = "half")]
                     CpuStorage::BF16(data) => unsafe { transmute(data) },
+                    #[cfg(feature = "half")]
                     CpuStorage::F16(data) => unsafe { transmute(data) },
                     CpuStorage::F32(data) => unsafe { transmute(data) },
                     CpuStorage::F64(data) => unsafe { transmute(data) },
@@ -88,7 +90,9 @@ macro_rules! convert_to_typed {
                         CudaStorage::U8(data) => unsafe { transmute(data) },
                         CudaStorage::U32(data) => unsafe { transmute(data) },
                         CudaStorage::I64(data) => unsafe { transmute(data) },
+                        #[cfg(feature = "half")]
                         CudaStorage::BF16(data) => unsafe { transmute(data) },
+                        #[cfg(feature = "half")]
                         CudaStorage::F16(data) => unsafe { transmute(data) },
                         CudaStorage::F32(data) => unsafe { transmute(data) },
                         CudaStorage::F64(data) => unsafe { transmute(data) },
@@ -109,10 +113,50 @@ impl UntypedData {
         self.matches_storage_type::<T>().ok()?;
         convert_to_typed!(self)
     }
+    // add "checked" to name maybe, then add unsafe variants..
     pub fn convert_to_typed_mut<T: AsType, D: AsDeviceType + Device, S: Shape>(
         &mut self,
     ) -> Option<&mut D::Base<T, S>> {
         self.matches_storage_type::<T>().ok()?;
         convert_to_typed!(self)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::{cpu::CPUPtr, CPU};
+
+    use super::{CpuStorage, UntypedData};
+
+    #[test]
+    fn test_convert_untyped_to_typed_checked() {
+        let data = UntypedData::CPU(CpuStorage::U32(CPUPtr::new_initialized(
+            10,
+            crate::flag::AllocFlag::None,
+        )));
+        data.convert_to_typed::<u32, CPU, ()>().unwrap();
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_convert_untyped_to_typed_checked_mismatching_data_types() {
+        let data = UntypedData::CPU(CpuStorage::U32(CPUPtr::new_initialized(
+            10,
+            crate::flag::AllocFlag::None,
+        )));
+        data.convert_to_typed::<f32, CPU, ()>().unwrap();
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_convert_untyped_to_typed_checked_mismatching_device_types() {
+        use crate::untyped::untyped_device::Cuda;
+
+        let data = UntypedData::CPU(CpuStorage::U32(CPUPtr::new_initialized(
+            10,
+            crate::flag::AllocFlag::None,
+        )));
+        data.convert_to_typed::<u32, Cuda<crate::Base>, ()>()
+            .unwrap();
     }
 }

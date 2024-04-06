@@ -87,7 +87,9 @@ impl crate::untyped::MatchesType for CpuStorage {
             (Type::U8, CpuStorage::U8(_)) => Ok(()),
             (Type::U32, CpuStorage::U32(_)) => Ok(()),
             (Type::I64, CpuStorage::I64(_)) => Ok(()),
+            #[cfg(feature = "half")]
             (Type::BF16, CpuStorage::BF16(_)) => Ok(()),
+            #[cfg(feature = "half")]
             (Type::F16, CpuStorage::F16(_)) => Ok(()),
             (Type::F32, CpuStorage::F32(_)) => Ok(()),
             (Type::F64, CpuStorage::F64(_)) => Ok(()),
@@ -102,10 +104,29 @@ impl<T: AsType> From<CPUPtr<T>> for CpuStorage {
             Type::U8 => CpuStorage::U8(unsafe { std::mem::transmute(data) }),
             Type::U32 => CpuStorage::U32(unsafe { std::mem::transmute(data) }),
             Type::I64 => CpuStorage::I64(unsafe { std::mem::transmute(data) }),
+            #[cfg(feature = "half")]
             Type::BF16 => CpuStorage::BF16(unsafe { std::mem::transmute(data) }),
+            #[cfg(feature = "half")]
             Type::F16 => CpuStorage::F16(unsafe { std::mem::transmute(data) }),
             Type::F32 => CpuStorage::F32(unsafe { std::mem::transmute(data) }),
             Type::F64 => CpuStorage::F64(unsafe { std::mem::transmute(data) }),
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::cpu::CPUPtr;
+
+    use super::CpuStorage;
+
+    #[test]
+    fn test_typed_to_untyped_storage_cpu() {
+        let ptr = CPUPtr::<f32>::new_initialized(10, crate::flag::AllocFlag::None);
+        let x = CpuStorage::from(ptr);
+        match x {
+            CpuStorage::F32(_) => {}
+            _ => panic!(),
         }
     }
 }
