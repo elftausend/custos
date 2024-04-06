@@ -1,10 +1,6 @@
-use core::marker::PhantomData;
+use crate::{Alloc, Base, Buffer, Device, HasId, OnDropBuffer, PtrType, Shape, WrappedData, CPU};
 
-use crate::{
-    Base, Buffer, Device, HasId, HasModules, OnDropBuffer, PtrType, Shape, WrappedData, CPU,
-};
-
-use super::storages::{CpuStorage, CudaStorage, UntypedData};
+use super::storages::UntypedData;
 
 #[cfg(feature = "cuda")]
 pub type Cuda<Mods> = crate::CUDA<Mods>;
@@ -82,5 +78,19 @@ impl WrappedData for Untyped {
         wrap: &mut Self::Wrap<T, Base>,
     ) -> &mut Base {
         wrap
+    }
+}
+
+impl<T> Alloc<T> for Untyped {
+    fn alloc<S: Shape>(&self, len: usize, flag: crate::flag::AllocFlag) -> Self::Base<T, S> {
+        // self.de
+        todo!()
+    }
+
+    fn alloc_from_slice<S: Shape>(&self, data: &[T]) -> Self::Base<T, S>
+    where
+        T: Clone,
+    {
+        todo!()
     }
 }

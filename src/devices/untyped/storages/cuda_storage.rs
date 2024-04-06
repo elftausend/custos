@@ -101,6 +101,21 @@ impl crate::untyped::MatchesType for CudaStorage {
     }
 }
 
+#[cfg(feature = "cuda")]
+impl<T: AsType> From<CUDAPtr<T>> for CudaStorage {
+    fn from(data: CUDAPtr<T>) -> Self {
+        match T::TYPE {
+            Type::U8 => CudaStorage::U8(unsafe { std::mem::transmute(data) }),
+            Type::U32 => CudaStorage::U32(unsafe { std::mem::transmute(data) }),
+            Type::I64 => CudaStorage::I64(unsafe { std::mem::transmute(data) }),
+            Type::BF16 => CudaStorage::BF16(unsafe { std::mem::transmute(data) }),
+            Type::F16 => CudaStorage::F16(unsafe { std::mem::transmute(data) }),
+            Type::F32 => CudaStorage::F32(unsafe { std::mem::transmute(data) }),
+            Type::F64 => CudaStorage::F64(unsafe { std::mem::transmute(data) }),
+        }
+    }
+}
+
 #[cfg(not(feature = "cuda"))]
 pub enum CudaStorage {}
 
@@ -129,6 +144,13 @@ impl HasId for CudaStorage {
 #[cfg(not(feature = "cuda"))]
 impl MatchesType for CudaStorage {
     fn matches_storage_type<T: AsType>(&self) -> Result<(), String> {
+        unimplemented!()
+    }
+}
+
+#[cfg(not(feature = "cuda"))]
+impl<T: AsType> From<CUDAPtr<T>> for CudaStorage {
+    fn from(value: CUDAPtr<T>) -> Self {
         unimplemented!()
     }
 }

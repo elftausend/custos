@@ -95,3 +95,17 @@ impl crate::untyped::MatchesType for CpuStorage {
         }
     }
 }
+
+impl<T: AsType> From<CPUPtr<T>> for CpuStorage {
+    fn from(data: CPUPtr<T>) -> Self {
+        match T::TYPE {
+            Type::U8 => CpuStorage::U8(unsafe { std::mem::transmute(data) }),
+            Type::U32 => CpuStorage::U32(unsafe { std::mem::transmute(data) }),
+            Type::I64 => CpuStorage::I64(unsafe { std::mem::transmute(data) }),
+            Type::BF16 => CpuStorage::BF16(unsafe { std::mem::transmute(data) }),
+            Type::F16 => CpuStorage::F16(unsafe { std::mem::transmute(data) }),
+            Type::F32 => CpuStorage::F32(unsafe { std::mem::transmute(data) }),
+            Type::F64 => CpuStorage::F64(unsafe { std::mem::transmute(data) }),
+        }
+    }
+}
