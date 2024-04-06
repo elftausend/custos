@@ -1,6 +1,12 @@
-use crate::{Alloc, Base, Buffer, Device, HasId, OnDropBuffer, PtrType, Shape, WrappedData, CPU};
+use crate::{
+    Alloc, Base, Buffer, Device, HasId, HasModules, OnDropBuffer, PtrType, Retrieve, Retriever,
+    Shape, WrappedData, CPU,
+};
 
-use super::storages::UntypedData;
+use super::{
+    storages::{CpuStorage, CudaStorage, UntypedData},
+    AsType,
+};
 
 #[cfg(feature = "cuda")]
 pub type Cuda<Mods> = crate::CUDA<Mods>;
@@ -50,6 +56,16 @@ impl Device for Untyped {
     }
 }
 
+impl HasModules<Base> for Untyped {
+    #[inline]
+    fn modules(&self) -> &Base {
+        match &self.device {
+            UntypedDevice::CPU(cpu) => &cpu.modules,
+            UntypedDevice::CUDA(cuda) => &cuda.modules,
+        }
+    }
+}
+
 impl OnDropBuffer for Untyped {
     #[inline]
     fn on_drop_buffer<T, D: Device, S: Shape>(&self, _device: &D, _buf: &Buffer<T, D, S>) {}
@@ -81,16 +97,43 @@ impl WrappedData for Untyped {
     }
 }
 
-impl<T> Alloc<T> for Untyped {
+impl<T: AsType> Alloc<T> for Untyped {
     fn alloc<S: Shape>(&self, len: usize, flag: crate::flag::AllocFlag) -> Self::Base<T, S> {
-        // self.de
-        todo!()
+        match &self.device {
+            UntypedDevice::CPU(cpu) => {
+                UntypedData::CPU(CpuStorage::from(Alloc::<T>::alloc::<S>(cpu, len, flag)))
+            }
+            UntypedDevice::CUDA(cuda) => {
+                UntypedData::CUDA(CudaStorage::from(Alloc::<T>::alloc::<S>(cuda, len, flag)))
+            }
+        }
     }
 
     fn alloc_from_slice<S: Shape>(&self, data: &[T]) -> Self::Base<T, S>
     where
         T: Clone,
     {
-        todo!()
+        match &self.device {
+            UntypedDevice::CPU(cpu) => UntypedData::CPU(CpuStorage::from(
+                Alloc::<T>::alloc_from_slice::<S>(cpu, data),
+            )),
+            UntypedDevice::CUDA(cuda) => UntypedData::CUDA(CudaStorage::from(
+                Alloc::<T>::alloc_from_slice::<S>(cuda, data),
+            )),
+        }
+    }
+}
+
+impl<T: AsType, S: Shape> Retriever<T, S> for Untyped {
+    fn retrieve<const NUM_PARENTS: usize>(
+        &self,
+        len: usize,
+        _parents: impl crate::Parents<NUM_PARENTS>,
+    ) -> Buffer<T, Self, S> {
+        let data = Alloc::<T>::alloc::<S>(self, len, crate::flag::AllocFlag::None);
+        Buffer {
+            data,
+            device: Some(self),
+        }
     }
 }

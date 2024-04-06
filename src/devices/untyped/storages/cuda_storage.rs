@@ -86,7 +86,7 @@ impl HasId for CudaStorage {
 }
 
 #[cfg(feature = "cuda")]
-impl crate::untyped::MatchesType for CudaStorage {
+impl MatchesType for CudaStorage {
     fn matches_storage_type<T: AsType>(&self) -> Result<(), String> {
         match (T::TYPE, self) {
             (Type::U8, CudaStorage::U8(_)) => Ok(()),

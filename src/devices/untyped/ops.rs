@@ -1,15 +1,13 @@
-use core::mem::ManuallyDrop;
-
 use crate::{
-    cpu::CPUPtr, cpu_stack_ops::apply_fn_slice, untyped::untyped_device::UntypedDevice,
-    ApplyFunction, Buffer, Retrieve, Retriever, Shape, CPU,
+    cpu_stack_ops::apply_fn_slice, untyped::untyped_device::UntypedDevice, ApplyFunction,
+    CDatatype, Retriever, Shape, CPU,
 };
 
-use super::{untyped_device::Untyped, AsType, MatchesType};
+use super::{untyped_device::Untyped, AsType};
 
 impl<T, S> ApplyFunction<T, S> for Untyped
 where
-    T: Copy + AsType,
+    T: CDatatype + Default + Copy + AsType,
     S: Shape,
 {
     fn apply_fn<F>(
@@ -21,17 +19,23 @@ where
     where
         F: crate::TwoWay<T> + 'static,
     {
+        let mut out = self.retrieve(buf.len(), buf);
         match &self.device {
-            UntypedDevice::CPU(cpu) => {
-                // let mut out = cpu.retrieve(buf.len(), buf);
-                let x = buf.base().convert_to_typed::<T, CPU, S>().unwrap();
-                // apply_fn_slice(x, &mut out, f);
-                // let mut out = ManuallyDrop::new(out);
-                // let data = std::mem::take(out.base_mut());
-                // out.
+            UntypedDevice::CPU(_cpu) => {
+                let x = buf.convert_to_typed::<T, CPU, S>().unwrap();
+                apply_fn_slice(x, out.convert_to_typed_mut::<T, CPU, S>().unwrap(), f);
             }
-            UntypedDevice::CUDA(cuda) => todo!(),
+            UntypedDevice::CUDA(cuda) => {
+                #[cfg(feature = "cuda")]
+                {
+                    let x = buf.convert_to_typed::<T, crate::CUDA, S>().unwrap();
+                    let out = out.convert_to_typed_mut::<T, crate::CUDA, S>().unwrap();
+                    crate::cuda::try_cu_apply_fn_mut(&cuda, x, out, f).unwrap();
+                }
+                #[cfg(not(feature = "cuda"))]
+                unimplemented!()
+            }
         }
-        todo!()
+        out
     }
 }

@@ -61,12 +61,9 @@ impl MatchesType for UntypedData {
     }
 }
 
-impl UntypedData {
-    pub fn convert_to_typed<T: AsType, D: AsDeviceType + Device, S: Shape>(
-        &self,
-    ) -> Option<&D::Base<T, S>> {
-        self.matches_storage_type::<T>().ok()?;
-        match self {
+macro_rules! convert_to_typed {
+    ($self:ident) => {
+        match $self {
             UntypedData::CPU(cpu) => {
                 if D::DEVICE_TYPE != DeviceType::CPU {
                     return None;
@@ -102,5 +99,20 @@ impl UntypedData {
                 None
             }
         }
+    };
+}
+
+impl UntypedData {
+    pub fn convert_to_typed<T: AsType, D: AsDeviceType + Device, S: Shape>(
+        &self,
+    ) -> Option<&D::Base<T, S>> {
+        self.matches_storage_type::<T>().ok()?;
+        convert_to_typed!(self)
+    }
+    pub fn convert_to_typed_mut<T: AsType, D: AsDeviceType + Device, S: Shape>(
+        &mut self,
+    ) -> Option<&mut D::Base<T, S>> {
+        self.matches_storage_type::<T>().ok()?;
+        convert_to_typed!(self)
     }
 }
