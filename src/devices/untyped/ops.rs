@@ -1,8 +1,17 @@
-use crate::{ApplyFunction, Retrieve, Shape};
+use core::mem::ManuallyDrop;
+
+use crate::{
+    cpu::CPUPtr, cpu_stack_ops::apply_fn_slice, untyped::untyped_device::UntypedDevice,
+    ApplyFunction, Buffer, Retrieve, Retriever, Shape, CPU,
+};
 
 use super::{untyped_device::Untyped, AsType, MatchesType};
 
-impl<Mods: Retrieve<Self, T, S>, T: AsType, S: Shape> ApplyFunction<T, S> for Untyped<Mods> {
+impl<T, S> ApplyFunction<T, S> for Untyped
+where
+    T: Copy + AsType,
+    S: Shape,
+{
     fn apply_fn<F>(
         &self,
         // buf: &D::Data<T, S>,
@@ -12,8 +21,17 @@ impl<Mods: Retrieve<Self, T, S>, T: AsType, S: Shape> ApplyFunction<T, S> for Un
     where
         F: crate::TwoWay<T> + 'static,
     {
-        let res = buf.base();
-        buf.base().matches_storage_type::<T>().unwrap();
+        match &self.device {
+            UntypedDevice::CPU(cpu) => {
+                // let mut out = cpu.retrieve(buf.len(), buf);
+                let x = buf.base().convert_to_typed::<T, CPU, S>().unwrap();
+                // apply_fn_slice(x, &mut out, f);
+                // let mut out = ManuallyDrop::new(out);
+                // let data = std::mem::take(out.base_mut());
+                // out.
+            }
+            UntypedDevice::CUDA(cuda) => todo!(),
+        }
         todo!()
     }
 }
