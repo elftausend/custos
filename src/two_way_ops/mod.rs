@@ -260,7 +260,7 @@ pub mod tests_ex {
     #[cfg(all(feature = "cpu", feature = "macro"))]
     #[test]
     fn test_run_apply_fn_cpu_more_complex() {
-        use crate::{ApplyFunction, Base, Buffer, CPU};
+        use crate::{tests_helper::roughly_eq_slices, ApplyFunction, Base, Buffer, CPU};
 
         let device = CPU::<Base>::new();
 
