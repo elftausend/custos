@@ -311,7 +311,7 @@ pub mod tests_ex {
     #[cfg(feature = "vulkan")]
     #[test]
     fn test_run_apply_fn_vulkan_more_complex() -> crate::Result<()> {
-        use crate::{ApplyFunction, Base, Buffer, Vulkan};
+        use crate::{tests_helper::roughly_eq_slices, ApplyFunction, Base, Buffer, Vulkan};
 
         let device = Vulkan::<Base>::new(0)?;
 
