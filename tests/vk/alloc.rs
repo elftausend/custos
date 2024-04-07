@@ -50,4 +50,8 @@ fn test_vk_alloc() {
         )
         .unwrap()
     };
+    unsafe {
+        context.device.free_memory(_mem, None);
+        context.device.destroy_buffer(buf, None)
+    }
 }

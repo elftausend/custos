@@ -308,11 +308,10 @@ pub unsafe fn create_buffer<T>(
     size: usize,
 ) -> VkResult<vk::Buffer> {
     let buffer_size = size * std::mem::size_of::<T>();
-    let buffer_create_info = vk::BufferCreateInfo {
-        size: buffer_size as vk::DeviceSize,
-        usage,
-        ..Default::default()
-    };
+    let buffer_create_info = vk::BufferCreateInfo::builder()
+        .size(buffer_size as u64)
+        .usage(usage)
+        .build();
     device.create_buffer(&buffer_create_info, None)
 }
 
