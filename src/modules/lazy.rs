@@ -456,7 +456,9 @@ mod tests {
     use core::ops::{Add, Deref};
 
     use crate::{
-        tests_helper::{add_ew_slice, AddEw}, AddOperation, ApplyFunction, Base, Buffer, Combiner, Device, Retrieve, Retriever, Shape, CPU
+        tests_helper::{add_ew_slice, AddEw},
+        AddOperation, ApplyFunction, Base, Buffer, Combiner, Device, Retrieve, Retriever, Shape,
+        CPU,
     };
 
     use super::Lazy;
@@ -492,7 +494,7 @@ mod tests {
         // assert_eq!(out.read(), &[3; 10]); -- should work
         assert_eq!(out.replace().read(), &[3; 10]);
         drop(buf);
-    } 
+    }
 
     #[cfg(feature = "cpu")]
     impl<T, D, S, Mods> AddEw<T, D, S> for CPU<Mods>

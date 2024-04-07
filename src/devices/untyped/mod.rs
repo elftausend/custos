@@ -43,7 +43,7 @@ impl<'a, T, S: crate::Shape> Buffer<'a, T, Untyped, S> {
         self.data.matches_storage_type::<NT>().ok()?;
         Some(unsafe { std::mem::transmute(self) })
     }
-    
+
     #[inline]
     pub fn as_typed_mut<NT, NS>(&mut self) -> Option<&mut Buffer<'a, NT, Untyped, NS>>
     where
@@ -58,10 +58,18 @@ impl<'a, T, S: crate::Shape> Buffer<'a, T, Untyped, S> {
     pub fn as_untyped(&self) -> &Buffer<'a, (), Untyped, ()> {
         unsafe { std::mem::transmute(self) }
     }
-    
+
     #[inline]
     pub fn as_untyped_mut(&mut self) -> &mut Buffer<'a, (), Untyped, ()> {
         unsafe { std::mem::transmute(self) }
+    }
+
+    #[inline]
+    pub fn read_typed<OT>(&self) -> Vec<OT>
+    where
+        OT: AsType + Clone + Default,
+    {
+        self.as_typed::<OT, ()>().unwrap().read()
     }
 }
 
@@ -107,7 +115,7 @@ mod tests {
         let typed_buf = buf.to_typed::<u32, ()>();
         assert!(typed_buf.is_none())
     }
-    
+
     #[test]
     fn test_add_type_info_to_untyped_type_mismatch_as_ref() {
         let device = Untyped::new().unwrap();
@@ -115,7 +123,7 @@ mod tests {
         let typed_buf = buf.as_typed::<u32, ()>();
         assert!(typed_buf.is_none())
     }
-    
+
     #[test]
     fn test_add_type_info_to_untyped_ref() {
         let device = Untyped::new().unwrap();
