@@ -43,5 +43,3 @@ fn test_with_threads_static() {
     });
     a.join().unwrap();
 }
-
-

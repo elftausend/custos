@@ -24,6 +24,7 @@ pub use cuda::*;
 pub use cuda_device::*;
 pub use kernel_cache::*;
 pub use kernel_launch::*;
+pub use ops::*;
 
 use crate::CDatatype;
 

@@ -49,3 +49,14 @@ impl CDatatype for i64 {
 impl CDatatype for u64 {
     const C_DTYPE_STR: &'static str = "ulong";
 }
+
+#[cfg(feature = "half")]
+impl CDatatype for half::f16 {
+    const C_DTYPE_STR: &'static str = "half";
+}
+
+// TODO: this is not bf16 - cuda and opencl name mismatch!
+#[cfg(feature = "half")]
+impl CDatatype for half::bf16 {
+    const C_DTYPE_STR: &'static str = "half";
+}

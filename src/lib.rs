@@ -270,6 +270,36 @@ pub mod prelude {
 }
 
 #[cfg(test)]
+pub mod tests_helper {
+    use core::ops::Add;
+
+    use crate::{Buffer, Device, Number, Shape};
+
+    pub trait AddEw<T, D: Device, S: Shape>: Device {
+        fn add(&self, lhs: &Buffer<T, D, S>, rhs: &Buffer<T, D, S>) -> Buffer<T, Self, S>;
+    }
+
+    pub fn add_ew_slice<T: Add<Output = T> + Copy>(lhs: &[T], rhs: &[T], out: &mut [T]) {
+        for ((lhs, rhs), out) in lhs.iter().zip(rhs.iter()).zip(out.iter_mut()) {
+            *out = *lhs + *rhs;
+        }
+    }
+
+    pub fn roughly_eq_slices<T: Number>(lhs: &[T], rhs: &[T]) {
+        for (a, b) in lhs.iter().zip(rhs) {
+            if (a.as_f64() - b.as_f64()).abs() >= 0.1 {
+                panic!(
+                    "Slices 
+                    left {lhs:?} 
+                    and right {rhs:?} do not equal. 
+                    Encountered diffrent value: {a}, {b}"
+                )
+            }
+        }
+    }
+}
+
+#[cfg(test)]
 mod tests {
 
     #[cfg(feature = "cpu")]
