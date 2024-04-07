@@ -112,7 +112,7 @@ mod tests {
                 if (idx >= len) {{
                     return;
                 }}
-                out[idx] = lhs[idx] + rhs[idx]
+                out[idx] = lhs[idx] + rhs[idx];
             }}    
         "#,
             dt = T::C_DTYPE_STR
