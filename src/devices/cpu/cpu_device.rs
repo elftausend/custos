@@ -40,7 +40,6 @@ impl<Mods: OnDropBuffer> Device for CPU<Mods> {
 
     fn new() -> Result<Self, Self::Error> {
         todo!()
-        // Ok(CPU::<Base>::new())
     }
 
     #[inline(always)]

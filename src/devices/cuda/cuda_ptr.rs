@@ -2,7 +2,7 @@ use core::{marker::PhantomData, ptr::null_mut};
 
 use crate::{flag::AllocFlag, CommonPtrs, HasId, Id, PtrType, ShallowCopy};
 
-use super::api::{cufree, cumalloc};
+use super::api::{cu_read, cufree, cumalloc};
 
 /// The pointer used for `CUDA` [`Buffer`](crate::Buffer)s
 #[derive(Debug, PartialEq, Eq)]
@@ -26,6 +26,15 @@ impl<T> CUDAPtr<T> {
             flag,
             p: PhantomData,
         }
+    }
+
+    pub fn read(&self) -> Vec<T>
+    where
+        T: Default + Clone,
+    {
+        let mut data = vec![T::default(); self.len];
+        cu_read(&mut data, self.ptr).unwrap();
+        data
     }
 }
 

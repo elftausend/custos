@@ -162,3 +162,6 @@ jobs:
       run: cargo test --verbose --no-default-features --features cuda,opencl,autograd,vulkan
     - name: Run tests (CUDA, OpenCL, graph, vulkan)
       run: cargo test --verbose --no-default-features --features cuda,opencl,graph,vulkan
+    - name: Run cuda (untyped device) tests 
+      run: cargo test --verbose --no-default-features --features untyped,cuda,half
+    
