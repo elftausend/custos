@@ -74,6 +74,8 @@ pub mod tests_ex {
     #[cfg(any(feature = "std", feature = "no-std"))]
     #[test]
     fn test_neg_tan() {
+        use crate::tests_helper::roughly_eq_slices;
+
         let f = |x: Resolve<f32>| x.tan().neg();
 
         let res: f32 = f(2f32.to_val()).eval();
@@ -174,6 +176,8 @@ pub mod tests_ex {
     #[cfg(feature = "std")]
     #[test]
     fn test_str_result_two_args2() {
+        use crate::tests_helper::roughly_eq_slices;
+
         let f = |x: Resolve<f32>, y: Resolve<f32>| x.add(y).mul(3.6).sub(y);
 
         let a = f(4f32.to_val(), 3f32.to_val());
@@ -192,19 +196,6 @@ pub mod tests_ex {
 
         let r = f(Resolve::default()).to_cl_source();
         assert_eq!("((((x + 2.0) * x) + (x * 8.0)) * 5.0)", r);
-    }
-
-    pub fn roughly_eq_slices<T: Float>(lhs: &[T], rhs: &[T]) {
-        for (a, b) in lhs.iter().zip(rhs) {
-            if Float::abs(&(*a - *b)) >= T::as_generic(0.1) {
-                panic!(
-                    "Slices 
-                    left {lhs:?} 
-                    and right {rhs:?} do not equal. 
-                    Encountered diffrent value: {a}, {b}"
-                )
-            }
-        }
     }
 
     #[cfg(feature = "cpu")]

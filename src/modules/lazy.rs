@@ -456,8 +456,7 @@ mod tests {
     use core::ops::{Add, Deref};
 
     use crate::{
-        AddOperation, ApplyFunction, Base, Buffer, Combiner, Device, Retrieve, Retriever, Shape,
-        CPU,
+        tests_helper::{add_ew_slice, AddEw}, AddOperation, ApplyFunction, Base, Buffer, Combiner, Device, Retrieve, Retriever, Shape, CPU
     };
 
     use super::Lazy;
@@ -493,17 +492,7 @@ mod tests {
         // assert_eq!(out.read(), &[3; 10]); -- should work
         assert_eq!(out.replace().read(), &[3; 10]);
         drop(buf);
-    }
-
-    trait AddEw<T, D: Device, S: Shape>: Device {
-        fn add(&self, lhs: &Buffer<T, D, S>, rhs: &Buffer<T, D, S>) -> Buffer<T, Self, S>;
-    }
-
-    fn add_ew_slice<T: Add<Output = T> + Copy>(lhs: &[T], rhs: &[T], out: &mut [T]) {
-        for ((lhs, rhs), out) in lhs.iter().zip(rhs.iter()).zip(out.iter_mut()) {
-            *out = *lhs + *rhs;
-        }
-    }
+    } 
 
     #[cfg(feature = "cpu")]
     impl<T, D, S, Mods> AddEw<T, D, S> for CPU<Mods>

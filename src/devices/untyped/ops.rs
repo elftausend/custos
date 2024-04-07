@@ -76,8 +76,7 @@ where
 #[cfg(test)]
 mod tests {
     use crate::{
-        tests_ex::roughly_eq_slices, untyped::untyped_device::Untyped, ApplyFunction, Combiner,
-        Device,
+        tests_helper::roughly_eq_slices, untyped::untyped_device::Untyped, ApplyFunction, Combiner, Device
     };
 
     #[test]
@@ -87,4 +86,5 @@ mod tests {
         let out = device.apply_fn(&res, |x| x.add(1.));
         roughly_eq_slices(&out.read(), &[2., 3., 4., 5.]);
     }
+
 }

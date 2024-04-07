@@ -143,7 +143,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::tests_ex::roughly_eq_slices;
+    use crate::tests_helper::roughly_eq_slices;
 
     #[cfg(feature = "cpu")]
     #[cfg(feature = "macro")]
