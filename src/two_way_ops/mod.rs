@@ -283,7 +283,10 @@ pub mod tests_ex {
     #[cfg(feature = "opencl")]
     #[test]
     fn test_run_apply_fn_opencl_more_complex() -> crate::Result<()> {
-        use crate::{opencl::chosen_cl_idx, ApplyFunction, Base, Buffer, OpenCL};
+        use crate::{
+            opencl::chosen_cl_idx, tests_helper::roughly_eq_slices, ApplyFunction, Base, Buffer,
+            OpenCL,
+        };
 
         let device = OpenCL::<Base>::new(chosen_cl_idx())?;
 

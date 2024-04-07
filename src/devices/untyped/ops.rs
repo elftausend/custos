@@ -189,6 +189,7 @@ mod tests {
                         (CudaStorage::F32(lhs), CudaStorage::F32(rhs)) => {
                             CudaStorage::F32(alloc_and_add_cu(dev, lhs, rhs))
                         }
+                        #[cfg(not(target_os = "macos"))]
                         (CudaStorage::F64(lhs), CudaStorage::F64(rhs)) => {
                             CudaStorage::F64(alloc_and_add_cu(dev, lhs, rhs))
                         }
