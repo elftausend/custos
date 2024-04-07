@@ -31,6 +31,8 @@ pub fn validation_layers<'a>() -> Vec<&'a CStr> {
         .unwrap_or("false".into())
         .parse::<bool>()
         .unwrap_or_default();
+
+    // TODO: rust 1.77 stabilized c"strings" (no unsafe, no null-termination)
     if use_validation_layer {
         unsafe {
             vec![CStr::from_bytes_with_nul_unchecked(
@@ -61,10 +63,21 @@ impl Context {
             .map(|raw_name| raw_name.as_ptr())
             .collect();
 
+        // TODO: rust 1.77 stabilized c"strings" (no unsafe, no null-termination)
+        let extensions = vec![unsafe {
+            CStr::from_bytes_with_nul_unchecked(b"VK_KHR_storage_buffer_storage_class\0")
+        }];
+
+        let extensions_raw: Vec<*const c_char> = extensions
+            .iter()
+            .map(|raw_name| raw_name.as_ptr())
+            .collect();
+
         let instance_info = InstanceCreateInfo::builder()
             .enabled_layer_names(&layers_names_raw)
             .application_info(&app_info)
             .build();
+
         let instance = unsafe { entry.create_instance(&instance_info, None).unwrap() };
         let (physical_device, compute_family_idx) = list_compute_devices(&instance)[device_idx];
 
@@ -78,6 +91,7 @@ impl Context {
         let device_create_info = vk::DeviceCreateInfo::builder()
             .queue_create_infos(std::slice::from_ref(&queue_info))
             .enabled_features(&device_features)
+            .enabled_extension_names(&extensions_raw)
             .build();
 
         let logical_device =
