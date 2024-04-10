@@ -47,3 +47,15 @@ impl<'a, T: Copy + Default, const N: usize, const A: usize, const B: usize>
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::{Device, Stack};
+
+    #[test]
+    fn test_from_1d_array_stack() {
+        let dev = Stack::new();
+        let _buf = dev.with_shape([[1, 2, 3]]);
+        // let dev.buffer([1, 2, 3, 4]);
+    }
+}
