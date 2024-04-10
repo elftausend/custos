@@ -116,7 +116,7 @@ where
                     || try_add_ew_cl(dev, lhs, rhs, out).unwrap(),
                 );
             }
-            // #[cfg(not(unified_cl))]
+            #[cfg(not(unified_cl))]
             try_add_ew_cl(dev, lhs, rhs, out)?;
             Ok(())
         })?;
@@ -126,6 +126,19 @@ where
 }
 
 fn main() {
+
+    // only the Base module
+    #[cfg(feature = "cpu")]
+    {
+        use custos::Base;
+        let device = CPU::<Base>::new();
+        let lhs = Buffer::from((&device, &[1, 2, 3, 4, 5]));
+        let rhs = Buffer::from((&device, &[1, 2, 3, 4, 5]));
+
+        let out = device.add(&lhs, &rhs).unwrap();
+        assert_eq!(out.read(), [2, 4, 6, 8, 10])
+    }
+
     #[cfg(feature = "fork")]
     #[cfg(feature = "lazy")]
     #[cfg(feature = "opencl")]
