@@ -110,7 +110,8 @@ impl<Mods> OpenCL<Mods> {
             panic!("
                 Your selected compute device does not support unified memory! 
                 You are probably using a laptop.
-                Launch with environment variable `CUSTOS_USE_UNIFIED=false` or change `CUSTOS_CL_DEVICE_IDX=<idx:default=0>`
+                Launch with environment variable `CUSTOS_USE_UNIFIED=false` or change `CUSTOS_CL_DEVICE_IDX=<idx:default=0>`.
+                `CUSTOS_CL_DEVICE_IDX` is used to determine during compile-time if custos should be configured to use unified memory (reduces memory transfers).
             ")
         }
     }
@@ -297,6 +298,8 @@ mod tests {
 
     #[test]
     fn test_fastest_cl_device() {
+        // let dev = min_cl::CLDevice::fastest().unwrap();
+        // println!("dev: {}", dev.name().unwrap());
         let _device = OpenCL::<Base>::fastest().unwrap();
     }
 
