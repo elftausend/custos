@@ -104,7 +104,10 @@ impl<T, S: Shape, Mods: OnDropBuffer> WriteBuf<T, S> for OpenCL<Mods> {
     #[inline]
     fn write_buf(&self, dst: &mut Buffer<T, Self, S>, src: &Buffer<T, Self, S>) {
         debug_assert_eq!(dst.len(), src.len());
-        unsafe { enqueue_full_copy_buffer::<T>(self.queue(), src.cl_ptr(), dst.cl_ptr(), dst.len()).unwrap() };
+        unsafe {
+            enqueue_full_copy_buffer::<T>(self.queue(), src.cl_ptr(), dst.cl_ptr(), dst.len())
+                .unwrap()
+        };
     }
 }
 
@@ -124,15 +127,17 @@ impl<T> CopySlice<T> for OpenCL {
             dest_range.end - dest_range.start
         );
 
-        unsafe { enqueue_copy_buffer::<T>(
-            self.queue(),
-            source.data.ptr,
-            dest.data.ptr,
-            source_range.start,
-            dest_range.start,
-            source_range.end - source_range.start,
-        )
-        .unwrap() };
+        unsafe {
+            enqueue_copy_buffer::<T>(
+                self.queue(),
+                source.data.ptr,
+                dest.data.ptr,
+                source_range.start,
+                dest_range.start,
+                source_range.end - source_range.start,
+            )
+            .unwrap()
+        };
     }
 
     fn copy_slice_all<I: IntoIterator<Item = (Range<usize>, Range<usize>)>>(
@@ -147,7 +152,10 @@ impl<T> CopySlice<T> for OpenCL {
             (from.start, to.start, len)
         });
 
-        unsafe { enqueue_copy_buffers::<T, _>(self.queue(), source.data.ptr, dest.data.ptr, ranges).unwrap() };
+        unsafe {
+            enqueue_copy_buffers::<T, _>(self.queue(), source.data.ptr, dest.data.ptr, ranges)
+                .unwrap()
+        };
     }
 }
 

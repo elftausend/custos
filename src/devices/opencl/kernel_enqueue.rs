@@ -159,13 +159,15 @@ pub fn enqueue_kernel(
     }
 
     for (idx, arg) in args.iter().enumerate() {
-        unsafe { set_kernel_arg(
-            kernel,
-            idx,
-            arg.as_cvoid_ptr(),
-            arg.ptr_size(),
-            arg.is_num(),
-        )?; }
+        unsafe {
+            set_kernel_arg(
+                kernel,
+                idx,
+                arg.as_cvoid_ptr(),
+                arg.ptr_size(),
+                arg.is_num(),
+            )?;
+        }
     }
 
     // with waitlist:

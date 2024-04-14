@@ -217,7 +217,9 @@ impl<Mods: OnDropBuffer, T> Alloc<T> for OpenCL<Mods> {
             len = S::LEN
         }
 
-        let ptr = unsafe { create_buffer::<T>(self.ctx(), MemFlags::MemReadWrite as u64, len, None).unwrap() };
+        let ptr = unsafe {
+            create_buffer::<T>(self.ctx(), MemFlags::MemReadWrite as u64, len, None).unwrap()
+        };
 
         let host_ptr = if self.unified_mem() {
             unsafe { unified_ptr::<T>(self.queue(), ptr, len).unwrap() }
@@ -234,13 +236,15 @@ impl<Mods: OnDropBuffer, T> Alloc<T> for OpenCL<Mods> {
     }
 
     fn alloc_from_slice<S: Shape>(&self, data: &[T]) -> CLPtr<T> {
-        let ptr = unsafe { create_buffer::<T>(
-            self.ctx(),
-            MemFlags::MemReadWrite | MemFlags::MemCopyHostPtr,
-            data.len(),
-            Some(data),
-        )
-        .unwrap() };
+        let ptr = unsafe {
+            create_buffer::<T>(
+                self.ctx(),
+                MemFlags::MemReadWrite | MemFlags::MemCopyHostPtr,
+                data.len(),
+                Some(data),
+            )
+            .unwrap()
+        };
 
         let host_ptr = if self.unified_mem() {
             unsafe { unified_ptr::<T>(self.queue(), ptr, data.len()).unwrap() }
@@ -260,8 +264,15 @@ impl<Mods: OnDropBuffer, T> Alloc<T> for OpenCL<Mods> {
 impl<'a, T, Mods: OnDropBuffer + OnNewBuffer<T, Self, ()>> CloneBuf<'a, T> for OpenCL<Mods> {
     fn clone_buf(&'a self, buf: &Buffer<'a, T, Self>) -> Buffer<'a, T, Self> {
         let cloned = Buffer::new(self, buf.len());
-        unsafe { enqueue_full_copy_buffer::<T>(self.queue(), buf.base().ptr, cloned.base().ptr, buf.len())
-            .unwrap() };
+        unsafe {
+            enqueue_full_copy_buffer::<T>(
+                self.queue(),
+                buf.base().ptr,
+                cloned.base().ptr,
+                buf.len(),
+            )
+            .unwrap()
+        };
         cloned
     }
 }

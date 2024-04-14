@@ -126,7 +126,6 @@ where
 }
 
 fn main() {
-
     // only the Base module
     #[cfg(feature = "cpu")]
     {

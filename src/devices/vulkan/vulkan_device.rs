@@ -2,8 +2,9 @@ use ash::vk::{self, BufferUsageFlags};
 
 use super::{context::Context, launch_shader, AsVkShaderArgument, ShaderCache, VkArray};
 use crate::{
-    impl_device_traits, pass_down_use_gpu_or_cpu, wgsl::WgslShaderLaunch, Alloc, Base, Buffer,
-    Device, IsShapeIndep, Module, OnDropBuffer, Setup, Shape, WrappedData,
+    impl_device_traits, pass_down_use_gpu_or_cpu,
+    wgsl::{chosen_wgsl_idx, WgslShaderLaunch},
+    Alloc, Base, Buffer, Device, IsShapeIndep, Module, OnDropBuffer, Setup, Shape, WrappedData,
 };
 use core::{
     cell::RefCell,
@@ -74,6 +75,15 @@ impl<SimpleMods> Vulkan<SimpleMods> {
         };
         NewMods::setup(&mut vulkan)?;
         Ok(vulkan)
+    }
+}
+
+impl Default for Vulkan {
+    fn default() -> Self {
+        Self {
+            modules: Default::default(),
+            device: VkDevice::new(chosen_wgsl_idx()).expect("Could not create vulkan device."),
+        }
     }
 }
 

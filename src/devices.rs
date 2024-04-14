@@ -89,14 +89,13 @@ pub trait Device: OnDropBuffer + Sized {
 
     /// Creates a new [`Buffer`] using `A`, where `A` is typically an ND-array type.
     /// The [`Shape`] `S` is inferred from the ND-array.
-    fn with_shape<'a, T, S: Shape, A>(&'a self, arr: A) -> Buffer<'a, T, Self, S> 
-    where 
+    fn with_shape<'a, T, S: Shape, A>(&'a self, arr: A) -> Buffer<'a, T, Self, S>
+    where
         Buffer<'a, T, Self, S>: crate::WithShape<'a, Self, A>,
     {
         use crate::WithShape;
         Buffer::with(self, arr)
     }
-
 }
 
 #[macro_export]

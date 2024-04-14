@@ -85,5 +85,7 @@ fn test_opencl_from_spirv() {
     println!("binary_status: {binary_status}, errcode: {errcode_ret}, program: {program:?}");
 
     let program = Program(program);
-    unsafe { build_program(&program, &[dev.device], /*Some("-cl-std=1.2")*/ None).unwrap() };
+    unsafe {
+        build_program(&program, &[dev.device], /*Some("-cl-std=1.2")*/ None).unwrap()
+    };
 }

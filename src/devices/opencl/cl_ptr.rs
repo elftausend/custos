@@ -1,7 +1,4 @@
-use core::{
-    ffi::c_void,
-    ptr::null_mut,
-};
+use core::{ffi::c_void, ptr::null_mut};
 
 #[cfg(unified_cl)]
 use core::ops::{Deref, DerefMut};
