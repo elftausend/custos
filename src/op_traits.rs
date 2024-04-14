@@ -119,10 +119,12 @@ pub trait Read<T, S: Shape = (), D: Device = Self>: Device {
     ///
     /// let device = CPU::<Base>::new();
     /// let a = Buffer::from((&device, [1., 2., 3., 3., 2., 1.,]));
-    /// let read = device.read(&a);
+    /// let read = a.read();
     /// assert_eq!(&[1., 2., 3., 3., 2., 1.,], read);
     /// ```
-    fn read<'a>(&self, buf: &'a Buffer<T, D, S>) -> Self::Read<'a>;
+    fn read<'a>(&self, buf: &'a D::Base<T, S>) -> Self::Read<'a>
+    where
+        D: 'a;
 
     /// Read the data of a buffer into a vector
     /// # Example
@@ -132,11 +134,11 @@ pub trait Read<T, S: Shape = (), D: Device = Self>: Device {
     ///
     /// let device = CPU::<Base>::new();
     /// let a = Buffer::from((&device, [1., 2., 3., 3., 2., 1.,]));
-    /// let read = device.read_to_vec(&a);
+    /// let read = a.read_to_vec();
     /// assert_eq!(vec![1., 2., 3., 3., 2., 1.,], read);
     /// ```
     #[cfg(feature = "std")]
-    fn read_to_vec(&self, buf: &Buffer<T, D, S>) -> Vec<T>
+    fn read_to_vec(&self, buf: &D::Base<T, S>) -> Vec<T>
     where
         T: Default + Clone;
 }

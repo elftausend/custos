@@ -6,11 +6,11 @@ use core::{
 use crate::{
     AddGradFn, AddLayer, AddOperation, Alloc, Buffer, Cache, CachedBuffers, Cursor, Device,
     ExecNow, HasId, IsShapeIndep, Module, OnDropBuffer, OnNewBuffer, Parents, PtrType, RemoveLayer,
-    ReplaceBuf, Retrieve, RunModule, Setup, ShallowCopy, Shape, UniqueId, WrappedData,
+    ReplaceBuf, Retrieve, RunModule, SetOpHint, Setup, ShallowCopy, Shape, WrappedData,
 };
 
 #[cfg(feature = "graph")]
-use crate::{DeviceError, OptimizeMemGraph};
+use crate::{DeviceError, Optimize, UniqueId};
 
 // creator struct, however =>
 // TODO: could remove D generic and therefore CachedModule
@@ -90,6 +90,13 @@ impl<SD: Device, Mods: AddOperation> AddOperation for CachedModule<Mods, SD> {
     #[inline]
     fn is_lazy_enabled(&self) -> bool {
         self.modules.is_lazy_enabled()
+    }
+}
+
+impl<T, Mods: SetOpHint<T>, SD: Device> SetOpHint<T> for CachedModule<Mods, SD> {
+    #[inline]
+    fn set_op_hint(&self, op_hint: crate::op_hint::OpHint<T>) {
+        self.modules.set_op_hint(op_hint)
     }
 }
 
@@ -249,6 +256,16 @@ impl<Mods: crate::UseGpuOrCpu, D: Device> crate::UseGpuOrCpu for CachedModule<Mo
         self.modules
             .use_cpu_or_gpu(location, input_lengths, cpu_op, gpu_op)
     }
+
+    #[inline]
+    fn set_fork_enabled(&self, _enabled: bool) {
+        self.modules.set_fork_enabled(_enabled)
+    }
+
+    #[inline]
+    fn is_fork_enabled(&self) -> bool {
+        self.modules.is_fork_enabled()
+    }
 }
 
 impl<Mods: RunModule<D>, D, SD: Device> RunModule<D> for CachedModule<Mods, SD> {
@@ -259,7 +276,7 @@ impl<Mods: RunModule<D>, D, SD: Device> RunModule<D> for CachedModule<Mods, SD> 
 }
 
 #[cfg(feature = "graph")]
-impl<Mods: OptimizeMemGraph, SD: Device> OptimizeMemGraph for CachedModule<Mods, SD> {
+impl<Mods: Optimize, SD: Device> Optimize for CachedModule<Mods, SD> {
     fn optimize_mem_graph<D: 'static>(
         &self,
         _device: &D,
@@ -293,6 +310,15 @@ impl<Mods: OptimizeMemGraph, SD: Device> OptimizeMemGraph for CachedModule<Mods,
             }
         }
         Ok(())
+    }
+
+    #[inline]
+    fn unary_fusing<D: 'static>(
+        &self,
+        _device: &D,
+        _graph_translator: Option<&crate::modules::GraphTranslator>,
+    ) -> crate::Result<()> {
+        Err(DeviceError::UnaryFusingUnsupported.into())
     }
 }
 

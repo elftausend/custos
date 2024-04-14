@@ -5,23 +5,24 @@ mod opt_graph;
 pub use node::Node;
 pub use opt_graph::*;
 
-use core::{cell::RefCell, hash::BuildHasherDefault};
+use core::{cell::RefCell, hash::BuildHasherDefault, marker::PhantomData};
 use std::collections::HashSet;
 
 use crate::{
     impl_remove_layer, pass_down_add_operation, pass_down_cursor, pass_down_exec_now_module,
     pass_down_replace_buf_module, pass_down_use_gpu_or_cpu, AddLayer, Alloc, Buffer, Cursor,
-    Device, HasId, Module, NoHasher, OnDropBuffer, OnNewBuffer, OptimizeMemGraph, Parents, PtrType,
+    Device, HasId, Module, NoHasher, OnDropBuffer, OnNewBuffer, Optimize, Parents, PtrType,
     Retrieve, RunModule, Setup, Shape, UniqueId, WrappedData,
 };
 
 pub use self::graph_translator::GraphTranslator;
 
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
-pub struct Graph<Mods> {
+pub struct Graph<Mods, T = f32> {
     pub modules: Mods,
     pub graph_trans: RefCell<GraphTranslator>,
     pub contains_ids: RefCell<HashSet<UniqueId, BuildHasherDefault<NoHasher>>>,
+    pub pd: PhantomData<T>,
 }
 
 impl<Mods: WrappedData> WrappedData for Graph<Mods> {
@@ -51,17 +52,19 @@ impl<Mods: Module<D>, D: Device> Module<D> for Graph<Mods> {
             modules: Mods::new(),
             graph_trans: Default::default(),
             contains_ids: Default::default(),
+            pd: PhantomData,
         }
     }
 }
 
-impl<Mods, D> Setup<D> for Graph<Mods> {
-    fn setup(_device: &mut D) -> crate::Result<()> {
-        Ok(())
+impl<Mods: Setup<D>, D> Setup<D> for Graph<Mods> {
+    #[inline]
+    fn setup(device: &mut D) -> crate::Result<()> {
+        Mods::setup(device)
     }
 }
 
-impl<Mods: OptimizeMemGraph> OptimizeMemGraph for Graph<Mods> {
+impl<Mods: Optimize> Optimize for Graph<Mods> {
     fn optimize_mem_graph<D: 'static>(
         &self,
         device: &D,
@@ -75,6 +78,21 @@ impl<Mods: OptimizeMemGraph> OptimizeMemGraph for Graph<Mods> {
                 let graph_translator = self.graph_trans.borrow();
                 self.modules
                     .optimize_mem_graph(device, Some(&graph_translator))
+            }
+        }
+    }
+
+    #[inline]
+    fn unary_fusing<D: crate::UnaryFusing + 'static>(
+        &self,
+        device: &D,
+        graph_translator: Option<&crate::modules::GraphTranslator>,
+    ) -> crate::Result<()> {
+        match graph_translator {
+            Some(graph_translator) => self.modules.unary_fusing(device, Some(graph_translator)),
+            None => {
+                let graph_translator = self.graph_trans.borrow();
+                self.modules.unary_fusing(device, Some(&graph_translator))
             }
         }
     }
@@ -124,6 +142,7 @@ impl<NewMods, SD> AddLayer<NewMods, SD> for Graph<()> {
             modules: inner_mods,
             graph_trans: Default::default(),
             contains_ids: Default::default(),
+            pd: PhantomData,
         }
     }
 }

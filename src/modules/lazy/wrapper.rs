@@ -12,7 +12,7 @@ pub struct LazyWrapper<Data, T> {
     pub _pd: PhantomData<T>,
 }
 
-impl<Mods: WrappedData> WrappedData for Lazy<Mods> {
+impl<T2, Mods: WrappedData> WrappedData for Lazy<Mods, T2> {
     type Wrap<T, Base: HasId + PtrType> = LazyWrapper<Mods::Wrap<T, Base>, T>;
 
     #[inline]

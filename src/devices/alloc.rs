@@ -16,7 +16,7 @@ pub trait Alloc<T>: Device + Sized {
     ///     data,
     ///     device: Some(&device),
     /// };
-    /// assert_eq!(vec![0.; 12], device.read(&buf));
+    /// assert_eq!(vec![0.; 12], buf.read());
     /// ```
     fn alloc<S: Shape>(&self, len: usize, flag: AllocFlag) -> Self::Base<T, S>;
 
@@ -33,7 +33,7 @@ pub trait Alloc<T>: Device + Sized {
     ///     data,
     ///     device: Some(&device),
     /// };
-    /// assert_eq!(vec![1, 5, 4, 3, 6, 9, 0, 4], device.read(&buf));
+    /// assert_eq!(vec![1, 5, 4, 3, 6, 9, 0, 4], buf.read());
     /// ```
     fn alloc_from_slice<S: Shape>(&self, data: &[T]) -> Self::Base<T, S>
     where

@@ -125,7 +125,7 @@ mod tests {
             ],
         )?;
 
-        let read = device.read(&c);
+        let read = c.read();
         assert_eq!(vec![5, 3, 10, 10, 14], read);
         Ok(())
     }

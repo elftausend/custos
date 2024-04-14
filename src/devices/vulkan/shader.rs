@@ -21,6 +21,8 @@ use ash::{
     Device,
 };
 
+use super::Context;
+
 pub fn create_shader_module(device: &Device, code: &[u32]) -> VkResult<ShaderModule> {
     unsafe {
         let shader_module_create_info = vk::ShaderModuleCreateInfo::builder().code(code);
@@ -30,42 +32,51 @@ pub fn create_shader_module(device: &Device, code: &[u32]) -> VkResult<ShaderMod
 }
 
 // combine with other Caches
-#[derive(Debug, Default, Clone)]
+#[derive(Clone)]
 pub struct ShaderCache {
     // use hash directly (prevent &str->String?) => Use NoHasher
     cache: HashMap<String, Operation>,
+    context: std::rc::Rc<Context>,
 }
 
 impl ShaderCache {
+    pub fn new(context: std::rc::Rc<Context>) -> Self {
+        Self {
+            cache: Default::default(),
+            context,
+        }
+    }
     pub fn add(
         &mut self,
-        device: &Device,
         src: impl AsRef<str>,
         args: &[DescriptorType],
-    ) -> crate::Result<Operation> {
+    ) -> crate::Result<&Operation> {
         let src = src.as_ref();
-        let operation = Operation::new(device, src, args)?;
+        let operation = Operation::new(self.context.clone(), src, args)?;
         self.cache.insert(src.to_string(), operation);
-        Ok(operation)
+        Ok(self.cache.get(src).unwrap())
     }
 
     #[inline]
-    pub fn get(
-        &mut self,
-        device: &Device,
+    pub fn get<'a>(
+        &'a mut self,
         src: impl AsRef<str>,
         args: &[DescriptorType],
-    ) -> crate::Result<Operation> {
-        match self.cache.get(src.as_ref()) {
-            Some(operation) => Ok(*operation),
-            None => self.add(device, src, args),
+    ) -> crate::Result<&'a Operation> {
+        if !self.cache.contains_key(src.as_ref()) {
+            return self.add(&src, args);
         }
+        Ok(self.cache.get(src.as_ref()).unwrap())
     }
 
-    pub unsafe fn destroy(&mut self, device: &Device) {
+    pub unsafe fn destroy(&mut self) {
         for op in self.cache.values() {
-            device.destroy_shader_module(op.shader_module, None);
-            device.destroy_descriptor_pool(op.descriptor_pool, None)
+            self.context
+                .device
+                .destroy_shader_module(op.shader_module, None);
+            self.context
+                .device
+                .destroy_descriptor_pool(op.descriptor_pool, None)
         }
     }
 }
@@ -121,7 +132,6 @@ pub fn launch_shader(
         .collect::<Vec<_>>();
 
     let operation = shader_cache.get(
-        device,
         src,
         &args
             .iter()
@@ -172,7 +182,17 @@ pub fn launch_shader(
     };
     unsafe { device.cmd_dispatch(command_buffer, gws[0], gws[1], gws[2]) };
     unsafe { device.end_command_buffer(command_buffer) }?;
-    let queue = unsafe { device.get_device_queue(context.compute_family_idx as u32, 0) };
+    submit_and_wait(device, command_buffer, context.compute_family_idx as u32)?;
+    drop(args);
+    Ok(())
+}
+
+pub fn submit_and_wait(
+    device: &ash::Device,
+    command_buffer: vk::CommandBuffer,
+    queue_family_idx: u32,
+) -> crate::Result<()> {
+    let queue = unsafe { device.get_device_queue(queue_family_idx, 0) };
     let submit_info =
         vk::SubmitInfo::builder().command_buffers(core::slice::from_ref(&command_buffer));
 
@@ -180,28 +200,33 @@ pub fn launch_shader(
 
     unsafe { device.device_wait_idle() }?;
     unsafe { device.reset_command_buffer(command_buffer, vk::CommandBufferResetFlags::empty()) }?;
-    drop(args);
+
     Ok(())
+}
+
+impl Drop for ShaderCache {
+    #[inline]
+    fn drop(&mut self) {
+        unsafe { self.destroy() }
+    }
 }
 
 #[cfg(test)]
 mod tests {
-    use ash::vk::BufferUsageFlags;
+    use ash::vk::{self, BufferUsageFlags};
 
-    use crate::{
-        vulkan::{
-            context::Context,
-            shader::{launch_shader, ShaderCache},
-            vk_array::VkArray,
-        },
-        HostPtr,
+    use crate::vulkan::{
+        context::Context,
+        shader::{launch_shader, ShaderCache},
+        vk_array::VkArray,
     };
+    use core::ops::{Deref, DerefMut};
     use std::rc::Rc;
 
     #[test]
     fn test_launch_vk_shader_with_num_as_arg() {
         let context = Rc::new(Context::new(0).unwrap());
-        let mut shader_cache = ShaderCache::default();
+        let mut shader_cache = ShaderCache::new(context.clone());
 
         let src = "@group(0)
             @binding(0)
@@ -249,6 +274,7 @@ mod tests {
             10,
             BufferUsageFlags::STORAGE_BUFFER,
             crate::flag::AllocFlag::None,
+            vk::MemoryPropertyFlags::HOST_VISIBLE | vk::MemoryPropertyFlags::HOST_COHERENT,
         )
         .unwrap();
 
@@ -261,19 +287,16 @@ mod tests {
         )
         .unwrap();
 
-        assert_eq!(lhs.as_slice(), [1., 2., 3., 4., 5., 6., 7., 8., 9., 10.]);
-        assert_eq!(rhs.as_slice(), [1., 2., 3., 4., 5., 6., 7., 8., 9., 10.]);
+        assert_eq!(lhs.deref(), [1., 2., 3., 4., 5., 6., 7., 8., 9., 10.]);
+        assert_eq!(rhs.deref(), [1., 2., 3., 4., 5., 6., 7., 8., 9., 10.]);
 
-        assert_eq!(
-            out.as_slice(),
-            [3., 5., 7., 9., 11., 13., 15., 17., 19., 21.]
-        );
+        assert_eq!(out.deref(), [3., 5., 7., 9., 11., 13., 15., 17., 19., 21.]);
     }
 
     #[test]
     fn test_launch_vk_shader_multiple_times() {
         let context = Rc::new(Context::new(0).unwrap());
-        let mut shader_cache = ShaderCache::default();
+        let mut shader_cache = ShaderCache::new(context.clone());
         let src = "@group(0)
             @binding(0)
             var<storage, read_write> a: array<f32>;
@@ -316,6 +339,7 @@ mod tests {
             10,
             BufferUsageFlags::STORAGE_BUFFER,
             crate::flag::AllocFlag::None,
+            vk::MemoryPropertyFlags::HOST_VISIBLE | vk::MemoryPropertyFlags::HOST_COHERENT,
         )
         .unwrap();
 
@@ -328,19 +352,16 @@ mod tests {
         )
         .unwrap();
 
-        assert_eq!(lhs.as_slice(), [1., 2., 3., 4., 5., 6., 7., 8., 9., 10.]);
-        assert_eq!(rhs.as_slice(), [1., 2., 3., 4., 5., 6., 7., 8., 9., 10.]);
+        assert_eq!(lhs.deref(), [1., 2., 3., 4., 5., 6., 7., 8., 9., 10.]);
+        assert_eq!(rhs.deref(), [1., 2., 3., 4., 5., 6., 7., 8., 9., 10.]);
 
-        assert_eq!(
-            out.as_slice(),
-            [2., 4., 6., 8., 10., 12., 14., 16., 18., 20.]
-        );
+        assert_eq!(out.deref(), [2., 4., 6., 8., 10., 12., 14., 16., 18., 20.]);
 
         for _ in 0..10 {
-            for x in out.as_mut_slice() {
+            for x in out.deref_mut() {
                 *x = 0.;
             }
-            assert_eq!(out.as_slice(), [0.; 10]);
+            assert_eq!(out.deref(), [0.; 10]);
             launch_shader(
                 context.clone(),
                 [1, 1, 1],
@@ -350,20 +371,17 @@ mod tests {
             )
             .unwrap();
 
-            assert_eq!(lhs.as_slice(), [1., 2., 3., 4., 5., 6., 7., 8., 9., 10.]);
-            assert_eq!(rhs.as_slice(), [1., 2., 3., 4., 5., 6., 7., 8., 9., 10.]);
+            assert_eq!(lhs.deref(), [1., 2., 3., 4., 5., 6., 7., 8., 9., 10.]);
+            assert_eq!(rhs.deref(), [1., 2., 3., 4., 5., 6., 7., 8., 9., 10.]);
 
-            assert_eq!(
-                out.as_slice(),
-                [2., 4., 6., 8., 10., 12., 14., 16., 18., 20.]
-            );
+            assert_eq!(out.deref(), [2., 4., 6., 8., 10., 12., 14., 16., 18., 20.]);
         }
     }
 
     #[test]
     fn test_launch_vk_shader() {
         let context = Rc::new(Context::new(0).unwrap());
-        let mut shader_cache = ShaderCache::default();
+        let mut shader_cache = ShaderCache::new(context.clone());
         let src = "@group(0)
             @binding(0)
             var<storage, read_write> a: array<f32>;
@@ -406,6 +424,7 @@ mod tests {
             10,
             BufferUsageFlags::STORAGE_BUFFER,
             crate::flag::AllocFlag::None,
+            vk::MemoryPropertyFlags::HOST_VISIBLE | vk::MemoryPropertyFlags::HOST_COHERENT,
         )
         .unwrap();
 
@@ -418,12 +437,9 @@ mod tests {
         )
         .unwrap();
 
-        assert_eq!(lhs.as_slice(), [1., 2., 3., 4., 5., 6., 7., 8., 9., 10.]);
-        assert_eq!(rhs.as_slice(), [1., 2., 3., 4., 5., 6., 7., 8., 9., 10.]);
+        assert_eq!(lhs.deref(), [1., 2., 3., 4., 5., 6., 7., 8., 9., 10.]);
+        assert_eq!(rhs.deref(), [1., 2., 3., 4., 5., 6., 7., 8., 9., 10.]);
 
-        assert_eq!(
-            out.as_slice(),
-            [2., 4., 6., 8., 10., 12., 14., 16., 18., 20.]
-        );
+        assert_eq!(out.deref(), [2., 4., 6., 8., 10., 12., 14., 16., 18., 20.]);
     }
 }

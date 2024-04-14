@@ -5,7 +5,7 @@ use custos::prelude::*;
 fn test_read_cuda() -> custos::Result<()> {
     let device = CUDA::<Base>::new(0)?;
     let a = Buffer::from((&device, [3., 1., 3., 4.]));
-    let read = device.read(&a);
+    let read = a.read();
     assert_eq!(vec![3., 1., 3., 4.,], read);
     Ok(())
 }

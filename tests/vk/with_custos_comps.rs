@@ -1,11 +1,8 @@
 use std::rc::Rc;
 
-use ash::vk::{self, BufferUsageFlags, DescriptorType, Fence};
-use custos::{
-    vulkan::{
-        create_descriptor_infos, create_write_descriptor_sets, Context, ShaderCache, VkArray,
-    },
-    HostPtr,
+use ash::vk::{self, BufferUsageFlags, DescriptorType, Fence, MemoryPropertyFlags};
+use custos::vulkan::{
+    create_descriptor_infos, create_write_descriptor_sets, Context, ShaderCache, VkArray,
 };
 
 #[test]
@@ -30,12 +27,13 @@ fn test_with_custos_comps() {
     let out = VkArray::<f32>::new(
         context.clone(),
         lhs.len,
-        BufferUsageFlags::STORAGE_BUFFER,
+        BufferUsageFlags::STORAGE_BUFFER | BufferUsageFlags::TRANSFER_SRC,
         custos::flag::AllocFlag::None,
+        MemoryPropertyFlags::DEVICE_LOCAL,
     )
     .unwrap();
 
-    let mut shader_cache = ShaderCache::default();
+    let mut shader_cache = ShaderCache::new(context.clone());
 
     let src = "@group(0)
             @binding(0)
@@ -61,7 +59,6 @@ fn test_with_custos_comps() {
     ";
     let operation = shader_cache
         .get(
-            &context.device,
             src,
             &[
                 DescriptorType::STORAGE_BUFFER,
@@ -152,5 +149,5 @@ fn test_with_custos_comps() {
         .unwrap();
     unsafe { device.device_wait_idle() }.unwrap();
 
-    println!("out: {:?}", out.as_slice());
+    println!("out: {:?}", out.read_staged_to_vec());
 }

@@ -2,8 +2,8 @@ use core::fmt::Debug;
 
 use crate::{
     cpu_stack_ops::clear_slice, pass_down_add_operation, pass_down_exec_now, prelude::Number,
-    AddOperation, ApplyFunction, AsNoId, BufAsNoId, Buffer, CDatatype, ClearBuf, HostPtr,
-    OnDropBuffer, Read, Resolve, Retrieve, Retriever, Shape, ToMarker, ToWgslSource, UnaryGrad,
+    AddOperation, ApplyFunction, AsNoId, BufAsNoId, Buffer, CDatatype, ClearBuf, OnDropBuffer,
+    Read, Resolve, Retrieve, Retriever, Shape, ToCLSource, ToMarker, ToWgslSource, UnaryGrad,
     UseGpuOrCpu, Vulkan, WriteBuf, ZeroGrad,
 };
 
@@ -56,30 +56,53 @@ pub fn try_vk_clear<T: Default + Debug>(
         default = T::default(),
     );
 
-    device.launch_shader([(32 + buf.len as u32) / 32, 1, 1], src, &[buf])
+    device.launch_shader(src, [(32 + buf.len as u32) / 32, 1, 1], &[buf])
 }
 
-impl<Mods: OnDropBuffer, T, S: Shape> Read<T, S> for Vulkan<Mods> {
-    type Read<'a> = &'a [T]
+impl<Mods: OnDropBuffer, T: Default + Clone, S: Shape> Read<T, S> for Vulkan<Mods> {
+    type Read<'a> = VkArray<T>
     where
         T: 'a,
         Self: 'a,
         S: 'a;
 
     #[inline]
-    fn read<'a>(&self, buf: &'a Buffer<T, Self, S>) -> Self::Read<'a> {
-        buf.as_slice()
+    fn read<'a>(&self, buf: &'a Self::Base<T, S>) -> Self::Read<'a>
+    where
+        Self: 'a,
+    {
+        buf.read_staged()
     }
 
-    #[inline]
-    fn read_to_vec(&self, buf: &Buffer<T, Self, S>) -> Vec<T>
+    fn read_to_vec(&self, buf: &Self::Base<T, S>) -> Vec<T>
     where
         T: Default + Clone,
     {
-        buf.as_slice().to_vec()
+        buf.read_staged_to_vec()
     }
 }
 
+// TODO: use something like unified_cl
+// impl<Mods: OnDropBuffer, T, S: Shape> Read<T, S> for Vulkan<Mods> {
+//     type Read<'a> = &'a [T]
+//     where
+//         T: 'a,
+//         Self: 'a,
+//         S: 'a;
+
+//     #[inline]
+//     fn read<'a>(&self, buf: &'a Buffer<T, Self, S>) -> Self::Read<'a> {
+//         buf.as_slice()
+//     }
+
+//     #[inline]
+//     fn read_to_vec(&self, buf: &Buffer<T, Self, S>) -> Vec<T>
+//     where
+//         T: Default + Clone,
+//     {
+//         buf.as_slice().to_vec()
+//     }
+// }
 impl<Mods, T, S> ApplyFunction<T, S> for Vulkan<Mods>
 where
     T: Number,
@@ -93,7 +116,7 @@ where
         f: impl Fn(Resolve<T>) -> F + Copy,
     ) -> Buffer<T, Self, S>
     where
-        F: crate::Eval<T> + crate::MayToWgslSource,
+        F: crate::Eval<T> + crate::MayToCLSource + crate::MayToWgslSource,
     {
         let mut out = self.retrieve(buf.len(), buf);
 
@@ -146,7 +169,7 @@ where
         dtype = std::any::type_name::<T>(),
         op = f("x[global_id.x]".to_marker()).to_wgsl_source()
     );
-    device.launch_shader([(32 + x.len as u32) / 32, 1, 1], src, &[x, out])
+    device.launch_shader(src, [(32 + x.len as u32) / 32, 1, 1], &[x, out])
 }
 
 impl<T, S, Mods> UnaryGrad<T, S> for Vulkan<Mods>
@@ -163,7 +186,7 @@ where
         out: &Buffer<T, Self, S>,
         lhs_grad_fn: impl Fn(Resolve<T>) -> F + Copy + 'static,
     ) where
-        F: ToWgslSource,
+        F: ToCLSource,
     {
         self.add_op::<_, 4>(
             (lhs, lhs_grad.buf_no_id(), out, lhs_grad_fn.no_id()),
@@ -183,7 +206,8 @@ pub fn try_vk_add_unary_grad<T, F>(
 ) -> crate::Result<()>
 where
     T: CDatatype + Number,
-    F: ToWgslSource,
+    // TODO Use Towgslsource
+    F: ToCLSource,
 {
     let src = format!(
         "
@@ -210,11 +234,11 @@ where
 
     ",
         dtype = std::any::type_name::<T>(),
-        op = lhs_grad_fn("lhs[global_id.x]".to_marker()).to_wgsl_source()
+        op = lhs_grad_fn("lhs[global_id.x]".to_marker()).to_cl_source()
     );
     device.launch_shader(
-        [(32 + lhs.len as u32) / 32, 1, 1],
         src,
+        [(32 + lhs.len as u32) / 32, 1, 1],
         &[lhs, lhs_grad, out],
     )
 }
@@ -222,12 +246,13 @@ where
 impl<Mods: OnDropBuffer, T: Clone, S: Shape> WriteBuf<T, S> for Vulkan<Mods> {
     #[inline]
     fn write(&self, buf: &mut Buffer<T, Self, S>, data: &[T]) {
-        buf.as_mut_slice().clone_from_slice(data)
+        // TODO: use unified mem when possible
+        buf.write_staged(data)
     }
 
     #[inline]
     fn write_buf(&self, dst: &mut Buffer<T, Self, S>, src: &Buffer<T, Self, S>) {
-        dst.write(src);
+        dst.write_buf(src)
     }
 }
 
@@ -245,7 +270,7 @@ mod tests {
         let mut buf = Buffer::from((&device, [1f32, 2., 3., 4., 5., 6.]));
 
         try_vk_clear(&device, &mut buf.data).unwrap();
-        assert_eq!(buf.read(), [0f32; 6]);
+        assert_eq!(&*buf.read(), [0f32; 6]);
     }
 
     #[test]
@@ -253,7 +278,7 @@ mod tests {
         let device = Vulkan::<Base>::new(0).unwrap();
         let mut buf = Buffer::from((&device, [1f32, 2., 3., 4., 5., 6.]));
         buf.clear();
-        assert_eq!(buf.read(), [0f32; 6])
+        assert_eq!(&*buf.read(), [0f32; 6])
     }
 
     #[cfg(feature = "fork")]
@@ -262,7 +287,7 @@ mod tests {
         let device = Vulkan::<Fork<Base>>::new(0).unwrap();
         let mut buf = Buffer::from((&device, [1f32, 2., 3., 4., 5., 6.]));
         buf.clear();
-        assert_eq!(buf.read(), [0f32; 6])
+        assert_eq!(&*buf.read(), [0f32; 6])
     }
 
     #[cfg(feature = "fork")]
@@ -272,7 +297,7 @@ mod tests {
         let device = Vulkan::<Fork<Base>>::new(1).unwrap();
         let mut buf = Buffer::from((&device, vec![1; 10000000]));
         buf.clear();
-        assert_eq!(buf.read(), vec![0; 10000000])
+        assert_eq!(&*buf.read(), vec![0; 10000000])
     }
 
     #[test]
@@ -281,7 +306,7 @@ mod tests {
         let x = Buffer::from((&device, [1f32, 2., 3., 4., 5., 6.]));
         let mut out = x.empty_like();
         try_vk_apply_fn_mut(&device, &x.data, &mut out.data, |x| x.add("1.0")).unwrap();
-        assert_eq!(out.read(), [2f32, 3., 4., 5., 6., 7.,])
+        assert_eq!(&*out.read(), [2f32, 3., 4., 5., 6., 7.,])
     }
 
     #[test]
@@ -291,7 +316,7 @@ mod tests {
         let x = Buffer::from((&device, [1f64, 2., 3., 4., 5., 6.]));
         let mut out = x.empty_like();
         try_vk_apply_fn_mut(&device, &x.data, &mut out.data, |x| x.add(1f64)).unwrap();
-        assert_eq!(out.read(), [2f64, 3., 4., 5., 6., 7.,])
+        assert_eq!(&*out.read(), [2f64, 3., 4., 5., 6., 7.,])
     }
 
     #[test]
@@ -306,7 +331,7 @@ mod tests {
             x.mul(2).add(1)
         })?;
 
-        assert_eq!(lhs_grad.read(), [4, 7, 10, 13, 16, 19]);
+        assert_eq!(&*lhs_grad.read(), [4, 7, 10, 13, 16, 19]);
 
         Ok(())
     }

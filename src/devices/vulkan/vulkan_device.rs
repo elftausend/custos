@@ -1,9 +1,10 @@
-use ash::vk::BufferUsageFlags;
+use ash::vk::{self, BufferUsageFlags};
 
 use super::{context::Context, launch_shader, AsVkShaderArgument, ShaderCache, VkArray};
 use crate::{
-    impl_device_traits, pass_down_use_gpu_or_cpu, Alloc, Base, Buffer, Device, IsShapeIndep,
-    Module, OnDropBuffer, Setup, Shape, WrappedData,
+    impl_device_traits, pass_down_use_gpu_or_cpu,
+    wgsl::{chosen_wgsl_idx, WgslDevice, WgslShaderLaunch},
+    Alloc, Base, Buffer, Device, IsShapeIndep, Module, OnDropBuffer, Setup, Shape, WrappedData,
 };
 use core::{
     cell::RefCell,
@@ -18,17 +19,18 @@ pub struct VkDevice {
 
 impl VkDevice {
     pub fn new(idx: usize) -> crate::Result<Self> {
+        let context = Rc::new(Context::new(idx)?);
         Ok(VkDevice {
-            context: Rc::new(Context::new(idx)?),
-            shader_cache: Default::default(),
+            shader_cache: RefCell::new(ShaderCache::new(context.clone())),
+            context,
         })
     }
 
     #[inline]
     pub fn launch_shader(
         &self,
-        gws: [u32; 3],
         src: impl AsRef<str>,
+        gws: [u32; 3],
         args: &[&dyn AsVkShaderArgument],
     ) -> crate::Result<()> {
         launch_shader(
@@ -41,9 +43,17 @@ impl VkDevice {
     }
 }
 
-impl Drop for VkDevice {
-    fn drop(&mut self) {
-        unsafe { self.shader_cache.borrow_mut().destroy(&self.context.device) }
+impl<Mods> WgslShaderLaunch for Vulkan<Mods> {
+    type ShaderArg = dyn AsVkShaderArgument;
+
+    #[inline]
+    fn launch_shader(
+        &self,
+        src: impl AsRef<str>,
+        gws: [u32; 3],
+        args: &[&dyn AsVkShaderArgument],
+    ) -> crate::Result<()> {
+        self.device.launch_shader(src, gws, args)
     }
 }
 
@@ -65,6 +75,22 @@ impl<SimpleMods> Vulkan<SimpleMods> {
         };
         NewMods::setup(&mut vulkan)?;
         Ok(vulkan)
+    }
+}
+
+impl Default for Vulkan {
+    fn default() -> Self {
+        Self {
+            modules: Default::default(),
+            device: VkDevice::new(chosen_wgsl_idx()).expect("Could not create vulkan device."),
+        }
+    }
+}
+
+impl WgslDevice for Vulkan {
+    #[inline]
+    fn new(idx: usize) -> crate::Result<Self> {
+        Vulkan::<Base>::new(idx)
     }
 }
 
@@ -127,8 +153,16 @@ impl<Mods: OnDropBuffer> Device for Vulkan<Mods> {
 impl<Mods: OnDropBuffer, T> Alloc<T> for Vulkan<Mods> {
     #[inline]
     fn alloc<S: Shape>(&self, len: usize, flag: crate::flag::AllocFlag) -> Self::Base<T, S> {
-        VkArray::new(self.context(), len, BufferUsageFlags::STORAGE_BUFFER, flag)
-            .expect("Could not create VkArray")
+        VkArray::new(
+            self.context(),
+            len,
+            BufferUsageFlags::STORAGE_BUFFER
+                | BufferUsageFlags::TRANSFER_SRC
+                | BufferUsageFlags::TRANSFER_DST,
+            flag,
+            vk::MemoryPropertyFlags::DEVICE_LOCAL,
+        )
+        .expect("Could not create VkArray")
     }
 
     #[inline]
@@ -139,7 +173,9 @@ impl<Mods: OnDropBuffer, T> Alloc<T> for Vulkan<Mods> {
         VkArray::from_slice(
             self.context(),
             data,
-            BufferUsageFlags::STORAGE_BUFFER,
+            BufferUsageFlags::STORAGE_BUFFER
+                | BufferUsageFlags::TRANSFER_SRC
+                | BufferUsageFlags::TRANSFER_DST,
             crate::flag::AllocFlag::None,
         )
         .expect("Could not create VkArray")
@@ -153,7 +189,7 @@ unsafe impl<Mods: OnDropBuffer> IsShapeIndep for Vulkan<Mods> {}
 
 #[cfg(test)]
 mod tests {
-    use crate::{Base, Device, HostPtr};
+    use crate::{Base, Device};
 
     use super::Vulkan;
 
@@ -173,7 +209,7 @@ mod tests {
             }
         ";
 
-        device.launch_shader([1, 1, 1], src, &[&buf]).unwrap();
+        device.launch_shader(src, [1, 1, 1], &[&buf]).unwrap();
     }
 
     #[test]
@@ -182,7 +218,7 @@ mod tests {
 
         let buf = device.buffer([1, 2, 3, 4, 5, 9, 2, 3, 4, 3, 2]);
         add_one(&device, buf.data.buf);
-        assert_eq!(buf.as_slice(), [2, 3, 4, 5, 6, 10, 3, 4, 5, 4, 3])
+        assert_eq!(&*buf.read(), [2, 3, 4, 5, 6, 10, 3, 4, 5, 4, 3])
     }
 
     #[test]
@@ -191,7 +227,7 @@ mod tests {
 
         let out = device.buffer([1, 2, 3, 4, 5, 9, 2, 3, 4, 3, 2]);
         add_one(&device, out.data.buf);
-        assert_eq!(out.as_slice(), [2, 3, 4, 5, 6, 10, 3, 4, 5, 4, 3]);
+        assert_eq!(&*out.read(), [2, 3, 4, 5, 6, 10, 3, 4, 5, 4, 3]);
 
         let lhs = device.buffer([2; 11]);
         let rhs = device.buffer([3; 11]);
@@ -221,12 +257,12 @@ mod tests {
 
         device
             .launch_shader(
-                [1, 1, 1],
                 src,
+                [1, 1, 1],
                 &[&lhs.data.buf, &rhs.data.buf, &out.data.buf],
             )
             .unwrap();
-        assert_eq!(out.as_slice(), [7, 8, 9, 10, 11, 15, 8, 9, 10, 9, 8])
+        assert_eq!(&*out.read(), [7, 8, 9, 10, 11, 15, 8, 9, 10, 9, 8])
     }
 
     #[cfg(feature = "autograd")]

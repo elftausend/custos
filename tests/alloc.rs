@@ -11,7 +11,7 @@ fn test_alloc() {
         data,
         device: Some(&device),
     };
-    assert_eq!(vec![1, 5, 4, 3, 6, 9, 0, 4], device.read(&buf));
+    assert_eq!(vec![1, 5, 4, 3, 6, 9, 0, 4], buf.read());
 }
 
 #[cfg(feature = "wgpu")]

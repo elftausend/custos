@@ -3,9 +3,10 @@ use core::ops::{Range, RangeBounds};
 use crate::{
     bounds_to_range,
     cuda::api::{cu_read_async, CUstreamCaptureStatus},
+    op_hint::unary,
     pass_down_add_operation, pass_down_exec_now, AddOperation, ApplyFunction, AsNoId, BufAsNoId,
     Buffer, CDatatype, ClearBuf, CopySlice, OnDropBuffer, Read, Resolve, Retrieve, Retriever,
-    Shape, ToCLSource, ToMarker, UnaryGrad, WriteBuf, ZeroGrad, CUDA,
+    SetOpHint, Shape, ToCLSource, ToMarker, UnaryGrad, WriteBuf, ZeroGrad, CUDA,
 };
 
 use super::{
@@ -16,25 +17,25 @@ use super::{
 pass_down_add_operation!(CUDA);
 pass_down_exec_now!(CUDA);
 
-impl<Mods: OnDropBuffer, T: Default + Clone> Read<T> for CUDA<Mods> {
+impl<Mods: OnDropBuffer, T: Default + Clone, S: Shape> Read<T, S> for CUDA<Mods> {
     type Read<'a> = Vec<T>
     where
         T: 'a,
         CUDA<Mods>: 'a;
 
     #[inline]
-    fn read(&self, buf: &Buffer<T, Self>) -> Vec<T> {
-        self.read_to_vec(buf)
+    fn read<'a>(&self, buf: &'a Self::Base<T, S>) -> Vec<T>
+    where
+        CUDA<Mods>: 'a,
+    {
+        Read::<T, S>::read_to_vec(self, buf)
     }
 
-    fn read_to_vec(&self, buf: &Buffer<T, Self>) -> Vec<T>
+    fn read_to_vec(&self, buf: &Self::Base<T, S>) -> Vec<T>
     where
         T: Default + Clone,
     {
-        assert!(
-            buf.base().ptr != 0,
-            "called Read::read(..) on a non CUDA buffer"
-        );
+        assert!(buf.ptr != 0, "called Read::read(..) on a non CUDA buffer");
         // TODO: sync here or somewhere else?
         if self.stream().capture_status().unwrap()
             == CUstreamCaptureStatus::CU_STREAM_CAPTURE_STATUS_NONE
@@ -42,8 +43,8 @@ impl<Mods: OnDropBuffer, T: Default + Clone> Read<T> for CUDA<Mods> {
             self.stream().sync().unwrap();
         }
 
-        let mut read = vec![T::default(); buf.len()];
-        cu_read_async(&mut read, buf.base().ptr, &self.mem_transfer_stream).unwrap();
+        let mut read = vec![T::default(); buf.len];
+        cu_read_async(&mut read, buf.ptr, &self.mem_transfer_stream).unwrap();
         self.mem_transfer_stream.sync().unwrap();
         read
     }
@@ -120,20 +121,24 @@ impl<Mods: OnDropBuffer, T> WriteBuf<T> for CUDA<Mods> {
 impl<Mods, T, S> ApplyFunction<T, S> for CUDA<Mods>
 where
     T: CDatatype + Default,
-    Mods: Retrieve<Self, T, S> + 'static,
+    Mods: AddOperation + Retrieve<Self, T, S> + SetOpHint<T> + 'static,
     S: Shape,
 {
     #[inline]
     fn apply_fn<F>(
         &self,
         buf: &Buffer<T, Self, S>,
-        f: impl Fn(Resolve<T>) -> F + Copy,
+        f: impl Fn(Resolve<T>) -> F + Copy + 'static,
     ) -> Buffer<T, Self, S>
     where
-        F: crate::Eval<T> + crate::MayToCLSource,
+        F: crate::TwoWay<T>,
     {
         let mut out = self.retrieve(buf.len(), buf);
-        try_cu_apply_fn_mut(self, buf, &mut out, f).unwrap();
+        self.add_op((&mut out, buf, f.no_id()), |(out, buf, f)| {
+            try_cu_apply_fn_mut(buf.device(), buf, out, &**f)
+        })
+        .unwrap();
+        self.set_op_hint(unary(f));
         out
     }
 }
@@ -161,7 +166,15 @@ where
         datatype = T::C_DTYPE_STR,
         op = f("x[idx]".to_marker()).to_cl_source()
     );
-    device.launch_kernel1d(x.len, &src, "applyFn", &[x, out, &x.len])?;
+
+    device.launch_kernel(
+        &src,
+        "applyFn",
+        [(x.len as u32 / 32 + 1) * 32, 1, 1],
+        [32, 1, 1],
+        0,
+        &[x, out, &x.len],
+    )?;
     Ok(())
 }
 
@@ -181,7 +194,7 @@ where
     ) where
         F: ToCLSource,
     {
-        self.add_op::<_, 4>(
+        self.add_op(
             (lhs, lhs_grad.buf_no_id(), out, lhs_grad_fn.no_id()),
             move |(lhs, lhs_grad, out, lhs_grad_fn)| {
                 try_cu_add_unary_grad(lhs.device(), lhs, lhs_grad, out, **lhs_grad_fn)

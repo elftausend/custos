@@ -74,7 +74,8 @@ impl<Mods> crate::LazySetup for CUDA<Mods> {
 #[cfg(test)]
 mod tests {
     use crate::{
-        AddOperation, AsNoId, Base, Buffer, Device, HasId, Lazy, Retrieve, Retriever, Run, CUDA,
+        AddOperation, ApplyFunction, AsNoId, Base, Buffer, Combiner, Device, HasId, Lazy, Retrieve,
+        Retriever, Run, CUDA,
     };
 
     pub fn ew_src(fn_name: &str, operator: char) -> String {
@@ -305,5 +306,18 @@ mod tests {
 
         assert_eq!(out.replace().read(), [2, 4, 6, 8, 10, 12]);
         assert_eq!(out2.replace().read(), [3, 6, 9, 12, 15, 18]);
+    }
+
+    #[cfg(feature = "graph")]
+    #[test]
+    fn test_cuda_apply_fn_lazy() {
+        let device = CUDA::<crate::Graph<Lazy<Base>>>::new(0).unwrap();
+
+        let lhs = device.buffer([1., 2., 3., 4., 5., 6.]);
+        let out = device.apply_fn(&lhs, |x| x.sin());
+        let out = device.apply_fn(&out, |x| x.cos());
+        let _out = device.apply_fn(&out, |x| x.ln());
+
+        let _ = unsafe { device.run() };
     }
 }

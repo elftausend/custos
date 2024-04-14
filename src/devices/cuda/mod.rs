@@ -8,6 +8,7 @@ pub type CUdeviceptr = core::ffi::c_ulonglong;
 mod cuda;
 mod cuda_device;
 mod cuda_ptr;
+mod fusing;
 mod kernel_cache;
 mod kernel_launch;
 #[cfg(feature = "lazy")]
@@ -23,6 +24,7 @@ pub use cuda::*;
 pub use cuda_device::*;
 pub use kernel_cache::*;
 pub use kernel_launch::*;
+pub use ops::*;
 
 use crate::CDatatype;
 
@@ -47,10 +49,10 @@ pub fn chosen_cu_idx() -> usize {
 /// fn main() -> Result<(), custos::Error> {
 ///     let device = CUDA::<Base>::new(0)?;
 ///     let mut lhs = Buffer::<i32, _>::from((&device, [15, 30, 21, 5, 8]));
-///     assert_eq!(device.read(&lhs), vec![15, 30, 21, 5, 8]);
+///     assert_eq!(lhs.read(), vec![15, 30, 21, 5, 8]);
 ///
 ///     cu_clear(&device, &mut lhs);
-///     assert_eq!(device.read(&lhs), vec![0; 5]);
+///     assert_eq!(lhs.read(), vec![0; 5]);
 ///     Ok(())
 /// }
 /// ```
@@ -77,7 +79,7 @@ mod tests {
 
     use crate::{
         cuda::{api::culaunch_kernel, fn_cache},
-        Base, Buffer, Read, CUDA,
+        Base, Buffer, CUDA,
     };
 
     #[test]
@@ -119,7 +121,7 @@ mod tests {
             ],
         )?;
 
-        assert_eq!(&vec![5, 3, 10, 10, 14], &device.read(&c));
+        assert_eq!(&vec![5, 3, 10, 10, 14], &c.read());
         Ok(())
     }
 }

@@ -1,7 +1,7 @@
 use crate::{prelude::Number, Combiner, Eval};
 
 #[cfg(feature = "std")]
-use super::ToCLSource;
+use super::{ToCLSource, ToWgslSource};
 
 pub struct GEq<C, R> {
     pub comb: C,
@@ -23,6 +23,18 @@ impl<C: ToCLSource, R: ToCLSource> ToCLSource for GEq<C, R> {
             "({} >= {})",
             self.comb.to_cl_source(),
             self.rhs.to_cl_source()
+        )
+    }
+}
+
+#[cfg(feature = "std")]
+impl<C: ToWgslSource, R: ToWgslSource> ToWgslSource for GEq<C, R> {
+    #[inline]
+    fn to_wgsl_source(&self) -> String {
+        format!(
+            "({} >= {})",
+            self.comb.to_wgsl_source(),
+            self.rhs.to_wgsl_source()
         )
     }
 }
@@ -60,6 +72,18 @@ impl<C: ToCLSource, R: ToCLSource> ToCLSource for LEq<C, R> {
     }
 }
 
+#[cfg(feature = "std")]
+impl<C: ToWgslSource, R: ToWgslSource> ToWgslSource for LEq<C, R> {
+    #[inline]
+    fn to_wgsl_source(&self) -> String {
+        format!(
+            "({} <= {})",
+            self.comb.to_wgsl_source(),
+            self.rhs.to_wgsl_source()
+        )
+    }
+}
+
 impl<C: Eval<T>, R: Eval<T>, T: Number> Eval<T> for LEq<C, R> {
     #[inline]
     fn eval(&self) -> T {
@@ -89,6 +113,18 @@ impl<C: ToCLSource, R: ToCLSource> ToCLSource for Eq<C, R> {
             "({} == {})",
             self.comb.to_cl_source(),
             self.rhs.to_cl_source()
+        )
+    }
+}
+
+#[cfg(feature = "std")]
+impl<C: ToWgslSource, R: ToWgslSource> ToWgslSource for Eq<C, R> {
+    #[inline]
+    fn to_wgsl_source(&self) -> String {
+        format!(
+            "({} == {})",
+            self.comb.to_wgsl_source(),
+            self.rhs.to_wgsl_source()
         )
     }
 }

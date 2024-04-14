@@ -52,36 +52,6 @@ where
     }
 }
 
-// A more general version of the above, find way to make it work
-/*#[cfg(feature = "std")]
-impl<'a, T, D, I> From<(&'a D, I)> for Buffer<'a, T, D>
-where
-    T: Number,
-    D: Alloc<T>+ OnNewBuffer<T, D, ()>,
-    I: IntoIterator<Item = T>,
-{
-    #[inline]
-    fn from((device, range): (&'a D, Range<usize>)) -> Self {
-        Buffer::from_vec(device, range.map(|x| T::from_usize(x)).collect())
-    }
-}*/
-
-/*impl<'a, T, D, const N: usize> From<(&'a D, [T; N])> for Buffer<'a, T, D>
-where
-    T: Clone,
-    D: Alloc<T>+ OnNewBuffer<T, D, ()> + IsShapeIndep,
-{
-    fn from((device, array): (&'a D, [T; N])) -> Self {
-        Buffer {
-            // TODO: with_array()
-            ptr: device.with_slice(&array),
-            device: Some(device),
-            //node: device.graph().add_leaf(len),
-            ident: Ident::new_bumped(array.len()),
-        }
-    }
-}*/
-
 impl<'a, T, D, const N: usize> From<(&'a D, &[T; N])> for Buffer<'a, T, D>
 where
     T: Clone,
@@ -94,22 +64,6 @@ where
     }
 }
 
-/*impl<'a, T, D, const N: usize> From<(&'a D, &[T; N])> for Buffer<'a, T, D>
-where
-    T: Clone,
-    D: Alloc<T>+ OnNewBuffer<T, D, ()> + IsShapeIndep,
-{
-    fn from((device, array): (&'a D, &[T; N])) -> Self {
-        Buffer {
-            // TODO: with_array()
-            ptr: device.with_slice(array),
-            device: Some(device),
-            //node: device.graph().add_leaf(len),
-            ident: Ident::new_bumped(array.len()),
-        }
-    }
-}*/
-
 impl<'a, T, D, S: Shape> From<(&'a D, &[T])> for Buffer<'a, T, D, S>
 where
     T: Clone,
@@ -121,21 +75,6 @@ where
         Buffer::from_slice(device, slice)
     }
 }
-
-/*impl<'a, T, D, S: Shape> From<(&'a D, &[T])> for Buffer<'a, T, D, S>
-where
-    T: Clone,
-    D: Alloc<T>+ OnNewBuffer<T, D, ()> + IsShapeIndep,
-{
-    fn from((device, slice): (&'a D, &[T])) -> Self {
-        Buffer {
-            ptr: device.with_slice(slice),
-            device: Some(device),
-            //node: device.graph().add_leaf(len),
-            ident: Ident::new_bumped(slice.len()),
-        }
-    }
-}*/
 
 #[cfg(feature = "std")]
 impl<'a, T, D, S: Shape> From<(&'a D, Vec<T>)> for Buffer<'a, T, D, S>
@@ -185,7 +124,7 @@ mod tests {
     #[cfg(feature = "cpu")]
     #[test]
     fn test_buf_device_conversion_cpu() {
-        use crate::{Base, Buffer, Read, CPU};
+        use crate::{Base, Buffer, CPU};
 
         let device = CPU::<Base>::new();
 
@@ -193,13 +132,13 @@ mod tests {
         let cpu_buf = Buffer::from((&cpu, [1, 2, 4, 5]));
 
         let out = Buffer::from((&device, cpu_buf));
-        assert_eq!(device.read(&out), [1, 2, 4, 5]);
+        assert_eq!(out.read(), [1, 2, 4, 5]);
     }
 
     #[cfg(feature = "opencl")]
     #[test]
     fn test_buf_device_conversion_cl() -> crate::Result<()> {
-        use crate::{opencl::chosen_cl_idx, Base, Buffer, OpenCL, Read, CPU};
+        use crate::{opencl::chosen_cl_idx, Base, Buffer, OpenCL, CPU};
 
         let device = OpenCL::<Base>::new(chosen_cl_idx())?;
         println!("name: {:?}", device.name());
@@ -208,7 +147,7 @@ mod tests {
         let cpu_buf = Buffer::from((&cpu, [1, 2, 4, 5]));
 
         let out = Buffer::from((&device, cpu_buf));
-        assert_eq!(device.read(&out), [1, 2, 4, 5]);
+        assert_eq!(out.read(), [1, 2, 4, 5]);
 
         Ok(())
     }
@@ -217,7 +156,7 @@ mod tests {
     #[cfg(feature = "cpu")]
     #[test]
     fn test_buf_device_conversion_cu() -> crate::Result<()> {
-        use crate::{Base, Buffer, Read, CPU, CUDA};
+        use crate::{Base, Buffer, CPU, CUDA};
 
         let device = CUDA::<Base>::new(0)?;
 
@@ -225,7 +164,7 @@ mod tests {
         let cpu_buf = Buffer::from((&cpu, [1, 2, 4, 5]));
 
         let out = Buffer::from((&device, cpu_buf));
-        assert_eq!(device.read(&out), [1, 2, 4, 5]);
+        assert_eq!(out.read(), [1, 2, 4, 5]);
 
         Ok(())
     }

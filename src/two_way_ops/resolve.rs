@@ -1,5 +1,7 @@
 #[cfg(feature = "std")]
 use crate::ToCLSource;
+#[cfg(feature = "std")]
+use crate::ToWgslSource;
 
 /// Resolves to either a mathematical expression as string or a computed value.
 /// This is used to create generic kernels / operations over `OpenCL`, `CUDA` and `CPU`.
@@ -126,7 +128,7 @@ impl<T> Resolve<T> {
     }
 }
 
-impl<T: Copy> crate::Eval<T> for Resolve<T> {
+impl<T: Copy + 'static> crate::Eval<T> for Resolve<T> {
     #[inline]
     fn eval(&self) -> T {
         self.val
@@ -137,6 +139,14 @@ impl<T: Copy> crate::Eval<T> for Resolve<T> {
 impl<T> ToCLSource for Resolve<T> {
     #[inline]
     fn to_cl_source(&self) -> String {
+        self.marker.to_string()
+    }
+}
+
+#[cfg(feature = "std")]
+impl<T> ToWgslSource for Resolve<T> {
+    #[inline]
+    fn to_wgsl_source(&self) -> String {
         self.marker.to_string()
     }
 }

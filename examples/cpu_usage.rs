@@ -6,7 +6,7 @@ fn main() {
 
     // specify device for operation
     device.clear(&mut a);
-    assert_eq!(device.read(&a), [0; 6]);
+    assert_eq!(a.read(), [0; 6]);
 
     let device = CPU::<Base>::new();
 

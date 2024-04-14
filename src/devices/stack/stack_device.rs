@@ -101,17 +101,20 @@ where
         S: 'a;
 
     #[inline]
-    fn read<'a>(&self, buf: &'a Buffer<T, Stack, S>) -> Self::Read<'a> {
-        buf.data.array
+    fn read<'a>(&self, buf: &'a Self::Base<T, S>) -> Self::Read<'a>
+    where
+        Stack: 'a,
+    {
+        buf.array
     }
 
     #[inline]
     #[cfg(feature = "std")]
-    fn read_to_vec(&self, buf: &Buffer<T, Stack, S>) -> Vec<T>
+    fn read_to_vec(&self, buf: &Self::Base<T, S>) -> Vec<T>
     where
         T: Default,
     {
-        buf.data.flatten().to_vec()
+        buf.flatten().to_vec()
     }
 }
 

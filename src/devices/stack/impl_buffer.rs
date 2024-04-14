@@ -4,26 +4,6 @@ use crate::{
     Buffer, StackArray,
 };
 
-/*impl<'a, T, const N: usize> From<[T; N]> for Buffer<'a, T, Stack, N> {
-    fn from(array: [T; N]) -> Self {
-        Buffer {
-            data: StackArray::new(array),
-            device: Some(&Stack::new()),
-            node: Node::default(),
-        }
-    }
-}
-
-impl<'a, T: Copy, const N: usize> From<&[T; N]> for Buffer<'a, T, Stack, N> {
-    fn from(array: &[T; N]) -> Self {
-        Buffer {
-            data: StackArray::new(*array),
-            device: Some(&Stack::new()),
-            node: Node::default(),
-        }
-    }
-}*/
-
 impl<'a, T, const N: usize> From<(&'a Stack, [T; N])> for Buffer<'a, T, Stack, Dim1<N>> {
     fn from((dev, array): (&'a Stack, [T; N])) -> Self {
         Buffer {
@@ -65,5 +45,17 @@ impl<'a, T: Copy + Default, const N: usize, const A: usize, const B: usize>
             data: arr,
             device: Some(dev),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::{Device, Stack};
+
+    #[test]
+    fn test_from_1d_array_stack() {
+        let dev = Stack::new();
+        let _buf = dev.with_shape([[1, 2, 3]]);
+        // let dev.buffer([1, 2, 3, 4]);
     }
 }

@@ -1,44 +1,75 @@
 use crate::{
-    bounds_to_range, AsAny, BoxedShallowCopy, Buffers, Device, Parents, UniqueId, UpdateArgs,
-    UpdateArgsDynable,
+    bounds_to_range, op_hint::OpHint, AsAny, BoxedShallowCopy, Buffers, Device, Parents, UniqueId,
+    UpdateArgs, UpdateArgsDynable,
 };
 use core::{mem::transmute, ops::RangeBounds};
 
 use super::exec_iter::{exec_op, ExecIter};
 
-pub struct LazyGraph<B = Box<dyn BoxedShallowCopy>> {
-    pub ids_to_check: Vec<Vec<Option<UniqueId>>>,
-    pub ops: Vec<fn(*mut ()) -> crate::Result<()>>,
-    pub args: Vec<Box<dyn UpdateArgsDynable<B>>>,
+pub struct Operation<B, T> {
+    pub op_hint: OpHint<T>,
+    pub arg_ids: Vec<Option<UniqueId>>,
+    pub op: fn(*mut ()) -> crate::Result<()>,
+    pub args: Box<dyn UpdateArgsDynable<B>>,
 }
 
-impl<B> Default for LazyGraph<B> {
-    #[inline]
-    fn default() -> Self {
+impl<B: AsAny, T> Operation<B, T> {
+    pub fn no_op() -> Self {
         Self {
-            ids_to_check: Vec::default(),
-            ops: Vec::default(),
-            args: Vec::default(),
+            op_hint: OpHint::None,
+            arg_ids: vec![None],
+            op: |_: *mut ()| Ok(()),
+            args: Box::new(()),
         }
     }
 }
 
-impl<B: AsAny> LazyGraph<B> {
+pub struct LazyGraph<B = Box<dyn BoxedShallowCopy>, T = ()> {
+    pub operations: Vec<Operation<B, T>>,
+}
+
+impl<B, T> Default for LazyGraph<B, T> {
     #[inline]
-    pub fn iter_with<'a>(&'a mut self, buffers: &'a mut Buffers<B>) -> ExecIter<B> {
+    fn default() -> Self {
+        Self {
+            operations: Vec::new(),
+        }
+    }
+}
+
+impl<B: AsAny, T> LazyGraph<B, T> {
+    #[inline]
+    pub fn iter_with<'a>(&'a mut self, buffers: &'a mut Buffers<B>) -> ExecIter<B, T> {
         ExecIter {
-            ids_to_check: self.ids_to_check.iter(),
-            ops: self.ops.iter(),
-            args: self.args.iter_mut(),
+            operations: self.operations.iter_mut(),
             buffers,
         }
     }
 
     #[inline]
     pub fn clear(&mut self) {
-        self.ids_to_check.clear();
-        self.ops.clear();
-        self.args.clear();
+        self.operations.clear();
+    }
+
+    pub unsafe fn convert_to_operation<Args: Parents<N> + UpdateArgs, const N: usize>(
+        args: Args,
+        op: fn(&mut Args) -> crate::Result<()>,
+    ) -> Operation<B, T> {
+        // store ids and test if buffers are still in cache
+        let arg_ids = args
+            .maybe_ids()
+            .into_iter()
+            .map(|id| id.map(|id| *id))
+            .collect();
+
+        let args: Box<dyn UpdateArgsDynable<B>> = Box::new(args);
+
+        Operation {
+            arg_ids,
+            op: transmute(op),
+            args: transmute(args),
+            op_hint: OpHint::None,
+        }
     }
 
     pub fn add_operation<Args: Parents<N> + UpdateArgs, const N: usize>(
@@ -46,18 +77,8 @@ impl<B: AsAny> LazyGraph<B> {
         args: Args,
         op: fn(&mut Args) -> crate::Result<()>,
     ) {
-        // store ids and test if buffers are still in cache
-        self.ids_to_check.push(
-            args.maybe_ids()
-                .into_iter()
-                .map(|id| id.map(|id| *id))
-                .collect(),
-        );
-
-        let args: Box<dyn UpdateArgsDynable<B>> = Box::new(args);
-
-        self.args.push(unsafe { transmute(args) });
-        unsafe { self.ops.push(transmute(op)) };
+        let operation = unsafe { Self::convert_to_operation(args, op) };
+        self.operations.push(operation)
     }
 
     pub unsafe fn call_lazily<D: Device + 'static>(
@@ -75,16 +96,10 @@ impl<B: AsAny> LazyGraph<B> {
         bounds: impl RangeBounds<usize>,
         outs_unordered: &mut Buffers<B>,
     ) -> crate::Result<()> {
-        let range = bounds_to_range(bounds, self.args.len());
-        for ((mut args, op), ids_to_check) in self
-            .args
-            .drain(range.clone())
-            .zip(self.ops.drain(range.clone()))
-            .zip(self.ids_to_check.drain(range.clone()))
-        {
-            exec_op(&mut args, &op, &ids_to_check, outs_unordered)?;
+        let range = bounds_to_range(bounds, self.operations.len());
+        for mut op in self.operations.drain(range) {
+            exec_op(&mut op.args, &op.op, &op.arg_ids, outs_unordered)?;
         }
-
         Ok(())
     }
 }
@@ -103,7 +118,7 @@ mod tests {
     #[should_panic]
     fn test_lazy_op_args_args_out_of_scope() {
         let device = CPU::<Base>::new();
-        let mut graph = LazyGraph::default();
+        let mut graph: LazyGraph = LazyGraph::default();
         let mut outs_unordered = HashMap::default();
 
         let _out_id = {
@@ -130,7 +145,7 @@ mod tests {
     #[test]
     fn test_lazy_op_args() {
         let device = CPU::<Base>::new();
-        let mut graph = LazyGraph::default();
+        let mut graph: LazyGraph = LazyGraph::default();
 
         let lhs = device.buffer([1f32, 2., 3., 4., 5.]);
         let rhs = device.buffer([1f32, 2., 6., 4., 5.]);
@@ -156,7 +171,8 @@ mod tests {
     #[test]
     fn test_lazy_op_args_no_out_but_use_loop() {
         let device = CPU::<Base>::new();
-        let mut graph = LazyGraph::default();
+
+        let mut graph: LazyGraph = LazyGraph::default();
 
         let lhs = device.buffer([1f32, 2., 3., 4., 5.]);
         let rhs = device.buffer([1f32, 2., 6., 4., 5.]);
@@ -187,7 +203,8 @@ mod tests {
     #[test]
     fn test_lazy_op_args_no_out_but_use() {
         let device = CPU::<Base>::new();
-        let mut graph = LazyGraph::default();
+
+        let mut graph: LazyGraph = LazyGraph::default();
 
         let lhs = device.buffer([1f32, 2., 3., 4., 5.]);
         let rhs = device.buffer([1f32, 2., 6., 4., 5.]);
@@ -214,7 +231,8 @@ mod tests {
     #[test]
     fn test_lazy_op_args_with_ew_fn() {
         let device = CPU::<Base>::new();
-        let mut graph = LazyGraph::default();
+
+        let mut graph: LazyGraph = LazyGraph::default();
 
         let lhs = device.buffer([1f32, 2., 3., 4., 5.]);
         let rhs = device.buffer([1f32, 2., 6., 4., 5.]);

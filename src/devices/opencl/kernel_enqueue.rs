@@ -159,18 +159,20 @@ pub fn enqueue_kernel(
     }
 
     for (idx, arg) in args.iter().enumerate() {
-        set_kernel_arg(
-            kernel,
-            idx,
-            arg.as_cvoid_ptr(),
-            arg.ptr_size(),
-            arg.is_num(),
-        )?;
+        unsafe {
+            set_kernel_arg(
+                kernel,
+                idx,
+                arg.as_cvoid_ptr(),
+                arg.ptr_size(),
+                arg.is_num(),
+            )?;
+        }
     }
 
     // with waitlist:
     // device.inner.enqueue_nd_range_kernel(kernel, wd, &gws, lws.as_ref(), None);
-    enqueue_nd_range_kernel(device.queue(), kernel, wd, &gws, lws.as_ref(), None)?;
+    unsafe { enqueue_nd_range_kernel(device.queue(), kernel, wd, &gws, lws.as_ref(), None)? };
     Ok(())
 }
 

@@ -28,7 +28,7 @@ use crate::ForkSetup;
 ///     let device = OpenCL::<Base>::new(0)?;
 ///     
 ///     let a = Buffer::from((&device, [1.3; 25]));
-///     let out = device.read(&a);
+///     let out = a.read();
 ///     
 ///     assert_eq!(out, vec![1.3; 5*5]);
 ///     Ok(())
@@ -45,12 +45,6 @@ pub struct OpenCL<Mods = Base> {
 /// Short form for `OpenCL`
 pub type CL<Mods> = OpenCL<Mods>;
 
-/*impl<Mods> HasCPU<Base> for OpenCL<Mods> {
-    #[inline]
-    fn cpu(&self) -> &crate::CPU {
-        &self.cpu
-    }
-}*/
 impl_device_traits!(OpenCL);
 
 impl<Mods> Deref for OpenCL<Mods> {
@@ -116,7 +110,8 @@ impl<Mods> OpenCL<Mods> {
             panic!("
                 Your selected compute device does not support unified memory! 
                 You are probably using a laptop.
-                Launch with environment variable `CUSTOS_USE_UNIFIED=false` or change `CUSTOS_CL_DEVICE_IDX=<idx:default=0>`
+                Launch with environment variable `CUSTOS_USE_UNIFIED=false` or change `CUSTOS_CL_DEVICE_IDX=<idx:default=0>`.
+                `CUSTOS_CL_DEVICE_IDX` is used to determine during compile-time if custos should be configured to use unified memory (reduces memory transfers).
             ")
         }
     }
@@ -222,10 +217,12 @@ impl<Mods: OnDropBuffer, T> Alloc<T> for OpenCL<Mods> {
             len = S::LEN
         }
 
-        let ptr = create_buffer::<T>(self.ctx(), MemFlags::MemReadWrite as u64, len, None).unwrap();
+        let ptr = unsafe {
+            create_buffer::<T>(self.ctx(), MemFlags::MemReadWrite as u64, len, None).unwrap()
+        };
 
         let host_ptr = if self.unified_mem() {
-            unified_ptr::<T>(self.queue(), ptr, len).unwrap()
+            unsafe { unified_ptr::<T>(self.queue(), ptr, len).unwrap() }
         } else {
             std::ptr::null_mut()
         };
@@ -239,16 +236,18 @@ impl<Mods: OnDropBuffer, T> Alloc<T> for OpenCL<Mods> {
     }
 
     fn alloc_from_slice<S: Shape>(&self, data: &[T]) -> CLPtr<T> {
-        let ptr = create_buffer::<T>(
-            self.ctx(),
-            MemFlags::MemReadWrite | MemFlags::MemCopyHostPtr,
-            data.len(),
-            Some(data),
-        )
-        .unwrap();
+        let ptr = unsafe {
+            create_buffer::<T>(
+                self.ctx(),
+                MemFlags::MemReadWrite | MemFlags::MemCopyHostPtr,
+                data.len(),
+                Some(data),
+            )
+            .unwrap()
+        };
 
         let host_ptr = if self.unified_mem() {
-            unified_ptr::<T>(self.queue(), ptr, data.len()).unwrap()
+            unsafe { unified_ptr::<T>(self.queue(), ptr, data.len()).unwrap() }
         } else {
             std::ptr::null_mut()
         };
@@ -265,8 +264,15 @@ impl<Mods: OnDropBuffer, T> Alloc<T> for OpenCL<Mods> {
 impl<'a, T, Mods: OnDropBuffer + OnNewBuffer<T, Self, ()>> CloneBuf<'a, T> for OpenCL<Mods> {
     fn clone_buf(&'a self, buf: &Buffer<'a, T, Self>) -> Buffer<'a, T, Self> {
         let cloned = Buffer::new(self, buf.len());
-        enqueue_full_copy_buffer::<T>(self.queue(), buf.base().ptr, cloned.base().ptr, buf.len())
-            .unwrap();
+        unsafe {
+            enqueue_full_copy_buffer::<T>(
+                self.queue(),
+                buf.base().ptr,
+                cloned.base().ptr,
+                buf.len(),
+            )
+            .unwrap()
+        };
         cloned
     }
 }
@@ -274,12 +280,7 @@ impl<'a, T, Mods: OnDropBuffer + OnNewBuffer<T, Self, ()>> CloneBuf<'a, T> for O
 #[cfg(feature = "fork")]
 impl<Mods> ForkSetup for OpenCL<Mods> {
     #[inline]
-    fn fork_setup(&mut self) {
-        assert!(
-            self.unified_mem(),
-            "The selected device does not support unified memory."
-        )
-    }
+    fn fork_setup(&mut self) {}
 
     #[inline]
     fn has_unified_mem(&self) -> bool {
@@ -308,6 +309,8 @@ mod tests {
 
     #[test]
     fn test_fastest_cl_device() {
+        // let dev = min_cl::CLDevice::fastest().unwrap();
+        // println!("dev: {}", dev.name().unwrap());
         let _device = OpenCL::<Base>::fastest().unwrap();
     }
 

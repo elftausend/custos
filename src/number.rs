@@ -598,6 +598,11 @@ impl Float for half::f16 {
     fn abs(&self) -> Self {
         Self::from_f32(self.to_f32().abs())
     }
+
+    #[inline]
+    fn from_f64(value: f64) -> Self {
+        Self::from_f64(value)
+    }
 }
 
 #[cfg(feature = "half")]
@@ -660,5 +665,10 @@ impl Float for half::bf16 {
     #[inline]
     fn abs(&self) -> Self {
         Self::from_f32(self.to_f32().abs())
+    }
+
+    #[inline]
+    fn from_f64(value: f64) -> Self {
+        Self::from_f64(value)
     }
 }

@@ -82,7 +82,10 @@ where
 #[cfg(feature = "cpu")]
 #[cfg(test)]
 mod tests {
-    use crate::{Alloc, Base, Buffer, Device, Dim1, Retrieve, Retriever, Shape, CPU};
+    use crate::{
+        tests_helper::add_ew_slice, Alloc, Base, Buffer, Device, Dim1, Retrieve, Retriever, Shape,
+        CPU,
+    };
     use core::ops::{Add, Deref};
 
     use super::stack_device::Stack;
@@ -112,15 +115,13 @@ mod tests {
     where
         D: Device,
         D::Base<T, ()>: Deref<Target = [T]>,
-        T: Add<Output = T> + Clone,
+        T: Add<Output = T> + Copy,
     {
         fn add(&self, lhs: &Buffer<T, D>, rhs: &Buffer<T, D>) -> Buffer<T, Self> {
             let len = core::cmp::min(lhs.len(), rhs.len());
 
             let mut out = self.retrieve(len, (lhs, rhs));
-            for i in 0..len {
-                out[i] = lhs[i].clone() + rhs[i].clone();
-            }
+            add_ew_slice(lhs, rhs, &mut out);
             out
         }
     }

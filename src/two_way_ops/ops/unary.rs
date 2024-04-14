@@ -1,7 +1,7 @@
 use crate::{prelude::Float, Combiner, Eval};
 
 #[cfg(feature = "std")]
-use super::ToCLSource;
+use super::{ToCLSource, ToWgslSource};
 
 pub struct Identity<C> {
     pub comb: C,
@@ -24,6 +24,13 @@ impl<C: ToCLSource> ToCLSource for Identity<C> {
     }
 }
 
+#[cfg(feature = "std")]
+impl<C: ToWgslSource> ToWgslSource for Identity<C> {
+    #[inline]
+    fn to_wgsl_source(&self) -> String {
+        self.comb.to_wgsl_source()
+    }
+}
 pub struct Exp<C> {
     pub comb: C,
 }
@@ -43,6 +50,14 @@ impl<C: ToCLSource> ToCLSource for Exp<C> {
     #[inline]
     fn to_cl_source(&self) -> String {
         format!("exp({})", self.comb.to_cl_source())
+    }
+}
+
+#[cfg(feature = "std")]
+impl<C: ToWgslSource> ToWgslSource for Exp<C> {
+    #[inline]
+    fn to_wgsl_source(&self) -> String {
+        format!("exp({})", self.comb.to_wgsl_source())
     }
 }
 
@@ -68,6 +83,14 @@ impl<C: ToCLSource> ToCLSource for Sin<C> {
     }
 }
 
+#[cfg(feature = "std")]
+impl<C: ToWgslSource> ToWgslSource for Sin<C> {
+    #[inline]
+    fn to_wgsl_source(&self) -> String {
+        format!("sin({})", self.comb.to_wgsl_source())
+    }
+}
+
 pub struct Cos<C> {
     pub comb: C,
 }
@@ -87,6 +110,14 @@ impl<C: ToCLSource> ToCLSource for Cos<C> {
     #[inline]
     fn to_cl_source(&self) -> String {
         format!("cos({})", self.comb.to_cl_source())
+    }
+}
+
+#[cfg(feature = "std")]
+impl<C: ToWgslSource> ToWgslSource for Cos<C> {
+    #[inline]
+    fn to_wgsl_source(&self) -> String {
+        format!("cos({})", self.comb.to_wgsl_source())
     }
 }
 
@@ -112,6 +143,13 @@ impl<C: ToCLSource> ToCLSource for Tan<C> {
     }
 }
 
+#[cfg(feature = "std")]
+impl<C: ToWgslSource> ToWgslSource for Tan<C> {
+    #[inline]
+    fn to_wgsl_source(&self) -> String {
+        format!("tan({})", self.comb.to_wgsl_source())
+    }
+}
 pub struct Tanh<C> {
     pub comb: C,
 }
@@ -130,6 +168,14 @@ impl<C: ToCLSource> ToCLSource for Tanh<C> {
     #[inline]
     fn to_cl_source(&self) -> String {
         format!("tanh({})", self.comb.to_cl_source())
+    }
+}
+
+#[cfg(feature = "std")]
+impl<C: ToWgslSource> ToWgslSource for Tanh<C> {
+    #[inline]
+    fn to_wgsl_source(&self) -> String {
+        format!("tanh({})", self.comb.to_wgsl_source())
     }
 }
 
@@ -154,6 +200,14 @@ impl<C: ToCLSource> ToCLSource for Neg<C> {
     }
 }
 
+#[cfg(feature = "std")]
+impl<C: ToWgslSource> ToWgslSource for Neg<C> {
+    #[inline]
+    fn to_wgsl_source(&self) -> String {
+        format!("-({})", self.comb.to_wgsl_source())
+    }
+}
+
 pub struct Ln<C> {
     pub comb: C,
 }
@@ -172,5 +226,42 @@ impl<C: ToCLSource> ToCLSource for Ln<C> {
     #[inline]
     fn to_cl_source(&self) -> String {
         format!("log({})", self.comb.to_cl_source())
+    }
+}
+
+#[cfg(feature = "std")]
+impl<C: ToWgslSource> ToWgslSource for Ln<C> {
+    #[inline]
+    fn to_wgsl_source(&self) -> String {
+        format!("log({})", self.comb.to_wgsl_source())
+    }
+}
+
+pub struct Abs<C> {
+    pub comb: C,
+}
+
+impl<C> Combiner for Abs<C> {}
+
+impl<T: Float, C: Eval<T>> Eval<T> for Abs<C> {
+    #[inline]
+    fn eval(&self) -> T {
+        Float::abs(&self.comb.eval())
+    }
+}
+
+#[cfg(feature = "std")]
+impl<C: ToCLSource> ToCLSource for Abs<C> {
+    #[inline]
+    fn to_cl_source(&self) -> String {
+        format!("abs({})", self.comb.to_cl_source())
+    }
+}
+
+#[cfg(feature = "std")]
+impl<C: ToWgslSource> ToWgslSource for Abs<C> {
+    #[inline]
+    fn to_wgsl_source(&self) -> String {
+        format!("abs({})", self.comb.to_wgsl_source())
     }
 }

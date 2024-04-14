@@ -30,6 +30,9 @@ pub mod network;
 #[cfg(feature = "nnapi")]
 pub mod nnapi;
 
+#[cfg(feature = "untyped")]
+pub mod untyped;
+
 mod stack_array;
 pub use stack_array::*;
 
@@ -41,6 +44,9 @@ pub use alloc::*;
 
 #[cfg(any(feature = "cpu", feature = "stack"))]
 pub mod cpu_stack_ops;
+
+pub mod fusing;
+pub use fusing::*;
 
 use crate::{Buffer, HasId, OnDropBuffer, Parents, PtrType, Shape};
 
@@ -65,7 +71,7 @@ pub trait Device: OnDropBuffer + Sized {
         data: &mut Self::Data<T, S>,
     ) -> &mut Self::Wrap<T, Self::Base<T, S>>;
 
-    /// Creates a new [`Buffer`] using `A`.
+    /// Creates a new [`Buffer`] using `A`, typically an array type.
     ///
     /// # Example
     #[cfg_attr(feature = "cpu", doc = "```")]
@@ -82,6 +88,16 @@ pub trait Device: OnDropBuffer + Sized {
         Buffer<'a, T, Self, S>: From<(&'a Self, A)>,
     {
         Buffer::from((self, arr))
+    }
+
+    /// Creates a new [`Buffer`] using `A`, where `A` is typically an ND-array type.
+    /// The [`Shape`] `S` is inferred from the ND-array.
+    fn with_shape<'a, T, S: Shape, A>(&'a self, arr: A) -> Buffer<'a, T, Self, S>
+    where
+        Buffer<'a, T, Self, S>: crate::WithShape<'a, Self, A>,
+    {
+        use crate::WithShape;
+        Buffer::with(self, arr)
     }
 }
 

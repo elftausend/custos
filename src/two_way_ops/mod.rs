@@ -1,5 +1,15 @@
+mod eval;
 mod ops;
 mod resolve;
+pub use eval::*;
+
+#[cfg(feature = "std")]
+mod to_cl_source;
+#[cfg(feature = "std")]
+pub use to_cl_source::*;
+
+mod combiner;
+pub use combiner::*;
 
 #[cfg(feature = "std")]
 mod to_wgsl_source;
@@ -8,17 +18,21 @@ pub use resolve::*;
 #[cfg(feature = "std")]
 pub use to_wgsl_source::*;
 
-use crate::prelude::Numeric;
+/// If the `no-std` feature is disabled, this trait is implemented for all types that implement [`ToCLSource`].
+/// In this case, `no-std` is enabled and no C source string can be generated.
+#[cfg(not(feature = "std"))]
+pub trait MayToCLSource {}
+#[cfg(not(feature = "std"))]
+impl<T> MayToCLSource for T {}
 
-use self::ops::{
-    Add, Cos, Div, Eq, Exp, GEq, Identity, LEq, Ln, Max, Min, Mul, Neg, Pow, Sin, Sub, Tan, Tanh,
-};
+#[cfg(not(feature = "std"))]
+pub trait MayToWgslSource {}
+#[cfg(not(feature = "std"))]
+impl<T> MayToWgslSource for T {}
 
-#[cfg(feature = "std")]
-pub trait TwoWay<T>: Eval<T> + ToCLSource {}
+pub trait TwoWay<T>: Eval<T> + MayToCLSource + MayToWgslSource {}
 
-#[cfg(feature = "std")]
-impl<T, A: Eval<T> + ToCLSource> TwoWay<T> for A {}
+impl<T, A: Eval<T> + MayToCLSource + MayToWgslSource> TwoWay<T> for A {}
 
 // impl<T> dyn TwoWay<T> + '_ {
 //     pub fn eval(&self) -> T
@@ -34,181 +48,6 @@ impl<T, A: Eval<T> + ToCLSource> TwoWay<T> for A {}
 //     //     self.eval()
 //     // }
 // }
-
-/// Evaluates a combined (via [`Combiner`]) math operations chain to a valid OpenCL C (and possibly CUDA) source string.
-#[cfg(feature = "std")]
-pub trait ToCLSource {
-    /// Evaluates a combined (via [`Combiner`]) math operations chain to a valid OpenCL C (and possibly CUDA) source string.
-    fn to_cl_source(&self) -> String;
-}
-
-#[cfg(feature = "std")]
-impl<N: crate::number::Numeric> ToCLSource for N {
-    #[inline]
-    fn to_cl_source(&self) -> String {
-        format!("{:?}", self)
-    }
-}
-
-#[cfg(feature = "std")]
-impl ToCLSource for &'static str {
-    #[inline]
-    fn to_cl_source(&self) -> String {
-        self.to_string()
-    }
-}
-
-#[cfg(feature = "std")]
-impl ToCLSource for String {
-    #[inline]
-    fn to_cl_source(&self) -> String {
-        self.to_string()
-    }
-}
-
-/// If the `no-std` feature is disabled, this trait is implemented for all types that implement [`ToCLSource`].
-/// In this case, `no-std` is disabled.
-#[cfg(feature = "std")]
-pub trait MayToCLSource: ToCLSource + Combiner {}
-#[cfg(feature = "std")]
-impl<T: ToCLSource + Combiner> MayToCLSource for T {}
-
-/// If the `no-std` feature is disabled, this trait is implemented for all types that implement [`ToCLSource`].
-/// In this case, `no-std` is enabled and no C source string can be generated.
-#[cfg(not(feature = "std"))]
-pub trait MayToCLSource {}
-#[cfg(not(feature = "std"))]
-impl<T> MayToCLSource for T {}
-
-/// Evaluates a combined (via [`Combiner`]) math operations chain to a value.
-pub trait Eval<T> {
-    /// Evaluates a combined (via [`Combiner`]) math operations chain to a value.
-    /// # Example
-    /// ```
-    /// use custos::{Eval, Combiner};
-    ///
-    /// let x = 1.5f32.add(2.5).mul(3.5).eval();
-    ///
-    /// assert_eq!(x, 14.);
-    /// ```
-    fn eval(&self) -> T;
-}
-
-impl<T: Copy> Eval<T> for T {
-    #[inline]
-    fn eval(&self) -> T {
-        *self
-    }
-}
-
-impl<T: Numeric> Combiner for T {}
-
-/// A trait that allows combining math operations.
-/// (Similiar to an Iterator)
-pub trait Combiner: Sized {
-    /// Combines two values into a new one via an addition.
-    #[inline]
-    fn add<R>(self, rhs: R) -> Add<Self, R> {
-        Add::new(self, rhs)
-    }
-
-    /// Combines two values into a new one via an multiplication.
-    #[inline]
-    fn mul<R>(self, rhs: R) -> Mul<Self, R> {
-        Mul::new(self, rhs)
-    }
-
-    /// Combines two values into a new one via an subtraction.
-    #[inline]
-    fn sub<R>(self, rhs: R) -> Sub<Self, R> {
-        Sub::new(self, rhs)
-    }
-
-    /// Combines two values into a new one via an division.
-    #[inline]
-    fn div<R>(self, rhs: R) -> Div<Self, R> {
-        Div::new(self, rhs)
-    }
-
-    /// Calculates the sine of a value.
-    #[inline]
-    fn sin(self) -> Sin<Self> {
-        Sin { comb: self }
-    }
-
-    /// Calculates the cosine of a value.
-    #[inline]
-    fn cos(self) -> Cos<Self> {
-        Cos { comb: self }
-    }
-
-    /// Calculates the tangent of a value.
-    #[inline]
-    fn tan(self) -> Tan<Self> {
-        Tan { comb: self }
-    }
-
-    /// Combined two values into a new one via exponentiation.
-    #[inline]
-    fn pow<R>(self, rhs: R) -> Pow<Self, R> {
-        Pow::new(self, rhs)
-    }
-
-    /// Checks if the left value is greater than the right value.
-    #[inline]
-    fn geq<R>(self, rhs: R) -> GEq<Self, R> {
-        GEq { comb: self, rhs }
-    }
-
-    /// Checks if the left value is less than the right value.
-    #[inline]
-    fn leq<R>(self, rhs: R) -> LEq<Self, R> {
-        LEq { comb: self, rhs }
-    }
-
-    /// Checks if the left value is equal to the right value.
-    #[inline]
-    fn eq<R>(self, rhs: R) -> Eq<Self, R> {
-        Eq { comb: self, rhs }
-    }
-
-    /// Negates a value.
-    #[inline]
-    fn neg(self) -> Neg<Self> {
-        Neg { comb: self }
-    }
-
-    /// Calculates the e^x of a value.
-    #[inline]
-    fn exp(self) -> Exp<Self> {
-        Exp { comb: self }
-    }
-
-    #[inline]
-    fn tanh(self) -> Tanh<Self> {
-        Tanh { comb: self }
-    }
-
-    #[inline]
-    fn identity(self) -> Identity<Self> {
-        Identity { comb: self }
-    }
-
-    #[inline]
-    fn min<R>(self, rhs: R) -> Min<Self, R> {
-        Min { comb: self, rhs }
-    }
-
-    #[inline]
-    fn max<R>(self, rhs: R) -> Max<Self, R> {
-        Max { comb: self, rhs }
-    }
-
-    #[inline]
-    fn ln(self) -> Ln<Self> {
-        Ln { comb: self }
-    }
-}
 
 #[cfg(test)]
 pub mod tests_ex {
@@ -235,6 +74,8 @@ pub mod tests_ex {
     #[cfg(any(feature = "std", feature = "no-std"))]
     #[test]
     fn test_neg_tan() {
+        use crate::tests_helper::roughly_eq_slices;
+
         let f = |x: Resolve<f32>| x.tan().neg();
 
         let res: f32 = f(2f32.to_val()).eval();
@@ -335,6 +176,8 @@ pub mod tests_ex {
     #[cfg(feature = "std")]
     #[test]
     fn test_str_result_two_args2() {
+        use crate::tests_helper::roughly_eq_slices;
+
         let f = |x: Resolve<f32>, y: Resolve<f32>| x.add(y).mul(3.6).sub(y);
 
         let a = f(4f32.to_val(), 3f32.to_val());
@@ -353,19 +196,6 @@ pub mod tests_ex {
 
         let r = f(Resolve::default()).to_cl_source();
         assert_eq!("((((x + 2.0) * x) + (x * 8.0)) * 5.0)", r);
-    }
-
-    pub fn roughly_eq_slices<T: Float>(lhs: &[T], rhs: &[T]) {
-        for (a, b) in lhs.iter().zip(rhs) {
-            if (*a - *b).abs() >= T::as_generic(0.1) {
-                panic!(
-                    "Slices 
-                    left {lhs:?} 
-                    and right {rhs:?} do not equal. 
-                    Encountered diffrent value: {a}, {b}"
-                )
-            }
-        }
     }
 
     #[cfg(feature = "cpu")]
@@ -430,7 +260,7 @@ pub mod tests_ex {
     #[cfg(all(feature = "cpu", feature = "macro"))]
     #[test]
     fn test_run_apply_fn_cpu_more_complex() {
-        use crate::{ApplyFunction, Base, Buffer, CPU};
+        use crate::{tests_helper::roughly_eq_slices, ApplyFunction, Base, Buffer, CPU};
 
         let device = CPU::<Base>::new();
 
@@ -453,7 +283,10 @@ pub mod tests_ex {
     #[cfg(feature = "opencl")]
     #[test]
     fn test_run_apply_fn_opencl_more_complex() -> crate::Result<()> {
-        use crate::{opencl::chosen_cl_idx, ApplyFunction, Base, Buffer, OpenCL};
+        use crate::{
+            opencl::chosen_cl_idx, tests_helper::roughly_eq_slices, ApplyFunction, Base, Buffer,
+            OpenCL,
+        };
 
         let device = OpenCL::<Base>::new(chosen_cl_idx())?;
 
@@ -478,7 +311,7 @@ pub mod tests_ex {
     #[cfg(feature = "vulkan")]
     #[test]
     fn test_run_apply_fn_vulkan_more_complex() -> crate::Result<()> {
-        use crate::{ApplyFunction, Base, Buffer, Vulkan};
+        use crate::{tests_helper::roughly_eq_slices, ApplyFunction, Base, Buffer, Vulkan};
 
         let device = Vulkan::<Base>::new(0)?;
 
@@ -486,7 +319,7 @@ pub mod tests_ex {
 
         let buf = device.apply_fn(&buf, |x| x.mul(2.).add(4.).sin().mul(x).add(1.));
         roughly_eq_slices(
-            buf.read(),
+            &buf.read(),
             &[
                 -0.632_063_3,
                 -0.632_063_3,
@@ -503,7 +336,7 @@ pub mod tests_ex {
     #[cfg(feature = "std")]
     fn test(x: &dyn crate::TwoWay<f32>) {
         x.to_cl_source();
-        let a: f32 = x.eval();
+        let _a: f32 = x.eval();
         // x.eval::<f32>();
     }
 
@@ -555,6 +388,6 @@ pub mod tests_ex {
 
         // let y: f32 = f(3f32.to_val()).eval();
 
-        let src = f("x".to_marker()).to_cl_source();
+        let _src = f("x".to_marker()).to_cl_source();
     }
 }

@@ -4,7 +4,7 @@ use crate::{
     cuda::api::{
         cuLaunchKernel, cuOccupancyMaxPotentialBlockSize, load_module_data, nvrtc::create_program,
     },
-    Base, Buffer, Read, CUDA,
+    Base, Buffer, CUDA,
 };
 
 #[test]
@@ -91,7 +91,7 @@ fn test_occupancy() -> crate::Result<()> {
 
     println!("end: {:?}", start.elapsed());
 
-    let read = device.read(&c);
+    let read = c.read();
     println!("read: {read:?}");
 
     assert_eq!(read, vec![5, 3, 10, 10, 14]);

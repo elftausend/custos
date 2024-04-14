@@ -1,7 +1,9 @@
 # Modules
+This file may contain uncompilable code snippets. [modules.rs](examples/modules.rs) contains up-to-date code.
 
 `custos` ships combineable modules. Different selected modules result in different behaviour when executing operations.<br>
 How is this possible? Module-related operations must be called in the custom operation. These module-related operations are defined via traits that can be implemented for any module.
+An example, implementing a custom module, is given in the [custom_module.rs](examples/custom_module.rs) file.
 
 A base(d) custom operation looks as follows:
 (Element-wise addition)

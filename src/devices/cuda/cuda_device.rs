@@ -95,6 +95,20 @@ impl CudaDevice {
             args,
         )
     }
+
+    /// Lauches a CUDA kernel with the given arguments.
+    #[inline]
+    pub fn launch_kernel(
+        &self,
+        src: impl CudaSource,
+        fn_name: &str,
+        grid: [u32; 3],
+        blocks: [u32; 3],
+        shared_mem_bytes: u32,
+        params: &[&dyn AsCudaCvoidPtr],
+    ) -> crate::Result<()> {
+        super::launch_kernel(self, grid, blocks, shared_mem_bytes, src, fn_name, params)
+    }
 }
 
 impl Drop for CudaDevice {

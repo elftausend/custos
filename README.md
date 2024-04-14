@@ -15,6 +15,8 @@ This crate provides tools for executing custom array and automatic differentiati
 
 ## Installation
 
+The latest published version is of `0.7.x`. (April 14th, 2023). A lot has changed since. `0.7.x` can be found in the `custos-0.7` branch.
+
 Add "custos" as a dependency:
 ```toml
 [dependencies]
@@ -63,6 +65,7 @@ Remaining features:
 
 Feature | Description
 --- | --- 
+std | Adds standard library support.
 no-std | For no std environments, activates `stack` feature.
 static-api | Enables the creation of `Buffer`s without providing a device.
 macro | Reexport of [custos-macro]
@@ -77,8 +80,8 @@ blas | Adds gemm functions of the system's (selected) BLAS library.
 [unary]: https://github.com/elftausend/custos/blob/main/src/unary.rs
 
 Implement an operation for `CPU`:<br>
-- If you want to implement your own operations for all compute devices, consider looking here: [implement_operations.md](implement_operations.md)<br>
-or to see it at a larger scale, look here [`custos-math`](https://github.com/elftausend/custos-math) or here [`sliced`](https://github.com/elftausend/sliced) (for automatic diff examples).
+- If you want to implement your own operations for all compute devices, consider looking here: [implement_operations.rs](examples/implement_operations.rs)<br>
+or to see it at a larger scale, look here [`custos-math`](https://github.com/elftausend/custos-math) (outdated, requires custos 0.7) or here [`sliced`](https://github.com/elftausend/sliced) (for automatic diff examples).
 
 This operation is only affected by the `Cached` module (and partially `Autograd`).
 

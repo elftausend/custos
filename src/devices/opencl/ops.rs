@@ -9,10 +9,10 @@ use min_cl::{
 };
 
 use crate::{
-    bounds_to_range, cpu_stack_ops::clear_slice, location, pass_down_add_operation,
+    bounds_to_range, cpu_stack_ops::clear_slice, location, op_hint::unary, pass_down_add_operation,
     pass_down_exec_now, prelude::Number, AddOperation, ApplyFunction, AsNoId, BufAsNoId, Buffer,
-    CDatatype, ClearBuf, CopySlice, Eval, OnDropBuffer, OpenCL, Read, Resolve, Retrieve, Retriever,
-    Shape, ToCLSource, ToMarker, UnaryGrad, UseGpuOrCpu, WriteBuf, ZeroGrad,
+    CDatatype, ClearBuf, CopySlice, OnDropBuffer, OpenCL, Read, Resolve, Retrieve, Retriever,
+    SetOpHint, Shape, ToCLSource, ToMarker, TwoWay, UnaryGrad, UseGpuOrCpu, WriteBuf, ZeroGrad,
 };
 
 use super::{enqueue_kernel, CLPtr};
@@ -67,10 +67,10 @@ impl<Mods: OnDropBuffer, T: CDatatype> ZeroGrad<T> for OpenCL<Mods> {
 /// fn main() -> Result<(), custos::Error> {
 ///     let device = OpenCL::<Base>::new(0)?;
 ///     let mut lhs = Buffer::<i16, _>::from((&device, [15, 30, 21, 5, 8]));
-///     assert_eq!(device.read(&lhs), vec![15, 30, 21, 5, 8]);
+///     assert_eq!(lhs.read(), vec![15, 30, 21, 5, 8]);
 ///
 ///     try_cl_clear(&device, &mut lhs)?;
-///     assert_eq!(device.read(&lhs), vec![0; 5]);
+///     assert_eq!(lhs.read(), vec![0; 5]);
 ///     Ok(())
 /// }
 /// ```
@@ -98,13 +98,16 @@ impl<T, S: Shape, Mods: OnDropBuffer> WriteBuf<T, S> for OpenCL<Mods> {
     fn write(&self, buf: &mut Buffer<T, Self, S>, data: &[T]) {
         let event =
             unsafe { enqueue_write_buffer(self.queue(), buf.cl_ptr(), data, true).unwrap() };
-        wait_for_event(event).unwrap();
+        unsafe { wait_for_event(event).unwrap() };
     }
 
     #[inline]
     fn write_buf(&self, dst: &mut Buffer<T, Self, S>, src: &Buffer<T, Self, S>) {
         debug_assert_eq!(dst.len(), src.len());
-        enqueue_full_copy_buffer::<T>(self.queue(), src.cl_ptr(), dst.cl_ptr(), dst.len()).unwrap();
+        unsafe {
+            enqueue_full_copy_buffer::<T>(self.queue(), src.cl_ptr(), dst.cl_ptr(), dst.len())
+                .unwrap()
+        };
     }
 }
 
@@ -124,15 +127,17 @@ impl<T> CopySlice<T> for OpenCL {
             dest_range.end - dest_range.start
         );
 
-        enqueue_copy_buffer::<T>(
-            self.queue(),
-            source.data.ptr,
-            dest.data.ptr,
-            source_range.start,
-            dest_range.start,
-            source_range.end - source_range.start,
-        )
-        .unwrap();
+        unsafe {
+            enqueue_copy_buffer::<T>(
+                self.queue(),
+                source.data.ptr,
+                dest.data.ptr,
+                source_range.start,
+                dest_range.start,
+                source_range.end - source_range.start,
+            )
+            .unwrap()
+        };
     }
 
     fn copy_slice_all<I: IntoIterator<Item = (Range<usize>, Range<usize>)>>(
@@ -147,7 +152,10 @@ impl<T> CopySlice<T> for OpenCL {
             (from.start, to.start, len)
         });
 
-        enqueue_copy_buffers::<T, _>(self.queue(), source.data.ptr, dest.data.ptr, ranges).unwrap();
+        unsafe {
+            enqueue_copy_buffers::<T, _>(self.queue(), source.data.ptr, dest.data.ptr, ranges)
+                .unwrap()
+        };
     }
 }
 
@@ -158,20 +166,27 @@ impl<Mods: OnDropBuffer + 'static, T: Clone + Default, S: Shape> Read<T, S> for 
     type Read<'a> = &'a [T] where T: 'a;
 
     #[cfg(not(unified_cl))]
-    fn read<'a>(&self, buf: &'a Buffer<T, OpenCL<Mods>, S>) -> Self::Read<'a> {
-        self.read_to_vec(buf)
+    #[inline]
+    fn read<'a>(&self, buf: &'a Self::Base<T, S>) -> Self::Read<'a>
+    where
+        Self: 'a,
+    {
+        Read::<T, S>::read_to_vec(self, buf)
     }
 
     #[cfg(unified_cl)]
     #[inline]
-    fn read<'a>(&self, buf: &'a Buffer<T, Self, S>) -> Self::Read<'a> {
+    fn read<'a>(&self, buf: &'a Self::Base<T, S>) -> Self::Read<'a>
+    where
+        Self: 'a,
+    {
         use crate::HostPtr;
 
-        buf.as_slice()
+        unsafe { buf.as_slice() }
     }
 
     #[inline]
-    fn read_to_vec(&self, buf: &Buffer<T, Self, S>) -> Vec<T> {
+    fn read_to_vec(&self, buf: &Self::Base<T, S>) -> Vec<T> {
         try_read_cl_buf_to_vec(self, buf).unwrap()
     }
 }
@@ -182,7 +197,7 @@ fn try_read_cl_buf_to_vec<T: Clone + Default>(
 ) -> crate::Result<Vec<T>> {
     let mut read = vec![T::default(); buf.len()];
     let event = unsafe { enqueue_read_buffer(device.queue(), buf.ptr, &mut read, false)? };
-    wait_for_event(event).unwrap();
+    unsafe { wait_for_event(event).unwrap() };
     Ok(read)
 }
 
@@ -190,7 +205,7 @@ impl<T, S, Mods> ApplyFunction<T, S> for OpenCL<Mods>
 where
     T: CDatatype + Number,
     S: Shape,
-    Mods: AddOperation + Retrieve<Self, T, S> + UseGpuOrCpu + 'static,
+    Mods: AddOperation + Retrieve<Self, T, S> + UseGpuOrCpu + SetOpHint<T> + 'static,
 {
     #[inline]
     fn apply_fn<F>(
@@ -199,11 +214,11 @@ where
         f: impl Fn(Resolve<T>) -> F + Copy + 'static,
     ) -> Buffer<T, Self, S>
     where
-        F: ToCLSource + Eval<T>,
+        F: TwoWay<T>,
     {
         let mut out = self.retrieve(buf.len(), buf);
 
-        self.add_op((buf, f.no_id(), &mut out), |(buf, f, out)| {
+        self.add_op((&mut out, buf, f.no_id()), |(out, buf, f)| {
             let dev = buf.device();
             // let out: &mut Buffer<'_, T, OpenCL<Mods>, S> = out.as_mut().unwrap();
             let out = &mut **out;
@@ -225,7 +240,7 @@ where
             }
         })
         .unwrap();
-
+        self.set_op_hint(unary(f));
         out
     }
 }

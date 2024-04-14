@@ -116,6 +116,7 @@ pub mod hooks;
 mod id;
 mod layer_management;
 pub mod modules;
+mod op_hint;
 mod op_traits;
 mod parents;
 mod ptr_conv;
@@ -132,6 +133,7 @@ pub use hooks::*;
 pub use id::*;
 pub use layer_management::*;
 pub use modules::*;
+pub use number::*;
 pub use parents::*;
 pub use ptr_conv::*;
 pub use range::*;
@@ -173,13 +175,13 @@ pub trait HostPtr<T>: PtrType {
     fn ptr_mut(&mut self) -> *mut T;
 
     #[inline]
-    fn as_slice(&self) -> &[T] {
-        unsafe { core::slice::from_raw_parts(self.ptr(), self.size()) }
+    unsafe fn as_slice(&self) -> &[T] {
+        core::slice::from_raw_parts(self.ptr(), self.size())
     }
 
     #[inline]
-    fn as_mut_slice(&mut self) -> &mut [T] {
-        unsafe { core::slice::from_raw_parts_mut(self.ptr_mut(), self.size()) }
+    unsafe fn as_mut_slice(&mut self) -> &mut [T] {
+        core::slice::from_raw_parts_mut(self.ptr_mut(), self.size())
     }
 }
 
@@ -266,6 +268,39 @@ pub mod prelude {
 
     #[cfg(feature = "cuda")]
     pub use crate::cuda::{chosen_cu_idx, launch_kernel1d, CUBuffer, CUDA};
+
+    #[cfg(feature = "vulkan")]
+    pub use crate::Vulkan;
+}
+
+#[cfg(test)]
+pub mod tests_helper {
+    use core::ops::Add;
+
+    use crate::{Buffer, Device, Number, Shape};
+
+    pub trait AddEw<T, D: Device, S: Shape>: Device {
+        fn add(&self, lhs: &Buffer<T, D, S>, rhs: &Buffer<T, D, S>) -> Buffer<T, Self, S>;
+    }
+
+    pub fn add_ew_slice<T: Add<Output = T> + Copy>(lhs: &[T], rhs: &[T], out: &mut [T]) {
+        for ((lhs, rhs), out) in lhs.iter().zip(rhs.iter()).zip(out.iter_mut()) {
+            *out = *lhs + *rhs;
+        }
+    }
+
+    pub fn roughly_eq_slices<T: Number>(lhs: &[T], rhs: &[T]) {
+        for (a, b) in lhs.iter().zip(rhs) {
+            if (a.as_f64() - b.as_f64()).abs() >= 0.1 {
+                panic!(
+                    "Slices 
+                    left {lhs:?} 
+                    and right {rhs:?} do not equal. 
+                    Encountered diffrent value: {a}, {b}"
+                )
+            }
+        }
+    }
 }
 
 #[cfg(test)]

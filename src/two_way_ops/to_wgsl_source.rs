@@ -1,16 +1,6 @@
-use crate::{Combiner, ToCLSource};
 pub trait ToWgslSource {
     fn to_wgsl_source(&self) -> String;
 }
-
-impl<T: Combiner + ToCLSource> ToWgslSource for T {
-    #[inline]
-    fn to_wgsl_source(&self) -> String {
-        self.to_cl_source()
-    }
-}
-
-// TODO: --------- these functions are never called, self.to_cl_source() never calls these
 
 #[cfg(feature = "half")]
 impl ToWgslSource for half::f16 {
@@ -20,35 +10,34 @@ impl ToWgslSource for half::f16 {
     }
 }
 
-// impl ToWgslSource for f32 {
-//     #[inline]
-//     fn to_wgsl_source(&self) -> String {
-//         format!("f32({:?})", self)
-//     }
-// }
+impl ToWgslSource for f32 {
+    #[inline]
+    fn to_wgsl_source(&self) -> String {
+        format!("f32({:?})", self)
+    }
+}
 
 // #[cfg(not(target_os = "macos"))]
 // impl ToWgslSource for f64 {
 //     #[inline]
 //     fn to_wgsl_source(&self) -> String {
-//         println!("f64");
 //         format!("f64({:?})", self)
 //     }
 // }
 
-// impl ToWgslSource for i32 {
-//     #[inline]
-//     fn to_wgsl_source(&self) -> String {
-//         format!("i32({:?})", self)
-//     }
-// }
+impl ToWgslSource for i32 {
+    #[inline]
+    fn to_wgsl_source(&self) -> String {
+        format!("i32({:?})", self)
+    }
+}
 
-// impl ToWgslSource for u32 {
-//     #[inline]
-//     fn to_wgsl_source(&self) -> String {
-//         format!("u32({:?})", self)
-//     }
-// }
+impl ToWgslSource for u32 {
+    #[inline]
+    fn to_wgsl_source(&self) -> String {
+        format!("u32({:?})", self)
+    }
+}
 
 impl ToWgslSource for &'static str {
     #[inline]
@@ -66,3 +55,21 @@ impl ToWgslSource for String {
 
 pub trait MayToWgslSource: ToWgslSource {}
 impl<T: ToWgslSource> MayToWgslSource for T {}
+
+macro_rules! wgsl_unsupported_datatypes {
+    ($($t:ident),*) => {
+        $(
+            impl ToWgslSource for $t {
+                #[inline]
+                fn to_wgsl_source(&self) -> String {
+                    unimplemented!("This scalar datatype ({}) is not supported by WGSL.", core::any::type_name::<$t>());
+                }
+            }
+        )*
+    };
+}
+
+wgsl_unsupported_datatypes! {
+    f64, i8, i16, i64, i128,
+    isize, u8, u16, u64, u128, usize
+}

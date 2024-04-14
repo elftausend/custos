@@ -5,6 +5,7 @@
 use core::{cell::RefMut, fmt::Debug, ops::RangeBounds};
 
 use crate::{
+    op_hint::OpHint,
     range::{AsRange, CursorRange},
     HasId, Parents, Shape, UniqueId, UpdateArgs, CPU,
 };
@@ -342,6 +343,10 @@ pub trait AddOperation {
     }
 }
 
+pub trait SetOpHint<T> {
+    fn set_op_hint(&self, _op_hint: OpHint<T>) {}
+}
+
 pub trait ExecNow<D = Self> {
     /// This drains the affected operations!
     fn exec_now(&self, device: &D, range_bounds: impl RangeBounds<usize>) -> crate::Result<()>;
@@ -361,6 +366,13 @@ pub trait ExecNow<D = Self> {
 #[macro_export]
 macro_rules! pass_down_add_operation {
     ($device:ident) => {
+        impl<T, Mods: $crate::SetOpHint<T>> $crate::SetOpHint<T> for $device<Mods> {
+            #[inline]
+            fn set_op_hint(&self, op_hint: $crate::op_hint::OpHint<T>) {
+                self.modules.set_op_hint(op_hint)
+            }
+        }
+
         impl<Mods: $crate::AddOperation> $crate::AddOperation for $device<Mods> {
             #[inline]
             fn add_op<Args: $crate::Parents<N> + $crate::UpdateArgs, const N: usize>(
@@ -491,15 +503,21 @@ macro_rules! pass_down_use_gpu_or_cpu {
                 self.modules
                     .use_cpu_or_gpu(location, input_lengths, cpu_op, gpu_op)
             }
+
+            #[inline]
+            fn set_fork_enabled(&self, enabled: bool) {
+                self.modules.set_fork_enabled(enabled);
+            }
+
+            fn is_fork_enabled(&self) -> bool {
+                self.modules.is_fork_enabled()
+            }
         }
     };
 }
 
 #[cfg(feature = "autograd")]
 pass_down_use_gpu_or_cpu!(Autograd);
-
-#[cfg(feature = "lazy")]
-pass_down_use_gpu_or_cpu!(Lazy);
 
 pub trait UseGpuOrCpu {
     fn use_cpu_or_gpu(
@@ -509,11 +527,31 @@ pub trait UseGpuOrCpu {
         cpu_op: impl FnMut(),
         gpu_op: impl FnMut(),
     ) -> GpuOrCpuInfo;
+
+    fn set_fork_enabled(&self, _enabled: bool);
+
+    #[inline]
+    fn disable_fork(&self) {
+        self.set_fork_enabled(false)
+    }
+
+    #[inline]
+    fn enable_fork(&self) {
+        self.set_fork_enabled(true)
+    }
+
+    fn is_fork_enabled(&self) -> bool;
 }
 
 #[cfg(feature = "graph")]
-pub trait OptimizeMemGraph {
+pub trait Optimize {
     fn optimize_mem_graph<D: 'static>(
+        &self,
+        device: &D,
+        graph_translator: Option<&crate::modules::GraphTranslator>,
+    ) -> crate::Result<()>;
+
+    fn unary_fusing<D: crate::UnaryFusing + 'static>(
         &self,
         device: &D,
         graph_translator: Option<&crate::modules::GraphTranslator>,
@@ -523,13 +561,20 @@ pub trait OptimizeMemGraph {
 #[macro_export]
 macro_rules! pass_down_optimize_mem_graph {
     ($to_impl:ident) => {
-        impl<Mods: $crate::OptimizeMemGraph> $crate::OptimizeMemGraph for $to_impl<Mods> {
+        impl<Mods: $crate::Optimize> $crate::Optimize for $to_impl<Mods> {
             fn optimize_mem_graph<D: 'static>(
                 &self,
                 device: &D,
                 graph_translator: Option<&$crate::modules::GraphTranslator>,
             ) -> $crate::Result<()> {
                 self.modules.optimize_mem_graph(device, graph_translator)
+            }
+            fn unary_fusing<D: $crate::UnaryFusing + 'static>(
+                &self,
+                device: &D,
+                graph_translator: Option<&$crate::modules::GraphTranslator>,
+            ) -> $crate::Result<()> {
+                self.modules.unary_fusing(device, graph_translator)
             }
         }
     };
