@@ -11,6 +11,8 @@ pub use glsl::*;
 mod error;
 mod wgsl_device;
 
+pub use wgsl_device::*;
+
 use self::error::TranslateError;
 use naga::{valid::ModuleInfo, Module, ShaderStage};
 

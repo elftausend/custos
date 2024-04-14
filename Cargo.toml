@@ -93,7 +93,7 @@ graph = ["std"]
 
 half = ["dep:half"]
 
-vulkan = ["dep:ash", "wgsl", "spv"]
+vulkan = ["std", "dep:ash", "wgsl", "spv"]
 webgl = ["wgsl", "dep:js-sys", "dep:web-sys", "glsl"]
 
 spv = ["naga/spv-out"]
