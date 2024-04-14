@@ -67,10 +67,10 @@ impl<Mods: OnDropBuffer, T: CDatatype> ZeroGrad<T> for OpenCL<Mods> {
 /// fn main() -> Result<(), custos::Error> {
 ///     let device = OpenCL::<Base>::new(0)?;
 ///     let mut lhs = Buffer::<i16, _>::from((&device, [15, 30, 21, 5, 8]));
-///     assert_eq!(device.read(&lhs), vec![15, 30, 21, 5, 8]);
+///     assert_eq!(lhs.read(), vec![15, 30, 21, 5, 8]);
 ///
 ///     try_cl_clear(&device, &mut lhs)?;
-///     assert_eq!(device.read(&lhs), vec![0; 5]);
+///     assert_eq!(lhs.read(), vec![0; 5]);
 ///     Ok(())
 /// }
 /// ```
@@ -172,14 +172,17 @@ impl<Mods: OnDropBuffer + 'static, T: Clone + Default, S: Shape> Read<T, S> for 
 
     #[cfg(unified_cl)]
     #[inline]
-    fn read<'a>(&self, buf: &'a Buffer<T, Self, S>) -> Self::Read<'a> {
+    fn read<'a>(&self, buf: &'a Self::Base<T, S>) -> Self::Read<'a> 
+    where 
+        Self: 'a,
+    {
         use crate::HostPtr;
 
         unsafe { buf.as_slice() }
     }
 
     #[inline]
-    fn read_to_vec(&self, buf: &Buffer<T, Self, S>) -> Vec<T> {
+    fn read_to_vec(&self, buf: &Self::Base<T, S>) -> Vec<T> {
         try_read_cl_buf_to_vec(self, buf).unwrap()
     }
 }

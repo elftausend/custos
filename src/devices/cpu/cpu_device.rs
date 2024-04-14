@@ -19,7 +19,7 @@ pub trait IsCPU {}
 /// let a = device.buffer([1, 2, 3]);
 /// //let a = Buffer::from((&device, [1, 2, 3]));
 ///
-/// let out = device.read(&a);
+/// let out = a.read();
 ///
 /// assert_eq!(out, vec![1, 2, 3]);
 /// ```

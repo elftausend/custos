@@ -33,7 +33,7 @@ fn test_scalar_op_cuda() -> custos::Result<()> {
 
     let out = scalar_apply(&device, &lhs, 3.)?;
 
-    assert_eq!(vec![4., 5., 6., 7., 8.], device.read(&out));
+    assert_eq!(vec![4., 5., 6., 7., 8.], out.read());
     Ok(())
 }
 

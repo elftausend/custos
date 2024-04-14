@@ -4,6 +4,7 @@ use crate::{
     flag::AllocFlag,
     prelude::Number,
     vulkan::{Context, VkArray},
+    wgsl::{AsShaderArg, WgslShaderLaunch},
     OnDropBuffer, Shape, Vulkan,
 };
 use core::marker::PhantomData;
@@ -104,5 +105,17 @@ where
             descriptor_type: ash::vk::DescriptorType::STORAGE_BUFFER,
             pd: PhantomData,
         }
+    }
+}
+
+impl<T: AsVkShaderArgument + 'static> AsShaderArg<Vulkan> for T {
+    #[inline]
+    fn arg(&self) -> &<Vulkan as WgslShaderLaunch>::ShaderArg {
+        self
+    }
+
+    #[inline]
+    fn arg_mut(&mut self) -> &mut <Vulkan as WgslShaderLaunch>::ShaderArg {
+        self
     }
 }

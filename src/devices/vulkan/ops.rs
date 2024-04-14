@@ -67,11 +67,14 @@ impl<Mods: OnDropBuffer, T: Default + Clone, S: Shape> Read<T, S> for Vulkan<Mod
         S: 'a;
 
     #[inline]
-    fn read<'a>(&self, buf: &'a Buffer<T, Self, S>) -> Self::Read<'a> {
+    fn read<'a>(&self, buf: &'a Self::Base<T, S>) -> Self::Read<'a> 
+    where 
+        Self: 'a
+    {
         buf.read_staged()
     }
 
-    fn read_to_vec(&self, buf: &Buffer<T, Self, S>) -> Vec<T>
+    fn read_to_vec(&self, buf: &Self::Base<T, S>) -> Vec<T>
     where
         T: Default + Clone,
     {

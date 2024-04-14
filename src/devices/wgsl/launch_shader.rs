@@ -7,3 +7,8 @@ pub trait WgslShaderLaunch {
         args: &[&Self::ShaderArg],
     ) -> crate::Result<()>;
 }
+
+pub trait AsShaderArg<D: WgslShaderLaunch> {
+    fn arg(&self) -> &D::ShaderArg;
+    fn arg_mut(&mut self) -> &mut D::ShaderArg;
+}

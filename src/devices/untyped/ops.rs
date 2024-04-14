@@ -5,7 +5,7 @@ use crate::{
 
 use super::{untyped_device::Untyped, AsType};
 
-impl<T: AsType + Default + Clone, S: Shape> Read<T, S> for Untyped {
+impl<T: 'static + AsType + Default + Clone, S: Shape> Read<T, S> for Untyped {
     type Read<'a> = Vec<T>
     where
         T: 'a,
@@ -13,11 +13,14 @@ impl<T: AsType + Default + Clone, S: Shape> Read<T, S> for Untyped {
         S: 'a;
 
     #[inline]
-    fn read<'a>(&self, buf: &'a crate::Buffer<T, Self, S>) -> Self::Read<'a> {
-        buf.read_to_vec()
+    fn read<'a>(&self, buf: &'a Self::Base<T, S>) -> Self::Read<'a> 
+    where 
+        Self: 'a
+    {
+        Read::<T, S>::read_to_vec(self, buf)
     }
 
-    fn read_to_vec(&self, buf: &crate::Buffer<T, Self, S>) -> Vec<T>
+    fn read_to_vec(&self, buf: &Self::Base<T, S>) -> Vec<T>
     where
         T: Default + Clone,
     {

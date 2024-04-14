@@ -24,7 +24,7 @@ fn main() -> custos::Result<()> {
 
     // Read OpenCL buffer.
     // This yields the same data as the corresponding CPU slice.
-    let cl_data = device.read(&a);
+    let cl_data = a.read_to_vec();
     assert_eq!(a.read(), cl_data);
     assert_eq!(&cl_data, &[3, 4, 5, 6, 7,]);
 

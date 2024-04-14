@@ -87,12 +87,15 @@ where
     type Read<'a> = &'a [T] where T: 'a, D: 'a, S: 'a;
 
     #[inline]
-    fn read<'a>(&self, buf: &'a Buffer<T, D, S>) -> Self::Read<'a> {
+    fn read<'a>(&self, buf: &'a D::Base<T, S>) -> Self::Read<'a> 
+    where
+        D: 'a
+    {
         &**buf
     }
 
     #[inline]
-    fn read_to_vec<'a>(&self, buf: &Buffer<T, D, S>) -> Vec<T>
+    fn read_to_vec<'a>(&self, buf: &D::Base<T, S>) -> Vec<T>
     where
         T: Default + Clone,
     {

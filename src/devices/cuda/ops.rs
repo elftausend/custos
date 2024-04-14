@@ -17,23 +17,26 @@ use super::{
 pass_down_add_operation!(CUDA);
 pass_down_exec_now!(CUDA);
 
-impl<Mods: OnDropBuffer, T: Default + Clone> Read<T> for CUDA<Mods> {
+impl<Mods: OnDropBuffer, T: Default + Clone, S: Shape> Read<T, S> for CUDA<Mods> {
     type Read<'a> = Vec<T>
     where
         T: 'a,
         CUDA<Mods>: 'a;
 
     #[inline]
-    fn read(&self, buf: &Buffer<T, Self>) -> Vec<T> {
-        self.read_to_vec(buf)
+    fn read<'a>(&self, buf: &'a Self::Base<T, S>) -> Vec<T> 
+    where 
+        CUDA<Mods>: 'a
+    {
+        Read::<T, S>::read_to_vec(self, buf)
     }
 
-    fn read_to_vec(&self, buf: &Buffer<T, Self>) -> Vec<T>
+    fn read_to_vec(&self, buf: &Self::Base<T, S>) -> Vec<T>
     where
         T: Default + Clone,
     {
         assert!(
-            buf.base().ptr != 0,
+            buf.ptr != 0,
             "called Read::read(..) on a non CUDA buffer"
         );
         // TODO: sync here or somewhere else?
@@ -43,8 +46,8 @@ impl<Mods: OnDropBuffer, T: Default + Clone> Read<T> for CUDA<Mods> {
             self.stream().sync().unwrap();
         }
 
-        let mut read = vec![T::default(); buf.len()];
-        cu_read_async(&mut read, buf.base().ptr, &self.mem_transfer_stream).unwrap();
+        let mut read = vec![T::default(); buf.len];
+        cu_read_async(&mut read, buf.ptr, &self.mem_transfer_stream).unwrap();
         self.mem_transfer_stream.sync().unwrap();
         read
     }

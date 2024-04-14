@@ -91,7 +91,7 @@ fn test_occupancy() -> crate::Result<()> {
 
     println!("end: {:?}", start.elapsed());
 
-    let read = device.read(&c);
+    let read = c.read();
     println!("read: {read:?}");
 
     assert_eq!(read, vec![5, 3, 10, 10, 14]);

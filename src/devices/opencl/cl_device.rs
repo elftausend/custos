@@ -28,7 +28,7 @@ use crate::ForkSetup;
 ///     let device = OpenCL::<Base>::new(0)?;
 ///     
 ///     let a = Buffer::from((&device, [1.3; 25]));
-///     let out = device.read(&a);
+///     let out = a.read();
 ///     
 ///     assert_eq!(out, vec![1.3; 5*5]);
 ///     Ok(())

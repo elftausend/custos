@@ -132,7 +132,7 @@ mod tests {
         let cpu_buf = Buffer::from((&cpu, [1, 2, 4, 5]));
 
         let out = Buffer::from((&device, cpu_buf));
-        assert_eq!(device.read(&out), [1, 2, 4, 5]);
+        assert_eq!(out.read(), [1, 2, 4, 5]);
     }
 
     #[cfg(feature = "opencl")]
@@ -147,7 +147,7 @@ mod tests {
         let cpu_buf = Buffer::from((&cpu, [1, 2, 4, 5]));
 
         let out = Buffer::from((&device, cpu_buf));
-        assert_eq!(device.read(&out), [1, 2, 4, 5]);
+        assert_eq!(out.read(), [1, 2, 4, 5]);
 
         Ok(())
     }
@@ -164,7 +164,7 @@ mod tests {
         let cpu_buf = Buffer::from((&cpu, [1, 2, 4, 5]));
 
         let out = Buffer::from((&device, cpu_buf));
-        assert_eq!(device.read(&out), [1, 2, 4, 5]);
+        assert_eq!(out.read(), [1, 2, 4, 5]);
 
         Ok(())
     }
