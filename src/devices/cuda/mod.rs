@@ -79,7 +79,7 @@ mod tests {
 
     use crate::{
         cuda::{api::culaunch_kernel, fn_cache},
-        Base, Buffer, Read, CUDA,
+        Base, Buffer, CUDA,
     };
 
     #[test]

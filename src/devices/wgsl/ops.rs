@@ -1,6 +1,5 @@
 use crate::{
-    AddOperation, Alloc, ApplyFunction, AsNoId, OnDropBuffer, Read, Retrieve, Retriever, Shape,
-    ToMarker,
+    op_hint::unary, AddOperation, Alloc, ApplyFunction, AsNoId, OnDropBuffer, Read, Retrieve, Retriever, SetOpHint, Shape, ToMarker
 };
 
 use super::{wgsl_device::Wgsl, AsShaderArg, WgslShaderLaunch};
@@ -34,8 +33,7 @@ where
     T: Default + 'static,
     D: WgslShaderLaunch + Alloc<T> + 'static,
     D::Base<T, S>: AsShaderArg<D>,
-
-    Mods: Retrieve<Self, T, S> + AddOperation + 'static,
+    Mods: SetOpHint<T> + Retrieve<Self, T, S> + AddOperation + 'static,
     S: Shape,
 {
     fn apply_fn<F>(
@@ -80,6 +78,7 @@ where
             )
         })
         .unwrap();
+        self.modules.set_op_hint(unary(f));
 
         out
     }

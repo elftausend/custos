@@ -4,7 +4,7 @@ use crate::{
     cuda::api::{
         cuLaunchKernel, cuOccupancyMaxPotentialBlockSize, load_module_data, nvrtc::create_program,
     },
-    Base, Buffer, Read, CUDA,
+    Base, Buffer, CUDA,
 };
 
 #[test]

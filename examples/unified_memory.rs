@@ -1,5 +1,5 @@
 #[cfg(unified_cl)]
-use custos::{Buffer, OpenCL, Read};
+use custos::{Buffer, OpenCL};
 
 #[cfg(unified_cl)]
 fn main() -> custos::Result<()> {
