@@ -13,9 +13,9 @@ impl<T: 'static + AsType + Default + Clone, S: Shape> Read<T, S> for Untyped {
         S: 'a;
 
     #[inline]
-    fn read<'a>(&self, buf: &'a Self::Base<T, S>) -> Self::Read<'a> 
-    where 
-        Self: 'a
+    fn read<'a>(&self, buf: &'a Self::Base<T, S>) -> Self::Read<'a>
+    where
+        Self: 'a,
     {
         Read::<T, S>::read_to_vec(self, buf)
     }

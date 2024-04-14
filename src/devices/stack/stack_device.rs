@@ -101,9 +101,9 @@ where
         S: 'a;
 
     #[inline]
-    fn read<'a>(&self, buf: &'a Self::Base<T, S>) -> Self::Read<'a> 
-    where 
-        Stack: 'a 
+    fn read<'a>(&self, buf: &'a Self::Base<T, S>) -> Self::Read<'a>
+    where
+        Stack: 'a,
     {
         buf.array
     }

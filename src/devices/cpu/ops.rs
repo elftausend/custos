@@ -87,9 +87,9 @@ where
     type Read<'a> = &'a [T] where T: 'a, D: 'a, S: 'a;
 
     #[inline]
-    fn read<'a>(&self, buf: &'a D::Base<T, S>) -> Self::Read<'a> 
+    fn read<'a>(&self, buf: &'a D::Base<T, S>) -> Self::Read<'a>
     where
-        D: 'a
+        D: 'a,
     {
         &**buf
     }

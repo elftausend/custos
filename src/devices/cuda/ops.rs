@@ -24,9 +24,9 @@ impl<Mods: OnDropBuffer, T: Default + Clone, S: Shape> Read<T, S> for CUDA<Mods>
         CUDA<Mods>: 'a;
 
     #[inline]
-    fn read<'a>(&self, buf: &'a Self::Base<T, S>) -> Vec<T> 
-    where 
-        CUDA<Mods>: 'a
+    fn read<'a>(&self, buf: &'a Self::Base<T, S>) -> Vec<T>
+    where
+        CUDA<Mods>: 'a,
     {
         Read::<T, S>::read_to_vec(self, buf)
     }
@@ -35,10 +35,7 @@ impl<Mods: OnDropBuffer, T: Default + Clone, S: Shape> Read<T, S> for CUDA<Mods>
     where
         T: Default + Clone,
     {
-        assert!(
-            buf.ptr != 0,
-            "called Read::read(..) on a non CUDA buffer"
-        );
+        assert!(buf.ptr != 0, "called Read::read(..) on a non CUDA buffer");
         // TODO: sync here or somewhere else?
         if self.stream().capture_status().unwrap()
             == CUstreamCaptureStatus::CU_STREAM_CAPTURE_STATUS_NONE

@@ -166,14 +166,18 @@ impl<Mods: OnDropBuffer + 'static, T: Clone + Default, S: Shape> Read<T, S> for 
     type Read<'a> = &'a [T] where T: 'a;
 
     #[cfg(not(unified_cl))]
-    fn read<'a>(&self, buf: &'a Buffer<T, OpenCL<Mods>, S>) -> Self::Read<'a> {
-        self.read_to_vec(buf)
+    #[inline]
+    fn read<'a>(&self, buf: &'a Self::Base<T, S>) -> Self::Read<'a>
+    where
+        Self: 'a,
+    {
+        Read::<T, S>::read_to_vec(self, buf)
     }
 
     #[cfg(unified_cl)]
     #[inline]
-    fn read<'a>(&self, buf: &'a Self::Base<T, S>) -> Self::Read<'a> 
-    where 
+    fn read<'a>(&self, buf: &'a Self::Base<T, S>) -> Self::Read<'a>
+    where
         Self: 'a,
     {
         use crate::HostPtr;

@@ -124,7 +124,7 @@ mod tests {
     #[cfg(feature = "cpu")]
     #[test]
     fn test_buf_device_conversion_cpu() {
-        use crate::{Base, Buffer, Read, CPU};
+        use crate::{Base, Buffer, CPU};
 
         let device = CPU::<Base>::new();
 
@@ -138,7 +138,7 @@ mod tests {
     #[cfg(feature = "opencl")]
     #[test]
     fn test_buf_device_conversion_cl() -> crate::Result<()> {
-        use crate::{opencl::chosen_cl_idx, Base, Buffer, OpenCL, Read, CPU};
+        use crate::{opencl::chosen_cl_idx, Base, Buffer, OpenCL, CPU};
 
         let device = OpenCL::<Base>::new(chosen_cl_idx())?;
         println!("name: {:?}", device.name());
@@ -156,7 +156,7 @@ mod tests {
     #[cfg(feature = "cpu")]
     #[test]
     fn test_buf_device_conversion_cu() -> crate::Result<()> {
-        use crate::{Base, Buffer, Read, CPU, CUDA};
+        use crate::{Base, Buffer, CPU, CUDA};
 
         let device = CUDA::<Base>::new(0)?;
 

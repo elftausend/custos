@@ -72,7 +72,7 @@ fn test_write_cl() -> custos::Result<()> {
     let device = custos::OpenCL::<Base>::new(chosen_cl_idx())?;
     let mut buf = Buffer::<_, _>::new(&device, 5);
     device.write(&mut buf, &[1., 2., 3., 4., 5.]);
-    
+
     Ok(())
 }
 

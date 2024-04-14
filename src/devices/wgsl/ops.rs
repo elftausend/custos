@@ -1,5 +1,6 @@
 use crate::{
-    AddOperation, Alloc, ApplyFunction, AsNoId, OnDropBuffer, Read, Retrieve, Retriever, Shape, ToMarker
+    AddOperation, Alloc, ApplyFunction, AsNoId, OnDropBuffer, Read, Retrieve, Retriever, Shape,
+    ToMarker,
 };
 
 use super::{wgsl_device::Wgsl, AsShaderArg, WgslShaderLaunch};
@@ -12,9 +13,9 @@ impl<T, S: Shape, D: Read<T, S>, Mods: OnDropBuffer + 'static> Read<T, S> for Wg
         S: 'a;
 
     #[inline]
-    fn read<'a>(&self, buf: &'a Self::Base<T, S>) -> Self::Read<'a> 
-    where 
-        Self: 'a
+    fn read<'a>(&self, buf: &'a Self::Base<T, S>) -> Self::Read<'a>
+    where
+        Self: 'a,
     {
         self.backend.read(buf)
     }
@@ -22,7 +23,7 @@ impl<T, S: Shape, D: Read<T, S>, Mods: OnDropBuffer + 'static> Read<T, S> for Wg
     #[inline]
     fn read_to_vec(&self, buf: &Self::Base<T, S>) -> Vec<T>
     where
-        T: Default + Clone 
+        T: Default + Clone,
     {
         self.backend.read_to_vec(buf)
     }
