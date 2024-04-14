@@ -98,13 +98,13 @@ impl<T, S: Shape, Mods: OnDropBuffer> WriteBuf<T, S> for OpenCL<Mods> {
     fn write(&self, buf: &mut Buffer<T, Self, S>, data: &[T]) {
         let event =
             unsafe { enqueue_write_buffer(self.queue(), buf.cl_ptr(), data, true).unwrap() };
-        wait_for_event(event).unwrap();
+        unsafe { wait_for_event(event).unwrap() };
     }
 
     #[inline]
     fn write_buf(&self, dst: &mut Buffer<T, Self, S>, src: &Buffer<T, Self, S>) {
         debug_assert_eq!(dst.len(), src.len());
-        enqueue_full_copy_buffer::<T>(self.queue(), src.cl_ptr(), dst.cl_ptr(), dst.len()).unwrap();
+        unsafe { enqueue_full_copy_buffer::<T>(self.queue(), src.cl_ptr(), dst.cl_ptr(), dst.len()).unwrap() };
     }
 }
 
@@ -124,7 +124,7 @@ impl<T> CopySlice<T> for OpenCL {
             dest_range.end - dest_range.start
         );
 
-        enqueue_copy_buffer::<T>(
+        unsafe { enqueue_copy_buffer::<T>(
             self.queue(),
             source.data.ptr,
             dest.data.ptr,
@@ -132,7 +132,7 @@ impl<T> CopySlice<T> for OpenCL {
             dest_range.start,
             source_range.end - source_range.start,
         )
-        .unwrap();
+        .unwrap() };
     }
 
     fn copy_slice_all<I: IntoIterator<Item = (Range<usize>, Range<usize>)>>(
@@ -147,7 +147,7 @@ impl<T> CopySlice<T> for OpenCL {
             (from.start, to.start, len)
         });
 
-        enqueue_copy_buffers::<T, _>(self.queue(), source.data.ptr, dest.data.ptr, ranges).unwrap();
+        unsafe { enqueue_copy_buffers::<T, _>(self.queue(), source.data.ptr, dest.data.ptr, ranges).unwrap() };
     }
 }
 
@@ -182,7 +182,7 @@ fn try_read_cl_buf_to_vec<T: Clone + Default>(
 ) -> crate::Result<Vec<T>> {
     let mut read = vec![T::default(); buf.len()];
     let event = unsafe { enqueue_read_buffer(device.queue(), buf.ptr, &mut read, false)? };
-    wait_for_event(event).unwrap();
+    unsafe { wait_for_event(event).unwrap() };
     Ok(read)
 }
 
