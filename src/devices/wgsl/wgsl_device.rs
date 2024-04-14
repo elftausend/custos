@@ -1,8 +1,10 @@
 use core::convert::Infallible;
 
 use crate::{
-    Base, Device, HasId, Module, OnDropBuffer, OnNewBuffer, PtrType, Setup, Shape, WrappedData
+    Alloc, Base, Device, HasId, IsShapeIndep, Module, OnDropBuffer, OnNewBuffer, PtrType, Setup, Shape, WrappedData
 };
+
+use super::WgslShaderLaunch;
 
 pub struct Wgsl<D: Device, Mods = Base> {
     pub modules: Mods,
@@ -99,15 +101,68 @@ impl<D: Device, Mods: OnNewBuffer<T, D1, S>, T, D1: Device, S: Shape> OnNewBuffe
     }
 }
 
+unsafe impl<D: Device, Mods: OnDropBuffer> IsShapeIndep for Wgsl<D, Mods> {}
+
+impl<T, D: Alloc<T>, Mods: OnDropBuffer> Alloc<T> for Wgsl<D, Mods> {
+    #[inline]
+    fn alloc<S: Shape>(&self, len: usize, flag: crate::flag::AllocFlag) -> Self::Base<T, S> {
+        self.backend.alloc(len, flag)
+    }
+
+    #[inline]
+    fn alloc_from_slice<S: Shape>(&self, data: &[T]) -> Self::Base<T, S>
+    where
+        T: Clone
+    {
+        self.backend.alloc_from_slice(data)
+    }
+    
+    #[inline]
+    fn alloc_from_vec<S: Shape>(&self, vec: Vec<T>) -> Self::Base<T, S>
+    where
+        T: Clone,
+    {
+        self.backend.alloc_from_slice(&vec)
+    }
+    
+    #[inline]
+    fn alloc_from_array<S: Shape>(&self, array: S::ARR<T>) -> Self::Base<T, S>
+    where
+        T: Clone,
+    {
+        let stack_array = crate::StackArray::<S, T>::from_array(array);
+        self.backend.alloc_from_slice(stack_array.flatten())
+    }
+    
+}
+
+impl<D: Device + WgslShaderLaunch, Mods: OnDropBuffer> WgslShaderLaunch for Wgsl<D, Mods> {
+    type ShaderArg = D::ShaderArg;
+
+    #[inline]
+    fn launch_shader(
+        &self,
+        src: impl AsRef<str>,
+        gws: [u32; 3],
+        args: &[&Self::ShaderArg],
+    ) -> crate::Result<()> {
+        self.backend.launch_shader(src, gws, args)
+    }
+}
+
 
 #[cfg(test)]
 mod tests {
-    use crate::{Base, Vulkan};
+    use crate::{Base, Device, Vulkan};
 
     use super::Wgsl;
 
     #[test]
     fn test_wgsl_wrapper() {
         let dev = Wgsl::<Vulkan>::new().unwrap();
+        let x = dev.buffer([1, 2, 3]);
+
+
+        
     }
 }
