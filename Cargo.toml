@@ -105,11 +105,7 @@ name = "cl_usage"
 required-features = ["opencl"]
 
 [[example]]
-name = "wgpu"
-required-features = ["wgpu"]
-
-[[example]]
-name = "modules"
+name = "modules_usage"
 required-features = ["cpu"]
 
 [[example]]

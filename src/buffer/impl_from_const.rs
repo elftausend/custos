@@ -1,8 +1,8 @@
-use crate::{prelude::Number, shape::Shape, Alloc, Buffer, Dim1, Dim2, OnNewBuffer};
+use crate::{prelude::Number, shape::Shape, Alloc, Buffer, Dim1, Dim2, Dim3, OnNewBuffer};
 
 /// Trait for creating [`Buffer`]s with a [`Shape`]. The [`Shape`] is inferred from the array.
-pub trait WithShape<D, C> {
-    /// Create a new [`Buffer`] with the given [`Shape`] and array.
+pub trait WithShape<'a, D, C> {
+    /// Create a new [`Buffer`] with the given [`Shape`] and array. The [`Shape`] is typically inferred from the ND-array.
     /// # Example
     #[cfg_attr(feature = "cpu", doc = "```")]
     #[cfg_attr(not(feature = "cpu"), doc = "```ignore")]
@@ -14,10 +14,10 @@ pub trait WithShape<D, C> {
     /// assert_eq!(&**buf, &[1.0, 2.0, 3.0]);
     ///
     /// ```
-    fn with(device: D, array: C) -> Self;
+    fn with(device: &'a D, array: C) -> Self;
 }
 
-impl<'a, T, D, const N: usize> WithShape<&'a D, [T; N]> for Buffer<'a, T, D, Dim1<N>>
+impl<'a, T, D, const N: usize> WithShape<'a, D, [T; N]> for Buffer<'a, T, D, Dim1<N>>
 where
     T: Number, // using Number here, because T could be an array type
     D: Alloc<T> + OnNewBuffer<T, D, Dim1<N>>,
@@ -28,7 +28,7 @@ where
     }
 }
 
-impl<'a, T, D, const N: usize> WithShape<&'a D, &[T; N]> for Buffer<'a, T, D, Dim1<N>>
+impl<'a, T, D, const N: usize> WithShape<'a, D, &[T; N]> for Buffer<'a, T, D, Dim1<N>>
 where
     T: Number,
     D: Alloc<T> + OnNewBuffer<T, D, Dim1<N>>,
@@ -39,7 +39,7 @@ where
     }
 }
 
-impl<'a, T, D, const B: usize, const A: usize> WithShape<&'a D, [[T; A]; B]>
+impl<'a, T, D, const B: usize, const A: usize> WithShape<'a, D, [[T; A]; B]>
     for Buffer<'a, T, D, Dim2<B, A>>
 where
     T: Number,
@@ -51,19 +51,31 @@ where
     }
 }
 
-impl<'a, T, D, const B: usize, const A: usize> WithShape<&'a D, &[[T; A]; B]>
-    for Buffer<'a, T, D, Dim2<B, A>>
+impl<'a, T, D, const C: usize, const B: usize, const A: usize> WithShape<'a, D, [[[T; A]; B]; C]>
+    for Buffer<'a, T, D, Dim3<C, B, A>>
 where
     T: Number,
-    D: Alloc<T> + OnNewBuffer<T, D, Dim2<B, A>>,
+    D: Alloc<T> + OnNewBuffer<T, D, Dim3<C, B, A>>,
 {
     #[inline]
-    fn with(device: &'a D, array: &[[T; A]; B]) -> Self {
+    fn with(device: &'a D, array: [[[T; A]; B]; C]) -> Self {
+        Buffer::from_array(device, array)
+    }
+}
+
+impl<'a, T, D, const C: usize, const B: usize, const A: usize> WithShape<'a, D, &[[[T; A]; B]; C]>
+    for Buffer<'a, T, D, Dim3<C, B, A>>
+where
+    T: Number,
+    D: Alloc<T> + OnNewBuffer<T, D, Dim3<C, B, A>>,
+{
+    #[inline]
+    fn with(device: &'a D, array: &[[[T; A]; B]; C]) -> Self {
         Buffer::from_array(device, *array)
     }
 }
 
-impl<'a, T, D, S: Shape> WithShape<&'a D, ()> for Buffer<'a, T, D, S>
+impl<'a, T, D, S: Shape> WithShape<'a, D, ()> for Buffer<'a, T, D, S>
 where
     D: Alloc<T> + OnNewBuffer<T, D, S>,
 {

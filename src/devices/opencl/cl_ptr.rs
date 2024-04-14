@@ -1,12 +1,17 @@
 use core::{
     ffi::c_void,
-    ops::{Deref, DerefMut},
     ptr::null_mut,
 };
 
+#[cfg(unified_cl)]
+use core::ops::{Deref, DerefMut};
+
+#[cfg(unified_cl)]
+use crate::HostPtr;
+
 use min_cl::api::release_mem_object;
 
-use crate::{flag::AllocFlag, CommonPtrs, HasId, HostPtr, Id, PtrType, ShallowCopy};
+use crate::{flag::AllocFlag, CommonPtrs, HasId, Id, PtrType, ShallowCopy};
 
 /// The pointer used for `OpenCL` [`Buffer`](crate::Buffer)s
 #[derive(Debug, PartialEq, Eq)]
