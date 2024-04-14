@@ -1,26 +1,27 @@
 use core::convert::Infallible;
 
 use crate::{
-    Alloc, Base, Device, HasId, IsShapeIndep, Module, OnDropBuffer, OnNewBuffer, PtrType, Setup, Shape, WrappedData
+    AddOperation, Alloc, Base, Buffer, Device, HasId, IsShapeIndep, Module, OnDropBuffer,
+    OnNewBuffer, Parents, PtrType, Retrieve, Retriever, Setup, Shape, WrappedData,
 };
 
-use super::WgslShaderLaunch;
+use super::{WgslDevice, WgslShaderLaunch};
 
 pub struct Wgsl<D: Device, Mods = Base> {
     pub modules: Mods,
     pub backend: D,
 }
 
-impl<SimpleMods, D: Device + Default> Wgsl<D, SimpleMods> {
+impl<SimpleMods, D: WgslDevice + Device + Default> Wgsl<D, SimpleMods> {
     #[inline]
-    pub fn new<NewMods>() -> crate::Result<Wgsl<D, NewMods>>
+    pub fn new<NewMods>(idx: usize) -> crate::Result<Wgsl<D, NewMods>>
     where
         SimpleMods: Module<Wgsl<D>, Module = NewMods>,
         NewMods: Setup<Wgsl<D, NewMods>>,
     {
         let mut wgsl = Wgsl {
             modules: SimpleMods::new(),
-            backend: D::default(),
+            backend: WgslDevice::new(idx)?,
         };
         NewMods::setup(&mut wgsl)?;
         Ok(wgsl)
@@ -89,12 +90,18 @@ impl<D: Device, Mods: WrappedData> WrappedData for Wgsl<D, Mods> {
 }
 impl<D: Device, Mods: OnDropBuffer> OnDropBuffer for Wgsl<D, Mods> {
     #[inline]
-    fn on_drop_buffer<T, D1: Device, S: crate::Shape>(&self, device: &D1, buf: &crate::Buffer<T, D1, S>) {
+    fn on_drop_buffer<T, D1: Device, S: crate::Shape>(
+        &self,
+        device: &D1,
+        buf: &crate::Buffer<T, D1, S>,
+    ) {
         self.modules.on_drop_buffer(device, buf)
     }
 }
 
-impl<D: Device, Mods: OnNewBuffer<T, D1, S>, T, D1: Device, S: Shape> OnNewBuffer<T, D1, S> for Wgsl<D, Mods> {
+impl<D: Device, Mods: OnNewBuffer<T, D1, S>, T, D1: Device, S: Shape> OnNewBuffer<T, D1, S>
+    for Wgsl<D, Mods>
+{
     #[inline]
     fn on_new_buffer(&self, device: &D1, new_buf: &crate::Buffer<T, D1, S>) {
         self.modules.on_new_buffer(device, new_buf)
@@ -112,11 +119,11 @@ impl<T, D: Alloc<T>, Mods: OnDropBuffer> Alloc<T> for Wgsl<D, Mods> {
     #[inline]
     fn alloc_from_slice<S: Shape>(&self, data: &[T]) -> Self::Base<T, S>
     where
-        T: Clone
+        T: Clone,
     {
         self.backend.alloc_from_slice(data)
     }
-    
+
     #[inline]
     fn alloc_from_vec<S: Shape>(&self, vec: Vec<T>) -> Self::Base<T, S>
     where
@@ -124,7 +131,7 @@ impl<T, D: Alloc<T>, Mods: OnDropBuffer> Alloc<T> for Wgsl<D, Mods> {
     {
         self.backend.alloc_from_slice(&vec)
     }
-    
+
     #[inline]
     fn alloc_from_array<S: Shape>(&self, array: S::ARR<T>) -> Self::Base<T, S>
     where
@@ -133,7 +140,6 @@ impl<T, D: Alloc<T>, Mods: OnDropBuffer> Alloc<T> for Wgsl<D, Mods> {
         let stack_array = crate::StackArray::<S, T>::from_array(array);
         self.backend.alloc_from_slice(stack_array.flatten())
     }
-    
 }
 
 impl<D: Device + WgslShaderLaunch, Mods: OnDropBuffer> WgslShaderLaunch for Wgsl<D, Mods> {
@@ -150,6 +156,50 @@ impl<D: Device + WgslShaderLaunch, Mods: OnDropBuffer> WgslShaderLaunch for Wgsl
     }
 }
 
+impl<D: Device + Alloc<T>, T, Mods: Retrieve<Self, T, S>, S: Shape> Retriever<T, S>
+    for Wgsl<D, Mods>
+{
+    #[inline]
+    fn retrieve<const NUM_PARENTS: usize>(
+        &self,
+        len: usize,
+        parents: impl Parents<NUM_PARENTS>,
+    ) -> Buffer<T, Self, S> {
+        let data = unsafe { self.modules.retrieve::<NUM_PARENTS>(self, len, parents) };
+        let buf = Buffer {
+            data,
+            device: Some(self),
+        };
+        self.modules.on_retrieve_finish(&buf);
+        buf
+    }
+}
+
+impl<D: Device, Mods: AddOperation> AddOperation for Wgsl<D, Mods> {
+    #[inline]
+    fn add_op<Args: Parents<N> + crate::UpdateArgs, const N: usize>(
+        &self,
+        args: Args,
+        operation: fn(&mut Args) -> crate::Result<()>,
+    ) -> crate::Result<()> {
+        self.modules.add_op(args, operation)
+    }
+
+    #[inline]
+    fn ops_count(&self) -> usize {
+        self.modules.ops_count()
+    }
+
+    #[inline]
+    fn set_lazy_enabled(&self, enabled: bool) {
+        self.modules.set_lazy_enabled(enabled)
+    }
+
+    #[inline]
+    fn is_lazy_enabled(&self) -> bool {
+        self.modules.is_lazy_enabled()
+    }
+}
 
 #[cfg(test)]
 mod tests {
@@ -159,10 +209,7 @@ mod tests {
 
     #[test]
     fn test_wgsl_wrapper() {
-        let dev = Wgsl::<Vulkan>::new().unwrap();
+        let dev = Wgsl::<Vulkan>::new(0).unwrap();
         let x = dev.buffer([1, 2, 3]);
-
-
-        
     }
 }

@@ -1,4 +1,5 @@
 mod launch_shader;
+mod ops;
 mod spirv;
 mod wgsl_device;
 
