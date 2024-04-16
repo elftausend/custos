@@ -97,7 +97,9 @@ impl<T, S: Shape, Mods: OnDropBuffer> WriteBuf<T, S> for OpenCL<Mods> {
     #[inline]
     fn write(&self, buf: &mut Buffer<T, Self, S>, data: &[T]) {
         let event =
-            unsafe { enqueue_write_buffer(self.queue(), buf.cl_ptr(), data, true).unwrap() };
+            unsafe { enqueue_write_buffer(self.queue(), buf.cl_ptr(), data, false, None).unwrap() };
+        // self.device.event_wait_list.borrow_mut().push(event);
+        // self.device.wait_for_events().unwrap();
         unsafe { wait_for_event(event).unwrap() };
     }
 
@@ -105,7 +107,7 @@ impl<T, S: Shape, Mods: OnDropBuffer> WriteBuf<T, S> for OpenCL<Mods> {
     fn write_buf(&self, dst: &mut Buffer<T, Self, S>, src: &Buffer<T, Self, S>) {
         debug_assert_eq!(dst.len(), src.len());
         unsafe {
-            enqueue_full_copy_buffer::<T>(self.queue(), src.cl_ptr(), dst.cl_ptr(), dst.len())
+            enqueue_full_copy_buffer::<T>(self.queue(), src.cl_ptr(), dst.cl_ptr(), dst.len(), None)
                 .unwrap()
         };
     }
@@ -135,6 +137,7 @@ impl<T> CopySlice<T> for OpenCL {
                 source_range.start,
                 dest_range.start,
                 source_range.end - source_range.start,
+                None,
             )
             .unwrap()
         };
@@ -153,7 +156,7 @@ impl<T> CopySlice<T> for OpenCL {
         });
 
         unsafe {
-            enqueue_copy_buffers::<T, _>(self.queue(), source.data.ptr, dest.data.ptr, ranges)
+            enqueue_copy_buffers::<T, _>(self.queue(), source.data.ptr, dest.data.ptr, ranges, None)
                 .unwrap()
         };
     }
@@ -196,7 +199,7 @@ fn try_read_cl_buf_to_vec<T: Clone + Default>(
     buf: &CLPtr<T>,
 ) -> crate::Result<Vec<T>> {
     let mut read = vec![T::default(); buf.len()];
-    let event = unsafe { enqueue_read_buffer(device.queue(), buf.ptr, &mut read, false)? };
+    let event = unsafe { enqueue_read_buffer(device.queue(), buf.ptr, &mut read, false, None)? };
     unsafe { wait_for_event(event).unwrap() };
     Ok(read)
 }

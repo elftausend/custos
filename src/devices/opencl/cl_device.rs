@@ -222,7 +222,7 @@ impl<Mods: OnDropBuffer, T> Alloc<T> for OpenCL<Mods> {
         };
 
         let host_ptr = if self.unified_mem() {
-            unsafe { unified_ptr::<T>(self.queue(), ptr, len).unwrap() }
+            unsafe { unified_ptr::<T>(self.queue(), ptr, len, None).unwrap() }
         } else {
             std::ptr::null_mut()
         };
@@ -247,7 +247,7 @@ impl<Mods: OnDropBuffer, T> Alloc<T> for OpenCL<Mods> {
         };
 
         let host_ptr = if self.unified_mem() {
-            unsafe { unified_ptr::<T>(self.queue(), ptr, data.len()).unwrap() }
+            unsafe { unified_ptr::<T>(self.queue(), ptr, data.len(), None).unwrap() }
         } else {
             std::ptr::null_mut()
         };
@@ -270,6 +270,7 @@ impl<'a, T, Mods: OnDropBuffer + OnNewBuffer<T, Self, ()>> CloneBuf<'a, T> for O
                 buf.base().ptr,
                 cloned.base().ptr,
                 buf.len(),
+                None,
             )
             .unwrap()
         };
