@@ -1,6 +1,6 @@
 use min_cl::CLDevice;
 
-use min_cl::api::{create_buffer, enqueue_full_copy_buffer, MemFlags};
+use min_cl::api::{create_buffer, enqueue_full_copy_buffer, wait_for_event, MemFlags};
 
 use super::{enqueue_kernel, AsClCvoidPtr, CLPtr};
 use crate::flag::AllocFlag;
@@ -222,7 +222,8 @@ impl<Mods: OnDropBuffer, T> Alloc<T> for OpenCL<Mods> {
         };
 
         let host_ptr = if self.unified_mem() {
-            unsafe { unified_ptr::<T>(self.queue(), ptr, len, None).unwrap() }
+            unsafe { self.device.unified_ptr(ptr, len) }.unwrap()
+            // unsafe { unified_ptr::<T>(self.queue(), ptr, len, None).unwrap() }
         } else {
             std::ptr::null_mut()
         };
@@ -264,7 +265,7 @@ impl<Mods: OnDropBuffer, T> Alloc<T> for OpenCL<Mods> {
 impl<'a, T, Mods: OnDropBuffer + OnNewBuffer<T, Self, ()>> CloneBuf<'a, T> for OpenCL<Mods> {
     fn clone_buf(&'a self, buf: &Buffer<'a, T, Self>) -> Buffer<'a, T, Self> {
         let cloned = Buffer::new(self, buf.len());
-        unsafe {
+        let event = unsafe {
             enqueue_full_copy_buffer::<T>(
                 self.queue(),
                 buf.base().ptr,
@@ -274,6 +275,7 @@ impl<'a, T, Mods: OnDropBuffer + OnNewBuffer<T, Self, ()>> CloneBuf<'a, T> for O
             )
             .unwrap()
         };
+        unsafe { wait_for_event(event).unwrap() }
         cloned
     }
 }
