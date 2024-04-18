@@ -275,7 +275,7 @@ impl<'a, T, Mods: OnDropBuffer + OnNewBuffer<T, Self, ()>> CloneBuf<'a, T> for O
             )
             .unwrap()
         };
-        unsafe { wait_for_event(event).unwrap() }
+        event.wait().unwrap();
         cloned
     }
 }
