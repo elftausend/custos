@@ -1,10 +1,7 @@
 use core::ops::{Range, RangeBounds};
 
 use min_cl::{
-    api::{
-        enqueue_copy_buffer, enqueue_copy_buffers, enqueue_full_copy_buffer, enqueue_read_buffer,
-        enqueue_write_buffer, wait_for_event,
-    },
+    api::{enqueue_copy_buffer, enqueue_copy_buffers, enqueue_full_copy_buffer, wait_for_event},
     CLDevice,
 };
 
@@ -96,9 +93,7 @@ pub fn try_cl_clear<T: CDatatype>(device: &CLDevice, lhs: &mut CLPtr<T>) -> crat
 impl<T, S: Shape, Mods: OnDropBuffer> WriteBuf<T, S> for OpenCL<Mods> {
     #[inline]
     fn write(&self, buf: &mut Buffer<T, Self, S>, data: &[T]) {
-        let event = unsafe {
-            self.device.enqueue_write_buffer(buf.cl_ptr(), data, false)
-        }.unwrap();
+        let event = unsafe { self.device.enqueue_write_buffer(buf.cl_ptr(), data, false) }.unwrap();
         // let event =
         //     unsafe { enqueue_write_buffer(self.queue(), buf.cl_ptr(), data, false, None).unwrap() };
         // self.device.event_wait_list.borrow_mut().push(event);
@@ -141,7 +136,7 @@ impl<T> CopySlice<T> for OpenCL {
                 source_range.start,
                 dest_range.start,
                 source_range.end - source_range.start,
-                None,
+                Some(&self.device.event_wait_list.borrow()),
             )
             .unwrap()
         };
@@ -160,8 +155,14 @@ impl<T> CopySlice<T> for OpenCL {
         });
 
         unsafe {
-            enqueue_copy_buffers::<T, _>(self.queue(), source.data.ptr, dest.data.ptr, ranges, None)
-                .unwrap()
+            enqueue_copy_buffers::<T, _>(
+                self.queue(),
+                source.data.ptr,
+                dest.data.ptr,
+                ranges,
+                Some(&self.device.event_wait_list.borrow()),
+            )
+            .unwrap()
         };
     }
 }
@@ -203,7 +204,7 @@ fn try_read_cl_buf_to_vec<T: Clone + Default>(
     buf: &CLPtr<T>,
 ) -> crate::Result<Vec<T>> {
     let mut read = vec![T::default(); buf.len()];
-    let event = unsafe { device.enqueue_read_buffer(buf.ptr, &mut read, false)}?;
+    let event = unsafe { device.enqueue_read_buffer(buf.ptr, &mut read, false) }?;
     unsafe { wait_for_event(event).unwrap() };
     Ok(read)
 }
