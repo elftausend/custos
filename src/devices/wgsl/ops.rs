@@ -87,11 +87,12 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::{wgsl::wgsl_device::Wgsl, ApplyFunction, Combiner, Device, Vulkan};
+    use crate::{wgsl::wgsl_device::Wgsl, ApplyFunction, Combiner, Device };
 
+    #[cfg(feature = "vulkan")]
     #[test]
-    fn test_wgsl_device_apply_fn() {
-        let dev = Wgsl::<Vulkan>::new(0).unwrap();
+    fn test_wgsl_device_apply_fn_vk() {
+        let dev = Wgsl::<crate::Vulkan>::new(0).unwrap();
         let x = dev.buffer([1, 2, 3]);
 
         let out = dev.apply_fn(&x, |x| x.add(5));

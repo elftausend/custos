@@ -48,6 +48,8 @@ mod launch_shader;
 mod ops;
 
 pub use launch_shader::*;
+
+#[cfg(feature = "spv")]
 pub use spirv::*;
 
 pub trait WgslDevice: Sized {

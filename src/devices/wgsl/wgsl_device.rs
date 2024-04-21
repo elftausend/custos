@@ -203,13 +203,25 @@ impl<D: Device, Mods: AddOperation> AddOperation for Wgsl<D, Mods> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{Device, Vulkan};
+    use crate::Device;
 
     use super::Wgsl;
 
+    #[cfg(feature = "vulkan")]
     #[test]
-    fn test_wgsl_wrapper() {
+    fn test_wgsl_wrapper_vk() {
+        use crate::Vulkan;
+
         let dev = Wgsl::<Vulkan>::new(0).unwrap();
         let _x = dev.buffer([1, 2, 3]);
+    }
+
+    #[cfg(feature = "webgl")]
+    #[test]
+    fn test_wgsl_wrapper_webgl() {
+        use crate::WebGL;
+
+        let dev = Wgsl::<WebGL>::new().unwrap();
+        // let _x = dev.buffer([1, 2, 3]);
     }
 }
