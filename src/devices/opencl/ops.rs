@@ -1,10 +1,7 @@
 use core::ops::{Range, RangeBounds};
 
 use min_cl::{
-    api::{
-        enqueue_copy_buffer, enqueue_copy_buffers, enqueue_full_copy_buffer, enqueue_read_buffer,
-        enqueue_write_buffer, wait_for_event,
-    },
+    api::{enqueue_copy_buffer, enqueue_copy_buffers, enqueue_full_copy_buffer, wait_for_event},
     CLDevice,
 };
 
@@ -96,18 +93,22 @@ pub fn try_cl_clear<T: CDatatype>(device: &CLDevice, lhs: &mut CLPtr<T>) -> crat
 impl<T, S: Shape, Mods: OnDropBuffer> WriteBuf<T, S> for OpenCL<Mods> {
     #[inline]
     fn write(&self, buf: &mut Buffer<T, Self, S>, data: &[T]) {
-        let event =
-            unsafe { enqueue_write_buffer(self.queue(), buf.cl_ptr(), data, true).unwrap() };
-        unsafe { wait_for_event(event).unwrap() };
+        let event = unsafe { self.device.enqueue_write_buffer(buf.cl_ptr(), data, false) }.unwrap();
+        // let event =
+        //     unsafe { enqueue_write_buffer(self.queue(), buf.cl_ptr(), data, false, None).unwrap() };
+        // self.device.event_wait_list.borrow_mut().push(event);
+        // self.device.wait_for_events().unwrap();
+        event.wait().unwrap();
     }
 
     #[inline]
     fn write_buf(&self, dst: &mut Buffer<T, Self, S>, src: &Buffer<T, Self, S>) {
         debug_assert_eq!(dst.len(), src.len());
-        unsafe {
-            enqueue_full_copy_buffer::<T>(self.queue(), src.cl_ptr(), dst.cl_ptr(), dst.len())
+        let event = unsafe {
+            enqueue_full_copy_buffer::<T>(self.queue(), src.cl_ptr(), dst.cl_ptr(), dst.len(), None)
                 .unwrap()
         };
+        event.wait().unwrap();
     }
 }
 
@@ -127,7 +128,7 @@ impl<T> CopySlice<T> for OpenCL {
             dest_range.end - dest_range.start
         );
 
-        unsafe {
+        let event = unsafe {
             enqueue_copy_buffer::<T>(
                 self.queue(),
                 source.data.ptr,
@@ -135,9 +136,11 @@ impl<T> CopySlice<T> for OpenCL {
                 source_range.start,
                 dest_range.start,
                 source_range.end - source_range.start,
+                Some(&self.device.event_wait_list.borrow()),
             )
             .unwrap()
         };
+        event.wait().unwrap();
     }
 
     fn copy_slice_all<I: IntoIterator<Item = (Range<usize>, Range<usize>)>>(
@@ -153,8 +156,14 @@ impl<T> CopySlice<T> for OpenCL {
         });
 
         unsafe {
-            enqueue_copy_buffers::<T, _>(self.queue(), source.data.ptr, dest.data.ptr, ranges)
-                .unwrap()
+            enqueue_copy_buffers::<T, _>(
+                self.queue(),
+                source.data.ptr,
+                dest.data.ptr,
+                ranges,
+                Some(&self.device.event_wait_list.borrow()),
+            )
+            .unwrap()
         };
     }
 }
@@ -196,8 +205,8 @@ fn try_read_cl_buf_to_vec<T: Clone + Default>(
     buf: &CLPtr<T>,
 ) -> crate::Result<Vec<T>> {
     let mut read = vec![T::default(); buf.len()];
-    let event = unsafe { enqueue_read_buffer(device.queue(), buf.ptr, &mut read, false)? };
-    unsafe { wait_for_event(event).unwrap() };
+    let event = unsafe { device.enqueue_read_buffer(buf.ptr, &mut read, false) }?;
+    event.wait().unwrap();
     Ok(read)
 }
 

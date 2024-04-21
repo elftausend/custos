@@ -1,6 +1,6 @@
 use crate::{number::Number, Buffer, OnDropBuffer, OpenCL, Shape};
 use min_cl::{
-    api::{enqueue_nd_range_kernel, set_kernel_arg, OCLErrorKind},
+    api::{set_kernel_arg, OCLErrorKind},
     CLDevice,
 };
 use std::{ffi::c_void, mem::size_of};
@@ -172,8 +172,9 @@ pub fn enqueue_kernel(
 
     // with waitlist:
     // device.inner.enqueue_nd_range_kernel(kernel, wd, &gws, lws.as_ref(), None);
-    unsafe { enqueue_nd_range_kernel(device.queue(), kernel, wd, &gws, lws.as_ref(), None)? };
-    Ok(())
+    // unsafe { enqueue_nd_range_kernel(device.queue(), kernel, wd, &gws, lws.as_ref(), None)? };
+    device.enqueue_nd_range_kernel(kernel, wd, &gws, lws.as_ref(), None)?;
+    device.wait_for_events()
 }
 
 #[cfg(test)]
