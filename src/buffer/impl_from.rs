@@ -112,7 +112,7 @@ where
     <CPU<Mods> as Device>::Data<T, S>: core::ops::Deref<Target = [T]>,
 {
     fn from((device, buf): (&'a D, Buffer<'b, T, CPU<Mods>, S>)) -> Self {
-        let mut out = device.retrieve(buf.len(), &buf);
+        let mut out = device.retrieve(buf.len(), &buf).unwrap();
         device.write(&mut out, &buf);
         out
     }

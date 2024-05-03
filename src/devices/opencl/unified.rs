@@ -104,7 +104,7 @@ where
 ///
 /// fn main() -> custos::Result<()> {
 ///     let cpu = CPU::<Cached<Base>>::new();
-///     let mut no_drop: Buffer<f32, _> = cpu.retrieve(4, ());
+///     let mut no_drop: Buffer<f32, _> = cpu.retrieve(4, ()).unwrap();
 ///     no_drop.write(&[1., 3.1, 2.34, 0.76]);
 ///
 ///     let device = OpenCL::<Cached<Base>>::new(chosen_cl_idx())?;
@@ -183,7 +183,7 @@ mod tests {
     #[test]
     fn test_unified_mem_chain_ideal() -> crate::Result<()> {
         let cpu = CPU::<Cached<Base>>::new();
-        let mut no_drop = cpu.retrieve::<0>(3, ());
+        let mut no_drop = cpu.retrieve::<0>(3, ()).unwrap();
         no_drop.write(&[1., 2.3, 0.76]);
 
         let device = OpenCL::<Cached<Base>>::new(0)?;
@@ -196,7 +196,7 @@ mod tests {
     fn test_unified_mem_chain_ideal_using_cpu_from_opencl_dev() -> crate::Result<()> {
         let device = OpenCL::<Cached<Base>>::new(0)?;
 
-        let mut no_drop = device.cpu.retrieve::<0>(3, ());
+        let mut no_drop = device.cpu.retrieve::<0>(3, ()).unwrap();
         no_drop.write(&[1., 2.3, 0.76]);
 
         let buf = device.construct_unified_buf_from_cpu_buf::<_, ()>(&device, no_drop)?;
@@ -225,7 +225,7 @@ mod tests {
     #[test]
     fn test_unified_mem_chain_unified_construct_unavailable() -> crate::Result<()> {
         let cpu = CPU::<Cached<Base>>::new();
-        let mut no_drop = cpu.retrieve::<0>(3, ());
+        let mut no_drop = cpu.retrieve::<0>(3, ()).unwrap();
         no_drop.write(&[1., 2.3, 0.76]);
 
         let device = OpenCL::<Base>::new(chosen_cl_idx())?;
@@ -243,7 +243,7 @@ mod tests {
     #[test]
     fn test_construct_buffer_missing_cached_module() -> crate::Result<()> {
         let cpu = CPU::<Base>::new();
-        let mut no_drop = cpu.retrieve::<0>(3, ());
+        let mut no_drop = cpu.retrieve::<0>(3, ()).unwrap();
         no_drop.write(&[1., 2.3, 0.76]);
 
         let device = OpenCL::<Base>::new(chosen_cl_idx())?;
@@ -263,7 +263,7 @@ mod tests {
     #[test]
     fn test_to_unified() -> crate::Result<()> {
         let cpu = CPU::<Cached<Base>>::new();
-        let mut no_drop: Buffer<_, _> = cpu.retrieve::<0>(3, ());
+        let mut no_drop: Buffer<_, _> = cpu.retrieve::<0>(3, ()).unwrap();
         no_drop.write(&[1., 2.3, 0.76]);
 
         let device = OpenCL::<Base>::new(chosen_cl_idx())?;
@@ -290,7 +290,7 @@ mod tests {
     #[test]
     fn test_construct_buffer() -> crate::Result<()> {
         let cpu = CPU::<Cached<Base>>::new();
-        let mut no_drop = cpu.retrieve::<0>(3, ());
+        let mut no_drop = cpu.retrieve::<0>(3, ()).unwrap();
         no_drop.write(&[1., 2.3, 0.76]);
 
         let device = OpenCL::<Base>::new(chosen_cl_idx())?;
@@ -316,7 +316,7 @@ mod tests {
         let mut dur = 0.;
 
         for _ in cl_dev.range(0..100) {
-            let mut buf: Buffer<i32, _> = device.retrieve::<0>(6, ());
+            let mut buf: Buffer<i32, _> = device.retrieve::<0>(6, ()).unwrap();
 
             buf.copy_from_slice(&[1, 2, 3, 4, 5, 6]);
 

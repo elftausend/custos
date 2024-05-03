@@ -125,7 +125,7 @@ fn test_cached_cpu() {
     let mut prev_ptr = None;
 
     for _ in device.range(0..100) {
-        let buf: Buffer<f32, _> = device.retrieve::<0>(10, ());
+        let buf: Buffer<f32, _> = device.retrieve::<0>(10, ()).unwrap();
 
         if prev_ptr.is_some() {
             assert_eq!(prev_ptr, Some(buf.data.ptr));
@@ -216,10 +216,10 @@ fn test_slice() {
 fn test_alloc() {
     let device = CPU::<Base>::new();
 
-    let buf: Buffer<f32> = device.retrieve::<0>(100, ());
+    let buf: Buffer<f32> = device.retrieve::<0>(100, ()).unwrap();
     assert_eq!(buf.read(), vec![0.; 100]);
 
-    let buf: Buffer<f32> = device.retrieve::<0>(100, ());
+    let buf: Buffer<f32> = device.retrieve::<0>(100, ()).unwrap();
     assert_eq!(buf.read(), vec![0.; 100]);
     drop(buf);
 }

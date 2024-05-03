@@ -118,7 +118,7 @@ where
     where
         F: crate::Eval<T> + crate::MayToCLSource + crate::MayToWgslSource,
     {
-        let mut out = self.retrieve(buf.len(), buf);
+        let mut out = self.retrieve(buf.len(), buf).unwrap();
 
         // self.add_op(&mut out, move |out| {
         let cpu_out = unsafe { &mut *(&mut out as *mut Buffer<T, Vulkan<Mods>, _>) };

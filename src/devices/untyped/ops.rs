@@ -55,7 +55,7 @@ where
     where
         F: crate::TwoWay<T> + 'static,
     {
-        let mut out = self.retrieve(buf.len(), buf);
+        let mut out = self.retrieve(buf.len(), buf).unwrap();
         match &self.device {
             UntypedDevice::CPU(_cpu) => {
                 let x = buf.convert_to_typed::<T, CPU, S>().unwrap();

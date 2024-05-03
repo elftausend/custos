@@ -135,23 +135,23 @@ where
         device: &D,
         len: usize,
         parents: impl Parents<NUM_PARENTS>,
-    ) -> Self::Wrap<T, D::Base<T, S>>
+    ) -> crate::Result<Self::Wrap<T, D::Base<T, S>>>
     where
         D: Alloc<T>,
     {
         let requires_grad = parents.requires_grads().iter().any(|&x| x);
-        let data = self.modules.retrieve(device, len, parents);
+        let data = self.modules.retrieve(device, len, parents)?;
         unsafe {
             (*self.grads.get())
                 .buf_requires_grad
                 .insert(*data.id(), requires_grad)
         };
 
-        ReqGradWrapper {
+        Ok(ReqGradWrapper {
             requires_grad,
             data,
             _pd: core::marker::PhantomData,
-        }
+        })
     }
 
     #[inline]
@@ -301,7 +301,7 @@ mod tests {
         let _lhs = Buffer::<f32, _>::new(&device, 10);
 
         for _ in device.range(0..100) {
-            let x: Buffer<f32, _> = device.retrieve::<0>(100, ());
+            let x: Buffer<f32, _> = device.retrieve::<0>(100, ()).unwrap();
             assert_eq!(x.len(), 100)
         }
 
@@ -323,7 +323,7 @@ mod tests {
         let _lhs = Buffer::<f32, _>::new(&device, 10);
 
         for _ in device.range(0..100) {
-            let x: Buffer<f32, _> = device.retrieve::<0>(100, ());
+            let x: Buffer<f32, _> = device.retrieve::<0>(100, ()).unwrap();
             assert_eq!(x.len(), 100)
         }
 
@@ -479,7 +479,7 @@ mod tests {
         });
         assert!(!rhs.requires_grad());
 
-        let out: Buffer<i32, _> = device.retrieve(rhs.len(), (&lhs, &rhs));
+        let out: Buffer<i32, _> = device.retrieve(rhs.len(), (&lhs, &rhs)).unwrap();
         assert!(*unsafe {
             (*device.modules.grads.get())
                 .buf_requires_grad
@@ -488,13 +488,13 @@ mod tests {
         });
         assert!(out.requires_grad());
 
-        let out: Buffer<i32, _> = device.retrieve(rhs.len(), &lhs);
+        let out: Buffer<i32, _> = device.retrieve(rhs.len(), &lhs).unwrap();
         assert!(out.requires_grad());
 
-        let out: Buffer<i32, _> = device.retrieve(rhs.len(), &rhs);
+        let out: Buffer<i32, _> = device.retrieve(rhs.len(), &rhs).unwrap();
         assert!(!out.requires_grad());
 
-        let out: Buffer<i32, _> = device.retrieve(rhs.len(), (&no_grad, &rhs));
+        let out: Buffer<i32, _> = device.retrieve(rhs.len(), (&no_grad, &rhs)).unwrap();
         assert!(!out.requires_grad());
     }
 }

@@ -157,11 +157,11 @@ impl<T: AsType, S: Shape> Retriever<T, S> for Untyped {
         &self,
         len: usize,
         _parents: impl crate::Parents<NUM_PARENTS>,
-    ) -> Buffer<T, Self, S> {
-        let data = Alloc::<T>::alloc::<S>(self, len, crate::flag::AllocFlag::None).unwrap();
-        Buffer {
+    ) -> crate::Result<Buffer<T, Self, S>> {
+        let data = Alloc::<T>::alloc::<S>(self, len, crate::flag::AllocFlag::None)?;
+        Ok(Buffer {
             data,
             device: Some(self),
-        }
+        })
     }
 }

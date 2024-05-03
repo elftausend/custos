@@ -49,7 +49,7 @@ where
     where
         F: Eval<T> + MayToCLSource,
     {
-        let mut out = self.retrieve(buf.len(), buf);
+        let mut out = self.retrieve(buf.len(), buf).unwrap();
 
         crate::cpu_stack_ops::apply_fn_slice(buf, &mut out, f);
 
@@ -120,7 +120,7 @@ mod tests {
         fn add(&self, lhs: &Buffer<T, D>, rhs: &Buffer<T, D>) -> Buffer<T, Self> {
             let len = core::cmp::min(lhs.len(), rhs.len());
 
-            let mut out = self.retrieve(len, (lhs, rhs));
+            let mut out = self.retrieve(len, (lhs, rhs)).unwrap();
             add_ew_slice(lhs, rhs, &mut out);
             out
         }
@@ -134,7 +134,7 @@ mod tests {
         T: Add<Output = T> + Copy + Default,
     {
         fn add(&self, lhs: &Buffer<T, D, S>, rhs: &Buffer<T, D, S>) -> Buffer<T, Self, S> {
-            let mut out = self.retrieve(S::LEN, (lhs, rhs));
+            let mut out = self.retrieve(S::LEN, (lhs, rhs)).unwrap();
 
             for i in 0..S::LEN {
                 out[i] = lhs[i] + rhs[i];

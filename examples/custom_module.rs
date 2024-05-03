@@ -76,7 +76,7 @@ where
         device: &D,
         len: usize,
         parents: impl custos::Parents<NUM_PARENTS>,
-    ) -> Self::Wrap<T, <D>::Base<T, S>>
+    ) -> custos::Result<Self::Wrap<T, <D>::Base<T, S>>>
     where
         S: Shape,
         D: Device + Alloc<T>,

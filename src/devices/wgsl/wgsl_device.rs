@@ -168,14 +168,14 @@ impl<D: Device + Alloc<T>, T, Mods: Retrieve<Self, T, S>, S: Shape> Retriever<T,
         &self,
         len: usize,
         parents: impl Parents<NUM_PARENTS>,
-    ) -> Buffer<T, Self, S> {
-        let data = unsafe { self.modules.retrieve::<NUM_PARENTS>(self, len, parents) };
+    ) -> crate::Result<Buffer<T, Self, S>> {
+        let data = unsafe { self.modules.retrieve::<NUM_PARENTS>(self, len, parents) }?;
         let buf = Buffer {
             data,
             device: Some(self),
         };
         self.modules.on_retrieve_finish(&buf);
-        buf
+        Ok(buf)
     }
 }
 
