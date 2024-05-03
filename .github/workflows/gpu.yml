@@ -18,7 +18,7 @@ jobs:
     - uses: actions/checkout@v4
     - uses: dtolnay/rust-toolchain@stable
 
-    - uses: Swatinem/rust-cache@v2
+    # - uses: Swatinem/rust-cache@v2
 
     - name: Build (OpenCL)
       run: cargo build --verbose --no-default-features --features opencl
@@ -30,7 +30,7 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - uses: dtolnay/rust-toolchain@stable
-    - uses: Swatinem/rust-cache@v2
+    # - uses: Swatinem/rust-cache@v2
 
     - name: Build (CUDA)
       run: cargo build --verbose --no-default-features --features cuda
@@ -42,7 +42,7 @@ jobs:
     - uses: actions/checkout@v4
     - uses: dtolnay/rust-toolchain@stable
 
-    - uses: Swatinem/rust-cache@v2
+    # - uses: Swatinem/rust-cache@v2
     - name: Build (Vulkan)
       run: cargo build --verbose --no-default-features --features vulkan
 
@@ -53,7 +53,7 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - uses: dtolnay/rust-toolchain@stable
-    - uses: Swatinem/rust-cache@v2
+    # - uses: Swatinem/rust-cache@v2
 
     - name: Build (cuda,opencl)
       run: cargo build --verbose --no-default-features --features cuda,opencl
@@ -68,7 +68,7 @@ jobs:
     - uses: actions/checkout@v4
 
     - uses: dtolnay/rust-toolchain@stable
-    - uses: Swatinem/rust-cache@v2
+    # - uses: Swatinem/rust-cache@v2
 
     - name: Run tests (OpenCL)
       run: cargo test --verbose --no-default-features --features opencl
@@ -91,7 +91,7 @@ jobs:
     - uses: actions/checkout@v4
 
     - uses: dtolnay/rust-toolchain@stable
-    - uses: Swatinem/rust-cache@v2
+    # - uses: Swatinem/rust-cache@v2
 
     - name: Run tests (CUDA)
       run: cargo test --verbose --no-default-features --features cuda
@@ -114,7 +114,7 @@ jobs:
     - uses: actions/checkout@v4
 
     - uses: dtolnay/rust-toolchain@stable
-    - uses: Swatinem/rust-cache@v2
+    # - uses: Swatinem/rust-cache@v2
 
     - name: Run tests (vulkan)
       run: cargo test --verbose --no-default-features --features vulkan 
@@ -137,7 +137,7 @@ jobs:
     - uses: actions/checkout@v4
 
     - uses: dtolnay/rust-toolchain@stable
-    - uses: Swatinem/rust-cache@v2
+    # - uses: Swatinem/rust-cache@v2
 
     - name: Run tests (CUDA, OpenCL, vulkan)
       run: cargo test --verbose --no-default-features --features cuda,opencl,vulkan
