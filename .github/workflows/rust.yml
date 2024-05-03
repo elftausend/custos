@@ -15,11 +15,8 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v3
-    - uses: actions-rs/toolchain@v1
-      with:
-        profile: minimal
-        toolchain: stable
+    - uses: actions/checkout@v4
+    - run: rustup toolchain install stable --profile minimal
 
     - uses: Swatinem/rust-cache@v2
     - name: Build
@@ -34,12 +31,9 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
-    - uses: actions-rs/toolchain@v1
-      with:
-        profile: minimal
-        toolchain: stable
+    - run: rustup toolchain install stable --profile minimal
 
     - uses: Swatinem/rust-cache@v2
 
@@ -50,12 +44,9 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
-    - uses: actions-rs/toolchain@v1
-      with:
-        profile: minimal
-        toolchain: stable
+    - run: rustup toolchain install stable --profile minimal
 
     - uses: Swatinem/rust-cache@v2
 
@@ -77,12 +68,9 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
-    - uses: actions-rs/toolchain@v1
-      with:
-        profile: minimal
-        toolchain: stable
+    - run: rustup toolchain install stable --profile minimal
 
     - uses: Swatinem/rust-cache@v2
 
@@ -94,7 +82,7 @@ jobs:
   #   runs-on: ubuntu-latest
     
   #   steps:
-  #   - uses: actions/checkout@v3
+  #   - uses: actions/checkout@v4
 
   #   - uses: actions-rs/toolchain@v1
   #     with:
@@ -111,12 +99,9 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
-    - uses: actions-rs/toolchain@v1
-      with:
-        profile: minimal
-        toolchain: stable
+    - run: rustup toolchain install stable --profile minimal
 
     - uses: Swatinem/rust-cache@v2
 
@@ -128,12 +113,9 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
-    - uses: actions-rs/toolchain@v1
-      with:
-        profile: minimal
-        toolchain: stable
+    - run: rustup toolchain install stable --profile minimal
 
     - uses: Swatinem/rust-cache@v2
 
@@ -146,12 +128,9 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
-    - uses: actions-rs/toolchain@v1
-      with:
-        profile: minimal
-        toolchain: stable
+    - run: rustup toolchain install stable --profile minimal
 
     - uses: Swatinem/rust-cache@v2
 
@@ -163,12 +142,9 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
-    - uses: actions-rs/toolchain@v1
-      with:
-        profile: minimal
-        toolchain: stable
+    - run: rustup toolchain install stable --profile minimal
 
     - uses: Swatinem/rust-cache@v2
 
@@ -180,12 +156,9 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
-    - uses: actions-rs/toolchain@v1
-      with:
-        profile: minimal
-        toolchain: stable
+    - run: rustup toolchain install stable --profile minimal
 
     - uses: Swatinem/rust-cache@v2
 
@@ -197,12 +170,9 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
-    - uses: actions-rs/toolchain@v1
-      with:
-        profile: minimal
-        toolchain: stable
+    - run: rustup toolchain install stable --profile minimal
 
     - uses: Swatinem/rust-cache@v2
 
@@ -215,7 +185,7 @@ jobs:
     name: "Miri"
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Install Miri
         run: |
           rustup toolchain install nightly --component miri
@@ -239,7 +209,7 @@ jobs:
 #    runs-on: ubuntu-latest
 #    
 #    steps:
-#    - uses: actions/checkout@v3
+#    - uses: actions/checkout@v4
 #
 #    - uses: actions-rs/toolchain@v1
 #      with:

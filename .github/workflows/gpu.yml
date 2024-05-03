@@ -15,11 +15,8 @@ jobs:
     runs-on: self-hosted
 
     steps:
-    - uses: actions/checkout@v3
-    - uses: actions-rs/toolchain@v1
-      with:
-        profile: minimal
-        toolchain: stable
+    - uses: actions/checkout@v4
+    - run: rustup toolchain install stable --profile minimal
 
     - uses: Swatinem/rust-cache@v2
 
@@ -31,11 +28,8 @@ jobs:
     runs-on: self-hosted
 
     steps:
-    - uses: actions/checkout@v3
-    - uses: actions-rs/toolchain@v1
-      with:
-        profile: minimal
-        toolchain: stable
+    - uses: actions/checkout@v4
+    - run: rustup toolchain install stable --profile minimal
     - uses: Swatinem/rust-cache@v2
 
     - name: Build (CUDA)
@@ -45,11 +39,8 @@ jobs:
     runs-on: self-hosted
 
     steps:
-    - uses: actions/checkout@v3
-    - uses: actions-rs/toolchain@v1
-      with:
-        profile: minimal
-        toolchain: stable
+    - uses: actions/checkout@v4
+    - run: rustup toolchain install stable --profile minimal
 
     - uses: Swatinem/rust-cache@v2
     - name: Build (Vulkan)
@@ -60,11 +51,8 @@ jobs:
     runs-on: self-hosted
 
     steps:
-    - uses: actions/checkout@v3
-    - uses: actions-rs/toolchain@v1
-      with:
-        profile: minimal
-        toolchain: stable
+    - uses: actions/checkout@v4
+    - run: rustup toolchain install stable --profile minimal
     - uses: Swatinem/rust-cache@v2
 
     - name: Build (cuda,opencl)
@@ -77,12 +65,9 @@ jobs:
     runs-on: self-hosted
     
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
-    - uses: actions-rs/toolchain@v1
-      with:
-        profile: minimal
-        toolchain: stable
+    - run: rustup toolchain install stable --profile minimal
     - uses: Swatinem/rust-cache@v2
 
     - name: Run tests (OpenCL)
@@ -103,12 +88,9 @@ jobs:
     runs-on: self-hosted
     
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
-    - uses: actions-rs/toolchain@v1
-      with:
-        profile: minimal
-        toolchain: stable
+    - run: rustup toolchain install stable --profile minimal
     - uses: Swatinem/rust-cache@v2
 
     - name: Run tests (CUDA)
@@ -129,12 +111,9 @@ jobs:
     runs-on: self-hosted
     
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
-    - uses: actions-rs/toolchain@v1
-      with:
-        profile: minimal
-        toolchain: stable
+    - run: rustup toolchain install stable --profile minimal
     - uses: Swatinem/rust-cache@v2
 
     - name: Run tests (vulkan)
@@ -155,12 +134,9 @@ jobs:
     runs-on: self-hosted
     
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
-    - uses: actions-rs/toolchain@v1
-      with:
-        profile: minimal
-        toolchain: stable
+    - run: rustup toolchain install stable --profile minimal
     - uses: Swatinem/rust-cache@v2
 
     - name: Run tests (CUDA, OpenCL, vulkan)
