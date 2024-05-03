@@ -121,7 +121,7 @@ impl<Mods> CPU<Mods> {
 }
 
 impl<T, Mods: OnDropBuffer> Alloc<T> for CPU<Mods> {
-    fn alloc<S: Shape>(&self, mut len: usize, flag: AllocFlag) -> Self::Base<T, S> {
+    fn alloc<S: Shape>(&self, mut len: usize, flag: AllocFlag) -> crate::Result<Self::Base<T, S>> {
         assert!(len > 0, "invalid buffer len: 0");
 
         if S::LEN > len {
@@ -129,10 +129,10 @@ impl<T, Mods: OnDropBuffer> Alloc<T> for CPU<Mods> {
         }
 
         // self.wrap_in_base(CPUPtr::new_initialized(len, flag))
-        CPUPtr::new_initialized(len, flag)
+        Ok(CPUPtr::new_initialized(len, flag))
     }
 
-    fn alloc_from_slice<S>(&self, data: &[T]) -> Self::Base<T, S>
+    fn alloc_from_slice<S>(&self, data: &[T]) -> crate::Result<Self::Base<T, S>>
     where
         S: Shape,
         T: Clone,
@@ -144,10 +144,10 @@ impl<T, Mods: OnDropBuffer> Alloc<T> for CPU<Mods> {
         let slice = unsafe { std::slice::from_raw_parts_mut(cpu_ptr.ptr, data.len()) };
         slice.clone_from_slice(data);
 
-        cpu_ptr
+        Ok(cpu_ptr)
     }
 
-    fn alloc_from_vec<S: Shape>(&self, mut vec: Vec<T>) -> Self::Base<T, S>
+    fn alloc_from_vec<S: Shape>(&self, mut vec: Vec<T>) -> crate::Result<Self::Base<T, S>>
     where
         T: Clone,
     {
@@ -157,7 +157,7 @@ impl<T, Mods: OnDropBuffer> Alloc<T> for CPU<Mods> {
         let len = vec.len();
         core::mem::forget(vec);
 
-        unsafe { CPUPtr::from_ptr(ptr, len, AllocFlag::None) }
+        Ok(unsafe { CPUPtr::from_ptr(ptr, len, AllocFlag::None) })
     }
 }
 

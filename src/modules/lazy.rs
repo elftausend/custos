@@ -322,7 +322,7 @@ where
             );
 
             // safety: AllocFlag::Lazy prevents accessing device when dropping
-            let base = device.alloc::<S>(id.len, crate::flag::AllocFlag::Lazy);
+            let base = device.alloc::<S>(id.len, crate::flag::AllocFlag::Lazy).unwrap();
             let data = device.base_to_data(base);
             let buffer = Buffer {
                 data,

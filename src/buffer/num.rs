@@ -103,16 +103,16 @@ impl Device for () {
 
 impl<T: Default> Alloc<T> for () {
     #[inline]
-    fn alloc<S: crate::Shape>(&self, _len: usize, _flag: AllocFlag) -> Self::Data<T, S> {
-        Num::default()
+    fn alloc<S: crate::Shape>(&self, _len: usize, _flag: AllocFlag) -> crate::Result<Self::Data<T, S>> {
+        Ok(Num::default())
     }
 
     #[inline]
-    fn alloc_from_slice<S: crate::Shape>(&self, data: &[T]) -> Self::Data<T, S>
+    fn alloc_from_slice<S: crate::Shape>(&self, data: &[T]) -> crate::Result<Self::Data<T, S>>
     where
         T: Clone,
     {
-        data[0].clone().into()
+        Ok(data[0].clone().into())
     }
 }
 

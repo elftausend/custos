@@ -112,12 +112,12 @@ unsafe impl<D: Device, Mods: OnDropBuffer> IsShapeIndep for Wgsl<D, Mods> {}
 
 impl<T, D: Alloc<T>, Mods: OnDropBuffer> Alloc<T> for Wgsl<D, Mods> {
     #[inline]
-    fn alloc<S: Shape>(&self, len: usize, flag: crate::flag::AllocFlag) -> Self::Base<T, S> {
+    fn alloc<S: Shape>(&self, len: usize, flag: crate::flag::AllocFlag) -> crate::Result<Self::Base<T, S>> {
         self.backend.alloc(len, flag)
     }
 
     #[inline]
-    fn alloc_from_slice<S: Shape>(&self, data: &[T]) -> Self::Base<T, S>
+    fn alloc_from_slice<S: Shape>(&self, data: &[T]) -> crate::Result<Self::Base<T, S>>
     where
         T: Clone,
     {
@@ -125,7 +125,7 @@ impl<T, D: Alloc<T>, Mods: OnDropBuffer> Alloc<T> for Wgsl<D, Mods> {
     }
 
     #[inline]
-    fn alloc_from_vec<S: Shape>(&self, vec: Vec<T>) -> Self::Base<T, S>
+    fn alloc_from_vec<S: Shape>(&self, vec: Vec<T>) -> crate::Result<Self::Base<T, S>>
     where
         T: Clone,
     {
@@ -133,7 +133,7 @@ impl<T, D: Alloc<T>, Mods: OnDropBuffer> Alloc<T> for Wgsl<D, Mods> {
     }
 
     #[inline]
-    fn alloc_from_array<S: Shape>(&self, array: S::ARR<T>) -> Self::Base<T, S>
+    fn alloc_from_array<S: Shape>(&self, array: S::ARR<T>) -> crate::Result<Self::Base<T, S>>
     where
         T: Clone,
     {

@@ -89,7 +89,7 @@ impl<D, T, S: Shape> Retrieve<D, T, S> for Base {
     where
         D: Alloc<T>,
     {
-        device.alloc(len, AllocFlag::None)
+        device.alloc(len, AllocFlag::None).unwrap()
     }
 }
 

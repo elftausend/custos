@@ -68,25 +68,25 @@ impl<Mods: OnDropBuffer> Device for Stack<Mods> {
 
 impl<Mods: OnDropBuffer, T: Copy + Default> Alloc<T> for Stack<Mods> {
     #[inline]
-    fn alloc<S: Shape>(&self, _len: usize, _flag: AllocFlag) -> StackArray<S, T> {
-        StackArray::new()
+    fn alloc<S: Shape>(&self, _len: usize, _flag: AllocFlag) -> crate::Result<StackArray<S, T>> {
+        Ok(StackArray::new())
     }
 
     #[inline]
-    fn alloc_from_slice<S: Shape>(&self, data: &[T]) -> Self::Base<T, S> {
+    fn alloc_from_slice<S: Shape>(&self, data: &[T]) -> crate::Result<Self::Base<T, S>> {
         let mut array: StackArray<S, T> =
-            <Stack<Mods> as Alloc<T>>::alloc(self, 0, AllocFlag::None);
+            <Stack<Mods> as Alloc<T>>::alloc(self, 0, AllocFlag::None)?;
         array.flatten_mut().copy_from_slice(&data[..S::LEN]);
 
-        array
+        Ok(array)
     }
 
     #[inline]
-    fn alloc_from_array<S: Shape>(&self, array: <S as Shape>::ARR<T>) -> Self::Base<T, S>
+    fn alloc_from_array<S: Shape>(&self, array: <S as Shape>::ARR<T>) -> crate::Result<Self::Base<T, S>>
     where
         T: Clone,
     {
-        StackArray::from_array(array)
+        Ok(StackArray::from_array(array))
     }
 }
 

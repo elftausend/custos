@@ -108,7 +108,7 @@ mod tests {
         lhs: &crate::cuda::CUDAPtr<T>,
         rhs: &crate::cuda::CUDAPtr<T>,
     ) -> crate::cuda::CUDAPtr<T> {
-        let mut out = crate::cuda::CUDAPtr::new(lhs.len, crate::flag::AllocFlag::None);
+        let mut out = crate::cuda::CUDAPtr::new(lhs.len, crate::flag::AllocFlag::None).unwrap();
         let src = format!(
             r#"extern "C" __global__ void addEw({dt}* lhs, {dt}* rhs, {dt}* out, int len) {{
                 int idx = blockIdx.x * blockDim.x + threadIdx.x;
