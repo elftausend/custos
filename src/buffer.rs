@@ -543,7 +543,7 @@ impl<'a, T, S: Shape> Buffer<'a, T, CPU<Base>, S> {
     /// use std::ffi::c_void;
     ///
     /// let device = CPU::<Base>::new();
-    /// let mut ptr = Alloc::<f32>::alloc::<()>(&device, 10, AllocFlag::None);
+    /// let mut ptr = Alloc::<f32>::alloc::<()>(&device, 10, AllocFlag::None).unwrap();
     /// let mut buf = unsafe {
     ///     Buffer::<_, CPU<Base>, ()>::from_raw_host(ptr.ptr, 10)
     /// };
