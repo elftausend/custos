@@ -16,7 +16,7 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
-    - run: rustup toolchain install stable --profile minimal
+    - uses: dtolnay/rust-toolchain@stable
 
     - uses: Swatinem/rust-cache@v2
 
@@ -29,7 +29,7 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
-    - run: rustup toolchain install stable --profile minimal
+    - uses: dtolnay/rust-toolchain@stable
     - uses: Swatinem/rust-cache@v2
 
     - name: Build (CUDA)
@@ -40,7 +40,7 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
-    - run: rustup toolchain install stable --profile minimal
+    - uses: dtolnay/rust-toolchain@stable
 
     - uses: Swatinem/rust-cache@v2
     - name: Build (Vulkan)
@@ -52,7 +52,7 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
-    - run: rustup toolchain install stable --profile minimal
+    - uses: dtolnay/rust-toolchain@stable
     - uses: Swatinem/rust-cache@v2
 
     - name: Build (cuda,opencl)
@@ -67,7 +67,7 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
-    - run: rustup toolchain install stable --profile minimal
+    - uses: dtolnay/rust-toolchain@stable
     - uses: Swatinem/rust-cache@v2
 
     - name: Run tests (OpenCL)
@@ -90,7 +90,7 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
-    - run: rustup toolchain install stable --profile minimal
+    - uses: dtolnay/rust-toolchain@stable
     - uses: Swatinem/rust-cache@v2
 
     - name: Run tests (CUDA)
@@ -113,7 +113,7 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
-    - run: rustup toolchain install stable --profile minimal
+    - uses: dtolnay/rust-toolchain@stable
     - uses: Swatinem/rust-cache@v2
 
     - name: Run tests (vulkan)
@@ -136,7 +136,7 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
-    - run: rustup toolchain install stable --profile minimal
+    - uses: dtolnay/rust-toolchain@stable
     - uses: Swatinem/rust-cache@v2
 
     - name: Run tests (CUDA, OpenCL, vulkan)
