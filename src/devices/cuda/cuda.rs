@@ -97,7 +97,11 @@ impl<Mods: OnDropBuffer> Device for CUDA<Mods> {
 
 impl<Mods: OnDropBuffer, T> Alloc<T> for CUDA<Mods> {
     #[inline]
-    fn alloc<S: Shape>(&self, len: usize, flag: crate::flag::AllocFlag) -> crate::Result<Self::Base<T, S>> {
+    fn alloc<S: Shape>(
+        &self,
+        len: usize,
+        flag: crate::flag::AllocFlag,
+    ) -> crate::Result<Self::Base<T, S>> {
         Ok(CUDAPtr::new(len, flag)?)
     }
 

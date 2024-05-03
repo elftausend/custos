@@ -217,9 +217,8 @@ impl<Mods: OnDropBuffer, T> Alloc<T> for OpenCL<Mods> {
             len = S::LEN
         }
 
-        let ptr = unsafe {
-            create_buffer::<T>(self.ctx(), MemFlags::MemReadWrite as u64, len, None)?
-        };
+        let ptr =
+            unsafe { create_buffer::<T>(self.ctx(), MemFlags::MemReadWrite as u64, len, None)? };
 
         let host_ptr = if self.unified_mem() {
             unsafe { self.device.unified_ptr(ptr, len) }?

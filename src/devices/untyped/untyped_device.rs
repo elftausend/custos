@@ -108,7 +108,11 @@ impl WrappedData for Untyped {
 }
 
 impl<T: AsType> Alloc<T> for Untyped {
-    fn alloc<S: Shape>(&self, len: usize, flag: crate::flag::AllocFlag) -> crate::Result<Self::Base<T, S>> {
+    fn alloc<S: Shape>(
+        &self,
+        len: usize,
+        flag: crate::flag::AllocFlag,
+    ) -> crate::Result<Self::Base<T, S>> {
         Ok(match &self.device {
             UntypedDevice::CPU(cpu) => {
                 UntypedData::CPU(CpuStorage::from(Alloc::<T>::alloc::<S>(cpu, len, flag)?))

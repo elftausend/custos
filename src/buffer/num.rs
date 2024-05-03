@@ -103,7 +103,11 @@ impl Device for () {
 
 impl<T: Default> Alloc<T> for () {
     #[inline]
-    fn alloc<S: crate::Shape>(&self, _len: usize, _flag: AllocFlag) -> crate::Result<Self::Data<T, S>> {
+    fn alloc<S: crate::Shape>(
+        &self,
+        _len: usize,
+        _flag: AllocFlag,
+    ) -> crate::Result<Self::Data<T, S>> {
         Ok(Num::default())
     }
 

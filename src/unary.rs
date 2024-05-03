@@ -1,6 +1,6 @@
 use crate::{
     AddGradFn, AddOperation, Alloc, AsNoId, Buffer, Device, Eval, HasId, MayTapeActions,
-    MayToCLSource, MayToWgslSource, Resolve, Shape, TwoWay, ZeroGrad,
+    MayToCLSource, Resolve, Shape, TwoWay, ZeroGrad,
 };
 
 /// Applies a function to a buffer and returns a new buffer.

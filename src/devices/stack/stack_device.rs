@@ -82,7 +82,10 @@ impl<Mods: OnDropBuffer, T: Copy + Default> Alloc<T> for Stack<Mods> {
     }
 
     #[inline]
-    fn alloc_from_array<S: Shape>(&self, array: <S as Shape>::ARR<T>) -> crate::Result<Self::Base<T, S>>
+    fn alloc_from_array<S: Shape>(
+        &self,
+        array: <S as Shape>::ARR<T>,
+    ) -> crate::Result<Self::Base<T, S>>
     where
         T: Clone,
     {

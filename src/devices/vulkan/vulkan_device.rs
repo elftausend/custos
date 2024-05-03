@@ -152,7 +152,11 @@ impl<Mods: OnDropBuffer> Device for Vulkan<Mods> {
 
 impl<Mods: OnDropBuffer, T> Alloc<T> for Vulkan<Mods> {
     #[inline]
-    fn alloc<S: Shape>(&self, len: usize, flag: crate::flag::AllocFlag) -> crate::Result<Self::Base<T, S>> {
+    fn alloc<S: Shape>(
+        &self,
+        len: usize,
+        flag: crate::flag::AllocFlag,
+    ) -> crate::Result<Self::Base<T, S>> {
         Ok(VkArray::new(
             self.context(),
             len,

@@ -112,7 +112,11 @@ unsafe impl<D: Device, Mods: OnDropBuffer> IsShapeIndep for Wgsl<D, Mods> {}
 
 impl<T, D: Alloc<T>, Mods: OnDropBuffer> Alloc<T> for Wgsl<D, Mods> {
     #[inline]
-    fn alloc<S: Shape>(&self, len: usize, flag: crate::flag::AllocFlag) -> crate::Result<Self::Base<T, S>> {
+    fn alloc<S: Shape>(
+        &self,
+        len: usize,
+        flag: crate::flag::AllocFlag,
+    ) -> crate::Result<Self::Base<T, S>> {
         self.backend.alloc(len, flag)
     }
 
