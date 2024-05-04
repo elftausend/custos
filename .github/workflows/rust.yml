@@ -15,13 +15,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v3
-    - uses: actions-rs/toolchain@v1
-      with:
-        profile: minimal
-        toolchain: stable
+    - uses: actions/checkout@v4
+    - uses: dtolnay/rust-toolchain@stable
 
-    - uses: Swatinem/rust-cache@v1
+    - uses: Swatinem/rust-cache@v2
     - name: Build
       run: cargo build --verbose --no-default-features
     - name: Build (cached)
@@ -34,14 +31,11 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
-    - uses: actions-rs/toolchain@v1
-      with:
-        profile: minimal
-        toolchain: stable
+    - uses: dtolnay/rust-toolchain@stable
 
-    - uses: Swatinem/rust-cache@v1
+    - uses: Swatinem/rust-cache@v2
 
     - name: Run tests
       run: cargo test --verbose --no-default-features --features cpu
@@ -50,14 +44,11 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
-    - uses: actions-rs/toolchain@v1
-      with:
-        profile: minimal
-        toolchain: stable
+    - uses: dtolnay/rust-toolchain@stable
 
-    - uses: Swatinem/rust-cache@v1
+    - uses: Swatinem/rust-cache@v2
 
     - name: Run tests,fork
       run: cargo test --verbose --no-default-features --features cpu,fork
@@ -77,14 +68,11 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
-    - uses: actions-rs/toolchain@v1
-      with:
-        profile: minimal
-        toolchain: stable
+    - uses: dtolnay/rust-toolchain@stable
 
-    - uses: Swatinem/rust-cache@v1
+    - uses: Swatinem/rust-cache@v2
 
     - name: Run 'cached' tests
       run: cargo test --verbose --no-default-features --features cached,cpu
@@ -94,7 +82,7 @@ jobs:
   #   runs-on: ubuntu-latest
     
   #   steps:
-  #   - uses: actions/checkout@v3
+  #   - uses: actions/checkout@v4
 
   #   - uses: actions-rs/toolchain@v1
   #     with:
@@ -111,14 +99,11 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
-    - uses: actions-rs/toolchain@v1
-      with:
-        profile: minimal
-        toolchain: stable
+    - uses: dtolnay/rust-toolchain@stable
 
-    - uses: Swatinem/rust-cache@v1
+    - uses: Swatinem/rust-cache@v2
 
     - name: Run 'stack' tests
       run: cargo test --no-default-features --features stack,cpu
@@ -128,14 +113,11 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
-    - uses: actions-rs/toolchain@v1
-      with:
-        profile: minimal
-        toolchain: stable
+    - uses: dtolnay/rust-toolchain@stable
 
-    - uses: Swatinem/rust-cache@v1
+    - uses: Swatinem/rust-cache@v2
 
     - name: Run 'untyped' device tests
       run: cargo test --no-default-features --features untyped,half
@@ -146,14 +128,11 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
-    - uses: actions-rs/toolchain@v1
-      with:
-        profile: minimal
-        toolchain: stable
+    - uses: dtolnay/rust-toolchain@stable
 
-    - uses: Swatinem/rust-cache@v1
+    - uses: Swatinem/rust-cache@v2
 
     - name: Run 'static-api' tests
       run: cargo test --no-default-features --features static-api,cpu
@@ -163,14 +142,11 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
-    - uses: actions-rs/toolchain@v1
-      with:
-        profile: minimal
-        toolchain: stable
+    - uses: dtolnay/rust-toolchain@stable
 
-    - uses: Swatinem/rust-cache@v1
+    - uses: Swatinem/rust-cache@v2
 
     - name: Run 'autograd' tests
       run: cargo test --no-default-features --features autograd,cpu,macro
@@ -180,14 +156,11 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
-    - uses: actions-rs/toolchain@v1
-      with:
-        profile: minimal
-        toolchain: stable
+    - uses: dtolnay/rust-toolchain@stable
 
-    - uses: Swatinem/rust-cache@v1
+    - uses: Swatinem/rust-cache@v2
 
     - name: Run 'no-std' tests
       run: cargo test --no-default-features --features no-std
@@ -197,14 +170,11 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
-    - uses: actions-rs/toolchain@v1
-      with:
-        profile: minimal
-        toolchain: stable
+    - uses: dtolnay/rust-toolchain@stable
 
-    - uses: Swatinem/rust-cache@v1
+    - uses: Swatinem/rust-cache@v2
 
     - name: Run 'half' tests
       run: cargo test --no-default-features --features cpu,half
@@ -215,7 +185,7 @@ jobs:
     name: "Miri"
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Install Miri
         run: |
           rustup toolchain install nightly --component miri
@@ -239,7 +209,7 @@ jobs:
 #    runs-on: ubuntu-latest
 #    
 #    steps:
-#    - uses: actions/checkout@v3
+#    - uses: actions/checkout@v4
 #
 #    - uses: actions-rs/toolchain@v1
 #      with:

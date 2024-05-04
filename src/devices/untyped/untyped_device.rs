@@ -108,42 +108,46 @@ impl WrappedData for Untyped {
 }
 
 impl<T: AsType> Alloc<T> for Untyped {
-    fn alloc<S: Shape>(&self, len: usize, flag: crate::flag::AllocFlag) -> Self::Base<T, S> {
-        match &self.device {
+    fn alloc<S: Shape>(
+        &self,
+        len: usize,
+        flag: crate::flag::AllocFlag,
+    ) -> crate::Result<Self::Base<T, S>> {
+        Ok(match &self.device {
             UntypedDevice::CPU(cpu) => {
-                UntypedData::CPU(CpuStorage::from(Alloc::<T>::alloc::<S>(cpu, len, flag)))
+                UntypedData::CPU(CpuStorage::from(Alloc::<T>::alloc::<S>(cpu, len, flag)?))
             }
             UntypedDevice::CUDA(cuda) => {
                 #[cfg(feature = "cuda")]
                 {
-                    UntypedData::CUDA(CudaStorage::from(Alloc::<T>::alloc::<S>(cuda, len, flag)))
+                    UntypedData::CUDA(CudaStorage::from(Alloc::<T>::alloc::<S>(cuda, len, flag)?))
                 }
                 #[cfg(not(feature = "cuda"))]
                 unimplemented!()
             }
-        }
+        })
     }
 
-    fn alloc_from_slice<S: Shape>(&self, data: &[T]) -> Self::Base<T, S>
+    fn alloc_from_slice<S: Shape>(&self, data: &[T]) -> crate::Result<Self::Base<T, S>>
     where
         T: Clone,
     {
-        match &self.device {
+        Ok(match &self.device {
             UntypedDevice::CPU(cpu) => UntypedData::CPU(CpuStorage::from(
-                Alloc::<T>::alloc_from_slice::<S>(cpu, data),
+                Alloc::<T>::alloc_from_slice::<S>(cpu, data)?,
             )),
             UntypedDevice::CUDA(cuda) => {
                 #[cfg(feature = "cuda")]
                 {
                     UntypedData::CUDA(CudaStorage::from(Alloc::<T>::alloc_from_slice::<S>(
                         cuda, data,
-                    )))
+                    )?))
                 }
 
                 #[cfg(not(feature = "cuda"))]
                 unimplemented!()
             }
-        }
+        })
     }
 }
 
@@ -153,11 +157,11 @@ impl<T: AsType, S: Shape> Retriever<T, S> for Untyped {
         &self,
         len: usize,
         _parents: impl crate::Parents<NUM_PARENTS>,
-    ) -> Buffer<T, Self, S> {
-        let data = Alloc::<T>::alloc::<S>(self, len, crate::flag::AllocFlag::None);
-        Buffer {
+    ) -> crate::Result<Buffer<T, Self, S>> {
+        let data = Alloc::<T>::alloc::<S>(self, len, crate::flag::AllocFlag::None)?;
+        Ok(Buffer {
             data,
             device: Some(self),
-        }
+        })
     }
 }

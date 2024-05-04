@@ -124,7 +124,7 @@ mod tests {
         let _out_id = {
             let lhs = device.buffer([1f32, 2., 3., 4., 5.]);
             let rhs = device.buffer([1f32, 2., 6., 4., 5.]);
-            let out: Buffer = device.retrieve(lhs.len(), (&lhs, &rhs));
+            let out: Buffer = device.retrieve(lhs.len(), (&lhs, &rhs)).unwrap();
             unsafe { register_buf_copyable(&mut outs_unordered, &out) };
             // outs_unordered.insert(out.id(), )
 
@@ -152,7 +152,7 @@ mod tests {
 
         let mut outs_unordered = HashMap::default();
 
-        let out: Buffer = device.retrieve(lhs.len(), (&lhs, &rhs));
+        let out: Buffer = device.retrieve(lhs.len(), (&lhs, &rhs)).unwrap();
         unsafe { register_buf_copyable(&mut outs_unordered, &lhs) };
         unsafe { register_buf_copyable(&mut outs_unordered, &rhs) };
         unsafe { register_buf_copyable(&mut outs_unordered, &out) };
@@ -179,7 +179,7 @@ mod tests {
 
         let mut outs_unordered = HashMap::default();
 
-        let mut out: Buffer = device.retrieve(lhs.len(), (&lhs, &rhs));
+        let mut out: Buffer = device.retrieve(lhs.len(), (&lhs, &rhs)).unwrap();
         unsafe { register_buf_copyable(&mut outs_unordered, &lhs) };
         unsafe { register_buf_copyable(&mut outs_unordered, &rhs) };
         unsafe { register_buf_copyable(&mut outs_unordered, &out) };
@@ -211,7 +211,7 @@ mod tests {
 
         let mut outs_unordered = HashMap::default();
 
-        let out: Buffer = device.retrieve(lhs.len(), (&lhs, &rhs));
+        let out: Buffer = device.retrieve(lhs.len(), (&lhs, &rhs)).unwrap();
         unsafe { register_buf_copyable(&mut outs_unordered, &lhs) };
         unsafe { register_buf_copyable(&mut outs_unordered, &rhs) };
         unsafe { register_buf_copyable(&mut outs_unordered, &out) };
@@ -239,7 +239,7 @@ mod tests {
 
         let mut outs_unordered = HashMap::default();
 
-        let mut out: Buffer = device.retrieve(lhs.len(), (&lhs, &rhs));
+        let mut out: Buffer = device.retrieve(lhs.len(), (&lhs, &rhs)).unwrap();
         unsafe { register_buf_copyable(&mut outs_unordered, &lhs) };
         unsafe { register_buf_copyable(&mut outs_unordered, &rhs) };
         unsafe { register_buf_copyable(&mut outs_unordered, &out) };

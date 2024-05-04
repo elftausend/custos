@@ -45,7 +45,7 @@ where
     where
         F: crate::TwoWay<T> + 'static,
     {
-        let mut out = self.retrieve(buf.len(), buf);
+        let mut out = self.retrieve(buf.len(), buf).unwrap();
 
         self.add_op((&mut out, buf, f.no_id()), move |(out, buf, f)| {
             let src = format!(

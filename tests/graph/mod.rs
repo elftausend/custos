@@ -31,7 +31,7 @@ where
     fn add(&self, lhs: &Buffer<T, D>, rhs: &Buffer<T, D>) -> Buffer<T, Self> {
         let len = std::cmp::min(lhs.len(), rhs.len());
 
-        let mut out = self.retrieve(lhs.len(), (lhs, rhs));
+        let mut out = self.retrieve(lhs.len(), (lhs, rhs)).unwrap();
 
         for i in 0..len {
             out[i] = lhs[i] + rhs[i];
@@ -40,7 +40,7 @@ where
     }
 
     fn relu(&self, lhs: &Buffer<T, D>) -> Buffer<T, Self> {
-        let mut out = self.retrieve(lhs.len(), lhs);
+        let mut out = self.retrieve(lhs.len(), lhs).unwrap();
 
         for i in 0..lhs.len() {
             if lhs[i] > T::zero() {
@@ -62,7 +62,7 @@ impl<T: CDatatype, Mods: Retrieve<Self, T>> AddBuf<T, Self> for OpenCL<Mods> {
     ", datatype=T::C_DTYPE_STR);
 
         let gws = [lhs.len(), 0, 0];
-        let out = self.retrieve(lhs.len(), (lhs, rhs));
+        let out = self.retrieve(lhs.len(), (lhs, rhs)).unwrap();
         enqueue_kernel(self, &src, gws, None, &[lhs, rhs, &out]).unwrap();
         out
     }
@@ -78,7 +78,7 @@ impl<T: CDatatype, Mods: Retrieve<Self, T>> AddBuf<T, Self> for OpenCL<Mods> {
             datatype = T::C_DTYPE_STR
         );
 
-        let out = self.retrieve(lhs.len(), lhs);
+        let out = self.retrieve(lhs.len(), lhs).unwrap();
         enqueue_kernel(self, &src, [lhs.len(), 0, 0], None, &[lhs, &out]).unwrap();
         out
     }
@@ -100,7 +100,7 @@ impl<T: CDatatype, Mods: Retrieve<Self, T>> AddBuf<T, Self> for CUDA<Mods> {
             datatype = T::C_DTYPE_STR
         );
 
-        let out = self.retrieve(lhs.len(), (lhs, rhs));
+        let out = self.retrieve(lhs.len(), (lhs, rhs)).unwrap();
         self.launch_kernel1d(lhs.len, &src, "add", &[lhs, rhs, &out, &lhs.len])
             .unwrap();
         out
@@ -120,7 +120,7 @@ impl<T: CDatatype, Mods: Retrieve<Self, T>> AddBuf<T, Self> for CUDA<Mods> {
             datatype = T::C_DTYPE_STR
         );
 
-        let out = self.retrieve(lhs.len(), lhs);
+        let out = self.retrieve(lhs.len(), lhs).unwrap();
         self.launch_kernel1d(lhs.len, &src, "relu", &[lhs, &out, &lhs.len])
             .unwrap();
         out

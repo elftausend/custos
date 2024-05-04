@@ -104,14 +104,14 @@ impl<U, Mods: Retrieve<Self, T, S>, T: AsOperandCode, S: Shape> Retriever<T, S>
         &self,
         len: usize,
         parents: impl crate::Parents<NUM_PARENTS>,
-    ) -> Buffer<T, Self, S> {
-        let data = unsafe { self.modules.retrieve::<NUM_PARENTS>(self, len, parents) };
+    ) -> crate::Result<Buffer<T, Self, S>> {
+        let data = unsafe { self.modules.retrieve::<NUM_PARENTS>(self, len, parents) }?;
         let buf = Buffer {
             data,
             device: Some(self),
         };
         self.modules.on_retrieve_finish(&buf);
-        buf
+        Ok(buf)
     }
 }
 
@@ -130,21 +130,21 @@ pub fn dtype_from_shape<'a, T: AsOperandCode, S: Shape>() -> Operand {
 }
 
 impl<U, T: AsOperandCode, Mods: OnDropBuffer> Alloc<T> for NnapiDevice<U, Mods> {
-    fn alloc<S: Shape>(&self, _len: usize, flag: crate::flag::AllocFlag) -> Self::Base<T, S> {
+    fn alloc<S: Shape>(&self, _len: usize, flag: crate::flag::AllocFlag) -> crate::Result<Self::Base<T, S>> {
         let dtype = dtype_from_shape::<T, S>();
-        let idx = self.add_operand(&dtype).unwrap();
+        let idx = self.add_operand(&dtype)?;
         let nnapi_ptr = NnapiPtr { dtype, idx, flag };
 
         *self.last_created_ptr.borrow_mut() = Some(nnapi_ptr.clone());
 
-        nnapi_ptr
+        Ok(nnapi_ptr)
     }
 
-    fn alloc_from_slice<S: Shape>(&self, data: &[T]) -> Self::Base<T, S>
+    fn alloc_from_slice<S: Shape>(&self, data: &[T]) -> crate::Result<Self::Base<T, S>>
     where
         T: Clone,
     {
-        let nnapi_ptr = Alloc::<T>::alloc::<S>(self, data.len(), crate::flag::AllocFlag::default());
+        let nnapi_ptr = Alloc::<T>::alloc::<S>(self, data.len(), crate::flag::AllocFlag::default())?;
 
         let mut ptr = unsafe { CPUPtr::<T>::new(data.len(), crate::flag::AllocFlag::Wrapper) };
         ptr.clone_from_slice(data);
@@ -152,7 +152,7 @@ impl<U, T: AsOperandCode, Mods: OnDropBuffer> Alloc<T> for NnapiDevice<U, Mods> 
         let ptr = unsafe { ConvPtr::<_, ()>::convert(&ptr, crate::flag::AllocFlag::None) };
 
         self.input_ptrs.borrow_mut().push((nnapi_ptr.idx, ptr));
-        nnapi_ptr
+        Ok(nnapi_ptr)
     }
 }
 

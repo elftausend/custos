@@ -149,15 +149,15 @@ where
         device: &D,
         len: usize,
         _parents: impl Parents<NUM_PARENTS>,
-    ) -> Self::Wrap<T, D::Base<T, S>>
+    ) -> crate::Result<Self::Wrap<T, D::Base<T, S>>>
     where
         D: Alloc<T>,
     {
-        self.wrap_in_base(
+        Ok(self.wrap_in_base(
             self.cache
                 .borrow_mut()
                 .get(device, len, |_cursor, _base| {}),
-        )
+        ))
     }
 
     #[inline]
@@ -406,7 +406,7 @@ mod tests {
     #[track_caller]
     #[cfg(feature = "cpu")]
     fn level1<Mods: crate::Retrieve<CPU<Mods>, f32, ()>>(device: &CPU<Mods>) {
-        let _buf: Buffer<f32, _> = device.retrieve(10, ());
+        let _buf: Buffer<f32, _> = device.retrieve(10, ()).unwrap();
         level2(device);
         level2(device);
         level3(device);
@@ -421,7 +421,7 @@ mod tests {
     #[track_caller]
     #[cfg(feature = "cpu")]
     fn level2<Mods: crate::Retrieve<CPU<Mods>, f32, ()>>(device: &CPU<Mods>) {
-        let buf: Buffer<f32, _> = device.retrieve(20, ());
+        let buf: Buffer<f32, _> = device.retrieve(20, ()).unwrap();
         location();
         assert_eq!(buf.len(), 20);
     }
@@ -439,12 +439,12 @@ mod tests {
         use crate::{ApplyFunction, Combiner, UnaryElementWiseMayGrad};
 
         let device = CPU::<Base>::new();
-        let buf_base: Buffer<f32, _> = device.retrieve(10, ());
+        let buf_base: Buffer<f32, _> = device.retrieve(10, ()).unwrap();
 
         let device = device.add_layer::<Cached<()>>();
 
         for _ in 0..10 {
-            let buf: Buffer<f32, _> = device.retrieve(10, &buf_base);
+            let buf: Buffer<f32, _> = device.retrieve(10, &buf_base).unwrap();
 
             for (base, cached) in buf_base.iter().zip(buf.iter()) {
                 assert_eq!(base, cached);
@@ -456,7 +456,7 @@ mod tests {
 
         let buf_base = buf_base.to_device_type(&device);
         for _ in 0..10 {
-            let buf: Buffer<f32, _> = device.retrieve(10, &buf_base);
+            let buf: Buffer<f32, _> = device.retrieve(10, &buf_base).unwrap();
 
             for (base, cached) in buf_base.iter().zip(buf.iter()) {
                 assert_eq!(base, cached);

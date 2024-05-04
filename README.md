@@ -86,8 +86,8 @@ or to see it at a larger scale, look here [`custos-math`](https://github.com/elf
 This operation is only affected by the `Cached` module (and partially `Autograd`).
 
 ```rust
-use std::ops::Mul;
 use custos::prelude::*;
+use std::ops::{Deref, Mul};
 
 pub trait MulBuf<T, S: Shape = (), D: Device = Self>: Sized + Device {
     fn mul(&self, lhs: &Buffer<T, D, S>, rhs: &Buffer<T, D, S>) -> Buffer<T, Self, S>;
@@ -99,10 +99,10 @@ where
     T: Mul<Output = T> + Copy + 'static,
     S: Shape,
     D: Device,
-    D::Base<T, S>: core::ops::Deref<Target = [T]>
+    D::Base<T, S>: Deref<Target = [T]>,
 {
     fn mul(&self, lhs: &Buffer<T, D, S>, rhs: &Buffer<T, D, S>) -> Buffer<T, Self, S> {
-        let mut out = self.retrieve(lhs.len(), (lhs, rhs));
+        let mut out = self.retrieve(lhs.len(), (lhs, rhs)).unwrap(); // unwrap or return error (update trait)
 
         for ((lhs, rhs), out) in lhs.iter().zip(rhs.iter()).zip(&mut out) {
             *out = *lhs * *rhs;

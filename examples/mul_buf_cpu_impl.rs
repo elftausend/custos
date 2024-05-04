@@ -14,7 +14,7 @@ where
     D::Base<T, S>: Deref<Target = [T]>,
 {
     fn mul(&self, lhs: &Buffer<T, D, S>, rhs: &Buffer<T, D, S>) -> Buffer<T, Self, S> {
-        let mut out = self.retrieve(lhs.len(), (lhs, rhs));
+        let mut out = self.retrieve(lhs.len(), (lhs, rhs)).unwrap(); // unwrap or return error (update trait)
 
         for ((lhs, rhs), out) in lhs.iter().zip(rhs.iter()).zip(&mut out) {
             *out = *lhs * *rhs;

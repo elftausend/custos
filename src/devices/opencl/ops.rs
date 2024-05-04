@@ -225,7 +225,7 @@ where
     where
         F: TwoWay<T>,
     {
-        let mut out = self.retrieve(buf.len(), buf);
+        let mut out = self.retrieve(buf.len(), buf).unwrap();
 
         self.add_op((&mut out, buf, f.no_id()), |(out, buf, f)| {
             let dev = buf.device();

@@ -27,14 +27,14 @@ where
 impl<T: CDatatype, S: Shape> ElementWise<T, OpenCL, S> for OpenCL {
     #[inline]
     fn add(&self, lhs: &Buffer<T, OpenCL, S>, rhs: &Buffer<T, OpenCL, S>) -> Buffer<T, OpenCL, S> {
-        let mut out = self.retrieve(lhs.len(), ());
+        let mut out = self.retrieve(lhs.len(), ()).unwrap();
         cl_element_wise(self, lhs, rhs, &mut out, "+").unwrap();
         out
     }
 
     #[inline]
     fn mul(&self, lhs: &Buffer<T, OpenCL, S>, rhs: &Buffer<T, OpenCL, S>) -> Buffer<T, OpenCL, S> {
-        let mut out = self.retrieve(lhs.len(), ());
+        let mut out = self.retrieve(lhs.len(), ()).unwrap();
         cl_element_wise(self, lhs, rhs, &mut out, "*").unwrap();
         out
     }
@@ -55,7 +55,7 @@ mod tests {
         let lhs = Buffer::with(&device, [1, 2, 3, 4]);
         let rhs = Buffer::with(&device, [4, 1, 9, 4]);
 
-        let mut out = device.retrieve(lhs.len(), ());
+        let mut out = device.retrieve(lhs.len(), ()).unwrap();
 
         cl_element_wise(&device, &lhs, &rhs, &mut out, "+").unwrap();
 
@@ -74,7 +74,7 @@ mod tests {
         let lhs = Buffer::from((&device, vec![1.0f32; SIZE]));
         let rhs = Buffer::from((&device, vec![4.0; SIZE]));
 
-        let mut out = device.retrieve::<0>(lhs.len(), ());
+        let mut out = device.retrieve::<0>(lhs.len(), ()).unwrap();
 
         let start = std::time::Instant::now();
 
@@ -95,7 +95,7 @@ mod tests {
         let lhs = Buffer::<_>::from((&device, vec![1.0f32; SIZE]));
         let rhs = Buffer::<_>::from((&device, vec![4.0; SIZE]));
 
-        let mut out: Buffer = device.retrieve::<0>(lhs.len(), ());
+        let mut out: Buffer = device.retrieve::<0>(lhs.len(), ()).unwrap();
 
         let start = std::time::Instant::now();
         for _ in 0..TIMES {

@@ -72,7 +72,7 @@ impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
     where
         D: OnNewBuffer<T, D, S> + Alloc<T>,
     {
-        let base = device.alloc(len, crate::flag::AllocFlag::None);
+        let base = device.alloc(len, crate::flag::AllocFlag::None).unwrap();
         Buffer::from_new_alloc(device, base)
     }
 
@@ -212,7 +212,7 @@ impl<'a, T, D: Device + OnNewBuffer<T, D, S>, S: Shape> Buffer<'a, T, D, S> {
         T: Clone,
         D: Alloc<T>,
     {
-        let data = device.alloc_from_slice(slice);
+        let data = device.alloc_from_slice(slice).unwrap();
         // let data = device.wrap_in_base2(data);
         Buffer::from_new_alloc(device, data)
     }
@@ -225,7 +225,7 @@ impl<'a, T, D: Device + OnNewBuffer<T, D, S>, S: Shape> Buffer<'a, T, D, S> {
         T: Clone,
         D: Alloc<T>,
     {
-        let data = device.alloc_from_vec(data);
+        let data = device.alloc_from_vec(data).unwrap();
         Buffer::from_new_alloc(device, data)
     }
 
@@ -237,7 +237,7 @@ impl<'a, T, D: Device + OnNewBuffer<T, D, S>, S: Shape> Buffer<'a, T, D, S> {
         T: Clone,
         D: Alloc<T>,
     {
-        let data = device.alloc_from_array(array);
+        let data = device.alloc_from_array(array).unwrap();
         Buffer::from_new_alloc(device, data)
     }
 }
@@ -266,7 +266,7 @@ impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
         D: DevicelessAble<'b, T, S>,
     {
         Buffer {
-            data: device.base_to_data(device.alloc(len, AllocFlag::None)),
+            data: device.base_to_data(device.alloc(len, AllocFlag::None).unwrap()),
             device: None,
         }
     }
@@ -543,7 +543,7 @@ impl<'a, T, S: Shape> Buffer<'a, T, CPU<Base>, S> {
     /// use std::ffi::c_void;
     ///
     /// let device = CPU::<Base>::new();
-    /// let mut ptr = Alloc::<f32>::alloc::<()>(&device, 10, AllocFlag::None);
+    /// let mut ptr = Alloc::<f32>::alloc::<()>(&device, 10, AllocFlag::None).unwrap();
     /// let mut buf = unsafe {
     ///     Buffer::<_, CPU<Base>, ()>::from_raw_host(ptr.ptr, 10)
     /// };

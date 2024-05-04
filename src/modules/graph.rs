@@ -160,12 +160,12 @@ where
         device: &D,
         len: usize,
         parents: impl Parents<NUM_PARENTS>,
-    ) -> Self::Wrap<T, D::Base<T, S>>
+    ) -> crate::Result<Self::Wrap<T, D::Base<T, S>>>
     where
         D: Alloc<T>,
     {
         let ids = parents.ids();
-        let data = self.modules.retrieve(device, len, parents);
+        let data = self.modules.retrieve(device, len, parents)?;
 
         let mut contains_ids = self.contains_ids.borrow_mut();
 
@@ -173,7 +173,7 @@ where
         let cursor = device.cursor() as UniqueId - 1;
 
         if contains_ids.get(&cursor).is_some() {
-            return data;
+            return Ok(data);
         }
         contains_ids.insert(cursor);
 
@@ -187,7 +187,7 @@ where
 
         // does a hash location check internally (again)
         graph_trans.add_node(len, &ids);
-        data
+        Ok(data)
     }
 
     #[inline]

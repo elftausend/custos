@@ -210,55 +210,53 @@ impl<Mods> Debug for OpenCL<Mods> {
 }
 
 impl<Mods: OnDropBuffer, T> Alloc<T> for OpenCL<Mods> {
-    fn alloc<S: Shape>(&self, mut len: usize, flag: AllocFlag) -> CLPtr<T> {
+    fn alloc<S: Shape>(&self, mut len: usize, flag: AllocFlag) -> crate::Result<CLPtr<T>> {
         assert!(len > 0, "invalid buffer len: 0");
 
         if S::LEN > len {
             len = S::LEN
         }
 
-        let ptr = unsafe {
-            create_buffer::<T>(self.ctx(), MemFlags::MemReadWrite as u64, len, None).unwrap()
-        };
+        let ptr =
+            unsafe { create_buffer::<T>(self.ctx(), MemFlags::MemReadWrite as u64, len, None)? };
 
         let host_ptr = if self.unified_mem() {
-            unsafe { self.device.unified_ptr(ptr, len) }.unwrap()
+            unsafe { self.device.unified_ptr(ptr, len) }?
             // unsafe { unified_ptr::<T>(self.queue(), ptr, len, None).unwrap() }
         } else {
             std::ptr::null_mut()
         };
 
-        CLPtr {
+        Ok(CLPtr {
             ptr,
             host_ptr,
             len,
             flag,
-        }
+        })
     }
 
-    fn alloc_from_slice<S: Shape>(&self, data: &[T]) -> CLPtr<T> {
+    fn alloc_from_slice<S: Shape>(&self, data: &[T]) -> crate::Result<CLPtr<T>> {
         let ptr = unsafe {
             create_buffer::<T>(
                 self.ctx(),
                 MemFlags::MemReadWrite | MemFlags::MemCopyHostPtr,
                 data.len(),
                 Some(data),
-            )
-            .unwrap()
+            )?
         };
 
         let host_ptr = if self.unified_mem() {
-            unsafe { unified_ptr::<T>(self.queue(), ptr, data.len(), None).unwrap() }
+            unsafe { unified_ptr::<T>(self.queue(), ptr, data.len(), None)? }
         } else {
             std::ptr::null_mut()
         };
 
-        CLPtr {
+        Ok(CLPtr {
             ptr,
             host_ptr,
             len: data.len(),
             flag: AllocFlag::None,
-        }
+        })
     }
 }
 

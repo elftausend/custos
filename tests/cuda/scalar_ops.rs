@@ -15,7 +15,7 @@ fn scalar_apply<'a>(
             }
     "#;
 
-    let out: Buffer<f32, _> = device.retrieve(lhs.len(), ());
+    let out: Buffer<f32, _> = device.retrieve(lhs.len(), ()).unwrap();
     device.launch_kernel1d(
         lhs.len(),
         src,
