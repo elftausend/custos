@@ -83,6 +83,30 @@ jobs:
     - name: Run tests (OpenCL, fork)
       run: CUSTOS_USE_UNIFIED=false cargo test --verbose --no-default-features --features opencl,fork
   
+  test-opencl-macos:
+  
+    runs-on: macos-14 
+    
+    steps:
+    - uses: actions/checkout@v4
+
+    - uses: dtolnay/rust-toolchain@stable
+    # - uses: Swatinem/rust-cache@v2
+
+    - name: Run tests (OpenCL)
+      run: cargo test --verbose --no-default-features --features opencl
+    - name: Run tests (OpenCL, lazy)
+      run: cargo test --verbose --no-default-features --features opencl,lazy
+    - name: Run tests (OpenCL, autograd)
+      run: cargo test --verbose --no-default-features --features opencl,autograd
+    - name: Run tests (OpenCL, graph)
+      run: cargo test --verbose --no-default-features --features opencl,graph
+    - name: Run tests (OpenCL, modules)
+      run: cargo test --verbose --no-default-features --features opencl,autograd,graph,cpu
+    - name: Run tests (OpenCL, fork)
+      run: CUSTOS_USE_UNIFIED=false cargo test --verbose --no-default-features --features opencl,fork
+  
+
   test-cuda:
   
     runs-on: self-hosted
