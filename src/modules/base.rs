@@ -85,7 +85,7 @@ impl<D, T, S: Shape> Retrieve<D, T, S> for Base {
         device: &D,
         len: usize,
         _parents: impl Parents<NUM_PARENTS>,
-    ) -> Self::Wrap<T, D::Base<T, S>>
+    ) -> crate::Result<Self::Wrap<T, D::Base<T, S>>>
     where
         D: Alloc<T>,
     {

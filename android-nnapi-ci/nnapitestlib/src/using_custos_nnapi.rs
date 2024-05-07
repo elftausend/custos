@@ -38,7 +38,7 @@ pub fn run_custos_model() -> custos::Result<String> {
         out1
     };*/
 
-    let out: Buffer<i32, _, Dim1<10>> = device.retrieve(lhs.len(), ());
+    let out: Buffer<i32, _, Dim1<10>> = device.retrieve(lhs.len(), ())?;
 
     {
         let activation_idx = device.add_operand(&custos::nnapi::Operand::activation()).unwrap();
@@ -55,7 +55,7 @@ pub fn run_custos_model() -> custos::Result<String> {
             )
             .unwrap();
     }
-    let out1: Buffer<i32, _, Dim1<10>> = device.retrieve(lhs.len(), ());
+    let out1: Buffer<i32, _, Dim1<10>> = device.retrieve(lhs.len(), ())?;
 
     {
         let activation_idx = device.add_operand(&custos::nnapi::Operand::activation()).unwrap();

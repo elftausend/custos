@@ -15,11 +15,10 @@ jobs:
     runs-on: self-hosted
 
     steps:
-    - uses: actions/checkout@v3
-    - uses: actions-rs/toolchain@v1
-      with:
-        profile: minimal
-        toolchain: stable
+    - uses: actions/checkout@v4
+    - uses: dtolnay/rust-toolchain@stable
+
+    # - uses: Swatinem/rust-cache@v2
 
     - name: Build (OpenCL)
       run: cargo build --verbose --no-default-features --features opencl
@@ -29,11 +28,9 @@ jobs:
     runs-on: self-hosted
 
     steps:
-    - uses: actions/checkout@v3
-    - uses: actions-rs/toolchain@v1
-      with:
-        profile: minimal
-        toolchain: stable
+    - uses: actions/checkout@v4
+    - uses: dtolnay/rust-toolchain@stable
+    # - uses: Swatinem/rust-cache@v2
 
     - name: Build (CUDA)
       run: cargo build --verbose --no-default-features --features cuda
@@ -42,12 +39,10 @@ jobs:
     runs-on: self-hosted
 
     steps:
-    - uses: actions/checkout@v3
-    - uses: actions-rs/toolchain@v1
-      with:
-        profile: minimal
-        toolchain: stable
+    - uses: actions/checkout@v4
+    - uses: dtolnay/rust-toolchain@stable
 
+    # - uses: Swatinem/rust-cache@v2
     - name: Build (Vulkan)
       run: cargo build --verbose --no-default-features --features vulkan
 
@@ -56,11 +51,9 @@ jobs:
     runs-on: self-hosted
 
     steps:
-    - uses: actions/checkout@v3
-    - uses: actions-rs/toolchain@v1
-      with:
-        profile: minimal
-        toolchain: stable
+    - uses: actions/checkout@v4
+    - uses: dtolnay/rust-toolchain@stable
+    # - uses: Swatinem/rust-cache@v2
 
     - name: Build (cuda,opencl)
       run: cargo build --verbose --no-default-features --features cuda,opencl
@@ -72,12 +65,10 @@ jobs:
     runs-on: self-hosted
     
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
-    - uses: actions-rs/toolchain@v1
-      with:
-        profile: minimal
-        toolchain: stable
+    - uses: dtolnay/rust-toolchain@stable
+    # - uses: Swatinem/rust-cache@v2
 
     - name: Run tests (OpenCL)
       run: cargo test --verbose --no-default-features --features opencl
@@ -97,12 +88,10 @@ jobs:
     runs-on: self-hosted
     
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
-    - uses: actions-rs/toolchain@v1
-      with:
-        profile: minimal
-        toolchain: stable
+    - uses: dtolnay/rust-toolchain@stable
+    # - uses: Swatinem/rust-cache@v2
 
     - name: Run tests (CUDA)
       run: cargo test --verbose --no-default-features --features cuda
@@ -122,12 +111,10 @@ jobs:
     runs-on: self-hosted
     
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
-    - uses: actions-rs/toolchain@v1
-      with:
-        profile: minimal
-        toolchain: stable
+    - uses: dtolnay/rust-toolchain@stable
+    # - uses: Swatinem/rust-cache@v2
 
     - name: Run tests (vulkan)
       run: cargo test --verbose --no-default-features --features vulkan 
@@ -147,12 +134,10 @@ jobs:
     runs-on: self-hosted
     
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
-    - uses: actions-rs/toolchain@v1
-      with:
-        profile: minimal
-        toolchain: stable
+    - uses: dtolnay/rust-toolchain@stable
+    # - uses: Swatinem/rust-cache@v2
 
     - name: Run tests (CUDA, OpenCL, vulkan)
       run: cargo test --verbose --no-default-features --features cuda,opencl,vulkan

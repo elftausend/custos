@@ -11,7 +11,7 @@ where
 {
     use custos::{Device, HostPtr, Retriever};
 
-    let mut out = device.retrieve(10, ());
+    let mut out = device.retrieve(10, ()).unwrap();
 
     let out_slice = out.as_mut_slice();
     for i in 0..out_slice.len() {

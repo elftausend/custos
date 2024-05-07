@@ -133,7 +133,7 @@ where
     where
         F: crate::TwoWay<T>,
     {
-        let mut out = self.retrieve(buf.len(), buf);
+        let mut out = self.retrieve(buf.len(), buf).unwrap();
         self.add_op((&mut out, buf, f.no_id()), |(out, buf, f)| {
             try_cu_apply_fn_mut(buf.device(), buf, out, &**f)
         })

@@ -42,7 +42,7 @@ where
         lhs: &Buffer<T, D, S>,
         rhs: &Buffer<T, D, S>,
     ) -> custos::Result<Buffer<T, Self, S>> {
-        let mut out = self.retrieve(lhs.len(), (lhs, rhs));
+        let mut out = self.retrieve(lhs.len(), (lhs, rhs)).unwrap();
 
         self.add_grad_fn((lhs, rhs, &mut out), |(lhs, rhs, out)| {
             add_ew_grad_slice(lhs.grad_mut(), rhs.grad_mut(), out.grad()); // execute grad function
@@ -100,7 +100,7 @@ where
         lhs: &Buffer<T, Self, S>,
         rhs: &Buffer<T, Self, S>,
     ) -> custos::Result<Buffer<T, Self, S>> {
-        let mut out = self.retrieve(lhs.len(), (lhs, rhs));
+        let mut out = self.retrieve(lhs.len(), (lhs, rhs)).unwrap();
 
         self.add_op((lhs, rhs, &mut out), |(lhs, rhs, out)| {
             let dev = lhs.device();

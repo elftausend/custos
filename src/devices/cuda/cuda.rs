@@ -97,23 +97,27 @@ impl<Mods: OnDropBuffer> Device for CUDA<Mods> {
 
 impl<Mods: OnDropBuffer, T> Alloc<T> for CUDA<Mods> {
     #[inline]
-    fn alloc<S: Shape>(&self, len: usize, flag: crate::flag::AllocFlag) -> Self::Base<T, S> {
-        CUDAPtr::new(len, flag)
+    fn alloc<S: Shape>(
+        &self,
+        len: usize,
+        flag: crate::flag::AllocFlag,
+    ) -> crate::Result<Self::Base<T, S>> {
+        Ok(CUDAPtr::new(len, flag)?)
     }
 
-    fn alloc_from_slice<S: Shape>(&self, data: &[T]) -> Self::Base<T, S>
+    fn alloc_from_slice<S: Shape>(&self, data: &[T]) -> crate::Result<Self::Base<T, S>>
     where
         T: Clone,
     {
-        let ptr = cumalloc::<T>(data.len()).unwrap();
-        cu_write_async(ptr, data, &self.mem_transfer_stream).unwrap();
-        self.mem_transfer_stream.sync().unwrap();
-        CUDAPtr {
+        let ptr = cumalloc::<T>(data.len())?;
+        cu_write_async(ptr, data, &self.mem_transfer_stream)?;
+        self.mem_transfer_stream.sync()?;
+        Ok(CUDAPtr {
             ptr,
             len: data.len(),
             flag: AllocFlag::None,
             p: PhantomData,
-        }
+        })
     }
 }
 

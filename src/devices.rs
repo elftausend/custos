@@ -149,7 +149,7 @@ pub trait Retriever<T, S: Shape = ()>: Device {
         &self,
         len: usize,
         parents: impl Parents<NUM_PARENTS>,
-    ) -> Buffer<T, Self, S>;
+    ) -> crate::Result<Buffer<T, Self, S>>;
 }
 
 #[macro_export]
@@ -161,16 +161,16 @@ macro_rules! impl_retriever {
                 &self,
                 len: usize,
                 parents: impl $crate::Parents<NUM_PARENTS>,
-            ) -> Buffer<T, Self, S> {
+            ) -> crate::Result<Buffer<T, Self, S>> {
                 let data = unsafe { self
                     .modules
-                    .retrieve::<NUM_PARENTS>(self, len, parents) };
+                    .retrieve::<NUM_PARENTS>(self, len, parents)? };
                 let buf = Buffer {
                     data,
                     device: Some(self),
                 };
                 self.modules.on_retrieve_finish(&buf);
-                buf
+                Ok(buf)
             }
         }
     };

@@ -28,7 +28,7 @@ where
     where
         F: TwoWay<T> + 'static,
     {
-        let mut out = self.retrieve(buf.len(), buf);
+        let mut out = self.retrieve(buf.len(), buf).unwrap();
 
         self.add_op((&mut out, buf, f.no_id()), move |(out, buf, f)| {
             apply_fn_slice(buf, out, **f);

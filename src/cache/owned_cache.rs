@@ -72,7 +72,7 @@ impl Cache {
         D::Base<T, S>: ShallowCopy + 'static,
         S: Shape,
     {
-        let data = device.alloc::<S>(len, AllocFlag::None);
+        let data = device.alloc::<S>(len, AllocFlag::None).unwrap();
         let shallow_data = unsafe { data.shallow() };
 
         callback(device.cursor(), &shallow_data);

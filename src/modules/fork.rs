@@ -111,7 +111,7 @@ impl<T: 'static, Mods: Retrieve<D, T, S>, D: IsShapeIndep + 'static, S: Shape> R
         device: &D,
         len: usize,
         parents: impl Parents<NUM_PARENTS>,
-    ) -> Self::Wrap<T, D::Base<T, S>>
+    ) -> crate::Result<Self::Wrap<T, D::Base<T, S>>>
     where
         S: Shape,
         D: Alloc<T>,

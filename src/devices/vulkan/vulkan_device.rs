@@ -152,8 +152,12 @@ impl<Mods: OnDropBuffer> Device for Vulkan<Mods> {
 
 impl<Mods: OnDropBuffer, T> Alloc<T> for Vulkan<Mods> {
     #[inline]
-    fn alloc<S: Shape>(&self, len: usize, flag: crate::flag::AllocFlag) -> Self::Base<T, S> {
-        VkArray::new(
+    fn alloc<S: Shape>(
+        &self,
+        len: usize,
+        flag: crate::flag::AllocFlag,
+    ) -> crate::Result<Self::Base<T, S>> {
+        Ok(VkArray::new(
             self.context(),
             len,
             BufferUsageFlags::STORAGE_BUFFER
@@ -161,24 +165,22 @@ impl<Mods: OnDropBuffer, T> Alloc<T> for Vulkan<Mods> {
                 | BufferUsageFlags::TRANSFER_DST,
             flag,
             vk::MemoryPropertyFlags::DEVICE_LOCAL,
-        )
-        .expect("Could not create VkArray")
+        )?)
     }
 
     #[inline]
-    fn alloc_from_slice<S: Shape>(&self, data: &[T]) -> Self::Base<T, S>
+    fn alloc_from_slice<S: Shape>(&self, data: &[T]) -> crate::Result<Self::Base<T, S>>
     where
         T: Clone,
     {
-        VkArray::from_slice(
+        Ok(VkArray::from_slice(
             self.context(),
             data,
             BufferUsageFlags::STORAGE_BUFFER
                 | BufferUsageFlags::TRANSFER_SRC
                 | BufferUsageFlags::TRANSFER_DST,
             crate::flag::AllocFlag::None,
-        )
-        .expect("Could not create VkArray")
+        )?)
     }
 }
 

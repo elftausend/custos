@@ -2,7 +2,7 @@ use core::{marker::PhantomData, ptr::null_mut};
 
 use crate::{flag::AllocFlag, CommonPtrs, HasId, Id, PtrType, ShallowCopy};
 
-use super::api::{cu_read, cufree, cumalloc};
+use super::api::{cu_read, cufree, cumalloc, CudaResult};
 
 /// The pointer used for `CUDA` [`Buffer`](crate::Buffer)s
 #[derive(Debug, PartialEq, Eq)]
@@ -17,15 +17,15 @@ pub struct CUDAPtr<T> {
 }
 
 impl<T> CUDAPtr<T> {
-    pub fn new(len: usize, flag: AllocFlag) -> Self {
-        let ptr = cumalloc::<T>(len).unwrap();
+    pub fn new(len: usize, flag: AllocFlag) -> CudaResult<Self> {
+        let ptr = cumalloc::<T>(len)?;
         // TODO: use unified mem if available -> i can't test this
-        CUDAPtr {
+        Ok(CUDAPtr {
             ptr,
             len,
             flag,
             p: PhantomData,
-        }
+        })
     }
 
     pub fn read(&self) -> Vec<T>

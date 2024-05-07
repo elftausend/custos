@@ -261,7 +261,7 @@ mod tests {
     where
         Mods: 'static + AddOperation + Retrieve<CUDA<Mods>, i32, ()>,
     {
-        let mut out = device.retrieve(lhs.len(), (lhs.id(), rhs.id()));
+        let mut out = device.retrieve(lhs.len(), (lhs.id(), rhs.id())).unwrap();
 
         device
             .add_op(

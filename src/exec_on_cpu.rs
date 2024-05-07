@@ -26,7 +26,7 @@ use crate::{Alloc, Base, Buffer, Device, Read, Retriever, WriteBuf, CPU};
 ///     let add = 3;
 ///     
 ///     let out = cpu_exec_unary(&device, &buf, |cpu, buf| {
-///         let mut out = cpu.retrieve(buf.len(), ());
+///         let mut out = cpu.retrieve(buf.len(), ()).unwrap();
 ///     
 ///         for (out, val) in out.iter_mut().zip(buf) {
 ///             *out += add + val;
@@ -92,7 +92,7 @@ where
 ///     let rhs = Buffer::from((&device, [-1, -4, -1, -8, -1]));
 ///     
 ///     let out = cpu_exec_binary(&device, &lhs, &rhs, |cpu, lhs, rhs| {
-///         let mut out = cpu.retrieve(lhs.len(), ());
+///         let mut out = cpu.retrieve(lhs.len(), ()).unwrap();
 ///     
 ///         for ((lhs, rhs), out) in lhs.iter().zip(rhs).zip(&mut out) {
 ///             *out = lhs + rhs
@@ -240,7 +240,7 @@ macro_rules! to_raw_host_mut {
 ///
 /// let cpu = CPU::<Base>::new();
 /// let c: Buffer<i32, _> = custos::cpu_exec!(&device, &cpu, a, b; {
-///     let mut c = cpu.retrieve(a.len(), (&a, &b));
+///     let mut c = cpu.retrieve(a.len(), (&a, &b)).unwrap();
 ///     for ((a, b), c) in a.iter().zip(&b).zip(c.iter_mut()) {
 ///         *c = a + b;
 ///     }
@@ -315,7 +315,7 @@ mod tests {
 
         let a: crate::Buffer<i32, crate::OpenCL> = cpu_exec!(
             &device, &device.cpu, lhs, rhs; {
-                let mut out = device.cpu.retrieve(lhs.len(), (&lhs, &rhs));
+                let mut out = device.cpu.retrieve(lhs.len(), (&lhs, &rhs)).unwrap();
                 for ((lhs, rhs), out) in lhs.iter().zip(rhs.iter()).zip(out.iter_mut()) {
                     *out = lhs + rhs;
                 }
@@ -356,7 +356,7 @@ mod tests {
         let add = 3;
 
         let out = cpu_exec_unary_may_unified(&device, &buf, |cpu, buf| {
-            let mut out = cpu.retrieve(buf.len(), ());
+            let mut out = cpu.retrieve(buf.len(), ()).unwrap();
 
             for (out, val) in out.iter_mut().zip(buf) {
                 *out += add + val;
@@ -381,7 +381,7 @@ mod tests {
         let rhs = Buffer::from((&device, [-1, -4, -1, -8, -1]));
 
         let out = cpu_exec_binary(&device, &lhs, &rhs, |cpu, lhs, rhs| {
-            let mut out = cpu.retrieve(lhs.len(), ());
+            let mut out = cpu.retrieve(lhs.len(), ()).unwrap();
 
             for ((lhs, rhs), out) in lhs.iter().zip(rhs).zip(&mut out) {
                 *out = lhs + rhs
@@ -408,7 +408,7 @@ mod tests {
         let rhs = Buffer::from((&device, [-1, -4, -1, -8, -1]));
 
         let out = cpu_exec_binary_may_unified(&device, &lhs, &rhs, |cpu, lhs, rhs| {
-            let mut out = cpu.retrieve(lhs.len(), ());
+            let mut out = cpu.retrieve(lhs.len(), ()).unwrap();
 
             for ((lhs, rhs), out) in lhs.iter().zip(rhs).zip(&mut out) {
                 *out = lhs + rhs

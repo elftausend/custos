@@ -292,7 +292,7 @@ where
         _device: &D,
         len: usize,
         _parents: impl Parents<NUM_PARENTS>,
-    ) -> Self::Wrap<T, D::Base<T, S>>
+    ) -> crate::Result<Self::Wrap<T, D::Base<T, S>>>
     where
         S: Shape,
         D: Alloc<T>,
@@ -322,7 +322,9 @@ where
             );
 
             // safety: AllocFlag::Lazy prevents accessing device when dropping
-            let base = device.alloc::<S>(id.len, crate::flag::AllocFlag::Lazy);
+            let base = device
+                .alloc::<S>(id.len, crate::flag::AllocFlag::Lazy)
+                .unwrap();
             let data = device.base_to_data(base);
             let buffer = Buffer {
                 data,
@@ -336,11 +338,11 @@ where
 
         unsafe { self.bump_cursor() };
 
-        LazyWrapper {
+        Ok(LazyWrapper {
             data: None,
             id: Some(id),
             _pd: core::marker::PhantomData,
-        }
+        })
     }
 
     #[inline]
@@ -471,11 +473,11 @@ mod tests {
         let res = &buf.data;
         assert_eq!(res.id, None);
 
-        let x: Buffer<i32, _> = device.retrieve(10, ());
+        let x: Buffer<i32, _> = device.retrieve(10, ()).unwrap();
         let res = &x.data;
         assert_eq!(res.id, Some(crate::Id { id: 0, len: 10 }));
 
-        let x: Buffer<i32, _> = device.retrieve(10, ());
+        let x: Buffer<i32, _> = device.retrieve(10, ()).unwrap();
         let res = &x.data;
         assert_eq!(res.id, Some(crate::Id { id: 1, len: 10 }));
     }
@@ -507,7 +509,7 @@ mod tests {
     {
         #[inline]
         fn add(&self, lhs: &Buffer<T, D, S>, rhs: &Buffer<T, D, S>) -> Buffer<T, Self, S> {
-            let mut out = self.retrieve(lhs.len(), ());
+            let mut out = self.retrieve(lhs.len(), ()).unwrap();
             self.add_op((lhs, rhs, &mut out), |(lhs, rhs, out)| {
                 add_ew_slice(lhs, rhs, out.as_mut_slice());
                 Ok(())
@@ -641,7 +643,7 @@ mod tests {
         use crate::{ExecNow, Run};
 
         let device = CPU::<Lazy<Base>>::new();
-        let mut out: Buffer<i32, _, ()> = device.retrieve(4, ());
+        let mut out: Buffer<i32, _, ()> = device.retrieve(4, ()).unwrap();
 
         device
             .add_op(&mut out, |out| {
@@ -674,7 +676,7 @@ mod tests {
         use crate::{ExecNow, Run};
 
         let device = CPU::<Lazy<Base>>::new();
-        let mut out: Buffer<i32, _, ()> = device.retrieve(4, ());
+        let mut out: Buffer<i32, _, ()> = device.retrieve(4, ()).unwrap();
 
         device
             .add_op(&mut out, |out| {
@@ -710,7 +712,7 @@ mod tests {
 
         let device = CPU::<Lazy<Base>>::new();
 
-        let mut out: Buffer<i32, _> = device.retrieve(4, ());
+        let mut out: Buffer<i32, _> = device.retrieve(4, ()).unwrap();
 
         device
             .add_op(&mut out, |out| {

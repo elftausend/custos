@@ -5,7 +5,7 @@ use custos::Alloc;
 #[test]
 fn test_alloc() {
     let device = CPU::<Base>::new();
-    let data = Alloc::<i32>::alloc_from_slice::<()>(&device, &[1, 5, 4, 3, 6, 9, 0, 4]);
+    let data = Alloc::<i32>::alloc_from_slice::<()>(&device, &[1, 5, 4, 3, 6, 9, 0, 4]).unwrap();
     //let data = device.with_slice(&[1, 5, 4, 3, 6, 9, 0, 4]);
     let buf: Buffer<i32, CPU, ()> = Buffer {
         data,
