@@ -74,10 +74,18 @@ impl<SimpleMods> OpenCL<SimpleMods> {
         SimpleMods: Module<OpenCL, Module = NewMods>,
         NewMods: Setup<OpenCL<NewMods>>,
     {
+        OpenCL::<SimpleMods>::from_cl_device(CLDevice::new(device_idx)?)
+    }
+
+    pub fn from_cl_device<NewMods>(device: CLDevice) -> crate::Result<OpenCL<NewMods>> 
+    where
+        SimpleMods: Module<OpenCL, Module = NewMods>,
+        NewMods: Setup<OpenCL<NewMods>>,
+    {
         let mut opencl = OpenCL {
             modules: SimpleMods::new(),
-            device: CLDevice::new(device_idx)?,
             cpu: CPU::<Cached<Base>>::new(),
+            device,
         };
         opencl.unified_mem_check();
         NewMods::setup(&mut opencl)?;
@@ -91,15 +99,7 @@ impl<SimpleMods> OpenCL<SimpleMods> {
         SimpleMods: Module<OpenCL, Module = NewMods>,
         NewMods: Setup<OpenCL<NewMods>>,
     {
-        let mut opencl = OpenCL {
-            modules: SimpleMods::new(),
-            device: CLDevice::fastest()?,
-            cpu: CPU::<Cached<Base>>::new(),
-        };
-        opencl.unified_mem_check();
-
-        NewMods::setup(&mut opencl)?;
-        Ok(opencl)
+        OpenCL::<SimpleMods>::from_cl_device(CLDevice::fastest()?)
     }
 }
 
