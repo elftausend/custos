@@ -4,8 +4,7 @@ use js_sys::wasm_bindgen::JsValue;
 use web_sys::Element;
 
 use crate::{
-    impl_device_traits, Alloc, Base, Buffer, Device, Module, Num, OnDropBuffer, Setup, Shape,
-    WrappedData,
+    impl_device_traits, webgl::error::WebGlError, Alloc, Base, Buffer, Device, Module, Num, OnDropBuffer, Setup, Shape, WrappedData
 };
 
 use self::context::Context;
@@ -19,7 +18,7 @@ pub struct WebGL<Mods = Base> {
 }
 impl<SimpleMods> WebGL<SimpleMods> {
     #[inline]
-    pub fn new<NewMods>(maybe_canvas: Element) -> Result<WebGL<SimpleMods::Module>, JsValue>
+    pub fn from_canvas<NewMods>(maybe_canvas: Element) -> Result<WebGL<SimpleMods::Module>, JsValue>
     where
         SimpleMods: Module<WebGL, Module = NewMods>,
         NewMods: Setup<WebGL<NewMods>>,
@@ -30,6 +29,16 @@ impl<SimpleMods> WebGL<SimpleMods> {
         };
         NewMods::setup(&mut webgl).unwrap();
         Ok(webgl)
+    }
+
+    pub fn new<NewMods>() -> crate::Result<WebGL<SimpleMods::Module>> 
+    where 
+        SimpleMods: Module<WebGL, Module = NewMods>,
+        NewMods: Setup<WebGL<NewMods>>,
+    {
+        let document = web_sys::window().ok_or(WebGlError::MissingWindow)?.document().ok_or(WebGlError::MissingDocument)?;
+        let canvas = document.create_element("canvas").map_err(|_| WebGlError::CanvasCreation)?;
+        Ok(WebGL::<SimpleMods>::from_canvas(canvas).unwrap())
     }
 }
 
@@ -44,6 +53,7 @@ impl<Mods: OnDropBuffer> Device for WebGL<Mods> {
     type Data<T, S: Shape> = Self::Wrap<T, Self::Base<T, S>>;
 
     type Error = JsValue;
+
 
     #[inline(always)]
     fn base_to_data<T, S: crate::Shape>(&self, base: Self::Base<T, S>) -> Self::Data<T, S> {
@@ -90,11 +100,11 @@ impl<Mods> DerefMut for WebGL<Mods> {
 }
 
 impl<T, Mods: OnDropBuffer> Alloc<T> for WebGL<Mods> {
-    fn alloc<S: Shape>(&self, len: usize, flag: crate::flag::AllocFlag) -> Self::Base<T, S> {
+    fn alloc<S: Shape>(&self, len: usize, flag: crate::flag::AllocFlag) -> crate::Result<Self::Base<T, S>> {
         todo!()
     }
 
-    fn alloc_from_slice<S: Shape>(&self, data: &[T]) -> Self::Base<T, S>
+    fn alloc_from_slice<S: Shape>(&self, data: &[T]) -> crate::Result<Self::Base<T, S>>
     where
         T: Clone,
     {
