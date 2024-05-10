@@ -1,140 +1,133 @@
-use core::ops::{Deref, DerefMut};
-
-use js_sys::wasm_bindgen::JsValue;
 use std::rc::Rc;
-use web_sys::Element;
+use web_sys::{WebGl2RenderingContext, WebGlBuffer, WebGlProgram};
 
-use crate::{
-    impl_device_traits, webgl::error::WebGlError, Alloc, Base, Buffer, Device, Module, Num,
-    OnDropBuffer, Retrieve, Retriever, Setup, Shape, WrappedData,
-};
+use crate::webgl::error::WebGlError;
 
-use self::{context::Context, data::WebGlData};
+use self::context::Context;
 
 mod context;
 mod data;
 mod error;
+mod webgl_device;
 
-pub struct WebGL<Mods = Base> {
-    pub modules: Mods,
-    pub context: Rc<Context>,
+pub use webgl_device::*;
+
+pub struct VertexAttributes {
+    position: WebGlBuffer,
+    texcoords: WebGlBuffer,
+    context: Rc<Context>,
 }
-impl<SimpleMods> WebGL<SimpleMods> {
+
+impl VertexAttributes {
+    pub fn new(context: Rc<Context>, program: &WebGlProgram) -> crate::Result<Self> {
+        #[rustfmt::skip]
+        let vertices: [f32; 12] = [
+            -1.0,-1.0, 0.0,
+            -1.0, 1.0, 0.0,
+            1.0, 1.0, 0.0,
+            1.0,-1.0, 0.0
+        ];
+
+        let position_attribute_location = context.get_attrib_location(program, "position");
+        let position_buffer = context.create_buffer().ok_or(WebGlError::BufferCreation)?;
+        context.bind_buffer(WebGl2RenderingContext::ARRAY_BUFFER, Some(&position_buffer));
+
+        // Note that `Float32Array::view` is somewhat dangerous (hence the
+        // `unsafe`!). This is creating a raw view into our module's
+        // `WebAssembly.Memory` buffer, but if we allocate more pages for ourself
+        // (aka do a memory allocation in Rust) it'll cause the buffer to change,
+        // causing the `Float32Array` to be invalid.
+        //
+        // As a result, after `Float32Array::view` we have to be very careful not to
+        // do any memory allocations before it's dropped.
+        unsafe {
+            let positions_array_buf_view = js_sys::Float32Array::view(&vertices);
+
+            context.buffer_data_with_array_buffer_view(
+                WebGl2RenderingContext::ARRAY_BUFFER,
+                &positions_array_buf_view,
+                WebGl2RenderingContext::STATIC_DRAW,
+            );
+        }
+
+        // let vao = context
+        //     .create_vertex_array()
+        //     .ok_or("Could not create vertex array object")?;
+        // context.bind_vertex_array(Some(&vao));
+
+        context.enable_vertex_attrib_array(position_attribute_location as u32);
+        context.vertex_attrib_pointer_with_i32(
+            position_attribute_location as u32,
+            3,
+            WebGl2RenderingContext::FLOAT,
+            false,
+            0,
+            0,
+        );
+
+        // context.bind_vertex_array(Some(&vao));
+
+        #[rustfmt::skip]
+        let tex_coords: [f32; 8] = [
+            0.0, 0.0,
+            0.0, 1.0,
+            1.0, 1.0,
+            1.0, 0.0
+        ];
+
+        let texcoords_buffer = context.create_buffer().ok_or(WebGlError::BufferCreation)?;
+        let texcoords_attribute_location = context.get_attrib_location(program, "texcoords");
+        context.bind_buffer(
+            WebGl2RenderingContext::ARRAY_BUFFER,
+            Some(&texcoords_buffer),
+        );
+        context.enable_vertex_attrib_array(texcoords_attribute_location as u32);
+        context.vertex_attrib_pointer_with_i32(
+            texcoords_attribute_location as u32,
+            2,
+            WebGl2RenderingContext::FLOAT,
+            false,
+            0,
+            0,
+        );
+
+        unsafe {
+            let positions_array_buf_view = js_sys::Float32Array::view(&tex_coords);
+
+            context.buffer_data_with_array_buffer_view(
+                WebGl2RenderingContext::ARRAY_BUFFER,
+                &positions_array_buf_view,
+                WebGl2RenderingContext::STATIC_DRAW,
+            );
+        }
+
+        let indices: [u16; 6] = [0, 1, 2, 2, 3, 0];
+
+        let indices_buffer = context
+            .create_buffer()
+            .ok_or(WebGlError::BufferCreation)?;
+        context.bind_buffer(
+            WebGl2RenderingContext::ELEMENT_ARRAY_BUFFER,
+            Some(&indices_buffer),
+        );
+
+        unsafe {
+            let positions_array_buf_view = js_sys::Uint16Array::view(&indices);
+
+            context.buffer_data_with_array_buffer_view(
+                WebGl2RenderingContext::ELEMENT_ARRAY_BUFFER,
+                &positions_array_buf_view,
+                WebGl2RenderingContext::STATIC_DRAW,
+            );
+        }
+        todo!()
+    }
+}
+
+impl Drop for VertexAttributes {
     #[inline]
-    pub fn from_canvas<NewMods>(maybe_canvas: Element) -> Result<WebGL<SimpleMods::Module>, JsValue>
-    where
-        SimpleMods: Module<WebGL, Module = NewMods>,
-        NewMods: Setup<WebGL<NewMods>>,
-    {
-        let mut webgl = WebGL {
-            modules: SimpleMods::new(),
-            context: Rc::new(Context::new(maybe_canvas)?),
-        };
-        NewMods::setup(&mut webgl).unwrap();
-        Ok(webgl)
-    }
-
-    pub fn new<NewMods>() -> crate::Result<WebGL<SimpleMods::Module>>
-    where
-        SimpleMods: Module<WebGL, Module = NewMods>,
-        NewMods: Setup<WebGL<NewMods>>,
-    {
-        let document = web_sys::window()
-            .ok_or(WebGlError::MissingWindow)?
-            .document()
-            .ok_or(WebGlError::MissingDocument)?;
-        let canvas = document
-            .create_element("canvas")
-            .map_err(|_| WebGlError::CanvasCreation)?;
-        Ok(WebGL::<SimpleMods>::from_canvas(canvas).unwrap())
-    }
-}
-
-crate::impl_buffer_hook_traits!(WebGL);
-crate::impl_wrapped_data!(WebGL);
-
-#[cfg(feature = "graph")]
-crate::pass_down_optimize_mem_graph!(WebGL);
-
-crate::pass_down_grad_fn!(WebGL);
-crate::pass_down_tape_actions!(WebGL);
-
-crate::pass_down_replace_buf_dev!(WebGL);
-crate::pass_down_cursor!(WebGL);
-crate::pass_down_cached_buffers!(WebGL);
-
-impl<Mods: OnDropBuffer> Device for WebGL<Mods> {
-    type Base<T, S: crate::Shape> = WebGlData;
-    type Data<T, S: Shape> = Self::Wrap<T, Self::Base<T, S>>;
-
-    type Error = JsValue;
-
-    #[inline(always)]
-    fn base_to_data<T, S: crate::Shape>(&self, base: Self::Base<T, S>) -> Self::Data<T, S> {
-        self.wrap_in_base(base)
-    }
-
-    #[inline(always)]
-    fn wrap_to_data<T, S: crate::Shape>(
-        &self,
-        wrap: Self::Wrap<T, Self::Base<T, S>>,
-    ) -> Self::Data<T, S> {
-        wrap
-    }
-
-    #[inline(always)]
-    fn data_as_wrap<'a, T, S: crate::Shape>(
-        data: &'a Self::Data<T, S>,
-    ) -> &'a Self::Wrap<T, Self::Base<T, S>> {
-        data
-    }
-
-    #[inline(always)]
-    fn data_as_wrap_mut<'a, T, S: crate::Shape>(
-        data: &'a mut Self::Data<T, S>,
-    ) -> &'a mut Self::Wrap<T, Self::Base<T, S>> {
-        data
-    }
-}
-
-impl<Mods> Deref for WebGL<Mods> {
-    type Target = Context;
-
-    #[inline]
-    fn deref(&self) -> &Self::Target {
-        &self.context
-    }
-}
-
-impl<Mods: OnDropBuffer> Alloc<f32> for WebGL<Mods> {
-    #[inline]
-    fn alloc<S: Shape>(
-        &self,
-        len: usize,
-        flag: crate::flag::AllocFlag,
-    ) -> crate::Result<Self::Base<f32, S>> {
-        WebGlData::new(self.context.clone(), len, flag).ok_or(WebGlError::DataCreation.into())
-    }
-
-    fn alloc_from_slice<S: Shape>(&self, data: &[f32]) -> crate::Result<Self::Base<f32, S>> {
-        let mut webgl_data = self.alloc::<S>(data.len(), crate::flag::AllocFlag::None)?;
-        webgl_data.write(data);
-        Ok(webgl_data)
-    }
-}
-
-impl<Mods: Retrieve<Self, f32, S>, S: Shape> Retriever<f32, S> for WebGL<Mods> {
-    fn retrieve<const NUM_PARENTS: usize>(
-        &self,
-        len: usize,
-        parents: impl crate::Parents<NUM_PARENTS>,
-    ) -> crate::Result<Buffer<f32, Self, S>> {
-        let data = unsafe { self.modules.retrieve::<NUM_PARENTS>(self, len, parents)? };
-        let buf = Buffer {
-            data,
-            device: Some(self),
-        };
-        self.modules.on_retrieve_finish(&buf);
-        Ok(buf)
+    fn drop(&mut self) {
+        self.context.delete_buffer(Some(&self.position));
+        self.context.delete_buffer(Some(&self.texcoords));
     }
 }

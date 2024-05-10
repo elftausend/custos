@@ -3,6 +3,7 @@ pub enum WebGlError {
     MissingDocument,
     CanvasCreation,
     DataCreation,
+    BufferCreation,
 }
 
 impl core::fmt::Display for WebGlError {
@@ -12,6 +13,7 @@ impl core::fmt::Display for WebGlError {
             WebGlError::MissingDocument => "Cannot get document of Window object",
             WebGlError::CanvasCreation => "Cannot create canvas element",
             WebGlError::DataCreation => "Cannot create webgl data",
+            WebGlError::BufferCreation => "Cannot create webgl buffer",
         };
         writeln!(f, "{msg}")
     }
