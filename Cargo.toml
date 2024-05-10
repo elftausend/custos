@@ -39,15 +39,20 @@ half = {version = "2.3", default-features = false, optional = true}
 # web
 js-sys = { version = "0.3", optional = true }
 web-sys = { version = "0.3", optional = true, features = [
-    'Document',
-    'Element',
-    'HtmlCanvasElement',
-    'WebGlBuffer',
-    'WebGlVertexArrayObject',
-    'WebGl2RenderingContext',
-    'WebGlProgram',
-    'WebGlShader',
-    'Window'] }
+  'console',
+  'Document',
+  'Element',
+  'HtmlCanvasElement',
+  'WebGlBuffer',
+  'WebGlVertexArrayObject',
+  'WebGl2RenderingContext',
+  'WebGlProgram',
+  'WebGlShader',
+  'WebGlUniformLocation',
+  'WebGlTexture',
+  'WebGlFramebuffer',
+  'WebGlSampler',
+  'Window']}
 
 # nnapi
 # nnapi = { path = "../nnapi/nnapi", optional = true}

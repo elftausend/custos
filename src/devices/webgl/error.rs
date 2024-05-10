@@ -1,7 +1,8 @@
 pub enum WebGlError {
     MissingWindow,
     MissingDocument,
-    CanvasCreation
+    CanvasCreation,
+    DataCreation,
 }
 
 impl core::fmt::Display for WebGlError {
@@ -9,7 +10,8 @@ impl core::fmt::Display for WebGlError {
         let msg = match self {
             WebGlError::MissingWindow => "Cannot get js Window object",
             WebGlError::MissingDocument => "Cannot get document of Window object",
-            WebGlError::CanvasCreation => "Cannot create canvas element"
+            WebGlError::CanvasCreation => "Cannot create canvas element",
+            WebGlError::DataCreation => "Cannot create webgl data",
         };
         writeln!(f, "{msg}")
     }
@@ -21,6 +23,5 @@ impl core::fmt::Debug for WebGlError {
         core::fmt::Display::fmt(&self, f)
     }
 }
-
 
 impl std::error::Error for WebGlError {}

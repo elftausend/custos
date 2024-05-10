@@ -2,7 +2,7 @@ use core::fmt::{Debug, Display};
 
 pub enum GlslError {
     CreationError,
-    CompileError(String)
+    CompileError(String),
 }
 
 impl Display for GlslError {

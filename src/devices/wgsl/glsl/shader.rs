@@ -1,25 +1,25 @@
-use naga::ShaderStage;
+use naga::{back::glsl::ReflectionInfoCompute, ShaderStage};
 use web_sys::{WebGl2RenderingContext, WebGlShader};
 
 use super::GlslError;
 
 #[derive(Debug, Clone)]
-pub struct Shader {
+pub struct ShaderSource {
     pub shader_stage: ShaderStage,
-    pub src: String
+    pub src: String,
+    pub reflection_info: Option<ReflectionInfoCompute>,
 }
 
-impl Shader {
+impl ShaderSource {
     pub fn compile(&self, context: &WebGl2RenderingContext) -> Result<WebGlShader, GlslError> {
         let shader_type = match self.shader_stage {
             ShaderStage::Vertex => WebGl2RenderingContext::VERTEX_SHADER,
             ShaderStage::Fragment => WebGl2RenderingContext::FRAGMENT_SHADER,
-            _ => panic!("Unsupported shader stage: {:?}", self.shader_stage)
+            _ => panic!("Unsupported shader stage: {:?}", self.shader_stage),
         };
         compile_shader(context, shader_type, &self.src)
     }
 }
-
 
 pub fn compile_shader(
     context: &WebGl2RenderingContext,
@@ -42,6 +42,8 @@ pub fn compile_shader(
         Err(context
             .get_shader_info_log(&shader)
             .map(GlslError::CompileError)
-            .unwrap_or_else(|| GlslError::CompileError("Unknown error creating shader".to_string())))
+            .unwrap_or_else(|| {
+                GlslError::CompileError("Unknown error creating shader".to_string())
+            }))
     }
 }

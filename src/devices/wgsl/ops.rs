@@ -87,7 +87,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::{wgsl::wgsl_device::Wgsl, ApplyFunction, Combiner, Device };
+    use crate::{wgsl::wgsl_device::Wgsl, ApplyFunction, Combiner, Device};
 
     #[cfg(feature = "vulkan")]
     #[test]

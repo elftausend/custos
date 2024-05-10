@@ -1,10 +1,15 @@
-use core::ops::{Deref, DerefMut};
+use core::{
+    cell::Cell,
+    ops::{Deref, DerefMut},
+};
 
 use js_sys::wasm_bindgen::{JsCast, JsValue};
 use web_sys::Element;
 
+#[derive(Debug)]
 pub struct Context {
     pub context: web_sys::WebGl2RenderingContext,
+    pub highest_id: Cell<usize>,
 }
 
 impl Context {
@@ -16,7 +21,16 @@ impl Context {
             .unwrap()
             .dyn_into::<web_sys::WebGl2RenderingContext>()?;
 
-        Ok(Self { context })
+        Ok(Self {
+            context,
+            highest_id: Default::default(),
+        })
+    }
+
+    pub fn gen_id(&self) -> usize {
+        let id = self.highest_id.get();
+        self.highest_id.set(id + 1);
+        id + 1
     }
 }
 

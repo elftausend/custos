@@ -130,7 +130,11 @@ pub fn dtype_from_shape<'a, T: AsOperandCode, S: Shape>() -> Operand {
 }
 
 impl<U, T: AsOperandCode, Mods: OnDropBuffer> Alloc<T> for NnapiDevice<U, Mods> {
-    fn alloc<S: Shape>(&self, _len: usize, flag: crate::flag::AllocFlag) -> crate::Result<Self::Base<T, S>> {
+    fn alloc<S: Shape>(
+        &self,
+        _len: usize,
+        flag: crate::flag::AllocFlag,
+    ) -> crate::Result<Self::Base<T, S>> {
         let dtype = dtype_from_shape::<T, S>();
         let idx = self.add_operand(&dtype)?;
         let nnapi_ptr = NnapiPtr { dtype, idx, flag };
@@ -144,7 +148,8 @@ impl<U, T: AsOperandCode, Mods: OnDropBuffer> Alloc<T> for NnapiDevice<U, Mods> 
     where
         T: Clone,
     {
-        let nnapi_ptr = Alloc::<T>::alloc::<S>(self, data.len(), crate::flag::AllocFlag::default())?;
+        let nnapi_ptr =
+            Alloc::<T>::alloc::<S>(self, data.len(), crate::flag::AllocFlag::default())?;
 
         let mut ptr = unsafe { CPUPtr::<T>::new(data.len(), crate::flag::AllocFlag::Wrapper) };
         ptr.clone_from_slice(data);
