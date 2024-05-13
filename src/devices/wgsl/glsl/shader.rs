@@ -43,6 +43,7 @@ pub fn compile_shader(
             .get_shader_info_log(&shader)
             .map(GlslError::CompileError)
             .unwrap_or_else(|| {
+                context.delete_shader(Some(&shader));
                 GlslError::CompileError("Unknown error creating shader".to_string())
             }))
     }

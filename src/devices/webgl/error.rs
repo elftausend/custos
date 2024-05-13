@@ -4,6 +4,7 @@ pub enum WebGlError {
     CanvasCreation,
     DataCreation,
     BufferCreation,
+    ContextCreation,
 }
 
 impl core::fmt::Display for WebGlError {
@@ -14,6 +15,7 @@ impl core::fmt::Display for WebGlError {
             WebGlError::CanvasCreation => "Cannot create canvas element",
             WebGlError::DataCreation => "Cannot create webgl data",
             WebGlError::BufferCreation => "Cannot create webgl buffer",
+            WebGlError::ContextCreation => "Cannot create webgl context"
         };
         writeln!(f, "{msg}")
     }

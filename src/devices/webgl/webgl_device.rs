@@ -9,23 +9,26 @@ use crate::{
     Retriever, Setup, Shape, WrappedData,
 };
 
-use super::{context::Context, data::WebGlData};
+use super::{context::Context, data::WebGlData, VertexAttributes};
 
 pub struct WebGL<Mods = Base> {
     pub modules: Mods,
     pub context: Rc<Context>,
+    pub vertex_attribs: VertexAttributes,
 }
 
 impl<SimpleMods> WebGL<SimpleMods> {
     #[inline]
-    pub fn from_canvas<NewMods>(maybe_canvas: Element) -> Result<WebGL<SimpleMods::Module>, JsValue>
+    pub fn from_canvas<NewMods>(maybe_canvas: Element) -> crate::Result<WebGL<SimpleMods::Module>>
     where
         SimpleMods: Module<WebGL, Module = NewMods>,
         NewMods: Setup<WebGL<NewMods>>,
     {
+        let context = Rc::new(Context::new(maybe_canvas).map_err(|_| WebGlError::ContextCreation)?);
         let mut webgl = WebGL {
             modules: SimpleMods::new(),
-            context: Rc::new(Context::new(maybe_canvas)?),
+            vertex_attribs: VertexAttributes::new(context.clone())?,
+            context,
         };
         NewMods::setup(&mut webgl).unwrap();
         Ok(webgl)

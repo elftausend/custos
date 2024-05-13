@@ -13,13 +13,14 @@ mod webgl_device;
 pub use webgl_device::*;
 
 pub struct VertexAttributes {
-    position: WebGlBuffer,
-    texcoords: WebGlBuffer,
+    position_buffer: WebGlBuffer,
+    texcoords_buffer: WebGlBuffer,
+    indices_buffer: WebGlBuffer,
     context: Rc<Context>,
 }
 
 impl VertexAttributes {
-    pub fn bind(context: Rc<Context>, program: &WebGlProgram) -> crate::Result<Self> {
+    pub fn new(context: Rc<Context>) -> crate::Result<Self> {
         #[rustfmt::skip]
         let vertices: [f32; 12] = [
             -1.0,-1.0, 0.0,
@@ -28,7 +29,6 @@ impl VertexAttributes {
             1.0,-1.0, 0.0
         ];
 
-        let position_attribute_location = context.get_attrib_location(program, "position");
         let position_buffer = context.create_buffer().ok_or(WebGlError::BufferCreation)?;
         context.bind_buffer(WebGl2RenderingContext::ARRAY_BUFFER, Some(&position_buffer));
 
@@ -50,23 +50,6 @@ impl VertexAttributes {
             );
         }
 
-        // let vao = context
-        //     .create_vertex_array()
-        //     .ok_or("Could not create vertex array object")?;
-        // context.bind_vertex_array(Some(&vao));
-
-        context.enable_vertex_attrib_array(position_attribute_location as u32);
-        context.vertex_attrib_pointer_with_i32(
-            position_attribute_location as u32,
-            3,
-            WebGl2RenderingContext::FLOAT,
-            false,
-            0,
-            0,
-        );
-
-        // context.bind_vertex_array(Some(&vao));
-
         #[rustfmt::skip]
         let tex_coords: [f32; 8] = [
             0.0, 0.0,
@@ -76,19 +59,9 @@ impl VertexAttributes {
         ];
 
         let texcoords_buffer = context.create_buffer().ok_or(WebGlError::BufferCreation)?;
-        let texcoords_attribute_location = context.get_attrib_location(program, "texcoords");
         context.bind_buffer(
             WebGl2RenderingContext::ARRAY_BUFFER,
             Some(&texcoords_buffer),
-        );
-        context.enable_vertex_attrib_array(texcoords_attribute_location as u32);
-        context.vertex_attrib_pointer_with_i32(
-            texcoords_attribute_location as u32,
-            2,
-            WebGl2RenderingContext::FLOAT,
-            false,
-            0,
-            0,
         );
 
         unsafe {
@@ -118,18 +91,76 @@ impl VertexAttributes {
                 WebGl2RenderingContext::STATIC_DRAW,
             );
         }
-        Ok(Self {
-            position: position_buffer,
-            texcoords: texcoords_buffer,
+
+        Ok(VertexAttributes {
+            position_buffer,
+            texcoords_buffer,
+            indices_buffer,
             context,
         })
+    }
+
+    pub fn bind(&self, program: &WebGlProgram) -> crate::Result<()> {
+        let context = &self.context;
+       
+        context.bind_buffer(WebGl2RenderingContext::ARRAY_BUFFER, Some(&self.position_buffer));
+        let position_attribute_location = context.get_attrib_location(program, "position");
+
+        // let vao = context
+        //     .create_vertex_array()
+        //     .ok_or("Could not create vertex array object")?;
+        // context.bind_vertex_array(Some(&vao));
+
+        context.enable_vertex_attrib_array(position_attribute_location as u32);
+        context.vertex_attrib_pointer_with_i32(
+            position_attribute_location as u32,
+            3,
+            WebGl2RenderingContext::FLOAT,
+            false,
+            0,
+            0,
+        );
+
+        // context.bind_vertex_array(Some(&vao));
+
+        context.bind_buffer(
+            WebGl2RenderingContext::ARRAY_BUFFER,
+            Some(&self.texcoords_buffer),
+        );
+        let texcoords_attribute_location = context.get_attrib_location(program, "texcoords");
+        context.enable_vertex_attrib_array(texcoords_attribute_location as u32);
+        context.vertex_attrib_pointer_with_i32(
+            texcoords_attribute_location as u32,
+            2,
+            WebGl2RenderingContext::FLOAT,
+            false,
+            0,
+            0,
+        );
+
+        Ok(())
+    }
+
+    #[inline]
+    pub fn position_buffer(&self) -> &WebGlBuffer {
+        &self.position_buffer
+    }
+
+    #[inline]
+    pub fn texcoords_buffer(&self) -> &WebGlBuffer {
+        &self.texcoords_buffer
+    }
+    
+    #[inline]
+    pub fn indices_buffer(&self) -> &WebGlBuffer {
+        &self.indices_buffer
     }
 }
 
 impl Drop for VertexAttributes {
     #[inline]
     fn drop(&mut self) {
-        self.context.delete_buffer(Some(&self.position));
-        self.context.delete_buffer(Some(&self.texcoords));
+        self.context.delete_buffer(Some(&self.position_buffer));
+        self.context.delete_buffer(Some(&self.texcoords_buffer));
     }
 }
