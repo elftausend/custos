@@ -1,3 +1,4 @@
+use core::marker::PhantomData;
 use std::rc::Rc;
 use web_sys::{WebGl2RenderingContext, WebGlFramebuffer, WebGlTexture};
 
@@ -10,7 +11,7 @@ fn compute_texture_dimensions(length: usize) -> (usize, usize) {
 }
 
 #[derive(Debug)]
-pub struct WebGlData {
+pub struct WebGlData<T> {
     texture: WebGlTexture,
     texture_width: usize,
     texture_height: usize,
@@ -19,9 +20,10 @@ pub struct WebGlData {
     context: Rc<Context>,
     flag: AllocFlag,
     id: usize,
+    _pd: PhantomData<T>,
 }
 
-impl WebGlData {
+impl WebGlData<f32> {
     pub fn new(context: Rc<Context>, len: usize, flag: AllocFlag) -> Option<Self> {
         let texture = context.create_texture()?;
         let (texture_width, texture_height) = compute_texture_dimensions(len);
@@ -58,20 +60,31 @@ impl WebGlData {
             id: context.gen_id(),
             context,
             flag,
+            _pd: PhantomData,
         };
-        buffer.write(&vec![0.; len])?;
+        buffer.write((0..len).map(|_| &0.))?;
         Some(buffer)
     }
 
-    pub fn write(&mut self, data: &[f32]) -> Option<()> {
+    pub fn write<'a>(&mut self, data: impl IntoIterator<Item = &'a f32>) -> Option<()> {
         let context = &self.context;
 
         context.bind_texture(WebGl2RenderingContext::TEXTURE_2D, Some(&self.texture));
 
         // let texture_data = vec![0u8; self.len * 4];
-        assert_eq!(data.len(), self.len);
-        let texture_data =
-            unsafe { std::slice::from_raw_parts(data.as_ptr() as *const u8, data.len() * 4) };
+        // assert_eq!(data.len(), self.len);
+
+        let mut upload_data = Vec::with_capacity(self.texture_width * self.texture_height);
+        upload_data.extend(data);
+
+        assert_eq!(upload_data.len(), self.len);
+
+        // padding
+        upload_data.extend((0..self.texture_width * self.texture_height - self.len).map(|_| 0.));
+
+        let texture_data = unsafe {
+            std::slice::from_raw_parts(upload_data.as_ptr() as *const u8, upload_data.len() * 4)
+        };
         unsafe {
             let texture_data = js_sys::Uint8Array::view(&texture_data);
 
@@ -108,7 +121,7 @@ impl WebGlData {
             WebGl2RenderingContext::FRAMEBUFFER_COMPLETE
         );
 
-        let mut read_data = vec![0.; self.len];
+        let mut read_data = vec![0.; self.texture_height * self.texture_width];
         let texture_data = unsafe {
             std::slice::from_raw_parts_mut(read_data.as_mut_ptr() as *mut u8, read_data.len() * 4)
         };
@@ -127,11 +140,12 @@ impl WebGlData {
             .unwrap();
 
         context.bind_framebuffer(WebGl2RenderingContext::FRAMEBUFFER, None);
+        read_data.truncate(self.len);
         read_data
     }
 }
 
-impl Drop for WebGlData {
+impl<T> Drop for WebGlData<T> {
     #[inline]
     fn drop(&mut self) {
         if !self.flag.continue_deallocation() {
@@ -141,7 +155,7 @@ impl Drop for WebGlData {
     }
 }
 
-impl PtrType for WebGlData {
+impl<T> PtrType for WebGlData<T> {
     #[inline]
     fn size(&self) -> usize {
         self.len
@@ -158,7 +172,7 @@ impl PtrType for WebGlData {
     }
 }
 
-impl HasId for WebGlData {
+impl<T> HasId for WebGlData<T> {
     #[inline]
     fn id(&self) -> crate::Id {
         crate::Id {

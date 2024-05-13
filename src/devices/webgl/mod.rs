@@ -19,7 +19,7 @@ pub struct VertexAttributes {
 }
 
 impl VertexAttributes {
-    pub fn new(context: Rc<Context>, program: &WebGlProgram) -> crate::Result<Self> {
+    pub fn bind(context: Rc<Context>, program: &WebGlProgram) -> crate::Result<Self> {
         #[rustfmt::skip]
         let vertices: [f32; 12] = [
             -1.0,-1.0, 0.0,
@@ -103,9 +103,7 @@ impl VertexAttributes {
 
         let indices: [u16; 6] = [0, 1, 2, 2, 3, 0];
 
-        let indices_buffer = context
-            .create_buffer()
-            .ok_or(WebGlError::BufferCreation)?;
+        let indices_buffer = context.create_buffer().ok_or(WebGlError::BufferCreation)?;
         context.bind_buffer(
             WebGl2RenderingContext::ELEMENT_ARRAY_BUFFER,
             Some(&indices_buffer),
@@ -120,7 +118,11 @@ impl VertexAttributes {
                 WebGl2RenderingContext::STATIC_DRAW,
             );
         }
-        todo!()
+        Ok(Self {
+            position: position_buffer,
+            texcoords: texcoords_buffer,
+            context,
+        })
     }
 }
 

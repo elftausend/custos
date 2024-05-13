@@ -61,7 +61,7 @@ crate::pass_down_cursor!(WebGL);
 crate::pass_down_cached_buffers!(WebGL);
 
 impl<Mods: OnDropBuffer> Device for WebGL<Mods> {
-    type Base<T, S: crate::Shape> = WebGlData;
+    type Base<T, S: crate::Shape> = WebGlData<T>;
     type Data<T, S: Shape> = Self::Wrap<T, Self::Base<T, S>>;
 
     type Error = JsValue;
