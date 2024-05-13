@@ -1,4 +1,4 @@
-use core::ops::Deref;
+use core::{cell::RefCell, ops::Deref};
 
 use js_sys::wasm_bindgen::JsValue;
 use std::rc::Rc;
@@ -10,14 +10,32 @@ use crate::{
 };
 
 use super::{
-    context::Context, data::WebGlData, vertex_attributes::VertexAttributes, vertex_shader,
+    context::Context, data::WebGlData, launch_program::ShaderCache, vertex_attributes::VertexAttributes, vertex_shader
 };
 
-pub struct WebGL<Mods = Base> {
-    pub modules: Mods,
+pub struct WebGlDevice {
     pub context: Rc<Context>,
     pub vertex_attribs: VertexAttributes,
     pub vertex_shader: WebGlShader,
+    pub shader_cache: RefCell<ShaderCache>,
+}
+
+impl WebGlDevice {
+    pub fn new(maybe_canvas: Element) -> crate::Result<WebGlDevice> {
+        let context = Rc::new(Context::new(maybe_canvas).map_err(|_| WebGlError::ContextCreation)?);
+
+        Ok(WebGlDevice {
+            vertex_attribs: VertexAttributes::new(context.clone())?,
+            vertex_shader: vertex_shader(&context)?,
+            shader_cache: Default::default(),
+            context,
+        })
+    }
+}
+
+pub struct WebGL<Mods = Base> {
+    pub modules: Mods,
+    device: WebGlDevice
 }
 
 impl<SimpleMods> WebGL<SimpleMods> {
@@ -27,13 +45,9 @@ impl<SimpleMods> WebGL<SimpleMods> {
         SimpleMods: Module<WebGL, Module = NewMods>,
         NewMods: Setup<WebGL<NewMods>>,
     {
-        let context = Rc::new(Context::new(maybe_canvas).map_err(|_| WebGlError::ContextCreation)?);
-
         let mut webgl = WebGL {
             modules: SimpleMods::new(),
-            vertex_attribs: VertexAttributes::new(context.clone())?,
-            vertex_shader: vertex_shader(&context)?,
-            context,
+            device: WebGlDevice::new(maybe_canvas)?,
         };
         NewMods::setup(&mut webgl).unwrap();
         Ok(webgl)
@@ -103,11 +117,11 @@ impl<Mods: OnDropBuffer> Device for WebGL<Mods> {
 }
 
 impl<Mods> Deref for WebGL<Mods> {
-    type Target = Context;
+    type Target = WebGlDevice;
 
     #[inline]
     fn deref(&self) -> &Self::Target {
-        &self.context
+        &self.device
     }
 }
 

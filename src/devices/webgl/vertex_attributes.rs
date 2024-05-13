@@ -102,11 +102,6 @@ impl VertexAttributes {
         );
         let position_attribute_location = context.get_attrib_location(program, "position");
 
-        // let vao = context
-        //     .create_vertex_array()
-        //     .ok_or("Could not create vertex array object")?;
-        // context.bind_vertex_array(Some(&vao));
-
         context.enable_vertex_attrib_array(position_attribute_location as u32);
         context.vertex_attrib_pointer_with_i32(
             position_attribute_location as u32,
@@ -116,8 +111,6 @@ impl VertexAttributes {
             0,
             0,
         );
-
-        // context.bind_vertex_array(Some(&vao));
 
         context.bind_buffer(
             WebGl2RenderingContext::ARRAY_BUFFER,
