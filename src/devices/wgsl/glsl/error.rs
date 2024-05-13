@@ -21,3 +21,5 @@ impl Debug for GlslError {
         Display::fmt(self, f)
     }
 }
+
+impl std::error::Error for GlslError {}

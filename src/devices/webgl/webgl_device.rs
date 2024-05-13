@@ -2,19 +2,22 @@ use core::ops::Deref;
 
 use js_sys::wasm_bindgen::JsValue;
 use std::rc::Rc;
-use web_sys::Element;
+use web_sys::{Element, WebGlShader};
 
 use crate::{
     webgl::error::WebGlError, Alloc, Base, Buffer, Device, Module, OnDropBuffer, Retrieve,
     Retriever, Setup, Shape, WrappedData,
 };
 
-use super::{context::Context, data::WebGlData, VertexAttributes};
+use super::{
+    context::Context, data::WebGlData, vertex_attributes::VertexAttributes, vertex_shader,
+};
 
 pub struct WebGL<Mods = Base> {
     pub modules: Mods,
     pub context: Rc<Context>,
     pub vertex_attribs: VertexAttributes,
+    pub vertex_shader: WebGlShader,
 }
 
 impl<SimpleMods> WebGL<SimpleMods> {
@@ -25,9 +28,11 @@ impl<SimpleMods> WebGL<SimpleMods> {
         NewMods: Setup<WebGL<NewMods>>,
     {
         let context = Rc::new(Context::new(maybe_canvas).map_err(|_| WebGlError::ContextCreation)?);
+
         let mut webgl = WebGL {
             modules: SimpleMods::new(),
             vertex_attribs: VertexAttributes::new(context.clone())?,
+            vertex_shader: vertex_shader(&context)?,
             context,
         };
         NewMods::setup(&mut webgl).unwrap();
@@ -136,5 +141,15 @@ impl<Mods: Retrieve<Self, f32, S>, S: Shape> Retriever<f32, S> for WebGL<Mods> {
         };
         self.modules.on_retrieve_finish(&buf);
         Ok(buf)
+    }
+}
+
+impl<Mods> Drop for WebGL<Mods> {
+    #[inline]
+    fn drop(&mut self) {
+        self.context
+            .delete_buffer(Some(&self.vertex_attribs.position_buffer()));
+        self.context
+            .delete_buffer(Some(&self.vertex_attribs.texcoords_buffer()));
     }
 }
