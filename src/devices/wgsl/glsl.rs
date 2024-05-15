@@ -16,7 +16,7 @@ pub use error::*;
 
 #[derive(Debug, Clone)]
 pub struct Glsl {
-    pub sources: Vec<ShaderSource>,
+    pub sources: (naga::Module, Vec<ShaderSource>),
 }
 
 impl Glsl {
@@ -30,7 +30,7 @@ impl Glsl {
     #[inline]
     pub fn from_wgsl_compute(src: impl AsRef<str>) -> Result<Self, TranslateError> {
         Ok(Glsl {
-            sources: parse_and_output(src, write_glsl)?,
+            sources: parse_and_output(src, write_webgl_compute)?,
         })
     }
 
@@ -39,7 +39,7 @@ impl Glsl {
         &self,
         context: &WebGl2RenderingContext,
     ) -> Result<Vec<WebGlShader>, GlslError> {
-        self.sources.iter().map(|s| s.compile(context)).collect()
+        self.sources.1.iter().map(|s| s.compile(context)).collect()
     }
 }
 
@@ -141,7 +141,7 @@ mod tests {
         let glsl = Glsl::from_wgsl(wgsl).unwrap();
         // let is = format!("{glsl:?}");
 
-        assert_eq!(glsl.sources[0].shader_stage, ShaderStage::Fragment);
+        assert_eq!(glsl.sources.1[0].shader_stage, ShaderStage::Fragment);
         // assert_eq!(glsl.sources[0].src, r#"#version 300 es\n\nprecision highp float;\nprecision highp int;\n\nlayout(location = 0) out vec4 _fs2p_location0;\n\nvoid main() {\n    _fs2p_location0 = vec4(1.0, 0.0, 0.0, 1.0);\n    return;\n}\n\n"#);
 
         // let should = r##"Glsl { sources: [(shader_stage: Fragment, "#version 300 es\n\nprecision highp float;\nprecision highp int;\n\nlayout(location = 0) out vec4 _fs2p_location0;\n\nvoid main() {\n    _fs2p_location0 = vec4(1.0, 0.0, 0.0, 1.0);\n    return;\n}\n\n")] }"##;
@@ -169,7 +169,7 @@ mod tests {
             }
         ";
         let glsl = Glsl::from_wgsl(wgsl).unwrap();
-        println!("{}", glsl.sources[0].src);
-        println!("{}", glsl.sources[1].src);
+        println!("{}", glsl.sources.1[0].src);
+        println!("{}", glsl.sources.1[1].src);
     }
 }

@@ -1,9 +1,9 @@
 mod context;
 mod data;
 mod error;
+mod program;
 mod vertex_attributes;
 mod webgl_device;
-mod launch_program;
 
 use web_sys::{WebGl2RenderingContext, WebGlShader};
 pub use webgl_device::*;

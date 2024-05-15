@@ -1,23 +1,25 @@
 use core::{cell::RefCell, ops::Deref};
 
-use js_sys::wasm_bindgen::JsValue;
+use js_sys::{wasm_bindgen::JsValue, Uint32Array};
 use std::rc::Rc;
-use web_sys::{Element, WebGlShader};
+use web_sys::{Element, WebGl2RenderingContext, WebGlFramebuffer, WebGlShader};
 
 use crate::{
-    webgl::error::WebGlError, Alloc, Base, Buffer, Device, Module, OnDropBuffer, Retrieve,
-    Retriever, Setup, Shape, WrappedData,
+    webgl::error::WebGlError, wgsl::WgslShaderLaunch, Alloc, Base, Buffer, Device, Module,
+    OnDropBuffer, Retrieve, Retriever, Setup, Shape, WrappedData,
 };
 
 use super::{
-    context::Context, data::WebGlData, launch_program::ShaderCache, vertex_attributes::VertexAttributes, vertex_shader
+    context::Context, data::WebGlData, program::ProgramCache, vertex_attributes::VertexAttributes,
+    vertex_shader,
 };
 
 pub struct WebGlDevice {
     pub context: Rc<Context>,
     pub vertex_attribs: VertexAttributes,
+    pub frame_buf: WebGlFramebuffer,
     pub vertex_shader: WebGlShader,
-    pub shader_cache: RefCell<ShaderCache>,
+    pub shader_cache: RefCell<ProgramCache>,
 }
 
 impl WebGlDevice {
@@ -28,6 +30,9 @@ impl WebGlDevice {
             vertex_attribs: VertexAttributes::new(context.clone())?,
             vertex_shader: vertex_shader(&context)?,
             shader_cache: Default::default(),
+            frame_buf: context
+                .create_framebuffer()
+                .ok_or(WebGlError::FrameBufferCreation)?,
             context,
         })
     }
@@ -35,7 +40,7 @@ impl WebGlDevice {
 
 pub struct WebGL<Mods = Base> {
     pub modules: Mods,
-    device: WebGlDevice
+    device: WebGlDevice,
 }
 
 impl<SimpleMods> WebGL<SimpleMods> {
@@ -165,5 +170,22 @@ impl<Mods> Drop for WebGL<Mods> {
             .delete_buffer(Some(&self.vertex_attribs.position_buffer()));
         self.context
             .delete_buffer(Some(&self.vertex_attribs.texcoords_buffer()));
+    }
+}
+
+impl<Mods> WgslShaderLaunch for WebGL<Mods> {
+    type ShaderArg = WebGlData<f32>;
+
+    fn launch_shader(
+        &self,
+        src: impl AsRef<str>,
+        gws: [u32; 3],
+        args: &[&Self::ShaderArg],
+    ) -> crate::Result<()> {
+        let mut shader_cache = self.shader_cache.borrow_mut();
+
+        let program = shader_cache.get(self.context.clone(), &self.vertex_shader, src)?;
+        program.launch(&self.frame_buf, self.vertex_attribs.indices_buffer(), args)?;
+        Ok(())
     }
 }

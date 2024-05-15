@@ -15,7 +15,7 @@ impl Spirv {
     #[inline]
     pub fn from_wgsl(src: impl AsRef<str>) -> Result<Self, TranslateError> {
         Ok(Spirv {
-            words_of_entries: parse_and_output(src, write_spirv)?,
+            words_of_entries: parse_and_output(src, write_spirv)?.1,
         })
     }
 

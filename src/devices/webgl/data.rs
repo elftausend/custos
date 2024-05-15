@@ -12,10 +12,10 @@ fn compute_texture_dimensions(length: usize) -> (usize, usize) {
 
 #[derive(Debug)]
 pub struct WebGlData<T> {
-    texture: WebGlTexture,
-    texture_width: usize,
-    texture_height: usize,
-    len: usize,
+    pub texture: WebGlTexture,
+    pub texture_width: usize,
+    pub texture_height: usize,
+    pub len: usize,
     pub out_idx: Option<usize>,
     context: Rc<Context>,
     flag: AllocFlag,

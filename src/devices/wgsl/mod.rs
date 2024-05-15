@@ -19,7 +19,7 @@ use naga::{valid::ModuleInfo, Module, ShaderStage};
 pub fn parse_and_output<O>(
     src: impl AsRef<str>,
     output_fn: fn(&Module, &ModuleInfo, ShaderStage, &str) -> Result<O, TranslateError>,
-) -> Result<Vec<O>, TranslateError> {
+) -> Result<(Module, Vec<O>), TranslateError> {
     let (module, info) = parse_and_validate_wgsl(src.as_ref())?;
 
     module
@@ -27,6 +27,7 @@ pub fn parse_and_output<O>(
         .iter()
         .map(|entry_point| output_fn(&module, &info, entry_point.stage, &entry_point.name))
         .collect::<Result<Vec<_>, _>>()
+        .map(|out| (module, out))
 }
 
 pub fn parse_and_validate_wgsl(src: &str) -> Result<(naga::Module, ModuleInfo), TranslateError> {
