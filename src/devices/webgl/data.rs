@@ -16,7 +16,7 @@ pub struct WebGlData<T> {
     pub texture_width: usize,
     pub texture_height: usize,
     pub len: usize,
-    pub out_idx: Option<usize>,
+    pub out_idx: Option<u32>,
     context: Rc<Context>,
     flag: AllocFlag,
     id: usize,
@@ -86,7 +86,7 @@ impl WebGlData<f32> {
             std::slice::from_raw_parts(upload_data.as_ptr() as *const u8, upload_data.len() * 4)
         };
         unsafe {
-            let texture_data = js_sys::Uint8Array::view(&texture_data);
+            let texture_data = js_sys::Uint8Array::view(texture_data);
 
             context.tex_image_2d_with_i32_and_i32_and_i32_and_format_and_type_and_opt_array_buffer_view(
                 WebGl2RenderingContext::TEXTURE_2D,

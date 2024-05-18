@@ -15,8 +15,8 @@ pub type Cuda<Mods> = crate::CUDA<Mods>;
 pub type Cuda<Mods> = super::CUDA<Mods>;
 
 pub enum UntypedDevice {
-    CPU(CPU<Base>),
-    CUDA(Cuda<Base>),
+    Cpu(CPU<Base>),
+    Cuda(Cuda<Base>),
 }
 
 pub struct Untyped {
@@ -59,9 +59,9 @@ impl Device for Untyped {
     fn new() -> Result<Self, Self::Error> {
         Ok(Untyped {
             #[cfg(not(feature = "cuda"))]
-            device: UntypedDevice::CPU(CPU::based()),
+            device: UntypedDevice::Cpu(CPU::based()),
             #[cfg(feature = "cuda")]
-            device: UntypedDevice::CUDA(crate::CUDA::<Base>::new(crate::cuda::chosen_cu_idx())?),
+            device: UntypedDevice::Cuda(crate::CUDA::<Base>::new(crate::cuda::chosen_cu_idx())?),
         })
     }
 }
@@ -72,8 +72,8 @@ impl HasModules<Base> for Untyped {
     #[inline]
     fn modules(&self) -> &Base {
         match &self.device {
-            UntypedDevice::CPU(cpu) => &cpu.modules,
-            UntypedDevice::CUDA(cuda) => &cuda.modules,
+            UntypedDevice::Cpu(cpu) => &cpu.modules,
+            UntypedDevice::Cuda(cuda) => &cuda.modules,
         }
     }
 }
@@ -114,10 +114,10 @@ impl<T: AsType> Alloc<T> for Untyped {
         flag: crate::flag::AllocFlag,
     ) -> crate::Result<Self::Base<T, S>> {
         Ok(match &self.device {
-            UntypedDevice::CPU(cpu) => {
+            UntypedDevice::Cpu(cpu) => {
                 UntypedData::CPU(CpuStorage::from(Alloc::<T>::alloc::<S>(cpu, len, flag)?))
             }
-            UntypedDevice::CUDA(cuda) => {
+            UntypedDevice::Cuda(cuda) => {
                 #[cfg(feature = "cuda")]
                 {
                     UntypedData::CUDA(CudaStorage::from(Alloc::<T>::alloc::<S>(cuda, len, flag)?))
@@ -133,10 +133,10 @@ impl<T: AsType> Alloc<T> for Untyped {
         T: Clone,
     {
         Ok(match &self.device {
-            UntypedDevice::CPU(cpu) => UntypedData::CPU(CpuStorage::from(
+            UntypedDevice::Cpu(cpu) => UntypedData::CPU(CpuStorage::from(
                 Alloc::<T>::alloc_from_slice::<S>(cpu, data)?,
             )),
-            UntypedDevice::CUDA(cuda) => {
+            UntypedDevice::Cuda(cuda) => {
                 #[cfg(feature = "cuda")]
                 {
                     UntypedData::CUDA(CudaStorage::from(Alloc::<T>::alloc_from_slice::<S>(

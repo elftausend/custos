@@ -25,8 +25,8 @@ impl<T: 'static + AsType + Default + Clone, S: Shape> Read<T, S> for Untyped {
         T: Default + Clone,
     {
         match &self.device {
-            UntypedDevice::CPU(_cpu) => buf.convert_to_typed::<T, CPU, S>().unwrap().to_vec(),
-            UntypedDevice::CUDA(_cuda) => {
+            UntypedDevice::Cpu(_cpu) => buf.convert_to_typed::<T, CPU, S>().unwrap().to_vec(),
+            UntypedDevice::Cuda(_cuda) => {
                 #[cfg(not(feature = "cuda"))]
                 {
                     unimplemented!()
@@ -57,11 +57,11 @@ where
     {
         let mut out = self.retrieve(buf.len(), buf).unwrap();
         match &self.device {
-            UntypedDevice::CPU(_cpu) => {
+            UntypedDevice::Cpu(_cpu) => {
                 let x = buf.convert_to_typed::<T, CPU, S>().unwrap();
                 apply_fn_slice(x, out.convert_to_typed_mut::<T, CPU, S>().unwrap(), f);
             }
-            UntypedDevice::CUDA(cuda) => {
+            UntypedDevice::Cuda(cuda) => {
                 #[cfg(feature = "cuda")]
                 {
                     let x = buf.convert_to_typed::<T, crate::CUDA, S>().unwrap();
@@ -167,7 +167,7 @@ mod tests {
                     UntypedData::CPU(storage)
                 }
                 (UntypedData::CUDA(lhs), UntypedData::CUDA(rhs)) => {
-                    let UntypedDevice::CUDA(dev) = &self.device else {
+                    let UntypedDevice::Cuda(dev) = &self.device else {
                         panic!()
                     };
                     #[cfg(feature = "cuda")]

@@ -1,7 +1,7 @@
 use js_sys::{wasm_bindgen::JsValue, Uint32Array};
-use web_sys::{WebGl2RenderingContext, WebGlBuffer, WebGlFramebuffer};
+use web_sys::{WebGl2RenderingContext, WebGlFramebuffer};
 
-use crate::webgl::data::WebGlData;
+use crate::webgl::{data::WebGlData, vertex_attributes::VertexAttributes};
 
 use super::Program;
 
@@ -9,9 +9,9 @@ impl Program {
     pub fn launch(
         &self,
         frame_buf: &WebGlFramebuffer,
-        indices_buffer: &WebGlBuffer,
+        vertex_attributes: &VertexAttributes,
         args: &[&WebGlData<f32>],
-        gws: [u32; 3]
+        gws: [u32; 3],
     ) -> crate::Result<()> {
         let program = &self.program;
         let reflection_info = &self.reflection_info;
@@ -46,13 +46,16 @@ impl Program {
         let (first_th, first_tw) = (first_arg.texture_height, first_arg.texture_width);
 
         // TODO: convert to error
-        assert!(out_idxs
-            .iter()
-            .map(|idx| {
-                let arg = &args[*idx];
-                (arg.texture_height, arg.texture_width)
-            })
-            .all(|(th, tw)| th == first_th && tw == first_tw));
+        assert!(
+            out_idxs
+                .iter()
+                .map(|idx| {
+                    let arg = &args[*idx];
+                    (arg.texture_height, arg.texture_width)
+                })
+                .all(|(th, tw)| th == first_th && tw == first_tw),
+            "mismatch"
+        );
 
         let out_bufs = out_idxs.iter().map(|idx| &args[*idx]).collect::<Vec<_>>();
         let input_bufs = args
@@ -105,6 +108,37 @@ impl Program {
             ]);
         }
 
+        let position_attribute_location = context.get_attrib_location(&program, "position");
+        context.bind_buffer(
+            WebGl2RenderingContext::ARRAY_BUFFER,
+            Some(vertex_attributes.position_buffer()),
+        );
+
+        context.enable_vertex_attrib_array(position_attribute_location as u32);
+        context.vertex_attrib_pointer_with_i32(
+            position_attribute_location as u32,
+            3,
+            WebGl2RenderingContext::FLOAT,
+            false,
+            0,
+            0,
+        );
+
+        context.bind_buffer(
+            WebGl2RenderingContext::ARRAY_BUFFER,
+            Some(vertex_attributes.texcoords_buffer()),
+        );
+        let texcoords_attribute_location = context.get_attrib_location(&program, "texcoords");
+        context.enable_vertex_attrib_array(texcoords_attribute_location as u32);
+        context.vertex_attrib_pointer_with_i32(
+            texcoords_attribute_location as u32,
+            2,
+            WebGl2RenderingContext::FLOAT,
+            false,
+            0,
+            0,
+        );
+
         let color_attachments = Uint32Array::new(&JsValue::from(output_storage_layout_names.len()));
 
         for idx in 0..output_storage_layout_names.len() as u32 {
@@ -115,17 +149,14 @@ impl Program {
         context.bind_framebuffer(WebGl2RenderingContext::FRAMEBUFFER, Some(frame_buf));
         context.draw_buffers(&color_attachments);
 
-        let mut color_idx = 0;
-        for idx in &out_idxs {
-            let arg = &args[*idx];
+        for (color_idx, out_buf) in out_bufs.iter().enumerate() {
             context.framebuffer_texture_2d(
                 WebGl2RenderingContext::FRAMEBUFFER,
-                WebGl2RenderingContext::COLOR_ATTACHMENT0 + color_idx,
+                WebGl2RenderingContext::COLOR_ATTACHMENT0 + color_idx as u32,
                 WebGl2RenderingContext::TEXTURE_2D,
-                Some(&arg.texture),
+                Some(&out_buf.texture),
                 0,
             );
-            color_idx += 1;
         }
 
         assert_eq!(
@@ -133,7 +164,7 @@ impl Program {
             WebGl2RenderingContext::FRAMEBUFFER_COMPLETE
         );
 
-        context.use_program(Some(&program));
+        context.use_program(Some(program));
 
         context.viewport(0, 0, first_tw as i32, first_th as i32);
         context.uniform1ui(Some(&thread_viewport_width_uniform), first_tw as u32);
@@ -151,16 +182,14 @@ impl Program {
             context.bind_texture(WebGl2RenderingContext::TEXTURE_2D, Some(&gl_buf.texture))
         }
 
-        for (_idx, (output_size_uniform, gl_buf)) in
-            output_size_uniforms.iter().zip(out_bufs).enumerate()
-        {
+        for (output_size_uniform, gl_buf) in output_size_uniforms.iter().zip(out_bufs) {
             context.uniform1ui(Some(&output_size_uniform[0]), gl_buf.texture_width as u32);
             context.uniform1ui(Some(&output_size_uniform[1]), gl_buf.texture_height as u32);
         }
 
         context.bind_buffer(
             WebGl2RenderingContext::ELEMENT_ARRAY_BUFFER,
-            Some(indices_buffer),
+            Some(vertex_attributes.indices_buffer()),
         );
 
         context.draw_elements_with_i32(
@@ -170,7 +199,7 @@ impl Program {
             0,
         );
 
-        for idx in 0..color_idx {
+        for idx in 0..out_idxs.len() as u32 {
             context.framebuffer_texture_2d(
                 WebGl2RenderingContext::FRAMEBUFFER,
                 WebGl2RenderingContext::COLOR_ATTACHMENT0 + idx,

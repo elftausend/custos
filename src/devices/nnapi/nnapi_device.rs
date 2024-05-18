@@ -238,7 +238,7 @@ impl<T, Mods: OnDropBuffer> NnapiDevice<T, Mods> {
 
     /// Adds an operand to the model.
     pub fn add_operand(&self, dtype: &Operand) -> crate::Result<u32> {
-        self.model.borrow_mut().add_operand(&dtype)?;
+        self.model.borrow_mut().add_operand(dtype)?;
         let idx = self.operand_count.get();
         self.operand_count.set(idx + 1);
         Ok(idx)

@@ -12,7 +12,7 @@ use crate::wgsl::compile_shader;
 
 pub fn vertex_shader(context: &WebGl2RenderingContext) -> crate::Result<WebGlShader> {
     Ok(compile_shader(
-        &context,
+        context,
         WebGl2RenderingContext::VERTEX_SHADER,
         r##"#version 300 es
         precision highp float;

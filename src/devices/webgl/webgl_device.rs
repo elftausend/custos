@@ -6,7 +6,7 @@ use web_sys::{Element, WebGlFramebuffer, WebGlShader};
 
 use crate::{
     webgl::error::WebGlError, wgsl::WgslShaderLaunch, Alloc, Base, Buffer, Device, Module,
-    OnDropBuffer, Retrieve, Retriever, Setup, Shape, WrappedData,
+    OnDropBuffer, Read, Retrieve, Retriever, Setup, Shape, WrappedData,
 };
 
 use super::{
@@ -167,9 +167,29 @@ impl<Mods> Drop for WebGL<Mods> {
     #[inline]
     fn drop(&mut self) {
         self.context
-            .delete_buffer(Some(&self.vertex_attribs.position_buffer()));
+            .delete_buffer(Some(self.vertex_attribs.position_buffer()));
         self.context
-            .delete_buffer(Some(&self.vertex_attribs.texcoords_buffer()));
+            .delete_buffer(Some(self.vertex_attribs.texcoords_buffer()));
+    }
+}
+
+impl<Mods: OnDropBuffer, S: Shape> Read<f32, S> for WebGL<Mods> {
+    type Read<'a> = Vec<f32>
+    where
+        Self: 'a,
+        S: 'a;
+
+    #[inline]
+    fn read<'a>(&self, buf: &'a <Self as Device>::Base<f32, S>) -> Self::Read<'a>
+    where
+        Self: 'a,
+    {
+        Read::<_, S>::read_to_vec(self, buf)
+    }
+
+    #[inline]
+    fn read_to_vec(&self, buf: &<Self as Device>::Base<f32, S>) -> Vec<f32> {
+        buf.read(&self.frame_buf, buf.out_idx.unwrap_or_default())
     }
 }
 
@@ -185,7 +205,7 @@ impl<Mods> WgslShaderLaunch for WebGL<Mods> {
         let mut shader_cache = self.shader_cache.borrow_mut();
 
         let program = shader_cache.get(self.context.clone(), &self.vertex_shader, src)?;
-        program.launch(&self.frame_buf, self.vertex_attribs.indices_buffer(), args, gws)?;
+        program.launch(&self.frame_buf, &self.vertex_attribs, args, gws)?;
         Ok(())
     }
 }
