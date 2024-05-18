@@ -1,8 +1,8 @@
 use core::{cell::RefCell, ops::Deref};
 
-use js_sys::{wasm_bindgen::JsValue, Uint32Array};
+use js_sys::wasm_bindgen::JsValue;
 use std::rc::Rc;
-use web_sys::{Element, WebGl2RenderingContext, WebGlFramebuffer, WebGlShader};
+use web_sys::{Element, WebGlFramebuffer, WebGlShader};
 
 use crate::{
     webgl::error::WebGlError, wgsl::WgslShaderLaunch, Alloc, Base, Buffer, Device, Module,
@@ -185,7 +185,7 @@ impl<Mods> WgslShaderLaunch for WebGL<Mods> {
         let mut shader_cache = self.shader_cache.borrow_mut();
 
         let program = shader_cache.get(self.context.clone(), &self.vertex_shader, src)?;
-        program.launch(&self.frame_buf, self.vertex_attribs.indices_buffer(), args)?;
+        program.launch(&self.frame_buf, self.vertex_attribs.indices_buffer(), args, gws)?;
         Ok(())
     }
 }

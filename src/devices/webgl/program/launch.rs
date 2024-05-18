@@ -11,6 +11,7 @@ impl Program {
         frame_buf: &WebGlFramebuffer,
         indices_buffer: &WebGlBuffer,
         args: &[&WebGlData<f32>],
+        gws: [u32; 3]
     ) -> crate::Result<()> {
         let program = &self.program;
         let reflection_info = &self.reflection_info;
@@ -138,9 +139,9 @@ impl Program {
         context.uniform1ui(Some(&thread_viewport_width_uniform), first_tw as u32);
         context.uniform1ui(Some(&thread_viewport_height_uniform), first_th as u32);
 
-        context.uniform1ui(gws_x_uniform.as_ref(), first_tw as u32 * first_th as u32);
-        context.uniform1ui(gws_y_uniform.as_ref(), 1);
-        context.uniform1ui(gws_z_uniform.as_ref(), 1);
+        context.uniform1ui(gws_x_uniform.as_ref(), gws[0]);
+        context.uniform1ui(gws_y_uniform.as_ref(), gws[1]);
+        context.uniform1ui(gws_z_uniform.as_ref(), gws[2]);
 
         for (idx, (input_uniform, gl_buf)) in input_uniforms.iter().zip(input_bufs).enumerate() {
             context.uniform1i(Some(&input_uniform[0]), idx as i32);
