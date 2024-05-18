@@ -23,24 +23,28 @@ impl Program {
             .values()
             .collect::<Vec<_>>();
 
-        let out_binding_idxs = output_storage_layout_names
+        let out_idxs = output_storage_layout_names
             .iter()
             .map(|(handle, _)| {
                 self.module.global_variables[**handle]
                     .binding
                     .as_ref()
                     .unwrap()
-                    .binding
+                    .binding as usize
             })
             .collect::<Vec<_>>();
 
-        let mut out_idxs = vec![];
+        let input_idxs = reflection_info.input_storage_uniforms
+            .iter()
+            .map(|(handle, _)| {
+                self.module.global_variables[*handle]
+                    .binding
+                    .as_ref()
+                    .unwrap()
+                    .binding as usize
+            })
+            .collect::<Vec<_>>();
 
-        for idx in 0..args.len() {
-            if out_binding_idxs.contains(&(idx as u32)) {
-                out_idxs.push(idx);
-            }
-        }
 
         let first_arg = &args[out_idxs[0]];
         let (first_th, first_tw) = (first_arg.texture_height, first_arg.texture_width);
@@ -58,10 +62,12 @@ impl Program {
         );
 
         let out_bufs = out_idxs.iter().map(|idx| &args[*idx]).collect::<Vec<_>>();
-        let input_bufs = args
+        let input_bufs = input_idxs.iter().map(|idx| &args[*idx]).collect::<Vec<_>>();
+        
+        let other_inputs = args
             .iter()
             .enumerate()
-            .filter(|(idx, _arg)| !out_idxs.contains(idx))
+            .filter(|(idx, _arg)| !out_idxs.contains(idx) && !input_idxs.contains(idx))
             .map(|(_, data)| data)
             .collect::<Vec<_>>();
 
