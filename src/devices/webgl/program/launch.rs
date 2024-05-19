@@ -1,7 +1,7 @@
 use js_sys::{wasm_bindgen::JsValue, Uint32Array};
 use web_sys::{WebGl2RenderingContext, WebGlFramebuffer};
 
-use crate::webgl::vertex_attributes::VertexAttributes;
+use crate::webgl::{error::WebGlError, vertex_attributes::VertexAttributes};
 
 use super::{shader_argument::AsWebGlShaderArgument, Program};
 
@@ -16,13 +16,13 @@ impl Program {
         let program = &self.program;
         let reflection_info = &self.reflection_info;
 
-        // convert to error
-        assert_eq!(
-            args.len(),
-            reflection_info.input_storage_uniforms.len()
+        if args.len()
+            != reflection_info.input_storage_uniforms.len()
                 + reflection_info.other_uniforms.len()
                 + reflection_info.outputs.len()
-        );
+        {
+            return Err(WebGlError::ArgumentCountMismatch.into());
+        }
 
         let output_storage_layout_names = reflection_info.outputs.iter().collect::<Vec<_>>();
 
@@ -57,17 +57,16 @@ impl Program {
         let first_arg = &args[out_idxs[0]];
         let (first_th, first_tw) = (first_arg.texture_height(), first_arg.texture_width());
 
-        // TODO: convert to error
-        assert!(
-            out_idxs
-                .iter()
-                .map(|idx| {
-                    let arg = &args[*idx];
-                    (arg.texture_height(), arg.texture_width())
-                })
-                .all(|(th, tw)| th == first_th && tw == first_tw),
-            "mismatch"
-        );
+        if !out_idxs
+            .iter()
+            .map(|idx| {
+                let arg = &args[*idx];
+                (arg.texture_height(), arg.texture_width())
+            })
+            .all(|(th, tw)| th == first_th && tw == first_tw)
+        {
+            return Err(WebGlError::OutputBufferSizeMismatch.into());
+        }
 
         let out_bufs = out_idxs.iter().map(|idx| &args[*idx]).collect::<Vec<_>>();
         let input_bufs = input_idxs.iter().map(|idx| &args[*idx]).collect::<Vec<_>>();

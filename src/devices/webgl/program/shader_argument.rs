@@ -1,4 +1,8 @@
-use crate::{webgl::error::WebGlError, wgsl::{AsShaderArg, WgslShaderLaunch}, Buffer, OnDropBuffer, Shape, WebGL};
+use crate::{
+    webgl::error::WebGlError,
+    wgsl::{AsShaderArg, WgslShaderLaunch},
+    Buffer, OnDropBuffer, Shape, WebGL,
+};
 use web_sys::{WebGl2RenderingContext, WebGlTexture, WebGlUniformLocation};
 
 pub trait AsWebGlShaderArgument {
@@ -19,7 +23,7 @@ pub trait AsWebGlShaderArgument {
         &self,
         _context: &WebGl2RenderingContext,
         _uniform_location: Option<&WebGlUniformLocation>,
-        _type: &naga::Type
+        _type: &naga::Type,
     ) -> crate::Result<()> {
         Err(WebGlError::DatatypeArgumentMismatch.into())
     }
@@ -61,7 +65,6 @@ impl SetNumberUniform for f32 {
     ) {
         context.uniform1f(uniform_location, *self)
     }
-    
 }
 
 impl SetNumberUniform for i32 {
@@ -97,13 +100,11 @@ impl<T: SetNumberUniform> AsWebGlShaderArgument for T {
         uniform_location: Option<&WebGlUniformLocation>,
         ty: &naga::Type,
     ) -> crate::Result<()> {
-        let naga::TypeInner::Scalar(naga::Scalar {
-            kind, width: _
-        }) = ty.inner else {
-            return Err(WebGlError::DatatypeArgumentMismatch.into())
+        let naga::TypeInner::Scalar(naga::Scalar { kind, width: _ }) = ty.inner else {
+            return Err(WebGlError::DatatypeArgumentMismatch.into());
         };
         if kind != T::SCALAR_TYPE {
-            return Err(WebGlError::DatatypeArgumentMismatch.into())
+            return Err(WebGlError::DatatypeArgumentMismatch.into());
         }
         Ok(self.set_num_uniform(context, uniform_location))
     }

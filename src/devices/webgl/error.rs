@@ -8,6 +8,8 @@ pub enum WebGlError {
     MissingShader,
     FrameBufferCreation,
     DatatypeArgumentMismatch,
+    ArgumentCountMismatch,
+    OutputBufferSizeMismatch,
 }
 
 impl core::fmt::Display for WebGlError {
@@ -24,6 +26,10 @@ impl core::fmt::Display for WebGlError {
             WebGlError::DatatypeArgumentMismatch => {
                 "Mismatch of shader input datatype and provided argument"
             }
+            WebGlError::ArgumentCountMismatch => {
+                "Mismatch of global variable amount and provided argument array length"
+            }
+            WebGlError::OutputBufferSizeMismatch => "All output buffers require the same size",
         };
         writeln!(f, "{msg}")
     }
