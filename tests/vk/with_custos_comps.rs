@@ -69,7 +69,11 @@ fn test_with_custos_comps() {
         .unwrap();
     // let operation = Operation::new(&context.device, &src, &[DescriptorType::STORAGE_BUFFER, DescriptorType::STORAGE_BUFFER, DescriptorType::STORAGE_BUFFER]);
 
-    let descriptor_infos = create_descriptor_infos(&[(0, lhs.buf), (1, rhs.buf), (2, out.buf)]);
+    let descriptor_infos = create_descriptor_infos(&[
+        (0, lhs.buf, DescriptorType::STORAGE_BUFFER),
+        (1, rhs.buf, DescriptorType::STORAGE_BUFFER),
+        (2, out.buf, DescriptorType::STORAGE_BUFFER),
+    ]);
     let write_descriptor_sets =
         create_write_descriptor_sets(&descriptor_infos, operation.descriptor_set);
     /*let descriptor_buffer_info = [vk::DescriptorBufferInfo {

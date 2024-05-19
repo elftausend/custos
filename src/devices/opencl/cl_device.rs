@@ -77,7 +77,7 @@ impl<SimpleMods> OpenCL<SimpleMods> {
         OpenCL::<SimpleMods>::from_cl_device(CLDevice::new(device_idx)?)
     }
 
-    pub fn from_cl_device<NewMods>(device: CLDevice) -> crate::Result<OpenCL<NewMods>> 
+    pub fn from_cl_device<NewMods>(device: CLDevice) -> crate::Result<OpenCL<NewMods>>
     where
         SimpleMods: Module<OpenCL, Module = NewMods>,
         NewMods: Setup<OpenCL<NewMods>>,

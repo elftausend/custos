@@ -28,11 +28,11 @@
 #![cfg_attr(not(feature = "cpu"), doc = "```ignore")]
 //! use custos::prelude::*;
 //! use std::ops::{Deref, Mul};
-//! 
+//!
 //! pub trait MulBuf<T, S: Shape = (), D: Device = Self>: Sized + Device {
 //!     fn mul(&self, lhs: &Buffer<T, D, S>, rhs: &Buffer<T, D, S>) -> Buffer<T, Self, S>;
 //! }
-//! 
+//!
 //! impl<Mods, T, S, D> MulBuf<T, S, D> for CPU<Mods>
 //! where
 //!     Mods: Retrieve<Self, T, S>,
@@ -43,11 +43,11 @@
 //! {
 //!     fn mul(&self, lhs: &Buffer<T, D, S>, rhs: &Buffer<T, D, S>) -> Buffer<T, Self, S> {
 //!         let mut out = self.retrieve(lhs.len(), (lhs, rhs)).unwrap(); // unwrap or return error (update trait)
-//! 
+//!
 //!         for ((lhs, rhs), out) in lhs.iter().zip(rhs.iter()).zip(&mut out) {
 //!             *out = *lhs * *rhs;
 //!         }
-//! 
+//!
 //!         out
 //!     }
 //! }

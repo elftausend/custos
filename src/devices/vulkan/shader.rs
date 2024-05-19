@@ -82,11 +82,11 @@ impl ShaderCache {
 }
 
 pub fn create_descriptor_infos(
-    bufs: &[(usize, Buffer)],
-) -> Vec<(usize, [DescriptorBufferInfo; 1])> {
+    bufs: &[(usize, Buffer, DescriptorType)],
+) -> Vec<(usize, [DescriptorBufferInfo; 1], DescriptorType)> {
     bufs.iter()
         .copied()
-        .map(|(idx, buffer)| {
+        .map(|(idx, buffer, descriptor_type)| {
             (
                 idx,
                 [vk::DescriptorBufferInfo {
@@ -94,22 +94,23 @@ pub fn create_descriptor_infos(
                     offset: 0,
                     range: vk::WHOLE_SIZE,
                 }],
+                descriptor_type,
             )
         })
         .collect::<Vec<_>>()
 }
 
 pub fn create_write_descriptor_sets(
-    descriptor_infos: &[(usize, [DescriptorBufferInfo; 1])],
+    descriptor_infos: &[(usize, [DescriptorBufferInfo; 1], DescriptorType)],
     descriptor_set: DescriptorSet,
 ) -> Vec<WriteDescriptorSet> {
     descriptor_infos
         .iter()
-        .map(|(idx, info)| {
+        .map(|(idx, info, descriptor_type)| {
             vk::WriteDescriptorSet::builder()
                 .dst_set(descriptor_set)
                 .dst_binding(*idx as u32)
-                .descriptor_type(vk::DescriptorType::STORAGE_BUFFER)
+                .descriptor_type(*descriptor_type)
                 .buffer_info(info)
                 .build()
         })
@@ -142,12 +143,11 @@ pub fn launch_shader(
     let buffer_args = args
         .iter()
         .enumerate()
-        .filter_map(|(idx, arg)| {
-            if arg.descriptor_type != DescriptorType::STORAGE_BUFFER {
-                None
-            } else {
-                Some((idx, arg.buffer))
+        .filter_map(|(idx, arg)| match arg.descriptor_type {
+            DescriptorType::STORAGE_BUFFER | DescriptorType::UNIFORM_BUFFER => {
+                Some((idx, arg.buffer, arg.descriptor_type))
             }
+            _ => None,
         })
         .collect::<Vec<_>>();
 
@@ -242,7 +242,7 @@ mod tests {
 
             @group(0)
             @binding(3)
-            var<storage, read> bias: array<f32>;
+            var<uniform> bias: f32;
             
             @compute
             @workgroup_size(32)
@@ -251,7 +251,7 @@ mod tests {
                     return;    
                 }
                 
-                out[global_id.x] = a[global_id.x] + b[global_id.x] + bias[0];
+                out[global_id.x] = a[global_id.x] + b[global_id.x] + bias;
             }
         ";
 
@@ -441,5 +441,66 @@ mod tests {
         assert_eq!(rhs.deref(), [1., 2., 3., 4., 5., 6., 7., 8., 9., 10.]);
 
         assert_eq!(out.deref(), [2., 4., 6., 8., 10., 12., 14., 16., 18., 20.]);
+    }
+
+    #[test]
+    fn test_launch_vk_shader_single_value_as_uniform() {
+        let context = Rc::new(Context::new(0).unwrap());
+        let mut shader_cache = ShaderCache::new(context.clone());
+        let src = "@group(0)
+            @binding(0)
+            var<storage, read_write> a: array<f32>;
+            
+            @group(0)
+            @binding(1)
+            var<uniform> b: f32;
+    
+            @group(0)
+            @binding(2)
+            var<storage, read_write> out: array<f32>;
+            
+            @compute
+            @workgroup_size(32)
+            fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
+                if global_id.x >= arrayLength(&out) {
+                    return;    
+                }
+                
+                out[global_id.x] = a[global_id.x] + b;
+            }
+        ";
+
+        let lhs = VkArray::from_slice(
+            context.clone(),
+            &[1f32, 2., 3., 4., 5., 6., 7., 8., 9., 10.],
+            BufferUsageFlags::STORAGE_BUFFER,
+            crate::flag::AllocFlag::None,
+        )
+        .unwrap();
+
+        let out = VkArray::<f32>::new(
+            context.clone(),
+            10,
+            BufferUsageFlags::STORAGE_BUFFER,
+            crate::flag::AllocFlag::None,
+            vk::MemoryPropertyFlags::HOST_VISIBLE | vk::MemoryPropertyFlags::HOST_COHERENT,
+        )
+        .unwrap();
+
+        launch_shader(
+            context.clone(),
+            [1, 1, 1],
+            &mut shader_cache,
+            src,
+            &[&lhs.buf, &7f32, &out.buf], // &[out.buf, out2.buf]
+        )
+        .unwrap();
+
+        assert_eq!(lhs.deref(), [1., 2., 3., 4., 5., 6., 7., 8., 9., 10.]);
+
+        assert_eq!(
+            out.deref(),
+            [8., 9., 10., 11., 12., 13., 14., 15., 16., 17.]
+        );
     }
 }
