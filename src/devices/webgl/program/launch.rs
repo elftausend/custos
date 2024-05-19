@@ -212,8 +212,8 @@ impl Program {
         {
             let global = &self.module.global_variables[*handle];
             let ty = &self.module.types[global.ty];
-            let uniform_location = context.get_uniform_location(program, &global_name).unwrap();
-            value_arg.set_num_uniform(context, Some(uniform_location).as_ref(), ty)?;
+            let uniform_location = context.get_uniform_location(program, &global_name);
+            value_arg.set_num_uniform(context, uniform_location.as_ref(), ty)?;
         }
 
         context.bind_buffer(
