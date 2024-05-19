@@ -10,7 +10,10 @@ use crate::{
 };
 
 use super::{
-    context::Context, data::WebGlData, program::ProgramCache, vertex_attributes::VertexAttributes,
+    context::Context,
+    data::WebGlData,
+    program::{AsWebGlShaderArgument, ProgramCache},
+    vertex_attributes::VertexAttributes,
     vertex_shader,
 };
 
@@ -36,11 +39,34 @@ impl WebGlDevice {
             context,
         })
     }
+
+    pub fn launch_shader<'a>(
+        &'a self,
+        src: impl AsRef<str>,
+        gws: [u32; 3],
+        args: &[&'a dyn AsWebGlShaderArgument],
+    ) -> crate::Result<()> {
+        let mut shader_cache = self.shader_cache.borrow_mut();
+
+        let program = shader_cache.get(self.context.clone(), &self.vertex_shader, src)?;
+        program.launch(&self.frame_buf, &self.vertex_attribs, args, gws)?;
+        Ok(())
+    }
+}
+
+impl Drop for WebGlDevice {
+    #[inline]
+    fn drop(&mut self) {
+        self.context
+            .delete_buffer(Some(self.vertex_attribs.position_buffer()));
+        self.context
+            .delete_buffer(Some(self.vertex_attribs.texcoords_buffer()));
+    }
 }
 
 pub struct WebGL<Mods = Base> {
     pub modules: Mods,
-    device: WebGlDevice,
+    pub device: WebGlDevice,
 }
 
 impl<SimpleMods> WebGL<SimpleMods> {
@@ -163,16 +189,6 @@ impl<Mods: Retrieve<Self, f32, S>, S: Shape> Retriever<f32, S> for WebGL<Mods> {
     }
 }
 
-impl<Mods> Drop for WebGL<Mods> {
-    #[inline]
-    fn drop(&mut self) {
-        self.context
-            .delete_buffer(Some(self.vertex_attribs.position_buffer()));
-        self.context
-            .delete_buffer(Some(self.vertex_attribs.texcoords_buffer()));
-    }
-}
-
 impl<Mods: OnDropBuffer, S: Shape> Read<f32, S> for WebGL<Mods> {
     type Read<'a> = Vec<f32>
     where
@@ -194,18 +210,15 @@ impl<Mods: OnDropBuffer, S: Shape> Read<f32, S> for WebGL<Mods> {
 }
 
 impl<Mods> WgslShaderLaunch for WebGL<Mods> {
-    type ShaderArg = WebGlData<f32>;
+    type ShaderArg = dyn AsWebGlShaderArgument;
 
+    #[inline]
     fn launch_shader(
         &self,
         src: impl AsRef<str>,
         gws: [u32; 3],
-        args: &[&Self::ShaderArg],
+        args: &[&dyn AsWebGlShaderArgument],
     ) -> crate::Result<()> {
-        let mut shader_cache = self.shader_cache.borrow_mut();
-
-        let program = shader_cache.get(self.context.clone(), &self.vertex_shader, src)?;
-        program.launch(&self.frame_buf, &self.vertex_attribs, args, gws)?;
-        Ok(())
+        self.device.launch_shader(src, gws, args)
     }
 }

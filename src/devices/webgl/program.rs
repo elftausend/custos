@@ -9,6 +9,8 @@ use super::context::Context;
 mod cache;
 pub use cache::*;
 mod launch;
+mod shader_argument;
+pub use shader_argument::*;
 
 #[derive(Debug)]
 pub struct Program {

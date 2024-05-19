@@ -1,20 +1,28 @@
 use js_sys::{wasm_bindgen::JsValue, Uint32Array};
 use web_sys::{WebGl2RenderingContext, WebGlFramebuffer};
 
-use crate::webgl::{data::WebGlData, vertex_attributes::VertexAttributes};
+use crate::webgl::vertex_attributes::VertexAttributes;
 
-use super::Program;
+use super::{shader_argument::AsWebGlShaderArgument, Program};
 
 impl Program {
     pub fn launch(
         &self,
         frame_buf: &WebGlFramebuffer,
         vertex_attributes: &VertexAttributes,
-        args: &[&WebGlData<f32>],
+        args: &[&dyn AsWebGlShaderArgument],
         gws: [u32; 3],
     ) -> crate::Result<()> {
         let program = &self.program;
         let reflection_info = &self.reflection_info;
+
+        // convert to error
+        assert_eq!(
+            args.len(),
+            reflection_info.input_storage_uniforms.len()
+                + reflection_info.other_uniforms.len()
+                + reflection_info.outputs.len()
+        );
 
         let output_storage_layout_names = reflection_info.outputs.iter().collect::<Vec<_>>();
 
@@ -34,7 +42,8 @@ impl Program {
             })
             .collect::<Vec<_>>();
 
-        let input_idxs = reflection_info.input_storage_uniforms
+        let input_idxs = reflection_info
+            .input_storage_uniforms
             .iter()
             .map(|(handle, _)| {
                 self.module.global_variables[*handle]
@@ -45,9 +54,8 @@ impl Program {
             })
             .collect::<Vec<_>>();
 
-
         let first_arg = &args[out_idxs[0]];
-        let (first_th, first_tw) = (first_arg.texture_height, first_arg.texture_width);
+        let (first_th, first_tw) = (first_arg.texture_height(), first_arg.texture_width());
 
         // TODO: convert to error
         assert!(
@@ -55,7 +63,7 @@ impl Program {
                 .iter()
                 .map(|idx| {
                     let arg = &args[*idx];
-                    (arg.texture_height, arg.texture_width)
+                    (arg.texture_height(), arg.texture_width())
                 })
                 .all(|(th, tw)| th == first_th && tw == first_tw),
             "mismatch"
@@ -63,7 +71,7 @@ impl Program {
 
         let out_bufs = out_idxs.iter().map(|idx| &args[*idx]).collect::<Vec<_>>();
         let input_bufs = input_idxs.iter().map(|idx| &args[*idx]).collect::<Vec<_>>();
-        
+
         let other_inputs = args
             .iter()
             .enumerate()
@@ -105,12 +113,8 @@ impl Program {
 
         for (_, uniform_name) in &output_storage_layout_names {
             output_size_uniforms.push([
-                context
-                    .get_uniform_location(program, &format!("{uniform_name}_texture_width"))
-                    .ok_or("cannot find uniform out width")?,
-                context
-                    .get_uniform_location(program, &format!("{uniform_name}_texture_height"))
-                    .ok_or("cannot find uniform out height")?,
+                context.get_uniform_location(program, &format!("{uniform_name}_texture_width")),
+                context.get_uniform_location(program, &format!("{uniform_name}_texture_height")),
             ]);
         }
 
@@ -160,7 +164,7 @@ impl Program {
                 WebGl2RenderingContext::FRAMEBUFFER,
                 WebGl2RenderingContext::COLOR_ATTACHMENT0 + color_idx as u32,
                 WebGl2RenderingContext::TEXTURE_2D,
-                Some(&out_buf.texture),
+                Some(&out_buf.texture().unwrap()),
                 0,
             );
         }
@@ -182,15 +186,35 @@ impl Program {
 
         for (idx, (input_uniform, gl_buf)) in input_uniforms.iter().zip(input_bufs).enumerate() {
             context.uniform1i(Some(&input_uniform[0]), idx as i32);
-            context.uniform1ui(Some(&input_uniform[1]), gl_buf.texture_width as u32);
-            context.uniform1ui(Some(&input_uniform[2]), gl_buf.texture_height as u32);
+            context.uniform1ui(Some(&input_uniform[1]), gl_buf.texture_width() as u32);
+            context.uniform1ui(Some(&input_uniform[2]), gl_buf.texture_height() as u32);
             context.active_texture(WebGl2RenderingContext::TEXTURE0 + idx as u32);
-            context.bind_texture(WebGl2RenderingContext::TEXTURE_2D, Some(&gl_buf.texture))
+            context.bind_texture(
+                WebGl2RenderingContext::TEXTURE_2D,
+                Some(&gl_buf.texture().unwrap()),
+            )
         }
 
         for (output_size_uniform, gl_buf) in output_size_uniforms.iter().zip(out_bufs) {
-            context.uniform1ui(Some(&output_size_uniform[0]), gl_buf.texture_width as u32);
-            context.uniform1ui(Some(&output_size_uniform[1]), gl_buf.texture_height as u32);
+            context.uniform1ui(
+                output_size_uniform[0].as_ref(),
+                gl_buf.texture_width() as u32,
+            );
+            context.uniform1ui(
+                output_size_uniform[1].as_ref(),
+                gl_buf.texture_height() as u32,
+            );
+        }
+
+        // other uniforms
+        for (value_arg, (handle, global_name)) in other_inputs
+            .iter()
+            .zip(reflection_info.other_uniforms.iter())
+        {
+            let global = &self.module.global_variables[*handle];
+            let ty = &self.module.types[global.ty];
+            let uniform_location = context.get_uniform_location(program, &global_name).unwrap();
+            value_arg.set_num_uniform(context, Some(uniform_location).as_ref(), ty)?;
         }
 
         context.bind_buffer(
@@ -218,5 +242,49 @@ impl Program {
         context.bind_framebuffer(WebGl2RenderingContext::FRAMEBUFFER, None);
 
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::{Base, Buffer, Device, WebGL};
+
+    #[ignore]
+    #[test]
+    fn test_launch_shader_webgl() {
+        let device = WebGL::<Base>::new().unwrap();
+        let x = device.buffer([2.; 16]);
+        let mut out: Buffer<f32, _> = device.buffer(x.len);
+        // out.base_mut().write(&[5.; 16]);
+
+        let src = "
+            @group(0)
+            @binding(0)
+            var<storage, read> x: array<f32>;
+
+            @group(0)
+            @binding(1)
+            var<storage, read_write> out: array<f32>;
+            
+            @compute
+            @workgroup_size(32)
+            fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
+                if global_id.x >= arrayLength(&out) {
+                    return;    
+                }
+
+                var counter = 0.0;
+                for (var i = 0u; i < 10u; i++) {
+                    counter += 1.0;
+                }
+
+                // if out is used on the right side: problem at the moment
+                out[global_id.x] = counter * x[global_id.x];
+                // out[global_id.x] = f32(global_id.x) + x[global_id.x] * 0.00000001;
+                // out[global_id.x] = 3.0;
+            }
+        ";
+
+        let err = device.launch_shader(src, [x.len() as u32, 1, 1], &[&x, &out, &7]);
     }
 }

@@ -7,6 +7,7 @@ pub enum WebGlError {
     ContextCreation,
     MissingShader,
     FrameBufferCreation,
+    DatatypeArgumentMismatch,
 }
 
 impl core::fmt::Display for WebGlError {
@@ -20,6 +21,9 @@ impl core::fmt::Display for WebGlError {
             WebGlError::ContextCreation => "Cannot create webgl context",
             WebGlError::MissingShader => "Missing compute shader in provided source",
             WebGlError::FrameBufferCreation => "Cannot create frame buffer",
+            WebGlError::DatatypeArgumentMismatch => {
+                "Mismatch of shader input datatype and provided argument"
+            }
         };
         writeln!(f, "{msg}")
     }
