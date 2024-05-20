@@ -25,7 +25,7 @@ use super::Context;
 
 pub fn create_shader_module(device: &Device, code: &[u32]) -> VkResult<ShaderModule> {
     unsafe {
-        let shader_module_create_info = vk::ShaderModuleCreateInfo::builder().code(code);
+        let shader_module_create_info = vk::ShaderModuleCreateInfo::default().code(code);
 
         device.create_shader_module(&shader_module_create_info, None)
     }
@@ -107,12 +107,11 @@ pub fn create_write_descriptor_sets(
     descriptor_infos
         .iter()
         .map(|(idx, info, descriptor_type)| {
-            vk::WriteDescriptorSet::builder()
+            vk::WriteDescriptorSet::default()
                 .dst_set(descriptor_set)
                 .dst_binding(*idx as u32)
                 .descriptor_type(*descriptor_type)
                 .buffer_info(info)
-                .build()
         })
         .collect::<Vec<_>>()
 }
@@ -194,7 +193,7 @@ pub fn submit_and_wait(
 ) -> crate::Result<()> {
     let queue = unsafe { device.get_device_queue(queue_family_idx, 0) };
     let submit_info =
-        vk::SubmitInfo::builder().command_buffers(core::slice::from_ref(&command_buffer));
+        vk::SubmitInfo::default().command_buffers(core::slice::from_ref(&command_buffer));
 
     unsafe { device.queue_submit(queue, core::slice::from_ref(&submit_info), Fence::null()) }?;
 

@@ -12,7 +12,7 @@ pub fn create_pipeline(
     shader_module: ShaderModule,
 ) -> VkResult<(Pipeline, PipelineLayout)> {
     let pipeline_layout = {
-        let pipeline_layout_create_info = vk::PipelineLayoutCreateInfo::builder()
+        let pipeline_layout_create_info = vk::PipelineLayoutCreateInfo::default()
             .set_layouts(core::slice::from_ref(&descriptor_set_layout));
         unsafe { device.create_pipeline_layout(&pipeline_layout_create_info, None) }.unwrap()
     };

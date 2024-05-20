@@ -147,7 +147,7 @@ fn test_with_custos_comps() {
     // run it and wait until it is completed
     let queue = unsafe { device.get_device_queue(context.compute_family_idx as u32, 0) };
     let submit_info =
-        vk::SubmitInfo::builder().command_buffers(core::slice::from_ref(&command_buffer));
+        vk::SubmitInfo::default().command_buffers(core::slice::from_ref(&command_buffer));
 
     unsafe { device.queue_submit(queue, core::slice::from_ref(&submit_info), Fence::null()) }
         .unwrap();
