@@ -226,6 +226,6 @@ mod tests {
         use crate::WebGL;
 
         let dev = Wgsl::<WebGL>::new().unwrap();
-        // let _x = dev.buffer([1, 2, 3]);
+        let _x = dev.buffer([1f32, 2., 3.]);
     }
 }

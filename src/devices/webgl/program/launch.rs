@@ -97,14 +97,11 @@ impl Program {
         for uniform_name in input_storage_uniform_names {
             input_uniforms.push([
                 context
-                    .get_uniform_location(program, uniform_name)
-                    .ok_or("cannot find uniform input")?,
+                    .get_uniform_location(program, uniform_name),
                 context
-                    .get_uniform_location(program, &format!("{uniform_name}_texture_width"))
-                    .ok_or("cannot find uniform input width")?,
+                    .get_uniform_location(program, &format!("{uniform_name}_texture_width")),
                 context
-                    .get_uniform_location(program, &format!("{uniform_name}_texture_height"))
-                    .ok_or("cannot find uniform input height")?,
+                    .get_uniform_location(program, &format!("{uniform_name}_texture_height")),
             ]);
         }
 
@@ -184,9 +181,9 @@ impl Program {
         context.uniform1ui(gws_z_uniform.as_ref(), gws[2]);
 
         for (idx, (input_uniform, gl_buf)) in input_uniforms.iter().zip(input_bufs).enumerate() {
-            context.uniform1i(Some(&input_uniform[0]), idx as i32);
-            context.uniform1ui(Some(&input_uniform[1]), gl_buf.texture_width() as u32);
-            context.uniform1ui(Some(&input_uniform[2]), gl_buf.texture_height() as u32);
+            context.uniform1i(input_uniform[0].as_ref(), idx as i32);
+            context.uniform1ui(input_uniform[1].as_ref(), gl_buf.texture_width() as u32);
+            context.uniform1ui(input_uniform[2].as_ref(), gl_buf.texture_height() as u32);
             context.active_texture(WebGl2RenderingContext::TEXTURE0 + idx as u32);
             context.bind_texture(
                 WebGl2RenderingContext::TEXTURE_2D,
