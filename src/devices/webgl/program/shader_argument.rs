@@ -29,7 +29,7 @@ pub trait AsWebGlShaderArgument {
     }
 }
 
-impl<'a, S: Shape, Mods: OnDropBuffer> AsWebGlShaderArgument for Buffer<'a, f32, WebGL<Mods>, S> {
+impl<'a, T: WebGlNumber, S: Shape, Mods: OnDropBuffer> AsWebGlShaderArgument for Buffer<'a, T, WebGL<Mods>, S> {
     #[inline]
     fn texture(&self) -> Option<&WebGlTexture> {
         Some(&self.base().texture)
