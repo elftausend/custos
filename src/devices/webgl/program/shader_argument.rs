@@ -44,7 +44,7 @@ impl<'a, S: Shape, Mods: OnDropBuffer> AsWebGlShaderArgument for Buffer<'a, f32,
     }
 }
 
-pub trait SetNumberUniform {
+pub trait WebGlNumber {
     const SCALAR_TYPE: naga::ScalarKind;
 
     fn set_num_uniform(
@@ -54,7 +54,7 @@ pub trait SetNumberUniform {
     );
 }
 
-impl SetNumberUniform for f32 {
+impl WebGlNumber for f32 {
     const SCALAR_TYPE: naga::ScalarKind = naga::ScalarKind::Float;
 
     #[inline]
@@ -67,7 +67,7 @@ impl SetNumberUniform for f32 {
     }
 }
 
-impl SetNumberUniform for i32 {
+impl WebGlNumber for i32 {
     const SCALAR_TYPE: naga::ScalarKind = naga::ScalarKind::Sint;
 
     #[inline]
@@ -79,7 +79,7 @@ impl SetNumberUniform for i32 {
         context.uniform1i(uniform_location, *self)
     }
 }
-impl SetNumberUniform for u32 {
+impl WebGlNumber for u32 {
     const SCALAR_TYPE: naga::ScalarKind = naga::ScalarKind::Uint;
 
     #[inline]
@@ -92,7 +92,7 @@ impl SetNumberUniform for u32 {
     }
 }
 
-impl<T: SetNumberUniform> AsWebGlShaderArgument for T {
+impl<T: WebGlNumber> AsWebGlShaderArgument for T {
     #[inline]
     fn set_num_uniform(
         &self,

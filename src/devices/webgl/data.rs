@@ -2,7 +2,7 @@ use core::marker::PhantomData;
 use std::rc::Rc;
 use web_sys::{WebGl2RenderingContext, WebGlFramebuffer, WebGlTexture};
 
-use super::context::Context;
+use super::{context::Context, program::WebGlNumber};
 use crate::{flag::AllocFlag, HasId, PtrType};
 
 fn compute_texture_dimensions(length: usize) -> (usize, usize) {
@@ -23,10 +23,14 @@ pub struct WebGlData<T> {
     _pd: PhantomData<T>,
 }
 
-impl WebGlData<f32> {
-    pub fn new(context: Rc<Context>, len: usize, flag: AllocFlag) -> Option<Self> {
+impl<T: WebGlNumber> WebGlData<T> {
+    pub fn new(context: Rc<Context>, len: usize, flag: AllocFlag) -> Option<Self>
+    where
+        T: Default,
+    {
         let texture = context.create_texture()?;
         let (texture_width, texture_height) = compute_texture_dimensions(len);
+        // let (texture_width, texture_height) = (len, 1);
 
         context.bind_texture(WebGl2RenderingContext::TEXTURE_2D, Some(&texture));
         context.tex_parameteri(
@@ -62,11 +66,14 @@ impl WebGlData<f32> {
             flag,
             _pd: PhantomData,
         };
-        buffer.write((0..len).map(|_| &0.))?;
+        buffer.write((0..len).map(|_| T::default()))?;
         Some(buffer)
     }
 
-    pub fn write<'a>(&mut self, data: impl IntoIterator<Item = &'a f32>) -> Option<()> {
+    pub fn write(&mut self, data: impl IntoIterator<Item = T>) -> Option<()>
+    where
+        T: Default,
+    {
         let context = &self.context;
 
         context.bind_texture(WebGl2RenderingContext::TEXTURE_2D, Some(&self.texture));
@@ -80,7 +87,8 @@ impl WebGlData<f32> {
         assert_eq!(upload_data.len(), self.len);
 
         // padding
-        upload_data.extend((0..self.texture_width * self.texture_height - self.len).map(|_| 0.));
+        upload_data
+            .extend((0..self.texture_width * self.texture_height - self.len).map(|_| T::default()));
 
         let texture_data = unsafe {
             std::slice::from_raw_parts(upload_data.as_ptr() as *const u8, upload_data.len() * 4)
@@ -104,7 +112,10 @@ impl WebGlData<f32> {
         Some(())
     }
 
-    pub fn read(&self, frame_buf: &WebGlFramebuffer, color_attachment_idx: u32) -> Vec<f32> {
+    pub fn read(&self, frame_buf: &WebGlFramebuffer, color_attachment_idx: u32) -> Vec<T>
+    where
+        T: Default + Clone,
+    {
         let context = &self.context;
 
         context.bind_framebuffer(WebGl2RenderingContext::FRAMEBUFFER, Some(&frame_buf));
@@ -121,7 +132,7 @@ impl WebGlData<f32> {
             WebGl2RenderingContext::FRAMEBUFFER_COMPLETE
         );
 
-        let mut read_data = vec![0.; self.texture_height * self.texture_width];
+        let mut read_data = vec![T::default(); self.texture_height * self.texture_width];
         let texture_data = unsafe {
             std::slice::from_raw_parts_mut(read_data.as_mut_ptr() as *mut u8, read_data.len() * 4)
         };

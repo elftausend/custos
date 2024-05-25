@@ -96,12 +96,9 @@ impl Program {
         // TODO: support e.g. floats as inputs
         for uniform_name in input_storage_uniform_names {
             input_uniforms.push([
-                context
-                    .get_uniform_location(program, uniform_name),
-                context
-                    .get_uniform_location(program, &format!("{uniform_name}_texture_width")),
-                context
-                    .get_uniform_location(program, &format!("{uniform_name}_texture_height")),
+                context.get_uniform_location(program, uniform_name),
+                context.get_uniform_location(program, &format!("{uniform_name}_texture_width")),
+                context.get_uniform_location(program, &format!("{uniform_name}_texture_height")),
             ]);
         }
 

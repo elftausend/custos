@@ -12,7 +12,7 @@ use crate::{
 use super::{
     context::Context,
     data::WebGlData,
-    program::{AsWebGlShaderArgument, ProgramCache},
+    program::{AsWebGlShaderArgument, ProgramCache, WebGlNumber},
     vertex_attributes::VertexAttributes,
     vertex_shader,
 };
@@ -156,29 +156,38 @@ impl<Mods> Deref for WebGL<Mods> {
     }
 }
 
-impl<Mods: OnDropBuffer> Alloc<f32> for WebGL<Mods> {
+impl<T, Mods> Alloc<T> for WebGL<Mods>
+where
+    T: WebGlNumber + Default + Copy,
+    Mods: OnDropBuffer,
+{
     #[inline]
     fn alloc<S: Shape>(
         &self,
         len: usize,
         flag: crate::flag::AllocFlag,
-    ) -> crate::Result<Self::Base<f32, S>> {
+    ) -> crate::Result<Self::Base<T, S>> {
         WebGlData::new(self.context.clone(), len, flag).ok_or(WebGlError::DataCreation.into())
     }
 
-    fn alloc_from_slice<S: Shape>(&self, data: &[f32]) -> crate::Result<Self::Base<f32, S>> {
+    fn alloc_from_slice<S: Shape>(&self, data: &[T]) -> crate::Result<Self::Base<T, S>> {
         let mut webgl_data = self.alloc::<S>(data.len(), crate::flag::AllocFlag::None)?;
-        webgl_data.write(data);
+        webgl_data.write(data.iter().copied());
         Ok(webgl_data)
     }
 }
 
-impl<Mods: Retrieve<Self, f32, S>, S: Shape> Retriever<f32, S> for WebGL<Mods> {
+impl<T, Mods, S> Retriever<T, S> for WebGL<Mods>
+where
+    T: WebGlNumber + Default + Copy,
+    Mods: Retrieve<Self, T, S>,
+    S: Shape,
+{
     fn retrieve<const NUM_PARENTS: usize>(
         &self,
         len: usize,
         parents: impl crate::Parents<NUM_PARENTS>,
-    ) -> crate::Result<Buffer<f32, Self, S>> {
+    ) -> crate::Result<Buffer<T, Self, S>> {
         let data = unsafe { self.modules.retrieve::<NUM_PARENTS>(self, len, parents)? };
         let buf = Buffer {
             data,
@@ -189,14 +198,19 @@ impl<Mods: Retrieve<Self, f32, S>, S: Shape> Retriever<f32, S> for WebGL<Mods> {
     }
 }
 
-impl<Mods: OnDropBuffer, S: Shape> Read<f32, S> for WebGL<Mods> {
-    type Read<'a> = Vec<f32>
+impl<T, Mods, S> Read<T, S> for WebGL<Mods>
+where
+    T: WebGlNumber + Default + Clone + 'static,
+    Mods: OnDropBuffer,
+    S: Shape,
+{
+    type Read<'a> = Vec<T>
     where
         Self: 'a,
         S: 'a;
 
     #[inline]
-    fn read<'a>(&self, buf: &'a <Self as Device>::Base<f32, S>) -> Self::Read<'a>
+    fn read<'a>(&self, buf: &'a <Self as Device>::Base<T, S>) -> Self::Read<'a>
     where
         Self: 'a,
     {
@@ -204,7 +218,7 @@ impl<Mods: OnDropBuffer, S: Shape> Read<f32, S> for WebGL<Mods> {
     }
 
     #[inline]
-    fn read_to_vec(&self, buf: &<Self as Device>::Base<f32, S>) -> Vec<f32> {
+    fn read_to_vec(&self, buf: &<Self as Device>::Base<T, S>) -> Vec<T> {
         buf.read(&self.frame_buf, buf.out_idx.unwrap_or_default())
     }
 }
