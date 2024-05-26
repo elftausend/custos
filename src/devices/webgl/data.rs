@@ -95,16 +95,15 @@ impl<T: WebGlNumber> WebGlData<T> {
         };
         unsafe {
             let texture_data = js_sys::Uint8Array::view(texture_data);
-
             context.tex_image_2d_with_i32_and_i32_and_i32_and_format_and_type_and_opt_array_buffer_view(
                 WebGl2RenderingContext::TEXTURE_2D,
                 0,
-                WebGl2RenderingContext::RGBA as i32,
+                T::INTERNAL_FORMAT as i32,
                 self.texture_width as i32,
                 self.texture_height as i32,
                 0,
-                WebGl2RenderingContext::RGBA,
-                WebGl2RenderingContext::UNSIGNED_BYTE,
+                T::FORMAT,
+                T::TYPE,
                 Some(&texture_data)
             ).ok()?;
         }

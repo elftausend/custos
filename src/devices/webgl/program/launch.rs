@@ -6,6 +6,7 @@ use crate::webgl::{error::WebGlError, vertex_attributes::VertexAttributes};
 use super::{shader_argument::AsWebGlShaderArgument, Program};
 
 impl Program {
+    ///
     pub fn launch(
         &self,
         frame_buf: &WebGlFramebuffer,

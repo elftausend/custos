@@ -48,6 +48,9 @@ impl<'a, T: WebGlNumber, S: Shape, Mods: OnDropBuffer> AsWebGlShaderArgument
 
 pub trait WebGlNumber {
     const SCALAR_TYPE: naga::ScalarKind;
+    const INTERNAL_FORMAT: u32;
+    const FORMAT: u32;
+    const TYPE: u32;
 
     fn set_num_uniform(
         &self,
@@ -58,6 +61,9 @@ pub trait WebGlNumber {
 
 impl WebGlNumber for f32 {
     const SCALAR_TYPE: naga::ScalarKind = naga::ScalarKind::Float;
+    const INTERNAL_FORMAT: u32 = WebGl2RenderingContext::RGBA8;
+    const FORMAT: u32 = WebGl2RenderingContext::RGBA;
+    const TYPE: u32 = WebGl2RenderingContext::UNSIGNED_BYTE;
 
     #[inline]
     fn set_num_uniform(
@@ -71,6 +77,9 @@ impl WebGlNumber for f32 {
 
 impl WebGlNumber for i32 {
     const SCALAR_TYPE: naga::ScalarKind = naga::ScalarKind::Sint;
+    const INTERNAL_FORMAT: u32 = WebGl2RenderingContext::RGBA8I;
+    const FORMAT: u32 = WebGl2RenderingContext::RGBA_INTEGER;
+    const TYPE: u32 = WebGl2RenderingContext::BYTE;
 
     #[inline]
     fn set_num_uniform(
@@ -83,6 +92,9 @@ impl WebGlNumber for i32 {
 }
 impl WebGlNumber for u32 {
     const SCALAR_TYPE: naga::ScalarKind = naga::ScalarKind::Uint;
+    const INTERNAL_FORMAT: u32 = WebGl2RenderingContext::RGBA8UI;
+    const FORMAT: u32 = WebGl2RenderingContext::RGBA_INTEGER;
+    const TYPE: u32 = WebGl2RenderingContext::UNSIGNED_BYTE;
 
     #[inline]
     fn set_num_uniform(
