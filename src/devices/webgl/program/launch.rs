@@ -81,11 +81,9 @@ impl Program {
 
         let context = &self.context;
         let thread_viewport_width_uniform = context
-            .get_uniform_location(program, "thread_viewport_width")
-            .ok_or("cannot find thread vpw")?;
+            .get_uniform_location(program, "thread_viewport_width");
         let thread_viewport_height_uniform = context
-            .get_uniform_location(program, "thread_viewport_height")
-            .ok_or("cannot find thread vpw")?;
+            .get_uniform_location(program, "thread_viewport_height");
 
         // do not bubble up error -> it is possible that the internal glsl compiler removes unused uniforms
         let gws_x_uniform = context.get_uniform_location(program, "gws_x");
@@ -171,8 +169,8 @@ impl Program {
         context.use_program(Some(program));
 
         context.viewport(0, 0, first_tw as i32, first_th as i32);
-        context.uniform1ui(Some(&thread_viewport_width_uniform), first_tw as u32);
-        context.uniform1ui(Some(&thread_viewport_height_uniform), first_th as u32);
+        context.uniform1ui(thread_viewport_width_uniform.as_ref(), first_tw as u32);
+        context.uniform1ui(thread_viewport_height_uniform.as_ref(), first_th as u32);
 
         context.uniform1ui(gws_x_uniform.as_ref(), gws[0]);
         context.uniform1ui(gws_y_uniform.as_ref(), gws[1]);

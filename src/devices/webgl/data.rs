@@ -128,23 +128,6 @@ impl<T: WebGlNumber> WebGlData<T> {
             WebGl2RenderingContext::FRAMEBUFFER_COMPLETE
         );
 
-        // let mut read_data = vec![T::default(); self.texture_height * self.texture_width * 4];
-        // let texture_data = unsafe {
-        //     std::slice::from_raw_parts_mut(read_data.as_mut_ptr() as *mut u32, read_data.len() )
-        // };
-
-        // let texture_data = unsafe { js_sys::Uint32Array::view(texture_data) };
-        // context
-        //     .read_pixels_with_array_buffer_view_and_dst_offset(
-        //         0,
-        //         0,
-        //         self.texture_width as i32,
-        //         self.texture_height as i32,
-        //         WebGl2RenderingContext::RGBA_INTEGER,
-        //         WebGl2RenderingContext::UNSIGNED_INT,
-        //         &texture_data,
-        //         0,
-        //     ).unwrap();
         let mut read_data = T::read_pixels(&context, self.texture_width, self.texture_height);
         context.bind_framebuffer(WebGl2RenderingContext::FRAMEBUFFER, None);
         read_data.truncate(self.len);

@@ -32,8 +32,8 @@ libm = { version="0.2.6", optional = true }
 
 ash = { version = "0.37", optional = true } 
 # naga = { version = "0.19", features = ["wgsl-in"], optional = true } 
-# naga = { git = "https://github.com/elftausend/wgpu", features = ["wgsl-in"], optional = true }
-naga = {path = "../wgpu/naga", features = ["wgsl-in"], optional = true}
+naga = { git = "https://github.com/elftausend/wgpu", features = ["wgsl-in"], optional = true }
+# naga = {path = "../wgpu/naga", features = ["wgsl-in"], optional = true}
 
 half = {version = "2.3", default-features = false, optional = true}
 

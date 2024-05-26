@@ -117,7 +117,7 @@ impl WebGlNumber for f32 {
     } 
 }
 
-impl WebGlNumber for i32 {
+/*impl WebGlNumber for i32 {
     const SCALAR_TYPE: naga::ScalarKind = naga::ScalarKind::Sint;
     const INTERNAL_FORMAT: u32 = WebGl2RenderingContext::RGBA8I;
     const FORMAT: u32 = WebGl2RenderingContext::RGBA_INTEGER;
@@ -135,16 +135,37 @@ impl WebGlNumber for i32 {
 
     unsafe fn array_view(upload_data: &[Self]) -> js_sys::Object {
         let texture_data = unsafe {
-            std::slice::from_raw_parts(upload_data.as_ptr() as *const i8, upload_data.len() * 4)
+            std::slice::from_raw_parts(upload_data.as_ptr() as *const u8, upload_data.len() * 4)
         };
-        js_sys::Int8Array::view(texture_data).into()
+        js_sys::Uint8Array::view(texture_data).into()
     }
     
     fn read_pixels(context: &WebGl2RenderingContext, texture_width: usize, texture_height: usize) -> Vec<Self> {
-        todo!()
+        let mut read_data = vec![Self::default(); texture_height * texture_width * 4];
+
+        { 
+            let texture_data = unsafe { js_sys::Int32Array::view(&mut read_data) };
+            context
+                .read_pixels_with_array_buffer_view_and_dst_offset(
+                    0,
+                    0,
+                    texture_width as i32,
+                    texture_height as i32,
+                    WebGl2RenderingContext::RGBA_INTEGER,
+                    WebGl2RenderingContext::INT,
+                    &texture_data,
+                    0,
+                ).unwrap();
+        }
+        let i32_read_data = read_data.clone();
+        let read_data = read_data.iter().map(|&x| x as u8).collect::<Vec<_>>();
+        let out = read_data.chunks(4).map(|x| i32::from_ne_bytes([x[0], x[1], x[2], x[3]])).collect();
+        panic!("read data: {read_data:?}, i32: {i32_read_data:?}, out: {out:?}");
+        out
     }
     
-}
+}*/
+
 impl WebGlNumber for u32 {
     const SCALAR_TYPE: naga::ScalarKind = naga::ScalarKind::Uint;
     const INTERNAL_FORMAT: u32 = WebGl2RenderingContext::RGBA8UI;
