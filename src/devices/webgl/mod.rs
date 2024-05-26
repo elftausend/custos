@@ -5,6 +5,7 @@ mod program;
 mod vertex_attributes;
 mod webgl_device;
 
+pub use program::*;
 use web_sys::{WebGl2RenderingContext, WebGlShader};
 pub use webgl_device::*;
 

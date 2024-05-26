@@ -31,12 +31,11 @@ impl Deref for Program {
 }
 
 impl Program {
-    pub fn new(
+    pub fn from_glsl(
+        mut glsl: Glsl,
         context: Rc<Context>,
         vert_shader: &WebGlShader,
-        src: &impl AsRef<str>,
     ) -> crate::Result<Self> {
-        let mut glsl = Glsl::from_wgsl_compute(src)?;
         let shader_source = glsl.sources.1.pop().ok_or(WebGlError::MissingShader)?;
         let frag_shader = shader_source.compile(&context)?;
         let program = link_program(&context, vert_shader, &frag_shader)?;
@@ -48,6 +47,14 @@ impl Program {
             module: glsl.sources.0,
             reflection_info: shader_source.reflection_info.unwrap(),
         })
+    }
+    pub fn new(
+        context: Rc<Context>,
+        vert_shader: &WebGlShader,
+        wgsl_src: &impl AsRef<str>,
+    ) -> crate::Result<Self> {
+        let glsl = Glsl::from_wgsl_compute(wgsl_src)?;
+        Program::from_glsl(glsl, context, vert_shader)
     }
 }
 
