@@ -1,5 +1,5 @@
 use crate::{
-    webgl::error::WebGlError,
+    webgl::{data::WebGlData, error::WebGlError},
     wgsl::{AsShaderArg, WgslShaderLaunch},
     Buffer, OnDropBuffer, Shape, WebGL,
 };
@@ -26,6 +26,21 @@ pub trait AsWebGlShaderArgument {
         _type: &naga::Type,
     ) -> crate::Result<()> {
         Err(WebGlError::DatatypeArgumentMismatch.into())
+    }
+}
+
+impl<'a, T: WebGlNumber> AsWebGlShaderArgument for WebGlData<T> {
+    #[inline]
+    fn texture(&self) -> Option<&WebGlTexture> {
+        Some(&self.texture)
+    }
+    #[inline]
+    fn texture_height(&self) -> usize {
+        self.texture_height
+    }
+    #[inline]
+    fn texture_width(&self) -> usize {
+        self.texture_width
     }
 }
 
@@ -58,16 +73,20 @@ pub trait WebGlNumber {
         uniform_location: Option<&WebGlUniformLocation>,
     );
 
-    unsafe fn array_view(upload_data: &[Self]) -> js_sys::Object 
-    where 
-        Self: Sized 
+    unsafe fn array_view(upload_data: &[Self]) -> js_sys::Object
+    where
+        Self: Sized,
     {
         let texture_data = unsafe {
             std::slice::from_raw_parts(upload_data.as_ptr() as *const u8, upload_data.len() * 4)
         };
         js_sys::Uint8Array::view(texture_data).into()
     }
-    fn read_pixels(context: &WebGl2RenderingContext, texture_width: usize, texture_height: usize) -> Vec<Self>
+    fn read_pixels(
+        context: &WebGl2RenderingContext,
+        texture_width: usize,
+        texture_height: usize,
+    ) -> Vec<Self>
     where
         Self: Sized;
 }
@@ -93,8 +112,12 @@ impl WebGlNumber for f32 {
         };
         js_sys::Uint8Array::view(texture_data).into()
     }
-    
-    fn read_pixels(context: &WebGl2RenderingContext, texture_width: usize, texture_height: usize) -> Vec<Self> {
+
+    fn read_pixels(
+        context: &WebGl2RenderingContext,
+        texture_width: usize,
+        texture_height: usize,
+    ) -> Vec<Self> {
         let mut read_data = vec![Self::default(); texture_height * texture_width];
         let texture_data = unsafe {
             std::slice::from_raw_parts_mut(read_data.as_mut_ptr() as *mut u8, read_data.len() * 4)
@@ -114,7 +137,7 @@ impl WebGlNumber for f32 {
             .unwrap();
 
         read_data
-    } 
+    }
 }
 
 /*impl WebGlNumber for i32 {
@@ -131,7 +154,7 @@ impl WebGlNumber for f32 {
     ) {
         context.uniform1i(uniform_location, *self)
     }
-    
+
 
     unsafe fn array_view(upload_data: &[Self]) -> js_sys::Object {
         let texture_data = unsafe {
@@ -139,11 +162,11 @@ impl WebGlNumber for f32 {
         };
         js_sys::Uint8Array::view(texture_data).into()
     }
-    
+
     fn read_pixels(context: &WebGl2RenderingContext, texture_width: usize, texture_height: usize) -> Vec<Self> {
         let mut read_data = vec![Self::default(); texture_height * texture_width * 4];
 
-        { 
+        {
             let texture_data = unsafe { js_sys::Int32Array::view(&mut read_data) };
             context
                 .read_pixels_with_array_buffer_view_and_dst_offset(
@@ -163,7 +186,7 @@ impl WebGlNumber for f32 {
         panic!("read data: {read_data:?}, i32: {i32_read_data:?}, out: {out:?}");
         out
     }
-    
+
 }*/
 
 impl WebGlNumber for u32 {
@@ -180,14 +203,18 @@ impl WebGlNumber for u32 {
     ) {
         context.uniform1ui(uniform_location, *self)
     }
-   
-    fn read_pixels(context: &WebGl2RenderingContext, texture_width: usize, texture_height: usize) -> Vec<Self>
+
+    fn read_pixels(
+        context: &WebGl2RenderingContext,
+        texture_width: usize,
+        texture_height: usize,
+    ) -> Vec<Self>
     where
-        Self: Sized 
+        Self: Sized,
     {
         let mut read_data = vec![Self::default(); texture_height * texture_width * 4];
 
-        { 
+        {
             let texture_data = unsafe { js_sys::Uint32Array::view(&mut read_data) };
             context
                 .read_pixels_with_array_buffer_view_and_dst_offset(
@@ -199,12 +226,15 @@ impl WebGlNumber for u32 {
                     WebGl2RenderingContext::UNSIGNED_INT,
                     &texture_data,
                     0,
-                ).unwrap();
+                )
+                .unwrap();
         }
         let read_data = read_data.iter().map(|&x| x as u8).collect::<Vec<_>>();
-        read_data.chunks(4).map(|x| u32::from_ne_bytes([x[0], x[1], x[2], x[3]])).collect()
+        read_data
+            .chunks(4)
+            .map(|x| u32::from_ne_bytes([x[0], x[1], x[2], x[3]]))
+            .collect()
     }
-    
 }
 
 impl<T: WebGlNumber> AsWebGlShaderArgument for T {

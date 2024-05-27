@@ -80,10 +80,10 @@ impl Program {
             .collect::<Vec<_>>();
 
         let context = &self.context;
-        let thread_viewport_width_uniform = context
-            .get_uniform_location(program, "thread_viewport_width");
-        let thread_viewport_height_uniform = context
-            .get_uniform_location(program, "thread_viewport_height");
+        let thread_viewport_width_uniform =
+            context.get_uniform_location(program, "thread_viewport_width");
+        let thread_viewport_height_uniform =
+            context.get_uniform_location(program, "thread_viewport_height");
 
         // do not bubble up error -> it is possible that the internal glsl compiler removes unused uniforms
         let gws_x_uniform = context.get_uniform_location(program, "gws_x");
