@@ -5,8 +5,8 @@ use std::rc::Rc;
 use web_sys::{Element, WebGlFramebuffer, WebGlShader};
 
 use crate::{
-    webgl::error::WebGlError, wgsl::WgslShaderLaunch, Alloc, Base, Buffer, Device, Module,
-    OnDropBuffer, Read, Retrieve, Retriever, Setup, Shape, WrappedData,
+    webgl::error::WebGlError, wgsl::WgslShaderLaunch, AddLayer, Alloc, Base, Buffer, Device,
+    Module, OnDropBuffer, Read, RemoveLayer, Retrieve, Retriever, Setup, Shape, WrappedData,
 };
 
 use super::{
@@ -234,5 +234,43 @@ impl<Mods> WgslShaderLaunch for WebGL<Mods> {
         args: &[&dyn AsWebGlShaderArgument],
     ) -> crate::Result<()> {
         self.device.launch_shader(src, gws, args)
+    }
+}
+
+impl<Mods> WebGL<Mods> {
+    #[inline]
+    pub fn add_layer<Mod>(self) -> WebGL<Mod::Wrapped>
+    where
+        Mod: AddLayer<Mods, WebGL>,
+    {
+        WebGL {
+            modules: Mod::wrap_layer(self.modules),
+            device: self.device,
+        }
+    }
+
+    pub fn remove_layer<NewMods>(self) -> WebGL<NewMods>
+    where
+        Mods: RemoveLayer<NewMods>,
+    {
+        WebGL {
+            modules: self.modules.inner_mods(),
+            device: self.device,
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::{Base, WebGL};
+
+    #[cfg(feature = "cached")]
+    #[test]
+    fn test_webgl_add_layer() {
+        use crate::Cached;
+
+        let device = WebGL::<Base>::new().unwrap();
+        let device = device.add_layer::<Cached<()>>();
+        let _device = device.remove_layer();
     }
 }
