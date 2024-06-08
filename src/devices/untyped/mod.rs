@@ -65,11 +65,11 @@ impl<'a, T, S: crate::Shape> Buffer<'a, T, Untyped, S> {
     }
 
     #[inline]
-    pub fn read_typed<OT>(&self) -> Vec<OT>
+    pub fn read_typed<OT>(&self) -> Option<Vec<OT>>
     where
         OT: AsType + Clone + Default + 'static,
     {
-        self.as_typed::<OT, ()>().unwrap().read()
+        self.as_typed::<OT, ()>().map(|buf| buf.read())
     }
 }
 

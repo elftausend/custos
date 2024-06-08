@@ -68,7 +68,8 @@ impl Device for Untyped {
 
 unsafe impl IsShapeIndep for Untyped {}
 
-impl HasModules<Base> for Untyped {
+impl HasModules for Untyped {
+    type Mods = Base;
     #[inline]
     fn modules(&self) -> &Base {
         match &self.device {

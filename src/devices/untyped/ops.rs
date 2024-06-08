@@ -222,6 +222,6 @@ mod tests {
         let rhs = device.buffer([1f32, 2., 3., 4.]).to_untyped();
 
         let out = device.add(&lhs, &rhs);
-        roughly_eq_slices(&[2., 4., 6., 8.], &out.read_typed::<f32>())
+        roughly_eq_slices(&[2., 4., 6., 8.], &out.read_typed::<f32>().unwrap())
     }
 }
