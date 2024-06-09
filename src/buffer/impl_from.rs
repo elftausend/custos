@@ -1,4 +1,4 @@
-use core::ops::Range;
+use core::ops::{Range, RangeInclusive};
 
 use crate::{
     number::Number, shape::Shape, Alloc, Buffer, Device, OnDropBuffer, OnNewBuffer, Retriever,
@@ -29,26 +29,42 @@ where
     }
 }
 
-/*impl<'a, T, D> Buffer<'a, T, D>
+#[cfg(feature = "std")]
+impl<'a, T, D, S> Buffer<'a, T, D, S>
 where
     T: Clone,
-    D: Alloc<T>+ OnNewBuffer<T, D, ()>
+    D: Alloc<T> + OnNewBuffer<T, D, S>,
+    S: Shape,
 {
     #[inline]
     pub fn from_iter<I: IntoIterator<Item = T>>(device: &'a D, iter: I) -> Self {
         Buffer::from_vec(&device, iter.into_iter().collect())
     }
-}*/
+}
 
 #[cfg(feature = "std")]
-impl<'a, T, D> From<(&'a D, Range<usize>)> for Buffer<'a, T, D>
+impl<'a, T, D, S> From<(&'a D, Range<usize>)> for Buffer<'a, T, D, S>
 where
     T: Number,
-    D: Alloc<T> + OnNewBuffer<T, D, ()>,
+    D: Alloc<T> + OnNewBuffer<T, D, S>,
+    S: Shape,
 {
     #[inline]
     fn from((device, range): (&'a D, Range<usize>)) -> Self {
-        Buffer::from_vec(device, range.map(|x| T::from_usize(x)).collect())
+        Buffer::from_iter(device, range.map(|x| T::from_usize(x)))
+    }
+}
+
+#[cfg(feature = "std")]
+impl<'a, T, D, S> From<(&'a D, RangeInclusive<usize>)> for Buffer<'a, T, D, S>
+where
+    T: Number,
+    D: Alloc<T> + OnNewBuffer<T, D, S>,
+    S: Shape,
+{
+    #[inline]
+    fn from((device, range): (&'a D, RangeInclusive<usize>)) -> Self {
+        Buffer::from_iter(device, range.map(|x| T::from_usize(x)))
     }
 }
 
@@ -167,5 +183,38 @@ mod tests {
         assert_eq!(out.read(), [1, 2, 4, 5]);
 
         Ok(())
+    }
+
+    #[cfg(feature = "cpu")]
+    #[test]
+    fn test_impl_from_range() {
+        use crate::{Device, CPU};
+
+        let device = CPU::based();
+        let buffer = device.buffer::<f32, (), _>(4..10);
+        assert_eq!(buffer.read(), [4., 5., 6., 7., 8., 9.,]);
+    }
+
+    #[cfg(feature = "cpu")]
+    #[test]
+    fn test_impl_from_range_inclusive() {
+        use crate::{Device, CPU};
+
+        let device = CPU::based();
+        let buffer = device.buffer::<f32, (), _>(4..=10);
+        assert_eq!(buffer.read(), [4., 5., 6., 7., 8., 9., 10.,]);
+    }
+
+    #[cfg(feature = "cpu")]
+    #[test]
+    fn test_impl_from_iter() {
+        use crate::{Buffer, CPU};
+
+        let device = CPU::based();
+        let buffer = Buffer::<f32>::from_iter(
+            &device,
+            (0..=10).into_iter().filter(|x| x % 2 == 0).map(|x| x as f32),
+        );
+        assert_eq!(buffer.read(), [0., 2., 4., 6., 8., 10.,]);
     }
 }

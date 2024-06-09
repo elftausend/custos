@@ -65,3 +65,10 @@ pub fn chosen_wgsl_idx() -> usize {
             "Environment variable 'CUSTOS_WGSL_DEVICE_IDX' contains an invalid CUDA device index!",
         )
 }
+
+pub trait WgslNumber: crate::Number {}
+impl WgslNumber for f32 {}
+impl WgslNumber for i32 {}
+impl WgslNumber for u32 {}
+#[cfg(feature = "half")]
+impl WgslNumber for half::f16 {}

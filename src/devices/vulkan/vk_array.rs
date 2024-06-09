@@ -152,11 +152,10 @@ impl<T> VkArray<T> {
 
         unsafe { device.begin_command_buffer(command_buffer, &command_buffer_begin_info) }.unwrap();
 
-        let buffer_copy_region = vk::BufferCopy::builder()
+        let buffer_copy_region = vk::BufferCopy::default()
             .dst_offset(0)
             .src_offset(0)
-            .size((self.len() * size_of::<T>()) as u64)
-            .build();
+            .size((self.len() * size_of::<T>()) as u64);
 
         unsafe {
             device.cmd_copy_buffer(
@@ -197,11 +196,10 @@ impl<T> VkArray<T> {
 
         unsafe { device.begin_command_buffer(command_buffer, &command_buffer_begin_info) }.unwrap();
 
-        let buffer_copy_region = vk::BufferCopy::builder()
+        let buffer_copy_region = vk::BufferCopy::default()
             .dst_offset(0)
             .src_offset(0)
-            .size((self.len() * size_of::<T>()) as u64)
-            .build();
+            .size((self.len() * size_of::<T>()) as u64);
 
         unsafe {
             device.cmd_copy_buffer(
@@ -308,10 +306,9 @@ pub unsafe fn create_buffer<T>(
     size: usize,
 ) -> VkResult<vk::Buffer> {
     let buffer_size = size * std::mem::size_of::<T>();
-    let buffer_create_info = vk::BufferCreateInfo::builder()
+    let buffer_create_info = vk::BufferCreateInfo::default()
         .size(buffer_size as u64)
-        .usage(usage)
-        .build();
+        .usage(usage);
     device.create_buffer(&buffer_create_info, None)
 }
 

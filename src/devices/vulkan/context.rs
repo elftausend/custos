@@ -49,7 +49,7 @@ impl Context {
     pub fn new(device_idx: usize) -> crate::Result<Self> {
         let entry = unsafe { Entry::load()? };
         let app_name = unsafe { CStr::from_bytes_with_nul_unchecked(b"custos\0") };
-        let app_info = vk::ApplicationInfo::builder()
+        let app_info = vk::ApplicationInfo::default()
             .application_name(app_name)
             .application_version(0)
             .engine_name(app_name)
@@ -73,26 +73,23 @@ impl Context {
             .map(|raw_name| raw_name.as_ptr())
             .collect();
 
-        let instance_info = InstanceCreateInfo::builder()
+        let instance_info = InstanceCreateInfo::default()
             .enabled_layer_names(&layers_names_raw)
-            .application_info(&app_info)
-            .build();
+            .application_info(&app_info);
 
         let instance = unsafe { entry.create_instance(&instance_info, None).unwrap() };
         let (physical_device, compute_family_idx) = list_compute_devices(&instance)[device_idx];
 
         let queue_priorities = [1.0];
-        let queue_info = vk::DeviceQueueCreateInfo::builder()
+        let queue_info = vk::DeviceQueueCreateInfo::default()
             .queue_family_index(compute_family_idx as u32)
-            .queue_priorities(&queue_priorities)
-            .build();
+            .queue_priorities(&queue_priorities);
 
         let device_features = vk::PhysicalDeviceFeatures::default();
-        let device_create_info = vk::DeviceCreateInfo::builder()
+        let device_create_info = vk::DeviceCreateInfo::default()
             .queue_create_infos(std::slice::from_ref(&queue_info))
             .enabled_features(&device_features)
-            .enabled_extension_names(&extensions_raw)
-            .build();
+            .enabled_extension_names(&extensions_raw);
 
         let logical_device =
             unsafe { instance.create_device(physical_device, &device_create_info, None)? };

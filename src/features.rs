@@ -117,8 +117,9 @@ pub trait Run {
     unsafe fn run(&self) -> crate::Result<()>;
 }
 
-pub trait HasModules<Mods> {
-    fn modules(&self) -> &Mods;
+pub trait HasModules {
+    type Mods;
+    fn modules(&self) -> &Self::Mods;
 }
 
 pub trait AddGradFn {

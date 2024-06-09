@@ -30,7 +30,7 @@ fn get_memory_type_index(
 fn test_vulkan_compute_with_wgsl_and_spirv() {
     let entry = unsafe { Entry::load().unwrap() };
     let app_name = unsafe { CStr::from_bytes_with_nul_unchecked(b"custos\0") };
-    let app_info = vk::ApplicationInfo::builder()
+    let app_info = vk::ApplicationInfo::default()
         .application_name(app_name)
         .application_version(0)
         .engine_name(app_name)
@@ -47,10 +47,9 @@ fn test_vulkan_compute_with_wgsl_and_spirv() {
         .iter()
         .map(|raw_name| raw_name.as_ptr())
         .collect();
-    let instance_info = InstanceCreateInfo::builder()
+    let instance_info = InstanceCreateInfo::default()
         .enabled_layer_names(&layers_names_raw)
-        .application_info(&app_info)
-        .build();
+        .application_info(&app_info);
     let instance = unsafe { entry.create_instance(&instance_info, None).unwrap() };
 
     let physical_device = unsafe { instance.enumerate_physical_devices().unwrap() };
@@ -68,16 +67,14 @@ fn test_vulkan_compute_with_wgsl_and_spirv() {
     }
 
     let queue_priorities = [1.0];
-    let queue_info = vk::DeviceQueueCreateInfo::builder()
+    let queue_info = vk::DeviceQueueCreateInfo::default()
         .queue_family_index(device_with_queue_idx[0].1 as u32)
-        .queue_priorities(&queue_priorities)
-        .build();
+        .queue_priorities(&queue_priorities);
 
     let device_features = vk::PhysicalDeviceFeatures::default();
-    let device_create_info = vk::DeviceCreateInfo::builder()
+    let device_create_info = vk::DeviceCreateInfo::default()
         .queue_create_infos(std::slice::from_ref(&queue_info))
-        .enabled_features(&device_features)
-        .build();
+        .enabled_features(&device_features);
 
     let device = unsafe {
         instance
@@ -148,7 +145,7 @@ fn test_vulkan_compute_with_wgsl_and_spirv() {
     // };
 
     let shader_module = unsafe {
-        let shader_module_create_info = vk::ShaderModuleCreateInfo::builder().code(&data);
+        let shader_module_create_info = vk::ShaderModuleCreateInfo::default().code(&data);
 
         device
             .create_shader_module(&shader_module_create_info, None)
@@ -237,14 +234,14 @@ fn test_vulkan_compute_with_wgsl_and_spirv() {
             .collect::<Vec<_>>();
 
         let descriptor_set_layout_create_info =
-            vk::DescriptorSetLayoutCreateInfo::builder().bindings(&descriptor_set_layout_bindings);
+            vk::DescriptorSetLayoutCreateInfo::default().bindings(&descriptor_set_layout_bindings);
 
         unsafe { device.create_descriptor_set_layout(&descriptor_set_layout_create_info, None) }
             .unwrap()
     };
 
     let pipeline_layout = {
-        let pipeline_layout_create_info = vk::PipelineLayoutCreateInfo::builder()
+        let pipeline_layout_create_info = vk::PipelineLayoutCreateInfo::default()
             .set_layouts(core::slice::from_ref(&descriptor_set_layout));
         unsafe { device.create_pipeline_layout(&pipeline_layout_create_info, None) }.unwrap()
     };
@@ -276,7 +273,7 @@ fn test_vulkan_compute_with_wgsl_and_spirv() {
             ty: vk::DescriptorType::STORAGE_BUFFER,
             descriptor_count: 3,
         };
-        let descriptor_pool_create_info = vk::DescriptorPoolCreateInfo::builder()
+        let descriptor_pool_create_info = vk::DescriptorPoolCreateInfo::default()
             .max_sets(1)
             .pool_sizes(core::slice::from_ref(&descriptor_pool_sizes));
 
@@ -284,7 +281,7 @@ fn test_vulkan_compute_with_wgsl_and_spirv() {
     };
 
     // allocate and write the descriptor set
-    let descriptor_set_allocate_info = vk::DescriptorSetAllocateInfo::builder()
+    let descriptor_set_allocate_info = vk::DescriptorSetAllocateInfo::default()
         .descriptor_pool(descriptor_pool)
         .set_layouts(core::slice::from_ref(&descriptor_set_layout));
 
@@ -306,26 +303,26 @@ fn test_vulkan_compute_with_wgsl_and_spirv() {
         offset: 0,
         range: vk::WHOLE_SIZE,
     }];
-    let write_descriptor_set = vk::WriteDescriptorSet::builder()
+    let write_descriptor_set = vk::WriteDescriptorSet::default()
         .dst_set(descriptor_set)
         .dst_binding(0)
         .descriptor_type(vk::DescriptorType::STORAGE_BUFFER)
         .buffer_info(&descriptor_buffer_info);
-    let write_descriptor_set1 = vk::WriteDescriptorSet::builder()
+    let write_descriptor_set1 = vk::WriteDescriptorSet::default()
         .dst_set(descriptor_set)
         .dst_binding(1)
         .descriptor_type(vk::DescriptorType::STORAGE_BUFFER)
         .buffer_info(&descriptor_buffer_info1);
 
-    let write_descriptor_set2 = vk::WriteDescriptorSet::builder()
+    let write_descriptor_set2 = vk::WriteDescriptorSet::default()
         .dst_set(descriptor_set)
         .dst_binding(2)
         .descriptor_type(vk::DescriptorType::STORAGE_BUFFER)
         .buffer_info(&descriptor_buffer_info2);
     let write_descriptor_sets = [
-        write_descriptor_set.build(),
-        write_descriptor_set1.build(),
-        write_descriptor_set2.build(),
+        write_descriptor_set,
+        write_descriptor_set1,
+        write_descriptor_set2,
     ];
     unsafe { device.update_descriptor_sets(&write_descriptor_sets, &[]) };
 
@@ -368,7 +365,7 @@ fn test_vulkan_compute_with_wgsl_and_spirv() {
     // run it and wait until it is completed
     let queue = unsafe { device.get_device_queue(device_with_queue_idx[0].1 as u32, 0) };
     let submit_info =
-        vk::SubmitInfo::builder().command_buffers(core::slice::from_ref(&command_buffer));
+        vk::SubmitInfo::default().command_buffers(core::slice::from_ref(&command_buffer));
 
     const TIMES: usize = 10;
     let start = Instant::now();

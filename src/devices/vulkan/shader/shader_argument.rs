@@ -2,9 +2,8 @@ use ash::vk::BufferUsageFlags;
 
 use crate::{
     flag::AllocFlag,
-    prelude::Number,
     vulkan::{Context, VkArray},
-    wgsl::{AsShaderArg, WgslShaderLaunch},
+    wgsl::{AsShaderArg, WgslNumber, WgslShaderLaunch},
     OnDropBuffer, Shape, Vulkan,
 };
 use core::marker::PhantomData;
@@ -22,12 +21,12 @@ pub trait AsVkShaderArgument {
     fn as_arg<'a>(&self, context: Rc<Context>) -> VkShaderArgument;
 }
 
-impl<T: Number> AsVkShaderArgument for T {
+impl<T: WgslNumber> AsVkShaderArgument for T {
     fn as_arg<'a>(&'a self, context: Rc<Context>) -> VkShaderArgument<'a> {
         let vk_array_handle = VkArray::from_slice(
             context,
             &[*self],
-            BufferUsageFlags::STORAGE_BUFFER,
+            BufferUsageFlags::UNIFORM_BUFFER,
             AllocFlag::None,
         )
         .unwrap();
@@ -38,7 +37,7 @@ impl<T: Number> AsVkShaderArgument for T {
         VkShaderArgument {
             vk_array_handle,
             buffer,
-            descriptor_type: ash::vk::DescriptorType::STORAGE_BUFFER,
+            descriptor_type: ash::vk::DescriptorType::UNIFORM_BUFFER,
             pd: PhantomData,
         }
     }

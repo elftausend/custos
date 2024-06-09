@@ -70,7 +70,8 @@ impl<Mods: OnDropBuffer> Device for CPU<Mods> {
 
 impl<T, S: Shape> DevicelessAble<'_, T, S> for CPU<Base> {}
 
-impl<Mods> HasModules<Mods> for CPU<Mods> {
+impl<Mods> HasModules for CPU<Mods> {
+    type Mods = Mods;
     #[inline]
     fn modules(&self) -> &Mods {
         &self.modules

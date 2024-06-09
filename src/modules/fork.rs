@@ -1,8 +1,8 @@
 use crate::{
     impl_remove_layer, pass_down_add_operation, pass_down_exec_now, pass_down_replace_buf_module,
-    pass_down_tape_actions, AddLayer, Alloc, Buffer, Device, HasId, IsShapeIndep, Module,
-    OnDropBuffer, OnNewBuffer, Parents, PtrType, Retrieve, RunModule, Setup, Shape, UseGpuOrCpu,
-    WrappedData, VERSION,
+    pass_down_tape_actions, AddLayer, Alloc, Buffer, Device, HasId, HasModules, IsShapeIndep,
+    Module, OnDropBuffer, OnNewBuffer, Parents, PtrType, Retrieve, RunModule, Setup, Shape,
+    UseGpuOrCpu, WrappedData, VERSION,
 };
 use core::cell::{Cell, RefCell};
 

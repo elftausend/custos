@@ -76,6 +76,87 @@ where
     }
 }
 
+#[macro_export]
+macro_rules! untyped_binary_op {
+    ($device:ident, $lhs:ident, $rhs:ident, $cpu_op:expr, $cuda_op:expr) => {{
+        let out = match (&$lhs.data, &$rhs.data) {
+            (UntypedData::CPU(lhs), UntypedData::CPU(rhs)) => {
+                let storage = match (lhs, rhs) {
+                    (CpuStorage::U8(lhs), CpuStorage::U8(rhs)) => CpuStorage::U8($cpu_op(lhs, rhs)),
+                    (CpuStorage::U32(lhs), CpuStorage::U32(rhs)) => {
+                        CpuStorage::U32($cpu_op(lhs, rhs))
+                    }
+                    (CpuStorage::I64(lhs), CpuStorage::I64(rhs)) => {
+                        CpuStorage::I64($cpu_op(lhs, rhs))
+                    }
+                    #[cfg(feature = "half")]
+                    (CpuStorage::BF16(lhs), CpuStorage::BF16(rhs)) => {
+                        CpuStorage::BF16($cpu_op(lhs, rhs))
+                    }
+                    #[cfg(feature = "half")]
+                    (CpuStorage::F16(lhs), CpuStorage::F16(rhs)) => {
+                        CpuStorage::F16($cpu_op(lhs, rhs))
+                    }
+                    (CpuStorage::F32(lhs), CpuStorage::F32(rhs)) => {
+                        CpuStorage::F32($cpu_op(lhs, rhs))
+                    }
+                    (CpuStorage::F64(lhs), CpuStorage::F64(rhs)) => {
+                        CpuStorage::F64($cpu_op(lhs, rhs))
+                    }
+                    _ => unimplemented!(),
+                };
+                UntypedData::CPU(storage)
+            }
+            (UntypedData::CUDA(lhs), UntypedData::CUDA(rhs)) => {
+                let UntypedDevice::Cuda(dev) = &$device.device else {
+                    panic!()
+                };
+                #[cfg(feature = "cuda")]
+                let storage = match (lhs, rhs) {
+                    (CudaStorage::U8(lhs), CudaStorage::U8(rhs)) => {
+                        CudaStorage::U8($cuda_op(dev, lhs, rhs))
+                    }
+                    (CudaStorage::U32(lhs), CudaStorage::U32(rhs)) => {
+                        CudaStorage::U32($cuda_op(dev, lhs, rhs))
+                    }
+                    (CudaStorage::I64(lhs), CudaStorage::I64(rhs)) => {
+                        CudaStorage::I64($cuda_op(dev, lhs, rhs))
+                    }
+                    #[cfg(feature = "half")]
+                    (CudaStorage::BF16(lhs), CudaStorage::BF16(rhs)) => {
+                        CudaStorage::BF16($cuda_op(dev, lhs, rhs))
+                    }
+                    #[cfg(feature = "half")]
+                    (CudaStorage::F16(lhs), CudaStorage::F16(rhs)) => {
+                        CudaStorage::F16($cuda_op(dev, lhs, rhs))
+                    }
+                    (CudaStorage::F32(lhs), CudaStorage::F32(rhs)) => {
+                        CudaStorage::F32($cuda_op(dev, lhs, rhs))
+                    }
+                    #[cfg(not(target_os = "macos"))]
+                    (CudaStorage::F64(lhs), CudaStorage::F64(rhs)) => {
+                        CudaStorage::F64($cuda_op(dev, lhs, rhs))
+                    }
+                    _ => unimplemented!(),
+                };
+
+                #[cfg(feature = "cuda")]
+                {
+                    UntypedData::CUDA(storage)
+                }
+                #[cfg(not(feature = "cuda"))]
+                unimplemented!()
+            }
+            _ => unimplemented!(),
+        };
+
+        return $crate::Buffer {
+            data: out,
+            device: Some($device),
+        };
+    }};
+}
+
 #[cfg(test)]
 mod tests {
     use crate::{
@@ -136,85 +217,19 @@ mod tests {
 
     impl<T, S: Shape> AddEw<T, Self, S> for Untyped {
         fn add(&self, lhs: &Buffer<T, Self, S>, rhs: &Buffer<T, Self, S>) -> Buffer<T, Self, S> {
-            let out = match (&lhs.data, &rhs.data) {
-                (UntypedData::CPU(lhs), UntypedData::CPU(rhs)) => {
-                    let storage = match (lhs, rhs) {
-                        (CpuStorage::U8(lhs), CpuStorage::U8(rhs)) => {
-                            CpuStorage::U8(alloc_and_add_slice(lhs, rhs))
-                        }
-                        (CpuStorage::U32(lhs), CpuStorage::U32(rhs)) => {
-                            CpuStorage::U32(alloc_and_add_slice(lhs, rhs))
-                        }
-                        (CpuStorage::I64(lhs), CpuStorage::I64(rhs)) => {
-                            CpuStorage::I64(alloc_and_add_slice(lhs, rhs))
-                        }
-                        #[cfg(feature = "half")]
-                        (CpuStorage::BF16(lhs), CpuStorage::BF16(rhs)) => {
-                            CpuStorage::BF16(alloc_and_add_slice(lhs, rhs))
-                        }
-                        #[cfg(feature = "half")]
-                        (CpuStorage::F16(lhs), CpuStorage::F16(rhs)) => {
-                            CpuStorage::F16(alloc_and_add_slice(lhs, rhs))
-                        }
-                        (CpuStorage::F32(lhs), CpuStorage::F32(rhs)) => {
-                            CpuStorage::F32(alloc_and_add_slice(lhs, rhs))
-                        }
-                        (CpuStorage::F64(lhs), CpuStorage::F64(rhs)) => {
-                            CpuStorage::F64(alloc_and_add_slice(lhs, rhs))
-                        }
-                        _ => unimplemented!(),
-                    };
-                    UntypedData::CPU(storage)
-                }
-                (UntypedData::CUDA(lhs), UntypedData::CUDA(rhs)) => {
-                    let UntypedDevice::Cuda(dev) = &self.device else {
-                        panic!()
-                    };
-                    #[cfg(feature = "cuda")]
-                    let storage = match (lhs, rhs) {
-                        (CudaStorage::U8(lhs), CudaStorage::U8(rhs)) => {
-                            CudaStorage::U8(alloc_and_add_cu(dev, lhs, rhs))
-                        }
-                        (CudaStorage::U32(lhs), CudaStorage::U32(rhs)) => {
-                            CudaStorage::U32(alloc_and_add_cu(dev, lhs, rhs))
-                        }
-                        (CudaStorage::I64(lhs), CudaStorage::I64(rhs)) => {
-                            CudaStorage::I64(alloc_and_add_cu(dev, lhs, rhs))
-                        }
-                        #[cfg(feature = "half")]
-                        (CudaStorage::BF16(lhs), CudaStorage::BF16(rhs)) => {
-                            CudaStorage::BF16(alloc_and_add_cu(dev, lhs, rhs))
-                        }
-                        #[cfg(feature = "half")]
-                        (CudaStorage::F16(lhs), CudaStorage::F16(rhs)) => {
-                            CudaStorage::F16(alloc_and_add_cu(dev, lhs, rhs))
-                        }
-                        (CudaStorage::F32(lhs), CudaStorage::F32(rhs)) => {
-                            CudaStorage::F32(alloc_and_add_cu(dev, lhs, rhs))
-                        }
-                        #[cfg(not(target_os = "macos"))]
-                        (CudaStorage::F64(lhs), CudaStorage::F64(rhs)) => {
-                            CudaStorage::F64(alloc_and_add_cu(dev, lhs, rhs))
-                        }
-                        _ => unimplemented!(),
-                    };
-
-                    #[cfg(feature = "cuda")]
-                    {
-                        UntypedData::CUDA(storage)
-                    }
-                    #[cfg(not(feature = "cuda"))]
-                    unimplemented!()
-                }
-                _ => unimplemented!(),
-            };
-            Buffer {
-                data: out,
-                device: Some(self),
-            }
+            untyped_binary_op!(self, lhs, rhs, alloc_and_add_slice, alloc_and_add_cu)
         }
     }
 
+    #[test]
+    fn test_typed_ew_add() {
+        let device = Untyped::new().unwrap();
+        let lhs = device.buffer([1f32, 2., 3., 4.]);
+        let rhs = device.buffer([1f32, 2., 3., 4.]);
+
+        let out = device.add(&lhs, &rhs);
+        roughly_eq_slices(&[2., 4., 6., 8.], &out.read_typed::<f32>().unwrap())
+    }
     #[test]
     fn test_untyped_ew_add() {
         let device = Untyped::new().unwrap();
@@ -222,6 +237,6 @@ mod tests {
         let rhs = device.buffer([1f32, 2., 3., 4.]).to_untyped();
 
         let out = device.add(&lhs, &rhs);
-        roughly_eq_slices(&[2., 4., 6., 8.], &out.read_typed::<f32>())
+        roughly_eq_slices(&[2., 4., 6., 8.], &out.read_typed::<f32>().unwrap())
     }
 }

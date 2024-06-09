@@ -1,48 +1,27 @@
 use super::stack_device::Stack;
-use crate::{
-    shape::{Dim1, Dim2},
-    Buffer, StackArray,
-};
+use crate::{Buffer, IsConstDim, StackArray};
 
-impl<'a, T, const N: usize> From<(&'a Stack, [T; N])> for Buffer<'a, T, Stack, Dim1<N>> {
-    fn from((dev, array): (&'a Stack, [T; N])) -> Self {
-        Buffer {
-            data: StackArray::from_array(array),
-            device: Some(dev),
-        }
-    }
-}
-
-impl<'a, T: Copy + Default, const A: usize, const B: usize, const N: usize>
-    From<(&'a Stack, [T; N])> for Buffer<'a, T, Stack, Dim2<A, B>>
+impl<'a, T: Copy + Default, S: IsConstDim, const N: usize> From<(&'a Stack, [T; N])>
+    for Buffer<'a, T, Stack, S>
 {
     fn from((dev, array): (&'a Stack, [T; N])) -> Self {
-        let mut arr = StackArray::new();
-        arr.copy_from_slice(&array);
+        let mut data = StackArray::new();
+        data.copy_from_slice(&array);
         Buffer {
-            data: arr,
+            data,
             device: Some(dev),
         }
     }
 }
 
-impl<'a, T: Copy, const N: usize> From<(&'a Stack, &[T; N])> for Buffer<'a, T, Stack, Dim1<N>> {
-    fn from((dev, array): (&'a Stack, &[T; N])) -> Self {
-        Buffer {
-            data: StackArray::from_array(*array),
-            device: Some(dev),
-        }
-    }
-}
-
-impl<'a, T: Copy + Default, const N: usize, const A: usize, const B: usize>
-    From<(&'a Stack, &[T; N])> for Buffer<'a, T, Stack, Dim2<A, B>>
+impl<'a, T: Copy + Default, S: IsConstDim, const N: usize> From<(&'a Stack, &[T; N])>
+    for Buffer<'a, T, Stack, S>
 {
     fn from((dev, array): (&'a Stack, &[T; N])) -> Self {
-        let mut arr = StackArray::new();
-        arr.copy_from_slice(array);
+        let mut data = StackArray::new();
+        data.copy_from_slice(array);
         Buffer {
-            data: arr,
+            data,
             device: Some(dev),
         }
     }
