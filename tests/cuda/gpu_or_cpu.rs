@@ -50,7 +50,7 @@ fn test_cuda_sum() {
 #[test]
 fn test_cuda_sum_two() {
     let device = CUDA::<Base>::new(0).unwrap();
-    let lhs = Buffer::from((&device, (0..N)));
+    let lhs = Buffer::<_, _>::from((&device, (0..N)));
     // println!("lhs: {:?}", lhs);
 
     let start = std::time::Instant::now();
