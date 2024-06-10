@@ -103,6 +103,13 @@ impl<SimpleMods> OpenCL<SimpleMods> {
     }
 }
 
+impl OpenCL {
+    #[inline]
+    pub fn based(idx: usize) -> crate::Result<OpenCL<Base>> {
+        OpenCL::<Base>::new(idx)
+    }
+}
+
 impl<Mods> OpenCL<Mods> {
     pub fn unified_mem_check(&self) {
         #[cfg(unified_cl)]
@@ -211,8 +218,6 @@ impl<Mods> Debug for OpenCL<Mods> {
 
 impl<Mods: OnDropBuffer, T> Alloc<T> for OpenCL<Mods> {
     fn alloc<S: Shape>(&self, mut len: usize, flag: AllocFlag) -> crate::Result<CLPtr<T>> {
-        assert!(len > 0, "invalid buffer len: 0");
-
         if S::LEN > len {
             len = S::LEN
         }
@@ -222,7 +227,6 @@ impl<Mods: OnDropBuffer, T> Alloc<T> for OpenCL<Mods> {
 
         let host_ptr = if self.unified_mem() {
             unsafe { self.device.unified_ptr(ptr, len) }?
-            // unsafe { unified_ptr::<T>(self.queue(), ptr, len, None).unwrap() }
         } else {
             std::ptr::null_mut()
         };
@@ -306,7 +310,11 @@ impl<Mods> crate::LazyRun for OpenCL<Mods> {}
 
 #[cfg(test)]
 mod tests {
-    use crate::{opencl::cl_device::CLDevice, Base, Buffer, Cached, OpenCL, CPU};
+    use min_cl::api::OCLErrorKind;
+
+    use crate::{
+        opencl::cl_device::CLDevice, Alloc, Base, Buffer, Cached, DeviceError, OpenCL, CPU,
+    };
 
     #[test]
     fn test_fastest_cl_device() {
@@ -339,5 +347,39 @@ mod tests {
         assert_eq!(buf.read(), vec![2, 2, 4, 4, 2, 1, 3]);
 
         Ok(())
+    }
+
+    #[test]
+    fn test_size_zero_alloc_cl() {
+        let device = OpenCL::based(0).unwrap();
+        let res = Alloc::<i32>::alloc_from_slice::<()>(&device, &[]);
+        if let Err(e) = res {
+            let e = e.downcast_ref::<OCLErrorKind>().unwrap();
+            if e != &OCLErrorKind::InvalidBufferSize {
+                panic!()
+            }
+        } else {
+            panic!()
+        }
+
+        let res = Alloc::<i32>::alloc::<()>(&device, 0, crate::flag::AllocFlag::None);
+        if let Err(e) = res {
+            let e = e.downcast_ref::<OCLErrorKind>().unwrap();
+            if e != &OCLErrorKind::InvalidBufferSize {
+                panic!()
+            }
+        } else {
+            panic!()
+        }
+
+        let res = Alloc::<i32>::alloc_from_vec::<()>(&device, vec![]);
+        if let Err(e) = res {
+            let e = e.downcast_ref::<OCLErrorKind>().unwrap();
+            if e != &OCLErrorKind::InvalidBufferSize {
+                panic!()
+            }
+        } else {
+            panic!()
+        }
     }
 }

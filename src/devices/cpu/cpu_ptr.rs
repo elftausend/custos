@@ -21,7 +21,7 @@ pub struct CPUPtr<T> {
     /// The alignment of type `T`
     pub align: Option<usize>, // if no type conversions are required -> could remove this
     /// The size of type `T`
-    pub size: Option<usize>,
+    pub ty_size: Option<usize>,
 }
 
 unsafe impl<T> Send for CPUPtr<T> {}
@@ -107,9 +107,29 @@ impl<T> CPUPtr<T> {
             len,
             flag,
             align: None,
-            size: None,
+            ty_size: None,
         }
     }
+
+    pub fn from_vec(mut vec: Vec<T>) -> CPUPtr<T> {
+        // CPUPtr only knows about the length, not the capacity -> deallocation happens with length, which may be less than the capacity
+        vec.shrink_to_fit();
+
+        let mut ptr = vec.as_mut_ptr();
+
+        // Vec uses dangling invalid pointer when capacity is 0 (instead of just null)
+        // -> would deallocate this dangling pointer on drop
+        if vec.capacity() == 0 {
+            ptr = std::ptr::null_mut()
+        }
+
+        let len = vec.len();
+        core::mem::forget(vec);
+
+        unsafe { CPUPtr::from_ptr(ptr, len, AllocFlag::None) }
+    }
+
+    // pub fn
 
     /// Extracts a slice containing the entire `CPUPtr`.
     #[inline]
@@ -129,12 +149,24 @@ impl<T> CPUPtr<T> {
     #[inline]
     pub fn layout_info(&self) -> (usize, usize) {
         let (align, size) = if let Some(align) = self.align {
-            (align, self.size.expect("size must be set if align is set"))
+            (
+                align,
+                self.ty_size.expect("size must be set if align is set"),
+            )
         } else {
             (align_of::<T>(), size_of::<T>())
         };
 
         (align, size)
+    }
+
+    pub fn current_memory(&self) -> Option<(*mut u8, Layout)> {
+        if self.ptr.is_null() || size_of::<T>() == 0 {
+            return None;
+        }
+        let (align, size) = self.layout_info();
+        let layout = Layout::from_size_align(self.len * size, align).ok()?;
+        Some((self.ptr.cast(), layout))
     }
 }
 
@@ -182,7 +214,7 @@ impl<T> Default for CPUPtr<T> {
             flag: AllocFlag::default(),
             len: 0,
             align: None,
-            size: None,
+            ty_size: None,
         }
     }
 }
@@ -193,20 +225,10 @@ impl<T> Drop for CPUPtr<T> {
             return;
         }
 
-        if self.ptr.is_null() {
-            return;
-        }
-
-        let (align, size) = if let Some(align) = self.align {
-            (align, self.size.expect("size must be set if align is set"))
-        } else {
-            (align_of::<T>(), size_of::<T>())
-        };
-
-        let layout = Layout::from_size_align(self.len * size, align).unwrap();
-
-        unsafe {
-            std::alloc::dealloc(self.ptr as *mut u8, layout);
+        if let Some((ptr, layout)) = self.current_memory() {
+            unsafe {
+                std::alloc::dealloc(ptr, layout);
+            }
         }
     }
 }
@@ -248,7 +270,7 @@ impl<T> ShallowCopy for CPUPtr<T> {
             len: self.len,
             flag: AllocFlag::Wrapper,
             align: self.align,
-            size: self.size,
+            ty_size: self.ty_size,
         }
     }
 }
@@ -360,5 +382,58 @@ pub mod serde {
                 ],
             );
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use core::{alloc::Layout, marker::PhantomData};
+
+    use super::CPUPtr;
+
+    #[test]
+    fn test_return_current_memory() {
+        let mut data = CPUPtr::<f32>::new_initialized(10, crate::flag::AllocFlag::None);
+
+        let ret = data.current_memory().unwrap();
+        assert_eq!(ret.0, data.ptr as *mut u8);
+        assert_eq!(ret.1, Layout::from_size_align(data.len * 4, 4).unwrap());
+        data.align = Some(16);
+        data.ty_size = Some(8);
+        let ret = data.current_memory().unwrap();
+        assert_eq!(ret.1, Layout::from_size_align(data.len * 8, 16).unwrap());
+        data.align = None;
+        data.ty_size = None;
+        let ret = data.current_memory().unwrap();
+        assert_eq!(ret.1, Layout::from_size_align(data.len * 4, 4).unwrap());
+    }
+
+    #[test]
+    fn test_alloc_from_empty_vec() {
+        let data = Vec::<f32>::new();
+        let res = CPUPtr::from_vec(data);
+        assert!(res.ptr.is_null());
+        assert_eq!(res.len, 0);
+    }
+
+    #[test]
+    fn test_alloc_from_excess_cap_vec() {
+        let mut data = Vec::<f32>::new();
+        for _ in 0..10 {
+            data.push(4.);
+        }
+        let res = CPUPtr::from_vec(data);
+        assert!(!res.ptr.is_null());
+        assert_eq!(res.len, 10);
+    }
+    #[test]
+    fn test_alloc_from_vec_with_zst() {
+        let mut data = Vec::<PhantomData<f32>>::new();
+        for _ in 0..10 {
+            data.push(PhantomData);
+        }
+        let res = CPUPtr::from_vec(data);
+        assert!(!res.ptr.is_null());
+        assert_eq!(res.len, 10);
     }
 }

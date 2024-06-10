@@ -4,7 +4,7 @@ use crate::{
     flag::AllocFlag, impl_buffer_hook_traits, impl_retriever, impl_wrapped_data,
     pass_down_add_operation, pass_down_cursor, pass_down_grad_fn, pass_down_optimize_mem_graph,
     pass_down_tape_actions, pass_down_use_gpu_or_cpu, shape::Shape, Alloc, Base, Buffer, CloneBuf,
-    Device, DevicelessAble, OnDropBuffer, Read, StackArray, WrappedData, WriteBuf,
+    Device, DeviceError, DevicelessAble, OnDropBuffer, Read, StackArray, WrappedData, WriteBuf,
 };
 
 /// A device that allocates memory on the stack.
@@ -74,8 +74,10 @@ impl<Mods: OnDropBuffer, T: Copy + Default> Alloc<T> for Stack<Mods> {
 
     #[inline]
     fn alloc_from_slice<S: Shape>(&self, data: &[T]) -> crate::Result<Self::Base<T, S>> {
-        let mut array: StackArray<S, T> =
-            <Stack<Mods> as Alloc<T>>::alloc(self, 0, AllocFlag::None)?;
+        if data.len() < S::LEN {
+            return Err(DeviceError::ShapeLengthMismatch.into());
+        }
+        let mut array = Alloc::<T>::alloc(self, 0, AllocFlag::None)?;
         array.flatten_mut().copy_from_slice(&data[..S::LEN]);
 
         Ok(array)

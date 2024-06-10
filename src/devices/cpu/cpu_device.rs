@@ -2,8 +2,8 @@ use core::convert::Infallible;
 
 use crate::{
     cpu::CPUPtr, flag::AllocFlag, impl_device_traits, AddLayer, Alloc, Base, Buffer, CloneBuf,
-    Device, DevicelessAble, HasModules, IsShapeIndep, Module, OnDropBuffer, OnNewBuffer,
-    RemoveLayer, Resolve, Setup, Shape, UnaryFusing, WrappedData,
+    Device, DeviceError, DevicelessAble, HasModules, IsShapeIndep, Module, OnDropBuffer,
+    OnNewBuffer, RemoveLayer, Resolve, Setup, Shape, UnaryFusing, WrappedData,
 };
 
 pub trait IsCPU {}
@@ -123,7 +123,9 @@ impl<Mods> CPU<Mods> {
 
 impl<T, Mods: OnDropBuffer> Alloc<T> for CPU<Mods> {
     fn alloc<S: Shape>(&self, mut len: usize, flag: AllocFlag) -> crate::Result<Self::Base<T, S>> {
-        assert!(len > 0, "invalid buffer len: 0");
+        if len == 0 {
+            return Err(DeviceError::ZeroLengthBuffer.into());
+        }
 
         if S::LEN > len {
             len = S::LEN
@@ -138,8 +140,12 @@ impl<T, Mods: OnDropBuffer> Alloc<T> for CPU<Mods> {
         S: Shape,
         T: Clone,
     {
-        assert!(!data.is_empty(), "invalid buffer len: 0");
-        assert!(S::LEN <= data.len(), "invalid buffer len: {}", data.len());
+        if data.is_empty() {
+            return Err(DeviceError::ZeroLengthBuffer.into());
+        }
+        if !(S::LEN == data.len() || S::LEN == 0) {
+            return Err(DeviceError::ShapeLengthMismatch.into());
+        }
 
         let cpu_ptr = unsafe { CPUPtr::new(data.len(), AllocFlag::None) };
         let slice = unsafe { std::slice::from_raw_parts_mut(cpu_ptr.ptr, data.len()) };
@@ -148,17 +154,14 @@ impl<T, Mods: OnDropBuffer> Alloc<T> for CPU<Mods> {
         Ok(cpu_ptr)
     }
 
-    fn alloc_from_vec<S: Shape>(&self, mut vec: Vec<T>) -> crate::Result<Self::Base<T, S>>
+    fn alloc_from_vec<S: Shape>(&self, vec: Vec<T>) -> crate::Result<Self::Base<T, S>>
     where
         T: Clone,
     {
-        assert!(!vec.is_empty(), "invalid buffer len: 0");
-
-        let ptr = vec.as_mut_ptr();
-        let len = vec.len();
-        core::mem::forget(vec);
-
-        Ok(unsafe { CPUPtr::from_ptr(ptr, len, AllocFlag::None) })
+        if vec.is_empty() {
+            return Err(DeviceError::ZeroLengthBuffer.into());
+        }
+        Ok(CPUPtr::from_vec(vec))
     }
 }
 
@@ -223,6 +226,8 @@ unsafe impl<Mods: OnDropBuffer> IsShapeIndep for CPU<Mods> {}
 
 #[cfg(test)]
 mod tests {
+    use crate::{Alloc, DeviceError, Dim1, CPU};
+
     #[cfg(feature = "fork")]
     #[cfg(feature = "cached")]
     #[test]
@@ -234,5 +239,54 @@ mod tests {
         let cpu = cpu.add_layer::<crate::Fork<()>>();
 
         let _cpu = cpu.remove_layer();
+    }
+
+    #[test]
+    fn test_alloc_shape_size_mismatch_cpu() {
+        let device = CPU::based();
+        let res = device.alloc_from_slice::<Dim1<3>>(&[1, 2, 3, 4]);
+        if let Err(e) = res {
+            let e = e.downcast_ref::<DeviceError>().unwrap();
+            if e != &DeviceError::ShapeLengthMismatch {
+                panic!()
+            }
+        } else {
+            panic!()
+        }
+        device.alloc_from_slice::<()>(&[1, 2, 3, 4]).unwrap();
+    }
+
+    #[test]
+    fn test_size_zero_alloc_cpu() {
+        let device = CPU::based();
+        let res = Alloc::<i32>::alloc_from_slice::<()>(&device, &[]);
+        if let Err(e) = res {
+            let e = e.downcast_ref::<DeviceError>().unwrap();
+            if e != &DeviceError::ZeroLengthBuffer {
+                panic!()
+            }
+        } else {
+            panic!()
+        }
+
+        let res = Alloc::<i32>::alloc::<()>(&device, 0, crate::flag::AllocFlag::None);
+        if let Err(e) = res {
+            let e = e.downcast_ref::<DeviceError>().unwrap();
+            if e != &DeviceError::ZeroLengthBuffer {
+                panic!()
+            }
+        } else {
+            panic!()
+        }
+
+        let res = Alloc::<i32>::alloc_from_vec::<()>(&device, vec![]);
+        if let Err(e) = res {
+            let e = e.downcast_ref::<DeviceError>().unwrap();
+            if e != &DeviceError::ZeroLengthBuffer {
+                panic!()
+            }
+        } else {
+            panic!()
+        }
     }
 }
