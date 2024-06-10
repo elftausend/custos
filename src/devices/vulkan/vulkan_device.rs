@@ -2,9 +2,7 @@ use ash::vk::{self, BufferUsageFlags};
 
 use super::{context::Context, launch_shader, AsVkShaderArgument, ShaderCache, VkArray};
 use crate::{
-    impl_device_traits, pass_down_use_gpu_or_cpu,
-    wgsl::{chosen_wgsl_idx, WgslDevice, WgslShaderLaunch},
-    Alloc, Base, Buffer, Device, IsShapeIndep, Module, OnDropBuffer, Setup, Shape, WrappedData,
+    impl_device_traits, pass_down_use_gpu_or_cpu, wgsl::{chosen_wgsl_idx, WgslDevice, WgslShaderLaunch}, Alloc, Base, Buffer, Device, DeviceError, IsShapeIndep, Module, OnDropBuffer, Setup, Shape, WrappedData
 };
 use core::{
     cell::RefCell,
@@ -157,6 +155,9 @@ impl<Mods: OnDropBuffer, T> Alloc<T> for Vulkan<Mods> {
         len: usize,
         flag: crate::flag::AllocFlag,
     ) -> crate::Result<Self::Base<T, S>> {
+        if len == 0 {
+            return Err(DeviceError::ZeroLengthBuffer.into());
+        }
         Ok(VkArray::new(
             self.context(),
             len,
@@ -173,6 +174,9 @@ impl<Mods: OnDropBuffer, T> Alloc<T> for Vulkan<Mods> {
     where
         T: Clone,
     {
+        if data.is_empty() {
+            return Err(DeviceError::ZeroLengthBuffer.into());
+        }
         Ok(VkArray::from_slice(
             self.context(),
             data,
