@@ -158,7 +158,7 @@ macro_rules! impl_retriever {
                 &self,
                 len: usize,
                 parents: impl $crate::Parents<NUM_PARENTS>,
-            ) -> crate::Result<Buffer<T, Self, S>> {
+            ) -> $crate::Result<Buffer<T, Self, S>> {
                 let data = unsafe { self
                     .modules
                     .retrieve::<NUM_PARENTS>(self, len, parents)? };
