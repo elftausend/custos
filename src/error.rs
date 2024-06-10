@@ -59,10 +59,10 @@ pub enum DeviceError {
     LocationAlreadyInUse,
     /// Unary fusing not supported.
     UnaryFusingUnsupported,
-    /// Zero length buffers are not supported 
+    /// Zero length buffers are not supported
     ZeroLengthBuffer,
     /// Given generic shape length does not match with e.g. slice length
-    ShapeLengthMismatch
+    ShapeLengthMismatch,
 }
 
 impl DeviceError {

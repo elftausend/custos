@@ -21,7 +21,7 @@ pub struct CPUPtr<T> {
     /// The alignment of type `T`
     pub align: Option<usize>, // if no type conversions are required -> could remove this
     /// The size of type `T`
-    pub size: Option<usize>,
+    pub ty_size: Option<usize>,
 }
 
 unsafe impl<T> Send for CPUPtr<T> {}
@@ -107,7 +107,7 @@ impl<T> CPUPtr<T> {
             len,
             flag,
             align: None,
-            size: None,
+            ty_size: None,
         }
     }
 
@@ -149,7 +149,10 @@ impl<T> CPUPtr<T> {
     #[inline]
     pub fn layout_info(&self) -> (usize, usize) {
         let (align, size) = if let Some(align) = self.align {
-            (align, self.size.expect("size must be set if align is set"))
+            (
+                align,
+                self.ty_size.expect("size must be set if align is set"),
+            )
         } else {
             (align_of::<T>(), size_of::<T>())
         };
@@ -157,7 +160,7 @@ impl<T> CPUPtr<T> {
         (align, size)
     }
 
-    fn current_memory(&self) -> Option<(*mut u8, Layout)> {
+    pub fn current_memory(&self) -> Option<(*mut u8, Layout)> {
         if self.ptr.is_null() || size_of::<T>() == 0 {
             return None;
         }
@@ -211,7 +214,7 @@ impl<T> Default for CPUPtr<T> {
             flag: AllocFlag::default(),
             len: 0,
             align: None,
-            size: None,
+            ty_size: None,
         }
     }
 }
@@ -267,7 +270,7 @@ impl<T> ShallowCopy for CPUPtr<T> {
             len: self.len,
             flag: AllocFlag::Wrapper,
             align: self.align,
-            size: self.size,
+            ty_size: self.ty_size,
         }
     }
 }
@@ -384,9 +387,26 @@ pub mod serde {
 
 #[cfg(test)]
 mod tests {
-    use core::marker::PhantomData;
+    use core::{alloc::Layout, marker::PhantomData};
 
     use super::CPUPtr;
+
+    #[test]
+    fn test_return_current_memory() {
+        let mut data = CPUPtr::<f32>::new_initialized(10, crate::flag::AllocFlag::None);
+
+        let ret = data.current_memory().unwrap();
+        assert_eq!(ret.0, data.ptr as *mut u8);
+        assert_eq!(ret.1, Layout::from_size_align(data.len * 4, 4).unwrap());
+        data.align = Some(16);
+        data.ty_size = Some(8);
+        let ret = data.current_memory().unwrap();
+        assert_eq!(ret.1, Layout::from_size_align(data.len * 8, 16).unwrap());
+        data.align = None;
+        data.ty_size = None;
+        let ret = data.current_memory().unwrap();
+        assert_eq!(ret.1, Layout::from_size_align(data.len * 4, 4).unwrap());
+    }
 
     #[test]
     fn test_alloc_from_empty_vec() {

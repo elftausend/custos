@@ -1,7 +1,9 @@
 use core::convert::Infallible;
 
 use crate::{
-    cpu::CPUPtr, flag::AllocFlag, impl_device_traits, AddLayer, Alloc, Base, Buffer, CloneBuf, Device, DeviceError, DevicelessAble, HasModules, IsShapeIndep, Module, OnDropBuffer, OnNewBuffer, RemoveLayer, Resolve, Setup, Shape, UnaryFusing, WrappedData
+    cpu::CPUPtr, flag::AllocFlag, impl_device_traits, AddLayer, Alloc, Base, Buffer, CloneBuf,
+    Device, DeviceError, DevicelessAble, HasModules, IsShapeIndep, Module, OnDropBuffer,
+    OnNewBuffer, RemoveLayer, Resolve, Setup, Shape, UnaryFusing, WrappedData,
 };
 
 pub trait IsCPU {}
@@ -122,7 +124,7 @@ impl<Mods> CPU<Mods> {
 impl<T, Mods: OnDropBuffer> Alloc<T> for CPU<Mods> {
     fn alloc<S: Shape>(&self, mut len: usize, flag: AllocFlag) -> crate::Result<Self::Base<T, S>> {
         if len == 0 {
-            return Err(DeviceError::ZeroLengthBuffer.into())
+            return Err(DeviceError::ZeroLengthBuffer.into());
         }
 
         if S::LEN > len {
@@ -139,10 +141,10 @@ impl<T, Mods: OnDropBuffer> Alloc<T> for CPU<Mods> {
         T: Clone,
     {
         if data.is_empty() {
-            return Err(DeviceError::ZeroLengthBuffer.into())
+            return Err(DeviceError::ZeroLengthBuffer.into());
         }
         if !(S::LEN == data.len() || S::LEN == 0) {
-            return Err(DeviceError::ShapeLengthMismatch.into())
+            return Err(DeviceError::ShapeLengthMismatch.into());
         }
 
         let cpu_ptr = unsafe { CPUPtr::new(data.len(), AllocFlag::None) };
@@ -157,7 +159,7 @@ impl<T, Mods: OnDropBuffer> Alloc<T> for CPU<Mods> {
         T: Clone,
     {
         if vec.is_empty() {
-            return Err(DeviceError::ZeroLengthBuffer.into())
+            return Err(DeviceError::ZeroLengthBuffer.into());
         }
         Ok(CPUPtr::from_vec(vec))
     }
@@ -240,7 +242,7 @@ mod tests {
     }
 
     #[test]
-    fn test_alloc_shape_size_mismatch() {
+    fn test_alloc_shape_size_mismatch_cpu() {
         let device = CPU::based();
         let res = device.alloc_from_slice::<Dim1<3>>(&[1, 2, 3, 4]);
         if let Err(e) = res {
@@ -253,7 +255,7 @@ mod tests {
         }
         device.alloc_from_slice::<()>(&[1, 2, 3, 4]).unwrap();
     }
-    
+
     #[test]
     fn test_size_zero_alloc_cpu() {
         let device = CPU::based();
@@ -266,7 +268,7 @@ mod tests {
         } else {
             panic!()
         }
-        
+
         let res = Alloc::<i32>::alloc::<()>(&device, 0, crate::flag::AllocFlag::None);
         if let Err(e) = res {
             let e = e.downcast_ref::<DeviceError>().unwrap();
@@ -276,7 +278,7 @@ mod tests {
         } else {
             panic!()
         }
-        
+
         let res = Alloc::<i32>::alloc_from_vec::<()>(&device, vec![]);
         if let Err(e) = res {
             let e = e.downcast_ref::<DeviceError>().unwrap();
