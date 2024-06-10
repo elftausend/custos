@@ -115,6 +115,7 @@ pub(crate) fn unregister_buf_any(
 
 #[cfg(feature = "std")]
 #[inline]
+#[allow(unused)]
 pub(crate) unsafe fn register_buf_copyable<T, D, S>(
     cache: &mut HashMap<UniqueId, Box<dyn crate::BoxedShallowCopy>, impl BuildHasher>,
     buf: &Buffer<T, D, S>,
@@ -137,7 +138,8 @@ pub(crate) unsafe fn register_buf_copyable<T, D, S>(
 
 #[cfg(feature = "std")]
 #[inline]
-pub fn unregister_buf_copyable(
+#[allow(unused)]
+pub(crate) fn unregister_buf_copyable(
     cache: &mut HashMap<UniqueId, Box<dyn crate::BoxedShallowCopy>, impl BuildHasher>,
     id: Id,
 ) {

@@ -1,7 +1,7 @@
 use core::ops::{Range, RangeBounds};
 
 use min_cl::{
-    api::{enqueue_copy_buffer, enqueue_copy_buffers, enqueue_full_copy_buffer, wait_for_event},
+    api::{enqueue_copy_buffer, enqueue_copy_buffers, enqueue_full_copy_buffer},
     CLDevice,
 };
 
