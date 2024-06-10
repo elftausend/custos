@@ -32,7 +32,7 @@ pub struct Error {}
 
 /// A type alias for `Result<T, Error>`.
 #[cfg(not(feature = "std"))]
-pub type Result<T> = core::result::Result<T, Error>;
+pub type Result<T> = core::result::Result<T, DeviceError>;
 
 /// 'generic' device errors that can occur on any device.
 #[derive(Clone, Copy, Eq, Hash, Ord, PartialEq, PartialOrd)]
