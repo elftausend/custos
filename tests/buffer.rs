@@ -119,7 +119,7 @@ fn test_use_number() {
 fn test_cached_cpu() {
     // for: cargo test -- --test-threads=1
 
-    std::env::set_var("RUST_BACKTRACE", "1");
+    // std::env::set_var("RUST_BACKTRACE", "1");
     let device = CPU::<Cached<Base>>::new();
 
     let mut prev_ptr = None;

@@ -216,7 +216,7 @@ impl<T, Mods: OnDropBuffer> NnapiDevice<T, Mods> {
                     idx as i32,
                     input_ptr.ptr.cast(),
                     input_ptr
-                        .size
+                        .ty_size
                         .expect("`size` is set during with_slice creation")
                         * input_ptr.len,
                 )
