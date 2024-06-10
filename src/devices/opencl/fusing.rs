@@ -20,7 +20,7 @@ impl<Mods: OnDropBuffer> UnaryFusing for OpenCL<Mods> {
                 return Ok(());
             }
 
-            let fused_operations = operations_to_fused_src(&ops);
+            let fused_operations = operations_to_fused_src(ops);
 
             let src = format!(
                 "

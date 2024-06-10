@@ -38,7 +38,7 @@ where
 {
     #[inline]
     pub fn from_iter<I: IntoIterator<Item = T>>(device: &'a D, iter: I) -> Self {
-        Buffer::from_vec(&device, iter.into_iter().collect())
+        Buffer::from_vec(device, iter.into_iter().collect())
     }
 }
 

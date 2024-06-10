@@ -147,7 +147,7 @@ mod serde {
                 marker: PhantomData::<T>,
             })?;
 
-            let cuda_ptr = CUDAPtr::new(cpu_ptr.len, crate::flag::AllocFlag::None);
+            let cuda_ptr = CUDAPtr::new(cpu_ptr.len, crate::flag::AllocFlag::None).unwrap();
             cu_write(cuda_ptr.ptr, &cpu_ptr).unwrap();
             Ok(cuda_ptr)
         }
@@ -166,7 +166,7 @@ mod serde {
         fn test_ser_de_of_cuda_ptr_filled() {
             let _device = CUDA::<Base>::new(0).unwrap();
 
-            let cuda_ptr = CUDAPtr::<i32>::new(10, crate::flag::AllocFlag::None);
+            let cuda_ptr = CUDAPtr::<i32>::new(10, crate::flag::AllocFlag::None).unwrap();
             cu_write(cuda_ptr.ptr, &[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]).unwrap();
             let tokens = [
                 Token::Seq { len: Some(10) },

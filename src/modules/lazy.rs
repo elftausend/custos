@@ -8,7 +8,10 @@ pub mod wrapper;
 pub use ty::*;
 
 use crate::{
-    op_hint::OpHint, register_buf_copyable, unregister_buf_copyable, AddLayer, AddOperation, Alloc, BoxedShallowCopy, Buffer, CachedBuffers, Cursor, Device, ExecNow, HasId, HasModules, Id, IsShapeIndep, Module, NoHasher, OnDropBuffer, OnNewBuffer, Parents, ReplaceBuf, Retrieve, RunModule, SetOpHint, Setup, ShallowCopy, Shape, UniqueId, UpdateArgs, UseGpuOrCpu
+    op_hint::OpHint, register_buf_copyable, unregister_buf_copyable, AddLayer, AddOperation, Alloc,
+    BoxedShallowCopy, Buffer, CachedBuffers, Cursor, Device, ExecNow, HasId, HasModules, Id,
+    IsShapeIndep, Module, NoHasher, OnDropBuffer, OnNewBuffer, Parents, ReplaceBuf, Retrieve,
+    RunModule, SetOpHint, Setup, ShallowCopy, Shape, UniqueId, UpdateArgs, UseGpuOrCpu,
 };
 
 #[cfg(feature = "graph")]

@@ -84,7 +84,7 @@ pub fn get_ptx(prog: &NvrtcProgram) -> NvrtcResult<CString> {
 mod tests {
     use crate::{
         cuda::api::{culaunch_kernel, load_module_data, nvrtc::create_program},
-        Base, Buffer, Read, CUDA,
+        Base, Buffer, CUDA,
     };
     use std::ffi::c_void;
 

@@ -84,7 +84,7 @@ impl BorrowCache {
         D: Alloc<T> + 'static,
         S: Shape,
     {
-        if self.cache.get(&id).is_some() {
+        if self.cache.contains_key(&id) {
             return;
         }
         *new_buf = true;

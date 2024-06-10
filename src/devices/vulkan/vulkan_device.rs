@@ -2,7 +2,10 @@ use ash::vk::{self, BufferUsageFlags};
 
 use super::{context::Context, launch_shader, AsVkShaderArgument, ShaderCache, VkArray};
 use crate::{
-    impl_device_traits, pass_down_use_gpu_or_cpu, wgsl::{chosen_wgsl_idx, WgslDevice, WgslShaderLaunch}, Alloc, Base, Buffer, Device, DeviceError, IsShapeIndep, Module, OnDropBuffer, Setup, Shape, WrappedData
+    impl_device_traits, pass_down_use_gpu_or_cpu,
+    wgsl::{chosen_wgsl_idx, WgslDevice, WgslShaderLaunch},
+    Alloc, Base, Buffer, Device, DeviceError, IsShapeIndep, Module, OnDropBuffer, Setup, Shape,
+    WrappedData,
 };
 use core::{
     cell::RefCell,

@@ -1,6 +1,6 @@
 use min_cl::CLDevice;
 
-use min_cl::api::{create_buffer, enqueue_full_copy_buffer, wait_for_event, MemFlags};
+use min_cl::api::{create_buffer, enqueue_full_copy_buffer, MemFlags};
 
 use super::{enqueue_kernel, AsClCvoidPtr, CLPtr};
 use crate::flag::AllocFlag;
@@ -312,9 +312,7 @@ impl<Mods> crate::LazyRun for OpenCL<Mods> {}
 mod tests {
     use min_cl::api::OCLErrorKind;
 
-    use crate::{
-        opencl::cl_device::CLDevice, Alloc, Base, Buffer, Cached, DeviceError, OpenCL, CPU,
-    };
+    use crate::{opencl::cl_device::CLDevice, Alloc, Base, Buffer, Cached, OpenCL, CPU};
 
     #[test]
     fn test_fastest_cl_device() {

@@ -274,11 +274,9 @@ mod tests {
     fn test_op_hint_unary_chain_fuse_automatic_perf() {
         use std::time::Instant;
 
-        use crate::{
-            ApplyFunction, Base, Combiner, Device, Graph, Lazy, OpenCL, Optimize, Run, CPU,
-        };
+        use crate::{ApplyFunction, Base, Combiner, Device, Graph, Lazy, OpenCL, Optimize, Run};
 
-        // let dev = CPU::<Graph<Lazy<Base>>>::new();
+        // let dev = crate::CPU::<Graph<Lazy<Base>>>::new();
         let dev = OpenCL::<Graph<Lazy<Base>>>::new(0).unwrap();
 
         let buf = dev.buffer::<_, (), _>(vec![1.; N]);

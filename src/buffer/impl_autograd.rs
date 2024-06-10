@@ -1,7 +1,10 @@
 use crate::prelude::*;
 use crate::MayTapeActions;
+
+#[cfg(feature = "autograd")]
 use crate::ZeroGrad;
 
+#[cfg(feature = "autograd")]
 const AUTOGRAD_NOT_AVAILABLE: &str = "Autograd<> is not available.";
 
 #[cfg(feature = "autograd")]

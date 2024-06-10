@@ -21,8 +21,8 @@ impl LazyCudaGraph {
         Ok(LazyCudaGraph { graph, graph_exec })
     }
 
-    pub fn launch(&self, stream: super::api::CUstream) -> Result<(), CudaErrorKind> {
-        unsafe { cuGraphLaunch(self.graph_exec.0.as_ptr(), stream).to_result()? }
+    pub fn launch(&self, stream: &Stream) -> Result<(), CudaErrorKind> {
+        unsafe { cuGraphLaunch(self.graph_exec.0.as_ptr(), stream.0).to_result()? }
         Ok(())
     }
 }
@@ -39,7 +39,7 @@ impl<Mods> crate::LazyRun for CUDA<Mods> {
 
         match graph {
             Ok(graph) => {
-                graph.launch(self.stream.0)?;
+                graph.launch(&self.stream)?;
                 self.stream().sync()?;
             }
             Err(e) => return Err((*e).into()),
