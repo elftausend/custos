@@ -74,14 +74,8 @@ pub use devices::cuda::CUDA;
 #[cfg(feature = "opencl")]
 pub use devices::opencl::OpenCL;
 
-#[cfg(feature = "wgpu")]
-pub use devices::wgpu::WGPU;
-
 #[cfg(feature = "stack")]
 pub use devices::stack::Stack;
-
-#[cfg(feature = "network")]
-pub use devices::network::Network;
 
 #[cfg(feature = "nnapi")]
 pub use devices::nnapi::{AsOperandCode, NnapiDevice};
@@ -256,12 +250,6 @@ pub mod prelude {
 
     #[cfg(feature = "nnapi")]
     pub use crate::nnapi::NnapiDevice;
-
-    #[cfg(feature = "network")]
-    pub use crate::network::{Network, NetworkArray};
-
-    #[cfg(feature = "wgpu")]
-    pub use crate::wgpu::{launch_shader, WGPU};
 
     #[cfg(feature = "cuda")]
     pub use crate::cuda::{chosen_cu_idx, launch_kernel1d, CUBuffer, CUDA};
