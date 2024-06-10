@@ -111,6 +111,26 @@ impl<T> CPUPtr<T> {
         }
     }
 
+    pub fn from_vec(mut vec: Vec<T>) -> CPUPtr<T> {
+        // CPUPtr only knows about the length, not the capacity -> deallocation happens with length, which may be less than the capacity
+        vec.shrink_to_fit();
+
+        let mut ptr = vec.as_mut_ptr();
+
+        // Vec uses dangling invalid pointer when capacity is 0 (instead of just null)
+        // -> would deallocate this dangling pointer on drop
+        if vec.capacity() == 0 {
+            ptr = std::ptr::null_mut()
+        }
+
+        let len = vec.len();
+        core::mem::forget(vec);
+
+        unsafe { CPUPtr::from_ptr(ptr, len, AllocFlag::None) }
+    }
+
+    // pub fn
+
     /// Extracts a slice containing the entire `CPUPtr`.
     #[inline]
     pub fn as_slice(&self) -> &[T] {
@@ -135,6 +155,15 @@ impl<T> CPUPtr<T> {
         };
 
         (align, size)
+    }
+
+    fn current_memory(&self) -> Option<(*mut u8, Layout)> {
+        if self.ptr.is_null() || size_of::<T>() == 0 {
+            return None;
+        }
+        let (align, size) = self.layout_info();
+        let layout = Layout::from_size_align(self.len * size, align).ok()?;
+        Some((self.ptr.cast(), layout))
     }
 }
 
@@ -193,20 +222,10 @@ impl<T> Drop for CPUPtr<T> {
             return;
         }
 
-        if self.ptr.is_null() {
-            return;
-        }
-
-        let (align, size) = if let Some(align) = self.align {
-            (align, self.size.expect("size must be set if align is set"))
-        } else {
-            (align_of::<T>(), size_of::<T>())
-        };
-
-        let layout = Layout::from_size_align(self.len * size, align).unwrap();
-
-        unsafe {
-            std::alloc::dealloc(self.ptr as *mut u8, layout);
+        if let Some((ptr, layout)) = self.current_memory() {
+            unsafe {
+                std::alloc::dealloc(ptr, layout);
+            }
         }
     }
 }
@@ -360,5 +379,41 @@ pub mod serde {
                 ],
             );
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use core::marker::PhantomData;
+
+    use super::CPUPtr;
+
+    #[test]
+    fn test_alloc_from_empty_vec() {
+        let data = Vec::<f32>::new();
+        let res = CPUPtr::from_vec(data);
+        assert!(res.ptr.is_null());
+        assert_eq!(res.len, 0);
+    }
+
+    #[test]
+    fn test_alloc_from_excess_cap_vec() {
+        let mut data = Vec::<f32>::new();
+        for _ in 0..10 {
+            data.push(4.);
+        }
+        let res = CPUPtr::from_vec(data);
+        assert!(!res.ptr.is_null());
+        assert_eq!(res.len, 10);
+    }
+    #[test]
+    fn test_alloc_from_vec_with_zst() {
+        let mut data = Vec::<PhantomData<f32>>::new();
+        for _ in 0..10 {
+            data.push(PhantomData);
+        }
+        let res = CPUPtr::from_vec(data);
+        assert!(!res.ptr.is_null());
+        assert_eq!(res.len, 10);
     }
 }

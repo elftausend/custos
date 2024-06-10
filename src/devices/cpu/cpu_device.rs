@@ -148,17 +148,11 @@ impl<T, Mods: OnDropBuffer> Alloc<T> for CPU<Mods> {
         Ok(cpu_ptr)
     }
 
-    fn alloc_from_vec<S: Shape>(&self, mut vec: Vec<T>) -> crate::Result<Self::Base<T, S>>
+    fn alloc_from_vec<S: Shape>(&self, vec: Vec<T>) -> crate::Result<Self::Base<T, S>>
     where
         T: Clone,
     {
-        assert!(!vec.is_empty(), "invalid buffer len: 0");
-
-        let ptr = vec.as_mut_ptr();
-        let len = vec.len();
-        core::mem::forget(vec);
-
-        Ok(unsafe { CPUPtr::from_ptr(ptr, len, AllocFlag::None) })
+        Ok(CPUPtr::from_vec(vec))
     }
 }
 

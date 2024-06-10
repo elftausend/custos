@@ -21,7 +21,7 @@ mod tests {
 
     #[test]
     fn test_from_iter() {
-        let buf = Buffer::<i32>::from_iter(0..10);
+        let buf: Buffer<i32> = FromIterator::from_iter(0..10);
         assert_eq!(buf.as_slice(), &[0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
     }
 
@@ -36,7 +36,7 @@ mod tests {
     fn test_from_iter_cl() {
         use crate::OpenCL;
 
-        let buf = Buffer::<i32, OpenCL>::from_iter(0..10);
+        let buf: Buffer<i32, OpenCL> = FromIterator::from_iter(0..10);
         assert_eq!(buf.read(), &[0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
     }
 
@@ -54,7 +54,7 @@ mod tests {
     fn test_from_iter_cuda() {
         use crate::CUDA;
 
-        let buf = Buffer::<i32, CUDA>::from_iter(0..10);
+        let buf: Buffer<i32, CUDA> = FromIterator::from_iter(0..10);
         assert_eq!(buf.read(), &[0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
     }
 

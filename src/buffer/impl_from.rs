@@ -213,7 +213,10 @@ mod tests {
         let device = CPU::based();
         let buffer = Buffer::<f32>::from_iter(
             &device,
-            (0..=10).into_iter().filter(|x| x % 2 == 0).map(|x| x as f32),
+            (0..=10)
+                .into_iter()
+                .filter(|x| x % 2 == 0)
+                .map(|x| x as f32),
         );
         assert_eq!(buffer.read(), [0., 2., 4., 6., 8., 10.,]);
     }
