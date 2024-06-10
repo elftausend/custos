@@ -155,6 +155,15 @@ impl<NewMods, SD> AddLayer<NewMods, SD> for Fork<()> {
     }
 }
 
+impl<Mods> HasModules for Fork<Mods> {
+    type Mods = Mods;
+
+    #[inline]
+    fn modules(&self) -> &Self::Mods {
+        &self.modules
+    }
+}
+
 #[cfg(test)]
 #[cfg(feature = "opencl")]
 mod tests {

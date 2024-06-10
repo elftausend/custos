@@ -158,7 +158,7 @@ impl<Mods: OnDropBuffer, T> Alloc<T> for Vulkan<Mods> {
         if len == 0 {
             return Err(DeviceError::ZeroLengthBuffer.into());
         }
-        Ok(VkArray::new(
+        VkArray::new(
             self.context(),
             len,
             BufferUsageFlags::STORAGE_BUFFER
@@ -166,7 +166,7 @@ impl<Mods: OnDropBuffer, T> Alloc<T> for Vulkan<Mods> {
                 | BufferUsageFlags::TRANSFER_DST,
             flag,
             vk::MemoryPropertyFlags::DEVICE_LOCAL,
-        ))
+        )
     }
 
     #[inline]
@@ -177,14 +177,14 @@ impl<Mods: OnDropBuffer, T> Alloc<T> for Vulkan<Mods> {
         if data.is_empty() {
             return Err(DeviceError::ZeroLengthBuffer.into());
         }
-        Ok(VkArray::from_slice(
+        VkArray::from_slice(
             self.context(),
             data,
             BufferUsageFlags::STORAGE_BUFFER
                 | BufferUsageFlags::TRANSFER_SRC
                 | BufferUsageFlags::TRANSFER_DST,
             crate::flag::AllocFlag::None,
-        ))
+        )
     }
 }
 
