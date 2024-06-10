@@ -17,6 +17,7 @@ impl<S: Shape, T: Default + Copy> StackArray<S, T> {
     #[inline]
     pub fn new() -> Self {
         // TODO: one day... use const expressions
+        // rust 1.79
         assert!(
             S::LEN > 0,
             "The size (N) of a stack allocated buffer must be greater than 0."
@@ -26,7 +27,7 @@ impl<S: Shape, T: Default + Copy> StackArray<S, T> {
 
     /// Returns a reference to the possibly multi-dimensional array.
     #[inline]
-    pub fn array(&self) -> &S::ARR<T> {
+    pub const fn array(&self) -> &S::ARR<T> {
         &self.array
     }
 
@@ -156,5 +157,16 @@ where
     #[inline]
     unsafe fn shallow(&self) -> Self {
         StackArray { array: self.array }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use crate::StackArray;
+
+    #[test]
+    #[should_panic]
+    fn test_stack_array_zero_len() {
+        StackArray::<(), f32>::new();
     }
 }
