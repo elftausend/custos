@@ -101,8 +101,8 @@ jobs:
       run: cargo test --verbose --no-default-features --features cuda,autograd
     - name: Run tests (CUDA, graph)
       run: cargo test --verbose --no-default-features --features cuda,graph
-    - name: Run tests (CUDA, cpu)
-      run: cargo test --verbose --no-default-features --features cuda,cpu
+    - name: Run tests (CUDA, cpu, serde)
+      run: cargo test --verbose --no-default-features --features cuda,cpu,serde
     - name: Run tests (CUDA, modules)
       run: cargo test --verbose --no-default-features --features cuda,autograd,graph,cpu
   
