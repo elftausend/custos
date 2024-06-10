@@ -8,11 +8,7 @@ pub use tape::*;
 use core::cell::{Cell, UnsafeCell};
 
 use crate::{
-    impl_remove_layer, pass_down_add_operation, pass_down_cached_buffers, pass_down_cursor,
-    pass_down_exec_now_module, pass_down_replace_buf_module, register_buf_copyable,
-    unregister_buf_copyable, AddGradFn, AddLayer, Alloc, Buffer, Device, HasId, IsShapeIndep,
-    Module, OnDropBuffer, OnNewBuffer, Parents, Retrieve, RunModule, Setup, ShallowCopy, Shape,
-    TapeActions,
+    impl_remove_layer, pass_down_add_operation, pass_down_cached_buffers, pass_down_cursor, pass_down_exec_now_module, pass_down_replace_buf_module, register_buf_copyable, unregister_buf_copyable, AddGradFn, AddLayer, Alloc, Buffer, Device, HasId, HasModules, IsShapeIndep, Module, OnDropBuffer, OnNewBuffer, Parents, Retrieve, RunModule, Setup, ShallowCopy, Shape, TapeActions
 };
 
 use self::wrapper::ReqGradWrapper;
@@ -224,6 +220,15 @@ pass_down_add_operation!(Autograd);
 pass_down_exec_now_module!(Autograd);
 pass_down_cached_buffers!(Autograd);
 pass_down_replace_buf_module!(Autograd);
+
+impl<Mods> HasModules for Autograd<Mods> {
+    type Mods = Mods;
+
+    #[inline]
+    fn modules(&self) -> &Self::Mods {
+        &self.modules
+    }
+}
 
 #[cfg(test)]
 #[cfg(feature = "cpu")]

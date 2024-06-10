@@ -4,9 +4,7 @@ use core::{
 };
 
 use crate::{
-    AddGradFn, AddLayer, AddOperation, Alloc, Buffer, Cache, CachedBuffers, Cursor, Device,
-    ExecNow, HasId, IsShapeIndep, Module, OnDropBuffer, OnNewBuffer, Parents, PtrType, RemoveLayer,
-    ReplaceBuf, Retrieve, RunModule, SetOpHint, Setup, ShallowCopy, Shape, WrappedData,
+    AddGradFn, AddLayer, AddOperation, Alloc, Buffer, Cache, CachedBuffers, Cursor, Device, ExecNow, HasId, HasModules, IsShapeIndep, Module, OnDropBuffer, OnNewBuffer, Parents, PtrType, RemoveLayer, ReplaceBuf, Retrieve, RunModule, SetOpHint, Setup, ShallowCopy, Shape, WrappedData
 };
 
 #[cfg(feature = "graph")]
@@ -342,6 +340,15 @@ where
     #[inline]
     fn replace_buf<'a, 'c>(&'c self, buffer: &'c Buffer<'a, T, D, S>) -> &'c Buffer<'a, T, D, S> {
         self.modules.replace_buf(buffer)
+    }
+}
+
+impl<Mods, D: Device> HasModules for CachedModule<Mods, D> {
+    type Mods = Mods;
+
+    #[inline]
+    fn modules(&self) -> &Self::Mods {
+        &self.modules
     }
 }
 

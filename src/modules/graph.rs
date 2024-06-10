@@ -9,10 +9,7 @@ use core::{cell::RefCell, hash::BuildHasherDefault, marker::PhantomData};
 use std::collections::HashSet;
 
 use crate::{
-    impl_remove_layer, pass_down_add_operation, pass_down_cursor, pass_down_exec_now_module,
-    pass_down_replace_buf_module, pass_down_use_gpu_or_cpu, AddLayer, Alloc, Buffer, Cursor,
-    Device, HasId, Module, NoHasher, OnDropBuffer, OnNewBuffer, Optimize, Parents, PtrType,
-    Retrieve, RunModule, Setup, Shape, UniqueId, WrappedData,
+    impl_remove_layer, pass_down_add_operation, pass_down_cursor, pass_down_exec_now_module, pass_down_replace_buf_module, pass_down_use_gpu_or_cpu, AddLayer, Alloc, Buffer, Cursor, Device, HasId, HasModules, Module, NoHasher, OnDropBuffer, OnNewBuffer, Optimize, Parents, PtrType, Retrieve, RunModule, Setup, Shape, UniqueId, WrappedData
 };
 
 pub use self::graph_translator::GraphTranslator;
@@ -201,6 +198,15 @@ where
 }
 
 pass_down_cursor!(Graph);
+
+impl<Mods> HasModules for Graph<Mods> {
+    type Mods = Mods;
+
+    #[inline]
+    fn modules(&self) -> &Self::Mods {
+        &self.modules
+    }
+}
 
 #[cfg(test)]
 mod tests {
