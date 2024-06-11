@@ -2,7 +2,7 @@ use core::{any::Any, hash::BuildHasherDefault};
 use std::{collections::HashMap, sync::Arc};
 
 use crate::{
-    flag::AllocFlag, Alloc, Cursor, Device, NoHasher, PtrType, ShallowCopy, Shape, UniqueId,
+    flag::AllocFlag, Alloc, Cursor, Device, NoHasher, PtrType, ShallowCopy, Shape, UniqueId, Unit,
 };
 
 #[derive(Clone)]
@@ -36,6 +36,7 @@ impl Cache {
         new_buf_callback: impl FnMut(usize, &D::Base<T, S>),
     ) -> D::Base<T, S>
     where
+        T: Unit,
         D: Alloc<T> + Cursor + 'static,
         D::Base<T, S>: ShallowCopy + 'static,
         S: Shape,
@@ -66,6 +67,7 @@ impl Cache {
         mut callback: impl FnMut(usize, &D::Base<T, S>),
     ) -> <D as Device>::Base<T, S>
     where
+        T: Unit,
         D: Alloc<T> + Cursor,
         D::Base<T, S>: ShallowCopy + 'static,
         S: Shape,

@@ -42,12 +42,12 @@ pub mod cpu_stack_ops;
 pub mod fusing;
 pub use fusing::*;
 
-use crate::{Buffer, HasId, OnDropBuffer, Parents, PtrType, Shape};
+use crate::{Buffer, HasId, OnDropBuffer, Parents, PtrType, Shape, Unit};
 
 /// The `Device` trait is the main trait for all compute devices.
 pub trait Device: OnDropBuffer + Sized {
-    type Base<T, S: Shape>: HasId + PtrType;
-    type Data<T, S: Shape>: HasId + PtrType;
+    type Base<T: Unit, S: Shape>: HasId + PtrType;
+    type Data<T: Unit, S: Shape>: HasId + PtrType;
 
     type Error;
 
@@ -58,10 +58,14 @@ pub trait Device: OnDropBuffer + Sized {
 
     // add default impl if GAT default go stable
     // FIXME: probably a better way to realize these
-    fn base_to_data<T, S: Shape>(&self, base: Self::Base<T, S>) -> Self::Data<T, S>;
-    fn wrap_to_data<T, S: Shape>(&self, wrap: Self::Wrap<T, Self::Base<T, S>>) -> Self::Data<T, S>;
-    fn data_as_wrap<T, S: Shape>(data: &Self::Data<T, S>) -> &Self::Wrap<T, Self::Base<T, S>>;
-    fn data_as_wrap_mut<T, S: Shape>(
+    fn base_to_data<T: Unit, S: Shape>(&self, base: Self::Base<T, S>) -> Self::Data<T, S>;
+    fn wrap_to_data<T: Unit, S: Shape>(
+        &self,
+        wrap: Self::Wrap<T, Self::Base<T, S>>,
+    ) -> Self::Data<T, S>;
+    fn data_as_wrap<T: Unit, S: Shape>(data: &Self::Data<T, S>)
+        -> &Self::Wrap<T, Self::Base<T, S>>;
+    fn data_as_wrap_mut<T: Unit, S: Shape>(
         data: &mut Self::Data<T, S>,
     ) -> &mut Self::Wrap<T, Self::Base<T, S>>;
 
@@ -77,7 +81,7 @@ pub trait Device: OnDropBuffer + Sized {
     ///
     /// assert_eq!(buf.read(), [5, 4, 3]);
     /// ```
-    fn buffer<'a, T, S: Shape, A>(&'a self, arr: A) -> Buffer<'a, T, Self, S>
+    fn buffer<'a, T: Unit, S: Shape, A>(&'a self, arr: A) -> Buffer<'a, T, Self, S>
     where
         Buffer<'a, T, Self, S>: From<(&'a Self, A)>,
     {
@@ -86,7 +90,7 @@ pub trait Device: OnDropBuffer + Sized {
 
     /// Creates a new [`Buffer`] using `A`, where `A` is typically an ND-array type.
     /// The [`Shape`] `S` is inferred from the ND-array.
-    fn with_shape<'a, T, S: Shape, A>(&'a self, arr: A) -> Buffer<'a, T, Self, S>
+    fn with_shape<'a, T: Unit, S: Shape, A>(&'a self, arr: A) -> Buffer<'a, T, Self, S>
     where
         Buffer<'a, T, Self, S>: crate::WithShape<'a, Self, A>,
     {
@@ -98,7 +102,7 @@ pub trait Device: OnDropBuffer + Sized {
 #[macro_export]
 macro_rules! impl_buffer_hook_traits {
     ($device:ident) => {
-        impl<T, D: Device, S: Shape, Mods: $crate::OnNewBuffer<T, D, S>>
+        impl<T: $crate::Unit, D: Device, S: Shape, Mods: $crate::OnNewBuffer<T, D, S>>
             $crate::OnNewBuffer<T, D, S> for $device<Mods>
         {
             #[inline]
@@ -109,7 +113,11 @@ macro_rules! impl_buffer_hook_traits {
 
         impl<Mods: $crate::OnDropBuffer> $crate::OnDropBuffer for $device<Mods> {
             #[inline]
-            fn on_drop_buffer<T, D: Device, S: Shape>(&self, device: &D, buf: &Buffer<T, D, S>) {
+            fn on_drop_buffer<T: $crate::Unit, D: Device, S: Shape>(
+                &self,
+                device: &D,
+                buf: &Buffer<T, D, S>,
+            ) {
                 self.modules.on_drop_buffer(device, buf)
             }
         }
@@ -137,7 +145,7 @@ macro_rules! impl_device_traits {
 
 /// A module affected trait.
 /// Retrieves a [`Buffer`] from the device.
-pub trait Retriever<T, S: Shape = ()>: Device {
+pub trait Retriever<T: Unit, S: Shape = ()>: Device {
     #[track_caller]
     fn retrieve<const NUM_PARENTS: usize>(
         &self,
@@ -149,7 +157,7 @@ pub trait Retriever<T, S: Shape = ()>: Device {
 #[macro_export]
 macro_rules! impl_retriever {
     ($device:ident, $($trait_bounds:tt)*) => {
-        impl<T: $( $trait_bounds )*, Mods: $crate::Retrieve<Self, T, S>, S: $crate::Shape> $crate::Retriever<T, S> for $device<Mods> {
+        impl<T: $( $trait_bounds )* + $crate::Unit, Mods: $crate::Retrieve<Self, T, S>, S: $crate::Shape> $crate::Retriever<T, S> for $device<Mods> {
             #[inline]
             fn retrieve<const NUM_PARENTS: usize>(
                 &self,

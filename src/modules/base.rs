@@ -1,7 +1,7 @@
 use crate::{
     flag::AllocFlag, AddGradFn, AddOperation, Alloc, CachedBuffers, Cursor, Device, ExecNow, HasId,
     HashLocation, Module, OnDropBuffer, OnNewBuffer, Parents, PtrType, ReplaceBuf, Retrieve,
-    SetOpHint, Setup, Shape, WrappedData,
+    SetOpHint, Setup, Shape, Unit, WrappedData,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
@@ -74,11 +74,11 @@ impl<D: Device> ExecNow<D> for Base {
 
 impl<D> Setup<D> for Base {}
 
-impl<T, D: Device, S: Shape> OnNewBuffer<T, D, S> for Base {}
+impl<T: Unit, D: Device, S: Shape> OnNewBuffer<T, D, S> for Base {}
 
 impl OnDropBuffer for Base {}
 
-impl<D, T, S: Shape> Retrieve<D, T, S> for Base {
+impl<D, T: Unit, S: Shape> Retrieve<D, T, S> for Base {
     #[inline]
     unsafe fn retrieve<const NUM_PARENTS: usize>(
         &self,
@@ -165,7 +165,7 @@ impl AddGradFn for Base {
 impl crate::TapeActions for Base {}
 
 impl CachedBuffers for Base {}
-impl<T, D: Device, S: Shape> ReplaceBuf<T, D, S> for Base {
+impl<T: Unit, D: Device, S: Shape> ReplaceBuf<T, D, S> for Base {
     #[inline]
     fn replace_buf<'a, 'c>(
         &'c self,

@@ -3,7 +3,7 @@ use core::convert::Infallible;
 use crate::{
     cpu::CPUPtr, flag::AllocFlag, impl_device_traits, AddLayer, Alloc, Base, Buffer, CloneBuf,
     Device, DeviceError, DevicelessAble, HasModules, IsShapeIndep, Module, OnDropBuffer,
-    OnNewBuffer, RemoveLayer, Setup, Shape, UnaryFusing, WrappedData,
+    OnNewBuffer, RemoveLayer, Setup, Shape, UnaryFusing, Unit, WrappedData,
 };
 
 pub trait IsCPU {}
@@ -34,8 +34,8 @@ impl<Mods> IsCPU for CPU<Mods> {}
 
 impl<Mods: OnDropBuffer> Device for CPU<Mods> {
     type Error = Infallible;
-    type Base<T, S: Shape> = CPUPtr<T>;
-    type Data<T, S: Shape> = Self::Wrap<T, Self::Base<T, S>>;
+    type Base<T: Unit, S: Shape> = CPUPtr<T>;
+    type Data<T: Unit, S: Shape> = Self::Wrap<T, Self::Base<T, S>>;
     // type WrappedData<T, S: Shape> = ;
 
     fn new() -> Result<Self, Self::Error> {
@@ -43,22 +43,27 @@ impl<Mods: OnDropBuffer> Device for CPU<Mods> {
     }
 
     #[inline(always)]
-    fn base_to_data<T, S: Shape>(&self, base: Self::Base<T, S>) -> Self::Data<T, S> {
+    fn base_to_data<T: Unit, S: Shape>(&self, base: Self::Base<T, S>) -> Self::Data<T, S> {
         self.wrap_in_base(base)
     }
 
     #[inline(always)]
-    fn wrap_to_data<T, S: Shape>(&self, wrap: Self::Wrap<T, Self::Base<T, S>>) -> Self::Data<T, S> {
+    fn wrap_to_data<T: Unit, S: Shape>(
+        &self,
+        wrap: Self::Wrap<T, Self::Base<T, S>>,
+    ) -> Self::Data<T, S> {
         wrap
     }
 
     #[inline(always)]
-    fn data_as_wrap<T, S: Shape>(data: &Self::Data<T, S>) -> &Self::Wrap<T, Self::Base<T, S>> {
+    fn data_as_wrap<T: Unit, S: Shape>(
+        data: &Self::Data<T, S>,
+    ) -> &Self::Wrap<T, Self::Base<T, S>> {
         data
     }
 
     #[inline(always)]
-    fn data_as_wrap_mut<T, S: Shape>(
+    fn data_as_wrap_mut<T: Unit, S: Shape>(
         data: &mut Self::Data<T, S>,
     ) -> &mut Self::Wrap<T, Self::Base<T, S>> {
         data
@@ -68,7 +73,7 @@ impl<Mods: OnDropBuffer> Device for CPU<Mods> {
     // fn wrap(&self) {}
 }
 
-impl<T, S: Shape> DevicelessAble<'_, T, S> for CPU<Base> {}
+impl<T: Unit, S: Shape> DevicelessAble<'_, T, S> for CPU<Base> {}
 
 impl<Mods> HasModules for CPU<Mods> {
     type Mods = Mods;
@@ -121,7 +126,7 @@ impl<Mods> CPU<Mods> {
     }
 }
 
-impl<T, Mods: OnDropBuffer> Alloc<T> for CPU<Mods> {
+impl<T: Unit, Mods: OnDropBuffer> Alloc<T> for CPU<Mods> {
     fn alloc<S: Shape>(&self, mut len: usize, flag: AllocFlag) -> crate::Result<Self::Base<T, S>> {
         if len == 0 {
             return Err(DeviceError::ZeroLengthBuffer.into());
@@ -181,7 +186,7 @@ impl<Mods> crate::LazySetup for CPU<Mods> {}
 #[cfg(feature = "fork")]
 impl<Mods> crate::ForkSetup for CPU<Mods> {}
 
-impl<'a, Mods: OnDropBuffer + OnNewBuffer<T, Self, S>, T: Clone, S: Shape> CloneBuf<'a, T, S>
+impl<'a, Mods: OnDropBuffer + OnNewBuffer<T, Self, S>, T: Unit + Clone, S: Shape> CloneBuf<'a, T, S>
     for CPU<Mods>
 {
     #[inline]
@@ -196,7 +201,7 @@ impl<Mods: OnDropBuffer + 'static> UnaryFusing for CPU<Mods> {
     #[cfg(feature = "lazy")]
     #[cfg(feature = "graph")]
     #[inline]
-    fn unary_fuse_op<T: Copy + 'static>(
+    fn unary_fuse_op<T: Unit + Copy + 'static>(
         &self,
     ) -> fn(
         &mut (

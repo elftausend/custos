@@ -6,7 +6,7 @@ use core::{
 use crate::{
     AddGradFn, AddLayer, AddOperation, Alloc, Buffer, Cache, CachedBuffers, Cursor, Device,
     ExecNow, HasId, HasModules, IsShapeIndep, Module, OnDropBuffer, OnNewBuffer, Parents, PtrType,
-    RemoveLayer, ReplaceBuf, Retrieve, RunModule, SetOpHint, Setup, ShallowCopy, Shape,
+    RemoveLayer, ReplaceBuf, Retrieve, RunModule, SetOpHint, Setup, ShallowCopy, Shape, Unit,
     WrappedData,
 };
 
@@ -114,7 +114,7 @@ impl<D: Device, SD: Device, Mods: ExecNow<D>> ExecNow<D> for CachedModule<Mods, 
 
 impl<T, D, Mods, SD, S> OnNewBuffer<T, D, S> for CachedModule<Mods, SD>
 where
-    T: 'static,
+    T: Unit + 'static,
     D: Device + IsShapeIndep + 'static,
     Mods: OnNewBuffer<T, D, S>,
     D::Data<T, S>: ShallowCopy,
@@ -129,7 +129,7 @@ where
 
 impl<Mods: OnDropBuffer, SD: Device> OnDropBuffer for CachedModule<Mods, SD> {
     #[inline]
-    fn on_drop_buffer<T, D: Device, S: Shape>(&self, device: &D, buf: &Buffer<T, D, S>) {
+    fn on_drop_buffer<T: Unit, D: Device, S: Shape>(&self, device: &D, buf: &Buffer<T, D, S>) {
         self.modules.on_drop_buffer(device, buf)
     }
 }
@@ -137,7 +137,7 @@ impl<Mods: OnDropBuffer, SD: Device> OnDropBuffer for CachedModule<Mods, SD> {
 // TODO: a more general OnDropBuffer => "Module"
 impl<T, Mods, D, SimpleDevice, S: Shape> Retrieve<D, T, S> for CachedModule<Mods, SimpleDevice>
 where
-    T: 'static,
+    T: Unit + 'static,
     Mods: Retrieve<D, T, S>,
     D: Device + IsShapeIndep + Cursor + 'static,
     D::Base<T, S>: ShallowCopy + 'static,
@@ -335,6 +335,7 @@ impl<Mods: OnDropBuffer, D: Device> CachedBuffers for CachedModule<Mods, D> {
 
 impl<Mods, D, T, S, SD> ReplaceBuf<T, D, S> for CachedModule<Mods, SD>
 where
+    T: Unit,
     Mods: ReplaceBuf<T, D, S>,
     D: Device,
     S: Shape,

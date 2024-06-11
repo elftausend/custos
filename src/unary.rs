@@ -1,10 +1,10 @@
 use crate::{
     AddGradFn, AddOperation, Alloc, AsNoId, Buffer, Device, Eval, HasId, MayTapeActions,
-    MayToCLSource, Resolve, Shape, TwoWay, ZeroGrad,
+    MayToCLSource, Resolve, Shape, TwoWay, Unit, ZeroGrad,
 };
 
 /// Applies a function to a buffer and returns a new buffer.
-pub trait ApplyFunction<T, S: Shape = (), D: Device = Self>: Device {
+pub trait ApplyFunction<T: Unit, S: Shape = (), D: Device = Self>: Device {
     /// Applies a function to a buffer and returns a new buffer.
     /// # Example
     #[cfg_attr(all(feature = "cpu", feature = "macro"), doc = "```")]
@@ -28,7 +28,7 @@ pub trait ApplyFunction<T, S: Shape = (), D: Device = Self>: Device {
 }
 
 /// Writes the unary gradient (with chainrule) to the lhs_grad buffer.
-pub trait UnaryGrad<T, S: Shape = (), D: Device = Self>: Device {
+pub trait UnaryGrad<T: Unit, S: Shape = (), D: Device = Self>: Device {
     /// Write the unary gradient to the lhs_grad buffer.
     /// # Example
     #[cfg_attr(all(feature = "cpu", feature = "macro"), doc = "```")]
@@ -59,7 +59,7 @@ pub trait UnaryGrad<T, S: Shape = (), D: Device = Self>: Device {
 
 /// Applies the forward function of a new/cached [`Buffer`] and returns it.
 /// If the `autograd` feature is enabled, the gradient function is also calculated via the grad function.
-pub trait UnaryElementWiseMayGrad<T, D: Device, S: Shape>: Device {
+pub trait UnaryElementWiseMayGrad<T: Unit, D: Device, S: Shape>: Device {
     /// Applies the forward function of a new/cached [`Buffer`] and returns it.
     /// If the `autograd` feature is enabled, the gradient function is also calculated via the grad function.
     /// # Example
@@ -96,7 +96,7 @@ pub trait UnaryElementWiseMayGrad<T, D: Device, S: Shape>: Device {
 
 impl<T, D, S> UnaryElementWiseMayGrad<T, D, S> for D
 where
-    T: 'static,
+    T: Unit + 'static,
     D: AddGradFn + ApplyFunction<T, S, D> + UnaryGrad<T, S, D> + MayTapeActions + AddOperation,
     // D::Data<T, S>: crate::ShallowCopy,
     D: Alloc<T> + ZeroGrad<T> + 'static,

@@ -7,7 +7,7 @@ use core::{
 use std::collections::HashMap;
 
 use super::NoHasher;
-use crate::{flag::AllocFlag, Alloc, Buffer, Device, Id, Shape, UniqueId};
+use crate::{flag::AllocFlag, Alloc, Buffer, Device, Id, Shape, UniqueId, Unit};
 
 #[derive(Clone, Copy)]
 pub enum CachingError {
@@ -53,7 +53,7 @@ impl BorrowCache {
         new_buf: &mut bool,
     ) -> &Buffer<'a, T, D, S>
     where
-        T: 'static,
+        T: Unit + 'static,
         D: Alloc<T> + 'static,
         S: Shape,
     {
@@ -70,7 +70,7 @@ impl BorrowCache {
         new_buf: &mut bool,
     ) -> &mut Buffer<'a, T, D, S>
     where
-        T: 'static,
+        T: Unit + 'static,
         D: Alloc<T> + 'static,
         S: Shape,
     {
@@ -80,7 +80,7 @@ impl BorrowCache {
 
     pub fn add_buf_once<T, D, S>(&mut self, device: &D, id: Id, new_buf: &mut bool)
     where
-        T: 'static,
+        T: Unit + 'static,
         D: Alloc<T> + 'static,
         S: Shape,
     {
@@ -93,7 +93,7 @@ impl BorrowCache {
 
     pub fn add_buf<T, D, S>(&mut self, device: &D, id: Id)
     where
-        T: 'static,
+        T: Unit + 'static,
         D: Alloc<T> + 'static,
         S: Shape,
     {
@@ -115,7 +115,7 @@ impl BorrowCache {
         _dev: &'a D,
     ) -> Option<&'b Buffer<'a, T, D, S>>
     where
-        T: 'static,
+        T: Unit + 'static,
         D: Alloc<T> + 'static,
         S: Shape,
     {
@@ -125,7 +125,7 @@ impl BorrowCache {
     #[inline]
     pub fn get_buf<'a, T, D, S>(&self, id: Id) -> Result<&Buffer<'a, T, D, S>, CachingError>
     where
-        T: 'static,
+        T: Unit + 'static,
         D: Device + 'static,
         S: Shape,
     {
@@ -142,7 +142,7 @@ impl BorrowCache {
         id: Id,
     ) -> Result<&mut Buffer<'a, T, D, S>, CachingError>
     where
-        T: 'static,
+        T: Unit + 'static,
         D: Device + 'static,
         S: Shape,
     {

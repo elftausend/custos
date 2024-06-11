@@ -1,13 +1,13 @@
 use custos::{prelude::*, CommonPtrs};
 
-pub fn get_mut_slice<'a, T, D: Device>(buf: &'a mut Buffer<T, D>) -> &'a mut [T]
+pub fn get_mut_slice<'a, T: Unit, D: Device>(buf: &'a mut Buffer<T, D>) -> &'a mut [T]
 where
     D::Data<T, ()>: CommonPtrs<T>,
 {
     unsafe { std::slice::from_raw_parts_mut(buf.ptrs_mut().0, buf.len()) }
 }
 
-pub fn get_slice<'a, T, D: Device>(buf: &'a Buffer<T, D>) -> &'a [T]
+pub fn get_slice<'a, T: Unit, D: Device>(buf: &'a Buffer<T, D>) -> &'a [T]
 where
     D::Data<T, ()>: CommonPtrs<T>,
 {
@@ -15,7 +15,7 @@ where
 }
 
 #[cfg(feature = "std")]
-pub fn read<T, D: Alloc<T>>(device: &D, buf: &Buffer<T, D>) -> Vec<T>
+pub fn read<T: Unit, D: Alloc<T>>(device: &D, buf: &Buffer<T, D>) -> Vec<T>
 where
     D: Read<T> + Device,
     T: Clone + Default,
@@ -192,6 +192,7 @@ fn test_debug_print_buf() -> custos::Result<()> {
 #[cfg(unified_cl)]
 fn slice_add<T, D>(_lhs: &Buffer<T, D>)
 where
+    T: Unit,
     D: Device,
     D::Data<T, ()>: std::ops::Deref<Target = [T]>,
 {

@@ -1,8 +1,8 @@
-use crate::{Alloc, Buffer, Device, OnNewBuffer, Read};
+use crate::{Alloc, Buffer, Device, OnNewBuffer, Read, Unit};
 
 use super::{static_cpu, StaticDevice};
 
-impl<'a, T: Clone> Buffer<'a, T> {
+impl<'a, T: Unit + Clone> Buffer<'a, T> {
     /// Moves the buffer [`Buffer`] to a static device.<br>
     /// This device is chosen via the type parameter D -> [`OpenCL`](crate::OpenCL), [`CUDA`](crate::CUDA).<br>
     /// It is recommended to use the to_gpu() method of [`Buffer`].
@@ -105,7 +105,7 @@ impl<'a, T: Clone> Buffer<'a, T> {
 
 impl<'a, T, D> Buffer<'a, T, D>
 where
-    T: Clone + Default,
+    T: Unit + Clone + Default,
     D: Device + Read<T>,
 {
     /// Moves the [`Buffer`] back to a CPU buffer.

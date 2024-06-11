@@ -166,7 +166,7 @@ mod tests {
             storages::{CpuStorage, CudaStorage, UntypedData},
             untyped_device::{Untyped, UntypedDevice},
         },
-        ApplyFunction, Buffer, Combiner, Device, Shape,
+        ApplyFunction, Buffer, Combiner, Device, Shape, Unit,
     };
 
     #[test]
@@ -215,7 +215,7 @@ mod tests {
         out
     }
 
-    impl<T, S: Shape> AddEw<T, Self, S> for Untyped {
+    impl<T: Unit, S: Shape> AddEw<T, Self, S> for Untyped {
         fn add(&self, lhs: &Buffer<T, Self, S>, rhs: &Buffer<T, Self, S>) -> Buffer<T, Self, S> {
             untyped_binary_op!(self, lhs, rhs, alloc_and_add_slice, alloc_and_add_cu)
         }

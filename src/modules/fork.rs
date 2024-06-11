@@ -1,7 +1,7 @@
 use crate::{
     impl_remove_layer, pass_down_add_operation, pass_down_exec_now, pass_down_replace_buf_module,
     pass_down_tape_actions, AddLayer, Alloc, Buffer, Device, HasId, HasModules, IsShapeIndep,
-    Module, OnDropBuffer, OnNewBuffer, Parents, PtrType, Retrieve, RunModule, Setup, Shape,
+    Module, OnDropBuffer, OnNewBuffer, Parents, PtrType, Retrieve, RunModule, Setup, Shape, Unit,
     UseGpuOrCpu, WrappedData, VERSION,
 };
 use core::cell::{Cell, RefCell};
@@ -86,7 +86,7 @@ pass_down_exec_now!(Fork);
 
 impl<Mods: OnDropBuffer> OnDropBuffer for Fork<Mods> {
     #[inline]
-    fn on_drop_buffer<T, D: crate::Device, S: crate::Shape>(
+    fn on_drop_buffer<T: Unit, D: crate::Device, S: crate::Shape>(
         &self,
         device: &D,
         buf: &crate::Buffer<T, D, S>,
@@ -95,15 +95,15 @@ impl<Mods: OnDropBuffer> OnDropBuffer for Fork<Mods> {
     }
 }
 
-impl<Mods: OnNewBuffer<T, D, S>, T, D: Device, S: Shape> OnNewBuffer<T, D, S> for Fork<Mods> {
+impl<Mods: OnNewBuffer<T, D, S>, T: Unit, D: Device, S: Shape> OnNewBuffer<T, D, S> for Fork<Mods> {
     #[inline]
     fn on_new_buffer(&self, device: &D, new_buf: &crate::Buffer<T, D, S>) {
         self.modules.on_new_buffer(device, new_buf)
     }
 }
 
-impl<T: 'static, Mods: Retrieve<D, T, S>, D: IsShapeIndep + 'static, S: Shape> Retrieve<D, T, S>
-    for Fork<Mods>
+impl<T: Unit + 'static, Mods: Retrieve<D, T, S>, D: IsShapeIndep + 'static, S: Shape>
+    Retrieve<D, T, S> for Fork<Mods>
 {
     #[inline]
     unsafe fn retrieve<const NUM_PARENTS: usize>(

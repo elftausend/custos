@@ -1,10 +1,10 @@
-use crate::Buffer;
+use crate::{Buffer, Unit};
 
 use super::StaticDevice;
 
 impl<'a, A, D> FromIterator<A> for Buffer<'a, A, D>
 where
-    A: Clone + Default,
+    A: Unit + Clone + Default,
     D: StaticDevice + 'static,
     Buffer<'a, A, D>: From<(&'a D, Vec<A>)>,
 {

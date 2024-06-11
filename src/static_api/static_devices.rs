@@ -47,7 +47,7 @@ pub fn static_opencl() -> &'static crate::OpenCL {
 #[cfg(feature = "cuda")]
 thread_local! {
     static GLOBAL_CUDA: crate::CUDA = {
-        crate::CUDA::<Base>::new(chosen_cu_idx()).expect("Could not create a static CUDA device.")
+        crate::CUDA::<crate::Base>::new(chosen_cu_idx()).expect("Could not create a static CUDA device.")
     };
 }
 
@@ -69,7 +69,7 @@ pub fn static_cuda() -> &'static crate::CUDA {
 mod tests {
     #[cfg(feature = "std")]
     use crate::Buffer;
-    
+
     #[cfg(feature = "std")]
     #[test]
     fn test_static_cpu() {
@@ -80,7 +80,10 @@ mod tests {
     #[cfg(feature = "std")]
     #[test]
     fn test_static_cpu_thread_return() {
-        use crate::{static_api::{static_cpu, GLOBAL_CPU}, Device};
+        use crate::{
+            static_api::{static_cpu, GLOBAL_CPU},
+            Device,
+        };
 
         let buf = Buffer::from(&[1f32, 2., 3.]);
         GLOBAL_CPU.get().unwrap();
@@ -90,8 +93,10 @@ mod tests {
             let cpu = static_cpu();
 
             cpu
-        }).join().unwrap();
-        
+        })
+        .join()
+        .unwrap();
+
         let _out = res.buffer([1, 2, 3, 4]);
     }
 

@@ -1,6 +1,6 @@
 use custos::{
-    Alloc, Base, Device, HasId, Module, OnDropBuffer, PtrType, Retrieve, Setup, Shape, WrappedData,
-    CPU,
+    Alloc, Base, Device, HasId, Module, OnDropBuffer, PtrType, Retrieve, Setup, Shape, Unit,
+    WrappedData, CPU,
 };
 
 pub struct CustomModule<Mods> {
@@ -56,7 +56,7 @@ impl<Mods: WrappedData> WrappedData for CustomModule<Mods> {
 
 impl<Mods: OnDropBuffer + WrappedData> OnDropBuffer for CustomModule<Mods> {
     #[inline]
-    fn on_drop_buffer<T, D: Device, S: Shape>(
+    fn on_drop_buffer<T: Unit, D: Device, S: Shape>(
         &self,
         _device: &D,
         _buf: &custos::prelude::Buffer<T, D, S>,
@@ -67,6 +67,7 @@ impl<Mods: OnDropBuffer + WrappedData> OnDropBuffer for CustomModule<Mods> {
 
 impl<Mods, D, T, S> Retrieve<D, T, S> for CustomModule<Mods>
 where
+    T: Unit,
     Mods: Retrieve<D, T, S>,
     S: Shape,
 {

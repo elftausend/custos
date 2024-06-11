@@ -29,14 +29,14 @@
 //! use custos::prelude::*;
 //! use std::ops::{Deref, Mul};
 //!
-//! pub trait MulBuf<T, S: Shape = (), D: Device = Self>: Sized + Device {
+//! pub trait MulBuf<T: Unit, S: Shape = (), D: Device = Self>: Sized + Device {
 //!     fn mul(&self, lhs: &Buffer<T, D, S>, rhs: &Buffer<T, D, S>) -> Buffer<T, Self, S>;
 //! }
 //!
 //! impl<Mods, T, S, D> MulBuf<T, S, D> for CPU<Mods>
 //! where
 //!     Mods: Retrieve<Self, T, S>,
-//!     T: Mul<Output = T> + Copy + 'static,
+//!     T: Unit + Mul<Output = T> + Copy + 'static,
 //!     S: Shape,
 //!     D: Device,
 //!     D::Base<T, S>: Deref<Target = [T]>,
@@ -176,6 +176,11 @@ pub trait HostPtr<T>: PtrType {
     }
 }
 
+/// Minimum requirements for an element inside a Buffer.
+pub trait Unit: Sync {}
+
+impl<T: Sync> Unit for T {}
+
 /// Used to shallow-copy a pointer. Use is discouraged.
 pub trait ShallowCopy {
     /// # Safety
@@ -193,7 +198,7 @@ pub trait CommonPtrs<T> {
 }
 
 /// All type of devices that can create [`Buffer`]s
-pub trait DevicelessAble<'a, T, S: Shape = ()>: Alloc<T> {}
+pub trait DevicelessAble<'a, T: Unit, S: Shape = ()>: Alloc<T> {}
 
 /// If the `autograd` feature is enabled, then this will be implemented for all types that implement [`TapeActions`].
 /// On the other hand, if the `autograd` feature is disabled, no [`Tape`] will be returneable.
@@ -232,7 +237,7 @@ pub mod prelude {
     pub use crate::{
         devices::*, features::*, modules::*, number::*, shape::*, Alloc, Buffer, CDatatype,
         ClearBuf, CloneBuf, CopySlice, Device, Error, HasId, HostPtr, MayToCLSource, Read,
-        ShallowCopy, WithShape, WriteBuf,
+        ShallowCopy, Unit, WithShape, WriteBuf,
     };
 
     #[cfg(feature = "cpu")]
@@ -262,9 +267,9 @@ pub mod prelude {
 pub mod tests_helper {
     use core::ops::Add;
 
-    use crate::{Buffer, Device, Number, Shape};
+    use crate::{Buffer, Device, Number, Shape, Unit};
 
-    pub trait AddEw<T, D: Device, S: Shape>: Device {
+    pub trait AddEw<T: Unit, D: Device, S: Shape>: Device {
         fn add(&self, lhs: &Buffer<T, D, S>, rhs: &Buffer<T, D, S>) -> Buffer<T, Self, S>;
     }
 

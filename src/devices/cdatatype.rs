@@ -1,6 +1,6 @@
 // TODO: different types for cuda and opencl
 /// enables easy generic kernel creation
-pub trait CDatatype: 'static {
+pub trait CDatatype: crate::Unit + 'static {
     const C_DTYPE_STR: &'static str;
 }
 

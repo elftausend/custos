@@ -4,7 +4,7 @@ use min_cl::api::{create_buffer, enqueue_full_copy_buffer, MemFlags};
 
 use super::{enqueue_kernel, AsClCvoidPtr, CLPtr};
 use crate::flag::AllocFlag;
-use crate::{impl_device_traits, Shape};
+use crate::{impl_device_traits, Shape, Unit};
 use crate::{
     pass_down_use_gpu_or_cpu, Alloc, Base, Buffer, Cached, CachedCPU, CloneBuf, Device,
     IsShapeIndep, Module, OnDropBuffer, OnNewBuffer, Setup, WrappedData, CPU,
@@ -165,8 +165,8 @@ impl<Mods> OpenCL<Mods> {
 }
 
 impl<Mods: OnDropBuffer> Device for OpenCL<Mods> {
-    type Data<T, S: Shape> = Self::Wrap<T, Self::Base<T, S>>;
-    type Base<U, S: Shape> = CLPtr<U>;
+    type Data<T: Unit, S: Shape> = Self::Wrap<T, Self::Base<T, S>>;
+    type Base<U: Unit, S: Shape> = CLPtr<U>;
     type Error = ();
 
     fn new() -> Result<Self, Self::Error> {
@@ -174,22 +174,27 @@ impl<Mods: OnDropBuffer> Device for OpenCL<Mods> {
         // OpenCL::<Base>::new(chosen_cl_idx())
     }
     #[inline(always)]
-    fn base_to_data<T, S: Shape>(&self, base: Self::Base<T, S>) -> Self::Data<T, S> {
+    fn base_to_data<T: Unit, S: Shape>(&self, base: Self::Base<T, S>) -> Self::Data<T, S> {
         self.wrap_in_base(base)
     }
 
     #[inline(always)]
-    fn wrap_to_data<T, S: Shape>(&self, wrap: Self::Wrap<T, Self::Base<T, S>>) -> Self::Data<T, S> {
+    fn wrap_to_data<T: Unit, S: Shape>(
+        &self,
+        wrap: Self::Wrap<T, Self::Base<T, S>>,
+    ) -> Self::Data<T, S> {
         wrap
     }
 
     #[inline(always)]
-    fn data_as_wrap<T, S: Shape>(data: &Self::Data<T, S>) -> &Self::Wrap<T, Self::Base<T, S>> {
+    fn data_as_wrap<T: Unit, S: Shape>(
+        data: &Self::Data<T, S>,
+    ) -> &Self::Wrap<T, Self::Base<T, S>> {
         data
     }
 
     #[inline(always)]
-    fn data_as_wrap_mut<T, S: Shape>(
+    fn data_as_wrap_mut<T: Unit, S: Shape>(
         data: &mut Self::Data<T, S>,
     ) -> &mut Self::Wrap<T, Self::Base<T, S>> {
         data
@@ -216,7 +221,7 @@ impl<Mods> Debug for OpenCL<Mods> {
     }
 }
 
-impl<Mods: OnDropBuffer, T> Alloc<T> for OpenCL<Mods> {
+impl<Mods: OnDropBuffer, T: Unit> Alloc<T> for OpenCL<Mods> {
     fn alloc<S: Shape>(&self, mut len: usize, flag: AllocFlag) -> crate::Result<CLPtr<T>> {
         if S::LEN > len {
             len = S::LEN
@@ -264,7 +269,7 @@ impl<Mods: OnDropBuffer, T> Alloc<T> for OpenCL<Mods> {
     }
 }
 
-impl<'a, T, Mods: OnDropBuffer + OnNewBuffer<T, Self, ()>> CloneBuf<'a, T> for OpenCL<Mods> {
+impl<'a, T: Unit, Mods: OnDropBuffer + OnNewBuffer<T, Self, ()>> CloneBuf<'a, T> for OpenCL<Mods> {
     fn clone_buf(&'a self, buf: &Buffer<'a, T, Self>) -> Buffer<'a, T, Self> {
         let cloned = Buffer::new(self, buf.len());
         let event = unsafe {

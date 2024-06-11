@@ -1,6 +1,6 @@
 use std::ops::{Deref, DerefMut};
 
-use custos::{number::Number, Buffer, CDatatype, Device, Retrieve, Retriever, CPU};
+use custos::{number::Number, Buffer, CDatatype, Device, Retrieve, Retriever, Unit, CPU};
 
 #[cfg(feature = "opencl")]
 use custos::{opencl::enqueue_kernel, OpenCL};
@@ -15,7 +15,7 @@ mod to_unified;
 #[cfg(feature = "cuda")]
 use custos::CUDA;
 
-pub trait AddBuf<T, D: Device>: Device {
+pub trait AddBuf<T: Unit, D: Device>: Device {
     fn add(&self, lhs: &Buffer<T, D>, rhs: &Buffer<T, D>) -> Buffer<T, Self>;
     fn relu(&self, lhs: &Buffer<T, D>) -> Buffer<T, Self>;
 }
@@ -127,7 +127,7 @@ impl<T: CDatatype, Mods: Retrieve<Self, T>> AddBuf<T, Self> for CUDA<Mods> {
     }
 }
 
-pub trait AddOp<'a, T, D: Device> {
+pub trait AddOp<'a, T: Unit, D: Device> {
     fn add(&self, rhs: &Buffer<'a, T, D>) -> Buffer<'a, T, D>;
     fn relu(&self) -> Buffer<'a, T, D>;
 }

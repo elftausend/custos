@@ -1,6 +1,5 @@
 use crate::{
-    Alloc, Base, Buffer, Device, HasId, HasModules, IsShapeIndep, OnDropBuffer, OnNewBuffer,
-    PtrType, Retriever, Shape, WrappedData, CPU,
+    Alloc, Base, Buffer, Device, HasId, HasModules, IsShapeIndep, OnDropBuffer, OnNewBuffer, PtrType, Retriever, Shape, Unit, WrappedData, CPU
 };
 
 use super::{
@@ -24,17 +23,17 @@ pub struct Untyped {
 }
 
 impl Device for Untyped {
-    type Base<T, S: crate::Shape> = UntypedData;
-    type Data<T, S: crate::Shape> = UntypedData;
+    type Base<T: Unit, S: crate::Shape> = UntypedData;
+    type Data<T: Unit, S: crate::Shape> = UntypedData;
     type Error = crate::Error;
 
     #[inline]
-    fn base_to_data<T, S: crate::Shape>(&self, base: Self::Base<T, S>) -> Self::Data<T, S> {
+    fn base_to_data<T: Unit, S: crate::Shape>(&self, base: Self::Base<T, S>) -> Self::Data<T, S> {
         base
     }
 
     #[inline]
-    fn wrap_to_data<T, S: crate::Shape>(
+    fn wrap_to_data<T: Unit, S: crate::Shape>(
         &self,
         wrap: Self::Wrap<T, Self::Base<T, S>>,
     ) -> Self::Data<T, S> {
@@ -42,14 +41,14 @@ impl Device for Untyped {
     }
 
     #[inline]
-    fn data_as_wrap<'a, T, S: crate::Shape>(
+    fn data_as_wrap<'a, T: Unit, S: crate::Shape>(
         data: &'a Self::Data<T, S>,
     ) -> &'a Self::Wrap<T, Self::Base<T, S>> {
         data
     }
 
     #[inline]
-    fn data_as_wrap_mut<'a, T, S: crate::Shape>(
+    fn data_as_wrap_mut<'a, T: Unit, S: crate::Shape>(
         data: &'a mut Self::Data<T, S>,
     ) -> &'a mut Self::Wrap<T, Self::Base<T, S>> {
         data
@@ -80,7 +79,7 @@ impl HasModules for Untyped {
 }
 
 impl OnDropBuffer for Untyped {}
-impl<T, D: Device, S: Shape> OnNewBuffer<T, D, S> for Untyped {}
+impl<T: Unit, D: Device, S: Shape> OnNewBuffer<T, D, S> for Untyped {}
 
 impl WrappedData for Untyped {
     type Wrap<T, Base: HasId + PtrType> = Base;

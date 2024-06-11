@@ -9,13 +9,13 @@ pub use stack_device::*;
 
 use crate::{
     cpu_stack_ops::clear_slice, ApplyFunction, Buffer, ClearBuf, Device, Eval, MayToCLSource,
-    OnDropBuffer, Resolve, Retrieve, Retriever, Shape, ToVal, UnaryGrad, ZeroGrad,
+    OnDropBuffer, Resolve, Retrieve, Retriever, Shape, ToVal, UnaryGrad, Unit, ZeroGrad,
 };
 
 // #[impl_stack]
 impl<T, D, S> ClearBuf<T, S, D> for Stack
 where
-    T: Default,
+    T: Unit + Default,
     D: Device,
     D::Base<T, S>: DerefMut<Target = [T]>,
     S: Shape,
@@ -28,7 +28,7 @@ where
 
 impl<Mods, T> ZeroGrad<T> for Stack<Mods>
 where
-    T: Default,
+    T: Unit + Default,
     Mods: OnDropBuffer,
 {
     #[inline]
@@ -40,7 +40,7 @@ where
 impl<Mods, T, D, S> ApplyFunction<T, S, D> for Stack<Mods>
 where
     Mods: Retrieve<Self, T, S>,
-    T: Copy + Default + ToVal + 'static,
+    T: Unit + Copy + Default + ToVal + 'static,
     D: Device,
     D::Base<T, S>: Deref<Target = [T]>,
     S: Shape,
@@ -60,7 +60,7 @@ where
 impl<Mods, T, D, S> UnaryGrad<T, S, D> for Stack<Mods>
 where
     Mods: OnDropBuffer,
-    T: AddAssign + Copy + core::ops::Mul<Output = T>,
+    T: Unit + AddAssign + Copy + core::ops::Mul<Output = T>,
     S: Shape,
     D: Device,
     D::Base<T, S>: Deref<Target = [T]> + DerefMut,
@@ -84,13 +84,13 @@ where
 mod tests {
     use crate::{
         tests_helper::add_ew_slice, Alloc, Base, Buffer, Device, Dim1, Retrieve, Retriever, Shape,
-        CPU,
+        Unit, CPU,
     };
     use core::ops::{Add, Deref};
 
     use super::stack_device::Stack;
 
-    pub trait AddBuf<T, D: Device = Self, S: Shape = ()>: Device {
+    pub trait AddBuf<T: Unit, D: Device = Self, S: Shape = ()>: Device {
         fn add(&self, lhs: &Buffer<T, D, S>, rhs: &Buffer<T, D, S>) -> Buffer<T, Self, S>;
     }
 
@@ -115,7 +115,7 @@ mod tests {
     where
         D: Device,
         D::Base<T, ()>: Deref<Target = [T]>,
-        T: Add<Output = T> + Copy,
+        T: Unit + Add<Output = T> + Copy,
     {
         fn add(&self, lhs: &Buffer<T, D>, rhs: &Buffer<T, D>) -> Buffer<T, Self> {
             let len = core::cmp::min(lhs.len(), rhs.len());
@@ -131,7 +131,7 @@ mod tests {
         Stack: Alloc<T>,
         D: Device,
         D::Base<T, S>: Deref<Target = [T]>,
-        T: Add<Output = T> + Copy + Default,
+        T: Unit + Add<Output = T> + Copy + Default,
     {
         fn add(&self, lhs: &Buffer<T, D, S>, rhs: &Buffer<T, D, S>) -> Buffer<T, Self, S> {
             let mut out = self.retrieve(S::LEN, (lhs, rhs)).unwrap();

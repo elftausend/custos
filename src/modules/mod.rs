@@ -86,7 +86,7 @@ pub(crate) unsafe fn register_buf_any<T, D, S>(
     cache: &mut HashMap<UniqueId, Box<dyn Any>, impl BuildHasher>,
     buf: &Buffer<T, D, S>,
 ) where
-    T: 'static,
+    T: crate::Unit + 'static,
     D: Device + crate::IsShapeIndep + 'static,
     D::Data<T, S>: ShallowCopy,
     S: Shape,
@@ -120,7 +120,7 @@ pub(crate) unsafe fn register_buf_copyable<T, D, S>(
     cache: &mut HashMap<UniqueId, Box<dyn crate::BoxedShallowCopy>, impl BuildHasher>,
     buf: &Buffer<T, D, S>,
 ) where
-    T: 'static,
+    T: crate::Unit + 'static,
     D: Device + crate::IsShapeIndep + 'static,
     D::Data<T, S>: ShallowCopy,
     S: Shape,

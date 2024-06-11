@@ -13,7 +13,7 @@ use crate::CPU;
 use crate::{
     flag::AllocFlag, shape::Shape, Alloc, Base, ClearBuf, CloneBuf, CommonPtrs, Device,
     DevicelessAble, HasId, IsShapeIndep, OnDropBuffer, OnNewBuffer, PtrType, Read, ReplaceBuf,
-    ShallowCopy, WrappedData, WriteBuf, ZeroGrad,
+    ShallowCopy, Unit, WrappedData, WriteBuf, ZeroGrad,
 };
 
 pub use self::num::Num;
@@ -32,7 +32,7 @@ mod num;
 /// use custos::prelude::*;
 ///
 /// fn buffer_f32_cpu(buf: &Buffer) {}
-/// fn buffer_generic<T, D: Device>(buf: &Buffer<T, D>) {}
+/// fn buffer_generic<T: Unit, D: Device>(buf: &Buffer<T, D>) {}
 ///
 /// let device = CPU::<Base>::new();
 /// let buf = Buffer::from((&device, [0.5, 1.3, 3.2, 2.43]));
@@ -41,7 +41,7 @@ mod num;
 /// buffer_generic(&buf);
 /// ```
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct Buffer<'a, T = f32, D: Device = CPU<Base>, S: Shape = ()> {
+pub struct Buffer<'a, T: Unit = f32, D: Device = CPU<Base>, S: Shape = ()> {
     /// the type of pointer
     pub data: D::Data<T, S>,
     /// A reference to the corresponding device. Mainly used for operations without a device parameter.
@@ -49,7 +49,7 @@ pub struct Buffer<'a, T = f32, D: Device = CPU<Base>, S: Shape = ()> {
     pub device: Option<&'a D>,
 }
 
-impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
+impl<'a, T: Unit, D: Device, S: Shape> Buffer<'a, T, D, S> {
     /// Creates a zeroed (or values set to default) `Buffer` with the given length on the specified device.
     /// This `Buffer` can't outlive the device specified as a parameter.
     #[cfg_attr(feature = "cpu", doc = "```")]
@@ -140,7 +140,7 @@ impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
 //     }
 // }
 
-impl<'a, T, D: Device, S: Shape> HasId for Buffer<'a, T, D, S> {
+impl<'a, T: Unit, D: Device, S: Shape> HasId for Buffer<'a, T, D, S> {
     #[inline]
     fn id(&self) -> super::Id {
         self.data.id()
@@ -157,7 +157,7 @@ impl<'a, T, D: Device, S: Shape> HasId for Buffer<'a, T, D, S> {
     }
 }
 
-impl<'a, T, D: Device, S: Shape> HasId for &Buffer<'a, T, D, S> {
+impl<'a, T: Unit, D: Device, S: Shape> HasId for &Buffer<'a, T, D, S> {
     #[inline]
     fn id(&self) -> super::Id {
         self.data.id()
@@ -174,7 +174,7 @@ impl<'a, T, D: Device, S: Shape> HasId for &Buffer<'a, T, D, S> {
     }
 }
 
-impl<'a, T, D: Device, S: Shape> HasId for &mut Buffer<'a, T, D, S> {
+impl<'a, T: Unit, D: Device, S: Shape> HasId for &mut Buffer<'a, T, D, S> {
     #[inline]
     fn id(&self) -> super::Id {
         self.data.id()
@@ -191,7 +191,7 @@ impl<'a, T, D: Device, S: Shape> HasId for &mut Buffer<'a, T, D, S> {
     }
 }
 
-impl<'a, T, D: Device, S: Shape> Drop for Buffer<'a, T, D, S> {
+impl<'a, T: Unit, D: Device, S: Shape> Drop for Buffer<'a, T, D, S> {
     #[inline]
     fn drop(&mut self) {
         if self.data.flag() != AllocFlag::None {
@@ -204,7 +204,7 @@ impl<'a, T, D: Device, S: Shape> Drop for Buffer<'a, T, D, S> {
     }
 }
 
-impl<'a, T, D: Device + OnNewBuffer<T, D, S>, S: Shape> Buffer<'a, T, D, S> {
+impl<'a, T: Unit, D: Device + OnNewBuffer<T, D, S>, S: Shape> Buffer<'a, T, D, S> {
     /// Creates a new `Buffer` from a slice (&[T]).
     #[inline]
     pub fn from_slice(device: &'a D, slice: &[T]) -> Self
@@ -242,7 +242,7 @@ impl<'a, T, D: Device + OnNewBuffer<T, D, S>, S: Shape> Buffer<'a, T, D, S> {
     }
 }
 
-impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
+impl<'a, T: Unit, D: Device, S: Shape> Buffer<'a, T, D, S> {
     /// Buffers created with this method can outlive the device used to create this `Buffer`.<br>
     /// No operations can be performed on this `Buffer` without a device parameter.
     /// # Examples
@@ -453,7 +453,7 @@ impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
 }
 
 // TODO better solution for the to_dims stack problem?
-impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
+impl<'a, T: Unit, D: Device, S: Shape> Buffer<'a, T, D, S> {
     /// Converts a non stack allocated `Buffer` with shape `S` to a `Buffer` with shape `O`.
     /// # Example
     #[cfg_attr(feature = "cpu", doc = "```")]
@@ -483,7 +483,7 @@ impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S> {
     }
 }
 
-impl<'a, T, D: IsShapeIndep, S: Shape> Buffer<'a, T, D, S> {
+impl<'a, T: Unit, D: IsShapeIndep, S: Shape> Buffer<'a, T, D, S> {
     /// Returns a reference of the same buffer, but with a different shape.
     /// The Buffer is shape independet, so it can be converted to any shape.
     #[inline]
@@ -502,7 +502,7 @@ impl<'a, T, D: IsShapeIndep, S: Shape> Buffer<'a, T, D, S> {
     }
 }
 
-impl<'a, T, D: Device, S: Shape> Buffer<'a, T, D, S>
+impl<'a, T: Unit, D: Device, S: Shape> Buffer<'a, T, D, S>
 where
     D::Data<T, S>: CommonPtrs<T>,
 {
@@ -519,7 +519,7 @@ where
     }
 }
 
-impl<'a, T, D: Device> Buffer<'a, T, D> {
+impl<'a, T: Unit, D: Device> Buffer<'a, T, D> {
     /// Returns `true` if `Buffer` is created without a slice.
     /// # Example
     /// ```
@@ -535,7 +535,7 @@ impl<'a, T, D: Device> Buffer<'a, T, D> {
 }
 
 #[cfg(feature = "cpu")]
-impl<'a, T, S: Shape> Buffer<'a, T, CPU<Base>, S> {
+impl<'a, T: Unit, S: Shape> Buffer<'a, T, CPU<Base>, S> {
     /// Constructs a deviceless `Buffer` out of a host pointer and a length.
     /// # Example
     /// ```
@@ -567,7 +567,7 @@ impl<'a, T, S: Shape> Buffer<'a, T, CPU<Base>, S> {
 }
 
 #[cfg(feature = "cpu")]
-impl<'a, Mods: OnDropBuffer, T, S: Shape> Buffer<'a, T, CPU<Mods>, S> {
+impl<'a, Mods: OnDropBuffer, T: Unit, S: Shape> Buffer<'a, T, CPU<Mods>, S> {
     /// Constructs a `Buffer` out of a host pointer and a length.
     /// The provided device can be used to shorten operation calls.
     ///
@@ -588,7 +588,7 @@ impl<'a, Mods: OnDropBuffer, T, S: Shape> Buffer<'a, T, CPU<Mods>, S> {
 }
 
 #[cfg(feature = "opencl")]
-impl<'a, Mods: OnDropBuffer, T, S: Shape> Buffer<'a, T, crate::OpenCL<Mods>, S> {
+impl<'a, Mods: OnDropBuffer, T: Unit, S: Shape> Buffer<'a, T, crate::OpenCL<Mods>, S> {
     /// Returns the OpenCL pointer of the `Buffer`.
     #[inline]
     pub fn cl_ptr(&self) -> *mut c_void {
@@ -601,7 +601,7 @@ impl<'a, Mods: OnDropBuffer, T, S: Shape> Buffer<'a, T, crate::OpenCL<Mods>, S> 
 }
 
 #[cfg(feature = "cuda")]
-impl<'a, Mods: OnDropBuffer, T> Buffer<'a, T, crate::CUDA<Mods>> {
+impl<'a, Mods: OnDropBuffer, T: Unit> Buffer<'a, T, crate::CUDA<Mods>> {
     /// Returns a non null CUDA pointer
     #[inline]
     pub fn cu_ptr(&self) -> u64 {
@@ -613,7 +613,7 @@ impl<'a, Mods: OnDropBuffer, T> Buffer<'a, T, crate::CUDA<Mods>> {
     }
 }
 
-impl<'a, T, D, S> ShallowCopy for Buffer<'a, T, D, S>
+impl<'a, T: Unit, D, S> ShallowCopy for Buffer<'a, T, D, S>
 where
     D: Device,
     D::Data<T, S>: ShallowCopy,
@@ -625,7 +625,7 @@ where
     }
 }
 
-impl<'a, T, D, S> Clone for Buffer<'a, T, D, S>
+impl<'a, T: Unit, D, S> Clone for Buffer<'a, T, D, S>
 where
     T: Clone,
     D: CloneBuf<'a, T, S> + Device,
@@ -636,7 +636,7 @@ where
     }
 }
 
-impl<'a, T, D: Device, S: Shape> Default for Buffer<'a, T, D, S>
+impl<'a, T: Unit, D: Device, S: Shape> Default for Buffer<'a, T, D, S>
 where
     D::Data<T, S>: Default,
 {
@@ -648,7 +648,7 @@ where
     }
 }
 
-impl<T, D: Device> AsRef<[T]> for Buffer<'_, T, D>
+impl<T: Unit, D: Device> AsRef<[T]> for Buffer<'_, T, D>
 where
     D::Data<T, ()>: Deref<Target = [T]>,
 {
@@ -658,7 +658,7 @@ where
     }
 }
 
-impl<T, D: Device> AsMut<[T]> for Buffer<'_, T, D>
+impl<T: Unit, D: Device> AsMut<[T]> for Buffer<'_, T, D>
 where
     D::Data<T, ()>: DerefMut<Target = [T]>,
 {
@@ -669,7 +669,7 @@ where
 }
 
 /// A main memory `Buffer` dereferences into `Data` type.
-impl<T, D: Device, S: Shape> core::ops::Deref for Buffer<'_, T, D, S> {
+impl<T: Unit, D: Device, S: Shape> core::ops::Deref for Buffer<'_, T, D, S> {
     type Target = D::Base<T, S>;
 
     #[inline]
@@ -679,7 +679,7 @@ impl<T, D: Device, S: Shape> core::ops::Deref for Buffer<'_, T, D, S> {
 }
 
 /// A main memory `Buffer` dereferences into `Data` type.
-impl<T, D: Device, S: Shape> core::ops::DerefMut for Buffer<'_, T, D, S> {
+impl<T: Unit, D: Device, S: Shape> core::ops::DerefMut for Buffer<'_, T, D, S> {
     #[inline]
     fn deref_mut(&mut self) -> &mut Self::Target {
         self.base_mut()
@@ -692,7 +692,7 @@ use core::fmt::Debug;
 #[cfg(feature = "std")]
 impl<'a, T, D> Debug for Buffer<'a, T, D>
 where
-    T: Debug + Default + Clone + 'a,
+    T: Unit + Debug + Default + Clone + 'a,
     D: Read<T> + Device + 'a,
     for<'b> <D as Read<T>>::Read<'b>: Debug,
     D::Base<T, ()>: CommonPtrs<T>,
@@ -729,6 +729,7 @@ where
 
 impl<'a, T, D: Device, S: Shape> core::iter::IntoIterator for &'a Buffer<'_, T, D, S>
 where
+    T: Unit,
     D::Base<T, S>: Deref<Target = [T]>,
 {
     type Item = &'a T;
@@ -743,6 +744,7 @@ where
 
 impl<'a, T, D: Device, S: Shape> core::iter::IntoIterator for &'a mut Buffer<'_, T, D, S>
 where
+    T: Unit,
     D::Base<T, S>: DerefMut<Target = [T]>,
 {
     type Item = &'a mut T;

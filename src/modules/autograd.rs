@@ -12,7 +12,7 @@ use crate::{
     pass_down_exec_now_module, pass_down_replace_buf_module, register_buf_copyable,
     unregister_buf_copyable, AddGradFn, AddLayer, Alloc, Buffer, Device, HasId, HasModules,
     IsShapeIndep, Module, OnDropBuffer, OnNewBuffer, Parents, Retrieve, RunModule, Setup,
-    ShallowCopy, Shape, TapeActions,
+    ShallowCopy, Shape, TapeActions, Unit,
 };
 
 use self::wrapper::ReqGradWrapper;
@@ -46,7 +46,7 @@ impl<Mods> Autograd<Mods> {
     #[inline]
     pub fn register_no_grad_buf<T, D, S>(&self, buf: &Buffer<T, D, S>)
     where
-        T: 'static,
+        T: Unit + 'static,
         D: Device + IsShapeIndep + 'static,
         D::Data<T, S>: ShallowCopy,
         S: Shape,
@@ -63,7 +63,7 @@ impl<Mods> Autograd<Mods> {
 
 impl<T, D, Mods, S: Shape> OnNewBuffer<T, D, S> for Autograd<Mods>
 where
-    T: 'static,
+    T: Unit + 'static,
     D: Alloc<T> + IsShapeIndep + 'static,
     D::Data<T, S>: ShallowCopy,
     Mods: OnNewBuffer<T, D, S>,
@@ -84,7 +84,7 @@ where
 
 impl<Mods: OnDropBuffer> OnDropBuffer for Autograd<Mods> {
     #[inline]
-    fn on_drop_buffer<T, D: Device, S: Shape>(&self, device: &D, buf: &Buffer<T, D, S>) {
+    fn on_drop_buffer<T: Unit, D: Device, S: Shape>(&self, device: &D, buf: &Buffer<T, D, S>) {
         unsafe { (*self.grads.get()).buf_requires_grad.remove(&*buf.id()) };
         unregister_buf_copyable(unsafe { &mut (*self.grads.get()).no_grads_pool }, buf.id());
 
@@ -124,8 +124,9 @@ impl<NewMods, SD> AddLayer<NewMods, SD> for Autograd<()> {
     }
 }
 
-impl<T: 'static, Mods: Retrieve<D, T, S>, D, S: Shape> Retrieve<D, T, S> for Autograd<Mods>
+impl<T, Mods: Retrieve<D, T, S>, D, S: Shape> Retrieve<D, T, S> for Autograd<Mods>
 where
+    T: Unit + 'static,
     D: IsShapeIndep + Device + 'static,
     D::Data<T, S>: ShallowCopy,
 {
@@ -239,13 +240,13 @@ impl<Mods> HasModules for Autograd<Mods> {
 mod tests {
     use crate::{
         AddGradFn, Base, BoxedShallowCopy, Buffer, Cached, Combiner, Cursor, Device, HasId, Lazy,
-        Module, Retriever, Shape, UnaryGrad, CPU,
+        Module, Retriever, Shape, UnaryGrad, Unit, CPU,
     };
 
     use super::Autograd;
 
     #[inline]
-    pub fn downcast_val<'a, 'b, T: 'static, D: Device + 'static, S: Shape>(
+    pub fn downcast_val<'a, 'b, T: Unit + 'static, D: Device + 'static, S: Shape>(
         buf_any: &'b Box<dyn BoxedShallowCopy>,
         _device: &'a D,
     ) -> Option<&'b Buffer<'a, T, D, S>> {
