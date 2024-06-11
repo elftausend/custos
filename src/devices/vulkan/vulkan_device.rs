@@ -2,7 +2,10 @@ use ash::vk::{self, BufferUsageFlags};
 
 use super::{context::Context, launch_shader, AsVkShaderArgument, ShaderCache, VkArray};
 use crate::{
-    impl_device_traits, pass_down_use_gpu_or_cpu, wgsl::{chosen_wgsl_idx, WgslDevice, WgslShaderLaunch}, Alloc, Base, Buffer, Device, DeviceError, IsShapeIndep, Module, OnDropBuffer, Setup, Shape, Unit, WrappedData
+    impl_device_traits, pass_down_use_gpu_or_cpu,
+    wgsl::{chosen_wgsl_idx, WgslDevice, WgslShaderLaunch},
+    Alloc, Base, Buffer, Device, DeviceError, IsShapeIndep, Module, OnDropBuffer, Setup, Shape,
+    Unit, WrappedData,
 };
 use core::{
     cell::RefCell,
@@ -129,7 +132,10 @@ impl<Mods: OnDropBuffer> Device for Vulkan<Mods> {
     }
 
     #[inline]
-    fn wrap_to_data<T: Unit, S: Shape>(&self, wrap: Self::Wrap<T, Self::Base<T, S>>) -> Self::Data<T, S> {
+    fn wrap_to_data<T: Unit, S: Shape>(
+        &self,
+        wrap: Self::Wrap<T, Self::Base<T, S>>,
+    ) -> Self::Data<T, S> {
         wrap
     }
 

@@ -16,6 +16,9 @@ pub struct CUDAPtr<T> {
     pub p: PhantomData<T>,
 }
 
+unsafe impl<T: Sync> Sync for CUDAPtr<T> {}
+unsafe impl<T: Send> Send for CUDAPtr<T> {}
+
 impl<T> CUDAPtr<T> {
     pub fn new(len: usize, flag: AllocFlag) -> CudaResult<Self> {
         let ptr = cumalloc::<T>(len)?;

@@ -177,9 +177,9 @@ pub trait HostPtr<T>: PtrType {
 }
 
 /// Minimum requirements for an element inside a Buffer.
-pub trait Unit: Sync {}
+pub trait Unit {} // useful for Sync and Send or 'static
 
-impl<T: Sync> Unit for T {}
+impl<T> Unit for T {}
 
 /// Used to shallow-copy a pointer. Use is discouraged.
 pub trait ShallowCopy {

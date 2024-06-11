@@ -20,9 +20,6 @@ pub fn static_cpu() -> &'static CPU {
     GLOBAL_CPU.get_or_init(|| CPU::based())
 }
 
-// #[cfg(feature = "opencl")]
-// pub static GLOBAL_OPENCL: OnceLock<std::sync::Mutex<crate::OpenCL>> = OnceLock::new();
-
 #[cfg(feature = "opencl")]
 thread_local! {
     static GLOBAL_OPENCL: crate::OpenCL = {

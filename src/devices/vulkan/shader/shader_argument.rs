@@ -1,7 +1,10 @@
 use ash::vk::BufferUsageFlags;
 
 use crate::{
-    flag::AllocFlag, vulkan::{Context, VkArray}, wgsl::{AsShaderArg, WgslNumber, WgslShaderLaunch}, OnDropBuffer, Shape, Unit, Vulkan
+    flag::AllocFlag,
+    vulkan::{Context, VkArray},
+    wgsl::{AsShaderArg, WgslNumber, WgslShaderLaunch},
+    OnDropBuffer, Shape, Unit, Vulkan,
 };
 use core::marker::PhantomData;
 use std::rc::Rc;

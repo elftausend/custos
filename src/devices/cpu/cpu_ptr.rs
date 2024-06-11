@@ -24,7 +24,8 @@ pub struct CPUPtr<T> {
     pub ty_size: Option<usize>,
 }
 
-unsafe impl<T> Send for CPUPtr<T> {}
+unsafe impl<T: Send> Send for CPUPtr<T> {}
+unsafe impl<T: Sync> Sync for CPUPtr<T> {}
 
 impl<T: PartialEq> PartialEq for CPUPtr<T> {
     fn eq(&self, other: &Self) -> bool {

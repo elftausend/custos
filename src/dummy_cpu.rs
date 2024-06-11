@@ -26,7 +26,10 @@ impl<Mods: OnDropBuffer> Device for CPU<Mods> {
         self.modules.wrap_in_base(base)
     }
 
-    fn wrap_to_data<T: Unit, S: Shape>(&self, wrap: Self::Wrap<T, Self::Base<T, S>>) -> Self::Data<T, S> {
+    fn wrap_to_data<T: Unit, S: Shape>(
+        &self,
+        wrap: Self::Wrap<T, Self::Base<T, S>>,
+    ) -> Self::Data<T, S> {
         wrap
     }
 
