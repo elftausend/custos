@@ -768,7 +768,7 @@ mod tests {
     // }
 
     #[cfg(feature = "cached")]
-    #[cfg(feauture = "cpu")]
+    #[cfg(feature = "cpu")]
     #[test]
     fn test_lazy_cached_two_producers() {
         use crate::Cached;
@@ -778,7 +778,7 @@ mod tests {
         let lhs = device.buffer([1, 2, 3, 4]);
         let rhs = device.buffer([1, 2, 3, 4]);
 
-        let _out: Buffer<i32, _> = device.retrieve(10, (&lhs, &rhs));
+        let _out: Buffer<i32, _,> = device.retrieve(10, (&lhs, &rhs)).unwrap();
     }
 
     /*

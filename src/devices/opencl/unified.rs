@@ -1,5 +1,5 @@
 use core::{any::Any, hash::BuildHasherDefault};
-use std::{collections::HashMap, ffi::c_void, rc::Rc};
+use std::{collections::HashMap, ffi::c_void, sync::Arc};
 
 use crate::{AllocFlag, DeviceError};
 
@@ -61,7 +61,7 @@ impl<D: Device> UnifiedMemChain<D> for Base {
 pub unsafe fn to_cached_unified<OclMods, CpuMods, T, S>(
     device: &OpenCL<OclMods>,
     no_drop: Buffer<T, CPU<CpuMods>, S>,
-    cache: &mut HashMap<crate::UniqueId, Rc<dyn Any>, BuildHasherDefault<crate::NoHasher>>,
+    cache: &mut HashMap<crate::UniqueId, Arc<dyn Any>, BuildHasherDefault<crate::NoHasher>>,
     id: crate::UniqueId,
 ) -> crate::Result<*mut c_void>
 where
@@ -80,7 +80,7 @@ where
 
     let old_ptr = cache.insert(
         id,
-        Rc::new(CLPtr {
+        Arc::new(CLPtr {
             ptr: cl_ptr,
             host_ptr: no_drop.base().ptr,
             len: no_drop.len(),
@@ -120,7 +120,7 @@ where
 pub fn construct_buffer<'a, OclMods, CpuMods, T, S>(
     device: &'a OpenCL<OclMods>,
     no_drop: Buffer<'a, T, CPU<CpuMods>, S>,
-    cache: &mut HashMap<crate::UniqueId, Rc<dyn Any>, BuildHasherDefault<crate::NoHasher>>,
+    cache: &mut HashMap<crate::UniqueId, Arc<dyn Any>, BuildHasherDefault<crate::NoHasher>>,
     id: crate::UniqueId,
 ) -> crate::Result<Buffer<'a, T, OpenCL<OclMods>, S>>
 where

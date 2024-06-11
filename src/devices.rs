@@ -21,9 +21,6 @@ pub mod wgsl;
 #[cfg(feature = "vulkan")]
 pub mod vulkan;
 
-#[cfg(feature = "network")]
-pub mod network;
-
 #[cfg(feature = "nnapi")]
 pub mod nnapi;
 

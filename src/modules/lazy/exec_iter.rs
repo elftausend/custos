@@ -14,8 +14,7 @@ pub fn exec_op<B>(
     buffers: &mut Buffers<B>,
 ) -> crate::Result<()> {
     args.update_args_dynable(ids_to_check, buffers)?;
-
-    let args = &mut **args as *mut _ as *mut ();
+    let args = core::ptr::addr_of_mut!(**args) as *mut ();
     op(args)
 }
 

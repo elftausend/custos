@@ -1,7 +1,5 @@
 use core::{any::Any, hash::BuildHasherDefault};
-use std::collections::HashMap;
-
-use std::rc::Rc;
+use std::{collections::HashMap, sync::Arc};
 
 use crate::{
     flag::AllocFlag, Alloc, Cursor, Device, NoHasher, PtrType, ShallowCopy, Shape, UniqueId,
@@ -9,7 +7,7 @@ use crate::{
 
 #[derive(Clone)]
 pub struct Cache {
-    pub nodes: HashMap<UniqueId, Rc<dyn Any>, BuildHasherDefault<NoHasher>>,
+    pub nodes: HashMap<UniqueId, Arc<dyn Any>, BuildHasherDefault<NoHasher>>,
 }
 
 impl Default for Cache {
@@ -77,7 +75,7 @@ impl Cache {
 
         callback(device.cursor(), &shallow_data);
         self.nodes
-            .insert(device.cursor() as UniqueId, Rc::new(data));
+            .insert(device.cursor() as UniqueId, Arc::new(data));
         unsafe { device.bump_cursor() };
 
         shallow_data
