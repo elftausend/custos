@@ -2,10 +2,7 @@ use ash::vk::{self, BufferUsageFlags};
 
 use super::{context::Context, launch_shader, AsVkShaderArgument, ShaderCache, VkArray};
 use crate::{
-    impl_device_traits, pass_down_use_gpu_or_cpu,
-    wgsl::{chosen_wgsl_idx, WgslDevice, WgslShaderLaunch},
-    Alloc, Base, Buffer, Device, DeviceError, IsShapeIndep, Module, OnDropBuffer, Setup, Shape,
-    WrappedData,
+    impl_device_traits, pass_down_use_gpu_or_cpu, wgsl::{chosen_wgsl_idx, WgslDevice, WgslShaderLaunch}, Alloc, Base, Buffer, Device, DeviceError, IsShapeIndep, Module, OnDropBuffer, Setup, Shape, Unit, WrappedData
 };
 use core::{
     cell::RefCell,
@@ -122,36 +119,36 @@ impl_device_traits!(Vulkan);
 pass_down_use_gpu_or_cpu!(Vulkan);
 
 impl<Mods: OnDropBuffer> Device for Vulkan<Mods> {
-    type Data<T, S: Shape> = Mods::Wrap<T, Self::Base<T, S>>;
-    type Base<T, S: Shape> = VkArray<T>;
+    type Data<T: Unit, S: Shape> = Mods::Wrap<T, Self::Base<T, S>>;
+    type Base<T: Unit, S: Shape> = VkArray<T>;
 
     type Error = ();
 
-    fn base_to_data<T, S: Shape>(&self, base: Self::Base<T, S>) -> Self::Data<T, S> {
+    fn base_to_data<T: Unit, S: Shape>(&self, base: Self::Base<T, S>) -> Self::Data<T, S> {
         self.wrap_in_base(base)
     }
 
     #[inline]
-    fn wrap_to_data<T, S: Shape>(&self, wrap: Self::Wrap<T, Self::Base<T, S>>) -> Self::Data<T, S> {
+    fn wrap_to_data<T: Unit, S: Shape>(&self, wrap: Self::Wrap<T, Self::Base<T, S>>) -> Self::Data<T, S> {
         wrap
     }
 
     #[inline]
-    fn data_as_wrap<'a, T, S: Shape>(
+    fn data_as_wrap<'a, T: Unit, S: Shape>(
         data: &'a Self::Data<T, S>,
     ) -> &'a Self::Wrap<T, Self::Base<T, S>> {
         data
     }
 
     #[inline]
-    fn data_as_wrap_mut<'a, T, S: Shape>(
+    fn data_as_wrap_mut<'a, T: Unit, S: Shape>(
         data: &'a mut Self::Data<T, S>,
     ) -> &'a mut Self::Wrap<T, Self::Base<T, S>> {
         data
     }
 }
 
-impl<Mods: OnDropBuffer, T> Alloc<T> for Vulkan<Mods> {
+impl<Mods: OnDropBuffer, T: Unit> Alloc<T> for Vulkan<Mods> {
     #[inline]
     fn alloc<S: Shape>(
         &self,

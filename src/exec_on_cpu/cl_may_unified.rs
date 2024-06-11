@@ -1,5 +1,5 @@
 use super::{cpu_exec_binary_mut, cpu_exec_reduce, cpu_exec_unary_mut};
-use crate::{Buffer, CachedCPU, OnDropBuffer, OpenCL, Retrieve, UnifiedMemChain, CPU};
+use crate::{Buffer, CachedCPU, OnDropBuffer, OpenCL, Retrieve, UnifiedMemChain, Unit, CPU};
 
 /// If the current device supports unified memory, data is not deep-copied.
 /// This is way faster than [cpu_exec_unary], as new memory is not allocated.
@@ -11,7 +11,7 @@ pub fn cpu_exec_unary_may_unified<'a, T, F, Mods>(
     f: F,
 ) -> crate::Result<Buffer<'a, T, OpenCL<Mods>>>
 where
-    T: Clone + Default + 'static,
+    T: Unit + Clone + Default + 'static,
     F: for<'b> Fn(&'b CachedCPU, &Buffer<'_, T, CachedCPU>) -> Buffer<'b, T, CachedCPU>,
     Mods: OnDropBuffer + Retrieve<OpenCL<Mods>, T> + UnifiedMemChain<OpenCL<Mods>> + 'static,
 {
@@ -29,7 +29,7 @@ pub fn cpu_exec_unary_may_unified_mut<'a, T, F, Mods: OnDropBuffer + 'static>(
     f: F,
 ) -> crate::Result<()>
 where
-    T: Clone + Default,
+    T: Unit + Clone + Default,
     F: for<'b> Fn(&'b CPU, &mut Buffer<'_, T, CPU>),
 {
     let cpu = CPU::<crate::Base>::new();
@@ -59,7 +59,7 @@ pub fn cpu_exec_binary_may_unified<'a, T, F, Mods>(
     f: F,
 ) -> crate::Result<Buffer<'a, T, OpenCL<Mods>>>
 where
-    T: Clone + Default + 'static,
+    T: Unit + Clone + Default + 'static,
     F: for<'b> Fn(&'b CachedCPU, &CpuBuf<'_, T>, &CpuBuf<'_, T>) -> CpuBuf<'b, T>,
     Mods: UnifiedMemChain<OpenCL<Mods>> + Retrieve<OpenCL<Mods>, T> + 'static,
 {
@@ -78,7 +78,7 @@ pub fn cpu_exec_binary_may_unified_mut<'a, T, F, Mods: OnDropBuffer + 'static>(
     f: F,
 ) -> crate::Result<()>
 where
-    T: Clone + Default,
+    T: Unit + Clone + Default,
     F: for<'b> Fn(&'b CPU, &mut Buffer<'_, T, CPU>, &Buffer<'_, T, CPU>),
 {
     let cpu = CPU::<crate::Base>::new();
@@ -105,7 +105,7 @@ where
 /// `cpu_exec_binary_may_unified` can be used interchangeably with [cpu_exec_reduce].
 pub fn cpu_exec_reduce_may_unified<T, F>(device: &OpenCL, x: &Buffer<T, OpenCL>, f: F) -> T
 where
-    T: Default + Clone,
+    T: Unit + Default + Clone,
     F: Fn(&CPU, &Buffer<T, CPU>) -> T,
 {
     let cpu = CPU::<crate::Base>::new();

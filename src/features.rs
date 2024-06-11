@@ -7,7 +7,7 @@ use core::{cell::RefMut, fmt::Debug, ops::RangeBounds};
 use crate::{
     op_hint::OpHint,
     range::{AsRange, CursorRange},
-    HasId, Parents, Shape, UniqueId, UpdateArgs, CPU,
+    HasId, Parents, Shape, UniqueId, Unit, UpdateArgs, CPU,
 };
 
 #[cfg(feature = "cached")]
@@ -24,7 +24,7 @@ pub trait Feature: OnDropBuffer {}
 // how to fix this:
 // add retrieved buffer to no grads pool at the end of the chain (at device level (Retriever trait))
 // => "generator", "actor"
-pub trait Retrieve<D, T, S: Shape = ()>: OnDropBuffer {
+pub trait Retrieve<D, T: Unit, S: Shape = ()>: OnDropBuffer {
     // "generator"
     #[track_caller]
     unsafe fn retrieve<const NUM_PARENTS: usize>(
@@ -271,22 +271,22 @@ pub trait OpArgs {
     fn as_ids(&self) -> [UniqueId; 2];
 }
 
-impl<'a, 'b, T, D: Device, S: Shape> OpArgs for (&Buffer<'a, T, D, S>, &Buffer<'b, T, D, S>) {
+impl<'a, 'b, T: Unit, D: Device, S: Shape> OpArgs for (&Buffer<'a, T, D, S>, &Buffer<'b, T, D, S>) {
     fn as_ids(&self) -> [UniqueId; 2] {
         [*self.0.id(), *self.1.id()]
     }
 }
 
 // seems useless, however, this is used to retrieve potential lazy buffer information
-pub trait ReplaceBuf<T, D: Device, S: Shape>: OnDropBuffer {
+pub trait ReplaceBuf<T: Unit, D: Device, S: Shape>: OnDropBuffer {
     fn replace_buf<'a, 'c>(&'c self, buffer: &'c Buffer<'a, T, D, S>) -> &'c Buffer<'a, T, D, S>;
 }
 
 #[macro_export]
 macro_rules! pass_down_replace_buf_dev {
     ($device:ident) => {
-        impl<T, S: Shape, Mods: $crate::ReplaceBuf<T, Self, S>> $crate::ReplaceBuf<T, Self, S>
-            for $device<Mods>
+        impl<T: $crate::Unit, S: Shape, Mods: $crate::ReplaceBuf<T, Self, S>>
+            $crate::ReplaceBuf<T, Self, S> for $device<Mods>
         {
             #[inline]
             fn replace_buf<'a, 'c>(
@@ -302,7 +302,7 @@ macro_rules! pass_down_replace_buf_dev {
 #[macro_export]
 macro_rules! pass_down_replace_buf_module {
     ($module:ident) => {
-        impl<T, S: Shape, Mods: $crate::ReplaceBuf<T, D, S>, D: $crate::Device>
+        impl<T: $crate::Unit, S: Shape, Mods: $crate::ReplaceBuf<T, D, S>, D: $crate::Device>
             $crate::ReplaceBuf<T, D, S> for $module<Mods>
         {
             #[inline]
@@ -444,7 +444,7 @@ pub type CachedCPU = CPU<CachedModule<Base, CPU>>;
 
 #[cfg(feature = "cached")]
 pub trait UnifiedMemChain<D: Device> {
-    fn construct_unified_buf_from_cpu_buf<'a, T: 'static, S: Shape>(
+    fn construct_unified_buf_from_cpu_buf<'a, T: Unit + 'static, S: Shape>(
         &self,
         device: &'a D,
         no_drop_buf: Buffer<'a, T, CachedCPU, S>,
@@ -457,7 +457,7 @@ macro_rules! pass_down_unified_mem_chain {
     ($($to_impl:ident),*) => {
         $(
             impl<Mods: $crate::UnifiedMemChain<D>, D: Device> $crate::UnifiedMemChain<D> for $to_impl<Mods> {
-                fn construct_unified_buf_from_cpu_buf<'a, T: 'static, S: Shape>(
+                fn construct_unified_buf_from_cpu_buf<'a, T: $crate::Unit + 'static, S: Shape>(
                     &self,
                     device: &'a D,
                     no_drop_buf: Buffer<'a, T, $crate::CachedCPU, S>

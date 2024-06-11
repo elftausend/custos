@@ -9,7 +9,8 @@ use crate::{
     bounds_to_range, cpu_stack_ops::clear_slice, location, op_hint::unary, pass_down_add_operation,
     pass_down_exec_now, prelude::Number, AddOperation, ApplyFunction, AsNoId, BufAsNoId, Buffer,
     CDatatype, ClearBuf, CopySlice, OnDropBuffer, OpenCL, Read, Resolve, Retrieve, Retriever,
-    SetOpHint, Shape, ToCLSource, ToMarker, TwoWay, UnaryGrad, UseGpuOrCpu, WriteBuf, ZeroGrad,
+    SetOpHint, Shape, ToCLSource, ToMarker, TwoWay, UnaryGrad, Unit, UseGpuOrCpu, WriteBuf,
+    ZeroGrad,
 };
 
 use super::{enqueue_kernel, CLPtr};
@@ -90,7 +91,7 @@ pub fn try_cl_clear<T: CDatatype>(device: &CLDevice, lhs: &mut CLPtr<T>) -> crat
     Ok(())
 }
 
-impl<T, S: Shape, Mods: OnDropBuffer> WriteBuf<T, S> for OpenCL<Mods> {
+impl<T: Unit, S: Shape, Mods: OnDropBuffer> WriteBuf<T, S> for OpenCL<Mods> {
     #[inline]
     fn write(&self, buf: &mut Buffer<T, Self, S>, data: &[T]) {
         let event = unsafe { self.device.enqueue_write_buffer(buf.cl_ptr(), data, false) }.unwrap();
@@ -112,7 +113,7 @@ impl<T, S: Shape, Mods: OnDropBuffer> WriteBuf<T, S> for OpenCL<Mods> {
     }
 }
 
-impl<T> CopySlice<T> for OpenCL {
+impl<T: Unit> CopySlice<T> for OpenCL {
     fn copy_slice_to<SR: RangeBounds<usize>, DR: RangeBounds<usize>>(
         &self,
         source: &Buffer<T, Self>,
@@ -168,7 +169,12 @@ impl<T> CopySlice<T> for OpenCL {
     }
 }
 
-impl<Mods: OnDropBuffer + 'static, T: Clone + Default, S: Shape> Read<T, S> for OpenCL<Mods> {
+impl<Mods, T, S> Read<T, S> for OpenCL<Mods>
+where
+    Mods: OnDropBuffer + 'static,
+    T: Unit + Clone + Default,
+    S: Shape,
+{
     #[cfg(not(unified_cl))]
     type Read<'a> = Vec<T> where T: 'a;
     #[cfg(unified_cl)]

@@ -5,7 +5,7 @@ use custos::prelude::*;
 /// `AddBuf` will be implemented for all compute devices.<br>
 /// Because of `S: Shape`, this trait can be implemented for [`Stack`], which uses fixed size stack allocated arrays.<br>
 /// Adding a `D: Device = Self` makes it possible to invoke operations with a `CPU` on, for example, `OpenCL` `Buffer`s (if the device uses unified memory), and `Stack` `Buffer`s.
-pub trait AddBuf<T, S: Shape = (), D: Device = Self>: Sized + Device {
+pub trait AddBuf<T: Unit, S: Shape = (), D: Device = Self>: Sized + Device {
     /// This operation performs element-wise addition.
     fn add(&self, lhs: &Buffer<T, D, S>, rhs: &Buffer<T, D, S>) -> Buffer<T, Self, S>;
     // ... you can add more operations if you want to do that.
@@ -15,7 +15,7 @@ pub trait AddBuf<T, S: Shape = (), D: Device = Self>: Sized + Device {
 #[cfg(feature = "cpu")]
 impl<T, S, D, Mods> AddBuf<T, S, D> for CPU<Mods>
 where
-    T: Copy + std::ops::Add<Output = T> + 'static, // you can use the custos::Number trait.
+    T: Unit + Copy + std::ops::Add<Output = T> + 'static, // you can use the custos::Number trait.
     S: Shape, // This trait is implemented for all number types (usize, i16, f32, ...)
     D: Device,
     D::Base<T, S>: Deref<Target = [T]>,
@@ -49,7 +49,7 @@ where
 #[cfg(feature = "stack")]
 impl<T, S, D, Mods> AddBuf<T, S, D> for Stack<Mods>
 where
-    T: Copy + Default + std::ops::Add<Output = T> + 'static,
+    T: Unit + Copy + Default + std::ops::Add<Output = T> + 'static,
     S: Shape,
     D: Device,
     D::Base<T, S>: Deref<Target = [T]>,
@@ -129,7 +129,7 @@ impl<Mods: Retrieve<Self, T>, T: CDatatype> AddBuf<T> for CUDA<Mods> {
 /// vulkan implementation
 // could add a `S: Shape`, or `Mods` here, too
 #[cfg(feature = "vulkan")]
-impl<T> AddBuf<T> for custos::Vulkan {
+impl<T: Unit> AddBuf<T> for custos::Vulkan {
     fn add(&self, lhs: &Buffer<T, Self>, rhs: &Buffer<T, Self>) -> Buffer<T, Self> {
         let src = format!(
             "@group(0)
@@ -162,7 +162,7 @@ impl<T> AddBuf<T> for custos::Vulkan {
     }
 }
 
-pub trait AddOp<'a, T, D: Device> {
+pub trait AddOp<'a, T: Unit, D: Device> {
     fn add(&self, rhs: &Buffer<'a, T, D>) -> Buffer<'a, T, D>;
 }
 
@@ -174,11 +174,11 @@ impl<'a, T: CDatatype, D: AddBuf<T>> AddOp<'a, T, D> for Buffer<'a, T, D> {
 }
 
 #[allow(dead_code)]
-pub struct OwnStruct<'a, T, D: Device> {
+pub struct OwnStruct<'a, T: Unit, D: Device> {
     buf: Buffer<'a, T, D>,
 }
 
-impl<'a, T, D: Device> OwnStruct<'a, T, D> {
+impl<'a, T: Unit, D: Device> OwnStruct<'a, T, D> {
     #[allow(dead_code)]
     // consider using operator overloading for your own type
     #[inline]

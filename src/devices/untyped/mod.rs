@@ -11,11 +11,11 @@ mod matches_type;
 mod ops;
 pub use matches_type::*;
 
-use crate::Buffer;
+use crate::{Buffer, Unit};
 
 use self::untyped_device::Untyped;
 
-impl<'a, T, S: crate::Shape> Buffer<'a, T, Untyped, S> {
+impl<'a, T: Unit, S: crate::Shape> Buffer<'a, T, Untyped, S> {
     #[inline]
     pub fn to_typed<NT, NS>(self) -> Option<Buffer<'a, NT, Untyped, NS>>
     where

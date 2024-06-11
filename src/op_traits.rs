@@ -1,9 +1,9 @@
 use core::ops::{Bound, Range, RangeBounds};
 
-use crate::{shape::Shape, Alloc, Buffer, Device, OnDropBuffer, OnNewBuffer};
+use crate::{shape::Shape, Alloc, Buffer, Device, OnDropBuffer, OnNewBuffer, Unit};
 
 /// Trait for implementing the clear() operation for the compute devices.
-pub trait ClearBuf<T, S: Shape = (), D: Device = Self> {
+pub trait ClearBuf<T: Unit, S: Shape = (), D: Device = Self> {
     /// Sets all elements of the matrix to zero.
     /// # Example
     #[cfg_attr(feature = "cpu", doc = "```")]
@@ -20,12 +20,12 @@ pub trait ClearBuf<T, S: Shape = (), D: Device = Self> {
     fn clear(&self, buf: &mut Buffer<T, D, S>);
 }
 
-pub trait ZeroGrad<T>: Device {
+pub trait ZeroGrad<T: Unit>: Device {
     fn zero_grad<S: Shape>(&self, data: &mut Self::Base<T, S>);
 }
 
 /// Trait for copying a slice of a buffer, to implement the slice() operation.
-pub trait CopySlice<T, D: Device = Self>: Sized + Device {
+pub trait CopySlice<T: Unit, D: Device = Self>: Sized + Device {
     /// Copy a slice of the given buffer into a new buffer.
     /// # Example
     ///
@@ -102,7 +102,7 @@ pub trait CopySlice<T, D: Device = Self>: Sized + Device {
 
 /// Trait for reading buffers.
 /// Syncronizationpoint for CUDA.
-pub trait Read<T, S: Shape = (), D: Device = Self>: Device {
+pub trait Read<T: Unit, S: Shape = (), D: Device = Self>: Device {
     /// The type of the read data.
     /// Usually `Vec<T>` or `&'a [T]`.
     type Read<'a>
@@ -144,7 +144,7 @@ pub trait Read<T, S: Shape = (), D: Device = Self>: Device {
 }
 
 /// Trait for writing data to buffers.
-pub trait WriteBuf<T, S: Shape = (), D: Device = Self>: Device {
+pub trait WriteBuf<T: Unit, S: Shape = (), D: Device = Self>: Device {
     /// Write data to the buffer.
     /// # Example
     #[cfg_attr(feature = "cpu", doc = "```")]
@@ -179,7 +179,7 @@ pub trait WriteBuf<T, S: Shape = (), D: Device = Self>: Device {
 }
 
 /// This trait is used to clone a buffer based on a specific device type.
-pub trait CloneBuf<'a, T, S: Shape = ()>: Sized + Device {
+pub trait CloneBuf<'a, T: Unit, S: Shape = ()>: Sized + Device {
     /// Creates a deep copy of the specified buffer.
     /// # Example
     ///

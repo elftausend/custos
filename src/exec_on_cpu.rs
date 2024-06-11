@@ -8,7 +8,7 @@ mod cl_may_unified;
 #[cfg(feature = "opencl")]
 pub use cl_may_unified::*;
 
-use crate::{Alloc, Base, Buffer, Device, Read, Retriever, WriteBuf, CPU};
+use crate::{Alloc, Base, Buffer, Device, Read, Retriever, Unit, WriteBuf, CPU};
 
 /// Moves a `Buffer` stored on device `D` to a `CPU` `Buffer`
 /// and executes the unary operation `F` with a `CPU` on the newly created `CPU` `Buffer`.
@@ -45,7 +45,7 @@ pub fn cpu_exec_unary<'a, T, D, F>(
     f: F,
 ) -> crate::Result<Buffer<'a, T, D>>
 where
-    T: Clone + Default + 'static,
+    T: Unit + Clone + Default + 'static,
     F: for<'b> Fn(&'b CPU, &Buffer<'_, T, CPU>) -> Buffer<'b, T, CPU>,
     D: Read<T> + WriteBuf<T> + Alloc<T> + Retriever<T>,
 {
@@ -61,7 +61,7 @@ pub fn cpu_exec_unary_mut<'a, T, D, F>(
     f: F,
 ) -> crate::Result<()>
 where
-    T: Clone + Default,
+    T: Unit + Clone + Default,
     F: for<'b> Fn(&'b CPU, &mut Buffer<'_, T, CPU>),
     D: Read<T> + WriteBuf<T>,
 {
@@ -112,7 +112,7 @@ pub fn cpu_exec_binary<'a, T, D, F>(
     f: F,
 ) -> Buffer<'a, T, D>
 where
-    T: Clone + Default + 'static,
+    T: Unit + Clone + Default + 'static,
     F: for<'b> Fn(&'b CPU, &Buffer<'_, T, CPU>, &Buffer<'_, T, CPU>) -> Buffer<'b, T, CPU>,
     D: Device + Read<T> + WriteBuf<T> + Alloc<T> + Retriever<T>,
 {
@@ -128,7 +128,7 @@ pub fn cpu_exec_binary_mut<T, D, F>(
     f: F,
 ) -> crate::Result<()>
 where
-    T: Clone + Default,
+    T: Unit + Clone + Default,
     F: for<'b> Fn(&'b CPU, &mut Buffer<'_, T, CPU>, &Buffer<'_, T, CPU>),
     D: Read<T> + WriteBuf<T>,
 {
@@ -275,7 +275,7 @@ macro_rules! cpu_exec_mut {
 #[inline]
 pub fn cpu_exec_reduce<T, D, F>(x: &Buffer<T, D>, f: F) -> T
 where
-    T: Default + Clone,
+    T: Unit + Default + Clone,
     D: Read<T>,
     F: Fn(&CPU, &Buffer<T, CPU>) -> T,
 {

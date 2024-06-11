@@ -6,7 +6,7 @@ use crate::{
     op_hint::unary,
     pass_down_add_operation, pass_down_exec_now, AddOperation, ApplyFunction, AsNoId, BufAsNoId,
     Buffer, CDatatype, ClearBuf, CopySlice, OnDropBuffer, Read, Resolve, Retrieve, Retriever,
-    SetOpHint, Shape, ToCLSource, ToMarker, UnaryGrad, WriteBuf, ZeroGrad, CUDA,
+    SetOpHint, Shape, ToCLSource, ToMarker, UnaryGrad, Unit, WriteBuf, ZeroGrad, CUDA,
 };
 
 use super::{
@@ -17,7 +17,7 @@ use super::{
 pass_down_add_operation!(CUDA);
 pass_down_exec_now!(CUDA);
 
-impl<Mods: OnDropBuffer, T: Default + Clone, S: Shape> Read<T, S> for CUDA<Mods> {
+impl<Mods: OnDropBuffer, T: Unit + Default + Clone, S: Shape> Read<T, S> for CUDA<Mods> {
     type Read<'a> = Vec<T>
     where
         T: 'a,
@@ -64,7 +64,7 @@ impl<Mods: OnDropBuffer, T: CDatatype> ZeroGrad<T> for CUDA<Mods> {
     }
 }
 
-impl<Mods: OnDropBuffer, T> CopySlice<T> for CUDA<Mods> {
+impl<Mods: OnDropBuffer, T: Unit> CopySlice<T> for CUDA<Mods> {
     fn copy_slice_to<SR: RangeBounds<usize>, DR: RangeBounds<usize>>(
         &self,
         source: &Buffer<T, Self>,
@@ -100,7 +100,7 @@ impl<Mods: OnDropBuffer, T> CopySlice<T> for CUDA<Mods> {
     }
 }
 
-impl<Mods: OnDropBuffer, T> WriteBuf<T> for CUDA<Mods> {
+impl<Mods: OnDropBuffer, T: Unit> WriteBuf<T> for CUDA<Mods> {
     #[inline]
     fn write(&self, buf: &mut Buffer<T, Self>, data: &[T]) {
         cu_write_async(buf.cu_ptr(), data, &self.mem_transfer_stream).unwrap();

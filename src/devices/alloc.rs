@@ -1,8 +1,8 @@
-use crate::{flag::AllocFlag, Device, Shape};
+use crate::{flag::AllocFlag, Device, Shape, Unit};
 
 use super::StackArray;
 
-pub trait Alloc<T>: Device + Sized {
+pub trait Alloc<T: Unit>: Device + Sized {
     /// Allocate memory on the implemented device.
     /// # Example
     #[cfg_attr(feature = "cpu", doc = "```")]

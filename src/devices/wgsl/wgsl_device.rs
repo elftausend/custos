@@ -1,8 +1,7 @@
 use core::convert::Infallible;
 
 use crate::{
-    AddOperation, Alloc, Base, Buffer, Device, HasId, IsShapeIndep, Module, OnDropBuffer,
-    OnNewBuffer, Parents, PtrType, Retrieve, Retriever, Setup, Shape, WrappedData,
+    AddOperation, Alloc, Base, Buffer, Device, HasId, IsShapeIndep, Module, OnDropBuffer, OnNewBuffer, Parents, PtrType, Retrieve, Retriever, Setup, Shape, Unit, WrappedData
 };
 
 use super::{WgslDevice, WgslShaderLaunch};
@@ -29,19 +28,19 @@ impl<SimpleMods, D: WgslDevice + Device + Default> Wgsl<D, SimpleMods> {
 }
 
 impl<D: Device, Mods: OnDropBuffer> Device for Wgsl<D, Mods> {
-    type Base<T, S: crate::Shape> = D::Base<T, S>;
+    type Base<T: Unit, S: crate::Shape> = D::Base<T, S>;
 
-    type Data<T, S: crate::Shape> = Mods::Wrap<T, Self::Base<T, S>>;
+    type Data<T: Unit, S: crate::Shape> = Mods::Wrap<T, Self::Base<T, S>>;
 
     type Error = Infallible;
 
     #[inline]
-    fn base_to_data<T, S: crate::Shape>(&self, base: Self::Base<T, S>) -> Self::Data<T, S> {
+    fn base_to_data<T: Unit, S: crate::Shape>(&self, base: Self::Base<T, S>) -> Self::Data<T, S> {
         self.wrap_in_base(base)
     }
 
     #[inline]
-    fn wrap_to_data<T, S: crate::Shape>(
+    fn wrap_to_data<T: Unit, S: crate::Shape>(
         &self,
         wrap: Self::Wrap<T, Self::Base<T, S>>,
     ) -> Self::Data<T, S> {
@@ -49,14 +48,14 @@ impl<D: Device, Mods: OnDropBuffer> Device for Wgsl<D, Mods> {
     }
 
     #[inline]
-    fn data_as_wrap<T, S: crate::Shape>(
+    fn data_as_wrap<T: Unit, S: crate::Shape>(
         data: &Self::Data<T, S>,
     ) -> &Self::Wrap<T, Self::Base<T, S>> {
         data
     }
 
     #[inline]
-    fn data_as_wrap_mut<T, S: crate::Shape>(
+    fn data_as_wrap_mut<T: Unit, S: crate::Shape>(
         data: &mut Self::Data<T, S>,
     ) -> &mut Self::Wrap<T, Self::Base<T, S>> {
         data
@@ -90,7 +89,7 @@ impl<D: Device, Mods: WrappedData> WrappedData for Wgsl<D, Mods> {
 }
 impl<D: Device, Mods: OnDropBuffer> OnDropBuffer for Wgsl<D, Mods> {
     #[inline]
-    fn on_drop_buffer<T, D1: Device, S: crate::Shape>(
+    fn on_drop_buffer<T: Unit, D1: Device, S: crate::Shape>(
         &self,
         device: &D1,
         buf: &crate::Buffer<T, D1, S>,
@@ -99,7 +98,7 @@ impl<D: Device, Mods: OnDropBuffer> OnDropBuffer for Wgsl<D, Mods> {
     }
 }
 
-impl<D: Device, Mods: OnNewBuffer<T, D1, S>, T, D1: Device, S: Shape> OnNewBuffer<T, D1, S>
+impl<D: Device, Mods: OnNewBuffer<T, D1, S>, T: Unit, D1: Device, S: Shape> OnNewBuffer<T, D1, S>
     for Wgsl<D, Mods>
 {
     #[inline]
@@ -110,7 +109,7 @@ impl<D: Device, Mods: OnNewBuffer<T, D1, S>, T, D1: Device, S: Shape> OnNewBuffe
 
 unsafe impl<D: Device, Mods: OnDropBuffer> IsShapeIndep for Wgsl<D, Mods> {}
 
-impl<T, D: Alloc<T>, Mods: OnDropBuffer> Alloc<T> for Wgsl<D, Mods> {
+impl<T: Unit, D: Alloc<T>, Mods: OnDropBuffer> Alloc<T> for Wgsl<D, Mods> {
     #[inline]
     fn alloc<S: Shape>(
         &self,
@@ -160,7 +159,7 @@ impl<D: Device + WgslShaderLaunch, Mods: OnDropBuffer> WgslShaderLaunch for Wgsl
     }
 }
 
-impl<D: Device + Alloc<T>, T, Mods: Retrieve<Self, T, S>, S: Shape> Retriever<T, S>
+impl<D: Device + Alloc<T>, T: Unit, Mods: Retrieve<Self, T, S>, S: Shape> Retriever<T, S>
     for Wgsl<D, Mods>
 {
     #[inline]

@@ -1,4 +1,4 @@
-use crate::{Device, ShallowCopy};
+use crate::{Device, ShallowCopy, Unit};
 
 /// Determines the shape of a [`Buffer`](crate::Buffer).
 /// `Shape` is used to get the size and ND-Array for a stack allocated `Buffer`.
@@ -118,7 +118,7 @@ impl<const C: usize, const B: usize, const A: usize> Shape for Dim3<C, B, A> {
 
 // TODO: do not use device
 /// Converts a pointer to a different [`Shape`].
-pub trait ToDim<T, I: Shape, O: Shape>: crate::Device {
+pub trait ToDim<T: Unit, I: Shape, O: Shape>: crate::Device {
     /// Converts a pointer to a different [`Shape`].
     /// This is only possible for [`Buffer`](crate::Buffer)s that are not allocated on the stack.
     fn to_dim(&self, ptr: Self::Data<T, I>) -> Self::Data<T, O>;
@@ -127,6 +127,7 @@ pub trait ToDim<T, I: Shape, O: Shape>: crate::Device {
 #[cfg(feature = "std")]
 impl<T, D, I, O> ToDim<T, I, O> for D
 where
+    T: Unit,
     D::Data<T, O>: crate::PtrType + ShallowCopy,
     D: IsShapeIndep + Device,
     I: Shape,
@@ -144,7 +145,7 @@ where
 }
 
 #[cfg(feature = "stack")]
-impl<T, S: IsConstDim> ToDim<T, S, S> for crate::Stack {
+impl<T: Unit, S: IsConstDim> ToDim<T, S, S> for crate::Stack {
     #[inline]
     fn to_dim(&self, ptr: Self::Data<T, S>) -> Self::Data<T, S> {
         ptr
@@ -158,7 +159,7 @@ mod tests {
     use crate::{Buffer, Device, Dim1, Dim2, Dim3, Shape};
 
     #[cfg(feature = "std")]
-    fn len_of_shape<T, D: Device, S: Shape>(_: &Buffer<T, D, S>) {
+    fn len_of_shape<T: crate::Unit, D: Device, S: Shape>(_: &Buffer<T, D, S>) {
         println!("S::LEN {}", S::LEN);
     }
 

@@ -1,4 +1,4 @@
-use crate::{prelude::Number, shape::Shape, Alloc, Buffer, Dim1, Dim2, Dim3, OnNewBuffer};
+use crate::{prelude::Number, shape::Shape, Alloc, Buffer, Dim1, Dim2, Dim3, OnNewBuffer, Unit};
 
 /// Trait for creating [`Buffer`]s with a [`Shape`]. The [`Shape`] is inferred from the array.
 pub trait WithShape<'a, D, C> {
@@ -77,6 +77,7 @@ where
 
 impl<'a, T, D, S: Shape> WithShape<'a, D, ()> for Buffer<'a, T, D, S>
 where
+    T: Unit,
     D: Alloc<T> + OnNewBuffer<T, D, S>,
 {
     fn with(device: &'a D, _: ()) -> Self {

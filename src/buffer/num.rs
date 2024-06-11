@@ -7,7 +7,7 @@ use core::{
 
 use crate::{
     flag::AllocFlag, Alloc, Buffer, CloneBuf, CommonPtrs, Device, HasId, OnDropBuffer, PtrType,
-    ShallowCopy, WrappedData,
+    ShallowCopy, Unit, WrappedData,
 };
 
 #[derive(Debug, Default)]
@@ -65,8 +65,8 @@ impl<T> ShallowCopy for Num<T> {
 }
 
 impl Device for () {
-    type Data<T, S: crate::Shape> = Self::Base<T, S>;
-    type Base<T, S: crate::Shape> = Num<T>;
+    type Data<T: Unit, S: crate::Shape> = Self::Base<T, S>;
+    type Base<T: Unit, S: crate::Shape> = Num<T>;
 
     type Error = Infallible;
 
@@ -75,12 +75,12 @@ impl Device for () {
     }
 
     #[inline(always)]
-    fn base_to_data<T, S: crate::Shape>(&self, base: Self::Base<T, S>) -> Self::Data<T, S> {
+    fn base_to_data<T: Unit, S: crate::Shape>(&self, base: Self::Base<T, S>) -> Self::Data<T, S> {
         base
     }
 
     #[inline(always)]
-    fn wrap_to_data<T, S: crate::Shape>(
+    fn wrap_to_data<T: Unit, S: crate::Shape>(
         &self,
         wrap: Self::Wrap<T, Self::Base<T, S>>,
     ) -> Self::Data<T, S> {
@@ -88,20 +88,20 @@ impl Device for () {
     }
 
     #[inline(always)]
-    fn data_as_wrap<T, S: crate::Shape>(
+    fn data_as_wrap<T: Unit, S: crate::Shape>(
         data: &Self::Data<T, S>,
     ) -> &Self::Wrap<T, Self::Base<T, S>> {
         data
     }
 
-    fn data_as_wrap_mut<T, S: crate::Shape>(
+    fn data_as_wrap_mut<T: Unit, S: crate::Shape>(
         data: &mut Self::Data<T, S>,
     ) -> &mut Self::Wrap<T, Self::Base<T, S>> {
         data
     }
 }
 
-impl<T: Default> Alloc<T> for () {
+impl<T: Unit + Default> Alloc<T> for () {
     #[inline]
     fn alloc<S: crate::Shape>(
         &self,
@@ -141,7 +141,7 @@ impl WrappedData for () {
 
 impl OnDropBuffer for () {}
 
-impl<'a, T: Clone> CloneBuf<'a, T> for () {
+impl<'a, T: Unit + Clone> CloneBuf<'a, T> for () {
     #[inline]
     fn clone_buf(&self, buf: &Buffer<'a, T, Self>) -> Buffer<'a, T, Self> {
         Buffer {
@@ -163,13 +163,13 @@ impl<T: crate::number::Number> From<T> for Buffer<'_, T, ()> {
     }
 }
 
-impl<'a, T> Buffer<'a, T, ()> {
+impl<'a, T: Unit> Buffer<'a, T, ()> {
     /// A [`Num`] [`Buffer`] is safe to copy.
     /// This method returns a new "[`Buffer`]" with the same single value.
     #[inline]
     pub fn copy(&self) -> Self
     where
-        T: Copy,
+        T: Unit + Copy,
     {
         Buffer {
             data: Num { num: self.data.num },
@@ -193,7 +193,7 @@ impl<'a, T> Buffer<'a, T, ()> {
     #[inline]
     pub fn item(&self) -> T
     where
-        T: Copy,
+        T: Unit + Copy,
     {
         self.data.num
     }

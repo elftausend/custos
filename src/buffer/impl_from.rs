@@ -1,7 +1,7 @@
 use core::ops::{Range, RangeInclusive};
 
 use crate::{
-    number::Number, shape::Shape, Alloc, Buffer, Device, OnDropBuffer, OnNewBuffer, Retriever,
+    number::Number, shape::Shape, Alloc, Buffer, Device, OnDropBuffer, OnNewBuffer, Retriever, Unit,
 };
 
 #[cfg(feature = "cpu")]
@@ -9,7 +9,7 @@ use crate::{WriteBuf, CPU};
 
 impl<'a, T, D, const N: usize> From<(&'a D, [T; N])> for Buffer<'a, T, D>
 where
-    T: Clone,
+    T: Unit + Clone,
     // TODO: IsShapeIndep ... find way to include Stack
     D: Alloc<T> + OnNewBuffer<T, D, ()>,
 {
@@ -21,6 +21,7 @@ where
 
 impl<'a, T, D, S: Shape> From<(&'a D, usize)> for Buffer<'a, T, D, S>
 where
+    T: Unit,
     D: Alloc<T> + OnNewBuffer<T, D, S>,
 {
     #[inline]
@@ -32,7 +33,7 @@ where
 #[cfg(feature = "std")]
 impl<'a, T, D, S> Buffer<'a, T, D, S>
 where
-    T: Clone,
+    T: Unit + Clone,
     D: Alloc<T> + OnNewBuffer<T, D, S>,
     S: Shape,
 {
@@ -70,7 +71,7 @@ where
 
 impl<'a, T, D, const N: usize> From<(&'a D, &[T; N])> for Buffer<'a, T, D>
 where
-    T: Clone,
+    T: Unit + Clone,
     // TODO: IsShapeIndep ... find way to include Stack
     D: Alloc<T> + OnNewBuffer<T, D, ()>,
 {
@@ -82,7 +83,7 @@ where
 
 impl<'a, T, D, S: Shape> From<(&'a D, &[T])> for Buffer<'a, T, D, S>
 where
-    T: Clone,
+    T: Unit + Clone,
     // TODO: IsShapeIndep ... find way to include Stack
     D: Alloc<T> + OnNewBuffer<T, D, S>,
 {
@@ -95,7 +96,7 @@ where
 #[cfg(feature = "std")]
 impl<'a, T, D, S: Shape> From<(&'a D, Vec<T>)> for Buffer<'a, T, D, S>
 where
-    T: Clone,
+    T: Unit + Clone,
     // TODO: IsShapeIndep ... find way to include Stack
     D: Alloc<T> + OnNewBuffer<T, D, S>,
 {
@@ -108,7 +109,7 @@ where
 #[cfg(feature = "std")]
 impl<'a, T, D, S: Shape> From<(&'a D, &Vec<T>)> for Buffer<'a, T, D, S>
 where
-    T: Clone,
+    T: Unit + Clone,
     // TODO: IsShapeIndep ... find way to include Stack
     D: Alloc<T> + OnNewBuffer<T, D, S>,
 {
@@ -122,7 +123,7 @@ where
 impl<'a, 'b, Mods: OnDropBuffer, T, S, D> From<(&'a D, Buffer<'b, T, CPU<Mods>, S>)>
     for Buffer<'a, T, D, S>
 where
-    T: 'static,
+    T: Unit + 'static,
     S: Shape,
     D: WriteBuf<T, S> + Device + Retriever<T, S>,
     <CPU<Mods> as Device>::Data<T, S>: core::ops::Deref<Target = [T]>,

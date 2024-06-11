@@ -1,7 +1,7 @@
 use super::stack_device::Stack;
-use crate::{Buffer, IsConstDim, StackArray};
+use crate::{Buffer, IsConstDim, StackArray, Unit};
 
-impl<'a, T: Copy + Default, S: IsConstDim, const N: usize> From<(&'a Stack, [T; N])>
+impl<'a, T: Unit + Copy + Default, S: IsConstDim, const N: usize> From<(&'a Stack, [T; N])>
     for Buffer<'a, T, Stack, S>
 {
     fn from((dev, array): (&'a Stack, [T; N])) -> Self {
@@ -14,7 +14,7 @@ impl<'a, T: Copy + Default, S: IsConstDim, const N: usize> From<(&'a Stack, [T; 
     }
 }
 
-impl<'a, T: Copy + Default, S: IsConstDim, const N: usize> From<(&'a Stack, &[T; N])>
+impl<'a, T: Unit + Copy + Default, S: IsConstDim, const N: usize> From<(&'a Stack, &[T; N])>
     for Buffer<'a, T, Stack, S>
 {
     fn from((dev, array): (&'a Stack, &[T; N])) -> Self {

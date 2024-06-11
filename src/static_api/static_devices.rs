@@ -1,4 +1,10 @@
-use crate::{Base, CPU};
+#[cfg(feature = "std")]
+use std::sync::OnceLock;
+
+#[cfg(not(feature = "std"))]
+compile_error!("The static-api feature is only available when using the std feature.");
+
+use crate::CPU;
 
 #[cfg(feature = "opencl")]
 use crate::opencl::chosen_cl_idx;
@@ -7,40 +13,20 @@ use crate::opencl::chosen_cl_idx;
 use crate::cuda::chosen_cu_idx;
 
 #[cfg(feature = "std")]
-thread_local! {
-    static GLOBAL_CPU: CPU = CPU::<Base>::new();
-}
+pub static GLOBAL_CPU: OnceLock<CPU> = OnceLock::new();
 
-/// Returns a static `CPU` device.
-#[cfg(feature = "std")]
 #[inline]
 pub fn static_cpu() -> &'static CPU {
-    // Safety: GLOBAL_CPU should live long enough
-    unsafe {
-        GLOBAL_CPU
-            .with(|device| device as *const CPU)
-            .as_ref()
-            .unwrap()
-    }
+    GLOBAL_CPU.get_or_init(|| CPU::based())
 }
 
-#[cfg(not(feature = "std"))]
-static GLOBAL_CPU: Option<CPU> = None;
-
-/// Returns a static `CPU` device.
-#[cfg(not(feature = "std"))]
-pub fn static_cpu() -> &'static CPU {
-    if let Some(cpu) = &GLOBAL_CPU {
-        cpu
-    } else {
-        GLOBAL_CPU = Some(CPU::<Base>::new())
-    }
-}
+// #[cfg(feature = "opencl")]
+// pub static GLOBAL_OPENCL: OnceLock<std::sync::Mutex<crate::OpenCL>> = OnceLock::new();
 
 #[cfg(feature = "opencl")]
 thread_local! {
     static GLOBAL_OPENCL: crate::OpenCL = {
-        crate::OpenCL::<Base>::new(chosen_cl_idx()).expect("Could not create a static OpenCL device.")
+        crate::OpenCL::<crate::Base>::new(chosen_cl_idx()).expect("Could not create a static OpenCL device.")
     };
 }
 
@@ -61,7 +47,7 @@ pub fn static_opencl() -> &'static crate::OpenCL {
 #[cfg(feature = "cuda")]
 thread_local! {
     static GLOBAL_CUDA: crate::CUDA = {
-        crate::CUDA::<Base>::new(chosen_cu_idx()).expect("Could not create a static CUDA device.")
+        crate::CUDA::<crate::Base>::new(chosen_cu_idx()).expect("Could not create a static CUDA device.")
     };
 }
 
@@ -83,6 +69,36 @@ pub fn static_cuda() -> &'static crate::CUDA {
 mod tests {
     #[cfg(feature = "std")]
     use crate::Buffer;
+
+    #[cfg(feature = "std")]
+    #[test]
+    fn test_static_cpu() {
+        let buf = Buffer::from(&[1f32, 2., 3.]);
+        assert_eq!(buf.read(), vec![1., 2., 3.,]);
+    }
+
+    #[cfg(feature = "std")]
+    #[test]
+    fn test_static_cpu_thread_return() {
+        use crate::{
+            static_api::{static_cpu, GLOBAL_CPU},
+            Device,
+        };
+
+        let buf = Buffer::from(&[1f32, 2., 3.]);
+        GLOBAL_CPU.get().unwrap();
+        assert_eq!(buf.read(), vec![1., 2., 3.,]);
+
+        let res = std::thread::spawn(|| {
+            let cpu = static_cpu();
+
+            cpu
+        })
+        .join()
+        .unwrap();
+
+        let _out = res.buffer([1, 2, 3, 4]);
+    }
 
     #[cfg(feature = "opencl")]
     #[test]

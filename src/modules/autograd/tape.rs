@@ -1,6 +1,6 @@
 use crate::{
     AddOperation, Alloc, BoxedShallowCopy, Buffer, Buffers, HasId, LazyGraph, Parents, Shape,
-    TapeActions, UpdateArgs, WriteBuf, ZeroGrad,
+    TapeActions, Unit, UpdateArgs, WriteBuf, ZeroGrad,
 };
 use core::fmt::Debug;
 
@@ -50,7 +50,7 @@ impl Tape {
 
     pub fn seed_grad_for_buf<T, D, S>(&self, buf: &Buffer<T, D, S>, seed: &[T])
     where
-        T: 'static,
+        T: Unit + 'static,
         D: WriteBuf<T, S, D> + TapeActions + ZeroGrad<T> + Alloc<T> + 'static,
         S: Shape,
     {
@@ -66,7 +66,7 @@ impl Tape {
         seed: &[T],
         buffers: &mut Buffers<Box<dyn BoxedShallowCopy>>,
     ) where
-        T: 'static,
+        T: Unit + 'static,
         D: Alloc<T> + ZeroGrad<T> + WriteBuf<T, S, D> + TapeActions + AddOperation + 'static,
     {
         self.seed_grad_for_buf(buf, seed);
@@ -82,7 +82,7 @@ impl Tape {
         seed: &[T],
         buffers: Option<&mut Buffers<Box<dyn BoxedShallowCopy>>>,
     ) where
-        T: 'static,
+        T: Unit + 'static,
         D: Alloc<T> + ZeroGrad<T> + WriteBuf<T, S, D> + TapeActions + AddOperation + 'static,
     {
         match buffers {

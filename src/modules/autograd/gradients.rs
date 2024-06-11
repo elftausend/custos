@@ -3,7 +3,7 @@ use std::collections::HashMap;
 
 use crate::{
     Alloc, BorrowCache, BoxedShallowCopy, Buffer, Buffers, CachingError, Device, HasId, Id,
-    NoHasher, Shape, UniqueId, ZeroGrad,
+    NoHasher, Shape, UniqueId, Unit, ZeroGrad,
 };
 
 const INVALID_ID: &str = "A matching Buffer does not exist.";
@@ -44,7 +44,7 @@ impl Gradients {
 
     pub fn add_zero_grad_cb<T, D, S>(&mut self, id: &Id)
     where
-        T: 'static,
+        T: Unit + 'static,
         D: Device + ZeroGrad<T> + 'static,
         S: Shape,
     {
@@ -59,7 +59,7 @@ impl Gradients {
     #[inline]
     pub fn may_get_ref<'a, T, S, D>(&self, ident: Id) -> Result<&Buffer<'a, T, D, S>, CachingError>
     where
-        T: 'static,
+        T: Unit + 'static,
         S: Shape,
         D: Alloc<T> + 'static,
     {
@@ -73,7 +73,7 @@ impl Gradients {
         id: Id,
     ) -> Result<&mut Buffer<'a, T, D, S>, CachingError>
     where
-        T: 'static,
+        T: Unit + 'static,
         S: Shape,
         D: Alloc<T> + 'static,
     {
@@ -85,7 +85,7 @@ impl Gradients {
     #[inline]
     pub fn get_ref<'a, T, S, D>(&mut self, device: &'a D, id: Id) -> &Buffer<'a, T, D, S>
     where
-        T: 'static,
+        T: Unit + 'static,
         S: Shape,
         D: Alloc<T> + ZeroGrad<T> + 'static,
     {
@@ -105,7 +105,7 @@ impl Gradients {
     #[inline]
     pub fn get_mut<'a, T, S, D>(&mut self, device: &'a D, id: Id) -> &mut Buffer<'a, T, D, S>
     where
-        T: 'static,
+        T: Unit + 'static,
         S: Shape,
         D: ZeroGrad<T> + Alloc<T> + 'static,
     {
@@ -123,7 +123,7 @@ impl Gradients {
     #[inline]
     pub fn get_like<'a, T, S, D>(&mut self, buf: &Buffer<'a, T, D, S>) -> &Buffer<'a, T, D, S>
     where
-        T: 'static,
+        T: Unit + 'static,
         S: Shape,
         D: Alloc<T> + ZeroGrad<T> + 'static,
         D::Data<T, S>: HasId,
@@ -134,7 +134,7 @@ impl Gradients {
     #[inline]
     pub fn get_buf_from_no_grad_pool<'a, T, S, D>(&self, id: Id) -> &Buffer<'a, T, D, S>
     where
-        T: 'static,
+        T: Unit + 'static,
         S: Shape,
         D: Alloc<T> + 'static,
     {

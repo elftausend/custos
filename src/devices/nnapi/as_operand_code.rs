@@ -1,6 +1,8 @@
 use nnapi::nnapi_sys;
 
-pub trait AsOperandCode {
+use crate::Unit;
+
+pub trait AsOperandCode: Unit {
     const OPERAND_CODE: nnapi_sys::OperandCode;
 }
 

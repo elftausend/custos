@@ -1,6 +1,7 @@
 use crate::prelude::*;
 use crate::MayTapeActions;
 
+use crate::Unit;
 #[cfg(feature = "autograd")]
 use crate::ZeroGrad;
 
@@ -10,7 +11,7 @@ const AUTOGRAD_NOT_AVAILABLE: &str = "Autograd<> is not available.";
 #[cfg(feature = "autograd")]
 impl<'a, T, D, S> Buffer<'a, T, D, S>
 where
-    T: 'static,
+    T: Unit + 'static,
     D: HasAutograd + Device + 'static,
     S: Shape,
 {
@@ -47,7 +48,7 @@ where
 
 impl<'a, T, D, S> Buffer<'a, T, D, S>
 where
-    T: 'static,
+    T: Unit + 'static,
     D: Device + 'static,
     S: Shape,
 {

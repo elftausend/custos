@@ -1,3 +1,5 @@
+use crate::Unit;
+
 pub trait MatchesType {
     fn matches_storage_type<T: AsType>(&self) -> Result<(), String>;
 }
@@ -21,7 +23,7 @@ impl<Mods> AsDeviceType for crate::CUDA<Mods> {
     const DEVICE_TYPE: DeviceType = DeviceType::CUDA;
 }
 
-pub trait AsType {
+pub trait AsType: Unit {
     const TYPE: Type;
 }
 

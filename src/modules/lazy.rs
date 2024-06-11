@@ -11,7 +11,7 @@ use crate::{
     op_hint::OpHint, register_buf_copyable, unregister_buf_copyable, AddLayer, AddOperation, Alloc,
     BoxedShallowCopy, Buffer, CachedBuffers, Cursor, Device, ExecNow, HasId, HasModules, Id,
     IsShapeIndep, Module, NoHasher, OnDropBuffer, OnNewBuffer, Parents, ReplaceBuf, Retrieve,
-    RunModule, SetOpHint, Setup, ShallowCopy, Shape, UniqueId, UpdateArgs, UseGpuOrCpu,
+    RunModule, SetOpHint, Setup, ShallowCopy, Shape, UniqueId, Unit, UpdateArgs, UseGpuOrCpu,
 };
 
 #[cfg(feature = "graph")]
@@ -184,7 +184,11 @@ impl<T, Mods: RunModule<D>, D: LazyRun + Device + 'static> RunModule<D> for Lazy
 
 impl<T2, Mods: OnDropBuffer> OnDropBuffer for Lazy<Mods, T2> {
     #[inline]
-    fn on_drop_buffer<T, D: Device, S: Shape>(&self, device: &D, buf: &Buffer<T, D, S>) {
+    fn on_drop_buffer<T: crate::Unit, D: Device, S: Shape>(
+        &self,
+        device: &D,
+        buf: &Buffer<T, D, S>,
+    ) {
         unregister_buf_copyable(&mut self.buffers.borrow_mut(), buf.id());
         self.modules.on_drop_buffer(device, buf)
     }
@@ -192,7 +196,7 @@ impl<T2, Mods: OnDropBuffer> OnDropBuffer for Lazy<Mods, T2> {
 
 impl<T, D, Mods, S, T2> OnNewBuffer<T, D, S> for Lazy<Mods, T2>
 where
-    T: 'static,
+    T: Unit + 'static,
     D: Device + IsShapeIndep + 'static,
     D::Data<T, S>: ShallowCopy,
     Mods: OnNewBuffer<T, D, S>,
@@ -280,7 +284,7 @@ impl<T, NewMods, SD> AddLayer<NewMods, SD> for Lazy<(), T> {
 
 impl<T, Mods, D, S, T2> Retrieve<D, T, S> for Lazy<Mods, T2>
 where
-    T: 'static,
+    T: Unit + 'static,
     Mods: Retrieve<D, T, S>,
     D: IsShapeIndep + 'static,
     D::Data<T, S>: ShallowCopy,
@@ -369,7 +373,7 @@ impl<T, Mods> Cursor for Lazy<Mods, T> {
     }
 }
 
-impl<T: 'static, D: Device + 'static, S: Shape, Mods: OnDropBuffer, T2> ReplaceBuf<T, D, S>
+impl<T: Unit + 'static, D: Device + 'static, S: Shape, Mods: OnDropBuffer, T2> ReplaceBuf<T, D, S>
     for Lazy<Mods, T2>
 {
     #[inline]
@@ -469,7 +473,7 @@ mod tests {
     use crate::{
         tests_helper::{add_ew_slice, AddEw},
         AddOperation, ApplyFunction, Base, Buffer, Combiner, Device, Retrieve, Retriever, Shape,
-        CPU,
+        Unit, CPU,
     };
 
     use super::Lazy;
@@ -510,7 +514,7 @@ mod tests {
     #[cfg(feature = "cpu")]
     impl<T, D, S, Mods> AddEw<T, D, S> for CPU<Mods>
     where
-        T: Add<Output = T> + Copy + 'static,
+        T: Unit + Add<Output = T> + Copy + 'static,
         D: Device + 'static,
         D::Base<T, S>: Deref<Target = [T]>,
         S: Shape,
@@ -768,7 +772,7 @@ mod tests {
     // }
 
     #[cfg(feature = "cached")]
-    #[cfg(feauture = "cpu")]
+    #[cfg(feature = "cpu")]
     #[test]
     fn test_lazy_cached_two_producers() {
         use crate::Cached;
@@ -778,7 +782,7 @@ mod tests {
         let lhs = device.buffer([1, 2, 3, 4]);
         let rhs = device.buffer([1, 2, 3, 4]);
 
-        let _out: Buffer<i32, _> = device.retrieve(10, (&lhs, &rhs));
+        let _out: Buffer<i32, _> = device.retrieve(10, (&lhs, &rhs)).unwrap();
     }
 
     /*

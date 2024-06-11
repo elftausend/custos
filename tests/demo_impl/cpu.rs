@@ -1,6 +1,6 @@
 use std::ops::Deref;
 
-use custos::{prelude::Number, Buffer, Device, Dim2, Retriever, Shape, WithShape, CPU};
+use custos::{prelude::Number, Buffer, Device, Dim2, Retriever, Shape, Unit, WithShape, CPU};
 use custos_macro::impl_stack;
 //use custos_macro::impl_stack;
 
@@ -107,7 +107,7 @@ where
 */
 
 #[cfg(feature = "stack")]
-impl<T, D: Device, const A: usize, const B: usize> Transpose<T, D, Dim2<A, B>, Dim2<B, A>>
+impl<T: Unit, D: Device, const A: usize, const B: usize> Transpose<T, D, Dim2<A, B>, Dim2<B, A>>
     for Stack
 {
     fn transpose(&self, _buf: Buffer<T, D, Dim2<A, B>>) -> Buffer<T, Self, Dim2<B, A>> {

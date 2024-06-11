@@ -12,7 +12,7 @@ use crate::{
     impl_remove_layer, pass_down_add_operation, pass_down_cursor, pass_down_exec_now_module,
     pass_down_replace_buf_module, pass_down_use_gpu_or_cpu, AddLayer, Alloc, Buffer, Cursor,
     Device, HasId, HasModules, Module, NoHasher, OnDropBuffer, OnNewBuffer, Optimize, Parents,
-    PtrType, Retrieve, RunModule, Setup, Shape, UniqueId, WrappedData,
+    PtrType, Retrieve, RunModule, Setup, Shape, UniqueId, Unit, WrappedData,
 };
 
 pub use self::graph_translator::GraphTranslator;
@@ -98,7 +98,9 @@ impl<Mods: Optimize> Optimize for Graph<Mods> {
     }
 }
 
-impl<Mods: OnNewBuffer<T, D, S>, T, D: Device, S: Shape> OnNewBuffer<T, D, S> for Graph<Mods> {
+impl<Mods: OnNewBuffer<T, D, S>, T: Unit, D: Device, S: Shape> OnNewBuffer<T, D, S>
+    for Graph<Mods>
+{
     fn on_new_buffer(&self, _device: &D, new_buf: &crate::Buffer<T, D, S>) {
         let mut graph_trans = self.graph_trans.borrow_mut();
         let next_idx = graph_trans.next_idx;
@@ -112,7 +114,11 @@ impl<Mods: OnNewBuffer<T, D, S>, T, D: Device, S: Shape> OnNewBuffer<T, D, S> fo
 
 impl<Mods: OnDropBuffer> OnDropBuffer for Graph<Mods> {
     #[inline]
-    fn on_drop_buffer<T, D: Device, S: Shape>(&self, device: &D, buf: &crate::Buffer<T, D, S>) {
+    fn on_drop_buffer<T: Unit, D: Device, S: Shape>(
+        &self,
+        device: &D,
+        buf: &crate::Buffer<T, D, S>,
+    ) {
         self.modules.on_drop_buffer(device, buf)
     }
 }
@@ -149,7 +155,7 @@ impl<NewMods, SD> AddLayer<NewMods, SD> for Graph<()> {
 
 impl<T, Mods, D, S> Retrieve<D, T, S> for Graph<Mods>
 where
-    T: 'static,
+    T: Unit + 'static,
     Mods: Retrieve<D, T, S>,
     D: Cursor + 'static,
     S: Shape,

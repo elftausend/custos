@@ -8,6 +8,8 @@ use core::{
     ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Rem, RemAssign, Sub, SubAssign},
 };
 
+use crate::Unit;
+
 /// A trait that returns the default / zero of a value.
 pub trait Zero {
     /// Returns zero or the default.
@@ -123,7 +125,15 @@ impl Two for half::bf16 {
 
 /// Numeric is a trait that is implemented for all numeric types.
 pub trait Numeric:
-    Sized + Default + Copy + PartialOrd + PartialEq + core::fmt::Debug + core::fmt::Display + 'static
+    Unit
+    + Sized
+    + Default
+    + Copy
+    + PartialOrd
+    + PartialEq
+    + core::fmt::Debug
+    + core::fmt::Display
+    + 'static
 {
 }
 

@@ -6,7 +6,7 @@ use crate::{
     op_hint::unary,
     pass_down_add_operation, pass_down_exec_now, AddOperation, ApplyFunction, AsNoId, BufAsNoId,
     Buffer, ClearBuf, CopySlice, Device, Eval, MayToCLSource, OnDropBuffer, Read, Resolve,
-    Retrieve, Retriever, SetOpHint, Shape, ToVal, TwoWay, UnaryGrad, WriteBuf, ZeroGrad, CPU,
+    Retrieve, Retriever, SetOpHint, Shape, ToVal, TwoWay, UnaryGrad, Unit, WriteBuf, ZeroGrad, CPU,
 };
 
 pass_down_add_operation!(CPU);
@@ -15,7 +15,7 @@ pass_down_exec_now!(CPU);
 impl<Mods, T, D, S> ApplyFunction<T, S, D> for CPU<Mods>
 where
     Mods: Retrieve<Self, T, S> + AddOperation + SetOpHint<T> + 'static,
-    T: Copy + Default + ToVal + 'static,
+    T: Unit + Copy + Default + ToVal + 'static,
     D: Device + 'static,
     D::Base<T, S>: Deref<Target = [T]>,
     S: Shape,
@@ -51,7 +51,7 @@ where
 impl<Mods, T, D, S> UnaryGrad<T, S, D> for CPU<Mods>
 where
     Mods: AddOperation + OnDropBuffer,
-    T: AddAssign + Copy + std::ops::Mul<Output = T> + 'static,
+    T: Unit + AddAssign + Copy + std::ops::Mul<Output = T> + 'static,
     S: Shape,
     D: Device + 'static,
     D::Base<T, S>: Deref<Target = [T]> + DerefMut<Target = [T]>,
@@ -79,6 +79,7 @@ where
 
 impl<Mods, T, D, S> Read<T, S, D> for CPU<Mods>
 where
+    T: Unit,
     Mods: OnDropBuffer,
     D: Device,
     D::Base<T, S>: Deref<Target = [T]>,
@@ -106,7 +107,7 @@ where
 impl<Mods, T, D, S> WriteBuf<T, S, D> for CPU<Mods>
 where
     Mods: OnDropBuffer,
-    T: Copy,
+    T: Unit + Copy,
     D: Device,
     D::Base<T, S>: DerefMut<Target = [T]>,
     S: Shape,
@@ -126,7 +127,7 @@ where
 impl<Mods, T, D, S> ClearBuf<T, S, D> for CPU<Mods>
 where
     Mods: OnDropBuffer + AddOperation,
-    T: Default + 'static,
+    T: Unit + Default + 'static,
     D: Device + 'static,
     D::Base<T, S>: DerefMut<Target = [T]>,
     S: Shape,
@@ -139,7 +140,7 @@ where
 
 impl<Mods, T> ZeroGrad<T> for CPU<Mods>
 where
-    T: Default,
+    T: Unit + Default,
     Mods: OnDropBuffer,
 {
     #[inline]
@@ -152,7 +153,7 @@ impl<Mods, T, D> CopySlice<T, D> for CPU<Mods>
 where
     [T]: Index<Range<usize>, Output = [T]>,
     Mods: OnDropBuffer,
-    T: Copy,
+    T: Unit + Copy,
     D: Device,
     D::Base<T, ()>: Deref<Target = [T]>,
 {

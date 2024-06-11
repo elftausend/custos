@@ -1,15 +1,13 @@
 use core::{any::Any, hash::BuildHasherDefault};
-use std::collections::HashMap;
-
-use std::rc::Rc;
+use std::{collections::HashMap, sync::Arc};
 
 use crate::{
-    flag::AllocFlag, Alloc, Cursor, Device, NoHasher, PtrType, ShallowCopy, Shape, UniqueId,
+    flag::AllocFlag, Alloc, Cursor, Device, NoHasher, PtrType, ShallowCopy, Shape, UniqueId, Unit,
 };
 
 #[derive(Clone)]
 pub struct Cache {
-    pub nodes: HashMap<UniqueId, Rc<dyn Any>, BuildHasherDefault<NoHasher>>,
+    pub nodes: HashMap<UniqueId, Arc<dyn Any>, BuildHasherDefault<NoHasher>>,
 }
 
 impl Default for Cache {
@@ -38,6 +36,7 @@ impl Cache {
         new_buf_callback: impl FnMut(usize, &D::Base<T, S>),
     ) -> D::Base<T, S>
     where
+        T: Unit,
         D: Alloc<T> + Cursor + 'static,
         D::Base<T, S>: ShallowCopy + 'static,
         S: Shape,
@@ -68,6 +67,7 @@ impl Cache {
         mut callback: impl FnMut(usize, &D::Base<T, S>),
     ) -> <D as Device>::Base<T, S>
     where
+        T: Unit,
         D: Alloc<T> + Cursor,
         D::Base<T, S>: ShallowCopy + 'static,
         S: Shape,
@@ -77,7 +77,7 @@ impl Cache {
 
         callback(device.cursor(), &shallow_data);
         self.nodes
-            .insert(device.cursor() as UniqueId, Rc::new(data));
+            .insert(device.cursor() as UniqueId, Arc::new(data));
         unsafe { device.bump_cursor() };
 
         shallow_data

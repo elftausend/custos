@@ -1,7 +1,7 @@
 use core::{any::Any, hash::BuildHasherDefault};
-use std::{collections::HashMap, ffi::c_void, rc::Rc};
+use std::{collections::HashMap, ffi::c_void, sync::Arc};
 
-use crate::{AllocFlag, DeviceError};
+use crate::{AllocFlag, DeviceError, Unit};
 
 use super::CLPtr;
 use crate::{
@@ -12,7 +12,7 @@ use min_cl::api::{create_buffer, MemFlags};
 
 impl<Mods: UnifiedMemChain<Self> + OnDropBuffer> UnifiedMemChain<Self> for OpenCL<Mods> {
     #[inline]
-    fn construct_unified_buf_from_cpu_buf<'a, T: 'static, S: Shape>(
+    fn construct_unified_buf_from_cpu_buf<'a, T: Unit + 'static, S: Shape>(
         &self,
         device: &'a Self,
         no_drop_buf: Buffer<'a, T, CachedCPU, S>,
@@ -29,7 +29,7 @@ where
     SimpleMods: OnDropBuffer,
 {
     #[inline]
-    fn construct_unified_buf_from_cpu_buf<'a, T: 'static, S: Shape>(
+    fn construct_unified_buf_from_cpu_buf<'a, T: Unit + 'static, S: Shape>(
         &self,
         device: &'a OpenCL<OclMods>,
         no_drop_buf: Buffer<'a, T, CachedCPU, S>,
@@ -45,7 +45,7 @@ where
 
 impl<D: Device> UnifiedMemChain<D> for Base {
     #[inline]
-    fn construct_unified_buf_from_cpu_buf<'a, T, S: Shape>(
+    fn construct_unified_buf_from_cpu_buf<'a, T: Unit, S: Shape>(
         &self,
         _device: &'a D,
         _no_drop_buf: Buffer<'a, T, CachedCPU, S>,
@@ -61,13 +61,13 @@ impl<D: Device> UnifiedMemChain<D> for Base {
 pub unsafe fn to_cached_unified<OclMods, CpuMods, T, S>(
     device: &OpenCL<OclMods>,
     no_drop: Buffer<T, CPU<CpuMods>, S>,
-    cache: &mut HashMap<crate::UniqueId, Rc<dyn Any>, BuildHasherDefault<crate::NoHasher>>,
+    cache: &mut HashMap<crate::UniqueId, Arc<dyn Any>, BuildHasherDefault<crate::NoHasher>>,
     id: crate::UniqueId,
 ) -> crate::Result<*mut c_void>
 where
     OclMods: OnDropBuffer,
     CpuMods: OnDropBuffer,
-    T: 'static,
+    T: Unit + 'static,
     S: Shape,
 {
     // use the host pointer to create an OpenCL buffer
@@ -80,7 +80,7 @@ where
 
     let old_ptr = cache.insert(
         id,
-        Rc::new(CLPtr {
+        Arc::new(CLPtr {
             ptr: cl_ptr,
             host_ptr: no_drop.base().ptr,
             len: no_drop.len(),
@@ -120,13 +120,13 @@ where
 pub fn construct_buffer<'a, OclMods, CpuMods, T, S>(
     device: &'a OpenCL<OclMods>,
     no_drop: Buffer<'a, T, CPU<CpuMods>, S>,
-    cache: &mut HashMap<crate::UniqueId, Rc<dyn Any>, BuildHasherDefault<crate::NoHasher>>,
+    cache: &mut HashMap<crate::UniqueId, Arc<dyn Any>, BuildHasherDefault<crate::NoHasher>>,
     id: crate::UniqueId,
 ) -> crate::Result<Buffer<'a, T, OpenCL<OclMods>, S>>
 where
     OclMods: Cursor + OnDropBuffer,
     CpuMods: OnDropBuffer,
-    T: 'static,
+    T: Unit + 'static,
     S: Shape,
 {
     use crate::PtrType;

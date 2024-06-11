@@ -1,10 +1,7 @@
 use core::fmt::Debug;
 
 use crate::{
-    cpu_stack_ops::clear_slice, pass_down_add_operation, pass_down_exec_now, prelude::Number,
-    AddOperation, ApplyFunction, AsNoId, BufAsNoId, Buffer, CDatatype, ClearBuf, OnDropBuffer,
-    Read, Resolve, Retrieve, Retriever, Shape, ToCLSource, ToMarker, ToWgslSource, UnaryGrad,
-    UseGpuOrCpu, Vulkan, WriteBuf, ZeroGrad,
+    cpu_stack_ops::clear_slice, pass_down_add_operation, pass_down_exec_now, prelude::Number, AddOperation, ApplyFunction, AsNoId, BufAsNoId, Buffer, CDatatype, ClearBuf, OnDropBuffer, Read, Resolve, Retrieve, Retriever, Shape, ToCLSource, ToMarker, ToWgslSource, UnaryGrad, Unit, UseGpuOrCpu, Vulkan, WriteBuf, ZeroGrad
 };
 
 use super::{VkArray, VkDevice};
@@ -27,7 +24,7 @@ impl<Mods: OnDropBuffer + UseGpuOrCpu, T: CDatatype + Default + Debug> ClearBuf<
     }
 }
 
-impl<Mods: OnDropBuffer, T: Default + Debug> ZeroGrad<T> for Vulkan<Mods> {
+impl<Mods: OnDropBuffer, T: Unit + Default + Debug> ZeroGrad<T> for Vulkan<Mods> {
     #[inline]
     fn zero_grad<S: Shape>(&self, data: &mut Self::Base<T, S>) {
         try_vk_clear(self, data).unwrap()
@@ -59,7 +56,7 @@ pub fn try_vk_clear<T: Default + Debug>(
     device.launch_shader(src, [(32 + buf.len as u32) / 32, 1, 1], &[buf])
 }
 
-impl<Mods: OnDropBuffer, T: Default + Clone, S: Shape> Read<T, S> for Vulkan<Mods> {
+impl<Mods: OnDropBuffer, T: Unit + Default + Clone, S: Shape> Read<T, S> for Vulkan<Mods> {
     type Read<'a> = VkArray<T>
     where
         T: 'a,
@@ -243,7 +240,7 @@ where
     )
 }
 
-impl<Mods: OnDropBuffer, T: Clone, S: Shape> WriteBuf<T, S> for Vulkan<Mods> {
+impl<Mods: OnDropBuffer, T: Unit + Clone, S: Shape> WriteBuf<T, S> for Vulkan<Mods> {
     #[inline]
     fn write(&self, buf: &mut Buffer<T, Self, S>, data: &[T]) {
         // TODO: use unified mem when possible

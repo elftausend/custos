@@ -1,6 +1,6 @@
 use core::ops::{Deref, DerefMut};
 
-use crate::{Buffer, Device, DeviceError, Shape, UniqueId, UpdateArg};
+use crate::{Buffer, Device, DeviceError, Shape, UniqueId, Unit, UpdateArg};
 
 pub trait HasId {
     const HAS_NO_ID: bool = false;
@@ -117,7 +117,9 @@ impl<T> UpdateArg for NoId<T> {
     }
 }
 
-impl<'a, T: 'static, D: Device + 'static, S: Shape + 'static> UpdateArg for &Buffer<'a, T, D, S> {
+impl<'a, T: Unit + 'static, D: Device + 'static, S: Shape + 'static> UpdateArg
+    for &Buffer<'a, T, D, S>
+{
     #[cfg(feature = "std")]
     fn update_arg<B: crate::AsAny>(
         to_update: &mut Self,
@@ -138,7 +140,7 @@ impl<'a, T: 'static, D: Device + 'static, S: Shape + 'static> UpdateArg for &Buf
     }
 }
 
-impl<'a, T: 'static, D: Device + 'static, S: Shape + 'static> UpdateArg
+impl<'a, T: Unit + 'static, D: Device + 'static, S: Shape + 'static> UpdateArg
     for &mut Buffer<'a, T, D, S>
 {
     #[cfg(feature = "std")]
@@ -160,14 +162,14 @@ pub trait BufAsNoId: Sized {
     fn buf_no_id(self) -> NoId<Self>;
 }
 
-impl<'a, T, D: Device, S: Shape> BufAsNoId for &Buffer<'a, T, D, S> {
+impl<'a, T: Unit, D: Device, S: Shape> BufAsNoId for &Buffer<'a, T, D, S> {
     #[inline]
     fn buf_no_id(self) -> NoId<Self> {
         NoId { data: self }
     }
 }
 
-impl<'a, T, D: Device, S: Shape> BufAsNoId for &mut Buffer<'a, T, D, S> {
+impl<'a, T: Unit, D: Device, S: Shape> BufAsNoId for &mut Buffer<'a, T, D, S> {
     #[inline]
     fn buf_no_id(self) -> NoId<Self> {
         NoId { data: self }

@@ -7,7 +7,7 @@ use crate::{
     cuda::{api::cumalloc, CUDAPtr},
     flag::AllocFlag,
     impl_device_traits, Alloc, Base, Buffer, CloneBuf, Device, IsShapeIndep, Module as CombModule,
-    OnDropBuffer, OnNewBuffer, Setup, Shape, WrappedData,
+    OnDropBuffer, OnNewBuffer, Setup, Shape, Unit, WrappedData,
 };
 
 use super::{
@@ -66,36 +66,39 @@ impl<SimpleMods> CUDA<SimpleMods> {
 }
 
 impl<Mods: OnDropBuffer> Device for CUDA<Mods> {
-    type Data<T, S: Shape> = Mods::Wrap<T, CUDAPtr<T>>;
-    type Base<T, S: Shape> = CUDAPtr<T>;
+    type Data<T: Unit, S: Shape> = Mods::Wrap<T, CUDAPtr<T>>;
+    type Base<T: Unit, S: Shape> = CUDAPtr<T>;
     type Error = i32;
 
     #[inline(always)]
-    fn base_to_data<T, S: Shape>(&self, base: Self::Base<T, S>) -> Self::Data<T, S> {
+    fn base_to_data<T: Unit, S: Shape>(&self, base: Self::Base<T, S>) -> Self::Data<T, S> {
         self.wrap_in_base(base)
     }
 
     #[inline(always)]
-    fn wrap_to_data<T, S: Shape>(&self, wrap: Self::Wrap<T, Self::Base<T, S>>) -> Self::Data<T, S> {
+    fn wrap_to_data<T: Unit, S: Shape>(
+        &self,
+        wrap: Self::Wrap<T, Self::Base<T, S>>,
+    ) -> Self::Data<T, S> {
         wrap
     }
 
     #[inline(always)]
-    fn data_as_wrap<'a, T, S: Shape>(
+    fn data_as_wrap<'a, T: Unit, S: Shape>(
         data: &'a Self::Data<T, S>,
     ) -> &'a Self::Wrap<T, Self::Base<T, S>> {
         data
     }
 
     #[inline(always)]
-    fn data_as_wrap_mut<'a, T, S: Shape>(
+    fn data_as_wrap_mut<'a, T: Unit, S: Shape>(
         data: &'a mut Self::Data<T, S>,
     ) -> &'a mut Self::Wrap<T, Self::Base<T, S>> {
         data
     }
 }
 
-impl<Mods: OnDropBuffer, T> Alloc<T> for CUDA<Mods> {
+impl<Mods: OnDropBuffer, T: Unit> Alloc<T> for CUDA<Mods> {
     #[inline]
     fn alloc<S: Shape>(
         &self,
@@ -133,7 +136,7 @@ impl<Mods> crate::ForkSetup for CUDA<Mods> {
     }
 }
 
-impl<'a, Mods: OnDropBuffer + OnNewBuffer<T, Self, ()>, T> CloneBuf<'a, T> for CUDA<Mods> {
+impl<'a, Mods: OnDropBuffer + OnNewBuffer<T, Self, ()>, T: Unit> CloneBuf<'a, T> for CUDA<Mods> {
     fn clone_buf(&'a self, buf: &Buffer<'a, T, CUDA<Mods>>) -> Buffer<'a, T, CUDA<Mods>> {
         let cloned = Buffer::new(self, buf.len());
         unsafe {
@@ -149,12 +152,12 @@ impl<'a, Mods: OnDropBuffer + OnNewBuffer<T, Self, ()>, T> CloneBuf<'a, T> for C
 
 #[cfg(test)]
 mod tests {
-    use crate::{Base, Buffer, ClearBuf, Device, Retriever, Shape};
+    use crate::{Base, Buffer, ClearBuf, Device, Retriever, Shape, Unit};
 
     use super::{IsCuda, CUDA};
 
     // compile-time isCuda test
-    fn take_cu_buffer<T, D: IsCuda + Retriever<T>, S: Shape>(device: &D, buf: &Buffer<T, D, S>) {
+    fn take_cu_buffer<T: Unit, D: IsCuda + Retriever<T>, S: Shape>(device: &D, buf: &Buffer<T, D, S>) {
         let _buf = device.retrieve::<0>(buf.len(), ());
     }
 
