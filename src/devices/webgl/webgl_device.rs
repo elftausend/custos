@@ -5,8 +5,7 @@ use std::rc::Rc;
 use web_sys::{Element, WebGlFramebuffer, WebGlShader};
 
 use crate::{
-    webgl::error::WebGlError, wgsl::WgslShaderLaunch, AddLayer, Alloc, Base, Buffer, Device,
-    Module, OnDropBuffer, Read, RemoveLayer, Retrieve, Retriever, Setup, Shape, WrappedData,
+    webgl::error::WebGlError, wgsl::WgslShaderLaunch, AddLayer, Alloc, Base, Buffer, Device, Module, OnDropBuffer, Read, RemoveLayer, Retrieve, Retriever, Setup, Shape, Unit, WrappedData
 };
 
 use super::{
@@ -114,18 +113,18 @@ crate::pass_down_cursor!(WebGL);
 crate::pass_down_cached_buffers!(WebGL);
 
 impl<Mods: OnDropBuffer> Device for WebGL<Mods> {
-    type Base<T, S: crate::Shape> = WebGlData<T>;
-    type Data<T, S: Shape> = Self::Wrap<T, Self::Base<T, S>>;
+    type Base<T: Unit, S: crate::Shape> = WebGlData<T>;
+    type Data<T: Unit, S: Shape> = Self::Wrap<T, Self::Base<T, S>>;
 
     type Error = JsValue;
 
     #[inline(always)]
-    fn base_to_data<T, S: crate::Shape>(&self, base: Self::Base<T, S>) -> Self::Data<T, S> {
+    fn base_to_data<T: Unit, S: crate::Shape>(&self, base: Self::Base<T, S>) -> Self::Data<T, S> {
         self.wrap_in_base(base)
     }
 
     #[inline(always)]
-    fn wrap_to_data<T, S: crate::Shape>(
+    fn wrap_to_data<T: Unit, S: crate::Shape>(
         &self,
         wrap: Self::Wrap<T, Self::Base<T, S>>,
     ) -> Self::Data<T, S> {
@@ -133,14 +132,14 @@ impl<Mods: OnDropBuffer> Device for WebGL<Mods> {
     }
 
     #[inline(always)]
-    fn data_as_wrap<'a, T, S: crate::Shape>(
+    fn data_as_wrap<'a, T: Unit, S: crate::Shape>(
         data: &'a Self::Data<T, S>,
     ) -> &'a Self::Wrap<T, Self::Base<T, S>> {
         data
     }
 
     #[inline(always)]
-    fn data_as_wrap_mut<'a, T, S: crate::Shape>(
+    fn data_as_wrap_mut<'a, T: Unit, S: crate::Shape>(
         data: &'a mut Self::Data<T, S>,
     ) -> &'a mut Self::Wrap<T, Self::Base<T, S>> {
         data

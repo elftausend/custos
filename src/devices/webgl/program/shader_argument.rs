@@ -1,7 +1,5 @@
 use crate::{
-    webgl::{data::WebGlData, error::WebGlError},
-    wgsl::{AsShaderArg, WgslShaderLaunch},
-    Buffer, OnDropBuffer, Shape, WebGL,
+    webgl::{data::WebGlData, error::WebGlError}, wgsl::{AsShaderArg, WgslShaderLaunch}, Buffer, OnDropBuffer, Shape, Unit, WebGL
 };
 use web_sys::{WebGl2RenderingContext, WebGlTexture, WebGlUniformLocation};
 
@@ -61,7 +59,7 @@ impl<'a, T: WebGlNumber, S: Shape, Mods: OnDropBuffer> AsWebGlShaderArgument
     }
 }
 
-pub trait WebGlNumber {
+pub trait WebGlNumber: Unit {
     const SCALAR_TYPE: naga::ScalarKind;
     const INTERNAL_FORMAT: u32;
     const FORMAT: u32;
