@@ -1,5 +1,6 @@
 use crate::{
-    Alloc, Base, Buffer, Device, HasId, HasModules, IsShapeIndep, OnDropBuffer, OnNewBuffer, PtrType, Retriever, Shape, Unit, WrappedData, CPU
+    Alloc, Base, Buffer, Device, HasId, HasModules, IsShapeIndep, OnDropBuffer, OnNewBuffer,
+    PtrType, Retriever, Shape, Unit, WrappedData, CPU,
 };
 
 use super::{

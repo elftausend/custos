@@ -1,7 +1,8 @@
 use core::convert::Infallible;
 
 use crate::{
-    AddOperation, Alloc, Base, Buffer, Device, HasId, IsShapeIndep, Module, OnDropBuffer, OnNewBuffer, Parents, PtrType, Retrieve, Retriever, Setup, Shape, Unit, WrappedData
+    AddOperation, Alloc, Base, Buffer, Device, HasId, IsShapeIndep, Module, OnDropBuffer,
+    OnNewBuffer, Parents, PtrType, Retrieve, Retriever, Setup, Shape, Unit, WrappedData,
 };
 
 use super::{WgslDevice, WgslShaderLaunch};

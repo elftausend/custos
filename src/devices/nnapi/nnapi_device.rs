@@ -1,5 +1,7 @@
 use crate::{
-    cpu::CPUPtr, Alloc, AsOperandCode, Base, Buffer, ConvPtr, Device, HasId, IsShapeIndep, Lazy, LazyRun, LazySetup, Module, OnDropBuffer, PtrType, Retrieve, Retriever, Setup, Shape, Unit, WrappedData
+    cpu::CPUPtr, Alloc, AsOperandCode, Base, Buffer, ConvPtr, Device, HasId, IsShapeIndep, Lazy,
+    LazyRun, LazySetup, Module, OnDropBuffer, PtrType, Retrieve, Retriever, Setup, Shape, Unit,
+    WrappedData,
 };
 
 use super::NnapiPtr;
@@ -38,12 +40,17 @@ impl<U, Mods: OnDropBuffer> Device for NnapiDevice<U, Mods> {
     }
 
     #[inline]
-    fn wrap_to_data<T: Unit, S: Shape>(&self, wrap: Self::Wrap<T, Self::Base<T, S>>) -> Self::Data<T, S> {
+    fn wrap_to_data<T: Unit, S: Shape>(
+        &self,
+        wrap: Self::Wrap<T, Self::Base<T, S>>,
+    ) -> Self::Data<T, S> {
         wrap
     }
 
     #[inline]
-    fn data_as_wrap<T: Unit, S: Shape>(data: &Self::Data<T, S>) -> &Self::Wrap<T, Self::Base<T, S>> {
+    fn data_as_wrap<T: Unit, S: Shape>(
+        data: &Self::Data<T, S>,
+    ) -> &Self::Wrap<T, Self::Base<T, S>> {
         data
     }
 

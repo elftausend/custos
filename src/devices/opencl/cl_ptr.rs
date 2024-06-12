@@ -23,6 +23,9 @@ pub struct CLPtr<T> {
     pub flag: AllocFlag,
 }
 
+unsafe impl<T: Sync> Sync for CLPtr<T> {}
+unsafe impl<T: Send> Send for CLPtr<T> {}
+
 impl<T> Default for CLPtr<T> {
     #[inline]
     fn default() -> Self {

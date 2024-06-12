@@ -22,6 +22,9 @@ pub struct VkArray<T> {
     pub flag: AllocFlag,
 }
 
+unsafe impl<T: Sync> Sync for VkArray<T> {}
+unsafe impl<T: Send> Send for VkArray<T> {}
+
 impl<T> PtrType for VkArray<T> {
     #[inline]
     fn size(&self) -> usize {
