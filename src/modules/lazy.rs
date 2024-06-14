@@ -752,7 +752,7 @@ mod tests {
                 .unwrap();
         }
 
-        if let Ok(_) = unsafe { device.run() } {
+        if unsafe { device.run() }.is_ok() {
             panic!()
         }
     }

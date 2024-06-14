@@ -24,7 +24,7 @@ pub fn unified_mem<T>(device: &OpenCL, arr: &mut [T]) -> Result<*mut c_void, Err
     Ok(r)
 }
 
-pub fn unified_ptr<T>(cq: &CommandQueue, ptr: *mut c_void, len: usize) -> Result<*mut T, Error> {
+fn unified_ptr<T>(cq: &CommandQueue, ptr: *mut c_void, len: usize) -> Result<*mut T, Error> {
     unsafe { enqueue_map_buffer::<T>(cq, ptr, true, 2 | 1, 0, len, None).map(|ptr| ptr as *mut T) }
 }
 

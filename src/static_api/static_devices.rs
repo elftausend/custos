@@ -17,7 +17,7 @@ pub static GLOBAL_CPU: OnceLock<CPU> = OnceLock::new();
 
 #[inline]
 pub fn static_cpu() -> &'static CPU {
-    GLOBAL_CPU.get_or_init(|| CPU::based())
+    GLOBAL_CPU.get_or_init(CPU::based)
 }
 
 #[cfg(feature = "opencl")]
@@ -86,13 +86,7 @@ mod tests {
         GLOBAL_CPU.get().unwrap();
         assert_eq!(buf.read(), vec![1., 2., 3.,]);
 
-        let res = std::thread::spawn(|| {
-            let cpu = static_cpu();
-
-            cpu
-        })
-        .join()
-        .unwrap();
+        let res = std::thread::spawn(static_cpu).join().unwrap();
 
         let _out = res.buffer([1, 2, 3, 4]);
     }

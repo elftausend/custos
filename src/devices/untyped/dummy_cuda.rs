@@ -16,7 +16,7 @@ impl<Mods: OnDropBuffer> Device for CUDA<Mods> {
         }
 
         #[cfg(feature = "std")]
-        Err(crate::DeviceError::CPUDeviceNotAvailable.into())
+        Err(crate::DeviceError::CPUDeviceNotAvailable)
     }
 
     fn base_to_data<T: Unit, S: Shape>(&self, base: Self::Base<T, S>) -> Self::Data<T, S> {
@@ -30,15 +30,15 @@ impl<Mods: OnDropBuffer> Device for CUDA<Mods> {
         wrap
     }
 
-    fn data_as_wrap<'a, T: Unit, S: Shape>(
-        data: &'a Self::Data<T, S>,
-    ) -> &'a Self::Wrap<T, Self::Base<T, S>> {
+    fn data_as_wrap<T: Unit, S: Shape>(
+        data: &Self::Data<T, S>,
+    ) -> &Self::Wrap<T, Self::Base<T, S>> {
         data
     }
 
-    fn data_as_wrap_mut<'a, T: Unit, S: Shape>(
-        data: &'a mut Self::Data<T, S>,
-    ) -> &'a mut Self::Wrap<T, Self::Base<T, S>> {
+    fn data_as_wrap_mut<T: Unit, S: Shape>(
+        data: &mut Self::Data<T, S>,
+    ) -> &mut Self::Wrap<T, Self::Base<T, S>> {
         data
     }
 }
