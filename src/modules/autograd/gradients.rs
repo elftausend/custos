@@ -59,7 +59,7 @@ impl<'dev> Gradients<'dev> {
     pub(crate) unsafe fn may_get_ref<'a, T, S, D>(
         &self,
         ident: Id,
-    ) -> Result<&Buffer<'a, T, D, S>, CachingError>
+    ) -> Result<&Buffer<'dev, T, D, S>, CachingError>
     where
         T: Unit + 'static,
         S: Shape,
@@ -73,7 +73,7 @@ impl<'dev> Gradients<'dev> {
     pub(crate) unsafe fn may_get_mut<'a, T, S, D>(
         &mut self,
         id: Id,
-    ) -> Result<&mut Buffer<'a, T, D, S>, CachingError>
+    ) -> Result<&mut Buffer<'dev, T, D, S>, CachingError>
     where
         T: Unit + 'static,
         S: Shape,
@@ -85,7 +85,7 @@ impl<'dev> Gradients<'dev> {
     /// Returns a reference to a gradient [`Buffer`].
     /// Allocates a gradient [`Buffer`] if it does not exist.
     #[inline]
-    pub fn get_ref<'a, T, S, D>(&mut self, device: &'a D, id: Id) -> &Buffer<'a, T, D, S>
+    pub fn get_ref<'a, T, S, D>(&mut self, device: &'dev D, id: Id) -> &Buffer<'dev, T, D, S>
     where
         T: Unit + 'static,
         S: Shape,
@@ -105,7 +105,7 @@ impl<'dev> Gradients<'dev> {
     /// Returns a mutable reference to a gradient [`Buffer`].
     /// Allocates a gradient [`Buffer`] if it does not exist.
     #[inline]
-    pub fn get_mut<'a, T, S, D>(&mut self, device: &'a D, id: Id) -> &mut Buffer<'a, T, D, S>
+    pub fn get_mut<'a, T, S, D>(&mut self, device: &'dev D, id: Id) -> &mut Buffer<'dev, T, D, S>
     where
         T: Unit + 'static,
         S: Shape,
@@ -123,7 +123,7 @@ impl<'dev> Gradients<'dev> {
 
     /// Returns a reference to a gradient [`Buffer`] using information from `buf`.
     #[inline]
-    pub fn get_like<'a, T, S, D>(&mut self, buf: &Buffer<'a, T, D, S>) -> &Buffer<'a, T, D, S>
+    pub fn get_like<'a, T, S, D>(&mut self, buf: &Buffer<'dev, T, D, S>) -> &Buffer<'dev, T, D, S>
     where
         T: Unit + 'static,
         S: Shape,
