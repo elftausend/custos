@@ -69,17 +69,17 @@ impl<SimpleMods> OpenCL<SimpleMods> {
     /// - No device was found at the given device index
     /// - some other OpenCL related errors
     #[inline]
-    pub fn new<NewMods>(device_idx: usize) -> crate::Result<OpenCL<NewMods>>
+    pub fn new<'a, NewMods>(device_idx: usize) -> crate::Result<OpenCL<NewMods>>
     where
-        SimpleMods: Module<OpenCL, Module = NewMods>,
+        SimpleMods: Module<'a, OpenCL, Module = NewMods>,
         NewMods: Setup<OpenCL<NewMods>>,
     {
         OpenCL::<SimpleMods>::from_cl_device(CLDevice::new(device_idx)?)
     }
 
-    pub fn from_cl_device<NewMods>(device: CLDevice) -> crate::Result<OpenCL<NewMods>>
+    pub fn from_cl_device<'a, NewMods>(device: CLDevice) -> crate::Result<OpenCL<NewMods>>
     where
-        SimpleMods: Module<OpenCL, Module = NewMods>,
+        SimpleMods: Module<'a, OpenCL, Module = NewMods>,
         NewMods: Setup<OpenCL<NewMods>>,
     {
         let mut opencl = OpenCL {
@@ -94,9 +94,9 @@ impl<SimpleMods> OpenCL<SimpleMods> {
 
     /// Returns the fastest [OpenCL] device available in your system.
     #[inline]
-    pub fn fastest<NewMods>() -> crate::Result<OpenCL<NewMods>>
+    pub fn fastest<'a, NewMods>() -> crate::Result<OpenCL<NewMods>>
     where
-        SimpleMods: Module<OpenCL, Module = NewMods>,
+        SimpleMods: Module<'a, OpenCL, Module = NewMods>,
         NewMods: Setup<OpenCL<NewMods>>,
     {
         OpenCL::<SimpleMods>::from_cl_device(CLDevice::fastest()?)

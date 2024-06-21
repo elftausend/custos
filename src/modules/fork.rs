@@ -46,7 +46,7 @@ impl<Mods: WrappedData> WrappedData for Fork<Mods> {
     }
 }
 
-impl<Mods: Module<D>, D: Device> Module<D> for Fork<Mods> {
+impl<'a, Mods: Module<'a, D>, D: Device + 'a> Module<'a, D> for Fork<Mods> {
     type Module = Fork<Mods::Module>;
 
     #[inline]

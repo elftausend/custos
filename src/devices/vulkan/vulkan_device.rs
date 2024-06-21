@@ -65,9 +65,10 @@ pub struct Vulkan<Mods = Base> {
 
 impl<SimpleMods> Vulkan<SimpleMods> {
     #[inline]
-    pub fn new<NewMods>(idx: usize) -> crate::Result<Vulkan<NewMods>>
+    pub fn new<'a, NewMods>(idx: usize) -> crate::Result<Vulkan<NewMods>>
     where
-        SimpleMods: Module<Vulkan, Module = NewMods>,
+        Self: 'a,
+        SimpleMods: Module<'a, Vulkan, Module = NewMods>,
         NewMods: Setup<Vulkan<NewMods>>,
     {
         let mut vulkan = Vulkan {

@@ -49,9 +49,10 @@ impl<SimpleMods> CUDA<SimpleMods> {
     /// - No device was found at the given device index
     /// - some other CUDA related errors
     #[inline]
-    pub fn new<NewMods>(idx: usize) -> crate::Result<CUDA<NewMods>>
+    pub fn new<'a, NewMods>(idx: usize) -> crate::Result<CUDA<NewMods>>
     where
-        SimpleMods: CombModule<CUDA, Module = NewMods>,
+        Self: 'a,
+        SimpleMods: CombModule<'a, CUDA, Module = NewMods>,
         NewMods: Setup<CUDA<NewMods>>,
     {
         let mut cuda = CUDA {

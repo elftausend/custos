@@ -39,7 +39,7 @@ impl<Mods: WrappedData, SD: Device> WrappedData for CachedModule<Mods, SD> {
     }
 }
 
-impl<Mods: Module<D>, D: Device> Module<D> for Cached<Mods> {
+impl<'a, Mods: Module<'a, D>, D: Device + 'a> Module<'a, D> for Cached<Mods> {
     type Module = CachedModule<Mods::Module, D>;
 
     fn new() -> Self::Module {
@@ -203,7 +203,7 @@ impl<Mods: crate::TapeActions, SD: Device> crate::TapeActions for CachedModule<M
     }
 
     #[inline]
-    unsafe fn gradients_mut(&self) -> Option<&mut crate::Gradients> {
+    unsafe fn gradients_mut(&self) -> Option<&mut crate::Gradients<'static>> {
         self.modules.gradients_mut()
     }
 }

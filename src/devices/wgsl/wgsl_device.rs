@@ -14,9 +14,11 @@ pub struct Wgsl<D: Device, Mods = Base> {
 
 impl<SimpleMods, D: WgslDevice + Device + Default> Wgsl<D, SimpleMods> {
     #[inline]
-    pub fn new<NewMods>(idx: usize) -> crate::Result<Wgsl<D, NewMods>>
+    pub fn new<'a, NewMods>(idx: usize) -> crate::Result<Wgsl<D, NewMods>>
     where
-        SimpleMods: Module<Wgsl<D>, Module = NewMods>,
+        Self: 'a,
+        D: 'a,
+        SimpleMods: Module<'a, Wgsl<D>, Module = NewMods>,
         NewMods: Setup<Wgsl<D, NewMods>>,
     {
         let mut wgsl = Wgsl {

@@ -11,14 +11,14 @@ const INVALID_ID: &str = "A matching Buffer does not exist.";
 /// A cache for gradients.
 /// The cache is populated by `get_ref`, `get_like` or `get_mut_ref` calls.
 #[derive(Default)]
-pub struct Gradients {
-    pub(crate) grads_pool: BorrowCache,
+pub struct Gradients<'dev> {
+    pub(crate) grads_pool: BorrowCache<'dev>,
     pub no_grads_pool: Buffers<Box<dyn BoxedShallowCopy>>,
     pub zero_grad_cbs: Vec<(Id, fn(&mut dyn Any))>,
     pub buf_requires_grad: HashMap<UniqueId, bool, BuildHasherDefault<NoHasher>>,
 }
 
-impl core::fmt::Debug for Gradients {
+impl<'dev> core::fmt::Debug for Gradients<'dev> {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         f.debug_struct("Gradients")
             // .field("cache", &self.grads_pool)
@@ -26,7 +26,7 @@ impl core::fmt::Debug for Gradients {
     }
 }
 
-impl Gradients {
+impl<'dev> Gradients<'dev> {
     pub fn zero_grad(&mut self) {
         for (id, cb) in &self.zero_grad_cbs {
             let grad_buf = self.grads_pool.cache.get_mut(id).unwrap();
@@ -56,7 +56,10 @@ impl Gradients {
 
     /// May get a reference to a gradient [`Buffer`].
     #[inline]
-    pub(crate) unsafe fn may_get_ref<'a, T, S, D>(&self, ident: Id) -> Result<&Buffer<'a, T, D, S>, CachingError>
+    pub(crate) unsafe fn may_get_ref<'a, T, S, D>(
+        &self,
+        ident: Id,
+    ) -> Result<&Buffer<'a, T, D, S>, CachingError>
     where
         T: Unit + 'static,
         S: Shape,

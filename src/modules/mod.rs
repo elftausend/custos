@@ -73,7 +73,7 @@ use core::{any::Any, hash::BuildHasher};
 #[cfg(feature = "std")]
 use std::collections::HashMap;
 
-pub trait Module<D, Mods = ()> {
+pub trait Module<'a, D: 'a, Mods = ()> {
     type Module;
 
     fn new() -> Self::Module;

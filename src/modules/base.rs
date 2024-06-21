@@ -26,7 +26,7 @@ impl WrappedData for Base {
     }
 }
 
-impl<D: Device> Module<D> for Base {
+impl<'a, D: Device + 'a> Module<'a, D> for Base {
     type Module = Base;
 
     #[inline]

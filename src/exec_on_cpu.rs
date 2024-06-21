@@ -468,14 +468,14 @@ mod tests {
 
         let lhs = device.buffer([1, 2, 3, 4, 5]);
         let rhs = device.buffer([-1, -4, -1, -8, -1]);
-        
+
         let out1 = crate::cpu_exec!(&device, &cpu, lhs, rhs; cpu.add(&lhs, &rhs));
 
-        let out = {             
-            let lhs = crate::Buffer::<_, _>::from(((&cpu), lhs. read_to_vec()));             
-            let rhs = crate::Buffer::<_, _>::from(((&cpu), rhs. read_to_vec()));
+        let out = {
+            let lhs = crate::Buffer::<_, _>::from(((&cpu), lhs.read_to_vec()));
+            let rhs = crate::Buffer::<_, _>::from(((&cpu), rhs.read_to_vec()));
             let cpu_out = cpu.add(&lhs, &rhs);
-            crate::Buffer::from((&device, cpu_out))         
+            crate::Buffer::from((&device, cpu_out))
         };
         assert_eq!(out1.read(), out.read());
         Ok(())

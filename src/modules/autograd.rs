@@ -21,12 +21,12 @@ use self::wrapper::ReqGradWrapper;
 pub struct Autograd<Mods> {
     pub modules: Mods,
     /// Caches gradients for each [`Buffer`]'s id ([`Ident`]).
-    pub grads: UnsafeCell<Gradients>, // could use RefCell
+    pub grads: UnsafeCell<Gradients<'static>>, // could use RefCell
     tape: UnsafeCell<Tape>,
     pub enabled: Cell<bool>,
 }
 
-impl<Mods: Module<D>, D: Device> Module<D> for Autograd<Mods> {
+impl<'a, Mods: Module<'a, D>, D: Device + 'a> Module<'a, D> for Autograd<Mods> {
     // type Module = Autograd<CachedModule<Mods::Module, D>>;
     type Module = Autograd<Mods::Module>;
 
@@ -186,7 +186,8 @@ impl<Mods> TapeActions for Autograd<Mods> {
         Some(&*self.grads.get())
     }
 
-    unsafe fn gradients_mut(&self) -> Option<&mut crate::Gradients> {
+    unsafe fn gradients_mut(&self) -> Option<&mut crate::Gradients<'static>> {
+        // todo!()
         Some(&mut *self.grads.get())
     }
 }
@@ -353,11 +354,11 @@ mod tests {
     #[test]
     fn test_grad_fn_with_lazy_buffer_source_but_no_true_lazy() {
         let device = CPU::<Autograd<Lazy<Base>>>::new();
-        let buf = Buffer::<f32, _>::new(&device, 10).require_grad();
+        let mut buf = Buffer::<f32, _>::new(&device, 10).require_grad();
 
         let out = Buffer::<f32, _>::new(&device, 10);
 
-        device.add_grad_fn((&buf, &out), |(buf, _out)| {
+        device.add_grad_fn((&mut buf, &out), |(buf, _out)| {
             for (val, grad) in buf.grad_mut().iter_mut().zip(_out.grad().iter()) {
                 *val = 5. * grad;
             }
@@ -412,10 +413,10 @@ mod tests {
 
         let device = CPU::<Autograd<Base>>::new();
 
-        let lhs = device.buffer([1, 2, 3, 4]).require_grad();
+        let mut lhs = device.buffer([1, 2, 3, 4]).require_grad();
         let out = lhs.empty_like();
 
-        device.add_grad_fn((&lhs, &out), |(lhs, out)| {
+        device.add_grad_fn((&mut lhs, &out), |(lhs, out)| {
             // lhs.grad();
             lhs.device()
                 .add_unary_grad(lhs, lhs.grad_mut(), out.grad(), |x| x.add(3));

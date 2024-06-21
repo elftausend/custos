@@ -68,7 +68,7 @@ pub trait LazyRun {
     }
 }
 
-impl<T, Mods: Module<D>, D: LazySetup + Device> Module<D> for Lazy<Mods, T> {
+impl<'a, T, Mods: Module<'a, D>, D: LazySetup + Device + 'a> Module<'a, D> for Lazy<Mods, T> {
     type Module = Lazy<Mods::Module, T>;
     // type Data<T, S: Shape> = LazyWrapper<Mods::Data<T, S>>;
 
@@ -231,7 +231,7 @@ impl<Mods: crate::TapeActions, T> crate::TapeActions for Lazy<Mods, T> {
     }
 
     #[inline]
-    unsafe fn gradients_mut(&self) -> Option<&mut crate::Gradients> {
+    unsafe fn gradients_mut(&self) -> Option<&mut crate::Gradients<'static>> {
         self.modules.gradients_mut()
     }
 }

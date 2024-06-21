@@ -2,6 +2,7 @@ use core::{
     any::Any,
     fmt::{Debug, Display},
     hash::BuildHasherDefault,
+    marker::PhantomData,
     mem::transmute,
 };
 use std::collections::HashMap;
@@ -41,42 +42,110 @@ impl std::error::Error for CachingError {}
 pub(crate) type AnyBuffers = HashMap<UniqueId, Box<dyn Any>, BuildHasherDefault<NoHasher>>;
 
 #[derive(Default)]
-pub struct BorrowCache {
+pub struct BorrowCache<'dev> {
     pub(crate) cache: AnyBuffers,
+    pd: PhantomData<&'dev dyn Any>,
 }
 
-impl BorrowCache {
-    pub fn add_or_get<'a, T, D, S>(
-        &mut self,
-        device: &'a D,
-        id: Id,
-        new_buf: &mut bool,
-    ) -> &Buffer<'a, T, D, S>
+impl<'dev> BorrowCache<'dev> {
+    pub fn add_buf_once<T, D, S>(&mut self, device: &'dev D, id: Id, new_buf: &mut bool)
     where
         T: Unit + 'static,
         D: Alloc<T> + 'static,
         S: Shape,
     {
-        self.add_buf_once::<T, D, S>(device, id, new_buf);
-
-        let buf_any = self.cache.get(&id).unwrap();
-        buf_any.downcast_ref().unwrap()
+        if self.cache.contains_key(&id) {
+            return;
+        }
+        *new_buf = true;
+        self.add_buf::<T, D, S>(device, id)
     }
 
-    pub fn add_or_get_mut<'a, T, D, S>(
-        &mut self,
-        device: &'a D,
-        id: Id,
-        new_buf: &mut bool,
-    ) -> &mut Buffer<'a, T, D, S>
+    pub fn add_buf<T, D, S>(&mut self, device: &'dev D, id: Id)
     where
         T: Unit + 'static,
         D: Alloc<T> + 'static,
         S: Shape,
     {
-        self.add_buf_once::<T, D, S>(device, id, new_buf);
-        unsafe { self.get_buf_mut(id).unwrap() }
+        // not using ::new, because this buf would get added to the cache of the device.
+        // not anymore ?
+        let buf = Buffer {
+            data: device.base_to_data(device.alloc::<S>(id.len, AllocFlag::BorrowedCache).unwrap()),
+            device: Some(device),
+        };
+
+        let buf = unsafe { transmute::<_, Buffer<'static, T, D, S>>(buf) };
+        self.cache.insert(*id, Box::new(buf));
     }
+
+    #[inline]
+    pub fn get_buf<T, D, S>(&self, id: Id) -> Result<&Buffer<'dev, T, D, S>, CachingError>
+    where
+        T: Unit + 'static,
+        D: Device + 'static,
+        S: Shape,
+    {
+        self.cache
+            .get(&id)
+            .ok_or(CachingError::InvalidId)?
+            .downcast_ref()
+            .ok_or(CachingError::InvalidTypeInfo)
+    }
+
+    #[inline]
+    pub fn get_buf_mut<'a, T, D, S>(
+        &'a mut self,
+        id: Id,
+    ) -> Result<&'a mut Buffer<'dev, T, D, S>, CachingError>
+    where
+        T: Unit + 'static,
+        D: Device + 'static,
+        S: Shape,
+    {
+        unsafe {
+            transmute::<Result<&'a mut Buffer<'static, T, D, S>, CachingError>, _>(
+                self.cache
+                    .get_mut(&id)
+                    .ok_or(CachingError::InvalidId)?
+                    .downcast_mut::<Buffer<T, D, S>>()
+                    .ok_or(CachingError::InvalidTypeInfo),
+            )
+        }
+    }
+}
+
+/*impl<'dev> BorrowCache<'dev> {
+    // pub fn add_or_get<'a, T, D, S>(
+    //     &mut self,
+    //     device: &'a D,
+    //     id: Id,
+    //     new_buf: &mut bool,
+    // ) -> &Buffer<'a, T, D, S>
+    // where
+    //     T: Unit + 'static,
+    //     D: Alloc<T> + 'static,
+    //     S: Shape,
+    // {
+    //     self.add_buf_once::<T, D, S>(device, id, new_buf);
+
+    //     let buf_any = self.cache.get(&id).unwrap();
+    //     buf_any.downcast_ref().unwrap()
+    // }
+
+    // pub fn add_or_get_mut<'a, T, D, S>(
+    //     &mut self,
+    //     device: &'a D,
+    //     id: Id,
+    //     new_buf: &mut bool,
+    // ) -> &mut Buffer<'a, T, D, S>
+    // where
+    //     T: Unit + 'static,
+    //     D: Alloc<T> + 'static,
+    //     S: Shape,
+    // {
+    //     self.add_buf_once::<T, D, S>(device, id, new_buf);
+    //     unsafe { self.get_buf_mut(id).unwrap() }
+    // }
 
     pub fn add_buf_once<T, D, S>(&mut self, device: &D, id: Id, new_buf: &mut bool)
     where
@@ -156,26 +225,27 @@ impl BorrowCache {
             )
         }
     }
-}
+}*/
 
 #[cfg(test)]
 mod tests {
 
-    // #[test]
-    // #[cfg(feature = "cpu")]
-    // fn test_comp_error() {
-    //     use crate::{Base, BorrowCache, Id, CPU};
+    #[test]
+    #[cfg(feature = "cpu")]
+    fn test_comp_error() {
+        use crate::{Base, BorrowCache, Id, CPU};
 
-    //     let mut cache = BorrowCache::default();
+        let mut cache = BorrowCache::default();
 
-
-    //     let a = {
-    //         let device = CPU::<Base>::new();
-    //         // drop(device);
-    //         let mut new_buf = false;
-    //         // cache.add_or_get::<f32, CPU, ()>(&device, Id { id: 0, len: 10}, &mut new_buf)
-    //     };
-    // }
+        let a = {
+            let device = CPU::<Base>::new();
+            cache.add_buf::<f32, _, ()>(&device, Id { id: 0, len: 10 });
+            // drop(device);
+            let mut new_buf = false;
+            // cache.add_or_get::<f32, CPU, ()>(&device, Id { id: 0, len: 10}, &mut new_buf)
+        };
+        // cache.cache.get(&3);
+    }
 
     #[cfg(feature = "cpu")]
     #[test]

@@ -44,7 +44,7 @@ impl<Mods: WrappedData> WrappedData for Graph<Mods> {
     }
 }
 
-impl<Mods: Module<D>, D: Device> Module<D> for Graph<Mods> {
+impl<'a, Mods: Module<'a, D>, D: Device + 'a> Module<'a, D> for Graph<Mods> {
     type Module = Graph<Mods::Module>;
 
     fn new() -> Self::Module {

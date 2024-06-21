@@ -231,7 +231,7 @@ pub trait TapeActions {
     }
 
     #[inline]
-    unsafe fn gradients_mut(&self) -> Option<&mut crate::Gradients> {
+    unsafe fn gradients_mut(&self) -> Option<&mut crate::Gradients<'static>> {
         None
     }
 }
@@ -260,7 +260,7 @@ macro_rules! pass_down_tape_actions {
             }
 
             #[inline]
-            unsafe fn gradients_mut(&self) -> Option<&mut $crate::Gradients> {
+            unsafe fn gradients_mut(&self) -> Option<&mut $crate::Gradients<'static>> {
                 self.modules.gradients_mut()
             }
         }
