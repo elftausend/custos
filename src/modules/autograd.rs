@@ -21,7 +21,7 @@ use self::wrapper::ReqGradWrapper;
 pub struct Autograd<Mods> {
     pub modules: Mods,
     /// Caches gradients for each [`Buffer`]'s id ([`Ident`]).
-    pub grads: UnsafeCell<Gradients<'static>>, // could use RefCell
+    pub grads: UnsafeCell<Gradients>, // could use RefCell
     tape: UnsafeCell<Tape>,
     pub enabled: Cell<bool>,
 }
@@ -186,7 +186,7 @@ impl<Mods> TapeActions for Autograd<Mods> {
         Some(&*self.grads.get())
     }
 
-    unsafe fn gradients_mut(&self) -> Option<&mut crate::Gradients<'static>> {
+    unsafe fn gradients_mut(&self) -> Option<&mut crate::Gradients> {
         // todo!()
         Some(&mut *self.grads.get())
     }

@@ -42,12 +42,12 @@ impl std::error::Error for CachingError {}
 pub(crate) type AnyBuffers = HashMap<UniqueId, Box<dyn Any>, BuildHasherDefault<NoHasher>>;
 
 #[derive(Default)]
-pub struct BorrowCache<'dev> {
+pub struct BorrowCacheLT<'dev> {
     pub(crate) cache: AnyBuffers,
     pd: PhantomData<&'dev dyn Any>,
 }
 
-impl<'dev> BorrowCache<'dev> {
+impl<'dev> BorrowCacheLT<'dev> {
     pub fn add_buf_once<T, D, S>(&mut self, device: &'dev D, id: Id, new_buf: &mut bool)
     where
         T: Unit + 'static,
@@ -114,7 +114,12 @@ impl<'dev> BorrowCache<'dev> {
     }
 }
 
-/*impl<'dev> BorrowCache<'dev> {
+#[derive(Default)]
+pub struct BorrowCache {
+    pub(crate) cache: AnyBuffers,
+}
+
+impl BorrowCache {
     // pub fn add_or_get<'a, T, D, S>(
     //     &mut self,
     //     device: &'a D,
@@ -225,7 +230,7 @@ impl<'dev> BorrowCache<'dev> {
             )
         }
     }
-}*/
+}
 
 #[cfg(test)]
 mod tests {

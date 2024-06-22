@@ -203,7 +203,7 @@ impl<Mods: crate::TapeActions, SD: Device> crate::TapeActions for CachedModule<M
     }
 
     #[inline]
-    unsafe fn gradients_mut(&self) -> Option<&mut crate::Gradients<'static>> {
+    unsafe fn gradients_mut(&self) -> Option<&mut crate::Gradients> {
         self.modules.gradients_mut()
     }
 }
