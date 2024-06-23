@@ -75,8 +75,8 @@ pub trait Cursor {
 
 #[macro_export]
 macro_rules! pass_down_cursor {
-    ($to_impl:ident) => {
-        impl<Mods: $crate::Cursor> $crate::Cursor for $to_impl<Mods> {
+    ($to_impl:ident, $($generics:tt),*) => {
+        impl<'dev, Mods: $crate::Cursor> $crate::Cursor for $to_impl<$($generics),*> {
             #[inline]
             fn cursor(&self) -> usize {
                 self.modules.cursor()
@@ -87,6 +87,9 @@ macro_rules! pass_down_cursor {
                 self.modules.set_cursor(cursor)
             }
         }
+    };
+    ($to_impl:ident) => {
+        $crate::pass_down_cursor!($to_impl, Mods);
     };
 }
 
@@ -188,8 +191,8 @@ pub trait AddGradFn {
 
 #[macro_export]
 macro_rules! pass_down_grad_fn {
-    ($to_impl:ident) => {
-        impl<Mods: $crate::AddGradFn> $crate::AddGradFn for $to_impl<Mods> {
+    ($to_impl:ident, $($generics:tt),*) => {
+        impl<'dev, Mods: $crate::AddGradFn> $crate::AddGradFn for $to_impl<$($generics),*> {
             #[inline]
             fn add_grad_fn<Args: $crate::Parents<N> + $crate::UpdateArgs, const N: usize>(
                 &self,
@@ -210,6 +213,33 @@ macro_rules! pass_down_grad_fn {
             }
         }
     };
+    ($to_impl:ident) => {
+        $crate::pass_down_grad_fn!($to_impl, Mods);
+    };
+}
+
+#[cfg(feature = "autograd")]
+pub trait TapeActionsLT<'dev> {
+    // "generator" - do not forget to pass down
+    #[inline]
+    unsafe fn tape(&self) -> Option<&crate::Tape> {
+        None
+    }
+    // "generator" - do not forget to pass down
+    #[inline]
+    unsafe fn tape_mut(&self) -> Option<&mut crate::Tape> {
+        None
+    }
+
+    #[inline]
+    unsafe fn gradients(&self) -> Option<&crate::GradientsLT<'dev>> {
+        None
+    }
+
+    #[inline]
+    unsafe fn gradients_mut(&self) -> Option<&mut crate::GradientsLT<'dev>> {
+        None
+    }
 }
 
 #[cfg(feature = "autograd")]
@@ -238,12 +268,12 @@ pub trait TapeActions {
 
 #[macro_export]
 macro_rules! pass_down_tape_actions {
-    ($to_impl:ident) => {
+    ($to_impl:ident, $($generics:tt),*) => {
         #[cfg(feature = "autograd")]
-        impl<Mods: $crate::HasAutograd> $crate::HasAutograd for $to_impl<Mods> {}
+        impl<'dev, Mods: $crate::HasAutograd> $crate::HasAutograd for $to_impl<$($generics),*> {}
 
         #[cfg(feature = "autograd")]
-        impl<Mods: $crate::TapeActions> $crate::TapeActions for $to_impl<Mods> {
+        impl<'dev, Mods: $crate::TapeActions> $crate::TapeActions for $to_impl<$($generics),*> {
             #[inline]
             unsafe fn tape(&self) -> Option<&$crate::Tape> {
                 self.modules.tape()
@@ -264,6 +294,9 @@ macro_rules! pass_down_tape_actions {
                 self.modules.gradients_mut()
             }
         }
+    };
+    ($to_impl:ident) => {
+        $crate::pass_down_tape_actions!($to_impl, Mods);
     };
 }
 
@@ -301,9 +334,9 @@ macro_rules! pass_down_replace_buf_dev {
 
 #[macro_export]
 macro_rules! pass_down_replace_buf_module {
-    ($module:ident) => {
-        impl<T: $crate::Unit, S: Shape, Mods: $crate::ReplaceBuf<T, D, S>, D: $crate::Device>
-            $crate::ReplaceBuf<T, D, S> for $module<Mods>
+    ($module:ident, $($generics:tt),*) => {
+        impl<'dev, T: $crate::Unit, S: Shape, Mods: $crate::ReplaceBuf<T, D, S>, D: $crate::Device>
+            $crate::ReplaceBuf<T, D, S> for $module<$($generics),*>
         {
             #[inline]
             fn replace_buf<'a, 'c>(
@@ -313,6 +346,9 @@ macro_rules! pass_down_replace_buf_module {
                 self.modules.replace_buf(buffer)
             }
         }
+    };
+    ($module:ident) => {
+        $crate::pass_down_replace_buf_module!($module, Mods);
     };
 }
 
@@ -366,15 +402,15 @@ pub trait ExecNow<D = Self> {
 /// Implements the [`AddOperation`] trait for any supplied device. The `add_op` call is passed down to `self.modules`.
 #[macro_export]
 macro_rules! pass_down_add_operation {
-    ($device:ident) => {
-        impl<T, Mods: $crate::SetOpHint<T>> $crate::SetOpHint<T> for $device<Mods> {
+    ($device:ident, $($generics:tt),*) => {
+        impl<'dev, T, Mods: $crate::SetOpHint<T>> $crate::SetOpHint<T> for $device<$($generics),*> {
             #[inline]
             fn set_op_hint(&self, op_hint: $crate::op_hint::OpHint<T>) {
                 self.modules.set_op_hint(op_hint)
             }
         }
 
-        impl<Mods: $crate::AddOperation> $crate::AddOperation for $device<Mods> {
+        impl<'dev, Mods: $crate::AddOperation> $crate::AddOperation for $device<$($generics),*> {
             #[inline]
             fn add_op<Args: $crate::Parents<N> + $crate::UpdateArgs, const N: usize>(
                 &self,
@@ -400,12 +436,15 @@ macro_rules! pass_down_add_operation {
             }
         }
     };
+    ($module:ident) => {
+        $crate::pass_down_add_operation!($module, Mods);
+    };
 }
 
 #[macro_export]
 macro_rules! pass_down_exec_now_module {
-    ($device:ident) => {
-        impl<D: $crate::Device, Mods: $crate::ExecNow<D>> $crate::ExecNow<D> for $device<Mods> {
+    ($device:ident, $($generics:tt),*) => {
+        impl<'dev, D: $crate::Device, Mods: $crate::ExecNow<D>> $crate::ExecNow<D> for $device<$($generics),*> {
             #[inline]
             fn exec_now(
                 &self,
@@ -416,13 +455,16 @@ macro_rules! pass_down_exec_now_module {
             }
         }
     };
+    ($device:ident) => {
+        $crate::pass_down_exec_now_module!($device, Mods);
+    }
 }
 
 // FIXME may remove for device and another trait for devices (mind device ref in exec noe)
 #[macro_export]
 macro_rules! pass_down_exec_now {
-    ($device:ident) => {
-        impl<Mods: $crate::ExecNow<Self>> $crate::ExecNow<Self> for $device<Mods> {
+    ($device:ident, $($generics:tt),*) => {
+        impl<'dev, Mods: $crate::ExecNow<Self>> $crate::ExecNow<Self> for $device<$($generics),*> {
             #[inline]
             fn exec_now(
                 &self,
@@ -433,6 +475,9 @@ macro_rules! pass_down_exec_now {
             }
         }
     };
+    ($device:ident) => {
+        $crate::pass_down_exec_now!($device, Mods);
+    }
 }
 
 pub trait HasCPU<Mods> {
@@ -491,8 +536,8 @@ pub struct GpuOrCpuInfo {
 
 #[macro_export]
 macro_rules! pass_down_use_gpu_or_cpu {
-    ($to_impl:ident) => {
-        impl<Mods: $crate::UseGpuOrCpu> $crate::UseGpuOrCpu for $to_impl<Mods> {
+    ($to_impl:ident, $($generics:tt),*) => {
+        impl<'dev, Mods: $crate::UseGpuOrCpu> $crate::UseGpuOrCpu for $to_impl<$($generics),*> {
             #[inline]
             fn use_cpu_or_gpu(
                 &self,
@@ -514,6 +559,9 @@ macro_rules! pass_down_use_gpu_or_cpu {
                 self.modules.is_fork_enabled()
             }
         }
+    };
+    ($to_impl:ident) => {
+        $crate::pass_down_use_gpu_or_cpu!($to_impl, Mods);
     };
 }
 
@@ -561,8 +609,8 @@ pub trait Optimize {
 
 #[macro_export]
 macro_rules! pass_down_optimize_mem_graph {
-    ($to_impl:ident) => {
-        impl<Mods: $crate::Optimize> $crate::Optimize for $to_impl<Mods> {
+    ($to_impl:ident, $($generics:tt),*) => {
+        impl<'dev, Mods: $crate::Optimize> $crate::Optimize for $to_impl<$($generics),*> {
             fn optimize_mem_graph<D: 'static>(
                 &self,
                 device: &D,
@@ -579,6 +627,9 @@ macro_rules! pass_down_optimize_mem_graph {
             }
         }
     };
+    ($to_impl:ident) => {
+        $crate::pass_down_optimize_mem_graph!($to_impl, Mods);
+    };
 }
 
 pub trait CachedBuffers {
@@ -592,8 +643,8 @@ pub trait CachedBuffers {
 
 #[macro_export]
 macro_rules! pass_down_cached_buffers {
-    ($to_impl:ident) => {
-        impl<Mods: $crate::CachedBuffers> $crate::CachedBuffers for $to_impl<Mods> {
+    ($to_impl:ident, $($generics:tt),*) => {
+        impl<'dev, Mods: $crate::CachedBuffers> $crate::CachedBuffers for $to_impl<$($generics),*> {
             #[cfg(feature = "std")]
             #[inline]
             unsafe fn buffers_mut(
@@ -603,5 +654,8 @@ macro_rules! pass_down_cached_buffers {
                 self.modules.buffers_mut()
             }
         }
+    };
+    ($to_impl:ident) => {
+        $crate::pass_down_cached_buffers!($to_impl, Mods);
     };
 }
