@@ -5,7 +5,10 @@ mod wrapper;
 pub use gradients::*;
 pub use tape::*;
 
-use core::cell::{Cell, UnsafeCell};
+use core::{
+    cell::{Cell, UnsafeCell},
+    marker::PhantomData,
+};
 
 use crate::{
     impl_remove_layer, pass_down_add_operation, pass_down_cached_buffers, pass_down_cursor,
@@ -18,31 +21,34 @@ use crate::{
 use self::wrapper::ReqGradWrapper;
 
 #[derive(Debug, Default)]
-pub struct AutogradLT<'dev, Mods> {
+pub struct Autograd<'dev, Mods> {
     pub modules: Mods,
     /// Caches gradients for each [`Buffer`]'s id ([`Ident`]).
-    pub grads: UnsafeCell<GradientsLT<'dev>>, // could use RefCell
+    // pub grads: UnsafeCell<GradientsLT<'dev>>, // could use RefCell
+    pub grads: UnsafeCell<Gradients>, // could use RefCell
     tape: UnsafeCell<Tape>,
     pub enabled: Cell<bool>,
+    pd: PhantomData<&'dev ()>,
 }
 
-impl<'a, Mods: Module<'a, D>, D: Device + 'a> Module<'a, D> for AutogradLT<'a, Mods> {
+impl<'a, Mods: Module<'a, D>, D: Device + 'a> Module<'a, D> for Autograd<'a, Mods> {
     // type Module = Autograd<CachedModule<Mods::Module, D>>;
-    type Module = AutogradLT<'a, Mods::Module>;
+    type Module = Autograd<'a, Mods::Module>;
 
     #[inline]
     fn new() -> Self::Module {
-        AutogradLT {
+        Autograd {
             // modules: Cached::<Mods>::new(),
             modules: Mods::new(),
             grads: Default::default(),
             tape: Default::default(),
             enabled: Cell::new(true),
+            pd: PhantomData,
         }
     }
 }
 
-impl<'dev, Mods> AutogradLT<'dev, Mods> {
+impl<'dev, Mods> Autograd<'dev, Mods> {
     #[inline]
     pub fn register_no_grad_buf<T, D, S>(&self, buf: &Buffer<T, D, S>)
     where
@@ -61,7 +67,7 @@ impl<'dev, Mods> AutogradLT<'dev, Mods> {
     }
 }
 
-impl<'dev, T, D, Mods, S: Shape> OnNewBuffer<T, D, S> for AutogradLT<'dev, Mods>
+impl<'dev, T, D, Mods, S: Shape> OnNewBuffer<T, D, S> for Autograd<'dev, Mods>
 where
     T: Unit + 'static,
     D: Alloc<T> + IsShapeIndep + 'static,
@@ -82,7 +88,7 @@ where
     }
 }
 
-impl<'dev, Mods: OnDropBuffer> OnDropBuffer for AutogradLT<'dev, Mods> {
+impl<'dev, Mods: OnDropBuffer> OnDropBuffer for Autograd<'dev, Mods> {
     #[inline]
     fn on_drop_buffer<T: Unit, D: Device, S: Shape>(&self, device: &D, buf: &Buffer<T, D, S>) {
         unsafe { (*self.grads.get()).buf_requires_grad.remove(&*buf.id()) };
@@ -98,14 +104,14 @@ impl<'dev, Mods: OnDropBuffer> OnDropBuffer for AutogradLT<'dev, Mods> {
     }
 }
 
-impl<'dev, Mods: Setup<NewDev>, NewDev> Setup<NewDev> for AutogradLT<'dev, Mods> {
+impl<'dev, Mods: Setup<NewDev>, NewDev> Setup<NewDev> for Autograd<'dev, Mods> {
     #[inline]
     fn setup(device: &mut NewDev) -> crate::Result<()> {
         Mods::setup(device)
     }
 }
 
-impl<'dev, Mods> TapeActionsLT<'dev> for AutogradLT<'dev, Mods> {
+impl<'dev, Mods> TapeActionsLT<'dev> for Autograd<'dev, Mods> {
     #[inline]
     unsafe fn tape(&self) -> Option<&Tape> {
         Some(&*self.tape.get())
@@ -120,112 +126,22 @@ impl<'dev, Mods> TapeActionsLT<'dev> for AutogradLT<'dev, Mods> {
     }
 
     unsafe fn gradients(&self) -> Option<&crate::GradientsLT<'dev>> {
-        Some(&*self.grads.get())
+        todo!()
+        // Some(&*self.grads.get())
     }
 
     unsafe fn gradients_mut(&self) -> Option<&mut crate::GradientsLT<'dev>> {
-        // todo!()
-        Some(&mut *self.grads.get())
+        todo!()
+        // Some(&mut *self.grads.get())
     }
 }
 
-impl_remove_layer!(AutogradLT, 'a, Mods);
-
-#[derive(Debug, Default)]
-pub struct Autograd<Mods> {
-    pub modules: Mods,
-    /// Caches gradients for each [`Buffer`]'s id ([`Ident`]).
-    pub grads: UnsafeCell<Gradients>, // could use RefCell
-    tape: UnsafeCell<Tape>,
-    pub enabled: Cell<bool>,
-}
-
-impl<'a, Mods: Module<'a, D>, D: Device + 'a> Module<'a, D> for Autograd<Mods> {
-    // type Module = Autograd<CachedModule<Mods::Module, D>>;
-    type Module = Autograd<Mods::Module>;
-
-    #[inline]
-    fn new() -> Self::Module {
-        Autograd {
-            // modules: Cached::<Mods>::new(),
-            modules: Mods::new(),
-            grads: Default::default(),
-            tape: Default::default(),
-            enabled: Cell::new(true),
-        }
-    }
-}
-
-impl<Mods> Autograd<Mods> {
-    #[inline]
-    pub fn register_no_grad_buf<T, D, S>(&self, buf: &Buffer<T, D, S>)
-    where
-        T: Unit + 'static,
-        D: Device + IsShapeIndep + 'static,
-        D::Data<T, S>: ShallowCopy,
-        S: Shape,
-    {
-        let no_grads_pool = unsafe { &mut (*self.grads.get()).no_grads_pool };
-
-        if no_grads_pool.get(&buf.id()).is_some() {
-            return;
-        }
-
-        unsafe { register_buf_copyable(no_grads_pool, buf) };
-    }
-}
-
-impl<T, D, Mods, S: Shape> OnNewBuffer<T, D, S> for Autograd<Mods>
-where
-    T: Unit + 'static,
-    D: Alloc<T> + IsShapeIndep + 'static,
-    D::Data<T, S>: ShallowCopy,
-    Mods: OnNewBuffer<T, D, S>,
-{
-    #[inline]
-    fn on_new_buffer(&self, device: &D, new_buf: &Buffer<T, D, S>) {
-        unsafe {
-            (*self.grads.get())
-                .buf_requires_grad
-                .insert(*new_buf.id(), new_buf.requires_grad())
-        };
-        self.register_no_grad_buf(new_buf);
-
-        // pass down
-        self.modules.on_new_buffer(device, new_buf)
-    }
-}
-
-impl<Mods: OnDropBuffer> OnDropBuffer for Autograd<Mods> {
-    #[inline]
-    fn on_drop_buffer<T: Unit, D: Device, S: Shape>(&self, device: &D, buf: &Buffer<T, D, S>) {
-        unsafe { (*self.grads.get()).buf_requires_grad.remove(&*buf.id()) };
-        unregister_buf_copyable(unsafe { &mut (*self.grads.get()).no_grads_pool }, buf.id());
-
-        // TODO
-        // FIXME if an alloc flag None buffer goes out of scope and it has used it's gradient buffer before,
-        // the gradient buffer will stay allocated
-        // - deallocate directly -> however, a user storing the id maybe wants to retrieve the grad buf
-        // - add to id set of potentially unused buffers
-
-        self.modules.on_drop_buffer(device, buf)
-    }
-}
-
+impl_remove_layer!(Autograd, 'a, Mods);
 pub trait HasAutograd {}
-impl<Mods> HasAutograd for Autograd<Mods> {}
+impl<'dev, Mods> HasAutograd for Autograd<'dev, Mods> {}
 
-impl<Mods: Setup<NewDev>, NewDev> Setup<NewDev> for Autograd<Mods> {
-    #[inline]
-    fn setup(device: &mut NewDev) -> crate::Result<()> {
-        Mods::setup(device)
-    }
-}
-
-impl_remove_layer!(Autograd);
-
-impl<NewMods, SD> AddLayer<NewMods, SD> for Autograd<()> {
-    type Wrapped = crate::Autograd<NewMods>;
+impl<'dev, NewMods, SD> AddLayer<NewMods, SD> for Autograd<'dev, ()> {
+    type Wrapped = crate::Autograd<'dev, NewMods>;
 
     #[inline]
     fn wrap_layer(inner_mods: NewMods) -> Self::Wrapped {
@@ -234,11 +150,12 @@ impl<NewMods, SD> AddLayer<NewMods, SD> for Autograd<()> {
             grads: Default::default(),
             tape: Default::default(),
             enabled: Cell::new(true),
+            pd: PhantomData,
         }
     }
 }
 
-impl<T, Mods: Retrieve<D, T, S>, D, S: Shape> Retrieve<D, T, S> for Autograd<Mods>
+impl<'dev, T, Mods: Retrieve<D, T, S>, D, S: Shape> Retrieve<D, T, S> for Autograd<'dev, Mods>
 where
     T: Unit + 'static,
     D: IsShapeIndep + Device + 'static,
@@ -280,9 +197,9 @@ where
     }
 }
 
-pass_down_cursor!(Autograd);
+pass_down_cursor!(Autograd, 'dev, Mods);
 
-impl<Mods> TapeActions for Autograd<Mods> {
+impl<'dev, Mods> TapeActions for Autograd<'dev, Mods> {
     #[inline]
     unsafe fn tape(&self) -> Option<&Tape> {
         Some(&*self.tape.get())
@@ -306,14 +223,14 @@ impl<Mods> TapeActions for Autograd<Mods> {
     }
 }
 
-impl<Mods: RunModule<D>, D> RunModule<D> for Autograd<Mods> {
+impl<'dev, Mods: RunModule<D>, D> RunModule<D> for Autograd<'dev, Mods> {
     #[inline]
     fn run(&self, _device: &D) -> crate::Result<()> {
         self.modules.run(_device)
     }
 }
 
-impl<Mods: AddGradFn> AddGradFn for Autograd<Mods> {
+impl<'dev, Mods: AddGradFn> AddGradFn for Autograd<'dev, Mods> {
     #[inline]
     fn add_grad_fn<Args: Parents<N> + crate::UpdateArgs, const N: usize>(
         &self,
@@ -336,12 +253,12 @@ impl<Mods: AddGradFn> AddGradFn for Autograd<Mods> {
     }
 }
 
-pass_down_add_operation!(Autograd);
-pass_down_exec_now_module!(Autograd);
-pass_down_cached_buffers!(Autograd);
-pass_down_replace_buf_module!(Autograd);
+pass_down_add_operation!(Autograd, 'dev, Mods);
+pass_down_exec_now_module!(Autograd, 'dev, Mods);
+pass_down_cached_buffers!(Autograd, 'dev, Mods);
+pass_down_replace_buf_module!(Autograd, 'dev, Mods);
 
-impl<Mods> HasModules for Autograd<Mods> {
+impl<'dev, Mods> HasModules for Autograd<'dev, Mods> {
     type Mods = Mods;
 
     #[inline]
@@ -354,15 +271,15 @@ impl<Mods> HasModules for Autograd<Mods> {
 #[cfg(feature = "cpu")]
 mod tests {
     use crate::{
-        AddGradFn, AutogradLT, Base, BoxedShallowCopy, Buffer, Cached, Combiner, Cursor, Device,
-        HasId, Lazy, Module, Retriever, Shape, TapeActions, TapeActionsLT, UnaryGrad, Unit, CPU,
+        AddGradFn, Base, BoxedShallowCopy, Buffer, Cached, Combiner, Cursor, Device, HasId, Lazy,
+        Module, Retriever, Shape, TapeActions, UnaryGrad, Unit, CPU,
     };
 
     use super::Autograd;
 
     #[test]
     fn test_autograd_lt() {
-        let ag = AutogradLT::<Base>::default();
+        let ag = Autograd::<Base>::default();
         {
             let device = crate::OpenCL::based(0).unwrap();
             let out = unsafe {

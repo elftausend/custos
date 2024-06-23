@@ -499,20 +499,22 @@ pub trait UnifiedMemChain<D: Device> {
 #[cfg(feature = "cached")]
 #[macro_export]
 macro_rules! pass_down_unified_mem_chain {
-    ($($to_impl:ident),*) => {
-        $(
-            impl<Mods: $crate::UnifiedMemChain<D>, D: Device> $crate::UnifiedMemChain<D> for $to_impl<Mods> {
-                fn construct_unified_buf_from_cpu_buf<'a, T: $crate::Unit + 'static, S: Shape>(
-                    &self,
-                    device: &'a D,
-                    no_drop_buf: Buffer<'a, T, $crate::CachedCPU, S>
-                ) -> $crate::Result<Buffer<'a, T, D, S>>
-                {
-                    self.modules.construct_unified_buf_from_cpu_buf(device, no_drop_buf)
-                }
+    ($to_impl:ident, $($generics:tt),*) => {
+        impl<'dev, Mods: $crate::UnifiedMemChain<D>, D: Device> $crate::UnifiedMemChain<D>
+            for $to_impl<$($generics),*>
+        {
+            fn construct_unified_buf_from_cpu_buf<'a, T: $crate::Unit + 'static, S: Shape>(
+                &self,
+                device: &'a D,
+                no_drop_buf: Buffer<'a, T, $crate::CachedCPU, S>,
+            ) -> $crate::Result<Buffer<'a, T, D, S>> {
+                self.modules
+                    .construct_unified_buf_from_cpu_buf(device, no_drop_buf)
             }
-
-        )*
+        }
+    };
+    ($to_impl:ident) => {
+        $crate::pass_down_unified_mem_chain!($to_impl, Mods);
     };
 }
 
@@ -526,7 +528,7 @@ use crate::Lazy;
 pass_down_unified_mem_chain!(Lazy);
 
 #[cfg(feature = "autograd")]
-pass_down_unified_mem_chain!(Autograd);
+pass_down_unified_mem_chain!(Autograd, 'dev, Mods);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Default)]
 pub struct GpuOrCpuInfo {
@@ -566,7 +568,7 @@ macro_rules! pass_down_use_gpu_or_cpu {
 }
 
 #[cfg(feature = "autograd")]
-pass_down_use_gpu_or_cpu!(Autograd);
+pass_down_use_gpu_or_cpu!(Autograd, 'dev, Mods);
 
 pub trait UseGpuOrCpu {
     fn use_cpu_or_gpu(
