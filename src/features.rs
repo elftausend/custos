@@ -219,7 +219,7 @@ macro_rules! pass_down_grad_fn {
 }
 
 #[cfg(feature = "autograd")]
-pub trait TapeActionsLT<'dev> {
+pub trait TapeActions<'dev> {
     // "generator" - do not forget to pass down
     #[inline]
     unsafe fn tape(&self) -> Option<&crate::Tape> {
@@ -243,7 +243,7 @@ pub trait TapeActionsLT<'dev> {
 }
 
 #[cfg(feature = "autograd")]
-pub trait TapeActions {
+pub trait TapeActionsNT {
     // "generator" - do not forget to pass down
     #[inline]
     unsafe fn tape(&self) -> Option<&crate::Tape> {
@@ -273,7 +273,7 @@ macro_rules! pass_down_tape_actions {
         impl<'dev, Mods: $crate::HasAutograd> $crate::HasAutograd for $to_impl<$($generics),*> {}
 
         #[cfg(feature = "autograd")]
-        impl<'dev, Mods: $crate::TapeActions> $crate::TapeActions for $to_impl<$($generics),*> {
+        impl<'dev, Mods: $crate::TapeActions<'dev>> $crate::TapeActions<'dev> for $to_impl<$($generics),*> {
             #[inline]
             unsafe fn tape(&self) -> Option<&$crate::Tape> {
                 self.modules.tape()
@@ -285,12 +285,12 @@ macro_rules! pass_down_tape_actions {
             }
 
             #[inline]
-            unsafe fn gradients(&self) -> Option<&$crate::Gradients> {
+            unsafe fn gradients(&self) -> Option<&$crate::GradientsLT<'dev>> {
                 self.modules.gradients()
             }
 
             #[inline]
-            unsafe fn gradients_mut(&self) -> Option<&mut $crate::Gradients> {
+            unsafe fn gradients_mut(&self) -> Option<&mut $crate::GradientsLT<'dev>> {
                 self.modules.gradients_mut()
             }
         }
