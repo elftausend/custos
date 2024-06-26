@@ -68,7 +68,7 @@ pub trait LazyRun {
     }
 }
 
-impl<'a, T, Mods: Module<'a, D>, D: LazySetup + Device + 'a> Module<'a, D> for Lazy<Mods, T> {
+impl<T, Mods: Module<D>, D: LazySetup + Device> Module<D> for Lazy<Mods, T> {
     type Module = Lazy<Mods::Module, T>;
     // type Data<T, S: Shape> = LazyWrapper<Mods::Data<T, S>>;
 

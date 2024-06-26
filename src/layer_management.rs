@@ -9,15 +9,12 @@ pub trait RemoveLayer<Mods> {
 
 #[macro_export]
 macro_rules! impl_remove_layer {
-    ($module:ident, $($generics:tt),*) => {
-        impl<$($generics),*> $crate::RemoveLayer<Mods> for $module<$($generics),*> {
+    ($module:ident) => {
+        impl<Mods> $crate::RemoveLayer<Mods> for $module<Mods> {
             #[inline]
             fn inner_mods(self) -> Mods {
                 self.modules
             }
         }
-    };
-    ($module:ident) => {
-        $crate::impl_remove_layer!($module, Mods);
     };
 }

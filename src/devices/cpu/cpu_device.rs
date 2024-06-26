@@ -85,10 +85,9 @@ impl<Mods> HasModules for CPU<Mods> {
 
 impl<SimpleMods> CPU<SimpleMods> {
     #[inline]
-    pub fn new<'a, NewMods>() -> CPU<SimpleMods::Module>
+    pub fn new<NewMods>() -> CPU<SimpleMods::Module>
     where
-        Self: 'a,
-        SimpleMods: Module<'a, CPU, Module = NewMods>,
+        SimpleMods: Module<CPU, Module = NewMods>,
         NewMods: Setup<CPU<NewMods>>,
     {
         let mut cpu = CPU {

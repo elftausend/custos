@@ -39,7 +39,7 @@ impl<Mods: WrappedData, SD: Device> WrappedData for CachedModule<Mods, SD> {
     }
 }
 
-impl<'a, Mods: Module<'a, D>, D: Device + 'a> Module<'a, D> for Cached<Mods> {
+impl<Mods: Module<D>, D: Device> Module<D> for Cached<Mods> {
     type Module = CachedModule<Mods::Module, D>;
 
     fn new() -> Self::Module {
