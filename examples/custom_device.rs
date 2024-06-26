@@ -209,7 +209,7 @@ fn main() {
         cache.add_buf::<i32, _, ()>(&dev, Id { id: 0, len: 10 });
         // dev.modules.add_buf(&dev);
         // let out = dev.modules._cache._cache.get(&3).unwrap();
-        // mods.add_buf(&dev);
+        // mods.add_buunsafe { f(&dev);
         // mods.add_buf(&dev);
         {
             // cache.add_buf(&dev);

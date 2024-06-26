@@ -71,6 +71,7 @@ impl<SimpleMods> OpenCL<SimpleMods> {
     #[inline]
     pub fn new<'a, NewMods>(device_idx: usize) -> crate::Result<OpenCL<NewMods>>
     where
+        Self: 'a,
         SimpleMods: Module<'a, OpenCL, Module = NewMods>,
         NewMods: Setup<OpenCL<NewMods>>,
     {

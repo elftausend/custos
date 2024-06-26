@@ -231,7 +231,7 @@ impl<Mods: crate::TapeActions, T> crate::TapeActions for Lazy<Mods, T> {
     }
 
     #[inline]
-    unsafe fn gradients_mut(&self) -> Option<&mut crate::Gradients<'static>> {
+    unsafe fn gradients_mut(&self) -> Option<&mut crate::Gradients> {
         self.modules.gradients_mut()
     }
 }
