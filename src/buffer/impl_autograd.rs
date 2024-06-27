@@ -20,7 +20,7 @@ where
     pub fn backward(&self)
     where
         T: Clone + One + 'static,
-        D: TapeActions + ZeroGrad<T> + WriteBuf<T, S, D> + Alloc<T> + AddOperation + 'static,
+        D: TapeActions<'a> + ZeroGrad<T> + WriteBuf<T, S, D> + Alloc<T> + AddOperation + 'static,
         D: CachedBuffers,
     {
         self.backward_with(&vec![T::one(); self.len()]);
@@ -31,7 +31,7 @@ where
     where
         T: Clone + 'static,
         D: CachedBuffers
-            + TapeActions
+            + TapeActions<'a>
             + ZeroGrad<T>
             + WriteBuf<T, S, D>
             + Alloc<T>
@@ -60,7 +60,7 @@ where
     #[cfg(feature = "autograd")]
     pub fn grad(&self) -> &'a Self
     where
-        D: ZeroGrad<T> + MayTapeActions + Alloc<T>,
+        D: ZeroGrad<T> + MayTapeActions<'a> + Alloc<T>,
     {
         // TODO: consider activating this check ->
         // e.g. binary grad ops are computed in a single function where differentiating between
@@ -80,7 +80,7 @@ where
     // TODO: Maybe return Result with two error variants?
     pub fn try_grad(&self) -> Option<&'a Self>
     where
-        D: MayTapeActions + Alloc<T>,
+        D: MayTapeActions<'a> + Alloc<T>,
     {
         if !self.requires_grad() {
             return None;
@@ -109,7 +109,7 @@ where
     #[cfg(feature = "autograd")]
     pub fn grad_mut<'b>(&'b self) -> &'b mut Self
     where
-        D: MayTapeActions + Alloc<T> + ZeroGrad<T>,
+        D: MayTapeActions<'a> + Alloc<T> + ZeroGrad<T>,
     {
         // TODO: consider activating this check ->
         // e.g. binary grad ops are computed in a single function where differentiating between
@@ -129,7 +129,7 @@ where
     // TODO: Maybe return Result with two error variants?
     pub fn try_grad_mut<'b>(&'b mut self) -> Option<&'a mut Self>
     where
-        D: MayTapeActions + Alloc<T>,
+        D: MayTapeActions<'a> + Alloc<T>,
     {
         if !self.requires_grad() {
             return None;
@@ -171,7 +171,7 @@ mod tests {
         let device = CPU::<Autograd<Cached<Base>>>::new();
         let mut buf = device.buffer([1, 2, 3, 4]);
         let _out = buf.grad_mut();
-        let out = buf.grad_mut();
+        // let out = buf.grad_mut();
         // run(_out, out);
     }
 }

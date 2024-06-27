@@ -94,10 +94,10 @@ pub trait UnaryElementWiseMayGrad<T: Unit, D: Device, S: Shape>: Device {
         GO: Eval<T> + MayToCLSource + 'static;
 }
 
-impl<T, D, S> UnaryElementWiseMayGrad<T, D, S> for D
+impl<'a, T, D, S> UnaryElementWiseMayGrad<T, D, S> for D
 where
     T: Unit + 'static,
-    D: AddGradFn + ApplyFunction<T, S, D> + UnaryGrad<T, S, D> + MayTapeActions + AddOperation,
+    D: AddGradFn + ApplyFunction<T, S, D> + UnaryGrad<T, S, D> + MayTapeActions<'a> + AddOperation + 'a,
     // D::Data<T, S>: crate::ShallowCopy,
     D: Alloc<T> + ZeroGrad<T> + 'static,
     S: Shape,
@@ -167,13 +167,13 @@ mod tests {
     }
 
     #[cfg(feature = "autograd")]
-    fn test_unary_autograd<D>(device: &D)
+    fn test_unary_autograd<'a, D>(device: &'a D)
     where
         D::Data<f32, ()>: crate::ShallowCopy,
         D: 'static
             + crate::WriteBuf<f32>
             + crate::Read<f32>
-            + crate::TapeActions
+            + crate::TapeActions<'a>
             + crate::HasAutograd
             + crate::UnaryElementWiseMayGrad<f32, D, ()>
             + crate::Alloc<f32>

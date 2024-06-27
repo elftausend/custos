@@ -15,7 +15,7 @@ use crate::{
     pass_down_exec_now_module, pass_down_replace_buf_module, register_buf_copyable,
     unregister_buf_copyable, AddGradFn, AddLayer, Alloc, Buffer, Device, HasId, HasModules,
     IsShapeIndep, Module, OnDropBuffer, OnNewBuffer, Parents, Retrieve, RunModule, Setup,
-    ShallowCopy, Shape, TapeActions, TapeActionsLT, Unit,
+    ShallowCopy, Shape, TapeActions, Unit,
 };
 
 use self::wrapper::ReqGradWrapper;
@@ -111,7 +111,7 @@ impl<'dev, Mods: Setup<NewDev>, NewDev> Setup<NewDev> for Autograd<'dev, Mods> {
     }
 }
 
-impl<'dev, Mods> TapeActionsLT<'dev> for Autograd<'dev, Mods> {
+impl<'dev, Mods> TapeActions<'dev> for Autograd<'dev, Mods> {
     #[inline]
     unsafe fn tape(&self) -> Option<&Tape> {
         Some(&*self.tape.get())
@@ -199,29 +199,29 @@ where
 
 pass_down_cursor!(Autograd, 'dev, Mods);
 
-impl<'dev, Mods> TapeActions for Autograd<'dev, Mods> {
-    #[inline]
-    unsafe fn tape(&self) -> Option<&Tape> {
-        Some(&*self.tape.get())
-        // Some(self.tape.borrow())
-    }
+// impl<'dev, Mods> TapeActions<'dev> for Autograd<'dev, Mods> {
+//     #[inline]
+//     unsafe fn tape(&self) -> Option<&Tape> {
+//         Some(&*self.tape.get())
+//         // Some(self.tape.borrow())
+//     }
 
-    #[inline]
-    unsafe fn tape_mut(&self) -> Option<&mut Tape> {
-        Some(&mut *self.tape.get())
-        // Some(unsafe {&mut (self.tape.get_mut()) })
-        // Some(self.tape.borrow_mut())
-    }
+//     #[inline]
+//     unsafe fn tape_mut(&self) -> Option<&mut Tape> {
+//         Some(&mut *self.tape.get())
+//         // Some(unsafe {&mut (self.tape.get_mut()) })
+//         // Some(self.tape.borrow_mut())
+//     }
 
-    unsafe fn gradients(&self) -> Option<&crate::Gradients> {
-        Some(&*self.grads.get())
-    }
+//     unsafe fn gradients(&self) -> Option<&crate::Gradients> {
+//         Some(&*self.grads.get())
+//     }
 
-    unsafe fn gradients_mut(&self) -> Option<&mut crate::Gradients> {
-        // todo!()
-        Some(&mut *self.grads.get())
-    }
-}
+//     unsafe fn gradients_mut(&self) -> Option<&mut crate::Gradients> {
+//         // todo!()
+//         Some(&mut *self.grads.get())
+//     }
+// }
 
 impl<'dev, Mods: RunModule<D>, D> RunModule<D> for Autograd<'dev, Mods> {
     #[inline]

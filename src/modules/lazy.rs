@@ -214,7 +214,7 @@ where
 impl<Mods: crate::HasAutograd, T> crate::HasAutograd for Lazy<Mods, T> {}
 
 #[cfg(feature = "autograd")]
-impl<Mods: crate::TapeActions, T> crate::TapeActions for Lazy<Mods, T> {
+impl<'dev, Mods: crate::TapeActions<'dev>, T> crate::TapeActions<'dev> for Lazy<Mods, T> {
     #[inline]
     unsafe fn tape(&self) -> Option<&crate::Tape> {
         self.modules.tape()
@@ -226,12 +226,12 @@ impl<Mods: crate::TapeActions, T> crate::TapeActions for Lazy<Mods, T> {
     }
 
     #[inline]
-    unsafe fn gradients(&self) -> Option<&crate::Gradients> {
+    unsafe fn gradients(&self) -> Option<&crate::GradientsLT<'dev>> {
         self.modules.gradients()
     }
 
     #[inline]
-    unsafe fn gradients_mut(&self) -> Option<&mut crate::Gradients> {
+    unsafe fn gradients_mut(&self) -> Option<&mut crate::GradientsLT<'dev>> {
         self.modules.gradients_mut()
     }
 }

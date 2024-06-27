@@ -203,9 +203,9 @@ pub trait DevicelessAble<'a, T: Unit, S: Shape = ()>: Alloc<T> {}
 /// If the `autograd` feature is enabled, then this will be implemented for all types that implement [`TapeActions`].
 /// On the other hand, if the `autograd` feature is disabled, no [`Tape`] will be returneable.
 #[cfg(feature = "autograd")]
-pub trait MayTapeActions: TapeActions {}
+pub trait MayTapeActions<'dev>: TapeActions<'dev> {}
 #[cfg(feature = "autograd")]
-impl<D: crate::TapeActions> MayTapeActions for D {}
+impl<'a, D: crate::TapeActions<'a>> MayTapeActions<'a> for D {}
 
 /// If the `autograd` feature is enabled, then this will be implemented for all types that implement [`TapeReturn`].
 /// On the other hand, if the `autograd` feature is disabled, no [`Tape`] will be returneable.

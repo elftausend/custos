@@ -186,7 +186,7 @@ impl<Mods, SD: Device> Cursor for CachedModule<Mods, SD> {
 impl<Mods: crate::HasAutograd, SD: Device> crate::HasAutograd for CachedModule<Mods, SD> {}
 
 #[cfg(feature = "autograd")]
-impl<Mods: crate::TapeActions, SD: Device> crate::TapeActions for CachedModule<Mods, SD> {
+impl<'dev, Mods: crate::TapeActions<'dev>, SD: Device> crate::TapeActions<'dev> for CachedModule<Mods, SD> {
     #[inline]
     unsafe fn tape(&self) -> Option<&super::Tape> {
         self.modules.tape()
@@ -198,12 +198,12 @@ impl<Mods: crate::TapeActions, SD: Device> crate::TapeActions for CachedModule<M
     }
 
     #[inline]
-    unsafe fn gradients(&self) -> Option<&crate::Gradients> {
+    unsafe fn gradients(&self) -> Option<&crate::GradientsLT<'dev>> {
         self.modules.gradients()
     }
 
     #[inline]
-    unsafe fn gradients_mut(&self) -> Option<&mut crate::Gradients> {
+    unsafe fn gradients_mut(&self) -> Option<&mut crate::GradientsLT<'dev>> {
         self.modules.gradients_mut()
     }
 }
