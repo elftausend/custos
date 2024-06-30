@@ -3,7 +3,7 @@ use min_cl::CLDevice;
 use min_cl::api::{create_buffer, enqueue_full_copy_buffer, MemFlags};
 
 use super::{enqueue_kernel, AsClCvoidPtr, CLPtr};
-use crate::flag::AllocFlag;
+use crate::{flag::AllocFlag, opencl::KernelLaunch};
 use crate::{impl_device_traits, Shape, Unit};
 use crate::{
     pass_down_use_gpu_or_cpu, Alloc, Base, Buffer, Cached, CachedCPU, CloneBuf, Device,
@@ -160,7 +160,7 @@ impl<Mods> OpenCL<Mods> {
         lws: Option<[usize; 3]>,
         args: &[&dyn AsClCvoidPtr],
     ) -> crate::Result<()> {
-        enqueue_kernel(self, src, gws, lws, args)
+        self.device.launch_kernel(src, gws, lws, args)
     }
 }
 

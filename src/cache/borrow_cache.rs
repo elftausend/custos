@@ -65,7 +65,7 @@ impl BorrowCache {
 
     pub fn add_or_get_mut<'a, T, D, S>(
         &mut self,
-        device: &D,
+        device: &'a D,
         id: Id,
         new_buf: &mut bool,
     ) -> &mut Buffer<'a, T, D, S>
@@ -75,7 +75,7 @@ impl BorrowCache {
         S: Shape,
     {
         self.add_buf_once::<T, D, S>(device, id, new_buf);
-        self.get_buf_mut(id).unwrap()
+        unsafe { self.get_buf_mut(id).unwrap() }
     }
 
     pub fn add_buf_once<T, D, S>(&mut self, device: &D, id: Id, new_buf: &mut bool)
@@ -91,7 +91,7 @@ impl BorrowCache {
         self.add_buf::<T, D, S>(device, id)
     }
 
-    pub fn add_buf<T, D, S>(&mut self, device: &D, id: Id)
+    pub fn add_buf<'a, T, D, S>(&'a mut self, device: &'a D, id: Id)
     where
         T: Unit + 'static,
         D: Alloc<T> + 'static,
@@ -123,7 +123,7 @@ impl BorrowCache {
     }
 
     #[inline]
-    pub fn get_buf<'a, T, D, S>(&self, id: Id) -> Result<&Buffer<'a, T, D, S>, CachingError>
+    pub unsafe fn get_buf<'a, T, D, S>(&self, id: Id) -> Result<&Buffer<'a, T, D, S>, CachingError>
     where
         T: Unit + 'static,
         D: Device + 'static,
@@ -137,7 +137,7 @@ impl BorrowCache {
     }
 
     #[inline]
-    pub fn get_buf_mut<'a, T, D, S>(
+    pub unsafe fn get_buf_mut<'a, T, D, S>(
         &mut self,
         id: Id,
     ) -> Result<&mut Buffer<'a, T, D, S>, CachingError>
@@ -161,16 +161,21 @@ impl BorrowCache {
 #[cfg(test)]
 mod tests {
 
-    /*#[test]
-    fn test_comp_error() {
-        let device = CPU::<Base>::new();
+    // #[test]
+    // #[cfg(feature = "cpu")]
+    // fn test_comp_error() {
+    //     use crate::{Base, BorrowCache, Id, CPU};
+
+    //     let mut cache = BorrowCache::default();
 
 
-        let a = {
-            let mut cache = BorrowingCache::default();
-            cache.add_or_get::<f32, CPU, ()>(&device, Id::new(10))
-        };
-    }*/
+    //     let a = {
+    //         let device = CPU::<Base>::new();
+    //         // drop(device);
+    //         let mut new_buf = false;
+    //         // cache.add_or_get::<f32, CPU, ()>(&device, Id { id: 0, len: 10}, &mut new_buf)
+    //     };
+    // }
 
     #[cfg(feature = "cpu")]
     #[test]
@@ -190,8 +195,8 @@ mod tests {
         cache.add_buf_once::<f32, _, ()>(&device, sid, &mut false);
         cache.add_buf_once::<f32, _, ()>(&device, tid, &mut false);
 
-        let a: &Buffer = cache.get_buf::<f32, _, ()>(fid).unwrap();
-        let b: &Buffer = cache.get_buf::<f32, _, ()>(fid).unwrap();
+        let a: &Buffer = unsafe { cache.get_buf::<f32, _, ()>(fid).unwrap() };
+        let b: &Buffer = unsafe { cache.get_buf::<f32, _, ()>(fid).unwrap() };
 
         assert_eq!(a.ptr, b.ptr);
     }
