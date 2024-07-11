@@ -45,7 +45,7 @@ pub(crate) type AnyBuffers = HashMap<UniqueId, Box<dyn Any>, BuildHasherDefault<
 
 #[derive(Default)]
 pub struct BorrowCacheLT2<'a> {
-    cache: HashMap<UniqueId, Box<(dyn AnyBuffer + 'a)>, BuildHasherDefault<NoHasher>>,
+    pub cache: HashMap<UniqueId, Box<(dyn AnyBuffer + 'a)>, BuildHasherDefault<NoHasher>>,
 }
 
 impl<'dev> BorrowCacheLT2<'dev> {

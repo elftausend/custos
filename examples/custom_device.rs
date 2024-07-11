@@ -11,9 +11,9 @@ use std::{
 };
 
 use custos::{
-    flag::AllocFlag, AddOperation, Alloc, Base, Buffer, CachingError, Device, HasId, Id, NoHasher,
-    OnDropBuffer, OnNewBuffer, PtrType, Retrieve, Retriever, Shape, UniqueId, Unit, WrappedData,
-    CPU,
+    flag::AllocFlag, AddOperation, Alloc, Base, BorrowCacheLT2, Buffer, CachingError, Device,
+    HasId, Id, NoHasher, OnDropBuffer, OnNewBuffer, PtrType, Retrieve, Retriever, Shape, UniqueId,
+    Unit, WrappedData, CPU,
 };
 
 pub trait Module<'a, D: 'a, Mods = ()> {
@@ -48,7 +48,7 @@ impl<SimpleMods> New<SimpleMods> for CPU<SimpleMods> {
 
 #[derive(Default)]
 pub struct Autograd<'a, Mods> {
-    _cache: UnsafeCell<BorrowCache<'a>>,
+    _cache: UnsafeCell<BorrowCacheLT2<'a>>,
     val: Cell<Option<&'a f32>>,
     _modules: Mods,
 }
