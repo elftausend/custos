@@ -1,6 +1,7 @@
+use core::cell::RefCell;
 use core::fmt;
 use std::{
-    any::Any,
+    any::{Any, TypeId},
     cell::{Cell, UnsafeCell},
     collections::HashMap,
     hash::BuildHasherDefault,
@@ -168,30 +169,67 @@ where
     }
 }
 
-pub trait AnyBuffer {}
+pub trait AnyBuffer {
+    fn type_id(&self) -> TypeId;
+}
 
-// impl fmt::Debug for dyn AnyBuffer {
-//     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-//         f.debug_struct("Any").finish_non_exhaustive()
-//     }
-// }
-// impl dyn AnyBuffer {
-//     pub fn is<T: 'static>(&self) -> bool {
-//         TypeId::of::<T>() == self.type_id()
-//     }
+impl<'a, T, D, S> AnyBuffer for Buffer<'a, T, D, S>
+where
+    T: 'static,
+    D: Device + 'static,
+    S: Shape,
+{
+    #[inline]
+    fn type_id(&self) -> TypeId {
+        TypeId::of::<Buffer<T, D, S>>()
+    }
+}
 
-//     #[inline]
-//     pub unsafe fn downcast_mut_unchecked<T: Any>(&mut self) -> &mut T {
-//         debug_assert!(self.is::<T>());
-//         // SAFETY: caller guarantees that T is the correct type
-//         unsafe { &mut *(self as *mut dyn AnyBuffer as *mut T) }
-//     }
-// }
+impl fmt::Debug for dyn AnyBuffer {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Any").finish_non_exhaustive()
+    }
+}
+impl<'a> dyn AnyBuffer + 'a {
+    pub fn is<T: 'static>(&self) -> bool {
+        std::any::TypeId::of::<T>() == self.type_id()
+    }
+
+    #[inline]
+    pub unsafe fn downcast_mut_unchecked<T>(&mut self) -> &mut T {
+        // SAFETY: caller guarantees that T is the correct type
+        unsafe { &mut *(self as *mut (dyn AnyBuffer + 'a) as *mut T) }
+    }
+
+    #[inline]
+    pub unsafe fn downcast_ref_unchecked<T: 'static>(&self) -> &T {
+        debug_assert!(self.is::<T>());
+        // SAFETY: caller guarantees that T is the correct type
+        unsafe { &*(self as *const (dyn AnyBuffer + 'a) as *const T) }
+    }
+
+    #[inline]
+    pub fn downcast_mut<T: 'static>(&mut self) -> Option<&mut T> {
+        if self.is::<T>() {
+            Some(unsafe { self.downcast_mut_unchecked() })
+        } else {
+            None
+        }
+    }
+
+    #[inline]
+    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
+        if self.is::<T>() {
+            Some(unsafe { self.downcast_ref_unchecked() })
+        } else {
+            None
+        }
+    }
+}
 
 #[derive(Default)]
 pub struct BorrowCache<'a> {
-    cache: HashMap<UniqueId, Box<dyn Any>, BuildHasherDefault<NoHasher>>,
-    pd: PhantomData<&'a ()>,
+    cache: HashMap<UniqueId, Box<(dyn AnyBuffer + 'a)>, BuildHasherDefault<NoHasher>>,
 }
 
 impl<'dev> BorrowCache<'dev> {
@@ -214,19 +252,15 @@ impl<'dev> BorrowCache<'dev> {
         D: Alloc<T> + 'static,
         S: Shape,
     {
-        // not using ::new, because this buf would get added to the cache of the device.
-        // not anymore ?
         let buf = Buffer {
             data: device.base_to_data(device.alloc::<S>(id.len, AllocFlag::BorrowedCache).unwrap()),
             device: Some(device),
         };
-
-        let buf = unsafe { transmute::<_, Buffer<'static, T, D, S>>(buf) };
         self.cache.insert(*id, Box::new(buf));
     }
 
     #[inline]
-    pub fn get_buf<T, D, S>(&self, id: Id) -> Result<&Buffer<'dev, T, D, S>, CachingError>
+    pub fn get_buf<'a, T, D, S>(&'a self, id: Id) -> Result<&'a Buffer<'dev, T, D, S>, CachingError>
     where
         T: Unit + 'static,
         D: Device + 'static,
@@ -249,16 +283,17 @@ impl<'dev> BorrowCache<'dev> {
         D: Device + 'static,
         S: Shape,
     {
-        unsafe {
-            transmute::<Result<&'a mut Buffer<'static, T, D, S>, CachingError>, _>(
-                self.cache
-                    .get_mut(&id)
-                    .ok_or(CachingError::InvalidId)?
-                    .downcast_mut::<Buffer<T, D, S>>()
-                    .ok_or(CachingError::InvalidTypeInfo),
-            )
+        let dyn_buf = self.cache.get_mut(&id).ok_or(CachingError::InvalidId)?;
+
+        if !dyn_buf.is::<Buffer<T, D, S>>() {
+            return Err(CachingError::InvalidTypeInfo);
         }
+        Ok(unsafe { dyn_buf.downcast_mut_unchecked() })
     }
+}
+
+pub struct Test<'a> {
+    pd: PhantomData<&'a ()>,
 }
 
 impl<'a, D: 'a, Mods: Module<'a, D>> Module<'a, D> for Autograd<'a, Mods> {
@@ -338,11 +373,12 @@ where
     }
 }
 
-pub trait AddBuf<T: Unit, S: Shape = (), D: Device = Self>: Sized + Device {
+pub trait AddBuf<'dev, T: Unit, S: Shape = (), D: Device = Self>: Sized + Device {
     fn add(&self, lhs: &mut Buffer<T, D, S>, rhs: &mut Buffer<T, D, S>) -> Buffer<T, Self, S>;
+    fn test<'a>(&self, lhs: &'a Buffer<'_, T, D, S>) -> &'a Buffer<'dev, T, Self, S>;
 }
 
-impl<'dev, T, S, Mods> AddBuf<T, S, Self> for CPU<Mods>
+impl<'dev, T, S, Mods> AddBuf<'dev, T, S, Self> for CPU<Mods>
 where
     T: Unit + Copy + AddAssign + 'static,
     S: Shape,
@@ -353,10 +389,10 @@ where
         lhs: &mut Buffer<T, Self, S>,
         rhs: &mut Buffer<T, Self, S>,
     ) -> Buffer<T, Self, S> {
-        let mut out = self.retrieve(lhs.len, (&*lhs, &*rhs)).unwrap();
+        let out = self.retrieve(lhs.len, (&*lhs, &*rhs)).unwrap();
 
         // lazy fn not grad fn -> wurscht
-        self.add_op((lhs, rhs, &mut out), |(lhs, rhs, out)| {
+        self.add_op((lhs, rhs, &out), |(lhs, rhs, out)| {
             add_ew_grad_slice(lhs.grad_mut1(), out.grad1());
             add_ew_grad_slice(rhs.grad_mut1(), out.grad1());
             Ok(())
@@ -364,6 +400,10 @@ where
         .unwrap();
 
         out
+    }
+
+    fn test<'a>(&self, lhs: &'a Buffer<'_, T, Self, S>) -> &'a Buffer<'dev, T, Self, S> {
+        lhs.grad1()
     }
 }
 
@@ -373,14 +413,24 @@ fn add_ew_grad_slice<T: Copy + AddAssign>(grad_acc: &mut [T], out_grad: &[T]) {
     }
 }
 
+#[derive(Default)]
+pub struct Typ {
+    x: i32,
+}
+
 fn main() {
+    // let x = Box::new(Typ::default());
+    // Box::into_raw(x);
+    //
     {
         let dev = CPU::<Autograd<Base>>::new1();
+
         let mut out = dev.buffer([1, 2, 3]);
         let mut out1 = dev.buffer([1, 2, 3]);
 
         let mut out = dev.add(&mut out, &mut out1);
         dev.add(&mut out, &mut out1);
+        dev.test(&out);
 
         // dev.get_grad::<i32, ()>(out.id());
         {
@@ -403,10 +453,10 @@ fn main() {
     //
     // out.grad();
 
-    let mut cache = BorrowCache::default();
     let mods = Autograd::<Base>::default();
     {
         let dev = CPU::<Autograd<Base>>::new1();
+        let mut cache = BorrowCache::default();
         cache.add_buf::<i32, _, ()>(&dev, Id { id: 0, len: 10 });
         // dev.modules.add_buf(&dev);
         // let out = dev.modules._cache._cache.get(&3).unwrap();

@@ -169,7 +169,7 @@ where
     /// This allocates a gradient buffer if it wasn't previously.
     #[inline]
     #[cfg(feature = "autograd")]
-    pub fn grad_mut<'b>(&'b self) -> &'a mut Self
+    pub unsafe fn grad_mut<'b>(&'b self) -> &'a mut Self
     where
         D: MayTapeActions + Alloc<T> + ZeroGrad<T>,
     {
