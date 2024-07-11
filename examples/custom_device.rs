@@ -6,11 +6,13 @@ use std::{
     hash::BuildHasherDefault,
     marker::PhantomData,
     mem::transmute,
+    ops::{AddAssign, Mul},
 };
 
 use custos::{
-    flag::AllocFlag, Alloc, Base, Buffer, CachingError, Device, HasId, Id, NoHasher, OnDropBuffer,
-    PtrType, Shape, UniqueId, Unit, WrappedData, CPU,
+    flag::AllocFlag, AddOperation, Alloc, Base, Buffer, CachingError, Device, HasId, Id, NoHasher,
+    OnDropBuffer, OnNewBuffer, PtrType, Retrieve, Retriever, Shape, UniqueId, Unit, WrappedData,
+    CPU,
 };
 
 pub trait Module<'a, D: 'a, Mods = ()> {
@@ -50,11 +52,119 @@ pub struct Autograd<'a, Mods> {
     _modules: Mods,
 }
 
+impl<'a, T, S: Shape, D: Device, Mods: OnDropBuffer> Retrieve<D, T, S> for Autograd<'a, Mods> {
+    unsafe fn retrieve<const NUM_PARENTS: usize>(
+        &self,
+        device: &D,
+        len: usize,
+        parents: impl custos::Parents<NUM_PARENTS>,
+    ) -> custos::Result<Self::Wrap<T, <D>::Base<T, S>>>
+    where
+        S: Shape,
+        D: Device + Alloc<T>,
+    {
+        todo!()
+    }
+}
+
+impl<'a, Mods: OnDropBuffer> AddOperation for Autograd<'a, Mods> {
+    fn add_op<Args: custos::Parents<N> + custos::UpdateArgs, const N: usize>(
+        &self,
+        args: Args,
+        operation: fn(&mut Args) -> custos::Result<()>,
+    ) -> custos::Result<()> {
+        todo!()
+    }
+
+    fn ops_count(&self) -> usize {
+        todo!()
+    }
+
+    fn set_lazy_enabled(&self, enabled: bool) {
+        todo!()
+    }
+
+    fn is_lazy_enabled(&self) -> bool {
+        todo!()
+    }
+}
+
 impl<'a, Mods> Autograd<'a, Mods> {
     pub fn add_buf<OtherMods>(&'a self, device: &'a CPU<OtherMods>) {
         // unsafe { (*self._cache.get()).add_buf(device) };
         // binding.get_buf_mut(device);
         // self.val.set(Some(&device.val));
+    }
+}
+pub trait GradActions<'dev, D: Device> {
+    fn get_grad<T, S>(&self, for_buf_id: Id) -> &Buffer<'dev, T, D, S>
+    where
+        T: 'static,
+        S: Shape;
+
+    #[allow(clippy::mut_from_ref)]
+    unsafe fn get_grad_mut<'b, T, S>(&'b self, for_buf_id: Id) -> &'b mut Buffer<'dev, T, D, S>
+    where
+        T: 'static,
+        S: Shape;
+
+    fn grad<T, S>(&self, for_buf: &Buffer<'_, T, D, S>) -> &Buffer<'dev, T, D, S>
+    where
+        T: 'static,
+        S: Shape,
+    {
+        self.get_grad(for_buf.id())
+    }
+
+    fn grad_mut<'b, T, S>(
+        &'b self,
+        for_buf: &'b Buffer<'_, T, D, S>,
+    ) -> &'b mut Buffer<'dev, T, D, S>
+    where
+        T: 'static,
+        S: Shape,
+    {
+        todo!()
+        // self.get_grad_mut(for_buf.id())
+    }
+}
+
+impl<'dev, Mods, D: Device + 'static> GradActions<'dev, D> for Autograd<'dev, Mods> {
+    fn get_grad<'a, T, S>(&'a self, for_buf_id: Id) -> &'a Buffer<'dev, T, D, S>
+    where
+        T: 'static,
+        S: Shape,
+    {
+        unsafe { (*self._cache.get()).get_buf(for_buf_id) }.unwrap()
+    }
+
+    unsafe fn get_grad_mut<'b, T, S>(&'b self, for_buf_id: Id) -> &'b mut Buffer<'dev, T, D, S>
+    where
+        T: 'static,
+        S: Shape,
+    {
+        unsafe { (*self._cache.get()).get_buf_mut(for_buf_id) }.unwrap()
+    }
+}
+
+impl<'dev, Mods: OnDropBuffer + GradActions<'dev, Self>> GradActions<'dev, Self> for CPU<Mods>
+where
+    Self: 'dev,
+{
+    fn get_grad<'a, T, S>(&'a self, for_buf_id: Id) -> &'a Buffer<'dev, T, Self, S>
+    where
+        T: 'static,
+        S: Shape,
+    {
+        self.modules.get_grad(for_buf_id)
+    }
+
+    unsafe fn get_grad_mut<'b, T, S>(&'b self, for_buf_id: Id) -> &'b mut Buffer<'dev, T, Self, S>
+    where
+        T: 'static,
+        S: Shape,
+    {
+        self.modules.get_grad_mut(for_buf_id)
     }
 }
 
@@ -163,6 +273,13 @@ impl<'a, D: 'a, Mods: Module<'a, D>> Module<'a, D> for Autograd<'a, Mods> {
     }
 }
 
+impl<'a, T, D, S, Mods: OnNewBuffer<T, D, S>> OnNewBuffer<T, D, S> for Autograd<'a, Mods>
+where
+    D: Device,
+    S: Shape,
+{
+}
+
 impl<'a, Mods: OnDropBuffer> OnDropBuffer for Autograd<'a, Mods> {
     #[inline]
     fn on_drop_buffer<T: Unit, D: Device, S: Shape>(
@@ -201,7 +318,91 @@ impl<'a, D: 'a> Module<'a, D> for Base {
     }
 }
 
+pub trait Grad<'dev, T, D: Device, S: Shape> {
+    fn grad1(&self) -> &Buffer<'dev, T, D, S>;
+    fn grad_mut1(&mut self) -> &mut Buffer<'dev, T, D, S>;
+}
+
+impl<'dev, T, D, S> Grad<'dev, T, D, S> for Buffer<'_, T, D, S>
+where
+    T: 'static,
+    D: Device + 'static + GradActions<'dev, D>,
+    S: Shape,
+{
+    fn grad1(&self) -> &Buffer<'dev, T, D, S> {
+        self.device().get_grad(self.id())
+    }
+
+    fn grad_mut1(&mut self) -> &mut Buffer<'dev, T, D, S> {
+        unsafe { self.device().get_grad_mut(self.id()) }
+    }
+}
+
+pub trait AddBuf<T: Unit, S: Shape = (), D: Device = Self>: Sized + Device {
+    fn add(&self, lhs: &mut Buffer<T, D, S>, rhs: &mut Buffer<T, D, S>) -> Buffer<T, Self, S>;
+}
+
+impl<'dev, T, S, Mods> AddBuf<T, S, Self> for CPU<Mods>
+where
+    T: Unit + Copy + AddAssign + 'static,
+    S: Shape,
+    Mods: 'static + GradActions<'dev, Self> + OnDropBuffer + AddOperation + Retrieve<Self, T, S>,
+{
+    fn add(
+        &self,
+        lhs: &mut Buffer<T, Self, S>,
+        rhs: &mut Buffer<T, Self, S>,
+    ) -> Buffer<T, Self, S> {
+        let mut out = self.retrieve(lhs.len, (&*lhs, &*rhs)).unwrap();
+
+        // lazy fn not grad fn -> wurscht
+        self.add_op((lhs, rhs, &mut out), |(lhs, rhs, out)| {
+            add_ew_grad_slice(lhs.grad_mut1(), out.grad1());
+            add_ew_grad_slice(rhs.grad_mut1(), out.grad1());
+            Ok(())
+        })
+        .unwrap();
+
+        out
+    }
+}
+
+fn add_ew_grad_slice<T: Copy + AddAssign>(grad_acc: &mut [T], out_grad: &[T]) {
+    for (grad, out_grad) in grad_acc.iter_mut().zip(out_grad) {
+        *grad += *out_grad;
+    }
+}
+
 fn main() {
+    {
+        let dev = CPU::<Autograd<Base>>::new1();
+        let mut out = dev.buffer([1, 2, 3]);
+        let mut out1 = dev.buffer([1, 2, 3]);
+
+        let mut out = dev.add(&mut out, &mut out1);
+        dev.add(&mut out, &mut out1);
+
+        // dev.get_grad::<i32, ()>(out.id());
+        {
+            let z = out.grad_mut1();
+            let x = out1.grad_mut1();
+            assert_eq!(z.len(), x.len());
+            out.grad1();
+        }
+
+        let x = dev.grad_mut(&out);
+        let z = dev.grad_mut(&out);
+        assert_eq!(z.len(), x.len());
+        unsafe { dev.get_grad_mut::<i32, ()>(out.id()) };
+        unsafe { dev.get_grad_mut::<i32, ()>(out.id()) };
+    }
+
+    // return;
+
+    // let out = Buffer::new(&dev, 10);
+    //
+    // out.grad();
+
     let mut cache = BorrowCache::default();
     let mods = Autograd::<Base>::default();
     {
@@ -218,13 +419,16 @@ fn main() {
             // cache.add_buf(&dev);
         }
         // cache.get_buf_mut(&dev);
-        let out = cache.get_buf::<i32, CPU<Autograd<Base>>, ()>(Id { id: 0, len: 10 }).unwrap();
+        let out = cache
+            .get_buf::<i32, CPU<Autograd<Base>>, ()>(Id { id: 0, len: 10 })
+            .unwrap();
         let out1 = cache
             .get_buf_mut::<i32, CPU<Autograd<Base>>, ()>(Id { id: 0, len: 10 })
             .unwrap();
         // assert_eq!(out.len(), out1.len());
+        out1;
     }
-    // let out = unsafe { cache.get_buf::<i32, CPU<Autograd<Base>>, ()>(Id { id:0, len: 10}) };
+    // let out = unsafe { cache.get_buf::<i33, CPU<Autograd<Base>>, ()>(Id { id: 0, len: 10 }) };
     let dev = CPU::<Autograd<Base>>::new1();
     // cache.add_buf(&dev);
     // mods.val;

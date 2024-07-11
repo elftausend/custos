@@ -272,6 +272,33 @@ macro_rules! pass_down_tape_actions {
         #[cfg(feature = "autograd")]
         impl<'dev, Mods: $crate::HasAutograd> $crate::HasAutograd for $to_impl<$($generics),*> {}
 
+
+        #[cfg(feature = "autograd")]
+        impl<'dev, Mods: $crate::TapeActionsLT<'dev>> $crate::TapeActionsLT<'dev> for $to_impl<$($generics),*>
+        where
+            Self: 'dev
+        {
+            #[inline]
+            unsafe fn tape(&self) -> Option<&$crate::Tape> {
+                self.modules.tape()
+            }
+
+            #[inline]
+            unsafe fn tape_mut(&self) -> Option<&mut $crate::Tape> {
+                self.modules.tape_mut()
+            }
+
+            #[inline]
+            unsafe fn gradients(&self) -> Option<&$crate::GradientsLT<'dev>> {
+                self.modules.gradients()
+            }
+
+            #[inline]
+            unsafe fn gradients_mut(&self) -> Option<&mut $crate::GradientsLT<'dev>> {
+                self.modules.gradients_mut()
+            }
+        }
+
         #[cfg(feature = "autograd")]
         impl<'dev, Mods: $crate::TapeActions> $crate::TapeActions for $to_impl<$($generics),*> {
             #[inline]

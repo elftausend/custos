@@ -2,7 +2,8 @@ use core::{any::Any, hash::BuildHasherDefault};
 use std::collections::HashMap;
 
 use crate::{
-    Alloc, BorrowCache, BorrowCacheLT, BoxedShallowCopy, Buffer, Buffers, CachingError, Device, HasId, Id, NoHasher, Shape, UniqueId, Unit, ZeroGrad
+    Alloc, BorrowCache, BorrowCacheLT, BoxedShallowCopy, Buffer, Buffers, CachingError, Device,
+    HasId, Id, NoHasher, Shape, UniqueId, Unit, ZeroGrad,
 };
 
 const INVALID_ID: &str = "A matching Buffer does not exist.";

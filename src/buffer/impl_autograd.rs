@@ -25,6 +25,18 @@ where
     {
         self.backward_with(&vec![T::one(); self.len()]);
     }
+
+    /// Calls `.backward_seeded` on the [`Tape`].
+    #[inline]
+    pub fn backward_lt(&self)
+    where
+        T: Clone + One + 'static,
+        D: TapeActionsLT<'a> + ZeroGrad<T> + WriteBuf<T, S, D> + Alloc<T> + AddOperation + 'static,
+        D: CachedBuffers,
+    {
+        self.backward_with_lt(&vec![T::one(); self.len()]);
+    }
+
     /// Calls `.backward_seeded_maybe_with_buffers` on the [`Tape`] with the given buffer.
     #[inline]
     pub fn backward_with(&self, seed: &[T])
@@ -42,6 +54,56 @@ where
         if let Some(tape) = unsafe { self.device().tape_mut() } {
             let mut buffers = unsafe { self.device().buffers_mut() };
             tape.backward_seeded_maybe_with_buffers(self, seed, buffers.as_deref_mut())
+        }
+    }
+
+    /// Calls `.backward_seeded_maybe_with_buffers` on the [`Tape`] with the given buffer.
+    #[inline]
+    pub fn backward_with_lt(&self, seed: &[T])
+    where
+        T: Clone + 'static,
+        D: CachedBuffers
+            + TapeActionsLT<'a>
+            + ZeroGrad<T>
+            + WriteBuf<T, S, D>
+            + Alloc<T>
+            + AddOperation
+            + 'static,
+    {
+        // should never be None
+        if let Some(tape) = unsafe { self.device().tape_mut() } {
+            let mut buffers = unsafe { self.device().buffers_mut() };
+            tape.backward_seeded_maybe_with_buffers_lt(self, seed, buffers.as_deref_mut())
+        }
+    }
+}
+
+impl<'a, T, D, S> Buffer<'a, T, D, S>
+where
+    T: Unit + 'static,
+    D: Device + 'static,
+    S: Shape,
+{
+    /// Returns a reference to the gradient of this buffer.
+    /// This allocates a gradient buffer if it wasn't previously.
+    ///
+    /// Panics if the gradient was not allocated.
+    #[inline]
+    #[cfg(feature = "autograd")]
+    pub fn grad_lt(&self) -> &'a Self
+    where
+        D: ZeroGrad<T> + crate::MayTapeActionsLT<'a> + Alloc<T>,
+    {
+        // TODO: consider activating this check ->
+        // e.g. binary grad ops are computed in a single function where differentiating between
+        // req grad and no req grad is not possible/ difficult
+        // assert!(self.requires_grad(), "Buffer does not require gradient.");
+        unsafe {
+            self.device()
+                .gradients_mut()
+                .expect(AUTOGRAD_NOT_AVAILABLE)
+                // .grads
+                .get_ref(self.device(), self.id())
         }
     }
 }
@@ -107,7 +169,7 @@ where
     /// This allocates a gradient buffer if it wasn't previously.
     #[inline]
     #[cfg(feature = "autograd")]
-    pub fn grad_mut<'b>(&'b self) -> &'b mut Self
+    pub fn grad_mut<'b>(&'b self) -> &'a mut Self
     where
         D: MayTapeActions + Alloc<T> + ZeroGrad<T>,
     {
@@ -166,12 +228,12 @@ mod tests {
     #[cfg(feature = "autograd")]
     #[test]
     fn test_multiple_grad_mut() {
-        use crate::{Autograd, Base, Cached, Device, CPU};
+        use crate::{Autograd, AutogradLT, Base, Cached, Device, CPU};
 
         let device = CPU::<Autograd<Cached<Base>>>::new();
         let mut buf = device.buffer([1, 2, 3, 4]);
-        let _out = buf.grad_mut();
-        let out = buf.grad_mut();
+        let _out = buf.grad();
+        // let out = buf.grad_mut();
         // run(_out, out);
     }
 }

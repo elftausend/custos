@@ -164,6 +164,9 @@ impl AddGradFn for Base {
 #[cfg(feature = "autograd")]
 impl crate::TapeActions for Base {}
 
+#[cfg(feature = "autograd")]
+impl<'a> crate::TapeActionsLT<'a> for Base {}
+
 impl CachedBuffers for Base {}
 impl<T: Unit, D: Device, S: Shape> ReplaceBuf<T, D, S> for Base {
     #[inline]
