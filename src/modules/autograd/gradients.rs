@@ -2,17 +2,17 @@ use core::{any::Any, hash::BuildHasherDefault};
 use std::collections::HashMap;
 
 use crate::{
-    Alloc, BorrowCache, BorrowCacheLT, BoxedShallowCopy, Buffer, Buffers, CachingError, Device,
-    HasId, Id, NoHasher, Shape, UniqueId, Unit, ZeroGrad,
+    Alloc, AnyBuffer, BorrowCache, BorrowCacheLT, BorrowCacheLT2, BoxedShallowCopy, Buffer,
+    Buffers, CachingError, Device, HasId, Id, NoHasher, Shape, UniqueId, Unit, ZeroGrad,
 };
 
 const INVALID_ID: &str = "A matching Buffer does not exist.";
 
 #[derive(Default)]
 pub struct GradientsLT<'dev> {
-    pub(crate) grads_pool: BorrowCacheLT<'dev>,
+    pub(crate) grads_pool: BorrowCacheLT2<'dev>,
     pub no_grads_pool: Buffers<Box<dyn BoxedShallowCopy>>,
-    pub zero_grad_cbs: Vec<(Id, fn(&mut dyn Any))>,
+    pub zero_grad_cbs: Vec<(Id, fn(&mut (dyn AnyBuffer + 'dev)))>,
     pub buf_requires_grad: HashMap<UniqueId, bool, BuildHasherDefault<NoHasher>>,
 }
 
@@ -54,7 +54,7 @@ impl<'dev> GradientsLT<'dev> {
 
     /// May get a reference to a gradient [`Buffer`].
     #[inline]
-    pub(crate) unsafe fn may_get_ref<T, S, D>(
+    pub(crate) fn may_get_ref<T, S, D>(
         &self,
         ident: Id,
     ) -> Result<&Buffer<'dev, T, D, S>, CachingError>
@@ -63,12 +63,12 @@ impl<'dev> GradientsLT<'dev> {
         S: Shape,
         D: Alloc<T> + 'static,
     {
-        unsafe { self.grads_pool.get_buf(ident) }
+        self.grads_pool.get_buf(ident)
     }
 
     /// May get a mutable reference to a gradient [`Buffer`].
     #[inline]
-    pub(crate) unsafe fn may_get_mut<T, S, D>(
+    pub(crate) fn may_get_mut<T, S, D>(
         &mut self,
         id: Id,
     ) -> Result<&mut Buffer<'dev, T, D, S>, CachingError>
@@ -77,7 +77,7 @@ impl<'dev> GradientsLT<'dev> {
         S: Shape,
         D: Alloc<T> + 'static,
     {
-        unsafe { self.grads_pool.get_buf_mut(id) }
+        self.grads_pool.get_buf_mut(id)
     }
 
     /// Returns a reference to a gradient [`Buffer`].
@@ -97,7 +97,7 @@ impl<'dev> GradientsLT<'dev> {
         if new_buf {
             self.add_zero_grad_cb::<T, D, S>(&id);
         }
-        unsafe { self.grads_pool.get_buf(id).unwrap() }
+        self.grads_pool.get_buf(id).unwrap()
     }
 
     /// Returns a mutable reference to a gradient [`Buffer`].
@@ -116,7 +116,7 @@ impl<'dev> GradientsLT<'dev> {
         if new_buf {
             self.add_zero_grad_cb::<T, D, S>(&id);
         }
-        unsafe { self.grads_pool.get_buf_mut(id).unwrap() }
+        self.grads_pool.get_buf_mut(id).unwrap()
     }
 
     /// Returns a reference to a gradient [`Buffer`] using information from `buf`.

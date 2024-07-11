@@ -44,11 +44,11 @@ impl std::error::Error for CachingError {}
 pub(crate) type AnyBuffers = HashMap<UniqueId, Box<dyn Any>, BuildHasherDefault<NoHasher>>;
 
 #[derive(Default)]
-pub struct BorrowCacheLT2<'a> {
+pub struct BorrowCacheLT<'a> {
     pub cache: HashMap<UniqueId, Box<(dyn AnyBuffer + 'a)>, BuildHasherDefault<NoHasher>>,
 }
 
-impl<'dev> BorrowCacheLT2<'dev> {
+impl<'dev> BorrowCacheLT<'dev> {
     pub fn add_buf_once<T, D, S>(&mut self, device: &'dev D, id: Id, new_buf: &mut bool)
     where
         T: Unit + 'static,
@@ -105,79 +105,6 @@ impl<'dev> BorrowCacheLT2<'dev> {
             return Err(CachingError::InvalidTypeInfo);
         }
         Ok(unsafe { dyn_buf.downcast_mut_unchecked() })
-    }
-}
-
-#[derive(Default)]
-pub struct BorrowCacheLT<'dev> {
-    pub(crate) cache: AnyBuffers,
-    pd: PhantomData<&'dev dyn Any>,
-}
-
-impl<'dev> BorrowCacheLT<'dev> {
-    pub fn add_buf_once<T, D, S>(&mut self, device: &'dev D, id: Id, new_buf: &mut bool)
-    where
-        T: Unit + 'static,
-        D: Alloc<T> + 'static,
-        S: Shape,
-    {
-        if self.cache.contains_key(&id) {
-            return;
-        }
-        *new_buf = true;
-        self.add_buf::<T, D, S>(device, id)
-    }
-
-    pub fn add_buf<T, D, S>(&mut self, device: &'dev D, id: Id)
-    where
-        T: Unit + 'static,
-        D: Alloc<T> + 'static,
-        S: Shape,
-    {
-        // not using ::new, because this buf would get added to the cache of the device.
-        // not anymore ?
-        let buf = Buffer {
-            data: device.base_to_data(device.alloc::<S>(id.len, AllocFlag::BorrowedCache).unwrap()),
-            device: Some(device),
-        };
-
-        let buf = unsafe { transmute::<_, Buffer<'static, T, D, S>>(buf) };
-        self.cache.insert(*id, Box::new(buf));
-    }
-
-    #[inline]
-    pub fn get_buf<T, D, S>(&self, id: Id) -> Result<&Buffer<'dev, T, D, S>, CachingError>
-    where
-        T: Unit + 'static,
-        D: Device + 'static,
-        S: Shape,
-    {
-        self.cache
-            .get(&id)
-            .ok_or(CachingError::InvalidId)?
-            .downcast_ref()
-            .ok_or(CachingError::InvalidTypeInfo)
-    }
-
-    #[inline]
-    pub fn get_buf_mut<'a, T, D, S>(
-        &'a mut self,
-        id: Id,
-    ) -> Result<&'a mut Buffer<'dev, T, D, S>, CachingError>
-    where
-        T: Unit + 'static,
-        D: Device + 'static,
-        S: Shape,
-    {
-        unsafe {
-            transmute::<Result<&'a mut Buffer<'static, T, D, S>, CachingError>, _>(
-                self.cache
-                    .get_mut(&id)
-                    .ok_or(CachingError::InvalidId)?
-                    .downcast_mut::<Buffer<T, D, S>>()
-                    .ok_or(CachingError::InvalidTypeInfo),
-            )
-        }
     }
 }
 

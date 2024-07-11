@@ -362,9 +362,9 @@ mod tests {
 
     #[test]
     fn test_autograd_lt() {
-        let ag = AutogradLT::<Base>::default();
         {
             let device = crate::OpenCL::based(0).unwrap();
+            let ag = AutogradLT::<Base>::default();
             let out = unsafe {
                 ag.gradients_mut()
                     .unwrap()

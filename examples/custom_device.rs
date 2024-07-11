@@ -1,19 +1,12 @@
-use core::cell::RefCell;
-use core::fmt;
 use std::{
-    any::{Any, TypeId},
     cell::{Cell, UnsafeCell},
-    collections::HashMap,
-    hash::BuildHasherDefault,
     marker::PhantomData,
-    mem::transmute,
-    ops::{AddAssign, Mul},
+    ops::AddAssign,
 };
 
 use custos::{
-    flag::AllocFlag, AddOperation, Alloc, Base, BorrowCacheLT2, Buffer, CachingError, Device,
-    HasId, Id, NoHasher, OnDropBuffer, OnNewBuffer, PtrType, Retrieve, Retriever, Shape, UniqueId,
-    Unit, WrappedData, CPU,
+    AddOperation, Alloc, Base, BorrowCacheLT2, Buffer, Device, HasId, Id, OnDropBuffer,
+    OnNewBuffer, PtrType, Retrieve, Retriever, Shape, Unit, WrappedData, CPU,
 };
 
 pub trait Module<'a, D: 'a, Mods = ()> {
@@ -333,7 +326,7 @@ fn main() {
     let mods = Autograd::<Base>::default();
     {
         let dev = CPU::<Autograd<Base>>::new1();
-        let mut cache = BorrowCache::default();
+        let mut cache = BorrowCacheLT2::default();
         cache.add_buf::<i32, _, ()>(&dev, Id { id: 0, len: 10 });
         // dev.modules.add_buf(&dev);
         // let out = dev.modules._cache._cache.get(&3).unwrap();
