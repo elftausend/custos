@@ -2,15 +2,15 @@ use core::{any::Any, hash::BuildHasherDefault};
 use std::collections::HashMap;
 
 use crate::{
-    Alloc, AnyBuffer, BorrowCache, BorrowCacheLT, BorrowCacheLT2, BoxedShallowCopy, Buffer,
-    Buffers, CachingError, Device, HasId, Id, NoHasher, Shape, UniqueId, Unit, ZeroGrad,
+    Alloc, AnyBuffer, BorrowCache, BorrowCacheLT, BoxedShallowCopy, Buffer, Buffers, CachingError,
+    Device, HasId, Id, NoHasher, Shape, UniqueId, Unit, ZeroGrad,
 };
 
 const INVALID_ID: &str = "A matching Buffer does not exist.";
 
 #[derive(Default)]
 pub struct GradientsLT<'dev> {
-    pub(crate) grads_pool: BorrowCacheLT2<'dev>,
+    pub(crate) grads_pool: BorrowCacheLT<'dev>,
     pub no_grads_pool: Buffers<Box<dyn BoxedShallowCopy>>,
     pub zero_grad_cbs: Vec<(Id, fn(&mut (dyn AnyBuffer + 'dev)))>,
     pub buf_requires_grad: HashMap<UniqueId, bool, BuildHasherDefault<NoHasher>>,

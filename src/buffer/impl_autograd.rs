@@ -189,7 +189,7 @@ where
     /// Returns a mutable reference to the gradient of this buffer.
     /// Returns none either if the autograd feature is disabled, no tape was found (add [`Autograd`] module) or no gradient was allocated previously.
     // TODO: Maybe return Result with two error variants?
-    pub fn try_grad_mut<'b>(&'b mut self) -> Option<&'a mut Self>
+    pub unsafe fn try_grad_mut<'b>(&'b mut self) -> Option<&'a mut Self>
     where
         D: MayTapeActions + Alloc<T>,
     {

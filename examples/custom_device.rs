@@ -5,8 +5,8 @@ use std::{
 };
 
 use custos::{
-    AddOperation, Alloc, Base, BorrowCacheLT2, Buffer, Device, HasId, Id, OnDropBuffer,
-    OnNewBuffer, PtrType, Retrieve, Retriever, Shape, Unit, WrappedData, CPU,
+    AddOperation, Alloc, Base, BorrowCacheLT, Buffer, Device, HasId, Id, OnDropBuffer, OnNewBuffer,
+    PtrType, Retrieve, Retriever, Shape, Unit, WrappedData, CPU,
 };
 
 pub trait Module<'a, D: 'a, Mods = ()> {
@@ -41,7 +41,7 @@ impl<SimpleMods> New<SimpleMods> for CPU<SimpleMods> {
 
 #[derive(Default)]
 pub struct Autograd<'a, Mods> {
-    _cache: UnsafeCell<BorrowCacheLT2<'a>>,
+    _cache: UnsafeCell<BorrowCacheLT<'a>>,
     val: Cell<Option<&'a f32>>,
     _modules: Mods,
 }
@@ -326,7 +326,7 @@ fn main() {
     let mods = Autograd::<Base>::default();
     {
         let dev = CPU::<Autograd<Base>>::new1();
-        let mut cache = BorrowCacheLT2::default();
+        let mut cache = BorrowCacheLT::default();
         cache.add_buf::<i32, _, ()>(&dev, Id { id: 0, len: 10 });
         // dev.modules.add_buf(&dev);
         // let out = dev.modules._cache._cache.get(&3).unwrap();

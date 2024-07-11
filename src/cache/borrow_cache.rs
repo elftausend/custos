@@ -2,7 +2,6 @@ use core::{
     any::Any,
     fmt::{Debug, Display},
     hash::BuildHasherDefault,
-    marker::PhantomData,
     mem::transmute,
 };
 use std::collections::HashMap;
