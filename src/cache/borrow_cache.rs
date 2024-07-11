@@ -8,7 +8,9 @@ use core::{
 use std::collections::HashMap;
 
 use super::NoHasher;
-use crate::{flag::AllocFlag, Alloc, Buffer, Device, Id, Shape, UniqueId, Unit};
+use crate::{
+    cache::any_buffer::AnyBuffer, flag::AllocFlag, Alloc, Buffer, Device, Id, Shape, UniqueId, Unit,
+};
 
 #[derive(Clone, Copy)]
 pub enum CachingError {
@@ -40,6 +42,71 @@ impl Display for CachingError {
 impl std::error::Error for CachingError {}
 
 pub(crate) type AnyBuffers = HashMap<UniqueId, Box<dyn Any>, BuildHasherDefault<NoHasher>>;
+
+#[derive(Default)]
+pub struct BorrowCacheLT2<'a> {
+    cache: HashMap<UniqueId, Box<(dyn AnyBuffer + 'a)>, BuildHasherDefault<NoHasher>>,
+}
+
+impl<'dev> BorrowCacheLT2<'dev> {
+    pub fn add_buf_once<T, D, S>(&mut self, device: &'dev D, id: Id, new_buf: &mut bool)
+    where
+        T: Unit + 'static,
+        D: Alloc<T> + 'static,
+        S: Shape,
+    {
+        if self.cache.contains_key(&id) {
+            return;
+        }
+        *new_buf = true;
+        self.add_buf::<T, D, S>(device, id)
+    }
+
+    pub fn add_buf<T, D, S>(&mut self, device: &'dev D, id: Id)
+    where
+        T: Unit + 'static,
+        D: Alloc<T> + 'static,
+        S: Shape,
+    {
+        let buf = Buffer {
+            data: device.base_to_data(device.alloc::<S>(id.len, AllocFlag::BorrowedCache).unwrap()),
+            device: Some(device),
+        };
+        self.cache.insert(*id, Box::new(buf));
+    }
+
+    #[inline]
+    pub fn get_buf<'a, T, D, S>(&'a self, id: Id) -> Result<&'a Buffer<'dev, T, D, S>, CachingError>
+    where
+        T: Unit + 'static,
+        D: Device + 'static,
+        S: Shape,
+    {
+        self.cache
+            .get(&id)
+            .ok_or(CachingError::InvalidId)?
+            .downcast_ref()
+            .ok_or(CachingError::InvalidTypeInfo)
+    }
+
+    #[inline]
+    pub fn get_buf_mut<'a, T, D, S>(
+        &'a mut self,
+        id: Id,
+    ) -> Result<&'a mut Buffer<'dev, T, D, S>, CachingError>
+    where
+        T: Unit + 'static,
+        D: Device + 'static,
+        S: Shape,
+    {
+        let dyn_buf = self.cache.get_mut(&id).ok_or(CachingError::InvalidId)?;
+
+        if !dyn_buf.is::<Buffer<T, D, S>>() {
+            return Err(CachingError::InvalidTypeInfo);
+        }
+        Ok(unsafe { dyn_buf.downcast_mut_unchecked() })
+    }
+}
 
 #[derive(Default)]
 pub struct BorrowCacheLT<'dev> {
