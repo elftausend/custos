@@ -138,7 +138,7 @@ where
     }
 
     /// Returns a reference to the gradient of this buffer.
-    /// Returns none either if the autograd feature is disabled, no tape was found (add [`Autograd`] module) or no gradient was allocated previously.
+    /// Returns none either if the autograd feature is disabled, no tape was found (add [`Autograd`] module) or no gradient is allocated.
     // TODO: Maybe return Result with two error variants?
     pub fn try_grad(&self) -> Option<&'a Self>
     where
@@ -187,7 +187,7 @@ where
     }
 
     /// Returns a mutable reference to the gradient of this buffer.
-    /// Returns none either if the autograd feature is disabled, no tape was found (add [`Autograd`] module) or no gradient was allocated previously.
+    /// Returns none either if the autograd feature is disabled, no tape was found (add [`Autograd`] module) or no gradient is allocated.
     // TODO: Maybe return Result with two error variants?
     pub unsafe fn try_grad_mut<'b>(&'b mut self) -> Option<&'a mut Self>
     where

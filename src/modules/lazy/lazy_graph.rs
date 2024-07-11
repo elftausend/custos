@@ -55,7 +55,7 @@ impl<B: AsAny, T> LazyGraph<B, T> {
         args: Args,
         op: fn(&mut Args) -> crate::Result<()>,
     ) -> Operation<B, T> {
-        // store ids and test if buffers are still in cache afterwards
+        // store ids and test if buffers are still in cache
         let arg_ids = args
             .maybe_ids()
             .into_iter()

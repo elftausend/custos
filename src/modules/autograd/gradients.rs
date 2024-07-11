@@ -35,7 +35,6 @@ impl<'dev> GradientsLT<'dev> {
                 cb(&mut **grad_buf);
             }
         }
-        // self.grads_pool.cache.clear();
     }
 
     #[inline]
