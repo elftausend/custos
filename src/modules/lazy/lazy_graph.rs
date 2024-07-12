@@ -64,7 +64,7 @@ impl<'a, 'c, B, T> LazyGraph2<'a, 'c, B, T> {
         todo!()
     }
 
-    pub fn convert_to_operation2<Args: Parents<N> + AnyOp<'a>, const N: usize>(
+    pub fn convert_to_operation2<Args: Parents<N> + AnyOp, const N: usize>(
         args: Args,
         op: impl for<'b> Fn(Args::Replicated<'b>) -> crate::Result<()> + 'static,
     ) -> Operation2<'a, 'a> {
@@ -103,7 +103,7 @@ impl<'a, 'c, B, T> LazyGraph2<'a, 'c, B, T> {
         }
     }
 
-    pub fn add_operation2<Args: Parents<N> + AnyOp<'a>, const N: usize>(
+    pub fn add_operation2<Args: Parents<N> + AnyOp, const N: usize>(
         &mut self,
         args: Args,
         op: impl for<'b> Fn(Args::Replicated<'b>) -> crate::Result<()> + 'static,
@@ -126,13 +126,13 @@ pub struct X {
     // x: Box<dyn AnyOp>,
 }
 
-pub trait AnyOp<'r>: Sized {
+pub trait AnyOp: Sized {
     type Replicated<'a>;
     // fn replication_fn(ids: Vec<crate::Id>, op: impl Fn(Self) -> crate::Result<()>) -> impl Fn(&mut BorrowCache) -> crate::Result<()>;
     fn replication_fn(
         ids: Vec<crate::Id>,
         op: impl for<'a> Fn(Self::Replicated<'a>) -> crate::Result<()> + 'static,
-    ) -> Box<dyn for<'i> Fn(&'i mut BorrowCache) -> crate::Result<()> + 'r>;
+    ) -> Box<dyn for<'i> Fn(&'i mut BorrowCache) -> crate::Result<()>>;
 }
 
 type BorrowCache = HashMap<UniqueId, Box<dyn AnyBuffer>>;
@@ -152,7 +152,7 @@ impl<'a, T: 'static, D: Device + 'static, S: crate::Shape> Replicate
 //     }
 // }
 
-impl<'r, R: HasId + Replicate> AnyOp<'r> for R {
+impl<R: HasId + Replicate> AnyOp for R {
     fn replication_fn(
         ids: Vec<crate::Id>,
         op: impl for<'a> Fn(Self::Replicated<'a>) -> crate::Result<()> + 'static,
@@ -177,7 +177,7 @@ impl<'r, R: HasId + Replicate> AnyOp<'r> for R {
     // type Replicated<'a> = &'a R::Out where R::Out: 'a;
 }
 
-impl<'r, R1: HasId + Replicate, R2: HasId + Replicate> AnyOp<'r> for (R1, R2) {
+impl<R1: HasId + Replicate, R2: HasId + Replicate> AnyOp for (R1, R2) {
     fn replication_fn(
         ids: Vec<crate::Id>,
         op: impl for<'a> Fn(Self::Replicated<'a>) -> crate::Result<()> + 'static,
