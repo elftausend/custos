@@ -57,10 +57,9 @@ impl<'a, 'b, B, T> Default for LazyGraph2<'a, 'b, B, T> {
 
 impl<'a, 'c, B, T> LazyGraph2<'a, 'c, B, T> {
     #[inline]
-    pub fn iter_with(&self, buffers: &'a RefCell<BorrowCache>) -> ExecIter<B, T> {
+    pub fn iter_with(&self, buffers: &mut BorrowCache) -> ExecIter<B, T> {
         for op in &self.operations2 {
-            // let mut buffers = buffers.borrow_mut();
-            // (op.op3)(&mut buffers);
+            (op.op3)(buffers);
         }
         todo!()
     }
@@ -138,91 +137,11 @@ pub trait AnyOp<'r>: Sized {
 
 type BorrowCache = HashMap<UniqueId, Box<dyn AnyBuffer>>;
 
-pub trait Replicate<'a>: Sized {
-    fn replicate(buffers: &'a mut BorrowCache, id: crate::Id) -> crate::Result<Self>;
-}
-
-pub trait Replicate3: Sized {
-    type Out;
-    // type Out<'r, 'g>: ConvertTo<Self> where 'g: 'r, 'r: 't;
-    fn replicate<'r>(buffers: &'r mut BorrowCache, id: crate::Id) -> crate::Result<&'r Self::Out>;
-}
-
-pub trait Replicate2: Sized {
-    type Replication<'r, 'a>
-    where
-        'a: 'r;
-    fn replicate<'r, 'a>(
-        buffers: &'r mut BorrowCache,
-        id: crate::Id,
-    ) -> crate::Result<Self::Replication<'r, 'a>>;
-}
-
-impl<'a, 'r, T: 'static, D: Device + 'static, S: crate::Shape> Replicate<'r>
-    for &'r mut crate::Buffer<'a, T, D, S>
-{
-    fn replicate(buffers: &'r mut BorrowCache, id: crate::Id) -> crate::Result<Self> {
-        todo!()
-        // Ok(unsafe { buffers.get_buf_mut(id) }?)
-    }
-}
-
-// impl<'a, T: 'static, D: Device + 'static, S: crate::Shape> Replicate3<'a> for crate::Buffer<'a, T, D, S> {
-//     fn replicate<'r>(buffers: &'r mut BorrowCache, id: crate::Id) -> crate::Result<Self::Out<'r, 'a>> {
-//         //todo!()
-//         Ok(unsafe { buffers.get_buf(id) }?)
-//     }
-
-//     type Out<'r, 'g> = &'r Buffer<'g, T, D, S> where 'g: 'r;
-// }
-
-impl<'a, T: 'static, D: Device + 'static, S: crate::Shape> Replicate3
-    for &'a crate::Buffer<'_, T, D, S>
-{
-    type Out = Buffer<'a, T, D, S>;
-
-    fn replicate<'r>(buffers: &'r mut BorrowCache, id: crate::Id) -> crate::Result<&'r Self::Out> {
-        todo!()
-        // Ok(unsafe { buffers.get_buf(id) }?)
-    }
-
-    // type Out<'r, 'g> = &'r Buffer<'g, T, D, S> where 'g: 'r, 'r: 't;
-}
-
-// impl<'a, T: 'static, D: Device + 'static, S: crate::Shape> Replicate3 for &crate::Buffer<'a, T, D, S> {
-//     fn replicate<'r>(buffers: &'r mut BorrowCache, id: crate::Id) -> crate::Result<&'r Self> {
-//         //todo!()
-//         Ok(unsafe { buffers.get_buf::<T, D, S>(id) }?)
-//     }
-// }
-
-impl<'a, 'r, T: 'static, D: Device + 'static, S: crate::Shape> Replicate<'r>
-    for &'r crate::Buffer<'a, T, D, S>
-{
-    fn replicate(buffers: &'r mut BorrowCache, id: crate::Id) -> crate::Result<Self> {
-        todo!()
-        // Ok(unsafe { buffers.get_buf(id) }?)
-    }
-}
-
-impl<T: 'static, D: Device + 'static, S: crate::Shape> Replicate2 for &crate::Buffer<'_, T, D, S> {
-    fn replicate<'r, 'a>(
-        buffers: &'r mut BorrowCache,
-        id: crate::Id,
-    ) -> crate::Result<Self::Replication<'r, 'a>> {
-        todo!()
-
-        // Ok(unsafe { buffers.get_buf(id) }?)
-    }
-
-    type Replication<'r, 'a> = &'r crate::Buffer<'a, T, D, S> where 'a: 'r;
-}
-
-pub trait Replicate4 {
+pub trait Replicate {
     type Replication: 'static;
 }
 
-impl<'a, T: 'static, D: Device + 'static, S: crate::Shape> Replicate4
+impl<'a, T: 'static, D: Device + 'static, S: crate::Shape> Replicate
     for &crate::Buffer<'a, T, D, S>
 {
     type Replication = Buffer<'static, T, D, S>;
@@ -233,7 +152,7 @@ impl<'a, T: 'static, D: Device + 'static, S: crate::Shape> Replicate4
 //     }
 // }
 
-impl<'r, R: HasId + Replicate4> AnyOp<'r> for R {
+impl<'r, R: HasId + Replicate> AnyOp<'r> for R {
     fn replication_fn(
         ids: Vec<crate::Id>,
         op: impl for<'a> Fn(Self::Replicated<'a>) -> crate::Result<()> + 'static,
@@ -258,7 +177,7 @@ impl<'r, R: HasId + Replicate4> AnyOp<'r> for R {
     // type Replicated<'a> = &'a R::Out where R::Out: 'a;
 }
 
-impl<'r, R1: HasId + Replicate2, R2: HasId + Replicate2> AnyOp<'r> for (R1, R2) {
+impl<'r, R1: HasId + Replicate, R2: HasId + Replicate> AnyOp<'r> for (R1, R2) {
     fn replication_fn(
         ids: Vec<crate::Id>,
         op: impl for<'a> Fn(Self::Replicated<'a>) -> crate::Result<()> + 'static,
@@ -276,7 +195,7 @@ impl<'r, R1: HasId + Replicate2, R2: HasId + Replicate2> AnyOp<'r> for (R1, R2) 
 
     // type Replicated<'a> = ();
 
-    type Replicated<'a> = (R1::Replication<'r, 'r>, R2::Replication<'r, 'r>);
+    type Replicated<'a> = (R1::Replication, R2::Replication);
 
     // type Replicated<'a> = &'a R::Out where R::Out: 'a;
 }
