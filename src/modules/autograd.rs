@@ -72,17 +72,14 @@ where
 {
     #[inline]
     fn on_new_buffer(&self, device: &'dev D, new_buf: &Buffer<'dev, T, D, S>) {
-        let mut no_grads = self.no_grads_pool.borrow_mut();
-        let wrapped_data = unsafe { new_buf.data.shallow() };
+        // let mut no_grads = self.no_grads_pool.borrow_mut();
+        // let wrapped_data = unsafe { new_buf.data.shallow() };
 
-        let buf = Buffer {
-            data: wrapped_data,
-            device: new_buf.device,
-        };
-        no_grads.cache.insert(*new_buf.id(), Box::new(buf));
-
-
-
+        // let buf = Buffer {
+        //     data: wrapped_data,
+        //     device: new_buf.device,
+        // };
+        // no_grads.cache.insert(*new_buf.id(), Box::new(buf));
         unsafe {
             (*self.grads.get())
                 .buf_requires_grad
@@ -143,6 +140,11 @@ impl<'dev, Mods> TapeActionsLT<'dev> for AutogradLT<'dev, Mods> {
 }
 
 impl_remove_layer!(AutogradLT, 'a, Mods);
+pass_down_cursor!(AutogradLT, 'dev, Mods);
+pass_down_add_operation!(AutogradLT, 'dev, Mods);
+pass_down_exec_now_module!(AutogradLT, 'dev, Mods);
+pass_down_cached_buffers!(AutogradLT, 'dev, Mods);
+pass_down_replace_buf_module!(AutogradLT, 'dev, Mods);
 
 #[derive(Debug, Default)]
 pub struct Autograd<Mods> {

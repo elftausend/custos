@@ -178,7 +178,7 @@ impl<'a, D: 'a, Mods: Module<'a, D>> Module<'a, D> for Autograd<'a, Mods> {
     }
 }
 
-impl<'a, 'b, T, D, S, Mods: OnNewBuffer<'a, T, D, S>> OnNewBuffer<'b, T, D, S> for Autograd<'b, Mods>
+impl<'a, 'b, T, D, S, Mods: OnNewBuffer<'a, T, D, S>> OnNewBuffer<'b, T, D, S> for Autograd<'a, Mods>
 where
     D: Device,
     S: Shape,
