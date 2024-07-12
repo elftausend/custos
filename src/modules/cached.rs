@@ -112,17 +112,17 @@ impl<D: Device, SD: Device, Mods: ExecNow<D>> ExecNow<D> for CachedModule<Mods, 
     }
 }
 
-impl<T, D, Mods, SD, S> OnNewBuffer<T, D, S> for CachedModule<Mods, SD>
+impl<'a, T, D, Mods, SD, S> OnNewBuffer<'a, T, D, S> for CachedModule<Mods, SD>
 where
     T: Unit + 'static,
     D: Device + IsShapeIndep + 'static,
-    Mods: OnNewBuffer<T, D, S>,
+    Mods: OnNewBuffer<'a, T, D, S>,
     D::Data<T, S>: ShallowCopy,
     SD: Device,
     S: Shape,
 {
     #[inline]
-    fn on_new_buffer(&self, device: &D, new_buf: &Buffer<T, D, S>) {
+    fn on_new_buffer(&self, device: &'a D, new_buf: &Buffer<'a, T, D, S>) {
         self.modules.on_new_buffer(device, new_buf)
     }
 }

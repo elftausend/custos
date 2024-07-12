@@ -270,7 +270,7 @@ impl<Mods: OnDropBuffer, T: Unit> Alloc<T> for OpenCL<Mods> {
     }
 }
 
-impl<'a, T: Unit, Mods: OnDropBuffer + OnNewBuffer<T, Self, ()>> CloneBuf<'a, T> for OpenCL<Mods> {
+impl<'a, T: Unit, Mods: OnDropBuffer + OnNewBuffer<'a, T, Self, ()>> CloneBuf<'a, T> for OpenCL<Mods> {
     fn clone_buf(&'a self, buf: &Buffer<'a, T, Self>) -> Buffer<'a, T, Self> {
         let cloned = Buffer::new(self, buf.len());
         let event = unsafe {

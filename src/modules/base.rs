@@ -74,7 +74,7 @@ impl<D: Device> ExecNow<D> for Base {
 
 impl<D> Setup<D> for Base {}
 
-impl<T: Unit, D: Device, S: Shape> OnNewBuffer<T, D, S> for Base {}
+impl<'a, T: Unit, D: Device, S: Shape> OnNewBuffer<'a, T, D, S> for Base {}
 
 impl OnDropBuffer for Base {}
 

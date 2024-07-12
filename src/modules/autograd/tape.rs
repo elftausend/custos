@@ -10,6 +10,13 @@ pub type GradFn = Box<dyn Fn(&mut Gradients)>;
 
 /// Stores the grad functions and gradient cache.
 #[derive(Default)]
+pub struct TapeLT {
+    grad_fns: Vec<GradFn>,
+    // pub lazy_graph: LazyGraph2<Box<dyn BoxedShallowCopy>>,
+}
+
+/// Stores the grad functions and gradient cache.
+#[derive(Default)]
 pub struct Tape {
     grad_fns: Vec<GradFn>,
     pub lazy_graph: LazyGraph<Box<dyn BoxedShallowCopy>>,

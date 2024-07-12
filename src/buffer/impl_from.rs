@@ -11,7 +11,7 @@ impl<'a, T, D, const N: usize> From<(&'a D, [T; N])> for Buffer<'a, T, D>
 where
     T: Unit + Clone,
     // TODO: IsShapeIndep ... find way to include Stack
-    D: Alloc<T> + OnNewBuffer<T, D, ()>,
+    D: Alloc<T> + OnNewBuffer<'a, T, D, ()>,
 {
     #[inline]
     fn from((device, array): (&'a D, [T; N])) -> Self {
@@ -22,7 +22,7 @@ where
 impl<'a, T, D, S: Shape> From<(&'a D, usize)> for Buffer<'a, T, D, S>
 where
     T: Unit,
-    D: Alloc<T> + OnNewBuffer<T, D, S>,
+    D: Alloc<T> + OnNewBuffer<'a, T, D, S>,
 {
     #[inline]
     fn from((device, len): (&'a D, usize)) -> Self {
@@ -34,7 +34,7 @@ where
 impl<'a, T, D, S> Buffer<'a, T, D, S>
 where
     T: Unit + Clone,
-    D: Alloc<T> + OnNewBuffer<T, D, S>,
+    D: Alloc<T> + OnNewBuffer<'a, T, D, S>,
     S: Shape,
 {
     #[inline]
@@ -47,7 +47,7 @@ where
 impl<'a, T, D, S> From<(&'a D, Range<usize>)> for Buffer<'a, T, D, S>
 where
     T: Number,
-    D: Alloc<T> + OnNewBuffer<T, D, S>,
+    D: Alloc<T> + OnNewBuffer<'a, T, D, S>,
     S: Shape,
 {
     #[inline]
@@ -60,7 +60,7 @@ where
 impl<'a, T, D, S> From<(&'a D, RangeInclusive<usize>)> for Buffer<'a, T, D, S>
 where
     T: Number,
-    D: Alloc<T> + OnNewBuffer<T, D, S>,
+    D: Alloc<T> + OnNewBuffer<'a, T, D, S>,
     S: Shape,
 {
     #[inline]
@@ -73,7 +73,7 @@ impl<'a, T, D, const N: usize> From<(&'a D, &[T; N])> for Buffer<'a, T, D>
 where
     T: Unit + Clone,
     // TODO: IsShapeIndep ... find way to include Stack
-    D: Alloc<T> + OnNewBuffer<T, D, ()>,
+    D: Alloc<T> + OnNewBuffer<'a, T, D, ()>,
 {
     #[inline]
     fn from((device, array): (&'a D, &[T; N])) -> Self {
@@ -85,7 +85,7 @@ impl<'a, T, D, S: Shape> From<(&'a D, &[T])> for Buffer<'a, T, D, S>
 where
     T: Unit + Clone,
     // TODO: IsShapeIndep ... find way to include Stack
-    D: Alloc<T> + OnNewBuffer<T, D, S>,
+    D: Alloc<T> + OnNewBuffer<'a, T, D, S>,
 {
     #[inline]
     fn from((device, slice): (&'a D, &[T])) -> Self {
@@ -98,7 +98,7 @@ impl<'a, T, D, S: Shape> From<(&'a D, Vec<T>)> for Buffer<'a, T, D, S>
 where
     T: Unit + Clone,
     // TODO: IsShapeIndep ... find way to include Stack
-    D: Alloc<T> + OnNewBuffer<T, D, S>,
+    D: Alloc<T> + OnNewBuffer<'a, T, D, S>,
 {
     #[inline]
     fn from((device, vec): (&'a D, Vec<T>)) -> Self {
@@ -111,7 +111,7 @@ impl<'a, T, D, S: Shape> From<(&'a D, &Vec<T>)> for Buffer<'a, T, D, S>
 where
     T: Unit + Clone,
     // TODO: IsShapeIndep ... find way to include Stack
-    D: Alloc<T> + OnNewBuffer<T, D, S>,
+    D: Alloc<T> + OnNewBuffer<'a, T, D, S>,
 {
     #[inline]
     fn from((device, vec): (&'a D, &Vec<T>)) -> Self {

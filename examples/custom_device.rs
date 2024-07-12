@@ -178,7 +178,7 @@ impl<'a, D: 'a, Mods: Module<'a, D>> Module<'a, D> for Autograd<'a, Mods> {
     }
 }
 
-impl<'a, T, D, S, Mods: OnNewBuffer<T, D, S>> OnNewBuffer<T, D, S> for Autograd<'a, Mods>
+impl<'a, 'b, T, D, S, Mods: OnNewBuffer<'a, T, D, S>> OnNewBuffer<'b, T, D, S> for Autograd<'b, Mods>
 where
     D: Device,
     S: Shape,
@@ -295,26 +295,34 @@ fn main() {
     {
         let dev = CPU::<Autograd<Base>>::new1();
 
-        let mut out = dev.buffer([1, 2, 3]);
-        let mut out1 = dev.buffer([1, 2, 3]);
+        // Buffer::<f32, _>::new(&dev, 10);
+        let data: custos::cpu::CPUPtr<f32> = dev.alloc::<()>(10, custos::flag::AllocFlag::None).unwrap();
+        let buffer: Buffer<f32, CPU<Autograd<Base>>> = Buffer {
+            data,
+            device: Some(&dev),
+        };
+        dev.on_new_buffer(&dev, &buffer);
 
-        let mut out = dev.add(&mut out, &mut out1);
-        dev.add(&mut out, &mut out1);
-        dev.test(&out);
+        // let mut out = dev.buffer([1, 2, 3]);
+        // let mut out1 = dev.buffer([1, 2, 3]);
 
-        // dev.get_grad::<i32, ()>(out.id());
-        {
-            let z = out.grad_mut1();
-            let x = out1.grad_mut1();
-            assert_eq!(z.len(), x.len());
-            out.grad1();
-        }
+        // let mut out = dev.add(&mut out, &mut out1);
+        // dev.add(&mut out, &mut out1);
+        // dev.test(&out);
 
-        let x = dev.grad_mut(&out);
-        let z = dev.grad_mut(&out);
-        assert_eq!(z.len(), x.len());
-        unsafe { dev.get_grad_mut::<i32, ()>(out.id()) };
-        unsafe { dev.get_grad_mut::<i32, ()>(out.id()) };
+        // // dev.get_grad::<i32, ()>(out.id());
+        // {
+        //     let z = out.grad_mut1();
+        //     let x = out1.grad_mut1();
+        //     assert_eq!(z.len(), x.len());
+        //     out.grad1();
+        // }
+
+        // let x = dev.grad_mut(&out);
+        // let z = dev.grad_mut(&out);
+        // assert_eq!(z.len(), x.len());
+        // unsafe { dev.get_grad_mut::<i32, ()>(out.id()) };
+        // unsafe { dev.get_grad_mut::<i32, ()>(out.id()) };
     }
 
     // return;

@@ -11,8 +11,8 @@ use crate::{
     impl_remove_layer, pass_down_add_operation, pass_down_cached_buffers, pass_down_cursor,
     pass_down_exec_now_module, pass_down_replace_buf_module, register_buf_copyable,
     unregister_buf_copyable, AddGradFn, AddLayer, Alloc, Buffer, Device, HasId, HasModules,
-    IsShapeIndep, Module, OnDropBuffer, OnNewBuffer, Parents, Retrieve, RunModule, Setup,
-    ShallowCopy, Shape, TapeActions, TapeActionsLT, Unit,
+    IsShapeIndep, Module, OnDropBuffer, OnNewBuffer, Parents, Retrieve, RunModule,
+    Setup, ShallowCopy, Shape, TapeActions, TapeActionsLT, Unit,
 };
 
 use self::wrapper::ReqGradWrapper;
@@ -22,6 +22,7 @@ pub struct AutogradLT<'dev, Mods> {
     pub modules: Mods,
     /// Caches gradients for each [`Buffer`]'s id ([`Ident`]).
     pub grads: UnsafeCell<GradientsLT<'dev>>, // could use RefCell
+    pub(crate) no_grads_pool: core::cell::RefCell<crate::BorrowCacheLT<'dev>>,
     tape: UnsafeCell<Tape>,
     pub enabled: Cell<bool>,
 }
@@ -36,6 +37,7 @@ impl<'a, Mods: Module<'a, D>, D: Device + 'a> Module<'a, D> for AutogradLT<'a, M
             // modules: Cached::<Mods>::new(),
             modules: Mods::new(),
             grads: Default::default(),
+            no_grads_pool: Default::default(),
             tape: Default::default(),
             enabled: Cell::new(true),
         }
@@ -61,15 +63,26 @@ impl<'dev, Mods> AutogradLT<'dev, Mods> {
     }
 }
 
-impl<'dev, T, D, Mods, S: Shape> OnNewBuffer<T, D, S> for AutogradLT<'dev, Mods>
+impl<'dev, T, D, Mods, S: Shape> OnNewBuffer<'dev, T, D, S> for AutogradLT<'dev, Mods>
 where
     T: Unit + 'static,
     D: Alloc<T> + IsShapeIndep + 'static,
     D::Data<T, S>: ShallowCopy,
-    Mods: OnNewBuffer<T, D, S>,
+    Mods: OnNewBuffer<'dev, T, D, S>,
 {
     #[inline]
-    fn on_new_buffer(&self, device: &D, new_buf: &Buffer<T, D, S>) {
+    fn on_new_buffer(&self, device: &'dev D, new_buf: &Buffer<'dev, T, D, S>) {
+        let mut no_grads = self.no_grads_pool.borrow_mut();
+        let wrapped_data = unsafe { new_buf.data.shallow() };
+
+        let buf = Buffer {
+            data: wrapped_data,
+            device: new_buf.device,
+        };
+        no_grads.cache.insert(*new_buf.id(), Box::new(buf));
+
+
+
         unsafe {
             (*self.grads.get())
                 .buf_requires_grad
@@ -175,15 +188,15 @@ impl<Mods> Autograd<Mods> {
     }
 }
 
-impl<T, D, Mods, S: Shape> OnNewBuffer<T, D, S> for Autograd<Mods>
+impl<'dev, T, D, Mods, S: Shape> OnNewBuffer<'dev, T, D, S> for Autograd<Mods>
 where
     T: Unit + 'static,
     D: Alloc<T> + IsShapeIndep + 'static,
     D::Data<T, S>: ShallowCopy,
-    Mods: OnNewBuffer<T, D, S>,
+    Mods: OnNewBuffer<'dev, T, D, S>,
 {
     #[inline]
-    fn on_new_buffer(&self, device: &D, new_buf: &Buffer<T, D, S>) {
+    fn on_new_buffer(&self, device: &'dev D, new_buf: &Buffer<'dev, T, D, S>) {
         unsafe {
             (*self.grads.get())
                 .buf_requires_grad

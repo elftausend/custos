@@ -135,7 +135,7 @@ pub trait AnyOp: Sized {
     ) -> Box<dyn for<'i> Fn(&'i mut BorrowCache) -> crate::Result<()>>;
 }
 
-type BorrowCache = HashMap<UniqueId, Box<dyn AnyBuffer>>;
+type BorrowCache<'a> = HashMap<UniqueId, Box<dyn AnyBuffer + 'a>>;
 
 pub trait Replicate {
     type Replication: 'static;

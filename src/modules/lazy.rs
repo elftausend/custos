@@ -194,16 +194,16 @@ impl<T2, Mods: OnDropBuffer> OnDropBuffer for Lazy<Mods, T2> {
     }
 }
 
-impl<T, D, Mods, S, T2> OnNewBuffer<T, D, S> for Lazy<Mods, T2>
+impl<'a, T, D, Mods, S, T2> OnNewBuffer<'a, T, D, S> for Lazy<Mods, T2>
 where
     T: Unit + 'static,
     D: Device + IsShapeIndep + 'static,
     D::Data<T, S>: ShallowCopy,
-    Mods: OnNewBuffer<T, D, S>,
+    Mods: OnNewBuffer<'a, T, D, S>,
     S: Shape,
 {
     #[inline]
-    fn on_new_buffer(&self, device: &D, new_buf: &Buffer<T, D, S>) {
+    fn on_new_buffer(&self, device: &'a D, new_buf: &Buffer<'a, T, D, S>) {
         unsafe { register_buf_copyable(&mut self.buffers.borrow_mut(), new_buf) };
         self.modules.on_new_buffer(device, new_buf)
     }

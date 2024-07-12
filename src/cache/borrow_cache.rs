@@ -47,6 +47,12 @@ pub struct BorrowCacheLT<'a> {
     pub cache: HashMap<UniqueId, Box<(dyn AnyBuffer + 'a)>, BuildHasherDefault<NoHasher>>,
 }
 
+impl<'a> Debug for BorrowCacheLT<'a> {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.debug_struct("BorrowCacheLT").field("cache", &"...".to_string()).finish()
+    }
+}
+
 impl<'dev> BorrowCacheLT<'dev> {
     pub fn add_buf_once<T, D, S>(&mut self, device: &'dev D, id: Id, new_buf: &mut bool)
     where

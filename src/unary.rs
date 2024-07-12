@@ -167,7 +167,7 @@ mod tests {
     }
 
     #[cfg(feature = "autograd")]
-    fn test_unary_autograd<D>(device: &D)
+    fn test_unary_autograd<'a, D>(device: &'a D)
     where
         D::Data<f32, ()>: crate::ShallowCopy,
         D: 'static
@@ -180,7 +180,7 @@ mod tests {
             + crate::CachedBuffers
             + crate::AddOperation
             + crate::ZeroGrad<f32>
-            + crate::OnNewBuffer<f32, D, ()>,
+            + crate::OnNewBuffer<'a, f32, D, ()>,
     {
         use crate::Combiner;
 

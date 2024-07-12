@@ -137,7 +137,7 @@ impl<Mods> crate::ForkSetup for CUDA<Mods> {
     }
 }
 
-impl<'a, Mods: OnDropBuffer + OnNewBuffer<T, Self, ()>, T: Unit> CloneBuf<'a, T> for CUDA<Mods> {
+impl<'a, Mods: OnDropBuffer + OnNewBuffer<'a, T, Self, ()>, T: Unit> CloneBuf<'a, T> for CUDA<Mods> {
     fn clone_buf(&'a self, buf: &Buffer<'a, T, CUDA<Mods>>) -> Buffer<'a, T, CUDA<Mods>> {
         let cloned = Buffer::new(self, buf.len());
         unsafe {
