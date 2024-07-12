@@ -5,15 +5,8 @@ use std::{
 };
 
 use custos::{
-    AddOperation, Alloc, Base, BorrowCacheLT, Buffer, Device, HasId, Id, OnDropBuffer, OnNewBuffer,
-    PtrType, Retrieve, Retriever, Shape, Unit, WrappedData, CPU,
+    AddOperation, Alloc, AutogradLT, Base, BorrowCacheLT, Buffer, Cached, Device, HasId, Id, Module, OnDropBuffer, OnNewBuffer, PtrType, Retrieve, Retriever, Shape, Unit, WrappedData, CPU
 };
-
-pub trait Module<'a, D: 'a, Mods = ()> {
-    type Module;
-
-    fn new() -> Self::Module;
-}
 
 pub trait Str {
     fn str(&self) -> &String;
@@ -215,13 +208,6 @@ impl<'a, Mods: WrappedData> WrappedData for Autograd<'a, Mods> {
     }
 }
 
-impl<'a, D: 'a> Module<'a, D> for Base {
-    type Module = Base;
-
-    fn new() -> Self::Module {
-        Base
-    }
-}
 
 pub trait Grad<'dev, T, D: Device, S: Shape> {
     fn grad1(&self) -> &Buffer<'dev, T, D, S>;
@@ -283,21 +269,16 @@ fn add_ew_grad_slice<T: Copy + AddAssign>(grad_acc: &mut [T], out_grad: &[T]) {
     }
 }
 
-#[derive(Default)]
-pub struct Typ {
-    x: i32,
-}
-
 fn main() {
     // let x = Box::new(Typ::default());
     // Box::into_raw(x);
     //
     {
-        let dev = CPU::<Autograd<Base>>::new1();
+        let dev = CPU::<AutogradLT<Cached<Base>>>::new1();
 
         // Buffer::<f32, _>::new(&dev, 10);
-        let data: custos::cpu::CPUPtr<f32> = dev.alloc::<()>(10, custos::flag::AllocFlag::None).unwrap();
-        let buffer: Buffer<f32, CPU<Autograd<Base>>> = Buffer {
+        let data = dev.wrap_in_base(dev.alloc::<()>(10, custos::flag::AllocFlag::None).unwrap());
+        let buffer: Buffer<f32, _> = Buffer {
             data,
             device: Some(&dev),
         };

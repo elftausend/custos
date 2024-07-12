@@ -63,7 +63,7 @@ impl<'dev, Mods> AutogradLT<'dev, Mods> {
     }
 }
 
-impl<'dev, T, D, Mods, S: Shape> OnNewBuffer<'dev, T, D, S> for AutogradLT<'dev, Mods>
+impl<'dev, T, D, Mods, S: Shape> OnNewBuffer<'dev, T, D, S> for AutogradLT<'_, Mods>
 where
     T: Unit + 'static,
     D: Alloc<T> + IsShapeIndep + 'static,
@@ -80,6 +80,7 @@ where
         //     device: new_buf.device,
         // };
         // no_grads.cache.insert(*new_buf.id(), Box::new(buf));
+
         unsafe {
             (*self.grads.get())
                 .buf_requires_grad
