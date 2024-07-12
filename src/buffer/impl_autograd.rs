@@ -228,7 +228,7 @@ mod tests {
     #[cfg(feature = "autograd")]
     #[test]
     fn test_multiple_grad_mut() {
-        use crate::{Autograd, AutogradLT, Base, Cached, Device, CPU};
+        use crate::{Autograd,  Base, Cached, Device, CPU};
 
         let device = CPU::<Autograd<Cached<Base>>>::new();
         let mut buf = device.buffer([1, 2, 3, 4]);

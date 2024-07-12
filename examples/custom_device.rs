@@ -5,7 +5,7 @@ use std::{
 };
 
 use custos::{
-    AddOperation, Alloc, AutogradLT, Base, BorrowCacheLT, Buffer, Cached, Device, HasId, Id, Module, OnDropBuffer, OnNewBuffer, PtrType, Retrieve, Retriever, Shape, Unit, WrappedData, CPU
+    AddOperation, Alloc, Autograd, Base, BorrowCacheLT, Buffer, Cached, Device, HasId, Id, Module, OnDropBuffer, OnNewBuffer, PtrType, Retrieve, Retriever, Shape, Unit, WrappedData, CPU
 };
 
 pub trait Str {
@@ -274,7 +274,7 @@ fn main() {
     // Box::into_raw(x);
     //
     {
-        let dev = CPU::<AutogradLT<Cached<Base>>>::new1();
+        let dev = CPU::<Autograd<Cached<Base>>>::new1();
 
         // Buffer::<f32, _>::new(&dev, 10);
         let data = dev.wrap_in_base(dev.alloc::<()>(10, custos::flag::AllocFlag::None).unwrap());
