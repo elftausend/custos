@@ -35,8 +35,7 @@ impl<'a> dyn AnyBuffer + 'a {
     }
 
     #[inline]
-    pub unsafe fn downcast_ref_unchecked<T: 'static>(&self) -> &T {
-        debug_assert!(self.is::<T>());
+    pub unsafe fn downcast_ref_unchecked<T>(&self) -> &T {
         // SAFETY: caller guarantees that T is the correct type
         unsafe { &*(self as *const (dyn AnyBuffer + 'a) as *const T) }
     }

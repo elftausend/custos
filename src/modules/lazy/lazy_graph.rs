@@ -1,17 +1,19 @@
 use crate::{
-    bounds_to_range, op_hint::OpHint, AsAny, BorrowCache, BoxedShallowCopy, Buffers, Device, HasId, Parents, UniqueId, UpdateArgs, UpdateArgsDynable
+    bounds_to_range, op_hint::OpHint, AnyBuffer, AsAny, BoxedShallowCopy, Buffer, Buffers, Device,
+    HasId, Parents, Shape, UniqueId, UpdateArgs, UpdateArgsDynable,
 };
-use core::{mem::transmute, ops::RangeBounds};
+use core::{cell::RefCell, marker::PhantomData, mem::transmute, ops::RangeBounds};
+use std::collections::{HashMap, HashSet};
 
 use super::exec_iter::{exec_op, ExecIter};
 
 pub trait ArgsTest {}
 
-pub struct Operation2<'a> {
+pub struct Operation2<'a, 'b> {
     pub arg_ids: Vec<Option<UniqueId>>,
     // pub op: fn(*mut ()) -> crate::Result<()>,
     pub op3: Box<dyn Fn(&mut BorrowCache) -> crate::Result<()> + 'a>,
-    //pub op2: Box<dyn Fn(*mut ()) -> crate::Result<()>>, // pub args: Box<dyn UpdateArgsDynable<B>>,
+    pub pd: PhantomData<&'b ()>, //pub op2: Box<dyn Fn(*mut ()) -> crate::Result<()>>, // pub args: Box<dyn UpdateArgsDynable<B>>,
 }
 
 pub struct Operation<B, T> {
@@ -36,46 +38,76 @@ pub struct LazyGraph<B = Box<dyn BoxedShallowCopy>, T = ()> {
     pub operations: Vec<Operation<B, T>>,
 }
 
-pub struct LazyGraph2<'a, B = Box<dyn BoxedShallowCopy>, T = ()> {
+pub struct LazyGraph2<'a, 'b, B = Box<dyn BoxedShallowCopy>, T = ()> {
     pub operations: Vec<Operation<B, T>>,
-    pub operations2: Vec<Operation2<'a>>,
+    pub operations2: Vec<Operation2<'a, 'a>>,
+    _pd: PhantomData<&'b ()>,
 }
 
-impl<'a, B, T> Default for LazyGraph2<'a, B, T> {
+impl<'a, 'b, B, T> Default for LazyGraph2<'a, 'b, B, T> {
     #[inline]
     fn default() -> Self {
         Self {
             operations: Vec::new(),
             operations2: Vec::new(),
+            _pd: PhantomData,
         }
     }
 }
 
-impl<'a, B, T> LazyGraph2<'a, B, T> {
-    pub fn convert_to_operation2<Args: Parents<N> + AnyOp, const N: usize>(
+impl<'a, 'c, B, T> LazyGraph2<'a, 'c, B, T> {
+    #[inline]
+    pub fn iter_with(&self, buffers: &'a RefCell<BorrowCache>) -> ExecIter<B, T> {
+        for op in &self.operations2 {
+            // let mut buffers = buffers.borrow_mut();
+            // (op.op3)(&mut buffers);
+        }
+        todo!()
+    }
+
+    pub fn convert_to_operation2<Args: Parents<N> + AnyOp<'a>, const N: usize>(
         args: Args,
-        op: impl Fn(Args) -> crate::Result<()> + 'static,
-    ) -> Operation2<'a> {
+        op: impl for<'b> Fn(Args::Replicated<'b>) -> crate::Result<()> + 'static,
+    ) -> Operation2<'a, 'a> {
+        const { assert!(N > 0, "Size of parents must be greater than 0") };
+
+        let mut seen_ids = HashSet::new();
+
         // store ids and test if buffers are still in cache
         let arg_ids = args
             .maybe_ids()
             .into_iter()
-            .flatten()
+            .flat_map(|id| {
+                // return error / none
+                let id = id.expect("every parent must have an id");
+                if seen_ids.contains(&id.id) {
+                    panic!("each parent (id) must be unique")
+                }
+                seen_ids.insert(id.id);
+
+                Some(id)
+            })
             //.flat_map(|id| id.map(|id| *id))
             .collect::<Vec<_>>();
-        
-        let op: Box<dyn Fn(&mut BorrowCache) -> crate::Result<()>> = Args::replication_fn(arg_ids, op);
+
+        if arg_ids.len() != N {
+            panic!()
+        }
+
+        let op: Box<dyn Fn(&mut BorrowCache) -> crate::Result<()>> =
+            Args::replication_fn(arg_ids, op);
 
         Operation2 {
             arg_ids: vec![],
-            op3: op
+            op3: op,
+            pd: PhantomData,
         }
     }
-    
-    pub fn add_operation2<Args: Parents<N> + AnyOp, const N: usize>(
+
+    pub fn add_operation2<Args: Parents<N> + AnyOp<'a>, const N: usize>(
         &mut self,
         args: Args,
-        op: impl Fn(Args) -> crate::Result<()> + 'static,
+        op: impl for<'b> Fn(Args::Replicated<'b>) -> crate::Result<()> + 'static,
     ) {
         let operation = Self::convert_to_operation2(args, op);
         self.operations2.push(operation)
@@ -95,73 +127,176 @@ pub struct X {
     // x: Box<dyn AnyOp>,
 }
 
-pub trait AnyOp: Sized {
+pub trait AnyOp<'r>: Sized {
+    type Replicated<'a>;
     // fn replication_fn(ids: Vec<crate::Id>, op: impl Fn(Self) -> crate::Result<()>) -> impl Fn(&mut BorrowCache) -> crate::Result<()>;
-    fn replication_fn(ids: Vec<crate::Id>, op: impl Fn(Self) -> crate::Result<()> + 'static) -> Box<dyn Fn(&mut BorrowCache) -> crate::Result<()>>;
+    fn replication_fn(
+        ids: Vec<crate::Id>,
+        op: impl for<'a> Fn(Self::Replicated<'a>) -> crate::Result<()> + 'static,
+    ) -> Box<dyn for<'i> Fn(&'i mut BorrowCache) -> crate::Result<()> + 'r>;
 }
+
+type BorrowCache = HashMap<UniqueId, Box<dyn AnyBuffer>>;
 
 pub trait Replicate<'a>: Sized {
     fn replicate(buffers: &'a mut BorrowCache, id: crate::Id) -> crate::Result<Self>;
 }
 
-pub trait ConvertTo<To> {
-    fn conv(&self) -> To;
+pub trait Replicate3: Sized {
+    type Out;
+    // type Out<'r, 'g>: ConvertTo<Self> where 'g: 'r, 'r: 't;
+    fn replicate<'r>(buffers: &'r mut BorrowCache, id: crate::Id) -> crate::Result<&'r Self::Out>;
 }
 
 pub trait Replicate2: Sized {
-    type Replication<'r, 'a>:  where 'a:'r;
-    fn replicate<'r, 'a>(buffers: &'r mut BorrowCache, id: crate::Id) -> crate::Result<Self::Replication<'r, 'a>>;
+    type Replication<'r, 'a>
+    where
+        'a: 'r;
+    fn replicate<'r, 'a>(
+        buffers: &'r mut BorrowCache,
+        id: crate::Id,
+    ) -> crate::Result<Self::Replication<'r, 'a>>;
 }
 
-impl<'a, 'r, T: 'static, D: Device + 'static, S: crate::Shape> Replicate<'r> for &'r mut crate::Buffer<'a, T, D, S> {
+impl<'a, 'r, T: 'static, D: Device + 'static, S: crate::Shape> Replicate<'r>
+    for &'r mut crate::Buffer<'a, T, D, S>
+{
     fn replicate(buffers: &'r mut BorrowCache, id: crate::Id) -> crate::Result<Self> {
-        //todo!()
-        Ok(unsafe { buffers.get_buf_mut(id) }?)
+        todo!()
+        // Ok(unsafe { buffers.get_buf_mut(id) }?)
     }
 }
 
-impl<'a, 'r, T: 'static, D: Device + 'static, S: crate::Shape> Replicate<'r> for &'r crate::Buffer<'a, T, D, S> {
+// impl<'a, T: 'static, D: Device + 'static, S: crate::Shape> Replicate3<'a> for crate::Buffer<'a, T, D, S> {
+//     fn replicate<'r>(buffers: &'r mut BorrowCache, id: crate::Id) -> crate::Result<Self::Out<'r, 'a>> {
+//         //todo!()
+//         Ok(unsafe { buffers.get_buf(id) }?)
+//     }
+
+//     type Out<'r, 'g> = &'r Buffer<'g, T, D, S> where 'g: 'r;
+// }
+
+impl<'a, T: 'static, D: Device + 'static, S: crate::Shape> Replicate3
+    for &'a crate::Buffer<'_, T, D, S>
+{
+    type Out = Buffer<'a, T, D, S>;
+
+    fn replicate<'r>(buffers: &'r mut BorrowCache, id: crate::Id) -> crate::Result<&'r Self::Out> {
+        todo!()
+        // Ok(unsafe { buffers.get_buf(id) }?)
+    }
+
+    // type Out<'r, 'g> = &'r Buffer<'g, T, D, S> where 'g: 'r, 'r: 't;
+}
+
+// impl<'a, T: 'static, D: Device + 'static, S: crate::Shape> Replicate3 for &crate::Buffer<'a, T, D, S> {
+//     fn replicate<'r>(buffers: &'r mut BorrowCache, id: crate::Id) -> crate::Result<&'r Self> {
+//         //todo!()
+//         Ok(unsafe { buffers.get_buf::<T, D, S>(id) }?)
+//     }
+// }
+
+impl<'a, 'r, T: 'static, D: Device + 'static, S: crate::Shape> Replicate<'r>
+    for &'r crate::Buffer<'a, T, D, S>
+{
     fn replicate(buffers: &'r mut BorrowCache, id: crate::Id) -> crate::Result<Self> {
-        //todo!()
-        Ok(unsafe { buffers.get_buf(id) }?)
+        todo!()
+        // Ok(unsafe { buffers.get_buf(id) }?)
     }
 }
 
 impl<T: 'static, D: Device + 'static, S: crate::Shape> Replicate2 for &crate::Buffer<'_, T, D, S> {
-    fn replicate<'r, 'a>(buffers: &'r mut BorrowCache, id: crate::Id) -> crate::Result<Self::Replication<'r, 'a>> {
-        // todo!()
-        Ok(unsafe { buffers.get_buf(id) }?)
+    fn replicate<'r, 'a>(
+        buffers: &'r mut BorrowCache,
+        id: crate::Id,
+    ) -> crate::Result<Self::Replication<'r, 'a>> {
+        todo!()
+
+        // Ok(unsafe { buffers.get_buf(id) }?)
     }
-    
+
     type Replication<'r, 'a> = &'r crate::Buffer<'a, T, D, S> where 'a: 'r;
 }
 
-impl<R: HasId + Replicate2> AnyOp for R 
-{
-    fn replication_fn(ids: Vec<crate::Id>, op: impl Fn(Self) -> crate::Result<()> + 'static) -> Box<dyn Fn(&mut BorrowCache) -> crate::Result<()>> {
-        Box::new(|_| Ok(()))
-        // let id = ids[0];
-        // Box::new(move |buffers| {
-        //     op(R::replicate(buffers, id)?)
-        // })
-    }
+pub trait Replicate4 {
+    type Replication: 'static;
 }
 
+impl<'a, T: 'static, D: Device + 'static, S: crate::Shape> Replicate4
+    for &crate::Buffer<'a, T, D, S>
+{
+    type Replication = Buffer<'static, T, D, S>;
+}
+// impl<T, D: Device, S: Shape> From<&Buffer<'_, T, D, S>> for &Buffer<'_, T, D, S> {
+//     fn from(value: &Buffer<'_, T, D, S>) -> Self {
+//         todo!()
+//     }
+// }
+
+impl<'r, R: HasId + Replicate4> AnyOp<'r> for R {
+    fn replication_fn(
+        ids: Vec<crate::Id>,
+        op: impl for<'a> Fn(Self::Replicated<'a>) -> crate::Result<()> + 'static,
+    ) -> Box<dyn Fn(&mut BorrowCache) -> crate::Result<()>> {
+        // Box::new(|_| Ok(()))
+        let id = ids[0];
+        Box::new(move |buffers| {
+            let r1 = buffers
+                .get_mut(&*id)
+                .unwrap()
+                .downcast_mut::<R::Replication>()
+                .unwrap();
+
+            op(r1)
+        })
+    }
+
+    // type Replicated<'a> = ();
+
+    type Replicated<'a> = &'a mut R::Replication;
+
+    // type Replicated<'a> = &'a R::Out where R::Out: 'a;
+}
+
+impl<'r, R1: HasId + Replicate2, R2: HasId + Replicate2> AnyOp<'r> for (R1, R2) {
+    fn replication_fn(
+        ids: Vec<crate::Id>,
+        op: impl for<'a> Fn(Self::Replicated<'a>) -> crate::Result<()> + 'static,
+    ) -> Box<dyn Fn(&mut BorrowCache) -> crate::Result<()>> {
+        // Box::new(|_| Ok(()))
+        let id1 = ids[0];
+        let id2 = ids[1];
+        // check for distinct ids!
+        Box::new(move |buffers| {
+            // op((R1::replicate(buffers, id1)?, R2::replicate(buffers, id2)?))
+            // op(R::replicate(buffers, id)?)
+            Ok(())
+        })
+    }
+
+    // type Replicated<'a> = ();
+
+    type Replicated<'a> = (R1::Replication<'r, 'r>, R2::Replication<'r, 'r>);
+
+    // type Replicated<'a> = &'a R::Out where R::Out: 'a;
+}
 // impl<R1: HasId + for<'r> Replicate<'r>, R2: HasId + for<'r> Replicate<'r>> AnyOp for (R1, R2) {
 //     fn replication_fn(ids: Vec<crate::Id>, op: impl Fn(Self) -> crate::Result<()>) -> impl Fn(&mut BorrowCache) -> crate::Result<()> {
 //         let r1 = ids[0];
 //         let r2 = ids[1];
 //         move |buffers| {
 //             op((R1::replicate(buffers, r1)?, R2::replicate(buffers, r2)?))
-//         } 
+//         }
 //     }
 // }
 
-impl<'r, R1: HasId + Replicate<'r>, R2: HasId> AnyOp for (R1, R2) {
-    fn replication_fn(ids: Vec<crate::Id>, op: impl Fn(Self) -> crate::Result<()> + 'static) -> Box<dyn Fn(&mut BorrowCache) -> crate::Result<()>> {
-        Box::new(|_| Ok(()))
-    }
-}
+// impl<R1: HasId + Replicate3, R2: HasId + Replicate3> AnyOp for (R1, R2) {
+//     fn replication_fn(ids: Vec<crate::Id>, op: impl Fn(Self::Replicated) -> crate::Result<()> + 'static) -> Box<dyn Fn(&mut BorrowCache) -> crate::Result<()>> {
+//         Box::new(|_| Ok(()))
+//     }
+
+//     type Replicated = (R1::Out, R2::Out);
+// }
 
 impl<B: AsAny, T> LazyGraph<B, T> {
     #[inline]
@@ -196,7 +331,7 @@ impl<B: AsAny, T> LazyGraph<B, T> {
             args: transmute(args),
             op_hint: OpHint::None,
         }
-    } 
+    }
 
     pub fn add_operation<Args: Parents<N> + UpdateArgs, const N: usize>(
         &mut self,
@@ -235,7 +370,8 @@ impl<B: AsAny, T> LazyGraph<B, T> {
 mod tests {
     use super::LazyGraph;
     use crate::{
-        register_buf_copyable, AsNoId, Base, BoxedShallowCopy, Buffer, Device, HasId, LazyGraph2, Retriever, CPU
+        register_buf_copyable, AsNoId, Base, BoxedShallowCopy, Buffer, Device, HasId, LazyGraph2,
+        Retriever, CPU,
     };
     use std::collections::HashMap;
 
@@ -245,18 +381,16 @@ mod tests {
         let mut graph: LazyGraph2 = LazyGraph2::default();
         let lhs = device.buffer([1f32, 2., 3., 4., 5.]);
         let rhs = device.buffer([1f32, 2., 6., 4., 5.]);
-        
-        graph.add_operation2::<_, 1>(&lhs, |args| {
-            Ok(())
-        });
-        
-        graph.add_operation2::<_, 2>((&lhs, &rhs), |args| {
-            Ok(())
-        });
 
-        graph.add_operation2::<_, 2>((&lhs, &rhs), |args| {
-            Ok(())
-        });
+        graph.add_operation2::<_, 1>(&lhs, |args| Ok(()));
+
+        // graph.add_operation2::<_, 2>((&lhs, &rhs), |args| {
+        //     Ok(())
+        // });
+
+        // graph.add_operation2::<_, 2>((&lhs, &rhs), |args| {
+        //     Ok(())
+        // });
     }
 
     #[test]
