@@ -17,6 +17,10 @@ use crate::{
 
 use self::wrapper::ReqGradWrapper;
 
+
+pub trait HasAutograd {}
+impl<Mods> HasAutograd for Autograd<Mods> {}
+
 #[derive(Debug, Default)]
 pub struct AutogradLT<'dev, Mods> {
     pub modules: Mods,
@@ -228,8 +232,6 @@ impl<Mods: OnDropBuffer> OnDropBuffer for Autograd<Mods> {
     }
 }
 
-pub trait HasAutograd {}
-impl<Mods> HasAutograd for Autograd<Mods> {}
 
 impl<Mods: Setup<NewDev>, NewDev> Setup<NewDev> for Autograd<Mods> {
     #[inline]
