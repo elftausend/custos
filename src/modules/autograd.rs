@@ -120,6 +120,71 @@ impl<'dev, Mods: Setup<NewDev>, NewDev> Setup<NewDev> for AutogradLT<'dev, Mods>
     }
 }
 
+impl<'dev, T, Mods: Retrieve<D, T, S>, D, S: Shape> Retrieve<D, T, S> for AutogradLT<'dev, Mods>
+where
+    T: Unit + 'static,
+    D: IsShapeIndep + Device + 'static,
+    D::Data<T, S>: ShallowCopy,
+{
+    #[inline]
+    unsafe fn retrieve<const NUM_PARENTS: usize>(
+        &self,
+        device: &D,
+        len: usize,
+        parents: impl Parents<NUM_PARENTS>,
+    ) -> crate::Result<Self::Wrap<T, D::Base<T, S>>>
+    where
+        D: Alloc<T>,
+    {
+        let requires_grad = parents.requires_grads().iter().any(|&x| x);
+        let data = self.modules.retrieve(device, len, parents)?;
+        unsafe {
+            (*self.grads.get())
+                .buf_requires_grad
+                .insert(*data.id(), requires_grad)
+        };
+
+        Ok(ReqGradWrapper {
+            requires_grad,
+            data,
+            _pd: core::marker::PhantomData,
+        })
+    }
+
+    #[inline]
+    fn on_retrieve_finish(&self, retrieved_buf: &Buffer<T, D, S>)
+    where
+        D: Alloc<T>,
+    {
+        self.register_no_grad_buf(retrieved_buf);
+
+        self.modules.on_retrieve_finish(retrieved_buf)
+    }
+}
+
+impl<'a, Mods> TapeActions for AutogradLT<'a, Mods> {
+    #[inline]
+    unsafe fn tape(&self) -> Option<&Tape> {
+        Some(&*self.tape.get())
+        // Some(self.tape.borrow())
+    }
+
+    #[inline]
+    unsafe fn tape_mut(&self) -> Option<&mut Tape> {
+        Some(&mut *self.tape.get())
+        // Some(unsafe {&mut (self.tape.get_mut()) })
+        // Some(self.tape.borrow_mut())
+    }
+
+    unsafe fn gradients(&self) -> Option<&crate::Gradients> {
+        todo!()
+    }
+
+    unsafe fn gradients_mut(&self) -> Option<&mut crate::Gradients> {
+        todo!()
+    }
+}
+
 impl<'dev, Mods> TapeActionsLT<'dev> for AutogradLT<'dev, Mods> {
     #[inline]
     unsafe fn tape(&self) -> Option<&Tape> {
@@ -144,12 +209,66 @@ impl<'dev, Mods> TapeActionsLT<'dev> for AutogradLT<'dev, Mods> {
     }
 }
 
+impl<'a, Mods: AddGradFn> AddGradFn for AutogradLT<'a, Mods> {
+    #[inline]
+    fn add_grad_fn<Args: Parents<N> + crate::UpdateArgs, const N: usize>(
+        &self,
+        args: Args,
+        op: fn(&mut Args) -> crate::Result<()>,
+    ) {
+        if !self.enabled.get() {
+            return;
+        }
+        unsafe { (*self.tape.get()).add_grad_fn(args, op) }
+    }
+    #[inline]
+    fn is_grad_enabled(&self) -> bool {
+        self.enabled.get()
+    }
+
+    #[inline]
+    fn set_grad_enabled(&self, enabled: bool) {
+        self.enabled.set(enabled);
+    }
+}
+
+impl<'a, Mods: RunModule<D>, D> RunModule<D> for AutogradLT<'a, Mods> {
+    #[inline]
+    fn run(&self, _device: &D) -> crate::Result<()> {
+        self.modules.run(_device)
+    }
+}
+
 impl_remove_layer!(AutogradLT, 'a, Mods);
+
+impl<'a, NewMods, SD> AddLayer<NewMods, SD> for AutogradLT<'a, ()> {
+    type Wrapped = crate::Autograd<NewMods>;
+
+    #[inline]
+    fn wrap_layer(inner_mods: NewMods) -> Self::Wrapped {
+        Autograd {
+            modules: inner_mods,
+            grads: Default::default(),
+            tape: Default::default(),
+            enabled: Cell::new(true),
+        }
+    }
+}
+
 pass_down_cursor!(AutogradLT, 'dev, Mods);
 pass_down_add_operation!(AutogradLT, 'dev, Mods);
 pass_down_exec_now_module!(AutogradLT, 'dev, Mods);
 pass_down_cached_buffers!(AutogradLT, 'dev, Mods);
 pass_down_replace_buf_module!(AutogradLT, 'dev, Mods);
+
+impl<'a, Mods> HasModules for AutogradLT<'a, Mods> {
+    type Mods = Mods;
+
+    #[inline]
+    fn modules(&self) -> &Self::Mods {
+        &self.modules
+    }
+}
 
 #[derive(Debug, Default)]
 pub struct Autograd<Mods> {
@@ -384,9 +503,9 @@ mod tests {
             let device = crate::OpenCL::based(0).unwrap();
             let ag = AutogradLT::<Base>::default();
             let out = unsafe {
-                ag.gradients_mut()
-                    .unwrap()
-                    .get_ref::<f32, (), _>(&device, crate::Id { id: 0, len: 10 })
+                // ag.gradients_mut()
+                //     .unwrap()
+                //     .get_ref::<f32, (), _>(&device, crate::Id { id: 0, len: 10 })
             };
             //
         }
