@@ -1,6 +1,26 @@
-use core::{any::TypeId, fmt};
+use core::{
+    any::{Any, TypeId},
+    fmt,
+};
 
 use crate::{Buffer, Device, Shape};
+
+pub trait Downcast {
+    fn downcast_mut<T: 'static>(&mut self) -> Option<&mut T>;
+    fn downcast_ref<T: 'static>(&self) -> Option<&T>;
+}
+
+impl Downcast for dyn Any {
+    #[inline]
+    fn downcast_mut<T: 'static>(&mut self) -> Option<&mut T> {
+        self.downcast_mut()
+    }
+
+    #[inline]
+    fn downcast_ref<T: 'static>(&self) -> Option<&T> {
+        self.downcast_ref()
+    }
+}
 
 pub trait AnyBuffer {
     fn type_id(&self) -> TypeId;
@@ -15,6 +35,18 @@ where
     #[inline]
     fn type_id(&self) -> TypeId {
         TypeId::of::<Buffer<T, D, S>>()
+    }
+}
+
+impl Downcast for dyn AnyBuffer {
+    #[inline]
+    fn downcast_mut<T: 'static>(&mut self) -> Option<&mut T> {
+        self.downcast_mut()
+    }
+
+    #[inline]
+    fn downcast_ref<T: 'static>(&self) -> Option<&T> {
+        self.downcast_ref()
     }
 }
 

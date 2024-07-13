@@ -1,6 +1,6 @@
 use crate::{
     bounds_to_range, op_hint::OpHint, AnyBuffer, AsAny, BoxedShallowCopy, Buffer, Buffers, Device,
-    HasId, Parents, Shape, UniqueId, UpdateArgs, UpdateArgsDynable,
+    Downcast, HasId, Parents, Shape, UniqueId, UpdateArgs, UpdateArgsDynable,
 };
 use core::{any::Any, cell::RefCell, marker::PhantomData, mem::transmute, ops::RangeBounds};
 use std::collections::{HashMap, HashSet};
@@ -9,10 +9,10 @@ use super::exec_iter::{exec_op, ExecIter};
 
 pub trait ArgsTest {}
 
-pub struct Operation2<'a> {
-    pub arg_ids: Vec<Option<UniqueId>>,
+pub struct Operation2<'a, B, T> {
     // pub op: fn(*mut ()) -> crate::Result<()>,
-    pub op3: Box<dyn Fn(&mut BorrowCache) -> crate::Result<()> + 'a>,
+    pub op: Box<dyn Fn(&mut Buffers<B>) -> crate::Result<()> + 'a>,
+    pub op_hint: OpHint<T>,
 }
 
 pub struct Operation<B, T> {
@@ -38,9 +38,7 @@ pub struct LazyGraph<B = Box<dyn BoxedShallowCopy>, T = ()> {
 }
 
 pub struct LazyGraph2<'a, B = Box<dyn BoxedShallowCopy>, T = ()> {
-    operations: Vec<Operation<B, T>>,
-    operations2: Vec<Operation2<'a>>,
-    buffers: BorrowCache,
+    operations: Vec<Operation2<'a, B, T>>,
 }
 
 impl<'a, B, T> Default for LazyGraph2<'a, B, T> {
@@ -48,24 +46,22 @@ impl<'a, B, T> Default for LazyGraph2<'a, B, T> {
     fn default() -> Self {
         Self {
             operations: Vec::new(),
-            operations2: Vec::new(),
-            buffers: BorrowCache::default(),
         }
     }
 }
 
-impl<'a, B, T> LazyGraph2<'a, B, T> {
+impl<'a, B: Downcast, T> LazyGraph2<'a, B, T> {
     #[inline]
-    pub fn test_run<D: Device>(&mut self, device: &'a D, buffers: &mut BorrowCache) {
-        for op in &self.operations2 {
-            (op.op3)(buffers).unwrap();
+    pub fn test_run<D: Device>(&mut self, device: &'a D, buffers: &mut Buffers<B>) {
+        for op in &self.operations {
+            (op.op)(buffers).unwrap();
         }
     }
 
-    pub fn convert_to_operation2<Args: Parents<N> + AnyOp, const N: usize>(
+    pub fn convert_to_operation<Args: Parents<N> + AnyOp, const N: usize>(
         args: Args,
         op: impl for<'b> Fn(Args::Replicated<'b>) -> crate::Result<()> + 'static,
-    ) -> Operation2<'a> {
+    ) -> Operation2<'a, B, T> {
         const { assert!(N > 0, "Size of parents must be greater than 0") };
 
         let mut seen_ids = HashSet::new();
@@ -91,22 +87,22 @@ impl<'a, B, T> LazyGraph2<'a, B, T> {
             panic!()
         }
 
-        let op: Box<dyn Fn(&mut BorrowCache) -> crate::Result<()>> =
-            Args::replication_fn(arg_ids, op);
+        let op: Box<dyn Fn(&mut Buffers<B>) -> crate::Result<()>> =
+            Args::replication_fn::<B>(arg_ids, op);
 
         Operation2 {
-            arg_ids: vec![],
-            op3: op,
+            op,
+            op_hint: OpHint::None,
         }
     }
 
-    pub fn add_operation2<Args: Parents<N> + AnyOp, const N: usize>(
+    pub fn add_operation<Args: Parents<N> + AnyOp, const N: usize>(
         &mut self,
         args: Args,
         op: impl for<'b> Fn(Args::Replicated<'b>) -> crate::Result<()> + 'static,
     ) {
-        let operation = Self::convert_to_operation2(args, op);
-        self.operations2.push(operation)
+        let operation = Self::convert_to_operation(args, op);
+        self.operations.push(operation)
     }
 }
 
@@ -126,10 +122,10 @@ pub struct X {
 pub trait AnyOp: Sized {
     type Replicated<'a>;
     // fn replication_fn(ids: Vec<crate::Id>, op: impl Fn(Self) -> crate::Result<()>) -> impl Fn(&mut BorrowCache) -> crate::Result<()>;
-    fn replication_fn(
+    fn replication_fn<B: Downcast>(
         ids: Vec<crate::Id>,
         op: impl for<'a> Fn(Self::Replicated<'a>) -> crate::Result<()> + 'static,
-    ) -> Box<dyn for<'i> Fn(&'i mut BorrowCache) -> crate::Result<()>>;
+    ) -> Box<dyn for<'i> Fn(&'i mut Buffers<B>) -> crate::Result<()>>;
 }
 
 type BorrowCache = HashMap<UniqueId, Box<dyn Any>>;
@@ -150,10 +146,10 @@ impl<'a, T: 'static, D: Device + 'static, S: crate::Shape> Replicate
 // }
 
 impl<R: HasId + Replicate> AnyOp for R {
-    fn replication_fn(
+    fn replication_fn<B: Downcast>(
         ids: Vec<crate::Id>,
         op: impl for<'a> Fn(Self::Replicated<'a>) -> crate::Result<()> + 'static,
-    ) -> Box<dyn Fn(&mut BorrowCache) -> crate::Result<()>> {
+    ) -> Box<dyn Fn(&mut Buffers<B>) -> crate::Result<()>> {
         let id = ids[0];
         Box::new(move |buffers| {
             let r1 = unsafe {
@@ -170,10 +166,10 @@ impl<R: HasId + Replicate> AnyOp for R {
 }
 
 impl<R1: HasId + Replicate, R2: HasId + Replicate> AnyOp for (R1, R2) {
-    fn replication_fn(
+    fn replication_fn<B: Downcast>(
         ids: Vec<crate::Id>,
         op: impl for<'a> Fn(Self::Replicated<'a>) -> crate::Result<()> + 'static,
-    ) -> Box<dyn Fn(&mut BorrowCache) -> crate::Result<()>> {
+    ) -> Box<dyn Fn(&mut Buffers<B>) -> crate::Result<()>> {
         let r1 = ids[0];
         let r2 = ids[1];
         Box::new(move |buffers| {
@@ -326,7 +322,7 @@ mod tests {
         {
             let device = CPU::<crate::Cached<Base>>::new();
             let mut buffers = HashMap::default();
-            let mut graph: LazyGraph2 = LazyGraph2::default();
+            let mut graph: LazyGraph2<Box<dyn core::any::Any>> = LazyGraph2::default();
             let lhs = device.buffer([1f32, 2., 3., 4., 5.]);
             let rhs = device.buffer([1f32, 2., 6., 4., 5.]);
 
@@ -335,7 +331,7 @@ mod tests {
 
             // buffers.insert(*lhs.id(), &lhs);
             // register_buf_any(cache, buf)
-            graph.add_operation2::<_, 1>(&lhs, |args| {
+            graph.add_operation::<_, 1>(&lhs, |args| {
                 println!("args: {args:?}");
 
                 // DEVICE2.set(args.device);
@@ -346,7 +342,7 @@ mod tests {
                 Ok(())
             });
 
-            graph.add_operation2::<_, 2>((&lhs, &rhs), |args| {
+            graph.add_operation::<_, 2>((&lhs, &rhs), |args| {
                 println!("args: {args:?}");
                 Ok(())
             });
