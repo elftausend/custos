@@ -1,6 +1,7 @@
 use crate::{
-    bounds_to_range, op_hint::OpHint, AnyBuffer, AsAny, BoxedShallowCopy, Buffer, Buffers, Device,
-    Downcast, HasId, Parents, Shape, UniqueId, UpdateArgs, UpdateArgsDynable,
+    bounds_to_range, modules::lazy::exec_iter::ExecIter2, op_hint::OpHint, AnyBuffer, AsAny,
+    BoxedShallowCopy, Buffer, Buffers, Device, Downcast, HasId, Parents, Shape, UniqueId,
+    UpdateArgs, UpdateArgsDynable,
 };
 use core::{any::Any, cell::RefCell, marker::PhantomData, mem::transmute, ops::RangeBounds};
 use std::collections::{HashMap, HashSet};
@@ -52,10 +53,38 @@ impl<'a, B, T> Default for LazyGraph2<'a, B, T> {
 
 impl<'a, B: Downcast, T> LazyGraph2<'a, B, T> {
     #[inline]
-    pub fn test_run<D: Device>(&mut self, device: &'a D, buffers: &mut Buffers<B>) {
-        for op in &self.operations {
-            (op.op)(buffers).unwrap();
+    pub fn iter_with<'b, D: Device>(
+        &'b mut self,
+        device: &'a D,
+        buffers: &'b mut Buffers<B>,
+    ) -> ExecIter2<'a, 'b, B, T> {
+        ExecIter2 {
+            operations: self.operations.iter(),
+            buffers,
         }
+    }
+    pub fn call_lazily<D: Device>(
+        &mut self,
+        device: &'a D,
+        buffers: &mut Buffers<B>,
+    ) -> crate::Result<()> {
+        for args in self.iter_with(device, buffers) {
+            args?;
+        }
+        Ok(())
+    }
+
+    pub fn call_range<D: Device + 'static>(
+        &mut self,
+        _device: &'a D,
+        bounds: impl RangeBounds<usize>,
+        buffers: &mut Buffers<B>,
+    ) -> crate::Result<()> {
+        let range = bounds_to_range(bounds, self.operations.len());
+        for op in self.operations.drain(range) {
+            (op.op)(buffers)?;
+        }
+        Ok(())
     }
 
     pub fn convert_to_operation<Args: Parents<N> + AnyOp, const N: usize>(
@@ -346,7 +375,7 @@ mod tests {
                 println!("args: {args:?}");
                 Ok(())
             });
-            graph.test_run(&device, &mut buffers);
+            graph.call_lazily(&device, &mut buffers).unwrap();
         };
         // let x = DEVICE2.get().unwrap();
         // println!("{:?}", x.modules.cache.borrow().nodes);
