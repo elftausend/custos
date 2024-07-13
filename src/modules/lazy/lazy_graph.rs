@@ -63,6 +63,12 @@ impl<'a, B: Downcast, T> LazyGraph2<'a, B, T> {
             buffers,
         }
     }
+
+    #[inline]
+    pub fn clear(&mut self) {
+        self.operations.clear();
+    }
+
     pub fn call_lazily<D: Device>(
         &mut self,
         device: &'a D,

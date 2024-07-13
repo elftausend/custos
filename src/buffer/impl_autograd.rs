@@ -113,7 +113,7 @@ where
         // should never be None
         if let Some(tape) = unsafe { self.device().tape_mut() } {
             let mut buffers = unsafe { self.device().buffers_mut() };
-            tape.backward_seeded_maybe_with_buffers_lt(self, seed, buffers.as_deref_mut())
+            tape.backward_seeded_maybe_with_buffers(self, seed, buffers.as_deref_mut())
         }
     }
 }
