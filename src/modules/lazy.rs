@@ -214,15 +214,31 @@ where
 impl<Mods: crate::HasAutograd, T> crate::HasAutograd for Lazy<Mods, T> {}
 
 #[cfg(feature = "autograd")]
-impl<Mods: crate::TapeActions, T> crate::TapeActions for Lazy<Mods, T> {
-    #[inline]
-    unsafe fn tape(&self) -> Option<&crate::Tape> {
-        self.modules.tape()
+impl<Mods: crate::GradActions, U> crate::GradActions for Lazy<Mods, U> {
+    unsafe fn grad<
+        'a,
+        T: 'static,
+        D: Device + Alloc<T> + crate::ZeroGrad<T> + 'static,
+        S: Shape,
+    >(
+        &self,
+        device: &'a D,
+        buf: &Buffer<'a, T, D, S>,
+    ) -> &Buffer<'a, T, D, S> {
+        self.modules.grad(device, buf)
     }
 
-    #[inline]
-    unsafe fn tape_mut(&self) -> Option<&mut crate::Tape> {
-        self.modules.tape_mut()
+    unsafe fn grad_mut<
+        'a,
+        T: 'static,
+        D: Device + Alloc<T> + crate::ZeroGrad<T> + 'static,
+        S: Shape,
+    >(
+        &self,
+        device: &'a D,
+        buf: &Buffer<'a, T, D, S>,
+    ) -> &mut Buffer<'a, T, D, S> {
+        self.modules.grad_mut(device, buf)
     }
 
     #[inline]
@@ -236,6 +252,19 @@ impl<Mods: crate::TapeActions, T> crate::TapeActions for Lazy<Mods, T> {
     }
 }
 
+#[cfg(feature = "autograd")]
+impl<Mods: crate::TapeActions, T> crate::TapeActions for Lazy<Mods, T> {
+    #[inline]
+    unsafe fn tape(&self) -> Option<&crate::Tape> {
+        self.modules.tape()
+    }
+
+    #[inline]
+    unsafe fn tape_mut(&self) -> Option<&mut crate::Tape> {
+        self.modules.tape_mut()
+    }
+}
+
 impl<T, Mods: crate::AddGradFn> crate::AddGradFn for Lazy<Mods, T> {
     #[inline]
     fn add_grad_fn<Args: crate::Parents<N> + crate::UpdateArgs, const N: usize>(
@@ -244,6 +273,15 @@ impl<T, Mods: crate::AddGradFn> crate::AddGradFn for Lazy<Mods, T> {
         op: fn(&mut Args) -> crate::Result<()>,
     ) {
         self.modules.add_grad_fn(args, op)
+    }
+
+    #[inline]
+    fn add_grad_fn2<Args: Parents<N> + AnyOp, const N: usize>(
+        &self,
+        args: Args,
+        op: impl for<'b> Fn(Args::Replicated<'b>) -> crate::Result<()> + 'static,
+    ) {
+        self.modules.add_grad_fn2(args, op)
     }
 
     #[inline]

@@ -158,11 +158,45 @@ impl AddGradFn for Base {
     ) {
     }
 
+    fn add_grad_fn2<Args: Parents<N> + crate::AnyOp, const N: usize>(
+        &self,
+        _args: Args,
+        _op: impl for<'b> Fn(Args::Replicated<'b>) -> crate::Result<()> + 'static,
+    ) {
+    }
+
     fn set_grad_enabled(&self, _enabled: bool) {}
 }
 
 #[cfg(feature = "autograd")]
 impl crate::TapeActions for Base {}
+impl crate::GradActions for Base {
+    unsafe fn grad<
+        'a,
+        T: 'static,
+        D: Device + Alloc<T> + crate::ZeroGrad<T> + 'static,
+        S: Shape,
+    >(
+        &self,
+        _device: &'a D,
+        _buf: &crate::Buffer<'a, T, D, S>,
+    ) -> &crate::Buffer<'a, T, D, S> {
+        unimplemented!()
+    }
+
+    unsafe fn grad_mut<
+        'a,
+        T: 'static,
+        D: Device + Alloc<T> + crate::ZeroGrad<T> + 'static,
+        S: Shape,
+    >(
+        &self,
+        _device: &'a D,
+        _buf: &crate::Buffer<'a, T, D, S>,
+    ) -> &mut crate::Buffer<'a, T, D, S> {
+        unimplemented!()
+    }
+}
 
 #[cfg(feature = "autograd")]
 impl<'a> crate::TapeActionsLT<'a> for Base {}

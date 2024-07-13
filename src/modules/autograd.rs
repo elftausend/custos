@@ -10,9 +10,9 @@ use core::cell::{Cell, UnsafeCell};
 use crate::{
     impl_remove_layer, pass_down_add_operation, pass_down_cached_buffers, pass_down_cursor,
     pass_down_exec_now_module, pass_down_replace_buf_module, register_buf_copyable,
-    unregister_buf_copyable, AddGradFn, AddLayer, Alloc, Buffer, Device, HasId, HasModules,
-    IsShapeIndep, Module, OnDropBuffer, OnNewBuffer, Parents, Retrieve, RunModule, Setup,
-    ShallowCopy, Shape, TapeActions, TapeActionsLT, Unit,
+    unregister_buf_copyable, AddGradFn, AddLayer, Alloc, Buffer, Device, GradActions, HasId,
+    HasModules, IsShapeIndep, Module, OnDropBuffer, OnNewBuffer, Parents, Retrieve, RunModule,
+    Setup, ShallowCopy, Shape, TapeActions, TapeActionsLT, Unit,
 };
 
 use self::wrapper::ReqGradWrapper;
@@ -24,9 +24,9 @@ impl<'a, Mods> HasAutograd for Autograd<'a, Mods> {}
 pub struct Autograd<'dev, Mods> {
     pub modules: Mods,
     /// Caches gradients for each [`Buffer`]'s id ([`Ident`]).
-    pub grads: UnsafeCell<GradientsLT<'dev>>, // could use RefCell
+    pub grads: UnsafeCell<Gradients>, // could use RefCell
     pub(crate) no_grads_pool: core::cell::RefCell<crate::BorrowCacheLT<'dev>>,
-    tape: UnsafeCell<Tape>,
+    tape: UnsafeCell<TapeLT<'dev>>,
     pub enabled: Cell<bool>,
 }
 
@@ -164,47 +164,66 @@ where
 impl<'a, Mods> TapeActions for Autograd<'a, Mods> {
     #[inline]
     unsafe fn tape(&self) -> Option<&Tape> {
-        Some(&*self.tape.get())
+        todo!()
         // Some(self.tape.borrow())
     }
 
     #[inline]
     unsafe fn tape_mut(&self) -> Option<&mut Tape> {
-        Some(&mut *self.tape.get())
+        todo!()
         // Some(unsafe {&mut (self.tape.get_mut()) })
         // Some(self.tape.borrow_mut())
     }
+}
 
+impl<'dev, Mods> GradActions for Autograd<'dev, Mods> {
     unsafe fn gradients(&self) -> Option<&crate::Gradients> {
-        todo!()
+        Some(unsafe { &(*self.grads.get()) })
     }
 
     unsafe fn gradients_mut(&self) -> Option<&mut crate::Gradients> {
-        todo!()
+        Some(unsafe { &mut (*self.grads.get()) })
+    }
+
+    unsafe fn grad<
+        'a,
+        T: 'static,
+        D: Device + Alloc<T> + crate::ZeroGrad<T> + 'static,
+        S: Shape,
+    >(
+        &self,
+        device: &'a D,
+        buf: &Buffer<'a, T, D, S>,
+    ) -> &Buffer<'a, T, D, S> {
+        unsafe { (*self.grads.get()).get_ref(device, buf.id()) }
+    }
+
+    unsafe fn grad_mut<
+        'a,
+        T: 'static,
+        D: Device + Alloc<T> + crate::ZeroGrad<T> + 'static,
+        S: Shape,
+    >(
+        &self,
+        device: &'a D,
+        buf: &Buffer<'a, T, D, S>,
+    ) -> &mut Buffer<'a, T, D, S> {
+        unsafe { (*self.grads.get()).get_mut(device, buf.id()) }
     }
 }
 
 impl<'dev, Mods> TapeActionsLT<'dev> for Autograd<'dev, Mods> {
     #[inline]
-    unsafe fn tape(&self) -> Option<&Tape> {
+    unsafe fn tape(&self) -> Option<&TapeLT<'dev>> {
         Some(&*self.tape.get())
         // Some(self.tape.borrow())
     }
 
     #[inline]
-    unsafe fn tape_mut(&self) -> Option<&mut Tape> {
+    unsafe fn tape_mut(&self) -> Option<&mut TapeLT<'dev>> {
         Some(&mut *self.tape.get())
         // Some(unsafe {&mut (self.tape.get_mut()) })
         // Some(self.tape.borrow_mut())
-    }
-
-    unsafe fn gradients(&self) -> Option<&crate::GradientsLT<'dev>> {
-        Some(&*self.grads.get())
-    }
-
-    unsafe fn gradients_mut(&self) -> Option<&mut crate::GradientsLT<'dev>> {
-        // todo!()
-        Some(&mut *self.grads.get())
     }
 }
 
@@ -215,19 +234,27 @@ impl<'a, Mods: AddGradFn> AddGradFn for Autograd<'a, Mods> {
         args: Args,
         op: fn(&mut Args) -> crate::Result<()>,
     ) {
+        todo!()
+    }
+    fn add_grad_fn2<Args: Parents<N> + crate::AnyOp, const N: usize>(
+        &self,
+        args: Args,
+        op: impl for<'b> Fn(Args::Replicated<'b>) -> crate::Result<()> + 'static,
+    ) {
         if !self.enabled.get() {
             return;
         }
         unsafe { (*self.tape.get()).add_grad_fn(args, op) }
     }
-    #[inline]
-    fn is_grad_enabled(&self) -> bool {
-        self.enabled.get()
-    }
 
     #[inline]
     fn set_grad_enabled(&self, enabled: bool) {
         self.enabled.set(enabled);
+    }
+
+    #[inline]
+    fn is_grad_enabled(&self) -> bool {
+        self.enabled.get()
     }
 }
 

@@ -186,15 +186,46 @@ impl<Mods, SD: Device> Cursor for CachedModule<Mods, SD> {
 impl<Mods: crate::HasAutograd, SD: Device> crate::HasAutograd for CachedModule<Mods, SD> {}
 
 #[cfg(feature = "autograd")]
-impl<Mods: crate::TapeActions, SD: Device> crate::TapeActions for CachedModule<Mods, SD> {
+impl<'dev, Mods: crate::TapeActionsLT<'dev>, SD: Device> crate::TapeActionsLT<'dev>
+    for CachedModule<Mods, SD>
+{
     #[inline]
-    unsafe fn tape(&self) -> Option<&super::Tape> {
+    unsafe fn tape(&self) -> Option<&super::TapeLT<'dev>> {
         self.modules.tape()
     }
 
     #[inline]
-    unsafe fn tape_mut(&self) -> Option<&mut super::Tape> {
+    unsafe fn tape_mut(&self) -> Option<&mut super::TapeLT<'dev>> {
         self.modules.tape_mut()
+    }
+}
+
+#[cfg(feature = "autograd")]
+impl<Mods: crate::GradActions, SD: Device> crate::GradActions for CachedModule<Mods, SD> {
+    unsafe fn grad<
+        'a,
+        T: 'static,
+        D: Device + Alloc<T> + crate::ZeroGrad<T> + 'static,
+        S: Shape,
+    >(
+        &self,
+        device: &'a D,
+        buf: &Buffer<'a, T, D, S>,
+    ) -> &Buffer<'a, T, D, S> {
+        self.modules.grad(device, buf)
+    }
+
+    unsafe fn grad_mut<
+        'a,
+        T: 'static,
+        D: Device + Alloc<T> + crate::ZeroGrad<T> + 'static,
+        S: Shape,
+    >(
+        &self,
+        device: &'a D,
+        buf: &Buffer<'a, T, D, S>,
+    ) -> &mut Buffer<'a, T, D, S> {
+        self.modules.grad_mut(device, buf)
     }
 
     #[inline]
@@ -205,6 +236,19 @@ impl<Mods: crate::TapeActions, SD: Device> crate::TapeActions for CachedModule<M
     #[inline]
     unsafe fn gradients_mut(&self) -> Option<&mut crate::Gradients> {
         self.modules.gradients_mut()
+    }
+}
+
+#[cfg(feature = "autograd")]
+impl<Mods: crate::TapeActions, SD: Device> crate::TapeActions for CachedModule<Mods, SD> {
+    #[inline]
+    unsafe fn tape(&self) -> Option<&super::Tape> {
+        self.modules.tape()
+    }
+
+    #[inline]
+    unsafe fn tape_mut(&self) -> Option<&mut super::Tape> {
+        self.modules.tape_mut()
     }
 }
 
@@ -237,6 +281,15 @@ impl<Mods: AddGradFn, D: Device> AddGradFn for CachedModule<Mods, D> {
         op: fn(&mut Args) -> crate::Result<()>,
     ) {
         self.modules.add_grad_fn(args, op)
+    }
+
+    #[inline]
+    fn add_grad_fn2<Args: Parents<N> + crate::AnyOp, const N: usize>(
+        &self,
+        args: Args,
+        op: impl for<'b> Fn(Args::Replicated<'b>) -> crate::Result<()> + 'static,
+    ) {
+        self.modules.add_grad_fn2(args, op)
     }
 
     #[inline]

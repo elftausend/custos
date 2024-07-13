@@ -203,6 +203,11 @@ pub trait DevicelessAble<'a, T: Unit, S: Shape = ()>: Alloc<T> {}
 /// If the `autograd` feature is enabled, then this will be implemented for all types that implement [`TapeActions`].
 /// On the other hand, if the `autograd` feature is disabled, no [`Tape`] will be returneable.
 #[cfg(feature = "autograd")]
+pub trait MayGradActions: GradActions {}
+#[cfg(feature = "autograd")]
+impl<D: crate::GradActions> MayGradActions for D {}
+
+#[cfg(feature = "autograd")]
 pub trait MayTapeActions: TapeActions {}
 #[cfg(feature = "autograd")]
 impl<D: crate::TapeActions> MayTapeActions for D {}
@@ -220,6 +225,11 @@ impl<'a, D: crate::TapeActionsLT<'a>> MayTapeActionsLT<'a> for D {}
 pub trait MayTapeActions {}
 #[cfg(not(feature = "autograd"))]
 impl<D> MayTapeActions for D {}
+
+#[cfg(not(feature = "autograd"))]
+pub trait MayGradActions {}
+#[cfg(not(feature = "autograd"))]
+impl<D> MayGradActions for D {}
 
 /// If the OpenCL device selected by the environment variable `CUSTOS_CL_DEVICE_IDX` supports unified memory, then this will be `true`.
 /// In your case, this is `false`.

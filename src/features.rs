@@ -7,7 +7,7 @@ use core::{cell::RefMut, fmt::Debug, ops::RangeBounds};
 use crate::{
     op_hint::OpHint,
     range::{AsRange, CursorRange},
-    HasId, Parents, Shape, UniqueId, Unit, UpdateArgs, CPU,
+    AnyOp, HasId, Parents, Shape, UniqueId, Unit, UpdateArgs, ZeroGrad, CPU,
 };
 
 #[cfg(feature = "cached")]
@@ -125,11 +125,41 @@ pub trait HasModules {
     fn modules(&self) -> &Self::Mods;
 }
 
+pub trait GradActions {
+    #[inline]
+    unsafe fn gradients(&self) -> Option<&crate::Gradients> {
+        None
+    }
+
+    #[inline]
+    unsafe fn gradients_mut(&self) -> Option<&mut crate::Gradients> {
+        None
+    }
+    unsafe fn grad<'a, T: 'static, D: Device + Alloc<T> + ZeroGrad<T> + 'static, S: Shape>(
+        &self,
+        device: &'a D,
+        buf: &Buffer<'a, T, D, S>,
+    ) -> &Buffer<'a, T, D, S>;
+
+    #[allow(clippy::mut_from_ref)]
+    unsafe fn grad_mut<'a, T: 'static, D: Device + Alloc<T> + ZeroGrad<T> + 'static, S: Shape>(
+        &self,
+        device: &'a D,
+        buf: &Buffer<'a, T, D, S>,
+    ) -> &mut Buffer<'a, T, D, S>;
+}
+
 pub trait AddGradFn {
     fn add_grad_fn<Args: Parents<N> + UpdateArgs, const N: usize>(
         &self,
         args: Args,
         op: fn(&mut Args) -> crate::Result<()>,
+    );
+
+    fn add_grad_fn2<Args: Parents<N> + AnyOp, const N: usize>(
+        &self,
+        args: Args,
+        op: impl for<'b> Fn(Args::Replicated<'b>) -> crate::Result<()> + 'static,
     );
 
     fn add_grad_and_forward_fn<Args: Parents<N> + UpdateArgs + Clone, const N: usize>(
@@ -192,6 +222,34 @@ pub trait AddGradFn {
 #[macro_export]
 macro_rules! pass_down_grad_fn {
     ($to_impl:ident, $($generics:tt),*) => {
+        impl<'dev, Mods: $crate::GradActions> $crate::GradActions for $to_impl<$($generics),*> {
+            unsafe fn grad<'a, T: 'static, D: Device + $crate::Alloc<T> + $crate::ZeroGrad<T> + 'static, S: Shape>(
+                &self,
+                device: &'a D,
+                buf: &Buffer<'a, T, D, S>,
+            ) -> &Buffer<'a, T, D, S> {
+                self.modules.grad(device, buf)
+            }
+
+            unsafe fn grad_mut<'a, T: 'static, D: Device + $crate::Alloc<T> + $crate::ZeroGrad<T> + 'static, S: Shape>(
+                &self,
+                device: &'a D,
+                buf: &Buffer<'a, T, D, S>,
+            ) -> &mut Buffer<'a, T, D, S> {
+                self.modules.grad_mut(device, buf)
+            }
+
+            #[inline]
+            unsafe fn gradients(&self) -> Option<&$crate::Gradients> {
+                self.modules.gradients()
+            }
+
+            #[inline]
+            unsafe fn gradients_mut(&self) -> Option<&mut $crate::Gradients> {
+                self.modules.gradients_mut()
+            }
+
+        }
         impl<'dev, Mods: $crate::AddGradFn> $crate::AddGradFn for $to_impl<$($generics),*> {
             #[inline]
             fn add_grad_fn<Args: $crate::Parents<N> + $crate::UpdateArgs, const N: usize>(
@@ -200,6 +258,14 @@ macro_rules! pass_down_grad_fn {
                 op: fn(&mut Args) -> $crate::Result<()>,
             ) {
                 self.modules.add_grad_fn(args, op)
+            }
+
+            fn add_grad_fn2<Args: $crate::Parents<N> + $crate::AnyOp, const N: usize>(
+                &self,
+                args: Args,
+                op: impl for<'b> Fn(Args::Replicated<'b>) -> $crate::Result<()> + 'static,
+            ) {
+                self.modules.add_grad_fn2(args, op);
             }
 
             #[inline]
@@ -222,22 +288,12 @@ macro_rules! pass_down_grad_fn {
 pub trait TapeActionsLT<'dev> {
     // "generator" - do not forget to pass down
     #[inline]
-    unsafe fn tape(&self) -> Option<&crate::Tape> {
+    unsafe fn tape(&self) -> Option<&crate::TapeLT<'dev>> {
         None
     }
     // "generator" - do not forget to pass down
     #[inline]
-    unsafe fn tape_mut(&self) -> Option<&mut crate::Tape> {
-        None
-    }
-
-    #[inline]
-    unsafe fn gradients(&self) -> Option<&crate::GradientsLT<'dev>> {
-        None
-    }
-
-    #[inline]
-    unsafe fn gradients_mut(&self) -> Option<&mut crate::GradientsLT<'dev>> {
+    unsafe fn tape_mut(&self) -> Option<&mut crate::TapeLT<'dev>> {
         None
     }
 }
@@ -252,16 +308,6 @@ pub trait TapeActions {
     // "generator" - do not forget to pass down
     #[inline]
     unsafe fn tape_mut(&self) -> Option<&mut crate::Tape> {
-        None
-    }
-
-    #[inline]
-    unsafe fn gradients(&self) -> Option<&crate::Gradients> {
-        None
-    }
-
-    #[inline]
-    unsafe fn gradients_mut(&self) -> Option<&mut crate::Gradients> {
         None
     }
 }
@@ -279,23 +325,13 @@ macro_rules! pass_down_tape_actions {
             Self: 'dev
         {
             #[inline]
-            unsafe fn tape(&self) -> Option<&$crate::Tape> {
+            unsafe fn tape(&self) -> Option<&$crate::TapeLT<'dev>> {
                 self.modules.tape()
             }
 
             #[inline]
-            unsafe fn tape_mut(&self) -> Option<&mut $crate::Tape> {
+            unsafe fn tape_mut(&self) -> Option<&mut $crate::TapeLT<'dev>> {
                 self.modules.tape_mut()
-            }
-
-            #[inline]
-            unsafe fn gradients(&self) -> Option<&$crate::GradientsLT<'dev>> {
-                self.modules.gradients()
-            }
-
-            #[inline]
-            unsafe fn gradients_mut(&self) -> Option<&mut $crate::GradientsLT<'dev>> {
-                self.modules.gradients_mut()
             }
         }
 
@@ -309,16 +345,6 @@ macro_rules! pass_down_tape_actions {
             #[inline]
             unsafe fn tape_mut(&self) -> Option<&mut $crate::Tape> {
                 self.modules.tape_mut()
-            }
-
-            #[inline]
-            unsafe fn gradients(&self) -> Option<&$crate::Gradients> {
-                self.modules.gradients()
-            }
-
-            #[inline]
-            unsafe fn gradients_mut(&self) -> Option<&mut $crate::Gradients> {
-                self.modules.gradients_mut()
             }
         }
     };

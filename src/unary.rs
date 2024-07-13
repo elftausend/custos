@@ -1,6 +1,7 @@
 use crate::{
-    AddGradFn, AddOperation, Alloc, AsNoId, Buffer, Device, Eval, HasId, MayTapeActions,
-    MayToCLSource, Resolve, Shape, TwoWay, Unit, ZeroGrad,
+    AddGradFn, AddOperation, Alloc, AsNoId, Buffer, Device, Eval, GradActions, HasId,
+    MayGradActions, MayTapeActions, MayTapeActionsLT, MayToCLSource, Resolve, Shape, TwoWay, Unit,
+    ZeroGrad,
 };
 
 /// Applies a function to a buffer and returns a new buffer.
@@ -92,12 +93,22 @@ pub trait UnaryElementWiseMayGrad<T: Unit, D: Device, S: Shape>: Device {
     where
         FO: TwoWay<T>,
         GO: Eval<T> + MayToCLSource + 'static;
+
+    fn unary_ew2<FO, GO>(
+        &self,
+        buf: &Buffer<T, D, S>,
+        forward_fn: impl Fn(Resolve<T>) -> FO + Copy + 'static,
+        grad_fn: fn(Resolve<T>) -> GO,
+    ) -> Buffer<T, Self, S>
+    where
+        FO: TwoWay<T>,
+        GO: Eval<T> + MayToCLSource + 'static;
 }
 
 impl<T, D, S> UnaryElementWiseMayGrad<T, D, S> for D
 where
     T: Unit + 'static,
-    D: AddGradFn + ApplyFunction<T, S, D> + UnaryGrad<T, S, D> + MayTapeActions + AddOperation,
+    D: AddGradFn + ApplyFunction<T, S, D> + UnaryGrad<T, S, D> + AddOperation + MayGradActions,
     // D::Data<T, S>: crate::ShallowCopy,
     D: Alloc<T> + ZeroGrad<T> + 'static,
     S: Shape,
@@ -139,6 +150,27 @@ where
 
         out
     }
+
+    fn unary_ew2<FO, GO>(
+        &self,
+        buf: &Buffer<T, D, S>,
+        forward_fn: impl Fn(Resolve<T>) -> FO + Copy + 'static,
+        grad_fn: fn(Resolve<T>) -> GO,
+    ) -> Buffer<T, Self, S>
+    where
+        FO: TwoWay<T>,
+        GO: Eval<T> + MayToCLSource + 'static,
+    {
+        let out = self.apply_fn(buf, forward_fn);
+
+        self.add_grad_fn2((buf, &out), |(buf, out)| {
+            // buf.grad_lt();
+            out.len();
+            Ok(())
+        });
+
+        out
+    }
 }
 
 #[cfg(test)]
@@ -173,6 +205,7 @@ mod tests {
         D: 'static
             + crate::WriteBuf<f32>
             + crate::Read<f32>
+            + crate::GradActions
             + crate::TapeActions
             + crate::HasAutograd
             + crate::UnaryElementWiseMayGrad<f32, D, ()>
