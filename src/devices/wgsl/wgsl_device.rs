@@ -101,8 +101,8 @@ impl<D: Device, Mods: OnDropBuffer> OnDropBuffer for Wgsl<D, Mods> {
     }
 }
 
-impl<'dev, D: Device, Mods: OnNewBuffer<'dev, T, D1, S>, T: Unit, D1: Device, S: Shape> OnNewBuffer<'dev, T, D1, S>
-    for Wgsl<D, Mods>
+impl<'dev, D: Device, Mods: OnNewBuffer<'dev, T, D1, S>, T: Unit, D1: Device, S: Shape>
+    OnNewBuffer<'dev, T, D1, S> for Wgsl<D, Mods>
 {
     #[inline]
     fn on_new_buffer(&self, device: &'dev D1, new_buf: &crate::Buffer<'dev, T, D1, S>) {

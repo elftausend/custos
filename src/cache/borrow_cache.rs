@@ -49,7 +49,9 @@ pub struct BorrowCacheLT<'a> {
 
 impl<'a> Debug for BorrowCacheLT<'a> {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        f.debug_struct("BorrowCacheLT").field("cache", &"...".to_string()).finish()
+        f.debug_struct("BorrowCacheLT")
+            .field("cache", &"...".to_string())
+            .finish()
     }
 }
 

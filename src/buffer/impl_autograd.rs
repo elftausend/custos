@@ -8,6 +8,46 @@ use crate::ZeroGrad;
 #[cfg(feature = "autograd")]
 const AUTOGRAD_NOT_AVAILABLE: &str = "Autograd<> is not available.";
 
+pub trait Grad<'dev, T, D: Device, S: Shape> {
+    fn grad1(&self) -> &Buffer<'dev, T, D, S>;
+    fn grad_mut1(&mut self) -> &mut Buffer<'dev, T, D, S>;
+}
+
+impl<'dev, T, D, S> Grad<'dev, T, D, S> for Buffer<'dev, T, D, S>
+where
+    T: 'static,
+    D: Device + 'static + TapeActionsLT<'dev> + Alloc<T> + ZeroGrad<T>,
+    S: Shape,
+{
+    fn grad1(&self) -> &Buffer<'dev, T, D, S> {
+        // TODO: consider activating this check ->
+        // e.g. binary grad ops are computed in a single function where differentiating between
+        // req grad and no req grad is not possible/ difficult
+        // assert!(self.requires_grad(), "Buffer does not require gradient.");
+        unsafe {
+            self.device()
+                .gradients_mut()
+                .expect(AUTOGRAD_NOT_AVAILABLE)
+                // .grads
+                .get_ref(self.device(), self.id())
+        }
+    }
+
+    fn grad_mut1(&mut self) -> &mut Buffer<'dev, T, D, S> {
+        // TODO: consider activating this check ->
+        // e.g. binary grad ops are computed in a single function where differentiating between
+        // req grad and no req grad is not possible/ difficult
+        // assert!(self.requires_grad(), "Buffer does not require gradient.");
+        unsafe {
+            self.device()
+                .gradients_mut()
+                .expect(AUTOGRAD_NOT_AVAILABLE)
+                // .grads
+                .get_mut(self.device(), self.id())
+        }
+    }
+}
+
 #[cfg(feature = "autograd")]
 impl<'a, T, D, S> Buffer<'a, T, D, S>
 where
@@ -228,7 +268,7 @@ mod tests {
     #[cfg(feature = "autograd")]
     #[test]
     fn test_multiple_grad_mut() {
-        use crate::{Autograd,  Base, Cached, Device, CPU};
+        use crate::{Autograd, Base, Cached, Device, CPU};
 
         let device = CPU::<Autograd<Cached<Base>>>::new();
         let mut buf = device.buffer([1, 2, 3, 4]);

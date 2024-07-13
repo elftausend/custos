@@ -538,7 +538,7 @@ macro_rules! pass_down_unified_mem_chain {
             }
         }
     };
-    
+
     ($to_impl:ident) => {
         $crate::pass_down_unified_mem_chain!($to_impl, Mods);
     };

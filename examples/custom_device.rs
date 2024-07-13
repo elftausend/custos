@@ -5,7 +5,8 @@ use std::{
 };
 
 use custos::{
-    AddOperation, Alloc, Autograd, Base, BorrowCacheLT, Buffer, Cached, Device, HasId, Id, Module, OnDropBuffer, OnNewBuffer, PtrType, Retrieve, Retriever, Shape, Unit, WrappedData, CPU
+    AddOperation, Alloc, Base, BorrowCacheLT, Buffer, Cached, CachedModule, Device, HasId, Id,
+    Module, OnDropBuffer, OnNewBuffer, PtrType, Retrieve, Retriever, Shape, Unit, WrappedData, CPU,
 };
 
 pub trait Str {
@@ -84,8 +85,9 @@ impl<'a, Mods> Autograd<'a, Mods> {
     }
 }
 pub trait GradActions<'dev, D: Device> {
-    fn get_grad<T, S>(&self, for_buf_id: Id) -> &Buffer<'dev, T, D, S>
+    fn get_grad<T, S>(&self, device: &'dev D, for_buf_id: Id) -> &Buffer<'dev, T, D, S>
     where
+        D: Alloc<T>,
         T: 'static,
         S: Shape;
 
@@ -95,12 +97,13 @@ pub trait GradActions<'dev, D: Device> {
         T: 'static,
         S: Shape;
 
-    fn grad<T, S>(&self, for_buf: &Buffer<'_, T, D, S>) -> &Buffer<'dev, T, D, S>
+    fn grad<T, S>(&self, device: &'dev D, for_buf: &Buffer<'_, T, D, S>) -> &Buffer<'dev, T, D, S>
     where
         T: 'static,
+        D: Alloc<T>,
         S: Shape,
     {
-        self.get_grad(for_buf.id())
+        self.get_grad(device, for_buf.id())
     }
 
     fn grad_mut<'b, T, S>(
@@ -117,11 +120,14 @@ pub trait GradActions<'dev, D: Device> {
 }
 
 impl<'dev, Mods, D: Device + 'static> GradActions<'dev, D> for Autograd<'dev, Mods> {
-    fn get_grad<'a, T, S>(&'a self, for_buf_id: Id) -> &'a Buffer<'dev, T, D, S>
+    fn get_grad<'a, T, S>(&'a self, device: &'dev D, for_buf_id: Id) -> &'a Buffer<'dev, T, D, S>
     where
+        D: Alloc<T>,
         T: 'static,
         S: Shape,
     {
+        let mut new_buf = false;
+        unsafe { (*self._cache.get()).add_buf_once::<T, D, S>(device, for_buf_id, &mut new_buf) };
         unsafe { (*self._cache.get()).get_buf(for_buf_id) }.unwrap()
     }
 
@@ -138,12 +144,16 @@ impl<'dev, Mods: OnDropBuffer + GradActions<'dev, Self>> GradActions<'dev, Self>
 where
     Self: 'dev,
 {
-    fn get_grad<'a, T, S>(&'a self, for_buf_id: Id) -> &'a Buffer<'dev, T, Self, S>
+    fn get_grad<'a, T, S>(
+        &'a self,
+        device: &'dev Self,
+        for_buf_id: Id,
+    ) -> &'a Buffer<'dev, T, Self, S>
     where
         T: 'static,
         S: Shape,
     {
-        self.modules.get_grad(for_buf_id)
+        self.modules.get_grad(device, for_buf_id)
     }
 
     unsafe fn get_grad_mut<'b, T, S>(&'b self, for_buf_id: Id) -> &'b mut Buffer<'dev, T, Self, S>
@@ -171,7 +181,8 @@ impl<'a, D: 'a, Mods: Module<'a, D>> Module<'a, D> for Autograd<'a, Mods> {
     }
 }
 
-impl<'a, 'b, T, D, S, Mods: OnNewBuffer<'a, T, D, S>> OnNewBuffer<'b, T, D, S> for Autograd<'a, Mods>
+impl<'a, 'b, T, D, S, Mods: OnNewBuffer<'a, T, D, S>> OnNewBuffer<'b, T, D, S>
+    for Autograd<'b, Mods>
 where
     D: Device,
     S: Shape,
@@ -208,20 +219,19 @@ impl<'a, Mods: WrappedData> WrappedData for Autograd<'a, Mods> {
     }
 }
 
-
 pub trait Grad<'dev, T, D: Device, S: Shape> {
     fn grad1(&self) -> &Buffer<'dev, T, D, S>;
     fn grad_mut1(&mut self) -> &mut Buffer<'dev, T, D, S>;
 }
 
-impl<'dev, T, D, S> Grad<'dev, T, D, S> for Buffer<'_, T, D, S>
+impl<'dev, T, D, S> Grad<'dev, T, D, S> for Buffer<'dev, T, D, S>
 where
     T: 'static,
-    D: Device + 'static + GradActions<'dev, D>,
+    D: Device + 'static + GradActions<'dev, D> + Alloc<T>,
     S: Shape,
 {
     fn grad1(&self) -> &Buffer<'dev, T, D, S> {
-        self.device().get_grad(self.id())
+        self.device().get_grad(self.device(), self.id())
     }
 
     fn grad_mut1(&mut self) -> &mut Buffer<'dev, T, D, S> {
@@ -238,7 +248,11 @@ impl<'dev, T, S, Mods> AddBuf<'dev, T, S, Self> for CPU<Mods>
 where
     T: Unit + Copy + AddAssign + 'static,
     S: Shape,
-    Mods: 'static + GradActions<'dev, Self> + OnDropBuffer + AddOperation + Retrieve<Self, T, S>,
+    Mods: 'static
+        + for<'d> GradActions<'d, Self>
+        + OnDropBuffer
+        + AddOperation
+        + Retrieve<Self, T, S>,
 {
     fn add(
         &self,
@@ -248,9 +262,11 @@ where
         let out = self.retrieve(lhs.len, (&*lhs, &*rhs)).unwrap();
 
         // lazy fn not grad fn -> wurscht
-        self.add_op((lhs, rhs, &out), |(lhs, rhs, out)| {
-            add_ew_grad_slice(lhs.grad_mut1(), out.grad1());
-            add_ew_grad_slice(rhs.grad_mut1(), out.grad1());
+        self.add_op((lhs, rhs /*&out*/), |(lhs, rhs /*out*/)| {
+            lhs.grad_mut1();
+            rhs.grad1();
+            // add_ew_grad_slice(lhs.grad_mut1(), out.grad1());
+            // add_ew_grad_slice(rhs.grad_mut1(), out.grad1());
             Ok(())
         })
         .unwrap();
@@ -259,7 +275,8 @@ where
     }
 
     fn test<'a>(&self, lhs: &'a Buffer<'_, T, Self, S>) -> &'a Buffer<'dev, T, Self, S> {
-        lhs.grad1()
+        todo!()
+        // lhs.grad1()
     }
 }
 
@@ -269,6 +286,38 @@ fn add_ew_grad_slice<T: Copy + AddAssign>(grad_acc: &mut [T], out_grad: &[T]) {
     }
 }
 
+pub trait OnNewBuffer2<'dev, T: Unit, D: Device + 'dev, S: Shape = ()> {
+    fn on_new_buffer2(new_buf: &Buffer<'dev, T, D, S>) {}
+    fn on_new_buffer3(&self, x: &Buffer<'dev, T, D, S>) {}
+    // fn on_new_buffer2(&self, /*_device: &'dev D,*/ _new_buf: &'_ Buffer<'dev, T, D, S>) {}
+}
+
+impl<'dev, Mods: OnNewBuffer2<'dev, T, Self, S> + OnDropBuffer + 'dev, T, S: Shape>
+    OnNewBuffer2<'dev, T, Self, S> for CPU<Mods>
+{
+    // fn on_new_buffer2(&self, _device: &'dev D, _new_buf: &Buffer<'dev, T, D, S>) {
+    //     self.modules.on_new_buffer2(_device, _new_buf)
+    // }
+}
+
+impl<'dev, Mods: OnNewBuffer2<'dev, T, D, S>, T, D: Device + 'dev, S: Shape>
+    OnNewBuffer2<'dev, T, D, S> for Autograd<'dev, Mods>
+{
+    // fn on_new_buffer2(&self, _device: &'dev D, _new_buf: &Buffer<'dev, T, D, S>) {
+    //     self._modules.on_new_buffer2(_device, _new_buf)
+    // }
+}
+
+impl<'dev, Mods: OnNewBuffer2<'dev, T, D, S>, T, D: Device + 'dev, S: Shape, SD: Device>
+    OnNewBuffer2<'dev, T, D, S> for CachedModule<Mods, SD>
+{
+    // fn on_new_buffer2(&self, _device: &'dev D, _new_buf: &Buffer<'dev, T, D, S>) {
+    //     self.modules.on_new_buffer2(_device, _new_buf)
+    // }
+}
+
+impl<'dev, T, D: Device + 'dev, S: Shape> OnNewBuffer2<'dev, T, D, S> for Base {}
+
 fn main() {
     // let x = Box::new(Typ::default());
     // Box::into_raw(x);
@@ -277,12 +326,13 @@ fn main() {
         let dev = CPU::<Autograd<Cached<Base>>>::new1();
 
         // Buffer::<f32, _>::new(&dev, 10);
-        let data = dev.wrap_in_base(dev.alloc::<()>(10, custos::flag::AllocFlag::None).unwrap());
-        let buffer: Buffer<f32, _> = Buffer {
-            data,
-            device: Some(&dev),
-        };
-        dev.on_new_buffer(&dev, &buffer);
+        let data = /*dev.wrap_in_base(*/dev.alloc::<()>(10, custos::flag::AllocFlag::None).unwrap();
+        let buffer: Buffer<f32, _> = Buffer { data, device: None };
+        // CPU::<Autograd<Base>>::on_new_buffer2(&buffer);
+        dev.on_new_buffer3(&buffer);
+        // OnNewBuffer2::<_ ,_>::on_new_buffer3(&dev, &buffer)
+        // dev.on_new_buffer2(&buffer)
+        // dev.on_new_buffer(&dev, &buffer);
 
         // let mut out = dev.buffer([1, 2, 3]);
         // let mut out1 = dev.buffer([1, 2, 3]);
