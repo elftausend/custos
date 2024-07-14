@@ -57,7 +57,7 @@ impl fmt::Debug for dyn AnyBuffer {
 }
 impl<'a> dyn AnyBuffer + 'a {
     pub fn is<T: 'static>(&self) -> bool {
-        std::any::TypeId::of::<T>() == self.type_id()
+        core::any::TypeId::of::<T>() == self.type_id()
     }
 
     #[inline]

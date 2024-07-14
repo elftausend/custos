@@ -499,6 +499,7 @@ mod tests {
         HasId, Lazy, Module, Retriever, Shape, TapeActions, UnaryGrad, Unit, CPU,
     };
 
+    #[cfg(feature = "opencl")]
     #[test]
     fn test_autograd_lt() {
         {

@@ -139,7 +139,7 @@ where
     // TODO: Maybe return Result with two error variants?
     pub unsafe fn try_grad_mut<'b>(&'b mut self) -> Option<&'a mut Self>
     where
-        D: GradActions + Alloc<T>,
+        D: MayGradActions + Alloc<T>,
     {
         if !self.requires_grad() {
             return None;
@@ -158,7 +158,7 @@ where
     /// Activate the `autograd` feature to make this function useable.
     #[inline]
     #[cfg(not(feature = "autograd"))]
-    pub fn grad_mut<'b>(&'b mut self) -> &'a mut Self {
+    pub unsafe fn grad_mut<'b>(&'b self) -> &'a mut Self {
         unimplemented!("Gradient not available. Activate the autograd feature.");
     }
 }

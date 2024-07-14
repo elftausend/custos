@@ -1,4 +1,7 @@
-use crate::{Buffer, Buffers, Device, Downcast};
+use crate::{Buffer, Device};
+
+#[cfg(feature = "std")]
+use crate::{Downcast, Buffers};
 
 pub trait AnyOp: Sized {
     type Replicated<'a>;

@@ -125,6 +125,7 @@ pub trait HasModules {
     fn modules(&self) -> &Self::Mods;
 }
 
+#[cfg(feature = "autograd")]
 pub trait GradActions {
     #[inline]
     unsafe fn gradients(&self) -> Option<&crate::Gradients> {
@@ -216,6 +217,7 @@ pub trait AddGradFn {
 #[macro_export]
 macro_rules! pass_down_grad_fn {
     ($to_impl:ident, $($generics:tt),*) => {
+        #[cfg(feature = "autograd")]
         impl<'dev, Mods: $crate::GradActions> $crate::GradActions for $to_impl<$($generics),*> {
             unsafe fn grad<'a, T: 'static, D: Device + $crate::Alloc<T> + $crate::ZeroGrad<T> + 'static, S: Shape>(
                 &self,
