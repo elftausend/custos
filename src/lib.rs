@@ -117,6 +117,7 @@ mod two_way_ops;
 mod unary;
 mod update_args;
 mod wrapper;
+mod any_op;
 
 pub use cache::*;
 pub use features::*;
@@ -130,6 +131,7 @@ pub use ptr_conv::*;
 pub use range::*;
 pub use update_args::*;
 pub use wrapper::*;
+pub use any_op::*;
 
 #[cfg(not(feature = "cpu"))]
 pub mod dummy_cpu;
@@ -210,9 +212,9 @@ impl<D: crate::GradActions> MayGradActions for D {}
 /// If the `autograd` feature is enabled, then this will be implemented for all types that implement [`TapeActions`].
 /// On the other hand, if the `autograd` feature is disabled, no [`Tape`] will be returneable.
 #[cfg(feature = "autograd")]
-pub trait MayTapeActionsLT<'a>: TapeActionsLT<'a> {}
+pub trait MayTapeActionsLT<'a>: TapeActions<'a> {}
 #[cfg(feature = "autograd")]
-impl<'a, D: crate::TapeActionsLT<'a>> MayTapeActionsLT<'a> for D {}
+impl<'a, D: crate::TapeActions<'a>> MayTapeActionsLT<'a> for D {}
 
 /// If the `autograd` feature is enabled, then this will be implemented for all types that implement [`TapeReturn`].
 /// On the other hand, if the `autograd` feature is disabled, no [`Tape`] will be returneable.

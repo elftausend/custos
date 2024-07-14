@@ -174,7 +174,7 @@ mod tests {
             + crate::WriteBuf<f32>
             + crate::Read<f32>
             + crate::GradActions
-            + crate::TapeActionsLT<'b>
+            + crate::TapeActions<'b>
             + crate::HasAutograd
             + crate::UnaryElementWiseMayGrad<f32, D, ()>
             + crate::Alloc<f32>

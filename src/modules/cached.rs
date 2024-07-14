@@ -186,7 +186,7 @@ impl<Mods, SD: Device> Cursor for CachedModule<Mods, SD> {
 impl<Mods: crate::HasAutograd, SD: Device> crate::HasAutograd for CachedModule<Mods, SD> {}
 
 #[cfg(feature = "autograd")]
-impl<'dev, Mods: crate::TapeActionsLT<'dev>, SD: Device> crate::TapeActionsLT<'dev>
+impl<'dev, Mods: crate::TapeActions<'dev>, SD: Device> crate::TapeActions<'dev>
     for CachedModule<Mods, SD>
 {
     #[inline]

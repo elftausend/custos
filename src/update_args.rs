@@ -9,6 +9,7 @@ pub trait UpdateArgs {}
 
 #[cfg(feature = "std")]
 pub trait UpdateArgs {
+    #[cfg(feature = "std")]
     fn update_args<B: AsAny>(
         &mut self,
         ids: &[Option<UniqueId>],

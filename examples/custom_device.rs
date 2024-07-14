@@ -10,7 +10,7 @@ use custos::{
     cpu::CPUPtr, flag::AllocFlag, impl_device_traits, AddGradFn, AddOperation, Alloc, Base,
     BorrowCacheLT, Buffer, Cached, CachedModule, Device, DeviceError, DevicelessAble, HasId, Id,
     LazyGraph2, Module, OnDropBuffer, OnNewBuffer, PtrType, Retrieve, Retriever, Setup, Shape,
-    TapeActionsLT, TapeLT, Unit, WrappedData, CPU,
+    TapeActions, TapeLT, Unit, WrappedData, CPU,
 };
 
 pub trait Str {

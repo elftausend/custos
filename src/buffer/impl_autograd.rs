@@ -20,7 +20,7 @@ where
     pub fn backward<'b>(&self)
     where
         T: Clone + One + 'static,
-        D: TapeActionsLT<'b>
+        D: TapeActions<'b>
             + ZeroGrad<T>
             + WriteBuf<T, S, D>
             + Alloc<T>
@@ -38,7 +38,7 @@ where
     where
         T: Clone + 'static,
         D: CachedBuffers
-            + TapeActionsLT<'b>
+            + TapeActions<'b>
             + GradActions
             + ZeroGrad<T>
             + WriteBuf<T, S, D>

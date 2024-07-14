@@ -271,7 +271,7 @@ macro_rules! pass_down_grad_fn {
 }
 
 #[cfg(feature = "autograd")]
-pub trait TapeActionsLT<'dev> {
+pub trait TapeActions<'dev> {
     // "generator" - do not forget to pass down
     #[inline]
     unsafe fn tape(&self) -> Option<&crate::TapeLT<'dev>> {
@@ -292,7 +292,7 @@ macro_rules! pass_down_tape_actions {
 
 
         #[cfg(feature = "autograd")]
-        impl<'dev, Mods: $crate::TapeActionsLT<'dev>> $crate::TapeActionsLT<'dev> for $to_impl<$($generics),*>
+        impl<'dev, Mods: $crate::TapeActions<'dev>> $crate::TapeActions<'dev> for $to_impl<$($generics),*>
         where
             Self: 'dev
         {
