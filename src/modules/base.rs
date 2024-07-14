@@ -169,7 +169,6 @@ impl AddGradFn for Base {
 }
 
 #[cfg(feature = "autograd")]
-impl crate::TapeActions for Base {}
 impl crate::GradActions for Base {
     unsafe fn grad<
         'a,

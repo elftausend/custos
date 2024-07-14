@@ -252,19 +252,6 @@ impl<Mods: crate::GradActions, U> crate::GradActions for Lazy<Mods, U> {
     }
 }
 
-#[cfg(feature = "autograd")]
-impl<Mods: crate::TapeActions, T> crate::TapeActions for Lazy<Mods, T> {
-    #[inline]
-    unsafe fn tape(&self) -> Option<&crate::Tape> {
-        self.modules.tape()
-    }
-
-    #[inline]
-    unsafe fn tape_mut(&self) -> Option<&mut crate::Tape> {
-        self.modules.tape_mut()
-    }
-}
-
 impl<T, Mods: crate::AddGradFn> crate::AddGradFn for Lazy<Mods, T> {
     #[inline]
     fn add_grad_fn<Args: crate::Parents<N> + crate::UpdateArgs, const N: usize>(

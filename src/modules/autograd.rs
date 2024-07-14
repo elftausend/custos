@@ -12,7 +12,7 @@ use crate::{
     pass_down_exec_now_module, pass_down_replace_buf_module, register_buf_copyable,
     unregister_buf_copyable, AddGradFn, AddLayer, Alloc, Buffer, Device, GradActions, HasId,
     HasModules, IsShapeIndep, Module, OnDropBuffer, OnNewBuffer, Parents, Retrieve, RunModule,
-    Setup, ShallowCopy, Shape, TapeActions, TapeActionsLT, Unit,
+    Setup, ShallowCopy, Shape, TapeActionsLT, Unit,
 };
 
 use self::wrapper::ReqGradWrapper;
@@ -158,21 +158,6 @@ where
         self.register_no_grad_buf(retrieved_buf);
 
         self.modules.on_retrieve_finish(retrieved_buf)
-    }
-}
-
-impl<'a, Mods> TapeActions for Autograd<'a, Mods> {
-    #[inline]
-    unsafe fn tape(&self) -> Option<&Tape> {
-        todo!()
-        // Some(self.tape.borrow())
-    }
-
-    #[inline]
-    unsafe fn tape_mut(&self) -> Option<&mut Tape> {
-        todo!()
-        // Some(unsafe {&mut (self.tape.get_mut()) })
-        // Some(self.tape.borrow_mut())
     }
 }
 
@@ -519,7 +504,7 @@ impl<Mods> HasModules for Autograd<Mods> {
 mod tests {
     use crate::{
         AddGradFn, Autograd, Base, BoxedShallowCopy, Buffer, Cached, Combiner, Cursor, Device,
-        HasId, Lazy, Module, Retriever, Shape, TapeActions, TapeActionsLT, UnaryGrad, Unit, CPU,
+        HasId, Lazy, Module, Retriever, Shape, TapeActionsLT, UnaryGrad, Unit, CPU,
     };
 
     #[test]

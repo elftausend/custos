@@ -17,24 +17,7 @@ where
 {
     /// Calls `.backward_seeded` on the [`Tape`].
     #[inline]
-    pub fn backward(&self)
-    where
-        T: Clone + One + 'static,
-        D: TapeActions
-            + ZeroGrad<T>
-            + WriteBuf<T, S, D>
-            + Alloc<T>
-            + AddOperation
-            + 'static
-            + GradActions,
-        D: CachedBuffers,
-    {
-        self.backward_with(&vec![T::one(); self.len()]);
-    }
-
-    /// Calls `.backward_seeded` on the [`Tape`].
-    #[inline]
-    pub fn backward_lt<'b>(&self)
+    pub fn backward<'b>(&self)
     where
         T: Clone + One + 'static,
         D: TapeActionsLT<'b>
@@ -46,33 +29,12 @@ where
             + GradActions,
         D: CachedBuffers,
     {
-        self.backward_with_lt(&vec![T::one(); self.len()]);
+        self.backward_with(&vec![T::one(); self.len()]);
     }
 
     /// Calls `.backward_seeded_maybe_with_buffers` on the [`Tape`] with the given buffer.
     #[inline]
-    pub fn backward_with(&self, seed: &[T])
-    where
-        T: Clone + 'static,
-        D: CachedBuffers
-            + TapeActions
-            + MayGradActions
-            + ZeroGrad<T>
-            + WriteBuf<T, S, D>
-            + Alloc<T>
-            + AddOperation
-            + 'static,
-    {
-        // should never be None
-        if let Some(tape) = unsafe { self.device().tape_mut() } {
-            let mut buffers = unsafe { self.device().buffers_mut() };
-            tape.backward_seeded_maybe_with_buffers(self, seed, buffers.as_deref_mut())
-        }
-    }
-
-    /// Calls `.backward_seeded_maybe_with_buffers` on the [`Tape`] with the given buffer.
-    #[inline]
-    pub fn backward_with_lt<'b>(&self, seed: &[T])
+    pub fn backward_with<'b>(&self, seed: &[T])
     where
         T: Clone + 'static,
         D: CachedBuffers

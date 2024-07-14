@@ -10,7 +10,7 @@ use custos::{
     cpu::CPUPtr, flag::AllocFlag, impl_device_traits, AddGradFn, AddOperation, Alloc, Base,
     BorrowCacheLT, Buffer, Cached, CachedModule, Device, DeviceError, DevicelessAble, HasId, Id,
     LazyGraph2, Module, OnDropBuffer, OnNewBuffer, PtrType, Retrieve, Retriever, Setup, Shape,
-    Tape, TapeActionsLT, TapeLT, Unit, WrappedData, CPU,
+    TapeActionsLT, TapeLT, Unit, WrappedData, CPU,
 };
 
 pub trait Str {
@@ -513,7 +513,7 @@ fn main() {
             .unwrap()
             .backward(&mut buffers, false);
         // unsafe { device.modules.tape_mut() }.unwrap().backward_seeded_with_buffers(&lhs, &[1., 1., 1., 1., 1.], &mut buffers);
-        rhs.backward_lt();
+        rhs.backward();
 
         // graph.add_operation((&lhs, &rhs), |(lhs, rhs)| Ok(()));
         let graph: &mut LazyGraph2 = &mut unsafe { device.modules.tape_mut() }.unwrap().lazy_graph;

@@ -239,19 +239,6 @@ impl<Mods: crate::GradActions, SD: Device> crate::GradActions for CachedModule<M
     }
 }
 
-#[cfg(feature = "autograd")]
-impl<Mods: crate::TapeActions, SD: Device> crate::TapeActions for CachedModule<Mods, SD> {
-    #[inline]
-    unsafe fn tape(&self) -> Option<&super::Tape> {
-        self.modules.tape()
-    }
-
-    #[inline]
-    unsafe fn tape_mut(&self) -> Option<&mut super::Tape> {
-        self.modules.tape_mut()
-    }
-}
-
 impl<CurrentMods, SD: Device> AddLayer<CurrentMods, SD> for Cached<()> {
     type Wrapped = crate::CachedModule<CurrentMods, SD>;
 

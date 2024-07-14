@@ -298,20 +298,6 @@ pub trait TapeActionsLT<'dev> {
     }
 }
 
-#[cfg(feature = "autograd")]
-pub trait TapeActions {
-    // "generator" - do not forget to pass down
-    #[inline]
-    unsafe fn tape(&self) -> Option<&crate::Tape> {
-        None
-    }
-    // "generator" - do not forget to pass down
-    #[inline]
-    unsafe fn tape_mut(&self) -> Option<&mut crate::Tape> {
-        None
-    }
-}
-
 #[macro_export]
 macro_rules! pass_down_tape_actions {
     ($to_impl:ident, $($generics:tt),*) => {
@@ -331,19 +317,6 @@ macro_rules! pass_down_tape_actions {
 
             #[inline]
             unsafe fn tape_mut(&self) -> Option<&mut $crate::TapeLT<'dev>> {
-                self.modules.tape_mut()
-            }
-        }
-
-        #[cfg(feature = "autograd")]
-        impl<'dev, Mods: $crate::TapeActions> $crate::TapeActions for $to_impl<$($generics),*> {
-            #[inline]
-            unsafe fn tape(&self) -> Option<&$crate::Tape> {
-                self.modules.tape()
-            }
-
-            #[inline]
-            unsafe fn tape_mut(&self) -> Option<&mut $crate::Tape> {
                 self.modules.tape_mut()
             }
         }

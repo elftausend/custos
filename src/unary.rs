@@ -1,7 +1,6 @@
 use crate::{
     AddGradFn, AddOperation, Alloc, AsNoId, Buffer, Device, Eval, GradActions, HasId,
-    MayGradActions, MayTapeActions, MayTapeActionsLT, MayToCLSource, Resolve, Shape, TwoWay, Unit,
-    ZeroGrad,
+    MayGradActions, MayToCLSource, Resolve, Shape, TwoWay, Unit, ZeroGrad,
 };
 
 /// Applies a function to a buffer and returns a new buffer.
@@ -212,7 +211,6 @@ mod tests {
             + crate::WriteBuf<f32>
             + crate::Read<f32>
             + crate::GradActions
-            + crate::TapeActions
             + crate::TapeActionsLT<'b>
             + crate::HasAutograd
             + crate::UnaryElementWiseMayGrad<f32, D, ()>
@@ -238,7 +236,7 @@ mod tests {
         );
 
         // out.backward();
-        out.backward_lt();
+        out.backward();
         roughly_eq_slices(
             &buf.grad().read_to_vec(),
             &[
