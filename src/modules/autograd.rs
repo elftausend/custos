@@ -26,7 +26,7 @@ pub struct Autograd<'dev, Mods> {
     /// Caches gradients for each [`Buffer`]'s id ([`Ident`]).
     pub grads: UnsafeCell<Gradients>, // could use RefCell
     pub(crate) no_grads_pool: core::cell::RefCell<crate::BorrowCacheLT<'dev>>,
-    tape: UnsafeCell<TapeLT<'dev>>,
+    pub(crate) tape: UnsafeCell<TapeLT<'dev>>,
     pub enabled: Cell<bool>,
 }
 

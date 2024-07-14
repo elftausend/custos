@@ -34,10 +34,10 @@ where
 
     /// Calls `.backward_seeded` on the [`Tape`].
     #[inline]
-    pub fn backward_lt(&self)
+    pub fn backward_lt<'b>(&self)
     where
         T: Clone + One + 'static,
-        D: TapeActionsLT<'a>
+        D: TapeActionsLT<'b>
             + ZeroGrad<T>
             + WriteBuf<T, S, D>
             + Alloc<T>
@@ -72,11 +72,11 @@ where
 
     /// Calls `.backward_seeded_maybe_with_buffers` on the [`Tape`] with the given buffer.
     #[inline]
-    pub fn backward_with_lt(&self, seed: &[T])
+    pub fn backward_with_lt<'b>(&self, seed: &[T])
     where
         T: Clone + 'static,
         D: CachedBuffers
-            + TapeActionsLT<'a>
+            + TapeActionsLT<'b>
             + GradActions
             + ZeroGrad<T>
             + WriteBuf<T, S, D>
@@ -218,7 +218,9 @@ mod tests {
 
         let device = CPU::<Autograd<Cached<Base>>>::new();
         let mut buf = device.buffer([1, 2, 3, 4]);
-        let _out = buf.grad();
+
+        // buf.backward_lt();
+        // let _out = buf.grad();
         // let out = buf.grad_mut();
         // run(_out, out);
     }

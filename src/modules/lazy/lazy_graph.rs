@@ -53,9 +53,9 @@ impl<'a, B, T> Default for LazyGraph2<'a, B, T> {
 
 impl<'a, B: Downcast, T> LazyGraph2<'a, B, T> {
     #[inline]
-    pub fn iter_with<'b, D: Device>(
+    pub fn iter_with<'b>(
         &'b mut self,
-        device: &'a D,
+        // device: &'a D,
         buffers: &'b mut Buffers<B>,
     ) -> ExecIter2<'a, 'b, B, T> {
         ExecIter2 {
@@ -69,12 +69,8 @@ impl<'a, B: Downcast, T> LazyGraph2<'a, B, T> {
         self.operations.clear();
     }
 
-    pub fn call_lazily<D: Device>(
-        &mut self,
-        device: &'a D,
-        buffers: &mut Buffers<B>,
-    ) -> crate::Result<()> {
-        for args in self.iter_with(device, buffers) {
+    pub fn call_lazily(&mut self, buffers: &mut Buffers<B>) -> crate::Result<()> {
+        for args in self.iter_with(buffers) {
             args?;
         }
         Ok(())
@@ -318,7 +314,8 @@ mod tests {
     use super::LazyGraph;
     use crate::{
         register_buf_any, register_buf_copyable, AnyBuffer, AsNoId, Base, BoxedShallowCopy, Buffer,
-        CloneBuf, Device, HasId, LazyGraph2, Retriever, ShallowCopy, Shape, UniqueId, CPU,
+        CloneBuf, Device, HasId, LazyGraph2, Retriever, ShallowCopy, Shape, TapeActionsLT,
+        UniqueId, CPU,
     };
     use core::cell::Cell;
     use std::{
@@ -355,7 +352,20 @@ mod tests {
         };
         // static DEVICES: std::sync::Mutex<Option<&'static CPU<crate::Autograd<Base>>>> = Default::default();
         {
-            let device = CPU::<crate::Cached<Base>>::new();
+            let device = CPU::<crate::Autograd<'_, Base>>::new();
+            let lhs = device.buffer([1f32, 2., 3., 4., 5.]);
+            let rhs = device.buffer([1f32, 2., 6., 4., 5.]);
+            // let mut buffers = HashMap::default();
+            // unsafe { register_buf_copyable(&mut buffers, &lhs) };
+            // unsafe { register_buf_copyable(&mut buffers, &rhs) };
+            // let tape: &mut LazyGraph2 = &mut unsafe {device.modules.tape_mut()}.unwrap().lazy_graph;
+            // tape.add_operation((&lhs, &rhs), |(lhs, rhs)| {
+            //     lhs.grad();
+            //     Ok(())
+            // });
+            // tape.call_lazily(&device, &mut buffers).unwrap();
+
+            let device = CPU::<crate::Autograd<Base>>::new();
             let mut buffers = HashMap::default();
             let mut graph: LazyGraph2<Box<dyn core::any::Any>> = LazyGraph2::default();
             let lhs = device.buffer([1f32, 2., 3., 4., 5.]);
@@ -381,7 +391,7 @@ mod tests {
                 println!("args: {args:?}");
                 Ok(())
             });
-            graph.call_lazily(&device, &mut buffers).unwrap();
+            graph.call_lazily(&mut buffers).unwrap();
         };
         // let x = DEVICE2.get().unwrap();
         // println!("{:?}", x.modules.cache.borrow().nodes);

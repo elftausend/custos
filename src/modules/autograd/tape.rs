@@ -26,13 +26,12 @@ impl<'t> TapeLT<'t> {
     }
 
     /// Calls all gradient functions in reverse order.
-    pub fn backward<D: Device>(
+    pub fn backward(
         &mut self,
-        device: &'t D,
         buffers: &mut Buffers<Box<dyn BoxedShallowCopy>>,
         lazy_enabled: bool,
     ) {
-        for val in self.lazy_graph.iter_with(device, buffers).rev() {
+        for val in self.lazy_graph.iter_with(buffers).rev() {
             val.unwrap();
         }
         if !lazy_enabled {
@@ -52,7 +51,7 @@ impl<'t> TapeLT<'t> {
         out.write(seed);
     }
 
-    pub fn backward_seeded_with_buffers<'a: 't, T, D, S: Shape>(
+    pub fn backward_seeded_with_buffers<'a, T, D, S: Shape>(
         &mut self,
         buf: &Buffer<'a, T, D, S>,
         seed: &[T],
@@ -65,10 +64,10 @@ impl<'t> TapeLT<'t> {
 
         let is_lazy_enabled = buf.device().is_lazy_enabled();
         buf.device()
-            .eagerly(|| self.backward(buf.device(), buffers, is_lazy_enabled));
+            .eagerly(|| self.backward(buffers, is_lazy_enabled));
     }
 
-    pub fn backward_seeded_maybe_with_buffers<'a: 't, T, D, S: Shape>(
+    pub fn backward_seeded_maybe_with_buffers<'a, T, D, S: Shape>(
         &mut self,
         buf: &Buffer<'a, T, D, S>,
         seed: &[T],

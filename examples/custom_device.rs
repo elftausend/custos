@@ -1,16 +1,168 @@
 use std::{
-    cell::{Cell, UnsafeCell},
+    cell::{Cell, RefCell, UnsafeCell},
+    collections::HashMap,
+    convert::Infallible,
     marker::PhantomData,
     ops::AddAssign,
 };
 
 use custos::{
-    AddOperation, Alloc, Base, BorrowCacheLT, Buffer, Cached, CachedModule, Device, HasId, Id,
-    Module, OnDropBuffer, OnNewBuffer, PtrType, Retrieve, Retriever, Shape, Unit, WrappedData, CPU,
+    cpu::CPUPtr, flag::AllocFlag, impl_device_traits, AddGradFn, AddOperation, Alloc, Base,
+    BorrowCacheLT, Buffer, Cached, CachedModule, Device, DeviceError, DevicelessAble, HasId, Id,
+    LazyGraph2, Module, OnDropBuffer, OnNewBuffer, PtrType, Retrieve, Retriever, Setup, Shape,
+    Tape, TapeActionsLT, TapeLT, Unit, WrappedData, CPU,
 };
 
 pub trait Str {
     fn str(&self) -> &String;
+}
+
+#[derive(Default)]
+pub struct CPU2<'a, Mods: 'a = Base> {
+    pub modules: Mods,
+    pub graph: LazyGraph2<'a>,
+    pd: PhantomData<&'a ()>,
+}
+
+impl<'dev, T, D, S, Mods> crate::OnNewBuffer<'dev, T, D, S> for CPU2<'_, Mods>
+where
+    Self: 'dev,
+    T: crate::Unit,
+    D: Device,
+    S: Shape,
+    Mods: crate::OnNewBuffer<'dev, T, D, S>,
+{
+    #[inline]
+    fn on_new_buffer(&self, device: &'dev D, new_buf: &Buffer<'dev, T, D, S>) {
+        self.modules.on_new_buffer(device, new_buf)
+    }
+}
+
+impl<'dev, Mods: crate::OnDropBuffer> crate::OnDropBuffer for CPU2<'dev, Mods> {
+    #[inline]
+    fn on_drop_buffer<T: crate::Unit, D: Device, S: Shape>(
+        &self,
+        device: &D,
+        buf: &Buffer<T, D, S>,
+    ) {
+        self.modules.on_drop_buffer(device, buf)
+    }
+}
+impl<'dev, Mods: crate::WrappedData> crate::WrappedData for CPU2<'dev, Mods> {
+    type Wrap<T, Base: crate::HasId + crate::PtrType> = Mods::Wrap<T, Base>;
+
+    #[inline]
+    fn wrap_in_base<T, Base: crate::HasId + crate::PtrType>(
+        &self,
+        base: Base,
+    ) -> Self::Wrap<T, Base> {
+        self.modules.wrap_in_base(base)
+    }
+
+    #[inline]
+    fn wrapped_as_base<T, Base: crate::HasId + crate::PtrType>(
+        wrap: &Self::Wrap<T, Base>,
+    ) -> &Base {
+        Mods::wrapped_as_base(wrap)
+    }
+
+    #[inline]
+    fn wrapped_as_base_mut<T, Base: crate::HasId + crate::PtrType>(
+        wrap: &mut Self::Wrap<T, Base>,
+    ) -> &mut Base {
+        Mods::wrapped_as_base_mut(wrap)
+    }
+}
+
+impl<'a, Mods: OnDropBuffer> Device for CPU2<'a, Mods> {
+    type Error = Infallible;
+    type Base<T: Unit, S: Shape> = CPUPtr<T>;
+    type Data<T: Unit, S: Shape> = Self::Wrap<T, Self::Base<T, S>>;
+    // type WrappedData<T, S: Shape> = ;
+
+    fn new() -> Result<Self, Self::Error> {
+        todo!()
+    }
+
+    #[inline(always)]
+    fn base_to_data<T: Unit, S: Shape>(&self, base: Self::Base<T, S>) -> Self::Data<T, S> {
+        self.wrap_in_base(base)
+    }
+
+    #[inline(always)]
+    fn wrap_to_data<T: Unit, S: Shape>(
+        &self,
+        wrap: Self::Wrap<T, Self::Base<T, S>>,
+    ) -> Self::Data<T, S> {
+        wrap
+    }
+
+    #[inline(always)]
+    fn data_as_wrap<T: Unit, S: Shape>(
+        data: &Self::Data<T, S>,
+    ) -> &Self::Wrap<T, Self::Base<T, S>> {
+        data
+    }
+
+    #[inline(always)]
+    fn data_as_wrap_mut<T: Unit, S: Shape>(
+        data: &mut Self::Data<T, S>,
+    ) -> &mut Self::Wrap<T, Self::Base<T, S>> {
+        data
+    }
+
+    // #[inline]
+    // fn wrap(&self) {}
+}
+
+impl<'a, SimpleMods> CPU2<'a, SimpleMods> {
+    #[inline]
+    pub fn new<NewMods>() -> CPU2<'a, SimpleMods::Module>
+    where
+        SimpleMods: Module<'a, CPU2<'a>, Module = NewMods>,
+        // NewMods: Setup<CPU2<'a, NewMods>>,
+    {
+        let mut cpu = CPU2 {
+            modules: SimpleMods::new(),
+            graph: Default::default(),
+            pd: PhantomData,
+        };
+        // NewMods::setup(&mut cpu).unwrap();
+        cpu
+    }
+}
+
+impl<T: Unit, Mods: OnDropBuffer> Alloc<T> for CPU2<'_, Mods> {
+    fn alloc<S: Shape>(&self, mut len: usize, flag: AllocFlag) -> custos::Result<Self::Base<T, S>> {
+        if len == 0 {
+            return Err(DeviceError::ZeroLengthBuffer.into());
+        }
+
+        if S::LEN > len {
+            len = S::LEN
+        }
+
+        Ok(CPUPtr::new_initialized(len, flag))
+    }
+
+    fn alloc_from_slice<S>(&self, data: &[T]) -> custos::Result<Self::Base<T, S>>
+    where
+        S: Shape,
+        T: Clone,
+    {
+        if data.is_empty() {
+            return Err(DeviceError::ZeroLengthBuffer.into());
+        }
+        if !(S::LEN == data.len() || S::LEN == 0) {
+            return Err(DeviceError::ShapeLengthMismatch.into());
+        }
+
+        let cpu_ptr = unsafe { CPUPtr::new(data.len(), AllocFlag::None) };
+        let slice = unsafe { std::slice::from_raw_parts_mut(cpu_ptr.ptr, data.len()) };
+        slice.clone_from_slice(data);
+
+        Ok(cpu_ptr)
+    }
 }
 
 pub trait New<SimpleMods> {
@@ -36,6 +188,7 @@ impl<SimpleMods> New<SimpleMods> for CPU<SimpleMods> {
 #[derive(Default)]
 pub struct Autograd<'a, Mods> {
     _cache: UnsafeCell<BorrowCacheLT<'a>>,
+    tape: UnsafeCell<TapeLT<'a>>,
     val: Cell<Option<&'a f32>>,
     _modules: Mods,
 }
@@ -175,6 +328,7 @@ impl<'a, D: 'a, Mods: Module<'a, D>> Module<'a, D> for Autograd<'a, Mods> {
     fn new() -> Self::Module {
         Autograd {
             _cache: Default::default(),
+            tape: Default::default(),
             _modules: Mods::new(),
             val: Default::default(),
         }
@@ -182,7 +336,7 @@ impl<'a, D: 'a, Mods: Module<'a, D>> Module<'a, D> for Autograd<'a, Mods> {
 }
 
 impl<'a, 'b, T, D, S, Mods: OnNewBuffer<'a, T, D, S>> OnNewBuffer<'b, T, D, S>
-    for Autograd<'b, Mods>
+    for Autograd<'a, Mods>
 where
     D: Device,
     S: Shape,
@@ -318,21 +472,70 @@ impl<'dev, Mods: OnNewBuffer2<'dev, T, D, S>, T, D: Device + 'dev, S: Shape, SD:
 
 impl<'dev, T, D: Device + 'dev, S: Shape> OnNewBuffer2<'dev, T, D, S> for Base {}
 
+fn x<'a>(device: &'a CPU2<'a, Autograd<'a, Base>>) {
+    let lhs = device.buffer([1f32, 2., 3., 4., 5.]);
+    let rhs = device.buffer([1f32, 2., 6., 4., 5.]);
+    // let mut buffers = HashMap::default();
+    // // unsafe { register_buf_copyable(&mut buffers, &lhs) };
+    // // unsafe { register_buf_copyable(&mut buffers, &rhs) };
+    // let tape: &'a mut LazyGraph2<'a> = &mut unsafe { &mut *device.modules.tape.get()}.lazy_graph;
+    // tape.add_operation((&lhs, &rhs), |(lhs, rhs)| {
+    //     // lhs.grad();
+    //     Ok(())
+    // });
+    // tape.call_lazily(&mut buffers).unwrap();
+}
+impl<'a, T, S: Shape, Mods: OnDropBuffer> DevicelessAble<'a, T, S> for CPU2<'_, Mods> {}
 fn main() {
     // let x = Box::new(Typ::default());
     // Box::into_raw(x);
     //
     {
+        // x(&device);
+        let mut device = CPU::<custos::Autograd<Base>>::new();
+
+        let lhs = device.buffer([1f32, 2., 3., 4., 5.]);
+
+        // let lhs = Buffer::<f32, _>::deviceless(&device, 10);
+        let rhs = device.buffer([1f32, 2., 6., 4., 5.]);
+        // let rhs = Buffer::<f32, _>::deviceless(&device, 10);
+        let mut buffers = HashMap::default();
+
+        // let graph = unsafe { &mut *device.graph.get() };
+        // let mut graph = &mut device.graph;
+
+        device.add_grad_fn2((&lhs, &rhs), |(lhs, rhs)| {
+            unsafe { lhs.grad_mut() };
+            Ok(())
+        });
+
+        unsafe { device.modules.tape_mut() }
+            .unwrap()
+            .backward(&mut buffers, false);
+        // unsafe { device.modules.tape_mut() }.unwrap().backward_seeded_with_buffers(&lhs, &[1., 1., 1., 1., 1.], &mut buffers);
+        rhs.backward_lt();
+
+        // graph.add_operation((&lhs, &rhs), |(lhs, rhs)| Ok(()));
+        let graph: &mut LazyGraph2 = &mut unsafe { device.modules.tape_mut() }.unwrap().lazy_graph;
+        graph.call_lazily(&mut buffers).unwrap();
+        //        // unsafe { register_buf_copyable(&mut buffers, &lhs) };
+        // unsafe { register_buf_copyable(&mut buffers, &rhs) };
+        // let tape: &mut LazyGraph2 = &mut unsafe { &mut *device.modules.tape.get()}.lazy_graph;
+        // tape.add_operation((&lhs, &rhs), |(lhs, rhs)| {
+        // lhs.grad();
+        // Ok(())
+        // });
+        // tape.call_lazily(&device, &mut buffers).unwrap();
+
         let dev = CPU::<Autograd<Cached<Base>>>::new1();
 
-        // Buffer::<f32, _>::new(&dev, 10);
         let data = /*dev.wrap_in_base(*/dev.alloc::<()>(10, custos::flag::AllocFlag::None).unwrap();
         let buffer: Buffer<f32, _> = Buffer { data, device: None };
         // CPU::<Autograd<Base>>::on_new_buffer2(&buffer);
-        dev.on_new_buffer3(&buffer);
+        // dev.on_new_buffer3(&buffer);
         // OnNewBuffer2::<_ ,_>::on_new_buffer3(&dev, &buffer)
         // dev.on_new_buffer2(&buffer)
-        // dev.on_new_buffer(&dev, &buffer);
+        dev.on_new_buffer(&dev, &buffer);
 
         // let mut out = dev.buffer([1, 2, 3]);
         // let mut out1 = dev.buffer([1, 2, 3]);

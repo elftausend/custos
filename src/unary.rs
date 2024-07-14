@@ -163,9 +163,15 @@ where
     {
         let out = self.apply_fn(buf, forward_fn);
 
-        self.add_grad_fn2((buf, &out), |(buf, out)| {
-            // buf.grad_lt();
-            out.len();
+        self.add_grad_fn2((buf, &out), move |(buf, out)| {
+            if !buf.requires_grad() {
+                return Ok(());
+            }
+            // lazy execution is already disabled during backward pass
+            buf.device().eagerly(|| unsafe {
+                buf.device()
+                    .add_unary_grad(buf, buf.grad_mut(), out.grad(), grad_fn);
+            });
             Ok(())
         });
 
@@ -199,7 +205,7 @@ mod tests {
     }
 
     #[cfg(feature = "autograd")]
-    fn test_unary_autograd<'a, D>(device: &'a D)
+    fn test_unary_autograd<'a, 'b, D>(device: &'a D)
     where
         D::Data<f32, ()>: crate::ShallowCopy,
         D: 'static
@@ -207,6 +213,7 @@ mod tests {
             + crate::Read<f32>
             + crate::GradActions
             + crate::TapeActions
+            + crate::TapeActionsLT<'b>
             + crate::HasAutograd
             + crate::UnaryElementWiseMayGrad<f32, D, ()>
             + crate::Alloc<f32>
@@ -218,7 +225,7 @@ mod tests {
         use crate::Combiner;
 
         let buf = device.buffer([1., 2., 3., 4.]).require_grad();
-        let out = device.unary_ew(&buf, |x| x.sin(), |x| x.cos());
+        let out = device.unary_ew2(&buf, |x| x.sin(), |x| x.cos());
 
         roughly_eq_slices(
             &out.read_to_vec(),
@@ -230,7 +237,8 @@ mod tests {
             ],
         );
 
-        out.backward();
+        // out.backward();
+        out.backward_lt();
         roughly_eq_slices(
             &buf.grad().read_to_vec(),
             &[

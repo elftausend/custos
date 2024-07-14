@@ -1,8 +1,8 @@
 use std::ops::{Add, AddAssign, Deref, DerefMut, Mul};
 
 use custos::{
-    AddGradFn, AddOperation, Alloc, Buffer, Device, MayTapeActions, Retrieve, Retriever, Shape,
-    Unit, UseGpuOrCpu, ZeroGrad, CPU,
+    AddGradFn, AddOperation, Alloc, Buffer, Device, MayGradActions, MayTapeActions, Retrieve,
+    Retriever, Shape, Unit, UseGpuOrCpu, ZeroGrad, CPU,
 };
 
 pub trait ElementWise<T: Unit, D: Device, S: Shape>: Device {
@@ -32,10 +32,10 @@ where
 impl<T, D, S, Mods> ElementWise<T, D, S> for CPU<Mods>
 where
     T: Unit + Add<Output = T> + AddAssign + Mul<Output = T> + Default + Copy + 'static,
-    D: Device + ZeroGrad<T> + Alloc<T> + MayTapeActions + 'static,
+    D: Device + ZeroGrad<T> + Alloc<T> + MayGradActions + 'static,
     D::Base<T, S>: Deref<Target = [T]> + DerefMut,
     S: Shape,
-    Mods: Retrieve<Self, T, S> + AddOperation + MayTapeActions + AddGradFn + 'static,
+    Mods: Retrieve<Self, T, S> + AddOperation + MayGradActions + AddGradFn + 'static,
 {
     fn add(
         &self,

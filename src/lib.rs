@@ -245,7 +245,7 @@ pub const UNIFIED_CL_MEM: bool = true;
 pub use custos_macro::*;
 
 #[cfg(feature = "std")]
-pub(crate) type Buffers<B> =
+pub type Buffers<B> =
     std::collections::HashMap<UniqueId, B, std::hash::BuildHasherDefault<NoHasher>>;
 
 pub mod prelude {
