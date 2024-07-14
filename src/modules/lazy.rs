@@ -38,6 +38,7 @@ pub struct Lazy<Mods, T = f32> {
     pub modules: Mods,
     alloc_later: RefCell<Vec<(Id, fn(&mut Buffers, &mut AllocatedIds, Id, &dyn Any))>>, // could use D generic instead of dyn Any (required LazyModule structure)
     pub buffers: RefCell<Buffers>,
+    replaced_buffers: RefCell<Buffers>,
     // `buffers` shares buffers, that are either lazily allocated or instantly (via new, from..).
     // This ensures to only allocate a buffer once, without having to remove the ID/address collision check
     // TODO: remove this, fix id and address collision - then just use `buffers` for duplicate calls
@@ -77,6 +78,7 @@ impl<'a, T, Mods: Module<'a, D>, D: LazySetup + Device + 'a> Module<'a, D> for L
         Lazy {
             modules: Mods::new(),
             buffers: Default::default(),
+            replaced_buffers: Default::default(),
             graph: Default::default(),
             alloc_later: Default::default(),
             allocated_ids: Default::default(),
@@ -288,6 +290,7 @@ impl<T, NewMods, SD> AddLayer<NewMods, SD> for Lazy<(), T> {
         Lazy {
             modules: inner_mods,
             buffers: Default::default(),
+            replaced_buffers: Default::default(),
             graph: Default::default(),
             alloc_later: Default::default(),
             allocated_ids: Default::default(),
@@ -399,12 +402,17 @@ impl<T: Unit + 'static, D: Device + 'static, S: Shape, Mods: OnDropBuffer, T2> R
     ) -> &'c Buffer<'a, T, D, S> {
         match self.buffers.borrow().get(&buffer.id()) {
             Some(buf) => {
+                let mut replaced_buffers = self.replaced_buffers.borrow_mut();
+                replaced_buffers.insert(*buffer.id(), buf.shallow_copy());
+
+                let buf = replaced_buffers.get(&buffer.id()).unwrap();
                 let buf = &**buf;
                 assert_eq!(
                     buf.as_any().type_id(),
                     TypeId::of::<Buffer<T, D, S>>(),
                     "Type data does not match! e.g. optimized graph with different types"
                 );
+                // extending lifetime is fine -> replaced_buffers is only used for shared references
                 unsafe { &*(buf as *const _ as *const Buffer<T, D, S>) }
             }
             None => buffer,
