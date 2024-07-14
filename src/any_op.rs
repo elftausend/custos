@@ -1,7 +1,7 @@
 use crate::{Buffer, Device};
 
 #[cfg(feature = "std")]
-use crate::{Downcast, Buffers};
+use crate::{Buffers, Downcast};
 
 pub trait AnyOp: Sized {
     type Replicated<'a>;
@@ -12,7 +12,6 @@ pub trait AnyOp: Sized {
         op: impl for<'a> Fn(Self::Replicated<'a>) -> crate::Result<()> + 'static,
     ) -> Box<dyn for<'i> Fn(&'i mut Buffers<B>) -> crate::Result<()>>;
 }
-
 
 pub trait Replicate {
     type Replication<'r>: 'r;

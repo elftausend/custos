@@ -1,6 +1,4 @@
-use core::marker::PhantomData;
-
-use crate::{BorrowCache, Buffers, Operation2, UniqueId, UpdateArgsDynable};
+use crate::{Buffers, Operation2, UniqueId, UpdateArgsDynable};
 
 use super::lazy_graph::Operation;
 

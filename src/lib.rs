@@ -101,6 +101,7 @@ mod cache;
 pub mod features;
 pub mod flag;
 // mod graph;
+mod any_op;
 #[cfg(feature = "std")]
 mod boxed_shallow_copy;
 pub mod hooks;
@@ -117,8 +118,8 @@ mod two_way_ops;
 mod unary;
 mod update_args;
 mod wrapper;
-mod any_op;
 
+pub use any_op::*;
 pub use cache::*;
 pub use features::*;
 pub use hooks::*;
@@ -131,7 +132,6 @@ pub use ptr_conv::*;
 pub use range::*;
 pub use update_args::*;
 pub use wrapper::*;
-pub use any_op::*;
 
 #[cfg(not(feature = "cpu"))]
 pub mod dummy_cpu;

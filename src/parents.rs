@@ -92,7 +92,7 @@ macro_rules! impl_parents {
                 Ok(())
             }
         }
-        
+
         impl<$($to_impl: $crate::Replicate + $crate::HasId, )+> $crate::AnyOp for ($($to_impl,)+) {
             type Replicated<'a> = ($(&'a mut $to_impl::Replication<'a>,)+);
 

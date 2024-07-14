@@ -1,8 +1,9 @@
 use crate::{
-    bounds_to_range, modules::lazy::exec_iter::ExecIter2, op_hint::OpHint, AnyBuffer, AnyOp, AsAny, BoxedShallowCopy, Buffer, Buffers, Device, Downcast, HasId, Parents, Replicate, Shape, UniqueId, UpdateArgs, UpdateArgsDynable
+    bounds_to_range, modules::lazy::exec_iter::ExecIter2, op_hint::OpHint, AnyOp, AsAny,
+    BoxedShallowCopy, Buffers, Device, Downcast, Parents, UniqueId, UpdateArgs, UpdateArgsDynable,
 };
-use core::{any::Any, cell::RefCell, marker::PhantomData, mem::transmute, ops::RangeBounds};
-use std::collections::{HashMap, HashSet};
+use core::{mem::transmute, ops::RangeBounds};
+use std::collections::HashSet;
 
 use super::exec_iter::{exec_op, ExecIter};
 
@@ -217,14 +218,10 @@ mod tests {
     use super::LazyGraph;
     use crate::{
         register_buf_any, register_buf_copyable, AnyBuffer, AsNoId, Base, BoxedShallowCopy, Buffer,
-        CloneBuf, Device, HasId, LazyGraph2, Retriever, ShallowCopy, Shape, TapeActions,
-        UniqueId, CPU,
+        CloneBuf, Device, HasId, LazyGraph2, Retriever, Shape, UniqueId, CPU,
     };
     use core::cell::Cell;
-    use std::{
-        collections::HashMap,
-        sync::{Mutex, RwLock},
-    };
+    use std::collections::HashMap;
 
     pub(crate) fn register_buf_an_bufsy<'a, T, D, S>(
         cache: &mut HashMap<UniqueId, Box<dyn AnyBuffer + 'a>, impl core::hash::BuildHasher>,
@@ -247,8 +244,10 @@ mod tests {
         cache.insert(*buf.id(), Box::new(buf2));
     }
 
+    #[cfg(feature = "autograd")]
     #[test]
-    fn test_op2() {
+    fn test_autograd_lazy_op() {
+        use crate::TapeActions;
         // static mut DEVICE: Option<&'static CPU<crate::Autograd<Base>>> = None;
         thread_local! {
             static DEVICE2: Cell<Option<&'static CPU<crate::CachedModule<Base, CPU>>>> = Cell::new(None);
