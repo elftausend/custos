@@ -213,15 +213,7 @@ impl<'dev, Mods> TapeActionsLT<'dev> for Autograd<'dev, Mods> {
 }
 
 impl<'a, Mods: AddGradFn> AddGradFn for Autograd<'a, Mods> {
-    #[inline]
-    fn add_grad_fn<Args: Parents<N> + crate::UpdateArgs, const N: usize>(
-        &self,
-        args: Args,
-        op: fn(&mut Args) -> crate::Result<()>,
-    ) {
-        todo!()
-    }
-    fn add_grad_fn2<Args: Parents<N> + crate::AnyOp, const N: usize>(
+    fn add_grad_fn<Args: Parents<N> + crate::AnyOp, const N: usize>(
         &self,
         args: Args,
         op: impl for<'b> Fn(Args::Replicated<'b>) -> crate::Result<()> + 'static,
@@ -630,11 +622,11 @@ mod tests {
     #[test]
     fn test_grad_fn_with_lazy_buffer_source_but_no_true_lazy() {
         let device = CPU::<Autograd<Lazy<Base>>>::new();
-        let mut buf = Buffer::<f32, _>::new(&device, 10).require_grad();
+        let buf = Buffer::<f32, _>::new(&device, 10).require_grad();
 
         let out = Buffer::<f32, _>::new(&device, 10);
 
-        device.add_grad_fn((&mut buf, &out), |(buf, _out)| unsafe {
+        device.add_grad_fn((&buf, &out), |(buf, _out)| unsafe {
             for (val, grad) in buf.grad_mut().iter_mut().zip(_out.grad().iter()) {
                 *val = 5. * grad;
             }
@@ -671,7 +663,7 @@ mod tests {
     #[cfg(feature = "autograd")]
     impl<Mods: AddGradFn + 'static> UnaryByMods<Mods> for CPU {
         fn unary_ew(&self, mods: &Mods) {
-            mods.add_grad_fn((), |_| Ok(()));
+            // mods.add_grad_fn((), |_| Ok(()));
         }
     }
 

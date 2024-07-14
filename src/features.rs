@@ -150,23 +150,17 @@ pub trait GradActions {
 }
 
 pub trait AddGradFn {
-    fn add_grad_fn<Args: Parents<N> + UpdateArgs, const N: usize>(
-        &self,
-        args: Args,
-        op: fn(&mut Args) -> crate::Result<()>,
-    );
-
-    fn add_grad_fn2<Args: Parents<N> + AnyOp, const N: usize>(
+    fn add_grad_fn<Args: Parents<N> + AnyOp, const N: usize>(
         &self,
         args: Args,
         op: impl for<'b> Fn(Args::Replicated<'b>) -> crate::Result<()> + 'static,
     );
 
-    fn add_grad_and_forward_fn<Args: Parents<N> + UpdateArgs + Clone, const N: usize>(
+    fn add_grad_and_forward_fn<Args: Parents<N> + UpdateArgs + AnyOp + Clone, const N: usize>(
         &self,
         args: Args,
         forward_fn: fn(&mut Args) -> crate::Result<()>,
-        grad_fn: fn(&mut Args) -> crate::Result<()>,
+        grad_fn: impl for<'b> Fn(Args::Replicated<'b>) -> crate::Result<()> + 'static,
     ) where
         Self: AddOperation,
     {
@@ -252,20 +246,12 @@ macro_rules! pass_down_grad_fn {
         }
         impl<'dev, Mods: $crate::AddGradFn> $crate::AddGradFn for $to_impl<$($generics),*> {
             #[inline]
-            fn add_grad_fn<Args: $crate::Parents<N> + $crate::UpdateArgs, const N: usize>(
-                &self,
-                args: Args,
-                op: fn(&mut Args) -> $crate::Result<()>,
-            ) {
-                self.modules.add_grad_fn(args, op)
-            }
-
-            fn add_grad_fn2<Args: $crate::Parents<N> + $crate::AnyOp, const N: usize>(
+            fn add_grad_fn<Args: $crate::Parents<N> + $crate::AnyOp, const N: usize>(
                 &self,
                 args: Args,
                 op: impl for<'b> Fn(Args::Replicated<'b>) -> $crate::Result<()> + 'static,
             ) {
-                self.modules.add_grad_fn2(args, op);
+                self.modules.add_grad_fn(args, op);
             }
 
             #[inline]

@@ -254,21 +254,12 @@ impl<Mods: crate::GradActions, U> crate::GradActions for Lazy<Mods, U> {
 
 impl<T, Mods: crate::AddGradFn> crate::AddGradFn for Lazy<Mods, T> {
     #[inline]
-    fn add_grad_fn<Args: crate::Parents<N> + crate::UpdateArgs, const N: usize>(
-        &self,
-        args: Args,
-        op: fn(&mut Args) -> crate::Result<()>,
-    ) {
-        self.modules.add_grad_fn(args, op)
-    }
-
-    #[inline]
-    fn add_grad_fn2<Args: Parents<N> + AnyOp, const N: usize>(
+    fn add_grad_fn<Args: Parents<N> + AnyOp, const N: usize>(
         &self,
         args: Args,
         op: impl for<'b> Fn(Args::Replicated<'b>) -> crate::Result<()> + 'static,
     ) {
-        self.modules.add_grad_fn2(args, op)
+        self.modules.add_grad_fn(args, op)
     }
 
     #[inline]

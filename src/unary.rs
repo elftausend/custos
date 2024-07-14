@@ -92,16 +92,6 @@ pub trait UnaryElementWiseMayGrad<T: Unit, D: Device, S: Shape>: Device {
     where
         FO: TwoWay<T>,
         GO: Eval<T> + MayToCLSource + 'static;
-
-    fn unary_ew2<FO, GO>(
-        &self,
-        buf: &Buffer<T, D, S>,
-        forward_fn: impl Fn(Resolve<T>) -> FO + Copy + 'static,
-        grad_fn: fn(Resolve<T>) -> GO,
-    ) -> Buffer<T, Self, S>
-    where
-        FO: TwoWay<T>,
-        GO: Eval<T> + MayToCLSource + 'static;
 }
 
 impl<T, D, S> UnaryElementWiseMayGrad<T, D, S> for D
@@ -117,7 +107,7 @@ where
         &self,
         buf: &Buffer<T, D, S>,
         forward_fn: impl Fn(Resolve<T>) -> FO + Copy + 'static,
-        _grad_fn: fn(Resolve<T>) -> GO,
+        grad_fn: fn(Resolve<T>) -> GO,
     ) -> Buffer<T, Self, S>
     where
         FO: TwoWay<T>,
@@ -125,14 +115,14 @@ where
     {
         let out = self.apply_fn(buf, forward_fn);
 
-        self.add_grad_fn((buf, &out, _grad_fn.no_id()), |(buf, out, grad_fn)| {
+        self.add_grad_fn((buf, &out), move |(buf, out)| {
             if !buf.requires_grad() {
                 return Ok(());
             }
             // lazy execution is already disabled during backward pass
             buf.device().eagerly(|| unsafe {
                 buf.device()
-                    .add_unary_grad(buf, buf.grad_mut(), out.grad(), **grad_fn);
+                    .add_unary_grad(buf, buf.grad_mut(), out.grad(), grad_fn);
             });
             Ok(())
         });
@@ -146,33 +136,6 @@ where
         //             .add_unary_grad(lhs, lhs_grad, out_grad, _grad_fn);
         //     });
         // }
-
-        out
-    }
-
-    fn unary_ew2<FO, GO>(
-        &self,
-        buf: &Buffer<T, D, S>,
-        forward_fn: impl Fn(Resolve<T>) -> FO + Copy + 'static,
-        grad_fn: fn(Resolve<T>) -> GO,
-    ) -> Buffer<T, Self, S>
-    where
-        FO: TwoWay<T>,
-        GO: Eval<T> + MayToCLSource + 'static,
-    {
-        let out = self.apply_fn(buf, forward_fn);
-
-        self.add_grad_fn2((buf, &out), move |(buf, out)| {
-            if !buf.requires_grad() {
-                return Ok(());
-            }
-            // lazy execution is already disabled during backward pass
-            buf.device().eagerly(|| unsafe {
-                buf.device()
-                    .add_unary_grad(buf, buf.grad_mut(), out.grad(), grad_fn);
-            });
-            Ok(())
-        });
 
         out
     }
@@ -223,7 +186,7 @@ mod tests {
         use crate::Combiner;
 
         let buf = device.buffer([1., 2., 3., 4.]).require_grad();
-        let out = device.unary_ew2(&buf, |x| x.sin(), |x| x.cos());
+        let out = device.unary_ew(&buf, |x| x.sin(), |x| x.cos());
 
         roughly_eq_slices(
             &out.read_to_vec(),

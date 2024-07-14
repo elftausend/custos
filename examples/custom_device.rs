@@ -504,7 +504,7 @@ fn main() {
         // let graph = unsafe { &mut *device.graph.get() };
         // let mut graph = &mut device.graph;
 
-        device.add_grad_fn2((&lhs, &rhs), |(lhs, rhs)| {
+        device.add_grad_fn((&lhs, &rhs), |(lhs, rhs)| {
             unsafe { lhs.grad_mut() };
             Ok(())
         });

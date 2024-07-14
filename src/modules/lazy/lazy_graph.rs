@@ -170,6 +170,12 @@ impl<'a, T: 'static, D: Device + 'static, S: crate::Shape> Replicate
 {
     type Replication<'r> = Buffer<'r, T, D, S>;
 }
+
+impl<'a, T: 'static, D: Device + 'static, S: crate::Shape> Replicate
+    for &mut crate::Buffer<'a, T, D, S>
+{
+    type Replication<'r> = Buffer<'r, T, D, S>;
+}
 // impl<T, D: Device, S: Shape> From<&Buffer<'_, T, D, S>> for &Buffer<'_, T, D, S> {
 //     fn from(value: &Buffer<'_, T, D, S>) -> Self {
 //         todo!()

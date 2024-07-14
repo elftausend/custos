@@ -151,14 +151,7 @@ impl crate::Optimize for Base {
 
 impl AddGradFn for Base {
     #[inline]
-    fn add_grad_fn<Args: Parents<N> + crate::UpdateArgs, const N: usize>(
-        &self,
-        _args: Args,
-        _op: fn(&mut Args) -> crate::Result<()>,
-    ) {
-    }
-
-    fn add_grad_fn2<Args: Parents<N> + crate::AnyOp, const N: usize>(
+    fn add_grad_fn<Args: Parents<N> + crate::AnyOp, const N: usize>(
         &self,
         _args: Args,
         _op: impl for<'b> Fn(Args::Replicated<'b>) -> crate::Result<()> + 'static,
