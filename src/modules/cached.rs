@@ -190,12 +190,12 @@ impl<'dev, Mods: crate::TapeActions<'dev>, SD: Device> crate::TapeActions<'dev>
     for CachedModule<Mods, SD>
 {
     #[inline]
-    unsafe fn tape(&self) -> Option<&super::TapeLT<'dev>> {
+    unsafe fn tape(&self) -> Option<&super::Tape<'dev>> {
         self.modules.tape()
     }
 
     #[inline]
-    unsafe fn tape_mut(&self) -> Option<&mut super::TapeLT<'dev>> {
+    unsafe fn tape_mut(&self) -> Option<&mut super::Tape<'dev>> {
         self.modules.tape_mut()
     }
 }
