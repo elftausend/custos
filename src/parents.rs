@@ -94,7 +94,7 @@ macro_rules! impl_parents {
         }
 
         impl<$($to_impl: $crate::Replicate + $crate::HasId, )+> $crate::AnyOp for ($($to_impl,)+) {
-            type Replicated<'a> = ($(&'a mut $to_impl::Replication<'a>,)+);
+            type Replicated<'a> = ($($to_impl::Replication<'a>,)+);
 
             #[cfg(feature = "std")]
             fn replication_fn<B: $crate::Downcast>(
@@ -106,11 +106,7 @@ macro_rules! impl_parents {
 
                     op(($(
                         unsafe {
-                            &mut *(buffers
-                                .get_mut(&*ids.next().unwrap())
-                                .unwrap()
-                                .downcast_mut::<$to_impl::Replication<'_>>()
-                                .unwrap() as *mut $to_impl::Replication<'_>)
+                            $to_impl::replicate(ids.next().unwrap(), &mut *(buffers as *mut _)).ok_or(crate::DeviceError::InvalidLazyBuf)?
                         }
                     ,)+))
                 })
