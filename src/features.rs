@@ -7,7 +7,7 @@ use core::{cell::RefMut, fmt::Debug, ops::RangeBounds};
 use crate::{
     op_hint::OpHint,
     range::{AsRange, CursorRange},
-    HasId, Parents, Shape, UniqueId, Unit, UpdateArgs, CPU,
+    AnyOp, HasId, Parents, Shape, UniqueId, Unit, UpdateArgs, ZeroGrad, CPU,
 };
 
 #[cfg(feature = "cached")]
@@ -125,18 +125,43 @@ pub trait HasModules {
     fn modules(&self) -> &Self::Mods;
 }
 
+#[cfg(feature = "autograd")]
+pub trait GradActions {
+    #[inline]
+    unsafe fn gradients(&self) -> Option<&crate::Gradients> {
+        None
+    }
+
+    #[inline]
+    unsafe fn gradients_mut(&self) -> Option<&mut crate::Gradients> {
+        None
+    }
+    unsafe fn grad<'a, T: 'static, D: Device + Alloc<T> + ZeroGrad<T> + 'static, S: Shape>(
+        &self,
+        device: &'a D,
+        buf: &Buffer<'a, T, D, S>,
+    ) -> &Buffer<'a, T, D, S>;
+
+    #[allow(clippy::mut_from_ref)]
+    unsafe fn grad_mut<'a, T: 'static, D: Device + Alloc<T> + ZeroGrad<T> + 'static, S: Shape>(
+        &self,
+        device: &'a D,
+        buf: &Buffer<'a, T, D, S>,
+    ) -> &mut Buffer<'a, T, D, S>;
+}
+
 pub trait AddGradFn {
-    fn add_grad_fn<Args: Parents<N> + UpdateArgs, const N: usize>(
+    fn add_grad_fn<Args: Parents<N> + AnyOp, const N: usize>(
         &self,
         args: Args,
-        op: fn(&mut Args) -> crate::Result<()>,
+        op: impl for<'b> Fn(Args::Replicated<'b>) -> crate::Result<()> + 'static,
     );
 
-    fn add_grad_and_forward_fn<Args: Parents<N> + UpdateArgs + Clone, const N: usize>(
+    fn add_grad_and_forward_fn<Args: Parents<N> + UpdateArgs + AnyOp + Clone, const N: usize>(
         &self,
         args: Args,
         forward_fn: fn(&mut Args) -> crate::Result<()>,
-        grad_fn: fn(&mut Args) -> crate::Result<()>,
+        grad_fn: impl for<'b> Fn(Args::Replicated<'b>) -> crate::Result<()> + 'static,
     ) where
         Self: AddOperation,
     {
@@ -192,14 +217,43 @@ pub trait AddGradFn {
 #[macro_export]
 macro_rules! pass_down_grad_fn {
     ($to_impl:ident, $($generics:tt),*) => {
+        #[cfg(feature = "autograd")]
+        impl<'dev, Mods: $crate::GradActions> $crate::GradActions for $to_impl<$($generics),*> {
+            unsafe fn grad<'a, T: 'static, D: Device + $crate::Alloc<T> + $crate::ZeroGrad<T> + 'static, S: Shape>(
+                &self,
+                device: &'a D,
+                buf: &Buffer<'a, T, D, S>,
+            ) -> &Buffer<'a, T, D, S> {
+                self.modules.grad(device, buf)
+            }
+
+            unsafe fn grad_mut<'a, T: 'static, D: Device + $crate::Alloc<T> + $crate::ZeroGrad<T> + 'static, S: Shape>(
+                &self,
+                device: &'a D,
+                buf: &Buffer<'a, T, D, S>,
+            ) -> &mut Buffer<'a, T, D, S> {
+                self.modules.grad_mut(device, buf)
+            }
+
+            #[inline]
+            unsafe fn gradients(&self) -> Option<&$crate::Gradients> {
+                self.modules.gradients()
+            }
+
+            #[inline]
+            unsafe fn gradients_mut(&self) -> Option<&mut $crate::Gradients> {
+                self.modules.gradients_mut()
+            }
+
+        }
         impl<'dev, Mods: $crate::AddGradFn> $crate::AddGradFn for $to_impl<$($generics),*> {
             #[inline]
-            fn add_grad_fn<Args: $crate::Parents<N> + $crate::UpdateArgs, const N: usize>(
+            fn add_grad_fn<Args: $crate::Parents<N> + $crate::AnyOp, const N: usize>(
                 &self,
                 args: Args,
-                op: fn(&mut Args) -> $crate::Result<()>,
+                op: impl for<'b> Fn(Args::Replicated<'b>) -> $crate::Result<()> + 'static,
             ) {
-                self.modules.add_grad_fn(args, op)
+                self.modules.add_grad_fn(args, op);
             }
 
             #[inline]
@@ -219,49 +273,15 @@ macro_rules! pass_down_grad_fn {
 }
 
 #[cfg(feature = "autograd")]
-pub trait TapeActionsLT<'dev> {
+pub trait TapeActions<'dev> {
     // "generator" - do not forget to pass down
     #[inline]
-    unsafe fn tape(&self) -> Option<&crate::Tape> {
-        None
-    }
-    // "generator" - do not forget to pass down
-    #[inline]
-    unsafe fn tape_mut(&self) -> Option<&mut crate::Tape> {
-        None
-    }
-
-    #[inline]
-    unsafe fn gradients(&self) -> Option<&crate::GradientsLT<'dev>> {
-        None
-    }
-
-    #[inline]
-    unsafe fn gradients_mut(&self) -> Option<&mut crate::GradientsLT<'dev>> {
-        None
-    }
-}
-
-#[cfg(feature = "autograd")]
-pub trait TapeActions {
-    // "generator" - do not forget to pass down
-    #[inline]
-    unsafe fn tape(&self) -> Option<&crate::Tape> {
+    unsafe fn tape(&self) -> Option<&crate::TapeLT<'dev>> {
         None
     }
     // "generator" - do not forget to pass down
     #[inline]
-    unsafe fn tape_mut(&self) -> Option<&mut crate::Tape> {
-        None
-    }
-
-    #[inline]
-    unsafe fn gradients(&self) -> Option<&crate::Gradients> {
-        None
-    }
-
-    #[inline]
-    unsafe fn gradients_mut(&self) -> Option<&mut crate::Gradients> {
+    unsafe fn tape_mut(&self) -> Option<&mut crate::TapeLT<'dev>> {
         None
     }
 }
@@ -272,26 +292,20 @@ macro_rules! pass_down_tape_actions {
         #[cfg(feature = "autograd")]
         impl<'dev, Mods: $crate::HasAutograd> $crate::HasAutograd for $to_impl<$($generics),*> {}
 
+
         #[cfg(feature = "autograd")]
-        impl<'dev, Mods: $crate::TapeActions> $crate::TapeActions for $to_impl<$($generics),*> {
+        impl<'dev, Mods: $crate::TapeActions<'dev>> $crate::TapeActions<'dev> for $to_impl<$($generics),*>
+        where
+            Self: 'dev
+        {
             #[inline]
-            unsafe fn tape(&self) -> Option<&$crate::Tape> {
+            unsafe fn tape(&self) -> Option<&$crate::TapeLT<'dev>> {
                 self.modules.tape()
             }
 
             #[inline]
-            unsafe fn tape_mut(&self) -> Option<&mut $crate::Tape> {
+            unsafe fn tape_mut(&self) -> Option<&mut $crate::TapeLT<'dev>> {
                 self.modules.tape_mut()
-            }
-
-            #[inline]
-            unsafe fn gradients(&self) -> Option<&$crate::Gradients> {
-                self.modules.gradients()
-            }
-
-            #[inline]
-            unsafe fn gradients_mut(&self) -> Option<&mut $crate::Gradients> {
-                self.modules.gradients_mut()
             }
         }
     };
@@ -499,20 +513,21 @@ pub trait UnifiedMemChain<D: Device> {
 #[cfg(feature = "cached")]
 #[macro_export]
 macro_rules! pass_down_unified_mem_chain {
-    ($($to_impl:ident),*) => {
-        $(
-            impl<Mods: $crate::UnifiedMemChain<D>, D: Device> $crate::UnifiedMemChain<D> for $to_impl<Mods> {
-                fn construct_unified_buf_from_cpu_buf<'a, T: $crate::Unit + 'static, S: Shape>(
-                    &self,
-                    device: &'a D,
-                    no_drop_buf: Buffer<'a, T, $crate::CachedCPU, S>
-                ) -> $crate::Result<Buffer<'a, T, D, S>>
-                {
-                    self.modules.construct_unified_buf_from_cpu_buf(device, no_drop_buf)
-                }
+    ($to_impl:ident, $($generics:tt),*) => {
+        impl<'dev, Mods: $crate::UnifiedMemChain<D>, D: Device> $crate::UnifiedMemChain<D> for $to_impl<$($generics),*> {
+            fn construct_unified_buf_from_cpu_buf<'a, T: $crate::Unit + 'static, S: Shape>(
+                &self,
+                device: &'a D,
+                no_drop_buf: Buffer<'a, T, $crate::CachedCPU, S>
+            ) -> $crate::Result<Buffer<'a, T, D, S>>
+            {
+                self.modules.construct_unified_buf_from_cpu_buf(device, no_drop_buf)
             }
+        }
+    };
 
-        )*
+    ($to_impl:ident) => {
+        $crate::pass_down_unified_mem_chain!($to_impl, Mods);
     };
 }
 
@@ -526,7 +541,7 @@ use crate::Lazy;
 pass_down_unified_mem_chain!(Lazy);
 
 #[cfg(feature = "autograd")]
-pass_down_unified_mem_chain!(Autograd);
+pass_down_unified_mem_chain!(Autograd, 'dev, Mods);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Default)]
 pub struct GpuOrCpuInfo {
@@ -566,7 +581,7 @@ macro_rules! pass_down_use_gpu_or_cpu {
 }
 
 #[cfg(feature = "autograd")]
-pass_down_use_gpu_or_cpu!(Autograd);
+pass_down_use_gpu_or_cpu!(Autograd, 'dev, Mods);
 
 pub trait UseGpuOrCpu {
     fn use_cpu_or_gpu(

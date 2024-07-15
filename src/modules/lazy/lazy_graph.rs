@@ -1,10 +1,19 @@
 use crate::{
-    bounds_to_range, op_hint::OpHint, AsAny, BoxedShallowCopy, Buffers, Device, Parents, UniqueId,
-    UpdateArgs, UpdateArgsDynable,
+    bounds_to_range, modules::lazy::exec_iter::ExecIter2, op_hint::OpHint, AnyOp, AsAny,
+    BoxedShallowCopy, Buffers, Device, Downcast, Parents, UniqueId, UpdateArgs, UpdateArgsDynable,
 };
 use core::{mem::transmute, ops::RangeBounds};
+use std::collections::HashSet;
 
 use super::exec_iter::{exec_op, ExecIter};
+
+pub trait ArgsTest {}
+
+pub struct Operation2<'a, B, T> {
+    // pub op: fn(*mut ()) -> crate::Result<()>,
+    pub op: Box<dyn Fn(&mut Buffers<B>) -> crate::Result<()> + 'a>,
+    pub op_hint: OpHint<T>,
+}
 
 pub struct Operation<B, T> {
     pub op_hint: OpHint<T>,
@@ -26,6 +35,105 @@ impl<B: AsAny, T> Operation<B, T> {
 
 pub struct LazyGraph<B = Box<dyn BoxedShallowCopy>, T = ()> {
     pub operations: Vec<Operation<B, T>>,
+}
+
+pub struct LazyGraph2<'a, B = Box<dyn BoxedShallowCopy>, T = ()> {
+    operations: Vec<Operation2<'a, B, T>>,
+}
+
+impl<'a, B, T> Default for LazyGraph2<'a, B, T> {
+    #[inline]
+    fn default() -> Self {
+        Self {
+            operations: Vec::new(),
+        }
+    }
+}
+
+impl<'a, B: Downcast, T> LazyGraph2<'a, B, T> {
+    #[inline]
+    pub fn iter_with<'b>(
+        &'b mut self,
+        // device: &'a D,
+        buffers: &'b mut Buffers<B>,
+    ) -> ExecIter2<'a, 'b, B, T> {
+        ExecIter2 {
+            operations: self.operations.iter(),
+            buffers,
+        }
+    }
+
+    #[inline]
+    pub fn clear(&mut self) {
+        self.operations.clear();
+    }
+
+    pub fn call_lazily(&mut self, buffers: &mut Buffers<B>) -> crate::Result<()> {
+        for args in self.iter_with(buffers) {
+            args?;
+        }
+        Ok(())
+    }
+
+    pub fn call_range<D: Device + 'static>(
+        &mut self,
+        _device: &'a D,
+        bounds: impl RangeBounds<usize>,
+        buffers: &mut Buffers<B>,
+    ) -> crate::Result<()> {
+        let range = bounds_to_range(bounds, self.operations.len());
+        for op in self.operations.drain(range) {
+            (op.op)(buffers)?;
+        }
+        Ok(())
+    }
+
+    pub fn convert_to_operation<Args: Parents<N> + AnyOp, const N: usize>(
+        args: Args,
+        op: impl for<'b> Fn(Args::Replicated<'b>) -> crate::Result<()> + 'static,
+    ) -> Operation2<'a, B, T> {
+        const { assert!(N > 0, "Size of parents must be greater than 0") };
+
+        let mut seen_ids = HashSet::new();
+
+        // store ids and test if buffers are still in cache
+        let arg_ids = args
+            .maybe_ids()
+            .into_iter()
+            .flat_map(|id| {
+                // return error / none
+                let id = id.expect("every parent must have an id");
+                if seen_ids.contains(&id.id) {
+                    panic!("each parent (id) must be unique")
+                }
+                seen_ids.insert(id.id);
+
+                Some(id)
+            })
+            //.flat_map(|id| id.map(|id| *id))
+            .collect::<Vec<_>>();
+
+        if arg_ids.len() != N {
+            panic!()
+        }
+
+        let op: Box<dyn Fn(&mut Buffers<B>) -> crate::Result<()>> =
+            Args::replication_fn::<B>(arg_ids, op);
+
+        Operation2 {
+            op,
+            op_hint: OpHint::None,
+        }
+    }
+
+    pub fn add_operation<Args: Parents<N> + AnyOp, const N: usize>(
+        &mut self,
+        args: Args,
+        op: impl for<'b> Fn(Args::Replicated<'b>) -> crate::Result<()> + 'static,
+    ) {
+        let operation = Self::convert_to_operation(args, op);
+        self.operations.push(operation)
+    }
 }
 
 impl<B, T> Default for LazyGraph<B, T> {
@@ -55,7 +163,7 @@ impl<B: AsAny, T> LazyGraph<B, T> {
         args: Args,
         op: fn(&mut Args) -> crate::Result<()>,
     ) -> Operation<B, T> {
-        // store ids and test if buffers are still in cache afterwards
+        // store ids and test if buffers are still in cache
         let arg_ids = args
             .maybe_ids()
             .into_iter()
@@ -109,10 +217,94 @@ impl<B: AsAny, T> LazyGraph<B, T> {
 mod tests {
     use super::LazyGraph;
     use crate::{
-        register_buf_copyable, AsNoId, Base, BoxedShallowCopy, Buffer, Device, HasId, Retriever,
-        CPU,
+        register_buf_any, register_buf_copyable, AnyBuffer, AsNoId, Base, BoxedShallowCopy, Buffer,
+        CloneBuf, Device, HasId, LazyGraph2, Retriever, Shape, UniqueId, CPU,
     };
+    use core::cell::Cell;
     use std::collections::HashMap;
+
+    pub(crate) fn register_buf_an_bufsy<'a, T, D, S>(
+        cache: &mut HashMap<UniqueId, Box<dyn AnyBuffer + 'a>, impl core::hash::BuildHasher>,
+        buf: &Buffer<'a, T, D, S>,
+    ) where
+        T: crate::Unit + 'static,
+        D: Device + crate::IsShapeIndep + 'static + CloneBuf<'a, T, S>,
+        D::Data<T, S>: crate::ShallowCopy,
+        S: Shape,
+    {
+        // shallow copy sets flag to AllocFlag::Wrapper
+
+        // let wrapped_data = unsafe { buf.data.shallow() };
+
+        // let buf = Buffer {
+        //     data: wrapped_data,
+        //     device: buf.device,
+        // };
+        let buf2 = buf.device().clone_buf(&buf);
+        cache.insert(*buf.id(), Box::new(buf2));
+    }
+
+    #[cfg(feature = "autograd")]
+    #[test]
+    fn test_autograd_lazy_op() {
+        use crate::TapeActions;
+        // static mut DEVICE: Option<&'static CPU<crate::Autograd<Base>>> = None;
+        thread_local! {
+            static DEVICE2: Cell<Option<&'static CPU<crate::CachedModule<Base, CPU>>>> = Cell::new(None);
+        };
+        // static DEVICES: std::sync::Mutex<Option<&'static CPU<crate::Autograd<Base>>>> = Default::default();
+        {
+            let device = CPU::<crate::Autograd<'_, Base>>::new();
+            let lhs = device.buffer([1f32, 2., 3., 4., 5.]);
+            let rhs = device.buffer([1f32, 2., 6., 4., 5.]);
+            // let mut buffers = HashMap::default();
+            // unsafe { register_buf_copyable(&mut buffers, &lhs) };
+            // unsafe { register_buf_copyable(&mut buffers, &rhs) };
+            // let tape: &mut LazyGraph2 = &mut unsafe {device.modules.tape_mut()}.unwrap().lazy_graph;
+            // tape.add_operation((&lhs, &rhs), |(lhs, rhs)| {
+            //     lhs.grad();
+            //     Ok(())
+            // });
+            // tape.call_lazily(&device, &mut buffers).unwrap();
+
+            let device = CPU::<crate::Autograd<Base>>::new();
+            let mut buffers = HashMap::default();
+            let mut graph: LazyGraph2<Box<dyn core::any::Any>> = LazyGraph2::default();
+            let lhs = device.buffer([1f32, 2., 3., 4., 5.]);
+            let rhs = device.buffer([1f32, 2., 6., 4., 5.]);
+
+            unsafe { register_buf_any(&mut buffers, &lhs) };
+            unsafe { register_buf_any(&mut buffers, &rhs) };
+
+            // buffers.insert(*lhs.id(), &lhs);
+            // register_buf_any(cache, buf)
+            graph.add_operation::<_, 1>(&lhs, |args| {
+                println!("args: {args:?}");
+
+                // DEVICE2.set(args.device);
+                // unsafe {
+                //     DEVICE = args.device;
+                // }
+                // std::mem::replace(&mut device, Some(3)) ;
+                Ok(())
+            });
+
+            graph.add_operation::<_, 2>((&lhs, &rhs), |args| {
+                println!("args: {args:?}");
+                Ok(())
+            });
+            graph.call_lazily(&mut buffers).unwrap();
+        };
+        // let x = DEVICE2.get().unwrap();
+        // println!("{:?}", x.modules.cache.borrow().nodes);
+        // unsafe { DEVICE.unwrap() };
+
+        // graph.ex
+
+        // graph.add_operation2::<_, 2>((&lhs, &rhs), |args| {
+        //     Ok(())
+        // });
+    }
 
     #[test]
     #[should_panic]

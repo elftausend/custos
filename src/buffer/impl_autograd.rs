@@ -1,5 +1,5 @@
 use crate::prelude::*;
-use crate::MayTapeActions;
+use crate::MayGradActions;
 
 use crate::Unit;
 #[cfg(feature = "autograd")]
@@ -17,21 +17,29 @@ where
 {
     /// Calls `.backward_seeded` on the [`Tape`].
     #[inline]
-    pub fn backward(&self)
+    pub fn backward<'b>(&self)
     where
         T: Clone + One + 'static,
-        D: TapeActions + ZeroGrad<T> + WriteBuf<T, S, D> + Alloc<T> + AddOperation + 'static,
+        D: TapeActions<'b>
+            + ZeroGrad<T>
+            + WriteBuf<T, S, D>
+            + Alloc<T>
+            + AddOperation
+            + 'static
+            + GradActions,
         D: CachedBuffers,
     {
         self.backward_with(&vec![T::one(); self.len()]);
     }
+
     /// Calls `.backward_seeded_maybe_with_buffers` on the [`Tape`] with the given buffer.
     #[inline]
-    pub fn backward_with(&self, seed: &[T])
+    pub fn backward_with<'b>(&self, seed: &[T])
     where
         T: Clone + 'static,
         D: CachedBuffers
-            + TapeActions
+            + TapeActions<'b>
+            + GradActions
             + ZeroGrad<T>
             + WriteBuf<T, S, D>
             + Alloc<T>
@@ -60,12 +68,13 @@ where
     #[cfg(feature = "autograd")]
     pub fn grad(&self) -> &'a Self
     where
-        D: ZeroGrad<T> + MayTapeActions + Alloc<T>,
+        D: ZeroGrad<T> + MayGradActions + Alloc<T>,
     {
         // TODO: consider activating this check ->
         // e.g. binary grad ops are computed in a single function where differentiating between
         // req grad and no req grad is not possible/ difficult
         // assert!(self.requires_grad(), "Buffer does not require gradient.");
+
         unsafe {
             self.device()
                 .gradients_mut()
@@ -76,11 +85,11 @@ where
     }
 
     /// Returns a reference to the gradient of this buffer.
-    /// Returns none either if the autograd feature is disabled, no tape was found (add [`Autograd`] module) or no gradient was allocated previously.
+    /// Returns none either if the autograd feature is disabled, no tape was found (add [`Autograd`] module) or no gradient is allocated.
     // TODO: Maybe return Result with two error variants?
     pub fn try_grad(&self) -> Option<&'a Self>
     where
-        D: MayTapeActions + Alloc<T>,
+        D: MayGradActions + Alloc<T>,
     {
         if !self.requires_grad() {
             return None;
@@ -107,29 +116,30 @@ where
     /// This allocates a gradient buffer if it wasn't previously.
     #[inline]
     #[cfg(feature = "autograd")]
-    pub fn grad_mut<'b>(&'b self) -> &'b mut Self
+    pub unsafe fn grad_mut<'b>(&'b self) -> &'a mut Self
     where
-        D: MayTapeActions + Alloc<T> + ZeroGrad<T>,
+        D: GradActions + Alloc<T> + ZeroGrad<T>,
     {
         // TODO: consider activating this check ->
         // e.g. binary grad ops are computed in a single function where differentiating between
         // req grad and no req grad is not possible/ difficult
         // assert!(self.requires_grad(), "Buffer does not require gradient.");
-        unsafe {
-            self.device()
-                .gradients_mut()
-                .expect(AUTOGRAD_NOT_AVAILABLE)
-                // .grads
-                .get_mut(self.device(), self.id())
-        }
+        self.device().grad_mut(self.device(), self)
+        // unsafe {
+        //     self.device()
+        //         .gradients_mut()
+        //         .expect(AUTOGRAD_NOT_AVAILABLE)
+        //         // .grads
+        //         .get_mut(self.device(), self.id())
+        // }
     }
 
     /// Returns a mutable reference to the gradient of this buffer.
-    /// Returns none either if the autograd feature is disabled, no tape was found (add [`Autograd`] module) or no gradient was allocated previously.
+    /// Returns none either if the autograd feature is disabled, no tape was found (add [`Autograd`] module) or no gradient is allocated.
     // TODO: Maybe return Result with two error variants?
-    pub fn try_grad_mut<'b>(&'b mut self) -> Option<&'a mut Self>
+    pub unsafe fn try_grad_mut<'b>(&'b mut self) -> Option<&'a mut Self>
     where
-        D: MayTapeActions + Alloc<T>,
+        D: MayGradActions + Alloc<T>,
     {
         if !self.requires_grad() {
             return None;
@@ -148,7 +158,7 @@ where
     /// Activate the `autograd` feature to make this function useable.
     #[inline]
     #[cfg(not(feature = "autograd"))]
-    pub fn grad_mut<'b>(&'b mut self) -> &'a mut Self {
+    pub unsafe fn grad_mut<'b>(&'b self) -> &'a mut Self {
         unimplemented!("Gradient not available. Activate the autograd feature.");
     }
 }
@@ -170,8 +180,10 @@ mod tests {
 
         let device = CPU::<Autograd<Cached<Base>>>::new();
         let mut buf = device.buffer([1, 2, 3, 4]);
-        let _out = buf.grad_mut();
-        let out = buf.grad_mut();
+
+        // buf.backward_lt();
+        // let _out = buf.grad();
+        // let out = buf.grad_mut();
         // run(_out, out);
     }
 }

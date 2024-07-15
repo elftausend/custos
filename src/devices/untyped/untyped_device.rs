@@ -80,7 +80,7 @@ impl HasModules for Untyped {
 }
 
 impl OnDropBuffer for Untyped {}
-impl<T: Unit, D: Device, S: Shape> OnNewBuffer<T, D, S> for Untyped {}
+impl<'dev, T: Unit, D: Device, S: Shape> OnNewBuffer<'dev, T, D, S> for Untyped {}
 
 impl WrappedData for Untyped {
     type Wrap<T, Base: HasId + PtrType> = Base;

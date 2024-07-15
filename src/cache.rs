@@ -4,6 +4,9 @@ pub use location_hasher::*;
 mod nohasher;
 pub use nohasher::*;
 
+mod any_buffer;
+pub use any_buffer::*;
+
 #[cfg(feature = "cached")]
 mod borrow_cache;
 #[cfg(feature = "cached")]

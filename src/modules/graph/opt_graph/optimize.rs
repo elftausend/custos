@@ -488,7 +488,7 @@ mod tests {
     }
 
     #[cfg(feature = "lazy")]
-    fn test_lazy_from_retrieve<D>(device: &D)
+    fn test_lazy_from_retrieve<'a, D>(device: &'a D)
     where
         D: crate::Device
             + crate::Optimize
@@ -496,7 +496,7 @@ mod tests {
             + crate::Run
             + crate::ReplaceBuf<f32, D, ()>
             + crate::Alloc<f32>
-            + crate::OnNewBuffer<f32, D, ()>
+            + crate::OnNewBuffer<'a, f32, D, ()>
             + 'static,
     {
         // idx: 0, deps: []

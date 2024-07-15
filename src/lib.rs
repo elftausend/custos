@@ -101,6 +101,7 @@ mod cache;
 pub mod features;
 pub mod flag;
 // mod graph;
+mod any_op;
 #[cfg(feature = "std")]
 mod boxed_shallow_copy;
 pub mod hooks;
@@ -118,6 +119,7 @@ mod unary;
 mod update_args;
 mod wrapper;
 
+pub use any_op::*;
 pub use cache::*;
 pub use features::*;
 pub use hooks::*;
@@ -203,9 +205,16 @@ pub trait DevicelessAble<'a, T: Unit, S: Shape = ()>: Alloc<T> {}
 /// If the `autograd` feature is enabled, then this will be implemented for all types that implement [`TapeActions`].
 /// On the other hand, if the `autograd` feature is disabled, no [`Tape`] will be returneable.
 #[cfg(feature = "autograd")]
-pub trait MayTapeActions: TapeActions {}
+pub trait MayGradActions: GradActions {}
 #[cfg(feature = "autograd")]
-impl<D: crate::TapeActions> MayTapeActions for D {}
+impl<D: crate::GradActions> MayGradActions for D {}
+
+/// If the `autograd` feature is enabled, then this will be implemented for all types that implement [`TapeActions`].
+/// On the other hand, if the `autograd` feature is disabled, no [`Tape`] will be returneable.
+#[cfg(feature = "autograd")]
+pub trait MayTapeActionsLT<'a>: TapeActions<'a> {}
+#[cfg(feature = "autograd")]
+impl<'a, D: crate::TapeActions<'a>> MayTapeActionsLT<'a> for D {}
 
 /// If the `autograd` feature is enabled, then this will be implemented for all types that implement [`TapeReturn`].
 /// On the other hand, if the `autograd` feature is disabled, no [`Tape`] will be returneable.
@@ -213,6 +222,11 @@ impl<D: crate::TapeActions> MayTapeActions for D {}
 pub trait MayTapeActions {}
 #[cfg(not(feature = "autograd"))]
 impl<D> MayTapeActions for D {}
+
+#[cfg(not(feature = "autograd"))]
+pub trait MayGradActions {}
+#[cfg(not(feature = "autograd"))]
+impl<D> MayGradActions for D {}
 
 /// If the OpenCL device selected by the environment variable `CUSTOS_CL_DEVICE_IDX` supports unified memory, then this will be `true`.
 /// In your case, this is `false`.
@@ -228,7 +242,7 @@ pub const UNIFIED_CL_MEM: bool = true;
 pub use custos_macro::*;
 
 #[cfg(feature = "std")]
-pub(crate) type Buffers<B> =
+pub type Buffers<B> =
     std::collections::HashMap<UniqueId, B, std::hash::BuildHasherDefault<NoHasher>>;
 
 pub mod prelude {

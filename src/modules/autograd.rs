@@ -10,39 +10,44 @@ use core::cell::{Cell, UnsafeCell};
 use crate::{
     impl_remove_layer, pass_down_add_operation, pass_down_cached_buffers, pass_down_cursor,
     pass_down_exec_now_module, pass_down_replace_buf_module, register_buf_copyable,
-    unregister_buf_copyable, AddGradFn, AddLayer, Alloc, Buffer, Device, HasId, HasModules,
-    IsShapeIndep, Module, OnDropBuffer, OnNewBuffer, Parents, Retrieve, RunModule, Setup,
-    ShallowCopy, Shape, TapeActions, TapeActionsLT, Unit,
+    unregister_buf_copyable, AddGradFn, AddLayer, Alloc, Buffer, Device, GradActions, HasId,
+    HasModules, IsShapeIndep, Module, OnDropBuffer, OnNewBuffer, Parents, Retrieve, RunModule,
+    Setup, ShallowCopy, Shape, TapeActions, Unit,
 };
 
 use self::wrapper::ReqGradWrapper;
 
+pub trait HasAutograd {}
+impl<'a, Mods> HasAutograd for Autograd<'a, Mods> {}
+
 #[derive(Debug, Default)]
-pub struct AutogradLT<'dev, Mods> {
+pub struct Autograd<'dev, Mods> {
     pub modules: Mods,
     /// Caches gradients for each [`Buffer`]'s id ([`Ident`]).
-    pub grads: UnsafeCell<GradientsLT<'dev>>, // could use RefCell
-    tape: UnsafeCell<Tape>,
+    pub grads: UnsafeCell<Gradients>, // could use RefCell
+    pub(crate) no_grads_pool: core::cell::RefCell<crate::BorrowCacheLT<'dev>>,
+    pub(crate) tape: UnsafeCell<TapeLT<'dev>>,
     pub enabled: Cell<bool>,
 }
 
-impl<'a, Mods: Module<'a, D>, D: Device + 'a> Module<'a, D> for AutogradLT<'a, Mods> {
+impl<'a, Mods: Module<'a, D>, D: Device + 'a> Module<'a, D> for Autograd<'a, Mods> {
     // type Module = Autograd<CachedModule<Mods::Module, D>>;
-    type Module = AutogradLT<'a, Mods::Module>;
+    type Module = Autograd<'a, Mods::Module>;
 
     #[inline]
     fn new() -> Self::Module {
-        AutogradLT {
+        Autograd {
             // modules: Cached::<Mods>::new(),
             modules: Mods::new(),
             grads: Default::default(),
+            no_grads_pool: Default::default(),
             tape: Default::default(),
             enabled: Cell::new(true),
         }
     }
 }
 
-impl<'dev, Mods> AutogradLT<'dev, Mods> {
+impl<'dev, Mods> Autograd<'dev, Mods> {
     #[inline]
     pub fn register_no_grad_buf<T, D, S>(&self, buf: &Buffer<T, D, S>)
     where
@@ -61,15 +66,24 @@ impl<'dev, Mods> AutogradLT<'dev, Mods> {
     }
 }
 
-impl<'dev, T, D, Mods, S: Shape> OnNewBuffer<T, D, S> for AutogradLT<'dev, Mods>
+impl<'dev, T, D, Mods, S: Shape> OnNewBuffer<'dev, T, D, S> for Autograd<'_, Mods>
 where
     T: Unit + 'static,
     D: Alloc<T> + IsShapeIndep + 'static,
     D::Data<T, S>: ShallowCopy,
-    Mods: OnNewBuffer<T, D, S>,
+    Mods: OnNewBuffer<'dev, T, D, S>,
 {
     #[inline]
-    fn on_new_buffer(&self, device: &D, new_buf: &Buffer<T, D, S>) {
+    fn on_new_buffer(&self, device: &'dev D, new_buf: &Buffer<'dev, T, D, S>) {
+        // let mut no_grads = self.no_grads_pool.borrow_mut();
+        // let wrapped_data = unsafe { new_buf.data.shallow() };
+
+        // let buf = Buffer {
+        //     data: wrapped_data,
+        //     device: new_buf.device,
+        // };
+        // no_grads.cache.insert(*new_buf.id(), Box::new(buf));
+
         unsafe {
             (*self.grads.get())
                 .buf_requires_grad
@@ -82,7 +96,7 @@ where
     }
 }
 
-impl<'dev, Mods: OnDropBuffer> OnDropBuffer for AutogradLT<'dev, Mods> {
+impl<'dev, Mods: OnDropBuffer> OnDropBuffer for Autograd<'dev, Mods> {
     #[inline]
     fn on_drop_buffer<T: Unit, D: Device, S: Shape>(&self, device: &D, buf: &Buffer<T, D, S>) {
         unsafe { (*self.grads.get()).buf_requires_grad.remove(&*buf.id()) };
@@ -98,39 +112,168 @@ impl<'dev, Mods: OnDropBuffer> OnDropBuffer for AutogradLT<'dev, Mods> {
     }
 }
 
-impl<'dev, Mods: Setup<NewDev>, NewDev> Setup<NewDev> for AutogradLT<'dev, Mods> {
+impl<'dev, Mods: Setup<NewDev>, NewDev> Setup<NewDev> for Autograd<'dev, Mods> {
     #[inline]
     fn setup(device: &mut NewDev) -> crate::Result<()> {
         Mods::setup(device)
     }
 }
 
-impl<'dev, Mods> TapeActionsLT<'dev> for AutogradLT<'dev, Mods> {
+impl<'dev, T, Mods: Retrieve<D, T, S>, D, S: Shape> Retrieve<D, T, S> for Autograd<'dev, Mods>
+where
+    T: Unit + 'static,
+    D: IsShapeIndep + Device + 'static,
+    D::Data<T, S>: ShallowCopy,
+{
     #[inline]
-    unsafe fn tape(&self) -> Option<&Tape> {
+    unsafe fn retrieve<const NUM_PARENTS: usize>(
+        &self,
+        device: &D,
+        len: usize,
+        parents: impl Parents<NUM_PARENTS>,
+    ) -> crate::Result<Self::Wrap<T, D::Base<T, S>>>
+    where
+        D: Alloc<T>,
+    {
+        let requires_grad = parents.requires_grads().iter().any(|&x| x);
+        let data = self.modules.retrieve(device, len, parents)?;
+        unsafe {
+            (*self.grads.get())
+                .buf_requires_grad
+                .insert(*data.id(), requires_grad)
+        };
+
+        Ok(ReqGradWrapper {
+            requires_grad,
+            data,
+            _pd: core::marker::PhantomData,
+        })
+    }
+
+    #[inline]
+    fn on_retrieve_finish(&self, retrieved_buf: &Buffer<T, D, S>)
+    where
+        D: Alloc<T>,
+    {
+        self.register_no_grad_buf(retrieved_buf);
+
+        self.modules.on_retrieve_finish(retrieved_buf)
+    }
+}
+
+impl<'dev, Mods> GradActions for Autograd<'dev, Mods> {
+    unsafe fn gradients(&self) -> Option<&crate::Gradients> {
+        Some(unsafe { &(*self.grads.get()) })
+    }
+
+    unsafe fn gradients_mut(&self) -> Option<&mut crate::Gradients> {
+        Some(unsafe { &mut (*self.grads.get()) })
+    }
+
+    unsafe fn grad<
+        'a,
+        T: 'static,
+        D: Device + Alloc<T> + crate::ZeroGrad<T> + 'static,
+        S: Shape,
+    >(
+        &self,
+        device: &'a D,
+        buf: &Buffer<'a, T, D, S>,
+    ) -> &Buffer<'a, T, D, S> {
+        unsafe { (*self.grads.get()).get_ref(device, buf.id()) }
+    }
+
+    unsafe fn grad_mut<
+        'a,
+        T: 'static,
+        D: Device + Alloc<T> + crate::ZeroGrad<T> + 'static,
+        S: Shape,
+    >(
+        &self,
+        device: &'a D,
+        buf: &Buffer<'a, T, D, S>,
+    ) -> &mut Buffer<'a, T, D, S> {
+        unsafe { (*self.grads.get()).get_mut(device, buf.id()) }
+    }
+}
+
+impl<'dev, Mods> TapeActions<'dev> for Autograd<'dev, Mods> {
+    #[inline]
+    unsafe fn tape(&self) -> Option<&TapeLT<'dev>> {
         Some(&*self.tape.get())
         // Some(self.tape.borrow())
     }
 
     #[inline]
-    unsafe fn tape_mut(&self) -> Option<&mut Tape> {
+    unsafe fn tape_mut(&self) -> Option<&mut TapeLT<'dev>> {
         Some(&mut *self.tape.get())
         // Some(unsafe {&mut (self.tape.get_mut()) })
         // Some(self.tape.borrow_mut())
     }
+}
 
-    unsafe fn gradients(&self) -> Option<&crate::GradientsLT<'dev>> {
-        Some(&*self.grads.get())
+impl<'a, Mods: AddGradFn> AddGradFn for Autograd<'a, Mods> {
+    fn add_grad_fn<Args: Parents<N> + crate::AnyOp, const N: usize>(
+        &self,
+        args: Args,
+        op: impl for<'b> Fn(Args::Replicated<'b>) -> crate::Result<()> + 'static,
+    ) {
+        if !self.enabled.get() {
+            return;
+        }
+        unsafe { (*self.tape.get()).add_grad_fn(args, op) }
     }
 
-    unsafe fn gradients_mut(&self) -> Option<&mut crate::GradientsLT<'dev>> {
-        // todo!()
-        Some(&mut *self.grads.get())
+    #[inline]
+    fn set_grad_enabled(&self, enabled: bool) {
+        self.enabled.set(enabled);
+    }
+
+    #[inline]
+    fn is_grad_enabled(&self) -> bool {
+        self.enabled.get()
     }
 }
 
-impl_remove_layer!(AutogradLT, 'a, Mods);
+impl<'a, Mods: RunModule<D>, D> RunModule<D> for Autograd<'a, Mods> {
+    #[inline]
+    fn run(&self, _device: &D) -> crate::Result<()> {
+        self.modules.run(_device)
+    }
+}
 
+impl_remove_layer!(Autograd, 'a, Mods);
+
+impl<'a, NewMods, SD> AddLayer<NewMods, SD> for Autograd<'a, ()> {
+    type Wrapped = crate::Autograd<'a, NewMods>;
+
+    #[inline]
+    fn wrap_layer(inner_mods: NewMods) -> Self::Wrapped {
+        Autograd {
+            modules: inner_mods,
+            grads: Default::default(),
+            tape: Default::default(),
+            enabled: Cell::new(true),
+            no_grads_pool: Default::default(),
+        }
+    }
+}
+
+pass_down_cursor!(Autograd, 'dev, Mods);
+pass_down_add_operation!(Autograd, 'dev, Mods);
+pass_down_exec_now_module!(Autograd, 'dev, Mods);
+pass_down_cached_buffers!(Autograd, 'dev, Mods);
+pass_down_replace_buf_module!(Autograd, 'dev, Mods);
+
+impl<'a, Mods> HasModules for Autograd<'a, Mods> {
+    type Mods = Mods;
+
+    #[inline]
+    fn modules(&self) -> &Self::Mods {
+        &self.modules
+    }
+}
+/*
 #[derive(Debug, Default)]
 pub struct Autograd<Mods> {
     pub modules: Mods,
@@ -175,15 +318,15 @@ impl<Mods> Autograd<Mods> {
     }
 }
 
-impl<T, D, Mods, S: Shape> OnNewBuffer<T, D, S> for Autograd<Mods>
+impl<'dev, T, D, Mods, S: Shape> OnNewBuffer<'dev, T, D, S> for Autograd<Mods>
 where
     T: Unit + 'static,
     D: Alloc<T> + IsShapeIndep + 'static,
     D::Data<T, S>: ShallowCopy,
-    Mods: OnNewBuffer<T, D, S>,
+    Mods: OnNewBuffer<'dev, T, D, S>,
 {
     #[inline]
-    fn on_new_buffer(&self, device: &D, new_buf: &Buffer<T, D, S>) {
+    fn on_new_buffer(&self, device: &'dev D, new_buf: &Buffer<'dev, T, D, S>) {
         unsafe {
             (*self.grads.get())
                 .buf_requires_grad
@@ -212,8 +355,6 @@ impl<Mods: OnDropBuffer> OnDropBuffer for Autograd<Mods> {
     }
 }
 
-pub trait HasAutograd {}
-impl<Mods> HasAutograd for Autograd<Mods> {}
 
 impl<Mods: Setup<NewDev>, NewDev> Setup<NewDev> for Autograd<Mods> {
     #[inline]
@@ -348,27 +489,26 @@ impl<Mods> HasModules for Autograd<Mods> {
     fn modules(&self) -> &Self::Mods {
         &self.modules
     }
-}
+}*/
 
 #[cfg(test)]
 #[cfg(feature = "cpu")]
 mod tests {
     use crate::{
-        AddGradFn, AutogradLT, Base, BoxedShallowCopy, Buffer, Cached, Combiner, Cursor, Device,
-        HasId, Lazy, Module, Retriever, Shape, TapeActions, TapeActionsLT, UnaryGrad, Unit, CPU,
+        AddGradFn, Autograd, Base, BoxedShallowCopy, Buffer, Cached, Combiner, Cursor, Device,
+        HasId, Lazy, Module, Retriever, Shape, TapeActions, UnaryGrad, Unit, CPU,
     };
 
-    use super::Autograd;
-
+    #[cfg(feature = "opencl")]
     #[test]
     fn test_autograd_lt() {
-        let ag = AutogradLT::<Base>::default();
         {
             let device = crate::OpenCL::based(0).unwrap();
+            let ag = Autograd::<Base>::default();
             let out = unsafe {
-                ag.gradients_mut()
-                    .unwrap()
-                    .get_ref::<f32, (), _>(&device, crate::Id { id: 0, len: 10 })
+                // ag.gradients_mut()
+                //     .unwrap()
+                //     .get_ref::<f32, (), _>(&device, crate::Id { id: 0, len: 10 })
             };
             //
         }
@@ -483,11 +623,11 @@ mod tests {
     #[test]
     fn test_grad_fn_with_lazy_buffer_source_but_no_true_lazy() {
         let device = CPU::<Autograd<Lazy<Base>>>::new();
-        let mut buf = Buffer::<f32, _>::new(&device, 10).require_grad();
+        let buf = Buffer::<f32, _>::new(&device, 10).require_grad();
 
         let out = Buffer::<f32, _>::new(&device, 10);
 
-        device.add_grad_fn((&mut buf, &out), |(buf, _out)| {
+        device.add_grad_fn((&buf, &out), |(buf, _out)| unsafe {
             for (val, grad) in buf.grad_mut().iter_mut().zip(_out.grad().iter()) {
                 *val = 5. * grad;
             }
@@ -524,7 +664,7 @@ mod tests {
     #[cfg(feature = "autograd")]
     impl<Mods: AddGradFn + 'static> UnaryByMods<Mods> for CPU {
         fn unary_ew(&self, mods: &Mods) {
-            mods.add_grad_fn((), |_| Ok(()));
+            // mods.add_grad_fn((), |_| Ok(()));
         }
     }
 
@@ -545,7 +685,7 @@ mod tests {
         let mut lhs = device.buffer([1, 2, 3, 4]).require_grad();
         let out = lhs.empty_like();
 
-        device.add_grad_fn((&mut lhs, &out), |(lhs, out)| {
+        device.add_grad_fn((&mut lhs, &out), |(lhs, out)| unsafe {
             // lhs.grad();
             lhs.device()
                 .add_unary_grad(lhs, lhs.grad_mut(), out.grad(), |x| x.add(3));
@@ -567,7 +707,7 @@ mod tests {
 
         device.disable_grad();
 
-        device.add_grad_fn((&lhs, &out), |(lhs, out)| {
+        device.add_grad_fn((&lhs, &out), |(lhs, out)| unsafe {
             lhs.device()
                 .add_unary_grad(lhs, lhs.grad_mut(), out.grad(), |x| x.add(3));
             panic!("should not be called");
@@ -579,7 +719,7 @@ mod tests {
 
         device.enable_grad();
 
-        device.add_grad_fn((&lhs, &out), |(lhs, out)| {
+        device.add_grad_fn((&lhs, &out), |(lhs, out)| unsafe {
             lhs.device()
                 .add_unary_grad(lhs, lhs.grad_mut(), out.grad(), |x| x.add(3));
             Ok(())

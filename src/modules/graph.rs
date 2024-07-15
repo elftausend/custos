@@ -98,10 +98,10 @@ impl<Mods: Optimize> Optimize for Graph<Mods> {
     }
 }
 
-impl<Mods: OnNewBuffer<T, D, S>, T: Unit, D: Device, S: Shape> OnNewBuffer<T, D, S>
+impl<'a, Mods: OnNewBuffer<'a, T, D, S>, T: Unit, D: Device, S: Shape> OnNewBuffer<'a, T, D, S>
     for Graph<Mods>
 {
-    fn on_new_buffer(&self, _device: &D, new_buf: &crate::Buffer<T, D, S>) {
+    fn on_new_buffer(&self, _device: &'a D, new_buf: &crate::Buffer<'a, T, D, S>) {
         let mut graph_trans = self.graph_trans.borrow_mut();
         let next_idx = graph_trans.next_idx;
 

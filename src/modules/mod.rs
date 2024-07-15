@@ -10,7 +10,7 @@
 //!     mods: Mods,
 //! }
 //!
-//! impl<D, Mods: Module<D>> Module<D> for CustomModule<Mods> {
+//! impl<'a, D: 'a, Mods: Module<'a, D>> Module<'a, D> for CustomModule<Mods> {
 //!     type Module = CustomModule<Mods::Module>;
 //!
 //!     fn new() -> Self::Module {

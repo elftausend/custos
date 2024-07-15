@@ -9,7 +9,7 @@ pub use ty::*;
 
 use crate::{
     op_hint::OpHint, register_buf_copyable, unregister_buf_copyable, AddLayer, AddOperation, Alloc,
-    BoxedShallowCopy, Buffer, CachedBuffers, Cursor, Device, ExecNow, HasId, HasModules, Id,
+    AnyOp, BoxedShallowCopy, Buffer, CachedBuffers, Cursor, Device, ExecNow, HasId, HasModules, Id,
     IsShapeIndep, Module, NoHasher, OnDropBuffer, OnNewBuffer, Parents, ReplaceBuf, Retrieve,
     RunModule, SetOpHint, Setup, ShallowCopy, Shape, UniqueId, Unit, UpdateArgs, UseGpuOrCpu,
 };
@@ -38,6 +38,7 @@ pub struct Lazy<Mods, T = f32> {
     pub modules: Mods,
     alloc_later: RefCell<Vec<(Id, fn(&mut Buffers, &mut AllocatedIds, Id, &dyn Any))>>, // could use D generic instead of dyn Any (required LazyModule structure)
     pub buffers: RefCell<Buffers>,
+    replaced_buffers: RefCell<Buffers>,
     // `buffers` shares buffers, that are either lazily allocated or instantly (via new, from..).
     // This ensures to only allocate a buffer once, without having to remove the ID/address collision check
     // TODO: remove this, fix id and address collision - then just use `buffers` for duplicate calls
@@ -77,6 +78,7 @@ impl<'a, T, Mods: Module<'a, D>, D: LazySetup + Device + 'a> Module<'a, D> for L
         Lazy {
             modules: Mods::new(),
             buffers: Default::default(),
+            replaced_buffers: Default::default(),
             graph: Default::default(),
             alloc_later: Default::default(),
             allocated_ids: Default::default(),
@@ -194,16 +196,16 @@ impl<T2, Mods: OnDropBuffer> OnDropBuffer for Lazy<Mods, T2> {
     }
 }
 
-impl<T, D, Mods, S, T2> OnNewBuffer<T, D, S> for Lazy<Mods, T2>
+impl<'a, T, D, Mods, S, T2> OnNewBuffer<'a, T, D, S> for Lazy<Mods, T2>
 where
     T: Unit + 'static,
     D: Device + IsShapeIndep + 'static,
     D::Data<T, S>: ShallowCopy,
-    Mods: OnNewBuffer<T, D, S>,
+    Mods: OnNewBuffer<'a, T, D, S>,
     S: Shape,
 {
     #[inline]
-    fn on_new_buffer(&self, device: &D, new_buf: &Buffer<T, D, S>) {
+    fn on_new_buffer(&self, device: &'a D, new_buf: &Buffer<'a, T, D, S>) {
         unsafe { register_buf_copyable(&mut self.buffers.borrow_mut(), new_buf) };
         self.modules.on_new_buffer(device, new_buf)
     }
@@ -214,15 +216,31 @@ where
 impl<Mods: crate::HasAutograd, T> crate::HasAutograd for Lazy<Mods, T> {}
 
 #[cfg(feature = "autograd")]
-impl<Mods: crate::TapeActions, T> crate::TapeActions for Lazy<Mods, T> {
-    #[inline]
-    unsafe fn tape(&self) -> Option<&crate::Tape> {
-        self.modules.tape()
+impl<Mods: crate::GradActions, U> crate::GradActions for Lazy<Mods, U> {
+    unsafe fn grad<
+        'a,
+        T: 'static,
+        D: Device + Alloc<T> + crate::ZeroGrad<T> + 'static,
+        S: Shape,
+    >(
+        &self,
+        device: &'a D,
+        buf: &Buffer<'a, T, D, S>,
+    ) -> &Buffer<'a, T, D, S> {
+        self.modules.grad(device, buf)
     }
 
-    #[inline]
-    unsafe fn tape_mut(&self) -> Option<&mut crate::Tape> {
-        self.modules.tape_mut()
+    unsafe fn grad_mut<
+        'a,
+        T: 'static,
+        D: Device + Alloc<T> + crate::ZeroGrad<T> + 'static,
+        S: Shape,
+    >(
+        &self,
+        device: &'a D,
+        buf: &Buffer<'a, T, D, S>,
+    ) -> &mut Buffer<'a, T, D, S> {
+        self.modules.grad_mut(device, buf)
     }
 
     #[inline]
@@ -238,10 +256,10 @@ impl<Mods: crate::TapeActions, T> crate::TapeActions for Lazy<Mods, T> {
 
 impl<T, Mods: crate::AddGradFn> crate::AddGradFn for Lazy<Mods, T> {
     #[inline]
-    fn add_grad_fn<Args: crate::Parents<N> + crate::UpdateArgs, const N: usize>(
+    fn add_grad_fn<Args: Parents<N> + AnyOp, const N: usize>(
         &self,
         args: Args,
-        op: fn(&mut Args) -> crate::Result<()>,
+        op: impl for<'b> Fn(Args::Replicated<'b>) -> crate::Result<()> + 'static,
     ) {
         self.modules.add_grad_fn(args, op)
     }
@@ -272,6 +290,7 @@ impl<T, NewMods, SD> AddLayer<NewMods, SD> for Lazy<(), T> {
         Lazy {
             modules: inner_mods,
             buffers: Default::default(),
+            replaced_buffers: Default::default(),
             graph: Default::default(),
             alloc_later: Default::default(),
             allocated_ids: Default::default(),
@@ -383,12 +402,17 @@ impl<T: Unit + 'static, D: Device + 'static, S: Shape, Mods: OnDropBuffer, T2> R
     ) -> &'c Buffer<'a, T, D, S> {
         match self.buffers.borrow().get(&buffer.id()) {
             Some(buf) => {
+                let mut replaced_buffers = self.replaced_buffers.borrow_mut();
+                replaced_buffers.insert(*buffer.id(), buf.shallow_copy());
+
+                let buf = replaced_buffers.get(&buffer.id()).unwrap();
                 let buf = &**buf;
                 assert_eq!(
                     buf.as_any().type_id(),
                     TypeId::of::<Buffer<T, D, S>>(),
                     "Type data does not match! e.g. optimized graph with different types"
                 );
+                // extending lifetime is fine -> replaced_buffers is only used for shared references
                 unsafe { &*(buf as *const _ as *const Buffer<T, D, S>) }
             }
             None => buffer,

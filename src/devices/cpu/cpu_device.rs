@@ -187,8 +187,8 @@ impl<Mods> crate::LazySetup for CPU<Mods> {}
 #[cfg(feature = "fork")]
 impl<Mods> crate::ForkSetup for CPU<Mods> {}
 
-impl<'a, Mods: OnDropBuffer + OnNewBuffer<T, Self, S>, T: Unit + Clone, S: Shape> CloneBuf<'a, T, S>
-    for CPU<Mods>
+impl<'a, Mods: OnDropBuffer + OnNewBuffer<'a, T, Self, S>, T: Unit + Clone, S: Shape>
+    CloneBuf<'a, T, S> for CPU<Mods>
 {
     #[inline]
     fn clone_buf(&'a self, buf: &Buffer<'a, T, CPU<Mods>, S>) -> Buffer<'a, T, CPU<Mods>, S> {

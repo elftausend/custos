@@ -2,13 +2,14 @@ use core::{
     any::Any,
     fmt::{Debug, Display},
     hash::BuildHasherDefault,
-    marker::PhantomData,
     mem::transmute,
 };
 use std::collections::HashMap;
 
 use super::NoHasher;
-use crate::{flag::AllocFlag, Alloc, Buffer, Device, Id, Shape, UniqueId, Unit};
+use crate::{
+    cache::any_buffer::AnyBuffer, flag::AllocFlag, Alloc, Buffer, Device, Id, Shape, UniqueId, Unit,
+};
 
 #[derive(Clone, Copy)]
 pub enum CachingError {
@@ -42,9 +43,16 @@ impl std::error::Error for CachingError {}
 pub(crate) type AnyBuffers = HashMap<UniqueId, Box<dyn Any>, BuildHasherDefault<NoHasher>>;
 
 #[derive(Default)]
-pub struct BorrowCacheLT<'dev> {
-    pub(crate) cache: AnyBuffers,
-    pd: PhantomData<&'dev dyn Any>,
+pub struct BorrowCacheLT<'a> {
+    pub cache: HashMap<UniqueId, Box<(dyn AnyBuffer + 'a)>, BuildHasherDefault<NoHasher>>,
+}
+
+impl<'a> Debug for BorrowCacheLT<'a> {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.debug_struct("BorrowCacheLT")
+            .field("cache", &"...".to_string())
+            .finish()
+    }
 }
 
 impl<'dev> BorrowCacheLT<'dev> {
@@ -67,19 +75,15 @@ impl<'dev> BorrowCacheLT<'dev> {
         D: Alloc<T> + 'static,
         S: Shape,
     {
-        // not using ::new, because this buf would get added to the cache of the device.
-        // not anymore ?
         let buf = Buffer {
             data: device.base_to_data(device.alloc::<S>(id.len, AllocFlag::BorrowedCache).unwrap()),
             device: Some(device),
         };
-
-        let buf = unsafe { transmute::<_, Buffer<'static, T, D, S>>(buf) };
         self.cache.insert(*id, Box::new(buf));
     }
 
     #[inline]
-    pub fn get_buf<T, D, S>(&self, id: Id) -> Result<&Buffer<'dev, T, D, S>, CachingError>
+    pub fn get_buf<'a, T, D, S>(&'a self, id: Id) -> Result<&'a Buffer<'dev, T, D, S>, CachingError>
     where
         T: Unit + 'static,
         D: Device + 'static,
@@ -102,15 +106,12 @@ impl<'dev> BorrowCacheLT<'dev> {
         D: Device + 'static,
         S: Shape,
     {
-        unsafe {
-            transmute::<Result<&'a mut Buffer<'static, T, D, S>, CachingError>, _>(
-                self.cache
-                    .get_mut(&id)
-                    .ok_or(CachingError::InvalidId)?
-                    .downcast_mut::<Buffer<T, D, S>>()
-                    .ok_or(CachingError::InvalidTypeInfo),
-            )
+        let dyn_buf = self.cache.get_mut(&id).ok_or(CachingError::InvalidId)?;
+
+        if !dyn_buf.is::<Buffer<T, D, S>>() {
+            return Err(CachingError::InvalidTypeInfo);
         }
+        Ok(unsafe { dyn_buf.downcast_mut_unchecked() })
     }
 }
 
