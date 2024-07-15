@@ -7,10 +7,7 @@ use std::collections::HashSet;
 
 use super::exec_iter::{exec_op, ExecIter};
 
-pub trait ArgsTest {}
-
 pub struct Operation2<'a, B, T> {
-    // pub op: fn(*mut ()) -> crate::Result<()>,
     pub op: Box<dyn Fn(&mut Buffers<B>) -> crate::Result<()> + 'a>,
     pub op_hint: OpHint<T>,
 }

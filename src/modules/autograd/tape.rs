@@ -1,7 +1,6 @@
-use crate::LazyGraph;
 use crate::{
-    AddOperation, Alloc, AnyOp, BoxedShallowCopy, Buffer, Buffers, Device, GradActions, HasId,
-    LazyGraph2, Parents, Shape, TapeActions, Unit, UpdateArgs, WriteBuf, ZeroGrad,
+    AddOperation, Alloc, AnyOp, BoxedShallowCopy, Buffer, Buffers, GradActions,
+    LazyGraph2, Parents, Shape, Unit, WriteBuf, ZeroGrad,
 };
 
 use super::Gradients;
@@ -10,11 +9,11 @@ pub type GradFn = Box<dyn Fn(&mut Gradients)>;
 
 /// Stores the grad functions and gradient cache.
 #[derive(Default)]
-pub struct TapeLT<'a> {
+pub struct Tape<'a> {
     pub lazy_graph: LazyGraph2<'a, Box<dyn BoxedShallowCopy>>,
 }
 
-impl<'t> TapeLT<'t> {
+impl<'t> Tape<'t> {
     #[inline]
     pub fn add_grad_fn<Args: Parents<N> + AnyOp, const N: usize>(
         &mut self,
