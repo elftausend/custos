@@ -89,6 +89,44 @@ impl<'a, B: Downcast, T> LazyGraph2<'a, B, T> {
         }
         Ok(())
     }
+    
+    pub fn convert_to_operation2<'dev, Args: Parents<N> + crate::AnyOp2<'dev>, const N: usize>(
+        args: Args,
+        op: impl for<'b> Fn(Args::Replicated<'b>) -> crate::Result<()> + 'static,
+    ) -> Operation2<'a, B, T> {
+        const { assert!(N > 0, "Size of parents must be greater than 0") };
+
+        let mut seen_ids = HashSet::new();
+
+        // store ids and test if buffers are still in cache
+        let arg_ids = args
+            .maybe_ids()
+            .into_iter()
+            .flat_map(|id| {
+                // return error / none
+                let id = id.expect("every parent must have an id");
+                if seen_ids.contains(&id.id) {
+                    panic!("each parent (id) must be unique")
+                }
+                seen_ids.insert(id.id);
+
+                Some(id)
+            })
+            //.flat_map(|id| id.map(|id| *id))
+            .collect::<Vec<_>>();
+
+        if arg_ids.len() != N {
+            panic!()
+        }
+
+        let op: Box<dyn Fn(&mut Buffers<B>) -> crate::Result<()>> =
+            Args::replication_fn::<B>(arg_ids, op);
+
+        Operation2 {
+            op,
+            op_hint: OpHint::None,
+        }
+    }
 
     pub fn convert_to_operation<Args: Parents<N> + AnyOp, const N: usize>(
         args: Args,
@@ -134,6 +172,15 @@ impl<'a, B: Downcast, T> LazyGraph2<'a, B, T> {
         op: impl for<'b> Fn(Args::Replicated<'b>) -> crate::Result<()> + 'static,
     ) {
         let operation = Self::convert_to_operation(args, op);
+        self.operations.push(operation)
+    }
+    
+    pub fn add_operation2<'dev, Args: Parents<N> + crate::AnyOp2<'dev>, const N: usize>(
+        &mut self,
+        args: Args,
+        op: impl for<'b> Fn(Args::Replicated<'b>) -> crate::Result<()> + 'static,
+    ) {
+        let operation = Self::convert_to_operation2(args, op);
         self.operations.push(operation)
     }
 }
