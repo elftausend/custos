@@ -276,12 +276,12 @@ macro_rules! pass_down_grad_fn {
 pub trait TapeActions<'dev> {
     // "generator" - do not forget to pass down
     #[inline]
-    unsafe fn tape(&self) -> Option<&crate::TapeLT<'dev>> {
+    unsafe fn tape(&self) -> Option<&crate::Tape<'dev>> {
         None
     }
     // "generator" - do not forget to pass down
     #[inline]
-    unsafe fn tape_mut(&self) -> Option<&mut crate::TapeLT<'dev>> {
+    unsafe fn tape_mut(&self) -> Option<&mut crate::Tape<'dev>> {
         None
     }
 }
@@ -299,12 +299,12 @@ macro_rules! pass_down_tape_actions {
             Self: 'dev
         {
             #[inline]
-            unsafe fn tape(&self) -> Option<&$crate::TapeLT<'dev>> {
+            unsafe fn tape(&self) -> Option<&$crate::Tape<'dev>> {
                 self.modules.tape()
             }
 
             #[inline]
-            unsafe fn tape_mut(&self) -> Option<&mut $crate::TapeLT<'dev>> {
+            unsafe fn tape_mut(&self) -> Option<&mut $crate::Tape<'dev>> {
                 self.modules.tape_mut()
             }
         }

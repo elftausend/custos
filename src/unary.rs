@@ -326,6 +326,7 @@ mod tests {
         let buf = device.buffer([1., 2., 3., 4.]).require_grad();
 
         let out = device.unary_ew(&buf, |x| x.sin(), |x| x.cos());
+        out.replace();
         run_several_times!(device, buf, out);
     }
 
