@@ -44,6 +44,7 @@ pub struct Lazy<Mods, T = f32> {
     // TODO: remove this, fix id and address collision - then just use `buffers` for duplicate calls
     allocated_ids: RefCell<AllocatedIds>,
     pub graph: RefCell<LazyGraph<Box<dyn BoxedShallowCopy>, T>>,
+    pub graph2: RefCell<LazyGraph2<'static, Box<dyn BoxedShallowCopy>, T>>,
     cursor: Cell<usize>,
     enabled: Cell<bool>,
     pd: PhantomData<T>,
@@ -80,6 +81,7 @@ impl<'a, T, Mods: Module<'a, D>, D: LazySetup + Device + 'a> Module<'a, D> for L
             buffers: Default::default(),
             replaced_buffers: Default::default(),
             graph: Default::default(),
+            graph2: Default::default(),
             alloc_later: Default::default(),
             allocated_ids: Default::default(),
             cursor: Default::default(),
@@ -90,9 +92,18 @@ impl<'a, T, Mods: Module<'a, D>, D: LazySetup + Device + 'a> Module<'a, D> for L
 }
 
 impl<T, Mods: AddOperation> AddOperation for Lazy<Mods, T> {
-    #[inline]
-    fn ops_count(&self) -> usize {
-        self.graph.borrow().operations.len()
+    fn add_op2<Args: Parents<N> + AnyOp, const N: usize>(
+        &self,
+        args: Args,
+        op: impl for<'b> Fn(Args::Replicated<'b>) -> crate::Result<()> + 'static,
+    ) {
+        if self.enabled.get() {
+            self.graph2.try_borrow_mut()
+            .expect("already borrowed: BorrowMutError - is the inner operation trying to add an operation as well?")
+            .add_operation(args, op);
+        } else {
+            self.modules.add_op2(args, op);
+        }
     }
 
     #[inline]
@@ -109,6 +120,11 @@ impl<T, Mods: AddOperation> AddOperation for Lazy<Mods, T> {
             return self.modules.add_op(args, operation);
         }
         Ok(())
+    }
+
+    #[inline]
+    fn ops_count(&self) -> usize {
+        self.graph.borrow().operations.len()
     }
 
     #[inline]
@@ -292,6 +308,7 @@ impl<T, NewMods, SD> AddLayer<NewMods, SD> for Lazy<(), T> {
             buffers: Default::default(),
             replaced_buffers: Default::default(),
             graph: Default::default(),
+            graph2: Default::default(),
             alloc_later: Default::default(),
             allocated_ids: Default::default(),
             cursor: Default::default(),

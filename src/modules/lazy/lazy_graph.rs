@@ -65,6 +65,11 @@ impl<'a, B: Downcast, T> LazyGraph2<'a, B, T> {
         self.operations.clear();
     }
 
+    #[inline]
+    pub fn ops_count(&self) -> usize {
+        self.operations.len()
+    }
+
     pub fn call_lazily(&mut self, buffers: &mut Buffers<B>) -> crate::Result<()> {
         for args in self.iter_with(buffers) {
             args?;

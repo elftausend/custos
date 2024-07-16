@@ -36,9 +36,12 @@ impl<'a, D: Device + 'a> Module<'a, D> for Base {
 }
 
 impl AddOperation for Base {
-    #[inline]
-    fn ops_count(&self) -> usize {
-        0
+    fn add_op2<Args: Parents<N> + crate::AnyOp, const N: usize>(
+        &self,
+        args: Args,
+        op: impl for<'b> Fn(Args::Replicated<'b>) -> crate::Result<()> + 'static,
+    ) {
+        todo!()
     }
 
     #[inline]
@@ -51,8 +54,13 @@ impl AddOperation for Base {
     }
 
     #[inline]
-    fn set_lazy_enabled(&self, _enabled: bool) {}
+    fn ops_count(&self) -> usize {
+        0
+    }
 
+    #[inline]
+    fn set_lazy_enabled(&self, _enabled: bool) {}
+    
     #[inline]
     fn is_lazy_enabled(&self) -> bool {
         false

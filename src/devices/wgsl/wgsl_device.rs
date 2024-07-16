@@ -182,6 +182,14 @@ impl<D: Device + Alloc<T>, T: Unit, Mods: Retrieve<Self, T, S>, S: Shape> Retrie
 }
 
 impl<D: Device, Mods: AddOperation> AddOperation for Wgsl<D, Mods> {
+    fn add_op2<Args: Parents<N> + crate::AnyOp, const N: usize>(
+        &self,
+        args: Args,
+        op: impl for<'b> Fn(Args::Replicated<'b>) -> crate::Result<()> + 'static,
+    ) {
+        self.modules.add_op2(args, op)
+    }
+
     #[inline]
     fn add_op<Args: Parents<N> + crate::UpdateArgs, const N: usize>(
         &self,
@@ -200,7 +208,7 @@ impl<D: Device, Mods: AddOperation> AddOperation for Wgsl<D, Mods> {
     fn set_lazy_enabled(&self, enabled: bool) {
         self.modules.set_lazy_enabled(enabled)
     }
-
+    
     #[inline]
     fn is_lazy_enabled(&self) -> bool {
         self.modules.is_lazy_enabled()

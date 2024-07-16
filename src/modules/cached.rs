@@ -70,9 +70,15 @@ impl<Mods: Setup<NewDev>, D: Device, NewDev> Setup<NewDev> for CachedModule<Mods
 }
 
 impl<SD: Device, Mods: AddOperation> AddOperation for CachedModule<Mods, SD> {
-    #[inline]
-    fn ops_count(&self) -> usize {
-        self.modules.ops_count()
+    fn add_op2<Args: Parents<N> + crate::AnyOp, const N: usize>(
+        &self,
+        args: Args,
+        op: impl for<'b> Fn(Args::Replicated<'b>) -> crate::Result<()> + 'static,
+    ) {
+        let op = crate::LazyGraph2::<Box<dyn crate::BoxedShallowCopy>>::convert_to_operation(args, op);
+        
+        // op(Args::replication_fn(ids, op))
+        todo!()
     }
 
     fn add_op<Args: Parents<N>, const N: usize>(
@@ -84,10 +90,15 @@ impl<SD: Device, Mods: AddOperation> AddOperation for CachedModule<Mods, SD> {
     }
 
     #[inline]
+    fn ops_count(&self) -> usize {
+        self.modules.ops_count()
+    }
+
+    #[inline]
     fn set_lazy_enabled(&self, enabled: bool) {
         self.modules.set_lazy_enabled(enabled)
     }
-
+    
     #[inline]
     fn is_lazy_enabled(&self) -> bool {
         self.modules.is_lazy_enabled()

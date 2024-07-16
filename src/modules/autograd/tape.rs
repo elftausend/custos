@@ -1,6 +1,6 @@
 use crate::{
-    AddOperation, Alloc, AnyOp, BoxedShallowCopy, Buffer, Buffers, GradActions,
-    LazyGraph2, Parents, Shape, Unit, WriteBuf, ZeroGrad,
+    AddOperation, Alloc, AnyOp, BoxedShallowCopy, Buffer, Buffers, GradActions, LazyGraph2,
+    Parents, Shape, Unit, WriteBuf, ZeroGrad,
 };
 
 use super::Gradients;
