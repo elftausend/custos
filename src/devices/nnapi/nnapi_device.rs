@@ -64,8 +64,8 @@ impl<U, Mods: OnDropBuffer> Device for NnapiDevice<U, Mods> {
 
 unsafe impl<U, Mods: OnDropBuffer> IsShapeIndep for NnapiDevice<U, Mods> {}
 
-impl<'a, U, T: Unit, D: Device, S: Shape, Mods: crate::OnNewBuffer<'a, T, D, S>> crate::OnNewBuffer<'a, T, D, S>
-    for NnapiDevice<U, Mods>
+impl<'a, U, T: Unit, D: Device, S: Shape, Mods: crate::OnNewBuffer<'a, T, D, S>>
+    crate::OnNewBuffer<'a, T, D, S> for NnapiDevice<U, Mods>
 {
     #[inline]
     fn on_new_buffer(&self, device: &'a D, new_buf: &Buffer<'a, T, D, S>) {
