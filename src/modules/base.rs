@@ -36,12 +36,12 @@ impl<'a, D: Device + 'a> Module<'a, D> for Base {
 }
 
 impl AddOperation for Base {
-    fn add_op2<'own, 'dev: 'own, Args: Parents<N> + crate::AnyOp2<'own, 'dev> , const N: usize>(
+    fn add_op2<'own, 'dev, Args: Parents<N> + crate::AnyOp2<'own, 'dev> , const N: usize>(
         &self,
         args: Args,
-        op: impl for<'a, 'b> Fn(Args::Replicated<'a, 'b>) -> crate::Result<()> + 'static,
+        op: impl for<'a, 'b> Fn(Args::Replicated<'a, 'a>) -> crate::Result<()> + 'static,
     ) -> crate::Result<()> {
-        op(args.replication())
+        op(unsafe { args.replication() })
     }
 
     #[inline]
