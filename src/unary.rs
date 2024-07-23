@@ -17,10 +17,10 @@ pub trait ApplyFunction<T: Unit, S: Shape = (), D: Device = Self>: Device {
     /// let out = device.apply_fn(&a, |x| x.mul(2.));
     /// assert_eq!(&**out, &[2., 4., 6., 6., 4., 2.,]);
     /// ```
-    fn apply_fn<F>(
-        &self,
+    fn apply_fn<'a, F>(
+        &'a self,
         // buf: &D::Data<T, S>,
-        buf: &Buffer<T, D, S>,
+        buf: &Buffer<'a, T, D, S>,
         f: impl Fn(Resolve<T>) -> F + Copy + 'static,
     ) -> Buffer<T, Self, S>
     where
@@ -83,9 +83,9 @@ pub trait UnaryElementWiseMayGrad<T: Unit, D: Device, S: Shape>: Device {
     /// out.backward();
     /// assert_eq!(buf.grad().as_slice(), &[2.; 6]);
     /// ```
-    fn unary_ew<FO, GO>(
-        &self,
-        buf: &Buffer<T, D, S>,
+    fn unary_ew<'a, FO, GO>(
+        &'a self,
+        buf: &Buffer<'a, T, D, S>,
         forward_fn: impl Fn(Resolve<T>) -> FO + Copy + 'static,
         grad_fn: fn(Resolve<T>) -> GO,
     ) -> Buffer<T, Self, S>
@@ -103,9 +103,9 @@ where
     S: Shape,
 {
     #[inline(always)]
-    fn unary_ew<FO, GO>(
-        &self,
-        buf: &Buffer<T, D, S>,
+    fn unary_ew<'a, FO, GO>(
+        &'a self,
+        buf: &Buffer<'a, T, D, S>,
         forward_fn: impl Fn(Resolve<T>) -> FO + Copy + 'static,
         grad_fn: fn(Resolve<T>) -> GO,
     ) -> Buffer<T, Self, S>

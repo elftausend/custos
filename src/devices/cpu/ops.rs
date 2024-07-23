@@ -20,9 +20,9 @@ where
     D::Base<T, S>: Deref<Target = [T]>,
     S: Shape,
 {
-    fn apply_fn<F>(
-        &self,
-        buf: &Buffer<T, D, S>,
+    fn apply_fn<'a, F>(
+        &'a self,
+        buf: &Buffer<'a, T, D, S>,
         f: impl Fn(Resolve<T>) -> F + Copy + 'static,
     ) -> Buffer<T, Self, S>
     where
@@ -30,10 +30,10 @@ where
     {
         let mut out = self.retrieve(buf.len(), buf).unwrap();
 
-        self.add_op2((&out), move |(out)| {
-
+        self.add_op2((&mut out, buf), move |(out, buf)| {
+            apply_fn_slice(buf, out, f);
             Ok(())
-        });
+        }).unwrap();
 
         // self.add_op((&mut out, buf, f.no_id()), move |(out, buf, f)| {
         //     apply_fn_slice(buf, out, **f);

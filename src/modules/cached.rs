@@ -75,10 +75,7 @@ impl<SD: Device, Mods: AddOperation> AddOperation for CachedModule<Mods, SD> {
         args: Args,
         op: impl for<'a, 'b> Fn(Args::Replicated<'a, 'a>) -> crate::Result<()> + 'static,
     ) -> crate::Result<()> {
-        // let op = crate::LazyGraph2::<Box<dyn crate::BoxedShallowCopy>>::convert_to_operation(args, op);
-        
-        // op(Args::replication_fn(ids, op))
-        todo!()
+        self.modules.add_op2(args, op)
     }
 
     fn add_op<Args: Parents<N>, const N: usize>(
