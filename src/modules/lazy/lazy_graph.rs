@@ -90,9 +90,9 @@ impl<'a, B: Downcast, T> LazyGraph2<'a, B, T> {
         Ok(())
     }
     
-    pub fn convert_to_operation2<'dev, Args: Parents<N> + crate::AnyOp2<'dev>, const N: usize>(
+    pub fn convert_to_operation2<'own, 'dev, Args: Parents<N> + crate::AnyOp2<'own, 'dev>, const N: usize>(
         args: Args,
-        op: impl for<'b> Fn(Args::Replicated<'b>) -> crate::Result<()> + 'static,
+        op: impl for<'r, 'b> Fn(Args::Replicated<'r, 'b>) -> crate::Result<()> + 'static,
     ) -> Operation2<'a, B, T> {
         const { assert!(N > 0, "Size of parents must be greater than 0") };
 
@@ -175,10 +175,10 @@ impl<'a, B: Downcast, T> LazyGraph2<'a, B, T> {
         self.operations.push(operation)
     }
     
-    pub fn add_operation2<'dev, Args: Parents<N> + crate::AnyOp2<'dev>, const N: usize>(
+    pub fn add_operation2<'own, 'dev: 'own, Args: Parents<N> + crate::AnyOp2<'own, 'dev>, const N: usize>(
         &mut self,
         args: Args,
-        op: impl for<'b> Fn(Args::Replicated<'b>) -> crate::Result<()> + 'static,
+        op: impl for<'r, 'b> Fn(Args::Replicated<'r, 'b>) -> crate::Result<()> + 'static,
     ) {
         let operation = Self::convert_to_operation2(args, op);
         self.operations.push(operation)

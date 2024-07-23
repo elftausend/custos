@@ -367,11 +367,11 @@ macro_rules! pass_down_replace_buf_module {
 }
 
 pub trait AddOperation {
-    fn add_op2<Args: Parents<N> + AnyOp, const N: usize>(
+    fn add_op2<'own, 'dev: 'own, Args: Parents<N> + crate::AnyOp2<'own, 'dev>, const N: usize>(
         &self,
         args: Args,
-        op: impl for<'b> Fn(Args::Replicated<'b>) -> crate::Result<()> + 'static,
-    );
+        op: impl for<'a, 'b> Fn(Args::Replicated<'a, 'b>) -> crate::Result<()> + 'static,
+    ) -> crate::Result<()>;
 
     fn add_op<Args: Parents<N> + UpdateArgs, const N: usize>(
         &self,
@@ -439,11 +439,11 @@ macro_rules! pass_down_add_operation {
             ) -> $crate::Result<()> {
                 self.modules.add_op(args, operation)
             }
-            fn add_op2<Args: $crate::Parents<N> + $crate::AnyOp, const N: usize>(
+            fn add_op2<'own, 'd: 'own, Args: $crate::Parents<N> + $crate::AnyOp2<'own, 'd>, const N: usize>(
                 &self,
                 args: Args,
-                op: impl for<'b> Fn(Args::Replicated<'b>) -> crate::Result<()> + 'static,
-            ) {
+                op: impl for<'a, 'b> Fn(Args::Replicated<'a, 'b>) -> crate::Result<()> + 'static,
+            ) -> $crate::Result<()> {
                 self.modules.add_op2(args, op)
             }
 

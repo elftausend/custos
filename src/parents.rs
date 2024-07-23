@@ -93,6 +93,32 @@ macro_rules! impl_parents {
             }
         }
 
+        // impl<'dev, $($to_impl: $crate::Replicate2<'dev> + $crate::HasId, )+> $crate::AnyOp2<'dev> for ($($to_impl,)+) {
+        //     type Replicated<'a> = ($($to_impl::Replication<'a>,)+);
+
+        //     #[cfg(feature = "std")]
+        //     fn replication_fn<B: $crate::Downcast>(
+        //         ids: Vec<$crate::Id>,
+        //         op: impl for<'a> Fn(Self::Replicated<'a>) -> $crate::Result<()> + 'static,
+        //     ) -> Box<dyn Fn(&mut $crate::Buffers<B>) -> $crate::Result<()>> {
+        //         Box::new(move |buffers| {
+        //             let mut ids = ids.iter();
+
+        //             op(($(
+        //                 unsafe {
+        //                     $to_impl::replicate_borrowed(ids.next().unwrap(), &mut *(buffers as *mut _)).ok_or(crate::DeviceError::InvalidLazyBuf)?
+        //                 }
+        //             ,)+))
+        //         })
+        //     }
+        //     #[inline]
+        //     fn replication(self) -> Self::Replicated<'dev> {
+        //         #[allow(non_snake_case)]
+        //         let ($($to_impl,)+) = self;
+        //         ($($to_impl.replicate(),)+)
+        //     }
+        // }
+
         impl<$($to_impl: $crate::Replicate + $crate::HasId, )+> $crate::AnyOp for ($($to_impl,)+) {
             type Replicated<'a> = ($($to_impl::Replication<'a>,)+);
 

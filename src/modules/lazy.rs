@@ -92,17 +92,18 @@ impl<'a, T, Mods: Module<'a, D>, D: LazySetup + Device + 'a> Module<'a, D> for L
 }
 
 impl<T, Mods: AddOperation> AddOperation for Lazy<Mods, T> {
-    fn add_op2<Args: Parents<N> + AnyOp, const N: usize>(
+    fn add_op2<'own, 'dev: 'own, Args: Parents<N> + crate::AnyOp2<'own, 'dev>, const N: usize>(
         &self,
         args: Args,
-        op: impl for<'b> Fn(Args::Replicated<'b>) -> crate::Result<()> + 'static,
-    ) {
+        op: impl for<'a, 'b> Fn(Args::Replicated<'a, 'b>) -> crate::Result<()> + 'static,
+    ) -> crate::Result<()> {
         if self.enabled.get() {
             self.graph2.try_borrow_mut()
             .expect("already borrowed: BorrowMutError - is the inner operation trying to add an operation as well?")
-            .add_operation(args, op);
+            .add_operation2(args, op);
+            Ok(())
         } else {
-            self.modules.add_op2(args, op);
+            self.modules.add_op2(args, op)
         }
     }
 

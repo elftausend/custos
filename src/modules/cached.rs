@@ -70,12 +70,12 @@ impl<Mods: Setup<NewDev>, D: Device, NewDev> Setup<NewDev> for CachedModule<Mods
 }
 
 impl<SD: Device, Mods: AddOperation> AddOperation for CachedModule<Mods, SD> {
-    fn add_op2<Args: Parents<N> + crate::AnyOp, const N: usize>(
+    fn add_op2<'own, 'dev, Args: Parents<N> + crate::AnyOp2<'own, 'dev>, const N: usize>(
         &self,
         args: Args,
-        op: impl for<'b> Fn(Args::Replicated<'b>) -> crate::Result<()> + 'static,
-    ) {
-        let op = crate::LazyGraph2::<Box<dyn crate::BoxedShallowCopy>>::convert_to_operation(args, op);
+        op: impl for<'a, 'b> Fn(Args::Replicated<'a, 'b>) -> crate::Result<()> + 'static,
+    ) -> crate::Result<()> {
+        // let op = crate::LazyGraph2::<Box<dyn crate::BoxedShallowCopy>>::convert_to_operation(args, op);
         
         // op(Args::replication_fn(ids, op))
         todo!()

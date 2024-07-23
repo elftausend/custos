@@ -30,11 +30,16 @@ where
     {
         let mut out = self.retrieve(buf.len(), buf).unwrap();
 
-        self.add_op((&mut out, buf, f.no_id()), move |(out, buf, f)| {
-            apply_fn_slice(buf, out, **f);
+        self.add_op2((&out), move |(out)| {
+
             Ok(())
-        })
-        .unwrap();
+        });
+
+        // self.add_op((&mut out, buf, f.no_id()), move |(out, buf, f)| {
+        //     apply_fn_slice(buf, out, **f);
+        //     Ok(())
+        // })
+        // .unwrap();
 
         self.set_op_hint(unary(f));
 
