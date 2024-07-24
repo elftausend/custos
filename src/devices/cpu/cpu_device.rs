@@ -204,17 +204,13 @@ impl<Mods: OnDropBuffer + 'static> UnaryFusing for CPU<Mods> {
     #[inline]
     fn unary_fuse_op<T: Unit + Copy + 'static>(
         &self,
-    ) -> fn(
-        &mut (
-            &mut Buffer<'_, T, Self, ()>,
-            &Buffer<'_, T, Self, ()>,
-            crate::NoId<Vec<std::rc::Rc<dyn Fn(crate::Resolve<T>) -> Box<dyn crate::TwoWay<T>>>>>,
-        ),
-    ) -> crate::Result<()> {
-        |(out, buf, ops)| {
+        ops_to_fuse: Vec<std::rc::Rc<dyn Fn(crate::Resolve<T>) -> Box<dyn crate::TwoWay<T>>>>,
+    ) -> Box<dyn Fn((&mut Buffer<'_, T, Self, ()>, &Buffer<'_, T, Self, ()>)) -> crate::Result<()>>
+    {
+        Box::new(move |(out, buf)| {
             for (out, buf) in out.iter_mut().zip(buf.iter()) {
                 let mut current_val = *buf;
-                for op in ops.iter() {
+                for op in ops_to_fuse.iter() {
                     let resolve = crate::Resolve {
                         val: current_val,
                         marker: "x",
@@ -224,7 +220,7 @@ impl<Mods: OnDropBuffer + 'static> UnaryFusing for CPU<Mods> {
                 *out = current_val;
             }
             Ok(())
-        }
+        })
     }
 }
 

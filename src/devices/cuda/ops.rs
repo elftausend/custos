@@ -194,12 +194,9 @@ where
     ) where
         F: ToCLSource,
     {
-        self.add_op(
-            (lhs, lhs_grad, out),
-            move |(lhs, lhs_grad, out)| {
-                try_cu_add_unary_grad(lhs.device(), lhs, lhs_grad, out, lhs_grad_fn)
-            },
-        )
+        self.add_op((lhs, lhs_grad, out), move |(lhs, lhs_grad, out)| {
+            try_cu_add_unary_grad(lhs.device(), lhs, lhs_grad, out, lhs_grad_fn)
+        })
         .unwrap();
     }
 }
