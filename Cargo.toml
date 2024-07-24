@@ -99,10 +99,6 @@ name = "cuda_usage"
 required-features = ["cuda"]
 
 [[example]]
-name = "custom_device"
-required-features = ["cpu", "autograd"]
-
-[[example]]
 name = "cpu_usage"
 required-features = ["cpu"]
 
