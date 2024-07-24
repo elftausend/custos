@@ -525,7 +525,7 @@ fn main() {
 
         // graph.add_operation((&lhs, &rhs), |(lhs, rhs)| Ok(()));
         let graph: &mut LazyGraph2 = &mut unsafe { device.modules.tape_mut() }.unwrap().lazy_graph;
-        graph.call_lazily(&mut buffers).unwrap();
+        unsafe { graph.call_lazily(&mut buffers).unwrap() };
         //        // unsafe { register_buf_copyable(&mut buffers, &lhs) };
         // unsafe { register_buf_copyable(&mut buffers, &rhs) };
         // let tape: &mut LazyGraph2 = &mut unsafe { &mut *device.modules.tape.get()}.lazy_graph;

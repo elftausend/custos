@@ -35,7 +35,7 @@ pub struct LazyGraph<B = Box<dyn BoxedShallowCopy>, T = ()> {
 }
 
 pub struct LazyGraph2<'a, B = Box<dyn BoxedShallowCopy>, T = ()> {
-    operations: Vec<Operation2<'a, B, T>>,
+    pub(crate) operations: Vec<Operation2<'a, B, T>>,
 }
 
 impl<'a, B, T> Default for LazyGraph2<'a, B, T> {
@@ -70,16 +70,16 @@ impl<'a, B: Downcast, T> LazyGraph2<'a, B, T> {
         self.operations.len()
     }
 
-    pub fn call_lazily(&mut self, buffers: &mut Buffers<B>) -> crate::Result<()> {
+    pub unsafe fn call_lazily(&mut self, buffers: &mut Buffers<B>) -> crate::Result<()> {
         for args in self.iter_with(buffers) {
             args?;
         }
         Ok(())
     }
 
-    pub fn call_range<D: Device + 'static>(
+    pub unsafe fn call_range<D: Device + 'static>(
         &mut self,
-        _device: &'a D,
+        // _device: &'a D,
         bounds: impl RangeBounds<usize>,
         buffers: &mut Buffers<B>,
     ) -> crate::Result<()> {
@@ -352,7 +352,7 @@ mod tests {
                 println!("args: {args:?}");
                 Ok(())
             });
-            graph.call_lazily(&mut buffers).unwrap();
+            unsafe { graph.call_lazily(&mut buffers).unwrap() };
         };
         // let x = DEVICE2.get().unwrap();
         // println!("{:?}", x.modules.cache.borrow().nodes);

@@ -43,7 +43,7 @@ pub struct Lazy<Mods, T = f32> {
     // This ensures to only allocate a buffer once, without having to remove the ID/address collision check
     // TODO: remove this, fix id and address collision - then just use `buffers` for duplicate calls
     allocated_ids: RefCell<AllocatedIds>,
-    pub graph: RefCell<LazyGraph<Box<dyn BoxedShallowCopy>, T>>,
+    // pub graph: RefCell<LazyGraph<Box<dyn BoxedShallowCopy>, T>>,
     pub graph2: RefCell<LazyGraph2<'static, Box<dyn BoxedShallowCopy>, T>>,
     cursor: Cell<usize>,
     enabled: Cell<bool>,
@@ -80,7 +80,6 @@ impl<'a, T, Mods: Module<'a, D>, D: LazySetup + Device + 'a> Module<'a, D> for L
             modules: Mods::new(),
             buffers: Default::default(),
             replaced_buffers: Default::default(),
-            graph: Default::default(),
             graph2: Default::default(),
             alloc_later: Default::default(),
             allocated_ids: Default::default(),
@@ -123,7 +122,7 @@ impl<T, Mods: AddOperation> AddOperation for Lazy<Mods, T> {
 
     #[inline]
     fn ops_count(&self) -> usize {
-        self.graph.borrow().operations.len()
+        self.graph2.borrow().ops_count()
     }
 
     #[inline]
@@ -140,7 +139,7 @@ impl<T, Mods: AddOperation> AddOperation for Lazy<Mods, T> {
 impl<T, Mods> SetOpHint<T> for Lazy<Mods, T> {
     #[inline]
     fn set_op_hint(&self, op_hint: OpHint<T>) {
-        if let Some(op) = self.graph.borrow_mut().operations.last_mut() {
+        if let Some(op) = self.graph2.borrow_mut().operations.last_mut() {
             op.op_hint = op_hint;
         }
     }
@@ -155,7 +154,7 @@ impl<T, D: Device + 'static, Mods> ExecNow<D> for Lazy<Mods, T> {
     ) -> crate::Result<()> {
         self.alloc_later(device);
         unsafe {
-            self.graph
+            self.graph2
                 .borrow_mut()
                 .call_range::<D>(range_bounds, &mut self.buffers.borrow_mut())?;
         }
@@ -166,9 +165,9 @@ impl<T, D: Device + 'static, Mods> ExecNow<D> for Lazy<Mods, T> {
 impl<T, Mods> Lazy<Mods, T> {
     #[inline]
     pub unsafe fn call_lazily<D: Device + 'static>(&self) -> crate::Result<()> {
-        self.graph
+        self.graph2
             .borrow_mut()
-            .call_lazily::<D>(&mut self.buffers.borrow_mut())?;
+            .call_lazily(&mut self.buffers.borrow_mut())?;
         Ok(())
     }
 
@@ -306,7 +305,6 @@ impl<T, NewMods, SD> AddLayer<NewMods, SD> for Lazy<(), T> {
             modules: inner_mods,
             buffers: Default::default(),
             replaced_buffers: Default::default(),
-            graph: Default::default(),
             graph2: Default::default(),
             alloc_later: Default::default(),
             allocated_ids: Default::default(),
