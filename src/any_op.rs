@@ -24,7 +24,7 @@ pub trait AnyOp: Sized {
         ids: Vec<crate::Id>,
         op: impl for<'a> Fn(Self::Replicated<'a>) -> crate::Result<()> + 'static,
     ) -> Box<dyn for<'i> Fn(&'i mut Buffers<B>) -> crate::Result<()>>;
-    
+
     unsafe fn replication<'a>(self) -> Self::Replicated<'a>;
 }
 
@@ -42,14 +42,14 @@ impl<'a, T: 'static, D: Device + 'static, S: crate::Shape> Replicate
     ) -> Option<Self::Replication<'r>> {
         buffers.get(id)?.downcast_ref::<Self::Downcast<'_>>()
     }
-    
+
     #[inline]
     unsafe fn replicate<'r>(self) -> Self::Replication<'r> {
         // TODO: this should work without this trick -> move 'own, 'dev up to the trait when something like for<'a: 'b, ...> starts to work
         // https://github.com/rust-lang/rust/issues/100013
         // look at commit "0d54d19a52979352ec59f1619a439541e08c30a0" - it was implemented like this there
         // most of the "double lifetime stuff" is still implemented at the moment
-        // commit a985577299335ab00a02dc226a2e4b9d1642b8f7 introduced this line 
+        // commit a985577299335ab00a02dc226a2e4b9d1642b8f7 introduced this line
         unsafe { core::mem::transmute::<Self, &Buffer<'r, T, D, S>>(self) }
     }
 }
@@ -78,7 +78,7 @@ impl<'a, T: 'static, D: Device + 'static, S: crate::Shape> Replicate
         // https://github.com/rust-lang/rust/issues/100013
         // look at commit "0d54d19a52979352ec59f1619a439541e08c30a0" - it was implemented like this there
         // most of the "double lifetime stuff" is still implemented at the moment
-        // commit a985577299335ab00a02dc226a2e4b9d1642b8f7 introduced this line 
+        // commit a985577299335ab00a02dc226a2e4b9d1642b8f7 introduced this line
         unsafe { core::mem::transmute::<Self, &mut Buffer<'r, T, D, S>>(self) }
     }
 }
@@ -93,7 +93,8 @@ impl<R: crate::HasId + Replicate> AnyOp for R {
 
         let id = ids[0];
         Box::new(move |buffers| {
-            let r1 = unsafe { R::replicate_borrowed(&id, buffers) }.ok_or(DeviceError::InvalidLazyBuf)?;
+            let r1 = unsafe { R::replicate_borrowed(&id, buffers) }
+                .ok_or(DeviceError::InvalidLazyBuf)?;
             op(r1)
         })
     }
@@ -154,7 +155,7 @@ impl<'uown, 'a, T: 'static, D: Device + 'static, S: crate::Shape> Replicate2<'uo
         // look at commit "0d54d19a52979352ec59f1619a439541e08c30a0" - it was implemented like this there
         // but than something like this happens: https://github.com/rust-lang/rust/issues/100013
         // most of the "double lifetime stuff" is still implemented at the moment
-        // commit a985577299335ab00a02dc226a2e4b9d1642b8f7 introduced this line 
+        // commit a985577299335ab00a02dc226a2e4b9d1642b8f7 introduced this line
         unsafe { core::mem::transmute::<Self, &'own Buffer<'dev, T, D, S>>(self) }
     }
 }
@@ -182,7 +183,7 @@ impl<'uown, 'udev, T: 'static, D: Device + 'static, S: crate::Shape> Replicate2<
         // https://github.com/rust-lang/rust/issues/100013
         // look at commit "0d54d19a52979352ec59f1619a439541e08c30a0" - it was implemented like this there
         // most of the "double lifetime stuff" is still implemented at the moment
-        // commit a985577299335ab00a02dc226a2e4b9d1642b8f7 introduced this line 
+        // commit a985577299335ab00a02dc226a2e4b9d1642b8f7 introduced this line
         unsafe { core::mem::transmute::<Self, &'own mut Buffer<'dev, T, D, S>>(self) }
     }
 }

@@ -208,7 +208,7 @@ impl<D: Device, Mods: AddOperation> AddOperation for Wgsl<D, Mods> {
     fn set_lazy_enabled(&self, enabled: bool) {
         self.modules.set_lazy_enabled(enabled)
     }
-    
+
     #[inline]
     fn is_lazy_enabled(&self) -> bool {
         self.modules.is_lazy_enabled()

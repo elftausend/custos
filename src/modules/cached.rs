@@ -83,12 +83,12 @@ impl<SD: Device, Mods: AddOperation> AddOperation for CachedModule<Mods, SD> {
     fn ops_count(&self) -> usize {
         self.modules.ops_count()
     }
-    
+
     #[inline]
     fn set_lazy_enabled(&self, enabled: bool) {
         self.modules.set_lazy_enabled(enabled)
     }
-    
+
     #[inline]
     fn is_lazy_enabled(&self) -> bool {
         self.modules.is_lazy_enabled()

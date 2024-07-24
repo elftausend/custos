@@ -1,6 +1,6 @@
 use crate::{
-    bounds_to_range, modules::lazy::exec_iter::ExecIter, op_hint::OpHint, AnyOp,
-    BoxedShallowCopy, Buffers, Device, Downcast, Parents,
+    bounds_to_range, modules::lazy::exec_iter::ExecIter, op_hint::OpHint, AnyOp, BoxedShallowCopy,
+    Buffers, Device, Downcast, Parents,
 };
 use core::ops::RangeBounds;
 use std::collections::HashSet;
@@ -112,15 +112,14 @@ impl<'a, B: Downcast, T> LazyGraph<'a, B, T> {
         let operation = Self::convert_to_operation(args, op);
         self.operations.push(operation)
     }
-    
 }
 
 #[cfg(feature = "cpu")]
 #[cfg(test)]
 mod tests {
     use crate::{
-        register_buf_any, register_buf_copyable, AnyBuffer, Base, Buffer,
-        CloneBuf, Device, HasId, LazyGraph, Retriever, Shape, UniqueId, CPU,
+        register_buf_any, register_buf_copyable, AnyBuffer, Base, Buffer, CloneBuf, Device, HasId,
+        LazyGraph, Retriever, Shape, UniqueId, CPU,
     };
     use core::cell::Cell;
     use std::collections::HashMap;
@@ -342,19 +341,16 @@ mod tests {
 
         // outs_unordered.insert(out.id(), )
 
-        graph.add_operation::<_, 3>(
-            (&mut out, &lhs, &rhs),
-            move |(_out, lhs, rhs)| {
-                assert_eq!(lhs.as_slice(), &[1f32, 2., 3., 4., 5.,]);
-                assert_eq!(rhs.as_slice(), &[1f32, 2., 6., 4., 5.,]);
+        graph.add_operation::<_, 3>((&mut out, &lhs, &rhs), move |(_out, lhs, rhs)| {
+            assert_eq!(lhs.as_slice(), &[1f32, 2., 3., 4., 5.,]);
+            assert_eq!(rhs.as_slice(), &[1f32, 2., 6., 4., 5.,]);
 
-                for (out, lhs) in _out.iter_mut().zip(lhs.iter()) {
-                    *out = ew_fn(*lhs);
-                }
+            for (out, lhs) in _out.iter_mut().zip(lhs.iter()) {
+                *out = ew_fn(*lhs);
+            }
 
-                Ok(())
-            },
-        );
+            Ok(())
+        });
 
         unsafe { graph.call_lazily(&mut outs_unordered).unwrap() }
     }

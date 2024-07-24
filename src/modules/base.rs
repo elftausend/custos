@@ -49,10 +49,10 @@ impl AddOperation for Base {
     fn ops_count(&self) -> usize {
         0
     }
-    
+
     #[inline]
     fn set_lazy_enabled(&self, _enabled: bool) {}
-    
+
     #[inline]
     fn is_lazy_enabled(&self) -> bool {
         false

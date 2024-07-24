@@ -33,7 +33,8 @@ where
         self.add_op((&mut out, buf), move |(out, buf)| {
             apply_fn_slice(buf, out, f);
             Ok(())
-        }).unwrap();
+        })
+        .unwrap();
 
         // self.add_op((&mut out, buf, f.no_id()), move |(out, buf, f)| {
         //     apply_fn_slice(buf, out, **f);
@@ -71,13 +72,10 @@ where
     ) where
         F: Eval<T> + MayToCLSource,
     {
-        self.add_op::<_, 3>(
-            (lhs, lhs_grad, out),
-            move |(lhs, lhs_grad, out)| {
-                crate::cpu_stack_ops::add_unary_grad(lhs, out, lhs_grad, lhs_grad_fn);
-                Ok(())
-            },
-        )
+        self.add_op::<_, 3>((lhs, lhs_grad, out), move |(lhs, lhs_grad, out)| {
+            crate::cpu_stack_ops::add_unary_grad(lhs, out, lhs_grad, lhs_grad_fn);
+            Ok(())
+        })
         .unwrap();
     }
 }

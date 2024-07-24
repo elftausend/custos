@@ -762,15 +762,12 @@ mod tests {
             let b = Buffer::<i32, _, ()>::from_slice(&device, &[1, 2, 3, 4]);
             let vec = vec![1, 2, 3];
             device
-                .add_op(
-                    (&mut out, &b),
-                    move |(out, b)| {
-                        for ((lhs, rhs), out) in a.iter().zip(b.iter()).zip(out.iter_mut()) {
-                            *out = lhs + rhs;
-                        }
-                        Ok(())
-                    },
-                )
+                .add_op((&mut out, &b), move |(out, b)| {
+                    for ((lhs, rhs), out) in a.iter().zip(b.iter()).zip(out.iter_mut()) {
+                        *out = lhs + rhs;
+                    }
+                    Ok(())
+                })
                 .unwrap();
         }
 

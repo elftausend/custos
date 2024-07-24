@@ -7,10 +7,9 @@ use min_cl::{
 
 use crate::{
     bounds_to_range, cpu_stack_ops::clear_slice, location, op_hint::unary, pass_down_add_operation,
-    pass_down_exec_now, prelude::Number, AddOperation, ApplyFunction, Buffer,
-    CDatatype, ClearBuf, CopySlice, OnDropBuffer, OpenCL, Read, Resolve, Retrieve, Retriever,
-    SetOpHint, Shape, ToCLSource, ToMarker, TwoWay, UnaryGrad, Unit, UseGpuOrCpu, WriteBuf,
-    ZeroGrad,
+    pass_down_exec_now, prelude::Number, AddOperation, ApplyFunction, Buffer, CDatatype, ClearBuf,
+    CopySlice, OnDropBuffer, OpenCL, Read, Resolve, Retrieve, Retriever, SetOpHint, Shape,
+    ToCLSource, ToMarker, TwoWay, UnaryGrad, Unit, UseGpuOrCpu, WriteBuf, ZeroGrad,
 };
 
 use super::{enqueue_kernel, CLPtr};
@@ -311,12 +310,9 @@ where
     ) where
         F: ToCLSource,
     {
-        self.add_op(
-            (lhs, lhs_grad, out),
-            move |(lhs, lhs_grad, out)| {
-                try_cl_add_unary_grad(lhs.device(), lhs, lhs_grad, out, lhs_grad_fn)
-            },
-        )
+        self.add_op((lhs, lhs_grad, out), move |(lhs, lhs_grad, out)| {
+            try_cl_add_unary_grad(lhs.device(), lhs, lhs_grad, out, lhs_grad_fn)
+        })
         .unwrap();
     }
 }
