@@ -182,21 +182,12 @@ impl<D: Device + Alloc<T>, T: Unit, Mods: Retrieve<Self, T, S>, S: Shape> Retrie
 }
 
 impl<D: Device, Mods: AddOperation> AddOperation for Wgsl<D, Mods> {
-    fn add_op2<Args: Parents<N> + crate::AnyOp, const N: usize>(
+    fn add_op<Args: Parents<N> + crate::AnyOp, const N: usize>(
         &self,
         args: Args,
         op: impl for<'b> Fn(Args::Replicated<'b>) -> crate::Result<()> + 'static,
-    ) {
-        self.modules.add_op2(args, op)
-    }
-
-    #[inline]
-    fn add_op<Args: Parents<N> + crate::UpdateArgs, const N: usize>(
-        &self,
-        args: Args,
-        operation: fn(&mut Args) -> crate::Result<()>,
     ) -> crate::Result<()> {
-        self.modules.add_op(args, operation)
+        self.modules.add_op(args, op)
     }
 
     #[inline]
@@ -217,10 +208,12 @@ impl<D: Device, Mods: AddOperation> AddOperation for Wgsl<D, Mods> {
 
 #[cfg(test)]
 mod tests {
+    #[cfg(feature = "vulkan")]
     use crate::{Device, Vulkan};
 
     use super::Wgsl;
 
+    #[cfg(feature = "vulkan")]
     #[test]
     fn test_wgsl_wrapper() {
         let dev = Wgsl::<Vulkan>::new(0).unwrap();

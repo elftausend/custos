@@ -188,10 +188,10 @@ where
     ) where
         F: ToCLSource,
     {
-        self.add_op::<_, 4>(
-            (lhs, lhs_grad.buf_no_id(), out, lhs_grad_fn.no_id()),
-            move |(lhs, lhs_grad, out, lhs_grad_fn)| {
-                try_vk_add_unary_grad(lhs.device(), lhs, lhs_grad, out, **lhs_grad_fn)
+        self.add_op(
+            (lhs, lhs_grad, out),
+            move |(lhs, lhs_grad, out)| {
+                try_vk_add_unary_grad(lhs.device(), lhs, lhs_grad, out, lhs_grad_fn)
             },
         )
         .unwrap();
