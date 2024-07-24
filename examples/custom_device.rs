@@ -209,14 +209,6 @@ impl<'a, T, S: Shape, D: Device, Mods: OnDropBuffer> Retrieve<D, T, S> for Autog
 }
 
 impl<'a, Mods: OnDropBuffer> AddOperation for Autograd<'a, Mods> {
-    fn add_op<Args: custos::Parents<N> + custos::UpdateArgs, const N: usize>(
-        &self,
-        args: Args,
-        operation: fn(&mut Args) -> custos::Result<()>,
-    ) -> custos::Result<()> {
-        todo!()
-    }
-
     fn ops_count(&self) -> usize {
         todo!()
     }
@@ -226,6 +218,22 @@ impl<'a, Mods: OnDropBuffer> AddOperation for Autograd<'a, Mods> {
     }
 
     fn is_lazy_enabled(&self) -> bool {
+        todo!()
+    }
+    
+    fn add_op2<'own, 'dev, Args: custos::Parents<N> + custos::AnyOp2<'own, 'dev>, const N: usize>(
+        &self,
+        args: Args,
+        op: impl for<'g, 'b> Fn(Args::Replicated<'g, 'g>) -> custos::Result<()> + 'static,
+    ) -> custos::Result<()> {
+        todo!()
+    }
+    
+    fn add_op<Args: custos::Parents<N> + custos::AnyOp, const N: usize>(
+        &self,
+        args: Args,
+        op: impl for<'b> Fn(Args::Replicated<'b>) -> custos::Result<()> + 'static,
+    ) -> custos::Result<()> {
         todo!()
     }
 }

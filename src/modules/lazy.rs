@@ -92,6 +92,20 @@ impl<'a, T, Mods: Module<'a, D>, D: LazySetup + Device + 'a> Module<'a, D> for L
 }
 
 impl<T, Mods: AddOperation> AddOperation for Lazy<Mods, T> {
+    fn add_op<Args: Parents<N> + crate::AnyOp, const N: usize>(
+        &self,
+        args: Args,
+        op: impl for<'a> Fn(Args::Replicated<'a>) -> crate::Result<()> + 'static,
+    ) -> crate::Result<()> {
+        if self.enabled.get() {
+            self.graph2.try_borrow_mut()
+            .expect("already borrowed: BorrowMutError - is the inner operation trying to add an operation as well?")
+            .add_operation(args, op);
+            Ok(())
+        } else {
+            self.modules.add_op(args, op)
+        }
+    }
     fn add_op2<'own, 'dev, Args: Parents<N> + crate::AnyOp2<'own, 'dev>, const N: usize>(
         &self,
         args: Args,
@@ -105,22 +119,6 @@ impl<T, Mods: AddOperation> AddOperation for Lazy<Mods, T> {
         } else {
             self.modules.add_op2(args, op)
         }
-    }
-
-    #[inline]
-    fn add_op<Args: Parents<N> + UpdateArgs, const N: usize>(
-        &self,
-        args: Args,
-        operation: fn(&mut Args) -> crate::Result<()>,
-    ) -> crate::Result<()> {
-        if self.enabled.get() {
-            self.graph.try_borrow_mut()
-            .expect("already borrowed: BorrowMutError - is the inner operation trying to add an operation as well?")
-            .add_operation(args, operation);
-        } else {
-            return self.modules.add_op(args, operation);
-        }
-        Ok(())
     }
 
     #[inline]
@@ -783,8 +781,8 @@ mod tests {
             let vec = vec![1, 2, 3];
             device
                 .add_op(
-                    (&mut out, a.no_id(), &b, vec.no_id()),
-                    |(out, a, b, _vec)| {
+                    (&mut out, &b),
+                    move |(out, b)| {
                         for ((lhs, rhs), out) in a.iter().zip(b.iter()).zip(out.iter_mut()) {
                             *out = lhs + rhs;
                         }

@@ -70,6 +70,15 @@ impl<Mods: Setup<NewDev>, D: Device, NewDev> Setup<NewDev> for CachedModule<Mods
 }
 
 impl<SD: Device, Mods: AddOperation> AddOperation for CachedModule<Mods, SD> {
+    #[inline]
+    fn add_op<Args: Parents<N> + crate::AnyOp, const N: usize>(
+        &self,
+        args: Args,
+        op: impl for<'b> Fn(Args::Replicated<'b>) -> crate::Result<()> + 'static,
+    ) -> crate::Result<()> {
+        self.modules.add_op(args, op)
+    }
+
     fn add_op2<'own, 'dev, Args: Parents<N> + crate::AnyOp2<'own, 'dev>, const N: usize>(
         &self,
         args: Args,
@@ -78,19 +87,11 @@ impl<SD: Device, Mods: AddOperation> AddOperation for CachedModule<Mods, SD> {
         self.modules.add_op2(args, op)
     }
 
-    fn add_op<Args: Parents<N>, const N: usize>(
-        &self,
-        mut args: Args,
-        operation: fn(&mut Args) -> crate::Result<()>,
-    ) -> crate::Result<()> {
-        operation(&mut args)
-    }
-
     #[inline]
     fn ops_count(&self) -> usize {
         self.modules.ops_count()
     }
-
+    
     #[inline]
     fn set_lazy_enabled(&self, enabled: bool) {
         self.modules.set_lazy_enabled(enabled)

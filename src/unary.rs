@@ -17,10 +17,10 @@ pub trait ApplyFunction<T: Unit, S: Shape = (), D: Device = Self>: Device {
     /// let out = device.apply_fn(&a, |x| x.mul(2.));
     /// assert_eq!(&**out, &[2., 4., 6., 6., 4., 2.,]);
     /// ```
-    fn apply_fn<'a, F>(
-        &'a self,
+    fn apply_fn<F>(
+        &self,
         // buf: &D::Data<T, S>,
-        buf: &Buffer<'a, T, D, S>,
+        buf: &Buffer<T, D, S>,
         f: impl Fn(Resolve<T>) -> F + Copy + 'static,
     ) -> Buffer<T, Self, S>
     where

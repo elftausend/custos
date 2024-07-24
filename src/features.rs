@@ -165,7 +165,8 @@ pub trait AddGradFn {
     ) where
         Self: AddOperation,
     {
-        self.add_op(args.clone(), forward_fn).unwrap();
+        todo!();
+        // self.add_op(args.clone(), forward_fn).unwrap();
         self.add_grad_fn(args, grad_fn)
     }
 
@@ -367,17 +368,19 @@ macro_rules! pass_down_replace_buf_module {
 }
 
 pub trait AddOperation {
+    fn add_op<Args: Parents<N> + AnyOp, const N: usize>(
+        &self,
+        args: Args,
+        op: impl for<'b> Fn(Args::Replicated<'b>) -> crate::Result<()> + 'static,
+    ) -> crate::Result<()>;
+
+
     fn add_op2<'own, 'dev, Args: Parents<N> + crate::AnyOp2<'own, 'dev>, const N: usize>(
         &self,
         args: Args,
         op: impl for<'a, 'b> Fn(Args::Replicated<'a, 'a>) -> crate::Result<()> + 'static,
     ) -> crate::Result<()>;
 
-    fn add_op<Args: Parents<N> + UpdateArgs, const N: usize>(
-        &self,
-        args: Args,
-        operation: fn(&mut Args) -> crate::Result<()>,
-    ) -> crate::Result<()>;
     fn ops_count(&self) -> usize;
     fn set_lazy_enabled(&self, enabled: bool);
     #[inline]
@@ -432,13 +435,15 @@ macro_rules! pass_down_add_operation {
 
         impl<'dev, Mods: $crate::AddOperation> $crate::AddOperation for $device<$($generics),*> {
             #[inline]
-            fn add_op<Args: $crate::Parents<N> + $crate::UpdateArgs, const N: usize>(
+            fn add_op<Args: $crate::Parents<N> + $crate::AnyOp, const N: usize>(
                 &self,
                 args: Args,
-                operation: fn(&mut Args) -> $crate::Result<()>,
+                op: impl for<'a> Fn(Args::Replicated<'a>) -> crate::Result<()> + 'static,
             ) -> $crate::Result<()> {
-                self.modules.add_op(args, operation)
+                self.modules.add_op(args, op)
             }
+
+            #[inline]
             fn add_op2<'own, 'd, Args: $crate::Parents<N> + $crate::AnyOp2<'own, 'd>, const N: usize>(
                 &self,
                 args: Args,
