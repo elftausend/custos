@@ -10,6 +10,15 @@ pub struct Operation<'a, B, T> {
     pub op_hint: OpHint<T>,
 }
 
+impl<'a, B, T> Operation<'a, B, T> {
+    pub fn no_op() -> Self {
+        Self {
+            op: Box::new(|_buffers| Ok(())),
+            op_hint: OpHint::None
+        }
+    }
+}
+
 pub struct LazyGraph<'a, B = Box<dyn BoxedShallowCopy>, T = ()> {
     pub(crate) operations: Vec<Operation<'a, B, T>>,
 }
