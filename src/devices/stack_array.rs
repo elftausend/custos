@@ -164,11 +164,12 @@ where
 
 #[cfg(test)]
 mod test {
-    use crate::StackArray;
+    // use crate::StackArray;
 
-    #[test]
-    #[should_panic]
-    fn test_stack_array_zero_len() {
-        StackArray::<(), f32>::new();
-    }
+    // compile time error instead!
+    // #[test]
+    // #[should_panic]
+    // fn test_stack_array_zero_len() {
+    //     StackArray::<(), f32>::new();
+    // }
 }
