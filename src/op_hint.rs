@@ -56,7 +56,7 @@ mod tests {
             marker: "x",
         };
 
-        let ops = &dev.modules.graph2.borrow().operations;
+        let ops = &dev.modules.graph.borrow().operations;
         let op_hint = &ops[0].op_hint;
         if let OpHint::Unary(op) = op_hint {
             let src = op(resolve).to_cl_source();
@@ -98,7 +98,7 @@ mod tests {
         let mut out = buf.clone();
 
         for out in out.iter_mut() {
-            for op in &dev.modules.graph2.borrow().operations {
+            for op in &dev.modules.graph.borrow().operations {
                 let resolve = Resolve {
                     val: *out,
                     marker: "x",
@@ -234,7 +234,7 @@ mod tests {
         let start = Instant::now();
 
         for out in out.iter_mut() {
-            for op in &dev.modules.graph2.borrow().operations {
+            for op in &dev.modules.graph.borrow().operations {
                 let resolve = Resolve {
                     val: *out,
                     marker: "x",

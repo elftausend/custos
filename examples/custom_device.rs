@@ -9,7 +9,7 @@ use std::{
 use custos::{
     cpu::CPUPtr, flag::AllocFlag, impl_device_traits, AddGradFn, AddOperation, Alloc, Base,
     BorrowCacheLT, Buffer, Cached, CachedModule, Device, DeviceError, DevicelessAble, HasId, Id,
-    LazyGraph2, Module, OnDropBuffer, OnNewBuffer, PtrType, Retrieve, Retriever, Setup, Shape,
+    LazyGraph, Module, OnDropBuffer, OnNewBuffer, PtrType, Retrieve, Retriever, Setup, Shape,
     Tape, TapeActions, Unit, WrappedData, CPU,
 };
 
@@ -20,7 +20,7 @@ pub trait Str {
 #[derive(Default)]
 pub struct CPU2<'a, Mods: 'a = Base> {
     pub modules: Mods,
-    pub graph: LazyGraph2<'a>,
+    pub graph: LazyGraph<'a>,
     pd: PhantomData<&'a ()>,
 }
 
@@ -524,7 +524,7 @@ fn main() {
         rhs.backward();
 
         // graph.add_operation((&lhs, &rhs), |(lhs, rhs)| Ok(()));
-        let graph: &mut LazyGraph2 = &mut unsafe { device.modules.tape_mut() }.unwrap().lazy_graph;
+        let graph: &mut LazyGraph = &mut unsafe { device.modules.tape_mut() }.unwrap().lazy_graph;
         unsafe { graph.call_lazily(&mut buffers).unwrap() };
         //        // unsafe { register_buf_copyable(&mut buffers, &lhs) };
         // unsafe { register_buf_copyable(&mut buffers, &rhs) };

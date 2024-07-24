@@ -30,15 +30,12 @@ impl<B: AsAny, T> Operation<B, T> {
     }
 }
 
-pub struct LazyGraph<B = Box<dyn BoxedShallowCopy>, T = ()> {
-    pub operations: Vec<Operation<B, T>>,
-}
 
-pub struct LazyGraph2<'a, B = Box<dyn BoxedShallowCopy>, T = ()> {
+pub struct LazyGraph<'a, B = Box<dyn BoxedShallowCopy>, T = ()> {
     pub(crate) operations: Vec<Operation2<'a, B, T>>,
 }
 
-impl<'a, B, T> Default for LazyGraph2<'a, B, T> {
+impl<'a, B, T> Default for LazyGraph<'a, B, T> {
     #[inline]
     fn default() -> Self {
         Self {
@@ -47,7 +44,7 @@ impl<'a, B, T> Default for LazyGraph2<'a, B, T> {
     }
 }
 
-impl<'a, B: Downcast, T> LazyGraph2<'a, B, T> {
+impl<'a, B: Downcast, T> LazyGraph<'a, B, T> {
     #[inline]
     pub fn iter_with<'b>(
         &'b mut self,
@@ -195,89 +192,12 @@ impl<'a, B: Downcast, T> LazyGraph2<'a, B, T> {
     }
 }
 
-impl<B, T> Default for LazyGraph<B, T> {
-    #[inline]
-    fn default() -> Self {
-        Self {
-            operations: Vec::new(),
-        }
-    }
-}
-
-impl<B: AsAny, T> LazyGraph<B, T> {
-    #[inline]
-    pub fn iter_with<'a>(&'a mut self, buffers: &'a mut Buffers<B>) -> ExecIter<B, T> {
-        ExecIter {
-            operations: self.operations.iter_mut(),
-            buffers,
-        }
-    }
-
-    #[inline]
-    pub fn clear(&mut self) {
-        self.operations.clear();
-    }
-
-    pub unsafe fn convert_to_operation<Args: Parents<N> + UpdateArgs, const N: usize>(
-        args: Args,
-        op: fn(&mut Args) -> crate::Result<()>,
-    ) -> Operation<B, T> {
-        // store ids and test if buffers are still in cache
-        let arg_ids = args
-            .maybe_ids()
-            .into_iter()
-            .map(|id| id.map(|id| *id))
-            .collect();
-
-        let args: Box<dyn UpdateArgsDynable<B>> = Box::new(args);
-
-        Operation {
-            arg_ids,
-            op: transmute(op),
-            args: transmute(args),
-            op_hint: OpHint::None,
-        }
-    }
-
-    pub fn add_operation<Args: Parents<N> + UpdateArgs, const N: usize>(
-        &mut self,
-        args: Args,
-        op: fn(&mut Args) -> crate::Result<()>,
-    ) {
-        let operation = unsafe { Self::convert_to_operation(args, op) };
-        self.operations.push(operation)
-    }
-
-    pub unsafe fn call_lazily<D: Device + 'static>(
-        &mut self,
-        outs_unordered: &mut Buffers<B>,
-    ) -> crate::Result<()> {
-        for args in self.iter_with(outs_unordered) {
-            args?;
-        }
-        Ok(())
-    }
-
-    pub unsafe fn call_range<D: Device + 'static>(
-        &mut self,
-        bounds: impl RangeBounds<usize>,
-        outs_unordered: &mut Buffers<B>,
-    ) -> crate::Result<()> {
-        let range = bounds_to_range(bounds, self.operations.len());
-        for mut op in self.operations.drain(range) {
-            exec_op(&mut op.args, &op.op, &op.arg_ids, outs_unordered)?;
-        }
-        Ok(())
-    }
-}
-
 #[cfg(feature = "cpu")]
 #[cfg(test)]
 mod tests {
-    use super::LazyGraph;
     use crate::{
         register_buf_any, register_buf_copyable, AnyBuffer, AsNoId, Base, BoxedShallowCopy, Buffer,
-        CloneBuf, Device, HasId, LazyGraph2, Retriever, Shape, UniqueId, CPU,
+        CloneBuf, Device, HasId, LazyGraph, Retriever, Shape, UniqueId, CPU,
     };
     use core::cell::Cell;
     use std::collections::HashMap;
@@ -328,7 +248,7 @@ mod tests {
 
             let device = CPU::<crate::Autograd<Base>>::new();
             let mut buffers = HashMap::default();
-            let mut graph: LazyGraph2<Box<dyn core::any::Any>> = LazyGraph2::default();
+            let mut graph: LazyGraph<Box<dyn core::any::Any>> = LazyGraph::default();
             let lhs = device.buffer([1f32, 2., 3., 4., 5.]);
             let rhs = device.buffer([1f32, 2., 6., 4., 5.]);
 
@@ -380,7 +300,7 @@ mod tests {
             // outs_unordered.insert(out.id(), )
 
             graph.add_operation::<_, 3>((&out, &lhs, &rhs), |args| {
-                let (_out, lhs, rhs) = *args;
+                let (_out, lhs, rhs) = args;
                 assert_eq!(lhs.as_slice(), &[1f32, 2., 3., 4., 5.,]);
                 assert_eq!(rhs.as_slice(), &[1f32, 2., 6., 4., 5.,]);
                 Ok(())
@@ -390,7 +310,7 @@ mod tests {
         };
 
         // todo!()
-        unsafe { graph.call_lazily::<CPU>(&mut outs_unordered).unwrap() }
+        unsafe { graph.call_lazily(&mut outs_unordered).unwrap() }
     }
 
     #[test]
@@ -410,13 +330,13 @@ mod tests {
         // outs_unordered.insert(out.id(), )
 
         graph.add_operation::<_, 3>((&out, &lhs, &rhs), |args| {
-            let (_out, lhs, rhs) = *args;
+            let (_out, lhs, rhs) = args;
             assert_eq!(lhs.as_slice(), &[1f32, 2., 3., 4., 5.,]);
             assert_eq!(rhs.as_slice(), &[1f32, 2., 6., 4., 5.,]);
             Ok(())
         });
 
-        unsafe { graph.call_lazily::<CPU>(&mut outs_unordered).unwrap() }
+        unsafe { graph.call_lazily(&mut outs_unordered).unwrap() }
     }
 
     #[test]
@@ -449,7 +369,7 @@ mod tests {
             });
         }
 
-        unsafe { graph.call_lazily::<CPU>(&mut outs_unordered).unwrap() }
+        unsafe { graph.call_lazily(&mut outs_unordered).unwrap() }
     }
     #[test]
     fn test_lazy_op_args_no_out_but_use() {
@@ -469,14 +389,14 @@ mod tests {
         // outs_unordered.insert(out.id(), )
 
         graph.add_operation::<_, 2>((&lhs, &rhs), |args| {
-            let (lhs, rhs) = *args;
+            let (lhs, rhs) = args;
             assert_eq!(lhs.as_slice(), &[1f32, 2., 3., 4., 5.,]);
             assert_eq!(rhs.as_slice(), &[1f32, 2., 6., 4., 5.,]);
 
             Ok(())
         });
 
-        unsafe { graph.call_lazily::<CPU>(&mut outs_unordered).unwrap() }
+        unsafe { graph.call_lazily(&mut outs_unordered).unwrap() }
     }
 
     #[test]
@@ -499,9 +419,9 @@ mod tests {
 
         // outs_unordered.insert(out.id(), )
 
-        graph.add_operation::<_, 4>(
-            (&mut out, &lhs, &rhs, ew_fn.no_id()),
-            |(_out, lhs, rhs, ew_fn)| {
+        graph.add_operation::<_, 3>(
+            (&mut out, &lhs, &rhs),
+            move |(_out, lhs, rhs)| {
                 assert_eq!(lhs.as_slice(), &[1f32, 2., 3., 4., 5.,]);
                 assert_eq!(rhs.as_slice(), &[1f32, 2., 6., 4., 5.,]);
 
@@ -513,30 +433,6 @@ mod tests {
             },
         );
 
-        unsafe { graph.call_lazily::<CPU>(&mut outs_unordered).unwrap() }
-    }
-
-    #[test]
-    fn test_lazy_graph_exec_with_vecs() {
-        let mut graph = LazyGraph::<Box<dyn BoxedShallowCopy>>::default();
-
-        {
-            let vec = vec![1, 2, 3, 4];
-            graph.add_operation::<_, 1>(vec.no_id(), |vec| {
-                assert_eq!(vec.as_slice(), &[1, 2, 3, 4]);
-                Ok(())
-            });
-        }
-        unsafe { graph.call_lazily::<CPU>(&mut HashMap::default()) }.unwrap();
-    }
-
-    #[test]
-    fn test_args_ref_updating() {
-        let x = 5;
-        let y = 3.;
-        let mut args = (&x, 10, &y);
-
-        let replace_x = &x;
-        args.0 = replace_x;
+        unsafe { graph.call_lazily(&mut outs_unordered).unwrap() }
     }
 }

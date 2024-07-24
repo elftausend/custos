@@ -1,5 +1,5 @@
 use crate::{
-    AddOperation, Alloc, AnyOp, BoxedShallowCopy, Buffer, Buffers, GradActions, LazyGraph2,
+    AddOperation, Alloc, AnyOp, BoxedShallowCopy, Buffer, Buffers, GradActions, LazyGraph,
     Parents, Shape, Unit, WriteBuf, ZeroGrad,
 };
 
@@ -10,7 +10,7 @@ pub type GradFn = Box<dyn Fn(&mut Gradients)>;
 /// Stores the grad functions and gradient cache.
 #[derive(Default)]
 pub struct Tape<'a> {
-    pub lazy_graph: LazyGraph2<'a, Box<dyn BoxedShallowCopy>>,
+    pub lazy_graph: LazyGraph<'a, Box<dyn BoxedShallowCopy>>,
 }
 
 impl<'t> Tape<'t> {

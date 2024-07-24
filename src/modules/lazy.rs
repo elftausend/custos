@@ -26,7 +26,6 @@ use core::{
 };
 use std::collections::HashSet;
 
-pub use self::lazy_graph::LazyGraph;
 use self::wrapper::LazyWrapper;
 pub use lazy_graph::*;
 
@@ -43,8 +42,7 @@ pub struct Lazy<Mods, T = f32> {
     // This ensures to only allocate a buffer once, without having to remove the ID/address collision check
     // TODO: remove this, fix id and address collision - then just use `buffers` for duplicate calls
     allocated_ids: RefCell<AllocatedIds>,
-    // pub graph: RefCell<LazyGraph<Box<dyn BoxedShallowCopy>, T>>,
-    pub graph2: RefCell<LazyGraph2<'static, Box<dyn BoxedShallowCopy>, T>>,
+    pub graph: RefCell<LazyGraph<'static, Box<dyn BoxedShallowCopy>, T>>,
     cursor: Cell<usize>,
     enabled: Cell<bool>,
     pd: PhantomData<T>,
@@ -80,7 +78,7 @@ impl<'a, T, Mods: Module<'a, D>, D: LazySetup + Device + 'a> Module<'a, D> for L
             modules: Mods::new(),
             buffers: Default::default(),
             replaced_buffers: Default::default(),
-            graph2: Default::default(),
+            graph: Default::default(),
             alloc_later: Default::default(),
             allocated_ids: Default::default(),
             cursor: Default::default(),
@@ -97,7 +95,7 @@ impl<T, Mods: AddOperation> AddOperation for Lazy<Mods, T> {
         op: impl for<'a> Fn(Args::Replicated<'a>) -> crate::Result<()> + 'static,
     ) -> crate::Result<()> {
         if self.enabled.get() {
-            self.graph2.try_borrow_mut()
+            self.graph.try_borrow_mut()
             .expect("already borrowed: BorrowMutError - is the inner operation trying to add an operation as well?")
             .add_operation(args, op);
             Ok(())
@@ -111,7 +109,7 @@ impl<T, Mods: AddOperation> AddOperation for Lazy<Mods, T> {
         op: impl for<'a, 'b> Fn(Args::Replicated<'a, 'a>) -> crate::Result<()> + 'static,
     ) -> crate::Result<()> {
         if self.enabled.get() {
-            self.graph2.try_borrow_mut()
+            self.graph.try_borrow_mut()
             .expect("already borrowed: BorrowMutError - is the inner operation trying to add an operation as well?")
             .add_operation2(args, op);
             Ok(())
@@ -122,7 +120,7 @@ impl<T, Mods: AddOperation> AddOperation for Lazy<Mods, T> {
 
     #[inline]
     fn ops_count(&self) -> usize {
-        self.graph2.borrow().ops_count()
+        self.graph.borrow().ops_count()
     }
 
     #[inline]
@@ -139,7 +137,7 @@ impl<T, Mods: AddOperation> AddOperation for Lazy<Mods, T> {
 impl<T, Mods> SetOpHint<T> for Lazy<Mods, T> {
     #[inline]
     fn set_op_hint(&self, op_hint: OpHint<T>) {
-        if let Some(op) = self.graph2.borrow_mut().operations.last_mut() {
+        if let Some(op) = self.graph.borrow_mut().operations.last_mut() {
             op.op_hint = op_hint;
         }
     }
@@ -154,7 +152,7 @@ impl<T, D: Device + 'static, Mods> ExecNow<D> for Lazy<Mods, T> {
     ) -> crate::Result<()> {
         self.alloc_later(device);
         unsafe {
-            self.graph2
+            self.graph
                 .borrow_mut()
                 .call_range::<D>(range_bounds, &mut self.buffers.borrow_mut())?;
         }
@@ -165,7 +163,7 @@ impl<T, D: Device + 'static, Mods> ExecNow<D> for Lazy<Mods, T> {
 impl<T, Mods> Lazy<Mods, T> {
     #[inline]
     pub unsafe fn call_lazily<D: Device + 'static>(&self) -> crate::Result<()> {
-        self.graph2
+        self.graph
             .borrow_mut()
             .call_lazily(&mut self.buffers.borrow_mut())?;
         Ok(())
@@ -305,7 +303,7 @@ impl<T, NewMods, SD> AddLayer<NewMods, SD> for Lazy<(), T> {
             modules: inner_mods,
             buffers: Default::default(),
             replaced_buffers: Default::default(),
-            graph2: Default::default(),
+            graph: Default::default(),
             alloc_later: Default::default(),
             allocated_ids: Default::default(),
             cursor: Default::default(),
