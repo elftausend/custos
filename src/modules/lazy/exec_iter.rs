@@ -1,7 +1,7 @@
-use crate::{Buffers, Operation2};
+use crate::{Buffers, Operation};
 
 pub struct ExecIter<'a, 'b, B, T> {
-    pub(super) operations: std::slice::Iter<'b, Operation2<'a, B, T>>,
+    pub(super) operations: std::slice::Iter<'b, Operation<'a, B, T>>,
     pub(super) buffers: &'b mut Buffers<B>,
 }
 

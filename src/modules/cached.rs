@@ -79,14 +79,6 @@ impl<SD: Device, Mods: AddOperation> AddOperation for CachedModule<Mods, SD> {
         self.modules.add_op(args, op)
     }
 
-    fn add_op2<'own, 'dev, Args: Parents<N> + crate::AnyOp2<'own, 'dev>, const N: usize>(
-        &self,
-        args: Args,
-        op: impl for<'a, 'b> Fn(Args::Replicated<'a, 'a>) -> crate::Result<()> + 'static,
-    ) -> crate::Result<()> {
-        self.modules.add_op2(args, op)
-    }
-
     #[inline]
     fn ops_count(&self) -> usize {
         self.modules.ops_count()

@@ -46,15 +46,6 @@ impl AddOperation for Base {
     }
 
     #[inline]
-    fn add_op2<'own, 'dev, Args: Parents<N> + crate::AnyOp2<'own, 'dev> , const N: usize>(
-        &self,
-        args: Args,
-        op: impl for<'a, 'b> Fn(Args::Replicated<'a, 'a>) -> crate::Result<()> + 'static,
-    ) -> crate::Result<()> {
-        op(unsafe { args.replication() })
-    }
-
-    #[inline]
     fn ops_count(&self) -> usize {
         0
     }

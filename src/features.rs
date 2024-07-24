@@ -373,13 +373,6 @@ pub trait AddOperation {
         op: impl for<'b> Fn(Args::Replicated<'b>) -> crate::Result<()> + 'static,
     ) -> crate::Result<()>;
 
-
-    fn add_op2<'own, 'dev, Args: Parents<N> + crate::AnyOp2<'own, 'dev>, const N: usize>(
-        &self,
-        args: Args,
-        op: impl for<'a, 'b> Fn(Args::Replicated<'a, 'a>) -> crate::Result<()> + 'static,
-    ) -> crate::Result<()>;
-
     fn ops_count(&self) -> usize;
     fn set_lazy_enabled(&self, enabled: bool);
     #[inline]
@@ -440,15 +433,6 @@ macro_rules! pass_down_add_operation {
                 op: impl for<'a> Fn(Args::Replicated<'a>) -> crate::Result<()> + 'static,
             ) -> $crate::Result<()> {
                 self.modules.add_op(args, op)
-            }
-
-            #[inline]
-            fn add_op2<'own, 'd, Args: $crate::Parents<N> + $crate::AnyOp2<'own, 'd>, const N: usize>(
-                &self,
-                args: Args,
-                op: impl for<'a, 'b> Fn(Args::Replicated<'a, 'a>) -> crate::Result<()> + 'static,
-            ) -> $crate::Result<()> {
-                self.modules.add_op2(args, op)
             }
 
             #[inline]

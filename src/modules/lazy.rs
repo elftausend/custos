@@ -103,20 +103,6 @@ impl<T, Mods: AddOperation> AddOperation for Lazy<Mods, T> {
             self.modules.add_op(args, op)
         }
     }
-    fn add_op2<'own, 'dev, Args: Parents<N> + crate::AnyOp2<'own, 'dev>, const N: usize>(
-        &self,
-        args: Args,
-        op: impl for<'a, 'b> Fn(Args::Replicated<'a, 'a>) -> crate::Result<()> + 'static,
-    ) -> crate::Result<()> {
-        if self.enabled.get() {
-            self.graph.try_borrow_mut()
-            .expect("already borrowed: BorrowMutError - is the inner operation trying to add an operation as well?")
-            .add_operation2(args, op);
-            Ok(())
-        } else {
-            self.modules.add_op2(args, op)
-        }
-    }
 
     #[inline]
     fn ops_count(&self) -> usize {

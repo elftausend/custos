@@ -5,13 +5,13 @@ use crate::{
 use core::ops::RangeBounds;
 use std::collections::HashSet;
 
-pub struct Operation2<'a, B, T> {
+pub struct Operation<'a, B, T> {
     pub op: Box<dyn Fn(&mut Buffers<B>) -> crate::Result<()> + 'a>,
     pub op_hint: OpHint<T>,
 }
 
 pub struct LazyGraph<'a, B = Box<dyn BoxedShallowCopy>, T = ()> {
-    pub(crate) operations: Vec<Operation2<'a, B, T>>,
+    pub(crate) operations: Vec<Operation<'a, B, T>>,
 }
 
 impl<'a, B, T> Default for LazyGraph<'a, B, T> {
@@ -66,53 +66,10 @@ impl<'a, B: Downcast, T> LazyGraph<'a, B, T> {
         Ok(())
     }
 
-    pub fn convert_to_operation2<
-        'own,
-        'dev,
-        Args: Parents<N> + crate::AnyOp2<'own, 'dev>,
-        const N: usize,
-    >(
-        args: Args,
-        op: impl for<'r, 'b> Fn(Args::Replicated<'r, 'r>) -> crate::Result<()> + 'static,
-    ) -> Operation2<'a, B, T> {
-        const { assert!(N > 0, "Size of parents must be greater than 0") };
-
-        let mut seen_ids = HashSet::new();
-
-        // store ids and test if buffers are still in cache
-        let arg_ids = args
-            .maybe_ids()
-            .into_iter()
-            .flat_map(|id| {
-                // return error / none
-                let id = id.expect("every parent must have an id");
-                if seen_ids.contains(&id.id) {
-                    panic!("each parent (id) must be unique")
-                }
-                seen_ids.insert(id.id);
-
-                Some(id)
-            })
-            //.flat_map(|id| id.map(|id| *id))
-            .collect::<Vec<_>>();
-
-        if arg_ids.len() != N {
-            panic!()
-        }
-
-        let op: Box<dyn Fn(&mut Buffers<B>) -> crate::Result<()>> =
-            Args::replication_fn::<B>(arg_ids, op);
-
-        Operation2 {
-            op,
-            op_hint: OpHint::None,
-        }
-    }
-
     pub fn convert_to_operation<Args: Parents<N> + AnyOp, const N: usize>(
         args: Args,
         op: impl for<'b> Fn(Args::Replicated<'b>) -> crate::Result<()> + 'static,
-    ) -> Operation2<'a, B, T> {
+    ) -> Operation<'a, B, T> {
         const { assert!(N > 0, "Size of parents must be greater than 0") };
 
         let mut seen_ids = HashSet::new();
@@ -141,7 +98,7 @@ impl<'a, B: Downcast, T> LazyGraph<'a, B, T> {
         let op: Box<dyn Fn(&mut Buffers<B>) -> crate::Result<()>> =
             Args::replication_fn::<B>(arg_ids, op);
 
-        Operation2 {
+        Operation {
             op,
             op_hint: OpHint::None,
         }
@@ -155,20 +112,7 @@ impl<'a, B: Downcast, T> LazyGraph<'a, B, T> {
         let operation = Self::convert_to_operation(args, op);
         self.operations.push(operation)
     }
-
-    pub fn add_operation2<
-        'own,
-        'dev,
-        Args: Parents<N> + crate::AnyOp2<'own, 'dev>,
-        const N: usize,
-    >(
-        &mut self,
-        args: Args,
-        op: impl for<'r, 'b> Fn(Args::Replicated<'r, 'r>) -> crate::Result<()> + 'static,
-    ) {
-        let operation = Self::convert_to_operation2(args, op);
-        self.operations.push(operation)
-    }
+    
 }
 
 #[cfg(feature = "cpu")]
