@@ -72,12 +72,12 @@ pub trait UnaryFusing: IsShapeIndep {
             .collect::<Vec<_>>();
 
         let out = unsafe {
-            &mut *(buffers.get_mut(&last_arg_ids[0]).unwrap().as_any_mut()
+            &mut *(buffers.get_mut(&last_arg_ids[0]).unwrap() as *mut _
                 as *mut Buffer<T, Self, ()>)
         };
 
         let buf = unsafe {
-            &*(buffers.get(&first_arg_ids[1]).unwrap().as_any() as *const Buffer<T, Self, ()>)
+            &*(buffers.get(&first_arg_ids[1]).unwrap() as *const _ as *const Buffer<T, Self, ()>)
         };
 
         let op = self.unary_fuse_op::<T>();
