@@ -265,14 +265,14 @@ mod tests {
 
         device
             .add_op(
-                (lhs, rhs, &mut out, src.no_id(), fn_name.no_id()),
-                |(lhs, rhs, out, src, fn_name)| {
+                (lhs, rhs, &mut out),
+                move |(lhs, rhs, out)| {
                     let device = lhs.device();
                     device.launch_kernel1d(
                         lhs.len(),
-                        &**src,
+                        &src,
                         fn_name,
-                        &[lhs, rhs, *out, &lhs.len()],
+                        &[lhs, rhs, out, &lhs.len()],
                     )
                 },
             )
