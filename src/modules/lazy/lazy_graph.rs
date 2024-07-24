@@ -2,28 +2,29 @@ use crate::{
     bounds_to_range, modules::lazy::exec_iter::ExecIter, op_hint::OpHint, AnyOp, BoxedShallowCopy,
     Buffers, Device, Downcast, Parents,
 };
-use core::ops::RangeBounds;
+use core::{marker::PhantomData, ops::RangeBounds};
 use std::collections::HashSet;
 
-pub struct Operation<'a, B, T> {
-    pub op: Box<dyn Fn(&mut Buffers<B>) -> crate::Result<()> + 'a>,
+pub struct Operation<B, T> {
+    pub op: Box<dyn Fn(&mut Buffers<B>) -> crate::Result<()> + 'static>,
     pub op_hint: OpHint<T>,
+    // pub pd: PhantomData<&'a ()>,
 }
 
-impl<'a, B, T> Operation<'a, B, T> {
+impl<B, T> Operation<B, T> {
     pub fn no_op() -> Self {
         Self {
             op: Box::new(|_buffers| Ok(())),
-            op_hint: OpHint::None
+            op_hint: OpHint::None,
         }
     }
 }
 
-pub struct LazyGraph<'a, B = Box<dyn BoxedShallowCopy>, T = ()> {
-    pub(crate) operations: Vec<Operation<'a, B, T>>,
+pub struct LazyGraph<B = Box<dyn BoxedShallowCopy>, T = ()> {
+    pub(crate) operations: Vec<Operation<B, T>>,
 }
 
-impl<'a, B, T> Default for LazyGraph<'a, B, T> {
+impl<B, T> Default for LazyGraph<B, T> {
     #[inline]
     fn default() -> Self {
         Self {
@@ -32,13 +33,13 @@ impl<'a, B, T> Default for LazyGraph<'a, B, T> {
     }
 }
 
-impl<'a, B: Downcast, T> LazyGraph<'a, B, T> {
+impl<B: Downcast, T> LazyGraph<B, T> {
     #[inline]
     pub fn iter_with<'b>(
         &'b mut self,
         // device: &'a D,
         buffers: &'b mut Buffers<B>,
-    ) -> ExecIter<'a, 'b, B, T> {
+    ) -> ExecIter<'b, B, T> {
         ExecIter {
             operations: self.operations.iter(),
             buffers,
@@ -78,7 +79,7 @@ impl<'a, B: Downcast, T> LazyGraph<'a, B, T> {
     pub fn convert_to_operation<Args: Parents<N> + AnyOp, const N: usize>(
         args: Args,
         op: impl for<'b> Fn(Args::Replicated<'b>) -> crate::Result<()> + 'static,
-    ) -> Operation<'a, B, T> {
+    ) -> Operation<B, T> {
         const { assert!(N > 0, "Size of parents must be greater than 0") };
 
         let mut seen_ids = HashSet::new();
