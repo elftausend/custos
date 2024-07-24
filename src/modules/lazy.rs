@@ -11,7 +11,7 @@ use crate::{
     op_hint::OpHint, register_buf_copyable, unregister_buf_copyable, AddLayer, AddOperation, Alloc,
     AnyOp, BoxedShallowCopy, Buffer, CachedBuffers, Cursor, Device, ExecNow, HasId, HasModules, Id,
     IsShapeIndep, Module, NoHasher, OnDropBuffer, OnNewBuffer, Parents, ReplaceBuf, Retrieve,
-    RunModule, SetOpHint, Setup, ShallowCopy, Shape, UniqueId, Unit, UpdateArgs, UseGpuOrCpu,
+    RunModule, SetOpHint, Setup, ShallowCopy, Shape, UniqueId, Unit, UseGpuOrCpu,
 };
 
 #[cfg(feature = "graph")]
@@ -757,7 +757,7 @@ mod tests {
     // #[ignore = "causes UB"]
     #[test]
     fn test_lazy_exec_ub_testing() {
-        use crate::{AsNoId, Run};
+        use crate::Run;
 
         let device = CPU::<Lazy<Base>>::new();
 

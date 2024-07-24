@@ -116,7 +116,6 @@ mod range;
 mod shape;
 mod two_way_ops;
 mod unary;
-mod update_args;
 mod wrapper;
 
 pub use any_op::*;
@@ -130,7 +129,6 @@ pub use number::*;
 pub use parents::*;
 pub use ptr_conv::*;
 pub use range::*;
-pub use update_args::*;
 pub use wrapper::*;
 
 #[cfg(not(feature = "cpu"))]

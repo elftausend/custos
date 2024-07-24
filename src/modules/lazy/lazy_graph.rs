@@ -1,35 +1,14 @@
 use crate::{
-    bounds_to_range, modules::lazy::exec_iter::ExecIter2, op_hint::OpHint, AnyOp, AsAny,
-    BoxedShallowCopy, Buffers, Device, Downcast, Parents, UniqueId, UpdateArgs, UpdateArgsDynable,
+    bounds_to_range, modules::lazy::exec_iter::ExecIter, op_hint::OpHint, AnyOp,
+    BoxedShallowCopy, Buffers, Device, Downcast, Parents,
 };
-use core::{mem::transmute, ops::RangeBounds};
+use core::ops::RangeBounds;
 use std::collections::HashSet;
-
-use super::exec_iter::{exec_op, ExecIter};
 
 pub struct Operation2<'a, B, T> {
     pub op: Box<dyn Fn(&mut Buffers<B>) -> crate::Result<()> + 'a>,
     pub op_hint: OpHint<T>,
 }
-
-pub struct Operation<B, T> {
-    pub op_hint: OpHint<T>,
-    pub arg_ids: Vec<Option<UniqueId>>,
-    pub op: fn(*mut ()) -> crate::Result<()>,
-    pub args: Box<dyn UpdateArgsDynable<B>>,
-}
-
-impl<B: AsAny, T> Operation<B, T> {
-    pub fn no_op() -> Self {
-        Self {
-            op_hint: OpHint::None,
-            arg_ids: vec![None],
-            op: |_: *mut ()| Ok(()),
-            args: Box::new(()),
-        }
-    }
-}
-
 
 pub struct LazyGraph<'a, B = Box<dyn BoxedShallowCopy>, T = ()> {
     pub(crate) operations: Vec<Operation2<'a, B, T>>,
@@ -50,8 +29,8 @@ impl<'a, B: Downcast, T> LazyGraph<'a, B, T> {
         &'b mut self,
         // device: &'a D,
         buffers: &'b mut Buffers<B>,
-    ) -> ExecIter2<'a, 'b, B, T> {
-        ExecIter2 {
+    ) -> ExecIter<'a, 'b, B, T> {
+        ExecIter {
             operations: self.operations.iter(),
             buffers,
         }
@@ -196,7 +175,7 @@ impl<'a, B: Downcast, T> LazyGraph<'a, B, T> {
 #[cfg(test)]
 mod tests {
     use crate::{
-        register_buf_any, register_buf_copyable, AnyBuffer, AsNoId, Base, BoxedShallowCopy, Buffer,
+        register_buf_any, register_buf_copyable, AnyBuffer, Base, Buffer,
         CloneBuf, Device, HasId, LazyGraph, Retriever, Shape, UniqueId, CPU,
     };
     use core::cell::Cell;

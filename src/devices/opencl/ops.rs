@@ -7,7 +7,7 @@ use min_cl::{
 
 use crate::{
     bounds_to_range, cpu_stack_ops::clear_slice, location, op_hint::unary, pass_down_add_operation,
-    pass_down_exec_now, prelude::Number, AddOperation, ApplyFunction, AsNoId, BufAsNoId, Buffer,
+    pass_down_exec_now, prelude::Number, AddOperation, ApplyFunction, Buffer,
     CDatatype, ClearBuf, CopySlice, OnDropBuffer, OpenCL, Read, Resolve, Retrieve, Retriever,
     SetOpHint, Shape, ToCLSource, ToMarker, TwoWay, UnaryGrad, Unit, UseGpuOrCpu, WriteBuf,
     ZeroGrad,

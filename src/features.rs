@@ -7,7 +7,7 @@ use core::{cell::RefMut, fmt::Debug, ops::RangeBounds};
 use crate::{
     op_hint::OpHint,
     range::{AsRange, CursorRange},
-    AnyOp, HasId, Parents, Shape, UniqueId, Unit, UpdateArgs, ZeroGrad, CPU,
+    AnyOp, HasId, Parents, Shape, UniqueId, Unit, ZeroGrad, CPU,
 };
 
 #[cfg(feature = "cached")]
@@ -157,16 +157,15 @@ pub trait AddGradFn {
         op: impl for<'b> Fn(Args::Replicated<'b>) -> crate::Result<()> + 'static,
     );
 
-    fn add_grad_and_forward_fn<Args: Parents<N> + UpdateArgs + AnyOp + Clone, const N: usize>(
+    fn add_grad_and_forward_fn<Args: Parents<N> + AnyOp + Clone, const N: usize>(
         &self,
         args: Args,
-        forward_fn: fn(&mut Args) -> crate::Result<()>,
+        forward_fn: impl for<'b> Fn(Args::Replicated<'b>) -> crate::Result<()> + 'static,
         grad_fn: impl for<'b> Fn(Args::Replicated<'b>) -> crate::Result<()> + 'static,
     ) where
         Self: AddOperation,
     {
-        todo!();
-        // self.add_op(args.clone(), forward_fn).unwrap();
+        self.add_op(args.clone(), forward_fn).unwrap();
         self.add_grad_fn(args, grad_fn)
     }
 

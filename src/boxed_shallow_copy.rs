@@ -1,5 +1,4 @@
-use crate::{AnyBuffer, AsAny, Downcast, ShallowCopy};
-use core::any::Any;
+use crate::{AnyBuffer, Downcast, ShallowCopy};
 
 pub trait BoxedShallowCopy: AnyBuffer {
     fn shallow_copy(&self) -> Box<dyn BoxedShallowCopy>;
@@ -75,31 +74,5 @@ impl<I: Downcast + ?Sized> Downcast for Box<I> {
     #[inline]
     fn is<T: 'static>(&self) -> bool {
         (**self).is::<T>()
-    }
-}
-
-impl AsAny for Box<dyn BoxedShallowCopy> {
-    #[inline]
-    fn as_any(&self) -> *const () {
-        let data = &**self;
-        data as *const _ as *const ()
-    }
-
-    #[inline]
-    fn as_any_mut(&mut self) -> *mut () {
-        let data = &mut **self;
-        data as *mut _ as *mut ()
-    }
-}
-
-impl AsAny for Box<dyn Any> {
-    #[inline]
-    fn as_any(&self) -> *const () {
-        (&**self) as *const _ as *const ()
-    }
-
-    #[inline]
-    fn as_any_mut(&mut self) -> *mut () {
-        (&mut **self) as *mut _ as *mut ()
     }
 }

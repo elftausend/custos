@@ -1,4 +1,4 @@
-use crate::{HasId, Id, UpdateArg};
+use crate::{HasId, Id};
 
 pub trait Parents<const N: usize>: AllParents {
     fn ids(&self) -> [Id; N];
@@ -21,17 +21,6 @@ impl Parents<0> for () {
 }
 
 impl AllParents for () {}
-
-impl UpdateArg for () {
-    #[cfg(feature = "std")]
-    fn update_arg<B>(
-        _to_update: &mut Self,
-        _id: Option<crate::UniqueId>,
-        _buffers: &mut crate::Buffers<B>,
-    ) -> crate::Result<()> {
-        Ok(())
-    }
-}
 
 impl<T: HasId> Parents<1> for T {
     #[inline]
@@ -77,21 +66,6 @@ macro_rules! impl_parents {
             }
         }
         impl<$($to_impl: $crate::HasId, )+> AllParents for ($($to_impl,)+) {}
-
-        impl<$($to_impl: $crate::UpdateArg + $crate::HasId, )+> $crate::UpdateArgs for ($($to_impl,)+) {
-            #[cfg(feature = "std")]
-            fn update_args<B: $crate::AsAny>(&mut self,
-                ids: &[Option<$crate::UniqueId>],
-                buffers: &mut $crate::Buffers<B>)
-             -> crate::Result<()>
-             {
-                let mut ids = ids.iter();
-                #[allow(non_snake_case)]
-                let ($($to_impl,)+) = self;
-                $($to_impl::update_arg($to_impl, *ids.next().unwrap(), buffers)?;)*
-                Ok(())
-            }
-        }
 
         impl<'own, 'dev, $($to_impl: $crate::Replicate2<'own, 'dev> + $crate::HasId, )+> $crate::AnyOp2<'own, 'dev> for ($($to_impl,)+) {
             type Replicated<'a, 'b> = ($($to_impl::Replication<'a, 'b>,)+) where 'b: 'a;

@@ -1,6 +1,6 @@
 use core::ops::{Deref, DerefMut};
 
-use crate::{Buffer, Device, DeviceError, Shape, UniqueId, Unit, UpdateArg};
+use crate::{Buffer, Device, Shape, Unit};
 
 pub trait HasId {
     const HAS_NO_ID: bool = false;
@@ -102,59 +102,6 @@ impl<T: Into<NoId<T>>> AsNoId for T {
     #[inline]
     fn no_id(self) -> NoId<Self> {
         self.into()
-    }
-}
-
-impl<T> UpdateArg for NoId<T> {
-    #[inline]
-    #[cfg(feature = "std")]
-    fn update_arg<B>(
-        _to_update: &mut Self,
-        _id: Option<UniqueId>,
-        _buffers: &mut crate::Buffers<B>,
-    ) -> crate::Result<()> {
-        Ok(())
-    }
-}
-
-impl<'a, T: Unit + 'static, D: Device + 'static, S: Shape + 'static> UpdateArg
-    for &Buffer<'a, T, D, S>
-{
-    #[cfg(feature = "std")]
-    fn update_arg<B: crate::AsAny>(
-        to_update: &mut Self,
-        id: Option<UniqueId>,
-        buffers: &mut crate::Buffers<B>,
-    ) -> crate::Result<()> {
-        // use crate::ShallowCopyable;
-
-        let buf = buffers
-            .get(&id.unwrap())
-            .ok_or(DeviceError::InvalidLazyBuf)?;
-        // let any = buf.as_any();
-        // let _to_update = buf.as_any().downcast_ref::<Buffer<T, D, S>>().unwrap();
-        // todo!();
-        *to_update = unsafe { &*(buf.as_any() as *const Buffer<T, D, S>) };
-        //    *self = buffers.get(&self.id()).unwrap().downcast_ref().unwrap();
-        Ok(())
-    }
-}
-
-impl<'a, T: Unit + 'static, D: Device + 'static, S: Shape + 'static> UpdateArg
-    for &mut Buffer<'a, T, D, S>
-{
-    #[cfg(feature = "std")]
-    fn update_arg<B: crate::AsAny>(
-        to_update: &mut Self,
-        id: Option<UniqueId>,
-        buffers: &mut crate::Buffers<B>,
-    ) -> crate::Result<()> {
-        let buf = buffers
-            .get_mut(&id.unwrap())
-            .ok_or(DeviceError::InvalidLazyBuf)?;
-        *to_update = unsafe { &mut *(buf.as_any_mut() as *mut Buffer<T, D, S>) };
-        Ok(())
-        //    *self = buffers.get(&self.id()).unwrap().downcast_ref().unwrap();
     }
 }
 
