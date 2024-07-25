@@ -45,7 +45,7 @@ pub struct Lazy<'a, Mods, T = f32> {
     pub graph: RefCell<LazyGraph<Box<dyn BoxedShallowCopy>, T>>,
     cursor: Cell<usize>,
     enabled: Cell<bool>,
-    pd: PhantomData<&'a T>,
+    pd: PhantomData<Cell<&'a ()>>,
 }
 
 impl<Mods: Debug, T> Debug for Lazy<'_, Mods, T> {
@@ -83,7 +83,7 @@ impl<'a, T, Mods: Module<'a, D>, D: LazySetup + Device + 'a> Module<'a, D> for L
             allocated_ids: Default::default(),
             cursor: Default::default(),
             enabled: Cell::new(true),
-            pd: PhantomData,
+            pd: Default::default(),
         }
     }
 }
@@ -211,6 +211,25 @@ where
     }
 }
 
+impl<'a, T, D: Device, S: Shape> crate::OnNewBuffer2<'a, T, D, S> for crate::Base {
+    fn on_new_buffer(&'a self, _device: &D, _new_buf: &'a Buffer<T, D, S>) {}
+}
+
+impl<'a, T, D, Mods, S, T2> crate::OnNewBuffer2<'a, T, D, S> for Lazy<'a, Mods, T2>
+where
+    T: Unit + 'static,
+    D: Device + IsShapeIndep + 'static,
+    D::Data<T, S>: ShallowCopy,
+    Mods: crate::OnNewBuffer2<'a, T, D, S>,
+    S: Shape,
+{
+    #[inline]
+    fn on_new_buffer(&'a self, device: &D, new_buf: &'a Buffer<T, D, S>) {
+        unsafe { register_buf_copyable(&mut self.buffers.borrow_mut(), new_buf) };
+        self.modules.on_new_buffer(device, new_buf)
+    }
+}
+
 // pass_down_tape_actions!(Lazy);
 #[cfg(feature = "autograd")]
 impl<Mods: crate::HasAutograd, T> crate::HasAutograd for Lazy<'_, Mods, T> {}
@@ -296,7 +315,7 @@ impl<'a, T, NewMods, SD> AddLayer<NewMods, SD> for Lazy<'a, (), T> {
             allocated_ids: Default::default(),
             cursor: Default::default(),
             enabled: Cell::new(true),
-            pd: PhantomData,
+            pd: Default::default(),
         }
     }
 }
@@ -496,7 +515,7 @@ mod tests {
 
     use crate::{
         tests_helper::{add_ew_slice, AddEw},
-        AddOperation, ApplyFunction, Base, Buffer, Combiner, Device, OnDropBuffer, OnNewBuffer,
+        AddOperation, ApplyFunction, Base, Buffer, Combiner, Device, OnDropBuffer, OnNewBuffer2,
         Retrieve, Retriever, Shape, Unit, CPU,
     };
 
@@ -505,12 +524,14 @@ mod tests {
     #[test]
     fn test_lazy_on_new_buffer() {
         let lazy = Lazy::<Base>::default();
-        {
+        // {
             let device = CPU::<Base>::new();
             let buf = device.buffer([1, 2, 3]);
             lazy.on_new_buffer(&device, &buf);
+        // }
+        for value in lazy.buffers.borrow().values() {
+            println!("value");
         }
-        for value in lazy.buffers.borrow().values() {}
     }
 
     #[test]
