@@ -205,7 +205,7 @@ where
     S: Shape,
 {
     #[inline]
-    fn on_new_buffer(&self, device: &'a D, new_buf: &Buffer<'a, T, D, S>) {
+    fn on_new_buffer<'s>(&'s self, device: &'a D, new_buf: &'s Buffer<'a, T, D, S>) {
         unsafe { register_buf_copyable(&mut self.buffers.borrow_mut(), new_buf) };
         self.modules.on_new_buffer(device, new_buf)
     }
@@ -495,12 +495,23 @@ mod tests {
     use core::ops::{Add, Deref};
 
     use crate::{
-        tests_helper::{add_ew_slice, AddEw},
-        AddOperation, ApplyFunction, Base, Buffer, Combiner, Device, Retrieve, Retriever, Shape,
-        Unit, CPU,
+        tests_helper::{add_ew_slice, AddEw}, AddOperation, ApplyFunction, Base, Buffer, Combiner, Device, OnDropBuffer, OnNewBuffer, Retrieve, Retriever, Shape, Unit, CPU
     };
 
     use super::Lazy;
+
+    #[test]
+    fn test_lazy_on_new_buffer() {
+        let lazy = Lazy::<Base>::default();
+        {
+            let device = CPU::<Base>::new();
+            let buf = device.buffer([1, 2, 3]);
+            lazy.on_new_buffer(&device, &buf);
+        }
+        for value in lazy.buffers.borrow().values() {
+            
+        }
+    }
 
     #[test]
     #[cfg(feature = "cpu")]
