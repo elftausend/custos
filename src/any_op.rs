@@ -11,6 +11,21 @@ pub trait Replicate {
     unsafe fn replicate_borrowed<'r, B: Downcast>(
         id: &Id,
         buffers: &'r mut Buffers<B>,
+        device: Option<&'r dyn core::any::Any>,
+    ) -> Option<Self::Replication<'r>>;
+
+    unsafe fn replicate<'a>(self) -> Self::Replication<'a>;
+}
+
+pub trait Replicate2<D: Device> {
+    type Replication<'r>;
+    type Downcast<'r>: 'r;
+
+    #[cfg(feature = "std")]
+    unsafe fn replicate_borrowed<'r, B: Downcast>(
+        id: &Id,
+        buffers: &'r mut Buffers<B>,
+        device: Option<&'r D>,
     ) -> Option<Self::Replication<'r>>;
 
     unsafe fn replicate<'a>(self) -> Self::Replication<'a>;
@@ -23,7 +38,7 @@ pub trait AnyOp: Sized {
     fn replication_fn<B: Downcast>(
         ids: Vec<crate::Id>,
         op: impl for<'a> Fn(Self::Replicated<'a>) -> crate::Result<()> + 'static,
-    ) -> Box<dyn for<'i> Fn(&'i mut Buffers<B>) -> crate::Result<()>>;
+    ) -> Box<dyn for<'i> Fn(&'i mut Buffers<B>, &dyn core::any::Any) -> crate::Result<()>>;
 
     unsafe fn replication<'a>(self) -> Self::Replicated<'a>;
 }
@@ -39,8 +54,10 @@ impl<'a, T: 'static, D: Device + 'static, S: crate::Shape> Replicate
     unsafe fn replicate_borrowed<'r, B: Downcast>(
         id: &Id,
         buffers: &'r mut Buffers<B>,
+        device: Option<&'r dyn core::any::Any>,
     ) -> Option<Self::Replication<'r>> {
-        buffers.get(id)?.downcast_ref::<Self::Downcast<'_>>()
+        <&mut Buffer<T, D, S> as Replicate>::replicate_borrowed(id, buffers, device)
+            .map(|buf| &*buf)
     }
 
     #[inline]
@@ -64,12 +81,15 @@ impl<'a, T: 'static, D: Device + 'static, S: crate::Shape> Replicate
     unsafe fn replicate_borrowed<'r, B: Downcast>(
         id: &Id,
         buffers: &'r mut Buffers<B>,
+        device: Option<&'r dyn core::any::Any>,
     ) -> Option<Self::Replication<'r>> {
         let replication = buffers.get_mut(id)?;
         if !replication.is::<Self::Downcast<'_>>() {
             return None;
         }
-        Some(unsafe { replication.downcast_mut_unchecked::<Self::Downcast<'r>>() })
+        let buf = unsafe { replication.downcast_mut_unchecked::<Self::Downcast<'r>>() };
+        buf.device = device.map(|dev| dev.downcast_ref::<D>().unwrap());
+        Some(buf)
     }
 
     #[inline]
@@ -88,12 +108,12 @@ impl<R: crate::HasId + Replicate> AnyOp for R {
     fn replication_fn<B: Downcast>(
         ids: Vec<crate::Id>,
         op: impl for<'a> Fn(Self::Replicated<'a>) -> crate::Result<()> + 'static,
-    ) -> Box<dyn Fn(&mut Buffers<B>) -> crate::Result<()>> {
+    ) -> Box<dyn Fn(&mut Buffers<B>, &dyn core::any::Any) -> crate::Result<()>> {
         use crate::DeviceError;
 
         let id = ids[0];
-        Box::new(move |buffers| {
-            let r1 = unsafe { R::replicate_borrowed(&id, buffers) }
+        Box::new(move |buffers, dev| {
+            let r1 = unsafe { R::replicate_borrowed(&id, buffers, Some(dev)) }
                 .ok_or(DeviceError::InvalidLazyBuf)?;
             op(r1)
         })

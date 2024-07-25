@@ -74,13 +74,13 @@ macro_rules! impl_parents {
             fn replication_fn<B: $crate::Downcast>(
                 ids: Vec<$crate::Id>,
                 op: impl for<'a> Fn(Self::Replicated<'a>) -> $crate::Result<()> + 'static,
-            ) -> Box<dyn Fn(&mut $crate::Buffers<B>) -> $crate::Result<()>> {
-                Box::new(move |buffers| {
+            ) -> Box<dyn Fn(&mut $crate::Buffers<B>, &dyn core::any::Any) -> $crate::Result<()>> {
+                Box::new(move |buffers, dev| {
                     let mut ids = ids.iter();
 
                     op(($(
                         unsafe {
-                            $to_impl::replicate_borrowed(ids.next().unwrap(), &mut *(buffers as *mut _)).ok_or(crate::DeviceError::InvalidLazyBuf)?
+                            $to_impl::replicate_borrowed(ids.next().unwrap(), &mut *(buffers as *mut _), Some(dev)).ok_or(crate::DeviceError::InvalidLazyBuf)?
                         }
                     ,)+))
                 })

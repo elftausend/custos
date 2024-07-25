@@ -7,7 +7,7 @@ use std::collections::HashSet;
 
 pub struct Operation<B, T> {
     pub arg_ids: Vec<Id>,
-    pub op: Box<dyn Fn(&mut Buffers<B>) -> crate::Result<()> + 'static>,
+    pub op: Box<dyn Fn(&mut Buffers<B>, &dyn core::any::Any) -> crate::Result<()> + 'static>,
     pub op_hint: OpHint<T>,
     // pub pd: PhantomData<&'a ()>,
 }
@@ -15,7 +15,7 @@ pub struct Operation<B, T> {
 impl<B, T> Operation<B, T> {
     pub fn no_op() -> Self {
         Self {
-            op: Box::new(|_buffers| Ok(())),
+            op: Box::new(|_buffers, _dev| Ok(())),
             arg_ids: vec![],
             op_hint: OpHint::None,
         }
@@ -37,14 +37,15 @@ impl<B, T> Default for LazyGraph<B, T> {
 
 impl<B: Downcast, T> LazyGraph<B, T> {
     #[inline]
-    pub fn iter_with<'b>(
+    pub fn iter_with<'b, D: Device>(
         &'b mut self,
-        // device: &'a D,
+        device: &'b D,
         buffers: &'b mut Buffers<B>,
-    ) -> ExecIter<'b, B, T> {
+    ) -> ExecIter<'b, B, T, D> {
         ExecIter {
             operations: self.operations.iter(),
             buffers,
+            device,
         }
     }
 
@@ -58,8 +59,12 @@ impl<B: Downcast, T> LazyGraph<B, T> {
         self.operations.len()
     }
 
-    pub unsafe fn call_lazily(&mut self, buffers: &mut Buffers<B>) -> crate::Result<()> {
-        for args in self.iter_with(buffers) {
+    pub unsafe fn call_lazily<D: Device + 'static>(
+        &mut self,
+        device: &D,
+        buffers: &mut Buffers<B>,
+    ) -> crate::Result<()> {
+        for args in self.iter_with(device, buffers) {
             args?;
         }
         Ok(())
@@ -67,13 +72,13 @@ impl<B: Downcast, T> LazyGraph<B, T> {
 
     pub unsafe fn call_range<D: Device + 'static>(
         &mut self,
-        // _device: &'a D,
+        device: &D,
         bounds: impl RangeBounds<usize>,
         buffers: &mut Buffers<B>,
     ) -> crate::Result<()> {
         let range = bounds_to_range(bounds, self.operations.len());
         for op in self.operations.drain(range) {
-            (op.op)(buffers)?;
+            (op.op)(buffers, device)?;
         }
         Ok(())
     }
@@ -107,7 +112,7 @@ impl<B: Downcast, T> LazyGraph<B, T> {
             panic!()
         }
 
-        let op: Box<dyn Fn(&mut Buffers<B>) -> crate::Result<()>> =
+        let op: Box<dyn Fn(&mut Buffers<B>, &dyn core::any::Any) -> crate::Result<()>> =
             Args::replication_fn::<B>(arg_ids.clone(), op);
 
         Operation {
@@ -207,7 +212,7 @@ mod tests {
                 println!("args: {args:?}");
                 Ok(())
             });
-            unsafe { graph.call_lazily(&mut buffers).unwrap() };
+            unsafe { graph.call_lazily(&device, &mut buffers).unwrap() };
         };
         // let x = DEVICE2.get().unwrap();
         // println!("{:?}", x.modules.cache.borrow().nodes);
@@ -245,7 +250,7 @@ mod tests {
         };
 
         // todo!()
-        unsafe { graph.call_lazily(&mut outs_unordered).unwrap() }
+        unsafe { graph.call_lazily(&device, &mut outs_unordered).unwrap() }
     }
 
     #[test]
@@ -271,7 +276,7 @@ mod tests {
             Ok(())
         });
 
-        unsafe { graph.call_lazily(&mut outs_unordered).unwrap() }
+        unsafe { graph.call_lazily(&device, &mut outs_unordered).unwrap() }
     }
 
     #[test]
@@ -304,7 +309,7 @@ mod tests {
             });
         }
 
-        unsafe { graph.call_lazily(&mut outs_unordered).unwrap() }
+        unsafe { graph.call_lazily(&device, &mut outs_unordered).unwrap() }
     }
     #[test]
     fn test_lazy_op_args_no_out_but_use() {
@@ -331,7 +336,7 @@ mod tests {
             Ok(())
         });
 
-        unsafe { graph.call_lazily(&mut outs_unordered).unwrap() }
+        unsafe { graph.call_lazily(&device, &mut outs_unordered).unwrap() }
     }
 
     #[test]
@@ -365,6 +370,6 @@ mod tests {
             Ok(())
         });
 
-        unsafe { graph.call_lazily(&mut outs_unordered).unwrap() }
+        unsafe { graph.call_lazily(&device, &mut outs_unordered).unwrap() }
     }
 }

@@ -138,9 +138,11 @@ impl<T, D: Device + 'static, Mods> ExecNow<D> for Lazy<Mods, T> {
     ) -> crate::Result<()> {
         self.alloc_later(device);
         unsafe {
-            self.graph
-                .borrow_mut()
-                .call_range::<D>(range_bounds, &mut self.buffers.borrow_mut())?;
+            self.graph.borrow_mut().call_range::<D>(
+                device,
+                range_bounds,
+                &mut self.buffers.borrow_mut(),
+            )?;
         }
         Ok(())
     }
@@ -148,10 +150,10 @@ impl<T, D: Device + 'static, Mods> ExecNow<D> for Lazy<Mods, T> {
 
 impl<T, Mods> Lazy<Mods, T> {
     #[inline]
-    pub unsafe fn call_lazily<D: Device + 'static>(&self) -> crate::Result<()> {
+    pub unsafe fn call_lazily<D: Device + 'static>(&self, device: &D) -> crate::Result<()> {
         self.graph
             .borrow_mut()
-            .call_lazily(&mut self.buffers.borrow_mut())?;
+            .call_lazily(device, &mut self.buffers.borrow_mut())?;
         Ok(())
     }
 
@@ -176,7 +178,7 @@ impl<T, Mods: RunModule<D>, D: LazyRun + Device + 'static> RunModule<D> for Lazy
     #[inline]
     fn run(&self, device: &D) -> crate::Result<()> {
         self.alloc_later(device);
-        unsafe { self.call_lazily::<D>()? };
+        unsafe { self.call_lazily::<D>(device)? };
         device.run()?;
         self.modules.run(device)
     }
@@ -527,7 +529,12 @@ mod tests {
 
         // assert_eq!(out.read(), &[0; 10]); -- should not work
         device.modules.alloc_later(&device);
-        unsafe { device.modules.call_lazily::<CPU<Lazy<Base>>>().unwrap() }
+        unsafe {
+            device
+                .modules
+                .call_lazily::<CPU<Lazy<Base, i32>>>(&device)
+                .unwrap()
+        }
         // assert_eq!(out.read(), &[3; 10]); -- should work
         assert_eq!(out.replace().read(), &[3; 10]);
         drop(buf);
