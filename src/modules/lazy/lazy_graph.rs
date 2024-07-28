@@ -144,8 +144,8 @@ impl<B: Downcast, T> LazyGraph<B, T> {
 #[cfg(test)]
 mod tests {
     use crate::{
-        register_buf_any, register_buf_copyable, AnyBuffer, Base, Buffer, CloneBuf, Device, HasId,
-        LazyGraph, Retriever, Shape, UniqueId, CPU,
+        register_buf_any, register_buf_copyable, Base, Buffer, CloneBuf, Device, HasId, LazyGraph,
+        Retriever, Shape, UniqueId, CPU,
     };
     use std::collections::HashMap;
     #[cfg(feature = "autograd")]

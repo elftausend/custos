@@ -1,24 +1,26 @@
-use crate::{AnyBuffer, Downcast, ShallowCopy};
+use std::any::Any;
 
-pub trait BoxedShallowCopy: AnyBuffer {
+use crate::{Downcast, ShallowCopy};
+
+pub trait BoxedShallowCopy {
     fn shallow_copy(&self) -> Box<dyn BoxedShallowCopy>;
-    fn as_any(&self) -> &dyn AnyBuffer;
-    fn as_any_mut(&mut self) -> &mut dyn AnyBuffer;
+    fn as_any(&self) -> &dyn Any;
+    fn as_any_mut(&mut self) -> &mut dyn Any;
 }
 
-impl<T: AnyBuffer + ShallowCopy + 'static> BoxedShallowCopy for T {
+impl<T: ShallowCopy + 'static> BoxedShallowCopy for T {
     #[inline]
     fn shallow_copy(&self) -> Box<dyn BoxedShallowCopy> {
         Box::new(unsafe { self.shallow() })
     }
 
     #[inline]
-    fn as_any(&self) -> &dyn AnyBuffer {
+    fn as_any(&self) -> &dyn Any {
         self
     }
 
     #[inline]
-    fn as_any_mut(&mut self) -> &mut dyn AnyBuffer {
+    fn as_any_mut(&mut self) -> &mut dyn Any {
         self
     }
 }
@@ -36,12 +38,12 @@ impl Downcast for dyn BoxedShallowCopy {
 
     #[inline]
     unsafe fn downcast_mut_unchecked<T>(&mut self) -> &mut T {
-        self.as_any_mut().downcast_mut_unchecked()
+        Downcast::downcast_mut_unchecked(self.as_any_mut())
     }
 
     #[inline]
     unsafe fn downcast_ref_unchecked<T>(&self) -> &T {
-        self.as_any().downcast_ref_unchecked()
+        Downcast::downcast_ref_unchecked(self.as_any())
     }
 
     #[inline]
