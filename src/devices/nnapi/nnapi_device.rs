@@ -68,7 +68,7 @@ impl<'a, U, T: Unit, D: Device, S: Shape, Mods: crate::OnNewBuffer<'a, T, D, S>>
     crate::OnNewBuffer<'a, T, D, S> for NnapiDevice<U, Mods>
 {
     #[inline]
-    fn on_new_buffer(&self, device: &'a D, new_buf: &Buffer<'a, T, D, S>) {
+    unsafe fn on_new_buffer(&self, device: &'a D, new_buf: &Buffer<'a, T, D, S>) {
         self.modules.on_new_buffer(device, new_buf)
     }
 }
@@ -250,7 +250,7 @@ impl<T, Mods: OnDropBuffer> NnapiDevice<T, Mods> {
 
 impl<T, Mods> LazySetup for NnapiDevice<T, Mods> {}
 
-impl<T> Default for NnapiDevice<T, Lazy<Base>> {
+impl<'a, T: 'a> Default for NnapiDevice<T, Lazy<'a, Base>> {
     #[inline]
     fn default() -> Self {
         Self::new().unwrap()
