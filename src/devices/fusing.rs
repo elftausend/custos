@@ -49,7 +49,7 @@ pub trait UnaryFusing: IsShapeIndep {
     where
         Self: 'static,
     {
-        use crate::Buffer;
+        use crate::{Buffer, Buffers, Downcast, HasId};
 
         let (ops, affected_op_idxs) = ops;
         let to_insert_idx: usize = affected_op_idxs[0];
@@ -62,12 +62,21 @@ pub trait UnaryFusing: IsShapeIndep {
 
         // use last op in the unary fuse chain as the output buffer
         let last_arg_ids = &last_op.arg_ids;
+
+        assert_ne!(*last_arg_ids[0], *first_arg_ids[1]);
+
         let out = unsafe {
-            &mut *(buffers.get_mut(&last_arg_ids[0]).unwrap() as *mut _ as *mut Buffer<T, Self, ()>)
+            (&mut *(buffers as *mut Buffers<Box<dyn crate::BoxedShallowCopy>>))
+                .get_mut(&last_arg_ids[0])
+                .unwrap()
+                .downcast_mut_unchecked::<Buffer<T, Self, ()>>()
         };
 
         let buf = unsafe {
-            &*(buffers.get(&first_arg_ids[1]).unwrap() as *const _ as *const Buffer<T, Self, ()>)
+            buffers
+                .get(&first_arg_ids[1])
+                .unwrap()
+                .downcast_ref_unchecked::<Buffer<T, Self, ()>>()
         };
 
         let op = self.unary_fuse_op::<T>(ops);

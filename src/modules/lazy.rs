@@ -495,7 +495,9 @@ mod tests {
     use core::ops::{Add, Deref};
 
     use crate::{
-        tests_helper::{add_ew_slice, AddEw}, AddOperation, ApplyFunction, Base, Buffer, Combiner, Device, Retrieve, Retriever, Shape, Unit, CPU
+        tests_helper::{add_ew_slice, AddEw},
+        AddOperation, ApplyFunction, Base, Buffer, Combiner, Device, Retrieve, Retriever, Shape,
+        Unit, CPU,
     };
 
     use super::Lazy;

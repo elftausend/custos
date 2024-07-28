@@ -7,7 +7,7 @@ use std::collections::HashSet;
 
 pub struct Operation<B, T> {
     pub arg_ids: Vec<Id>,
-    pub op: Box<dyn Fn(&mut Buffers<B>, &dyn core::any::Any) -> crate::Result<()> + 'static>,
+    pub op: Box<dyn Fn(&[Id], &mut Buffers<B>, &dyn core::any::Any) -> crate::Result<()> + 'static>,
     pub op_hint: OpHint<T>,
     // pub pd: PhantomData<&'a ()>,
 }
@@ -15,10 +15,15 @@ pub struct Operation<B, T> {
 impl<B, T> Operation<B, T> {
     pub fn no_op() -> Self {
         Self {
-            op: Box::new(|_buffers, _dev| Ok(())),
+            op: Box::new(|_ids, _buffers, _dev| Ok(())),
             arg_ids: vec![],
             op_hint: OpHint::None,
         }
+    }
+
+    #[inline]
+    pub fn call<D: Device + 'static>(&self, buffers: &mut Buffers<B>, device: &D) -> crate::Result<()> {
+        (self.op)(&self.arg_ids, buffers, device)
     }
 }
 
@@ -78,7 +83,7 @@ impl<B: Downcast, T> LazyGraph<B, T> {
     ) -> crate::Result<()> {
         let range = bounds_to_range(bounds, self.operations.len());
         for op in self.operations.drain(range) {
-            (op.op)(buffers, device)?;
+            op.call(buffers, device)?;
         }
         Ok(())
     }
@@ -112,8 +117,8 @@ impl<B: Downcast, T> LazyGraph<B, T> {
             panic!()
         }
 
-        let op: Box<dyn Fn(&mut Buffers<B>, &dyn core::any::Any) -> crate::Result<()>> =
-            Args::replication_fn::<B>(arg_ids.clone(), op);
+        let op: Box<dyn Fn(&[Id], &mut Buffers<B>, &dyn core::any::Any) -> crate::Result<()>> =
+            Args::replication_fn::<B>(op);
 
         Operation {
             arg_ids,
