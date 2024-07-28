@@ -282,24 +282,9 @@ impl<'a, Mods> HasModules for Autograd<'a, Mods> {
 mod tests {
     use crate::{
         AddGradFn, Autograd, Base, BoxedShallowCopy, Buffer, Cached, Combiner, Cursor, Device,
-        HasId, Lazy, Module, Retriever, Shape, TapeActions, UnaryGrad, Unit, CPU,
+        HasId, Lazy, Retriever, Shape, UnaryGrad, Unit, CPU,
     };
 
-    #[cfg(feature = "opencl")]
-    #[test]
-    fn test_autograd_lt() {
-        let ag = Autograd::<Base>::default();
-        {
-            let device = crate::OpenCL::based(0).unwrap();
-            let out = unsafe {
-                // ag.gradients_mut()
-                //     .unwrap()
-                //     .get_ref::<f32, (), _>(&device, crate::Id { id: 0, len: 10 })
-            };
-            //
-        }
-        // ag.enabled;
-    }
 
     #[inline]
     pub fn downcast_val<'a, 'b, T: Unit + 'static, D: Device + 'static, S: Shape>(
@@ -440,26 +425,6 @@ mod tests {
         //     .get_mut::<f32, (), _>(&device, buf.id());
 
         buf.grad();
-    }
-
-    #[cfg(feature = "autograd")]
-    pub trait UnaryByMods<Mods> {
-        fn unary_ew(&self, mods: &Mods);
-    }
-
-    #[cfg(feature = "autograd")]
-    impl<Mods: AddGradFn + 'static> UnaryByMods<Mods> for CPU {
-        fn unary_ew(&self, mods: &Mods) {
-            // mods.add_grad_fn((), |_| Ok(()));
-        }
-    }
-
-    #[cfg(feature = "autograd")]
-    #[test]
-    fn test_autograd_by_separate_module() {
-        let autograd = <Autograd<Base> as Module<CPU>>::new();
-        let device = CPU::<Base>::new();
-        device.unary_ew(&autograd);
     }
 
     #[test]

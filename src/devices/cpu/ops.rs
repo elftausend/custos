@@ -4,7 +4,7 @@ use crate::{
     bounds_to_range,
     cpu_stack_ops::{apply_fn_slice, clear_slice},
     op_hint::unary,
-    pass_down_add_operation, pass_down_exec_now, AddOperation, ApplyFunction, AsNoId, BufAsNoId,
+    pass_down_add_operation, pass_down_exec_now, AddOperation, ApplyFunction,
     Buffer, ClearBuf, CopySlice, Device, Eval, MayToCLSource, OnDropBuffer, Read, Resolve,
     Retrieve, Retriever, SetOpHint, Shape, ToVal, TwoWay, UnaryGrad, Unit, WriteBuf, ZeroGrad, CPU,
 };
@@ -36,19 +36,7 @@ where
         })
         .unwrap();
 
-        // self.add_op((&mut out, buf, f.no_id()), move |(out, buf, f)| {
-        //     apply_fn_slice(buf, out, **f);
-        //     Ok(())
-        // })
-        // .unwrap();
-
         self.set_op_hint(unary(f));
-
-        // self.add_op((buf, f.no_id()), Some(&mut out), move |out, (buf, f)| {
-        //     apply_fn_slice(buf, out.as_mut().unwrap(), **f);
-        //     Ok(())
-        // })
-        // .unwrap();
 
         out
     }

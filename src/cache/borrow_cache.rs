@@ -90,7 +90,7 @@ impl BorrowCache {
         self.add_buf::<T, D, S>(device, id)
     }
 
-    pub fn add_buf<'a, T, D, S>(&'a mut self, device: &'a D, id: Id)
+    pub fn add_buf<T, D, S>(&mut self, device: &D, id: Id)
     where
         T: Unit + 'static,
         D: Alloc<T> + 'static,
@@ -103,7 +103,6 @@ impl BorrowCache {
             device: None,
         };
 
-        // let buf = unsafe { transmute::<_, Buffer<'static, T, D, S>>(buf) };
         self.cache.insert(*id, Box::new(buf));
     }
 
@@ -124,7 +123,7 @@ impl BorrowCache {
     #[inline]
     pub fn get_buf<'a, T, D, S>(
         &self,
-        device: &'a D,
+        _device: &'a D,
         id: Id,
     ) -> Result<&Buffer<'_, T, D, S>, CachingError>
     where
@@ -170,11 +169,11 @@ mod tests {
 
         let mut cache = BorrowCache::default();
 
-        let a = {
+        let _a = {
             let device = CPU::<Base>::new();
             cache.add_buf::<f32, _, ()>(&device, Id { id: 0, len: 10 });
             // drop(device);
-            let mut new_buf = false;
+            let mut _new_buf = false;
             // cache.add_or_get::<f32, CPU, ()>(&device, Id { id: 0, len: 10}, &mut new_buf)
         };
         // cache.cache.get(&3);

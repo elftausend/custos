@@ -2,7 +2,7 @@ use min_cl::CLDevice;
 
 use min_cl::api::{create_buffer, enqueue_full_copy_buffer, MemFlags};
 
-use super::{enqueue_kernel, AsClCvoidPtr, CLPtr};
+use super::{AsClCvoidPtr, CLPtr};
 use crate::{flag::AllocFlag, opencl::KernelLaunch};
 use crate::{impl_device_traits, Shape, Unit};
 use crate::{

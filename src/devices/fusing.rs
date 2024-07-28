@@ -49,7 +49,7 @@ pub trait UnaryFusing: IsShapeIndep {
     where
         Self: 'static,
     {
-        use crate::{Buffer, Buffers, Downcast, HasId};
+        use crate::{Buffer, Buffers, Downcast};
 
         let (ops, affected_op_idxs) = ops;
         let to_insert_idx: usize = affected_op_idxs[0];

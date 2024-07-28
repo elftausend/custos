@@ -144,23 +144,21 @@ impl<B: Downcast, T> LazyGraph<B, T> {
 #[cfg(test)]
 mod tests {
     use crate::{
-        register_buf_any, register_buf_copyable, Base, Buffer, CloneBuf, Device, HasId, LazyGraph,
-        Retriever, Shape, UniqueId, CPU,
+        register_buf_any, register_buf_copyable, Base, Buffer, Device, HasId, LazyGraph,
+        Retriever, CPU,
     };
     use std::collections::HashMap;
     #[cfg(feature = "autograd")]
     #[test]
     fn test_autograd_lazy_op() {
-        use crate::TapeActions;
         // static mut DEVICE: Option<&'static CPU<crate::Autograd<Base>>> = None;
         thread_local! {
             static DEVICE2: std::cell::Cell<Option<&'static CPU<crate::CachedModule<Base, CPU>>>> = std::cell::Cell::new(None);
         };
-        // static DEVICES: std::sync::Mutex<Option<&'static CPU<crate::Autograd<Base>>>> = Default::default();
         {
             let device = CPU::<crate::Autograd<'_, Base>>::new();
-            let lhs = device.buffer([1f32, 2., 3., 4., 5.]);
-            let rhs = device.buffer([1f32, 2., 6., 4., 5.]);
+            let _lhs = device.buffer([1f32, 2., 3., 4., 5.]);
+            let _rhs = device.buffer([1f32, 2., 6., 4., 5.]);
             // let mut buffers = HashMap::default();
             // unsafe { register_buf_copyable(&mut buffers, &lhs) };
             // unsafe { register_buf_copyable(&mut buffers, &rhs) };
