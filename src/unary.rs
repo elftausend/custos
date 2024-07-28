@@ -122,7 +122,7 @@ where
             // lazy execution is already disabled during backward pass
             buf.device().eagerly(|| unsafe {
                 buf.device()
-                    .add_unary_grad(buf, buf.grad_mut(), out.grad(), grad_fn);
+                    .add_unary_grad(buf, buf.grad_mut_unbound(), out.grad(), grad_fn);
             });
             Ok(())
         });
@@ -284,7 +284,7 @@ mod tests {
             );
             unsafe {
                 // TODO: use safe version
-                buf.grad_mut().clear();
+                buf.grad_mut_unbound().clear();
             }
         }
     }
@@ -387,7 +387,7 @@ mod tests {
         for i in device.range(0..9) {
             let _out = device.unary_ew(&buf, |x| x.sin(), |x| x.cos());
             if i == 0 {
-                unsafe { _out.grad_mut().write(&[1., 1., 1., 1.]) };
+                unsafe { _out.grad_mut_unbound().write(&[1., 1., 1., 1.]) };
             }
         }
         let out = device.unary_ew(&buf, |x| x.sin(), |x| x.cos());

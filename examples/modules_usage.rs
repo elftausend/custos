@@ -45,7 +45,7 @@ where
         let mut out = self.retrieve(lhs.len(), (lhs, rhs)).unwrap();
 
         self.add_grad_fn((lhs, rhs, &mut out), |(lhs, rhs, out)| unsafe {
-            add_ew_grad_slice(lhs.grad_mut(), rhs.grad_mut(), out.grad()); // execute grad function
+            add_ew_grad_slice(lhs.grad_mut_unbound(), rhs.grad_mut_unbound(), out.grad()); // execute grad function
             Ok(())
         });
 

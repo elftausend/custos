@@ -399,7 +399,7 @@ mod tests {
         let out = Buffer::<f32, _>::new(&device, 10);
 
         device.add_grad_fn((&buf, &out), |(buf, _out)| unsafe {
-            for (val, grad) in buf.grad_mut().iter_mut().zip(_out.grad().iter()) {
+            for (val, grad) in buf.grad_mut_unbound().iter_mut().zip(_out.grad().iter()) {
                 *val = 5. * grad;
             }
             Ok(())
@@ -439,7 +439,7 @@ mod tests {
         device.add_grad_fn((&mut lhs, &out), |(lhs, out)| unsafe {
             // lhs.grad();
             lhs.device()
-                .add_unary_grad(lhs, lhs.grad_mut(), out.grad(), |x| x.add(3));
+                .add_unary_grad(lhs, lhs.grad_mut_unbound(), out.grad(), |x| x.add(3));
             // lhs.device().add_ew_grad(lhs.grad(), rhs.grad(), out.grad());
             Ok(())
         });
@@ -460,7 +460,7 @@ mod tests {
 
         device.add_grad_fn((&lhs, &out), |(lhs, out)| unsafe {
             lhs.device()
-                .add_unary_grad(lhs, lhs.grad_mut(), out.grad(), |x| x.add(3));
+                .add_unary_grad(lhs, lhs.grad_mut_unbound(), out.grad(), |x| x.add(3));
             panic!("should not be called");
         });
 
@@ -472,7 +472,7 @@ mod tests {
 
         device.add_grad_fn((&lhs, &out), |(lhs, out)| unsafe {
             lhs.device()
-                .add_unary_grad(lhs, lhs.grad_mut(), out.grad(), |x| x.add(3));
+                .add_unary_grad(lhs, lhs.grad_mut_unbound(), out.grad(), |x| x.add(3));
             Ok(())
         });
 

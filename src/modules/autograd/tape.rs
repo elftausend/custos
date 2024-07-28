@@ -47,7 +47,7 @@ impl<'t> Tape<'t> {
         S: Shape,
     {
         // let gradients = unsafe { buf.device().gradients_mut() }.unwrap();
-        let out = unsafe { buf.grad_mut() };
+        let out = unsafe { buf.grad_mut_unbound() };
 
         // let out = gradients.get_mut::<T, S, D>(buf.device(), buf.id());
         buf.device().write(out, seed);

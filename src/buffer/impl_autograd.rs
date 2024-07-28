@@ -66,7 +66,7 @@ where
     /// Panics if the gradient was not allocated.
     #[inline]
     #[cfg(feature = "autograd")]
-    pub fn grad(&self) -> &'a Self
+    pub fn grad(&self) -> &Self
     where
         D: ZeroGrad<T> + MayGradActions + Alloc<T>,
     {
@@ -113,11 +113,20 @@ where
         unimplemented!("Gradient not available. Activate the autograd feature.");
     }
 
+    #[cfg(feature = "autograd")]
+    #[inline]
+    pub fn grad_mut<'b>(&'b mut self) -> &'b mut Self 
+    where
+        D: GradActions + Alloc<T> + ZeroGrad<T>,
+    {
+        unsafe { self.grad_mut_unbound() }
+    }
+
     /// Returns a mutable reference to the gradient of this buffer.
     /// This allocates a gradient buffer if it wasn't previously.
     #[inline]
     #[cfg(feature = "autograd")]
-    pub unsafe fn grad_mut<'b>(&'b self) -> &'a mut Self
+    pub unsafe fn grad_mut_unbound<'b>(&'b self) -> &'a mut Self
     where
         D: GradActions + Alloc<T> + ZeroGrad<T>,
     {
@@ -138,7 +147,7 @@ where
     /// Returns a mutable reference to the gradient of this buffer.
     /// Returns none either if the autograd feature is disabled, no tape was found (add [`Autograd`] module) or no gradient is allocated.
     // TODO: Maybe return Result with two error variants?
-    pub unsafe fn try_grad_mut<'b>(&'b mut self) -> Option<&'a mut Self>
+    pub fn try_grad_mut<'b>(&'b mut self) -> Option<&'b mut Self>
     where
         D: MayGradActions + Alloc<T>,
     {
@@ -166,26 +175,25 @@ where
 }
 
 mod tests {
-    use crate::Number;
+    // use crate::Number;
 
-    fn run<T: Number>(x: &mut [T], y: &mut [T]) {
-        for i in 0..x.len() {
-            x[i] = y[i] + T::one()
-        }
-    }
+    // fn run<T: Number>(x: &mut [T], y: &[T]) {
+    //     for i in 0..x.len() {
+    //         x[i] = y[i] + T::one()
+    //     }
+    // }
 
-    #[cfg(feature = "cpu")]
-    #[cfg(feature = "autograd")]
-    #[test]
-    fn test_multiple_grad_mut() {
-        use crate::{Autograd, Base, Cached, Device, CPU};
+    // #[cfg(feature = "cpu")]
+    // #[cfg(feature = "autograd")]
+    // #[test]
+    // fn test_multiple_grad_mut_comp_error() {
+    //     use crate::{Autograd, Base, Cached, Device, CPU};
 
-        let device = CPU::<Autograd<Cached<Base>>>::new();
-        let mut buf = device.buffer([1, 2, 3, 4]);
+    //     let device = CPU::<Autograd<Cached<Base>>>::new();
+    //     let mut buf = device.buffer([1, 2, 3, 4]);
 
-        // buf.backward_lt();
-        // let _out = buf.grad();
-        // let out = buf.grad_mut();
-        // run(_out, out);
-    }
+    //     let _out = buf.grad();
+    //     let out = buf.grad_mut();
+    //     run(out, _out);
+    // }
 }
