@@ -50,7 +50,7 @@ impl<'t> Tape<'t> {
         let out = unsafe { buf.grad_mut() };
 
         // let out = gradients.get_mut::<T, S, D>(buf.device(), buf.id());
-        out.write(seed);
+        buf.device().write(out, seed);
     }
 
     pub fn backward_seeded_with_buffers<'a, T, D, S: Shape>(

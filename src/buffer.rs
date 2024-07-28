@@ -291,6 +291,7 @@ impl<'a, T: Unit, D: Device, S: Shape> Buffer<'a, T, D, S> {
 
     /// Returns the device of the `Buffer`.
     /// Panic if the `Buffer` is deviceless.
+    #[track_caller]
     pub fn device(&self) -> &'a D {
         self.device
             .expect("Called device() on a deviceless buffer.")
@@ -343,6 +344,7 @@ impl<'a, T: Unit, D: Device, S: Shape> Buffer<'a, T, D, S> {
     /// assert_eq!(&**buf, [4, 2, 3, 4, 5, 3]);
     /// ```
     #[inline]
+    #[track_caller]
     pub fn write(&mut self, data: &[T])
     where
         D: WriteBuf<T, S, D>,
@@ -394,6 +396,7 @@ impl<'a, T: Unit, D: Device, S: Shape> Buffer<'a, T, D, S> {
 
     /// Sets all elements in `Buffer` to the default value.
     #[inline]
+    #[track_caller]
     pub fn clear(&mut self)
     where
         D: ClearBuf<T, S, D>,

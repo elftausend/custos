@@ -97,7 +97,8 @@ where
 
         #[cfg(feature = "autograd")]
         unsafe {
-            self.device().gradients()?.may_get_ref(self.id()).ok()
+            let device = self.device();
+            device.gradients()?.may_get_ref(device, self.id()).ok()
         }
 
         #[cfg(not(feature = "autograd"))]
@@ -147,7 +148,8 @@ where
 
         #[cfg(feature = "autograd")]
         unsafe {
-            self.device().gradients_mut()?.may_get_mut(self.id()).ok()
+            let device = self.device();
+            device.gradients_mut()?.may_get_mut(device, self.id()).ok()
         }
 
         #[cfg(not(feature = "autograd"))]

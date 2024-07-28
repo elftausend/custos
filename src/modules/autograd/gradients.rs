@@ -196,22 +196,24 @@ impl Gradients {
 
     /// May get a reference to a gradient [`Buffer`].
     #[inline]
-    pub(crate) unsafe fn may_get_ref<'a, T, S, D>(
+    pub(crate) fn may_get_ref<'a, T, S, D>(
         &self,
+        device: &'a D,
         ident: Id,
-    ) -> Result<&Buffer<'a, T, D, S>, CachingError>
+    ) -> Result<&Buffer<'_, T, D, S>, CachingError>
     where
         T: Unit + 'static,
         S: Shape,
         D: Alloc<T> + 'static,
     {
-        unsafe { self.grads_pool.get_buf(ident) }
+        self.grads_pool.get_buf(device, ident)
     }
 
     /// May get a mutable reference to a gradient [`Buffer`].
     #[inline]
     pub(crate) unsafe fn may_get_mut<'a, T, S, D>(
         &mut self,
+        device: &'a D,
         id: Id,
     ) -> Result<&mut Buffer<'a, T, D, S>, CachingError>
     where
@@ -219,7 +221,7 @@ impl Gradients {
         S: Shape,
         D: Alloc<T> + 'static,
     {
-        unsafe { self.grads_pool.get_buf_mut(id) }
+        self.grads_pool.get_buf_mut(device, id)
     }
 
     /// Returns a reference to a gradient [`Buffer`].
@@ -239,7 +241,7 @@ impl Gradients {
         if new_buf {
             self.add_zero_grad_cb::<T, D, S>(&id);
         }
-        unsafe { self.grads_pool.get_buf(id).unwrap() }
+        self.grads_pool.get_buf_mut(device, id).unwrap()
     }
 
     /// Returns a mutable reference to a gradient [`Buffer`].
@@ -258,7 +260,7 @@ impl Gradients {
         if new_buf {
             self.add_zero_grad_cb::<T, D, S>(&id);
         }
-        unsafe { self.grads_pool.get_buf_mut(id).unwrap() }
+        self.grads_pool.get_buf_mut(device, id).unwrap()
     }
 
     /// Returns a reference to a gradient [`Buffer`] using information from `buf`.

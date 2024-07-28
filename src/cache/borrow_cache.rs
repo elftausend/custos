@@ -2,11 +2,10 @@ use core::{
     any::Any,
     fmt::{Debug, Display},
     hash::BuildHasherDefault,
-    mem::transmute,
 };
 use std::collections::HashMap;
 
-use super::NoHasher;
+use super::{Downcast, NoHasher};
 use crate::{
     cache::any_buffer::AnyBuffer, flag::AllocFlag, Alloc, Buffer, Device, Id, Shape, UniqueId, Unit,
 };
@@ -89,11 +88,12 @@ impl<'dev> BorrowCacheLT<'dev> {
         D: Device + 'static,
         S: Shape,
     {
-        self.cache
-            .get(&id)
-            .ok_or(CachingError::InvalidId)?
-            .downcast_ref()
-            .ok_or(CachingError::InvalidTypeInfo)
+        todo!()
+        // self.cache
+        //     .get(&id)
+        //     .ok_or(CachingError::InvalidId)?
+        //     .downcast_ref()
+        //     .ok_or(CachingError::InvalidTypeInfo)
     }
 
     #[inline]
@@ -106,12 +106,13 @@ impl<'dev> BorrowCacheLT<'dev> {
         D: Device + 'static,
         S: Shape,
     {
-        let dyn_buf = self.cache.get_mut(&id).ok_or(CachingError::InvalidId)?;
+        todo!()
+        // let dyn_buf = self.cache.get_mut(&id).ok_or(CachingError::InvalidId)?;
 
-        if !dyn_buf.is::<Buffer<T, D, S>>() {
-            return Err(CachingError::InvalidTypeInfo);
-        }
-        Ok(unsafe { dyn_buf.downcast_mut_unchecked() })
+        // if !dyn_buf.is::<Buffer<T, D, S>>() {
+        //     return Err(CachingError::InvalidTypeInfo);
+        // }
+        // Ok(unsafe { dyn_buf.downcast_mut_unchecked() })
     }
 }
 
@@ -174,12 +175,12 @@ impl BorrowCache {
     {
         // not using ::new, because this buf would get added to the cache of the device.
         // not anymore ?
-        let buf = Buffer {
+        let buf: Buffer<T, D, S> = Buffer {
             data: device.base_to_data(device.alloc::<S>(id.len, AllocFlag::BorrowedCache).unwrap()),
-            device: Some(device),
+            device: None,
         };
 
-        let buf = unsafe { transmute::<_, Buffer<'static, T, D, S>>(buf) };
+        // let buf = unsafe { transmute::<_, Buffer<'static, T, D, S>>(buf) };
         self.cache.insert(*id, Box::new(buf));
     }
 
@@ -198,7 +199,11 @@ impl BorrowCache {
     }
 
     #[inline]
-    pub unsafe fn get_buf<'a, T, D, S>(&self, id: Id) -> Result<&Buffer<'a, T, D, S>, CachingError>
+    pub fn get_buf<'a, T, D, S>(
+        &self,
+        device: &'a D,
+        id: Id,
+    ) -> Result<&Buffer<'_, T, D, S>, CachingError>
     where
         T: Unit + 'static,
         D: Device + 'static,
@@ -212,24 +217,23 @@ impl BorrowCache {
     }
 
     #[inline]
-    pub unsafe fn get_buf_mut<'a, T, D, S>(
-        &mut self,
+    pub fn get_buf_mut<'a, 'b, T, D, S>(
+        &'a mut self,
+        device: &'b D,
         id: Id,
-    ) -> Result<&mut Buffer<'a, T, D, S>, CachingError>
+    ) -> Result<&'a mut Buffer<'b, T, D, S>, CachingError>
     where
         T: Unit + 'static,
         D: Device + 'static,
         S: Shape,
     {
-        unsafe {
-            transmute(
-                self.cache
-                    .get_mut(&id)
-                    .ok_or(CachingError::InvalidId)?
-                    .downcast_mut::<Buffer<T, D, S>>()
-                    .ok_or(CachingError::InvalidTypeInfo),
-            )
+        let out = self.cache.get_mut(&id).ok_or(CachingError::InvalidId)?;
+        if !out.is::<Buffer<T, D, S>>() {
+            return Err(CachingError::InvalidTypeInfo);
         }
+        let out = unsafe { out.downcast_mut_unchecked::<Buffer<'_, T, D, S>>() };
+        out.device = Some(device);
+        Ok(out)
     }
 }
 
@@ -271,8 +275,8 @@ mod tests {
         cache.add_buf_once::<f32, _, ()>(&device, sid, &mut false);
         cache.add_buf_once::<f32, _, ()>(&device, tid, &mut false);
 
-        let a: &Buffer = unsafe { cache.get_buf::<f32, _, ()>(fid).unwrap() };
-        let b: &Buffer = unsafe { cache.get_buf::<f32, _, ()>(fid).unwrap() };
+        let a: &Buffer = cache.get_buf::<f32, _, ()>(&device, fid).unwrap();
+        let b: &Buffer = cache.get_buf::<f32, _, ()>(&device, fid).unwrap();
 
         assert_eq!(a.ptr, b.ptr);
     }

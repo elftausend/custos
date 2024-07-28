@@ -22,7 +22,11 @@ impl<B, T> Operation<B, T> {
     }
 
     #[inline]
-    pub fn call<D: Device + 'static>(&self, buffers: &mut Buffers<B>, device: &D) -> crate::Result<()> {
+    pub fn call<D: Device + 'static>(
+        &self,
+        buffers: &mut Buffers<B>,
+        device: &D,
+    ) -> crate::Result<()> {
         (self.op)(&self.arg_ids, buffers, device)
     }
 }

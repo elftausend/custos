@@ -37,7 +37,9 @@ pub trait AnyOp: Sized {
     #[cfg(feature = "std")]
     fn replication_fn<B: Downcast>(
         op: impl for<'a> Fn(Self::Replicated<'a>) -> crate::Result<()> + 'static,
-    ) -> Box<dyn for<'i> Fn(&[crate::Id], &'i mut Buffers<B>, &dyn core::any::Any) -> crate::Result<()>>;
+    ) -> Box<
+        dyn for<'i> Fn(&[crate::Id], &'i mut Buffers<B>, &dyn core::any::Any) -> crate::Result<()>,
+    >;
 
     unsafe fn replication<'a>(self) -> Self::Replicated<'a>;
 }
