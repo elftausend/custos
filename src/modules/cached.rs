@@ -123,7 +123,7 @@ where
     S: Shape,
 {
     #[inline]
-    fn on_new_buffer(&self, device: &'a D, new_buf: &Buffer<'a, T, D, S>) {
+    unsafe fn on_new_buffer(&self, device: &'a D, new_buf: &Buffer<'a, T, D, S>) {
         self.modules.on_new_buffer(device, new_buf)
     }
 }

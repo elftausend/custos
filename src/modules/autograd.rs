@@ -5,7 +5,7 @@ mod wrapper;
 pub use gradients::*;
 pub use tape::*;
 
-use core::cell::{Cell, UnsafeCell};
+use core::{cell::{Cell, UnsafeCell}, marker::PhantomData};
 
 use crate::{
     impl_remove_layer, pass_down_add_operation, pass_down_cached_buffers, pass_down_cursor,
@@ -28,6 +28,7 @@ pub struct Autograd<'dev, Mods> {
     pub(crate) no_grads_pool: core::cell::RefCell<crate::BorrowCacheLT<'dev>>,
     pub(crate) tape: UnsafeCell<Tape<'dev>>,
     pub enabled: Cell<bool>,
+    pd: PhantomData<Cell<&'dev ()>>,
 }
 
 impl<'a, Mods: Module<'a, D>, D: Device + 'a> Module<'a, D> for Autograd<'a, Mods> {
@@ -43,6 +44,7 @@ impl<'a, Mods: Module<'a, D>, D: Device + 'a> Module<'a, D> for Autograd<'a, Mod
             no_grads_pool: Default::default(),
             tape: Default::default(),
             enabled: Cell::new(true),
+            pd: PhantomData
         }
     }
 }
@@ -74,7 +76,7 @@ where
     Mods: OnNewBuffer<'dev, T, D, S>,
 {
     #[inline]
-    fn on_new_buffer(&self, device: &'dev D, new_buf: &Buffer<'dev, T, D, S>) {
+    unsafe fn on_new_buffer(&self, device: &'dev D, new_buf: &Buffer<'dev, T, D, S>) {
         // let mut no_grads = self.no_grads_pool.borrow_mut();
         // let wrapped_data = unsafe { new_buf.data.shallow() };
 
@@ -255,6 +257,7 @@ impl<'a, NewMods, SD> AddLayer<NewMods, SD> for Autograd<'a, ()> {
             tape: Default::default(),
             enabled: Cell::new(true),
             no_grads_pool: Default::default(),
+            pd: PhantomData
         }
     }
 }
@@ -285,9 +288,10 @@ mod tests {
     #[cfg(feature = "opencl")]
     #[test]
     fn test_autograd_lt() {
+        
+        let ag = Autograd::<Base>::default();
         {
             let device = crate::OpenCL::based(0).unwrap();
-            let ag = Autograd::<Base>::default();
             let out = unsafe {
                 // ag.gradients_mut()
                 //     .unwrap()

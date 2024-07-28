@@ -539,7 +539,7 @@ use crate::Lazy;
 
 #[cfg(feature = "lazy")]
 #[cfg(feature = "cached")]
-pass_down_unified_mem_chain!(Lazy);
+pass_down_unified_mem_chain!(Lazy, 'dev, Mods);
 
 #[cfg(feature = "autograd")]
 pass_down_unified_mem_chain!(Autograd, 'dev, Mods);
