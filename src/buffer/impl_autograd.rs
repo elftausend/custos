@@ -172,6 +172,14 @@ where
     pub unsafe fn grad_mut<'b>(&'b self) -> &'a mut Self {
         unimplemented!("Gradient not available. Activate the autograd feature.");
     }
+    
+    /// In this case, this is just a dummy function.
+    /// Activate the `autograd` feature to make this function useable.
+    #[inline]
+    #[cfg(not(feature = "autograd"))]
+    pub unsafe fn grad_mut_unbound<'b>(&'b self) -> &'a mut Self {
+        unimplemented!("Gradient not available. Activate the autograd feature.");
+    }
 }
 
 mod tests {
