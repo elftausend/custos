@@ -7,10 +7,9 @@ use min_cl::{
 
 use crate::{
     bounds_to_range, cpu_stack_ops::clear_slice, location, op_hint::unary, pass_down_add_operation,
-    pass_down_exec_now, prelude::Number, AddOperation, ApplyFunction, AsNoId, BufAsNoId, Buffer,
-    CDatatype, ClearBuf, CopySlice, OnDropBuffer, OpenCL, Read, Resolve, Retrieve, Retriever,
-    SetOpHint, Shape, ToCLSource, ToMarker, TwoWay, UnaryGrad, Unit, UseGpuOrCpu, WriteBuf,
-    ZeroGrad,
+    pass_down_exec_now, prelude::Number, AddOperation, ApplyFunction, Buffer, CDatatype, ClearBuf,
+    CopySlice, OnDropBuffer, OpenCL, Read, Resolve, Retrieve, Retriever, SetOpHint, Shape,
+    ToCLSource, ToMarker, TwoWay, UnaryGrad, Unit, UseGpuOrCpu, WriteBuf, ZeroGrad,
 };
 
 use super::{enqueue_kernel, CLPtr};
@@ -233,24 +232,24 @@ where
     {
         let mut out = self.retrieve(buf.len(), buf).unwrap();
 
-        self.add_op((&mut out, buf, f.no_id()), |(out, buf, f)| {
+        self.add_op((&mut out, buf), move |(out, buf)| {
             let dev = buf.device();
             // let out: &mut Buffer<'_, T, OpenCL<Mods>, S> = out.as_mut().unwrap();
-            let out = &mut **out;
+            let out = &mut *out;
             #[cfg(unified_cl)]
             {
                 let cpu_out = unsafe { &mut *(out as *mut Buffer<_, OpenCL<Mods>, _>) };
                 dev.use_cpu_or_gpu(
                     (file!(), line!(), column!()).into(),
                     &[buf.len()],
-                    || crate::devices::cpu_stack_ops::apply_fn_slice(buf, cpu_out, **f),
-                    || try_cl_apply_fn_mut(dev, buf, out, **f).unwrap(),
+                    || crate::devices::cpu_stack_ops::apply_fn_slice(buf, cpu_out, f),
+                    || try_cl_apply_fn_mut(dev, buf, out, f).unwrap(),
                 );
                 Ok(())
             }
             #[cfg(not(unified_cl))]
             {
-                try_cl_apply_fn_mut(dev, buf, out, **f)?;
+                try_cl_apply_fn_mut(dev, buf, out, f)?;
                 Ok(())
             }
         })
@@ -311,12 +310,9 @@ where
     ) where
         F: ToCLSource,
     {
-        self.add_op::<_, 4>(
-            (lhs, lhs_grad.buf_no_id(), out, lhs_grad_fn.no_id()),
-            move |(lhs, lhs_grad, out, lhs_grad_fn)| {
-                try_cl_add_unary_grad(lhs.device(), lhs, **lhs_grad, out, **lhs_grad_fn)
-            },
-        )
+        self.add_op((lhs, lhs_grad, out), move |(lhs, lhs_grad, out)| {
+            try_cl_add_unary_grad(lhs.device(), lhs, lhs_grad, out, lhs_grad_fn)
+        })
         .unwrap();
     }
 }

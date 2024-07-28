@@ -37,17 +37,17 @@ impl<'a, D: Device + 'a> Module<'a, D> for Base {
 
 impl AddOperation for Base {
     #[inline]
-    fn ops_count(&self) -> usize {
-        0
+    fn add_op<Args: Parents<N> + crate::AnyOp, const N: usize>(
+        &self,
+        args: Args,
+        op: impl for<'b> Fn(Args::Replicated<'b>) -> crate::Result<()> + 'static,
+    ) -> crate::Result<()> {
+        op(unsafe { args.replication() })
     }
 
     #[inline]
-    fn add_op<Args: Parents<N>, const N: usize>(
-        &self,
-        mut args: Args,
-        operation: fn(&mut Args) -> crate::Result<()>,
-    ) -> crate::Result<()> {
-        operation(&mut args)
+    fn ops_count(&self) -> usize {
+        0
     }
 
     #[inline]

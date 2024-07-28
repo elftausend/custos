@@ -30,11 +30,17 @@ where
     {
         let mut out = self.retrieve(buf.len(), buf).unwrap();
 
-        self.add_op((&mut out, buf, f.no_id()), move |(out, buf, f)| {
-            apply_fn_slice(buf, out, **f);
+        self.add_op((&mut out, buf), move |(out, buf)| {
+            apply_fn_slice(buf, out, f);
             Ok(())
         })
         .unwrap();
+
+        // self.add_op((&mut out, buf, f.no_id()), move |(out, buf, f)| {
+        //     apply_fn_slice(buf, out, **f);
+        //     Ok(())
+        // })
+        // .unwrap();
 
         self.set_op_hint(unary(f));
 
@@ -66,13 +72,10 @@ where
     ) where
         F: Eval<T> + MayToCLSource,
     {
-        self.add_op::<_, 4>(
-            (lhs, lhs_grad.buf_no_id(), out, lhs_grad_fn.no_id()),
-            |(lhs, lhs_grad, out, lhs_grad_fn)| {
-                crate::cpu_stack_ops::add_unary_grad(lhs, out, lhs_grad, **lhs_grad_fn);
-                Ok(())
-            },
-        )
+        self.add_op::<_, 3>((lhs, lhs_grad, out), move |(lhs, lhs_grad, out)| {
+            crate::cpu_stack_ops::add_unary_grad(lhs, out, lhs_grad, lhs_grad_fn);
+            Ok(())
+        })
         .unwrap();
     }
 }

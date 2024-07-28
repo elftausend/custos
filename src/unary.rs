@@ -1,6 +1,6 @@
 use crate::{
-    AddGradFn, AddOperation, Alloc, AsNoId, Buffer, Device, Eval, HasId, MayGradActions,
-    MayToCLSource, Resolve, Shape, TwoWay, Unit, ZeroGrad,
+    AddGradFn, AddOperation, Alloc, Buffer, Device, Eval, HasId, MayGradActions, MayToCLSource,
+    Resolve, Shape, TwoWay, Unit, ZeroGrad,
 };
 
 /// Applies a function to a buffer and returns a new buffer.
@@ -83,9 +83,9 @@ pub trait UnaryElementWiseMayGrad<T: Unit, D: Device, S: Shape>: Device {
     /// out.backward();
     /// assert_eq!(buf.grad().as_slice(), &[2.; 6]);
     /// ```
-    fn unary_ew<FO, GO>(
-        &self,
-        buf: &Buffer<T, D, S>,
+    fn unary_ew<'a, FO, GO>(
+        &'a self,
+        buf: &Buffer<'a, T, D, S>,
         forward_fn: impl Fn(Resolve<T>) -> FO + Copy + 'static,
         grad_fn: fn(Resolve<T>) -> GO,
     ) -> Buffer<T, Self, S>
@@ -103,9 +103,9 @@ where
     S: Shape,
 {
     #[inline(always)]
-    fn unary_ew<FO, GO>(
-        &self,
-        buf: &Buffer<T, D, S>,
+    fn unary_ew<'a, FO, GO>(
+        &'a self,
+        buf: &Buffer<'a, T, D, S>,
         forward_fn: impl Fn(Resolve<T>) -> FO + Copy + 'static,
         grad_fn: fn(Resolve<T>) -> GO,
     ) -> Buffer<T, Self, S>

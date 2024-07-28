@@ -188,7 +188,7 @@ mod tests {
     #[cfg(feature = "graph")]
     #[test]
     fn test_op_hint_unary_chain_fuse_graph_complex() {
-        use crate::{ApplyFunction, Base, Combiner, Device, Graph, Lazy, Optimize, Run, CPU};
+        use crate::{ApplyFunction, Base, Combiner, Device, Graph, HasId, Lazy, Optimize, Run, CPU};
 
         let dev = CPU::<Graph<Lazy<Base>>>::new();
 
@@ -199,6 +199,7 @@ mod tests {
         let _out2 = dev.apply_fn(&out, |x| x.cos());
         let out1 = dev.apply_fn(&out1, |x| x.abs());
         let _out = dev.apply_fn(&out1, |x| x.ln());
+
 
         dev.optimize_mem_graph(&dev, None).unwrap();
         dev.unary_fusing(&dev, None).unwrap();

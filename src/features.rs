@@ -7,7 +7,7 @@ use core::{cell::RefMut, fmt::Debug, ops::RangeBounds};
 use crate::{
     op_hint::OpHint,
     range::{AsRange, CursorRange},
-    AnyOp, HasId, Parents, Shape, UniqueId, Unit, UpdateArgs, ZeroGrad, CPU,
+    AnyOp, HasId, Parents, Shape, UniqueId, Unit, ZeroGrad, CPU,
 };
 
 #[cfg(feature = "cached")]
@@ -157,10 +157,10 @@ pub trait AddGradFn {
         op: impl for<'b> Fn(Args::Replicated<'b>) -> crate::Result<()> + 'static,
     );
 
-    fn add_grad_and_forward_fn<Args: Parents<N> + UpdateArgs + AnyOp + Clone, const N: usize>(
+    fn add_grad_and_forward_fn<Args: Parents<N> + AnyOp + Clone, const N: usize>(
         &self,
         args: Args,
-        forward_fn: fn(&mut Args) -> crate::Result<()>,
+        forward_fn: impl for<'b> Fn(Args::Replicated<'b>) -> crate::Result<()> + 'static,
         grad_fn: impl for<'b> Fn(Args::Replicated<'b>) -> crate::Result<()> + 'static,
     ) where
         Self: AddOperation,
@@ -367,11 +367,12 @@ macro_rules! pass_down_replace_buf_module {
 }
 
 pub trait AddOperation {
-    fn add_op<Args: Parents<N> + UpdateArgs, const N: usize>(
+    fn add_op<Args: Parents<N> + AnyOp, const N: usize>(
         &self,
         args: Args,
-        operation: fn(&mut Args) -> crate::Result<()>,
+        op: impl for<'b> Fn(Args::Replicated<'b>) -> crate::Result<()> + 'static,
     ) -> crate::Result<()>;
+
     fn ops_count(&self) -> usize;
     fn set_lazy_enabled(&self, enabled: bool);
     #[inline]
@@ -426,12 +427,12 @@ macro_rules! pass_down_add_operation {
 
         impl<'dev, Mods: $crate::AddOperation> $crate::AddOperation for $device<$($generics),*> {
             #[inline]
-            fn add_op<Args: $crate::Parents<N> + $crate::UpdateArgs, const N: usize>(
+            fn add_op<Args: $crate::Parents<N> + $crate::AnyOp, const N: usize>(
                 &self,
                 args: Args,
-                operation: fn(&mut Args) -> $crate::Result<()>,
+                op: impl for<'a> Fn(Args::Replicated<'a>) -> crate::Result<()> + 'static,
             ) -> $crate::Result<()> {
-                self.modules.add_op(args, operation)
+                self.modules.add_op(args, op)
             }
 
             #[inline]
@@ -538,7 +539,7 @@ use crate::Lazy;
 
 #[cfg(feature = "lazy")]
 #[cfg(feature = "cached")]
-pass_down_unified_mem_chain!(Lazy);
+pass_down_unified_mem_chain!(Lazy, 'dev, Mods);
 
 #[cfg(feature = "autograd")]
 pass_down_unified_mem_chain!(Autograd, 'dev, Mods);

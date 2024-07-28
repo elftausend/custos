@@ -8,5 +8,5 @@ pub trait OnDropBuffer: WrappedData {
 
 pub trait OnNewBuffer<'dev, T: Unit, D: Device, S: Shape = ()> {
     #[track_caller]
-    fn on_new_buffer(&self, _device: &'dev D, _new_buf: &Buffer<'dev, T, D, S>) {}
+    unsafe fn on_new_buffer<'s>(&'s self, _device: &'dev D, _new_buf: &'s Buffer<'dev, T, D, S>) {}
 }

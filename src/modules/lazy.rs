@@ -11,7 +11,7 @@ use crate::{
     op_hint::OpHint, register_buf_copyable, unregister_buf_copyable, AddLayer, AddOperation, Alloc,
     AnyOp, BoxedShallowCopy, Buffer, CachedBuffers, Cursor, Device, ExecNow, HasId, HasModules, Id,
     IsShapeIndep, Module, NoHasher, OnDropBuffer, OnNewBuffer, Parents, ReplaceBuf, Retrieve,
-    RunModule, SetOpHint, Setup, ShallowCopy, Shape, UniqueId, Unit, UpdateArgs, UseGpuOrCpu,
+    RunModule, SetOpHint, Setup, ShallowCopy, Shape, UniqueId, Unit, UseGpuOrCpu,
 };
 
 #[cfg(feature = "graph")]
@@ -26,7 +26,6 @@ use core::{
 };
 use std::collections::HashSet;
 
-pub use self::lazy_graph::LazyGraph;
 use self::wrapper::LazyWrapper;
 pub use lazy_graph::*;
 
@@ -34,7 +33,7 @@ type Buffers = crate::Buffers<Box<dyn BoxedShallowCopy>>;
 type AllocatedIds = HashSet<UniqueId, BuildHasherDefault<NoHasher>>;
 
 #[derive(Default)]
-pub struct Lazy<Mods, T = f32> {
+pub struct Lazy<'a, Mods, T = f32> {
     pub modules: Mods,
     alloc_later: RefCell<Vec<(Id, fn(&mut Buffers, &mut AllocatedIds, Id, &dyn Any))>>, // could use D generic instead of dyn Any (required LazyModule structure)
     pub buffers: RefCell<Buffers>,
@@ -46,10 +45,10 @@ pub struct Lazy<Mods, T = f32> {
     pub graph: RefCell<LazyGraph<Box<dyn BoxedShallowCopy>, T>>,
     cursor: Cell<usize>,
     enabled: Cell<bool>,
-    pd: PhantomData<T>,
+    pd: PhantomData<Cell<&'a ()>>,
 }
 
-impl<Mods: Debug, T> Debug for Lazy<Mods, T> {
+impl<Mods: Debug, T> Debug for Lazy<'_, Mods, T> {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         f.debug_struct("Lazy").field("mods", &self.modules).finish()
     }
@@ -69,8 +68,8 @@ pub trait LazyRun {
     }
 }
 
-impl<'a, T, Mods: Module<'a, D>, D: LazySetup + Device + 'a> Module<'a, D> for Lazy<Mods, T> {
-    type Module = Lazy<Mods::Module, T>;
+impl<'a, T, Mods: Module<'a, D>, D: LazySetup + Device + 'a> Module<'a, D> for Lazy<'a, Mods, T> {
+    type Module = Lazy<'a, Mods::Module, T>;
     // type Data<T, S: Shape> = LazyWrapper<Mods::Data<T, S>>;
 
     #[inline]
@@ -84,31 +83,30 @@ impl<'a, T, Mods: Module<'a, D>, D: LazySetup + Device + 'a> Module<'a, D> for L
             allocated_ids: Default::default(),
             cursor: Default::default(),
             enabled: Cell::new(true),
-            pd: PhantomData,
+            pd: Default::default(),
         }
     }
 }
 
-impl<T, Mods: AddOperation> AddOperation for Lazy<Mods, T> {
-    #[inline]
-    fn ops_count(&self) -> usize {
-        self.graph.borrow().operations.len()
-    }
-
-    #[inline]
-    fn add_op<Args: Parents<N> + UpdateArgs, const N: usize>(
+impl<T, Mods: AddOperation> AddOperation for Lazy<'_, Mods, T> {
+    fn add_op<Args: Parents<N> + crate::AnyOp, const N: usize>(
         &self,
         args: Args,
-        operation: fn(&mut Args) -> crate::Result<()>,
+        op: impl for<'a> Fn(Args::Replicated<'a>) -> crate::Result<()> + 'static,
     ) -> crate::Result<()> {
         if self.enabled.get() {
             self.graph.try_borrow_mut()
             .expect("already borrowed: BorrowMutError - is the inner operation trying to add an operation as well?")
-            .add_operation(args, operation);
+            .add_operation(args, op);
+            Ok(())
         } else {
-            return self.modules.add_op(args, operation);
+            self.modules.add_op(args, op)
         }
-        Ok(())
+    }
+
+    #[inline]
+    fn ops_count(&self) -> usize {
+        self.graph.borrow().ops_count()
     }
 
     #[inline]
@@ -122,7 +120,7 @@ impl<T, Mods: AddOperation> AddOperation for Lazy<Mods, T> {
     }
 }
 
-impl<T, Mods> SetOpHint<T> for Lazy<Mods, T> {
+impl<T, Mods> SetOpHint<T> for Lazy<'_, Mods, T> {
     #[inline]
     fn set_op_hint(&self, op_hint: OpHint<T>) {
         if let Some(op) = self.graph.borrow_mut().operations.last_mut() {
@@ -131,7 +129,7 @@ impl<T, Mods> SetOpHint<T> for Lazy<Mods, T> {
     }
 }
 
-impl<T, D: Device + 'static, Mods> ExecNow<D> for Lazy<Mods, T> {
+impl<T, D: Device + 'static, Mods> ExecNow<D> for Lazy<'_, Mods, T> {
     #[inline]
     fn exec_now(
         &self,
@@ -140,20 +138,22 @@ impl<T, D: Device + 'static, Mods> ExecNow<D> for Lazy<Mods, T> {
     ) -> crate::Result<()> {
         self.alloc_later(device);
         unsafe {
-            self.graph
-                .borrow_mut()
-                .call_range::<D>(range_bounds, &mut self.buffers.borrow_mut())?;
+            self.graph.borrow_mut().call_range::<D>(
+                device,
+                range_bounds,
+                &mut self.buffers.borrow_mut(),
+            )?;
         }
         Ok(())
     }
 }
 
-impl<T, Mods> Lazy<Mods, T> {
+impl<T, Mods> Lazy<'_, Mods, T> {
     #[inline]
-    pub unsafe fn call_lazily<D: Device + 'static>(&self) -> crate::Result<()> {
+    pub unsafe fn call_lazily<D: Device + 'static>(&self, device: &D) -> crate::Result<()> {
         self.graph
             .borrow_mut()
-            .call_lazily::<D>(&mut self.buffers.borrow_mut())?;
+            .call_lazily(device, &mut self.buffers.borrow_mut())?;
         Ok(())
     }
 
@@ -166,7 +166,7 @@ impl<T, Mods> Lazy<Mods, T> {
     }
 }
 
-impl<T, D: LazySetup, Mods: Setup<D>> Setup<D> for Lazy<Mods, T> {
+impl<T, D: LazySetup, Mods: Setup<D>> Setup<D> for Lazy<'_, Mods, T> {
     #[inline]
     fn setup(device: &mut D) -> crate::Result<()> {
         device.lazy_setup()?;
@@ -174,17 +174,17 @@ impl<T, D: LazySetup, Mods: Setup<D>> Setup<D> for Lazy<Mods, T> {
     }
 }
 
-impl<T, Mods: RunModule<D>, D: LazyRun + Device + 'static> RunModule<D> for Lazy<Mods, T> {
+impl<T, Mods: RunModule<D>, D: LazyRun + Device + 'static> RunModule<D> for Lazy<'_, Mods, T> {
     #[inline]
     fn run(&self, device: &D) -> crate::Result<()> {
         self.alloc_later(device);
-        unsafe { self.call_lazily::<D>()? };
+        unsafe { self.call_lazily::<D>(device)? };
         device.run()?;
         self.modules.run(device)
     }
 }
 
-impl<T2, Mods: OnDropBuffer> OnDropBuffer for Lazy<Mods, T2> {
+impl<T2, Mods: OnDropBuffer> OnDropBuffer for Lazy<'_, Mods, T2> {
     #[inline]
     fn on_drop_buffer<T: crate::Unit, D: Device, S: Shape>(
         &self,
@@ -196,7 +196,7 @@ impl<T2, Mods: OnDropBuffer> OnDropBuffer for Lazy<Mods, T2> {
     }
 }
 
-impl<'a, T, D, Mods, S, T2> OnNewBuffer<'a, T, D, S> for Lazy<Mods, T2>
+impl<'a, T, D, Mods, S, T2> OnNewBuffer<'a, T, D, S> for Lazy<'_, Mods, T2>
 where
     T: Unit + 'static,
     D: Device + IsShapeIndep + 'static,
@@ -205,7 +205,7 @@ where
     S: Shape,
 {
     #[inline]
-    fn on_new_buffer(&self, device: &'a D, new_buf: &Buffer<'a, T, D, S>) {
+    unsafe fn on_new_buffer<'s>(&'s self, device: &'a D, new_buf: &'s Buffer<'a, T, D, S>) {
         unsafe { register_buf_copyable(&mut self.buffers.borrow_mut(), new_buf) };
         self.modules.on_new_buffer(device, new_buf)
     }
@@ -213,10 +213,10 @@ where
 
 // pass_down_tape_actions!(Lazy);
 #[cfg(feature = "autograd")]
-impl<Mods: crate::HasAutograd, T> crate::HasAutograd for Lazy<Mods, T> {}
+impl<Mods: crate::HasAutograd, T> crate::HasAutograd for Lazy<'_, Mods, T> {}
 
 #[cfg(feature = "autograd")]
-impl<Mods: crate::GradActions, U> crate::GradActions for Lazy<Mods, U> {
+impl<Mods: crate::GradActions, U> crate::GradActions for Lazy<'_, Mods, U> {
     unsafe fn grad<
         'a,
         T: 'static,
@@ -254,7 +254,7 @@ impl<Mods: crate::GradActions, U> crate::GradActions for Lazy<Mods, U> {
     }
 }
 
-impl<T, Mods: crate::AddGradFn> crate::AddGradFn for Lazy<Mods, T> {
+impl<T, Mods: crate::AddGradFn> crate::AddGradFn for Lazy<'_, Mods, T> {
     #[inline]
     fn add_grad_fn<Args: Parents<N> + AnyOp, const N: usize>(
         &self,
@@ -276,14 +276,14 @@ impl<T, Mods: crate::AddGradFn> crate::AddGradFn for Lazy<Mods, T> {
 }
 // pass_down_grad_fn!(Lazy);
 // impl_remove_layer!(Lazy);
-impl<Mods, T> crate::RemoveLayer<Mods> for Lazy<Mods, T> {
+impl<Mods, T> crate::RemoveLayer<Mods> for Lazy<'_, Mods, T> {
     #[inline]
     fn inner_mods(self) -> Mods {
         self.modules
     }
 }
-impl<T, NewMods, SD> AddLayer<NewMods, SD> for Lazy<(), T> {
-    type Wrapped = crate::Lazy<NewMods, T>;
+impl<'a, T, NewMods, SD> AddLayer<NewMods, SD> for Lazy<'a, (), T> {
+    type Wrapped = crate::Lazy<'a, NewMods, T>;
 
     #[inline]
     fn wrap_layer(inner_mods: NewMods) -> Self::Wrapped {
@@ -296,12 +296,12 @@ impl<T, NewMods, SD> AddLayer<NewMods, SD> for Lazy<(), T> {
             allocated_ids: Default::default(),
             cursor: Default::default(),
             enabled: Cell::new(true),
-            pd: PhantomData,
+            pd: Default::default(),
         }
     }
 }
 
-impl<T, Mods, D, S, T2> Retrieve<D, T, S> for Lazy<Mods, T2>
+impl<T, Mods, D, S, T2> Retrieve<D, T, S> for Lazy<'_, Mods, T2>
 where
     T: Unit + 'static,
     Mods: Retrieve<D, T, S>,
@@ -380,7 +380,7 @@ where
     }
 }
 
-impl<T, Mods> Cursor for Lazy<Mods, T> {
+impl<T, Mods> Cursor for Lazy<'_, Mods, T> {
     #[inline]
     fn cursor(&self) -> usize {
         self.cursor.get()
@@ -393,7 +393,7 @@ impl<T, Mods> Cursor for Lazy<Mods, T> {
 }
 
 impl<T: Unit + 'static, D: Device + 'static, S: Shape, Mods: OnDropBuffer, T2> ReplaceBuf<T, D, S>
-    for Lazy<Mods, T2>
+    for Lazy<'_, Mods, T2>
 {
     #[inline]
     fn replace_buf<'a, 'b, 'c>(
@@ -420,7 +420,7 @@ impl<T: Unit + 'static, D: Device + 'static, S: Shape, Mods: OnDropBuffer, T2> R
     }
 }
 
-impl<T, Mods: UseGpuOrCpu> UseGpuOrCpu for Lazy<Mods, T> {
+impl<T, Mods: UseGpuOrCpu> UseGpuOrCpu for Lazy<'_, Mods, T> {
     fn use_cpu_or_gpu(
         &self,
         location: crate::HashLocation<'static>,
@@ -444,7 +444,7 @@ impl<T, Mods: UseGpuOrCpu> UseGpuOrCpu for Lazy<Mods, T> {
 }
 
 #[cfg(feature = "graph")]
-impl<T: crate::Numeric + crate::CDatatype, Mods> crate::Optimize for Lazy<Mods, T> {
+impl<T: crate::Numeric + crate::CDatatype, Mods> crate::Optimize for Lazy<'_, Mods, T> {
     #[inline]
     fn optimize_mem_graph<D: 'static>(
         &self,
@@ -472,7 +472,7 @@ impl<T: crate::Numeric + crate::CDatatype, Mods> crate::Optimize for Lazy<Mods, 
     }
 }
 
-impl<T, Mods> CachedBuffers for Lazy<Mods, T> {
+impl<T, Mods> CachedBuffers for Lazy<'_, Mods, T> {
     #[inline]
     unsafe fn buffers_mut(
         &self,
@@ -481,7 +481,7 @@ impl<T, Mods> CachedBuffers for Lazy<Mods, T> {
     }
 }
 
-impl<Mods> HasModules for Lazy<Mods> {
+impl<Mods> HasModules for Lazy<'_, Mods> {
     type Mods = Mods;
 
     #[inline]
@@ -529,7 +529,12 @@ mod tests {
 
         // assert_eq!(out.read(), &[0; 10]); -- should not work
         device.modules.alloc_later(&device);
-        unsafe { device.modules.call_lazily::<CPU<Lazy<Base>>>().unwrap() }
+        unsafe {
+            device
+                .modules
+                .call_lazily::<CPU<Lazy<Base, i32>>>(&device)
+                .unwrap()
+        }
         // assert_eq!(out.read(), &[3; 10]); -- should work
         assert_eq!(out.replace().read(), &[3; 10]);
         drop(buf);
@@ -745,7 +750,7 @@ mod tests {
     // #[ignore = "causes UB"]
     #[test]
     fn test_lazy_exec_ub_testing() {
-        use crate::{AsNoId, Run};
+        use crate::Run;
 
         let device = CPU::<Lazy<Base>>::new();
 
@@ -764,15 +769,12 @@ mod tests {
             let b = Buffer::<i32, _, ()>::from_slice(&device, &[1, 2, 3, 4]);
             let vec = vec![1, 2, 3];
             device
-                .add_op(
-                    (&mut out, a.no_id(), &b, vec.no_id()),
-                    |(out, a, b, _vec)| {
-                        for ((lhs, rhs), out) in a.iter().zip(b.iter()).zip(out.iter_mut()) {
-                            *out = lhs + rhs;
-                        }
-                        Ok(())
-                    },
-                )
+                .add_op((&mut out, &b), move |(out, b)| {
+                    for ((lhs, rhs), out) in a.iter().zip(b.iter()).zip(out.iter_mut()) {
+                        *out = lhs + rhs;
+                    }
+                    Ok(())
+                })
                 .unwrap();
         }
 

@@ -1,66 +1,28 @@
-use crate::{Buffers, Operation2, UniqueId, UpdateArgsDynable};
+use crate::{Buffers, Device, Operation};
 
-use super::lazy_graph::Operation;
-
-pub struct ExecIter2<'a, 'b, B, T> {
-    pub(super) operations: std::slice::Iter<'b, Operation2<'a, B, T>>,
-    pub(super) buffers: &'b mut Buffers<B>,
+pub struct ExecIter<'_6, B, T, D> {
+    pub(super) operations: std::slice::Iter<'_6, Operation<B, T>>,
+    pub(super) buffers: &'_6 mut Buffers<B>,
+    pub(super) device: &'_6 D,
 }
 
-impl<'a, 'b, B, T> Iterator for ExecIter2<'a, 'b, B, T> {
+impl<'b, B, T, D: Device + 'static> Iterator for ExecIter<'b, B, T, D> {
     type Item = crate::Result<()>;
 
     fn next(&mut self) -> Option<Self::Item> {
         let op = self.operations.next()?;
-        Some((op.op)(self.buffers))
+        Some(op.call(self.buffers, self.device))
     }
 }
 
-impl<'a, 'b, B, T> DoubleEndedIterator for ExecIter2<'a, 'b, B, T> {
+impl<'b, B, T, D: Device + 'static> DoubleEndedIterator for ExecIter<'b, B, T, D> {
     fn next_back(&mut self) -> Option<Self::Item> {
         let op = self.operations.next_back()?;
-        Some((op.op)(self.buffers))
+        Some(op.call(self.buffers, self.device))
     }
 }
 
-impl<'a, 'b, B, T> ExactSizeIterator for ExecIter2<'a, 'b, B, T> {
-    fn len(&self) -> usize {
-        self.operations.len()
-    }
-}
-pub struct ExecIter<'a, B, T> {
-    pub(super) operations: std::slice::IterMut<'a, Operation<B, T>>,
-    pub(super) buffers: &'a mut Buffers<B>,
-}
-
-pub fn exec_op<B>(
-    args: &mut Box<dyn UpdateArgsDynable<B>>,
-    op: &fn(*mut ()) -> crate::Result<()>,
-    ids_to_check: &[Option<UniqueId>],
-    buffers: &mut Buffers<B>,
-) -> crate::Result<()> {
-    args.update_args_dynable(ids_to_check, buffers)?;
-    let args = core::ptr::addr_of_mut!(**args) as *mut ();
-    op(args)
-}
-
-impl<'a, B, T> Iterator for ExecIter<'a, B, T> {
-    type Item = crate::Result<()>;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        let op = self.operations.next()?;
-        Some(exec_op(&mut op.args, &op.op, &op.arg_ids, self.buffers))
-    }
-}
-
-impl<'a, B, T> DoubleEndedIterator for ExecIter<'a, B, T> {
-    fn next_back(&mut self) -> Option<Self::Item> {
-        let op = self.operations.next_back()?;
-        Some(exec_op(&mut op.args, &op.op, &op.arg_ids, self.buffers))
-    }
-}
-
-impl<'a, B, T> ExactSizeIterator for ExecIter<'a, B, T> {
+impl<'b, B, T, D: Device + 'static> ExactSizeIterator for ExecIter<'b, B, T, D> {
     fn len(&self) -> usize {
         self.operations.len()
     }

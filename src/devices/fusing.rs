@@ -23,21 +23,23 @@ pub trait UnaryFusing: IsShapeIndep {
     #[cfg(feature = "graph")]
     fn unary_fuse_op<T: crate::CDatatype + crate::Numeric>(
         &self,
-    ) -> fn(
-        &mut (
-            &mut crate::Buffer<'_, T, Self, ()>,
-            &crate::Buffer<'_, T, Self, ()>,
-            crate::NoId<Vec<std::rc::Rc<dyn Fn(crate::Resolve<T>) -> Box<dyn crate::TwoWay<T>>>>>,
-        ),
-    ) -> crate::Result<()>;
+        ops_to_fuse: Vec<std::rc::Rc<dyn Fn(crate::Resolve<T>) -> Box<dyn crate::TwoWay<T>>>>,
+    ) -> Box<
+        dyn Fn(
+            (
+                &mut crate::Buffer<'_, T, Self, ()>,
+                &crate::Buffer<'_, T, Self, ()>,
+            ),
+        ) -> crate::Result<()>,
+    >;
 
     #[cfg(feature = "lazy")]
     #[cfg(feature = "graph")]
     /// # Safety
     /// Does not check if specific retrieved buffers contain data of type `T`.
-    unsafe fn fuse_unary_ops<T: crate::CDatatype + crate::Numeric>(
-        &self,
-        lazy_graph: &crate::LazyGraph<Box<dyn crate::BoxedShallowCopy>, T>,
+    unsafe fn fuse_unary_ops<'a, T: crate::CDatatype + crate::Numeric>(
+        &'a self,
+        lazy_graph: &'a crate::LazyGraph<Box<dyn crate::BoxedShallowCopy>, T>,
         ops: (
             Vec<std::rc::Rc<dyn Fn(crate::Resolve<T>) -> Box<dyn crate::TwoWay<T>>>>,
             Vec<usize>,
@@ -47,45 +49,41 @@ pub trait UnaryFusing: IsShapeIndep {
     where
         Self: 'static,
     {
-        use crate::{AsAny, AsNoId, Buffer};
+        use crate::{Buffer, Buffers, Downcast, HasId};
 
         let (ops, affected_op_idxs) = ops;
         let to_insert_idx: usize = affected_op_idxs[0];
 
         let first_op = &lazy_graph.operations[to_insert_idx];
 
-        let first_arg_ids = first_op
-            .arg_ids
-            .iter()
-            .flatten()
-            .copied()
-            .collect::<Vec<_>>();
+        let first_arg_ids = &first_op.arg_ids;
 
         let last_op = &lazy_graph.operations[*affected_op_idxs.last().unwrap()];
 
         // use last op in the unary fuse chain as the output buffer
-        let last_arg_ids = last_op
-            .arg_ids
-            .iter()
-            .flatten()
-            .copied()
-            .collect::<Vec<_>>();
+        let last_arg_ids = &last_op.arg_ids;
+
+        assert_ne!(*last_arg_ids[0], *first_arg_ids[1]);
 
         let out = unsafe {
-            &mut *(buffers.get_mut(&last_arg_ids[0]).unwrap().as_any_mut()
-                as *mut Buffer<T, Self, ()>)
+            (&mut *(buffers as *mut Buffers<Box<dyn crate::BoxedShallowCopy>>))
+                .get_mut(&last_arg_ids[0])
+                .unwrap()
+                .downcast_mut_unchecked::<Buffer<T, Self, ()>>()
         };
 
         let buf = unsafe {
-            &*(buffers.get(&first_arg_ids[1]).unwrap().as_any() as *const Buffer<T, Self, ()>)
+            buffers
+                .get(&first_arg_ids[1])
+                .unwrap()
+                .downcast_ref_unchecked::<Buffer<T, Self, ()>>()
         };
 
-        let op = self.unary_fuse_op::<T>();
-        let mut operation =
-            unsafe { crate::LazyGraph::convert_to_operation((out, buf, ops.no_id()), op) };
+        let op = self.unary_fuse_op::<T>(ops);
+        let mut operation = crate::LazyGraph::convert_to_operation((out, buf), op);
         // using the buffers out of the 'buffers' hashmaps results in using allocated buffers that are not in the 'buffers' hashmap
         // if the lazy graph is executed, it updates the references to the corresponding buffers -> new ids would not be found -> invalid lazy buffer panic
-        operation.arg_ids = vec![Some(last_arg_ids[0]), Some(first_arg_ids[1]), None];
+        operation.arg_ids = vec![last_arg_ids[0], first_arg_ids[1]];
         operation.op_hint = crate::op_hint::OpHint::UnaryFused;
 
         (to_insert_idx, operation)
