@@ -28,7 +28,6 @@ pub struct Autograd<'dev, Mods> {
     pub modules: Mods,
     /// Caches gradients for each [`Buffer`]'s id ([`Ident`]).
     pub grads: UnsafeCell<Gradients>, // could use RefCell
-    pub(crate) no_grads_pool: core::cell::RefCell<crate::BorrowCacheLT<'dev>>,
     pub(crate) tape: UnsafeCell<Tape<'dev>>,
     pub enabled: Cell<bool>,
     pd: PhantomData<Cell<&'dev ()>>,
@@ -44,7 +43,6 @@ impl<'a, Mods: Module<'a, D>, D: Device + 'a> Module<'a, D> for Autograd<'a, Mod
             // modules: Cached::<Mods>::new(),
             modules: Mods::new(),
             grads: Default::default(),
-            no_grads_pool: Default::default(),
             tape: Default::default(),
             enabled: Cell::new(true),
             pd: PhantomData,
@@ -259,7 +257,6 @@ impl<'a, NewMods, SD> AddLayer<NewMods, SD> for Autograd<'a, ()> {
             grads: Default::default(),
             tape: Default::default(),
             enabled: Cell::new(true),
-            no_grads_pool: Default::default(),
             pd: PhantomData,
         }
     }

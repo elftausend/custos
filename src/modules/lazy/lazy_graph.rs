@@ -9,10 +9,10 @@ pub struct Operation<B, T> {
     pub arg_ids: Vec<Id>,
     pub op: Box<dyn Fn(&[Id], &mut Buffers<B>, &dyn core::any::Any) -> crate::Result<()> + 'static>,
     pub op_hint: OpHint<T>,
-    // pub pd: PhantomData<&'a ()>,
 }
 
 impl<B, T> Operation<B, T> {
+    #[inline]
     pub fn no_op() -> Self {
         Self {
             op: Box::new(|_ids, _buffers, _dev| Ok(())),
@@ -110,7 +110,6 @@ impl<B: Downcast, T> LazyGraph<B, T> {
 
                 Some(id)
             })
-            //.flat_map(|id| id.map(|id| *id))
             .collect::<Vec<_>>();
 
         if arg_ids.len() != N {
