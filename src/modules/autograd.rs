@@ -5,7 +5,10 @@ mod wrapper;
 pub use gradients::*;
 pub use tape::*;
 
-use core::{cell::{Cell, UnsafeCell}, marker::PhantomData};
+use core::{
+    cell::{Cell, UnsafeCell},
+    marker::PhantomData,
+};
 
 use crate::{
     impl_remove_layer, pass_down_add_operation, pass_down_cached_buffers, pass_down_cursor,
@@ -44,7 +47,7 @@ impl<'a, Mods: Module<'a, D>, D: Device + 'a> Module<'a, D> for Autograd<'a, Mod
             no_grads_pool: Default::default(),
             tape: Default::default(),
             enabled: Cell::new(true),
-            pd: PhantomData
+            pd: PhantomData,
         }
     }
 }
@@ -257,7 +260,7 @@ impl<'a, NewMods, SD> AddLayer<NewMods, SD> for Autograd<'a, ()> {
             tape: Default::default(),
             enabled: Cell::new(true),
             no_grads_pool: Default::default(),
-            pd: PhantomData
+            pd: PhantomData,
         }
     }
 }
@@ -288,7 +291,6 @@ mod tests {
     #[cfg(feature = "opencl")]
     #[test]
     fn test_autograd_lt() {
-        
         let ag = Autograd::<Base>::default();
         {
             let device = crate::OpenCL::based(0).unwrap();

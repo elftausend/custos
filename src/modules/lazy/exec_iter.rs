@@ -11,14 +11,14 @@ impl<'b, B, T, D: Device + 'static> Iterator for ExecIter<'b, B, T, D> {
 
     fn next(&mut self) -> Option<Self::Item> {
         let op = self.operations.next()?;
-        Some((op.op)(self.buffers, self.device))
+        Some(op.call(self.buffers, self.device))
     }
 }
 
 impl<'b, B, T, D: Device + 'static> DoubleEndedIterator for ExecIter<'b, B, T, D> {
     fn next_back(&mut self) -> Option<Self::Item> {
         let op = self.operations.next_back()?;
-        Some((op.op)(self.buffers, self.device))
+        Some(op.call(self.buffers, self.device))
     }
 }
 
