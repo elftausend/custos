@@ -51,14 +51,14 @@ To make specific modules useable for building a device, activate the correspondi
 
 Feature | Module | Description
 --- | --- | ---
-on by default | `Base` | Default behaviour.
+*on by default* | `Base` | Default behaviour.
 autograd | `Autograd` | Enables running automatic differentiation.
 cached | `Cached` | Reuses allocations on demand.
 fork | `Fork` | Decides whether the CPU or GPU is faster for an operation. It then uses the faster device for following computations. (unified memory devices)
 lazy | `Lazy` | Lazy execution of operations and lazy intermediate allocations. Enables support for CUDA graphs.
 graph | `Graph` | Adds a memory usage optimizeable graph and fusing of unary operations in combination with `Lazy`.
 
-Usage of these modules when writing custom operations: [`modules.md`](modules.md)
+Usage of these modules when writing custom operations: [`modules.md`](modules.md) and [`modules_usage.rs`](examples/modules_usage.rs).
 
 If an operations wants to be affected by a module, specific custos code must be called in that operation.
 
@@ -84,7 +84,7 @@ json | Adds convenience functions for serialization and deserialization to and f
 [unary]: https://github.com/elftausend/custos/blob/main/src/unary.rs
 
 Implement an operation for `CPU`:<br>
-- If you want to implement your own operations for all compute devices, consider looking here: [implement_operations.rs](examples/implement_operations.rs)<br>
+- If you want to implement your own operations for all compute devices, consider looking here: [implement_operations.rs](examples/implement_operations.rs) or ["modules_usage.rs"](examples/modules_usage.rs)<br>
 or to see it at a larger scale, look here [`custos-math`](https://github.com/elftausend/custos-math) (outdated, requires custos 0.7) or here [`sliced`](https://github.com/elftausend/sliced) (for automatic diff examples).
 
 This operation is only affected by the `Cached` module (and partially `Autograd`).

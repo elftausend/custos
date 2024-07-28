@@ -115,7 +115,7 @@ where
 
     #[cfg(feature = "autograd")]
     #[inline]
-    pub fn grad_mut<'b>(&'b mut self) -> &'b mut Self 
+    pub fn grad_mut<'b>(&'b mut self) -> &'b mut Self
     where
         D: GradActions + Alloc<T> + ZeroGrad<T>,
     {
@@ -172,7 +172,7 @@ where
     pub unsafe fn grad_mut<'b>(&'b self) -> &'a mut Self {
         unimplemented!("Gradient not available. Activate the autograd feature.");
     }
-    
+
     /// In this case, this is just a dummy function.
     /// Activate the `autograd` feature to make this function useable.
     #[inline]

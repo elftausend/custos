@@ -4,9 +4,9 @@ use crate::{
     bounds_to_range,
     cpu_stack_ops::{apply_fn_slice, clear_slice},
     op_hint::unary,
-    pass_down_add_operation, pass_down_exec_now, AddOperation, ApplyFunction,
-    Buffer, ClearBuf, CopySlice, Device, Eval, MayToCLSource, OnDropBuffer, Read, Resolve,
-    Retrieve, Retriever, SetOpHint, Shape, ToVal, TwoWay, UnaryGrad, Unit, WriteBuf, ZeroGrad, CPU,
+    pass_down_add_operation, pass_down_exec_now, AddOperation, ApplyFunction, Buffer, ClearBuf,
+    CopySlice, Device, Eval, MayToCLSource, OnDropBuffer, Read, Resolve, Retrieve, Retriever,
+    SetOpHint, Shape, ToVal, TwoWay, UnaryGrad, Unit, WriteBuf, ZeroGrad, CPU,
 };
 
 pass_down_add_operation!(CPU);

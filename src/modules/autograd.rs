@@ -285,7 +285,6 @@ mod tests {
         HasId, Lazy, Retriever, Shape, UnaryGrad, Unit, CPU,
     };
 
-
     #[inline]
     pub fn downcast_val<'a, 'b, T: Unit + 'static, D: Device + 'static, S: Shape>(
         buf_any: &'b Box<dyn BoxedShallowCopy>,

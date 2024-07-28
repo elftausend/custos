@@ -188,9 +188,7 @@ mod tests {
     #[cfg(feature = "graph")]
     #[test]
     fn test_op_hint_unary_chain_fuse_graph_complex() {
-        use crate::{
-            ApplyFunction, Base, Combiner, Device, Graph, Lazy, Optimize, Run, CPU,
-        };
+        use crate::{ApplyFunction, Base, Combiner, Device, Graph, Lazy, Optimize, Run, CPU};
 
         let dev = CPU::<Graph<Lazy<Base>>>::new();
 

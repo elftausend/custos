@@ -1,5 +1,5 @@
 # Modules
-This file may contain uncompilable code snippets. [modules.rs](examples/modules.rs) contains up-to-date code.
+This file may (certainly 2024-07-28) contain uncompilable code snippets. [modules_usage.rs](examples/modules_usage.rs) contains up-to-date code.
 
 `custos` ships combineable modules. Different selected modules result in different behaviour when executing operations.<br>
 How is this possible? Module-related operations must be called in the custom operation. These module-related operations are defined via traits that can be implemented for any module.

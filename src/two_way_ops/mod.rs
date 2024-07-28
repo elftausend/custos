@@ -53,7 +53,7 @@ impl<T, A: Eval<T> + MayToCLSource + MayToWgslSource> TwoWay<T> for A {}
 pub mod tests_ex {
     use crate::{Combiner, Eval, Resolve, ToVal};
 
-    #[cfg(not(feature="std"))]
+    #[cfg(not(feature = "std"))]
     use crate::Float;
 
     #[cfg(feature = "std")]
