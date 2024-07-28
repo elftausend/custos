@@ -139,37 +139,14 @@ mod tests {
         register_buf_any, register_buf_copyable, AnyBuffer, Base, Buffer, CloneBuf, Device, HasId,
         LazyGraph, Retriever, Shape, UniqueId, CPU,
     };
-    use core::cell::Cell;
     use std::collections::HashMap;
-
-    pub(crate) fn register_buf_an_bufsy<'a, T, D, S>(
-        cache: &mut HashMap<UniqueId, Box<dyn AnyBuffer + 'a>, impl core::hash::BuildHasher>,
-        buf: &Buffer<'a, T, D, S>,
-    ) where
-        T: crate::Unit + 'static,
-        D: Device + crate::IsShapeIndep + 'static + CloneBuf<'a, T, S>,
-        D::Data<T, S>: crate::ShallowCopy,
-        S: Shape,
-    {
-        // shallow copy sets flag to AllocFlag::Wrapper
-
-        // let wrapped_data = unsafe { buf.data.shallow() };
-
-        // let buf = Buffer {
-        //     data: wrapped_data,
-        //     device: buf.device,
-        // };
-        let buf2 = buf.device().clone_buf(&buf);
-        cache.insert(*buf.id(), Box::new(buf2));
-    }
-
     #[cfg(feature = "autograd")]
     #[test]
     fn test_autograd_lazy_op() {
         use crate::TapeActions;
         // static mut DEVICE: Option<&'static CPU<crate::Autograd<Base>>> = None;
         thread_local! {
-            static DEVICE2: Cell<Option<&'static CPU<crate::CachedModule<Base, CPU>>>> = Cell::new(None);
+            static DEVICE2: std::cell::Cell<Option<&'static CPU<crate::CachedModule<Base, CPU>>>> = std::cell::Cell::new(None);
         };
         // static DEVICES: std::sync::Mutex<Option<&'static CPU<crate::Autograd<Base>>>> = Default::default();
         {

@@ -205,26 +205,7 @@ where
     S: Shape,
 {
     #[inline]
-    fn on_new_buffer<'s>(&'s self, device: &'a D, new_buf: &'s Buffer<'a, T, D, S>) {
-        unsafe { register_buf_copyable(&mut self.buffers.borrow_mut(), new_buf) };
-        self.modules.on_new_buffer(device, new_buf)
-    }
-}
-
-impl<'a, T, D: Device, S: Shape> crate::OnNewBuffer2<'a, T, D, S> for crate::Base {
-    fn on_new_buffer(&'a self, _device: &D, _new_buf: &'a Buffer<T, D, S>) {}
-}
-
-impl<'a, T, D, Mods, S, T2> crate::OnNewBuffer2<'a, T, D, S> for Lazy<'a, Mods, T2>
-where
-    T: Unit + 'static,
-    D: Device + IsShapeIndep + 'static,
-    D::Data<T, S>: ShallowCopy,
-    Mods: crate::OnNewBuffer2<'a, T, D, S>,
-    S: Shape,
-{
-    #[inline]
-    fn on_new_buffer(&'a self, device: &D, new_buf: &'a Buffer<T, D, S>) {
+    unsafe fn on_new_buffer<'s>(&'s self, device: &'a D, new_buf: &'s Buffer<'a, T, D, S>) {
         unsafe { register_buf_copyable(&mut self.buffers.borrow_mut(), new_buf) };
         self.modules.on_new_buffer(device, new_buf)
     }
@@ -463,7 +444,7 @@ impl<T, Mods: UseGpuOrCpu> UseGpuOrCpu for Lazy<'_, Mods, T> {
 }
 
 #[cfg(feature = "graph")]
-impl<T: crate::Numeric + crate::CDatatype, Mods> crate::Optimize for Lazy<Mods, T> {
+impl<T: crate::Numeric + crate::CDatatype, Mods> crate::Optimize for Lazy<'_, Mods, T> {
     #[inline]
     fn optimize_mem_graph<D: 'static>(
         &self,
@@ -514,25 +495,10 @@ mod tests {
     use core::ops::{Add, Deref};
 
     use crate::{
-        tests_helper::{add_ew_slice, AddEw},
-        AddOperation, ApplyFunction, Base, Buffer, Combiner, Device, OnDropBuffer, OnNewBuffer2,
-        Retrieve, Retriever, Shape, Unit, CPU,
+        tests_helper::{add_ew_slice, AddEw}, AddOperation, ApplyFunction, Base, Buffer, Combiner, Device, Retrieve, Retriever, Shape, Unit, CPU
     };
 
     use super::Lazy;
-
-    #[test]
-    fn test_lazy_on_new_buffer() {
-        let lazy = Lazy::<Base>::default();
-        // {
-            let device = CPU::<Base>::new();
-            let buf = device.buffer([1, 2, 3]);
-            lazy.on_new_buffer(&device, &buf);
-        // }
-        for value in lazy.buffers.borrow().values() {
-            println!("value");
-        }
-    }
 
     #[test]
     #[cfg(feature = "cpu")]
