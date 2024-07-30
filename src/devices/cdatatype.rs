@@ -22,7 +22,7 @@ impl CDatatype for i32 {
 }
 
 impl CDatatype for u32 {
-    const C_DTYPE_STR: &'static str = "uint";
+    const C_DTYPE_STR: &'static str = "unsigned int";
 }
 
 impl CDatatype for i8 {
