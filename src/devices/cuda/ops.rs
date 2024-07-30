@@ -243,6 +243,14 @@ mod tests {
     };
 
     #[test]
+    fn test_cu_clear() {
+        let device = CUDA::<Base>::new(0).unwrap();
+        let mut x = Buffer::from((&device, [1u16, 2, 3, 4, 5, 6]));
+        x.clear();
+        assert_eq!(x.read(), vec![0; x.len()]);
+    }
+
+    #[test]
     fn test_cu_apply_fn() {
         let device = CUDA::<Base>::new(0).unwrap();
         let x = Buffer::from((&device, [1f32, 2., 3., 4., 5., 6.]));
