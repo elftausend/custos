@@ -16,12 +16,12 @@ impl<S: Shape, T: Default + Copy> StackArray<S, T> {
     /// Creates a new `StackArray`.
     #[inline]
     pub fn new() -> Self {
-        // TODO: one day... use const expressions
-        // rust 1.79
-        assert!(
-            S::LEN > 0,
-            "The size (N) of a stack allocated buffer must be greater than 0."
-        );
+        const {
+            assert!(
+                S::LEN > 0,
+                "The size (N) of a stack allocated buffer must be greater than 0."
+            )
+        };
         StackArray { array: S::new() }
     }
 
@@ -58,10 +58,12 @@ impl<S: Shape, T: Default + Copy> Default for StackArray<S, T> {
 impl<S: Shape, T> StackArray<S, T> {
     /// Creates a new `StackArray` from a possibly multi-dimensional array.
     pub fn from_array(array: S::ARR<T>) -> Self {
-        assert!(
-            S::LEN > 0,
-            "The size (N) of a stack allocated buffer must be greater than 0."
-        );
+        const {
+            assert!(
+                S::LEN > 0,
+                "The size (N) of a stack allocated buffer must be greater than 0."
+            )
+        };
 
         StackArray { array }
     }
@@ -162,11 +164,12 @@ where
 
 #[cfg(test)]
 mod test {
-    use crate::StackArray;
+    // use crate::StackArray;
 
-    #[test]
-    #[should_panic]
-    fn test_stack_array_zero_len() {
-        StackArray::<(), f32>::new();
-    }
+    // compile time error instead!
+    // #[test]
+    // #[should_panic]
+    // fn test_stack_array_zero_len() {
+    //     StackArray::<(), f32>::new();
+    // }
 }

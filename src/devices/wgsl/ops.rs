@@ -47,7 +47,7 @@ where
     {
         let mut out = self.retrieve(buf.len(), buf).unwrap();
 
-        self.add_op((&mut out, buf, f.no_id()), move |(out, buf, f)| {
+        self.add_op((&mut out, buf), move |(out, buf)| {
             let src = format!(
                 "
                 @group(0)

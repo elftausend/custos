@@ -26,7 +26,7 @@ impl WrappedData for Base {
     }
 }
 
-impl<D: Device> Module<D> for Base {
+impl<'a, D: Device + 'a> Module<'a, D> for Base {
     type Module = Base;
 
     #[inline]
@@ -37,17 +37,17 @@ impl<D: Device> Module<D> for Base {
 
 impl AddOperation for Base {
     #[inline]
-    fn ops_count(&self) -> usize {
-        0
+    fn add_op<Args: Parents<N> + crate::AnyOp, const N: usize>(
+        &self,
+        args: Args,
+        op: impl for<'b> Fn(Args::Replicated<'b>) -> crate::Result<()> + 'static,
+    ) -> crate::Result<()> {
+        op(unsafe { args.replication() })
     }
 
     #[inline]
-    fn add_op<Args: Parents<N>, const N: usize>(
-        &self,
-        mut args: Args,
-        operation: fn(&mut Args) -> crate::Result<()>,
-    ) -> crate::Result<()> {
-        operation(&mut args)
+    fn ops_count(&self) -> usize {
+        0
     }
 
     #[inline]
@@ -74,7 +74,7 @@ impl<D: Device> ExecNow<D> for Base {
 
 impl<D> Setup<D> for Base {}
 
-impl<T: Unit, D: Device, S: Shape> OnNewBuffer<T, D, S> for Base {}
+impl<'a, T: Unit, D: Device, S: Shape> OnNewBuffer<'a, T, D, S> for Base {}
 
 impl OnDropBuffer for Base {}
 
@@ -151,10 +151,10 @@ impl crate::Optimize for Base {
 
 impl AddGradFn for Base {
     #[inline]
-    fn add_grad_fn<Args: Parents<N> + crate::UpdateArgs, const N: usize>(
+    fn add_grad_fn<Args: Parents<N> + crate::AnyOp, const N: usize>(
         &self,
         _args: Args,
-        _op: fn(&mut Args) -> crate::Result<()>,
+        _op: impl for<'b> Fn(Args::Replicated<'b>) -> crate::Result<()> + 'static,
     ) {
     }
 
@@ -162,7 +162,36 @@ impl AddGradFn for Base {
 }
 
 #[cfg(feature = "autograd")]
-impl crate::TapeActions for Base {}
+impl crate::GradActions for Base {
+    unsafe fn grad<
+        'a,
+        T: 'static,
+        D: Device + Alloc<T> + crate::ZeroGrad<T> + 'static,
+        S: Shape,
+    >(
+        &self,
+        _device: &'a D,
+        _buf: &crate::Buffer<'a, T, D, S>,
+    ) -> &crate::Buffer<'a, T, D, S> {
+        unimplemented!()
+    }
+
+    unsafe fn grad_mut<
+        'a,
+        T: 'static,
+        D: Device + Alloc<T> + crate::ZeroGrad<T> + 'static,
+        S: Shape,
+    >(
+        &self,
+        _device: &'a D,
+        _buf: &crate::Buffer<'a, T, D, S>,
+    ) -> &mut crate::Buffer<'a, T, D, S> {
+        unimplemented!()
+    }
+}
+
+#[cfg(feature = "autograd")]
+impl<'a> crate::TapeActions<'a> for Base {}
 
 impl CachedBuffers for Base {}
 impl<T: Unit, D: Device, S: Shape> ReplaceBuf<T, D, S> for Base {

@@ -10,7 +10,7 @@
 //!     mods: Mods,
 //! }
 //!
-//! impl<D, Mods: Module<D>> Module<D> for CustomModule<Mods> {
+//! impl<'a, D: 'a, Mods: Module<'a, D>> Module<'a, D> for CustomModule<Mods> {
 //!     type Module = CustomModule<Mods::Module>;
 //!
 //!     fn new() -> Self::Module {
@@ -73,7 +73,7 @@ use core::{any::Any, hash::BuildHasher};
 #[cfg(feature = "std")]
 use std::collections::HashMap;
 
-pub trait Module<D, Mods = ()> {
+pub trait Module<'a, D: 'a, Mods = ()> {
     type Module;
 
     fn new() -> Self::Module;
@@ -93,13 +93,12 @@ pub(crate) unsafe fn register_buf_any<T, D, S>(
 {
     // shallow copy sets flag to AllocFlag::Wrapper
 
-    let wrapped_data = buf.data.shallow();
+    let wrapped_data = unsafe { buf.data.shallow() };
 
-    let buf = Buffer {
+    let buf: Buffer<T, D, S> = Buffer {
         data: wrapped_data,
-        device: buf.device,
+        device: None,
     };
-    let buf: Buffer<'static, T, D, S> = core::mem::transmute(buf);
     cache.insert(*buf.id(), Box::new(buf));
 }
 
@@ -126,13 +125,12 @@ pub(crate) unsafe fn register_buf_copyable<T, D, S>(
     S: Shape,
 {
     // shallow copy sets flag to AllocFlag::Wrapper
-    let wrapped_data = buf.data.shallow();
+    let wrapped_data = unsafe { buf.data.shallow() };
 
-    let buf = Buffer {
+    let buf: Buffer<T, D, S> = Buffer {
         data: wrapped_data,
-        device: buf.device,
+        device: None,
     };
-    let buf: Buffer<'static, T, D, S> = core::mem::transmute(buf);
     cache.insert(*buf.id(), Box::new(buf));
 }
 

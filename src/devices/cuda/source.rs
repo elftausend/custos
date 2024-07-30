@@ -36,7 +36,7 @@ fn compile_cuda_src_to_ptx(src: impl AsRef<str>) -> Result<CString, Error> {
     // TODO: not optimal, if multiple functions are used in the same source code, they are compiled multiple times
     let mut x = create_program(src.as_ref(), "")?;
 
-    x.compile(Some(vec![CString::new("--use_fast_math").unwrap()]))?;
+    x.compile(Some(vec![c"--use_fast_math".to_owned()]))?;
     let ptx = x.ptx()?;
 
     unsafe { nvrtcDestroyProgram(&mut x.0).to_result()? };

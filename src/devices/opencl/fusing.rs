@@ -6,21 +6,23 @@ impl<Mods: OnDropBuffer> UnaryFusing for OpenCL<Mods> {
     #[inline]
     fn unary_fuse_op<T: crate::CDatatype + crate::Numeric>(
         &self,
-    ) -> fn(
-        &mut (
-            &mut crate::Buffer<'_, T, Self, ()>,
-            &crate::Buffer<'_, T, Self, ()>,
-            crate::NoId<Vec<std::rc::Rc<dyn Fn(crate::Resolve<T>) -> Box<dyn crate::TwoWay<T>>>>>,
-        ),
-    ) -> crate::Result<()> {
+        ops_to_fuse: Vec<std::rc::Rc<dyn Fn(crate::Resolve<T>) -> Box<dyn crate::TwoWay<T>>>>,
+    ) -> Box<
+        dyn Fn(
+            (
+                &mut crate::Buffer<'_, T, Self, ()>,
+                &crate::Buffer<'_, T, Self, ()>,
+            ),
+        ) -> crate::Result<()>,
+    > {
         use crate::operations_to_fused_src;
 
-        |(out, buf, ops)| {
-            if ops.is_empty() {
+        Box::new(move |(out, buf)| {
+            if ops_to_fuse.is_empty() {
                 return Ok(());
             }
 
-            let fused_operations = operations_to_fused_src(ops);
+            let fused_operations = operations_to_fused_src(&ops_to_fuse);
 
             let src = format!(
                 "
@@ -41,8 +43,8 @@ impl<Mods: OnDropBuffer> UnaryFusing for OpenCL<Mods> {
                 &src,
                 [(buf.len() / 32 + 1) * 32, 0, 0],
                 Some([32, 0, 0]),
-                &[buf, *out, &buf.len()],
+                &[buf, out, &buf.len()],
             )
-        }
+        })
     }
 }

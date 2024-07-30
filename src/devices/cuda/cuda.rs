@@ -49,9 +49,10 @@ impl<SimpleMods> CUDA<SimpleMods> {
     /// - No device was found at the given device index
     /// - some other CUDA related errors
     #[inline]
-    pub fn new<NewMods>(idx: usize) -> crate::Result<CUDA<NewMods>>
+    pub fn new<'a, NewMods>(idx: usize) -> crate::Result<CUDA<NewMods>>
     where
-        SimpleMods: CombModule<CUDA, Module = NewMods>,
+        Self: 'a,
+        SimpleMods: CombModule<'a, CUDA, Module = NewMods>,
         NewMods: Setup<CUDA<NewMods>>,
     {
         let mut cuda = CUDA {
@@ -136,7 +137,9 @@ impl<Mods> crate::ForkSetup for CUDA<Mods> {
     }
 }
 
-impl<'a, Mods: OnDropBuffer + OnNewBuffer<T, Self, ()>, T: Unit> CloneBuf<'a, T> for CUDA<Mods> {
+impl<'a, Mods: OnDropBuffer + OnNewBuffer<'a, T, Self, ()>, T: Unit> CloneBuf<'a, T>
+    for CUDA<Mods>
+{
     fn clone_buf(&'a self, buf: &Buffer<'a, T, CUDA<Mods>>) -> Buffer<'a, T, CUDA<Mods>> {
         let cloned = Buffer::new(self, buf.len());
         unsafe {

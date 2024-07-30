@@ -103,16 +103,21 @@ where
 /// This is way faster than [cpu_exec_reduce], as new memory is not allocated.
 ///
 /// `cpu_exec_binary_may_unified` can be used interchangeably with [cpu_exec_reduce].
-pub fn cpu_exec_reduce_may_unified<T, F>(device: &OpenCL, x: &Buffer<T, OpenCL>, f: F) -> T
+pub fn cpu_exec_reduce_may_unified<T, F, Mods>(
+    device: &min_cl::CLDevice,
+    x: &Buffer<T, OpenCL<Mods>>,
+    f: F,
+) -> T
 where
     T: Unit + Default + Clone,
     F: Fn(&CPU, &Buffer<T, CPU>) -> T,
+    Mods: OnDropBuffer + 'static,
 {
     let cpu = CPU::<crate::Base>::new();
 
     if device.unified_mem() {
         return f(&cpu, &unsafe {
-            Buffer::from_raw_host(x.data.host_ptr, x.len())
+            Buffer::from_raw_host(x.base().host_ptr, x.len())
         });
     }
     cpu_exec_reduce(x, f)

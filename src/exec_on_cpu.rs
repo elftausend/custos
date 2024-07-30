@@ -322,7 +322,19 @@ mod tests {
                 out
             }
         );
-        assert_eq!(a.read(), vec![2, 4, 6, 8])
+
+        assert_eq!(a.read(), vec![2, 4, 6, 8]);
+        let cpu = crate::CPU::<Base>::new();
+        let other_a: crate::Buffer<i32, crate::OpenCL> = cpu_exec!(
+            &device, &cpu, lhs, rhs; {
+                let mut out = cpu.retrieve(lhs.len(), (&lhs, &rhs)).unwrap();
+                for ((lhs, rhs), out) in lhs.iter().zip(rhs.iter()).zip(out.iter_mut()) {
+                    *out = lhs + rhs;
+                }
+                out
+            }
+        );
+        assert_eq!(other_a.read(), vec![2, 4, 6, 8]);
     }
 
     #[cfg(feature = "opencl")]
@@ -419,6 +431,53 @@ mod tests {
 
         assert_eq!(out.read(), [0, -2, 2, -4, 4]);
 
+        Ok(())
+    }
+
+    pub trait AddEw<T, D: crate::Device = Self>: crate::Device {
+        fn add(&self, lhs: &crate::Buffer<T, D>, rhs: &crate::Buffer<T, D>) -> crate::Buffer<T, D>;
+    }
+
+    impl<Mods, T> AddEw<T> for crate::CPU<Mods>
+    where
+        Mods: crate::hooks::OnDropBuffer + crate::Retrieve<Self, T> + 'static,
+        Self::Base<T, ()>: core::ops::Deref<Target = [T]>,
+        T: core::ops::Add<Output = T> + Copy,
+    {
+        fn add(
+            &self,
+            lhs: &crate::Buffer<T, Self>,
+            rhs: &crate::Buffer<T, Self>,
+        ) -> crate::Buffer<T, Self> {
+            use crate::Retriever;
+            let mut out = self.retrieve(lhs.len(), (lhs, rhs)).unwrap();
+            for idx in 0..lhs.len() {
+                out[idx] = lhs[idx] + rhs[idx]
+            }
+            out
+        }
+    }
+
+    #[cfg(feature = "opencl")]
+    #[test]
+    fn test_cpu_exec_macro() -> crate::Result<()> {
+        use crate::{prelude::chosen_cl_idx, Base, Cached, Device, OpenCL, CPU};
+
+        let device = OpenCL::<Cached<Base>>::new(chosen_cl_idx())?;
+        let cpu = CPU::<Cached<Base>>::new();
+
+        let lhs = device.buffer([1, 2, 3, 4, 5]);
+        let rhs = device.buffer([-1, -4, -1, -8, -1]);
+
+        let out1 = crate::cpu_exec!(&device, &cpu, lhs, rhs; cpu.add(&lhs, &rhs));
+
+        let out = {
+            let lhs = crate::Buffer::<_, _>::from(((&cpu), lhs.read_to_vec()));
+            let rhs = crate::Buffer::<_, _>::from(((&cpu), rhs.read_to_vec()));
+            let cpu_out = cpu.add(&lhs, &rhs);
+            crate::Buffer::from((&device, cpu_out))
+        };
+        assert_eq!(out1.read(), out.read());
         Ok(())
     }
 }

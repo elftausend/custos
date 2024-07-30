@@ -115,6 +115,29 @@ impl<T> AsClCvoidPtr for CLPtr<T> {
     }
 }
 
+pub trait KernelLaunch {
+    fn launch_kernel(
+        &self,
+        src: &str,
+        gws: [usize; 3],
+        lws: Option<[usize; 3]>,
+        args: &[&dyn AsClCvoidPtr],
+    ) -> crate::Result<()>;
+}
+
+impl KernelLaunch for CLDevice {
+    #[inline]
+    fn launch_kernel(
+        &self,
+        src: &str,
+        gws: [usize; 3],
+        lws: Option<[usize; 3]>,
+        args: &[&dyn AsClCvoidPtr],
+    ) -> crate::Result<()> {
+        enqueue_kernel(self, src, gws, lws, args)
+    }
+}
+
 /// Executes a cached OpenCL kernel.
 /// # Example
 ///

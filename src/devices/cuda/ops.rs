@@ -134,8 +134,8 @@ where
         F: crate::TwoWay<T>,
     {
         let mut out = self.retrieve(buf.len(), buf).unwrap();
-        self.add_op((&mut out, buf, f.no_id()), |(out, buf, f)| {
-            try_cu_apply_fn_mut(buf.device(), buf, out, &**f)
+        self.add_op((&mut out, buf), move |(out, buf)| {
+            try_cu_apply_fn_mut(buf.device(), buf, out, &f)
         })
         .unwrap();
         self.set_op_hint(unary(f));
@@ -194,12 +194,9 @@ where
     ) where
         F: ToCLSource,
     {
-        self.add_op(
-            (lhs, lhs_grad.buf_no_id(), out, lhs_grad_fn.no_id()),
-            move |(lhs, lhs_grad, out, lhs_grad_fn)| {
-                try_cu_add_unary_grad(lhs.device(), lhs, lhs_grad, out, **lhs_grad_fn)
-            },
-        )
+        self.add_op((lhs, lhs_grad, out), move |(lhs, lhs_grad, out)| {
+            try_cu_add_unary_grad(lhs.device(), lhs, lhs_grad, out, lhs_grad_fn)
+        })
         .unwrap();
     }
 }

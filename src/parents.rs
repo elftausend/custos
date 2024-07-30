@@ -1,4 +1,4 @@
-use crate::{HasId, Id, UpdateArg};
+use crate::{HasId, Id};
 
 pub trait Parents<const N: usize>: AllParents {
     fn ids(&self) -> [Id; N];
@@ -21,17 +21,6 @@ impl Parents<0> for () {
 }
 
 impl AllParents for () {}
-
-impl UpdateArg for () {
-    #[cfg(feature = "std")]
-    fn update_arg<B>(
-        _to_update: &mut Self,
-        _id: Option<crate::UniqueId>,
-        _buffers: &mut crate::Buffers<B>,
-    ) -> crate::Result<()> {
-        Ok(())
-    }
-}
 
 impl<T: HasId> Parents<1> for T {
     #[inline]
@@ -78,18 +67,30 @@ macro_rules! impl_parents {
         }
         impl<$($to_impl: $crate::HasId, )+> AllParents for ($($to_impl,)+) {}
 
-        impl<$($to_impl: $crate::UpdateArg + $crate::HasId, )+> $crate::UpdateArgs for ($($to_impl,)+) {
+        impl<$($to_impl: $crate::Replicate + $crate::HasId, )+> $crate::AnyOp for ($($to_impl,)+) {
+            type Replicated<'a> = ($($to_impl::Replication<'a>,)+);
+
             #[cfg(feature = "std")]
-            fn update_args<B: $crate::AsAny>(&mut self,
-                ids: &[Option<$crate::UniqueId>],
-                buffers: &mut $crate::Buffers<B>)
-             -> crate::Result<()>
-             {
-                let mut ids = ids.iter();
+            fn replication_fn<B: $crate::Downcast>(
+                op: impl for<'a> Fn(Self::Replicated<'a>) -> $crate::Result<()> + 'static,
+            ) -> Box<dyn Fn(&[$crate::Id], &mut $crate::Buffers<B>, &dyn core::any::Any) -> $crate::Result<()>> {
+                Box::new(move |ids, buffers, dev| {
+                    let mut ids = ids.iter();
+
+                    op(($(
+                        unsafe {
+                            $to_impl::replicate_borrowed(
+                                ids.next().unwrap(), &mut *(buffers as *mut _), Some(dev)
+                            ).ok_or(crate::DeviceError::InvalidLazyBuf)?
+                        }
+                    ,)+))
+                })
+            }
+            #[inline]
+            unsafe fn replication<'a>(self) -> Self::Replicated<'a> {
                 #[allow(non_snake_case)]
                 let ($($to_impl,)+) = self;
-                $($to_impl::update_arg($to_impl, *ids.next().unwrap(), buffers)?;)*
-                Ok(())
+                ($($to_impl.replicate(),)+)
             }
         }
     };

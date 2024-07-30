@@ -51,7 +51,10 @@ impl<T, A: Eval<T> + MayToCLSource + MayToWgslSource> TwoWay<T> for A {}
 
 #[cfg(test)]
 pub mod tests_ex {
-    use crate::{prelude::Float, Combiner, Eval, Resolve, ToVal};
+    use crate::{Combiner, Eval, Resolve, ToVal};
+
+    #[cfg(not(feature = "std"))]
+    use crate::Float;
 
     #[cfg(feature = "std")]
     use crate::{ToCLSource, ToMarker};
@@ -229,7 +232,7 @@ pub mod tests_ex {
         assert_eq!(out.read(), &[3., 3., 4., 5., 3., 3.]);
     }
 
-    #[cfg(all(feature = "cpu", feature = "macro"))]
+    #[cfg(feature = "cpu")]
     #[test]
     fn test_apply_fn_cpu() {
         use crate::{ApplyFunction, Base, Buffer, Combiner, CPU};
@@ -257,7 +260,7 @@ pub mod tests_ex {
         Ok(())
     }
 
-    #[cfg(all(feature = "cpu", feature = "macro"))]
+    #[cfg(feature = "cpu")]
     #[test]
     fn test_run_apply_fn_cpu_more_complex() {
         use crate::{tests_helper::roughly_eq_slices, ApplyFunction, Base, Buffer, CPU};

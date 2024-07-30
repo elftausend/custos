@@ -85,9 +85,10 @@ impl<Mods> HasModules for CPU<Mods> {
 
 impl<SimpleMods> CPU<SimpleMods> {
     #[inline]
-    pub fn new<NewMods>() -> CPU<SimpleMods::Module>
+    pub fn new<'a, NewMods>() -> CPU<SimpleMods::Module>
     where
-        SimpleMods: Module<CPU, Module = NewMods>,
+        Self: 'a,
+        SimpleMods: Module<'a, CPU, Module = NewMods>,
         NewMods: Setup<CPU<NewMods>>,
     {
         let mut cpu = CPU {
@@ -186,8 +187,8 @@ impl<Mods> crate::LazySetup for CPU<Mods> {}
 #[cfg(feature = "fork")]
 impl<Mods> crate::ForkSetup for CPU<Mods> {}
 
-impl<'a, Mods: OnDropBuffer + OnNewBuffer<T, Self, S>, T: Unit + Clone, S: Shape> CloneBuf<'a, T, S>
-    for CPU<Mods>
+impl<'a, Mods: OnDropBuffer + OnNewBuffer<'a, T, Self, S>, T: Unit + Clone, S: Shape>
+    CloneBuf<'a, T, S> for CPU<Mods>
 {
     #[inline]
     fn clone_buf(&'a self, buf: &Buffer<'a, T, CPU<Mods>, S>) -> Buffer<'a, T, CPU<Mods>, S> {
@@ -203,17 +204,13 @@ impl<Mods: OnDropBuffer + 'static> UnaryFusing for CPU<Mods> {
     #[inline]
     fn unary_fuse_op<T: Unit + Copy + 'static>(
         &self,
-    ) -> fn(
-        &mut (
-            &mut Buffer<'_, T, Self, ()>,
-            &Buffer<'_, T, Self, ()>,
-            crate::NoId<Vec<std::rc::Rc<dyn Fn(crate::Resolve<T>) -> Box<dyn crate::TwoWay<T>>>>>,
-        ),
-    ) -> crate::Result<()> {
-        |(out, buf, ops)| {
+        ops_to_fuse: Vec<std::rc::Rc<dyn Fn(crate::Resolve<T>) -> Box<dyn crate::TwoWay<T>>>>,
+    ) -> Box<dyn Fn((&mut Buffer<'_, T, Self, ()>, &Buffer<'_, T, Self, ()>)) -> crate::Result<()>>
+    {
+        Box::new(move |(out, buf)| {
             for (out, buf) in out.iter_mut().zip(buf.iter()) {
                 let mut current_val = *buf;
-                for op in ops.iter() {
+                for op in ops_to_fuse.iter() {
                     let resolve = crate::Resolve {
                         val: current_val,
                         marker: "x",
@@ -223,7 +220,7 @@ impl<Mods: OnDropBuffer + 'static> UnaryFusing for CPU<Mods> {
                 *out = current_val;
             }
             Ok(())
-        }
+        })
     }
 }
 

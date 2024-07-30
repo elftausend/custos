@@ -15,7 +15,7 @@ This crate provides tools for executing custom array and automatic differentiati
 
 ## Installation
 
-The latest published version is of `0.7.x`. (April 14th, 2023). A lot has changed since. `0.7.x` can be found in the `custos-0.7` branch.
+The latest published version is of `0.7.x` (April 14th, 2023). A lot has changed since then. `0.7.x` can be found in the `custos-0.7` branch.
 
 Add "custos" as a dependency:
 ```toml
@@ -28,6 +28,18 @@ custos = "0.7.0"
 
 ### Available features: 
 
+To make specific devices useable, activate the corresponding features:
+
+Feature | Device | Notes
+--- | --- | ---
+cpu | `CPU` | Uses heap allocations.
+stack | `Stack` | Useable in `no-std` environments as it uses stack allocated `Buffer`s without requiring `alloc` or `std`. Practically only supports the `Base` module.
+opencl | `OpenCL` | Automatically maps unified memory. 
+cuda | `CUDA` |
+vulkan | `Vulkan` | Shaders are written in WGSL. + unified memory
+nnapi | `NnapiDevice` | `Lazy` module is mandatory.
+untyped | `Untyped` | Removes the need of `Buffer`'s generic parameters. (CPU and CUDA only for now)
+
 custos ships combineable modules. Different selected modules result in different behaviour when executing operations.
 New modules can be added in user code.
 ```rust
@@ -39,37 +51,29 @@ To make specific modules useable for building a device, activate the correspondi
 
 Feature | Module | Description
 --- | --- | ---
-on by default | `Base` | Default behaviour.
+*on by default* | `Base` | Default behaviour.
 autograd | `Autograd` | Enables running automatic differentiation.
 cached | `Cached` | Reuses allocations on demand.
 fork | `Fork` | Decides whether the CPU or GPU is faster for an operation. It then uses the faster device for following computations. (unified memory devices)
 lazy | `Lazy` | Lazy execution of operations and lazy intermediate allocations. Enables support for CUDA graphs.
-graph | `Graph` | Adds a memory usage optimizeable graph.
+graph | `Graph` | Adds a memory usage optimizeable graph and fusing of unary operations in combination with `Lazy`.
 
-Usage of these modules when writing custom operations: [`modules.md`](modules.md)
+Usage of these modules when writing custom operations: [`modules.md`](modules.md) and [`modules_usage.rs`](examples/modules_usage.rs).
 
 If an operations wants to be affected by a module, specific custos code must be called in that operation.
-
-To make specific devices useable, activate the corresponding features:
-
-Feature | Device | Notes
---- | --- | ---
-cpu | `CPU` | Uses heap allocations.
-stack | `Stack` | Useable in `no-std` environments as it uses stack allocated `Buffer`s without requiring `alloc`. Practically only supports the `Base` module.
-opencl | `OpenCL` | Currently the only device that supports automatic unified memory mapping. 
-cuda | `CUDA` |
-vulkan | `Vulkan` | Shaders are written in WGSL.
-nnapi | `NnapiDevice` | `Lazy` module is mandatory.
 
 Remaining features: 
 
 Feature | Description
 --- | --- 
+static-api | Enables the creation of `Buffer`s without providing a device.
 std | Adds standard library support.
 no-std | For no std environments, activates `stack` feature.
-static-api | Enables the creation of `Buffer`s without providing a device.
 macro | Reexport of [custos-macro]
 blas | Adds gemm functions of the system's (selected) BLAS library.
+half | Adds support for half precision floats.
+serde | Adds serialization and deserialization support.
+json | Adds convenience functions for serialization and deserialization to and from json.
 
 [custos-macro]: https://github.com/elftausend/custos-macro
 
@@ -80,7 +84,7 @@ blas | Adds gemm functions of the system's (selected) BLAS library.
 [unary]: https://github.com/elftausend/custos/blob/main/src/unary.rs
 
 Implement an operation for `CPU`:<br>
-- If you want to implement your own operations for all compute devices, consider looking here: [implement_operations.rs](examples/implement_operations.rs)<br>
+- If you want to implement your own operations for all compute devices, consider looking here: [implement_operations.rs](examples/implement_operations.rs) or ["modules_usage.rs"](examples/modules_usage.rs)<br>
 or to see it at a larger scale, look here [`custos-math`](https://github.com/elftausend/custos-math) (outdated, requires custos 0.7) or here [`sliced`](https://github.com/elftausend/sliced) (for automatic diff examples).
 
 This operation is only affected by the `Cached` module (and partially `Autograd`).

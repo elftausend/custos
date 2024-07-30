@@ -1,9 +1,11 @@
-use crate::{AsAny, ShallowCopy};
-use core::any::Any;
+use std::any::Any;
 
-pub trait BoxedShallowCopy: 'static {
+use crate::{Downcast, ShallowCopy};
+
+pub trait BoxedShallowCopy {
     fn shallow_copy(&self) -> Box<dyn BoxedShallowCopy>;
     fn as_any(&self) -> &dyn Any;
+    fn as_any_mut(&mut self) -> &mut dyn Any;
 }
 
 impl<T: ShallowCopy + 'static> BoxedShallowCopy for T {
@@ -16,30 +18,63 @@ impl<T: ShallowCopy + 'static> BoxedShallowCopy for T {
     fn as_any(&self) -> &dyn Any {
         self
     }
-}
-
-impl AsAny for Box<dyn BoxedShallowCopy> {
-    #[inline]
-    fn as_any(&self) -> *const () {
-        let data = &**self;
-        data as *const _ as *const ()
-    }
 
     #[inline]
-    fn as_any_mut(&mut self) -> *mut () {
-        let data = &mut **self;
-        data as *mut _ as *mut ()
+    fn as_any_mut(&mut self) -> &mut dyn Any {
+        self
     }
 }
 
-impl AsAny for Box<dyn Any> {
+impl Downcast for dyn BoxedShallowCopy {
     #[inline]
-    fn as_any(&self) -> *const () {
-        (&**self) as *const _ as *const ()
+    fn downcast_mut<T: 'static>(&mut self) -> Option<&mut T> {
+        self.as_any_mut().downcast_mut()
     }
 
     #[inline]
-    fn as_any_mut(&mut self) -> *mut () {
-        (&mut **self) as *mut _ as *mut ()
+    fn downcast_ref<T: 'static>(&self) -> Option<&T> {
+        self.as_any().downcast_ref()
+    }
+
+    #[inline]
+    unsafe fn downcast_mut_unchecked<T>(&mut self) -> &mut T {
+        Downcast::downcast_mut_unchecked(self.as_any_mut())
+    }
+
+    #[inline]
+    unsafe fn downcast_ref_unchecked<T>(&self) -> &T {
+        Downcast::downcast_ref_unchecked(self.as_any())
+    }
+
+    #[inline]
+    fn is<T: 'static>(&self) -> bool {
+        self.as_any().is::<T>()
+    }
+}
+
+impl<I: Downcast + ?Sized> Downcast for Box<I> {
+    #[inline]
+    fn downcast_mut<T: 'static>(&mut self) -> Option<&mut T> {
+        (**self).downcast_mut()
+    }
+
+    #[inline]
+    fn downcast_ref<T: 'static>(&self) -> Option<&T> {
+        (**self).downcast_ref()
+    }
+
+    #[inline]
+    unsafe fn downcast_mut_unchecked<T>(&mut self) -> &mut T {
+        (**self).downcast_mut_unchecked()
+    }
+
+    #[inline]
+    unsafe fn downcast_ref_unchecked<T>(&self) -> &T {
+        (**self).downcast_ref_unchecked()
+    }
+
+    #[inline]
+    fn is<T: 'static>(&self) -> bool {
+        (**self).is::<T>()
     }
 }

@@ -5,7 +5,7 @@ use std::rc::Rc;
 use web_sys::{Element, WebGlFramebuffer, WebGlShader};
 
 use crate::{
-    webgl::error::WebGlError, wgsl::WgslShaderLaunch, AddLayer, Alloc, Base, Buffer, Device, Module, OnDropBuffer, Read, RemoveLayer, Retrieve, Retriever, Setup, Shape, Unit, WrappedData
+    webgl::error::WebGlError, wgsl::{WgslDevice, WgslShaderLaunch}, AddLayer, Alloc, Base, Buffer, Device, Module, OnDropBuffer, Read, RemoveLayer, Retrieve, Retriever, Setup, Shape, Unit, WrappedData
 };
 
 use super::{
@@ -70,9 +70,9 @@ pub struct WebGL<Mods = Base> {
 
 impl<SimpleMods> WebGL<SimpleMods> {
     #[inline]
-    pub fn from_canvas<NewMods>(maybe_canvas: Element) -> crate::Result<WebGL<SimpleMods::Module>>
+    pub fn from_canvas<'a, NewMods>(maybe_canvas: Element) -> crate::Result<WebGL<SimpleMods::Module>>
     where
-        SimpleMods: Module<WebGL, Module = NewMods>,
+        SimpleMods: Module<'a, WebGL, Module = NewMods>,
         NewMods: Setup<WebGL<NewMods>>,
     {
         let mut webgl = WebGL {
@@ -83,9 +83,9 @@ impl<SimpleMods> WebGL<SimpleMods> {
         Ok(webgl)
     }
 
-    pub fn new<NewMods>() -> crate::Result<WebGL<SimpleMods::Module>>
+    pub fn new<'a, NewMods>() -> crate::Result<WebGL<SimpleMods::Module>>
     where
-        SimpleMods: Module<WebGL, Module = NewMods>,
+        SimpleMods: Module<'a, WebGL, Module = NewMods>,
         NewMods: Setup<WebGL<NewMods>>,
     {
         let document = web_sys::window()
@@ -96,6 +96,19 @@ impl<SimpleMods> WebGL<SimpleMods> {
             .create_element("canvas")
             .map_err(|_| WebGlError::CanvasCreation)?;
         Ok(WebGL::<SimpleMods>::from_canvas(canvas).unwrap())
+    }
+}
+
+impl WgslDevice for WebGL {
+    #[inline]
+    fn new(_idx: usize) -> crate::Result<Self> {
+        WebGL::<Base>::new() 
+    }
+}
+impl Default for WebGL {
+    #[inline]
+    fn default() -> Self {
+        WebGL::<Base>::new().unwrap()
     }
 }
 

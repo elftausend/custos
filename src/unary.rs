@@ -1,6 +1,6 @@
 use crate::{
-    AddGradFn, AddOperation, Alloc, AsNoId, Buffer, Device, Eval, HasId, MayTapeActions,
-    MayToCLSource, Resolve, Shape, TwoWay, Unit, ZeroGrad,
+    AddGradFn, AddOperation, Alloc, Buffer, Device, Eval, HasId, MayGradActions, MayToCLSource,
+    Resolve, Shape, TwoWay, Unit, ZeroGrad,
 };
 
 /// Applies a function to a buffer and returns a new buffer.
@@ -83,9 +83,9 @@ pub trait UnaryElementWiseMayGrad<T: Unit, D: Device, S: Shape>: Device {
     /// out.backward();
     /// assert_eq!(buf.grad().as_slice(), &[2.; 6]);
     /// ```
-    fn unary_ew<FO, GO>(
-        &self,
-        buf: &Buffer<T, D, S>,
+    fn unary_ew<'a, FO, GO>(
+        &'a self,
+        buf: &Buffer<'a, T, D, S>,
         forward_fn: impl Fn(Resolve<T>) -> FO + Copy + 'static,
         grad_fn: fn(Resolve<T>) -> GO,
     ) -> Buffer<T, Self, S>
@@ -97,17 +97,17 @@ pub trait UnaryElementWiseMayGrad<T: Unit, D: Device, S: Shape>: Device {
 impl<T, D, S> UnaryElementWiseMayGrad<T, D, S> for D
 where
     T: Unit + 'static,
-    D: AddGradFn + ApplyFunction<T, S, D> + UnaryGrad<T, S, D> + MayTapeActions + AddOperation,
+    D: AddGradFn + ApplyFunction<T, S, D> + UnaryGrad<T, S, D> + AddOperation + MayGradActions,
     // D::Data<T, S>: crate::ShallowCopy,
     D: Alloc<T> + ZeroGrad<T> + 'static,
     S: Shape,
 {
     #[inline(always)]
-    fn unary_ew<FO, GO>(
-        &self,
-        buf: &Buffer<T, D, S>,
+    fn unary_ew<'a, FO, GO>(
+        &'a self,
+        buf: &Buffer<'a, T, D, S>,
         forward_fn: impl Fn(Resolve<T>) -> FO + Copy + 'static,
-        _grad_fn: fn(Resolve<T>) -> GO,
+        grad_fn: fn(Resolve<T>) -> GO,
     ) -> Buffer<T, Self, S>
     where
         FO: TwoWay<T>,
@@ -115,14 +115,14 @@ where
     {
         let out = self.apply_fn(buf, forward_fn);
 
-        self.add_grad_fn((buf, &out, _grad_fn.no_id()), |(buf, out, grad_fn)| {
+        self.add_grad_fn((buf, &out), move |(buf, out)| {
             if !buf.requires_grad() {
                 return Ok(());
             }
             // lazy execution is already disabled during backward pass
-            buf.device().eagerly(|| {
+            buf.device().eagerly(|| unsafe {
                 buf.device()
-                    .add_unary_grad(buf, buf.grad_mut(), out.grad(), **grad_fn);
+                    .add_unary_grad(buf, buf.grad_mut_unbound(), out.grad(), grad_fn);
             });
             Ok(())
         });
@@ -167,20 +167,21 @@ mod tests {
     }
 
     #[cfg(feature = "autograd")]
-    fn test_unary_autograd<D>(device: &D)
+    fn test_unary_autograd<'a, 'b, D>(device: &'a D)
     where
         D::Data<f32, ()>: crate::ShallowCopy,
         D: 'static
             + crate::WriteBuf<f32>
             + crate::Read<f32>
-            + crate::TapeActions
+            + crate::GradActions
+            + crate::TapeActions<'b>
             + crate::HasAutograd
             + crate::UnaryElementWiseMayGrad<f32, D, ()>
             + crate::Alloc<f32>
             + crate::CachedBuffers
             + crate::AddOperation
             + crate::ZeroGrad<f32>
-            + crate::OnNewBuffer<f32, D, ()>,
+            + crate::OnNewBuffer<'a, f32, D, ()>,
     {
         use crate::Combiner;
 
@@ -197,6 +198,7 @@ mod tests {
             ],
         );
 
+        // out.backward();
         out.backward();
         roughly_eq_slices(
             &buf.grad().read_to_vec(),
@@ -280,8 +282,10 @@ mod tests {
                     -0.6536436208636119
                 ]
             );
-
-            buf.grad_mut().clear();
+            unsafe {
+                // TODO: use safe version
+                buf.grad_mut_unbound().clear();
+            }
         }
     }
 
@@ -322,6 +326,7 @@ mod tests {
         let buf = device.buffer([1., 2., 3., 4.]).require_grad();
 
         let out = device.unary_ew(&buf, |x| x.sin(), |x| x.cos());
+        out.replace();
         run_several_times!(device, buf, out);
     }
 
@@ -382,7 +387,7 @@ mod tests {
         for i in device.range(0..9) {
             let _out = device.unary_ew(&buf, |x| x.sin(), |x| x.cos());
             if i == 0 {
-                _out.grad_mut().write(&[1., 1., 1., 1.]);
+                unsafe { _out.grad_mut_unbound().write(&[1., 1., 1., 1.]) };
             }
         }
         let out = device.unary_ew(&buf, |x| x.sin(), |x| x.cos());

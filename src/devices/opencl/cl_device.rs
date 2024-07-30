@@ -2,8 +2,8 @@ use min_cl::CLDevice;
 
 use min_cl::api::{create_buffer, enqueue_full_copy_buffer, MemFlags};
 
-use super::{enqueue_kernel, AsClCvoidPtr, CLPtr};
-use crate::flag::AllocFlag;
+use super::{AsClCvoidPtr, CLPtr};
+use crate::{flag::AllocFlag, opencl::KernelLaunch};
 use crate::{impl_device_traits, Shape, Unit};
 use crate::{
     pass_down_use_gpu_or_cpu, Alloc, Base, Buffer, Cached, CachedCPU, CloneBuf, Device,
@@ -69,17 +69,18 @@ impl<SimpleMods> OpenCL<SimpleMods> {
     /// - No device was found at the given device index
     /// - some other OpenCL related errors
     #[inline]
-    pub fn new<NewMods>(device_idx: usize) -> crate::Result<OpenCL<NewMods>>
+    pub fn new<'a, NewMods>(device_idx: usize) -> crate::Result<OpenCL<NewMods>>
     where
-        SimpleMods: Module<OpenCL, Module = NewMods>,
+        Self: 'a,
+        SimpleMods: Module<'a, OpenCL, Module = NewMods>,
         NewMods: Setup<OpenCL<NewMods>>,
     {
         OpenCL::<SimpleMods>::from_cl_device(CLDevice::new(device_idx)?)
     }
 
-    pub fn from_cl_device<NewMods>(device: CLDevice) -> crate::Result<OpenCL<NewMods>>
+    pub fn from_cl_device<'a, NewMods>(device: CLDevice) -> crate::Result<OpenCL<NewMods>>
     where
-        SimpleMods: Module<OpenCL, Module = NewMods>,
+        SimpleMods: Module<'a, OpenCL, Module = NewMods>,
         NewMods: Setup<OpenCL<NewMods>>,
     {
         let mut opencl = OpenCL {
@@ -94,9 +95,9 @@ impl<SimpleMods> OpenCL<SimpleMods> {
 
     /// Returns the fastest [OpenCL] device available in your system.
     #[inline]
-    pub fn fastest<NewMods>() -> crate::Result<OpenCL<NewMods>>
+    pub fn fastest<'a, NewMods>() -> crate::Result<OpenCL<NewMods>>
     where
-        SimpleMods: Module<OpenCL, Module = NewMods>,
+        SimpleMods: Module<'a, OpenCL, Module = NewMods>,
         NewMods: Setup<OpenCL<NewMods>>,
     {
         OpenCL::<SimpleMods>::from_cl_device(CLDevice::fastest()?)
@@ -160,7 +161,7 @@ impl<Mods> OpenCL<Mods> {
         lws: Option<[usize; 3]>,
         args: &[&dyn AsClCvoidPtr],
     ) -> crate::Result<()> {
-        enqueue_kernel(self, src, gws, lws, args)
+        self.device.launch_kernel(src, gws, lws, args)
     }
 }
 
@@ -269,7 +270,9 @@ impl<Mods: OnDropBuffer, T: Unit> Alloc<T> for OpenCL<Mods> {
     }
 }
 
-impl<'a, T: Unit, Mods: OnDropBuffer + OnNewBuffer<T, Self, ()>> CloneBuf<'a, T> for OpenCL<Mods> {
+impl<'a, T: Unit, Mods: OnDropBuffer + OnNewBuffer<'a, T, Self, ()>> CloneBuf<'a, T>
+    for OpenCL<Mods>
+{
     fn clone_buf(&'a self, buf: &Buffer<'a, T, Self>) -> Buffer<'a, T, Self> {
         let cloned = Buffer::new(self, buf.len());
         let event = unsafe {

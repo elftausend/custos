@@ -42,16 +42,16 @@ impl Device for Untyped {
     }
 
     #[inline]
-    fn data_as_wrap<'a, T: Unit, S: crate::Shape>(
-        data: &'a Self::Data<T, S>,
-    ) -> &'a Self::Wrap<T, Self::Base<T, S>> {
+    fn data_as_wrap<T: Unit, S: crate::Shape>(
+        data: &Self::Data<T, S>,
+    ) -> &Self::Wrap<T, Self::Base<T, S>> {
         data
     }
 
     #[inline]
-    fn data_as_wrap_mut<'a, T: Unit, S: crate::Shape>(
-        data: &'a mut Self::Data<T, S>,
-    ) -> &'a mut Self::Wrap<T, Self::Base<T, S>> {
+    fn data_as_wrap_mut<T: Unit, S: crate::Shape>(
+        data: &mut Self::Data<T, S>,
+    ) -> &mut Self::Wrap<T, Self::Base<T, S>> {
         data
     }
 
@@ -80,7 +80,7 @@ impl HasModules for Untyped {
 }
 
 impl OnDropBuffer for Untyped {}
-impl<T: Unit, D: Device, S: Shape> OnNewBuffer<T, D, S> for Untyped {}
+impl<'dev, T: Unit, D: Device, S: Shape> OnNewBuffer<'dev, T, D, S> for Untyped {}
 
 impl WrappedData for Untyped {
     type Wrap<T, Base: HasId + PtrType> = Base;

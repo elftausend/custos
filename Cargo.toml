@@ -8,7 +8,7 @@ repository = "https://github.com/elftausend/custos"
 keywords = ["gpu", "autodiff", "arrays", "deep-learning", "fixed-size"]
 categories = ["science", "mathematics", "no-std", "external-ffi-bindings"]
 readme = "README.md"
-rust-version = "1.70"
+rust-version = "1.79"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
@@ -72,9 +72,10 @@ min-cl = { git = "https://github.com/elftausend/min-cl", optional = true }
 
 [features]
 # default = ["cpu", "opencl", "cuda", "blas", "static-api", "stack", "macro", "nnapi", "untyped", "autograd", "autograd", "cached", "lazy", "fork", "graph", "serde"]
-# default = ["no-std"]
-# default = ["cuda"]
-default = ["untyped", "cpu", "lazy", "graph", "autograd", "fork", "serde", "json", "half", "cached", "static-api", "stack", "opencl"]
+default = ["cpu", "untyped", "lazy", "graph", "opencl", "webgl"]
+# default = [ "cpu", "lazy", "autograd", "graph"]
+# default = ["untyped", "cpu", "lazy", "graph", "autograd", "fork", "serde", "json", "half", "cached", "static-api", "stack", "opencl", ]
+
 
 std = []
 
@@ -128,6 +129,10 @@ required-features = ["cpu"]
 [[example]]
 name = "cl_usage"
 required-features = ["opencl"]
+
+[[example]]
+name = "lazy_and_fusing"
+required-features = ["opencl", "lazy", "graph"]
 
 [[example]]
 name = "modules_usage"

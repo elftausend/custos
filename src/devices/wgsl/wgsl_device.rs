@@ -14,9 +14,11 @@ pub struct Wgsl<D: Device, Mods = Base> {
 
 impl<SimpleMods, D: WgslDevice + Device + Default> Wgsl<D, SimpleMods> {
     #[inline]
-    pub fn new<NewMods>(idx: usize) -> crate::Result<Wgsl<D, NewMods>>
+    pub fn new<'a, NewMods>(idx: usize) -> crate::Result<Wgsl<D, NewMods>>
     where
-        SimpleMods: Module<Wgsl<D>, Module = NewMods>,
+        Self: 'a,
+        D: 'a,
+        SimpleMods: Module<'a, Wgsl<D>, Module = NewMods>,
         NewMods: Setup<Wgsl<D, NewMods>>,
     {
         let mut wgsl = Wgsl {
@@ -99,11 +101,11 @@ impl<D: Device, Mods: OnDropBuffer> OnDropBuffer for Wgsl<D, Mods> {
     }
 }
 
-impl<D: Device, Mods: OnNewBuffer<T, D1, S>, T: Unit, D1: Device, S: Shape> OnNewBuffer<T, D1, S>
-    for Wgsl<D, Mods>
+impl<'dev, D: Device, Mods: OnNewBuffer<'dev, T, D1, S>, T: Unit, D1: Device, S: Shape>
+    OnNewBuffer<'dev, T, D1, S> for Wgsl<D, Mods>
 {
     #[inline]
-    fn on_new_buffer(&self, device: &D1, new_buf: &crate::Buffer<T, D1, S>) {
+    unsafe fn on_new_buffer(&self, device: &'dev D1, new_buf: &crate::Buffer<'dev, T, D1, S>) {
         self.modules.on_new_buffer(device, new_buf)
     }
 }
@@ -180,13 +182,12 @@ impl<D: Device + Alloc<T>, T: Unit, Mods: Retrieve<Self, T, S>, S: Shape> Retrie
 }
 
 impl<D: Device, Mods: AddOperation> AddOperation for Wgsl<D, Mods> {
-    #[inline]
-    fn add_op<Args: Parents<N> + crate::UpdateArgs, const N: usize>(
+    fn add_op<Args: Parents<N> + crate::AnyOp, const N: usize>(
         &self,
         args: Args,
-        operation: fn(&mut Args) -> crate::Result<()>,
+        op: impl for<'b> Fn(Args::Replicated<'b>) -> crate::Result<()> + 'static,
     ) -> crate::Result<()> {
-        self.modules.add_op(args, operation)
+        self.modules.add_op(args, op)
     }
 
     #[inline]
@@ -207,7 +208,8 @@ impl<D: Device, Mods: AddOperation> AddOperation for Wgsl<D, Mods> {
 
 #[cfg(test)]
 mod tests {
-    use crate::Device;
+    #[cfg(feature = "vulkan")]
+    use crate::{Device, Vulkan};
 
     use super::Wgsl;
 
@@ -223,9 +225,9 @@ mod tests {
     #[cfg(feature = "webgl")]
     #[test]
     fn test_wgsl_wrapper_webgl() {
-        use crate::WebGL;
+        use crate::{Device, WebGL};
 
-        let dev = Wgsl::<WebGL>::new().unwrap();
+        let dev = Wgsl::<WebGL>::new(0).unwrap();
         let _x = dev.buffer([1f32, 2., 3.]);
     }
 }

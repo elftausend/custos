@@ -39,7 +39,7 @@ impl<Mods: WrappedData, SD: Device> WrappedData for CachedModule<Mods, SD> {
     }
 }
 
-impl<Mods: Module<D>, D: Device> Module<D> for Cached<Mods> {
+impl<'a, Mods: Module<'a, D>, D: Device + 'a> Module<'a, D> for Cached<Mods> {
     type Module = CachedModule<Mods::Module, D>;
 
     fn new() -> Self::Module {
@@ -71,16 +71,17 @@ impl<Mods: Setup<NewDev>, D: Device, NewDev> Setup<NewDev> for CachedModule<Mods
 
 impl<SD: Device, Mods: AddOperation> AddOperation for CachedModule<Mods, SD> {
     #[inline]
-    fn ops_count(&self) -> usize {
-        self.modules.ops_count()
+    fn add_op<Args: Parents<N> + crate::AnyOp, const N: usize>(
+        &self,
+        args: Args,
+        op: impl for<'b> Fn(Args::Replicated<'b>) -> crate::Result<()> + 'static,
+    ) -> crate::Result<()> {
+        self.modules.add_op(args, op)
     }
 
-    fn add_op<Args: Parents<N>, const N: usize>(
-        &self,
-        mut args: Args,
-        operation: fn(&mut Args) -> crate::Result<()>,
-    ) -> crate::Result<()> {
-        operation(&mut args)
+    #[inline]
+    fn ops_count(&self) -> usize {
+        self.modules.ops_count()
     }
 
     #[inline]
@@ -112,17 +113,17 @@ impl<D: Device, SD: Device, Mods: ExecNow<D>> ExecNow<D> for CachedModule<Mods, 
     }
 }
 
-impl<T, D, Mods, SD, S> OnNewBuffer<T, D, S> for CachedModule<Mods, SD>
+impl<'a, T, D, Mods, SD, S> OnNewBuffer<'a, T, D, S> for CachedModule<Mods, SD>
 where
     T: Unit + 'static,
     D: Device + IsShapeIndep + 'static,
-    Mods: OnNewBuffer<T, D, S>,
+    Mods: OnNewBuffer<'a, T, D, S>,
     D::Data<T, S>: ShallowCopy,
     SD: Device,
     S: Shape,
 {
     #[inline]
-    fn on_new_buffer(&self, device: &D, new_buf: &Buffer<T, D, S>) {
+    unsafe fn on_new_buffer(&self, device: &'a D, new_buf: &Buffer<'a, T, D, S>) {
         self.modules.on_new_buffer(device, new_buf)
     }
 }
@@ -186,15 +187,46 @@ impl<Mods, SD: Device> Cursor for CachedModule<Mods, SD> {
 impl<Mods: crate::HasAutograd, SD: Device> crate::HasAutograd for CachedModule<Mods, SD> {}
 
 #[cfg(feature = "autograd")]
-impl<Mods: crate::TapeActions, SD: Device> crate::TapeActions for CachedModule<Mods, SD> {
+impl<'dev, Mods: crate::TapeActions<'dev>, SD: Device> crate::TapeActions<'dev>
+    for CachedModule<Mods, SD>
+{
     #[inline]
-    unsafe fn tape(&self) -> Option<&super::Tape> {
+    unsafe fn tape(&self) -> Option<&super::Tape<'dev>> {
         self.modules.tape()
     }
 
     #[inline]
-    unsafe fn tape_mut(&self) -> Option<&mut super::Tape> {
+    unsafe fn tape_mut(&self) -> Option<&mut super::Tape<'dev>> {
         self.modules.tape_mut()
+    }
+}
+
+#[cfg(feature = "autograd")]
+impl<Mods: crate::GradActions, SD: Device> crate::GradActions for CachedModule<Mods, SD> {
+    unsafe fn grad<
+        'a,
+        T: 'static,
+        D: Device + Alloc<T> + crate::ZeroGrad<T> + 'static,
+        S: Shape,
+    >(
+        &self,
+        device: &'a D,
+        buf: &Buffer<'a, T, D, S>,
+    ) -> &Buffer<'a, T, D, S> {
+        self.modules.grad(device, buf)
+    }
+
+    unsafe fn grad_mut<
+        'a,
+        T: 'static,
+        D: Device + Alloc<T> + crate::ZeroGrad<T> + 'static,
+        S: Shape,
+    >(
+        &self,
+        device: &'a D,
+        buf: &Buffer<'a, T, D, S>,
+    ) -> &mut Buffer<'a, T, D, S> {
+        self.modules.grad_mut(device, buf)
     }
 
     #[inline]
@@ -231,10 +263,10 @@ impl<Mods, SD: Device> RemoveLayer<Mods> for CachedModule<Mods, SD> {
 
 impl<Mods: AddGradFn, D: Device> AddGradFn for CachedModule<Mods, D> {
     #[inline]
-    fn add_grad_fn<Args: Parents<N> + crate::UpdateArgs, const N: usize>(
+    fn add_grad_fn<Args: Parents<N> + crate::AnyOp, const N: usize>(
         &self,
         args: Args,
-        op: fn(&mut Args) -> crate::Result<()>,
+        op: impl for<'b> Fn(Args::Replicated<'b>) -> crate::Result<()> + 'static,
     ) {
         self.modules.add_grad_fn(args, op)
     }

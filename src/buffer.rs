@@ -70,7 +70,7 @@ impl<'a, T: Unit, D: Device, S: Shape> Buffer<'a, T, D, S> {
     #[inline]
     pub fn new(device: &'a D, len: usize) -> Self
     where
-        D: OnNewBuffer<T, D, S> + Alloc<T>,
+        D: OnNewBuffer<'a, T, D, S> + Alloc<T>,
     {
         let base = device.alloc(len, crate::flag::AllocFlag::None).unwrap();
         Buffer::from_new_alloc(device, base)
@@ -80,7 +80,7 @@ impl<'a, T: Unit, D: Device, S: Shape> Buffer<'a, T, D, S> {
     #[track_caller]
     fn from_new_alloc(device: &'a D, base: D::Base<T, S>) -> Self
     where
-        D: OnNewBuffer<T, D, S>,
+        D: OnNewBuffer<'a, T, D, S>,
     {
         let data = device.base_to_data(base);
         let buf = Buffer {
@@ -89,14 +89,14 @@ impl<'a, T: Unit, D: Device, S: Shape> Buffer<'a, T, D, S> {
         };
 
         // mind: on_new_buffer must be called for user buffers!
-        device.on_new_buffer(device, &buf);
+        unsafe { device.on_new_buffer(device, &buf) };
         buf
     }
 
     #[inline]
     pub fn empty_like(&self) -> Buffer<'a, T, D, S>
     where
-        D: Alloc<T> + OnNewBuffer<T, D, S>,
+        D: Alloc<T> + OnNewBuffer<'a, T, D, S>,
     {
         Buffer::new(self.device(), self.len())
     }
@@ -104,21 +104,21 @@ impl<'a, T: Unit, D: Device, S: Shape> Buffer<'a, T, D, S> {
     #[inline]
     pub fn set_require_grad(self, require_grad: bool) -> Buffer<'a, T, D, S>
     where
-        D: OnNewBuffer<T, D, S>,
+        D: OnNewBuffer<'a, T, D, S>,
     {
         if let Some(device) = self.device {
             device.on_drop_buffer(device, &self);
         }
         let mut buf = self;
         buf.set_requires_grad(require_grad);
-        buf.device().on_new_buffer(buf.device(), &buf);
+        unsafe { buf.device().on_new_buffer(buf.device(), &buf) };
         buf
     }
 
     #[inline]
     pub fn require_grad(self) -> Buffer<'a, T, D, S>
     where
-        D: OnNewBuffer<T, D, S>,
+        D: OnNewBuffer<'a, T, D, S>,
     {
         self.set_require_grad(true)
     }
@@ -126,7 +126,7 @@ impl<'a, T: Unit, D: Device, S: Shape> Buffer<'a, T, D, S> {
     #[inline]
     pub fn no_grad(self) -> Buffer<'a, T, D, S>
     where
-        D: OnNewBuffer<T, D, S>,
+        D: OnNewBuffer<'a, T, D, S>,
     {
         self.set_require_grad(false)
     }
@@ -204,7 +204,7 @@ impl<'a, T: Unit, D: Device, S: Shape> Drop for Buffer<'a, T, D, S> {
     }
 }
 
-impl<'a, T: Unit, D: Device + OnNewBuffer<T, D, S>, S: Shape> Buffer<'a, T, D, S> {
+impl<'a, T: Unit, D: Device + OnNewBuffer<'a, T, D, S>, S: Shape> Buffer<'a, T, D, S> {
     /// Creates a new `Buffer` from a slice (&[T]).
     #[inline]
     pub fn from_slice(device: &'a D, slice: &[T]) -> Self
@@ -291,6 +291,7 @@ impl<'a, T: Unit, D: Device, S: Shape> Buffer<'a, T, D, S> {
 
     /// Returns the device of the `Buffer`.
     /// Panic if the `Buffer` is deviceless.
+    #[track_caller]
     pub fn device(&self) -> &'a D {
         self.device
             .expect("Called device() on a deviceless buffer.")
@@ -343,6 +344,7 @@ impl<'a, T: Unit, D: Device, S: Shape> Buffer<'a, T, D, S> {
     /// assert_eq!(&**buf, [4, 2, 3, 4, 5, 3]);
     /// ```
     #[inline]
+    #[track_caller]
     pub fn write(&mut self, data: &[T])
     where
         D: WriteBuf<T, S, D>,
@@ -394,6 +396,7 @@ impl<'a, T: Unit, D: Device, S: Shape> Buffer<'a, T, D, S> {
 
     /// Sets all elements in `Buffer` to the default value.
     #[inline]
+    #[track_caller]
     pub fn clear(&mut self)
     where
         D: ClearBuf<T, S, D>,
@@ -428,9 +431,9 @@ impl<'a, T: Unit, D: Device, S: Shape> Buffer<'a, T, D, S> {
     }
 
     #[inline]
-    pub fn to_device_type<DO>(self, device: &DO) -> Buffer<'_, T, DO, S>
+    pub fn to_device_type<'b, DO>(self, device: &'b DO) -> Buffer<'b, T, DO, S>
     where
-        DO: Device + OnNewBuffer<T, DO, S>,
+        DO: Device + OnNewBuffer<'b, T, DO, S>,
         D::Data<T, S>: Default,
         D::Base<T, S>: ShallowCopy,
         DO::Base<T, S>: From<D::Base<T, S>>,

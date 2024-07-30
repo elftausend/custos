@@ -8,7 +8,7 @@ pub struct ReqGradWrapper<Data, T> {
     pub _pd: PhantomData<T>,
 }
 
-impl<Mods: WrappedData> WrappedData for Autograd<Mods> {
+impl<'dev, Mods: WrappedData> WrappedData for Autograd<'dev, Mods> {
     type Wrap<T, Base: crate::HasId + crate::PtrType> = ReqGradWrapper<Mods::Wrap<T, Base>, T>;
 
     #[inline]

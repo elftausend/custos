@@ -64,11 +64,11 @@ impl<U, Mods: OnDropBuffer> Device for NnapiDevice<U, Mods> {
 
 unsafe impl<U, Mods: OnDropBuffer> IsShapeIndep for NnapiDevice<U, Mods> {}
 
-impl<U, T: Unit, D: Device, S: Shape, Mods: crate::OnNewBuffer<T, D, S>> crate::OnNewBuffer<T, D, S>
-    for NnapiDevice<U, Mods>
+impl<'a, U, T: Unit, D: Device, S: Shape, Mods: crate::OnNewBuffer<'a, T, D, S>>
+    crate::OnNewBuffer<'a, T, D, S> for NnapiDevice<U, Mods>
 {
     #[inline]
-    fn on_new_buffer(&self, device: &D, new_buf: &Buffer<T, D, S>) {
+    unsafe fn on_new_buffer(&self, device: &'a D, new_buf: &Buffer<'a, T, D, S>) {
         self.modules.on_new_buffer(device, new_buf)
     }
 }
@@ -164,10 +164,12 @@ impl<U, T: AsOperandCode, Mods: OnDropBuffer> Alloc<T> for NnapiDevice<U, Mods> 
 
 impl<T, SimpleMods> NnapiDevice<T, SimpleMods> {
     /// Creates a new [`NnapiDevice`].
-    pub fn new<NewMods>() -> crate::Result<NnapiDevice<T, NewMods>>
+    pub fn new<'a, NewMods>() -> crate::Result<NnapiDevice<T, NewMods>>
     // TODO keep in mind that lazy module requirement would make sense here
     where
-        SimpleMods: Module<NnapiDevice<T>, Module = NewMods>,
+        T: 'a,
+        Self: 'a,
+        SimpleMods: Module<'a, NnapiDevice<T>, Module = NewMods>,
         NewMods: Setup<NnapiDevice<T, NewMods>>,
     {
         let mut device = NnapiDevice {
@@ -248,7 +250,7 @@ impl<T, Mods: OnDropBuffer> NnapiDevice<T, Mods> {
 
 impl<T, Mods> LazySetup for NnapiDevice<T, Mods> {}
 
-impl<T> Default for NnapiDevice<T, Lazy<Base>> {
+impl<'a, T: 'a> Default for NnapiDevice<T, Lazy<'a, Base>> {
     #[inline]
     fn default() -> Self {
         Self::new().unwrap()
