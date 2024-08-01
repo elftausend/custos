@@ -68,9 +68,9 @@ fn test_occupancy() -> crate::Result<()> {
 
     unsafe {
         let params = &mut [
-            &a.ptrs().2 as *const u64 as *mut c_void,
-            &b.ptrs().2 as *const u64 as *mut c_void,
-            &c.ptrs().2 as *const u64 as *mut c_void,
+            &a.ptr as *const u64 as *mut c_void,
+            &b.ptr as *const u64 as *mut c_void,
+            &c.ptr as *const u64 as *mut c_void,
             &len as *const usize as *mut c_void,
         ];
         cuLaunchKernel(

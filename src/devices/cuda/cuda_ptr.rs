@@ -1,6 +1,6 @@
 use core::{marker::PhantomData, ptr::null_mut};
 
-use crate::{flag::AllocFlag, CommonPtrs, HasId, Id, PtrType, ShallowCopy};
+use crate::{flag::AllocFlag, HasId, Id, PtrType, ShallowCopy};
 
 use super::api::{cu_read, cufree, cumalloc, CudaResult};
 
@@ -104,18 +104,6 @@ impl<T> PtrType for CUDAPtr<T> {
     #[inline]
     unsafe fn set_flag(&mut self, flag: AllocFlag) {
         self.flag = flag;
-    }
-}
-
-impl<T> CommonPtrs<T> for CUDAPtr<T> {
-    #[inline]
-    fn ptrs(&self) -> (*const T, *mut std::ffi::c_void, u64) {
-        (null_mut(), null_mut(), self.ptr)
-    }
-
-    #[inline]
-    fn ptrs_mut(&mut self) -> (*mut T, *mut std::ffi::c_void, u64) {
-        (null_mut(), null_mut(), self.ptr)
     }
 }
 

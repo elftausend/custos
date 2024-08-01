@@ -12,10 +12,7 @@ pub trait Alloc<T: Unit>: Device + Sized {
     /// let device = CPU::<Base>::new();
     /// let data = Alloc::<f32>::alloc::<()>(&device, 12, AllocFlag::None).unwrap();
     ///
-    /// let buf: Buffer = Buffer {
-    ///     data,
-    ///     device: Some(&device),
-    /// };
+    /// let buf = Buffer::<_>::from_new_alloc(&device, data);
     /// assert_eq!(vec![0.; 12], buf.read());
     /// ```
     fn alloc<S: Shape>(&self, len: usize, flag: AllocFlag) -> crate::Result<Self::Base<T, S>>;
@@ -29,10 +26,7 @@ pub trait Alloc<T: Unit>: Device + Sized {
     /// let device = CPU::<Base>::new();
     /// let data = Alloc::<i32>::alloc_from_slice::<()>(&device, &[1, 5, 4, 3, 6, 9, 0, 4]).unwrap();
     ///
-    /// let buf: Buffer<i32, CPU> = Buffer {
-    ///     data,
-    ///     device: Some(&device),
-    /// };
+    /// let buf = Buffer::<_>::from_new_alloc(&device, data);
     /// assert_eq!(vec![1, 5, 4, 3, 6, 9, 0, 4], buf.read());
     /// ```
     fn alloc_from_slice<S: Shape>(&self, data: &[T]) -> crate::Result<Self::Base<T, S>>

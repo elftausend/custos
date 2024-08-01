@@ -190,15 +190,6 @@ pub trait ShallowCopy {
     unsafe fn shallow(&self) -> Self;
 }
 
-/// custos v5 compatibility for "common pointers".
-/// The commmon pointers contain the following pointers: host, opencl and cuda
-pub trait CommonPtrs<T> {
-    /// Returns the "immutable" common pointers.
-    fn ptrs(&self) -> (*const T, *mut c_void, u64);
-    /// Returns the mutable common pointers.
-    fn ptrs_mut(&mut self) -> (*mut T, *mut c_void, u64);
-}
-
 /// All type of devices that can create [`Buffer`]s
 pub trait DevicelessAble<'a, T: Unit, S: Shape = ()>: Alloc<T> {}
 

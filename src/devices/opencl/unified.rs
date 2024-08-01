@@ -225,7 +225,7 @@ mod tests {
     #[test]
     fn test_unified_mem_chain_unified_construct_unavailable() -> crate::Result<()> {
         let cpu = CPU::<Cached<Base>>::new();
-        let mut no_drop = cpu.retrieve::<0>(3, ()).unwrap();
+        let mut no_drop: Buffer<f64, _> = cpu.retrieve::<0>(3, ()).unwrap();
         no_drop.write(&[1., 2.3, 0.76]);
 
         let device = OpenCL::<Base>::new(chosen_cl_idx())?;
@@ -243,7 +243,7 @@ mod tests {
     #[test]
     fn test_construct_buffer_missing_cached_module() -> crate::Result<()> {
         let cpu = CPU::<Base>::new();
-        let mut no_drop = cpu.retrieve::<0>(3, ()).unwrap();
+        let mut no_drop: Buffer<f64, _> = cpu.retrieve::<0>(3, ()).unwrap();
         no_drop.write(&[1., 2.3, 0.76]);
 
         let device = OpenCL::<Base>::new(chosen_cl_idx())?;

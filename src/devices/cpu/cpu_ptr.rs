@@ -7,7 +7,7 @@ use core::{
 
 use std::alloc::handle_alloc_error;
 
-use crate::{flag::AllocFlag, CommonPtrs, HasId, HostPtr, Id, PtrType, ShallowCopy};
+use crate::{flag::AllocFlag, HasId, HostPtr, Id, PtrType, ShallowCopy};
 
 /// The pointer used for `CPU` [`Buffer`](crate::Buffer)s
 #[derive(Debug)]
@@ -230,18 +230,6 @@ impl<T> PtrType for CPUPtr<T> {
     #[inline]
     unsafe fn set_flag(&mut self, flag: AllocFlag) {
         self.flag = flag
-    }
-}
-
-impl<T> CommonPtrs<T> for CPUPtr<T> {
-    #[inline]
-    fn ptrs(&self) -> (*const T, *mut core::ffi::c_void, u64) {
-        (self.ptr as *const T, null_mut(), 0)
-    }
-
-    #[inline]
-    fn ptrs_mut(&mut self) -> (*mut T, *mut core::ffi::c_void, u64) {
-        (self.ptr, null_mut(), 0)
     }
 }
 

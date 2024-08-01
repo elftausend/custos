@@ -2,6 +2,7 @@ use core::marker::PhantomData;
 
 use crate::{flag::AllocFlag, Autograd, HasId, PtrType, ShallowCopy, Shape, WrappedData};
 
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct ReqGradWrapper<Data, T> {
     pub requires_grad: bool,
     pub data: Data,
