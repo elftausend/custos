@@ -85,18 +85,3 @@ where
         }
     }
 }
-
-impl<Data: crate::ConvPtr<NewT, NewS, ConvertTo = Data>, T, NewT, NewS: Shape>
-    crate::ConvPtr<NewT, NewS> for ReqGradWrapper<Data, T>
-{
-    type ConvertTo = ReqGradWrapper<Data, NewT>;
-
-    #[inline]
-    unsafe fn convert(&self, flag: crate::flag::AllocFlag) -> Self::ConvertTo {
-        ReqGradWrapper {
-            requires_grad: self.requires_grad,
-            data: self.data.convert(flag),
-            _pd: PhantomData,
-        }
-    }
-}

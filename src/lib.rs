@@ -111,7 +111,6 @@ pub mod modules;
 mod op_hint;
 mod op_traits;
 mod parents;
-mod ptr_conv;
 mod range;
 mod shape;
 mod two_way_ops;
@@ -127,7 +126,6 @@ pub use layer_management::*;
 pub use modules::*;
 pub use number::*;
 pub use parents::*;
-pub use ptr_conv::*;
 pub use range::*;
 pub use wrapper::*;
 
