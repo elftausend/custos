@@ -48,13 +48,20 @@ pub trait Retrieve<D, T: Unit, S: Shape = ()>: OnDropBuffer {
 
 pub trait Cursor {
     fn cursor(&self) -> usize;
+
+    /// # Safety
+    /// Moving the cursor manually to a specific position can possible create multiple mutable references to the same memory location
     unsafe fn set_cursor(&self, cursor: usize);
 
+    /// # Safety
+    /// Moving the cursor manually to a specific position can possible create multiple mutable references to the same memory location
     #[inline]
     unsafe fn inc_cursor(&self, inc: usize) {
         self.set_cursor(self.cursor() + inc)
     }
 
+    /// # Safety
+    /// Moving the cursor manually to a specific position can possible create multiple mutable references to the same memory location
     #[inline]
     unsafe fn bump_cursor(&self) {
         self.inc_cursor(1)
@@ -430,7 +437,7 @@ macro_rules! pass_down_add_operation {
             fn add_op<Args: $crate::Parents<N> + $crate::AnyOp, const N: usize>(
                 &self,
                 args: Args,
-                op: impl for<'a> Fn(Args::Replicated<'a>) -> crate::Result<()> + 'static,
+                op: impl for<'a> Fn(Args::Replicated<'a>) -> $crate::Result<()> + 'static,
             ) -> $crate::Result<()> {
                 self.modules.add_op(args, op)
             }

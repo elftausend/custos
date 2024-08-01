@@ -23,6 +23,11 @@ impl<'a, T: Unit, S: crate::Shape> Buffer<'a, T, Untyped, S> {
         NS: crate::Shape,
     {
         self.data.matches_storage_type::<NT>().ok()?;
+
+        // Safety: An Untyped device buffer is shape and data type independent!
+        // type Base<T, S: crate::Shape> = UntypedData; <- missing <T, S>
+        // type Data<T, S: crate::Shape> = UntypedData; <|
+        // storage type is also matched 
         Some(unsafe { std::mem::transmute(self) })
     }
 
@@ -41,7 +46,10 @@ impl<'a, T: Unit, S: crate::Shape> Buffer<'a, T, Untyped, S> {
         NS: crate::Shape,
     {
         self.data.matches_storage_type::<NT>().ok()?;
-        Some(unsafe { std::mem::transmute(self) })
+
+        Some(unsafe {
+            &*(self as *const Self as *const Buffer<NT, Untyped, NS>)
+        })
     }
 
     #[inline]
@@ -51,17 +59,29 @@ impl<'a, T: Unit, S: crate::Shape> Buffer<'a, T, Untyped, S> {
         NS: crate::Shape,
     {
         self.data.matches_storage_type::<NT>().ok()?;
-        Some(unsafe { std::mem::transmute(self) })
+        Some(unsafe {
+            &mut *(self as *mut Self as *mut Buffer<NT, Untyped, NS>)
+        })
     }
 
     #[inline]
     pub fn as_untyped(&self) -> &Buffer<'a, (), Untyped, ()> {
-        unsafe { std::mem::transmute(self) }
+        // Safety: An Untyped device buffer is shape and data type independent!
+        // type Base<T, S: crate::Shape> = UntypedData; <- missing <T, S>
+        // type Data<T, S: crate::Shape> = UntypedData; <|
+        unsafe {
+            &*(self as *const Self as *const Buffer<(), Untyped, ()>)
+        }
     }
 
     #[inline]
     pub fn as_untyped_mut(&mut self) -> &mut Buffer<'a, (), Untyped, ()> {
-        unsafe { std::mem::transmute(self) }
+        // Safety: An Untyped device buffer is shape and data type independent!
+        // type Base<T, S: crate::Shape> = UntypedData; <- missing <T, S>
+        // type Data<T, S: crate::Shape> = UntypedData; <|
+        unsafe {
+            &mut *(self as *mut Self as *mut Buffer<(), Untyped, ()>)
+        }
     }
 
     #[inline]

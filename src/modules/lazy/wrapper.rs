@@ -109,4 +109,3 @@ impl<Data: ShallowCopy, T> ShallowCopy for LazyWrapper<Data, T> {
         }
     }
 }
-
