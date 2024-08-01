@@ -150,6 +150,10 @@ pub fn location() -> &'static core::panic::Location<'static> {
     core::panic::Location::caller()
 }
 
+#[cfg(feature = "std")]
+pub(crate) type OperationFn<B> =
+    Box<dyn Fn(&[Id], &mut Buffers<B>, &dyn core::any::Any) -> crate::Result<()> + 'static>;
+
 /// This trait is implemented for every pointer type.
 pub trait PtrType {
     /// Returns the element count.

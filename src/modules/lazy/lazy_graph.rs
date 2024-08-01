@@ -1,12 +1,8 @@
 use crate::{
-    bounds_to_range, modules::lazy::exec_iter::ExecIter, op_hint::OpHint, AnyOp, BoxedShallowCopy,
-    Buffers, Device, Downcast, Id, Parents,
+    bounds_to_range, modules::lazy::exec_iter::ExecIter, op_hint::OpHint, AnyOp, BoxedShallowCopy, Buffers, Device, Downcast, Id, OperationFn, Parents
 };
 use core::ops::RangeBounds;
 use std::collections::HashSet;
-
-pub type OperationFn<B> =
-    Box<dyn Fn(&[Id], &mut Buffers<B>, &dyn core::any::Any) -> crate::Result<()> + 'static>;
 
 pub struct Operation<B, T> {
     pub arg_ids: Vec<Id>,
