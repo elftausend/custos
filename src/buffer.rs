@@ -43,10 +43,10 @@ mod num;
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Buffer<'a, T: Unit = f32, D: Device = CPU<Base>, S: Shape = ()> {
     /// the type of pointer
-    pub data: D::Data<T, S>,
+    pub(crate) data: D::Data<T, S>,
     /// A reference to the corresponding device. Mainly used for operations without a device parameter.
     #[cfg_attr(feature = "serde", serde(skip))]
-    pub device: Option<&'a D>,
+    pub(crate) device: Option<&'a D>,
 }
 
 impl<'a, T: Unit, D: Device, S: Shape> Buffer<'a, T, D, S> {
@@ -292,9 +292,15 @@ impl<'a, T: Unit, D: Device, S: Shape> Buffer<'a, T, D, S> {
     /// Returns the device of the `Buffer`.
     /// Panic if the `Buffer` is deviceless.
     #[track_caller]
+    #[inline]
     pub fn device(&self) -> &'a D {
         self.device
             .expect("Called device() on a deviceless buffer.")
+    }
+
+    #[inline]
+    pub fn data(&self) -> &D::Data<T, S> {
+        &self.data
     }
 
     /// Reads the contents of the `Buffer`.
