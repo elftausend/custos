@@ -1,5 +1,5 @@
 use crate::{
-    cpu::CPUPtr, Alloc, AsOperandCode, Base, Buffer, ConvPtr, Device, HasId, IsShapeIndep, Lazy,
+    cpu::CPUPtr, Alloc, AsOperandCode, Base, Buffer, Device, HasId, IsShapeIndep, Lazy,
     LazyRun, LazySetup, Module, OnDropBuffer, PtrType, Retrieve, Retriever, Setup, Shape, Unit,
     WrappedData,
 };
@@ -152,10 +152,17 @@ impl<U, T: AsOperandCode, Mods: OnDropBuffer> Alloc<T> for NnapiDevice<U, Mods> 
         let nnapi_ptr =
             Alloc::<T>::alloc::<S>(self, data.len(), crate::flag::AllocFlag::default())?;
 
-        let mut ptr = unsafe { CPUPtr::<T>::new(data.len(), crate::flag::AllocFlag::Wrapper) };
+        let mut ptr: CPUPtr<T> = unsafe { CPUPtr::<T>::new(data.len(), crate::flag::AllocFlag::Wrapper) };
         ptr.clone_from_slice(data);
 
-        let ptr = unsafe { ConvPtr::<_, ()>::convert(&ptr, crate::flag::AllocFlag::None) };
+        // this deallocates the pointer on drop with the correct alignment
+        let ptr = CPUPtr {
+            ptr: ptr.ptr as *mut u8,
+            len: ptr.len,
+            flag: crate::flag::AllocFlag::None,
+            align: Some(core::mem::align_of::<T>()),
+            ty_size: Some(core::mem::size_of::<T>())
+        };
 
         self.input_ptrs.borrow_mut().push((nnapi_ptr.idx, ptr));
         Ok(nnapi_ptr)
