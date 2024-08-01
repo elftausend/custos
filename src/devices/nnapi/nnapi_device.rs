@@ -1,5 +1,5 @@
 use crate::{
-    cpu::CPUPtr, Alloc, AsOperandCode, Base, Buffer, Device, HasId, IsShapeIndep, Lazy, LazyRun,
+    cpu::{CPUPtr, DeallocWithLayout}, Alloc, AsOperandCode, Base, Buffer, Device, HasId, IsShapeIndep, Lazy, LazyRun,
     LazySetup, Module, OnDropBuffer, PtrType, Retrieve, Retriever, Setup, Shape, Unit, WrappedData,
 };
 
@@ -116,7 +116,7 @@ impl<U, Mods: Retrieve<Self, T, S>, T: AsOperandCode, S: Shape> Retriever<T, S>
 }
 
 /// A [`CPUPtr`] with a u8 generic type.
-pub type ArrayPtr = CPUPtr<u8>;
+pub type ArrayPtr = DeallocWithLayout;
 
 /// Creates an [`Operand`] (datatype) from a shape `S`.
 #[inline]
@@ -155,14 +155,7 @@ impl<U, T: AsOperandCode, Mods: OnDropBuffer> Alloc<T> for NnapiDevice<U, Mods> 
             unsafe { CPUPtr::<T>::new(data.len(), crate::flag::AllocFlag::Wrapper) };
         ptr.clone_from_slice(data);
 
-        // this deallocates the pointer on drop with the correct alignment
-        let ptr = CPUPtr {
-            ptr: ptr.ptr as *mut u8,
-            len: ptr.len,
-            flag: crate::flag::AllocFlag::None,
-            align: Some(core::mem::align_of::<T>()),
-            ty_size: Some(core::mem::size_of::<T>()),
-        };
+        let ptr = unsafe { DeallocWithLayout::new(ptr) }.unwrap();
 
         self.input_ptrs.borrow_mut().push((nnapi_ptr.idx, ptr));
         Ok(nnapi_ptr)
@@ -225,10 +218,7 @@ impl<T, Mods: OnDropBuffer> NnapiDevice<T, Mods> {
                 run.set_input_raw(
                     idx as i32,
                     input_ptr.ptr.cast(),
-                    input_ptr
-                        .ty_size
-                        .expect("`size` is set during with_slice creation")
-                        * input_ptr.len,
+                    input_ptr.layout().size()
                 )
             }?
         }
