@@ -32,13 +32,8 @@ pub fn validation_layers<'a>() -> Vec<&'a CStr> {
         .parse::<bool>()
         .unwrap_or_default();
 
-    // TODO: rust 1.77 stabilized c"strings" (no unsafe, no null-termination)
     if use_validation_layer {
-        unsafe {
-            vec![CStr::from_bytes_with_nul_unchecked(
-                b"VK_LAYER_KHRONOS_validation\0",
-            )]
-        }
+        vec![c"VK_LAYER_KHRONOS_validation"]
     } else {
         vec![]
     }
@@ -48,7 +43,7 @@ impl Context {
     #[inline]
     pub fn new(device_idx: usize) -> crate::Result<Self> {
         let entry = unsafe { Entry::load()? };
-        let app_name = unsafe { CStr::from_bytes_with_nul_unchecked(b"custos\0") };
+        let app_name = c"custos";
         let app_info = vk::ApplicationInfo::default()
             .application_name(app_name)
             .application_version(0)
@@ -63,10 +58,7 @@ impl Context {
             .map(|raw_name| raw_name.as_ptr())
             .collect();
 
-        // TODO: rust 1.77 stabilized c"strings" (no unsafe, no null-termination)
-        let extensions = vec![unsafe {
-            CStr::from_bytes_with_nul_unchecked(b"VK_KHR_storage_buffer_storage_class\0")
-        }];
+        let extensions = vec![c"VK_KHR_storage_buffer_storage_class"];
 
         let extensions_raw: Vec<*const c_char> = extensions
             .iter()
