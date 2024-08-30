@@ -5,10 +5,7 @@ use std::rc::Rc;
 use web_sys::{Element, WebGlFramebuffer, WebGlShader};
 
 use crate::{
-    webgl::error::WebGlError,
-    wgsl::{WgslDevice, WgslShaderLaunch},
-    AddLayer, Alloc, Base, Buffer, Device, Module, OnDropBuffer, Read, RemoveLayer, Retrieve,
-    Retriever, Setup, Shape, Unit, WrappedData, WriteBuf,
+    webgl::error::WebGlError, wgsl::{WgslDevice, WgslShaderLaunch}, AddLayer, Alloc, Base, Buffer, CloneBuf, Device, Module, OnDropBuffer, OnNewBuffer, Read, RemoveLayer, Retrieve, Retriever, Setup, Shape, Unit, WrappedData, WriteBuf
 };
 
 use super::{
@@ -255,6 +252,20 @@ where
     fn write_buf(&self, dst: &mut Buffer<T, Self, S>, src: &Buffer<T, Self, S>) {
         // is there a way to do this without reading?
         dst.write(&src.read())
+    }
+}
+
+impl<'a, T, Mods, S> CloneBuf<'a, T, S> for WebGL<Mods>
+where
+    T: WebGlNumber + Default + Copy + 'static,
+    Mods: OnDropBuffer + OnNewBuffer<'a, T, Self, S>,
+    S: Shape,
+{
+    #[inline]
+    fn clone_buf(&'a self, buf: &Buffer<'a, T, Self, S>) -> Buffer<'a, T, Self, S> {
+        let mut cloned = buf.empty_like();
+        cloned.write(&buf.read());
+        cloned
     }
 }
 
