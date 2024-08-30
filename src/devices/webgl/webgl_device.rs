@@ -239,19 +239,19 @@ where
 
 impl<T, Mods, S> WriteBuf<T, S, Self> for WebGL<Mods>
 where
-    T: WebGlNumber + Default + Clone + 'static,
+    T: WebGlNumber + Default + Copy + 'static,
     Mods: OnDropBuffer,
     S: Shape,
 {
     #[inline]
     fn write(&self, buf: &mut Buffer<T, Self, S>, data: &[T]) {
-        buf.write(data)
+        buf.base_mut().write(data.iter().copied()).expect("Cannot write to buffer");
     }
 
     #[inline]
     fn write_buf(&self, dst: &mut Buffer<T, Self, S>, src: &Buffer<T, Self, S>) {
         // is there a way to do this without reading?
-        dst.write(&src.read())
+        self.write(dst, &src.read())
     }
 }
 
