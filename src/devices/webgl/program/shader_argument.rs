@@ -1,5 +1,7 @@
 use crate::{
-    webgl::{data::WebGlData, error::WebGlError}, wgsl::{AsShaderArg, WgslShaderLaunch}, Buffer, OnDropBuffer, Shape, Unit, WebGL
+    webgl::{data::WebGlData, error::WebGlError},
+    wgsl::{AsShaderArg, WgslShaderLaunch},
+    Buffer, OnDropBuffer, Shape, Unit, WebGL,
 };
 use web_sys::{WebGl2RenderingContext, WebGlTexture, WebGlUniformLocation};
 
