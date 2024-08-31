@@ -121,9 +121,9 @@ impl BorrowCache {
     }
 
     #[inline]
-    pub fn get_buf<'a, T, D, S>(
+    pub fn get_buf<T, D, S>(
         &self,
-        _device: &'a D,
+        _device: &D,
         id: Id,
     ) -> Result<&Buffer<'_, T, D, S>, CachingError>
     where

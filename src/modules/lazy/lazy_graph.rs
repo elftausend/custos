@@ -1,13 +1,12 @@
 use crate::{
-    bounds_to_range, modules::lazy::exec_iter::ExecIter, op_hint::OpHint, AnyOp, BoxedShallowCopy,
-    Buffers, Device, Downcast, Id, Parents,
+    bounds_to_range, modules::lazy::exec_iter::ExecIter, op_hint::OpHint, AnyOp, BoxedShallowCopy, Buffers, Device, Downcast, Id, OperationFn, Parents
 };
 use core::ops::RangeBounds;
 use std::collections::HashSet;
 
 pub struct Operation<B, T> {
     pub arg_ids: Vec<Id>,
-    pub op: Box<dyn Fn(&[Id], &mut Buffers<B>, &dyn core::any::Any) -> crate::Result<()> + 'static>,
+    pub op: OperationFn<B>,
     pub op_hint: OpHint<T>,
 }
 
@@ -120,8 +119,7 @@ impl<B: Downcast, T> LazyGraph<B, T> {
             panic!()
         }
 
-        let op: Box<dyn Fn(&[Id], &mut Buffers<B>, &dyn core::any::Any) -> crate::Result<()>> =
-            Args::replication_fn::<B>(op);
+        let op: OperationFn<B> = Args::replication_fn::<B>(op);
 
         Operation {
             arg_ids,

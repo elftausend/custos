@@ -11,7 +11,7 @@ use crate::cpu::{CPUPtr, CPU};
 use crate::CPU;
 
 use crate::{
-    flag::AllocFlag, shape::Shape, Alloc, Base, ClearBuf, CloneBuf, CommonPtrs, Device,
+    flag::AllocFlag, shape::Shape, Alloc, Base, ClearBuf, CloneBuf, Device,
     DevicelessAble, HasId, IsShapeIndep, OnDropBuffer, OnNewBuffer, PtrType, Read, ReplaceBuf,
     ShallowCopy, Unit, WrappedData, WriteBuf, ZeroGrad,
 };
@@ -43,10 +43,10 @@ mod num;
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Buffer<'a, T: Unit = f32, D: Device = CPU<Base>, S: Shape = ()> {
     /// the type of pointer
-    pub data: D::Data<T, S>,
+    pub(crate) data: D::Data<T, S>,
     /// A reference to the corresponding device. Mainly used for operations without a device parameter.
     #[cfg_attr(feature = "serde", serde(skip))]
-    pub device: Option<&'a D>,
+    pub(crate) device: Option<&'a D>,
 }
 
 impl<'a, T: Unit, D: Device, S: Shape> Buffer<'a, T, D, S> {
@@ -78,7 +78,7 @@ impl<'a, T: Unit, D: Device, S: Shape> Buffer<'a, T, D, S> {
 
     #[inline]
     #[track_caller]
-    fn from_new_alloc(device: &'a D, base: D::Base<T, S>) -> Self
+    pub fn from_new_alloc(device: &'a D, base: D::Base<T, S>) -> Self
     where
         D: OnNewBuffer<'a, T, D, S>,
     {
@@ -292,9 +292,15 @@ impl<'a, T: Unit, D: Device, S: Shape> Buffer<'a, T, D, S> {
     /// Returns the device of the `Buffer`.
     /// Panic if the `Buffer` is deviceless.
     #[track_caller]
+    #[inline]
     pub fn device(&self) -> &'a D {
         self.device
             .expect("Called device() on a deviceless buffer.")
+    }
+
+    #[inline]
+    pub fn data(&self) -> &D::Data<T, S> {
+        &self.data
     }
 
     /// Reads the contents of the `Buffer`.
@@ -505,23 +511,6 @@ impl<'a, T: Unit, D: IsShapeIndep, S: Shape> Buffer<'a, T, D, S> {
     }
 }
 
-impl<'a, T: Unit, D: Device, S: Shape> Buffer<'a, T, D, S>
-where
-    D::Data<T, S>: CommonPtrs<T>,
-{
-    #[inline]
-    /// Returns all types of pointers. (host, OpenCL, CUDA)
-    pub fn ptrs(&self) -> (*const T, *mut c_void, u64) {
-        self.data.ptrs()
-    }
-
-    #[inline]
-    /// Returns all types of pointers. (host, OpenCL, CUDA)
-    pub fn ptrs_mut(&mut self) -> (*mut T, *mut c_void, u64) {
-        self.data.ptrs_mut()
-    }
-}
-
 impl<'a, T: Unit, D: Device> Buffer<'a, T, D> {
     /// Returns `true` if `Buffer` is created without a slice.
     /// # Example
@@ -599,7 +588,7 @@ impl<'a, Mods: OnDropBuffer, T: Unit, S: Shape> Buffer<'a, T, crate::OpenCL<Mods
             !self.base().ptr.is_null(),
             "called cl_ptr() on an invalid OpenCL buffer"
         );
-        self.ptrs().1
+        self.base().ptr
     }
 }
 
@@ -693,34 +682,22 @@ impl<T: Unit, D: Device, S: Shape> core::ops::DerefMut for Buffer<'_, T, D, S> {
 use core::fmt::Debug;
 
 #[cfg(feature = "std")]
-impl<'a, T, D> Debug for Buffer<'a, T, D>
+impl<'a, T, D, S> Debug for Buffer<'a, T, D, S>
 where
     T: Unit + Debug + Default + Clone + 'a,
-    D: Read<T> + Device + 'a,
-    for<'b> <D as Read<T>>::Read<'b>: Debug,
-    D::Base<T, ()>: CommonPtrs<T>,
+    D: Read<T, S> + Device + 'a,
+    for<'b> <D as Read<T, S>>::Read<'b>: Debug,
+    D::Data<T, S>: Debug, 
+    S: Shape,
 {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         f.debug_struct("Buffer")
-            .field("ptr (CPU, CL, CU)", &self.ptrs())
-            .field("len", &self.len());
+            .field("ptr", self.data());
         writeln!(f, ",")?;
 
-        if !self.ptrs().0.is_null() {
-            let slice = unsafe { std::slice::from_raw_parts(self.ptrs().0, self.len()) };
-            writeln!(f, "CPU:    {slice:?}")?;
-        }
-
-        #[cfg(feature = "opencl")]
-        if !self.ptrs().1.is_null() {
-            write!(f, "OpenCL: {:?}, ", self.read())?;
-        }
-
-        #[cfg(feature = "cuda")]
-        if self.ptrs().2 != 0 {
-            write!(f, "CUDA: {:?}, ", self.read())?;
-        }
-
+        let data = self.read(); 
+        writeln!(f, "data:    {data:?}")?;
+        writeln!(f, "len:    {:?}", self.len())?;
         write!(
             f,
             "datatype={}, device={device} }}",

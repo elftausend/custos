@@ -8,7 +8,7 @@ use crate::HostPtr;
 
 use min_cl::api::release_mem_object;
 
-use crate::{flag::AllocFlag, CommonPtrs, HasId, Id, PtrType, ShallowCopy};
+use crate::{flag::AllocFlag, HasId, Id, PtrType, ShallowCopy};
 
 /// The pointer used for `OpenCL` [`Buffer`](crate::Buffer)s
 #[derive(Debug, PartialEq, Eq)]
@@ -131,17 +131,5 @@ impl<T> Drop for CLPtr<T> {
         unsafe {
             release_mem_object(self.ptr).unwrap();
         }
-    }
-}
-
-impl<T> CommonPtrs<T> for CLPtr<T> {
-    #[inline]
-    fn ptrs(&self) -> (*const T, *mut c_void, u64) {
-        (self.host_ptr, self.ptr, 0)
-    }
-
-    #[inline]
-    fn ptrs_mut(&mut self) -> (*mut T, *mut c_void, u64) {
-        (self.host_ptr, self.ptr, 0)
     }
 }

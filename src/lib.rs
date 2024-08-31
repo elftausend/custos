@@ -118,7 +118,6 @@ pub mod modules;
 mod op_hint;
 mod op_traits;
 mod parents;
-mod ptr_conv;
 mod range;
 mod shape;
 mod two_way_ops;
@@ -134,7 +133,6 @@ pub use layer_management::*;
 pub use modules::*;
 pub use number::*;
 pub use parents::*;
-pub use ptr_conv::*;
 pub use range::*;
 pub use wrapper::*;
 
@@ -158,6 +156,10 @@ pub const VERSION: Option<&str> = option_env!("CARGO_PKG_VERSION");
 pub fn location() -> &'static core::panic::Location<'static> {
     core::panic::Location::caller()
 }
+
+#[cfg(feature = "std")]
+pub(crate) type OperationFn<B> =
+    Box<dyn Fn(&[Id], &mut Buffers<B>, &dyn core::any::Any) -> crate::Result<()> + 'static>;
 
 /// This trait is implemented for every pointer type.
 pub trait PtrType {
@@ -193,15 +195,6 @@ pub trait ShallowCopy {
     /// # Safety
     /// Shallow copies of pointers may live longer than the corresponding resource.
     unsafe fn shallow(&self) -> Self;
-}
-
-/// custos v5 compatibility for "common pointers".
-/// The commmon pointers contain the following pointers: host, opencl and cuda
-pub trait CommonPtrs<T> {
-    /// Returns the "immutable" common pointers.
-    fn ptrs(&self) -> (*const T, *mut c_void, u64);
-    /// Returns the mutable common pointers.
-    fn ptrs_mut(&mut self) -> (*mut T, *mut c_void, u64);
 }
 
 /// All type of devices that can create [`Buffer`]s

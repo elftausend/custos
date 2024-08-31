@@ -17,7 +17,7 @@ where
 {
     /// Calls `.backward_seeded` on the [`Tape`].
     #[inline]
-    pub fn backward<'b>(&self)
+    pub fn backward<'b>(&self) -> crate::Result<()>
     where
         T: Clone + One + 'static,
         D: TapeActions<'b>
@@ -29,12 +29,12 @@ where
             + GradActions,
         D: CachedBuffers,
     {
-        self.backward_with(&vec![T::one(); self.len()]);
+        self.backward_with(&vec![T::one(); self.len()])
     }
 
     /// Calls `.backward_seeded_maybe_with_buffers` on the [`Tape`] with the given buffer.
     #[inline]
-    pub fn backward_with<'b>(&self, seed: &[T])
+    pub fn backward_with<'b>(&self, seed: &[T]) -> crate::Result<()>
     where
         T: Clone + 'static,
         D: CachedBuffers
@@ -50,6 +50,8 @@ where
         if let Some(tape) = unsafe { self.device().tape_mut() } {
             let mut buffers = unsafe { self.device().buffers_mut() };
             tape.backward_seeded_maybe_with_buffers(self, seed, buffers.as_deref_mut())
+        } else {
+            Ok(())
         }
     }
 }
@@ -147,7 +149,7 @@ where
     /// Returns a mutable reference to the gradient of this buffer.
     /// Returns none either if the autograd feature is disabled, no tape was found (add [`Autograd`] module) or no gradient is allocated.
     // TODO: Maybe return Result with two error variants?
-    pub fn try_grad_mut<'b>(&'b mut self) -> Option<&'b mut Self>
+    pub fn try_grad_mut(&mut self) -> Option<&mut Self>
     where
         D: MayGradActions + Alloc<T>,
     {

@@ -2,6 +2,7 @@ use core::marker::PhantomData;
 
 use crate::{flag::AllocFlag, Autograd, HasId, PtrType, ShallowCopy, Shape, WrappedData};
 
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct ReqGradWrapper<Data, T> {
     pub requires_grad: bool,
     pub data: Data,
@@ -81,21 +82,6 @@ where
         ReqGradWrapper {
             requires_grad: self.requires_grad,
             data: self.data.shallow(),
-            _pd: PhantomData,
-        }
-    }
-}
-
-impl<Data: crate::ConvPtr<NewT, NewS, ConvertTo = Data>, T, NewT, NewS: Shape>
-    crate::ConvPtr<NewT, NewS> for ReqGradWrapper<Data, T>
-{
-    type ConvertTo = ReqGradWrapper<Data, NewT>;
-
-    #[inline]
-    unsafe fn convert(&self, flag: crate::flag::AllocFlag) -> Self::ConvertTo {
-        ReqGradWrapper {
-            requires_grad: self.requires_grad,
-            data: self.data.convert(flag),
             _pd: PhantomData,
         }
     }

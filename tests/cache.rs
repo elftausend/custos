@@ -36,9 +36,9 @@ fn test_caching_cpu() {
 
     for _ in device.range(0..100) {
         let out = cached_add(&device, &a, &b);
-        if out.data.ptr != old_ptr && !old_ptr.is_null() {
+        if out.data().ptr != old_ptr && !old_ptr.is_null() {
             panic!("Should be the same pointer!");
         }
-        old_ptr = out.data.ptr;
+        old_ptr = out.data().ptr;
     }
 }

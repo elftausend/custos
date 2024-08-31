@@ -22,7 +22,7 @@ impl CDatatype for i32 {
 }
 
 impl CDatatype for u32 {
-    const C_DTYPE_STR: &'static str = "uint";
+    const C_DTYPE_STR: &'static str = "unsigned int";
 }
 
 impl CDatatype for i8 {
@@ -39,7 +39,7 @@ impl CDatatype for i16 {
     const C_DTYPE_STR: &'static str = "short";
 }
 impl CDatatype for u16 {
-    const C_DTYPE_STR: &'static str = "ushort";
+    const C_DTYPE_STR: &'static str = "unsigned short";
 }
 
 impl CDatatype for i64 {
@@ -47,7 +47,7 @@ impl CDatatype for i64 {
 }
 
 impl CDatatype for u64 {
-    const C_DTYPE_STR: &'static str = "ulong";
+    const C_DTYPE_STR: &'static str = "unsigned long";
 }
 
 #[cfg(feature = "half")]

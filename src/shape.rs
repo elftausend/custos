@@ -37,6 +37,8 @@ impl Shape for () {
 }
 
 /// If the [`Shape`] does not matter for a specific device [`Buffer`](crate::Buffer), than this trait should be implemented.
+/// # Safety
+/// The implementor must ensure that created device [`Buffer`](crate::Buffer)s are unaffected by the generic `S` shape parameter.
 pub unsafe trait IsShapeIndep: Device {}
 
 /// If the [`Shape`] is provides a fixed size, than this trait should be implemented.

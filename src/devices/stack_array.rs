@@ -3,7 +3,7 @@ use core::{
     ptr::null_mut,
 };
 
-use crate::{shape::Shape, CommonPtrs, HasId, HostPtr, PtrType, ShallowCopy};
+use crate::{shape::Shape, HasId, HostPtr, PtrType, ShallowCopy};
 
 /// A possibly multi-dimensional array allocated on the stack.
 /// It uses `S:`[`Shape`] to get the type of the array.
@@ -137,18 +137,6 @@ impl<S: Shape, T> HostPtr<T> for StackArray<S, T> {
     #[inline]
     fn ptr_mut(&mut self) -> *mut T {
         self.as_ptr_mut()
-    }
-}
-
-impl<S: Shape, T> CommonPtrs<T> for StackArray<S, T> {
-    #[inline]
-    fn ptrs(&self) -> (*const T, *mut core::ffi::c_void, u64) {
-        (self.as_ptr(), null_mut(), 0)
-    }
-
-    #[inline]
-    fn ptrs_mut(&mut self) -> (*mut T, *mut core::ffi::c_void, u64) {
-        (self.as_mut_ptr(), null_mut(), 0)
     }
 }
 

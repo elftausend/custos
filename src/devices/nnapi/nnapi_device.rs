@@ -1,7 +1,6 @@
 use crate::{
-    cpu::CPUPtr, Alloc, AsOperandCode, Base, Buffer, ConvPtr, Device, HasId, IsShapeIndep, Lazy,
-    LazyRun, LazySetup, Module, OnDropBuffer, PtrType, Retrieve, Retriever, Setup, Shape, Unit,
-    WrappedData,
+    cpu::{CPUPtr, DeallocWithLayout}, Alloc, AsOperandCode, Base, Buffer, Device, HasId, IsShapeIndep, Lazy, LazyRun,
+    LazySetup, Module, OnDropBuffer, PtrType, Retrieve, Retriever, Setup, Shape, Unit, WrappedData,
 };
 
 use super::NnapiPtr;
@@ -117,7 +116,7 @@ impl<U, Mods: Retrieve<Self, T, S>, T: AsOperandCode, S: Shape> Retriever<T, S>
 }
 
 /// A [`CPUPtr`] with a u8 generic type.
-pub type ArrayPtr = CPUPtr<u8>;
+pub type ArrayPtr = DeallocWithLayout;
 
 /// Creates an [`Operand`] (datatype) from a shape `S`.
 #[inline]
@@ -152,10 +151,11 @@ impl<U, T: AsOperandCode, Mods: OnDropBuffer> Alloc<T> for NnapiDevice<U, Mods> 
         let nnapi_ptr =
             Alloc::<T>::alloc::<S>(self, data.len(), crate::flag::AllocFlag::default())?;
 
-        let mut ptr = unsafe { CPUPtr::<T>::new(data.len(), crate::flag::AllocFlag::Wrapper) };
+        let mut ptr: CPUPtr<T> =
+            unsafe { CPUPtr::<T>::new(data.len(), crate::flag::AllocFlag::Wrapper) };
         ptr.clone_from_slice(data);
 
-        let ptr = unsafe { ConvPtr::<_, ()>::convert(&ptr, crate::flag::AllocFlag::None) };
+        let ptr = unsafe { DeallocWithLayout::new(ptr) }.unwrap();
 
         self.input_ptrs.borrow_mut().push((nnapi_ptr.idx, ptr));
         Ok(nnapi_ptr)
@@ -218,10 +218,7 @@ impl<T, Mods: OnDropBuffer> NnapiDevice<T, Mods> {
                 run.set_input_raw(
                     idx as i32,
                     input_ptr.ptr.cast(),
-                    input_ptr
-                        .ty_size
-                        .expect("`size` is set during with_slice creation")
-                        * input_ptr.len,
+                    input_ptr.layout().size()
                 )
             }?
         }

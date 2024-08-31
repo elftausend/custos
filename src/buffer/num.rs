@@ -6,7 +6,7 @@ use core::{
 };
 
 use crate::{
-    flag::AllocFlag, Alloc, Buffer, CloneBuf, CommonPtrs, Device, HasId, OnDropBuffer, PtrType,
+    flag::AllocFlag, Alloc, Buffer, CloneBuf, Device, HasId, OnDropBuffer, PtrType,
     ShallowCopy, Unit, WrappedData,
 };
 
@@ -30,18 +30,6 @@ impl<T> PtrType for Num<T> {
 
     #[inline]
     unsafe fn set_flag(&mut self, _flag: AllocFlag) {}
-}
-
-impl<T> CommonPtrs<T> for Num<T> {
-    #[inline]
-    fn ptrs(&self) -> (*const T, *mut c_void, u64) {
-        (&self.num as *const T, null_mut(), 0)
-    }
-
-    #[inline]
-    fn ptrs_mut(&mut self) -> (*mut T, *mut c_void, u64) {
-        (&mut self.num as *mut T, null_mut(), 0)
-    }
 }
 
 impl<T> HasId for Num<T> {

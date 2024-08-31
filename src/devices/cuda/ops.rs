@@ -4,7 +4,7 @@ use crate::{
     bounds_to_range,
     cuda::api::{cu_read_async, CUstreamCaptureStatus},
     op_hint::unary,
-    pass_down_add_operation, pass_down_exec_now, AddOperation, ApplyFunction, AsNoId, BufAsNoId,
+    pass_down_add_operation, pass_down_exec_now, AddOperation, ApplyFunction,
     Buffer, CDatatype, ClearBuf, CopySlice, OnDropBuffer, Read, Resolve, Retrieve, Retriever,
     SetOpHint, Shape, ToCLSource, ToMarker, UnaryGrad, Unit, WriteBuf, ZeroGrad, CUDA,
 };
@@ -135,7 +135,7 @@ where
     {
         let mut out = self.retrieve(buf.len(), buf).unwrap();
         self.add_op((&mut out, buf), move |(out, buf)| {
-            try_cu_apply_fn_mut(buf.device(), buf, out, &f)
+            try_cu_apply_fn_mut(buf.device(), buf, out, f)
         })
         .unwrap();
         self.set_op_hint(unary(f));
@@ -241,6 +241,14 @@ mod tests {
         cuda::ops::{try_cu_add_unary_grad, try_cu_apply_fn_mut},
         Base, Buffer, Combiner, CUDA,
     };
+
+    #[test]
+    fn test_cu_clear() {
+        let device = CUDA::<Base>::new(0).unwrap();
+        let mut x = Buffer::from((&device, [1u32, 2, 3, 4, 5, 6]));
+        x.clear();
+        assert_eq!(x.read(), vec![0; x.len()]);
+    }
 
     #[test]
     fn test_cu_apply_fn() {

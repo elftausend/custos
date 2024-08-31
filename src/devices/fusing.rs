@@ -66,7 +66,7 @@ pub trait UnaryFusing: IsShapeIndep {
         assert_ne!(*last_arg_ids[0], *first_arg_ids[1]);
 
         let out = unsafe {
-            (&mut *(buffers as *mut Buffers<Box<dyn crate::BoxedShallowCopy>>))
+            (*(buffers as *mut Buffers<Box<dyn crate::BoxedShallowCopy>>))
                 .get_mut(&last_arg_ids[0])
                 .unwrap()
                 .downcast_mut_unchecked::<Buffer<T, Self, ()>>()

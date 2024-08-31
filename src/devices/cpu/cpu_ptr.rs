@@ -7,7 +7,7 @@ use core::{
 
 use std::alloc::handle_alloc_error;
 
-use crate::{flag::AllocFlag, CommonPtrs, HasId, HostPtr, Id, PtrType, ShallowCopy};
+use crate::{flag::AllocFlag, HasId, HostPtr, Id, PtrType, ShallowCopy};
 
 /// The pointer used for `CPU` [`Buffer`](crate::Buffer)s
 #[derive(Debug)]
@@ -18,10 +18,6 @@ pub struct CPUPtr<T> {
     pub len: usize,
     /// Allocation flag for the pointer
     pub flag: AllocFlag,
-    /// The alignment of type `T`
-    pub align: Option<usize>, // if no type conversions are required -> could remove this
-    /// The size of type `T`
-    pub ty_size: Option<usize>,
 }
 
 unsafe impl<T: Send> Send for CPUPtr<T> {}
@@ -107,11 +103,8 @@ impl<T> CPUPtr<T> {
             ptr,
             len,
             flag,
-            align: None,
-            ty_size: None,
         }
     }
-
     pub fn from_vec(mut vec: Vec<T>) -> CPUPtr<T> {
         // CPUPtr only knows about the length, not the capacity -> deallocation happens with length, which may be less than the capacity
         vec.shrink_to_fit();
@@ -149,16 +142,7 @@ impl<T> CPUPtr<T> {
     /// they will be used, otherwise the size and alignment are determined by the type `T`
     #[inline]
     pub fn layout_info(&self) -> (usize, usize) {
-        let (align, size) = if let Some(align) = self.align {
-            (
-                align,
-                self.ty_size.expect("size must be set if align is set"),
-            )
-        } else {
-            (align_of::<T>(), size_of::<T>())
-        };
-
-        (align, size)
+        (align_of::<T>(), size_of::<T>())
     }
 
     pub fn current_memory(&self) -> Option<(*mut u8, Layout)> {
@@ -214,8 +198,6 @@ impl<T> Default for CPUPtr<T> {
             ptr: null_mut(),
             flag: AllocFlag::default(),
             len: 0,
-            align: None,
-            ty_size: None,
         }
     }
 }
@@ -251,18 +233,6 @@ impl<T> PtrType for CPUPtr<T> {
     }
 }
 
-impl<T> CommonPtrs<T> for CPUPtr<T> {
-    #[inline]
-    fn ptrs(&self) -> (*const T, *mut core::ffi::c_void, u64) {
-        (self.ptr as *const T, null_mut(), 0)
-    }
-
-    #[inline]
-    fn ptrs_mut(&mut self) -> (*mut T, *mut core::ffi::c_void, u64) {
-        (self.ptr, null_mut(), 0)
-    }
-}
-
 impl<T> ShallowCopy for CPUPtr<T> {
     #[inline]
     unsafe fn shallow(&self) -> Self {
@@ -270,8 +240,56 @@ impl<T> ShallowCopy for CPUPtr<T> {
             ptr: self.ptr,
             len: self.len,
             flag: AllocFlag::Wrapper,
-            align: self.align,
-            ty_size: self.ty_size,
+        }
+    }
+}
+
+pub struct DeallocWithLayout {
+    ptr: core::mem::ManuallyDrop<CPUPtr<u8>>,
+    layout: Layout, 
+}
+
+impl DeallocWithLayout {
+    #[inline]
+    pub unsafe fn new<T>(ptr: CPUPtr<T>) -> Option<Self> {
+        let (_, layout) = ptr.current_memory()?;
+        let ptr = core::mem::ManuallyDrop::new(ptr);
+        Some(Self {
+            ptr: core::mem::ManuallyDrop::new(CPUPtr { ptr: ptr.ptr as *mut u8, len: ptr.len, flag: ptr.flag }),
+            layout
+        })
+    }
+
+    #[inline] 
+    pub fn layout(&self) -> &Layout {
+        &self.layout 
+    }
+}
+
+impl core::ops::Deref for DeallocWithLayout {
+    type Target = CPUPtr<u8>;
+
+    #[inline]
+    fn deref(&self) -> &Self::Target {
+        &self.ptr
+    }
+}
+
+impl core::ops::DerefMut for DeallocWithLayout {
+    #[inline]
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.ptr
+    }
+}
+
+impl Drop for DeallocWithLayout {
+    fn drop(&mut self) {
+        if !self.ptr.flag.continue_deallocation() {
+            return;
+        }
+
+        unsafe {
+            std::alloc::dealloc(self.ptr.ptr, self.layout);
         }
     }
 }
@@ -390,22 +408,14 @@ pub mod serde {
 mod tests {
     use core::{alloc::Layout, marker::PhantomData};
 
-    use super::CPUPtr;
+    use super::{CPUPtr, DeallocWithLayout};
 
     #[test]
     fn test_return_current_memory() {
-        let mut data = CPUPtr::<f32>::new_initialized(10, crate::flag::AllocFlag::None);
+        let data = CPUPtr::<f32>::new_initialized(10, crate::flag::AllocFlag::None);
 
         let ret = data.current_memory().unwrap();
         assert_eq!(ret.0, data.ptr as *mut u8);
-        assert_eq!(ret.1, Layout::from_size_align(data.len * 4, 4).unwrap());
-        data.align = Some(16);
-        data.ty_size = Some(8);
-        let ret = data.current_memory().unwrap();
-        assert_eq!(ret.1, Layout::from_size_align(data.len * 8, 16).unwrap());
-        data.align = None;
-        data.ty_size = None;
-        let ret = data.current_memory().unwrap();
         assert_eq!(ret.1, Layout::from_size_align(data.len * 4, 4).unwrap());
     }
 
@@ -427,6 +437,7 @@ mod tests {
         assert!(!res.ptr.is_null());
         assert_eq!(res.len, 10);
     }
+
     #[test]
     fn test_alloc_from_vec_with_zst() {
         let mut data = Vec::<PhantomData<f32>>::new();
@@ -436,5 +447,14 @@ mod tests {
         let res = CPUPtr::from_vec(data);
         assert!(!res.ptr.is_null());
         assert_eq!(res.len, 10);
+    }
+
+    #[test]
+    fn test_dealloc_with_layout() {
+        let data = CPUPtr::<f32>::new_initialized(10, crate::flag::AllocFlag::None);
+        let dealloc = unsafe {
+            DeallocWithLayout::new(data).unwrap() 
+        };
+        assert_eq!(dealloc.layout().size(), 40)
     }
 }

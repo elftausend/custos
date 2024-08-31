@@ -29,7 +29,7 @@ fn get_memory_type_index(
 #[test]
 fn test_vulkan_compute_with_wgsl_and_spirv() {
     let entry = unsafe { Entry::load().unwrap() };
-    let app_name = unsafe { CStr::from_bytes_with_nul_unchecked(b"custos\0") };
+    let app_name = c"custos";
     let app_info = vk::ApplicationInfo::default()
         .application_name(app_name)
         .application_version(0)
@@ -37,11 +37,7 @@ fn test_vulkan_compute_with_wgsl_and_spirv() {
         .engine_version(0)
         .api_version(vk::make_api_version(0, 1, 0, 0));
 
-    let layer_names = unsafe {
-        [CStr::from_bytes_with_nul_unchecked(
-            b"VK_LAYER_KHRONOS_validation\0",
-        )]
-    };
+    let layer_names = [c"VK_LAYER_KHRONOS_validation"];
 
     let layers_names_raw: Vec<*const c_char> = layer_names
         .iter()

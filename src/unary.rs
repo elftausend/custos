@@ -199,7 +199,7 @@ mod tests {
         );
 
         // out.backward();
-        out.backward();
+        out.backward().unwrap();
         roughly_eq_slices(
             &buf.grad().read_to_vec(),
             &[
@@ -272,7 +272,7 @@ mod tests {
                 ],
             );
 
-            out.backward();
+            out.backward().unwrap();
             assert_eq!(
                 buf.grad().as_slice(),
                 [
@@ -302,7 +302,7 @@ mod tests {
                         -0.7568024953079282,
                     ],
                 );
-                $out.replace().backward();
+                $out.replace().backward().unwrap();
                 roughly_eq_slices(
                     $buf.replace().grad().as_slice(),
                     &[
@@ -391,7 +391,7 @@ mod tests {
             }
         }
         let out = device.unary_ew(&buf, |x| x.sin(), |x| x.cos());
-        out.backward();
+        out.backward().unwrap();
 
         roughly_eq_slices(
             buf.grad().as_slice(),

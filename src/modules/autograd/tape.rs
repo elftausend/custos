@@ -32,13 +32,14 @@ impl<'t> Tape<'t> {
         device: &D,
         buffers: &mut Buffers<Box<dyn BoxedShallowCopy>>,
         lazy_enabled: bool,
-    ) {
+    ) -> crate::Result<()> {
         for val in self.lazy_graph.iter_with(device, buffers).rev() {
-            val.unwrap();
+            val?;
         }
         if !lazy_enabled {
             self.lazy_graph.clear();
         }
+        Ok(())
     }
     pub fn seed_grad_for_buf<'a, T, D, S>(&self, buf: &Buffer<'a, T, D, S>, seed: &[T])
     where
@@ -58,15 +59,18 @@ impl<'t> Tape<'t> {
         buf: &Buffer<'a, T, D, S>,
         seed: &[T],
         buffers: &mut Buffers<Box<dyn BoxedShallowCopy>>,
-    ) where
+    ) -> crate::Result<()>
+    where
         T: Unit + 'static,
         D: Alloc<T> + ZeroGrad<T> + WriteBuf<T, S, D> + GradActions + AddOperation + 'static,
     {
         self.seed_grad_for_buf(buf, seed);
 
         let is_lazy_enabled = buf.device().is_lazy_enabled();
+        let mut res = Ok(());
         buf.device()
-            .eagerly(|| self.backward(buf.device(), buffers, is_lazy_enabled));
+            .eagerly(|| res = self.backward(buf.device(), buffers, is_lazy_enabled));
+        res
     }
 
     pub fn backward_seeded_maybe_with_buffers<'a, T, D, S: Shape>(
@@ -74,7 +78,8 @@ impl<'t> Tape<'t> {
         buf: &Buffer<'a, T, D, S>,
         seed: &[T],
         buffers: Option<&mut Buffers<Box<dyn BoxedShallowCopy>>>,
-    ) where
+    ) -> crate::Result<()> 
+    where
         T: Unit + 'static,
         D: Alloc<T> + ZeroGrad<T> + WriteBuf<T, S, D> + GradActions + AddOperation + 'static,
     {
@@ -92,11 +97,12 @@ impl<'t> Tape<'t> {
                 };
 
                 // unique mutable access required for "buf.grad()"s in grad functions
-                self.backward_seeded_with_buffers(buf, seed, &mut no_grads);
+                self.backward_seeded_with_buffers(buf, seed, &mut no_grads)?;
 
                 let gradients = unsafe { buf.device().gradients_mut() }.unwrap();
                 let no_grads_src = &mut gradients.no_grads_pool;
                 *no_grads_src = no_grads;
+                Ok(())
             }
         }
     }
