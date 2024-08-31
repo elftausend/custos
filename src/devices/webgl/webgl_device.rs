@@ -5,7 +5,7 @@ use std::rc::Rc;
 use web_sys::{Element, WebGlFramebuffer, WebGlShader};
 
 use crate::{
-    webgl::error::WebGlError, wgsl::{WgslDevice, WgslShaderLaunch}, AddLayer, Alloc, Base, Buffer, Device, Module, OnDropBuffer, Read, RemoveLayer, Retrieve, Retriever, Setup, Shape, Unit, WrappedData
+    webgl::error::WebGlError, wgsl::{WgslDevice, WgslShaderLaunch}, AddLayer, Alloc, Base, Buffer, CloneBuf, Device, Module, OnDropBuffer, OnNewBuffer, Read, RemoveLayer, Retrieve, Retriever, Setup, Shape, Unit, WrappedData, WriteBuf
 };
 
 use super::{
@@ -70,7 +70,9 @@ pub struct WebGL<Mods = Base> {
 
 impl<SimpleMods> WebGL<SimpleMods> {
     #[inline]
-    pub fn from_canvas<'a, NewMods>(maybe_canvas: Element) -> crate::Result<WebGL<SimpleMods::Module>>
+    pub fn from_canvas<'a, NewMods>(
+        maybe_canvas: Element,
+    ) -> crate::Result<WebGL<SimpleMods::Module>>
     where
         SimpleMods: Module<'a, WebGL, Module = NewMods>,
         NewMods: Setup<WebGL<NewMods>>,
@@ -102,7 +104,7 @@ impl<SimpleMods> WebGL<SimpleMods> {
 impl WgslDevice for WebGL {
     #[inline]
     fn new(_idx: usize) -> crate::Result<Self> {
-        WebGL::<Base>::new() 
+        WebGL::<Base>::new()
     }
 }
 impl Default for WebGL {
@@ -232,6 +234,38 @@ where
     #[inline]
     fn read_to_vec(&self, buf: &<Self as Device>::Base<T, S>) -> Vec<T> {
         buf.read(&self.frame_buf, buf.out_idx.unwrap_or_default())
+    }
+}
+
+impl<T, Mods, S> WriteBuf<T, S, Self> for WebGL<Mods>
+where
+    T: WebGlNumber + Default + Copy + 'static,
+    Mods: OnDropBuffer,
+    S: Shape,
+{
+    #[inline]
+    fn write(&self, buf: &mut Buffer<T, Self, S>, data: &[T]) {
+        buf.base_mut().write(data.iter().copied()).expect("Cannot write to buffer");
+    }
+
+    #[inline]
+    fn write_buf(&self, dst: &mut Buffer<T, Self, S>, src: &Buffer<T, Self, S>) {
+        // is there a way to do this without reading?
+        self.write(dst, &src.read())
+    }
+}
+
+impl<'a, T, Mods, S> CloneBuf<'a, T, S> for WebGL<Mods>
+where
+    T: WebGlNumber + Default + Copy + 'static,
+    Mods: OnDropBuffer + OnNewBuffer<'a, T, Self, S>,
+    S: Shape,
+{
+    #[inline]
+    fn clone_buf(&'a self, buf: &Buffer<'a, T, Self, S>) -> Buffer<'a, T, Self, S> {
+        let mut cloned = buf.empty_like();
+        cloned.write(&buf.read());
+        cloned
     }
 }
 

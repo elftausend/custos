@@ -23,6 +23,22 @@ pub struct WebGlData<T> {
     _pd: PhantomData<T>,
 }
 
+impl<T> crate::ShallowCopy for WebGlData<T> {
+    unsafe fn shallow(&self) -> Self {
+        Self {
+            texture: self.texture.clone(),
+            texture_width: self.texture_width,
+            texture_height: self.texture_height,
+            len: self.len,
+            out_idx: self.out_idx,
+            context: self.context.clone(),
+            flag: AllocFlag::Wrapper,
+            id: self.id,
+            _pd: PhantomData,
+        }
+    }
+}
+
 impl<T: WebGlNumber> WebGlData<T> {
     pub fn new(context: Rc<Context>, len: usize, flag: AllocFlag) -> Option<Self>
     where
