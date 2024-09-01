@@ -18,7 +18,7 @@ impl Context {
 
         let context = canvas
             .get_context("webgl2")?
-            .unwrap()
+            .expect("Could not get webgl2 context")
             .dyn_into::<web_sys::WebGl2RenderingContext>()?;
 
         Ok(Self {
