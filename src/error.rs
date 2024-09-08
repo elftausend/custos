@@ -1,38 +1,28 @@
+/// A type alias for Box<dyn core::error::Error + Send + Sync>
 #[cfg(feature = "std")]
-mod std_err {
-    /// A type alias for Box<dyn std::error::Error + Send + Sync>
-    pub type Error = Box<dyn std::error::Error + Send + Sync>;
+pub type Error = Box<dyn core::error::Error + Send + Sync>;
+#[cfg(not(feature = "std"))]
+pub type Error = DeviceError; 
 
-    /// A trait for downcasting errors.
-    pub trait ErrorKind {
-        /// Downcasts the error to the specified type.
-        fn kind<E: std::error::Error + PartialEq + 'static>(&self) -> Option<&E>;
-    }
-
-    impl ErrorKind for Error {
-        fn kind<E: std::error::Error + PartialEq + 'static>(&self) -> Option<&E> {
-            self.downcast_ref::<E>()
-        }
-    }
-
-    impl std::error::Error for crate::DeviceError {}
+/// A trait for downcasting errors.
+pub trait ErrorKind {
+    /// Downcasts the error to the specified type.
+    fn kind<E: core::error::Error + PartialEq + 'static>(&self) -> Option<&E>;
 }
 
-#[cfg(feature = "std")]
-pub use std_err::*;
+impl ErrorKind for Error {
+    fn kind<E: core::error::Error + PartialEq + 'static>(&self) -> Option<&E> {
+        #[cfg(feature = "std")]
+        let err = self;
+
+        #[cfg(not(feature = "std"))]
+        let err: &dyn core::error::Error = self;
+        err.downcast_ref::<E>()
+    }
+}
 
 /// A type alias for `Result<T, Error>`.
-#[cfg(feature = "std")]
-pub type Result<T> = core::result::Result<T, self::std_err::Error>;
-
-/// An error for no-std.
-#[cfg(not(feature = "std"))]
-#[derive(Debug)]
-pub struct Error {}
-
-/// A type alias for `Result<T, Error>`.
-#[cfg(not(feature = "std"))]
-pub type Result<T> = core::result::Result<T, DeviceError>;
+pub type Result<T> = core::result::Result<T, Error>;
 
 /// 'generic' device errors that can occur on any device.
 #[derive(Clone, Copy, Eq, Hash, Ord, PartialEq, PartialOrd)]
@@ -64,6 +54,8 @@ pub enum DeviceError {
     /// Given generic shape length does not match with e.g. slice length
     ShapeLengthMismatch,
 }
+
+impl core::error::Error for crate::DeviceError {}
 
 impl DeviceError {
     /// Returns a string slice containing the error message.

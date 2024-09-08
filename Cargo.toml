@@ -8,7 +8,7 @@ repository = "https://github.com/elftausend/custos"
 keywords = ["gpu", "autodiff", "arrays", "deep-learning", "fixed-size"]
 categories = ["science", "mathematics", "no-std", "external-ffi-bindings"]
 readme = "README.md"
-rust-version = "1.79"
+rust-version = "1.81"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
@@ -53,6 +53,7 @@ min-cl = { git = "https://github.com/elftausend/min-cl", optional = true }
 [features]
 # default = ["cpu", "opencl", "cuda", "blas", "static-api", "stack", "macro", "nnapi", "untyped", "autograd", "autograd", "cached", "lazy", "fork", "graph", "serde"]
 default = ["cpu", "untyped", "lazy", "graph", "cached", "autograd", "cuda", "vulkan", "opencl"]
+# default = ["no-std"]
 # default = ["opencl"]
 # default = ["untyped", "cpu", "lazy", "graph", "autograd", "fork", "serde", "json", "half", "cached", "static-api", "stack", "opencl", "nnapi"]
 
