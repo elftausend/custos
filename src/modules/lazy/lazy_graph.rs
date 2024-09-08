@@ -1,5 +1,6 @@
 use crate::{
-    bounds_to_range, modules::lazy::exec_iter::ExecIter, op_hint::OpHint, AnyOp, BoxedShallowCopy, Buffers, Device, Downcast, Id, OperationFn, Parents
+    bounds_to_range, modules::lazy::exec_iter::ExecIter, op_hint::OpHint, AnyOp, BoxedShallowCopy,
+    Buffers, Device, Downcast, Id, OperationFn, Parents,
 };
 use core::ops::RangeBounds;
 use std::collections::HashSet;

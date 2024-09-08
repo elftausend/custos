@@ -74,7 +74,7 @@ impl<Mods> crate::LazySetup for CUDA<Mods> {
 #[cfg(test)]
 mod tests {
     use crate::{
-        AddOperation, ApplyFunction, AsNoId, Base, Buffer, Combiner, Device, HasId, Lazy, Retrieve,
+        AddOperation, ApplyFunction, Base, Buffer, Combiner, Device, HasId, Lazy, Retrieve,
         Retriever, Run, CUDA,
     };
 

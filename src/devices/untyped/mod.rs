@@ -27,7 +27,7 @@ impl<'a, T: Unit, S: crate::Shape> Buffer<'a, T, Untyped, S> {
         // Safety: An Untyped device buffer is shape and data type independent!
         // type Base<T, S: crate::Shape> = UntypedData; <- missing <T, S>
         // type Data<T, S: crate::Shape> = UntypedData; <|
-        // storage type is also matched 
+        // storage type is also matched
         Some(unsafe { std::mem::transmute(self) })
     }
 
@@ -47,9 +47,7 @@ impl<'a, T: Unit, S: crate::Shape> Buffer<'a, T, Untyped, S> {
     {
         self.data.matches_storage_type::<NT>().ok()?;
 
-        Some(unsafe {
-            &*(self as *const Self as *const Buffer<NT, Untyped, NS>)
-        })
+        Some(unsafe { &*(self as *const Self as *const Buffer<NT, Untyped, NS>) })
     }
 
     #[inline]
@@ -59,9 +57,7 @@ impl<'a, T: Unit, S: crate::Shape> Buffer<'a, T, Untyped, S> {
         NS: crate::Shape,
     {
         self.data.matches_storage_type::<NT>().ok()?;
-        Some(unsafe {
-            &mut *(self as *mut Self as *mut Buffer<NT, Untyped, NS>)
-        })
+        Some(unsafe { &mut *(self as *mut Self as *mut Buffer<NT, Untyped, NS>) })
     }
 
     #[inline]
@@ -69,9 +65,7 @@ impl<'a, T: Unit, S: crate::Shape> Buffer<'a, T, Untyped, S> {
         // Safety: An Untyped device buffer is shape and data type independent!
         // type Base<T, S: crate::Shape> = UntypedData; <- missing <T, S>
         // type Data<T, S: crate::Shape> = UntypedData; <|
-        unsafe {
-            &*(self as *const Self as *const Buffer<(), Untyped, ()>)
-        }
+        unsafe { &*(self as *const Self as *const Buffer<(), Untyped, ()>) }
     }
 
     #[inline]
@@ -79,9 +73,7 @@ impl<'a, T: Unit, S: crate::Shape> Buffer<'a, T, Untyped, S> {
         // Safety: An Untyped device buffer is shape and data type independent!
         // type Base<T, S: crate::Shape> = UntypedData; <- missing <T, S>
         // type Data<T, S: crate::Shape> = UntypedData; <|
-        unsafe {
-            &mut *(self as *mut Self as *mut Buffer<(), Untyped, ()>)
-        }
+        unsafe { &mut *(self as *mut Self as *mut Buffer<(), Untyped, ()>) }
     }
 
     #[inline]

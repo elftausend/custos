@@ -1,6 +1,6 @@
 use core::marker::PhantomData;
 
-use crate::{flag::AllocFlag, Autograd, HasId, PtrType, ShallowCopy, Shape, WrappedData};
+use crate::{flag::AllocFlag, Autograd, HasId, PtrType, ShallowCopy, WrappedData};
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct ReqGradWrapper<Data, T> {

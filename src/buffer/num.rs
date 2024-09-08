@@ -1,13 +1,11 @@
 use core::{
     convert::Infallible,
-    ffi::c_void,
     ops::{Deref, DerefMut},
-    ptr::null_mut,
 };
 
 use crate::{
-    flag::AllocFlag, Alloc, Buffer, CloneBuf, Device, HasId, OnDropBuffer, PtrType,
-    ShallowCopy, Unit, WrappedData,
+    flag::AllocFlag, Alloc, Buffer, CloneBuf, Device, HasId, OnDropBuffer, PtrType, ShallowCopy,
+    Unit, WrappedData,
 };
 
 #[derive(Debug, Default)]

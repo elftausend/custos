@@ -78,7 +78,7 @@ impl<'t> Tape<'t> {
         buf: &Buffer<'a, T, D, S>,
         seed: &[T],
         buffers: Option<&mut Buffers<Box<dyn BoxedShallowCopy>>>,
-    ) -> crate::Result<()> 
+    ) -> crate::Result<()>
     where
         T: Unit + 'static,
         D: Alloc<T> + ZeroGrad<T> + WriteBuf<T, S, D> + GradActions + AddOperation + 'static,

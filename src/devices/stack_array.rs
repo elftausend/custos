@@ -1,7 +1,4 @@
-use core::{
-    ops::{Deref, DerefMut},
-    ptr::null_mut,
-};
+use core::ops::{Deref, DerefMut};
 
 use crate::{shape::Shape, HasId, HostPtr, PtrType, ShallowCopy};
 

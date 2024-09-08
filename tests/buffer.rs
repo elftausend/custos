@@ -1,6 +1,5 @@
 use custos::prelude::*;
 
-
 #[cfg(feature = "std")]
 pub fn read<T: Unit, D: Alloc<T>>(device: &D, buf: &Buffer<T, D>) -> Vec<T>
 where
@@ -193,7 +192,6 @@ fn test_deviceless_buf() {
         let device = CPU::<Base>::new();
         Buffer::<u8, CPU>::deviceless(&device, 5)
     };
-
 
     for (idx, element) in buf.iter_mut().enumerate() {
         *element = idx as u8;

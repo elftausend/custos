@@ -2,7 +2,7 @@ use core::fmt::Debug;
 
 use crate::{
     cpu_stack_ops::clear_slice, pass_down_add_operation, pass_down_exec_now, prelude::Number,
-    AddOperation, ApplyFunction, AsNoId, BufAsNoId, Buffer, CDatatype, ClearBuf, OnDropBuffer,
+    AddOperation, ApplyFunction, Buffer, CDatatype, ClearBuf, OnDropBuffer,
     Read, Resolve, Retrieve, Retriever, Shape, ToCLSource, ToMarker, ToWgslSource, UnaryGrad, Unit,
     UseGpuOrCpu, Vulkan, WriteBuf, ZeroGrad,
 };

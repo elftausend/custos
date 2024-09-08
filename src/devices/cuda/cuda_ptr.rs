@@ -1,8 +1,6 @@
-use core::{marker::PhantomData, ptr::null_mut};
-
-use crate::{flag::AllocFlag, HasId, Id, PtrType, ShallowCopy};
-
 use super::api::{cu_read, cufree, cumalloc, CudaResult};
+use crate::{flag::AllocFlag, HasId, Id, PtrType, ShallowCopy};
+use core::marker::PhantomData;
 
 /// The pointer used for `CUDA` [`Buffer`](crate::Buffer)s
 #[derive(Debug, PartialEq, Eq)]
