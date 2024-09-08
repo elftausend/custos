@@ -15,7 +15,7 @@ fn main() {
     device.unary_fusing(&device, None).unwrap();
 
     // this executes all operations inside the lazy graph
-    unsafe { device.run().unwrap() };
+    device.run().unwrap();
 
     for (input, out) in buf.read().iter().zip(out2.replace().read()) {
         assert!((out - (input + 1.).sin()).abs() < 0.01);
