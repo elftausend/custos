@@ -291,7 +291,7 @@ mod tests {
 
         assert_eq!(lhs_grad.read(), vec![1, 2, 3, 4, 5, 6]);
 
-        unsafe { device.run().unwrap() }
+        device.run().unwrap();
 
         assert_eq!(lhs_grad.read(), vec![4, 6, 8, 10, 12, 14]);
     }

@@ -50,7 +50,7 @@ impl<Mods> crate::LazyRun for CUDA<Mods> {
 
 impl<Mods: crate::RunModule<Self>> crate::Run for CUDA<Mods> {
     #[inline]
-    unsafe fn run(&self) -> crate::Result<()> {
+    fn run(&self) -> crate::Result<()> {
         self.modules.run(self)
     }
 }
@@ -133,7 +133,7 @@ mod tests {
         assert_eq!(lhs.read(), vec![1, 2, 3, 4, 5, 6]);
         assert_eq!(rhs.read(), vec![1, 2, 3, 4, 5, 6]);
 
-        unsafe { device.run().unwrap() };
+        device.run().unwrap();
 
         assert_eq!(out.read(), vec![2, 4, 6, 8, 10, 12]);
         assert_eq!(rhs.read(), vec![3, 6, 9, 12, 15, 18]);
@@ -187,7 +187,7 @@ mod tests {
             lhs.write(&[1, 2, 3, 4, 5, 6]);
             rhs.write(&[1, 2, 3, 4, 5, 6]);
             device.mem_transfer_stream.sync().unwrap();
-            unsafe { device.run().unwrap() };
+            device.run().unwrap();
         }
 
         assert_eq!(out.read(), vec![2, 4, 6, 8, 10, 12]);
@@ -294,7 +294,7 @@ mod tests {
         let out = cuda_ew(&device, &lhs, &rhs, ew_src("add", '+'), "add");
         let out2 = cuda_ew(&device, &out, &rhs, ew_src("add", '+'), "add");
 
-        let _ = unsafe { device.run() };
+        let _ = device.run();
 
         assert_eq!(out.replace().read(), [2, 4, 6, 8, 10, 12]);
         assert_eq!(out2.replace().read(), [3, 6, 9, 12, 15, 18]);
@@ -310,6 +310,6 @@ mod tests {
         let out = device.apply_fn(&out, |x| x.cos());
         let _out = device.apply_fn(&out, |x| x.ln());
 
-        let _ = unsafe { device.run() };
+        let _ = device.run();
     }
 }
