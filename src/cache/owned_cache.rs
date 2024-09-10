@@ -129,4 +129,21 @@ mod tests {
         }
         assert_eq!(cache.nodes.len(), 1);
     }
+
+    #[test]
+    fn test_cache_with_diffrent_length_return() {
+        use crate::{Buffer, Cursor, Retriever};
+
+        let dev = CPU::<Cached<Base>>::new();
+
+        for i in dev.range(10) {
+            if i == 4 {
+                // has assert inside, therefore, this line leads to a crash due tue mismatiching lengths
+                let buf: Buffer<u8, _> = dev.retrieve(5, ()).unwrap();
+                assert_eq!(buf.len, 5);
+            } else {
+                let _x: Buffer<u8, _> = dev.retrieve(3, ()).unwrap();
+            }
+        }
+    }
 }
