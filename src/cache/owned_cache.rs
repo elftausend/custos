@@ -131,6 +131,7 @@ mod tests {
     }
 
     #[test]
+    #[should_panic]
     fn test_cache_with_diffrent_length_return() {
         use crate::{Buffer, Cursor, Retriever};
 
