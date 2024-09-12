@@ -193,9 +193,9 @@ impl<'a, T: Unit> Buffer<'a, T, ()> {
     /// use custos::Buffer;
     ///
     /// let mut x: Buffer<f32, _> = 7f32.into();
-    /// *x.item_mut() += 1;
     /// assert_eq!(**x, 7.);
-    /// assert_eq!(x.item_mut(), 8.);
+    /// *x.item_mut() += 1.;
+    /// assert_eq!(*x.item_mut(), 8.);
     ///
     /// ```   
     #[inline]

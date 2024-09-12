@@ -146,4 +146,22 @@ mod tests {
             }
         }
     }
+    
+    #[test]
+    fn test_cache_with_cursor_range_overlap() {
+        use crate::{Buffer, Cursor, Retriever};
+
+        let dev = CPU::<Cached<Base>>::new();
+
+        for _i in dev.range(10) {
+            let _x: Buffer<u8, _> = dev.retrieve(3, ()).unwrap();
+        }
+
+        assert_eq!(dev.cursor(), 1);
+
+        for _i in dev.range(1..7) {
+            let _x: Buffer<u8, _> = dev.retrieve(4, ()).unwrap();
+        }
+        assert_eq!(dev.cursor(), 2);
+    }
 }
