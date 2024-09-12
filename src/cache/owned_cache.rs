@@ -130,10 +130,11 @@ mod tests {
         assert_eq!(cache.nodes.len(), 1);
     }
 
+    #[cfg(feature = "cpu")]
     #[test]
     #[should_panic]
     fn test_cache_with_diffrent_length_return() {
-        use crate::{Buffer, Cursor, Retriever};
+        use crate::{Buffer, Cursor, Retriever, Base};
 
         let dev = CPU::<Cached<Base>>::new();
 
@@ -148,9 +149,10 @@ mod tests {
         }
     }
     
+    #[cfg(feature = "cpu")]
     #[test]
     fn test_cache_with_cursor_range_overlap() {
-        use crate::{Buffer, Cursor, Retriever};
+        use crate::{Buffer, Cursor, Retriever, Base};
 
         let dev = CPU::<Cached<Base>>::new();
 
