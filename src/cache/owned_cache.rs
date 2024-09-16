@@ -7,7 +7,7 @@ use crate::{
 
 #[derive(Clone)]
 pub struct Cache {
-    pub nodes: HashMap<UniqueId, Arc<dyn Any>, BuildHasherDefault<NoHasher>>,
+    pub nodes: HashMap<(UniqueId, usize), Arc<dyn Any>, BuildHasherDefault<NoHasher>>,
 }
 
 impl Default for Cache {
@@ -35,13 +35,14 @@ impl Cache {
         len: usize,
         new_buf_callback: impl FnMut(usize, &D::Base<T, S>),
     ) -> D::Base<T, S>
-    where
-        T: Unit,
-        D: Alloc<T> + Cursor + 'static,
-        D::Base<T, S>: ShallowCopy + 'static,
-        S: Shape,
+        where
+            T: Unit,
+            D: Alloc<T> + Cursor + 'static,
+            D::Base<T, S>: ShallowCopy + 'static,
+            S: Shape,
     {
-        let maybe_allocated = self.nodes.get(&(device.cursor() as UniqueId));
+        let key = (device.cursor() as UniqueId, len);
+        let maybe_allocated = self.nodes.get(&key);
         match maybe_allocated {
             Some(data) => {
                 unsafe { device.bump_cursor() };
@@ -51,8 +52,7 @@ impl Cache {
                         .shallow()
                 };
 
-                // TODO: not necessary, could add length to hashmap
-                assert_eq!(data.size(), len, "Data size mismatch! Did you use e.g. if conditions in a (cursor) loop retrieving buffers with a different size?");
+                // Data length is checked by key,  no need for an assert
                 data
             }
             None => self.add_node(device, len, new_buf_callback),
@@ -66,23 +66,24 @@ impl Cache {
         len: usize,
         mut callback: impl FnMut(usize, &D::Base<T, S>),
     ) -> <D as Device>::Base<T, S>
-    where
-        T: Unit,
-        D: Alloc<T> + Cursor,
-        D::Base<T, S>: ShallowCopy + 'static,
-        S: Shape,
+        where
+            T: Unit,
+            D: Alloc<T> + Cursor,
+            D::Base<T, S>: ShallowCopy + 'static,
+            S: Shape,
     {
         let data = device.alloc::<S>(len, AllocFlag::None).unwrap();
         let shallow_data = unsafe { data.shallow() };
 
         callback(device.cursor(), &shallow_data);
-        self.nodes
-            .insert(device.cursor() as UniqueId, Arc::new(data));
+        let key = (device.cursor() as UniqueId, len);
+        self.nodes.insert(key, Arc::new(data));
         unsafe { device.bump_cursor() };
 
         shallow_data
     }
 }
+
 
 #[cfg(test)]
 mod tests {
@@ -148,7 +149,7 @@ mod tests {
             }
         }
     }
-    
+
     #[cfg(feature = "cpu")]
     #[test]
     fn test_cache_with_cursor_range_overlap() {
