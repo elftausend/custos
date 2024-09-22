@@ -293,11 +293,11 @@ mod tests {
 
         println!("unary fusing: {:?}", start.elapsed());
 
-        unsafe { dev.run().unwrap() };
+        dev.run().unwrap();
 
         let start = Instant::now();
 
-        unsafe { dev.run().unwrap() };
+        dev.run().unwrap();
 
         println!("perf automatic fusing: {:?}", start.elapsed());
 
