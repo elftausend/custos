@@ -99,11 +99,7 @@ impl<T> CPUPtr<T> {
     /// ```
     #[inline]
     pub unsafe fn from_ptr(ptr: *mut T, len: usize, flag: AllocFlag) -> CPUPtr<T> {
-        CPUPtr {
-            ptr,
-            len,
-            flag,
-        }
+        CPUPtr { ptr, len, flag }
     }
     pub fn from_vec(mut vec: Vec<T>) -> CPUPtr<T> {
         // CPUPtr only knows about the length, not the capacity -> deallocation happens with length, which may be less than the capacity
@@ -246,7 +242,7 @@ impl<T> ShallowCopy for CPUPtr<T> {
 
 pub struct DeallocWithLayout {
     ptr: core::mem::ManuallyDrop<CPUPtr<u8>>,
-    layout: Layout, 
+    layout: Layout,
 }
 
 impl DeallocWithLayout {
@@ -255,14 +251,18 @@ impl DeallocWithLayout {
         let (_, layout) = ptr.current_memory()?;
         let ptr = core::mem::ManuallyDrop::new(ptr);
         Some(Self {
-            ptr: core::mem::ManuallyDrop::new(CPUPtr { ptr: ptr.ptr as *mut u8, len: ptr.len, flag: ptr.flag }),
-            layout
+            ptr: core::mem::ManuallyDrop::new(CPUPtr {
+                ptr: ptr.ptr as *mut u8,
+                len: ptr.len,
+                flag: ptr.flag,
+            }),
+            layout,
         })
     }
 
-    #[inline] 
+    #[inline]
     pub fn layout(&self) -> &Layout {
-        &self.layout 
+        &self.layout
     }
 }
 
@@ -452,9 +452,7 @@ mod tests {
     #[test]
     fn test_dealloc_with_layout() {
         let data = CPUPtr::<f32>::new_initialized(10, crate::flag::AllocFlag::None);
-        let dealloc = unsafe {
-            DeallocWithLayout::new(data).unwrap() 
-        };
+        let dealloc = unsafe { DeallocWithLayout::new(data).unwrap() };
         assert_eq!(dealloc.layout().size(), 40)
     }
 }

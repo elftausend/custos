@@ -129,4 +129,42 @@ mod tests {
         }
         assert_eq!(cache.nodes.len(), 1);
     }
+
+    #[cfg(feature = "cpu")]
+    #[test]
+    #[should_panic]
+    fn test_cache_with_diffrent_length_return() {
+        use crate::{Buffer, Cursor, Retriever, Base};
+
+        let dev = CPU::<Cached<Base>>::new();
+
+        for i in dev.range(10) {
+            if i == 4 {
+                // has assert inside, therefore, this line leads to a crash due tue mismatiching lengths
+                let buf: Buffer<u8, _> = dev.retrieve(5, ()).unwrap();
+                assert_eq!(buf.len, 5);
+            } else {
+                let _x: Buffer<u8, _> = dev.retrieve(3, ()).unwrap();
+            }
+        }
+    }
+    
+    #[cfg(feature = "cpu")]
+    #[test]
+    fn test_cache_with_cursor_range_overlap() {
+        use crate::{Buffer, Cursor, Retriever, Base};
+
+        let dev = CPU::<Cached<Base>>::new();
+
+        for _i in dev.range(10) {
+            let _x: Buffer<u8, _> = dev.retrieve(3, ()).unwrap();
+        }
+
+        assert_eq!(dev.cursor(), 1);
+
+        for _i in dev.range(1..7) {
+            let _x: Buffer<u8, _> = dev.retrieve(4, ()).unwrap();
+        }
+        assert_eq!(dev.cursor(), 2);
+    }
 }

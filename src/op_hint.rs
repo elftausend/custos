@@ -130,7 +130,7 @@ mod tests {
 
         dev.optimize_mem_graph(&dev, None).unwrap();
         dev.unary_fusing(&dev, None).unwrap();
-        unsafe { dev.run().unwrap() };
+        dev.run().unwrap();
 
         for (buf, out) in buf.iter().zip(_out.replace().iter()) {
             assert!((*out - buf.sin().cos().ln()).abs() < 0.001);
@@ -153,7 +153,7 @@ mod tests {
 
         dev.optimize_mem_graph(&dev, None).unwrap();
         dev.unary_fusing(&dev, None).unwrap();
-        unsafe { dev.run().unwrap() };
+        dev.run().unwrap();
 
         for (buf, out) in buf.read().iter().zip(_out.replace().read().iter()) {
             assert!((*out - buf.sin().cos().ln()).abs() < 0.001);
@@ -176,7 +176,7 @@ mod tests {
 
         dev.optimize_mem_graph(&dev, None).unwrap();
         dev.unary_fusing(&dev, None).unwrap();
-        let _ = unsafe { dev.run() };
+        let _ = dev.run();
 
         for (buf, out) in buf.read().iter().zip(_out.replace().read().iter()) {
             assert!((*out - buf.sin().cos().ln()).abs() < 0.001);
@@ -202,7 +202,7 @@ mod tests {
 
         dev.optimize_mem_graph(&dev, None).unwrap();
         dev.unary_fusing(&dev, None).unwrap();
-        unsafe { dev.run().unwrap() };
+        dev.run().unwrap();
 
         for (buf, out) in buf.iter().zip(_out.replace().iter()) {
             assert_eq!(*out, buf.sin().abs().ln());
@@ -293,11 +293,11 @@ mod tests {
 
         println!("unary fusing: {:?}", start.elapsed());
 
-        unsafe { dev.run().unwrap() };
+        dev.run().unwrap();
 
         let start = Instant::now();
 
-        unsafe { dev.run().unwrap() };
+        dev.run().unwrap();
 
         println!("perf automatic fusing: {:?}", start.elapsed());
 

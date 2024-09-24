@@ -435,6 +435,7 @@ mod tests {
     }
 
     pub trait AddEw<T, D: crate::Device = Self>: crate::Device {
+        #[allow(dead_code)]
         fn add(&self, lhs: &crate::Buffer<T, D>, rhs: &crate::Buffer<T, D>) -> crate::Buffer<T, D>;
     }
 

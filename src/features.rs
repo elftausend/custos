@@ -120,11 +120,7 @@ impl<D> RunModule<D> for crate::Base {}
 
 pub trait Run {
     /// Executes a lazy graph.
-    ///
-    /// # Safety
-    /// The lifetime of captured references is ignored!
-    /// Specific style of writing operations should prevent UB altogether (at the cost of convenience).
-    unsafe fn run(&self) -> crate::Result<()>;
+    fn run(&self) -> crate::Result<()>;
 }
 
 pub trait HasModules {

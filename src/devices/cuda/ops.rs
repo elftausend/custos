@@ -4,9 +4,9 @@ use crate::{
     bounds_to_range,
     cuda::api::{cu_read_async, CUstreamCaptureStatus},
     op_hint::unary,
-    pass_down_add_operation, pass_down_exec_now, AddOperation, ApplyFunction,
-    Buffer, CDatatype, ClearBuf, CopySlice, OnDropBuffer, Read, Resolve, Retrieve, Retriever,
-    SetOpHint, Shape, ToCLSource, ToMarker, UnaryGrad, Unit, WriteBuf, ZeroGrad, CUDA,
+    pass_down_add_operation, pass_down_exec_now, AddOperation, ApplyFunction, Buffer, CDatatype,
+    ClearBuf, CopySlice, OnDropBuffer, Read, Resolve, Retrieve, Retriever, SetOpHint, Shape,
+    ToCLSource, ToMarker, UnaryGrad, Unit, WriteBuf, ZeroGrad, CUDA,
 };
 
 use super::{
@@ -291,7 +291,7 @@ mod tests {
 
         assert_eq!(lhs_grad.read(), vec![1, 2, 3, 4, 5, 6]);
 
-        unsafe { device.run().unwrap() }
+        device.run().unwrap();
 
         assert_eq!(lhs_grad.read(), vec![4, 6, 8, 10, 12, 14]);
     }

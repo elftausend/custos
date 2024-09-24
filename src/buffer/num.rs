@@ -1,13 +1,11 @@
 use core::{
     convert::Infallible,
-    ffi::c_void,
     ops::{Deref, DerefMut},
-    ptr::null_mut,
 };
 
 use crate::{
-    flag::AllocFlag, Alloc, Buffer, CloneBuf, Device, HasId, OnDropBuffer, PtrType,
-    ShallowCopy, Unit, WrappedData,
+    flag::AllocFlag, Alloc, Buffer, CloneBuf, Device, HasId, OnDropBuffer, PtrType, ShallowCopy,
+    Unit, WrappedData,
 };
 
 #[derive(Debug, Default)]
@@ -175,15 +173,37 @@ impl<'a, T: Unit> Buffer<'a, T, ()> {
     ///
     /// let x: Buffer<f32, _> = 7f32.into();
     /// assert_eq!(**x, 7.);
-    /// assert_eq!(x.item(), 7.);
+    /// assert_eq!(x.item(), &7.);
     ///
     /// ```
     #[inline]
-    pub fn item(&self) -> T
+    pub fn item(&self) -> &T
     where
-        T: Unit + Copy,
+        T: Unit,
     {
-        self.data.num
+        &self.data.num
+    }
+ 
+    /// Used if the `Buffer` contains only a single value.
+    /// By derefencing this `Buffer`, you obtain this value as well (which is probably preferred).
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use custos::Buffer;
+    ///
+    /// let mut x: Buffer<f32, _> = 7f32.into();
+    /// assert_eq!(**x, 7.);
+    /// *x.item_mut() += 1.;
+    /// assert_eq!(*x.item_mut(), 8.);
+    ///
+    /// ```   
+    #[inline]
+    pub fn item_mut(&mut self) -> &mut T
+    where
+        T: Unit,
+    {
+        &mut self.data.num
     }
 }
 
@@ -229,8 +249,4 @@ mod tests {
 
         <()>::new().unwrap();
     }
-
-    #[cfg(feature = "lazy")]
-    #[test]
-    fn test_num_device_lazy() {}
 }

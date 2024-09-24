@@ -1,6 +1,7 @@
 use crate::{
-    cpu::{CPUPtr, DeallocWithLayout}, Alloc, AsOperandCode, Base, Buffer, Device, HasId, IsShapeIndep, Lazy, LazyRun,
-    LazySetup, Module, OnDropBuffer, PtrType, Retrieve, Retriever, Setup, Shape, Unit, WrappedData,
+    cpu::{CPUPtr, DeallocWithLayout},
+    Alloc, AsOperandCode, Base, Buffer, Device, HasId, IsShapeIndep, Lazy, LazyRun, LazySetup,
+    Module, OnDropBuffer, PtrType, Retrieve, Retriever, Setup, Shape, Unit, WrappedData,
 };
 
 use super::NnapiPtr;
@@ -215,11 +216,7 @@ impl<T, Mods: OnDropBuffer> NnapiDevice<T, Mods> {
     fn set_input_ptrs(&self, run: &mut Execution) -> crate::Result<()> {
         for (idx, (_id, input_ptr)) in self.input_ptrs.borrow().iter().enumerate() {
             unsafe {
-                run.set_input_raw(
-                    idx as i32,
-                    input_ptr.ptr.cast(),
-                    input_ptr.layout().size()
-                )
+                run.set_input_raw(idx as i32, input_ptr.ptr.cast(), input_ptr.layout().size())
             }?
         }
         Ok(())

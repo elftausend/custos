@@ -292,7 +292,7 @@ mod tests {
     macro_rules! run_several_times {
         ($device:ident, $buf:ident, $out:ident) => {
             for i in 1..10 {
-                unsafe { $device.run() }.unwrap();
+                $device.run().unwrap();
                 roughly_eq_slices(
                     $out.replace().as_slice(),
                     &[

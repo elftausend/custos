@@ -56,9 +56,6 @@
 //! A lot more usage examples can be found in the [tests] and [examples] folder.
 //!
 //! [tests]: https://github.com/elftausend/custos/tree/main/tests
-use core::ffi::c_void;
-
-//pub use libs::*;
 pub use buffer::*;
 pub use devices::*;
 

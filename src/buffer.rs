@@ -1,5 +1,4 @@
 use core::{
-    ffi::c_void,
     mem::ManuallyDrop,
     ops::{Deref, DerefMut},
 };
@@ -11,9 +10,9 @@ use crate::cpu::{CPUPtr, CPU};
 use crate::CPU;
 
 use crate::{
-    flag::AllocFlag, shape::Shape, Alloc, Base, ClearBuf, CloneBuf, Device,
-    DevicelessAble, HasId, IsShapeIndep, OnDropBuffer, OnNewBuffer, PtrType, Read, ReplaceBuf,
-    ShallowCopy, Unit, WrappedData, WriteBuf, ZeroGrad,
+    flag::AllocFlag, shape::Shape, Alloc, Base, ClearBuf, CloneBuf, Device, DevicelessAble, HasId,
+    IsShapeIndep, OnDropBuffer, OnNewBuffer, PtrType, Read, ReplaceBuf, ShallowCopy, Unit,
+    WrappedData, WriteBuf, ZeroGrad,
 };
 
 pub use self::num::Num;
@@ -583,7 +582,7 @@ impl<'a, Mods: OnDropBuffer, T: Unit, S: Shape> Buffer<'a, T, CPU<Mods>, S> {
 impl<'a, Mods: OnDropBuffer, T: Unit, S: Shape> Buffer<'a, T, crate::OpenCL<Mods>, S> {
     /// Returns the OpenCL pointer of the `Buffer`.
     #[inline]
-    pub fn cl_ptr(&self) -> *mut c_void {
+    pub fn cl_ptr(&self) -> *mut core::ffi::c_void {
         assert!(
             !self.base().ptr.is_null(),
             "called cl_ptr() on an invalid OpenCL buffer"
@@ -687,15 +686,14 @@ where
     T: Unit + Debug + Default + Clone + 'a,
     D: Read<T, S> + Device + 'a,
     for<'b> <D as Read<T, S>>::Read<'b>: Debug,
-    D::Data<T, S>: Debug, 
+    D::Data<T, S>: Debug,
     S: Shape,
 {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        f.debug_struct("Buffer")
-            .field("ptr", self.data());
+        f.debug_struct("Buffer").field("ptr", self.data());
         writeln!(f, ",")?;
 
-        let data = self.read(); 
+        let data = self.read();
         writeln!(f, "data:    {data:?}")?;
         writeln!(f, "len:    {:?}", self.len())?;
         write!(

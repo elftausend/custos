@@ -147,7 +147,7 @@ fn main() {
         let rhs = device.buffer([1, 2, 3, 4, 5]);
 
         let out = device.add(&lhs, &rhs).unwrap();
-        unsafe { device.run().unwrap() }; // allocates memory and executes all operations inside the lazy graph
+        device.run().unwrap(); // allocates memory and executes all operations inside the lazy graph
         assert_eq!(out.replace().read(), [2, 4, 6, 8, 10])
     }
 
@@ -171,7 +171,7 @@ fn main() {
         device.unary_fusing(&device, None).unwrap();
 
         // this executes all operations inside the lazy graph
-        unsafe { device.run().unwrap() };
+        device.run().unwrap();
 
         for (input, out) in buf.read().iter().zip(out2.replace().read()) {
             assert!((out - (input + 1.).sin()).abs() < 0.01);
@@ -189,7 +189,7 @@ fn main() {
         let rhs = device.buffer([1, 2, 3, 4, 5]);
 
         let out = device.add(&lhs, &rhs).unwrap();
-        unsafe { device.run().unwrap() };
+        device.run().unwrap();
         assert_eq!(out.replace().read(), vec![2, 4, 6, 8, 10])
     }
 }

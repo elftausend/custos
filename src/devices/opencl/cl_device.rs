@@ -305,7 +305,7 @@ pass_down_use_gpu_or_cpu!(OpenCL);
 
 impl<Mods: crate::RunModule<Self>> crate::Run for OpenCL<Mods> {
     #[inline]
-    unsafe fn run(&self) -> crate::Result<()> {
+    fn run(&self) -> crate::Result<()> {
         self.modules.run(self)
     }
 }

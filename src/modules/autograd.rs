@@ -404,7 +404,7 @@ mod tests {
             Ok(())
         });
 
-        out.backward();
+        out.backward().unwrap();
 
         assert_eq!(&***buf.grad(), [5.; 10]);
     }
@@ -443,7 +443,7 @@ mod tests {
             Ok(())
         });
 
-        out.backward();
+        out.backward().unwrap();
 
         assert_eq!(lhs.try_grad().unwrap().as_slice(), [4, 5, 6, 7]);
     }
@@ -463,7 +463,7 @@ mod tests {
             panic!("should not be called");
         });
 
-        out.backward();
+        out.backward().unwrap();
 
         assert!(lhs.try_grad().is_none());
 
@@ -475,7 +475,7 @@ mod tests {
             Ok(())
         });
 
-        out.backward();
+        out.backward().unwrap();
 
         assert_eq!(lhs.try_grad().unwrap().as_slice(), [4, 5, 6, 7]);
     }

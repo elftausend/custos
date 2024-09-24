@@ -413,7 +413,7 @@ mod test {
         let out = Buffer::from((&device, [1, 1, 1, 1, 1, 1]));
 
         device.add_unary_grad(&lhs, &mut lhs_grad, &out, |x| x.mul(2).add(1));
-        unsafe { device.run().unwrap() };
+        device.run().unwrap();
 
         assert_eq!(lhs_grad.read(), [4, 7, 10, 13, 16, 19]);
     }

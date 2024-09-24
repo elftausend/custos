@@ -518,7 +518,7 @@ mod tests {
         let out: Buffer<f32, _> = device.retrieve::<2>(1000, (&mul, &mul_b)).unwrap();
 
         device.optimize_mem_graph(device, None).unwrap();
-        let _err = unsafe { device.run() };
+        let _err = device.run();
 
         assert_eq!(squared.replace().id(), mul.replace().id());
         assert_eq!(squared.replace().id(), out.replace().id());
@@ -659,7 +659,7 @@ mod tests {
         let out: Buffer<f32, _> = device.retrieve::<2>(1000, (&mul, &mul_b)).unwrap();
 
         device.optimize_mem_graph(&device, None).unwrap();
-        let _err = unsafe { device.run() };
+        let _err = device.run();
 
         assert_eq!(squared.replace().id(), mul.replace().id());
         assert_eq!(squared.replace().id(), out.replace().id());

@@ -176,7 +176,7 @@ impl<Mods> crate::LazyRun for CPU<Mods> {}
 
 impl<Mods: crate::RunModule<Self>> crate::Run for CPU<Mods> {
     #[inline]
-    unsafe fn run(&self) -> crate::Result<()> {
+    fn run(&self) -> crate::Result<()> {
         self.modules.run(self)
     }
 }

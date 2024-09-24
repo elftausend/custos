@@ -150,7 +150,7 @@ impl<T, D: Device + 'static, Mods> ExecNow<D> for Lazy<'_, Mods, T> {
 
 impl<T, Mods> Lazy<'_, Mods, T> {
     #[inline]
-    pub unsafe fn call_lazily<D: Device + 'static>(&self, device: &D) -> crate::Result<()> {
+    pub fn call_lazily<D: Device + 'static>(&self, device: &D) -> crate::Result<()> {
         self.graph
             .borrow_mut()
             .call_lazily(device, &mut self.buffers.borrow_mut())?;
@@ -178,7 +178,7 @@ impl<T, Mods: RunModule<D>, D: LazyRun + Device + 'static> RunModule<D> for Lazy
     #[inline]
     fn run(&self, device: &D) -> crate::Result<()> {
         self.alloc_later(device);
-        unsafe { self.call_lazily::<D>(device)? };
+        self.call_lazily::<D>(device)?;
         device.run()?;
         self.modules.run(device)
     }
@@ -529,12 +529,10 @@ mod tests {
 
         // assert_eq!(out.read(), &[0; 10]); -- should not work
         device.modules.alloc_later(&device);
-        unsafe {
-            device
-                .modules
-                .call_lazily::<CPU<Lazy<Base, i32>>>(&device)
-                .unwrap()
-        }
+        device
+            .modules
+            .call_lazily::<CPU<Lazy<Base, i32>>>(&device)
+            .unwrap();
         // assert_eq!(out.read(), &[3; 10]); -- should work
         assert_eq!(out.replace().read(), &[3; 10]);
         drop(buf);
@@ -583,7 +581,7 @@ mod tests {
         }
 
         if DeviceError::InvalidLazyBuf
-            != unsafe { *device.run().err().unwrap().downcast().unwrap() }
+            != *device.run().err().unwrap().downcast().unwrap()
         {
             panic!("")
         }
@@ -599,7 +597,7 @@ mod tests {
         let out = device.apply_fn(&buf, |x| x.add(3));
 
         // assert_eq!(out.read(), &[0; 10]);
-        unsafe { device.run().unwrap() };
+        device.run().unwrap();
         assert_eq!(out.replace().read(), &[3; 10]);
     }
 
@@ -615,7 +613,7 @@ mod tests {
 
         device.modules.alloc_later(&device);
         assert_eq!(out.replace().read(), &[0; 10]);
-        unsafe { device.run().unwrap() };
+        device.run().unwrap();
         assert_eq!(out.replace().read(), &[3; 10]);
     }
 
@@ -629,7 +627,7 @@ mod tests {
         let buf = Buffer::<i32, _>::new(&device, 10);
         let out = device.apply_fn(&buf, |x| x.add(3));
 
-        unsafe { device.run().unwrap() }
+        device.run().unwrap();
         assert_eq!(out.replace().read(), &[3; 10]);
     }
     #[test]
@@ -650,7 +648,7 @@ mod tests {
         let out = device.add(&lhs, &rhs);
         // assert_eq!(out.read(), &[0; 10]);
 
-        unsafe { device.run().unwrap() };
+        device.run().unwrap();
         assert_eq!(lhs.replace().read(), &[3; 10]);
 
         assert_eq!(out.replace().read(), [4, 5, 6, 7, 8, 9, 10, 11, 12, 13])
@@ -708,7 +706,7 @@ mod tests {
             device.exec_now(&device, 1..).unwrap();
             assert_eq!(out.replace().as_slice(), [2, 4, 6, 8])
         }
-        unsafe { device.run().unwrap() };
+        device.run().unwrap();
         assert_eq!(out.replace().as_slice(), [0; 4])
     }
 
@@ -741,7 +739,7 @@ mod tests {
             device.exec_last_n(&device, 1).unwrap();
             assert_eq!(out.replace().as_slice(), [2, 4, 6, 8])
         }
-        unsafe { device.run().unwrap() };
+        device.run().unwrap();
 
         assert_eq!(out.replace().as_slice(), [0; 4])
     }
@@ -777,7 +775,7 @@ mod tests {
                 .unwrap();
         }
 
-        if unsafe { device.run() }.is_ok() {
+        if device.run().is_ok() {
             panic!()
         }
     }
