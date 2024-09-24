@@ -1,6 +1,9 @@
 mod fast_cache;
 pub use fast_cache::*;
 
+mod length_cache;
+pub use length_cache::*;
+
 use crate::{Alloc, ShallowCopy, Shape, UniqueId, Unit};
 
 pub trait Cache {
