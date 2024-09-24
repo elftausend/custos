@@ -183,7 +183,7 @@ impl<'a, T: Unit> Buffer<'a, T, ()> {
     {
         &self.data.num
     }
- 
+
     /// Used if the `Buffer` contains only a single value.
     /// By derefencing this `Buffer`, you obtain this value as well (which is probably preferred).
     ///

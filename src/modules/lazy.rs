@@ -580,9 +580,7 @@ mod tests {
             // assert_eq!(out.replace().read(), &[0; 10]);
         }
 
-        if DeviceError::InvalidLazyBuf
-            != *device.run().err().unwrap().downcast().unwrap()
-        {
+        if DeviceError::InvalidLazyBuf != *device.run().err().unwrap().downcast().unwrap() {
             panic!("")
         }
     }
