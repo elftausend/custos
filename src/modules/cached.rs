@@ -7,11 +7,11 @@ use crate::{
     AddGradFn, AddLayer, AddOperation, Alloc, Buffer, Cache, CachedBuffers, Cursor, Device,
     ExecNow, FastCache, HasId, HasModules, IsShapeIndep, Module, OnDropBuffer, OnNewBuffer,
     Parents, PtrType, RemoveLayer, ReplaceBuf, Retrieve, RunModule, SetOpHint, Setup, ShallowCopy,
-    Shape, Unit, WrappedData,
+    Shape, Unit, WrappedData, UniqueId
 };
 
 #[cfg(feature = "graph")]
-use crate::{DeviceError, Optimize, UniqueId};
+use crate::{DeviceError, Optimize};
 
 // creator struct, however =>
 // TODO: could remove D generic and therefore CachedModule
