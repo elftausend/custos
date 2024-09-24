@@ -5,7 +5,7 @@ use std::rc::Rc;
 use web_sys::{Element, WebGlFramebuffer, WebGlShader};
 
 use crate::{
-    webgl::error::WebGlError, wgsl::{WgslDevice, WgslShaderLaunch}, AddLayer, Alloc, Base, Buffer, CloneBuf, Device, Module, OnDropBuffer, OnNewBuffer, Read, RemoveLayer, Retrieve, Retriever, Setup, Shape, Unit, WrappedData, WriteBuf
+    webgl::error::WebGlError, wgsl::{WgslDevice, WgslShaderLaunch}, AddLayer, Alloc, Base, Buffer, CloneBuf, Device, IsShapeIndep, Module, OnDropBuffer, OnNewBuffer, Read, RemoveLayer, Retrieve, Retriever, Setup, Shape, Unit, WrappedData, WriteBuf
 };
 
 use super::{
@@ -127,6 +127,8 @@ crate::pass_down_tape_actions!(WebGL);
 crate::pass_down_replace_buf_dev!(WebGL);
 crate::pass_down_cursor!(WebGL);
 crate::pass_down_cached_buffers!(WebGL);
+
+unsafe impl<Mods: OnDropBuffer> IsShapeIndep for WebGL<Mods> {}
 
 impl<Mods: OnDropBuffer> Device for WebGL<Mods> {
     type Base<T: Unit, S: crate::Shape> = WebGlData<T>;
