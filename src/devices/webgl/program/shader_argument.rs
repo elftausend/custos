@@ -255,14 +255,14 @@ impl<T: WebGlNumber> AsWebGlShaderArgument for T {
     }
 }
 
-impl<T: AsWebGlShaderArgument + 'static> AsShaderArg<WebGL> for T {
+impl<Mods: OnDropBuffer, T: AsWebGlShaderArgument + 'static> AsShaderArg<WebGL<Mods>> for T {
     #[inline]
-    fn arg(&self) -> &<WebGL as WgslShaderLaunch>::ShaderArg {
+    fn arg(&self) -> &<WebGL<Mods> as WgslShaderLaunch>::ShaderArg {
         self
     }
 
     #[inline]
-    fn arg_mut(&mut self) -> &mut <WebGL as WgslShaderLaunch>::ShaderArg {
+    fn arg_mut(&mut self) -> &mut <WebGL<Mods> as WgslShaderLaunch>::ShaderArg {
         self
     }
 }
