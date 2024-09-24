@@ -197,7 +197,10 @@ impl<CacheType, Mods, SD: Device> Cursor for CachedModule<Mods, SD, CacheType> {
 }
 
 #[cfg(feature = "autograd")]
-impl<CacheType, Mods: crate::HasAutograd, SD: Device> crate::HasAutograd for CachedModule<Mods, SD, CacheType> {}
+impl<CacheType, Mods: crate::HasAutograd, SD: Device> crate::HasAutograd
+    for CachedModule<Mods, SD, CacheType>
+{
+}
 
 #[cfg(feature = "autograd")]
 impl<'dev, CacheType, Mods: crate::TapeActions<'dev>, SD: Device> crate::TapeActions<'dev>
@@ -215,7 +218,9 @@ impl<'dev, CacheType, Mods: crate::TapeActions<'dev>, SD: Device> crate::TapeAct
 }
 
 #[cfg(feature = "autograd")]
-impl<CacheType, Mods: crate::GradActions, SD: Device> crate::GradActions for CachedModule<Mods, SD, CacheType> {
+impl<CacheType, Mods: crate::GradActions, SD: Device> crate::GradActions
+    for CachedModule<Mods, SD, CacheType>
+{
     unsafe fn grad<
         'a,
         T: 'static,
@@ -290,7 +295,9 @@ impl<CacheType, Mods: AddGradFn, D: Device> AddGradFn for CachedModule<Mods, D, 
     }
 }
 
-impl<CacheType, Mods: crate::UseGpuOrCpu, D: Device> crate::UseGpuOrCpu for CachedModule<Mods, D, CacheType> {
+impl<CacheType, Mods: crate::UseGpuOrCpu, D: Device> crate::UseGpuOrCpu
+    for CachedModule<Mods, D, CacheType>
+{
     #[inline]
     fn use_cpu_or_gpu(
         &self,
@@ -314,7 +321,9 @@ impl<CacheType, Mods: crate::UseGpuOrCpu, D: Device> crate::UseGpuOrCpu for Cach
     }
 }
 
-impl<CacheType, Mods: RunModule<D>, D, SD: Device> RunModule<D> for CachedModule<Mods, SD, CacheType> {
+impl<CacheType, Mods: RunModule<D>, D, SD: Device> RunModule<D>
+    for CachedModule<Mods, SD, CacheType>
+{
     #[inline]
     fn run(&self, _device: &D) -> crate::Result<()> {
         self.modules.run(_device)
