@@ -40,13 +40,16 @@ impl<CacheType, Mods: WrappedData, SD: Device> WrappedData for CachedModule<Mods
     }
 }
 
-impl<'a, Mods: Module<'a, D>, D: Device + 'a> Module<'a, D> for Cached<Mods> {
-    type Module = CachedModule<Mods::Module, D, FastCache>;
+impl<'a, CacheType, Mods: Module<'a, D>, D: Device + 'a> Module<'a, D> for Cached<Mods, CacheType>
+where
+    CacheType: Default,
+{
+    type Module = CachedModule<Mods::Module, D, CacheType>;
 
     fn new() -> Self::Module {
         CachedModule {
             modules: Mods::new(),
-            cache: RefCell::new(FastCache::new()),
+            cache: RefCell::new(CacheType::default()),
             pd: PhantomData,
             cursor: Default::default(),
         }

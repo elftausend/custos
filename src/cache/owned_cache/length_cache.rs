@@ -1,7 +1,7 @@
 use core::any::Any;
 use std::{collections::HashMap, sync::Arc};
 
-use crate::{flag::AllocFlag, Alloc, Cache, Device, PtrType, ShallowCopy, Shape, UniqueId, Unit};
+use crate::{flag::AllocFlag, Alloc, Cache, Device, ShallowCopy, Shape, UniqueId, Unit};
 
 #[derive(Clone)]
 pub struct LengthCache {
@@ -60,17 +60,11 @@ impl LengthCache {
     {
         let maybe_allocated = self.nodes.get(&(id, len));
         match maybe_allocated {
-            Some(data) => {
-                let data = unsafe {
-                    data.downcast_ref::<D::Base<T, S>>()
-                        .expect("Invalid request for data type!")
-                        .shallow()
-                };
-
-                // TODO: not necessary, could add length to hashmap
-                assert_eq!(data.size(), len, "Data size mismatch! Did you use e.g. if conditions in a (cursor) loop retrieving buffers with a different size?");
-                data
-            }
+            Some(data) => unsafe {
+                data.downcast_ref::<D::Base<T, S>>()
+                    .expect("Invalid request for data type!")
+                    .shallow()
+            },
             None => unsafe { self.add_node(device, id, len, new_buf_callback) },
         }
     }
@@ -109,7 +103,7 @@ mod tests {
     #[test]
     fn test_cache_add_node() {
         let mut cache = LengthCache::default();
-        let device = CPU::<Cached<Base>>::new();
+        let device = CPU::<Cached<Base, LengthCache>>::new();
 
         assert_eq!(cache.nodes.len(), 0);
 
@@ -146,15 +140,13 @@ mod tests {
 
     #[cfg(feature = "cpu")]
     #[test]
-    #[should_panic]
     fn test_cache_with_diffrent_length_return() {
         use crate::{Base, Buffer, Cursor, Retriever};
 
-        let dev = CPU::<Cached<Base>>::new();
+        let dev = CPU::<Cached<Base, LengthCache>>::new();
 
         for i in dev.range(10) {
             if i == 4 {
-                // has assert inside, therefore, this line leads to a crash due tue mismatiching lengths
                 let buf: Buffer<u8, _> = dev.retrieve(5, ()).unwrap();
                 assert_eq!(buf.len, 5);
             } else {
