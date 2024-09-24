@@ -114,6 +114,7 @@ impl Default for WebGL {
     }
 }
 
+crate::impl_retriever!(WebGL, WebGlNumber + Copy + Default);
 crate::impl_buffer_hook_traits!(WebGL);
 crate::impl_wrapped_data!(WebGL);
 
@@ -188,27 +189,6 @@ where
         let mut webgl_data = self.alloc::<S>(data.len(), crate::flag::AllocFlag::None)?;
         webgl_data.write(data.iter().copied());
         Ok(webgl_data)
-    }
-}
-
-impl<T, Mods, S> Retriever<T, S> for WebGL<Mods>
-where
-    T: WebGlNumber + Default + Copy,
-    Mods: Retrieve<Self, T, S>,
-    S: Shape,
-{
-    fn retrieve<const NUM_PARENTS: usize>(
-        &self,
-        len: usize,
-        parents: impl crate::Parents<NUM_PARENTS>,
-    ) -> crate::Result<Buffer<T, Self, S>> {
-        let data = unsafe { self.modules.retrieve::<NUM_PARENTS>(self, len, parents)? };
-        let buf = Buffer {
-            data,
-            device: Some(self),
-        };
-        self.modules.on_retrieve_finish(&buf);
-        Ok(buf)
     }
 }
 
