@@ -25,10 +25,11 @@ impl<'a, D: Cursor> Iterator for CursorRangeIter<'a, D> {
         if self.range.start >= self.range.end {
             return None;
         }
+        let epoch = self.range.start;
+
         unsafe {
             self.range.device.set_cursor(self.previous_cursor);
         }
-        let epoch = self.range.start;
         self.range.start += 1;
         Some(epoch)
     }

@@ -183,4 +183,25 @@ mod tests {
         }
         assert_eq!(dev.cursor(), 2);
     }
+
+    #[cfg(feature = "cpu")]
+    #[test]
+    fn test_cache_with_cached_call() {
+        use crate::{Base, Buffer, Cursor, Retriever};
+
+        let dev = CPU::<Cached<Base>>::new();
+
+        let mut _buf: Option<Buffer<f32, _>> = None;
+        _buf = dev.retrieve(10, ()).ok();
+
+        for _ in 0..10 {
+            dev.cached(|| {
+                _buf = dev.retrieve(10, ()).ok();
+                _buf = dev.retrieve(10, ()).ok();
+                _buf = dev.retrieve(10, ()).ok();
+                let nodes = &dev.modules.cache.borrow().nodes;
+                assert_eq!(nodes.len(), 4);
+            });
+        }
+    }
 }

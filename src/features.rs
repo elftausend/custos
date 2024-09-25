@@ -78,6 +78,16 @@ pub trait Cursor {
             device: self,
         }
     }
+
+    #[inline]
+    fn cached(&self, mut cb: impl FnMut())
+    where
+        Self: Sized,
+    {
+        let mut range = self.range(1).into_iter();
+        cb();
+        range.next();
+    }
 }
 
 #[macro_export]
