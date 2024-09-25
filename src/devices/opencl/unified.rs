@@ -174,7 +174,7 @@ where
 mod tests {
     use crate::{
         opencl::{chosen_cl_idx, CLPtr},
-        AllocFlag, Base, Buffer, Cache, Cached, Device, DeviceError, OpenCL, Retriever,
+        AllocFlag, Base, Buffer, Cached, Device, DeviceError, FastCache, OpenCL, Retriever,
         UnifiedMemChain, CPU,
     };
 
@@ -247,7 +247,7 @@ mod tests {
         no_drop.write(&[1., 2.3, 0.76]);
 
         let device = OpenCL::<Base>::new(chosen_cl_idx())?;
-        let mut cache = Cache::new();
+        let mut cache = FastCache::new();
 
         let buf = construct_buffer(&device, no_drop, &mut cache.nodes, 0);
         match buf
@@ -267,7 +267,7 @@ mod tests {
         no_drop.write(&[1., 2.3, 0.76]);
 
         let device = OpenCL::<Base>::new(chosen_cl_idx())?;
-        let mut cache = Cache::new();
+        let mut cache = FastCache::new();
 
         let (host_ptr, len) = (no_drop.data.ptr, no_drop.len());
         let cl_host_ptr = unsafe { to_cached_unified(&device, no_drop, &mut cache.nodes, 0)? };
@@ -294,7 +294,7 @@ mod tests {
         no_drop.write(&[1., 2.3, 0.76]);
 
         let device = OpenCL::<Base>::new(chosen_cl_idx())?;
-        let mut cache = Cache::new();
+        let mut cache = FastCache::new();
 
         let buf: Buffer<_, _> = construct_buffer(&device, no_drop, &mut cache.nodes, 0)?;
 

@@ -5,22 +5,23 @@ use core::{
 
 use crate::{
     AddGradFn, AddLayer, AddOperation, Alloc, Buffer, Cache, CachedBuffers, Cursor, Device,
-    ExecNow, HasId, HasModules, IsShapeIndep, Module, OnDropBuffer, OnNewBuffer, Parents, PtrType,
-    RemoveLayer, ReplaceBuf, Retrieve, RunModule, SetOpHint, Setup, ShallowCopy, Shape, Unit,
-    WrappedData,
+    ExecNow, FastCache, HasId, HasModules, IsShapeIndep, Module, OnDropBuffer, OnNewBuffer,
+    Parents, PtrType, RemoveLayer, ReplaceBuf, Retrieve, RunModule, SetOpHint, Setup, ShallowCopy,
+    Shape, Unit, WrappedData, UniqueId
 };
 
 #[cfg(feature = "graph")]
-use crate::{DeviceError, Optimize, UniqueId};
+use crate::{DeviceError, Optimize};
 
 // creator struct, however =>
 // TODO: could remove D generic and therefore CachedModule
 #[derive(Debug, PartialEq, Eq, Default)]
-pub struct Cached<Mods> {
+pub struct Cached<Mods, CacheType = FastCache> {
     pd: PhantomData<Mods>,
+    cache_type: PhantomData<CacheType>,
 }
 
-impl<Mods: WrappedData, SD: Device> WrappedData for CachedModule<Mods, SD> {
+impl<CacheType, Mods: WrappedData, SD: Device> WrappedData for CachedModule<Mods, SD, CacheType> {
     type Wrap<T, Base: HasId + PtrType> = Mods::Wrap<T, Base>;
 
     #[inline]
@@ -39,13 +40,16 @@ impl<Mods: WrappedData, SD: Device> WrappedData for CachedModule<Mods, SD> {
     }
 }
 
-impl<'a, Mods: Module<'a, D>, D: Device + 'a> Module<'a, D> for Cached<Mods> {
-    type Module = CachedModule<Mods::Module, D>;
+impl<'a, CacheType, Mods: Module<'a, D>, D: Device + 'a> Module<'a, D> for Cached<Mods, CacheType>
+where
+    CacheType: Default,
+{
+    type Module = CachedModule<Mods::Module, D, CacheType>;
 
     fn new() -> Self::Module {
         CachedModule {
             modules: Mods::new(),
-            cache: RefCell::new(Cache::new()),
+            cache: RefCell::new(CacheType::default()),
             pd: PhantomData,
             cursor: Default::default(),
         }
@@ -55,21 +59,23 @@ impl<'a, Mods: Module<'a, D>, D: Device + 'a> Module<'a, D> for Cached<Mods> {
 // impl<Mods> OnDropBuffer for Cached<Mods> {}
 
 // TODO: could remove D generic and therefore CachedModule
-pub struct CachedModule<Mods, D: Device> {
+pub struct CachedModule<Mods, D: Device, CacheType = FastCache> {
     pub modules: Mods,
-    pub cache: RefCell<Cache>,
+    pub cache: RefCell<CacheType>,
     pub(crate) pd: PhantomData<D>,
     cursor: Cell<usize>, // would move this to `Cache`, however -> RefCell; TODO: maybe add a Cursor Module
 }
 
-impl<Mods: Setup<NewDev>, D: Device, NewDev> Setup<NewDev> for CachedModule<Mods, D> {
+impl<CacheType, Mods: Setup<NewDev>, D: Device, NewDev> Setup<NewDev>
+    for CachedModule<Mods, D, CacheType>
+{
     #[inline]
     fn setup(device: &mut NewDev) -> crate::Result<()> {
         Mods::setup(device)
     }
 }
 
-impl<SD: Device, Mods: AddOperation> AddOperation for CachedModule<Mods, SD> {
+impl<CacheType, SD: Device, Mods: AddOperation> AddOperation for CachedModule<Mods, SD, CacheType> {
     #[inline]
     fn add_op<Args: Parents<N> + crate::AnyOp, const N: usize>(
         &self,
@@ -95,14 +101,18 @@ impl<SD: Device, Mods: AddOperation> AddOperation for CachedModule<Mods, SD> {
     }
 }
 
-impl<T, Mods: SetOpHint<T>, SD: Device> SetOpHint<T> for CachedModule<Mods, SD> {
+impl<CacheType, T, Mods: SetOpHint<T>, SD: Device> SetOpHint<T>
+    for CachedModule<Mods, SD, CacheType>
+{
     #[inline]
     fn set_op_hint(&self, op_hint: crate::op_hint::OpHint<T>) {
         self.modules.set_op_hint(op_hint)
     }
 }
 
-impl<D: Device, SD: Device, Mods: ExecNow<D>> ExecNow<D> for CachedModule<Mods, SD> {
+impl<CacheType, D: Device, SD: Device, Mods: ExecNow<D>> ExecNow<D>
+    for CachedModule<Mods, SD, CacheType>
+{
     #[inline]
     fn exec_now(
         &self,
@@ -113,7 +123,8 @@ impl<D: Device, SD: Device, Mods: ExecNow<D>> ExecNow<D> for CachedModule<Mods, 
     }
 }
 
-impl<'a, T, D, Mods, SD, S> OnNewBuffer<'a, T, D, S> for CachedModule<Mods, SD>
+impl<'a, CacheType, T, D, Mods, SD, S> OnNewBuffer<'a, T, D, S>
+    for CachedModule<Mods, SD, CacheType>
 where
     T: Unit + 'static,
     D: Device + IsShapeIndep + 'static,
@@ -128,7 +139,7 @@ where
     }
 }
 
-impl<Mods: OnDropBuffer, SD: Device> OnDropBuffer for CachedModule<Mods, SD> {
+impl<CacheType, Mods: OnDropBuffer, SD: Device> OnDropBuffer for CachedModule<Mods, SD, CacheType> {
     #[inline]
     fn on_drop_buffer<T: Unit, D: Device, S: Shape>(&self, device: &D, buf: &Buffer<T, D, S>) {
         self.modules.on_drop_buffer(device, buf)
@@ -136,7 +147,8 @@ impl<Mods: OnDropBuffer, SD: Device> OnDropBuffer for CachedModule<Mods, SD> {
 }
 
 // TODO: a more general OnDropBuffer => "Module"
-impl<T, Mods, D, SimpleDevice, S: Shape> Retrieve<D, T, S> for CachedModule<Mods, SimpleDevice>
+impl<CacheType, T, Mods, D, SimpleDevice, S: Shape> Retrieve<D, T, S>
+    for CachedModule<Mods, SimpleDevice, CacheType>
 where
     T: Unit + 'static,
     Mods: Retrieve<D, T, S>,
@@ -144,6 +156,7 @@ where
     D::Base<T, S>: ShallowCopy + 'static,
     D::Data<T, S>: ShallowCopy + 'static,
     SimpleDevice: Device,
+    CacheType: Cache,
 {
     #[inline]
     unsafe fn retrieve<const NUM_PARENTS: usize>(
@@ -155,11 +168,14 @@ where
     where
         D: Alloc<T>,
     {
-        Ok(self.wrap_in_base(
-            self.cache
-                .borrow_mut()
-                .get(device, len, |_cursor, _base| {}),
-        ))
+        let retrieved = Ok(self.wrap_in_base(self.cache.borrow_mut().get(
+            device,
+            device.cursor() as UniqueId,
+            len,
+            |_cursor, _base| {},
+        )));
+        unsafe { device.bump_cursor() };
+        retrieved
     }
 
     #[inline]
@@ -171,7 +187,7 @@ where
     }
 }
 
-impl<Mods, SD: Device> Cursor for CachedModule<Mods, SD> {
+impl<CacheType, Mods, SD: Device> Cursor for CachedModule<Mods, SD, CacheType> {
     #[inline]
     fn cursor(&self) -> usize {
         self.cursor.get()
@@ -184,11 +200,14 @@ impl<Mods, SD: Device> Cursor for CachedModule<Mods, SD> {
 }
 
 #[cfg(feature = "autograd")]
-impl<Mods: crate::HasAutograd, SD: Device> crate::HasAutograd for CachedModule<Mods, SD> {}
+impl<CacheType, Mods: crate::HasAutograd, SD: Device> crate::HasAutograd
+    for CachedModule<Mods, SD, CacheType>
+{
+}
 
 #[cfg(feature = "autograd")]
-impl<'dev, Mods: crate::TapeActions<'dev>, SD: Device> crate::TapeActions<'dev>
-    for CachedModule<Mods, SD>
+impl<'dev, CacheType, Mods: crate::TapeActions<'dev>, SD: Device> crate::TapeActions<'dev>
+    for CachedModule<Mods, SD, CacheType>
 {
     #[inline]
     unsafe fn tape(&self) -> Option<&super::Tape<'dev>> {
@@ -202,7 +221,9 @@ impl<'dev, Mods: crate::TapeActions<'dev>, SD: Device> crate::TapeActions<'dev>
 }
 
 #[cfg(feature = "autograd")]
-impl<Mods: crate::GradActions, SD: Device> crate::GradActions for CachedModule<Mods, SD> {
+impl<CacheType, Mods: crate::GradActions, SD: Device> crate::GradActions
+    for CachedModule<Mods, SD, CacheType>
+{
     unsafe fn grad<
         'a,
         T: 'static,
@@ -240,7 +261,7 @@ impl<Mods: crate::GradActions, SD: Device> crate::GradActions for CachedModule<M
     }
 }
 
-impl<CurrentMods, SD: Device> AddLayer<CurrentMods, SD> for Cached<()> {
+impl<CacheType, CurrentMods, SD: Device> AddLayer<CurrentMods, SD> for Cached<(), CacheType> {
     type Wrapped = crate::CachedModule<CurrentMods, SD>;
 
     #[inline]
@@ -254,14 +275,14 @@ impl<CurrentMods, SD: Device> AddLayer<CurrentMods, SD> for Cached<()> {
     }
 }
 
-impl<Mods, SD: Device> RemoveLayer<Mods> for CachedModule<Mods, SD> {
+impl<CacheType, Mods, SD: Device> RemoveLayer<Mods> for CachedModule<Mods, SD, CacheType> {
     #[inline]
     fn inner_mods(self) -> Mods {
         self.modules
     }
 }
 
-impl<Mods: AddGradFn, D: Device> AddGradFn for CachedModule<Mods, D> {
+impl<CacheType, Mods: AddGradFn, D: Device> AddGradFn for CachedModule<Mods, D, CacheType> {
     #[inline]
     fn add_grad_fn<Args: Parents<N> + crate::AnyOp, const N: usize>(
         &self,
@@ -277,7 +298,9 @@ impl<Mods: AddGradFn, D: Device> AddGradFn for CachedModule<Mods, D> {
     }
 }
 
-impl<Mods: crate::UseGpuOrCpu, D: Device> crate::UseGpuOrCpu for CachedModule<Mods, D> {
+impl<CacheType, Mods: crate::UseGpuOrCpu, D: Device> crate::UseGpuOrCpu
+    for CachedModule<Mods, D, CacheType>
+{
     #[inline]
     fn use_cpu_or_gpu(
         &self,
@@ -301,7 +324,9 @@ impl<Mods: crate::UseGpuOrCpu, D: Device> crate::UseGpuOrCpu for CachedModule<Mo
     }
 }
 
-impl<Mods: RunModule<D>, D, SD: Device> RunModule<D> for CachedModule<Mods, SD> {
+impl<CacheType, Mods: RunModule<D>, D, SD: Device> RunModule<D>
+    for CachedModule<Mods, SD, CacheType>
+{
     #[inline]
     fn run(&self, _device: &D) -> crate::Result<()> {
         self.modules.run(_device)
@@ -309,7 +334,7 @@ impl<Mods: RunModule<D>, D, SD: Device> RunModule<D> for CachedModule<Mods, SD> 
 }
 
 #[cfg(feature = "graph")]
-impl<Mods: Optimize, SD: Device> Optimize for CachedModule<Mods, SD> {
+impl<Mods: Optimize, SD: Device> Optimize for CachedModule<Mods, SD, FastCache> {
     fn optimize_mem_graph<D: 'static>(
         &self,
         _device: &D,
@@ -355,7 +380,7 @@ impl<Mods: Optimize, SD: Device> Optimize for CachedModule<Mods, SD> {
     }
 }
 
-impl<Mods: OnDropBuffer, D: Device> CachedBuffers for CachedModule<Mods, D> {
+impl<CacheType, Mods: OnDropBuffer, D: Device> CachedBuffers for CachedModule<Mods, D, CacheType> {
     #[inline]
     unsafe fn buffers_mut(
         &self,
@@ -365,7 +390,7 @@ impl<Mods: OnDropBuffer, D: Device> CachedBuffers for CachedModule<Mods, D> {
     }
 }
 
-impl<Mods, D, T, S, SD> ReplaceBuf<T, D, S> for CachedModule<Mods, SD>
+impl<CacheType, Mods, D, T, S, SD> ReplaceBuf<T, D, S> for CachedModule<Mods, SD, CacheType>
 where
     T: Unit,
     Mods: ReplaceBuf<T, D, S>,
@@ -379,7 +404,7 @@ where
     }
 }
 
-impl<Mods, D: Device> HasModules for CachedModule<Mods, D> {
+impl<CacheType, Mods, D: Device> HasModules for CachedModule<Mods, D, CacheType> {
     type Mods = Mods;
 
     #[inline]

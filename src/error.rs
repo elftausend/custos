@@ -2,7 +2,7 @@
 #[cfg(feature = "std")]
 pub type Error = Box<dyn core::error::Error + Send + Sync>;
 #[cfg(not(feature = "std"))]
-pub type Error = DeviceError; 
+pub type Error = DeviceError;
 
 /// A trait for downcasting errors.
 pub trait ErrorKind {
