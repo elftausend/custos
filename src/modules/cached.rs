@@ -7,7 +7,7 @@ use crate::{
     AddGradFn, AddLayer, AddOperation, Alloc, Buffer, Cache, CachedBuffers, Cursor, Device,
     ExecNow, FastCache, HasId, HasModules, IsShapeIndep, Module, OnDropBuffer, OnNewBuffer,
     Parents, PtrType, RemoveLayer, ReplaceBuf, Retrieve, RunModule, SetOpHint, Setup, ShallowCopy,
-    Shape, Unit, WrappedData, UniqueId
+    Shape, UniqueId, Unit, WrappedData,
 };
 
 #[cfg(feature = "graph")]
