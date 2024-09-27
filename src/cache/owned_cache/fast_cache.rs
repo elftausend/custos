@@ -1,13 +1,13 @@
-use core::{any::Any, hash::BuildHasherDefault};
+use core::{any::Any, cell::Ref, hash::BuildHasherDefault};
 use std::{collections::HashMap, sync::Arc};
 
 use crate::{
-    flag::AllocFlag, Alloc, Cache, Device, NoHasher, PtrType, ShallowCopy, Shape, UniqueId, Unit,
+    flag::AllocFlag, Alloc, Cache, Device, Locked, NoHasher, PtrType, ShallowCopy, Shape, UniqueId, Unit
 };
 
 #[derive(Clone)]
 pub struct FastCache {
-    pub nodes: HashMap<UniqueId, Arc<dyn Any>, BuildHasherDefault<NoHasher>>,
+    pub nodes: HashMap<UniqueId, Locked<Arc<dyn Any>>, BuildHasherDefault<NoHasher>>,
 }
 
 impl Default for FastCache {
@@ -60,11 +60,11 @@ impl FastCache {
         D::Base<T, S>: ShallowCopy + 'static,
         S: Shape,
     {
-        let maybe_allocated = self.nodes.get(&id);
+        let maybe_allocated = self.nodes.get_mut(&id);
         match maybe_allocated {
-            Some(data) => {
+            Some(locked_data) => {
                 let data = unsafe {
-                    data.downcast_ref::<D::Base<T, S>>()
+                    locked_data.data().expect("Data is locked").downcast_ref::<D::Base<T, S>>()
                         .expect("Invalid request for data type!")
                         .shallow()
                 };
@@ -94,7 +94,7 @@ impl FastCache {
         let shallow_data = unsafe { data.shallow() };
 
         callback(id, &shallow_data);
-        self.nodes.insert(id, Arc::new(data));
+        self.nodes.insert(id, Locked::new(Arc::new(data)));
 
         shallow_data
     }

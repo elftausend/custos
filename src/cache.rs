@@ -7,6 +7,9 @@ pub use nohasher::*;
 mod downcast;
 pub use downcast::*;
 
+mod locked;
+pub use locked::*;
+
 #[cfg(feature = "cached")]
 mod borrow_cache;
 #[cfg(feature = "cached")]
