@@ -80,12 +80,13 @@ pub trait Cursor {
     }
 
     #[inline]
-    fn cached(&self, mut cb: impl FnMut())
+    fn cached(&self, mut cb: impl FnMut()) 
     where
         Self: Sized,
     {
         let mut range = self.range(1).into_iter();
         cb();
+
         range.next();
     }
 }

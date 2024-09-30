@@ -18,6 +18,18 @@ pub struct CursorRangeIter<'a, D> {
     previous_cursor: usize,
 }
 
+impl<'a, D: Cursor> CursorRangeIter<'a, D> {
+    #[inline]
+    pub fn previous_cursor(&self) -> &usize {
+        &self.previous_cursor
+    }
+    
+    #[inline]
+    pub fn cursor_range(&self) -> &CursorRange<'a, D> {
+        &self.range
+    }
+}
+
 impl<'a, D: Cursor> Iterator for CursorRangeIter<'a, D> {
     type Item = usize;
 
