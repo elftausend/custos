@@ -163,7 +163,7 @@ impl AsRange for RangeToInclusive<usize> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{Base, Cached, Cursor, CPU}; // Moved shared imports to the top
+    use crate::{Base, Cached, Cursor, CPU};
 
     #[cfg(feature = "cpu")]
     #[cfg(feature = "cached")]
@@ -299,3 +299,4 @@ mod tests {
         assert_eq!(device.cursor(), 2);
     }
 }
+
