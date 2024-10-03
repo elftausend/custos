@@ -80,7 +80,7 @@ pub trait Cursor {
     }
 
     #[inline]
-    fn cached(&self, mut cb: impl FnMut()) 
+    fn cached(&self, cb: impl Fn()) 
     where
         Self: Sized,
     {

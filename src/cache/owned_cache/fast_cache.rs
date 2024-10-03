@@ -196,6 +196,7 @@ mod tests {
 
         for _ in 0..10 {
             dev.cached(|| {
+                let mut _buf: Option<Buffer<f32, _>> = None;
                 _buf = dev.retrieve(10, ()).ok();
                 _buf = dev.retrieve(10, ()).ok();
                 _buf = dev.retrieve(10, ()).ok();
@@ -217,16 +218,16 @@ mod tests {
 
         for _ in 0..10 {
             dev.cached(|| {
-                _buf = dev.retrieve(10, ()).ok();
+                let _buf: Option<Buffer<f32, _>> = dev.retrieve(10, ()).ok();
             });
             dev.cached(|| {
-                _buf = dev.retrieve(10, ()).ok();
+                let _buf: Option<Buffer<f32, _>> = dev.retrieve(10, ()).ok();
             });
             dev.cached(|| {
-                _buf = dev.retrieve(10, ()).ok();
+                let _buf: Option<Buffer<f32, _>> = dev.retrieve(10, ()).ok();
             });
             let nodes = &dev.modules.cache.borrow().nodes;
-            assert_eq!(nodes.len(), 4);
+            assert_eq!(nodes.len(), 2);
         }
     }
 }
