@@ -71,7 +71,6 @@ where
                 dtype = std::any::type_name::<T>(),
                 op = f("x[global_id.x]".to_marker()).to_wgsl_source()
             );
-
             out.device().launch_shader(
                 src,
                 [(32 + buf.len() as u32) / 32, 1, 1],
@@ -87,11 +86,12 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::{wgsl::wgsl_device::Wgsl, ApplyFunction, Combiner, Device, Vulkan};
+    use crate::{wgsl::wgsl_device::Wgsl, ApplyFunction, Combiner, Device};
 
+    #[cfg(feature = "vulkan")]
     #[test]
-    fn test_wgsl_device_apply_fn() {
-        let dev = Wgsl::<Vulkan>::new(0).unwrap();
+    fn test_wgsl_device_apply_fn_vk() {
+        let dev = Wgsl::<crate::Vulkan>::new(0).unwrap();
         let x = dev.buffer([1, 2, 3]);
 
         let out = dev.apply_fn(&x, |x| x.add(5));
