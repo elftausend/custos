@@ -223,7 +223,25 @@ mod tests {
             unsafe { device.bump_cursor() };
             assert_eq!(device.cursor(), 6);
         }
-    }
+        assert_eq!(device.cursor(), 6);
+
+        for _ in device.range(10) {
+            assert_eq!(device.cursor(), 6);
+            unsafe { device.bump_cursor() };
+
+            assert_eq!(device.cursor(), 7);
+
+            for _ in device.range(20) {
+                unsafe { device.bump_cursor() };
+                unsafe { device.bump_cursor() };
+                assert_eq!(device.cursor(), 9);
+            }
+
+            assert_eq!(device.cursor(), 9);
+            unsafe { device.bump_cursor() };
+            assert_eq!(device.cursor(), 10);
+        }
+    } 
 
     #[cfg(feature = "cpu")]
     #[cfg(feature = "cached")]
