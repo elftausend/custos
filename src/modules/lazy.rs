@@ -6,6 +6,7 @@ mod ty;
 mod wrapper;
 
 pub use ty::*;
+use wrapper::MaybeData;
 
 use crate::{
     op_hint::OpHint, register_buf_copyable, unregister_buf_copyable, AddLayer, AddOperation, Alloc,
@@ -362,8 +363,7 @@ where
         unsafe { self.bump_cursor() };
 
         Ok(LazyWrapper {
-            data: None,
-            id: Some(id),
+            maybe_data: MaybeData::Id(id),
             _pd: core::marker::PhantomData,
         })
     }
@@ -508,15 +508,15 @@ mod tests {
         let device = CPU::<Lazy<Base, i32>>::new();
         let buf = Buffer::<i32, _>::new(&device, 10);
         let res = &buf.data;
-        assert_eq!(res.id, None);
+        assert_eq!(res.maybe_data.id(), None);
 
         let x: Buffer<i32, _> = device.retrieve(10, ()).unwrap();
         let res = &x.data;
-        assert_eq!(res.id, Some(crate::Id { id: 0, len: 10 }));
+        assert_eq!(res.maybe_data.id(), Some(&crate::Id { id: 0, len: 10 }));
 
         let x: Buffer<i32, _> = device.retrieve(10, ()).unwrap();
         let res = &x.data;
-        assert_eq!(res.id, Some(crate::Id { id: 1, len: 10 }));
+        assert_eq!(res.maybe_data.id(), Some(&crate::Id { id: 1, len: 10 }));
     }
 
     #[test]
