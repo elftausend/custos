@@ -22,7 +22,7 @@ pub trait HasId {
     fn set_requires_grad(&mut self, _requires_grad: bool) {}
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct Id {
     /// The id of the buffer.
     pub id: u64,

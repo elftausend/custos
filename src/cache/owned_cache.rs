@@ -4,6 +4,9 @@ pub use fast_cache::*;
 mod length_cache;
 pub use length_cache::*;
 
+mod parent_cache;
+pub use parent_cache::*;
+
 use crate::{Alloc, Parents, ShallowCopy, Shape, UniqueId, Unit};
 
 pub trait Cache {
