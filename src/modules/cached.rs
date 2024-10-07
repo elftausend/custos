@@ -163,7 +163,7 @@ where
         &self,
         device: &D,
         len: usize,
-        _parents: impl Parents<NUM_PARENTS>,
+        parents: impl Parents<NUM_PARENTS>,
     ) -> crate::Result<Self::Wrap<T, D::Base<T, S>>>
     where
         D: Alloc<T>,
@@ -173,6 +173,7 @@ where
             device.cursor() as UniqueId,
             len,
             |_cursor, _base| {},
+            parents,
         )));
         unsafe { device.bump_cursor() };
         retrieved

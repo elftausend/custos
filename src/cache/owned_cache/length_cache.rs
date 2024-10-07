@@ -1,7 +1,7 @@
 use core::any::Any;
 use std::{collections::HashMap, sync::Arc};
 
-use crate::{flag::AllocFlag, Alloc, Cache, Device, ShallowCopy, Shape, UniqueId, Unit};
+use crate::{flag::AllocFlag, Alloc, Cache, Device, Parents, ShallowCopy, Shape, UniqueId, Unit};
 
 #[derive(Clone)]
 pub struct LengthCache {
@@ -17,12 +17,13 @@ impl Default for LengthCache {
 
 impl Cache for LengthCache {
     #[inline]
-    unsafe fn get<T, S, D>(
+    unsafe fn get<T, S, D, const N: usize>(
         &mut self,
         device: &D,
         id: UniqueId,
         len: usize,
         new_buf_callback: impl FnMut(UniqueId, &D::Base<T, S>),
+        _parents: impl Parents<N>
     ) -> D::Base<T, S>
     where
         T: Unit,

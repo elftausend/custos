@@ -2,7 +2,7 @@ use core::{any::Any, hash::BuildHasherDefault};
 use std::{collections::HashMap, sync::Arc};
 
 use crate::{
-    flag::AllocFlag, Alloc, Cache, Device, NoHasher, PtrType, ShallowCopy, Shape, UniqueId, Unit,
+    flag::AllocFlag, Alloc, Cache, Device, NoHasher, Parents, PtrType, ShallowCopy, Shape, UniqueId, Unit
 };
 
 #[derive(Clone)]
@@ -19,12 +19,13 @@ impl Default for FastCache {
 
 impl Cache for FastCache {
     #[inline]
-    unsafe fn get<T, S, D>(
+    unsafe fn get<T, S, D, const N: usize>(
         &mut self,
         device: &D,
         id: UniqueId,
         len: usize,
         new_buf_callback: impl FnMut(UniqueId, &D::Base<T, S>),
+        _parents: impl Parents<N>,
     ) -> D::Base<T, S>
     where
         T: Unit,
