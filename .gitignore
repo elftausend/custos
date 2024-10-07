@@ -12,3 +12,4 @@ build
 .externalNativeBuild
 /captures
 *.txt
+flamegraph*

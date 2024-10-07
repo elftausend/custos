@@ -51,7 +51,6 @@ impl<'a, Mods: Module<'a, D>, D: Device + 'a> Module<'a, D> for Autograd<'a, Mod
 }
 
 impl<'dev, Mods> Autograd<'dev, Mods> {
-    #[inline]
     pub fn register_no_grad_buf<T, D, S>(&self, buf: &Buffer<T, D, S>)
     where
         T: Unit + 'static,
@@ -165,14 +164,17 @@ where
 }
 
 impl<'dev, Mods> GradActions for Autograd<'dev, Mods> {
+    #[inline]
     unsafe fn gradients(&self) -> Option<&crate::Gradients> {
         Some(unsafe { &(*self.grads.get()) })
     }
 
+    #[inline]
     unsafe fn gradients_mut(&self) -> Option<&mut crate::Gradients> {
         Some(unsafe { &mut (*self.grads.get()) })
     }
 
+    #[inline]
     unsafe fn grad<
         'a,
         T: 'static,
@@ -186,6 +188,7 @@ impl<'dev, Mods> GradActions for Autograd<'dev, Mods> {
         unsafe { (*self.grads.get()).get_ref(device, buf.id()) }
     }
 
+    #[inline]
     unsafe fn grad_mut<
         'a,
         T: 'static,
