@@ -99,8 +99,8 @@ impl<'a, Mods: OnNewBuffer<'a, T, D, S>, T: Unit, D: Device, S: Shape> OnNewBuff
     for Fork<Mods>
 {
     #[inline]
-    unsafe fn on_new_buffer(&self, device: &'a D, new_buf: &crate::Buffer<'a, T, D, S>) {
-        self.modules.on_new_buffer(device, new_buf)
+    unsafe fn on_new_leaf_buffer(&self, device: &'a D, new_buf: &crate::Buffer<'a, T, D, S>) {
+        self.modules.on_new_leaf_buffer(device, new_buf)
     }
 }
 

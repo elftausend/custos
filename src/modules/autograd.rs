@@ -72,7 +72,7 @@ where
     Mods: OnNewBuffer<'dev, T, D, S>,
 {
     #[inline]
-    unsafe fn on_new_buffer(&self, device: &'dev D, new_buf: &Buffer<'dev, T, D, S>) {
+    unsafe fn on_new_leaf_buffer(&self, device: &'dev D, new_buf: &Buffer<'dev, T, D, S>) {
         // let mut no_grads = self.no_grads_pool.borrow_mut();
         // let wrapped_data = unsafe { new_buf.data.shallow() };
 
@@ -90,7 +90,7 @@ where
         self.register_no_grad_buf(new_buf);
 
         // pass down
-        self.modules.on_new_buffer(device, new_buf)
+        self.modules.on_new_leaf_buffer(device, new_buf)
     }
 }
 

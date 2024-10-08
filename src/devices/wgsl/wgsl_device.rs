@@ -105,8 +105,8 @@ impl<'dev, D: Device, Mods: OnNewBuffer<'dev, T, D1, S>, T: Unit, D1: Device, S:
     OnNewBuffer<'dev, T, D1, S> for Wgsl<D, Mods>
 {
     #[inline]
-    unsafe fn on_new_buffer(&self, device: &'dev D1, new_buf: &crate::Buffer<'dev, T, D1, S>) {
-        self.modules.on_new_buffer(device, new_buf)
+    unsafe fn on_new_leaf_buffer(&self, device: &'dev D1, new_buf: &crate::Buffer<'dev, T, D1, S>) {
+        self.modules.on_new_leaf_buffer(device, new_buf)
     }
 }
 

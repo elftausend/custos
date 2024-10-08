@@ -68,8 +68,8 @@ impl<'a, U, T: Unit, D: Device, S: Shape, Mods: crate::OnNewBuffer<'a, T, D, S>>
     crate::OnNewBuffer<'a, T, D, S> for NnapiDevice<U, Mods>
 {
     #[inline]
-    unsafe fn on_new_buffer(&self, device: &'a D, new_buf: &Buffer<'a, T, D, S>) {
-        self.modules.on_new_buffer(device, new_buf)
+    unsafe fn on_new_leaf_buffer(&self, device: &'a D, new_buf: &Buffer<'a, T, D, S>) {
+        self.modules.on_new_leaf_buffer(device, new_buf)
     }
 }
 impl<U, Mods: WrappedData> WrappedData for NnapiDevice<U, Mods> {
