@@ -24,14 +24,14 @@ impl Cache for LengthCache {
         len: usize,
         new_buf_callback: impl FnMut(UniqueId, &D::Base<T, S>),
         _parents: impl Parents<N>
-    ) -> D::Base<T, S>
+    ) -> Option<D::Base<T, S>>
     where
         T: Unit,
         D: Alloc<T> + 'static,
         D::Base<T, S>: ShallowCopy + 'static,
         S: Shape,
     {
-        self.get(device, id, len, new_buf_callback)
+        Some(self.get(device, id, len, new_buf_callback))
     }
 }
 

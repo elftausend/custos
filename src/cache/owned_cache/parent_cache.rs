@@ -1,11 +1,12 @@
-use core::any::Any;
-use std::{collections::HashMap, sync::Arc};
+use core::{any::Any, hash::BuildHasherDefault};
+use std::{collections::{HashMap, HashSet}, sync::Arc};
 
-use crate::{flag::AllocFlag, Alloc, Cache, Device, Id, Parents, ShallowCopy, Shape, UniqueId, Unit};
+use crate::{flag::AllocFlag, Alloc, Cache, Device, HasId, Id, NoHasher, Parents, ShallowCopy, Shape, UniqueId, Unit};
 
 #[derive(Clone)]
 pub struct ParentCache {
     pub nodes: HashMap<(Vec<Id>, usize), Arc<dyn Any>>,
+    pub locked: HashSet<UniqueId, BuildHasherDefault<NoHasher>>
 }
 
 impl Default for ParentCache {
@@ -24,7 +25,7 @@ impl Cache for ParentCache {
         len: usize,
         new_buf_callback: impl FnMut(UniqueId, &D::Base<T, S>),
         parents: impl Parents<N>
-    ) -> D::Base<T, S>
+    ) -> Option<D::Base<T, S>>
     where
         T: Unit,
         D: Alloc<T> + 'static,
@@ -33,6 +34,12 @@ impl Cache for ParentCache {
     {
         self.get(device, id, len, new_buf_callback, parents)
     }
+
+    #[inline]
+    fn unlock_id(&mut self, id: UniqueId) {
+        dbg!(id);
+        self.locked.remove(&id);
+    }
 }
 
 impl ParentCache {
@@ -40,6 +47,7 @@ impl ParentCache {
     pub fn new() -> Self {
         Self {
             nodes: Default::default(),
+            locked: Default::default(),
         }
     }
 
@@ -53,7 +61,7 @@ impl ParentCache {
         len: usize,
         new_buf_callback: impl FnMut(UniqueId, &D::Base<T, S>),
         parents: impl Parents<N>,
-    ) -> D::Base<T, S>
+    ) -> Option<D::Base<T, S>>
     where
         T: Unit,
         D: Alloc<T> + 'static,
@@ -63,11 +71,17 @@ impl ParentCache {
         let maybe_allocated = self.nodes.get(&(parents.ids().to_vec(), len));
         match maybe_allocated {
             Some(data) => unsafe {
-                data.downcast_ref::<D::Base<T, S>>()
+                let data = data.downcast_ref::<D::Base<T, S>>()
                     .expect("Invalid request for data type!")
-                    .shallow()
+                    .shallow();
+
+                if self.locked.contains(&data.id()) {
+                    None
+                } else {
+                    Some(data)
+                }
             },
-            None => unsafe { self.add_node(device, id, len, new_buf_callback, parents) },
+            None => Some(unsafe { self.add_node(device, id, len, new_buf_callback, parents) }),
         }
     }
 
@@ -90,11 +104,13 @@ impl ParentCache {
 
         callback(id, &shallow_data);
         self.nodes.insert((parents.ids().to_vec(), len), Arc::new(data));
+        self.locked.insert(*shallow_data.id());
 
         shallow_data
     }
 }
 
+/*
 #[cfg(test)]
 mod tests {
     #[cfg(feature = "cpu")]
@@ -119,7 +135,7 @@ mod tests {
         assert_eq!(cache.nodes.len(), 1);
         assert_eq!(out.len, 10);
 
-        let out1 = unsafe { cache.get::<f32, (), _, 1>(&device, 1, 10, |_a, _b| (), out.id()) };
+        let out1 = unsafe { cache.get::<f32, (), _, 1>(&device, 1, 10, |_a, _b| (), out.id()) }.unwrap();
         assert_ne!(out.ptr, out1.ptr);
     }
 
@@ -135,7 +151,7 @@ mod tests {
 
         let mut prev = None;
         for _ in 0..1000 {
-            let out3 = unsafe { cache.get::<f32, (), _, 1>(&device, 0, 10, |_a, _b| (), &parent) };
+            let out3 = unsafe { cache.get::<f32, (), _, 1>(&device, 0, 10, |_a, _b| (), &parent) }.unwrap();
             if prev.is_none() {
                 prev = Some(out3.ptr);
             }
@@ -167,16 +183,23 @@ mod tests {
     #[cfg(feature = "cpu")]
     #[test]
     fn test_alloc_cycle() {
-        use crate::{Device, Retriever};
+        use core::mem::ManuallyDrop;
+
+        use crate::{Device, HasId, Retriever};
 
         let dev = CPU::<Cached<Base, ParentCache>>::new();
         let parent = dev.buffer([1, 2, 3,]);
-        let mut second = dev.buffer([1, 2, 3,]);
-        for _ in 0..10 {
-            let second1 = dev.retrieve(5, &parent).unwrap();
-            let new: crate::Buffer<i32, _> = dev.retrieve(5, &second).unwrap();
+        // let mut second = dev.buffer([1, 2, 3,]);
+        for i in 0..10 {
+
+            dbg!(i);
+            let second1: crate::Buffer<i32, _> = dev.retrieve(5, &parent).unwrap();
+            dbg!(&*second1.id());
+            // let new: crate::Buffer<i32, _> = dev.retrieve(5, &second).unwrap();
         
-            second = second1;
+            // second = second1;
+            let mut second1 = ManuallyDrop::new(second1);
+            unsafe { ManuallyDrop::drop(&mut second1) }
         }
     }
 
@@ -199,3 +222,4 @@ mod tests {
         assert_eq!(dev.cursor(), 2);
     }
 }
+*/

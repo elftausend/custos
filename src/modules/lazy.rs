@@ -9,10 +9,7 @@ pub use ty::*;
 use wrapper::MaybeData;
 
 use crate::{
-    op_hint::OpHint, register_buf_copyable, unregister_buf_copyable, AddLayer, AddOperation, Alloc,
-    AnyOp, BoxedShallowCopy, Buffer, CachedBuffers, Cursor, Device, ExecNow, HasId, HasModules, Id,
-    IsShapeIndep, Module, NoHasher, OnDropBuffer, OnNewBuffer, Parents, ReplaceBuf, Retrieve,
-    RunModule, SetOpHint, Setup, ShallowCopy, Shape, UniqueId, Unit, UseGpuOrCpu,
+    flag::AllocFlag, op_hint::OpHint, register_buf_copyable, unregister_buf_copyable, AddLayer, AddOperation, Alloc, AnyOp, BoxedShallowCopy, Buffer, CachedBuffers, Cursor, Device, ExecNow, HasId, HasModules, Id, IsShapeIndep, Module, NoHasher, OnDropBuffer, OnNewBuffer, Parents, PtrType, ReplaceBuf, Retrieve, RunModule, SetOpHint, Setup, ShallowCopy, Shape, UniqueId, Unit, UseGpuOrCpu
 };
 
 #[cfg(feature = "graph")]
@@ -192,7 +189,10 @@ impl<T2, Mods: OnDropBuffer> OnDropBuffer for Lazy<'_, Mods, T2> {
         device: &D,
         buf: &Buffer<T, D, S>,
     ) {
-        unregister_buf_copyable(&mut self.buffers.borrow_mut(), buf.id());
+        if buf.data.flag() == AllocFlag::None {
+            unregister_buf_copyable(&mut self.buffers.borrow_mut(), buf.id());
+        }
+
         self.modules.on_drop_buffer(device, buf)
     }
 }

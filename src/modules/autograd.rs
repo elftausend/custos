@@ -11,11 +11,7 @@ use core::{
 };
 
 use crate::{
-    impl_remove_layer, pass_down_add_operation, pass_down_cached_buffers, pass_down_cursor,
-    pass_down_exec_now_module, pass_down_replace_buf_module, register_buf_copyable,
-    unregister_buf_copyable, AddGradFn, AddLayer, Alloc, Buffer, Device, GradActions, HasId,
-    HasModules, IsShapeIndep, Module, OnDropBuffer, OnNewBuffer, Parents, Retrieve, RunModule,
-    Setup, ShallowCopy, Shape, TapeActions, Unit,
+    flag::AllocFlag, impl_remove_layer, pass_down_add_operation, pass_down_cached_buffers, pass_down_cursor, pass_down_exec_now_module, pass_down_replace_buf_module, register_buf_copyable, unregister_buf_copyable, AddGradFn, AddLayer, Alloc, Buffer, Device, GradActions, HasId, HasModules, IsShapeIndep, Module, OnDropBuffer, OnNewBuffer, Parents, PtrType, Retrieve, RunModule, Setup, ShallowCopy, Shape, TapeActions, Unit
 };
 
 use self::wrapper::ReqGradWrapper;
@@ -101,8 +97,10 @@ where
 impl<'dev, Mods: OnDropBuffer> OnDropBuffer for Autograd<'dev, Mods> {
     #[inline]
     fn on_drop_buffer<T: Unit, D: Device, S: Shape>(&self, device: &D, buf: &Buffer<T, D, S>) {
-        unsafe { (*self.grads.get()).buf_requires_grad.remove(&*buf.id()) };
-        unregister_buf_copyable(unsafe { &mut (*self.grads.get()).no_grads_pool }, buf.id());
+        if buf.data.flag() == AllocFlag::None {
+            unsafe { (*self.grads.get()).buf_requires_grad.remove(&*buf.id()) };
+            unregister_buf_copyable(unsafe { &mut (*self.grads.get()).no_grads_pool }, buf.id());
+        }
 
         // TODO
         // FIXME if an alloc flag None buffer goes out of scope and it has used it's gradient buffer before,

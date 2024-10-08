@@ -10,6 +10,7 @@ pub use parent_cache::*;
 use crate::{Alloc, Parents, ShallowCopy, Shape, UniqueId, Unit};
 
 pub trait Cache {
+    fn unlock_id(&mut self, _id: UniqueId) {}
     unsafe fn get<T, S, D, const N: usize>(
         &mut self,
         device: &D,
@@ -17,7 +18,7 @@ pub trait Cache {
         len: usize,
         new_buf_callback: impl FnMut(UniqueId, &D::Base<T, S>),
         parents: impl Parents<N>,
-    ) -> D::Base<T, S>
+    ) -> Option<D::Base<T, S>>
     where
         T: Unit,
         D: Alloc<T> + 'static,
