@@ -1,7 +1,5 @@
 use crate::{
-    flag::AllocFlag, AddGradFn, AddOperation, Alloc, CachedBuffers, Cursor, Device, ExecNow, HasId,
-    HashLocation, Module, OnDropBuffer, OnNewBuffer, Parents, PtrType, ReplaceBuf, Retrieve,
-    SetOpHint, Setup, Shape, Unit, WrappedData,
+    flag::AllocFlag, AddGradFn, AddOperation, Alloc, CachedBuffers, CowMut, Cursor, Device, ExecNow, HasId, HashLocation, Module, OnDropBuffer, OnNewBuffer, Parents, PtrType, ReplaceBuf, Retrieve, SetOpHint, Setup, Shape, Unit, WrappedData
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
@@ -85,11 +83,11 @@ impl<D, T: Unit, S: Shape> Retrieve<D, T, S> for Base {
         device: &D,
         len: usize,
         _parents: impl Parents<NUM_PARENTS>,
-    ) -> crate::Result<Self::Wrap<T, D::Base<T, S>>>
+    ) -> crate::Result<CowMut<Self::Wrap<T, D::Base<T, S>>>>
     where
         D: Alloc<T>,
     {
-        device.alloc(len, AllocFlag::None)
+        device.alloc(len, AllocFlag::None).map(|x| CowMut::Owned(x))
     }
 }
 

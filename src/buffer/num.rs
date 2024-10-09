@@ -4,8 +4,7 @@ use core::{
 };
 
 use crate::{
-    flag::AllocFlag, Alloc, Buffer, CloneBuf, Device, HasId, OnDropBuffer, PtrType, ShallowCopy,
-    Unit, WrappedData,
+    flag::AllocFlag, Alloc, Buffer, CloneBuf, CowMut, Device, HasId, OnDropBuffer, PtrType, ShallowCopy, Unit, WrappedData
 };
 
 #[derive(Debug, Default)]
@@ -131,9 +130,9 @@ impl<'a, T: Unit + Clone> CloneBuf<'a, T> for () {
     #[inline]
     fn clone_buf(&self, buf: &Buffer<'a, T, Self>) -> Buffer<'a, T, Self> {
         Buffer {
-            data: Num {
+            data: CowMut::Owned(Num {
                 num: buf.data.num.clone(),
-            },
+            }),
             device: buf.device,
         }
     }
@@ -143,7 +142,7 @@ impl<T: crate::number::Number> From<T> for Buffer<'_, T, ()> {
     #[inline]
     fn from(ptr: T) -> Self {
         Buffer {
-            data: Num { num: ptr },
+            data: CowMut::Owned(Num { num: ptr }),
             device: None,
         }
     }
@@ -158,7 +157,7 @@ impl<'a, T: Unit> Buffer<'a, T, ()> {
         T: Unit + Copy,
     {
         Buffer {
-            data: Num { num: self.data.num },
+            data: CowMut::Owned(Num { num: self.data.num }),
             device: self.device,
         }
     }

@@ -95,11 +95,13 @@ pub(crate) unsafe fn register_buf_any<T, D, S>(
 
     let wrapped_data = unsafe { buf.data.shallow() };
 
-    let buf: Buffer<T, D, S> = Buffer {
-        data: wrapped_data,
-        device: None,
-    };
-    cache.insert(*buf.id(), Box::new(buf));
+    todo!()
+
+    // let buf: Buffer<T, D, S> = Buffer {
+    //     data: wrapped_data,
+    //     device: None,
+    // };
+    // cache.insert(*buf.id(), Box::new(buf));
 }
 
 #[cfg(feature = "std")]
@@ -127,11 +129,13 @@ pub(crate) unsafe fn register_buf_copyable<T, D, S>(
     // shallow copy sets flag to AllocFlag::Wrapper
     let wrapped_data = unsafe { buf.data.shallow() };
 
-    let buf: Buffer<T, D, S> = Buffer {
-        data: wrapped_data,
-        device: None,
-    };
-    cache.insert(*buf.id(), Box::new(buf));
+    todo!()
+
+    // let buf: Buffer<T, D, S> = Buffer {
+    //     data: wrapped_data,
+    //     device: None,
+    // };
+    // cache.insert(*buf.id(), Box::new(buf));
 }
 
 #[cfg(feature = "std")]

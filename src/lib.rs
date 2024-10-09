@@ -101,6 +101,7 @@ pub mod flag;
 mod any_op;
 #[cfg(feature = "std")]
 mod boxed_shallow_copy;
+mod cow_mut;
 pub mod hooks;
 mod id;
 mod layer_management;
@@ -116,6 +117,7 @@ mod wrapper;
 
 pub use any_op::*;
 pub use cache::*;
+pub use cow_mut::*;
 pub use features::*;
 pub use hooks::*;
 pub use id::*;

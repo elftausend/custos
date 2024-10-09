@@ -23,7 +23,7 @@ impl<'a, D: Cursor> CursorRangeIter<'a, D> {
     pub fn previous_cursor(&self) -> &usize {
         &self.previous_cursor
     }
-    
+
     #[inline]
     pub fn cursor_range(&self) -> &CursorRange<'a, D> {
         &self.range
@@ -67,7 +67,6 @@ pub trait AsRange {
     /// Returns the end index of the range.
     fn end(&self) -> usize;
 }
-
 
 // Implementing AsRange for standard Range (e.g., 0..10)
 impl AsRange for Range<usize> {
@@ -173,7 +172,6 @@ impl AsRange for RangeToInclusive<usize> {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     #[cfg(feature = "cpu")]
@@ -243,7 +241,7 @@ mod tests {
             unsafe { device.bump_cursor() };
             assert_eq!(device.cursor(), 10);
         }
-    } 
+    }
 
     #[cfg(feature = "cpu")]
     #[cfg(feature = "cached")]

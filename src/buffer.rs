@@ -10,9 +10,7 @@ use crate::cpu::{CPUPtr, CPU};
 use crate::CPU;
 
 use crate::{
-    flag::AllocFlag, shape::Shape, Alloc, Base, ClearBuf, CloneBuf, Device, DevicelessAble, HasId,
-    IsShapeIndep, OnDropBuffer, OnNewBuffer, PtrType, Read, ReplaceBuf, ShallowCopy, Unit,
-    WrappedData, WriteBuf, ZeroGrad,
+    flag::AllocFlag, shape::Shape, Alloc, Base, ClearBuf, CloneBuf, CowMut, Device, DevicelessAble, HasId, IsShapeIndep, OnDropBuffer, OnNewBuffer, PtrType, Read, ReplaceBuf, ShallowCopy, Unit, WrappedData, WriteBuf, ZeroGrad
 };
 
 pub use self::num::Num;
@@ -42,7 +40,7 @@ mod num;
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Buffer<'a, T: Unit = f32, D: Device = CPU<Base>, S: Shape = ()> {
     /// the type of pointer
-    pub(crate) data: D::Data<T, S>,
+    pub(crate) data: CowMut<'a, D::Data<T, S>>,
     /// A reference to the corresponding device. Mainly used for operations without a device parameter.
     #[cfg_attr(feature = "serde", serde(skip))]
     pub(crate) device: Option<&'a D>,
@@ -81,7 +79,7 @@ impl<'a, T: Unit, D: Device, S: Shape> Buffer<'a, T, D, S> {
     where
         D: OnNewBuffer<'a, T, D, S>,
     {
-        let data = device.base_to_data(base);
+        let data = CowMut::Owned(device.base_to_data(base));
         let buf = Buffer {
             data,
             device: Some(device),
@@ -265,7 +263,7 @@ impl<'a, T: Unit, D: Device, S: Shape> Buffer<'a, T, D, S> {
         D: DevicelessAble<'b, T, S>,
     {
         Buffer {
-            data: device.base_to_data(device.alloc(len, AllocFlag::None).unwrap()),
+            data: CowMut::Owned(device.base_to_data(device.alloc(len, AllocFlag::None).unwrap())),
             device: None,
         }
     }
@@ -275,6 +273,12 @@ impl<'a, T: Unit, D: Device, S: Shape> Buffer<'a, T, D, S> {
     where
         D::Data<T, S>: Default,
     {
+
+        if !self.data.is_owned() {
+            // TODO: return None
+            unimplemented!()
+        }
+
         if let Some(device) = self.device {
             if self.data.flag() != AllocFlag::None {
                 device.on_drop_buffer(device, &self)
@@ -283,9 +287,11 @@ impl<'a, T: Unit, D: Device, S: Shape> Buffer<'a, T, D, S> {
 
         let mut val = ManuallyDrop::new(self);
 
-        let data = core::mem::take(&mut val.data);
+        let CowMut::Owned(owned) = core::mem::take(&mut val.data) else {
+            unimplemented!()
+        };
 
-        Buffer { data, device: None }
+        Buffer { data: CowMut::Owned(owned), device: None }
     }
 
     /// Returns the device of the `Buffer`.
@@ -393,10 +399,11 @@ impl<'a, T: Unit, D: Device, S: Shape> Buffer<'a, T, D, S> {
     where
         <D as Device>::Data<T, S>: ShallowCopy,
     {
-        Buffer {
-            data: self.data.shallow(),
-            device: self.device,
-        }
+        todo!()
+        // Buffer {
+        //     data: self.data.shallow(),
+        //     device: self.device,
+        // }
     }
 
     /// Sets all elements in `Buffer` to the default value.
@@ -479,15 +486,16 @@ impl<'a, T: Unit, D: Device, S: Shape> Buffer<'a, T, D, S> {
         D: crate::ToDim<T, S, O>,
         D::Data<T, S>: ShallowCopy,
     {
-        let buf = ManuallyDrop::new(self);
+        todo!()
+        // let buf = ManuallyDrop::new(self);
 
-        let mut data = buf.device().to_dim(unsafe { buf.data.shallow() });
-        unsafe { data.set_flag(AllocFlag::None) };
+        // let mut data = buf.device().to_dim(unsafe { buf.data.shallow() });
+        // unsafe { data.set_flag(AllocFlag::None) };
 
-        Buffer {
-            data,
-            device: buf.device,
-        }
+        // Buffer {
+        //     data,
+        //     device: buf.device,
+        // }
     }
 }
 
@@ -550,10 +558,11 @@ impl<'a, T: Unit, S: Shape> Buffer<'a, T, CPU<Base>, S> {
     /// The `Buffer` does not manage deallocation of the allocated memory.
     #[inline]
     pub unsafe fn from_raw_host(ptr: *mut T, len: usize) -> Buffer<'a, T, CPU<Base>, S> {
-        Buffer {
-            data: CPUPtr::from_ptr(ptr, len, AllocFlag::Wrapper),
-            device: None,
-        }
+        todo!()
+        // Buffer {
+        //     data: CPUPtr::from_ptr(ptr, len, AllocFlag::Wrapper),
+        //     device: None,
+        // }
     }
 }
 
@@ -571,10 +580,11 @@ impl<'a, Mods: OnDropBuffer, T: Unit, S: Shape> Buffer<'a, T, CPU<Mods>, S> {
         ptr: *mut T,
         len: usize,
     ) -> Buffer<'a, T, CPU<Mods>, S> {
-        Buffer {
-            data: device.wrap_in_base(CPUPtr::from_ptr(ptr, len, AllocFlag::Wrapper)),
-            device: Some(device),
-        }
+        todo!()
+        // Buffer {
+        //     data: device.wrap_in_base(CPUPtr::from_ptr(ptr, len, AllocFlag::Wrapper)),
+        //     device: Some(device),
+        // }
     }
 }
 
@@ -633,7 +643,7 @@ where
 {
     fn default() -> Self {
         Self {
-            data: D::Data::<T, S>::default(),
+            data: Default::default(),
             device: None,
         }
     }

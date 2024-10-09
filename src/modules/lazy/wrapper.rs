@@ -42,7 +42,7 @@ impl<Data: HasId, T> HasId for LazyWrapper<Data, T> {
         match self.maybe_data {
             MaybeData::Data(ref data) => data.id(),
             MaybeData::Id(id) => id,
-            MaybeData::None => unimplemented!()
+            MaybeData::None => unimplemented!(),
         }
     }
 }
@@ -53,13 +53,14 @@ impl<Data: PtrType, T> PtrType for LazyWrapper<Data, T> {
         match self.maybe_data {
             MaybeData::Data(ref data) => data.size(),
             MaybeData::Id(id) => id.len,
-            MaybeData::None => unimplemented!()
+            MaybeData::None => unimplemented!(),
         }
     }
 
     #[inline]
     fn flag(&self) -> AllocFlag {
-        self.maybe_data.data()
+        self.maybe_data
+            .data()
             .map(|data| data.flag())
             .unwrap_or(AllocFlag::Lazy)
     }
