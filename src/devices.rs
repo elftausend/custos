@@ -44,6 +44,12 @@ pub use fusing::*;
 
 use crate::{Buffer, HasId, OnDropBuffer, Parents, PtrType, Shape, Unit};
 
+pub enum DeviceAccess<D> {
+    None,
+    Full(D),
+    NoDrop(D)
+}
+
 /// The `Device` trait is the main trait for all compute devices.
 pub trait Device: OnDropBuffer + Sized {
     type Base<T: Unit, S: Shape>: HasId + PtrType;

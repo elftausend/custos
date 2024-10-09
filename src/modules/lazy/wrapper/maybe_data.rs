@@ -17,16 +17,16 @@ impl<Data> MaybeData<Data> {
             MaybeData::None => None,
         }
     }
-    
+
     #[inline]
     pub fn data_mut(&mut self) -> Option<&mut Data> {
         match self {
             MaybeData::Data(data) => Some(data),
             MaybeData::Id(_id) => None,
-            MaybeData::None => None
+            MaybeData::None => None,
         }
     }
-    
+
     #[inline]
     pub fn id(&self) -> Option<&Id> {
         match self {
@@ -35,7 +35,7 @@ impl<Data> MaybeData<Data> {
             MaybeData::None => None,
         }
     }
-    
+
     #[inline]
     pub fn id_mut(&mut self) -> Option<&mut Id> {
         match self {

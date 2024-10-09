@@ -1,7 +1,9 @@
 use core::any::Any;
 use std::{collections::HashMap, sync::Arc};
 
-use crate::{flag::AllocFlag, Alloc, Cache, Device, Parents, ShallowCopy, Shape, UniqueId, Unit};
+use crate::{
+    flag::AllocFlag, Alloc, Cache, Device, Parents, PtrType, ShallowCopy, Shape, UniqueId, Unit,
+};
 
 #[derive(Clone)]
 pub struct LengthCache {
@@ -23,7 +25,7 @@ impl Cache for LengthCache {
         id: UniqueId,
         len: usize,
         new_buf_callback: impl FnMut(UniqueId, &D::Base<T, S>),
-        _parents: impl Parents<N>
+        _parents: impl Parents<N>,
     ) -> Option<D::Base<T, S>>
     where
         T: Unit,
@@ -62,9 +64,12 @@ impl LengthCache {
         let maybe_allocated = self.nodes.get(&(id, len));
         match maybe_allocated {
             Some(data) => unsafe {
-                data.downcast_ref::<D::Base<T, S>>()
+                let mut data = data
+                    .downcast_ref::<D::Base<T, S>>()
                     .expect("Invalid request for data type!")
-                    .shallow()
+                    .shallow();
+                data.set_flag(AllocFlag::Cached);
+                data
             },
             None => unsafe { self.add_node(device, id, len, new_buf_callback) },
         }

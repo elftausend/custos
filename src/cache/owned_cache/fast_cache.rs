@@ -2,7 +2,8 @@ use core::{any::Any, hash::BuildHasherDefault};
 use std::{collections::HashMap, sync::Arc};
 
 use crate::{
-    flag::AllocFlag, Alloc, Cache, Device, NoHasher, Parents, PtrType, ShallowCopy, Shape, UniqueId, Unit
+    flag::AllocFlag, Alloc, Cache, Device, NoHasher, Parents, PtrType, ShallowCopy, Shape,
+    UniqueId, Unit,
 };
 
 #[derive(Clone)]
@@ -64,11 +65,12 @@ impl FastCache {
         let maybe_allocated = self.nodes.get(&id);
         match maybe_allocated {
             Some(data) => {
-                let data = unsafe {
+                let mut data = unsafe {
                     data.downcast_ref::<D::Base<T, S>>()
                         .expect("Invalid request for data type!")
                         .shallow()
                 };
+                data.set_flag(AllocFlag::Cached);
 
                 // TODO: not necessary, could add length to hashmap
                 assert_eq!(data.size(), len, "Data size mismatch! Did you use e.g. if conditions in a (cursor) loop retrieving buffers with a different size?");

@@ -139,7 +139,9 @@ where
     }
 }
 
-impl<CacheType: Cache, Mods: OnDropBuffer, SD: Device> OnDropBuffer for CachedModule<Mods, SD, CacheType> {
+impl<CacheType: Cache, Mods: OnDropBuffer, SD: Device> OnDropBuffer
+    for CachedModule<Mods, SD, CacheType>
+{
     #[inline]
     fn on_drop_buffer<T: Unit, D: Device, S: Shape>(&self, device: &D, buf: &Buffer<T, D, S>) {
         self.cache.borrow_mut().unlock_id(*buf.id());
@@ -169,13 +171,18 @@ where
     where
         D: Alloc<T>,
     {
-        let retrieved = Ok(self.wrap_in_base(self.cache.borrow_mut().get(
-            device,
-            device.cursor() as UniqueId,
-            len,
-            |_cursor, _base| {},
-            parents,
-        ).unwrap()));
+        let retrieved = Ok(self.wrap_in_base(
+            self.cache
+                .borrow_mut()
+                .get(
+                    device,
+                    device.cursor() as UniqueId,
+                    len,
+                    |_cursor, _base| {},
+                    parents,
+                )
+                .unwrap(),
+        ));
         unsafe { device.bump_cursor() };
         retrieved
     }

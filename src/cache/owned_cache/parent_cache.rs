@@ -1,12 +1,18 @@
 use core::{any::Any, hash::BuildHasherDefault};
-use std::{collections::{HashMap, HashSet}, sync::Arc};
+use std::{
+    collections::{HashMap, HashSet},
+    sync::Arc,
+};
 
-use crate::{flag::AllocFlag, Alloc, Cache, Device, HasId, Id, NoHasher, Parents, ShallowCopy, Shape, UniqueId, Unit};
+use crate::{
+    flag::AllocFlag, Alloc, Cache, Device, HasId, Id, NoHasher, Parents, PtrType, ShallowCopy,
+    Shape, UniqueId, Unit,
+};
 
 #[derive(Clone)]
 pub struct ParentCache {
     pub nodes: HashMap<(Vec<Id>, usize), Arc<dyn Any>>,
-    pub locked: HashSet<UniqueId, BuildHasherDefault<NoHasher>>
+    pub locked: HashSet<UniqueId, BuildHasherDefault<NoHasher>>,
 }
 
 impl Default for ParentCache {
@@ -24,7 +30,7 @@ impl Cache for ParentCache {
         id: UniqueId,
         len: usize,
         new_buf_callback: impl FnMut(UniqueId, &D::Base<T, S>),
-        parents: impl Parents<N>
+        parents: impl Parents<N>,
     ) -> Option<D::Base<T, S>>
     where
         T: Unit,
@@ -71,9 +77,12 @@ impl ParentCache {
         let maybe_allocated = self.nodes.get(&(parents.ids().to_vec(), len));
         match maybe_allocated {
             Some(data) => unsafe {
-                let data = data.downcast_ref::<D::Base<T, S>>()
+                let mut data = data
+                    .downcast_ref::<D::Base<T, S>>()
                     .expect("Invalid request for data type!")
                     .shallow();
+
+                data.set_flag(AllocFlag::Cached);
 
                 if self.locked.contains(&data.id()) {
                     None
@@ -103,7 +112,8 @@ impl ParentCache {
         let shallow_data = unsafe { data.shallow() };
 
         callback(id, &shallow_data);
-        self.nodes.insert((parents.ids().to_vec(), len), Arc::new(data));
+        self.nodes
+            .insert((parents.ids().to_vec(), len), Arc::new(data));
         self.locked.insert(*shallow_data.id());
 
         shallow_data
@@ -196,7 +206,7 @@ mod tests {
             let second1: crate::Buffer<i32, _> = dev.retrieve(5, &parent).unwrap();
             dbg!(&*second1.id());
             // let new: crate::Buffer<i32, _> = dev.retrieve(5, &second).unwrap();
-        
+
             // second = second1;
             let mut second1 = ManuallyDrop::new(second1);
             unsafe { ManuallyDrop::drop(&mut second1) }

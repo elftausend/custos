@@ -9,7 +9,11 @@ pub use ty::*;
 use wrapper::MaybeData;
 
 use crate::{
-    flag::AllocFlag, op_hint::OpHint, register_buf_copyable, unregister_buf_copyable, AddLayer, AddOperation, Alloc, AnyOp, BoxedShallowCopy, Buffer, CachedBuffers, Cursor, Device, ExecNow, HasId, HasModules, Id, IsShapeIndep, Module, NoHasher, OnDropBuffer, OnNewBuffer, Parents, PtrType, ReplaceBuf, Retrieve, RunModule, SetOpHint, Setup, ShallowCopy, Shape, UniqueId, Unit, UseGpuOrCpu
+    flag::AllocFlag, op_hint::OpHint, register_buf_copyable, unregister_buf_copyable, AddLayer,
+    AddOperation, Alloc, AnyOp, BoxedShallowCopy, Buffer, CachedBuffers, Cursor, Device, ExecNow,
+    HasId, HasModules, Id, IsShapeIndep, Module, NoHasher, OnDropBuffer, OnNewBuffer, Parents,
+    PtrType, ReplaceBuf, Retrieve, RunModule, SetOpHint, Setup, ShallowCopy, Shape, UniqueId, Unit,
+    UseGpuOrCpu,
 };
 
 #[cfg(feature = "graph")]
@@ -350,7 +354,7 @@ where
                 .alloc::<S>(id.len, crate::flag::AllocFlag::Lazy)
                 .unwrap();
             let data = device.base_to_data(base);
-            let buffer = Buffer {
+            let buffer: Buffer<T, D, S> = Buffer {
                 data,
                 device: Some(device),
             };

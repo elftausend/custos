@@ -11,7 +11,11 @@ use core::{
 };
 
 use crate::{
-    flag::AllocFlag, impl_remove_layer, pass_down_add_operation, pass_down_cached_buffers, pass_down_cursor, pass_down_exec_now_module, pass_down_replace_buf_module, register_buf_copyable, unregister_buf_copyable, AddGradFn, AddLayer, Alloc, Buffer, Device, GradActions, HasId, HasModules, IsShapeIndep, Module, OnDropBuffer, OnNewBuffer, Parents, PtrType, Retrieve, RunModule, Setup, ShallowCopy, Shape, TapeActions, Unit
+    flag::AllocFlag, impl_remove_layer, pass_down_add_operation, pass_down_cached_buffers,
+    pass_down_cursor, pass_down_exec_now_module, pass_down_replace_buf_module,
+    register_buf_copyable, unregister_buf_copyable, AddGradFn, AddLayer, Alloc, Buffer, Device,
+    GradActions, HasId, HasModules, IsShapeIndep, Module, OnDropBuffer, OnNewBuffer, Parents,
+    PtrType, Retrieve, RunModule, Setup, ShallowCopy, Shape, TapeActions, Unit,
 };
 
 use self::wrapper::ReqGradWrapper;

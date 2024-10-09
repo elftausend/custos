@@ -105,6 +105,8 @@ impl<'a, T: Unit, D: Device, S: Shape> Buffer<'a, T, D, S> {
     where
         D: OnNewBuffer<'a, T, D, S>,
     {
+        // FIXME: this function should only be callable on AllocFlag::None buffers
+
         if let Some(device) = self.device {
             device.on_drop_buffer(device, &self);
         }
@@ -193,7 +195,7 @@ impl<'a, T: Unit, D: Device, S: Shape> HasId for &mut Buffer<'a, T, D, S> {
 impl<'a, T: Unit, D: Device, S: Shape> Drop for Buffer<'a, T, D, S> {
     #[inline]
     fn drop(&mut self) {
-        if self.data.flag() != AllocFlag::None {
+        if !(self.data.flag() == AllocFlag::None || self.data.flag() == AllocFlag::Cached) {
             return;
         }
 
