@@ -41,6 +41,10 @@ impl Shape for () {
 /// The implementor must ensure that created device [`Buffer`](crate::Buffer)s are unaffected by the generic `S` shape parameter.
 pub unsafe trait IsShapeIndep: Device {}
 
+pub trait IsShapeIndep2<T, D: Device> {
+    fn shape_update<O: Shape>(self) -> D::Base<T, O>;
+}
+
 /// If the [`Shape`] is provides a fixed size, than this trait should be implemented.
 /// Forgot how this is useful.
 pub trait IsConstDim: Shape {}

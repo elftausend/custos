@@ -7,7 +7,9 @@ use core::{
 
 use std::alloc::handle_alloc_error;
 
-use crate::{flag::AllocFlag, HasId, HostPtr, Id, PtrType, ShallowCopy};
+use crate::{flag::AllocFlag, Device, HasId, HostPtr, Id, IsShapeIndep2, OnDropBuffer, PtrType, ShallowCopy, Shape};
+
+use super::CPU;
 
 /// The pointer used for `CPU` [`Buffer`](crate::Buffer)s
 #[derive(Debug)]
@@ -237,6 +239,13 @@ impl<T> ShallowCopy for CPUPtr<T> {
             len: self.len,
             flag: AllocFlag::Wrapper,
         }
+    }
+}
+
+impl<T, Mods: OnDropBuffer> IsShapeIndep2<T, CPU<Mods>> for CPUPtr<T> {
+    #[inline]
+    fn shape_update<O: Shape>(self) -> <CPU<Mods> as Device>::Base<T, O> {
+        self
     }
 }
 

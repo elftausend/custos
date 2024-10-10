@@ -486,6 +486,7 @@ impl<'a, T: Unit, D: Device, S: Shape> Buffer<'a, T, D, S> {
         D: crate::ToDim<T, S, O>,
         D::Data<T, S>: ShallowCopy,
     {
+        // let 
         todo!()
         // let buf = ManuallyDrop::new(self);
 

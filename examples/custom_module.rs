@@ -1,6 +1,5 @@
 use custos::{
-    Alloc, Base, Device, HasId, Module, OnDropBuffer, PtrType, Retrieve, Setup, Shape, Unit,
-    WrappedData, CPU,
+    Alloc, Base, CowMut, Device, HasId, Module, OnDropBuffer, PtrType, Retrieve, Setup, Shape, Unit, WrappedData, CPU
 };
 
 pub struct CustomModule<Mods> {
@@ -77,7 +76,7 @@ where
         device: &D,
         len: usize,
         parents: impl custos::Parents<NUM_PARENTS>,
-    ) -> custos::Result<Self::Wrap<T, <D>::Base<T, S>>>
+    ) -> custos::Result<CowMut<Self::Wrap<T, <D>::Base<T, S>>>>
     where
         S: Shape,
         D: Device + Alloc<T>,
