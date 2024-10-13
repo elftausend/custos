@@ -246,17 +246,28 @@ impl<T> WrappedCopy for CPUPtr<T> {
 impl<T> ShallowCopy for CPUPtr<T> {
     #[inline]
     unsafe fn shallow(&self) -> Self {
-        CPUPtr {
-            ptr: self.ptr,
-            len: self.len,
-            flag: AllocFlag::Wrapper,
-        }
+        unimplemented!()
+        // CPUPtr {
+        //     ptr: self.ptr,
+        //     len: self.len,
+        //     flag: AllocFlag::Wrapper,
+        // }
     }
 }
 
 impl<T, Mods: OnDropBuffer> IsShapeIndep2<T, CPU<Mods>> for CPUPtr<T> {
     #[inline]
-    fn shape_update<O: Shape>(self) -> <CPU<Mods> as Device>::Base<T, O> {
+    fn to_shape<O: Shape>(self) -> <CPU<Mods> as Device>::Base<T, O> {
+        self
+    }
+
+    #[inline]
+    fn as_shape<O: Shape>(&self) -> &<CPU<Mods> as Device>::Base<T, O> {
+        self
+    }
+
+    #[inline]
+    fn as_shape_mut<O: Shape>(&mut self) -> &mut <CPU<Mods> as Device>::Base<T, O> {
         self
     }
 }

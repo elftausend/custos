@@ -6,7 +6,7 @@ use core::{
 use std::collections::HashMap;
 
 use super::{Downcast, NoHasher};
-use crate::{flag::AllocFlag, Alloc, Buffer, Device, Id, Shape, UniqueId, Unit};
+use crate::{flag::AllocFlag, Alloc, Buffer, CowMut, Device, Id, Shape, UniqueId, Unit};
 
 #[derive(Clone, Copy)]
 pub enum CachingError {
@@ -96,14 +96,8 @@ impl BorrowCache {
         D: Alloc<T> + 'static,
         S: Shape,
     {
-        // not using ::new, because this buf would get added to the cache of the device.
-        // not anymore ?
-        let buf: Buffer<T, D, S> = Buffer {
-            data: device.base_to_data(device.alloc::<S>(id.len, AllocFlag::BorrowedCache).unwrap()),
-            device: None,
-        };
-
-        self.cache.insert(*id, Box::new(buf));
+        let data = device.base_to_data(device.alloc::<S>(id.len, AllocFlag::BorrowedCache).unwrap());
+        self.cache.insert(*id, Box::new(data));
     }
 
     #[inline]
@@ -121,41 +115,49 @@ impl BorrowCache {
     }
 
     #[inline]
-    pub fn get_buf<T, D, S>(
-        &self,
-        _device: &D,
+    pub fn get_buf<'a, T, D, S>(
+        &'a self,
+        device: &'a D,
         id: Id,
-    ) -> Result<&Buffer<'_, T, D, S>, CachingError>
+    ) -> Result<Buffer<'a, T, D, S>, CachingError>
     where
         T: Unit + 'static,
         D: Device + 'static,
         S: Shape,
     {
-        self.cache
+        let data = self.cache
             .get(&id)
             .ok_or(CachingError::InvalidId)?
-            .downcast_ref()
-            .ok_or(CachingError::InvalidTypeInfo)
+            .downcast_ref::<D::Data<T, S>>()
+            .ok_or(CachingError::InvalidTypeInfo)?;
+
+        Ok(Buffer {
+            data: CowMut::Borrowed(data),
+            device: Some(device),
+        })
     }
 
     #[inline]
-    pub fn get_buf_mut<'a, 'b, T, D, S>(
+    pub fn get_buf_mut<'a, T, D, S>(
         &'a mut self,
-        device: &'b D,
+        device: &'a D,
         id: Id,
-    ) -> Result<&'a mut Buffer<'b, T, D, S>, CachingError>
+    ) -> Result<Buffer<'a, T, D, S>, CachingError>
     where
         T: Unit + 'static,
         D: Device + 'static,
         S: Shape,
     {
-        let out = self.cache.get_mut(&id).ok_or(CachingError::InvalidId)?;
-        if !out.is::<Buffer<T, D, S>>() {
-            return Err(CachingError::InvalidTypeInfo);
-        }
-        let out = unsafe { out.downcast_mut_unchecked::<Buffer<'_, T, D, S>>() };
-        out.device = Some(device);
-        Ok(out)
+        let data = self.cache
+            .get_mut(&id)
+            .ok_or(CachingError::InvalidId)?
+            .downcast_mut::<D::Data<T, S>>()
+            .ok_or(CachingError::InvalidTypeInfo)?;
+
+        Ok(Buffer {
+            data: CowMut::BorrowedMut(data),
+            device: Some(device)
+        })
     }
 }
 
@@ -197,8 +199,8 @@ mod tests {
         cache.add_buf_once::<f32, _, ()>(&device, sid, &mut false);
         cache.add_buf_once::<f32, _, ()>(&device, tid, &mut false);
 
-        let a: &Buffer = cache.get_buf::<f32, _, ()>(&device, fid).unwrap();
-        let b: &Buffer = cache.get_buf::<f32, _, ()>(&device, fid).unwrap();
+        let a: Buffer = cache.get_buf::<f32, _, ()>(&device, fid).unwrap();
+        let b: Buffer = cache.get_buf::<f32, _, ()>(&device, fid).unwrap();
 
         assert_eq!(a.ptr, b.ptr);
     }

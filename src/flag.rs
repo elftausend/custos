@@ -7,13 +7,13 @@ pub enum AllocFlag {
     #[default]
     /// Typically used for temporary buffers. These buffers are not cached and are deallocated if they go out of scope.
     None,
-    /// Wraps around another pointer. Such buffers are not deallocated when they go out of scope.
-    Wrapper,
+    // Wraps around another pointer. Such buffers are not deallocated when they go out of scope.
+    // Wrapper,
     /// If a Buffer / allocation only contains a single number.
     Num,
     /// Similiar to `None`, but the resulting [`Buffer`](crate::Buffer) is borrowed and not owned.
     BorrowedCache,
-    Lazy,
+    // Lazy,
 }
 
 impl PartialEq for AllocFlag {
@@ -27,7 +27,7 @@ impl AllocFlag {
     pub fn continue_deallocation(&self) -> bool {
         matches!(
             self,
-            AllocFlag::None | AllocFlag::BorrowedCache | AllocFlag::Lazy
+            AllocFlag::None // | AllocFlag::BorrowedCache | AllocFlag::Lazy
         )
     }
 }

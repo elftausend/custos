@@ -3,6 +3,7 @@ use core::ops::{Deref, DerefMut};
 #[cfg_attr(feature = "serde", derive(serde::Serialize))]
 #[derive(Debug)]
 pub enum CowMut<'a, T> {
+    Borrowed(&'a T),
     BorrowedMut(&'a mut T),
     Owned(T),
 }
@@ -17,7 +18,7 @@ impl<'a, T> CowMut<'a, T> {
     #[inline]
     pub fn get_ref(&self) -> &T {
         match self {
-            // CowMut::Borrowed(borrowed) => borrowed,
+            CowMut::Borrowed(borrowed) => borrowed,
             CowMut::BorrowedMut(borrowed_mut) => borrowed_mut,
             CowMut::Owned(owned) => owned,
         }
@@ -26,7 +27,7 @@ impl<'a, T> CowMut<'a, T> {
     #[inline]
     pub fn get_mut(&mut self) -> Option<&mut T> {
         match self {
-            // CowMut::Borrowed(_borrowed) => None,
+            CowMut::Borrowed(_borrowed) => None,
             CowMut::BorrowedMut(borrowed_mut) => Some(borrowed_mut),
             CowMut::Owned(owned) => Some(owned),
         }
@@ -35,7 +36,7 @@ impl<'a, T> CowMut<'a, T> {
     #[inline]
     pub fn is_owned(&self) -> bool {
         match self {
-            CowMut::BorrowedMut(_) => false,
+            CowMut::Borrowed(_) | CowMut::BorrowedMut(_) => false,
             CowMut::Owned(_) => true,
         }
     }
@@ -46,6 +47,7 @@ impl<'a, T> CowMut<'a, T> {
         T: Clone,
     {
         match self {
+            CowMut::Borrowed(b) => b.clone(),
             CowMut::BorrowedMut(b) => b.clone(),
             CowMut::Owned(o) => o,
         }
@@ -58,6 +60,7 @@ impl<'a, T> Deref for CowMut<'a, T> {
     #[inline]
     fn deref(&self) -> &Self::Target {
         match self {
+            CowMut::Borrowed(b) => b,
             CowMut::BorrowedMut(b) => b,
             CowMut::Owned(o) => o,
         }
@@ -67,9 +70,6 @@ impl<'a, T> Deref for CowMut<'a, T> {
 impl<'a, T> DerefMut for CowMut<'a, T> {
     #[inline]
     fn deref_mut(&mut self) -> &mut Self::Target {
-        match self {
-            CowMut::BorrowedMut(b) => b,
-            CowMut::Owned(o) => o,
-        }
+        self.get_mut().expect("Cannot get mutable reference from immutable data")
     }
 }
