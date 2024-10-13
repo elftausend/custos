@@ -8,7 +8,7 @@ use crate::HostPtr;
 
 use min_cl::api::release_mem_object;
 
-use crate::{flag::AllocFlag, HasId, Id, PtrType, ShallowCopy};
+use crate::{flag::AllocFlag, HasId, Id, PtrType, ShallowCopy, WrappedCopy};
 
 /// The pointer used for `OpenCL` [`Buffer`](crate::Buffer)s
 #[derive(Debug, PartialEq, Eq)]
@@ -56,6 +56,15 @@ impl<T> CLPtr<T> {
 
     pub fn is_empty(&self) -> bool {
         self.len == 0
+    }
+}
+
+impl<T> WrappedCopy for CLPtr<T> {
+    type Base = Self;
+
+    #[inline]
+    fn wrapped_copy(&self, to_wrap: Self::Base) -> Self {
+        to_wrap
     }
 }
 
