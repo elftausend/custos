@@ -7,6 +7,7 @@ pub use length_cache::*;
 use crate::{Alloc, ShallowCopy, Shape, UniqueId, Unit};
 
 pub trait Cache {
+    fn contains_id(&self, id: UniqueId, len: usize) -> bool;
     unsafe fn get<T, S, D>(
         &mut self,
         device: &D,

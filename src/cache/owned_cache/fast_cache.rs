@@ -34,6 +34,11 @@ impl Cache for FastCache {
     {
         self.get(device, id, len, new_buf_callback)
     }
+    
+    #[inline]
+    fn contains_id(&self, id: UniqueId, _len: usize) -> bool {
+        self.nodes.contains_key(&id)
+    }
 }
 
 impl FastCache {

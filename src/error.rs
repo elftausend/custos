@@ -53,6 +53,7 @@ pub enum DeviceError {
     ZeroLengthBuffer,
     /// Given generic shape length does not match with e.g. slice length
     ShapeLengthMismatch,
+    NoCachedAllocation,
 }
 
 impl core::error::Error for crate::DeviceError {}
@@ -79,7 +80,8 @@ impl DeviceError {
             DeviceError::LocationAlreadyInUse => "Location is already in use.",
             DeviceError::UnaryFusingUnsupported => "Unary fusing is not supported for this module configuration.",
             DeviceError::ZeroLengthBuffer => "Zero length buffers are not supported",
-            DeviceError::ShapeLengthMismatch => "Given generic shape length does not match with e.g. slice length"
+            DeviceError::ShapeLengthMismatch => "Given generic shape length does not match with e.g. slice length",
+            DeviceError::NoCachedAllocation => "No cached allocation found",
         }
     }
 }

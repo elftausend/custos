@@ -85,11 +85,11 @@ impl<D, T: Unit, S: Shape> Retrieve<D, T, S> for Base {
         device: &D,
         len: usize,
         _parents: impl Parents<NUM_PARENTS>,
-    ) -> crate::Result<CowMut<Self::Wrap<T, D::Base<T, S>>>>
+    ) -> crate::Result<Option<Self::Wrap<T, D::Base<T, S>>>>
     where
         D: Alloc<T>,
     {
-        device.alloc(len, AllocFlag::None).map(|x| CowMut::Owned(x))
+        device.alloc(len, AllocFlag::None).map(|x| Some(x))
     }
 }
 

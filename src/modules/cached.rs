@@ -4,7 +4,7 @@ use core::{
 };
 
 use crate::{
-    AddGradFn, AddLayer, AddOperation, Alloc, Buffer, Cache, CachedBuffers, CowMut, Cursor, Device, ExecNow, FastCache, HasId, HasModules, IsShapeIndep, Module, OnDropBuffer, OnNewBuffer, Parents, PtrType, RemoveLayer, ReplaceBuf, Retrieve, RunModule, SetOpHint, Setup, ShallowCopy, Shape, UniqueId, Unit, WrappedData
+    AddGradFn, AddLayer, AddOperation, Alloc, Buffer, Cache, CachedBuffers, CowMut, Cursor, Device, DeviceError, ExecNow, FastCache, HasId, HasModules, IsShapeIndep, Module, OnDropBuffer, OnNewBuffer, Parents, PtrType, RemoveLayer, ReplaceBuf, Retrieve, RunModule, SetOpHint, Setup, ShallowCopy, Shape, UniqueId, Unit, WrappedData
 };
 
 #[cfg(feature = "graph")]
@@ -161,10 +161,16 @@ where
         device: &D,
         len: usize,
         _parents: impl Parents<NUM_PARENTS>,
-    ) -> crate::Result<CowMut<Self::Wrap<T, D::Base<T, S>>>>
+    ) -> crate::Result<Option<Self::Wrap<T, D::Base<T, S>>>>
     where
         D: Alloc<T>,
     {
+        if self.cache.borrow().contains_id(device.cursor() as UniqueId, len) {
+            Ok(None)
+        } else {
+            self.modules.retrieve(device, len, _parents)
+        }
+         
         // let retrieved = Ok(self.wrap_in_base(self.cache.borrow_mut().get(
         //     device,
         //     device.cursor() as UniqueId,
@@ -173,11 +179,10 @@ where
         // )));
         // unsafe { device.bump_cursor() };
         // retrieved
-        todo!()
     }
 
     #[inline]
-    fn on_retrieve_finish(&self, retrieved_buf: &Buffer<T, D, S>)
+    fn on_retrieve_finish<'a>(&self, retrieved_buf: Buffer<'a, T, D, S>) -> Buffer<'a, T, D, S>
     where
         D: Alloc<T>,
     {

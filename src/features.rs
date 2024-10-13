@@ -32,17 +32,18 @@ pub trait Retrieve<D, T: Unit, S: Shape = ()>: OnDropBuffer {
         device: &D,
         len: usize,
         parents: impl Parents<NUM_PARENTS>,
-    ) -> crate::Result<CowMut<Self::Wrap<T, D::Base<T, S>>>>
+    ) -> crate::Result<Option<Self::Wrap<T, D::Base<T, S>>>>
     where
         S: Shape,
         D: Device + Alloc<T>;
 
     // "actor"
     #[inline]
-    fn on_retrieve_finish(&self, _retrieved_buf: &Buffer<T, D, S>)
+    fn on_retrieve_finish<'a>(&self, _retrieved_buf: Buffer<'a, T, D, S>) -> Buffer<'a, T, D, S>
     where
         D: Alloc<T>,
     {
+        _retrieved_buf
     }
 }
 

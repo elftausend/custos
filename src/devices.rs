@@ -173,13 +173,13 @@ macro_rules! impl_retriever {
             ) -> $crate::Result<Buffer<T, Self, S>> {
                 let data = unsafe { self
                     .modules
-                    .retrieve::<NUM_PARENTS>(self, len, parents)? };
+                    .retrieve::<NUM_PARENTS>(self, len, parents)? }.unwrap();
+
                 let buf = Buffer {
-                    data,
+                    data: $crate::CowMut::Owned(data),
                     device: Some(self),
                 };
-                self.modules.on_retrieve_finish(&buf);
-                Ok(buf)
+                Ok(self.modules.on_retrieve_finish(buf))
             }
         }
     };

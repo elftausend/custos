@@ -32,6 +32,11 @@ impl Cache for LengthCache {
     {
         self.get(device, id, len, new_buf_callback)
     }
+
+    #[inline]
+    fn contains_id(&self, id: UniqueId, len: usize) -> bool {
+        self.nodes.contains_key(&(id, len))
+    }
 }
 
 impl LengthCache {
