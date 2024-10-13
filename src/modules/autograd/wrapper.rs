@@ -1,6 +1,6 @@
 use core::marker::PhantomData;
 
-use crate::{flag::AllocFlag, Autograd, HasId, PtrType, ShallowCopy, WrappedData};
+use crate::{flag::AllocFlag, Autograd, HasId, PtrType, ShallowCopy, WrappedCopy, WrappedData};
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct ReqGradWrapper<Data, T> {
@@ -71,6 +71,22 @@ impl<Data: PtrType, T> PtrType for ReqGradWrapper<Data, T> {
     #[inline]
     unsafe fn set_flag(&mut self, flag: AllocFlag) {
         self.data.set_flag(flag)
+    }
+}
+
+impl<Data, T> WrappedCopy for ReqGradWrapper<Data, T>
+where
+    Data: WrappedCopy<Base = T>,
+{
+    type Base = T;
+
+    #[inline]
+    fn wrapped_copy(&self, to_wrap: Self::Base) -> Self {
+        Self {
+            requires_grad: self.requires_grad,
+            data: self.data.wrapped_copy(to_wrap),
+            _pd: PhantomData,
+        }
     }
 }
 

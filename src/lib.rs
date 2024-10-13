@@ -182,6 +182,11 @@ pub trait Unit {} // useful for Sync and Send or 'static
 
 impl<T> Unit for T {}
 
+pub trait WrappedCopy {
+    type Base;
+    fn wrapped_copy(&self, to_wrap: Self::Base) -> Self;
+}
+
 /// Used to shallow-copy a pointer. Use is discouraged.
 pub trait ShallowCopy {
     /// # Safety

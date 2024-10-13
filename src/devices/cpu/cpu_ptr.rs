@@ -7,7 +7,10 @@ use core::{
 
 use std::alloc::handle_alloc_error;
 
-use crate::{flag::AllocFlag, Device, HasId, HostPtr, Id, IsShapeIndep2, OnDropBuffer, PtrType, ShallowCopy, Shape};
+use crate::{
+    flag::AllocFlag, Device, HasId, HostPtr, Id, IsShapeIndep2, OnDropBuffer, PtrType, ShallowCopy,
+    Shape, WrappedCopy,
+};
 
 use super::CPU;
 
@@ -228,6 +231,15 @@ impl<T> PtrType for CPUPtr<T> {
     #[inline]
     unsafe fn set_flag(&mut self, flag: AllocFlag) {
         self.flag = flag
+    }
+}
+
+impl<T> WrappedCopy for CPUPtr<T> {
+    type Base = Self;
+
+    #[inline]
+    fn wrapped_copy(&self, to_wrap: Self::Base) -> Self {
+        to_wrap
     }
 }
 

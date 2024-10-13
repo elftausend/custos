@@ -36,14 +36,14 @@ impl<'a, T> CowMut<'a, T> {
     pub fn is_owned(&self) -> bool {
         match self {
             CowMut::BorrowedMut(_) => false,
-            CowMut::Owned(_) => true
+            CowMut::Owned(_) => true,
         }
     }
 
     #[inline]
-    pub fn into_owned(self) -> T 
-    where 
-        T: Clone
+    pub fn into_owned(self) -> T
+    where
+        T: Clone,
     {
         match self {
             CowMut::BorrowedMut(b) => b.clone(),

@@ -10,7 +10,7 @@ use crate::cpu::{CPUPtr, CPU};
 use crate::CPU;
 
 use crate::{
-    flag::AllocFlag, shape::Shape, Alloc, Base, ClearBuf, CloneBuf, CowMut, Device, DevicelessAble, HasId, IsShapeIndep, OnDropBuffer, OnNewBuffer, PtrType, Read, ReplaceBuf, ShallowCopy, Unit, WrappedData, WriteBuf, ZeroGrad
+    flag::AllocFlag, shape::Shape, Alloc, Base, ClearBuf, CloneBuf, CowMut, Device, DevicelessAble, HasId, IsShapeIndep, OnDropBuffer, OnNewBuffer, PtrType, Read, ReplaceBuf, ShallowCopy, Unit, WrappedCopy, WrappedData, WriteBuf, ZeroGrad
 };
 
 pub use self::num::Num;
@@ -273,7 +273,6 @@ impl<'a, T: Unit, D: Device, S: Shape> Buffer<'a, T, D, S> {
     where
         D::Data<T, S>: Default,
     {
-
         if !self.data.is_owned() {
             // TODO: return None
             unimplemented!()
@@ -291,7 +290,10 @@ impl<'a, T: Unit, D: Device, S: Shape> Buffer<'a, T, D, S> {
             unimplemented!()
         };
 
-        Buffer { data: CowMut::Owned(owned), device: None }
+        Buffer {
+            data: CowMut::Owned(owned),
+            device: None,
+        }
     }
 
     /// Returns the device of the `Buffer`.
@@ -484,19 +486,20 @@ impl<'a, T: Unit, D: Device, S: Shape> Buffer<'a, T, D, S> {
     pub fn to_dims<O: Shape>(self) -> Buffer<'a, T, D, O>
     where
         D: crate::ToDim<T, S, O>,
-        D::Data<T, S>: ShallowCopy,
+        D::Data<T, S>: WrappedCopy<Base = D::Base<T, S>>,
+        D::Base<T, S>: ShallowCopy,
     {
-        // let 
-        todo!()
-        // let buf = ManuallyDrop::new(self);
+        let base = unsafe { (*self).shallow() };
+        let data = self.data.wrapped_copy(base);
+        let buf = ManuallyDrop::new(self);
 
-        // let mut data = buf.device().to_dim(unsafe { buf.data.shallow() });
-        // unsafe { data.set_flag(AllocFlag::None) };
+        let mut data = buf.device().to_dim(data);
+        unsafe { data.set_flag(AllocFlag::None) };
 
-        // Buffer {
-        //     data,
-        //     device: buf.device,
-        // }
+        Buffer {
+            data,
+            device: buf.device,
+        }
     }
 }
 

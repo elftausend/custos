@@ -4,7 +4,8 @@ use core::{
 };
 
 use crate::{
-    flag::AllocFlag, Alloc, Buffer, CloneBuf, CowMut, Device, HasId, OnDropBuffer, PtrType, ShallowCopy, Unit, WrappedData
+    flag::AllocFlag, Alloc, Buffer, CloneBuf, CowMut, Device, HasId, OnDropBuffer, PtrType,
+    ShallowCopy, Unit, WrappedData,
 };
 
 #[derive(Debug, Default)]

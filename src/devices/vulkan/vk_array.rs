@@ -9,7 +9,7 @@ use core::{
 };
 use std::rc::Rc;
 
-use crate::{flag::AllocFlag, HasId, HostPtr, PtrType, ShallowCopy};
+use crate::{flag::AllocFlag, HasId, HostPtr, PtrType, ShallowCopy, WrappedCopy};
 
 use super::{context::Context, submit_and_wait};
 
@@ -225,6 +225,15 @@ impl<T> VkArray<T> {
         T: Clone,
     {
         self.read_staged().to_vec()
+    }
+}
+
+impl<T> WrappedCopy for VkArray<T> {
+    type Base = Self;
+
+    #[inline]
+    fn wrapped_copy(&self, to_wrap: Self::Base) -> Self {
+        to_wrap
     }
 }
 
