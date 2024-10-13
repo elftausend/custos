@@ -6,7 +6,9 @@ use core::{
     ops::{Deref, DerefMut},
 };
 
-use crate::{flag::AllocFlag, HasId, HostPtr, Lazy, PtrType, ShallowCopy, WrappedData};
+use crate::{
+    flag::AllocFlag, HasId, HostPtr, Lazy, PtrType, ShallowCopy, WrappedCopy, WrappedData,
+};
 
 #[derive(Debug, Default)]
 pub struct LazyWrapper<Data, T> {
@@ -42,7 +44,7 @@ impl<Data: HasId, T> HasId for LazyWrapper<Data, T> {
         match self.maybe_data {
             MaybeData::Data(ref data) => data.id(),
             MaybeData::Id(id) => id,
-            MaybeData::None => unimplemented!()
+            MaybeData::None => unimplemented!(),
         }
     }
 }
@@ -53,13 +55,14 @@ impl<Data: PtrType, T> PtrType for LazyWrapper<Data, T> {
         match self.maybe_data {
             MaybeData::Data(ref data) => data.size(),
             MaybeData::Id(id) => id.len,
-            MaybeData::None => unimplemented!()
+            MaybeData::None => unimplemented!(),
         }
     }
 
     #[inline]
     fn flag(&self) -> AllocFlag {
-        self.maybe_data.data()
+        self.maybe_data
+            .data()
             .map(|data| data.flag())
             .unwrap_or(AllocFlag::Lazy)
     }
@@ -98,6 +101,24 @@ impl<T, Data: HostPtr<T>> HostPtr<T> for LazyWrapper<Data, T> {
     #[inline]
     fn ptr_mut(&mut self) -> *mut T {
         self.maybe_data.data_mut().unwrap().ptr_mut()
+    }
+}
+
+impl<Data, T> WrappedCopy for LazyWrapper<Data, T>
+where
+    Data: WrappedCopy<Base = T>,
+{
+    type Base = T;
+
+    fn wrapped_copy(&self, to_wrap: Self::Base) -> Self {
+        LazyWrapper {
+            maybe_data: match &self.maybe_data {
+                MaybeData::Data(data) => MaybeData::Data(data.wrapped_copy(to_wrap)),
+                MaybeData::Id(id) => MaybeData::Id(*id),
+                MaybeData::None => unimplemented!(),
+            },
+            _pd: PhantomData,
+        }
     }
 }
 
