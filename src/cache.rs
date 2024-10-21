@@ -17,4 +17,7 @@ mod owned_cache;
 #[cfg(feature = "cached")]
 pub use owned_cache::*;
 
+mod locking;
+pub use locking::*;
+
 pub type UniqueId = u64;
