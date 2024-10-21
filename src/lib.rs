@@ -113,6 +113,7 @@ mod shape;
 mod two_way_ops;
 mod unary;
 mod wrapper;
+mod cow_mut;
 
 pub use any_op::*;
 pub use cache::*;
@@ -125,6 +126,7 @@ pub use number::*;
 pub use parents::*;
 pub use range::*;
 pub use wrapper::*;
+pub use cow_mut::*;
 
 #[cfg(not(feature = "cpu"))]
 pub mod dummy_cpu;
