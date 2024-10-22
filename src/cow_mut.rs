@@ -5,7 +5,7 @@ pub type CowMutCell<'a, T> = CowMut<T, RefMut<'a, T>, Ref<'a, T>>;
 pub type CowMutRef<'a, T> = CowMut<T, &'a T, &'a mut T>;
 
 #[cfg_attr(feature = "serde", derive(serde::Serialize))]
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum CowMut<T, M, R> {
     Borrowed(R),
     BorrowedMut(M),
