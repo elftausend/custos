@@ -18,7 +18,7 @@ impl<'a, T> Guard<'a, T> {
         F: FnOnce(CowMutCell<'a, T>) -> CowMutCell<'a, U>,
     {
         let mut guard = ManuallyDrop::new(self);
-        let data = std::mem::take(&mut guard.data);
+        let data = core::mem::take(&mut guard.data);
 
         Guard {
             data: data.map(|x| f(x)),

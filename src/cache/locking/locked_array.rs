@@ -1,4 +1,4 @@
-use std::cell::{RefCell, RefMut};
+use core::cell::{RefCell, RefMut};
 
 use crate::cow_mut::CowMutCell;
 
