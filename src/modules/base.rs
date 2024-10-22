@@ -8,20 +8,20 @@ use crate::{
 pub struct Base;
 
 impl WrappedData for Base {
-    type Wrap<T, Base: HasId + PtrType> = Base;
+    type Wrap<T: Unit, Base: HasId + PtrType> = Base;
 
     #[inline]
-    fn wrap_in_base<T, Base: HasId + PtrType>(&self, base: Base) -> Self::Wrap<T, Base> {
+    fn wrap_in_base<T: Unit, Base: HasId + PtrType>(&self, base: Base) -> Self::Wrap<T, Base> {
         base
     }
 
     #[inline]
-    fn wrapped_as_base<T, Base: HasId + PtrType>(wrap: &Self::Wrap<T, Base>) -> &Base {
+    fn wrapped_as_base<T: Unit, Base: HasId + PtrType>(wrap: &Self::Wrap<T, Base>) -> &Base {
         wrap
     }
 
     #[inline]
-    fn wrapped_as_base_mut<T, Base: HasId + PtrType>(wrap: &mut Self::Wrap<T, Base>) -> &mut Base {
+    fn wrapped_as_base_mut<T: Unit, Base: HasId + PtrType>(wrap: &mut Self::Wrap<T, Base>) -> &mut Base {
         wrap
     }
 }

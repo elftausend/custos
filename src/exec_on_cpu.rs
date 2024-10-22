@@ -434,7 +434,7 @@ mod tests {
         Ok(())
     }
 
-    pub trait AddEw<T, D: crate::Device = Self>: crate::Device {
+    pub trait AddEw<T: 'static, D: crate::Device = Self>: crate::Device {
         #[allow(dead_code)]
         fn add(&self, lhs: &crate::Buffer<T, D>, rhs: &crate::Buffer<T, D>) -> crate::Buffer<T, D>;
     }
@@ -443,7 +443,7 @@ mod tests {
     where
         Mods: crate::hooks::OnDropBuffer + crate::Retrieve<Self, T> + 'static,
         Self::Base<T, ()>: core::ops::Deref<Target = [T]>,
-        T: core::ops::Add<Output = T> + Copy,
+        T: 'static + core::ops::Add<Output = T> + Copy,
     {
         fn add(
             &self,

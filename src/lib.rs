@@ -154,7 +154,7 @@ pub(crate) type OperationFn<B> =
     Box<dyn Fn(&[Id], &mut Buffers<B>, &dyn core::any::Any) -> crate::Result<()> + 'static>;
 
 /// This trait is implemented for every pointer type.
-pub trait PtrType {
+pub trait PtrType: 'static {
     /// Returns the element count.
     fn size(&self) -> usize;
     /// Returns the [`AllocFlag`].
@@ -178,9 +178,9 @@ pub trait HostPtr<T>: PtrType {
 }
 
 /// Minimum requirements for an element inside a Buffer.
-pub trait Unit {} // useful for Sync and Send or 'static
+pub trait Unit: 'static {} // useful for Sync and Send or 'static
 
-impl<T> Unit for T {}
+impl<T: 'static> Unit for T {}
 
 pub trait WrappedCopy {
     type Base;

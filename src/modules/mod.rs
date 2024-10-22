@@ -50,6 +50,9 @@ mod cached;
 #[cfg(feature = "cached")]
 pub use cached::*;
 
+mod cached2;
+pub use cached2::*;
+
 #[cfg(feature = "graph")]
 mod graph;
 #[cfg(feature = "graph")]

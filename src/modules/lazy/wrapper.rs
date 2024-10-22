@@ -7,7 +7,7 @@ use core::{
 };
 
 use crate::{
-    flag::AllocFlag, HasId, HostPtr, Lazy, PtrType, ShallowCopy, WrappedCopy, WrappedData,
+    flag::AllocFlag, HasId, HostPtr, Lazy, PtrType, ShallowCopy, Unit, WrappedCopy, WrappedData
 };
 
 #[derive(Debug, Default)]
@@ -17,10 +17,10 @@ pub struct LazyWrapper<Data, T> {
 }
 
 impl<T2, Mods: WrappedData> WrappedData for Lazy<'_, Mods, T2> {
-    type Wrap<T, Base: HasId + PtrType> = LazyWrapper<Mods::Wrap<T, Base>, T>;
+    type Wrap<T: Unit, Base: HasId + PtrType> = LazyWrapper<Mods::Wrap<T, Base>, T>;
 
     #[inline]
-    fn wrap_in_base<T, Base: HasId + PtrType>(&self, base: Base) -> Self::Wrap<T, Base> {
+    fn wrap_in_base<T: Unit, Base: HasId + PtrType>(&self, base: Base) -> Self::Wrap<T, Base> {
         LazyWrapper {
             maybe_data: MaybeData::Data(self.modules.wrap_in_base(base)),
             _pd: PhantomData,
@@ -28,12 +28,12 @@ impl<T2, Mods: WrappedData> WrappedData for Lazy<'_, Mods, T2> {
     }
 
     #[inline]
-    fn wrapped_as_base<T, Base: HasId + PtrType>(wrap: &Self::Wrap<T, Base>) -> &Base {
+    fn wrapped_as_base<T: Unit, Base: HasId + PtrType>(wrap: &Self::Wrap<T, Base>) -> &Base {
         Mods::wrapped_as_base(wrap.maybe_data.data().expect(MISSING_DATA))
     }
 
     #[inline]
-    fn wrapped_as_base_mut<T, Base: HasId + PtrType>(wrap: &mut Self::Wrap<T, Base>) -> &mut Base {
+    fn wrapped_as_base_mut<T: Unit, Base: HasId + PtrType>(wrap: &mut Self::Wrap<T, Base>) -> &mut Base {
         Mods::wrapped_as_base_mut(wrap.maybe_data.data_mut().expect(MISSING_DATA))
     }
 }
@@ -49,7 +49,7 @@ impl<Data: HasId, T> HasId for LazyWrapper<Data, T> {
     }
 }
 
-impl<Data: PtrType, T> PtrType for LazyWrapper<Data, T> {
+impl<Data: PtrType, T: Unit> PtrType for LazyWrapper<Data, T> {
     #[inline]
     fn size(&self) -> usize {
         match self.maybe_data {
@@ -92,7 +92,7 @@ impl<Data: DerefMut<Target = [T]>, T> DerefMut for LazyWrapper<Data, T> {
     }
 }
 
-impl<T, Data: HostPtr<T>> HostPtr<T> for LazyWrapper<Data, T> {
+impl<T: Unit, Data: HostPtr<T>> HostPtr<T> for LazyWrapper<Data, T> {
     #[inline]
     fn ptr(&self) -> *const T {
         self.maybe_data.data().unwrap().ptr()

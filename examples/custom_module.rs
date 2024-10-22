@@ -36,20 +36,20 @@ fn main() {
 // Implementing pass down traits / features
 
 impl<Mods: WrappedData> WrappedData for CustomModule<Mods> {
-    type Wrap<T, Base: HasId + PtrType> = Mods::Wrap<T, Base>;
+    type Wrap<T: Unit, Base: HasId + PtrType> = Mods::Wrap<T, Base>;
 
     #[inline]
-    fn wrap_in_base<T, Base: HasId + PtrType>(&self, base: Base) -> Self::Wrap<T, Base> {
+    fn wrap_in_base<T: Unit, Base: HasId + PtrType>(&self, base: Base) -> Self::Wrap<T, Base> {
         self.mods.wrap_in_base(base)
     }
 
     #[inline]
-    fn wrapped_as_base<T, Base: HasId + PtrType>(wrap: &Self::Wrap<T, Base>) -> &Base {
+    fn wrapped_as_base<T: Unit, Base: HasId + PtrType>(wrap: &Self::Wrap<T, Base>) -> &Base {
         Mods::wrapped_as_base(wrap)
     }
 
     #[inline]
-    fn wrapped_as_base_mut<T, Base: HasId + PtrType>(wrap: &mut Self::Wrap<T, Base>) -> &mut Base {
+    fn wrapped_as_base_mut<T: Unit, Base: HasId + PtrType>(wrap: &mut Self::Wrap<T, Base>) -> &mut Base {
         Mods::wrapped_as_base_mut(wrap)
     }
 }

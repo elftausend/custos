@@ -66,10 +66,10 @@ impl<D: Device, Mods: OnDropBuffer> Device for Wgsl<D, Mods> {
 }
 
 impl<D: Device, Mods: WrappedData> WrappedData for Wgsl<D, Mods> {
-    type Wrap<T, Base: HasId + PtrType> = Mods::Wrap<T, Base>;
+    type Wrap<T: Unit, Base: HasId + PtrType> = Mods::Wrap<T, Base>;
 
     #[inline]
-    fn wrap_in_base<T, Base: crate::HasId + crate::PtrType>(
+    fn wrap_in_base<T: Unit, Base: crate::HasId + crate::PtrType>(
         &self,
         base: Base,
     ) -> Self::Wrap<T, Base> {
@@ -77,14 +77,14 @@ impl<D: Device, Mods: WrappedData> WrappedData for Wgsl<D, Mods> {
     }
 
     #[inline]
-    fn wrapped_as_base<T, Base: crate::HasId + crate::PtrType>(
+    fn wrapped_as_base<T: Unit, Base: crate::HasId + crate::PtrType>(
         wrap: &Self::Wrap<T, Base>,
     ) -> &Base {
         Mods::wrapped_as_base(wrap)
     }
 
     #[inline]
-    fn wrapped_as_base_mut<T, Base: crate::HasId + crate::PtrType>(
+    fn wrapped_as_base_mut<T: Unit, Base: crate::HasId + crate::PtrType>(
         wrap: &mut Self::Wrap<T, Base>,
     ) -> &mut Base {
         Mods::wrapped_as_base_mut(wrap)

@@ -7,7 +7,7 @@ use core::{
 
 use std::alloc::handle_alloc_error;
 
-use crate::{flag::AllocFlag, HasId, HostPtr, Id, PtrType, ShallowCopy, WrappedCopy};
+use crate::{flag::AllocFlag, HasId, HostPtr, Id, PtrType, ShallowCopy, Unit, WrappedCopy};
 
 /// The pointer used for `CPU` [`Buffer`](crate::Buffer)s
 #[derive(Debug)]
@@ -151,7 +151,7 @@ impl<T> CPUPtr<T> {
     }
 }
 
-impl<T> HostPtr<T> for CPUPtr<T> {
+impl<T: Unit> HostPtr<T> for CPUPtr<T> {
     #[inline]
     fn ptr(&self) -> *const T {
         self.ptr
@@ -212,7 +212,7 @@ impl<T> Drop for CPUPtr<T> {
     }
 }
 
-impl<T> PtrType for CPUPtr<T> {
+impl<T: Unit> PtrType for CPUPtr<T> {
     #[inline]
     fn size(&self) -> usize {
         self.len

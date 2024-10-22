@@ -9,7 +9,7 @@ use core::{
 };
 use std::rc::Rc;
 
-use crate::{flag::AllocFlag, HasId, HostPtr, PtrType, ShallowCopy, WrappedCopy};
+use crate::{flag::AllocFlag, HasId, HostPtr, PtrType, ShallowCopy, Unit, WrappedCopy};
 
 use super::{context::Context, submit_and_wait};
 
@@ -25,7 +25,7 @@ pub struct VkArray<T> {
 unsafe impl<T: Sync> Sync for VkArray<T> {}
 unsafe impl<T: Send> Send for VkArray<T> {}
 
-impl<T> PtrType for VkArray<T> {
+impl<T: Unit> PtrType for VkArray<T> {
     #[inline]
     fn size(&self) -> usize {
         self.len
@@ -51,7 +51,7 @@ impl<T> HasId for VkArray<T> {
     }
 }
 
-impl<T> VkArray<T> {
+impl<T: Unit> VkArray<T> {
     pub fn new(
         context: Rc<Context>,
         len: usize,
@@ -267,7 +267,7 @@ impl<T> Drop for VkArray<T> {
     }
 }
 
-impl<T> HostPtr<T> for VkArray<T> {
+impl<T: Unit> HostPtr<T> for VkArray<T> {
     #[inline]
     fn ptr(&self) -> *const T {
         self.mapped_ptr
@@ -280,7 +280,7 @@ impl<T> HostPtr<T> for VkArray<T> {
 }
 
 // TODO: impl deref only when using unified memory
-impl<T> Deref for VkArray<T> {
+impl<T: Unit> Deref for VkArray<T> {
     type Target = [T];
 
     #[inline]
@@ -290,7 +290,7 @@ impl<T> Deref for VkArray<T> {
     }
 }
 
-impl<T> DerefMut for VkArray<T> {
+impl<T: Unit> DerefMut for VkArray<T> {
     #[inline]
     fn deref_mut(&mut self) -> &mut Self::Target {
         assert!(!self.ptr_mut().is_null());

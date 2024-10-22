@@ -1,5 +1,5 @@
 use super::api::{cu_read, cufree, cumalloc, CudaResult};
-use crate::{flag::AllocFlag, HasId, Id, PtrType, ShallowCopy, WrappedCopy};
+use crate::{flag::AllocFlag, HasId, Id, PtrType, ShallowCopy, Unit, WrappedCopy};
 use core::marker::PhantomData;
 
 /// The pointer used for `CUDA` [`Buffer`](crate::Buffer)s
@@ -97,7 +97,7 @@ impl<T> ShallowCopy for CUDAPtr<T> {
     }
 }
 
-impl<T> PtrType for CUDAPtr<T> {
+impl<T: Unit> PtrType for CUDAPtr<T> {
     #[inline]
     fn size(&self) -> usize {
         self.len
