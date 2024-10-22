@@ -83,10 +83,10 @@ impl OnDropBuffer for Untyped {}
 impl<'dev, T: Unit, D: Device, S: Shape> OnNewBuffer<'dev, T, D, S> for Untyped {}
 
 impl WrappedData for Untyped {
-    type Wrap<T, Base: HasId + PtrType> = Base;
+    type Wrap<T: Unit, Base: HasId + PtrType> = Base;
 
     #[inline]
-    fn wrap_in_base<T, Base: crate::HasId + crate::PtrType>(
+    fn wrap_in_base<T: Unit, Base: crate::HasId + crate::PtrType>(
         &self,
         base: Base,
     ) -> Self::Wrap<T, Base> {
@@ -94,14 +94,14 @@ impl WrappedData for Untyped {
     }
 
     #[inline]
-    fn wrapped_as_base<T, Base: crate::HasId + crate::PtrType>(
+    fn wrapped_as_base<T: Unit, Base: crate::HasId + crate::PtrType>(
         wrap: &Self::Wrap<T, Base>,
     ) -> &Base {
         wrap
     }
 
     #[inline]
-    fn wrapped_as_base_mut<T, Base: crate::HasId + crate::PtrType>(
+    fn wrapped_as_base_mut<T: Unit, Base: crate::HasId + crate::PtrType>(
         wrap: &mut Self::Wrap<T, Base>,
     ) -> &mut Base {
         wrap

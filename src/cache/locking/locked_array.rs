@@ -51,6 +51,7 @@ impl<T, const N: usize> LockedArray<T, N> {
 mod tests {
     use super::LockedArray;
 
+    #[cfg(feature = "std")]
     #[test]
     fn test_set_and_get_multiple() {
         let locked_array = LockedArray::<Vec<i32>>::new();
@@ -69,6 +70,7 @@ mod tests {
         assert_eq!(data1.as_slice(), [1, 2]);
     }
     
+    #[cfg(feature = "std")]
     #[test]
     #[should_panic]
     fn test_set_same() {
@@ -77,6 +79,7 @@ mod tests {
         locked_array.set(1, vec![10]);
     }
     
+    #[cfg(feature = "std")]
     #[test]
     fn test_get_not_set() {
         let locked_array = LockedArray::<Vec<i32>>::new();
@@ -88,6 +91,7 @@ mod tests {
         assert!(locked_array.get(1).is_err());
     }
 
+    #[cfg(feature = "std")]
     #[test]
     fn test_get_same_multiple() {
         let locked_array = LockedArray::<Vec<i32>>::new();
