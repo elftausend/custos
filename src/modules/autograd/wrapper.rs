@@ -10,13 +10,13 @@ pub struct ReqGradWrapper<Data, T> {
 }
 
 impl<'dev, Mods: WrappedData> WrappedData for Autograd<'dev, Mods> {
-    type Wrap<T: Unit, Base: crate::HasId + crate::PtrType> = ReqGradWrapper<Mods::Wrap<T, Base>, T>;
+    type Wrap<'a, T: Unit, Base: crate::HasId + crate::PtrType> = ReqGradWrapper<Mods::Wrap<'a, T, Base>, T>;
 
     #[inline]
-    fn wrap_in_base<T: Unit, Base: crate::HasId + crate::PtrType>(
+    fn wrap_in_base<'a, T: Unit, Base: crate::HasId + crate::PtrType>(
         &self,
         base: Base,
-    ) -> Self::Wrap<T, Base> {
+    ) -> Self::Wrap<'a, T, Base> {
         ReqGradWrapper {
             // by default: true -> if lazy layer is (accidentally) put before autograd, all gradients will be computed instead of none.. subject to change
             requires_grad: true,
@@ -26,16 +26,16 @@ impl<'dev, Mods: WrappedData> WrappedData for Autograd<'dev, Mods> {
     }
 
     #[inline]
-    fn wrapped_as_base<T: Unit, Base: crate::HasId + crate::PtrType>(
-        wrap: &Self::Wrap<T, Base>,
-    ) -> &Base {
+    fn wrapped_as_base<'a, 'b, T: Unit, Base: crate::HasId + crate::PtrType>(
+        wrap: &'b Self::Wrap<'a, T, Base>,
+    ) -> &'b Base {
         Mods::wrapped_as_base(&wrap.data)
     }
 
     #[inline]
-    fn wrapped_as_base_mut<T: Unit, Base: crate::HasId + crate::PtrType>(
-        wrap: &mut Self::Wrap<T, Base>,
-    ) -> &mut Base {
+    fn wrapped_as_base_mut<'a, 'b, T: Unit, Base: crate::HasId + crate::PtrType>(
+        wrap: &'b mut Self::Wrap<'a, T, Base>,
+    ) -> &'b mut Base {
         Mods::wrapped_as_base_mut(&mut wrap.data)
     }
 }

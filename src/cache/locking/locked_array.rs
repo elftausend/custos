@@ -1,4 +1,4 @@
-use core::cell::{RefCell, RefMut};
+use core::cell::{Ref, RefCell, RefMut};
 
 use crate::cow_mut::CowMutCell;
 
@@ -32,6 +32,21 @@ impl<T, const N: usize> LockedArray<T, N> {
     }
 
     pub fn get<'a>(&'a self, id: usize) -> State<Guard<'a, T>> {
+        match self.data[id].try_borrow() {
+            Ok(data) => {
+                if data.is_none() {
+                    return State::Err(LockInfo::None);
+                }
+                return State::Ok(Guard::new(Some(CowMutCell::Borrowed(Ref::map(
+                    data,
+                    |data| data.as_ref().unwrap(),
+                )))));
+            }
+            Err(_) => return State::Err(LockInfo::Locked),
+        }
+    }
+
+    pub fn get_mut<'a>(&'a self, id: usize) -> State<Guard<'a, T>> {
         match self.data[id].try_borrow_mut() {
             Ok(data) => {
                 if data.is_none() {
@@ -60,11 +75,11 @@ mod tests {
         locked_array.set(2, vec![2]);
         locked_array.set(3, vec![3]);
 
-        let mut data0 = locked_array.get(0).unwrap();
+        let mut data0 = locked_array.get_mut(0).unwrap();
         assert_eq!(data0.as_slice(), [0, 0]);
         data0[0] = 1;
         assert_eq!(data0.as_slice(), [1, 0]);
-        let mut data1 = locked_array.get(1).unwrap();
+        let mut data1 = locked_array.get_mut(1).unwrap();
         assert_eq!(data1.as_slice(), [1]);
         data1.push(2);
         assert_eq!(data1.as_slice(), [1, 2]);
@@ -84,11 +99,11 @@ mod tests {
     fn test_get_not_set() {
         let locked_array = LockedArray::<Vec<i32>>::new();
         {
-            let _d = locked_array.get(1);
-            assert!(locked_array.get(1).is_err());
+            let _d = locked_array.get_mut(1);
+            assert!(locked_array.get_mut(1).is_err());
         }
-        let _ = locked_array.get(1);
-        assert!(locked_array.get(1).is_err());
+        let _ = locked_array.get_mut(1);
+        assert!(locked_array.get_mut(1).is_err());
     }
 
     #[cfg(feature = "std")]
@@ -97,10 +112,10 @@ mod tests {
         let locked_array = LockedArray::<Vec<i32>>::new();
         locked_array.set(1, vec![10]);
         {
-            let _d = locked_array.get(1);
-            assert!(locked_array.get(1).is_err());
+            let _d = locked_array.get_mut(1);
+            assert!(locked_array.get_mut(1).is_err());
         }
-        let _ = locked_array.get(1);
-        assert!(locked_array.get(1).is_ok());
+        let _ = locked_array.get_mut(1);
+        assert!(locked_array.get_mut(1).is_ok());
     }
 }

@@ -35,7 +35,7 @@ impl<Mods> IsCPU for CPU<Mods> {}
 impl<Mods: OnDropBuffer> Device for CPU<Mods> {
     type Error = Infallible;
     type Base<T: Unit, S: Shape> = CPUPtr<T>;
-    type Data<T: Unit, S: Shape> = Self::Wrap<T, Self::Base<T, S>>;
+    type Data<'a, T: Unit, S: Shape> = Self::Wrap<'a, T, Self::Base<T, S>>;
     // type WrappedData<T, S: Shape> = ;
 
     fn new() -> Result<Self, Self::Error> {
@@ -43,29 +43,29 @@ impl<Mods: OnDropBuffer> Device for CPU<Mods> {
     }
 
     #[inline(always)]
-    fn base_to_data<T: Unit, S: Shape>(&self, base: Self::Base<T, S>) -> Self::Data<T, S> {
+    fn base_to_data<'a, T: Unit, S: Shape>(&self, base: Self::Base<T, S>) -> Self::Data<'a, T, S> {
         self.wrap_in_base(base)
     }
 
     #[inline(always)]
-    fn wrap_to_data<T: Unit, S: Shape>(
+    fn wrap_to_data<'a, T: Unit, S: Shape>(
         &self,
-        wrap: Self::Wrap<T, Self::Base<T, S>>,
-    ) -> Self::Data<T, S> {
+        wrap: Self::Wrap<'a, T, Self::Base<T, S>>,
+    ) -> Self::Data<'a, T, S> {
         wrap
     }
 
     #[inline(always)]
-    fn data_as_wrap<T: Unit, S: Shape>(
-        data: &Self::Data<T, S>,
-    ) -> &Self::Wrap<T, Self::Base<T, S>> {
+    fn data_as_wrap<'a, 'b, T: Unit, S: Shape>(
+        data: &'b Self::Data<'a, T, S>,
+    ) -> &'b Self::Wrap<'a, T, Self::Base<T, S>> {
         data
     }
 
     #[inline(always)]
-    fn data_as_wrap_mut<T: Unit, S: Shape>(
-        data: &mut Self::Data<T, S>,
-    ) -> &mut Self::Wrap<T, Self::Base<T, S>> {
+    fn data_as_wrap_mut<'a, 'b, T: Unit, S: Shape>(
+        data: &'b mut Self::Data<'a, T, S>,
+    ) -> &'b mut Self::Wrap<'a, T, Self::Base<T, S>> {
         data
     }
 

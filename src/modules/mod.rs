@@ -87,13 +87,13 @@ pub trait Module<'a, D: 'a, Mods = ()> {
 #[cfg(feature = "std")]
 #[inline]
 #[allow(unused)]
-pub(crate) unsafe fn register_buf_any<T, D, S>(
+pub(crate) unsafe fn register_buf_any<'a, T, D, S>(
     cache: &mut HashMap<UniqueId, Box<dyn Any>, impl BuildHasher>,
-    buf: &Buffer<T, D, S>,
+    buf: &Buffer<'a, T, D, S>,
 ) where
     T: crate::Unit + 'static,
     D: Device + crate::IsShapeIndep + 'static,
-    D::Data<T, S>: ShallowCopy,
+    D::Data<'a, T, S>: ShallowCopy,
     S: Shape,
 {
     // shallow copy sets flag to AllocFlag::Wrapper
@@ -120,13 +120,13 @@ pub(crate) fn unregister_buf_any(
 #[cfg(feature = "std")]
 #[inline]
 #[allow(unused)]
-pub(crate) unsafe fn register_buf_copyable<T, D, S>(
+pub(crate) unsafe fn register_buf_copyable<'a, T, D, S>(
     cache: &mut HashMap<UniqueId, Box<dyn crate::BoxedShallowCopy>, impl BuildHasher>,
-    buf: &Buffer<T, D, S>,
+    buf: &Buffer<'a, T, D, S>,
 ) where
     T: crate::Unit + 'static,
     D: Device + crate::IsShapeIndep + 'static,
-    D::Data<T, S>: ShallowCopy,
+    D::Data<'a, T, S>: ShallowCopy,
     S: Shape,
 {
     // shallow copy sets flag to AllocFlag::Wrapper

@@ -130,7 +130,7 @@ impl Gradients {
         T: Unit + 'static,
         S: Shape,
         D: Alloc<T> + ZeroGrad<T> + 'static,
-        D::Data<T, S>: HasId,
+        D::Data<'a, T, S>: HasId,
     {
         self.get_ref(buf.device(), buf.id())
     }

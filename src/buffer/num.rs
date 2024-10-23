@@ -51,7 +51,7 @@ impl<T> ShallowCopy for Num<T> {
 }
 
 impl Device for () {
-    type Data<T: Unit, S: crate::Shape> = Self::Base<T, S>;
+    type Data<'a, T: Unit, S: crate::Shape> = Self::Base<T, S>;
     type Base<T: Unit, S: crate::Shape> = Num<T>;
 
     type Error = Infallible;
@@ -61,28 +61,28 @@ impl Device for () {
     }
 
     #[inline(always)]
-    fn base_to_data<T: Unit, S: crate::Shape>(&self, base: Self::Base<T, S>) -> Self::Data<T, S> {
+    fn base_to_data<'a, T: Unit, S: crate::Shape>(&self, base: Self::Base<T, S>) -> Self::Data<'a, T, S> {
         base
     }
 
     #[inline(always)]
-    fn wrap_to_data<T: Unit, S: crate::Shape>(
+    fn wrap_to_data<'a, T: Unit, S: crate::Shape>(
         &self,
-        wrap: Self::Wrap<T, Self::Base<T, S>>,
-    ) -> Self::Data<T, S> {
+        wrap: Self::Wrap<'a, T, Self::Base<T, S>>,
+    ) -> Self::Data<'a, T, S> {
         wrap
     }
 
     #[inline(always)]
-    fn data_as_wrap<T: Unit, S: crate::Shape>(
-        data: &Self::Data<T, S>,
-    ) -> &Self::Wrap<T, Self::Base<T, S>> {
+    fn data_as_wrap<'a, 'b, T: Unit, S: crate::Shape>(
+        data: &'b Self::Data<'a, T, S>,
+    ) -> &'b Self::Wrap<'a, T, Self::Base<T, S>> {
         data
     }
 
-    fn data_as_wrap_mut<T: Unit, S: crate::Shape>(
-        data: &mut Self::Data<T, S>,
-    ) -> &mut Self::Wrap<T, Self::Base<T, S>> {
+    fn data_as_wrap_mut<'a, 'b, T: Unit, S: crate::Shape>(
+        data: &'b mut Self::Data<'a, T, S>,
+    ) -> &'b mut Self::Wrap<'a, T, Self::Base<T, S>> {
         data
     }
 }
@@ -107,20 +107,20 @@ impl<T: Unit + Default> Alloc<T> for () {
 }
 
 impl WrappedData for () {
-    type Wrap<T: Unit, Base: crate::HasId + crate::PtrType> = Base;
+    type Wrap<'a, T: Unit, Base: crate::HasId + crate::PtrType> = Base;
 
     #[inline]
-    fn wrap_in_base<T: Unit, Base: HasId + PtrType>(&self, base: Base) -> Self::Wrap<T, Base> {
+    fn wrap_in_base<'a, T: Unit, Base: HasId + PtrType>(&self, base: Base) -> Self::Wrap<'a, T, Base> {
         base
     }
 
     #[inline]
-    fn wrapped_as_base<T: Unit, Base: HasId + PtrType>(wrap: &Self::Wrap<T, Base>) -> &Base {
+    fn wrapped_as_base<'a, 'b, T: Unit, Base: HasId + PtrType>(wrap: &'b Self::Wrap<'a, T, Base>) -> &'b Base {
         wrap
     }
 
     #[inline]
-    fn wrapped_as_base_mut<T: Unit, Base: HasId + PtrType>(wrap: &mut Self::Wrap<T, Base>) -> &mut Base {
+    fn wrapped_as_base_mut<'a, 'b, T: Unit, Base: HasId + PtrType>(wrap: &'b mut Self::Wrap<'a, T, Base>) -> &'b mut Base {
         wrap
     }
 }

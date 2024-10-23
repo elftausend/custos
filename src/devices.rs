@@ -47,7 +47,7 @@ use crate::{Buffer, HasId, OnDropBuffer, Parents, PtrType, Shape, Unit};
 /// The `Device` trait is the main trait for all compute devices.
 pub trait Device: OnDropBuffer + Sized {
     type Base<T: Unit, S: Shape>: HasId + PtrType;
-    type Data<T: Unit, S: Shape>: HasId + PtrType;
+    type Data<'a, T: Unit, S: Shape>: HasId + PtrType;
 
     type Error;
 
@@ -58,16 +58,16 @@ pub trait Device: OnDropBuffer + Sized {
 
     // add default impl if GAT default go stable
     // FIXME: probably a better way to realize these
-    fn base_to_data<T: Unit, S: Shape>(&self, base: Self::Base<T, S>) -> Self::Data<T, S>;
-    fn wrap_to_data<T: Unit, S: Shape>(
+    fn base_to_data<'a, T: Unit, S: Shape>(&self, base: Self::Base<T, S>) -> Self::Data<'a, T, S>;
+    fn wrap_to_data<'a, T: Unit, S: Shape>(
         &self,
-        wrap: Self::Wrap<T, Self::Base<T, S>>,
-    ) -> Self::Data<T, S>;
-    fn data_as_wrap<T: Unit, S: Shape>(data: &Self::Data<T, S>)
-        -> &Self::Wrap<T, Self::Base<T, S>>;
-    fn data_as_wrap_mut<T: Unit, S: Shape>(
-        data: &mut Self::Data<T, S>,
-    ) -> &mut Self::Wrap<T, Self::Base<T, S>>;
+        wrap: Self::Wrap<'a, T, Self::Base<T, S>>,
+    ) -> Self::Data<'a, T, S>;
+    fn data_as_wrap<'a, 'b, T: Unit, S: Shape>(data: &'b Self::Data<'a, T, S>)
+        -> &'b Self::Wrap<'a, T, Self::Base<T, S>>;
+    fn data_as_wrap_mut<'a, 'b, T: Unit, S: Shape>(
+        data: &'b mut Self::Data<'a, T, S>,
+    ) -> &'b mut Self::Wrap<'a, T, Self::Base<T, S>>;
 
     /// Creates a new [`Buffer`] using `A`, typically an array type.
     ///
@@ -164,7 +164,7 @@ pub trait Retriever<T: Unit, S: Shape = ()>: Device {
 #[macro_export]
 macro_rules! impl_retriever {
     ($device:ident, $($trait_bounds:tt)*) => {
-        impl<T: $( $trait_bounds )* + $crate::Unit, Mods: $crate::Retrieve<Self, T, S>, S: $crate::Shape> $crate::Retriever<T, S> for $device<Mods> {
+        impl<'a, T: $( $trait_bounds )* + $crate::Unit, Mods: $crate::Retrieve<'a, Self, T, S>, S: $crate::Shape> $crate::Retriever<T, S> for $device<Mods> {
             #[inline]
             fn retrieve<const NUM_PARENTS: usize>(
                 &self,

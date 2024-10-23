@@ -12,9 +12,9 @@ use crate::{
 pass_down_add_operation!(CPU);
 pass_down_exec_now!(CPU);
 
-impl<Mods, T, D, S> ApplyFunction<T, S, D> for CPU<Mods>
+impl<'a, Mods, T, D, S> ApplyFunction<T, S, D> for CPU<Mods>
 where
-    Mods: Retrieve<Self, T, S> + AddOperation + SetOpHint<T> + 'static,
+    Mods: Retrieve<'a, Self, T, S> + AddOperation + SetOpHint<T> + 'static,
     T: Unit + Copy + Default + ToVal + 'static,
     D: Device + 'static,
     D::Base<T, S>: Deref<Target = [T]>,

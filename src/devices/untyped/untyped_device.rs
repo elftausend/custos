@@ -83,7 +83,7 @@ impl OnDropBuffer for Untyped {}
 impl<'dev, T: Unit, D: Device, S: Shape> OnNewBuffer<'dev, T, D, S> for Untyped {}
 
 impl WrappedData for Untyped {
-    type Wrap<T: Unit, Base: HasId + PtrType> = Base;
+    type Wrap<'a, T: Unit, Base: HasId + PtrType> = Base;
 
     #[inline]
     fn wrap_in_base<T: Unit, Base: crate::HasId + crate::PtrType>(

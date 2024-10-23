@@ -1,40 +1,40 @@
 use crate::{HasId, PtrType, Unit};
 
 pub trait WrappedData {
-    type Wrap<T: Unit, Base: HasId + PtrType>: HasId + PtrType;
+    type Wrap<'a, T: Unit, Base: HasId + PtrType>: HasId + PtrType + 'a; 
 
-    fn wrap_in_base<T: Unit, Base: HasId + PtrType>(&self, base: Base) -> Self::Wrap<T, Base>;
+    fn wrap_in_base<'a, T: Unit, Base: HasId + PtrType>(&self, base: Base) -> Self::Wrap<'a, T, Base>;
     #[track_caller]
-    fn wrapped_as_base<T: Unit, Base: HasId + PtrType>(wrap: &Self::Wrap<T, Base>) -> &Base;
+    fn wrapped_as_base<'a, 'b, T: Unit, Base: HasId + PtrType>(wrap: &'b Self::Wrap<'a, T, Base>) -> &'b Base;
     #[track_caller]
-    fn wrapped_as_base_mut<T: Unit, Base: HasId + PtrType>(wrap: &mut Self::Wrap<T, Base>) -> &mut Base;
+    fn wrapped_as_base_mut<'a, 'b, T: Unit, Base: HasId + PtrType>(wrap: &'b mut Self::Wrap<'a, T, Base>) -> &'b mut Base;
 }
 
 #[macro_export]
 macro_rules! impl_wrapped_data {
     ($device:ident) => {
         impl<Mods: $crate::WrappedData> $crate::WrappedData for $device<Mods> {
-            type Wrap<T: Unit, Base: $crate::HasId + $crate::PtrType> = Mods::Wrap<T, Base>;
+            type Wrap<'a, T: Unit, Base: $crate::HasId + $crate::PtrType> = Mods::Wrap<'a, T, Base>;
 
             #[inline]
-            fn wrap_in_base<T: Unit, Base: $crate::HasId + $crate::PtrType>(
+            fn wrap_in_base<'a, T: Unit, Base: $crate::HasId + $crate::PtrType>(
                 &self,
                 base: Base,
-            ) -> Self::Wrap<T, Base> {
+            ) -> Self::Wrap<'a, T, Base> {
                 self.modules.wrap_in_base(base)
             }
 
             #[inline]
-            fn wrapped_as_base<T: Unit, Base: $crate::HasId + $crate::PtrType>(
-                wrap: &Self::Wrap<T, Base>,
-            ) -> &Base {
+            fn wrapped_as_base<'a, 'b, T: Unit, Base: $crate::HasId + $crate::PtrType>(
+                wrap: &'b Self::Wrap<'a, T, Base>,
+            ) -> &'b Base {
                 Mods::wrapped_as_base(wrap)
             }
 
             #[inline]
-            fn wrapped_as_base_mut<T: Unit, Base: $crate::HasId + $crate::PtrType>(
-                wrap: &mut Self::Wrap<T, Base>,
-            ) -> &mut Base {
+            fn wrapped_as_base_mut<'a, 'b, T: Unit, Base: $crate::HasId + $crate::PtrType>(
+                wrap: &'b mut Self::Wrap<'a, T, Base>,
+            ) -> &'b mut Base {
                 Mods::wrapped_as_base_mut(wrap)
             }
         }

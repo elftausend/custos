@@ -8,20 +8,20 @@ use crate::{
 pub struct Base;
 
 impl WrappedData for Base {
-    type Wrap<T: Unit, Base: HasId + PtrType> = Base;
+    type Wrap<'a, T: Unit, Base: HasId + PtrType> = Base;
 
     #[inline]
-    fn wrap_in_base<T: Unit, Base: HasId + PtrType>(&self, base: Base) -> Self::Wrap<T, Base> {
+    fn wrap_in_base<'a, T: Unit, Base: HasId + PtrType>(&self, base: Base) -> Self::Wrap<'a, T, Base> {
         base
     }
 
     #[inline]
-    fn wrapped_as_base<T: Unit, Base: HasId + PtrType>(wrap: &Self::Wrap<T, Base>) -> &Base {
+    fn wrapped_as_base<'a, 'b, T: Unit, Base: HasId + PtrType>(wrap: &'b Self::Wrap<'a, T, Base>) -> &'b Base {
         wrap
     }
 
     #[inline]
-    fn wrapped_as_base_mut<T: Unit, Base: HasId + PtrType>(wrap: &mut Self::Wrap<T, Base>) -> &mut Base {
+    fn wrapped_as_base_mut<'a, 'b, T: Unit, Base: HasId + PtrType>(wrap: &'b mut Self::Wrap<'a, T, Base>) -> &'b mut Base {
         wrap
     }
 }
@@ -78,14 +78,14 @@ impl<'a, T: Unit, D: Device, S: Shape> OnNewBuffer<'a, T, D, S> for Base {}
 
 impl OnDropBuffer for Base {}
 
-impl<D, T: Unit, S: Shape> Retrieve<D, T, S> for Base {
+impl<'a, D, T: Unit, S: Shape> Retrieve<'a, D, T, S> for Base {
     #[inline]
     unsafe fn retrieve<const NUM_PARENTS: usize>(
-        &self,
+        &'a self,
         device: &D,
         len: usize,
         _parents: impl Parents<NUM_PARENTS>,
-    ) -> crate::Result<Self::Wrap<T, D::Base<T, S>>>
+    ) -> crate::Result<Self::Wrap<'a, T, D::Base<T, S>>>
     where
         D: Alloc<T>,
     {

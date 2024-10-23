@@ -42,7 +42,7 @@ mod num;
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Buffer<'a, T: Unit = f32, D: Device = CPU<Base>, S: Shape = ()> {
     /// the type of pointer
-    pub(crate) data: D::Data<T, S>,
+    pub(crate) data: D::Data<'a, T, S>,
     /// A reference to the corresponding device. Mainly used for operations without a device parameter.
     #[cfg_attr(feature = "serde", serde(skip))]
     pub(crate) device: Option<&'a D>,
@@ -273,7 +273,7 @@ impl<'a, T: Unit, D: Device, S: Shape> Buffer<'a, T, D, S> {
     #[inline]
     pub fn to_deviceless<'b>(self) -> Buffer<'b, T, D, S>
     where
-        D::Data<T, S>: Default,
+        D::Data<'b, T, S>: Default,
     {
         if let Some(device) = self.device {
             if self.data.flag() != AllocFlag::None {
@@ -298,7 +298,7 @@ impl<'a, T: Unit, D: Device, S: Shape> Buffer<'a, T, D, S> {
     }
 
     #[inline]
-    pub fn data(&self) -> &D::Data<T, S> {
+    pub fn data(&self) -> &D::Data<'a, T, S> {
         &self.data
     }
 
