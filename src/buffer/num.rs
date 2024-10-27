@@ -93,7 +93,7 @@ impl<T: Unit + Default> Alloc<T> for () {
         &self,
         _len: usize,
         _flag: AllocFlag,
-    ) -> crate::Result<Self::Data<T, S>> {
+    ) -> crate::Result<Self::Data<'a, T, S>> {
         Ok(Num::default())
     }
 
