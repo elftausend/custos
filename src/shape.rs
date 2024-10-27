@@ -120,31 +120,31 @@ impl<const C: usize, const B: usize, const A: usize> Shape for Dim3<C, B, A> {
 
 // TODO: do not use device
 /// Converts a pointer to a different [`Shape`].
-pub trait ToDim<T: Unit, I: Shape, O: Shape>: crate::Device {
-    /// Converts a pointer to a different [`Shape`].
-    /// This is only possible for [`Buffer`](crate::Buffer)s that are not allocated on the stack.
-    fn to_dim(&self, ptr: Self::Data<T, I>) -> Self::Data<T, O>;
-}
+// pub trait ToDim<T: Unit, I: Shape, O: Shape>: crate::Device {
+//     /// Converts a pointer to a different [`Shape`].
+//     /// This is only possible for [`Buffer`](crate::Buffer)s that are not allocated on the stack.
+//     fn to_dim(&self, ptr: Self::Data<T, I>) -> Self::Data<T, O>;
+// }
 
-#[cfg(feature = "std")]
-impl<T, D, I, O> ToDim<T, I, O> for D
-where
-    T: Unit,
-    D::Data<T, O>: crate::PtrType + ShallowCopy,
-    D: IsShapeIndep + Device,
-    I: Shape,
-    O: Shape,
-{
-    #[inline]
-    fn to_dim(&self, ptr: Self::Data<T, I>) -> D::Data<T, O> {
-        // resources are now mananged by the destructed raw pointer (prevents double free).
-        // could set alloc flag as well
-        let ptr = core::mem::ManuallyDrop::new(ptr);
+// #[cfg(feature = "std")]
+// impl<T, D, I, O> ToDim<T, I, O> for D
+// where
+//     T: Unit,
+//     D::Data<T, O>: crate::PtrType + ShallowCopy,
+//     D: IsShapeIndep + Device,
+//     I: Shape,
+//     O: Shape,
+// {
+//     #[inline]
+//     fn to_dim(&self, ptr: Self::Data<T, I>) -> D::Data<T, O> {
+//         // resources are now mananged by the destructed raw pointer (prevents double free).
+//         // could set alloc flag as well
+//         let ptr = core::mem::ManuallyDrop::new(ptr);
 
-        let shape_changed = unsafe { &*(&*ptr as *const D::Data<T, I> as *const D::Data<T, O>) };
-        unsafe { shape_changed.shallow() }
-    }
-}
+//         let shape_changed = unsafe { &*(&*ptr as *const D::Data<T, I> as *const D::Data<T, O>) };
+//         unsafe { shape_changed.shallow() }
+//     }
+// }
 
 #[cfg(feature = "stack")]
 impl<T: Unit, S: IsConstDim> ToDim<T, S, S> for crate::Stack {

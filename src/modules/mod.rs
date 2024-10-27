@@ -104,7 +104,8 @@ pub(crate) unsafe fn register_buf_any<'a, T, D, S>(
         data: wrapped_data,
         device: None,
     };
-    cache.insert(*buf.id(), Box::new(buf));
+    todo!()
+    // cache.insert(*buf.id(), Box::new(buf));
 }
 
 #[cfg(feature = "std")]
@@ -136,7 +137,8 @@ pub(crate) unsafe fn register_buf_copyable<'a, T, D, S>(
         data: wrapped_data,
         device: None,
     };
-    cache.insert(*buf.id(), Box::new(buf));
+    todo!()
+    // cache.insert(*buf.id(), Box::new(buf));
 }
 
 #[cfg(feature = "std")]

@@ -93,12 +93,12 @@ impl<T: Unit + Default> Alloc<T> for () {
         &self,
         _len: usize,
         _flag: AllocFlag,
-    ) -> crate::Result<Self::Data<'a, T, S>> {
+    ) -> crate::Result<Self::Base<T, S>> {
         Ok(Num::default())
     }
 
     #[inline]
-    fn alloc_from_slice<S: crate::Shape>(&self, data: &[T]) -> crate::Result<Self::Data<T, S>>
+    fn alloc_from_slice<S: crate::Shape>(&self, data: &[T]) -> crate::Result<Self::Base<T, S>>
     where
         T: Clone,
     {

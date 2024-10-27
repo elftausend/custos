@@ -280,12 +280,12 @@ impl<'a, T: Unit, D: Device, S: Shape> Buffer<'a, T, D, S> {
                 device.on_drop_buffer(device, &self)
             }
         }
+        todo!()
+        // let mut val = ManuallyDrop::new(self);
 
-        let mut val = ManuallyDrop::new(self);
+        // let data = core::mem::take(&mut val.data);
 
-        let data = core::mem::take(&mut val.data);
-
-        Buffer { data, device: None }
+        // Buffer { data, device: None }
     }
 
     /// Returns the device of the `Buffer`.
@@ -304,12 +304,13 @@ impl<'a, T: Unit, D: Device, S: Shape> Buffer<'a, T, D, S> {
 
     /// Reads the contents of the `Buffer`.
     #[inline]
-    pub fn read(&'a self) -> D::Read<'a>
+    pub fn read(&self) -> D::Read<'a>
     where
         T: Clone + Default,
         D: Read<T, S>,
     {
-        self.device().read(self)
+        todo!()
+        // self.device().read(self)
     }
 
     /// Reads the contents of the `Buffer` and writes them into a vector.
@@ -391,7 +392,7 @@ impl<'a, T: Unit, D: Device, S: Shape> Buffer<'a, T, D, S> {
     #[inline]
     pub unsafe fn shallow(&self) -> Buffer<'a, T, D, S>
     where
-        <D as Device>::Data<T, S>: ShallowCopy,
+        <D as Device>::Data<'a, T, S>: ShallowCopy,
     {
         Buffer {
             data: self.data.shallow(),
@@ -422,7 +423,8 @@ impl<'a, T: Unit, D: Device, S: Shape> Buffer<'a, T, D, S> {
     where
         D: ReplaceBuf<T, D, S>,
     {
-        self.device().replace_buf(self)
+        todo!()
+        // self.device().replace_buf(self)
     }
 
     #[inline]
@@ -439,7 +441,7 @@ impl<'a, T: Unit, D: Device, S: Shape> Buffer<'a, T, D, S> {
     pub fn to_device_type<'b, DO>(self, device: &'b DO) -> Buffer<'b, T, DO, S>
     where
         DO: Device + OnNewBuffer<'b, T, DO, S>,
-        D::Data<T, S>: Default,
+        D::Data<'a, T, S>: Default,
         D::Base<T, S>: ShallowCopy,
         DO::Base<T, S>: From<D::Base<T, S>>,
     {
@@ -476,21 +478,22 @@ impl<'a, T: Unit, D: Device, S: Shape> Buffer<'a, T, D, S> {
     #[inline]
     pub fn to_dims<O: Shape>(self) -> Buffer<'a, T, D, O>
     where
-        D: crate::ToDim<T, S, O>,
-        D::Data<T, S>: WrappedCopy<Base = D::Base<T, S>>,
+        // D: crate::ToDim<T, S, O>,
+        D::Data<'a, T, S>: WrappedCopy<Base = D::Base<T, S>>,
         D::Base<T, S>: ShallowCopy,
     {
         let base = unsafe { (*self).shallow() };
         let data = self.data.wrapped_copy(base);
         let buf = ManuallyDrop::new(self);
 
-        let mut data = buf.device().to_dim(data);
-        unsafe { data.set_flag(AllocFlag::None) };
+        // let mut data = buf.device().to_dim(data);
+        // unsafe { data.set_flag(AllocFlag::None) };
+        todo!()
 
-        Buffer {
-            data,
-            device: buf.device,
-        }
+        // Buffer {
+        //     data,
+        //     device: buf.device,
+        // }
     }
 }
 
@@ -610,7 +613,7 @@ impl<'a, Mods: OnDropBuffer, T: Unit> Buffer<'a, T, crate::CUDA<Mods>> {
 impl<'a, T: Unit, D, S> ShallowCopy for Buffer<'a, T, D, S>
 where
     D: Device,
-    D::Data<T, S>: ShallowCopy,
+    D::Data<'a, T, S>: ShallowCopy,
     S: Shape,
 {
     #[inline]
@@ -632,19 +635,19 @@ where
 
 impl<'a, T: Unit, D: Device, S: Shape> Default for Buffer<'a, T, D, S>
 where
-    D::Data<T, S>: Default,
+    D::Data<'a, T, S>: Default,
 {
     fn default() -> Self {
         Self {
-            data: D::Data::<T, S>::default(),
+            data: D::Data::<'a, T, S>::default(),
             device: None,
         }
     }
 }
 
-impl<T: Unit, D: Device> AsRef<[T]> for Buffer<'_, T, D>
+impl<'a, T: Unit, D: Device> AsRef<[T]> for Buffer<'a, T, D>
 where
-    D::Data<T, ()>: Deref<Target = [T]>,
+    D::Data<'a, T, ()>: Deref<Target = [T]>,
 {
     #[inline]
     fn as_ref(&self) -> &[T] {
@@ -652,9 +655,9 @@ where
     }
 }
 
-impl<T: Unit, D: Device> AsMut<[T]> for Buffer<'_, T, D>
+impl<'a, T: Unit, D: Device> AsMut<[T]> for Buffer<'a, T, D>
 where
-    D::Data<T, ()>: DerefMut<Target = [T]>,
+    D::Data<'a, T, ()>: DerefMut<Target = [T]>,
 {
     #[inline]
     fn as_mut(&mut self) -> &mut [T] {
@@ -689,7 +692,7 @@ where
     T: Unit + Debug + Default + Clone + 'a,
     D: Read<T, S> + Device + 'a,
     for<'b> <D as Read<T, S>>::Read<'b>: Debug,
-    D::Data<T, S>: Debug,
+    D::Data<'a, T, S>: Debug,
     S: Shape,
 {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {

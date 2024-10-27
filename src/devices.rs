@@ -152,22 +152,22 @@ macro_rules! impl_device_traits {
 
 /// A module affected trait.
 /// Retrieves a [`Buffer`] from the device.
-pub trait Retriever<T: Unit, S: Shape = ()>: Device {
+pub trait Retriever<'a, T: Unit, S: Shape = ()>: Device {
     #[track_caller]
     fn retrieve<const NUM_PARENTS: usize>(
-        &self,
+        &'a self,
         len: usize,
         parents: impl Parents<NUM_PARENTS>,
-    ) -> crate::Result<Buffer<T, Self, S>>;
+    ) -> crate::Result<Buffer<'a, T, Self, S>>;
 }
 
 #[macro_export]
 macro_rules! impl_retriever {
     ($device:ident, $($trait_bounds:tt)*) => {
-        impl<'a, T: $( $trait_bounds )* + $crate::Unit, Mods: $crate::Retrieve<'a, Self, T, S>, S: $crate::Shape> $crate::Retriever<T, S> for $device<Mods> {
+        impl<'a, T: $( $trait_bounds )* + $crate::Unit, Mods: $crate::Retrieve<'a, Self, T, S>, S: $crate::Shape> $crate::Retriever<'a, T, S> for $device<Mods> {
             #[inline]
             fn retrieve<const NUM_PARENTS: usize>(
-                &self,
+                &'a self,
                 len: usize,
                 parents: impl $crate::Parents<NUM_PARENTS>,
             ) -> $crate::Result<Buffer<T, Self, S>> {

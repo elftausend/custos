@@ -47,7 +47,7 @@ pub fn cpu_exec_unary<'a, T, D, F>(
 where
     T: Unit + Clone + Default + 'static,
     F: for<'b> Fn(&'b CPU, &Buffer<'_, T, CPU>) -> Buffer<'b, T, CPU>,
-    D: Read<T> + WriteBuf<T> + Alloc<T> + Retriever<T>,
+    D: Read<T> + WriteBuf<T> + Alloc<T> + Retriever<'a, T>,
 {
     let cpu = CPU::<Base>::new();
     Ok(crate::cpu_exec!(device, &cpu, x; f(&cpu, &x)))
@@ -114,7 +114,7 @@ pub fn cpu_exec_binary<'a, T, D, F>(
 where
     T: Unit + Clone + Default + 'static,
     F: for<'b> Fn(&'b CPU, &Buffer<'_, T, CPU>, &Buffer<'_, T, CPU>) -> Buffer<'b, T, CPU>,
-    D: Device + Read<T> + WriteBuf<T> + Alloc<T> + Retriever<T>,
+    D: Device + Read<T> + WriteBuf<T> + Alloc<T> + Retriever<'a, T>,
 {
     let cpu = CPU::<Base>::new();
     crate::cpu_exec!(device, &cpu, lhs, rhs; f(&cpu, &lhs, &rhs))
@@ -441,7 +441,7 @@ mod tests {
 
     impl<Mods, T> AddEw<T> for crate::CPU<Mods>
     where
-        Mods: crate::hooks::OnDropBuffer + crate::Retrieve<Self, T> + 'static,
+        Mods: crate::hooks::OnDropBuffer + for<'a> crate::Retrieve<'a, Self, T> + 'static,
         Self::Base<T, ()>: core::ops::Deref<Target = [T]>,
         T: 'static + core::ops::Add<Output = T> + Copy,
     {

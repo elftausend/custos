@@ -12,7 +12,7 @@ use crate::{
 pass_down_add_operation!(CPU);
 pass_down_exec_now!(CPU);
 
-impl<'a, Mods, T, D, S> ApplyFunction<T, S, D> for CPU<Mods>
+impl<'a, Mods, T, D, S> ApplyFunction<'a, T, S, D> for CPU<Mods>
 where
     Mods: Retrieve<'a, Self, T, S> + AddOperation + SetOpHint<T> + 'static,
     T: Unit + Copy + Default + ToVal + 'static,
@@ -21,10 +21,10 @@ where
     S: Shape,
 {
     fn apply_fn<F>(
-        &self,
+        &'a self,
         buf: &Buffer<T, D, S>,
         f: impl Fn(Resolve<T>) -> F + Copy + 'static,
-    ) -> Buffer<T, Self, S>
+    ) -> Buffer<'a, T, Self, S>
     where
         F: TwoWay<T> + 'static,
     {

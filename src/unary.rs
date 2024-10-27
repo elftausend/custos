@@ -4,7 +4,7 @@ use crate::{
 };
 
 /// Applies a function to a buffer and returns a new buffer.
-pub trait ApplyFunction<T: Unit, S: Shape = (), D: Device = Self>: Device {
+pub trait ApplyFunction<'a, T: Unit, S: Shape = (), D: Device = Self>: Device {
     /// Applies a function to a buffer and returns a new buffer.
     /// # Example
     #[cfg_attr(all(feature = "cpu", feature = "macro"), doc = "```")]
@@ -18,11 +18,11 @@ pub trait ApplyFunction<T: Unit, S: Shape = (), D: Device = Self>: Device {
     /// assert_eq!(&**out, &[2., 4., 6., 6., 4., 2.,]);
     /// ```
     fn apply_fn<F>(
-        &self,
+        &'a self,
         // buf: &D::Data<T, S>,
         buf: &Buffer<T, D, S>,
         f: impl Fn(Resolve<T>) -> F + Copy + 'static,
-    ) -> Buffer<T, Self, S>
+    ) -> Buffer<'a, T, Self, S>
     where
         F: TwoWay<T> + 'static;
 }
@@ -59,7 +59,7 @@ pub trait UnaryGrad<T: Unit, S: Shape = (), D: Device = Self>: Device {
 
 /// Applies the forward function of a new/cached [`Buffer`] and returns it.
 /// If the `autograd` feature is enabled, the gradient function is also calculated via the grad function.
-pub trait UnaryElementWiseMayGrad<T: Unit, D: Device, S: Shape>: Device {
+pub trait UnaryElementWiseMayGrad<'a, T: Unit, D: Device, S: Shape>: Device {
     /// Applies the forward function of a new/cached [`Buffer`] and returns it.
     /// If the `autograd` feature is enabled, the gradient function is also calculated via the grad function.
     /// # Example
@@ -83,27 +83,27 @@ pub trait UnaryElementWiseMayGrad<T: Unit, D: Device, S: Shape>: Device {
     /// out.backward();
     /// assert_eq!(buf.grad().as_slice(), &[2.; 6]);
     /// ```
-    fn unary_ew<'a, FO, GO>(
+    fn unary_ew<FO, GO>(
         &'a self,
         buf: &Buffer<'a, T, D, S>,
         forward_fn: impl Fn(Resolve<T>) -> FO + Copy + 'static,
         grad_fn: fn(Resolve<T>) -> GO,
-    ) -> Buffer<T, Self, S>
+    ) -> Buffer<'a, T, Self, S>
     where
         FO: TwoWay<T>,
         GO: Eval<T> + MayToCLSource + 'static;
 }
 
-impl<T, D, S> UnaryElementWiseMayGrad<T, D, S> for D
+impl<'a, T, D, S> UnaryElementWiseMayGrad<'a, T, D, S> for D
 where
     T: Unit + 'static,
-    D: AddGradFn + ApplyFunction<T, S, D> + UnaryGrad<T, S, D> + AddOperation + MayGradActions,
+    D: AddGradFn + ApplyFunction<'a, T, S, D> + UnaryGrad<T, S, D> + AddOperation + MayGradActions,
     // D::Data<T, S>: crate::ShallowCopy,
     D: Alloc<T> + ZeroGrad<T> + 'static,
     S: Shape,
 {
     #[inline(always)]
-    fn unary_ew<'a, FO, GO>(
+    fn unary_ew<FO, GO>(
         &'a self,
         buf: &Buffer<'a, T, D, S>,
         forward_fn: impl Fn(Resolve<T>) -> FO + Copy + 'static,
