@@ -72,7 +72,7 @@ where
     S: Shape,
 {
     #[inline]
-    unsafe fn retrieve<const NUM_PARENTS: usize>(
+    unsafe fn retrieve_entry<const NUM_PARENTS: usize>(
         &self,
         device: &D,
         len: usize,
@@ -84,7 +84,7 @@ where
     {
         // inject custom behaviour in this body
 
-        self.mods.retrieve(device, len, parents)
+        self.mods.retrieve_entry(device, len, parents)
     }
 
     fn on_retrieve_finish(&self, _retrieved_buf: &custos::prelude::Buffer<T, D, S>)

@@ -27,19 +27,32 @@ pub trait Feature: OnDropBuffer {}
 pub trait Retrieve<'a, D, T: Unit, S: Shape = ()>: OnDropBuffer {
     // "generator"
     #[track_caller]
-    unsafe fn retrieve<const NUM_PARENTS: usize>(
+    unsafe fn retrieve_entry<const NUM_PARENTS: usize>(
         &'a self,
         device: &D,
         len: usize,
-        parents: impl Parents<NUM_PARENTS>,
+        parents: &impl Parents<NUM_PARENTS>,
     ) -> crate::Result<Self::Wrap<'a, T, D::Base<T, S>>>
     where
         S: Shape,
         D: Device + Alloc<T>;
 
+    #[track_caller]
+    unsafe fn retrieve<const NUM_PARENTS: usize>(
+        &self,
+        device: &D,
+        len: usize,
+        parents: &impl Parents<NUM_PARENTS>,
+    ) -> crate::Result<Self::Wrap<'a, T, D::Base<T, S>>>
+    where
+        S: Shape,
+        D: Device + Alloc<T>;
+
+
+
     // "actor"
     #[inline]
-    fn on_retrieve_finish(&self, _retrieved_buf: &Buffer<T, D, S>)
+    fn on_retrieve_finish<const NUM_PARENTS: usize>(&self, _len: usize, _parents: impl Parents<NUM_PARENTS>, _retrieved_buf: &Buffer<T, D, S>)
     where
         D: Alloc<T>,
     {

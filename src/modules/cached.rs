@@ -22,20 +22,20 @@ pub struct Cached<Mods, CacheType = FastCache> {
 }
 
 impl<CacheType, Mods: WrappedData, SD: Device> WrappedData for CachedModule<Mods, SD, CacheType> {
-    type Wrap<T: Unit, Base: HasId + PtrType> = Mods::Wrap<T, Base>;
+    type Wrap<'a, T: Unit, Base: HasId + PtrType> = Mods::Wrap<'a, T, Base>;
 
     #[inline]
-    fn wrap_in_base<T: Unit, Base: HasId + PtrType>(&self, base: Base) -> Self::Wrap<T, Base> {
+    fn wrap_in_base<'a, T: Unit, Base: HasId + PtrType>(&self, base: Base) -> Self::Wrap<'a, T, Base> {
         self.modules.wrap_in_base(base)
     }
 
     #[inline]
-    fn wrapped_as_base<T: Unit, Base: HasId + PtrType>(wrap: &Self::Wrap<T, Base>) -> &Base {
+    fn wrapped_as_base<'a, 'b, T: Unit, Base: HasId + PtrType>(wrap: &'b Self::Wrap<'a, T, Base>) -> &'b Base {
         Mods::wrapped_as_base(wrap)
     }
 
     #[inline]
-    fn wrapped_as_base_mut<T: Unit, Base: HasId + PtrType>(wrap: &mut Self::Wrap<T, Base>) -> &mut Base {
+    fn wrapped_as_base_mut<'a, 'b, T: Unit, Base: HasId + PtrType>(wrap: &'b mut Self::Wrap<'a, T, Base>) -> &'b mut Base {
         Mods::wrapped_as_base_mut(wrap)
     }
 }
@@ -129,7 +129,7 @@ where
     T: Unit + 'static,
     D: Device + IsShapeIndep + 'static,
     Mods: OnNewBuffer<'a, T, D, S>,
-    D::Data<T, S>: ShallowCopy,
+    D::Data<'a, T, S>: ShallowCopy,
     SD: Device,
     S: Shape,
 {
@@ -147,24 +147,24 @@ impl<CacheType, Mods: OnDropBuffer, SD: Device> OnDropBuffer for CachedModule<Mo
 }
 
 // TODO: a more general OnDropBuffer => "Module"
-impl<CacheType, T, Mods, D, SimpleDevice, S: Shape> Retrieve<D, T, S>
+impl<'a, CacheType, T, Mods, D, SimpleDevice, S: Shape> Retrieve<'a, D, T, S>
     for CachedModule<Mods, SimpleDevice, CacheType>
 where
     T: Unit + 'static,
-    Mods: Retrieve<D, T, S>,
+    Mods: Retrieve<'a, D, T, S>,
     D: Device + IsShapeIndep + Cursor + 'static,
     D::Base<T, S>: ShallowCopy + 'static,
-    D::Data<T, S>: ShallowCopy + 'static,
+    D::Data<'a, T, S>: ShallowCopy + 'static,
     SimpleDevice: Device,
     CacheType: Cache,
 {
     #[inline]
-    unsafe fn retrieve<const NUM_PARENTS: usize>(
+    unsafe fn retrieve_entry<const NUM_PARENTS: usize>(
         &self,
         device: &D,
         len: usize,
-        _parents: impl Parents<NUM_PARENTS>,
-    ) -> crate::Result<Self::Wrap<T, D::Base<T, S>>>
+        _parents: &impl Parents<NUM_PARENTS>,
+    ) -> crate::Result<Self::Wrap<'a, T, D::Base<T, S>>>
     where
         D: Alloc<T>,
     {
@@ -179,11 +179,24 @@ where
     }
 
     #[inline]
-    fn on_retrieve_finish(&self, retrieved_buf: &Buffer<T, D, S>)
+    fn on_retrieve_finish<const NUM_PARENTS: usize>(&self, len: usize, parents: impl Parents<NUM_PARENTS>, retrieved_buf: &Buffer<T, D, S>)
     where
         D: Alloc<T>,
     {
-        self.modules.on_retrieve_finish(retrieved_buf)
+        self.modules.on_retrieve_finish(len, parents, retrieved_buf)
+    }
+    
+    unsafe fn retrieve<const NUM_PARENTS: usize>(
+        &self,
+        _device: &D,
+        _len: usize,
+        _parents: &impl Parents<NUM_PARENTS>,
+    ) -> crate::Result<Self::Wrap<'a, T, <D>::Base<T, S>>>
+    where
+        S: Shape,
+        D: Device + Alloc<T> 
+    {
+        panic!("Modules retrieve calls are in the wrong order. Cached module requires to be called via 'retrieve_entry'")
     }
 }
 
@@ -467,13 +480,13 @@ mod tests {
         let _x = {
             let device = CPU::<Cached<Base>>::new();
             // let buf: Buffer<f32, _> = device.retrieve(10, ());
-            unsafe { Retrieve::<_, f32, ()>::retrieve(&device.modules, &device, 10, ()) }
+            unsafe { Retrieve::<_, f32, ()>::retrieve_entry(&device.modules, &device, 10, &()) }
         };
     }
 
     #[track_caller]
     #[cfg(feature = "cpu")]
-    fn level1<Mods: crate::Retrieve<CPU<Mods>, f32, ()>>(device: &CPU<Mods>) {
+    fn level1<'a, Mods: crate::Retrieve<'a, CPU<Mods>, f32, ()>>(device: &'a CPU<Mods>) {
         let _buf: Buffer<f32, _> = device.retrieve(10, ()).unwrap();
         level2(device);
         level2(device);
@@ -482,13 +495,13 @@ mod tests {
 
     #[track_caller]
     #[cfg(feature = "cpu")]
-    fn level3<Mods: crate::Retrieve<CPU<Mods>, f32, ()>>(device: &CPU<Mods>) {
+    fn level3<'a, Mods: crate::Retrieve<'a, CPU<Mods>, f32, ()>>(device: &'a CPU<Mods>) {
         level2(device);
     }
 
     #[track_caller]
     #[cfg(feature = "cpu")]
-    fn level2<Mods: crate::Retrieve<CPU<Mods>, f32, ()>>(device: &CPU<Mods>) {
+    fn level2<'a, Mods: crate::Retrieve<'a, CPU<Mods>, f32, ()>>(device: &'a CPU<Mods>) {
         let buf: Buffer<f32, _> = device.retrieve(20, ()).unwrap();
         location();
         assert_eq!(buf.len(), 20);

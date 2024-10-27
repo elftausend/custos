@@ -67,10 +67,8 @@ mod tests {
 
     #[test]
     fn test_locked_boxed() {
-        let x = Box::new(4);
-        // Box::
 
-        let mut locked_map = LockedMap::<UniqueId, Vec<u32>, BuildHasherDefault<NoHasher>>::new();
+        let locked_map = LockedMap::<UniqueId, Vec<u32>, BuildHasherDefault<NoHasher>>::new();
 
         locked_map.insert(0, vec![1, 2, 3, 4]);
 

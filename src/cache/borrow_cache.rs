@@ -117,7 +117,8 @@ impl BorrowCache {
         D: Alloc<T> + 'static,
         S: Shape,
     {
-        self.cache.get(&id)?.downcast_ref()
+        todo!()
+        // self.cache.get(&id)?.downcast_ref()
     }
 
     #[inline]
@@ -131,11 +132,12 @@ impl BorrowCache {
         D: Device + 'static,
         S: Shape,
     {
-        self.cache
-            .get(&id)
-            .ok_or(CachingError::InvalidId)?
-            .downcast_ref()
-            .ok_or(CachingError::InvalidTypeInfo)
+        todo!()
+        // self.cache
+        //     .get(&id)
+        //     .ok_or(CachingError::InvalidId)?
+        //     .downcast_ref()
+        //     .ok_or(CachingError::InvalidTypeInfo)
     }
 
     #[inline]

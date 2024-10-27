@@ -80,14 +80,28 @@ impl OnDropBuffer for Base {}
 
 impl<'a, D, T: Unit, S: Shape> Retrieve<'a, D, T, S> for Base {
     #[inline]
-    unsafe fn retrieve<const NUM_PARENTS: usize>(
+    unsafe fn retrieve_entry<const NUM_PARENTS: usize>(
         &'a self,
         device: &D,
         len: usize,
-        _parents: impl Parents<NUM_PARENTS>,
+        parents: &impl Parents<NUM_PARENTS>,
     ) -> crate::Result<Self::Wrap<'a, T, D::Base<T, S>>>
     where
         D: Alloc<T>,
+    {
+        self.retrieve(device, len, parents)
+    }
+
+    #[inline] 
+    unsafe fn retrieve<const NUM_PARENTS: usize>(
+        &self,
+        device: &D,
+        len: usize,
+        _parents: &impl Parents<NUM_PARENTS>,
+    ) -> crate::Result<Self::Wrap<'a, T, <D>::Base<T, S>>>
+    where
+        S: Shape,
+        D: Device + Alloc<T> 
     {
         device.alloc(len, AllocFlag::None)
     }
