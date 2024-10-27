@@ -1,6 +1,6 @@
 use core::{mem::ManuallyDrop, ops::{Deref, DerefMut}};
 
-use crate::CowMutCell;
+use crate::{CowMutCell, PtrType};
 
 #[derive(Debug)]
 pub struct Guard<'a, T> {
@@ -39,5 +39,19 @@ impl<'a, T> DerefMut for Guard<'a, T> {
     #[inline]
     fn deref_mut(&mut self) -> &mut Self::Target {
         self.data.as_mut().unwrap()
+    }
+}
+
+impl<T: PtrType> PtrType for Guard<'static, T> {
+    fn size(&self) -> usize {
+        todo!()
+    }
+
+    fn flag(&self) -> crate::flag::AllocFlag {
+        todo!()
+    }
+
+    unsafe fn set_flag(&mut self, flag: crate::flag::AllocFlag) {
+        todo!()
     }
 }

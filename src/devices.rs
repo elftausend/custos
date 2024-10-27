@@ -42,11 +42,11 @@ pub mod cpu_stack_ops;
 pub mod fusing;
 pub use fusing::*;
 
-use crate::{Buffer, HasId, OnDropBuffer, Parents, PtrType, Shape, Unit};
+use crate::{Buffer, HasId, IsBasePtr, OnDropBuffer, Parents, PtrType, Shape, Unit};
 
 /// The `Device` trait is the main trait for all compute devices.
 pub trait Device: OnDropBuffer + Sized {
-    type Base<T: Unit, S: Shape>: HasId + PtrType;
+    type Base<T: Unit, S: Shape>: IsBasePtr;
     type Data<'a, T: Unit, S: Shape>: HasId + PtrType;
 
     type Error;

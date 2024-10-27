@@ -153,8 +153,11 @@ pub fn location() -> &'static core::panic::Location<'static> {
 pub(crate) type OperationFn<B> =
     Box<dyn Fn(&[Id], &mut Buffers<B>, &dyn core::any::Any) -> crate::Result<()> + 'static>;
 
+pub trait IsBasePtr: PtrType + HasId + 'static {}
+impl<T: PtrType + HasId + 'static> IsBasePtr for T {}
+
 /// This trait is implemented for every pointer type.
-pub trait PtrType: 'static {
+pub trait PtrType {
     /// Returns the element count.
     fn size(&self) -> usize;
     /// Returns the [`AllocFlag`].
