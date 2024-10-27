@@ -1,15 +1,15 @@
 use core::{mem::ManuallyDrop, ops::{Deref, DerefMut}};
 
-use crate::{CowMutCell, PtrType};
+use crate::{CowMutCell, HasId, PtrType, ShallowCopy};
 
 #[derive(Debug)]
 pub struct Guard<'a, T> {
-    data: Option<CowMutCell<'a, T>>,
+    data: CowMutCell<'a, T>,
 }
 
 impl<'a, T> Guard<'a, T> {
     #[inline]
-    pub fn new(data: Option<CowMutCell<'a, T>>) -> Self {
+    pub fn new(data: CowMutCell<'a, T>) -> Self {
         Self { data }
     }
 
@@ -17,11 +17,9 @@ impl<'a, T> Guard<'a, T> {
     where
         F: FnOnce(CowMutCell<'a, T>) -> CowMutCell<'a, U>,
     {
-        let mut guard = ManuallyDrop::new(self);
-        let data = core::mem::take(&mut guard.data);
-
+        let Guard { data } = self;
         Guard {
-            data: data.map(|x| f(x)),
+            data: f(data),
         }
     }
 }
@@ -31,27 +29,44 @@ impl<'a, T> Deref for Guard<'a, T> {
 
     #[inline]
     fn deref(&self) -> &Self::Target {
-        self.data.as_ref().unwrap()
+        &self.data
     }
 }
 
 impl<'a, T> DerefMut for Guard<'a, T> {
     #[inline]
     fn deref_mut(&mut self) -> &mut Self::Target {
-        self.data.as_mut().unwrap()
+        &mut self.data
     }
 }
 
-impl<T: PtrType> PtrType for Guard<'static, T> {
+impl<'a, T: PtrType> PtrType for Guard<'a, T> {
+    #[inline]
     fn size(&self) -> usize {
-        todo!()
+        self.data.size()
     }
 
+    #[inline]
     fn flag(&self) -> crate::flag::AllocFlag {
-        todo!()
+        self.data.flag()
     }
 
+    #[inline]
     unsafe fn set_flag(&mut self, flag: crate::flag::AllocFlag) {
+        self.data.set_flag(flag);
+    }
+}
+
+impl<'a, T: HasId> HasId for Guard<'a, T> {
+    #[inline]
+    fn id(&self) -> crate::Id {
+        self.data.id()
+    }
+}
+
+impl<'a, T> ShallowCopy for Guard<'a, T> {
+    unsafe fn shallow(&self) -> Self {
         todo!()
     }
 }
+

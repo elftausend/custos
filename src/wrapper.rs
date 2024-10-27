@@ -1,7 +1,7 @@
 use crate::{HasId, IsBasePtr, PtrType, Unit};
 
 pub trait WrappedData {
-    type Wrap<'a, T: Unit, Base: IsBasePtr>: IsBasePtr + 'a; 
+    type Wrap<'a, T: Unit, Base: IsBasePtr>: PtrType + HasId + 'a; 
 
     fn wrap_in_base<'a, T: Unit, Base: IsBasePtr>(&self, base: Base) -> Self::Wrap<'a, T, Base>;
     #[track_caller]

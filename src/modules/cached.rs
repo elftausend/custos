@@ -4,7 +4,7 @@ use core::{
 };
 
 use crate::{
-    AddGradFn, AddLayer, AddOperation, Alloc, Buffer, Cache, CachedBuffers, Cursor, Device, ExecNow, FastCache, Guard, HasId, HasModules, IsBasePtr, IsShapeIndep, Module, OnDropBuffer, OnNewBuffer, Parents, PtrType, RemoveLayer, ReplaceBuf, Retrieve, RunModule, SetOpHint, Setup, ShallowCopy, Shape, UniqueId, Unit, WrappedData
+    AddGradFn, AddLayer, AddOperation, Alloc, Buffer, Cache, CachedBuffers, CowMut, Cursor, Device, ExecNow, FastCache, Guard, HasId, HasModules, IsBasePtr, IsShapeIndep, Module, OnDropBuffer, OnNewBuffer, Parents, PtrType, RemoveLayer, ReplaceBuf, Retrieve, RunModule, SetOpHint, Setup, ShallowCopy, Shape, UniqueId, Unit, WrappedData
 };
 
 #[cfg(feature = "graph")]
@@ -23,6 +23,7 @@ impl<CacheType, Mods: WrappedData, SD: Device> WrappedData for CachedModule<Mods
 
     #[inline]
     fn wrap_in_base<'a, T: Unit, Base: IsBasePtr>(&self, base: Base) -> Self::Wrap<'a, T, Base> {
+        // Guard::new(CowMut::Owned(self.modules.wrap_in_base(base)))
         self.modules.wrap_in_base(base)
     }
 
