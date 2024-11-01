@@ -6,7 +6,8 @@ use crate::{
 use super::{untyped_device::Untyped, AsType};
 
 impl<T: 'static + AsType + Default + Clone, S: Shape> Read<T, S> for Untyped {
-    type Read<'a> = Vec<T>
+    type Read<'a>
+        = Vec<T>
     where
         T: 'a,
         Self: 'a,

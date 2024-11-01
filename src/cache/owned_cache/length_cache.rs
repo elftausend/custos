@@ -26,7 +26,7 @@ impl Cache for LengthCache {
     ) -> D::Base<T, S>
     where
         T: Unit,
-        D: Alloc<T> + 'static,
+        D: Alloc<T>,
         D::Base<T, S>: ShallowCopy + 'static,
         S: Shape,
     {
@@ -54,7 +54,7 @@ impl LengthCache {
     ) -> D::Base<T, S>
     where
         T: Unit,
-        D: Alloc<T> + 'static,
+        D: Alloc<T>,
         D::Base<T, S>: ShallowCopy + 'static,
         S: Shape,
     {

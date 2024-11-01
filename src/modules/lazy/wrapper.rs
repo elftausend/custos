@@ -7,7 +7,7 @@ use core::{
 };
 
 use crate::{
-    flag::AllocFlag, HasId, HostPtr, Lazy, PtrType, ShallowCopy, Unit, WrappedCopy, WrappedData
+    flag::AllocFlag, HasId, HostPtr, Lazy, PtrType, ShallowCopy, Unit, WrappedCopy, WrappedData,
 };
 
 #[derive(Debug, Default)]
@@ -33,7 +33,9 @@ impl<T2, Mods: WrappedData> WrappedData for Lazy<'_, Mods, T2> {
     }
 
     #[inline]
-    fn wrapped_as_base_mut<T: Unit, Base: HasId + PtrType>(wrap: &mut Self::Wrap<T, Base>) -> &mut Base {
+    fn wrapped_as_base_mut<T: Unit, Base: HasId + PtrType>(
+        wrap: &mut Self::Wrap<T, Base>,
+    ) -> &mut Base {
         Mods::wrapped_as_base_mut(wrap.maybe_data.data_mut().expect(MISSING_DATA))
     }
 }

@@ -37,10 +37,9 @@ impl<T, const N: usize> LockedArray<T, N> {
                 if data.is_none() {
                     return State::Err(LockInfo::None);
                 }
-                return State::Ok(Guard::new(CowMutCell::Borrowed(Ref::map(
-                    data,
-                    |data| data.as_ref().unwrap(),
-                ))));
+                return State::Ok(Guard::new(CowMutCell::Borrowed(Ref::map(data, |data| {
+                    data.as_ref().unwrap()
+                }))));
             }
             Err(_) => return State::Err(LockInfo::Locked),
         }
@@ -84,7 +83,7 @@ mod tests {
         data1.push(2);
         assert_eq!(data1.as_slice(), [1, 2]);
     }
-    
+
     #[cfg(feature = "std")]
     #[test]
     #[should_panic]
@@ -93,7 +92,7 @@ mod tests {
         locked_array.set(1, vec![10]);
         locked_array.set(1, vec![10]);
     }
-    
+
     #[cfg(feature = "std")]
     #[test]
     fn test_get_not_set() {

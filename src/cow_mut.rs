@@ -1,5 +1,5 @@
-use core::ops::{Deref, DerefMut};
 use core::cell::{Ref, RefMut};
+use core::ops::{Deref, DerefMut};
 
 pub type CowMutCell<'a, T> = CowMut<T, RefMut<'a, T>, Ref<'a, T>>;
 pub type CowMutRef<'a, T> = CowMut<T, &'a T, &'a mut T>;

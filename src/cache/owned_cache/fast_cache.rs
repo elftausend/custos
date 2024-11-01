@@ -2,12 +2,11 @@ use core::{any::Any, hash::BuildHasherDefault};
 use std::{collections::HashMap, sync::Arc};
 
 use crate::{
-    flag::AllocFlag, Alloc, Cache, Device, NoHasher, PtrType, ShallowCopy, Shape, UniqueId, Unit,
+    flag::AllocFlag, Alloc, Cache, Device, LockedMap, NoHasher, PtrType, ShallowCopy, Shape, UniqueId, Unit
 };
 
-#[derive(Clone)]
 pub struct FastCache {
-    pub nodes: HashMap<UniqueId, Arc<dyn Any>, BuildHasherDefault<NoHasher>>,
+    pub nodes: LockedMap<UniqueId, Arc<dyn Any>, BuildHasherDefault<NoHasher>>,
 }
 
 impl Default for FastCache {
@@ -28,11 +27,11 @@ impl Cache for FastCache {
     ) -> D::Base<T, S>
     where
         T: Unit,
-        D: Alloc<T> + 'static,
+        D: Alloc<T>,
         D::Base<T, S>: ShallowCopy + 'static,
         S: Shape,
     {
-        self.get(device, id, len, new_buf_callback)
+        self.get(device, id, len, new_buf_callback).unwrap()
     }
 }
 
@@ -53,16 +52,16 @@ impl FastCache {
         id: UniqueId,
         len: usize,
         new_buf_callback: impl FnMut(UniqueId, &D::Base<T, S>),
-    ) -> D::Base<T, S>
+    ) -> crate::Result<D::Base<T, S>>
     where
         T: Unit,
-        D: Alloc<T> + 'static,
+        D: Alloc<T>,
         D::Base<T, S>: ShallowCopy + 'static,
         S: Shape,
     {
         let maybe_allocated = self.nodes.get(&id);
         match maybe_allocated {
-            Some(data) => {
+            Ok(data) => {
                 let data = unsafe {
                     data.downcast_ref::<D::Base<T, S>>()
                         .expect("Invalid request for data type!")
@@ -71,32 +70,39 @@ impl FastCache {
 
                 // TODO: not necessary, could add length to hashmap
                 assert_eq!(data.size(), len, "Data size mismatch! Did you use e.g. if conditions in a (cursor) loop retrieving buffers with a different size?");
-                data
+                Ok(data)
             }
-            None => unsafe { self.add_node(device, id, len, new_buf_callback) },
+            Err(e) => {
+                match e {
+                    crate::LockInfo::Locked => panic!("should return error"),
+                    crate::LockInfo::None => {
+                        unsafe { self.add_node(device, id, len, new_buf_callback) }
+                    },
+                }
+            },
         }
     }
 
     unsafe fn add_node<T, S, D>(
-        &mut self,
+        &self,
         device: &D,
         id: UniqueId,
         len: usize,
         mut callback: impl FnMut(UniqueId, &D::Base<T, S>),
-    ) -> <D as Device>::Base<T, S>
+    ) -> crate::Result<<D as Device>::Base<T, S>>
     where
         T: Unit,
         D: Alloc<T>,
         D::Base<T, S>: ShallowCopy + 'static,
         S: Shape,
     {
-        let data = device.alloc::<S>(len, AllocFlag::None).unwrap();
+        let data = device.alloc::<S>(len, AllocFlag::None)?;
         let shallow_data = unsafe { data.shallow() };
 
         callback(id, &shallow_data);
         self.nodes.insert(id, Arc::new(data));
 
-        shallow_data
+        Ok(shallow_data)
     }
 }
 
@@ -115,12 +121,12 @@ mod tests {
 
         assert_eq!(cache.nodes.len(), 0);
 
-        let out = unsafe { cache.add_node::<f32, (), _>(&device, 0, 10, |_a, _b| ()) };
+        let out = unsafe { cache.add_node::<f32, (), _>(&device, 0, 10, |_a, _b| ()) }.unwrap();
 
         assert_eq!(cache.nodes.len(), 1);
         assert_eq!(out.len, 10);
 
-        let out1 = unsafe { cache.get::<f32, (), _>(&device, 1, 10, |_a, _b| ()) };
+        let out1 = unsafe { cache.get::<f32, (), _>(&device, 1, 10, |_a, _b| ()) }.unwrap();
         assert_ne!(out.ptr, out1.ptr);
     }
 
@@ -135,7 +141,7 @@ mod tests {
 
         let mut prev = None;
         for _ in device.range(0..1000) {
-            let out3 = unsafe { cache.get::<f32, (), _>(&device, 0, 10, |_a, _b| ()) };
+            let out3 = unsafe { cache.get::<f32, (), _>(&device, 0, 10, |_a, _b| ()) }.unwrap();
             if prev.is_none() {
                 prev = Some(out3.ptr);
             }

@@ -175,9 +175,15 @@ where
     S: Shape,
 {
     #[cfg(not(unified_cl))]
-    type Read<'a> = Vec<T> where T: 'a;
+    type Read<'a>
+        = Vec<T>
+    where
+        T: 'a;
     #[cfg(unified_cl)]
-    type Read<'a> = &'a [T] where T: 'a;
+    type Read<'a>
+        = &'a [T]
+    where
+        T: 'a;
 
     #[cfg(not(unified_cl))]
     #[inline]

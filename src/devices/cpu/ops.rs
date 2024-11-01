@@ -76,7 +76,12 @@ where
     D::Base<T, S>: Deref<Target = [T]>,
     S: Shape,
 {
-    type Read<'a> = &'a [T] where T: 'a, D: 'a, S: 'a;
+    type Read<'a>
+        = &'a [T]
+    where
+        T: 'a,
+        D: 'a,
+        S: 'a;
 
     #[inline]
     fn read<'a>(&self, buf: &'a D::Base<T, S>) -> Self::Read<'a>

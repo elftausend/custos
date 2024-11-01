@@ -4,7 +4,8 @@ use core::{
 };
 
 use crate::{
-    flag::AllocFlag, Alloc, Buffer, CloneBuf, Device, HasId, IsBasePtr, OnDropBuffer, PtrType, ShallowCopy, Unit, WrappedData
+    flag::AllocFlag, Alloc, Buffer, CloneBuf, Device, HasId, IsBasePtr, OnDropBuffer, PtrType,
+    ShallowCopy, Unit, WrappedData,
 };
 
 #[derive(Debug, Default)]
@@ -60,7 +61,10 @@ impl Device for () {
     }
 
     #[inline(always)]
-    fn base_to_data<'a, T: Unit, S: crate::Shape>(&self, base: Self::Base<T, S>) -> Self::Data<'a, T, S> {
+    fn base_to_data<'a, T: Unit, S: crate::Shape>(
+        &self,
+        base: Self::Base<T, S>,
+    ) -> Self::Data<'a, T, S> {
         base
     }
 
@@ -114,12 +118,16 @@ impl WrappedData for () {
     }
 
     #[inline]
-    fn wrapped_as_base<'a, 'b, T: Unit, Base: IsBasePtr>(wrap: &'b Self::Wrap<'a, T, Base>) -> &'b Base {
+    fn wrapped_as_base<'a, 'b, T: Unit, Base: IsBasePtr>(
+        wrap: &'b Self::Wrap<'a, T, Base>,
+    ) -> &'b Base {
         wrap
     }
 
     #[inline]
-    fn wrapped_as_base_mut<'a, 'b, T: Unit, Base: IsBasePtr>(wrap: &'b mut Self::Wrap<'a, T, Base>) -> &'b mut Base {
+    fn wrapped_as_base_mut<'a, 'b, T: Unit, Base: IsBasePtr>(
+        wrap: &'b mut Self::Wrap<'a, T, Base>,
+    ) -> &'b mut Base {
         wrap
     }
 }

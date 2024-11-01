@@ -1,13 +1,17 @@
 use crate::{HasId, IsBasePtr, PtrType, Unit};
 
 pub trait WrappedData {
-    type Wrap<'a, T: Unit, Base: IsBasePtr>: PtrType + HasId + 'a; 
+    type Wrap<'a, T: Unit, Base: IsBasePtr>: PtrType + HasId + 'a;
 
     fn wrap_in_base<'a, T: Unit, Base: IsBasePtr>(&self, base: Base) -> Self::Wrap<'a, T, Base>;
     #[track_caller]
-    fn wrapped_as_base<'a, 'b, T: Unit, Base: IsBasePtr>(wrap: &'b Self::Wrap<'a, T, Base>) -> &'b Base;
+    fn wrapped_as_base<'a, 'b, T: Unit, Base: IsBasePtr>(
+        wrap: &'b Self::Wrap<'a, T, Base>,
+    ) -> &'b Base;
     #[track_caller]
-    fn wrapped_as_base_mut<'a, 'b, T: Unit, Base: IsBasePtr>(wrap: &'b mut Self::Wrap<'a, T, Base>) -> &'b mut Base;
+    fn wrapped_as_base_mut<'a, 'b, T: Unit, Base: IsBasePtr>(
+        wrap: &'b mut Self::Wrap<'a, T, Base>,
+    ) -> &'b mut Base;
 }
 
 #[macro_export]

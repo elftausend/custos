@@ -1,4 +1,7 @@
-use core::{mem::ManuallyDrop, ops::{Deref, DerefMut}};
+use core::{
+    mem::ManuallyDrop,
+    ops::{Deref, DerefMut},
+};
 
 use crate::{CowMutCell, HasId, PtrType, ShallowCopy};
 
@@ -18,9 +21,7 @@ impl<'a, T> Guard<'a, T> {
         F: FnOnce(CowMutCell<'a, T>) -> CowMutCell<'a, U>,
     {
         let Guard { data } = self;
-        Guard {
-            data: f(data),
-        }
+        Guard { data: f(data) }
     }
 }
 
@@ -69,4 +70,3 @@ impl<'a, T> ShallowCopy for Guard<'a, T> {
         todo!()
     }
 }
-

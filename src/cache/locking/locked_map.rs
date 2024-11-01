@@ -1,3 +1,4 @@
+use core::ops::Deref;
 use std::{
     cell::{Ref, RefCell, RefMut, UnsafeCell},
     collections::HashMap,
@@ -7,7 +8,7 @@ use std::{
 use crate::{LockInfo, State};
 
 pub struct LockedMap<K, V, S = RandomState> {
-    data: UnsafeCell<HashMap<K, Box<RefCell<V>>, S>>,
+    data: RefCell<HashMap<K, Box<RefCell<V>>, S>>,
 }
 
 impl<K, T, S: Default> Default for LockedMap<K, T, S> {
@@ -27,11 +28,22 @@ impl<K, T, S: Default> LockedMap<K, T, S> {
     }
 }
 impl<K, T, S: BuildHasher> LockedMap<K, T, S> {
+    #[inline]
+    pub fn len(&self) -> usize {
+        self.data.borrow().len()
+    }
+    
+    #[inline]
+    pub fn is_empty(&self) -> bool {
+        self.data.borrow().is_empty()
+    }
+
     pub fn insert(&self, id: K, data: T)
     where
         K: Eq + Hash,
     {
-        let map = unsafe { &mut *self.data.get() };
+        // let map = unsafe { &mut *self.data.get() };
+        let mut map = self.data.borrow_mut();
         if map.contains_key(&id) {
             panic!()
         }
@@ -42,7 +54,7 @@ impl<K, T, S: BuildHasher> LockedMap<K, T, S> {
     where
         K: Eq + Hash,
     {
-        let map = unsafe { &mut *self.data.get() };
+        let map = unsafe { &*self.data.as_ptr() };
         let entry = map.get(id).ok_or(LockInfo::None)?;
         (&**entry).try_borrow().map_err(|_| LockInfo::Locked)
     }
@@ -51,7 +63,7 @@ impl<K, T, S: BuildHasher> LockedMap<K, T, S> {
     where
         K: Eq + Hash,
     {
-        let map = unsafe { &mut *self.data.get() };
+        let map = unsafe { &*self.data.as_ptr() };
         let entry = map.get(id).ok_or(LockInfo::None)?;
         (&**entry).try_borrow_mut().map_err(|_| LockInfo::Locked)
     }
@@ -67,7 +79,6 @@ mod tests {
 
     #[test]
     fn test_locked_boxed() {
-
         let locked_map = LockedMap::<UniqueId, Vec<u32>, BuildHasherDefault<NoHasher>>::new();
 
         locked_map.insert(0, vec![1, 2, 3, 4]);

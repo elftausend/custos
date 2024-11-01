@@ -63,8 +63,9 @@ pub trait Device: OnDropBuffer + Sized {
         &self,
         wrap: Self::Wrap<'a, T, Self::Base<T, S>>,
     ) -> Self::Data<'a, T, S>;
-    fn data_as_wrap<'a, 'b, T: Unit, S: Shape>(data: &'b Self::Data<'a, T, S>)
-        -> &'b Self::Wrap<'a, T, Self::Base<T, S>>;
+    fn data_as_wrap<'a, 'b, T: Unit, S: Shape>(
+        data: &'b Self::Data<'a, T, S>,
+    ) -> &'b Self::Wrap<'a, T, Self::Base<T, S>>;
     fn data_as_wrap_mut<'a, 'b, T: Unit, S: Shape>(
         data: &'b mut Self::Data<'a, T, S>,
     ) -> &'b mut Self::Wrap<'a, T, Self::Base<T, S>>;

@@ -35,7 +35,7 @@ pub trait Retrieve<'a, D, T: Unit, S: Shape = ()>: OnDropBuffer {
     ) -> crate::Result<Self::Wrap<'a, T, D::Base<T, S>>>
     where
         S: Shape,
-        D: Device + Alloc<T>;
+        D: Alloc<T>;
 
     #[track_caller]
     unsafe fn retrieve<const NUM_PARENTS: usize>(
@@ -46,14 +46,16 @@ pub trait Retrieve<'a, D, T: Unit, S: Shape = ()>: OnDropBuffer {
     ) -> crate::Result<Self::Wrap<'a, T, D::Base<T, S>>>
     where
         S: Shape,
-        D: Device + Alloc<T>;
-
-
+        D: Alloc<T>;
 
     // "actor"
     #[inline]
-    fn on_retrieve_finish<const NUM_PARENTS: usize>(&self, _len: usize, _parents: impl Parents<NUM_PARENTS>, _retrieved_buf: &Buffer<T, D, S>)
-    where
+    fn on_retrieve_finish<const NUM_PARENTS: usize>(
+        &self,
+        _len: usize,
+        _parents: impl Parents<NUM_PARENTS>,
+        _retrieved_buf: &Buffer<T, D, S>,
+    ) where
         D: Alloc<T>,
     {
     }

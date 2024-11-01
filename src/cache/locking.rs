@@ -1,6 +1,6 @@
+mod guard;
 mod locked_array;
 mod locked_map;
-mod guard;
 pub use guard::*;
 pub use locked_array::*;
 pub use locked_map::*;

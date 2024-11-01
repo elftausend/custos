@@ -137,7 +137,6 @@ impl<S: Shape, T: Unit> HostPtr<T> for StackArray<S, T> {
     }
 }
 
-
 impl<S: Shape, T> WrappedCopy for StackArray<S, T> {
     type Base = Self;
 

@@ -11,17 +11,24 @@ impl WrappedData for Base {
     type Wrap<'a, T: Unit, Base: 'static + HasId + PtrType> = Base;
 
     #[inline]
-    fn wrap_in_base<'a, T: Unit, Base: 'static + HasId + PtrType>(&self, base: Base) -> Self::Wrap<'a, T, Base> {
+    fn wrap_in_base<'a, T: Unit, Base: 'static + HasId + PtrType>(
+        &self,
+        base: Base,
+    ) -> Self::Wrap<'a, T, Base> {
         base
     }
 
     #[inline]
-    fn wrapped_as_base<'a, 'b, T: Unit, Base: 'static + HasId + PtrType>(wrap: &'b Self::Wrap<'a, T, Base>) -> &'b Base {
+    fn wrapped_as_base<'a, 'b, T: Unit, Base: 'static + HasId + PtrType>(
+        wrap: &'b Self::Wrap<'a, T, Base>,
+    ) -> &'b Base {
         wrap
     }
 
     #[inline]
-    fn wrapped_as_base_mut<'a, 'b, T: Unit, Base: 'static + HasId + PtrType>(wrap: &'b mut Self::Wrap<'a, T, Base>) -> &'b mut Base {
+    fn wrapped_as_base_mut<'a, 'b, T: Unit, Base: 'static + HasId + PtrType>(
+        wrap: &'b mut Self::Wrap<'a, T, Base>,
+    ) -> &'b mut Base {
         wrap
     }
 }
@@ -92,7 +99,7 @@ impl<'a, D, T: Unit, S: Shape> Retrieve<'a, D, T, S> for Base {
         self.retrieve(device, len, parents)
     }
 
-    #[inline] 
+    #[inline]
     unsafe fn retrieve<const NUM_PARENTS: usize>(
         &self,
         device: &D,
@@ -101,7 +108,7 @@ impl<'a, D, T: Unit, S: Shape> Retrieve<'a, D, T, S> for Base {
     ) -> crate::Result<Self::Wrap<'a, T, <D>::Base<T, S>>>
     where
         S: Shape,
-        D: Device + Alloc<T> 
+        D: Device + Alloc<T>,
     {
         device.alloc(len, AllocFlag::None)
     }

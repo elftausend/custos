@@ -60,7 +60,8 @@ pub fn try_vk_clear<T: Default + Debug>(
 }
 
 impl<Mods: OnDropBuffer, T: Unit + Default + Clone, S: Shape> Read<T, S> for Vulkan<Mods> {
-    type Read<'a> = VkArray<T>
+    type Read<'a>
+        = VkArray<T>
     where
         T: 'a,
         Self: 'a,

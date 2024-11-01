@@ -1,6 +1,8 @@
 use core::marker::PhantomData;
 
-use crate::{flag::AllocFlag, Autograd, HasId, PtrType, ShallowCopy, Unit, WrappedCopy, WrappedData};
+use crate::{
+    flag::AllocFlag, Autograd, HasId, PtrType, ShallowCopy, Unit, WrappedCopy, WrappedData,
+};
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct ReqGradWrapper<Data, T> {
@@ -10,7 +12,8 @@ pub struct ReqGradWrapper<Data, T> {
 }
 
 impl<'dev, Mods: WrappedData> WrappedData for Autograd<'dev, Mods> {
-    type Wrap<'a, T: Unit, Base: crate::HasId + crate::PtrType> = ReqGradWrapper<Mods::Wrap<'a, T, Base>, T>;
+    type Wrap<'a, T: Unit, Base: crate::HasId + crate::PtrType> =
+        ReqGradWrapper<Mods::Wrap<'a, T, Base>, T>;
 
     #[inline]
     fn wrap_in_base<'a, T: Unit, Base: crate::HasId + crate::PtrType>(

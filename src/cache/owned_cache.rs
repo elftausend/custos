@@ -16,7 +16,7 @@ pub trait Cache {
     ) -> D::Base<T, S>
     where
         T: Unit,
-        D: Alloc<T> + 'static,
-        D::Base<T, S>: ShallowCopy + 'static,
+        D: Alloc<T>,
+        D::Base<T, S>: ShallowCopy,
         S: Shape;
 }
