@@ -10,9 +10,9 @@ use wrapper::MaybeData;
 
 use crate::{
     op_hint::OpHint, register_buf_copyable, unregister_buf_copyable, AddLayer, AddOperation, Alloc,
-    AnyOp, BoxedShallowCopy, Buffer, CachedBuffers, Cursor, Device, ExecNow, HasId, HasModules, Id,
-    IsShapeIndep, Module, NoHasher, OnDropBuffer, OnNewBuffer, Parents, ReplaceBuf, Retrieve,
-    RunModule, SetOpHint, Setup, ShallowCopy, Shape, UniqueId, Unit, UseGpuOrCpu,
+    AnyOp, BoxedShallowCopy, Buffer, CachedBuffers, Cursor, Device, ExecNow, GpuOrCpuInfo, HasId,
+    HasModules, Id, IsShapeIndep, Module, NoHasher, OnDropBuffer, OnNewBuffer, Parents, ReplaceBuf,
+    Retrieve, RunModule, SetOpHint, Setup, ShallowCopy, Shape, UniqueId, Unit, UseGpuOrCpu,
 };
 
 #[cfg(feature = "graph")]
@@ -97,8 +97,8 @@ impl<T, Mods: AddOperation> AddOperation for Lazy<'_, Mods, T> {
     ) -> crate::Result<()> {
         if self.enabled.get() {
             self.graph.try_borrow_mut()
-            .expect("already borrowed: BorrowMutError - is the inner operation trying to add an operation as well?")
-            .add_operation(args, op);
+                .expect("already borrowed: BorrowMutError - is the inner operation trying to add an operation as well?")
+                .add_operation(args, op);
             Ok(())
         } else {
             self.modules.add_op(args, op)
@@ -275,6 +275,7 @@ impl<T, Mods: crate::AddGradFn> crate::AddGradFn for Lazy<'_, Mods, T> {
         self.modules.set_grad_enabled(enabled)
     }
 }
+
 // pass_down_grad_fn!(Lazy);
 // impl_remove_layer!(Lazy);
 impl<Mods, T> crate::RemoveLayer<Mods> for Lazy<'_, Mods, T> {
@@ -283,6 +284,7 @@ impl<Mods, T> crate::RemoveLayer<Mods> for Lazy<'_, Mods, T> {
         self.modules
     }
 }
+
 impl<'a, T, NewMods, SD> AddLayer<NewMods, SD> for Lazy<'a, (), T> {
     type Wrapped = crate::Lazy<'a, NewMods, T>;
 
@@ -584,6 +586,7 @@ mod tests {
             panic!("")
         }
     }
+
     #[test]
     #[cfg(feature = "cpu")]
     fn test_lazy_apply_fn_with_run_cpu() {
@@ -628,6 +631,7 @@ mod tests {
         device.run().unwrap();
         assert_eq!(out.replace().read(), &[3; 10]);
     }
+
     #[test]
     #[cfg(feature = "cpu")]
     fn test_lazy_add_apply_fn_with_run() {

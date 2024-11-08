@@ -9,7 +9,6 @@ use crate::{
     range::{AsRange, CursorRange},
     AnyOp, HasId, Parents, Shape, UniqueId, Unit, ZeroGrad, CPU,
 };
-
 #[cfg(feature = "cached")]
 use crate::{Base, CachedModule};
 
@@ -580,6 +579,8 @@ macro_rules! pass_down_use_gpu_or_cpu {
                     .use_cpu_or_gpu(location, input_lengths, cpu_op, gpu_op)
             }
 
+
+
             #[inline]
             fn set_fork_enabled(&self, enabled: bool) {
                 self.modules.set_fork_enabled(enabled);
@@ -620,6 +621,7 @@ pub trait UseGpuOrCpu {
     }
 
     fn is_fork_enabled(&self) -> bool;
+    // Function to handle extrapolation logic
 }
 
 #[cfg(feature = "graph")]
