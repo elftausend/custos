@@ -5,9 +5,9 @@ use core::{
 
 use crate::{
     AddGradFn, AddLayer, AddOperation, Alloc, Buffer, Cache, CachedBuffers, Cursor, Device,
-    ExecNow, FastCache, HasId, HasModules, IsShapeIndep, Module, OnDropBuffer, OnNewBuffer,
-    Parents, PtrType, RemoveLayer, ReplaceBuf, Retrieve, RunModule, SetOpHint, Setup, ShallowCopy,
-    Shape, UniqueId, Unit, WrappedData,
+    ExecNow, FastCache, GpuOrCpuInfo, HasId, HasModules, IsShapeIndep, Module, OnDropBuffer,
+    OnNewBuffer, Parents, PtrType, RemoveLayer, ReplaceBuf, Retrieve, RunModule, SetOpHint, Setup,
+    ShallowCopy, Shape, UniqueId, Unit, WrappedData,
 };
 
 #[cfg(feature = "graph")]
@@ -421,6 +421,7 @@ mod tests {
     use crate::{location, Base, Buffer, Retrieve, Retriever, CPU};
 
     use super::Cached;
+
     #[test]
     fn test_location_ref_unique() {
         let ptr = location();

@@ -6,7 +6,7 @@ use crate::{
 };
 use core::cell::{Cell, RefCell};
 
-mod analyzation;
+pub mod analyzation;
 mod fork_data;
 mod fork_macro;
 #[cfg(feature = "serde")]

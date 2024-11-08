@@ -1,7 +1,7 @@
 use crate::{
-    flag::AllocFlag, AddGradFn, AddOperation, Alloc, CachedBuffers, Cursor, Device, ExecNow, HasId,
-    HashLocation, Module, OnDropBuffer, OnNewBuffer, Parents, PtrType, ReplaceBuf, Retrieve,
-    SetOpHint, Setup, Shape, Unit, WrappedData,
+    flag::AllocFlag, AddGradFn, AddOperation, Alloc, CachedBuffers, Cursor, Device, ExecNow,
+    GpuOrCpuInfo, HasId, HashLocation, Module, OnDropBuffer, OnNewBuffer, Parents, PtrType,
+    ReplaceBuf, Retrieve, SetOpHint, Setup, Shape, Unit, WrappedData,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
@@ -194,6 +194,7 @@ impl crate::GradActions for Base {
 impl<'a> crate::TapeActions<'a> for Base {}
 
 impl CachedBuffers for Base {}
+
 impl<T: Unit, D: Device, S: Shape> ReplaceBuf<T, D, S> for Base {
     #[inline]
     fn replace_buf<'a, 'c>(
