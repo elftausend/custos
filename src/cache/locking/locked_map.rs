@@ -1,6 +1,5 @@
-use core::ops::Deref;
 use std::{
-    cell::{Ref, RefCell, RefMut, UnsafeCell},
+    cell::{Ref, RefCell, RefMut},
     collections::HashMap,
     hash::{BuildHasher, Hash, RandomState},
 };
@@ -32,7 +31,7 @@ impl<K, T, S: BuildHasher> LockedMap<K, T, S> {
     pub fn len(&self) -> usize {
         self.data.borrow().len()
     }
-    
+
     #[inline]
     pub fn is_empty(&self) -> bool {
         self.data.borrow().is_empty()

@@ -1,13 +1,10 @@
 use core::{
-    cell::{Cell, RefCell, RefMut},
-    marker::PhantomData,
+    any::Any, cell::{Cell, RefCell, RefMut}, marker::PhantomData
 };
+use std::sync::Arc;
 
 use crate::{
-    AddGradFn, AddLayer, AddOperation, Alloc, Buffer, Cache, CachedBuffers, CowMut, Cursor, Device,
-    ExecNow, FastCache, Guard, HasId, HasModules, IsBasePtr, IsShapeIndep, LockInfo, Module,
-    OnDropBuffer, OnNewBuffer, Parents, PtrType, RemoveLayer, ReplaceBuf, Retrieve, RunModule,
-    SetOpHint, Setup, ShallowCopy, Shape, State, UniqueId, Unit, WrappedData,
+    AddGradFn, AddLayer, AddOperation, Alloc, Buffer, Cache, Cache2, CachedBuffers, CowMut, Cursor, Device, ExecNow, FastCache2, Guard, HasId, HasModules, IsBasePtr, IsShapeIndep, LockInfo, Module, OnDropBuffer, OnNewBuffer, Parents, PtrType, RemoveLayer, ReplaceBuf, Retrieve, RunModule, SetOpHint, Setup, ShallowCopy, Shape, State, UniqueId, Unit, WrappedData
 };
 
 #[cfg(feature = "graph")]
@@ -16,7 +13,7 @@ use crate::{DeviceError, Optimize};
 // creator struct, however =>
 // TODO: could remove D generic and therefore CachedModule
 #[derive(Debug, PartialEq, Eq, Default)]
-pub struct Cached<Mods, CacheType = FastCache> {
+pub struct Cached<Mods, CacheType = FastCache2> {
     pd: PhantomData<Mods>,
     cache_type: PhantomData<CacheType>,
 }
@@ -53,8 +50,7 @@ where
     fn new() -> Self::Module {
         CachedModule {
             modules: Mods::new(),
-            cache: RefCell::new(CacheType::default()),
-            cache3: Default::default(),
+            cache: CacheType::default(),
             pd: PhantomData,
             cursor: Default::default(),
         }
@@ -64,10 +60,9 @@ where
 // impl<Mods> OnDropBuffer for Cached<Mods> {}
 
 // TODO: could remove D generic and therefore CachedModule
-pub struct CachedModule<Mods, D: Device, CacheType = FastCache> {
+pub struct CachedModule<Mods, D: Device, CacheType = FastCache2> {
     pub modules: Mods,
-    pub cache: RefCell<CacheType>,
-    pub cache3: crate::LockedMap<u64, Box<dyn core::any::Any>>,
+    pub cache: CacheType,
     pub(crate) pd: PhantomData<D>,
     cursor: Cell<usize>, // would move this to `Cache`, however -> RefCell; TODO: maybe add a Cursor Module
 }
@@ -155,18 +150,20 @@ impl<CacheType, Mods: OnDropBuffer, SD: Device> OnDropBuffer for CachedModule<Mo
 impl<'a, CacheType, Mods, SimpleDevice> CachedModule<Mods, SimpleDevice, CacheType>
 where
     Mods: WrappedData,
+    CacheType: Cache2<Box<dyn Any>>,
     SimpleDevice: Device,
 {
-    pub fn get<D, T, S>(
+    pub fn get_mut<D, T, S>(
         &'a self,
         id: u64,
+        len: usize,
     ) -> State<Guard<'a, Mods::Wrap<'static, T, D::Base<T, S>>>>
     where
         D: Device,
         T: 'static,
         S: Shape,
     {
-        let entry = self.cache3.get_mut(&id)?;
+        let entry = self.cache.get_mut(id, len)?;
         let entry = RefMut::map(entry, |x| {
             x.downcast_mut::<Mods::Wrap<'static, T, D::Base<T, S>>>()
                 .unwrap()
@@ -184,7 +181,7 @@ where
     D: Device + IsShapeIndep + Cursor,
     D::Base<T, S>: 'static,
     SimpleDevice: Device,
-    CacheType: Cache,
+    CacheType: Cache2<Box<dyn Any>>,
 {
     #[inline]
     unsafe fn retrieve_entry<const NUM_PARENTS: usize>(
@@ -196,15 +193,17 @@ where
     where
         D: Alloc<T>,
     {
+        dbg!("retrieve entry");
         let id = device.cursor() as UniqueId;
-        match self.get::<D, T, S>(id) {
+        match self.get_mut::<D, T, S>(id, len) {
             Ok(out) => Ok(out),
             Err(state) => match state {
                 LockInfo::Locked => panic!("Locked!!"),
                 LockInfo::None => {
-                    self.cache3
-                        .insert(id, Box::new(self.modules.retrieve(device, len, _parents)));
-                    Ok(self.get::<D, T, S>(id).unwrap())
+                    dbg!("insert entry");
+                    self.cache
+                        .insert(id, len, Box::new(self.modules.retrieve(device, len, _parents)?));
+                    Ok(self.get_mut::<D, T, S>(id, len).unwrap())
                 }
             },
         }
@@ -326,7 +325,6 @@ impl<CacheType, CurrentMods, SD: Device> AddLayer<CurrentMods, SD> for Cached<()
         crate::CachedModule {
             modules: inner_mods,
             cache: Default::default(),
-            cache3: Default::default(),
             pd: core::marker::PhantomData,
             cursor: Default::default(),
         }
@@ -580,7 +578,7 @@ mod tests {
             assert_eq!(buf.len(), buf_base.len());
         }
 
-        let buf_base = buf_base.to_device_type(&device);
+        let buf_base: Buffer<f32, _> = buf_base.to_device_type(&device);
         for _ in 0..10 {
             let buf: Buffer<f32, _> = device.retrieve(10, &buf_base).unwrap();
 

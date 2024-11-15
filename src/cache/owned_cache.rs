@@ -1,10 +1,21 @@
-mod fast_cache;
-pub use fast_cache::*;
+// mod fast_cache;
+mod fast_cache2;
+use core::cell::RefMut;
 
-mod length_cache;
-pub use length_cache::*;
+// pub use fast_cache::*;
+pub use fast_cache2::*;
+
+// mod length_cache;
+// pub use length_cache::*;
 
 use crate::{Alloc, ShallowCopy, Shape, UniqueId, Unit};
+
+use super::State;
+
+pub trait Cache2<T> {
+    fn get_mut(&self, id: UniqueId, len: usize) -> State<RefMut<T>>;
+    fn insert(&self, id: UniqueId, len: usize, data: T);
+}
 
 pub trait Cache {
     unsafe fn get<T, S, D>(
