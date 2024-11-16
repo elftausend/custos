@@ -3,7 +3,7 @@ use core::{
     ops::{Deref, DerefMut},
 };
 
-use crate::{CowMutCell, HasId, PtrType, ShallowCopy};
+use crate::{CowMutCell, HasId, HostPtr, PtrType, ShallowCopy};
 
 #[derive(Debug)]
 pub struct Guard<'a, T> {
@@ -68,5 +68,17 @@ impl<'a, T: HasId> HasId for Guard<'a, T> {
 impl<'a, T> ShallowCopy for Guard<'a, T> {
     unsafe fn shallow(&self) -> Self {
         todo!()
+    }
+}
+
+impl<'a, T, P: PtrType + HostPtr<T>> HostPtr<T> for Guard<'a, P> {
+    #[inline]
+    fn ptr(&self) -> *const T {
+        self.data.get_ref().ptr()
+    }
+
+    #[inline]
+    fn ptr_mut(&mut self) -> *mut T {
+        self.data.get_mut().unwrap().ptr_mut()
     }
 }

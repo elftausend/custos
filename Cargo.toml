@@ -28,7 +28,7 @@ custos-macro = {git = "https://github.com/elftausend/custos-macro", optional=tru
 #custos-macro = {version = "0.1.1", optional=true}
 
 # no-std float math
-libm = { version="0.2.6", optional = true }
+libm = { version="0.2", optional = true }
 
 ash = { version = "0.38", optional = true }
 naga = { version = "0.19", features = ["wgsl-in", "spv-out"], optional = true }

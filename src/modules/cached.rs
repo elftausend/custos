@@ -1,10 +1,9 @@
 use core::{
-    any::Any, cell::{Cell, RefCell, RefMut}, marker::PhantomData
+    any::Any, cell::{Cell, RefMut}, marker::PhantomData
 };
-use std::sync::Arc;
 
 use crate::{
-    AddGradFn, AddLayer, AddOperation, Alloc, Buffer, Cache, Cache2, CachedBuffers, CowMut, Cursor, Device, ExecNow, FastCache2, Guard, HasId, HasModules, IsBasePtr, IsShapeIndep, LockInfo, Module, OnDropBuffer, OnNewBuffer, Parents, PtrType, RemoveLayer, ReplaceBuf, Retrieve, RunModule, SetOpHint, Setup, ShallowCopy, Shape, State, UniqueId, Unit, WrappedData
+    AddGradFn, AddLayer, AddOperation, Alloc, Buffer, Cache, CachedBuffers, CowMut, Cursor, Device, ExecNow, FastCache2, Guard, HasId, HasModules, IsBasePtr, IsShapeIndep, LockInfo, Module, OnDropBuffer, OnNewBuffer, Parents, PtrType, RemoveLayer, ReplaceBuf, Retrieve, RunModule, SetOpHint, Setup, ShallowCopy, Shape, State, UniqueId, Unit, WrappedData
 };
 
 #[cfg(feature = "graph")]
@@ -150,7 +149,7 @@ impl<CacheType, Mods: OnDropBuffer, SD: Device> OnDropBuffer for CachedModule<Mo
 impl<'a, CacheType, Mods, SimpleDevice> CachedModule<Mods, SimpleDevice, CacheType>
 where
     Mods: WrappedData,
-    CacheType: Cache2<Box<dyn Any>>,
+    CacheType: Cache<Box<dyn Any>>,
     SimpleDevice: Device,
 {
     pub fn get_mut<D, T, S>(
@@ -181,7 +180,7 @@ where
     D: Device + IsShapeIndep + Cursor,
     D::Base<T, S>: 'static,
     SimpleDevice: Device,
-    CacheType: Cache2<Box<dyn Any>>,
+    CacheType: Cache<Box<dyn Any>>,
 {
     #[inline]
     unsafe fn retrieve_entry<const NUM_PARENTS: usize>(
@@ -193,16 +192,20 @@ where
     where
         D: Alloc<T>,
     {
-        dbg!("retrieve entry");
         let id = device.cursor() as UniqueId;
         match self.get_mut::<D, T, S>(id, len) {
-            Ok(out) => Ok(out),
+            Ok(out) => {
+                unsafe { device.bump_cursor() };
+                Ok(out)
+            },
             Err(state) => match state {
+                // return err
                 LockInfo::Locked => panic!("Locked!!"),
                 LockInfo::None => {
-                    dbg!("insert entry");
                     self.cache
                         .insert(id, len, Box::new(self.modules.retrieve(device, len, _parents)?));
+
+                    unsafe { device.bump_cursor() };
                     Ok(self.get_mut::<D, T, S>(id, len).unwrap())
                 }
             },

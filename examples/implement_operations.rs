@@ -5,23 +5,23 @@ use custos::prelude::*;
 /// `AddBuf` will be implemented for all compute devices.<br>
 /// Because of `S: Shape`, this trait can be implemented for [`Stack`], which uses fixed size stack allocated arrays.<br>
 /// Adding a `D: Device = Self` makes it possible to invoke operations with a `CPU` on, for example, `OpenCL` `Buffer`s (if the device uses unified memory), and `Stack` `Buffer`s.
-pub trait AddBuf<T: Unit, S: Shape = (), D: Device = Self>: Sized + Device {
+pub trait AddBuf<'a, T: Unit, S: Shape = (), D: Device = Self>: Sized + Device {
     /// This operation performs element-wise addition.
-    fn add(&self, lhs: &Buffer<T, D, S>, rhs: &Buffer<T, D, S>) -> Buffer<T, Self, S>;
+    fn add(&'a self, lhs: &Buffer<T, D, S>, rhs: &Buffer<T, D, S>) -> Buffer<'a, T, Self, S>;
     // ... you can add more operations if you want to do that.
 }
 
 // Host CPU implementation
 #[cfg(feature = "cpu")]
-impl<T, S, D, Mods> AddBuf<T, S, D> for CPU<Mods>
+impl<'a, T, S, D, Mods> AddBuf<'a, T, S, D> for CPU<Mods>
 where
     T: Unit + Copy + std::ops::Add<Output = T> + 'static, // you can use the custos::Number trait.
     S: Shape, // This trait is implemented for all number types (usize, i16, f32, ...)
     D: Device,
     D::Base<T, S>: Deref<Target = [T]>,
-    Mods: Retrieve<Self, T, S>,
+    Mods: Retrieve<'a, Self, T, S>,
 {
-    fn add(&self, lhs: &Buffer<T, D, S>, rhs: &Buffer<T, D, S>) -> Buffer<T, Self, S> {
+    fn add(&'a self, lhs: &Buffer<T, D, S>, rhs: &Buffer<T, D, S>) -> Buffer<'a, T, Self, S> {
         let len = std::cmp::min(lhs.len(), rhs.len());
 
         // this returns a previously allocated buffer.
@@ -166,7 +166,7 @@ pub trait AddOp<'a, T: Unit, D: Device> {
     fn add(&self, rhs: &Buffer<'a, T, D>) -> Buffer<'a, T, D>;
 }
 
-impl<'a, T: CDatatype, D: AddBuf<T>> AddOp<'a, T, D> for Buffer<'a, T, D> {
+impl<'a, T: CDatatype, D: AddBuf<'a, T>> AddOp<'a, T, D> for Buffer<'a, T, D> {
     #[inline]
     fn add(&self, rhs: &Buffer<'a, T, D>) -> Buffer<'a, T, D> {
         self.device().add(self, rhs)
@@ -182,10 +182,10 @@ impl<'a, T: Unit, D: Device> OwnStruct<'a, T, D> {
     #[allow(dead_code)]
     // consider using operator overloading for your own type
     #[inline]
-    fn add(&self, rhs: &OwnStruct<T, D>) -> Buffer<T, D>
+    fn add(&'a self, rhs: &OwnStruct<T, D>) -> Buffer<'a, T, D>
     where
         T: CDatatype,
-        D: AddBuf<T>,
+        D: AddBuf<'a, T>,
     {
         self.buf.device().add(&self.buf, &rhs.buf)
     }

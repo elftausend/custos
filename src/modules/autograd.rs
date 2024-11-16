@@ -72,7 +72,7 @@ impl<'dev, T, D, Mods, S: Shape> OnNewBuffer<'dev, T, D, S> for Autograd<'_, Mod
 where
     T: Unit + 'static,
     D: Alloc<T> + IsShapeIndep + 'static,
-    D::Data<T, S>: ShallowCopy,
+    D::Data<'dev, T, S>: ShallowCopy,
     Mods: OnNewBuffer<'dev, T, D, S>,
 {
     #[inline]

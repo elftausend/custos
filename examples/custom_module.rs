@@ -1,6 +1,5 @@
 use custos::{
-    Alloc, Base, Device, HasId, Module, OnDropBuffer, PtrType, Retrieve, Setup, Shape, Unit,
-    WrappedData, CPU,
+    Alloc, Base, Device, HasId, IsBasePtr, Module, OnDropBuffer, Parents, PtrType, Retrieve, Setup, Shape, Unit, WrappedData, CPU
 };
 
 pub struct CustomModule<Mods> {
@@ -36,22 +35,22 @@ fn main() {
 // Implementing pass down traits / features
 
 impl<Mods: WrappedData> WrappedData for CustomModule<Mods> {
-    type Wrap<T: Unit, Base: HasId + PtrType> = Mods::Wrap<T, Base>;
+    type Wrap<'a, T: Unit, Base: IsBasePtr> = Mods::Wrap<'a, T, Base>;
 
     #[inline]
-    fn wrap_in_base<T: Unit, Base: HasId + PtrType>(&self, base: Base) -> Self::Wrap<T, Base> {
+    fn wrap_in_base<'a, T: Unit, Base: IsBasePtr>(&self, base: Base) -> Self::Wrap<'a, T, Base> {
         self.mods.wrap_in_base(base)
     }
 
     #[inline]
-    fn wrapped_as_base<T: Unit, Base: HasId + PtrType>(wrap: &Self::Wrap<T, Base>) -> &Base {
+    fn wrapped_as_base<'a, 'b, T: Unit, Base: IsBasePtr>(wrap: &'b Self::Wrap<'a, T, Base>) -> &'b Base {
         Mods::wrapped_as_base(wrap)
     }
 
     #[inline]
-    fn wrapped_as_base_mut<T: Unit, Base: HasId + PtrType>(
-        wrap: &mut Self::Wrap<T, Base>,
-    ) -> &mut Base {
+    fn wrapped_as_base_mut<'a, 'b, T: Unit, Base: IsBasePtr>(
+        wrap: &'b mut Self::Wrap<'a, T, Base>,
+    ) -> &'b mut Base {
         Mods::wrapped_as_base_mut(wrap)
     }
 }
@@ -67,19 +66,19 @@ impl<Mods: OnDropBuffer + WrappedData> OnDropBuffer for CustomModule<Mods> {
     }
 }
 
-impl<Mods, D, T, S> Retrieve<D, T, S> for CustomModule<Mods>
+impl<'a, Mods, D, T, S> Retrieve<'a, D, T, S> for CustomModule<Mods>
 where
     T: Unit,
-    Mods: Retrieve<D, T, S>,
+    Mods: Retrieve<'a, D, T, S>,
     S: Shape,
 {
     #[inline]
     unsafe fn retrieve_entry<const NUM_PARENTS: usize>(
-        &self,
+        &'a self,
         device: &D,
         len: usize,
-        parents: impl custos::Parents<NUM_PARENTS>,
-    ) -> custos::Result<Self::Wrap<T, <D>::Base<T, S>>>
+        parents: &impl custos::Parents<NUM_PARENTS>,
+    ) -> custos::Result<Self::Wrap<'a, T, <D>::Base<T, S>>>
     where
         S: Shape,
         D: Device + Alloc<T>,
@@ -89,12 +88,29 @@ where
         self.mods.retrieve_entry(device, len, parents)
     }
 
-    fn on_retrieve_finish(&self, _retrieved_buf: &custos::prelude::Buffer<T, D, S>)
+    fn on_retrieve_finish<const NUM_PARENTS: usize>(&self, 
+        len: usize,
+        parents: impl Parents<NUM_PARENTS>,
+        retrieved_buf: &custos::prelude::Buffer<T, D, S>
+    )
     where
         D: Alloc<T>,
     {
         // inject custom behaviour in this body
 
-        self.mods.on_retrieve_finish(_retrieved_buf)
+        self.mods.on_retrieve_finish(len, parents, retrieved_buf)
+    }
+    
+    unsafe fn retrieve<const NUM_PARENTS: usize>(
+        &self,
+        device: &D,
+        len: usize,
+        parents: &impl custos::Parents<NUM_PARENTS>,
+    ) -> custos::Result<Self::Wrap<'a, T, <D>::Base<T, S>>>
+    where
+        S: Shape,
+        D: Alloc<T> 
+    {
+        self.mods.retrieve(device, len, parents)
     }
 }

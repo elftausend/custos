@@ -1,16 +1,16 @@
 use std::ops::{Add, AddAssign, Deref, DerefMut, Mul};
 
 use custos::{
-    AddGradFn, AddOperation, Alloc, ApplyFunction, Buffer, Combiner, Device, MayGradActions,
-    Retrieve, Retriever, Shape, Unit, UseGpuOrCpu, ZeroGrad, CPU,
+    AddGradFn, AddOperation, Alloc, Buffer, Device, MayGradActions,
+    Retrieve, Retriever, Shape, Unit, ZeroGrad, CPU,
 };
 
-pub trait ElementWise<T: Unit, D: Device, S: Shape>: Device {
+pub trait ElementWise<'a, T: Unit, D: Device, S: Shape>: Device {
     fn add(
-        &self,
+        &'a self,
         lhs: &Buffer<T, D, S>,
         rhs: &Buffer<T, D, S>,
-    ) -> custos::Result<Buffer<T, Self, S>>;
+    ) -> custos::Result<Buffer<'a, T, Self, S>>;
 }
 
 pub fn add_ew_slice<T: Add<Output = T> + Copy>(lhs: &[T], rhs: &[T], out: &mut [T]) {
@@ -29,19 +29,19 @@ where
     }
 }
 
-impl<T, D, S, Mods> ElementWise<T, D, S> for CPU<Mods>
+impl<'a, T, D, S, Mods> ElementWise<'a, T, D, S> for CPU<Mods>
 where
     T: Unit + Add<Output = T> + AddAssign + Mul<Output = T> + Default + Copy + 'static,
     D: Device + ZeroGrad<T> + Alloc<T> + MayGradActions + 'static,
     D::Base<T, S>: Deref<Target = [T]> + DerefMut,
     S: Shape,
-    Mods: Retrieve<Self, T, S> + AddOperation + MayGradActions + AddGradFn + 'static,
+    Mods: Retrieve<'a, Self, T, S> + AddOperation + MayGradActions + AddGradFn + 'static,
 {
     fn add(
-        &self,
+        &'a self,
         lhs: &Buffer<T, D, S>,
         rhs: &Buffer<T, D, S>,
-    ) -> custos::Result<Buffer<T, Self, S>> {
+    ) -> custos::Result<Buffer<'a, T, Self, S>> {
         let mut out = self.retrieve(lhs.len(), (lhs, rhs)).unwrap();
 
         self.add_grad_fn((lhs, rhs, &mut out), |(lhs, rhs, out)| unsafe {

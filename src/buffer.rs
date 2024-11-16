@@ -304,13 +304,12 @@ impl<'a, T: Unit, D: Device, S: Shape> Buffer<'a, T, D, S> {
 
     /// Reads the contents of the `Buffer`.
     #[inline]
-    pub fn read(&self) -> D::Read<'a>
+    pub fn read<'b>(&'b self) -> D::Read<'b>
     where
         T: Clone + Default,
         D: Read<T, S>,
     {
-        todo!()
-        // self.device().read(self)
+        self.device().read(self)
     }
 
     /// Reads the contents of the `Buffer` and writes them into a vector.
@@ -419,12 +418,11 @@ impl<'a, T: Unit, D: Device, S: Shape> Buffer<'a, T, D, S> {
     }
 
     #[inline]
-    pub fn replace(&self) -> &Buffer<T, D, S>
+    pub fn replace(&self) -> &Buffer<'a, T, D, S>
     where
         D: ReplaceBuf<T, D, S>,
     {
-        todo!()
-        // self.device().replace_buf(self)
+        self.device().replace_buf(self)
     }
 
     #[inline]
