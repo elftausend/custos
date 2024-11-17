@@ -201,7 +201,7 @@ impl<'a, T, D, Mods, S, T2> OnNewBuffer<'a, T, D, S> for Lazy<'_, Mods, T2>
 where
     T: Unit + 'static,
     D: Device + IsShapeIndep + 'static,
-    D::Data<T, S>: ShallowCopy,
+    D::Data<'a, T, S>: ShallowCopy,
     Mods: OnNewBuffer<'a, T, D, S>,
     S: Shape,
 {
@@ -302,12 +302,12 @@ impl<'a, T, NewMods, SD> AddLayer<NewMods, SD> for Lazy<'a, (), T> {
     }
 }
 
-impl<T, Mods, D, S, T2> Retrieve<D, T, S> for Lazy<'_, Mods, T2>
+impl<'a, T, Mods, D, S, T2> Retrieve<'a, D, T, S> for Lazy<'_, Mods, T2>
 where
     T: Unit + 'static,
-    Mods: Retrieve<D, T, S>,
+    Mods: Retrieve<'a, D, T, S>,
     D: IsShapeIndep + 'static,
-    D::Data<T, S>: ShallowCopy,
+    D::Data<'a, T, S>: ShallowCopy,
     S: Shape,
 {
     #[inline]
@@ -315,8 +315,8 @@ where
         &self,
         _device: &D,
         len: usize,
-        _parents: impl Parents<NUM_PARENTS>,
-    ) -> crate::Result<Self::Wrap<T, D::Base<T, S>>>
+        _parents: &impl Parents<NUM_PARENTS>,
+    ) -> crate::Result<Self::Wrap<'a, T, D::Base<T, S>>>
     where
         S: Shape,
         D: Alloc<T>,
@@ -377,6 +377,19 @@ where
 
         // pass down
         self.modules.on_retrieve_finish(retrieved_buf)
+    }
+    
+    unsafe fn retrieve_entry<const NUM_PARENTS: usize>(
+        &'a self,
+        device: &D,
+        len: usize,
+        parents: &impl Parents<NUM_PARENTS>,
+    ) -> crate::Result<Self::Wrap<'a, T, <D>::Base<T, S>>>
+    where
+        S: Shape,
+        D: Alloc<T> 
+    {
+        todo!()
     }
 }
 

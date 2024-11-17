@@ -1,7 +1,7 @@
 use core::marker::PhantomData;
 
 use crate::{
-    flag::AllocFlag, Autograd, HasId, PtrType, ShallowCopy, Unit, WrappedCopy, WrappedData,
+    flag::AllocFlag, Autograd, HasId, IsBasePtr, PtrType, ShallowCopy, Unit, WrappedCopy, WrappedData
 };
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
@@ -12,11 +12,11 @@ pub struct ReqGradWrapper<Data, T> {
 }
 
 impl<'dev, Mods: WrappedData> WrappedData for Autograd<'dev, Mods> {
-    type Wrap<'a, T: Unit, Base: crate::HasId + crate::PtrType> =
+    type Wrap<'a, T: Unit, Base: IsBasePtr> =
         ReqGradWrapper<Mods::Wrap<'a, T, Base>, T>;
 
     #[inline]
-    fn wrap_in_base<'a, T: Unit, Base: crate::HasId + crate::PtrType>(
+    fn wrap_in_base<'a, T: Unit, Base: IsBasePtr>(
         &self,
         base: Base,
     ) -> Self::Wrap<'a, T, Base> {
@@ -29,14 +29,14 @@ impl<'dev, Mods: WrappedData> WrappedData for Autograd<'dev, Mods> {
     }
 
     #[inline]
-    fn wrapped_as_base<'a, 'b, T: Unit, Base: crate::HasId + crate::PtrType>(
+    fn wrapped_as_base<'a, 'b, T: Unit, Base: IsBasePtr>(
         wrap: &'b Self::Wrap<'a, T, Base>,
     ) -> &'b Base {
         Mods::wrapped_as_base(&wrap.data)
     }
 
     #[inline]
-    fn wrapped_as_base_mut<'a, 'b, T: Unit, Base: crate::HasId + crate::PtrType>(
+    fn wrapped_as_base_mut<'a, 'b, T: Unit, Base: IsBasePtr>(
         wrap: &'b mut Self::Wrap<'a, T, Base>,
     ) -> &'b mut Base {
         Mods::wrapped_as_base_mut(&mut wrap.data)

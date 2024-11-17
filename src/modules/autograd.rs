@@ -51,11 +51,11 @@ impl<'a, Mods: Module<'a, D>, D: Device + 'a> Module<'a, D> for Autograd<'a, Mod
 }
 
 impl<'dev, Mods> Autograd<'dev, Mods> {
-    pub fn register_no_grad_buf<T, D, S>(&self, buf: &Buffer<T, D, S>)
+    pub fn register_no_grad_buf<'a, T, D, S>(&self, buf: &Buffer<T, D, S>)
     where
         T: Unit + 'static,
         D: Device + IsShapeIndep + 'static,
-        D::Data<T, S>: ShallowCopy,
+        D::Data<'a, T, S>: ShallowCopy,
         S: Shape,
     {
         let no_grads_pool = unsafe { &mut (*self.grads.get()).no_grads_pool };
@@ -121,19 +121,19 @@ impl<'dev, Mods: Setup<NewDev>, NewDev> Setup<NewDev> for Autograd<'dev, Mods> {
     }
 }
 
-impl<'dev, T, Mods: Retrieve<D, T, S>, D, S: Shape> Retrieve<D, T, S> for Autograd<'dev, Mods>
+impl<'dev, 'a, T, Mods: Retrieve<'a, D, T, S>, D, S: Shape> Retrieve<'a, D, T, S> for Autograd<'dev, Mods>
 where
     T: Unit + 'static,
     D: IsShapeIndep + Device + 'static,
-    D::Data<T, S>: ShallowCopy,
+    D::Data<'a, T, S>: ShallowCopy,
 {
     #[inline]
     unsafe fn retrieve<const NUM_PARENTS: usize>(
         &self,
         device: &D,
         len: usize,
-        parents: impl Parents<NUM_PARENTS>,
-    ) -> crate::Result<Self::Wrap<T, D::Base<T, S>>>
+        parents: &impl Parents<NUM_PARENTS>,
+    ) -> crate::Result<Self::Wrap<'a, T, D::Base<T, S>>>
     where
         D: Alloc<T>,
     {
@@ -151,15 +151,32 @@ where
             _pd: core::marker::PhantomData,
         })
     }
-
+    
     #[inline]
-    fn on_retrieve_finish(&self, retrieved_buf: &Buffer<T, D, S>)
-    where
+    fn on_retrieve_finish<const NUM_PARENTS: usize>(
+        &self,
+        len: usize,
+        parents: impl Parents<NUM_PARENTS>,
+        retrieved_buf: &Buffer<T, D, S>,
+    ) where
         D: Alloc<T>,
     {
         self.register_no_grad_buf(retrieved_buf);
 
-        self.modules.on_retrieve_finish(retrieved_buf)
+        self.modules.on_retrieve_finish(len, parents, retrieved_buf)
+    }
+    
+    unsafe fn retrieve_entry<const NUM_PARENTS: usize>(
+        &'a self,
+        device: &D,
+        len: usize,
+        parents: &impl Parents<NUM_PARENTS>,
+    ) -> crate::Result<Self::Wrap<'a, T, <D>::Base<T, S>>>
+    where
+        S: Shape,
+        D: Alloc<T> 
+    {
+        todo!()
     }
 }
 
@@ -293,7 +310,8 @@ mod tests {
         buf_any: &'b Box<dyn BoxedShallowCopy>,
         _device: &'a D,
     ) -> Option<&'b Buffer<'a, T, D, S>> {
-        buf_any.as_any().downcast_ref::<Buffer<T, D, S>>()
+        todo!()
+        // buf_any.as_any().downcast_ref::<Buffer<'a, T, D, S>>()
     }
 
     #[test]

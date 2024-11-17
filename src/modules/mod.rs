@@ -128,6 +128,7 @@ pub(crate) unsafe fn register_buf_copyable<'a, T, D, S>(
     T: crate::Unit + 'static,
     D: Device + crate::IsShapeIndep + 'static,
     D::Data<'a, T, S>: ShallowCopy,
+    D::Base<T, S>: ShallowCopy,
     S: Shape,
 {
     // shallow copy sets flag to AllocFlag::Wrapper
@@ -137,6 +138,26 @@ pub(crate) unsafe fn register_buf_copyable<'a, T, D, S>(
         data: wrapped_data,
         device: None,
     };
+    todo!()
+    // cache.insert(*buf.id(), Box::new(buf));
+}
+
+pub(crate) unsafe fn register_buf_copyable2<'a, T, D, S>(
+    cache: &mut HashMap<UniqueId, Box<dyn crate::BoxedShallowCopy>, impl BuildHasher>,
+    buf: &Buffer<'a, T, D, S>,
+) where
+    T: crate::Unit + 'static,
+    D: Device + crate::IsShapeIndep + 'static,
+    D::Base<T, S>: ShallowCopy,
+    S: Shape,
+{
+    // shallow copy sets flag to AllocFlag::Wrapper
+    let wrapped_data = unsafe { buf.base().shallow() };
+
+    // let buf: Buffer<T, D, S> = Buffer {
+    //     data: wrapped_data,
+    //     device: None,
+    // };
     todo!()
     // cache.insert(*buf.id(), Box::new(buf));
 }

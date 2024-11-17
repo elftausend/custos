@@ -23,6 +23,15 @@ impl<'a, T> Guard<'a, T> {
         let Guard { data } = self;
         Guard { data: f(data) }
     }
+
+    #[inline] 
+    pub fn make_static(self) -> Option<Guard<'static, T>> {
+        match self.data {
+            CowMutCell::Borrowed(_) => None,
+            CowMutCell::BorrowedMut(_) => None,
+            CowMutCell::Owned(data) => Some(Guard::new(CowMutCell::Owned(data))),
+        }
+    }
 }
 
 impl<'a, T> Deref for Guard<'a, T> {
