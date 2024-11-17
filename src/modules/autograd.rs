@@ -13,9 +13,9 @@ use core::{
 use crate::{
     impl_remove_layer, pass_down_add_operation, pass_down_cached_buffers, pass_down_cursor,
     pass_down_exec_now_module, pass_down_replace_buf_module, register_buf_copyable,
-    unregister_buf_copyable, AddGradFn, AddLayer, Alloc, Buffer, Device, GradActions, HasId,
-    HasModules, IsShapeIndep, Module, OnDropBuffer, OnNewBuffer, Parents, Retrieve, RunModule,
-    Setup, ShallowCopy, Shape, TapeActions, Unit,
+    unregister_buf_copyable, AddGradFn, AddLayer, Alloc, Buffer, CachedBuffers, Device,
+    GradActions, HasId, HasModules, IsShapeIndep, Module, OnDropBuffer, OnNewBuffer, Parents,
+    Retrieve, RunModule, Setup, ShallowCopy, Shape, TapeActions, Unit, WrappedData,
 };
 
 use self::wrapper::ReqGradWrapper;
@@ -55,9 +55,14 @@ impl<'dev, Mods> Autograd<'dev, Mods> {
     where
         T: Unit + 'static,
         D: Device + IsShapeIndep + 'static,
-        D::Data<'a, T, S>: ShallowCopy,
+        D::Data<'static, T, S>: ShallowCopy,
+        D::Base<T, S>: ShallowCopy,
         S: Shape,
+        Mods: CachedBuffers,
     {
+        if self.modules.is_supplied_from_below_module() {
+            return;
+        }
         let no_grads_pool = unsafe { &mut (*self.grads.get()).no_grads_pool };
 
         if no_grads_pool.get(&buf.id()).is_some() {
@@ -72,8 +77,9 @@ impl<'dev, T, D, Mods, S: Shape> OnNewBuffer<'dev, T, D, S> for Autograd<'_, Mod
 where
     T: Unit + 'static,
     D: Alloc<T> + IsShapeIndep + 'static,
-    D::Data<'dev, T, S>: ShallowCopy,
-    Mods: OnNewBuffer<'dev, T, D, S>,
+    D::Data<'static, T, S>: ShallowCopy,
+    D::Base<T, S>: ShallowCopy,
+    Mods: OnNewBuffer<'dev, T, D, S> + CachedBuffers,
 {
     #[inline]
     unsafe fn on_new_buffer(&self, device: &'dev D, new_buf: &Buffer<'dev, T, D, S>) {
@@ -121,24 +127,24 @@ impl<'dev, Mods: Setup<NewDev>, NewDev> Setup<NewDev> for Autograd<'dev, Mods> {
     }
 }
 
-impl<'dev, 'a, T, Mods: Retrieve<'a, D, T, S>, D, S: Shape> Retrieve<'a, D, T, S> for Autograd<'dev, Mods>
+impl<'dev, Mods> Autograd<'dev, Mods>
 where
-    T: Unit + 'static,
-    D: IsShapeIndep + Device + 'static,
-    D::Data<'a, T, S>: ShallowCopy,
+    Mods: crate::WrappedData,
 {
-    #[inline]
-    unsafe fn retrieve<const NUM_PARENTS: usize>(
+    fn retrieve_inner<'a, D, T, S, const NUM_PARENTS: usize>(
         &self,
-        device: &D,
-        len: usize,
+        _device: &D,
+        _len: usize,
         parents: &impl Parents<NUM_PARENTS>,
-    ) -> crate::Result<Self::Wrap<'a, T, D::Base<T, S>>>
+        retrieve_cb: impl Fn() -> crate::Result<Mods::Wrap<'a, T, D::Base<T, S>>>,
+    ) -> crate::Result<<Self as WrappedData>::Wrap<'a, T, D::Base<T, S>>>
     where
-        D: Alloc<T>,
+        D: Device,
+        T: Unit,
+        S: Shape,
     {
         let requires_grad = parents.requires_grads().iter().any(|&x| x);
-        let data = self.modules.retrieve(device, len, parents)?;
+        let data = retrieve_cb()?;
         unsafe {
             (*self.grads.get())
                 .buf_requires_grad
@@ -151,7 +157,32 @@ where
             _pd: core::marker::PhantomData,
         })
     }
-    
+}
+
+impl<'dev, 'a, T, Mods: Retrieve<'a, D, T, S>, D, S: Shape> Retrieve<'a, D, T, S>
+    for Autograd<'dev, Mods>
+where
+    T: Unit + 'static,
+    D: IsShapeIndep + Device + 'static,
+    D::Data<'static, T, S>: ShallowCopy,
+    D::Base<T, S>: ShallowCopy,
+    Mods: CachedBuffers,
+{
+    #[inline]
+    fn retrieve<const NUM_PARENTS: usize>(
+        &self,
+        device: &D,
+        len: usize,
+        parents: &impl Parents<NUM_PARENTS>,
+    ) -> crate::Result<Self::Wrap<'a, T, D::Base<T, S>>>
+    where
+        D: Alloc<T>,
+    {
+        self.retrieve_inner(device, len, parents, || {
+            self.modules.retrieve(device, len, parents)
+        })
+    }
+
     #[inline]
     fn on_retrieve_finish<const NUM_PARENTS: usize>(
         &self,
@@ -165,8 +196,9 @@ where
 
         self.modules.on_retrieve_finish(len, parents, retrieved_buf)
     }
-    
-    unsafe fn retrieve_entry<const NUM_PARENTS: usize>(
+
+    #[inline]
+    fn retrieve_entry<const NUM_PARENTS: usize>(
         &'a self,
         device: &D,
         len: usize,
@@ -174,9 +206,11 @@ where
     ) -> crate::Result<Self::Wrap<'a, T, <D>::Base<T, S>>>
     where
         S: Shape,
-        D: Alloc<T> 
+        D: Alloc<T>,
     {
-        todo!()
+        self.retrieve_inner(device, len, parents, || {
+            self.modules.retrieve_entry(device, len, parents)
+        })
     }
 }
 
@@ -302,7 +336,7 @@ impl<'a, Mods> HasModules for Autograd<'a, Mods> {
 mod tests {
     use crate::{
         AddGradFn, Autograd, Base, BoxedShallowCopy, Buffer, Cached, Combiner, Cursor, Device,
-        HasId, Lazy, Retriever, Shape, UnaryGrad, Unit, CPU,
+        Downcast, HasId, Lazy, Retriever, Shape, UnaryGrad, Unit, CPU,
     };
 
     #[inline]
@@ -310,8 +344,11 @@ mod tests {
         buf_any: &'b Box<dyn BoxedShallowCopy>,
         _device: &'a D,
     ) -> Option<&'b Buffer<'a, T, D, S>> {
-        todo!()
-        // buf_any.as_any().downcast_ref::<Buffer<'a, T, D, S>>()
+        let any = buf_any.as_any();
+        if !any.is::<Buffer<T, D, S>>() {
+            return None;
+        }
+        Some(unsafe { Downcast::downcast_ref_unchecked::<Buffer<'a, T, D, S>>(any) })
     }
 
     #[test]

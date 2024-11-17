@@ -135,7 +135,7 @@ impl Gradients {
         self.get_ref(buf.device(), buf.id())
     }
 
-    #[inline]
+    /*#[inline]
     pub fn get_buf_from_no_grad_pool<'a, T, S, D>(&self, id: Id) -> &Buffer<'a, T, D, S>
     where
         T: Unit + 'static,
@@ -151,6 +151,7 @@ impl Gradients {
             .ok_or(CachingError::InvalidTypeInfo)
             .expect(INVALID_ID)
     }
+    */
 }
 
 #[cfg(test)]

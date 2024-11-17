@@ -27,7 +27,7 @@ pub trait Feature: OnDropBuffer {}
 pub trait Retrieve<'a, D, T: Unit, S: Shape = ()>: OnDropBuffer {
     // "generator"
     #[track_caller]
-    unsafe fn retrieve_entry<const NUM_PARENTS: usize>(
+    fn retrieve_entry<const NUM_PARENTS: usize>(
         &'a self,
         device: &D,
         len: usize,
@@ -38,7 +38,7 @@ pub trait Retrieve<'a, D, T: Unit, S: Shape = ()>: OnDropBuffer {
         D: Alloc<T>;
 
     #[track_caller]
-    unsafe fn retrieve<const NUM_PARENTS: usize>(
+    fn retrieve<const NUM_PARENTS: usize>(
         &self,
         device: &D,
         len: usize,
@@ -683,6 +683,11 @@ pub trait CachedBuffers {
         &self,
     ) -> Option<RefMut<crate::Buffers<Box<dyn crate::BoxedShallowCopy>>>> {
         None
+    }
+
+    #[inline]
+    fn is_supplied_from_below_module(&self) -> bool {
+        false
     }
 }
 

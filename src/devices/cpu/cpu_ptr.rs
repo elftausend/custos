@@ -7,7 +7,9 @@ use core::{
 
 use std::alloc::handle_alloc_error;
 
-use crate::{flag::AllocFlag, HasId, HostPtr, Id, PtrType, ShallowCopy, Unit, WrappedCopy};
+use crate::{
+    flag::AllocFlag, Device, HasId, HostPtr, Id, PtrType, ShallowCopy, Shape, ToBase, ToDim, Unit,
+};
 
 /// The pointer used for `CPU` [`Buffer`](crate::Buffer)s
 #[derive(Debug)]
@@ -229,15 +231,6 @@ impl<T: Unit> PtrType for CPUPtr<T> {
     }
 }
 
-impl<T> WrappedCopy for CPUPtr<T> {
-    type Base = Self;
-
-    #[inline]
-    fn wrapped_copy(&self, to_wrap: Self::Base) -> Self {
-        to_wrap
-    }
-}
-
 impl<T> ShallowCopy for CPUPtr<T> {
     #[inline]
     unsafe fn shallow(&self) -> Self {
@@ -300,6 +293,27 @@ impl Drop for DeallocWithLayout {
         unsafe {
             std::alloc::dealloc(self.ptr.ptr, self.layout);
         }
+    }
+}
+
+impl<T> ToDim for CPUPtr<T> {
+    type Out = Self;
+
+    #[inline]
+    fn to_dim(self) -> Self::Out {
+        self
+    }
+
+    #[inline]
+    fn as_dim(&self) -> &Self::Out {
+        self
+    }
+}
+
+impl<T: Unit, D: Device<Base<T, S> = CPUPtr<T>>, S: Shape> ToBase<T, D, S> for CPUPtr<T> {
+    #[inline]
+    fn to_base(self) -> D::Base<T, S> {
+        self
     }
 }
 

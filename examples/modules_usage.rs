@@ -1,8 +1,8 @@
 use std::ops::{Add, AddAssign, Deref, DerefMut, Mul};
 
 use custos::{
-    AddGradFn, AddOperation, Alloc, Buffer, Device, MayGradActions,
-    Retrieve, Retriever, Shape, Unit, ZeroGrad, CPU,
+    AddGradFn, AddOperation, Alloc, Buffer, Device, MayGradActions, Retrieve, Retriever, Shape,
+    Unit, ZeroGrad, CPU,
 };
 
 pub trait ElementWise<'a, T: Unit, D: Device, S: Shape>: Device {

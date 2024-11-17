@@ -122,22 +122,21 @@ impl BorrowCache {
     }
 
     #[inline]
-    pub fn get_buf<T, D, S>(
-        &self,
+    pub fn get_buf<'a, 'b, T, D, S>(
+        &'a self,
         _device: &D,
         id: Id,
-    ) -> Result<&Buffer<'_, T, D, S>, CachingError>
+    ) -> Result<&'a Buffer<'b, T, D, S>, CachingError>
     where
         T: Unit + 'static,
         D: Device + 'static,
         S: Shape,
     {
-        todo!()
-        // self.cache
-        //     .get(&id)
-        //     .ok_or(CachingError::InvalidId)?
-        //     .downcast_ref()
-        //     .ok_or(CachingError::InvalidTypeInfo)
+        let out = self.cache.get(&id).ok_or(CachingError::InvalidId)?;
+        if !out.is::<Buffer<T, D, S>>() {
+            return Err(CachingError::InvalidTypeInfo);
+        }
+        Ok(unsafe { out.downcast_ref_unchecked::<Buffer<'_, T, D, S>>() })
     }
 
     #[inline]

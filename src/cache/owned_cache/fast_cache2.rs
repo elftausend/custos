@@ -1,5 +1,9 @@
-use core::{any::Any, cell::{Ref, RefMut}, hash::BuildHasherDefault};
 use crate::{LockedMap, NoHasher, State, UniqueId};
+use core::{
+    any::Any,
+    cell::{Ref, RefMut},
+    hash::BuildHasherDefault,
+};
 
 use super::Cache;
 
@@ -18,7 +22,7 @@ impl Cache<Box<dyn Any>> for FastCache2 {
     fn insert(&self, id: UniqueId, _len: usize, data: Box<dyn Any>) {
         self.nodes.insert(id, data);
     }
-    
+
     #[inline]
     fn get(&self, id: UniqueId, _len: usize) -> State<Ref<Box<dyn Any>>> {
         self.nodes.get(&id)

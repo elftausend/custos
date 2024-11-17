@@ -1,5 +1,6 @@
 use custos::{
-    Alloc, Base, Device, HasId, IsBasePtr, Module, OnDropBuffer, Parents, PtrType, Retrieve, Setup, Shape, Unit, WrappedData, CPU
+    Alloc, Base, Device, HasId, IsBasePtr, Module, OnDropBuffer, Parents, PtrType, Retrieve, Setup,
+    Shape, Unit, WrappedData, CPU,
 };
 
 pub struct CustomModule<Mods> {
@@ -43,7 +44,9 @@ impl<Mods: WrappedData> WrappedData for CustomModule<Mods> {
     }
 
     #[inline]
-    fn wrapped_as_base<'a, 'b, T: Unit, Base: IsBasePtr>(wrap: &'b Self::Wrap<'a, T, Base>) -> &'b Base {
+    fn wrapped_as_base<'a, 'b, T: Unit, Base: IsBasePtr>(
+        wrap: &'b Self::Wrap<'a, T, Base>,
+    ) -> &'b Base {
         Mods::wrapped_as_base(wrap)
     }
 
@@ -88,19 +91,19 @@ where
         self.mods.retrieve_entry(device, len, parents)
     }
 
-    fn on_retrieve_finish<const NUM_PARENTS: usize>(&self, 
+    fn on_retrieve_finish<const NUM_PARENTS: usize>(
+        &self,
         len: usize,
         parents: impl Parents<NUM_PARENTS>,
-        retrieved_buf: &custos::prelude::Buffer<T, D, S>
-    )
-    where
+        retrieved_buf: &custos::prelude::Buffer<T, D, S>,
+    ) where
         D: Alloc<T>,
     {
         // inject custom behaviour in this body
 
         self.mods.on_retrieve_finish(len, parents, retrieved_buf)
     }
-    
+
     unsafe fn retrieve<const NUM_PARENTS: usize>(
         &self,
         device: &D,
@@ -109,7 +112,7 @@ where
     ) -> custos::Result<Self::Wrap<'a, T, <D>::Base<T, S>>>
     where
         S: Shape,
-        D: Alloc<T> 
+        D: Alloc<T>,
     {
         self.mods.retrieve(device, len, parents)
     }

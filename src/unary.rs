@@ -108,7 +108,7 @@ where
         buf: &Buffer<'a, T, D, S>,
         forward_fn: impl Fn(Resolve<T>) -> FO + Copy + 'static,
         grad_fn: fn(Resolve<T>) -> GO,
-    ) -> Buffer<T, Self, S>
+    ) -> Buffer<'a, T, Self, S>
     where
         FO: TwoWay<T>,
         GO: Eval<T> + MayToCLSource + 'static,
@@ -169,14 +169,14 @@ mod tests {
     #[cfg(feature = "autograd")]
     fn test_unary_autograd<'a, 'b, D>(device: &'a D)
     where
-        D::Data<f32, ()>: crate::ShallowCopy,
+        D::Data<'a, f32, ()>: crate::ShallowCopy,
         D: 'static
             + crate::WriteBuf<f32>
             + crate::Read<f32>
             + crate::GradActions
             + crate::TapeActions<'b>
             + crate::HasAutograd
-            + crate::UnaryElementWiseMayGrad<f32, D, ()>
+            + crate::UnaryElementWiseMayGrad<'a, f32, D, ()>
             + crate::Alloc<f32>
             + crate::CachedBuffers
             + crate::AddOperation

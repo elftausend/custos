@@ -1,9 +1,14 @@
 use core::{
-    any::Any, cell::{Cell, RefMut}, marker::PhantomData
+    any::Any,
+    cell::{Cell, RefMut},
+    marker::PhantomData,
 };
 
 use crate::{
-    AddGradFn, AddLayer, AddOperation, Alloc, Buffer, Cache, CachedBuffers, CowMut, Cursor, Device, ExecNow, FastCache2, Guard, HasId, HasModules, IsBasePtr, IsShapeIndep, LockInfo, Module, OnDropBuffer, OnNewBuffer, Parents, PtrType, RemoveLayer, ReplaceBuf, Retrieve, RunModule, SetOpHint, Setup, ShallowCopy, Shape, State, UniqueId, Unit, WrappedData
+    AddGradFn, AddLayer, AddOperation, Alloc, Buffer, Cache, CachedBuffers, CowMut, Cursor, Device,
+    ExecNow, FastCache2, Guard, HasId, HasModules, IsBasePtr, IsShapeIndep, LockInfo, Module,
+    OnDropBuffer, OnNewBuffer, Parents, PtrType, RemoveLayer, ReplaceBuf, Retrieve, RunModule,
+    SetOpHint, Setup, ShallowCopy, Shape, State, UniqueId, Unit, WrappedData,
 };
 
 #[cfg(feature = "graph")]
@@ -163,10 +168,11 @@ where
         S: Shape,
     {
         let entry = self.cache.get_mut(id, len)?;
-        let entry = RefMut::map(entry, |x| {
+        let mut entry = RefMut::map(entry, |x| {
             x.downcast_mut::<Mods::Wrap<'static, T, D::Base<T, S>>>()
                 .unwrap()
         });
+        unsafe { entry.set_flag(crate::flag::AllocFlag::BorrowedCache) };
         Ok(Guard::new(CowMut::BorrowedMut(entry)))
     }
 }
@@ -183,7 +189,7 @@ where
     CacheType: Cache<Box<dyn Any>>,
 {
     #[inline]
-    unsafe fn retrieve_entry<const NUM_PARENTS: usize>(
+    fn retrieve_entry<const NUM_PARENTS: usize>(
         &'a self,
         device: &D,
         len: usize,
@@ -197,13 +203,16 @@ where
             Ok(out) => {
                 unsafe { device.bump_cursor() };
                 Ok(out)
-            },
+            }
             Err(state) => match state {
                 // return err
                 LockInfo::Locked => panic!("Locked!!"),
                 LockInfo::None => {
-                    self.cache
-                        .insert(id, len, Box::new(self.modules.retrieve(device, len, _parents)?));
+                    self.cache.insert(
+                        id,
+                        len,
+                        Box::new(self.modules.retrieve(device, len, _parents)?),
+                    );
 
                     unsafe { device.bump_cursor() };
                     Ok(self.get_mut::<D, T, S>(id, len).unwrap())
@@ -232,7 +241,7 @@ where
         self.modules.on_retrieve_finish(len, parents, retrieved_buf)
     }
 
-    unsafe fn retrieve<const NUM_PARENTS: usize>(
+    fn retrieve<const NUM_PARENTS: usize>(
         &self,
         _device: &D,
         _len: usize,

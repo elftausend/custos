@@ -87,7 +87,7 @@ impl OnDropBuffer for Base {}
 
 impl<'a, D, T: Unit, S: Shape> Retrieve<'a, D, T, S> for Base {
     #[inline]
-    unsafe fn retrieve_entry<const NUM_PARENTS: usize>(
+    fn retrieve_entry<const NUM_PARENTS: usize>(
         &'a self,
         device: &D,
         len: usize,
@@ -100,7 +100,7 @@ impl<'a, D, T: Unit, S: Shape> Retrieve<'a, D, T, S> for Base {
     }
 
     #[inline]
-    unsafe fn retrieve<const NUM_PARENTS: usize>(
+    fn retrieve<const NUM_PARENTS: usize>(
         &self,
         device: &D,
         len: usize,

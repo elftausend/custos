@@ -7,7 +7,8 @@ use core::{
 };
 
 use crate::{
-    flag::AllocFlag, HasId, HostPtr, IsBasePtr, Lazy, PtrType, ShallowCopy, Unit, WrappedCopy, WrappedData
+    flag::AllocFlag, Device, HasId, HostPtr, IsBasePtr, Lazy, PtrType, ShallowCopy, Shape, ToBase,
+    ToDim, Unit, WrappedData,
 };
 
 #[derive(Debug, Default)]
@@ -28,7 +29,9 @@ impl<T2, Mods: WrappedData> WrappedData for Lazy<'_, Mods, T2> {
     }
 
     #[inline]
-    fn wrapped_as_base<'a, 'b, T: Unit, Base: IsBasePtr>(wrap: &'b Self::Wrap<'a, T, Base>) -> &'b Base {
+    fn wrapped_as_base<'a, 'b, T: Unit, Base: IsBasePtr>(
+        wrap: &'b Self::Wrap<'a, T, Base>,
+    ) -> &'b Base {
         Mods::wrapped_as_base(wrap.maybe_data.data().expect(MISSING_DATA))
     }
 
@@ -106,24 +109,6 @@ impl<T: Unit, Data: HostPtr<T>> HostPtr<T> for LazyWrapper<Data, T> {
     }
 }
 
-impl<Data, T> WrappedCopy for LazyWrapper<Data, T>
-where
-    Data: WrappedCopy<Base = T>,
-{
-    type Base = T;
-
-    fn wrapped_copy(&self, to_wrap: Self::Base) -> Self {
-        LazyWrapper {
-            maybe_data: match &self.maybe_data {
-                MaybeData::Data(data) => MaybeData::Data(data.wrapped_copy(to_wrap)),
-                MaybeData::Id(id) => MaybeData::Id(*id),
-                MaybeData::None => unimplemented!(),
-            },
-            _pd: PhantomData,
-        }
-    }
-}
-
 impl<Data: ShallowCopy, T> ShallowCopy for LazyWrapper<Data, T> {
     #[inline]
     unsafe fn shallow(&self) -> Self {
@@ -135,5 +120,32 @@ impl<Data: ShallowCopy, T> ShallowCopy for LazyWrapper<Data, T> {
             },
             _pd: PhantomData,
         }
+    }
+}
+
+impl<T: Unit, S: Shape, Data: ToBase<T, D, S>, T1, D: Device> ToBase<T, D, S>
+    for LazyWrapper<Data, T1>
+{
+    #[inline]
+    fn to_base(self) -> <D as Device>::Base<T, S> {
+        match self.maybe_data {
+            MaybeData::Data(data) => data.to_base(),
+            MaybeData::Id(_id) => unimplemented!("Cannot convert id wrapper to base"),
+            MaybeData::None => unimplemented!("Cannot convert nothin to base"),
+        }
+    }
+}
+
+impl<T, Data> ToDim for LazyWrapper<Data, T> {
+    type Out = Self;
+
+    #[inline]
+    fn to_dim(self) -> Self::Out {
+        self
+    }
+
+    #[inline]
+    fn as_dim(&self) -> &Self::Out {
+        self
     }
 }

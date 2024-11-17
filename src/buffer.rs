@@ -11,8 +11,8 @@ use crate::CPU;
 
 use crate::{
     flag::AllocFlag, shape::Shape, Alloc, Base, ClearBuf, CloneBuf, Device, DevicelessAble, HasId,
-    IsShapeIndep, OnDropBuffer, OnNewBuffer, PtrType, Read, ReplaceBuf, ShallowCopy, Unit,
-    WrappedCopy, WrappedData, WriteBuf, ZeroGrad,
+    IsShapeIndep, OnDropBuffer, OnNewBuffer, PtrType, Read, ReplaceBuf, ShallowCopy, ToDim, Unit,
+    WrappedData, WriteBuf, ZeroGrad,
 };
 
 pub use self::num::Num;
@@ -136,7 +136,7 @@ impl<'a, T: Unit, D: Device, S: Shape> Buffer<'a, T, D, S> {
 //     #[inline]
 //     fn id(&self) -> super::Id {
 //         self.data.id()
-//     }
+//     }i
 // }
 
 impl<'a, T: Unit, D: Device, S: Shape> HasId for Buffer<'a, T, D, S> {
@@ -231,7 +231,7 @@ impl<'a, T: Unit, D: Device + OnNewBuffer<'a, T, D, S>, S: Shape> Buffer<'a, T, 
     /// Creates a new `Buffer` from an nd-array.
     /// The dimension is defined by the [`Shape`].
     #[inline]
-    pub fn from_array(device: &'a D, array: S::ARR<T>) -> Buffer<T, D, S>
+    pub fn from_array(device: &'a D, array: S::ARR<T>) -> Buffer<'a, T, D, S>
     where
         T: Clone,
         D: Alloc<T>,
@@ -271,21 +271,24 @@ impl<'a, T: Unit, D: Device, S: Shape> Buffer<'a, T, D, S> {
     }
 
     #[inline]
-    pub fn to_deviceless<'b>(self) -> Buffer<'b, T, D, S>
+    pub fn to_deviceless<'b>(mut self) -> Buffer<'b, T, D, S>
     where
         D::Data<'b, T, S>: Default,
+        D::Base<T, S>: ShallowCopy,
     {
         if let Some(device) = self.device {
             if self.data.flag() != AllocFlag::None {
                 device.on_drop_buffer(device, &self)
             }
         }
-        todo!()
-        // let mut val = ManuallyDrop::new(self);
 
-        // let data = core::mem::take(&mut val.data);
+        unsafe { self.set_flag(AllocFlag::Wrapper) };
+        let mut base = unsafe { self.base().shallow() };
+        unsafe { base.set_flag(AllocFlag::None) };
 
-        // Buffer { data, device: None }
+        let data: <D as Device>::Data<'b, T, S> = self.device().base_to_data::<T, S>(base);
+
+        Buffer { data, device: None }
     }
 
     /// Returns the device of the `Buffer`.
@@ -460,7 +463,6 @@ impl<'a, T: Unit, D: Device, S: Shape> Buffer<'a, T, D, S> {
     }
 }
 
-// TODO better solution for the to_dims stack problem?
 impl<'a, T: Unit, D: Device, S: Shape> Buffer<'a, T, D, S> {
     /// Converts a non stack allocated `Buffer` with shape `S` to a `Buffer` with shape `O`.
     /// # Example
@@ -474,24 +476,15 @@ impl<'a, T: Unit, D: Device, S: Shape> Buffer<'a, T, D, S> {
     ///
     /// ```
     #[inline]
-    pub fn to_dims<O: Shape>(self) -> Buffer<'a, T, D, O>
+    pub fn to_dims<O: Shape>(mut self) -> Buffer<'a, T, D, O>
     where
-        // D: crate::ToDim<T, S, O>,
-        D::Data<'a, T, S>: WrappedCopy<Base = D::Base<T, S>>,
-        D::Base<T, S>: ShallowCopy,
+        D::Data<'a, T, S>: Default + ToDim<Out = D::Data<'a, T, O>>,
     {
-        let base = unsafe { (*self).shallow() };
-        let data = self.data.wrapped_copy(base);
-        let buf = ManuallyDrop::new(self);
-
-        // let mut data = buf.device().to_dim(data);
-        // unsafe { data.set_flag(AllocFlag::None) };
-        todo!()
-
-        // Buffer {
-        //     data,
-        //     device: buf.device,
-        // }
+        let data = std::mem::take(&mut self.data).to_dim();
+        Buffer {
+            data,
+            device: self.device,
+        }
     }
 }
 

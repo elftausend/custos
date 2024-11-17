@@ -1,7 +1,8 @@
 use core::marker::PhantomData;
 
 use crate::{
-    flag::AllocFlag, Autograd, HasId, IsBasePtr, PtrType, ShallowCopy, Unit, WrappedCopy, WrappedData
+    flag::AllocFlag, Autograd, Device, HasId, IsBasePtr, PtrType, ShallowCopy, Shape, ToBase,
+    ToDim, Unit, WrappedData,
 };
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
@@ -12,14 +13,10 @@ pub struct ReqGradWrapper<Data, T> {
 }
 
 impl<'dev, Mods: WrappedData> WrappedData for Autograd<'dev, Mods> {
-    type Wrap<'a, T: Unit, Base: IsBasePtr> =
-        ReqGradWrapper<Mods::Wrap<'a, T, Base>, T>;
+    type Wrap<'a, T: Unit, Base: IsBasePtr> = ReqGradWrapper<Mods::Wrap<'a, T, Base>, T>;
 
     #[inline]
-    fn wrap_in_base<'a, T: Unit, Base: IsBasePtr>(
-        &self,
-        base: Base,
-    ) -> Self::Wrap<'a, T, Base> {
+    fn wrap_in_base<'a, T: Unit, Base: IsBasePtr>(&self, base: Base) -> Self::Wrap<'a, T, Base> {
         ReqGradWrapper {
             // by default: true -> if lazy layer is (accidentally) put before autograd, all gradients will be computed instead of none.. subject to change
             requires_grad: true,
@@ -77,22 +74,6 @@ impl<Data: PtrType, T: Unit> PtrType for ReqGradWrapper<Data, T> {
     }
 }
 
-impl<Data, T> WrappedCopy for ReqGradWrapper<Data, T>
-where
-    Data: WrappedCopy<Base = T>,
-{
-    type Base = T;
-
-    #[inline]
-    fn wrapped_copy(&self, to_wrap: Self::Base) -> Self {
-        Self {
-            requires_grad: self.requires_grad,
-            data: self.data.wrapped_copy(to_wrap),
-            _pd: PhantomData,
-        }
-    }
-}
-
 impl<Data, T> ShallowCopy for ReqGradWrapper<Data, T>
 where
     Data: ShallowCopy,
@@ -103,5 +84,28 @@ where
             data: self.data.shallow(),
             _pd: PhantomData,
         }
+    }
+}
+
+impl<T: Unit, S: Shape, Data: ToBase<T, D, S>, T1, D: Device> ToBase<T, D, S>
+    for ReqGradWrapper<Data, T1>
+{
+    #[inline]
+    fn to_base(self) -> <D as Device>::Base<T, S> {
+        self.data.to_base()
+    }
+}
+
+impl<T, Data> ToDim for ReqGradWrapper<Data, T> {
+    type Out = Self;
+
+    #[inline]
+    fn to_dim(self) -> Self::Out {
+        self
+    }
+
+    #[inline]
+    fn as_dim(&self) -> &Self::Out {
+        self
     }
 }

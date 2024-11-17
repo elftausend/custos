@@ -201,7 +201,8 @@ impl<'a, T, D, Mods, S, T2> OnNewBuffer<'a, T, D, S> for Lazy<'_, Mods, T2>
 where
     T: Unit + 'static,
     D: Device + IsShapeIndep + 'static,
-    D::Data<'a, T, S>: ShallowCopy,
+    D::Data<'static, T, S>: ShallowCopy,
+    D::Base<T, S>: ShallowCopy,
     Mods: OnNewBuffer<'a, T, D, S>,
     S: Shape,
 {
@@ -307,11 +308,11 @@ where
     T: Unit + 'static,
     Mods: Retrieve<'a, D, T, S>,
     D: IsShapeIndep + 'static,
-    D::Data<'a, T, S>: ShallowCopy,
+    D::Data<'static, T, S>: ShallowCopy,
     S: Shape,
 {
     #[inline]
-    unsafe fn retrieve<const NUM_PARENTS: usize>(
+    fn retrieve<const NUM_PARENTS: usize>(
         &self,
         _device: &D,
         len: usize,
@@ -369,17 +370,21 @@ where
     }
 
     #[inline]
-    fn on_retrieve_finish(&self, retrieved_buf: &Buffer<T, D, S>)
-    where
+    fn on_retrieve_finish<const NUM_PARENTS: usize>(
+        &self,
+        len: usize,
+        parents: impl Parents<NUM_PARENTS>,
+        retrieved_buf: &Buffer<T, D, S>,
+    ) where
         D: Alloc<T>,
     {
         // unsafe { register_buf(&mut self.buffers.borrow_mut(), retrieved_buf) };
 
         // pass down
-        self.modules.on_retrieve_finish(retrieved_buf)
+        self.modules.on_retrieve_finish(len, parents, retrieved_buf)
     }
-    
-    unsafe fn retrieve_entry<const NUM_PARENTS: usize>(
+
+    fn retrieve_entry<const NUM_PARENTS: usize>(
         &'a self,
         device: &D,
         len: usize,
@@ -387,9 +392,9 @@ where
     ) -> crate::Result<Self::Wrap<'a, T, <D>::Base<T, S>>>
     where
         S: Shape,
-        D: Alloc<T> 
+        D: Alloc<T>,
     {
-        todo!()
+        self.retrieve(device, len, parents)
     }
 }
 
@@ -492,6 +497,11 @@ impl<T, Mods> CachedBuffers for Lazy<'_, Mods, T> {
     ) -> Option<core::cell::RefMut<crate::Buffers<Box<dyn crate::BoxedShallowCopy>>>> {
         Some(self.buffers.borrow_mut())
     }
+
+    #[inline]
+    fn is_supplied_from_below_module(&self) -> bool {
+        true
+    }
 }
 
 impl<Mods> HasModules for Lazy<'_, Mods> {
@@ -552,16 +562,16 @@ mod tests {
     }
 
     #[cfg(feature = "cpu")]
-    impl<T, D, S, Mods> AddEw<T, D, S> for CPU<Mods>
+    impl<'a, T, D, S, Mods> AddEw<'a, T, D, S> for CPU<Mods>
     where
         T: Unit + Add<Output = T> + Copy + 'static,
         D: Device + 'static,
         D::Base<T, S>: Deref<Target = [T]>,
         S: Shape,
-        Mods: AddOperation + Retrieve<Self, T, S> + 'static,
+        Mods: AddOperation + Retrieve<'a, Self, T, S> + 'static,
     {
         #[inline]
-        fn add(&self, lhs: &Buffer<T, D, S>, rhs: &Buffer<T, D, S>) -> Buffer<T, Self, S> {
+        fn add(&'a self, lhs: &Buffer<T, D, S>, rhs: &Buffer<T, D, S>) -> Buffer<'a, T, Self, S> {
             let mut out = self.retrieve(lhs.len(), ()).unwrap();
             self.add_op((lhs, rhs, &mut out), |(lhs, rhs, out)| {
                 add_ew_slice(lhs, rhs, out.as_mut_slice());

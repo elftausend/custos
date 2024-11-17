@@ -1,9 +1,6 @@
-use core::{
-    mem::ManuallyDrop,
-    ops::{Deref, DerefMut},
-};
+use core::ops::{Deref, DerefMut};
 
-use crate::{CowMutCell, HasId, HostPtr, PtrType, ShallowCopy};
+use crate::{CowMutCell, HasId, HostPtr, PtrType, ShallowCopy, ToDim};
 
 #[derive(Debug)]
 pub struct Guard<'a, T> {
@@ -24,7 +21,7 @@ impl<'a, T> Guard<'a, T> {
         Guard { data: f(data) }
     }
 
-    #[inline] 
+    #[inline]
     pub fn make_static(self) -> Option<Guard<'static, T>> {
         match self.data {
             CowMutCell::Borrowed(_) => None,
@@ -89,5 +86,19 @@ impl<'a, T, P: PtrType + HostPtr<T>> HostPtr<T> for Guard<'a, P> {
     #[inline]
     fn ptr_mut(&mut self) -> *mut T {
         self.data.get_mut().unwrap().ptr_mut()
+    }
+}
+
+impl<'a, P> ToDim for Guard<'a, P> {
+    type Out = Self;
+
+    #[inline]
+    fn to_dim(self) -> Self::Out {
+        self
+    }
+
+    #[inline]
+    fn as_dim(&self) -> &Self::Out {
+        self
     }
 }
