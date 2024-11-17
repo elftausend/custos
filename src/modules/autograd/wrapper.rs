@@ -8,7 +8,7 @@ use crate::{
 pub struct ReqGradWrapper<'a, Data, T> {
     pub requires_grad: bool,
     pub data: Data,
-    pub remove_id_cb: Option<&'a dyn Fn(UniqueId)>,
+    pub remove_id_cb: Option<Box<dyn Fn(UniqueId) + 'a>>,
     pub _pd: PhantomData<&'a T>,
 }
 
@@ -27,15 +27,25 @@ impl<'dev, Mods: WrappedData> WrappedData for Autograd<'dev, Mods> {
     type Wrap<'a, T: Unit, Base: IsBasePtr> = ReqGradWrapper<'a, Mods::Wrap<'a, T, Base>, T>;
 
     #[inline]
-    fn wrap_in_base<'a, T: Unit, Base: IsBasePtr>(&self, base: Base) -> Self::Wrap<'a, T, Base> {
+    fn wrap_in_base<'a, T: Unit, Base: IsBasePtr>(&'a self, base: Base) -> Self::Wrap<'a, T, Base> {
         ReqGradWrapper {
             // by default: true -> if lazy layer is (accidentally) put before autograd, all gradients will be computed instead of none.. subject to change
             requires_grad: true,
             data: self.modules.wrap_in_base(base),
-            remove_id_cb: &|id| {
-
-                // unsafe { &mut (*self.grads.get()).no_grads_pool }.remove(&id);
-            },
+            remove_id_cb: Some(Box::new(|id| {
+                unsafe { &mut (*self.grads.get()).no_grads_pool }.remove(&id);
+            })),
+            _pd: PhantomData,
+        }
+    }
+    
+    #[inline]
+    fn wrap_in_base_unbound<'a, T: Unit, Base: IsBasePtr>(&self, base: Base) -> Self::Wrap<'a, T, Base> {
+        ReqGradWrapper {
+            // by default: true -> if lazy layer is (accidentally) put before autograd, all gradients will be computed instead of none.. subject to change
+            requires_grad: true,
+            data: self.modules.wrap_in_base_unbound(base),
+            remove_id_cb: None,
             _pd: PhantomData,
         }
     }
@@ -97,7 +107,7 @@ where
         ReqGradWrapper {
             requires_grad: self.requires_grad,
             data: self.data.shallow(),
-            remove_id_cb: self.remove_id_cb,
+            remove_id_cb: None,
             _pd: PhantomData,
         }
     }

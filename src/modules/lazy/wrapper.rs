@@ -21,9 +21,17 @@ impl<T2, Mods: WrappedData> WrappedData for Lazy<'_, Mods, T2> {
     type Wrap<'a, T: Unit, Base: IsBasePtr> = LazyWrapper<Mods::Wrap<'a, T, Base>, T>;
 
     #[inline]
-    fn wrap_in_base<'a, T: Unit, Base: IsBasePtr>(&self, base: Base) -> Self::Wrap<'a, T, Base> {
+    fn wrap_in_base<'a, T: Unit, Base: IsBasePtr>(&'a self, base: Base) -> Self::Wrap<'a, T, Base> {
         LazyWrapper {
             maybe_data: MaybeData::Data(self.modules.wrap_in_base(base)),
+            _pd: PhantomData,
+        }
+    }
+    
+    #[inline]
+    fn wrap_in_base_unbound<'a, T: Unit, Base: IsBasePtr>(&self, base: Base) -> Self::Wrap<'a, T, Base> {
+        LazyWrapper {
+            maybe_data: MaybeData::Data(self.modules.wrap_in_base_unbound(base)),
             _pd: PhantomData,
         }
     }
