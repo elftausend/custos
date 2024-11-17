@@ -82,7 +82,7 @@ where
     Mods: OnNewBuffer<'dev, T, D, S> + CachedBuffers,
 {
     #[inline]
-    unsafe fn on_new_buffer(&self, device: &'dev D, new_buf: &Buffer<'dev, T, D, S>) {
+    unsafe fn on_new_buffer(&'dev self, device: &'dev D, new_buf: &mut Buffer<'dev, T, D, S>) {
         // let mut no_grads = self.no_grads_pool.borrow_mut();
         // let wrapped_data = unsafe { new_buf.data.shallow() };
 

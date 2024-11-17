@@ -115,7 +115,7 @@ macro_rules! impl_buffer_hook_traits {
             Self: 'dev,
         {
             #[inline]
-            unsafe fn on_new_buffer(&self, device: &'dev D, new_buf: &Buffer<'dev, T, D, S>) {
+            unsafe fn on_new_buffer(&'dev self, device: &'dev D, new_buf: &mut Buffer<'dev, T, D, S>) {
                 unsafe { self.modules.on_new_buffer(device, new_buf) }
             }
         }

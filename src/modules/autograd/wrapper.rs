@@ -5,14 +5,14 @@ use crate::{
 };
 
 // #[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
-pub struct ReqGradWrapper<'a, Data, T> {
+pub struct ReqGradWrapper<'a, Data: HasId, T> {
     pub requires_grad: bool,
     pub data: Data,
     pub remove_id_cb: Option<Box<dyn Fn(UniqueId) + 'a>>,
     pub _pd: PhantomData<&'a T>,
 }
 
-impl<'a, Data: Debug, T> Debug for ReqGradWrapper<'a, Data, T> {
+impl<'a, Data: HasId + Debug, T> Debug for ReqGradWrapper<'a, Data, T> {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         f.debug_struct("ReqGradWrapper")
             .field("requires_grad", &self.requires_grad)
@@ -20,6 +20,15 @@ impl<'a, Data: Debug, T> Debug for ReqGradWrapper<'a, Data, T> {
             .field("remove_id_cb", &"callback()")
             .field("_pd", &self._pd)
             .finish()
+    }
+}
+
+impl<'a, Data: HasId, T> Drop for ReqGradWrapper<'a, Data, T> {
+    #[inline]
+    fn drop(&mut self) {
+        if let Some(remove_id_cb) = &self.remove_id_cb {
+            remove_id_cb(*self.id())
+        }
     }
 }
 
@@ -82,7 +91,7 @@ impl<'a, Data: HasId, T> HasId for ReqGradWrapper<'a, Data, T> {
     }
 }
 
-impl<'a, Data: PtrType, T: Unit> PtrType for ReqGradWrapper<'a, Data, T> {
+impl<'a, Data: HasId + PtrType, T: Unit> PtrType for ReqGradWrapper<'a, Data, T> {
     #[inline]
     fn size(&self) -> usize {
         self.data.size()
@@ -101,7 +110,7 @@ impl<'a, Data: PtrType, T: Unit> PtrType for ReqGradWrapper<'a, Data, T> {
 
 impl<'a, Data, T> ShallowCopy for ReqGradWrapper<'a, Data, T>
 where
-    Data: ShallowCopy,
+    Data: ShallowCopy + HasId,
 {
     unsafe fn shallow(&self) -> Self {
         ReqGradWrapper {
@@ -113,16 +122,17 @@ where
     }
 }
 
-impl<'a, T: Unit, S: Shape, Data: ToBase<T, D, S>, T1, D: Device> ToBase<T, D, S>
+impl<'a, T: Unit, S: Shape, Data: ToBase<T, D, S> + HasId, T1, D: Device> ToBase<T, D, S>
     for ReqGradWrapper<'a, Data, T1>
 {
     #[inline]
     fn to_base(self) -> <D as Device>::Base<T, S> {
-        self.data.to_base()
+        todo!()
+        // self.data.to_base()
     }
 }
 
-impl<'a, T, Data> ToDim for ReqGradWrapper<'a, Data, T> {
+impl<'a, T, Data: HasId> ToDim for ReqGradWrapper<'a, Data, T> {
     type Out = Self;
 
     #[inline]
