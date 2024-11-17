@@ -117,8 +117,7 @@ impl BorrowCache {
         D: Alloc<T> + 'static,
         S: Shape,
     {
-        todo!()
-        // self.cache.get(&id)?.downcast_ref()
+        self.get_buf(_dev, id).ok()
     }
 
     #[inline]

@@ -76,7 +76,7 @@ where
     S: Shape,
 {
     #[inline]
-    unsafe fn retrieve_entry<const NUM_PARENTS: usize>(
+    fn retrieve_entry<const NUM_PARENTS: usize>(
         &'a self,
         device: &D,
         len: usize,
@@ -104,7 +104,7 @@ where
         self.mods.on_retrieve_finish(len, parents, retrieved_buf)
     }
 
-    unsafe fn retrieve<const NUM_PARENTS: usize>(
+    fn retrieve<const NUM_PARENTS: usize>(
         &self,
         device: &D,
         len: usize,
