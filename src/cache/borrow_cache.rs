@@ -99,7 +99,7 @@ impl BorrowCache {
         // not using ::new, because this buf would get added to the cache of the device.
         // not anymore ?
         let buf: Buffer<T, D, S> = Buffer {
-            data: device.base_to_data(device.alloc::<S>(id.len, AllocFlag::BorrowedCache).unwrap()),
+            data: device.base_to_data_unbound(device.alloc::<S>(id.len, AllocFlag::BorrowedCache).unwrap()),
             device: None,
         };
 

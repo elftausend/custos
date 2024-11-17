@@ -12,7 +12,7 @@ impl WrappedData for Base {
 
     #[inline]
     fn wrap_in_base<'a, T: Unit, Base: 'static + HasId + PtrType>(
-        &self,
+        &'a self,
         base: Base,
     ) -> Self::Wrap<'a, T, Base> {
         base
@@ -30,6 +30,11 @@ impl WrappedData for Base {
         wrap: &'b mut Self::Wrap<'a, T, Base>,
     ) -> &'b mut Base {
         wrap
+    }
+
+    #[inline] 
+    fn wrap_in_base_unbound<'a, T: Unit, Base: crate::IsBasePtr>(&self, base: Base) -> Self::Wrap<'a, T, Base> {
+        base
     }
 }
 

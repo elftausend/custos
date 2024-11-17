@@ -260,7 +260,7 @@ impl<'a, T: Unit, D: Device, S: Shape> Buffer<'a, T, D, S> {
     /// assert_eq!(buf.as_slice(), &[0, 1, 2, 3, 4]);
     /// ```
     #[inline]
-    pub fn deviceless<'b>(device: &'b D, len: usize) -> Buffer<'a, T, D, S>
+    pub fn deviceless<'b: 'a>(device: &'b D, len: usize) -> Buffer<'a, T, D, S>
     where
         D: DevicelessAble<'b, T, S>,
     {
@@ -286,7 +286,7 @@ impl<'a, T: Unit, D: Device, S: Shape> Buffer<'a, T, D, S> {
         let mut base = unsafe { self.base().shallow() };
         unsafe { base.set_flag(AllocFlag::None) };
 
-        let data: <D as Device>::Data<'b, T, S> = self.device().base_to_data::<T, S>(base);
+        let data: <D as Device>::Data<'b, T, S> = self.device().base_to_data_unbound::<T, S>(base);
 
         Buffer { data, device: None }
     }

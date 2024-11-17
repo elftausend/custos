@@ -154,6 +154,7 @@ where
         Ok(ReqGradWrapper {
             requires_grad,
             data,
+            remove_id_cb: &|id| {},
             _pd: core::marker::PhantomData,
         })
     }

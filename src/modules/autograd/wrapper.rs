@@ -1,15 +1,26 @@
-use core::marker::PhantomData;
+use core::{fmt::Debug, marker::PhantomData};
 
 use crate::{
-    flag::AllocFlag, Autograd, Device, HasId, IsBasePtr, PtrType, ShallowCopy, Shape, ToBase,
-    ToDim, Unit, WrappedData,
+    flag::AllocFlag, Autograd, Device, HasId, IsBasePtr, PtrType, ShallowCopy, Shape, ToBase, ToDim, UniqueId, Unit, WrappedData
 };
 
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
+// #[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct ReqGradWrapper<'a, Data, T> {
     pub requires_grad: bool,
     pub data: Data,
+    pub remove_id_cb: Option<&'a dyn Fn(UniqueId)>,
     pub _pd: PhantomData<&'a T>,
+}
+
+impl<'a, Data: Debug, T> Debug for ReqGradWrapper<'a, Data, T> {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.debug_struct("ReqGradWrapper")
+            .field("requires_grad", &self.requires_grad)
+            .field("data", &self.data)
+            .field("remove_id_cb", &"callback()")
+            .field("_pd", &self._pd)
+            .finish()
+    }
 }
 
 impl<'dev, Mods: WrappedData> WrappedData for Autograd<'dev, Mods> {
@@ -21,6 +32,10 @@ impl<'dev, Mods: WrappedData> WrappedData for Autograd<'dev, Mods> {
             // by default: true -> if lazy layer is (accidentally) put before autograd, all gradients will be computed instead of none.. subject to change
             requires_grad: true,
             data: self.modules.wrap_in_base(base),
+            remove_id_cb: &|id| {
+
+                // unsafe { &mut (*self.grads.get()).no_grads_pool }.remove(&id);
+            },
             _pd: PhantomData,
         }
     }
@@ -82,6 +97,7 @@ where
         ReqGradWrapper {
             requires_grad: self.requires_grad,
             data: self.data.shallow(),
+            remove_id_cb: self.remove_id_cb,
             _pd: PhantomData,
         }
     }
