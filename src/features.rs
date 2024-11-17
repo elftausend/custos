@@ -686,7 +686,7 @@ pub trait CachedBuffers {
     }
 
     #[inline]
-    fn is_supplied_from_below_module(&self) -> bool {
+    fn are_cached_buffers_supplied_from_below_module(&self) -> bool {
         false
     }
 }

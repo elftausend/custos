@@ -6,14 +6,14 @@ use crate::{
 };
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
-pub struct ReqGradWrapper<Data, T> {
+pub struct ReqGradWrapper<'a, Data, T> {
     pub requires_grad: bool,
     pub data: Data,
-    pub _pd: PhantomData<T>,
+    pub _pd: PhantomData<&'a T>,
 }
 
 impl<'dev, Mods: WrappedData> WrappedData for Autograd<'dev, Mods> {
-    type Wrap<'a, T: Unit, Base: IsBasePtr> = ReqGradWrapper<Mods::Wrap<'a, T, Base>, T>;
+    type Wrap<'a, T: Unit, Base: IsBasePtr> = ReqGradWrapper<'a, Mods::Wrap<'a, T, Base>, T>;
 
     #[inline]
     fn wrap_in_base<'a, T: Unit, Base: IsBasePtr>(&self, base: Base) -> Self::Wrap<'a, T, Base> {
@@ -40,7 +40,7 @@ impl<'dev, Mods: WrappedData> WrappedData for Autograd<'dev, Mods> {
     }
 }
 
-impl<Data: HasId, T> HasId for ReqGradWrapper<Data, T> {
+impl<'a, Data: HasId, T> HasId for ReqGradWrapper<'a, Data, T> {
     #[inline]
     fn id(&self) -> crate::Id {
         self.data.id()
@@ -57,7 +57,7 @@ impl<Data: HasId, T> HasId for ReqGradWrapper<Data, T> {
     }
 }
 
-impl<Data: PtrType, T: Unit> PtrType for ReqGradWrapper<Data, T> {
+impl<'a, Data: PtrType, T: Unit> PtrType for ReqGradWrapper<'a, Data, T> {
     #[inline]
     fn size(&self) -> usize {
         self.data.size()
@@ -74,7 +74,7 @@ impl<Data: PtrType, T: Unit> PtrType for ReqGradWrapper<Data, T> {
     }
 }
 
-impl<Data, T> ShallowCopy for ReqGradWrapper<Data, T>
+impl<'a, Data, T> ShallowCopy for ReqGradWrapper<'a, Data, T>
 where
     Data: ShallowCopy,
 {
@@ -87,8 +87,8 @@ where
     }
 }
 
-impl<T: Unit, S: Shape, Data: ToBase<T, D, S>, T1, D: Device> ToBase<T, D, S>
-    for ReqGradWrapper<Data, T1>
+impl<'a, T: Unit, S: Shape, Data: ToBase<T, D, S>, T1, D: Device> ToBase<T, D, S>
+    for ReqGradWrapper<'a, Data, T1>
 {
     #[inline]
     fn to_base(self) -> <D as Device>::Base<T, S> {
@@ -96,7 +96,7 @@ impl<T: Unit, S: Shape, Data: ToBase<T, D, S>, T1, D: Device> ToBase<T, D, S>
     }
 }
 
-impl<T, Data> ToDim for ReqGradWrapper<Data, T> {
+impl<'a, T, Data> ToDim for ReqGradWrapper<'a, Data, T> {
     type Out = Self;
 
     #[inline]

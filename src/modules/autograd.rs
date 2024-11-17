@@ -60,7 +60,7 @@ impl<'dev, Mods> Autograd<'dev, Mods> {
         S: Shape,
         Mods: CachedBuffers,
     {
-        if self.modules.is_supplied_from_below_module() {
+        if self.modules.are_cached_buffers_supplied_from_below_module() {
             return;
         }
         let no_grads_pool = unsafe { &mut (*self.grads.get()).no_grads_pool };
@@ -226,30 +226,30 @@ impl<'dev, Mods> GradActions for Autograd<'dev, Mods> {
     }
 
     #[inline]
-    unsafe fn grad<
-        'a,
-        T: 'static,
-        D: Device + Alloc<T> + crate::ZeroGrad<T> + 'static,
-        S: Shape,
-    >(
+    unsafe fn grad<'a, T, D, S>(
         &self,
         device: &'a D,
         buf: &Buffer<'a, T, D, S>,
-    ) -> &Buffer<'a, T, D, S> {
+    ) -> &Buffer<'a, T, D, S>
+    where
+        T: 'static,
+        D: Device + Alloc<T> + crate::ZeroGrad<T> + 'static,
+        S: Shape,
+    {
         unsafe { (*self.grads.get()).get_ref(device, buf.id()) }
     }
 
     #[inline]
-    unsafe fn grad_mut<
-        'a,
-        T: 'static,
-        D: Device + Alloc<T> + crate::ZeroGrad<T> + 'static,
-        S: Shape,
-    >(
+    unsafe fn grad_mut<'a, T, D, S>(
         &self,
         device: &'a D,
         buf: &Buffer<'a, T, D, S>,
-    ) -> &mut Buffer<'a, T, D, S> {
+    ) -> &mut Buffer<'a, T, D, S>
+    where
+        T: 'static,
+        D: Device + Alloc<T> + crate::ZeroGrad<T> + 'static,
+        S: Shape,
+    {
         unsafe { (*self.grads.get()).get_mut(device, buf.id()) }
     }
 }

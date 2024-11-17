@@ -6,7 +6,7 @@ use core::{
 
 use crate::{
     AddGradFn, AddLayer, AddOperation, Alloc, Buffer, Cache, CachedBuffers, CowMut, Cursor, Device,
-    ExecNow, FastCache2, Guard, HasId, HasModules, IsBasePtr, IsShapeIndep, LockInfo, Module,
+    ExecNow, FastCache2, Guard, HasModules, IsBasePtr, IsShapeIndep, LockInfo, Module,
     OnDropBuffer, OnNewBuffer, Parents, PtrType, RemoveLayer, ReplaceBuf, Retrieve, RunModule,
     SetOpHint, Setup, ShallowCopy, Shape, State, UniqueId, Unit, WrappedData,
 };
@@ -535,7 +535,7 @@ mod tests {
         {
             let device = CPU::<Cached<Base>>::new();
             // let buf: Buffer<f32, _> = device.retrieve(10, ());
-            unsafe { Retrieve::<_, f32, ()>::retrieve_entry(&device.modules, &device, 10, &()) };
+            let _ = Retrieve::<_, f32, ()>::retrieve_entry(&device.modules, &device, 10, &());
         };
     }
 
