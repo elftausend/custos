@@ -9,10 +9,6 @@ pub enum AllocFlag {
     None,
     /// Wraps around another pointer. Such buffers are not deallocated when they go out of scope.
     Wrapper,
-    /// If a Buffer / allocation only contains a single number.
-    Num,
-    /// Similiar to `None`, but the resulting [`Buffer`](crate::Buffer) is borrowed and not owned.
-    BorrowedCache,
     Lazy,
 }
 
@@ -27,7 +23,7 @@ impl AllocFlag {
     pub fn continue_deallocation(&self) -> bool {
         matches!(
             self,
-            AllocFlag::None | AllocFlag::BorrowedCache | AllocFlag::Lazy
+            AllocFlag::None | AllocFlag::Lazy
         )
     }
 }

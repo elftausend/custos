@@ -100,7 +100,7 @@ impl BorrowCache {
         // not anymore ?
         let buf: Buffer<T, D, S> = Buffer {
             data: device.default_base_to_data_unbound(
-                device.alloc::<S>(id.len, AllocFlag::BorrowedCache).unwrap(),
+                device.alloc::<S>(id.len, AllocFlag::None).unwrap(),
             ),
             device: None,
         };

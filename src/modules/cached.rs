@@ -207,7 +207,7 @@ where
             // x.downcast_mut::<Mods::Wrap<'static, T, D::Base<T, S>>>()
             //     .unwrap()
         });
-        unsafe { entry.set_flag(crate::flag::AllocFlag::BorrowedCache) };
+        unsafe { entry.set_flag(crate::flag::AllocFlag::None) };
         Ok(Guard::new(CowMut::BorrowedMut(entry)))
     }
 }

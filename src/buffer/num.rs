@@ -23,7 +23,7 @@ impl<T: Unit> PtrType for Num<T> {
 
     #[inline]
     fn flag(&self) -> crate::flag::AllocFlag {
-        crate::flag::AllocFlag::Num
+        crate::flag::AllocFlag::None
     }
 
     #[inline]
