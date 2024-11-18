@@ -190,19 +190,6 @@ impl<'a, T: Unit, D: Device, S: Shape> HasId for &mut Buffer<'a, T, D, S> {
     }
 }
 
-impl<'a, T: Unit, D: Device, S: Shape> Drop for Buffer<'a, T, D, S> {
-    #[inline]
-    fn drop(&mut self) {
-        if self.data.flag() != AllocFlag::None {
-            return;
-        }
-
-        if let Some(device) = self.device {
-            device.on_drop_buffer(device, self)
-        }
-    }
-}
-
 impl<'a, T: Unit, D: Device + OnNewBuffer<'a, T, D, S>, S: Shape> Buffer<'a, T, D, S> {
     /// Creates a new `Buffer` from a slice (&[T]).
     #[inline]

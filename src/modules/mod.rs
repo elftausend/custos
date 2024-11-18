@@ -145,7 +145,7 @@ pub(crate) unsafe fn register_buf_copyable<'a, T, D, S>(
 #[allow(unused)]
 pub(crate) fn unregister_buf_copyable(
     cache: &mut HashMap<UniqueId, Box<dyn crate::BoxedShallowCopy>, impl BuildHasher>,
-    id: Id,
+    id: UniqueId,
 ) {
     cache.remove(&id);
 }

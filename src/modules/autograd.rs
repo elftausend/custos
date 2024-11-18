@@ -108,7 +108,7 @@ impl<'dev, Mods: OnDropBuffer> OnDropBuffer for Autograd<'dev, Mods> {
     #[inline]
     fn on_drop_buffer<T: Unit, D: Device, S: Shape>(&self, device: &D, buf: &Buffer<T, D, S>) {
         unsafe { (*self.grads.get()).buf_requires_grad.remove(&*buf.id()) };
-        unregister_buf_copyable(unsafe { &mut (*self.grads.get()).no_grads_pool }, buf.id());
+        unregister_buf_copyable(unsafe { &mut (*self.grads.get()).no_grads_pool }, *buf.id());
 
         // TODO
         // FIXME if an alloc flag None buffer goes out of scope and it has used it's gradient buffer before,

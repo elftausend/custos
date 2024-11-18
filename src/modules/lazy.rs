@@ -192,7 +192,7 @@ impl<T2, Mods: OnDropBuffer> OnDropBuffer for Lazy<'_, Mods, T2> {
         device: &D,
         buf: &Buffer<T, D, S>,
     ) {
-        unregister_buf_copyable(&mut self.buffers.borrow_mut(), buf.id());
+        unregister_buf_copyable(&mut self.buffers.borrow_mut(), *buf.id());
         self.modules.on_drop_buffer(device, buf)
     }
 }
@@ -350,7 +350,7 @@ where
             let base = device
                 .alloc::<S>(id.len, crate::flag::AllocFlag::Lazy)
                 .unwrap();
-            let data = device.default_base_to_data(base);
+            let data = device.default_base_to_data_unbound(base);
             let buffer = Buffer {
                 data,
                 device: Some(device),
@@ -365,6 +365,7 @@ where
 
         Ok(LazyWrapper {
             maybe_data: MaybeData::Id(id),
+            remove_id_cb: None,
             _pd: core::marker::PhantomData,
         })
     }
