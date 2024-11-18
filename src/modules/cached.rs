@@ -5,7 +5,11 @@ use core::{
 };
 
 use crate::{
-    AddGradFn, AddLayer, AddOperation, Alloc, Buffer, Cache, CachedBuffers, CowMut, Cursor, Device, Downcast, ExecNow, FastCache2, Guard, HasModules, IsBasePtr, IsShapeIndep, LockInfo, Module, OnDropBuffer, OnNewBuffer, Parents, PtrType, RemoveLayer, ReplaceBuf, Retrieve, RunModule, SetOpHint, Setup, ShallowCopy, Shape, State, UniqueId, Unit, WrappedData, WrappedData2, WrappedData3
+    AddGradFn, AddLayer, AddOperation, Alloc, Buffer, Cache, CachedBuffers, CowMut, Cursor, Device,
+    Downcast, ExecNow, FastCache2, Guard, HasModules, IsBasePtr, IsShapeIndep, LockInfo, Module,
+    OnDropBuffer, OnNewBuffer, Parents, PtrType, RemoveLayer, ReplaceBuf, Retrieve, RunModule,
+    SetOpHint, Setup, ShallowCopy, Shape, State, UniqueId, Unit, WrappedData, WrappedData2,
+    WrappedData3,
 };
 
 #[cfg(feature = "graph")]
@@ -19,14 +23,16 @@ pub struct Cached<Mods, CacheType = FastCache2> {
     cache_type: PhantomData<CacheType>,
 }
 
-impl<'w, CacheType: 'static, Mods: WrappedData2<'w> + 'static, SD: Device + 'static> WrappedData2<'w> for CachedModule<Mods, SD, CacheType> {
+impl<'w, CacheType: 'static, Mods: WrappedData2<'w> + 'static, SD: Device + 'static>
+    WrappedData2<'w> for CachedModule<Mods, SD, CacheType>
+{
     type Wrap<'a, T: Unit, Base: IsBasePtr> = Guard<'a, Mods::Wrap<'a, T, Base>>;
 
     #[inline]
     fn wrap_in_base<T: Unit, Base: IsBasePtr>(&'w self, base: Base) -> Self::Wrap<'w, T, Base> {
         Guard::new(CowMut::Owned(self.modules.wrap_in_base(base)))
     }
-    
+
     #[inline]
     fn wrap_in_base2<'a, T: Unit, Base: IsBasePtr>(&self, base: Base) -> Self::Wrap<'a, T, Base> {
         todo!()
@@ -34,16 +40,21 @@ impl<'w, CacheType: 'static, Mods: WrappedData2<'w> + 'static, SD: Device + 'sta
     }
 }
 
-impl<CacheType: 'static, Mods: WrappedData, SD: Device> WrappedData for CachedModule<Mods, SD, CacheType> {
+impl<CacheType: 'static, Mods: WrappedData, SD: Device> WrappedData
+    for CachedModule<Mods, SD, CacheType>
+{
     type Wrap<'a, T: Unit, Base: IsBasePtr> = Guard<'a, Mods::Wrap<'a, T, Base>>;
 
     #[inline]
     fn wrap_in_base<'a, T: Unit, Base: IsBasePtr>(&'a self, base: Base) -> Self::Wrap<'a, T, Base> {
         Guard::new(CowMut::Owned(self.modules.wrap_in_base(base)))
     }
-    
-    #[inline] 
-    fn wrap_in_base_unbound<'a, T: Unit, Base: IsBasePtr>(&self, base: Base) -> Self::Wrap<'a, T, Base> {
+
+    #[inline]
+    fn wrap_in_base_unbound<'a, T: Unit, Base: IsBasePtr>(
+        &self,
+        base: Base,
+    ) -> Self::Wrap<'a, T, Base> {
         Guard::new(CowMut::Owned(self.modules.wrap_in_base_unbound(base)))
     }
 
@@ -59,7 +70,7 @@ impl<CacheType: 'static, Mods: WrappedData, SD: Device> WrappedData for CachedMo
         wrap: &'b mut Self::Wrap<'a, T, Base>,
     ) -> &'b mut Base {
         Mods::wrapped_as_base_mut(wrap)
-    } 
+    }
 }
 
 impl<'a, CacheType, Mods: Module<'a, D>, D: Device + 'a> Module<'a, D> for Cached<Mods, CacheType>
@@ -161,7 +172,9 @@ where
     }
 }
 
-impl<CacheType: 'static, Mods: OnDropBuffer, SD: Device> OnDropBuffer for CachedModule<Mods, SD, CacheType> {
+impl<CacheType: 'static, Mods: OnDropBuffer, SD: Device> OnDropBuffer
+    for CachedModule<Mods, SD, CacheType>
+{
     #[inline]
     fn on_drop_buffer<T: Unit, D: Device, S: Shape>(&self, device: &D, buf: &Buffer<T, D, S>) {
         self.modules.on_drop_buffer(device, buf)
@@ -187,9 +200,7 @@ where
         let entry = self.cache.get_mut(id, len)?;
         let mut entry = RefMut::map(entry, |x| {
             if x.is::<Mods::Wrap<'static, T, D::Base<T, S>>>() {
-                unsafe {
-                    Downcast::downcast_mut_unchecked::<Mods::Wrap<'a, T, D::Base<T, S>>>(x)
-                }
+                unsafe { Downcast::downcast_mut_unchecked::<Mods::Wrap<'a, T, D::Base<T, S>>>(x) }
             } else {
                 panic!()
             }
@@ -482,7 +493,8 @@ impl<CacheType, Mods: OnDropBuffer, D: Device> CachedBuffers for CachedModule<Mo
     }
 }
 
-impl<CacheType: 'static, Mods, D, T, S, SD> ReplaceBuf<T, D, S> for CachedModule<Mods, SD, CacheType>
+impl<CacheType: 'static, Mods, D, T, S, SD> ReplaceBuf<T, D, S>
+    for CachedModule<Mods, SD, CacheType>
 where
     T: Unit,
     Mods: ReplaceBuf<T, D, S>,

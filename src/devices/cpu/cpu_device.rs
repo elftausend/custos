@@ -43,12 +43,18 @@ impl<Mods: OnDropBuffer> Device for CPU<Mods> {
     }
 
     #[inline(always)]
-    fn base_to_data<'a, T: Unit, S: Shape>(&'a self, base: Self::Base<T, S>) -> Self::Data<'a, T, S> {
+    fn default_base_to_data<'a, T: Unit, S: Shape>(
+        &'a self,
+        base: Self::Base<T, S>,
+    ) -> Self::Data<'a, T, S> {
         self.wrap_in_base(base)
     }
-    
+
     #[inline(always)]
-    fn base_to_data_unbound<'a, T: Unit, S: Shape>(&self, base: Self::Base<T, S>) -> Self::Data<'a, T, S> {
+    fn default_base_to_data_unbound<'a, T: Unit, S: Shape>(
+        &self,
+        base: Self::Base<T, S>,
+    ) -> Self::Data<'a, T, S> {
         self.wrap_in_base_unbound(base)
     }
 
@@ -73,7 +79,7 @@ impl<Mods: OnDropBuffer> Device for CPU<Mods> {
     ) -> &'b mut Self::Wrap<'a, T, Self::Base<T, S>> {
         data
     }
- 
+
     // #[inline]
     // fn wrap(&self) {}
 }

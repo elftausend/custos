@@ -1,7 +1,8 @@
 use core::{fmt::Debug, marker::PhantomData};
 
 use crate::{
-    flag::AllocFlag, Autograd, Device, HasId, IsBasePtr, PtrType, ShallowCopy, Shape, ToBase, ToDim, UniqueId, Unit, WrappedData
+    flag::AllocFlag, Autograd, Device, HasId, IsBasePtr, PtrType, ShallowCopy, Shape, ToBase,
+    ToDim, UniqueId, Unit, WrappedData,
 };
 
 // #[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
@@ -42,14 +43,18 @@ impl<'dev, Mods: WrappedData> WrappedData for Autograd<'dev, Mods> {
             requires_grad: true,
             data: self.modules.wrap_in_base(base),
             remove_id_cb: Some(Box::new(|id| {
-                unsafe { &mut (*self.grads.get()).no_grads_pool }.remove(&id);
+                unsafe { (*self.grads.get()).buf_requires_grad.remove(&id) };
+                unsafe { (*self.grads.get()).no_grads_pool.remove(&id) };
             })),
             _pd: PhantomData,
         }
     }
-    
+
     #[inline]
-    fn wrap_in_base_unbound<'a, T: Unit, Base: IsBasePtr>(&self, base: Base) -> Self::Wrap<'a, T, Base> {
+    fn wrap_in_base_unbound<'a, T: Unit, Base: IsBasePtr>(
+        &self,
+        base: Base,
+    ) -> Self::Wrap<'a, T, Base> {
         ReqGradWrapper {
             // by default: true -> if lazy layer is (accidentally) put before autograd, all gradients will be computed instead of none.. subject to change
             requires_grad: true,

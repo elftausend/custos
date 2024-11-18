@@ -39,8 +39,16 @@ impl<Mods: WrappedData> WrappedData for CustomModule<Mods> {
     type Wrap<'a, T: Unit, Base: IsBasePtr> = Mods::Wrap<'a, T, Base>;
 
     #[inline]
-    fn wrap_in_base<'a, T: Unit, Base: IsBasePtr>(&self, base: Base) -> Self::Wrap<'a, T, Base> {
+    fn wrap_in_base<'a, T: Unit, Base: IsBasePtr>(&'a self, base: Base) -> Self::Wrap<'a, T, Base> {
         self.mods.wrap_in_base(base)
+    }
+
+    #[inline]
+    fn wrap_in_base_unbound<'a, T: Unit, Base: IsBasePtr>(
+        &self,
+        base: Base,
+    ) -> Self::Wrap<'a, T, Base> {
+        self.mods.wrap_in_base_unbound(base)
     }
 
     #[inline]

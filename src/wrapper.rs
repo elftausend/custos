@@ -1,24 +1,33 @@
 use crate::{HasId, IsBasePtr, PtrType, Unit};
 
 pub trait WrappedData2<'w> {
-    type Wrap<'a, T: Unit, Base: IsBasePtr>: PtrType + HasId + 'a where Self: 'w, Self: 'a;
+    type Wrap<'a, T: Unit, Base: IsBasePtr>: PtrType + HasId + 'a
+    where
+        Self: 'w,
+        Self: 'a;
 
     fn wrap_in_base<T: Unit, Base: IsBasePtr>(&'w self, base: Base) -> Self::Wrap<'w, T, Base>;
     fn wrap_in_base2<'a, T: Unit, Base: IsBasePtr>(&self, base: Base) -> Self::Wrap<'a, T, Base>;
-} 
+}
 
 pub trait WrappedData3<'w> {
-    type Wrap<'a, T: Unit, Base: IsBasePtr>: PtrType + HasId + 'a where Self: 'a;
+    type Wrap<'a, T: Unit, Base: IsBasePtr>: PtrType + HasId + 'a
+    where
+        Self: 'a;
 
     fn wrap_in_base<T: Unit, Base: IsBasePtr>(&'w self, base: Base) -> Self::Wrap<'w, T, Base>;
-    fn wrap_in_base2<'a, T: Unit, Base: IsBasePtr>(&'a self, base: Base) -> Self::Wrap<'a, T, Base>;
-} 
+    fn wrap_in_base2<'a, T: Unit, Base: IsBasePtr>(&'a self, base: Base)
+        -> Self::Wrap<'a, T, Base>;
+}
 
 pub trait WrappedData {
     type Wrap<'a, T: Unit, Base: IsBasePtr>: PtrType + HasId + 'a;
 
     fn wrap_in_base<'a, T: Unit, Base: IsBasePtr>(&'a self, base: Base) -> Self::Wrap<'a, T, Base>;
-    fn wrap_in_base_unbound<'a, T: Unit, Base: IsBasePtr>(&self, base: Base) -> Self::Wrap<'a, T, Base>;
+    fn wrap_in_base_unbound<'a, T: Unit, Base: IsBasePtr>(
+        &self,
+        base: Base,
+    ) -> Self::Wrap<'a, T, Base>;
     #[track_caller]
     fn wrapped_as_base<'a, 'b, T: Unit, Base: IsBasePtr>(
         wrap: &'b Self::Wrap<'a, T, Base>,
@@ -42,7 +51,7 @@ macro_rules! impl_wrapped_data {
             ) -> Self::Wrap<'a, T, Base> {
                 self.modules.wrap_in_base(base)
             }
-            
+
             #[inline]
             fn wrap_in_base_unbound<'a, T: Unit, Base: $crate::IsBasePtr>(
                 &self,

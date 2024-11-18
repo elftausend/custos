@@ -350,7 +350,7 @@ where
             let base = device
                 .alloc::<S>(id.len, crate::flag::AllocFlag::Lazy)
                 .unwrap();
-            let data = device.base_to_data(base);
+            let data = device.default_base_to_data(base);
             let buffer = Buffer {
                 data,
                 device: Some(device),
