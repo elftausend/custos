@@ -33,21 +33,31 @@ impl<'a, Data: HasId, T> Drop for ReqGradWrapper<'a, Data, T> {
     }
 }
 
+impl<'a, Data: HasId, T> ReqGradWrapper<'a, Data, T> {
+    #[inline]
+    pub fn new(data: Data, remove_id_cb: Option<Box<dyn Fn(UniqueId) + 'a>>) -> Self {
+        // by default: true -> if lazy layer is (accidentally) put before autograd, all gradients will be computed instead of none.. subject to change
+        ReqGradWrapper {
+            requires_grad: true,
+            data,
+            remove_id_cb,
+            _pd: PhantomData,
+        }
+    }
+}
+
 impl<'dev, Mods: WrappedData> WrappedData for Autograd<'dev, Mods> {
     type Wrap<'a, T: Unit, Base: IsBasePtr> = ReqGradWrapper<'a, Mods::Wrap<'a, T, Base>, T>;
 
     #[inline]
     fn wrap_in_base<'a, T: Unit, Base: IsBasePtr>(&'a self, base: Base) -> Self::Wrap<'a, T, Base> {
-        ReqGradWrapper {
-            // by default: true -> if lazy layer is (accidentally) put before autograd, all gradients will be computed instead of none.. subject to change
-            requires_grad: true,
-            data: self.modules.wrap_in_base(base),
-            remove_id_cb: Some(Box::new(|id| {
+        ReqGradWrapper::new(
+            self.modules.wrap_in_base(base),
+            Some(Box::new(|id| {
                 unsafe { (*self.grads.get()).buf_requires_grad.remove(&id) };
                 unsafe { (*self.grads.get()).no_grads_pool.remove(&id) };
             })),
-            _pd: PhantomData,
-        }
+        )
     }
 
     #[inline]
@@ -55,13 +65,7 @@ impl<'dev, Mods: WrappedData> WrappedData for Autograd<'dev, Mods> {
         &self,
         base: Base,
     ) -> Self::Wrap<'a, T, Base> {
-        ReqGradWrapper {
-            // by default: true -> if lazy layer is (accidentally) put before autograd, all gradients will be computed instead of none.. subject to change
-            requires_grad: true,
-            data: self.modules.wrap_in_base_unbound(base),
-            remove_id_cb: None,
-            _pd: PhantomData,
-        }
+        ReqGradWrapper::new(self.modules.wrap_in_base_unbound(base), None)
     }
 
     #[inline]
