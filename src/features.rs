@@ -5,17 +5,15 @@
 use core::{cell::RefMut, fmt::Debug, ops::RangeBounds};
 
 use crate::{
-    op_hint::OpHint,
-    range::{AsRange, CursorRange},
-    AnyOp, HasId, Parents, Shape, UniqueId, Unit, ZeroGrad, CPU,
+    op_hint::OpHint, range::{AsRange, CursorRange}, AnyOp, HasId, Parents, Shape, UniqueId, Unit, WrappedData, ZeroGrad, CPU
 };
 
 #[cfg(feature = "cached")]
 use crate::{Base, CachedModule};
 
-use super::{Alloc, Buffer, Device, OnDropBuffer};
+use super::{Alloc, Buffer, Device};
 
-pub trait Feature: OnDropBuffer {}
+pub trait Feature: WrappedData {}
 
 // is a cached module is placed before Autograd results a problem
 // -> the retrieved buffer is not added to the no grads pool of the autograd module
@@ -24,7 +22,7 @@ pub trait Feature: OnDropBuffer {}
 // how to fix this:
 // add retrieved buffer to no grads pool at the end of the chain (at device level (Retriever trait))
 // => "generator", "actor"
-pub trait Retrieve<'a, D, T: Unit, S: Shape = ()>: OnDropBuffer {
+pub trait Retrieve<'a, D, T: Unit, S: Shape = ()>: WrappedData {
     // "generator"
     #[track_caller]
     fn retrieve_entry<const NUM_PARENTS: usize>(
@@ -354,7 +352,7 @@ impl<'a, 'b, T: Unit, D: Device, S: Shape> OpArgs for (&Buffer<'a, T, D, S>, &Bu
 }
 
 // seems useless, however, this is used to retrieve potential lazy buffer information
-pub trait ReplaceBuf<T: Unit, D: Device, S: Shape>: OnDropBuffer {
+pub trait ReplaceBuf<T: Unit, D: Device, S: Shape>: WrappedData {
     fn replace_buf<'a, 'c>(&'c self, buffer: &'c Buffer<'a, T, D, S>) -> &'c Buffer<'a, T, D, S>;
 }
 

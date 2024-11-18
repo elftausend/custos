@@ -42,10 +42,10 @@ pub mod cpu_stack_ops;
 pub mod fusing;
 pub use fusing::*;
 
-use crate::{Buffer, HasId, IsBasePtr, OnDropBuffer, Parents, PtrType, Shape, Unit};
+use crate::{Buffer, HasId, IsBasePtr, Parents, PtrType, Shape, Unit, WrappedData};
 
 /// The `Device` trait is the main trait for all compute devices.
-pub trait Device: OnDropBuffer + Sized {
+pub trait Device: WrappedData + Sized {
     type Base<T: Unit, S: Shape>: IsBasePtr;
     type Data<'a, T: Unit, S: Shape>: HasId + PtrType;
 
@@ -127,17 +127,6 @@ macro_rules! impl_buffer_hook_traits {
                 new_buf: &mut Buffer<'dev, T, D, S>,
             ) {
                 unsafe { self.modules.on_new_buffer(device, new_buf) }
-            }
-        }
-
-        impl<Mods: $crate::OnDropBuffer> $crate::OnDropBuffer for $device<Mods> {
-            #[inline]
-            fn on_drop_buffer<T: $crate::Unit, D: Device, S: Shape>(
-                &self,
-                device: &D,
-                buf: &Buffer<T, D, S>,
-            ) {
-                self.modules.on_drop_buffer(device, buf)
             }
         }
     };

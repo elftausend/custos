@@ -7,9 +7,8 @@ use core::{
 use crate::{
     AddGradFn, AddLayer, AddOperation, Alloc, Buffer, Cache, CachedBuffers, CowMut, Cursor, Device,
     Downcast, ExecNow, FastCache2, Guard, HasModules, IsBasePtr, IsShapeIndep, LockInfo, Module,
-    OnDropBuffer, OnNewBuffer, Parents, PtrType, RemoveLayer, ReplaceBuf, Retrieve, RunModule,
-    SetOpHint, Setup, ShallowCopy, Shape, State, UniqueId, Unit, WrappedData, WrappedData2,
-    WrappedData3,
+    OnNewBuffer, Parents, PtrType, RemoveLayer, ReplaceBuf, Retrieve, RunModule,
+    SetOpHint, Setup, ShallowCopy, Shape, State, UniqueId, Unit, WrappedData
 };
 
 #[cfg(feature = "graph")]
@@ -21,23 +20,6 @@ use crate::{DeviceError, Optimize};
 pub struct Cached<Mods, CacheType = FastCache2> {
     pd: PhantomData<Mods>,
     cache_type: PhantomData<CacheType>,
-}
-
-impl<'w, CacheType: 'static, Mods: WrappedData2<'w> + 'static, SD: Device + 'static>
-    WrappedData2<'w> for CachedModule<Mods, SD, CacheType>
-{
-    type Wrap<'a, T: Unit, Base: IsBasePtr> = Guard<'a, Mods::Wrap<'a, T, Base>>;
-
-    #[inline]
-    fn wrap_in_base<T: Unit, Base: IsBasePtr>(&'w self, base: Base) -> Self::Wrap<'w, T, Base> {
-        Guard::new(CowMut::Owned(self.modules.wrap_in_base(base)))
-    }
-
-    #[inline]
-    fn wrap_in_base2<'a, T: Unit, Base: IsBasePtr>(&self, base: Base) -> Self::Wrap<'a, T, Base> {
-        todo!()
-        // Guard::new(CowMut::Owned(self.modules.wrap_in_base(base)))
-    }
 }
 
 impl<CacheType: 'static, Mods: WrappedData, SD: Device> WrappedData
@@ -169,15 +151,6 @@ where
     #[inline]
     unsafe fn on_new_buffer(&'a self, device: &'a D, new_buf: &mut Buffer<'a, T, D, S>) {
         self.modules.on_new_buffer(device, new_buf)
-    }
-}
-
-impl<CacheType: 'static, Mods: OnDropBuffer, SD: Device> OnDropBuffer
-    for CachedModule<Mods, SD, CacheType>
-{
-    #[inline]
-    fn on_drop_buffer<T: Unit, D: Device, S: Shape>(&self, device: &D, buf: &Buffer<T, D, S>) {
-        self.modules.on_drop_buffer(device, buf)
     }
 }
 
@@ -483,7 +456,7 @@ impl<Mods: Optimize, SD: Device> Optimize for CachedModule<Mods, SD, FastCache> 
     }
 }
 
-impl<CacheType, Mods: OnDropBuffer, D: Device> CachedBuffers for CachedModule<Mods, D, CacheType> {
+impl<CacheType, Mods: WrappedData, D: Device> CachedBuffers for CachedModule<Mods, D, CacheType> {
     #[inline]
     unsafe fn buffers_mut(
         &self,

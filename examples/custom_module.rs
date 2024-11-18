@@ -1,5 +1,5 @@
 use custos::{
-    Alloc, Base, Device, HasId, IsBasePtr, Module, OnDropBuffer, Parents, PtrType, Retrieve, Setup,
+    Alloc, Base, Device, HasId, IsBasePtr, Module, Parents, PtrType, Retrieve, Setup,
     Shape, Unit, WrappedData, CPU,
 };
 
@@ -63,17 +63,6 @@ impl<Mods: WrappedData> WrappedData for CustomModule<Mods> {
         wrap: &'b mut Self::Wrap<'a, T, Base>,
     ) -> &'b mut Base {
         Mods::wrapped_as_base_mut(wrap)
-    }
-}
-
-impl<Mods: OnDropBuffer + WrappedData> OnDropBuffer for CustomModule<Mods> {
-    #[inline]
-    fn on_drop_buffer<T: Unit, D: Device, S: Shape>(
-        &self,
-        _device: &D,
-        _buf: &custos::prelude::Buffer<T, D, S>,
-    ) {
-        self.mods.on_drop_buffer(_device, _buf)
     }
 }
 

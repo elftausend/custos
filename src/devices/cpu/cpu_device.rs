@@ -2,7 +2,7 @@ use core::convert::Infallible;
 
 use crate::{
     cpu::CPUPtr, flag::AllocFlag, impl_device_traits, AddLayer, Alloc, Base, Buffer, CloneBuf,
-    Device, DeviceError, DevicelessAble, HasModules, IsShapeIndep, Module, OnDropBuffer,
+    Device, DeviceError, DevicelessAble, HasModules, IsShapeIndep, Module,
     OnNewBuffer, RemoveLayer, Setup, Shape, UnaryFusing, Unit, WrappedData,
 };
 
@@ -32,7 +32,7 @@ impl_device_traits!(CPU);
 
 impl<Mods> IsCPU for CPU<Mods> {}
 
-impl<Mods: OnDropBuffer> Device for CPU<Mods> {
+impl<Mods: WrappedData> Device for CPU<Mods> {
     type Error = Infallible;
     type Base<T: Unit, S: Shape> = CPUPtr<T>;
     type Data<'a, T: Unit, S: Shape> = Self::Wrap<'a, T, Self::Base<T, S>>;
@@ -138,7 +138,7 @@ impl<Mods> CPU<Mods> {
     }
 }
 
-impl<T: Unit, Mods: OnDropBuffer> Alloc<T> for CPU<Mods> {
+impl<T: Unit, Mods: WrappedData> Alloc<T> for CPU<Mods> {
     fn alloc<S: Shape>(&self, mut len: usize, flag: AllocFlag) -> crate::Result<Self::Base<T, S>> {
         if len == 0 {
             return Err(DeviceError::ZeroLengthBuffer.into());
@@ -198,7 +198,7 @@ impl<Mods> crate::LazySetup for CPU<Mods> {}
 #[cfg(feature = "fork")]
 impl<Mods> crate::ForkSetup for CPU<Mods> {}
 
-impl<'a, Mods: OnDropBuffer + OnNewBuffer<'a, T, Self, S>, T: Unit + Clone, S: Shape>
+impl<'a, Mods: WrappedData + OnNewBuffer<'a, T, Self, S>, T: Unit + Clone, S: Shape>
     CloneBuf<'a, T, S> for CPU<Mods>
 {
     #[inline]
@@ -209,7 +209,7 @@ impl<'a, Mods: OnDropBuffer + OnNewBuffer<'a, T, Self, S>, T: Unit + Clone, S: S
     }
 }
 
-impl<Mods: OnDropBuffer + 'static> UnaryFusing for CPU<Mods> {
+impl<Mods: WrappedData + 'static> UnaryFusing for CPU<Mods> {
     #[cfg(feature = "lazy")]
     #[cfg(feature = "graph")]
     #[inline]
@@ -235,7 +235,7 @@ impl<Mods: OnDropBuffer + 'static> UnaryFusing for CPU<Mods> {
     }
 }
 
-unsafe impl<Mods: OnDropBuffer> IsShapeIndep for CPU<Mods> {}
+unsafe impl<Mods: WrappedData> IsShapeIndep for CPU<Mods> {}
 
 #[cfg(test)]
 mod tests {

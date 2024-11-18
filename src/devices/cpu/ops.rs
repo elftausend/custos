@@ -1,12 +1,7 @@
 use core::ops::{AddAssign, Deref, DerefMut, Index, Range, RangeBounds};
 
 use crate::{
-    bounds_to_range,
-    cpu_stack_ops::{apply_fn_slice, clear_slice},
-    op_hint::unary,
-    pass_down_add_operation, pass_down_exec_now, AddOperation, ApplyFunction, Buffer, ClearBuf,
-    CopySlice, Device, Eval, MayToCLSource, OnDropBuffer, Read, Resolve, Retrieve, Retriever,
-    SetOpHint, Shape, ToVal, TwoWay, UnaryGrad, Unit, WriteBuf, ZeroGrad, CPU,
+    bounds_to_range, cpu_stack_ops::{apply_fn_slice, clear_slice}, op_hint::unary, pass_down_add_operation, pass_down_exec_now, AddOperation, ApplyFunction, Buffer, ClearBuf, CopySlice, Device, Eval, MayToCLSource, Read, Resolve, Retrieve, Retriever, SetOpHint, Shape, ToVal, TwoWay, UnaryGrad, Unit, WrappedData, WriteBuf, ZeroGrad, CPU
 };
 
 pass_down_add_operation!(CPU);
@@ -44,7 +39,7 @@ where
 
 impl<Mods, T, D, S> UnaryGrad<T, S, D> for CPU<Mods>
 where
-    Mods: AddOperation + OnDropBuffer,
+    Mods: AddOperation + WrappedData,
     T: Unit + AddAssign + Copy + std::ops::Mul<Output = T> + 'static,
     S: Shape,
     D: Device + 'static,
@@ -71,7 +66,7 @@ where
 impl<Mods, T, D, S> Read<T, S, D> for CPU<Mods>
 where
     T: Unit,
-    Mods: OnDropBuffer,
+    Mods: WrappedData,
     D: Device,
     D::Base<T, S>: Deref<Target = [T]>,
     S: Shape,
@@ -102,7 +97,7 @@ where
 
 impl<Mods, T, D, S> WriteBuf<T, S, D> for CPU<Mods>
 where
-    Mods: OnDropBuffer,
+    Mods: WrappedData,
     T: Unit + Copy,
     D: Device,
     D::Base<T, S>: DerefMut<Target = [T]>,
@@ -122,7 +117,7 @@ where
 // #[impl_stack]
 impl<Mods, T, D, S> ClearBuf<T, S, D> for CPU<Mods>
 where
-    Mods: OnDropBuffer + AddOperation,
+    Mods: AddOperation,
     T: Unit + Default + 'static,
     D: Device + 'static,
     D::Base<T, S>: DerefMut<Target = [T]>,
@@ -137,7 +132,7 @@ where
 impl<Mods, T> ZeroGrad<T> for CPU<Mods>
 where
     T: Unit + Default,
-    Mods: OnDropBuffer,
+    Mods: WrappedData,
 {
     #[inline]
     fn zero_grad<S: Shape>(&self, data: &mut Self::Base<T, S>) {
@@ -148,7 +143,7 @@ where
 impl<Mods, T, D> CopySlice<T, D> for CPU<Mods>
 where
     [T]: Index<Range<usize>, Output = [T]>,
-    Mods: OnDropBuffer,
+    Mods: WrappedData,
     T: Unit + Copy,
     D: Device,
     D::Base<T, ()>: Deref<Target = [T]>,

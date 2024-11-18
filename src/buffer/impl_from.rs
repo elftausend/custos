@@ -1,7 +1,7 @@
 use core::ops::{Range, RangeInclusive};
 
 use crate::{
-    number::Number, shape::Shape, Alloc, Buffer, Device, OnDropBuffer, OnNewBuffer, Retriever, Unit,
+    number::Number, shape::Shape, Alloc, Buffer, Device, OnNewBuffer, Retriever, Unit, WrappedData,
 };
 
 #[cfg(feature = "cpu")]
@@ -120,7 +120,7 @@ where
 }
 
 #[cfg(feature = "cpu")]
-impl<'a, 'b, Mods: OnDropBuffer, T, S, D> From<(&'a D, Buffer<'b, T, CPU<Mods>, S>)>
+impl<'a, 'b, Mods: WrappedData, T, S, D> From<(&'a D, Buffer<'b, T, CPU<Mods>, S>)>
     for Buffer<'a, T, D, S>
 where
     T: Unit + 'static,

@@ -4,7 +4,7 @@ use core::{
 };
 
 use crate::{
-    flag::AllocFlag, Alloc, Buffer, CloneBuf, Device, HasId, IsBasePtr, OnDropBuffer, PtrType,
+    flag::AllocFlag, Alloc, Buffer, CloneBuf, Device, HasId, IsBasePtr, PtrType,
     ShallowCopy, Unit, WrappedData,
 };
 
@@ -147,8 +147,6 @@ impl WrappedData for () {
         wrap
     }
 }
-
-impl OnDropBuffer for () {}
 
 impl<'a, T: Unit + Clone> CloneBuf<'a, T> for () {
     #[inline]

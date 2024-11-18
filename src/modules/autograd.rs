@@ -14,7 +14,7 @@ use crate::{
     impl_remove_layer, pass_down_add_operation, pass_down_cached_buffers, pass_down_cursor,
     pass_down_exec_now_module, pass_down_replace_buf_module, register_buf_copyable,
     unregister_buf_copyable, AddGradFn, AddLayer, Alloc, Buffer, CachedBuffers, Device,
-    GradActions, HasId, HasModules, IsShapeIndep, Module, OnDropBuffer, OnNewBuffer, Parents,
+    GradActions, HasId, HasModules, IsShapeIndep, Module, OnNewBuffer, Parents,
     Retrieve, RunModule, Setup, ShallowCopy, Shape, TapeActions, Unit, WrappedData,
 };
 
@@ -101,22 +101,6 @@ where
 
         // pass down
         self.modules.on_new_buffer(device, new_buf)
-    }
-}
-
-impl<'dev, Mods: OnDropBuffer> OnDropBuffer for Autograd<'dev, Mods> {
-    #[inline]
-    fn on_drop_buffer<T: Unit, D: Device, S: Shape>(&self, device: &D, buf: &Buffer<T, D, S>) {
-        unsafe { (*self.grads.get()).buf_requires_grad.remove(&*buf.id()) };
-        unregister_buf_copyable(unsafe { &mut (*self.grads.get()).no_grads_pool }, *buf.id());
-
-        // TODO
-        // FIXME if an alloc flag None buffer goes out of scope and it has used it's gradient buffer before,
-        // the gradient buffer will stay allocated
-        // - deallocate directly -> however, a user storing the id maybe wants to retrieve the grad buf
-        // - add to id set of potentially unused buffers
-
-        self.modules.on_drop_buffer(device, buf)
     }
 }
 

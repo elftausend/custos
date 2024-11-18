@@ -11,8 +11,8 @@ use wrapper::MaybeData;
 use crate::{
     op_hint::OpHint, register_buf_copyable, unregister_buf_copyable, AddLayer, AddOperation, Alloc,
     AnyOp, BoxedShallowCopy, Buffer, CachedBuffers, Cursor, Device, ExecNow, HasId, HasModules, Id,
-    IsShapeIndep, Module, NoHasher, OnDropBuffer, OnNewBuffer, Parents, ReplaceBuf, Retrieve,
-    RunModule, SetOpHint, Setup, ShallowCopy, Shape, UniqueId, Unit, UseGpuOrCpu,
+    IsShapeIndep, Module, NoHasher, OnNewBuffer, Parents, ReplaceBuf, Retrieve,
+    RunModule, SetOpHint, Setup, ShallowCopy, Shape, UniqueId, Unit, UseGpuOrCpu, WrappedData,
 };
 
 #[cfg(feature = "graph")]
@@ -182,18 +182,6 @@ impl<T, Mods: RunModule<D>, D: LazyRun + Device + 'static> RunModule<D> for Lazy
         self.call_lazily::<D>(device)?;
         device.run()?;
         self.modules.run(device)
-    }
-}
-
-impl<T2, Mods: OnDropBuffer> OnDropBuffer for Lazy<'_, Mods, T2> {
-    #[inline]
-    fn on_drop_buffer<T: crate::Unit, D: Device, S: Shape>(
-        &self,
-        device: &D,
-        buf: &Buffer<T, D, S>,
-    ) {
-        unregister_buf_copyable(&mut self.buffers.borrow_mut(), *buf.id());
-        self.modules.on_drop_buffer(device, buf)
     }
 }
 
@@ -412,7 +400,7 @@ impl<T, Mods> Cursor for Lazy<'_, Mods, T> {
     }
 }
 
-impl<T: Unit + 'static, D: Device + 'static, S: Shape, Mods: OnDropBuffer, T2> ReplaceBuf<T, D, S>
+impl<T: Unit + 'static, D: Device + 'static, S: Shape, Mods: WrappedData, T2> ReplaceBuf<T, D, S>
     for Lazy<'_, Mods, T2>
 {
     #[inline]

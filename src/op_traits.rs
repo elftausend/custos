@@ -1,6 +1,6 @@
 use core::ops::{Bound, Range, RangeBounds};
 
-use crate::{shape::Shape, Alloc, Buffer, Device, OnDropBuffer, OnNewBuffer, Unit};
+use crate::{shape::Shape, Alloc, Buffer, Device, OnNewBuffer, Unit};
 
 /// Trait for implementing the clear() operation for the compute devices.
 pub trait ClearBuf<T: Unit, S: Shape = (), D: Device = Self> {
@@ -44,7 +44,7 @@ pub trait CopySlice<T: Unit, D: Device = Self>: Sized + Device {
         range: R,
     ) -> Buffer<'a, T, Self>
     where
-        Self: Alloc<T> + OnDropBuffer + OnNewBuffer<'a, T, Self, ()>,
+        Self: Alloc<T> + OnNewBuffer<'a, T, Self, ()>,
     {
         let range = bounds_to_range(range, buf.len());
         let mut copied = Buffer::new(self, range.end - range.start);

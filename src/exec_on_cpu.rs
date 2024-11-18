@@ -286,6 +286,8 @@ where
 
 #[cfg(test)]
 mod tests {
+    use crate::WrappedData;
+
     #[cfg(feature = "opencl")]
     #[test]
     fn test_to_cpu_macro() {
@@ -441,7 +443,7 @@ mod tests {
 
     impl<Mods, T> AddEw<T> for crate::CPU<Mods>
     where
-        Mods: crate::hooks::OnDropBuffer + for<'a> crate::Retrieve<'a, Self, T> + 'static,
+        Mods: WrappedData + for<'a> crate::Retrieve<'a, Self, T> + 'static,
         Self::Base<T, ()>: core::ops::Deref<Target = [T]>,
         T: 'static + core::ops::Add<Output = T> + Copy,
     {

@@ -11,7 +11,7 @@ use crate::CPU;
 
 use crate::{
     flag::AllocFlag, shape::Shape, Alloc, Base, ClearBuf, CloneBuf, Device, DevicelessAble, HasId,
-    IsShapeIndep, OnDropBuffer, OnNewBuffer, PtrType, Read, ReplaceBuf, ShallowCopy, ToDim, Unit,
+    IsShapeIndep, OnNewBuffer, PtrType, Read, ReplaceBuf, ShallowCopy, ToDim, Unit,
     WrappedData, WriteBuf, ZeroGrad,
 };
 
@@ -105,9 +105,6 @@ impl<'a, T: Unit, D: Device, S: Shape> Buffer<'a, T, D, S> {
     where
         D: OnNewBuffer<'a, T, D, S>,
     {
-        if let Some(device) = self.device {
-            device.on_drop_buffer(device, &self);
-        }
         let mut buf = self;
         buf.set_requires_grad(require_grad);
         unsafe { buf.device().on_new_buffer(buf.device(), &mut buf) };
@@ -263,12 +260,6 @@ impl<'a, T: Unit, D: Device, S: Shape> Buffer<'a, T, D, S> {
         D::Data<'b, T, S>: Default,
         D::Base<T, S>: ShallowCopy,
     {
-        if let Some(device) = self.device {
-            if self.data.flag() != AllocFlag::None {
-                device.on_drop_buffer(device, &self)
-            }
-        }
-
         unsafe { self.set_flag(AllocFlag::Wrapper) };
         let mut base = unsafe { self.base().shallow() };
         unsafe { base.set_flag(AllocFlag::None) };
@@ -436,13 +427,6 @@ impl<'a, T: Unit, D: Device, S: Shape> Buffer<'a, T, D, S> {
     {
         let val = ManuallyDrop::new(self);
 
-        // Buffer is moved - it would stay useable on the previous device without on_drop_buffer
-        if let Some(previous_device) = val.device {
-            if val.data.flag() != AllocFlag::None {
-                previous_device.on_drop_buffer(previous_device, &val)
-            }
-        }
-
         let mut base = unsafe { val.base().shallow() };
         unsafe { base.set_flag(AllocFlag::None) };
 
@@ -543,7 +527,7 @@ impl<'a, T: Unit, S: Shape> Buffer<'a, T, CPU<Base>, S> {
 }
 
 #[cfg(feature = "cpu")]
-impl<'a, Mods: OnDropBuffer, T: Unit, S: Shape> Buffer<'a, T, CPU<Mods>, S> {
+impl<'a, Mods: WrappedData, T: Unit, S: Shape> Buffer<'a, T, CPU<Mods>, S> {
     /// Constructs a `Buffer` out of a host pointer and a length.
     /// The provided device can be used to shorten operation calls.
     ///

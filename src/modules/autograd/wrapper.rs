@@ -27,6 +27,12 @@ impl<'a, Data: HasId + Debug, T> Debug for ReqGradWrapper<'a, Data, T> {
 impl<'a, Data: HasId, T> Drop for ReqGradWrapper<'a, Data, T> {
     #[inline]
     fn drop(&mut self) {
+        // TODO
+        // FIXME if an alloc flag None buffer goes out of scope and it has used it's gradient buffer before,
+        // the gradient buffer will stay allocated
+        // - deallocate directly -> however, a user storing the id maybe wants to retrieve the grad buf
+        // - add to id set of potentially unused buffers
+
         if let Some(remove_id_cb) = &self.remove_id_cb {
             remove_id_cb(*self.id())
         }
