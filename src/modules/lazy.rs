@@ -356,7 +356,8 @@ where
                 device: Some(device),
             };
 
-            let buffer: Buffer<'static, T, D, S> = unsafe { core::mem::transmute(buffer) };
+            // TODO: should be removeable later 
+            let buffer: Buffer<'static, T, D, S> = unsafe { core::mem::transmute::<Buffer<T, D, S>, Buffer<T, D, S>>(buffer) };
             allocated_ids.insert(id.id);
             buffers.insert(id.id, Box::new(buffer));
         }));
