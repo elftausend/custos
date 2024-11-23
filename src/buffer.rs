@@ -11,8 +11,8 @@ use crate::CPU;
 
 use crate::{
     flag::AllocFlag, shape::Shape, Alloc, Base, ClearBuf, CloneBuf, Device, DevicelessAble, HasId,
-    IsShapeIndep, OnNewBuffer, PtrType, Read, ReplaceBuf, ShallowCopy, ToDim, Unit,
-    WrappedData, WriteBuf, ZeroGrad,
+    IsShapeIndep, OnNewBuffer, PtrType, Read, ReplaceBuf, ShallowCopy, ToDim, Unit, WrappedData,
+    WriteBuf, ZeroGrad,
 };
 
 pub use self::num::Num;
@@ -452,7 +452,7 @@ impl<'a, T: Unit, D: Device, S: Shape> Buffer<'a, T, D, S> {
     where
         D::Data<'a, T, S>: Default + ToDim<Out = D::Data<'a, T, O>>,
     {
-        let data = std::mem::take(&mut self.data).to_dim();
+        let data = core::mem::take(&mut self.data).to_dim();
         Buffer {
             data,
             device: self.device,

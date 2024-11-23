@@ -106,7 +106,7 @@ impl<'a, Data: PtrType + HasId, T: Unit> PtrType for LazyWrapper<'a, Data, T> {
         self.maybe_data
             .data()
             .map(|data| data.flag())
-            .unwrap_or(AllocFlag::Lazy)
+            .unwrap_or(AllocFlag::None)
     }
 
     #[inline]

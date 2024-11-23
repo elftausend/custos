@@ -1,12 +1,10 @@
-// mod fast_cache;
-mod fast_cache2;
+mod fast_cache;
+mod length_cache;
+
 use core::cell::{Ref, RefMut};
 
-// pub use fast_cache::*;
-pub use fast_cache2::*;
-
-// mod length_cache;
-// pub use length_cache::*;
+pub use fast_cache::*;
+pub use length_cache::*;
 
 use super::{State, UniqueId};
 

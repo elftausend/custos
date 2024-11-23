@@ -1,7 +1,7 @@
 use crate::{
     flag::AllocFlag, AddGradFn, AddOperation, Alloc, CachedBuffers, Cursor, Device, ExecNow, HasId,
-    HashLocation, Module, OnNewBuffer, Parents, PtrType, ReplaceBuf, Retrieve,
-    SetOpHint, Setup, Shape, Unit, WrappedData,
+    HashLocation, Module, OnNewBuffer, Parents, PtrType, ReplaceBuf, Retrieve, SetOpHint, Setup,
+    Shape, Unit, WrappedData,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]

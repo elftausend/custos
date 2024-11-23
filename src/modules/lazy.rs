@@ -11,8 +11,8 @@ use wrapper::MaybeData;
 use crate::{
     op_hint::OpHint, register_buf_copyable, unregister_buf_copyable, AddLayer, AddOperation, Alloc,
     AnyOp, BoxedShallowCopy, Buffer, CachedBuffers, Cursor, Device, ExecNow, HasId, HasModules, Id,
-    IsShapeIndep, Module, NoHasher, OnNewBuffer, Parents, ReplaceBuf, Retrieve,
-    RunModule, SetOpHint, Setup, ShallowCopy, Shape, UniqueId, Unit, UseGpuOrCpu, WrappedData,
+    IsShapeIndep, Module, NoHasher, OnNewBuffer, Parents, ReplaceBuf, Retrieve, RunModule,
+    SetOpHint, Setup, ShallowCopy, Shape, UniqueId, Unit, UseGpuOrCpu, WrappedData,
 };
 
 #[cfg(feature = "graph")]
@@ -336,7 +336,7 @@ where
 
             // safety: AllocFlag::Lazy prevents accessing device when dropping
             let base = device
-                .alloc::<S>(id.len, crate::flag::AllocFlag::Lazy)
+                .alloc::<S>(id.len, crate::flag::AllocFlag::None)
                 .unwrap();
             let data = device.default_base_to_data_unbound(base);
             let buffer = Buffer {
@@ -344,8 +344,9 @@ where
                 device: Some(device),
             };
 
-            // TODO: should be removeable later 
-            let buffer: Buffer<'static, T, D, S> = unsafe { core::mem::transmute::<Buffer<T, D, S>, Buffer<T, D, S>>(buffer) };
+            // TODO: should be removeable later
+            let buffer: Buffer<'static, T, D, S> =
+                unsafe { core::mem::transmute::<Buffer<T, D, S>, Buffer<T, D, S>>(buffer) };
             allocated_ids.insert(id.id);
             buffers.insert(id.id, Box::new(buffer));
         }));

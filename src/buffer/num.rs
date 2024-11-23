@@ -4,8 +4,8 @@ use core::{
 };
 
 use crate::{
-    flag::AllocFlag, Alloc, Buffer, CloneBuf, Device, HasId, IsBasePtr, PtrType,
-    ShallowCopy, Unit, WrappedData,
+    flag::AllocFlag, Alloc, Buffer, CloneBuf, Device, HasId, IsBasePtr, PtrType, ShallowCopy, Unit,
+    WrappedData,
 };
 
 #[derive(Debug, Default)]

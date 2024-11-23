@@ -6,9 +6,9 @@ use core::{
 
 use crate::{
     AddGradFn, AddLayer, AddOperation, Alloc, Buffer, Cache, CachedBuffers, CowMut, Cursor, Device,
-    Downcast, ExecNow, FastCache2, Guard, HasModules, IsBasePtr, IsShapeIndep, LockInfo, Module,
-    OnNewBuffer, Parents, PtrType, RemoveLayer, ReplaceBuf, Retrieve, RunModule,
-    SetOpHint, Setup, ShallowCopy, Shape, State, UniqueId, Unit, WrappedData
+    Downcast, ExecNow, FastCache, Guard, HasModules, IsBasePtr, IsShapeIndep, LockInfo, Module,
+    OnNewBuffer, Parents, PtrType, RemoveLayer, ReplaceBuf, Retrieve, RunModule, SetOpHint, Setup,
+    ShallowCopy, Shape, State, UniqueId, Unit, WrappedData,
 };
 
 #[cfg(feature = "graph")]
@@ -17,7 +17,7 @@ use crate::{DeviceError, Optimize};
 // creator struct, however =>
 // TODO: could remove D generic and therefore CachedModule
 #[derive(Debug, PartialEq, Eq, Default)]
-pub struct Cached<Mods, CacheType = FastCache2> {
+pub struct Cached<Mods, CacheType = FastCache> {
     pd: PhantomData<Mods>,
     cache_type: PhantomData<CacheType>,
 }
@@ -74,7 +74,7 @@ where
 // impl<Mods> OnDropBuffer for Cached<Mods> {}
 
 // TODO: could remove D generic and therefore CachedModule
-pub struct CachedModule<Mods, D: Device, CacheType = FastCache2> {
+pub struct CachedModule<Mods, D: Device, CacheType = FastCache> {
     pub modules: Mods,
     pub cache: CacheType,
     pub(crate) pd: PhantomData<D>,

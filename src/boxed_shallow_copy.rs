@@ -1,4 +1,4 @@
-use std::any::Any;
+use std::{any::Any, sync::Arc};
 
 use crate::{Downcast, ShallowCopy};
 

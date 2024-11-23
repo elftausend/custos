@@ -5,7 +5,9 @@
 use core::{cell::RefMut, fmt::Debug, ops::RangeBounds};
 
 use crate::{
-    op_hint::OpHint, range::{AsRange, CursorRange}, AnyOp, HasId, Parents, Shape, UniqueId, Unit, WrappedData, ZeroGrad, CPU
+    op_hint::OpHint,
+    range::{AsRange, CursorRange},
+    AnyOp, HasId, Parents, Shape, UniqueId, Unit, WrappedData, ZeroGrad, CPU,
 };
 
 #[cfg(feature = "cached")]

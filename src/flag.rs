@@ -9,7 +9,6 @@ pub enum AllocFlag {
     None,
     /// Wraps around another pointer. Such buffers are not deallocated when they go out of scope.
     Wrapper,
-    Lazy,
 }
 
 impl PartialEq for AllocFlag {
@@ -21,6 +20,6 @@ impl PartialEq for AllocFlag {
 impl AllocFlag {
     #[inline]
     pub fn continue_deallocation(&self) -> bool {
-        matches!(self, AllocFlag::None | AllocFlag::Lazy)
+        matches!(self, AllocFlag::None)
     }
 }
