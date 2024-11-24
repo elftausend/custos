@@ -63,14 +63,14 @@ impl<Mods: WrappedData> Device for Stack<Mods> {
         data
     }
 
-    #[inline] 
+    #[inline]
     fn default_base_to_data<'a, T: Unit, S: Shape>(
         &'a self,
         base: Self::Base<T, S>,
     ) -> Self::Data<'a, T, S> {
         self.wrap_in_base(base)
     }
-    
+
     fn default_base_to_data_unbound<'a, T: Unit, S: Shape>(
         &self,
         base: Self::Base<T, S>,

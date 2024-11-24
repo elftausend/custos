@@ -8,7 +8,8 @@ use core::ops::{AddAssign, Deref, DerefMut};
 pub use stack_device::*;
 
 use crate::{
-    cpu_stack_ops::clear_slice, ApplyFunction, Buffer, ClearBuf, Device, Eval, MayToCLSource, Resolve, Retrieve, Retriever, Shape, ToVal, UnaryGrad, Unit, WrappedData, ZeroGrad
+    cpu_stack_ops::clear_slice, ApplyFunction, Buffer, ClearBuf, Device, Eval, MayToCLSource,
+    Resolve, Retrieve, Retriever, Shape, ToVal, UnaryGrad, Unit, WrappedData, ZeroGrad,
 };
 
 // #[impl_stack]
@@ -44,7 +45,11 @@ where
     D::Base<T, S>: Deref<Target = [T]>,
     S: Shape,
 {
-    fn apply_fn<F>(&'a self, buf: &Buffer<T, D, S>, f: impl Fn(Resolve<T>) -> F) -> Buffer<'a, T, Self, S>
+    fn apply_fn<F>(
+        &'a self,
+        buf: &Buffer<T, D, S>,
+        f: impl Fn(Resolve<T>) -> F,
+    ) -> Buffer<'a, T, Self, S>
     where
         F: Eval<T> + MayToCLSource,
     {
