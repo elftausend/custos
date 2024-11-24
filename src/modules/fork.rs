@@ -1,8 +1,5 @@
 use crate::{
-    impl_remove_layer, pass_down_add_operation, pass_down_exec_now, pass_down_replace_buf_module,
-    pass_down_tape_actions, AddLayer, Alloc, Buffer, Device, HasId, HasModules, IsShapeIndep,
-    Module, OnDropBuffer, OnNewBuffer, Parents, PtrType, Retrieve, RunModule, Setup, Shape, Unit,
-    UseGpuOrCpu, WrappedData, VERSION,
+    impl_remove_layer, pass_down_add_operation, pass_down_exec_now, pass_down_replace_buf_module, pass_down_tape_actions, AddLayer, Alloc, Buffer, Device, HasId, HasModules, IsBasePtr, IsShapeIndep, Module, OnNewBuffer, Parents, PtrType, Retrieve, RunModule, Setup, Shape, Unit, UseGpuOrCpu, WrappedData, VERSION
 };
 use core::cell::{Cell, RefCell};
 
@@ -28,22 +25,27 @@ pub struct Fork<Mods> {
 }
 
 impl<Mods: WrappedData> WrappedData for Fork<Mods> {
-    type Wrap<T: Unit, Base: HasId + PtrType> = Mods::Wrap<T, Base>;
+    type Wrap<'a, T: Unit, Base: IsBasePtr> = Mods::Wrap<'a, T, Base>;
 
     #[inline]
-    fn wrap_in_base<T: Unit, Base: HasId + PtrType>(&self, base: Base) -> Self::Wrap<T, Base> {
+    fn wrap_in_base<'a, T: Unit, Base: IsBasePtr>(&'a self, base: Base) -> Self::Wrap<'a, T, Base> {
         self.modules.wrap_in_base(base)
     }
 
     #[inline]
-    fn wrapped_as_base<T: Unit, Base: HasId + PtrType>(wrap: &Self::Wrap<T, Base>) -> &Base {
+    fn wrap_in_base_unbound<'a, T: Unit, Base: IsBasePtr>(&self, base: Base) -> Self::Wrap<'a, T, Base> {
+        self.modules.wrap_in_base_unbound(base)
+    }
+
+    #[inline]
+    fn wrapped_as_base<'a, 'b, T: Unit, Base: IsBasePtr>(wrap: &'b Self::Wrap<'a, T, Base>) -> &'b Base {
         Mods::wrapped_as_base(wrap)
     }
 
     #[inline]
-    fn wrapped_as_base_mut<T: Unit, Base: HasId + PtrType>(
-        wrap: &mut Self::Wrap<T, Base>,
-    ) -> &mut Base {
+    fn wrapped_as_base_mut<'a, 'b, T: Unit, Base: IsBasePtr>(
+        wrap: &'b mut Self::Wrap<'a, T, Base>,
+    ) -> &'b mut Base {
         Mods::wrapped_as_base_mut(wrap)
     }
 }
@@ -86,22 +88,11 @@ crate::pass_down_cursor!(Fork);
 pass_down_add_operation!(Fork);
 pass_down_exec_now!(Fork);
 
-impl<Mods: OnDropBuffer> OnDropBuffer for Fork<Mods> {
-    #[inline]
-    fn on_drop_buffer<T: Unit, D: crate::Device, S: crate::Shape>(
-        &self,
-        device: &D,
-        buf: &crate::Buffer<T, D, S>,
-    ) {
-        self.modules.on_drop_buffer(device, buf)
-    }
-}
-
 impl<'a, Mods: OnNewBuffer<'a, T, D, S>, T: Unit, D: Device, S: Shape> OnNewBuffer<'a, T, D, S>
     for Fork<Mods>
 {
     #[inline]
-    unsafe fn on_new_buffer(&self, device: &'a D, new_buf: &crate::Buffer<'a, T, D, S>) {
+    unsafe fn on_new_buffer(&'a self, device: &'a D, new_buf: &mut crate::Buffer<'a, T, D, S>) {
         self.modules.on_new_buffer(device, new_buf)
     }
 }
