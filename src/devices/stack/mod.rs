@@ -8,8 +8,7 @@ use core::ops::{AddAssign, Deref, DerefMut};
 pub use stack_device::*;
 
 use crate::{
-    cpu_stack_ops::clear_slice, ApplyFunction, Buffer, ClearBuf, Device, Eval, MayToCLSource,
-    OnDropBuffer, Resolve, Retrieve, Retriever, Shape, ToVal, UnaryGrad, Unit, ZeroGrad,
+    cpu_stack_ops::clear_slice, ApplyFunction, Buffer, ClearBuf, Device, Eval, MayToCLSource, Resolve, Retrieve, Retriever, Shape, ToVal, UnaryGrad, Unit, WrappedData, ZeroGrad
 };
 
 // #[impl_stack]
@@ -29,7 +28,7 @@ where
 impl<Mods, T> ZeroGrad<T> for Stack<Mods>
 where
     T: Unit + Default,
-    Mods: OnDropBuffer,
+    Mods: WrappedData,
 {
     #[inline]
     fn zero_grad<S: Shape>(&self, data: &mut Self::Base<T, S>) {
@@ -37,15 +36,15 @@ where
     }
 }
 
-impl<Mods, T, D, S> ApplyFunction<T, S, D> for Stack<Mods>
+impl<'a, Mods, T, D, S> ApplyFunction<'a, T, S, D> for Stack<Mods>
 where
-    Mods: Retrieve<Self, T, S>,
+    Mods: Retrieve<'a, Self, T, S>,
     T: Unit + Copy + Default + ToVal + 'static,
     D: Device,
     D::Base<T, S>: Deref<Target = [T]>,
     S: Shape,
 {
-    fn apply_fn<F>(&self, buf: &Buffer<T, D, S>, f: impl Fn(Resolve<T>) -> F) -> Buffer<T, Self, S>
+    fn apply_fn<F>(&'a self, buf: &Buffer<T, D, S>, f: impl Fn(Resolve<T>) -> F) -> Buffer<'a, T, Self, S>
     where
         F: Eval<T> + MayToCLSource,
     {
@@ -59,7 +58,7 @@ where
 
 impl<Mods, T, D, S> UnaryGrad<T, S, D> for Stack<Mods>
 where
-    Mods: OnDropBuffer,
+    Mods: WrappedData,
     T: Unit + AddAssign + Copy + core::ops::Mul<Output = T>,
     S: Shape,
     D: Device,
@@ -90,8 +89,8 @@ mod tests {
 
     use super::stack_device::Stack;
 
-    pub trait AddBuf<T: Unit, D: Device = Self, S: Shape = ()>: Device {
-        fn add(&self, lhs: &Buffer<T, D, S>, rhs: &Buffer<T, D, S>) -> Buffer<T, Self, S>;
+    pub trait AddBuf<'a, T: Unit, D: Device = Self, S: Shape = ()>: Device {
+        fn add(&'a self, lhs: &Buffer<T, D, S>, rhs: &Buffer<T, D, S>) -> Buffer<'a, T, Self, S>;
     }
 
     /*// Without stack support
@@ -111,13 +110,13 @@ mod tests {
         }
     }*/
 
-    impl<Mods: Retrieve<Self, T>, T, D> AddBuf<T, D> for CPU<Mods>
+    impl<'a, Mods: Retrieve<'a, Self, T>, T, D> AddBuf<'a, T, D> for CPU<Mods>
     where
         D: Device,
         D::Base<T, ()>: Deref<Target = [T]>,
         T: Unit + Add<Output = T> + Copy,
     {
-        fn add(&self, lhs: &Buffer<T, D>, rhs: &Buffer<T, D>) -> Buffer<T, Self> {
+        fn add(&'a self, lhs: &Buffer<T, D>, rhs: &Buffer<T, D>) -> Buffer<'a, T, Self> {
             let len = core::cmp::min(lhs.len(), rhs.len());
 
             let mut out = self.retrieve(len, (lhs, rhs)).unwrap();
@@ -126,14 +125,14 @@ mod tests {
         }
     }
 
-    impl<T, D, S: Shape> AddBuf<T, D, S> for Stack
+    impl<'a, T, D, S: Shape> AddBuf<'a, T, D, S> for Stack
     where
         Stack: Alloc<T>,
         D: Device,
         D::Base<T, S>: Deref<Target = [T]>,
         T: Unit + Add<Output = T> + Copy + Default,
     {
-        fn add(&self, lhs: &Buffer<T, D, S>, rhs: &Buffer<T, D, S>) -> Buffer<T, Self, S> {
+        fn add(&'a self, lhs: &Buffer<T, D, S>, rhs: &Buffer<T, D, S>) -> Buffer<'a, T, Self, S> {
             let mut out = self.retrieve(S::LEN, (lhs, rhs)).unwrap();
 
             for i in 0..S::LEN {
