@@ -1,16 +1,16 @@
 use core::{any::Any, hash::BuildHasherDefault};
 use std::{collections::HashMap, ffi::c_void, sync::Arc};
 
-use crate::{AllocFlag, DeviceError, Unit};
+use crate::{AllocFlag, Cache, DeviceError, Unit};
 
 use super::CLPtr;
 use crate::{
-    Base, Buffer, CachedCPU, CachedModule, Cursor, Device, OnDropBuffer, OpenCL, Shape,
+    Base, Buffer, CachedCPU, CachedModule, Cursor, Device, WrappedData, OpenCL, Shape,
     UnifiedMemChain, UniqueId, CPU,
 };
 use min_cl::api::{create_buffer, MemFlags};
 
-impl<Mods: UnifiedMemChain<Self> + OnDropBuffer> UnifiedMemChain<Self> for OpenCL<Mods> {
+impl<Mods: UnifiedMemChain<Self> + WrappedData> UnifiedMemChain<Self> for OpenCL<Mods> {
     #[inline]
     fn construct_unified_buf_from_cpu_buf<'a, T: Unit + 'static, S: Shape>(
         &self,
@@ -22,11 +22,12 @@ impl<Mods: UnifiedMemChain<Self> + OnDropBuffer> UnifiedMemChain<Self> for OpenC
     }
 }
 
-impl<Mods, OclMods, SimpleMods> UnifiedMemChain<OpenCL<OclMods>>
-    for CachedModule<Mods, OpenCL<SimpleMods>>
+impl<Mods, CacheType, OclMods, SimpleMods> UnifiedMemChain<OpenCL<OclMods>>
+    for CachedModule<Mods, OpenCL<SimpleMods>, CacheType>
 where
-    OclMods: Cursor + OnDropBuffer,
-    SimpleMods: OnDropBuffer,
+    CacheType: Cache<Box<dyn Any>>,
+    OclMods: Cursor + WrappedData,
+    SimpleMods: WrappedData,
 {
     #[inline]
     fn construct_unified_buf_from_cpu_buf<'a, T: Unit + 'static, S: Shape>(
@@ -37,7 +38,7 @@ where
         construct_buffer(
             device,
             no_drop_buf,
-            &mut self.cache.borrow_mut().nodes,
+            &self.cache
             device.cursor() as UniqueId,
         )
     }
@@ -65,8 +66,8 @@ pub unsafe fn to_cached_unified<OclMods, CpuMods, T, S>(
     id: crate::UniqueId,
 ) -> crate::Result<*mut c_void>
 where
-    OclMods: OnDropBuffer,
-    CpuMods: OnDropBuffer,
+    OclMods: WrappedData,
+    CpuMods: WrappedData,
     T: Unit + 'static,
     S: Shape,
 {
@@ -117,15 +118,16 @@ where
 ///     Ok(())
 /// }
 /// ```
-pub fn construct_buffer<'a, OclMods, CpuMods, T, S>(
+pub fn construct_buffer<'a, OclMods, CpuMods, T, S, CacheType>(
     device: &'a OpenCL<OclMods>,
     no_drop: Buffer<'a, T, CPU<CpuMods>, S>,
-    cache: &mut HashMap<crate::UniqueId, Arc<dyn Any>, BuildHasherDefault<crate::NoHasher>>,
+    cache: &CacheType,
     id: crate::UniqueId,
 ) -> crate::Result<Buffer<'a, T, OpenCL<OclMods>, S>>
 where
-    OclMods: Cursor + OnDropBuffer,
-    CpuMods: OnDropBuffer,
+    OclMods: Cursor + WrappedData,
+    CacheType: Cache<Box<dyn Any>>,
+    CpuMods: WrappedData,
     T: Unit + 'static,
     S: Shape,
 {
@@ -138,11 +140,11 @@ where
     unsafe { device.bump_cursor() };
 
     // if buffer was already converted, return the cache entry.
-    if let Some(rawcl) = cache.get(&id) {
+    if let Some(rawcl) = cache.get(id, no_drop.len) {
         let rawcl = rawcl
             .downcast_ref::<<OpenCL<OclMods> as Device>::Base<T, S>>()
             .unwrap();
-        let data = device.base_to_data::<T, S>(CLPtr {
+        let data = device.default_base_to_data::<T, S>(CLPtr {
             ptr: rawcl.ptr,
             host_ptr: rawcl.host_ptr,
             len: no_drop.len(),
@@ -156,7 +158,7 @@ where
     let (host_ptr, len) = (no_drop.base().ptr, no_drop.len());
     let ptr = unsafe { to_cached_unified(device, no_drop, cache, id)? };
 
-    let data = device.base_to_data::<T, S>(CLPtr {
+    let data = device.default_base_to_data::<T, S>(CLPtr {
         ptr,
         host_ptr,
         len,

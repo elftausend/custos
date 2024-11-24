@@ -1,4 +1,4 @@
-use crate::{number::Number, Buffer, OnDropBuffer, OpenCL, Shape, Unit};
+use crate::{number::Number, Buffer, OpenCL, Shape, Unit, WrappedData};
 use min_cl::{
     api::{set_kernel_arg, OCLErrorKind},
     CLDevice,
@@ -77,14 +77,14 @@ pub trait AsClCvoidPtr {
     }
 }
 
-impl<'a, Mods: OnDropBuffer, T: Unit, S: Shape> AsClCvoidPtr for &Buffer<'a, T, OpenCL<Mods>, S> {
+impl<'a, Mods: WrappedData, T: Unit, S: Shape> AsClCvoidPtr for &Buffer<'a, T, OpenCL<Mods>, S> {
     #[inline]
     fn as_cvoid_ptr(&self) -> *const c_void {
         self.base().ptr
     }
 }
 
-impl<'a, Mods: OnDropBuffer, T: Unit, S: Shape> AsClCvoidPtr for Buffer<'a, T, OpenCL<Mods>, S> {
+impl<'a, Mods: WrappedData, T: Unit, S: Shape> AsClCvoidPtr for Buffer<'a, T, OpenCL<Mods>, S> {
     #[inline]
     fn as_cvoid_ptr(&self) -> *const c_void {
         self.base().ptr

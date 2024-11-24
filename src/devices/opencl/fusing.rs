@@ -1,6 +1,6 @@
-use crate::{OnDropBuffer, OpenCL, UnaryFusing};
+use crate::{WrappedData, OpenCL, UnaryFusing};
 
-impl<Mods: OnDropBuffer> UnaryFusing for OpenCL<Mods> {
+impl<Mods: WrappedData> UnaryFusing for OpenCL<Mods> {
     #[cfg(feature = "lazy")]
     #[cfg(feature = "graph")]
     #[inline]

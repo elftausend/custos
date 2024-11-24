@@ -548,7 +548,7 @@ impl<'a, Mods: WrappedData, T: Unit, S: Shape> Buffer<'a, T, CPU<Mods>, S> {
 }
 
 #[cfg(feature = "opencl")]
-impl<'a, Mods: OnDropBuffer, T: Unit, S: Shape> Buffer<'a, T, crate::OpenCL<Mods>, S> {
+impl<'a, Mods: WrappedData, T: Unit, S: Shape> Buffer<'a, T, crate::OpenCL<Mods>, S> {
     /// Returns the OpenCL pointer of the `Buffer`.
     #[inline]
     pub fn cl_ptr(&self) -> *mut core::ffi::c_void {
@@ -561,7 +561,7 @@ impl<'a, Mods: OnDropBuffer, T: Unit, S: Shape> Buffer<'a, T, crate::OpenCL<Mods
 }
 
 #[cfg(feature = "cuda")]
-impl<'a, Mods: OnDropBuffer, T: Unit> Buffer<'a, T, crate::CUDA<Mods>> {
+impl<'a, Mods: WrappedData, T: Unit> Buffer<'a, T, crate::CUDA<Mods>> {
     /// Returns a non null CUDA pointer
     #[inline]
     pub fn cu_ptr(&self) -> u64 {

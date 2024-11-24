@@ -1,5 +1,5 @@
 use super::{cpu_exec_binary_mut, cpu_exec_reduce, cpu_exec_unary_mut};
-use crate::{Buffer, CachedCPU, OnDropBuffer, OpenCL, Retrieve, UnifiedMemChain, Unit, CPU};
+use crate::{Buffer, CachedCPU, WrappedData, OpenCL, Retrieve, UnifiedMemChain, Unit, CPU};
 
 /// If the current device supports unified memory, data is not deep-copied.
 /// This is way faster than [cpu_exec_unary], as new memory is not allocated.
@@ -13,7 +13,7 @@ pub fn cpu_exec_unary_may_unified<'a, T, F, Mods>(
 where
     T: Unit + Clone + Default + 'static,
     F: for<'b> Fn(&'b CachedCPU, &Buffer<'_, T, CachedCPU>) -> Buffer<'b, T, CachedCPU>,
-    Mods: OnDropBuffer + Retrieve<'a, OpenCL<Mods>, T> + UnifiedMemChain<OpenCL<Mods>> + 'static,
+    Mods: WrappedData + Retrieve<'a, OpenCL<Mods>, T> + UnifiedMemChain<OpenCL<Mods>> + 'static,
 {
     let cpu = &device.cpu;
     crate::cl_cpu_exec_unified!(device, cpu, x; f(&cpu, &x))
@@ -23,7 +23,7 @@ where
 /// This is way faster than [cpu_exec_unary_mut], as new memory is not allocated.
 ///
 /// `cpu_exec_unary_may_unified` can be used interchangeably with [cpu_exec_unary_mut].
-pub fn cpu_exec_unary_may_unified_mut<'a, T, F, Mods: OnDropBuffer + 'static>(
+pub fn cpu_exec_unary_may_unified_mut<'a, T, F, Mods: WrappedData + 'static>(
     device: &'a OpenCL<Mods>,
     lhs: &mut Buffer<T, OpenCL<Mods>>,
     f: F,
@@ -71,7 +71,7 @@ where
 /// This is way faster than [cpu_exec_binary_mut], as new memory is not allocated.
 ///
 /// `cpu_exec_binary_may_unified` can be used interchangeably with [cpu_exec_binary_mut].
-pub fn cpu_exec_binary_may_unified_mut<'a, T, F, Mods: OnDropBuffer + 'static>(
+pub fn cpu_exec_binary_may_unified_mut<'a, T, F, Mods: WrappedData + 'static>(
     device: &'a OpenCL<Mods>,
     lhs: &mut Buffer<T, OpenCL<Mods>>,
     rhs: &Buffer<T, OpenCL<Mods>>,
@@ -111,7 +111,7 @@ pub fn cpu_exec_reduce_may_unified<T, F, Mods>(
 where
     T: Unit + Default + Clone,
     F: Fn(&CPU, &Buffer<T, CPU>) -> T,
-    Mods: OnDropBuffer + 'static,
+    Mods: WrappedData + 'static,
 {
     let cpu = CPU::<crate::Base>::new();
 
