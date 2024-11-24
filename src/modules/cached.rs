@@ -171,16 +171,13 @@ where
         S: Shape,
     {
         let entry = self.cache.get_mut(id, len)?;
-        let mut entry = RefMut::map(entry, |x| {
+        let entry = RefMut::map(entry, |x| {
             if x.is::<Mods::Wrap<'static, T, D::Base<T, S>>>() {
                 unsafe { Downcast::downcast_mut_unchecked::<Mods::Wrap<'a, T, D::Base<T, S>>>(x) }
             } else {
                 panic!()
             }
-            // x.downcast_mut::<Mods::Wrap<'static, T, D::Base<T, S>>>()
-            //     .unwrap()
         });
-        unsafe { entry.set_flag(crate::flag::AllocFlag::None) };
         Ok(Guard::new(CowMut::BorrowedMut(entry)))
     }
 }
