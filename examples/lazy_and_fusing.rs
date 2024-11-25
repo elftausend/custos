@@ -1,4 +1,4 @@
-use custos::{ApplyFunction, Base, Combiner, Device, ChangePtr, Lazy, OpenCL, Optimize, Run};
+use custos::{ApplyFunction, Base, ChangePtr, Combiner, Device, Lazy, OpenCL, Optimize, Run};
 
 fn main() {
     let device = OpenCL::<ChangePtr<Lazy<Base>>>::new(0).unwrap();

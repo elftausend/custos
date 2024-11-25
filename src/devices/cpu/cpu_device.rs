@@ -3,7 +3,7 @@ use core::convert::Infallible;
 use crate::{
     cpu::CPUPtr, flag::AllocFlag, impl_device_traits, AddLayer, Alloc, Base, Buffer, CloneBuf,
     Device, DeviceError, DevicelessAble, HasModules, IsShapeIndep, Module, OnNewBuffer,
-    RemoveLayer, Setup, Shape, UnaryFusing, Unit, WrappedData,
+    RemoveLayer, ReplaceBufPassDown, Setup, Shape, UnaryFusing, Unit, WrappedData,
 };
 
 pub trait IsCPU {}

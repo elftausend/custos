@@ -145,9 +145,11 @@ macro_rules! impl_device_traits {
         $crate::pass_down_grad_fn!($device);
         $crate::pass_down_tape_actions!($device);
 
-        $crate::pass_down_replace_buf_dev!($device);
         $crate::pass_down_cursor!($device);
         $crate::pass_down_cached_buffers!($device);
+
+        impl<Mods> $crate::ReplaceBufPassDown for $device<Mods> {}
+        impl<Mods> $crate::ExecNowPassDown for $device<Mods> {}
     };
 }
 
@@ -172,9 +174,9 @@ macro_rules! impl_retriever {
                 len: usize,
                 parents: impl $crate::Parents<NUM_PARENTS>,
             ) -> $crate::Result<Buffer<'a, T, Self, S>> {
-                let data = unsafe { self
+                let data = self
                     .modules
-                    .retrieve_entry::<NUM_PARENTS>(self, len, &parents)? };
+                    .retrieve_entry::<NUM_PARENTS>(self, len, &parents)?;
                 let buf = Buffer {
                     data,
                     device: Some(self),

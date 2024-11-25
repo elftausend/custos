@@ -12,10 +12,10 @@ use core::{
 
 use crate::{
     impl_remove_layer, pass_down_add_operation, pass_down_cached_buffers, pass_down_cursor,
-    pass_down_exec_now_module, pass_down_replace_buf_module, register_buf_copyable,
-    unregister_buf_copyable, AddGradFn, AddLayer, Alloc, Buffer, CachedBuffers, Device,
-    GradActions, HasId, HasModules, IsShapeIndep, Module, OnNewBuffer, Parents, Retrieve,
-    RunModule, Setup, ShallowCopy, Shape, TapeActions, Unit, WrappedData,
+    register_buf_copyable, unregister_buf_copyable, AddGradFn, AddLayer, Alloc, Buffer,
+    CachedBuffers, Device, ExecNowPassDown, GradActions, HasId, HasModules, IsShapeIndep, Module,
+    OnNewBuffer, Parents, ReplaceBufPassDown, Retrieve, RunModule, Setup, ShallowCopy, Shape,
+    TapeActions, Unit, WrappedData,
 };
 
 use self::wrapper::ReqGradWrapper;
@@ -301,11 +301,11 @@ impl<'a, NewMods, SD> AddLayer<NewMods, SD> for Autograd<'a, ()> {
     }
 }
 
+impl<Mods> ExecNowPassDown for Autograd<'_, Mods> {}
+impl<Mods> ReplaceBufPassDown for Autograd<'_, Mods> {}
 pass_down_cursor!(Autograd, 'dev, Mods);
 pass_down_add_operation!(Autograd, 'dev, Mods);
-pass_down_exec_now_module!(Autograd, 'dev, Mods);
 pass_down_cached_buffers!(Autograd, 'dev, Mods);
-pass_down_replace_buf_module!(Autograd, 'dev, Mods);
 
 impl<'a, Mods> HasModules for Autograd<'a, Mods> {
     type Mods = Mods;

@@ -1,4 +1,4 @@
-use crate::{WrappedData, OpenCL, UnaryFusing};
+use crate::{OpenCL, UnaryFusing, WrappedData};
 
 impl<Mods: WrappedData> UnaryFusing for OpenCL<Mods> {
     #[cfg(feature = "lazy")]

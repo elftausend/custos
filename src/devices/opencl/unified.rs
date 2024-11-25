@@ -5,8 +5,8 @@ use crate::{AllocFlag, Cache, DeviceError, Unit};
 
 use super::CLPtr;
 use crate::{
-    Base, Buffer, CachedCPU, CachedModule, Cursor, Device, WrappedData, OpenCL, Shape,
-    UnifiedMemChain, UniqueId, CPU,
+    Base, Buffer, CachedCPU, CachedModule, Cursor, Device, OpenCL, Shape, UnifiedMemChain,
+    UniqueId, WrappedData, CPU,
 };
 use min_cl::api::{create_buffer, MemFlags};
 
@@ -38,7 +38,7 @@ where
         construct_buffer(
             device,
             no_drop_buf,
-            &self.cache
+            &self.cache,
             device.cursor() as UniqueId,
         )
     }

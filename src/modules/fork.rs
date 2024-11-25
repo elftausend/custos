@@ -1,8 +1,7 @@
 use crate::{
-    impl_remove_layer, pass_down_add_operation, pass_down_exec_now, pass_down_replace_buf_module,
-    pass_down_tape_actions, AddLayer, Alloc, Buffer, Device, HasModules, IsBasePtr, IsShapeIndep,
-    Module, OnNewBuffer, Parents, Retrieve, RunModule, Setup, Shape, Unit, UseGpuOrCpu,
-    WrappedData, VERSION,
+    impl_remove_layer, pass_down_add_operation, pass_down_tape_actions, AddLayer, Alloc, Buffer,
+    Device, ExecNowPassDown, HasModules, IsBasePtr, IsShapeIndep, Module, OnNewBuffer, Parents,
+    ReplaceBufPassDown, Retrieve, RunModule, Setup, Shape, Unit, UseGpuOrCpu, WrappedData, VERSION,
 };
 use core::cell::{Cell, RefCell};
 
@@ -94,7 +93,8 @@ impl<Mods: Setup<D>, D: UseGpuOrCpu + ForkSetup> Setup<D> for Fork<Mods> {
 
 crate::pass_down_cursor!(Fork);
 pass_down_add_operation!(Fork);
-pass_down_exec_now!(Fork);
+
+impl<Mods> ExecNowPassDown for Fork<Mods> {}
 
 impl<'a, Mods: OnNewBuffer<'a, T, D, S>, T: Unit, D: Device, S: Shape> OnNewBuffer<'a, T, D, S>
     for Fork<Mods>
@@ -162,7 +162,7 @@ impl<Mods: RunModule<D>, D> RunModule<D> for Fork<Mods> {
     }
 }
 
-pass_down_replace_buf_module!(Fork);
+impl<Mods> ReplaceBufPassDown for Fork<Mods> {}
 impl_remove_layer!(Fork);
 
 impl<NewMods, SD> AddLayer<NewMods, SD> for Fork<()> {

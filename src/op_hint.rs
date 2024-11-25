@@ -119,7 +119,7 @@ mod tests {
     #[cfg(feature = "graph")]
     #[test]
     fn test_op_hint_unary_chain_fuse_graph() {
-        use crate::{ApplyFunction, Base, Combiner, Device, ChangePtr, Lazy, Optimize, Run, CPU};
+        use crate::{ApplyFunction, Base, ChangePtr, Combiner, Device, Lazy, Optimize, Run, CPU};
 
         let dev = CPU::<Graph<Lazy<Base>>>::new();
 
@@ -142,7 +142,9 @@ mod tests {
     #[cfg(feature = "graph")]
     #[test]
     fn test_op_hint_unary_chain_fuse_graph_cl() {
-        use crate::{ApplyFunction, Base, Combiner, Device, ChangePtr, Lazy, OpenCL, Optimize, Run};
+        use crate::{
+            ApplyFunction, Base, ChangePtr, Combiner, Device, Lazy, OpenCL, Optimize, Run,
+        };
 
         let dev = OpenCL::<Graph<Lazy<Base>>>::new(0).unwrap();
 
@@ -165,7 +167,7 @@ mod tests {
     #[cfg(feature = "graph")]
     #[test]
     fn test_op_hint_unary_chain_fuse_graph_cu() {
-        use crate::{ApplyFunction, Base, Combiner, Device, ChangePtr, Lazy, Optimize, Run, CUDA};
+        use crate::{ApplyFunction, Base, ChangePtr, Combiner, Device, Lazy, Optimize, Run, CUDA};
 
         let dev = CUDA::<Graph<Lazy<Base>>>::new(0).unwrap();
 
@@ -188,7 +190,7 @@ mod tests {
     #[cfg(feature = "graph")]
     #[test]
     fn test_op_hint_unary_chain_fuse_graph_complex() {
-        use crate::{ApplyFunction, Base, Combiner, Device, ChangePtr, Lazy, Optimize, Run, CPU};
+        use crate::{ApplyFunction, Base, ChangePtr, Combiner, Device, Lazy, Optimize, Run, CPU};
 
         let dev = CPU::<Graph<Lazy<Base>>>::new();
 
@@ -274,7 +276,9 @@ mod tests {
     fn test_op_hint_unary_chain_fuse_automatic_perf() {
         use std::time::Instant;
 
-        use crate::{ApplyFunction, Base, Combiner, Device, ChangePtr, Lazy, OpenCL, Optimize, Run};
+        use crate::{
+            ApplyFunction, Base, ChangePtr, Combiner, Device, Lazy, OpenCL, Optimize, Run,
+        };
 
         // let dev = crate::CPU::<Graph<Lazy<Base>>>::new();
         let dev = OpenCL::<Graph<Lazy<Base>>>::new(0).unwrap();

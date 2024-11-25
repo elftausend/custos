@@ -5,7 +5,10 @@
 use core::{cell::RefMut, fmt::Debug, ops::RangeBounds};
 
 use crate::{
-    location, op_hint::OpHint, range::{AsRange, CursorRange}, AnyOp, HasId, Parents, Shape, UniqueId, Unit, WrappedData, ZeroGrad, CPU
+    location,
+    op_hint::OpHint,
+    range::{AsRange, CursorRange},
+    AnyOp, HasId, Module, Parents, Shape, UniqueId, Unit, WrappedData, ZeroGrad, CPU,
 };
 
 #[cfg(feature = "cached")]
@@ -356,41 +359,20 @@ pub trait ReplaceBuf<T: Unit, D: Device, S: Shape>: WrappedData {
     fn replace_buf<'a, 'c>(&'c self, buffer: &'c Buffer<'a, T, D, S>) -> &'c Buffer<'a, T, D, S>;
 }
 
-#[macro_export]
-macro_rules! pass_down_replace_buf_dev {
-    ($device:ident) => {
-        impl<T: $crate::Unit, S: Shape, Mods: $crate::ReplaceBuf<T, Self, S>>
-            $crate::ReplaceBuf<T, Self, S> for $device<Mods>
-        {
-            #[inline]
-            fn replace_buf<'a, 'c>(
-                &'c self,
-                buffer: &'c Buffer<'a, T, Self, S>,
-            ) -> &'c Buffer<'a, T, Self, S> {
-                self.modules.replace_buf(buffer)
-            }
-        }
-    };
-}
+pub trait ReplaceBufPassDown {}
 
-#[macro_export]
-macro_rules! pass_down_replace_buf_module {
-    ($module:ident, $($generics:tt),*) => {
-        impl<'dev, T: $crate::Unit, S: Shape, Mods: $crate::ReplaceBuf<T, D, S>, D: $crate::Device>
-            $crate::ReplaceBuf<T, D, S> for $module<$($generics),*>
-        {
-            #[inline]
-            fn replace_buf<'a, 'c>(
-                &'c self,
-                buffer: &'c Buffer<'a, T, D, S>,
-            ) -> &'c Buffer<'a, T, D, S> {
-                self.modules.replace_buf(buffer)
-            }
-        }
-    };
-    ($module:ident) => {
-        $crate::pass_down_replace_buf_module!($module, Mods);
-    };
+impl<'b, T, S, D, Mod> ReplaceBuf<T, D, S> for Mod
+where
+    <Mod as HasModules>::Mods: ReplaceBuf<T, D, S>,
+    T: Unit,
+    S: Shape,
+    D: Device + 'b,
+    Mod: ReplaceBufPassDown + HasModules + WrappedData,
+{
+    #[inline]
+    fn replace_buf<'a, 'c>(&'c self, buffer: &'c Buffer<'a, T, D, S>) -> &'c Buffer<'a, T, D, S> {
+        self.modules().replace_buf(buffer)
+    }
 }
 
 pub trait AddOperation {
@@ -441,6 +423,20 @@ pub trait ExecNow<D = Self> {
     }
 }
 
+pub trait ExecNowPassDown {}
+
+impl<'b, D, Mod> ExecNow<D> for Mod
+where
+    <Mod as HasModules>::Mods: ExecNow<D>,
+    D: Device + 'b,
+    Mod: ExecNowPassDown + HasModules + WrappedData,
+{
+    #[inline]
+    fn exec_now(&self, device: &D, range_bounds: impl RangeBounds<usize>) -> crate::Result<()> {
+        self.modules().exec_now(device, range_bounds)
+    }
+}
+
 /// Implements the [`AddOperation`] trait for any supplied device. The `add_op` call is passed down to `self.modules`.
 #[macro_export]
 macro_rules! pass_down_add_operation {
@@ -481,45 +477,6 @@ macro_rules! pass_down_add_operation {
     ($module:ident) => {
         $crate::pass_down_add_operation!($module, Mods);
     };
-}
-
-#[macro_export]
-macro_rules! pass_down_exec_now_module {
-    ($device:ident, $($generics:tt),*) => {
-        impl<'dev, D: $crate::Device, Mods: $crate::ExecNow<D>> $crate::ExecNow<D> for $device<$($generics),*> {
-            #[inline]
-            fn exec_now(
-                &self,
-                device: &D,
-                range_bounds: impl core::ops::RangeBounds<usize>,
-            ) -> $crate::Result<()> {
-                self.modules.exec_now(device, range_bounds)
-            }
-        }
-    };
-    ($device:ident) => {
-        $crate::pass_down_exec_now_module!($device, Mods);
-    }
-}
-
-// FIXME may remove for device and another trait for devices (mind device ref in exec noe)
-#[macro_export]
-macro_rules! pass_down_exec_now {
-    ($device:ident, $($generics:tt),*) => {
-        impl<'dev, Mods: $crate::ExecNow<Self>> $crate::ExecNow<Self> for $device<$($generics),*> {
-            #[inline]
-            fn exec_now(
-                &self,
-                device: &Self,
-                range_bounds: impl core::ops::RangeBounds<usize>,
-            ) -> $crate::Result<()> {
-                self.modules.exec_now(device, range_bounds)
-            }
-        }
-    };
-    ($device:ident) => {
-        $crate::pass_down_exec_now!($device, Mods);
-    }
 }
 
 pub trait HasCPU<Mods> {

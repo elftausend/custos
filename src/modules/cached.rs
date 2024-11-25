@@ -6,9 +6,9 @@ use core::{
 
 use crate::{
     AddGradFn, AddLayer, AddOperation, Alloc, Buffer, Cache, CachedBuffers, CowMut, Cursor, Device,
-    Downcast, ExecNow, FastCache, Guard, HasModules, IsBasePtr, IsShapeIndep, LockInfo, Module,
-    OnNewBuffer, Parents, PtrType, RemoveLayer, ReplaceBuf, Retrieve, RunModule, SetOpHint, Setup,
-    ShallowCopy, Shape, State, UniqueId, Unit, WrappedData,
+    Downcast, ExecNowPassDown, FastCache, Guard, HasModules, IsBasePtr, IsShapeIndep, LockInfo,
+    Module, OnNewBuffer, Parents, RemoveLayer, ReplaceBufPassDown, Retrieve, RunModule, SetOpHint,
+    Setup, ShallowCopy, Shape, State, UniqueId, Unit, WrappedData,
 };
 
 #[cfg(feature = "graph")]
@@ -125,18 +125,7 @@ impl<CacheType, T, Mods: SetOpHint<T>, SD: Device> SetOpHint<T>
     }
 }
 
-impl<CacheType, D: Device, SD: Device, Mods: ExecNow<D>> ExecNow<D>
-    for CachedModule<Mods, SD, CacheType>
-{
-    #[inline]
-    fn exec_now(
-        &self,
-        device: &D,
-        range_bounds: impl core::ops::RangeBounds<usize>,
-    ) -> crate::Result<()> {
-        self.modules.exec_now(device, range_bounds)
-    }
-}
+impl<Mods, SD: Device, CacheType> ExecNowPassDown for CachedModule<Mods, SD, CacheType> {}
 
 impl<'a, CacheType, T, D, Mods, SD, S> OnNewBuffer<'a, T, D, S>
     for CachedModule<Mods, SD, CacheType>
@@ -463,20 +452,7 @@ impl<CacheType, Mods: WrappedData, D: Device> CachedBuffers for CachedModule<Mod
     }
 }
 
-impl<CacheType: 'static, Mods, D, T, S, SD> ReplaceBuf<T, D, S>
-    for CachedModule<Mods, SD, CacheType>
-where
-    T: Unit,
-    Mods: ReplaceBuf<T, D, S>,
-    D: Device,
-    S: Shape,
-    SD: Device,
-{
-    #[inline]
-    fn replace_buf<'a, 'c>(&'c self, buffer: &'c Buffer<'a, T, D, S>) -> &'c Buffer<'a, T, D, S> {
-        self.modules.replace_buf(buffer)
-    }
-}
+impl<CacheType, SD: Device, Mods> ReplaceBufPassDown for CachedModule<Mods, SD, CacheType> {}
 
 impl<CacheType, Mods, D: Device> HasModules for CachedModule<Mods, D, CacheType> {
     type Mods = Mods;
