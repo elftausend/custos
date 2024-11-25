@@ -1,7 +1,7 @@
-use custos::{ApplyFunction, Base, Combiner, Device, Graph, Lazy, OpenCL, Optimize, Run};
+use custos::{ApplyFunction, Base, Combiner, Device, ChangePtr, Lazy, OpenCL, Optimize, Run};
 
 fn main() {
-    let device = OpenCL::<Graph<Lazy<Base>>>::new(0).unwrap();
+    let device = OpenCL::<ChangePtr<Lazy<Base>>>::new(0).unwrap();
     // should work with any device (except nnapi)
     // let device = CPU::<Graph<Lazy<Base>>>::new();
     let buf = device.buffer([1., 2., 3., 4., 5.]);

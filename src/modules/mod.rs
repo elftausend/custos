@@ -70,6 +70,11 @@ mod fork;
 #[cfg(feature = "fork")]
 pub use fork::*;
 
+// #[cfg(feature = "fork")]
+// mod change_ptr;
+// #[cfg(feature = "fork")]
+// pub use change_ptr::*;
+
 #[cfg(feature = "std")]
 use crate::{Buffer, Device, HasId, Id, ShallowCopy, Shape, UniqueId};
 #[cfg(feature = "std")]

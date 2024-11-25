@@ -129,7 +129,8 @@ pub fn cpu_exec_binary_mut<T, D, F>(
 ) -> crate::Result<()>
 where
     T: Unit + Clone + Default,
-    F: for<'b> Fn(&'b CPU, &mut Buffer<'_, T, CPU>, &Buffer<'_, T, CPU>),
+    // F: for<'b> Fn(&'b CPU, &mut Buffer<'_, T, CPU>, &Buffer<'_, T, CPU>),
+    F: for<'b> Fn(&mut [T], &[T]),
     D: Read<T> + WriteBuf<T>,
 {
     let cpu = CPU::<Base>::new();
@@ -138,7 +139,7 @@ where
     // crate::cpu_exec_mut!(device, &cpu, rhs; WRITE_TO<lhs, lhs_cpu> f(&cpu, &mut lhs_cpu, &rhs));
     let mut cpu_lhs = Buffer::<T, CPU>::from((&cpu, lhs.read_to_vec()));
     let cpu_rhs = Buffer::<T, CPU>::from((&cpu, rhs.read_to_vec()));
-    f(&cpu, &mut cpu_lhs, &cpu_rhs);
+    f(&mut cpu_lhs, &cpu_rhs);
 
     device.write(lhs, &cpu_lhs);
 

@@ -156,7 +156,7 @@ fn main() {
     #[cfg(feature = "lazy")]
     #[cfg(feature = "graph")]
     {
-        use custos::{Base, Graph, Lazy, Optimize, Run};
+        use custos::{Base, ChangePtr, Lazy, Optimize, Run};
         let device = OpenCL::<Graph<Lazy<Base>>>::new(0).unwrap();
         // should work with any device (except nnapi)
         // let device = CPU::<Graph<Lazy<Base>>>::new();
