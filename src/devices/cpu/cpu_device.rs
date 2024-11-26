@@ -2,8 +2,8 @@ use core::convert::Infallible;
 
 use crate::{
     cpu::CPUPtr, flag::AllocFlag, impl_device_traits, AddLayer, Alloc, Base, Buffer, CloneBuf,
-    Device, DeviceError, DevicelessAble, HasModules, IsShapeIndep, Module, OnNewBuffer,
-    RemoveLayer, ReplaceBufPassDown, Setup, Shape, UnaryFusing, Unit, WrappedData,
+    Device, DeviceError, DevicelessAble, IsShapeIndep, Module, OnNewBuffer,
+    RemoveLayer, Setup, Shape, UnaryFusing, Unit, WrappedData,
 };
 
 pub trait IsCPU {}
@@ -85,14 +85,6 @@ impl<Mods: WrappedData> Device for CPU<Mods> {
 }
 
 impl<T: Unit, S: Shape> DevicelessAble<'_, T, S> for CPU<Base> {}
-
-impl<Mods> HasModules for CPU<Mods> {
-    type Mods = Mods;
-    #[inline]
-    fn modules(&self) -> &Mods {
-        &self.modules
-    }
-}
 
 impl<SimpleMods> CPU<SimpleMods> {
     #[inline]

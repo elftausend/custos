@@ -99,8 +99,8 @@ where
 
 #[cfg(feature = "cuda")]
 // CUDA Implementation
-impl<Mods: Retrieve<Self, T>, T: CDatatype> AddBuf<T> for CUDA<Mods> {
-    fn add(&self, lhs: &Buffer<T, Self>, rhs: &Buffer<T, Self>) -> Buffer<T, Self> {
+impl<'a, Mods: Retrieve<'a, Self, T>, T: CDatatype> AddBuf<'a, T> for CUDA<Mods> {
+    fn add(&'a self, lhs: &Buffer<T, Self>, rhs: &Buffer<T, Self>) -> Buffer<'a, T, Self> {
         // generic CUDA kernel
         let src = format!(
             r#"extern "C" __global__ void add({datatype}* lhs, {datatype}* rhs, {datatype}* out, int numElements)

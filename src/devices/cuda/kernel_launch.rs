@@ -1,4 +1,4 @@
-use crate::{number::Number, Buffer, OnDropBuffer, Shape, Unit, CUDA};
+use crate::{number::Number, Buffer, Shape, Unit, WrappedData, CUDA};
 use std::{collections::HashMap, ffi::c_void};
 
 use super::{
@@ -45,7 +45,7 @@ pub trait AsCudaCvoidPtr {
 impl<'a, T, Mods, S> AsCudaCvoidPtr for &Buffer<'a, T, CUDA<Mods>, S>
 where
     T: Unit,
-    Mods: OnDropBuffer,
+    Mods: WrappedData,
     S: Shape,
 {
     #[inline]
@@ -54,7 +54,7 @@ where
     }
 }
 
-impl<'a, T: Unit, Mods: OnDropBuffer, S: Shape> AsCudaCvoidPtr for Buffer<'a, T, CUDA<Mods>, S> {
+impl<'a, T: Unit, Mods: WrappedData, S: Shape> AsCudaCvoidPtr for Buffer<'a, T, CUDA<Mods>, S> {
     #[inline]
     fn as_cvoid_ptr(&self) -> *mut c_void {
         &self.base().ptr as *const u64 as *mut c_void

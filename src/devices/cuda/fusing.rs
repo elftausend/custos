@@ -1,6 +1,6 @@
-use crate::{OnDropBuffer, UnaryFusing, CUDA};
+use crate::{UnaryFusing, WrappedData, CUDA};
 
-impl<Mods: OnDropBuffer> UnaryFusing for CUDA<Mods> {
+impl<Mods: WrappedData> UnaryFusing for CUDA<Mods> {
     #[cfg(feature = "lazy")]
     #[cfg(feature = "graph")]
     #[inline]

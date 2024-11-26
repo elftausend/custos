@@ -74,7 +74,7 @@ impl<Mods> crate::LazySetup for CUDA<Mods> {
 #[cfg(test)]
 mod tests {
     use crate::{
-        AddOperation, ApplyFunction, Base, Buffer, Combiner, Device, HasId, Lazy, Retrieve,
+        AddOperation, Base, Buffer, Device, HasId, Lazy, Retrieve,
         Retriever, Run, CUDA,
     };
 
@@ -259,7 +259,7 @@ mod tests {
         fn_name: &'static str,
     ) -> Buffer<'a, i32, CUDA<Mods>>
     where
-        Mods: 'static + AddOperation + Retrieve<CUDA<Mods>, i32, ()>,
+        Mods: 'static + AddOperation + Retrieve<'a, CUDA<Mods>, i32, ()>,
     {
         let mut out = device.retrieve(lhs.len(), (lhs.id(), rhs.id())).unwrap();
 
@@ -303,6 +303,8 @@ mod tests {
     #[cfg(feature = "graph")]
     #[test]
     fn test_cuda_apply_fn_lazy() {
+        use crate::{ApplyFunction, Combiner};
+
         let device = CUDA::<crate::Graph<Lazy<Base>>>::new(0).unwrap();
 
         let lhs = device.buffer([1., 2., 3., 4., 5., 6.]);

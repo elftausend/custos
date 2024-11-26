@@ -4,9 +4,9 @@ use crate::{
     bounds_to_range,
     cuda::api::{cu_read_async, CUstreamCaptureStatus},
     op_hint::unary,
-    pass_down_add_operation, pass_down_exec_now, AddOperation, ApplyFunction, Buffer, CDatatype,
-    ClearBuf, CopySlice, OnDropBuffer, Read, Resolve, Retrieve, Retriever, SetOpHint, Shape,
-    ToCLSource, ToMarker, UnaryGrad, Unit, WriteBuf, ZeroGrad, CUDA,
+    pass_down_add_operation, AddOperation, ApplyFunction, Buffer, CDatatype, ClearBuf, CopySlice,
+    Read, Resolve, Retrieve, Retriever, SetOpHint, Shape, ToCLSource, ToMarker, UnaryGrad, Unit,
+    WrappedData, WriteBuf, ZeroGrad, CUDA,
 };
 
 use super::{
@@ -15,9 +15,8 @@ use super::{
 };
 
 pass_down_add_operation!(CUDA);
-pass_down_exec_now!(CUDA);
 
-impl<Mods: OnDropBuffer, T: Unit + Default + Clone, S: Shape> Read<T, S> for CUDA<Mods> {
+impl<Mods: WrappedData, T: Unit + Default + Clone, S: Shape> Read<T, S> for CUDA<Mods> {
     type Read<'a>
         = Vec<T>
     where
@@ -51,21 +50,21 @@ impl<Mods: OnDropBuffer, T: Unit + Default + Clone, S: Shape> Read<T, S> for CUD
     }
 }
 
-impl<Mods: OnDropBuffer, T: CDatatype> ClearBuf<T> for CUDA<Mods> {
+impl<Mods: WrappedData, T: CDatatype> ClearBuf<T> for CUDA<Mods> {
     #[inline]
     fn clear(&self, buf: &mut Buffer<T, Self>) {
         cu_clear(self, buf).unwrap()
     }
 }
 
-impl<Mods: OnDropBuffer, T: CDatatype> ZeroGrad<T> for CUDA<Mods> {
+impl<Mods: WrappedData, T: CDatatype> ZeroGrad<T> for CUDA<Mods> {
     #[inline]
     fn zero_grad<S: Shape>(&self, data: &mut Self::Base<T, S>) {
         cu_clear(self, data).unwrap()
     }
 }
 
-impl<Mods: OnDropBuffer, T: Unit> CopySlice<T> for CUDA<Mods> {
+impl<Mods: WrappedData, T: Unit> CopySlice<T> for CUDA<Mods> {
     fn copy_slice_to<SR: RangeBounds<usize>, DR: RangeBounds<usize>>(
         &self,
         source: &Buffer<T, Self>,
@@ -101,7 +100,7 @@ impl<Mods: OnDropBuffer, T: Unit> CopySlice<T> for CUDA<Mods> {
     }
 }
 
-impl<Mods: OnDropBuffer, T: Unit> WriteBuf<T> for CUDA<Mods> {
+impl<Mods: WrappedData, T: Unit> WriteBuf<T> for CUDA<Mods> {
     #[inline]
     fn write(&self, buf: &mut Buffer<T, Self>, data: &[T]) {
         cu_write_async(buf.cu_ptr(), data, &self.mem_transfer_stream).unwrap();
@@ -119,18 +118,18 @@ impl<Mods: OnDropBuffer, T: Unit> WriteBuf<T> for CUDA<Mods> {
     }
 }
 
-impl<Mods, T, S> ApplyFunction<T, S> for CUDA<Mods>
+impl<'a, Mods, T, S> ApplyFunction<'a, T, S> for CUDA<Mods>
 where
     T: CDatatype + Default,
-    Mods: AddOperation + Retrieve<Self, T, S> + SetOpHint<T> + 'static,
+    Mods: AddOperation + Retrieve<'a, Self, T, S> + SetOpHint<T> + 'static,
     S: Shape,
 {
     #[inline]
     fn apply_fn<F>(
-        &self,
+        &'a self,
         buf: &Buffer<T, Self, S>,
         f: impl Fn(Resolve<T>) -> F + Copy + 'static,
-    ) -> Buffer<T, Self, S>
+    ) -> Buffer<'a, T, Self, S>
     where
         F: crate::TwoWay<T>,
     {
@@ -183,7 +182,7 @@ impl<T, S, Mods> UnaryGrad<T, S> for CUDA<Mods>
 where
     T: CDatatype + Default,
     S: Shape,
-    Mods: OnDropBuffer + AddOperation + 'static,
+    Mods: WrappedData + AddOperation + 'static,
 {
     #[inline]
     fn add_unary_grad<F>(

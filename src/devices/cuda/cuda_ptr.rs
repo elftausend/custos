@@ -1,5 +1,5 @@
 use super::api::{cu_read, cufree, cumalloc, CudaResult};
-use crate::{flag::AllocFlag, HasId, Id, PtrType, ShallowCopy, Unit, WrappedCopy};
+use crate::{flag::AllocFlag, HasId, Id, PtrType, ShallowCopy, Unit};
 use core::marker::PhantomData;
 
 /// The pointer used for `CUDA` [`Buffer`](crate::Buffer)s
@@ -73,15 +73,6 @@ impl<T> Drop for CUDAPtr<T> {
         unsafe {
             cufree(self.ptr).unwrap();
         }
-    }
-}
-
-impl<T> WrappedCopy for CUDAPtr<T> {
-    type Base = Self;
-
-    #[inline]
-    fn wrapped_copy(&self, to_wrap: Self::Base) -> Self {
-        to_wrap
     }
 }
 
