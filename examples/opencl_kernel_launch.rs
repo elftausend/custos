@@ -1,6 +1,6 @@
 use custos::{
-    opencl::enqueue_kernel, prelude::chosen_cl_idx, Base, Buffer, CDatatype, Error, OpenCL,
-    Retriever,
+    Base, Buffer, CDatatype, Error, OpenCL, Retriever, opencl::enqueue_kernel,
+    prelude::chosen_cl_idx,
 };
 
 fn main() -> Result<(), Error> {

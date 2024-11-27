@@ -1,11 +1,10 @@
 use ash::vk::{self, BufferUsageFlags};
 
-use super::{context::Context, launch_shader, AsVkShaderArgument, ShaderCache, VkArray};
+use super::{AsVkShaderArgument, ShaderCache, VkArray, context::Context, launch_shader};
 use crate::{
-    impl_device_traits, pass_down_use_gpu_or_cpu,
-    wgsl::{chosen_wgsl_idx, WgslDevice, WgslShaderLaunch},
     Alloc, Base, Buffer, Device, DeviceError, IsShapeIndep, Module, OnDropBuffer, Setup, Shape,
-    Unit, WrappedData,
+    Unit, WrappedData, impl_device_traits, pass_down_use_gpu_or_cpu,
+    wgsl::{WgslDevice, WgslShaderLaunch, chosen_wgsl_idx},
 };
 use core::{
     cell::RefCell,
@@ -269,11 +268,11 @@ mod tests {
         ";
 
         device
-            .launch_shader(
-                src,
-                [1, 1, 1],
-                &[&lhs.data.buf, &rhs.data.buf, &out.data.buf],
-            )
+            .launch_shader(src, [1, 1, 1], &[
+                &lhs.data.buf,
+                &rhs.data.buf,
+                &out.data.buf,
+            ])
             .unwrap();
         assert_eq!(&*out.read(), [7, 8, 9, 10, 11, 15, 8, 9, 10, 9, 8])
     }

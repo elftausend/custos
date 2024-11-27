@@ -3,8 +3,8 @@ use core::mem::ManuallyDrop;
 use crate::CUDA;
 
 use super::api::{
-    create_graph_execution, create_graph_from_captured_stream, cuGraphLaunch, cuStreamBeginCapture,
-    CUStreamCaptureMode, CudaErrorKind, Graph, GraphExec, Stream,
+    CUStreamCaptureMode, CudaErrorKind, Graph, GraphExec, Stream, create_graph_execution,
+    create_graph_from_captured_stream, cuGraphLaunch, cuStreamBeginCapture,
 };
 
 pub struct LazyCudaGraph {
@@ -73,10 +73,7 @@ impl<Mods> crate::LazySetup for CUDA<Mods> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{
-        AddOperation, Base, Buffer, Device, HasId, Lazy, Retrieve,
-        Retriever, Run, CUDA,
-    };
+    use crate::{AddOperation, Base, Buffer, CUDA, Device, HasId, Lazy, Retrieve, Retriever, Run};
 
     pub fn ew_src(fn_name: &str, operator: char) -> String {
         format!(
@@ -103,30 +100,30 @@ mod tests {
         let mul_src = ew_src("mul", '*');
 
         device
-            .launch_kernel1d(
-                lhs.len(),
-                &add_src,
-                "add",
-                &[&lhs, &rhs, &mut out, &lhs.len()],
-            )
+            .launch_kernel1d(lhs.len(), &add_src, "add", &[
+                &lhs,
+                &rhs,
+                &mut out,
+                &lhs.len(),
+            ])
             .unwrap();
 
         device
-            .launch_kernel1d(
-                lhs.len(),
-                &add_src,
-                "add",
-                &[&out, &lhs, &mut rhs, &lhs.len()],
-            )
+            .launch_kernel1d(lhs.len(), &add_src, "add", &[
+                &out,
+                &lhs,
+                &mut rhs,
+                &lhs.len(),
+            ])
             .unwrap();
 
         device
-            .launch_kernel1d(
-                rhs.len(),
-                &mul_src,
-                "mul",
-                &[&out, &rhs, &mut lhs, &rhs.len()],
-            )
+            .launch_kernel1d(rhs.len(), &mul_src, "mul", &[
+                &out,
+                &rhs,
+                &mut lhs,
+                &rhs.len(),
+            ])
             .unwrap();
 
         assert_eq!(out.read(), vec![0; out.len()]);
@@ -153,30 +150,30 @@ mod tests {
         out.clear();
 
         device
-            .launch_kernel1d(
-                lhs.len(),
-                &add_src,
-                "add",
-                &[&lhs, &rhs, &mut out, &lhs.len()],
-            )
+            .launch_kernel1d(lhs.len(), &add_src, "add", &[
+                &lhs,
+                &rhs,
+                &mut out,
+                &lhs.len(),
+            ])
             .unwrap();
 
         device
-            .launch_kernel1d(
-                lhs.len(),
-                &add_src,
-                "add",
-                &[&out, &lhs, &mut rhs, &lhs.len()],
-            )
+            .launch_kernel1d(lhs.len(), &add_src, "add", &[
+                &out,
+                &lhs,
+                &mut rhs,
+                &lhs.len(),
+            ])
             .unwrap();
 
         device
-            .launch_kernel1d(
-                rhs.len(),
-                &mul_src,
-                "mul",
-                &[&out, &rhs, &mut lhs, &rhs.len()],
-            )
+            .launch_kernel1d(rhs.len(), &mul_src, "mul", &[
+                &out,
+                &rhs,
+                &mut lhs,
+                &rhs.len(),
+            ])
             .unwrap();
 
         assert_eq!(out.read(), vec![0; out.len()]);
@@ -210,30 +207,30 @@ mod tests {
         assert_eq!(rhs.read(), vec![1, 2, 3, 4, 5, 6]);
 
         device
-            .launch_kernel1d(
-                lhs.len(),
-                &add_src,
-                "add",
-                &[&lhs, &rhs, &mut out, &lhs.len()],
-            )
+            .launch_kernel1d(lhs.len(), &add_src, "add", &[
+                &lhs,
+                &rhs,
+                &mut out,
+                &lhs.len(),
+            ])
             .unwrap();
 
         device
-            .launch_kernel1d(
-                lhs.len(),
-                &add_src,
-                "add",
-                &[&out, &lhs, &mut rhs, &lhs.len()],
-            )
+            .launch_kernel1d(lhs.len(), &add_src, "add", &[
+                &out,
+                &lhs,
+                &mut rhs,
+                &lhs.len(),
+            ])
             .unwrap();
 
         device
-            .launch_kernel1d(
-                rhs.len(),
-                &mul_src,
-                "mul",
-                &[&out, &rhs, &mut lhs, &rhs.len()],
-            )
+            .launch_kernel1d(rhs.len(), &mul_src, "mul", &[
+                &out,
+                &rhs,
+                &mut lhs,
+                &rhs.len(),
+            ])
             .unwrap();
 
         // device.run().unwrap();

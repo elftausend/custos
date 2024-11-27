@@ -1,6 +1,6 @@
 use core::ops::{Deref, DerefMut};
 
-use crate::{shape::Shape, HasId, HostPtr, PtrType, ShallowCopy, Unit};
+use crate::{HasId, HostPtr, PtrType, ShallowCopy, Unit, shape::Shape};
 
 /// A possibly multi-dimensional array allocated on the stack.
 /// It uses `S:`[`Shape`] to get the type of the array.

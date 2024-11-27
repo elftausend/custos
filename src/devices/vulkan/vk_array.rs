@@ -9,7 +9,7 @@ use core::{
 };
 use std::rc::Rc;
 
-use crate::{flag::AllocFlag, HasId, HostPtr, PtrType, ShallowCopy, Unit, WrappedCopy};
+use crate::{HasId, HostPtr, PtrType, ShallowCopy, Unit, WrappedCopy, flag::AllocFlag};
 
 use super::{context::Context, submit_and_wait};
 

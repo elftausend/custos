@@ -246,20 +246,20 @@ pub mod prelude {
     //! Typical imports for using custos.
 
     pub use crate::{
-        devices::*, features::*, modules::*, number::*, shape::*, Alloc, Buffer, CDatatype,
-        ClearBuf, CloneBuf, Combiner, CopySlice, Device, Error, HasId, HostPtr, MayToCLSource,
-        Read, Run, ShallowCopy, Unit, WithShape, WriteBuf,
+        Alloc, Buffer, CDatatype, ClearBuf, CloneBuf, Combiner, CopySlice, Device, Error, HasId,
+        HostPtr, MayToCLSource, Read, Run, ShallowCopy, Unit, WithShape, WriteBuf, devices::*,
+        features::*, modules::*, number::*, shape::*,
     };
 
     #[cfg(feature = "cpu")]
-    pub use crate::{exec_on_cpu::*, CPU};
+    pub use crate::{CPU, exec_on_cpu::*};
 
     #[cfg(feature = "opencl")]
-    pub use crate::opencl::{chosen_cl_idx, enqueue_kernel, CLBuffer, OpenCL, CL};
+    pub use crate::opencl::{CL, CLBuffer, OpenCL, chosen_cl_idx, enqueue_kernel};
 
     #[cfg(feature = "opencl")]
     #[cfg(unified_cl)]
-    pub use crate::{opencl::construct_buffer, UnifiedMemChain};
+    pub use crate::{UnifiedMemChain, opencl::construct_buffer};
 
     #[cfg(feature = "stack")]
     pub use crate::stack::Stack;
@@ -268,7 +268,7 @@ pub mod prelude {
     pub use crate::nnapi::NnapiDevice;
 
     #[cfg(feature = "cuda")]
-    pub use crate::cuda::{chosen_cu_idx, launch_kernel1d, CUBuffer, CUDA};
+    pub use crate::cuda::{CUBuffer, CUDA, chosen_cu_idx, launch_kernel1d};
 
     #[cfg(feature = "vulkan")]
     pub use crate::Vulkan;
@@ -310,7 +310,7 @@ mod tests {
     #[cfg(feature = "cpu")]
     #[test]
     fn test_buffer_from_device() {
-        use crate::{Base, Device, CPU};
+        use crate::{Base, CPU, Device};
 
         let device = CPU::<Base>::new();
         let buf = device.buffer([1, 2, 3]);

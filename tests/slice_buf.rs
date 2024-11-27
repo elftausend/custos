@@ -39,10 +39,9 @@ fn test_buf_copy_slice_all_cpu() {
 
     device.copy_slice_all(&source, &mut dest, [(2..5, 7..10), (1..3, 3..5)]);
 
-    assert_eq!(
-        dest.read(),
-        [0.0, 0.0, 0.0, 2.0, 6.0, 0.0, 0.0, 6.0, 2.0, 4.0]
-    );
+    assert_eq!(dest.read(), [
+        0.0, 0.0, 0.0, 2.0, 6.0, 0.0, 0.0, 6.0, 2.0, 4.0
+    ]);
 }
 
 #[cfg(feature = "opencl")]
@@ -55,10 +54,9 @@ fn test_buf_copy_slice_all_opencl() {
 
     device.copy_slice_all(&source, &mut dest, [(2..5, 7..10), (1..3, 3..5)]);
 
-    assert_eq!(
-        dest.read(),
-        [0.0, 0.0, 0.0, 2.0, 6.0, 0.0, 0.0, 6.0, 2.0, 4.0]
-    );
+    assert_eq!(dest.read(), [
+        0.0, 0.0, 0.0, 2.0, 6.0, 0.0, 0.0, 6.0, 2.0, 4.0
+    ]);
 }
 
 #[cfg(feature = "cpu")]

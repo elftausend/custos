@@ -8,7 +8,7 @@ use core::{
 use std::alloc::handle_alloc_error;
 
 use crate::{
-    flag::AllocFlag, Device, HasId, HostPtr, Id, PtrType, ShallowCopy, Shape, ToBase, ToDim, Unit,
+    Device, HasId, HostPtr, Id, PtrType, ShallowCopy, Shape, ToBase, ToDim, Unit, flag::AllocFlag,
 };
 
 /// The pointer used for `CPU` [`Buffer`](crate::Buffer)s
@@ -58,7 +58,7 @@ impl<T> CPUPtr<T> {
             handle_alloc_error(layout);
         }
 
-        CPUPtr::from_ptr(ptr.cast(), len, flag)
+        unsafe { CPUPtr::from_ptr(ptr.cast(), len, flag) }
     }
 
     /// Create a new `CPUPtr` with the given length and allocation flag. Initializes memory as well.
@@ -322,9 +322,9 @@ pub mod serde {
     use core::{fmt, marker::PhantomData};
 
     use serde::{
+        Deserialize,
         de::{SeqAccess, Visitor},
         ser::SerializeSeq,
-        Deserialize,
     };
 
     use super::CPUPtr;
@@ -396,7 +396,7 @@ pub mod serde {
 
     #[cfg(test)]
     mod tests {
-        use serde_test::{assert_tokens, Token};
+        use serde_test::{Token, assert_tokens};
 
         use crate::cpu::CPUPtr;
 
@@ -406,23 +406,20 @@ pub mod serde {
             cpu_ptr
                 .as_mut_slice()
                 .copy_from_slice(&[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
-            assert_tokens(
-                &cpu_ptr,
-                &[
-                    Token::Seq { len: Some(10) },
-                    Token::I32(1),
-                    Token::I32(2),
-                    Token::I32(3),
-                    Token::I32(4),
-                    Token::I32(5),
-                    Token::I32(6),
-                    Token::I32(7),
-                    Token::I32(8),
-                    Token::I32(9),
-                    Token::I32(10),
-                    Token::SeqEnd,
-                ],
-            );
+            assert_tokens(&cpu_ptr, &[
+                Token::Seq { len: Some(10) },
+                Token::I32(1),
+                Token::I32(2),
+                Token::I32(3),
+                Token::I32(4),
+                Token::I32(5),
+                Token::I32(6),
+                Token::I32(7),
+                Token::I32(8),
+                Token::I32(9),
+                Token::I32(10),
+                Token::SeqEnd,
+            ]);
         }
     }
 }

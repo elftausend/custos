@@ -1,7 +1,7 @@
 use crate::{
+    HasId, PtrType,
     cpu::CPUPtr,
     untyped::{AsType, Type},
-    HasId, PtrType,
 };
 
 #[derive(Debug)]

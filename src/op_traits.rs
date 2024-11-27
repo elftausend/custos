@@ -1,6 +1,6 @@
 use core::ops::{Bound, Range, RangeBounds};
 
-use crate::{shape::Shape, Alloc, Buffer, Device, OnNewBuffer, Unit};
+use crate::{Alloc, Buffer, Device, OnNewBuffer, Unit, shape::Shape};
 
 /// Trait for implementing the clear() operation for the compute devices.
 pub trait ClearBuf<T: Unit, S: Shape = (), D: Device = Self> {

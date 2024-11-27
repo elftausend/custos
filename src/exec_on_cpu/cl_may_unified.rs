@@ -1,5 +1,5 @@
 use super::{cpu_exec_binary_mut, cpu_exec_reduce, cpu_exec_unary_mut};
-use crate::{Buffer, CachedCPU, OpenCL, Retrieve, UnifiedMemChain, Unit, WrappedData, CPU};
+use crate::{Buffer, CPU, CachedCPU, OpenCL, Retrieve, UnifiedMemChain, Unit, WrappedData};
 
 /// If the current device supports unified memory, data is not deep-copied.
 /// This is way faster than [cpu_exec_unary], as new memory is not allocated.

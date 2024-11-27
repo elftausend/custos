@@ -1,7 +1,7 @@
 use std::rc::Rc;
 
 use ash::vk::{BufferUsageFlags, MemoryPropertyFlags};
-use custos::vulkan::{allocate_memory, create_buffer, Context, VkArray};
+use custos::vulkan::{Context, VkArray, allocate_memory, create_buffer};
 
 #[test]
 // #[ignore = "reason"]

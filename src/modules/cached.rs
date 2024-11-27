@@ -245,7 +245,9 @@ where
         S: Shape,
         D: Device + Alloc<T>,
     {
-        panic!("Modules retrieve calls are in the wrong order. Cached module requires to be called via 'retrieve_entry'")
+        panic!(
+            "Modules retrieve calls are in the wrong order. Cached module requires to be called via 'retrieve_entry'"
+        )
     }
 }
 
@@ -273,12 +275,12 @@ impl<'dev, CacheType, Mods: crate::TapeActions<'dev>, SD: Device> crate::TapeAct
 {
     #[inline]
     unsafe fn tape(&self) -> Option<&super::Tape<'dev>> {
-        self.modules.tape()
+        unsafe { self.modules.tape() }
     }
 
     #[inline]
     unsafe fn tape_mut(&self) -> Option<&mut super::Tape<'dev>> {
-        self.modules.tape_mut()
+        unsafe { self.modules.tape_mut() } 
     }
 }
 
@@ -296,7 +298,7 @@ impl<CacheType, Mods: crate::GradActions, SD: Device> crate::GradActions
         device: &'a D,
         buf: &Buffer<'a, T, D, S>,
     ) -> &Buffer<'a, T, D, S> {
-        self.modules.grad(device, buf)
+        unsafe { self.modules.grad(device, buf) }
     }
 
     unsafe fn grad_mut<
@@ -309,17 +311,17 @@ impl<CacheType, Mods: crate::GradActions, SD: Device> crate::GradActions
         device: &'a D,
         buf: &Buffer<'a, T, D, S>,
     ) -> &mut Buffer<'a, T, D, S> {
-        self.modules.grad_mut(device, buf)
+        unsafe { self.modules.grad_mut(device, buf) }
     }
 
     #[inline]
     unsafe fn gradients(&self) -> Option<&crate::Gradients> {
-        self.modules.gradients()
+        unsafe { self.modules.gradients() }
     }
 
     #[inline]
     unsafe fn gradients_mut(&self) -> Option<&mut crate::Gradients> {
-        self.modules.gradients_mut()
+        unsafe { self.modules.gradients_mut() }
     }
 }
 
@@ -468,7 +470,7 @@ mod tests {
     use core::{panic::Location, ptr::addr_of};
 
     // crate::modules
-    use crate::{location, Base, Buffer, Retrieve, Retriever, CPU};
+    use crate::{Base, Buffer, CPU, Retrieve, Retriever, location};
 
     use super::Cached;
     #[test]

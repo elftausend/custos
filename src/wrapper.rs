@@ -64,7 +64,7 @@ mod tests {
     #[cfg(feature = "cpu")]
     #[test]
     fn test_wrapped_as_base() {
-        use crate::{Base, Device, Lazy, CPU};
+        use crate::{Base, CPU, Device, Lazy};
 
         let device = CPU::<Lazy<Base>>::new();
         let buf = device.buffer([1, 2, 3, 4]);

@@ -1,9 +1,9 @@
 use crate::{
-    op_hint::unary, AddOperation, Alloc, ApplyFunction, OnDropBuffer, Read, Retrieve, Retriever,
-    SetOpHint, Shape, ToMarker, Unit,
+    AddOperation, Alloc, ApplyFunction, OnDropBuffer, Read, Retrieve, Retriever, SetOpHint, Shape,
+    ToMarker, Unit, op_hint::unary,
 };
 
-use super::{wgsl_device::Wgsl, AsShaderArg, WgslShaderLaunch};
+use super::{AsShaderArg, WgslShaderLaunch, wgsl_device::Wgsl};
 
 impl<T: Unit, S: Shape, D: Read<T, S>, Mods: OnDropBuffer + 'static> Read<T, S> for Wgsl<D, Mods> {
     type Read<'a>
@@ -73,11 +73,11 @@ where
                 op = f("x[global_id.x]".to_marker()).to_wgsl_source()
             );
 
-            out.device().launch_shader(
-                src,
-                [(32 + buf.len() as u32) / 32, 1, 1],
-                &[buf.arg(), out.arg_mut()],
-            )
+            out.device()
+                .launch_shader(src, [(32 + buf.len() as u32) / 32, 1, 1], &[
+                    buf.arg(),
+                    out.arg_mut(),
+                ])
         })
         .unwrap();
         self.modules.set_op_hint(unary(f));
@@ -88,7 +88,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::{wgsl::wgsl_device::Wgsl, ApplyFunction, Combiner, Device, Vulkan};
+    use crate::{ApplyFunction, Combiner, Device, Vulkan, wgsl::wgsl_device::Wgsl};
 
     #[test]
     fn test_wgsl_device_apply_fn() {

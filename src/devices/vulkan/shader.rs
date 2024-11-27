@@ -13,12 +13,12 @@ pub use shader_argument::*;
 use std::collections::HashMap;
 
 use ash::{
+    Device,
     prelude::VkResult,
     vk::{
         self, Buffer, DescriptorBufferInfo, DescriptorSet, DescriptorType, Fence, ShaderModule,
         WriteDescriptorSet,
     },
-    Device,
 };
 
 use super::Context;
@@ -216,7 +216,7 @@ mod tests {
 
     use crate::vulkan::{
         context::Context,
-        shader::{launch_shader, ShaderCache},
+        shader::{ShaderCache, launch_shader},
         vk_array::VkArray,
     };
     use core::ops::{Deref, DerefMut};
@@ -361,13 +361,9 @@ mod tests {
                 *x = 0.;
             }
             assert_eq!(out.deref(), [0.; 10]);
-            launch_shader(
-                context.clone(),
-                [1, 1, 1],
-                &mut shader_cache,
-                src,
-                &[&lhs.buf, &rhs.buf, &out.buf],
-            )
+            launch_shader(context.clone(), [1, 1, 1], &mut shader_cache, src, &[
+                &lhs.buf, &rhs.buf, &out.buf,
+            ])
             .unwrap();
 
             assert_eq!(lhs.deref(), [1., 2., 3., 4., 5., 6., 7., 8., 9., 10.]);
@@ -497,9 +493,8 @@ mod tests {
 
         assert_eq!(lhs.deref(), [1., 2., 3., 4., 5., 6., 7., 8., 9., 10.]);
 
-        assert_eq!(
-            out.deref(),
-            [8., 9., 10., 11., 12., 13., 14., 15., 16., 17.]
-        );
+        assert_eq!(out.deref(), [
+            8., 9., 10., 11., 12., 13., 14., 15., 16., 17.
+        ]);
     }
 }

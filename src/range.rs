@@ -176,7 +176,7 @@ impl AsRange for RangeToInclusive<usize> {
 mod tests {
     #[cfg(feature = "cpu")]
     #[cfg(feature = "cached")]
-    use crate::{Base, Cached, Cursor, CPU}; // Moved shared imports to the top
+    use crate::{Base, CPU, Cached, Cursor}; // Moved shared imports to the top
 
     #[cfg(feature = "cpu")]
     #[cfg(feature = "cached")]

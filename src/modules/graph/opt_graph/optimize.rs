@@ -126,7 +126,7 @@ impl OptGraph {
 #[cfg(feature = "std")]
 #[cfg(test)]
 mod tests {
-    use crate::modules::graph::opt_graph::{optimize::CacheTrace, OptGraph};
+    use crate::modules::graph::opt_graph::{OptGraph, optimize::CacheTrace};
 
     #[test]
     fn test_cache_trace() {
@@ -332,19 +332,16 @@ mod tests {
         let _loss = graph.add_node(100, vec![a8, targets]);
 
         let traces = graph.cache_traces();
-        assert_eq!(
-            traces,
-            [
-                CacheTrace {
-                    cache_idx: 10,
-                    use_cache_idxs: vec![11, 12, 13, 14, 15, 16, 17, 18]
-                },
-                CacheTrace {
-                    cache_idx: 19,
-                    use_cache_idxs: vec![20, 21]
-                }
-            ]
-        )
+        assert_eq!(traces, [
+            CacheTrace {
+                cache_idx: 10,
+                use_cache_idxs: vec![11, 12, 13, 14, 15, 16, 17, 18]
+            },
+            CacheTrace {
+                cache_idx: 19,
+                use_cache_idxs: vec![20, 21]
+            }
+        ])
 
         // graph.add_node(10*10, gemm, gemm);
         // bump_count();
@@ -377,20 +374,17 @@ mod tests {
         assert!(graph.is_path_optimizable(graph.node(d)));
 
         let trace = graph.cache_traces();
-        assert_eq!(
-            trace,
-            [CacheTrace {
-                cache_idx: 2,
-                use_cache_idxs: vec![3, 4]
-            }]
-        );
+        assert_eq!(trace, [CacheTrace {
+            cache_idx: 2,
+            use_cache_idxs: vec![3, 4]
+        }]);
     }
 
     #[cfg(feature = "cpu")]
     #[cfg(feature = "cached")]
     #[test]
     fn test_from_retrieve_sine_neural_net() {
-        use crate::{Base, Buffer, Cached, Graph, Retriever, CPU};
+        use crate::{Base, Buffer, CPU, Cached, Graph, Retriever};
 
         let device = CPU::<Graph<Cached<Base>>>::new();
 
@@ -426,26 +420,23 @@ mod tests {
             .borrow_mut()
             .opt_graph
             .cache_traces();
-        assert_eq!(
-            cts,
-            [
-                CacheTrace {
-                    cache_idx: 10,
-                    use_cache_idxs: vec![11, 12, 13, 14, 15, 16, 17, 18]
-                },
-                CacheTrace {
-                    cache_idx: 19,
-                    use_cache_idxs: vec![20, 21]
-                }
-            ]
-        )
+        assert_eq!(cts, [
+            CacheTrace {
+                cache_idx: 10,
+                use_cache_idxs: vec![11, 12, 13, 14, 15, 16, 17, 18]
+            },
+            CacheTrace {
+                cache_idx: 19,
+                use_cache_idxs: vec![20, 21]
+            }
+        ])
     }
 
     #[cfg(feature = "cpu")]
     #[cfg(feature = "cached")]
     #[test]
     fn test_from_retrieve_sliced_chained_perf_example() {
-        use crate::{Base, Buffer, Cached, Device, Graph, Retriever, CPU};
+        use crate::{Base, Buffer, CPU, Cached, Device, Graph, Retriever};
 
         let device = CPU::<Graph<Cached<Base>>>::new();
 
@@ -472,19 +463,16 @@ mod tests {
             .opt_graph
             .cache_traces();
 
-        assert_eq!(
-            traces,
-            vec![
-                CacheTrace {
-                    cache_idx: 2,
-                    use_cache_idxs: vec![5, 6]
-                },
-                CacheTrace {
-                    cache_idx: 3,
-                    use_cache_idxs: vec![4]
-                }
-            ]
-        );
+        assert_eq!(traces, vec![
+            CacheTrace {
+                cache_idx: 2,
+                use_cache_idxs: vec![5, 6]
+            },
+            CacheTrace {
+                cache_idx: 3,
+                use_cache_idxs: vec![4]
+            }
+        ]);
     }
 
     #[cfg(feature = "lazy")]
@@ -530,7 +518,7 @@ mod tests {
     #[cfg(feature = "lazy")]
     #[test]
     fn test_lazy_from_retrieve_sliced_chained_perf_example_optimize_cpu() {
-        use crate::{Base, Graph, Lazy, CPU};
+        use crate::{Base, CPU, Graph, Lazy};
 
         let device = CPU::<Graph<Lazy<Base>>>::new();
         test_lazy_from_retrieve(&device);
@@ -549,7 +537,7 @@ mod tests {
     #[cfg(feature = "lazy")]
     #[test]
     fn test_lazy_from_retrieve_sliced_chained_perf_example_optimize_cu() {
-        use crate::{Base, Graph, Lazy, CUDA};
+        use crate::{Base, CUDA, Graph, Lazy};
 
         let device = CUDA::<Graph<Lazy<Base>>>::new(0).unwrap();
         test_lazy_from_retrieve(&device);
@@ -559,7 +547,7 @@ mod tests {
     #[cfg(feature = "cached")]
     #[test]
     fn test_from_retrieve_sliced_chained_perf_example_optimize_cache() {
-        use crate::{Base, Buffer, Cached, Cursor, Device, Graph, HasId, Optimize, Retriever, CPU};
+        use crate::{Base, Buffer, CPU, Cached, Cursor, Device, Graph, HasId, Optimize, Retriever};
 
         let device = CPU::<Graph<Cached<Base>>>::new();
 
@@ -599,7 +587,7 @@ mod tests {
     #[cfg(feature = "cached")]
     #[test]
     fn test_mismatched_optimized_types_cached() {
-        use crate::{Base, Buffer, Cached, Cursor, Device, Graph, HasId, Optimize, Retriever, CPU};
+        use crate::{Base, Buffer, CPU, Cached, Cursor, Device, Graph, HasId, Optimize, Retriever};
 
         let device = CPU::<Graph<Cached<Base>>>::new();
 
@@ -639,7 +627,7 @@ mod tests {
     #[should_panic]
     #[test]
     fn test_mismatched_optimized_types_lazy() {
-        use crate::{Base, Buffer, Device, Graph, HasId, Lazy, Optimize, Retriever, Run, CPU};
+        use crate::{Base, Buffer, CPU, Device, Graph, HasId, Lazy, Optimize, Retriever, Run};
 
         let device = CPU::<Graph<Lazy<Base>>>::new();
 

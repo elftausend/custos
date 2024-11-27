@@ -16,12 +16,12 @@ fn scalar_apply<'a>(
     "#;
 
     let out: Buffer<f32, _> = device.retrieve(lhs.len(), ()).unwrap();
-    device.launch_kernel1d(
-        lhs.len(),
-        src,
-        "scalar_add",
-        &[&lhs, &rhs, &out, &lhs.len()],
-    )?;
+    device.launch_kernel1d(lhs.len(), src, "scalar_add", &[
+        &lhs,
+        &rhs,
+        &out,
+        &lhs.len(),
+    ])?;
     Ok(out)
 }
 

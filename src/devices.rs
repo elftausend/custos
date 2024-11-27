@@ -110,22 +110,13 @@ pub trait Device: WrappedData + Sized {
 #[macro_export]
 macro_rules! impl_buffer_hook_traits {
     ($device:ident) => {
-        impl<
-                'dev,
-                T: $crate::Unit,
-                D: Device,
-                S: Shape,
-                Mods: $crate::OnNewBuffer<'dev, T, D, S>,
-            > $crate::OnNewBuffer<'dev, T, D, S> for $device<Mods>
+        impl<'dev, T: $crate::Unit, D: Device, S: Shape, Mods: $crate::OnNewBuffer<'dev, T, D, S>>
+            $crate::OnNewBuffer<'dev, T, D, S> for $device<Mods>
         where
             Self: 'dev,
         {
             #[inline]
-            fn on_new_buffer(
-                &'dev self,
-                device: &'dev D,
-                new_buf: &mut Buffer<'dev, T, D, S>,
-            ) {
+            fn on_new_buffer(&'dev self, device: &'dev D, new_buf: &mut Buffer<'dev, T, D, S>) {
                 self.modules.on_new_buffer(device, new_buf)
             }
         }

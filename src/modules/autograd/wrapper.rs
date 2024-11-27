@@ -1,8 +1,8 @@
 use core::{fmt::Debug, marker::PhantomData};
 
 use crate::{
-    flag::AllocFlag, Autograd, Device, HasId, IsBasePtr, PtrType, ShallowCopy, Shape, ToBase,
-    ToDim, UniqueId, Unit, WrappedData,
+    Autograd, Device, HasId, IsBasePtr, PtrType, ShallowCopy, Shape, ToBase, ToDim, UniqueId, Unit,
+    WrappedData, flag::AllocFlag,
 };
 
 // #[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
@@ -119,7 +119,7 @@ impl<'a, Data: HasId + PtrType, T: Unit> PtrType for ReqGradWrapper<'a, Data, T>
 
     #[inline]
     unsafe fn set_flag(&mut self, flag: AllocFlag) {
-        self.data.set_flag(flag)
+        unsafe { self.data.set_flag(flag) }
     }
 }
 
@@ -130,7 +130,7 @@ where
     unsafe fn shallow(&self) -> Self {
         ReqGradWrapper {
             requires_grad: self.requires_grad,
-            data: self.data.shallow(),
+            data: unsafe { self.data.shallow() },
             remove_id_cb: None,
             _pd: PhantomData,
         }

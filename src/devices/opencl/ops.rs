@@ -1,18 +1,18 @@
 use core::ops::{Range, RangeBounds};
 
 use min_cl::{
-    api::{enqueue_copy_buffer, enqueue_copy_buffers, enqueue_full_copy_buffer},
     CLDevice,
+    api::{enqueue_copy_buffer, enqueue_copy_buffers, enqueue_full_copy_buffer},
 };
 
 use crate::{
-    bounds_to_range, cpu_stack_ops::clear_slice, location, op_hint::unary, pass_down_add_operation,
-    pass_down_exec_now, prelude::Number, AddOperation, ApplyFunction, Buffer, CDatatype, ClearBuf,
-    CopySlice, OpenCL, Read, Resolve, Retrieve, Retriever, SetOpHint, Shape, ToCLSource, ToMarker,
-    TwoWay, UnaryGrad, Unit, UseGpuOrCpu, WrappedData, WriteBuf, ZeroGrad,
+    AddOperation, ApplyFunction, Buffer, CDatatype, ClearBuf, CopySlice, OpenCL, Read, Resolve,
+    Retrieve, Retriever, SetOpHint, Shape, ToCLSource, ToMarker, TwoWay, UnaryGrad, Unit,
+    UseGpuOrCpu, WrappedData, WriteBuf, ZeroGrad, bounds_to_range, cpu_stack_ops::clear_slice,
+    location, op_hint::unary, pass_down_add_operation, pass_down_exec_now, prelude::Number,
 };
 
-use super::{enqueue_kernel, CLPtr};
+use super::{CLPtr, enqueue_kernel};
 
 /*impl<Mods: OnDropBuffer, T: CDatatype> ClearBuf<T> for OpenCL<Mods> {
     #[inline]
@@ -351,21 +351,20 @@ where
         operation = lhs_grad_fn("lhs[id]".to_marker()).to_cl_source()
     );
 
-    enqueue_kernel(
-        device,
-        &src,
-        [(lhs.len() / 32 + 1) * 32, 0, 0],
-        None,
-        &[lhs, lhs_grad, out, &out.len()],
-    )?;
+    enqueue_kernel(device, &src, [(lhs.len() / 32 + 1) * 32, 0, 0], None, &[
+        lhs,
+        lhs_grad,
+        out,
+        &out.len(),
+    ])?;
     Ok(())
 }
 
 #[cfg(test)]
 mod test {
     use crate::{
-        opencl::{chosen_cl_idx, try_cl_add_unary_grad, try_cl_apply_fn_mut},
         ApplyFunction, Base, Buffer, Combiner, OpenCL,
+        opencl::{chosen_cl_idx, try_cl_add_unary_grad, try_cl_apply_fn_mut},
     };
 
     #[test]

@@ -149,21 +149,18 @@ mod tests {
     #[cfg(feature = "macro")]
     #[test]
     fn test_unary_elementwise() {
-        use crate::{Base, Combiner, Device, UnaryElementWiseMayGrad, CPU};
+        use crate::{Base, CPU, Combiner, Device, UnaryElementWiseMayGrad};
 
         let device = CPU::<Base>::new();
         let buf = device.buffer([1., 2., 3., 4.]);
         let out = device.unary_ew(&buf, |x| x.sin(), |x| x.cos());
 
-        roughly_eq_slices(
-            &**out,
-            &[
-                0.8414709848078965,
-                0.9092974268256817,
-                0.1411200080598672,
-                -0.7568024953079282,
-            ],
-        );
+        roughly_eq_slices(&**out, &[
+            0.8414709848078965,
+            0.9092974268256817,
+            0.1411200080598672,
+            -0.7568024953079282,
+        ]);
     }
 
     #[cfg(feature = "autograd")]
@@ -188,27 +185,21 @@ mod tests {
         let buf = device.buffer([1., 2., 3., 4.]).require_grad();
         let out = device.unary_ew(&buf, |x| x.sin(), |x| x.cos());
 
-        roughly_eq_slices(
-            &out.read_to_vec(),
-            &[
-                0.8414709848078965,
-                0.9092974268256817,
-                0.1411200080598672,
-                -0.7568024953079282,
-            ],
-        );
+        roughly_eq_slices(&out.read_to_vec(), &[
+            0.8414709848078965,
+            0.9092974268256817,
+            0.1411200080598672,
+            -0.7568024953079282,
+        ]);
 
         // out.backward();
         out.backward().unwrap();
-        roughly_eq_slices(
-            &buf.grad().read_to_vec(),
-            &[
-                0.5403023058681398,
-                -0.4161468365471424,
-                -0.9899924966004454,
-                -0.6536436208636119,
-            ],
-        );
+        roughly_eq_slices(&buf.grad().read_to_vec(), &[
+            0.5403023058681398,
+            -0.4161468365471424,
+            -0.9899924966004454,
+            -0.6536436208636119,
+        ]);
     }
 
     #[cfg(feature = "cpu")]
@@ -255,33 +246,27 @@ mod tests {
     #[cfg(feature = "autograd")]
     #[test]
     fn test_unary_elementwise_may_grad_multiple_times() {
-        use crate::{Autograd, Base, Cached, Combiner, Device, UnaryElementWiseMayGrad, CPU};
+        use crate::{Autograd, Base, CPU, Cached, Combiner, Device, UnaryElementWiseMayGrad};
 
         let device = CPU::<Autograd<Cached<Base>>>::new();
         let buf = device.buffer([1., 2., 3., 4.]).require_grad();
 
         for _ in 0..10 {
             let out = device.unary_ew(&buf, |x| x.sin(), |x| x.cos());
-            roughly_eq_slices(
-                out.as_slice(),
-                &[
-                    0.8414709848078965,
-                    0.9092974268256817,
-                    0.1411200080598672,
-                    -0.7568024953079282,
-                ],
-            );
+            roughly_eq_slices(out.as_slice(), &[
+                0.8414709848078965,
+                0.9092974268256817,
+                0.1411200080598672,
+                -0.7568024953079282,
+            ]);
 
             out.backward().unwrap();
-            assert_eq!(
-                buf.grad().as_slice(),
-                [
-                    0.5403023058681398,
-                    -0.4161468365471424,
-                    -0.9899924966004454,
-                    -0.6536436208636119
-                ]
-            );
+            assert_eq!(buf.grad().as_slice(), [
+                0.5403023058681398,
+                -0.4161468365471424,
+                -0.9899924966004454,
+                -0.6536436208636119
+            ]);
             unsafe {
                 // TODO: use safe version
                 buf.grad_mut_unbound().clear();
@@ -293,25 +278,19 @@ mod tests {
         ($device:ident, $buf:ident, $out:ident) => {
             for i in 1..10 {
                 $device.run().unwrap();
-                roughly_eq_slices(
-                    $out.replace().as_slice(),
-                    &[
-                        0.8414709848078965,
-                        0.9092974268256817,
-                        0.1411200080598672,
-                        -0.7568024953079282,
-                    ],
-                );
+                roughly_eq_slices($out.replace().as_slice(), &[
+                    0.8414709848078965,
+                    0.9092974268256817,
+                    0.1411200080598672,
+                    -0.7568024953079282,
+                ]);
                 $out.replace().backward().unwrap();
-                roughly_eq_slices(
-                    $buf.replace().grad().as_slice(),
-                    &[
-                        0.5403023058681398 * i as f64,
-                        -0.4161468365471424 * i as f64,
-                        -0.9899924966004454 * i as f64,
-                        -0.6536436208636119 * i as f64,
-                    ],
-                );
+                roughly_eq_slices($buf.replace().grad().as_slice(), &[
+                    0.5403023058681398 * i as f64,
+                    -0.4161468365471424 * i as f64,
+                    -0.9899924966004454 * i as f64,
+                    -0.6536436208636119 * i as f64,
+                ]);
             }
         };
     }
@@ -320,7 +299,7 @@ mod tests {
     #[cfg(feature = "autograd")]
     #[test]
     fn test_unary_elementwise_may_grad_multiple_times_lazy() {
-        use crate::{Autograd, Base, Combiner, Device, Lazy, Run, UnaryElementWiseMayGrad, CPU};
+        use crate::{Autograd, Base, CPU, Combiner, Device, Lazy, Run, UnaryElementWiseMayGrad};
 
         let device = CPU::<Autograd<Lazy<Base, f64>>>::new();
         let buf = device.buffer([1., 2., 3., 4.]).require_grad();
@@ -335,8 +314,8 @@ mod tests {
     #[test]
     fn test_unary_elementwise_may_grad_multiple_times_lazy_with_lazy_input() {
         use crate::{
-            ApplyFunction, Autograd, Base, Combiner, Device, Lazy, Run, UnaryElementWiseMayGrad,
-            CPU,
+            ApplyFunction, Autograd, Base, CPU, Combiner, Device, Lazy, Run,
+            UnaryElementWiseMayGrad,
         };
 
         let device = CPU::<Autograd<Lazy<Base, f64>>>::new();
@@ -352,8 +331,8 @@ mod tests {
     #[test]
     fn test_unary_elementwise_may_grad_multiple_times_lazy_with_lazy_input_exec_last() {
         use crate::{
-            ApplyFunction, Autograd, Base, Combiner, Device, ExecNow, Lazy, Run,
-            UnaryElementWiseMayGrad, CPU,
+            ApplyFunction, Autograd, Base, CPU, Combiner, Device, ExecNow, Lazy, Run,
+            UnaryElementWiseMayGrad,
         };
 
         let device = CPU::<Autograd<Lazy<Base, f64>>>::new();
@@ -378,7 +357,7 @@ mod tests {
     #[test]
     fn test_unary_elementwise_may_grad_multiple_times_backwards_at_end() {
         use crate::{
-            Autograd, Base, Cached, Combiner, Cursor, Device, UnaryElementWiseMayGrad, CPU,
+            Autograd, Base, CPU, Cached, Combiner, Cursor, Device, UnaryElementWiseMayGrad,
         };
 
         let device = CPU::<Autograd<Cached<Base>>>::new();
@@ -393,14 +372,11 @@ mod tests {
         let out = device.unary_ew(&buf, |x| x.sin(), |x| x.cos());
         out.backward().unwrap();
 
-        roughly_eq_slices(
-            buf.grad().as_slice(),
-            &[
-                0.5403023058681398 * 10.,
-                -0.4161468365471424 * 10.,
-                -0.9899924966004454 * 10.,
-                -0.6536436208636119 * 10.,
-            ],
-        );
+        roughly_eq_slices(buf.grad().as_slice(), &[
+            0.5403023058681398 * 10.,
+            -0.4161468365471424 * 10.,
+            -0.9899924966004454 * 10.,
+            -0.6536436208636119 * 10.,
+        ]);
     }
 }

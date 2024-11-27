@@ -34,7 +34,7 @@ impl nvrtcResult {
 }
 
 #[link(name = "nvrtc")]
-extern "C" {
+unsafe extern "C" {
     pub fn nvrtcCreateProgram(
         prog: *mut nvrtcProgram,
         src: *const c_char,

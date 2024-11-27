@@ -1,8 +1,8 @@
 use std::ops::{Add, AddAssign, Deref, DerefMut, Mul};
 
 use custos::{
-    AddGradFn, AddOperation, Alloc, Buffer, Device, MayGradActions, Retrieve, Retriever, Shape,
-    Unit, ZeroGrad, CPU,
+    AddGradFn, AddOperation, Alloc, Buffer, CPU, Device, MayGradActions, Retrieve, Retriever,
+    Shape, Unit, ZeroGrad,
 };
 
 pub trait ElementWise<'a, T: Unit, D: Device, S: Shape>: Device {
@@ -58,7 +58,7 @@ where
 }
 
 #[cfg(feature = "opencl")]
-use custos::{opencl::CLPtr, CDatatype, OpenCL};
+use custos::{CDatatype, OpenCL, opencl::CLPtr};
 
 #[cfg(feature = "opencl")]
 pub fn try_add_ew_cl<T, Mods>(
@@ -167,7 +167,7 @@ fn main() {
 
         // this identifies redundant intermediate buffers and skips allocating them
         device.optimize_mem_graph(&device, None).unwrap(); // allocates, now out1 data points to out2 data. The data is accessed with out2.replace()
-                                                           // this fuses all unary operations and creates fused compute kernels (for all compute kernel based devices)
+        // this fuses all unary operations and creates fused compute kernels (for all compute kernel based devices)
         device.unary_fusing(&device, None).unwrap();
 
         // this executes all operations inside the lazy graph

@@ -6,7 +6,7 @@ pub use cpu_storage::*;
 mod cuda_storage;
 pub use cuda_storage::*;
 
-use crate::{untyped::DeviceType, Device, HasId, PtrType, Shape};
+use crate::{Device, HasId, PtrType, Shape, untyped::DeviceType};
 
 use super::{AsDeviceType, AsType, MatchesType};
 
@@ -124,7 +124,7 @@ impl UntypedData {
 
 #[cfg(test)]
 mod tests {
-    use crate::{cpu::CPUPtr, CPU};
+    use crate::{CPU, cpu::CPUPtr};
 
     use super::{CpuStorage, UntypedData};
 

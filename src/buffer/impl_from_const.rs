@@ -1,4 +1,4 @@
-use crate::{prelude::Number, shape::Shape, Alloc, Buffer, Dim1, Dim2, Dim3, OnNewBuffer, Unit};
+use crate::{Alloc, Buffer, Dim1, Dim2, Dim3, OnNewBuffer, Unit, prelude::Number, shape::Shape};
 
 /// Trait for creating [`Buffer`]s with a [`Shape`]. The [`Shape`] is inferred from the array.
 pub trait WithShape<'a, D, C> {
@@ -90,7 +90,7 @@ mod tests {
     #[cfg(feature = "cpu")]
     #[test]
     fn test_with_const_dim2_cpu() {
-        use crate::{Base, Buffer, WithShape, CPU};
+        use crate::{Base, Buffer, CPU, WithShape};
 
         let device = CPU::<Base>::new();
 

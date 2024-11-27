@@ -1,6 +1,6 @@
 use super::{
-    api::{load_module_data, FnHandle, Module},
     CudaDevice, CudaSource,
+    api::{FnHandle, Module, load_module_data},
 };
 use crate::Error;
 use std::collections::HashMap;

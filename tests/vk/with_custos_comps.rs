@@ -2,7 +2,7 @@ use std::rc::Rc;
 
 use ash::vk::{self, BufferUsageFlags, DescriptorType, Fence, MemoryPropertyFlags};
 use custos::vulkan::{
-    create_descriptor_infos, create_write_descriptor_sets, Context, ShaderCache, VkArray,
+    Context, ShaderCache, VkArray, create_descriptor_infos, create_write_descriptor_sets,
 };
 
 #[test]
@@ -58,14 +58,11 @@ fn test_with_custos_comps() {
             }
     ";
     let operation = shader_cache
-        .get(
-            src,
-            &[
-                DescriptorType::STORAGE_BUFFER,
-                DescriptorType::STORAGE_BUFFER,
-                DescriptorType::STORAGE_BUFFER,
-            ],
-        )
+        .get(src, &[
+            DescriptorType::STORAGE_BUFFER,
+            DescriptorType::STORAGE_BUFFER,
+            DescriptorType::STORAGE_BUFFER,
+        ])
         .unwrap();
     // let operation = Operation::new(&context.device, &src, &[DescriptorType::STORAGE_BUFFER, DescriptorType::STORAGE_BUFFER, DescriptorType::STORAGE_BUFFER]);
 

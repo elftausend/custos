@@ -3,14 +3,14 @@
 #[cfg(feature = "blas")]
 #[cfg(feature = "cpu")]
 use super::cpu::{
-    api::{cblas_dgemm, cblas_sgemm},
     Order, Transpose,
+    api::{cblas_dgemm, cblas_sgemm},
 };
 
 #[cfg(feature = "cuda")]
 use super::cuda::api::{
-    cublas::{cublasDgemm_v2, cublasOperation_t, cublasSgemm_v2, CublasHandle},
     CUdeviceptr,
+    cublas::{CublasHandle, cublasDgemm_v2, cublasOperation_t, cublasSgemm_v2},
 };
 
 /// Provides generic access to f32 and f64 BLAS functions

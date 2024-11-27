@@ -1,4 +1,4 @@
-use crate::{impl_buffer_hook_traits, Base, Buffer, Device, OnDropBuffer, Shape, Unit};
+use crate::{Base, Buffer, Device, OnDropBuffer, Shape, Unit, impl_buffer_hook_traits};
 
 pub struct CUDA<Mods = Base> {
     pub modules: Mods,

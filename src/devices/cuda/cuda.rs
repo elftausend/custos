@@ -4,15 +4,16 @@ use core::{
 };
 
 use crate::{
-    cuda::{api::cumalloc, CUDAPtr},
+    Alloc, Base, Buffer, CloneBuf, Device, IsShapeIndep, Module as CombModule, OnNewBuffer, Setup,
+    Shape, Unit, WrappedData,
+    cuda::{CUDAPtr, api::cumalloc},
     flag::AllocFlag,
-    impl_device_traits, Alloc, Base, Buffer, CloneBuf, Device, IsShapeIndep, Module as CombModule,
-    OnNewBuffer, Setup, Shape, Unit, WrappedData,
+    impl_device_traits,
 };
 
 use super::{
-    api::{cuMemcpy, cu_write_async},
     CudaDevice,
+    api::{cu_write_async, cuMemcpy},
 };
 
 pub trait IsCuda: Device {}
@@ -166,7 +167,7 @@ impl<'a, Mods: WrappedData + OnNewBuffer<'a, T, Self, ()>, T: Unit> CloneBuf<'a,
 mod tests {
     use crate::{Base, Buffer, ClearBuf, Device, Retriever, Shape, Unit};
 
-    use super::{IsCuda, CUDA};
+    use super::{CUDA, IsCuda};
 
     // compile-time isCuda test
     fn take_cu_buffer<'a, T: Unit, D: IsCuda + Retriever<'a, T>, S: Shape>(

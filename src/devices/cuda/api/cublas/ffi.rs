@@ -39,7 +39,7 @@ pub enum cublasOperation_t {
 }
 
 #[link(name = "cublas")]
-extern "C" {
+unsafe extern "C" {
     pub fn cublasCreate_v2(handle: *mut cublasHandle_t) -> cublasStatus_t;
     pub fn cublasDestroy_v2(handle: cublasHandle_t) -> cublasStatus_t;
     pub fn cublasSetStream_v2(handle: cublasHandle_t, stream: *mut CUstream_st) -> cublasStatus_t;

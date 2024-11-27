@@ -7,8 +7,8 @@ use core::{
 };
 
 use crate::{
-    flag::AllocFlag, Device, HasId, HostPtr, IsBasePtr, Lazy, PtrType, ShallowCopy, Shape, ToBase,
-    ToDim, UniqueId, Unit, WrappedData,
+    Device, HasId, HostPtr, IsBasePtr, Lazy, PtrType, ShallowCopy, Shape, ToBase, ToDim, UniqueId,
+    Unit, WrappedData, flag::AllocFlag,
 };
 
 use super::unregister_buf_copyable;
@@ -111,7 +111,7 @@ impl<'a, Data: PtrType + HasId, T: Unit> PtrType for LazyWrapper<'a, Data, T> {
 
     #[inline]
     unsafe fn set_flag(&mut self, flag: AllocFlag) {
-        self.maybe_data.data_mut().unwrap().set_flag(flag)
+        unsafe { self.maybe_data.data_mut().unwrap().set_flag(flag) }
     }
 }
 
@@ -151,7 +151,7 @@ impl<'a, Data: HasId + ShallowCopy, T> ShallowCopy for LazyWrapper<'a, Data, T> 
     unsafe fn shallow(&self) -> Self {
         LazyWrapper {
             maybe_data: match &self.maybe_data {
-                MaybeData::Data(data) => MaybeData::Data(data.shallow()),
+                MaybeData::Data(data) => unsafe { MaybeData::Data(data.shallow()) },
                 MaybeData::Id(id) => MaybeData::Id(*id),
                 MaybeData::None => unimplemented!(),
             },

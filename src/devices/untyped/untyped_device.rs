@@ -1,11 +1,11 @@
 use crate::{
-    Alloc, Base, Buffer, Device, HasId, HasModules, IsShapeIndep, OnDropBuffer, OnNewBuffer,
-    PtrType, Retriever, Shape, Unit, WrappedData, CPU,
+    Alloc, Base, Buffer, CPU, Device, HasId, HasModules, IsShapeIndep, OnDropBuffer, OnNewBuffer,
+    PtrType, Retriever, Shape, Unit, WrappedData,
 };
 
 use super::{
-    storages::{CpuStorage, CudaStorage, UntypedData},
     AsType,
+    storages::{CpuStorage, CudaStorage, UntypedData},
 };
 
 #[cfg(feature = "cuda")]

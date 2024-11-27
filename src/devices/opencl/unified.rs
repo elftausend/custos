@@ -5,10 +5,10 @@ use crate::{AllocFlag, Cache, DeviceError, Unit};
 
 use super::CLPtr;
 use crate::{
-    Base, Buffer, CachedCPU, CachedModule, Cursor, Device, OpenCL, Shape, UnifiedMemChain,
-    UniqueId, WrappedData, CPU,
+    Base, Buffer, CPU, CachedCPU, CachedModule, Cursor, Device, OpenCL, Shape, UnifiedMemChain,
+    UniqueId, WrappedData,
 };
-use min_cl::api::{create_buffer, MemFlags};
+use min_cl::api::{MemFlags, create_buffer};
 
 impl<Mods: UnifiedMemChain<Self> + WrappedData> UnifiedMemChain<Self> for OpenCL<Mods> {
     #[inline]
@@ -175,9 +175,9 @@ where
 #[cfg(test)]
 mod tests {
     use crate::{
-        opencl::{chosen_cl_idx, CLPtr},
-        AllocFlag, Base, Buffer, Cached, Device, DeviceError, FastCache, OpenCL, Retriever,
-        UnifiedMemChain, CPU,
+        AllocFlag, Base, Buffer, CPU, Cached, Device, DeviceError, FastCache, OpenCL, Retriever,
+        UnifiedMemChain,
+        opencl::{CLPtr, chosen_cl_idx},
     };
 
     use super::{construct_buffer, to_cached_unified};

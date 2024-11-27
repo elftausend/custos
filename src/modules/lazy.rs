@@ -9,10 +9,10 @@ pub use ty::*;
 use wrapper::MaybeData;
 
 use crate::{
-    op_hint::OpHint, register_buf_copyable, unregister_buf_copyable, AddLayer, AddOperation, Alloc,
-    AnyOp, BoxedShallowCopy, Buffer, CachedBuffers, Cursor, Device, ExecNow, HasId, HasModules, Id,
-    IsShapeIndep, Module, NoHasher, OnNewBuffer, Parents, ReplaceBuf, Retrieve, RunModule,
-    SetOpHint, Setup, ShallowCopy, Shape, UniqueId, Unit, UseGpuOrCpu, WrappedData,
+    AddLayer, AddOperation, Alloc, AnyOp, BoxedShallowCopy, Buffer, CachedBuffers, Cursor, Device,
+    ExecNow, HasId, HasModules, Id, IsShapeIndep, Module, NoHasher, OnNewBuffer, Parents,
+    ReplaceBuf, Retrieve, RunModule, SetOpHint, Setup, ShallowCopy, Shape, UniqueId, Unit,
+    UseGpuOrCpu, WrappedData, op_hint::OpHint, register_buf_copyable, unregister_buf_copyable,
 };
 
 #[cfg(feature = "graph")]
@@ -217,7 +217,7 @@ impl<Mods: crate::GradActions, U> crate::GradActions for Lazy<'_, Mods, U> {
         device: &'a D,
         buf: &Buffer<'a, T, D, S>,
     ) -> &Buffer<'a, T, D, S> {
-        self.modules.grad(device, buf)
+        unsafe { self.modules.grad(device, buf) }
     }
 
     unsafe fn grad_mut<
@@ -230,17 +230,17 @@ impl<Mods: crate::GradActions, U> crate::GradActions for Lazy<'_, Mods, U> {
         device: &'a D,
         buf: &Buffer<'a, T, D, S>,
     ) -> &mut Buffer<'a, T, D, S> {
-        self.modules.grad_mut(device, buf)
+        unsafe { self.modules.grad_mut(device, buf) }
     }
 
     #[inline]
     unsafe fn gradients(&self) -> Option<&crate::Gradients> {
-        self.modules.gradients()
+        unsafe { self.modules.gradients() }
     }
 
     #[inline]
     unsafe fn gradients_mut(&self) -> Option<&mut crate::Gradients> {
-        self.modules.gradients_mut()
+        unsafe { self.modules.gradients_mut() }
     }
 }
 
@@ -509,9 +509,9 @@ mod tests {
     use core::ops::{Add, Deref};
 
     use crate::{
-        tests_helper::{add_ew_slice, AddEw},
-        AddOperation, ApplyFunction, Base, Buffer, Combiner, Device, Retrieve, Retriever, Shape,
-        Unit, CPU,
+        AddOperation, ApplyFunction, Base, Buffer, CPU, Combiner, Device, Retrieve, Retriever,
+        Shape, Unit,
+        tests_helper::{AddEw, add_ew_slice},
     };
 
     use super::Lazy;

@@ -6,7 +6,7 @@ use core::{
 use std::collections::HashMap;
 
 use super::{Downcast, NoHasher};
-use crate::{flag::AllocFlag, Alloc, Buffer, Device, Id, Shape, UniqueId, Unit};
+use crate::{Alloc, Buffer, Device, Id, Shape, UniqueId, Unit, flag::AllocFlag};
 
 #[derive(Clone, Copy)]
 pub enum CachingError {
@@ -18,7 +18,9 @@ impl CachingError {
     pub fn as_str(&self) -> &'static str {
         match self {
             CachingError::InvalidId => "InvalidId: Invalid Buffer identifier.",
-            CachingError::InvalidTypeInfo => "InvalidTypeInfo: Invalid type information provided for allocated Buffer. Does your specific operation use mixed types?",
+            CachingError::InvalidTypeInfo => {
+                "InvalidTypeInfo: Invalid type information provided for allocated Buffer. Does your specific operation use mixed types?"
+            }
         }
     }
 }
@@ -166,7 +168,7 @@ mod tests {
     #[test]
     #[cfg(feature = "cpu")]
     fn test_comp_error() {
-        use crate::{Base, BorrowCache, Id, CPU};
+        use crate::{Base, BorrowCache, CPU, Id};
 
         let mut cache = BorrowCache::default();
 
@@ -183,16 +185,15 @@ mod tests {
     #[cfg(feature = "cpu")]
     #[test]
     fn test_caching_of_borrowed_cached() {
-        use crate::{Base, BorrowCache, Buffer, Id, CPU};
+        use crate::{Base, BorrowCache, Buffer, CPU, Id};
 
         let device = CPU::<Base>::default();
         let mut cache = BorrowCache::default();
 
-        let (fid, sid, tid) = (
-            Id { id: 0, len: 10 },
-            Id { id: 1, len: 10 },
-            Id { id: 2, len: 10 },
-        );
+        let (fid, sid, tid) = (Id { id: 0, len: 10 }, Id { id: 1, len: 10 }, Id {
+            id: 2,
+            len: 10,
+        });
 
         cache.add_buf_once::<f32, _, ()>(&device, fid, &mut false);
         cache.add_buf_once::<f32, _, ()>(&device, sid, &mut false);

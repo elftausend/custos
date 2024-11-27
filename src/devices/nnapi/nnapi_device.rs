@@ -1,7 +1,7 @@
 use crate::{
-    cpu::{CPUPtr, DeallocWithLayout},
     Alloc, AsOperandCode, Base, Buffer, Device, HasId, IsShapeIndep, Lazy, LazyRun, LazySetup,
     Module, OnDropBuffer, PtrType, Retrieve, Retriever, Setup, Shape, Unit, WrappedData,
+    cpu::{CPUPtr, DeallocWithLayout},
 };
 
 use super::NnapiPtr;
@@ -292,7 +292,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use nnapi::{nnapi_sys::OperationCode, Operand};
+    use nnapi::{Operand, nnapi_sys::OperationCode};
 
     use crate::{Base, Buffer, Dim1, Lazy, LazyRun, NnapiDevice, WithShape};
 

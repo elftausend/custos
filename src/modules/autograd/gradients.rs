@@ -160,7 +160,7 @@ mod tests {
     #[cfg(feature = "cpu")]
     #[test]
     fn test_zero_grad_on_gradients() {
-        use crate::{Base, Device, Gradients, HasId, CPU};
+        use crate::{Base, CPU, Device, Gradients, HasId};
 
         let dev = CPU::<Base>::new();
 
