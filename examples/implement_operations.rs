@@ -47,15 +47,15 @@ where
 // can be placed on top of the CPU implementation to automatically
 // generate a Stack implementation.
 #[cfg(feature = "stack")]
-impl<T, S, D, Mods> AddBuf<T, S, D> for Stack<Mods>
+impl<'a, T, S, D, Mods> AddBuf<'a, T, S, D> for Stack<Mods>
 where
     T: Unit + Copy + Default + std::ops::Add<Output = T> + 'static,
     S: Shape,
     D: Device,
     D::Base<T, S>: Deref<Target = [T]>,
-    Mods: Retrieve<Self, T, S>,
+    Mods: Retrieve<'a, Self, T, S>,
 {
-    fn add(&self, lhs: &Buffer<T, D, S>, rhs: &Buffer<T, D, S>) -> Buffer<T, Self, S> {
+    fn add(&'a self, lhs: &Buffer<T, D, S>, rhs: &Buffer<T, D, S>) -> Buffer<'a, T, Self, S> {
         let mut out = self.retrieve(S::LEN, ()).unwrap(); // this works as well and in this case (Stack), does exactly the same as the line above.
 
         for i in 0..S::LEN {
