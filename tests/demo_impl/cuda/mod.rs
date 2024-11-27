@@ -1,6 +1,6 @@
-use custos::{cuda::launch_kernel, prelude::Number, Buffer, CDatatype, OnDropBuffer, Shape, CUDA};
+use custos::{cuda::launch_kernel, prelude::Number, Buffer, CDatatype, Shape, WrappedData, CUDA};
 
-pub fn cu_element_wise<Mods: OnDropBuffer, T: Number, S: Shape>(
+pub fn cu_element_wise<Mods: WrappedData, T: Number, S: Shape>(
     device: &CUDA<Mods>,
     lhs: &Buffer<T, CUDA<Mods>, S>,
     rhs: &Buffer<T, CUDA<Mods>, S>,

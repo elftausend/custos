@@ -330,12 +330,12 @@ macro_rules! pass_down_tape_actions {
         {
             #[inline]
             unsafe fn tape(&self) -> Option<&$crate::Tape<'dev>> {
-                self.modules.tape()
+                unsafe { self.modules.tape() }
             }
 
             #[inline]
             unsafe fn tape_mut(&self) -> Option<&mut $crate::Tape<'dev>> {
-                self.modules.tape_mut()
+                unsafe { self.modules.tape_mut() }
             }
         }
     };
