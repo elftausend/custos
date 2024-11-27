@@ -88,7 +88,7 @@ impl<'a, T: Unit, D: Device, S: Shape> Buffer<'a, T, D, S> {
         };
 
         // mind: on_new_buffer must be called for user buffers!
-        unsafe { device.on_new_buffer(device, &mut buf) };
+        device.on_new_buffer(device, &mut buf);
         buf
     }
 
@@ -107,7 +107,7 @@ impl<'a, T: Unit, D: Device, S: Shape> Buffer<'a, T, D, S> {
     {
         let mut buf = self;
         buf.set_requires_grad(require_grad);
-        unsafe { buf.device().on_new_buffer(buf.device(), &mut buf) };
+        buf.device().on_new_buffer(buf.device(), &mut buf);
         buf
     }
 
