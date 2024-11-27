@@ -195,7 +195,7 @@ where
     S: Shape,
 {
     #[inline]
-    unsafe fn on_new_buffer<'s>(&'a self, device: &'a D, new_buf: &'s mut Buffer<'a, T, D, S>) {
+    fn on_new_buffer<'s>(&'a self, device: &'a D, new_buf: &'s mut Buffer<'a, T, D, S>) {
         unsafe { register_buf_copyable(&mut self.buffers.borrow_mut(), new_buf) };
         self.modules.on_new_buffer(device, new_buf)
     }
@@ -217,7 +217,7 @@ impl<Mods: crate::GradActions, U> crate::GradActions for Lazy<'_, Mods, U> {
         device: &'a D,
         buf: &Buffer<'a, T, D, S>,
     ) -> &Buffer<'a, T, D, S> {
-        self.modules.grad(device, buf)
+        unsafe { self.modules.grad(device, buf) }
     }
 
     unsafe fn grad_mut<
@@ -230,17 +230,17 @@ impl<Mods: crate::GradActions, U> crate::GradActions for Lazy<'_, Mods, U> {
         device: &'a D,
         buf: &Buffer<'a, T, D, S>,
     ) -> &mut Buffer<'a, T, D, S> {
-        self.modules.grad_mut(device, buf)
+        unsafe { self.modules.grad_mut(device, buf) }
     }
 
     #[inline]
     unsafe fn gradients(&self) -> Option<&crate::Gradients> {
-        self.modules.gradients()
+        unsafe { self.modules.gradients() }
     }
 
     #[inline]
     unsafe fn gradients_mut(&self) -> Option<&mut crate::Gradients> {
-        self.modules.gradients_mut()
+        unsafe { self.modules.gradients_mut() }
     }
 }
 

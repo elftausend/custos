@@ -80,7 +80,7 @@ pub fn cumalloc<T>(len: usize) -> CudaResult<CUdeviceptr> {
 /// # Safety
 /// FFI, `ptr` must be a valid pointer.
 pub unsafe fn cufree(ptr: CUdeviceptr) -> CudaResult<()> {
-    cuMemFree_v2(ptr).into()
+    unsafe { cuMemFree_v2(ptr).into() }
 }
 
 pub fn cu_write<T>(dst: CUdeviceptr, src_host: &[T]) -> CudaResult<()> {

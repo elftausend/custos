@@ -58,7 +58,7 @@ impl<T> CPUPtr<T> {
             handle_alloc_error(layout);
         }
 
-        CPUPtr::from_ptr(ptr.cast(), len, flag)
+        unsafe { CPUPtr::from_ptr(ptr.cast(), len, flag) }
     }
 
     /// Create a new `CPUPtr` with the given length and allocation flag. Initializes memory as well.

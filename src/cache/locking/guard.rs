@@ -60,7 +60,7 @@ impl<'a, T: PtrType> PtrType for Guard<'a, T> {
 
     #[inline]
     unsafe fn set_flag(&mut self, flag: crate::flag::AllocFlag) {
-        self.data.set_flag(flag);
+        unsafe { self.data.set_flag(flag) }
     }
 }
 

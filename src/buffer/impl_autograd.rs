@@ -136,7 +136,7 @@ where
         // e.g. binary grad ops are computed in a single function where differentiating between
         // req grad and no req grad is not possible/ difficult
         // assert!(self.requires_grad(), "Buffer does not require gradient.");
-        self.device().grad_mut(self.device(), self)
+        unsafe { self.device().grad_mut(self.device(), self) }
         // unsafe {
         //     self.device()
         //         .gradients_mut()

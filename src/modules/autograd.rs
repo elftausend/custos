@@ -82,7 +82,7 @@ where
     Mods: OnNewBuffer<'dev, T, D, S> + CachedBuffers,
 {
     #[inline]
-    unsafe fn on_new_buffer(&'dev self, device: &'dev D, new_buf: &mut Buffer<'dev, T, D, S>) {
+    fn on_new_buffer(&'dev self, device: &'dev D, new_buf: &mut Buffer<'dev, T, D, S>) {
         // let mut no_grads = self.no_grads_pool.borrow_mut();
         // let wrapped_data = unsafe { new_buf.data.shallow() };
 
@@ -242,13 +242,13 @@ impl<'dev, Mods> GradActions for Autograd<'dev, Mods> {
 impl<'dev, Mods> TapeActions<'dev> for Autograd<'dev, Mods> {
     #[inline]
     unsafe fn tape(&self) -> Option<&Tape<'dev>> {
-        Some(&*self.tape.get())
+        unsafe { Some(&*self.tape.get()) }
         // Some(self.tape.borrow())
     }
 
     #[inline]
     unsafe fn tape_mut(&self) -> Option<&mut Tape<'dev>> {
-        Some(&mut *self.tape.get())
+        unsafe { Some(&mut *self.tape.get()) }
         // Some(unsafe {&mut (self.tape.get_mut()) })
         // Some(self.tape.borrow_mut())
     }

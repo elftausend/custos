@@ -73,14 +73,14 @@ pub trait Cursor {
     /// Moving the cursor manually to a specific position can possible create multiple mutable references to the same memory location
     #[inline]
     unsafe fn inc_cursor(&self, inc: usize) {
-        self.set_cursor(self.cursor() + inc)
+        unsafe { self.set_cursor(self.cursor() + inc) }
     }
 
     /// # Safety
     /// Moving the cursor manually to a specific position can possible create multiple mutable references to the same memory location
     #[inline]
     unsafe fn bump_cursor(&self) {
-        self.inc_cursor(1)
+        unsafe { self.inc_cursor(1) }
     }
 
     #[inline]
@@ -118,7 +118,7 @@ macro_rules! pass_down_cursor {
 
             #[inline]
             unsafe fn set_cursor(&self, cursor: usize) {
-                self.modules.set_cursor(cursor)
+                unsafe { self.modules.set_cursor(cursor) }
             }
         }
     };
@@ -254,7 +254,7 @@ macro_rules! pass_down_grad_fn {
                 device: &'a D,
                 buf: &Buffer<'a, T, D, S>,
             ) -> &Buffer<'a, T, D, S> {
-                self.modules.grad(device, buf)
+                unsafe { self.modules.grad(device, buf) }
             }
 
             unsafe fn grad_mut<'a, T: 'static, D: Device + $crate::Alloc<T> + $crate::ZeroGrad<T> + 'static, S: Shape>(
@@ -262,17 +262,17 @@ macro_rules! pass_down_grad_fn {
                 device: &'a D,
                 buf: &Buffer<'a, T, D, S>,
             ) -> &mut Buffer<'a, T, D, S> {
-                self.modules.grad_mut(device, buf)
+                unsafe { self.modules.grad_mut(device, buf) }
             }
 
             #[inline]
             unsafe fn gradients(&self) -> Option<&$crate::Gradients> {
-                self.modules.gradients()
+                unsafe { self.modules.gradients() }
             }
 
             #[inline]
             unsafe fn gradients_mut(&self) -> Option<&mut $crate::Gradients> {
-                self.modules.gradients_mut()
+                unsafe { self.modules.gradients_mut() }
             }
 
         }
@@ -330,12 +330,12 @@ macro_rules! pass_down_tape_actions {
         {
             #[inline]
             unsafe fn tape(&self) -> Option<&$crate::Tape<'dev>> {
-                self.modules.tape()
+                unsafe { self.modules.tape() }
             }
 
             #[inline]
             unsafe fn tape_mut(&self) -> Option<&mut $crate::Tape<'dev>> {
-                self.modules.tape_mut()
+                unsafe { self.modules.tape_mut() }
             }
         }
     };
@@ -668,7 +668,7 @@ macro_rules! pass_down_cached_buffers {
                 &self,
             ) -> Option<core::cell::RefMut<$crate::Buffers<Box<dyn $crate::BoxedShallowCopy>>>>
             {
-                self.modules.buffers_mut()
+                unsafe { self.modules.buffers_mut() }
             }
         }
     };

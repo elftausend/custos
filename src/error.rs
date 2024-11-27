@@ -74,12 +74,20 @@ impl DeviceError {
             DeviceError::CPUDeviceNotAvailable => {
                 "The 'cpu' feature is disabled. Hence this CPU can't be created."
             }
-            DeviceError::UnifiedConstructNotAvailable => "Unified construction is not available for the provided modules. Add the `Cached` module to your device",
-            DeviceError::InvalidLazyBuf => "Invalid lazy buffer was provided in operation. Did the buffer go out of scope?",
+            DeviceError::UnifiedConstructNotAvailable => {
+                "Unified construction is not available for the provided modules. Add the `Cached` module to your device"
+            }
+            DeviceError::InvalidLazyBuf => {
+                "Invalid lazy buffer was provided in operation. Did the buffer go out of scope?"
+            }
             DeviceError::LocationAlreadyInUse => "Location is already in use.",
-            DeviceError::UnaryFusingUnsupported => "Unary fusing is not supported for this module configuration.",
+            DeviceError::UnaryFusingUnsupported => {
+                "Unary fusing is not supported for this module configuration."
+            }
             DeviceError::ZeroLengthBuffer => "Zero length buffers are not supported",
-            DeviceError::ShapeLengthMismatch => "Given generic shape length does not match with e.g. slice length"
+            DeviceError::ShapeLengthMismatch => {
+                "Given generic shape length does not match with e.g. slice length"
+            }
         }
     }
 }

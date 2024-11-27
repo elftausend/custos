@@ -1,4 +1,4 @@
-use crate::{impl_buffer_hook_traits, Base, Buffer, Device, WrappedData, Shape, Unit};
+use crate::{impl_buffer_hook_traits, Base, Buffer, Device, Shape, Unit, WrappedData};
 
 /// A dummy CPU. This only exists to make the code compile when the `cpu` feature is disabled
 /// because the CPU is the default type `D` for [`Buffer`]s.
@@ -22,11 +22,17 @@ impl<Mods: WrappedData> Device for CPU<Mods> {
         Err(crate::DeviceError::CPUDeviceNotAvailable.into())
     }
 
-    fn default_base_to_data<'a, T: Unit, S: Shape>(&'a self, base: Self::Base<T, S>) -> Self::Data<'a, T, S> {
+    fn default_base_to_data<'a, T: Unit, S: Shape>(
+        &'a self,
+        base: Self::Base<T, S>,
+    ) -> Self::Data<'a, T, S> {
         self.modules.wrap_in_base(base)
     }
 
-    fn default_base_to_data_unbound<'a, T: Unit, S: Shape>(&self, base: Self::Base<T, S>) -> Self::Data<'a, T, S> {
+    fn default_base_to_data_unbound<'a, T: Unit, S: Shape>(
+        &self,
+        base: Self::Base<T, S>,
+    ) -> Self::Data<'a, T, S> {
         self.modules.wrap_in_base_unbound(base)
     }
 

@@ -18,7 +18,9 @@ impl CachingError {
     pub fn as_str(&self) -> &'static str {
         match self {
             CachingError::InvalidId => "InvalidId: Invalid Buffer identifier.",
-            CachingError::InvalidTypeInfo => "InvalidTypeInfo: Invalid type information provided for allocated Buffer. Does your specific operation use mixed types?",
+            CachingError::InvalidTypeInfo => {
+                "InvalidTypeInfo: Invalid type information provided for allocated Buffer. Does your specific operation use mixed types?"
+            }
         }
     }
 }

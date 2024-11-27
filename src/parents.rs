@@ -90,7 +90,7 @@ macro_rules! impl_parents {
             unsafe fn replication<'a>(self) -> Self::Replicated<'a> {
                 #[allow(non_snake_case)]
                 let ($($to_impl,)+) = self;
-                ($($to_impl.replicate(),)+)
+                unsafe { ($($to_impl.replicate(),)+) }
             }
         }
     };

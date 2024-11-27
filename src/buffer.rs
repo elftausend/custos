@@ -376,7 +376,7 @@ impl<'a, T: Unit, D: Device, S: Shape> Buffer<'a, T, D, S> {
         <D as Device>::Data<'a, T, S>: ShallowCopy,
     {
         Buffer {
-            data: self.data.shallow(),
+            data: unsafe { self.data.shallow() },
             device: self.device,
         }
     }
@@ -520,7 +520,7 @@ impl<'a, T: Unit, S: Shape> Buffer<'a, T, CPU<Base>, S> {
     #[inline]
     pub unsafe fn from_raw_host(ptr: *mut T, len: usize) -> Buffer<'a, T, CPU<Base>, S> {
         Buffer {
-            data: CPUPtr::from_ptr(ptr, len, AllocFlag::Wrapper),
+            data: unsafe { CPUPtr::from_ptr(ptr, len, AllocFlag::Wrapper) },
             device: None,
         }
     }
@@ -541,7 +541,7 @@ impl<'a, Mods: WrappedData, T: Unit, S: Shape> Buffer<'a, T, CPU<Mods>, S> {
         len: usize,
     ) -> Buffer<'a, T, CPU<Mods>, S> {
         Buffer {
-            data: device.wrap_in_base(CPUPtr::from_ptr(ptr, len, AllocFlag::Wrapper)),
+            data: device.wrap_in_base(unsafe { CPUPtr::from_ptr(ptr, len, AllocFlag::Wrapper) }),
             device: Some(device),
         }
     }
@@ -581,7 +581,7 @@ where
 {
     #[inline]
     unsafe fn shallow(&self) -> Self {
-        self.shallow()
+        unsafe { self.shallow() }
     }
 }
 

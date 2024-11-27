@@ -6,7 +6,7 @@ use crate::devices::cpu::{Order, Transpose};
 #[cfg_attr(target_os = "windows", link(name = "BLAS"))]
 #[cfg_attr(target_os = "macos", link(name = "blas"))]
 #[cfg_attr(target_os = "linux", link(name = "openblas"))]
-extern "C" {
+unsafe extern "C" {
 
     pub(crate) fn cblas_sgemm(
         order: Order,
