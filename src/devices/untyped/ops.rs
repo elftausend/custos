@@ -42,17 +42,17 @@ impl<T: 'static + AsType + Default + Clone, S: Shape> Read<T, S> for Untyped {
     }
 }
 
-impl<T, S> ApplyFunction<T, S> for Untyped
+impl<'a, T, S> ApplyFunction<'a, T, S> for Untyped
 where
     T: CDatatype + Default + Copy + AsType,
     S: Shape,
 {
     fn apply_fn<F>(
-        &self,
+        &'a self,
         // buf: &D::Data<T, S>,
         buf: &crate::Buffer<T, Self, S>,
         f: impl Fn(crate::Resolve<T>) -> F + Copy + 'static,
-    ) -> crate::Buffer<T, Self, S>
+    ) -> crate::Buffer<'a, T, Self, S>
     where
         F: crate::TwoWay<T> + 'static,
     {
@@ -216,8 +216,8 @@ mod tests {
         out
     }
 
-    impl<T: Unit, S: Shape> AddEw<T, Self, S> for Untyped {
-        fn add(&self, lhs: &Buffer<T, Self, S>, rhs: &Buffer<T, Self, S>) -> Buffer<T, Self, S> {
+    impl<'a, T: Unit, S: Shape> AddEw<'a, T, Self, S> for Untyped {
+        fn add(&'a self, lhs: &Buffer<T, Self, S>, rhs: &Buffer<T, Self, S>) -> Buffer<'a, T, Self, S> {
             untyped_binary_op!(self, lhs, rhs, alloc_and_add_slice, alloc_and_add_cu)
         }
     }
