@@ -1,10 +1,11 @@
 use crate::{
-    Alloc, Base, Buffer, Device, HasId, HasModules, IsBasePtr, IsShapeIndep, OnNewBuffer, PtrType, Retriever, Shape, Unit, WrappedData, CPU
+    Alloc, Base, Buffer, CPU, Device, HasId, HasModules, IsBasePtr, IsShapeIndep, OnNewBuffer,
+    PtrType, Retriever, Shape, Unit, WrappedData,
 };
 
 use super::{
-    storages::{CpuStorage, CudaStorage, UntypedData},
     AsType,
+    storages::{CpuStorage, CudaStorage, UntypedData},
 };
 
 #[cfg(feature = "cuda")]
@@ -28,11 +29,17 @@ impl Device for Untyped {
     type Error = crate::Error;
 
     #[inline]
-    fn default_base_to_data<'a, T: Unit, S: crate::Shape>(&'a self, base: Self::Base<T, S>) -> Self::Data<'a, T, S> {
+    fn default_base_to_data<'a, T: Unit, S: crate::Shape>(
+        &'a self,
+        base: Self::Base<T, S>,
+    ) -> Self::Data<'a, T, S> {
         base
     }
-   
-    fn default_base_to_data_unbound<'a, T: Unit, S: Shape>(&self, base: Self::Base<T, S>) -> Self::Data<'a, T, S> {
+
+    fn default_base_to_data_unbound<'a, T: Unit, S: Shape>(
+        &self,
+        base: Self::Base<T, S>,
+    ) -> Self::Data<'a, T, S> {
         base
     }
 
@@ -88,13 +95,10 @@ impl WrappedData for Untyped {
     type Wrap<'a, T: Unit, Base: IsBasePtr> = Base;
 
     #[inline]
-    fn wrap_in_base<'a, T: Unit, Base: IsBasePtr>(
-        &'a self,
-        base: Base,
-    ) -> Self::Wrap<'a, T, Base> {
+    fn wrap_in_base<'a, T: Unit, Base: IsBasePtr>(&'a self, base: Base) -> Self::Wrap<'a, T, Base> {
         base
     }
-    
+
     #[inline]
     fn wrap_in_base_unbound<'a, T: Unit, Base: IsBasePtr>(
         &self,

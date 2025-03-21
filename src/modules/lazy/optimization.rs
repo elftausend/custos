@@ -1,4 +1,4 @@
-use crate::{op_hint::OpHint, DeviceError, Lazy, Operation};
+use crate::{DeviceError, Lazy, Operation, op_hint::OpHint};
 
 impl<T, Mods> Lazy<'_, Mods, T> {
     pub(crate) fn alloc_later_optimized<D: 'static>(

@@ -1,9 +1,9 @@
 use crate::{
-    op_hint::unary, AddOperation, Alloc, ApplyFunction, OnDropBuffer, Read, Retrieve, Retriever,
-    SetOpHint, Shape, ToMarker, Unit,
+    AddOperation, Alloc, ApplyFunction, OnDropBuffer, Read, Retrieve, Retriever, SetOpHint, Shape,
+    ToMarker, Unit, op_hint::unary,
 };
 
-use super::{wgsl_device::Wgsl, AsShaderArg, WgslShaderLaunch};
+use super::{AsShaderArg, WgslShaderLaunch, wgsl_device::Wgsl};
 
 impl<T: Unit, S: Shape, D: Read<T, S>, Mods: OnDropBuffer + 'static> Read<T, S> for Wgsl<D, Mods> {
     type Read<'a>
@@ -88,7 +88,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::{wgsl::wgsl_device::Wgsl, ApplyFunction, Combiner, Device, Vulkan};
+    use crate::{ApplyFunction, Combiner, Device, Vulkan, wgsl::wgsl_device::Wgsl};
 
     #[test]
     fn test_wgsl_device_apply_fn() {

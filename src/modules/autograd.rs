@@ -11,11 +11,11 @@ use core::{
 };
 
 use crate::{
-    impl_remove_layer, pass_down_add_operation, pass_down_cached_buffers, pass_down_cursor,
-    register_buf_copyable, unregister_buf_copyable, AddGradFn, AddLayer, Alloc, Buffer,
-    CachedBuffers, Device, ExecNowPassDown, GradActions, HasId, HasModules, IsShapeIndep, Module,
-    OnNewBuffer, Parents, ReplaceBufPassDown, Retrieve, RunModule, Setup, ShallowCopy, Shape,
-    TapeActions, Unit, WrappedData,
+    AddGradFn, AddLayer, Alloc, Buffer, CachedBuffers, Device, ExecNowPassDown, GradActions, HasId,
+    HasModules, IsShapeIndep, Module, OnNewBuffer, Parents, ReplaceBufPassDown, Retrieve,
+    RunModule, Setup, ShallowCopy, Shape, TapeActions, Unit, WrappedData, impl_remove_layer,
+    pass_down_add_operation, pass_down_cached_buffers, pass_down_cursor, register_buf_copyable,
+    unregister_buf_copyable,
 };
 
 use self::wrapper::ReqGradWrapper;
@@ -320,8 +320,8 @@ impl<'a, Mods> HasModules for Autograd<'a, Mods> {
 #[cfg(feature = "cpu")]
 mod tests {
     use crate::{
-        AddGradFn, Autograd, Base, BoxedShallowCopy, Buffer, Cached, Combiner, Cursor, Device,
-        Downcast, HasId, Lazy, Retriever, Shape, UnaryGrad, Unit, CPU,
+        AddGradFn, Autograd, Base, BoxedShallowCopy, Buffer, CPU, Cached, Combiner, Cursor, Device,
+        Downcast, HasId, Lazy, Retriever, Shape, UnaryGrad, Unit,
     };
 
     #[inline]

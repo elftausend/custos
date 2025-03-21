@@ -6,7 +6,7 @@ use core::{
 use std::collections::HashMap;
 
 use super::{Downcast, NoHasher};
-use crate::{flag::AllocFlag, Alloc, Buffer, Device, Id, Shape, UniqueId, Unit};
+use crate::{Alloc, Buffer, Device, Id, Shape, UniqueId, Unit, flag::AllocFlag};
 
 #[derive(Clone, Copy)]
 pub enum CachingError {
@@ -135,9 +135,9 @@ impl BorrowCache {
         S: Shape,
     {
         let out = self.cache.get(&id).ok_or(CachingError::InvalidId)?;
-        if !out.is::<Buffer<T, D, S>>() {
+        if !out.is::<Buffer<'_, T, D, S>>() {
             return Err(CachingError::InvalidTypeInfo);
-        }
+        } 
         Ok(unsafe { out.downcast_ref_unchecked::<Buffer<'_, T, D, S>>() })
     }
 
@@ -168,24 +168,30 @@ mod tests {
     #[test]
     #[cfg(feature = "cpu")]
     fn test_comp_error() {
-        use crate::{Base, BorrowCache, Id, CPU};
+        use crate::{Base, BorrowCache, Cached, Id, CPU};
 
         let mut cache = BorrowCache::default();
 
         let _a = {
-            let device = CPU::<Base>::new();
+            let device = CPU::<Cached<Base>>::new();
+            device.modules.cache.nodes.insert(0, Box::new(4));
             cache.add_buf::<f32, _, ()>(&device, Id { id: 0, len: 10 });
+            cache.get_buf_mut::<f32, _, ()>(&device, Id { id: 0, len: 10 }).unwrap();
             // drop(device);
             let mut _new_buf = false;
             // cache.add_or_get::<f32, CPU, ()>(&device, Id { id: 0, len: 10}, &mut new_buf)
         };
-        // cache.cache.get(&3);
+
+        let device = CPU::<Cached<Base>>::new();
+        let buf = cache.get_buf::<f32, _, ()>(&device, Id { id: 0, len: 10 }).unwrap();
+        let invalid_device = buf.device();
+        println!("invalid: {:?}", invalid_device.modules.cache.nodes);
     }
 
     #[cfg(feature = "cpu")]
     #[test]
     fn test_caching_of_borrowed_cached() {
-        use crate::{Base, BorrowCache, Buffer, Id, CPU};
+        use crate::{Base, BorrowCache, Buffer, CPU, Id};
 
         let device = CPU::<Base>::default();
         let mut cache = BorrowCache::default();

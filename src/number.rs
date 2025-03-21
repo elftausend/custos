@@ -200,20 +200,12 @@ pub trait Number:
 
     #[inline]
     fn max(self, rhs: Self) -> Self {
-        if self > rhs {
-            self
-        } else {
-            rhs
-        }
+        if self > rhs { self } else { rhs }
     }
 
     #[inline]
     fn min(self, rhs: Self) -> Self {
-        if self < rhs {
-            self
-        } else {
-            rhs
-        }
+        if self < rhs { self } else { rhs }
     }
 }
 

@@ -6,6 +6,7 @@ use std::{
 
 use crate::{LockInfo, State};
 
+#[derive(Debug)]
 pub struct LockedMap<K, V, S = RandomState> {
     data: RefCell<HashMap<K, Box<RefCell<V>>, S>>,
 }

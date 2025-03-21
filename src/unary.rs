@@ -149,7 +149,7 @@ mod tests {
     #[cfg(feature = "macro")]
     #[test]
     fn test_unary_elementwise() {
-        use crate::{Base, Combiner, Device, UnaryElementWiseMayGrad, CPU};
+        use crate::{Base, CPU, Combiner, Device, UnaryElementWiseMayGrad};
 
         let device = CPU::<Base>::new();
         let buf = device.buffer([1., 2., 3., 4.]);
@@ -255,7 +255,7 @@ mod tests {
     #[cfg(feature = "autograd")]
     #[test]
     fn test_unary_elementwise_may_grad_multiple_times() {
-        use crate::{Autograd, Base, Cached, Combiner, Device, UnaryElementWiseMayGrad, CPU};
+        use crate::{Autograd, Base, CPU, Cached, Combiner, Device, UnaryElementWiseMayGrad};
 
         let device = CPU::<Autograd<Cached<Base>>>::new();
         let buf = device.buffer([1., 2., 3., 4.]).require_grad();
@@ -320,7 +320,7 @@ mod tests {
     #[cfg(feature = "autograd")]
     #[test]
     fn test_unary_elementwise_may_grad_multiple_times_lazy() {
-        use crate::{Autograd, Base, Combiner, Device, Lazy, Run, UnaryElementWiseMayGrad, CPU};
+        use crate::{Autograd, Base, CPU, Combiner, Device, Lazy, Run, UnaryElementWiseMayGrad};
 
         let device = CPU::<Autograd<Lazy<Base, f64>>>::new();
         let buf = device.buffer([1., 2., 3., 4.]).require_grad();
@@ -335,8 +335,8 @@ mod tests {
     #[test]
     fn test_unary_elementwise_may_grad_multiple_times_lazy_with_lazy_input() {
         use crate::{
-            ApplyFunction, Autograd, Base, Combiner, Device, Lazy, Run, UnaryElementWiseMayGrad,
-            CPU,
+            ApplyFunction, Autograd, Base, CPU, Combiner, Device, Lazy, Run,
+            UnaryElementWiseMayGrad,
         };
 
         let device = CPU::<Autograd<Lazy<Base, f64>>>::new();
@@ -352,8 +352,8 @@ mod tests {
     #[test]
     fn test_unary_elementwise_may_grad_multiple_times_lazy_with_lazy_input_exec_last() {
         use crate::{
-            ApplyFunction, Autograd, Base, Combiner, Device, ExecNow, Lazy, Run,
-            UnaryElementWiseMayGrad, CPU,
+            ApplyFunction, Autograd, Base, CPU, Combiner, Device, ExecNow, Lazy, Run,
+            UnaryElementWiseMayGrad,
         };
 
         let device = CPU::<Autograd<Lazy<Base, f64>>>::new();
@@ -378,7 +378,7 @@ mod tests {
     #[test]
     fn test_unary_elementwise_may_grad_multiple_times_backwards_at_end() {
         use crate::{
-            Autograd, Base, Cached, Combiner, Cursor, Device, UnaryElementWiseMayGrad, CPU,
+            Autograd, Base, CPU, Cached, Combiner, Cursor, Device, UnaryElementWiseMayGrad,
         };
 
         let device = CPU::<Autograd<Cached<Base>>>::new();

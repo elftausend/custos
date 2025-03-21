@@ -1,4 +1,4 @@
-use crate::{flag::AllocFlag, Device, Shape, Unit};
+use crate::{Device, Shape, Unit, flag::AllocFlag};
 
 use super::StackArray;
 

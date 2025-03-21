@@ -1,10 +1,10 @@
 use core::fmt::Debug;
 
 use crate::{
-    cpu_stack_ops::clear_slice, pass_down_add_operation, pass_down_exec_now, prelude::Number,
     AddOperation, ApplyFunction, Buffer, CDatatype, ClearBuf, OnDropBuffer, Read, Resolve,
     Retrieve, Retriever, Shape, ToCLSource, ToMarker, ToWgslSource, UnaryGrad, Unit, UseGpuOrCpu,
-    Vulkan, WriteBuf, ZeroGrad,
+    Vulkan, WriteBuf, ZeroGrad, cpu_stack_ops::clear_slice, pass_down_add_operation,
+    pass_down_exec_now, prelude::Number,
 };
 
 use super::{VkArray, VkDevice};
@@ -257,7 +257,7 @@ impl<Mods: OnDropBuffer, T: Unit + Clone, S: Shape> WriteBuf<T, S> for Vulkan<Mo
 #[cfg(test)]
 mod tests {
     use super::{try_vk_apply_fn_mut, try_vk_clear};
-    use crate::{vulkan::ops::try_vk_add_unary_grad, Base, Buffer, Combiner, Vulkan};
+    use crate::{Base, Buffer, Combiner, Vulkan, vulkan::ops::try_vk_add_unary_grad};
 
     #[cfg(feature = "fork")]
     use crate::Fork;

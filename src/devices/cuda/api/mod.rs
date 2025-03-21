@@ -17,7 +17,7 @@ pub use ffi::*;
 
 #[cfg(test)]
 mod tests {
-    use crate::{cuda::api::CUdeviceptr, Base};
+    use crate::{Base, cuda::api::CUdeviceptr};
 
     #[test]
     fn test_cuda_alloc() {
@@ -47,7 +47,7 @@ mod tests {
 
     #[test]
     fn test_cuda_write() -> crate::Result<()> {
-        use crate::cuda::api::{create_context, cuInit, cu_read, cu_write, cumalloc, device};
+        use crate::cuda::api::{create_context, cu_read, cu_write, cuInit, cumalloc, device};
 
         unsafe { cuInit(0) };
 
@@ -70,7 +70,7 @@ mod tests {
     #[test]
     fn test_cublas() -> crate::Result<()> {
         use crate::cuda::api::{
-            create_context, cuInit, cu_read, cu_write,
+            create_context, cu_read, cu_write, cuInit,
             cublas::{cublasContext, cublasCreate_v2, cublasOperation_t, cublasSgemm_v2},
             cumalloc, device,
         };
@@ -137,8 +137,8 @@ mod tests {
         use std::{ffi::c_void, mem::size_of};
 
         use crate::cuda::api::{
-            cuCtxCreate_v2, cuDeviceGet, cuInit, cuMemAlloc_v2, cuMemcpyDtoH_v2, cuMemcpyHtoD_v2,
-            CUctx_st,
+            CUctx_st, cuCtxCreate_v2, cuDeviceGet, cuInit, cuMemAlloc_v2, cuMemcpyDtoH_v2,
+            cuMemcpyHtoD_v2,
         };
 
         unsafe {
@@ -168,7 +168,7 @@ mod tests {
 
     #[test]
     fn test_cuda_device() -> crate::Result<()> {
-        use crate::{cuda::CUDA, Buffer};
+        use crate::{Buffer, cuda::CUDA};
 
         let device = CUDA::<Base>::new(0)?;
         let _a = Buffer::<f32, _>::new(&device, 10);

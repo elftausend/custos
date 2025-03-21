@@ -4,8 +4,8 @@
 use std::{ffi::c_void, os::raw::c_char};
 
 use super::{
-    error::{CudaErrorKind, CudaResult},
     CUdeviceptr,
+    error::{CudaErrorKind, CudaResult},
 };
 pub type CUdevice = std::os::raw::c_int;
 

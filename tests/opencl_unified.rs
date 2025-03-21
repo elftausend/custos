@@ -1,7 +1,7 @@
 #![allow(unused)]
-use custos::{Buffer, Error, OpenCL, Read, CPU};
+use custos::{Buffer, CPU, Error, OpenCL, Read};
 
-use min_cl::api::{clCreateBuffer, enqueue_map_buffer, CommandQueue, MemFlags, OCLErrorKind};
+use min_cl::api::{CommandQueue, MemFlags, OCLErrorKind, clCreateBuffer, enqueue_map_buffer};
 
 use std::{collections::HashMap, ffi::c_void};
 
@@ -31,7 +31,7 @@ fn unified_ptr<T>(cq: &CommandQueue, ptr: *mut c_void, len: usize) -> Result<*mu
 #[cfg(feature = "opencl")]
 #[test]
 fn test_unified_mem_bool() -> Result<(), Error> {
-    use custos::{prelude::chosen_cl_idx, Base};
+    use custos::{Base, prelude::chosen_cl_idx};
 
     let device = OpenCL::<Base>::new(chosen_cl_idx())?;
     let um = device.unified_mem();
@@ -45,8 +45,8 @@ fn test_unified_mem() -> Result<(), Error> {
     const TIMES: usize = 10000;
     use std::time::Instant;
 
-    use custos::{prelude::chosen_cl_idx, Base};
-    use min_cl::api::{create_buffer, release_mem_object, MemFlags};
+    use custos::{Base, prelude::chosen_cl_idx};
+    use min_cl::api::{MemFlags, create_buffer, release_mem_object};
 
     let len = 20000;
 

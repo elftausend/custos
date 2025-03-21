@@ -1,8 +1,8 @@
 use core::{fmt::Debug, marker::PhantomData};
 
 use crate::{
-    flag::AllocFlag, Autograd, Device, HasId, IsBasePtr, PtrType, ShallowCopy, Shape, ToBase,
-    ToDim, UniqueId, Unit, WrappedData,
+    Autograd, Device, HasId, IsBasePtr, PtrType, ShallowCopy, Shape, ToBase, ToDim, UniqueId, Unit,
+    WrappedData, flag::AllocFlag,
 };
 
 // #[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]

@@ -1,4 +1,4 @@
-use crate::{prelude::Number, Combiner, Eval};
+use crate::{Combiner, Eval, prelude::Number};
 
 #[cfg(feature = "std")]
 use super::{ToCLSource, ToWgslSource};

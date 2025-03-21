@@ -1,17 +1,18 @@
 use core::ops::{Range, RangeBounds};
 
 use crate::{
-    bounds_to_range,
-    cuda::api::{cu_read_async, CUstreamCaptureStatus},
+    AddOperation, ApplyFunction, Buffer, CDatatype, CUDA, ClearBuf, CopySlice, Read, Resolve,
+    Retrieve, Retriever, SetOpHint, Shape, ToCLSource, ToMarker, UnaryGrad, Unit, WrappedData,
+    WriteBuf, ZeroGrad, bounds_to_range,
+    cuda::api::{CUstreamCaptureStatus, cu_read_async},
     op_hint::unary,
-    pass_down_add_operation, AddOperation, ApplyFunction, Buffer, CDatatype, ClearBuf, CopySlice,
-    Read, Resolve, Retrieve, Retriever, SetOpHint, Shape, ToCLSource, ToMarker, UnaryGrad, Unit,
-    WrappedData, WriteBuf, ZeroGrad, CUDA,
+    pass_down_add_operation,
 };
 
 use super::{
-    api::{cuMemcpy, cu_write_async},
-    cu_clear, CUDAPtr, CudaDevice,
+    CUDAPtr, CudaDevice,
+    api::{cu_write_async, cuMemcpy},
+    cu_clear,
 };
 
 pass_down_add_operation!(CUDA);
@@ -238,8 +239,8 @@ where
 #[cfg(test)]
 mod tests {
     use crate::{
+        Base, Buffer, CUDA, Combiner,
         cuda::ops::{try_cu_add_unary_grad, try_cu_apply_fn_mut},
-        Base, Buffer, Combiner, CUDA,
     };
 
     #[test]

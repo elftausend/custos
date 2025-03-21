@@ -1,7 +1,7 @@
-use crate::{number::Number, Buffer, OpenCL, Shape, Unit, WrappedData};
+use crate::{Buffer, OpenCL, Shape, Unit, WrappedData, number::Number};
 use min_cl::{
-    api::{set_kernel_arg, OCLErrorKind},
     CLDevice,
+    api::{OCLErrorKind, set_kernel_arg},
 };
 use std::{ffi::c_void, mem::size_of};
 
@@ -204,7 +204,7 @@ pub fn enqueue_kernel(
 mod tests {
     // use core::ffi::c_void;
 
-    use crate::{opencl::chosen_cl_idx, Base, Buffer, CDatatype, OpenCL};
+    use crate::{Base, Buffer, CDatatype, OpenCL, opencl::chosen_cl_idx};
 
     #[test]
     fn test_kernel_launch() -> crate::Result<()> {

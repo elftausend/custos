@@ -1,6 +1,6 @@
 use crate::{
-    bounds_to_range, modules::lazy::exec_iter::ExecIter, op_hint::OpHint, AnyOp, BoxedShallowCopy,
-    Buffers, Device, Downcast, Id, OperationFn, Parents,
+    AnyOp, BoxedShallowCopy, Buffers, Device, Downcast, Id, OperationFn, Parents, bounds_to_range,
+    modules::lazy::exec_iter::ExecIter, op_hint::OpHint,
 };
 use core::ops::RangeBounds;
 use std::collections::HashSet;
@@ -143,8 +143,8 @@ impl<B: Downcast, T> LazyGraph<B, T> {
 #[cfg(test)]
 mod tests {
     use crate::{
-        register_buf_any, register_buf_copyable, Base, Buffer, Device, HasId, LazyGraph, Retriever,
-        CPU,
+        Base, Buffer, CPU, Device, HasId, LazyGraph, Retriever, register_buf_any,
+        register_buf_copyable,
     };
     use std::collections::HashMap;
     #[cfg(feature = "autograd")]

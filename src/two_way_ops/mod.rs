@@ -204,7 +204,7 @@ pub mod tests_ex {
     #[cfg(feature = "cpu")]
     #[test]
     fn test_apply_clip_cpu() {
-        use crate::{ApplyFunction, Base, Device, CPU};
+        use crate::{ApplyFunction, Base, CPU, Device};
 
         let min = 3.;
         let max = 5.;
@@ -219,7 +219,7 @@ pub mod tests_ex {
     #[cfg(feature = "opencl")]
     #[test]
     fn test_apply_clip_cl() {
-        use crate::{prelude::chosen_cl_idx, ApplyFunction, Base, Device, OpenCL};
+        use crate::{ApplyFunction, Base, Device, OpenCL, prelude::chosen_cl_idx};
 
         let min = 3.;
         let max = 5.;
@@ -235,7 +235,7 @@ pub mod tests_ex {
     #[cfg(feature = "cpu")]
     #[test]
     fn test_apply_fn_cpu() {
-        use crate::{ApplyFunction, Base, Buffer, Combiner, CPU};
+        use crate::{ApplyFunction, Base, Buffer, CPU, Combiner};
 
         let device = CPU::<Base>::new();
 
@@ -248,7 +248,7 @@ pub mod tests_ex {
     #[cfg(feature = "opencl")]
     #[test]
     fn test_run_apply_fn_opencl() -> crate::Result<()> {
-        use crate::{opencl::chosen_cl_idx, ApplyFunction, Base, Buffer, Combiner, OpenCL};
+        use crate::{ApplyFunction, Base, Buffer, Combiner, OpenCL, opencl::chosen_cl_idx};
 
         let device = OpenCL::<Base>::new(chosen_cl_idx())?;
 
@@ -263,7 +263,7 @@ pub mod tests_ex {
     #[cfg(feature = "cpu")]
     #[test]
     fn test_run_apply_fn_cpu_more_complex() {
-        use crate::{tests_helper::roughly_eq_slices, ApplyFunction, Base, Buffer, CPU};
+        use crate::{ApplyFunction, Base, Buffer, CPU, tests_helper::roughly_eq_slices};
 
         let device = CPU::<Base>::new();
 
@@ -287,8 +287,8 @@ pub mod tests_ex {
     #[test]
     fn test_run_apply_fn_opencl_more_complex() -> crate::Result<()> {
         use crate::{
-            opencl::chosen_cl_idx, tests_helper::roughly_eq_slices, ApplyFunction, Base, Buffer,
-            OpenCL,
+            ApplyFunction, Base, Buffer, OpenCL, opencl::chosen_cl_idx,
+            tests_helper::roughly_eq_slices,
         };
 
         let device = OpenCL::<Base>::new(chosen_cl_idx())?;
@@ -314,7 +314,7 @@ pub mod tests_ex {
     #[cfg(feature = "vulkan")]
     #[test]
     fn test_run_apply_fn_vulkan_more_complex() -> crate::Result<()> {
-        use crate::{tests_helper::roughly_eq_slices, ApplyFunction, Base, Buffer, Vulkan};
+        use crate::{ApplyFunction, Base, Buffer, Vulkan, tests_helper::roughly_eq_slices};
 
         let device = Vulkan::<Base>::new(0)?;
 

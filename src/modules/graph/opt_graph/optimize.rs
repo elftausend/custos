@@ -126,7 +126,7 @@ impl OptGraph {
 #[cfg(feature = "std")]
 #[cfg(test)]
 mod tests {
-    use crate::modules::graph::opt_graph::{optimize::CacheTrace, OptGraph};
+    use crate::modules::graph::opt_graph::{OptGraph, optimize::CacheTrace};
 
     #[test]
     fn test_cache_trace() {
@@ -390,7 +390,7 @@ mod tests {
     #[cfg(feature = "cached")]
     #[test]
     fn test_from_retrieve_sine_neural_net() {
-        use crate::{Base, Buffer, Cached, Graph, Retriever, CPU};
+        use crate::{Base, Buffer, CPU, Cached, Graph, Retriever};
 
         let device = CPU::<Graph<Cached<Base>>>::new();
 
@@ -445,7 +445,7 @@ mod tests {
     #[cfg(feature = "cached")]
     #[test]
     fn test_from_retrieve_sliced_chained_perf_example() {
-        use crate::{Base, Buffer, Cached, Device, Graph, Retriever, CPU};
+        use crate::{Base, Buffer, CPU, Cached, Device, Graph, Retriever};
 
         let device = CPU::<Graph<Cached<Base>>>::new();
 
@@ -530,7 +530,7 @@ mod tests {
     #[cfg(feature = "lazy")]
     #[test]
     fn test_lazy_from_retrieve_sliced_chained_perf_example_optimize_cpu() {
-        use crate::{Base, Graph, Lazy, CPU};
+        use crate::{Base, CPU, Graph, Lazy};
 
         let device = CPU::<Graph<Lazy<Base>>>::new();
         test_lazy_from_retrieve(&device);
@@ -549,7 +549,7 @@ mod tests {
     #[cfg(feature = "lazy")]
     #[test]
     fn test_lazy_from_retrieve_sliced_chained_perf_example_optimize_cu() {
-        use crate::{Base, Graph, Lazy, CUDA};
+        use crate::{Base, CUDA, Graph, Lazy};
 
         let device = CUDA::<Graph<Lazy<Base>>>::new(0).unwrap();
         test_lazy_from_retrieve(&device);
@@ -559,7 +559,7 @@ mod tests {
     #[cfg(feature = "cached")]
     #[test]
     fn test_from_retrieve_sliced_chained_perf_example_optimize_cache() {
-        use crate::{Base, Buffer, Cached, Cursor, Device, Graph, HasId, Optimize, Retriever, CPU};
+        use crate::{Base, Buffer, CPU, Cached, Cursor, Device, Graph, HasId, Optimize, Retriever};
 
         let device = CPU::<Graph<Cached<Base>>>::new();
 
@@ -599,7 +599,7 @@ mod tests {
     #[cfg(feature = "cached")]
     #[test]
     fn test_mismatched_optimized_types_cached() {
-        use crate::{Base, Buffer, Cached, Cursor, Device, Graph, HasId, Optimize, Retriever, CPU};
+        use crate::{Base, Buffer, CPU, Cached, Cursor, Device, Graph, HasId, Optimize, Retriever};
 
         let device = CPU::<Graph<Cached<Base>>>::new();
 
@@ -639,7 +639,7 @@ mod tests {
     #[should_panic]
     #[test]
     fn test_mismatched_optimized_types_lazy() {
-        use crate::{Base, Buffer, Device, Graph, HasId, Lazy, Optimize, Retriever, Run, CPU};
+        use crate::{Base, Buffer, CPU, Device, Graph, HasId, Lazy, Optimize, Retriever, Run};
 
         let device = CPU::<Graph<Lazy<Base>>>::new();
 

@@ -78,8 +78,8 @@ mod tests {
     #[test]
     fn test_static_cpu_thread_return() {
         use crate::{
-            static_api::{static_cpu, GLOBAL_CPU},
             Device,
+            static_api::{GLOBAL_CPU, static_cpu},
         };
 
         let buf = Buffer::from(&[1f32, 2., 3.]);
@@ -148,7 +148,7 @@ mod tests {
     #[cfg(feature = "opencl")]
     #[test]
     fn test_to_device_cl() {
-        use crate::{buf, OpenCL};
+        use crate::{OpenCL, buf};
 
         let buf = buf![3f32, 1.4, 1., 2.].to_dev::<OpenCL>();
 

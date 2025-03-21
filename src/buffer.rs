@@ -4,15 +4,15 @@ use core::{
 };
 
 #[cfg(feature = "cpu")]
-use crate::cpu::{CPUPtr, CPU};
+use crate::cpu::{CPU, CPUPtr};
 
 #[cfg(not(feature = "cpu"))]
 use crate::CPU;
 
 use crate::{
-    flag::AllocFlag, shape::Shape, Alloc, Base, ClearBuf, CloneBuf, Device, DevicelessAble, HasId,
-    IsShapeIndep, OnNewBuffer, PtrType, Read, ReplaceBuf, ShallowCopy, ToDim, Unit, WrappedData,
-    WriteBuf, ZeroGrad,
+    Alloc, Base, ClearBuf, CloneBuf, Device, DevicelessAble, HasId, IsShapeIndep, OnNewBuffer,
+    PtrType, Read, ReplaceBuf, ShallowCopy, ToDim, Unit, WrappedData, WriteBuf, ZeroGrad,
+    flag::AllocFlag, shape::Shape,
 };
 
 pub use self::num::Num;
@@ -723,7 +723,7 @@ mod tests {
     #[cfg(unified_cl)]
     #[test]
     fn test_deref_cl() -> crate::Result<()> {
-        use crate::{opencl::chosen_cl_idx, Base, OpenCL};
+        use crate::{Base, OpenCL, opencl::chosen_cl_idx};
 
         let device = OpenCL::<Base>::new(chosen_cl_idx())?;
         let buf = Buffer::from((&device, [1, 2, 3, 4]));
@@ -773,7 +773,7 @@ mod tests {
     #[cfg(feature = "cpu")]
     #[test]
     fn test_id_cpu() {
-        use crate::{Base, HasId, CPU};
+        use crate::{Base, CPU, HasId};
 
         let device = CPU::<Base>::new();
 

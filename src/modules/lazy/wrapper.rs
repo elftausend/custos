@@ -7,8 +7,8 @@ use core::{
 };
 
 use crate::{
-    flag::AllocFlag, Device, HasId, HostPtr, IsBasePtr, Lazy, PtrType, ShallowCopy, Shape, ToBase,
-    ToDim, UniqueId, Unit, WrappedData,
+    Device, HasId, HostPtr, IsBasePtr, Lazy, PtrType, ShallowCopy, Shape, ToBase, ToDim, UniqueId,
+    Unit, WrappedData, flag::AllocFlag,
 };
 
 use super::unregister_buf_copyable;

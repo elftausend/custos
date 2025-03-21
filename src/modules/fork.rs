@@ -1,7 +1,7 @@
 use crate::{
-    impl_remove_layer, pass_down_add_operation, pass_down_tape_actions, AddLayer, Alloc, Buffer,
-    Device, ExecNowPassDown, HasModules, IsBasePtr, IsShapeIndep, Module, OnNewBuffer, Parents,
-    ReplaceBufPassDown, Retrieve, RunModule, Setup, Shape, Unit, UseGpuOrCpu, WrappedData, VERSION,
+    AddLayer, Alloc, Buffer, Device, ExecNowPassDown, HasModules, IsBasePtr, IsShapeIndep, Module,
+    OnNewBuffer, Parents, ReplaceBufPassDown, Retrieve, RunModule, Setup, Shape, Unit, UseGpuOrCpu,
+    VERSION, WrappedData, impl_remove_layer, pass_down_add_operation, pass_down_tape_actions,
 };
 use core::cell::{Cell, RefCell};
 
@@ -196,8 +196,8 @@ mod tests {
     use min_cl::CLDevice;
 
     use crate::{
-        opencl::try_cl_clear, should_use_cpu, Analyzation, ApplyFunction, Base, Buffer, Cached,
-        Combiner, Device, Fork, GpuOrCpuInfo, Module, OpenCL, UseGpuOrCpu, CPU,
+        Analyzation, ApplyFunction, Base, Buffer, CPU, Cached, Combiner, Device, Fork,
+        GpuOrCpuInfo, Module, OpenCL, UseGpuOrCpu, opencl::try_cl_clear, should_use_cpu,
     };
 
     pub fn clear(

@@ -1,20 +1,19 @@
 use crate::cuda::api::cuGraphInstantiate;
 
 use super::{
-    cuCtxCreate_v2, cuCtxDestroy, cuDeviceGet, cuDeviceGetCount, cuGraphDestroy,
-    cuGraphExecDestroy, cuInit, cuLaunchKernel, cuMemFree_v2, cuMemcpyDtoHAsync_v2,
-    cuMemcpyDtoH_v2, cuMemcpyHtoDAsync_v2, cuMemcpyHtoD_v2, cuModuleGetFunction, cuModuleLoad,
+    CUcontext, CUdevice, CUfunction, CUgraph_st, CUgraphExec_st, CUmodule, CUstream,
+    CUstreamCaptureStatus, cuCtxCreate_v2, cuCtxDestroy, cuDeviceGet, cuDeviceGetCount,
+    cuGraphDestroy, cuGraphExecDestroy, cuInit, cuLaunchKernel, cuMemFree_v2, cuMemcpyDtoH_v2,
+    cuMemcpyDtoHAsync_v2, cuMemcpyHtoD_v2, cuMemcpyHtoDAsync_v2, cuModuleGetFunction, cuModuleLoad,
     cuModuleLoadData, cuModuleUnload, cuStreamCreate, cuStreamEndCapture, cuStreamIsCapturing,
     cuStreamSynchronize,
     error::{CudaErrorKind, CudaResult},
     ffi::cuMemAlloc_v2,
-    CUcontext, CUdevice, CUfunction, CUgraphExec_st, CUgraph_st, CUmodule, CUstream,
-    CUstreamCaptureStatus,
 };
 
 use core::ptr::NonNull;
 use std::{
-    ffi::{c_void, CString},
+    ffi::{CString, c_void},
     ptr::null_mut,
 };
 
@@ -260,7 +259,7 @@ mod tests {
     use core::ptr::null_mut;
 
     use crate::cuda::api::{
-        cuGraphInstantiate, cuInit, cuStreamBeginCapture, cuStreamEndCapture, CudaResult,
+        CudaResult, cuGraphInstantiate, cuInit, cuStreamBeginCapture, cuStreamEndCapture,
     };
 
     use super::{create_context, create_stream, device};

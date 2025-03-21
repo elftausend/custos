@@ -1,6 +1,6 @@
 use ash::{
-    vk::{self, PhysicalDevice},
     Instance,
+    vk::{self, PhysicalDevice},
 };
 
 mod context;

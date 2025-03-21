@@ -14,7 +14,7 @@ const INVALID_ID: &str = "A matching Buffer does not exist.";
 pub struct Gradients {
     pub(crate) grads_pool: BorrowCache,
     pub no_grads_pool: Buffers<Box<dyn BoxedShallowCopy>>,
-    pub zero_grad_cbs: Vec<(Id, fn(&mut dyn Any))>,
+    zero_grad_cbs: Vec<(Id, fn(&mut dyn Any))>,
     pub buf_requires_grad: HashMap<UniqueId, bool, BuildHasherDefault<NoHasher>>,
 }
 
@@ -160,7 +160,7 @@ mod tests {
     #[cfg(feature = "cpu")]
     #[test]
     fn test_zero_grad_on_gradients() {
-        use crate::{Base, Device, Gradients, HasId, CPU};
+        use crate::{Base, CPU, Device, Gradients, HasId};
 
         let dev = CPU::<Base>::new();
 

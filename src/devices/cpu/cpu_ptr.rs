@@ -8,7 +8,7 @@ use core::{
 use std::alloc::handle_alloc_error;
 
 use crate::{
-    flag::AllocFlag, Device, HasId, HostPtr, Id, PtrType, ShallowCopy, Shape, ToBase, ToDim, Unit,
+    Device, HasId, HostPtr, Id, PtrType, ShallowCopy, Shape, ToBase, ToDim, Unit, flag::AllocFlag,
 };
 
 /// The pointer used for `CPU` [`Buffer`](crate::Buffer)s
@@ -322,9 +322,9 @@ pub mod serde {
     use core::{fmt, marker::PhantomData};
 
     use serde::{
+        Deserialize,
         de::{SeqAccess, Visitor},
         ser::SerializeSeq,
-        Deserialize,
     };
 
     use super::CPUPtr;
@@ -396,7 +396,7 @@ pub mod serde {
 
     #[cfg(test)]
     mod tests {
-        use serde_test::{assert_tokens, Token};
+        use serde_test::{Token, assert_tokens};
 
         use crate::cpu::CPUPtr;
 

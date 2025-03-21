@@ -470,7 +470,7 @@ mod tests {
     use core::{panic::Location, ptr::addr_of};
 
     // crate::modules
-    use crate::{location, Base, Buffer, Retrieve, Retriever, CPU};
+    use crate::{Base, Buffer, CPU, Retrieve, Retriever, location};
 
     use super::Cached;
     #[test]

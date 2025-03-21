@@ -17,7 +17,7 @@ fn test_write_cpu() {
 #[cfg(feature = "cpu")]
 #[test]
 fn test_write_buf_cpu() {
-    use custos::{Base, Buffer, WriteBuf, CPU};
+    use custos::{Base, Buffer, CPU, WriteBuf};
 
     let device = CPU::<Base>::new();
 
@@ -51,7 +51,7 @@ fn test_write_buf_cl() -> custos::Result<()> {
 #[cfg(feature = "cuda")]
 #[test]
 fn test_write_buf_cu() -> custos::Result<()> {
-    use custos::{Buffer, WriteBuf, CUDA};
+    use custos::{Buffer, CUDA, WriteBuf};
 
     let device = CUDA::<Base>::new(0)?;
 

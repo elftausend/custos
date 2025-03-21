@@ -1,11 +1,11 @@
 use core::ops::{Range, RangeInclusive};
 
 use crate::{
-    number::Number, shape::Shape, Alloc, Buffer, Device, OnNewBuffer, Retriever, Unit, WrappedData,
+    Alloc, Buffer, Device, OnNewBuffer, Retriever, Unit, WrappedData, number::Number, shape::Shape,
 };
 
 #[cfg(feature = "cpu")]
-use crate::{WriteBuf, CPU};
+use crate::{CPU, WriteBuf};
 
 impl<'a, T, D, const N: usize> From<(&'a D, [T; N])> for Buffer<'a, T, D>
 where
@@ -155,7 +155,7 @@ mod tests {
     #[cfg(feature = "opencl")]
     #[test]
     fn test_buf_device_conversion_cl() -> crate::Result<()> {
-        use crate::{opencl::chosen_cl_idx, Base, Buffer, OpenCL, CPU};
+        use crate::{Base, Buffer, CPU, OpenCL, opencl::chosen_cl_idx};
 
         let device = OpenCL::<Base>::new(chosen_cl_idx())?;
         println!("name: {:?}", device.name());
@@ -189,7 +189,7 @@ mod tests {
     #[cfg(feature = "cpu")]
     #[test]
     fn test_impl_from_range() {
-        use crate::{Device, CPU};
+        use crate::{CPU, Device};
 
         let device = CPU::based();
         let buffer = device.buffer::<f32, (), _>(4..10);
@@ -199,7 +199,7 @@ mod tests {
     #[cfg(feature = "cpu")]
     #[test]
     fn test_impl_from_range_inclusive() {
-        use crate::{Device, CPU};
+        use crate::{CPU, Device};
 
         let device = CPU::based();
         let buffer = device.buffer::<f32, (), _>(4..=10);

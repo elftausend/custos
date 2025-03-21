@@ -8,8 +8,8 @@ use core::ops::{AddAssign, Deref, DerefMut};
 pub use stack_device::*;
 
 use crate::{
-    cpu_stack_ops::clear_slice, ApplyFunction, Buffer, ClearBuf, Device, Eval, MayToCLSource,
-    Resolve, Retrieve, Retriever, Shape, ToVal, UnaryGrad, Unit, WrappedData, ZeroGrad,
+    ApplyFunction, Buffer, ClearBuf, Device, Eval, MayToCLSource, Resolve, Retrieve, Retriever,
+    Shape, ToVal, UnaryGrad, Unit, WrappedData, ZeroGrad, cpu_stack_ops::clear_slice,
 };
 
 // #[impl_stack]
@@ -87,8 +87,8 @@ where
 #[cfg(test)]
 mod tests {
     use crate::{
-        tests_helper::add_ew_slice, Alloc, Base, Buffer, Device, Dim1, Retrieve, Retriever, Shape,
-        Unit, CPU,
+        Alloc, Base, Buffer, CPU, Device, Dim1, Retrieve, Retriever, Shape, Unit,
+        tests_helper::add_ew_slice,
     };
     use core::ops::{Add, Deref};
 

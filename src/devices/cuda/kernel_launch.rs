@@ -1,9 +1,10 @@
-use crate::{number::Number, Buffer, Shape, Unit, WrappedData, CUDA};
+use crate::{Buffer, CUDA, Shape, Unit, WrappedData, number::Number};
 use std::{collections::HashMap, ffi::c_void};
 
 use super::{
-    api::{cuOccupancyMaxPotentialBlockSize, culaunch_kernel, FnHandle, Module, Stream},
-    fn_cache, CUDAPtr, CudaDevice, CudaSource, KernelCache,
+    CUDAPtr, CudaDevice, CudaSource, KernelCache,
+    api::{FnHandle, Module, Stream, cuOccupancyMaxPotentialBlockSize, culaunch_kernel},
+    fn_cache,
 };
 
 /// Converts `Self` to a (cuda) *mut c_void.

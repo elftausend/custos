@@ -1,4 +1,4 @@
-use crate::{UnaryFusing, WrappedData, CUDA};
+use crate::{CUDA, UnaryFusing, WrappedData};
 
 impl<Mods: WrappedData> UnaryFusing for CUDA<Mods> {
     #[cfg(feature = "lazy")]

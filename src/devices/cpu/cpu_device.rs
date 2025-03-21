@@ -1,9 +1,9 @@
 use core::convert::Infallible;
 
 use crate::{
-    cpu::CPUPtr, flag::AllocFlag, impl_device_traits, AddLayer, Alloc, Base, Buffer, CloneBuf,
-    Device, DeviceError, DevicelessAble, IsShapeIndep, Module, OnNewBuffer, RemoveLayer, Setup,
-    Shape, UnaryFusing, Unit, WrappedData,
+    AddLayer, Alloc, Base, Buffer, CloneBuf, Device, DeviceError, DevicelessAble, IsShapeIndep,
+    Module, OnNewBuffer, RemoveLayer, Setup, Shape, UnaryFusing, Unit, WrappedData, cpu::CPUPtr,
+    flag::AllocFlag, impl_device_traits,
 };
 
 pub trait IsCPU {}
@@ -231,7 +231,7 @@ unsafe impl<Mods: WrappedData> IsShapeIndep for CPU<Mods> {}
 
 #[cfg(test)]
 mod tests {
-    use crate::{Alloc, DeviceError, Dim1, CPU};
+    use crate::{Alloc, CPU, DeviceError, Dim1};
 
     #[cfg(feature = "fork")]
     #[cfg(feature = "cached")]

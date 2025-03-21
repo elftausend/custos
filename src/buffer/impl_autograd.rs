@@ -1,5 +1,5 @@
-use crate::prelude::*;
 use crate::MayGradActions;
+use crate::prelude::*;
 
 use crate::Unit;
 #[cfg(feature = "autograd")]

@@ -7,7 +7,7 @@ use core::{
 
 use super::Cache;
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct FastCache {
     pub nodes: LockedMap<UniqueId, Box<dyn Any>, BuildHasherDefault<NoHasher>>,
 }

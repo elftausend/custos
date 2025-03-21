@@ -1,14 +1,14 @@
 use min_cl::CLDevice;
 
-use min_cl::api::{create_buffer, enqueue_full_copy_buffer, MemFlags};
+use min_cl::api::{MemFlags, create_buffer, enqueue_full_copy_buffer};
 
 use super::{AsClCvoidPtr, CLPtr};
-use crate::{flag::AllocFlag, opencl::KernelLaunch};
-use crate::{impl_device_traits, Shape, Unit};
 use crate::{
-    pass_down_use_gpu_or_cpu, Alloc, Base, Buffer, Cached, CachedCPU, CloneBuf, Device,
-    IsShapeIndep, Module, OnNewBuffer, Setup, WrappedData, CPU,
+    Alloc, Base, Buffer, CPU, Cached, CachedCPU, CloneBuf, Device, IsShapeIndep, Module,
+    OnNewBuffer, Setup, WrappedData, pass_down_use_gpu_or_cpu,
 };
+use crate::{Shape, Unit, impl_device_traits};
+use crate::{flag::AllocFlag, opencl::KernelLaunch};
 
 use core::ops::{Deref, DerefMut};
 use std::fmt::Debug;
@@ -331,7 +331,7 @@ impl<Mods> crate::LazyRun for OpenCL<Mods> {}
 mod tests {
     use min_cl::api::OCLErrorKind;
 
-    use crate::{opencl::cl_device::CLDevice, Alloc, Base, Buffer, Cached, OpenCL, CPU};
+    use crate::{Alloc, Base, Buffer, CPU, Cached, OpenCL, opencl::cl_device::CLDevice};
 
     #[test]
     fn test_fastest_cl_device() {

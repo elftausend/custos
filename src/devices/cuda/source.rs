@@ -1,8 +1,8 @@
 use core::fmt::Display;
 use std::ffi::CString;
 
-use crate::cuda::api::nvrtc::create_program;
 use crate::Error;
+use crate::cuda::api::nvrtc::create_program;
 
 use super::api::nvrtc::nvrtcDestroyProgram;
 

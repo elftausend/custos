@@ -1,9 +1,9 @@
 use core::{fmt::Display, mem::size_of_val, str::FromStr};
 
 use naga::{
+    WithSpan,
     back::spv::{Options, PipelineOptions},
     valid::{ModuleInfo, ValidationError},
-    WithSpan,
 };
 
 pub struct Spirv {

@@ -9,10 +9,10 @@ pub use ty::*;
 use wrapper::MaybeData;
 
 use crate::{
-    op_hint::OpHint, register_buf_copyable, unregister_buf_copyable, AddLayer, AddOperation, Alloc,
-    AnyOp, BoxedShallowCopy, Buffer, CachedBuffers, Cursor, Device, ExecNow, HasId, HasModules, Id,
-    IsShapeIndep, Module, NoHasher, OnNewBuffer, Parents, ReplaceBuf, Retrieve, RunModule,
-    SetOpHint, Setup, ShallowCopy, Shape, UniqueId, Unit, UseGpuOrCpu, WrappedData,
+    AddLayer, AddOperation, Alloc, AnyOp, BoxedShallowCopy, Buffer, CachedBuffers, Cursor, Device,
+    ExecNow, HasId, HasModules, Id, IsShapeIndep, Module, NoHasher, OnNewBuffer, Parents,
+    ReplaceBuf, Retrieve, RunModule, SetOpHint, Setup, ShallowCopy, Shape, UniqueId, Unit,
+    UseGpuOrCpu, WrappedData, op_hint::OpHint, register_buf_copyable, unregister_buf_copyable,
 };
 
 #[cfg(feature = "graph")]
@@ -509,9 +509,9 @@ mod tests {
     use core::ops::{Add, Deref};
 
     use crate::{
-        tests_helper::{add_ew_slice, AddEw},
-        AddOperation, ApplyFunction, Base, Buffer, Combiner, Device, Retrieve, Retriever, Shape,
-        Unit, CPU,
+        AddOperation, ApplyFunction, Base, Buffer, CPU, Combiner, Device, Retrieve, Retriever,
+        Shape, Unit,
+        tests_helper::{AddEw, add_ew_slice},
     };
 
     use super::Lazy;

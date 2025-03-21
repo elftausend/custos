@@ -1,6 +1,6 @@
 use crate::{Alloc, Buffer, Device, OnNewBuffer, Read, Unit};
 
-use super::{static_cpu, StaticDevice};
+use super::{StaticDevice, static_cpu};
 
 impl<'a, T: Unit + Clone> Buffer<'a, T> {
     /// Moves the buffer [`Buffer`] to a static device.<br>

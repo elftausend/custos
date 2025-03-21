@@ -1,8 +1,8 @@
 #[cfg(feature = "cuda")]
 use crate::cuda::CUDAPtr;
 use crate::{
-    untyped::{AsType, MatchesType, Type},
     HasId, PtrType,
+    untyped::{AsType, MatchesType, Type},
 };
 
 #[cfg(feature = "cuda")]
