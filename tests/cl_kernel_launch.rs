@@ -16,7 +16,6 @@ fn test_as_cl_cvoid() -> custos::Result<()> {
     let buf = Buffer::<f32, _>::new(&device, 100);
     let ptr = buf.as_cvoid_ptr();
     assert_eq!(ptr, buf.cl_ptr());
-
     Ok(())
 }
 
