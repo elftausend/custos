@@ -235,6 +235,25 @@ impl BorrowCache {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    #[cfg(feature = "cpu")]
+    fn test_comp_error_lt() {
+        use crate::{Base, BorrowCacheLT, Id, CPU};
+
+        pub struct CPU2<'dev> {
+            cache: BorrowCacheLT<'dev>,
+        }
+
+        let a = {
+            let device = CPU::<Base>::new();
+            let mut cache = BorrowCacheLT::default();
+            cache.add_buf::<f32, _, ()>(&device, Id { id: 0, len: 10 });
+            // drop(device);
+            let mut new_buf = false;
+            // cache.add_or_get::<f32, CPU, ()>(&device, Id { id: 0, len: 10}, &mut new_buf)
+        };
+        // cache.cache.get(&3);
+    }
 
     #[test]
     #[cfg(feature = "cpu")]
@@ -250,7 +269,7 @@ mod tests {
             let mut new_buf = false;
             // cache.add_or_get::<f32, CPU, ()>(&device, Id { id: 0, len: 10}, &mut new_buf)
         };
-        // cache.cache.get(&3);
+        cache.cache.get(&3);
     }
 
     #[cfg(feature = "cpu")]

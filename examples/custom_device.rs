@@ -7,10 +7,7 @@ use std::{
 };
 
 use custos::{
-    cpu::CPUPtr, flag::AllocFlag, impl_device_traits, AddGradFn, AddOperation, Alloc, Base,
-    BorrowCacheLT, Buffer, Cached, CachedModule, Device, DeviceError, DevicelessAble, HasId, Id,
-    LazyGraph2, Module, OnDropBuffer, OnNewBuffer, PtrType, Retrieve, Retriever, Setup, Shape,
-    TapeActions, Tape, Unit, WrappedData, CPU,
+    cpu::CPUPtr, flag::AllocFlag, impl_device_traits, AddGradFn, AddOperation, Alloc, Base, BorrowCacheLT, Buffer, Cached, CachedModule, Device, DeviceError, DevicelessAble, HasId, Id, LazyGraph2, Module, Num, OnDropBuffer, OnNewBuffer, PtrType, Retrieve, Retriever, Setup, Shape, Tape, TapeActions, Unit, WrappedData, CPU
 };
 
 pub trait Str {
@@ -115,6 +112,16 @@ impl<'a, Mods: OnDropBuffer> Device for CPU2<'a, Mods> {
     // fn wrap(&self) {}
 }
 
+impl<'a, T, S: Shape, Mods: OnDropBuffer> Retriever<T, S> for CPU2<'a, Mods> {
+    fn retrieve<const NUM_PARENTS: usize>(
+        &self,
+        len: usize,
+        parents: impl custos::Parents<NUM_PARENTS>,
+    ) -> custos::Result<Buffer<T, Self, S>> {
+        todo!()
+    }
+}
+
 impl<'a, SimpleMods> CPU2<'a, SimpleMods> {
     #[inline]
     pub fn new<NewMods>() -> CPU2<'a, SimpleMods::Module>
@@ -182,6 +189,139 @@ impl<SimpleMods> New<SimpleMods> for CPU<SimpleMods> {
         CPU {
             modules: SimpleMods::new(),
         }
+    }
+}
+
+#[derive(Default)]
+pub struct OnlyCaching<'a, Mods> {
+    _cache: UnsafeCell<BorrowCacheLT<'a>>,
+    _modules: Mods,
+}
+
+impl<'a, D: 'a, Mods: Module<'a, D>> Module<'a, D> for OnlyCaching<'a, Mods> {
+    type Module = OnlyCaching<'a, Mods::Module>;
+
+    fn new() -> Self::Module {
+        OnlyCaching {
+            _cache: Default::default(),
+            _modules: Mods::new(),
+        }
+    }
+}
+
+impl<'a, Mods: OnDropBuffer> OnDropBuffer for OnlyCaching<'a, Mods> {
+    #[inline]
+    fn on_drop_buffer<T: Unit, D: Device, S: Shape>(
+        &self,
+        _device: &D,
+        _buf: &custos::prelude::Buffer<T, D, S>,
+    ) {
+        self._modules.on_drop_buffer(_device, _buf)
+    }
+}
+
+impl<'a, Mods: WrappedData> WrappedData for OnlyCaching<'a, Mods> {
+    type Wrap<T, Base: HasId + PtrType> = Mods::Wrap<T, Base>;
+
+    #[inline]
+    fn wrap_in_base<T, Base: HasId + PtrType>(&self, base: Base) -> Self::Wrap<T, Base> {
+        self._modules.wrap_in_base(base)
+    }
+
+    #[inline]
+    fn wrapped_as_base<T, Base: HasId + PtrType>(wrap: &Self::Wrap<T, Base>) -> &Base {
+        Mods::wrapped_as_base(wrap)
+    }
+
+    #[inline]
+    fn wrapped_as_base_mut<T, Base: HasId + PtrType>(wrap: &mut Self::Wrap<T, Base>) -> &mut Base {
+        Mods::wrapped_as_base_mut(wrap)
+    }
+}
+
+impl<'a, 'b, T, D, S, Mods: OnNewBuffer<'a, T, D, S>> OnNewBuffer<'b, T, D, S>
+    for OnlyCaching<'a, Mods>
+where
+    D: Device,
+    S: Shape,
+{
+}
+
+impl<'a, T: 'static, S: Shape, D: Device + 'static, Mods: OnDropBuffer> Retrieve<D, T, S> for OnlyCaching<'a, Mods> {
+    unsafe fn retrieve<const NUM_PARENTS: usize>(
+        &self,
+        device: &D,
+        len: usize,
+        parents: impl custos::Parents<NUM_PARENTS>,
+    ) -> custos::Result<Self::Wrap<T, <D>::Base<T, S>>>
+    where
+        S: Shape,
+        D: Device + Alloc<T>,
+    {
+        unsafe {self._cache.get().as_ref()}.unwrap().get_buf::<T, D, S>(Id { id: 1, len });
+        todo!()
+    }
+}
+
+pub struct Puffer<'a, T, D, S: Shape> {
+    pub ptr: PhantomData<&'a ()>,
+    pub s: PhantomData<S>,
+    pub d: PhantomData<D>,
+    pub t: PhantomData<T>,
+}
+
+pub trait BufRetrieve<'dev, T, D, S: Shape> {
+    fn buf_retrieve<const NUM_PARENTS: usize>(
+        &'dev self,
+        device: &'dev D,
+        len: usize,
+        parents: impl custos::Parents<NUM_PARENTS>,
+    ) -> custos::Result<&'dev Puffer<'dev, T, D, S>>;
+}
+
+impl<'dev, Mods: 'dev + BufRetrieve<'dev, T, D, S>, T, D: Device + 'dev, S: Shape> BufRetrieve<'dev, T, D, S> for CPU2<'dev, Mods> {
+    fn buf_retrieve<const NUM_PARENTS: usize>(
+        &'dev self,
+        device: &'dev D,
+        len: usize,
+        parents: impl custos::Parents<NUM_PARENTS>,
+    ) -> custos::Result<&'dev Puffer<'dev, T, D, S>> {
+        self.modules.buf_retrieve(device, len, parents)
+    }
+}
+
+impl<'dev, Mods, T: 'static, D: Device, S: Shape> BufRetrieve<'dev, T, D, S> for OnlyCaching<'dev, Mods> {
+    fn buf_retrieve<const NUM_PARENTS: usize>(
+        &self,
+        device: &'dev D,
+        len: usize,
+        parents: impl custos::Parents<NUM_PARENTS>,
+    ) -> custos::Result<&Puffer<'dev, T, D, S>> {
+        // Ok(unsafe {self._cache.get().as_ref()}.unwrap().get_buf::<T, D, S>(Id { id: 1, len }).unwrap())
+        todo!()
+    }
+}
+
+
+impl<'a, Mods: OnDropBuffer> AddOperation for OnlyCaching<'a, Mods> {
+    fn add_op<Args: custos::Parents<N> + custos::UpdateArgs, const N: usize>(
+        &self,
+        args: Args,
+        operation: fn(&mut Args) -> custos::Result<()>,
+    ) -> custos::Result<()> {
+        todo!()
+    }
+
+    fn ops_count(&self) -> usize {
+        todo!()
+    }
+
+    fn set_lazy_enabled(&self, enabled: bool) {
+        todo!()
+    }
+
+    fn is_lazy_enabled(&self) -> bool {
+        todo!()
     }
 }
 
@@ -487,6 +627,95 @@ fn x<'a>(device: &'a CPU2<'a, Autograd<'a, Base>>) {
 }
 impl<'a, T, S: Shape, Mods: OnDropBuffer> DevicelessAble<'a, T, S> for CPU2<'_, Mods> {}
 fn main() {
+    
+    pub struct CPULT<'dev> {
+        mods: OnlyCaching<'dev, Base>
+    }
+    impl<'dev, T: 'static, D: Device, S: Shape> BufRetrieve<'dev, T, D, S> for CPULT<'dev> {
+        fn buf_retrieve<const NUM_PARENTS: usize>(
+            &'dev self,
+            device: &'dev D,
+            len: usize,
+            parents: impl custos::Parents<NUM_PARENTS>,
+        ) -> custos::Result<&'dev Puffer<'dev, T,D,S>> {
+            self.mods.buf_retrieve(device, len, parents)
+        }
+    }
+
+    impl<'dev> WrappedData for CPULT<'dev> {
+        type Wrap<T, Base: HasId + PtrType> = Num<T>;
+    
+        fn wrap_in_base<T, Base: HasId + PtrType>(&self, base: Base) -> Self::Wrap<T, Base> {
+            todo!()
+        }
+    
+        fn wrapped_as_base<T, Base: HasId + PtrType>(wrap: &Self::Wrap<T, Base>) -> &Base {
+            todo!()
+        }
+    
+        fn wrapped_as_base_mut<T, Base: HasId + PtrType>(wrap: &mut Self::Wrap<T, Base>) -> &mut Base {
+            todo!()
+        }
+    }
+
+    impl<'dev> OnDropBuffer for CPULT<'dev> {
+        fn on_drop_buffer<T: Unit, D: Device, S: Shape>(&self, _device: &D, _buf: &Buffer<T, D, S>) {}
+    }
+
+    impl<'dev> Device for CPULT<'dev> {
+        type Error = Infallible;
+        type Base<T: Unit, S: Shape> = CPUPtr<T>;
+        type Data<T: Unit, S: Shape> = Self::Wrap<T, Self::Base<T, S>>;
+        // type WrappedData<T, S: Shape> = ;
+
+        fn new() -> Result<Self, Self::Error> {
+            todo!()
+        }
+
+        #[inline(always)]
+        fn base_to_data<T: Unit, S: Shape>(&self, base: Self::Base<T, S>) -> Self::Data<T, S> {
+            self.wrap_in_base(base)
+        }
+
+        #[inline(always)]
+        fn wrap_to_data<T: Unit, S: Shape>(
+            &self,
+            wrap: Self::Wrap<T, Self::Base<T, S>>,
+        ) -> Self::Data<T, S> {
+            wrap
+        }
+
+        #[inline(always)]
+        fn data_as_wrap<T: Unit, S: Shape>(
+            data: &Self::Data<T, S>,
+        ) -> &Self::Wrap<T, Self::Base<T, S>> {
+            data
+        }
+
+        #[inline(always)]
+        fn data_as_wrap_mut<T: Unit, S: Shape>(
+            data: &mut Self::Data<T, S>,
+        ) -> &mut Self::Wrap<T, Self::Base<T, S>> {
+            data
+        }
+
+    // #[inline]
+    // fn wrap(&self) {}
+    }
+
+
+    let cpu = CPULT {
+        mods: OnlyCaching::default()
+    };
+
+    // let buf: &Puffer<f32, _, ()> = cpu.buf_retrieve(&cpu, 10, ()).unwrap();
+
+    let cpu = CPU2::<OnlyCaching<Base>>::new();
+    // let buf = Buffer::<f32, _>::new(&cpu, 10);
+    // let buf: &Buffer<f32, _> = cpu.buf_retrieve(&cpu, 10, ()).unwrap();
+    
+    // cpu.buffer([1, 2, 3]);
+
     // let x = Box::new(Typ::default());
     // Box::into_raw(x);
     //

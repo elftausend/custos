@@ -21,7 +21,9 @@ fn main() {
         {
             // check if debug or release
             if Ok("debug".into()) == std::env::var("PROFILE") {
-                std::env::set_var("CUSTOS_CUDA_LINK_ON_BUILD", "false");
+                unsafe {
+                    std::env::set_var("CUSTOS_CUDA_LINK_ON_BUILD", "false");
+                }
             }
         }
 

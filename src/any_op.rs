@@ -51,7 +51,7 @@ impl<'a, T: 'static, D: Device + 'static, S: crate::Shape> Replicate2<'a>
     ) -> Option<Self::Replication<'r>> {
         buffers.get(id)?.downcast_ref::<Self::Downcast<'_>>()
     }
-    
+
     fn replicate(self) -> Self::Replication<'a> {
         self
     }
@@ -131,11 +131,12 @@ impl<'dev, R: crate::HasId + Replicate2<'dev>> AnyOp2<'dev> for R {
 
         let id = ids[0];
         Box::new(move |buffers| {
-            let r1 = unsafe { R::replicate_borrowed(&id, buffers) }.ok_or(DeviceError::InvalidLazyBuf)?;
+            let r1 = unsafe { R::replicate_borrowed(&id, buffers) }
+                .ok_or(DeviceError::InvalidLazyBuf)?;
             op(r1)
         })
     }
-    
+
     fn replication(self) -> Self::Replicated<'dev> {
         self.replicate()
     }

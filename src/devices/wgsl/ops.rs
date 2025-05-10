@@ -6,7 +6,8 @@ use crate::{
 use super::{wgsl_device::Wgsl, AsShaderArg, WgslShaderLaunch};
 
 impl<T: Unit, S: Shape, D: Read<T, S>, Mods: OnDropBuffer + 'static> Read<T, S> for Wgsl<D, Mods> {
-    type Read<'a> = D::Read<'a>
+    type Read<'a>
+        = D::Read<'a>
     where
         T: 'a,
         D: 'a,

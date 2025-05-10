@@ -4,7 +4,7 @@ use crate::{impl_buffer_hook_traits, Base, Buffer, Device, OnDropBuffer, Shape, 
 /// because the CPU is the default type `D` for [`Buffer`]s.
 // TODO: Can be replaced with the standard cpu (now)
 pub struct CPU<Mods = Base> {
-    modules: Mods,
+    pub modules: Mods,
 }
 
 impl<Mods: OnDropBuffer> Device for CPU<Mods> {

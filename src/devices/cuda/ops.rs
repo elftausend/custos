@@ -18,7 +18,8 @@ pass_down_add_operation!(CUDA);
 pass_down_exec_now!(CUDA);
 
 impl<Mods: OnDropBuffer, T: Unit + Default + Clone, S: Shape> Read<T, S> for CUDA<Mods> {
-    type Read<'a> = Vec<T>
+    type Read<'a>
+        = Vec<T>
     where
         T: 'a,
         CUDA<Mods>: 'a;

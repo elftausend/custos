@@ -102,7 +102,8 @@ impl<T: Unit + Copy, S: Shape> Read<T, S> for Stack
 where
     S::ARR<T>: Copy,
 {
-    type Read<'a> = S::ARR<T>
+    type Read<'a>
+        = S::ARR<T>
     where
         T: 'a,
         Stack: 'a,

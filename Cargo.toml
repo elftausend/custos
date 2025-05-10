@@ -53,7 +53,7 @@ min-cl = { git = "https://github.com/elftausend/min-cl", optional = true }
 [features]
 # default = ["cpu", "opencl", "cuda", "blas", "static-api", "stack", "macro", "nnapi", "untyped", "autograd", "autograd", "cached", "lazy", "fork", "graph", "serde"]
 # default = ["no-std"]
-default = ["no-std"]
+default = ["no-std", "autograd", "cpu"]
 # default = ["untyped", "cpu", "lazy", "graph", "autograd", "fork", "serde", "json", "half", "cached", "static-api", "stack", "opencl", "cuda", "vulkan"]
 
 
@@ -100,6 +100,10 @@ required-features = ["cuda"]
 
 [[example]]
 name = "custom_device"
+required-features = ["cpu", "autograd"]
+
+[[example]]
+name = "new"
 required-features = ["cpu", "autograd"]
 
 [[example]]
