@@ -291,16 +291,16 @@ impl<'a, T, NewMods, SD> AddLayer<NewMods, SD> for Lazy<'a, (), T> {
     }
 }
 
-impl<'a, T, Mods, D, S, T2> Retrieve<'a, D, T, S> for Lazy<'_, Mods, T2>
+impl<T, Mods, D, S, T2> Retrieve<D, T, S> for Lazy<'_, Mods, T2>
 where
     T: Unit + 'static,
-    Mods: Retrieve<'a, D, T, S>,
+    Mods: Retrieve<D, T, S>,
     D: IsShapeIndep + 'static,
     D::Data<'static, T, S>: ShallowCopy,
     S: Shape,
 {
     #[inline]
-    fn retrieve<const NUM_PARENTS: usize>(
+    fn retrieve<'a, const NUM_PARENTS: usize>(
         &self,
         _device: &D,
         len: usize,
@@ -375,7 +375,7 @@ where
         self.modules.on_retrieve_finish(len, parents, retrieved_buf)
     }
 
-    fn retrieve_entry<const NUM_PARENTS: usize>(
+    fn retrieve_entry<'a, const NUM_PARENTS: usize>(
         &'a self,
         device: &D,
         len: usize,
@@ -559,7 +559,7 @@ mod tests {
         D: Device + 'static,
         D::Base<T, S>: Deref<Target = [T]>,
         S: Shape,
-        Mods: AddOperation + Retrieve<'a, Self, T, S> + 'static,
+        Mods: AddOperation + Retrieve<Self, T, S> + 'static,
     {
         #[inline]
         fn add(&'a self, lhs: &Buffer<T, D, S>, rhs: &Buffer<T, D, S>) -> Buffer<'a, T, Self, S> {

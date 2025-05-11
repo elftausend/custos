@@ -176,7 +176,7 @@ mod tests {
             + crate::GradActions
             + crate::TapeActions<'b>
             + crate::HasAutograd
-            + crate::UnaryElementWiseMayGrad<'a, f32, D, ()>
+            + crate::UnaryElementWiseMayGrad<f32, D, ()>
             + crate::Alloc<f32>
             + crate::CachedBuffers
             + crate::AddOperation

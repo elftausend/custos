@@ -105,15 +105,15 @@ impl<'a, Mods: OnNewBuffer<'a, T, D, S>, T: Unit, D: Device, S: Shape> OnNewBuff
     }
 }
 
-impl<'a, T, Mods, D, S> Retrieve<'a, D, T, S> for Fork<Mods>
+impl<T, Mods, D, S> Retrieve<D, T, S> for Fork<Mods>
 where
     T: Unit + 'static,
-    Mods: Retrieve<'a, D, T, S>,
+    Mods: Retrieve<D, T, S>,
     D: IsShapeIndep + 'static,
     S: Shape,
 {
     #[inline]
-    fn retrieve<const NUM_PARENTS: usize>(
+    fn retrieve<'a, const NUM_PARENTS: usize>(
         &self,
         device: &D,
         len: usize,
@@ -126,7 +126,7 @@ where
         self.modules.retrieve(device, len, parents)
     }
 
-    fn retrieve_entry<const NUM_PARENTS: usize>(
+    fn retrieve_entry<'a, const NUM_PARENTS: usize>(
         &'a self,
         device: &D,
         len: usize,
