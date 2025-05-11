@@ -453,6 +453,25 @@ mod tests {
     }
 
     #[test]
+    #[should_panic]
+    fn test_grad_fn_with_out_of_scope_buffer() {
+        let device = CPU::<Autograd<Lazy<Base>>>::new();
+        let out = Buffer::<f32, _>::new(&device, 10);
+        {
+            let buf = Buffer::<f32, _>::new(&device, 10).require_grad();
+
+            device.add_grad_fn((&buf, &out), |(buf, _out)| unsafe {
+                println!("buf: {buf:?}");
+                for (val, grad) in buf.grad_mut_unbound().iter_mut().zip(_out.grad().iter()) {
+                    *val = 5. * grad;
+                }
+                Ok(())
+            });
+        }
+        out.backward().unwrap();
+    }
+
+    #[test]
     fn test_tape_return_with_grad_allocation() {
         let device = CPU::<Autograd<Base>>::new();
         let buf = Buffer::<f32, _>::new(&device, 10);

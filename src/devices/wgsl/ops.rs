@@ -1,11 +1,10 @@
 use crate::{
-    AddOperation, Alloc, ApplyFunction, OnDropBuffer, Read, Retrieve, Retriever, SetOpHint, Shape,
-    ToMarker, Unit, op_hint::unary,
+    op_hint::unary, AddOperation, Alloc, ApplyFunction, Read, Retrieve, Retriever, SetOpHint, Shape, ToMarker, Unit, WrappedData
 };
 
 use super::{AsShaderArg, WgslShaderLaunch, wgsl_device::Wgsl};
 
-impl<T: Unit, S: Shape, D: Read<T, S>, Mods: OnDropBuffer + 'static> Read<T, S> for Wgsl<D, Mods> {
+impl<T: Unit, S: Shape, D: Read<T, S>, Mods: WrappedData + 'static> Read<T, S> for Wgsl<D, Mods> {
     type Read<'a>
         = D::Read<'a>
     where

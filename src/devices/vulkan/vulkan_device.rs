@@ -2,7 +2,7 @@ use ash::vk::{self, BufferUsageFlags};
 
 use super::{AsVkShaderArgument, ShaderCache, VkArray, context::Context, launch_shader};
 use crate::{
-    Alloc, Base, Buffer, Device, DeviceError, IsShapeIndep, Module, OnDropBuffer, Setup, Shape,
+    Alloc, Base, Buffer, Device, DeviceError, IsShapeIndep, Module, Setup, Shape,
     Unit, WrappedData, impl_device_traits, pass_down_use_gpu_or_cpu,
     wgsl::{WgslDevice, WgslShaderLaunch, chosen_wgsl_idx},
 };
@@ -121,40 +121,52 @@ impl<Mods> Vulkan<Mods> {
 impl_device_traits!(Vulkan);
 pass_down_use_gpu_or_cpu!(Vulkan);
 
-impl<Mods: OnDropBuffer> Device for Vulkan<Mods> {
-    type Data<T: Unit, S: Shape> = Mods::Wrap<T, Self::Base<T, S>>;
+impl<Mods: WrappedData> Device for Vulkan<Mods> {
+    type Data<'a, T: Unit, S: Shape> = Mods::Wrap<'a, T, Self::Base<T, S>>;
     type Base<T: Unit, S: Shape> = VkArray<T>;
 
     type Error = ();
 
-    fn base_to_data<T: Unit, S: Shape>(&self, base: Self::Base<T, S>) -> Self::Data<T, S> {
+    #[inline(always)]
+    fn default_base_to_data<'a, T: Unit, S: Shape>(
+        &'a self,
+        base: Self::Base<T, S>,
+    ) -> Self::Data<'a, T, S> {
         self.wrap_in_base(base)
     }
 
-    #[inline]
-    fn wrap_to_data<T: Unit, S: Shape>(
+    #[inline(always)]
+    fn default_base_to_data_unbound<'a, T: Unit, S: Shape>(
         &self,
-        wrap: Self::Wrap<T, Self::Base<T, S>>,
-    ) -> Self::Data<T, S> {
+        base: Self::Base<T, S>,
+    ) -> Self::Data<'a, T, S> {
+        self.wrap_in_base_unbound(base)
+    }
+
+    #[inline(always)]
+    fn wrap_to_data<'a, T: Unit, S: Shape>(
+        &self,
+        wrap: Self::Wrap<'a, T, Self::Base<T, S>>,
+    ) -> Self::Data<'a, T, S> {
         wrap
     }
 
-    #[inline]
-    fn data_as_wrap<'a, T: Unit, S: Shape>(
-        data: &'a Self::Data<T, S>,
-    ) -> &'a Self::Wrap<T, Self::Base<T, S>> {
+    #[inline(always)]
+    fn data_as_wrap<'a, 'b, T: Unit, S: Shape>(
+        data: &'b Self::Data<'a, T, S>,
+    ) -> &'b Self::Wrap<'a, T, Self::Base<T, S>> {
         data
     }
 
-    #[inline]
-    fn data_as_wrap_mut<'a, T: Unit, S: Shape>(
-        data: &'a mut Self::Data<T, S>,
-    ) -> &'a mut Self::Wrap<T, Self::Base<T, S>> {
+    #[inline(always)]
+    fn data_as_wrap_mut<'a, 'b, T: Unit, S: Shape>(
+        data: &'b mut Self::Data<'a, T, S>,
+    ) -> &'b mut Self::Wrap<'a, T, Self::Base<T, S>> {
         data
     }
 }
 
-impl<Mods: OnDropBuffer, T: Unit> Alloc<T> for Vulkan<Mods> {
+impl<Mods: WrappedData, T: Unit> Alloc<T> for Vulkan<Mods> {
     #[inline]
     fn alloc<S: Shape>(
         &self,
@@ -197,7 +209,7 @@ impl<Mods: OnDropBuffer, T: Unit> Alloc<T> for Vulkan<Mods> {
 #[cfg(feature = "fork")]
 impl<Mods> crate::ForkSetup for Vulkan<Mods> {}
 
-unsafe impl<Mods: OnDropBuffer> IsShapeIndep for Vulkan<Mods> {}
+unsafe impl<Mods: WrappedData> IsShapeIndep for Vulkan<Mods> {}
 
 #[cfg(test)]
 mod tests {

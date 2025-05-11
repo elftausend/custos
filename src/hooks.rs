@@ -1,4 +1,4 @@
-use crate::{Shape, Unit, WrappedData};
+use crate::{Shape, Unit};
 
 use super::{Buffer, Device};
 

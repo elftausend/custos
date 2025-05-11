@@ -1,6 +1,5 @@
 use custos::{
-    Alloc, Base, CPU, Device, HasId, IsBasePtr, Module, Parents, PtrType, Retrieve, Setup, Shape,
-    Unit, WrappedData,
+    Alloc, Base, CPU, Device, IsBasePtr, Module, Parents, Retrieve, Setup, Shape, Unit, WrappedData,
 };
 
 pub struct CustomModule<Mods> {

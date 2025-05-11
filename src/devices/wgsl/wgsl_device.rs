@@ -1,8 +1,8 @@
 use core::convert::Infallible;
 
 use crate::{
-    AddOperation, Alloc, Base, Buffer, Device, HasId, IsShapeIndep, Module, OnDropBuffer,
-    OnNewBuffer, Parents, PtrType, Retrieve, Retriever, Setup, Shape, Unit, WrappedData,
+    AddOperation, Alloc, Base, Buffer, Device, IsBasePtr, IsShapeIndep, Module, OnNewBuffer,
+    Parents, Retrieve, Retriever, Setup, Shape, Unit, WrappedData,
 };
 
 use super::{WgslDevice, WgslShaderLaunch};
@@ -30,74 +30,83 @@ impl<SimpleMods, D: WgslDevice + Device + Default> Wgsl<D, SimpleMods> {
     }
 }
 
-impl<D: Device, Mods: OnDropBuffer> Device for Wgsl<D, Mods> {
+impl<D: Device, Mods: WrappedData> Device for Wgsl<D, Mods> {
     type Base<T: Unit, S: crate::Shape> = D::Base<T, S>;
 
-    type Data<T: Unit, S: crate::Shape> = Mods::Wrap<T, Self::Base<T, S>>;
+    type Data<'a, T: Unit, S: crate::Shape> = Mods::Wrap<'a, T, Self::Base<T, S>>;
 
     type Error = Infallible;
 
-    #[inline]
-    fn base_to_data<T: Unit, S: crate::Shape>(&self, base: Self::Base<T, S>) -> Self::Data<T, S> {
+    #[inline(always)]
+    fn default_base_to_data<'a, T: Unit, S: Shape>(
+        &'a self,
+        base: Self::Base<T, S>,
+    ) -> Self::Data<'a, T, S> {
         self.wrap_in_base(base)
     }
 
-    #[inline]
-    fn wrap_to_data<T: Unit, S: crate::Shape>(
+    #[inline(always)]
+    fn default_base_to_data_unbound<'a, T: Unit, S: Shape>(
         &self,
-        wrap: Self::Wrap<T, Self::Base<T, S>>,
-    ) -> Self::Data<T, S> {
+        base: Self::Base<T, S>,
+    ) -> Self::Data<'a, T, S> {
+        self.wrap_in_base_unbound(base)
+    }
+
+    #[inline(always)]
+    fn wrap_to_data<'a, T: Unit, S: Shape>(
+        &self,
+        wrap: Self::Wrap<'a, T, Self::Base<T, S>>,
+    ) -> Self::Data<'a, T, S> {
         wrap
     }
 
-    #[inline]
-    fn data_as_wrap<T: Unit, S: crate::Shape>(
-        data: &Self::Data<T, S>,
-    ) -> &Self::Wrap<T, Self::Base<T, S>> {
+    #[inline(always)]
+    fn data_as_wrap<'a, 'b, T: Unit, S: Shape>(
+        data: &'b Self::Data<'a, T, S>,
+    ) -> &'b Self::Wrap<'a, T, Self::Base<T, S>> {
         data
     }
 
-    #[inline]
-    fn data_as_wrap_mut<T: Unit, S: crate::Shape>(
-        data: &mut Self::Data<T, S>,
-    ) -> &mut Self::Wrap<T, Self::Base<T, S>> {
+    #[inline(always)]
+    fn data_as_wrap_mut<'a, 'b, T: Unit, S: Shape>(
+        data: &'b mut Self::Data<'a, T, S>,
+    ) -> &'b mut Self::Wrap<'a, T, Self::Base<T, S>> {
         data
     }
 }
 
 impl<D: Device, Mods: WrappedData> WrappedData for Wgsl<D, Mods> {
-    type Wrap<T: Unit, Base: HasId + PtrType> = Mods::Wrap<T, Base>;
+    type Wrap<'a, T: Unit, Base: IsBasePtr> = Mods::Wrap<'a, T, Base>;
 
     #[inline]
-    fn wrap_in_base<T: Unit, Base: crate::HasId + crate::PtrType>(
-        &self,
+    fn wrap_in_base<'a, T: Unit, Base: crate::IsBasePtr>(
+        &'a self,
         base: Base,
-    ) -> Self::Wrap<T, Base> {
+    ) -> Self::Wrap<'a, T, Base> {
         self.modules.wrap_in_base(base)
     }
 
     #[inline]
-    fn wrapped_as_base<T: Unit, Base: crate::HasId + crate::PtrType>(
-        wrap: &Self::Wrap<T, Base>,
-    ) -> &Base {
+    fn wrap_in_base_unbound<'a, T: Unit, Base: crate::IsBasePtr>(
+        &self,
+        base: Base,
+    ) -> Self::Wrap<'a, T, Base> {
+        self.modules.wrap_in_base_unbound(base)
+    }
+
+    #[inline]
+    fn wrapped_as_base<'a, 'b, T: Unit, Base: crate::IsBasePtr>(
+        wrap: &'b Self::Wrap<'a, T, Base>,
+    ) -> &'b Base {
         Mods::wrapped_as_base(wrap)
     }
 
     #[inline]
-    fn wrapped_as_base_mut<T: Unit, Base: crate::HasId + crate::PtrType>(
-        wrap: &mut Self::Wrap<T, Base>,
-    ) -> &mut Base {
+    fn wrapped_as_base_mut<'a, 'b, T: Unit, Base: crate::IsBasePtr>(
+        wrap: &'b mut Self::Wrap<'a, T, Base>,
+    ) -> &'b mut Base {
         Mods::wrapped_as_base_mut(wrap)
-    }
-}
-impl<D: Device, Mods: OnDropBuffer> OnDropBuffer for Wgsl<D, Mods> {
-    #[inline]
-    fn on_drop_buffer<T: Unit, D1: Device, S: crate::Shape>(
-        &self,
-        device: &D1,
-        buf: &crate::Buffer<T, D1, S>,
-    ) {
-        self.modules.on_drop_buffer(device, buf)
     }
 }
 
@@ -105,14 +114,14 @@ impl<'dev, D: Device, Mods: OnNewBuffer<'dev, T, D1, S>, T: Unit, D1: Device, S:
     OnNewBuffer<'dev, T, D1, S> for Wgsl<D, Mods>
 {
     #[inline]
-    unsafe fn on_new_buffer(&self, device: &'dev D1, new_buf: &crate::Buffer<'dev, T, D1, S>) {
+    fn on_new_buffer(&'dev self, device: &'dev D1, new_buf: &mut crate::Buffer<'dev, T, D1, S>) {
         self.modules.on_new_buffer(device, new_buf)
     }
 }
 
-unsafe impl<D: Device, Mods: OnDropBuffer> IsShapeIndep for Wgsl<D, Mods> {}
+unsafe impl<D: Device, Mods: WrappedData> IsShapeIndep for Wgsl<D, Mods> {}
 
-impl<T: Unit, D: Alloc<T>, Mods: OnDropBuffer> Alloc<T> for Wgsl<D, Mods> {
+impl<T: Unit, D: Alloc<T>, Mods: WrappedData> Alloc<T> for Wgsl<D, Mods> {
     #[inline]
     fn alloc<S: Shape>(
         &self,
@@ -148,7 +157,7 @@ impl<T: Unit, D: Alloc<T>, Mods: OnDropBuffer> Alloc<T> for Wgsl<D, Mods> {
     }
 }
 
-impl<D: Device + WgslShaderLaunch, Mods: OnDropBuffer> WgslShaderLaunch for Wgsl<D, Mods> {
+impl<D: Device + WgslShaderLaunch, Mods: WrappedData> WgslShaderLaunch for Wgsl<D, Mods> {
     type ShaderArg = D::ShaderArg;
 
     #[inline]
@@ -162,7 +171,7 @@ impl<D: Device + WgslShaderLaunch, Mods: OnDropBuffer> WgslShaderLaunch for Wgsl
     }
 }
 
-impl<D: Device + Alloc<T>, T: Unit, Mods: Retrieve<Self, T, S>, S: Shape> Retriever<T, S>
+impl<D: Device + Alloc<T>, T: Unit, Mods: Retrieve<Self, T, S>, S: Shape> Retriever<'_, T, S>
     for Wgsl<D, Mods>
 {
     #[inline]
@@ -171,12 +180,12 @@ impl<D: Device + Alloc<T>, T: Unit, Mods: Retrieve<Self, T, S>, S: Shape> Retrie
         len: usize,
         parents: impl Parents<NUM_PARENTS>,
     ) -> crate::Result<Buffer<T, Self, S>> {
-        let data = unsafe { self.modules.retrieve::<NUM_PARENTS>(self, len, parents) }?;
+        let data = unsafe { self.modules.retrieve::<NUM_PARENTS>(self, len, &parents) }?;
         let buf = Buffer {
             data,
             device: Some(self),
         };
-        self.modules.on_retrieve_finish(&buf);
+        self.modules.on_retrieve_finish(len, parents, &buf);
         Ok(buf)
     }
 }

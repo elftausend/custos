@@ -9,7 +9,7 @@ use core::{
 };
 use std::rc::Rc;
 
-use crate::{HasId, HostPtr, PtrType, ShallowCopy, Unit, WrappedCopy, flag::AllocFlag};
+use crate::{HasId, HostPtr, PtrType, ShallowCopy, Unit, flag::AllocFlag};
 
 use super::{context::Context, submit_and_wait};
 
@@ -228,15 +228,6 @@ impl<T: Unit> VkArray<T> {
     }
 }
 
-impl<T> WrappedCopy for VkArray<T> {
-    type Base = Self;
-
-    #[inline]
-    fn wrapped_copy(&self, to_wrap: Self::Base) -> Self {
-        to_wrap
-    }
-}
-
 impl<T> ShallowCopy for VkArray<T> {
     #[inline]
     unsafe fn shallow(&self) -> Self {
@@ -321,7 +312,7 @@ pub unsafe fn create_buffer<T>(
     let buffer_create_info = vk::BufferCreateInfo::default()
         .size(buffer_size as u64)
         .usage(usage);
-    device.create_buffer(&buffer_create_info, None)
+    unsafe { device.create_buffer(&buffer_create_info, None) }
 }
 
 pub unsafe fn allocate_memory(
@@ -338,7 +329,7 @@ pub unsafe fn allocate_memory(
         memory_type_index,
         ..Default::default()
     };
-    device.allocate_memory(&memory_allocate_info, None)
+    unsafe { device.allocate_memory(&memory_allocate_info, None) }
 }
 
 #[cfg(test)]
