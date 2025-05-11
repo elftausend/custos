@@ -21,6 +21,45 @@ pub struct CPU2<'a, Mods: 'a = Base> {
     pd: PhantomData<&'a ()>,
 }
 
+impl<'dev, Mods> AddOperation for CPU2<'dev, Mods> {
+    fn add_op<Args: custos::Parents<N> + custos::UpdateArgs, const N: usize>(
+        &self,
+        args: Args,
+        operation: fn(&mut Args) -> custos::Result<()>,
+    ) -> custos::Result<()> {
+        todo!()
+    }
+
+    fn ops_count(&self) -> usize {
+        todo!()
+    }
+
+    fn set_lazy_enabled(&self, enabled: bool) {
+        todo!()
+    }
+
+    fn is_lazy_enabled(&self) -> bool {
+        todo!()
+    }
+}
+
+impl<'dev, Mods: OnDropBuffer>  GradActions<'dev, Self> for CPU2<'dev, Mods> {
+    fn get_grad<T, S>(&self, device: &'dev Self, for_buf_id: Id) -> &Buffer<'dev, T, Self, S>
+    where
+        Self: Alloc<T>,
+        T: 'static,
+        S: Shape {
+        todo!()
+    }
+
+    unsafe fn get_grad_mut<'b, T, S>(&'b self, for_buf_id: Id) -> &'b mut Buffer<'dev, T, Self, S>
+    where
+        T: 'static,
+        S: Shape {
+        todo!()
+    }
+}
+
 impl<'dev, T, D, S, Mods> crate::OnNewBuffer<'dev, T, D, S> for CPU2<'_, Mods>
 where
     Self: 'dev,
@@ -236,6 +275,23 @@ impl<'a, Mods: WrappedData> WrappedData for OnlyCaching<'a, Mods> {
     #[inline]
     fn wrapped_as_base_mut<T, Base: HasId + PtrType>(wrap: &mut Self::Wrap<T, Base>) -> &mut Base {
         Mods::wrapped_as_base_mut(wrap)
+    }
+}
+
+impl<'dev, D: Device, Mods> GradActions<'dev, D> for OnlyCaching<'dev, Mods> {
+    fn get_grad<T, S>(&self, device: &'dev D, for_buf_id: Id) -> &Buffer<'dev, T, D, S>
+    where
+        D: Alloc<T>,
+        T: 'static,
+        S: Shape {
+        todo!()
+    }
+
+    unsafe fn get_grad_mut<'b, T, S>(&'b self, for_buf_id: Id) -> &'b mut Buffer<'dev, T, D, S>
+    where
+        T: 'static,
+        S: Shape {
+        todo!()
     }
 }
 
@@ -538,14 +594,18 @@ pub trait AddBuf<'dev, T: Unit, S: Shape = (), D: Device = Self>: Sized + Device
     fn test<'a>(&self, lhs: &'a Buffer<'_, T, D, S>) -> &'a Buffer<'dev, T, Self, S>;
 }
 
-impl<'dev, T, S, Mods> AddBuf<'dev, T, S, Self> for CPU<Mods>
+
+
+impl<'dev, T, S, Mods> AddBuf<'dev, T, S, Self> for CPU2<'dev, Mods>
 where
+    Self: 'static,
     T: Unit + Copy + AddAssign + 'static,
     S: Shape,
     Mods: 'static
-        + for<'d> GradActions<'d, Self>
+        + GradActions<'dev, Self>
         + OnDropBuffer
         + AddOperation
+        + BufRetrieve<'dev, T, Self, S,>
         + Retrieve<Self, T, S>,
 {
     fn add(
@@ -554,11 +614,15 @@ where
         rhs: &mut Buffer<T, Self, S>,
     ) -> Buffer<T, Self, S> {
         let out = self.retrieve(lhs.len, (&*lhs, &*rhs)).unwrap();
+        self.buf_retrieve(self, lhs.len(), ());
 
         // lazy fn not grad fn -> wurscht
         self.add_op((lhs, rhs /*&out*/), |(lhs, rhs /*out*/)| {
-            lhs.grad_mut1();
-            rhs.grad1();
+            let dev = lhs.device();
+            // dev.buf_retrieve(dev, lhs.len(), ());
+            // dev.grad(dev, lhs);
+            // lhs.grad1();
+            // rhs.grad1();
             // add_ew_grad_slice(lhs.grad_mut1(), out.grad1());
             // add_ew_grad_slice(rhs.grad_mut1(), out.grad1());
             Ok(())
@@ -573,6 +637,7 @@ where
         // lhs.grad1()
     }
 }
+
 
 fn add_ew_grad_slice<T: Copy + AddAssign>(grad_acc: &mut [T], out_grad: &[T]) {
     for (grad, out_grad) in grad_acc.iter_mut().zip(out_grad) {
@@ -710,8 +775,12 @@ fn main() {
 
     // let buf: &Puffer<f32, _, ()> = cpu.buf_retrieve(&cpu, 10, ()).unwrap();
 
-    let cpu = CPU2::<OnlyCaching<Base>>::new();
-    // let buf = Buffer::<f32, _>::new(&cpu, 10);
+    let dev = CPU2::<OnlyCaching<Base>>::new();
+    let mut buf = Buffer::<f32, _>::new(&dev, 10);
+    let mut buf1 = Buffer::<f32, _>::new(&dev, 10);
+
+    AddBuf::add(&dev, &mut buf, &mut buf1);
+    // let mut out = dev.add(&mut out, &mut out1);
     // let buf: &Buffer<f32, _> = cpu.buf_retrieve(&cpu, 10, ()).unwrap();
     
     // cpu.buffer([1, 2, 3]);
@@ -766,8 +835,8 @@ fn main() {
         // dev.on_new_buffer2(&buffer)
         dev.on_new_buffer(&dev, &buffer);
 
-        // let mut out = dev.buffer([1, 2, 3]);
-        // let mut out1 = dev.buffer([1, 2, 3]);
+        let mut out = dev.buffer([1, 2, 3]);
+        let mut out1 = dev.buffer([1, 2, 3]);
 
         // let mut out = dev.add(&mut out, &mut out1);
         // dev.add(&mut out, &mut out1);
