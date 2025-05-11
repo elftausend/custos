@@ -6,7 +6,7 @@ pub use gradients::*;
 pub use tape::*;
 
 use core::{
-    cell::{Cell, UnsafeCell},
+    cell::{Cell, RefCell, UnsafeCell},
     marker::PhantomData,
 };
 
@@ -73,13 +73,14 @@ impl<'dev, Mods> Autograd<'dev, Mods> {
     }
 }
 
-impl<'dev, T, D, Mods, S: Shape> OnNewBuffer<'dev, T, D, S> for Autograd<'_, Mods>
+impl<'m_dev, 'dev, T, D, Mods, S: Shape> OnNewBuffer<'dev, T, D, S> for Autograd<'m_dev, Mods>
 where
     T: Unit + 'static,
     D: Alloc<T> + IsShapeIndep + 'static,
     D::Data<'static, T, S>: ShallowCopy,
     D::Base<T, S>: ShallowCopy,
     Mods: OnNewBuffer<'dev, T, D, S> + CachedBuffers,
+    'm_dev: 'dev,
 {
     #[inline]
     fn on_new_buffer(&'dev self, device: &'dev D, new_buf: &mut Buffer<'dev, T, D, S>) {
@@ -215,7 +216,7 @@ impl<'dev, Mods> GradActions for Autograd<'dev, Mods> {
         &self,
         device: &'a D,
         buf: &Buffer<'a, T, D, S>,
-    ) -> &Buffer<'a, T, D, S>
+    ) -> &Buffer<'static, T, D, S>
     where
         T: 'static,
         D: Device + Alloc<T> + crate::ZeroGrad<T> + 'static,
@@ -229,7 +230,7 @@ impl<'dev, Mods> GradActions for Autograd<'dev, Mods> {
         &self,
         device: &'a D,
         buf: &Buffer<'a, T, D, S>,
-    ) -> &mut Buffer<'a, T, D, S>
+    ) -> &mut Buffer<'static, T, D, S>
     where
         T: 'static,
         D: Device + Alloc<T> + crate::ZeroGrad<T> + 'static,

@@ -69,13 +69,13 @@ where
 #[cfg(feature = "opencl")]
 // OpenCL implementation
 // S: Shape is not used here, but it could
-impl<T, Mods> AddBuf<T> for OpenCL<Mods>
+impl<'a, T, Mods> AddBuf<'a, T> for OpenCL<Mods>
 where
-    Mods: Retrieve<Self, T>,
+    Mods: Retrieve<'a, Self, T>,
     T: CDatatype, // the custos::CDatatype trait is used to
                   // get the OpenCL C type string for creating generic OpenCL kernels.
 {
-    fn add(&self, lhs: &Buffer<T, Self>, rhs: &Buffer<T, Self>) -> Buffer<T, Self> {
+    fn add(&'a self, lhs: &Buffer<T, Self>, rhs: &Buffer<T, Self>) -> Buffer<'a, T, Self> {
         // generic OpenCL kernel
         let src = format!("
             __kernel void add(__global const {datatype}* lhs, __global const {datatype}* rhs, __global {datatype}* out) 

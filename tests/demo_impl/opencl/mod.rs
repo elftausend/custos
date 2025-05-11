@@ -1,8 +1,8 @@
-use custos::{Buffer, CDatatype, OnDropBuffer, OpenCL, Retriever, Shape, opencl::enqueue_kernel};
+use custos::{opencl::enqueue_kernel, Buffer, CDatatype, OpenCL, Retriever, Shape, WrappedData};
 
 use super::ElementWise;
 
-pub fn cl_element_wise<Mods: OnDropBuffer, T, S: Shape>(
+pub fn cl_element_wise<Mods: WrappedData, T, S: Shape>(
     device: &OpenCL<Mods>,
     lhs: &Buffer<T, OpenCL<Mods>, S>,
     rhs: &Buffer<T, OpenCL<Mods>, S>,

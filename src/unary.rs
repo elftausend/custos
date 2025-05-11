@@ -201,7 +201,7 @@ mod tests {
         // out.backward();
         out.backward().unwrap();
         roughly_eq_slices(
-            &buf.grad().read_to_vec(),
+            &device.read_to_vec(buf.grad()),
             &[
                 0.5403023058681398,
                 -0.4161468365471424,
@@ -255,7 +255,7 @@ mod tests {
     #[cfg(feature = "autograd")]
     #[test]
     fn test_unary_elementwise_may_grad_multiple_times() {
-        use crate::{Autograd, Base, CPU, Cached, Combiner, Device, UnaryElementWiseMayGrad};
+        use crate::{Autograd, Base, Cached, ClearBuf, Combiner, Device, UnaryElementWiseMayGrad, CPU};
 
         let device = CPU::<Autograd<Cached<Base>>>::new();
         let buf = device.buffer([1., 2., 3., 4.]).require_grad();
@@ -284,7 +284,7 @@ mod tests {
             );
             unsafe {
                 // TODO: use safe version
-                buf.grad_mut_unbound().clear();
+                device.clear(buf.grad_mut_unbound());
             }
         }
     }
@@ -378,7 +378,7 @@ mod tests {
     #[test]
     fn test_unary_elementwise_may_grad_multiple_times_backwards_at_end() {
         use crate::{
-            Autograd, Base, CPU, Cached, Combiner, Cursor, Device, UnaryElementWiseMayGrad,
+            Autograd, Base, Cached, Combiner, Cursor, Device, UnaryElementWiseMayGrad, WriteBuf, CPU
         };
 
         let device = CPU::<Autograd<Cached<Base>>>::new();
@@ -387,7 +387,7 @@ mod tests {
         for i in device.range(0..9) {
             let _out = device.unary_ew(&buf, |x| x.sin(), |x| x.cos());
             if i == 0 {
-                unsafe { _out.grad_mut_unbound().write(&[1., 1., 1., 1.]) };
+                device.write(unsafe { _out.grad_mut_unbound() }, &[1., 1., 1., 1.]);
             }
         }
         let out = device.unary_ew(&buf, |x| x.sin(), |x| x.cos());

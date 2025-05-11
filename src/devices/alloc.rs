@@ -1,7 +1,6 @@
 use crate::{Device, Shape, Unit, flag::AllocFlag};
 
 use super::StackArray;
-
 pub trait Alloc<T: Unit>: Device + Sized {
     /// Allocate memory on the implemented device.
     /// # Example

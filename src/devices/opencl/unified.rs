@@ -62,7 +62,7 @@ impl<D: Device> UnifiedMemChain<D> for Base {
 pub unsafe fn to_cached_unified<OclMods, CpuMods, T, S>(
     device: &OpenCL<OclMods>,
     no_drop: Buffer<T, CPU<CpuMods>, S>,
-    cache: &mut HashMap<crate::UniqueId, Arc<dyn Any>, BuildHasherDefault<crate::NoHasher>>,
+    cache: &impl Cache<Box<dyn Any>>,
     id: crate::UniqueId,
 ) -> crate::Result<*mut c_void>
 where
@@ -72,16 +72,17 @@ where
     S: Shape,
 {
     // use the host pointer to create an OpenCL buffer
-    let cl_ptr = create_buffer(
+    let cl_ptr = unsafe { create_buffer(
         device.ctx(),
         MemFlags::MemReadWrite | MemFlags::MemUseHostPtr,
         no_drop.len(),
         Some(&no_drop),
-    )?;
+    )? };
 
     let old_ptr = cache.insert(
         id,
-        Arc::new(CLPtr {
+        no_drop.len(),
+        Box::new(CLPtr {
             ptr: cl_ptr,
             host_ptr: no_drop.base().ptr,
             len: no_drop.len(),
@@ -118,15 +119,14 @@ where
 ///     Ok(())
 /// }
 /// ```
-pub fn construct_buffer<'a, OclMods, CpuMods, T, S, CacheType>(
+pub fn construct_buffer<'a, OclMods, CpuMods, T, S>(
     device: &'a OpenCL<OclMods>,
     no_drop: Buffer<'a, T, CPU<CpuMods>, S>,
-    cache: &CacheType,
+    cache: &impl Cache<Box<dyn Any>>,
     id: crate::UniqueId,
 ) -> crate::Result<Buffer<'a, T, OpenCL<OclMods>, S>>
 where
     OclMods: Cursor + WrappedData,
-    CacheType: Cache<Box<dyn Any>>,
     CpuMods: WrappedData,
     T: Unit + 'static,
     S: Shape,
@@ -140,7 +140,7 @@ where
     unsafe { device.bump_cursor() };
 
     // if buffer was already converted, return the cache entry.
-    if let Some(rawcl) = cache.get(id, no_drop.len) {
+    if let Ok(rawcl) = cache.get(id, no_drop.len) {
         let rawcl = rawcl
             .downcast_ref::<<OpenCL<OclMods> as Device>::Base<T, S>>()
             .unwrap();
@@ -185,10 +185,10 @@ mod tests {
     #[test]
     fn test_unified_mem_chain_ideal() -> crate::Result<()> {
         let cpu = CPU::<Cached<Base>>::new();
+        let device = OpenCL::<Cached<Base>>::new(0)?;
         let mut no_drop = cpu.retrieve::<0>(3, ()).unwrap();
         no_drop.write(&[1., 2.3, 0.76]);
 
-        let device = OpenCL::<Cached<Base>>::new(0)?;
         let buf = device.construct_unified_buf_from_cpu_buf::<_, ()>(&device, no_drop)?;
         assert_eq!(buf.read(), &[1., 2.3, 0.76]);
         Ok(())
@@ -249,9 +249,9 @@ mod tests {
         no_drop.write(&[1., 2.3, 0.76]);
 
         let device = OpenCL::<Base>::new(chosen_cl_idx())?;
-        let mut cache = FastCache::new();
+        let cache = FastCache::new();
 
-        let buf = construct_buffer(&device, no_drop, &mut cache.nodes, 0);
+        let buf = construct_buffer(&device, no_drop, &cache, 0);
         match buf
             .expect_err("Missing error -> failure")
             .downcast_ref::<DeviceError>()
@@ -272,7 +272,7 @@ mod tests {
         let mut cache = FastCache::new();
 
         let (host_ptr, len) = (no_drop.data.ptr, no_drop.len());
-        let cl_host_ptr = unsafe { to_cached_unified(&device, no_drop, &mut cache.nodes, 0)? };
+        let cl_host_ptr = unsafe { to_cached_unified(&device, no_drop, &mut cache, 0)? };
 
         let buf: Buffer<f32, OpenCL> = Buffer {
             data: CLPtr {
@@ -298,7 +298,7 @@ mod tests {
         let device = OpenCL::<Base>::new(chosen_cl_idx())?;
         let mut cache = FastCache::new();
 
-        let buf: Buffer<_, _> = construct_buffer(&device, no_drop, &mut cache.nodes, 0)?;
+        let buf: Buffer<_, _> = construct_buffer(&device, no_drop, &mut cache, 0)?;
 
         assert_eq!(buf.read(), vec![1., 2.3, 0.76]);
         assert_eq!(buf.read(), &[1., 2.3, 0.76]);
@@ -326,14 +326,14 @@ mod tests {
             let cl_cpu_buf = construct_buffer(
                 &cl_dev,
                 buf,
-                &mut cl_dev.modules.cache.borrow_mut().nodes,
+                &cl_dev.modules.cache,
                 cl_dev.cursor() as UniqueId,
             )?;
             dur += start.elapsed().as_secs_f64();
 
             assert_eq!(cl_cpu_buf.read(), &[1, 2, 3, 4, 5, 6]);
             assert_eq!(cl_cpu_buf.read(), &[1, 2, 3, 4, 5, 6]);
-            assert_eq!(cl_dev.modules.cache.borrow().nodes.len(), 1)
+            assert_eq!(cl_dev.modules.cache.nodes.len(), 1)
         }
 
         println!("duration: {dur}");

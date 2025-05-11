@@ -169,14 +169,14 @@ pub trait GradActions {
         &self,
         device: &'a D,
         buf: &Buffer<'a, T, D, S>,
-    ) -> &Buffer<'a, T, D, S>;
+    ) -> &Buffer<'static, T, D, S>;
 
     #[allow(clippy::mut_from_ref)]
     unsafe fn grad_mut<'a, T: 'static, D: Device + Alloc<T> + ZeroGrad<T> + 'static, S: Shape>(
         &self,
         device: &'a D,
         buf: &Buffer<'a, T, D, S>,
-    ) -> &mut Buffer<'a, T, D, S>;
+    ) -> &mut Buffer<'static, T, D, S>;
 }
 
 pub trait AddGradFn {
@@ -252,7 +252,7 @@ macro_rules! pass_down_grad_fn {
                 &self,
                 device: &'a D,
                 buf: &Buffer<'a, T, D, S>,
-            ) -> &Buffer<'a, T, D, S> {
+            ) -> &Buffer<'static, T, D, S> {
                 unsafe { self.modules.grad(device, buf) }
             }
 
@@ -260,7 +260,7 @@ macro_rules! pass_down_grad_fn {
                 &self,
                 device: &'a D,
                 buf: &Buffer<'a, T, D, S>,
-            ) -> &mut Buffer<'a, T, D, S> {
+            ) -> &mut Buffer<'static, T, D, S> {
                 unsafe { self.modules.grad_mut(device, buf) }
             }
 
@@ -424,11 +424,11 @@ pub trait ExecNow<D = Self> {
 
 pub trait ExecNowPassDown {}
 
-impl<'b, D, Mod> ExecNow<D> for Mod
+impl<'b, D, Module> ExecNow<D> for Module
 where
-    <Mod as HasModules>::Mods: ExecNow<D>,
+    <Module as HasModules>::Mods: ExecNow<D>,
     D: Device + 'b,
-    Mod: ExecNowPassDown + HasModules + WrappedData,
+    Module: ExecNowPassDown + HasModules + WrappedData,
 {
     #[inline]
     fn exec_now(&self, device: &D, range_bounds: impl RangeBounds<usize>) -> crate::Result<()> {

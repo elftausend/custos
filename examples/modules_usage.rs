@@ -89,23 +89,24 @@ where
 }
 
 #[cfg(feature = "opencl")]
-impl<T, S, Mods> ElementWise<T, Self, S> for custos::OpenCL<Mods>
+impl<'a, T, S, Mods> ElementWise<'a, T, Self, S> for custos::OpenCL<Mods>
 where
     T: Add<Output = T> + Copy + CDatatype + Default,
     S: Shape,
-    Mods: Retrieve<Self, T, S> + AddOperation + UseGpuOrCpu + 'static,
+    Mods: Retrieve<'a, Self, T, S> + AddOperation + custos::UseGpuOrCpu + 'static,
 {
     fn add(
-        &self,
+        &'a self,
         lhs: &Buffer<T, Self, S>,
         rhs: &Buffer<T, Self, S>,
-    ) -> custos::Result<Buffer<T, Self, S>> {
+    ) -> custos::Result<Buffer<'a, T, Self, S>> {
         let mut out = self.retrieve(lhs.len(), (lhs, rhs)).unwrap();
 
         self.add_op((lhs, rhs, &mut out), |(lhs, rhs, out)| {
             let dev = lhs.device();
             #[cfg(unified_cl)]
             {
+                use custos::UseGpuOrCpu;
                 let cpu_out = unsafe { &mut *(out as *mut Buffer<_, OpenCL<Mods>, _>) };
                 dev.use_cpu_or_gpu(
                     (file!(), line!(), column!()).into(),

@@ -1,3 +1,4 @@
+use core::ops::Deref;
 use std::{
     cell::{Ref, RefCell, RefMut},
     collections::HashMap,
@@ -36,6 +37,11 @@ impl<K, T, S: BuildHasher> LockedMap<K, T, S> {
     #[inline]
     pub fn is_empty(&self) -> bool {
         self.data.borrow().is_empty()
+    }
+    
+    #[inline]
+    pub fn clear(&self) {
+        self.data.borrow_mut().clear()
     }
 
     pub fn insert(&self, id: K, data: T)

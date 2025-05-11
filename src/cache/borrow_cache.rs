@@ -1,7 +1,5 @@
 use core::{
-    any::Any,
-    fmt::{Debug, Display},
-    hash::BuildHasherDefault,
+    any::Any, cell::RefCell, fmt::{Debug, Display}, hash::BuildHasherDefault
 };
 use std::collections::HashMap;
 
@@ -47,37 +45,6 @@ pub struct BorrowCache {
 }
 
 impl BorrowCache {
-    // pub fn add_or_get<'a, T, D, S>(
-    //     &mut self,
-    //     device: &'a D,
-    //     id: Id,
-    //     new_buf: &mut bool,
-    // ) -> &Buffer<'a, T, D, S>
-    // where
-    //     T: Unit + 'static,
-    //     D: Alloc<T> + 'static,
-    //     S: Shape,
-    // {
-    //     self.add_buf_once::<T, D, S>(device, id, new_buf);
-
-    //     let buf_any = self.cache.get(&id).unwrap();
-    //     buf_any.downcast_ref().unwrap()
-    // }
-
-    // pub fn add_or_get_mut<'a, T, D, S>(
-    //     &mut self,
-    //     device: &'a D,
-    //     id: Id,
-    //     new_buf: &mut bool,
-    // ) -> &mut Buffer<'a, T, D, S>
-    // where
-    //     T: Unit + 'static,
-    //     D: Alloc<T> + 'static,
-    //     S: Shape,
-    // {
-    //     self.add_buf_once::<T, D, S>(device, id, new_buf);
-    //     unsafe { self.get_buf_mut(id).unwrap() }
-    // }
 
     pub fn add_buf_once<T, D, S>(&mut self, device: &D, id: Id, new_buf: &mut bool)
     where
@@ -114,7 +81,7 @@ impl BorrowCache {
         &'b self,
         id: Id,
         _dev: &'a D,
-    ) -> Option<&'b Buffer<'a, T, D, S>>
+    ) -> Option<&'b Buffer<'static, T, D, S>>
     where
         T: Unit + 'static,
         D: Alloc<T> + 'static,
@@ -128,37 +95,35 @@ impl BorrowCache {
         &'a self,
         _device: &D,
         id: Id,
-    ) -> Result<&'a Buffer<'b, T, D, S>, CachingError>
+    ) -> Result<&'a Buffer<'static, T, D, S>, CachingError>
     where
         T: Unit + 'static,
         D: Device + 'static,
         S: Shape,
     {
-        let out = self.cache.get(&id).ok_or(CachingError::InvalidId)?;
-        if !out.is::<Buffer<'_, T, D, S>>() {
-            return Err(CachingError::InvalidTypeInfo);
-        } 
-        Ok(unsafe { out.downcast_ref_unchecked::<Buffer<'_, T, D, S>>() })
+        self.cache
+            .get(&id)
+            .ok_or(CachingError::InvalidId)?
+            .downcast_ref()
+            .ok_or(CachingError::InvalidTypeInfo)
     }
 
     #[inline]
     pub fn get_buf_mut<'a, 'b, T, D, S>(
         &'a mut self,
-        device: &'b D,
+        _device: &'b D,
         id: Id,
-    ) -> Result<&'a mut Buffer<'b, T, D, S>, CachingError>
+    ) -> Result<&'a mut Buffer<'static, T, D, S>, CachingError>
     where
         T: Unit + 'static,
         D: Device + 'static,
         S: Shape,
     {
-        let out = self.cache.get_mut(&id).ok_or(CachingError::InvalidId)?;
-        if !out.is::<Buffer<T, D, S>>() {
-            return Err(CachingError::InvalidTypeInfo);
-        }
-        let out = unsafe { out.downcast_mut_unchecked::<Buffer<'_, T, D, S>>() };
-        out.device = Some(device);
-        Ok(out)
+        self.cache
+            .get_mut(&id)
+            .ok_or(CachingError::InvalidId)?
+            .downcast_mut()
+            .ok_or(CachingError::InvalidTypeInfo)
     }
 }
 
@@ -168,7 +133,7 @@ mod tests {
     #[test]
     #[cfg(feature = "cpu")]
     fn test_comp_error() {
-        use crate::{Base, BorrowCache, Cached, Id, CPU};
+        use crate::{Base, BorrowCache, CPU, Cached, Id};
 
         let mut cache = BorrowCache::default();
 
@@ -176,16 +141,21 @@ mod tests {
             let device = CPU::<Cached<Base>>::new();
             device.modules.cache.nodes.insert(0, Box::new(4));
             cache.add_buf::<f32, _, ()>(&device, Id { id: 0, len: 10 });
-            cache.get_buf_mut::<f32, _, ()>(&device, Id { id: 0, len: 10 }).unwrap();
+            cache
+                .get_buf_mut::<f32, _, ()>(&device, Id { id: 0, len: 10 })
+                .unwrap();
             // drop(device);
             let mut _new_buf = false;
             // cache.add_or_get::<f32, CPU, ()>(&device, Id { id: 0, len: 10}, &mut new_buf)
         };
 
         let device = CPU::<Cached<Base>>::new();
-        let buf = cache.get_buf::<f32, _, ()>(&device, Id { id: 0, len: 10 }).unwrap();
-        let invalid_device = buf.device();
-        println!("invalid: {:?}", invalid_device.modules.cache.nodes);
+        let buf = cache
+            .get_buf::<f32, _, ()>(&device, Id { id: 0, len: 10 })
+            .unwrap();
+
+        // let invalid_device = buf.device();
+        // println!("invalid: {:?}", invalid_device.modules.cache.nodes);
     }
 
     #[cfg(feature = "cpu")]

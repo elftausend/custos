@@ -216,7 +216,7 @@ impl<Mods: crate::GradActions, U> crate::GradActions for Lazy<'_, Mods, U> {
         &self,
         device: &'a D,
         buf: &Buffer<'a, T, D, S>,
-    ) -> &Buffer<'a, T, D, S> {
+    ) -> &Buffer<'static, T, D, S> {
         unsafe { self.modules.grad(device, buf) }
     }
 
@@ -229,7 +229,7 @@ impl<Mods: crate::GradActions, U> crate::GradActions for Lazy<'_, Mods, U> {
         &self,
         device: &'a D,
         buf: &Buffer<'a, T, D, S>,
-    ) -> &mut Buffer<'a, T, D, S> {
+    ) -> &mut Buffer<'static, T, D, S> {
         unsafe { self.modules.grad_mut(device, buf) }
     }
 

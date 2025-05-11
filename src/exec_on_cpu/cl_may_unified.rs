@@ -79,16 +79,16 @@ pub fn cpu_exec_binary_may_unified_mut<'a, T, F, Mods: WrappedData + 'static>(
 ) -> crate::Result<()>
 where
     T: Unit + Clone + Default,
-    F: for<'b> Fn(&'b CPU, &mut Buffer<'_, T, CPU>, &Buffer<'_, T, CPU>),
+    F: for<'b> Fn(&mut [T], &[T]),
 {
     let cpu = CPU::<crate::Base>::new();
 
     if device.unified_mem() {
         return {
             f(
-                &cpu,
-                &mut unsafe { Buffer::from_raw_host_device(&cpu, lhs.base().host_ptr, lhs.len()) },
-                &unsafe { Buffer::from_raw_host_device(&cpu, rhs.base().host_ptr, rhs.len()) },
+                // &cpu,
+                &mut unsafe { Buffer::<_, _>::from_raw_host_device(&cpu, lhs.base().host_ptr, lhs.len()) },
+                &unsafe { Buffer::<_, _>::from_raw_host_device(&cpu, rhs.base().host_ptr, rhs.len()) },
             );
             Ok(())
         };
@@ -169,7 +169,7 @@ macro_rules! cl_cpu_exec_unified_mut {
         } else {
             let cpu = $crate::CPU::<$crate::Cached<Base>>::new();
             $crate::cpu_exec_mut!($device, &cpu, $($t),*; WRITE_TO<$($write_to, $from),*> $op);
-            $device.cpu.modules.cache.borrow_mut().nodes.clear();
+            $device.cpu.modules.cache.nodes.clear();
         }
     }};
 }
