@@ -29,19 +29,19 @@
 //! use custos::prelude::*;
 //! use std::ops::{Deref, Mul};
 //!
-//! pub trait MulBuf<'a, T: Unit, S: Shape = (), D: Device = Self>: Sized + Device {
-//!     fn mul(&'a self, lhs: &Buffer<T, D, S>, rhs: &Buffer<T, D, S>) -> Buffer<'a, T, Self, S>;
+//! pub trait MulBuf<T: Unit, S: Shape = (), D: Device = Self>: Sized + Device {
+//!     fn mul(&self, lhs: &Buffer<T, D, S>, rhs: &Buffer<T, D, S>) -> Buffer<T, Self, S>;
 //! }
 //!
-//! impl<'a, Mods, T, S, D> MulBuf<'a, T, S, D> for CPU<Mods>
+//! impl<Mods, T, S, D> MulBuf<T, S, D> for CPU<Mods>
 //! where
-//!     Mods: Retrieve<'a, Self, T, S>,
+//!     Mods: Retrieve<Self, T, S>,
 //!     T: Unit + Mul<Output = T> + Copy + 'static,
 //!     S: Shape,
 //!     D: Device,
 //!     D::Base<T, S>: Deref<Target = [T]>,
 //! {
-//!     fn mul(&'a self, lhs: &Buffer<T, D, S>, rhs: &Buffer<T, D, S>) -> Buffer<'a, T, Self, S> {
+//!     fn mul(&self, lhs: &Buffer<T, D, S>, rhs: &Buffer<T, D, S>) -> Buffer<T, Self, S> {
 //!         let mut out = self.retrieve(lhs.len(), (lhs, rhs)).unwrap(); // unwrap or return error (update trait)
 //!
 //!         for ((lhs, rhs), out) in lhs.iter().zip(rhs.iter()).zip(&mut out) {

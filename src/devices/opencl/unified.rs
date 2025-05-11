@@ -108,12 +108,12 @@ where
 ///
 /// fn main() -> custos::Result<()> {
 ///     let cpu = CPU::<Cached<Base>>::new();
+///     let device = OpenCL::<Cached<Base>>::new(chosen_cl_idx())?;
 ///     let mut no_drop: Buffer<f32, _> = cpu.retrieve(4, ()).unwrap();
 ///     no_drop.write(&[1., 3.1, 2.34, 0.76]);
 ///
-///     let device = OpenCL::<Cached<Base>>::new(chosen_cl_idx())?;
 ///     let buf = unsafe {
-///         construct_buffer(&device, no_drop, &mut device.modules.cache.borrow_mut().nodes, 0)?
+///         construct_buffer(&device, no_drop, &device.modules.cache, 0)?
 ///     };
 ///
 ///     assert_eq!(buf.read(), vec![1., 3.1, 2.34, 0.76]);
@@ -150,7 +150,7 @@ where
             ptr: rawcl.ptr,
             host_ptr: rawcl.host_ptr,
             len: no_drop.len(),
-            flag: no_drop.data.flag(),
+            flag: AllocFlag::Wrapper,
         });
         return Ok(Buffer {
             data,
@@ -331,6 +331,7 @@ mod tests {
                 &cl_dev.modules.cache,
                 cl_dev.cursor() as UniqueId,
             )?;
+
             dur += start.elapsed().as_secs_f64();
 
             assert_eq!(cl_cpu_buf.read(), &[1, 2, 3, 4, 5, 6]);

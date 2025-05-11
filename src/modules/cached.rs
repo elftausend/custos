@@ -5,10 +5,7 @@ use core::{
 };
 
 use crate::{
-    AddGradFn, AddLayer, AddOperation, Alloc, Buffer, Cache, CachedBuffers, CowMut, Cursor, Device,
-    Downcast, ExecNowPassDown, FastCache, Guard, HasModules, IsBasePtr, IsShapeIndep, LockInfo,
-    Module, OnNewBuffer, Parents, RemoveLayer, ReplaceBufPassDown, Retrieve, RunModule, SetOpHint,
-    Setup, ShallowCopy, Shape, State, UniqueId, Unit, WrappedData,
+    AddGradFn, AddLayer, AddOperation, Alloc, Buffer, Cache, CachedBuffers, CowMut, Cursor, Device, Downcast, ExecNowPassDown, FastCache, Guard, HasModules, IsBasePtr, IsShapeIndep, LockInfo, Module, OnNewBuffer, Parents, PtrType, RemoveLayer, ReplaceBufPassDown, Retrieve, RunModule, SetOpHint, Setup, ShallowCopy, Shape, State, UniqueId, Unit, WrappedData
 };
 
 #[cfg(feature = "graph")]
@@ -202,12 +199,13 @@ where
                 // return err
                 LockInfo::Locked => panic!("Locked!!"),
                 LockInfo::None => {
-                    let data: Box<
+                    let mut data: Box<
                         <Mods as WrappedData>::Wrap<'static, T, <D as Device>::Base<T, S>>,
                     > = Box::new(
                         self.modules
                             .retrieve::<NUM_PARENTS>(device, len, _parents)?,
                     );
+                    unsafe { data.set_flag(crate::flag::AllocFlag::Cached) };
                     self.cache.insert(id, len, data);
 
                     unsafe { device.bump_cursor() };

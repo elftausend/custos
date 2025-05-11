@@ -1,4 +1,3 @@
-use core::ops::Deref;
 use std::{
     cell::{Ref, RefCell, RefMut},
     collections::HashMap,
