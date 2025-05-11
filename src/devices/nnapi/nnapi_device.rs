@@ -1,6 +1,6 @@
 use crate::{
-    Alloc, AsOperandCode, Base, Buffer, Device, HasId, IsShapeIndep, Lazy, LazyRun, LazySetup,
-    Module, OnDropBuffer, PtrType, Retrieve, Retriever, Setup, Shape, Unit, WrappedData,
+    Alloc, AsOperandCode, Base, Buffer, Device, IsShapeIndep, Lazy, LazyRun, LazySetup, Module,
+    Retrieve, Retriever, Setup, Shape, Unit, WrappedData,
     cpu::{CPUPtr, DeallocWithLayout},
 };
 
@@ -24,8 +24,8 @@ pub struct NnapiDevice<T, Mods = Base> {
     out: Cell<Vec<T>>,
 }
 
-impl<U, Mods: OnDropBuffer> Device for NnapiDevice<U, Mods> {
-    type Data<T: Unit, S: crate::Shape> = Mods::Wrap<T, NnapiPtr>;
+impl<U, Mods: WrappedData> Device for NnapiDevice<U, Mods> {
+    type Data<'a, T: Unit, S: crate::Shape> = Mods::Wrap<'a, T, NnapiPtr>;
     type Base<T: Unit, S: Shape> = NnapiPtr;
     type Error = crate::Error;
 
@@ -35,70 +35,97 @@ impl<U, Mods: OnDropBuffer> Device for NnapiDevice<U, Mods> {
         todo!()
     }
 
-    fn base_to_data<T: Unit, S: Shape>(&self, base: Self::Base<T, S>) -> Self::Data<T, S> {
+    #[inline(always)]
+    fn default_base_to_data<'a, T: Unit, S: Shape>(
+        &'a self,
+        base: Self::Base<T, S>,
+    ) -> Self::Data<'a, T, S> {
         self.wrap_in_base(base)
     }
 
-    #[inline]
-    fn wrap_to_data<T: Unit, S: Shape>(
+    #[inline(always)]
+    fn default_base_to_data_unbound<'a, T: Unit, S: Shape>(
         &self,
-        wrap: Self::Wrap<T, Self::Base<T, S>>,
-    ) -> Self::Data<T, S> {
+        base: Self::Base<T, S>,
+    ) -> Self::Data<'a, T, S> {
+        self.wrap_in_base_unbound(base)
+    }
+
+    #[inline(always)]
+    fn wrap_to_data<'a, T: Unit, S: Shape>(
+        &self,
+        wrap: Self::Wrap<'a, T, Self::Base<T, S>>,
+    ) -> Self::Data<'a, T, S> {
         wrap
     }
 
-    #[inline]
-    fn data_as_wrap<T: Unit, S: Shape>(
-        data: &Self::Data<T, S>,
-    ) -> &Self::Wrap<T, Self::Base<T, S>> {
+    #[inline(always)]
+    fn data_as_wrap<'a, 'b, T: Unit, S: Shape>(
+        data: &'b Self::Data<'a, T, S>,
+    ) -> &'b Self::Wrap<'a, T, Self::Base<T, S>> {
         data
     }
 
-    #[inline]
-    fn data_as_wrap_mut<T: Unit, S: Shape>(
-        data: &mut Self::Data<T, S>,
-    ) -> &mut Self::Wrap<T, Self::Base<T, S>> {
+    #[inline(always)]
+    fn data_as_wrap_mut<'a, 'b, T: Unit, S: Shape>(
+        data: &'b mut Self::Data<'a, T, S>,
+    ) -> &'b mut Self::Wrap<'a, T, Self::Base<T, S>> {
         data
     }
 }
 
-unsafe impl<U, Mods: OnDropBuffer> IsShapeIndep for NnapiDevice<U, Mods> {}
+unsafe impl<U, Mods: WrappedData> IsShapeIndep for NnapiDevice<U, Mods> {}
 
 impl<'a, U, T: Unit, D: Device, S: Shape, Mods: crate::OnNewBuffer<'a, T, D, S>>
     crate::OnNewBuffer<'a, T, D, S> for NnapiDevice<U, Mods>
 {
     #[inline]
-    unsafe fn on_new_buffer(&self, device: &'a D, new_buf: &Buffer<'a, T, D, S>) {
+    fn on_new_buffer<'s>(&'a self, device: &'a D, new_buf: &'s mut Buffer<'a, T, D, S>) {
         self.modules.on_new_buffer(device, new_buf)
     }
 }
 impl<U, Mods: WrappedData> WrappedData for NnapiDevice<U, Mods> {
-    type Wrap<T, Base: HasId + PtrType> = Mods::Wrap<T, Base>;
+    type Wrap<'a, T: Unit, Base: crate::IsBasePtr> = Mods::Wrap<'a, T, Base>;
 
     #[inline]
-    fn wrap_in_base<T, Base: HasId + PtrType>(&self, base: Base) -> Self::Wrap<T, Base> {
+    fn wrap_in_base<'a, T: Unit, Base: crate::IsBasePtr>(
+        &'a self,
+        base: Base,
+    ) -> Self::Wrap<'a, T, Base> {
         self.modules.wrap_in_base(base)
     }
 
     #[inline]
-    fn wrapped_as_base<T, Base: HasId + PtrType>(wrap: &Self::Wrap<T, Base>) -> &Base {
+    fn wrap_in_base_unbound<'a, T: Unit, Base: crate::IsBasePtr>(
+        &self,
+        base: Base,
+    ) -> Self::Wrap<'a, T, Base> {
+        self.modules.wrap_in_base_unbound(base)
+    }
+
+    #[inline]
+    fn wrapped_as_base<'a, 'b, T: Unit, Base: crate::IsBasePtr>(
+        wrap: &'b Self::Wrap<'a, T, Base>,
+    ) -> &'b Base {
         Mods::wrapped_as_base(wrap)
     }
 
     #[inline]
-    fn wrapped_as_base_mut<T, Base: HasId + PtrType>(wrap: &mut Self::Wrap<T, Base>) -> &mut Base {
+    fn wrapped_as_base_mut<'a, 'b, T: Unit, Base: crate::IsBasePtr>(
+        wrap: &'b mut Self::Wrap<'a, T, Base>,
+    ) -> &'b mut Base {
         Mods::wrapped_as_base_mut(wrap)
     }
 }
 
-impl<U, Mods: OnDropBuffer> OnDropBuffer for NnapiDevice<U, Mods> {
-    #[inline]
-    fn on_drop_buffer<T: Unit, D: Device, S: Shape>(&self, device: &D, buf: &Buffer<T, D, S>) {
-        self.modules.on_drop_buffer(device, buf)
-    }
-}
+// impl<U, Mods: OnDropBuffer> OnDropBuffer for NnapiDevice<U, Mods> {
+//     #[inline]
+//     fn on_drop_buffer<T: Unit, D: Device, S: Shape>(&self, device: &D, buf: &Buffer<T, D, S>) {
+//         self.modules.on_drop_buffer(device, buf)
+//     }
+// }
 
-impl<U, Mods: Retrieve<Self, T, S>, T: AsOperandCode, S: Shape> Retriever<T, S>
+impl<U, Mods: Retrieve<Self, T, S>, T: AsOperandCode, S: Shape> Retriever<'_, T, S>
     for NnapiDevice<U, Mods>
 {
     fn retrieve<const NUM_PARENTS: usize>(
@@ -106,12 +133,12 @@ impl<U, Mods: Retrieve<Self, T, S>, T: AsOperandCode, S: Shape> Retriever<T, S>
         len: usize,
         parents: impl crate::Parents<NUM_PARENTS>,
     ) -> crate::Result<Buffer<T, Self, S>> {
-        let data = unsafe { self.modules.retrieve::<NUM_PARENTS>(self, len, parents) }?;
+        let data = self.modules.retrieve::<NUM_PARENTS>(self, len, &parents)?;
         let buf = Buffer {
             data,
             device: Some(self),
         };
-        self.modules.on_retrieve_finish(&buf);
+        self.modules.on_retrieve_finish(len, parents, &buf);
         Ok(buf)
     }
 }
@@ -130,7 +157,7 @@ pub fn dtype_from_shape<T: AsOperandCode, S: Shape>() -> Operand {
     Operand::tensor(T::OPERAND_CODE, dims, 0., 0)
 }
 
-impl<U, T: AsOperandCode, Mods: OnDropBuffer> Alloc<T> for NnapiDevice<U, Mods> {
+impl<U, T: AsOperandCode, Mods: WrappedData> Alloc<T> for NnapiDevice<U, Mods> {
     fn alloc<S: Shape>(
         &self,
         _len: usize,
@@ -189,7 +216,7 @@ impl<T, SimpleMods> NnapiDevice<T, SimpleMods> {
     }
 }
 
-impl<T, Mods: OnDropBuffer> NnapiDevice<T, Mods> {
+impl<T, Mods: WrappedData> NnapiDevice<T, Mods> {
     /// Compiles the model and stores it in the [`NnapiDevice`].
     /// It handles setting the inputs and outputs of the model.
     pub fn compile(&self, out_idx: u32) -> crate::Result<()> {
@@ -254,7 +281,7 @@ impl<'a, T: 'a> Default for NnapiDevice<T, Lazy<'a, Base>> {
 impl<T, Mods> LazyRun for NnapiDevice<T, Mods>
 where
     T: Copy + Default + AsOperandCode,
-    Mods: OnDropBuffer,
+    Mods: WrappedData,
 {
     #[inline]
     fn run(&self) -> crate::Result<()> {

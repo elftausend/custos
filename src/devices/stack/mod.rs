@@ -37,19 +37,15 @@ where
     }
 }
 
-impl<'a, Mods, T, D, S> ApplyFunction<'a, T, S, D> for Stack<Mods>
+impl<Mods, T, D, S> ApplyFunction<T, S, D> for Stack<Mods>
 where
-    Mods: Retrieve<'a, Self, T, S>,
+    Mods: Retrieve<Self, T, S>,
     T: Unit + Copy + Default + ToVal + 'static,
     D: Device,
     D::Base<T, S>: Deref<Target = [T]>,
     S: Shape,
 {
-    fn apply_fn<F>(
-        &'a self,
-        buf: &Buffer<T, D, S>,
-        f: impl Fn(Resolve<T>) -> F,
-    ) -> Buffer<'a, T, Self, S>
+    fn apply_fn<F>(&self, buf: &Buffer<T, D, S>, f: impl Fn(Resolve<T>) -> F) -> Buffer<T, Self, S>
     where
         F: Eval<T> + MayToCLSource,
     {
@@ -115,7 +111,7 @@ mod tests {
         }
     }*/
 
-    impl<'a, Mods: Retrieve<'a, Self, T>, T, D> AddBuf<'a, T, D> for CPU<Mods>
+    impl<'a, Mods: Retrieve<Self, T>, T, D> AddBuf<'a, T, D> for CPU<Mods>
     where
         D: Device,
         D::Base<T, ()>: Deref<Target = [T]>,

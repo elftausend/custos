@@ -42,17 +42,17 @@ impl<T: 'static + AsType + Default + Clone, S: Shape> Read<T, S> for Untyped {
     }
 }
 
-impl<'a, T, S> ApplyFunction<'a, T, S> for Untyped
+impl<T, S> ApplyFunction<T, S> for Untyped
 where
     T: CDatatype + Default + Copy + AsType,
     S: Shape,
 {
     fn apply_fn<F>(
-        &'a self,
+        &self,
         // buf: &D::Data<T, S>,
         buf: &crate::Buffer<T, Self, S>,
         f: impl Fn(crate::Resolve<T>) -> F + Copy + 'static,
-    ) -> crate::Buffer<'a, T, Self, S>
+    ) -> crate::Buffer<T, Self, S>
     where
         F: crate::TwoWay<T> + 'static,
     {

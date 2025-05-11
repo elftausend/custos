@@ -35,8 +35,8 @@ impl PtrType for UntypedData {
     #[inline]
     unsafe fn set_flag(&mut self, flag: crate::flag::AllocFlag) {
         match self {
-            UntypedData::CPU(cpu) => cpu.set_flag(flag),
-            UntypedData::CUDA(cuda) => cuda.set_flag(flag),
+            UntypedData::CPU(cpu) => unsafe { cpu.set_flag(flag) },
+            UntypedData::CUDA(cuda) => unsafe { cuda.set_flag(flag) },
         }
     }
 }

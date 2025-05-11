@@ -119,18 +119,18 @@ impl<Mods: WrappedData, T: Unit> WriteBuf<T> for CUDA<Mods> {
     }
 }
 
-impl<'a, Mods, T, S> ApplyFunction<'a, T, S> for CUDA<Mods>
+impl<Mods, T, S> ApplyFunction<T, S> for CUDA<Mods>
 where
     T: CDatatype + Default,
-    Mods: AddOperation + Retrieve<'a, Self, T, S> + SetOpHint<T> + 'static,
+    Mods: AddOperation + Retrieve<Self, T, S> + SetOpHint<T> + 'static,
     S: Shape,
 {
     #[inline]
     fn apply_fn<F>(
-        &'a self,
+        &self,
         buf: &Buffer<T, Self, S>,
         f: impl Fn(Resolve<T>) -> F + Copy + 'static,
-    ) -> Buffer<'a, T, Self, S>
+    ) -> Buffer<T, Self, S>
     where
         F: crate::TwoWay<T>,
     {

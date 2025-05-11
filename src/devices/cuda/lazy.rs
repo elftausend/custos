@@ -256,7 +256,7 @@ mod tests {
         fn_name: &'static str,
     ) -> Buffer<'a, i32, CUDA<Mods>>
     where
-        Mods: 'static + AddOperation + Retrieve<'a, CUDA<Mods>, i32, ()>,
+        Mods: 'static + AddOperation + Retrieve<CUDA<Mods>, i32, ()>,
     {
         let mut out = device.retrieve(lhs.len(), (lhs.id(), rhs.id())).unwrap();
 
