@@ -38,7 +38,7 @@ impl<K, T, S: BuildHasher> LockedMap<K, T, S> {
     pub fn is_empty(&self) -> bool {
         self.data.borrow().is_empty()
     }
-    
+
     #[inline]
     pub fn clear(&self) {
         self.data.borrow_mut().clear()

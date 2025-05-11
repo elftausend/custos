@@ -5,23 +5,23 @@ use custos::prelude::*;
 /// `AddBuf` will be implemented for all compute devices.<br>
 /// Because of `S: Shape`, this trait can be implemented for [`Stack`], which uses fixed size stack allocated arrays.<br>
 /// Adding a `D: Device = Self` makes it possible to invoke operations with a `CPU` on, for example, `OpenCL` `Buffer`s (if the device uses unified memory), and `Stack` `Buffer`s.
-pub trait AddBuf<'a, T: Unit, S: Shape = (), D: Device = Self>: Sized + Device {
+pub trait AddBuf<T: Unit, S: Shape = (), D: Device = Self>: Sized + Device {
     /// This operation performs element-wise addition.
-    fn add(&'a self, lhs: &Buffer<T, D, S>, rhs: &Buffer<T, D, S>) -> Buffer<'a, T, Self, S>;
+    fn add(&self, lhs: &Buffer<T, D, S>, rhs: &Buffer<T, D, S>) -> Buffer<T, Self, S>;
     // ... you can add more operations if you want to do that.
 }
 
 // Host CPU implementation
 #[cfg(feature = "cpu")]
-impl<'a, T, S, D, Mods> AddBuf<'a, T, S, D> for CPU<Mods>
+impl<T, S, D, Mods> AddBuf<T, S, D> for CPU<Mods>
 where
     T: Unit + Copy + std::ops::Add<Output = T> + 'static, // you can use the custos::Number trait.
     S: Shape, // This trait is implemented for all number types (usize, i16, f32, ...)
     D: Device,
     D::Base<T, S>: Deref<Target = [T]>,
-    Mods: Retrieve<'a, Self, T, S>,
+    Mods: Retrieve<Self, T, S>,
 {
-    fn add(&'a self, lhs: &Buffer<T, D, S>, rhs: &Buffer<T, D, S>) -> Buffer<'a, T, Self, S> {
+    fn add(&self, lhs: &Buffer<T, D, S>, rhs: &Buffer<T, D, S>) -> Buffer<T, Self, S> {
         let len = std::cmp::min(lhs.len(), rhs.len());
 
         // this returns a previously allocated buffer.
@@ -69,13 +69,13 @@ where
 #[cfg(feature = "opencl")]
 // OpenCL implementation
 // S: Shape is not used here, but it could
-impl<'a, T, Mods> AddBuf<'a, T> for OpenCL<Mods>
+impl<'a, T, Mods> AddBuf<T> for OpenCL<Mods>
 where
-    Mods: Retrieve<'a, Self, T>,
+    Mods: Retrieve<Self, T>,
     T: CDatatype, // the custos::CDatatype trait is used to
                   // get the OpenCL C type string for creating generic OpenCL kernels.
 {
-    fn add(&'a self, lhs: &Buffer<T, Self>, rhs: &Buffer<T, Self>) -> Buffer<'a, T, Self> {
+    fn add(&self, lhs: &Buffer<T, Self>, rhs: &Buffer<T, Self>) -> Buffer<T, Self> {
         // generic OpenCL kernel
         let src = format!("
             __kernel void add(__global const {datatype}* lhs, __global const {datatype}* rhs, __global {datatype}* out) 
@@ -162,13 +162,13 @@ impl<T: Unit> AddBuf<T> for custos::Vulkan {
     }
 }
 
-pub trait AddOp<'a, T: Unit, D: Device> {
-    fn add(&self, rhs: &Buffer<'a, T, D>) -> Buffer<'a, T, D>;
+pub trait AddOp<T: Unit, D: Device> {
+    fn add(&self, rhs: &Buffer<T, D>) -> Buffer<T, D>;
 }
 
-impl<'a, T: CDatatype, D: AddBuf<'a, T>> AddOp<'a, T, D> for Buffer<'a, T, D> {
+impl<'a, T: CDatatype, D: AddBuf<T>> AddOp<T, D> for Buffer<'a, T, D> {
     #[inline]
-    fn add(&self, rhs: &Buffer<'a, T, D>) -> Buffer<'a, T, D> {
+    fn add(&self, rhs: &Buffer<T, D>) -> Buffer<T, D> {
         self.device().add(self, rhs)
     }
 }
@@ -185,7 +185,7 @@ impl<'a, T: Unit, D: Device> OwnStruct<'a, T, D> {
     fn add(&'a self, rhs: &OwnStruct<T, D>) -> Buffer<'a, T, D>
     where
         T: CDatatype,
-        D: AddBuf<'a, T>,
+        D: AddBuf<T>,
     {
         self.buf.device().add(&self.buf, &rhs.buf)
     }

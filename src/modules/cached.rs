@@ -172,18 +172,18 @@ where
 }
 
 // TODO: a more general OnDropBuffer => "Module"
-impl<'a, CacheType: 'static, T, Mods, D, SimpleDevice, S: Shape> Retrieve<'a, D, T, S>
+impl<CacheType: 'static, T, Mods, D, SimpleDevice, S: Shape> Retrieve<D, T, S>
     for CachedModule<Mods, SimpleDevice, CacheType>
 where
     T: Unit + 'static,
-    Mods: Retrieve<'static, D, T, S>,
+    Mods: Retrieve<D, T, S>,
     D: Device + IsShapeIndep + Cursor,
     D::Base<T, S>: 'static,
     SimpleDevice: Device,
     CacheType: Cache<Box<dyn Any>>,
 {
     #[inline]
-    fn retrieve_entry<const NUM_PARENTS: usize>(
+    fn retrieve_entry<'a, const NUM_PARENTS: usize>(
         &'a self,
         device: &D,
         len: usize,
@@ -202,11 +202,13 @@ where
                 // return err
                 LockInfo::Locked => panic!("Locked!!"),
                 LockInfo::None => {
-                    self.cache.insert(
-                        id,
-                        len,
-                        Box::new(self.modules.retrieve(device, len, _parents)?),
+                    let data: Box<
+                        <Mods as WrappedData>::Wrap<'static, T, <D as Device>::Base<T, S>>,
+                    > = Box::new(
+                        self.modules
+                            .retrieve::<NUM_PARENTS>(device, len, _parents)?,
                     );
+                    self.cache.insert(id, len, data);
 
                     unsafe { device.bump_cursor() };
                     Ok(self.get_mut::<D, T, S>(id, len).unwrap())
@@ -235,7 +237,7 @@ where
         self.modules.on_retrieve_finish(len, parents, retrieved_buf)
     }
 
-    fn retrieve<const NUM_PARENTS: usize>(
+    fn retrieve<'a, const NUM_PARENTS: usize>(
         &self,
         _device: &D,
         _len: usize,
@@ -525,7 +527,7 @@ mod tests {
 
     #[track_caller]
     #[cfg(feature = "cpu")]
-    fn level1<'a, Mods: crate::Retrieve<'a, CPU<Mods>, f32, ()>>(device: &'a CPU<Mods>) {
+    fn level1<'a, Mods: crate::Retrieve<CPU<Mods>, f32, ()>>(device: &'a CPU<Mods>) {
         let _buf: Buffer<f32, _> = device.retrieve(10, ()).unwrap();
         level2(device);
         level2(device);
@@ -534,13 +536,13 @@ mod tests {
 
     #[track_caller]
     #[cfg(feature = "cpu")]
-    fn level3<'a, Mods: crate::Retrieve<'a, CPU<Mods>, f32, ()>>(device: &'a CPU<Mods>) {
+    fn level3<'a, Mods: crate::Retrieve<CPU<Mods>, f32, ()>>(device: &'a CPU<Mods>) {
         level2(device);
     }
 
     #[track_caller]
     #[cfg(feature = "cpu")]
-    fn level2<'a, Mods: crate::Retrieve<'a, CPU<Mods>, f32, ()>>(device: &'a CPU<Mods>) {
+    fn level2<'a, Mods: crate::Retrieve<CPU<Mods>, f32, ()>>(device: &'a CPU<Mods>) {
         let buf: Buffer<f32, _> = device.retrieve(20, ()).unwrap();
         location();
         assert_eq!(buf.len(), 20);

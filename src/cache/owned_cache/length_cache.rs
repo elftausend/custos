@@ -12,7 +12,9 @@ pub struct LengthCache<T = Box<dyn Any>> {
 
 impl<T> Default for LengthCache<T> {
     fn default() -> Self {
-        Self { nodes: Default::default() }
+        Self {
+            nodes: Default::default(),
+        }
     }
 }
 

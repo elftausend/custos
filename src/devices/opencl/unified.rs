@@ -72,12 +72,14 @@ where
     S: Shape,
 {
     // use the host pointer to create an OpenCL buffer
-    let cl_ptr = unsafe { create_buffer(
-        device.ctx(),
-        MemFlags::MemReadWrite | MemFlags::MemUseHostPtr,
-        no_drop.len(),
-        Some(&no_drop),
-    )? };
+    let cl_ptr = unsafe {
+        create_buffer(
+            device.ctx(),
+            MemFlags::MemReadWrite | MemFlags::MemUseHostPtr,
+            no_drop.len(),
+            Some(&no_drop),
+        )?
+    };
 
     let old_ptr = cache.insert(
         id,

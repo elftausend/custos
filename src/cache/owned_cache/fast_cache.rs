@@ -23,7 +23,9 @@ impl FastCache {
 
 impl<T> Default for FastCache<T> {
     fn default() -> Self {
-        Self { nodes: Default::default() }
+        Self {
+            nodes: Default::default(),
+        }
     }
 }
 

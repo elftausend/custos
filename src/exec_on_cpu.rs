@@ -444,7 +444,7 @@ mod tests {
 
     impl<Mods, T> AddEw<T> for crate::CPU<Mods>
     where
-        Mods: WrappedData + for<'a> crate::Retrieve<'a, Self, T> + 'static,
+        Mods: WrappedData + for<'a> crate::Retrieve<Self, T> + 'static,
         Self::Base<T, ()>: core::ops::Deref<Target = [T]>,
         T: 'static + core::ops::Add<Output = T> + Copy,
     {

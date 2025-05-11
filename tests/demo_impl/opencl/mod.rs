@@ -1,4 +1,4 @@
-use custos::{opencl::enqueue_kernel, Buffer, CDatatype, OpenCL, Retriever, Shape, WrappedData};
+use custos::{Buffer, CDatatype, OpenCL, Retriever, Shape, WrappedData, opencl::enqueue_kernel};
 
 use super::ElementWise;
 

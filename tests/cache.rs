@@ -6,7 +6,7 @@ use custos::{Buffer, CPU};
 #[cfg(feature = "cpu")]
 fn cached_add<'a, Mods>(device: &'a CPU<Mods>, a: &[f32], b: &[f32]) -> Buffer<'a, f32, CPU<Mods>>
 where
-    Mods: custos::Retrieve<'a, CPU<Mods>, f32>,
+    Mods: custos::Retrieve<CPU<Mods>, f32>,
     Mods::Wrap<'a, f32, custos::cpu::CPUPtr<f32>>: custos::HostPtr<f32>,
 {
     use custos::{Device, HostPtr, Retriever};

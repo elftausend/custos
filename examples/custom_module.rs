@@ -66,14 +66,14 @@ impl<Mods: WrappedData> WrappedData for CustomModule<Mods> {
     }
 }
 
-impl<'a, Mods, D, T, S> Retrieve<'a, D, T, S> for CustomModule<Mods>
+impl<Mods, D, T, S> Retrieve<D, T, S> for CustomModule<Mods>
 where
     T: Unit,
-    Mods: Retrieve<'a, D, T, S>,
+    Mods: Retrieve<D, T, S>,
     S: Shape,
 {
     #[inline]
-    fn retrieve_entry<const NUM_PARENTS: usize>(
+    fn retrieve_entry<'a, const NUM_PARENTS: usize>(
         &'a self,
         device: &D,
         len: usize,
@@ -101,7 +101,7 @@ where
         self.mods.on_retrieve_finish(len, parents, retrieved_buf)
     }
 
-    fn retrieve<const NUM_PARENTS: usize>(
+    fn retrieve<'a, const NUM_PARENTS: usize>(
         &self,
         device: &D,
         len: usize,

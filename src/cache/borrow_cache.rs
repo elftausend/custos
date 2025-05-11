@@ -1,5 +1,8 @@
 use core::{
-    any::Any, cell::RefCell, fmt::{Debug, Display}, hash::BuildHasherDefault
+    any::Any,
+    cell::RefCell,
+    fmt::{Debug, Display},
+    hash::BuildHasherDefault,
 };
 use std::collections::HashMap;
 
@@ -45,7 +48,6 @@ pub struct BorrowCache {
 }
 
 impl BorrowCache {
-
     pub fn add_buf_once<T, D, S>(&mut self, device: &D, id: Id, new_buf: &mut bool)
     where
         T: Unit + 'static,

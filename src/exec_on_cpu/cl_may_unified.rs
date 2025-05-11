@@ -13,7 +13,7 @@ pub fn cpu_exec_unary_may_unified<'a, T, F, Mods>(
 where
     T: Unit + Clone + Default + 'static,
     F: for<'b> Fn(&'b CachedCPU, &Buffer<'_, T, CachedCPU>) -> Buffer<'b, T, CachedCPU>,
-    Mods: WrappedData + Retrieve<'a, OpenCL<Mods>, T> + UnifiedMemChain<OpenCL<Mods>> + 'static,
+    Mods: WrappedData + Retrieve<OpenCL<Mods>, T> + UnifiedMemChain<OpenCL<Mods>> + 'static,
 {
     let cpu = &device.cpu;
     crate::cl_cpu_exec_unified!(device, cpu, x; f(&cpu, &x))
@@ -61,7 +61,7 @@ pub fn cpu_exec_binary_may_unified<'a, T, F, Mods>(
 where
     T: Unit + Clone + Default + 'static,
     F: for<'b> Fn(&'b CachedCPU, &CpuBuf<'_, T>, &CpuBuf<'_, T>) -> CpuBuf<'b, T>,
-    Mods: UnifiedMemChain<OpenCL<Mods>> + Retrieve<'a, OpenCL<Mods>, T> + 'static,
+    Mods: UnifiedMemChain<OpenCL<Mods>> + Retrieve<OpenCL<Mods>, T> + 'static,
 {
     let cpu = &device.cpu;
     crate::cl_cpu_exec_unified!(device, cpu, lhs, rhs; f(&cpu, &lhs, &rhs))
@@ -87,8 +87,12 @@ where
         return {
             f(
                 // &cpu,
-                &mut unsafe { Buffer::<_, _>::from_raw_host_device(&cpu, lhs.base().host_ptr, lhs.len()) },
-                &unsafe { Buffer::<_, _>::from_raw_host_device(&cpu, rhs.base().host_ptr, rhs.len()) },
+                &mut unsafe {
+                    Buffer::<_, _>::from_raw_host_device(&cpu, lhs.base().host_ptr, lhs.len())
+                },
+                &unsafe {
+                    Buffer::<_, _>::from_raw_host_device(&cpu, rhs.base().host_ptr, rhs.len())
+                },
             );
             Ok(())
         };

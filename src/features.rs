@@ -24,10 +24,10 @@ pub trait Feature: WrappedData {}
 // how to fix this:
 // add retrieved buffer to no grads pool at the end of the chain (at device level (Retriever trait))
 // => "generator", "actor"
-pub trait Retrieve<'a, D, T: Unit, S: Shape = ()>: WrappedData {
+pub trait Retrieve<D, T: Unit, S: Shape = ()>: WrappedData {
     // "generator"
     #[track_caller]
-    fn retrieve_entry<const NUM_PARENTS: usize>(
+    fn retrieve_entry<'a, const NUM_PARENTS: usize>(
         &'a self,
         device: &D,
         len: usize,
@@ -38,7 +38,7 @@ pub trait Retrieve<'a, D, T: Unit, S: Shape = ()>: WrappedData {
         D: Alloc<T>;
 
     #[track_caller]
-    fn retrieve<const NUM_PARENTS: usize>(
+    fn retrieve<'a, const NUM_PARENTS: usize>(
         &self,
         device: &D,
         len: usize,

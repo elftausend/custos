@@ -145,8 +145,7 @@ where
     }
 }
 
-impl<'dev, 'a, T, Mods: Retrieve<'a, D, T, S>, D, S: Shape> Retrieve<'a, D, T, S>
-    for Autograd<'dev, Mods>
+impl<'dev, T, Mods: Retrieve<D, T, S>, D, S: Shape> Retrieve<D, T, S> for Autograd<'dev, Mods>
 where
     T: Unit + 'static,
     D: IsShapeIndep + Device + 'static,
@@ -155,7 +154,7 @@ where
     Mods: CachedBuffers,
 {
     #[inline]
-    fn retrieve<const NUM_PARENTS: usize>(
+    fn retrieve<'a, const NUM_PARENTS: usize>(
         &self,
         device: &D,
         len: usize,
@@ -170,7 +169,7 @@ where
     }
 
     #[inline]
-    fn on_retrieve_finish<const NUM_PARENTS: usize>(
+    fn on_retrieve_finish<'a, const NUM_PARENTS: usize>(
         &self,
         len: usize,
         parents: impl Parents<NUM_PARENTS>,
@@ -184,7 +183,7 @@ where
     }
 
     #[inline]
-    fn retrieve_entry<const NUM_PARENTS: usize>(
+    fn retrieve_entry<'a, const NUM_PARENTS: usize>(
         &'a self,
         device: &D,
         len: usize,

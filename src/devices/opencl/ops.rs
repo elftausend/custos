@@ -220,18 +220,18 @@ fn try_read_cl_buf_to_vec<T: Clone + Default>(
     Ok(read)
 }
 
-impl<'a, T, S, Mods> ApplyFunction<'a, T, S> for OpenCL<Mods>
+impl<'a, T, S, Mods> ApplyFunction<T, S> for OpenCL<Mods>
 where
     T: CDatatype + Number,
     S: Shape,
-    Mods: AddOperation + Retrieve<'a, Self, T, S> + UseGpuOrCpu + SetOpHint<T> + 'static,
+    Mods: AddOperation + Retrieve<Self, T, S> + UseGpuOrCpu + SetOpHint<T> + 'static,
 {
     #[inline]
     fn apply_fn<F>(
-        &'a self,
+        &self,
         buf: &Buffer<T, Self, S>,
         f: impl Fn(Resolve<T>) -> F + Copy + 'static,
-    ) -> Buffer<'a, T, Self, S>
+    ) -> Buffer<T, Self, S>
     where
         F: TwoWay<T>,
     {

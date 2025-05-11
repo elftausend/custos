@@ -237,7 +237,7 @@ mod tests {
     #[cfg(feature = "cached")]
     #[test]
     fn test_add_layer_cpu() {
-        use crate::{Base, ExecNow, CPU};
+        use crate::{Base, CPU, ExecNow};
 
         let cpu = CPU::<Base>::new();
         let cpu = cpu.add_layer::<crate::Cached<()>>();

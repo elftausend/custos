@@ -166,7 +166,7 @@ pub trait Retriever<'a, T: Unit, S: Shape = ()>: Device {
 #[macro_export]
 macro_rules! impl_retriever {
     ($device:ident, $($trait_bounds:tt)*) => {
-        impl<'a, T: $( $trait_bounds )* + $crate::Unit, Mods: $crate::Retrieve<'a, Self, T, S>, S: $crate::Shape> $crate::Retriever<'a, T, S> for $device<Mods> {
+        impl<'a, T: $( $trait_bounds )* + $crate::Unit, Mods: $crate::Retrieve<Self, T, S>, S: $crate::Shape> $crate::Retriever<'a, T, S> for $device<Mods> {
             #[inline]
             fn retrieve<const NUM_PARENTS: usize>(
                 &'a self,

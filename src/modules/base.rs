@@ -91,9 +91,9 @@ impl<D> Setup<D> for Base {}
 
 impl<'a, T: Unit, D: Device, S: Shape> OnNewBuffer<'a, T, D, S> for Base {}
 
-impl<'a, D, T: Unit, S: Shape> Retrieve<'a, D, T, S> for Base {
+impl<D, T: Unit, S: Shape> Retrieve<D, T, S> for Base {
     #[inline]
-    fn retrieve_entry<const NUM_PARENTS: usize>(
+    fn retrieve_entry<'a, const NUM_PARENTS: usize>(
         &'a self,
         device: &D,
         len: usize,
@@ -106,7 +106,7 @@ impl<'a, D, T: Unit, S: Shape> Retrieve<'a, D, T, S> for Base {
     }
 
     #[inline]
-    fn retrieve<const NUM_PARENTS: usize>(
+    fn retrieve<'a, const NUM_PARENTS: usize>(
         &self,
         device: &D,
         len: usize,
