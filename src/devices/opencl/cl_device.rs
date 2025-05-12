@@ -85,7 +85,7 @@ impl<SimpleMods> OpenCL<SimpleMods> {
     {
         let mut opencl = OpenCL {
             modules: SimpleMods::new(),
-            cpu: CPU::<Cached<Base>>::new(),
+            cpu: CPU::<Cached<Base, crate::FastCache>>::new(),
             device,
         };
         opencl.unified_mem_check();
@@ -128,7 +128,7 @@ impl<Mods> OpenCL<Mods> {
     /// This cleans up any accumulated allocations.
     pub fn reset(&'static mut self) {
         self.device.kernel_cache = Default::default();
-        self.cpu = CPU::<Cached<Base>>::new();
+        self.cpu = CPU::<Cached<Base, crate::FastCache>>::new();
     }
 
     /// Executes a cached OpenCL kernel.

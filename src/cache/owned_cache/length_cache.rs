@@ -4,7 +4,7 @@ use core::{
     cell::{Ref, RefMut},
 };
 
-use super::Cache;
+use super::{Cache, DynAnyWrapper};
 
 pub struct LengthCache<T = Box<dyn Any>> {
     pub nodes: LockedMap<(usize, UniqueId), T>,
@@ -18,7 +18,7 @@ impl<T> Default for LengthCache<T> {
     }
 }
 
-impl<T> Cache<T> for LengthCache<T> {
+impl<T: DynAnyWrapper> Cache<T> for LengthCache<T> {
     #[inline]
     fn get_mut(&self, id: UniqueId, _len: usize) -> State<RefMut<T>> {
         self.nodes.get_mut(&(_len, id))

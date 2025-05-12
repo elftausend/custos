@@ -1,4 +1,6 @@
-use custos::{Base, Buffer, CPU, Cached, Cursor, Graph, Optimize};
+use std::{any::Any, sync::Arc};
+
+use custos::{Base, Buffer, Cached, Cursor, FastCache, Graph, Optimize, CPU};
 
 #[cfg(feature = "opencl")]
 use custos::OpenCL;
@@ -7,7 +9,7 @@ use crate::graph::AddOp;
 
 #[test]
 fn test_graph() -> custos::Result<()> {
-    let device = CPU::<Graph<Cached<Base>>>::new();
+    let device = CPU::<Graph<Cached<Base, FastCache<Arc<dyn Any>>>>>::new();
 
     // idx: 0
     let a = Buffer::from((&device, [1, 2, 3, 4, 5, 6]));

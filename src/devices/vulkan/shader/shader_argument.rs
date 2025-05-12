@@ -1,7 +1,7 @@
 use ash::vk::BufferUsageFlags;
 
 use crate::{
-    WrappedData, Shape, Unit, Vulkan,
+    Shape, Unit, Vulkan, WrappedData,
     flag::AllocFlag,
     vulkan::{Context, VkArray},
     wgsl::{AsShaderArg, WgslNumber, WgslShaderLaunch},

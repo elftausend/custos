@@ -2,8 +2,8 @@ use ash::vk::{self, BufferUsageFlags};
 
 use super::{AsVkShaderArgument, ShaderCache, VkArray, context::Context, launch_shader};
 use crate::{
-    Alloc, Base, Buffer, Device, DeviceError, IsShapeIndep, Module, Setup, Shape,
-    Unit, WrappedData, impl_device_traits, pass_down_use_gpu_or_cpu,
+    Alloc, Base, Buffer, Device, DeviceError, IsShapeIndep, Module, Setup, Shape, Unit,
+    WrappedData, impl_device_traits, pass_down_use_gpu_or_cpu,
     wgsl::{WgslDevice, WgslShaderLaunch, chosen_wgsl_idx},
 };
 use core::{

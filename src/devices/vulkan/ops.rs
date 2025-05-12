@@ -1,16 +1,16 @@
 use core::fmt::Debug;
 
 use crate::{
-    cpu_stack_ops::clear_slice, pass_down_add_operation, prelude::Number, AddOperation, ApplyFunction, Buffer, CDatatype, ClearBuf, Read, Resolve, Retrieve, Retriever, Shape, ToCLSource, ToMarker, ToWgslSource, UnaryGrad, Unit, UseGpuOrCpu, Vulkan, WrappedData, WriteBuf, ZeroGrad
+    AddOperation, ApplyFunction, Buffer, CDatatype, ClearBuf, Read, Resolve, Retrieve, Retriever,
+    Shape, ToCLSource, ToMarker, ToWgslSource, UnaryGrad, Unit, UseGpuOrCpu, Vulkan, WrappedData,
+    WriteBuf, ZeroGrad, cpu_stack_ops::clear_slice, pass_down_add_operation, prelude::Number,
 };
 
 use super::{VkArray, VkDevice};
 
 pass_down_add_operation!(Vulkan);
 
-impl<Mods: WrappedData + UseGpuOrCpu, T: CDatatype + Default + Debug> ClearBuf<T>
-    for Vulkan<Mods>
-{
+impl<Mods: WrappedData + UseGpuOrCpu, T: CDatatype + Default + Debug> ClearBuf<T> for Vulkan<Mods> {
     #[inline]
     fn clear(&self, buf: &mut Buffer<T, Vulkan<Mods>>) {
         let cpu_buf = unsafe { &mut *(buf as *mut Buffer<T, Vulkan<Mods>>) };

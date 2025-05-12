@@ -3,6 +3,7 @@ use core::{
     cell::{Cell, RefMut},
     marker::PhantomData,
 };
+use std::sync::Arc;
 
 use crate::{
     AddGradFn, AddLayer, AddOperation, Alloc, Buffer, Cache, CachedBuffers, CowMut, Cursor, Device,
@@ -401,7 +402,7 @@ impl<CacheType, Mods: RunModule<D>, D, SD: Device> RunModule<D>
 }
 
 #[cfg(feature = "graph")]
-impl<Mods: Optimize, SD: Device> Optimize for CachedModule<Mods, SD, FastCache> {
+impl<Mods: Optimize, SD: Device> Optimize for CachedModule<Mods, SD, FastCache<Arc<dyn Any>>> {
     fn optimize_mem_graph<D: 'static>(
         &self,
         _device: &D,
@@ -411,27 +412,26 @@ impl<Mods: Optimize, SD: Device> Optimize for CachedModule<Mods, SD, FastCache> 
         let cache_traces =
             graph_translator.to_cursor_cache_traces(graph_translator.opt_graph.cache_traces());
 
-        let mut cache = self.cache.borrow_mut();
+        // let mut cache = self.cache.borrow_mut();
         for cache_trace in cache_traces {
-            let used_to_replace = cache
-                .nodes
-                .get(&(cache_trace.cache_idx as UniqueId))
-                .ok_or(DeviceError::GraphOptimization)?
+            let used_to_replace = self
+                .cache
+                .get(cache_trace.cache_idx as UniqueId, 0)
+                .map_err(|_| DeviceError::GraphOptimization)?
                 .clone();
 
             for to_replace in &cache_trace.use_cache_idxs {
-                if cache
-                    .nodes
-                    .get(&(*to_replace as UniqueId))
+                if self.cache
+                    .get(*to_replace as UniqueId, 0)
                     .unwrap()
+                    .clone()
                     .type_id()
                     != used_to_replace.type_id()
                 {
                     continue;
                 }
-                cache
-                    .nodes
-                    .insert(*to_replace as UniqueId, used_to_replace.clone());
+                self.cache
+                    .insert(*to_replace as UniqueId, 0,used_to_replace.clone());
             }
         }
         Ok(())
