@@ -62,10 +62,12 @@ impl AsAny for std::sync::Arc<dyn Any> {
 }
 
 pub trait DynAnyWrapper: AsAny {
+    const ALLOW_MUTABILITY: bool;
     fn new<T: 'static>(data: T) -> Self;
 }
 
 impl DynAnyWrapper for Box<dyn Any> {
+    const ALLOW_MUTABILITY: bool = true;
     fn new<ToWrap: 'static>(data: ToWrap) -> Self {
         Box::new(data)
     }
@@ -73,6 +75,7 @@ impl DynAnyWrapper for Box<dyn Any> {
 
 #[cfg(feature = "std")]
 impl DynAnyWrapper for std::sync::Arc<dyn Any> {
+    const ALLOW_MUTABILITY: bool = false;
     fn new<ToWrap: 'static>(data: ToWrap) -> Self {
         std::sync::Arc::new(data)
     }

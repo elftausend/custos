@@ -574,27 +574,29 @@ mod tests {
         let b: Buffer<f32, _> = device.buffer([1.1; 1000]);
 
         for i in device.range(0..2) {
-            // idx: 2, deps: [0, 0]
-            let squared: Buffer<f32, _> = device.retrieve::<2>(1000, (&x, &x)).unwrap();
-            // idx: 3, deps: [1, 0]
-            let add: Buffer<f32, _> = device.retrieve::<2>(1000, (&b, &x)).unwrap();
-            // idx: 4, deps: [3, 1]
-            let mul_b: Buffer<f32, _> = device.retrieve::<2>(1000, (&add, &b)).unwrap();
-            // idx: 5, deps: [2, 0]
-            let mul: Buffer<f32, _> = device.retrieve::<2>(1000, (&squared, &x)).unwrap();
-            // idx: 6, deps: [5, 4]
-            let out: Buffer<f32, _> = device.retrieve::<2>(1000, (&mul, &mul_b)).unwrap();
+            {
+                // idx: 2, deps: [0, 0]
+                let squared: Buffer<f32, _> = device.retrieve::<2>(1000, (&x, &x)).unwrap();
+                // idx: 3, deps: [1, 0]
+                let add: Buffer<f32, _> = device.retrieve::<2>(1000, (&b, &x)).unwrap();
+                // idx: 4, deps: [3, 1]
+                let mul_b: Buffer<f32, _> = device.retrieve::<2>(1000, (&add, &b)).unwrap();
+                // idx: 5, deps: [2, 0]
+                let mul: Buffer<f32, _> = device.retrieve::<2>(1000, (&squared, &x)).unwrap();
+                // idx: 6, deps: [5, 4]
+                let out: Buffer<f32, _> = device.retrieve::<2>(1000, (&mul, &mul_b)).unwrap();
 
-            if i == 0 {
-                assert_ne!(squared.id(), mul.id());
-            }
+                if i == 0 {
+                    assert_ne!(squared.id(), mul.id());
+                }
 
-            if i == 1 {
-                assert_eq!(squared.id(), mul.id());
-                assert_eq!(squared.id(), out.id());
+                if i == 1 {
+                    assert_eq!(squared.id(), mul.id());
+                    assert_eq!(squared.id(), out.id());
 
-                assert_eq!(add.id(), mul_b.id());
-                break;
+                    assert_eq!(add.id(), mul_b.id());
+                    break;
+                }
             }
             device.optimize_mem_graph(&device, None).unwrap();
         }
@@ -619,26 +621,27 @@ mod tests {
         let b: Buffer<f32, _> = device.buffer([1.1; 1000]);
 
         for i in device.range(2) {
-            // idx: 2, deps: [0, 0]
-            let squared: Buffer<f32, _> = device.retrieve::<2>(1000, (&x, &x)).unwrap();
-            // idx: 3, deps: [1, 0]
-            let add: Buffer<f32, _> = device.retrieve::<2>(1000, (&b, &x)).unwrap();
-            // idx: 4, deps: [3, 1]
-            let mul_b: Buffer<u8, _> = device.retrieve::<2>(1000, (&add, &b)).unwrap();
-            // idx: 5, deps: [2, 0]
-            let mul: Buffer<f32, _> = device.retrieve::<2>(1000, (&squared, &x)).unwrap();
-            // idx: 6, deps: [5, 4]
-            let out: Buffer<f32, _> = device.retrieve::<2>(1000, (&mul, &mul_b)).unwrap();
+            {
+                // idx: 2, deps: [0, 0]
+                let squared: Buffer<f32, _> = device.retrieve::<2>(1000, (&x, &x)).unwrap();
+                // idx: 3, deps: [1, 0]
+                let add: Buffer<f32, _> = device.retrieve::<2>(1000, (&b, &x)).unwrap();
+                // idx: 4, deps: [3, 1]
+                let mul_b: Buffer<u8, _> = device.retrieve::<2>(1000, (&add, &b)).unwrap();
+                // idx: 5, deps: [2, 0]
+                let mul: Buffer<f32, _> = device.retrieve::<2>(1000, (&squared, &x)).unwrap();
+                // idx: 6, deps: [5, 4]
+                let out: Buffer<f32, _> = device.retrieve::<2>(1000, (&mul, &mul_b)).unwrap();
+                if i == 0 {
+                    assert_ne!(squared.id(), mul.id());
+                }
 
-            if i == 0 {
-                assert_ne!(squared.id(), mul.id());
-            }
+                if i == 1 {
+                    assert_eq!(squared.id(), mul.id());
+                    assert_eq!(squared.id(), out.id());
 
-            if i == 1 {
-                assert_eq!(squared.id(), mul.id());
-                assert_eq!(squared.id(), out.id());
-
-                break;
+                    break;
+                }
             }
             device.optimize_mem_graph(&device, None).unwrap();
         }

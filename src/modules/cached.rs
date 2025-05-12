@@ -1,13 +1,14 @@
 use core::{
     any::Any,
-    cell::{Cell, RefMut},
+    cell::{Cell, Ref, RefMut},
     marker::PhantomData,
+    ops::Deref,
 };
 use std::sync::Arc;
 
 use crate::{
     AddGradFn, AddLayer, AddOperation, Alloc, AsAny, Buffer, Cache, CachedBuffers, CowMut, Cursor,
-    Device, ExecNowPassDown, FastCache, Guard, HasModules, IsBasePtr, IsShapeIndep,
+    Device, DynAnyWrapper, ExecNowPassDown, FastCache, Guard, HasModules, IsBasePtr, IsShapeIndep,
     LockInfo, Module, OnNewBuffer, Parents, PtrType, RemoveLayer, ReplaceBufPassDown, Retrieve,
     RunModule, SetOpHint, Setup, ShallowCopy, Shape, State, UniqueId, Unit, WrappedData,
 };
@@ -163,8 +164,24 @@ where
         S: Shape,
     {
         let entry = self.cache.get_mut(id, len)?;
-        let entry = RefMut::map(entry, |x| x.as_any_mut().downcast_mut().unwrap());
+        let entry = RefMut::map(entry, |x| {
+            x.as_any_mut().downcast_mut().expect("Type mismatch")
+        });
         Ok(Guard::new(CowMut::BorrowedMut(entry)))
+    }
+    pub fn get<D, T, S>(
+        &'a self,
+        id: u64,
+        len: usize,
+    ) -> State<Guard<'a, Mods::Wrap<'static, T, D::Base<T, S>>>>
+    where
+        D: Device,
+        T: 'static,
+        S: Shape,
+    {
+        let entry = self.cache.get(id, len)?;
+        let entry = Ref::map(entry, |x| x.as_any().downcast_ref().expect("Type mismatch"));
+        Ok(Guard::new(CowMut::Borrowed(entry)))
     }
 }
 
@@ -190,7 +207,12 @@ where
         D: Alloc<T>,
     {
         let id = device.cursor() as UniqueId;
-        match self.get_mut::<D, T, S>(id, len) {
+        let cached_wrapping = if CacheType::CachedValue::ALLOW_MUTABILITY {
+            self.get_mut::<D, T, S>(id, len)
+        } else {
+            self.get::<D, T, S>(id, len)
+        };
+        match cached_wrapping {
             Ok(out) => {
                 unsafe { device.bump_cursor() };
                 Ok(out)
@@ -199,8 +221,6 @@ where
                 // return err
                 LockInfo::Locked => panic!("Locked!!"),
                 LockInfo::None => {
-                    use crate::cache::DynAnyWrapper;
-
                     let mut data: <Mods as WrappedData>::Wrap<
                         'static,
                         T,
@@ -214,7 +234,13 @@ where
                     self.cache.insert(id, len, data);
 
                     unsafe { device.bump_cursor() };
-                    Ok(self.get_mut::<D, T, S>(id, len).unwrap())
+                    let cached_wrapping = if CacheType::CachedValue::ALLOW_MUTABILITY {
+                        self.get_mut::<D, T, S>(id, len)
+                    } else {
+                        self.get::<D, T, S>(id, len)
+                    }
+                    .unwrap();
+                    Ok(cached_wrapping)
                 }
             },
         }
@@ -427,8 +453,9 @@ impl<Mods: Optimize, SD: Device> Optimize for CachedModule<Mods, SD, FastCache<A
                     .get(*to_replace as UniqueId, 0)
                     .unwrap()
                     .clone()
+                    .deref()
                     .type_id()
-                    != used_to_replace.type_id()
+                    != used_to_replace.deref().type_id()
                 {
                     continue;
                 }

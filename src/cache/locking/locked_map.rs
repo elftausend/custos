@@ -49,8 +49,9 @@ impl<K, T, S: BuildHasher> LockedMap<K, T, S> {
     {
         // let map = unsafe { &mut *self.data.get() };
         let mut map = self.data.borrow_mut();
-        if map.contains_key(&id) {
-            panic!()
+
+        if let Some(data) = map.get(&id) {
+            data.try_borrow_mut().expect("Cannot overwrite data on this specific key while borrowing. This could cause dangling references - stopping right there!");
         }
         map.insert(id, Box::new(RefCell::new(data)));
     }
