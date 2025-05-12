@@ -1,7 +1,8 @@
+use crate::cache::DynAnyWrapper;
 use core::{any::Any, hash::BuildHasherDefault};
 use std::{collections::HashMap, ffi::c_void, sync::Arc};
 
-use crate::{AllocFlag, Cache, DeviceError, Unit};
+use crate::{AllocFlag, AsAny, Cache, DeviceError, Unit};
 
 use super::CLPtr;
 use crate::{
@@ -25,7 +26,7 @@ impl<Mods: UnifiedMemChain<Self> + WrappedData> UnifiedMemChain<Self> for OpenCL
 impl<Mods, CacheType, OclMods, SimpleMods> UnifiedMemChain<OpenCL<OclMods>>
     for CachedModule<Mods, OpenCL<SimpleMods>, CacheType>
 where
-    CacheType: Cache<Box<dyn Any>>,
+    CacheType: Cache,
     OclMods: Cursor + WrappedData,
     SimpleMods: WrappedData,
 {
@@ -59,10 +60,10 @@ impl<D: Device> UnifiedMemChain<D> for Base {
 /// This function is used in the `constuct_buffer()` function.
 /// # Safety
 /// The host pointer inside the no_drop `Buffer` must live as long as the resulting pointer.
-pub unsafe fn to_cached_unified<OclMods, CpuMods, T, S>(
+pub unsafe fn to_cached_unified<OclMods, CpuMods, T, S, CacheType: Cache>(
     device: &OpenCL<OclMods>,
     no_drop: Buffer<T, CPU<CpuMods>, S>,
-    cache: &impl Cache<Box<dyn Any>>,
+    cache: &CacheType,
     id: crate::UniqueId,
 ) -> crate::Result<*mut c_void>
 where
@@ -84,7 +85,7 @@ where
     let old_ptr = cache.insert(
         id,
         no_drop.len(),
-        Box::new(CLPtr {
+        CacheType::CachedValue::new(CLPtr {
             ptr: cl_ptr,
             host_ptr: no_drop.base().ptr,
             len: no_drop.len(),
@@ -124,7 +125,7 @@ where
 pub fn construct_buffer<'a, OclMods, CpuMods, T, S>(
     device: &'a OpenCL<OclMods>,
     no_drop: Buffer<'a, T, CPU<CpuMods>, S>,
-    cache: &impl Cache<Box<dyn Any>>,
+    cache: &impl Cache,
     id: crate::UniqueId,
 ) -> crate::Result<Buffer<'a, T, OpenCL<OclMods>, S>>
 where
@@ -144,6 +145,7 @@ where
     // if buffer was already converted, return the cache entry.
     if let Ok(rawcl) = cache.get(id, no_drop.len) {
         let rawcl = rawcl
+            .as_any()
             .downcast_ref::<<OpenCL<OclMods> as Device>::Base<T, S>>()
             .unwrap();
         let data = device.default_base_to_data::<T, S>(CLPtr {

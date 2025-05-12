@@ -492,7 +492,7 @@ mod tests {
     where
         D: crate::Device
             + crate::Optimize
-            + crate::Retriever<f32, ()>
+            + crate::Retriever<'a, f32, ()>
             + crate::Run
             + crate::ReplaceBuf<f32, D, ()>
             + crate::Alloc<f32>
@@ -559,9 +559,14 @@ mod tests {
     #[cfg(feature = "cached")]
     #[test]
     fn test_from_retrieve_sliced_chained_perf_example_optimize_cache() {
-        use crate::{Base, Buffer, CPU, Cached, Cursor, Device, Graph, HasId, Optimize, Retriever};
+        use core::any::Any;
+        use std::sync::Arc;
 
-        let device = CPU::<Graph<Cached<Base>>>::new();
+        use crate::{
+            Base, Buffer, CPU, Cached, Cursor, Device, FastCache, Graph, HasId, Optimize, Retriever,
+        };
+
+        let device = CPU::<Graph<Cached<Base, FastCache<Arc<dyn Any>>>>>::new();
 
         // idx: 0, deps: []
         let x: Buffer<f32, _> = device.buffer([1.; 1000]);
@@ -599,9 +604,14 @@ mod tests {
     #[cfg(feature = "cached")]
     #[test]
     fn test_mismatched_optimized_types_cached() {
-        use crate::{Base, Buffer, CPU, Cached, Cursor, Device, Graph, HasId, Optimize, Retriever};
+        use core::any::Any;
+        use std::sync::Arc;
 
-        let device = CPU::<Graph<Cached<Base>>>::new();
+        use crate::{
+            Base, Buffer, CPU, Cached, Cursor, Device, FastCache, Graph, HasId, Optimize, Retriever,
+        };
+
+        let device = CPU::<Graph<Cached<Base, FastCache<Arc<dyn Any>>>>>::new();
 
         // idx: 0, deps: []
         let x: Buffer<f32, _> = device.buffer([1.; 1000]);

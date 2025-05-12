@@ -6,10 +6,10 @@ use core::{
 use std::sync::Arc;
 
 use crate::{
-    AddGradFn, AddLayer, AddOperation, Alloc, Buffer, Cache, CachedBuffers, CowMut, Cursor, Device,
-    Downcast, ExecNowPassDown, FastCache, Guard, HasModules, IsBasePtr, IsShapeIndep, LockInfo,
-    Module, OnNewBuffer, Parents, PtrType, RemoveLayer, ReplaceBufPassDown, Retrieve, RunModule,
-    SetOpHint, Setup, ShallowCopy, Shape, State, UniqueId, Unit, WrappedData,
+    AddGradFn, AddLayer, AddOperation, Alloc, AsAny, Buffer, Cache, CachedBuffers, CowMut, Cursor,
+    Device, Downcast, ExecNowPassDown, FastCache, Guard, HasModules, IsBasePtr, IsShapeIndep,
+    LockInfo, Module, OnNewBuffer, Parents, PtrType, RemoveLayer, ReplaceBufPassDown, Retrieve,
+    RunModule, SetOpHint, Setup, ShallowCopy, Shape, State, UniqueId, Unit, WrappedData,
 };
 
 #[cfg(feature = "graph")]
@@ -26,11 +26,13 @@ pub struct Cached<Mods, CacheType = FastCache> {
 impl<CacheType: 'static, Mods: WrappedData, SD: Device> WrappedData
     for CachedModule<Mods, SD, CacheType>
 {
-    type Wrap<'a, T: Unit, Base: IsBasePtr> = Guard<'a, Mods::Wrap<'a, T, Base>>;
+    type Wrap<'a, T: Unit, Base: IsBasePtr> = Guard<'a, Mods::Wrap<'static, T, Base>>;
 
     #[inline]
     fn wrap_in_base<'a, T: Unit, Base: IsBasePtr>(&'a self, base: Base) -> Self::Wrap<'a, T, Base> {
-        Guard::new(CowMut::Owned(self.modules.wrap_in_base(base)))
+        let data: <Mods as WrappedData>::Wrap<'static, _, Base> =
+            self.modules.wrap_in_base_unbound(base);
+        Guard::new(CowMut::Owned(data))
     }
 
     #[inline]
@@ -147,27 +149,21 @@ where
 impl<'a, CacheType, Mods, SimpleDevice> CachedModule<Mods, SimpleDevice, CacheType>
 where
     Mods: WrappedData,
-    CacheType: Cache<Box<dyn Any>>,
+    CacheType: Cache,
     SimpleDevice: Device,
 {
     pub fn get_mut<D, T, S>(
         &'a self,
         id: u64,
         len: usize,
-    ) -> State<Guard<'a, Mods::Wrap<'a, T, D::Base<T, S>>>>
+    ) -> State<Guard<'a, Mods::Wrap<'static, T, D::Base<T, S>>>>
     where
         D: Device,
         T: 'static,
         S: Shape,
     {
         let entry = self.cache.get_mut(id, len)?;
-        let entry = RefMut::map(entry, |x| {
-            if x.is::<Mods::Wrap<'static, T, D::Base<T, S>>>() {
-                unsafe { Downcast::downcast_mut_unchecked::<Mods::Wrap<'a, T, D::Base<T, S>>>(x) }
-            } else {
-                panic!()
-            }
-        });
+        let entry = RefMut::map(entry, |x| x.as_any_mut().downcast_mut().unwrap());
         Ok(Guard::new(CowMut::BorrowedMut(entry)))
     }
 }
@@ -181,7 +177,7 @@ where
     D: Device + IsShapeIndep + Cursor,
     D::Base<T, S>: 'static,
     SimpleDevice: Device,
-    CacheType: Cache<Box<dyn Any>>,
+    CacheType: Cache,
 {
     #[inline]
     fn retrieve_entry<'a, const NUM_PARENTS: usize>(
@@ -203,13 +199,18 @@ where
                 // return err
                 LockInfo::Locked => panic!("Locked!!"),
                 LockInfo::None => {
-                    let mut data: Box<
-                        <Mods as WrappedData>::Wrap<'static, T, <D as Device>::Base<T, S>>,
-                    > = Box::new(
-                        self.modules
-                            .retrieve::<NUM_PARENTS>(device, len, _parents)?,
-                    );
+                    use crate::cache::DynAnyWrapper;
+
+                    let mut data: <Mods as WrappedData>::Wrap<
+                        'static,
+                        T,
+                        <D as Device>::Base<T, S>,
+                    > = self
+                        .modules
+                        .retrieve::<NUM_PARENTS>(device, len, _parents)?;
                     unsafe { data.set_flag(crate::flag::AllocFlag::Cached) };
+
+                    let data = CacheType::CachedValue::new(data);
                     self.cache.insert(id, len, data);
 
                     unsafe { device.bump_cursor() };
@@ -421,7 +422,8 @@ impl<Mods: Optimize, SD: Device> Optimize for CachedModule<Mods, SD, FastCache<A
                 .clone();
 
             for to_replace in &cache_trace.use_cache_idxs {
-                if self.cache
+                if self
+                    .cache
                     .get(*to_replace as UniqueId, 0)
                     .unwrap()
                     .clone()
@@ -431,7 +433,7 @@ impl<Mods: Optimize, SD: Device> Optimize for CachedModule<Mods, SD, FastCache<A
                     continue;
                 }
                 self.cache
-                    .insert(*to_replace as UniqueId, 0,used_to_replace.clone());
+                    .insert(*to_replace as UniqueId, 0, used_to_replace.clone());
             }
         }
         Ok(())

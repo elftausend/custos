@@ -1,8 +1,8 @@
 use std::ops::{Add, AddAssign, Deref, DerefMut, Mul};
 
 use custos::{
-    AddGradFn, AddOperation, Alloc, Buffer, CPU, Device, MayGradActions, Retrieve, Retriever,
-    Shape, Unit, ZeroGrad,
+    AddGradFn, AddOperation, Alloc, ApplyFunction, Buffer, CPU, Combiner, Device, MayGradActions,
+    Retrieve, Retriever, Shape, Unit, ZeroGrad,
 };
 
 pub trait ElementWise<T: Unit, D: Device, S: Shape>: Device {
@@ -157,7 +157,7 @@ fn main() {
     #[cfg(feature = "lazy")]
     #[cfg(feature = "graph")]
     {
-        use custos::{Base, ChangePtr, Lazy, Optimize, Run};
+        use custos::{Base, Graph, Lazy, Optimize, Run};
         let device = OpenCL::<Graph<Lazy<Base>>>::new(0).unwrap();
         // should work with any device (except nnapi)
         // let device = CPU::<Graph<Lazy<Base>>>::new();

@@ -18,7 +18,9 @@ impl<T> Default for LengthCache<T> {
     }
 }
 
-impl<T: DynAnyWrapper> Cache<T> for LengthCache<T> {
+impl<T: DynAnyWrapper> Cache for LengthCache<T> {
+    type CachedValue = T;
+
     #[inline]
     fn get_mut(&self, id: UniqueId, _len: usize) -> State<RefMut<T>> {
         self.nodes.get_mut(&(_len, id))

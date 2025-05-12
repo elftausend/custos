@@ -1,6 +1,6 @@
 use std::{any::Any, sync::Arc};
 
-use custos::{Base, Buffer, Cached, Cursor, FastCache, Graph, Optimize, CPU};
+use custos::{Base, Buffer, CPU, Cached, Cursor, FastCache, Graph, Optimize};
 
 #[cfg(feature = "opencl")]
 use custos::OpenCL;
@@ -43,7 +43,7 @@ fn test_graph() -> custos::Result<()> {
 fn test_graph_cl() -> custos::Result<()> {
     use custos::prelude::chosen_cl_idx;
 
-    let device = OpenCL::<Graph<Cached<Base>>>::new(chosen_cl_idx())?;
+    let device = OpenCL::<Graph<Cached<Base, FastCache<Arc<dyn Any>>>>>::new(chosen_cl_idx())?;
 
     // idx: 0
     let a = Buffer::from((&device, [1, 2, 3, 4, 5, 6]));
@@ -77,7 +77,7 @@ fn test_graph_cl() -> custos::Result<()> {
 fn test_graph_cu() -> custos::Result<()> {
     use custos::{CUDA, Cached, Cursor};
 
-    let device = CUDA::<Graph<Cached<Base>>>::new(0)?;
+    let device = CUDA::<Graph<Cached<Base, FastCache<Arc<dyn Any>>>>>::new(0)?;
 
     // idx: 0
     let a = Buffer::from((&device, [1, 2, 3, 4, 5, 6]));
