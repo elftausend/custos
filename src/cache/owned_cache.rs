@@ -23,18 +23,6 @@ pub trait AsAny {
     fn as_any_mut(&mut self) -> &mut dyn Any;
 }
 
-impl<T: 'static> AsAny for Box<T> {
-    #[inline]
-    fn as_any(&self) -> &dyn Any {
-        &**self
-    }
-
-    #[inline]
-    fn as_any_mut(&mut self) -> &mut dyn Any {
-        &mut **self
-    }
-}
-
 impl AsAny for Box<dyn Any> {
     #[inline]
     fn as_any(&self) -> &dyn Any {
@@ -49,32 +37,6 @@ impl AsAny for Box<dyn Any> {
 
 #[cfg(feature = "std")]
 impl AsAny for std::rc::Rc<dyn Any> {
-    #[inline]
-    fn as_any(&self) -> &dyn Any {
-        &**self
-    }
-
-    #[inline]
-    fn as_any_mut(&mut self) -> &mut dyn Any {
-        unimplemented!()
-    }
-}
-
-#[cfg(feature = "std")]
-impl<T: 'static> AsAny for std::rc::Rc<T> {
-    #[inline]
-    fn as_any(&self) -> &dyn Any {
-        &**self
-    }
-
-    #[inline]
-    fn as_any_mut(&mut self) -> &mut dyn Any {
-        unimplemented!()
-    }
-}
-
-#[cfg(feature = "std")]
-impl<T: 'static> AsAny for std::sync::Arc<T> {
     #[inline]
     fn as_any(&self) -> &dyn Any {
         &**self
