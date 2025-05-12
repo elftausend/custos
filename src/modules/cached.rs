@@ -7,7 +7,7 @@ use std::sync::Arc;
 
 use crate::{
     AddGradFn, AddLayer, AddOperation, Alloc, AsAny, Buffer, Cache, CachedBuffers, CowMut, Cursor,
-    Device, Downcast, ExecNowPassDown, FastCache, Guard, HasModules, IsBasePtr, IsShapeIndep,
+    Device, ExecNowPassDown, FastCache, Guard, HasModules, IsBasePtr, IsShapeIndep,
     LockInfo, Module, OnNewBuffer, Parents, PtrType, RemoveLayer, ReplaceBufPassDown, Retrieve,
     RunModule, SetOpHint, Setup, ShallowCopy, Shape, State, UniqueId, Unit, WrappedData,
 };

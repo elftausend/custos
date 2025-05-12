@@ -10,7 +10,7 @@ use std::collections::HashSet;
 
 use crate::{
     AddLayer, Alloc, Buffer, Cursor, Device, HasId, HasModules, IsBasePtr, Module, NoHasher,
-    OnNewBuffer, Optimize, Parents, PtrType, ReplaceBufPassDown, Retrieve, RunModule, Setup, Shape,
+    OnNewBuffer, Optimize, Parents, ReplaceBufPassDown, Retrieve, RunModule, Setup, Shape,
     UniqueId, Unit, WrappedData, impl_remove_layer, pass_down_add_operation, pass_down_cursor,
     pass_down_grad_fn, pass_down_use_gpu_or_cpu,
 };

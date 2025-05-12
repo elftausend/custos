@@ -5,7 +5,7 @@
 use core::{cell::RefMut, fmt::Debug, ops::RangeBounds};
 
 use crate::{
-    AnyOp, CPU, HasId, Module, Parents, Shape, UniqueId, Unit, WrappedData, ZeroGrad, location,
+    AnyOp, CPU, HasId, Parents, Shape, UniqueId, Unit, WrappedData, ZeroGrad,
     op_hint::OpHint,
     range::{AsRange, CursorRange},
 };

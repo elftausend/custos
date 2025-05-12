@@ -6,8 +6,6 @@ use crate::{
     NoHasher, Shape, UniqueId, Unit, ZeroGrad,
 };
 
-const INVALID_ID: &str = "A matching Buffer does not exist.";
-
 /// A cache for gradients.
 /// The cache is populated by `get_ref`, `get_like` or `get_mut_ref` calls.
 #[derive(Default)]
@@ -136,24 +134,6 @@ impl Gradients {
     {
         self.get_ref(buf.device(), buf.id())
     }
-
-    /*#[inline]
-    pub fn get_buf_from_no_grad_pool<'a, T, S, D>(&self, id: Id) -> &Buffer<'a, T, D, S>
-    where
-        T: Unit + 'static,
-        S: Shape,
-        D: Alloc<T> + 'static,
-    {
-        self.no_grads_pool
-            .get(&id)
-            .ok_or(CachingError::InvalidId)
-            .expect(INVALID_ID)
-            .as_any()
-            .downcast_ref()
-            .ok_or(CachingError::InvalidTypeInfo)
-            .expect(INVALID_ID)
-    }
-    */
 }
 
 #[cfg(test)]

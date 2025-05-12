@@ -1,6 +1,5 @@
 use core::{
     any::Any,
-    cell::RefCell,
     fmt::{Debug, Display},
     hash::BuildHasherDefault,
 };

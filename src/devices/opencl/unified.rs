@@ -1,6 +1,5 @@
 use crate::cache::DynAnyWrapper;
-use core::{any::Any, hash::BuildHasherDefault};
-use std::{collections::HashMap, ffi::c_void, sync::Arc};
+use std::ffi::c_void;
 
 use crate::{AllocFlag, AsAny, Cache, DeviceError, Unit};
 
@@ -82,7 +81,8 @@ where
         )?
     };
 
-    let old_ptr = cache.insert(
+    // remember: this deallocates the previous pointer!
+    cache.insert(
         id,
         no_drop.len(),
         CacheType::CachedValue::new(CLPtr {
@@ -92,10 +92,6 @@ where
             flag: AllocFlag::None,
         }),
     );
-
-    // this pointer was overwritten previously, hence can it be deallocated
-    // this line can be removed, however it shows that deallocating the old pointer makes sense
-    drop(old_ptr);
 
     Ok(cl_ptr)
 }

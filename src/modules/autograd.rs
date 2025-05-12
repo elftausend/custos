@@ -6,7 +6,7 @@ pub use gradients::*;
 pub use tape::*;
 
 use core::{
-    cell::{Cell, RefCell, UnsafeCell},
+    cell::{Cell, UnsafeCell},
     marker::PhantomData,
 };
 
@@ -15,7 +15,6 @@ use crate::{
     HasModules, IsShapeIndep, Module, OnNewBuffer, Parents, ReplaceBufPassDown, Retrieve,
     RunModule, Setup, ShallowCopy, Shape, TapeActions, Unit, WrappedData, impl_remove_layer,
     pass_down_add_operation, pass_down_cached_buffers, pass_down_cursor, register_buf_copyable,
-    unregister_buf_copyable,
 };
 
 use self::wrapper::ReqGradWrapper;
