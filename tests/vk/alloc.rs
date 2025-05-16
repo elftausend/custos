@@ -4,7 +4,6 @@ use ash::vk::{BufferUsageFlags, MemoryPropertyFlags};
 use custos::vulkan::{Context, VkArray, allocate_memory, create_buffer};
 
 #[test]
-// #[ignore = "reason"]
 fn test_vk_alloc() {
     let context = Rc::new(Context::new(0).unwrap());
 

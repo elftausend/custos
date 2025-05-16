@@ -517,7 +517,7 @@ mod tests {
         let out = lhs.empty_like();
 
         device.disable_grad();
-
+        
         device.add_grad_fn((&lhs, &out), |(lhs, out)| unsafe {
             lhs.device()
                 .add_unary_grad(lhs, lhs.grad_mut_unbound(), out.grad(), |x| x.add(3));

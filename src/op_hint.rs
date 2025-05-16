@@ -153,7 +153,7 @@ mod tests {
         let out = dev.apply_fn(&out, |x| x.cos());
         let _out = dev.apply_fn(&out, |x| x.ln());
 
-        dev.optimize_mem_graph(&dev, None).unwrap();
+        unsafe { dev.optimize_mem_graph(&dev, None).unwrap() };
         dev.unary_fusing(&dev, None).unwrap();
         dev.run().unwrap();
 
@@ -176,7 +176,7 @@ mod tests {
         let out = dev.apply_fn(&out, |x| x.cos());
         let _out = dev.apply_fn(&out, |x| x.ln());
 
-        dev.optimize_mem_graph(&dev, None).unwrap();
+        unsafe { dev.optimize_mem_graph(&dev, None).unwrap() };
         dev.unary_fusing(&dev, None).unwrap();
         let _ = dev.run();
 
@@ -289,7 +289,7 @@ mod tests {
         let out = dev.apply_fn(&out, |x| x.ln());
 
         let start = Instant::now();
-        dev.optimize_mem_graph(&dev, None).unwrap();
+        unsafe { dev.optimize_mem_graph(&dev, None).unwrap() };
         println!("optimize mem graph: {:?}", start.elapsed());
         let start = Instant::now();
 
