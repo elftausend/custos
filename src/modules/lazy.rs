@@ -3,7 +3,7 @@ mod lazy_graph;
 #[cfg(feature = "graph")]
 mod optimization;
 mod ty;
-mod wrapper;
+pub mod wrapper;
 
 pub use ty::*;
 use wrapper::MaybeData;

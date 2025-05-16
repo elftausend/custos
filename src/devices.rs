@@ -18,6 +18,9 @@ pub mod stack;
 #[cfg(feature = "wgsl")]
 pub mod wgsl;
 
+#[cfg(feature = "webgl")]
+pub mod webgl;
+
 #[cfg(feature = "vulkan")]
 pub mod vulkan;
 

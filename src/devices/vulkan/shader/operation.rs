@@ -32,7 +32,7 @@ impl Operation {
     ) -> crate::Result<Self> {
         let spirv = Spirv::from_wgsl(wgsl)?;
         let device = &context.device;
-        let shader_module = create_shader_module(device, spirv.as_slice())?;
+        let shader_module = create_shader_module(device, spirv.as_slice(0))?;
         let descriptor_set_layout =
             create_descriptor_set_layout_from_desc_types(device, descriptor_types)?;
         let (pipeline, pipeline_layout) =

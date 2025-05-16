@@ -30,10 +30,30 @@ custos-macro = {git = "https://github.com/elftausend/custos-macro", optional=tru
 # no-std float math
 libm = { version="0.2", optional = true }
 
-ash = { version = "0.38", optional = true }
-naga = { version = "0.19", features = ["wgsl-in", "spv-out"], optional = true }
+ash = { version = "0.38", optional = true } 
+# naga = { version = "0.19", features = ["wgsl-in"], optional = true } 
+naga = { git = "https://github.com/elftausend/wgpu", features = ["wgsl-in"], optional = true }
+# naga = {path = "../wgpu/naga", features = ["wgsl-in"], optional = true}
 
 half = {version = "2.3", default-features = false, optional = true}
+
+# web
+js-sys = { version = "0.3", optional = true }
+web-sys = { version = "0.3", optional = true, features = [
+  'console',
+  'Document',
+  'Element',
+  'HtmlCanvasElement',
+  'WebGlBuffer',
+  'WebGlVertexArrayObject',
+  'WebGl2RenderingContext',
+  'WebGlProgram',
+  'WebGlShader',
+  'WebGlUniformLocation',
+  'WebGlTexture',
+  'WebGlFramebuffer',
+  'WebGlSampler',
+  'Window']}
 
 # nnapi
 # nnapi = { path = "../nnapi/nnapi", optional = true}
@@ -51,12 +71,10 @@ min-cl = { git = "https://github.com/elftausend/min-cl", optional = true }
 # min-cl = { version = "0.3.0", optional=true }
 
 [features]
-
-default = ["cpu", "cached", "fork", "autograd", "static-api", "macro", "serde", "graph", "nnapi", "opencl", "cuda", "untyped"]
-# default = ["stack", "cpu"]
-# default = ["opencl"]
-# default = ["untyped", "cpu", "lazy", "graph", "autograd", "fork", "serde", "json", "half", "cached", "static-api", "stack", "opencl", "nnapi"]
-
+# default = ["cpu", "opencl", "cuda", "blas", "static-api", "stack", "macro", "nnapi", "untyped", "autograd", "autograd", "cached", "lazy", "fork", "graph", "serde"]
+default = ["cpu", "untyped", "lazy", "graph", "webgl", "cached"]
+# default = [ "cpu", "lazy", "autograd", "graph"]
+# default = ["untyped", "cpu", "lazy", "graph", "autograd", "fork", "serde", "json", "half", "cached", "static-api", "stack", "opencl", ]
 
 std = []
 
@@ -83,8 +101,12 @@ graph = ["std"]
 
 half = ["dep:half"]
 
-vulkan = ["std", "dep:ash", "dep:naga", "wgsl", "cpu"]
-wgsl = []
+vulkan = ["std", "dep:ash", "wgsl", "spv", "cpu"]
+webgl = ["std", "wgsl", "dep:js-sys", "dep:web-sys", "glsl"]
+
+spv = ["naga/spv-out"]
+glsl = ["naga/glsl-out"]
+wgsl = ["dep:naga"]
 
 serde = ["dep:serde"]
 json = ["dep:serde_json"]

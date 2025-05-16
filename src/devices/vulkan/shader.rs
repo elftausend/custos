@@ -40,12 +40,14 @@ pub struct ShaderCache {
 }
 
 impl ShaderCache {
+    #[inline]
     pub fn new(context: std::rc::Rc<Context>) -> Self {
         Self {
             cache: Default::default(),
             context,
         }
     }
+
     pub fn add(
         &mut self,
         src: impl AsRef<str>,

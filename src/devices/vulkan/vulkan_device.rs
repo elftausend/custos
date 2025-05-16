@@ -280,11 +280,7 @@ mod tests {
         ";
 
         device
-            .launch_shader(
-                src,
-                [1, 1, 1],
-                &[&lhs.data.buf, &rhs.data.buf, &out.data.buf],
-            )
+            .launch_shader(src, [1, 1, 1], &[&lhs, &rhs, &out])
             .unwrap();
         assert_eq!(&*out.read(), [7, 8, 9, 10, 11, 15, 8, 9, 10, 9, 8])
     }

@@ -224,8 +224,19 @@ mod tests {
 
     #[cfg(feature = "vulkan")]
     #[test]
-    fn test_wgsl_wrapper() {
+    fn test_wgsl_wrapper_vk() {
+        use crate::Vulkan;
+
         let dev = Wgsl::<Vulkan>::new(0).unwrap();
         let _x = dev.buffer([1, 2, 3]);
+    }
+
+    #[cfg(feature = "webgl")]
+    #[test]
+    fn test_wgsl_wrapper_webgl() {
+        use crate::{Device, WebGL};
+
+        let dev = Wgsl::<WebGL>::new(0).unwrap();
+        let _x = dev.buffer([1f32, 2., 3.]);
     }
 }

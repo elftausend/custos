@@ -76,8 +76,15 @@ pub use devices::stack::Stack;
 
 #[cfg(feature = "nnapi")]
 pub use devices::nnapi::{AsOperandCode, NnapiDevice};
+
 #[cfg(feature = "vulkan")]
 pub use devices::vulkan::Vulkan;
+
+#[cfg(feature = "wgsl")]
+pub use devices::wgsl::Wgsl;
+
+#[cfg(feature = "webgl")]
+pub use devices::webgl::WebGL;
 
 pub use unary::*;
 
