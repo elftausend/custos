@@ -6,6 +6,7 @@ use custos::vulkan::{
 };
 
 #[test]
+// #[ignore = "reason"]
 fn test_with_custos_comps() {
     let context = Rc::new(Context::new(0).unwrap());
 
