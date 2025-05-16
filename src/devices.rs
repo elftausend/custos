@@ -45,12 +45,12 @@ pub mod cpu_stack_ops;
 pub mod fusing;
 pub use fusing::*;
 
-use crate::{Buffer, HasId, OnDropBuffer, Parents, PtrType, Shape, Unit};
+use crate::{Buffer, HasId, IsBasePtr, Parents, PtrType, Shape, Unit, WrappedData};
 
 /// The `Device` trait is the main trait for all compute devices.
-pub trait Device: OnDropBuffer + Sized {
-    type Base<T: Unit, S: Shape>: HasId + PtrType;
-    type Data<T: Unit, S: Shape>: HasId + PtrType;
+pub trait Device: WrappedData + Sized {
+    type Base<T: Unit, S: Shape>: IsBasePtr;
+    type Data<'a, T: Unit, S: Shape>: HasId + PtrType;
 
     type Error;
 
@@ -61,16 +61,24 @@ pub trait Device: OnDropBuffer + Sized {
 
     // add default impl if GAT default go stable
     // FIXME: probably a better way to realize these
-    fn base_to_data<T: Unit, S: Shape>(&self, base: Self::Base<T, S>) -> Self::Data<T, S>;
-    fn wrap_to_data<T: Unit, S: Shape>(
+    fn default_base_to_data<'a, T: Unit, S: Shape>(
+        &'a self,
+        base: Self::Base<T, S>,
+    ) -> Self::Data<'a, T, S>;
+    fn default_base_to_data_unbound<'a, T: Unit, S: Shape>(
         &self,
-        wrap: Self::Wrap<T, Self::Base<T, S>>,
-    ) -> Self::Data<T, S>;
-    fn data_as_wrap<T: Unit, S: Shape>(data: &Self::Data<T, S>)
-        -> &Self::Wrap<T, Self::Base<T, S>>;
-    fn data_as_wrap_mut<T: Unit, S: Shape>(
-        data: &mut Self::Data<T, S>,
-    ) -> &mut Self::Wrap<T, Self::Base<T, S>>;
+        base: Self::Base<T, S>,
+    ) -> Self::Data<'a, T, S>;
+    fn wrap_to_data<'a, T: Unit, S: Shape>(
+        &self,
+        wrap: Self::Wrap<'a, T, Self::Base<T, S>>,
+    ) -> Self::Data<'a, T, S>;
+    fn data_as_wrap<'a, 'b, T: Unit, S: Shape>(
+        data: &'b Self::Data<'a, T, S>,
+    ) -> &'b Self::Wrap<'a, T, Self::Base<T, S>>;
+    fn data_as_wrap_mut<'a, 'b, T: Unit, S: Shape>(
+        data: &'b mut Self::Data<'a, T, S>,
+    ) -> &'b mut Self::Wrap<'a, T, Self::Base<T, S>>;
 
     /// Creates a new [`Buffer`] using `A`, typically an array type.
     ///
@@ -105,30 +113,14 @@ pub trait Device: OnDropBuffer + Sized {
 #[macro_export]
 macro_rules! impl_buffer_hook_traits {
     ($device:ident) => {
-        impl<
-                'dev,
-                T: $crate::Unit,
-                D: Device,
-                S: Shape,
-                Mods: $crate::OnNewBuffer<'dev, T, D, S>,
-            > $crate::OnNewBuffer<'dev, T, D, S> for $device<Mods>
+        impl<'dev, T: $crate::Unit, D: Device, S: Shape, Mods: $crate::OnNewBuffer<'dev, T, D, S>>
+            $crate::OnNewBuffer<'dev, T, D, S> for $device<Mods>
         where
             Self: 'dev,
         {
             #[inline]
-            unsafe fn on_new_buffer(&self, device: &'dev D, new_buf: &Buffer<'dev, T, D, S>) {
-                unsafe { self.modules.on_new_buffer(device, new_buf) }
-            }
-        }
-
-        impl<Mods: $crate::OnDropBuffer> $crate::OnDropBuffer for $device<Mods> {
-            #[inline]
-            fn on_drop_buffer<T: $crate::Unit, D: Device, S: Shape>(
-                &self,
-                device: &D,
-                buf: &Buffer<T, D, S>,
-            ) {
-                self.modules.on_drop_buffer(device, buf)
+            fn on_new_buffer(&'dev self, device: &'dev D, new_buf: &mut Buffer<'dev, T, D, S>) {
+                self.modules.on_new_buffer(device, new_buf)
             }
         }
     };
@@ -147,41 +139,51 @@ macro_rules! impl_device_traits {
         $crate::pass_down_grad_fn!($device);
         $crate::pass_down_tape_actions!($device);
 
-        $crate::pass_down_replace_buf_dev!($device);
         $crate::pass_down_cursor!($device);
         $crate::pass_down_cached_buffers!($device);
+
+        impl<Mods> $crate::ReplaceBufPassDown for $device<Mods> {}
+        impl<Mods> $crate::ExecNowPassDown for $device<Mods> {}
+
+        impl<Mods> $crate::HasModules for $device<Mods> {
+            type Mods = Mods;
+
+            fn modules(&self) -> &Self::Mods {
+                &self.modules
+            }
+        }
     };
 }
 
 /// A module affected trait.
 /// Retrieves a [`Buffer`] from the device.
-pub trait Retriever<T: Unit, S: Shape = ()>: Device {
+pub trait Retriever<'a, T: Unit, S: Shape = ()>: Device {
     #[track_caller]
     fn retrieve<const NUM_PARENTS: usize>(
-        &self,
+        &'a self,
         len: usize,
         parents: impl Parents<NUM_PARENTS>,
-    ) -> crate::Result<Buffer<T, Self, S>>;
+    ) -> crate::Result<Buffer<'a, T, Self, S>>;
 }
 
 #[macro_export]
 macro_rules! impl_retriever {
     ($device:ident, $($trait_bounds:tt)*) => {
-        impl<T: $( $trait_bounds )* + $crate::Unit, Mods: $crate::Retrieve<Self, T, S>, S: $crate::Shape> $crate::Retriever<T, S> for $device<Mods> {
+        impl<'a, T: $( $trait_bounds )* + $crate::Unit, Mods: $crate::Retrieve<Self, T, S>, S: $crate::Shape> $crate::Retriever<'a, T, S> for $device<Mods> {
             #[inline]
             fn retrieve<const NUM_PARENTS: usize>(
-                &self,
+                &'a self,
                 len: usize,
                 parents: impl $crate::Parents<NUM_PARENTS>,
-            ) -> $crate::Result<Buffer<T, Self, S>> {
-                let data = unsafe { self
+            ) -> $crate::Result<Buffer<'a, T, Self, S>> {
+                let data = self
                     .modules
-                    .retrieve::<NUM_PARENTS>(self, len, parents)? };
+                    .retrieve_entry::<NUM_PARENTS>(self, len, &parents)?;
                 let buf = Buffer {
                     data,
                     device: Some(self),
                 };
-                self.modules.on_retrieve_finish(&buf);
+                self.modules.on_retrieve_finish(len, parents, &buf);
                 Ok(buf)
             }
         }

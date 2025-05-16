@@ -41,9 +41,9 @@ mod serde {
     use std::collections::HashMap;
 
     use serde::{
+        Deserialize, Serialize,
         de::{MapAccess, Visitor},
         ser::SerializeMap,
-        Deserialize, Serialize,
     };
 
     use crate::HashLocation;

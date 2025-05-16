@@ -1,24 +1,25 @@
 use core::ops::{Range, RangeBounds};
 
 use crate::{
-    bounds_to_range,
-    cuda::api::{cu_read_async, CUstreamCaptureStatus},
+    AddOperation, ApplyFunction, Buffer, CDatatype, CUDA, ClearBuf, CopySlice, Read, Resolve,
+    Retrieve, Retriever, SetOpHint, Shape, ToCLSource, ToMarker, UnaryGrad, Unit, WrappedData,
+    WriteBuf, ZeroGrad, bounds_to_range,
+    cuda::api::{CUstreamCaptureStatus, cu_read_async},
     op_hint::unary,
-    pass_down_add_operation, pass_down_exec_now, AddOperation, ApplyFunction, Buffer, CDatatype,
-    ClearBuf, CopySlice, OnDropBuffer, Read, Resolve, Retrieve, Retriever, SetOpHint, Shape,
-    ToCLSource, ToMarker, UnaryGrad, Unit, WriteBuf, ZeroGrad, CUDA,
+    pass_down_add_operation,
 };
 
 use super::{
-    api::{cuMemcpy, cu_write_async},
-    cu_clear, CUDAPtr, CudaDevice,
+    CUDAPtr, CudaDevice,
+    api::{cu_write_async, cuMemcpy},
+    cu_clear,
 };
 
 pass_down_add_operation!(CUDA);
-pass_down_exec_now!(CUDA);
 
-impl<Mods: OnDropBuffer, T: Unit + Default + Clone, S: Shape> Read<T, S> for CUDA<Mods> {
-    type Read<'a> = Vec<T>
+impl<Mods: WrappedData, T: Unit + Default + Clone, S: Shape> Read<T, S> for CUDA<Mods> {
+    type Read<'a>
+        = Vec<T>
     where
         T: 'a,
         CUDA<Mods>: 'a;
@@ -50,21 +51,21 @@ impl<Mods: OnDropBuffer, T: Unit + Default + Clone, S: Shape> Read<T, S> for CUD
     }
 }
 
-impl<Mods: OnDropBuffer, T: CDatatype> ClearBuf<T> for CUDA<Mods> {
+impl<Mods: WrappedData, T: CDatatype> ClearBuf<T> for CUDA<Mods> {
     #[inline]
     fn clear(&self, buf: &mut Buffer<T, Self>) {
         cu_clear(self, buf).unwrap()
     }
 }
 
-impl<Mods: OnDropBuffer, T: CDatatype> ZeroGrad<T> for CUDA<Mods> {
+impl<Mods: WrappedData, T: CDatatype> ZeroGrad<T> for CUDA<Mods> {
     #[inline]
     fn zero_grad<S: Shape>(&self, data: &mut Self::Base<T, S>) {
         cu_clear(self, data).unwrap()
     }
 }
 
-impl<Mods: OnDropBuffer, T: Unit> CopySlice<T> for CUDA<Mods> {
+impl<Mods: WrappedData, T: Unit> CopySlice<T> for CUDA<Mods> {
     fn copy_slice_to<SR: RangeBounds<usize>, DR: RangeBounds<usize>>(
         &self,
         source: &Buffer<T, Self>,
@@ -100,7 +101,7 @@ impl<Mods: OnDropBuffer, T: Unit> CopySlice<T> for CUDA<Mods> {
     }
 }
 
-impl<Mods: OnDropBuffer, T: Unit> WriteBuf<T> for CUDA<Mods> {
+impl<Mods: WrappedData, T: Unit> WriteBuf<T> for CUDA<Mods> {
     #[inline]
     fn write(&self, buf: &mut Buffer<T, Self>, data: &[T]) {
         cu_write_async(buf.cu_ptr(), data, &self.mem_transfer_stream).unwrap();
@@ -182,7 +183,7 @@ impl<T, S, Mods> UnaryGrad<T, S> for CUDA<Mods>
 where
     T: CDatatype + Default,
     S: Shape,
-    Mods: OnDropBuffer + AddOperation + 'static,
+    Mods: WrappedData + AddOperation + 'static,
 {
     #[inline]
     fn add_unary_grad<F>(
@@ -238,8 +239,8 @@ where
 #[cfg(test)]
 mod tests {
     use crate::{
+        Base, Buffer, CUDA, Combiner,
         cuda::ops::{try_cu_add_unary_grad, try_cu_apply_fn_mut},
-        Base, Buffer, Combiner, CUDA,
     };
 
     #[test]

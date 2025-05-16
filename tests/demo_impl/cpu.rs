@@ -1,13 +1,13 @@
 use std::ops::Deref;
 
-use custos::{prelude::Number, Buffer, Device, Dim2, Retriever, Shape, Unit, WithShape, CPU};
+use custos::{Buffer, CPU, Device, Dim2, Retriever, Shape, Unit, WithShape, prelude::Number};
 use custos_macro::impl_stack;
 //use custos_macro::impl_stack;
 
 #[cfg(feature = "stack")]
 use custos::Stack;
 
-use super::{transpose::Transpose, ElementWise};
+use super::{ElementWise, transpose::Transpose};
 
 pub fn cpu_element_wise<T, F>(lhs: &[T], rhs: &[T], out: &mut [T], f: F)
 where

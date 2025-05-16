@@ -1,14 +1,14 @@
 [package]
 name = "custos"
 version = "0.7.0"
-edition = "2021"
+edition = "2024"
 license = "MIT"
 description = "A minimal OpenCL, WGPU, CUDA and host CPU array manipulation engine."
 repository = "https://github.com/elftausend/custos"
 keywords = ["gpu", "autodiff", "arrays", "deep-learning", "fixed-size"]
 categories = ["science", "mathematics", "no-std", "external-ffi-bindings"]
 readme = "README.md"
-rust-version = "1.81"
+rust-version = "1.85"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
@@ -28,7 +28,7 @@ custos-macro = {git = "https://github.com/elftausend/custos-macro", optional=tru
 #custos-macro = {version = "0.1.1", optional=true}
 
 # no-std float math
-libm = { version="0.2.6", optional = true }
+libm = { version="0.2", optional = true }
 
 ash = { version = "0.38", optional = true } 
 # naga = { version = "0.19", features = ["wgsl-in"], optional = true } 
@@ -75,7 +75,6 @@ min-cl = { git = "https://github.com/elftausend/min-cl", optional = true }
 default = ["cpu", "untyped", "lazy", "graph", "webgl", "cached"]
 # default = [ "cpu", "lazy", "autograd", "graph"]
 # default = ["untyped", "cpu", "lazy", "graph", "autograd", "fork", "serde", "json", "half", "cached", "static-api", "stack", "opencl", ]
-
 
 std = []
 

@@ -1,13 +1,16 @@
 use core::{
-    cell::{Cell, RefCell},
+    any::Any,
+    cell::{Cell, Ref, RefMut},
     marker::PhantomData,
+    ops::Deref,
 };
+use std::sync::Arc;
 
 use crate::{
-    AddGradFn, AddLayer, AddOperation, Alloc, Buffer, Cache, CachedBuffers, Cursor, Device,
-    ExecNow, FastCache, HasId, HasModules, IsShapeIndep, Module, OnDropBuffer, OnNewBuffer,
-    Parents, PtrType, RemoveLayer, ReplaceBuf, Retrieve, RunModule, SetOpHint, Setup, ShallowCopy,
-    Shape, UniqueId, Unit, WrappedData,
+    AddGradFn, AddLayer, AddOperation, Alloc, AsAny, Buffer, Cache, CachedBuffers, CowMut, Cursor,
+    Device, DynAnyWrapper, ExecNowPassDown, FastCache, Guard, HasModules, IsBasePtr, IsShapeIndep,
+    LockInfo, Module, OnNewBuffer, Parents, PtrType, RemoveLayer, ReplaceBufPassDown, Retrieve,
+    RunModule, SetOpHint, Setup, ShallowCopy, Shape, State, UniqueId, Unit, WrappedData,
 };
 
 #[cfg(feature = "graph")]
@@ -21,21 +24,37 @@ pub struct Cached<Mods, CacheType = FastCache> {
     cache_type: PhantomData<CacheType>,
 }
 
-impl<CacheType, Mods: WrappedData, SD: Device> WrappedData for CachedModule<Mods, SD, CacheType> {
-    type Wrap<T, Base: HasId + PtrType> = Mods::Wrap<T, Base>;
+impl<CacheType: 'static, Mods: WrappedData, SD: Device> WrappedData
+    for CachedModule<Mods, SD, CacheType>
+{
+    type Wrap<'a, T: Unit, Base: IsBasePtr> = Guard<'a, Mods::Wrap<'static, T, Base>>;
 
     #[inline]
-    fn wrap_in_base<T, Base: HasId + PtrType>(&self, base: Base) -> Self::Wrap<T, Base> {
-        self.modules.wrap_in_base(base)
+    fn wrap_in_base<'a, T: Unit, Base: IsBasePtr>(&'a self, base: Base) -> Self::Wrap<'a, T, Base> {
+        let data: <Mods as WrappedData>::Wrap<'static, _, Base> =
+            self.modules.wrap_in_base_unbound(base);
+        Guard::new(CowMut::Owned(data))
     }
 
     #[inline]
-    fn wrapped_as_base<T, Base: HasId + PtrType>(wrap: &Self::Wrap<T, Base>) -> &Base {
+    fn wrap_in_base_unbound<'a, T: Unit, Base: IsBasePtr>(
+        &self,
+        base: Base,
+    ) -> Self::Wrap<'a, T, Base> {
+        Guard::new(CowMut::Owned(self.modules.wrap_in_base_unbound(base)))
+    }
+
+    #[inline]
+    fn wrapped_as_base<'a, 'b, T: Unit, Base: IsBasePtr>(
+        wrap: &'b Self::Wrap<'a, T, Base>,
+    ) -> &'b Base {
         Mods::wrapped_as_base(wrap)
     }
 
     #[inline]
-    fn wrapped_as_base_mut<T, Base: HasId + PtrType>(wrap: &mut Self::Wrap<T, Base>) -> &mut Base {
+    fn wrapped_as_base_mut<'a, 'b, T: Unit, Base: IsBasePtr>(
+        wrap: &'b mut Self::Wrap<'a, T, Base>,
+    ) -> &'b mut Base {
         Mods::wrapped_as_base_mut(wrap)
     }
 }
@@ -49,7 +68,7 @@ where
     fn new() -> Self::Module {
         CachedModule {
             modules: Mods::new(),
-            cache: RefCell::new(CacheType::default()),
+            cache: CacheType::default(),
             pd: PhantomData,
             cursor: Default::default(),
         }
@@ -61,7 +80,7 @@ where
 // TODO: could remove D generic and therefore CachedModule
 pub struct CachedModule<Mods, D: Device, CacheType = FastCache> {
     pub modules: Mods,
-    pub cache: RefCell<CacheType>,
+    pub cache: CacheType,
     pub(crate) pd: PhantomData<D>,
     cursor: Cell<usize>, // would move this to `Cache`, however -> RefCell; TODO: maybe add a Cursor Module
 }
@@ -110,18 +129,7 @@ impl<CacheType, T, Mods: SetOpHint<T>, SD: Device> SetOpHint<T>
     }
 }
 
-impl<CacheType, D: Device, SD: Device, Mods: ExecNow<D>> ExecNow<D>
-    for CachedModule<Mods, SD, CacheType>
-{
-    #[inline]
-    fn exec_now(
-        &self,
-        device: &D,
-        range_bounds: impl core::ops::RangeBounds<usize>,
-    ) -> crate::Result<()> {
-        self.modules.exec_now(device, range_bounds)
-    }
-}
+impl<Mods, SD: Device, CacheType> ExecNowPassDown for CachedModule<Mods, SD, CacheType> {}
 
 impl<'a, CacheType, T, D, Mods, SD, S> OnNewBuffer<'a, T, D, S>
     for CachedModule<Mods, SD, CacheType>
@@ -129,61 +137,148 @@ where
     T: Unit + 'static,
     D: Device + IsShapeIndep + 'static,
     Mods: OnNewBuffer<'a, T, D, S>,
-    D::Data<T, S>: ShallowCopy,
+    D::Data<'a, T, S>: ShallowCopy,
     SD: Device,
     S: Shape,
 {
     #[inline]
-    unsafe fn on_new_buffer(&self, device: &'a D, new_buf: &Buffer<'a, T, D, S>) {
+    fn on_new_buffer(&'a self, device: &'a D, new_buf: &mut Buffer<'a, T, D, S>) {
         self.modules.on_new_buffer(device, new_buf)
     }
 }
 
-impl<CacheType, Mods: OnDropBuffer, SD: Device> OnDropBuffer for CachedModule<Mods, SD, CacheType> {
-    #[inline]
-    fn on_drop_buffer<T: Unit, D: Device, S: Shape>(&self, device: &D, buf: &Buffer<T, D, S>) {
-        self.modules.on_drop_buffer(device, buf)
+impl<'a, CacheType, Mods, SimpleDevice> CachedModule<Mods, SimpleDevice, CacheType>
+where
+    Mods: WrappedData,
+    CacheType: Cache,
+    SimpleDevice: Device,
+{
+    pub fn get_mut<D, T, S>(
+        &'a self,
+        id: u64,
+        len: usize,
+    ) -> State<Guard<'a, Mods::Wrap<'static, T, D::Base<T, S>>>>
+    where
+        D: Device,
+        T: 'static,
+        S: Shape,
+    {
+        let entry = self.cache.get_mut(id, len)?;
+        let entry = RefMut::map(entry, |x| {
+            x.as_any_mut().downcast_mut().expect("Type mismatch")
+        });
+        Ok(Guard::new(CowMut::BorrowedMut(entry)))
+    }
+    pub fn get<D, T, S>(
+        &'a self,
+        id: u64,
+        len: usize,
+    ) -> State<Guard<'a, Mods::Wrap<'static, T, D::Base<T, S>>>>
+    where
+        D: Device,
+        T: 'static,
+        S: Shape,
+    {
+        let entry = self.cache.get(id, len)?;
+        let entry = Ref::map(entry, |x| x.as_any().downcast_ref().expect("Type mismatch"));
+        Ok(Guard::new(CowMut::Borrowed(entry)))
     }
 }
 
 // TODO: a more general OnDropBuffer => "Module"
-impl<CacheType, T, Mods, D, SimpleDevice, S: Shape> Retrieve<D, T, S>
+impl<CacheType: 'static, T, Mods, D, SimpleDevice, S: Shape> Retrieve<D, T, S>
     for CachedModule<Mods, SimpleDevice, CacheType>
 where
     T: Unit + 'static,
     Mods: Retrieve<D, T, S>,
-    D: Device + IsShapeIndep + Cursor + 'static,
-    D::Base<T, S>: ShallowCopy + 'static,
-    D::Data<T, S>: ShallowCopy + 'static,
+    D: Device + IsShapeIndep + Cursor,
+    D::Base<T, S>: 'static,
     SimpleDevice: Device,
     CacheType: Cache,
 {
     #[inline]
-    unsafe fn retrieve<const NUM_PARENTS: usize>(
-        &self,
+    fn retrieve_entry<'a, const NUM_PARENTS: usize>(
+        &'a self,
         device: &D,
         len: usize,
-        _parents: impl Parents<NUM_PARENTS>,
-    ) -> crate::Result<Self::Wrap<T, D::Base<T, S>>>
+        _parents: &impl Parents<NUM_PARENTS>,
+    ) -> crate::Result<Self::Wrap<'a, T, D::Base<T, S>>>
     where
         D: Alloc<T>,
     {
-        let retrieved = Ok(self.wrap_in_base(self.cache.borrow_mut().get(
-            device,
-            device.cursor() as UniqueId,
-            len,
-            |_cursor, _base| {},
-        )));
-        unsafe { device.bump_cursor() };
-        retrieved
+        let id = device.cursor() as UniqueId;
+        let cached_wrapping = if CacheType::CachedValue::ALLOW_MUTABILITY {
+            self.get_mut::<D, T, S>(id, len)
+        } else {
+            self.get::<D, T, S>(id, len)
+        };
+        match cached_wrapping {
+            Ok(out) => {
+                unsafe { device.bump_cursor() };
+                Ok(out)
+            }
+            Err(state) => match state {
+                // return err
+                LockInfo::Locked => panic!("Locked!!"),
+                LockInfo::None => {
+                    let mut data: <Mods as WrappedData>::Wrap<
+                        'static,
+                        T,
+                        <D as Device>::Base<T, S>,
+                    > = self
+                        .modules
+                        .retrieve::<NUM_PARENTS>(device, len, _parents)?;
+                    unsafe { data.set_flag(crate::flag::AllocFlag::Cached) };
+
+                    let data = CacheType::CachedValue::new(data);
+                    self.cache.insert(id, len, data);
+
+                    unsafe { device.bump_cursor() };
+                    let cached_wrapping = if CacheType::CachedValue::ALLOW_MUTABILITY {
+                        self.get_mut::<D, T, S>(id, len)
+                    } else {
+                        self.get::<D, T, S>(id, len)
+                    }
+                    .unwrap();
+                    Ok(cached_wrapping)
+                }
+            },
+        }
+        // let retrieved = Ok(self.wrap_in_base(self.cache.borrow_mut().get(
+        //     device,
+        //     device.cursor() as UniqueId,
+        //     len,
+        //     |_cursor, _base| {},
+        // )));
+        // unsafe { device.bump_cursor() };
+        // retrieved
     }
 
     #[inline]
-    fn on_retrieve_finish(&self, retrieved_buf: &Buffer<T, D, S>)
-    where
+    fn on_retrieve_finish<const NUM_PARENTS: usize>(
+        &self,
+        len: usize,
+        parents: impl Parents<NUM_PARENTS>,
+        retrieved_buf: &Buffer<T, D, S>,
+    ) where
         D: Alloc<T>,
     {
-        self.modules.on_retrieve_finish(retrieved_buf)
+        self.modules.on_retrieve_finish(len, parents, retrieved_buf)
+    }
+
+    fn retrieve<'a, const NUM_PARENTS: usize>(
+        &self,
+        _device: &D,
+        _len: usize,
+        _parents: &impl Parents<NUM_PARENTS>,
+    ) -> crate::Result<Self::Wrap<'a, T, <D>::Base<T, S>>>
+    where
+        S: Shape,
+        D: Device + Alloc<T>,
+    {
+        panic!(
+            "Modules retrieve calls are in the wrong order. Cached module requires to be called via 'retrieve_entry'"
+        )
     }
 }
 
@@ -211,12 +306,12 @@ impl<'dev, CacheType, Mods: crate::TapeActions<'dev>, SD: Device> crate::TapeAct
 {
     #[inline]
     unsafe fn tape(&self) -> Option<&super::Tape<'dev>> {
-        self.modules.tape()
+        unsafe { self.modules.tape() }
     }
 
     #[inline]
     unsafe fn tape_mut(&self) -> Option<&mut super::Tape<'dev>> {
-        self.modules.tape_mut()
+        unsafe { self.modules.tape_mut() }
     }
 }
 
@@ -233,8 +328,8 @@ impl<CacheType, Mods: crate::GradActions, SD: Device> crate::GradActions
         &self,
         device: &'a D,
         buf: &Buffer<'a, T, D, S>,
-    ) -> &Buffer<'a, T, D, S> {
-        self.modules.grad(device, buf)
+    ) -> &Buffer<'static, T, D, S> {
+        unsafe { self.modules.grad(device, buf) }
     }
 
     unsafe fn grad_mut<
@@ -246,18 +341,18 @@ impl<CacheType, Mods: crate::GradActions, SD: Device> crate::GradActions
         &self,
         device: &'a D,
         buf: &Buffer<'a, T, D, S>,
-    ) -> &mut Buffer<'a, T, D, S> {
-        self.modules.grad_mut(device, buf)
+    ) -> &mut Buffer<'static, T, D, S> {
+        unsafe { self.modules.grad_mut(device, buf) }
     }
 
     #[inline]
     unsafe fn gradients(&self) -> Option<&crate::Gradients> {
-        self.modules.gradients()
+        unsafe { self.modules.gradients() }
     }
 
     #[inline]
     unsafe fn gradients_mut(&self) -> Option<&mut crate::Gradients> {
-        self.modules.gradients_mut()
+        unsafe { self.modules.gradients_mut() }
     }
 }
 
@@ -334,8 +429,8 @@ impl<CacheType, Mods: RunModule<D>, D, SD: Device> RunModule<D>
 }
 
 #[cfg(feature = "graph")]
-impl<Mods: Optimize, SD: Device> Optimize for CachedModule<Mods, SD, FastCache> {
-    fn optimize_mem_graph<D: 'static>(
+impl<Mods: Optimize, SD: Device> Optimize for CachedModule<Mods, SD, FastCache<Arc<dyn Any>>> {
+    unsafe fn optimize_mem_graph<D: 'static>(
         &self,
         _device: &D,
         graph_translator: Option<&crate::GraphTranslator>,
@@ -344,27 +439,28 @@ impl<Mods: Optimize, SD: Device> Optimize for CachedModule<Mods, SD, FastCache> 
         let cache_traces =
             graph_translator.to_cursor_cache_traces(graph_translator.opt_graph.cache_traces());
 
-        let mut cache = self.cache.borrow_mut();
+        // let mut cache = self.cache.borrow_mut();
         for cache_trace in cache_traces {
-            let used_to_replace = cache
-                .nodes
-                .get(&(cache_trace.cache_idx as UniqueId))
-                .ok_or(DeviceError::GraphOptimization)?
+            let used_to_replace = self
+                .cache
+                .get(cache_trace.cache_idx as UniqueId, 0)
+                .map_err(|_| DeviceError::GraphOptimization)?
                 .clone();
 
             for to_replace in &cache_trace.use_cache_idxs {
-                if cache
-                    .nodes
-                    .get(&(*to_replace as UniqueId))
+                if self
+                    .cache
+                    .get(*to_replace as UniqueId, 0)
                     .unwrap()
+                    .clone()
+                    .deref()
                     .type_id()
-                    != used_to_replace.type_id()
+                    != used_to_replace.deref().type_id()
                 {
                     continue;
                 }
-                cache
-                    .nodes
-                    .insert(*to_replace as UniqueId, used_to_replace.clone());
+                self.cache
+                    .insert(*to_replace as UniqueId, 0, used_to_replace.clone());
             }
         }
         Ok(())
@@ -380,7 +476,7 @@ impl<Mods: Optimize, SD: Device> Optimize for CachedModule<Mods, SD, FastCache> 
     }
 }
 
-impl<CacheType, Mods: OnDropBuffer, D: Device> CachedBuffers for CachedModule<Mods, D, CacheType> {
+impl<CacheType, Mods: WrappedData, D: Device> CachedBuffers for CachedModule<Mods, D, CacheType> {
     #[inline]
     unsafe fn buffers_mut(
         &self,
@@ -390,19 +486,7 @@ impl<CacheType, Mods: OnDropBuffer, D: Device> CachedBuffers for CachedModule<Mo
     }
 }
 
-impl<CacheType, Mods, D, T, S, SD> ReplaceBuf<T, D, S> for CachedModule<Mods, SD, CacheType>
-where
-    T: Unit,
-    Mods: ReplaceBuf<T, D, S>,
-    D: Device,
-    S: Shape,
-    SD: Device,
-{
-    #[inline]
-    fn replace_buf<'a, 'c>(&'c self, buffer: &'c Buffer<'a, T, D, S>) -> &'c Buffer<'a, T, D, S> {
-        self.modules.replace_buf(buffer)
-    }
-}
+impl<CacheType, SD: Device, Mods> ReplaceBufPassDown for CachedModule<Mods, SD, CacheType> {}
 
 impl<CacheType, Mods, D: Device> HasModules for CachedModule<Mods, D, CacheType> {
     type Mods = Mods;
@@ -418,7 +502,7 @@ mod tests {
     use core::{panic::Location, ptr::addr_of};
 
     // crate::modules
-    use crate::{location, Base, Buffer, Retrieve, Retriever, CPU};
+    use crate::{Base, Buffer, CPU, Retrieve, Retriever, location};
 
     use super::Cached;
     #[test]
@@ -464,16 +548,16 @@ mod tests {
     #[test]
     fn test_cached_return_retrieve() {
         // invalid!
-        let _x = {
+        {
             let device = CPU::<Cached<Base>>::new();
             // let buf: Buffer<f32, _> = device.retrieve(10, ());
-            unsafe { Retrieve::<_, f32, ()>::retrieve(&device.modules, &device, 10, ()) }
+            let _ = Retrieve::<_, f32, ()>::retrieve_entry(&device.modules, &device, 10, &());
         };
     }
 
     #[track_caller]
     #[cfg(feature = "cpu")]
-    fn level1<Mods: crate::Retrieve<CPU<Mods>, f32, ()>>(device: &CPU<Mods>) {
+    fn level1<'a, Mods: crate::Retrieve<CPU<Mods>, f32, ()>>(device: &'a CPU<Mods>) {
         let _buf: Buffer<f32, _> = device.retrieve(10, ()).unwrap();
         level2(device);
         level2(device);
@@ -482,13 +566,13 @@ mod tests {
 
     #[track_caller]
     #[cfg(feature = "cpu")]
-    fn level3<Mods: crate::Retrieve<CPU<Mods>, f32, ()>>(device: &CPU<Mods>) {
+    fn level3<'a, Mods: crate::Retrieve<CPU<Mods>, f32, ()>>(device: &'a CPU<Mods>) {
         level2(device);
     }
 
     #[track_caller]
     #[cfg(feature = "cpu")]
-    fn level2<Mods: crate::Retrieve<CPU<Mods>, f32, ()>>(device: &CPU<Mods>) {
+    fn level2<'a, Mods: crate::Retrieve<CPU<Mods>, f32, ()>>(device: &'a CPU<Mods>) {
         let buf: Buffer<f32, _> = device.retrieve(20, ()).unwrap();
         location();
         assert_eq!(buf.len(), 20);
@@ -522,7 +606,7 @@ mod tests {
             assert_eq!(buf.len(), buf_base.len());
         }
 
-        let buf_base = buf_base.to_device_type(&device);
+        let buf_base: Buffer<f32, _> = buf_base.to_device_type(&device);
         for _ in 0..10 {
             let buf: Buffer<f32, _> = device.retrieve(10, &buf_base).unwrap();
 

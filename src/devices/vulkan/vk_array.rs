@@ -9,7 +9,7 @@ use core::{
 };
 use std::rc::Rc;
 
-use crate::{flag::AllocFlag, HasId, HostPtr, PtrType, ShallowCopy};
+use crate::{HasId, HostPtr, PtrType, ShallowCopy, Unit, flag::AllocFlag};
 
 use super::{context::Context, submit_and_wait};
 
@@ -25,7 +25,7 @@ pub struct VkArray<T> {
 unsafe impl<T: Sync> Sync for VkArray<T> {}
 unsafe impl<T: Send> Send for VkArray<T> {}
 
-impl<T> PtrType for VkArray<T> {
+impl<T: Unit> PtrType for VkArray<T> {
     #[inline]
     fn size(&self) -> usize {
         self.len
@@ -51,7 +51,7 @@ impl<T> HasId for VkArray<T> {
     }
 }
 
-impl<T> VkArray<T> {
+impl<T: Unit> VkArray<T> {
     pub fn new(
         context: Rc<Context>,
         len: usize,
@@ -258,7 +258,7 @@ impl<T> Drop for VkArray<T> {
     }
 }
 
-impl<T> HostPtr<T> for VkArray<T> {
+impl<T: Unit> HostPtr<T> for VkArray<T> {
     #[inline]
     fn ptr(&self) -> *const T {
         self.mapped_ptr
@@ -271,7 +271,7 @@ impl<T> HostPtr<T> for VkArray<T> {
 }
 
 // TODO: impl deref only when using unified memory
-impl<T> Deref for VkArray<T> {
+impl<T: Unit> Deref for VkArray<T> {
     type Target = [T];
 
     #[inline]
@@ -281,7 +281,7 @@ impl<T> Deref for VkArray<T> {
     }
 }
 
-impl<T> DerefMut for VkArray<T> {
+impl<T: Unit> DerefMut for VkArray<T> {
     #[inline]
     fn deref_mut(&mut self) -> &mut Self::Target {
         assert!(!self.ptr_mut().is_null());
@@ -312,7 +312,7 @@ pub unsafe fn create_buffer<T>(
     let buffer_create_info = vk::BufferCreateInfo::default()
         .size(buffer_size as u64)
         .usage(usage);
-    device.create_buffer(&buffer_create_info, None)
+    unsafe { device.create_buffer(&buffer_create_info, None) }
 }
 
 pub unsafe fn allocate_memory(
@@ -329,7 +329,7 @@ pub unsafe fn allocate_memory(
         memory_type_index,
         ..Default::default()
     };
-    device.allocate_memory(&memory_allocate_info, None)
+    unsafe { device.allocate_memory(&memory_allocate_info, None) }
 }
 
 #[cfg(test)]

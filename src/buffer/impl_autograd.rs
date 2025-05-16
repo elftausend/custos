@@ -1,5 +1,5 @@
-use crate::prelude::*;
 use crate::MayGradActions;
+use crate::prelude::*;
 
 use crate::Unit;
 #[cfg(feature = "autograd")]
@@ -68,7 +68,7 @@ where
     /// Panics if the gradient was not allocated.
     #[inline]
     #[cfg(feature = "autograd")]
-    pub fn grad(&self) -> &Self
+    pub fn grad(&self) -> &Buffer<'static, T, D, S>
     where
         D: ZeroGrad<T> + MayGradActions + Alloc<T>,
     {
@@ -89,7 +89,7 @@ where
     /// Returns a reference to the gradient of this buffer.
     /// Returns none either if the autograd feature is disabled, no tape was found (add [`Autograd`] module) or no gradient is allocated.
     // TODO: Maybe return Result with two error variants?
-    pub fn try_grad(&self) -> Option<&'a Self>
+    pub fn try_grad(&self) -> Option<&'a Buffer<'static, T, D, S>>
     where
         D: MayGradActions + Alloc<T>,
     {
@@ -117,7 +117,7 @@ where
 
     #[cfg(feature = "autograd")]
     #[inline]
-    pub fn grad_mut<'b>(&'b mut self) -> &'b mut Self
+    pub fn grad_mut<'b>(&'b mut self) -> &'b mut Buffer<'static, T, D, S>
     where
         D: GradActions + Alloc<T> + ZeroGrad<T>,
     {
@@ -128,7 +128,7 @@ where
     /// This allocates a gradient buffer if it wasn't previously.
     #[inline]
     #[cfg(feature = "autograd")]
-    pub unsafe fn grad_mut_unbound<'b>(&'b self) -> &'a mut Self
+    pub unsafe fn grad_mut_unbound<'b>(&'b self) -> &'a mut Buffer<'static, T, D, S>
     where
         D: GradActions + Alloc<T> + ZeroGrad<T>,
     {
@@ -136,7 +136,7 @@ where
         // e.g. binary grad ops are computed in a single function where differentiating between
         // req grad and no req grad is not possible/ difficult
         // assert!(self.requires_grad(), "Buffer does not require gradient.");
-        self.device().grad_mut(self.device(), self)
+        unsafe { self.device().grad_mut(self.device(), self) }
         // unsafe {
         //     self.device()
         //         .gradients_mut()
@@ -149,7 +149,7 @@ where
     /// Returns a mutable reference to the gradient of this buffer.
     /// Returns none either if the autograd feature is disabled, no tape was found (add [`Autograd`] module) or no gradient is allocated.
     // TODO: Maybe return Result with two error variants?
-    pub fn try_grad_mut(&mut self) -> Option<&mut Self>
+    pub fn try_grad_mut(&mut self) -> Option<&mut Buffer<'static, T, D, S>>
     where
         D: MayGradActions + Alloc<T>,
     {

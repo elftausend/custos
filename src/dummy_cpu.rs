@@ -1,4 +1,4 @@
-use crate::{impl_buffer_hook_traits, Base, Buffer, Device, OnDropBuffer, Shape, Unit};
+use crate::{Base, Buffer, Device, Shape, Unit, WrappedData, impl_buffer_hook_traits};
 
 /// A dummy CPU. This only exists to make the code compile when the `cpu` feature is disabled
 /// because the CPU is the default type `D` for [`Buffer`]s.
@@ -7,8 +7,8 @@ pub struct CPU<Mods = Base> {
     modules: Mods,
 }
 
-impl<Mods: OnDropBuffer> Device for CPU<Mods> {
-    type Data<U: Unit, S: Shape> = Mods::Wrap<U, crate::Num<U>>;
+impl<Mods: WrappedData> Device for CPU<Mods> {
+    type Data<'a, U: Unit, S: Shape> = Mods::Wrap<'a, U, crate::Num<U>>;
     type Base<T: Unit, S: Shape> = crate::Num<T>;
     type Error = crate::DeviceError;
 
@@ -22,26 +22,36 @@ impl<Mods: OnDropBuffer> Device for CPU<Mods> {
         Err(crate::DeviceError::CPUDeviceNotAvailable.into())
     }
 
-    fn base_to_data<T: Unit, S: Shape>(&self, base: Self::Base<T, S>) -> Self::Data<T, S> {
+    fn default_base_to_data<'a, T: Unit, S: Shape>(
+        &'a self,
+        base: Self::Base<T, S>,
+    ) -> Self::Data<'a, T, S> {
         self.modules.wrap_in_base(base)
     }
 
-    fn wrap_to_data<T: Unit, S: Shape>(
+    fn default_base_to_data_unbound<'a, T: Unit, S: Shape>(
         &self,
-        wrap: Self::Wrap<T, Self::Base<T, S>>,
-    ) -> Self::Data<T, S> {
+        base: Self::Base<T, S>,
+    ) -> Self::Data<'a, T, S> {
+        self.modules.wrap_in_base_unbound(base)
+    }
+
+    fn wrap_to_data<'a, T: Unit, S: Shape>(
+        &self,
+        wrap: Self::Wrap<'a, T, Self::Base<T, S>>,
+    ) -> Self::Data<'a, T, S> {
         wrap
     }
 
-    fn data_as_wrap<'a, T: Unit, S: Shape>(
-        data: &'a Self::Data<T, S>,
-    ) -> &'a Self::Wrap<T, Self::Base<T, S>> {
+    fn data_as_wrap<'a, 'b, T: Unit, S: Shape>(
+        data: &'b Self::Data<'a, T, S>,
+    ) -> &'b Self::Wrap<'a, T, Self::Base<T, S>> {
         data
     }
 
-    fn data_as_wrap_mut<'a, T: Unit, S: Shape>(
-        data: &'a mut Self::Data<T, S>,
-    ) -> &'a mut Self::Wrap<T, Self::Base<T, S>> {
+    fn data_as_wrap_mut<'a, 'b, T: Unit, S: Shape>(
+        data: &'b mut Self::Data<'a, T, S>,
+    ) -> &'b mut Self::Wrap<'a, T, Self::Base<T, S>> {
         data
     }
 }

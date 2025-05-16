@@ -50,6 +50,11 @@ mod cached;
 #[cfg(feature = "cached")]
 pub use cached::*;
 
+// #[cfg(feature = "cached")]
+// mod cached2;
+// #[cfg(feature = "cached")]
+// pub use cached2::*;
+
 #[cfg(feature = "graph")]
 mod graph;
 #[cfg(feature = "graph")]
@@ -64,6 +69,11 @@ pub use lazy::*;
 mod fork;
 #[cfg(feature = "fork")]
 pub use fork::*;
+
+// #[cfg(feature = "fork")]
+// mod change_ptr;
+// #[cfg(feature = "fork")]
+// pub use change_ptr::*;
 
 #[cfg(feature = "std")]
 use crate::{Buffer, Device, HasId, Id, ShallowCopy, Shape, UniqueId};
@@ -82,23 +92,23 @@ pub trait Module<'a, D: 'a, Mods = ()> {
 #[cfg(feature = "std")]
 #[inline]
 #[allow(unused)]
-pub(crate) unsafe fn register_buf_any<T, D, S>(
+pub(crate) unsafe fn register_buf_any<'a, T, D, S>(
     cache: &mut HashMap<UniqueId, Box<dyn Any>, impl BuildHasher>,
-    buf: &Buffer<T, D, S>,
+    buf: &Buffer<'a, T, D, S>,
 ) where
     T: crate::Unit + 'static,
     D: Device + crate::IsShapeIndep + 'static,
-    D::Data<T, S>: ShallowCopy,
+    D::Data<'a, T, S>: ShallowCopy,
+    D::Base<T, S>: ShallowCopy,
     S: Shape,
 {
     // shallow copy sets flag to AllocFlag::Wrapper
+    let wrapped_data = unsafe { buf.base().shallow() };
+    let data: <D as Device>::Data<'static, T, S> = buf
+        .device()
+        .default_base_to_data_unbound::<T, S>(wrapped_data);
 
-    let wrapped_data = unsafe { buf.data.shallow() };
-
-    let buf: Buffer<T, D, S> = Buffer {
-        data: wrapped_data,
-        device: None,
-    };
+    let buf: Buffer<'static, T, D, S> = Buffer { data, device: None };
     cache.insert(*buf.id(), Box::new(buf));
 }
 
@@ -115,22 +125,23 @@ pub(crate) fn unregister_buf_any(
 #[cfg(feature = "std")]
 #[inline]
 #[allow(unused)]
-pub(crate) unsafe fn register_buf_copyable<T, D, S>(
+pub(crate) unsafe fn register_buf_copyable<'a, T, D, S>(
     cache: &mut HashMap<UniqueId, Box<dyn crate::BoxedShallowCopy>, impl BuildHasher>,
     buf: &Buffer<T, D, S>,
 ) where
     T: crate::Unit + 'static,
     D: Device + crate::IsShapeIndep + 'static,
-    D::Data<T, S>: ShallowCopy,
+    D::Base<T, S>: ShallowCopy,
+    D::Data<'static, T, S>: ShallowCopy,
     S: Shape,
 {
     // shallow copy sets flag to AllocFlag::Wrapper
-    let wrapped_data = unsafe { buf.data.shallow() };
+    let wrapped_data = unsafe { buf.base().shallow() };
+    let data: <D as Device>::Data<'static, T, S> = buf
+        .device()
+        .default_base_to_data_unbound::<T, S>(wrapped_data);
 
-    let buf: Buffer<T, D, S> = Buffer {
-        data: wrapped_data,
-        device: None,
-    };
+    let buf: Buffer<'static, T, D, S> = Buffer { data, device: None };
     cache.insert(*buf.id(), Box::new(buf));
 }
 
@@ -139,7 +150,7 @@ pub(crate) unsafe fn register_buf_copyable<T, D, S>(
 #[allow(unused)]
 pub(crate) fn unregister_buf_copyable(
     cache: &mut HashMap<UniqueId, Box<dyn crate::BoxedShallowCopy>, impl BuildHasher>,
-    id: Id,
+    id: UniqueId,
 ) {
     cache.remove(&id);
 }

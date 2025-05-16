@@ -1,8 +1,8 @@
-use custos::{opencl::enqueue_kernel, Buffer, CDatatype, OnDropBuffer, OpenCL, Retriever, Shape};
+use custos::{Buffer, CDatatype, OpenCL, Retriever, Shape, WrappedData, opencl::enqueue_kernel};
 
 use super::ElementWise;
 
-pub fn cl_element_wise<Mods: OnDropBuffer, T, S: Shape>(
+pub fn cl_element_wise<Mods: WrappedData, T, S: Shape>(
     device: &OpenCL<Mods>,
     lhs: &Buffer<T, OpenCL<Mods>, S>,
     rhs: &Buffer<T, OpenCL<Mods>, S>,
@@ -42,7 +42,7 @@ impl<T: CDatatype, S: Shape> ElementWise<T, OpenCL, S> for OpenCL {
 
 #[cfg(test)]
 mod tests {
-    use custos::{prelude::chosen_cl_idx, Base, Buffer, OpenCL, Retriever, WithShape, CPU};
+    use custos::{Base, Buffer, CPU, OpenCL, Retriever, WithShape, prelude::chosen_cl_idx};
 
     use crate::demo_impl::cpu::cpu_element_wise;
 

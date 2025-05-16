@@ -1,7 +1,7 @@
 use ash::{
+    Device,
     prelude::VkResult,
     vk::{self, CommandBuffer, CommandPool, CommandPoolCreateFlags},
-    Device,
 };
 
 pub fn create_command_pool(device: &Device, compute_family_idx: usize) -> VkResult<CommandPool> {

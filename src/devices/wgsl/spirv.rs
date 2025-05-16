@@ -1,8 +1,9 @@
 use core::{mem::size_of_val, str::FromStr};
 
 use naga::{
+    WithSpan,
     back::spv::{Options, PipelineOptions},
-    valid::ModuleInfo,
+    valid::{ModuleInfo, ValidationError},
 };
 
 use super::{error::TranslateError, parse_and_output};

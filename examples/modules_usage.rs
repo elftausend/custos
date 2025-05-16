@@ -1,8 +1,8 @@
 use std::ops::{Add, AddAssign, Deref, DerefMut, Mul};
 
 use custos::{
-    AddGradFn, AddOperation, Alloc, ApplyFunction, Buffer, Combiner, Device, MayGradActions,
-    Retrieve, Retriever, Shape, Unit, UseGpuOrCpu, ZeroGrad, CPU,
+    AddGradFn, AddOperation, Alloc, ApplyFunction, Buffer, CPU, Combiner, Device, MayGradActions,
+    Retrieve, Retriever, Shape, Unit, ZeroGrad,
 };
 
 pub trait ElementWise<T: Unit, D: Device, S: Shape>: Device {
@@ -29,7 +29,7 @@ where
     }
 }
 
-impl<T, D, S, Mods> ElementWise<T, D, S> for CPU<Mods>
+impl<'a, T, D, S, Mods> ElementWise<T, D, S> for CPU<Mods>
 where
     T: Unit + Add<Output = T> + AddAssign + Mul<Output = T> + Default + Copy + 'static,
     D: Device + ZeroGrad<T> + Alloc<T> + MayGradActions + 'static,
@@ -58,7 +58,7 @@ where
 }
 
 #[cfg(feature = "opencl")]
-use custos::{opencl::CLPtr, CDatatype, OpenCL};
+use custos::{CDatatype, OpenCL, opencl::CLPtr};
 
 #[cfg(feature = "opencl")]
 pub fn try_add_ew_cl<T, Mods>(
@@ -93,7 +93,7 @@ impl<T, S, Mods> ElementWise<T, Self, S> for custos::OpenCL<Mods>
 where
     T: Add<Output = T> + Copy + CDatatype + Default,
     S: Shape,
-    Mods: Retrieve<Self, T, S> + AddOperation + UseGpuOrCpu + 'static,
+    Mods: Retrieve<Self, T, S> + AddOperation + custos::UseGpuOrCpu + 'static,
 {
     fn add(
         &self,
@@ -106,6 +106,7 @@ where
             let dev = lhs.device();
             #[cfg(unified_cl)]
             {
+                use custos::UseGpuOrCpu;
                 let cpu_out = unsafe { &mut *(out as *mut Buffer<_, OpenCL<Mods>, _>) };
                 dev.use_cpu_or_gpu(
                     (file!(), line!(), column!()).into(),
@@ -167,7 +168,7 @@ fn main() {
 
         // this identifies redundant intermediate buffers and skips allocating them
         device.optimize_mem_graph(&device, None).unwrap(); // allocates, now out1 data points to out2 data. The data is accessed with out2.replace()
-                                                           // this fuses all unary operations and creates fused compute kernels (for all compute kernel based devices)
+        // this fuses all unary operations and creates fused compute kernels (for all compute kernel based devices)
         device.unary_fusing(&device, None).unwrap();
 
         // this executes all operations inside the lazy graph

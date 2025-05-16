@@ -25,7 +25,7 @@ fn test_cuda_macro() {
     // return;
 
     // generic kernel
-    let ptx = cuda!(
+    /*let ptx = cuda!(
         extern "C" __global__ void add(int* lhs, int* rhs, int* out, int size) {
             int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -37,7 +37,7 @@ fn test_cuda_macro() {
         }
     );
 
-    println!("ptx: {ptx}");
+    println!("ptx: {ptx}");*/
 
     /*let ptx = r#"extern "C" __global__ void add(int* lhs, int* rhs, int* out, int size) {
         int idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -54,8 +54,9 @@ fn test_cuda_macro() {
     let rhs = Buffer::from((&device, [1, 2, 3, 4, 5]));
 
     let mut out = Buffer::<i32, _>::new(&device, lhs.len());
+  
+    // device
+    //     .launch_kernel1d(lhs.len(), ptx, "add", &[&lhs, &rhs, &mut out, &lhs.len()])
+    //     .unwrap();*
 
-    device
-        .launch_kernel1d(lhs.len(), ptx, "add", &[&lhs, &rhs, &mut out, &lhs.len()])
-        .unwrap();
 }

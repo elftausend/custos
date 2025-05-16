@@ -1,5 +1,5 @@
-use super::api::{cu_read, cufree, cumalloc, CudaResult};
-use crate::{flag::AllocFlag, HasId, Id, PtrType, ShallowCopy};
+use super::api::{CudaResult, cu_read, cufree, cumalloc};
+use crate::{HasId, Id, PtrType, ShallowCopy, Unit, flag::AllocFlag};
 use core::marker::PhantomData;
 
 /// The pointer used for `CUDA` [`Buffer`](crate::Buffer)s
@@ -88,7 +88,7 @@ impl<T> ShallowCopy for CUDAPtr<T> {
     }
 }
 
-impl<T> PtrType for CUDAPtr<T> {
+impl<T: Unit> PtrType for CUDAPtr<T> {
     #[inline]
     fn size(&self) -> usize {
         self.len
@@ -144,11 +144,11 @@ mod serde {
 
     #[cfg(test)]
     mod tests {
-        use serde_test::{assert_ser_tokens, Token};
+        use serde_test::{Token, assert_ser_tokens};
 
         use crate::{
-            cuda::{api::cu_write, CUDAPtr},
             Base, CUDA,
+            cuda::{CUDAPtr, api::cu_write},
         };
 
         #[test]

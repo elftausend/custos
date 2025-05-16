@@ -4,8 +4,8 @@
 use std::{ffi::c_void, os::raw::c_char};
 
 use super::{
-    error::{CudaErrorKind, CudaResult},
     CUdeviceptr,
+    error::{CudaErrorKind, CudaResult},
 };
 pub type CUdevice = std::os::raw::c_int;
 
@@ -163,7 +163,7 @@ impl CUresult {
 }
 
 #[link(name = "cuda")]
-extern "C" {
+unsafe extern "C" {
     pub fn cuInit(flags: u32) -> CUresult;
     pub fn cuDeviceGetCount(count: *mut i32) -> CUresult;
     pub fn cuDeviceGet(device: *mut CUdevice, ordinal: i32) -> CUresult;

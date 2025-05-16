@@ -1,12 +1,13 @@
 use crate::{
-    cpu_stack_ops::apply_fn_slice, untyped::untyped_device::UntypedDevice, ApplyFunction,
-    CDatatype, Read, Retriever, Shape, CPU,
+    ApplyFunction, CDatatype, CPU, Read, Retriever, Shape, cpu_stack_ops::apply_fn_slice,
+    untyped::untyped_device::UntypedDevice,
 };
 
-use super::{untyped_device::Untyped, AsType};
+use super::{AsType, untyped_device::Untyped};
 
 impl<T: 'static + AsType + Default + Clone, S: Shape> Read<T, S> for Untyped {
-    type Read<'a> = Vec<T>
+    type Read<'a>
+        = Vec<T>
     where
         T: 'a,
         Self: 'a,
@@ -160,13 +161,13 @@ macro_rules! untyped_binary_op {
 #[cfg(test)]
 mod tests {
     use crate::{
+        ApplyFunction, Buffer, Combiner, Device, Shape, Unit,
         cpu::CPUPtr,
-        tests_helper::{add_ew_slice, roughly_eq_slices, AddEw},
+        tests_helper::{AddEw, add_ew_slice, roughly_eq_slices},
         untyped::{
             storages::{CpuStorage, CudaStorage, UntypedData},
             untyped_device::{Untyped, UntypedDevice},
         },
-        ApplyFunction, Buffer, Combiner, Device, Shape, Unit,
     };
 
     #[test]
@@ -215,8 +216,12 @@ mod tests {
         out
     }
 
-    impl<T: Unit, S: Shape> AddEw<T, Self, S> for Untyped {
-        fn add(&self, lhs: &Buffer<T, Self, S>, rhs: &Buffer<T, Self, S>) -> Buffer<T, Self, S> {
+    impl<'a, T: Unit, S: Shape> AddEw<'a, T, Self, S> for Untyped {
+        fn add(
+            &'a self,
+            lhs: &Buffer<T, Self, S>,
+            rhs: &Buffer<T, Self, S>,
+        ) -> Buffer<'a, T, Self, S> {
             untyped_binary_op!(self, lhs, rhs, alloc_and_add_slice, alloc_and_add_cu)
         }
     }

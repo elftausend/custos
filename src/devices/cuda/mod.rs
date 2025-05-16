@@ -78,8 +78,8 @@ mod tests {
     use core::ffi::c_void;
 
     use crate::{
-        cuda::{api::culaunch_kernel, fn_cache},
         Base, Buffer, CUDA,
+        cuda::{api::culaunch_kernel, fn_cache},
     };
 
     #[test]

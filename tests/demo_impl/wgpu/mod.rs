@@ -1,10 +1,10 @@
 use std::time::Instant;
 
 use custos::{
+    Buffer, Device, OpenCL, Shape,
     prelude::Number,
     range,
-    wgpu::{launch_shader, WGPU},
-    Buffer, Device, OpenCL, Shape,
+    wgpu::{WGPU, launch_shader},
 };
 
 use super::ElementWise;

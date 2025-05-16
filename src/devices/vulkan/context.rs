@@ -1,11 +1,11 @@
-use core::ffi::{c_char, CStr};
+use core::ffi::{CStr, c_char};
 
 use ash::{
+    Device, Entry, Instance,
     vk::{
         self, CommandBuffer, CommandPool, InstanceCreateInfo, PhysicalDevice,
         PhysicalDeviceMemoryProperties, PhysicalDeviceProperties, PipelineCache,
     },
-    Device, Entry, Instance,
 };
 
 use super::{

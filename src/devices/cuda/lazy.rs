@@ -3,8 +3,8 @@ use core::mem::ManuallyDrop;
 use crate::CUDA;
 
 use super::api::{
-    create_graph_execution, create_graph_from_captured_stream, cuGraphLaunch, cuStreamBeginCapture,
-    CUStreamCaptureMode, CudaErrorKind, Graph, GraphExec, Stream,
+    CUStreamCaptureMode, CudaErrorKind, Graph, GraphExec, Stream, create_graph_execution,
+    create_graph_from_captured_stream, cuGraphLaunch, cuStreamBeginCapture,
 };
 
 pub struct LazyCudaGraph {
@@ -73,10 +73,7 @@ impl<Mods> crate::LazySetup for CUDA<Mods> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{
-        AddOperation, ApplyFunction, Base, Buffer, Combiner, Device, HasId, Lazy, Retrieve,
-        Retriever, Run, CUDA,
-    };
+    use crate::{AddOperation, Base, Buffer, CUDA, Device, HasId, Lazy, Retrieve, Retriever, Run};
 
     pub fn ew_src(fn_name: &str, operator: char) -> String {
         format!(
@@ -303,6 +300,8 @@ mod tests {
     #[cfg(feature = "graph")]
     #[test]
     fn test_cuda_apply_fn_lazy() {
+        use crate::{ApplyFunction, Combiner};
+
         let device = CUDA::<crate::Graph<Lazy<Base>>>::new(0).unwrap();
 
         let lhs = device.buffer([1., 2., 3., 4., 5., 6.]);

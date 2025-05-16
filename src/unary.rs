@@ -83,9 +83,9 @@ pub trait UnaryElementWiseMayGrad<T: Unit, D: Device, S: Shape>: Device {
     /// out.backward();
     /// assert_eq!(buf.grad().as_slice(), &[2.; 6]);
     /// ```
-    fn unary_ew<'a, FO, GO>(
-        &'a self,
-        buf: &Buffer<'a, T, D, S>,
+    fn unary_ew<FO, GO>(
+        &self,
+        buf: &Buffer<T, D, S>,
         forward_fn: impl Fn(Resolve<T>) -> FO + Copy + 'static,
         grad_fn: fn(Resolve<T>) -> GO,
     ) -> Buffer<T, Self, S>
@@ -103,9 +103,9 @@ where
     S: Shape,
 {
     #[inline(always)]
-    fn unary_ew<'a, FO, GO>(
-        &'a self,
-        buf: &Buffer<'a, T, D, S>,
+    fn unary_ew<FO, GO>(
+        &self,
+        buf: &Buffer<T, D, S>,
         forward_fn: impl Fn(Resolve<T>) -> FO + Copy + 'static,
         grad_fn: fn(Resolve<T>) -> GO,
     ) -> Buffer<T, Self, S>
@@ -149,7 +149,7 @@ mod tests {
     #[cfg(feature = "macro")]
     #[test]
     fn test_unary_elementwise() {
-        use crate::{Base, Combiner, Device, UnaryElementWiseMayGrad, CPU};
+        use crate::{Base, CPU, Combiner, Device, UnaryElementWiseMayGrad};
 
         let device = CPU::<Base>::new();
         let buf = device.buffer([1., 2., 3., 4.]);
@@ -169,7 +169,7 @@ mod tests {
     #[cfg(feature = "autograd")]
     fn test_unary_autograd<'a, 'b, D>(device: &'a D)
     where
-        D::Data<f32, ()>: crate::ShallowCopy,
+        D::Data<'a, f32, ()>: crate::ShallowCopy,
         D: 'static
             + crate::WriteBuf<f32>
             + crate::Read<f32>
@@ -201,7 +201,7 @@ mod tests {
         // out.backward();
         out.backward().unwrap();
         roughly_eq_slices(
-            &buf.grad().read_to_vec(),
+            &device.read_to_vec(buf.grad()),
             &[
                 0.5403023058681398,
                 -0.4161468365471424,
@@ -255,7 +255,9 @@ mod tests {
     #[cfg(feature = "autograd")]
     #[test]
     fn test_unary_elementwise_may_grad_multiple_times() {
-        use crate::{Autograd, Base, Cached, Combiner, Device, UnaryElementWiseMayGrad, CPU};
+        use crate::{
+            Autograd, Base, CPU, Cached, ClearBuf, Combiner, Device, UnaryElementWiseMayGrad,
+        };
 
         let device = CPU::<Autograd<Cached<Base>>>::new();
         let buf = device.buffer([1., 2., 3., 4.]).require_grad();
@@ -284,7 +286,7 @@ mod tests {
             );
             unsafe {
                 // TODO: use safe version
-                buf.grad_mut_unbound().clear();
+                device.clear(buf.grad_mut_unbound());
             }
         }
     }
@@ -320,7 +322,7 @@ mod tests {
     #[cfg(feature = "autograd")]
     #[test]
     fn test_unary_elementwise_may_grad_multiple_times_lazy() {
-        use crate::{Autograd, Base, Combiner, Device, Lazy, Run, UnaryElementWiseMayGrad, CPU};
+        use crate::{Autograd, Base, CPU, Combiner, Device, Lazy, Run, UnaryElementWiseMayGrad};
 
         let device = CPU::<Autograd<Lazy<Base, f64>>>::new();
         let buf = device.buffer([1., 2., 3., 4.]).require_grad();
@@ -335,8 +337,8 @@ mod tests {
     #[test]
     fn test_unary_elementwise_may_grad_multiple_times_lazy_with_lazy_input() {
         use crate::{
-            ApplyFunction, Autograd, Base, Combiner, Device, Lazy, Run, UnaryElementWiseMayGrad,
-            CPU,
+            ApplyFunction, Autograd, Base, CPU, Combiner, Device, Lazy, Run,
+            UnaryElementWiseMayGrad,
         };
 
         let device = CPU::<Autograd<Lazy<Base, f64>>>::new();
@@ -352,8 +354,8 @@ mod tests {
     #[test]
     fn test_unary_elementwise_may_grad_multiple_times_lazy_with_lazy_input_exec_last() {
         use crate::{
-            ApplyFunction, Autograd, Base, Combiner, Device, ExecNow, Lazy, Run,
-            UnaryElementWiseMayGrad, CPU,
+            ApplyFunction, Autograd, Base, CPU, Combiner, Device, ExecNow, Lazy, Run,
+            UnaryElementWiseMayGrad,
         };
 
         let device = CPU::<Autograd<Lazy<Base, f64>>>::new();
@@ -378,7 +380,8 @@ mod tests {
     #[test]
     fn test_unary_elementwise_may_grad_multiple_times_backwards_at_end() {
         use crate::{
-            Autograd, Base, Cached, Combiner, Cursor, Device, UnaryElementWiseMayGrad, CPU,
+            Autograd, Base, CPU, Cached, Combiner, Cursor, Device, UnaryElementWiseMayGrad,
+            WriteBuf,
         };
 
         let device = CPU::<Autograd<Cached<Base>>>::new();
@@ -387,7 +390,7 @@ mod tests {
         for i in device.range(0..9) {
             let _out = device.unary_ew(&buf, |x| x.sin(), |x| x.cos());
             if i == 0 {
-                unsafe { _out.grad_mut_unbound().write(&[1., 1., 1., 1.]) };
+                device.write(unsafe { _out.grad_mut_unbound() }, &[1., 1., 1., 1.]);
             }
         }
         let out = device.unary_ew(&buf, |x| x.sin(), |x| x.cos());

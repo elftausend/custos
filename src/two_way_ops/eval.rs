@@ -1,4 +1,4 @@
-use crate::{prelude::Numeric, Combiner};
+use crate::{Combiner, prelude::Numeric};
 
 /// Evaluates a combined (via [`Combiner`]) math operations chain to a value.
 pub trait Eval<T>: 'static {

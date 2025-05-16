@@ -1,10 +1,10 @@
 use ash::vk::BufferUsageFlags;
 
 use crate::{
+    Shape, Unit, Vulkan, WrappedData,
     flag::AllocFlag,
     vulkan::{Context, VkArray},
     wgsl::{AsShaderArg, WgslNumber, WgslShaderLaunch},
-    OnDropBuffer, Shape, Unit, Vulkan,
 };
 use core::marker::PhantomData;
 use std::rc::Rc;
@@ -95,7 +95,7 @@ impl<'a, T, S, Mods> AsVkShaderArgument for crate::Buffer<'a, T, Vulkan<Mods>, S
 where
     T: Unit,
     S: Shape,
-    Mods: OnDropBuffer,
+    Mods: WrappedData,
 {
     #[inline]
     fn as_arg(&self, _context: Rc<Context>) -> VkShaderArgument {

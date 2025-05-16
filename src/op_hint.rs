@@ -36,13 +36,13 @@ pub fn unary<T, O: crate::TwoWay<T> + 'static>(
 
 #[cfg(test)]
 mod tests {
-    use crate::{op_hint::OpHint, Resolve};
+    use crate::{Resolve, op_hint::OpHint};
 
     #[cfg(feature = "cpu")]
     #[cfg(feature = "lazy")]
     #[test]
     fn test_op_hint_update() {
-        use crate::{op_hint::OpHint, ApplyFunction, Base, Combiner, Device, Lazy, Resolve, CPU};
+        use crate::{ApplyFunction, Base, CPU, Combiner, Device, Lazy, Resolve, op_hint::OpHint};
 
         let dev = CPU::<Lazy<Base>>::new();
 
@@ -86,7 +86,7 @@ mod tests {
     #[cfg(feature = "lazy")]
     #[test]
     fn test_op_hint_unary_chain_fuse() {
-        use crate::{ApplyFunction, Base, Combiner, Device, Lazy, CPU};
+        use crate::{ApplyFunction, Base, CPU, Combiner, Device, Lazy};
 
         let dev = CPU::<Lazy<Base>>::new();
 
@@ -119,7 +119,7 @@ mod tests {
     #[cfg(feature = "graph")]
     #[test]
     fn test_op_hint_unary_chain_fuse_graph() {
-        use crate::{ApplyFunction, Base, Combiner, Device, Graph, Lazy, Optimize, Run, CPU};
+        use crate::{ApplyFunction, Base, CPU, Combiner, Device, Graph, Lazy, Optimize, Run};
 
         let dev = CPU::<Graph<Lazy<Base>>>::new();
 
@@ -128,7 +128,9 @@ mod tests {
         let out = dev.apply_fn(&out, |x| x.cos());
         let _out = dev.apply_fn(&out, |x| x.ln());
 
-        dev.optimize_mem_graph(&dev, None).unwrap();
+        unsafe {
+            dev.optimize_mem_graph(&dev, None).unwrap();
+        }
         dev.unary_fusing(&dev, None).unwrap();
         dev.run().unwrap();
 
@@ -165,7 +167,7 @@ mod tests {
     #[cfg(feature = "graph")]
     #[test]
     fn test_op_hint_unary_chain_fuse_graph_cu() {
-        use crate::{ApplyFunction, Base, Combiner, Device, Graph, Lazy, Optimize, Run, CUDA};
+        use crate::{ApplyFunction, Base, CUDA, Combiner, Device, Graph, Lazy, Optimize, Run};
 
         let dev = CUDA::<Graph<Lazy<Base>>>::new(0).unwrap();
 
@@ -188,7 +190,7 @@ mod tests {
     #[cfg(feature = "graph")]
     #[test]
     fn test_op_hint_unary_chain_fuse_graph_complex() {
-        use crate::{ApplyFunction, Base, Combiner, Device, Graph, Lazy, Optimize, Run, CPU};
+        use crate::{ApplyFunction, Base, CPU, Combiner, Device, Graph, Lazy, Optimize, Run};
 
         let dev = CPU::<Graph<Lazy<Base>>>::new();
 
@@ -200,7 +202,9 @@ mod tests {
         let out1 = dev.apply_fn(&out1, |x| x.abs());
         let _out = dev.apply_fn(&out1, |x| x.ln());
 
-        dev.optimize_mem_graph(&dev, None).unwrap();
+        unsafe {
+            dev.optimize_mem_graph(&dev, None).unwrap();
+        }
         dev.unary_fusing(&dev, None).unwrap();
         dev.run().unwrap();
 
@@ -220,7 +224,7 @@ mod tests {
     fn test_op_hint_unary_chain_fuse_manual_perf() {
         use std::time::Instant;
 
-        use crate::{ApplyFunction, Base, Combiner, Device, Lazy, CPU};
+        use crate::{ApplyFunction, Base, CPU, Combiner, Device, Lazy};
 
         let dev = CPU::<Lazy<Base>>::new();
 

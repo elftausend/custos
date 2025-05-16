@@ -1,8 +1,7 @@
 use crate::{
-    impl_remove_layer, pass_down_add_operation, pass_down_exec_now, pass_down_replace_buf_module,
-    pass_down_tape_actions, AddLayer, Alloc, Buffer, Device, HasId, HasModules, IsShapeIndep,
-    Module, OnDropBuffer, OnNewBuffer, Parents, PtrType, Retrieve, RunModule, Setup, Shape, Unit,
-    UseGpuOrCpu, WrappedData, VERSION,
+    AddLayer, Alloc, Buffer, Device, ExecNowPassDown, HasModules, IsBasePtr, IsShapeIndep, Module,
+    OnNewBuffer, Parents, ReplaceBufPassDown, Retrieve, RunModule, Setup, Shape, Unit, UseGpuOrCpu,
+    VERSION, WrappedData, impl_remove_layer, pass_down_add_operation, pass_down_tape_actions,
 };
 use core::cell::{Cell, RefCell};
 
@@ -28,20 +27,32 @@ pub struct Fork<Mods> {
 }
 
 impl<Mods: WrappedData> WrappedData for Fork<Mods> {
-    type Wrap<T, Base: HasId + PtrType> = Mods::Wrap<T, Base>;
+    type Wrap<'a, T: Unit, Base: IsBasePtr> = Mods::Wrap<'a, T, Base>;
 
     #[inline]
-    fn wrap_in_base<T, Base: HasId + PtrType>(&self, base: Base) -> Self::Wrap<T, Base> {
+    fn wrap_in_base<'a, T: Unit, Base: IsBasePtr>(&'a self, base: Base) -> Self::Wrap<'a, T, Base> {
         self.modules.wrap_in_base(base)
     }
 
     #[inline]
-    fn wrapped_as_base<T, Base: HasId + PtrType>(wrap: &Self::Wrap<T, Base>) -> &Base {
+    fn wrap_in_base_unbound<'a, T: Unit, Base: IsBasePtr>(
+        &self,
+        base: Base,
+    ) -> Self::Wrap<'a, T, Base> {
+        self.modules.wrap_in_base_unbound(base)
+    }
+
+    #[inline]
+    fn wrapped_as_base<'a, 'b, T: Unit, Base: IsBasePtr>(
+        wrap: &'b Self::Wrap<'a, T, Base>,
+    ) -> &'b Base {
         Mods::wrapped_as_base(wrap)
     }
 
     #[inline]
-    fn wrapped_as_base_mut<T, Base: HasId + PtrType>(wrap: &mut Self::Wrap<T, Base>) -> &mut Base {
+    fn wrapped_as_base_mut<'a, 'b, T: Unit, Base: IsBasePtr>(
+        wrap: &'b mut Self::Wrap<'a, T, Base>,
+    ) -> &'b mut Base {
         Mods::wrapped_as_base_mut(wrap)
     }
 }
@@ -82,38 +93,32 @@ impl<Mods: Setup<D>, D: UseGpuOrCpu + ForkSetup> Setup<D> for Fork<Mods> {
 
 crate::pass_down_cursor!(Fork);
 pass_down_add_operation!(Fork);
-pass_down_exec_now!(Fork);
 
-impl<Mods: OnDropBuffer> OnDropBuffer for Fork<Mods> {
-    #[inline]
-    fn on_drop_buffer<T: Unit, D: crate::Device, S: crate::Shape>(
-        &self,
-        device: &D,
-        buf: &crate::Buffer<T, D, S>,
-    ) {
-        self.modules.on_drop_buffer(device, buf)
-    }
-}
+impl<Mods> ExecNowPassDown for Fork<Mods> {}
 
 impl<'a, Mods: OnNewBuffer<'a, T, D, S>, T: Unit, D: Device, S: Shape> OnNewBuffer<'a, T, D, S>
     for Fork<Mods>
 {
     #[inline]
-    unsafe fn on_new_buffer(&self, device: &'a D, new_buf: &crate::Buffer<'a, T, D, S>) {
+    fn on_new_buffer(&'a self, device: &'a D, new_buf: &mut crate::Buffer<'a, T, D, S>) {
         self.modules.on_new_buffer(device, new_buf)
     }
 }
 
-impl<T: Unit + 'static, Mods: Retrieve<D, T, S>, D: IsShapeIndep + 'static, S: Shape>
-    Retrieve<D, T, S> for Fork<Mods>
+impl<T, Mods, D, S> Retrieve<D, T, S> for Fork<Mods>
+where
+    T: Unit + 'static,
+    Mods: Retrieve<D, T, S>,
+    D: IsShapeIndep + 'static,
+    S: Shape,
 {
     #[inline]
-    unsafe fn retrieve<const NUM_PARENTS: usize>(
+    fn retrieve<'a, const NUM_PARENTS: usize>(
         &self,
         device: &D,
         len: usize,
-        parents: impl Parents<NUM_PARENTS>,
-    ) -> crate::Result<Self::Wrap<T, D::Base<T, S>>>
+        parents: &impl Parents<NUM_PARENTS>,
+    ) -> crate::Result<Self::Wrap<'a, T, D::Base<T, S>>>
     where
         S: Shape,
         D: Alloc<T>,
@@ -121,13 +126,30 @@ impl<T: Unit + 'static, Mods: Retrieve<D, T, S>, D: IsShapeIndep + 'static, S: S
         self.modules.retrieve(device, len, parents)
     }
 
-    #[inline]
-    fn on_retrieve_finish(&self, retrieved_buf: &Buffer<T, D, S>)
+    fn retrieve_entry<'a, const NUM_PARENTS: usize>(
+        &'a self,
+        device: &D,
+        len: usize,
+        parents: &impl Parents<NUM_PARENTS>,
+    ) -> crate::Result<Self::Wrap<'a, T, <D>::Base<T, S>>>
     where
+        S: Shape,
         D: Alloc<T>,
     {
-        // pass down
-        self.modules.on_retrieve_finish(retrieved_buf)
+        self.modules.retrieve_entry(device, len, parents)
+    }
+
+    #[inline]
+    fn on_retrieve_finish<const NUM_PARENTS: usize>(
+        &self,
+        _len: usize,
+        _parents: impl Parents<NUM_PARENTS>,
+        _retrieved_buf: &Buffer<T, D, S>,
+    ) where
+        D: Alloc<T>,
+    {
+        self.modules
+            .on_retrieve_finish(_len, _parents, _retrieved_buf)
     }
 }
 
@@ -140,7 +162,7 @@ impl<Mods: RunModule<D>, D> RunModule<D> for Fork<Mods> {
     }
 }
 
-pass_down_replace_buf_module!(Fork);
+impl<Mods> ReplaceBufPassDown for Fork<Mods> {}
 impl_remove_layer!(Fork);
 
 impl<NewMods, SD> AddLayer<NewMods, SD> for Fork<()> {
@@ -174,8 +196,8 @@ mod tests {
     use min_cl::CLDevice;
 
     use crate::{
-        opencl::try_cl_clear, should_use_cpu, Analyzation, ApplyFunction, Base, Buffer, Cached,
-        Combiner, Device, Fork, GpuOrCpuInfo, Module, OpenCL, UseGpuOrCpu, CPU,
+        Analyzation, ApplyFunction, Base, Buffer, CPU, Cached, Combiner, Device, Fork,
+        GpuOrCpuInfo, Module, OpenCL, UseGpuOrCpu, opencl::try_cl_clear, should_use_cpu,
     };
 
     pub fn clear(

@@ -1,7 +1,7 @@
 #[cfg(feature = "wgpu")]
-use custos::prelude::*;
-#[cfg(feature = "wgpu")]
 use custos::Alloc;
+#[cfg(feature = "wgpu")]
+use custos::prelude::*;
 
 #[cfg(feature = "wgpu")]
 #[test]

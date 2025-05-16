@@ -69,7 +69,7 @@ where
 #[cfg(feature = "opencl")]
 // OpenCL implementation
 // S: Shape is not used here, but it could
-impl<T, Mods> AddBuf<T> for OpenCL<Mods>
+impl<'a, T, Mods> AddBuf<T> for OpenCL<Mods>
 where
     Mods: Retrieve<Self, T>,
     T: CDatatype, // the custos::CDatatype trait is used to
@@ -162,13 +162,13 @@ impl<T: Unit> AddBuf<T> for custos::Vulkan {
     }
 }
 
-pub trait AddOp<'a, T: Unit, D: Device> {
-    fn add(&self, rhs: &Buffer<'a, T, D>) -> Buffer<'a, T, D>;
+pub trait AddOp<T: Unit, D: Device> {
+    fn add(&self, rhs: &Buffer<T, D>) -> Buffer<T, D>;
 }
 
-impl<'a, T: CDatatype, D: AddBuf<T>> AddOp<'a, T, D> for Buffer<'a, T, D> {
+impl<'a, T: CDatatype, D: AddBuf<T>> AddOp<T, D> for Buffer<'a, T, D> {
     #[inline]
-    fn add(&self, rhs: &Buffer<'a, T, D>) -> Buffer<'a, T, D> {
+    fn add(&self, rhs: &Buffer<T, D>) -> Buffer<T, D> {
         self.device().add(self, rhs)
     }
 }
@@ -182,7 +182,7 @@ impl<'a, T: Unit, D: Device> OwnStruct<'a, T, D> {
     #[allow(dead_code)]
     // consider using operator overloading for your own type
     #[inline]
-    fn add(&self, rhs: &OwnStruct<T, D>) -> Buffer<T, D>
+    fn add(&'a self, rhs: &OwnStruct<T, D>) -> Buffer<'a, T, D>
     where
         T: CDatatype,
         D: AddBuf<T>,

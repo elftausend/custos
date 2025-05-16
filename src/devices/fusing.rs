@@ -96,8 +96,9 @@ mod tests {
     #[test]
     fn test_operations_to_fused_src() {
         use crate::{
-            op_hint::{unary, OpHint},
-            operations_to_fused_src, Combiner, Resolve,
+            Combiner, Resolve,
+            op_hint::{OpHint, unary},
+            operations_to_fused_src,
         };
 
         let mut ops = vec![];

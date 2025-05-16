@@ -1,6 +1,6 @@
 use crate::{Alloc, Buffer, Device, OnNewBuffer, Read, Unit};
 
-use super::{static_cpu, StaticDevice};
+use super::{StaticDevice, static_cpu};
 
 impl<'a, T: Unit + Clone> Buffer<'a, T> {
     /// Moves the buffer [`Buffer`] to a static device.<br>
@@ -39,7 +39,7 @@ impl<'a, T: Unit + Clone> Buffer<'a, T> {
     /// ```
     #[cfg(feature = "cuda")]
     #[inline]
-    pub fn to_cuda(self) -> Buffer<'a, T, crate::CUDA> {
+    pub fn to_cuda(self) -> Buffer<'static, T, crate::CUDA> {
         self.to_dev::<crate::CUDA>()
     }
 
@@ -57,7 +57,7 @@ impl<'a, T: Unit + Clone> Buffer<'a, T> {
     /// ```
     #[cfg(feature = "opencl")]
     #[inline]
-    pub fn to_cl(self) -> Buffer<'a, T, crate::OpenCL> {
+    pub fn to_cl(self) -> Buffer<'static, T, crate::OpenCL> {
         self.to_dev::<crate::OpenCL>()
     }
 
@@ -78,7 +78,7 @@ impl<'a, T: Unit + Clone> Buffer<'a, T> {
     #[cfg(feature = "opencl")]
     #[cfg(not(feature = "cuda"))]
     #[inline]
-    pub fn to_gpu(self) -> Buffer<'a, T, crate::OpenCL> {
+    pub fn to_gpu(self) -> Buffer<'static, T, crate::OpenCL> {
         self.to_cl()
     }
 
@@ -98,7 +98,7 @@ impl<'a, T: Unit + Clone> Buffer<'a, T> {
     /// ```
     #[cfg(feature = "cuda")]
     #[inline]
-    pub fn to_gpu(self) -> Buffer<'a, T, crate::CUDA> {
+    pub fn to_gpu(self) -> Buffer<'static, T, crate::CUDA> {
         self.to_cuda()
     }
 }

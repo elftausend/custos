@@ -9,10 +9,10 @@ use core::{cell::RefCell, hash::BuildHasherDefault, marker::PhantomData};
 use std::collections::HashSet;
 
 use crate::{
-    impl_remove_layer, pass_down_add_operation, pass_down_cursor, pass_down_exec_now_module,
-    pass_down_grad_fn, pass_down_replace_buf_module, pass_down_use_gpu_or_cpu, AddLayer, Alloc,
-    Buffer, Cursor, Device, HasId, HasModules, Module, NoHasher, OnDropBuffer, OnNewBuffer,
-    Optimize, Parents, PtrType, Retrieve, RunModule, Setup, Shape, UniqueId, Unit, WrappedData,
+    AddLayer, Alloc, Buffer, Cursor, Device, HasId, HasModules, IsBasePtr, Module, NoHasher,
+    OnNewBuffer, Optimize, Parents, ReplaceBufPassDown, Retrieve, RunModule, Setup, Shape,
+    UniqueId, Unit, WrappedData, impl_remove_layer, pass_down_add_operation, pass_down_cursor,
+    pass_down_grad_fn, pass_down_use_gpu_or_cpu,
 };
 
 pub use self::graph_translator::GraphTranslator;
@@ -26,20 +26,32 @@ pub struct Graph<Mods, T = f32> {
 }
 
 impl<Mods: WrappedData> WrappedData for Graph<Mods> {
-    type Wrap<T, Base: HasId + PtrType> = Mods::Wrap<T, Base>;
+    type Wrap<'a, T: Unit, Base: IsBasePtr> = Mods::Wrap<'a, T, Base>;
 
     #[inline]
-    fn wrap_in_base<T, Base: HasId + PtrType>(&self, base: Base) -> Self::Wrap<T, Base> {
+    fn wrap_in_base<'a, T: Unit, Base: IsBasePtr>(&'a self, base: Base) -> Self::Wrap<'a, T, Base> {
         self.modules.wrap_in_base(base)
     }
 
     #[inline]
-    fn wrapped_as_base<T, Base: HasId + PtrType>(wrap: &Self::Wrap<T, Base>) -> &Base {
+    fn wrap_in_base_unbound<'a, T: Unit, Base: IsBasePtr>(
+        &self,
+        base: Base,
+    ) -> Self::Wrap<'a, T, Base> {
+        self.modules.wrap_in_base_unbound(base)
+    }
+
+    #[inline]
+    fn wrapped_as_base<'a, 'b, T: Unit, Base: IsBasePtr>(
+        wrap: &'b Self::Wrap<'a, T, Base>,
+    ) -> &'b Base {
         Mods::wrapped_as_base(wrap)
     }
 
     #[inline]
-    fn wrapped_as_base_mut<T, Base: HasId + PtrType>(wrap: &mut Self::Wrap<T, Base>) -> &mut Base {
+    fn wrapped_as_base_mut<'a, 'b, T: Unit, Base: IsBasePtr>(
+        wrap: &'b mut Self::Wrap<'a, T, Base>,
+    ) -> &'b mut Base {
         Mods::wrapped_as_base_mut(wrap)
     }
 }
@@ -65,19 +77,21 @@ impl<Mods: Setup<D>, D> Setup<D> for Graph<Mods> {
 }
 
 impl<Mods: Optimize> Optimize for Graph<Mods> {
-    fn optimize_mem_graph<D: 'static>(
+    unsafe fn optimize_mem_graph<D: 'static>(
         &self,
         device: &D,
         graph_translator: Option<&crate::GraphTranslator>,
     ) -> crate::Result<()> {
-        match graph_translator {
-            Some(graph_translator) => self
-                .modules
-                .optimize_mem_graph(device, Some(graph_translator)),
-            None => {
-                let graph_translator = self.graph_trans.borrow();
-                self.modules
-                    .optimize_mem_graph(device, Some(&graph_translator))
+        unsafe {
+            match graph_translator {
+                Some(graph_translator) => self
+                    .modules
+                    .optimize_mem_graph(device, Some(graph_translator)),
+                None => {
+                    let graph_translator = self.graph_trans.borrow();
+                    self.modules
+                        .optimize_mem_graph(device, Some(&graph_translator))
+                }
             }
         }
     }
@@ -101,7 +115,7 @@ impl<Mods: Optimize> Optimize for Graph<Mods> {
 impl<'a, Mods: OnNewBuffer<'a, T, D, S>, T: Unit, D: Device, S: Shape> OnNewBuffer<'a, T, D, S>
     for Graph<Mods>
 {
-    unsafe fn on_new_buffer(&self, _device: &'a D, new_buf: &crate::Buffer<'a, T, D, S>) {
+    fn on_new_buffer(&'a self, _device: &'a D, new_buf: &mut crate::Buffer<'a, T, D, S>) {
         let mut graph_trans = self.graph_trans.borrow_mut();
         let next_idx = graph_trans.next_idx;
 
@@ -112,23 +126,10 @@ impl<'a, Mods: OnNewBuffer<'a, T, D, S>, T: Unit, D: Device, S: Shape> OnNewBuff
     }
 }
 
-impl<Mods: OnDropBuffer> OnDropBuffer for Graph<Mods> {
-    #[inline]
-    fn on_drop_buffer<T: Unit, D: Device, S: Shape>(
-        &self,
-        device: &D,
-        buf: &crate::Buffer<T, D, S>,
-    ) {
-        self.modules.on_drop_buffer(device, buf)
-    }
-}
-
 pass_down_add_operation!(Graph);
-pass_down_exec_now_module!(Graph);
 #[cfg(feature = "cached")]
 crate::pass_down_unified_mem_chain!(Graph);
 pass_down_use_gpu_or_cpu!(Graph);
-pass_down_replace_buf_module!(Graph);
 pass_down_grad_fn!(Graph);
 
 impl_remove_layer!(Graph);
@@ -154,25 +155,21 @@ impl<NewMods, SD> AddLayer<NewMods, SD> for Graph<()> {
     }
 }
 
-impl<T, Mods, D, S> Retrieve<D, T, S> for Graph<Mods>
-where
-    T: Unit + 'static,
-    Mods: Retrieve<D, T, S>,
-    D: Cursor + 'static,
-    S: Shape,
-{
-    #[inline]
-    unsafe fn retrieve<const NUM_PARENTS: usize>(
+impl<Mods: WrappedData> Graph<Mods> {
+    pub fn retrieve_inner<'a, D, T, S, const NUM_PARENTS: usize>(
         &self,
         device: &D,
         len: usize,
-        parents: impl Parents<NUM_PARENTS>,
-    ) -> crate::Result<Self::Wrap<T, D::Base<T, S>>>
+        parents: &impl Parents<NUM_PARENTS>,
+        retrieve_cb: impl Fn() -> crate::Result<Mods::Wrap<'a, T, D::Base<T, S>>>,
+    ) -> crate::Result<<Self as WrappedData>::Wrap<'a, T, D::Base<T, S>>>
     where
-        D: Alloc<T>,
+        D: Device + Cursor,
+        T: Unit,
+        S: Shape,
     {
         let ids = parents.ids();
-        let data = self.modules.retrieve(device, len, parents)?;
+        let data = retrieve_cb()?;
 
         let mut contains_ids = self.contains_ids.borrow_mut();
 
@@ -196,18 +193,60 @@ where
         graph_trans.add_node(len, &ids);
         Ok(data)
     }
+}
 
+impl<T, Mods, D, S> Retrieve<D, T, S> for Graph<Mods>
+where
+    T: Unit + 'static,
+    Mods: Retrieve<D, T, S>,
+    D: Cursor + 'static,
+    S: Shape,
+{
     #[inline]
-    fn on_retrieve_finish(&self, retrieved_buf: &Buffer<T, D, S>)
+    fn retrieve_entry<'a, const NUM_PARENTS: usize>(
+        &'a self,
+        device: &D,
+        len: usize,
+        parents: &impl Parents<NUM_PARENTS>,
+    ) -> crate::Result<Self::Wrap<'a, T, D::Base<T, S>>>
     where
         D: Alloc<T>,
     {
-        // pass down
-        self.modules.on_retrieve_finish(retrieved_buf)
+        self.retrieve_inner(device, len, parents, || {
+            self.modules.retrieve_entry(device, len, parents)
+        })
+    }
+
+    #[inline]
+    fn retrieve<'a, const NUM_PARENTS: usize>(
+        &self,
+        device: &D,
+        len: usize,
+        parents: &impl Parents<NUM_PARENTS>,
+    ) -> crate::Result<Self::Wrap<'a, T, D::Base<T, S>>>
+    where
+        D: Alloc<T>,
+    {
+        self.retrieve_inner(device, len, parents, || {
+            self.modules.retrieve(device, len, parents)
+        })
+    }
+
+    #[inline]
+    fn on_retrieve_finish<'a, const NUM_PARENTS: usize>(
+        &self,
+        len: usize,
+        parents: impl Parents<NUM_PARENTS>,
+        retrieved_buf: &Buffer<T, D, S>,
+    ) where
+        D: Alloc<T>,
+    {
+        self.modules.on_retrieve_finish(len, parents, retrieved_buf)
     }
 }
 
 pass_down_cursor!(Graph);
+impl<Mods> ReplaceBufPassDown for Graph<Mods> {}
 
 impl<Mods> HasModules for Graph<Mods> {
     type Mods = Mods;

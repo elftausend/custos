@@ -8,7 +8,7 @@ use crate::HostPtr;
 
 use min_cl::api::release_mem_object;
 
-use crate::{flag::AllocFlag, HasId, Id, PtrType, ShallowCopy};
+use crate::{HasId, Id, PtrType, ShallowCopy, Unit, flag::AllocFlag};
 
 /// The pointer used for `OpenCL` [`Buffer`](crate::Buffer)s
 #[derive(Debug, PartialEq, Eq)]
@@ -71,7 +71,7 @@ impl<T> ShallowCopy for CLPtr<T> {
     }
 }
 
-impl<T> PtrType for CLPtr<T> {
+impl<T: Unit> PtrType for CLPtr<T> {
     #[inline]
     fn size(&self) -> usize {
         self.len
@@ -89,7 +89,7 @@ impl<T> PtrType for CLPtr<T> {
 }
 
 #[cfg(unified_cl)]
-impl<T> HostPtr<T> for CLPtr<T> {
+impl<T: Unit> HostPtr<T> for CLPtr<T> {
     #[inline]
     fn ptr(&self) -> *const T {
         self.host_ptr
@@ -102,7 +102,7 @@ impl<T> HostPtr<T> for CLPtr<T> {
 }
 
 #[cfg(unified_cl)]
-impl<T> Deref for CLPtr<T> {
+impl<T: Unit> Deref for CLPtr<T> {
     type Target = [T];
 
     #[inline]
@@ -112,7 +112,7 @@ impl<T> Deref for CLPtr<T> {
 }
 
 #[cfg(unified_cl)]
-impl<T> DerefMut for CLPtr<T> {
+impl<T: Unit> DerefMut for CLPtr<T> {
     #[inline]
     fn deref_mut(&mut self) -> &mut Self::Target {
         unsafe { self.as_mut_slice() }

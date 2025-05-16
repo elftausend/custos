@@ -1,5 +1,5 @@
 use super::{cpu_exec_binary_mut, cpu_exec_reduce, cpu_exec_unary_mut};
-use crate::{Buffer, CachedCPU, OnDropBuffer, OpenCL, Retrieve, UnifiedMemChain, Unit, CPU};
+use crate::{Buffer, CPU, CachedCPU, OpenCL, Retrieve, UnifiedMemChain, Unit, WrappedData};
 
 /// If the current device supports unified memory, data is not deep-copied.
 /// This is way faster than [cpu_exec_unary], as new memory is not allocated.
@@ -13,7 +13,7 @@ pub fn cpu_exec_unary_may_unified<'a, T, F, Mods>(
 where
     T: Unit + Clone + Default + 'static,
     F: for<'b> Fn(&'b CachedCPU, &Buffer<'_, T, CachedCPU>) -> Buffer<'b, T, CachedCPU>,
-    Mods: OnDropBuffer + Retrieve<OpenCL<Mods>, T> + UnifiedMemChain<OpenCL<Mods>> + 'static,
+    Mods: WrappedData + Retrieve<OpenCL<Mods>, T> + UnifiedMemChain<OpenCL<Mods>> + 'static,
 {
     let cpu = &device.cpu;
     crate::cl_cpu_exec_unified!(device, cpu, x; f(&cpu, &x))
@@ -23,7 +23,7 @@ where
 /// This is way faster than [cpu_exec_unary_mut], as new memory is not allocated.
 ///
 /// `cpu_exec_unary_may_unified` can be used interchangeably with [cpu_exec_unary_mut].
-pub fn cpu_exec_unary_may_unified_mut<'a, T, F, Mods: OnDropBuffer + 'static>(
+pub fn cpu_exec_unary_may_unified_mut<'a, T, F, Mods: WrappedData + 'static>(
     device: &'a OpenCL<Mods>,
     lhs: &mut Buffer<T, OpenCL<Mods>>,
     f: F,
@@ -71,7 +71,7 @@ where
 /// This is way faster than [cpu_exec_binary_mut], as new memory is not allocated.
 ///
 /// `cpu_exec_binary_may_unified` can be used interchangeably with [cpu_exec_binary_mut].
-pub fn cpu_exec_binary_may_unified_mut<'a, T, F, Mods: OnDropBuffer + 'static>(
+pub fn cpu_exec_binary_may_unified_mut<'a, T, F, Mods: WrappedData + 'static>(
     device: &'a OpenCL<Mods>,
     lhs: &mut Buffer<T, OpenCL<Mods>>,
     rhs: &Buffer<T, OpenCL<Mods>>,
@@ -79,16 +79,20 @@ pub fn cpu_exec_binary_may_unified_mut<'a, T, F, Mods: OnDropBuffer + 'static>(
 ) -> crate::Result<()>
 where
     T: Unit + Clone + Default,
-    F: for<'b> Fn(&'b CPU, &mut Buffer<'_, T, CPU>, &Buffer<'_, T, CPU>),
+    F: for<'b> Fn(&mut [T], &[T]),
 {
     let cpu = CPU::<crate::Base>::new();
 
     if device.unified_mem() {
         return {
             f(
-                &cpu,
-                &mut unsafe { Buffer::from_raw_host_device(&cpu, lhs.base().host_ptr, lhs.len()) },
-                &unsafe { Buffer::from_raw_host_device(&cpu, rhs.base().host_ptr, rhs.len()) },
+                // &cpu,
+                &mut unsafe {
+                    Buffer::<_, _>::from_raw_host_device(&cpu, lhs.base().host_ptr, lhs.len())
+                },
+                &unsafe {
+                    Buffer::<_, _>::from_raw_host_device(&cpu, rhs.base().host_ptr, rhs.len())
+                },
             );
             Ok(())
         };
@@ -111,7 +115,7 @@ pub fn cpu_exec_reduce_may_unified<T, F, Mods>(
 where
     T: Unit + Default + Clone,
     F: Fn(&CPU, &Buffer<T, CPU>) -> T,
-    Mods: OnDropBuffer + 'static,
+    Mods: WrappedData + 'static,
 {
     let cpu = CPU::<crate::Base>::new();
 
@@ -169,7 +173,7 @@ macro_rules! cl_cpu_exec_unified_mut {
         } else {
             let cpu = $crate::CPU::<$crate::Cached<Base>>::new();
             $crate::cpu_exec_mut!($device, &cpu, $($t),*; WRITE_TO<$($write_to, $from),*> $op);
-            $device.cpu.modules.cache.borrow_mut().nodes.clear();
+            $device.cpu.modules.cache.nodes.clear();
         }
     }};
 }

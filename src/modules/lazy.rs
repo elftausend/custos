@@ -6,12 +6,13 @@ mod ty;
 pub mod wrapper;
 
 pub use ty::*;
+use wrapper::MaybeData;
 
 use crate::{
-    op_hint::OpHint, register_buf_copyable, unregister_buf_copyable, AddLayer, AddOperation, Alloc,
-    AnyOp, BoxedShallowCopy, Buffer, CachedBuffers, Cursor, Device, ExecNow, HasId, HasModules, Id,
-    IsShapeIndep, Module, NoHasher, OnDropBuffer, OnNewBuffer, Parents, ReplaceBuf, Retrieve,
-    RunModule, SetOpHint, Setup, ShallowCopy, Shape, UniqueId, Unit, UseGpuOrCpu,
+    AddLayer, AddOperation, Alloc, AnyOp, BoxedShallowCopy, Buffer, CachedBuffers, Cursor, Device,
+    ExecNow, HasId, HasModules, Id, IsShapeIndep, Module, NoHasher, OnNewBuffer, Parents,
+    ReplaceBuf, Retrieve, RunModule, SetOpHint, Setup, ShallowCopy, Shape, UniqueId, Unit,
+    UseGpuOrCpu, WrappedData, op_hint::OpHint, register_buf_copyable, unregister_buf_copyable,
 };
 
 #[cfg(feature = "graph")]
@@ -184,28 +185,17 @@ impl<T, Mods: RunModule<D>, D: LazyRun + Device + 'static> RunModule<D> for Lazy
     }
 }
 
-impl<T2, Mods: OnDropBuffer> OnDropBuffer for Lazy<'_, Mods, T2> {
-    #[inline]
-    fn on_drop_buffer<T: crate::Unit, D: Device, S: Shape>(
-        &self,
-        device: &D,
-        buf: &Buffer<T, D, S>,
-    ) {
-        unregister_buf_copyable(&mut self.buffers.borrow_mut(), buf.id());
-        self.modules.on_drop_buffer(device, buf)
-    }
-}
-
 impl<'a, T, D, Mods, S, T2> OnNewBuffer<'a, T, D, S> for Lazy<'_, Mods, T2>
 where
     T: Unit + 'static,
     D: Device + IsShapeIndep + 'static,
-    D::Data<T, S>: ShallowCopy,
+    D::Data<'static, T, S>: ShallowCopy,
+    D::Base<T, S>: ShallowCopy,
     Mods: OnNewBuffer<'a, T, D, S>,
     S: Shape,
 {
     #[inline]
-    unsafe fn on_new_buffer<'s>(&'s self, device: &'a D, new_buf: &'s Buffer<'a, T, D, S>) {
+    fn on_new_buffer<'s>(&'a self, device: &'a D, new_buf: &'s mut Buffer<'a, T, D, S>) {
         unsafe { register_buf_copyable(&mut self.buffers.borrow_mut(), new_buf) };
         self.modules.on_new_buffer(device, new_buf)
     }
@@ -226,8 +216,8 @@ impl<Mods: crate::GradActions, U> crate::GradActions for Lazy<'_, Mods, U> {
         &self,
         device: &'a D,
         buf: &Buffer<'a, T, D, S>,
-    ) -> &Buffer<'a, T, D, S> {
-        self.modules.grad(device, buf)
+    ) -> &Buffer<'static, T, D, S> {
+        unsafe { self.modules.grad(device, buf) }
     }
 
     unsafe fn grad_mut<
@@ -239,18 +229,18 @@ impl<Mods: crate::GradActions, U> crate::GradActions for Lazy<'_, Mods, U> {
         &self,
         device: &'a D,
         buf: &Buffer<'a, T, D, S>,
-    ) -> &mut Buffer<'a, T, D, S> {
-        self.modules.grad_mut(device, buf)
+    ) -> &mut Buffer<'static, T, D, S> {
+        unsafe { self.modules.grad_mut(device, buf) }
     }
 
     #[inline]
     unsafe fn gradients(&self) -> Option<&crate::Gradients> {
-        self.modules.gradients()
+        unsafe { self.modules.gradients() }
     }
 
     #[inline]
     unsafe fn gradients_mut(&self) -> Option<&mut crate::Gradients> {
-        self.modules.gradients_mut()
+        unsafe { self.modules.gradients_mut() }
     }
 }
 
@@ -306,16 +296,16 @@ where
     T: Unit + 'static,
     Mods: Retrieve<D, T, S>,
     D: IsShapeIndep + 'static,
-    D::Data<T, S>: ShallowCopy,
+    D::Data<'static, T, S>: ShallowCopy,
     S: Shape,
 {
     #[inline]
-    unsafe fn retrieve<const NUM_PARENTS: usize>(
+    fn retrieve<'a, const NUM_PARENTS: usize>(
         &self,
         _device: &D,
         len: usize,
-        _parents: impl Parents<NUM_PARENTS>,
-    ) -> crate::Result<Self::Wrap<T, D::Base<T, S>>>
+        _parents: &impl Parents<NUM_PARENTS>,
+    ) -> crate::Result<Self::Wrap<'a, T, D::Base<T, S>>>
     where
         S: Shape,
         D: Alloc<T>,
@@ -346,15 +336,17 @@ where
 
             // safety: AllocFlag::Lazy prevents accessing device when dropping
             let base = device
-                .alloc::<S>(id.len, crate::flag::AllocFlag::Lazy)
+                .alloc::<S>(id.len, crate::flag::AllocFlag::None)
                 .unwrap();
-            let data = device.base_to_data(base);
+            let data = device.default_base_to_data_unbound(base);
             let buffer = Buffer {
                 data,
                 device: Some(device),
             };
 
-            let buffer: Buffer<'static, T, D, S> = unsafe { core::mem::transmute(buffer) };
+            // TODO: should be removeable later
+            let buffer: Buffer<'static, T, D, S> =
+                unsafe { core::mem::transmute::<Buffer<T, D, S>, Buffer<T, D, S>>(buffer) };
             allocated_ids.insert(id.id);
             buffers.insert(id.id, Box::new(buffer));
         }));
@@ -362,21 +354,38 @@ where
         unsafe { self.bump_cursor() };
 
         Ok(LazyWrapper {
-            data: None,
-            id: Some(id),
+            maybe_data: MaybeData::Id(id),
+            remove_id_cb: None,
             _pd: core::marker::PhantomData,
         })
     }
 
     #[inline]
-    fn on_retrieve_finish(&self, retrieved_buf: &Buffer<T, D, S>)
-    where
+    fn on_retrieve_finish<const NUM_PARENTS: usize>(
+        &self,
+        len: usize,
+        parents: impl Parents<NUM_PARENTS>,
+        retrieved_buf: &Buffer<T, D, S>,
+    ) where
         D: Alloc<T>,
     {
         // unsafe { register_buf(&mut self.buffers.borrow_mut(), retrieved_buf) };
 
         // pass down
-        self.modules.on_retrieve_finish(retrieved_buf)
+        self.modules.on_retrieve_finish(len, parents, retrieved_buf)
+    }
+
+    fn retrieve_entry<'a, const NUM_PARENTS: usize>(
+        &'a self,
+        device: &D,
+        len: usize,
+        parents: &impl Parents<NUM_PARENTS>,
+    ) -> crate::Result<Self::Wrap<'a, T, <D>::Base<T, S>>>
+    where
+        S: Shape,
+        D: Alloc<T>,
+    {
+        self.retrieve(device, len, parents)
     }
 }
 
@@ -392,7 +401,7 @@ impl<T, Mods> Cursor for Lazy<'_, Mods, T> {
     }
 }
 
-impl<T: Unit + 'static, D: Device + 'static, S: Shape, Mods: OnDropBuffer, T2> ReplaceBuf<T, D, S>
+impl<T: Unit + 'static, D: Device + 'static, S: Shape, Mods: WrappedData, T2> ReplaceBuf<T, D, S>
     for Lazy<'_, Mods, T2>
 {
     #[inline]
@@ -403,7 +412,7 @@ impl<T: Unit + 'static, D: Device + 'static, S: Shape, Mods: OnDropBuffer, T2> R
         match self.buffers.borrow().get(&buffer.id()) {
             Some(buf) => {
                 let mut replaced_buffers = self.replaced_buffers.borrow_mut();
-                replaced_buffers.insert(*buffer.id(), buf.shallow_copy());
+                replaced_buffers.insert(*buffer.id(), unsafe { buf.shallow_copy() });
 
                 let buf = replaced_buffers.get(&buffer.id()).unwrap();
                 let buf = &**buf;
@@ -446,15 +455,17 @@ impl<T, Mods: UseGpuOrCpu> UseGpuOrCpu for Lazy<'_, Mods, T> {
 #[cfg(feature = "graph")]
 impl<T: crate::Numeric + crate::CDatatype, Mods> crate::Optimize for Lazy<'_, Mods, T> {
     #[inline]
-    fn optimize_mem_graph<D: 'static>(
+    unsafe fn optimize_mem_graph<D: 'static>(
         &self,
         device: &D,
         graph_translator: Option<&crate::GraphTranslator>,
     ) -> crate::Result<()> {
-        self.alloc_later_optimized(
-            device,
-            graph_translator.ok_or(DeviceError::MissingCacheTraces)?,
-        )?;
+        unsafe {
+            self.alloc_later_optimized(
+                device,
+                graph_translator.ok_or(DeviceError::MissingCacheTraces)?,
+            )?
+        };
         Ok(())
     }
 
@@ -479,6 +490,11 @@ impl<T, Mods> CachedBuffers for Lazy<'_, Mods, T> {
     ) -> Option<core::cell::RefMut<crate::Buffers<Box<dyn crate::BoxedShallowCopy>>>> {
         Some(self.buffers.borrow_mut())
     }
+
+    #[inline]
+    fn are_cached_buffers_supplied_from_below_module(&self) -> bool {
+        true
+    }
 }
 
 impl<Mods> HasModules for Lazy<'_, Mods> {
@@ -495,9 +511,9 @@ mod tests {
     use core::ops::{Add, Deref};
 
     use crate::{
-        tests_helper::{add_ew_slice, AddEw},
-        AddOperation, ApplyFunction, Base, Buffer, Combiner, Device, Retrieve, Retriever, Shape,
-        Unit, CPU,
+        AddOperation, ApplyFunction, Base, Buffer, CPU, Combiner, Device, Retrieve, Retriever,
+        Shape, Unit,
+        tests_helper::{AddEw, add_ew_slice},
     };
 
     use super::Lazy;
@@ -508,15 +524,15 @@ mod tests {
         let device = CPU::<Lazy<Base, i32>>::new();
         let buf = Buffer::<i32, _>::new(&device, 10);
         let res = &buf.data;
-        assert_eq!(res.id, None);
+        assert_eq!(res.maybe_data.id(), None);
 
         let x: Buffer<i32, _> = device.retrieve(10, ()).unwrap();
         let res = &x.data;
-        assert_eq!(res.id, Some(crate::Id { id: 0, len: 10 }));
+        assert_eq!(res.maybe_data.id(), Some(&crate::Id { id: 0, len: 10 }));
 
         let x: Buffer<i32, _> = device.retrieve(10, ()).unwrap();
         let res = &x.data;
-        assert_eq!(res.id, Some(crate::Id { id: 1, len: 10 }));
+        assert_eq!(res.maybe_data.id(), Some(&crate::Id { id: 1, len: 10 }));
     }
 
     #[test]
@@ -539,7 +555,7 @@ mod tests {
     }
 
     #[cfg(feature = "cpu")]
-    impl<T, D, S, Mods> AddEw<T, D, S> for CPU<Mods>
+    impl<'a, T, D, S, Mods> AddEw<'a, T, D, S> for CPU<Mods>
     where
         T: Unit + Add<Output = T> + Copy + 'static,
         D: Device + 'static,
@@ -548,7 +564,7 @@ mod tests {
         Mods: AddOperation + Retrieve<Self, T, S> + 'static,
     {
         #[inline]
-        fn add(&self, lhs: &Buffer<T, D, S>, rhs: &Buffer<T, D, S>) -> Buffer<T, Self, S> {
+        fn add(&'a self, lhs: &Buffer<T, D, S>, rhs: &Buffer<T, D, S>) -> Buffer<'a, T, Self, S> {
             let mut out = self.retrieve(lhs.len(), ()).unwrap();
             self.add_op((lhs, rhs, &mut out), |(lhs, rhs, out)| {
                 add_ew_slice(lhs, rhs, out.as_mut_slice());

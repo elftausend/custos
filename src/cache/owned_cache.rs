@@ -1,22 +1,82 @@
 mod fast_cache;
-pub use fast_cache::*;
-
 mod length_cache;
+
+use core::{
+    any::Any,
+    cell::{Ref, RefMut},
+};
+
+pub use fast_cache::*;
 pub use length_cache::*;
 
-use crate::{Alloc, ShallowCopy, Shape, UniqueId, Unit};
+use super::{State, UniqueId};
 
 pub trait Cache {
-    unsafe fn get<T, S, D>(
-        &mut self,
-        device: &D,
-        id: UniqueId,
-        len: usize,
-        new_buf_callback: impl FnMut(UniqueId, &D::Base<T, S>),
-    ) -> D::Base<T, S>
-    where
-        T: Unit,
-        D: Alloc<T> + 'static,
-        D::Base<T, S>: ShallowCopy + 'static,
-        S: Shape;
+    type CachedValue: DynAnyWrapper;
+    fn get_mut(&self, id: UniqueId, len: usize) -> State<RefMut<Self::CachedValue>>;
+    fn get(&self, id: UniqueId, len: usize) -> State<Ref<Self::CachedValue>>;
+    fn insert(&self, id: UniqueId, len: usize, data: Self::CachedValue);
+}
+
+pub trait AsAny {
+    fn as_any(&self) -> &dyn Any;
+    fn as_any_mut(&mut self) -> &mut dyn Any;
+}
+
+impl AsAny for Box<dyn Any> {
+    #[inline]
+    fn as_any(&self) -> &dyn Any {
+        &**self
+    }
+
+    #[inline]
+    fn as_any_mut(&mut self) -> &mut dyn Any {
+        &mut **self
+    }
+}
+
+#[cfg(feature = "std")]
+impl AsAny for std::rc::Rc<dyn Any> {
+    #[inline]
+    fn as_any(&self) -> &dyn Any {
+        &**self
+    }
+
+    #[inline]
+    fn as_any_mut(&mut self) -> &mut dyn Any {
+        unimplemented!()
+    }
+}
+
+#[cfg(feature = "std")]
+impl AsAny for std::sync::Arc<dyn Any> {
+    #[inline]
+    fn as_any(&self) -> &dyn Any {
+        &**self
+    }
+
+    #[inline]
+    fn as_any_mut(&mut self) -> &mut dyn Any {
+        unimplemented!()
+    }
+}
+
+pub trait DynAnyWrapper: AsAny {
+    const ALLOW_MUTABILITY: bool;
+    fn new<T: 'static>(data: T) -> Self;
+}
+
+impl DynAnyWrapper for Box<dyn Any> {
+    const ALLOW_MUTABILITY: bool = true;
+    fn new<ToWrap: 'static>(data: ToWrap) -> Self {
+        Box::new(data)
+    }
+}
+
+#[cfg(feature = "std")]
+impl DynAnyWrapper for std::sync::Arc<dyn Any> {
+    const ALLOW_MUTABILITY: bool = false;
+    fn new<ToWrap: 'static>(data: ToWrap) -> Self {
+        std::sync::Arc::new(data)
+    }
 }

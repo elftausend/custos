@@ -1,9 +1,9 @@
 use core::ffi::CStr;
 
 use ash::{
+    Device,
     prelude::VkResult,
     vk::{self, DescriptorSetLayout, Pipeline, PipelineCache, PipelineLayout, ShaderModule},
-    Device,
 };
 
 pub fn create_pipeline(
