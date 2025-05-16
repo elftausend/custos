@@ -412,7 +412,7 @@ impl<T: Unit + 'static, D: Device + 'static, S: Shape, Mods: WrappedData, T2> Re
         match self.buffers.borrow().get(&buffer.id()) {
             Some(buf) => {
                 let mut replaced_buffers = self.replaced_buffers.borrow_mut();
-                replaced_buffers.insert(*buffer.id(), buf.shallow_copy());
+                replaced_buffers.insert(*buffer.id(), unsafe { buf.shallow_copy() });
 
                 let buf = replaced_buffers.get(&buffer.id()).unwrap();
                 let buf = &**buf;
@@ -757,7 +757,6 @@ mod tests {
     }
 
     #[cfg(feature = "cpu")]
-    // #[ignore = "causes UB"]
     #[test]
     fn test_lazy_exec_ub_testing() {
         use crate::Run;

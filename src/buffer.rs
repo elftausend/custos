@@ -596,6 +596,15 @@ where
     }
 }
 
+impl<'a, T: Unit, D, S> Copy for Buffer<'a, T, D, S>
+where
+    T: Copy,
+    D: Device + CloneBuf<'a, T, S>,
+    S: Shape,
+    D::Data<'a, T, S>: Copy,
+{
+}
+
 impl<'a, T: Unit, D: Device, S: Shape> Default for Buffer<'a, T, D, S>
 where
     D::Data<'a, T, S>: Default,

@@ -3,14 +3,14 @@ use std::any::Any;
 use crate::{Downcast, ShallowCopy};
 
 pub trait BoxedShallowCopy {
-    fn shallow_copy(&self) -> Box<dyn BoxedShallowCopy>;
+    unsafe fn shallow_copy(&self) -> Box<dyn BoxedShallowCopy>;
     fn as_any(&self) -> &dyn Any;
     fn as_any_mut(&mut self) -> &mut dyn Any;
 }
 
 impl<T: ShallowCopy + 'static> BoxedShallowCopy for T {
     #[inline]
-    fn shallow_copy(&self) -> Box<dyn BoxedShallowCopy> {
+    unsafe fn shallow_copy(&self) -> Box<dyn BoxedShallowCopy> {
         Box::new(unsafe { self.shallow() })
     }
 
