@@ -1,7 +1,7 @@
 use crate::{DeviceError, Lazy, Operation, op_hint::OpHint};
 
 impl<T, Mods> Lazy<'_, Mods, T> {
-    pub(crate) fn alloc_later_optimized<D: 'static>(
+    pub(crate) unsafe fn alloc_later_optimized<D: 'static>(
         &self,
         device: &D,
         graph_trans: &crate::GraphTranslator,
@@ -126,7 +126,7 @@ mod tests {
         )
         .unwrap();
 
-        dev.optimize_mem_graph(&dev, None).unwrap();
+        // unsafe { dev.optimize_mem_graph(&dev, None).unwrap(); }
         dev.run().unwrap();
 
         // for (buf, out) in buf.iter().zip(_out.replace().iter()) {

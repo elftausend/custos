@@ -53,16 +53,18 @@ impl PtrType for CudaStorage {
 
     #[inline]
     unsafe fn set_flag(&mut self, flag: crate::flag::AllocFlag) {
-        match self {
-            CudaStorage::U8(ptr) => ptr.set_flag(flag),
-            CudaStorage::U32(ptr) => ptr.set_flag(flag),
-            CudaStorage::I64(ptr) => ptr.set_flag(flag),
-            #[cfg(feature = "half")]
-            CudaStorage::BF16(ptr) => ptr.set_flag(flag),
-            #[cfg(feature = "half")]
-            CudaStorage::F16(ptr) => ptr.set_flag(flag),
-            CudaStorage::F32(ptr) => ptr.set_flag(flag),
-            CudaStorage::F64(ptr) => ptr.set_flag(flag),
+        unsafe {
+            match self {
+                CudaStorage::U8(ptr) => ptr.set_flag(flag),
+                CudaStorage::U32(ptr) => ptr.set_flag(flag),
+                CudaStorage::I64(ptr) => ptr.set_flag(flag),
+                #[cfg(feature = "half")]
+                CudaStorage::BF16(ptr) => ptr.set_flag(flag),
+                #[cfg(feature = "half")]
+                CudaStorage::F16(ptr) => ptr.set_flag(flag),
+                CudaStorage::F32(ptr) => ptr.set_flag(flag),
+                CudaStorage::F64(ptr) => ptr.set_flag(flag),
+            }
         }
     }
 }

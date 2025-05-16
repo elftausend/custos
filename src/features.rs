@@ -605,7 +605,7 @@ pub trait UseGpuOrCpu {
 
 #[cfg(feature = "graph")]
 pub trait Optimize {
-    fn optimize_mem_graph<D: 'static>(
+    unsafe fn optimize_mem_graph<D: 'static>(
         &self,
         device: &D,
         graph_translator: Option<&crate::modules::GraphTranslator>,
@@ -622,12 +622,12 @@ pub trait Optimize {
 macro_rules! pass_down_optimize_mem_graph {
     ($to_impl:ident, $($generics:tt),*) => {
         impl<'dev, Mods: $crate::Optimize> $crate::Optimize for $to_impl<$($generics),*> {
-            fn optimize_mem_graph<D: 'static>(
+            unsafe fn optimize_mem_graph<D: 'static>(
                 &self,
                 device: &D,
                 graph_translator: Option<&$crate::modules::GraphTranslator>,
             ) -> $crate::Result<()> {
-                self.modules.optimize_mem_graph(device, graph_translator)
+                unsafe { self.modules.optimize_mem_graph(device, graph_translator) }
             }
             fn unary_fusing<D: $crate::UnaryFusing + 'static>(
                 &self,

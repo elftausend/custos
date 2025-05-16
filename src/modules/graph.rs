@@ -77,19 +77,21 @@ impl<Mods: Setup<D>, D> Setup<D> for Graph<Mods> {
 }
 
 impl<Mods: Optimize> Optimize for Graph<Mods> {
-    fn optimize_mem_graph<D: 'static>(
+    unsafe fn optimize_mem_graph<D: 'static>(
         &self,
         device: &D,
         graph_translator: Option<&crate::GraphTranslator>,
     ) -> crate::Result<()> {
-        match graph_translator {
-            Some(graph_translator) => self
-                .modules
-                .optimize_mem_graph(device, Some(graph_translator)),
-            None => {
-                let graph_translator = self.graph_trans.borrow();
-                self.modules
-                    .optimize_mem_graph(device, Some(&graph_translator))
+        unsafe {
+            match graph_translator {
+                Some(graph_translator) => self
+                    .modules
+                    .optimize_mem_graph(device, Some(graph_translator)),
+                None => {
+                    let graph_translator = self.graph_trans.borrow();
+                    self.modules
+                        .optimize_mem_graph(device, Some(&graph_translator))
+                }
             }
         }
     }

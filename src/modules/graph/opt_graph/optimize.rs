@@ -517,7 +517,9 @@ mod tests {
         // idx: 6, deps: [5, 4]
         let out: Buffer<f32, _> = device.retrieve::<2>(1000, (&mul, &mul_b)).unwrap();
 
-        device.optimize_mem_graph(device, None).unwrap();
+        unsafe {
+            device.optimize_mem_graph(device, None).unwrap();
+        }
         let _err = device.run();
 
         assert_eq!(squared.replace().id(), mul.replace().id());
@@ -598,7 +600,7 @@ mod tests {
                     break;
                 }
             }
-            device.optimize_mem_graph(&device, None).unwrap();
+            unsafe { device.optimize_mem_graph(&device, None).unwrap() };
         }
     }
 
@@ -643,7 +645,7 @@ mod tests {
                     break;
                 }
             }
-            device.optimize_mem_graph(&device, None).unwrap();
+            unsafe { device.optimize_mem_graph(&device, None).unwrap() };
         }
     }
 
@@ -671,7 +673,7 @@ mod tests {
         // idx: 6, deps: [5, 4]
         let out: Buffer<f32, _> = device.retrieve::<2>(1000, (&mul, &mul_b)).unwrap();
 
-        device.optimize_mem_graph(&device, None).unwrap();
+        unsafe { device.optimize_mem_graph(&device, None).unwrap() };
         let _err = device.run();
 
         assert_eq!(squared.replace().id(), mul.replace().id());

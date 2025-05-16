@@ -50,16 +50,18 @@ impl PtrType for CpuStorage {
 
     #[inline]
     unsafe fn set_flag(&mut self, flag: crate::flag::AllocFlag) {
-        match self {
-            CpuStorage::U8(ptr) => ptr.set_flag(flag),
-            CpuStorage::U32(ptr) => ptr.set_flag(flag),
-            CpuStorage::I64(ptr) => ptr.set_flag(flag),
-            #[cfg(feature = "half")]
-            CpuStorage::BF16(ptr) => ptr.set_flag(flag),
-            #[cfg(feature = "half")]
-            CpuStorage::F16(ptr) => ptr.set_flag(flag),
-            CpuStorage::F32(ptr) => ptr.set_flag(flag),
-            CpuStorage::F64(ptr) => ptr.set_flag(flag),
+        unsafe {
+            match self {
+                CpuStorage::U8(ptr) => ptr.set_flag(flag),
+                CpuStorage::U32(ptr) => ptr.set_flag(flag),
+                CpuStorage::I64(ptr) => ptr.set_flag(flag),
+                #[cfg(feature = "half")]
+                CpuStorage::BF16(ptr) => ptr.set_flag(flag),
+                #[cfg(feature = "half")]
+                CpuStorage::F16(ptr) => ptr.set_flag(flag),
+                CpuStorage::F32(ptr) => ptr.set_flag(flag),
+                CpuStorage::F64(ptr) => ptr.set_flag(flag),
+            }
         }
     }
 }

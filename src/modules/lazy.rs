@@ -455,15 +455,17 @@ impl<T, Mods: UseGpuOrCpu> UseGpuOrCpu for Lazy<'_, Mods, T> {
 #[cfg(feature = "graph")]
 impl<T: crate::Numeric + crate::CDatatype, Mods> crate::Optimize for Lazy<'_, Mods, T> {
     #[inline]
-    fn optimize_mem_graph<D: 'static>(
+    unsafe fn optimize_mem_graph<D: 'static>(
         &self,
         device: &D,
         graph_translator: Option<&crate::GraphTranslator>,
     ) -> crate::Result<()> {
-        self.alloc_later_optimized(
-            device,
-            graph_translator.ok_or(DeviceError::MissingCacheTraces)?,
-        )?;
+        unsafe {
+            self.alloc_later_optimized(
+                device,
+                graph_translator.ok_or(DeviceError::MissingCacheTraces)?,
+            )?
+        };
         Ok(())
     }
 
@@ -757,6 +759,7 @@ mod tests {
     }
 
     #[cfg(feature = "cpu")]
+    // #[ignore = "causes UB"]
     #[test]
     fn test_lazy_exec_ub_testing() {
         use crate::Run;

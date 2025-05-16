@@ -128,7 +128,9 @@ mod tests {
         let out = dev.apply_fn(&out, |x| x.cos());
         let _out = dev.apply_fn(&out, |x| x.ln());
 
-        dev.optimize_mem_graph(&dev, None).unwrap();
+        unsafe {
+            dev.optimize_mem_graph(&dev, None).unwrap();
+        }
         dev.unary_fusing(&dev, None).unwrap();
         dev.run().unwrap();
 
@@ -200,7 +202,9 @@ mod tests {
         let out1 = dev.apply_fn(&out1, |x| x.abs());
         let _out = dev.apply_fn(&out1, |x| x.ln());
 
-        dev.optimize_mem_graph(&dev, None).unwrap();
+        unsafe {
+            dev.optimize_mem_graph(&dev, None).unwrap();
+        }
         dev.unary_fusing(&dev, None).unwrap();
         dev.run().unwrap();
 

@@ -430,7 +430,7 @@ impl<CacheType, Mods: RunModule<D>, D, SD: Device> RunModule<D>
 
 #[cfg(feature = "graph")]
 impl<Mods: Optimize, SD: Device> Optimize for CachedModule<Mods, SD, FastCache<Arc<dyn Any>>> {
-    fn optimize_mem_graph<D: 'static>(
+    unsafe fn optimize_mem_graph<D: 'static>(
         &self,
         _device: &D,
         graph_translator: Option<&crate::GraphTranslator>,
