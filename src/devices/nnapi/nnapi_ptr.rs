@@ -1,4 +1,4 @@
-use crate::{flag::AllocFlag, HasId, PtrType, ShallowCopy};
+use crate::{HasId, PtrType, ShallowCopy, flag::AllocFlag};
 use nnapi::Operand;
 
 #[derive(Debug, Clone)]

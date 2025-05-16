@@ -1,20 +1,16 @@
 use core::fmt::Debug;
 
 use crate::{
-    cpu_stack_ops::clear_slice, pass_down_add_operation, pass_down_exec_now, prelude::Number,
-    AddOperation, ApplyFunction, Buffer, CDatatype, ClearBuf, OnDropBuffer, Read, Resolve,
-    Retrieve, Retriever, Shape, ToCLSource, ToMarker, ToWgslSource, UnaryGrad, Unit, UseGpuOrCpu,
-    Vulkan, WriteBuf, ZeroGrad,
+    AddOperation, ApplyFunction, Buffer, CDatatype, ClearBuf, Read, Resolve, Retrieve, Retriever,
+    Shape, ToCLSource, ToMarker, ToWgslSource, UnaryGrad, Unit, UseGpuOrCpu, Vulkan, WrappedData,
+    WriteBuf, ZeroGrad, cpu_stack_ops::clear_slice, pass_down_add_operation, prelude::Number,
 };
 
 use super::{VkArray, VkDevice};
 
 pass_down_add_operation!(Vulkan);
-pass_down_exec_now!(Vulkan);
 
-impl<Mods: OnDropBuffer + UseGpuOrCpu, T: CDatatype + Default + Debug> ClearBuf<T>
-    for Vulkan<Mods>
-{
+impl<Mods: WrappedData + UseGpuOrCpu, T: CDatatype + Default + Debug> ClearBuf<T> for Vulkan<Mods> {
     #[inline]
     fn clear(&self, buf: &mut Buffer<T, Vulkan<Mods>>) {
         let cpu_buf = unsafe { &mut *(buf as *mut Buffer<T, Vulkan<Mods>>) };
@@ -27,7 +23,7 @@ impl<Mods: OnDropBuffer + UseGpuOrCpu, T: CDatatype + Default + Debug> ClearBuf<
     }
 }
 
-impl<Mods: OnDropBuffer, T: Unit + Default + Debug> ZeroGrad<T> for Vulkan<Mods> {
+impl<Mods: WrappedData, T: Unit + Default + Debug> ZeroGrad<T> for Vulkan<Mods> {
     #[inline]
     fn zero_grad<S: Shape>(&self, data: &mut Self::Base<T, S>) {
         try_vk_clear(self, data).unwrap()
@@ -59,8 +55,9 @@ pub fn try_vk_clear<T: Default + Debug>(
     device.launch_shader(src, [(32 + buf.len as u32) / 32, 1, 1], &[buf])
 }
 
-impl<Mods: OnDropBuffer, T: Unit + Default + Clone, S: Shape> Read<T, S> for Vulkan<Mods> {
-    type Read<'a> = VkArray<T>
+impl<Mods: WrappedData, T: Unit + Default + Clone, S: Shape> Read<T, S> for Vulkan<Mods> {
+    type Read<'a>
+        = VkArray<T>
     where
         T: 'a,
         Self: 'a,
@@ -83,7 +80,7 @@ impl<Mods: OnDropBuffer, T: Unit + Default + Clone, S: Shape> Read<T, S> for Vul
 }
 
 // TODO: use something like unified_cl
-// impl<Mods: OnDropBuffer, T, S: Shape> Read<T, S> for Vulkan<Mods> {
+// impl<Mods: WrappedData, T, S: Shape> Read<T, S> for Vulkan<Mods> {
 //     type Read<'a> = &'a [T]
 //     where
 //         T: 'a,
@@ -176,7 +173,7 @@ impl<T, S, Mods> UnaryGrad<T, S> for Vulkan<Mods>
 where
     T: CDatatype + Number,
     S: Shape,
-    Mods: OnDropBuffer + AddOperation + 'static,
+    Mods: WrappedData + AddOperation + 'static,
 {
     #[inline]
     fn add_unary_grad<F>(
@@ -240,7 +237,7 @@ where
     )
 }
 
-impl<Mods: OnDropBuffer, T: Unit + Clone, S: Shape> WriteBuf<T, S> for Vulkan<Mods> {
+impl<Mods: WrappedData, T: Unit + Clone, S: Shape> WriteBuf<T, S> for Vulkan<Mods> {
     #[inline]
     fn write(&self, buf: &mut Buffer<T, Self, S>, data: &[T]) {
         // TODO: use unified mem when possible
@@ -256,7 +253,7 @@ impl<Mods: OnDropBuffer, T: Unit + Clone, S: Shape> WriteBuf<T, S> for Vulkan<Mo
 #[cfg(test)]
 mod tests {
     use super::{try_vk_apply_fn_mut, try_vk_clear};
-    use crate::{vulkan::ops::try_vk_add_unary_grad, Base, Buffer, Combiner, Vulkan};
+    use crate::{Base, Buffer, Combiner, Vulkan, vulkan::ops::try_vk_add_unary_grad};
 
     #[cfg(feature = "fork")]
     use crate::Fork;

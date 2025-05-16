@@ -1,8 +1,8 @@
 use std::mem::size_of_val;
 
 use min_cl::{
-    api::{build_program, Program},
     CLDevice,
+    api::{Program, build_program},
 };
 use naga::back::spv::{Options, PipelineOptions};
 

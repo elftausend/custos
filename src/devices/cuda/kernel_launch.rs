@@ -1,9 +1,10 @@
-use crate::{number::Number, Buffer, OnDropBuffer, Shape, Unit, CUDA};
+use crate::{Buffer, CUDA, Shape, Unit, WrappedData, number::Number};
 use std::{collections::HashMap, ffi::c_void};
 
 use super::{
-    api::{cuOccupancyMaxPotentialBlockSize, culaunch_kernel, FnHandle, Module, Stream},
-    fn_cache, CUDAPtr, CudaDevice, CudaSource, KernelCache,
+    CUDAPtr, CudaDevice, CudaSource, KernelCache,
+    api::{FnHandle, Module, Stream, cuOccupancyMaxPotentialBlockSize, culaunch_kernel},
+    fn_cache,
 };
 
 /// Converts `Self` to a (cuda) *mut c_void.
@@ -45,7 +46,7 @@ pub trait AsCudaCvoidPtr {
 impl<'a, T, Mods, S> AsCudaCvoidPtr for &Buffer<'a, T, CUDA<Mods>, S>
 where
     T: Unit,
-    Mods: OnDropBuffer,
+    Mods: WrappedData,
     S: Shape,
 {
     #[inline]
@@ -54,7 +55,7 @@ where
     }
 }
 
-impl<'a, T: Unit, Mods: OnDropBuffer, S: Shape> AsCudaCvoidPtr for Buffer<'a, T, CUDA<Mods>, S> {
+impl<'a, T: Unit, Mods: WrappedData, S: Shape> AsCudaCvoidPtr for Buffer<'a, T, CUDA<Mods>, S> {
     #[inline]
     fn as_cvoid_ptr(&self) -> *mut c_void {
         &self.base().ptr as *const u64 as *mut c_void

@@ -1,6 +1,6 @@
 use core::ops::{Deref, DerefMut};
 
-use crate::{shape::Shape, HasId, HostPtr, PtrType, ShallowCopy, WrappedCopy};
+use crate::{HasId, HostPtr, PtrType, ShallowCopy, Unit, shape::Shape};
 
 /// A possibly multi-dimensional array allocated on the stack.
 /// It uses `S:`[`Shape`] to get the type of the array.
@@ -110,7 +110,7 @@ impl<S: Shape, T> DerefMut for StackArray<S, T> {
     }
 }
 
-impl<S: Shape, T> PtrType for StackArray<S, T> {
+impl<S: Shape, T: Unit> PtrType for StackArray<S, T> {
     #[inline]
     fn size(&self) -> usize {
         S::LEN
@@ -125,7 +125,7 @@ impl<S: Shape, T> PtrType for StackArray<S, T> {
     unsafe fn set_flag(&mut self, _flag: crate::flag::AllocFlag) {}
 }
 
-impl<S: Shape, T> HostPtr<T> for StackArray<S, T> {
+impl<S: Shape, T: Unit> HostPtr<T> for StackArray<S, T> {
     #[inline]
     fn ptr(&self) -> *const T {
         self.as_ptr()
@@ -134,16 +134,6 @@ impl<S: Shape, T> HostPtr<T> for StackArray<S, T> {
     #[inline]
     fn ptr_mut(&mut self) -> *mut T {
         self.as_ptr_mut()
-    }
-}
-
-
-impl<S: Shape, T> WrappedCopy for StackArray<S, T> {
-    type Base = Self;
-
-    #[inline]
-    fn wrapped_copy(&self, to_wrap: Self::Base) -> Self {
-        to_wrap
     }
 }
 

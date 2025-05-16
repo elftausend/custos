@@ -126,7 +126,7 @@ impl OptGraph {
 #[cfg(feature = "std")]
 #[cfg(test)]
 mod tests {
-    use crate::modules::graph::opt_graph::{optimize::CacheTrace, OptGraph};
+    use crate::modules::graph::opt_graph::{OptGraph, optimize::CacheTrace};
 
     #[test]
     fn test_cache_trace() {
@@ -390,7 +390,7 @@ mod tests {
     #[cfg(feature = "cached")]
     #[test]
     fn test_from_retrieve_sine_neural_net() {
-        use crate::{Base, Buffer, Cached, Graph, Retriever, CPU};
+        use crate::{Base, Buffer, CPU, Cached, Graph, Retriever};
 
         let device = CPU::<Graph<Cached<Base>>>::new();
 
@@ -445,7 +445,7 @@ mod tests {
     #[cfg(feature = "cached")]
     #[test]
     fn test_from_retrieve_sliced_chained_perf_example() {
-        use crate::{Base, Buffer, Cached, Device, Graph, Retriever, CPU};
+        use crate::{Base, Buffer, CPU, Cached, Device, Graph, Retriever};
 
         let device = CPU::<Graph<Cached<Base>>>::new();
 
@@ -492,7 +492,7 @@ mod tests {
     where
         D: crate::Device
             + crate::Optimize
-            + crate::Retriever<f32, ()>
+            + crate::Retriever<'a, f32, ()>
             + crate::Run
             + crate::ReplaceBuf<f32, D, ()>
             + crate::Alloc<f32>
@@ -517,7 +517,9 @@ mod tests {
         // idx: 6, deps: [5, 4]
         let out: Buffer<f32, _> = device.retrieve::<2>(1000, (&mul, &mul_b)).unwrap();
 
-        device.optimize_mem_graph(device, None).unwrap();
+        unsafe {
+            device.optimize_mem_graph(device, None).unwrap();
+        }
         let _err = device.run();
 
         assert_eq!(squared.replace().id(), mul.replace().id());
@@ -530,7 +532,7 @@ mod tests {
     #[cfg(feature = "lazy")]
     #[test]
     fn test_lazy_from_retrieve_sliced_chained_perf_example_optimize_cpu() {
-        use crate::{Base, Graph, Lazy, CPU};
+        use crate::{Base, CPU, Graph, Lazy};
 
         let device = CPU::<Graph<Lazy<Base>>>::new();
         test_lazy_from_retrieve(&device);
@@ -549,7 +551,7 @@ mod tests {
     #[cfg(feature = "lazy")]
     #[test]
     fn test_lazy_from_retrieve_sliced_chained_perf_example_optimize_cu() {
-        use crate::{Base, Graph, Lazy, CUDA};
+        use crate::{Base, CUDA, Graph, Lazy};
 
         let device = CUDA::<Graph<Lazy<Base>>>::new(0).unwrap();
         test_lazy_from_retrieve(&device);
@@ -559,9 +561,14 @@ mod tests {
     #[cfg(feature = "cached")]
     #[test]
     fn test_from_retrieve_sliced_chained_perf_example_optimize_cache() {
-        use crate::{Base, Buffer, Cached, Cursor, Device, Graph, HasId, Optimize, Retriever, CPU};
+        use core::any::Any;
+        use std::sync::Arc;
 
-        let device = CPU::<Graph<Cached<Base>>>::new();
+        use crate::{
+            Base, Buffer, CPU, Cached, Cursor, Device, FastCache, Graph, HasId, Optimize, Retriever,
+        };
+
+        let device = CPU::<Graph<Cached<Base, FastCache<Arc<dyn Any>>>>>::new();
 
         // idx: 0, deps: []
         let x: Buffer<f32, _> = device.buffer([1.; 1000]);
@@ -569,29 +576,31 @@ mod tests {
         let b: Buffer<f32, _> = device.buffer([1.1; 1000]);
 
         for i in device.range(0..2) {
-            // idx: 2, deps: [0, 0]
-            let squared: Buffer<f32, _> = device.retrieve::<2>(1000, (&x, &x)).unwrap();
-            // idx: 3, deps: [1, 0]
-            let add: Buffer<f32, _> = device.retrieve::<2>(1000, (&b, &x)).unwrap();
-            // idx: 4, deps: [3, 1]
-            let mul_b: Buffer<f32, _> = device.retrieve::<2>(1000, (&add, &b)).unwrap();
-            // idx: 5, deps: [2, 0]
-            let mul: Buffer<f32, _> = device.retrieve::<2>(1000, (&squared, &x)).unwrap();
-            // idx: 6, deps: [5, 4]
-            let out: Buffer<f32, _> = device.retrieve::<2>(1000, (&mul, &mul_b)).unwrap();
+            {
+                // idx: 2, deps: [0, 0]
+                let squared: Buffer<f32, _> = device.retrieve::<2>(1000, (&x, &x)).unwrap();
+                // idx: 3, deps: [1, 0]
+                let add: Buffer<f32, _> = device.retrieve::<2>(1000, (&b, &x)).unwrap();
+                // idx: 4, deps: [3, 1]
+                let mul_b: Buffer<f32, _> = device.retrieve::<2>(1000, (&add, &b)).unwrap();
+                // idx: 5, deps: [2, 0]
+                let mul: Buffer<f32, _> = device.retrieve::<2>(1000, (&squared, &x)).unwrap();
+                // idx: 6, deps: [5, 4]
+                let out: Buffer<f32, _> = device.retrieve::<2>(1000, (&mul, &mul_b)).unwrap();
 
-            if i == 0 {
-                assert_ne!(squared.id(), mul.id());
+                if i == 0 {
+                    assert_ne!(squared.id(), mul.id());
+                }
+
+                if i == 1 {
+                    assert_eq!(squared.id(), mul.id());
+                    assert_eq!(squared.id(), out.id());
+
+                    assert_eq!(add.id(), mul_b.id());
+                    break;
+                }
             }
-
-            if i == 1 {
-                assert_eq!(squared.id(), mul.id());
-                assert_eq!(squared.id(), out.id());
-
-                assert_eq!(add.id(), mul_b.id());
-                break;
-            }
-            device.optimize_mem_graph(&device, None).unwrap();
+            unsafe { device.optimize_mem_graph(&device, None).unwrap() };
         }
     }
 
@@ -599,9 +608,14 @@ mod tests {
     #[cfg(feature = "cached")]
     #[test]
     fn test_mismatched_optimized_types_cached() {
-        use crate::{Base, Buffer, Cached, Cursor, Device, Graph, HasId, Optimize, Retriever, CPU};
+        use core::any::Any;
+        use std::sync::Arc;
 
-        let device = CPU::<Graph<Cached<Base>>>::new();
+        use crate::{
+            Base, Buffer, CPU, Cached, Cursor, Device, FastCache, Graph, HasId, Optimize, Retriever,
+        };
+
+        let device = CPU::<Graph<Cached<Base, FastCache<Arc<dyn Any>>>>>::new();
 
         // idx: 0, deps: []
         let x: Buffer<f32, _> = device.buffer([1.; 1000]);
@@ -609,28 +623,29 @@ mod tests {
         let b: Buffer<f32, _> = device.buffer([1.1; 1000]);
 
         for i in device.range(2) {
-            // idx: 2, deps: [0, 0]
-            let squared: Buffer<f32, _> = device.retrieve::<2>(1000, (&x, &x)).unwrap();
-            // idx: 3, deps: [1, 0]
-            let add: Buffer<f32, _> = device.retrieve::<2>(1000, (&b, &x)).unwrap();
-            // idx: 4, deps: [3, 1]
-            let mul_b: Buffer<u8, _> = device.retrieve::<2>(1000, (&add, &b)).unwrap();
-            // idx: 5, deps: [2, 0]
-            let mul: Buffer<f32, _> = device.retrieve::<2>(1000, (&squared, &x)).unwrap();
-            // idx: 6, deps: [5, 4]
-            let out: Buffer<f32, _> = device.retrieve::<2>(1000, (&mul, &mul_b)).unwrap();
+            {
+                // idx: 2, deps: [0, 0]
+                let squared: Buffer<f32, _> = device.retrieve::<2>(1000, (&x, &x)).unwrap();
+                // idx: 3, deps: [1, 0]
+                let add: Buffer<f32, _> = device.retrieve::<2>(1000, (&b, &x)).unwrap();
+                // idx: 4, deps: [3, 1]
+                let mul_b: Buffer<u8, _> = device.retrieve::<2>(1000, (&add, &b)).unwrap();
+                // idx: 5, deps: [2, 0]
+                let mul: Buffer<f32, _> = device.retrieve::<2>(1000, (&squared, &x)).unwrap();
+                // idx: 6, deps: [5, 4]
+                let out: Buffer<f32, _> = device.retrieve::<2>(1000, (&mul, &mul_b)).unwrap();
+                if i == 0 {
+                    assert_ne!(squared.id(), mul.id());
+                }
 
-            if i == 0 {
-                assert_ne!(squared.id(), mul.id());
+                if i == 1 {
+                    assert_eq!(squared.id(), mul.id());
+                    assert_eq!(squared.id(), out.id());
+
+                    break;
+                }
             }
-
-            if i == 1 {
-                assert_eq!(squared.id(), mul.id());
-                assert_eq!(squared.id(), out.id());
-
-                break;
-            }
-            device.optimize_mem_graph(&device, None).unwrap();
+            unsafe { device.optimize_mem_graph(&device, None).unwrap() };
         }
     }
 
@@ -639,7 +654,7 @@ mod tests {
     #[should_panic]
     #[test]
     fn test_mismatched_optimized_types_lazy() {
-        use crate::{Base, Buffer, Device, Graph, HasId, Lazy, Optimize, Retriever, Run, CPU};
+        use crate::{Base, Buffer, CPU, Device, Graph, HasId, Lazy, Optimize, Retriever, Run};
 
         let device = CPU::<Graph<Lazy<Base>>>::new();
 
@@ -658,7 +673,7 @@ mod tests {
         // idx: 6, deps: [5, 4]
         let out: Buffer<f32, _> = device.retrieve::<2>(1000, (&mul, &mul_b)).unwrap();
 
-        device.optimize_mem_graph(&device, None).unwrap();
+        unsafe { device.optimize_mem_graph(&device, None).unwrap() };
         let _err = device.run();
 
         assert_eq!(squared.replace().id(), mul.replace().id());

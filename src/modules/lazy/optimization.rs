@@ -1,7 +1,7 @@
-use crate::{op_hint::OpHint, DeviceError, Lazy, Operation};
+use crate::{DeviceError, Lazy, Operation, op_hint::OpHint};
 
 impl<T, Mods> Lazy<'_, Mods, T> {
-    pub(crate) fn alloc_later_optimized<D: 'static>(
+    pub(crate) unsafe fn alloc_later_optimized<D: 'static>(
         &self,
         device: &D,
         graph_trans: &crate::GraphTranslator,
@@ -24,7 +24,7 @@ impl<T, Mods> Lazy<'_, Mods, T> {
                     id,
                     device,
                 );
-                let buf = self.buffers.borrow().get(&id.id).unwrap().shallow_copy();
+                let buf = unsafe { self.buffers.borrow().get(&id.id).unwrap().shallow_copy() };
 
                 // TODO: add type check - lower assert_eq to debug in lazy replace buf
 
@@ -36,7 +36,7 @@ impl<T, Mods> Lazy<'_, Mods, T> {
 
                     self.buffers
                         .borrow_mut()
-                        .insert(*use_id_as_well_id, buf.shallow_copy());
+                        .insert(*use_id_as_well_id, unsafe { buf.shallow_copy() });
                 }
             }
         }
@@ -93,5 +93,44 @@ impl<T, Mods> Lazy<'_, Mods, T> {
         }
 
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    #[cfg(feature = "cpu")]
+    #[test]
+    fn test_op_hint_unary_chain_fuse_graph() {
+        use crate::{
+            AddOperation, ApplyFunction, Base, Buffer, CPU, Combiner, Device, Graph, Lazy,
+            Optimize, Retriever, Run,
+        };
+
+        let dev = CPU::<Graph<Lazy<Base>>>::new();
+
+        let buf = dev.buffer([1., 2., 3., 4., 5.]);
+
+        let mut out: Buffer<f32, _> = dev.retrieve(buf.len(), &buf).unwrap();
+        let mut out1: Buffer<f32, _> = dev.retrieve(buf.len(), &out).unwrap();
+        let mut out2: Buffer<f32, _> = dev.retrieve(buf.len(), &out1).unwrap();
+        dev.add_op(
+            (&buf, &mut out, &mut out1, &mut out2),
+            |(buf, out, out1, out2)| {
+                // let out = out.as_mut_slice();
+                // let out1 = out1.as_mut_slice();
+                // for (x, y) in out.iter_mut().zip(out1) {
+                //     *y = *x+1.;
+                // }
+                Ok(())
+            },
+        )
+        .unwrap();
+
+        // unsafe { dev.optimize_mem_graph(&dev, None).unwrap(); }
+        dev.run().unwrap();
+
+        // for (buf, out) in buf.iter().zip(_out.replace().iter()) {
+        //     assert!((*out - buf.sin().cos().ln()).abs() < 0.001);
+        // }
     }
 }

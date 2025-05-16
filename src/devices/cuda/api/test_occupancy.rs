@@ -1,10 +1,10 @@
 use std::{ffi::c_void, time::Instant};
 
 use crate::{
+    Base, Buffer, CUDA,
     cuda::api::{
         cuLaunchKernel, cuOccupancyMaxPotentialBlockSize, load_module_data, nvrtc::create_program,
     },
-    Base, Buffer, CUDA,
 };
 
 #[test]

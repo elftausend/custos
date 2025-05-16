@@ -1,28 +1,43 @@
 use crate::{
-    flag::AllocFlag, AddGradFn, AddOperation, Alloc, CachedBuffers, Cursor, Device, ExecNow, HasId,
-    HashLocation, Module, OnDropBuffer, OnNewBuffer, Parents, PtrType, ReplaceBuf, Retrieve,
-    SetOpHint, Setup, Shape, Unit, WrappedData,
+    AddGradFn, AddOperation, Alloc, CachedBuffers, Cursor, Device, ExecNow, HasId, HashLocation,
+    Module, OnNewBuffer, Parents, PtrType, ReplaceBuf, Retrieve, SetOpHint, Setup, Shape, Unit,
+    WrappedData, flag::AllocFlag,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub struct Base;
 
 impl WrappedData for Base {
-    type Wrap<T, Base: HasId + PtrType> = Base;
+    type Wrap<'a, T: Unit, Base: 'static + HasId + PtrType> = Base;
 
     #[inline]
-    fn wrap_in_base<T, Base: HasId + PtrType>(&self, base: Base) -> Self::Wrap<T, Base> {
+    fn wrap_in_base<'a, T: Unit, Base: 'static + HasId + PtrType>(
+        &'a self,
+        base: Base,
+    ) -> Self::Wrap<'a, T, Base> {
         base
     }
 
     #[inline]
-    fn wrapped_as_base<T, Base: HasId + PtrType>(wrap: &Self::Wrap<T, Base>) -> &Base {
+    fn wrapped_as_base<'a, 'b, T: Unit, Base: 'static + HasId + PtrType>(
+        wrap: &'b Self::Wrap<'a, T, Base>,
+    ) -> &'b Base {
         wrap
     }
 
     #[inline]
-    fn wrapped_as_base_mut<T, Base: HasId + PtrType>(wrap: &mut Self::Wrap<T, Base>) -> &mut Base {
+    fn wrapped_as_base_mut<'a, 'b, T: Unit, Base: 'static + HasId + PtrType>(
+        wrap: &'b mut Self::Wrap<'a, T, Base>,
+    ) -> &'b mut Base {
         wrap
+    }
+
+    #[inline]
+    fn wrap_in_base_unbound<'a, T: Unit, Base: crate::IsBasePtr>(
+        &self,
+        base: Base,
+    ) -> Self::Wrap<'a, T, Base> {
+        base
     }
 }
 
@@ -76,18 +91,30 @@ impl<D> Setup<D> for Base {}
 
 impl<'a, T: Unit, D: Device, S: Shape> OnNewBuffer<'a, T, D, S> for Base {}
 
-impl OnDropBuffer for Base {}
-
 impl<D, T: Unit, S: Shape> Retrieve<D, T, S> for Base {
     #[inline]
-    unsafe fn retrieve<const NUM_PARENTS: usize>(
+    fn retrieve_entry<'a, const NUM_PARENTS: usize>(
+        &'a self,
+        device: &D,
+        len: usize,
+        parents: &impl Parents<NUM_PARENTS>,
+    ) -> crate::Result<Self::Wrap<'a, T, D::Base<T, S>>>
+    where
+        D: Alloc<T>,
+    {
+        self.retrieve(device, len, parents)
+    }
+
+    #[inline]
+    fn retrieve<'a, const NUM_PARENTS: usize>(
         &self,
         device: &D,
         len: usize,
-        _parents: impl Parents<NUM_PARENTS>,
-    ) -> crate::Result<Self::Wrap<T, D::Base<T, S>>>
+        _parents: &impl Parents<NUM_PARENTS>,
+    ) -> crate::Result<Self::Wrap<'a, T, <D>::Base<T, S>>>
     where
-        D: Alloc<T>,
+        S: Shape,
+        D: Device + Alloc<T>,
     {
         device.alloc(len, AllocFlag::None)
     }
@@ -131,7 +158,7 @@ impl crate::UseGpuOrCpu for Base {
 #[cfg(feature = "graph")]
 impl crate::Optimize for Base {
     #[inline]
-    fn optimize_mem_graph<D: 'static>(
+    unsafe fn optimize_mem_graph<D: 'static>(
         &self,
         _device: &D,
         _graph_translator: Option<&crate::GraphTranslator>,
@@ -172,7 +199,7 @@ impl crate::GradActions for Base {
         &self,
         _device: &'a D,
         _buf: &crate::Buffer<'a, T, D, S>,
-    ) -> &crate::Buffer<'a, T, D, S> {
+    ) -> &crate::Buffer<'static, T, D, S> {
         unimplemented!()
     }
 
@@ -185,7 +212,7 @@ impl crate::GradActions for Base {
         &self,
         _device: &'a D,
         _buf: &crate::Buffer<'a, T, D, S>,
-    ) -> &mut crate::Buffer<'a, T, D, S> {
+    ) -> &mut crate::Buffer<'static, T, D, S> {
         unimplemented!()
     }
 }

@@ -1,9 +1,9 @@
 use std::ops::{Deref, DerefMut};
 
-use custos::{number::Number, Buffer, CDatatype, Device, Retrieve, Retriever, Unit, CPU};
+use custos::{Buffer, CDatatype, CPU, Device, Retrieve, Retriever, Unit, number::Number};
 
 #[cfg(feature = "opencl")]
-use custos::{opencl::enqueue_kernel, OpenCL};
+use custos::{OpenCL, opencl::enqueue_kernel};
 
 #[cfg(feature = "cached")]
 mod graph;

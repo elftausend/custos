@@ -4,15 +4,16 @@ use core::{
 };
 
 use crate::{
-    cuda::{api::cumalloc, CUDAPtr},
+    Alloc, Base, Buffer, CloneBuf, Device, IsShapeIndep, Module as CombModule, OnNewBuffer, Setup,
+    Shape, Unit, WrappedData,
+    cuda::{CUDAPtr, api::cumalloc},
     flag::AllocFlag,
-    impl_device_traits, Alloc, Base, Buffer, CloneBuf, Device, IsShapeIndep, Module as CombModule,
-    OnDropBuffer, OnNewBuffer, Setup, Shape, Unit, WrappedData,
+    impl_device_traits,
 };
 
 use super::{
-    api::{cuMemcpy, cu_write_async},
     CudaDevice,
+    api::{cu_write_async, cuMemcpy},
 };
 
 pub trait IsCuda: Device {}
@@ -66,40 +67,51 @@ impl<SimpleMods> CUDA<SimpleMods> {
     }
 }
 
-impl<Mods: OnDropBuffer> Device for CUDA<Mods> {
-    type Data<T: Unit, S: Shape> = Mods::Wrap<T, CUDAPtr<T>>;
+impl<Mods: WrappedData> Device for CUDA<Mods> {
+    type Data<'a, T: Unit, S: Shape> = Mods::Wrap<'a, T, CUDAPtr<T>>;
     type Base<T: Unit, S: Shape> = CUDAPtr<T>;
     type Error = i32;
 
     #[inline(always)]
-    fn base_to_data<T: Unit, S: Shape>(&self, base: Self::Base<T, S>) -> Self::Data<T, S> {
+    fn default_base_to_data<'a, T: Unit, S: Shape>(
+        &'a self,
+        base: Self::Base<T, S>,
+    ) -> Self::Data<'a, T, S> {
         self.wrap_in_base(base)
     }
 
     #[inline(always)]
-    fn wrap_to_data<T: Unit, S: Shape>(
+    fn default_base_to_data_unbound<'a, T: Unit, S: Shape>(
         &self,
-        wrap: Self::Wrap<T, Self::Base<T, S>>,
-    ) -> Self::Data<T, S> {
+        base: Self::Base<T, S>,
+    ) -> Self::Data<'a, T, S> {
+        self.wrap_in_base_unbound(base)
+    }
+
+    #[inline(always)]
+    fn wrap_to_data<'a, T: Unit, S: Shape>(
+        &self,
+        wrap: Self::Wrap<'a, T, Self::Base<T, S>>,
+    ) -> Self::Data<'a, T, S> {
         wrap
     }
 
     #[inline(always)]
-    fn data_as_wrap<T: Unit, S: Shape>(
-        data: &Self::Data<T, S>,
-    ) -> &Self::Wrap<T, Self::Base<T, S>> {
+    fn data_as_wrap<'a, 'b, T: Unit, S: Shape>(
+        data: &'b Self::Data<'a, T, S>,
+    ) -> &'b Self::Wrap<'a, T, Self::Base<T, S>> {
         data
     }
 
     #[inline(always)]
-    fn data_as_wrap_mut<T: Unit, S: Shape>(
-        data: &mut Self::Data<T, S>,
-    ) -> &mut Self::Wrap<T, Self::Base<T, S>> {
+    fn data_as_wrap_mut<'a, 'b, T: Unit, S: Shape>(
+        data: &'b mut Self::Data<'a, T, S>,
+    ) -> &'b mut Self::Wrap<'a, T, Self::Base<T, S>> {
         data
     }
 }
 
-impl<Mods: OnDropBuffer, T: Unit> Alloc<T> for CUDA<Mods> {
+impl<Mods: WrappedData, T: Unit> Alloc<T> for CUDA<Mods> {
     #[inline]
     fn alloc<S: Shape>(
         &self,
@@ -125,9 +137,9 @@ impl<Mods: OnDropBuffer, T: Unit> Alloc<T> for CUDA<Mods> {
     }
 }
 
-unsafe impl<Mods: OnDropBuffer> IsShapeIndep for CUDA<Mods> {}
+unsafe impl<Mods: WrappedData> IsShapeIndep for CUDA<Mods> {}
 
-impl<Mods: OnDropBuffer> IsCuda for CUDA<Mods> {}
+impl<Mods: WrappedData> IsCuda for CUDA<Mods> {}
 
 #[cfg(feature = "fork")]
 impl<Mods> crate::ForkSetup for CUDA<Mods> {
@@ -137,9 +149,7 @@ impl<Mods> crate::ForkSetup for CUDA<Mods> {
     }
 }
 
-impl<'a, Mods: OnDropBuffer + OnNewBuffer<'a, T, Self, ()>, T: Unit> CloneBuf<'a, T>
-    for CUDA<Mods>
-{
+impl<'a, Mods: WrappedData + OnNewBuffer<'a, T, Self, ()>, T: Unit> CloneBuf<'a, T> for CUDA<Mods> {
     fn clone_buf(&'a self, buf: &Buffer<'a, T, CUDA<Mods>>) -> Buffer<'a, T, CUDA<Mods>> {
         let cloned = Buffer::new(self, buf.len());
         unsafe {
@@ -157,12 +167,12 @@ impl<'a, Mods: OnDropBuffer + OnNewBuffer<'a, T, Self, ()>, T: Unit> CloneBuf<'a
 mod tests {
     use crate::{Base, Buffer, ClearBuf, Device, Retriever, Shape, Unit};
 
-    use super::{IsCuda, CUDA};
+    use super::{CUDA, IsCuda};
 
     // compile-time isCuda test
-    fn take_cu_buffer<T: Unit, D: IsCuda + Retriever<T>, S: Shape>(
-        device: &D,
-        buf: &Buffer<T, D, S>,
+    fn take_cu_buffer<'a, T: Unit, D: IsCuda + Retriever<'a, T>, S: Shape>(
+        device: &'a D,
+        buf: &Buffer<'a, T, D, S>,
     ) {
         let _buf = device.retrieve::<0>(buf.len(), ());
     }

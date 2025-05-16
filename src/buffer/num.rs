@@ -4,8 +4,8 @@ use core::{
 };
 
 use crate::{
-    flag::AllocFlag, Alloc, Buffer, CloneBuf, Device, HasId, OnDropBuffer, PtrType, ShallowCopy,
-    Unit, WrappedData,
+    Alloc, Buffer, CloneBuf, Device, HasId, IsBasePtr, PtrType, ShallowCopy, Unit, WrappedData,
+    flag::AllocFlag,
 };
 
 #[derive(Debug, Default)]
@@ -15,7 +15,7 @@ pub struct Num<T> {
     pub num: T,
 }
 
-impl<T> PtrType for Num<T> {
+impl<T: Unit> PtrType for Num<T> {
     #[inline]
     fn size(&self) -> usize {
         0
@@ -23,7 +23,7 @@ impl<T> PtrType for Num<T> {
 
     #[inline]
     fn flag(&self) -> crate::flag::AllocFlag {
-        crate::flag::AllocFlag::Num
+        crate::flag::AllocFlag::None
     }
 
     #[inline]
@@ -51,7 +51,7 @@ impl<T> ShallowCopy for Num<T> {
 }
 
 impl Device for () {
-    type Data<T: Unit, S: crate::Shape> = Self::Base<T, S>;
+    type Data<'a, T: Unit, S: crate::Shape> = Self::Base<T, S>;
     type Base<T: Unit, S: crate::Shape> = Num<T>;
 
     type Error = Infallible;
@@ -61,28 +61,39 @@ impl Device for () {
     }
 
     #[inline(always)]
-    fn base_to_data<T: Unit, S: crate::Shape>(&self, base: Self::Base<T, S>) -> Self::Data<T, S> {
+    fn default_base_to_data<'a, T: Unit, S: crate::Shape>(
+        &'a self,
+        base: Self::Base<T, S>,
+    ) -> Self::Data<'a, T, S> {
         base
     }
 
     #[inline(always)]
-    fn wrap_to_data<T: Unit, S: crate::Shape>(
+    fn default_base_to_data_unbound<'a, T: Unit, S: crate::Shape>(
         &self,
-        wrap: Self::Wrap<T, Self::Base<T, S>>,
-    ) -> Self::Data<T, S> {
+        base: Self::Base<T, S>,
+    ) -> Self::Data<'a, T, S> {
+        base
+    }
+
+    #[inline(always)]
+    fn wrap_to_data<'a, T: Unit, S: crate::Shape>(
+        &self,
+        wrap: Self::Wrap<'a, T, Self::Base<T, S>>,
+    ) -> Self::Data<'a, T, S> {
         wrap
     }
 
     #[inline(always)]
-    fn data_as_wrap<T: Unit, S: crate::Shape>(
-        data: &Self::Data<T, S>,
-    ) -> &Self::Wrap<T, Self::Base<T, S>> {
+    fn data_as_wrap<'a, 'b, T: Unit, S: crate::Shape>(
+        data: &'b Self::Data<'a, T, S>,
+    ) -> &'b Self::Wrap<'a, T, Self::Base<T, S>> {
         data
     }
 
-    fn data_as_wrap_mut<T: Unit, S: crate::Shape>(
-        data: &mut Self::Data<T, S>,
-    ) -> &mut Self::Wrap<T, Self::Base<T, S>> {
+    fn data_as_wrap_mut<'a, 'b, T: Unit, S: crate::Shape>(
+        data: &'b mut Self::Data<'a, T, S>,
+    ) -> &'b mut Self::Wrap<'a, T, Self::Base<T, S>> {
         data
     }
 }
@@ -93,12 +104,12 @@ impl<T: Unit + Default> Alloc<T> for () {
         &self,
         _len: usize,
         _flag: AllocFlag,
-    ) -> crate::Result<Self::Data<T, S>> {
+    ) -> crate::Result<Self::Base<T, S>> {
         Ok(Num::default())
     }
 
     #[inline]
-    fn alloc_from_slice<S: crate::Shape>(&self, data: &[T]) -> crate::Result<Self::Data<T, S>>
+    fn alloc_from_slice<S: crate::Shape>(&self, data: &[T]) -> crate::Result<Self::Base<T, S>>
     where
         T: Clone,
     {
@@ -107,25 +118,35 @@ impl<T: Unit + Default> Alloc<T> for () {
 }
 
 impl WrappedData for () {
-    type Wrap<T, Base: crate::HasId + crate::PtrType> = Base;
+    type Wrap<'a, T: Unit, Base: IsBasePtr> = Base;
 
     #[inline]
-    fn wrap_in_base<T, Base: HasId + PtrType>(&self, base: Base) -> Self::Wrap<T, Base> {
+    fn wrap_in_base<'a, T: Unit, Base: IsBasePtr>(&'a self, base: Base) -> Self::Wrap<'a, T, Base> {
         base
     }
 
     #[inline]
-    fn wrapped_as_base<T, Base: HasId + PtrType>(wrap: &Self::Wrap<T, Base>) -> &Base {
+    fn wrap_in_base_unbound<'a, T: Unit, Base: IsBasePtr>(
+        &self,
+        base: Base,
+    ) -> Self::Wrap<'a, T, Base> {
+        base
+    }
+
+    #[inline]
+    fn wrapped_as_base<'a, 'b, T: Unit, Base: IsBasePtr>(
+        wrap: &'b Self::Wrap<'a, T, Base>,
+    ) -> &'b Base {
         wrap
     }
 
     #[inline]
-    fn wrapped_as_base_mut<T, Base: HasId + PtrType>(wrap: &mut Self::Wrap<T, Base>) -> &mut Base {
+    fn wrapped_as_base_mut<'a, 'b, T: Unit, Base: IsBasePtr>(
+        wrap: &'b mut Self::Wrap<'a, T, Base>,
+    ) -> &'b mut Base {
         wrap
     }
 }
-
-impl OnDropBuffer for () {}
 
 impl<'a, T: Unit + Clone> CloneBuf<'a, T> for () {
     #[inline]

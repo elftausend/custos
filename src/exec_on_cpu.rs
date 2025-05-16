@@ -8,7 +8,7 @@ mod cl_may_unified;
 #[cfg(feature = "opencl")]
 pub use cl_may_unified::*;
 
-use crate::{Alloc, Base, Buffer, Device, Read, Retriever, Unit, WriteBuf, CPU};
+use crate::{Alloc, Base, Buffer, CPU, Device, Read, Retriever, Unit, WriteBuf};
 
 /// Moves a `Buffer` stored on device `D` to a `CPU` `Buffer`
 /// and executes the unary operation `F` with a `CPU` on the newly created `CPU` `Buffer`.
@@ -47,7 +47,7 @@ pub fn cpu_exec_unary<'a, T, D, F>(
 where
     T: Unit + Clone + Default + 'static,
     F: for<'b> Fn(&'b CPU, &Buffer<'_, T, CPU>) -> Buffer<'b, T, CPU>,
-    D: Read<T> + WriteBuf<T> + Alloc<T> + Retriever<T>,
+    D: Read<T> + WriteBuf<T> + Alloc<T> + Retriever<'a, T>,
 {
     let cpu = CPU::<Base>::new();
     Ok(crate::cpu_exec!(device, &cpu, x; f(&cpu, &x)))
@@ -114,7 +114,7 @@ pub fn cpu_exec_binary<'a, T, D, F>(
 where
     T: Unit + Clone + Default + 'static,
     F: for<'b> Fn(&'b CPU, &Buffer<'_, T, CPU>, &Buffer<'_, T, CPU>) -> Buffer<'b, T, CPU>,
-    D: Device + Read<T> + WriteBuf<T> + Alloc<T> + Retriever<T>,
+    D: Device + Read<T> + WriteBuf<T> + Alloc<T> + Retriever<'a, T>,
 {
     let cpu = CPU::<Base>::new();
     crate::cpu_exec!(device, &cpu, lhs, rhs; f(&cpu, &lhs, &rhs))
@@ -129,7 +129,8 @@ pub fn cpu_exec_binary_mut<T, D, F>(
 ) -> crate::Result<()>
 where
     T: Unit + Clone + Default,
-    F: for<'b> Fn(&'b CPU, &mut Buffer<'_, T, CPU>, &Buffer<'_, T, CPU>),
+    // F: for<'b> Fn(&'b CPU, &mut Buffer<'_, T, CPU>, &Buffer<'_, T, CPU>),
+    F: for<'b> Fn(&mut [T], &[T]),
     D: Read<T> + WriteBuf<T>,
 {
     let cpu = CPU::<Base>::new();
@@ -138,7 +139,7 @@ where
     // crate::cpu_exec_mut!(device, &cpu, rhs; WRITE_TO<lhs, lhs_cpu> f(&cpu, &mut lhs_cpu, &rhs));
     let mut cpu_lhs = Buffer::<T, CPU>::from((&cpu, lhs.read_to_vec()));
     let cpu_rhs = Buffer::<T, CPU>::from((&cpu, rhs.read_to_vec()));
-    f(&cpu, &mut cpu_lhs, &cpu_rhs);
+    f(&mut cpu_lhs, &cpu_rhs);
 
     device.write(lhs, &cpu_lhs);
 
@@ -286,10 +287,12 @@ where
 
 #[cfg(test)]
 mod tests {
+    use crate::WrappedData;
+
     #[cfg(feature = "opencl")]
     #[test]
     fn test_to_cpu_macro() {
-        use crate::{opencl::chosen_cl_idx, Base, Buffer, CPU};
+        use crate::{Base, Buffer, CPU, opencl::chosen_cl_idx};
 
         let device = crate::OpenCL::<Base>::new(chosen_cl_idx()).unwrap();
 
@@ -306,7 +309,7 @@ mod tests {
     #[cfg(feature = "opencl")]
     #[test]
     fn test_exec_cpu_macro() {
-        use crate::{prelude::chosen_cl_idx, Base, Device, Retriever};
+        use crate::{Base, Device, Retriever, prelude::chosen_cl_idx};
 
         let device = crate::OpenCL::<Base>::new(chosen_cl_idx()).unwrap();
 
@@ -341,7 +344,7 @@ mod tests {
     #[test]
     fn test_cpu_exec_unary_cl() -> crate::Result<()> {
         use crate::{
-            exec_on_cpu::cpu_exec_unary, opencl::chosen_cl_idx, Base, Buffer, CopySlice, OpenCL,
+            Base, Buffer, CopySlice, OpenCL, exec_on_cpu::cpu_exec_unary, opencl::chosen_cl_idx,
         };
         let device = OpenCL::<Base>::new(chosen_cl_idx())?;
 
@@ -358,8 +361,8 @@ mod tests {
     #[test]
     fn test_cpu_exec_unary_cl_unified() -> crate::Result<()> {
         use crate::{
-            exec_on_cpu::cpu_exec_unary_may_unified, opencl::chosen_cl_idx, Base, Buffer, Cached,
-            OpenCL, Retriever,
+            Base, Buffer, Cached, OpenCL, Retriever, exec_on_cpu::cpu_exec_unary_may_unified,
+            opencl::chosen_cl_idx,
         };
         let device = OpenCL::<Cached<Base>>::new(chosen_cl_idx())?;
 
@@ -385,7 +388,7 @@ mod tests {
     #[test]
     fn test_cpu_exec_binary_cl() -> crate::Result<()> {
         use crate::{
-            exec_on_cpu::cpu_exec_binary, opencl::chosen_cl_idx, Base, Buffer, OpenCL, Retriever,
+            Base, Buffer, OpenCL, Retriever, exec_on_cpu::cpu_exec_binary, opencl::chosen_cl_idx,
         };
         let device = OpenCL::<Base>::new(chosen_cl_idx())?;
 
@@ -411,8 +414,8 @@ mod tests {
     #[test]
     fn test_cpu_exec_binary_cl_may_unified() -> crate::Result<()> {
         use crate::{
-            exec_on_cpu::cpu_exec_binary_may_unified, opencl::chosen_cl_idx, Base, Buffer, Cached,
-            OpenCL, Retriever,
+            Base, Buffer, Cached, OpenCL, Retriever, exec_on_cpu::cpu_exec_binary_may_unified,
+            opencl::chosen_cl_idx,
         };
         let device = OpenCL::<Cached<Base>>::new(chosen_cl_idx())?;
 
@@ -434,16 +437,16 @@ mod tests {
         Ok(())
     }
 
-    pub trait AddEw<T, D: crate::Device = Self>: crate::Device {
+    pub trait AddEw<T: 'static, D: crate::Device = Self>: crate::Device {
         #[allow(dead_code)]
         fn add(&self, lhs: &crate::Buffer<T, D>, rhs: &crate::Buffer<T, D>) -> crate::Buffer<T, D>;
     }
 
     impl<Mods, T> AddEw<T> for crate::CPU<Mods>
     where
-        Mods: crate::hooks::OnDropBuffer + crate::Retrieve<Self, T> + 'static,
+        Mods: WrappedData + for<'a> crate::Retrieve<Self, T> + 'static,
         Self::Base<T, ()>: core::ops::Deref<Target = [T]>,
-        T: core::ops::Add<Output = T> + Copy,
+        T: 'static + core::ops::Add<Output = T> + Copy,
     {
         fn add(
             &self,
@@ -462,7 +465,7 @@ mod tests {
     #[cfg(feature = "opencl")]
     #[test]
     fn test_cpu_exec_macro() -> crate::Result<()> {
-        use crate::{prelude::chosen_cl_idx, Base, Cached, Device, OpenCL, CPU};
+        use crate::{Base, CPU, Cached, Device, OpenCL, prelude::chosen_cl_idx};
 
         let device = OpenCL::<Cached<Base>>::new(chosen_cl_idx())?;
         let cpu = CPU::<Cached<Base>>::new();

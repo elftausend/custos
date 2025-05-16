@@ -55,8 +55,10 @@ impl<'a, T: 'static, D: Device + 'static, S: crate::Shape> Replicate
         buffers: &'r mut Buffers<B>,
         device: Option<&'r dyn core::any::Any>,
     ) -> Option<Self::Replication<'r>> {
-        <&mut Buffer<T, D, S> as Replicate>::replicate_borrowed(id, buffers, device)
-            .map(|buf| &*buf)
+        unsafe {
+            <&mut Buffer<T, D, S> as Replicate>::replicate_borrowed(id, buffers, device)
+                .map(|buf| &*buf)
+        }
     }
 
     #[inline]
@@ -120,7 +122,7 @@ impl<R: crate::HasId + Replicate> AnyOp for R {
 
     #[inline]
     unsafe fn replication<'a>(self) -> Self::Replicated<'a> {
-        self.replicate()
+        unsafe { self.replicate() }
     }
 }
 

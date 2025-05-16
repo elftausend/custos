@@ -6,7 +6,7 @@ pub use cpu_storage::*;
 mod cuda_storage;
 pub use cuda_storage::*;
 
-use crate::{untyped::DeviceType, Device, HasId, PtrType, Shape};
+use crate::{Device, HasId, PtrType, Shape, untyped::DeviceType};
 
 use super::{AsDeviceType, AsType, MatchesType};
 
@@ -35,8 +35,8 @@ impl PtrType for UntypedData {
     #[inline]
     unsafe fn set_flag(&mut self, flag: crate::flag::AllocFlag) {
         match self {
-            UntypedData::CPU(cpu) => cpu.set_flag(flag),
-            UntypedData::CUDA(cuda) => cuda.set_flag(flag),
+            UntypedData::CPU(cpu) => unsafe { cpu.set_flag(flag) },
+            UntypedData::CUDA(cuda) => unsafe { cuda.set_flag(flag) },
         }
     }
 }
@@ -124,7 +124,7 @@ impl UntypedData {
 
 #[cfg(test)]
 mod tests {
-    use crate::{cpu::CPUPtr, CPU};
+    use crate::{CPU, cpu::CPUPtr};
 
     use super::{CpuStorage, UntypedData};
 

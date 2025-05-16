@@ -1,11 +1,11 @@
 use core::ops::{Range, RangeInclusive};
 
 use crate::{
-    number::Number, shape::Shape, Alloc, Buffer, Device, OnDropBuffer, OnNewBuffer, Retriever, Unit,
+    Alloc, Buffer, Device, OnNewBuffer, Retriever, Unit, WrappedData, number::Number, shape::Shape,
 };
 
 #[cfg(feature = "cpu")]
-use crate::{WriteBuf, CPU};
+use crate::{CPU, WriteBuf};
 
 impl<'a, T, D, const N: usize> From<(&'a D, [T; N])> for Buffer<'a, T, D>
 where
@@ -120,17 +120,16 @@ where
 }
 
 #[cfg(feature = "cpu")]
-impl<'a, 'b, Mods: OnDropBuffer, T, S, D> From<(&'a D, Buffer<'b, T, CPU<Mods>, S>)>
+impl<'a, 'b, Mods: WrappedData, T, S, D> From<(&'a D, Buffer<'b, T, CPU<Mods>, S>)>
     for Buffer<'a, T, D, S>
 where
     T: Unit + 'static,
     S: Shape,
-    D: WriteBuf<T, S> + Device + Retriever<T, S>,
-    <CPU<Mods> as Device>::Data<T, S>: core::ops::Deref<Target = [T]>,
+    D: WriteBuf<T, S> + Device + Retriever<'a, T, S>,
 {
     fn from((device, buf): (&'a D, Buffer<'b, T, CPU<Mods>, S>)) -> Self {
         let mut out = device.retrieve(buf.len(), &buf).unwrap();
-        device.write(&mut out, &buf);
+        device.write(&mut out, buf.as_slice());
         out
     }
 }
@@ -155,7 +154,7 @@ mod tests {
     #[cfg(feature = "opencl")]
     #[test]
     fn test_buf_device_conversion_cl() -> crate::Result<()> {
-        use crate::{opencl::chosen_cl_idx, Base, Buffer, OpenCL, CPU};
+        use crate::{Base, Buffer, CPU, OpenCL, opencl::chosen_cl_idx};
 
         let device = OpenCL::<Base>::new(chosen_cl_idx())?;
         println!("name: {:?}", device.name());
@@ -189,7 +188,7 @@ mod tests {
     #[cfg(feature = "cpu")]
     #[test]
     fn test_impl_from_range() {
-        use crate::{Device, CPU};
+        use crate::{CPU, Device};
 
         let device = CPU::based();
         let buffer = device.buffer::<f32, (), _>(4..10);
@@ -199,7 +198,7 @@ mod tests {
     #[cfg(feature = "cpu")]
     #[test]
     fn test_impl_from_range_inclusive() {
-        use crate::{Device, CPU};
+        use crate::{CPU, Device};
 
         let device = CPU::based();
         let buffer = device.buffer::<f32, (), _>(4..=10);

@@ -5,17 +5,17 @@
 use core::{cell::RefMut, fmt::Debug, ops::RangeBounds};
 
 use crate::{
+    AnyOp, CPU, HasId, Parents, Shape, UniqueId, Unit, WrappedData, ZeroGrad,
     op_hint::OpHint,
     range::{AsRange, CursorRange},
-    AnyOp, HasId, Parents, Shape, UniqueId, Unit, ZeroGrad, CPU,
 };
 
 #[cfg(feature = "cached")]
 use crate::{Base, CachedModule};
 
-use super::{Alloc, Buffer, Device, OnDropBuffer};
+use super::{Alloc, Buffer, Device};
 
-pub trait Feature: OnDropBuffer {}
+pub trait Feature: WrappedData {}
 
 // is a cached module is placed before Autograd results a problem
 // -> the retrieved buffer is not added to the no grads pool of the autograd module
@@ -24,23 +24,38 @@ pub trait Feature: OnDropBuffer {}
 // how to fix this:
 // add retrieved buffer to no grads pool at the end of the chain (at device level (Retriever trait))
 // => "generator", "actor"
-pub trait Retrieve<D, T: Unit, S: Shape = ()>: OnDropBuffer {
+pub trait Retrieve<D, T: Unit, S: Shape = ()>: WrappedData {
     // "generator"
     #[track_caller]
-    unsafe fn retrieve<const NUM_PARENTS: usize>(
+    fn retrieve_entry<'a, const NUM_PARENTS: usize>(
+        &'a self,
+        device: &D,
+        len: usize,
+        parents: &impl Parents<NUM_PARENTS>,
+    ) -> crate::Result<Self::Wrap<'a, T, D::Base<T, S>>>
+    where
+        S: Shape,
+        D: Alloc<T>;
+
+    #[track_caller]
+    fn retrieve<'a, const NUM_PARENTS: usize>(
         &self,
         device: &D,
         len: usize,
-        parents: impl Parents<NUM_PARENTS>,
-    ) -> crate::Result<Self::Wrap<T, D::Base<T, S>>>
+        parents: &impl Parents<NUM_PARENTS>,
+    ) -> crate::Result<Self::Wrap<'a, T, D::Base<T, S>>>
     where
         S: Shape,
-        D: Device + Alloc<T>;
+        D: Alloc<T>;
 
     // "actor"
     #[inline]
-    fn on_retrieve_finish(&self, _retrieved_buf: &Buffer<T, D, S>)
-    where
+    fn on_retrieve_finish<const NUM_PARENTS: usize>(
+        &self,
+        _len: usize,
+        _parents: impl Parents<NUM_PARENTS>,
+        _retrieved_buf: &Buffer<T, D, S>,
+    ) where
         D: Alloc<T>,
     {
     }
@@ -57,14 +72,14 @@ pub trait Cursor {
     /// Moving the cursor manually to a specific position can possible create multiple mutable references to the same memory location
     #[inline]
     unsafe fn inc_cursor(&self, inc: usize) {
-        self.set_cursor(self.cursor() + inc)
+        unsafe { self.set_cursor(self.cursor() + inc) }
     }
 
     /// # Safety
     /// Moving the cursor manually to a specific position can possible create multiple mutable references to the same memory location
     #[inline]
     unsafe fn bump_cursor(&self) {
-        self.inc_cursor(1)
+        unsafe { self.inc_cursor(1) }
     }
 
     #[inline]
@@ -102,7 +117,7 @@ macro_rules! pass_down_cursor {
 
             #[inline]
             unsafe fn set_cursor(&self, cursor: usize) {
-                self.modules.set_cursor(cursor)
+                unsafe { self.modules.set_cursor(cursor) }
             }
         }
     };
@@ -154,14 +169,14 @@ pub trait GradActions {
         &self,
         device: &'a D,
         buf: &Buffer<'a, T, D, S>,
-    ) -> &Buffer<'a, T, D, S>;
+    ) -> &Buffer<'static, T, D, S>;
 
     #[allow(clippy::mut_from_ref)]
     unsafe fn grad_mut<'a, T: 'static, D: Device + Alloc<T> + ZeroGrad<T> + 'static, S: Shape>(
         &self,
         device: &'a D,
         buf: &Buffer<'a, T, D, S>,
-    ) -> &mut Buffer<'a, T, D, S>;
+    ) -> &mut Buffer<'static, T, D, S>;
 }
 
 pub trait AddGradFn {
@@ -237,26 +252,26 @@ macro_rules! pass_down_grad_fn {
                 &self,
                 device: &'a D,
                 buf: &Buffer<'a, T, D, S>,
-            ) -> &Buffer<'a, T, D, S> {
-                self.modules.grad(device, buf)
+            ) -> &Buffer<'static, T, D, S> {
+                unsafe { self.modules.grad(device, buf) }
             }
 
             unsafe fn grad_mut<'a, T: 'static, D: Device + $crate::Alloc<T> + $crate::ZeroGrad<T> + 'static, S: Shape>(
                 &self,
                 device: &'a D,
                 buf: &Buffer<'a, T, D, S>,
-            ) -> &mut Buffer<'a, T, D, S> {
-                self.modules.grad_mut(device, buf)
+            ) -> &mut Buffer<'static, T, D, S> {
+                unsafe { self.modules.grad_mut(device, buf) }
             }
 
             #[inline]
             unsafe fn gradients(&self) -> Option<&$crate::Gradients> {
-                self.modules.gradients()
+                unsafe { self.modules.gradients() }
             }
 
             #[inline]
             unsafe fn gradients_mut(&self) -> Option<&mut $crate::Gradients> {
-                self.modules.gradients_mut()
+                unsafe { self.modules.gradients_mut() }
             }
 
         }
@@ -314,12 +329,12 @@ macro_rules! pass_down_tape_actions {
         {
             #[inline]
             unsafe fn tape(&self) -> Option<&$crate::Tape<'dev>> {
-                self.modules.tape()
+                unsafe { self.modules.tape() }
             }
 
             #[inline]
             unsafe fn tape_mut(&self) -> Option<&mut $crate::Tape<'dev>> {
-                self.modules.tape_mut()
+                unsafe { self.modules.tape_mut() }
             }
         }
     };
@@ -339,45 +354,24 @@ impl<'a, 'b, T: Unit, D: Device, S: Shape> OpArgs for (&Buffer<'a, T, D, S>, &Bu
 }
 
 // seems useless, however, this is used to retrieve potential lazy buffer information
-pub trait ReplaceBuf<T: Unit, D: Device, S: Shape>: OnDropBuffer {
+pub trait ReplaceBuf<T: Unit, D: Device, S: Shape>: WrappedData {
     fn replace_buf<'a, 'c>(&'c self, buffer: &'c Buffer<'a, T, D, S>) -> &'c Buffer<'a, T, D, S>;
 }
 
-#[macro_export]
-macro_rules! pass_down_replace_buf_dev {
-    ($device:ident) => {
-        impl<T: $crate::Unit, S: Shape, Mods: $crate::ReplaceBuf<T, Self, S>>
-            $crate::ReplaceBuf<T, Self, S> for $device<Mods>
-        {
-            #[inline]
-            fn replace_buf<'a, 'c>(
-                &'c self,
-                buffer: &'c Buffer<'a, T, Self, S>,
-            ) -> &'c Buffer<'a, T, Self, S> {
-                self.modules.replace_buf(buffer)
-            }
-        }
-    };
-}
+pub trait ReplaceBufPassDown {}
 
-#[macro_export]
-macro_rules! pass_down_replace_buf_module {
-    ($module:ident, $($generics:tt),*) => {
-        impl<'dev, T: $crate::Unit, S: Shape, Mods: $crate::ReplaceBuf<T, D, S>, D: $crate::Device>
-            $crate::ReplaceBuf<T, D, S> for $module<$($generics),*>
-        {
-            #[inline]
-            fn replace_buf<'a, 'c>(
-                &'c self,
-                buffer: &'c Buffer<'a, T, D, S>,
-            ) -> &'c Buffer<'a, T, D, S> {
-                self.modules.replace_buf(buffer)
-            }
-        }
-    };
-    ($module:ident) => {
-        $crate::pass_down_replace_buf_module!($module, Mods);
-    };
+impl<'b, T, S, D, Mod> ReplaceBuf<T, D, S> for Mod
+where
+    <Mod as HasModules>::Mods: ReplaceBuf<T, D, S>,
+    T: Unit,
+    S: Shape,
+    D: Device + 'b,
+    Mod: ReplaceBufPassDown + HasModules + WrappedData,
+{
+    #[inline]
+    fn replace_buf<'a, 'c>(&'c self, buffer: &'c Buffer<'a, T, D, S>) -> &'c Buffer<'a, T, D, S> {
+        self.modules().replace_buf(buffer)
+    }
 }
 
 pub trait AddOperation {
@@ -428,6 +422,20 @@ pub trait ExecNow<D = Self> {
     }
 }
 
+pub trait ExecNowPassDown {}
+
+impl<'b, D, Module> ExecNow<D> for Module
+where
+    <Module as HasModules>::Mods: ExecNow<D>,
+    D: Device + 'b,
+    Module: ExecNowPassDown + HasModules + WrappedData,
+{
+    #[inline]
+    fn exec_now(&self, device: &D, range_bounds: impl RangeBounds<usize>) -> crate::Result<()> {
+        self.modules().exec_now(device, range_bounds)
+    }
+}
+
 /// Implements the [`AddOperation`] trait for any supplied device. The `add_op` call is passed down to `self.modules`.
 #[macro_export]
 macro_rules! pass_down_add_operation {
@@ -468,45 +476,6 @@ macro_rules! pass_down_add_operation {
     ($module:ident) => {
         $crate::pass_down_add_operation!($module, Mods);
     };
-}
-
-#[macro_export]
-macro_rules! pass_down_exec_now_module {
-    ($device:ident, $($generics:tt),*) => {
-        impl<'dev, D: $crate::Device, Mods: $crate::ExecNow<D>> $crate::ExecNow<D> for $device<$($generics),*> {
-            #[inline]
-            fn exec_now(
-                &self,
-                device: &D,
-                range_bounds: impl core::ops::RangeBounds<usize>,
-            ) -> $crate::Result<()> {
-                self.modules.exec_now(device, range_bounds)
-            }
-        }
-    };
-    ($device:ident) => {
-        $crate::pass_down_exec_now_module!($device, Mods);
-    }
-}
-
-// FIXME may remove for device and another trait for devices (mind device ref in exec noe)
-#[macro_export]
-macro_rules! pass_down_exec_now {
-    ($device:ident, $($generics:tt),*) => {
-        impl<'dev, Mods: $crate::ExecNow<Self>> $crate::ExecNow<Self> for $device<$($generics),*> {
-            #[inline]
-            fn exec_now(
-                &self,
-                device: &Self,
-                range_bounds: impl core::ops::RangeBounds<usize>,
-            ) -> $crate::Result<()> {
-                self.modules.exec_now(device, range_bounds)
-            }
-        }
-    };
-    ($device:ident) => {
-        $crate::pass_down_exec_now!($device, Mods);
-    }
 }
 
 pub trait HasCPU<Mods> {
@@ -607,6 +576,18 @@ pub trait UseGpuOrCpu {
         gpu_op: impl FnMut(),
     ) -> GpuOrCpuInfo;
 
+    #[track_caller]
+    #[inline]
+    fn use_cpu_or_gpu_tracked(
+        &self,
+        input_lengths: &[usize],
+        cpu_op: impl FnMut(),
+        gpu_op: impl FnMut(),
+    ) -> GpuOrCpuInfo {
+        let location = crate::HashLocation::from(core::panic::Location::caller());
+        self.use_cpu_or_gpu(location, input_lengths, cpu_op, gpu_op)
+    }
+
     fn set_fork_enabled(&self, _enabled: bool);
 
     #[inline]
@@ -624,7 +605,7 @@ pub trait UseGpuOrCpu {
 
 #[cfg(feature = "graph")]
 pub trait Optimize {
-    fn optimize_mem_graph<D: 'static>(
+    unsafe fn optimize_mem_graph<D: 'static>(
         &self,
         device: &D,
         graph_translator: Option<&crate::modules::GraphTranslator>,
@@ -641,12 +622,12 @@ pub trait Optimize {
 macro_rules! pass_down_optimize_mem_graph {
     ($to_impl:ident, $($generics:tt),*) => {
         impl<'dev, Mods: $crate::Optimize> $crate::Optimize for $to_impl<$($generics),*> {
-            fn optimize_mem_graph<D: 'static>(
+            unsafe fn optimize_mem_graph<D: 'static>(
                 &self,
                 device: &D,
                 graph_translator: Option<&$crate::modules::GraphTranslator>,
             ) -> $crate::Result<()> {
-                self.modules.optimize_mem_graph(device, graph_translator)
+                unsafe { self.modules.optimize_mem_graph(device, graph_translator) }
             }
             fn unary_fusing<D: $crate::UnaryFusing + 'static>(
                 &self,
@@ -669,6 +650,11 @@ pub trait CachedBuffers {
     ) -> Option<RefMut<crate::Buffers<Box<dyn crate::BoxedShallowCopy>>>> {
         None
     }
+
+    #[inline]
+    fn are_cached_buffers_supplied_from_below_module(&self) -> bool {
+        false
+    }
 }
 
 #[macro_export]
@@ -681,7 +667,7 @@ macro_rules! pass_down_cached_buffers {
                 &self,
             ) -> Option<core::cell::RefMut<$crate::Buffers<Box<dyn $crate::BoxedShallowCopy>>>>
             {
-                self.modules.buffers_mut()
+                unsafe { self.modules.buffers_mut() }
             }
         }
     };

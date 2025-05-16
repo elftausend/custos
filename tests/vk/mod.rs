@@ -2,13 +2,13 @@ mod alloc;
 mod with_custos_comps;
 
 use std::{
-    ffi::{c_char, CStr},
+    ffi::{CStr, c_char},
     time::Instant,
 };
 
 use ash::{
-    vk::{self, Buffer, DeviceMemory, Fence, InstanceCreateInfo, PhysicalDevice, PipelineCache},
     Entry,
+    vk::{self, Buffer, DeviceMemory, Fence, InstanceCreateInfo, PhysicalDevice, PipelineCache},
 };
 use naga::back::spv::{Options, PipelineOptions};
 

@@ -7,38 +7,80 @@ use core::{
 };
 
 use crate::{
-    flag::AllocFlag, HasId, HostPtr, Lazy, PtrType, ShallowCopy, WrappedCopy, WrappedData,
+    Device, HasId, HostPtr, IsBasePtr, Lazy, PtrType, ShallowCopy, Shape, ToBase, ToDim, UniqueId,
+    Unit, WrappedData, flag::AllocFlag,
 };
 
-#[derive(Debug, Default)]
-pub struct LazyWrapper<Data, T> {
+use super::unregister_buf_copyable;
+
+#[derive(Default)]
+pub struct LazyWrapper<'a, Data: HasId, T> {
     pub maybe_data: MaybeData<Data>,
-    pub _pd: PhantomData<T>,
+    pub remove_id_cb: Option<Box<dyn Fn(UniqueId) + 'a>>,
+    pub _pd: PhantomData<&'a T>,
+}
+
+impl<'a, Data: HasId, T> Drop for LazyWrapper<'a, Data, T> {
+    #[inline]
+    fn drop(&mut self) {
+        if let Some(remove_id_cb) = &self.remove_id_cb {
+            remove_id_cb(*self.id())
+        }
+    }
+}
+
+impl<'a, Data: std::fmt::Debug + HasId, T> std::fmt::Debug for LazyWrapper<'a, Data, T> {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.debug_struct("LazyWrapper")
+            .field("maybe_data", &self.maybe_data)
+            .field("remove_id_cb", &"callback()")
+            .field("_pd", &self._pd)
+            .finish()
+    }
 }
 
 impl<T2, Mods: WrappedData> WrappedData for Lazy<'_, Mods, T2> {
-    type Wrap<T, Base: HasId + PtrType> = LazyWrapper<Mods::Wrap<T, Base>, T>;
+    type Wrap<'a, T: Unit, Base: IsBasePtr> = LazyWrapper<'a, Mods::Wrap<'a, T, Base>, T>;
 
     #[inline]
-    fn wrap_in_base<T, Base: HasId + PtrType>(&self, base: Base) -> Self::Wrap<T, Base> {
+    fn wrap_in_base<'a, T: Unit, Base: IsBasePtr>(&'a self, base: Base) -> Self::Wrap<'a, T, Base> {
         LazyWrapper {
             maybe_data: MaybeData::Data(self.modules.wrap_in_base(base)),
+            remove_id_cb: Some(Box::new(|id| {
+                unregister_buf_copyable(&mut self.buffers.borrow_mut(), id)
+            })),
             _pd: PhantomData,
         }
     }
 
     #[inline]
-    fn wrapped_as_base<T, Base: HasId + PtrType>(wrap: &Self::Wrap<T, Base>) -> &Base {
+    fn wrap_in_base_unbound<'a, T: Unit, Base: IsBasePtr>(
+        &self,
+        base: Base,
+    ) -> Self::Wrap<'a, T, Base> {
+        LazyWrapper {
+            maybe_data: MaybeData::Data(self.modules.wrap_in_base_unbound(base)),
+            remove_id_cb: None,
+            _pd: PhantomData,
+        }
+    }
+
+    #[inline]
+    fn wrapped_as_base<'a, 'b, T: Unit, Base: IsBasePtr>(
+        wrap: &'b Self::Wrap<'a, T, Base>,
+    ) -> &'b Base {
         Mods::wrapped_as_base(wrap.maybe_data.data().expect(MISSING_DATA))
     }
 
     #[inline]
-    fn wrapped_as_base_mut<T, Base: HasId + PtrType>(wrap: &mut Self::Wrap<T, Base>) -> &mut Base {
+    fn wrapped_as_base_mut<'a, 'b, T: Unit, Base: IsBasePtr>(
+        wrap: &'b mut Self::Wrap<'a, T, Base>,
+    ) -> &'b mut Base {
         Mods::wrapped_as_base_mut(wrap.maybe_data.data_mut().expect(MISSING_DATA))
     }
 }
 
-impl<Data: HasId, T> HasId for LazyWrapper<Data, T> {
+impl<'a, Data: HasId, T> HasId for LazyWrapper<'a, Data, T> {
     #[inline]
     fn id(&self) -> crate::Id {
         match self.maybe_data {
@@ -49,7 +91,7 @@ impl<Data: HasId, T> HasId for LazyWrapper<Data, T> {
     }
 }
 
-impl<Data: PtrType, T> PtrType for LazyWrapper<Data, T> {
+impl<'a, Data: PtrType + HasId, T: Unit> PtrType for LazyWrapper<'a, Data, T> {
     #[inline]
     fn size(&self) -> usize {
         match self.maybe_data {
@@ -64,19 +106,19 @@ impl<Data: PtrType, T> PtrType for LazyWrapper<Data, T> {
         self.maybe_data
             .data()
             .map(|data| data.flag())
-            .unwrap_or(AllocFlag::Lazy)
+            .unwrap_or(AllocFlag::None)
     }
 
     #[inline]
     unsafe fn set_flag(&mut self, flag: AllocFlag) {
-        self.maybe_data.data_mut().unwrap().set_flag(flag)
+        unsafe { self.maybe_data.data_mut().unwrap().set_flag(flag) }
     }
 }
 
 const MISSING_DATA: &str =
     "This lazy buffer does not contain any data. Try with a buffer.replace() call.";
 
-impl<Data: Deref<Target = [T]>, T> Deref for LazyWrapper<Data, T> {
+impl<'a, Data: HasId + Deref<Target = [T]>, T> Deref for LazyWrapper<'a, Data, T> {
     type Target = Data;
 
     #[inline]
@@ -85,14 +127,14 @@ impl<Data: Deref<Target = [T]>, T> Deref for LazyWrapper<Data, T> {
     }
 }
 
-impl<Data: DerefMut<Target = [T]>, T> DerefMut for LazyWrapper<Data, T> {
+impl<'a, Data: HasId + DerefMut<Target = [T]>, T> DerefMut for LazyWrapper<'a, Data, T> {
     #[inline]
     fn deref_mut(&mut self) -> &mut Self::Target {
         self.maybe_data.data_mut().expect(MISSING_DATA)
     }
 }
 
-impl<T, Data: HostPtr<T>> HostPtr<T> for LazyWrapper<Data, T> {
+impl<'a, T: Unit, Data: HasId + HostPtr<T>> HostPtr<T> for LazyWrapper<'a, Data, T> {
     #[inline]
     fn ptr(&self) -> *const T {
         self.maybe_data.data().unwrap().ptr()
@@ -104,34 +146,45 @@ impl<T, Data: HostPtr<T>> HostPtr<T> for LazyWrapper<Data, T> {
     }
 }
 
-impl<Data, T> WrappedCopy for LazyWrapper<Data, T>
-where
-    Data: WrappedCopy<Base = T>,
-{
-    type Base = T;
-
-    fn wrapped_copy(&self, to_wrap: Self::Base) -> Self {
+impl<'a, Data: HasId + ShallowCopy, T> ShallowCopy for LazyWrapper<'a, Data, T> {
+    #[inline]
+    unsafe fn shallow(&self) -> Self {
         LazyWrapper {
             maybe_data: match &self.maybe_data {
-                MaybeData::Data(data) => MaybeData::Data(data.wrapped_copy(to_wrap)),
+                MaybeData::Data(data) => unsafe { MaybeData::Data(data.shallow()) },
                 MaybeData::Id(id) => MaybeData::Id(*id),
                 MaybeData::None => unimplemented!(),
             },
+            remove_id_cb: None,
             _pd: PhantomData,
         }
     }
 }
 
-impl<Data: ShallowCopy, T> ShallowCopy for LazyWrapper<Data, T> {
+impl<'a, T: Unit, S: Shape, Data: HasId + ToBase<T, D, S>, T1, D: Device> ToBase<T, D, S>
+    for LazyWrapper<'a, Data, T1>
+{
     #[inline]
-    unsafe fn shallow(&self) -> Self {
-        LazyWrapper {
-            maybe_data: match &self.maybe_data {
-                MaybeData::Data(data) => MaybeData::Data(data.shallow()),
-                MaybeData::Id(id) => MaybeData::Id(*id),
-                MaybeData::None => unimplemented!(),
-            },
-            _pd: PhantomData,
-        }
+    fn to_base(self) -> <D as Device>::Base<T, S> {
+        todo!()
+        // match self.maybe_data {
+        //     MaybeData::Data(data) => data.to_base(),
+        //     MaybeData::Id(_id) => unimplemented!("Cannot convert id wrapper to base"),
+        //     MaybeData::None => unimplemented!("Cannot convert nothin to base"),
+        // }
+    }
+}
+
+impl<'a, T, Data: HasId> ToDim for LazyWrapper<'a, Data, T> {
+    type Out = Self;
+
+    #[inline]
+    fn to_dim(self) -> Self::Out {
+        self
+    }
+
+    #[inline]
+    fn as_dim(&self) -> &Self::Out {
+        self
     }
 }

@@ -2,12 +2,13 @@ use core::cell::RefCell;
 use std::collections::HashMap;
 
 use super::{
-    api::{
-        create_context, create_stream, cuInit, cuStreamDestroy,
-        cublas::{create_handle, cublasDestroy_v2, cublasSetStream_v2, CublasHandle},
-        device, Context, CudaErrorKind, CudaIntDevice, FnHandle, Module, Stream,
-    },
     AsCudaCvoidPtr, CudaSource, KernelCache,
+    api::{
+        Context, CudaErrorKind, CudaIntDevice, FnHandle, Module, Stream, create_context,
+        create_stream, cuInit, cuStreamDestroy,
+        cublas::{CublasHandle, create_handle, cublasDestroy_v2, cublasSetStream_v2},
+        device,
+    },
 };
 
 pub struct CudaDevice {

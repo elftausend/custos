@@ -6,15 +6,13 @@ use crate::{
     NoHasher, Shape, UniqueId, Unit, ZeroGrad,
 };
 
-const INVALID_ID: &str = "A matching Buffer does not exist.";
-
 /// A cache for gradients.
 /// The cache is populated by `get_ref`, `get_like` or `get_mut_ref` calls.
 #[derive(Default)]
 pub struct Gradients {
     pub(crate) grads_pool: BorrowCache,
     pub no_grads_pool: Buffers<Box<dyn BoxedShallowCopy>>,
-    pub zero_grad_cbs: Vec<(Id, fn(&mut dyn Any))>,
+    zero_grad_cbs: Vec<(Id, fn(&mut dyn Any, &dyn Any))>,
     pub buf_requires_grad: HashMap<UniqueId, bool, BuildHasherDefault<NoHasher>>,
 }
 
@@ -27,14 +25,15 @@ impl core::fmt::Debug for Gradients {
 }
 
 impl Gradients {
-    pub fn zero_grad(&mut self) {
+    pub fn zero_grad<D: 'static>(&mut self, device: &D) {
+        let device: &dyn Any = device;
         for (id, cb) in &self.zero_grad_cbs {
             let grad_buf = self.grads_pool.cache.get_mut(id).unwrap();
 
             // the callback is only added if the grad buffer was used in a grad op, so this check should not be necessary (but it is)
             let req_grad = *self.buf_requires_grad.get(id).unwrap_or(&true);
             if req_grad {
-                cb(&mut **grad_buf);
+                cb(&mut **grad_buf, device);
             }
         }
         // self.grads_pool.cache.clear();
@@ -47,10 +46,11 @@ impl Gradients {
         D: Device + ZeroGrad<T> + 'static,
         S: Shape,
     {
-        self.zero_grad_cbs.push((*id, |grad_buf| {
+        self.zero_grad_cbs.push((*id, |grad_buf, dev: &dyn Any| {
             let grad_buf = grad_buf.downcast_mut::<Buffer<T, D, S>>().unwrap();
+            let device = dev.downcast_ref::<D>().unwrap();
 
-            grad_buf.device().zero_grad(grad_buf);
+            device.zero_grad(grad_buf);
         }));
     }
 
@@ -60,7 +60,7 @@ impl Gradients {
         &self,
         device: &'a D,
         ident: Id,
-    ) -> Result<&Buffer<'_, T, D, S>, CachingError>
+    ) -> Result<&Buffer<'static, T, D, S>, CachingError>
     where
         T: Unit + 'static,
         S: Shape,
@@ -75,7 +75,7 @@ impl Gradients {
         &mut self,
         device: &'a D,
         id: Id,
-    ) -> Result<&mut Buffer<'a, T, D, S>, CachingError>
+    ) -> Result<&mut Buffer<'static, T, D, S>, CachingError>
     where
         T: Unit + 'static,
         S: Shape,
@@ -87,7 +87,7 @@ impl Gradients {
     /// Returns a reference to a gradient [`Buffer`].
     /// Allocates a gradient [`Buffer`] if it does not exist.
     #[inline]
-    pub fn get_ref<'a, T, S, D>(&mut self, device: &'a D, id: Id) -> &Buffer<'a, T, D, S>
+    pub fn get_ref<'a, T, S, D>(&mut self, device: &'a D, id: Id) -> &Buffer<'static, T, D, S>
     where
         T: Unit + 'static,
         S: Shape,
@@ -107,7 +107,7 @@ impl Gradients {
     /// Returns a mutable reference to a gradient [`Buffer`].
     /// Allocates a gradient [`Buffer`] if it does not exist.
     #[inline]
-    pub fn get_mut<'a, T, S, D>(&mut self, device: &'a D, id: Id) -> &mut Buffer<'a, T, D, S>
+    pub fn get_mut<'a, T, S, D>(&mut self, device: &'a D, id: Id) -> &mut Buffer<'static, T, D, S>
     where
         T: Unit + 'static,
         S: Shape,
@@ -125,31 +125,14 @@ impl Gradients {
 
     /// Returns a reference to a gradient [`Buffer`] using information from `buf`.
     #[inline]
-    pub fn get_like<'a, T, S, D>(&mut self, buf: &Buffer<'a, T, D, S>) -> &Buffer<'a, T, D, S>
+    pub fn get_like<'a, T, S, D>(&mut self, buf: &Buffer<'a, T, D, S>) -> &Buffer<'static, T, D, S>
     where
         T: Unit + 'static,
         S: Shape,
         D: Alloc<T> + ZeroGrad<T> + 'static,
-        D::Data<T, S>: HasId,
+        D::Data<'a, T, S>: HasId,
     {
         self.get_ref(buf.device(), buf.id())
-    }
-
-    #[inline]
-    pub fn get_buf_from_no_grad_pool<'a, T, S, D>(&self, id: Id) -> &Buffer<'a, T, D, S>
-    where
-        T: Unit + 'static,
-        S: Shape,
-        D: Alloc<T> + 'static,
-    {
-        self.no_grads_pool
-            .get(&id)
-            .ok_or(CachingError::InvalidId)
-            .expect(INVALID_ID)
-            .as_any()
-            .downcast_ref()
-            .ok_or(CachingError::InvalidTypeInfo)
-            .expect(INVALID_ID)
     }
 }
 
@@ -159,7 +142,7 @@ mod tests {
     #[cfg(feature = "cpu")]
     #[test]
     fn test_zero_grad_on_gradients() {
-        use crate::{Base, Device, Gradients, HasId, CPU};
+        use crate::{Base, CPU, Device, Gradients, HasId};
 
         let dev = CPU::<Base>::new();
 
@@ -176,7 +159,7 @@ mod tests {
             assert_eq!(grad.as_slice(), &[4; 4]);
         }
 
-        grads.zero_grad();
+        grads.zero_grad(&dev);
         let grad = grads.get_ref::<i32, (), _>(&dev, lhs.id());
         assert_eq!(grad.as_slice(), &[0; 4]);
     }

@@ -1,18 +1,18 @@
 use core::ops::{Range, RangeBounds};
 
 use min_cl::{
-    api::{enqueue_copy_buffer, enqueue_copy_buffers, enqueue_full_copy_buffer},
     CLDevice,
+    api::{enqueue_copy_buffer, enqueue_copy_buffers, enqueue_full_copy_buffer},
 };
 
 use crate::{
-    bounds_to_range, cpu_stack_ops::clear_slice, location, op_hint::unary, pass_down_add_operation,
-    pass_down_exec_now, prelude::Number, AddOperation, ApplyFunction, Buffer, CDatatype, ClearBuf,
-    CopySlice, OnDropBuffer, OpenCL, Read, Resolve, Retrieve, Retriever, SetOpHint, Shape,
-    ToCLSource, ToMarker, TwoWay, UnaryGrad, Unit, UseGpuOrCpu, WriteBuf, ZeroGrad,
+    AddOperation, ApplyFunction, Buffer, CDatatype, ClearBuf, CopySlice, OpenCL, Read, Resolve,
+    Retrieve, Retriever, SetOpHint, Shape, ToCLSource, ToMarker, TwoWay, UnaryGrad, Unit,
+    UseGpuOrCpu, WrappedData, WriteBuf, ZeroGrad, bounds_to_range, cpu_stack_ops::clear_slice,
+    location, op_hint::unary, pass_down_add_operation, prelude::Number,
 };
 
-use super::{enqueue_kernel, CLPtr};
+use super::{CLPtr, enqueue_kernel};
 
 /*impl<Mods: OnDropBuffer, T: CDatatype> ClearBuf<T> for OpenCL<Mods> {
     #[inline]
@@ -22,9 +22,8 @@ use super::{enqueue_kernel, CLPtr};
 }*/
 
 pass_down_add_operation!(OpenCL);
-pass_down_exec_now!(OpenCL);
 
-impl<Mods: OnDropBuffer + UseGpuOrCpu, T: CDatatype + Default> ClearBuf<T> for OpenCL<Mods> {
+impl<Mods: WrappedData + UseGpuOrCpu, T: CDatatype + Default> ClearBuf<T> for OpenCL<Mods> {
     #[inline]
     fn clear(&self, buf: &mut Buffer<T, OpenCL<Mods>>) {
         /*crate::fork!(
@@ -49,7 +48,7 @@ impl<Mods: OnDropBuffer + UseGpuOrCpu, T: CDatatype + Default> ClearBuf<T> for O
     }
 }
 
-impl<Mods: OnDropBuffer, T: CDatatype> ZeroGrad<T> for OpenCL<Mods> {
+impl<Mods: WrappedData, T: CDatatype> ZeroGrad<T> for OpenCL<Mods> {
     #[inline]
     fn zero_grad<S: Shape>(&self, data: &mut Self::Base<T, S>) {
         try_cl_clear(self, data).unwrap()
@@ -90,7 +89,7 @@ pub fn try_cl_clear<T: CDatatype>(device: &CLDevice, lhs: &mut CLPtr<T>) -> crat
     Ok(())
 }
 
-impl<T: Unit, S: Shape, Mods: OnDropBuffer> WriteBuf<T, S> for OpenCL<Mods> {
+impl<T: Unit, S: Shape, Mods: WrappedData> WriteBuf<T, S> for OpenCL<Mods> {
     #[inline]
     fn write(&self, buf: &mut Buffer<T, Self, S>, data: &[T]) {
         let event = unsafe { self.device.enqueue_write_buffer(buf.cl_ptr(), data, false) }.unwrap();
@@ -170,14 +169,20 @@ impl<T: Unit> CopySlice<T> for OpenCL {
 
 impl<Mods, T, S> Read<T, S> for OpenCL<Mods>
 where
-    Mods: OnDropBuffer + 'static,
+    Mods: WrappedData + 'static,
     T: Unit + Clone + Default,
     S: Shape,
 {
     #[cfg(not(unified_cl))]
-    type Read<'a> = Vec<T> where T: 'a;
+    type Read<'a>
+        = Vec<T>
+    where
+        T: 'a;
     #[cfg(unified_cl)]
-    type Read<'a> = &'a [T] where T: 'a;
+    type Read<'a>
+        = &'a [T]
+    where
+        T: 'a;
 
     #[cfg(not(unified_cl))]
     #[inline]
@@ -215,7 +220,7 @@ fn try_read_cl_buf_to_vec<T: Clone + Default>(
     Ok(read)
 }
 
-impl<T, S, Mods> ApplyFunction<T, S> for OpenCL<Mods>
+impl<'a, T, S, Mods> ApplyFunction<T, S> for OpenCL<Mods>
 where
     T: CDatatype + Number,
     S: Shape,
@@ -295,7 +300,7 @@ where
     Ok(())
 }
 
-impl<T, S, Mods: OnDropBuffer + AddOperation + 'static> UnaryGrad<T, S> for OpenCL<Mods>
+impl<T, S, Mods: WrappedData + AddOperation + 'static> UnaryGrad<T, S> for OpenCL<Mods>
 where
     T: CDatatype + Number,
     S: Shape,
@@ -319,7 +324,7 @@ where
 
 /// A failable OpenCL version of [`add_unary_grad`](UnaryGrad::add_unary_grad).
 /// Writes the unary gradient (with chainrule) to the lhs_grad [`Buffer`].
-pub fn try_cl_add_unary_grad<T, S, F, Mods: OnDropBuffer>(
+pub fn try_cl_add_unary_grad<T, S, F, Mods: WrappedData>(
     device: &OpenCL<Mods>,
     lhs: &Buffer<T, OpenCL<Mods>, S>,
     lhs_grad: &mut Buffer<T, OpenCL<Mods>, S>,
@@ -358,8 +363,8 @@ where
 #[cfg(test)]
 mod test {
     use crate::{
-        opencl::{chosen_cl_idx, try_cl_add_unary_grad, try_cl_apply_fn_mut},
         ApplyFunction, Base, Buffer, Combiner, OpenCL,
+        opencl::{chosen_cl_idx, try_cl_add_unary_grad, try_cl_apply_fn_mut},
     };
 
     #[test]

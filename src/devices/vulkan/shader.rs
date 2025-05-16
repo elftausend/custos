@@ -13,12 +13,12 @@ pub use shader_argument::*;
 use std::collections::HashMap;
 
 use ash::{
+    Device,
     prelude::VkResult,
     vk::{
         self, Buffer, DescriptorBufferInfo, DescriptorSet, DescriptorType, Fence, ShaderModule,
         WriteDescriptorSet,
     },
-    Device,
 };
 
 use super::Context;
@@ -216,7 +216,7 @@ mod tests {
 
     use crate::vulkan::{
         context::Context,
-        shader::{launch_shader, ShaderCache},
+        shader::{ShaderCache, launch_shader},
         vk_array::VkArray,
     };
     use core::ops::{Deref, DerefMut};

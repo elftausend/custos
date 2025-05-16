@@ -101,6 +101,7 @@ pub mod flag;
 mod any_op;
 #[cfg(feature = "std")]
 mod boxed_shallow_copy;
+mod cow_mut;
 pub mod hooks;
 mod id;
 mod layer_management;
@@ -116,6 +117,7 @@ mod wrapper;
 
 pub use any_op::*;
 pub use cache::*;
+pub use cow_mut::*;
 pub use features::*;
 pub use hooks::*;
 pub use id::*;
@@ -151,6 +153,9 @@ pub fn location() -> &'static core::panic::Location<'static> {
 pub(crate) type OperationFn<B> =
     Box<dyn Fn(&[Id], &mut Buffers<B>, &dyn core::any::Any) -> crate::Result<()> + 'static>;
 
+pub trait IsBasePtr: PtrType + HasId + 'static {}
+impl<T: PtrType + HasId + 'static> IsBasePtr for T {}
+
 /// This trait is implemented for every pointer type.
 pub trait PtrType {
     /// Returns the element count.
@@ -166,23 +171,22 @@ pub trait HostPtr<T>: PtrType {
 
     #[inline]
     unsafe fn as_slice(&self) -> &[T] {
-        core::slice::from_raw_parts(self.ptr(), self.size())
+        unsafe { core::slice::from_raw_parts(self.ptr(), self.size()) }
     }
 
     #[inline]
     unsafe fn as_mut_slice(&mut self) -> &mut [T] {
-        core::slice::from_raw_parts_mut(self.ptr_mut(), self.size())
+        unsafe { core::slice::from_raw_parts_mut(self.ptr_mut(), self.size()) }
     }
 }
 
 /// Minimum requirements for an element inside a Buffer.
-pub trait Unit {} // useful for Sync and Send or 'static
+pub trait Unit: 'static {} // useful for Sync and Send or 'static
 
-impl<T> Unit for T {}
+impl<T: 'static> Unit for T {}
 
-pub trait WrappedCopy {
-    type Base;
-    fn wrapped_copy(&self, to_wrap: Self::Base) -> Self;
+pub trait ToBase<T: Unit, D: Device, S: Shape> {
+    fn to_base(self) -> D::Base<T, S>;
 }
 
 /// Used to shallow-copy a pointer. Use is discouraged.
@@ -242,20 +246,20 @@ pub mod prelude {
     //! Typical imports for using custos.
 
     pub use crate::{
-        devices::*, features::*, modules::*, number::*, shape::*, Alloc, Buffer, CDatatype,
-        ClearBuf, CloneBuf, Combiner, CopySlice, Device, Error, HasId, HostPtr, MayToCLSource,
-        Read, Run, ShallowCopy, Unit, WithShape, WriteBuf,
+        Alloc, Buffer, CDatatype, ClearBuf, CloneBuf, Combiner, CopySlice, Device, Error, HasId,
+        HostPtr, MayToCLSource, Read, Run, ShallowCopy, Unit, WithShape, WriteBuf, devices::*,
+        features::*, modules::*, number::*, shape::*,
     };
 
     #[cfg(feature = "cpu")]
-    pub use crate::{exec_on_cpu::*, CPU};
+    pub use crate::{CPU, exec_on_cpu::*};
 
     #[cfg(feature = "opencl")]
-    pub use crate::opencl::{chosen_cl_idx, enqueue_kernel, CLBuffer, OpenCL, CL};
+    pub use crate::opencl::{CL, CLBuffer, OpenCL, chosen_cl_idx, enqueue_kernel};
 
     #[cfg(feature = "opencl")]
     #[cfg(unified_cl)]
-    pub use crate::{opencl::construct_buffer, UnifiedMemChain};
+    pub use crate::{UnifiedMemChain, opencl::construct_buffer};
 
     #[cfg(feature = "stack")]
     pub use crate::stack::Stack;
@@ -264,7 +268,7 @@ pub mod prelude {
     pub use crate::nnapi::NnapiDevice;
 
     #[cfg(feature = "cuda")]
-    pub use crate::cuda::{chosen_cu_idx, launch_kernel1d, CUBuffer, CUDA};
+    pub use crate::cuda::{CUBuffer, CUDA, chosen_cu_idx, launch_kernel1d};
 
     #[cfg(feature = "vulkan")]
     pub use crate::Vulkan;
@@ -276,8 +280,8 @@ pub mod tests_helper {
 
     use crate::{Buffer, Device, Number, Shape, Unit};
 
-    pub trait AddEw<T: Unit, D: Device, S: Shape>: Device {
-        fn add(&self, lhs: &Buffer<T, D, S>, rhs: &Buffer<T, D, S>) -> Buffer<T, Self, S>;
+    pub trait AddEw<'a, T: Unit, D: Device, S: Shape>: Device {
+        fn add(&'a self, lhs: &Buffer<T, D, S>, rhs: &Buffer<T, D, S>) -> Buffer<'a, T, Self, S>;
     }
 
     pub fn add_ew_slice<T: Add<Output = T> + Copy>(lhs: &[T], rhs: &[T], out: &mut [T]) {
@@ -306,7 +310,7 @@ mod tests {
     #[cfg(feature = "cpu")]
     #[test]
     fn test_buffer_from_device() {
-        use crate::{Base, Device, CPU};
+        use crate::{Base, CPU, Device};
 
         let device = CPU::<Base>::new();
         let buf = device.buffer([1, 2, 3]);

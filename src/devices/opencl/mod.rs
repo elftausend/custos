@@ -1,6 +1,6 @@
 //! The OpenCL module provides the OpenCL backend for custos.
 
-pub use cl_device::{OpenCL, CL};
+pub use cl_device::{CL, OpenCL};
 pub use kernel_enqueue::*;
 
 //pub mod api;

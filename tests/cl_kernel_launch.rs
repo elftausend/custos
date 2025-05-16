@@ -1,9 +1,9 @@
 use std::ffi::c_void;
 
 use custos::{
-    opencl::{enqueue_kernel, AsClCvoidPtr},
-    prelude::{chosen_cl_idx, Float},
     Base, Buffer, CDatatype, OpenCL, Retriever,
+    opencl::{AsClCvoidPtr, enqueue_kernel},
+    prelude::{Float, chosen_cl_idx},
 };
 
 #[test]

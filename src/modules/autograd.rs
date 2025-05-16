@@ -11,11 +11,10 @@ use core::{
 };
 
 use crate::{
-    impl_remove_layer, pass_down_add_operation, pass_down_cached_buffers, pass_down_cursor,
-    pass_down_exec_now_module, pass_down_replace_buf_module, register_buf_copyable,
-    unregister_buf_copyable, AddGradFn, AddLayer, Alloc, Buffer, Device, GradActions, HasId,
-    HasModules, IsShapeIndep, Module, OnDropBuffer, OnNewBuffer, Parents, Retrieve, RunModule,
-    Setup, ShallowCopy, Shape, TapeActions, Unit,
+    AddGradFn, AddLayer, Alloc, Buffer, CachedBuffers, Device, ExecNowPassDown, GradActions, HasId,
+    HasModules, IsShapeIndep, Module, OnNewBuffer, Parents, ReplaceBufPassDown, Retrieve,
+    RunModule, Setup, ShallowCopy, Shape, TapeActions, Unit, WrappedData, impl_remove_layer,
+    pass_down_add_operation, pass_down_cached_buffers, pass_down_cursor, register_buf_copyable,
 };
 
 use self::wrapper::ReqGradWrapper;
@@ -51,13 +50,18 @@ impl<'a, Mods: Module<'a, D>, D: Device + 'a> Module<'a, D> for Autograd<'a, Mod
 }
 
 impl<'dev, Mods> Autograd<'dev, Mods> {
-    pub fn register_no_grad_buf<T, D, S>(&self, buf: &Buffer<T, D, S>)
+    pub fn register_no_grad_buf<'a, T, D, S>(&self, buf: &Buffer<T, D, S>)
     where
         T: Unit + 'static,
         D: Device + IsShapeIndep + 'static,
-        D::Data<T, S>: ShallowCopy,
+        D::Data<'static, T, S>: ShallowCopy,
+        D::Base<T, S>: ShallowCopy,
         S: Shape,
+        Mods: CachedBuffers,
     {
+        if self.modules.are_cached_buffers_supplied_from_below_module() {
+            return;
+        }
         let no_grads_pool = unsafe { &mut (*self.grads.get()).no_grads_pool };
 
         if no_grads_pool.get(&buf.id()).is_some() {
@@ -68,15 +72,17 @@ impl<'dev, Mods> Autograd<'dev, Mods> {
     }
 }
 
-impl<'dev, T, D, Mods, S: Shape> OnNewBuffer<'dev, T, D, S> for Autograd<'_, Mods>
+impl<'m_dev, 'dev, T, D, Mods, S: Shape> OnNewBuffer<'dev, T, D, S> for Autograd<'m_dev, Mods>
 where
     T: Unit + 'static,
     D: Alloc<T> + IsShapeIndep + 'static,
-    D::Data<T, S>: ShallowCopy,
-    Mods: OnNewBuffer<'dev, T, D, S>,
+    D::Data<'static, T, S>: ShallowCopy,
+    D::Base<T, S>: ShallowCopy,
+    Mods: OnNewBuffer<'dev, T, D, S> + CachedBuffers,
+    'm_dev: 'dev,
 {
     #[inline]
-    unsafe fn on_new_buffer(&self, device: &'dev D, new_buf: &Buffer<'dev, T, D, S>) {
+    fn on_new_buffer(&'dev self, device: &'dev D, new_buf: &mut Buffer<'dev, T, D, S>) {
         // let mut no_grads = self.no_grads_pool.borrow_mut();
         // let wrapped_data = unsafe { new_buf.data.shallow() };
 
@@ -98,22 +104,6 @@ where
     }
 }
 
-impl<'dev, Mods: OnDropBuffer> OnDropBuffer for Autograd<'dev, Mods> {
-    #[inline]
-    fn on_drop_buffer<T: Unit, D: Device, S: Shape>(&self, device: &D, buf: &Buffer<T, D, S>) {
-        unsafe { (*self.grads.get()).buf_requires_grad.remove(&*buf.id()) };
-        unregister_buf_copyable(unsafe { &mut (*self.grads.get()).no_grads_pool }, buf.id());
-
-        // TODO
-        // FIXME if an alloc flag None buffer goes out of scope and it has used it's gradient buffer before,
-        // the gradient buffer will stay allocated
-        // - deallocate directly -> however, a user storing the id maybe wants to retrieve the grad buf
-        // - add to id set of potentially unused buffers
-
-        self.modules.on_drop_buffer(device, buf)
-    }
-}
-
 impl<'dev, Mods: Setup<NewDev>, NewDev> Setup<NewDev> for Autograd<'dev, Mods> {
     #[inline]
     fn setup(device: &mut NewDev) -> crate::Result<()> {
@@ -121,24 +111,24 @@ impl<'dev, Mods: Setup<NewDev>, NewDev> Setup<NewDev> for Autograd<'dev, Mods> {
     }
 }
 
-impl<'dev, T, Mods: Retrieve<D, T, S>, D, S: Shape> Retrieve<D, T, S> for Autograd<'dev, Mods>
+impl<'dev, Mods> Autograd<'dev, Mods>
 where
-    T: Unit + 'static,
-    D: IsShapeIndep + Device + 'static,
-    D::Data<T, S>: ShallowCopy,
+    Mods: crate::WrappedData,
 {
-    #[inline]
-    unsafe fn retrieve<const NUM_PARENTS: usize>(
+    fn retrieve_inner<'a, D, T, S, const NUM_PARENTS: usize>(
         &self,
-        device: &D,
-        len: usize,
-        parents: impl Parents<NUM_PARENTS>,
-    ) -> crate::Result<Self::Wrap<T, D::Base<T, S>>>
+        _device: &D,
+        _len: usize,
+        parents: &impl Parents<NUM_PARENTS>,
+        retrieve_cb: impl Fn() -> crate::Result<Mods::Wrap<'a, T, D::Base<T, S>>>,
+    ) -> crate::Result<<Self as WrappedData>::Wrap<'a, T, D::Base<T, S>>>
     where
-        D: Alloc<T>,
+        D: Device,
+        T: Unit,
+        S: Shape,
     {
         let requires_grad = parents.requires_grads().iter().any(|&x| x);
-        let data = self.modules.retrieve(device, len, parents)?;
+        let data = retrieve_cb()?;
         unsafe {
             (*self.grads.get())
                 .buf_requires_grad
@@ -148,18 +138,63 @@ where
         Ok(ReqGradWrapper {
             requires_grad,
             data,
+            remove_id_cb: None,
             _pd: core::marker::PhantomData,
+        })
+    }
+}
+
+impl<'dev, T, Mods: Retrieve<D, T, S>, D, S: Shape> Retrieve<D, T, S> for Autograd<'dev, Mods>
+where
+    T: Unit + 'static,
+    D: IsShapeIndep + Device + 'static,
+    D::Data<'static, T, S>: ShallowCopy,
+    D::Base<T, S>: ShallowCopy,
+    Mods: CachedBuffers,
+{
+    #[inline]
+    fn retrieve<'a, const NUM_PARENTS: usize>(
+        &self,
+        device: &D,
+        len: usize,
+        parents: &impl Parents<NUM_PARENTS>,
+    ) -> crate::Result<Self::Wrap<'a, T, D::Base<T, S>>>
+    where
+        D: Alloc<T>,
+    {
+        self.retrieve_inner(device, len, parents, || {
+            self.modules.retrieve(device, len, parents)
         })
     }
 
     #[inline]
-    fn on_retrieve_finish(&self, retrieved_buf: &Buffer<T, D, S>)
-    where
+    fn on_retrieve_finish<'a, const NUM_PARENTS: usize>(
+        &self,
+        len: usize,
+        parents: impl Parents<NUM_PARENTS>,
+        retrieved_buf: &Buffer<T, D, S>,
+    ) where
         D: Alloc<T>,
     {
         self.register_no_grad_buf(retrieved_buf);
 
-        self.modules.on_retrieve_finish(retrieved_buf)
+        self.modules.on_retrieve_finish(len, parents, retrieved_buf)
+    }
+
+    #[inline]
+    fn retrieve_entry<'a, const NUM_PARENTS: usize>(
+        &'a self,
+        device: &D,
+        len: usize,
+        parents: &impl Parents<NUM_PARENTS>,
+    ) -> crate::Result<Self::Wrap<'a, T, <D>::Base<T, S>>>
+    where
+        S: Shape,
+        D: Alloc<T>,
+    {
+        self.retrieve_inner(device, len, parents, || {
+            self.modules.retrieve_entry(device, len, parents)
+        })
     }
 }
 
@@ -175,30 +210,30 @@ impl<'dev, Mods> GradActions for Autograd<'dev, Mods> {
     }
 
     #[inline]
-    unsafe fn grad<
-        'a,
-        T: 'static,
-        D: Device + Alloc<T> + crate::ZeroGrad<T> + 'static,
-        S: Shape,
-    >(
+    unsafe fn grad<'a, T, D, S>(
         &self,
         device: &'a D,
         buf: &Buffer<'a, T, D, S>,
-    ) -> &Buffer<'a, T, D, S> {
+    ) -> &Buffer<'static, T, D, S>
+    where
+        T: 'static,
+        D: Device + Alloc<T> + crate::ZeroGrad<T> + 'static,
+        S: Shape,
+    {
         unsafe { (*self.grads.get()).get_ref(device, buf.id()) }
     }
 
     #[inline]
-    unsafe fn grad_mut<
-        'a,
-        T: 'static,
-        D: Device + Alloc<T> + crate::ZeroGrad<T> + 'static,
-        S: Shape,
-    >(
+    unsafe fn grad_mut<'a, T, D, S>(
         &self,
         device: &'a D,
         buf: &Buffer<'a, T, D, S>,
-    ) -> &mut Buffer<'a, T, D, S> {
+    ) -> &mut Buffer<'static, T, D, S>
+    where
+        T: 'static,
+        D: Device + Alloc<T> + crate::ZeroGrad<T> + 'static,
+        S: Shape,
+    {
         unsafe { (*self.grads.get()).get_mut(device, buf.id()) }
     }
 }
@@ -206,13 +241,13 @@ impl<'dev, Mods> GradActions for Autograd<'dev, Mods> {
 impl<'dev, Mods> TapeActions<'dev> for Autograd<'dev, Mods> {
     #[inline]
     unsafe fn tape(&self) -> Option<&Tape<'dev>> {
-        Some(&*self.tape.get())
+        unsafe { Some(&*self.tape.get()) }
         // Some(self.tape.borrow())
     }
 
     #[inline]
     unsafe fn tape_mut(&self) -> Option<&mut Tape<'dev>> {
-        Some(&mut *self.tape.get())
+        unsafe { Some(&mut *self.tape.get()) }
         // Some(unsafe {&mut (self.tape.get_mut()) })
         // Some(self.tape.borrow_mut())
     }
@@ -265,11 +300,11 @@ impl<'a, NewMods, SD> AddLayer<NewMods, SD> for Autograd<'a, ()> {
     }
 }
 
+impl<Mods> ExecNowPassDown for Autograd<'_, Mods> {}
+impl<Mods> ReplaceBufPassDown for Autograd<'_, Mods> {}
 pass_down_cursor!(Autograd, 'dev, Mods);
 pass_down_add_operation!(Autograd, 'dev, Mods);
-pass_down_exec_now_module!(Autograd, 'dev, Mods);
 pass_down_cached_buffers!(Autograd, 'dev, Mods);
-pass_down_replace_buf_module!(Autograd, 'dev, Mods);
 
 impl<'a, Mods> HasModules for Autograd<'a, Mods> {
     type Mods = Mods;
@@ -284,8 +319,8 @@ impl<'a, Mods> HasModules for Autograd<'a, Mods> {
 #[cfg(feature = "cpu")]
 mod tests {
     use crate::{
-        AddGradFn, Autograd, Base, BoxedShallowCopy, Buffer, Cached, Combiner, Cursor, Device,
-        HasId, Lazy, Retriever, Shape, UnaryGrad, Unit, CPU,
+        AddGradFn, Autograd, Base, BoxedShallowCopy, Buffer, CPU, Cached, Combiner, Cursor, Device,
+        Downcast, HasId, Lazy, Retriever, Shape, UnaryGrad, Unit,
     };
 
     #[inline]
@@ -293,7 +328,11 @@ mod tests {
         buf_any: &'b Box<dyn BoxedShallowCopy>,
         _device: &'a D,
     ) -> Option<&'b Buffer<'a, T, D, S>> {
-        buf_any.as_any().downcast_ref::<Buffer<T, D, S>>()
+        let any = buf_any.as_any();
+        if !any.is::<Buffer<T, D, S>>() {
+            return None;
+        }
+        Some(unsafe { Downcast::downcast_ref_unchecked::<Buffer<'a, T, D, S>>(any) })
     }
 
     #[test]
@@ -410,6 +449,25 @@ mod tests {
         out.backward().unwrap();
 
         assert_eq!(&***buf.grad(), [5.; 10]);
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_grad_fn_with_out_of_scope_buffer() {
+        let device = CPU::<Autograd<Lazy<Base>>>::new();
+        let out = Buffer::<f32, _>::new(&device, 10);
+        {
+            let buf = Buffer::<f32, _>::new(&device, 10).require_grad();
+
+            device.add_grad_fn((&buf, &out), |(buf, _out)| unsafe {
+                println!("buf: {buf:?}");
+                for (val, grad) in buf.grad_mut_unbound().iter_mut().zip(_out.grad().iter()) {
+                    *val = 5. * grad;
+                }
+                Ok(())
+            });
+        }
+        out.backward().unwrap();
     }
 
     #[test]

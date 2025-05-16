@@ -1,7 +1,7 @@
-use crate::{number::Number, Buffer, OnDropBuffer, OpenCL, Shape, Unit};
+use crate::{Buffer, OpenCL, Shape, Unit, WrappedData, number::Number};
 use min_cl::{
-    api::{set_kernel_arg, OCLErrorKind},
     CLDevice,
+    api::{OCLErrorKind, set_kernel_arg},
 };
 use std::{ffi::c_void, mem::size_of};
 
@@ -77,14 +77,14 @@ pub trait AsClCvoidPtr {
     }
 }
 
-impl<'a, Mods: OnDropBuffer, T: Unit, S: Shape> AsClCvoidPtr for &Buffer<'a, T, OpenCL<Mods>, S> {
+impl<'a, Mods: WrappedData, T: Unit, S: Shape> AsClCvoidPtr for &Buffer<'a, T, OpenCL<Mods>, S> {
     #[inline]
     fn as_cvoid_ptr(&self) -> *const c_void {
         self.base().ptr
     }
 }
 
-impl<'a, Mods: OnDropBuffer, T: Unit, S: Shape> AsClCvoidPtr for Buffer<'a, T, OpenCL<Mods>, S> {
+impl<'a, Mods: WrappedData, T: Unit, S: Shape> AsClCvoidPtr for Buffer<'a, T, OpenCL<Mods>, S> {
     #[inline]
     fn as_cvoid_ptr(&self) -> *const c_void {
         self.base().ptr
@@ -204,7 +204,7 @@ pub fn enqueue_kernel(
 mod tests {
     // use core::ffi::c_void;
 
-    use crate::{opencl::chosen_cl_idx, Base, Buffer, CDatatype, OpenCL};
+    use crate::{Base, Buffer, CDatatype, OpenCL, opencl::chosen_cl_idx};
 
     #[test]
     fn test_kernel_launch() -> crate::Result<()> {

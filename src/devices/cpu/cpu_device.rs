@@ -1,9 +1,9 @@
 use core::convert::Infallible;
 
 use crate::{
-    cpu::CPUPtr, flag::AllocFlag, impl_device_traits, AddLayer, Alloc, Base, Buffer, CloneBuf,
-    Device, DeviceError, DevicelessAble, HasModules, IsShapeIndep, Module, OnDropBuffer,
-    OnNewBuffer, RemoveLayer, Setup, Shape, UnaryFusing, Unit, WrappedData,
+    AddLayer, Alloc, Base, Buffer, CloneBuf, Device, DeviceError, DevicelessAble, IsShapeIndep,
+    Module, OnNewBuffer, RemoveLayer, Setup, Shape, UnaryFusing, Unit, WrappedData, cpu::CPUPtr,
+    flag::AllocFlag, impl_device_traits,
 };
 
 pub trait IsCPU {}
@@ -32,10 +32,10 @@ impl_device_traits!(CPU);
 
 impl<Mods> IsCPU for CPU<Mods> {}
 
-impl<Mods: OnDropBuffer> Device for CPU<Mods> {
+impl<Mods: WrappedData> Device for CPU<Mods> {
     type Error = Infallible;
     type Base<T: Unit, S: Shape> = CPUPtr<T>;
-    type Data<T: Unit, S: Shape> = Self::Wrap<T, Self::Base<T, S>>;
+    type Data<'a, T: Unit, S: Shape> = Self::Wrap<'a, T, Self::Base<T, S>>;
     // type WrappedData<T, S: Shape> = ;
 
     fn new() -> Result<Self, Self::Error> {
@@ -43,29 +43,40 @@ impl<Mods: OnDropBuffer> Device for CPU<Mods> {
     }
 
     #[inline(always)]
-    fn base_to_data<T: Unit, S: Shape>(&self, base: Self::Base<T, S>) -> Self::Data<T, S> {
+    fn default_base_to_data<'a, T: Unit, S: Shape>(
+        &'a self,
+        base: Self::Base<T, S>,
+    ) -> Self::Data<'a, T, S> {
         self.wrap_in_base(base)
     }
 
     #[inline(always)]
-    fn wrap_to_data<T: Unit, S: Shape>(
+    fn default_base_to_data_unbound<'a, T: Unit, S: Shape>(
         &self,
-        wrap: Self::Wrap<T, Self::Base<T, S>>,
-    ) -> Self::Data<T, S> {
+        base: Self::Base<T, S>,
+    ) -> Self::Data<'a, T, S> {
+        self.wrap_in_base_unbound(base)
+    }
+
+    #[inline(always)]
+    fn wrap_to_data<'a, T: Unit, S: Shape>(
+        &self,
+        wrap: Self::Wrap<'a, T, Self::Base<T, S>>,
+    ) -> Self::Data<'a, T, S> {
         wrap
     }
 
     #[inline(always)]
-    fn data_as_wrap<T: Unit, S: Shape>(
-        data: &Self::Data<T, S>,
-    ) -> &Self::Wrap<T, Self::Base<T, S>> {
+    fn data_as_wrap<'a, 'b, T: Unit, S: Shape>(
+        data: &'b Self::Data<'a, T, S>,
+    ) -> &'b Self::Wrap<'a, T, Self::Base<T, S>> {
         data
     }
 
     #[inline(always)]
-    fn data_as_wrap_mut<T: Unit, S: Shape>(
-        data: &mut Self::Data<T, S>,
-    ) -> &mut Self::Wrap<T, Self::Base<T, S>> {
+    fn data_as_wrap_mut<'a, 'b, T: Unit, S: Shape>(
+        data: &'b mut Self::Data<'a, T, S>,
+    ) -> &'b mut Self::Wrap<'a, T, Self::Base<T, S>> {
         data
     }
 
@@ -74,14 +85,6 @@ impl<Mods: OnDropBuffer> Device for CPU<Mods> {
 }
 
 impl<T: Unit, S: Shape> DevicelessAble<'_, T, S> for CPU<Base> {}
-
-impl<Mods> HasModules for CPU<Mods> {
-    type Mods = Mods;
-    #[inline]
-    fn modules(&self) -> &Mods {
-        &self.modules
-    }
-}
 
 impl<SimpleMods> CPU<SimpleMods> {
     #[inline]
@@ -127,7 +130,7 @@ impl<Mods> CPU<Mods> {
     }
 }
 
-impl<T: Unit, Mods: OnDropBuffer> Alloc<T> for CPU<Mods> {
+impl<T: Unit, Mods: WrappedData> Alloc<T> for CPU<Mods> {
     fn alloc<S: Shape>(&self, mut len: usize, flag: AllocFlag) -> crate::Result<Self::Base<T, S>> {
         if len == 0 {
             return Err(DeviceError::ZeroLengthBuffer.into());
@@ -187,7 +190,7 @@ impl<Mods> crate::LazySetup for CPU<Mods> {}
 #[cfg(feature = "fork")]
 impl<Mods> crate::ForkSetup for CPU<Mods> {}
 
-impl<'a, Mods: OnDropBuffer + OnNewBuffer<'a, T, Self, S>, T: Unit + Clone, S: Shape>
+impl<'a, Mods: WrappedData + OnNewBuffer<'a, T, Self, S>, T: Unit + Clone, S: Shape>
     CloneBuf<'a, T, S> for CPU<Mods>
 {
     #[inline]
@@ -198,7 +201,7 @@ impl<'a, Mods: OnDropBuffer + OnNewBuffer<'a, T, Self, S>, T: Unit + Clone, S: S
     }
 }
 
-impl<Mods: OnDropBuffer + 'static> UnaryFusing for CPU<Mods> {
+impl<Mods: WrappedData + 'static> UnaryFusing for CPU<Mods> {
     #[cfg(feature = "lazy")]
     #[cfg(feature = "graph")]
     #[inline]
@@ -224,11 +227,11 @@ impl<Mods: OnDropBuffer + 'static> UnaryFusing for CPU<Mods> {
     }
 }
 
-unsafe impl<Mods: OnDropBuffer> IsShapeIndep for CPU<Mods> {}
+unsafe impl<Mods: WrappedData> IsShapeIndep for CPU<Mods> {}
 
 #[cfg(test)]
 mod tests {
-    use crate::{Alloc, DeviceError, Dim1, CPU};
+    use crate::{Alloc, CPU, DeviceError, Dim1};
 
     #[cfg(feature = "fork")]
     #[cfg(feature = "cached")]
