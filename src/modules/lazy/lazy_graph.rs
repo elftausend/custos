@@ -2,13 +2,19 @@ use crate::{
     AnyOp, BoxedShallowCopy, Buffers, Device, Downcast, Id, OperationFn, Parents, bounds_to_range,
     modules::lazy::exec_iter::ExecIter, op_hint::OpHint,
 };
-use core::ops::RangeBounds;
+use core::{fmt::Debug, ops::RangeBounds};
 use std::collections::HashSet;
 
 pub struct Operation<B, T> {
     pub arg_ids: Vec<Id>,
     pub op: OperationFn<B>,
     pub op_hint: OpHint<T>,
+}
+
+impl<B, T> Debug for Operation<B, T> {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.debug_struct("Operation").field("arg_ids", &self.arg_ids).field("op", &"operation(..)").field("op_hint", &self.op_hint).finish()
+    }
 }
 
 impl<B, T> Operation<B, T> {
@@ -31,6 +37,7 @@ impl<B, T> Operation<B, T> {
     }
 }
 
+#[derive(Debug)]
 pub struct LazyGraph<B = Box<dyn BoxedShallowCopy>, T = ()> {
     pub(crate) operations: Vec<Operation<B, T>>,
 }

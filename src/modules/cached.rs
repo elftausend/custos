@@ -1,10 +1,7 @@
 use core::{
-    any::Any,
     cell::{Cell, Ref, RefMut},
     marker::PhantomData,
-    ops::Deref,
 };
-use std::sync::Arc;
 
 use crate::{
     AddGradFn, AddLayer, AddOperation, Alloc, AsAny, Buffer, Cache, CachedBuffers, CowMut, Cursor,
@@ -15,6 +12,9 @@ use crate::{
 
 #[cfg(feature = "graph")]
 use crate::{DeviceError, Optimize};
+
+#[cfg(feature = "graph")]
+use std::{sync::Arc, any::Any, ops::Deref};
 
 // creator struct, however =>
 // TODO: could remove D generic and therefore CachedModule
@@ -305,13 +305,13 @@ impl<'dev, CacheType, Mods: crate::TapeActions<'dev>, SD: Device> crate::TapeAct
     for CachedModule<Mods, SD, CacheType>
 {
     #[inline]
-    unsafe fn tape(&self) -> Option<&super::Tape<'dev>> {
-        unsafe { self.modules.tape() }
+    fn tape(&self) -> Option<Ref<super::Tape<'dev>>> {
+        self.modules.tape()
     }
 
     #[inline]
-    unsafe fn tape_mut(&self) -> Option<&mut super::Tape<'dev>> {
-        unsafe { self.modules.tape_mut() }
+    fn tape_mut(&self) -> Option<RefMut<super::Tape<'dev>>> {
+        self.modules.tape_mut()
     }
 }
 
@@ -606,7 +606,7 @@ mod tests {
             assert_eq!(buf.len(), buf_base.len());
         }
 
-        let buf_base: Buffer<f32, _> = buf_base.to_device_type(&device);
+        let mut buf_base: Buffer<f32, _> = buf_base.to_device_type(&device);
         for _ in 0..10 {
             let buf: Buffer<f32, _> = device.retrieve(10, &buf_base).unwrap();
 
@@ -614,7 +614,7 @@ mod tests {
                 assert_eq!(base, cached);
             }
 
-            let _x = device.unary_ew(&buf_base, |x| x.exp(), |x| x.exp());
+            let _x = device.unary_ew(&mut buf_base, |x| x.exp(), |x| x.exp());
             assert_eq!(buf.len(), buf_base.len());
         }
     }

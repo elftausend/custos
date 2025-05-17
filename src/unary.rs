@@ -75,8 +75,8 @@ pub trait UnaryElementWiseMayGrad<T: Unit, D: Device, S: Shape>: Device {
     ///
     /// let device = CPU::<Autograd<Base>>::new();
     ///
-    /// let buf = Buffer::from((&device, [1., 2., 3., 3., 2., 1.,])).require_grad();
-    /// let out = device.unary_ew(&buf, |x| x.mul(2.), |x| 2f64.to_val());
+    /// let mut buf = Buffer::from((&device, [1., 2., 3., 3., 2., 1.,])).require_grad();
+    /// let out = device.unary_ew(&mut buf, |x| x.mul(2.), |x| 2f64.to_val());
     ///
     /// assert_eq!(&**out, &[2., 4., 6., 6., 4., 2.,]);
     ///
@@ -85,7 +85,7 @@ pub trait UnaryElementWiseMayGrad<T: Unit, D: Device, S: Shape>: Device {
     /// ```
     fn unary_ew<FO, GO>(
         &self,
-        buf: &Buffer<T, D, S>,
+        buf: &mut Buffer<T, D, S>,
         forward_fn: impl Fn(Resolve<T>) -> FO + Copy + 'static,
         grad_fn: fn(Resolve<T>) -> GO,
     ) -> Buffer<T, Self, S>
@@ -105,7 +105,7 @@ where
     #[inline(always)]
     fn unary_ew<FO, GO>(
         &self,
-        buf: &Buffer<T, D, S>,
+        buf: &mut Buffer<T, D, S>,
         forward_fn: impl Fn(Resolve<T>) -> FO + Copy + 'static,
         grad_fn: fn(Resolve<T>) -> GO,
     ) -> Buffer<T, Self, S>
@@ -120,9 +120,10 @@ where
                 return Ok(());
             }
             // lazy execution is already disabled during backward pass
-            buf.device().eagerly(|| unsafe {
-                buf.device()
-                    .add_unary_grad(buf, buf.grad_mut_unbound(), out.grad(), grad_fn);
+            buf.device().eagerly(|| {
+                let (buf, buf_grad) = buf.grad_mut_self();
+                out.device()
+                    .add_unary_grad(buf, buf_grad, out.grad(), grad_fn);
             });
             Ok(())
         });
@@ -152,8 +153,8 @@ mod tests {
         use crate::{Base, CPU, Combiner, Device, UnaryElementWiseMayGrad};
 
         let device = CPU::<Base>::new();
-        let buf = device.buffer([1., 2., 3., 4.]);
-        let out = device.unary_ew(&buf, |x| x.sin(), |x| x.cos());
+        let mut buf = device.buffer([1., 2., 3., 4.]);
+        let out = device.unary_ew(&mut buf, |x| x.sin(), |x| x.cos());
 
         roughly_eq_slices(
             &**out,
@@ -185,8 +186,8 @@ mod tests {
     {
         use crate::Combiner;
 
-        let buf = device.buffer([1., 2., 3., 4.]).require_grad();
-        let out = device.unary_ew(&buf, |x| x.sin(), |x| x.cos());
+        let mut buf = device.buffer([1., 2., 3., 4.]).require_grad();
+        let out = device.unary_ew(&mut buf, |x| x.sin(), |x| x.cos());
 
         roughly_eq_slices(
             &out.read_to_vec(),
@@ -260,10 +261,10 @@ mod tests {
         };
 
         let device = CPU::<Autograd<Cached<Base>>>::new();
-        let buf = device.buffer([1., 2., 3., 4.]).require_grad();
+        let mut buf = device.buffer([1., 2., 3., 4.]).require_grad();
 
         for _ in 0..10 {
-            let out = device.unary_ew(&buf, |x| x.sin(), |x| x.cos());
+            let out = device.unary_ew(&mut buf, |x| x.sin(), |x| x.cos());
             roughly_eq_slices(
                 out.as_slice(),
                 &[
@@ -325,9 +326,9 @@ mod tests {
         use crate::{Autograd, Base, CPU, Combiner, Device, Lazy, Run, UnaryElementWiseMayGrad};
 
         let device = CPU::<Autograd<Lazy<Base, f64>>>::new();
-        let buf = device.buffer([1., 2., 3., 4.]).require_grad();
+        let mut buf = device.buffer([1., 2., 3., 4.]).require_grad();
 
-        let out = device.unary_ew(&buf, |x| x.sin(), |x| x.cos());
+        let out = device.unary_ew(&mut buf, |x| x.sin(), |x| x.cos());
         out.replace();
         run_several_times!(device, buf, out);
     }
@@ -343,9 +344,9 @@ mod tests {
 
         let device = CPU::<Autograd<Lazy<Base, f64>>>::new();
         let buf = device.buffer([0., 1., 2., 3.]).require_grad();
-        let buf1 = device.apply_fn(&buf, |x| x.add(1.));
+        let mut buf1 = device.apply_fn(&buf, |x| x.add(1.));
 
-        let out = device.unary_ew(&buf1, |x| x.sin(), |x| x.cos());
+        let out = device.unary_ew(&mut buf1, |x| x.sin(), |x| x.cos());
         run_several_times!(device, buf1, out);
     }
 
@@ -360,13 +361,13 @@ mod tests {
 
         let device = CPU::<Autograd<Lazy<Base, f64>>>::new();
         let buf = device.buffer([0., 1., 2., 3.]).require_grad();
-        let buf1 = device.apply_fn(&buf, |x| x.add(1.));
+        let mut buf1 = device.apply_fn(&buf, |x| x.add(1.));
 
         // this executes the operation above and consumes it
         // this results in apply_fn being only executed once
         device.exec_last_n(&device, 1).unwrap();
 
-        let out = device.unary_ew(&buf1, |x| x.sin(), |x| x.cos());
+        let out = device.unary_ew(&mut buf1, |x| x.sin(), |x| x.cos());
 
         run_several_times!(device, buf1, out);
     }
@@ -385,15 +386,15 @@ mod tests {
         };
 
         let device = CPU::<Autograd<Cached<Base>>>::new();
-        let buf = device.buffer([1., 2., 3., 4.]).require_grad();
+        let mut buf = device.buffer([1., 2., 3., 4.]).require_grad();
 
         for i in device.range(0..9) {
-            let _out = device.unary_ew(&buf, |x| x.sin(), |x| x.cos());
+            let _out = device.unary_ew(&mut buf, |x| x.sin(), |x| x.cos());
             if i == 0 {
                 device.write(unsafe { _out.grad_mut_unbound() }, &[1., 1., 1., 1.]);
             }
         }
-        let out = device.unary_ew(&buf, |x| x.sin(), |x| x.cos());
+        let out = device.unary_ew(&mut buf, |x| x.sin(), |x| x.cos());
         out.backward().unwrap();
 
         roughly_eq_slices(

@@ -2,7 +2,7 @@
 //! Different modules can implement these traits to provide different functionality.
 //! If the module does not need to alter the functionality, pass downs macros should be used to pass down the functionality to the wrapped module.
 
-use core::{cell::RefMut, fmt::Debug, ops::RangeBounds};
+use core::{cell::{Ref, RefMut}, fmt::Debug, ops::RangeBounds};
 
 use crate::{
     AnyOp, CPU, HasId, Parents, Shape, UniqueId, Unit, WrappedData, ZeroGrad,
@@ -305,12 +305,12 @@ macro_rules! pass_down_grad_fn {
 pub trait TapeActions<'dev> {
     // "generator" - do not forget to pass down
     #[inline]
-    unsafe fn tape(&self) -> Option<&crate::Tape<'dev>> {
+    fn tape(&self) -> Option<Ref<crate::Tape<'dev>>> {
         None
     }
     // "generator" - do not forget to pass down
     #[inline]
-    unsafe fn tape_mut(&self) -> Option<&mut crate::Tape<'dev>> {
+    fn tape_mut(&self) -> Option<RefMut<crate::Tape<'dev>>> {
         None
     }
 }
@@ -328,13 +328,13 @@ macro_rules! pass_down_tape_actions {
             Self: 'dev
         {
             #[inline]
-            unsafe fn tape(&self) -> Option<&$crate::Tape<'dev>> {
-                unsafe { self.modules.tape() }
+            fn tape(&self) -> Option<core::cell::Ref<$crate::Tape<'dev>>> {
+                self.modules.tape()
             }
 
             #[inline]
-            unsafe fn tape_mut(&self) -> Option<&mut $crate::Tape<'dev>> {
-                unsafe { self.modules.tape_mut() }
+            fn tape_mut(&self) -> Option<core::cell::RefMut<$crate::Tape<'dev>>> {
+                self.modules.tape_mut()
             }
         }
     };

@@ -1,4 +1,4 @@
-use core::marker::PhantomData;
+use core::{fmt::Debug, marker::PhantomData};
 
 use crate::{
     AddOperation, Alloc, AnyOp, BoxedShallowCopy, Buffer, Buffers, Device, GradActions, LazyGraph,
@@ -14,6 +14,12 @@ pub type GradFn = Box<dyn Fn(&mut Gradients)>;
 pub struct Tape<'a> {
     pub lazy_graph: LazyGraph<Box<dyn BoxedShallowCopy>>,
     pd: PhantomData<&'a ()>,
+}
+
+impl<'a> Debug for Tape<'a> {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.debug_struct("Tape").field("lazy_graph", &"").field("pd", &self.pd).finish()
+    }
 }
 
 impl<'t> Tape<'t> {

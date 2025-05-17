@@ -47,7 +47,7 @@ where
             + 'static,
     {
         // should never be None
-        if let Some(tape) = unsafe { self.device().tape_mut() } {
+        if let Some(mut tape) = self.device().tape_mut() {
             let mut buffers = unsafe { self.device().buffers_mut() };
             tape.backward_seeded_maybe_with_buffers(self, seed, buffers.as_deref_mut())
         } else {
@@ -114,6 +114,15 @@ where
     pub fn grad(&self) -> &'a Self {
         unimplemented!("Gradient not available. Activate the autograd feature.");
     }
+    
+    #[cfg(feature = "autograd")]
+    #[inline]
+    pub fn grad_mut_self<'b: 'c, 'c>(&'b mut self) -> (&'c Self, &'b mut Buffer<'static, T, D, S>)
+    where
+        D: GradActions + Alloc<T> + ZeroGrad<T>,
+    {
+        (self, unsafe { self.grad_mut_unbound() })
+    }
 
     #[cfg(feature = "autograd")]
     #[inline]
@@ -171,7 +180,7 @@ where
     /// Activate the `autograd` feature to make this function useable.
     #[inline]
     #[cfg(not(feature = "autograd"))]
-    pub unsafe fn grad_mut<'b>(&'b self) -> &'a mut Self {
+    pub fn grad_mut<'b>(&'b self) -> &'b mut Self {
         unimplemented!("Gradient not available. Activate the autograd feature.");
     }
 

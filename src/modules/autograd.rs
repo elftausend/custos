@@ -6,7 +6,7 @@ pub use gradients::*;
 pub use tape::*;
 
 use core::{
-    cell::{Cell, UnsafeCell},
+    cell::{Cell, Ref, RefCell, RefMut, UnsafeCell},
     marker::PhantomData,
 };
 
@@ -27,7 +27,7 @@ pub struct Autograd<'dev, Mods> {
     pub modules: Mods,
     /// Caches gradients for each [`Buffer`]'s id ([`Ident`]).
     pub grads: UnsafeCell<Gradients>, // could use RefCell
-    pub(crate) tape: UnsafeCell<Tape<'dev>>,
+    pub(crate) tape: RefCell<Tape<'dev>>,
     pub enabled: Cell<bool>,
     pd: PhantomData<Cell<&'dev ()>>,
 }
@@ -240,16 +240,13 @@ impl<'dev, Mods> GradActions for Autograd<'dev, Mods> {
 
 impl<'dev, Mods> TapeActions<'dev> for Autograd<'dev, Mods> {
     #[inline]
-    unsafe fn tape(&self) -> Option<&Tape<'dev>> {
-        unsafe { Some(&*self.tape.get()) }
-        // Some(self.tape.borrow())
+    fn tape(&self) -> Option<Ref<Tape<'dev>>> {
+        Some(self.tape.borrow())
     }
 
     #[inline]
-    unsafe fn tape_mut(&self) -> Option<&mut Tape<'dev>> {
-        unsafe { Some(&mut *self.tape.get()) }
-        // Some(unsafe {&mut (self.tape.get_mut()) })
-        // Some(self.tape.borrow_mut())
+    fn tape_mut(&self) -> Option<RefMut<Tape<'dev>>> {
+        Some(self.tape.borrow_mut())
     }
 }
 
@@ -262,7 +259,7 @@ impl<'a, Mods: AddGradFn> AddGradFn for Autograd<'a, Mods> {
         if !self.enabled.get() {
             return;
         }
-        unsafe { (*self.tape.get()).add_grad_fn(args, op) }
+        unsafe { (*self.tape.as_ptr()).add_grad_fn(args, op) }
     }
 
     #[inline]
