@@ -124,6 +124,15 @@ where
         (self, unsafe { self.grad_mut_unbound() })
     }
 
+    #[cfg(not(feature = "autograd"))]
+    #[inline]
+    pub fn grad_mut_self<'b: 'c, 'c>(&'b mut self) -> (&'c Self, &'b mut Buffer<'static, T, D, S>)
+    where
+        D: GradActions + Alloc<T> + ZeroGrad<T>,
+    {
+        unimplemented!("Gradient not available. Activate the autograd feature.");
+    }
+
     #[cfg(feature = "autograd")]
     #[inline]
     pub fn grad_mut<'b>(&'b mut self) -> &'b mut Buffer<'static, T, D, S>
