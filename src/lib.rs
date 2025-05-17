@@ -35,18 +35,23 @@
 //!
 //! impl<Mods, T, S, D> MulBuf<T, S, D> for CPU<Mods>
 //! where
-//!     Mods: Retrieve<Self, T, S>,
-//!     T: Unit + Mul<Output = T> + Copy + 'static,
+//!     Mods: Retrieve<Self, T, S> + AddOperation + 'static,
+//!     T: Unit + Mul<Output = T> + Copy,
 //!     S: Shape,
-//!     D: Device,
+//!     D: Device + 'static,
 //!     D::Base<T, S>: Deref<Target = [T]>,
 //! {
 //!     fn mul(&self, lhs: &Buffer<T, D, S>, rhs: &Buffer<T, D, S>) -> Buffer<T, Self, S> {
+//!         // add optional caching or graph functionality (add "Cached" or "Graph" module to device)
 //!         let mut out = self.retrieve(lhs.len(), (lhs, rhs)).unwrap(); // unwrap or return error (update trait)
 //!
-//!         for ((lhs, rhs), out) in lhs.iter().zip(rhs.iter()).zip(&mut out) {
-//!             *out = *lhs * *rhs;
-//!         }
+//!         // add optional lazy operation (add "Lazy" module to device)
+//!         self.add_op((lhs, rhs, &mut out), |(lhs, rhs, out)| {
+//!             for ((lhs, rhs), out) in lhs.iter().zip(rhs.iter()).zip(out) {
+//!                 *out = *lhs * *rhs;
+//!             }
+//!             Ok(())
+//!         }).unwrap();
 //!
 //!         out
 //!     }
