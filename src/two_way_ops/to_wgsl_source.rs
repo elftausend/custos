@@ -6,14 +6,14 @@ pub trait ToWgslSource {
 impl ToWgslSource for half::f16 {
     #[inline]
     fn to_wgsl_source(&self) -> String {
-        format!("f16({:?})", self)
+        format!("f16({self:?})")
     }
 }
 
 impl ToWgslSource for f32 {
     #[inline]
     fn to_wgsl_source(&self) -> String {
-        format!("f32({:?})", self)
+        format!("f32({self:?})")
     }
 }
 
@@ -28,14 +28,14 @@ impl ToWgslSource for f32 {
 impl ToWgslSource for i32 {
     #[inline]
     fn to_wgsl_source(&self) -> String {
-        format!("i32({:?})", self)
+        format!("i32({self:?})")
     }
 }
 
 impl ToWgslSource for u32 {
     #[inline]
     fn to_wgsl_source(&self) -> String {
-        format!("u32({:?})", self)
+        format!("u32({self:?})")
     }
 }
 

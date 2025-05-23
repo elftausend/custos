@@ -37,11 +37,11 @@ impl<T, const N: usize> LockedArray<T, N> {
                 if data.is_none() {
                     return State::Err(LockInfo::None);
                 }
-                return State::Ok(Guard::new(CowMutCell::Borrowed(Ref::map(data, |data| {
+                State::Ok(Guard::new(CowMutCell::Borrowed(Ref::map(data, |data| {
                     data.as_ref().unwrap()
-                }))));
+                }))))
             }
-            Err(_) => return State::Err(LockInfo::Locked),
+            Err(_) => State::Err(LockInfo::Locked),
         }
     }
 
@@ -51,12 +51,12 @@ impl<T, const N: usize> LockedArray<T, N> {
                 if data.is_none() {
                     return State::Err(LockInfo::None);
                 }
-                return State::Ok(Guard::new(CowMutCell::BorrowedMut(RefMut::map(
+                State::Ok(Guard::new(CowMutCell::BorrowedMut(RefMut::map(
                     data,
                     |data| data.as_mut().unwrap(),
-                ))));
+                ))))
             }
-            Err(_) => return State::Err(LockInfo::Locked),
+            Err(_) => State::Err(LockInfo::Locked),
         }
     }
 }

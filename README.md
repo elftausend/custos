@@ -68,7 +68,7 @@ Feature | Description
 --- | --- 
 static-api | Enables the creation of `Buffer`s without providing a device.
 std | Adds standard library support.
-no-std | For no std environments, activates `stack` feature.
+no-std | For no `std` and no `alloc` environments, activates `stack` feature.
 macro | Reexport of [custos-macro]
 blas | Adds gemm functions of the system's (selected) BLAS library.
 half | Adds support for half precision floats.

@@ -83,15 +83,6 @@ where
 {
     #[inline]
     fn on_new_buffer(&'dev self, device: &'dev D, new_buf: &mut Buffer<'dev, T, D, S>) {
-        // let mut no_grads = self.no_grads_pool.borrow_mut();
-        // let wrapped_data = unsafe { new_buf.data.shallow() };
-
-        // let buf = Buffer {
-        //     data: wrapped_data,
-        //     device: new_buf.device,
-        // };
-        // no_grads.cache.insert(*new_buf.id(), Box::new(buf));
-
         unsafe {
             (*self.grads.get())
                 .buf_requires_grad
