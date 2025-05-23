@@ -7,10 +7,10 @@ pub trait Shape: 'static {
     const LEN: usize = 0;
 
     /// The type of the ND-Array.
-    type ARR<T>;
+    type Array<T>;
 
     /// Creates a new ND-Array with the default value of `T`.
-    fn new<T: Copy + Default>() -> Self::ARR<T>;
+    fn new<T: Copy + Default>() -> Self::Array<T>;
 
     /// Returns the dimension of the Shape as a vector.
     /// # Example
@@ -24,10 +24,10 @@ pub trait Shape: 'static {
 }
 
 impl Shape for () {
-    type ARR<T> = ();
+    type Array<T> = ();
 
     #[inline]
-    fn new<T>() -> Self::ARR<T> {}
+    fn new<T>() -> Self::Array<T> {}
 
     #[inline]
     #[cfg(feature = "std")]
@@ -53,10 +53,10 @@ impl<const N: usize> IsConstDim for Dim1<N> {}
 
 impl<const N: usize> Shape for Dim1<N> {
     const LEN: usize = N;
-    type ARR<T> = [T; N];
+    type Array<T> = [T; N];
 
     #[inline]
-    fn new<T: Copy + Default>() -> Self::ARR<T> {
+    fn new<T: Copy + Default>() -> Self::Array<T> {
         [T::default(); N]
     }
 
@@ -75,10 +75,10 @@ impl<const B: usize, const A: usize> IsConstDim for Dim2<B, A> {}
 
 impl<const B: usize, const A: usize> Shape for Dim2<B, A> {
     const LEN: usize = B * A;
-    type ARR<T> = [[T; A]; B];
+    type Array<T> = [[T; A]; B];
 
     #[inline]
-    fn new<T: Copy + Default>() -> Self::ARR<T> {
+    fn new<T: Copy + Default>() -> Self::Array<T> {
         [[T::default(); A]; B]
     }
 
@@ -103,11 +103,11 @@ pub struct Dim3<const C: usize, const B: usize, const A: usize>;
 impl<const C: usize, const B: usize, const A: usize> IsConstDim for Dim3<C, B, A> {}
 
 impl<const C: usize, const B: usize, const A: usize> Shape for Dim3<C, B, A> {
-    const LEN: usize = B * A * C;
-    type ARR<T> = [[[T; A]; B]; C];
+    const LEN: usize = C * B * A;
+    type Array<T> = [[[T; A]; B]; C];
 
     #[inline]
-    fn new<T: Copy + Default>() -> Self::ARR<T> {
+    fn new<T: Copy + Default>() -> Self::Array<T> {
         [[[T::default(); A]; B]; C]
     }
 

@@ -215,7 +215,7 @@ impl<'a, T: Unit, D: Device + OnNewBuffer<'a, T, D, S>, S: Shape> Buffer<'a, T, 
     /// Creates a new `Buffer` from an nd-array.
     /// The dimension is defined by the [`Shape`].
     #[inline]
-    pub fn from_array(device: &'a D, array: S::ARR<T>) -> Buffer<'a, T, D, S>
+    pub fn from_array(device: &'a D, array: S::Array<T>) -> Buffer<'a, T, D, S>
     where
         T: Clone,
         D: Alloc<T>,

@@ -45,7 +45,7 @@ pub trait Alloc<T: Unit>: Device + Sized {
     /// Allocates a pointer with the array provided by the `S:`[`Shape`] generic.
     /// By default, the array is flattened and then passed to [`Alloc::alloc_from_slice`].
     #[inline]
-    fn alloc_from_array<S: Shape>(&self, array: S::ARR<T>) -> crate::Result<Self::Base<T, S>>
+    fn alloc_from_array<S: Shape>(&self, array: S::Array<T>) -> crate::Result<Self::Base<T, S>>
     where
         T: Clone,
     {

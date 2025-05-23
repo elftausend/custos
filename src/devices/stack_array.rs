@@ -6,7 +6,7 @@ use crate::{HasId, HostPtr, PtrType, ShallowCopy, Unit, shape::Shape};
 /// It uses `S:`[`Shape`] to get the type of the array.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct StackArray<S: Shape, T> {
-    pub(crate) array: S::ARR<T>,
+    pub(crate) array: S::Array<T>,
 }
 
 impl<S: Shape, T: Default + Copy> StackArray<S, T> {
@@ -24,13 +24,13 @@ impl<S: Shape, T: Default + Copy> StackArray<S, T> {
 
     /// Returns a reference to the possibly multi-dimensional array.
     #[inline]
-    pub const fn array(&self) -> &S::ARR<T> {
+    pub const fn array(&self) -> &S::Array<T> {
         &self.array
     }
 
     /// Returns a mutable reference to the possibly multi-dimensional array.
     #[inline]
-    pub fn array_mut(&mut self) -> &mut S::ARR<T> {
+    pub fn array_mut(&mut self) -> &mut S::Array<T> {
         &mut self.array
     }
 }
@@ -54,7 +54,7 @@ impl<S: Shape, T: Default + Copy> Default for StackArray<S, T> {
 
 impl<S: Shape, T> StackArray<S, T> {
     /// Creates a new `StackArray` from a possibly multi-dimensional array.
-    pub fn from_array(array: S::ARR<T>) -> Self {
+    pub fn from_array(array: S::Array<T>) -> Self {
         const {
             assert!(
                 S::LEN > 0,
@@ -70,13 +70,13 @@ impl<S: Shape, T> StackArray<S, T> {
     /// Returns a pointer to the possibly multi-dimensional array.
     #[inline]
     pub const fn as_ptr(&self) -> *const T {
-        &self.array as *const S::ARR<T> as *const T
+        &self.array as *const S::Array<T> as *const T
     }
 
     /// Returns a pointer to the possibly multi-dimensional array.
     #[inline]
     pub fn as_ptr_mut(&mut self) -> *mut T {
-        &mut self.array as *mut S::ARR<T> as *mut T
+        &mut self.array as *mut S::Array<T> as *mut T
     }
 
     /// Flattens a possibly multidimensional array.
@@ -139,7 +139,7 @@ impl<S: Shape, T: Unit> HostPtr<T> for StackArray<S, T> {
 
 impl<S: Shape, T> ShallowCopy for StackArray<S, T>
 where
-    S::ARR<T>: Copy,
+    S::Array<T>: Copy,
 {
     #[inline]
     unsafe fn shallow(&self) -> Self {
