@@ -8,7 +8,7 @@ use crate::HostPtr;
 
 use min_cl::api::release_mem_object;
 
-use crate::{HasId, Id, PtrType, ShallowCopy, Unit, flag::AllocFlag};
+use crate::{flag::AllocFlag, HasId, Id, PtrType, ShallowCopy, ToDim, Unit};
 
 /// The pointer used for `OpenCL` [`Buffer`](crate::Buffer)s
 #[derive(Debug, PartialEq, Eq)]
@@ -131,5 +131,19 @@ impl<T> Drop for CLPtr<T> {
         unsafe {
             release_mem_object(self.ptr).unwrap();
         }
+    }
+}
+
+impl<T> ToDim for CLPtr<T> {
+    type Out = Self;
+
+    #[inline]
+    fn to_dim(self) -> Self::Out {
+        self
+    }
+
+    #[inline]
+    fn as_dim(&self) -> &Self::Out {
+        self
     }
 }

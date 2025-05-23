@@ -1,5 +1,5 @@
 use super::api::{CudaResult, cu_read, cufree, cumalloc};
-use crate::{HasId, Id, PtrType, ShallowCopy, Unit, flag::AllocFlag};
+use crate::{flag::AllocFlag, HasId, Id, PtrType, ShallowCopy, ToDim, Unit};
 use core::marker::PhantomData;
 
 /// The pointer used for `CUDA` [`Buffer`](crate::Buffer)s
@@ -102,6 +102,20 @@ impl<T: Unit> PtrType for CUDAPtr<T> {
     #[inline]
     unsafe fn set_flag(&mut self, flag: AllocFlag) {
         self.flag = flag;
+    }
+}
+
+impl<T> ToDim for CUDAPtr<T> {
+    type Out = Self;
+
+    #[inline]
+    fn to_dim(self) -> Self::Out {
+        self
+    }
+
+    #[inline]
+    fn as_dim(&self) -> &Self::Out {
+        self
     }
 }
 
