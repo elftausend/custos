@@ -99,7 +99,7 @@ impl<Mods: WrappedData, T: Unit + Copy + Default> Alloc<T> for Stack<Mods> {
     #[inline]
     fn alloc_from_array<S: Shape>(
         &self,
-        array: <S as Shape>::ARR<T>,
+        array: <S as Shape>::Array<T>,
     ) -> crate::Result<Self::Base<T, S>>
     where
         T: Clone,
@@ -110,10 +110,10 @@ impl<Mods: WrappedData, T: Unit + Copy + Default> Alloc<T> for Stack<Mods> {
 
 impl<T: Unit + Copy, S: Shape> Read<T, S> for Stack
 where
-    S::ARR<T>: Copy,
+    S::Array<T>: Copy,
 {
     type Read<'a>
-        = S::ARR<T>
+        = S::Array<T>
     where
         T: 'a,
         Stack: 'a,
