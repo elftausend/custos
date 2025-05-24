@@ -11,10 +11,11 @@ impl<'a, T: Unit + Clone> CpuBuffer<'a, T> {
     #[cfg_attr(not(feature = "opencl"), doc = "```ignore")]
     #[cfg_attr(feature = "opencl", doc = "```")]
     /// use custos::prelude::*;
+    /// use custos::static_api::Mods;
     ///
     /// let cpu_buffer = Buffer::from(&[1., 2., 3.]);
     ///
-    /// let cl_buf = cpu_buffer.to_dev::<OpenCL>();
+    /// let cl_buf = cpu_buffer.to_dev::<OpenCL<Mods<OpenCL>>>();
     /// assert_eq!(cl_buf.read(), vec![1., 2., 3.]);
     /// ```
     #[inline]
