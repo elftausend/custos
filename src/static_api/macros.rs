@@ -25,7 +25,7 @@ macro_rules! buf {
     );
 
     ($($x:expr),+ $(,)?) => (
-        $crate::Buffer::<_, $crate::CPU, ()>::from([$($x),+])
+        $crate::static_api::CpuBuffer::<_, ()>::from([$($x),+])
     );
 }
 

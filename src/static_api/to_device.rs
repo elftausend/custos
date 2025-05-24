@@ -1,8 +1,8 @@
 use crate::{Alloc, Buffer, Device, OnNewBuffer, Read, Unit};
 
-use super::{StaticDevice, static_cpu};
+use super::{static_cpu, CpuBuffer, StaticDevice};
 
-impl<'a, T: Unit + Clone> Buffer<'a, T> {
+impl<'a, T: Unit + Clone> CpuBuffer<'a, T> {
     /// Moves the buffer [`Buffer`] to a static device.<br>
     /// This device is chosen via the type parameter D -> [`OpenCL`](crate::OpenCL), [`CUDA`](crate::CUDA).<br>
     /// It is recommended to use the to_gpu() method of [`Buffer`].
@@ -39,8 +39,8 @@ impl<'a, T: Unit + Clone> Buffer<'a, T> {
     /// ```
     #[cfg(feature = "cuda")]
     #[inline]
-    pub fn to_cuda(self) -> Buffer<'static, T, crate::CUDA> {
-        self.to_dev::<crate::CUDA>()
+    pub fn to_cuda(self) -> Buffer<'static, T, crate::CUDA<super::Mods<crate::CUDA>>> {
+        self.to_dev::<crate::CUDA<super::Mods<crate::CUDA>>>()
     }
 
     /// Converts a [Buffer] to an OpenCL device buffer.<br>
@@ -57,8 +57,9 @@ impl<'a, T: Unit + Clone> Buffer<'a, T> {
     /// ```
     #[cfg(feature = "opencl")]
     #[inline]
-    pub fn to_cl(self) -> Buffer<'static, T, crate::OpenCL> {
-        self.to_dev::<crate::OpenCL>()
+    pub fn to_cl(self) -> Buffer<'static, T, crate::OpenCL<super::Mods<crate::OpenCL>>> {
+
+        self.to_dev::<crate::OpenCL<super::Mods<crate::OpenCL>>>()
     }
 
     /// Converts a [Buffer] to an OpenCL device buffer.
@@ -78,7 +79,7 @@ impl<'a, T: Unit + Clone> Buffer<'a, T> {
     #[cfg(feature = "opencl")]
     #[cfg(not(feature = "cuda"))]
     #[inline]
-    pub fn to_gpu(self) -> Buffer<'static, T, crate::OpenCL> {
+    pub fn to_gpu(self) -> Buffer<'static, T, crate::OpenCL<super::Mods<crate::OpenCL>>> {
         self.to_cl()
     }
 
@@ -98,7 +99,7 @@ impl<'a, T: Unit + Clone> Buffer<'a, T> {
     /// ```
     #[cfg(feature = "cuda")]
     #[inline]
-    pub fn to_gpu(self) -> Buffer<'static, T, crate::CUDA> {
+    pub fn to_gpu(self) -> Buffer<'static, T, crate::CUDA<super::Mods<crate::CUDA>>> {
         self.to_cuda()
     }
 }
@@ -124,7 +125,7 @@ where
     /// assert_eq!(cpu_buf.as_slice(), &[1, 2, 3]);
     /// ```
     #[inline]
-    pub fn to_cpu(self) -> Buffer<'a, T> {
+    pub fn to_cpu(self) -> CpuBuffer<'a, T> {
         Buffer::from((static_cpu(), self.read_to_vec()))
     }
 }

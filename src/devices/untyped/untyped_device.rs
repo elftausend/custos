@@ -14,13 +14,13 @@ pub type Cuda<Mods> = crate::CUDA<Mods>;
 #[cfg(not(feature = "cuda"))]
 pub type Cuda<Mods> = super::CUDA<Mods>;
 
-pub enum UntypedDevice {
-    Cpu(CPU<Base>),
-    Cuda(Cuda<Base>),
+pub enum UntypedDevice<Mods> {
+    Cpu(CPU<Mods>),
+    Cuda(Cuda<Mods>),
 }
 
 pub struct Untyped {
-    pub device: UntypedDevice,
+    pub device: UntypedDevice<Base>,
 }
 
 impl Device for Untyped {

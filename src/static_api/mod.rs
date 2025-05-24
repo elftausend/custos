@@ -35,7 +35,7 @@ pub trait StaticDevice: Device {
     fn as_static() -> &'static Self;
 }
 
-impl StaticDevice for crate::CPU {
+impl StaticDevice for crate::CPU<Mods<crate::CPU>> {
     #[inline]
     fn as_static() -> &'static Self {
         static_cpu()
@@ -51,7 +51,7 @@ impl StaticDevice for crate::Stack {
 }*/
 
 #[cfg(feature = "opencl")]
-impl StaticDevice for crate::OpenCL {
+impl StaticDevice for crate::OpenCL<Mods<crate::OpenCL>> {
     #[inline]
     fn as_static() -> &'static Self {
         static_opencl()
@@ -59,7 +59,7 @@ impl StaticDevice for crate::OpenCL {
 }
 
 #[cfg(feature = "cuda")]
-impl StaticDevice for crate::CUDA {
+impl StaticDevice for crate::CUDA<Mods<crate::CUDA>> {
     #[inline]
     fn as_static() -> &'static Self {
         static_cuda()

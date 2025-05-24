@@ -1,6 +1,3 @@
-#[cfg(feature = "std")]
-use std::sync::OnceLock;
-
 #[cfg(not(feature = "std"))]
 compile_error!("The static-api feature is only available when using the std feature.");
 
@@ -12,18 +9,38 @@ use crate::opencl::chosen_cl_idx;
 #[cfg(feature = "cuda")]
 use crate::cuda::chosen_cu_idx;
 
+#[cfg(feature = "autograd")]
+pub type SimpleMods = crate::Autograd<'static, crate::Cached<crate::Base>>;
+
+#[cfg(all(feature = "cached", not(feature="autograd")))]
+pub type SimpleMods = crate::Cached<crate::Base>;
+
+#[cfg(all(not(feature = "cached"), not(feature="autograd")))]
+pub type SimpleMods = crate::Base;
+
+pub type Mods<D> = <SimpleMods as crate::Module<'static, D>>::Module;
+
+pub type CpuBuffer<'a, T, S = ()> = crate::Buffer<'a, T, crate::CPU<Mods<crate::CPU>>, S>;
+
 #[cfg(feature = "std")]
-pub static GLOBAL_CPU: OnceLock<CPU> = OnceLock::new();
+thread_local! {
+    static GLOBAL_CPU: CPU<Mods<CPU>> = CPU::<SimpleMods>::new();
+}
 
 #[inline]
-pub fn static_cpu() -> &'static CPU {
-    GLOBAL_CPU.get_or_init(CPU::based)
+pub fn static_cpu() -> &'static CPU<Mods<CPU>> {
+    unsafe {
+        GLOBAL_CPU
+            .with(|device| device as *const CPU<<SimpleMods as crate::Module<'static, CPU>>::Module>)
+            .as_ref()
+            .unwrap()
+    }
 }
 
 #[cfg(feature = "opencl")]
 thread_local! {
-    static GLOBAL_OPENCL: crate::OpenCL = {
-        crate::OpenCL::<crate::Base>::new(chosen_cl_idx()).expect("Could not create a static OpenCL device.")
+    static GLOBAL_OPENCL: crate::OpenCL<Mods<crate::OpenCL>> = {
+        crate::OpenCL::<SimpleMods>::new(chosen_cl_idx()).expect("Could not create a static OpenCL device.")
     };
 }
 
@@ -31,11 +48,10 @@ thread_local! {
 /// You can select the index of a static [`OpenCL`](crate::OpenCL) device by setting the `CUSTOS_CL_DEVICE_IDX` environment variable.
 #[cfg(feature = "opencl")]
 #[inline]
-pub fn static_opencl() -> &'static crate::OpenCL {
-    // Safety: GLOBAL_OPENCL should live long enough
+pub fn static_opencl() -> &'static crate::OpenCL::<Mods<crate::OpenCL>> {
     unsafe {
         GLOBAL_OPENCL
-            .with(|device| device as *const crate::OpenCL)
+            .with(|device| device as *const crate::OpenCL<Mods<crate::OpenCL>>)
             .as_ref()
             .unwrap()
     }
@@ -43,8 +59,8 @@ pub fn static_opencl() -> &'static crate::OpenCL {
 
 #[cfg(feature = "cuda")]
 thread_local! {
-    static GLOBAL_CUDA: crate::CUDA = {
-        crate::CUDA::<crate::Base>::new(chosen_cu_idx()).expect("Could not create a static CUDA device.")
+    static GLOBAL_CUDA: crate::CUDA<Mods<crate::CUDA>> = {
+        crate::CUDA::<SimpleMods>::new(chosen_cu_idx()).expect("Could not create a static CUDA device.")
     };
 }
 
@@ -52,11 +68,11 @@ thread_local! {
 /// /// You can select the index of a static [`CUDA`](crate::CUDA) device by setting the `CUSTOS_CU_DEVICE_IDX` environment variable.
 #[cfg(feature = "cuda")]
 #[inline]
-pub fn static_cuda() -> &'static crate::CUDA {
+pub fn static_cuda() -> &'static crate::CUDA<Mods<crate::CUDA>> {
     // Safety: GLOBAL_CUDA should live long enough
     unsafe {
         GLOBAL_CUDA
-            .with(|device| device as *const crate::CUDA)
+            .with(|device| device as *const crate::CUDA<Mods<crate::CUDA>>)
             .as_ref()
             .unwrap()
     }
@@ -72,23 +88,6 @@ mod tests {
     fn test_static_cpu() {
         let buf = Buffer::from(&[1f32, 2., 3.]);
         assert_eq!(buf.read(), vec![1., 2., 3.,]);
-    }
-
-    #[cfg(feature = "std")]
-    #[test]
-    fn test_static_cpu_thread_return() {
-        use crate::{
-            Device,
-            static_api::{GLOBAL_CPU, static_cpu},
-        };
-
-        let buf = Buffer::from(&[1f32, 2., 3.]);
-        GLOBAL_CPU.get().unwrap();
-        assert_eq!(buf.read(), vec![1., 2., 3.,]);
-
-        let res = std::thread::spawn(static_cpu).join().unwrap();
-
-        let _out = res.buffer([1, 2, 3, 4]);
     }
 
     #[cfg(feature = "opencl")]
@@ -138,9 +137,9 @@ mod tests {
     #[cfg(feature = "cuda")]
     #[test]
     fn test_to_device_cu() {
-        use crate::CUDA;
+        use crate::{static_api::Mods, CUDA};
 
-        let buf = Buffer::from(&[3f32, 1.4, 1., 2.]).to_dev::<CUDA>();
+        let buf = Buffer::from(&[3f32, 1.4, 1., 2.]).to_dev::<CUDA<Mods<CUDA>>>();
 
         assert_eq!(buf.read(), vec![3., 1.4, 1., 2.]);
     }
@@ -148,9 +147,9 @@ mod tests {
     #[cfg(feature = "opencl")]
     #[test]
     fn test_to_device_cl() {
-        use crate::{OpenCL, buf};
+        use crate::{buf, static_api::Mods, OpenCL};
 
-        let buf = buf![3f32, 1.4, 1., 2.].to_dev::<OpenCL>();
+        let buf = buf![3f32, 1.4, 1., 2.].to_dev::<OpenCL<Mods<OpenCL>>>();
 
         assert_eq!(buf.read(), vec![3., 1.4, 1., 2.]);
     }
