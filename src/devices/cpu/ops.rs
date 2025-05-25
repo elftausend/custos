@@ -6,10 +6,7 @@ use crate::{
     WrappedData, WriteBuf, ZeroGrad, bounds_to_range,
     cpu_stack_ops::{apply_fn_slice, clear_slice},
     op_hint::unary,
-    pass_down_add_operation,
 };
-
-pass_down_add_operation!(CPU);
 
 impl<'a, Mods, T, D, S> ApplyFunction<T, S, D> for CPU<Mods>
 where

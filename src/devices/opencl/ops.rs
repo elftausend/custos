@@ -9,7 +9,7 @@ use crate::{
     AddOperation, ApplyFunction, Buffer, CDatatype, ClearBuf, CopySlice, OpenCL, Read, Resolve,
     Retrieve, Retriever, SetOpHint, Shape, ToCLSource, ToMarker, TwoWay, UnaryGrad, Unit,
     UseGpuOrCpu, WrappedData, WriteBuf, ZeroGrad, bounds_to_range, cpu_stack_ops::clear_slice,
-    location, op_hint::unary, pass_down_add_operation, prelude::Number,
+    location, op_hint::unary, prelude::Number,
 };
 
 use super::{CLPtr, enqueue_kernel};
@@ -20,8 +20,6 @@ use super::{CLPtr, enqueue_kernel};
         try_cl_clear(self, buf).unwrap()
     }
 }*/
-
-pass_down_add_operation!(OpenCL);
 
 impl<Mods: WrappedData + UseGpuOrCpu, T: CDatatype + Default> ClearBuf<T> for OpenCL<Mods> {
     #[inline]

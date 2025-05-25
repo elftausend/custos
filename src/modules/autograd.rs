@@ -11,10 +11,11 @@ use core::{
 };
 
 use crate::{
-    AddGradFn, AddLayer, Alloc, Buffer, CachedBuffers, Device, ExecNowPassDown, GradActions, HasId,
-    HasModules, IsShapeIndep, Module, OnNewBuffer, Parents, ReplaceBufPassDown, Retrieve,
-    RunModule, Setup, ShallowCopy, Shape, TapeActions, Unit, WrappedData, impl_remove_layer,
-    pass_down_add_operation, pass_down_cached_buffers, pass_down_cursor, register_buf_copyable,
+    AddGradFn, AddLayer, AddOperationPassDown, Alloc, Buffer, CachedBuffers, Device,
+    ExecNowPassDown, GradActions, HasId, HasModules, IsShapeIndep, Module, OnNewBuffer, Parents,
+    ReplaceBufPassDown, Retrieve, RunModule, Setup, ShallowCopy, Shape, TapeActions, Unit,
+    WrappedData, impl_remove_layer, pass_down_cached_buffers, pass_down_cursor,
+    register_buf_copyable,
 };
 
 use self::wrapper::ReqGradWrapper;
@@ -291,7 +292,8 @@ impl<'a, NewMods, SD> AddLayer<NewMods, SD> for Autograd<'a, ()> {
 impl<Mods> ExecNowPassDown for Autograd<'_, Mods> {}
 impl<Mods> ReplaceBufPassDown for Autograd<'_, Mods> {}
 pass_down_cursor!(Autograd, 'dev, Mods);
-pass_down_add_operation!(Autograd, 'dev, Mods);
+impl<'dev, Mods> AddOperationPassDown for Autograd<'dev, Mods> {}
+
 pass_down_cached_buffers!(Autograd, 'dev, Mods);
 
 impl<'a, Mods> HasModules for Autograd<'a, Mods> {
@@ -505,7 +507,7 @@ mod tests {
         let out = lhs.empty_like();
 
         device.disable_grad();
-        
+
         device.add_grad_fn((&lhs, &out), |(lhs, out)| unsafe {
             lhs.device()
                 .add_unary_grad(lhs, lhs.grad_mut_unbound(), out.grad(), |x| x.add(3));

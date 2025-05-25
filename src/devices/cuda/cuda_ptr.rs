@@ -1,5 +1,5 @@
 use super::api::{CudaResult, cu_read, cufree, cumalloc};
-use crate::{flag::AllocFlag, HasId, Id, PtrType, ShallowCopy, ToDim, Unit};
+use crate::{HasId, Id, PtrType, ShallowCopy, ToDim, Unit, flag::AllocFlag};
 use core::marker::PhantomData;
 
 /// The pointer used for `CUDA` [`Buffer`](crate::Buffer)s

@@ -34,7 +34,7 @@ mod tests {
     #[cfg(feature = "opencl")]
     #[test]
     fn test_from_iter_cl() {
-        use crate::{static_api::Mods, Buffer, OpenCL};
+        use crate::{Buffer, OpenCL, static_api::Mods};
 
         let buf: Buffer<i32, OpenCL<Mods<OpenCL>>> = FromIterator::from_iter(0..10);
         assert_eq!(buf.read(), &[0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
@@ -43,16 +43,18 @@ mod tests {
     #[cfg(feature = "opencl")]
     #[test]
     fn test_collect_cl() {
-        use crate::{static_api::Mods, Buffer, OpenCL};
+        use crate::{Buffer, OpenCL, static_api::Mods};
 
-        let buf = (0..5).into_iter().collect::<Buffer<i32, OpenCL<Mods<OpenCL>>>>();
+        let buf = (0..5)
+            .into_iter()
+            .collect::<Buffer<i32, OpenCL<Mods<OpenCL>>>>();
         assert_eq!(buf.read(), &[0, 1, 2, 3, 4]);
     }
 
     #[cfg(feature = "cuda")]
     #[test]
     fn test_from_iter_cuda() {
-        use crate::{static_api::Mods, Buffer, CUDA};
+        use crate::{Buffer, CUDA, static_api::Mods};
 
         let buf: Buffer<i32, CUDA<Mods<CUDA>>> = FromIterator::from_iter(0..10);
         assert_eq!(buf.read(), &[0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
@@ -61,9 +63,11 @@ mod tests {
     #[cfg(feature = "cuda")]
     #[test]
     fn test_collect_cuda() {
-        use crate::{static_api::Mods, Buffer, CUDA};
+        use crate::{Buffer, CUDA, static_api::Mods};
 
-        let buf = (0..5).into_iter().collect::<Buffer<i32, CUDA<Mods<CUDA>>>>();
+        let buf = (0..5)
+            .into_iter()
+            .collect::<Buffer<i32, CUDA<Mods<CUDA>>>>();
         assert_eq!(buf.read(), &[0, 1, 2, 3, 4]);
     }
 }

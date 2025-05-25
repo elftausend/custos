@@ -164,13 +164,13 @@ mod tests {
             assert!((*out - buf.sin().cos().ln()).abs() < 0.001);
         }
     }
-    
+
     #[cfg(feature = "cpu")]
     #[cfg(feature = "lazy")]
     #[cfg(feature = "graph")]
     #[test]
     fn test_op_hint_unary_chain_fuse_graph_with_checkpoint() {
-        use crate::{ApplyFunction, Base, Combiner, Device, Graph, Lazy, CPU, Optimize, Run};
+        use crate::{ApplyFunction, Base, CPU, Combiner, Device, Graph, Lazy, Optimize, Run};
 
         let dev = CPU::<Graph<Lazy<Base>>>::new();
 
@@ -189,7 +189,7 @@ mod tests {
         for (buf, out) in buf.read().iter().zip(out1.replace().read().iter()) {
             assert!((*out - buf.sin()).abs() < 0.001);
         }
-        
+
         for (buf, out) in buf.read().iter().zip(_out.replace().read().iter()) {
             assert!((*out - buf.sin().cos().ln()).abs() < 0.001);
         }

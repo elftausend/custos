@@ -229,7 +229,7 @@ impl<T: Unit, D: Device, S: Shape> ReplaceBuf<T, D, S> for Base {
     ) -> &'c crate::Buffer<'a, T, D, S> {
         buffer
     }
-    
+
     #[inline]
     fn set_checkpoint_buffer(&self, _buffer_id: &crate::Id) {}
 }

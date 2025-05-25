@@ -1,4 +1,4 @@
-use custos::{prelude::*, WrappedData};
+use custos::{WrappedData, prelude::*};
 
 fn scalar_apply<'a, Mods: Retrieve<CUDA<Mods>, f32>>(
     device: &'a CUDA<Mods>,
@@ -40,7 +40,7 @@ fn test_scalar_op_cuda() -> custos::Result<()> {
 #[cfg(feature = "static-api")]
 #[test]
 fn test_large_scalar_ops_cuda_static_api() -> custos::Result<()> {
-    use custos::static_api::{static_cuda, Mods};
+    use custos::static_api::{Mods, static_cuda};
 
     let lhs = (0..100000).into_iter()
         .map(|val| val as f32)

@@ -54,9 +54,8 @@ fn test_cuda_macro() {
     let rhs = Buffer::from((&device, [1, 2, 3, 4, 5]));
 
     let mut out = Buffer::<i32, _>::new(&device, lhs.len());
-  
+
     // device
     //     .launch_kernel1d(lhs.len(), ptx, "add", &[&lhs, &rhs, &mut out, &lhs.len()])
     //     .unwrap();*
-
 }

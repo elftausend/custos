@@ -6,7 +6,6 @@ use crate::{
     WriteBuf, ZeroGrad, bounds_to_range,
     cuda::api::{CUstreamCaptureStatus, cu_read_async},
     op_hint::unary,
-    pass_down_add_operation,
 };
 
 use super::{
@@ -14,8 +13,6 @@ use super::{
     api::{cu_write_async, cuMemcpy},
     cu_clear,
 };
-
-pass_down_add_operation!(CUDA);
 
 impl<Mods: WrappedData, T: Unit + Default + Clone, S: Shape> Read<T, S> for CUDA<Mods> {
     type Read<'a>

@@ -148,7 +148,7 @@ impl<T: Unit, D: Alloc<T>, Mods: WrappedData> Alloc<T> for Wgsl<D, Mods> {
     }
 
     #[inline]
-    fn alloc_from_array<S: Shape>(&self, array: S::ARR<T>) -> crate::Result<Self::Base<T, S>>
+    fn alloc_from_array<S: Shape>(&self, array: S::Array<T>) -> crate::Result<Self::Base<T, S>>
     where
         T: Clone,
     {

@@ -4,17 +4,18 @@ use core::{
 };
 
 use crate::{
-    AddGradFn, AddLayer, AddOperation, Alloc, AsAny, Buffer, Cache, CachedBuffers, CowMut, Cursor,
-    Device, DynAnyWrapper, ExecNowPassDown, FastCache, Guard, HasModules, IsBasePtr, IsShapeIndep,
-    LockInfo, Module, OnNewBuffer, Parents, PtrType, RemoveLayer, ReplaceBufPassDown, Retrieve,
-    RunModule, SetOpHint, Setup, ShallowCopy, Shape, State, UniqueId, Unit, WrappedData,
+    AddGradFn, AddLayer, AddOperation, AddOperationPassDown, Alloc, AsAny, Buffer, Cache,
+    CachedBuffers, CowMut, Cursor, Device, DynAnyWrapper, ExecNowPassDown, FastCache, Guard,
+    HasModules, IsBasePtr, IsShapeIndep, LockInfo, Module, OnNewBuffer, Parents, PtrType,
+    RemoveLayer, ReplaceBufPassDown, Retrieve, RunModule, SetOpHint, Setup, ShallowCopy, Shape,
+    State, UniqueId, Unit, WrappedData,
 };
 
 #[cfg(feature = "graph")]
 use crate::{DeviceError, Optimize};
 
 #[cfg(feature = "graph")]
-use std::{sync::Arc, any::Any, ops::Deref};
+use std::{any::Any, ops::Deref, sync::Arc};
 
 // creator struct, however =>
 // TODO: could remove D generic and therefore CachedModule
@@ -94,39 +95,9 @@ impl<CacheType, Mods: Setup<NewDev>, D: Device, NewDev> Setup<NewDev>
     }
 }
 
-impl<CacheType, SD: Device, Mods: AddOperation> AddOperation for CachedModule<Mods, SD, CacheType> {
-    #[inline]
-    fn add_op<Args: Parents<N> + crate::AnyOp, const N: usize>(
-        &self,
-        args: Args,
-        op: impl for<'b> Fn(Args::Replicated<'b>) -> crate::Result<()> + 'static,
-    ) -> crate::Result<()> {
-        self.modules.add_op(args, op)
-    }
-
-    #[inline]
-    fn ops_count(&self) -> usize {
-        self.modules.ops_count()
-    }
-
-    #[inline]
-    fn set_lazy_enabled(&self, enabled: bool) {
-        self.modules.set_lazy_enabled(enabled)
-    }
-
-    #[inline]
-    fn is_lazy_enabled(&self) -> bool {
-        self.modules.is_lazy_enabled()
-    }
-}
-
-impl<CacheType, T, Mods: SetOpHint<T>, SD: Device> SetOpHint<T>
+impl<CacheType, SD: Device, Mods: AddOperation> AddOperationPassDown
     for CachedModule<Mods, SD, CacheType>
 {
-    #[inline]
-    fn set_op_hint(&self, op_hint: crate::op_hint::OpHint<T>) {
-        self.modules.set_op_hint(op_hint)
-    }
 }
 
 impl<Mods, SD: Device, CacheType> ExecNowPassDown for CachedModule<Mods, SD, CacheType> {}

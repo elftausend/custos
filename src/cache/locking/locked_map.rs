@@ -104,7 +104,7 @@ mod tests {
         let z = locked_map.get_mut(&3).unwrap();
         println!("z: {z:?}");
     }
-    
+
     #[test]
     #[should_panic]
     fn test_locked_boxed_reinsert_while_borrowed_mut() {
@@ -122,7 +122,7 @@ mod tests {
 
         locked_map.insert(3, vec![3, 2, 3, 4]);
     }
-    
+
     #[test]
     #[should_panic]
     fn test_locked_boxed_reinsert_while_borrowed() {

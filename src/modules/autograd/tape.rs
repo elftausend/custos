@@ -18,7 +18,10 @@ pub struct Tape<'a> {
 
 impl<'a> Debug for Tape<'a> {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        f.debug_struct("Tape").field("lazy_graph", &"").field("pd", &self.pd).finish()
+        f.debug_struct("Tape")
+            .field("lazy_graph", &"")
+            .field("pd", &self.pd)
+            .finish()
     }
 }
 

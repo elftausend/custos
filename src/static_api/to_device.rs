@@ -1,6 +1,6 @@
 use crate::{Alloc, Buffer, Device, OnNewBuffer, Read, Unit};
 
-use super::{static_cpu, CpuBuffer, StaticDevice};
+use super::{CpuBuffer, StaticDevice, static_cpu};
 
 impl<'a, T: Unit + Clone> CpuBuffer<'a, T> {
     /// Moves the buffer [`Buffer`] to a static device.<br>
@@ -59,7 +59,6 @@ impl<'a, T: Unit + Clone> CpuBuffer<'a, T> {
     #[cfg(feature = "opencl")]
     #[inline]
     pub fn to_cl(self) -> Buffer<'static, T, crate::OpenCL<super::Mods<crate::OpenCL>>> {
-
         self.to_dev::<crate::OpenCL<super::Mods<crate::OpenCL>>>()
     }
 

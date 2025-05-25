@@ -141,6 +141,7 @@ macro_rules! impl_device_traits {
 
         impl<Mods> $crate::ReplaceBufPassDown for $device<Mods> {}
         impl<Mods> $crate::ExecNowPassDown for $device<Mods> {}
+        impl<Mods> $crate::AddOperationPassDown for $device<Mods> {}
 
         impl<Mods> $crate::HasModules for $device<Mods> {
             type Mods = Mods;

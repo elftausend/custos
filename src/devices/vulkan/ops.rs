@@ -3,12 +3,10 @@ use core::fmt::Debug;
 use crate::{
     AddOperation, ApplyFunction, Buffer, CDatatype, ClearBuf, Read, Resolve, Retrieve, Retriever,
     Shape, ToCLSource, ToMarker, ToWgslSource, UnaryGrad, Unit, UseGpuOrCpu, Vulkan, WrappedData,
-    WriteBuf, ZeroGrad, cpu_stack_ops::clear_slice, pass_down_add_operation, prelude::Number,
+    WriteBuf, ZeroGrad, cpu_stack_ops::clear_slice, prelude::Number,
 };
 
 use super::{VkArray, VkDevice};
-
-pass_down_add_operation!(Vulkan);
 
 impl<Mods: WrappedData + UseGpuOrCpu, T: CDatatype + Default + Debug> ClearBuf<T> for Vulkan<Mods> {
     #[inline]

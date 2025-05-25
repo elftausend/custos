@@ -401,8 +401,8 @@ impl<T, Mods> Cursor for Lazy<'_, Mods, T> {
     }
 }
 
-impl<T: Unit + 'static, D: Device + 'static, S: Shape, Mods: WrappedData + ReplaceBuf<T, D, S>, T2> ReplaceBuf<T, D, S>
-    for Lazy<'_, Mods, T2>
+impl<T: Unit + 'static, D: Device + 'static, S: Shape, Mods: WrappedData + ReplaceBuf<T, D, S>, T2>
+    ReplaceBuf<T, D, S> for Lazy<'_, Mods, T2>
 {
     #[inline]
     fn replace_buf<'a, 'b, 'c>(
@@ -427,7 +427,7 @@ impl<T: Unit + 'static, D: Device + 'static, S: Shape, Mods: WrappedData + Repla
             None => buffer,
         }
     }
-    
+
     fn set_checkpoint_buffer(&self, buffer_id: &crate::Id) {
         self.modules.set_checkpoint_buffer(buffer_id);
     }

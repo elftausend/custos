@@ -1,10 +1,10 @@
 use core::convert::Infallible;
 
 use crate::{
-    Alloc, Base, Buffer, CloneBuf, Device, DeviceError, DevicelessAble, Read, StackArray, Unit,
-    WrappedData, WriteBuf, flag::AllocFlag, impl_buffer_hook_traits, impl_retriever,
-    impl_wrapped_data, pass_down_add_operation, pass_down_cursor, pass_down_grad_fn,
-    pass_down_tape_actions, pass_down_use_gpu_or_cpu, shape::Shape,
+    AddOperationPassDown, Alloc, Base, Buffer, CloneBuf, Device, DeviceError, DevicelessAble, Read,
+    StackArray, Unit, WrappedData, WriteBuf, flag::AllocFlag, impl_buffer_hook_traits,
+    impl_retriever, impl_wrapped_data, pass_down_cursor, pass_down_grad_fn, pass_down_tape_actions,
+    pass_down_use_gpu_or_cpu, shape::Shape,
 };
 
 /// A device that allocates memory on the stack.
@@ -28,7 +28,7 @@ pass_down_tape_actions!(Stack);
 pass_down_use_gpu_or_cpu!(Stack);
 #[cfg(feature = "graph")]
 crate::pass_down_optimize_mem_graph!(Stack);
-pass_down_add_operation!(Stack);
+impl<Mods> AddOperationPassDown for Stack<Mods> {}
 
 impl<'a, T: Unit + Copy + Default, S: Shape> DevicelessAble<'a, T, S> for Stack {}
 

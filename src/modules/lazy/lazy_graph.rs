@@ -13,7 +13,11 @@ pub struct Operation<B, T> {
 
 impl<B, T> Debug for Operation<B, T> {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        f.debug_struct("Operation").field("arg_ids", &self.arg_ids).field("op", &"operation(..)").field("op_hint", &self.op_hint).finish()
+        f.debug_struct("Operation")
+            .field("arg_ids", &self.arg_ids)
+            .field("op", &"operation(..)")
+            .field("op_hint", &self.op_hint)
+            .finish()
     }
 }
 

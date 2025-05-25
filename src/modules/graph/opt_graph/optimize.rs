@@ -22,7 +22,7 @@ impl OptGraph {
 
         for node in self.nodes.iter().filter(|node| !node.is_leaf()) {
             if node.skip {
-                continue
+                continue;
             }
             if visited_nodes.contains(&node.idx) {
                 continue;
@@ -64,7 +64,7 @@ impl OptGraph {
 
         for check in self.nodes.iter().skip(trace_at.idx + 1) {
             if check.skip {
-                continue
+                continue;
             }
             if !check.deps.contains(&idx) {
                 continue;
@@ -701,7 +701,7 @@ mod tests {
 
         assert_eq!(Vec::<usize>::new(), trace);
     }
-    
+
     #[test]
     fn test_multiple_traces_with_skips() {
         // for: cargo test -- --test-threads=1

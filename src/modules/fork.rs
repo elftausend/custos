@@ -1,7 +1,7 @@
 use crate::{
-    AddLayer, Alloc, Buffer, Device, ExecNowPassDown, HasModules, IsBasePtr, IsShapeIndep, Module,
-    OnNewBuffer, Parents, ReplaceBufPassDown, Retrieve, RunModule, Setup, Shape, Unit, UseGpuOrCpu,
-    VERSION, WrappedData, impl_remove_layer, pass_down_add_operation, pass_down_tape_actions,
+    AddLayer, AddOperationPassDown, Alloc, Buffer, Device, ExecNowPassDown, HasModules, IsBasePtr,
+    IsShapeIndep, Module, OnNewBuffer, Parents, ReplaceBufPassDown, Retrieve, RunModule, Setup,
+    Shape, Unit, UseGpuOrCpu, VERSION, WrappedData, impl_remove_layer, pass_down_tape_actions,
 };
 use core::cell::{Cell, RefCell};
 
@@ -92,7 +92,7 @@ impl<Mods: Setup<D>, D: UseGpuOrCpu + ForkSetup> Setup<D> for Fork<Mods> {
 }
 
 crate::pass_down_cursor!(Fork);
-pass_down_add_operation!(Fork);
+impl<Mods> AddOperationPassDown for Fork<Mods> {}
 
 impl<Mods> ExecNowPassDown for Fork<Mods> {}
 

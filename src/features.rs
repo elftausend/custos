@@ -2,7 +2,11 @@
 //! Different modules can implement these traits to provide different functionality.
 //! If the module does not need to alter the functionality, pass downs macros should be used to pass down the functionality to the wrapped module.
 
-use core::{cell::{Ref, RefMut}, fmt::Debug, ops::RangeBounds};
+use core::{
+    cell::{Ref, RefMut},
+    fmt::Debug,
+    ops::RangeBounds,
+};
 
 use crate::{
     AnyOp, CPU, HasId, Parents, Shape, UniqueId, Unit, WrappedData, ZeroGrad,
@@ -373,7 +377,7 @@ where
     fn replace_buf<'a, 'c>(&'c self, buffer: &'c Buffer<'a, T, D, S>) -> &'c Buffer<'a, T, D, S> {
         self.modules().replace_buf(buffer)
     }
-    
+
     fn set_checkpoint_buffer(&self, buffer_id: &crate::Id) {
         self.modules().set_checkpoint_buffer(buffer_id);
     }
@@ -408,8 +412,51 @@ pub trait AddOperation {
     }
 }
 
+pub trait AddOperationPassDown {}
+
+impl<'b, Module> AddOperation for Module
+where
+    <Module as HasModules>::Mods: AddOperation,
+    Module: AddOperationPassDown + HasModules + WrappedData,
+{
+    #[inline]
+    fn add_op<Args: crate::Parents<N> + crate::AnyOp, const N: usize>(
+        &self,
+        args: Args,
+        op: impl for<'a> Fn(Args::Replicated<'a>) -> crate::Result<()> + 'static,
+    ) -> crate::Result<()> {
+        self.modules().add_op(args, op)
+    }
+
+    #[inline]
+    fn ops_count(&self) -> usize {
+        self.modules().ops_count()
+    }
+
+    #[inline]
+    fn set_lazy_enabled(&self, enabled: bool) {
+        self.modules().set_lazy_enabled(enabled)
+    }
+
+    #[inline]
+    fn is_lazy_enabled(&self) -> bool {
+        self.modules().is_lazy_enabled()
+    }
+}
+
 pub trait SetOpHint<T> {
     fn set_op_hint(&self, _op_hint: OpHint<T>) {}
+}
+
+impl<'b, Module, T> SetOpHint<T> for Module
+where
+    <Module as HasModules>::Mods: SetOpHint<T>,
+    Module: AddOperationPassDown + HasModules + WrappedData,
+{
+    #[inline]
+    fn set_op_hint(&self, op_hint: OpHint<T>) {
+        self.modules().set_op_hint(op_hint);
+    }
 }
 
 pub trait ExecNow<D = Self> {
@@ -439,48 +486,6 @@ where
     fn exec_now(&self, device: &D, range_bounds: impl RangeBounds<usize>) -> crate::Result<()> {
         self.modules().exec_now(device, range_bounds)
     }
-}
-
-/// Implements the [`AddOperation`] trait for any supplied device. The `add_op` call is passed down to `self.modules`.
-#[macro_export]
-macro_rules! pass_down_add_operation {
-    ($device:ident, $($generics:tt),*) => {
-        impl<'dev, T, Mods: $crate::SetOpHint<T>> $crate::SetOpHint<T> for $device<$($generics),*> {
-            #[inline]
-            fn set_op_hint(&self, op_hint: $crate::op_hint::OpHint<T>) {
-                self.modules.set_op_hint(op_hint)
-            }
-        }
-
-        impl<'dev, Mods: $crate::AddOperation> $crate::AddOperation for $device<$($generics),*> {
-            #[inline]
-            fn add_op<Args: $crate::Parents<N> + $crate::AnyOp, const N: usize>(
-                &self,
-                args: Args,
-                op: impl for<'a> Fn(Args::Replicated<'a>) -> $crate::Result<()> + 'static,
-            ) -> $crate::Result<()> {
-                self.modules.add_op(args, op)
-            }
-
-            #[inline]
-            fn ops_count(&self) -> usize {
-                self.modules.ops_count()
-            }
-
-            #[inline]
-            fn set_lazy_enabled(&self, enabled: bool) {
-                self.modules.set_lazy_enabled(enabled)
-            }
-
-            #[inline]
-            fn is_lazy_enabled(&self) -> bool {
-                self.modules.is_lazy_enabled()
-            }
-        }
-    };
-    ($module:ident) => {
-        $crate::pass_down_add_operation!($module, Mods);
-    };
 }
 
 pub trait HasCPU<Mods> {

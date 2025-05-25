@@ -1,6 +1,6 @@
 use crate::Unit;
 
-use super::{static_cpu, CpuBuffer};
+use super::{CpuBuffer, static_cpu};
 
 impl<'a, T: Unit + Clone> From<&[T]> for CpuBuffer<'a, T> {
     fn from(slice: &[T]) -> Self {

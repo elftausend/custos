@@ -12,10 +12,10 @@ use crate::cuda::chosen_cu_idx;
 #[cfg(feature = "autograd")]
 pub type SimpleMods = crate::Autograd<'static, crate::Cached<crate::Base>>;
 
-#[cfg(all(feature = "cached", not(feature="autograd")))]
+#[cfg(all(feature = "cached", not(feature = "autograd")))]
 pub type SimpleMods = crate::Cached<crate::Base>;
 
-#[cfg(all(not(feature = "cached"), not(feature="autograd")))]
+#[cfg(all(not(feature = "cached"), not(feature = "autograd")))]
 pub type SimpleMods = crate::Base;
 
 pub type Mods<D> = <SimpleMods as crate::Module<'static, D>>::Module;
@@ -31,7 +31,9 @@ thread_local! {
 pub fn static_cpu() -> &'static CPU<Mods<CPU>> {
     unsafe {
         GLOBAL_CPU
-            .with(|device| device as *const CPU<<SimpleMods as crate::Module<'static, CPU>>::Module>)
+            .with(|device| {
+                device as *const CPU<<SimpleMods as crate::Module<'static, CPU>>::Module>
+            })
             .as_ref()
             .unwrap()
     }
@@ -48,7 +50,7 @@ thread_local! {
 /// You can select the index of a static [`OpenCL`](crate::OpenCL) device by setting the `CUSTOS_CL_DEVICE_IDX` environment variable.
 #[cfg(feature = "opencl")]
 #[inline]
-pub fn static_opencl() -> &'static crate::OpenCL::<Mods<crate::OpenCL>> {
+pub fn static_opencl() -> &'static crate::OpenCL<Mods<crate::OpenCL>> {
     unsafe {
         GLOBAL_OPENCL
             .with(|device| device as *const crate::OpenCL<Mods<crate::OpenCL>>)
@@ -137,7 +139,7 @@ mod tests {
     #[cfg(feature = "cuda")]
     #[test]
     fn test_to_device_cu() {
-        use crate::{static_api::Mods, CUDA};
+        use crate::{CUDA, static_api::Mods};
 
         let buf = Buffer::from(&[3f32, 1.4, 1., 2.]).to_dev::<CUDA<Mods<CUDA>>>();
 
@@ -147,7 +149,7 @@ mod tests {
     #[cfg(feature = "opencl")]
     #[test]
     fn test_to_device_cl() {
-        use crate::{buf, static_api::Mods, OpenCL};
+        use crate::{OpenCL, buf, static_api::Mods};
 
         let buf = buf![3f32, 1.4, 1., 2.].to_dev::<OpenCL<Mods<OpenCL>>>();
 

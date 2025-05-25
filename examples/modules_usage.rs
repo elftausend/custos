@@ -167,7 +167,9 @@ fn main() {
         let out2 = device.apply_fn(&out1, |x| x.sin());
 
         // this identifies redundant intermediate buffers and skips allocating them
-        unsafe { device.optimize_mem_graph(&device, None).unwrap(); } // allocates, now out1 data points to out2 data. The data is accessed with out2.replace()
+        unsafe {
+            device.optimize_mem_graph(&device, None).unwrap();
+        } // allocates, now out1 data points to out2 data. The data is accessed with out2.replace()
         // this fuses all unary operations and creates fused compute kernels (for all compute kernel based devices)
         device.unary_fusing(&device, None).unwrap();
 
