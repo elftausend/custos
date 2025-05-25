@@ -153,10 +153,43 @@ mod tests {
         let out = dev.apply_fn(&out, |x| x.cos());
         let _out = dev.apply_fn(&out, |x| x.ln());
 
-        unsafe { dev.optimize_mem_graph(&dev, None).unwrap() };
+        // unsafe { dev.optimize_mem_graph(&dev, None).unwrap() };
+        dev.modules.modules.alloc_later(&dev);
         dev.unary_fusing(&dev, None).unwrap();
         dev.run().unwrap();
 
+        println!("out: {:?}", out.replace().read());
+
+        for (buf, out) in buf.read().iter().zip(_out.replace().read().iter()) {
+            assert!((*out - buf.sin().cos().ln()).abs() < 0.001);
+        }
+    }
+    
+    #[cfg(feature = "cpu")]
+    #[cfg(feature = "lazy")]
+    #[cfg(feature = "graph")]
+    #[test]
+    fn test_op_hint_unary_chain_fuse_graph_with_checkpoint() {
+        use crate::{ApplyFunction, Base, Combiner, Device, Graph, Lazy, CPU, Optimize, Run};
+
+        let dev = CPU::<Graph<Lazy<Base>>>::new();
+
+        let buf = dev.buffer([1f32, 2., 3., 4., 5.]);
+        let out1 = dev.apply_fn(&buf, |x| x.sin()).checkpoint();
+        let out = dev.apply_fn(&out1, |x| x.cos());
+        let _out = dev.apply_fn(&out, |x| x.ln());
+
+        // unsafe { dev.optimize_mem_graph(&dev, None).unwrap() };
+        dev.modules.modules.alloc_later(&dev);
+        dev.unary_fusing(&dev, None).unwrap();
+        dev.run().unwrap();
+
+        assert_eq!(out.replace().read(), [0.; 5]);
+
+        for (buf, out) in buf.read().iter().zip(out1.replace().read().iter()) {
+            assert!((*out - buf.sin()).abs() < 0.001);
+        }
+        
         for (buf, out) in buf.read().iter().zip(_out.replace().read().iter()) {
             assert!((*out - buf.sin().cos().ln()).abs() < 0.001);
         }

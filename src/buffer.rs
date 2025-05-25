@@ -126,6 +126,15 @@ impl<'a, T: Unit, D: Device, S: Shape> Buffer<'a, T, D, S> {
     {
         self.set_require_grad(false)
     }
+    
+    #[inline]
+    pub fn checkpoint(self) -> Buffer<'a, T, D, S>
+    where
+        D: ReplaceBuf<T, D, S>,
+    {
+        self.device().set_checkpoint_buffer(&self.id());
+        self
+    }
 }
 
 // DO NOT implement!

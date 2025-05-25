@@ -7,6 +7,7 @@ pub struct Node {
     pub deps: Vec<usize>,
     /// The amount of elements a corresponding [`Buffer`](crate::Buffer) has.
     pub len: usize,
+    pub skip: bool,
 }
 
 impl Node {

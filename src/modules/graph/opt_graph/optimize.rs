@@ -21,6 +21,9 @@ impl OptGraph {
         let mut visited_nodes = HashSet::new();
 
         for node in self.nodes.iter().filter(|node| !node.is_leaf()) {
+            if node.skip {
+                continue
+            }
             if visited_nodes.contains(&node.idx) {
                 continue;
             }
@@ -60,6 +63,9 @@ impl OptGraph {
         let mut idx = trace_at.idx;
 
         for check in self.nodes.iter().skip(trace_at.idx + 1) {
+            if check.skip {
+                continue
+            }
             if !check.deps.contains(&idx) {
                 continue;
             }
@@ -694,6 +700,58 @@ mod tests {
         graph.cache_traces();
 
         assert_eq!(Vec::<usize>::new(), trace);
+    }
+    
+    #[test]
+    fn test_multiple_traces_with_skips() {
+        // for: cargo test -- --test-threads=1
+        let mut graph = OptGraph::default();
+
+        // idx: 0, deps: [] (0)
+        let a = graph.add_leaf(10);
+
+        // idx: 1, deps: [0, 0] (1)
+        let _b = graph.add_node(10, vec![a, a]);
+
+        // idx: 2
+        let _z = graph.add_leaf(10);
+
+        // idx: 3
+        let _z = graph.add_leaf(10);
+
+        // idx: 4, deps: [0, 1] (0)
+        let c = graph.add_node(10, vec![a, a]);
+        graph.nodes[c].skip = true;
+
+        // idx: 5, deps: [2, 2] (1)
+        let d = graph.add_node(10, vec![c, c]);
+
+        // idx: 6, deps: [3, 1] (2)
+        let _e = graph.add_node(10, vec![d, a]);
+
+        // idx: 7
+        let f = graph.add_node(10, vec![_b, _z]);
+        // this interrupts the trace
+        graph.nodes[f].skip = true;
+
+        // idx: 8
+        let _g = graph.add_node(10, vec![f, _z]);
+
+        let traces = graph.cache_traces();
+
+        assert_eq!(
+            [
+                // CacheTrace {
+                //     cache_idx: 1,
+                //     use_cache_idxs: vec![7, 8]
+                // },
+                CacheTrace {
+                    cache_idx: 5,
+                    use_cache_idxs: vec![6]
+                }
+            ],
+            &*traces
+        );
     }
 
     #[test]

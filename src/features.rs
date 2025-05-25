@@ -356,6 +356,7 @@ impl<'a, 'b, T: Unit, D: Device, S: Shape> OpArgs for (&Buffer<'a, T, D, S>, &Bu
 // seems useless, however, this is used to retrieve potential lazy buffer information
 pub trait ReplaceBuf<T: Unit, D: Device, S: Shape>: WrappedData {
     fn replace_buf<'a, 'c>(&'c self, buffer: &'c Buffer<'a, T, D, S>) -> &'c Buffer<'a, T, D, S>;
+    fn set_checkpoint_buffer(&self, buffer_id: &crate::Id);
 }
 
 pub trait ReplaceBufPassDown {}
@@ -371,6 +372,10 @@ where
     #[inline]
     fn replace_buf<'a, 'c>(&'c self, buffer: &'c Buffer<'a, T, D, S>) -> &'c Buffer<'a, T, D, S> {
         self.modules().replace_buf(buffer)
+    }
+    
+    fn set_checkpoint_buffer(&self, buffer_id: &crate::Id) {
+        self.modules().set_checkpoint_buffer(buffer_id);
     }
 }
 

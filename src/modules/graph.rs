@@ -9,10 +9,7 @@ use core::{cell::RefCell, hash::BuildHasherDefault, marker::PhantomData};
 use std::collections::HashSet;
 
 use crate::{
-    AddLayer, Alloc, Buffer, Cursor, Device, HasId, HasModules, IsBasePtr, Module, NoHasher,
-    OnNewBuffer, Optimize, Parents, ReplaceBufPassDown, Retrieve, RunModule, Setup, Shape,
-    UniqueId, Unit, WrappedData, impl_remove_layer, pass_down_add_operation, pass_down_cursor,
-    pass_down_grad_fn, pass_down_use_gpu_or_cpu,
+    impl_remove_layer, pass_down_add_operation, pass_down_cursor, pass_down_grad_fn, pass_down_use_gpu_or_cpu, AddLayer, Alloc, Buffer, Cursor, Device, HasId, HasModules, IsBasePtr, Module, NoHasher, OnNewBuffer, Optimize, Parents, ReplaceBuf, ReplaceBufPassDown, Retrieve, RunModule, Setup, Shape, UniqueId, Unit, WrappedData
 };
 
 pub use self::graph_translator::GraphTranslator;
@@ -125,6 +122,7 @@ impl<'a, Mods: OnNewBuffer<'a, T, D, S>, T: Unit, D: Device, S: Shape> OnNewBuff
         self.modules.on_new_buffer(_device, new_buf)
     }
 }
+
 
 pass_down_add_operation!(Graph);
 #[cfg(feature = "cached")]
@@ -246,7 +244,18 @@ where
 }
 
 pass_down_cursor!(Graph);
-impl<Mods> ReplaceBufPassDown for Graph<Mods> {}
+
+impl<Mods: ReplaceBuf<T, D, S>, T: Unit, D: Device, S: Shape> ReplaceBuf<T, D, S> for Graph<Mods> {
+    fn replace_buf<'a, 'c>(&'c self, buffer: &'c Buffer<'a, T, D, S>) -> &'c Buffer<'a, T, D, S> {
+        self.modules.replace_buf(buffer)
+    }
+
+    fn set_checkpoint_buffer(&self, buffer_id: &crate::Id) {
+        let mut graph_trans = self.graph_trans.borrow_mut();
+        let idx = graph_trans.buf_id_to_idx.get(buffer_id).cloned().unwrap();
+        graph_trans.opt_graph.nodes[idx].skip = true;
+    }
+}
 
 impl<Mods> HasModules for Graph<Mods> {
     type Mods = Mods;

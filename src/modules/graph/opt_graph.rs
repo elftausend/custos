@@ -16,6 +16,7 @@ impl OptGraph {
             idx,
             deps: vec![],
             len,
+            skip: false,
         };
         self.nodes.push(node);
         idx
@@ -24,7 +25,7 @@ impl OptGraph {
     /// Adds a node to the graph using lhs_idx and rhs_idx as dependencies.
     pub fn add_node(&mut self, len: usize, deps: Vec<usize>) -> usize {
         let idx = self.nodes.len();
-        let node = Node { idx, deps, len };
+        let node = Node { idx, deps, len, skip: false };
         self.nodes.push(node);
         idx
     }

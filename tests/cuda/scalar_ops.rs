@@ -1,10 +1,10 @@
-use custos::prelude::*;
+use custos::{prelude::*, WrappedData};
 
-fn scalar_apply<'a>(
-    device: &'a CUDA,
-    lhs: &'a Buffer<f32, CUDA>,
+fn scalar_apply<'a, Mods: Retrieve<CUDA<Mods>, f32>>(
+    device: &'a CUDA<Mods>,
+    lhs: &'a Buffer<f32, CUDA<Mods>>,
     rhs: f32,
-) -> custos::Result<Buffer<'a, f32, CUDA>> {
+) -> custos::Result<Buffer<'a, f32, CUDA<Mods>>> {
     let src = r#"extern "C" __global__ void scalar_add(float* lhs, float rhs, float* out, int numElements)
             {
                 int idx = blockDim.x * blockIdx.x + threadIdx.x;
@@ -40,11 +40,11 @@ fn test_scalar_op_cuda() -> custos::Result<()> {
 #[cfg(feature = "static-api")]
 #[test]
 fn test_large_scalar_ops_cuda_static_api() -> custos::Result<()> {
-    use custos::static_api::static_cuda;
+    use custos::static_api::{static_cuda, Mods};
 
     let lhs = (0..100000).into_iter()
         .map(|val| val as f32)
-        .collect::<Buffer::<f32, CUDA>>()/*.to_cuda() */;
+        .collect::<Buffer::<f32, CUDA<Mods<CUDA>>>>()/*.to_cuda() */;
 
     let out = scalar_apply(&static_cuda(), &lhs, 1.)?;
 
