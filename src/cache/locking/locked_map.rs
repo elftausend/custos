@@ -47,7 +47,6 @@ impl<K, T, S: BuildHasher> LockedMap<K, T, S> {
     where
         K: Eq + Hash,
     {
-        // let map = unsafe { &mut *self.data.get() };
         let mut map = self.data.borrow_mut();
 
         if let Some(data) = map.get(&id) {
@@ -73,6 +72,14 @@ impl<K, T, S: BuildHasher> LockedMap<K, T, S> {
         let entry = map.get(id).ok_or(LockInfo::None)?;
         (&**entry).try_borrow_mut().map_err(|_| LockInfo::Locked)
     }
+
+    #[inline]
+    pub fn contains_key(&self, id: &K) -> bool
+    where
+        K: Eq + Hash,
+    {
+        self.data.borrow().contains_key(id)
+    }
 }
 
 #[cfg(test)]
@@ -96,5 +103,56 @@ mod tests {
         println!("x: {x:?}");
         let z = locked_map.get_mut(&3).unwrap();
         println!("z: {z:?}");
+    }
+    
+    #[test]
+    #[should_panic]
+    fn test_locked_boxed_reinsert_while_borrowed_mut() {
+        let locked_map = LockedMap::<UniqueId, Vec<u32>, BuildHasherDefault<NoHasher>>::new();
+
+        locked_map.insert(0, vec![1, 2, 3, 4]);
+
+        let x = locked_map.get_mut(&0).unwrap();
+        for i in 1..10 {
+            locked_map.insert(i, vec![i as u32, 2, 3, 4]);
+        }
+        println!("x: {x:?}");
+        let z = locked_map.get_mut(&3).unwrap();
+        println!("z: {z:?}");
+
+        locked_map.insert(3, vec![3, 2, 3, 4]);
+    }
+    
+    #[test]
+    #[should_panic]
+    fn test_locked_boxed_reinsert_while_borrowed() {
+        let locked_map = LockedMap::<UniqueId, Vec<u32>, BuildHasherDefault<NoHasher>>::new();
+
+        locked_map.insert(0, vec![1, 2, 3, 4]);
+
+        let x = locked_map.get_mut(&0).unwrap();
+        for i in 1..10 {
+            locked_map.insert(i, vec![i as u32, 2, 3, 4]);
+        }
+        println!("x: {x:?}");
+        let z = locked_map.get(&3).unwrap();
+        println!("z: {z:?}");
+
+        locked_map.insert(3, vec![3, 2, 3, 4]);
+    }
+
+    #[test]
+    fn test_locked_boxed_reinsert() {
+        let locked_map = LockedMap::<UniqueId, Vec<u32>, BuildHasherDefault<NoHasher>>::new();
+
+        locked_map.insert(0, vec![1, 2, 3, 4]);
+
+        let x = locked_map.get_mut(&0).unwrap();
+        for i in 1..10 {
+            locked_map.insert(i, vec![i as u32, 2, 3, 4]);
+        }
+        println!("x: {x:?}");
+
+        locked_map.insert(3, vec![3, 2, 3, 4]);
     }
 }
