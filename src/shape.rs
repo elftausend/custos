@@ -65,6 +65,7 @@ impl<const N: usize> Shape for Dim1<N> {
     fn dims() -> Vec<usize> {
         vec![N]
     }
+    
 }
 
 /// A 2D shape.

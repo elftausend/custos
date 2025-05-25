@@ -1,7 +1,8 @@
 use custos::Buffer;
 
 fn main() {
-    let mut buf = Buffer::from([1, 2, 3, 6, 5, 3, -4]);
+    let mut buf = Buffer::from([1, 2, 3, 6, 5, 3, -4]); // or:
+    // let mut buf = custos::buf![4, 3, 4, 4];
 
     for value in &mut buf {
         *value -= 2;
