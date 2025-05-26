@@ -177,10 +177,11 @@ impl crate::Optimize for Base {
 
 impl AddGradFn for Base {
     #[inline]
-    fn add_grad_fn<Args: Parents<N> + crate::AnyOp, const N: usize>(
+    fn add_grad_fn<D: 'static, Args: Parents<N> + crate::AnyOp, const N: usize>(
         &self,
         _args: Args,
-        _op: impl for<'b> Fn(Args::Replicated<'b>) -> crate::Result<()> + 'static,
+        _device: &D,
+        _op: impl for<'b> Fn(Args::Replicated<'b>, &D) -> crate::Result<()> + 'static,
     ) {
     }
 

@@ -114,14 +114,14 @@ where
     {
         let out = self.apply_fn(buf, forward_fn);
 
-        self.add_grad_fn((buf, &out), move |(buf, out)| {
+        self.add_grad_fn((buf, &out), self, move |(buf, out), dev| {
             if !buf.requires_grad() {
                 return Ok(());
             }
             // lazy execution is already disabled during backward pass
-            buf.device().eagerly(|| {
+            dev.eagerly(|| {
                 let (buf, buf_grad) = buf.grad_mut_self();
-                out.device()
+                dev 
                     .add_unary_grad(buf, buf_grad, out.grad(), grad_fn);
             });
             Ok(())

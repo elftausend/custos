@@ -27,10 +27,10 @@ impl<'a> Debug for Tape<'a> {
 
 impl<'t> Tape<'t> {
     #[inline]
-    pub fn add_grad_fn<Args: Parents<N> + AnyOp, const N: usize>(
+    pub fn add_grad_fn<D: 'static, Args: Parents<N> + AnyOp, const N: usize>(
         &mut self,
         args: Args,
-        op: impl for<'b> Fn(Args::Replicated<'b>) -> crate::Result<()> + 'static,
+        op: impl for<'b> Fn(Args::Replicated<'b>, &D) -> crate::Result<()> + 'static,
     ) {
         self.lazy_graph.add_operation(args, op);
     }
