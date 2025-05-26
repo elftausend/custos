@@ -1,7 +1,7 @@
 use core::{fmt::Debug, marker::PhantomData};
 
 use crate::{
-    AddOperation, Alloc, AnyOp, BoxedShallowCopy, Buffer, Buffers, Device, GradActions, LazyGraph,
+    AddOperationModule, Alloc, AnyOp, BoxedShallowCopy, Buffer, Buffers, Device, GradActions, LazyGraph,
     Parents, Shape, Unit, WriteBuf, ZeroGrad,
 };
 
@@ -71,7 +71,7 @@ impl<'t> Tape<'t> {
     ) -> crate::Result<()>
     where
         T: Unit + 'static,
-        D: Alloc<T> + ZeroGrad<T> + WriteBuf<T, S, D> + GradActions + AddOperation + 'static,
+        D: Alloc<T> + ZeroGrad<T> + WriteBuf<T, S, D> + GradActions + AddOperationModule + 'static,
     {
         self.seed_grad_for_buf(buf, seed);
 
@@ -90,7 +90,7 @@ impl<'t> Tape<'t> {
     ) -> crate::Result<()>
     where
         T: Unit + 'static,
-        D: Alloc<T> + ZeroGrad<T> + WriteBuf<T, S, D> + GradActions + AddOperation + 'static,
+        D: Alloc<T> + ZeroGrad<T> + WriteBuf<T, S, D> + GradActions + AddOperationModule + 'static,
     {
         match buffers {
             Some(buffers) => self.backward_seeded_with_buffers(buf, seed, buffers),

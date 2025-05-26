@@ -1,6 +1,5 @@
 use crate::{
-    AnyOp, BoxedShallowCopy, Buffers, Device, Downcast, Id, OperationFn, Parents, bounds_to_range,
-    modules::lazy::exec_iter::ExecIter, op_hint::OpHint,
+    bounds_to_range, modules::lazy::exec_iter::ExecIter, op_hint::OpHint, AnyOp, BoxedShallowCopy, Buffers, Device, Downcast, Id, OperationFn, Parents
 };
 use core::{fmt::Debug, ops::RangeBounds};
 use std::collections::HashSet;
@@ -103,9 +102,9 @@ impl<B: Downcast, T> LazyGraph<B, T> {
         Ok(())
     }
 
-    pub fn convert_to_operation<Args: Parents<N> + AnyOp, const N: usize>(
+    pub fn convert_to_operation<D: 'static, Args: Parents<N> + AnyOp, const N: usize>(
         args: Args,
-        op: impl for<'b> Fn(Args::Replicated<'b>) -> crate::Result<()> + 'static,
+        op: impl for<'b> Fn(Args::Replicated<'b>, &D) -> crate::Result<()> + 'static,
     ) -> Operation<B, T> {
         const { assert!(N > 0, "Size of parents must be greater than 0") };
 
@@ -131,7 +130,7 @@ impl<B: Downcast, T> LazyGraph<B, T> {
             panic!()
         }
 
-        let op: OperationFn<B> = Args::replication_fn::<B>(op);
+        let op: OperationFn<B> = Args::replication_fn::<D, B>(op);
 
         Operation {
             arg_ids,
@@ -139,11 +138,11 @@ impl<B: Downcast, T> LazyGraph<B, T> {
             op_hint: OpHint::None,
         }
     }
-
-    pub fn add_operation<Args: Parents<N> + AnyOp, const N: usize>(
+    
+    pub fn add_operation<D: 'static, Args: Parents<N> + AnyOp, const N: usize>(
         &mut self,
         args: Args,
-        op: impl for<'b> Fn(Args::Replicated<'b>) -> crate::Result<()> + 'static,
+        op: impl for<'b> Fn(Args::Replicated<'b>, &D) -> crate::Result<()> + 'static,
     ) {
         let operation = Self::convert_to_operation(args, op);
         self.operations.push(operation)
@@ -162,6 +161,8 @@ mod tests {
     #[test]
     fn test_autograd_lazy_op() {
         // static mut DEVICE: Option<&'static CPU<crate::Autograd<Base>>> = None;
+
+        use crate::Autograd;
         thread_local! {
             static DEVICE2: std::cell::Cell<Option<&'static CPU<crate::CachedModule<Base, CPU>>>> = std::cell::Cell::new(None);
         };
@@ -190,7 +191,7 @@ mod tests {
 
             // buffers.insert(*lhs.id(), &lhs);
             // register_buf_any(cache, buf)
-            graph.add_operation::<_, 1>(&lhs, |args| {
+            graph.add_operation::<CPU<Autograd<Base>>, _, 1>(&lhs, |args, _| {
                 println!("args: {args:?}");
 
                 // DEVICE2.set(args.device);
@@ -201,7 +202,7 @@ mod tests {
                 Ok(())
             });
 
-            graph.add_operation::<_, 2>((&lhs, &rhs), |args| {
+            graph.add_operation::<CPU<Autograd<Base>>,_, 2>((&lhs, &rhs), |args, _dev| {
                 println!("args: {args:?}");
                 Ok(())
             });
@@ -232,7 +233,7 @@ mod tests {
             unsafe { register_buf_copyable(&mut outs_unordered, &out) };
             // outs_unordered.insert(out.id(), )
 
-            graph.add_operation::<_, 3>((&out, &lhs, &rhs), |args| {
+            graph.add_operation::<CPU, _, 3>((&out, &lhs, &rhs), |args, _dev| {
                 let (_out, lhs, rhs) = args;
                 assert_eq!(lhs.as_slice(), &[1f32, 2., 3., 4., 5.,]);
                 assert_eq!(rhs.as_slice(), &[1f32, 2., 6., 4., 5.,]);
@@ -262,7 +263,7 @@ mod tests {
         unsafe { register_buf_copyable(&mut outs_unordered, &out) };
         // outs_unordered.insert(out.id(), )
 
-        graph.add_operation::<_, 3>((&out, &lhs, &rhs), |args| {
+        graph.add_operation::<CPU, _, 3>((&out, &lhs, &rhs), |args, _| {
             let (_out, lhs, rhs) = args;
             assert_eq!(lhs.as_slice(), &[1f32, 2., 3., 4., 5.,]);
             assert_eq!(rhs.as_slice(), &[1f32, 2., 6., 4., 5.,]);
@@ -290,7 +291,7 @@ mod tests {
         // outs_unordered.insert(out.id(), )
 
         for _ in 0..10 {
-            graph.add_operation::<_, 3>((&lhs, &rhs, &mut out), |(lhs, rhs, _out)| {
+            graph.add_operation::<CPU, _, 3>((&lhs, &rhs, &mut out), |(lhs, rhs, _out), _| {
                 // println!("ih");
                 assert_eq!(lhs.as_slice(), &[1f32, 2., 3., 4., 5.,]);
                 assert_eq!(rhs.as_slice(), &[1f32, 2., 6., 4., 5.,]);
@@ -321,7 +322,7 @@ mod tests {
         unsafe { register_buf_copyable(&mut outs_unordered, &out) };
         // outs_unordered.insert(out.id(), )
 
-        graph.add_operation::<_, 2>((&lhs, &rhs), |args| {
+        graph.add_operation::<CPU, _, 2>((&lhs, &rhs), |args, _| {
             let (lhs, rhs) = args;
             assert_eq!(lhs.as_slice(), &[1f32, 2., 3., 4., 5.,]);
             assert_eq!(rhs.as_slice(), &[1f32, 2., 6., 4., 5.,]);
@@ -352,7 +353,7 @@ mod tests {
 
         // outs_unordered.insert(out.id(), )
 
-        graph.add_operation::<_, 3>((&mut out, &lhs, &rhs), move |(_out, lhs, rhs)| {
+        graph.add_operation::<CPU, _, 3>((&mut out, &lhs, &rhs), move |(_out, lhs, rhs), _| {
             assert_eq!(lhs.as_slice(), &[1f32, 2., 3., 4., 5.,]);
             assert_eq!(rhs.as_slice(), &[1f32, 2., 6., 4., 5.,]);
 

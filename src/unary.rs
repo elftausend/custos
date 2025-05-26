@@ -1,6 +1,5 @@
 use crate::{
-    AddGradFn, AddOperation, Alloc, Buffer, Device, Eval, HasId, MayGradActions, MayToCLSource,
-    Resolve, Shape, TwoWay, Unit, ZeroGrad,
+    AddGradFn, AddOperation, AddOperationModule, Alloc, Buffer, Device, Eval, HasId, MayGradActions, MayToCLSource, Resolve, Shape, TwoWay, Unit, ZeroGrad
 };
 
 /// Applies a function to a buffer and returns a new buffer.
@@ -180,7 +179,7 @@ mod tests {
             + crate::UnaryElementWiseMayGrad<f32, D, ()>
             + crate::Alloc<f32>
             + crate::CachedBuffers
-            + crate::AddOperation
+            + crate::AddOperationModule
             + crate::ZeroGrad<f32>
             + crate::OnNewBuffer<'a, f32, D, ()>,
     {

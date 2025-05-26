@@ -1,11 +1,7 @@
 use core::ops::{Range, RangeBounds};
 
 use crate::{
-    AddOperation, ApplyFunction, Buffer, CDatatype, CUDA, ClearBuf, CopySlice, Read, Resolve,
-    Retrieve, Retriever, SetOpHint, Shape, ToCLSource, ToMarker, UnaryGrad, Unit, WrappedData,
-    WriteBuf, ZeroGrad, bounds_to_range,
-    cuda::api::{CUstreamCaptureStatus, cu_read_async},
-    op_hint::unary,
+    bounds_to_range, cuda::api::{cu_read_async, CUstreamCaptureStatus}, op_hint::unary, AddOperation, AddOperationModule, ApplyFunction, Buffer, CDatatype, ClearBuf, CopySlice, Read, Resolve, Retrieve, Retriever, SetOpHint, Shape, ToCLSource, ToMarker, UnaryGrad, Unit, WrappedData, WriteBuf, ZeroGrad, CUDA
 };
 
 use super::{
@@ -119,7 +115,7 @@ impl<Mods: WrappedData, T: Unit> WriteBuf<T> for CUDA<Mods> {
 impl<Mods, T, S> ApplyFunction<T, S> for CUDA<Mods>
 where
     T: CDatatype + Default,
-    Mods: AddOperation + Retrieve<Self, T, S> + SetOpHint<T> + 'static,
+    Mods: AddOperationModule + Retrieve<Self, T, S> + SetOpHint<T> + 'static,
     S: Shape,
 {
     #[inline]
@@ -132,8 +128,8 @@ where
         F: crate::TwoWay<T>,
     {
         let mut out = self.retrieve(buf.len(), buf).unwrap();
-        self.add_op((&mut out, buf), move |(out, buf)| {
-            try_cu_apply_fn_mut(buf.device(), buf, out, f)
+        self.add_op((&mut out, buf), move |(out, buf), dev| {
+            try_cu_apply_fn_mut(dev, buf, out, f)
         })
         .unwrap();
         self.set_op_hint(unary(f));
@@ -180,7 +176,7 @@ impl<T, S, Mods> UnaryGrad<T, S> for CUDA<Mods>
 where
     T: CDatatype + Default,
     S: Shape,
-    Mods: WrappedData + AddOperation + 'static,
+    Mods: WrappedData + AddOperationModule + 'static,
 {
     #[inline]
     fn add_unary_grad<F>(
@@ -192,8 +188,8 @@ where
     ) where
         F: ToCLSource,
     {
-        self.add_op((lhs, lhs_grad, out), move |(lhs, lhs_grad, out)| {
-            try_cu_add_unary_grad(lhs.device(), lhs, lhs_grad, out, lhs_grad_fn)
+        self.add_op((lhs, lhs_grad, out), move |(lhs, lhs_grad, out), dev| {
+            try_cu_add_unary_grad(dev, lhs, lhs_grad, out, lhs_grad_fn)
         })
         .unwrap();
     }

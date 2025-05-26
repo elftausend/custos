@@ -6,10 +6,7 @@ use min_cl::{
 };
 
 use crate::{
-    AddOperation, ApplyFunction, Buffer, CDatatype, ClearBuf, CopySlice, OpenCL, Read, Resolve,
-    Retrieve, Retriever, SetOpHint, Shape, ToCLSource, ToMarker, TwoWay, UnaryGrad, Unit,
-    UseGpuOrCpu, WrappedData, WriteBuf, ZeroGrad, bounds_to_range, cpu_stack_ops::clear_slice,
-    location, op_hint::unary, prelude::Number,
+    bounds_to_range, cpu_stack_ops::clear_slice, location, op_hint::unary, prelude::Number, AddOperation, AddOperationModule, ApplyFunction, Buffer, CDatatype, ClearBuf, CopySlice, OpenCL, Read, Resolve, Retrieve, Retriever, SetOpHint, Shape, ToCLSource, ToMarker, TwoWay, UnaryGrad, Unit, UseGpuOrCpu, WrappedData, WriteBuf, ZeroGrad
 };
 
 use super::{CLPtr, enqueue_kernel};
@@ -222,7 +219,7 @@ impl<'a, T, S, Mods> ApplyFunction<T, S> for OpenCL<Mods>
 where
     T: CDatatype + Number,
     S: Shape,
-    Mods: AddOperation + Retrieve<Self, T, S> + UseGpuOrCpu + SetOpHint<T> + 'static,
+    Mods: AddOperationModule + Retrieve<Self, T, S> + UseGpuOrCpu + SetOpHint<T> + 'static,
 {
     #[inline]
     fn apply_fn<F>(
@@ -235,8 +232,7 @@ where
     {
         let mut out = self.retrieve(buf.len(), buf).unwrap();
 
-        self.add_op((&mut out, buf), move |(out, buf)| {
-            let dev = buf.device();
+        self.add_op((&mut out, buf), move |(out, buf), dev| {
             // let out: &mut Buffer<'_, T, OpenCL<Mods>, S> = out.as_mut().unwrap();
             let out = &mut *out;
             #[cfg(unified_cl)]
@@ -298,7 +294,7 @@ where
     Ok(())
 }
 
-impl<T, S, Mods: WrappedData + AddOperation + 'static> UnaryGrad<T, S> for OpenCL<Mods>
+impl<T, S, Mods: WrappedData + AddOperationModule + 'static> UnaryGrad<T, S> for OpenCL<Mods>
 where
     T: CDatatype + Number,
     S: Shape,
@@ -313,8 +309,8 @@ where
     ) where
         F: ToCLSource,
     {
-        self.add_op((lhs, lhs_grad, out), move |(lhs, lhs_grad, out)| {
-            try_cl_add_unary_grad(lhs.device(), lhs, lhs_grad, out, lhs_grad_fn)
+        self.add_op((lhs, lhs_grad, out), move |(lhs, lhs_grad, out), dev| {
+            try_cl_add_unary_grad(dev, lhs, lhs_grad, out, lhs_grad_fn)
         })
         .unwrap();
     }

@@ -115,7 +115,7 @@ mod tests {
         let mut out2: Buffer<f32, _> = dev.retrieve(buf.len(), &out1).unwrap();
         dev.add_op(
             (&buf, &mut out, &mut out1, &mut out2),
-            |(buf, out, out1, out2)| {
+            |(buf, out, out1, out2), dev| {
                 // let out = out.as_mut_slice();
                 // let out1 = out1.as_mut_slice();
                 // for (x, y) in out.iter_mut().zip(out1) {

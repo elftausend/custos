@@ -1,9 +1,7 @@
 use core::fmt::Debug;
 
 use crate::{
-    AddOperation, ApplyFunction, Buffer, CDatatype, ClearBuf, Read, Resolve, Retrieve, Retriever,
-    Shape, ToCLSource, ToMarker, ToWgslSource, UnaryGrad, Unit, UseGpuOrCpu, Vulkan, WrappedData,
-    WriteBuf, ZeroGrad, cpu_stack_ops::clear_slice, prelude::Number,
+    cpu_stack_ops::clear_slice, prelude::Number, AddOperation, AddOperationModule, ApplyFunction, Buffer, CDatatype, ClearBuf, Read, Resolve, Retrieve, Retriever, Shape, ToCLSource, ToMarker, ToWgslSource, UnaryGrad, Unit, UseGpuOrCpu, Vulkan, WrappedData, WriteBuf, ZeroGrad
 };
 
 use super::{VkArray, VkDevice};
@@ -101,7 +99,7 @@ impl<Mods: WrappedData, T: Unit + Default + Clone, S: Shape> Read<T, S> for Vulk
 impl<Mods, T, S> ApplyFunction<T, S> for Vulkan<Mods>
 where
     T: Number,
-    Mods: AddOperation + Retrieve<Self, T, S> + UseGpuOrCpu + 'static,
+    Mods: AddOperationModule + Retrieve<Self, T, S> + UseGpuOrCpu + 'static,
     S: Shape,
 {
     #[inline]
@@ -171,7 +169,7 @@ impl<T, S, Mods> UnaryGrad<T, S> for Vulkan<Mods>
 where
     T: CDatatype + Number,
     S: Shape,
-    Mods: WrappedData + AddOperation + 'static,
+    Mods: WrappedData + AddOperationModule + 'static,
 {
     #[inline]
     fn add_unary_grad<F>(
@@ -183,8 +181,8 @@ where
     ) where
         F: ToCLSource,
     {
-        self.add_op((lhs, lhs_grad, out), move |(lhs, lhs_grad, out)| {
-            try_vk_add_unary_grad(lhs.device(), lhs, lhs_grad, out, lhs_grad_fn)
+        self.add_op((lhs, lhs_grad, out), move |(lhs, lhs_grad, out), dev| {
+            try_vk_add_unary_grad(dev, lhs, lhs_grad, out, lhs_grad_fn)
         })
         .unwrap();
     }

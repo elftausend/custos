@@ -9,7 +9,7 @@ pub use ty::*;
 use wrapper::MaybeData;
 
 use crate::{
-    AddLayer, AddOperation, Alloc, AnyOp, BoxedShallowCopy, Buffer, CachedBuffers, Cursor, Device,
+    AddLayer, AddOperationModule, Alloc, AnyOp, BoxedShallowCopy, Buffer, CachedBuffers, Cursor, Device,
     ExecNow, HasId, HasModules, Id, IsShapeIndep, Module, NoHasher, OnNewBuffer, Parents,
     ReplaceBuf, Retrieve, RunModule, SetOpHint, Setup, ShallowCopy, Shape, UniqueId, Unit,
     UseGpuOrCpu, WrappedData, op_hint::OpHint, register_buf_copyable, unregister_buf_copyable,
@@ -89,11 +89,12 @@ impl<'a, T, Mods: Module<'a, D>, D: LazySetup + Device + 'a> Module<'a, D> for L
     }
 }
 
-impl<T, Mods: AddOperation> AddOperation for Lazy<'_, Mods, T> {
-    fn add_op<Args: Parents<N> + crate::AnyOp, const N: usize>(
+impl<T, Mods: AddOperationModule> AddOperationModule for Lazy<'_, Mods, T> {
+    fn add_op_inner<D: Device + 'static, Args: Parents<N> + AnyOp, const N: usize>(
         &self,
         args: Args,
-        op: impl for<'a> Fn(Args::Replicated<'a>) -> crate::Result<()> + 'static,
+        device: &D,
+        op: impl for<'b> Fn(Args::Replicated<'b>, &D) -> crate::Result<()> + 'static,
     ) -> crate::Result<()> {
         if self.enabled.get() {
             self.graph.try_borrow_mut()
@@ -101,7 +102,7 @@ impl<T, Mods: AddOperation> AddOperation for Lazy<'_, Mods, T> {
             .add_operation(args, op);
             Ok(())
         } else {
-            self.modules.add_op(args, op)
+            self.modules.add_op_inner(args, device, op)
         }
     }
 
@@ -114,7 +115,7 @@ impl<T, Mods: AddOperation> AddOperation for Lazy<'_, Mods, T> {
     fn set_lazy_enabled(&self, enabled: bool) {
         self.enabled.set(enabled);
     }
-
+    
     #[inline]
     fn is_lazy_enabled(&self) -> bool {
         self.enabled.get()
@@ -515,9 +516,7 @@ mod tests {
     use core::ops::{Add, Deref};
 
     use crate::{
-        AddOperation, ApplyFunction, Base, Buffer, CPU, Combiner, Device, Retrieve, Retriever,
-        Shape, Unit,
-        tests_helper::{AddEw, add_ew_slice},
+        tests_helper::{add_ew_slice, AddEw}, AddOperation, AddOperationModule, ApplyFunction, Base, Buffer, Combiner, Device, Retrieve, Retriever, Shape, Unit, CPU
     };
 
     use super::Lazy;
@@ -565,12 +564,12 @@ mod tests {
         D: Device + 'static,
         D::Base<T, S>: Deref<Target = [T]>,
         S: Shape,
-        Mods: AddOperation + Retrieve<Self, T, S> + 'static,
+        Mods: AddOperationModule + Retrieve<Self, T, S> + 'static,
     {
         #[inline]
         fn add(&'a self, lhs: &Buffer<T, D, S>, rhs: &Buffer<T, D, S>) -> Buffer<'a, T, Self, S> {
             let mut out = self.retrieve(lhs.len(), ()).unwrap();
-            self.add_op((lhs, rhs, &mut out), |(lhs, rhs, out)| {
+            self.add_op((lhs, rhs, &mut out), |(lhs, rhs, out), _dev| {
                 add_ew_slice(lhs, rhs, out.as_mut_slice());
                 Ok(())
             })
@@ -704,7 +703,7 @@ mod tests {
         let mut out: Buffer<i32, _, ()> = device.retrieve(4, ()).unwrap();
 
         device
-            .add_op(&mut out, |out| {
+            .add_op(&mut out, |out, _| {
                 out.clear();
                 Ok(())
             })
@@ -714,7 +713,7 @@ mod tests {
             let a = Buffer::<i32, _, ()>::from_slice(&device, &[1, 2, 3, 4]);
             let b = Buffer::<i32, _, ()>::from_slice(&device, &[1, 2, 3, 4]);
             device
-                .add_op((&a, &b, &mut out), |(a, b, out)| {
+                .add_op((&a, &b, &mut out), |(a, b, out), _| {
                     for ((lhs, rhs), out) in a.iter().zip(b.iter()).zip(out.iter_mut()) {
                         *out = lhs + rhs;
                     }
@@ -737,7 +736,7 @@ mod tests {
         let mut out: Buffer<i32, _, ()> = device.retrieve(4, ()).unwrap();
 
         device
-            .add_op(&mut out, |out| {
+            .add_op(&mut out, |out, _| {
                 out.clear();
                 Ok(())
             })
@@ -747,7 +746,7 @@ mod tests {
             let a = Buffer::<i32, _, ()>::from_slice(&device, &[1, 2, 3, 4]);
             let b = Buffer::<i32, _, ()>::from_slice(&device, &[1, 2, 3, 4]);
             device
-                .add_op((&a, &b, &mut out), |(a, b, out)| {
+                .add_op((&a, &b, &mut out), |(a, b, out), _| {
                     for ((lhs, rhs), out) in a.iter().zip(b.iter()).zip(out.iter_mut()) {
                         *out = lhs + rhs;
                     }
@@ -773,7 +772,7 @@ mod tests {
         let mut out: Buffer<i32, _> = device.retrieve(4, ()).unwrap();
 
         device
-            .add_op(&mut out, |out| {
+            .add_op(&mut out, |out, _| {
                 out.clear();
                 Ok(())
             })
@@ -784,7 +783,7 @@ mod tests {
             let a = a.to_deviceless();
             let b = Buffer::<i32, _, ()>::from_slice(&device, &[1, 2, 3, 4]);
             device
-                .add_op((&mut out, &b), move |(out, b)| {
+                .add_op((&mut out, &b), move |(out, b), _| {
                     for ((lhs, rhs), out) in a.iter().zip(b.iter()).zip(out.iter_mut()) {
                         *out = lhs + rhs;
                     }

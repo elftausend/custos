@@ -1,7 +1,5 @@
 use crate::{
-    AddGradFn, AddOperation, Alloc, CachedBuffers, Cursor, Device, ExecNow, HasId, HashLocation,
-    Module, OnNewBuffer, Parents, PtrType, ReplaceBuf, Retrieve, SetOpHint, Setup, Shape, Unit,
-    WrappedData, flag::AllocFlag,
+    flag::AllocFlag, AddGradFn, AddOperationModule, Alloc, AnyOp, CachedBuffers, Cursor, Device, ExecNow, HasId, HashLocation, Module, OnNewBuffer, Parents, PtrType, ReplaceBuf, Retrieve, SetOpHint, Setup, Shape, Unit, WrappedData
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
@@ -50,14 +48,15 @@ impl<'a, D: Device + 'a> Module<'a, D> for Base {
     }
 }
 
-impl AddOperation for Base {
-    #[inline]
-    fn add_op<Args: Parents<N> + crate::AnyOp, const N: usize>(
+impl AddOperationModule for Base {
+    #[inline] 
+    fn add_op_inner<D: Device + 'static, Args: Parents<N> + AnyOp, const N: usize>(
         &self,
         args: Args,
-        op: impl for<'b> Fn(Args::Replicated<'b>) -> crate::Result<()> + 'static,
+        device: &D,
+        op: impl for<'b> Fn(Args::Replicated<'b>, &D) -> crate::Result<()> + 'static,
     ) -> crate::Result<()> {
-        op(unsafe { args.replication() })
+        op(unsafe { args.replication() }, device)
     }
 
     #[inline]
@@ -71,7 +70,7 @@ impl AddOperation for Base {
     #[inline]
     fn is_lazy_enabled(&self) -> bool {
         false
-    }
+    } 
 }
 
 impl<T> SetOpHint<T> for Base {}

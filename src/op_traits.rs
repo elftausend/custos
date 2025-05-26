@@ -225,9 +225,9 @@ mod tests {
         use crate::{Buffer, Combiner, Dim1, UnaryElementWiseMayGrad};
 
         let device = crate::Stack::new();
-        let buf = Buffer::<_, _, Dim1<5>>::from((&device, [1, 2, 4, 5, 3]));
+        let mut buf = Buffer::<_, _, Dim1<5>>::from((&device, [1, 2, 4, 5, 3]));
 
-        let out = device.unary_ew(&buf, |x| x.mul(3), |x| x);
+        let out = device.unary_ew(&mut buf, |x| x.mul(3), |x| x);
 
         assert_eq!(out.read(), [3, 6, 12, 15, 9]);
     }

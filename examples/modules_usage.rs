@@ -1,8 +1,7 @@
 use std::ops::{Add, AddAssign, Deref, DerefMut, Mul};
 
 use custos::{
-    AddGradFn, AddOperation, Alloc, ApplyFunction, Buffer, CPU, Combiner, Device, MayGradActions,
-    Retrieve, Retriever, Shape, Unit, ZeroGrad,
+    AddGradFn, AddOperation, AddOperationModule, Alloc, ApplyFunction, Buffer, Combiner, Device, MayGradActions, Retrieve, Retriever, Shape, Unit, ZeroGrad, CPU
 };
 
 pub trait ElementWise<T: Unit, D: Device, S: Shape>: Device {
@@ -35,7 +34,7 @@ where
     D: Device + ZeroGrad<T> + Alloc<T> + MayGradActions + 'static,
     D::Base<T, S>: Deref<Target = [T]> + DerefMut,
     S: Shape,
-    Mods: Retrieve<Self, T, S> + AddOperation + MayGradActions + AddGradFn + 'static,
+    Mods: Retrieve<Self, T, S> + AddOperationModule + MayGradActions + AddGradFn + 'static,
 {
     fn add(
         &self,
@@ -49,7 +48,7 @@ where
             Ok(())
         });
 
-        self.add_op((lhs, rhs, &mut out), |(lhs, rhs, out)| {
+        self.add_op((lhs, rhs, &mut out), |(lhs, rhs, out), _| {
             add_ew_slice(lhs, rhs, out);
             Ok(())
         })?;
@@ -93,7 +92,7 @@ impl<T, S, Mods> ElementWise<T, Self, S> for custos::OpenCL<Mods>
 where
     T: Add<Output = T> + Copy + CDatatype + Default,
     S: Shape,
-    Mods: Retrieve<Self, T, S> + AddOperation + custos::UseGpuOrCpu + 'static,
+    Mods: Retrieve<Self, T, S> + AddOperationModule + custos::UseGpuOrCpu + 'static,
 {
     fn add(
         &self,
@@ -102,7 +101,7 @@ where
     ) -> custos::Result<Buffer<T, Self, S>> {
         let mut out = self.retrieve(lhs.len(), (lhs, rhs)).unwrap();
 
-        self.add_op((lhs, rhs, &mut out), |(lhs, rhs, out)| {
+        self.add_op((lhs, rhs, &mut out), |(lhs, rhs, out), _| {
             let dev = lhs.device();
             #[cfg(unified_cl)]
             {

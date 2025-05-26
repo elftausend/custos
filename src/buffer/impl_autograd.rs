@@ -24,7 +24,7 @@ where
             + ZeroGrad<T>
             + WriteBuf<T, S, D>
             + Alloc<T>
-            + AddOperation
+            + AddOperationModule
             + 'static
             + GradActions,
         D: CachedBuffers,
@@ -43,7 +43,7 @@ where
             + ZeroGrad<T>
             + WriteBuf<T, S, D>
             + Alloc<T>
-            + AddOperation
+            + AddOperationModule
             + 'static,
     {
         // should never be None

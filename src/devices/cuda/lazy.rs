@@ -73,7 +73,7 @@ impl<Mods> crate::LazySetup for CUDA<Mods> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{AddOperation, Base, Buffer, CUDA, Device, HasId, Lazy, Retrieve, Retriever, Run};
+    use crate::{AddOperation, AddOperationModule, Base, Buffer, Device, HasId, Lazy, Retrieve, Retriever, Run, CUDA};
 
     pub fn ew_src(fn_name: &str, operator: char) -> String {
         format!(
@@ -256,14 +256,13 @@ mod tests {
         fn_name: &'static str,
     ) -> Buffer<'a, i32, CUDA<Mods>>
     where
-        Mods: 'static + AddOperation + Retrieve<CUDA<Mods>, i32, ()>,
+        Mods: 'static + AddOperationModule + Retrieve<CUDA<Mods>, i32, ()>,
     {
         let mut out = device.retrieve(lhs.len(), (lhs.id(), rhs.id())).unwrap();
 
         device
-            .add_op((lhs, rhs, &mut out), move |(lhs, rhs, out)| {
-                let device = lhs.device();
-                device.launch_kernel1d(lhs.len(), &src, fn_name, &[lhs, rhs, out, &lhs.len()])
+            .add_op((lhs, rhs, &mut out), move |(lhs, rhs, out), dev| {
+                dev.launch_kernel1d(lhs.len(), &src, fn_name, &[lhs, rhs, out, &lhs.len()])
             })
             .unwrap();
 

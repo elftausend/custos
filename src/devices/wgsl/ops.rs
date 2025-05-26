@@ -1,6 +1,5 @@
 use crate::{
-    AddOperation, Alloc, ApplyFunction, Read, Retrieve, Retriever, SetOpHint, Shape, ToMarker,
-    Unit, WrappedData, op_hint::unary,
+    op_hint::unary, AddOperation, AddOperationModule, Alloc, ApplyFunction, Read, Retrieve, Retriever, SetOpHint, Shape, ToMarker, Unit, WrappedData
 };
 
 use super::{AsShaderArg, WgslShaderLaunch, wgsl_device::Wgsl};
@@ -35,7 +34,7 @@ where
     T: Unit + Default + 'static,
     D: WgslShaderLaunch + Alloc<T> + 'static,
     D::Base<T, S>: AsShaderArg<D>,
-    Mods: SetOpHint<T> + Retrieve<Self, T, S> + AddOperation + 'static,
+    Mods: SetOpHint<T> + Retrieve<Self, T, S> + AddOperationModule + 'static,
     S: Shape,
 {
     fn apply_fn<F>(
@@ -48,7 +47,7 @@ where
     {
         let mut out = self.retrieve(buf.len(), buf).unwrap();
 
-        self.add_op((&mut out, buf), move |(out, buf)| {
+        self.add_op((&mut out, buf), move |(out, buf), dev| {
             let src = format!(
                 "
                 @group(0)
@@ -73,7 +72,7 @@ where
                 op = f("x[global_id.x]".to_marker()).to_wgsl_source()
             );
 
-            out.device().launch_shader(
+            dev.launch_shader(
                 src,
                 [(32 + buf.len() as u32) / 32, 1, 1],
                 &[buf.arg(), out.arg_mut()],

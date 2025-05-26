@@ -35,8 +35,8 @@ pub trait AnyOp: Sized {
     type Replicated<'a>;
 
     #[cfg(feature = "std")]
-    fn replication_fn<B: Downcast>(
-        op: impl for<'a> Fn(Self::Replicated<'a>) -> crate::Result<()> + 'static,
+    fn replication_fn<D: 'static, B: Downcast>(
+        op: impl for<'a> Fn(Self::Replicated<'a>, &D) -> crate::Result<()> + 'static,
     ) -> crate::OperationFn<B>;
 
     unsafe fn replication<'a>(self) -> Self::Replicated<'a>;
@@ -106,8 +106,8 @@ impl<'a, T: 'static, D: Device + 'static, S: crate::Shape> Replicate
 
 impl<R: crate::HasId + Replicate> AnyOp for R {
     #[cfg(feature = "std")]
-    fn replication_fn<B: Downcast>(
-        op: impl for<'a> Fn(Self::Replicated<'a>) -> crate::Result<()> + 'static,
+    fn replication_fn<D: 'static, B: Downcast>(
+        op: impl for<'a> Fn(Self::Replicated<'a>, &D) -> crate::Result<()> + 'static,
     ) -> Box<dyn Fn(&[crate::Id], &mut Buffers<B>, &dyn core::any::Any) -> crate::Result<()>> {
         use crate::DeviceError;
 
@@ -115,7 +115,7 @@ impl<R: crate::HasId + Replicate> AnyOp for R {
             let id = ids[0];
             let r1 = unsafe { R::replicate_borrowed(&id, buffers, Some(dev)) }
                 .ok_or(DeviceError::InvalidLazyBuf)?;
-            op(r1)
+            op(r1, dev.downcast_ref().unwrap())
         })
     }
     type Replicated<'a> = R::Replication<'a>;

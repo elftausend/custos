@@ -208,9 +208,9 @@ impl<Mods: WrappedData + 'static> UnaryFusing for CPU<Mods> {
     fn unary_fuse_op<T: Unit + Copy + 'static>(
         &self,
         ops_to_fuse: Vec<std::rc::Rc<dyn Fn(crate::Resolve<T>) -> Box<dyn crate::TwoWay<T>>>>,
-    ) -> Box<dyn Fn((&mut Buffer<'_, T, Self, ()>, &Buffer<'_, T, Self, ()>)) -> crate::Result<()>>
+    ) -> Box<dyn Fn((&mut Buffer<'_, T, Self, ()>, &Buffer<'_, T, Self, ()>), &Self) -> crate::Result<()>>
     {
-        Box::new(move |(out, buf)| {
+        Box::new(move |(out, buf), _| {
             for (out, buf) in out.iter_mut().zip(buf.iter()) {
                 let mut current_val = *buf;
                 for op in ops_to_fuse.iter() {

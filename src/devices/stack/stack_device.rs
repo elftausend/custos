@@ -1,10 +1,7 @@
 use core::convert::Infallible;
 
 use crate::{
-    AddOperationPassDown, Alloc, Base, Buffer, CloneBuf, Device, DeviceError, DevicelessAble, Read,
-    StackArray, Unit, WrappedData, WriteBuf, flag::AllocFlag, impl_buffer_hook_traits,
-    impl_retriever, impl_wrapped_data, pass_down_cursor, pass_down_grad_fn, pass_down_tape_actions,
-    pass_down_use_gpu_or_cpu, shape::Shape,
+    flag::AllocFlag, impl_buffer_hook_traits, impl_retriever, impl_wrapped_data, pass_down_cursor, pass_down_grad_fn, pass_down_tape_actions, pass_down_use_gpu_or_cpu, shape::Shape, AddOperationDevicePassDown, AddOperationPassDown, Alloc, Base, Buffer, CloneBuf, Device, DeviceError, DevicelessAble, HasModules, Read, StackArray, Unit, WrappedData, WriteBuf
 };
 
 /// A device that allocates memory on the stack.
@@ -29,6 +26,7 @@ pass_down_use_gpu_or_cpu!(Stack);
 #[cfg(feature = "graph")]
 crate::pass_down_optimize_mem_graph!(Stack);
 impl<Mods> AddOperationPassDown for Stack<Mods> {}
+impl<Mods> AddOperationDevicePassDown for Stack<Mods> {}
 
 impl<'a, T: Unit + Copy + Default, S: Shape> DevicelessAble<'a, T, S> for Stack {}
 
@@ -159,6 +157,14 @@ impl<T: Unit + Copy, S: Shape> WriteBuf<T, S> for Stack {
     #[inline]
     fn write_buf(&self, dst: &mut Buffer<T, Self, S>, src: &Buffer<T, Self, S>) {
         self.write(dst, src)
+    }
+}
+
+impl<Mods> HasModules for Stack<Mods> {
+    type Mods = Mods;
+
+    fn modules(&self) -> &Self::Mods {
+        &self.modules
     }
 }
 

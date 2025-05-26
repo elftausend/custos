@@ -71,8 +71,8 @@ macro_rules! impl_parents {
             type Replicated<'a> = ($($to_impl::Replication<'a>,)+);
 
             #[cfg(feature = "std")]
-            fn replication_fn<B: $crate::Downcast>(
-                op: impl for<'a> Fn(Self::Replicated<'a>) -> $crate::Result<()> + 'static,
+            fn replication_fn<D: 'static, B: $crate::Downcast>(
+                op: impl for<'a> Fn(Self::Replicated<'a>, &D) -> $crate::Result<()> + 'static,
             ) -> Box<dyn Fn(&[$crate::Id], &mut $crate::Buffers<B>, &dyn core::any::Any) -> $crate::Result<()>> {
                 Box::new(move |ids, buffers, dev| {
                     let mut ids = ids.iter();
@@ -83,7 +83,7 @@ macro_rules! impl_parents {
                                 ids.next().unwrap(), &mut *(buffers as *mut _), Some(dev)
                             ).ok_or(crate::DeviceError::InvalidLazyBuf)?
                         }
-                    ,)+))
+                    ,)+), dev.downcast_ref().unwrap())
                 })
             }
             #[inline]

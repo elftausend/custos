@@ -12,11 +12,11 @@ impl<Mods: WrappedData> UnaryFusing for CUDA<Mods> {
             (
                 &mut crate::Buffer<'_, T, Self, ()>,
                 &crate::Buffer<'_, T, Self, ()>,
-            ),
+            ), &Self,
         ) -> crate::Result<()>,
     > {
         use crate::operations_to_fused_src;
-        Box::new(move |(out, buf)| {
+        Box::new(move |(out, buf), dev| {
             if ops_to_fuse.is_empty() {
                 return Ok(());
             }
@@ -37,7 +37,7 @@ impl<Mods: WrappedData> UnaryFusing for CUDA<Mods> {
                 "#,
                 datatype = T::C_DTYPE_STR
             );
-            buf.device().launch_kernel(
+            dev.launch_kernel(
                 &src,
                 "applyFn",
                 [(buf.len() as u32 / 32 + 1) * 32, 1, 1],

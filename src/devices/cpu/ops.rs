@@ -1,16 +1,12 @@
 use core::ops::{AddAssign, Deref, DerefMut, Index, Range, RangeBounds};
 
 use crate::{
-    AddOperation, ApplyFunction, Buffer, CPU, ClearBuf, CopySlice, Device, Eval, MayToCLSource,
-    Read, Resolve, Retrieve, Retriever, SetOpHint, Shape, ToVal, TwoWay, UnaryGrad, Unit,
-    WrappedData, WriteBuf, ZeroGrad, bounds_to_range,
-    cpu_stack_ops::{apply_fn_slice, clear_slice},
-    op_hint::unary,
+    bounds_to_range, cpu_stack_ops::{apply_fn_slice, clear_slice}, op_hint::unary, AddOperation, AddOperationModule, ApplyFunction, Buffer, ClearBuf, CopySlice, Device, Eval, MayToCLSource, Read, Resolve, Retrieve, Retriever, SetOpHint, Shape, ToVal, TwoWay, UnaryGrad, Unit, WrappedData, WriteBuf, ZeroGrad, CPU
 };
 
 impl<'a, Mods, T, D, S> ApplyFunction<T, S, D> for CPU<Mods>
 where
-    Mods: Retrieve<Self, T, S> + AddOperation + SetOpHint<T> + 'static,
+    Mods: Retrieve<Self, T, S> + AddOperationModule + SetOpHint<T> + 'static,
     T: Unit + Copy + Default + ToVal + 'static,
     D: Device + 'static,
     D::Base<T, S>: Deref<Target = [T]>,
@@ -26,7 +22,7 @@ where
     {
         let mut out = self.retrieve(buf.len(), buf).unwrap();
 
-        self.add_op((&mut out, buf), move |(out, buf)| {
+        self.add_op((&mut out, buf), move |(out, buf), _| {
             apply_fn_slice(buf, out, f);
             Ok(())
         })
@@ -40,7 +36,7 @@ where
 
 impl<Mods, T, D, S> UnaryGrad<T, S, D> for CPU<Mods>
 where
-    Mods: AddOperation + WrappedData,
+    Mods: AddOperationModule + WrappedData + 'static,
     T: Unit + AddAssign + Copy + std::ops::Mul<Output = T> + 'static,
     S: Shape,
     D: Device + 'static,
@@ -56,7 +52,7 @@ where
     ) where
         F: Eval<T> + MayToCLSource,
     {
-        self.add_op::<_, 3>((lhs, lhs_grad, out), move |(lhs, lhs_grad, out)| {
+        self.add_op::<_, 3>((lhs, lhs_grad, out), move |(lhs, lhs_grad, out), _| {
             crate::cpu_stack_ops::add_unary_grad(lhs, out, lhs_grad, lhs_grad_fn);
             Ok(())
         })
@@ -118,7 +114,7 @@ where
 // #[impl_stack]
 impl<Mods, T, D, S> ClearBuf<T, S, D> for CPU<Mods>
 where
-    Mods: AddOperation,
+    Mods: AddOperationModule,
     T: Unit + Default + 'static,
     D: Device + 'static,
     D::Base<T, S>: DerefMut<Target = [T]>,

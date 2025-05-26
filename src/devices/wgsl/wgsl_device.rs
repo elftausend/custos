@@ -1,8 +1,7 @@
 use core::convert::Infallible;
 
 use crate::{
-    AddOperation, Alloc, Base, Buffer, Device, IsBasePtr, IsShapeIndep, Module, OnNewBuffer,
-    Parents, Retrieve, Retriever, Setup, Shape, Unit, WrappedData,
+    AddOperation, AddOperationDevicePassDown, AddOperationPassDown, Alloc, Base, Buffer, Device, ExecNowPassDown, HasModules, IsBasePtr, IsShapeIndep, Module, OnNewBuffer, Parents, ReplaceBufPassDown, Retrieve, Retriever, Setup, Shape, Unit, WrappedData
 };
 
 use super::{WgslDevice, WgslShaderLaunch};
@@ -190,30 +189,18 @@ impl<D: Device + Alloc<T>, T: Unit, Mods: Retrieve<Self, T, S>, S: Shape> Retrie
     }
 }
 
-impl<D: Device, Mods: AddOperation> AddOperation for Wgsl<D, Mods> {
-    fn add_op<Args: Parents<N> + crate::AnyOp, const N: usize>(
-        &self,
-        args: Args,
-        op: impl for<'b> Fn(Args::Replicated<'b>) -> crate::Result<()> + 'static,
-    ) -> crate::Result<()> {
-        self.modules.add_op(args, op)
-    }
+impl<D: Device, Mods> HasModules for Wgsl<D, Mods> {
+    type Mods = Mods;
 
     #[inline]
-    fn ops_count(&self) -> usize {
-        self.modules.ops_count()
-    }
-
-    #[inline]
-    fn set_lazy_enabled(&self, enabled: bool) {
-        self.modules.set_lazy_enabled(enabled)
-    }
-
-    #[inline]
-    fn is_lazy_enabled(&self) -> bool {
-        self.modules.is_lazy_enabled()
+    fn modules(&self) -> &Self::Mods {
+        &self.modules
     }
 }
+impl<D: Device, Mods> AddOperationPassDown for Wgsl<D, Mods> {}
+impl<D: Device, Mods> AddOperationDevicePassDown for Wgsl<D, Mods> {}
+impl<D: Device, Mods> ExecNowPassDown for Wgsl<D, Mods> {}
+impl<D: Device, Mods> ReplaceBufPassDown for Wgsl<D, Mods> {}
 
 #[cfg(test)]
 mod tests {

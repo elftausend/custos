@@ -12,12 +12,12 @@ impl<Mods: WrappedData> UnaryFusing for OpenCL<Mods> {
             (
                 &mut crate::Buffer<'_, T, Self, ()>,
                 &crate::Buffer<'_, T, Self, ()>,
-            ),
+            ), &Self,
         ) -> crate::Result<()>,
     > {
         use crate::operations_to_fused_src;
 
-        Box::new(move |(out, buf)| {
+        Box::new(move |(out, buf), _| {
             if ops_to_fuse.is_empty() {
                 return Ok(());
             }
