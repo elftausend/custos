@@ -35,7 +35,7 @@
 //!
 //! impl<Mods, T, S, D> MulBuf<T, S, D> for CPU<Mods>
 //! where
-//!     Mods: Retrieve<Self, T, S> + AddOperation + 'static,
+//!     Mods: Retrieve<Self, T, S> + AddOperationModule + 'static,
 //!     T: Unit + Mul<Output = T> + Copy,
 //!     S: Shape,
 //!     D: Device + 'static,
@@ -46,7 +46,7 @@
 //!         let mut out = self.retrieve(lhs.len(), (lhs, rhs)).unwrap(); // unwrap or return error (update trait)
 //!
 //!         // add optional lazy operation (add "Lazy" module to device)
-//!         self.add_op((lhs, rhs, &mut out), |(lhs, rhs, out)| {
+//!         self.add_op((lhs, rhs, &mut out), |(lhs, rhs, out), _dev| {
 //!             for ((lhs, rhs), out) in lhs.iter().zip(rhs.iter()).zip(out) {
 //!                 *out = *lhs * *rhs;
 //!             }

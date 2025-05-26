@@ -232,7 +232,7 @@ pub trait AddGradFn {
     ///
     /// let lhs = device.buffer([1, 2, 3, 4, 5]);
     /// device.no_grad_ctx(|| {
-    ///     device.add_grad_fn(&lhs, |lhs| {
+    ///     device.add_grad_fn(&lhs, &device, |lhs, _| {
     ///         panic!("should not execute!");
     ///         Ok(())
     ///     })
