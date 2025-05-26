@@ -20,6 +20,7 @@ impl Node {
     ///     idx: 0,
     ///     deps: vec![0, 0],
     ///     len: 10,
+    ///     skip: false,
     /// };
     ///
     /// assert!(node.is_leaf());
@@ -28,6 +29,7 @@ impl Node {
     ///     idx: 1,
     ///     deps: vec![0, 0],
     ///     len: 10,
+    ///     skip: false,
     /// };
     /// assert!(!node.is_leaf());
     /// ```
