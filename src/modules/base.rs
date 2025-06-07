@@ -187,7 +187,7 @@ impl crate::Optimize for Base {
 
 impl AddGradFn for Base {
     #[inline]
-    fn add_grad_fn<D: 'static, Args: Parents<N> + crate::AnyOp, const N: usize>(
+    fn add_grad_fn_inner<D: 'static, Args: Parents<N> + crate::AnyOp, const N: usize>(
         &self,
         _args: Args,
         _device: &D,
@@ -196,6 +196,13 @@ impl AddGradFn for Base {
     }
 
     fn set_grad_enabled(&self, _enabled: bool) {}
+    
+    fn add_grad_fn<Args: Parents<N> + AnyOp, const N: usize>(
+        &self,
+       _args: Args,
+        _op: impl for<'b> Fn(Args::Replicated<'b>, &Self) -> crate::Result<()> + 'static,
+    )  {
+    }
 }
 
 #[cfg(feature = "autograd")]

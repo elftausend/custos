@@ -243,7 +243,7 @@ impl<'dev, Mods> TapeActions<'dev> for Autograd<'dev, Mods> {
 }
 
 impl<'a, Mods: AddGradFn> AddGradFn for Autograd<'a, Mods> {
-    fn add_grad_fn<D: 'static, Args: Parents<N> + crate::AnyOp, const N: usize>(
+    fn add_grad_fn_inner<D: 'static, Args: Parents<N> + crate::AnyOp, const N: usize>(
         &self,
         args: Args,
         _device: &D,
@@ -263,6 +263,15 @@ impl<'a, Mods: AddGradFn> AddGradFn for Autograd<'a, Mods> {
     #[inline]
     fn is_grad_enabled(&self) -> bool {
         self.enabled.get()
+    }
+
+    #[inline] 
+    fn add_grad_fn<Args: Parents<N> + crate::AnyOp, const N: usize>(
+        &self,
+        _args: Args,
+        _op: impl for<'b> Fn(Args::Replicated<'b>, &Self) -> crate::Result<()> + 'static,
+    ) where Self: Device + 'static {
+     
     }
 }
 
@@ -430,7 +439,7 @@ mod tests {
 
         let out = Buffer::<f32, _>::new(&device, 10);
 
-        device.add_grad_fn((&buf, &out), &device, |(buf, _out), _dev| unsafe {
+        device.add_grad_fn_inner((&buf, &out), &device, |(buf, _out), _dev| unsafe {
             for (val, grad) in buf.grad_mut_unbound().iter_mut().zip(_out.grad().iter()) {
                 *val = 5. * grad;
             }
@@ -450,7 +459,7 @@ mod tests {
         {
             let buf = Buffer::<f32, _>::new(&device, 10).require_grad();
 
-            device.add_grad_fn((&buf, &out), &device, |(buf, _out), _| unsafe {
+            device.add_grad_fn_inner((&buf, &out), &device, |(buf, _out), _| unsafe {
                 println!("buf: {buf:?}");
                 for (val, grad) in buf.grad_mut_unbound().iter_mut().zip(_out.grad().iter()) {
                     *val = 5. * grad;
@@ -487,7 +496,7 @@ mod tests {
         let mut lhs = device.buffer([1, 2, 3, 4]).require_grad();
         let out = lhs.empty_like();
 
-        device.add_grad_fn((&mut lhs, &out), &device, |(lhs, out), dev| unsafe {
+        device.add_grad_fn_inner((&mut lhs, &out), &device, |(lhs, out), dev| unsafe {
             // lhs.grad();
             dev.add_unary_grad(lhs, lhs.grad_mut_unbound(), out.grad(), |x| x.add(3));
             // lhs.device().add_ew_grad(lhs.grad(), rhs.grad(), out.grad());
@@ -508,7 +517,7 @@ mod tests {
 
         device.disable_grad();
 
-        device.add_grad_fn((&lhs, &out), &device, |(lhs, out), dev| unsafe {
+        device.add_grad_fn_inner((&lhs, &out), &device, |(lhs, out), dev| unsafe {
             dev.add_unary_grad(lhs, lhs.grad_mut_unbound(), out.grad(), |x| x.add(3));
             panic!("should not be called");
         });
@@ -519,7 +528,7 @@ mod tests {
 
         device.enable_grad();
 
-        device.add_grad_fn((&lhs, &out), &device, |(lhs, out), dev| unsafe {
+        device.add_grad_fn_inner((&lhs, &out), &device, |(lhs, out), dev| unsafe {
             dev.add_unary_grad(lhs, lhs.grad_mut_unbound(), out.grad(), |x| x.add(3));
             Ok(())
         });

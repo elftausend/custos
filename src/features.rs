@@ -184,13 +184,19 @@ pub trait GradActions {
 }
 
 pub trait AddGradFn {
-    fn add_grad_fn<D: 'static, Args: Parents<N> + AnyOp, const N: usize>(
+    fn add_grad_fn_inner<D: 'static, Args: Parents<N> + AnyOp, const N: usize>(
         &self,
         args: Args,
         device: &D,
         op: impl for<'b> Fn(Args::Replicated<'b>, &D) -> crate::Result<()> + 'static,
     );
 
+    fn add_grad_fn<Args: Parents<N> + AnyOp, const N: usize>(
+        &self,
+        args: Args,
+        op: impl for<'b> Fn(Args::Replicated<'b>, &Self) -> crate::Result<()> + 'static,
+    ) where Self: Device + 'static;
+    
     fn add_grad_and_forward_fn<
         D: Device + 'static,
         Args: Parents<N> + AnyOp + Clone,
@@ -205,7 +211,7 @@ pub trait AddGradFn {
         Self: AddOperation,
     {
         self.add_op_inner(args.clone(), device, forward_fn).unwrap();
-        self.add_grad_fn(args, device, grad_fn)
+        self.add_grad_fn_inner(args, device, grad_fn)
     }
 
     fn backward(&mut self) {}
@@ -287,13 +293,22 @@ macro_rules! pass_down_grad_fn {
         }
         impl<'dev, Mods: $crate::AddGradFn> $crate::AddGradFn for $to_impl<$($generics),*> {
             #[inline]
-            fn add_grad_fn<D: 'static, Args: $crate::Parents<N> + $crate::AnyOp, const N: usize>(
+            fn add_grad_fn_inner<D: 'static, Args: $crate::Parents<N> + $crate::AnyOp, const N: usize>(
                 &self,
                 args: Args,
                 device: &D,
                 op: impl for<'b> Fn(Args::Replicated<'b>, &D) -> $crate::Result<()> + 'static,
             ) {
-                self.modules.add_grad_fn(args, device, op);
+                self.modules.add_grad_fn_inner(args, device, op);
+            }
+            
+            #[inline]
+            fn add_grad_fn<Args: $crate::Parents<N> + $crate::AnyOp, const N: usize>(
+                &self,
+                args: Args,
+                op: impl for<'b> Fn(Args::Replicated<'b>, &Self) -> $crate::Result<()> + 'static,
+            ) where Self: $crate::Device + 'static {
+                self.modules.add_grad_fn_inner(args, self, op);
             }
 
             #[inline]

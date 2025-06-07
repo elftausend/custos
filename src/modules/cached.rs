@@ -350,18 +350,26 @@ impl<CacheType, Mods, SD: Device> RemoveLayer<Mods> for CachedModule<Mods, SD, C
 
 impl<CacheType, Mods: AddGradFn, D: Device> AddGradFn for CachedModule<Mods, D, CacheType> {
     #[inline]
-    fn add_grad_fn<Dev: 'static, Args: Parents<N> + crate::AnyOp, const N: usize>(
+    fn add_grad_fn_inner<Dev: 'static, Args: Parents<N> + crate::AnyOp, const N: usize>(
         &self,
         args: Args,
         device: &Dev,
         op: impl for<'b> Fn(Args::Replicated<'b>, &Dev) -> crate::Result<()> + 'static,
     ) {
-        self.modules.add_grad_fn(args, device, op)
+        self.modules.add_grad_fn_inner(args, device, op)
     }
 
     #[inline]
     fn set_grad_enabled(&self, enabled: bool) {
         self.modules.set_grad_enabled(enabled)
+    }
+    
+    fn add_grad_fn<Args: Parents<N> + crate::AnyOp, const N: usize>(
+        &self,
+        args: Args,
+        op: impl for<'b> Fn(Args::Replicated<'b>, &Self) -> crate::Result<()> + 'static,
+    ) where Self: Device + 'static {
+        todo!()
     }
 }
 

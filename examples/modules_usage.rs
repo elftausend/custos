@@ -44,7 +44,7 @@ where
     ) -> custos::Result<Buffer<T, Self, S>> {
         let mut out = self.retrieve(lhs.len(), (lhs, rhs)).unwrap();
 
-        self.add_grad_fn((lhs, rhs, &mut out), self, |(lhs, rhs, out), _dev| unsafe {
+        self.add_grad_fn_inner((lhs, rhs, &mut out), self, |(lhs, rhs, out), _dev| unsafe {
             add_ew_grad_slice(lhs.grad_mut_unbound(), rhs.grad_mut_unbound(), out.grad()); // execute grad function
             Ok(())
         });

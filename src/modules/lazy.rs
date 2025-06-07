@@ -258,13 +258,13 @@ impl<Mods: crate::GradActions, U> crate::GradActions for Lazy<'_, Mods, U> {
 
 impl<T, Mods: crate::AddGradFn> crate::AddGradFn for Lazy<'_, Mods, T> {
     #[inline]
-    fn add_grad_fn<D: 'static, Args: Parents<N> + AnyOp, const N: usize>(
+    fn add_grad_fn_inner<D: 'static, Args: Parents<N> + AnyOp, const N: usize>(
         &self,
         args: Args,
         device: &D,
         op: impl for<'b> Fn(Args::Replicated<'b>, &D) -> crate::Result<()> + 'static,
     ) {
-        self.modules.add_grad_fn(args, device, op)
+        self.modules.add_grad_fn_inner(args, device, op)
     }
 
     #[inline]
@@ -275,6 +275,13 @@ impl<T, Mods: crate::AddGradFn> crate::AddGradFn for Lazy<'_, Mods, T> {
     #[inline]
     fn set_grad_enabled(&self, enabled: bool) {
         self.modules.set_grad_enabled(enabled)
+    }
+    
+    fn add_grad_fn<Args: Parents<N> + AnyOp, const N: usize>(
+        &self,
+        _args: Args,
+        _op: impl for<'b> Fn(Args::Replicated<'b>, &Self) -> crate::Result<()> + 'static,
+    ) where Self: Device + 'static {
     }
 }
 // pass_down_grad_fn!(Lazy);
