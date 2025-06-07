@@ -1,5 +1,7 @@
 use crate::{
-    flag::AllocFlag, AddGradFn, AddOperationModule, Alloc, AnyOp, CachedBuffers, Cursor, Device, ExecNow, HasId, HashLocation, Module, OnNewBuffer, Parents, PtrType, ReplaceBuf, Retrieve, SetOpHint, Setup, Shape, Unit, WrappedData
+    AddGradFn, AddOperation, Alloc, AnyOp, CachedBuffers, Cursor, Device, ExecNow, HasId,
+    HashLocation, Module, OnNewBuffer, Parents, PtrType, ReplaceBuf, Retrieve, SetOpHint, Setup,
+    Shape, Unit, WrappedData, flag::AllocFlag,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
@@ -48,8 +50,8 @@ impl<'a, D: Device + 'a> Module<'a, D> for Base {
     }
 }
 
-impl AddOperationModule for Base {
-    #[inline] 
+impl AddOperation for Base {
+    #[inline]
     fn add_op_inner<D: Device + 'static, Args: Parents<N> + AnyOp, const N: usize>(
         &self,
         args: Args,
@@ -70,7 +72,15 @@ impl AddOperationModule for Base {
     #[inline]
     fn is_lazy_enabled(&self) -> bool {
         false
-    } 
+    }
+
+    fn add_op<Args: Parents<N> + AnyOp, const N: usize>(
+        &self,
+        _args: Args,
+        _op: impl for<'b> Fn(Args::Replicated<'b>, &Self) -> crate::Result<()> + 'static,
+    ) -> crate::Result<()> {
+        Ok(())
+    }
 }
 
 impl<T> SetOpHint<T> for Base {}

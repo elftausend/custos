@@ -1,5 +1,6 @@
 use crate::{
-    AddGradFn, AddOperation, AddOperationModule, Alloc, Buffer, Device, Eval, HasId, MayGradActions, MayToCLSource, Resolve, Shape, TwoWay, Unit, ZeroGrad
+    AddGradFn, AddOperation, Alloc, Buffer, Device, Eval, HasId, MayGradActions, MayToCLSource,
+    Resolve, Shape, TwoWay, Unit, ZeroGrad,
 };
 
 /// Applies a function to a buffer and returns a new buffer.
@@ -96,7 +97,7 @@ pub trait UnaryElementWiseMayGrad<T: Unit, D: Device, S: Shape>: Device {
 impl<T, D, S> UnaryElementWiseMayGrad<T, D, S> for D
 where
     T: Unit + 'static,
-    D: AddGradFn + ApplyFunction<T, S, D> + UnaryGrad<T, S, D> + AddOperation + MayGradActions,
+    D: AddGradFn + ApplyFunction<T, S, D> + UnaryGrad<T, S, D> + MayGradActions + AddOperation,
     // D::Data<T, S>: crate::ShallowCopy,
     D: Alloc<T> + ZeroGrad<T> + 'static,
     S: Shape,
@@ -121,8 +122,7 @@ where
             // lazy execution is already disabled during backward pass
             dev.eagerly(|| {
                 let (buf, buf_grad) = buf.grad_mut_self();
-                dev 
-                    .add_unary_grad(buf, buf_grad, out.grad(), grad_fn);
+                dev.add_unary_grad(buf, buf_grad, out.grad(), grad_fn);
             });
             Ok(())
         });
@@ -179,7 +179,7 @@ mod tests {
             + crate::UnaryElementWiseMayGrad<f32, D, ()>
             + crate::Alloc<f32>
             + crate::CachedBuffers
-            + crate::AddOperationModule
+            + crate::AddOperation
             + crate::ZeroGrad<f32>
             + crate::OnNewBuffer<'a, f32, D, ()>,
     {

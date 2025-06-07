@@ -1,7 +1,9 @@
 use core::fmt::Debug;
 
 use crate::{
-    cpu_stack_ops::clear_slice, prelude::Number, AddOperation, AddOperationModule, ApplyFunction, Buffer, CDatatype, ClearBuf, Read, Resolve, Retrieve, Retriever, Shape, ToCLSource, ToMarker, ToWgslSource, UnaryGrad, Unit, UseGpuOrCpu, Vulkan, WrappedData, WriteBuf, ZeroGrad
+    AddOperation, AddOperationModule, ApplyFunction, Buffer, CDatatype, ClearBuf, Read, Resolve,
+    Retrieve, Retriever, Shape, ToCLSource, ToMarker, ToWgslSource, UnaryGrad, Unit, UseGpuOrCpu,
+    Vulkan, WrappedData, WriteBuf, ZeroGrad, cpu_stack_ops::clear_slice, prelude::Number,
 };
 
 use super::{VkArray, VkDevice};

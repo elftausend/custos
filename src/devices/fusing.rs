@@ -29,7 +29,8 @@ pub trait UnaryFusing: IsShapeIndep {
             (
                 &mut crate::Buffer<'_, T, Self, ()>,
                 &crate::Buffer<'_, T, Self, ()>,
-            ), &Self,
+            ),
+            &Self,
         ) -> crate::Result<()>,
     >;
 

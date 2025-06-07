@@ -12,7 +12,8 @@ impl<Mods: WrappedData> UnaryFusing for OpenCL<Mods> {
             (
                 &mut crate::Buffer<'_, T, Self, ()>,
                 &crate::Buffer<'_, T, Self, ()>,
-            ), &Self,
+            ),
+            &Self,
         ) -> crate::Result<()>,
     > {
         use crate::operations_to_fused_src;

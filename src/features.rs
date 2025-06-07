@@ -191,14 +191,18 @@ pub trait AddGradFn {
         op: impl for<'b> Fn(Args::Replicated<'b>, &D) -> crate::Result<()> + 'static,
     );
 
-    fn add_grad_and_forward_fn<D: Device + 'static, Args: Parents<N> + AnyOp + Clone, const N: usize>(
+    fn add_grad_and_forward_fn<
+        D: Device + 'static,
+        Args: Parents<N> + AnyOp + Clone,
+        const N: usize,
+    >(
         &self,
         args: Args,
         device: &D,
         forward_fn: impl for<'b> Fn(Args::Replicated<'b>, &D) -> crate::Result<()> + 'static,
         grad_fn: impl for<'b> Fn(Args::Replicated<'b>, &D) -> crate::Result<()> + 'static,
     ) where
-        Self: AddOperationModule,
+        Self: AddOperation,
     {
         self.add_op_inner(args.clone(), device, forward_fn).unwrap();
         self.add_grad_fn(args, device, grad_fn)
@@ -386,13 +390,21 @@ where
     }
 }
 
-pub trait AddOperationModule {
+pub trait AddOperation {
     fn add_op_inner<D: Device + 'static, Args: Parents<N> + AnyOp, const N: usize>(
         &self,
         args: Args,
         device: &D,
         op: impl for<'b> Fn(Args::Replicated<'b>, &D) -> crate::Result<()> + 'static,
     ) -> crate::Result<()>;
+
+    fn add_op<Args: Parents<N> + AnyOp, const N: usize>(
+        &self,
+        args: Args,
+        op: impl for<'b> Fn(Args::Replicated<'b>, &Self) -> crate::Result<()> + 'static,
+    ) -> crate::Result<()>
+    where
+        Self: Device + 'static;
 
     fn ops_count(&self) -> usize;
     fn set_lazy_enabled(&self, enabled: bool);
@@ -416,33 +428,11 @@ pub trait AddOperationModule {
     }
 }
 
-pub trait AddOperation: AddOperationModule {
-    fn add_op<Args: Parents<N> + AnyOp, const N: usize>(
-        &self,
-        args: Args,
-        op: impl for<'b> Fn(Args::Replicated<'b>, &Self) -> crate::Result<()> + 'static,
-    ) -> crate::Result<()>;
-}
-
 pub trait AddOperationPassDown {}
-pub trait AddOperationDevicePassDown {}
-impl<'b, D> AddOperation for D
-where
-    <D as HasModules>::Mods: AddOperationModule,
-    D: AddOperationDevicePassDown + HasModules + WrappedData + AddOperationModule + Device + 'static,
-{
-    fn add_op<Args: Parents<N> + AnyOp, const N: usize>(
-        &self,
-        args: Args,
-        op: impl for<'a> Fn(Args::Replicated<'a>, &Self) -> crate::Result<()> + 'static,
-    ) -> crate::Result<()> {
-        self.modules().add_op_inner(args, self, op)
-    }
-}
 
-impl<'b, Module> AddOperationModule for Module
+impl<'b, Module> AddOperation for Module
 where
-    <Module as HasModules>::Mods: AddOperationModule,
+    <Module as HasModules>::Mods: AddOperation,
     Module: AddOperationPassDown + HasModules + WrappedData,
 {
     fn add_op_inner<D: Device + 'static, Args: Parents<N> + AnyOp, const N: usize>(
@@ -454,6 +444,17 @@ where
         self.modules().add_op_inner(args, device, op)
     }
 
+    fn add_op<Args: Parents<N> + AnyOp, const N: usize>(
+        &self,
+        args: Args,
+        op: impl for<'a> Fn(Args::Replicated<'a>, &Self) -> crate::Result<()> + 'static,
+    ) -> crate::Result<()>
+    where
+        Self: Device + 'static,
+    {
+        self.modules().add_op_inner(args, self, op)
+    }
+
     #[inline]
     fn ops_count(&self) -> usize {
         self.modules().ops_count()
@@ -463,7 +464,7 @@ where
     fn set_lazy_enabled(&self, enabled: bool) {
         self.modules().set_lazy_enabled(enabled)
     }
-    
+
     #[inline]
     fn is_lazy_enabled(&self) -> bool {
         self.modules().is_lazy_enabled()
@@ -494,7 +495,7 @@ pub trait ExecNow<D = Self> {
     fn exec_last_n(&self, device: &D, last_n: usize) -> crate::Result<()>
     where
         D: Device,
-        Self: AddOperationModule,
+        Self: AddOperation,
     {
         self.exec_now(device, self.ops_count() - last_n..)
     }

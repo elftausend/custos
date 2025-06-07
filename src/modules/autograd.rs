@@ -489,8 +489,7 @@ mod tests {
 
         device.add_grad_fn((&mut lhs, &out), &device, |(lhs, out), dev| unsafe {
             // lhs.grad();
-            dev
-                .add_unary_grad(lhs, lhs.grad_mut_unbound(), out.grad(), |x| x.add(3));
+            dev.add_unary_grad(lhs, lhs.grad_mut_unbound(), out.grad(), |x| x.add(3));
             // lhs.device().add_ew_grad(lhs.grad(), rhs.grad(), out.grad());
             Ok(())
         });
@@ -510,8 +509,7 @@ mod tests {
         device.disable_grad();
 
         device.add_grad_fn((&lhs, &out), &device, |(lhs, out), dev| unsafe {
-            dev
-                .add_unary_grad(lhs, lhs.grad_mut_unbound(), out.grad(), |x| x.add(3));
+            dev.add_unary_grad(lhs, lhs.grad_mut_unbound(), out.grad(), |x| x.add(3));
             panic!("should not be called");
         });
 
@@ -522,8 +520,7 @@ mod tests {
         device.enable_grad();
 
         device.add_grad_fn((&lhs, &out), &device, |(lhs, out), dev| unsafe {
-            dev
-                .add_unary_grad(lhs, lhs.grad_mut_unbound(), out.grad(), |x| x.add(3));
+            dev.add_unary_grad(lhs, lhs.grad_mut_unbound(), out.grad(), |x| x.add(3));
             Ok(())
         });
 

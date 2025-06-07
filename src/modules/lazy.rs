@@ -9,7 +9,7 @@ pub use ty::*;
 use wrapper::MaybeData;
 
 use crate::{
-    AddLayer, AddOperationModule, Alloc, AnyOp, BoxedShallowCopy, Buffer, CachedBuffers, Cursor, Device,
+    AddLayer, AddOperation, Alloc, AnyOp, BoxedShallowCopy, Buffer, CachedBuffers, Cursor, Device,
     ExecNow, HasId, HasModules, Id, IsShapeIndep, Module, NoHasher, OnNewBuffer, Parents,
     ReplaceBuf, Retrieve, RunModule, SetOpHint, Setup, ShallowCopy, Shape, UniqueId, Unit,
     UseGpuOrCpu, WrappedData, op_hint::OpHint, register_buf_copyable, unregister_buf_copyable,
@@ -89,7 +89,7 @@ impl<'a, T, Mods: Module<'a, D>, D: LazySetup + Device + 'a> Module<'a, D> for L
     }
 }
 
-impl<T, Mods: AddOperationModule> AddOperationModule for Lazy<'_, Mods, T> {
+impl<T, Mods: AddOperation> AddOperation for Lazy<'_, Mods, T> {
     fn add_op_inner<D: Device + 'static, Args: Parents<N> + AnyOp, const N: usize>(
         &self,
         args: Args,
@@ -115,10 +115,21 @@ impl<T, Mods: AddOperationModule> AddOperationModule for Lazy<'_, Mods, T> {
     fn set_lazy_enabled(&self, enabled: bool) {
         self.enabled.set(enabled);
     }
-    
+
     #[inline]
     fn is_lazy_enabled(&self) -> bool {
         self.enabled.get()
+    }
+
+    fn add_op<Args: Parents<N> + AnyOp, const N: usize>(
+        &self,
+        args: Args,
+        op: impl for<'b> Fn(Args::Replicated<'b>, &Self) -> crate::Result<()> + 'static,
+    ) -> crate::Result<()>
+    where
+        Self: Device + 'static,
+    {
+        todo!()
     }
 }
 
@@ -517,7 +528,9 @@ mod tests {
     use core::ops::{Add, Deref};
 
     use crate::{
-        tests_helper::{add_ew_slice, AddEw}, AddOperation, AddOperationModule, ApplyFunction, Base, Buffer, Combiner, Device, Retrieve, Retriever, Shape, Unit, CPU
+        AddOperation, ApplyFunction, Base, Buffer, CPU, Combiner, Device, Retrieve, Retriever,
+        Shape, Unit,
+        tests_helper::{AddEw, add_ew_slice},
     };
 
     use super::Lazy;
@@ -565,7 +578,7 @@ mod tests {
         D: Device + 'static,
         D::Base<T, S>: Deref<Target = [T]>,
         S: Shape,
-        Mods: AddOperationModule + Retrieve<Self, T, S> + 'static,
+        Mods: AddOperation + Retrieve<Self, T, S> + 'static,
     {
         #[inline]
         fn add(&'a self, lhs: &Buffer<T, D, S>, rhs: &Buffer<T, D, S>) -> Buffer<'a, T, Self, S> {

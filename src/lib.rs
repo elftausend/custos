@@ -35,7 +35,7 @@
 //!
 //! impl<Mods, T, S, D> MulBuf<T, S, D> for CPU<Mods>
 //! where
-//!     Mods: Retrieve<Self, T, S> + AddOperationModule + 'static,
+//!     Mods: Retrieve<Self, T, S> + AddOperation + 'static,
 //!     T: Unit + Mul<Output = T> + Copy,
 //!     S: Shape,
 //!     D: Device + 'static,

@@ -6,7 +6,10 @@ use min_cl::{
 };
 
 use crate::{
-    bounds_to_range, cpu_stack_ops::clear_slice, location, op_hint::unary, prelude::Number, AddOperation, AddOperationModule, ApplyFunction, Buffer, CDatatype, ClearBuf, CopySlice, OpenCL, Read, Resolve, Retrieve, Retriever, SetOpHint, Shape, ToCLSource, ToMarker, TwoWay, UnaryGrad, Unit, UseGpuOrCpu, WrappedData, WriteBuf, ZeroGrad
+    AddOperation, ApplyFunction, Buffer, CDatatype, ClearBuf, CopySlice, OpenCL, Read, Resolve,
+    Retrieve, Retriever, SetOpHint, Shape, ToCLSource, ToMarker, TwoWay, UnaryGrad, Unit,
+    UseGpuOrCpu, WrappedData, WriteBuf, ZeroGrad, bounds_to_range, cpu_stack_ops::clear_slice,
+    location, op_hint::unary, prelude::Number,
 };
 
 use super::{CLPtr, enqueue_kernel};
@@ -219,7 +222,7 @@ impl<'a, T, S, Mods> ApplyFunction<T, S> for OpenCL<Mods>
 where
     T: CDatatype + Number,
     S: Shape,
-    Mods: AddOperationModule + Retrieve<Self, T, S> + UseGpuOrCpu + SetOpHint<T> + 'static,
+    Mods: AddOperation + Retrieve<Self, T, S> + UseGpuOrCpu + SetOpHint<T> + 'static,
 {
     #[inline]
     fn apply_fn<F>(
@@ -294,7 +297,7 @@ where
     Ok(())
 }
 
-impl<T, S, Mods: WrappedData + AddOperationModule + 'static> UnaryGrad<T, S> for OpenCL<Mods>
+impl<T, S, Mods: WrappedData + AddOperation + 'static> UnaryGrad<T, S> for OpenCL<Mods>
 where
     T: CDatatype + Number,
     S: Shape,

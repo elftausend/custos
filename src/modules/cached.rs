@@ -4,11 +4,11 @@ use core::{
 };
 
 use crate::{
-    AddGradFn, AddLayer, AddOperationModule, AddOperationPassDown, Alloc, AsAny, Buffer, Cache,
+    AddGradFn, AddLayer, AddOperation, AddOperationPassDown, Alloc, AsAny, Buffer, Cache,
     CachedBuffers, CowMut, Cursor, Device, DynAnyWrapper, ExecNowPassDown, FastCache, Guard,
     HasModules, IsBasePtr, IsShapeIndep, LockInfo, Module, OnNewBuffer, Parents, PtrType,
-    RemoveLayer, ReplaceBufPassDown, Retrieve, RunModule, Setup, ShallowCopy, Shape,
-    State, UniqueId, Unit, WrappedData,
+    RemoveLayer, ReplaceBufPassDown, Retrieve, RunModule, Setup, ShallowCopy, Shape, State,
+    UniqueId, Unit, WrappedData,
 };
 
 #[cfg(feature = "graph")]
@@ -95,7 +95,7 @@ impl<CacheType, Mods: Setup<NewDev>, D: Device, NewDev> Setup<NewDev>
     }
 }
 
-impl<CacheType, SD: Device, Mods: AddOperationModule> AddOperationPassDown
+impl<CacheType, SD: Device, Mods: AddOperation> AddOperationPassDown
     for CachedModule<Mods, SD, CacheType>
 {
 }

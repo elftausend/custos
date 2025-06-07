@@ -10,9 +10,9 @@ use std::collections::HashSet;
 
 use crate::{
     AddLayer, AddOperationPassDown, Alloc, Buffer, Cursor, Device, HasId, HasModules, IsBasePtr,
-    Module, NoHasher, OnNewBuffer, Optimize, Parents, ReplaceBuf, Retrieve,
-    RunModule, Setup, Shape, UniqueId, Unit, WrappedData, impl_remove_layer, pass_down_cursor,
-    pass_down_grad_fn, pass_down_use_gpu_or_cpu,
+    Module, NoHasher, OnNewBuffer, Optimize, Parents, ReplaceBuf, Retrieve, RunModule, Setup,
+    Shape, UniqueId, Unit, WrappedData, impl_remove_layer, pass_down_cursor, pass_down_grad_fn,
+    pass_down_use_gpu_or_cpu,
 };
 
 pub use self::graph_translator::GraphTranslator;

@@ -1,5 +1,6 @@
 use crate::{
-    op_hint::unary, AddOperation, AddOperationModule, Alloc, ApplyFunction, Read, Retrieve, Retriever, SetOpHint, Shape, ToMarker, Unit, WrappedData
+    AddOperation, AddOperationModule, Alloc, ApplyFunction, Read, Retrieve, Retriever, SetOpHint,
+    Shape, ToMarker, Unit, WrappedData, op_hint::unary,
 };
 
 use super::{AsShaderArg, WgslShaderLaunch, wgsl_device::Wgsl};

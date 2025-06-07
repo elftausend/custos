@@ -1,7 +1,8 @@
 use std::ops::{Add, AddAssign, Deref, DerefMut, Mul};
 
 use custos::{
-    AddGradFn, AddOperation, AddOperationModule, Alloc, ApplyFunction, Buffer, Combiner, Device, MayGradActions, Retrieve, Retriever, Shape, Unit, ZeroGrad, CPU
+    AddGradFn, AddOperation, Alloc, ApplyFunction, Buffer, CPU, Combiner, Device,
+    MayGradActions, Retrieve, Retriever, Shape, Unit, ZeroGrad,
 };
 
 pub trait ElementWise<T: Unit, D: Device, S: Shape>: Device {
@@ -34,7 +35,7 @@ where
     D: Device + ZeroGrad<T> + Alloc<T> + MayGradActions + 'static,
     D::Base<T, S>: Deref<Target = [T]> + DerefMut,
     S: Shape,
-    Mods: Retrieve<Self, T, S> + AddOperationModule + MayGradActions + AddGradFn + 'static,
+    Mods: Retrieve<Self, T, S> + AddOperation + MayGradActions + AddGradFn + 'static,
 {
     fn add(
         &self,
@@ -43,7 +44,7 @@ where
     ) -> custos::Result<Buffer<T, Self, S>> {
         let mut out = self.retrieve(lhs.len(), (lhs, rhs)).unwrap();
 
-        self.add_grad_fn((lhs, rhs, &mut out), self,|(lhs, rhs, out), _dev| unsafe {
+        self.add_grad_fn((lhs, rhs, &mut out), self, |(lhs, rhs, out), _dev| unsafe {
             add_ew_grad_slice(lhs.grad_mut_unbound(), rhs.grad_mut_unbound(), out.grad()); // execute grad function
             Ok(())
         });
@@ -92,7 +93,7 @@ impl<T, S, Mods> ElementWise<T, Self, S> for custos::OpenCL<Mods>
 where
     T: Add<Output = T> + Copy + CDatatype + Default,
     S: Shape,
-    Mods: Retrieve<Self, T, S> + AddOperationModule + custos::UseGpuOrCpu + 'static,
+    Mods: Retrieve<Self, T, S> + AddOperation + custos::UseGpuOrCpu + 'static,
 {
     fn add(
         &self,
