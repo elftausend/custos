@@ -121,7 +121,7 @@ where
             }
             // lazy execution is already disabled during backward pass
             dev.eagerly(|| {
-                let (buf, buf_grad) = buf.grad_mut_self();
+                let (buf, buf_grad) = unsafe { buf.grad_mut_self() };
                 dev.add_unary_grad(buf, buf_grad, out.grad(), grad_fn);
             });
             Ok(())

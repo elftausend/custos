@@ -104,6 +104,24 @@ impl<'a, T: 'static, D: Device + 'static, S: crate::Shape> Replicate
     }
 }
 
+impl AnyOp for () {
+    type Replicated<'a> = ();
+
+    #[inline]
+    fn replication_fn<D: 'static, B: Downcast>(
+        op: impl for<'a> Fn(Self::Replicated<'a>, &D) -> crate::Result<()> + 'static,
+    ) -> crate::OperationFn<B> {
+        Box::new(move |_ids, _buffers, dev| {
+            op((), dev.downcast_ref().unwrap())
+        })
+    }
+    
+    #[inline]
+    unsafe fn replication<'a>(self) -> Self::Replicated<'a> {
+        self
+    }
+}
+
 impl<R: crate::HasId + Replicate> AnyOp for R {
     #[cfg(feature = "std")]
     fn replication_fn<D: 'static, B: Downcast>(
