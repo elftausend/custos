@@ -69,7 +69,7 @@ where
 
     // Works too
     // crate::cpu_exec_mut!(device, &cpu, ; WRITE_TO<x, x_cpu> f(&cpu, &mut x_cpu));
-    let mut cpu_buf = Buffer::<T, CPU>::from((&cpu, x.read_to_vec()));
+    let mut cpu_buf = Buffer::<T, CPU>::from((&cpu, device.read_to_vec(x)));
     f(&cpu, &mut cpu_buf);
 
     device.write(x, &cpu_buf);
@@ -137,8 +137,8 @@ where
 
     // Should work too
     // crate::cpu_exec_mut!(device, &cpu, rhs; WRITE_TO<lhs, lhs_cpu> f(&cpu, &mut lhs_cpu, &rhs));
-    let mut cpu_lhs = Buffer::<T, CPU>::from((&cpu, lhs.read_to_vec()));
-    let cpu_rhs = Buffer::<T, CPU>::from((&cpu, rhs.read_to_vec()));
+    let mut cpu_lhs = Buffer::<T, CPU>::from((&cpu, device.read_to_vec(lhs)));
+    let cpu_rhs = Buffer::<T, CPU>::from((&cpu, device.read_to_vec(rhs)));
     f(&mut cpu_lhs, &cpu_rhs);
 
     device.write(lhs, &cpu_lhs);
@@ -169,10 +169,10 @@ where
 /// ```
 #[macro_export]
 macro_rules! to_cpu_mut {
-    ($cpu:expr, $($t:ident, $cpu_name:ident),*) => {
+    ($device:expr, $cpu:expr, $($t:ident, $cpu_name:ident),*) => {
         $(
             #[allow(unused_mut)]
-            let mut $cpu_name = $crate::Buffer::<_, _>::from(($cpu, $t.read_to_vec()));
+            let mut $cpu_name = $crate::Buffer::<_, _>::from(($cpu, $crate::op_traits::Read::<_>::read_to_vec($device, &$t)));
         )*
     };
 }
@@ -198,12 +198,14 @@ macro_rules! to_cpu_mut {
 /// ```
 #[macro_export]
 macro_rules! to_cpu {
-    ($cpu:expr, $($t:ident),*) => {
+    ($device:expr, $cpu:expr, $($t:ident),*) => {
+        // use $crate::Read;
         $(
-            let $t = $crate::Buffer::<_, _>::from(($cpu, $t.read_to_vec()));
+            let $t = $crate::Buffer::<_, _>::from(($cpu, $crate::op_traits::Read::<_>::read_to_vec($device, &$t)));
         )*
     };
 }
+
 
 /// Takes `Buffer`s having a host pointer and wraps them into `CPU` `Buffer`'s.
 /// The old `Buffer`s are shadowed.
@@ -253,7 +255,7 @@ macro_rules! to_raw_host_mut {
 #[macro_export]
 macro_rules! cpu_exec {
     ($device:expr, $cpu:expr, $($t:ident),*; $op:expr) => {{
-        $crate::to_cpu!($cpu, $($t),*);
+        $crate::to_cpu!($device, $cpu, $($t),*);
         $crate::Buffer::from(($device, $op))
     }};
 }
@@ -263,8 +265,8 @@ macro_rules! cpu_exec {
 #[macro_export]
 macro_rules! cpu_exec_mut {
     ($device:expr, $cpu:expr, $($t:ident),*; WRITE_TO<$($write_to:ident, $from:ident),*> $op:expr) => {{
-        $crate::to_cpu!($cpu, $($t),*);
-        $crate::to_cpu_mut!($cpu, $($write_to, $from),*);
+        $crate::to_cpu!($device, $cpu, $($t),*);
+        $crate::to_cpu_mut!($device, $cpu, $($write_to, $from),*);
         $op;
         $(
             $device.write($write_to, &$from);
@@ -274,14 +276,14 @@ macro_rules! cpu_exec_mut {
 
 /// Moves a single `Buffer` stored on another device to a `CPU` `Buffer` and executes an reduce operation on the `CPU`.
 #[inline]
-pub fn cpu_exec_reduce<T, D, F>(x: &Buffer<T, D>, f: F) -> T
+pub fn cpu_exec_reduce<T, D, F>(device: &D, x: &Buffer<T, D>, f: F) -> T
 where
     T: Unit + Default + Clone,
     D: Read<T>,
     F: Fn(&CPU, &Buffer<T, CPU>) -> T,
 {
     let cpu = CPU::<Base>::new();
-    let cpu_x = Buffer::from((&cpu, x.read_to_vec()));
+    let cpu_x = Buffer::from((&cpu, device.read_to_vec(x)));
     f(&cpu, &cpu_x)
 }
 
@@ -301,7 +303,7 @@ mod tests {
         let lhs = Buffer::from((&device, [1, 2, 3]));
         let rhs = Buffer::from((&device, [1, 2, 3]));
 
-        to_cpu!(cpu, lhs, rhs);
+        to_cpu!(&device, cpu, lhs, rhs);
         assert_eq!(lhs.len(), 3);
         assert_eq!(rhs.len(), 3);
     }

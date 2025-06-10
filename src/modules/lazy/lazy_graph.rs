@@ -107,7 +107,7 @@ impl<B: Downcast, T> LazyGraph<B, T> {
         args: Args,
         op: impl for<'b> Fn(Args::Replicated<'b>, &D) -> crate::Result<()> + 'static,
     ) -> Operation<B, T> {
-        const { assert!(N > 0, "Size of parents must be greater than 0") };
+        // const { assert!(N > 0, "Size of parents must be greater than 0") };
 
         let mut seen_ids = HashSet::new();
 

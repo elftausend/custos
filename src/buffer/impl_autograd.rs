@@ -263,11 +263,11 @@ mod tests {
     #[cfg(feature = "autograd")]
     #[test]
     fn test_grad_self_mut() {
-        use crate::{Autograd, Base, Device, CPU};
+        use crate::{Autograd, Base, ClearBuf, Device, CPU};
 
         let dev = CPU::<Autograd<Base>>::new();
         let mut buf = dev.buffer([1, 2, 3, 4]);
-        let (buf, grad) = unsafe { buf.grad_mut_self() };
-        grad.clear();
+        let (_buf, grad) = unsafe { buf.grad_mut_self() };
+        dev.clear(grad);
     }
 }

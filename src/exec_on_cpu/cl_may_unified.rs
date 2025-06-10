@@ -108,7 +108,7 @@ where
 ///
 /// `cpu_exec_binary_may_unified` can be used interchangeably with [cpu_exec_reduce].
 pub fn cpu_exec_reduce_may_unified<T, F, Mods>(
-    device: &min_cl::CLDevice,
+    device: &OpenCL<Mods>,
     x: &Buffer<T, OpenCL<Mods>>,
     f: F,
 ) -> T
@@ -124,7 +124,7 @@ where
             Buffer::from_raw_host(x.base().host_ptr, x.len())
         });
     }
-    cpu_exec_reduce(x, f)
+    cpu_exec_reduce(device, x, f)
 }
 
 /// If the current device supports unified memory, data is not deep-copied.
@@ -172,7 +172,7 @@ macro_rules! cl_cpu_exec_unified_mut {
 
         } else {
             let cpu = $crate::CPU::<$crate::Cached<Base>>::new();
-            $crate::cpu_exec_mut!($device, &cpu, $($t),*; WRITE_TO<$($write_to, $from),*> $op);
+            $crate::cpu_exec_mut!(&$device, &cpu, $($t),*; WRITE_TO<$($write_to, $from),*> $op);
             $device.cpu.modules.cache.nodes.clear();
         }
     }};
