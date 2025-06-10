@@ -172,7 +172,7 @@ macro_rules! to_cpu_mut {
     ($device:expr, $cpu:expr, $($t:ident, $cpu_name:ident),*) => {
         $(
             #[allow(unused_mut)]
-            let mut $cpu_name = $crate::Buffer::<_, _>::from(($cpu, $crate::op_traits::Read::<_>::read_to_vec($device, &$t)));
+            let mut $cpu_name = $crate::Buffer::<_, _>::from(($cpu, $crate::Read::<_>::read_to_vec($device, &$t)));
         )*
     };
 }
@@ -201,7 +201,7 @@ macro_rules! to_cpu {
     ($device:expr, $cpu:expr, $($t:ident),*) => {
         // use $crate::Read;
         $(
-            let $t = $crate::Buffer::<_, _>::from(($cpu, $crate::op_traits::Read::<_>::read_to_vec($device, &$t)));
+            let $t = $crate::Buffer::<_, _>::from(($cpu, $crate::Read::<_>::read_to_vec($device, &$t)));
         )*
     };
 }
