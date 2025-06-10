@@ -172,7 +172,7 @@ macro_rules! cl_cpu_exec_unified_mut {
 
         } else {
             let cpu = $crate::CPU::<$crate::Cached<Base>>::new();
-            $crate::cpu_exec_mut!(&$device, &cpu, $($t),*; WRITE_TO<$($write_to, $from),*> $op);
+            $crate::cpu_exec_mut!($device, &cpu, $($t),*; WRITE_TO<$($write_to, $from),*> $op);
             $device.cpu.modules.cache.nodes.clear();
         }
     }};
@@ -190,7 +190,7 @@ mod tests {
         let mut out = device.buffer::<i32, (), _>(5);
         let out = &mut out;
 
-        cl_cpu_exec_unified_mut!(device, buf; WRITE_TO<out, out_cpu> {
+        cl_cpu_exec_unified_mut!(&device, buf; WRITE_TO<out, out_cpu> {
             for (out, buf) in out_cpu.iter_mut().zip(buf.iter()) {
                 *out += buf + 1;
             }
