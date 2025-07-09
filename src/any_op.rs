@@ -107,6 +107,7 @@ impl<'a, T: 'static, D: Device + 'static, S: crate::Shape> Replicate
 impl AnyOp for () {
     type Replicated<'a> = ();
 
+    #[cfg(feature = "std")]
     #[inline]
     fn replication_fn<D: 'static, B: Downcast>(
         op: impl for<'a> Fn(Self::Replicated<'a>, &D) -> crate::Result<()> + 'static,
