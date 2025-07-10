@@ -4,7 +4,7 @@ mod span;
 #[cfg(feature = "std")]
 pub use span::*;
 
-use crate::Cursor;
+use crate::{Cursor, Number};
 use core::ops::{Range, RangeFrom, RangeFull, RangeInclusive, RangeTo, RangeToInclusive};
 
 pub struct CursorRange<'a, D> {
@@ -69,33 +69,33 @@ pub trait AsRange {
 }
 
 // Implementing AsRange for standard Range (e.g., 0..10)
-impl AsRange for Range<usize> {
+impl<T: Number> AsRange for Range<T> {
     #[inline]
     fn start(&self) -> usize {
-        self.start
+        self.start.as_usize()
     }
 
     #[inline]
     fn end(&self) -> usize {
-        self.end
+        self.end.as_usize()
     }
 }
 
 // Implementing AsRange for RangeInclusive (e.g., 0..=10)
-impl AsRange for RangeInclusive<usize> {
+impl<T: Number> AsRange for RangeInclusive<T> {
     #[inline]
     fn start(&self) -> usize {
-        *self.start()
+        self.start().as_usize()
     }
 
     #[inline]
     fn end(&self) -> usize {
-        *self.end() + 1
+        self.end().as_usize() + 1
     }
 }
 
 // Implementing AsRange for a single usize (e.g., 10 means range 0..10)
-impl AsRange for usize {
+impl<T: Number> AsRange for T {
     #[inline]
     fn start(&self) -> usize {
         0
@@ -103,25 +103,25 @@ impl AsRange for usize {
 
     #[inline]
     fn end(&self) -> usize {
-        *self
+        self.as_usize()
     }
 }
 
 // Implementing AsRange for a tuple (usize, usize) (e.g., (5, 10))
-impl AsRange for (usize, usize) {
+impl<L: Number, R: Number> AsRange for (L, R) {
     #[inline]
     fn start(&self) -> usize {
-        self.0
+        self.0.as_usize()
     }
 
     #[inline]
     fn end(&self) -> usize {
-        self.1
+        self.1.as_usize()
     }
 }
 
 // Implementing AsRange for RangeTo (e.g., ..10)
-impl AsRange for RangeTo<usize> {
+impl<T: Number> AsRange for RangeTo<T> {
     #[inline]
     fn start(&self) -> usize {
         0
@@ -129,15 +129,15 @@ impl AsRange for RangeTo<usize> {
 
     #[inline]
     fn end(&self) -> usize {
-        self.end
+        self.end.as_usize()
     }
 }
 
 // Implementing AsRange for RangeFrom (e.g., 5..)
-impl AsRange for RangeFrom<usize> {
+impl<T: Number> AsRange for RangeFrom<T> {
     #[inline]
     fn start(&self) -> usize {
-        self.start
+        self.start.as_usize()
     }
 
     #[inline]
@@ -160,7 +160,7 @@ impl AsRange for RangeFull {
 }
 
 // Implementing AsRange for RangeToInclusive (e.g., ..=10)
-impl AsRange for RangeToInclusive<usize> {
+impl<T: Number> AsRange for RangeToInclusive<T> {
     #[inline]
     fn start(&self) -> usize {
         0
@@ -168,7 +168,7 @@ impl AsRange for RangeToInclusive<usize> {
 
     #[inline]
     fn end(&self) -> usize {
-        self.end + 1
+        self.end.as_usize() + 1
     }
 }
 
