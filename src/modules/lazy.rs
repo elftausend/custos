@@ -123,13 +123,13 @@ impl<T, Mods: AddOperation> AddOperation for Lazy<'_, Mods, T> {
 
     fn add_op<Args: Parents<N> + AnyOp, const N: usize>(
         &self,
-        args: Args,
-        op: impl for<'b> Fn(Args::Replicated<'b>, &Self) -> crate::Result<()> + 'static,
+        _args: Args,
+        _op: impl for<'b> Fn(Args::Replicated<'b>, &Self) -> crate::Result<()> + 'static,
     ) -> crate::Result<()>
     where
         Self: Device + 'static,
     {
-        todo!()
+        unimplemented!()
     }
 }
 

@@ -115,7 +115,7 @@ where
     {
         let out = self.apply_fn(buf, forward_fn);
 
-        self.add_grad_fn_inner((buf, &out), self, move |(buf, out), dev| {
+        self.add_grad_fn((buf, &out), move |(buf, out), dev| {
             if !buf.requires_grad() {
                 return Ok(());
             }
@@ -126,16 +126,6 @@ where
             });
             Ok(())
         });
-
-        // #[cfg(feature = "autograd")]
-        // {
-        //     let ids = (buf.id(), out.id());
-        //     self.add_grad_fn(move |grads| {
-        //         let (lhs, lhs_grad, out_grad) = grads.get_double::<T, S, S, D>(ids);
-        //         lhs.device()
-        //             .add_unary_grad(lhs, lhs_grad, out_grad, _grad_fn);
-        //     });
-        // }
 
         out
     }

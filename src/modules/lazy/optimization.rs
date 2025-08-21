@@ -113,6 +113,7 @@ mod tests {
         let mut out: Buffer<f32, _> = dev.retrieve(buf.len(), &buf).unwrap();
         let mut out1: Buffer<f32, _> = dev.retrieve(buf.len(), &out).unwrap();
         let mut out2: Buffer<f32, _> = dev.retrieve(buf.len(), &out1).unwrap();
+
         dev.add_op(
             (&buf, &mut out, &mut out1, &mut out2),
             |(buf, out, out1, out2), dev| {
