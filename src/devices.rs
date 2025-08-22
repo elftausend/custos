@@ -174,9 +174,9 @@ macro_rules! impl_retriever {
                 len: usize,
                 parents: impl $crate::Parents<NUM_PARENTS>,
             ) -> $crate::Result<Buffer<'a, T, Self, S>> {
-                let data = self
+                let data = $crate::CowMut::Owned(self
                     .modules
-                    .retrieve_entry::<NUM_PARENTS>(self, len, &parents)?;
+                    .retrieve_entry::<NUM_PARENTS>(self, len, &parents)?);
                 let buf = Buffer {
                     data,
                     device: Some(self),

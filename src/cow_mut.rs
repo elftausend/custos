@@ -2,7 +2,7 @@ use core::cell::{Ref, RefMut};
 use core::ops::{Deref, DerefMut};
 
 pub type CowMutCell<'a, T> = CowMut<T, RefMut<'a, T>, Ref<'a, T>>;
-pub type CowMutRef<'a, T> = CowMut<T, &'a T, &'a mut T>;
+pub type CowMutRef<'a, T> = CowMut<T, &'a mut T, &'a T>;
 
 #[cfg_attr(feature = "serde", derive(serde::Serialize))]
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]

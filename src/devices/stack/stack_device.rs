@@ -144,7 +144,7 @@ where
     #[inline]
     fn clone_buf(&'a self, buf: &Buffer<'a, T, Self, S>) -> Buffer<'a, T, Self, S> {
         Buffer {
-            data: buf.data,
+            data: crate::CowMut::Owned(*buf.data),
             device: Some(self),
         }
     }

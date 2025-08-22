@@ -144,12 +144,12 @@ where
             .as_any()
             .downcast_ref::<<OpenCL<OclMods> as Device>::Base<T, S>>()
             .unwrap();
-        let data = device.default_base_to_data::<T, S>(CLPtr {
+        let data = crate::CowMut::Owned(device.default_base_to_data::<T, S>(CLPtr {
             ptr: rawcl.ptr,
             host_ptr: rawcl.host_ptr,
             len: no_drop.len(),
             flag: AllocFlag::Wrapper,
-        });
+        }));
         return Ok(Buffer {
             data,
             device: Some(device),
@@ -158,12 +158,12 @@ where
     let (host_ptr, len) = (no_drop.base().ptr, no_drop.len());
     let ptr = unsafe { to_cached_unified(device, no_drop, cache, id)? };
 
-    let data = device.default_base_to_data::<T, S>(CLPtr {
+    let data = crate::CowMut::Owned(device.default_base_to_data::<T, S>(CLPtr {
         ptr,
         host_ptr,
         len,
         flag: AllocFlag::Wrapper,
-    });
+    }));
 
     Ok(Buffer {
         data,
@@ -275,12 +275,12 @@ mod tests {
         let cl_host_ptr = unsafe { to_cached_unified(&device, no_drop, &mut cache, 0)? };
 
         let buf: Buffer<f32, OpenCL> = Buffer {
-            data: CLPtr {
+            data: crate::CowMut::Owned(CLPtr {
                 ptr: cl_host_ptr,
                 host_ptr,
                 len,
                 flag: AllocFlag::Wrapper,
-            },
+            }),
             device: Some(&device),
         };
 

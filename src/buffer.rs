@@ -10,9 +10,7 @@ use crate::cpu::{CPU, CPUPtr};
 use crate::CPU;
 
 use crate::{
-    Alloc, Base, ClearBuf, CloneBuf, Device, DevicelessAble, HasId, IsShapeIndep, OnNewBuffer,
-    PtrType, Read, ReplaceBuf, ShallowCopy, ToDim, Unit, WrappedData, WriteBuf, ZeroGrad,
-    flag::AllocFlag, shape::Shape,
+    flag::AllocFlag, shape::Shape, Alloc, Base, ClearBuf, CloneBuf, CowMut, CowMutRef, Device, DevicelessAble, HasId, IsShapeIndep, OnNewBuffer, PtrType, Read, ReplaceBuf, ShallowCopy, ToDim, Unit, WrappedData, WriteBuf, ZeroGrad
 };
 
 pub use self::num::Num;
@@ -42,7 +40,7 @@ mod num;
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Buffer<'a, T: Unit = f32, D: Device = CPU<Base>, S: Shape = ()> {
     /// the type of pointer
-    pub(crate) data: D::Data<'a, T, S>,
+    pub(crate) data: CowMutRef<'a, D::Data<'a, T, S>>,
     /// A reference to the corresponding device. Mainly used for operations without a device parameter.
     #[cfg_attr(feature = "serde", serde(skip))]
     pub(crate) device: Option<&'a D>,
@@ -81,7 +79,7 @@ impl<'a, T: Unit, D: Device, S: Shape> Buffer<'a, T, D, S> {
     where
         D: OnNewBuffer<'a, T, D, S>,
     {
-        let data = device.default_base_to_data(base);
+        let data = CowMut::Owned(device.default_base_to_data(base));
         let mut buf = Buffer {
             data,
             device: Some(device),
@@ -258,7 +256,7 @@ impl<'a, T: Unit, D: Device, S: Shape> Buffer<'a, T, D, S> {
         D: DevicelessAble<'b, T, S>,
     {
         Buffer {
-            data: device.default_base_to_data_unbound(device.alloc(len, AllocFlag::None).unwrap()),
+            data: CowMut::Owned(device.default_base_to_data_unbound(device.alloc(len, AllocFlag::None).unwrap())),
             device: None,
         }
     }
@@ -273,8 +271,8 @@ impl<'a, T: Unit, D: Device, S: Shape> Buffer<'a, T, D, S> {
         let mut base = unsafe { self.base().shallow() };
         unsafe { base.set_flag(AllocFlag::None) };
 
-        let data: <D as Device>::Data<'b, T, S> =
-            self.device().default_base_to_data_unbound::<T, S>(base);
+        let data: CowMutRef<<D as Device>::Data<'b, T, S>> =
+            CowMut::Owned(self.device().default_base_to_data_unbound::<T, S>(base));
 
         Buffer { data, device: None }
     }
@@ -375,17 +373,13 @@ impl<'a, T: Unit, D: Device, S: Shape> Buffer<'a, T, D, S> {
 
     /// Creates a shallow copy of &self.
     ///
-    /// # Safety
-    /// Itself, this function does not need to be unsafe.
-    /// However, declaring this function as unsafe highlights the violation of creating two or more owners for one resource.
-    /// Furthermore, the resulting `Buffer` can outlive `self`.
     #[inline]
     pub unsafe fn shallow(&self) -> Buffer<'a, T, D, S>
     where
         <D as Device>::Data<'a, T, S>: ShallowCopy,
     {
         Buffer {
-            data: unsafe { self.data.shallow() },
+            data: CowMut::Owned(unsafe { self.data.shallow() }),
             device: self.device,
         }
     }
@@ -461,11 +455,12 @@ impl<'a, T: Unit, D: Device, S: Shape> Buffer<'a, T, D, S> {
     where
         D::Data<'a, T, S>: Default + ToDim<Out = D::Data<'a, T, O>>,
     {
-        let data = core::mem::take(&mut self.data).to_dim();
-        Buffer {
-            data,
-            device: self.device,
-        }
+        todo!()
+        // let data = core::mem::take(&mut self.data).to_dim();
+        // Buffer {
+        //     data,
+        //     device: self.device,
+        // }
     }
 }
 
@@ -529,7 +524,7 @@ impl<'a, T: Unit, S: Shape> Buffer<'a, T, CPU<Base>, S> {
     #[inline]
     pub unsafe fn from_raw_host(ptr: *mut T, len: usize) -> Buffer<'a, T, CPU<Base>, S> {
         Buffer {
-            data: unsafe { CPUPtr::from_ptr(ptr, len, AllocFlag::Wrapper) },
+            data: CowMut::Owned(unsafe { CPUPtr::from_ptr(ptr, len, AllocFlag::Wrapper) }),
             device: None,
         }
     }
@@ -550,7 +545,7 @@ impl<'a, Mods: WrappedData, T: Unit, S: Shape> Buffer<'a, T, CPU<Mods>, S> {
         len: usize,
     ) -> Buffer<'a, T, CPU<Mods>, S> {
         Buffer {
-            data: device.wrap_in_base(unsafe { CPUPtr::from_ptr(ptr, len, AllocFlag::Wrapper) }),
+            data: CowMut::Owned(device.wrap_in_base(unsafe { CPUPtr::from_ptr(ptr, len, AllocFlag::Wrapper) })),
             device: Some(device),
         }
     }
@@ -605,14 +600,14 @@ where
     }
 }
 
-impl<'a, T: Unit, D, S> Copy for Buffer<'a, T, D, S>
-where
-    T: Copy,
-    D: Device + CloneBuf<'a, T, S>,
-    S: Shape,
-    D::Data<'a, T, S>: Copy,
-{
-}
+// impl<'a, T: Unit, D, S> Copy for Buffer<'a, T, D, S>
+// where
+//     T: Copy,
+//     D: Device + CloneBuf<'a, T, S>,
+//     S: Shape,
+//     D::Data<'a, T, S>: Copy,
+// {
+// }
 
 impl<'a, T: Unit, D: Device, S: Shape> Default for Buffer<'a, T, D, S>
 where
@@ -620,7 +615,7 @@ where
 {
     fn default() -> Self {
         Self {
-            data: D::Data::<'a, T, S>::default(),
+            data: CowMut::Owned(D::Data::<'a, T, S>::default()),
             device: None,
         }
     }

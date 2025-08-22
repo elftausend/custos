@@ -57,7 +57,7 @@ impl<'a, T: 'static, D: Device + 'static, S: crate::Shape> Replicate
     ) -> Option<Self::Replication<'r>> {
         unsafe {
             <&mut Buffer<T, D, S> as Replicate>::replicate_borrowed(id, buffers, device)
-                .map(|buf| &*buf)
+                .map(move |buf| &*buf)
         }
     }
 
@@ -89,7 +89,6 @@ impl<'a, T: 'static, D: Device + 'static, S: crate::Shape> Replicate
             return None;
         }
         let buf = unsafe { replication.downcast_mut_unchecked::<Self::Downcast<'r>>() };
-        buf.device = device.map(|dev| dev.downcast_ref::<D>().unwrap());
         Some(buf)
     }
 

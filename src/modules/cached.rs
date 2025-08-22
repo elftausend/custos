@@ -157,7 +157,7 @@ where
 }
 
 // TODO: a more general OnDropBuffer => "Module"
-impl<CacheType: 'static, T, Mods, D, SimpleDevice, S: Shape> Retrieve<D, T, S>
+impl<'b, CacheType: 'static, T, Mods, D, SimpleDevice, S: Shape> Retrieve<D, T, S>
     for CachedModule<Mods, SimpleDevice, CacheType>
 where
     T: Unit + 'static,
@@ -239,17 +239,18 @@ where
 
     fn retrieve<'a, const NUM_PARENTS: usize>(
         &self,
-        _device: &D,
-        _len: usize,
-        _parents: &impl Parents<NUM_PARENTS>,
+        device: &D,
+        len: usize,
+        parents: &impl Parents<NUM_PARENTS>,
     ) -> crate::Result<Self::Wrap<'a, T, <D>::Base<T, S>>>
     where
         S: Shape,
         D: Device + Alloc<T>,
     {
-        panic!(
-            "Modules retrieve calls are in the wrong order. Cached module requires to be called via 'retrieve_entry'"
-        )
+        Ok(Guard::new(CowMut::Owned(self.modules.retrieve(device, len, parents)?)))
+        // panic!(
+        //     "Modules retrieve calls are in the wrong order. Cached module requires to be called via 'retrieve_entry'"
+        // )
     }
 }
 

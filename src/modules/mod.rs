@@ -103,10 +103,12 @@ pub(crate) unsafe fn register_buf_any<'a, T, D, S>(
     S: Shape,
 {
     // shallow copy sets flag to AllocFlag::Wrapper
+
+    use crate::CowMutRef;
     let wrapped_data = unsafe { buf.base().shallow() };
-    let data: <D as Device>::Data<'static, T, S> = buf
+    let data: CowMutRef<<D as Device>::Data<'static, T, S>> = crate::CowMut::Owned(buf
         .device()
-        .default_base_to_data_unbound::<T, S>(wrapped_data);
+        .default_base_to_data_unbound::<T, S>(wrapped_data));
 
     let buf: Buffer<'static, T, D, S> = Buffer { data, device: None };
     cache.insert(*buf.id(), Box::new(buf));
@@ -136,10 +138,12 @@ pub(crate) unsafe fn register_buf_copyable<'a, T, D, S>(
     S: Shape,
 {
     // shallow copy sets flag to AllocFlag::Wrapper
+
+    use crate::{CowMut, CowMutRef};
     let wrapped_data = unsafe { buf.base().shallow() };
-    let data: <D as Device>::Data<'static, T, S> = buf
+    let data: CowMutRef<<D as Device>::Data<'static, T, S>> = CowMut::Owned(buf
         .device()
-        .default_base_to_data_unbound::<T, S>(wrapped_data);
+        .default_base_to_data_unbound::<T, S>(wrapped_data));
 
     let buf: Buffer<'static, T, D, S> = Buffer { data, device: None };
     cache.insert(*buf.id(), Box::new(buf));

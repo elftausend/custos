@@ -358,7 +358,7 @@ where
             let base = device
                 .alloc::<S>(id.len, crate::flag::AllocFlag::None)
                 .unwrap();
-            let data = device.default_base_to_data_unbound(base);
+            let data = crate::CowMut::Owned(device.default_base_to_data_unbound(base));
             let buffer = Buffer {
                 data,
                 device: Some(device),

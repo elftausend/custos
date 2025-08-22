@@ -69,8 +69,8 @@ impl BorrowCache {
         // not using ::new, because this buf would get added to the cache of the device.
         // not anymore ?
         let buf: Buffer<T, D, S> = Buffer {
-            data: device
-                .default_base_to_data_unbound(device.alloc::<S>(id.len, AllocFlag::None).unwrap()),
+            data: crate::CowMut::Owned(device
+                .default_base_to_data_unbound(device.alloc::<S>(id.len, AllocFlag::None).unwrap())),
             device: None,
         };
 

@@ -5,7 +5,7 @@ impl<'a, T: Unit + Copy + Default, S: IsConstDim, const N: usize> From<(&'a Stac
     for Buffer<'a, T, Stack, S>
 {
     fn from((dev, array): (&'a Stack, [T; N])) -> Self {
-        let mut data = StackArray::new();
+        let mut data = crate::CowMut::Owned(StackArray::new());
         data.copy_from_slice(&array);
         Buffer {
             data,
@@ -18,7 +18,7 @@ impl<'a, T: Unit + Copy + Default, S: IsConstDim, const N: usize> From<(&'a Stac
     for Buffer<'a, T, Stack, S>
 {
     fn from((dev, array): (&'a Stack, &[T; N])) -> Self {
-        let mut data = StackArray::new();
+        let mut data = crate::CowMut::Owned(StackArray::new());
         data.copy_from_slice(array);
         Buffer {
             data,
