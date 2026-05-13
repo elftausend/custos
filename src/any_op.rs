@@ -55,10 +55,11 @@ impl<'a, T: 'static, D: Device + 'static, S: crate::Shape> Replicate
         buffers: &'r mut Buffers<B>,
         device: Option<&'r dyn core::any::Any>,
     ) -> Option<Self::Replication<'r>> {
-        unsafe {
-            <&mut Buffer<T, D, S> as Replicate>::replicate_borrowed(id, buffers, device)
-                .map(move |buf| &*buf)
-        }
+        todo!()
+        // unsafe {
+        //     <&mut Buffer<T, D, S> as Replicate>::replicate_borrowed(id, buffers, device)
+        //         .map(|buf| &*buf)
+        // }
     }
 
     #[inline]
@@ -75,7 +76,7 @@ impl<'a, T: 'static, D: Device + 'static, S: crate::Shape> Replicate
 impl<'a, T: 'static, D: Device + 'static, S: crate::Shape> Replicate
     for &mut crate::Buffer<'a, T, D, S>
 {
-    type Replication<'r> = &'r mut Self::Downcast<'r>;
+    type Replication<'r> = Self::Downcast<'a>;
     type Downcast<'r> = Buffer<'r, T, D, S>;
 
     #[cfg(feature = "std")]
@@ -89,7 +90,10 @@ impl<'a, T: 'static, D: Device + 'static, S: crate::Shape> Replicate
             return None;
         }
         let buf = unsafe { replication.downcast_mut_unchecked::<Self::Downcast<'r>>() };
-        Some(buf)
+    
+        todo!()
+        // buf.device = device.map(|dev| dev.downcast_ref::<D>().unwrap());
+        // Some(buf)
     }
 
     #[inline]
@@ -99,7 +103,16 @@ impl<'a, T: 'static, D: Device + 'static, S: crate::Shape> Replicate
         // look at commit "0d54d19a52979352ec59f1619a439541e08c30a0" - it was implemented like this there
         // most of the "double lifetime stuff" is still implemented at the moment
         // commit a985577299335ab00a02dc226a2e4b9d1642b8f7 introduced this line
-        unsafe { core::mem::transmute::<Self, &mut Buffer<'r, T, D, S>>(self) }
+        let data = match &mut self.data {
+            crate::CowMut::Borrowed(_) => todo!(),
+            crate::CowMut::BorrowedMut(_) => todo!(),
+            crate::CowMut::Owned(val) => val,
+        };
+        Buffer {
+            data: crate::CowMut::BorrowedMut(data),
+            device: None,
+        }
+        // unsafe { core::mem::transmute::<Self, &mut Buffer<'r, T, D, S>>(self) }
     }
 }
 
