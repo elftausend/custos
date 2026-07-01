@@ -279,6 +279,11 @@ pub mod prelude {
     pub use crate::Vulkan;
 }
 
+#[cfg(feature = "half")]
+pub mod half {
+    pub use half::*;
+}
+
 #[cfg(test)]
 pub mod tests_helper {
     use core::ops::Add;
