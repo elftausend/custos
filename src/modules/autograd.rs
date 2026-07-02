@@ -232,12 +232,12 @@ impl<'dev, Mods> GradActions for Autograd<'dev, Mods> {
 
 impl<'dev, Mods> TapeActions<'dev> for Autograd<'dev, Mods> {
     #[inline]
-    fn tape(&self) -> Option<Ref<Tape<'dev>>> {
+    fn tape(&self) -> Option<Ref<'_, Tape<'dev>>> {
         Some(self.tape.borrow())
     }
 
     #[inline]
-    fn tape_mut(&self) -> Option<RefMut<Tape<'dev>>> {
+    fn tape_mut(&self) -> Option<RefMut<'_, Tape<'dev>>> {
         Some(self.tape.borrow_mut())
     }
 }

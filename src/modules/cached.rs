@@ -276,12 +276,12 @@ impl<'dev, CacheType, Mods: crate::TapeActions<'dev>, SD: Device> crate::TapeAct
     for CachedModule<Mods, SD, CacheType>
 {
     #[inline]
-    fn tape(&self) -> Option<Ref<super::Tape<'dev>>> {
+    fn tape(&self) -> Option<Ref<'_, super::Tape<'dev>>> {
         self.modules.tape()
     }
 
     #[inline]
-    fn tape_mut(&self) -> Option<RefMut<super::Tape<'dev>>> {
+    fn tape_mut(&self) -> Option<RefMut<'_, super::Tape<'dev>>> {
         self.modules.tape_mut()
     }
 }
@@ -462,7 +462,7 @@ impl<CacheType, Mods: WrappedData, D: Device> CachedBuffers for CachedModule<Mod
     #[inline]
     unsafe fn buffers_mut(
         &self,
-    ) -> Option<core::cell::RefMut<crate::Buffers<Box<dyn crate::BoxedShallowCopy>>>> {
+    ) -> Option<core::cell::RefMut<'_, crate::Buffers<Box<dyn crate::BoxedShallowCopy>>>> {
         // Use the stored buffers in autograd module -> optimizing isn't possible anyway
         None
     }

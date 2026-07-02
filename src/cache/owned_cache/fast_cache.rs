@@ -33,7 +33,7 @@ impl<T: DynAnyWrapper> Cache for FastCache<T> {
     type CachedValue = T;
 
     #[inline]
-    fn get_mut(&self, id: UniqueId, _len: usize) -> State<RefMut<T>> {
+    fn get_mut(&self, id: UniqueId, _len: usize) -> State<RefMut<'_, T>> {
         self.nodes.get_mut(&id)
     }
 
@@ -43,7 +43,7 @@ impl<T: DynAnyWrapper> Cache for FastCache<T> {
     }
 
     #[inline]
-    fn get(&self, id: UniqueId, _len: usize) -> State<Ref<T>> {
+    fn get(&self, id: UniqueId, _len: usize) -> State<Ref<'_, T>> {
         self.nodes.get(&id)
     }
 }

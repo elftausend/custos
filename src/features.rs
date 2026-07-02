@@ -332,12 +332,12 @@ macro_rules! pass_down_grad_fn {
 pub trait TapeActions<'dev> {
     // "generator" - do not forget to pass down
     #[inline]
-    fn tape(&self) -> Option<Ref<crate::Tape<'dev>>> {
+    fn tape(&self) -> Option<Ref<'_, crate::Tape<'dev>>> {
         None
     }
     // "generator" - do not forget to pass down
     #[inline]
-    fn tape_mut(&self) -> Option<RefMut<crate::Tape<'dev>>> {
+    fn tape_mut(&self) -> Option<RefMut<'_, crate::Tape<'dev>>> {
         None
     }
 }
@@ -355,12 +355,12 @@ macro_rules! pass_down_tape_actions {
             Self: 'dev
         {
             #[inline]
-            fn tape(&self) -> Option<core::cell::Ref<$crate::Tape<'dev>>> {
+            fn tape(&self) -> Option<core::cell::Ref<'_, $crate::Tape<'dev>>> {
                 self.modules.tape()
             }
 
             #[inline]
-            fn tape_mut(&self) -> Option<core::cell::RefMut<$crate::Tape<'dev>>> {
+            fn tape_mut(&self) -> Option<core::cell::RefMut<'_, $crate::Tape<'dev>>> {
                 self.modules.tape_mut()
             }
         }
@@ -700,7 +700,7 @@ pub trait CachedBuffers {
     #[cfg(feature = "std")]
     unsafe fn buffers_mut(
         &self,
-    ) -> Option<RefMut<crate::Buffers<Box<dyn crate::BoxedShallowCopy>>>> {
+    ) -> Option<RefMut<'_, crate::Buffers<Box<dyn crate::BoxedShallowCopy>>>> {
         None
     }
 
@@ -718,7 +718,7 @@ macro_rules! pass_down_cached_buffers {
             #[inline]
             unsafe fn buffers_mut(
                 &self,
-            ) -> Option<core::cell::RefMut<$crate::Buffers<Box<dyn $crate::BoxedShallowCopy>>>>
+            ) -> Option<core::cell::RefMut<'_, $crate::Buffers<Box<dyn $crate::BoxedShallowCopy>>>>
             {
                 unsafe { self.modules.buffers_mut() }
             }

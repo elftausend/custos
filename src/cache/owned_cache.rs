@@ -13,8 +13,8 @@ use super::{State, UniqueId};
 
 pub trait Cache {
     type CachedValue: DynAnyWrapper;
-    fn get_mut(&self, id: UniqueId, len: usize) -> State<RefMut<Self::CachedValue>>;
-    fn get(&self, id: UniqueId, len: usize) -> State<Ref<Self::CachedValue>>;
+    fn get_mut(&self, id: UniqueId, len: usize) -> State<RefMut<'_, Self::CachedValue>>;
+    fn get(&self, id: UniqueId, len: usize) -> State<Ref<'_, Self::CachedValue>>;
     fn insert(&self, id: UniqueId, len: usize, data: Self::CachedValue);
 }
 

@@ -229,7 +229,7 @@ where
         &self,
         buf: &Buffer<T, Self, S>,
         f: impl Fn(Resolve<T>) -> F + Copy + 'static,
-    ) -> Buffer<T, Self, S>
+    ) -> Buffer<'_, T, Self, S>
     where
         F: TwoWay<T>,
     {

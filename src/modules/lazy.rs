@@ -517,7 +517,7 @@ impl<T, Mods> CachedBuffers for Lazy<'_, Mods, T> {
     #[inline]
     unsafe fn buffers_mut(
         &self,
-    ) -> Option<core::cell::RefMut<crate::Buffers<Box<dyn crate::BoxedShallowCopy>>>> {
+    ) -> Option<core::cell::RefMut<'_, crate::Buffers<Box<dyn crate::BoxedShallowCopy>>>> {
         Some(self.buffers.borrow_mut())
     }
 

@@ -440,7 +440,7 @@ mod tests {
 
     pub trait AddEw<T: 'static, D: crate::Device = Self>: crate::Device {
         #[allow(dead_code)]
-        fn add(&self, lhs: &crate::Buffer<T, D>, rhs: &crate::Buffer<T, D>) -> crate::Buffer<T, D>;
+        fn add(&self, lhs: &crate::Buffer<T, D>, rhs: &crate::Buffer<T, D>) -> crate::Buffer<'_, T, D>;
     }
 
     impl<Mods, T> AddEw<T> for crate::CPU<Mods>
@@ -453,7 +453,7 @@ mod tests {
             &self,
             lhs: &crate::Buffer<T, Self>,
             rhs: &crate::Buffer<T, Self>,
-        ) -> crate::Buffer<T, Self> {
+        ) -> crate::Buffer<'_, T, Self> {
             use crate::Retriever;
             let mut out = self.retrieve(lhs.len(), (lhs, rhs)).unwrap();
             for idx in 0..lhs.len() {
