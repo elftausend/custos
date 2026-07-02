@@ -99,7 +99,6 @@ where
         unsafe { self.grad_unbound(device) }
     }
 
-
     /// Returns a reference to the gradient of this buffer.
     /// Returns none either if the autograd feature is disabled, no tape was found (add [`Autograd`] module) or no gradient is allocated.
     // TODO: Maybe return Result with two error variants?
@@ -271,7 +270,7 @@ mod tests {
     #[cfg(feature = "autograd")]
     #[test]
     fn test_grad_self_mut() {
-        use crate::{Autograd, Base, ClearBuf, Device, CPU};
+        use crate::{Autograd, Base, CPU, ClearBuf, Device};
 
         let dev = CPU::<Autograd<Base>>::new();
         let mut buf = dev.buffer([1, 2, 3, 4]);

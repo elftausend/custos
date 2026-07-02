@@ -276,12 +276,14 @@ impl<T, Mods: crate::AddGradFn> crate::AddGradFn for Lazy<'_, Mods, T> {
     fn set_grad_enabled(&self, enabled: bool) {
         self.modules.set_grad_enabled(enabled)
     }
-    
+
     fn add_grad_fn<Args: Parents<N> + AnyOp, const N: usize>(
         &self,
         _args: Args,
         _op: impl for<'b> Fn(Args::Replicated<'b>, &Self) -> crate::Result<()> + 'static,
-    ) where Self: Device + 'static {
+    ) where
+        Self: Device + 'static,
+    {
     }
 }
 // pass_down_grad_fn!(Lazy);

@@ -1,9 +1,9 @@
 use core::ops::{AddAssign, Deref, DerefMut, Index, Range, RangeBounds};
 
 use crate::{
-    AddOperation, ApplyFunction, Buffer, CPU, ClearBuf, CopySlice, Device, Eval,
-    MayToCLSource, Read, Resolve, Retrieve, Retriever, SetOpHint, Shape, ToVal, TwoWay, UnaryGrad,
-    Unit, WrappedData, WriteBuf, ZeroGrad, bounds_to_range,
+    AddOperation, ApplyFunction, Buffer, CPU, ClearBuf, CopySlice, Device, Eval, MayToCLSource,
+    Read, Resolve, Retrieve, Retriever, SetOpHint, Shape, ToVal, TwoWay, UnaryGrad, Unit,
+    WrappedData, WriteBuf, ZeroGrad, bounds_to_range,
     cpu_stack_ops::{apply_fn_slice, clear_slice},
     op_hint::unary,
 };
@@ -20,7 +20,7 @@ where
         &self,
         buf: &Buffer<T, D, S>,
         f: impl Fn(Resolve<T>) -> F + Copy + 'static,
-    ) -> Buffer<T, Self, S>
+    ) -> Buffer<'_, T, Self, S>
     where
         F: TwoWay<T> + 'static,
     {

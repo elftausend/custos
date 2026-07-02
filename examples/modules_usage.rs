@@ -44,7 +44,11 @@ where
 
         self.add_grad_fn_inner((lhs, rhs, &mut out), self, |(lhs, rhs, out), dev| unsafe {
             // execute grad function
-            add_ew_grad_slice(lhs.grad_mut_unbound(dev), rhs.grad_mut_unbound(dev), out.grad(dev));
+            add_ew_grad_slice(
+                lhs.grad_mut_unbound(dev),
+                rhs.grad_mut_unbound(dev),
+                out.grad(dev),
+            );
             Ok(())
         });
 

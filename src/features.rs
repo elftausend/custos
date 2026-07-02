@@ -87,7 +87,7 @@ pub trait Cursor {
     }
 
     #[inline]
-    fn range(&self, range: impl AsRange) -> CursorRange<Self>
+    fn range(&'_ self, range: impl AsRange) -> CursorRange<'_, Self>
     where
         Self: Sized,
     {
@@ -195,8 +195,9 @@ pub trait AddGradFn {
         &self,
         args: Args,
         op: impl for<'b> Fn(Args::Replicated<'b>, &Self) -> crate::Result<()> + 'static,
-    ) where Self: Device + 'static;
-    
+    ) where
+        Self: Device + 'static;
+
     fn add_grad_and_forward_fn<
         D: Device + 'static,
         Args: Parents<N> + AnyOp + Clone,
@@ -301,7 +302,7 @@ macro_rules! pass_down_grad_fn {
             ) {
                 self.modules.add_grad_fn_inner(args, device, op);
             }
-            
+
             #[inline]
             fn add_grad_fn<Args: $crate::Parents<N> + $crate::AnyOp, const N: usize>(
                 &self,

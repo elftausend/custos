@@ -15,8 +15,9 @@ pub trait Replicate {
     /// adjusted ('static -> 'r) lifetime. No (device) reference outliving 'r may
     /// be stored in it.
     #[cfg(feature = "std")]
-    unsafe fn replicate_borrowed<'r, B: Downcast>(entry: &'r mut B)
-    -> Option<Self::Replication<'r>>;
+    unsafe fn replicate_borrowed<'r, B: Downcast>(
+        entry: &'r mut B,
+    ) -> Option<Self::Replication<'r>>;
 
     unsafe fn replicate<'a>(self) -> Self::Replication<'a>;
 }

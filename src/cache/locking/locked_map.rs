@@ -55,7 +55,7 @@ impl<K, T, S: BuildHasher> LockedMap<K, T, S> {
         map.insert(id, Box::new(RefCell::new(data)));
     }
 
-    pub fn get(&self, id: &K) -> State<Ref<T>>
+    pub fn get(&self, id: &K) -> State<Ref<'_, T>>
     where
         K: Eq + Hash,
     {
@@ -64,7 +64,7 @@ impl<K, T, S: BuildHasher> LockedMap<K, T, S> {
         (&**entry).try_borrow().map_err(|_| LockInfo::Locked)
     }
 
-    pub fn get_mut(&self, id: &K) -> State<RefMut<T>>
+    pub fn get_mut(&self, id: &K) -> State<RefMut<'_, T>>
     where
         K: Eq + Hash,
     {

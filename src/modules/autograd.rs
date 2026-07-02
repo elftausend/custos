@@ -265,13 +265,14 @@ impl<'a, Mods: AddGradFn> AddGradFn for Autograd<'a, Mods> {
         self.enabled.get()
     }
 
-    #[inline] 
+    #[inline]
     fn add_grad_fn<Args: Parents<N> + crate::AnyOp, const N: usize>(
         &self,
         _args: Args,
         _op: impl for<'b> Fn(Args::Replicated<'b>, &Self) -> crate::Result<()> + 'static,
-    ) where Self: Device + 'static {
-     
+    ) where
+        Self: Device + 'static,
+    {
     }
 }
 
@@ -436,7 +437,11 @@ mod tests {
         let out = Buffer::<f32, _>::new(&device, 10);
 
         device.add_grad_fn_inner((&buf, &out), &device, |(buf, _out), dev| unsafe {
-            for (val, grad) in buf.grad_mut_unbound(dev).iter_mut().zip(_out.grad(dev).iter()) {
+            for (val, grad) in buf
+                .grad_mut_unbound(dev)
+                .iter_mut()
+                .zip(_out.grad(dev).iter())
+            {
                 *val = 5. * grad;
             }
             Ok(())
@@ -457,7 +462,11 @@ mod tests {
 
             device.add_grad_fn_inner((&buf, &out), &device, |(buf, _out), dev| unsafe {
                 println!("buf: {:?}", buf.as_slice());
-                for (val, grad) in buf.grad_mut_unbound(dev).iter_mut().zip(_out.grad(dev).iter()) {
+                for (val, grad) in buf
+                    .grad_mut_unbound(dev)
+                    .iter_mut()
+                    .zip(_out.grad(dev).iter())
+                {
                     *val = 5. * grad;
                 }
                 Ok(())

@@ -206,7 +206,6 @@ macro_rules! to_cpu {
     };
 }
 
-
 /// Takes `Buffer`s having a host pointer and wraps them into `CPU` `Buffer`'s.
 /// The old `Buffer`s are shadowed.
 #[macro_export]

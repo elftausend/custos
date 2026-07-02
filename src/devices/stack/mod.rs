@@ -45,7 +45,7 @@ where
     D::Base<T, S>: Deref<Target = [T]>,
     S: Shape,
 {
-    fn apply_fn<F>(&self, buf: &Buffer<T, D, S>, f: impl Fn(Resolve<T>) -> F) -> Buffer<T, Self, S>
+    fn apply_fn<F>(&self, buf: &Buffer<T, D, S>, f: impl Fn(Resolve<T>) -> F) -> Buffer<'_, T, Self, S>
     where
         F: Eval<T> + MayToCLSource,
     {

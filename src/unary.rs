@@ -18,11 +18,11 @@ pub trait ApplyFunction<T: Unit, S: Shape = (), D: Device = Self>: Device {
     /// assert_eq!(&**out, &[2., 4., 6., 6., 4., 2.,]);
     /// ```
     fn apply_fn<F>(
-        &self,
+        &'_ self,
         // buf: &D::Data<T, S>,
         buf: &Buffer<T, D, S>,
         f: impl Fn(Resolve<T>) -> F + Copy + 'static,
-    ) -> Buffer<T, Self, S>
+    ) -> Buffer<'_, T, Self, S>
     where
         F: TwoWay<T> + 'static;
 }
@@ -84,11 +84,11 @@ pub trait UnaryElementWiseMayGrad<T: Unit, D: Device, S: Shape>: Device {
     /// assert_eq!(buf.grad(&device).as_slice(), &[2.; 6]);
     /// ```
     fn unary_ew<FO, GO>(
-        &self,
+        &'_ self,
         buf: &mut Buffer<T, D, S>,
         forward_fn: impl Fn(Resolve<T>) -> FO + Copy + 'static,
         grad_fn: fn(Resolve<T>) -> GO,
-    ) -> Buffer<T, Self, S>
+    ) -> Buffer<'_, T, Self, S>
     where
         FO: TwoWay<T>,
         GO: Eval<T> + MayToCLSource + 'static;
@@ -104,11 +104,11 @@ where
 {
     #[inline(always)]
     fn unary_ew<FO, GO>(
-        &self,
+        &'_ self,
         buf: &mut Buffer<T, D, S>,
         forward_fn: impl Fn(Resolve<T>) -> FO + Copy + 'static,
         grad_fn: fn(Resolve<T>) -> GO,
-    ) -> Buffer<T, Self, S>
+    ) -> Buffer<'_, T, Self, S>
     where
         FO: TwoWay<T>,
         GO: Eval<T> + MayToCLSource + 'static,

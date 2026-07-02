@@ -363,12 +363,14 @@ impl<CacheType, Mods: AddGradFn, D: Device> AddGradFn for CachedModule<Mods, D, 
     fn set_grad_enabled(&self, enabled: bool) {
         self.modules.set_grad_enabled(enabled)
     }
-    
+
     fn add_grad_fn<Args: Parents<N> + crate::AnyOp, const N: usize>(
         &self,
         args: Args,
         op: impl for<'b> Fn(Args::Replicated<'b>, &Self) -> crate::Result<()> + 'static,
-    ) where Self: Device + 'static {
+    ) where
+        Self: Device + 'static,
+    {
         todo!()
     }
 }

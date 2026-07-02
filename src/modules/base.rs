@@ -196,12 +196,12 @@ impl AddGradFn for Base {
     }
 
     fn set_grad_enabled(&self, _enabled: bool) {}
-    
+
     fn add_grad_fn<Args: Parents<N> + AnyOp, const N: usize>(
         &self,
-       _args: Args,
+        _args: Args,
         _op: impl for<'b> Fn(Args::Replicated<'b>, &Self) -> crate::Result<()> + 'static,
-    )  {
+    ) {
     }
 }
 
