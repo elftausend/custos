@@ -75,13 +75,17 @@ macro_rules! impl_parents {
                 op: impl for<'a> Fn(Self::Replicated<'a>, &D) -> $crate::Result<()> + 'static,
             ) -> Box<dyn Fn(&[$crate::Id], &mut $crate::Buffers<B>, &dyn core::any::Any) -> $crate::Result<()>> {
                 Box::new(move |ids, buffers, dev| {
-                    let mut ids = ids.iter();
+                    // arg ids are checked for uniqueness when the operation is created
+                    // (`convert_to_operation`), so no overlapping keys can reach this point
+                    let entries = buffers
+                        .get_disjoint_mut(core::array::from_fn::<_, $num, _>(|i| &*ids[i]));
+                    let mut entries = entries.into_iter();
 
                     op(($(
                         unsafe {
                             $to_impl::replicate_borrowed(
-                                ids.next().unwrap(), &mut *(buffers as *mut _), Some(dev)
-                            ).ok_or(crate::DeviceError::InvalidLazyBuf)?
+                                entries.next().unwrap().ok_or($crate::DeviceError::InvalidLazyBuf)?
+                            ).ok_or($crate::DeviceError::InvalidLazyBuf)?
                         }
                     ,)+), dev.downcast_ref().unwrap())
                 })

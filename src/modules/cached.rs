@@ -298,7 +298,7 @@ impl<CacheType, Mods: crate::GradActions, SD: Device> crate::GradActions
     >(
         &self,
         device: &'a D,
-        buf: &Buffer<'a, T, D, S>,
+        buf: &Buffer<'_, T, D, S>,
     ) -> &Buffer<'static, T, D, S> {
         unsafe { self.modules.grad(device, buf) }
     }
@@ -311,7 +311,7 @@ impl<CacheType, Mods: crate::GradActions, SD: Device> crate::GradActions
     >(
         &self,
         device: &'a D,
-        buf: &Buffer<'a, T, D, S>,
+        buf: &Buffer<'_, T, D, S>,
     ) -> &mut Buffer<'static, T, D, S> {
         unsafe { self.modules.grad_mut(device, buf) }
     }

@@ -20,6 +20,12 @@ pub trait HasId {
     // TODO: maybe move this to another trait -> `RequiresGrad`, probably needs to be added as trait bound for D::Data/Base
     #[inline]
     fn set_requires_grad(&mut self, _requires_grad: bool) {}
+
+    /// Overrides the id of this data. Used when registering type erased, deviceless
+    /// copies of buffers, so that they keep reporting the (module level) id of the
+    /// buffer they were created from.
+    #[inline]
+    fn set_id(&mut self, _id: Id) {}
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

@@ -172,14 +172,14 @@ pub trait GradActions {
     unsafe fn grad<'a, T: 'static, D: Device + Alloc<T> + ZeroGrad<T> + 'static, S: Shape>(
         &self,
         device: &'a D,
-        buf: &Buffer<'a, T, D, S>,
+        buf: &Buffer<'_, T, D, S>,
     ) -> &Buffer<'static, T, D, S>;
 
     #[allow(clippy::mut_from_ref)]
     unsafe fn grad_mut<'a, T: 'static, D: Device + Alloc<T> + ZeroGrad<T> + 'static, S: Shape>(
         &self,
         device: &'a D,
-        buf: &Buffer<'a, T, D, S>,
+        buf: &Buffer<'_, T, D, S>,
     ) -> &mut Buffer<'static, T, D, S>;
 }
 
@@ -242,7 +242,7 @@ pub trait AddGradFn {
     ///
     /// let lhs = device.buffer([1, 2, 3, 4, 5]);
     /// device.no_grad_ctx(|| {
-    ///     device.add_grad_fn(&lhs, &device, |lhs, _| {
+    ///     device.add_grad_fn(&lhs, |lhs, _| {
     ///         panic!("should not execute!");
     ///         Ok(())
     ///     })
@@ -267,7 +267,7 @@ macro_rules! pass_down_grad_fn {
             unsafe fn grad<'a, T: 'static, D: Device + $crate::Alloc<T> + $crate::ZeroGrad<T> + 'static, S: Shape>(
                 &self,
                 device: &'a D,
-                buf: &Buffer<'a, T, D, S>,
+                buf: &Buffer<'_, T, D, S>,
             ) -> &Buffer<'static, T, D, S> {
                 unsafe { self.modules.grad(device, buf) }
             }
@@ -275,7 +275,7 @@ macro_rules! pass_down_grad_fn {
             unsafe fn grad_mut<'a, T: 'static, D: Device + $crate::Alloc<T> + $crate::ZeroGrad<T> + 'static, S: Shape>(
                 &self,
                 device: &'a D,
-                buf: &Buffer<'a, T, D, S>,
+                buf: &Buffer<'_, T, D, S>,
             ) -> &mut Buffer<'static, T, D, S> {
                 unsafe { self.modules.grad_mut(device, buf) }
             }

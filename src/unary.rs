@@ -81,7 +81,7 @@ pub trait UnaryElementWiseMayGrad<T: Unit, D: Device, S: Shape>: Device {
     /// assert_eq!(&**out, &[2., 4., 6., 6., 4., 2.,]);
     ///
     /// out.backward();
-    /// assert_eq!(buf.grad().as_slice(), &[2.; 6]);
+    /// assert_eq!(buf.grad(&device).as_slice(), &[2.; 6]);
     /// ```
     fn unary_ew<FO, GO>(
         &self,
@@ -121,8 +121,8 @@ where
             }
             // lazy execution is already disabled during backward pass
             dev.eagerly(|| {
-                let (buf, buf_grad) = unsafe { buf.grad_mut_self() };
-                dev.add_unary_grad(buf, buf_grad, out.grad(), grad_fn);
+                let (buf, buf_grad) = unsafe { buf.grad_mut_self(dev) };
+                dev.add_unary_grad(buf, buf_grad, out.grad(dev), grad_fn);
             });
             Ok(())
         });
@@ -191,7 +191,7 @@ mod tests {
         // out.backward();
         out.backward().unwrap();
         roughly_eq_slices(
-            &device.read_to_vec(buf.grad()),
+            &device.read_to_vec(buf.grad(device)),
             &[
                 0.5403023058681398,
                 -0.4161468365471424,
@@ -266,7 +266,7 @@ mod tests {
 
             out.backward().unwrap();
             assert_eq!(
-                buf.grad().as_slice(),
+                buf.grad(&device).as_slice(),
                 [
                     0.5403023058681398,
                     -0.4161468365471424,
@@ -276,7 +276,7 @@ mod tests {
             );
             unsafe {
                 // TODO: use safe version
-                device.clear(buf.grad_mut_unbound());
+                device.clear(buf.grad_mut_unbound(&device));
             }
         }
     }
@@ -294,9 +294,9 @@ mod tests {
                         -0.7568024953079282,
                     ],
                 );
-                $out.replace().backward().unwrap();
+                $out.backward().unwrap();
                 roughly_eq_slices(
-                    $buf.replace().grad().as_slice(),
+                    $buf.grad(&$device).as_slice(),
                     &[
                         0.5403023058681398 * i as f64,
                         -0.4161468365471424 * i as f64,
@@ -380,14 +380,14 @@ mod tests {
         for i in device.range(0..9) {
             let _out = device.unary_ew(&mut buf, |x| x.sin(), |x| x.cos());
             if i == 0 {
-                device.write(unsafe { _out.grad_mut_unbound() }, &[1., 1., 1., 1.]);
+                device.write(unsafe { _out.grad_mut_unbound(&device) }, &[1., 1., 1., 1.]);
             }
         }
         let out = device.unary_ew(&mut buf, |x| x.sin(), |x| x.cos());
         out.backward().unwrap();
 
         roughly_eq_slices(
-            buf.grad().as_slice(),
+            buf.grad(&device).as_slice(),
             &[
                 0.5403023058681398 * 10.,
                 -0.4161468365471424 * 10.,

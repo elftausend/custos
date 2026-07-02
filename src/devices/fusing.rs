@@ -36,9 +36,9 @@ pub trait UnaryFusing: IsShapeIndep {
 
     #[cfg(feature = "lazy")]
     #[cfg(feature = "graph")]
-    /// # Safety
-    /// Does not check if specific retrieved buffers contain data of type `T`.
-    unsafe fn fuse_unary_ops<'a, T: crate::CDatatype + crate::Numeric>(
+    /// # Panics
+    /// Panics if the retrieved buffers do not contain data of type `T`.
+    fn fuse_unary_ops<'a, T: crate::CDatatype + crate::Numeric>(
         &'a self,
         lazy_graph: &'a crate::LazyGraph<Box<dyn crate::BoxedShallowCopy>, T>,
         ops: (
@@ -50,7 +50,7 @@ pub trait UnaryFusing: IsShapeIndep {
     where
         Self: 'static,
     {
-        use crate::{Buffer, Buffers, Downcast};
+        use crate::{Buffer, Downcast};
 
         let (ops, affected_op_idxs) = ops;
         let to_insert_idx: usize = affected_op_idxs[0];
@@ -66,19 +66,18 @@ pub trait UnaryFusing: IsShapeIndep {
 
         assert_ne!(*last_arg_ids[0], *first_arg_ids[1]);
 
-        let out = unsafe {
-            (*(buffers as *mut Buffers<Box<dyn crate::BoxedShallowCopy>>))
-                .get_mut(&last_arg_ids[0])
-                .unwrap()
-                .downcast_mut_unchecked::<Buffer<T, Self, ()>>()
-        };
+        // temporarily remove the output buffer to borrow it mutably next to the
+        // immutably borrowed input buffer - it is inserted back in below
+        let mut out_entry = buffers.remove(&last_arg_ids[0]).unwrap();
+        let out = out_entry
+            .downcast_mut::<Buffer<'static, T, Self, ()>>()
+            .unwrap();
 
-        let buf = unsafe {
-            buffers
-                .get(&first_arg_ids[1])
-                .unwrap()
-                .downcast_ref_unchecked::<Buffer<T, Self, ()>>()
-        };
+        let buf = buffers
+            .get(&first_arg_ids[1])
+            .unwrap()
+            .downcast_ref::<Buffer<'static, T, Self, ()>>()
+            .unwrap();
 
         let op = self.unary_fuse_op::<T>(ops);
         let mut operation = crate::LazyGraph::convert_to_operation((out, buf), op);
@@ -86,6 +85,8 @@ pub trait UnaryFusing: IsShapeIndep {
         // if the lazy graph is executed, it updates the references to the corresponding buffers -> new ids would not be found -> invalid lazy buffer panic
         operation.arg_ids = vec![last_arg_ids[0], first_arg_ids[1]];
         operation.op_hint = crate::op_hint::OpHint::UnaryFused;
+
+        buffers.insert(*last_arg_ids[0], out_entry);
 
         (to_insert_idx, operation)
     }

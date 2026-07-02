@@ -205,7 +205,7 @@ impl<'dev, Mods> GradActions for Autograd<'dev, Mods> {
     unsafe fn grad<'a, T, D, S>(
         &self,
         device: &'a D,
-        buf: &Buffer<'a, T, D, S>,
+        buf: &Buffer<'_, T, D, S>,
     ) -> &Buffer<'static, T, D, S>
     where
         T: 'static,
@@ -219,7 +219,7 @@ impl<'dev, Mods> GradActions for Autograd<'dev, Mods> {
     unsafe fn grad_mut<'a, T, D, S>(
         &self,
         device: &'a D,
-        buf: &Buffer<'a, T, D, S>,
+        buf: &Buffer<'_, T, D, S>,
     ) -> &mut Buffer<'static, T, D, S>
     where
         T: 'static,
@@ -320,19 +320,15 @@ impl<'a, Mods> HasModules for Autograd<'a, Mods> {
 mod tests {
     use crate::{
         AddGradFn, Autograd, Base, BoxedShallowCopy, Buffer, CPU, Cached, Combiner, Cursor, Device,
-        Downcast, HasId, Lazy, Retriever, Shape, UnaryGrad, Unit,
+        HasId, Lazy, Retriever, Shape, UnaryGrad, Unit,
     };
 
     #[inline]
     pub fn downcast_val<'a, 'b, T: Unit + 'static, D: Device + 'static, S: Shape>(
         buf_any: &'b Box<dyn BoxedShallowCopy>,
         _device: &'a D,
-    ) -> Option<&'b Buffer<'a, T, D, S>> {
-        let any = buf_any.as_any();
-        if !any.is::<Buffer<T, D, S>>() {
-            return None;
-        }
-        Some(unsafe { Downcast::downcast_ref_unchecked::<Buffer<'a, T, D, S>>(any) })
+    ) -> Option<&'b Buffer<'static, T, D, S>> {
+        buf_any.as_any().downcast_ref::<Buffer<'static, T, D, S>>()
     }
 
     #[test]
@@ -429,7 +425,7 @@ mod tests {
     fn test_tape_return_without_autograd() {
         let device = CPU::<Base>::new();
         let buf = Buffer::<f32, _>::new(&device, 10);
-        buf.grad();
+        buf.grad(&device);
     }
 
     #[test]
@@ -439,8 +435,8 @@ mod tests {
 
         let out = Buffer::<f32, _>::new(&device, 10);
 
-        device.add_grad_fn_inner((&buf, &out), &device, |(buf, _out), _dev| unsafe {
-            for (val, grad) in buf.grad_mut_unbound().iter_mut().zip(_out.grad().iter()) {
+        device.add_grad_fn_inner((&buf, &out), &device, |(buf, _out), dev| unsafe {
+            for (val, grad) in buf.grad_mut_unbound(dev).iter_mut().zip(_out.grad(dev).iter()) {
                 *val = 5. * grad;
             }
             Ok(())
@@ -448,7 +444,7 @@ mod tests {
 
         out.backward().unwrap();
 
-        assert_eq!(&***buf.grad(), [5.; 10]);
+        assert_eq!(&***buf.grad(&device), [5.; 10]);
     }
 
     #[test]
@@ -459,9 +455,9 @@ mod tests {
         {
             let buf = Buffer::<f32, _>::new(&device, 10).require_grad();
 
-            device.add_grad_fn_inner((&buf, &out), &device, |(buf, _out), _| unsafe {
-                println!("buf: {buf:?}");
-                for (val, grad) in buf.grad_mut_unbound().iter_mut().zip(_out.grad().iter()) {
+            device.add_grad_fn_inner((&buf, &out), &device, |(buf, _out), dev| unsafe {
+                println!("buf: {:?}", buf.as_slice());
+                for (val, grad) in buf.grad_mut_unbound(dev).iter_mut().zip(_out.grad(dev).iter()) {
                     *val = 5. * grad;
                 }
                 Ok(())
@@ -484,7 +480,7 @@ mod tests {
         //     .grads
         //     .get_mut::<f32, (), _>(&device, buf.id());
 
-        buf.grad();
+        buf.grad(&device);
     }
 
     #[test]
@@ -497,15 +493,13 @@ mod tests {
         let out = lhs.empty_like();
 
         device.add_grad_fn_inner((&mut lhs, &out), &device, |(lhs, out), dev| unsafe {
-            // lhs.grad();
-            dev.add_unary_grad(lhs, lhs.grad_mut_unbound(), out.grad(), |x| x.add(3));
-            // lhs.device().add_ew_grad(lhs.grad(), rhs.grad(), out.grad());
+            dev.add_unary_grad(lhs, lhs.grad_mut_unbound(dev), out.grad(dev), |x| x.add(3));
             Ok(())
         });
 
         out.backward().unwrap();
 
-        assert_eq!(lhs.try_grad().unwrap().as_slice(), [4, 5, 6, 7]);
+        assert_eq!(lhs.try_grad(&device).unwrap().as_slice(), [4, 5, 6, 7]);
     }
 
     #[test]
@@ -518,24 +512,24 @@ mod tests {
         device.disable_grad();
 
         device.add_grad_fn_inner((&lhs, &out), &device, |(lhs, out), dev| unsafe {
-            dev.add_unary_grad(lhs, lhs.grad_mut_unbound(), out.grad(), |x| x.add(3));
+            dev.add_unary_grad(lhs, lhs.grad_mut_unbound(dev), out.grad(dev), |x| x.add(3));
             panic!("should not be called");
         });
 
         out.backward().unwrap();
 
-        assert!(lhs.try_grad().is_none());
+        assert!(lhs.try_grad(&device).is_none());
 
         device.enable_grad();
 
         device.add_grad_fn_inner((&lhs, &out), &device, |(lhs, out), dev| unsafe {
-            dev.add_unary_grad(lhs, lhs.grad_mut_unbound(), out.grad(), |x| x.add(3));
+            dev.add_unary_grad(lhs, lhs.grad_mut_unbound(dev), out.grad(dev), |x| x.add(3));
             Ok(())
         });
 
         out.backward().unwrap();
 
-        assert_eq!(lhs.try_grad().unwrap().as_slice(), [4, 5, 6, 7]);
+        assert_eq!(lhs.try_grad(&device).unwrap().as_slice(), [4, 5, 6, 7]);
     }
 
     #[test]

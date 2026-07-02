@@ -18,7 +18,7 @@ impl<Mods: WrappedData> UnaryFusing for OpenCL<Mods> {
     > {
         use crate::operations_to_fused_src;
 
-        Box::new(move |(out, buf), _| {
+        Box::new(move |(out, buf), dev| {
             if ops_to_fuse.is_empty() {
                 return Ok(());
             }
@@ -40,7 +40,8 @@ impl<Mods: WrappedData> UnaryFusing for OpenCL<Mods> {
                 datatype = T::C_DTYPE_STR,
             );
 
-            buf.device().launch_kernel(
+            // the replicated buffers are deviceless - use the passed device
+            dev.launch_kernel(
                 &src,
                 [(buf.len() / 32 + 1) * 32, 0, 0],
                 Some([32, 0, 0]),

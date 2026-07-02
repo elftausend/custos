@@ -68,9 +68,8 @@ where
     /// Panics if the gradient was not allocated.
     #[inline]
     #[cfg(feature = "autograd")]
-    pub unsafe fn grad_unbound<'b>(&self) -> &'b Buffer<'static, T, D, S>
+    pub unsafe fn grad_unbound<'b>(&self, device: &'b D) -> &'b Buffer<'static, T, D, S>
     where
-        'a: 'b,
         D: ZeroGrad<T> + MayGradActions + Alloc<T>,
     {
         // TODO: consider activating this check ->
@@ -79,11 +78,11 @@ where
         // assert!(self.requires_grad(), "Buffer does not require gradient.");
 
         unsafe {
-            self.device()
+            device
                 .gradients_mut()
                 .expect(AUTOGRAD_NOT_AVAILABLE)
                 // .grads
-                .get_ref(self.device(), self.id())
+                .get_ref(device, self.id())
         }
     }
 
@@ -93,18 +92,18 @@ where
     /// Panics if the gradient was not allocated.
     #[inline]
     #[cfg(feature = "autograd")]
-    pub fn grad(&self) -> &Buffer<'static, T, D, S> 
+    pub fn grad<'b>(&self, device: &'b D) -> &'b Buffer<'static, T, D, S>
     where
         D: ZeroGrad<T> + MayGradActions + Alloc<T>,
     {
-        unsafe { self.grad_unbound() }
+        unsafe { self.grad_unbound(device) }
     }
 
 
     /// Returns a reference to the gradient of this buffer.
     /// Returns none either if the autograd feature is disabled, no tape was found (add [`Autograd`] module) or no gradient is allocated.
     // TODO: Maybe return Result with two error variants?
-    pub fn try_grad(&self) -> Option<&Buffer<'static, T, D, S>>
+    pub fn try_grad<'b>(&self, device: &'b D) -> Option<&'b Buffer<'static, T, D, S>>
     where
         D: MayGradActions + Alloc<T>,
     {
@@ -114,66 +113,80 @@ where
 
         #[cfg(feature = "autograd")]
         unsafe {
-            let device = self.device();
             device.gradients()?.may_get_ref(device, self.id()).ok()
         }
 
         #[cfg(not(feature = "autograd"))]
-        None
+        {
+            let _ = device;
+            None
+        }
     }
 
     /// In this case, this is just a dummy function.
     /// Activate the `autograd` feature to make this function useable.
     #[inline]
     #[cfg(not(feature = "autograd"))]
-    pub fn grad(&self) -> &'a Self {
+    pub fn grad<'b>(&self, _device: &'b D) -> &'b Self {
         unimplemented!("Gradient not available. Activate the autograd feature.");
     }
 
     #[cfg(feature = "autograd")]
     #[inline]
-    pub unsafe fn grad_mut_self<'b: 'c, 'c>(&'b mut self) -> (&'c Self, &'b mut Buffer<'static, T, D, S>)
+    pub unsafe fn grad_mut_self<'b: 'c, 'c, 'v>(
+        &'b mut self,
+        device: &'v D,
+    ) -> (&'c Self, &'v mut Buffer<'static, T, D, S>)
     where
         D: GradActions + Alloc<T> + ZeroGrad<T>,
     {
-        (self, unsafe { self.grad_mut_unbound() })
+        (self, unsafe { self.grad_mut_unbound(device) })
     }
-    
+
     #[cfg(feature = "autograd")]
     #[inline]
-    pub unsafe fn grad_self_mut<'b: 'c, 'c: 'b>(&'b mut self) -> (&'b mut Self, &'c Buffer<'static, T, D, S>)
+    pub unsafe fn grad_self_mut<'b: 'c, 'c: 'b, 'v>(
+        &'b mut self,
+        device: &'v D,
+    ) -> (&'b mut Self, &'v Buffer<'static, T, D, S>)
     where
-        D: GradActions + Alloc<T> + ZeroGrad<T>,
+        D: GradActions + MayGradActions + Alloc<T> + ZeroGrad<T>,
     {
-        (unsafe { &mut *(self as *mut Self) }, self.grad())
+        (unsafe { &mut *(self as *mut Self) }, self.grad(device))
     }
 
     #[cfg(not(feature = "autograd"))]
     #[inline]
-    pub unsafe fn grad_mut_self<'b: 'c, 'c>(&'b mut self) -> (&'c Self, &'b mut Buffer<'static, T, D, S>) {
+    pub unsafe fn grad_mut_self<'b: 'c, 'c, 'v>(
+        &'b mut self,
+        _device: &'v D,
+    ) -> (&'c Self, &'v mut Buffer<'static, T, D, S>) {
         unimplemented!("Gradient not available. Activate the autograd feature.");
     }
-    
+
     #[cfg(not(feature = "autograd"))]
     #[inline]
-    pub unsafe fn grad_self_mut<'b: 'c, 'c: 'b>(&'b mut self) -> (&'b mut Self, &'c Buffer<'static, T, D, S>) {
+    pub unsafe fn grad_self_mut<'b: 'c, 'c: 'b, 'v>(
+        &'b mut self,
+        _device: &'v D,
+    ) -> (&'b mut Self, &'v Buffer<'static, T, D, S>) {
         unimplemented!("Gradient not available. Activate the autograd feature.");
     }
 
     #[cfg(feature = "autograd")]
     #[inline]
-    pub fn grad_mut<'b>(&'b mut self) -> &'b mut Buffer<'static, T, D, S>
+    pub fn grad_mut<'b>(&mut self, device: &'b D) -> &'b mut Buffer<'static, T, D, S>
     where
         D: GradActions + Alloc<T> + ZeroGrad<T>,
     {
-        unsafe { self.grad_mut_unbound() }
+        unsafe { self.grad_mut_unbound(device) }
     }
 
     /// Returns a mutable reference to the gradient of this buffer.
     /// This allocates a gradient buffer if it wasn't previously.
     #[inline]
     #[cfg(feature = "autograd")]
-    pub unsafe fn grad_mut_unbound<'b>(&'b self) -> &'a mut Buffer<'static, T, D, S>
+    pub unsafe fn grad_mut_unbound<'b>(&self, device: &'b D) -> &'b mut Buffer<'static, T, D, S>
     where
         D: GradActions + Alloc<T> + ZeroGrad<T>,
     {
@@ -181,20 +194,13 @@ where
         // e.g. binary grad ops are computed in a single function where differentiating between
         // req grad and no req grad is not possible/ difficult
         // assert!(self.requires_grad(), "Buffer does not require gradient.");
-        unsafe { self.device().grad_mut(self.device(), self) }
-        // unsafe {
-        //     self.device()
-        //         .gradients_mut()
-        //         .expect(AUTOGRAD_NOT_AVAILABLE)
-        //         // .grads
-        //         .get_mut(self.device(), self.id())
-        // }
+        unsafe { device.grad_mut(device, self) }
     }
 
     /// Returns a mutable reference to the gradient of this buffer.
     /// Returns none either if the autograd feature is disabled, no tape was found (add [`Autograd`] module) or no gradient is allocated.
     // TODO: Maybe return Result with two error variants?
-    pub fn try_grad_mut(&mut self) -> Option<&mut Buffer<'static, T, D, S>>
+    pub fn try_grad_mut<'b>(&mut self, device: &'b D) -> Option<&'b mut Buffer<'static, T, D, S>>
     where
         D: MayGradActions + Alloc<T>,
     {
@@ -204,19 +210,21 @@ where
 
         #[cfg(feature = "autograd")]
         unsafe {
-            let device = self.device();
             device.gradients_mut()?.may_get_mut(device, self.id()).ok()
         }
 
         #[cfg(not(feature = "autograd"))]
-        None
+        {
+            let _ = device;
+            None
+        }
     }
 
     /// In this case, this is just a dummy function.
     /// Activate the `autograd` feature to make this function useable.
     #[inline]
     #[cfg(not(feature = "autograd"))]
-    pub fn grad_mut<'b>(&'b self) -> &'b mut Self {
+    pub fn grad_mut<'b>(&mut self, _device: &'b D) -> &'b mut Self {
         unimplemented!("Gradient not available. Activate the autograd feature.");
     }
 
@@ -224,15 +232,15 @@ where
     /// Activate the `autograd` feature to make this function useable.
     #[inline]
     #[cfg(not(feature = "autograd"))]
-    pub unsafe fn grad_mut_unbound<'b>(&'b self) -> &'a mut Self {
+    pub unsafe fn grad_mut_unbound<'b>(&self, _device: &'b D) -> &'b mut Self {
         unimplemented!("Gradient not available. Activate the autograd feature.");
     }
-    
+
     /// In this case, this is just a dummy function.
     /// Activate the `autograd` feature to make this function useable.
     #[inline]
     #[cfg(not(feature = "autograd"))]
-    pub unsafe fn grad_unbound<'b>(&self) -> &'b Buffer<'static, T, D, S> {
+    pub unsafe fn grad_unbound<'b>(&self, _device: &'b D) -> &'b Buffer<'static, T, D, S> {
         unimplemented!("Gradient not available. Activate the autograd feature.");
     }
 }
@@ -267,7 +275,7 @@ mod tests {
 
         let dev = CPU::<Autograd<Base>>::new();
         let mut buf = dev.buffer([1, 2, 3, 4]);
-        let (_buf, grad) = unsafe { buf.grad_mut_self() };
+        let (_buf, grad) = unsafe { buf.grad_mut_self(&dev) };
         dev.clear(grad);
     }
 }

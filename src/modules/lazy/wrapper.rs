@@ -16,6 +16,9 @@ use super::unregister_buf_copyable;
 #[derive(Default)]
 pub struct LazyWrapper<'a, Data: HasId, T> {
     pub maybe_data: MaybeData<Data>,
+    /// Overrides the id of `maybe_data`. Set for type erased, deviceless copies
+    /// of buffers, so that they keep reporting the id of the original buffer.
+    pub id: Option<crate::Id>,
     pub remove_id_cb: Option<Box<dyn Fn(UniqueId) + 'a>>,
     pub _pd: PhantomData<&'a T>,
 }
@@ -46,6 +49,7 @@ impl<T2, Mods: WrappedData> WrappedData for Lazy<'_, Mods, T2> {
     fn wrap_in_base<'a, T: Unit, Base: IsBasePtr>(&'a self, base: Base) -> Self::Wrap<'a, T, Base> {
         LazyWrapper {
             maybe_data: MaybeData::Data(self.modules.wrap_in_base(base)),
+            id: None,
             remove_id_cb: Some(Box::new(|id| {
                 unregister_buf_copyable(&mut self.buffers.borrow_mut(), id)
             })),
@@ -60,6 +64,7 @@ impl<T2, Mods: WrappedData> WrappedData for Lazy<'_, Mods, T2> {
     ) -> Self::Wrap<'a, T, Base> {
         LazyWrapper {
             maybe_data: MaybeData::Data(self.modules.wrap_in_base_unbound(base)),
+            id: None,
             remove_id_cb: None,
             _pd: PhantomData,
         }
@@ -83,11 +88,19 @@ impl<T2, Mods: WrappedData> WrappedData for Lazy<'_, Mods, T2> {
 impl<'a, Data: HasId, T> HasId for LazyWrapper<'a, Data, T> {
     #[inline]
     fn id(&self) -> crate::Id {
+        if let Some(id) = self.id {
+            return id;
+        }
         match self.maybe_data {
             MaybeData::Data(ref data) => data.id(),
             MaybeData::Id(id) => id,
             MaybeData::None => unimplemented!(),
         }
+    }
+
+    #[inline]
+    fn set_id(&mut self, id: crate::Id) {
+        self.id = Some(id)
     }
 }
 
@@ -155,6 +168,7 @@ impl<'a, Data: HasId + ShallowCopy, T> ShallowCopy for LazyWrapper<'a, Data, T> 
                 MaybeData::Id(id) => MaybeData::Id(*id),
                 MaybeData::None => unimplemented!(),
             },
+            id: self.id,
             remove_id_cb: None,
             _pd: PhantomData,
         }

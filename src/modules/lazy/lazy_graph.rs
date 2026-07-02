@@ -193,7 +193,8 @@ mod tests {
             // buffers.insert(*lhs.id(), &lhs);
             // register_buf_any(cache, buf)
             graph.add_operation::<CPU<Autograd<Base>>, _, 1>(&lhs, |args, _| {
-                println!("args: {args:?}");
+                // the replicated buffer is deviceless - print the host data directly
+                println!("args: {:?}", args.as_slice());
 
                 // DEVICE2.set(args.device);
                 // unsafe {
@@ -204,7 +205,7 @@ mod tests {
             });
 
             graph.add_operation::<CPU<Autograd<Base>>, _, 2>((&lhs, &rhs), |args, _dev| {
-                println!("args: {args:?}");
+                println!("args: {:?}", (args.0.as_slice(), args.1.as_slice()));
                 Ok(())
             });
             graph.call_lazily(&device, &mut buffers).unwrap();

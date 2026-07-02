@@ -104,6 +104,11 @@ impl<'a, Data: HasId, T> HasId for ReqGradWrapper<'a, Data, T> {
     fn set_requires_grad(&mut self, requires_grad: bool) {
         self.requires_grad = requires_grad;
     }
+
+    #[inline]
+    fn set_id(&mut self, id: crate::Id) {
+        self.data.set_id(id)
+    }
 }
 
 impl<'a, Data: HasId + PtrType, T: Unit> PtrType for ReqGradWrapper<'a, Data, T> {

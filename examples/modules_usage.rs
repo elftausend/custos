@@ -1,7 +1,7 @@
 use std::ops::{Add, AddAssign, Deref, DerefMut, Mul};
 
 use custos::{
-    AddGradFn, AddOperation, Alloc, ApplyFunction, Buffer, CPU, Combiner, Device,
+    AddGradFn, AddOperation, Alloc, ApplyFunction, Buffer, CPU, Combiner, Device, HasId,
     MayGradActions, Retrieve, Retriever, Shape, Unit, ZeroGrad,
 };
 
@@ -29,23 +29,22 @@ where
     }
 }
 
-impl<'a, T, D, S, Mods> ElementWise<T, D, S> for CPU<Mods>
+impl<'a, T, S, Mods> ElementWise<T, Self, S> for CPU<Mods>
 where
     T: Unit + Add<Output = T> + AddAssign + Mul<Output = T> + Default + Copy + 'static,
-    D: Device + ZeroGrad<T> + Alloc<T> + MayGradActions + 'static,
-    D::Base<T, S>: Deref<Target = [T]> + DerefMut,
     S: Shape,
     Mods: Retrieve<Self, T, S> + AddOperation + MayGradActions + AddGradFn + 'static,
 {
     fn add(
         &self,
-        lhs: &Buffer<T, D, S>,
-        rhs: &Buffer<T, D, S>,
+        lhs: &Buffer<T, Self, S>,
+        rhs: &Buffer<T, Self, S>,
     ) -> custos::Result<Buffer<T, Self, S>> {
         let mut out = self.retrieve(lhs.len(), (lhs, rhs)).unwrap();
 
-        self.add_grad_fn_inner((lhs, rhs, &mut out), self, |(lhs, rhs, out), _dev| unsafe {
-            add_ew_grad_slice(lhs.grad_mut_unbound(), rhs.grad_mut_unbound(), out.grad()); // execute grad function
+        self.add_grad_fn_inner((lhs, rhs, &mut out), self, |(lhs, rhs, out), dev| unsafe {
+            // execute grad function
+            add_ew_grad_slice(lhs.grad_mut_unbound(dev), rhs.grad_mut_unbound(dev), out.grad(dev));
             Ok(())
         });
 
@@ -102,8 +101,7 @@ where
     ) -> custos::Result<Buffer<T, Self, S>> {
         let mut out = self.retrieve(lhs.len(), (lhs, rhs)).unwrap();
 
-        self.add_op((lhs, rhs, &mut out), |(lhs, rhs, out), _| {
-            let dev = lhs.device();
+        self.add_op((lhs, rhs, &mut out), |(lhs, rhs, out), dev| {
             #[cfg(unified_cl)]
             {
                 use custos::UseGpuOrCpu;

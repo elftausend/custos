@@ -37,16 +37,6 @@ impl Downcast for dyn BoxedShallowCopy {
     }
 
     #[inline]
-    unsafe fn downcast_mut_unchecked<T>(&mut self) -> &mut T {
-        unsafe { Downcast::downcast_mut_unchecked(self.as_any_mut()) }
-    }
-
-    #[inline]
-    unsafe fn downcast_ref_unchecked<T>(&self) -> &T {
-        unsafe { Downcast::downcast_ref_unchecked(self.as_any()) }
-    }
-
-    #[inline]
     fn is<T: 'static>(&self) -> bool {
         self.as_any().is::<T>()
     }
@@ -61,16 +51,6 @@ impl<I: Downcast + ?Sized> Downcast for Box<I> {
     #[inline]
     fn downcast_ref<T: 'static>(&self) -> Option<&T> {
         (**self).downcast_ref()
-    }
-
-    #[inline]
-    unsafe fn downcast_mut_unchecked<T>(&mut self) -> &mut T {
-        unsafe { (**self).downcast_mut_unchecked() }
-    }
-
-    #[inline]
-    unsafe fn downcast_ref_unchecked<T>(&self) -> &T {
-        unsafe { (**self).downcast_ref_unchecked() }
     }
 
     #[inline]

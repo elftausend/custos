@@ -84,9 +84,8 @@ impl<T, Mods> Lazy<'_, Mods, T> {
             }
             let last_idx = *unary_ops.1.last().unwrap();
 
-            // safety: only unary ops are fused. Adding unary ops to the graph require type T.
-            let (update_idx, op) =
-                unsafe { device.fuse_unary_ops(&graph, unary_ops, &mut buffers) };
+            // only unary ops are fused. Adding unary ops to the graph require type T.
+            let (update_idx, op) = device.fuse_unary_ops(&graph, unary_ops, &mut buffers);
             graph.operations[update_idx] = op;
             // only arg id information is required for last op, not the op itself
             graph.operations[last_idx] = Operation::no_op();

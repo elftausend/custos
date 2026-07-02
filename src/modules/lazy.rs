@@ -227,7 +227,7 @@ impl<Mods: crate::GradActions, U> crate::GradActions for Lazy<'_, Mods, U> {
     >(
         &self,
         device: &'a D,
-        buf: &Buffer<'a, T, D, S>,
+        buf: &Buffer<'_, T, D, S>,
     ) -> &Buffer<'static, T, D, S> {
         unsafe { self.modules.grad(device, buf) }
     }
@@ -240,7 +240,7 @@ impl<Mods: crate::GradActions, U> crate::GradActions for Lazy<'_, Mods, U> {
     >(
         &self,
         device: &'a D,
-        buf: &Buffer<'a, T, D, S>,
+        buf: &Buffer<'_, T, D, S>,
     ) -> &mut Buffer<'static, T, D, S> {
         unsafe { self.modules.grad_mut(device, buf) }
     }
@@ -358,7 +358,10 @@ where
             let base = device
                 .alloc::<S>(id.len, crate::flag::AllocFlag::None)
                 .unwrap();
-            let data = device.default_base_to_data_unbound(base);
+            let mut data = device.default_base_to_data_unbound(base);
+            // keep reporting the graph level id (instead of e.g. the pointer based
+            // id of the allocation) - gradient fns rely on stable ids
+            data.set_id(id);
             let buffer = Buffer {
                 data,
                 device: Some(device),
@@ -375,6 +378,7 @@ where
 
         Ok(LazyWrapper {
             maybe_data: MaybeData::Id(id),
+            id: None,
             remove_id_cb: None,
             _pd: core::marker::PhantomData,
         })

@@ -215,7 +215,7 @@ impl crate::GradActions for Base {
     >(
         &self,
         _device: &'a D,
-        _buf: &crate::Buffer<'a, T, D, S>,
+        _buf: &crate::Buffer<'_, T, D, S>,
     ) -> &crate::Buffer<'static, T, D, S> {
         unimplemented!()
     }
@@ -228,7 +228,7 @@ impl crate::GradActions for Base {
     >(
         &self,
         _device: &'a D,
-        _buf: &crate::Buffer<'a, T, D, S>,
+        _buf: &crate::Buffer<'_, T, D, S>,
     ) -> &mut crate::Buffer<'static, T, D, S> {
         unimplemented!()
     }
